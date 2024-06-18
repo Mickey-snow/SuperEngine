@@ -40,8 +40,8 @@
 
 #include "libreallive/compression.h"
 
-using boost::istarts_with;
 using boost::iends_with;
+using boost::istarts_with;
 namespace fs = boost::filesystem;
 
 namespace libreallive {
@@ -81,8 +81,7 @@ Archive::Archive(const std::string& filename, const std::string& regname)
              "\x4b\x45\x59\x5c\x83\x4e\x83\x68\x82\xed\x82\xd3\x82"
              "\xbd\x81\x5b") {
     // "KEY\<Kud Wafter in hiragana>"
-    second_level_xor_key_ =
-        libreallive::compression::kud_wafter_xor_mask;
+    second_level_xor_key_ = libreallive::compression::kud_wafter_xor_mask;
   } else if (regname ==
              "\x4b\x45\x59\x5c\x83\x4e\x83\x68\x82\xed\x82\xd3\x82"
              "\xbd\x81\x5b\x81\x79\x91\x53\x94\x4e\x97\xee\x91\xce"
@@ -95,23 +94,25 @@ Archive::Archive(const std::string& filename, const std::string& regname)
 Archive::~Archive() {}
 
 Scenario* Archive::GetScenario(int index) {
-  accessed_t::const_iterator at = accessed_.find(index);
-  if (at != accessed_.end())
+  scenario_t::const_iterator at = scenario_.find(index);
+  if (at != scenario_.end())
     return at->second.get();
-  scenarios_t::const_iterator st = scenarios_.find(index);
-  if (st != scenarios_.end()) {
-    Scenario* scene =
-        new Scenario(st->second, index, regname_, second_level_xor_key_);
-    accessed_[index].reset(scene);
-    return scene;
+  else {  // make the scenario on demand
+    toc_t::const_iterator st = toc_.find(index);
+    if (st != toc_.end()) {
+      Scenario* scene =
+          new Scenario(st->second, index, regname_, second_level_xor_key_);
+      scenario_[index].reset(scene);
+      return scene;
+    }
+    return NULL;
   }
-  return NULL;
 }
 
 int Archive::GetProbableEncodingType() const {
   // Directly create Header objects instead of Scenarios. We don't want to
   // parse the entire SEEN file here.
-  for (auto it = scenarios_.cbegin(); it != scenarios_.cend(); ++it) {
+  for (auto it = toc_.cbegin(); it != toc_.cend(); ++it) {
     Header header(it->second.data, it->second.length);
     if (header.rldev_metadata_.text_encoding() != 0)
       return header.rldev_metadata_.text_encoding();
@@ -125,7 +126,7 @@ void Archive::ReadTOC() {
   for (int i = 0; i < 10000; ++i, idx += 8) {
     const int offs = read_i32(idx);
     if (offs)
-      scenarios_[i] = FilePos(info_.get() + offs, read_i32(idx + 4));
+      toc_[i] = FilePos(info_.get() + offs, read_i32(idx + 4));
   }
 }
 
@@ -143,7 +144,7 @@ void Archive::ReadOverrides() {
       maps_to_delete_.emplace_back(mapping);
 
       int index = std::stoi(filename.substr(4, 4));
-      scenarios_[index] = FilePos(mapping->get(), mapping->size());
+      toc_[index] = FilePos(mapping->get(), mapping->size());
     }
   }
 }

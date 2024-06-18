@@ -48,8 +48,8 @@ const IntegerBank_t LOCAL_INTEGER_BANKS = {
     make_pair(libreallive::INTF_LOCATION, 'F')};
 
 const IntegerBank_t GLOBAL_INTEGER_BANKS = {
-  make_pair(libreallive::INTG_LOCATION, 'G'),
-  make_pair(libreallive::INTZ_LOCATION, 'Z')};
+    make_pair(libreallive::INTG_LOCATION, 'G'),
+    make_pair(libreallive::INTZ_LOCATION, 'Z')};
 
 // -----------------------------------------------------------------------
 // GlobalMemory
@@ -125,10 +125,12 @@ const std::string& Memory::GetStringValue(int type, int location) {
         "Invalid range access in RLMachine::set_string_value");
 
   switch (type) {
-    case libreallive::STRK_LOCATION:
-      if ((location + 1) > machine_.CurrentStrKBank().size())
-        machine_.CurrentStrKBank().resize(location + 1);
-      return machine_.CurrentStrKBank()[location];
+    case libreallive::STRK_LOCATION: {
+      auto& currentStrKBank = machine_.CurrentStrKBank();
+      if ((location + 1) > currentStrKBank.size())
+        currentStrKBank.resize(location + 1);
+      return currentStrKBank[location];
+    }
     case libreallive::STRM_LOCATION:
       return global_->strM[location];
     case libreallive::STRS_LOCATION:
@@ -144,11 +146,12 @@ void Memory::SetStringValue(int type, int number, const std::string& value) {
         "Invalid range access in RLMachine::set_string_value");
 
   switch (type) {
-    case libreallive::STRK_LOCATION:
-      if ((number + 1) > machine_.CurrentStrKBank().size())
-        machine_.CurrentStrKBank().resize(number + 1);
-      machine_.CurrentStrKBank()[number] = value;
-      break;
+    case libreallive::STRK_LOCATION: {
+      auto& currentStrKBank = machine_.CurrentStrKBank();
+      if ((number + 1) > currentStrKBank.size())
+        currentStrKBank.resize(number + 1);
+      currentStrKBank[number] = value;
+    } break;
     case libreallive::STRM_LOCATION:
       global_->strM[number] = value;
       break;
@@ -246,25 +249,21 @@ void Memory::InitializeDefaultValues(Gameexe& gameexe) {
   // error prone and for losers.
   GameexeFilteringIterator end = gameexe.filtering_end();
   for (GameexeFilteringIterator it = gameexe.filtering_begin("NAME.");
-       it != end;
-       ++it) {
+       it != end; ++it) {
     try {
       SetName(ConvertLetterIndexToInt(it->GetKeyParts().at(1)),
               RemoveQuotes(it->ToString()));
-    }
-    catch (...) {
+    } catch (...) {
       std::cerr << "WARNING: Invalid format for key " << it->key() << std::endl;
     }
   }
 
   for (GameexeFilteringIterator it = gameexe.filtering_begin("LOCALNAME.");
-       it != end;
-       ++it) {
+       it != end; ++it) {
     try {
       SetLocalName(ConvertLetterIndexToInt(it->GetKeyParts().at(1)),
                    RemoveQuotes(it->ToString()));
-    }
-    catch (...) {
+    } catch (...) {
       std::cerr << "WARNING: Invalid format for key " << it->key() << std::endl;
     }
   }

@@ -38,6 +38,7 @@
 
 #include "libreallive/defs.h"
 #include "libreallive/bytecode.h"
+#include "libreallive/scenario_internals.h"
 
 namespace libreallive {
 
@@ -45,7 +46,6 @@ namespace compression {
 struct XorKey;
 }  // namespace compression
 
-#include "libreallive/scenario_internals.h"
 
 class Scenario {
  public:

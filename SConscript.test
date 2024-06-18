@@ -73,7 +73,8 @@ null_system_files = [
 
 test_env.RlvmProgram('rlvm_unittests',
                      ["test/rlvm_unittests.cc", null_system_files,
-                      test_case_files],
+                      test_case_files,
+                      ],
                      use_lib_set = ["TEST"],
                      rlvm_libs = ["rlvm"])
 test_env.Install('$OUTPUT_DIR', 'rlvm_unittests')

@@ -40,8 +40,8 @@
 #include <vector>
 
 #include "libreallive/defs.h"
-#include "libreallive/scenario.h"
 #include "libreallive/filemap.h"
+#include "libreallive/scenario.h"
 
 namespace libreallive {
 
@@ -61,8 +61,8 @@ class Archive {
   ~Archive();
 
   typedef std::map<int, FilePos>::const_iterator const_iterator;
-  const_iterator begin() { return scenarios_.cbegin(); }
-  const_iterator end() { return scenarios_.cend(); }
+  const_iterator begin() const { return toc_.cbegin(); }
+  const_iterator end() const { return toc_.cend(); }
 
   // Returns a specific scenario by |index| number or NULL if none exist.
   Scenario* GetScenario(int index);
@@ -72,15 +72,15 @@ class Archive {
   int GetProbableEncodingType() const;
 
  private:
-  typedef std::map<int, FilePos> scenarios_t;
-  typedef std::map<int, std::unique_ptr<Scenario>> accessed_t;
+  typedef std::map<int, FilePos> toc_t;
+  typedef std::map<int, std::unique_ptr<Scenario>> scenario_t;
 
   void ReadTOC();
 
   void ReadOverrides();
 
-  scenarios_t scenarios_;
-  accessed_t accessed_;
+  toc_t toc_;
+  scenario_t scenario_;
   string name_;
   Mapping info_;
 

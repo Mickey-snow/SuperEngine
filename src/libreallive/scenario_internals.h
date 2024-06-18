@@ -33,7 +33,11 @@
 #include <string>
 #include <vector>
 
+#include "bytecode_fwd.h"
+
+namespace libreallive {
 class Scenario;
+using std::string;
 
 struct FilePos {
   FilePos() : data(NULL), length(0) {}
@@ -74,6 +78,10 @@ class Header {
   Metadata rldev_metadata_;
 };
 
+namespace compression {
+struct XorKey;
+}
+
 class Script {
  public:
   const pointer_t GetEntrypoint(int entrypoint) const;
@@ -81,11 +89,16 @@ class Script {
  private:
   friend class Scenario;
 
-  Script(const Header& hdr, const char* data, const size_t length,
+  Script(const Header& hdr,
+         const char* data,
+         const size_t length,
          const std::string& regname,
-         bool use_xor_2, const compression::XorKey* second_level_xor_key);
+         bool use_xor_2,
+         const compression::XorKey* second_level_xor_key);
   ~Script();
 
+  // A sequence of semi-parsed/tokenized bytecode elements, which are
+  // the elements that RLMachine executes.
   BytecodeList elts_;
 
   // Entrypoint handeling
@@ -94,3 +107,4 @@ class Script {
 };
 
 #endif  // SRC_LIBREALLIVE_SCENARIO_INTERNALS_H_
+}
