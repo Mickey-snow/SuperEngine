@@ -36,10 +36,10 @@
 #include <boost/filesystem/path.hpp>
 
 #include <functional>
-#include <string>
-#include <sstream>
 #include <iostream>
 #include <iterator>
+#include <sstream>
+#include <string>
 #include <vector>
 
 #include "libreallive/archive.h"
@@ -79,13 +79,14 @@ namespace {
 
 // Seen files are terminated with the string "SeenEnd", which isn't NULL
 // terminated and has a bunch of random garbage after it.
-const char seen_end[] = {130, 114,  // S
-                         130, 133,  // e
-                         130, 133,  // e
-                         130, 142,  // n
-                         130, 100,  // E
-                         130, 142,  // n
-                         130, 132   // d
+const char seen_end[] = {
+    130, 114,  // S
+    130, 133,  // e
+    130, 133,  // e
+    130, 142,  // n
+    130, 100,  // E
+    130, 142,  // n
+    130, 132   // d
 };
 
 const std::string SeenEnd(seen_end, 14);
@@ -117,7 +118,7 @@ RLMachine::RLMachine(System& in_system, libreallive::Archive& in_archive)
 
   if (scenario == NULL) {
     // if SEEN_START is undefined, then just grab the first SEEN.
-    scenario = in_archive.GetScenario(archive_.begin()->first);
+    scenario = in_archive.GetFirstScenario();
   }
 
   if (scenario == 0)
@@ -132,13 +133,12 @@ RLMachine::RLMachine(System& in_system, libreallive::Archive& in_archive)
   GameexeFilteringIterator it = gameexe.filtering_begin("DLL.");
   GameexeFilteringIterator end = gameexe.filtering_end();
   for (; it != end; ++it) {
-    const string& name = it->ToString("");
+    const std::string& name = it->ToString("");
     try {
-      string index_str = it->key().substr(it->key().find_first_of(".") + 1);
+      std::string index_str = it->key().substr(it->key().find_first_of(".") + 1);
       int index = std::stoi(index_str);
       LoadDLL(index, name);
-    }
-    catch (rlvm::Exception& e) {
+    } catch (rlvm::Exception& e) {
       cerr << "WARNING: Don't know what to do with DLL '" << name << "'"
            << endl;
     }
@@ -263,8 +263,7 @@ void RLMachine::ExecuteNextInstruction() {
       } else {
         (*(call_stack_.back().ip))->RunOnMachine(*this);
       }
-    }
-    catch (rlvm::UnimplementedOpcode& e) {
+    } catch (rlvm::UnimplementedOpcode& e) {
       AdvanceInstructionPointer();
 
       if (print_undefined_opcodes_) {
@@ -274,8 +273,7 @@ void RLMachine::ExecuteNextInstruction() {
 
       if (undefined_log_)
         undefined_log_->Increment(e.opcode_name());
-    }
-    catch (rlvm::Exception& e) {
+    } catch (rlvm::Exception& e) {
       if (halt_on_exception_) {
         halted_ = true;
       } else {
@@ -284,8 +282,8 @@ void RLMachine::ExecuteNextInstruction() {
         AdvanceInstructionPointer();
       }
 
-      cout << "(SEEN" << call_stack_.back().scenario->scene_number() << ")(Line "
-           << line_ << ")";
+      cout << "(SEEN" << call_stack_.back().scenario->scene_number()
+           << ")(Line " << line_ << ")";
 
       // We specialcase rlvm::Exception because we might have the name of the
       // opcode.
@@ -294,8 +292,7 @@ void RLMachine::ExecuteNextInstruction() {
       }
 
       cout << ":  " << e.what() << endl;
-    }
-    catch (std::exception& e) {
+    } catch (std::exception& e) {
       if (halt_on_exception_) {
         halted_ = true;
       } else {
@@ -304,8 +301,8 @@ void RLMachine::ExecuteNextInstruction() {
         AdvanceInstructionPointer();
       }
 
-      cout << "(SEEN" << call_stack_.back().scenario->scene_number() << ")(Line "
-           << line_ << "):  " << e.what() << endl;
+      cout << "(SEEN" << call_stack_.back().scenario->scene_number()
+           << ")(Line " << line_ << "):  " << e.what() << endl;
     }
   }
 }
@@ -410,8 +407,8 @@ void RLMachine::GotoLocation(libreallive::BytecodeList::iterator new_location) {
 }
 
 void RLMachine::Gosub(libreallive::BytecodeList::iterator new_location) {
-  PushStackFrame(StackFrame(
-      call_stack_.back().scenario, new_location, StackFrame::TYPE_GOSUB));
+  PushStackFrame(StackFrame(call_stack_.back().scenario, new_location,
+                            StackFrame::TYPE_GOSUB));
 }
 
 void RLMachine::ReturnFromGosub() {
@@ -445,8 +442,8 @@ void RLMachine::PushStringValueUp(int index, const std::string& val) {
 }
 
 void RLMachine::PushLongOperation(LongOperation* long_operation) {
-  PushStackFrame(StackFrame(
-      call_stack_.back().scenario, call_stack_.back().ip, long_operation));
+  PushStackFrame(StackFrame(call_stack_.back().scenario, call_stack_.back().ip,
+                            long_operation));
 }
 
 void RLMachine::PushStackFrame(const StackFrame& frame) {
@@ -473,9 +470,7 @@ void RLMachine::PopStackFrame() {
   call_stack_.pop_back();
 }
 
-int RLMachine::GetStackSize() {
-  return call_stack_.size();
-}
+int RLMachine::GetStackSize() { return call_stack_.size(); }
 
 int* RLMachine::CurrentIntLBank() {
   std::vector<StackFrame>::reverse_iterator it =
@@ -572,8 +567,7 @@ void RLMachine::PerformTextout(const std::string& cp932str) {
   std::string name_parsed_text;
   try {
     parseNames(*memory_, cp932str, name_parsed_text);
-  }
-  catch (rlvm::Exception& e) {
+  } catch (rlvm::Exception& e) {
     // WEIRD: Sometimes rldev (and the official compiler?) will generate strings
     // that aren't valid shift_jis. Fall back while I figure out how to handle
     // this.
@@ -587,8 +581,7 @@ void RLMachine::PerformTextout(const std::string& cp932str) {
   std::unique_ptr<TextoutLongOperation> ptr(
       new TextoutLongOperation(*this, utf8str));
 
-  if (system().ShouldFastForward() ||
-      ts.message_no_wait() ||
+  if (system().ShouldFastForward() || ts.message_no_wait() ||
       ts.script_message_nowait()) {
     ptr->set_no_wait();
   }
@@ -696,20 +689,20 @@ void RLMachine::AddLineAction(const int seen,
 template <class Archive>
 void RLMachine::save(Archive& ar, unsigned int version) const {
   int line_num = line_number();
-  ar& line_num;
+  ar & line_num;
 
   // Save the state of the stack when the last save point was hit
-  ar& savepoint_call_stack_;
+  ar & savepoint_call_stack_;
 }
 
 template <class Archive>
 void RLMachine::load(Archive& ar, unsigned int version) {
-  ar& line_;
+  ar & line_;
 
   // Just thaw the call_stack_; all preprocessing was done at freeze
   // time.
   // assert(call_stack_.size() == 0);
-  ar& call_stack_;
+  ar & call_stack_;
 }
 
 // -----------------------------------------------------------------------

@@ -47,7 +47,7 @@ namespace libreallive {
 
 Metadata::Metadata() : encoding_(0) {}
 
-void Metadata::Assign(const char* input) {
+void Metadata::Assign(const char* const input) {
   const int meta_len = read_i32(input), id_len = read_i32(input + 4) + 1;
   if (meta_len < id_len + 17)
     return;  // malformed metadata
@@ -55,7 +55,9 @@ void Metadata::Assign(const char* input) {
   encoding_ = input[id_len + 16];
 }
 
-Header::Header(const char* data, const size_t length) {
+void Metadata::Assign(const std::string_view& input) { Assign(input.data()); }
+
+Header::Header(const char* const data, const size_t length) {
   if (length < 0x1d0)
     throw Error("not a RealLive bytecode file");
 
@@ -109,7 +111,7 @@ Header::Header(const char* data, const size_t length) {
 Header::~Header() {}
 
 Script::Script(const Header& hdr,
-               const char* data,
+               const char* const data,
                const size_t length,
                const std::string& regname,
                bool use_xor_2,
@@ -141,11 +143,8 @@ Script::Script(const Header& hdr,
   }
 
   char* uncompressed = new char[dlen];
-  compression::Decompress(data + read_i32(data + 0x20),
-                          read_i32(data + 0x28),
-                          uncompressed,
-                          dlen,
-                          key);
+  compression::Decompress(data + read_i32(data + 0x20), read_i32(data + 0x28),
+                          uncompressed, dlen, key);
   // Read bytecode
   const char* stream = uncompressed;
   const char* end = uncompressed + dlen;
@@ -177,6 +176,18 @@ Script::Script(const Header& hdr,
   delete[] uncompressed;
 }
 
+Script::Script(const Header& hdr,
+               const std::string_view& data,
+               const std::string& regname,
+               bool use_xor_2,
+               const compression::XorKey* second_level_xor_key)
+    : Script(hdr,
+             data.data(),
+             data.length(),
+             regname,
+             use_xor_2,
+             second_level_xor_key) {}
+
 Script::~Script() {}
 
 const pointer_t Script::GetEntrypoint(int entrypoint) const {
@@ -187,23 +198,19 @@ const pointer_t Script::GetEntrypoint(int entrypoint) const {
   return it->second;
 }
 
-Scenario::Scenario(const char* data, const size_t length, int sn,
+Scenario::Scenario(const std::string_view& data,
+                   int sn,
                    const std::string& regname,
                    const compression::XorKey* second_level_xor_key)
-  : header(data, length),
-    script(header, data, length, regname,
-           header.use_xor_2_, second_level_xor_key),
-    scenario_number_(sn) {
-}
+    : header(data),
+      script(header, data, regname, header.use_xor_2_, second_level_xor_key),
+      scenario_number_(sn) {}
 
-Scenario::Scenario(const FilePos& fp, int sn,
+Scenario::Scenario(FilePos fp,
+                   int sn,
                    const std::string& regname,
                    const compression::XorKey* second_level_xor_key)
-  : header(fp.data, fp.length),
-    script(header, fp.data, fp.length, regname,
-           header.use_xor_2_, second_level_xor_key),
-    scenario_number_(sn) {
-}
+    : Scenario(fp.Read(), sn, regname, second_level_xor_key) {}
 
 Scenario::~Scenario() {}
 

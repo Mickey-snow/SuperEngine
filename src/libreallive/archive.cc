@@ -31,13 +31,12 @@
 //
 // -----------------------------------------------------------------------
 
-#include "libreallive/archive.h"
-
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <cstring>
 #include <string>
 
+#include "libreallive/archive.h"
 #include "libreallive/compression.h"
 
 using boost::iends_with;
@@ -46,49 +45,13 @@ namespace fs = boost::filesystem;
 
 namespace libreallive {
 
-Archive::Archive(const std::string& filename)
-    : name_(filename), info_(filename, Read), second_level_xor_key_(NULL) {
-  ReadTOC();
-  ReadOverrides();
-}
+Archive::Archive(const std::string& filename) : Archive(filename, "") {}
 
-Archive::Archive(const std::string& filename, const std::string& regname)
-    : name_(filename),
-      info_(filename, Read),
-      second_level_xor_key_(NULL),
-      regname_(regname) {
-  ReadTOC();
-  ReadOverrides();
-
-  if (regname == "KEY\\CLANNAD_FV") {
-    second_level_xor_key_ =
-        libreallive::compression::clannad_full_voice_xor_mask;
-  } else if (regname ==
-             "\x4b\x45\x59\x5c\x83\x8a\x83\x67\x83\x8b\x83"
-             "\x6f\x83\x58\x83\x5e\x81\x5b\x83\x59\x81\x49") {
-    second_level_xor_key_ = libreallive::compression::little_busters_xor_mask;
-  } else if (regname ==
-             "\x4b\x45\x59\x5c\x83\x8a\x83\x67\x83\x8b\x83\x6f\x83\x58\x83\x5e"
-             "\x81\x5b\x83\x59\x81\x49\x82\x64\x82\x77") {
-    // "KEY\<little busters in katakana>!EX", with all fullwidth latin
-    // characters.
-    second_level_xor_key_ =
-        libreallive::compression::little_busters_ex_xor_mask;
-  } else if (regname == "StudioMebius\\SNOWSE") {
-    second_level_xor_key_ =
-        libreallive::compression::snow_standard_edition_xor_mask;
-  } else if (regname ==
-             "\x4b\x45\x59\x5c\x83\x4e\x83\x68\x82\xed\x82\xd3\x82"
-             "\xbd\x81\x5b") {
-    // "KEY\<Kud Wafter in hiragana>"
-    second_level_xor_key_ = libreallive::compression::kud_wafter_xor_mask;
-  } else if (regname ==
-             "\x4b\x45\x59\x5c\x83\x4e\x83\x68\x82\xed\x82\xd3\x82"
-             "\xbd\x81\x5b\x81\x79\x91\x53\x94\x4e\x97\xee\x91\xce"
-             "\x8f\xdb\x94\xc5\x81\x7a") {
-    second_level_xor_key_ =
-        libreallive::compression::kud_wafter_all_ages_xor_mask;
-  }
+Archive::Archive(const fs::path& filepath, const std::string& regname)
+    : second_level_xor_key_(NULL), regname_(regname) {
+  ReadTOC(filepath);
+  ReadOverrides(filepath);
+  FindXorKey();
 }
 
 Archive::~Archive() {}
@@ -109,11 +72,17 @@ Scenario* Archive::GetScenario(int index) {
   }
 }
 
+Scenario* Archive::GetFirstScenario() {
+  const int first_scenario_id = toc_.cbegin()->first;
+  return GetScenario(first_scenario_id);
+}
+
 int Archive::GetProbableEncodingType() const {
   // Directly create Header objects instead of Scenarios. We don't want to
   // parse the entire SEEN file here.
   for (auto it = toc_.cbegin(); it != toc_.cend(); ++it) {
-    Header header(it->second.data, it->second.length);
+    FilePos filepos = it->second;
+    Header header(filepos.Read());
     if (header.rldev_metadata_.text_encoding() != 0)
       return header.rldev_metadata_.text_encoding();
   }
@@ -121,31 +90,75 @@ int Archive::GetProbableEncodingType() const {
   return 0;
 }
 
-void Archive::ReadTOC() {
-  const char* idx = info_.get();
-  for (int i = 0; i < 10000; ++i, idx += 8) {
-    const int offs = read_i32(idx);
-    if (offs)
-      toc_[i] = FilePos(info_.get() + offs, read_i32(idx + 4));
+void Archive::ReadTOC(const fs::path& filepath) {
+  std::shared_ptr<MappedFile> header = std::make_shared<MappedFile>(filepath);
+  static constexpr int TOC_COUNT = 10000;
+  static constexpr std::size_t TOC_SIZE = 8;
+
+  for (int i = 0; i < TOC_COUNT; ++i) {
+    std::string_view token = header->Read(i * TOC_SIZE, TOC_SIZE);
+    const int offset = read_i32(token);
+    if (offset) {
+      FilePos filepos;
+      filepos.file_ = header;
+      filepos.position = offset;
+      filepos.length = read_i32(token, 4);
+
+      toc_[i] = filepos;
+    }
   }
 }
 
-void Archive::ReadOverrides() {
+void Archive::ReadOverrides(const fs::path& filepath) {
   // Iterate over all files in the directory and override the table of contents
   // if there is a free SEENXXXX.TXT file.
-  fs::path seen_dir = fs::path(name_).parent_path();
+  const fs::path seen_dir = filepath.parent_path();
   fs::directory_iterator end;
   for (fs::directory_iterator it(seen_dir); it != end; ++it) {
     std::string filename = it->path().filename().string();
     if (filename.size() == 12 && istarts_with(filename, "seen") &&
         iends_with(filename, ".txt") && isdigit(filename[4]) &&
         isdigit(filename[5]) && isdigit(filename[6]) && isdigit(filename[7])) {
-      Mapping* mapping = new Mapping((seen_dir / filename).string(), Read);
-      maps_to_delete_.emplace_back(mapping);
+      FilePos filepos;
+      filepos.file_ = std::make_shared<MappedFile>(filename);
+      filepos.position = 0;
+      filepos.length = filepos.file_->Size();
 
       int index = std::stoi(filename.substr(4, 4));
-      toc_[index] = FilePos(mapping->get(), mapping->size());
+      toc_[index] = filepos;
     }
+  }
+}
+
+void Archive::FindXorKey() {
+  if (regname_ == "KEY\\CLANNAD_FV") {
+    second_level_xor_key_ =
+        libreallive::compression::clannad_full_voice_xor_mask;
+  } else if (regname_ ==
+             "\x4b\x45\x59\x5c\x83\x8a\x83\x67\x83\x8b\x83"
+             "\x6f\x83\x58\x83\x5e\x81\x5b\x83\x59\x81\x49") {
+    second_level_xor_key_ = libreallive::compression::little_busters_xor_mask;
+  } else if (regname_ ==
+             "\x4b\x45\x59\x5c\x83\x8a\x83\x67\x83\x8b\x83\x6f\x83\x58\x83\x5e"
+             "\x81\x5b\x83\x59\x81\x49\x82\x64\x82\x77") {
+    // "KEY\<little busters in katakana>!EX", with all fullwidth latin
+    // characters.
+    second_level_xor_key_ =
+        libreallive::compression::little_busters_ex_xor_mask;
+  } else if (regname_ == "StudioMebius\\SNOWSE") {
+    second_level_xor_key_ =
+        libreallive::compression::snow_standard_edition_xor_mask;
+  } else if (regname_ ==
+             "\x4b\x45\x59\x5c\x83\x4e\x83\x68\x82\xed\x82\xd3\x82"
+             "\xbd\x81\x5b") {
+    // "KEY\<Kud Wafter in hiragana>"
+    second_level_xor_key_ = libreallive::compression::kud_wafter_xor_mask;
+  } else if (regname_ ==
+             "\x4b\x45\x59\x5c\x83\x4e\x83\x68\x82\xed\x82\xd3\x82"
+             "\xbd\x81\x5b\x81\x79\x91\x53\x94\x4e\x97\xee\x91\xce"
+             "\x8f\xdb\x94\xc5\x81\x7a") {
+    second_level_xor_key_ =
+        libreallive::compression::kud_wafter_all_ages_xor_mask;
   }
 }
 

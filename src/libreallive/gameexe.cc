@@ -42,7 +42,7 @@
 #include <fstream>
 #include <iomanip>
 
-#include "libreallive/defs.h"
+#include "libreallive/alldefs.h"
 
 namespace fs = boost::filesystem;
 

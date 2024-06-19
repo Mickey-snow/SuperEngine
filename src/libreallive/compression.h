@@ -31,7 +31,7 @@
 
 #include <string>
 
-#include "libreallive/defs.h"
+#include "libreallive/alldefs.h"
 
 namespace libreallive {
 namespace compression {

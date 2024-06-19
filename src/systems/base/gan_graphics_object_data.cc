@@ -40,7 +40,7 @@
 #include <string>
 #include <vector>
 
-#include "libreallive/defs.h"
+#include "libreallive/alldefs.h"
 #include "machine/serialization.h"
 #include "systems/base/event_system.h"
 #include "systems/base/graphics_object.h"

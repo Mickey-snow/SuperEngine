@@ -31,6 +31,7 @@
 
 #include <map>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "bytecode_fwd.h"
@@ -39,13 +40,12 @@ namespace libreallive {
 class Scenario;
 using std::string;
 
-struct FilePos {
-  FilePos() : data(NULL), length(0) {}
-  FilePos(const char* d, const size_t l) : data(d), length(l) {}
+  class EncodedScenario{
+    EncodedScenario() = default;
 
-  const char* data;
-  size_t length;
-};
+  private:
+    std::string_view data_;
+  };
 
 class Metadata {
  public:
@@ -62,7 +62,7 @@ class Metadata {
 
 class Header {
  public:
-  Header(const char* data, const size_t length);
+  Header(const char* const data, const size_t length);
   ~Header();
 
   // Starting around the release of Little Busters!, scenario files has a
@@ -90,7 +90,7 @@ class Script {
   friend class Scenario;
 
   Script(const Header& hdr,
-         const char* data,
+         const char* const data,
          const size_t length,
          const std::string& regname,
          bool use_xor_2,

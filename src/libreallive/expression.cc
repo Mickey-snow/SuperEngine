@@ -42,7 +42,7 @@
 #include <sstream>
 #include <string>
 
-#include "libreallive/defs.h"
+#include "libreallive/alldefs.h"
 #include "libreallive/intmemref.h"
 #include "machine/reference.h"
 #include "machine/rlmachine.h"

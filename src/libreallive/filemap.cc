@@ -31,99 +31,64 @@
 //
 // -----------------------------------------------------------------------
 
+#include <sstream>
+
+#include "libreallive/alldefs.h"
 #include "libreallive/filemap.h"
-
-#include <fcntl.h>
-#ifndef O_BINARY
-const int O_BINARY = 0;
-#endif
-const HANDLE INVALID_HANDLE_VALUE = -1;
-
-#include <sys/mman.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
-#include <algorithm>
-#include <cerrno>
-#include <string>
 
 namespace libreallive {
 
-#ifdef WIN32
-const int O_BINARY = 0;
-const int O_RDONLY = GENERIC_READ;
-const int O_RDWR = GENERIC_READ | GENERIC_WRITE;
-inline HANDLE open(const char* filename, int mode, int ignored) {
-  return CreateFile(filename,
-                    mode,
-                    FILE_SHARE_READ | FILE_SHARE_WRITE,
-                    NULL,
-                    OPEN_ALWAYS,
-                    FILE_ATTRIBUTE_NORMAL,
-                    NULL);
-}
-inline void close(HANDLE fp) { CloseHandle(fp); }
-#endif
-
-void Mapping::mclose() {
-  if (mem && mapped) {
-    munmap(mem, len);
-  } else if (mem) {
-    delete[](char*)mem;
-  }
-  if (fp != INVALID_HANDLE_VALUE)
-    close(fp);
-}
-
-void Mapping::mopen() {
-  struct stat st;
-  if (stat(fn_.c_str(), &st) != 0) {
-    if (errno != ENOENT)
-      throw Error("Could not open file");
-    if (mode_ == Read)
-      throw Error("File not found");
-    if (msz_ == 0)
-      throw Error("Cannot create empty file");
-    len = msz_;
+MappedFile::MappedFile(const std::string& filename, std::size_t size) {
+  const bool is_readonly = size == 0;
+  if (is_readonly) {
+    file_.open(filename, boost::iostreams::mapped_file::mapmode::readonly);
   } else {
-    len = std::max(msz_, st.st_size);
+    file_.open(filename, boost::iostreams::mapped_file::mapmode::readwrite,
+               size);
   }
-  fp = open(fn_.c_str(), O_BINARY | (mode_ == Read ? O_RDONLY : O_RDWR), 0644);
-  if (fp == INVALID_HANDLE_VALUE)
-    throw Error("Could not open file");
-  mem = mmap(0,
-             len,
-             mode_ == Read ? PROT_READ : PROT_READ | PROT_WRITE,
-             MAP_SHARED,
-             fp,
-             0);
-  if (mem == MAP_FAILED) {
-    close(fp);
-    fp = INVALID_HANDLE_VALUE;
-    if (mode_ != Read) {
-      throw Error("Could not map memory");
-    } else {
-      mapped = false;
-      mem = (void*)(new char[len]);
-      FILE* fh = fopen(fn_.c_str(), "rb");
-      fread(mem, 1, len, fh);
-      fclose(fh);
-    }
-  } else {
-    mapped = true;
+
+  if (!file_.is_open()) {
+    std::stringstream ss;
+    ss << "Failed to open file:" << filename << std::endl;
+    throw Error(ss.str());
   }
 }
 
-Mapping::Mapping(string filename, Mode mode, off_t min_size)
-    : fp(INVALID_HANDLE_VALUE),
-      mem(NULL),
-      fn_(filename),
-      mode_(mode),
-      msz_(min_size) {
-  mopen();
+MappedFile::~MappedFile() {
+  if (file_.is_open())
+    file_.close();
 }
 
-Mapping::~Mapping() { mclose(); }
+MappedFile::MappedFile(const fs::path& filepath, std::size_t size)
+    : MappedFile(filepath.generic_string(), size) {}
+
+std::string_view MappedFile::Read(std::size_t position, std::size_t length) {
+  if (!file_.is_open())
+    throw Error("File not open");
+  if (position + length > file_.size())
+    throw Error("Read operation out of bounds");
+
+  return std::string_view(file_.const_data() + position, length);
+}
+
+bool MappedFile::Write(std::size_t position, const std::string& data) {
+  if (!file_.is_open()) {
+    throw Error("File not open");
+    return false;
+  }
+  if (position + data.size() > file_.size()) {
+    throw Error("Write operation out of bounds");
+    return false;
+  }
+
+  char* dst = file_.data();
+  if (dst == nullptr) {
+    throw Error("No write permission to file");
+    return false;
+  }
+
+  std::copy(data.cbegin(), data.cend(), dst + position);
+  return true;
+}
 
 }  // namespace libreallive

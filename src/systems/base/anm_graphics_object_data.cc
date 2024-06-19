@@ -42,7 +42,7 @@
 #include <sstream>
 #include <vector>
 
-#include "libreallive/defs.h"
+#include "libreallive/alldefs.h"
 #include "systems/base/event_system.h"
 #include "systems/base/graphics_object.h"
 #include "systems/base/graphics_system.h"

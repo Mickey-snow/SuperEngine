@@ -37,9 +37,10 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
-#include "libreallive/defs.h"
+#include "libreallive/alldefs.h"
 #include "libreallive/filemap.h"
 #include "libreallive/scenario.h"
 
@@ -52,20 +53,18 @@ struct XorKey;
 // Interface to a loaded SEEN.TXT file.
 class Archive {
  public:
-  // Read an archive, assuming no per-game xor key. (Used in unit testing).
-  explicit Archive(const string& filename);
+  // Read a seen.txt file, assuming no per-game xor key. (Used in unit testing).
+  explicit Archive(const std::string& filename);
 
   // Creates an interface to a SEEN.TXT file. Uses |regname| to look up
   // per-game xor key for newer games.
-  Archive(const string& filename, const string& regname);
+  Archive(const fs::path& filename, const std::string& regname);
   ~Archive();
-
-  typedef std::map<int, FilePos>::const_iterator const_iterator;
-  const_iterator begin() const { return toc_.cbegin(); }
-  const_iterator end() const { return toc_.cend(); }
 
   // Returns a specific scenario by |index| number or NULL if none exist.
   Scenario* GetScenario(int index);
+
+  Scenario* GetFirstScenario();
 
   // Does a quick pass through all scenarios in the archive, looking for any
   // with non-default encoding. This short circuits when it finds one.
@@ -75,17 +74,17 @@ class Archive {
   typedef std::map<int, FilePos> toc_t;
   typedef std::map<int, std::unique_ptr<Scenario>> scenario_t;
 
-  void ReadTOC();
+  void ReadTOC(const fs::path& filepath);
 
-  void ReadOverrides();
+  void ReadOverrides(const fs::path& filepath);
+
+  void FindXorKey();
 
   toc_t toc_;
   scenario_t scenario_;
-  string name_;
-  Mapping info_;
 
   // Mappings to unarchived SEEN\d{4}.TXT files on disk.
-  std::vector<std::unique_ptr<Mapping>> maps_to_delete_;
+  // std::vector<std::unique_ptr<Mapping>> maps_to_delete_;
 
   // Now that VisualArts is using per game xor keys, this is equivalent to the
   // game's second level xor key.

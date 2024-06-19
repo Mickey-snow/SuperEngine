@@ -76,7 +76,7 @@
 
 #include "libreallive/archive.h"
 #include "libreallive/bytecode.h"
-#include "libreallive/defs.h"
+#include "libreallive/alldefs.h"
 #include "libreallive/scenario.h"
 
 #endif  // SRC_LIBREALLIVE_REALLIVE_H_

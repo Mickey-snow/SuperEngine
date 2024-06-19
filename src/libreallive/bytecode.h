@@ -40,7 +40,7 @@
 #include <vector>
 
 #include "libreallive/bytecode_fwd.h"
-#include "libreallive/defs.h"
+#include "libreallive/alldefs.h"
 #include "libreallive/expression.h"
 
 class RLMachine;

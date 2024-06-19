@@ -35,24 +35,89 @@
 #define SRC_LIBREALLIVE_SCENARIO_H_
 
 #include <string>
+#include <string_view>
 
-#include "libreallive/defs.h"
 #include "libreallive/bytecode.h"
-#include "libreallive/scenario_internals.h"
+#include "libreallive/alldefs.h"
+#include "libreallive/filemap.h"
 
 namespace libreallive {
+  
+  namespace compression {
+    struct XorKey;
+  }  // namespace compression
 
-namespace compression {
-struct XorKey;
-}  // namespace compression
+class Metadata {
+ public:
+  Metadata();
+  const string& to_string() const { return as_string_; }
+  const int text_encoding() const { return encoding_; }
 
+  void Assign(const char* input);
+
+  void Assign(const std::string_view& input);
+  
+ private:
+  std::string as_string_;
+  int encoding_;
+};
+
+class Header {
+ public:
+  Header(const char* const data, const size_t length);
+  Header(const std::string_view& data) : Header(data.data(), data.length()) {}
+  ~Header();
+
+  // Starting around the release of Little Busters!, scenario files has a
+  // second round of xor done to them. When will they learn?
+  bool use_xor_2_;
+
+  long z_minus_one_;
+  long z_minus_two_;
+  long savepoint_message_;
+  long savepoint_selcom_;
+  long savepoint_seentop_;
+  std::vector<string> dramatis_personae_;
+  Metadata rldev_metadata_;
+};
+
+class Script {
+ public:
+  const pointer_t GetEntrypoint(int entrypoint) const;
+
+ private:
+  friend class Scenario;
+
+  Script(const Header& hdr,
+         const char* const data,
+         const size_t length,
+         const std::string& regname,
+         bool use_xor_2,
+         const compression::XorKey* second_level_xor_key);
+  Script(const Header& hdr,
+         const std::string_view& data,
+         const std::string& regname,
+         bool use_xor_2,
+         const compression::XorKey* second_level_xor_key);
+  ~Script();
+
+  // A sequence of semi-parsed/tokenized bytecode elements, which are
+  // the elements that RLMachine executes.
+  BytecodeList elts_;
+
+  // Entrypoint handeling
+  typedef std::map<int, pointer_t> pointernumber;
+  pointernumber entrypoint_associations_;
+};
 
 class Scenario {
  public:
-  Scenario(const char* data, const size_t length, int scenarioNum,
+  Scenario(const std::string_view& data,
+           int scenarioNum,
            const std::string& regname,
            const compression::XorKey* second_level_xor_key);
-  Scenario(const FilePos& fp, int scenarioNum,
+  Scenario(FilePos fp,
+           int scenarioNum,
            const std::string& regname,
            const compression::XorKey* second_level_xor_key);
   ~Scenario();
@@ -66,15 +131,15 @@ class Scenario {
   // Access to metadata in the script. Don't worry about information loss;
   // valid values are 0, 1, and 2.
   int savepoint_message() const { return header.savepoint_message_; }
-  int savepoint_selcom()  const { return header.savepoint_selcom_;  }
+  int savepoint_selcom() const { return header.savepoint_selcom_; }
   int savepoint_seentop() const { return header.savepoint_seentop_; }
 
   // Access to script
   typedef BytecodeList::const_iterator const_iterator;
   typedef BytecodeList::iterator iterator;
 
-  const_iterator begin() const  { return script.elts_.cbegin(); }
-  const_iterator end() const    { return script.elts_.cend();   }
+  const_iterator begin() const { return script.elts_.cbegin(); }
+  const_iterator end() const { return script.elts_.cend(); }
 
   // Locate the entrypoint
   const_iterator FindEntrypoint(int entrypoint) const;

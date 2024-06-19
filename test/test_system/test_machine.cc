@@ -30,7 +30,7 @@
 #include <string>
 #include <vector>
 
-#include "libreallive/defs.h"
+#include "libreallive/alldefs.h"
 #include "machine/rlmodule.h"
 #include "machine/rloperation.h"
 #include "utilities/exception.h"

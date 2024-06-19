@@ -34,43 +34,50 @@
 #ifndef SRC_LIBREALLIVE_FILEMAP_H_
 #define SRC_LIBREALLIVE_FILEMAP_H_
 
-#include <cstdio>
-#include <string>
+#include <string_view>
 
-#ifdef WIN32
-#include <windows.h>
-#else
-typedef int HANDLE;
-#endif
+#include "libreallive/alldefs.h"
 
-#include "libreallive/defs.h"
+#include "boost/filesystem.hpp"
+#include "boost/iostreams/device/mapped_file.hpp"
 
 namespace libreallive {
 
-enum Mode { Read, Write };
+namespace fs = boost::filesystem;
 
-class Mapping {
+class MappedFile {
  public:
-  Mapping(string filename, Mode mode, off_t min_size = 0);
-  ~Mapping();
+  MappedFile(const std::string& filename, std::size_t size = 0);
+  MappedFile(const fs::path& filepath, std::size_t size = 0);
+  ~MappedFile();
 
-  // Return a pointer to the internal memory.
-  char* get() { return (char*)mem; }
+  std::string_view Read(std::size_t position, std::size_t length);
 
-  size_t size() const { return len; }
+  bool Write(std::size_t position, const std::string& data);
+
+  std::size_t size() const { return file_.size(); }
+  std::size_t Size() const { return file_.size(); }
+
+  // Direct access to internal memory, should be removed
+  const char* get() {
+    if (!file_.is_open())
+      throw Error("File not open");
+    return file_.const_data();
+  }
 
  private:
-  void mopen();
-  void mclose();
+  boost::iostreams::mapped_file file_;
+};
 
-  HANDLE fp;
-  void* mem;
-  bool mapped;
-  size_t len;
+struct FilePos {
+  std::shared_ptr<MappedFile> file_;
+  int position, length;
 
-  string fn_;
-  Mode mode_;
-  off_t msz_;
+  std::string_view Read() {
+    if (!file_)
+      throw Error("File is nullptr");
+    return file_->Read(position, length);
+  }
 };
 
 }  // namespace libreallive

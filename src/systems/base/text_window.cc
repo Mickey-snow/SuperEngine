@@ -34,7 +34,7 @@
 #include <utility>
 #include <vector>
 
-#include "libreallive/defs.h"
+#include "libreallive/alldefs.h"
 #include "libreallive/gameexe.h"
 #include "machine/rlmachine.h"
 #include "systems/base/graphics_system.h"

@@ -31,7 +31,7 @@
 #include <string>
 #include <vector>
 
-#include "libreallive/defs.h"
+#include "libreallive/alldefs.h"
 #include "machine/rlmachine.h"
 #include "systems/base/graphics_system.h"
 #include "systems/base/surface.h"
