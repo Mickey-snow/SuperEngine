@@ -248,6 +248,9 @@ if env['PLATFORM'] != 'darwin':
 else:
   print ("Can't properly detect SDL under OSX. Assuming you have the libraries.")
 
+if 'TERM' in os.environ:
+    env.Append(CCFLAGS=['-fdiagnostics-color=always'])
+
 # Libraries we need, but will use a local copy if not installed.
 local_sdl_libraries = [
   {
