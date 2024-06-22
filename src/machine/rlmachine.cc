@@ -130,8 +130,8 @@ RLMachine::RLMachine(System& in_system, libreallive::Archive& in_archive)
   MarkSavepoint();
 
   // Load the "DLLs" required
-  GameexeFilteringIterator it = gameexe.filtering_begin("DLL.");
-  GameexeFilteringIterator end = gameexe.filtering_end();
+  GameexeFilteringIterator it = gameexe.FilterBegin("DLL.");
+  GameexeFilteringIterator end = gameexe.FilterEnd();
   for (; it != end; ++it) {
     const std::string& name = it->ToString("");
     try {
@@ -566,7 +566,7 @@ void RLMachine::PerformTextout(const libreallive::TextoutElement& e) {
 void RLMachine::PerformTextout(const std::string& cp932str) {
   std::string name_parsed_text;
   try {
-    parseNames(*memory_, cp932str, name_parsed_text);
+    name_parsed_text = parseNames(*memory_, cp932str);
   } catch (rlvm::Exception& e) {
     // WEIRD: Sometimes rldev (and the official compiler?) will generate strings
     // that aren't valid shift_jis. Fall back while I figure out how to handle
@@ -578,8 +578,8 @@ void RLMachine::PerformTextout(const std::string& cp932str) {
   TextSystem& ts = system().text();
 
   // Display UTF-8 characters
-  std::unique_ptr<TextoutLongOperation> ptr(
-      new TextoutLongOperation(*this, utf8str));
+  std::unique_ptr<TextoutLongOperation> ptr = 
+    std::make_unique<TextoutLongOperation>(*this, utf8str);
 
   if (system().ShouldFastForward() || ts.message_no_wait() ||
       ts.script_message_nowait()) {

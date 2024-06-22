@@ -102,7 +102,7 @@ inline BytecodeElement* ReadFunction(const char* stream,
     case 0x00020010:
       return new SelectElement(stream);
   }
-
+  // default:
   return BuildFunctionElement(stream);
 }
 
@@ -225,7 +225,7 @@ BytecodeElement* BytecodeElement::Read(const char* stream,
     case ',':
       return new CommaElement;
     case '\n':
-      return new MetaElement(0, stream);
+      return new MetaElement(nullptr, stream);
     case '@':  // fall through
     case '!':
       return new MetaElement(&cdata, stream);
@@ -304,10 +304,10 @@ void MetaElement::RunOnMachine(RLMachine& machine) const {
 TextoutElement::TextoutElement(const char* src, const char* file_end) {
   const char* end = src;
   bool quoted = false;
-  while (true && end < file_end) {
+  while (end < file_end) {
     if (quoted) {
       quoted = *end != '"';
-      if (*end == '\\' && end[1] == '"')
+      if (*end == '\\' && end[1] == '"') // escaped quote
         ++end;
     } else {
       if (*end == ',')
@@ -318,7 +318,7 @@ TextoutElement::TextoutElement(const char* src, const char* file_end) {
         break;
     }
     if ((*end >= 0x81 && *end <= 0x9f) || (*end >= 0xe0 && *end <= 0xef))
-      end += 2;
+      end += 2;                 // shift.jis
     else
       ++end;
   }

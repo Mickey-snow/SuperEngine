@@ -374,10 +374,9 @@ class TextSystem : public EventListener {
 // variable placeholders with the names from Memory. This function assumes that
 // text is in CP932 encoding, and will need to be generalized when we try to
 // support other hacks on top of cp932.
-void parseNames(const Memory& memory,
-                const std::string& input,
-                std::string& output);
-
+std::string parseNames(const Memory& memory,
+                       const std::string& input);
+           
 // LongOperation which just calls text().set_system_visible(true) and removes
 // itself from the callstack.
 struct RestoreTextSystemVisibility : public LongOperation {

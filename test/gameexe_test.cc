@@ -38,13 +38,13 @@ using namespace std;
 
 TEST(GameexeUnit, ReadAllKeys) {
   Gameexe ini(locateTestCase("Gameexe_data/Gameexe.ini"));
-  EXPECT_EQ(26, ini.size()) << "Wrong number of keys";
+  EXPECT_EQ(26, ini.Size()) << "Wrong number of keys";
 }
 
 // Make sure #CAPTION exists and that we read its value correctly.
 TEST(GameexeUnit, ReadsCaption) {
   Gameexe ini(locateTestCase("Gameexe_data/Gameexe.ini"));
-  EXPECT_TRUE(ini("CAPTION").Exists()) << "#CAPTION exists";
+  ASSERT_TRUE(ini("CAPTION").Exists()) << "#CAPTION should exist";
   EXPECT_EQ(string("Canon: A firearm"), ini("CAPTION").ToString())
       << "Wrong value for CAPTION";
 }
@@ -52,13 +52,13 @@ TEST(GameexeUnit, ReadsCaption) {
 // Make sure #RANDOM_KEY doesn't exist.
 TEST(GameexeUnit, RandomKeyDoesntExist) {
   Gameexe ini(locateTestCase("Gameexe_data/Gameexe.ini"));
-  EXPECT_FALSE(ini("RANDOM_KEY").Exists()) << "#RANDOM_KEY does not exist";
+  EXPECT_FALSE(ini("RANDOM_KEY").Exists()) << "#RANDOM_KEY should not exist";
 }
 
 // Test ToIntVector() parsing.
 TEST(GameexeUnit, IntVectorParsing) {
   Gameexe ini(locateTestCase("Gameexe_data/Gameexe.ini"));
-  EXPECT_TRUE(ini("WINDOW_ATTR").Exists()) << "#WINDOW_ATTR exists!";
+  ASSERT_TRUE(ini("WINDOW_ATTR").Exists()) << "#WINDOW_ATTR should exist!";
 
   vector<int> ints = ini("WINDOW_ATTR").ToIntVector();
   for (int i = 0; i < 5; ++i) {
@@ -72,33 +72,73 @@ TEST(GameexeUnit, MultipleKeys) {
   EXPECT_EQ(1, ini("IMAGINE", "ONE"));
   EXPECT_EQ(2, ini("IMAGINE", "TWO"));
   EXPECT_EQ(3, ini("IMAGINE", "THREE"));
+
+  ini("IMAGINE", "ONE") = 4;
+  ini("IMAGINE", "TWO") = 5;
+  ini("IMAGINE", "THREE") = 6;
+  EXPECT_EQ(4, ini("IMAGINE", "ONE"));
+  EXPECT_EQ(5, ini("IMAGINE", "TWO"));
+  EXPECT_EQ(6, ini("IMAGINE", "THREE"));
 }
 
 // Make sure GameexeInterpretObject chaining works correctly.
 TEST(GameexeUnit, ChainingWorks) {
   Gameexe ini(locateTestCase("Gameexe_data/Gameexe.ini"));
-  GameexeInterpretObject imagine = ini("IMAGINE");
+  auto imagine = ini("IMAGINE");
   EXPECT_EQ(1, imagine("ONE"));
   EXPECT_EQ(2, imagine("TWO"));
   EXPECT_EQ(3, imagine("THREE"));
+
+  imagine("ONE") = -100;
+  imagine("ONE") = 7;
+  imagine("TWO") = 8;
+  imagine("THREE") = 9;
+  imagine("FOUR") = 10;
+  EXPECT_EQ(7, ini("IMAGINE", "ONE"));
+  EXPECT_EQ(8, ini("IMAGINE", "TWO"));
+  EXPECT_EQ(9, ini("IMAGINE", "THREE"));
+  EXPECT_EQ(10, ini("IMAGINE", "FOUR"));
+  EXPECT_EQ(7, imagine("ONE"));
+  EXPECT_EQ(8, imagine("TWO"));
+  EXPECT_EQ(9, imagine("THREE"));
+  EXPECT_EQ(10, imagine("FOUR"));
 }
 
-TEST(GameexeUnit, FilteringIterators) {
+TEST(GameexeUnit, FilteringIterator){
   Gameexe ini(locateTestCase("Gameexe_data/Gameexe.ini"));
-  GameexeFilteringIterator it = ini.filtering_begin("IMAGINE");
-  GameexeFilteringIterator end = ini.filtering_end();
-  for (; it != end; ++it) {
-    if (it->key() != "IMAGINE.ONE" && it->key() != "IMAGINE.TWO" &&
-        it->key() != "IMAGINE.THREE") {
-      FAIL() << "Failed to filter keys in GameexeFilteringIterator. Has key "
-             << it->key();
-    }
+  auto begin = ini.FilterBegin("IMAGINE."), end = ini.FilterEnd();
+  std::vector<int> expected = {1,3,2};
+  for(int i=0;i<3;++i,++begin){
+    EXPECT_NE(begin, end);
+    EXPECT_EQ(expected[i], *begin);
+    EXPECT_EQ("IMAGINE", begin->GetKeyParts().at(0));
   }
+  EXPECT_EQ(begin, end);
+
+  begin = ini.FilterBegin("WINDOW");
+  std::set<std::string> window_entries, window_keys;
+  for(int i=0;i<13;++i,++begin){
+    EXPECT_NE(begin, end);
+    EXPECT_NO_THROW({
+        window_entries.insert(begin->key());
+        window_keys.insert(begin->ToString());
+      });
+  }
+  EXPECT_EQ(begin ,end);
+  EXPECT_EQ(13, window_entries.size());
+}
+
+TEST(GameexeUnit, FilterEmpty){
+  Gameexe ini(locateTestCase("Gameexe_data/Gameexe.ini"));
+  auto begin = ini.FilterBegin("OBJECT."), end = ini.FilterEnd();
+  EXPECT_EQ(begin, end);
+  for(;begin!=end;++begin)
+    FAIL() << "Filter should be empty";
 }
 
 TEST(GameexeUnit, KeyParts) {
   Gameexe ini(locateTestCase("Gameexe_data/Gameexe.ini"));
-  GameexeInterpretObject gio = ini("WINDOW.000.ATTR_MOD");
+  auto gio = ini("WINDOW.000.ATTR_MOD");
   vector<string> pieces = gio.GetKeyParts();
   EXPECT_EQ(3, pieces.size());
   EXPECT_EQ("WINDOW", pieces[0]);

@@ -37,15 +37,15 @@
 #include <string>
 #include <string_view>
 
-#include "libreallive/bytecode.h"
 #include "libreallive/alldefs.h"
+#include "libreallive/bytecode.h"
 #include "libreallive/filemap.h"
 
 namespace libreallive {
-  
-  namespace compression {
-    struct XorKey;
-  }  // namespace compression
+
+namespace compression {
+struct XorKey;
+}  // namespace compression
 
 class Metadata {
  public:
@@ -56,7 +56,7 @@ class Metadata {
   void Assign(const char* input);
 
   void Assign(const std::string_view& input);
-  
+
  private:
   std::string as_string_;
   int encoding_;

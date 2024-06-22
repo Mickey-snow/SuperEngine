@@ -133,8 +133,8 @@ TextSystem::TextSystem(System& system, Gameexe& gexe)
 
   // Iterate over all the NAMAE keys, which is a feature that Clannad English
   // Edition uses to translate the Japanese names into English.
-  for (GameexeFilteringIterator it = gexe.filtering_begin("NAMAE");
-       it != gexe.filtering_end();
+  for (GameexeFilteringIterator it = gexe.FilterBegin("NAMAE");
+       it != gexe.FilterEnd();
        ++it) {
     try {
       // Data in the Gameexe.ini file is implicitly in Shift-JIS and needs to
@@ -861,9 +861,9 @@ template void TextSystem::load<boost::archive::text_iarchive>(
 
 // -----------------------------------------------------------------------
 
-void parseNames(const Memory& memory,
-                const std::string& input,
-                std::string& output) {
+std::string parseNames(const Memory& memory,
+                       const std::string& input) {
+  std::string output;
   const char* cur = input.c_str();
 
   const char LOWER_BYTE_FULLWIDTH_ASTERISK = 0x96;
@@ -895,6 +895,8 @@ void parseNames(const Memory& memory,
       CopyOneShiftJisCharacter(cur, output);
     }
   }
+
+  return output;
 }
 
 bool TextSystem::CurrentlySkipping() const {

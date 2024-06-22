@@ -449,8 +449,8 @@ void System::BuildFileSystemCache() {
   // First retrieve all the directories defined in the #FOLDNAME section.
   std::vector<std::string> valid_directories;
   Gameexe& gexe = gameexe();
-  GameexeFilteringIterator it = gexe.filtering_begin("FOLDNAME");
-  GameexeFilteringIterator end = gexe.filtering_end();
+  GameexeFilteringIterator it = gexe.FilterBegin("FOLDNAME");
+  GameexeFilteringIterator end = gexe.FilterEnd();
   for (; it != end; ++it) {
     std::string dir = it->ToString();
     if (!dir.empty()) {

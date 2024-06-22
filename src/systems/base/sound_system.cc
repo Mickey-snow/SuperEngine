@@ -130,8 +130,8 @@ SoundSystem::SoundSystem(System& system)
   std::fill_n(channel_volume_, NUM_TOTAL_CHANNELS, 255);
 
   // Read the \#SE.xxx entries from the Gameexe
-  GameexeFilteringIterator se = gexe.filtering_begin("SE.");
-  GameexeFilteringIterator end = gexe.filtering_end();
+  GameexeFilteringIterator se = gexe.FilterBegin("SE.");
+  GameexeFilteringIterator end = gexe.FilterEnd();
   for (; se != end; ++se) {
     std::string raw_number = se->GetKeyParts().at(1);
     int entry_number = std::stoi(raw_number);
@@ -143,7 +143,7 @@ SoundSystem::SoundSystem(System& system)
   }
 
   // Read the \#DSTRACK entries
-  GameexeFilteringIterator dstrack = gexe.filtering_begin("DSTRACK");
+  GameexeFilteringIterator dstrack = gexe.FilterBegin("DSTRACK");
   for (; dstrack != end; ++dstrack) {
     int from = dstrack->GetIntAt(0);
     int to = dstrack->GetIntAt(1);
@@ -156,7 +156,7 @@ SoundSystem::SoundSystem(System& system)
   }
 
   // Read the \#CDTRACK entries
-  GameexeFilteringIterator cdtrack = gexe.filtering_begin("CDTRACK");
+  GameexeFilteringIterator cdtrack = gexe.FilterBegin("CDTRACK");
   for (; cdtrack != end; ++cdtrack) {
     int from = cdtrack->GetIntAt(0);
     int to = cdtrack->GetIntAt(1);
@@ -168,7 +168,7 @@ SoundSystem::SoundSystem(System& system)
   }
 
   // Read the \#KOEONOFF entries
-  GameexeFilteringIterator koeonoff = gexe.filtering_begin("KOEONOFF.");
+  GameexeFilteringIterator koeonoff = gexe.FilterBegin("KOEONOFF.");
   for (; koeonoff != end; ++koeonoff) {
     std::vector<std::string> keyparts = koeonoff->GetKeyParts();
     int usekoe_id = std::stoi(keyparts.at(1));

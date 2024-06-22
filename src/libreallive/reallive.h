@@ -39,17 +39,17 @@
 // The Archive and Scenario access
 //
 // We start with the main class that represents the SEEN.TXT file,
-// libreallive::Archive. A SEEN.TXT file contains all of the executed
+// libreallive::Scene. A SEEN.TXT file contains all of the executed
 // code in a Reallive game (barring DLL extensions to the Reallive
 // system). A SEEN.TXT file contains number identified Scenarios,
 // which represents small pieces of bytecode which are executed in our
-// virtual machine. When we construct an Archive, we pass in the
+// virtual machine. When we construct an Scene, we pass in the
 // path to a SEEN.TXT file to load. Currently, the only thing done on
 // startup is the parsing of the TOC, which defines which Scenarios
 // are in the SEEN.TXT archive.
 //
-// From the Archive, we can access libreallive::Scenarios using the
-// libreallive::Archive::scenario() member. This method will return
+// From the Scene, we can access libreallive::Scenarios using the
+// libreallive::Scene::scenario() member. This method will return
 // the Scenario relating to the passed in number. Archive has other
 // members for manipulating and rewriting the data, but these aren't
 // used in RLVM.

@@ -50,8 +50,8 @@ const char* ADDTIONAL_STRINGS_TO_LOAD[] = {
 // -----------------------------------------------------------------------
 Platform::Platform(Gameexe& gameexe) {
   // Parse the Gameexe.ini syscom entries.
-  GameexeFilteringIterator end = gameexe.filtering_end();
-  for (GameexeFilteringIterator it = gameexe.filtering_begin("SYSCOM.");
+  GameexeFilteringIterator end = gameexe.FilterEnd();
+  for (GameexeFilteringIterator it = gameexe.FilterBegin("SYSCOM.");
        it != end;
        ++it) {
     string key = it->key().substr(7);

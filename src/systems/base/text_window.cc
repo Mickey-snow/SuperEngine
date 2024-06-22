@@ -163,8 +163,8 @@ TextWindow::TextWindow(System& system, int window_num)
   }
 
   // Load #FACE information.
-  GameexeFilteringIterator it = gexe.filtering_begin(window.key() + ".FACE");
-  GameexeFilteringIterator end = gexe.filtering_end();
+  GameexeFilteringIterator it = gexe.FilterBegin(window.key() + ".FACE");
+  GameexeFilteringIterator end = gexe.FilterEnd();
   for (; it != end; ++it) {
     // Retrieve the face slot number
     std::vector<std::string> GetKeyParts = it->GetKeyParts();

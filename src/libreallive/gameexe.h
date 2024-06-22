@@ -35,10 +35,12 @@
 #ifndef SRC_LIBREALLIVE_GAMEEXE_H_
 #define SRC_LIBREALLIVE_GAMEEXE_H_
 
-#include <boost/iterator/iterator_facade.hpp>
 #include <boost/filesystem/path.hpp>
+#include <boost/iterator/iterator_facade.hpp>
 
+#include <iomanip>
 #include <map>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -48,8 +50,10 @@ class GameexeFilteringIterator;
 
 // -----------------------------------------------------------------------
 
+class Token;
+
 // Storage backend for the Gameexe
-typedef std::vector<int> Gameexe_vec_type;
+typedef std::vector<std::shared_ptr<Token>> Gameexe_vec_type;
 typedef std::multimap<std::string, Gameexe_vec_type> GameexeData_t;
 
 // -----------------------------------------------------------------------
@@ -75,17 +79,42 @@ class GameexeInterpretObject {
  public:
   ~GameexeInterpretObject();
 
-  // Extend a key by one key piece
-  template<typename A>
-  GameexeInterpretObject operator()(const A& nextKey) {
-    return object_to_lookup_on_(key_, nextKey);
+ private:
+  std::string ToKeyString(const int& value) {
+    std::ostringstream ss;
+    ss << std::setw(3) << std::setfill('0') << value;
+    return ss.str();
+  }
+
+  std::string ToKeyString(const std::string& value) { return value; }
+
+  // Connect several key pieces together to form a key string
+  template <typename T, typename... Ts>
+  std::string MakeKey(T&& first, Ts&&... params) {
+    std::string key = ToKeyString(std::forward<T>(first));
+    if constexpr (sizeof...(params) > 0)
+      key += '.' + MakeKey(std::forward<Ts>(params)...);
+    return key;
+  }
+
+ public:
+  // Extend a key by several key pieces
+  template <typename... Ts>
+  GameexeInterpretObject operator()(Ts&&... nextKeys) {
+    std::string newkey = key_;
+    if constexpr (sizeof...(nextKeys) > 0) {
+      if (!key_.empty())
+        newkey += '.';
+      newkey += MakeKey(std::forward<Ts>(nextKeys)...);
+    }
+    return GameexeInterpretObject(newkey, data_);
   }
 
   // Finds an int value, returning a default if non-existant.
-  const int ToInt(const int defaultValue) const;
+  int ToInt(const int defaultValue) const;
 
   // Finds an int value, throwing if non-existant.
-  const int ToInt() const;
+  int ToInt() const;
 
   // Allow implicit casts to int with no default value
   operator int() const { return ToInt(); }
@@ -94,31 +123,29 @@ class GameexeInterpretObject {
   int GetIntAt(int index) const;
 
   // Finds a string value, throwing if non-existant.
-  const std::string ToString(const std::string& defaultValue) const;
+  std::string ToString(const std::string& defaultValue) const;
 
   // Finds a string value, throwing if non-existant.
-  const std::string ToString() const;
+  std::string ToString() const;
 
   // Allow implicit casts to string
   operator std::string() const { return ToString(); }
 
   // Returns a piece of data at a certain location as a string.
-  const std::string GetStringAt(int index) const;
+  std::string GetStringAt(int index) const;
 
   // Finds a vector of ints, throwing if non-existant.
-  const std::vector<int>& ToIntVector() const;
+  std::vector<int> ToIntVector() const;
 
   operator std::vector<int>() const { return ToIntVector(); }
 
   // Checks to see if the key exists.
   bool Exists() const;
 
-  const std::string& key() const {
-    return key_;
-  }
+  const std::string& key() const { return key_; }
 
   // Returns the key splitted on periods.
-  const std::vector<std::string> GetKeyParts() const;
+  std::vector<std::string> GetKeyParts() const;
 
   // Assign a value. Unlike all the other methods, we can safely
   // templatize this since the functions it calls can be overloaded.
@@ -127,20 +154,33 @@ class GameexeInterpretObject {
   GameexeInterpretObject& operator=(const int value);
 
  private:
-  // We expose our private interface to tightly couple with Gameexe,
-  // since we are a helper class for it.
+  // We expose our private constructor to Gameexe and GameexeFilteringiterator
   friend class Gameexe;
   friend class GameexeFilteringIterator;
 
-  const std::string key_;
-  GameexeData_t::const_iterator iterator_;
-  Gameexe& object_to_lookup_on_;
+  std::vector<int> GetIntArray() const;
 
-  // Private; only allow construction by Gameexe
-  GameexeInterpretObject(const std::string& key, Gameexe& objectToLookupOn);
-  GameexeInterpretObject(const std::string& key,
-                         GameexeData_t::const_iterator it,
-                         Gameexe& objectToLookupOn);
+  static void ThrowUnknownKey(const std::string& key);
+
+  std::string key_;
+  GameexeData_t* data_;  // We don't own this object
+  GameexeData_t::const_iterator iterator_;
+
+  // Private; only allow construction by Gameexe and GameexeFilteringiterator
+  // Two instantiation methods:
+  // 1. By string key: Does not validate key; defers error checking to data
+  // accessing
+  //    For instance, using Gameexe("IMG") and then accessing with ini("005") is
+  //    permitted if "IMG.005" is valid.
+  // Note: Iterators are generated on-demand via data->find(key) when accessed
+  // by key, which may not align with client expectations due to the multimap
+  // nature of GameexeData.
+  GameexeInterpretObject(const std::string& key, GameexeData_t* data);
+  // 2. By iterator: Directly accesses a multimap entry at the iterator's
+  // position.
+  //    The iterator must be valid and not at data->end(), with key_ initialized
+  //    to it->first.
+  GameexeInterpretObject(GameexeData_t::const_iterator it, GameexeData_t* data);
 };
 
 // New interface to Gameexe, replacing the one inherited from Haeleth,
@@ -155,155 +195,71 @@ class Gameexe {
   // Parses an individual Gameexe.ini line.
   void parseLine(const std::string& line);
 
-  // Access the key "firstKey"
-  template<typename A>
-  GameexeInterpretObject operator()(const A& firstKey);
-
-  // Access the key "firstKey"."secondKey"
-  template<typename A, typename B>
-  GameexeInterpretObject operator()(const A& firstKey, const B& secondKey);
-
-  // Access the key "firstKey"."secondKey"
-  template<typename A, typename B, typename C>
-  GameexeInterpretObject operator()(const A& firstKey, const B& secondKey,
-                                    const C& thirdKey);
+  // When the client code trys to access/modify data, create a
+  // GameexeInterpretobject, transfer control of read/write to the object
+  template <typename... Ts>
+  GameexeInterpretObject operator()(Ts&&... keys) {
+    auto it = GameexeInterpretObject("", &data_);
+    return it(std::forward<Ts>(keys)...);
+  }
 
   // Returns iterators that filter on a possible value.
-  GameexeFilteringIterator filtering_begin(const std::string& filter);
-  GameexeFilteringIterator filtering_end();
+  GameexeFilteringIterator FilterBegin(std::string filter);
+  GameexeFilteringIterator FilterEnd();
 
   // Returns whether key exists in the stored data
   bool Exists(const std::string& key);
 
   // Returns the number of keys in the Gameexe.ini file.
-  size_t size() const {
-    return data_.size();
-  }
+  size_t Size() const { return data_.size(); }
 
   // Exposed for testing.
   void SetStringAt(const std::string& key, const std::string& value);
   void SetIntAt(const std::string& key, const int value);
 
  private:
-  const std::vector<int>& GetIntArray(GameexeData_t::const_iterator key);
-  int GetIntAt(GameexeData_t::const_iterator key, int index);
-  std::string GetStringAt(GameexeData_t::const_iterator key, int index);
-
-  // Returns an iterator for the incoming key. May not be valid. This
-  // is a function only for tight coupling with
-  // GameexeInterpretObject.
-  GameexeData_t::const_iterator Find(const std::string& key);
-
-  // Regrettable artifact of hack to get all integers in streams to
-  // have setw(3).
-  void AddToStream(const std::string& x, std::ostringstream& ss);
-
-  // Hack to get all integers in streams to have setw(3).
-  void AddToStream(const int& x, std::ostringstream& ss);
-
-  void ThrowUnknownKey(const std::string& key);
-
- private:
-  // Allow access from the helper class
-  friend class GameexeInterpretObject;
-  friend class GameexeFilteringIterator;
-
   // Implementation detail of how parsed Gameexe.ini data is stored in
   // the class. This was stolen directly from Haeleth's parser in
   // rlBabel. Eventually, this should be redone, since everything is
   // really a vector of ints, unless you want a string in which case
   // that int is an index into a vector of strings on the side.
   GameexeData_t data_;
-  std::vector<std::string> cdata_;
 };
 
-// -----------------------------------------------------------------------
-
-template<typename A>
-GameexeInterpretObject Gameexe::operator()(const A& firstKey) {
-  std::ostringstream ss;
-  AddToStream(firstKey, ss);
-  return GameexeInterpretObject(ss.str(), *this);
-}
-
-// -----------------------------------------------------------------------
-
-template<>
-inline GameexeInterpretObject Gameexe::operator()(const std::string& firstKey) {
-  return GameexeInterpretObject(firstKey, *this);
-}
-
-// -----------------------------------------------------------------------
-
-template<typename A, typename B>
-GameexeInterpretObject Gameexe::operator()(const A& firstKey,
-                                           const B& secondKey) {
-  std::ostringstream ss;
-  AddToStream(firstKey, ss);
-  ss << ".";
-  AddToStream(secondKey, ss);
-  return GameexeInterpretObject(ss.str(), *this);
-}
-
-// -----------------------------------------------------------------------
-
-template<typename A, typename B, typename C>
-GameexeInterpretObject Gameexe::operator()(const A& firstKey,
-                                           const B& secondKey,
-                                           const C& thirdKey) {
-  std::ostringstream ss;
-  AddToStream(firstKey, ss);
-  ss << ".";
-  AddToStream(secondKey, ss);
-  ss << ".";
-  AddToStream(thirdKey, ss);
-  return GameexeInterpretObject(ss.str(), *this);
-}
-
-// -----------------------------------------------------------------------
-
 class GameexeFilteringIterator
-  : public boost::iterator_facade<
-  GameexeFilteringIterator,
-  GameexeInterpretObject,
-  boost::forward_traversal_tag, GameexeInterpretObject> {
+    : public boost::iterator_facade<GameexeFilteringIterator,
+                                    GameexeInterpretObject,
+                                    boost::forward_traversal_tag,
+                                    GameexeInterpretObject> {
  public:
-  explicit GameexeFilteringIterator(const std::string& inFilterKeys,
-                                    Gameexe& inGexe,
-                                    GameexeData_t::const_iterator it)
-      : filterKeys(inFilterKeys), gexe(inGexe), currentKey(it) {
-    incrementUntilValid();
-  }
-
-  GameexeFilteringIterator(GameexeFilteringIterator const& other)
-      : filterKeys(other.filterKeys), gexe(other.gexe),
-        currentKey(other.currentKey) {
+  explicit GameexeFilteringIterator(GameexeData_t::const_iterator begin,
+                                    GameexeData_t::const_iterator end,
+                                    GameexeData_t* indata)
+      : currentIt(begin), endIt(end), data_(indata) {
+    if (begin == end)
+      currentIt = indata->end();  // range is empty
   }
 
  private:
   friend class boost::iterator_core_access;
-  friend class Gameexe;
 
   bool equal(GameexeFilteringIterator const& other) const {
     // It is deliberate that we only compare the current keys. This
     // means you don't need to
-    return currentKey == other.currentKey;
+    return currentIt == other.currentIt;
   }
 
   void increment() {
-    currentKey++;
-    incrementUntilValid();
+    if (++currentIt == endIt)
+      currentIt = data_->end();
   }
 
   GameexeInterpretObject dereference() const {
-    return GameexeInterpretObject(currentKey->first, currentKey, gexe);
+    return GameexeInterpretObject(currentIt, data_);
   }
 
-  void incrementUntilValid();
-
-  const std::string filterKeys;
-  Gameexe& gexe;
-  GameexeData_t::const_iterator currentKey;
+  GameexeData_t::const_iterator currentIt, endIt;
+  GameexeData_t* data_;  // We don't own this object
 };
 
 // -----------------------------------------------------------------------

@@ -247,8 +247,8 @@ int Memory::ConvertLetterIndexToInt(const std::string& value) {
 void Memory::InitializeDefaultValues(Gameexe& gameexe) {
   // Note: We ignore the \#NAME_MAXLEN variable because manual allocation is
   // error prone and for losers.
-  GameexeFilteringIterator end = gameexe.filtering_end();
-  for (GameexeFilteringIterator it = gameexe.filtering_begin("NAME.");
+  GameexeFilteringIterator end = gameexe.FilterEnd();
+  for (GameexeFilteringIterator it = gameexe.FilterBegin("NAME.");
        it != end; ++it) {
     try {
       SetName(ConvertLetterIndexToInt(it->GetKeyParts().at(1)),
@@ -258,7 +258,7 @@ void Memory::InitializeDefaultValues(Gameexe& gameexe) {
     }
   }
 
-  for (GameexeFilteringIterator it = gameexe.filtering_begin("LOCALNAME.");
+  for (GameexeFilteringIterator it = gameexe.FilterBegin("LOCALNAME.");
        it != end; ++it) {
     try {
       SetLocalName(ConvertLetterIndexToInt(it->GetKeyParts().at(1)),

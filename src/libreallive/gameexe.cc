@@ -34,25 +34,30 @@
 
 #include "libreallive/gameexe.h"
 
-#include <boost/tokenizer.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <boost/tokenizer.hpp>
 
-#include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <iostream>
 
 #include "libreallive/alldefs.h"
 
 namespace fs = boost::filesystem;
 
-#define is_space(c) (c == '\r' || c == '\n' || c == ' ' || c == '\t')
-#define is_num(c) (c == '-' || (c >= '0' && c <= '9'))
-#define is_data(c) (c == '"' || is_num(c))
-
 // A boost::TokenizerFunction used to extract valid pieces of data
 // from the value part of a gameexe key/value pair.
 class gameexe_token_extractor {
+ private:
+  inline bool is_space(char c) {
+    return (c == '\r' || c == '\n' || c == ' ' || c == '\t');
+  }
+
+  inline bool is_num(char c) { return (c == '-' || (c >= '0' && c <= '9')); }
+
+  inline bool is_data(char c) { return (c == '"' || is_num(c)); }
+
  public:
   void reset() {}
 
@@ -60,7 +65,8 @@ class gameexe_token_extractor {
   bool operator()(InputIterator& next, InputIterator end, Token& tok) {
     tok = Token();
     // Advance to the next data character
-    for (; next != end && (!is_data(*next)); ++next) {}
+    for (; next != end && (!is_data(*next)); ++next) {
+    }
 
     if (next == end)
       return false;
@@ -109,11 +115,57 @@ class gameexe_token_extractor {
 
 // -----------------------------------------------------------------------
 
+class Token {
+ public:
+  ~Token() = default;
+
+  virtual int ToInt() const = 0;
+  operator int() const { return ToInt(); }
+
+  virtual std::string ToString() const = 0;
+  operator std::string() const { return ToString(); }
+};
+
+// -----------------------------------------------------------------------
+
+class IntToken : public Token {
+ public:
+  IntToken(const int& val) : val_(val) {}
+
+  int ToInt() const override { return val_; }
+
+  std::string ToString() const override { return std::to_string(val_); }
+
+ private:
+  int val_;
+};
+
+// -----------------------------------------------------------------------
+
+class StringToken : public Token {
+ private:
+  inline static int stridn = 0;
+
+ public:
+  StringToken(const std::string& val) : val_(val), id_(stridn++) {}
+  StringToken(const int& val) : val_(std::to_string(val)), id_(stridn++) {}
+
+  int ToInt() const override { return id_; }
+
+  std::string ToString() const override { return val_; }
+
+ private:
+  std::string val_;
+  int id_;
+};
+
+// -----------------------------------------------------------------------
+
 Gameexe::Gameexe() {}
 
 // -----------------------------------------------------------------------
 
-Gameexe::Gameexe(const fs::path& gameexefile) : data_(), cdata_() {
+Gameexe::Gameexe(const fs::path& gameexefile) : data_() {
   fs::ifstream ifs(gameexefile);
   if (!ifs) {
     std::ostringstream oss;
@@ -150,43 +202,22 @@ void Gameexe::parseLine(const std::string& line) {
     typedef boost::tokenizer<gameexe_token_extractor> ValueTokenizer;
     ValueTokenizer tokenizer(value);
     for (const std::string& tok : tokenizer) {
-      if (tok[0] == '"') {
+      if (tok[0] == '"') {  // a string token
         std::string unquoted = tok.substr(1, tok.size() - 2);
-        cdata_.push_back(unquoted);
-        vec.push_back(cdata_.size() - 1);
-      } else if (tok != "-") {
+        vec.push_back(std::make_shared<StringToken>(unquoted));
+      } else if (tok != "-") {  // an int token
+        int asint;
         try {
-          vec.push_back(std::stoi(tok));
-        }
-        catch (...) {
+          asint = std::stoi(tok);
+        } catch (...) {
           std::cerr << "Couldn't int-ify '" << tok << "'" << std::endl;
-          vec.push_back(0);
+          asint = 0;
         }
+        vec.push_back(std::make_shared<IntToken>(asint));
       }
     }
     data_.emplace(key, vec);
   }
-}
-
-// -----------------------------------------------------------------------
-
-const std::vector<int>& Gameexe::GetIntArray(
-    GameexeData_t::const_iterator key) {
-  if (key == data_.end()) {
-    static std::vector<int> falseVector;
-    return falseVector;
-  }
-
-  return key->second;
-}
-
-// -----------------------------------------------------------------------
-
-int Gameexe::GetIntAt(GameexeData_t::const_iterator key, int index) {
-  if (key == data_.end())
-    ThrowUnknownKey("TMP");
-
-  return key->second.at(index);
 }
 
 // -----------------------------------------------------------------------
@@ -197,17 +228,8 @@ bool Gameexe::Exists(const std::string& key) {
 
 // -----------------------------------------------------------------------
 
-std::string Gameexe::GetStringAt(GameexeData_t::const_iterator key, int index) {
-  int cindex = GetIntAt(key, index);
-  return cdata_.at(cindex);
-}
-
-// -----------------------------------------------------------------------
-
 void Gameexe::SetStringAt(const std::string& key, const std::string& value) {
-  Gameexe_vec_type toStore;
-  cdata_.push_back(value);
-  toStore.push_back(cdata_.size() - 1);
+  Gameexe_vec_type toStore{std::make_shared<StringToken>(value)};
   data_.erase(key);
   data_.emplace(key, toStore);
 }
@@ -215,65 +237,41 @@ void Gameexe::SetStringAt(const std::string& key, const std::string& value) {
 // -----------------------------------------------------------------------
 
 void Gameexe::SetIntAt(const std::string& key, const int value) {
-  Gameexe_vec_type toStore;
-  toStore.push_back(value);
+  Gameexe_vec_type toStore{std::make_shared<IntToken>(value)};
   data_.erase(key);
   data_.emplace(key, toStore);
 }
 
 // -----------------------------------------------------------------------
 
-GameexeData_t::const_iterator Gameexe::Find(const std::string& key) {
-  return data_.find(key);
+GameexeFilteringIterator Gameexe::FilterBegin(std::string filter) {
+  GameexeData_t::const_iterator begin = data_.lower_bound(filter), end;
+  if (!filter.empty()) {
+    filter.back()++;
+    end = data_.lower_bound(filter);
+  } else {
+    end = data_.end();
+  }
+
+  return GameexeFilteringIterator(begin, end, &data_);
 }
 
 // -----------------------------------------------------------------------
 
-void Gameexe::AddToStream(const std::string& x, std::ostringstream& ss) {
-  ss << x;
-}
-
-// -----------------------------------------------------------------------
-
-void Gameexe::AddToStream(const int& x, std::ostringstream& ss) {
-  ss << std::setw(3) << std::setfill('0') << x;
-}
-
-// -----------------------------------------------------------------------
-
-void Gameexe::ThrowUnknownKey(const std::string& key) {
-  std::ostringstream ss;
-  ss << "Unknown Gameexe key '" << key << "'";
-  throw libreallive::Error(ss.str());
-}
-
-// -----------------------------------------------------------------------
-
-GameexeFilteringIterator Gameexe::filtering_begin(const std::string& filter) {
-  return GameexeFilteringIterator(filter, *this, data_.begin());
-}
-
-// -----------------------------------------------------------------------
-
-GameexeFilteringIterator Gameexe::filtering_end() {
-  return GameexeFilteringIterator("", *this, data_.end());
+GameexeFilteringIterator Gameexe::FilterEnd() {
+  return GameexeFilteringIterator(data_.end(), data_.end(), &data_);
 }
 
 // -----------------------------------------------------------------------
 // GameexeInterpretObject
 // -----------------------------------------------------------------------
-GameexeInterpretObject::GameexeInterpretObject(const std::string& key,
-                                               Gameexe& objectToLookupOn)
-    : key_(key),
-      iterator_(objectToLookupOn.Find(key)),
-      object_to_lookup_on_(objectToLookupOn) {}
-
-// -----------------------------------------------------------------------
+GameexeInterpretObject::GameexeInterpretObject(GameexeData_t::const_iterator it,
+                                               GameexeData_t* data)
+    : key_(it->first), data_(data), iterator_(it) {}
 
 GameexeInterpretObject::GameexeInterpretObject(const std::string& key,
-                                               GameexeData_t::const_iterator it,
-                                               Gameexe& objectToLookupOn)
-    : key_(key), iterator_(it), object_to_lookup_on_(objectToLookupOn) {}
+                                               GameexeData_t* data)
+    : key_(key), data_(data), iterator_(data->find(key)) {}
 
 // -----------------------------------------------------------------------
 
@@ -281,8 +279,8 @@ GameexeInterpretObject::~GameexeInterpretObject() {}
 
 // -----------------------------------------------------------------------
 
-const int GameexeInterpretObject::ToInt(const int defaultValue) const {
-  const std::vector<int>& ints = object_to_lookup_on_.GetIntArray(iterator_);
+int GameexeInterpretObject::ToInt(const int defaultValue) const {
+  const std::vector<int>& ints = GetIntArray();
   if (ints.size() == 0)
     return defaultValue;
 
@@ -291,10 +289,10 @@ const int GameexeInterpretObject::ToInt(const int defaultValue) const {
 
 // -----------------------------------------------------------------------
 
-const int GameexeInterpretObject::ToInt() const {
-  const std::vector<int>& ints = object_to_lookup_on_.GetIntArray(iterator_);
+int GameexeInterpretObject::ToInt() const {
+  const std::vector<int>& ints = GetIntArray();
   if (ints.size() == 0)
-    object_to_lookup_on_.ThrowUnknownKey(key_);
+    ThrowUnknownKey(key_);
 
   return ints[0];
 }
@@ -302,29 +300,31 @@ const int GameexeInterpretObject::ToInt() const {
 // -----------------------------------------------------------------------
 
 int GameexeInterpretObject::GetIntAt(int index) const {
-  return object_to_lookup_on_.GetIntAt(iterator_, index);
+  if (iterator_ == data_->end())
+    ThrowUnknownKey(key_);
+
+  std::shared_ptr<Token> token = iterator_->second.at(index);
+  return token->ToInt();
 }
 
 // -----------------------------------------------------------------------
 
-const std::string GameexeInterpretObject::ToString(
+std::string GameexeInterpretObject::ToString(
     const std::string& defaultValue) const {
   try {
-    return object_to_lookup_on_.GetStringAt(iterator_, 0);
-  }
-  catch (...) {
+    return GetStringAt(0);
+  } catch (...) {
     return defaultValue;
   }
 }
 
 // -----------------------------------------------------------------------
 
-const std::string GameexeInterpretObject::ToString() const {
+std::string GameexeInterpretObject::ToString() const {
   try {
-    return object_to_lookup_on_.GetStringAt(iterator_, 0);
-  }
-  catch (...) {
-    object_to_lookup_on_.ThrowUnknownKey(key_);
+    return GetStringAt(0);
+  } catch (...) {
+    ThrowUnknownKey(key_);
   }
 
   // Shut the -Wall up
@@ -333,16 +333,19 @@ const std::string GameexeInterpretObject::ToString() const {
 
 // -----------------------------------------------------------------------
 
-const std::string GameexeInterpretObject::GetStringAt(int index) const {
-  return object_to_lookup_on_.GetStringAt(iterator_, index);
+std::string GameexeInterpretObject::GetStringAt(int index) const {
+  if (iterator_ == data_->end())
+    ThrowUnknownKey("TMP");
+  std::shared_ptr<Token> token = iterator_->second.at(index);
+  return token->ToString();
 }
 
 // -----------------------------------------------------------------------
 
-const std::vector<int>& GameexeInterpretObject::ToIntVector() const {
-  const std::vector<int>& ints = object_to_lookup_on_.GetIntArray(iterator_);
+std::vector<int> GameexeInterpretObject::ToIntVector() const {
+  const std::vector<int>& ints = GetIntArray();
   if (ints.size() == 0)
-    object_to_lookup_on_.ThrowUnknownKey(key_);
+    ThrowUnknownKey(key_);
 
   return ints;
 }
@@ -350,12 +353,12 @@ const std::vector<int>& GameexeInterpretObject::ToIntVector() const {
 // -----------------------------------------------------------------------
 
 bool GameexeInterpretObject::Exists() const {
-  return object_to_lookup_on_.Exists(key_);
+  return data_->find(key_) != data_->end();
 }
 
 // -----------------------------------------------------------------------
 
-const std::vector<std::string> GameexeInterpretObject::GetKeyParts() const {
+std::vector<std::string> GameexeInterpretObject::GetKeyParts() const {
   std::vector<std::string> keyparts;
   boost::split(keyparts, key_, boost::is_any_of("."));
   return keyparts;
@@ -365,26 +368,37 @@ const std::vector<std::string> GameexeInterpretObject::GetKeyParts() const {
 
 GameexeInterpretObject& GameexeInterpretObject::operator=(
     const std::string& value) {
-  // Set the key to incoming int
-  object_to_lookup_on_.SetStringAt(key_, value);
+  Gameexe_vec_type toStore{std::make_shared<StringToken>(value)};
+  data_->erase(key_);
+  data_->emplace(key_, toStore);
   return *this;
 }
 
 // -----------------------------------------------------------------------
 
 GameexeInterpretObject& GameexeInterpretObject::operator=(const int value) {
-  // Set the key to incoming int
-  object_to_lookup_on_.SetIntAt(key_, value);
+  Gameexe_vec_type toStore{std::make_shared<IntToken>(value)};
+  data_->erase(key_);
+  data_->emplace(key_, toStore);
   return *this;
 }
 
 // -----------------------------------------------------------------------
-// GameexeFilteringIterator
-// -----------------------------------------------------------------------
 
-void GameexeFilteringIterator::incrementUntilValid() {
-  while (currentKey != gexe.data_.end() &&
-         !boost::istarts_with(currentKey->first, filterKeys)) {
-    currentKey++;
-  }
+void GameexeInterpretObject::ThrowUnknownKey(const std::string& key) {
+  std::ostringstream ss;
+  ss << "Unknown Gameexe key '" << key << "'";
+  throw libreallive::Error(ss.str());
+}
+
+std::vector<int> GameexeInterpretObject::GetIntArray() const {
+  static const std::vector<int> falseVector;
+  if (iterator_ == data_->end())
+    return falseVector;
+
+  std::vector<int> vec;
+  vec.reserve(iterator_->second.size());
+  for (const auto& tok : iterator_->second)
+    vec.push_back(tok->ToInt());
+  return vec;
 }
