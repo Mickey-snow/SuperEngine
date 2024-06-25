@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of libreallive, a dependency of RLVM.
@@ -31,34 +28,43 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LIBREALLIVE_BYTECODE_H_
-#define SRC_LIBREALLIVE_BYTECODE_H_
+#ifndef SRC_LIBREALLIVE_ELEMENTS_TEXTOUT_H_
+#define SRC_LIBREALLIVE_ELEMENTS_TEXTOUT_H_
 
 #include <ostream>
 #include <string>
-#include <vector>
 
-#include "libreallive/alldefs.h"
 #include "libreallive/elements/bytecode.h"
-#include "libreallive/elements/comma.h"
-#include "libreallive/elements/command.h"
-#include "libreallive/elements/expression.h"
-#include "libreallive/elements/meta.h"
-#include "libreallive/elements/textout.h"
 
 namespace libreallive {
 
-void PrintParameterString(std::ostream& oss,
-                          const std::vector<std::string>& paramseters);
+class TextoutFactory;
 
-class BytecodeFactory {
+// Display-text elements.
+class TextoutElement : public BytecodeElement {
+ private:
+  friend TextoutFactory;
+  TextoutElement(const char* src, const char* file_end);
+
  public:
-  // Read the next element from a stream.
-  static BytecodeElement* Read(const char* stream,
-                               const char* end,
-                               ConstructionData& cdata);
+  virtual ~TextoutElement();
+
+  const std::string GetText() const;
+
+  // Overridden from BytecodeElement::
+  virtual void PrintSourceRepresentation(RLMachine* machine,
+                                         std::ostream& oss) const final;
+  virtual const size_t GetBytecodeLength() const final;
+  virtual void RunOnMachine(RLMachine& machine) const final;
+
+ private:
+  std::string repr;
 };
 
+class TextoutFactory {
+ public:
+  static TextoutElement* Read(const char* src, const char* file_end);
+};
 }  // namespace libreallive
 
-#endif  // SRC_LIBREALLIVE_BYTECODE_H_
+#endif

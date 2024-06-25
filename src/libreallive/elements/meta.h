@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of libreallive, a dependency of RLVM.
@@ -31,34 +28,35 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LIBREALLIVE_BYTECODE_H_
-#define SRC_LIBREALLIVE_BYTECODE_H_
+#ifndef SRC_LIBREALLIVE_ELEMENTS_META_H_
+#define SRC_LIBREALLIVE_ELEMENTS_META_H_
 
-#include <ostream>
-#include <string>
-#include <vector>
-
-#include "libreallive/alldefs.h"
 #include "libreallive/elements/bytecode.h"
-#include "libreallive/elements/comma.h"
-#include "libreallive/elements/command.h"
-#include "libreallive/elements/expression.h"
-#include "libreallive/elements/meta.h"
-#include "libreallive/elements/textout.h"
 
-namespace libreallive {
-
-void PrintParameterString(std::ostream& oss,
-                          const std::vector<std::string>& paramseters);
-
-class BytecodeFactory {
+namespace libreallive{
+// Metadata elements: source line, kidoku, and entrypoint markers.
+class MetaElement : public BytecodeElement {
  public:
-  // Read the next element from a stream.
-  static BytecodeElement* Read(const char* stream,
-                               const char* end,
-                               ConstructionData& cdata);
+  MetaElement(const ConstructionData* cv, const char* src);
+  virtual ~MetaElement();
+
+  const int value() const { return value_; }
+  void set_value(const int value) { value_ = value; }
+
+  // Overridden from BytecodeElement:
+  virtual void PrintSourceRepresentation(RLMachine* machine,
+                                         std::ostream& oss) const final;
+  virtual const size_t GetBytecodeLength() const final;
+  virtual const int GetEntrypoint() const final;
+  virtual void RunOnMachine(RLMachine& machine) const final;
+
+ private:
+  enum MetaElementType { Line_ = '\n', Kidoku_ = '@', Entrypoint_ };
+  MetaElementType type_;
+  int value_;
+  int entrypoint_index_;
 };
 
-}  // namespace libreallive
+}
 
-#endif  // SRC_LIBREALLIVE_BYTECODE_H_
+#endif

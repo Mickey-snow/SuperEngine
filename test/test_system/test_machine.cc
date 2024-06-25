@@ -113,7 +113,7 @@ void TestMachine::RunOpcode(const std::string& name,
 
   string full = repr + '(' + argument_string + ')';
   std::unique_ptr<libreallive::CommandElement> element(
-      libreallive::BuildFunctionElement(full.c_str()));
+      libreallive::FunctionFactory::BuildFunctionElement(full.c_str()));
 
   RLOperation* op = registry_[make_pair(name, overload)];
   if (op) {

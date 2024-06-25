@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of libreallive, a dependency of RLVM.
@@ -31,34 +28,47 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LIBREALLIVE_BYTECODE_H_
-#define SRC_LIBREALLIVE_BYTECODE_H_
-
-#include <ostream>
-#include <string>
-#include <vector>
-
-#include "libreallive/alldefs.h"
 #include "libreallive/elements/bytecode.h"
-#include "libreallive/elements/comma.h"
-#include "libreallive/elements/command.h"
-#include "libreallive/elements/expression.h"
-#include "libreallive/elements/meta.h"
-#include "libreallive/elements/textout.h"
+#include "machine/rlmachine.h"
 
-namespace libreallive {
+namespace libreallive{
+  
+// -----------------------------------------------------------------------
+// ConstructionData
+// -----------------------------------------------------------------------
 
-void PrintParameterString(std::ostream& oss,
-                          const std::vector<std::string>& paramseters);
+ConstructionData::ConstructionData(size_t kt, pointer_t pt)
+    : kidoku_table(kt), null(pt) {}
 
-class BytecodeFactory {
- public:
-  // Read the next element from a stream.
-  static BytecodeElement* Read(const char* stream,
-                               const char* end,
-                               ConstructionData& cdata);
-};
+ConstructionData::~ConstructionData() {}
 
-}  // namespace libreallive
+// -----------------------------------------------------------------------
+// BytecodeElement
+// -----------------------------------------------------------------------
 
-#endif  // SRC_LIBREALLIVE_BYTECODE_H_
+BytecodeElement::BytecodeElement() {}
+
+BytecodeElement::~BytecodeElement() {}
+
+BytecodeElement::BytecodeElement(const BytecodeElement& c) {}
+
+void BytecodeElement::PrintSourceRepresentation(RLMachine* machine,
+                                                std::ostream& oss) const {
+  oss << "<unspecified bytecode>" << std::endl;
+}
+
+void BytecodeElement::SetPointers(ConstructionData& cdata) {}
+
+const int BytecodeElement::GetEntrypoint() const { return kInvalidEntrypoint; }
+
+string BytecodeElement::GetSerializedCommand(RLMachine& machine) const {
+  throw Error(
+      "Can't call GetSerializedCommand() on things other than "
+      "FunctionElements");
+}
+
+void BytecodeElement::RunOnMachine(RLMachine& machine) const {
+  machine.AdvanceInstructionPointer();
+}
+
+}

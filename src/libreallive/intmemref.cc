@@ -26,6 +26,7 @@
 // -----------------------------------------------------------------------
 
 #include "libreallive/intmemref.h"
+#include "libreallive/alldefs.h"
 
 #include <cstring>
 #include <ostream>
@@ -61,7 +62,7 @@ IntMemRef::IntMemRef(char bank_name, int location)
   else if (bank_name == 'L')
     memory_bank_ = INTL_LOCATION;
   else
-    throw std::runtime_error("Invalid memory bank name.");
+    throw Error("Invalid memory bank name.");
 }
 
 // -----------------------------------------------------------------------

@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of libreallive, a dependency of RLVM.
@@ -31,34 +28,41 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LIBREALLIVE_BYTECODE_H_
-#define SRC_LIBREALLIVE_BYTECODE_H_
+#ifndef SRC_LIBREALLIVE_ELEMENTS_EXPRESSION_H_
+#define SRC_LIBREALLIVE_ELEMENTS_EXPRESSION_H_
 
-#include <ostream>
-#include <string>
-#include <vector>
-
-#include "libreallive/alldefs.h"
 #include "libreallive/elements/bytecode.h"
-#include "libreallive/elements/comma.h"
-#include "libreallive/elements/command.h"
-#include "libreallive/elements/expression.h"
-#include "libreallive/elements/meta.h"
-#include "libreallive/elements/textout.h"
+#include "libreallive/expression.h"
 
-namespace libreallive {
+namespace libreallive{
+  // Expression elements.
+// Construct from long to build a representation of an integer constant.
 
-void PrintParameterString(std::ostream& oss,
-                          const std::vector<std::string>& paramseters);
-
-class BytecodeFactory {
+// A BytecodeElement that represents an expression
+class ExpressionElement : public BytecodeElement {
  public:
-  // Read the next element from a stream.
-  static BytecodeElement* Read(const char* stream,
-                               const char* end,
-                               ConstructionData& cdata);
+  explicit ExpressionElement(const long val);
+  explicit ExpressionElement(const char* src);
+  ExpressionElement(const ExpressionElement& rhs);
+  virtual ~ExpressionElement();
+
+  // Returns an ExpressionPiece representing this expression.
+  const ExpressionPiece& ParsedExpression() const;
+
+  // Overridden from BytecodeElement:
+  virtual void PrintSourceRepresentation(RLMachine* machine,
+                                         std::ostream& oss) const final;
+  virtual const size_t GetBytecodeLength() const final;
+  virtual void RunOnMachine(RLMachine& machine) const final;
+
+ private:
+  int length_;
+
+  // Storage for the parsed expression so we only have to calculate
+  // it once (and so we can return it by const reference)
+  ExpressionPiece parsed_expression_;
 };
+  
+}
 
-}  // namespace libreallive
-
-#endif  // SRC_LIBREALLIVE_BYTECODE_H_
+#endif

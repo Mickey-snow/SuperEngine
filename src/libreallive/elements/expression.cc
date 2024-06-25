@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of libreallive, a dependency of RLVM.
@@ -31,34 +28,47 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LIBREALLIVE_BYTECODE_H_
-#define SRC_LIBREALLIVE_BYTECODE_H_
-
-#include <ostream>
-#include <string>
-#include <vector>
-
-#include "libreallive/alldefs.h"
-#include "libreallive/elements/bytecode.h"
-#include "libreallive/elements/comma.h"
-#include "libreallive/elements/command.h"
 #include "libreallive/elements/expression.h"
-#include "libreallive/elements/meta.h"
-#include "libreallive/elements/textout.h"
+#include "machine/rlmachine.h"
 
-namespace libreallive {
+namespace libreallive{
+// -----------------------------------------------------------------------
+// ExpressionElement
+// -----------------------------------------------------------------------
 
-void PrintParameterString(std::ostream& oss,
-                          const std::vector<std::string>& paramseters);
+ExpressionElement::ExpressionElement(const char* src)
+    : parsed_expression_(invalid_expression_piece_t()) {
+  const char* end = src;
+  parsed_expression_ = GetAssignment(end);
+  length_ = std::distance(src, end);
+}
 
-class BytecodeFactory {
- public:
-  // Read the next element from a stream.
-  static BytecodeElement* Read(const char* stream,
-                               const char* end,
-                               ConstructionData& cdata);
-};
+ExpressionElement::ExpressionElement(const long val)
+    : length_(0),
+      parsed_expression_(ExpressionPiece::IntConstant(val)) {
+}
 
-}  // namespace libreallive
+ExpressionElement::ExpressionElement(const ExpressionElement& rhs)
+    : length_(0),
+      parsed_expression_(rhs.parsed_expression_) {
+}
 
-#endif  // SRC_LIBREALLIVE_BYTECODE_H_
+ExpressionElement::~ExpressionElement() {}
+
+const ExpressionPiece& ExpressionElement::ParsedExpression() const {
+  return parsed_expression_;
+}
+
+void ExpressionElement::PrintSourceRepresentation(RLMachine* machine,
+                                                  std::ostream& oss) const {
+  oss << ParsedExpression().GetDebugString() << std::endl;
+}
+
+const size_t ExpressionElement::GetBytecodeLength() const {
+  return length_;
+}
+
+void ExpressionElement::RunOnMachine(RLMachine& machine) const {
+  machine.ExecuteExpression(*this);
+}
+}

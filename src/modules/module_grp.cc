@@ -1447,7 +1447,7 @@ void ReplayGraphicsStackCommand(RLMachine& machine,
         // Parse the string as a chunk of Reallive bytecode.
         libreallive::ConstructionData cdata(0, libreallive::pointer_t());
         libreallive::BytecodeElement* element =
-            libreallive::BytecodeElement::Read(
+            libreallive::BytecodeFactory::Read(
                 command.c_str(), command.c_str() + command.size(), cdata);
         libreallive::CommandElement* command =
             dynamic_cast<libreallive::CommandElement*>(element);

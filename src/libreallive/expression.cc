@@ -892,15 +892,15 @@ bool ExpressionPiece::IsSpecialParameter() const {
 ExpressionValueType ExpressionPiece::GetExpressionValueType() const {
   switch (piece_type) {
     case TYPE_STRING_CONSTANT:
-      return ValueTypeString;
+      return ExpressionValueType::String;
     case TYPE_MEMORY_REFERENCE:
       return is_string_location(mem_reference.type) ?
-          ValueTypeString : ValueTypeInteger;
+          ExpressionValueType::String : ExpressionValueType::Integer;
     case TYPE_SIMPLE_MEMORY_REFERENCE:
       return is_string_location(simple_mem_reference.type) ?
-          ValueTypeString : ValueTypeInteger;
+          ExpressionValueType::String : ExpressionValueType::Integer;
     default:
-      return ValueTypeInteger;
+      return ExpressionValueType::Integer;
   }
 }
 

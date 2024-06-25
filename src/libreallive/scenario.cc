@@ -152,7 +152,7 @@ Script::Script(const Header& hdr,
   pointer_t it = elts_.before_begin();
   while (pos < dlen) {
     // Read element
-    it = elts_.emplace_after(it, BytecodeElement::Read(stream, end, cdat));
+    it = elts_.emplace_after(it, BytecodeFactory::Read(stream, end, cdat));
     cdat.offsets[pos] = it;
 
     // Keep track of the entrypoints

@@ -73,9 +73,9 @@ std::string ParsableToPrintableString(const std::string& src);
 // into one that can be parsed by all the get_expr family of functions.
 std::string PrintableToParsableString(const std::string& src);
 
-enum ExpressionValueType {
-  ValueTypeInteger,
-  ValueTypeString
+enum class ExpressionValueType {
+  Integer,
+  String
 };
 
 enum ExpressionPieceType {
