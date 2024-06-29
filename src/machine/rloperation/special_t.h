@@ -31,7 +31,6 @@
 #include "libreallive/expression.h"
 #include "utilities/exception.h"
 
-
 // In bytecode, special tags can be any char, though they're usually
 // 0. Starting in at least Little Busters, some commands use a new format where
 // there are multiple tags, which require a specialized mapping between the tag
@@ -40,13 +39,14 @@
 // This default mapper is used by most Special_Ts, and returns the tag as the
 // type.
 struct DefaultSpecialMapper {
-  static int GetTypeForTag(const libreallive::ExpressionPiece& sp) {
-    return sp.GetOverloadTag();
+  static int GetTypeForTag(const libreallive::Expression& sp) {
+    return sp->GetOverloadTag();
   }
 };
 
 // Type definition that implements the special parameter concept; the
 // way to expect multiple different types in a parameter slot.
+struct Empty_T;
 template <typename Mapper,
           typename A,
           typename B = Empty_T,
@@ -83,14 +83,14 @@ struct Special_T {
       RLMachine& machine,
       const libreallive::ExpressionPiecesVector& p,
       unsigned int& position,
-      const libreallive::ExpressionPiece& sp) {
+      const libreallive::Expression sp) {
     if (TYPE::is_complex) {
       return TYPE::getData(machine, p, position);
     } else {
       unsigned int contained_position = 0;
       position++;
-      return TYPE::getData(
-          machine, sp.GetContainedPieces(), contained_position);
+      return TYPE::getData(machine, sp->GetContainedPieces(),
+                           contained_position);
     }
   }
 
@@ -105,9 +105,9 @@ struct Special_T {
       throw std::runtime_error(oss.str());
     }
 
-    const libreallive::ExpressionPiece& sp = p[position];
+    const libreallive::Expression sp = p[position];
 
-    if (sp.GetContainedPieces().size() == 0)
+    if (sp->GetContainedPieces().size() == 0)
       throw rlvm::Exception("Empty special construct in Special_T");
 
     Parameter par;
@@ -143,7 +143,7 @@ struct Special_T {
       default: {
         std::ostringstream oss;
         oss << "Illegal overload in Special_T::getData(). Bytecode tag was "
-            << sp.GetOverloadTag() << ", Mapped position was " << par.type;
+            << sp->GetOverloadTag() << ", Mapped position was " << par.type;
         throw rlvm::Exception(oss.str());
       }
     }

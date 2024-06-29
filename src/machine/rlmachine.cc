@@ -541,7 +541,7 @@ const libreallive::Scenario& RLMachine::Scenario() const {
 }
 
 void RLMachine::ExecuteExpression(const libreallive::ExpressionElement& e) {
-  e.ParsedExpression().GetIntegerValue(*this);
+  e.ParsedExpression()->GetIntegerValue(*this);
   AdvanceInstructionPointer();
 }
 

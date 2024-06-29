@@ -138,9 +138,9 @@ TEST(ExpressionTest, ParseWithNewlineInIt) {
 
   // This shouldn't throw.
   const char* start = parsable.c_str();
-  libreallive::ExpressionPiece piece(libreallive::GetData(start));
+  libreallive::Expression piece(libreallive::GetData(start));
 
-  ASSERT_TRUE(piece.IsSpecialParameter());
+  ASSERT_TRUE(piece->IsSpecialParameter());
 }
 
 TEST(ExpressionTest, ParseQuotedEnglishString) {

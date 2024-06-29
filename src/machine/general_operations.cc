@@ -30,12 +30,12 @@
 #include <string>
 #include <vector>
 
-#include "systems/base/system.h"
-#include "systems/base/graphics_system.h"
-#include "systems/base/text_system.h"
-#include "machine/rlmachine.h"
-#include "libreallive/gameexe.h"
 #include "libreallive/bytecode.h"
+#include "libreallive/gameexe.h"
+#include "machine/rlmachine.h"
+#include "systems/base/graphics_system.h"
+#include "systems/base/system.h"
+#include "systems/base/text_system.h"
 #include "utilities/exception.h"
 
 namespace getSystemObjImpl {
@@ -101,7 +101,7 @@ void MultiDispatch::operator()(RLMachine& machine,
 
   for (unsigned int i = 0; i < parameter_pieces.size(); ++i) {
     const libreallive::ExpressionPiecesVector& element =
-        parameter_pieces[i].GetContainedPieces();
+        parameter_pieces[i]->GetContainedPieces();
     handler_->Dispatch(machine, element);
   }
 
@@ -151,7 +151,8 @@ UndefinedFunction::UndefinedFunction(int modtype,
 void UndefinedFunction::Dispatch(
     RLMachine& machine,
     const libreallive::ExpressionPiecesVector& parameters) {
-  throw rlvm::UnimplementedOpcode(name(), modtype_, module_, opcode_, overload_);
+  throw rlvm::UnimplementedOpcode(name(), modtype_, module_, opcode_,
+                                  overload_);
 }
 
 void UndefinedFunction::DispatchFunction(RLMachine& machine,
@@ -162,7 +163,8 @@ void UndefinedFunction::DispatchFunction(RLMachine& machine,
 void UndefinedFunction::ParseParameters(
     const std::vector<std::string>& input,
     libreallive::ExpressionPiecesVector& output) {
-  throw rlvm::UnimplementedOpcode(name(), modtype_, module_, opcode_, overload_);
+  throw rlvm::UnimplementedOpcode(name(), modtype_, module_, opcode_,
+                                  overload_);
 }
 
 void UndefinedFunction::operator()(RLMachine& machine,
@@ -172,12 +174,18 @@ void UndefinedFunction::operator()(RLMachine& machine,
 
 // Template instantiations.
 template RLOperation* CallFunction<EventSystem>(void (EventSystem::*)(int));
-template RLOperation* CallFunction<GraphicsSystem>(void (GraphicsSystem::*)(int));
+template RLOperation* CallFunction<GraphicsSystem>(
+    void (GraphicsSystem::*)(int));
 template RLOperation* CallFunction<SoundSystem>(void (SoundSystem::*)(int));
 template RLOperation* CallFunction<System>(void (System::*)(int));
 template RLOperation* CallFunction<TextSystem>(void (TextSystem::*)(int));
-template RLOperation* ReturnIntValue<EventSystem, int>(int (EventSystem::*)() const);
-template RLOperation* ReturnIntValue<GraphicsSystem, int>(int (GraphicsSystem::*)() const);
-template RLOperation* ReturnIntValue<RLMachine, int>(int (RLMachine::*)() const);
-template RLOperation* ReturnIntValue<SoundSystem, int>(int (SoundSystem::*)() const);
-template RLOperation* ReturnIntValue<TextSystem, int>(int (TextSystem::*)() const);
+template RLOperation* ReturnIntValue<EventSystem, int>(int (EventSystem::*)()
+                                                           const);
+template RLOperation* ReturnIntValue<GraphicsSystem, int>(
+    int (GraphicsSystem::*)() const);
+template RLOperation* ReturnIntValue<RLMachine, int>(int (RLMachine::*)()
+                                                         const);
+template RLOperation* ReturnIntValue<SoundSystem, int>(int (SoundSystem::*)()
+                                                           const);
+template RLOperation* ReturnIntValue<TextSystem, int>(int (TextSystem::*)()
+                                                          const);

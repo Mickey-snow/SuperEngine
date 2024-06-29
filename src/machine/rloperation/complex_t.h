@@ -55,14 +55,14 @@ struct Complex_T {
 
 // static
 template <typename... Args>
-typename Complex_T<Args...>::type
-Complex_T<Args...>::getData(RLMachine& machine,
-                            const libreallive::ExpressionPiecesVector& p,
-                            unsigned int& position) {
+typename Complex_T<Args...>::type Complex_T<Args...>::getData(
+    RLMachine& machine,
+    const libreallive::ExpressionPiecesVector& p,
+    unsigned int& position) {
   unsigned int pos_in_expression = 0;
   const libreallive::ExpressionPiecesVector& pieces =
-      p[position++].GetContainedPieces();
-  return type { Args::getData(machine, pieces, pos_in_expression)... };
+      p[position++]->GetContainedPieces();
+  return type{Args::getData(machine, pieces, pos_in_expression)...};
 }
 
 // static
@@ -72,8 +72,8 @@ void Complex_T<Args...>::ParseParameters(
     const std::vector<std::string>& input,
     libreallive::ExpressionPiecesVector& output) {
   const char* data = input.at(position).c_str();
-  libreallive::ExpressionPiece ep(libreallive::GetComplexParam(data));
-  output.push_back(std::move(ep));
+  libreallive::Expression ep(libreallive::GetComplexParam(data));
+  output.push_back(ep);
   position++;
 }
 

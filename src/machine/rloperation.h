@@ -28,9 +28,9 @@
 #ifndef SRC_MACHINE_RLOPERATION_H_
 #define SRC_MACHINE_RLOPERATION_H_
 
-#include <utility>
 #include <string>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include "libreallive/bytecode_fwd.h"
@@ -258,8 +258,8 @@ void ParseEachParameter(
     unsigned int& position,
     const std::vector<std::string>& input,
     libreallive::ExpressionPiecesVector& output,
-    typename std::enable_if<std::is_same<T, _sentinel_type>::value,
-    int>::type* dummy = nullptr) {
+    typename std::enable_if<std::is_same<T, _sentinel_type>::value, int>::type*
+        dummy = nullptr) {
   // The recursive base case does nothing.
 }
 
@@ -268,33 +268,33 @@ void ParseEachParameter(
     unsigned int& position,
     const std::vector<std::string>& input,
     libreallive::ExpressionPiecesVector& output,
-    typename std::enable_if<!std::is_same<T, _sentinel_type>::value,
-    int>::type* dummy = nullptr) {
+    typename std::enable_if<!std::is_same<T, _sentinel_type>::value, int>::type*
+        dummy = nullptr) {
   T::ParseParameters(position, input, output);
   ParseEachParameter<Args...>(position, input, output);
 }
 
 // This should really be in the stdlib.
-template<int...>
-struct index_tuple{};
+template <int...>
+struct index_tuple {};
 
-template<int I, typename IndexTuple, typename... Types>
+template <int I, typename IndexTuple, typename... Types>
 struct make_indexes_impl;
 
-template<int I, int... Indexes, typename T, typename ... Types>
+template <int I, int... Indexes, typename T, typename... Types>
 struct make_indexes_impl<I, index_tuple<Indexes...>, T, Types...> {
-  typedef typename make_indexes_impl<I + 1, index_tuple<Indexes..., I>,
+  typedef typename make_indexes_impl<I + 1,
+                                     index_tuple<Indexes..., I>,
                                      Types...>::type type;
 };
 
-template<int I, int... Indexes>
-struct make_indexes_impl<I, index_tuple<Indexes...> > {
-    typedef index_tuple<Indexes...> type;
+template <int I, int... Indexes>
+struct make_indexes_impl<I, index_tuple<Indexes...>> {
+  typedef index_tuple<Indexes...> type;
 };
 
-template<typename ... Types>
-struct make_indexes : make_indexes_impl<0, index_tuple<>, Types...>
-{};
+template <typename... Types>
+struct make_indexes : make_indexes_impl<0, index_tuple<>, Types...> {};
 
 }  // namespace internal
 
@@ -345,7 +345,7 @@ class RLOpcode : public RLNormalOpcode<Args...> {
   virtual void operator()(RLMachine&, typename Args::type...) = 0;
 
  private:
-  template<int... Indexes>
+  template <int... Indexes>
   void DispatchImpl(RLMachine& machine,
                     const std::tuple<typename Args::type...>& args,
                     internal::index_tuple<Indexes...>) {
@@ -369,10 +369,8 @@ void RLOpcode<Args...>::Dispatch(
   //
   // http://stackoverflow.com/questions/12048221/c11-variadic-template-function-parameter-pack-expansion-execution-order
   unsigned int position = 0;
-  std::tuple<typename Args::type...> tuple =
-      std::tuple<typename Args::type...>{
-    Args::getData(machine, parameters, position)...
-  };
+  std::tuple<typename Args::type...> tuple = std::tuple<typename Args::type...>{
+      Args::getData(machine, parameters, position)...};
   DispatchImpl(machine, tuple,
                typename internal::make_indexes<Args...>::type());
 }
@@ -391,10 +389,13 @@ extern template class RLNormalOpcode<>;
 extern template class RLNormalOpcode<IntConstant_T>;
 extern template class RLNormalOpcode<IntConstant_T, IntConstant_T>;
 extern template class RLNormalOpcode<IntConstant_T, StrConstant_T>;
-extern template class RLNormalOpcode<IntConstant_T, IntConstant_T,
+extern template class RLNormalOpcode<IntConstant_T,
+                                     IntConstant_T,
                                      IntConstant_T>;
-extern template class RLNormalOpcode<IntConstant_T, IntConstant_T,
-                                     IntConstant_T, IntConstant_T>;
+extern template class RLNormalOpcode<IntConstant_T,
+                                     IntConstant_T,
+                                     IntConstant_T,
+                                     IntConstant_T>;
 extern template class RLNormalOpcode<IntReference_T>;
 extern template class RLNormalOpcode<IntReference_T, IntReference_T>;
 extern template class RLNormalOpcode<StrConstant_T>;
@@ -407,7 +408,9 @@ extern template class RLOpcode<IntConstant_T>;
 extern template class RLOpcode<IntConstant_T, IntConstant_T>;
 extern template class RLOpcode<IntConstant_T, StrConstant_T>;
 extern template class RLOpcode<IntConstant_T, IntConstant_T, IntConstant_T>;
-extern template class RLOpcode<IntConstant_T, IntConstant_T, IntConstant_T,
+extern template class RLOpcode<IntConstant_T,
+                               IntConstant_T,
+                               IntConstant_T,
                                IntConstant_T>;
 extern template class RLOpcode<IntReference_T>;
 extern template class RLOpcode<IntReference_T, IntReference_T>;

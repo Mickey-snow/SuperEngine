@@ -39,6 +39,7 @@
 #include <string>
 #include <vector>
 
+#include "libreallive/alldefs.h"
 #include "machine/reference.h"
 
 class RLMachine;
@@ -52,16 +53,18 @@ size_t NextString(const char* src);
 size_t NextData(const char* src);
 
 // Parse expression functions
+class IExpression;
 class ExpressionPiece;
-ExpressionPiece GetExpressionToken(const char*& src);
-ExpressionPiece GetExpressionTerm(const char*& src);
-ExpressionPiece GetExpressionArithmatic(const char*& src);
-ExpressionPiece GetExpressionCondition(const char*& src);
-ExpressionPiece GetExpressionBoolean(const char*& src);
-ExpressionPiece GetExpression(const char*& src);
-ExpressionPiece GetAssignment(const char*& src);
-ExpressionPiece GetData(const char*& src);
-ExpressionPiece GetComplexParam(const char*& src);
+using Expression = std::shared_ptr<IExpression>;
+Expression GetExpressionToken(const char*& src);
+Expression GetExpressionTerm(const char*& src);
+Expression GetExpressionArithmatic(const char*& src);
+Expression GetExpressionCondition(const char*& src);
+Expression GetExpressionBoolean(const char*& src);
+Expression GetExpression(const char*& src);
+Expression GetAssignment(const char*& src);
+Expression GetData(const char*& src);
+Expression GetComplexParam(const char*& src);
 
 std::string EvaluatePRINT(RLMachine& machine, const std::string& in);
 
@@ -73,181 +76,106 @@ std::string ParsableToPrintableString(const std::string& src);
 // into one that can be parsed by all the get_expr family of functions.
 std::string PrintableToParsableString(const std::string& src);
 
-enum class ExpressionValueType {
-  Integer,
-  String
-};
+enum class ExpressionValueType { Integer, String };
 
-enum ExpressionPieceType {
-  TYPE_STORE_REGISTER,
-  TYPE_INT_CONSTANT,
-  TYPE_STRING_CONSTANT,
-  TYPE_MEMORY_REFERENCE,
-  TYPE_SIMPLE_MEMORY_REFERENCE,
-  TYPE_UNIARY_EXPRESSION,
-  TYPE_BINARY_EXPRESSION,
-  TYPE_SIMPLE_ASSIGNMENT,
-  TYPE_COMPLEX_EXPRESSION,
-  TYPE_SPECIAL_EXPRESSION,
-  TYPE_INVALID
-};
-
-struct invalid_expression_piece_t {};
-
-class ExpressionPiece {
+class IExpression {
  public:
-  static ExpressionPiece StoreRegister();
-  static ExpressionPiece IntConstant(const int constant);
-  static ExpressionPiece StrConstant(const std::string constant);
-  static ExpressionPiece MemoryReference(const int type,
-                                         ExpressionPiece location);
-  static ExpressionPiece UniaryExpression(const char operation,
-                                          ExpressionPiece operand);
-  static ExpressionPiece BinaryExpression(const char operation,
-                                          ExpressionPiece lhs,
-                                          ExpressionPiece rhs);
-  static ExpressionPiece ComplexExpression();
-  static ExpressionPiece SpecialExpression(const int tag);
+  virtual ~IExpression() {}
 
-  ExpressionPiece(invalid_expression_piece_t);
-  ExpressionPiece(const ExpressionPiece& rhs);
-  ExpressionPiece(ExpressionPiece&& rhs);
-  ~ExpressionPiece();
-
-  ExpressionPiece& operator=(const ExpressionPiece& rhs);
-  ExpressionPiece& operator=(ExpressionPiece&& rhs);
-
-  bool is_valid() const { return piece_type != TYPE_INVALID; }
+  virtual bool is_valid() const { return false; }
 
   // Capability method; returns false by default. Override when
   // ExpressionPiece subclass accesses a piece of memory.
-  bool IsMemoryReference() const;
+  virtual bool IsMemoryReference() const { return false; }
 
   // Capability method; returns false by default. Override only in
   // classes that represent a complex parameter to the type system.
   // @see Complex_T
-  bool IsComplexParameter() const;
+  virtual bool IsComplexParameter() const { return false; }
 
   // Capability method; returns false by default. Override only in
   // classes that represent a special parameter to the type system.
   // @see Special_T
-  bool IsSpecialParameter() const;
+  virtual bool IsSpecialParameter() const { return false; }
 
   // Returns the value type of this expression (i.e. string or
   // integer)
-  ExpressionValueType GetExpressionValueType() const;
+  virtual ExpressionValueType GetExpressionValueType() const {
+    return ExpressionValueType::Integer;
+  }
 
   // Assigns the value into the memory location represented by the
   // current expression. Not all ExpressionPieces can do this, so
   // there is a default implementation which does nothing.
-  void SetIntegerValue(RLMachine& machine, int rvalue);
+  virtual void SetIntegerValue(RLMachine& machine, int rvalue) {}
 
   // Returns the integer value of this expression; this can either be
   // a memory access or a calculation based on some subexpressions.
-  int GetIntegerValue(RLMachine& machine) const;
+  virtual int GetIntegerValue(RLMachine& machine) const {
+    throw Error("IExpression::GetIntegerValue() invalid on this object");
+  }
 
-  void SetStringValue(RLMachine& machine, const std::string& rvalue);
-  const std::string& GetStringValue(RLMachine& machine) const;
+  virtual void SetStringValue(RLMachine& machine, const std::string& rvalue) {
+    throw Error("IExpression::SetStringValue() invalid on this object");
+  }
+  virtual std::string GetStringValue(RLMachine& machine) const {
+    throw Error("IExpression::GetStringValue() invalid on this object");
+  }
 
   // I used to be able to just static cast any ExpressionPiece to a
   // MemoryReference if I wanted/needed a corresponding iterator. Haeleth's
   // rlBabel library instead uses the store register as an argument to a
   // function that takes a integer reference. So this needs to be here now.
-  IntReferenceIterator GetIntegerReferenceIterator(RLMachine& machine) const;
-  StringReferenceIterator GetStringReferenceIterator(RLMachine& machine) const;
+  virtual IntReferenceIterator GetIntegerReferenceIterator(
+      RLMachine& machine) const {
+    throw Error(
+        "IExpression::GetIntegerReferenceIterator() invalid on this object");
+  }
+  virtual StringReferenceIterator GetStringReferenceIterator(
+      RLMachine& machine) const {
+    throw Error(
+        "IExpression::GetStringReferenceIterator() invalid on this object");
+  }
 
   // A persistable version of this value. This method should return RealLive
   // bytecode equal to this ExpressionPiece with all references returned.
-  std::string GetSerializedExpression(RLMachine& machine) const;
+  virtual std::string GetSerializedExpression(RLMachine& machine) const {
+    throw Error(
+        "IExpression::GetSerializedExpression() invalid on this object");
+  }
 
   // A printable representation of the expression itself. Used to dump our
   // parsing of the bytecode to the console.
-  std::string GetDebugString() const;
+  virtual std::string GetDebugString() const { return "<invalid>"; }
 
   // In the case of Complex and Special types, adds an expression piece to the
   // list.
-  void AddContainedPiece(ExpressionPiece piece);
+  virtual void AddContainedPiece(Expression piece);
 
-  const std::vector<ExpressionPiece>& GetContainedPieces() const;
+  virtual const std::vector<Expression>& GetContainedPieces() const {
+    throw Error("Request to GetContainedPiece() invalid!");
+  }
 
-  int GetOverloadTag() const;
-
- private:
-  ExpressionPiece();
-
-  // Frees all possible memory and sets |piece_type| to TYPE_INVALID.
-  void Invalidate();
-
-  // Implementations of some of the public interface where they aren't one
-  // liners.
-  std::string GetComplexSerializedExpression(RLMachine& machine) const;
-  std::string GetSpecialSerializedExpression(RLMachine& machine) const;
-
-  std::string GetMemoryDebugString(int type,
-                                   const std::string& location) const;
-  std::string GetUniaryDebugString() const;
-  std::string GetBinaryDebugString(char operation,
-                                   const std::string& lhs,
-                                   const std::string& rhs) const;
-  std::string GetComplexDebugString() const;
-  std::string GetSpecialDebugString() const;
-
-  int PerformUniaryOperationOn(int int_operand) const;
-  static int PerformBinaryOperationOn(char operand, int lhs, int rhs);
-
-  ExpressionPieceType piece_type;
-
-  union {
-    // TYPE_INT_CONSTANT
-    int int_constant;
-
-    // TYPE_STRING_CONSTANT
-    std::string str_constant;
-
-    // TYPE_MEMORY_REFERENCE
-    struct {
-      int type;
-      ExpressionPiece* location;
-    } mem_reference;
-
-    // TYPE_SIMPLE_MEMORY_REFERENCE
-    struct {
-      int type;
-      int location;
-    } simple_mem_reference;
-
-    // TYPE_UNIARY_EXPRESSION
-    struct {
-      char operation;
-      ExpressionPiece* operand;
-    } uniary_expression;
-
-    // TYPE_BINARY_EXPRESSION
-    struct {
-      char operation;
-      ExpressionPiece* left_operand;
-      ExpressionPiece* right_operand;
-    } binary_expression;
-
-    // TYPE_SIMPLE_ASSIGNMENT
-    struct {
-      int type;
-      int location;
-      int value;
-    } simple_assignment;
-
-    // TYPE_COMPLEX_EXPRESSION
-    std::vector<ExpressionPiece> complex_expression;
-
-    // TYPE_SPECIAL_EXPRESSION
-    struct {
-      int overload_tag;
-      std::vector<ExpressionPiece> pieces;
-    } special_expression;
-  };
+  virtual int GetOverloadTag() const {
+    throw Error("Request to GetOverloadTag() invalid!");
+  }
 };
 
-typedef std::vector<libreallive::ExpressionPiece> ExpressionPiecesVector;
+class ExpressionFactory {
+ public:
+  static Expression StoreRegister();
+  static Expression IntConstant(const int& constant);
+  static Expression StrConstant(const std::string& constant);
+  static Expression MemoryReference(const int& type, Expression location);
+  static Expression UniaryExpression(const char operation, Expression operand);
+  static Expression BinaryExpression(const char operation,
+                                     Expression lhs,
+                                     Expression rhs);
+  static Expression ComplexExpression();
+  static Expression SpecialExpression(const int tag);
+};
+
+typedef std::vector<libreallive::Expression> ExpressionPiecesVector;
 
 }  // namespace libreallive
 

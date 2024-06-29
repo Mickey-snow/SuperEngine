@@ -62,7 +62,7 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 
 struct TextWindow::FaceSlot {
-  explicit FaceSlot(const std::vector<int>& vec)
+  explicit FaceSlot(const std::vector<int> vec)
       : x(vec.at(0)),
         y(vec.at(1)),
         behind(vec.at(2)),

@@ -56,7 +56,7 @@ struct Sel_select : public RLOp_SpecialCase {
       const std::vector<std::string>& input,
       libreallive::ExpressionPiecesVector& output) override {}
 
-  void operator()(RLMachine& machine, const CommandElement& ce) {
+  void operator()(RLMachine& machine, const CommandElement& ce) override {
     if (machine.ShouldSetSelcomSavepoint())
       machine.MarkSavepoint();
 
@@ -73,7 +73,7 @@ struct Sel_select_s : public RLOp_SpecialCase {
       const std::vector<std::string>& input,
       libreallive::ExpressionPiecesVector& output) override {}
 
-  void operator()(RLMachine& machine, const CommandElement& ce) {
+  void operator()(RLMachine& machine, const CommandElement& ce) override {
     if (machine.ShouldSetSelcomSavepoint())
       machine.MarkSavepoint();
 
@@ -102,7 +102,7 @@ struct Sel_select_w : public RLOp_SpecialCase {
       const std::vector<std::string>& input,
       libreallive::ExpressionPiecesVector& output) override {}
 
-  void operator()(RLMachine& machine, const CommandElement& ce) {
+  void operator()(RLMachine& machine, const CommandElement& ce) override {
     if (machine.ShouldSetSelcomSavepoint())
       machine.MarkSavepoint();
 
@@ -110,8 +110,8 @@ struct Sel_select_w : public RLOp_SpecialCase {
 
     // Sometimes the RL bytecode will override DEFAULT_SEL_WINDOW.
     int window = machine.system().gameexe()("DEFAULT_SEL_WINDOW").ToInt(-1);
-    libreallive::ExpressionPiece window_exp = element.GetWindowExpression();
-    int computed = window_exp.GetIntegerValue(machine);
+    libreallive::Expression window_exp = element.GetWindowExpression();
+    int computed = window_exp->GetIntegerValue(machine);
     if (computed != -1)
       window = computed;
 

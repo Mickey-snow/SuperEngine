@@ -34,8 +34,8 @@
 #include "utilities/math_util.h"
 
 // static
-int TimeTableMapper::GetTypeForTag(const libreallive::ExpressionPiece& sp) {
-  switch (sp.GetOverloadTag()) {
+int TimeTableMapper::GetTypeForTag(libreallive::Expression sp) {
+  switch (sp->GetOverloadTag()) {
     case 48:
       return 0;
     case 65584:
@@ -56,7 +56,7 @@ int TimeTableMapper::GetTypeForTag(const libreallive::ExpressionPiece& sp) {
       return 8;
     default: {
       std::ostringstream oss;
-      oss << "Invalid timetable2 tag: " << sp.GetOverloadTag();
+      oss << "Invalid timetable2 tag: " << sp->GetOverloadTag();
       throw rlvm::Exception(oss.str());
     }
   }
@@ -78,15 +78,14 @@ int Sys_timetable2::operator()(RLMachine& machine,
   int value = start_num;
 
   for (TimeTable2List::type::iterator it = index_list.begin();
-       it != index_list.end();
-       ++it) {
+       it != index_list.end(); ++it) {
     switch (it->type) {
       case 0: {
         int end_time = std::get<0>(it->first);
         int end_num = std::get<1>(it->first);
         if (now_time > start_time && now_time <= end_time) {
-          return InterpolateBetween(start_time, now_time, end_time,
-                                    value, end_num, 0);
+          return InterpolateBetween(start_time, now_time, end_time, value,
+                                    end_num, 0);
         } else {
           value = end_num;
         }
@@ -100,8 +99,8 @@ int Sys_timetable2::operator()(RLMachine& machine,
         int mod = std::get<2>(it->second);
 
         if (now_time > start_time && now_time <= end_time) {
-          return InterpolateBetween(start_time, now_time, end_time,
-                                    value, end_num, mod);
+          return InterpolateBetween(start_time, now_time, end_time, value,
+                                    end_num, mod);
         } else {
           value = end_num;
         }
@@ -191,8 +190,7 @@ struct Sys_timetablelen2 : public Sys_timetable2 {
     int total = 0;
 
     for (TimeTable2List::type::iterator it = index_list.begin();
-         it != index_list.end();
-         ++it) {
+         it != index_list.end(); ++it) {
       switch (it->type) {
         case 0: {
           total += std::get<0>(it->first);
@@ -231,8 +229,8 @@ struct Sys_timetablelen2 : public Sys_timetable2 {
       }
     }
 
-    return Sys_timetable2::operator()(
-        machine, now_time, rep_time, start_time, start_num, index_list);
+    return Sys_timetable2::operator()(machine, now_time, rep_time, start_time,
+                                      start_num, index_list);
   }
 };
 

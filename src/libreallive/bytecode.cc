@@ -62,8 +62,8 @@ void PrintParameterString(std::ostream& oss,
     // Take the binary stuff and try to get usefull, printable values.
     const char* start = param.c_str();
     try {
-      ExpressionPiece piece(GetData(start));
-      oss << piece.GetDebugString();
+      Expression piece(GetData(start));
+      oss << piece->GetDebugString();
     } catch (libreallive::Error& e) {
       // Any error throw here is a parse error.
       oss << "{RAW : " << ParsableToPrintableString(param) << "}";

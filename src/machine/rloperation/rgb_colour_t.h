@@ -87,7 +87,7 @@ struct RGBMaybeAColour_T {
     if (position < input.size()) {
       IntConstant_T::ParseParameters(position, input, output);
     } else {
-      output.emplace_back(libreallive::ExpressionPiece::IntConstant(255));
+      output.emplace_back(libreallive::ExpressionFactory::IntConstant(255));
       position++;
     }
   }

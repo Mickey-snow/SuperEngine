@@ -23,8 +23,8 @@
 #ifndef SRC_MACHINE_RLOPERATION_RLOP_STORE_H_
 #define SRC_MACHINE_RLOPERATION_RLOP_STORE_H_
 
-#include "machine/rloperation.h"
 #include "machine/rlmachine.h"
+#include "machine/rloperation.h"
 
 template <typename... Args>
 class RLStoreOpcode : public RLNormalOpcode<Args...> {
@@ -32,14 +32,13 @@ class RLStoreOpcode : public RLNormalOpcode<Args...> {
   RLStoreOpcode();
   virtual ~RLStoreOpcode();
 
-  virtual void Dispatch(
-      RLMachine& machine,
-      const libreallive::ExpressionPiecesVector& parameters);
+  virtual void Dispatch(RLMachine& machine,
+                        const libreallive::ExpressionPiecesVector& parameters);
 
   virtual int operator()(RLMachine&, typename Args::type...) = 0;
 
  private:
-  template<int... Indexes>
+  template <int... Indexes>
   void DispatchImpl(RLMachine& machine,
                     const std::tuple<typename Args::type...>& args,
                     internal::index_tuple<Indexes...>) {
@@ -64,10 +63,8 @@ void RLStoreOpcode<Args...>::Dispatch(
   //
   // http://stackoverflow.com/questions/12048221/c11-variadic-template-function-parameter-pack-expansion-execution-order
   unsigned int position = 0;
-  std::tuple<typename Args::type...> tuple =
-      std::tuple<typename Args::type...>{
-    Args::getData(machine, parameters, position)...
-  };
+  std::tuple<typename Args::type...> tuple = std::tuple<typename Args::type...>{
+      Args::getData(machine, parameters, position)...};
   DispatchImpl(machine, tuple,
                typename internal::make_indexes<Args...>::type());
 }

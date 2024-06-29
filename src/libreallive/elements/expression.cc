@@ -36,8 +36,7 @@ namespace libreallive{
 // ExpressionElement
 // -----------------------------------------------------------------------
 
-ExpressionElement::ExpressionElement(const char* src)
-    : parsed_expression_(invalid_expression_piece_t()) {
+  ExpressionElement::ExpressionElement(const char* src){
   const char* end = src;
   parsed_expression_ = GetAssignment(end);
   length_ = std::distance(src, end);
@@ -45,7 +44,7 @@ ExpressionElement::ExpressionElement(const char* src)
 
 ExpressionElement::ExpressionElement(const long val)
     : length_(0),
-      parsed_expression_(ExpressionPiece::IntConstant(val)) {
+      parsed_expression_(ExpressionFactory::IntConstant(val)) {
 }
 
 ExpressionElement::ExpressionElement(const ExpressionElement& rhs)
@@ -55,13 +54,13 @@ ExpressionElement::ExpressionElement(const ExpressionElement& rhs)
 
 ExpressionElement::~ExpressionElement() {}
 
-const ExpressionPiece& ExpressionElement::ParsedExpression() const {
+Expression ExpressionElement::ParsedExpression() const {
   return parsed_expression_;
 }
 
 void ExpressionElement::PrintSourceRepresentation(RLMachine* machine,
                                                   std::ostream& oss) const {
-  oss << ParsedExpression().GetDebugString() << std::endl;
+  oss << ParsedExpression()->GetDebugString() << std::endl;
 }
 
 const size_t ExpressionElement::GetBytecodeLength() const {

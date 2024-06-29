@@ -27,6 +27,7 @@
 #include <vector>
 
 #include "libreallive/expression.h"
+#include "machine/rloperation.h"
 
 template <int DEFAULTVAL>
 struct DefaultIntValue_T {
@@ -50,8 +51,7 @@ struct DefaultIntValue_T {
     if (position < input.size()) {
       IntConstant_T::ParseParameters(position, input, output);
     } else {
-      output.emplace_back(
-          libreallive::ExpressionPiece::IntConstant(DEFAULTVAL));
+      output.emplace_back(libreallive::ExpressionFactory::IntConstant(DEFAULTVAL));
       position++;
     }
   }
@@ -81,8 +81,7 @@ struct DefaultStrValue_T {
     if (position < input.size()) {
       StrConstant_T::ParseParameters(position, input, output);
     } else {
-      output.emplace_back(
-          libreallive::ExpressionPiece::StrConstant(std::string()));
+      output.emplace_back(libreallive::ExpressionFactory::StrConstant(std::string()));
       position++;
     }
   }

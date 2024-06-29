@@ -27,6 +27,7 @@
 
 #include "modules/module_obj.h"
 
+#include "libreallive/bytecode.h"
 #include "machine/properties.h"
 #include "machine/rlmachine.h"
 #include "systems/base/graphics_object.h"
@@ -34,9 +35,6 @@
 #include "systems/base/parent_graphics_object_data.h"
 #include "systems/base/system.h"
 #include "utilities/exception.h"
-#include "libreallive/bytecode.h"
-
-using libreallive::ExpressionPiece;
 
 void EnsureIsParentObject(GraphicsObject& parent, int size) {
   if (parent.has_object_data()) {
@@ -129,15 +127,15 @@ void ObjRangeAdapter::operator()(RLMachine& machine,
   // what RLOperation.DispatchFunction() does; we manually call the
   // subclass's Dispatch() so that we can get around the automated
   // incrementing of the instruction pointer.
-  int lowerRange = allParameters[0].GetIntegerValue(machine);
-  int upperRange = allParameters[1].GetIntegerValue(machine);
+  int lowerRange = allParameters[0]->GetIntegerValue(machine);
+  int upperRange = allParameters[1]->GetIntegerValue(machine);
 
   // Create a new list of expression pieces that contain a single integer at
   // the front. We will update this integer each time through the loop below.
   libreallive::ExpressionPiecesVector parameters;
   parameters.reserve(allParameters.size() - 1);
   parameters.emplace_back(
-      libreallive::ExpressionPiece::IntConstant(lowerRange));
+      libreallive::ExpressionFactory::IntConstant(lowerRange));
 
   // Copy everything after the first two items
   libreallive::ExpressionPiecesVector::const_iterator it =
@@ -147,7 +145,7 @@ void ObjRangeAdapter::operator()(RLMachine& machine,
     parameters.emplace_back(*it);
 
   for (int i = lowerRange; i <= upperRange; ++i) {
-    parameters[0] = libreallive::ExpressionPiece::IntConstant(i);
+    parameters[0] = libreallive::ExpressionFactory::IntConstant(i);
     handler->Dispatch(machine, parameters);
   }
 
@@ -175,14 +173,14 @@ void ChildObjAdapter::operator()(RLMachine& machine,
   if (allParameters.size() < 1)
     throw rlvm::Exception("Less than one argument to an objLayered function!");
 
-  int objset = allParameters[0].GetIntegerValue(machine);
+  int objset = allParameters[0]->GetIntegerValue(machine);
 
   // Copy everything after the first item
   libreallive::ExpressionPiecesVector::const_iterator it =
       allParameters.begin();
   ++it;
-  libreallive::ExpressionPiecesVector currentInstantiation(
-      it, allParameters.end());
+  libreallive::ExpressionPiecesVector currentInstantiation(it,
+                                                           allParameters.end());
 
   handler->SetProperty(P_PARENTOBJ, objset);
   handler->Dispatch(machine, currentInstantiation);
@@ -215,19 +213,18 @@ void ChildObjRangeAdapter::operator()(RLMachine& machine,
 
   // This part is like ChildObjAdapter; the first parameter is an integer
   // that represents the parent object.
-  int objset = allParameters[0].GetIntegerValue(machine);
+  int objset = allParameters[0]->GetIntegerValue(machine);
 
   // This part is like ObjRangeAdapter; the second and third parameters are
   // integers that represent a range of child objects.
-  int lowerRange = allParameters[1].GetIntegerValue(machine);
-  int upperRange = allParameters[2].GetIntegerValue(machine);
+  int lowerRange = allParameters[1]->GetIntegerValue(machine);
+  int upperRange = allParameters[2]->GetIntegerValue(machine);
 
   // Create a new list of expression pieces that contain a single integer at
   // the front. We will update this integer each time through the loop below.
   libreallive::ExpressionPiecesVector parameters;
   parameters.reserve(allParameters.size() - 2);
-  parameters.emplace_back(
-      libreallive::ExpressionPiece::IntConstant(lowerRange));
+  parameters.emplace_back(libreallive::ExpressionFactory::IntConstant(lowerRange));
 
   // Copy everything after the first three items
   libreallive::ExpressionPiecesVector::const_iterator it =
@@ -237,7 +234,7 @@ void ChildObjRangeAdapter::operator()(RLMachine& machine,
     parameters.emplace_back(*it);
 
   for (int i = lowerRange; i <= upperRange; ++i) {
-    parameters[0] = libreallive::ExpressionPiece::IntConstant(i);
+    parameters[0] = libreallive::ExpressionFactory::IntConstant(i);
 
     // Now Dispatch based on these parameters.
     handler->SetProperty(P_PARENTOBJ, objset);
@@ -303,8 +300,7 @@ void Obj_SetTwoIntOnObj::operator()(RLMachine& machine,
 // Obj_SetRepnoIntOnObj
 // -----------------------------------------------------------------------
 
-Obj_SetRepnoIntOnObj::Obj_SetRepnoIntOnObj(Setter setter)
-    : setter(setter) {}
+Obj_SetRepnoIntOnObj::Obj_SetRepnoIntOnObj(Setter setter) : setter(setter) {}
 
 Obj_SetRepnoIntOnObj::~Obj_SetRepnoIntOnObj() {}
 

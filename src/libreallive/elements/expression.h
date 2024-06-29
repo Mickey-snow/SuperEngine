@@ -47,7 +47,7 @@ class ExpressionElement : public BytecodeElement {
   virtual ~ExpressionElement();
 
   // Returns an ExpressionPiece representing this expression.
-  const ExpressionPiece& ParsedExpression() const;
+  Expression ParsedExpression() const;
 
   // Overridden from BytecodeElement:
   virtual void PrintSourceRepresentation(RLMachine* machine,
@@ -60,7 +60,7 @@ class ExpressionElement : public BytecodeElement {
 
   // Storage for the parsed expression so we only have to calculate
   // it once (and so we can return it by const reference)
-  ExpressionPiece parsed_expression_;
+  Expression parsed_expression_;
 };
   
 }

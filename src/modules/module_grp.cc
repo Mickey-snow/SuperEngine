@@ -907,7 +907,7 @@ struct fade_5
 
   void operator()(RLMachine& machine, Rect rect, int colour_num, int time) {
     Gameexe& gexe = machine.system().gameexe();
-    const std::vector<int>& rgb = gexe("COLOR_TABLE", colour_num).ToIntVector();
+    const std::vector<int> rgb = gexe("COLOR_TABLE", colour_num).ToIntVector();
     delegate_(machine, rect, RGBAColour(rgb), time);
   }
 };
@@ -927,7 +927,7 @@ struct fade_1 : public RLOpcode<IntConstant_T, DefaultIntValue_T<0>> {
   void operator()(RLMachine& machine, int colour_num, int time) {
     Size screen_size = machine.system().graphics().screen_size();
     Gameexe& gexe = machine.system().gameexe();
-    const std::vector<int>& rgb = gexe("COLOR_TABLE", colour_num).ToIntVector();
+    const std::vector<int> rgb = gexe("COLOR_TABLE", colour_num).ToIntVector();
     delegate_(machine, Rect(0, 0, screen_size), RGBAColour(rgb), time);
   }
 };

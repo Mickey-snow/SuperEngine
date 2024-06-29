@@ -37,7 +37,7 @@ class RLModule;
 
 // Maps the time table commands high tags down to normal.
 struct TimeTableMapper {
-  static int GetTypeForTag(const libreallive::ExpressionPiece& sp);
+  static int GetTypeForTag(libreallive::Expression sp);
 };
 
 // Defines timetable2's input pattern.
@@ -60,7 +60,8 @@ typedef Special_T<TimeTableMapper,
                   TT_Turnup,
                   TT_Loop,
                   TT_Jump,
-                  TT_WaitSet> TimeTable2Entry;
+                  TT_WaitSet>
+    TimeTable2Entry;
 typedef Argc_T<TimeTable2Entry> TimeTable2List;
 
 // Implementation of the math performing timetable2 command.

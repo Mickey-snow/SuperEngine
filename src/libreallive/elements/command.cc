@@ -200,12 +200,12 @@ SelectElement::SelectElement(const char* src)
 
 SelectElement::~SelectElement() {}
 
-ExpressionPiece SelectElement::GetWindowExpression() const {
+Expression SelectElement::GetWindowExpression() const {
   if (repr[8] == '(') {
     const char* location = repr.c_str() + 9;
     return GetExpression(location);
   }
-  return ExpressionPiece::IntConstant(-1);
+  return ExpressionFactory::IntConstant(-1);
 }
 
 const size_t SelectElement::GetParamCount() const { return params.size(); }
@@ -346,8 +346,8 @@ std::string FunctionElement::GetSerializedCommand(RLMachine& machine) const {
     rv.push_back('(');
     for (string const& param : params) {
       const char* data = param.c_str();
-      ExpressionPiece expression(GetData(data));
-      rv.append(expression.GetSerializedExpression(machine));
+      Expression expression(GetData(data));
+      rv.append(expression->GetSerializedExpression(machine));
     }
     rv.push_back(')');
   }
@@ -406,8 +406,8 @@ std::string SingleArgFunctionElement::GetSerializedCommand(
     rv.push_back(command[i]);
   rv.push_back('(');
   const char* data = arg_.c_str();
-  ExpressionPiece expression(GetData(data));
-  rv.append(expression.GetSerializedExpression(machine));
+  Expression expression(GetData(data));
+  rv.append(expression->GetSerializedExpression(machine));
   rv.push_back(')');
   return rv;
 }

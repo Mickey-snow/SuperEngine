@@ -58,7 +58,7 @@ namespace {
 // Finds which case should be used in the *_case functions.
 int EvaluateCase(RLMachine& machine, const CommandElement& goto_element) {
   const ExpressionPiecesVector& conditions = goto_element.GetParsedParameters();
-  int value = conditions[0].GetIntegerValue(machine);
+  int value = conditions[0]->GetIntegerValue(machine);
 
   // Walk linearly through the output cases, executing the first
   // match against value.
@@ -82,8 +82,8 @@ int EvaluateCase(RLMachine& machine, const CommandElement& goto_element) {
     // Parse this expression, and goto the corresponding label if
     // it's equal to the value we're searching for
     const char* e = (const char*)caseUnparsed.c_str();
-    libreallive::ExpressionPiece output(libreallive::GetExpression(e));
-    if (output.GetIntegerValue(machine) == value)
+    libreallive::Expression output(libreallive::GetExpression(e));
+    if (output->GetIntegerValue(machine) == value)
       return i;
   }
 
@@ -93,9 +93,8 @@ int EvaluateCase(RLMachine& machine, const CommandElement& goto_element) {
 // -----------------------------------------------------------------------
 
 // Type of the parameter data in the _with functions
-typedef Argc_T<
-    Special_T<DefaultSpecialMapper, IntConstant_T, StrConstant_T>>::type
-    ParamVector;
+typedef Argc_T<Special_T<DefaultSpecialMapper, IntConstant_T, StrConstant_T>>::
+    type ParamVector;
 
 // Stores the incoming parameter format into the local variables used for
 // parameters in gosub_with and farcall_with calls, and return them to the
@@ -128,8 +127,8 @@ void WriteWithData(RLMachine& machine,
                    const std::vector<int>& integers,
                    const std::vector<std::string>& strings) {
   for (int i = 0; i < 40 && i < integers.size(); ++i) {
-    machine.SetIntValue(libreallive::IntMemRef(
-        libreallive::INTL_LOCATION, 0, i), integers[i]);
+    machine.SetIntValue(
+        libreallive::IntMemRef(libreallive::INTL_LOCATION, 0, i), integers[i]);
   }
 
   for (int i = 0; i < strings.size(); ++i) {
@@ -169,7 +168,7 @@ struct goto_if : public ParseGotoParametersAsExpressions {
     const ExpressionPiecesVector& conditions =
         goto_element.GetParsedParameters();
 
-    if (conditions[0].GetIntegerValue(machine)) {
+    if (conditions[0]->GetIntegerValue(machine)) {
       machine.GotoLocation(goto_element.GetPointer(0));
     } else {
       machine.AdvanceInstructionPointer();
@@ -183,7 +182,7 @@ struct goto_unless : public ParseGotoParametersAsExpressions {
     const ExpressionPiecesVector& conditions =
         goto_element.GetParsedParameters();
 
-    if (!conditions[0].GetIntegerValue(machine)) {
+    if (!conditions[0]->GetIntegerValue(machine)) {
       machine.GotoLocation(goto_element.GetPointer(0));
     } else {
       machine.AdvanceInstructionPointer();
@@ -201,7 +200,7 @@ struct goto_on : public ParseGotoParametersAsExpressions {
   void operator()(RLMachine& machine, const CommandElement& goto_element) {
     const ExpressionPiecesVector& conditions =
         goto_element.GetParsedParameters();
-    int value = conditions[0].GetIntegerValue(machine);
+    int value = conditions[0]->GetIntegerValue(machine);
 
     if (value >= 0 && value < int(goto_element.GetPointersCount())) {
       machine.GotoLocation(goto_element.GetPointer(value));
@@ -244,7 +243,7 @@ struct gosub_if : public ParseGotoParametersAsExpressions {
     const ExpressionPiecesVector& conditions =
         goto_element.GetParsedParameters();
 
-    if (conditions[0].GetIntegerValue(machine)) {
+    if (conditions[0]->GetIntegerValue(machine)) {
       machine.Gosub(goto_element.GetPointer(0));
     } else {
       machine.AdvanceInstructionPointer();
@@ -261,7 +260,7 @@ struct gosub_unless : public ParseGotoParametersAsExpressions {
     const ExpressionPiecesVector& conditions =
         goto_element.GetParsedParameters();
 
-    if (!conditions[0].GetIntegerValue(machine)) {
+    if (!conditions[0]->GetIntegerValue(machine)) {
       machine.Gosub(goto_element.GetPointer(0));
     } else {
       machine.AdvanceInstructionPointer();
@@ -279,7 +278,7 @@ struct gosub_on : public ParseGotoParametersAsExpressions {
   void operator()(RLMachine& machine, const CommandElement& goto_element) {
     const ExpressionPiecesVector& conditions =
         goto_element.GetParsedParameters();
-    int value = conditions[0].GetIntegerValue(machine);
+    int value = conditions[0]->GetIntegerValue(machine);
 
     if (value >= 0 && value < int(goto_element.GetPointersCount()))
       machine.Gosub(goto_element.GetPointer(value));
@@ -318,7 +317,7 @@ struct ret : public RLOpcode<> {
 struct jump_0 : public RLOpcode<IntConstant_T> {
   virtual bool AdvanceInstructionPointer() override { return false; }
 
-  void operator()(RLMachine& machine, int scenario) {
+  void operator()(RLMachine& machine, int scenario) override {
     machine.Jump(scenario, 0);
   }
 };
@@ -329,7 +328,7 @@ struct jump_0 : public RLOpcode<IntConstant_T> {
 struct jump_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
   virtual bool AdvanceInstructionPointer() override { return false; }
 
-  void operator()(RLMachine& machine, int scenario, int entrypoint) {
+  void operator()(RLMachine& machine, int scenario, int entrypoint) override {
     machine.Jump(scenario, entrypoint);
   }
 };
@@ -340,7 +339,7 @@ struct jump_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
 struct farcall_0 : public RLOpcode<IntConstant_T> {
   virtual bool AdvanceInstructionPointer() override { return false; }
 
-  void operator()(RLMachine& machine, int scenario) {
+  void operator()(RLMachine& machine, int scenario) override {
     machine.Farcall(scenario, 0);
   }
 };
@@ -351,7 +350,7 @@ struct farcall_0 : public RLOpcode<IntConstant_T> {
 struct farcall_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
   virtual bool AdvanceInstructionPointer() override { return false; }
 
-  void operator()(RLMachine& machine, int scenario, int entrypoint) {
+  void operator()(RLMachine& machine, int scenario, int entrypoint) override {
     machine.Farcall(scenario, entrypoint);
   }
 };
@@ -432,7 +431,7 @@ struct farcall_with
   void operator()(RLMachine& machine,
                   int scenario,
                   int entrypoint,
-                  ParamVector withStuff) {
+                  ParamVector withStuff) override {
     std::vector<int> integers;
     std::vector<std::string> strings;
     ReadWithData(machine, withStuff, integers, strings);

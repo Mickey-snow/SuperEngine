@@ -33,9 +33,9 @@
 #include <vector>
 
 #include "libreallive/bytecode.h"
-#include "machine/rloperation/references.h"
 #include "machine/rlmachine.h"
 #include "machine/rlmodule.h"
+#include "machine/rloperation/references.h"
 #include "utilities/exception.h"
 
 // -----------------------------------------------------------------------
@@ -79,10 +79,9 @@ bool RLOperation::GetProperty(int property, int& value) const {
   return false;
 }
 
-RLOperation::PropertyList::iterator RLOperation::FindProperty(int property)
-    const {
-  return find_if(property_list_->begin(),
-                 property_list_->end(),
+RLOperation::PropertyList::iterator RLOperation::FindProperty(
+    int property) const {
+  return find_if(property_list_->begin(), property_list_->end(),
                  [&](Property& p) { return p.first == property; });
 }
 
@@ -115,7 +114,7 @@ IntConstant_T::type IntConstant_T::getData(
     RLMachine& machine,
     const libreallive::ExpressionPiecesVector& p,
     unsigned int& position) {
-  return p[position++].GetIntegerValue(machine);
+  return p[position++]->GetIntegerValue(machine);
 }
 
 // Was working to change the verify_type to parse_parameters.
@@ -124,16 +123,17 @@ void IntConstant_T::ParseParameters(
     const std::vector<std::string>& input,
     libreallive::ExpressionPiecesVector& output) {
   const char* data = input.at(position).c_str();
-  libreallive::ExpressionPiece ep(libreallive::GetData(data));
+  libreallive::Expression ep(libreallive::GetData(data));
 
-  if (ep.GetExpressionValueType() != libreallive::ExpressionValueType::Integer) {
+  if (ep->GetExpressionValueType() !=
+      libreallive::ExpressionValueType::Integer) {
     std::ostringstream oss;
     oss << "IntConstant_T parse error. Expected type string, but actually "
-        << "contained \"" << ep.GetDebugString() << "\"";
+        << "contained \"" << ep->GetDebugString() << "\"";
     throw rlvm::Exception(oss.str());
   }
 
-  output.push_back(std::move(ep));
+  output.push_back(ep);
   position++;
 }
 
@@ -141,7 +141,7 @@ IntReference_T::type IntReference_T::getData(
     RLMachine& machine,
     const libreallive::ExpressionPiecesVector& p,
     unsigned int& position) {
-  return p[position++].GetIntegerReferenceIterator(machine);
+  return p[position++]->GetIntegerReferenceIterator(machine);
 }
 
 void IntReference_T::ParseParameters(
@@ -149,16 +149,17 @@ void IntReference_T::ParseParameters(
     const std::vector<std::string>& input,
     libreallive::ExpressionPiecesVector& output) {
   const char* data = input.at(position).c_str();
-  libreallive::ExpressionPiece ep(libreallive::GetData(data));
+  libreallive::Expression ep(libreallive::GetData(data));
 
-  if (ep.GetExpressionValueType() != libreallive::ExpressionValueType::Integer) {
+  if (ep->GetExpressionValueType() !=
+      libreallive::ExpressionValueType::Integer) {
     std::ostringstream oss;
     oss << "IntReference_T parse error. Expected type string, but actually "
-        << "contained \"" << ep.GetDebugString() << "\"";
+        << "contained \"" << ep->GetDebugString() << "\"";
     throw rlvm::Exception(oss.str());
   }
 
-  output.push_back(std::move(ep));
+  output.push_back(ep);
   position++;
 }
 
@@ -201,7 +202,7 @@ StrConstant_T::type StrConstant_T::getData(
   // So to fix this, we break the COW semantics here by forcing a copy. I'd
   // prefer to do this in RLMachine or Memory, but I can't because they return
   // references.
-  string tmp = p[position++].GetStringValue(machine);
+  string tmp = p[position++]->GetStringValue(machine);
   return string(tmp.data(), tmp.size());
 }
 
@@ -210,16 +211,16 @@ void StrConstant_T::ParseParameters(
     const std::vector<std::string>& input,
     libreallive::ExpressionPiecesVector& output) {
   const char* data = input.at(position).c_str();
-  libreallive::ExpressionPiece ep(libreallive::GetData(data));
+  libreallive::Expression ep = libreallive::GetData(data);
 
-  if (ep.GetExpressionValueType() != libreallive::ExpressionValueType::String) {
+  if (ep->GetExpressionValueType() != libreallive::ExpressionValueType::String) {
     std::ostringstream oss;
     oss << "StrConstant_T parse error. Expected type string, but actually "
-        << "contained \"" << ep.GetDebugString() << "\"";
+        << "contained \"" << ep->GetDebugString() << "\"";
     throw rlvm::Exception(oss.str());
   }
 
-  output.push_back(std::move(ep));
+  output.push_back(ep);
   position++;
 }
 
@@ -227,7 +228,7 @@ StrReference_T::type StrReference_T::getData(
     RLMachine& machine,
     const libreallive::ExpressionPiecesVector& p,
     unsigned int& position) {
-  return p[position++].GetStringReferenceIterator(machine);
+  return p[position++]->GetStringReferenceIterator(machine);
 }
 
 void StrReference_T::ParseParameters(
@@ -235,16 +236,16 @@ void StrReference_T::ParseParameters(
     const std::vector<std::string>& input,
     libreallive::ExpressionPiecesVector& output) {
   const char* data = input.at(position).c_str();
-  libreallive::ExpressionPiece ep(libreallive::GetData(data));
+  libreallive::Expression ep = libreallive::GetData(data);
 
-  if (ep.GetExpressionValueType() != libreallive::ExpressionValueType::String) {
+  if (ep->GetExpressionValueType() != libreallive::ExpressionValueType::String) {
     std::ostringstream oss;
     oss << "StrReference_T parse error. Expected type string, but actually "
-        << "contained \"" << ep.GetDebugString() << "\"";
+        << "contained \"" << ep->GetDebugString() << "\"";
     throw rlvm::Exception(oss.str());
   }
 
-  output.push_back(std::move(ep));
+  output.push_back(ep);
   position++;
 }
 
@@ -280,8 +281,7 @@ void RLOp_SpecialCase::DispatchFunction(RLMachine& machine,
 template <>
 void RLNormalOpcode<>::ParseParameters(
     const std::vector<std::string>& input,
-    libreallive::ExpressionPiecesVector& output) {
-}
+    libreallive::ExpressionPiecesVector& output) {}
 
 template <>
 void RLOpcode<>::Dispatch(
@@ -296,7 +296,9 @@ template class RLNormalOpcode<IntConstant_T>;
 template class RLNormalOpcode<IntConstant_T, IntConstant_T>;
 template class RLNormalOpcode<IntConstant_T, StrConstant_T>;
 template class RLNormalOpcode<IntConstant_T, IntConstant_T, IntConstant_T>;
-template class RLNormalOpcode<IntConstant_T, IntConstant_T, IntConstant_T,
+template class RLNormalOpcode<IntConstant_T,
+                              IntConstant_T,
+                              IntConstant_T,
                               IntConstant_T>;
 template class RLNormalOpcode<IntReference_T>;
 template class RLNormalOpcode<IntReference_T, IntReference_T>;
@@ -310,7 +312,9 @@ template class RLOpcode<IntConstant_T>;
 template class RLOpcode<IntConstant_T, IntConstant_T>;
 template class RLOpcode<IntConstant_T, StrConstant_T>;
 template class RLOpcode<IntConstant_T, IntConstant_T, IntConstant_T>;
-template class RLOpcode<IntConstant_T, IntConstant_T, IntConstant_T,
+template class RLOpcode<IntConstant_T,
+                        IntConstant_T,
+                        IntConstant_T,
                         IntConstant_T>;
 template class RLOpcode<IntReference_T>;
 template class RLOpcode<IntReference_T, IntReference_T>;

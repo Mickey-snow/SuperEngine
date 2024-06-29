@@ -106,7 +106,7 @@ class CommandElement : public BytecodeElement {
   static const int COMMAND_SIZE = 8;
   unsigned char command[COMMAND_SIZE];
 
-  mutable std::vector<ExpressionPiece> parsed_parameters_;
+  mutable std::vector<Expression> parsed_parameters_;
 };
 
 class SelectElement : public CommandElement {
@@ -149,7 +149,7 @@ class SelectElement : public CommandElement {
 
   // Returns the expression in the source code which refers to which window to
   // display.
-  ExpressionPiece GetWindowExpression() const;
+  Expression GetWindowExpression() const;
 
   const params_t& raw_params() const { return params; }
 
