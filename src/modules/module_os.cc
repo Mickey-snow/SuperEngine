@@ -53,5 +53,5 @@ struct CheckFile
 }  // namespace
 
 OsModule::OsModule() : RLModule("Os", 1, 005) {
-  AddOpcode(114, 0, "(unknown)", new CheckFile);
+  AddOpcode(114, 0, "DUMMYCHECK_DISC", new CheckFile);
 }
