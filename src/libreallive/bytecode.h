@@ -48,15 +48,26 @@
 
 namespace libreallive {
 
+// Converts a parameter string (as read from the binary SEEN.TXT file)
+// into a human readable (and printable) format.
+std::string ParsableToPrintableString(const std::string& src);
+
+// Converts a printable string (i.e., "$ 05 [ $ FF EE 03 00 00 ]")
+// into one that can be parsed by all the get_expr family of functions.
+std::string PrintableToParsableString(const std::string& src);
+
 void PrintParameterString(std::ostream& oss,
                           const std::vector<std::string>& paramseters);
 
-class BytecodeFactory {
+class Parser {
  public:
-  // Read the next element from a stream.
-  static BytecodeElement* Read(const char* stream,
-                               const char* end,
-                               ConstructionData& cdata);
+  static BytecodeElement* ParseBytecode(const char* stream,
+                                        const char* end,
+                                        ConstructionData& cdata);
+
+  static MetaElement* MakeMetaElement(ConstructionData* cdata,
+                                      const char* stream);
+  static Expression* MakeExpressionElement(const char* stream);
 };
 
 }  // namespace libreallive

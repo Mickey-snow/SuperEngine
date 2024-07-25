@@ -29,6 +29,7 @@ test_env.BuildSubcomponent("gmock")
 test_case_files = [
   "test/test_system/test_machine.cc",
 
+  # unittests
   "test/notification_service_unittest.cc",
   "test/test_utils.cc",
   "test/gameexe_test.cc",
@@ -46,6 +47,7 @@ test_case_files = [
   "test/utilities_test.cc",
   "test/test_index_series.cc",
   "test/rect_test.cc",
+  "test/parser_test.cc",
 
   # medium tests
   "test/medium_eventloop_test.cc",

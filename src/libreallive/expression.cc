@@ -36,7 +36,6 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/predicate.hpp>
-#include <boost/tokenizer.hpp>
 
 #include <iomanip>
 #include <sstream>
@@ -477,55 +476,7 @@ std::string EvaluatePRINT(RLMachine& machine, const std::string& in) {
   }
 }
 
-std::string ParsableToPrintableString(const std::string& src) {
-  string output;
 
-  bool firstToken = true;
-  for (char tok : src) {
-    if (firstToken) {
-      firstToken = false;
-    } else {
-      output += " ";
-    }
-
-    if (tok == '(' || tok == ')' || tok == '$' || tok == '[' || tok == ']') {
-      output.push_back(tok);
-    } else {
-      std::ostringstream ss;
-      ss << std::hex << std::setw(2) << std::setfill('0') << int(tok);
-      output += ss.str();
-    }
-  }
-
-  return output;
-}
-
-// -----------------------------------------------------------------------
-
-std::string PrintableToParsableString(const std::string& src) {
-  typedef boost::tokenizer<boost::char_separator<char>> ttokenizer;
-
-  std::string output;
-
-  boost::char_separator<char> sep(" ");
-  ttokenizer tokens(src, sep);
-  for (string const& tok : tokens) {
-    if (tok.size() > 2)
-      throw libreallive::Error(
-          "Invalid string given to printableToParsableString");
-
-    if (tok == "(" || tok == ")" || tok == "$" || tok == "[" || tok == "]") {
-      output.push_back(tok[0]);
-    } else {
-      int charToAdd;
-      std::istringstream ss(tok);
-      ss >> std::hex >> charToAdd;
-      output.push_back((char)charToAdd);
-    }
-  }
-
-  return output;
-}
 
 // ----------------------------------------------------------------------
 // IExpression

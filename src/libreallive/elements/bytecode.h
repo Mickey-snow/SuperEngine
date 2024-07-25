@@ -31,19 +31,20 @@
 #ifndef SRC_LIBREALLIVE_ELEMENTS_BYTECODE_H_
 #define SRC_LIBREALLIVE_ELEMENTS_BYTECODE_H_
 
+#include <map>
 #include <ostream>
 #include <string>
-#include <map>
 #include <vector>
 
 #include "libreallive/bytecode_fwd.h"
 
 class RLMachine;
 
-namespace libreallive{
-  class Script;
-  
-  struct ConstructionData {
+namespace libreallive {
+class Script;
+
+struct ConstructionData {
+  ConstructionData() = default;
   ConstructionData(size_t kt, pointer_t pt);
   ~ConstructionData();
 
@@ -90,6 +91,6 @@ class BytecodeElement {
  private:
   friend class Script;
 };
-}
+}  // namespace libreallive
 
 #endif

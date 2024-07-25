@@ -95,7 +95,7 @@ const string CommandElement::GetCase(int i) const { return ""; }
 
 void CommandElement::PrintSourceRepresentation(RLMachine* machine,
                                                std::ostream& oss) const {
-  std::string name = machine->GetCommandName(*this);
+  std::string name = machine ? machine->GetCommandName(*this) : "";
 
   if (name != "") {
     oss << name;

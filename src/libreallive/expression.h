@@ -68,14 +68,6 @@ Expression GetComplexParam(const char*& src);
 
 std::string EvaluatePRINT(RLMachine& machine, const std::string& in);
 
-// Converts a parameter string (as read from the binary SEEN.TXT file)
-// into a human readable (and printable) format.
-std::string ParsableToPrintableString(const std::string& src);
-
-// Converts a printable string (i.e., "$ 05 [ $ FF EE 03 00 00 ]")
-// into one that can be parsed by all the get_expr family of functions.
-std::string PrintableToParsableString(const std::string& src);
-
 enum class ExpressionValueType { Integer, String };
 
 class IExpression {

@@ -32,22 +32,68 @@
 // -----------------------------------------------------------------------
 
 #include "libreallive/bytecode.h"
-
-#include <cassert>
-#include <cstring>
-#include <exception>
-#include <iomanip>
-#include <sstream>
-#include <string>
-#include <utility>
-#include <vector>
-
 #include "libreallive/expression.h"
 #include "libreallive/scenario.h"
-
 #include "machine/rlmachine.h"
 
+#include <cstring>
+#include <iomanip>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
+
+#include <boost/tokenizer.hpp>
+
 namespace libreallive {
+
+std::string ParsableToPrintableString(const std::string& src) {
+  string output;
+
+  bool firstToken = true;
+  for (char tok : src) {
+    if (firstToken) {
+      firstToken = false;
+    } else {
+      output += " ";
+    }
+
+    if (tok == '(' || tok == ')' || tok == '$' || tok == '[' || tok == ']') {
+      output.push_back(tok);
+    } else {
+      std::ostringstream ss;
+      ss << std::hex << std::setw(2) << std::setfill('0') << int(tok);
+      output += ss.str();
+    }
+  }
+
+  return output;
+}
+
+std::string PrintableToParsableString(const std::string& src) {
+  typedef boost::tokenizer<boost::char_separator<char>> ttokenizer;
+
+  std::string output;
+
+  boost::char_separator<char> sep(" ");
+  ttokenizer tokens(src, sep);
+  for (string const& tok : tokens) {
+    if (tok.size() > 2)
+      throw libreallive::Error(
+          "Invalid string given to printableToParsableString");
+
+    if (tok == "(" || tok == ")" || tok == "$" || tok == "[" || tok == "]") {
+      output.push_back(tok[0]);
+    } else {
+      int charToAdd;
+      std::istringstream ss(tok);
+      ss >> std::hex >> charToAdd;
+      output.push_back((char)charToAdd);
+    }
+  }
+
+  return output;
+}
 
 void PrintParameterString(std::ostream& oss,
                           const std::vector<std::string>& parameters) {
@@ -72,31 +118,45 @@ void PrintParameterString(std::ostream& oss,
   oss << ")";
 }
 
+
 char entrypoint_marker = '@';
 
 // static
-BytecodeElement* BytecodeFactory::Read(const char* stream,
+BytecodeElement* Parser::ParseBytecode(const char* stream,
                                        const char* end,
                                        ConstructionData& cdata) {
   const char c = *stream;
   if (c == '!')
     entrypoint_marker = '!';
+
+  BytecodeElement* result = nullptr;
   switch (c) {
     case 0:
     case ',':
-      return new CommaElement;
+      result = new CommaElement;
+      break;
     case '\n':
-      return new MetaElement(nullptr, stream);
+      result = new MetaElement(nullptr, stream);
+      break;
     case '@':
     case '!':
-      return new MetaElement(&cdata, stream);
+      result = new MetaElement(&cdata, stream);
+      break;
     case '$':
-      return new ExpressionElement(stream);
+      result = new ExpressionElement(stream);
+      break;
     case '#':
-      return FunctionFactory::ReadFunction(stream, cdata);
+      result = FunctionFactory::ReadFunction(stream, cdata);
+      break;
     default:
-      return TextoutFactory::Read(stream, end);
+      result = TextoutFactory::Read(stream, end);
+      break;
   }
+
+  // result->PrintSourceRepresentation(nullptr, std::cout);
+  // std::string rawbytes(stream, result->GetBytecodeLength());
+  // std::cout<<ParsableToPrintableString(rawbytes)<<std::endl<<std::endl;
+  return result;
 }
 
 }  // namespace libreallive

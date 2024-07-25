@@ -128,23 +128,3 @@ TEST(ExpressionTest, PreviousErrors) {
   EXPECT_EQ(0, values[4]) << "Incorect value for intB[4]";
   EXPECT_EQ(10, values[5]) << "Incorect value for intB[5]";
 }
-
-// In later games, you found newline metadata inside special parameters. Make
-// sure that the expression parser can deal with that.
-TEST(ExpressionTest, ParseWithNewlineInIt) {
-  string parsable = libreallive::PrintableToParsableString(
-      "0a 77 02 61 37 61 00 ( $ ff ) 00 00 00 5c 02 $ ff 8d 01 00 00 "
-      "$ ff ff 00 00 00 )");
-
-  // This shouldn't throw.
-  const char* start = parsable.c_str();
-  libreallive::Expression piece(libreallive::GetData(start));
-
-  ASSERT_TRUE(piece->IsSpecialParameter());
-}
-
-TEST(ExpressionTest, ParseQuotedEnglishString) {
-  string s = "\"Say \\\"Hello.\\\"\"";
-
-  ASSERT_EQ(16, libreallive::NextString(s.c_str()));
-}
