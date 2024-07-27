@@ -65,6 +65,9 @@ class Parser {
   explicit Parser(std::shared_ptr<ConstructionData> cdata);
 
   BytecodeElement* ParseBytecode(const char* stream, const char* end);
+
+  BytecodeElement* ParseBytecode(const std::string& src);
+
   static TextoutElement* ParseTextout(const char* stream, const char* end);
   CommandElement* ParseFunction(const char* stream);
   static CommandElement* BuildFunctionElement(const char* stream);

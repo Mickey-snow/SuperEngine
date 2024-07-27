@@ -35,7 +35,7 @@
 
 #include <memory>
 
-namespace libreallive{
+namespace libreallive {
 // Metadata elements: source line, kidoku, and entrypoint markers.
 class MetaElement : public BytecodeElement {
  public:
@@ -44,6 +44,8 @@ class MetaElement : public BytecodeElement {
 
   const int value() const { return value_; }
   void set_value(const int value) { value_ = value; }
+
+  std::string GetSourceRepresentation(RLMachine* machine) const;
 
   // Overridden from BytecodeElement:
   virtual void PrintSourceRepresentation(RLMachine* machine,
@@ -59,6 +61,6 @@ class MetaElement : public BytecodeElement {
   int entrypoint_index_;
 };
 
-}
+}  // namespace libreallive
 
 #endif

@@ -28,8 +28,7 @@
 
 #include <string>
 
-using libreallive::ParsableToPrintableString;
-using libreallive::PrintableToParsableString;
+using namespace libreallive;
 
 using std::string_literals::operator""s;
 
@@ -79,7 +78,7 @@ TEST(BytecodeFormattingTest, PrintableToParsableString) {
 // In later games, you found newline metadata inside special parameters(?) Make
 // sure that the expression parser can deal with that.
 TEST(ExpressionParserTest, ParseWithNewlineInIt) {
-  string parsable = libreallive::PrintableToParsableString(
+  std::string parsable = libreallive::PrintableToParsableString(
       "0a 77 02 61 37 61 00 ( $ ff 29 00 00 00 5c 02 $ ff 8d 01 00 00 "
       "$ ff ff 00 00 00 )");
 
@@ -93,8 +92,72 @@ TEST(ExpressionParserTest, ParseWithNewlineInIt) {
 }
 
 TEST(ParserTest, ParseQuotedEnglishString) {
-  string s = "\"Say \\\"Hello.\\\"\"";
+  std::string s = "\"Say \\\"Hello.\\\"\"";
 
   ASSERT_EQ(16, libreallive::NextString(s.c_str()));
 }
 
+TEST(MetaParserTest, ParseLineElement) {
+  Parser parser;
+  {
+    std::string parsable = PrintableToParsableString("0a 10 00");
+    auto parsed = parser.ParseBytecode(parsable);
+    if (auto lineElement = dynamic_cast<MetaElement*>(parsed)) {
+      auto repr = lineElement->GetSourceRepresentation(nullptr);
+      EXPECT_EQ(repr, "#line 16"s);
+    } else {
+      ADD_FAILURE()
+          << "Parser failed to produce MetaElement object from '#line 16'";
+    }
+    delete parsed;
+  }
+
+  {
+    std::string parsable = PrintableToParsableString("0a ff ff");
+    auto parsed = parser.ParseBytecode(parsable);
+    if (auto lineElement = dynamic_cast<MetaElement*>(parsed)) {
+      auto repr = lineElement->GetSourceRepresentation(nullptr);
+      EXPECT_EQ(repr, "#line 65535"s);
+    } else {
+      ADD_FAILURE()
+          << "Parser failed to produce MetaElement object from '#line 65535'";
+    }
+    delete parsed;
+  }
+}
+
+TEST(MetaParserTest, ParseEntrypointElement) {
+  auto cdata = std::make_shared<ConstructionData>();
+  cdata->kidoku_table.push_back(1000000 + 564);
+  Parser parser(cdata);
+
+  std::string parsable = PrintableToParsableString("21 00 00");
+  auto parsed = parser.ParseBytecode(parsable);
+  if (auto entrypointElement = dynamic_cast<MetaElement*>(parsed)) {
+    auto repr = entrypointElement->GetSourceRepresentation(nullptr);
+    EXPECT_EQ(repr, "#entrypoint 0"s);
+    EXPECT_EQ(entrypointElement->GetEntrypoint(), 564);
+  } else {
+    ADD_FAILURE()
+        << "Parser failed to produce MetaElement object from '#entrypoint 0'";
+  }
+  delete parsed;
+}
+
+TEST(MetaParserTest, ParseKidoku) {
+  auto cdata = std::make_shared<ConstructionData>();
+  cdata->kidoku_table.resize(4);
+  cdata->kidoku_table[3] = 12;
+
+  Parser parser(cdata);
+  std::string parsable = PrintableToParsableString("40 03 00");
+  auto parsed = parser.ParseBytecode(parsable);
+  if (auto kidokuElement = dynamic_cast<MetaElement*>(parsed)) {
+    auto repr = kidokuElement->GetSourceRepresentation(nullptr);
+    EXPECT_EQ(repr, "{- Kidoku 3 -}");
+  } else {
+    ADD_FAILURE()
+        << "Parser failed to produce MetaElement object from '{- Kidoku 3 -}'";
+  }
+  delete parsed;
+}

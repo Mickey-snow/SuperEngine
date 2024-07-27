@@ -127,7 +127,10 @@ Parser::Parser(std::shared_ptr<ConstructionData> data) : cdata(data) {}
 
 char entrypoint_marker = '@';
 
-// static
+BytecodeElement* Parser::ParseBytecode(const std::string& src) {
+  return ParseBytecode(src.c_str(), src.c_str() + src.size());
+}
+
 BytecodeElement* Parser::ParseBytecode(const char* stream, const char* end) {
   const char c = *stream;
   if (c == '!')

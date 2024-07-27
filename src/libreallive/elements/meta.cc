@@ -48,14 +48,20 @@ MetaElement::MetaElement(std::shared_ptr<ConstructionData> cv,
 
 MetaElement::~MetaElement() {}
 
+std::string MetaElement::GetSourceRepresentation(RLMachine* machine) const {
+  using std::string_literals::operator""s;
+
+  if (type_ == Line_)
+    return "#line "s + std::to_string(value_);
+  else if (type_ == Entrypoint_)
+    return "#entrypoint "s + std::to_string(value_);
+  else
+    return "{- Kidoku "s + std::to_string(value_) + " -}";
+}
+
 void MetaElement::PrintSourceRepresentation(RLMachine* machine,
                                             std::ostream& oss) const {
-  if (type_ == Line_)
-    oss << "#line " << value_ << std::endl;
-  else if (type_ == Entrypoint_)
-    oss << "#entrypoint " << value_ << std::endl;
-  else
-    oss << "{- Kidoku " << value_ << " -}" << std::endl;
+  oss << GetSourceRepresentation(machine) << std::endl;
 }
 
 const size_t MetaElement::GetBytecodeLength() const { return 3; }
