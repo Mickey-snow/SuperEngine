@@ -215,15 +215,6 @@ class SingleArgFunctionElement : public CommandElement {
   std::string arg_;
 };
 
-class FunctionFactory {
- public:
-  static BytecodeElement* ReadFunction(const char* stream,
-                                       ConstructionData& cdata);
-
-  // Returns a representation of the non-special cased function.
-  static CommandElement* BuildFunctionElement(const char* stream);
-};
-
 class PointerElement : public CommandElement {
  public:
   explicit PointerElement(const char* src);

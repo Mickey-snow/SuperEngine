@@ -145,7 +145,7 @@ BytecodeElement* Parser::ParseBytecode(const char* stream,
       result = new ExpressionElement(stream);
       break;
     case '#':
-      result = FunctionFactory::ReadFunction(stream, cdata);
+      result = ParseFunction(stream, cdata);
       break;
     default:
       result = ParseTextout(stream, end);
@@ -183,6 +183,82 @@ TextoutElement* Parser::ParseTextout(const char* src, const char* file_end) {
       ++end;
   }
   return new TextoutElement(src, end);
+}
+
+CommandElement* Parser::ParseFunction(const char* stream,
+                                      ConstructionData& cdata) {
+  // opcode: 0xttmmoooo (Type, Module, Opcode: e.g. 0x01030101 = 1:03:00257
+  const unsigned long opcode =
+      (stream[1] << 24) | (stream[2] << 16) | (stream[4] << 8) | stream[3];
+  switch (opcode) {
+    case 0x00010000:
+    case 0x00010005:
+    case 0x00050001:
+    case 0x00050005:
+    case 0x00060001:
+    case 0x00060005:
+      return new GotoElement(stream, cdata);
+    case 0x00010001:
+    case 0x00010002:
+    case 0x00010006:
+    case 0x00010007:
+    case 0x00050002:
+    case 0x00050006:
+    case 0x00050007:
+    case 0x00060000:
+    case 0x00060002:
+    case 0x00060006:
+    case 0x00060007:
+      return new GotoIfElement(stream, cdata);
+    case 0x00010003:
+    case 0x00010008:
+    case 0x00050003:
+    case 0x00050008:
+    case 0x00060003:
+    case 0x00060008:
+      return new GotoOnElement(stream, cdata);
+    case 0x00010004:
+    case 0x00010009:
+    case 0x00050004:
+    case 0x00050009:
+    case 0x00060004:
+    case 0x00060009:
+      return new GotoCaseElement(stream, cdata);
+    case 0x00010010:
+    case 0x00060010:
+      return new GosubWithElement(stream, cdata);
+
+      // Select elements.
+    case 0x00020000:
+    case 0x00020001:
+    case 0x00020002:
+    case 0x00020003:
+    case 0x00020010:
+      return new SelectElement(stream);
+  }
+  // default:
+  return BuildFunctionElement(stream);
+}
+
+CommandElement* Parser::BuildFunctionElement(const char* stream) {
+  const char* ptr = stream;
+  ptr += 8;
+  std::vector<std::string> params;
+  if (*ptr == '(') {
+    const char* end = ptr + 1;
+    while (*end != ')') {
+      const size_t len = NextData(end);
+      params.emplace_back(end, len);
+      end += len;
+    }
+  }
+
+  if (params.size() == 0)
+    return new VoidFunctionElement(stream);
+  else if (params.size() == 1)
+    return new SingleArgFunctionElement(stream, params.front());
+  else
+    return new FunctionElement(stream, params);
 }
 
 }  // namespace libreallive

@@ -65,6 +65,9 @@ class Parser {
                                         const char* end,
                                         ConstructionData& cdata);
   static TextoutElement* ParseTextout(const char* stream, const char* end);
+  static CommandElement* ParseFunction(const char* stream,
+                                       ConstructionData& cdata);
+  static CommandElement* BuildFunctionElement(const char* stream);
 
   static MetaElement* MakeMetaElement(ConstructionData* cdata,
                                       const char* stream);
