@@ -79,38 +79,4 @@ void TextoutElement::RunOnMachine(RLMachine& machine) const {
   machine.AdvanceInstructionPointer();
 }
 
-// -----------------------------------------------------------------------
-// TextoutFactory
-// -----------------------------------------------------------------------
-
-extern char entrypoint_marker;
-
-// static
-TextoutElement* TextoutFactory::Read(const char* src, const char* file_end) {
-  const char* end = src;
-  bool quoted = false;
-  while (end < file_end) {
-    if (quoted) {
-      quoted = *end != '"';
-      if (*end == '\\' && end[1] == '"')  // escaped quote
-        ++end;
-    } else {
-      if (*end == ',')  // not a comma element
-        ++end;
-      quoted = *end == '"';
-
-      // new element
-      if (!*end || *end == '#' || *end == '$' || *end == '\n' || *end == '@' ||
-          *end == entrypoint_marker)
-        break;
-    }
-
-    if ((*end >= 0x81 && *end <= 0x9f) || (*end >= 0xe0 && *end <= 0xef))
-      end += 2;  // shift.jis
-    else
-      ++end;
-  }
-  return new TextoutElement(src, end);
-}
-
 }  // namespace libreallive

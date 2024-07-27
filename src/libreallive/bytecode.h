@@ -64,6 +64,7 @@ class Parser {
   static BytecodeElement* ParseBytecode(const char* stream,
                                         const char* end,
                                         ConstructionData& cdata);
+  static TextoutElement* ParseTextout(const char* stream, const char* end);
 
   static MetaElement* MakeMetaElement(ConstructionData* cdata,
                                       const char* stream);

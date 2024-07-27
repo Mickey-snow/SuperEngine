@@ -42,8 +42,8 @@ class TextoutFactory;
 
 // Display-text elements.
 class TextoutElement : public BytecodeElement {
- private:
-  friend TextoutFactory;
+ protected:
+  friend class Parser;
   TextoutElement(const char* src, const char* file_end);
 
  public:
@@ -61,10 +61,6 @@ class TextoutElement : public BytecodeElement {
   std::string repr;
 };
 
-class TextoutFactory {
- public:
-  static TextoutElement* Read(const char* src, const char* file_end);
-};
 }  // namespace libreallive
 
 #endif
