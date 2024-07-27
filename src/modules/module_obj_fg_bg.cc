@@ -39,7 +39,7 @@
 #include <string>
 #include <vector>
 
-#include "libreallive/bytecode.h"
+#include "libreallive/parser.h"
 #include "libreallive/gameexe.h"
 #include "machine/long_operation.h"
 #include "machine/properties.h"

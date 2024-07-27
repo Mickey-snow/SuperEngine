@@ -31,7 +31,7 @@
 #include <iterator>
 #include <string>
 
-#include "libreallive/bytecode.h"
+#include "libreallive/parser.h"
 #include "libreallive/gameexe.h"
 #include "long_operations/button_object_select_long_operation.h"
 #include "long_operations/select_long_operation.h"

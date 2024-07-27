@@ -30,7 +30,7 @@
 #include <sstream>
 #include <string>
 
-#include "libreallive/bytecode.h"
+#include "libreallive/parser.h"
 #include "libreallive/expression.h"
 
 using std::ostringstream;

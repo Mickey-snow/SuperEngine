@@ -35,7 +35,7 @@
 
 #include "effects/effect.h"
 #include "effects/effect_factory.h"
-#include "libreallive/bytecode.h"
+#include "libreallive/parser.h"
 #include "libreallive/expression.h"
 #include "libreallive/gameexe.h"
 #include "long_operations/wait_long_operation.h"

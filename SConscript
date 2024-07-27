@@ -57,7 +57,7 @@ librlvm_files = [
   "src/encodings/han2zen.cc",
   "src/encodings/western.cc",
   "src/libreallive/archive.cc",
-  "src/libreallive/bytecode.cc",
+  "src/libreallive/parser.cc",
   "src/libreallive/compression.cc",
   "src/libreallive/expression.cc",
   "src/libreallive/filemap.cc",

@@ -24,7 +24,7 @@
 
 #include "gtest/gtest.h"
 
-#include "libreallive/bytecode.h"
+#include "libreallive/parser.h"
 
 #include <string>
 
@@ -94,7 +94,12 @@ TEST(ExpressionParserTest, ParseWithNewlineInIt) {
 TEST(ParserTest, ParseQuotedEnglishString) {
   std::string s = "\"Say \\\"Hello.\\\"\"";
 
-  ASSERT_EQ(16, libreallive::NextString(s.c_str()));
+  ASSERT_EQ(16, NextString(s.c_str()));
+}
+
+TEST(CommaParserTest, ParseCommaElement){
+  Parser parser;
+  std::string parsable = PrintableToParsableString("00");
 }
 
 TEST(MetaParserTest, ParseLineElement) {

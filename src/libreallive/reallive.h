@@ -75,7 +75,7 @@
 // - A list of pointers (for goto, et cetera)
 
 #include "libreallive/archive.h"
-#include "libreallive/bytecode.h"
+#include "libreallive/parser.h"
 #include "libreallive/alldefs.h"
 #include "libreallive/scenario.h"
 

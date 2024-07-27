@@ -31,8 +31,8 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LIBREALLIVE_BYTECODE_H_
-#define SRC_LIBREALLIVE_BYTECODE_H_
+#ifndef SRC_LIBREALLIVE_PARSER_H_
+#define SRC_LIBREALLIVE_PARSER_H_
 
 #include <ostream>
 #include <string>

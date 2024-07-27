@@ -27,7 +27,7 @@
 
 #include "modules/module_obj.h"
 
-#include "libreallive/bytecode.h"
+#include "libreallive/parser.h"
 #include "machine/properties.h"
 #include "machine/rlmachine.h"
 #include "systems/base/graphics_object.h"

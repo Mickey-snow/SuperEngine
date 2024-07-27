@@ -28,7 +28,7 @@
 
 #include <iostream>
 
-#include "libreallive/bytecode.h"
+#include "libreallive/parser.h"
 #include "libreallive/scenario.h"
 
 void DumpScenario(RLMachine* machine, libreallive::Scenario* scenario) {

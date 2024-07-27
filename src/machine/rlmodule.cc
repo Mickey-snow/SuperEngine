@@ -34,7 +34,7 @@
 #include <string>
 #include <vector>
 
-#include "libreallive/bytecode.h"
+#include "libreallive/parser.h"
 #include "machine/general_operations.h"
 #include "machine/rloperation.h"
 #include "utilities/exception.h"

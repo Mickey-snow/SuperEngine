@@ -31,7 +31,7 @@
 //
 // -----------------------------------------------------------------------
 
-#include "libreallive/bytecode.h"
+#include "libreallive/parser.h"
 #include "libreallive/expression.h"
 #include "libreallive/scenario.h"
 #include "machine/rlmachine.h"

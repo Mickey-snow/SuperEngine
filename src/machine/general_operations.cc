@@ -30,7 +30,7 @@
 #include <string>
 #include <vector>
 
-#include "libreallive/bytecode.h"
+#include "libreallive/parser.h"
 #include "libreallive/gameexe.h"
 #include "machine/rlmachine.h"
 #include "systems/base/graphics_system.h"

@@ -42,7 +42,7 @@
 #include "systems/base/text_system.h"
 #include "systems/base/text_window.h"
 #include "utilities/string_utilities.h"
-#include "libreallive/bytecode.h"
+#include "libreallive/parser.h"
 #include "libreallive/expression.h"
 #include "libreallive/gameexe.h"
 

@@ -32,7 +32,7 @@
 #include <string>
 #include <vector>
 
-#include "libreallive/bytecode.h"
+#include "libreallive/parser.h"
 #include "libreallive/intmemref.h"
 #include "machine/rlmachine.h"
 #include "machine/rloperation.h"

@@ -38,7 +38,7 @@
 #include <string_view>
 
 #include "libreallive/alldefs.h"
-#include "libreallive/bytecode.h"
+#include "libreallive/parser.h"
 #include "libreallive/filemap.h"
 
 namespace libreallive {
