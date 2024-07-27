@@ -31,24 +31,24 @@
 #ifndef SRC_LIBREALLIVE_ELEMENTS_COMMA_H_
 #define SRC_LIBREALLIVE_ELEMENTS_COMMA_H_
 
-#include <string>
 #include <ostream>
+#include <string>
 
 #include "libreallive/elements/bytecode.h"
 
-namespace libreallive{
-  
+namespace libreallive {
+
 class CommaElement : public BytecodeElement {
  public:
   CommaElement();
   virtual ~CommaElement();
 
   // Overridden from BytecodeElement:
-  virtual void PrintSourceRepresentation(RLMachine* machine,
-                                         std::ostream& oss) const final;
+  std::string GetSourceRepresentation(RLMachine* machine) const final;
+
   virtual const size_t GetBytecodeLength() const final;
 };
 
-}
+}  // namespace libreallive
 
 #endif

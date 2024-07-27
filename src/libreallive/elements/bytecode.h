@@ -67,6 +67,8 @@ class BytecodeElement {
   virtual void PrintSourceRepresentation(RLMachine* machine,
                                          std::ostream& oss) const;
 
+  virtual std::string GetSourceRepresentation(RLMachine* machine) const;
+
   // Returns the length of this element in bytes in the source file.
   virtual const size_t GetBytecodeLength() const = 0;
 

@@ -46,11 +46,10 @@ class TextoutElement : public BytecodeElement {
   TextoutElement(const char* src, const char* file_end);
   virtual ~TextoutElement();
 
-  const std::string GetText() const;
+  std::string GetText() const;
 
   // Overridden from BytecodeElement::
-  virtual void PrintSourceRepresentation(RLMachine* machine,
-                                         std::ostream& oss) const final;
+  std::string GetSourceRepresentation(RLMachine* machine) const final;
   virtual const size_t GetBytecodeLength() const final;
   virtual void RunOnMachine(RLMachine& machine) const final;
 

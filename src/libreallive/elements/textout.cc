@@ -42,8 +42,8 @@ TextoutElement::TextoutElement(const char* src, const char* end) {
 
 TextoutElement::~TextoutElement() {}
 
-const string TextoutElement::GetText() const {
-  string rv;
+std::string TextoutElement::GetText() const {
+  std::string rv;
   bool quoted = false;
   string::const_iterator it = repr.cbegin();
   while (it != repr.cend()) {
@@ -67,9 +67,8 @@ const string TextoutElement::GetText() const {
   return rv;
 }
 
-void TextoutElement::PrintSourceRepresentation(RLMachine* machine,
-                                               std::ostream& oss) const {
-  oss << "\"" << GetText() << "\"" << std::endl;
+std::string TextoutElement::GetSourceRepresentation(RLMachine* machine) const {
+  return "\"" + GetText() + "\"";
 }
 
 const size_t TextoutElement::GetBytecodeLength() const { return repr.size(); }

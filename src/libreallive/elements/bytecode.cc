@@ -31,8 +31,8 @@
 #include "libreallive/elements/bytecode.h"
 #include "machine/rlmachine.h"
 
-namespace libreallive{
-  
+namespace libreallive {
+
 // -----------------------------------------------------------------------
 // ConstructionData
 // -----------------------------------------------------------------------
@@ -54,7 +54,11 @@ BytecodeElement::BytecodeElement(const BytecodeElement& c) {}
 
 void BytecodeElement::PrintSourceRepresentation(RLMachine* machine,
                                                 std::ostream& oss) const {
-  oss << "<unspecified bytecode>" << std::endl;
+  oss << GetSourceRepresentation(machine);
+}
+
+std::string BytecodeElement::GetSourceRepresentation(RLMachine* machine) const {
+  return "<unspecified bytecode>";
 }
 
 void BytecodeElement::SetPointers(ConstructionData& cdata) {}
@@ -71,4 +75,4 @@ void BytecodeElement::RunOnMachine(RLMachine& machine) const {
   machine.AdvanceInstructionPointer();
 }
 
-}
+}  // namespace libreallive

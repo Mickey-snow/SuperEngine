@@ -24,6 +24,7 @@
 
 #include "gtest/gtest.h"
 
+#include "encodings/cp932.h"
 #include "libreallive/parser.h"
 
 #include <string>
@@ -91,16 +92,70 @@ TEST(ExpressionParserTest, ParseWithNewlineInIt) {
   ASSERT_TRUE(piece->IsSpecialParameter());
 }
 
-TEST(ParserTest, ParseQuotedEnglishString) {
-  std::string s = "\"Say \\\"Hello.\\\"\"";
+// -----------------------------------------------------------------------
+// CommaParserTest
+// -----------------------------------------------------------------------
 
-  ASSERT_EQ(16, NextString(s.c_str()));
-}
-
-TEST(CommaParserTest, ParseCommaElement){
+TEST(CommaParserTest, ParseCommaElement) {
   Parser parser;
   std::string parsable = PrintableToParsableString("00");
+  auto parsed = parser.ParseBytecode(parsable);
+  if (auto commaElement = dynamic_cast<CommaElement*>(parsed)) {
+    auto repr = commaElement->GetSourceRepresentation(nullptr);
+    EXPECT_EQ(repr, "<CommaElement>"s);
+    std::ostringstream oss;
+    parsed->PrintSourceRepresentation(nullptr, oss);
+    EXPECT_EQ(oss.str(), "<CommaElement>"s);
+  } else {
+    ADD_FAILURE()
+        << "Parser failed to produce CommaElement object from '<CommaElement>'";
+  }
+  delete parsed;
 }
+
+// -----------------------------------------------------------------------
+// TextoutParserTest
+// -----------------------------------------------------------------------
+
+TEST(TextoutParserTest, ParseTextoutElement) {
+  Parser parser;
+  std::string parsable = PrintableToParsableString(
+      "81 79 90 ba 81 7a 81 75 82 ab 82 e5 81 5b 82 b7 82 af 82 aa 8b 41 82 c1 "
+      "82 c4 82 ab 82 bd 82 bc 81 5b 82 c1 81 49 81 76");
+  auto parsed = parser.ParseBytecode(parsable);
+  if (auto textoutElement = dynamic_cast<TextoutElement*>(parsed)) {
+    std::wstring text = L"【声】「きょーすけが帰ってきたぞーっ！」";
+    Cp932 encoding;
+    EXPECT_EQ(encoding.ConvertString(textoutElement->GetText()), text);
+  } else {
+    ADD_FAILURE();
+  }
+  delete parsed;
+}
+
+TEST(TextoutParserTest, ParseQuotedEnglishString) {
+  std::string s = "\"Say \\\"Hello.\\\"\"";
+  std::ostringstream ss;
+  for (const char& c : s) {
+    ss << std::hex << std::setw(2) << std::setfill('0')
+       << int(reinterpret_cast<const unsigned char&>(c));
+    ss << ' ';
+  }
+
+  Parser parser;
+  auto parsed = parser.ParseBytecode(PrintableToParsableString(ss.str()));
+  EXPECT_EQ(16, parsed->GetBytecodeLength());
+  if (auto textoutElement = dynamic_cast<TextoutElement*>(parsed)) {
+    EXPECT_EQ(textoutElement->GetText(), "Say \"Hello.\""s);
+  } else {
+    ADD_FAILURE();
+  }
+  delete parsed;
+}
+
+// -----------------------------------------------------------------------
+// MetaParserTest
+// -----------------------------------------------------------------------
 
 TEST(MetaParserTest, ParseLineElement) {
   Parser parser;

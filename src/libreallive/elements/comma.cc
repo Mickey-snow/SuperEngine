@@ -31,15 +31,14 @@
 #include "libreallive/elements/comma.h"
 #include "machine/rlmachine.h"
 
-namespace libreallive{
-  
+namespace libreallive {
+
 CommaElement::CommaElement() {}
 CommaElement::~CommaElement() {}
 
-void CommaElement::PrintSourceRepresentation(RLMachine* machine,
-                                             std::ostream& oss) const {
-  oss << "<CommaElement>" << std::endl;
+std::string CommaElement::GetSourceRepresentation(RLMachine* machine) const {
+  return "<CommaElement>";
 }
 
 const size_t CommaElement::GetBytecodeLength() const { return 1; }
-}
+}  // namespace libreallive
