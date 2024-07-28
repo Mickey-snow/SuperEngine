@@ -86,7 +86,7 @@ TEST(ExpressionParserTest, ParseWithNewlineInIt) {
   libreallive::Expression piece;
   EXPECT_NO_THROW({
     const char* start = parsable.c_str();
-    piece = libreallive::GetData(start);
+    piece = libreallive::ExpressionParser::GetData(start);
   });
 
   ASSERT_TRUE(piece->IsSpecialParameter());
@@ -117,7 +117,7 @@ TEST(CommaParserTest, ParseCommaElement) {
 // TextoutParserTest
 // -----------------------------------------------------------------------
 
-TEST(TextoutParserTest, ParseTextoutElement) {
+TEST(TextoutParserTest, ParseCp932Text) {
   Parser parser;
   std::string parsable = PrintableToParsableString(
       "81 79 90 ba 81 7a 81 75 82 ab 82 e5 81 5b 82 b7 82 af 82 aa 8b 41 82 c1 "
@@ -220,4 +220,32 @@ TEST(MetaParserTest, ParseKidoku) {
         << "Parser failed to produce MetaElement object from '{- Kidoku 3 -}'";
   }
   delete parsed;
+}
+
+// -----------------------------------------------------------------------
+// ExpressionParserTest
+// -----------------------------------------------------------------------
+
+TEST(ExpressionParserTest, Assignment) {
+  Parser parser;
+
+  {
+    std::string parsable = PrintableToParsableString(
+        "$ 03 [ $ ff 63 02 00 00 ] 5c 1e $ ff 01 00 00 00");
+    auto parsed =
+        dynamic_cast<ExpressionElement*>(parser.ParseBytecode(parsable));
+    ASSERT_NE(parsed, nullptr);
+    EXPECT_EQ(parsed->GetSourceRepresentation(nullptr), "intD[611] = 1"s);
+    delete parsed;
+  }
+
+  {
+    std::string parsable = PrintableToParsableString(
+        "$ 0b [ $ ff 00 00 00 00 ] 5c 14 $ ff 01 00 00 00");
+    auto parsed =
+        dynamic_cast<ExpressionElement*>(parser.ParseBytecode(parsable));
+    ASSERT_NE(parsed, nullptr);
+    EXPECT_EQ(parsed->GetSourceRepresentation(nullptr), "intL[0] += 1"s);
+    delete parsed;
+  }
 }

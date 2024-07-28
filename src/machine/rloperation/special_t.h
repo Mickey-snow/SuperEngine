@@ -29,6 +29,7 @@
 
 #include "libreallive/bytecode_fwd.h"
 #include "libreallive/expression.h"
+#include "libreallive/parser.h"
 #include "utilities/exception.h"
 
 // In bytecode, special tags can be any char, though they're usually
@@ -155,7 +156,7 @@ struct Special_T {
                               const std::vector<std::string>& input,
                               libreallive::ExpressionPiecesVector& output) {
     const char* data = input.at(position).c_str();
-    output.emplace_back(libreallive::GetData(data));
+    output.emplace_back(libreallive::ExpressionParser::GetData(data));
     position++;
   }
 

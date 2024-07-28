@@ -123,7 +123,7 @@ void IntConstant_T::ParseParameters(
     const std::vector<std::string>& input,
     libreallive::ExpressionPiecesVector& output) {
   const char* data = input.at(position).c_str();
-  libreallive::Expression ep(libreallive::GetData(data));
+  libreallive::Expression ep(libreallive::ExpressionParser::GetData(data));
 
   if (ep->GetExpressionValueType() !=
       libreallive::ExpressionValueType::Integer) {
@@ -149,7 +149,7 @@ void IntReference_T::ParseParameters(
     const std::vector<std::string>& input,
     libreallive::ExpressionPiecesVector& output) {
   const char* data = input.at(position).c_str();
-  libreallive::Expression ep(libreallive::GetData(data));
+  libreallive::Expression ep(libreallive::ExpressionParser::GetData(data));
 
   if (ep->GetExpressionValueType() !=
       libreallive::ExpressionValueType::Integer) {
@@ -211,7 +211,7 @@ void StrConstant_T::ParseParameters(
     const std::vector<std::string>& input,
     libreallive::ExpressionPiecesVector& output) {
   const char* data = input.at(position).c_str();
-  libreallive::Expression ep = libreallive::GetData(data);
+  libreallive::Expression ep = libreallive::ExpressionParser::GetData(data);
 
   if (ep->GetExpressionValueType() != libreallive::ExpressionValueType::String) {
     std::ostringstream oss;
@@ -236,7 +236,7 @@ void StrReference_T::ParseParameters(
     const std::vector<std::string>& input,
     libreallive::ExpressionPiecesVector& output) {
   const char* data = input.at(position).c_str();
-  libreallive::Expression ep = libreallive::GetData(data);
+  libreallive::Expression ep = libreallive::ExpressionParser::GetData(data);
 
   if (ep->GetExpressionValueType() != libreallive::ExpressionValueType::String) {
     std::ostringstream oss;
@@ -260,7 +260,7 @@ void RLOp_SpecialCase::ParseParameters(
     libreallive::ExpressionPiecesVector& output) {
   for (auto const& parameter : input) {
     const char* src = parameter.c_str();
-    output.push_back(libreallive::GetData(src));
+    output.push_back(libreallive::ExpressionParser::GetData(src));
   }
 }
 

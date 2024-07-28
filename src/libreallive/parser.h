@@ -80,6 +80,32 @@ class Factory {
  public:
   static CommandElement* MakeFunction(const char* opcode,
                                       const std::vector<std::string>& params);
+
+  static ExpressionElement* MakeExpression(const char* stream);
+
+  static MetaElement* MakeMeta(std::shared_ptr<ConstructionData> cdata,
+                               const char* stream);
+};
+
+class ExpressionParser {
+ public:
+  static Expression GetExpressionToken(const char*& src);
+  static Expression GetExpressionTerm(const char*& src);
+  static Expression GetExpressionArithmatic(const char*& src);
+  static Expression GetExpressionCondition(const char*& src);
+  static Expression GetExpressionBoolean(const char*& src);
+  static Expression GetExpression(const char*& src);
+  static Expression GetAssignment(const char*& src);
+  static Expression GetData(const char*& src);
+  static Expression GetComplexParam(const char*& src);
+
+private:
+  static Expression GetExpressionArithmaticLoop(const char*& src, Expression toc);
+  static Expression GetExpressionArithmaticLoopHiPrec(const char*& src, Expression tok);
+  static Expression GetExpressionConditionLoop(const char*& src, Expression tok);
+  static Expression GetExpressionBooleanLoopAnd(const char*& src, Expression tok);
+  static Expression GetExpressionBooleanLoopOr(const char*& src, Expression tok);
+  static Expression GetString(const char*& src);
 };
 
 }  // namespace libreallive

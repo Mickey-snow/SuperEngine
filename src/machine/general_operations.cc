@@ -89,7 +89,7 @@ void MultiDispatch::ParseParameters(
     libreallive::ExpressionPiecesVector& output) {
   for (auto const& parameter : input) {
     const char* src = parameter.c_str();
-    output.push_back(libreallive::GetComplexParam(src));
+    output.push_back(libreallive::ExpressionParser::GetComplexParam(src));
   }
 }
 

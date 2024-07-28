@@ -34,9 +34,6 @@
 
 #include "libreallive/expression.h"
 
-#include <boost/algorithm/string.hpp>
-#include <boost/algorithm/string/predicate.hpp>
-
 #include <iomanip>
 #include <sstream>
 #include <string>
@@ -45,6 +42,8 @@
 #include "libreallive/intmemref.h"
 #include "machine/reference.h"
 #include "machine/rlmachine.h"
+
+#include <boost/algorithm/string.hpp>
 
 namespace {
 
@@ -187,280 +186,12 @@ size_t NextData(const char* src) {
   }
 }
 
-// -----------------------------------------------------------------------
-
-// Expression Parsing
-//
-// Functions used at runtime to parse expressions, both as
-// ExpressionPieces, parameters in function calls, and other uses in
-// some special cases. These functions form a recursive descent parser
-// that parses expressions and parameters in Reallive byte code into
-// ExpressionPieces, which are executed with the current RLMachine.
-//
-// These functions were translated from the O'Caml implementation in
-// dissassembler.ml in RLDev, so really, while I coded this, Haeleth
-// really gets all the credit.
-
-Expression GetExpressionToken(const char*& src) {
-  if (src[0] == 0xff) {
-    src++;
-    int value = read_i32(src);
-    src += 4;
-    return ExpressionFactory::IntConstant(value);
-  } else if (src[0] == 0xc8) {
-    src++;
-    return ExpressionFactory::StoreRegister();
-  } else if ((src[0] != 0xc8 && src[0] != 0xff) && src[1] == '[') {
-    int type = src[0];
-    src += 2;
-    Expression location = GetExpression(src);
-
-    if (src[0] != ']') {
-      std::ostringstream ss;
-      ss << "Unexpected character '" << src[0] << "' in GetExpressionToken"
-         << " (']' expected)";
-      throw Error(ss.str());
-    }
-    src++;
-
-    return ExpressionFactory::MemoryReference(type, location);
-  } else if (src[0] == 0) {
-    throw Error("Unexpected end of buffer in GetExpressionToken");
-  } else {
-    std::ostringstream err;
-    err << "Unknown toke type 0x" << std::hex << (short)src[0]
-        << " in GetExpressionToken" << std::endl;
-    throw Error(err.str());
-  }
-}
-
-Expression GetExpressionTerm(const char*& src) {
-  if (src[0] == '$') {
-    src++;
-    return GetExpressionToken(src);
-  } else if (src[0] == '\\' && src[1] == 0x00) {
-    src += 2;
-    return GetExpressionTerm(src);
-  } else if (src[0] == '\\' && src[1] == 0x01) {
-    // Uniary -
-    src += 2;
-    return ExpressionFactory::UniaryExpression(0x01, GetExpressionTerm(src));
-  } else if (src[0] == '(') {
-    src++;
-    Expression p = GetExpressionBoolean(src);
-    if (src[0] != ')') {
-      std::ostringstream ss;
-      ss << "Unexpected character '" << src[0] << "' in GetExpressionTerm"
-         << " (')' expected)";
-      throw Error(ss.str());
-    }
-    src++;
-    return p;
-  } else if (src[0] == 0) {
-    throw Error("Unexpected end of buffer in GetExpressionTerm");
-  } else {
-    std::ostringstream err;
-    err << "Unknown token type 0x" << std::hex << (short)src[0]
-        << " in GetExpressionTerm";
-    throw Error(err.str());
-  }
-}
-
-static Expression GetExpressionArithmaticLoopHiPrec(const char*& src,
-                                                    Expression tok) {
-  if (src[0] == '\\' && src[1] >= 0x02 && src[1] <= 0x09) {
-    char op = src[1];
-    // Advance past this operator
-    src += 2;
-    Expression new_piece = ExpressionFactory::BinaryExpression(
-        op, tok, GetExpressionTerm(src));
-    return GetExpressionArithmaticLoopHiPrec(src, new_piece);
-  } else {
-    // We don't consume anything and just return our input token.
-    return tok;
-  }
-}
-
-static Expression GetExpressionArithmaticLoop(const char*& src,
-                                              Expression tok) {
-  if (src[0] == '\\' && (src[1] == 0x00 || src[1] == 0x01)) {
-    char op = src[1];
-    src += 2;
-    Expression other = GetExpressionTerm(src);
-    Expression rhs = GetExpressionArithmaticLoopHiPrec(src, other);
-    Expression new_piece =
-        ExpressionFactory::BinaryExpression(op, tok, rhs);
-    return GetExpressionArithmaticLoop(src, new_piece);
-  } else {
-    return tok;
-  }
-}
-
-Expression GetExpressionArithmatic(const char*& src) {
-  return GetExpressionArithmaticLoop(
-      src, GetExpressionArithmaticLoopHiPrec(src, GetExpressionTerm(src)));
-}
-
-static Expression GetExpressionConditionLoop(const char*& src, Expression tok) {
-  if (src[0] == '\\' && (src[1] >= 0x28 && src[1] <= 0x2d)) {
-    char op = src[1];
-    src += 2;
-    Expression rhs = GetExpressionArithmatic(src);
-    Expression new_piece =
-        ExpressionFactory::BinaryExpression(op, tok, rhs);
-    return GetExpressionConditionLoop(src, new_piece);
-  } else {
-    return tok;
-  }
-}
-
-Expression GetExpressionCondition(const char*& src) {
-  return GetExpressionConditionLoop(src, GetExpressionArithmatic(src));
-}
-
-static Expression GetExpressionBooleanLoopAnd(const char*& src,
-                                              Expression tok) {
-  if (src[0] == '\\' && src[1] == '<') {
-    src += 2;
-    Expression rhs = GetExpressionCondition(src);
-    return GetExpressionBooleanLoopAnd(
-        src, ExpressionFactory::BinaryExpression(0x3c, tok, rhs));
-  } else {
-    return tok;
-  }
-}
-
-static Expression GetExpressionBooleanLoopOr(const char*& src, Expression tok) {
-  if (src[0] == '\\' && src[1] == '=') {
-    src += 2;
-    Expression innerTerm = GetExpressionCondition(src);
-    Expression rhs = GetExpressionBooleanLoopAnd(src, innerTerm);
-    return GetExpressionBooleanLoopOr(
-        src, ExpressionFactory::BinaryExpression(0x3d, tok, rhs));
-  } else {
-    return tok;
-  }
-}
-
-Expression GetExpressionBoolean(const char*& src) {
-  return GetExpressionBooleanLoopOr(
-      src, GetExpressionBooleanLoopAnd(src, GetExpressionCondition(src)));
-}
-
-Expression GetExpression(const char*& src) { return GetExpressionBoolean(src); }
-
-// Parses an expression of the form [dest] = [source expression];
-Expression GetAssignment(const char*& src) {
-  Expression itok(GetExpressionTerm(src));
-  int op = src[1];
-  src += 2;
-  Expression etok(GetExpression(src));
-  if (op >= 0x14 && op <= 0x24) {
-    return ExpressionFactory::BinaryExpression(op, itok, etok);
-  } else {
-    throw Error("Undefined assignment in GetAssignment");
-  }
-}
-
-// Parses a string in the parameter list.
-static Expression GetString(const char*& src) {
-  // Get the length of this string in the bytecode:
-  size_t length = NextString(src);
-
-  string s;
-  // Check to see if the string is quoted;
-  if (src[0] == '"')
-    s = string(src + 1, src + length - 1);
-  else
-    s = string(src, src + length);
-
-  // Increment the source by that many characters
-  src += length;
-
-  // Unquote the internal quotations.
-  boost::replace_all(s, "\\\"", "\"");
-
-  return ExpressionFactory::StrConstant(s);
-}
-
-// Parses a parameter in the parameter list. This is the only method
-// of all the get_*(const char*& src) functions that can parse
-// strings. It also deals with things like special and complex
-// parameters.
-Expression GetData(const char*& src) {
-  if (*src == ',') {
-    ++src;
-    return GetData(src);
-  } else if (*src == '\n') {
-    src += 3;
-    return GetData(src);
-  } else if ((*src >= 0x81 && *src <= 0x9f) || (*src >= 0xe0 && *src <= 0xef) ||
-             (*src >= 'A' && *src <= 'Z') || (*src >= '0' && *src <= '9') ||
-             *src == ' ' || *src == '?' || *src == '_' || *src == '"' ||
-             strcmp(src, "###PRINT(") == 0) {
-    return GetString(src);
-  } else if (*src == 'a') {
-    // TODO(erg): Cleanup below.
-    const char* end = src;
-
-    Expression cep = ExpressionFactory::ComplexExpression();
-
-    if (*end++ == 'a') {
-      int tag = *end++;
-
-      // Some special cases have multiple tags.
-      if (*end == 'a') {
-        end++;
-        int second = *end++;
-        tag = (second << 16) | tag;
-      }
-
-      cep = ExpressionFactory::SpecialExpression(tag);
-
-      if (*end != '(') {
-        // We have a single parameter in this special expression;
-        cep->AddContainedPiece(GetData(end));
-        return cep;
-      } else {
-        end++;
-      }
-    } else {
-      cep = ExpressionFactory::ComplexExpression();
-    }
-
-    while (*end != ')') {
-      cep->AddContainedPiece(GetData(end));
-    }
-
-    return cep;
-  } else {
-    return GetExpression(src);
-  }
-}
-
-Expression GetComplexParam(const char*& src) {
-  if (*src == ',') {
-    ++src;
-    return GetData(src);
-  } else if (*src == '(') {
-    ++src;
-    Expression cep = ExpressionFactory::ComplexExpression();
-
-    while (*src != ')')
-      cep->AddContainedPiece(GetData(src));
-
-    return cep;
-  } else {
-    return GetExpression(src);
-  }
-}
-
 std::string EvaluatePRINT(RLMachine& machine, const std::string& in) {
   // Currently, this doesn't evaluate the # commands inline. See 5.12.11 of the
   // rldev manual.
   if (boost::starts_with(in, "###PRINT(")) {
     const char* expression_start = in.c_str() + 9;
-    Expression piece(GetExpression(expression_start));
+    Expression piece(ExpressionParser::GetExpression(expression_start));
 
     if (*expression_start != ')') {
       std::ostringstream ss;
@@ -475,8 +206,6 @@ std::string EvaluatePRINT(RLMachine& machine, const std::string& in) {
     return in;
   }
 }
-
-
 
 // ----------------------------------------------------------------------
 // IExpression

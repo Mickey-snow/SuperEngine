@@ -123,7 +123,7 @@ void UnimplementedOpcode::SetFullDescription(RLMachine& machine) {
       // Take the binary stuff and try to get usefull, printable values.
       const char* start = it->c_str();
       try {
-        libreallive::Expression piece(libreallive::GetData(start));
+        libreallive::Expression piece(libreallive::ExpressionParser::GetData(start));
         oss << piece->GetDebugString();
       }
       catch (libreallive::Error& e) {

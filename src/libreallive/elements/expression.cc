@@ -31,26 +31,17 @@
 #include "libreallive/elements/expression.h"
 #include "machine/rlmachine.h"
 
-namespace libreallive{
+namespace libreallive {
+
 // -----------------------------------------------------------------------
 // ExpressionElement
 // -----------------------------------------------------------------------
 
-  ExpressionElement::ExpressionElement(const char* src){
-  const char* end = src;
-  parsed_expression_ = GetAssignment(end);
-  length_ = std::distance(src, end);
-}
+ExpressionElement::ExpressionElement(Expression expr)
+    : length_(0), parsed_expression_(expr) {}
 
-ExpressionElement::ExpressionElement(const long val)
-    : length_(0),
-      parsed_expression_(ExpressionFactory::IntConstant(val)) {
-}
-
-ExpressionElement::ExpressionElement(const ExpressionElement& rhs)
-    : length_(0),
-      parsed_expression_(rhs.parsed_expression_) {
-}
+ExpressionElement::ExpressionElement(const int& len, Expression expr)
+    : length_(len), parsed_expression_(expr) {}
 
 ExpressionElement::~ExpressionElement() {}
 
@@ -58,16 +49,15 @@ Expression ExpressionElement::ParsedExpression() const {
   return parsed_expression_;
 }
 
-void ExpressionElement::PrintSourceRepresentation(RLMachine* machine,
-                                                  std::ostream& oss) const {
-  oss << ParsedExpression()->GetDebugString() << std::endl;
+std::string ExpressionElement::GetSourceRepresentation(
+    RLMachine* machine) const {
+  return ParsedExpression()->GetDebugString();
 }
 
-const size_t ExpressionElement::GetBytecodeLength() const {
-  return length_;
-}
+const size_t ExpressionElement::GetBytecodeLength() const { return length_; }
 
 void ExpressionElement::RunOnMachine(RLMachine& machine) const {
   machine.ExecuteExpression(*this);
 }
-}
+
+}  // namespace libreallive

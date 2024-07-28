@@ -52,19 +52,9 @@ size_t NextExpression(const char* src);
 size_t NextString(const char* src);
 size_t NextData(const char* src);
 
-// Parse expression functions
 class IExpression;
 class ExpressionPiece;
 using Expression = std::shared_ptr<IExpression>;
-Expression GetExpressionToken(const char*& src);
-Expression GetExpressionTerm(const char*& src);
-Expression GetExpressionArithmatic(const char*& src);
-Expression GetExpressionCondition(const char*& src);
-Expression GetExpressionBoolean(const char*& src);
-Expression GetExpression(const char*& src);
-Expression GetAssignment(const char*& src);
-Expression GetData(const char*& src);
-Expression GetComplexParam(const char*& src);
 
 std::string EvaluatePRINT(RLMachine& machine, const std::string& in);
 

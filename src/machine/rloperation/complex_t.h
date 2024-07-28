@@ -29,6 +29,7 @@
 
 #include "libreallive/bytecode_fwd.h"
 #include "libreallive/expression.h"
+#include "libreallive/parser.h"
 #include "machine/rloperation.h"
 #include "machine/rloperation/references.h"
 
@@ -72,7 +73,7 @@ void Complex_T<Args...>::ParseParameters(
     const std::vector<std::string>& input,
     libreallive::ExpressionPiecesVector& output) {
   const char* data = input.at(position).c_str();
-  libreallive::Expression ep(libreallive::GetComplexParam(data));
+  libreallive::Expression ep(libreallive::ExpressionParser::GetComplexParam(data));
   output.push_back(ep);
   position++;
 }

@@ -79,7 +79,7 @@ SelectLongOperation::SelectLongOperation(RLMachine& machine,
           bool value = false;
           if (condition.condition != "") {
             const char* location = condition.condition.c_str();
-            libreallive::Expression condition(libreallive::GetExpression(location));
+            libreallive::Expression condition(libreallive::ExpressionParser::GetExpression(location));
             value = !condition->GetIntegerValue(machine);
           }
 
@@ -90,7 +90,7 @@ SelectLongOperation::SelectLongOperation(RLMachine& machine,
           bool enabled = false;
           if (condition.condition != "") {
             const char* location = condition.condition.c_str();
-            libreallive::Expression condition(libreallive::GetExpression(location));
+            libreallive::Expression condition(libreallive::ExpressionParser::GetExpression(location));
             enabled = !condition->GetIntegerValue(machine);
           }
 
@@ -99,7 +99,7 @@ SelectLongOperation::SelectLongOperation(RLMachine& machine,
           if (!enabled && condition.effect_argument != "") {
             const char* location = condition.effect_argument.c_str();
             libreallive::Expression effect_argument(
-                libreallive::GetExpression(location));
+                libreallive::ExpressionParser::GetExpression(location));
             colour_index = !effect_argument->GetIntegerValue(machine);
             use_colour = true;
           }

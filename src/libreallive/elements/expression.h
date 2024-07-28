@@ -41,17 +41,15 @@ namespace libreallive{
 // A BytecodeElement that represents an expression
 class ExpressionElement : public BytecodeElement {
  public:
-  explicit ExpressionElement(const long val);
-  explicit ExpressionElement(const char* src);
-  ExpressionElement(const ExpressionElement& rhs);
+  ExpressionElement(Expression expr);
+  ExpressionElement(const int& len, Expression expr);
   virtual ~ExpressionElement();
 
   // Returns an ExpressionPiece representing this expression.
   Expression ParsedExpression() const;
 
   // Overridden from BytecodeElement:
-  virtual void PrintSourceRepresentation(RLMachine* machine,
-                                         std::ostream& oss) const final;
+  virtual std::string GetSourceRepresentation(RLMachine* machine) const final;
   virtual const size_t GetBytecodeLength() const final;
   virtual void RunOnMachine(RLMachine& machine) const final;
 
