@@ -767,9 +767,9 @@ class ComplexEx : public IExpression {
   std::string GetDebugString() const override {
     string s = "(";
     for (auto const& piece : expression_) {
-      s += "(";
       s += piece->GetDebugString();
-      s += ")";
+      if(piece != expression_.back())
+        s += ", ";
     }
     s += ")";
     return s;

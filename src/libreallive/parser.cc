@@ -499,7 +499,7 @@ Expression ExpressionParser::GetData(const char*& src) {
     return GetString(src);
   } else if (*src == 'a') {
     // TODO(erg): Cleanup below.
-    const char* end = src;
+    const char*& end = src;
 
     Expression cep = ExpressionFactory::ComplexExpression();
 
