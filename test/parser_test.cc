@@ -282,7 +282,7 @@ TEST(ExpressionParserTest, Assignment) {
 // In later games, we found newline metadata inside special parameters(?) Make
 // sure that the expression parser can deal with that.
 TEST(ExpressionParserTest, Data) {
-  std::string parsable = libreallive::PrintableToParsableString(
+  std::string parsable = PrintableToParsableString(
       "0a 77 02 61 37 61 10 ( $ ff 29 00 00 00 5c 02 $ ff 8d 01 00 00 "
       "$ ff ff 00 00 00 )");
 
@@ -293,6 +293,22 @@ TEST(ExpressionParserTest, Data) {
   });
 
   ASSERT_TRUE(parsed->IsSpecialParameter());
-  EXPECT_EQ(parsed->GetOverloadTag(), 1048631) << "Tag 'a 0x37 a 0x10' should have value ((0x10<<16) | 0x37)";
+  EXPECT_EQ(parsed->GetOverloadTag(), 1048631)
+      << "Tag 'a 0x37 a 0x10' should have value ((0x10<<16) | 0x37)";
   EXPECT_EQ(parsed->GetDebugString(), "1048631:{16277, 255}"s);
+}
+
+TEST(ExpressionParserTest, ComplexParam) {
+  ExpressionParser parser;
+
+  std::string parsable = PrintableToParsableString(
+      "( $ ff 70 21 00 00 $ ff 1e 00 00 00 61 00 $ 0b [ $ ff 0b 00 00 00 ] )");
+  const char* src = parsable.c_str();
+  auto parsed = parser.GetComplexParam(src);
+
+  ASSERT_TRUE(parsed->IsComplexParameter());
+  EXPECT_EQ(parsed->GetDebugString(), "(8560, 30, 0:{intL[11]})"s);
+
+  auto exprs = parsed->GetContainedPieces();
+  EXPECT_EQ(exprs.size(), 3);
 }
