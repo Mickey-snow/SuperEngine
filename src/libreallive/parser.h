@@ -89,17 +89,38 @@ class Factory {
 
 class ExpressionParser {
  public:
+  // token -> 0xff int32 <intConst>
+  // | 0xc8 <StoreReg>
+  // | type [ expr ] <MemoryRef>
   static Expression GetExpressionToken(const char*& src);
+  // term -> $ token
+  // | \ 0x00 term
+  // | \ 0x01 uniary
+  // | ( boolean )
   static Expression GetExpressionTerm(const char*& src);
+  // arithmatic -> term ( op term )*
   static Expression GetExpressionArithmatic(const char*& src);
+  // cond -> arithmatic ( op arithmatic )*
   static Expression GetExpressionCondition(const char*& src);
+  // boolean -> cond ( op cond )*
   static Expression GetExpressionBoolean(const char*& src);
+  // expr -> boolean
   static Expression GetExpression(const char*& src);
+  // assign -> term op expr
   static Expression GetAssignment(const char*& src);
+  // data -> , data
+  // | \n . . data
+  // | string
+  // | tag complexparam
+  // | expr
   static Expression GetData(const char*& src);
+  // complexparam -> , data
+  // | expr
+  // | ( data+ )
   static Expression GetComplexParam(const char*& src);
 
 private:
+  // Left recursion removed
   static Expression GetExpressionArithmaticLoop(const char*& src, Expression toc);
   static Expression GetExpressionArithmaticLoopHiPrec(const char*& src, Expression tok);
   static Expression GetExpressionConditionLoop(const char*& src, Expression tok);

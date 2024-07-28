@@ -76,22 +76,6 @@ TEST(BytecodeFormattingTest, PrintableToParsableString) {
   }
 }
 
-// In later games, you found newline metadata inside special parameters(?) Make
-// sure that the expression parser can deal with that.
-TEST(ExpressionParserTest, ParseWithNewlineInIt) {
-  std::string parsable = libreallive::PrintableToParsableString(
-      "0a 77 02 61 37 61 00 ( $ ff 29 00 00 00 5c 02 $ ff 8d 01 00 00 "
-      "$ ff ff 00 00 00 )");
-
-  libreallive::Expression piece;
-  EXPECT_NO_THROW({
-    const char* start = parsable.c_str();
-    piece = libreallive::ExpressionParser::GetData(start);
-  });
-
-  ASSERT_TRUE(piece->IsSpecialParameter());
-}
-
 // -----------------------------------------------------------------------
 // CommaParserTest
 // -----------------------------------------------------------------------
@@ -226,26 +210,89 @@ TEST(MetaParserTest, ParseKidoku) {
 // ExpressionParserTest
 // -----------------------------------------------------------------------
 
+TEST(ExpressionParserTest, ExprToken) {
+  ExpressionParser parser;
+
+  // IntConstant
+  {
+    std::string parsable = PrintableToParsableString("ff 01 00 00 00");
+    const char* src = parsable.c_str();
+    Expression parsed = parser.GetExpressionToken(src);
+    EXPECT_EQ(src, parsable.c_str() + parsable.size());
+    EXPECT_EQ(parsed->GetDebugString(), "1"s);
+  }
+
+  // StoreReg
+  {
+    std::string parsable = PrintableToParsableString("c8");
+    const char* src = parsable.c_str();
+    Expression parsed = parser.GetExpressionToken(src);
+    EXPECT_EQ(src, parsable.c_str() + parsable.size());
+    EXPECT_EQ(parsed->GetDebugString(), "<store>"s);
+  }
+
+  // MemoryRef
+  {
+    std::string parsable = PrintableToParsableString("0b [ $ ff 02 00 00 00 ]");
+    const char* src = parsable.c_str();
+    Expression parsed = parser.GetExpressionToken(src);
+    EXPECT_EQ(src, parsable.c_str() + parsable.size());
+    EXPECT_EQ(parsed->GetDebugString(), "intL[2]"s);
+  }
+}
+
+TEST(ExpressionParserTest, Expr) {
+  ExpressionParser parser;
+
+  {
+    std::string parsable = PrintableToParsableString(
+        "$ 03 [ $ ff 54 01 00 00 5c 00 $ 03 [ $ ff fb 00 00 00 ] ] 5c 28 $ ff "
+        "01 00 00 00");
+    const char* src = parsable.c_str();
+    Expression parsed = parser.GetExpression(src);
+    EXPECT_EQ(src, parsable.c_str() + parsable.size());
+    EXPECT_EQ(parsed->GetDebugString(), "intD[340 + intD[251]] === 1"s);
+  }
+
+  {
+    std::string parsable = PrintableToParsableString(
+        "$ 0b [ $ ff 00 00 00 00 ] 5c 2b $ 03 [ $ ff 56 01 00 00 5c 00 $ 03 [ "
+        "$ ff fa 00 00 00 ] ]");
+    const char* src = parsable.c_str();
+    Expression parsed = parser.GetExpression(src);
+    EXPECT_EQ(src, parsable.c_str() + parsable.size());
+    EXPECT_EQ(parsed->GetDebugString(), "intL[0] < = intD[342 + intD[250]]"s);
+  }
+}
+
 TEST(ExpressionParserTest, Assignment) {
-  Parser parser;
+  ExpressionParser parser;
 
   {
     std::string parsable = PrintableToParsableString(
-        "$ 03 [ $ ff 63 02 00 00 ] 5c 1e $ ff 01 00 00 00");
-    auto parsed =
-        dynamic_cast<ExpressionElement*>(parser.ParseBytecode(parsable));
-    ASSERT_NE(parsed, nullptr);
-    EXPECT_EQ(parsed->GetSourceRepresentation(nullptr), "intD[611] = 1"s);
-    delete parsed;
+        "$ 03 [ $ ff 56 01 00 00 5c 00 $ 03 [ $ ff fa 00 00 00 ] ] 5c 15 $ 0b "
+        "[ $ ff 02 00 00 00 ]");
+    const char* src = parsable.c_str();
+    Expression parsed = parser.GetAssignment(src);
+    EXPECT_EQ(src, parsable.c_str() + parsable.size());
+    EXPECT_EQ(parsed->GetDebugString(), "intD[342 + intD[250]] -= intL[2]"s);
   }
+}
 
-  {
-    std::string parsable = PrintableToParsableString(
-        "$ 0b [ $ ff 00 00 00 00 ] 5c 14 $ ff 01 00 00 00");
-    auto parsed =
-        dynamic_cast<ExpressionElement*>(parser.ParseBytecode(parsable));
-    ASSERT_NE(parsed, nullptr);
-    EXPECT_EQ(parsed->GetSourceRepresentation(nullptr), "intL[0] += 1"s);
-    delete parsed;
-  }
+// In later games, we found newline metadata inside special parameters(?) Make
+// sure that the expression parser can deal with that.
+TEST(ExpressionParserTest, Data) {
+  std::string parsable = libreallive::PrintableToParsableString(
+      "0a 77 02 61 37 61 10 ( $ ff 29 00 00 00 5c 02 $ ff 8d 01 00 00 "
+      "$ ff ff 00 00 00 )");
+
+  Expression parsed;
+  EXPECT_NO_THROW({
+    const char* start = parsable.c_str();
+    parsed = ExpressionParser::GetData(start);
+  });
+
+  ASSERT_TRUE(parsed->IsSpecialParameter());
+  EXPECT_EQ(parsed->GetOverloadTag(), 1048631) << "Tag 'a 0x37 a 0x10' should have value ((0x10<<16) | 0x37)";
+  EXPECT_EQ(parsed->GetDebugString(), "1048631:{16277, 255}"s);
 }
