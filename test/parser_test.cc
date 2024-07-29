@@ -251,7 +251,7 @@ TEST(ExpressionParserTest, Expr) {
     const char* src = parsable.c_str();
     Expression parsed = parser.GetExpression(src);
     EXPECT_EQ(src, parsable.c_str() + parsable.size());
-    EXPECT_EQ(parsed->GetDebugString(), "intD[340 + intD[251]] === 1"s);
+    EXPECT_EQ(parsed->GetDebugString(), "intD[340 + intD[251]] == 1"s);
   }
 
   {
@@ -261,7 +261,7 @@ TEST(ExpressionParserTest, Expr) {
     const char* src = parsable.c_str();
     Expression parsed = parser.GetExpression(src);
     EXPECT_EQ(src, parsable.c_str() + parsable.size());
-    EXPECT_EQ(parsed->GetDebugString(), "intL[0] < = intD[342 + intD[250]]"s);
+    EXPECT_EQ(parsed->GetDebugString(), "intL[0] < intD[342 + intD[250]]"s);
   }
 }
 

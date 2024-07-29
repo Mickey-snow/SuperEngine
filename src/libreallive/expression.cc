@@ -480,44 +480,64 @@ std::string GetBinaryDebugString(char operation,
   str << " ";
   switch (operation) {
     case 0:
-    case 20:
       str << "+";
       break;
     case 1:
-    case 21:
       str << "-";
       break;
     case 2:
-    case 22:
       str << "*";
       break;
     case 3:
-    case 23:
       str << "/";
       break;
     case 4:
-    case 24:
       str << "%";
       break;
     case 5:
-    case 25:
       str << "&";
       break;
     case 6:
-    case 26:
       str << "|";
       break;
     case 7:
-    case 27:
       str << "^";
       break;
     case 8:
-    case 28:
       str << "<<";
       break;
     case 9:
-    case 29:
       str << ">>";
+      break;
+    case 20:
+      str << "+=";
+      break;
+    case 21:
+      str << "-=";
+      break;
+    case 22:
+      str << "*=";
+      break;
+    case 23:
+      str << "/=";
+      break;
+    case 24:
+      str << "%=";
+      break;
+    case 25:
+      str << "&=";
+      break;
+    case 26:
+      str << "|=";
+      break;
+    case 27:
+      str << "^=";
+      break;
+    case 28:
+      str << "<<=";
+      break;
+    case 29:
+      str << ">>=";
       break;
     case 30:
       str << "=";
@@ -532,13 +552,13 @@ std::string GetBinaryDebugString(char operation,
       str << "<=";
       break;
     case 43:
-      str << "< ";
+      str << "<";
       break;
     case 44:
       str << ">=";
       break;
     case 45:
-      str << "> ";
+      str << ">";
       break;
     case 60:
       str << "&&";
@@ -553,9 +573,6 @@ std::string GetBinaryDebugString(char operation,
       throw Error(ss.str());
     }
   }
-
-  if (operation >= 0x14 && operation != 30)
-    str << "=";
 
   str << " ";
   str << rhs;
