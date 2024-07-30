@@ -123,11 +123,11 @@ void PrintParameterString(std::ostream& oss,
 // -----------------------------------------------------------------------
 // class Parser
 // -----------------------------------------------------------------------
-Parser::Parser() : cdata(std::make_shared<ConstructionData>()) {}
+Parser::Parser()
+    : cdata(std::make_shared<ConstructionData>()), entrypoint_marker('@') {}
 
-Parser::Parser(std::shared_ptr<ConstructionData> data) : cdata(data) {}
-
-char entrypoint_marker = '@';
+Parser::Parser(std::shared_ptr<ConstructionData> data)
+    : cdata(data), entrypoint_marker('@') {}
 
 BytecodeElement* Parser::ParseBytecode(const std::string& src) {
   return ParseBytecode(src.c_str(), src.c_str() + src.size());

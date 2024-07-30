@@ -68,12 +68,15 @@ class Parser {
 
   BytecodeElement* ParseBytecode(const std::string& src);
 
-  static TextoutElement* ParseTextout(const char* stream, const char* end);
+  TextoutElement* ParseTextout(const char* stream, const char* end);
+  
   CommandElement* ParseFunction(const char* stream);
+  
   static CommandElement* BuildFunctionElement(const char* stream);
 
  private:
   std::shared_ptr<ConstructionData> cdata;
+  char entrypoint_marker;
 };
 
 class Factory {
