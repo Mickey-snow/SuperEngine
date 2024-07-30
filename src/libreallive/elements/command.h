@@ -98,8 +98,7 @@ class CommandElement : public BytecodeElement {
   virtual const std::string GetCase(int i) const;
 
   // Overridden from BytecodeElement:
-  virtual void PrintSourceRepresentation(RLMachine* machine,
-                                         std::ostream& oss) const final;
+  virtual std::string GetSourceRepresentation(RLMachine* machine) const;
   virtual void RunOnMachine(RLMachine& machine) const final;
 
  protected:
@@ -234,6 +233,7 @@ class PointerElement : public CommandElement {
 class GotoElement : public CommandElement {
  public:
   GotoElement(const char* src, ConstructionData& cdata);
+  GotoElement(const char* opcode, const unsigned long& id);
   virtual ~GotoElement();
 
   // Overridden from CommandElement:

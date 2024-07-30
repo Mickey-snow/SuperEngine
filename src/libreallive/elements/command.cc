@@ -93,21 +93,21 @@ const size_t CommandElement::GetCaseCount() const { return 0; }
 
 const string CommandElement::GetCase(int i) const { return ""; }
 
-void CommandElement::PrintSourceRepresentation(RLMachine* machine,
-                                               std::ostream& oss) const {
-  std::string name = machine ? machine->GetCommandName(*this) : "";
-
-  if (name != "") {
-    oss << name;
-  } else {
-    oss << "op<" << modtype() << ":" << std::setw(3) << std::setfill('0')
-        << module() << ":" << std::setw(5) << std::setfill('0') << opcode()
-        << ", " << overload() << ">";
+std::string CommandElement::GetSourceRepresentation(RLMachine* machine) const {
+  std::string repr = machine ? machine->GetCommandName(*this) : "";
+  if(repr == ""){
+    std::ostringstream op;
+    op << "op<" << modtype() << ":" << std::setw(3) << std::setfill('0')
+       << module() << ":" << std::setw(5) << std::setfill('0') << opcode()
+       << ", " << overload() << ">";
+    repr += op.str();
   }
 
-  PrintParameterString(oss, GetUnparsedParameters());
+  std::ostringstream param;
+  PrintParameterString(param, GetUnparsedParameters());
 
-  oss << std::endl;
+  repr += param.str();
+  return repr;
 }
 
 void CommandElement::RunOnMachine(RLMachine& machine) const {
@@ -361,6 +361,9 @@ GotoElement::GotoElement(const char* src, ConstructionData& cdata)
 
   id_ = read_i32(src);
 }
+
+GotoElement::GotoElement(const char* op, const unsigned long& id)
+    : CommandElement(op), id_(id) {}
 
 GotoElement::~GotoElement() {}
 

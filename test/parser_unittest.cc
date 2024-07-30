@@ -312,3 +312,23 @@ TEST(ExpressionParserTest, ComplexParam) {
   auto exprs = parsed->GetContainedPieces();
   EXPECT_EQ(exprs.size(), 3);
 }
+
+// -----------------------------------------------------------------------
+// CommandParserTest
+// -----------------------------------------------------------------------
+
+TEST(CommandParserTest, GotoElement) {
+  Parser parser;
+
+  std::vector<std::pair<std::string, std::string>> data = {
+      {"23 00 01 00 00 00 00 00 25 01 00 00"s, "op<0:001:00000, 0>()"s},
+      {"23 00 01 05 00 00 00 00 a7 01 00 00"s, "op<0:001:00005, 0>()"s}};
+
+  for (const auto& [printable, repr] : data) {
+    const auto parsable = PrintableToParsableString(printable);
+    CommandElement* parsed = parser.ParseFunction(parsable.c_str());
+    EXPECT_EQ(parsed->GetBytecodeLength(), parsable.length());
+    EXPECT_EQ(parsed->GetSourceRepresentation(nullptr), repr);
+    delete parsed;
+  }
+}

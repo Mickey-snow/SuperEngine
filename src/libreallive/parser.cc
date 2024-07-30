@@ -197,53 +197,59 @@ TextoutElement* Parser::ParseTextout(const char* src, const char* file_end) {
 }
 
 CommandElement* Parser::ParseFunction(const char* stream) {
+  const char* op = stream;
+
   // opcode: 0xttmmoooo (Type, Module, Opcode: e.g. 0x01030101 = 1:03:00257
   const unsigned long opcode =
-      (stream[1] << 24) | (stream[2] << 16) | (stream[4] << 8) | stream[3];
+      (op[1] << 24) | (op[2] << 16) | (op[4] << 8) | op[3];
   switch (opcode) {
-    case 0x00010000:
-    case 0x00010005:
-    case 0x00050001:
-    case 0x00050005:
-    case 0x00060001:
-    case 0x00060005:
-      return new GotoElement(stream, *cdata);
-    case 0x00010001:
-    case 0x00010002:
-    case 0x00010006:
-    case 0x00010007:
-    case 0x00050002:
-    case 0x00050006:
-    case 0x00050007:
-    case 0x00060000:
-    case 0x00060002:
-    case 0x00060006:
-    case 0x00060007:
+    case 0x00010000:  // goto
+    case 0x00010005:  // gosub
+    case 0x00050001:  // goto
+    case 0x00050005:  // gosub
+    case 0x00060001:  // GOTO
+    case 0x00060005:  // GOSUB
+    {
+      stream += 8;
+      unsigned long id = read_i32(stream);
+      return new GotoElement(op, id);
+    }
+    case 0x00010001:  // goto_if
+    case 0x00010002:  // goto_unless
+    case 0x00010006:  // gosub_if
+    case 0x00010007:  // gosub_unless
+    case 0x00050002:  // goto_unless
+    case 0x00050006:  // gosub_if
+    case 0x00050007:  // gosub_unless
+    case 0x00060000:  // GOTOIF
+    case 0x00060002:  // GOTOUNIF
+    case 0x00060006:  // GOSUBIF
+    case 0x00060007:  // GOSUBUNIF
       return new GotoIfElement(stream, *cdata);
-    case 0x00010003:
-    case 0x00010008:
-    case 0x00050003:
-    case 0x00050008:
-    case 0x00060003:
-    case 0x00060008:
+    case 0x00010003:  // goto_on
+    case 0x00010008:  // gosub_on
+    case 0x00050003:  // goto_on
+    case 0x00050008:  // gosub_on
+    case 0x00060003:  // ONGOTO
+    case 0x00060008:  // ONGOSUB
       return new GotoOnElement(stream, *cdata);
-    case 0x00010004:
-    case 0x00010009:
+    case 0x00010004:  // goto_case
+    case 0x00010009:  // gosub_case
     case 0x00050004:
     case 0x00050009:
-    case 0x00060004:
-    case 0x00060009:
+    case 0x00060004:  // ONGOTOSWITCH
+    case 0x00060009:  // ONGOSUBSWITCH
       return new GotoCaseElement(stream, *cdata);
-    case 0x00010010:
-    case 0x00060010:
+    case 0x00010010:  // gosub_with
+    case 0x00060010:  // RETURN
       return new GosubWithElement(stream, *cdata);
 
       // Select elements.
-    case 0x00020000:
-    case 0x00020001:
-    case 0x00020002:
-    case 0x00020003:
-    case 0x00020010:
+    case 0x00020000:  // select_w
+    case 0x00020001:  // select
+    case 0x00020002:  // select_s2
+    case 0x00020003:  // select_s
+    case 0x00020010:  // select_cancel
       return new SelectElement(stream);
   }
   // default:
@@ -367,7 +373,8 @@ Expression ExpressionParser::GetExpressionTerm(const char*& src) {
   }
 }
 
-Expression ExpressionParser::GetExpressionArithmaticLoopHiPrec(const char*& src, Expression tok) {
+Expression ExpressionParser::GetExpressionArithmaticLoopHiPrec(const char*& src,
+                                                               Expression tok) {
   if (src[0] == '\\' && src[1] >= 0x02 && src[1] <= 0x09) {
     char op = src[1];
     // Advance past this operator
@@ -381,7 +388,8 @@ Expression ExpressionParser::GetExpressionArithmaticLoopHiPrec(const char*& src,
   }
 }
 
-Expression ExpressionParser::GetExpressionArithmaticLoop(const char*& src, Expression tok) {
+Expression ExpressionParser::GetExpressionArithmaticLoop(const char*& src,
+                                                         Expression tok) {
   if (src[0] == '\\' && (src[1] == 0x00 || src[1] == 0x01)) {
     char op = src[1];
     src += 2;
@@ -399,7 +407,8 @@ Expression ExpressionParser::GetExpressionArithmatic(const char*& src) {
       src, GetExpressionArithmaticLoopHiPrec(src, GetExpressionTerm(src)));
 }
 
-Expression ExpressionParser::GetExpressionConditionLoop(const char*& src, Expression tok) {
+Expression ExpressionParser::GetExpressionConditionLoop(const char*& src,
+                                                        Expression tok) {
   if (src[0] == '\\' && (src[1] >= 0x28 && src[1] <= 0x2d)) {
     char op = src[1];
     src += 2;
@@ -415,7 +424,8 @@ Expression ExpressionParser::GetExpressionCondition(const char*& src) {
   return GetExpressionConditionLoop(src, GetExpressionArithmatic(src));
 }
 
-Expression ExpressionParser::GetExpressionBooleanLoopAnd(const char*& src, Expression tok) {
+Expression ExpressionParser::GetExpressionBooleanLoopAnd(const char*& src,
+                                                         Expression tok) {
   if (src[0] == '\\' && src[1] == '<') {
     src += 2;
     Expression rhs = GetExpressionCondition(src);
@@ -426,7 +436,8 @@ Expression ExpressionParser::GetExpressionBooleanLoopAnd(const char*& src, Expre
   }
 }
 
-Expression ExpressionParser::GetExpressionBooleanLoopOr(const char*& src, Expression tok) {
+Expression ExpressionParser::GetExpressionBooleanLoopOr(const char*& src,
+                                                        Expression tok) {
   if (src[0] == '\\' && src[1] == '=') {
     src += 2;
     Expression innerTerm = GetExpressionCondition(src);
