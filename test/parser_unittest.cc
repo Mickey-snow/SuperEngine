@@ -317,18 +317,61 @@ TEST(ExpressionParserTest, ComplexParam) {
 // CommandParserTest
 // -----------------------------------------------------------------------
 
-TEST(CommandParserTest, GotoElement) {
+class CommandParserTest : public ::testing::Test{
+protected:
   Parser parser;
 
+  using data_t = std::vector<std::pair<std::string, std::string>>;
+  void TestWith(const data_t& data) {
+    for (const auto& [printable, repr] : data) {
+      const auto parsable = PrintableToParsableString(printable);
+      CommandElement* parsed = parser.ParseFunction(parsable.c_str());
+      EXPECT_EQ(parsed->GetBytecodeLength(), parsable.length());
+      EXPECT_EQ(parsed->GetSourceRepresentation(nullptr), repr);
+      delete parsed;
+    }
+  }
+};
+
+TEST_F(CommandParserTest, GotoElement) {
   std::vector<std::pair<std::string, std::string>> data = {
       {"23 00 01 00 00 00 00 00 25 01 00 00"s, "op<0:001:00000, 0>()"s},
       {"23 00 01 05 00 00 00 00 a7 01 00 00"s, "op<0:001:00005, 0>()"s}};
+  TestWith(data);
+}
 
-  for (const auto& [printable, repr] : data) {
-    const auto parsable = PrintableToParsableString(printable);
-    CommandElement* parsed = parser.ParseFunction(parsable.c_str());
-    EXPECT_EQ(parsed->GetBytecodeLength(), parsable.length());
-    EXPECT_EQ(parsed->GetSourceRepresentation(nullptr), repr);
-    delete parsed;
-  }
+TEST_F(CommandParserTest, GotoIfElement) {
+  std::vector<std::pair<std::string, std::string>> data = {
+      {"23 00 01 02 00 00 00 00 ( $ 06 [ $ ff eb 03 00 00 ] 5c 28 $ ff 01 00 00 00 ) f3 00 00 00"s,
+       "op<0:001:00002, 0>(intG[1003] == 1)"s}};
+  TestWith(data);
+}
+
+TEST_F(CommandParserTest, GotoOnElement) {
+  std::vector<std::pair<std::string, std::string>> data = {
+      {"23 00 01 03 00 0e 00 00 ( $ 0b [ $ ff 00 00 00 00 ] ) 7b 44 02 00 00 91 02 00 00 de 02 00 00 2b 03 00 00 78 03 00 00 c5 03 00 00 12 04 00 00 5f 04 00 00 ac 04 00 00 f9 04 00 00 46 05 00 00 93 05 00 00 e0 05 00 00 2d 06 00 00 7d"s,
+       "op<0:001:00003, 0>(intL[0])"s},
+      {"23 00 01 08 00 0a 00 00 ( $ 0b [ $ ff 01 00 00 00 ] ) 7b e7 60 00 00 a5 66 00 00 95 6a 00 00 99 6e 00 00 89 73 00 00 a3 77 00 00 a3 7b 00 00 9d 84 00 00 f6 88 00 00 2f 8d 00 00 7d"s,
+       "op<0:001:00008, 0>(intL[1])"s}};
+  TestWith(data);
+}
+
+TEST_F(CommandParserTest, GotoCaseElement) {
+  std::vector<std::pair<std::string, std::string>> data = {
+      {"23 00 01 04 00 03 00 00 ( $ 0b [ $ ff 00 00 00 00 ] ) 7b ( $ ff 00 00 00 00 ) 6d 08 00 00 ( $ ff 01 00 00 00 ) a1 08 00 00 ( ) d5 08 00 00 7d"s,
+       "op<0:001:00004, 0>(intL[0])"s}};
+  TestWith(data);
+}
+
+TEST_F(CommandParserTest, GosubWithElement) {
+  std::vector<std::pair<std::string, std::string>> data = {
+      {"23 00 01 0a 00 00 00 00"s, "op<0:001:00010, 0>()"s}};
+  TestWith(data);
+}
+
+TEST_F(CommandParserTest, SelectElement) {
+  std::vector<std::pair<std::string, std::string>> data = {
+      {"op<0:002:00003, 0>({RAW : ( ( $ 0b [ $ ff 01 00 00 00 ] 5c ( 5c 01 $ ff 01 00 00 00 ) 32 ( $ 0b [ $ ff 01 00 00 00 ] 5c ( $ ff 8d 00 00 00 ) 31 $ ff 64 00 00 00 ) 23 23 23 50 52 49 4e 54 ( $ 12 [ $ ff 00 00 00 00 ] )}, {RAW : ( ( $ 0b [ $ ff 02 00 00 00 ] 5c ( 5c 01 $ ff 01 00 00 00 ) 32 ( $ 0b [ $ ff 02 00 00 00 ] 5c ( $ ff 8d 00 00 00 ) 31 $ ff 64 00 00 00 ) 23 23 23 50 52 49 4e 54 ( $ 12 [ $ ff 02 00 00 00 ] )}, {RAW : ( ( $ 0b [ $ ff 03 00 00 00 ] 5c ( 5c 01 $ ff 01 00 00 00 ) 32 ( $ 0b [ $ ff 03 00 00 00 ] 5c ( $ ff 8d 00 00 00 ) 31 $ ff 64 00 00 00 ) 23 23 23 50 52 49 4e 54 ( $ 12 [ $ ff 04 00 00 00 ] )}, {RAW : ( ( $ 0b [ $ ff 0b 00 00 00 ] 5c ( 5c 01 $ ff 01 00 00 00 ) 32 ( $ 0b [ $ ff 0b 00 00 00 ] 5c ( $ ff 8d 00 00 00 ) 31 $ ff 64 00 00 00 ) 23 23 23 50 52 49 4e 54 ( $ 12 [ $ ff 06 00 00 00 ] )})"s,
+       "23 00 02 03 00 04 00 00 7b 0a 4b 00 ( ( $ 0b [ $ ff 01 00 00 00 ] 5c ( 5c 01 $ ff 01 00 00 00 ) 32 ( $ 0b [ $ ff 01 00 00 00 ] 5c ( $ ff 8d 00 00 00 ) 31 $ ff 64 00 00 00 ) 23 23 23 50 52 49 4e 54 ( $ 12 [ $ ff 00 00 00 00 ] ) 0a 4c 00 ( ( $ 0b [ $ ff 02 00 00 00 ] 5c ( 5c 01 $ ff 01 00 00 00 ) 32 ( $ 0b [ $ ff 02 00 00 00 ] 5c ( $ ff 8d 00 00 00 ) 31 $ ff 64 00 00 00 ) 23 23 23 50 52 49 4e 54 ( $ 12 [ $ ff 02 00 00 00 ] ) 0a 4d 00 ( ( $ 0b [ $ ff 03 00 00 00 ] 5c ( 5c 01 $ ff 01 00 00 00 ) 32 ( $ 0b [ $ ff 03 00 00 00 ] 5c ( $ ff 8d 00 00 00 ) 31 $ ff 64 00 00 00 ) 23 23 23 50 52 49 4e 54 ( $ 12 [ $ ff 04 00 00 00 ] ) 0a 4e 00 ( ( $ 0b [ $ ff 0b 00 00 00 ] 5c ( 5c 01 $ ff 01 00 00 00 ) 32 ( $ 0b [ $ ff 0b 00 00 00 ] 5c ( $ ff 8d 00 00 00 ) 31 $ ff 64 00 00 00 ) 23 23 23 50 52 49 4e 54 ( $ 12 [ $ ff 06 00 00 00 ] ) 0a 4f 00 7d"s}};
+  TestWith(data);
 }
