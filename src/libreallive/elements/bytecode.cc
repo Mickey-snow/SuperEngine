@@ -54,7 +54,7 @@ BytecodeElement::BytecodeElement(const BytecodeElement& c) {}
 
 void BytecodeElement::PrintSourceRepresentation(RLMachine* machine,
                                                 std::ostream& oss) const {
-  oss << GetSourceRepresentation(machine);
+  oss << GetSourceRepresentation(machine) << std::endl;
 }
 
 std::string BytecodeElement::GetSourceRepresentation(RLMachine* machine) const {

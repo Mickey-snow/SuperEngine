@@ -89,7 +89,7 @@ TEST(CommaParserTest, ParseCommaElement) {
     EXPECT_EQ(repr, "<CommaElement>"s);
     std::ostringstream oss;
     parsed->PrintSourceRepresentation(nullptr, oss);
-    EXPECT_EQ(oss.str(), "<CommaElement>"s);
+    EXPECT_EQ(oss.str(), "<CommaElement>\n"s);
   } else {
     ADD_FAILURE()
         << "Parser failed to produce CommaElement object from '<CommaElement>'";
