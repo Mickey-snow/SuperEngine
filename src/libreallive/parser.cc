@@ -84,7 +84,8 @@ std::string PrintableToParsableString(const std::string& src) {
       throw libreallive::Error(
           "Invalid string given to printableToParsableString");
 
-    if (tok == "(" || tok == ")" || tok == "$" || tok == "[" || tok == "]") {
+    if (tok == "(" || tok == ")" || tok == "$" || tok == "[" || tok == "]" ||
+        tok == "{" || tok == "}") {
       output.push_back(tok[0]);
     } else {
       int charToAdd;
@@ -139,6 +140,8 @@ BytecodeElement* Parser::ParseBytecode(const char* stream, const char* end) {
     entrypoint_marker = '!';
 
   BytecodeElement* result = nullptr;
+
+  try{
   switch (c) {
     case 0:
     case ',':
@@ -155,11 +158,17 @@ BytecodeElement* Parser::ParseBytecode(const char* stream, const char* end) {
       result = Factory::MakeExpression(stream);
       break;
     case '#':
-      result = ParseFunction(stream);
+      result = ParseCommand(stream);
       break;
     default:
       result = ParseTextout(stream, end);
       break;
+  }
+  } catch(Error& e){
+    std::string raw(stream, end-stream);
+    std::cerr << "at parsing {RAW:" << ParsableToPrintableString(raw)
+              << std::endl;
+    std::cerr << e.what() << std::endl;
   }
 
   // result->PrintSourceRepresentation(nullptr, std::cout);
@@ -196,7 +205,7 @@ TextoutElement* Parser::ParseTextout(const char* src, const char* file_end) {
   return new TextoutElement(src, end);
 }
 
-CommandElement* Parser::ParseFunction(const char* stream) {
+CommandElement* Parser::ParseCommand(const char* stream) {
   const char* op = stream;
 
   // opcode: 0xttmmoooo (Type, Module, Opcode: e.g. 0x01030101 = 1:03:00257
@@ -209,7 +218,7 @@ CommandElement* Parser::ParseFunction(const char* stream) {
     case 0x00050005:  // gosub
     case 0x00060001:  // GOTO
     case 0x00060005:  // GOSUB
-    {
+    {                 // <goto> -> opcode id
       stream += 8;
       unsigned long id = read_i32(stream);
       return new GotoElement(op, id);
@@ -225,25 +234,103 @@ CommandElement* Parser::ParseFunction(const char* stream) {
     case 0x00060002:  // GOTOUNIF
     case 0x00060006:  // GOSUBIF
     case 0x00060007:  // GOSUBUNIF
-      return new GotoIfElement(stream, *cdata);
+    {                 // <gotoif> -> opcode ( expr ) id
+      std::string repr(stream, 8);
+      stream += 8;
+      if(*stream++ != '(')
+        throw Error("GotoIfElement(): expected `('");
+      Expression expr = ExpressionParser::GetExpression(stream);
+      if (*stream++ != ')')
+        throw Error("GotoIfElement(): expected `)'");
+      unsigned long id = read_i32(stream);
+      auto elm = new GotoIfElement(std::string(op, stream-op), id, expr);
+      return elm;
+    }
     case 0x00010003:  // goto_on
     case 0x00010008:  // gosub_on
     case 0x00050003:  // goto_on
     case 0x00050008:  // gosub_on
     case 0x00060003:  // ONGOTO
     case 0x00060008:  // ONGOSUB
-      return new GotoOnElement(stream, *cdata);
+    {
+      std::string repr;
+      stream += 8;
+      // Condition
+      Expression cond = ExpressionParser::GetExpression(stream);
+      repr.assign(op, stream-op);
+      // Pointers
+      if (*stream++ != '{')
+        throw Error("GotoOnElement(): expected `{'");
+      Pointers targets;
+      while (*stream != '}'){
+        targets.push_id(read_i32(stream));
+        stream += 4;
+      }
+      return new GotoOnElement(repr, cond, targets);
+    }
     case 0x00010004:  // goto_case
     case 0x00010009:  // gosub_case
     case 0x00050004:
     case 0x00050009:
     case 0x00060004:  // ONGOTOSWITCH
     case 0x00060009:  // ONGOSUBSWITCH
-      return new GotoCaseElement(stream, *cdata);
+    {
+      stream += 8;
+      // Condition
+      Expression cond = ExpressionParser::GetExpression(stream);
+      std::string repr(op, stream - op);
+      // Cases
+      std::vector<std::string> cases;
+      std::vector<Expression> parsed_cases;
+      Pointers targets;
+      if (*stream++ != '{')
+        throw Error("GotoCaseElement(): expected `{'");
+      while (*stream != '}') {
+        if (stream[0] != '(')
+          throw Error("GotoCaseElement(): expected `('");
+        if (stream[1] == ')') {
+          cases.push_back("()");
+          stream += 2;
+        } else {
+          const char* end = stream+1;
+          Expression expr = ExpressionParser::GetExpression(end);
+          cases.emplace_back(stream, end-stream+1);
+          parsed_cases.push_back(expr);
+          stream = end;
+          if (*stream++ != ')')
+            throw Error("GotoCaseElement(): expected `)'");
+        }
+        targets.push_id(read_i32(stream));
+        stream += 4;
+      }
+      return new GotoCaseElement(repr, cond, targets, cases, parsed_cases);
+    }
     case 0x00010010:  // gosub_with
     case 0x00060010:  // RETURN
-      return new GosubWithElement(stream, *cdata);
+      {
+        // return new GosubWithElement(stream, *cdata);
+        std::vector<std::string> param;
+        std::vector<Expression> parsed_param;
+        unsigned long id;
+        size_t codelen = 8;
+        stream += 8;
+        if(*stream == '('){
+          ++stream;
+          ++codelen;
+          while(*stream != ')'){
+            const char* end = stream;
+            parsed_param.emplace_back(ExpressionParser::GetData(end));
+            param.emplace_back(stream, end-stream);
+            codelen += param.back().length();
+            stream = end;
+          }
+          ++stream;
+          ++codelen;
+        }
 
+        id = read_i32(stream);
+        return new GosubWithElement(op, id, codelen, param, parsed_param);
+      }
       // Select elements.
     case 0x00020000:  // select_w
     case 0x00020001:  // select

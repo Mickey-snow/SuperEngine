@@ -232,7 +232,6 @@ class PointerElement : public CommandElement {
 
 class GotoElement : public CommandElement {
  public:
-  GotoElement(const char* src, ConstructionData& cdata);
   GotoElement(const char* opcode, const unsigned long& id);
   virtual ~GotoElement();
 
@@ -253,7 +252,10 @@ class GotoElement : public CommandElement {
 
 class GotoIfElement : public CommandElement {
  public:
-  GotoIfElement(const char* src, ConstructionData& cdata);
+  GotoIfElement(const std::string& cmd,
+                const unsigned long& id,
+                Expression cond)
+      : CommandElement(cmd.c_str()), id_(id), repr(cmd), condition_(cond) {}
   virtual ~GotoIfElement();
 
   // Overridden from CommandElement:
@@ -270,11 +272,22 @@ class GotoIfElement : public CommandElement {
   unsigned long id_;
   pointer_t pointer_;
   std::string repr;
+  Expression condition_;
 };
 
-class GotoCaseElement : public PointerElement {
+class GotoCaseElement : public CommandElement {
  public:
-  GotoCaseElement(const char* src, ConstructionData& cdata);
+  GotoCaseElement(const std::string& cmd,
+                  Expression param,
+                  const Pointers& targets,
+                  const std::vector<std::string>& cases,
+                  const std::vector<Expression>& parsed_cases)
+      : CommandElement(cmd.c_str()),
+        repr_(cmd),
+        param_(param),
+        targets_(targets),
+        cases_(cases),
+        parsed_cases_(parsed_cases) {}
   virtual ~GotoCaseElement();
 
   // Overridden from CommandElement:
@@ -283,33 +296,60 @@ class GotoCaseElement : public PointerElement {
   virtual const size_t GetCaseCount() const final;
   virtual const std::string GetCase(int i) const final;
 
+  const size_t GetPointersCount() const final;
+  pointer_t GetPointer(int) const final;
+  void SetPointers(ConstructionData& cdata) final;
+
   // Overridden from BytecodeElement:
   virtual const size_t GetBytecodeLength() const final;
 
  private:
-  std::string repr;
-  std::vector<std::string> cases;
+  std::string repr_;
+  Expression param_;
+  Pointers targets_;
+  std::vector<std::string> cases_;
+  std::vector<Expression> parsed_cases_;
 };
 
-class GotoOnElement : public PointerElement {
+class GotoOnElement : public CommandElement {
  public:
-  GotoOnElement(const char* src, ConstructionData& cdata);
+  GotoOnElement(const std::string& repr,
+                Expression cond,
+                const Pointers& targets);
   virtual ~GotoOnElement();
 
   // Overridden from CommandElement:
-  virtual const size_t GetParamCount() const final;
-  virtual std::string GetParam(int i) const final;
+  const size_t GetParamCount() const final;
+  std::string GetParam(int i) const final;
+
+  const size_t GetPointersCount() const final;
+  pointer_t GetPointer(int) const final;
+  void SetPointers(ConstructionData& cdata) final;
 
   // Overridden from BytecodeElement:
-  virtual const size_t GetBytecodeLength() const final;
+  const size_t GetBytecodeLength() const final;
 
  private:
-  std::string repr;
+  Pointers targets_;
+  Expression param_;
+  std::string repr_;
 };
 
 class GosubWithElement : public CommandElement {
  public:
   GosubWithElement(const char* src, ConstructionData& cdata);
+  GosubWithElement(const char* op,
+                   const unsigned long& id,
+                   const int& size,
+                   const std::vector<std::string>& param,
+                   const std::vector<Expression>& parsed_param)
+      : CommandElement(op),
+        id_(id),
+        pointer_{},
+        repr_size(size),
+        params_(param),
+        parsed_params_(parsed_param) {}
+
   virtual ~GosubWithElement();
 
   // Overridden from CommandElement:
@@ -326,7 +366,8 @@ class GosubWithElement : public CommandElement {
   unsigned long id_;
   pointer_t pointer_;
   int repr_size;
-  std::vector<std::string> params;
+  std::vector<std::string> params_;
+  std::vector<Expression> parsed_params_;
 };
 
 }  // namespace libreallive

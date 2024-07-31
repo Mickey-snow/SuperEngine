@@ -70,7 +70,7 @@ class Parser {
 
   TextoutElement* ParseTextout(const char* stream, const char* end);
   
-  CommandElement* ParseFunction(const char* stream);
+  CommandElement* ParseCommand(const char* stream);
   
   static CommandElement* BuildFunctionElement(const char* stream);
 

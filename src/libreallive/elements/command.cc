@@ -95,7 +95,7 @@ const string CommandElement::GetCase(int i) const { return ""; }
 
 std::string CommandElement::GetSourceRepresentation(RLMachine* machine) const {
   std::string repr = machine ? machine->GetCommandName(*this) : "";
-  if(repr == ""){
+  if (repr == "") {
     std::ostringstream op;
     op << "op<" << modtype() << ":" << std::setw(3) << std::setfill('0')
        << module() << ":" << std::setw(5) << std::setfill('0') << opcode()
@@ -355,13 +355,6 @@ void PointerElement::SetPointers(ConstructionData& cdata) {
 // GotoElement
 // -----------------------------------------------------------------------
 
-GotoElement::GotoElement(const char* src, ConstructionData& cdata)
-    : CommandElement(src) {
-  src += 8;
-
-  id_ = read_i32(src);
-}
-
 GotoElement::GotoElement(const char* op, const unsigned long& id)
     : CommandElement(op), id_(id) {}
 
@@ -392,24 +385,6 @@ void GotoElement::SetPointers(ConstructionData& cdata) {
 // -----------------------------------------------------------------------
 // GotoIfElement
 // -----------------------------------------------------------------------
-
-GotoIfElement::GotoIfElement(const char* src, ConstructionData& cdata)
-    : CommandElement(src) {
-  repr.assign(src, 8);
-  src += 8;
-
-  if (*src++ != '(')
-    throw Error("GotoIfElement(): expected `('");
-  int expr = NextExpression(src);
-  repr.push_back('(');
-  repr.append(src, expr);
-  repr.push_back(')');
-  src += expr;
-  if (*src++ != ')')
-    throw Error("GotoIfElement(): expected `)'");
-
-  id_ = read_i32(src);
-}
 
 GotoIfElement::~GotoIfElement() {}
 
@@ -445,39 +420,7 @@ void GotoIfElement::SetPointers(ConstructionData& cdata) {
 // GotoCaseElement
 // -----------------------------------------------------------------------
 
-GotoCaseElement::GotoCaseElement(const char* src, ConstructionData& cdata)
-    : PointerElement(src) {
-  repr.assign(src, 8);
-  src += 8;
-  // Condition
-  const int expr = NextExpression(src);
-  repr.append(src, expr);
-  src += expr;
-  // Cases
-  if (*src++ != '{')
-    throw Error("GotoCaseElement(): expected `{'");
-  int i = argc();
-  cases.reserve(i);
-  targets.reserve(i);
-  while (i--) {
-    if (src[0] != '(')
-      throw Error("GotoCaseElement(): expected `('");
-    if (src[1] == ')') {
-      cases.push_back("()");
-      src += 2;
-    } else {
-      int cexpr = NextExpression(src + 1);
-      cases.emplace_back(src, cexpr + 2);
-      src += cexpr + 1;
-      if (*src++ != ')')
-        throw Error("GotoCaseElement(): expected `)'");
-    }
-    targets.push_id(read_i32(src));
-    src += 4;
-  }
-  if (*src != '}')
-    throw Error("GotoCaseElement(): expected `}'");
-}
+
 
 GotoCaseElement::~GotoCaseElement() {}
 
@@ -487,17 +430,27 @@ const size_t GotoCaseElement::GetParamCount() const {
 }
 
 string GotoCaseElement::GetParam(int i) const {
-  return i == 0 ? repr.substr(8, repr.size() - 8) : string();
+  return i == 0 ? repr_.substr(8, repr_.size() - 8) : string();
 }
 
-const size_t GotoCaseElement::GetCaseCount() const { return cases.size(); }
+const size_t GotoCaseElement::GetCaseCount() const { return cases_.size(); }
 
-const string GotoCaseElement::GetCase(int i) const { return cases[i]; }
+const string GotoCaseElement::GetCase(int i) const { return cases_[i]; }
+
+const size_t GotoCaseElement::GetPointersCount() const {
+  return targets_.size();
+}
+
+pointer_t GotoCaseElement::GetPointer(int i) const { return targets_[i]; }
+
+void GotoCaseElement::SetPointers(ConstructionData& cdata) {
+  targets_.SetPointers(cdata);
+}
 
 const size_t GotoCaseElement::GetBytecodeLength() const {
-  size_t rv = repr.size() + 2;
-  for (unsigned int i = 0; i < cases.size(); ++i)
-    rv += cases[i].size() + 4;
+  size_t rv = repr_.size() + 2;
+  for (unsigned int i = 0; i < cases_.size(); ++i)
+    rv += cases_[i].size() + 4;
   return rv;
 }
 
@@ -505,25 +458,15 @@ const size_t GotoCaseElement::GetBytecodeLength() const {
 // GotoOnElement
 // -----------------------------------------------------------------------
 
-GotoOnElement::GotoOnElement(const char* src, ConstructionData& cdata)
-    : PointerElement(src) {
-  repr.assign(src, 8);
-  src += 8;
-  // Condition
-  const int expr = NextExpression(src);
-  repr.append(src, expr);
-  src += expr;
-  // Pointers
-  if (*src++ != '{')
-    throw Error("GotoOnElement(): expected `{'");
-  int i = argc();
-  targets.reserve(i);
-  while (i--) {
-    targets.push_id(read_i32(src));
-    src += 4;
-  }
-  if (*src != '}')
-    throw Error("GotoOnElement(): expected `}'");
+GotoOnElement::GotoOnElement(const std::string& repr,
+                             Expression cond,
+                             const Pointers& targets)
+    : CommandElement(repr.c_str()),
+      targets_(targets),
+      param_(cond),
+      repr_(repr) {
+  if (targets.idSize() != argc())
+    throw Error("Unexpected number of arguments");
 }
 
 GotoOnElement::~GotoOnElement() {}
@@ -531,11 +474,19 @@ GotoOnElement::~GotoOnElement() {}
 const size_t GotoOnElement::GetParamCount() const { return 1; }
 
 string GotoOnElement::GetParam(int i) const {
-  return i == 0 ? repr.substr(8, repr.size() - 8) : string();
+  return i == 0 ? repr_.substr(8, repr_.size() - 8) : string();
+}
+
+const size_t GotoOnElement::GetPointersCount() const { return targets_.size(); }
+
+pointer_t GotoOnElement::GetPointer(int i) const { return targets_[i]; }
+
+void GotoOnElement::SetPointers(ConstructionData& cdata) {
+  targets_.SetPointers(cdata);
 }
 
 const size_t GotoOnElement::GetBytecodeLength() const {
-  return repr.size() + argc() * 4 + 2;
+  return repr_.size() + argc() * 4 + 2;
 }
 
 // -----------------------------------------------------------------------
@@ -552,7 +503,7 @@ GosubWithElement::GosubWithElement(const char* src, ConstructionData& cdata)
     while (*src != ')') {
       int expr = NextData(src);
       repr_size += expr;
-      params.emplace_back(src, expr);
+      params_.emplace_back(src, expr);
       src += expr;
     }
     src++;
@@ -567,10 +518,10 @@ GosubWithElement::~GosubWithElement() {}
 
 const size_t GosubWithElement::GetParamCount() const {
   // The pointer is not counted as a parameter.
-  return params.size();
+  return params_.size();
 }
 
-string GosubWithElement::GetParam(int i) const { return params[i]; }
+string GosubWithElement::GetParam(int i) const { return params_[i]; }
 
 const size_t GosubWithElement::GetPointersCount() const { return 1; }
 
@@ -580,7 +531,8 @@ pointer_t GosubWithElement::GetPointer(int i) const {
 }
 
 const size_t GosubWithElement::GetBytecodeLength() const {
-  return repr_size + 4;
+  static constexpr size_t label_size = 4;
+  return repr_size + label_size;
 }
 
 void GosubWithElement::SetPointers(ConstructionData& cdata) {
