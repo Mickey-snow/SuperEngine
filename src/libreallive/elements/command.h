@@ -183,53 +183,6 @@ class FunctionElement : public CommandElement {
   std::vector<std::string> params;
 };
 
-class VoidFunctionElement : public CommandElement {
- public:
-  explicit VoidFunctionElement(const char* src);
-  virtual ~VoidFunctionElement();
-
-  // Overridden from CommandElement:
-  virtual const size_t GetParamCount() const final;
-  virtual std::string GetParam(int i) const final;
-
-  // Overridden from BytecodeElement:
-  virtual const size_t GetBytecodeLength() const final;
-  virtual std::string GetSerializedCommand(RLMachine& machine) const final;
-};
-
-class SingleArgFunctionElement : public CommandElement {
- public:
-  SingleArgFunctionElement(const char* src, const std::string& arg);
-  virtual ~SingleArgFunctionElement();
-
-  // Overridden from CommandElement:
-  virtual const size_t GetParamCount() const final;
-  virtual std::string GetParam(int i) const final;
-
-  // Overridden from BytecodeElement:
-  virtual const size_t GetBytecodeLength() const final;
-  virtual std::string GetSerializedCommand(RLMachine& machine) const final;
-
- private:
-  std::string arg_;
-};
-
-class PointerElement : public CommandElement {
- public:
-  explicit PointerElement(const char* src);
-  virtual ~PointerElement();
-
-  // Overridden from CommandElement:
-  virtual const size_t GetPointersCount() const final;
-  virtual pointer_t GetPointer(int i) const final;
-
-  // Overridden from BytecodeElement:
-  virtual void SetPointers(ConstructionData& cdata) final;
-
- protected:
-  Pointers targets;
-};
-
 class GotoElement : public CommandElement {
  public:
   GotoElement(const char* opcode, const unsigned long& id);

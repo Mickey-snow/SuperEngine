@@ -117,7 +117,7 @@ void CommandElement::RunOnMachine(RLMachine& machine) const {
 // -----------------------------------------------------------------------
 // SelectElement
 // -----------------------------------------------------------------------
-
+// todo: cleanup below
 SelectElement::SelectElement(const char* src)
     : CommandElement(src), uselessjunk(0) {
   repr.assign(src, 8);
@@ -275,80 +275,6 @@ std::string FunctionElement::GetSerializedCommand(RLMachine& machine) const {
     rv.push_back(')');
   }
   return rv;
-}
-
-// -----------------------------------------------------------------------
-// VoidFunctionElement
-// -----------------------------------------------------------------------
-
-VoidFunctionElement::VoidFunctionElement(const char* src)
-    : CommandElement(src) {}
-
-VoidFunctionElement::~VoidFunctionElement() {}
-
-const size_t VoidFunctionElement::GetParamCount() const { return 0; }
-
-string VoidFunctionElement::GetParam(int i) const { return std::string(); }
-
-const size_t VoidFunctionElement::GetBytecodeLength() const {
-  return COMMAND_SIZE;
-}
-
-std::string VoidFunctionElement::GetSerializedCommand(
-    RLMachine& machine) const {
-  string rv;
-  for (int i = 0; i < COMMAND_SIZE; ++i)
-    rv.push_back(command[i]);
-  return rv;
-}
-
-// -----------------------------------------------------------------------
-// SingleArgFunctionElement
-// -----------------------------------------------------------------------
-
-SingleArgFunctionElement::SingleArgFunctionElement(const char* src,
-                                                   const std::string& arg)
-    : CommandElement(src), arg_(arg) {}
-
-SingleArgFunctionElement::~SingleArgFunctionElement() {}
-
-const size_t SingleArgFunctionElement::GetParamCount() const { return 1; }
-
-string SingleArgFunctionElement::GetParam(int i) const {
-  return i == 0 ? arg_ : std::string();
-}
-
-const size_t SingleArgFunctionElement::GetBytecodeLength() const {
-  return COMMAND_SIZE + 2 + arg_.size();
-}
-
-std::string SingleArgFunctionElement::GetSerializedCommand(
-    RLMachine& machine) const {
-  string rv;
-  for (int i = 0; i < COMMAND_SIZE; ++i)
-    rv.push_back(command[i]);
-  rv.push_back('(');
-  const char* data = arg_.c_str();
-  Expression expression(ExpressionParser::GetData(data));
-  rv.append(expression->GetSerializedExpression(machine));
-  rv.push_back(')');
-  return rv;
-}
-
-// -----------------------------------------------------------------------
-// PointerElement
-// -----------------------------------------------------------------------
-
-PointerElement::PointerElement(const char* src) : CommandElement(src) {}
-
-PointerElement::~PointerElement() {}
-
-const size_t PointerElement::GetPointersCount() const { return targets.size(); }
-
-pointer_t PointerElement::GetPointer(int i) const { return targets[i]; }
-
-void PointerElement::SetPointers(ConstructionData& cdata) {
-  targets.SetPointers(cdata);
 }
 
 // -----------------------------------------------------------------------

@@ -81,9 +81,6 @@ class Parser {
 
 class Factory {
  public:
-  static CommandElement* MakeFunction(const char* opcode,
-                                      const std::vector<std::string>& params);
-
   static ExpressionElement* MakeExpression(const char* stream);
 
   static MetaElement* MakeMeta(std::shared_ptr<ConstructionData> cdata,

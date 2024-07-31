@@ -344,11 +344,11 @@ CommandElement* Parser::ParseCommand(const char* stream) {
 }
 
 CommandElement* Parser::BuildFunctionElement(const char* stream) {
-  const char* ptr = stream;
-  ptr += 8;
+  const char* op = stream;
+  stream += 8;
   std::vector<std::string> params;
-  if (*ptr == '(') {
-    const char* end = ptr + 1;
+  if (*stream == '(') {
+    const char* end = stream + 1;
     while (*end != ')') {
       const size_t len = NextData(end);
       params.emplace_back(end, len);
@@ -356,22 +356,12 @@ CommandElement* Parser::BuildFunctionElement(const char* stream) {
     }
   }
 
-  return Factory::MakeFunction(stream, params);
+  return new FunctionElement(op, params);
 }
 
 // -----------------------------------------------------------------------
 // Factory
 // -----------------------------------------------------------------------
-
-CommandElement* Factory::MakeFunction(const char* opcode,
-                                      const std::vector<std::string>& params) {
-  if (params.size() == 0)
-    return new VoidFunctionElement(opcode);
-  else if (params.size() == 1)
-    return new SingleArgFunctionElement(opcode, params.front());
-  else
-    return new FunctionElement(opcode, params);
-}
 
 ExpressionElement* Factory::MakeExpression(const char* stream) {
   const char* end = stream;
