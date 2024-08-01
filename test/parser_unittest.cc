@@ -317,11 +317,10 @@ TEST(ExpressionParserTest, ComplexParam) {
 // CommandParserTest
 // -----------------------------------------------------------------------
 
-class CommandParserTest : public ::testing::Test{
-protected:
-
-  void TearDown() override{
-    for(auto& it : parsed_cmds)
+class CommandParserTest : public ::testing::Test {
+ protected:
+  void TearDown() override {
+    for (auto& it : parsed_cmds)
       delete it;
   }
 
@@ -347,6 +346,8 @@ TEST_F(CommandParserTest, GotoElement) {
       {"23 00 01 00 00 00 00 00 25 01 00 00"s, "op<0:001:00000, 0>()"s},
       {"23 00 01 05 00 00 00 00 a7 01 00 00"s, "op<0:001:00005, 0>()"s}};
   TestWith(data);
+  auto cmd = parsed_cmds.front();
+  EXPECT_EQ(cmd->GetParamCount(), 0);
 }
 
 TEST_F(CommandParserTest, GotoIfElement) {
@@ -354,6 +355,8 @@ TEST_F(CommandParserTest, GotoIfElement) {
       {"23 00 01 02 00 00 00 00 ( $ 06 [ $ ff eb 03 00 00 ] 5c 28 $ ff 01 00 00 00 ) f3 00 00 00"s,
        "op<0:001:00002, 0>(intG[1003] == 1)"s}};
   TestWith(data);
+  auto cmd = parsed_cmds.front();
+  EXPECT_EQ(cmd->GetParamCount(), 1);
 }
 
 TEST_F(CommandParserTest, GotoOnElement) {
@@ -363,6 +366,14 @@ TEST_F(CommandParserTest, GotoOnElement) {
       {"23 00 01 08 00 0a 00 00 ( $ 0b [ $ ff 01 00 00 00 ] ) 7b e7 60 00 00 a5 66 00 00 95 6a 00 00 99 6e 00 00 89 73 00 00 a3 77 00 00 a3 7b 00 00 9d 84 00 00 f6 88 00 00 2f 8d 00 00 7d"s,
        "op<0:001:00008, 0>(intL[1])"s}};
   TestWith(data);
+  {
+    auto cmd = dynamic_cast<GotoOnElement*>(parsed_cmds[0]);
+    ASSERT_NE(cmd, nullptr);
+  }
+  {
+    auto cmd = dynamic_cast<GotoOnElement*>(parsed_cmds[1]);
+    ASSERT_NE(cmd, nullptr);
+  }
 }
 
 TEST_F(CommandParserTest, GotoCaseElement) {
@@ -370,13 +381,18 @@ TEST_F(CommandParserTest, GotoCaseElement) {
       {"23 00 01 04 00 03 00 00 ( $ 0b [ $ ff 00 00 00 00 ] ) { ( $ ff 00 00 00 00 ) 6d 08 00 00 ( $ ff 01 00 00 00 ) a1 08 00 00 ( ) d5 08 00 00 }"s,
        "op<0:001:00004, 0>(intL[0])"s}};
   TestWith(data);
+  auto cmd = parsed_cmds.front();
+  EXPECT_EQ(cmd->GetCaseCount(), 3);
 }
 
 TEST_F(CommandParserTest, GosubWithElement) {
   std::vector<std::pair<std::string, std::string>> data = {
-    {"23 00 01 0a 00 00 00 00"s, "op<0:001:00010, 0>()"s},
-    {"23 00 01 10 00 02 00 00 ( 61 00 $ 01 [ $ ff 00 00 00 00 ] 61 00 $ 01 [ $ ff 01 00 00 00 ] ) 56 01 00 00"s, "op<0:001:00016, 0>(0:{intB[0]}, 0:{intB[1]})"s}};
+      {"23 00 01 0a 00 00 00 00"s, "op<0:001:00010, 0>()"s},
+      {"23 00 01 10 00 02 00 00 ( 61 00 $ 01 [ $ ff 00 00 00 00 ] 61 00 $ 01 [ $ ff 01 00 00 00 ] ) 56 01 00 00"s,
+       "op<0:001:00016, 0>(0:{intB[0]}, 0:{intB[1]})"s}};
   TestWith(data);
+  EXPECT_EQ(parsed_cmds[0]->GetParamCount(), 0);
+  EXPECT_EQ(parsed_cmds[1]->GetParamCount(), 2);
 }
 
 TEST_F(CommandParserTest, SelectElement) {
@@ -384,4 +400,12 @@ TEST_F(CommandParserTest, SelectElement) {
       {"23 00 02 03 00 04 00 00 { 0a 4b 00 ( ( $ 0b [ $ ff 01 00 00 00 ] 5c ( 5c 01 $ ff 01 00 00 00 ) 32 ( $ 0b [ $ ff 01 00 00 00 ] 5c ( $ ff 8d 00 00 00 ) 31 $ ff 64 00 00 00 ) 23 23 23 50 52 49 4e 54 ( $ 12 [ $ ff 00 00 00 00 ] ) 0a 4c 00 ( ( $ 0b [ $ ff 02 00 00 00 ] 5c ( 5c 01 $ ff 01 00 00 00 ) 32 ( $ 0b [ $ ff 02 00 00 00 ] 5c ( $ ff 8d 00 00 00 ) 31 $ ff 64 00 00 00 ) 23 23 23 50 52 49 4e 54 ( $ 12 [ $ ff 02 00 00 00 ] ) 0a 4d 00 ( ( $ 0b [ $ ff 03 00 00 00 ] 5c ( 5c 01 $ ff 01 00 00 00 ) 32 ( $ 0b [ $ ff 03 00 00 00 ] 5c ( $ ff 8d 00 00 00 ) 31 $ ff 64 00 00 00 ) 23 23 23 50 52 49 4e 54 ( $ 12 [ $ ff 04 00 00 00 ] ) 0a 4e 00 ( ( $ 0b [ $ ff 0b 00 00 00 ] 5c ( 5c 01 $ ff 01 00 00 00 ) 32 ( $ 0b [ $ ff 0b 00 00 00 ] 5c ( $ ff 8d 00 00 00 ) 31 $ ff 64 00 00 00 ) 23 23 23 50 52 49 4e 54 ( $ 12 [ $ ff 06 00 00 00 ] ) 0a 4f 00 7d"s,
        "op<0:002:00003, 0>({RAW : ( ( $ 0b [ $ ff 01 00 00 00 ] 5c ( 5c 01 $ ff 01 00 00 00 ) 32 ( $ 0b [ $ ff 01 00 00 00 ] 5c ( $ ff 8d 00 00 00 ) 31 $ ff 64 00 00 00 ) 23 23 23 50 52 49 4e 54 ( $ 12 [ $ ff 00 00 00 00 ] )}, {RAW : ( ( $ 0b [ $ ff 02 00 00 00 ] 5c ( 5c 01 $ ff 01 00 00 00 ) 32 ( $ 0b [ $ ff 02 00 00 00 ] 5c ( $ ff 8d 00 00 00 ) 31 $ ff 64 00 00 00 ) 23 23 23 50 52 49 4e 54 ( $ 12 [ $ ff 02 00 00 00 ] )}, {RAW : ( ( $ 0b [ $ ff 03 00 00 00 ] 5c ( 5c 01 $ ff 01 00 00 00 ) 32 ( $ 0b [ $ ff 03 00 00 00 ] 5c ( $ ff 8d 00 00 00 ) 31 $ ff 64 00 00 00 ) 23 23 23 50 52 49 4e 54 ( $ 12 [ $ ff 04 00 00 00 ] )}, {RAW : ( ( $ 0b [ $ ff 0b 00 00 00 ] 5c ( 5c 01 $ ff 01 00 00 00 ) 32 ( $ 0b [ $ ff 0b 00 00 00 ] 5c ( $ ff 8d 00 00 00 ) 31 $ ff 64 00 00 00 ) 23 23 23 50 52 49 4e 54 ( $ 12 [ $ ff 06 00 00 00 ] )})"s}};
   TestWith(data);
+
+  {
+    auto sel = dynamic_cast<SelectElement*>(parsed_cmds.front());
+    ASSERT_NE(sel, nullptr);
+    EXPECT_EQ(sel->GetParamCount(), 4);
+    auto param = sel->raw_params();
+    ASSERT_EQ(param.size(), 4);
+  }
 }
