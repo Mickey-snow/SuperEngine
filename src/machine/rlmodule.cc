@@ -149,7 +149,7 @@ void RLModule::DispatchFunction(RLMachine& machine,
                   << ")(Line " << std::setw(4) << std::setfill('0')
                   << machine.line_number() << "): " << it->second->name();
         libreallive::PrintParameterString(std::cerr,
-                                          f.GetUnparsedParameters());
+                                          f.GetParsedParameters());
         std::cerr << std::endl;
       }
       it->second->DispatchFunction(machine, f);

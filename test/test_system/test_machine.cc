@@ -113,7 +113,7 @@ void TestMachine::RunOpcode(const std::string& name,
 
   string full = repr + '(' + argument_string + ')';
   std::unique_ptr<libreallive::CommandElement> element(
-      libreallive::Parser::BuildFunctionElement(full.c_str()));
+      libreallive::CommandParser::ParseNormalFunction(full.c_str()));
   // (TODO) There should be an interface to create CommandElement easily
 
   RLOperation* op = registry_[make_pair(name, overload)];

@@ -33,18 +33,10 @@
 
 namespace libreallive {
 
-MetaElement::MetaElement(std::shared_ptr<ConstructionData> cv,
-                         const char* src) {
-  value_ = read_i16(src + 1);
-  if (!cv) {
-    type_ = Line_;
-  } else if (cv->kidoku_table.at(value_) >= 1000000) {
-    type_ = Entrypoint_;
-    entrypoint_index_ = cv->kidoku_table[value_] - 1000000;
-  } else {
-    type_ = Kidoku_;
-  }
-}
+MetaElement::MetaElement(const MetaElementType& type,
+                         const int& value,
+                         const int& entrypoint_index)
+    : type_(type), value_(value), entrypoint_index_(entrypoint_index) {}
 
 MetaElement::~MetaElement() {}
 

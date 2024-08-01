@@ -57,27 +57,7 @@ std::string ParsableToPrintableString(const std::string& src);
 std::string PrintableToParsableString(const std::string& src);
 
 void PrintParameterString(std::ostream& oss,
-                          const std::vector<std::string>& paramseters);
-
-class Parser {
- public:
-  explicit Parser();
-  explicit Parser(std::shared_ptr<ConstructionData> cdata);
-
-  BytecodeElement* ParseBytecode(const char* stream, const char* end);
-
-  BytecodeElement* ParseBytecode(const std::string& src);
-
-  TextoutElement* ParseTextout(const char* stream, const char* end);
-  
-  CommandElement* ParseCommand(const char* stream);
-  
-  static CommandElement* BuildFunctionElement(const char* stream);
-
- private:
-  std::shared_ptr<ConstructionData> cdata;
-  char entrypoint_marker;
-};
+                          const std::vector<Expression>& params);
 
 class Factory {
  public:
@@ -119,14 +99,59 @@ class ExpressionParser {
   // | ( data+ )
   static Expression GetComplexParam(const char*& src);
 
-private:
+ private:
   // Left recursion removed
-  static Expression GetExpressionArithmaticLoop(const char*& src, Expression toc);
-  static Expression GetExpressionArithmaticLoopHiPrec(const char*& src, Expression tok);
-  static Expression GetExpressionConditionLoop(const char*& src, Expression tok);
-  static Expression GetExpressionBooleanLoopAnd(const char*& src, Expression tok);
-  static Expression GetExpressionBooleanLoopOr(const char*& src, Expression tok);
+  static Expression GetExpressionArithmaticLoop(const char*& src,
+                                                Expression toc);
+  static Expression GetExpressionArithmaticLoopHiPrec(const char*& src,
+                                                      Expression tok);
+  static Expression GetExpressionConditionLoop(const char*& src,
+                                               Expression tok);
+  static Expression GetExpressionBooleanLoopAnd(const char*& src,
+                                                Expression tok);
+  static Expression GetExpressionBooleanLoopOr(const char*& src,
+                                               Expression tok);
   static Expression GetString(const char*& src);
+};
+
+class CommandParser {
+ public:
+  CommandParser() = default;
+
+  static CommandElement* ParseNormalFunction(const char* src);
+
+  static GotoElement* ParseGoto(const char* src);
+
+  static GotoIfElement* ParseGotoIf(const char* src);
+
+  static GotoOnElement* ParseGotoOn(const char* src);
+
+  static GotoCaseElement* ParseGotoCase(const char* src);
+
+  static GosubWithElement* ParseGosubWith(const char* src);
+
+  static SelectElement* ParseSelect(const char* src);
+};
+
+class Parser {
+ public:
+  explicit Parser();
+  explicit Parser(std::shared_ptr<ConstructionData> cdata);
+
+  BytecodeElement* ParseBytecode(const char* stream, const char* end);
+
+  BytecodeElement* ParseBytecode(const std::string& src);
+
+  TextoutElement* ParseTextout(const char* stream, const char* end);
+
+  CommandElement* ParseCommand(const char* stream);
+
+  static CommandElement* BuildFunctionElement(const char* stream);
+
+ private:
+  std::shared_ptr<ConstructionData> cdata_;
+  char entrypoint_marker_;
+  CommandParser command_parser_;
 };
 
 }  // namespace libreallive

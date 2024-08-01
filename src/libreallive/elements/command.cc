@@ -60,21 +60,21 @@ void Pointers::SetPointers(ConstructionData& cdata) {
 // CommandElement
 // -----------------------------------------------------------------------
 
-CommandElement::CommandElement(const char* src) { memcpy(command, src, 8); }
+CommandElement::CommandElement(const char* src) {
+  auto stream = reinterpret_cast<const unsigned char*>(src);
+  std::copy(stream, stream + 8, command.begin());
+}
+
+CommandElement::CommandElement(CommandInfo&& cmd)
+    : command(std::move(cmd.cmd)), parsed_parameters_(std::move(cmd.param)) {
+  // Because line number metaelements can be placed inside parameters (!?!?!),
+  // it's possible that our last parameter consists only of the data for a
+  // source line MetaElement. We can't detect this during parsing (because just
+  // dropping the parameter will put the stream cursor in the wrong place), so
+  // hack this here.
+}
 
 CommandElement::~CommandElement() {}
-
-std::vector<std::string> CommandElement::GetUnparsedParameters() const {
-  std::vector<std::string> parameters;
-  size_t param_count = GetParamCount();
-  for (size_t i = 0; i < param_count; ++i)
-    parameters.push_back(GetParam(i));
-  return parameters;
-}
-
-bool CommandElement::AreParametersParsed() const {
-  return GetParamCount() == parsed_parameters_.size();
-}
 
 void CommandElement::SetParsedParameters(
     ExpressionPiecesVector parsedParameters) const {
@@ -85,13 +85,26 @@ const ExpressionPiecesVector& CommandElement::GetParsedParameters() const {
   return parsed_parameters_;
 }
 
+const size_t CommandElement::GetParamCount() const {
+  return parsed_parameters_.size();
+}
+
+std::string CommandElement::GetParam(int index) const {
+  if (0 <= index && index < parsed_parameters_.size())
+    return parsed_parameters_[index]->GetDebugString();
+  else
+    return {};
+}
+
 const size_t CommandElement::GetPointersCount() const { return 0; }
 
 pointer_t CommandElement::GetPointer(int i) const { return pointer_t(); }
 
-const size_t CommandElement::GetCaseCount() const { return 0; }
+size_t CommandElement::GetCaseCount() const { return 0; }
 
-const string CommandElement::GetCase(int i) const { return ""; }
+Expression CommandElement::GetCase(int i) const {
+  throw Error("Call to CommandElement::GetCase is invalid");
+}
 
 std::string CommandElement::GetSourceRepresentation(RLMachine* machine) const {
   std::string repr = machine ? machine->GetCommandName(*this) : "";
@@ -103,10 +116,16 @@ std::string CommandElement::GetSourceRepresentation(RLMachine* machine) const {
     repr += op.str();
   }
 
-  std::ostringstream param;
-  PrintParameterString(param, GetUnparsedParameters());
-
-  repr += param.str();
+  repr += '(';
+  bool first = true;
+  for (const auto& param : parsed_parameters_) {
+    if (first)
+      first = false;
+    else
+      repr += ", ";
+    repr += param->GetDebugString();
+  }
+  repr += ')';
   return repr;
 }
 
@@ -228,50 +247,19 @@ const size_t SelectElement::GetBytecodeLength() const {
 // FunctionElement
 // -----------------------------------------------------------------------
 
-FunctionElement::FunctionElement(const char* src,
-                                 const std::vector<string>& params)
-    : CommandElement(src), params(params) {}
+FunctionElement::FunctionElement(CommandInfo&& cmd, size_t len)
+    : CommandElement(std::move(cmd)), length_(len) {}
 
-FunctionElement::~FunctionElement() {}
-
-const size_t FunctionElement::GetParamCount() const {
-  // Because line number metaelements can be placed inside parameters (!?!?!),
-  // it's possible that our last parameter consists only of the data for a
-  // source line MetaElement. We can't detect this during parsing (because just
-  // dropping the parameter will put the stream cursor in the wrong place), so
-  // hack this here.
-  if (!params.empty()) {
-    string final = params.back();
-    if (final.size() == 3 && final[0] == '\n')
-      return params.size() - 1;
-  }
-  return params.size();
-}
-
-string FunctionElement::GetParam(int i) const { return params[i]; }
-
-const size_t FunctionElement::GetBytecodeLength() const {
-  if (params.size() > 0) {
-    size_t rv(COMMAND_SIZE + 2);
-    for (std::string const& param : params)
-      rv += param.size();
-    return rv;
-  } else {
-    return COMMAND_SIZE;
-  }
-}
+const size_t FunctionElement::GetBytecodeLength() const { return length_; }
 
 std::string FunctionElement::GetSerializedCommand(RLMachine& machine) const {
-  string rv;
+  std::string rv;
   for (int i = 0; i < COMMAND_SIZE; ++i)
     rv.push_back(command[i]);
-  if (params.size() > 0) {
+  if (parsed_parameters_.size() > 0) {
     rv.push_back('(');
-    for (string const& param : params) {
-      const char* data = param.c_str();
-      Expression expression(ExpressionParser::GetData(data));
-      rv.append(expression->GetSerializedExpression(machine));
-    }
+    for (auto const& param : parsed_parameters_)
+      rv.append(param->GetSerializedExpression(machine));
     rv.push_back(')');
   }
   return rv;
@@ -296,7 +284,8 @@ string GotoElement::GetParam(int i) const { return std::string(); }
 const size_t GotoElement::GetPointersCount() const { return 1; }
 
 pointer_t GotoElement::GetPointer(int i) const {
-  assert(i == 0);
+  if (i != 0)
+    throw Error("GotoElement has only 1 pointer");
   return pointer_;
 }
 
@@ -311,30 +300,22 @@ void GotoElement::SetPointers(ConstructionData& cdata) {
 // -----------------------------------------------------------------------
 // GotoIfElement
 // -----------------------------------------------------------------------
+GotoIfElement::GotoIfElement(CommandInfo&& cmd,
+                             const unsigned long& id,
+                             const size_t& len)
+    : CommandElement(std::move(cmd)), id_(id), length_(len) {}
 
 GotoIfElement::~GotoIfElement() {}
-
-const size_t GotoIfElement::GetParamCount() const {
-  // The pointer is not counted as a parameter.
-  return repr.size() == 8 ? 0 : 1;
-}
-
-string GotoIfElement::GetParam(int i) const {
-  return i == 0
-             ? (repr.size() == 8 ? string() : repr.substr(9, repr.size() - 10))
-             : string();
-}
 
 const size_t GotoIfElement::GetPointersCount() const { return 1; }
 
 pointer_t GotoIfElement::GetPointer(int i) const {
-  assert(i == 0);
+  if (i != 0)
+    throw Error("GotoIfElement has only 1 pointer");
   return pointer_;
 }
 
-const size_t GotoIfElement::GetBytecodeLength() const {
-  return repr.size() + 4;
-}
+const size_t GotoIfElement::GetBytecodeLength() const { return length_; }
 
 void GotoIfElement::SetPointers(ConstructionData& cdata) {
   ConstructionData::offsets_t::const_iterator it = cdata.offsets.find(id_);
@@ -346,8 +327,6 @@ void GotoIfElement::SetPointers(ConstructionData& cdata) {
 // GotoCaseElement
 // -----------------------------------------------------------------------
 
-
-
 GotoCaseElement::~GotoCaseElement() {}
 
 const size_t GotoCaseElement::GetParamCount() const {
@@ -355,13 +334,9 @@ const size_t GotoCaseElement::GetParamCount() const {
   return 1;
 }
 
-string GotoCaseElement::GetParam(int i) const {
-  return i == 0 ? repr_.substr(8, repr_.size() - 8) : string();
-}
+size_t GotoCaseElement::GetCaseCount() const { return parsed_cases_.size(); }
 
-const size_t GotoCaseElement::GetCaseCount() const { return cases_.size(); }
-
-const string GotoCaseElement::GetCase(int i) const { return cases_[i]; }
+Expression GotoCaseElement::GetCase(int i) const { return parsed_cases_[i]; }
 
 const size_t GotoCaseElement::GetPointersCount() const {
   return targets_.size();
@@ -373,35 +348,17 @@ void GotoCaseElement::SetPointers(ConstructionData& cdata) {
   targets_.SetPointers(cdata);
 }
 
-const size_t GotoCaseElement::GetBytecodeLength() const {
-  size_t rv = repr_.size() + 2;
-  for (unsigned int i = 0; i < cases_.size(); ++i)
-    rv += cases_[i].size() + 4;
-  return rv;
-}
+const size_t GotoCaseElement::GetBytecodeLength() const { return length_; }
 
 // -----------------------------------------------------------------------
 // GotoOnElement
 // -----------------------------------------------------------------------
-
-GotoOnElement::GotoOnElement(const std::string& repr,
-                             Expression cond,
-                             const Pointers& targets)
-    : CommandElement(repr.c_str()),
-      targets_(targets),
-      param_(cond),
-      repr_(repr) {
-  if (targets.idSize() != argc())
-    throw Error("Unexpected number of arguments");
-}
-
-GotoOnElement::~GotoOnElement() {}
+GotoOnElement::GotoOnElement(CommandInfo&& cmd,
+                             const Pointers& targets,
+                             const size_t& len)
+    : CommandElement(std::move(cmd)), targets_(targets), length_(len) {}
 
 const size_t GotoOnElement::GetParamCount() const { return 1; }
-
-string GotoOnElement::GetParam(int i) const {
-  return i == 0 ? repr_.substr(8, repr_.size() - 8) : string();
-}
 
 const size_t GotoOnElement::GetPointersCount() const { return targets_.size(); }
 
@@ -411,55 +368,27 @@ void GotoOnElement::SetPointers(ConstructionData& cdata) {
   targets_.SetPointers(cdata);
 }
 
-const size_t GotoOnElement::GetBytecodeLength() const {
-  return repr_.size() + argc() * 4 + 2;
-}
+const size_t GotoOnElement::GetBytecodeLength() const { return length_; }
 
 // -----------------------------------------------------------------------
 // GosubWithElement
 // -----------------------------------------------------------------------
-
-GosubWithElement::GosubWithElement(const char* src, ConstructionData& cdata)
-    : CommandElement(src), repr_size(8) {
-  src += 8;
-  if (*src == '(') {
-    src++;
-    repr_size++;
-
-    while (*src != ')') {
-      int expr = NextData(src);
-      repr_size += expr;
-      params_.emplace_back(src, expr);
-      src += expr;
-    }
-    src++;
-
-    repr_size++;
-  }
-
-  id_ = read_i32(src);
-}
+GosubWithElement::GosubWithElement(CommandInfo&& cmd,
+                                   const unsigned long& id,
+                                   const size_t& len)
+    : CommandElement(std::move(cmd)), id_(id), pointer_{}, length_(len) {}
 
 GosubWithElement::~GosubWithElement() {}
-
-const size_t GosubWithElement::GetParamCount() const {
-  // The pointer is not counted as a parameter.
-  return params_.size();
-}
-
-string GosubWithElement::GetParam(int i) const { return params_[i]; }
 
 const size_t GosubWithElement::GetPointersCount() const { return 1; }
 
 pointer_t GosubWithElement::GetPointer(int i) const {
-  assert(i == 0);
+  if (i != 0)
+    throw Error("GosubWithElement has only 1 pointer");
   return pointer_;
 }
 
-const size_t GosubWithElement::GetBytecodeLength() const {
-  static constexpr size_t label_size = 4;
-  return repr_size + label_size;
-}
+const size_t GosubWithElement::GetBytecodeLength() const { return length_; }
 
 void GosubWithElement::SetPointers(ConstructionData& cdata) {
   ConstructionData::offsets_t::const_iterator it = cdata.offsets.find(id_);

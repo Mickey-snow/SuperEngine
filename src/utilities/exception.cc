@@ -67,7 +67,7 @@ UnimplementedOpcode::UnimplementedOpcode(const std::string& funName,
                                          int module,
                                          int opcode,
                                          int overload)
-    : Exception(""), has_parameters_(false) {
+    : Exception(""){
   std::ostringstream oss;
   oss << funName << " (opcode<" << modtype << ":" << module << ":" << opcode
       << ", " << overload << ">)";
@@ -80,8 +80,7 @@ UnimplementedOpcode::UnimplementedOpcode(
     const std::string& funName,
     const libreallive::CommandElement& command)
     : Exception(""),
-      has_parameters_(true),
-      parameters_(command.GetUnparsedParameters()) {
+      parameters_(command.GetParsedParameters()) {
   std::ostringstream oss;
   oss << funName << " [opcode<" << command.modtype() << ":" << command.module()
       << ":" << command.opcode() << ", " << command.overload() << ">]";
@@ -93,8 +92,7 @@ UnimplementedOpcode::UnimplementedOpcode(
     RLMachine& machine,
     const libreallive::CommandElement& command)
     : Exception(""),
-      has_parameters_(true),
-      parameters_(command.GetUnparsedParameters()) {
+      parameters_(command.GetParsedParameters()) {
   ostringstream oss;
   oss << "opcode<" << command.modtype() << ":" << command.module() << ":"
       << command.opcode() << ", " << command.overload() << ">";
@@ -109,27 +107,16 @@ void UnimplementedOpcode::SetFullDescription(RLMachine& machine) {
   oss << "Undefined: " << name_;
 
 #ifndef NDEBUG
+  const bool has_parameters_ = !parameters_.empty();
   if (has_parameters_) {
     bool first = true;
     oss << "(";
-    for (std::vector<std::string>::const_iterator it = parameters_.begin();
-         it != parameters_.end();
-         ++it) {
+    for (const auto& it : parameters_) {
       if (!first) {
         oss << ", ";
       }
       first = false;
-
-      // Take the binary stuff and try to get usefull, printable values.
-      const char* start = it->c_str();
-      try {
-        libreallive::Expression piece(libreallive::ExpressionParser::GetData(start));
-        oss << piece->GetDebugString();
-      }
-      catch (libreallive::Error& e) {
-        // Any error throw here is a parse error.
-        oss << "{RAW : " << libreallive::ParsableToPrintableString(*it) << "}";
-      }
+      oss << it->GetDebugString();
     }
     oss << ")";
   }

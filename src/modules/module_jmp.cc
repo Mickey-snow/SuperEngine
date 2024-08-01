@@ -64,26 +64,14 @@ int EvaluateCase(RLMachine& machine, const CommandElement& goto_element) {
   // match against value.
   int cases = goto_element.GetCaseCount();
   for (int i = 0; i < cases; ++i) {
-    std::string caseUnparsed = goto_element.GetCase(i);
-
-    // Check for bytecode wellformedness. All cases should be
-    // surrounded by parens
-    if (caseUnparsed[0] != '(' || caseUnparsed[caseUnparsed.size() - 1] != ')')
-      throw rlvm::Exception("Malformed bytecode in goto_case statment");
+    libreallive::Expression caseexpr = goto_element.GetCase(i);
 
     // In the case of an empty set of parens, always accept. It is
     // the bytecode representation for the default case.
-    if (caseUnparsed == "()")
+    if (caseexpr == nullptr)
       return i;
 
-    // Strip the parens for parsing
-    caseUnparsed = caseUnparsed.substr(1, caseUnparsed.size() - 2);
-
-    // Parse this expression, and goto the corresponding label if
-    // it's equal to the value we're searching for
-    const char* e = (const char*)caseUnparsed.c_str();
-    libreallive::Expression output(libreallive::ExpressionParser::GetExpression(e));
-    if (output->GetIntegerValue(machine) == value)
+    if (caseexpr->GetIntegerValue(machine) == value)
       return i;
   }
 

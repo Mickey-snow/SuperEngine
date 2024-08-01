@@ -39,7 +39,10 @@ namespace libreallive {
 // Metadata elements: source line, kidoku, and entrypoint markers.
 class MetaElement : public BytecodeElement {
  public:
-  MetaElement(std::shared_ptr<ConstructionData> cv, const char* src);
+  enum MetaElementType { Line_ = '\n', Kidoku_ = '@', Entrypoint_ };
+
+ public:
+  MetaElement(const MetaElementType& type, const int& value, const int& entrypoint_index);
   virtual ~MetaElement();
 
   const int value() const { return value_; }
@@ -54,8 +57,7 @@ class MetaElement : public BytecodeElement {
   virtual const int GetEntrypoint() const final;
   virtual void RunOnMachine(RLMachine& machine) const final;
 
- private:
-  enum MetaElementType { Line_ = '\n', Kidoku_ = '@', Entrypoint_ };
+private:
   MetaElementType type_;
   int value_;
   int entrypoint_index_;

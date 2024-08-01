@@ -32,12 +32,16 @@
 #include <string>
 #include <vector>
 
+#include "libreallive/expression.h"
+
 class RLMachine;
 class RLOperation;
 
 namespace libreallive {
 class CommandElement;
 }
+
+using libreallive::ExpressionPiecesVector;
 
 namespace rlvm {
 
@@ -103,8 +107,7 @@ class UnimplementedOpcode : public Exception {
   // or "opcode<W:X:Y:Z>".
   std::string name_;
 
-  bool has_parameters_;
-  std::vector<std::string> parameters_;
+  ExpressionPiecesVector parameters_;
 
   void SetDescription();
 };

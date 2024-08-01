@@ -279,30 +279,46 @@ TEST(ExpressionParserTest, Assignment) {
   }
 }
 
-// In later games, we found newline metadata inside special parameters(?) Make
-// sure that the expression parser can deal with that.
 TEST(ExpressionParserTest, Data) {
-  std::string parsable = PrintableToParsableString(
-      "0a 77 02 61 37 61 10 ( $ ff 29 00 00 00 5c 02 $ ff 8d 01 00 00 "
-      "$ ff ff 00 00 00 )");
+  ExpressionParser parser;
 
-  Expression parsed;
-  EXPECT_NO_THROW({
+  {
+    std::string parsable = PrintableToParsableString(
+        "( $ ff 00 05 00 00 5c 01 $ ff d0 02 00 00 ) 5c 03 $ ff 02 00 00 00");
     const char* start = parsable.c_str();
-    parsed = ExpressionParser::GetData(start);
-  });
+    const char* end = start;
+    Expression parsed = parser.GetData(end);
 
-  ASSERT_TRUE(parsed->IsSpecialParameter());
-  EXPECT_EQ(parsed->GetOverloadTag(), 1048631)
-      << "Tag 'a 0x37 a 0x10' should have value ((0x10<<16) | 0x37)";
-  EXPECT_EQ(parsed->GetDebugString(), "1048631:{16277, 255}"s);
+    ASSERT_NE(parsed, nullptr);
+    EXPECT_EQ(end - start, parsable.length());
+    EXPECT_EQ(parsed->GetDebugString(), "280"s);
+  }
+
+  {
+    // In later games, we found newline metadata inside special parameters(?)
+    // Make sure that the expression parser can deal with that.
+    std::string parsable = PrintableToParsableString(
+        "0a 77 02 61 37 61 10 ( $ ff 29 00 00 00 5c 02 $ ff 8d 01 00 00 "
+        "$ ff ff 00 00 00 )");
+
+    Expression parsed;
+    const char* pos = parsable.c_str();
+    EXPECT_NO_THROW({ parsed = parser.GetData(pos); });
+
+    ASSERT_TRUE(parsed->IsSpecialParameter());
+    EXPECT_EQ(pos - parsable.c_str(), parsable.length());
+    EXPECT_EQ(parsed->GetOverloadTag(), 1048631)
+        << "Tag 'a 0x37 a 0x10' should have value ((0x10<<16) | 0x37)";
+    EXPECT_EQ(parsed->GetDebugString(), "1048631:{16277, 255}"s);
+  }
 }
 
 TEST(ExpressionParserTest, ComplexParam) {
   ExpressionParser parser;
 
   std::string parsable = PrintableToParsableString(
-      "( $ ff 70 21 00 00 $ ff 1e 00 00 00 61 00 $ 0b [ $ ff 0b 00 00 00 ] )");
+      "( $ ff 70 21 00 00 0a 00 00 $ ff 1e 00 00 00 61 00 $ 0b [ $ ff 0b 00 00 "
+      "00 ] )");
   const char* src = parsable.c_str();
   auto parsed = parser.GetComplexParam(src);
 
@@ -398,7 +414,7 @@ TEST_F(CommandParserTest, GosubWithElement) {
 TEST_F(CommandParserTest, SelectElement) {
   std::vector<std::pair<std::string, std::string>> data = {
       {"23 00 02 03 00 04 00 00 { 0a 4b 00 ( ( $ 0b [ $ ff 01 00 00 00 ] 5c ( 5c 01 $ ff 01 00 00 00 ) 32 ( $ 0b [ $ ff 01 00 00 00 ] 5c ( $ ff 8d 00 00 00 ) 31 $ ff 64 00 00 00 ) 23 23 23 50 52 49 4e 54 ( $ 12 [ $ ff 00 00 00 00 ] ) 0a 4c 00 ( ( $ 0b [ $ ff 02 00 00 00 ] 5c ( 5c 01 $ ff 01 00 00 00 ) 32 ( $ 0b [ $ ff 02 00 00 00 ] 5c ( $ ff 8d 00 00 00 ) 31 $ ff 64 00 00 00 ) 23 23 23 50 52 49 4e 54 ( $ 12 [ $ ff 02 00 00 00 ] ) 0a 4d 00 ( ( $ 0b [ $ ff 03 00 00 00 ] 5c ( 5c 01 $ ff 01 00 00 00 ) 32 ( $ 0b [ $ ff 03 00 00 00 ] 5c ( $ ff 8d 00 00 00 ) 31 $ ff 64 00 00 00 ) 23 23 23 50 52 49 4e 54 ( $ 12 [ $ ff 04 00 00 00 ] ) 0a 4e 00 ( ( $ 0b [ $ ff 0b 00 00 00 ] 5c ( 5c 01 $ ff 01 00 00 00 ) 32 ( $ 0b [ $ ff 0b 00 00 00 ] 5c ( $ ff 8d 00 00 00 ) 31 $ ff 64 00 00 00 ) 23 23 23 50 52 49 4e 54 ( $ 12 [ $ ff 06 00 00 00 ] ) 0a 4f 00 7d"s,
-       "op<0:002:00003, 0>({RAW : ( ( $ 0b [ $ ff 01 00 00 00 ] 5c ( 5c 01 $ ff 01 00 00 00 ) 32 ( $ 0b [ $ ff 01 00 00 00 ] 5c ( $ ff 8d 00 00 00 ) 31 $ ff 64 00 00 00 ) 23 23 23 50 52 49 4e 54 ( $ 12 [ $ ff 00 00 00 00 ] )}, {RAW : ( ( $ 0b [ $ ff 02 00 00 00 ] 5c ( 5c 01 $ ff 01 00 00 00 ) 32 ( $ 0b [ $ ff 02 00 00 00 ] 5c ( $ ff 8d 00 00 00 ) 31 $ ff 64 00 00 00 ) 23 23 23 50 52 49 4e 54 ( $ 12 [ $ ff 02 00 00 00 ] )}, {RAW : ( ( $ 0b [ $ ff 03 00 00 00 ] 5c ( 5c 01 $ ff 01 00 00 00 ) 32 ( $ 0b [ $ ff 03 00 00 00 ] 5c ( $ ff 8d 00 00 00 ) 31 $ ff 64 00 00 00 ) 23 23 23 50 52 49 4e 54 ( $ 12 [ $ ff 04 00 00 00 ] )}, {RAW : ( ( $ 0b [ $ ff 0b 00 00 00 ] 5c ( 5c 01 $ ff 01 00 00 00 ) 32 ( $ 0b [ $ ff 0b 00 00 00 ] 5c ( $ ff 8d 00 00 00 ) 31 $ ff 64 00 00 00 ) 23 23 23 50 52 49 4e 54 ( $ 12 [ $ ff 06 00 00 00 ] )})"s}};
+       "op<0:002:00003, 0>()"s}};
   TestWith(data);
 
   {
@@ -408,4 +424,24 @@ TEST_F(CommandParserTest, SelectElement) {
     auto param = sel->raw_params();
     ASSERT_EQ(param.size(), 4);
   }
+}
+
+TEST_F(CommandParserTest, FunctionElement) {
+  std::vector<std::pair<std::string, std::string>> data = {
+      {"23 01 51 e8 03 03 00 00 "
+       "28 24 ff 00 00 00 00 28 24 ff 00 05 00 00 5c 01 24 ff d0 02 00 00 29 "
+       "5c 03 24 ff 02 00 00 00 28 24 ff c0 03 00 00 5c 01 24 ff f0 00 00 00 "
+       "29 5c 03 24 ff 02 00 00 00 29"s,
+       "op<1:081:01000, 0>(0, 280, 360)"s},
+      {"23 01 04 6c 02 01 00 00 ( ( $ ff 00 00 00 00 $ ff 00 00 00 00 $ ff 10 27 00 00 $ 02 [ $ ff 00 00 00 00 ] ) )"s,
+       "op<1:004:00620, 0>((0, 0, 10000, intC[0]))"s}};
+  TestWith(data);
+  // TODO: test for GetSerialized
+}
+
+TEST_F(CommandParserTest, FunctionElementWithMeta) {
+  std::vector<std::pair<std::string, std::string>> data = {
+      {"23 01 15 28 00 08 00 00 ( $ ff 00 00 00 00 0a 04 01 ( 42 54 5f 53 45 5f 41 30 30 41 $ ff 64 00 00 00 $ ff 64 00 00 00 ) 0a 05 01 ( 42 54 5f 53 45 5f 41 30 30 41 $ ff 64 00 00 00 $ ff 64 00 00 00 ) 0a 06 01 ( 42 54 5f 53 45 5f 41 30 30 41 $ ff 64 00 00 00 $ ff 64 00 00 00 ) 0a 07 01 ( 42 54 5f 53 45 5f 41 30 30 41 $ ff 64 00 00 00 $ ff 64 00 00 00 ) 0a 08 01 ( 42 54 5f 53 45 5f 41 30 30 41 $ ff 64 00 00 00 $ ff 64 00 00 00 ) 0a 09 01 ( 42 54 5f 53 45 5f 41 30 30 41 $ ff 64 00 00 00 $ ff 64 00 00 00 ) 0a 0a 01 ( 42 54 5f 53 45 5f 41 30 30 41 $ ff 64 00 00 00 $ ff 64 00 00 00 ) 0a 0b 01 ( 42 54 5f 53 45 5f 41 30 30 41 $ ff 10 27 00 00 $ ff 10 27 00 00 ) 0a 0c 01 )"s,
+       "op<1:021:00040, 0>(0, (\"BT_SE_A00A\", 100, 100), (\"BT_SE_A00A\", 100, 100), (\"BT_SE_A00A\", 100, 100), (\"BT_SE_A00A\", 100, 100), (\"BT_SE_A00A\", 100, 100), (\"BT_SE_A00A\", 100, 100), (\"BT_SE_A00A\", 100, 100), (\"BT_SE_A00A\", 10000, 10000))"s}};
+  TestWith(data);
 }
