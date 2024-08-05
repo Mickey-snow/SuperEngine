@@ -289,6 +289,12 @@ pointer_t GotoElement::GetPointer(int i) const {
   return pointer_;
 }
 
+std::string GotoElement::GetSourceRepresentation(RLMachine* machine) const {
+  std::string repr = CommandElement::GetSourceRepresentation(machine);
+  repr += " @" + std::to_string(id_);
+  return repr;
+}
+
 const size_t GotoElement::GetBytecodeLength() const { return 12; }
 
 void GotoElement::SetPointers(ConstructionData& cdata) {
@@ -313,6 +319,12 @@ pointer_t GotoIfElement::GetPointer(int i) const {
   if (i != 0)
     throw Error("GotoIfElement has only 1 pointer");
   return pointer_;
+}
+
+std::string GotoIfElement::GetSourceRepresentation(RLMachine* machine) const {
+  std::string repr = CommandElement::GetSourceRepresentation(machine);
+  repr += " @" + std::to_string(id_);
+  return repr;
 }
 
 const size_t GotoIfElement::GetBytecodeLength() const { return length_; }
@@ -342,6 +354,16 @@ const size_t GotoCaseElement::GetPointersCount() const {
   return targets_.size();
 }
 
+std::string GotoCaseElement::GetSourceRepresentation(RLMachine* machine) const {
+  std::string repr = CommandElement::GetSourceRepresentation(machine);
+  for (int i = 0; i < targets_.idSize(); ++i) {
+    std::string param =
+        parsed_cases_[i] ? parsed_cases_[i]->GetDebugString() : "";
+    repr += " [" + param + "]@" + std::to_string(targets_.target_ids[i]);
+  }
+  return repr;
+}
+
 pointer_t GotoCaseElement::GetPointer(int i) const { return targets_[i]; }
 
 void GotoCaseElement::SetPointers(ConstructionData& cdata) {
@@ -368,6 +390,18 @@ void GotoOnElement::SetPointers(ConstructionData& cdata) {
   targets_.SetPointers(cdata);
 }
 
+std::string GotoOnElement::GetSourceRepresentation(RLMachine* machine) const {
+  std::string repr = CommandElement::GetSourceRepresentation(machine);
+
+  repr += '{';
+  for (size_t i = 0; i < targets_.idSize(); ++i) {
+    repr += " @" + std::to_string(targets_.target_ids[i]);
+  }
+  repr += '}';
+
+  return repr;
+}
+
 const size_t GotoOnElement::GetBytecodeLength() const { return length_; }
 
 // -----------------------------------------------------------------------
@@ -386,6 +420,13 @@ pointer_t GosubWithElement::GetPointer(int i) const {
   if (i != 0)
     throw Error("GosubWithElement has only 1 pointer");
   return pointer_;
+}
+
+std::string GosubWithElement::GetSourceRepresentation(
+    RLMachine* machine) const {
+  std::string repr = CommandElement::GetSourceRepresentation(machine);
+  repr += " @" + std::to_string(id_);
+  return repr;
 }
 
 const size_t GosubWithElement::GetBytecodeLength() const { return length_; }

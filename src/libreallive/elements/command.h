@@ -58,6 +58,9 @@ class Pointers {
 
   void SetPointers(ConstructionData& cdata);
 
+  friend class GotoCaseElement;
+  friend class GotoOnElement;
+
  private:
   std::vector<unsigned long> target_ids;
   std::vector<pointer_t> targets;
@@ -190,6 +193,7 @@ class GotoElement : public CommandElement {
   virtual std::string GetParam(int i) const final;
   virtual const size_t GetPointersCount() const final;
   virtual pointer_t GetPointer(int i) const final;
+  virtual std::string GetSourceRepresentation(RLMachine*) const override;
 
   // Overridden from BytecodeElement:
   virtual const size_t GetBytecodeLength() const final;
@@ -208,6 +212,7 @@ class GotoIfElement : public CommandElement {
   // Overridden from CommandElement:
   virtual const size_t GetPointersCount() const final;
   virtual pointer_t GetPointer(int i) const final;
+  virtual std::string GetSourceRepresentation(RLMachine*) const override;
 
   // Overridden from BytecodeElement:
   virtual const size_t GetBytecodeLength() const final;
@@ -236,6 +241,7 @@ class GotoCaseElement : public CommandElement {
   virtual const size_t GetParamCount() const final;
   virtual size_t GetCaseCount() const final;
   virtual Expression GetCase(int i) const final;
+  virtual std::string GetSourceRepresentation(RLMachine*) const override;
 
   const size_t GetPointersCount() const final;
   pointer_t GetPointer(int) const final;
@@ -247,7 +253,6 @@ class GotoCaseElement : public CommandElement {
  private:
   size_t length_;
   Pointers targets_;
-  std::vector<std::string> cases_;
   std::vector<Expression> parsed_cases_;
 };
 
@@ -263,6 +268,8 @@ class GotoOnElement : public CommandElement {
   const size_t GetPointersCount() const final;
   pointer_t GetPointer(int) const final;
   void SetPointers(ConstructionData& cdata) final;
+  virtual std::string GetSourceRepresentation(
+      RLMachine* machine) const override;
 
   // Overridden from BytecodeElement:
   const size_t GetBytecodeLength() const final;
@@ -284,6 +291,8 @@ class GosubWithElement : public CommandElement {
   // Overridden from CommandElement:
   virtual const size_t GetPointersCount() const final;
   virtual pointer_t GetPointer(int i) const final;
+  virtual std::string GetSourceRepresentation(
+      RLMachine* machine) const override;
 
   // Overridden from BytecodeElement:
   virtual const size_t GetBytecodeLength() const final;
