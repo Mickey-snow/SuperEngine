@@ -445,3 +445,10 @@ TEST_F(CommandParserTest, FunctionElementWithMeta) {
        "op<1:021:00040, 0>(0, (\"BT_SE_A00A\", 100, 100), (\"BT_SE_A00A\", 100, 100), (\"BT_SE_A00A\", 100, 100), (\"BT_SE_A00A\", 100, 100), (\"BT_SE_A00A\", 100, 100), (\"BT_SE_A00A\", 100, 100), (\"BT_SE_A00A\", 100, 100), (\"BT_SE_A00A\", 10000, 10000))"s}};
   TestWith(data);
 }
+
+TEST_F(CommandParserTest, FunctionElementWithTag) {
+  std::vector<std::pair<std::string, std::string>> data = {
+      {"23 00 01 12 00 02 00 00 ( $ ff f2 1e 00 00 $ ff 0b 00 00 00 61 01 50 54 5f 41 4e 4e 30 31 61 01 50 54 5f 41 4e 4e 30 32 )"s,
+       "op<0:001:00018, 0>(7922, 11, 1:{\"PT_ANN01\"}, 1:{\"PT_ANN02\"})"s}};
+  TestWith(data);
+}

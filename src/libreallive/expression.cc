@@ -145,7 +145,7 @@ size_t NextString(const char* src) {
       ++end;
   }
 
-  if (end > src && *(end - 1) == 'a' && *end == 0)
+  if (end > src && *(end - 1) == 'a' && (*end == 0 || *end == 1))
     --end;
   return end - src;
 }
