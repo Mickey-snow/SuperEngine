@@ -27,25 +27,26 @@
 
 #include "modules/module_sel.h"
 
-#include <vector>
 #include <iterator>
 #include <string>
+#include <vector>
 
-#include "libreallive/parser.h"
 #include "libreallive/gameexe.h"
+#include "libreallive/parser.h"
 #include "long_operations/button_object_select_long_operation.h"
 #include "long_operations/select_long_operation.h"
 #include "machine/rlmachine.h"
 #include "machine/rloperation.h"
 #include "systems/base/event_system.h"
+#include "systems/base/graphics_object.h"
 #include "systems/base/graphics_system.h"
 #include "systems/base/system.h"
 #include "systems/base/text_system.h"
 #include "systems/base/text_window.h"
 #include "utilities/string_utilities.h"
 
-using libreallive::SelectElement;
 using libreallive::CommandElement;
+using libreallive::SelectElement;
 
 namespace {
 
@@ -162,6 +163,26 @@ struct Sel_select_objbtn_cancel_1
   }
 };
 
+struct Sel_select_objbtn_cancel_2 : public RLOpcode<> {
+  void operator()(RLMachine& machine) {
+    if (machine.ShouldSetSelcomSavepoint())
+      machine.MarkSavepoint();
+
+    auto& fg_objs = machine.system().graphics().GetForegroundObjects();
+    int group = 0;
+    for (GraphicsObject& obj : fg_objs)
+      if (obj.IsButton()) {
+        group = obj.GetButtonGroup();
+        break;
+      }
+
+    ButtonObjectSelectLongOperation* obj =
+        new ButtonObjectSelectLongOperation(machine, group);
+    obj->set_cancelable();
+    machine.PushLongOperation(obj);
+  }
+};
+
 // Our system doesn't need an explicit initialize.
 struct objbtn_init_0 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int ignored) {}
@@ -181,6 +202,7 @@ SelModule::SelModule() : RLModule("Sel", 0, 2) {
   AddOpcode(4, 0, "select_objbtn", new Sel_select_objbtn);
   AddOpcode(14, 0, "select_objbtn_cancel", new Sel_select_objbtn_cancel_0);
   AddOpcode(14, 1, "select_objbtn_cancel", new Sel_select_objbtn_cancel_1);
+  AddOpcode(14, 2, "select_objbtn_cancel", new Sel_select_objbtn_cancel_2);
 
   AddOpcode(20, 0, "objbtn_init", new objbtn_init_0);
   AddOpcode(20, 1, "objbtn_init", new objbtn_init_1);

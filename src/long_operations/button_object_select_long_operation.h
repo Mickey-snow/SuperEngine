@@ -51,7 +51,7 @@ class ButtonObjectSelectLongOperation : public LongOperation {
                                        bool pressed) override;
 
   // Overridden from LongOperation:
-  virtual bool operator()(RLMachine& machine);
+  virtual bool operator()(RLMachine& machine) override;
 
  private:
   // Sets the override data (changes pattern number and offset) based on

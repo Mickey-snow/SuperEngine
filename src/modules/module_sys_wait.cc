@@ -52,6 +52,17 @@ struct Sys_wait : public RLOpcode<IntConstant_T> {
 
 // -----------------------------------------------------------------------
 
+struct Sys_waitkey : public RLOpcode<> {
+  void operator()(RLMachine& machine) {
+    WaitLongOperation* wait_op = new WaitLongOperation(machine);
+    wait_op->BreakOnClicks();
+
+    machine.PushLongOperation(wait_op);
+  }
+};
+
+// -----------------------------------------------------------------------
+
 struct Sys_GetClick : public RLOpcode<IntReference_T, IntReference_T> {
   void operator()(RLMachine& machine,
                   IntReferenceIterator x,
@@ -83,6 +94,7 @@ struct Sys_WaitClick
 void AddWaitAndMouseOpcodes(RLModule& m) {
   m.AddOpcode(100, 0, "wait", new Sys_wait(false));
   m.AddOpcode(101, 0, "waitC", new Sys_wait(true));
+  m.AddOpcode(106, 0, "waitKey", new Sys_waitkey);
 
   m.AddOpcode(131, 0, "GetClick", new Sys_GetClick);
   m.AddOpcode(132, 0, "WaitClick", new Sys_WaitClick);
