@@ -64,7 +64,7 @@ static RealLiveSoundQualities s_real_live_sound_qualities[] = {
     {44100, AUDIO_S8},   // 44 k_hz, 8 bit stereo
     {44100, AUDIO_S16},  // 44 k_hz, 16 bit stereo
     {48000, AUDIO_S8},   // 48 k_hz, 8 bit stereo
-    {48000, AUDIO_S16}   // 48 h_kz, 16 bit stereo
+    {48000, AUDIO_S16}   // 48 k_hz, 16 bit stereo
 };
 
 // -----------------------------------------------------------------------
@@ -299,11 +299,6 @@ void SDLSoundSystem::PlaySe(const int se_num) {
     Mix_Volume(channel, realLiveVolumeToSDLMixerVolume(se_volume_mod()));
     sample->PlayChunkOn(channel, 0);
   }
-}
-
-bool SDLSoundSystem::HasSe(const int se_num) {
-  SeTable::const_iterator it = se_table().find(se_num);
-  return it != se_table().end();
 }
 
 int SDLSoundSystem::BgmStatus() const {

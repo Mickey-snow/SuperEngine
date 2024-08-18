@@ -157,13 +157,14 @@ class SoundSystem {
 
  protected:
   // Type for a parsed \#SE table.
-  typedef std::map<int, std::pair<std::string, int>> SeTable;
+  using SoundEffect = std::pair<std::string, int>;
+  using SeTable = std::map<int, SoundEffect>;
 
   // Type for parsed \#DSTRACK entries.
-  typedef std::map<std::string, DSTrack> DSTable;
+  using DSTable = std::map<std::string, DSTrack>;
 
   // Type for parsed \#CDTRACK entries.
-  typedef std::map<std::string, CDTrack> CDTable;
+  using CDTable = std::map<std::string, CDTrack>;
 
   // Stores data about an ongoing volume adjustment (such as those started by
   // fun wavSetVolume(int, int, int).)
@@ -299,7 +300,10 @@ class SoundSystem {
   virtual void PlaySe(const int se_num) = 0;
 
   // Returns whether there is a sound effect |se_num| in the table.
-  virtual bool HasSe(const int se_num) = 0;
+  virtual bool HasSe(const int se_num) {
+    SeTable::const_iterator it = se_table().find(se_num);
+    return it != se_table().end();
+  }
 
   // ---------------------------------------------------------------------
 

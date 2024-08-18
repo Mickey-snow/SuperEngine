@@ -81,7 +81,6 @@ class SDLSoundSystem : public SoundSystem {
   virtual void WavFadeOut(const int channel, const int fadetime) override;
 
   virtual void PlaySe(const int se_num) override;
-  virtual bool HasSe(const int se_num) override;
 
   virtual bool KoePlaying() const override;
   virtual void KoeStop() override;

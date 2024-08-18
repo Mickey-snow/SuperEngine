@@ -24,6 +24,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 #include <boost/archive/text_iarchive.hpp>
@@ -31,19 +32,77 @@
 
 #include "test_utils.h"
 
-#include "test_system/test_system.h"
-#include "test_system/test_sound_system.h"
 #include "libreallive/gameexe.h"
+#include "test_system/test_sound_system.h"
+#include "test_system/test_system.h"
 
-#include <string>
 #include <sstream>
+#include <string>
 
 using std::stringstream;
 
+class MockSystem : public System {
+ public:
+  MockSystem(Gameexe& gexe) : gexe_(gexe) {}
+
+  MOCK_METHOD(void, Run, (RLMachine&), (override));
+  MOCK_METHOD(GraphicsSystem&, graphics, (), (override));
+  MOCK_METHOD(EventSystem&, event, (), (override));
+  MOCK_METHOD(TextSystem&, text, (), (override));
+  MOCK_METHOD(SoundSystem&, sound, (), (override));
+
+  Gameexe& gameexe() override { return gexe_; }
+
+  Gameexe& gexe_;
+};
+
+class MockSoundSystem : public SoundSystem {
+ public:
+  MockSoundSystem(System& sys) : SoundSystem(sys) {}
+
+  MOCK_METHOD(int, BgmStatus, (), (const, override));
+  MOCK_METHOD(void, BgmPlay, (const std::string&, bool), (override));
+  MOCK_METHOD(void, BgmPlay, (const std::string&, bool, int), (override));
+  MOCK_METHOD(void, BgmPlay, (const std::string&, bool, int, int), (override));
+  MOCK_METHOD(void, BgmStop, (), (override));
+  MOCK_METHOD(void, BgmPause, (), (override));
+  MOCK_METHOD(void, BgmUnPause, (), (override));
+  MOCK_METHOD(void, BgmFadeOut, (int), (override));
+  MOCK_METHOD(std::string, GetBgmName, (), (const, override));
+  MOCK_METHOD(bool, BgmLooping, (), (const, override));
+  MOCK_METHOD(void, WavPlay, (const std::string&, bool), (override));
+  MOCK_METHOD(void, WavPlay, (const std::string&, bool, int), (override));
+  MOCK_METHOD(void, WavPlay, (const std::string&, bool, int, int), (override));
+  MOCK_METHOD(bool, WavPlaying, (const int), (override));
+  MOCK_METHOD(void, WavStop, (const int), (override));
+  MOCK_METHOD(void, WavStopAll, (), (override));
+  MOCK_METHOD(void, WavFadeOut, (const int, const int), (override));
+  MOCK_METHOD(void, PlaySe, (const int), (override));
+  MOCK_METHOD(bool, KoePlaying, (), (const, override));
+  MOCK_METHOD(void, KoeStop, (), (override));
+  MOCK_METHOD(void, KoePlayImpl, (int), (override));
+};
+
+using ::testing::AnyNumber;
+using ::testing::Return;
+
+class SoundSystemTest : public ::testing::Test {
+ protected:
+  void SetUp() {
+    gexe_ = std::make_shared<Gameexe>(
+        LocateTestCase("Gameexe_data/Gameexe_koeonoff.ini"));
+    sys_ = std::make_shared<MockSystem>(*gexe_);
+    sound_sys_ = std::make_shared<MockSoundSystem>(*sys_);
+  }
+
+  std::shared_ptr<Gameexe> gexe_;
+  std::shared_ptr<MockSystem> sys_;
+  std::shared_ptr<MockSoundSystem> sound_sys_;
+};
+
 // Makes sure we can parse the bizarre Gameexe.ini keys for KOEONOFF
-TEST(SoundSystem, CanParseKOEONOFFKeys) {
-  TestSystem top(LocateTestCase("Gameexe_data/Gameexe_koeonoff.ini"));
-  SoundSystem& sys = top.sound();
+TEST_F(SoundSystemTest, CanParseKOEONOFFKeys) {
+  SoundSystem& sys = *sound_sys_;
 
   // Test the UseKoe side of things
   EXPECT_EQ(1, sys.ShouldUseKoeForCharacter(0));
@@ -60,9 +119,8 @@ TEST(SoundSystem, CanParseKOEONOFFKeys) {
 }
 
 // Tests that SetUseKoe sets values correctly
-TEST(SoundSystem, SetUseKoeCorrectly) {
-  TestSystem top(LocateTestCase("Gameexe_data/Gameexe_koeonoff.ini"));
-  SoundSystem& sys = top.sound();
+TEST_F(SoundSystemTest, SetUseKoeCorrectly) {
+  SoundSystem& sys = *sound_sys_;
 
   sys.SetUseKoeForCharacter(0, 0);
   sys.SetUseKoeForCharacter(7, 1);
@@ -85,12 +143,11 @@ TEST(SoundSystem, SetUseKoeCorrectly) {
 }
 
 // Make sure we thaw previously serialized character_koe_enabled data correctly.
-TEST(SoundSystem, SetUseKoeSerialization) {
-  std::string gexe = LocateTestCase("Gameexe_data/Gameexe_koeonoff.ini");
+TEST_F(SoundSystemTest, SetUseKoeSerialization) {
+  std::string gexe_path = LocateTestCase("Gameexe_data/Gameexe_koeonoff.ini");
   stringstream ss;
   {
-    TestSystem top(gexe);
-    SoundSystem& sys = top.sound();
+    SoundSystem& sys = *sound_sys_;
 
     // Reverse the values as in <2>.
     sys.SetUseKoeForCharacter(0, 0);
@@ -101,9 +158,11 @@ TEST(SoundSystem, SetUseKoeSerialization) {
     oa << const_cast<const SoundSystemGlobals&>(sys.globals());
   }
   {
-    TestSystem top(gexe);
-    SoundSystem& sys = top.sound();
+    Gameexe mygexe = *gexe_;
+    MockSystem mySystem(mygexe);
+    MockSoundSystem mySoundSystem(mySystem);
 
+    SoundSystem& sys = mySoundSystem;
     boost::archive::text_iarchive ia(ss);
     ia >> sys.globals();
 
