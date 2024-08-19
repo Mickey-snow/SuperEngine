@@ -39,6 +39,31 @@
 
 using std::string_literals::operator""s;
 
+class MockEventSystem : public EventSystem {
+ public:
+  MockEventSystem(Gameexe& gexe) : EventSystem(gexe) {}
+
+  MOCK_METHOD(void, ExecuteEventSystem, (RLMachine & machine), (override));
+  MOCK_METHOD(unsigned int, GetTicks, (), (const, override));
+  MOCK_METHOD(void, Wait, (unsigned int milliseconds), (const, override));
+  MOCK_METHOD(bool, ShiftPressed, (), (const, override));
+  MOCK_METHOD(bool, CtrlPressed, (), (const, override));
+  MOCK_METHOD(Point, GetCursorPos, (), (override));
+  MOCK_METHOD(void,
+              GetCursorPos,
+              (Point & position, int& button1, int& button2),
+              (override));
+  MOCK_METHOD(void, FlushMouseClicks, (), (override));
+  MOCK_METHOD(unsigned int, TimeOfLastMouseMove, (), (override));
+  MOCK_METHOD(void,
+              InjectMouseMovement,
+              (RLMachine & machine, const Point& loc),
+              (override));
+
+  MOCK_METHOD(void, InjectMouseDown, (RLMachine & machine), (override));
+  MOCK_METHOD(void, InjectMouseUp, (RLMachine & machine), (override));
+};
+
 class MockSystem : public System {
  public:
   MockSystem(Gameexe& gexe) : gexe_(gexe) {}
@@ -88,24 +113,29 @@ class MockSoundSystem : public SoundSystem {
 
 using ::testing::AnyNumber;
 using ::testing::Return;
+using ::testing::ReturnRef;
 
 class SoundSystemTest : public ::testing::Test {
  protected:
-  void SetUp() {
-    gexe_ = std::make_shared<Gameexe>(
-        LocateTestCase("Gameexe_data/Gameexe_koeonoff.ini"));
-    sys_ = std::make_shared<MockSystem>(*gexe_);
-    sound_sys_ = std::make_shared<MockSoundSystem>(*sys_);
+  SoundSystemTest()
+      : gexe_(LocateTestCase("Gameexe_data/Gameexe_soundsys.ini")),
+        msys_(gexe_),
+        mevent_sys_(gexe_),
+        msound_sys_(msys_) {}
+
+  void SetUp() override {
+    ON_CALL(msys_, event()).WillByDefault(ReturnRef(mevent_sys_));
   }
 
-  std::shared_ptr<Gameexe> gexe_;
-  std::shared_ptr<MockSystem> sys_;
-  std::shared_ptr<MockSoundSystem> sound_sys_;
+  Gameexe gexe_;
+  MockSystem msys_;
+  MockEventSystem mevent_sys_;
+  MockSoundSystem msound_sys_;
 };
 
 // Makes sure we can parse the bizarre Gameexe.ini keys for KOEONOFF
 TEST_F(SoundSystemTest, CanParseKOEONOFFKeys) {
-  SoundSystem& sys = *sound_sys_;
+  SoundSystem& sys = msound_sys_;
 
   // Test the UseKoe side of things
   EXPECT_EQ(1, sys.ShouldUseKoeForCharacter(0));
@@ -123,7 +153,7 @@ TEST_F(SoundSystemTest, CanParseKOEONOFFKeys) {
 
 // Tests that SetUseKoe sets values correctly
 TEST_F(SoundSystemTest, SetUseKoeCorrectly) {
-  SoundSystem& sys = *sound_sys_;
+  SoundSystem& sys = msound_sys_;
 
   sys.SetUseKoeForCharacter(0, 0);
   sys.SetUseKoeForCharacter(7, 1);
@@ -149,7 +179,7 @@ TEST_F(SoundSystemTest, SetUseKoeCorrectly) {
 TEST_F(SoundSystemTest, SetUseKoeSerialization) {
   std::stringstream ss;
   {
-    SoundSystem& sys = *sound_sys_;
+    SoundSystem& sys = msound_sys_;
 
     // Reverse the values as in <2>.
     sys.SetUseKoeForCharacter(0, 0);
@@ -160,7 +190,7 @@ TEST_F(SoundSystemTest, SetUseKoeSerialization) {
     oa << const_cast<const SoundSystemGlobals&>(sys.globals());
   }
   {
-    Gameexe mygexe = *gexe_;
+    Gameexe mygexe = gexe_;
     MockSystem mySystem(mygexe);
     MockSoundSystem mySoundSystem(mySystem);
 
@@ -187,7 +217,7 @@ TEST_F(SoundSystemTest, SetUseKoeSerialization) {
 
 TEST_F(SoundSystemTest, CanParseSEDSCD) {
   {
-    const auto& se = sound_sys_->se_table();
+    const auto& se = msound_sys_.se_table();
 
     EXPECT_EQ(se.at(0), std::make_pair(""s, 1));
     EXPECT_EQ(se.at(1), std::make_pair("se90"s, 0));
@@ -196,7 +226,7 @@ TEST_F(SoundSystemTest, CanParseSEDSCD) {
   }
 
   {
-    const auto& ds = sound_sys_->ds_table();
+    const auto& ds = msound_sys_.ds_table();
 
     using DSTrack = SoundSystem::DSTrack;
     EXPECT_EQ(ds.at("bgm01"s), DSTrack("bgm01"s, "BGM01"s, 0, 2469380, 0));
@@ -205,7 +235,7 @@ TEST_F(SoundSystemTest, CanParseSEDSCD) {
   }
 
   {
-    const auto& cd = sound_sys_->cd_table();
+    const auto& cd = msound_sys_.cd_table();
 
     using CDTrack = SoundSystem::CDTrack;
     EXPECT_EQ(cd.at("cdbgm04"s), CDTrack("cdbgm04"s, 0, 6093704, 3368845));
