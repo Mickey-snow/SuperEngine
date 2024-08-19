@@ -142,6 +142,12 @@ class SoundSystem {
     int from;
     int to;
     int loop;
+
+    bool operator==(const DSTrack& rhs) const {
+      return from == rhs.from && to == rhs.to && loop == rhs.loop &&
+             name == rhs.name && file == rhs.file;
+    }
+    bool operator!=(const DSTrack& rhs) const { return !(*this == rhs); }
   };
 
   // Defines a piece of background music who's backed by a cd audio track.
@@ -153,6 +159,12 @@ class SoundSystem {
     int from;
     int to;
     int loop;
+
+    bool operator==(const CDTrack& rhs) const {
+      return from == rhs.from && to == rhs.to && loop == rhs.loop &&
+             name == rhs.name;
+    }
+    bool operator!=(const CDTrack& rhs) const { return !(*this == rhs); }
   };
 
  protected:

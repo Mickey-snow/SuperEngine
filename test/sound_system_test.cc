@@ -33,13 +33,11 @@
 #include "test_utils.h"
 
 #include "libreallive/gameexe.h"
-#include "test_system/test_sound_system.h"
-#include "test_system/test_system.h"
 
 #include <sstream>
 #include <string>
 
-using std::stringstream;
+using std::string_literals::operator""s;
 
 class MockSystem : public System {
  public:
@@ -81,6 +79,11 @@ class MockSoundSystem : public SoundSystem {
   MOCK_METHOD(bool, KoePlaying, (), (const, override));
   MOCK_METHOD(void, KoeStop, (), (override));
   MOCK_METHOD(void, KoePlayImpl, (int), (override));
+
+  // methods exposed for testing
+  using SoundSystem::cd_table;
+  using SoundSystem::ds_table;
+  using SoundSystem::se_table;
 };
 
 using ::testing::AnyNumber;
@@ -144,8 +147,7 @@ TEST_F(SoundSystemTest, SetUseKoeCorrectly) {
 
 // Make sure we thaw previously serialized character_koe_enabled data correctly.
 TEST_F(SoundSystemTest, SetUseKoeSerialization) {
-  std::string gexe_path = LocateTestCase("Gameexe_data/Gameexe_koeonoff.ini");
-  stringstream ss;
+  std::stringstream ss;
   {
     SoundSystem& sys = *sound_sys_;
 
@@ -180,5 +182,32 @@ TEST_F(SoundSystemTest, SetUseKoeSerialization) {
     EXPECT_EQ(0, sys.globals().character_koe_enabled[2]);
     EXPECT_EQ(0, sys.globals().character_koe_enabled[20]);
     EXPECT_EQ(0, sys.globals().character_koe_enabled[105]);
+  }
+}
+
+TEST_F(SoundSystemTest, CanParseSEDSCD) {
+  {
+    const auto& se = sound_sys_->se_table();
+
+    EXPECT_EQ(se.at(0), std::make_pair(""s, 1));
+    EXPECT_EQ(se.at(1), std::make_pair("se90"s, 0));
+    EXPECT_EQ(se.at(2), std::make_pair("se91"s, 1));
+    EXPECT_EQ(se.at(3), std::make_pair(""s, 0));
+  }
+
+  {
+    const auto& ds = sound_sys_->ds_table();
+
+    using DSTrack = SoundSystem::DSTrack;
+    EXPECT_EQ(ds.at("bgm01"s), DSTrack("bgm01"s, "BGM01"s, 0, 2469380, 0));
+    EXPECT_EQ(ds.at("bgm02"s), DSTrack("bgm02"s, "BGM02"s, 0, 2034018, 50728));
+    EXPECT_EQ(ds.at("bgm03"s), DSTrack("bgm03"s, "BGM03"s, 0, 3127424, 1804));
+  }
+
+  {
+    const auto& cd = sound_sys_->cd_table();
+
+    using CDTrack = SoundSystem::CDTrack;
+    EXPECT_EQ(cd.at("cdbgm04"s), CDTrack("cdbgm04"s, 0, 6093704, 3368845));
   }
 }
