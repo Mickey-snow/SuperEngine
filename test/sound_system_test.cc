@@ -50,7 +50,7 @@ class SoundSystemTest : public ::testing::Test {
         msound_sys_(msys_) {}
 
   void SetUp() override {
-    ON_CALL(msys_, event()).WillByDefault(ReturnRef(mevent_sys_));
+    EXPECT_CALL(msys_, event()).WillRepeatedly(ReturnRef(mevent_sys_));
   }
 
   Gameexe gexe_;
@@ -166,4 +166,29 @@ TEST_F(SoundSystemTest, CanParseSEDSCD) {
     using CDTrack = SoundSystem::CDTrack;
     EXPECT_EQ(cd.at("cdbgm04"s), CDTrack("cdbgm04"s, 0, 6093704, 3368845));
   }
+}
+
+TEST_F(SoundSystemTest, SetBgmVolume) {
+  EXPECT_CALL(mevent_sys_, GetTicks())
+      .Times(::testing::AnyNumber())
+      .WillOnce(Return(0))
+      .WillOnce(Return(25))
+      .WillOnce(Return(100))
+      .WillOnce(Return(150))
+      .WillRepeatedly(Return(1024));
+
+  msound_sys_.SetBgmVolumeScript(0, 0);
+  ASSERT_EQ(msound_sys_.bgm_volume_script(), 0);
+  msound_sys_.SetBgmVolumeScript(128, 100);
+  EXPECT_EQ(msound_sys_.bgm_volume_script(), 0);
+  msound_sys_.ExecuteSoundSystem();
+  EXPECT_EQ(msound_sys_.bgm_volume_script(), 128 / 4);
+
+  msound_sys_.SetBgmVolumeScript(64, 100);
+  ASSERT_EQ(msound_sys_.bgm_volume_script(), 32);
+  msound_sys_.ExecuteSoundSystem();
+  EXPECT_EQ(msound_sys_.bgm_volume_script(), 32 + 32 / 2);
+  msound_sys_.ExecuteSoundSystem();
+  msound_sys_.ExecuteSoundSystem();
+  EXPECT_EQ(msound_sys_.bgm_volume_script(), 64);
 }
