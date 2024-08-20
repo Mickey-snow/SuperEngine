@@ -28,12 +28,11 @@
 #ifndef SRC_SYSTEMS_SDL_SDL_MUSIC_H_
 #define SRC_SYSTEMS_SDL_SDL_MUSIC_H_
 
-#include <SDL/SDL_mixer.h>
-
 #include <memory>
 #include <string>
 
 #include "systems/base/sound_system.h"
+#include "systems/sdl/sound_implementor.h"
 #include "xclannad/wavfile.h"
 
 // Encapsulates access to SDLMussic.
@@ -98,6 +97,10 @@ class SDLMusic : public std::enable_shared_from_this<SDLMusic> {
     s_computed_bgm_vol = in / 2;
   }
 
+  static void SetImplementor(std::shared_ptr<SoundSystemImpl> impl) {
+    sound_impl_ = impl;
+  }
+
  private:
   // Builds an SDLMusic object.
   SDLMusic(const SoundSystem::DSTrack& track, WAVFILE* wav);
@@ -106,10 +109,12 @@ class SDLMusic : public std::enable_shared_from_this<SDLMusic> {
   //
   // This function was ripped off almost verbatim from xclannad! Specifically
   // the static method WavChunk::callback in music2/music.cc.
-  static void MixMusic(void* udata, Uint8* stream, int len);
+  static void MixMusic(void* udata, uint8_t* stream, int len);
 
   // Strongly coupled because of access to SDLMusic::MixMusic.
   friend class SDLSoundSystem;
+
+  static std::shared_ptr<SoundSystemImpl> sound_impl_;
 
   // Underlying data stream. (These classes stolen from xclannad.)
   WAVFILE* file_;

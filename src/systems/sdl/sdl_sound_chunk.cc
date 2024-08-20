@@ -27,7 +27,6 @@
 
 #include "systems/sdl/sdl_sound_chunk.h"
 
-#include <SDL/SDL_mixer.h>
 #include <boost/algorithm/string.hpp>
 #include <string>
 
@@ -36,16 +35,16 @@
 #include "xclannad/wavfile.h"
 
 SDLSoundChunk::PlayingTable SDLSoundChunk::s_playing_table;
+std::shared_ptr<SoundSystemImpl> SDLSoundChunk::audio_impl_;
 
 SDLSoundChunk::SDLSoundChunk(const std::filesystem::path& path)
     : sample_(LoadSample(path)) {}
 
 SDLSoundChunk::SDLSoundChunk(char* data, int length)
-    : sample_(Mix_LoadWAV_RW(SDL_RWFromMem(data, length), 1)),
-      data_(data) {}
+    : sample_(audio_impl_->LoadWAV_RW(data, length + 0x2c)), data_(data) {}
 
 SDLSoundChunk::~SDLSoundChunk() {
-  Mix_FreeChunk(sample_);
+  audio_impl_->FreeChunk(sample_);
   data_.reset();
 }
 
@@ -61,12 +60,12 @@ Mix_Chunk* SDLSoundChunk::LoadSample(const std::filesystem::path& path) {
     char* data = NWAFILE::ReadAll(f, size);
     fclose(f);
 
-    Mix_Chunk* chunk = Mix_LoadWAV_RW(SDL_RWFromMem(data, size), 1);
+    Mix_Chunk* chunk = audio_impl_->LoadWAV_RW(data, size);
     delete[] data;
 
     return chunk;
   } else {
-    return Mix_LoadWAV(path.native().c_str());
+    return audio_impl_->LoadWAV(path.native().c_str());
   }
 }
 
@@ -76,7 +75,7 @@ void SDLSoundChunk::PlayChunkOn(int channel, int loops) {
     s_playing_table[channel] = shared_from_this();
   }
 
-  if (Mix_PlayChannel(channel, sample_, loops) == -1) {
+  if (audio_impl_->PlayChannel(channel, sample_, loops) == -1) {
     // TODO(erg): Throw something here.
   }
 }
@@ -87,7 +86,7 @@ void SDLSoundChunk::FadeInChunkOn(int channel, int loops, int ms) {
     s_playing_table[channel] = shared_from_this();
   }
 
-  if (Mix_FadeInChannel(channel, sample_, loops, ms) == -1) {
+  if (audio_impl_->FadeInChannel(channel, sample_, loops, ms) == -1) {
     // TODO(erg): Throw something here.
   }
 }
@@ -107,8 +106,7 @@ int SDLSoundChunk::FindNextFreeExtraChannel() {
   SDLAudioLocker locker;
 
   for (int i = NUM_BASE_CHANNELS;
-       i < NUM_BASE_CHANNELS + NUM_EXTRA_WAVPLAY_CHANNELS;
-       ++i) {
+       i < NUM_BASE_CHANNELS + NUM_EXTRA_WAVPLAY_CHANNELS; ++i) {
     if (s_playing_table[i].get() == 0)
       return i;
   }
@@ -117,10 +115,12 @@ int SDLSoundChunk::FindNextFreeExtraChannel() {
 }
 
 // static
-void SDLSoundChunk::StopChannel(int channel) { Mix_HaltChannel(channel); }
+void SDLSoundChunk::StopChannel(int channel) {
+  audio_impl_->HaltChannel(channel);
+}
 
-void SDLSoundChunk::StopAllChannels() { Mix_HaltChannel(-1); }
+void SDLSoundChunk::StopAllChannels() { audio_impl_->HaltChannel(-1); }
 
 void SDLSoundChunk::FadeOut(const int channel, const int fadetime) {
-  Mix_FadeOutChannel(channel, fadetime);
+  audio_impl_->FadeOutChannel(channel, fadetime);
 }

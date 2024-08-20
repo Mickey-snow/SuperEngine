@@ -224,6 +224,7 @@ libsystemsdl_files = [
   "src/systems/sdl/sdl_utils.cc",
   "src/systems/sdl/shaders.cc",
   "src/systems/sdl/texture.cc",
+  "src/systems/sdl/sound_implementor.cc",
 
   # Parts of pygame.
   "vendor/pygame/alphablit.cc"

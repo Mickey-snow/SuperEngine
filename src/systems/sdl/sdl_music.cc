@@ -27,7 +27,6 @@
 
 #include "systems/sdl/sdl_music.h"
 
-#include <SDL/SDL_mixer.h>
 #include <boost/algorithm/string.hpp>
 #include <filesystem>
 #include <functional>
@@ -49,6 +48,7 @@ const int STOP_NOW = -2;
 
 const int DEFAULT_FADE_MS = 10;
 
+std::shared_ptr<SoundSystemImpl> SDLMusic::sound_impl_;
 std::shared_ptr<SDLMusic> SDLMusic::s_currently_playing;
 bool SDLMusic::s_bgm_enabled = true;
 int SDLMusic::s_computed_bgm_vol = 128;
@@ -142,7 +142,7 @@ int SDLMusic::BgmStatus() const {
 }
 
 // static
-void SDLMusic::MixMusic(void* udata, Uint8* stream, int len) {
+void SDLMusic::MixMusic(void* udata, uint8_t* stream, int len) {
   // Inside an SDL_LockAudio() section set up by SDL_Mixer! Don't lock here!
   SDLMusic* music = s_currently_playing.get();
 
@@ -187,11 +187,11 @@ void SDLMusic::MixMusic(void* udata, Uint8* stream, int len) {
     music->fade_count_ += len / 4;
   }
 
-  if (cur_vol != SDL_MIX_MAXVOLUME) {
+  if (cur_vol != sound_impl_->MaxVolumn()) {
     char stream_dup[len];  // NOLINT
     memcpy(stream_dup, stream, len);
     memset(stream, 0, len);
-    SDL_MixAudio(stream, (Uint8*)stream_dup, len, cur_vol);
+    sound_impl_->MixAudio(stream, (uint8_t*)stream_dup, len, cur_vol);
   }
 }
 
@@ -204,7 +204,8 @@ std::shared_ptr<SDLMusic> SDLMusic::CreateMusic(
     System& system,
     const SoundSystem::DSTrack& track) {
   typedef std::vector<
-    std::pair<std::string, std::function<WAVFILE*(FILE*, int)>>> FileTypes;
+      std::pair<std::string, std::function<WAVFILE*(FILE*, int)>>>
+      FileTypes;
   static FileTypes types = {{"wav", &BuildMusicImplementation<WAVFILE_Stream>},
                             {"nwa", &BuildMusicImplementation<NWAFILE>},
                             {"ogg", &BuildMusicImplementation<OggFILE>}};

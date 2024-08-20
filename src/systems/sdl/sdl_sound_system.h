@@ -28,14 +28,14 @@
 #ifndef SRC_SYSTEMS_SDL_SDL_SOUND_SYSTEM_H_
 #define SRC_SYSTEMS_SDL_SDL_SOUND_SYSTEM_H_
 
-#include <filesystem>
-#include <SDL/SDL.h>
+#include <boost/filesystem/operations.hpp>
 
 #include <memory>
 #include <string>
 
-#include "systems/base/sound_system.h"
 #include "lru_cache.hpp"
+#include "systems/base/sound_system.h"
+#include "systems/sdl/sound_implementor.h"
 
 class SDLSoundChunk;
 class SDLMusic;
@@ -52,7 +52,8 @@ class SDLSoundSystem : public SoundSystem {
   virtual void SetBgmVolumeScript(const int level, int fade_in_ms) override;
   virtual int BgmStatus() const override;
   virtual void BgmPlay(const std::string& bgm_name, bool loop) override;
-  virtual void BgmPlay(const std::string& bgm_name, bool loop,
+  virtual void BgmPlay(const std::string& bgm_name,
+                       bool loop,
                        int fade_in_ms) override;
   virtual void BgmPlay(const std::string& bgm_name,
                        bool loop,
@@ -89,7 +90,7 @@ class SDLSoundSystem : public SoundSystem {
 
   // Wrapper around SDL_mixer's hook function. We do this because we need to
   // have our own default music mixing function which is set at startup.
-  void SetMusicHook(void (*mix_func)(void* udata, Uint8* stream, int len));
+  void SetMusicHook(void (*mix_func)(void* udata, uint8_t* stream, int len));
 
  private:
   typedef std::shared_ptr<SDLSoundChunk> SDLSoundChunkPtr;
@@ -122,6 +123,10 @@ class SDLSoundSystem : public SoundSystem {
   // Creates an SDLMusic object from a name. Throws if the bgm isn't
   // found.
   std::shared_ptr<SDLMusic> LoadMusic(const std::string& bgm_name);
+
+ private:
+  // The bridge to sdl sound implementor
+  std::shared_ptr<SoundSystemImpl> sound_impl_;
 
   SoundChunkCache se_cache_;
   SoundChunkCache wav_cache_;

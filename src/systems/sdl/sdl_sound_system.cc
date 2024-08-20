@@ -27,8 +27,6 @@
 
 #include "systems/sdl/sdl_sound_system.h"
 
-#include <SDL/SDL.h>
-#include <SDL/SDL_mixer.h>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <iostream>
@@ -51,20 +49,20 @@ namespace fs = std::filesystem;
 // -----------------------------------------------------------------------
 struct RealLiveSoundQualities {
   int rate;
-  Uint16 format;
+  uint16_t format;
 };
 
 // A mapping between SoundQualities() and the values need to be passed
 // to Mix_OpenAudio()
 static RealLiveSoundQualities s_real_live_sound_qualities[] = {
-    {11025, AUDIO_S8},   // 11 k_hz, 8 bit stereo
-    {11025, AUDIO_S16},  // 11 k_hz, 16 bit stereo
-    {22050, AUDIO_S8},   // 22 k_hz, 8 bit stereo
-    {22050, AUDIO_S16},  // 22 k_hz, 16 bit stereo
-    {44100, AUDIO_S8},   // 44 k_hz, 8 bit stereo
-    {44100, AUDIO_S16},  // 44 k_hz, 16 bit stereo
-    {48000, AUDIO_S8},   // 48 k_hz, 8 bit stereo
-    {48000, AUDIO_S16}   // 48 k_hz, 16 bit stereo
+    {11025, SoundSystemImpl::S8},   // 11 k_hz, 8 bit stereo
+    {11025, SoundSystemImpl::S16},  // 11 k_hz, 16 bit stereo
+    {22050, SoundSystemImpl::S8},   // 22 k_hz, 8 bit stereo
+    {22050, SoundSystemImpl::S16},  // 22 k_hz, 16 bit stereo
+    {44100, SoundSystemImpl::S8},   // 44 k_hz, 8 bit stereo
+    {44100, SoundSystemImpl::S16},  // 44 k_hz, 16 bit stereo
+    {48000, SoundSystemImpl::S8},   // 48 k_hz, 8 bit stereo
+    {48000, SoundSystemImpl::S16}   // 48 k_hz, 16 bit stereo
 };
 
 // -----------------------------------------------------------------------
@@ -108,7 +106,7 @@ void SDLSoundSystem::WavPlayImpl(const std::string& wav_file,
 void SDLSoundSystem::SetChannelVolumeImpl(int channel) {
   int base = channel == KOE_CHANNEL ? GetKoeVolume_mod() : pcm_volume_mod();
   int adjusted = compute_channel_volume(GetChannelVolume(channel), base);
-  Mix_Volume(channel, realLiveVolumeToSDLMixerVolume(adjusted));
+  sound_impl_->SetVolume(channel, realLiveVolumeToSDLMixerVolume(adjusted));
 }
 
 std::shared_ptr<SDLMusic> SDLSoundSystem::LoadMusic(
@@ -136,46 +134,46 @@ std::shared_ptr<SDLMusic> SDLSoundSystem::LoadMusic(
 // SDLSoundSystem
 // -----------------------------------------------------------------------
 SDLSoundSystem::SDLSoundSystem(System& system)
-    : SoundSystem(system), se_cache_(5), wav_cache_(5) {
-  SDL_InitSubSystem(SDL_INIT_AUDIO);
-
+    : SoundSystem(system),
+      sound_impl_(std::make_shared<SoundSystemImpl>()),
+      se_cache_(5),
+      wav_cache_(5) {
+  sound_impl_->InitSystem();
+  SDLMusic::SetImplementor(sound_impl_);
+  SDLSoundChunk::SetImplementor(sound_impl_);
   /* We're going to be requesting certain things from our audio
      device, so we set them up beforehand */
 
   int audio_rate = s_real_live_sound_qualities[sound_quality()].rate;
-  Uint16 audio_format = s_real_live_sound_qualities[sound_quality()].format;
+  uint16_t audio_format = s_real_live_sound_qualities[sound_quality()].format;
   int audio_channels = 2;
   int audio_buffers = 4096;
 
   /* This is where we open up our audio device.  Mix_OpenAudio takes
      as its parameters the audio format we'd /like/ to have. */
-  if (Mix_OpenAudio(audio_rate, audio_format, audio_channels, audio_buffers)) {
+
+  if (sound_impl_->OpenAudio(audio_rate, audio_format, audio_channels,
+                             audio_buffers)) {
     std::ostringstream oss;
-    oss << "Couldn't initialize audio: " << Mix_GetError();
+    oss << "Couldn't initialize audio: " << sound_impl_->GetError();
     throw SystemError(oss.str());
   }
 
   // Jagarl's sound system wants information on the audio settings.
-  int freq, channels;
-  Uint16 format;
-  if (Mix_QuerySpec(&freq, &format, &channels)) {
-    WAVFILE::freq = freq;
-    WAVFILE::format = format;
-    WAVFILE::channels = channels;
-  }
+  auto [freq, format, channels] = sound_impl_->QuerySpec();
+  WAVFILE::freq = freq;
+  WAVFILE::format = format;
+  WAVFILE::channels = channels;
 
-  Mix_AllocateChannels(NUM_TOTAL_CHANNELS);
-
-  Mix_ChannelFinished(&SDLSoundChunk::SoundChunkFinishedPlayback);
-
-  SetMusicHook(NULL);
+  sound_impl_->AllocateChannels(NUM_TOTAL_CHANNELS);
+  sound_impl_->ChannelFinished(&SDLSoundChunk::SoundChunkFinishedPlayback);
+  sound_impl_->HookMusic(&SDLMusic::MixMusic, NULL);
 }
 
 SDLSoundSystem::~SDLSoundSystem() {
-  Mix_HookMusic(NULL, NULL);
-
-  Mix_CloseAudio();
-  SDL_QuitSubSystem(SDL_INIT_AUDIO);
+  sound_impl_->HookMusic(NULL, NULL);
+  sound_impl_->CloseAudio();
+  sound_impl_->QuitSystem();
 }
 
 void SDLSoundSystem::ExecuteSoundSystem() {
@@ -249,7 +247,7 @@ void SDLSoundSystem::WavPlay(const std::string& wav_file,
 
 bool SDLSoundSystem::WavPlaying(const int channel) {
   CheckChannel(channel, "SDLSoundSystem::wav_playing");
-  return Mix_Playing(channel);
+  return sound_impl_->Playing(channel);
 }
 
 void SDLSoundSystem::WavStop(const int channel) {
@@ -286,7 +284,7 @@ void SDLSoundSystem::PlaySe(const int se_num) {
     int channel = it->second.second;
 
     // Make sure there isn't anything playing on the current channel
-    Mix_HaltChannel(channel);
+    sound_impl_->HaltChannel(channel);
 
     if (file_name == "") {
       // Just stop a channel in case of an empty file name.
@@ -296,7 +294,8 @@ void SDLSoundSystem::PlaySe(const int se_num) {
     SDLSoundChunkPtr sample = GetSoundChunk(file_name, wav_cache_);
 
     // SE chunks have no volume other than the modifier.
-    Mix_Volume(channel, realLiveVolumeToSDLMixerVolume(se_volume_mod()));
+    sound_impl_->SetVolume(channel,
+                           realLiveVolumeToSDLMixerVolume(se_volume_mod()));
     sample->PlayChunkOn(channel, 0);
   }
 }
@@ -379,7 +378,9 @@ bool SDLSoundSystem::BgmLooping() const {
     return false;
 }
 
-bool SDLSoundSystem::KoePlaying() const { return Mix_Playing(KOE_CHANNEL); }
+bool SDLSoundSystem::KoePlaying() const {
+  return sound_impl_->Playing(KOE_CHANNEL);
+}
 
 void SDLSoundSystem::KoeStop() { SDLSoundChunk::StopChannel(KOE_CHANNEL); }
 
@@ -412,10 +413,10 @@ void SDLSoundSystem::Reset() {
 }
 
 void SDLSoundSystem::SetMusicHook(void (*mix_func)(void* udata,
-                                                   Uint8* stream,
+                                                   uint8_t* stream,
                                                    int len)) {
   if (!mix_func)
     mix_func = &SDLMusic::MixMusic;
 
-  Mix_HookMusic(mix_func, NULL);
+  sound_impl_->HookMusic(mix_func, NULL);
 }

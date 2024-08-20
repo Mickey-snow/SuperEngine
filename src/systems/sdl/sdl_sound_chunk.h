@@ -30,7 +30,7 @@
 
 #include <filesystem>
 
-#include <SDL/SDL_mixer.h>
+#include "systems/sdl/sound_implementor.h"
 
 #include <map>
 #include <memory>
@@ -70,10 +70,16 @@ class SDLSoundChunk : public std::enable_shared_from_this<SDLSoundChunk> {
 
   static void FadeOut(const int channel, const int fadetime);
 
+  static void SetImplementor(std::shared_ptr<SoundSystemImpl> impl) {
+    audio_impl_ = impl;
+  }
+
  private:
   // Used in the path constructor to actually create the Mix_Chunk, which
   // requires a hack for NWA support.
-  Mix_Chunk* LoadSample(const std::filesystem::path& path);
+  Chunk_t* LoadSample(const std::filesystem::path& path);
+
+  static std::shared_ptr<SoundSystemImpl> audio_impl_;
 
   // Static table which deliberately creates cycles. When a chunk
   // starts playing, it's associated with its channel ID in this table
@@ -84,7 +90,7 @@ class SDLSoundChunk : public std::enable_shared_from_this<SDLSoundChunk> {
   static PlayingTable s_playing_table;
 
   // Wrapped chunk
-  Mix_Chunk* sample_;
+  Chunk_t* sample_;
 
   // If this object was created from a memory chunk instead of a file, we have
   // to own the data that we pass to Mix_LoadWAV_RW(SDL_RWFromMem(...)).
