@@ -48,7 +48,7 @@ SDLSoundChunk::~SDLSoundChunk() {
   data_.reset();
 }
 
-Mix_Chunk* SDLSoundChunk::LoadSample(const std::filesystem::path& path) {
+Chunk_t* SDLSoundChunk::LoadSample(const std::filesystem::path& path) {
   if (boost::iequals(path.extension().string(), ".nwa")) {
     // Hack to load NWA sounds into a MixChunk. I was resisted doing this
     // because I assumed there was a better way, but this is essentially what
@@ -60,7 +60,7 @@ Mix_Chunk* SDLSoundChunk::LoadSample(const std::filesystem::path& path) {
     char* data = NWAFILE::ReadAll(f, size);
     fclose(f);
 
-    Mix_Chunk* chunk = audio_impl_->LoadWAV_RW(data, size);
+    Chunk_t* chunk = audio_impl_->LoadWAV_RW(data, size);
     delete[] data;
 
     return chunk;

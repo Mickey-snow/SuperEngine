@@ -133,17 +133,19 @@ std::shared_ptr<SDLMusic> SDLSoundSystem::LoadMusic(
 // -----------------------------------------------------------------------
 // SDLSoundSystem
 // -----------------------------------------------------------------------
-SDLSoundSystem::SDLSoundSystem(System& system)
-    : SoundSystem(system),
-      sound_impl_(std::make_shared<SoundSystemImpl>()),
-      se_cache_(5),
-      wav_cache_(5) {
+SDLSoundSystem::SDLSoundSystem(System& system,
+                               std::shared_ptr<SoundSystemImpl> impl)
+    : SoundSystem(system), sound_impl_(impl), se_cache_(5), wav_cache_(5) {
+  // Set up audio implementor for SDLMusic and SDLSoundChunk
+  // if an implementor is not specified, use default sdl
+  if (sound_impl_ == nullptr)
+    sound_impl_ = std::make_shared<SoundSystemImpl>();
   sound_impl_->InitSystem();
   SDLMusic::SetImplementor(sound_impl_);
   SDLSoundChunk::SetImplementor(sound_impl_);
+
   /* We're going to be requesting certain things from our audio
      device, so we set them up beforehand */
-
   int audio_rate = s_real_live_sound_qualities[sound_quality()].rate;
   uint16_t audio_format = s_real_live_sound_qualities[sound_quality()].format;
   int audio_channels = 2;

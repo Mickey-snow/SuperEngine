@@ -22,3 +22,4 @@ component_env.StaticLibrary('libzita-resampler', zita_resampler_files)
 component_env.Install('$LIBRARY_DIR', 'libzita-resampler.a')
 
 env.AddStaticLibraryTo("zita-resampler", "SDL")
+env.AddStaticLibraryTo("zita-resampler", "TEST")

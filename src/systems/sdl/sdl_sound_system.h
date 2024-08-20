@@ -42,7 +42,8 @@ class SDLMusic;
 
 class SDLSoundSystem : public SoundSystem {
  public:
-  explicit SDLSoundSystem(System& system);
+  explicit SDLSoundSystem(System& system,
+                          std::shared_ptr<SoundSystemImpl> impl = nullptr);
   ~SDLSoundSystem();
 
   virtual void ExecuteSoundSystem() override;

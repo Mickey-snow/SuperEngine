@@ -59,6 +59,7 @@ test_case_files = [
   "test/asset_scanner_unittest.cc",
   "test/va_factory_unittest.cc",
   "test/lrucache_unittest.cc",
+  "test/sdl_sound_unittest.cc",
 
   # medium tests
   "test/medium_eventloop_test.cc",
@@ -89,5 +90,5 @@ test_env.RlvmProgram('rlvm_unittests',
                       test_case_files,
                       ],
                      use_lib_set = ["TEST"],
-                     rlvm_libs = ["rlvm"])
+                     rlvm_libs = ["system_sdl", "rlvm"])
 test_env.Install('$OUTPUT_DIR', 'rlvm_unittests')
