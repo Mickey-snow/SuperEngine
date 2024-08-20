@@ -32,84 +32,10 @@
 
 #include "test_utils.h"
 
-#include "libreallive/gameexe.h"
-
 #include <sstream>
 #include <string>
 
 using std::string_literals::operator""s;
-
-class MockEventSystem : public EventSystem {
- public:
-  MockEventSystem(Gameexe& gexe) : EventSystem(gexe) {}
-
-  MOCK_METHOD(void, ExecuteEventSystem, (RLMachine & machine), (override));
-  MOCK_METHOD(unsigned int, GetTicks, (), (const, override));
-  MOCK_METHOD(void, Wait, (unsigned int milliseconds), (const, override));
-  MOCK_METHOD(bool, ShiftPressed, (), (const, override));
-  MOCK_METHOD(bool, CtrlPressed, (), (const, override));
-  MOCK_METHOD(Point, GetCursorPos, (), (override));
-  MOCK_METHOD(void,
-              GetCursorPos,
-              (Point & position, int& button1, int& button2),
-              (override));
-  MOCK_METHOD(void, FlushMouseClicks, (), (override));
-  MOCK_METHOD(unsigned int, TimeOfLastMouseMove, (), (override));
-  MOCK_METHOD(void,
-              InjectMouseMovement,
-              (RLMachine & machine, const Point& loc),
-              (override));
-
-  MOCK_METHOD(void, InjectMouseDown, (RLMachine & machine), (override));
-  MOCK_METHOD(void, InjectMouseUp, (RLMachine & machine), (override));
-};
-
-class MockSystem : public System {
- public:
-  MockSystem(Gameexe& gexe) : gexe_(gexe) {}
-
-  MOCK_METHOD(void, Run, (RLMachine&), (override));
-  MOCK_METHOD(GraphicsSystem&, graphics, (), (override));
-  MOCK_METHOD(EventSystem&, event, (), (override));
-  MOCK_METHOD(TextSystem&, text, (), (override));
-  MOCK_METHOD(SoundSystem&, sound, (), (override));
-
-  Gameexe& gameexe() override { return gexe_; }
-
-  Gameexe& gexe_;
-};
-
-class MockSoundSystem : public SoundSystem {
- public:
-  MockSoundSystem(System& sys) : SoundSystem(sys) {}
-
-  MOCK_METHOD(int, BgmStatus, (), (const, override));
-  MOCK_METHOD(void, BgmPlay, (const std::string&, bool), (override));
-  MOCK_METHOD(void, BgmPlay, (const std::string&, bool, int), (override));
-  MOCK_METHOD(void, BgmPlay, (const std::string&, bool, int, int), (override));
-  MOCK_METHOD(void, BgmStop, (), (override));
-  MOCK_METHOD(void, BgmPause, (), (override));
-  MOCK_METHOD(void, BgmUnPause, (), (override));
-  MOCK_METHOD(void, BgmFadeOut, (int), (override));
-  MOCK_METHOD(std::string, GetBgmName, (), (const, override));
-  MOCK_METHOD(bool, BgmLooping, (), (const, override));
-  MOCK_METHOD(void, WavPlay, (const std::string&, bool), (override));
-  MOCK_METHOD(void, WavPlay, (const std::string&, bool, int), (override));
-  MOCK_METHOD(void, WavPlay, (const std::string&, bool, int, int), (override));
-  MOCK_METHOD(bool, WavPlaying, (const int), (override));
-  MOCK_METHOD(void, WavStop, (const int), (override));
-  MOCK_METHOD(void, WavStopAll, (), (override));
-  MOCK_METHOD(void, WavFadeOut, (const int, const int), (override));
-  MOCK_METHOD(void, PlaySe, (const int), (override));
-  MOCK_METHOD(bool, KoePlaying, (), (const, override));
-  MOCK_METHOD(void, KoeStop, (), (override));
-  MOCK_METHOD(void, KoePlayImpl, (int), (override));
-
-  // methods exposed for testing
-  using SoundSystem::cd_table;
-  using SoundSystem::ds_table;
-  using SoundSystem::se_table;
-};
 
 using ::testing::AnyNumber;
 using ::testing::Return;
