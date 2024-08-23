@@ -197,7 +197,7 @@ void SDLMusic::MixMusic(void* udata, Uint8* stream, int len) {
 
 template <typename TYPE>
 WAVFILE* BuildMusicImplementation(FILE* file, int size) {
-  return WAVFILE::MakeConverter(new TYPE(file, size));
+  return new TYPE(file, size);
 }
 
 std::shared_ptr<SDLMusic> SDLMusic::CreateMusic(
