@@ -35,6 +35,7 @@ test_case_files = [
   "test/gameexe_unittest.cc",
   "test/rlmachine_test.cc",
   "test/lazy_array_test.cc",
+  "test/bitstream_unittest.cc",
   "test/graphics_object_test.cc",
   "test/rloperation_test.cc",
   "test/regressions_test.cc",

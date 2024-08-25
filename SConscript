@@ -194,6 +194,7 @@ librlvm_files = [
   "src/utilities/date_util.cc",
   "src/utilities/find_font_file.cc",
   "src/utilities/math_util.cc",
+  "src/utilities/bitstream.cc",
   "vendor/xclannad/endian.cpp",
   "vendor/xclannad/file.cc",
   "vendor/xclannad/koedec_ogg.cc",
