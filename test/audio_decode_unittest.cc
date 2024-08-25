@@ -26,10 +26,13 @@
 
 #include "base/acodec/nwa.h"
 #include "test_utils.h"
-#include "xclannad/wavfile.h"
 
 #include <cstdlib>
 #include <fstream>
+
+#include <boost/filesystem.hpp>
+
+namespace fs = boost::filesystem;
 
 static float SampleAt(float t) {
   static constexpr auto pi = 3.1415926535897932384626433832795;
@@ -46,6 +49,11 @@ static constexpr float duration = 0.2;
 static constexpr int channels = 2;
 static constexpr int freq = 22050;
 
+template <typename T>
+static T sqr(T x) {
+  return x * x;
+}
+
 TEST(NwaDecode, NoCompress) {
   fs::path audiofile = locateTestCase("Gameroot/BGM/BGM01.nwa");
   std::vector<char> audioData;
@@ -57,30 +65,257 @@ TEST(NwaDecode, NoCompress) {
     audioData.resize(n);
     fp.read(audioData.data(), n);
   }
-  NwaDecoder dec(audioData.data(), audioData.size());
+  NwaDecoder decoder(audioData.data(), audioData.size());
 
-  std::vector<float> decoded;
-  for (const auto& sample : dec.DecodeAll()) {
-    EXPECT_LE(sample, 1.0);
-    EXPECT_GE(sample, -1.0);
-    decoded.push_back(sample * INT16_MAX);
+  std::vector<float> actual_sample[2];
+  int ch = 0;
+  for (const auto& it : decoder.DecodeAll()) {
+    actual_sample[ch].push_back(it);
+    ch ^= 1;
   }
-
-  auto n = decoded.size();
-  ASSERT_EQ(n, freq * duration * channels);
+  auto n = actual_sample[0].size();
+  ASSERT_EQ(actual_sample[0].size(), actual_sample[1].size());
+  ASSERT_EQ(n, freq * duration);
 
   std::vector<float> expect_wav;
   for (int i = 0; i < n; ++i) {
     float t = 1.0 / freq * i;
-    auto sample = 32767 * SampleAt(t);
-    expect_wav.push_back(sample);
-    expect_wav.push_back(sample);
+    expect_wav.push_back(SampleAt(t));
   }
 
-  auto sqr = [](auto x) { return x * x; };
+  double var[2] = {};
+  for (int i = 0; i < n; ++i) {
+    var[0] += sqr(expect_wav[i] - actual_sample[0][i]) / n;
+    var[1] += sqr(expect_wav[i] - actual_sample[1][i]) / n;
+  }
 
-  double var = 0;
-  for (int i = 0; i < n; ++i)
-    var += 1.0 * sqr(expect_wav[i] - decoded[i]) / n;
-  EXPECT_LE(sqrt(var), 100);
+  EXPECT_LE(sqrt((var[0] + var[1]) / 2), 1e-4);
+}
+
+TEST(NwaDecode, Compress2) {
+  std::string audiofile = locateTestCase("Gameroot/BGM/BGM02.nwa");
+  std::vector<char> audioData;
+  {
+    std::ifstream fp(audiofile);
+    fp.seekg(0, std::ios::end);
+    auto n = fp.tellg();
+    fp.seekg(0, std::ios::beg);
+    audioData.resize(n);
+    fp.read(audioData.data(), n);
+  }
+
+  NwaCompDecoder decoder(audioData.data(), audioData.size());
+
+  std::vector<float> actual_sample[2];
+  int ch = 0;
+  for (const auto& it : decoder.DecodeAll()) {
+    actual_sample[ch].push_back(it);
+    ch ^= 1;
+  }
+  auto n = actual_sample[0].size();
+  ASSERT_EQ(actual_sample[0].size(), actual_sample[1].size());
+  ASSERT_EQ(n, freq * duration);
+
+  std::vector<float> expect_wav;
+  for (int i = 0; i < n; ++i) {
+    float t = 1.0 / freq * i;
+    expect_wav.push_back(SampleAt(t));
+  }
+
+  double var[2] = {};
+  for (int i = 0; i < n; ++i) {
+    var[0] += sqr(expect_wav[i] - actual_sample[0][i]) / n;
+    var[1] += sqr(expect_wav[i] - actual_sample[1][i]) / n;
+  }
+  EXPECT_LE(sqrt((var[0] + var[1]) / 2), 0.02);
+}
+
+TEST(NwaDecode, Compress1) {
+  std::string audiofile = locateTestCase("Gameroot/BGM/BGM03.nwa");
+  std::vector<char> audioData;
+  {
+    std::ifstream fp(audiofile);
+    fp.seekg(0, std::ios::end);
+    auto n = fp.tellg();
+    fp.seekg(0, std::ios::beg);
+    audioData.resize(n);
+    fp.read(audioData.data(), n);
+  }
+
+  NwaCompDecoder decoder(audioData.data(), audioData.size());
+
+  std::vector<float> actual_sample[2];
+  int ch = 0;
+  for (const auto& it : decoder.DecodeAll()) {
+    actual_sample[ch].push_back(it);
+    ch ^= 1;
+  }
+  auto n = actual_sample[0].size();
+  ASSERT_EQ(actual_sample[0].size(), actual_sample[1].size());
+  ASSERT_EQ(n, freq * duration);
+
+  std::vector<float> expect_wav;
+  for (int i = 0; i < n; ++i) {
+    float t = 1.0 / freq * i;
+    expect_wav.push_back(SampleAt(t));
+  }
+
+  double var[2] = {};
+  for (int i = 0; i < n; ++i) {
+    var[0] += sqr(expect_wav[i] - actual_sample[0][i]) / n;
+    var[1] += sqr(expect_wav[i] - actual_sample[1][i]) / n;
+  }
+  EXPECT_LE(sqrt((var[0] + var[1]) / 2), 0.05);
+}
+
+TEST(NwaDecode, Compress0) {
+  std::string audiofile = locateTestCase("Gameroot/BGM/BGM04.nwa");
+  std::vector<char> audioData;
+  {
+    std::ifstream fp(audiofile);
+    fp.seekg(0, std::ios::end);
+    auto n = fp.tellg();
+    fp.seekg(0, std::ios::beg);
+    audioData.resize(n);
+    fp.read(audioData.data(), n);
+  }
+
+  NwaCompDecoder decoder(audioData.data(), audioData.size());
+
+  std::vector<float> actual_sample[2];
+  int ch = 0;
+  for (const auto& it : decoder.DecodeAll()) {
+    actual_sample[ch].push_back(it);
+    ch ^= 1;
+  }
+  auto n = actual_sample[0].size();
+  ASSERT_EQ(actual_sample[0].size(), actual_sample[1].size());
+  ASSERT_EQ(n, freq * duration);
+
+  std::vector<float> expect_wav;
+  for (int i = 0; i < n; ++i) {
+    float t = 1.0 / freq * i;
+    expect_wav.push_back(SampleAt(t));
+  }
+
+  double var[2] = {};
+  for (int i = 0; i < n; ++i) {
+    var[0] += sqr(expect_wav[i] - actual_sample[0][i]) / n;
+    var[1] += sqr(expect_wav[i] - actual_sample[1][i]) / n;
+  }
+  EXPECT_LE(sqrt((var[0] + var[1]) / 2), 0.05);
+}
+
+TEST(NwaDecode, Compress3) {
+  std::string audiofile = locateTestCase("Gameroot/BGM/BGM05.nwa");
+  std::vector<char> audioData;
+  {
+    std::ifstream fp(audiofile);
+    fp.seekg(0, std::ios::end);
+    auto n = fp.tellg();
+    fp.seekg(0, std::ios::beg);
+    audioData.resize(n);
+    fp.read(audioData.data(), n);
+  }
+
+  NwaCompDecoder decoder(audioData.data(), audioData.size());
+
+  std::vector<float> actual_sample[2];
+  int ch = 0;
+  for (const auto& it : decoder.DecodeAll()) {
+    actual_sample[ch].push_back(it);
+    ch ^= 1;
+  }
+  auto n = actual_sample[0].size();
+  ASSERT_EQ(actual_sample[0].size(), actual_sample[1].size());
+  ASSERT_EQ(n, freq * duration);
+
+  std::vector<float> expect_wav;
+  for (int i = 0; i < n; ++i) {
+    float t = 1.0 / freq * i;
+    expect_wav.push_back(SampleAt(t));
+  }
+
+  double var[2] = {};
+  for (int i = 0; i < n; ++i) {
+    var[0] += sqr(expect_wav[i] - actual_sample[0][i]) / n;
+    var[1] += sqr(expect_wav[i] - actual_sample[1][i]) / n;
+  }
+  EXPECT_LE(sqrt((var[0] + var[1]) / 2), 0.0035);
+}
+
+TEST(NwaDecode, Compress4) {
+  std::string audiofile = locateTestCase("Gameroot/BGM/BGM06.nwa");
+  std::vector<char> audioData;
+  {
+    std::ifstream fp(audiofile);
+    fp.seekg(0, std::ios::end);
+    auto n = fp.tellg();
+    fp.seekg(0, std::ios::beg);
+    audioData.resize(n);
+    fp.read(audioData.data(), n);
+  }
+
+  NwaCompDecoder decoder(audioData.data(), audioData.size());
+
+  std::vector<float> actual_sample[2];
+  int ch = 0;
+  for (const auto& it : decoder.DecodeAll()) {
+    actual_sample[ch].push_back(it);
+    ch ^= 1;
+  }
+  auto n = actual_sample[0].size();
+  ASSERT_EQ(actual_sample[0].size(), actual_sample[1].size());
+  ASSERT_EQ(n, freq * duration);
+
+  std::vector<float> expect_wav;
+  for (int i = 0; i < n; ++i) {
+    float t = 1.0 / freq * i;
+    expect_wav.push_back(SampleAt(t));
+  }
+
+  double var[2] = {};
+  for (int i = 0; i < n; ++i) {
+    var[0] += sqr(expect_wav[i] - actual_sample[0][i]) / n;
+    var[1] += sqr(expect_wav[i] - actual_sample[1][i]) / n;
+  }
+  EXPECT_LE(sqrt((var[0] + var[1]) / 2), 0.001);
+}
+
+TEST(NwaDecode, Compress5) {
+  std::string audiofile = locateTestCase("Gameroot/BGM/BGM07.nwa");
+  std::vector<char> audioData;
+  {
+    std::ifstream fp(audiofile);
+    fp.seekg(0, std::ios::end);
+    auto n = fp.tellg();
+    fp.seekg(0, std::ios::beg);
+    audioData.resize(n);
+    fp.read(audioData.data(), n);
+  }
+
+  NwaCompDecoder decoder(audioData.data(), audioData.size());
+
+  std::vector<float> actual_sample[2];
+  int ch = 0;
+  for (const auto& it : decoder.DecodeAll()) {
+    actual_sample[ch].push_back(it);
+    ch ^= 1;
+  }
+  auto n = actual_sample[0].size();
+  ASSERT_EQ(actual_sample[0].size(), actual_sample[1].size());
+  ASSERT_EQ(n, freq * duration);
+
+  std::vector<float> expect_wav;
+  for (int i = 0; i < n; ++i) {
+    float t = 1.0 / freq * i;
+    expect_wav.push_back(SampleAt(t));
+  }
+
+  double var[2] = {};
+  for (int i = 0; i < n; ++i) {
+    var[0] += sqr(expect_wav[i] - actual_sample[0][i]) / n;
+    var[1] += sqr(expect_wav[i] - actual_sample[1][i]) / n;
+  }
+  EXPECT_LE(sqrt((var[0] + var[1]) / 2), 0.0007);
 }

@@ -25,12 +25,11 @@
 #ifndef BASE_ACODEC_NWA_H_
 #define BASE_ACODEC_NWA_H_
 
-#include <boost/filesystem.hpp>
-
+#include <sstream>
 #include <string_view>
 #include <vector>
 
-namespace fs = boost::filesystem;
+#include "utilities/bitstream.h"
 
 struct NwaHeader {
   int channels : 16;
@@ -62,6 +61,116 @@ class NwaDecoder {
   std::string_view sv_data_;
   NwaHeader* hdr_;
   int16_t* stream_;
+};
+
+class NwaCompDecoder {
+ public:
+  NwaCompDecoder(char* data, size_t length) : data_(data, length) {
+    hdr_ = (NwaHeader*)data_.data();
+    offset_count_ = hdr_->unitCount;
+    offset_table_ = (int*)(data_.data() + sizeof(NwaHeader));
+    current_unit_ = 0;
+  }
+
+  std::vector<float> DecodeAll() {
+    std::vector<float> ret;
+    ret.reserve(hdr_->samplePerUnit * hdr_->unitCount);
+    while (current_unit_ < offset_count_) {
+      auto samples = DecodeNext();
+      ret.insert(ret.end(), samples.begin(), samples.end());
+    }
+    return ret;
+  }
+
+  std::vector<float> DecodeNext() {
+    if (current_unit_ >= offset_count_)
+      throw std::logic_error(
+          "DecodeNext() called when no more data is available for decoding.");
+    return DecodeUnit(current_unit_++);
+  }
+  std::vector<float> DecodeUnit(int id) {
+    int begin_pos = offset_table_[id],
+        unit_size = id == (offset_count_ - 1)
+                        ? hdr_->lastUnitPackedSize
+                        : (offset_table_[id + 1] - offset_table_[id]);
+    std::string_view unit_data = data_.substr(begin_pos, unit_size);
+    BitStream reader(unit_data.data(), unit_data.size());
+
+    std::vector<float> ret;
+    auto yieldSample = [&ret](int sample) {
+      ret.push_back(1.0 * sample / 32767);
+    };
+
+    int sample[2] = {}, channel = 0;
+    sample[0] = reader.PopAs<int16_t>(16);
+    if (hdr_->channels == 2)
+      sample[1] = reader.PopAs<int16_t>(16);
+    const int comp = hdr_->compressionMode;
+
+    auto ReadSM = [](int value, int bits) {
+      bool sign = (value >> (bits - 1)) & 1;
+      int magnitude = value & ((1 << ((bits - 1))) - 1);
+      return (sign ? -1 : 1) * magnitude;
+    };
+
+    const int unit_sample_count =
+        id == hdr_->unitCount - 1 ? hdr_->lastUnitSamples : hdr_->samplePerUnit;
+    while (ret.size() < unit_sample_count) {
+      if (reader.Position() >= reader.Size()) {
+        std::ostringstream oss;
+        oss << "Data section length mismatch. (section id " << id;
+        oss << ", from=" << begin_pos;
+        oss << " size=" << unit_size;
+        throw std::runtime_error(oss.str());
+      }
+
+      unsigned int type = reader.Popbits(3);
+      do {
+        if (type == 0) {
+          if (hdr_->zeroMode) {
+            int zeros = reader.Popbits(1);
+            if (zeros == 0b1)
+              zeros = reader.Popbits(2);
+            if (zeros == 0b11)
+              zeros = reader.Popbits(8);
+
+            while (zeros--)
+              yieldSample(sample[channel]);
+            break;
+          }
+        } else if (1 <= type && type <= 6) {
+          int bits = comp >= 3 ? 3 + comp : 5 - comp;
+          int shift = comp >= 3 ? 1 + type : 2 + type + comp;
+          int base = ReadSM(reader.Popbits(bits), bits);
+          sample[channel] += base << shift;
+        } else if (type == 7) {
+          bool flag = reader.Popbits(1);
+          if (flag)
+            sample[channel] = 0;
+          else {
+            int bits = comp >= 3 ? 8 : 8 - comp;
+            int shift = comp >= 3 ? 9 : 9 + comp;
+            int base = ReadSM(reader.Popbits(bits), bits);
+            sample[channel] += base << shift;
+          }
+        }
+
+        yieldSample(sample[channel]);
+      } while (false);
+
+      if (hdr_->channels == 2)
+        channel ^= 1;
+    }
+
+    return ret;
+  }
+
+ private:
+  std::string_view data_;
+  NwaHeader* hdr_;
+  int offset_count_;
+  int* offset_table_;
+  int current_unit_;
 };
 
 #endif
