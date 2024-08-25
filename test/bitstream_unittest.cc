@@ -36,6 +36,7 @@ TEST(BitStreamTest, ReadBits) {
   EXPECT_EQ(bs.Readbits(4), 0b1011);
   EXPECT_EQ(bs.Readbits(10), 0b11111011);
   EXPECT_EQ(bs.Readbits(13), 0b1000011111011);
+  EXPECT_EQ(bs.Position(), 0);
 }
 
 TEST(BitStreamTest, PopBits) {
@@ -47,9 +48,15 @@ TEST(BitStreamTest, PopBits) {
   BitStream bs(rawbits, rawbits + N);
 
   EXPECT_EQ(bs.Popbits(4), 0b0101);
+  EXPECT_EQ(bs.Position(), 4);
   EXPECT_EQ(bs.Popbits(32), 0b10110000000000001000111110010000);
+  EXPECT_EQ(bs.Position(), 36);
   EXPECT_EQ(bs.Popbits(11), 0b1010010011);
+  EXPECT_EQ(bs.Position(), 47);
   EXPECT_EQ(bs.Popbits(50), 0b1010100011111110110000111110101);
+  EXPECT_EQ(bs.Position(), 96);
+  EXPECT_EQ(bs.Popbits(30), 0);
+  EXPECT_EQ(bs.Position(), 96);
 }
 
 TEST(BitStreamTest, EdgeWidth) {
@@ -57,7 +64,7 @@ TEST(BitStreamTest, EdgeWidth) {
                     0xf1, 0x2b, 0x7f, 0x46, 0xa9, 0x8c};
   const size_t N = sizeof(rawbits) / sizeof(char);
 
-  BitStream bs(rawbits, rawbits+N);
+  BitStream bs(rawbits, rawbits + N);
   EXPECT_EQ(bs.Popbits(0), 0);
   EXPECT_EQ(bs.Popbits(3), 3);
   EXPECT_EQ(bs.Popbits(64), 16536725195841488309ull);
@@ -71,4 +78,26 @@ TEST(BitStreamTest, InvalidBitwidth) {
   BitStream bs(rawbits, rawbits + N);
   EXPECT_THROW(bs.Readbits(-1), std::invalid_argument);
   EXPECT_THROW(bs.Readbits(65), std::invalid_argument);
+}
+
+TEST(BitStreamTest, TypeCast) {
+  char rawbits[] = {0xab, 0x2d, 0x12, 0x33, 0x9a};
+  const size_t N = sizeof(rawbits) / sizeof(char);
+
+  BitStream bs(rawbits, rawbits + N);
+  EXPECT_EQ(bs.ReadAs<uint8_t>(8), 171);
+  EXPECT_EQ(bs.PopAs<int8_t>(8), -85);
+  EXPECT_EQ(bs.ReadAs<uint16_t>(16), 0x122d);
+  EXPECT_EQ(bs.PopAs<int16_t>(16), 0x122d);
+  EXPECT_THROW(bs.ReadAs<int16_t>(17), std::invalid_argument);
+}
+
+TEST(BitStreamTest, IEEE754Floats) {
+  unsigned char rawbits[] = {0xB3, 0xAE, 0xCF, 0xBA, 0,    0,
+                             0,    0,    0,    0,    0xc4, 0x3f};
+  const size_t N = sizeof(rawbits) / sizeof(unsigned char);
+
+  BitStream bs(rawbits, rawbits + N);
+  EXPECT_FLOAT_EQ(bs.PopAs<float>(32), -0.001584491);
+  EXPECT_DOUBLE_EQ(bs.PopAs<double>(64), 0.15625);
 }

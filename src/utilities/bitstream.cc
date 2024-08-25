@@ -27,12 +27,10 @@
 #include <algorithm>
 #include <stdexcept>
 
-BitStream::BitStream(uint8_t* data, size_t length)
-    : data_(data), length_(length * 8), number_(0), tail_pos_(0) {
-  for (int i = 0; i < length && i < 8; ++i) {
+BitStream::BitStream(const uint8_t* data, size_t length)
+    : data_(data), length_(length * 8), number_(0), pos_(0) {
+  for (int i = 0; i < length && i < 8; ++i)
     number_ |= static_cast<uint64_t>(data_[i]) << (i * 8);
-    tail_pos_ += 8;
-  }
 }
 
 uint64_t BitStream::Readbits(const int& bitwidth) {
@@ -47,26 +45,40 @@ uint64_t BitStream::Readbits(const int& bitwidth) {
 
 uint64_t BitStream::Popbits(const int& bitwidth) {
   auto ret = Readbits(bitwidth);
+  Proceed(bitwidth);
+  return ret;
+}
 
-  if (bitwidth == 64)
+size_t BitStream::Position(void) const { return pos_; }
+
+size_t BitStream::Size(void) const { return Length(); }
+
+size_t BitStream::Length(void) const { return length_; }
+
+void BitStream::Proceed(const int& bitcount) {
+  if (bitcount >= 64)
     number_ = 0;
   else
-    number_ >>= bitwidth;
+    number_ >>= bitcount;
 
-  if (tail_pos_ < length_) {
-    uint64_t sigbit = (data_[tail_pos_ / 8] >> (tail_pos_ % 8));
-    int shift = 8 - (int)(tail_pos_ % 8);
-    for (; shift < bitwidth; shift += 8) {
-      if (tail_pos_ + shift >= length_)
+  size_t tailpos = pos_ + 64;
+  pos_ += bitcount;
+  if (pos_ > length_)
+    pos_ = length_;
+
+  if (tailpos < length_) {
+    uint64_t sigbit = (data_[tailpos / 8] >> (tailpos % 8));
+    int shift = 8 - (int)(tailpos % 8);
+    for (; shift < bitcount; shift += 8) {
+      if (tailpos + shift >= length_)
         break;
 
-      sigbit |= data_[(tail_pos_ + shift) / 8] << shift;
+      sigbit |= data_[(tailpos + shift) / 8] << shift;
     }
-    if (bitwidth < 64)
-      sigbit &= (1ull << bitwidth) - 1;
-    number_ |= sigbit << (64 - bitwidth);
-    tail_pos_ += bitwidth;
-  }
+    if (bitcount < 64)
+      sigbit &= (1ull << bitcount) - 1;
+    number_ |= sigbit << (64 - bitcount);
 
-  return ret;
+    tailpos += bitcount;
+  }
 }
