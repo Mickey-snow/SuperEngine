@@ -42,11 +42,8 @@ class TextoutFactory;
 
 // Display-text elements.
 class TextoutElement : public BytecodeElement {
- protected:
-  friend class Parser;
-  TextoutElement(const char* src, const char* file_end);
-
  public:
+  TextoutElement(const char* src, const char* file_end);
   virtual ~TextoutElement();
 
   const std::string GetText() const;

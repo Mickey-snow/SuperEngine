@@ -61,17 +61,22 @@ void PrintParameterString(std::ostream& oss,
 
 class Parser {
  public:
-  static BytecodeElement* ParseBytecode(const char* stream,
-                                        const char* end,
-                                        ConstructionData& cdata);
+  explicit Parser();
+  explicit Parser(std::shared_ptr<ConstructionData> cdata);
+
+  BytecodeElement* ParseBytecode(const char* stream, const char* end);
   static TextoutElement* ParseTextout(const char* stream, const char* end);
-  static CommandElement* ParseFunction(const char* stream,
-                                       ConstructionData& cdata);
+  CommandElement* ParseFunction(const char* stream);
   static CommandElement* BuildFunctionElement(const char* stream);
 
-  static MetaElement* MakeMetaElement(ConstructionData* cdata,
-                                      const char* stream);
-  static Expression* MakeExpressionElement(const char* stream);
+ private:
+  std::shared_ptr<ConstructionData> cdata;
+};
+
+class Factory {
+ public:
+  static CommandElement* MakeFunction(const char* opcode,
+                                      const std::vector<std::string>& params);
 };
 
 }  // namespace libreallive

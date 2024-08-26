@@ -1445,10 +1445,9 @@ void ReplayGraphicsStackCommand(RLMachine& machine,
     for (auto const& command : stack) {
       if (command != "") {
         // Parse the string as a chunk of Reallive bytecode.
-        libreallive::ConstructionData cdata(0, libreallive::pointer_t());
+        libreallive::Parser parser;
         libreallive::BytecodeElement* element =
-          libreallive::Parser::ParseBytecode(
-                command.c_str(), command.c_str() + command.size(), cdata);
+          parser.ParseBytecode(command.c_str(), command.c_str() + command.size());
         libreallive::CommandElement* command =
             dynamic_cast<libreallive::CommandElement*>(element);
         if (command) {

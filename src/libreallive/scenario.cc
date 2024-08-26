@@ -119,9 +119,9 @@ Script::Script(const Header& hdr,
   // Kidoku/entrypoint table
   const int kidoku_offs = read_i32(data + 0x08);
   const size_t kidoku_length = read_i32(data + 0x0c);
-  ConstructionData cdat(kidoku_length, elts_.end());
+  std::shared_ptr<ConstructionData> cdat = std::make_shared<ConstructionData>(kidoku_length, elts_.end());
   for (size_t i = 0; i < kidoku_length; ++i)
-    cdat.kidoku_table[i] = read_i32(data + kidoku_offs + i * 4);
+    cdat->kidoku_table[i] = read_i32(data + kidoku_offs + i * 4);
 
   // Decompress data
   const size_t dlen = read_i32(data + 0x24);
@@ -150,10 +150,12 @@ Script::Script(const Header& hdr,
   const char* end = uncompressed + dlen;
   size_t pos = 0;
   pointer_t it = elts_.before_begin();
+
+  Parser parser(cdat);
   while (pos < dlen) {
     // Read element
-    it = elts_.emplace_after(it, Parser::ParseBytecode(stream, end, cdat));
-    cdat.offsets[pos] = it;
+    it = elts_.emplace_after(it, parser.ParseBytecode(stream, end));
+    cdat->offsets[pos] = it;
 
     // Keep track of the entrypoints
     int entrypoint = (*it)->GetEntrypoint();
@@ -170,7 +172,7 @@ Script::Script(const Header& hdr,
 
   // Resolve pointers
   for (auto& element : elts_) {
-    element->SetPointers(cdat);
+    element->SetPointers(*cdat);
   }
 
   delete[] uncompressed;

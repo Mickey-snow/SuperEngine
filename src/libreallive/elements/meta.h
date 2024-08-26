@@ -33,11 +33,13 @@
 
 #include "libreallive/elements/bytecode.h"
 
+#include <memory>
+
 namespace libreallive{
 // Metadata elements: source line, kidoku, and entrypoint markers.
 class MetaElement : public BytecodeElement {
  public:
-  MetaElement(const ConstructionData* cv, const char* src);
+  MetaElement(std::shared_ptr<ConstructionData> cv, const char* src);
   virtual ~MetaElement();
 
   const int value() const { return value_; }

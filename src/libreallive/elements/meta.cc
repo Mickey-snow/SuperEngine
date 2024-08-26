@@ -31,9 +31,10 @@
 #include "libreallive/elements/meta.h"
 #include "machine/rlmachine.h"
 
-namespace libreallive{
-  
-MetaElement::MetaElement(const ConstructionData* cv, const char* src) {
+namespace libreallive {
+
+MetaElement::MetaElement(std::shared_ptr<ConstructionData> cv,
+                         const char* src) {
   value_ = read_i16(src + 1);
   if (!cv) {
     type_ = Line_;
@@ -71,5 +72,5 @@ void MetaElement::RunOnMachine(RLMachine& machine) const {
 
   machine.AdvanceInstructionPointer();
 }
-  
-}
+
+}  // namespace libreallive

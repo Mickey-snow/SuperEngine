@@ -97,3 +97,4 @@ TEST(ParserTest, ParseQuotedEnglishString) {
 
   ASSERT_EQ(16, libreallive::NextString(s.c_str()));
 }
+
