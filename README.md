@@ -21,25 +21,22 @@ added to RealLive for Little Busters, to \\{jyuichi} for help with Kud Wafter, a
 
 ## STATUS
 
-rlvm currently plays the following games to their completion:
-
-| Japanese Edition Games | Status          | English Fan Patch Status |
-| ---------------------- | --------------- | ------------------------ |
-| Kanon Standard Edition | OK              | [NDT's patch][kanon]     |
-| Air Standard Edition   | OK              | (None)                   |
-| CLANNAD                | OK              | (Not supported)          |
-| CLANNAD (Full Voice)   | OK              | [Licensed][clannad]      |
-| Planetarian CD         | OK              | [Licensed][planetarian]  |
-| Tomoyo After           | OK              | (None)                   |
-| Little Busters         | OK              | (Untested)               |
-| Kud Wafter             | OK              | (None)                   |
-
-| US Edition Games       | Status                         |
-| ---------------------- | ------------------------------ |
-| Planetarian            | Works; [buy here][planetarian] |
+| Titles                 | Status          | Notes                                 |
+|------------------------|-----------------|---------------------------------------|
+| Kanon Standard Edition | Full Support    | Also supports [NDT's patch][kanon]    |
+| Air Standard Edition   | Full Support    |                                       |
+| CLANNAD                | Full Support    |                                       |
+| CLANNAD (Full Voice)   | Full Support    | [Licensed][clannad]                   |
+| CLANNAD Side Stories   | Not Supported   | [Licensed][clannad_side_stories]      |
+| Planetarian CD         | Full Support    | [Licensed][planetarian]               |
+| Tomoyo After           | Full Support    |                                       |
+| Little Busters         | Partial Support | Untested, Steam edition not supported |
+| Kud Wafter             | Full Support    |                                       |
+| Planetarian            | Full Support    | [buy here][planetarian]               |
 
 [kanon]: http://radicalr.pestermom.com/vn.html
 [clannad]: http://store.steampowered.com/app/324160/
+[clannad_side_stories]: https://store.steampowered.com/app/420100/
 [planetarian]: http://store.steampowered.com/app/316720/
 
 For more details, please read STATUS.TXT.
@@ -58,10 +55,6 @@ vorbis voice patches which follow the convention
 
 Fullscreen can be entered by pressing Alt+{F,Enter} on Linux and
 Command+{F,Enter} on Mac.
-
-Please report bugs on [the GitHub bug tracker][bugtracker].
-
-[bugtracker]: https://github.com/eglaysher/rlvm/issues
 
 ## USING RLVM
 
