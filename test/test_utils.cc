@@ -26,26 +26,25 @@
 // -----------------------------------------------------------------------
 
 #include "test_utils.h"
-#include <vector>
 #include <boost/filesystem/operations.hpp>
-#include <stdexcept>
 #include <sstream>
+#include <stdexcept>
 #include <string>
+#include <vector>
 
+using std::ostringstream;
 using std::string;
 using std::vector;
-using std::ostringstream;
 
 namespace fs = boost::filesystem;
 
 // -----------------------------------------------------------------------
 
-const std::vector<std::string> testPaths = {"./", "./test/", "./build/test/"};
+const std::vector<std::string> testPaths = {"./", "./build/test/", "./test/"};
 
 string locateTestCase(const string& baseName) {
   for (vector<string>::const_iterator it = testPaths.begin();
-       it != testPaths.end();
-       ++it) {
+       it != testPaths.end(); ++it) {
     string testName = *it + baseName;
     if (fs::exists(testName))
       return testName;

@@ -44,6 +44,7 @@ librlvm_files = [
   "src/base/notification_registrar.cc",
   "src/base/notification_service.cc",
   "src/base/notification_source.cc",
+  "src/base/acodec/nwa.cc",
   "src/effects/blind_effect.cc",
   "src/effects/effect.cc",
   "src/effects/effect_factory.cc",

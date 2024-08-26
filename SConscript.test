@@ -48,6 +48,7 @@ test_case_files = [
   "test/test_index_series.cc",
   "test/rect_test.cc",
   "test/parser_unittest.cc",
+  "test/audio_decode_unittest.cc",
 
   # medium tests
   "test/medium_eventloop_test.cc",
