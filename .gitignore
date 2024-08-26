@@ -17,3 +17,4 @@ rlvm.suo
 /.sconf_temp
 /.sconsign.dblite
 _site
+.dir-locals.el
