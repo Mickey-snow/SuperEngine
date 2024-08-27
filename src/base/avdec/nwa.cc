@@ -22,7 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#include "base/acodec/nwa.h"
+#include "base/avdec/nwa.h"
 
 #include <algorithm>
 #include <sstream>

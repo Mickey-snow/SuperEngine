@@ -24,7 +24,7 @@
 
 #include <gtest/gtest.h>
 
-#include "base/acodec/nwa.h"
+#include "base/avdec/nwa.h"
 #include "test_utils.h"
 
 #include <cstdlib>
