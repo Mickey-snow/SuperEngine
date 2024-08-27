@@ -24,26 +24,24 @@
 
 #include "base/acodec/nwa.h"
 
+#include <algorithm>
 #include <sstream>
 
 // Constructor definitions
-NwaHQDecoder::NwaHQDecoder(std::string_view data) : sv_data_(data) { ReadHeader(); }
+NwaHQDecoder::NwaHQDecoder(std::string_view data) : sv_data_(data) {
+  ReadHeader();
+}
 
 NwaHQDecoder::NwaHQDecoder(char* data, size_t length) : sv_data_(data, length) {
   ReadHeader();
 }
 
 // Method definitions
-std::vector<float> NwaHQDecoder::DecodeAll() {
-  // only handle 16 bit audio currently
-  std::vector<float> ret(hdr_->origSize / sizeof(int16_t));
-  for (size_t i = 0; i < ret.size(); ++i) {
-    ret[i] = 1.0 * ((int16_t*)stream_)[i] / INT16_MAX;
-    if (ret[i] > 1.0)
-      ret[i] = 1.0;
-    if (ret[i] < -1.0)
-      ret[i] = -1.0;
-  }
+NwaHQDecoder::PcmStream_t NwaHQDecoder::DecodeAll() {
+  const int sample_count = hdr_->totalSamples;
+  const int byte_count = sample_count * (hdr_->bitsPerSample / 8);
+  PcmStream_t ret(byte_count);
+  std::copy_n((uint8_t*)stream_, ret.size(), ret.begin());
   return ret;
 }
 

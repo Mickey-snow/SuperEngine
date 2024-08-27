@@ -41,7 +41,7 @@ struct NwaHeader {
   int unitCount : 32;
   int origSize : 32;
   int packedSize : 32;
-  int samplePerChannel : 32;
+  int totalSamples : 32;
   int samplePerUnit : 32;
   int lastUnitSamples : 32;
   int lastUnitPackedSize : 32;
@@ -51,7 +51,7 @@ class NwaDecoderImpl {
  public:
   virtual ~NwaDecoderImpl() = default;
 
-  using PcmStream_t = std::vector<float>;
+  using PcmStream_t = std::vector<uint8_t>;
 
   virtual bool HasNext() { return false; }  // unused
   virtual PcmStream_t DecodeNext() = 0;
@@ -64,8 +64,8 @@ class NwaHQDecoder : public NwaDecoderImpl {
   NwaHQDecoder(char* data, size_t length);
   ~NwaHQDecoder() = default;
 
-  std::vector<float> DecodeAll() override;
-  std::vector<float> DecodeNext() override { return DecodeAll(); }
+  PcmStream_t DecodeAll() override;
+  PcmStream_t DecodeNext() override { return DecodeAll(); }
 
  private:
   void ReadHeader();
@@ -87,8 +87,8 @@ class NwaCompDecoder : public NwaDecoderImpl {
   NwaCompDecoder(const char* data, size_t size)
       : NwaCompDecoder(std::string_view(data, size)) {}
 
-  std::vector<float> DecodeAll() override {
-    std::vector<float> ret;
+  PcmStream_t DecodeAll() override {
+    PcmStream_t ret;
     ret.reserve(hdr_->samplePerUnit * hdr_->unitCount);
     while (current_unit_ < offset_count_) {
       auto samples = DecodeNext();
@@ -97,13 +97,13 @@ class NwaCompDecoder : public NwaDecoderImpl {
     return ret;
   }
 
-  std::vector<float> DecodeNext() override {
+  PcmStream_t DecodeNext() override {
     if (current_unit_ >= offset_count_)
       throw std::logic_error(
           "DecodeNext() called when no more data is available for decoding.");
     return DecodeUnit(current_unit_++);
   }
-  std::vector<float> DecodeUnit(int id) {
+  PcmStream_t DecodeUnit(int id) {
     int begin_pos = offset_table_[id],
         unit_size = id == (offset_count_ - 1)
                         ? hdr_->lastUnitPackedSize
@@ -111,12 +111,15 @@ class NwaCompDecoder : public NwaDecoderImpl {
     std::string_view unit_data = data_.substr(begin_pos, unit_size);
     BitStream reader(unit_data.data(), unit_data.size());
 
-    std::vector<float> ret;
-    auto yieldSample = [&ret](int sample) {
-      ret.push_back(1.0 * sample / 32767);
+    PcmStream_t ret;
+    int current_sample_count = 0;
+    auto yieldSample = [&ret, &current_sample_count](int16_t sample) {
+      ret.push_back(sample & ((1 << 8) - 1));
+      ret.push_back(sample >> 8);
+      ++current_sample_count;
     };
 
-    int sample[2] = {}, channel = 0;
+    int16_t sample[2] = {}, channel = 0;
     sample[0] = reader.PopAs<int16_t>(16);
     if (hdr_->channels == 2)
       sample[1] = reader.PopAs<int16_t>(16);
@@ -130,7 +133,7 @@ class NwaCompDecoder : public NwaDecoderImpl {
 
     const int unit_sample_count =
         id == hdr_->unitCount - 1 ? hdr_->lastUnitSamples : hdr_->samplePerUnit;
-    while (ret.size() < unit_sample_count) {
+    while (current_sample_count < unit_sample_count) {
       if (reader.Position() >= reader.Size()) {
         std::ostringstream oss;
         oss << "Data section length mismatch. (section id " << id;
@@ -201,7 +204,7 @@ class NwaDecoder {
   NwaDecoder(char* data, size_t length)
       : NwaDecoder(std::string_view(data, length)) {}
 
-  using PcmStream_t = std::vector<float>;
+  using PcmStream_t = std::vector<uint8_t>;
 
   PcmStream_t DecodeNext() { return impl_->DecodeNext(); }
   PcmStream_t DecodeAll() { return impl_->DecodeAll(); }
