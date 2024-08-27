@@ -31,8 +31,8 @@
 #include <iostream>
 #include <sstream>
 
-#include "base/notification_source.h"
-#include "base/notification_type.h"
+#include "base/notification/source.h"
+#include "base/notification/type.h"
 #include "systems/base/system_error.h"
 #include "systems/sdl/sdl_graphics_system.h"
 #include "systems/sdl/sdl_utils.h"

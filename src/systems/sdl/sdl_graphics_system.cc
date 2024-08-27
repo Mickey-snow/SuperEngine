@@ -46,7 +46,7 @@
 #include <string>
 #include <vector>
 
-#include "base/notification_source.h"
+#include "base/notification/source.h"
 #include "libreallive/gameexe.h"
 #include "machine/rlmachine.h"
 #include "systems/base/cgm_table.h"

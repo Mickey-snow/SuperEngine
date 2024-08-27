@@ -2,11 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "base/notification_registrar.h"
+#include "base/notification/registrar.h"
 
 #include <algorithm>
 
-#include "base/notification_service.h"
+#include "base/notification/service.h"
 
 struct NotificationRegistrar::Record {
   bool operator==(const Record& other) const;

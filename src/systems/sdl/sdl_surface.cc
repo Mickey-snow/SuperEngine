@@ -32,7 +32,7 @@
 #include <sstream>
 #include <vector>
 
-#include "base/notification_source.h"
+#include "base/notification/source.h"
 #include "pygame/alphablit.h"
 #include "systems/base/colour.h"
 #include "systems/base/graphics_object.h"

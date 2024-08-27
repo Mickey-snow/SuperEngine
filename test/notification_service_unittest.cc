@@ -2,9 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "base/notification_observer.h"
-#include "base/notification_registrar.h"
-#include "base/notification_service.h"
+#include "base/notification/observer.h"
+#include "base/notification/registrar.h"
+#include "base/notification/service.h"
 
 #include "gtest/gtest.h"
 

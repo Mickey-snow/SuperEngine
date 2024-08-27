@@ -26,7 +26,7 @@
 
 #include "platforms/gcn/gcn_scroll_area.h"
 
-#include "base/notification_service.h"
+#include "base/notification/service.h"
 #include "platforms/gcn/gcn_utils.h"
 
 static int bggridx[] = {0, 3, 28, 31};

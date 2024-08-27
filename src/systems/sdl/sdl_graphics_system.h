@@ -34,8 +34,8 @@
 #include <set>
 #include <string>
 
-#include "base/notification_observer.h"
-#include "base/notification_registrar.h"
+#include "base/notification/observer.h"
+#include "base/notification/registrar.h"
 #include "systems/base/graphics_system.h"
 
 struct SDL_Surface;

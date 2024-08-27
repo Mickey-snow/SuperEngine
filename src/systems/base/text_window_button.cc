@@ -30,8 +30,8 @@
 #include <stdexcept>
 #include <vector>
 
-#include "base/notification_details.h"
-#include "base/notification_service.h"
+#include "base/notification/details.h"
+#include "base/notification/service.h"
 #include "machine/long_operation.h"
 #include "machine/rlmachine.h"
 #include "systems/base/event_system.h"

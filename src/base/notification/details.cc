@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "base/notification_details.h"
+#include "base/notification/details.h"
 
 #include <cstddef>
 

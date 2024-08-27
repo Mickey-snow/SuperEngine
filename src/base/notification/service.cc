@@ -2,11 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "base/notification_service.h"
+#include "base/notification/service.h"
 
 #include <cstdio>
 
-#include "base/notification_observer.h"
+#include "base/notification/observer.h"
 
 // static
 NotificationService* NotificationService::current() {

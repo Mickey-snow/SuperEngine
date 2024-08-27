@@ -11,10 +11,10 @@
 
 #include <map>
 
-#include "base/observer_list.h"
-#include "base/notification_details.h"
-#include "base/notification_source.h"
-#include "base/notification_type.h"
+#include "base/notification/observer_list.h"
+#include "base/notification/details.h"
+#include "base/notification/source.h"
+#include "base/notification/type.h"
 
 class NotificationObserver;
 

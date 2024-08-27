@@ -43,9 +43,9 @@
 #include <utility>
 #include <vector>
 
-#include "base/notification_details.h"
-#include "base/notification_service.h"
-#include "base/notification_source.h"
+#include "base/notification/details.h"
+#include "base/notification/service.h"
+#include "base/notification/source.h"
 #include "libreallive/expression.h"
 #include "libreallive/gameexe.h"
 #include "machine/rlmachine.h"

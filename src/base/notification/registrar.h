@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <vector>
 
-#include "base/notification_type.h"
+#include "base/notification/type.h"
 
 class NotificationObserver;
 class NotificationSource;

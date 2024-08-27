@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "base/notification_source.h"
+#include "base/notification/source.h"
 
 NotificationSource::NotificationSource(const NotificationSource& other)
     : ptr_(other.ptr_) {

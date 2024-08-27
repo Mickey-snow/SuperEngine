@@ -29,8 +29,8 @@
 
 #include <guichan/widgets/scrollarea.hpp>
 
-#include "base/notification_observer.h"
-#include "base/notification_registrar.h"
+#include "base/notification/observer.h"
+#include "base/notification/registrar.h"
 #include "platforms/gcn/gcn_graphics.h"
 
 // Copy of TMW's ScrollArea class, adapted to my system.

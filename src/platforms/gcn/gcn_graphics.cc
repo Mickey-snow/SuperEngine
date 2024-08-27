@@ -30,7 +30,7 @@
 #include <guichan/image.hpp>
 #include <guichan/opengl/openglimage.hpp>
 
-#include "base/notification_service.h"
+#include "base/notification/service.h"
 #include "platforms/gcn/gcn_utils.h"
 
 // -----------------------------------------------------------------------

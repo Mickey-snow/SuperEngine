@@ -33,7 +33,7 @@
 #include <memory>
 #include <string>
 
-#include "base/notification_service.h"
+#include "base/notification/service.h"
 #include "systems/base/rect.h"
 #include "systems/sdl/sdl_surface.h"
 

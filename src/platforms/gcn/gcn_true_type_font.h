@@ -34,8 +34,8 @@
 #include <string>
 #include <utility>
 
-#include "base/notification_observer.h"
-#include "base/notification_registrar.h"
+#include "base/notification/observer.h"
+#include "base/notification/registrar.h"
 #include "guichan/color.hpp"
 #include "guichan/font.hpp"
 #include "guichan/platform.hpp"
