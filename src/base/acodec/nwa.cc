@@ -27,14 +27,14 @@
 #include <sstream>
 
 // Constructor definitions
-NwaDecoder::NwaDecoder(std::string_view data) : sv_data_(data) { ReadHeader(); }
+NwaHQDecoder::NwaHQDecoder(std::string_view data) : sv_data_(data) { ReadHeader(); }
 
-NwaDecoder::NwaDecoder(char* data, size_t length) : sv_data_(data, length) {
+NwaHQDecoder::NwaHQDecoder(char* data, size_t length) : sv_data_(data, length) {
   ReadHeader();
 }
 
 // Method definitions
-std::vector<float> NwaDecoder::DecodeAll() {
+std::vector<float> NwaHQDecoder::DecodeAll() {
   // only handle 16 bit audio currently
   std::vector<float> ret(hdr_->origSize / sizeof(int16_t));
   for (size_t i = 0; i < ret.size(); ++i) {
@@ -47,7 +47,7 @@ std::vector<float> NwaDecoder::DecodeAll() {
   return ret;
 }
 
-void NwaDecoder::ReadHeader() {
+void NwaHQDecoder::ReadHeader() {
   const char* rawdata = sv_data_.data();
   hdr_ = (NwaHeader*)rawdata;
 
@@ -56,7 +56,7 @@ void NwaDecoder::ReadHeader() {
   stream_ = (int16_t*)(rawdata + sizeof(NwaHeader));
 }
 
-void NwaDecoder::CheckHeader() {
+void NwaHQDecoder::CheckHeader() {
   bool hasError = false;
   std::ostringstream os;
 

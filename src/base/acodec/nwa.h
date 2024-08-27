@@ -25,6 +25,7 @@
 #ifndef BASE_ACODEC_NWA_H_
 #define BASE_ACODEC_NWA_H_
 
+#include <memory>
 #include <sstream>
 #include <string_view>
 #include <vector>
@@ -46,13 +47,25 @@ struct NwaHeader {
   int lastUnitPackedSize : 32;
 };
 
-class NwaDecoder {
+class NwaDecoderImpl {
  public:
-  NwaDecoder(std::string_view data);
-  NwaDecoder(char* data, size_t length);
-  ~NwaDecoder() = default;
+  virtual ~NwaDecoderImpl() = default;
 
-  std::vector<float> DecodeAll();
+  using PcmStream_t = std::vector<float>;
+
+  virtual bool HasNext() { return false; }  // unused
+  virtual PcmStream_t DecodeNext() = 0;
+  virtual PcmStream_t DecodeAll() = 0;
+};
+
+class NwaHQDecoder : public NwaDecoderImpl {
+ public:
+  NwaHQDecoder(std::string_view data);
+  NwaHQDecoder(char* data, size_t length);
+  ~NwaHQDecoder() = default;
+
+  std::vector<float> DecodeAll() override;
+  std::vector<float> DecodeNext() override { return DecodeAll(); }
 
  private:
   void ReadHeader();
@@ -63,16 +76,18 @@ class NwaDecoder {
   int16_t* stream_;
 };
 
-class NwaCompDecoder {
+class NwaCompDecoder : public NwaDecoderImpl {
  public:
-  NwaCompDecoder(char* data, size_t length) : data_(data, length) {
+  NwaCompDecoder(std::string_view data) : data_(data) {
     hdr_ = (NwaHeader*)data_.data();
     offset_count_ = hdr_->unitCount;
     offset_table_ = (int*)(data_.data() + sizeof(NwaHeader));
     current_unit_ = 0;
   }
+  NwaCompDecoder(const char* data, size_t size)
+      : NwaCompDecoder(std::string_view(data, size)) {}
 
-  std::vector<float> DecodeAll() {
+  std::vector<float> DecodeAll() override {
     std::vector<float> ret;
     ret.reserve(hdr_->samplePerUnit * hdr_->unitCount);
     while (current_unit_ < offset_count_) {
@@ -82,7 +97,7 @@ class NwaCompDecoder {
     return ret;
   }
 
-  std::vector<float> DecodeNext() {
+  std::vector<float> DecodeNext() override {
     if (current_unit_ >= offset_count_)
       throw std::logic_error(
           "DecodeNext() called when no more data is available for decoding.");
@@ -171,6 +186,31 @@ class NwaCompDecoder {
   int offset_count_;
   int* offset_table_;
   int current_unit_;
+};
+
+class NwaDecoder {
+ public:
+  NwaDecoder(std::string_view data)
+      : data_(data), hdr_((NwaHeader*)data.data()) {
+    if (hdr_->compressionMode == -1)
+      impl_ = std::make_unique<NwaHQDecoder>(data_);
+    else
+      impl_ = std::make_unique<NwaCompDecoder>(data_);
+  }
+
+  NwaDecoder(char* data, size_t length)
+      : NwaDecoder(std::string_view(data, length)) {}
+
+  using PcmStream_t = std::vector<float>;
+
+  PcmStream_t DecodeNext() { return impl_->DecodeNext(); }
+  PcmStream_t DecodeAll() { return impl_->DecodeAll(); }
+  bool HasNext() { return impl_->HasNext(); }
+
+ private:
+  std::string_view data_;
+  const NwaHeader* hdr_;
+  std::unique_ptr<NwaDecoderImpl> impl_;
 };
 
 #endif

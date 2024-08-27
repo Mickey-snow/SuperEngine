@@ -65,7 +65,7 @@ TEST(NwaDecode, NoCompress) {
     audioData.resize(n);
     fp.read(audioData.data(), n);
   }
-  NwaDecoder decoder(audioData.data(), audioData.size());
+  NwaHQDecoder decoder(audioData.data(), audioData.size());
 
   std::vector<float> actual_sample[2];
   int ch = 0;
