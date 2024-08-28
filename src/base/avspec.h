@@ -33,6 +33,7 @@
 enum class AV_SAMPLE_FMT {
   NONE,
   U8,   ///< unsigned 8 bits
+  S8,   ///< signed 8 bits
   S16,  ///< signed 16 bits
   S32,  ///< signed 32 bits
   S64,  ///< signed 64 bits
@@ -40,6 +41,7 @@ enum class AV_SAMPLE_FMT {
   DBL,  ///< double
 };
 using avsample_u8_t = uint8_t;
+using avsample_s8_t = int8_t;
 using avsample_s16_t = int16_t;
 using avsample_s32_t = int32_t;
 using avsample_s64_t = int64_t;
@@ -53,6 +55,10 @@ struct av_sample_fmt {
 template <>
 struct av_sample_fmt<avsample_u8_t> {
   static constexpr AV_SAMPLE_FMT value = AV_SAMPLE_FMT::U8;
+};
+template <>
+struct av_sample_fmt<avsample_s8_t> {
+  static constexpr AV_SAMPLE_FMT value = AV_SAMPLE_FMT::S8;
 };
 template <>
 struct av_sample_fmt<avsample_s16_t> {
@@ -85,7 +91,7 @@ struct AVChannelLayout {
   int channel_count;
   AV_CHANNEL_ORDER channel_order;
 
-  bool operator ==(AVChannelLayout rhs)const;
+  bool operator==(AVChannelLayout rhs) const;
 };
 
 struct AVSpec {
@@ -93,10 +99,11 @@ struct AVSpec {
   AV_SAMPLE_FMT sample_format;
   AVChannelLayout channel_layout;
 
-  bool operator==(const AVSpec& rhs)const;
+  bool operator==(const AVSpec& rhs) const;
 };
 
 using avsample_buffer_t = std::variant<std::vector<avsample_u8_t>,
+                                       std::vector<avsample_s8_t>,
                                        std::vector<avsample_s16_t>,
                                        std::vector<avsample_s32_t>,
                                        std::vector<avsample_s64_t>,
@@ -106,6 +113,10 @@ using avsample_buffer_t = std::variant<std::vector<avsample_u8_t>,
 struct AudioData {
   AVSpec spec;
   avsample_buffer_t data;
+
+  void PrepareDatabuf();
+
+  size_t SampleCount() const;
 };
 
 #endif
