@@ -1,6 +1,7 @@
 # Builds the SEEN.TXT files into a compiler independent dir.
 
 import os
+import random
 
 Import('env')
 
@@ -103,3 +104,34 @@ for file_name in files_to_copy:
   test_env.Command('#/build/test/' + file_name,
                    '#/test/' + file_name,
                    Copy('$TARGET', '$SOURCE'))
+
+#########################################################################
+
+
+def generate_testwav_action(target, source, env):
+  target_path = str(target[0])
+  target_file = target_path[target_path.rfind('/')+1:]
+  script_path = str(source[0])
+  param = env[f'WAV_PARAM'][target_file]
+  env.Execute(f"python {script_path} {target_path} {param}")
+
+wav_to_generate = list()
+for sample_rate in [8000, 16000, 44100]:
+  for channel in [1, 2]:
+    for sample_width in [8, 16, 32]:
+      file_name = f'test{len(wav_to_generate)}.wav'
+      frequency = random.randint(100,8000)
+      duration = random.random()
+      param = f'--frequency={frequency} --sample_rate={sample_rate} --channel={channel} '
+      param += f'--sample_format={sample_width} --duration={duration:.2f}'
+      wav_to_generate.append((file_name, param))
+
+GenerateTestwav = Builder(action = generate_testwav_action)
+test_env.Append(BUILDERS = {'GenerateTestwav' : GenerateTestwav})
+test_env['WAV_PARAM'] = {f:param for f,param in wav_to_generate}
+
+for file_name, param in wav_to_generate:
+  target = f'#/build/test/Gameroot/WAV/{file_name}'
+  source = '#/test/Gameroot/WAV/wav_generator.py'
+  wav_out_target = test_env.GenerateTestwav(target, source)
+  Depends('rlvm_unittests', wav_out_target)

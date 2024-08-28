@@ -38,6 +38,9 @@
 // Locates a test file in the test/ directory.
 std::string locateTestCase(const std::string& baseName);
 
+// Locates a directory under the test/ directory.
+std::string locateTestDirectory(const std::string& baseName);
+
 // A base class for all tests that instantiate an archive, a System and a
 // Machine.
 class FullSystemTest : public ::testing::Test {

@@ -32,27 +32,32 @@
 #include <string>
 #include <vector>
 
-using std::ostringstream;
-using std::string;
-using std::vector;
-
 namespace fs = boost::filesystem;
 
 // -----------------------------------------------------------------------
 
 const std::vector<std::string> testPaths = {"./", "./build/test/", "./test/"};
 
-string locateTestCase(const string& baseName) {
-  for (vector<string>::const_iterator it = testPaths.begin();
-       it != testPaths.end(); ++it) {
-    string testName = *it + baseName;
+std::string locateTestCase(const std::string& baseName) {
+  for (const auto& it : testPaths) {
+    fs::path testName = fs::path(it) / baseName;
     if (fs::exists(testName))
-      return testName;
+      return testName.string();
   }
 
-  ostringstream oss;
+  std::ostringstream oss;
   oss << "Could not locate data file '" << baseName << "' in locateTestCase.";
   throw std::runtime_error(oss.str());
+}
+
+std::string locateTestDirectory(const std::string& baseName) {
+  for (const auto& it : testPaths) {
+    fs::path dirName = fs::path(it) / baseName;
+    if (fs::is_directory(dirName))
+      return dirName.string();
+  }
+
+  throw std::runtime_error("Could not locate directory " + baseName);
 }
 
 // -----------------------------------------------------------------------
