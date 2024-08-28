@@ -61,11 +61,8 @@ class NwaDecoderTest : public ::testing::Test {
     return expect_wav;
   }
 
-  std::vector<int16_t> ToInt16Vec(const std::vector<uint8_t>& stream) {
-    std::vector<int16_t> ret;
-    ret.resize(stream.size() / 2);
-    std::copy_n(stream.data(), stream.size(), (uint8_t*)ret.data());
-    return ret;
+  std::vector<int16_t> ToInt16Vec(const avsample_buffer_t& data) {
+    return std::get<std::vector<int16_t>>(data);
   }
 
   std::vector<char> LoadFile(const std::string& filename) {
@@ -107,7 +104,8 @@ TEST_F(NwaDecoderTest, NoCompress) {
   std::vector<char> rawdata = LoadFile(locateTestCase(filename));
   NwaDecoder decoder(rawdata.data(), rawdata.size());
 
-  auto [lch, rch] = SplitChannels(ToInt16Vec(decoder.DecodeAll()));
+  AudioData result = decoder.DecodeAll();
+  auto [lch, rch] = SplitChannels(ToInt16Vec(result.data));
   auto expect_wav = GetExpectedPcm();
 
   size_t n = expect_wav.size();
@@ -125,7 +123,8 @@ TEST_F(NwaDecoderTest, Compress2) {
   std::vector<char> rawdata = LoadFile(locateTestCase(filename));
   NwaDecoder decoder(rawdata.data(), rawdata.size());
 
-  auto [lch, rch] = SplitChannels(ToInt16Vec(decoder.DecodeAll()));
+  AudioData result = decoder.DecodeAll();
+  auto [lch, rch] = SplitChannels(ToInt16Vec(result.data));
   auto expect_wav = GetExpectedPcm();
 
   size_t n = expect_wav.size();
@@ -143,7 +142,8 @@ TEST_F(NwaDecoderTest, Compress1) {
   std::vector<char> rawdata = LoadFile(locateTestCase(filename));
   NwaDecoder decoder(rawdata.data(), rawdata.size());
 
-  auto [lch, rch] = SplitChannels(ToInt16Vec(decoder.DecodeAll()));
+  AudioData result = decoder.DecodeAll();
+  auto [lch, rch] = SplitChannels(ToInt16Vec(result.data));
   auto expect_wav = GetExpectedPcm();
 
   size_t n = expect_wav.size();
@@ -161,7 +161,8 @@ TEST_F(NwaDecoderTest, Compress0) {
   std::vector<char> rawdata = LoadFile(locateTestCase(filename));
   NwaDecoder decoder(rawdata.data(), rawdata.size());
 
-  auto [lch, rch] = SplitChannels(ToInt16Vec(decoder.DecodeAll()));
+  AudioData result = decoder.DecodeAll();
+  auto [lch, rch] = SplitChannels(ToInt16Vec(result.data));
   auto expect_wav = GetExpectedPcm();
 
   size_t n = expect_wav.size();
@@ -179,7 +180,8 @@ TEST_F(NwaDecoderTest, Compress3) {
   std::vector<char> rawdata = LoadFile(locateTestCase(filename));
   NwaDecoder decoder(rawdata.data(), rawdata.size());
 
-  auto [lch, rch] = SplitChannels(ToInt16Vec(decoder.DecodeAll()));
+  AudioData result = decoder.DecodeAll();
+  auto [lch, rch] = SplitChannels(ToInt16Vec(result.data));
   auto expect_wav = GetExpectedPcm();
 
   size_t n = expect_wav.size();
@@ -197,7 +199,8 @@ TEST_F(NwaDecoderTest, Compress4) {
   std::vector<char> rawdata = LoadFile(locateTestCase(filename));
   NwaDecoder decoder(rawdata.data(), rawdata.size());
 
-  auto [lch, rch] = SplitChannels(ToInt16Vec(decoder.DecodeAll()));
+  AudioData result = decoder.DecodeAll();
+  auto [lch, rch] = SplitChannels(ToInt16Vec(result.data));
   auto expect_wav = GetExpectedPcm();
 
   size_t n = expect_wav.size();
@@ -215,7 +218,8 @@ TEST_F(NwaDecoderTest, Compress5) {
   std::vector<char> rawdata = LoadFile(locateTestCase(filename));
   NwaDecoder decoder(rawdata.data(), rawdata.size());
 
-  auto [lch, rch] = SplitChannels(ToInt16Vec(decoder.DecodeAll()));
+  AudioData result = decoder.DecodeAll();
+  auto [lch, rch] = SplitChannels(ToInt16Vec(result.data));
   auto expect_wav = GetExpectedPcm();
 
   size_t n = expect_wav.size();

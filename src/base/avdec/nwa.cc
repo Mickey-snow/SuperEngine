@@ -37,11 +37,10 @@ NwaHQDecoder::NwaHQDecoder(char* data, size_t length) : sv_data_(data, length) {
 }
 
 // Method definitions
-NwaHQDecoder::PcmStream_t NwaHQDecoder::DecodeAll() {
+std::vector<avsample_s16_t> NwaHQDecoder::DecodeAll() {
   const int sample_count = hdr_->totalSamples;
-  const int byte_count = sample_count * (hdr_->bitsPerSample / 8);
-  PcmStream_t ret(byte_count);
-  std::copy_n((uint8_t*)stream_, ret.size(), ret.begin());
+  std::vector<avsample_s16_t> ret(sample_count);
+  std::copy_n(stream_, ret.size(), ret.begin());
   return ret;
 }
 
