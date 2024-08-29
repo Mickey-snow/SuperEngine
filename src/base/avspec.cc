@@ -58,7 +58,7 @@ bool AVSpec::operator==(const AVSpec& rhs) const {
 void AudioData::PrepareDatabuf() {
   switch (spec.sample_format) {
     case AV_SAMPLE_FMT::U8:
-      data = std::vector<avsample_u8_t>{};
+    data = std::vector<avsample_u8_t>{};
       break;
     case AV_SAMPLE_FMT::S8:
       data = std::vector<avsample_s8_t>{};

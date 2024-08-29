@@ -105,6 +105,7 @@ struct AudioData {
   AVSpec spec;
   avsample_buffer_t data;
 
+  // Initializes the audio data buffer based on spec.sample_format.
   void PrepareDatabuf();
 
   size_t SampleCount() const;
