@@ -409,7 +409,7 @@ else:
 
 # Copy the platform independent SEEN.TXT files to output (we no longer depend
 # on rldev because I can no longer reliably compile it).
-env.SConscript("test/SConscript.rlc",
+env.SConscript("test/SConscript.testdata",
                variant_dir="build/test",
                duplicate=0,
                exports='env')

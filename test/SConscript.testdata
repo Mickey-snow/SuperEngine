@@ -1,4 +1,4 @@
-# Builds the SEEN.TXT files into a compiler independent dir.
+# Prepare inputs for data-driven testing
 
 import os
 import random
@@ -12,9 +12,6 @@ test_env.Append(CPPPATH = ["#/test"])
 
 #########################################################################
 
-# Once upon a time, I could compile rldev on new systems, even with manually
-# patching some source files. Its time has passed; the build artifacts will
-# live on, checked into my source control system. :(
 files_to_copy = [
   'ExpressionTest_SEEN/basicOperators.TXT',
   'ExpressionTest_SEEN/comparisonOperators.TXT',
