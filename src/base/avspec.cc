@@ -50,14 +50,9 @@ std::string to_string(AV_SAMPLE_FMT fmt) {
   }
 }
 
-bool AVChannelLayout::operator==(AVChannelLayout rhs) const {
-  return channel_count == rhs.channel_count &&
-         channel_order == rhs.channel_order;
-}
-
 bool AVSpec::operator==(const AVSpec& rhs) const {
   return sample_rate == rhs.sample_rate && sample_format == rhs.sample_format &&
-         channel_layout == rhs.channel_layout;
+         channel_count == rhs.channel_count;
 }
 
 void AudioData::PrepareDatabuf() {

@@ -271,8 +271,7 @@ bool NwaDecoder::HasNext() { return impl_->HasNext(); }
 AVSpec NwaDecoder::GetSpec() const {
   return AVSpec{.sample_rate = header_->sample_rate,
                 .sample_format = AV_SAMPLE_FMT::S16,
-                .channel_layout = {.channel_count = header_->channel_count,
-                                   .channel_order = AV_CHANNEL_ORDER::NATIVE}};
+                .channel_count = header_->channel_count};
 }
 
 void NwaDecoder::ValidateHeader() const {

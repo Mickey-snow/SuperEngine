@@ -85,19 +85,10 @@ constexpr AV_SAMPLE_FMT av_sample_fmt_v = av_sample_fmt<T>::value;
 
 std::string to_string(AV_SAMPLE_FMT fmt);
 
-enum class AV_CHANNEL_ORDER { UNSPEC, NATIVE, CUSTOM, AMBISONIC };
-
-struct AVChannelLayout {
-  int channel_count;
-  AV_CHANNEL_ORDER channel_order;
-
-  bool operator==(AVChannelLayout rhs) const;
-};
-
 struct AVSpec {
   int sample_rate;
   AV_SAMPLE_FMT sample_format;
-  AVChannelLayout channel_layout;
+  int channel_count;
 
   bool operator==(const AVSpec& rhs) const;
 };
