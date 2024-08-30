@@ -82,8 +82,8 @@ class WavDecoder {
                    .channel_count = fmt_->nChannels};
     switch (fmt_->wBitsPerSample) {
       case 8u:
-        result.spec.sample_format = AV_SAMPLE_FMT::S8;
-        result.data = WavDataExtractor<avsample_s8_t>(data_).Extract();
+        result.spec.sample_format = AV_SAMPLE_FMT::U8;
+        result.data = WavDataExtractor<avsample_u8_t>(data_).Extract();
         break;
       case 16u:
         result.spec.sample_format = AV_SAMPLE_FMT::S16;

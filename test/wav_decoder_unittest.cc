@@ -69,7 +69,7 @@ class WavDecoderTest : public ::testing::TestWithParam<std::string> {
   AV_SAMPLE_FMT GetSampleFormat() {
     switch (sample_width) {
       case 1:
-        return AV_SAMPLE_FMT::S8;
+        return AV_SAMPLE_FMT::U8;
       case 2:
         return AV_SAMPLE_FMT::S16;
       case 4:
@@ -108,8 +108,12 @@ class WavDecoderTest : public ::testing::TestWithParam<std::string> {
               static_cast<double>(std::numeric_limits<sample_t>::max());
 
           std::vector<double> result;
-          for (const auto& it : a)
-            result.push_back(static_cast<double>(it) / max_value);
+          for (const auto& it : a) {
+            if constexpr (std::is_same_v<sample_t, uint8_t>)
+              result.push_back((it - 127.5) / 127.5);
+            else
+              result.push_back(static_cast<double>(it) / max_value);
+          }
           return result;
         },
         a);
@@ -131,7 +135,7 @@ class WavDecoderTest : public ::testing::TestWithParam<std::string> {
 };
 
 TEST_P(WavDecoderTest, DecodeWav) {
-  static constexpr double max_std = 1e-3;
+  const double max_std = 0.075 * exp(-sample_width);
 
   WavDecoder decoder(std::string_view(data.data(), data.size()));
 
