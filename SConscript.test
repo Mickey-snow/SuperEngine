@@ -38,6 +38,7 @@ test_case_files = [
   "test/bitstream_unittest.cc",
   "test/byte_reader_unittest.cc",
   "test/byte_inserter_unittest.cc",
+  "test/bytestream_unittest.cc",
   "test/graphics_object_test.cc",
   "test/rloperation_test.cc",
   "test/regressions_test.cc",
