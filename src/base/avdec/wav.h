@@ -29,6 +29,10 @@
 
 #include <string_view>
 
+std::string MakeRiffHeader(AVSpec spec);
+
+std::string EncodeWav(AudioData audio);
+
 struct fmtHeader {
   uint16_t wFormatTag;
   int16_t nChannels;

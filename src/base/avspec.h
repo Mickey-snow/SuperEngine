@@ -85,6 +85,8 @@ constexpr AV_SAMPLE_FMT av_sample_fmt_v = av_sample_fmt<T>::value;
 
 std::string to_string(AV_SAMPLE_FMT fmt);
 
+size_t Bytecount(AV_SAMPLE_FMT fmt) noexcept;
+
 struct AVSpec {
   int sample_rate;
   AV_SAMPLE_FMT sample_format;

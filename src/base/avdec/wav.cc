@@ -27,11 +27,46 @@
 #include "libreallive/alldefs.h"
 #include "utilities/bitstream.h"
 
+using libreallive::insert_i16;
+using libreallive::insert_i32;
 using libreallive::read_i16;
 using libreallive::read_i32;
 
 #include <sstream>
 #include <stdexcept>
+
+std::string MakeRiffHeader(AVSpec spec) {
+  const int sample_width = Bytecount(spec.sample_format);
+
+  std::string hdr = "RIFF0000WAVEfmt ";
+  hdr.resize(hdr.size() + 20);
+  insert_i32(hdr, 16, 16);
+  insert_i16(hdr, 20, 1);
+  insert_i16(hdr, 22, spec.channel_count);
+  insert_i32(hdr, 24, spec.sample_rate);
+  insert_i32(hdr, 28, spec.sample_rate * spec.channel_count * sample_width);
+  insert_i16(hdr, 32, spec.channel_count * sample_width);
+  insert_i16(hdr, 34, 8 * sample_width);
+  hdr += "data0000";
+  return hdr;
+}
+
+std::string EncodeWav(AudioData audio) {
+  std::string result = MakeRiffHeader(audio.spec);
+  auto [begin, size] = std::visit(
+      [](const auto& it) {
+        auto begin = reinterpret_cast<const char*>(it.data()),
+             end = reinterpret_cast<const char*>(it.data() + it.size());
+        return std::make_pair(begin, std::distance(begin, end));
+      },
+      audio.data);
+
+  insert_i32(result, 40, size);
+  insert_i32(result, 4, 4 + 24 + 8 + size);
+  result.resize(result.size() + size);
+  std::copy_n(begin, size, result.begin() + 44);
+  return result;
+}
 
 // -----------------------------------------------------------------------
 // template class WavDataExtractor

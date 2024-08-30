@@ -29,6 +29,7 @@
 
 #include "test_utils.h"
 
+#include <algorithm>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
@@ -46,17 +47,26 @@ using remove_cvref_t = typename remove_cvref<T>::type;
 
 namespace fs = std::filesystem;
 
-class WavDecoderTest : public ::testing::TestWithParam<std::string> {
+class WavCodecTest : public ::testing::TestWithParam<std::string> {
  public:
   void SetUp() override {
-    const std::string filepath = GetParam();
-    std::ifstream param_fs(filepath + ".param"), file_fs(filepath);
+    const std::string filepath = GetParam() + ".param";
+    std::ifstream param_fs(filepath);
     if (!param_fs)
-      FAIL() << "Failed to open parameter file: " << filepath + ".param";
-    if (!file_fs)
-      FAIL() << "Failed to open WAV file: " << filepath;
+      FAIL() << "Failed to open parameter file: " << filepath;
 
     param_fs >> sample_rate >> channel >> sample_width >> frequency >> duration;
+  }
+
+  std::vector<char> LoadFile() {
+    const std::string filepath = GetParam();
+    std::ifstream file_fs(filepath);
+    if (!file_fs) {
+      ADD_FAILURE() << "Failed to open WAV file: " << filepath;
+      return {};
+    }
+
+    std::vector<char> data;
     // TODO: switch to mapped file
     file_fs.seekg(0, std::ios::end);
     size_t n = file_fs.tellg();
@@ -64,6 +74,7 @@ class WavDecoderTest : public ::testing::TestWithParam<std::string> {
 
     data.resize(n);
     file_fs.read(data.data(), n);
+    return data;
   }
 
   AV_SAMPLE_FMT DetermineSampleFormat() const {
@@ -81,12 +92,13 @@ class WavDecoderTest : public ::testing::TestWithParam<std::string> {
     }
   }
 
-  AudioData ReproduceAudio() const {
-    AudioData result;
-    result.spec = {.sample_rate = sample_rate,
-                   .sample_format = DetermineSampleFormat(),
-                   .channel_count = channel};
+  AVSpec DetermineSpecification() const {
+    return {.sample_rate = sample_rate,
+            .sample_format = DetermineSampleFormat(),
+            .channel_count = channel};
+  }
 
+  std::vector<double> ReproduceAudio() const {
     std::vector<double> wav;
     for (int i = 0; i < sample_rate * duration; ++i) {
       float t = static_cast<double>(i) / sample_rate;
@@ -94,9 +106,7 @@ class WavDecoderTest : public ::testing::TestWithParam<std::string> {
       for (int j = 0; j < channel; ++j)
         wav.push_back(sample);
     }
-
-    result.data = wav;
-    return result;
+    return wav;
   }
 
   std::vector<double> Normalize(const avsample_buffer_t& a) const {
@@ -128,26 +138,43 @@ class WavDecoderTest : public ::testing::TestWithParam<std::string> {
     return sqrt(var);
   }
 
-  std::vector<char> data;
   int sample_rate, channel, sample_width;
   int frequency;
   float duration;
 };
 
-TEST_P(WavDecoderTest, DecodeWav) {
+TEST_P(WavCodecTest, DecodeWav) {
   const double max_std = 0.075 * exp(-sample_width);
 
+  auto data = LoadFile();
   WavDecoder decoder(std::string_view(data.data(), data.size()));
   AudioData result = decoder.DecodeAll();
   ASSERT_GT(result.SampleCount(), 0) << "Decoded data is empty";
 
-  auto expect = ReproduceAudio();
-  ASSERT_EQ(expect.spec, result.spec);
-  ASSERT_EQ(expect.SampleCount(), result.SampleCount());
+  auto expect_wav = ReproduceAudio();
+  ASSERT_EQ(DetermineSpecification(), result.spec);
+  ASSERT_EQ(expect_wav.size(), result.SampleCount());
 
-  auto expect_wav = std::get<std::vector<double>>(expect.data);
   auto result_wav = Normalize(result.data);
   EXPECT_LE(Deviation(expect_wav, result_wav), max_std);
+}
+
+TEST_P(WavCodecTest, EncodeRiffHeader) {
+  auto spec = DetermineSpecification();
+  std::string header = MakeRiffHeader(spec);
+  ASSERT_EQ(header.length(), 44);
+
+  std::string magic =
+      header.substr(0, 4) + header.substr(8, 8) + header.substr(36, 4);
+  EXPECT_EQ(magic, "RIFFWAVEfmt data");
+
+  fmtHeader* fmt = (fmtHeader*)(header.data() + 20);
+  EXPECT_EQ(fmt->wFormatTag, 1);
+  EXPECT_EQ(fmt->nChannels, channel);
+  EXPECT_EQ(fmt->nSamplesPerSec, sample_rate);
+  EXPECT_EQ(fmt->nAvgBytesPerSec, sample_rate * sample_width * channel);
+  EXPECT_EQ(fmt->nBlockAlign, sample_width * channel);
+  EXPECT_EQ(fmt->wBitsPerSample, (8 * sample_width));
 }
 
 std::vector<std::string> GetTestWavFiles() {
@@ -165,7 +192,7 @@ std::vector<std::string> GetTestWavFiles() {
 
 using ::testing::ValuesIn;
 INSTANTIATE_TEST_SUITE_P(WavDecoderDataTest,
-                         WavDecoderTest,
+                         WavCodecTest,
                          ValuesIn(GetTestWavFiles()),
                          ([](const auto& info) {
                            std::string name = info.param;
