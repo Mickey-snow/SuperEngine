@@ -31,38 +31,38 @@
 #include <stdexcept>
 
 /**
- * @brief A generalized class to interpret a raw byte stream.
+ * @brief A class to interpret a raw byte array as a read-only stream.
  *
  * This class provides a read-only view of a byte array. It does not perform
  * memory management or attempt to modify the array.
  */
-class ByteStream {
+class ByteReader {
  public:
   /**
-   * @brief Constructs a ByteStream from a beginning and ending pointer.
+   * @brief Constructs a ByteReader from a beginning and ending pointer.
    *
-   * @param begin Pointer to the beginning of the byte stream.
-   * @param end Pointer to the end of the byte stream.
+   * @param begin Pointer to the beginning of the byte array.
+   * @param end Pointer to the end of the byte array.
    * @throws std::invalid_argument if `end` is before `begin`.
    */
-  ByteStream(const char* begin, const char* end);
+  ByteReader(const char* begin, const char* end);
 
   /**
-   * @brief Constructs a ByteStream from a beginning pointer and length.
+   * @brief Constructs a ByteReader from a beginning pointer and length.
    *
-   * @param begin Pointer to the beginning of the byte stream.
-   * @param N Length of the byte stream.
+   * @param begin Pointer to the beginning of the byte array.
+   * @param N Length of the byte array.
    * @throws std::invalid_argument if `N` is greater than zero and `begin` is a
    * null pointer.
    */
-  ByteStream(const char* begin, size_t N);
+  ByteReader(const char* begin, size_t N);
 
   /**
-   * @brief Constructs a ByteStream from a std::string_view.
+   * @brief Constructs a ByteReader from a std::string_view.
    *
    * @param sv A std::string_view containing the byte data to interpret.
    */
-  ByteStream(std::string_view sv);
+  ByteReader(std::string_view sv);
 
   /**
    * @brief Reads a specified number of bytes without advancing the current
@@ -71,7 +71,7 @@ class ByteStream {
    * @param count Number of bytes to read (must be between 0 and 8).
    * @return The read bytes as a 64-bit unsigned integer.
    * @throws std::invalid_argument if `count` is not between 0 and 8.
-   * @throws std::out_of_range if there are not enough bytes left in the stream.
+   * @throws std::out_of_range if there are not enough bytes left in the array.
    */
   uint64_t ReadBytes(int count);
 
@@ -107,7 +107,7 @@ class ByteStream {
     } else {  // string type
       if (count < 0 || current_ + count > end_)
         throw std::out_of_range(
-            "Attempt to read beyond the end of the byte stream.");
+            "Attempt to read beyond the end of the byte array.");
 
       if constexpr (std::is_same_v<T, std::string_view>)
         return std::string_view(current_, count);
@@ -125,7 +125,7 @@ class ByteStream {
    * @param count Number of bytes to read (must be between 0 and 8).
    * @return The read bytes as a 64-bit unsigned integer.
    * @throws std::invalid_argument if `count` is not between 0 and 8.
-   * @throws std::out_of_range if there are not enough bytes left in the stream.
+   * @throws std::out_of_range if there are not enough bytes left in the array.
    */
   uint64_t PopBytes(int count);
 
@@ -139,7 +139,6 @@ class ByteStream {
    * @throws std::invalid_argument if `count` is out of range for type T.
    * @throws std::logic_error if type T is unsupported.
    */
-
   template <typename T>
   T PopAs(int count) {
     T ret = ReadAs<T>(count);
@@ -152,10 +151,10 @@ class ByteStream {
    *
    * @tparam T The arithmetic type to read as.
    * @param other Reference to the variable where the read value will be stored.
-   * @return Reference to the current ByteStream object.
+   * @return Reference to the current ByteReader object.
    */
   template <typename T>
-  ByteStream& operator>>(T& other) {
+  ByteReader& operator>>(T& other) {
     other = PopAs<T>(sizeof(T));
     return *this;
   }
@@ -164,47 +163,47 @@ class ByteStream {
    * @brief Advances the current pointer by a specified number of bytes.
    *
    * @param count Number of bytes to advance.
-   * @throws std::out_of_range if advancing moves the pointer out of the stream
+   * @throws std::out_of_range if advancing moves the pointer out of the array
    * bounds.
    */
   void Proceed(int count);
 
   /**
-   * @brief Gets the total size of the byte stream.
+   * @brief Gets the total size of the byte array.
    *
-   * @return The size of the byte stream in bytes.
+   * @return The size of the byte array in bytes.
    */
   size_t Size() const noexcept;
 
   /**
-   * @brief Gets the current position in the byte stream.
+   * @brief Gets the current position in the byte array.
    *
-   * @return The position in the byte stream relative to the beginning.
+   * @return The position in the byte array relative to the beginning.
    */
   size_t Position() const noexcept;
 
   /**
    * @brief Moves the current pointer to a specified location in the byte
-   * stream.
+   * array.
    *
    * @param loc The new position for the current pointer (must be within the
-   * stream bounds).
-   * @throws std::out_of_range if `loc` is outside the stream bounds.
+   * array bounds).
+   * @throws std::out_of_range if `loc` is outside the array bounds.
    */
   void Seek(int loc);
 
   /**
    * @brief Gets the current pointer.
    *
-   * @return The pointer to the current position in the byte stream.
+   * @return The pointer to the current position in the byte array.
    */
   const char* Ptr() const { return current_; }
 
  private:
-  const char* begin_; /**< Pointer to the beginning of the byte stream. */
+  const char* begin_; /**< Pointer to the beginning of the byte array. */
   const char*
-      current_;     /**< Pointer to the current position in the byte stream. */
-  const char* end_; /**< Pointer to the end of the byte stream. */
+      current_;     /**< Pointer to the current position in the byte array. */
+  const char* end_; /**< Pointer to the end of the byte array. */
 };
 
 #endif

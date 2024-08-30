@@ -38,7 +38,7 @@
 
 #include "libreallive/archive.h"
 #include "libreallive/compression.h"
-#include "utilities/bytestream.h"
+#include "utilities/byte_reader.h"
 
 using boost::iends_with;
 using boost::istarts_with;
@@ -96,7 +96,7 @@ void Archive::ReadTOC(const fs::path& filepath) {
   static constexpr int TOC_COUNT = 10000;
   static constexpr std::size_t TOC_SIZE = 8;
 
-  ByteStream reader(header->Read(0, TOC_COUNT * TOC_SIZE));
+  ByteReader reader(header->Read(0, TOC_COUNT * TOC_SIZE));
   for (int i = 0; i < TOC_COUNT; ++i) {
     const int offset = reader.PopAs<int>(4);
     const int length = reader.PopAs<int>(4);

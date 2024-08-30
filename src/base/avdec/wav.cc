@@ -25,7 +25,7 @@
 #include "base/avdec/wav.h"
 
 #include "libreallive/alldefs.h"
-#include "utilities/bytestream.h"
+#include "utilities/byte_reader.h"
 
 using libreallive::insert_i16;
 using libreallive::insert_i32;
@@ -79,7 +79,7 @@ class WavDataExtractor {
     std::vector<sample_t> result;
     static constexpr int sample_width = sizeof(sample_t);
 
-    ByteStream reader(data_.data(), data_.length());
+    ByteReader reader(data_.data(), data_.length());
     while (reader.Position() < reader.Size()) {
       result.push_back(reader.PopAs<sample_t>(sample_width));
     }
@@ -138,7 +138,7 @@ void WavDecoder::ValidateWav() {
     throw std::logic_error("Invalid WAV data: too small");
   }
 
-  ByteStream reader(wavdata_.data(), 44);
+  ByteReader reader(wavdata_.data(), 44);
   std::ostringstream oss;
   auto riff_tag = reader.ReadAs<std::string_view>(4);
   reader.Seek(8);
@@ -159,7 +159,7 @@ void WavDecoder::ValidateWav() {
 }
 
 void WavDecoder::ParseChunks() {
-  ByteStream reader(wavdata_.data(), wavdata_.size());
+  ByteReader reader(wavdata_.data(), wavdata_.size());
   reader.Seek(12);
   while (reader.Position() < reader.Size()) {
     auto chunk_tag = reader.PopAs<std::string_view>(4);

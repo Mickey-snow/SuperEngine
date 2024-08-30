@@ -22,9 +22,9 @@
 //
 // -----------------------------------------------------------------------
 
-#include "utilities/bytestream.h"
+#include "utilities/byte_reader.h"
 
-ByteStream::ByteStream(const char* begin, const char* end)
+ByteReader::ByteReader(const char* begin, const char* end)
     : begin_(begin), current_(begin), end_(end) {
   if (end < begin) {
     throw std::invalid_argument(
@@ -32,7 +32,7 @@ ByteStream::ByteStream(const char* begin, const char* end)
   }
 }
 
-ByteStream::ByteStream(const char* begin, size_t N)
+ByteReader::ByteReader(const char* begin, size_t N)
     : begin_(begin), current_(begin), end_(begin + N) {
   if (N > 0 && begin == nullptr) {
     throw std::invalid_argument(
@@ -40,10 +40,10 @@ ByteStream::ByteStream(const char* begin, size_t N)
   }
 }
 
-ByteStream::ByteStream(std::string_view sv)
+ByteReader::ByteReader(std::string_view sv)
     : begin_(sv.data()), current_(sv.data()), end_(sv.data() + sv.size()) {}
 
-uint64_t ByteStream::ReadBytes(int count) {
+uint64_t ByteReader::ReadBytes(int count) {
   if (count < 0 || count > 8) {
     throw std::invalid_argument("Count must be between 0 and 8.");
   }
@@ -61,13 +61,13 @@ uint64_t ByteStream::ReadBytes(int count) {
   return result;
 }
 
-uint64_t ByteStream::PopBytes(int count) {
+uint64_t ByteReader::PopBytes(int count) {
   uint64_t result = ReadBytes(count);
   Proceed(count);
   return result;
 }
 
-void ByteStream::Proceed(int count) {
+void ByteReader::Proceed(int count) {
   if (current_ + count > end_ || current_ + count < begin_) {
     throw std::out_of_range(
         "Attempt to move the pointer outside the byte stream bounds.");
@@ -75,11 +75,11 @@ void ByteStream::Proceed(int count) {
   current_ += count;
 }
 
-size_t ByteStream::Size() const noexcept { return end_ - begin_; }
+size_t ByteReader::Size() const noexcept { return end_ - begin_; }
 
-size_t ByteStream::Position() const noexcept { return current_ - begin_; }
+size_t ByteReader::Position() const noexcept { return current_ - begin_; }
 
-void ByteStream::Seek(int loc) {
+void ByteReader::Seek(int loc) {
   if (loc < 0 || loc > Size()) {
     throw std::out_of_range("Seek position is outside the byte stream bounds.");
   }
