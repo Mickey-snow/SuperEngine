@@ -25,12 +25,10 @@
 #include "base/avdec/wav.h"
 
 #include "libreallive/alldefs.h"
-#include "utilities/bitstream.h"
+#include "utilities/bytestream.h"
 
 using libreallive::insert_i16;
 using libreallive::insert_i32;
-using libreallive::read_i16;
-using libreallive::read_i32;
 
 #include <sstream>
 #include <stdexcept>
@@ -79,11 +77,10 @@ class WavDataExtractor {
 
   std::vector<sample_t> Extract() {
     std::vector<sample_t> result;
-    static constexpr int sample_width = 8 * sizeof(sample_t);
+    static constexpr int sample_width = sizeof(sample_t);
 
-    // TODO: switch to a faster byte reader
-    BitStream reader(data_.data(), data_.length());
-    while (reader.Position() < reader.Length()) {
+    ByteStream reader(data_.data(), data_.length());
+    while (reader.Position() < reader.Size()) {
       result.push_back(reader.PopAs<sample_t>(sample_width));
     }
 
@@ -141,15 +138,17 @@ void WavDecoder::ValidateWav() {
     throw std::logic_error("Invalid WAV data: too small");
   }
 
-  const char* stream = wavdata_.data();
+  ByteStream reader(wavdata_.data(), 44);
   std::ostringstream oss;
-  std::string_view riff_tag(stream, 4), wave_tag(stream + 8, 4);
+  auto riff_tag = reader.ReadAs<std::string_view>(4);
+  reader.Seek(8);
+  auto wave_tag = reader.ReadAs<std::string_view>(4);
   if (riff_tag != "RIFF" || wave_tag != "WAVE") {
     oss << "Invalid format in RIFF header\n";
   }
 
-  stream += 4;
-  if (8 + read_i32(stream) != wavdata_.size()) {
+  reader.Seek(4);
+  if (8 + reader.ReadBytes(4) != wavdata_.size()) {
     oss << "File size mismatch\n";
   }
 
@@ -160,18 +159,17 @@ void WavDecoder::ValidateWav() {
 }
 
 void WavDecoder::ParseChunks() {
-  const char* stream = wavdata_.data() + 12;
-  while (stream < wavdata_.data() + wavdata_.size()) {
-    std::string_view chunk_tag(stream, 4);
-    stream += 4;
-    int chunk_len = read_i32(stream);
-    stream += 4;
+  ByteStream reader(wavdata_.data(), wavdata_.size());
+  reader.Seek(12);
+  while (reader.Position() < reader.Size()) {
+    auto chunk_tag = reader.PopAs<std::string_view>(4);
+    auto chunk_len = reader.PopAs<int>(4);
 
     if (chunk_tag == "fmt ") {
       if (fmt_ != nullptr)
         throw std::logic_error("Found more than one fmt chunk");
 
-      fmt_ = (fmtHeader*)stream;
+      fmt_ = reinterpret_cast<const fmtHeader*>(reader.Ptr());
 
       if (chunk_len != 16) {
         if (chunk_len != 18 || fmt_->cbSize != 0)
@@ -181,12 +179,12 @@ void WavDecoder::ParseChunks() {
       if (fmt_ == nullptr) {
         throw std::logic_error("Found data chunk before fmt chunk");
       }
-      data_ = std::string_view(stream, chunk_len);
+      data_ = reader.ReadAs<std::string_view>(chunk_len);
     } else {
       /*uninteresting chunk*/
     }
 
-    stream += chunk_len;
+    reader.Proceed(chunk_len);
   }
 
   if (fmt_ == nullptr) {

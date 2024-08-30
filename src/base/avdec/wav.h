@@ -52,7 +52,7 @@ class WavDecoder {
 
  private:
   std::string_view wavdata_;
-  fmtHeader* fmt_;
+  const fmtHeader* fmt_;
   std::string_view data_;
 
   void ValidateWav();

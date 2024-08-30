@@ -38,6 +38,7 @@
 
 #include "libreallive/archive.h"
 #include "libreallive/compression.h"
+#include "utilities/bytestream.h"
 
 using boost::iends_with;
 using boost::istarts_with;
@@ -95,17 +96,13 @@ void Archive::ReadTOC(const fs::path& filepath) {
   static constexpr int TOC_COUNT = 10000;
   static constexpr std::size_t TOC_SIZE = 8;
 
+  ByteStream reader(header->Read(0, TOC_COUNT * TOC_SIZE));
   for (int i = 0; i < TOC_COUNT; ++i) {
-    std::string_view token = header->Read(i * TOC_SIZE, TOC_SIZE);
-    const int offset = read_i32(token);
-    if (offset) {
-      FilePos filepos;
-      filepos.file_ = header;
-      filepos.position = offset;
-      filepos.length = read_i32(token, 4);
+    const int offset = reader.PopAs<int>(4);
+    const int length = reader.PopAs<int>(4);
 
-      toc_[i] = filepos;
-    }
+    if (offset)
+      toc_[i] = FilePos{.file_ = header, .position = offset, .length = length};
   }
 }
 
