@@ -22,8 +22,8 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_UTILITIES_BYTESTREAM_H_
-#define SRC_UTILITIES_BYTESTREAM_H_
+#ifndef SRC_UTILITIES_BYTEREADER_H_
+#define SRC_UTILITIES_BYTEREADER_H_
 
 #include <cstddef>
 #include <cstdint>
