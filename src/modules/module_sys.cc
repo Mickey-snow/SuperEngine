@@ -62,8 +62,9 @@
 #include "systems/base/text_system.h"
 #include "systems/base/text_window.h"
 #include "utilities/string_utilities.h"
+#include "utilities/numbers.h"
 
-const float PI = 3.14159265;
+const float PI = pi_v<float>;
 
 namespace {
 

@@ -26,6 +26,7 @@
 
 #include "base/avdec/nwa.h"
 #include "test_utils.h"
+#include "utilities/numbers.h"
 
 #include <cstdlib>
 #include <fstream>
@@ -39,7 +40,6 @@ class NwaDecoderTest : public ::testing::Test {
   static constexpr int samplesPerChannel = freq * duration;
 
   int16_t GetSampleAt(float t) {
-    static constexpr auto pi = 3.1415926535897932384626433832795;
     static const float freq[] = {440, 523.25, 349.23};
     static const float amp[] = {0.5, 0.3, 0.2};
     static const float phase[] = {0, 0, pi / 2};

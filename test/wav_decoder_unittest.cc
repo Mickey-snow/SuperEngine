@@ -26,6 +26,7 @@
 
 #include "base/avdec/wav.h"
 #include "libreallive/filemap.h"
+#include "utilities/numbers.h"
 
 #include "test_utils.h"
 
@@ -90,7 +91,6 @@ class WavDecoderTest : public ::testing::TestWithParam<std::string> {
     std::vector<double> wav;
     for (int i = 0; i < sample_rate * duration; ++i) {
       float t = 1.0 * i / sample_rate;
-      static float pi = acos(-1.0);
       double sample = sin(2 * pi * frequency * t);
       for (int i = 0; i < channel; ++i)
         wav.push_back(sample);
