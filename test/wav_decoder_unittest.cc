@@ -177,6 +177,14 @@ TEST_P(WavCodecTest, EncodeRiffHeader) {
   EXPECT_EQ(fmt->wBitsPerSample, (8 * sample_width));
 }
 
+TEST_P(WavCodecTest, EncoderTest) {
+  std::vector<char> audioFile = LoadFile();
+  std::string_view filecontent(audioFile.data(), audioFile.size());
+  AudioData audioData = WavDecoder(filecontent).DecodeAll();
+  auto encodedWav = EncodeWav(audioData);
+  EXPECT_EQ(filecontent, encodedWav);
+}
+
 std::vector<std::string> GetTestWavFiles() {
   static const std::string testdir = locateTestDirectory("Gameroot/WAV");
   static const std::regex pattern(".*test[0-9]+\\.wav");
