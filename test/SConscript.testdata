@@ -2,6 +2,7 @@
 
 import os
 import random
+import sys
 
 Import('env')
 
@@ -110,7 +111,7 @@ def generate_testwav_action(target, source, env):
   target_file = target_path[target_path.rfind('/')+1:]
   script_path = str(source[0])
   param = env[f'WAV_PARAM'][target_file]
-  env.Execute(f"python {script_path} {target_path} {param}")
+  env.Execute(f"{sys.executable} {script_path} {target_path} {param}")
 
 wav_to_generate = list()
 for sample_rate in [8000, 16000, 44100]:
@@ -132,3 +133,17 @@ for file_name, param in wav_to_generate:
   source = '#/test/Gameroot/WAV/wav_generator.py'
   wav_out_target = test_env.GenerateTestwav(target, source)
   Depends('rlvm_unittests', wav_out_target)
+
+#########################################################################
+
+
+def generate_testogg_action(target, source, env):
+  target_path = str(target[0])
+  script_path = str(source[0])
+  env.Execute(f"{sys.executable} {script_path} {target_path}")
+
+GenerateTestogg = Builder(action = generate_testogg_action)
+test_env.Append(BUILDERS = {'GenerateTestogg' : GenerateTestogg})
+ogg_out_target = test_env.GenerateTestogg('#/build/test/Gameroot/OGG/test.ogg',
+                                          '#/test/Gameroot/OGG/ogg_generator.py')
+Depends('rlvm_unittests', ogg_out_target)
