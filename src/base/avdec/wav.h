@@ -29,9 +29,9 @@
 
 #include <string_view>
 
-std::string MakeRiffHeader(AVSpec spec);
+std::vector<uint8_t> MakeRiffHeader(AVSpec spec, size_t data_cksize);
 
-std::string EncodeWav(AudioData audio);
+std::vector<uint8_t> EncodeWav(AudioData audio);
 
 struct fmtHeader {
   uint16_t wFormatTag;

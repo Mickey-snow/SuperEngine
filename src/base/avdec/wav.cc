@@ -24,33 +24,30 @@
 
 #include "base/avdec/wav.h"
 
-#include "libreallive/alldefs.h"
 #include "utilities/byte_reader.h"
-
-using libreallive::insert_i16;
-using libreallive::insert_i32;
+#include "utilities/bytestream.h"
 
 #include <sstream>
 #include <stdexcept>
 
-std::string MakeRiffHeader(AVSpec spec) {
+std::vector<uint8_t> MakeRiffHeader(AVSpec spec, size_t data_cksize) {
   const int sample_width = Bytecount(spec.sample_format);
 
-  std::string hdr = "RIFF0000WAVEfmt ";
-  hdr.resize(hdr.size() + 20);
-  insert_i32(hdr, 16, 16);
-  insert_i16(hdr, 20, 1);
-  insert_i16(hdr, 22, spec.channel_count);
-  insert_i32(hdr, 24, spec.sample_rate);
-  insert_i32(hdr, 28, spec.sample_rate * spec.channel_count * sample_width);
-  insert_i16(hdr, 32, spec.channel_count * sample_width);
-  insert_i16(hdr, 34, 8 * sample_width);
-  hdr += "data0000";
-  return hdr;
+  oBytestream hdr;
+  hdr << "RIFF" << static_cast<int32_t>(4 + 24 + 8 + data_cksize) << "WAVE"
+      << "fmt ";
+  hdr << (int32_t)16;  // fmt chunk size
+  hdr << (int16_t)1;
+  hdr << (int16_t)spec.channel_count;
+  hdr << (int32_t)spec.sample_rate;
+  hdr << (int32_t)(spec.sample_rate * spec.channel_count * sample_width);
+  hdr << (int16_t)(spec.channel_count * sample_width);
+  hdr << (int16_t)(8 * sample_width);
+  hdr << "data" << static_cast<int32_t>(data_cksize);
+  return hdr.GetCopy();
 }
 
-std::string EncodeWav(AudioData audio) {
-  std::string result = MakeRiffHeader(audio.spec);
+std::vector<uint8_t> EncodeWav(AudioData audio) {
   auto [begin, size] = std::visit(
       [](const auto& it) {
         auto begin = reinterpret_cast<const char*>(it.data()),
@@ -59,8 +56,7 @@ std::string EncodeWav(AudioData audio) {
       },
       audio.data);
 
-  insert_i32(result, 40, size);
-  insert_i32(result, 4, 4 + 24 + 8 + size);
+  auto result = MakeRiffHeader(audio.spec, size);
   result.resize(result.size() + size);
   std::copy_n(begin, size, result.begin() + 44);
   return result;

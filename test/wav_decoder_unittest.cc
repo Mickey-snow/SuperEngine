@@ -161,14 +161,15 @@ TEST_P(WavCodecTest, DecodeWav) {
 
 TEST_P(WavCodecTest, EncodeRiffHeader) {
   auto spec = DetermineSpecification();
-  std::string header = MakeRiffHeader(spec);
-  ASSERT_EQ(header.length(), 44);
+  auto header_raw = MakeRiffHeader(spec, 0);
+  ASSERT_EQ(header_raw.size(), 44);
 
+  std::string header = std::string((char*)header_raw.data(), header_raw.size());
   std::string magic =
       header.substr(0, 4) + header.substr(8, 8) + header.substr(36, 4);
   EXPECT_EQ(magic, "RIFFWAVEfmt data");
 
-  fmtHeader* fmt = (fmtHeader*)(header.data() + 20);
+  fmtHeader* fmt = (fmtHeader*)(header_raw.data() + 20);
   EXPECT_EQ(fmt->wFormatTag, 1);
   EXPECT_EQ(fmt->nChannels, channel);
   EXPECT_EQ(fmt->nSamplesPerSec, sample_rate);
@@ -182,7 +183,8 @@ TEST_P(WavCodecTest, EncoderTest) {
   std::string_view filecontent(audioFile.data(), audioFile.size());
   AudioData audioData = WavDecoder(filecontent).DecodeAll();
   auto encodedWav = EncodeWav(audioData);
-  EXPECT_EQ(filecontent, encodedWav);
+  EXPECT_EQ(filecontent,
+            (std::string_view((char*)encodedWav.data(), encodedWav.size())));
 }
 
 std::vector<std::string> GetTestWavFiles() {
