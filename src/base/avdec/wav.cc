@@ -144,8 +144,11 @@ void WavDecoder::ValidateWav() {
   }
 
   reader.Seek(4);
-  if (8 + reader.ReadBytes(4) != wavdata_.size()) {
+  size_t wav_size = 8 + reader.ReadBytes(4);
+  if (wav_size > wavdata_.size()) {
     oss << "File size mismatch\n";
+  } else{
+    wavdata_ = wavdata_.substr(0, wav_size);
   }
 
   std::string errors = oss.str();

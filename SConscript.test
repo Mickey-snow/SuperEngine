@@ -54,6 +54,7 @@ test_case_files = [
   "test/parser_unittest.cc",
   "test/audio_decode_unittest.cc",
   "test/wav_decoder_unittest.cc",
+  "test/ogg_decoder_unittest.cc",
 
   # medium tests
   "test/medium_eventloop_test.cc",
