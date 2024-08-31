@@ -26,11 +26,13 @@
 
 #include "test_utils.h"
 
+#include "base/avdec/ogg.h"
 #include "base/avdec/wav.h"
 #include "systems/base/ovk_voice_sample.h"
 #include "utilities/numbers.h"
 
 #include <cmath>
+#include <fstream>
 #include <iostream>
 
 class OggDecoderTest : public ::testing::Test {
@@ -99,4 +101,28 @@ TEST_F(OggDecoderTest, OVKVoiceSample) {
 
   EXPECT_EQ(audio.spec, DetermineSpecification());
   EXPECT_LE(Deviation(Normalize(audio.data), ReproduceAudio()), 0.01);
+}
+
+TEST_F(OggDecoderTest, oggDecoder) {
+  static constexpr double max_std = 0.01;
+
+  std::vector<char> file_content;
+  {
+    std::ifstream ifs(file_str);
+    ifs.seekg(0, std::ios::end);
+    size_t n = ifs.tellg();
+    ifs.seekg(0, std::ios::beg);
+    file_content.resize(n);
+    ifs.read(file_content.data(), n);
+  }
+
+  OggDecoder decoder(
+      std::string_view(file_content.data(), file_content.size()));
+  AudioData audio = decoder.DecodeAll();
+  EXPECT_EQ(audio.spec, DetermineSpecification());
+
+  auto actual_wav = Normalize(audio.data);
+  auto expect_wav = ReproduceAudio();
+  ASSERT_EQ(actual_wav.size(), expect_wav.size());
+  EXPECT_LE(Deviation(expect_wav, actual_wav), max_std);
 }
