@@ -46,6 +46,7 @@ librlvm_files = [
   "src/base/notification/source.cc",
   "src/base/avdec/nwa.cc",
   "src/base/avdec/wav.cc",
+  "src/base/avdec/ogg.cc",
   "src/base/avspec.cc",
   "src/effects/blind_effect.cc",
   "src/effects/effect.cc",
