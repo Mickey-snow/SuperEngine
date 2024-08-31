@@ -100,7 +100,8 @@ class WavCodecTest : public ::testing::TestWithParam<std::string> {
 
   std::vector<double> ReproduceAudio() const {
     std::vector<double> wav;
-    for (int i = 0; i < sample_rate * duration; ++i) {
+    int sample_count = std::round(sample_rate * duration);
+    for (int i = 0; i < sample_count; ++i) {
       float t = static_cast<double>(i) / sample_rate;
       double sample = sin(2 * pi * frequency * t);
       for (int j = 0; j < channel; ++j)

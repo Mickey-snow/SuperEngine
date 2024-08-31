@@ -7,7 +7,7 @@ import sys
 
 def generate_sine_wave(frequency, duration, sample_rate):
     """Generate a sine wave signal."""
-    t = np.linspace(0, duration, int(sample_rate * duration), endpoint=False)
+    t = np.linspace(0, duration, round(sample_rate * duration), endpoint=False)
     wave = np.sin(2 * np.pi * frequency * t)
     return wave
 
