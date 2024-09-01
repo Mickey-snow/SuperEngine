@@ -39,7 +39,7 @@
 
 #include "libreallive/alldefs.h"
 #include "libreallive/parser.h"
-#include "libreallive/filemap.h"
+#include "libreallive/filepos.h"
 
 namespace libreallive {
 

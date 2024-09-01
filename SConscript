@@ -65,7 +65,6 @@ librlvm_files = [
   "src/libreallive/parser.cc",
   "src/libreallive/compression.cc",
   "src/libreallive/expression.cc",
-  "src/libreallive/filemap.cc",
   "src/libreallive/gameexe.cc",
   "src/libreallive/intmemref.cc",
   "src/libreallive/scenario.cc",

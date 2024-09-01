@@ -31,8 +31,8 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LIBREALLIVE_FILEMAP_H_
-#define SRC_LIBREALLIVE_FILEMAP_H_
+#ifndef SRC_LIBREALLIVE_FILEPOS_H_
+#define SRC_LIBREALLIVE_FILEPOS_H_
 
 #include "libreallive/alldefs.h"
 #include "utilities/mapped_file.h"
