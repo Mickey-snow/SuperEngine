@@ -25,9 +25,9 @@
 #include <gtest/gtest.h>
 
 #include "base/avdec/wav.h"
-#include "utilities/numbers.h"
-
 #include "test_utils.h"
+#include "utilities/mapped_file.h"
+#include "utilities/numbers.h"
 
 #include <algorithm>
 #include <cmath>
@@ -56,25 +56,6 @@ class WavCodecTest : public ::testing::TestWithParam<std::string> {
       FAIL() << "Failed to open parameter file: " << filepath;
 
     param_fs >> sample_rate >> channel >> sample_width >> frequency >> duration;
-  }
-
-  std::vector<char> LoadFile() {
-    const std::string filepath = GetParam();
-    std::ifstream file_fs(filepath);
-    if (!file_fs) {
-      ADD_FAILURE() << "Failed to open WAV file: " << filepath;
-      return {};
-    }
-
-    std::vector<char> data;
-    // TODO: switch to mapped file
-    file_fs.seekg(0, std::ios::end);
-    size_t n = file_fs.tellg();
-    file_fs.seekg(0, std::ios::beg);
-
-    data.resize(n);
-    file_fs.read(data.data(), n);
-    return data;
   }
 
   AV_SAMPLE_FMT DetermineSampleFormat() const {
@@ -147,8 +128,8 @@ class WavCodecTest : public ::testing::TestWithParam<std::string> {
 TEST_P(WavCodecTest, DecodeWav) {
   const double max_std = 0.075 * exp(-sample_width);
 
-  auto data = LoadFile();
-  WavDecoder decoder(std::string_view(data.data(), data.size()));
+  auto file = MappedFile(GetParam());
+  WavDecoder decoder(file.Read());
   AudioData result = decoder.DecodeAll();
 
   auto expect_wav = ReproduceAudio();
@@ -179,11 +160,11 @@ TEST_P(WavCodecTest, EncodeRiffHeader) {
 }
 
 TEST_P(WavCodecTest, EncoderTest) {
-  std::vector<char> audioFile = LoadFile();
-  std::string_view filecontent(audioFile.data(), audioFile.size());
-  AudioData audioData = WavDecoder(filecontent).DecodeAll();
+  auto file = MappedFile(GetParam());
+  std::string_view file_content = file.Read();
+  AudioData audioData = WavDecoder(file_content).DecodeAll();
   auto encodedWav = EncodeWav(audioData);
-  EXPECT_EQ(filecontent,
+  EXPECT_EQ(file_content,
             (std::string_view((char*)encodedWav.data(), encodedWav.size())));
 }
 

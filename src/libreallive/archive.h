@@ -34,6 +34,7 @@
 #ifndef SRC_LIBREALLIVE_ARCHIVE_H_
 #define SRC_LIBREALLIVE_ARCHIVE_H_
 
+#include <filesystem>
 #include <map>
 #include <memory>
 #include <string>
@@ -41,7 +42,6 @@
 #include <vector>
 
 #include "libreallive/alldefs.h"
-#include "libreallive/filemap.h"
 #include "libreallive/scenario.h"
 
 namespace libreallive {
@@ -49,6 +49,8 @@ namespace libreallive {
 namespace compression {
 struct XorKey;
 }  // namespace compression
+
+namespace fs = std::filesystem;
 
 // Interface to a loaded SEEN.TXT file.
 class Archive {

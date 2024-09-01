@@ -39,6 +39,7 @@
 #include "libreallive/archive.h"
 #include "libreallive/compression.h"
 #include "utilities/byte_reader.h"
+#include "utilities/mapped_file.h"
 
 using boost::iends_with;
 using boost::istarts_with;

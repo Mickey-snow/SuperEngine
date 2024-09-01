@@ -29,6 +29,7 @@
 #include "base/avdec/ogg.h"
 #include "base/avdec/wav.h"
 #include "systems/base/ovk_voice_sample.h"
+#include "utilities/mapped_file.h"
 #include "utilities/numbers.h"
 
 #include <cmath>
@@ -106,18 +107,8 @@ TEST_F(OggDecoderTest, OVKVoiceSample) {
 TEST_F(OggDecoderTest, oggDecoder) {
   static constexpr double max_std = 0.01;
 
-  std::vector<char> file_content;
-  {
-    std::ifstream ifs(file_str);
-    ifs.seekg(0, std::ios::end);
-    size_t n = ifs.tellg();
-    ifs.seekg(0, std::ios::beg);
-    file_content.resize(n);
-    ifs.read(file_content.data(), n);
-  }
-
-  OggDecoder decoder(
-      std::string_view(file_content.data(), file_content.size()));
+  auto file = MappedFile(file_str);
+  OggDecoder decoder(file.Read());
   AudioData audio = decoder.DecodeAll();
   EXPECT_EQ(audio.spec, DetermineSpecification());
 

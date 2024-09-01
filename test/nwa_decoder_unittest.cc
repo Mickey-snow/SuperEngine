@@ -26,6 +26,7 @@
 
 #include "base/avdec/nwa.h"
 #include "test_utils.h"
+#include "utilities/mapped_file.h"
 #include "utilities/numbers.h"
 
 #include <cstdlib>
@@ -65,17 +66,6 @@ class NwaDecoderTest : public ::testing::Test {
     return std::get<std::vector<int16_t>>(data);
   }
 
-  std::vector<char> LoadFile(const std::string& filename) {
-    std::vector<char> audioData;
-    std::ifstream fp(filename);
-    fp.seekg(0, std::ios::end);
-    auto n = fp.tellg();
-    fp.seekg(0, std::ios::beg);
-    audioData.resize(n);
-    fp.read(audioData.data(), n);
-    return audioData;
-  }
-
   std::tuple<std::vector<int16_t>, std::vector<int16_t>> SplitChannels(
       std::vector<int16_t> samples) {
     std::vector<int16_t> ch[2];
@@ -101,8 +91,8 @@ TEST_F(NwaDecoderTest, NoCompress) {
   const std::string filename = "Gameroot/BGM/BGM01.nwa";
   const float maxstd = 1e-4 * INT16_MAX;
 
-  std::vector<char> rawdata = LoadFile(locateTestCase(filename));
-  NwaDecoder decoder(rawdata.data(), rawdata.size());
+  auto file = MappedFile(locateTestCase(filename));
+  NwaDecoder decoder(file.Read());
 
   AudioData result = decoder.DecodeAll();
   auto [lch, rch] = SplitChannels(ToInt16Vec(result.data));
@@ -120,8 +110,8 @@ TEST_F(NwaDecoderTest, Compress2) {
   const std::string filename = "Gameroot/BGM/BGM02.nwa";
   const float maxstd = 0.02 * INT16_MAX;
 
-  std::vector<char> rawdata = LoadFile(locateTestCase(filename));
-  NwaDecoder decoder(rawdata.data(), rawdata.size());
+  auto file = MappedFile(locateTestCase(filename));
+  NwaDecoder decoder(file.Read());
 
   AudioData result = decoder.DecodeAll();
   auto [lch, rch] = SplitChannels(ToInt16Vec(result.data));
@@ -139,8 +129,8 @@ TEST_F(NwaDecoderTest, Compress1) {
   const std::string filename = "Gameroot/BGM/BGM03.nwa";
   const float maxstd = 0.05 * INT16_MAX;
 
-  std::vector<char> rawdata = LoadFile(locateTestCase(filename));
-  NwaDecoder decoder(rawdata.data(), rawdata.size());
+  auto file = MappedFile(locateTestCase(filename));
+  NwaDecoder decoder(file.Read());
 
   AudioData result = decoder.DecodeAll();
   auto [lch, rch] = SplitChannels(ToInt16Vec(result.data));
@@ -158,8 +148,8 @@ TEST_F(NwaDecoderTest, Compress0) {
   const std::string filename = "Gameroot/BGM/BGM04.nwa";
   const float maxstd = 0.025 * INT16_MAX;
 
-  std::vector<char> rawdata = LoadFile(locateTestCase(filename));
-  NwaDecoder decoder(rawdata.data(), rawdata.size());
+  auto file = MappedFile(locateTestCase(filename));
+  NwaDecoder decoder(file.Read());
 
   AudioData result = decoder.DecodeAll();
   auto [lch, rch] = SplitChannels(ToInt16Vec(result.data));
@@ -177,8 +167,8 @@ TEST_F(NwaDecoderTest, Compress3) {
   const std::string filename = "Gameroot/BGM/BGM05.nwa";
   const float maxstd = 0.0035 * INT16_MAX;
 
-  std::vector<char> rawdata = LoadFile(locateTestCase(filename));
-  NwaDecoder decoder(rawdata.data(), rawdata.size());
+  auto file = MappedFile(locateTestCase(filename));
+  NwaDecoder decoder(file.Read());
 
   AudioData result = decoder.DecodeAll();
   auto [lch, rch] = SplitChannels(ToInt16Vec(result.data));
@@ -196,8 +186,8 @@ TEST_F(NwaDecoderTest, Compress4) {
   const std::string filename = "Gameroot/BGM/BGM06.nwa";
   const float maxstd = 0.001 * INT16_MAX;
 
-  std::vector<char> rawdata = LoadFile(locateTestCase(filename));
-  NwaDecoder decoder(rawdata.data(), rawdata.size());
+  auto file = MappedFile(locateTestCase(filename));
+  NwaDecoder decoder(file.Read());
 
   AudioData result = decoder.DecodeAll();
   auto [lch, rch] = SplitChannels(ToInt16Vec(result.data));
@@ -215,8 +205,8 @@ TEST_F(NwaDecoderTest, Compress5) {
   const std::string filename = "Gameroot/BGM/BGM07.nwa";
   const float maxstd = 0.0007 * INT16_MAX;
 
-  std::vector<char> rawdata = LoadFile(locateTestCase(filename));
-  NwaDecoder decoder(rawdata.data(), rawdata.size());
+  auto file = MappedFile(locateTestCase(filename));
+  NwaDecoder decoder(file.Read());
 
   AudioData result = decoder.DecodeAll();
   auto [lch, rch] = SplitChannels(ToInt16Vec(result.data));

@@ -35,38 +35,11 @@
 #define SRC_LIBREALLIVE_FILEMAP_H_
 
 #include "libreallive/alldefs.h"
+#include "utilities/mapped_file.h"
 
 #include <string_view>
-#include <filesystem>
-#include "boost/iostreams/device/mapped_file.hpp"
 
 namespace libreallive {
-
-namespace fs = std::filesystem;
-
-class MappedFile {
- public:
-  MappedFile(const std::string& filename, std::size_t size = 0);
-  MappedFile(const fs::path& filepath, std::size_t size = 0);
-  ~MappedFile();
-
-  std::string_view Read(std::size_t position, std::size_t length);
-
-  bool Write(std::size_t position, const std::string& data);
-
-  std::size_t size() const { return file_.size(); }
-  std::size_t Size() const { return file_.size(); }
-
-  // Direct access to internal memory, should be removed
-  const char* get() {
-    if (!file_.is_open())
-      throw Error("File not open");
-    return file_.const_data();
-  }
-
- private:
-  boost::iostreams::mapped_file file_;
-};
 
 struct FilePos {
   std::shared_ptr<MappedFile> file_;
