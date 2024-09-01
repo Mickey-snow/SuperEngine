@@ -44,6 +44,7 @@ librlvm_files = [
   "src/base/notification/registrar.cc",
   "src/base/notification/service.cc",
   "src/base/notification/source.cc",
+  "src/base/avdec/iadec.cc",
   "src/base/avdec/nwa.cc",
   "src/base/avdec/wav.cc",
   "src/base/avdec/ogg.cc",

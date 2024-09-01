@@ -25,6 +25,7 @@
 #ifndef SRC_BASE_AVDEC_WAV_H_
 #define SRC_BASE_AVDEC_WAV_H_
 
+#include "base/avdec/iadec.h"
 #include "base/avspec.h"
 
 #include <string_view>
@@ -43,12 +44,18 @@ struct fmtHeader {
   uint16_t cbSize;
 };
 
-class WavDecoder {
+class WavDecoder : public IAudioDecoder {
  public:
   WavDecoder(std::string_view sv);
   ~WavDecoder() = default;
 
-  AudioData DecodeAll();
+  std::string DecoderName() const override;
+
+  AVSpec GetSpec() override;
+
+  AudioData DecodeNext() override;
+
+  AudioData DecodeAll() override;
 
  private:
   std::string_view wavdata_;

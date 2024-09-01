@@ -29,6 +29,7 @@
 #include <string_view>
 #include <vector>
 
+#include "base/avdec/iadec.h"
 #include "base/avspec.h"
 #include "utilities/bitstream.h"
 
@@ -58,18 +59,20 @@ class NwaDecoderImpl {
 };
 
 // Main NWA Decoder class
-class NwaDecoder {
+class NwaDecoder : public IAudioDecoder {
  public:
   NwaDecoder(std::string_view data);
   NwaDecoder(char* data, size_t length);
 
-  AudioData DecodeNext();
+  std::string DecoderName() const override;
 
-  AudioData DecodeAll();
+  AudioData DecodeNext() override;
+
+  AudioData DecodeAll() override;
 
   bool HasNext();
 
-  AVSpec GetSpec() const;
+  AVSpec GetSpec() override;
 
  private:
   std::string_view data_;

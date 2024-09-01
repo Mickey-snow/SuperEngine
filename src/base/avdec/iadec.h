@@ -4,7 +4,7 @@
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2009 Elliot Glaysher
+// Copyright (C) 2024 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,31 +22,33 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_BASE_AVDEC_OGG_H_
-#define SRC_BASE_AVDEC_OGG_H_
+#ifndef BASE_AVDEC_IADEC_H_
+#define BASE_AVDEC_IADEC_H_
 
-#include "base/avdec/iadec.h"
 #include "base/avspec.h"
 
-#include <memory>
+#include <string>
 
-class ov_adapter;
+enum class SEEK_RESULT { ERROR = 1, FAIL, IMPRECISE_SEEK, PRECISE_SEEK };
 
-class OggDecoder : public IAudioDecoder {
+enum class SEEKDIR { BEG = 1, END, CUR };
+
+class IAudioDecoder {
  public:
-  explicit OggDecoder(std::string_view sv);
-  ~OggDecoder();
+  virtual ~IAudioDecoder() = default;
 
-  std::string DecoderName() const override;
+  virtual std::string DecoderName() const = 0;
 
-  AVSpec GetSpec() override;
+  virtual AVSpec GetSpec() = 0;
 
-  AudioData DecodeAll() override;
+  virtual AudioData DecodeAll() = 0;
 
-  AudioData DecodeNext() override;
+  virtual AudioData DecodeNext() = 0;
 
- private:
-  std::unique_ptr<ov_adapter> impl_;
+  virtual SEEK_RESULT Seek(long long offset, SEEKDIR whence = SEEKDIR::CUR);
+
+  using time_ms_t = long long;
+  virtual time_ms_t Tell();
 };
 
 #endif

@@ -4,7 +4,7 @@
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2009 Elliot Glaysher
+// Copyright (C) 2024 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,31 +22,17 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_BASE_AVDEC_OGG_H_
-#define SRC_BASE_AVDEC_OGG_H_
-
 #include "base/avdec/iadec.h"
-#include "base/avspec.h"
 
-#include <memory>
+#include <stdexcept>
 
-class ov_adapter;
+SEEK_RESULT IAudioDecoder::Seek(long long, SEEKDIR) {
+  throw std::logic_error(
+      "Method Seek not implemented for decoder: " + DecoderName() + '.');
+}
 
-class OggDecoder : public IAudioDecoder {
- public:
-  explicit OggDecoder(std::string_view sv);
-  ~OggDecoder();
-
-  std::string DecoderName() const override;
-
-  AVSpec GetSpec() override;
-
-  AudioData DecodeAll() override;
-
-  AudioData DecodeNext() override;
-
- private:
-  std::unique_ptr<ov_adapter> impl_;
-};
-
-#endif
+using time_ms_t = IAudioDecoder::time_ms_t;
+time_ms_t IAudioDecoder::Tell() {
+  throw std::logic_error(
+      "Method Tell not implemented for decoder: " + DecoderName() + '.');
+}

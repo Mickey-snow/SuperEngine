@@ -258,6 +258,8 @@ NwaDecoder::NwaDecoder(std::string_view data)
 NwaDecoder::NwaDecoder(char* data, size_t length)
     : NwaDecoder(std::string_view(data, length)) {}
 
+std::string NwaDecoder::DecoderName() const { return "NwaDecoder"; }
+
 AudioData NwaDecoder::DecodeNext() {
   return AudioData{.spec = GetSpec(), .data = impl_->DecodeNext()};
 }
@@ -268,7 +270,7 @@ AudioData NwaDecoder::DecodeAll() {
 
 bool NwaDecoder::HasNext() { return impl_->HasNext(); }
 
-AVSpec NwaDecoder::GetSpec() const {
+AVSpec NwaDecoder::GetSpec() {
   return AVSpec{.sample_rate = header_->sample_rate,
                 .sample_format = AV_SAMPLE_FMT::S16,
                 .channel_count = header_->channel_count};

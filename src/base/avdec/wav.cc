@@ -100,31 +100,77 @@ WavDecoder::WavDecoder(std::string_view sv) : wavdata_(sv), fmt_(nullptr) {
   ParseChunks();
 }
 
-AudioData WavDecoder::DecodeAll() {
-  AudioData result;
-  result.spec = {.sample_rate = fmt_->nSamplesPerSec,
+std::string WavDecoder::DecoderName() const { return "WavDecoder"; }
+
+AVSpec WavDecoder::GetSpec() {
+  AVSpec spec = {.sample_rate = fmt_->nSamplesPerSec,
                  .sample_format = AV_SAMPLE_FMT::NONE,
                  .channel_count = fmt_->nChannels};
   switch (fmt_->wBitsPerSample) {
     case 8u:
-      result.spec.sample_format = AV_SAMPLE_FMT::U8;
-      result.data = WavDataExtractor<avsample_u8_t>(data_).Extract();
+      spec.sample_format = AV_SAMPLE_FMT::U8;
       break;
     case 16u:
-      result.spec.sample_format = AV_SAMPLE_FMT::S16;
-      result.data = WavDataExtractor<avsample_s16_t>(data_).Extract();
+      spec.sample_format = AV_SAMPLE_FMT::S16;
       break;
     case 32u:
-      result.spec.sample_format = AV_SAMPLE_FMT::S32;
-      result.data = WavDataExtractor<avsample_s32_t>(data_).Extract();
+      spec.sample_format = AV_SAMPLE_FMT::S32;
       break;
     case 64u:
-      result.spec.sample_format = AV_SAMPLE_FMT::S64;
-      result.data = WavDataExtractor<avsample_s64_t>(data_).Extract();
+      spec.sample_format = AV_SAMPLE_FMT::S64;
+      break;
+    default:
+      throw std::logic_error("Unsupported sample bits: " +
+                             std::to_string(fmt_->wBitsPerSample) + '.');
+  }
+  return spec;
+}
+
+AudioData WavDecoder::DecodeNext() {
+  if (data_.empty())
+    throw std::logic_error("No more data to decode.");
+
+  AudioData result;
+  result.spec = GetSpec();
+
+  static constexpr size_t batch_size = 1024;
+  std::string_view to_decode =
+      data_.size() < batch_size ? data_ : data_.substr(0, batch_size);
+  data_.remove_prefix(std::min(batch_size, data_.size()));
+
+  switch (fmt_->wBitsPerSample) {
+    case 8u:
+      result.data = WavDataExtractor<avsample_u8_t>(to_decode).Extract();
+      break;
+    case 16u:
+      result.data = WavDataExtractor<avsample_s16_t>(to_decode).Extract();
+      break;
+    case 32u:
+      result.data = WavDataExtractor<avsample_s32_t>(to_decode).Extract();
+      break;
+    case 64u:
+      result.data = WavDataExtractor<avsample_s64_t>(to_decode).Extract();
       break;
     default:
       throw std::logic_error("Unsupported sample format");
   }
+  return result;
+}
+
+AudioData WavDecoder::DecodeAll() {
+  AudioData result;
+  result.spec = GetSpec();
+  result.PrepareDatabuf();
+
+  while (!data_.empty()) {
+    AudioData next_batch = DecodeNext();
+    std::visit(
+        [](auto& result, auto&& append) {
+          result.insert(result.end(), append.begin(), append.end());
+        },
+        result.data, std::move(next_batch.data));
+  }
+
   return result;
 }
 
@@ -147,7 +193,7 @@ void WavDecoder::ValidateWav() {
   size_t wav_size = 8 + reader.ReadBytes(4);
   if (wav_size > wavdata_.size()) {
     oss << "File size mismatch\n";
-  } else{
+  } else {
     wavdata_ = wavdata_.substr(0, wav_size);
   }
 
@@ -158,8 +204,10 @@ void WavDecoder::ValidateWav() {
 }
 
 void WavDecoder::ParseChunks() {
+  bool has_datachunk = false;
   ByteReader reader(wavdata_.data(), wavdata_.size());
   reader.Seek(12);
+
   while (reader.Position() < reader.Size()) {
     auto chunk_tag = reader.PopAs<std::string_view>(4);
     auto chunk_len = reader.PopAs<int>(4);
@@ -179,6 +227,7 @@ void WavDecoder::ParseChunks() {
         throw std::logic_error("Found data chunk before fmt chunk");
       }
       data_ = reader.ReadAs<std::string_view>(chunk_len);
+      has_datachunk = true;
     } else {
       /*uninteresting chunk*/
     }
@@ -189,7 +238,7 @@ void WavDecoder::ParseChunks() {
   if (fmt_ == nullptr) {
     throw std::logic_error("No fmt chunk found");
   }
-  if (data_.empty()) {
+  if (!has_datachunk) {
     throw std::logic_error("No data chunk found");
   }
 }

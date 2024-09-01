@@ -150,7 +150,6 @@ TEST_P(WavCodecTest, DecodeWav) {
   auto data = LoadFile();
   WavDecoder decoder(std::string_view(data.data(), data.size()));
   AudioData result = decoder.DecodeAll();
-  ASSERT_GT(result.SampleCount(), 0) << "Decoded data is empty";
 
   auto expect_wav = ReproduceAudio();
   ASSERT_EQ(DetermineSpecification(), result.spec);

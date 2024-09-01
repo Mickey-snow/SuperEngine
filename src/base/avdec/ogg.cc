@@ -55,9 +55,10 @@
 #include "base/avdec/ogg.h"
 
 #include <vorbis/vorbisfile.h>
+
 #include <algorithm>
 #include <cstring>
-#include <sstream>
+#include <stdexcept>
 #include <string_view>
 #include <type_traits>
 
@@ -101,94 +102,118 @@ std::string oggErrorCodeToString(int code) {
 // class ov_adapter
 // -----------------------------------------------------------------------
 
-#include <iostream>
 class ov_adapter {
  public:
+  ov_adapter(std::string_view sv) : data_(sv), current_(0) {
+    ov_callbacks callback;
+    callback.read_func = ov_adapter::ov_readfunc;
+    callback.seek_func = ov_adapter::ov_seekfunc;
+    callback.close_func = nullptr;
+    callback.tell_func = ov_adapter::ov_tellfunc;
+
+    if (int r = ov_open_callbacks(this, &vf, nullptr, 0, callback)) {
+      throw std::runtime_error("Ogg stream error: " + oggErrorCodeToString(r));
+    }
+  }
+
+  ~ov_adapter() { ov_clear(&vf); }
+
   static size_t ov_readfunc(void* dst,
                             size_t size,
                             size_t nmemb,
                             void* datasource) {
-    OggDecoder* dec = static_cast<OggDecoder*>(datasource);
-    long long next = dec->current_ + size * nmemb;
-    if (next > dec->data_.size()) {
-      nmemb = (dec->data_.size() - dec->current_) / size;
-      next = dec->current_ + size * nmemb;
+    ov_adapter* me = static_cast<ov_adapter*>(datasource);
+    long long next = me->current_ + size * nmemb;
+    if (next > me->data_.size()) {
+      nmemb = (me->data_.size() - me->current_) / size;
+      next = me->current_ + size * nmemb;
     }
-    std::memcpy(dst, dec->data_.data() + dec->current_, size * nmemb);
-    dec->current_ = next;
+    std::memcpy(dst, me->data_.data() + me->current_, size * nmemb);
+    me->current_ = next;
     return nmemb;
   }
 
   static int ov_seekfunc(void* datasource, ogg_int64_t offset, int whence) {
-    OggDecoder* dec = static_cast<OggDecoder*>(datasource);
+    ov_adapter* me = static_cast<ov_adapter*>(datasource);
     long long pt = 0;
 
     if (whence == SEEK_SET)
       pt = offset;
     else if (whence == SEEK_CUR)
-      pt = dec->current_ + offset;
+      pt = me->current_ + offset;
     else if (whence == SEEK_END)
-      pt = dec->data_.size() + offset;
+      pt = me->data_.size() + offset;
 
-    if (pt > dec->data_.size() || pt < 0)
+    if (pt > me->data_.size() || pt < 0)
       return -1;
-    dec->current_ = pt;
+    me->current_ = pt;
     return 0;
   }
 
   static long ov_tellfunc(void* datasource) {
-    OggDecoder* dec = static_cast<OggDecoder*>(datasource);
-    return static_cast<long>(dec->current_);
+    ov_adapter* me = static_cast<ov_adapter*>(datasource);
+    return static_cast<long>(me->current_);
   }
+
+  std::string_view data_;
+  long long current_;
+  OggVorbis_File vf;
 };
 
 // -----------------------------------------------------------------------
 // class OggDecoder
 // -----------------------------------------------------------------------
 
-OggDecoder::OggDecoder(std::string_view sv) : data_(sv), current_(0) {}
+OggDecoder::OggDecoder(std::string_view sv)
+    : impl_(std::make_unique<ov_adapter>(sv)) {}
 
 OggDecoder::~OggDecoder() = default;
 
-AudioData OggDecoder::DecodeAll() {
-  current_ = 0;
-  ov_callbacks callback;
-  callback.read_func = ov_adapter::ov_readfunc;
-  callback.seek_func = ov_adapter::ov_seekfunc;
-  callback.close_func = nullptr;
-  callback.tell_func = ov_adapter::ov_tellfunc;
+std::string OggDecoder::DecoderName() const { return "OggDecoder"; }
 
-  OggVorbis_File vf;
-  if (int r = ov_open_callbacks(this, &vf, nullptr, 0, callback)) {
-    std::ostringstream oss;
-    oss << "Ogg stream error in OggDecoder::DecodeAll: "
-        << oggErrorCodeToString(r);
-    throw std::runtime_error(oss.str());
-  }
+AVSpec OggDecoder::GetSpec() {
+  vorbis_info* vinfo = ov_info(&impl_->vf, -1);
+  return {.sample_rate = static_cast<int>(vinfo->rate),
+          .sample_format = AV_SAMPLE_FMT::S16,
+          .channel_count = vinfo->channels};
+}
 
-  vorbis_info* vinfo = ov_info(&vf, -1);
+AudioData OggDecoder::DecodeNext() {
   AudioData result;
-  result.spec = {.sample_rate = static_cast<int>(vinfo->rate),
-                 .sample_format = AV_SAMPLE_FMT::S16,
-                 .channel_count = vinfo->channels};
+  result.spec = GetSpec();
   std::vector<avsample_s16_t> samples;
 
-  while (true) {
-    static constexpr size_t batch_size = 65536;
-    std::vector<char> buf(batch_size);
-    int bytes = ov_read(&vf, buf.data(), buf.size(), 0, 2, 1, nullptr);
-    if (bytes == 0) {
-      break;  // End of file
-    } else if (bytes < 0) {
-      ov_clear(&vf);  // Clean up on error
-      throw std::runtime_error("Error decoding Ogg stream.");
-    }
-
-    avsample_s16_t* pcm_data = reinterpret_cast<avsample_s16_t*>(buf.data());
-    samples.insert(samples.end(), pcm_data,
-                   pcm_data + bytes / sizeof(avsample_s16_t));
+  static constexpr size_t batch_size = 8192;
+  static constexpr size_t sample_size = sizeof(avsample_s16_t);
+  samples.resize(batch_size * sample_size);
+  int bytes = ov_read(&impl_->vf, reinterpret_cast<char*>(samples.data()),
+                      sample_size * samples.size(), 0, 2, 1, nullptr);
+  if (bytes < 0) {
+    throw std::runtime_error("Error decoding Ogg stream.");
   }
-  ov_clear(&vf);
+
+  samples.resize(bytes / sample_size);
+  result.data = std::move(samples);
+  return result;
+}
+
+AudioData OggDecoder::DecodeAll() {
+  AudioData result;
+  result.spec = GetSpec();
+  std::vector<avsample_s16_t> samples;
+
+  bool has_next = true;
+  while (has_next) {
+    auto next_chunk = DecodeNext();
+    has_next = std::visit(
+        [&samples](auto& data) -> bool {
+          if (data.empty())
+            return false;
+          samples.insert(samples.end(), data.begin(), data.end());
+          return true;
+        },
+        next_chunk.data);
+  }
 
   result.data = std::move(samples);
   return result;
