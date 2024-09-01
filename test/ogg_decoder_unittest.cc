@@ -40,7 +40,7 @@ class OggDecoderTest : public ::testing::Test {
  protected:
   void SetUp() {
     sample_count = std::round(duration * sample_rate);
-    file_str = locateTestCase("Gameroot/OGG/test.ogg");
+    file_str = LocateTestCase("Gameroot/OGG/test.ogg");
   }
 
   AVSpec DetermineSpecification() const {

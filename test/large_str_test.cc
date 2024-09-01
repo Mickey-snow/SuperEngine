@@ -50,7 +50,7 @@ using namespace libreallive;
 //   strS[0] = "valid"
 //
 TEST(LargeModuleStrTest, strcpy0) {
-  libreallive::Archive arc(locateTestCase("Module_Str_SEEN/strcpy_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strcpy_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new StrModule);
@@ -67,7 +67,7 @@ TEST(LargeModuleStrTest, strcpy0) {
 //   strcpy(strS[0], "valid", 2)
 //
 TEST(LargeModuleStrTest, strcpy1) {
-  libreallive::Archive arc(locateTestCase("Module_Str_SEEN/strcpy_1.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strcpy_1.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new StrModule);
@@ -86,7 +86,7 @@ TEST(LargeModuleStrTest, strcpy1) {
 //   strclear(strS[0])
 //
 TEST(LargeModuleStrTest, strclear0) {
-  libreallive::Archive arc(locateTestCase("Module_Str_SEEN/strclear_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strclear_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new StrModule);
@@ -109,7 +109,7 @@ TEST(LargeModuleStrTest, strclear0) {
 //   strS[2] = "valid"
 //   strclear(strS[0], strS[1])
 TEST(LargeModuleStrTest, strclear1) {
-  libreallive::Archive arc(locateTestCase("Module_Str_SEEN/strclear_1.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strclear_1.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new StrModule);
@@ -135,7 +135,7 @@ TEST(LargeModuleStrTest, strclear1) {
 //   strS[0] += "lid"
 //
 TEST(LargeModuleStrTest, strcat) {  // NOLINT
-  libreallive::Archive arc(locateTestCase("Module_Str_SEEN/strcat_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strcat_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new StrModule);
@@ -153,7 +153,7 @@ TEST(LargeModuleStrTest, strcat) {  // NOLINT
 //   intA[0] = strlen(strS[0])
 //
 TEST(LargeModuleStrTest, strlen) {
-  libreallive::Archive arc(locateTestCase("Module_Str_SEEN/strlen_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strlen_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new StrModule);
@@ -176,7 +176,7 @@ TEST(LargeModuleStrTest, strlen) {
 //   intA[2] = strcmp(strS[2], strS[3])
 //
 TEST(LargeModuleStrTest, strcmp) {
-  libreallive::Archive arc(locateTestCase("Module_Str_SEEN/strcmp_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strcmp_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new StrModule);
@@ -192,7 +192,7 @@ TEST(LargeModuleStrTest, strcmp) {
 
 // First strsub_0 test. Make sure it works on ASCII strings.
 TEST(LargeModuleStrTest, strsub0_ascii) {
-  libreallive::Archive arc(locateTestCase("Module_Str_SEEN/strsub_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strsub_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new StrModule);
@@ -208,7 +208,7 @@ TEST(LargeModuleStrTest, strsub0_ascii) {
 //   strS[1] = strsub(strS[0], 7)
 //
 TEST(LargeModuleStrTest, strsub0_shiftjis) {
-  libreallive::Archive arc(locateTestCase("Module_Str_SEEN/strsub_1.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strsub_1.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new StrModule);
@@ -225,7 +225,7 @@ TEST(LargeModuleStrTest, strsub0_shiftjis) {
 //   strS[1] = strsub(strS[0], 1, 2)
 //
 TEST(LargeModuleStrTest, strsub1_ascii) {
-  libreallive::Archive arc(locateTestCase("Module_Str_SEEN/strsub_2.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strsub_2.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new StrModule);
@@ -241,7 +241,7 @@ TEST(LargeModuleStrTest, strsub1_ascii) {
 //  strS[1] = strsub(strS[0], 7)
 //
 TEST(LargeModuleStrTest, strsub1_shiftjis) {
-  libreallive::Archive arc(locateTestCase("Module_Str_SEEN/strsub_3.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strsub_3.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new StrModule);
@@ -259,7 +259,7 @@ TEST(LargeModuleStrTest, strsub1_shiftjis) {
 //   strS[1] = strrsub(strS[0], 2)
 //
 TEST(LargeModuleStrTest, strrsub_0) {
-  libreallive::Archive arc(locateTestCase("Module_Str_SEEN/strrsub_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strrsub_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new StrModule);
@@ -275,7 +275,7 @@ TEST(LargeModuleStrTest, strrsub_0) {
 //  strS[1] = strrsub(strS[0], 2, 1)
 //
 TEST(LargeModuleStrTest, strrsub_1) {
-  libreallive::Archive arc(locateTestCase("Module_Str_SEEN/strrsub_1.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strrsub_1.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new StrModule);
@@ -291,7 +291,7 @@ TEST(LargeModuleStrTest, strrsub_1) {
 //  intA[0] = strcharlen(strS[0])
 //
 TEST(LargeModuleStrTest, strcharlen_ascii) {
-  libreallive::Archive arc(locateTestCase("Module_Str_SEEN/strcharlen_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strcharlen_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new StrModule);
@@ -307,7 +307,7 @@ TEST(LargeModuleStrTest, strcharlen_ascii) {
 //   intA[0] = strcharlen(strS[0])
 //
 TEST(LargeModuleStrTest, srcharlen_shiftjis) {
-  libreallive::Archive arc(locateTestCase("Module_Str_SEEN/strcharlen_1.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strcharlen_1.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new StrModule);
@@ -323,7 +323,7 @@ TEST(LargeModuleStrTest, srcharlen_shiftjis) {
 //   strtrunc(strS[0], 2)
 //
 TEST(LargeModuleStrTest, strtrunc_ascii) {
-  libreallive::Archive arc(locateTestCase("Module_Str_SEEN/strtrunc_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strtrunc_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new StrModule);
@@ -335,7 +335,7 @@ TEST(LargeModuleStrTest, strtrunc_ascii) {
 
 // strtrunc test on Shift-JIS characters
 TEST(LargeModuleStrTest, strtrunc_shiftjis) {
-  libreallive::Archive arc(locateTestCase("Module_Str_SEEN/strtrunc_1.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strtrunc_1.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new StrModule);
@@ -352,7 +352,7 @@ TEST(LargeModuleStrTest, strtrunc_shiftjis) {
 //   strS[0] = hantozen()
 //
 TEST(LargeModuleStrTest, hantozen_ascii) {
-  libreallive::Archive arc(locateTestCase("Module_Str_SEEN/hantozen_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/hantozen_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new StrModule);
@@ -370,7 +370,7 @@ TEST(LargeModuleStrTest, hantozen_ascii) {
 //   strS[0] = hantozen()
 //
 TEST(LargeModuleStrTest, hantozen_half_width_katakana) {
-  libreallive::Archive arc(locateTestCase("Module_Str_SEEN/hantozen_1.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/hantozen_1.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new StrModule);
@@ -387,7 +387,7 @@ TEST(LargeModuleStrTest, hantozen_half_width_katakana) {
 //   strS[0] = zentohan()
 //
 TEST(LargeModuleStrTest, hantozen_fullwidth_ascii) {
-  libreallive::Archive arc(locateTestCase("Module_Str_SEEN/zentohan_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/zentohan_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new StrModule);
@@ -403,7 +403,7 @@ TEST(LargeModuleStrTest, hantozen_fullwidth_ascii) {
 //   strS[0] = zentohan()
 //
 TEST(LargeModuleStrTest, zentohan_fullwidth_katakana) {
-  libreallive::Archive arc(locateTestCase("Module_Str_SEEN/zentohan_1.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/zentohan_1.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new StrModule);
@@ -421,7 +421,7 @@ TEST(LargeModuleStrTest, zentohan_fullwidth_katakana) {
 //   strS[0] = Uppercase()
 //
 TEST(LargeModuleStrTest, Uppercase_0) {
-  libreallive::Archive arc(locateTestCase("Module_Str_SEEN/uppercase_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/uppercase_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new StrModule);
@@ -438,7 +438,7 @@ TEST(LargeModuleStrTest, Uppercase_0) {
 //   strS[0] = Uppercase()
 //
 TEST(LargeModuleStrTest, Uppercase_1) {
-  libreallive::Archive arc(locateTestCase("Module_Str_SEEN/uppercase_1.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/uppercase_1.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new StrModule);
@@ -457,7 +457,7 @@ TEST(LargeModuleStrTest, Uppercase_1) {
 //   strS[0] = Lowercase()
 //
 TEST(LargeModuleStrTest, Lowercase_0) {
-  libreallive::Archive arc(locateTestCase("Module_Str_SEEN/lowercase_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/lowercase_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new StrModule);
@@ -474,7 +474,7 @@ TEST(LargeModuleStrTest, Lowercase_0) {
 //   strS[1] = Lowercase(strS[0])
 //
 TEST(LargeModuleStrTest, Lowercase_1) {
-  libreallive::Archive arc(locateTestCase("Module_Str_SEEN/lowercase_1.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/lowercase_1.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new StrModule);
@@ -494,7 +494,7 @@ TEST(LargeModuleStrTest, Lowercase_1) {
 //   strS[3] = itoa_ws(1, 3)
 //
 TEST(LargeModuleStrTest, itoa_ws) {
-  libreallive::Archive arc(locateTestCase("Module_Str_SEEN/itoa_ws_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/itoa_ws_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new StrModule);
@@ -520,7 +520,7 @@ TEST(LargeModuleStrTest, itoa_ws) {
 //   strS[3] = itoa_s(1, 3)
 //
 TEST(LargeModuleStrTest, itoa_s) {
-  libreallive::Archive arc(locateTestCase("Module_Str_SEEN/itoa_s_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/itoa_s_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new StrModule);
@@ -544,7 +544,7 @@ TEST(LargeModuleStrTest, itoa_s) {
 //   strS[3] = itoa_w(1, 3)
 //
 TEST(LargeModuleStrTest, itoa_w) {
-  libreallive::Archive arc(locateTestCase("Module_Str_SEEN/itoa_w_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/itoa_w_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new StrModule);
@@ -570,7 +570,7 @@ TEST(LargeModuleStrTest, itoa_w) {
 //   strS[3] = itoa(1, 3)
 //
 TEST(LargeModuleStrTest, itoa) {
-  libreallive::Archive arc(locateTestCase("Module_Str_SEEN/itoa_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/itoa_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new StrModule);
@@ -595,7 +595,7 @@ TEST(LargeModuleStrTest, itoa) {
 //   intA[4] = atoi("asdf")
 //
 TEST(LargeModuleStrTest, atoi) {
-  libreallive::Archive arc(locateTestCase("Module_Str_SEEN/atoi_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/atoi_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new StrModule);
@@ -620,7 +620,7 @@ TEST(LargeModuleStrTest, atoi) {
 //   intA[2] = digits(-20)
 //
 TEST(LargeModuleStrTest, digits) {
-  libreallive::Archive arc(locateTestCase("Module_Str_SEEN/digits_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/digits_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new StrModule);
@@ -641,7 +641,7 @@ TEST(LargeModuleStrTest, digits) {
 //   intA[2] = strpos("Itaiyo", "Uguu~")
 //
 TEST(LargeModuleStrTest, strpos) {
-  libreallive::Archive arc(locateTestCase("Module_Str_SEEN/strpos_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strpos_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new StrModule);
@@ -662,7 +662,7 @@ TEST(LargeModuleStrTest, strpos) {
 //   intA[2] = strlpos("Itaiyo", "Uguu~")
 //
 TEST(LargeModuleStrTest, strlpos) {
-  libreallive::Archive arc(locateTestCase("Module_Str_SEEN/strlpos_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strlpos_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new StrModule);
@@ -683,7 +683,7 @@ TEST(LargeModuleStrTest, strlpos) {
 //   intA[1] = strused(strS[1])
 //
 TEST(LargeModuleStrTest, strused) {
-  libreallive::Archive arc(locateTestCase("Module_Str_SEEN/strused_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strused_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new StrModule);

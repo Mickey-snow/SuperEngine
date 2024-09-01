@@ -45,7 +45,7 @@ using libreallive::IntMemRef;
 // a SEEN.TXT made out of three SEENS, which just call SceneNum() and
 // jump to the next scenario.
 TEST(LargeModuleSysTest, SceneNum) {
-  libreallive::Archive arc(locateTestCase("Module_Sys_SEEN/SceneNum.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Sys_SEEN/SceneNum.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new SysModule);
@@ -63,7 +63,7 @@ TEST(LargeModuleSysTest, SceneNum) {
 
 // Tests integer built-in functions.
 TEST(LargeModuleSysTest, BuiltIns) {
-  libreallive::Archive arc(locateTestCase("Module_Sys_SEEN/builtins.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Sys_SEEN/builtins.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new SysModule);

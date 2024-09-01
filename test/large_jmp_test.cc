@@ -51,7 +51,7 @@ using namespace libreallive;
 //   @aa
 //   intA[2] = 1;
 TEST(LargeJmpTest, goto) {
-  libreallive::Archive arc(locateTestCase("Module_Jmp_SEEN/goto_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Jmp_SEEN/goto_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new JmpModule);
@@ -78,7 +78,7 @@ TEST(LargeJmpTest, goto) {
 //   @aa
 //   intA[2] = 1
 TEST(LargeJmpTest, goto_if_false) {
-  libreallive::Archive arc(locateTestCase("Module_Jmp_SEEN/goto_if_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Jmp_SEEN/goto_if_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new JmpModule);
@@ -105,7 +105,7 @@ TEST(LargeJmpTest, goto_if_false) {
 //   @aa
 //   intA[2] = 1
 TEST(LargeJmpTest, goto_if_true) {
-  libreallive::Archive arc(locateTestCase("Module_Jmp_SEEN/goto_if_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Jmp_SEEN/goto_if_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new JmpModule);
@@ -134,7 +134,7 @@ TEST(LargeJmpTest, goto_if_true) {
 //   @aa
 //   intA[2] = 1
 TEST(LargeJmpTest, goto_unless_false) {
-  libreallive::Archive arc(locateTestCase("Module_Jmp_SEEN/goto_unless_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Jmp_SEEN/goto_unless_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new JmpModule);
@@ -175,7 +175,7 @@ TEST(LargeJmpTest, goto_unless_false) {
 TEST(LargeJmpTest, goto_on) {
   // Repeat this test to hit each label
   for (int i = 0; i < 3; ++i) {
-    libreallive::Archive arc(locateTestCase("Module_Jmp_SEEN/goto_on_0.TXT"));
+    libreallive::Archive arc(LocateTestCase("Module_Jmp_SEEN/goto_on_0.TXT"));
     TestSystem system;
     RLMachine rlmachine(system, arc);
     rlmachine.AttachModule(new JmpModule);
@@ -211,8 +211,8 @@ TEST(LargeJmpTest, goto_on) {
 //
 //   @end
 TEST(LargeJmpTest, goto_on_illegal) {
-  libreallive::Archive arc(locateTestCase("Module_Jmp_SEEN/goto_on_0.TXT"));
-  TestSystem system(locateTestCase("Gameexe_data/Gameexe.ini"));
+  libreallive::Archive arc(LocateTestCase("Module_Jmp_SEEN/goto_on_0.TXT"));
+  TestSystem system(LocateTestCase("Gameexe_data/Gameexe.ini"));
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new JmpModule);
   rlmachine.SetIntValue(IntMemRef('B', 0), 7);
@@ -248,7 +248,7 @@ TEST(LargeJmpTest, goto_on_illegal) {
 //   @end
 TEST(LargeJmpTest, goto_case) {
   for (int i = 0; i < 3; ++i) {
-    libreallive::Archive arc(locateTestCase("Module_Jmp_SEEN/goto_case_0.TXT"));
+    libreallive::Archive arc(LocateTestCase("Module_Jmp_SEEN/goto_case_0.TXT"));
     TestSystem system;
     RLMachine rlmachine(system, arc);
     rlmachine.AttachModule(new JmpModule);
@@ -260,7 +260,7 @@ TEST(LargeJmpTest, goto_case) {
   }
 
   // Now test the default value
-  libreallive::Archive arc(locateTestCase("Module_Jmp_SEEN/goto_case_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Jmp_SEEN/goto_case_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new JmpModule);
@@ -290,7 +290,7 @@ TEST(LargeJmpTest, goto_case) {
 //   intA[1] = 0
 //   @end
 TEST(LargeJmpTest, gosub_0) {
-  libreallive::Archive arc(locateTestCase("Module_Jmp_SEEN/gosub_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Jmp_SEEN/gosub_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new JmpModule);
@@ -308,7 +308,7 @@ TEST(LargeJmpTest, gosub_0) {
 
 // Tests gosub_if (if false)
 TEST(LargeJmpTest, gosub_if_false) {
-  libreallive::Archive arc(locateTestCase("Module_Jmp_SEEN/gosub_if_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Jmp_SEEN/gosub_if_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new JmpModule);
@@ -326,7 +326,7 @@ TEST(LargeJmpTest, gosub_if_false) {
 
 // Tests gosub_if (if true)
 TEST(LargeJmpTest, gosub_if_true) {
-  libreallive::Archive arc(locateTestCase("Module_Jmp_SEEN/gosub_if_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Jmp_SEEN/gosub_if_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new JmpModule);
@@ -362,7 +362,7 @@ TEST(LargeJmpTest, gosub_if_true) {
 //   @end
 TEST(LargeJmpTest, gosub_unless_false) {
   libreallive::Archive arc(
-      locateTestCase("Module_Jmp_SEEN/gosub_unless_0.TXT"));
+      LocateTestCase("Module_Jmp_SEEN/gosub_unless_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new JmpModule);
@@ -396,7 +396,7 @@ TEST(LargeJmpTest, gosub_unless_false) {
 //   @end
 TEST(LargeJmpTest, gosub_unless_true) {
   libreallive::Archive arc(
-      locateTestCase("Module_Jmp_SEEN/gosub_unless_0.TXT"));
+      LocateTestCase("Module_Jmp_SEEN/gosub_unless_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new JmpModule);
@@ -439,8 +439,8 @@ TEST(LargeJmpTest, gosub_unless_true) {
 TEST(LargeJmpTest, gosub_case) {
   for (int i = 0; i < 3; ++i) {
     libreallive::Archive arc(
-        locateTestCase("Module_Jmp_SEEN/gosub_case_0.TXT"));
-    TestSystem system(locateTestCase("Gameexe_data/Gameexe.ini"));
+        LocateTestCase("Module_Jmp_SEEN/gosub_case_0.TXT"));
+    TestSystem system(LocateTestCase("Gameexe_data/Gameexe.ini"));
     RLMachine rlmachine(system, arc);
     rlmachine.AttachModule(new JmpModule);
     rlmachine.SetIntValue(IntMemRef('B', 0), i);
@@ -451,8 +451,8 @@ TEST(LargeJmpTest, gosub_case) {
   }
 
   // Now test the default value
-  libreallive::Archive arc(locateTestCase("Module_Jmp_SEEN/gosub_case_0.TXT"));
-  TestSystem system(locateTestCase("Gameexe_data/Gameexe.ini"));
+  libreallive::Archive arc(LocateTestCase("Module_Jmp_SEEN/gosub_case_0.TXT"));
+  TestSystem system(LocateTestCase("Gameexe_data/Gameexe.ini"));
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new JmpModule);
   rlmachine.SetIntValue(IntMemRef('B', 0), 29);
@@ -486,7 +486,7 @@ TEST(LargeJmpTest, gosub_case) {
 //   @end
 TEST(LargeJmpTest, jump) {
   for (int i = 1; i < 4; ++i) {
-    libreallive::Archive arc(locateTestCase("Module_Jmp_SEEN/jump_0.TXT"));
+    libreallive::Archive arc(LocateTestCase("Module_Jmp_SEEN/jump_0.TXT"));
     TestSystem system;
     RLMachine rlmachine(system, arc);
     rlmachine.AttachModule(new JmpModule);
@@ -523,7 +523,7 @@ TEST(LargeJmpTest, jump) {
 //   @end
 TEST(LargeJmpTest, jumpTest) {
   for (int i = 1; i < 4; ++i) {
-    libreallive::Archive arc(locateTestCase("Module_Jmp_SEEN/jumpTest.TXT"));
+    libreallive::Archive arc(LocateTestCase("Module_Jmp_SEEN/jumpTest.TXT"));
     TestSystem system;
     RLMachine rlmachine(system, arc);
     rlmachine.AttachModule(new JmpModule);
@@ -561,7 +561,7 @@ TEST(LargeJmpTest, jumpTest) {
 TEST(LargeJmpTest, farcall) {
   for (int i = 1; i < 4; ++i) {
     libreallive::Archive arc(
-        locateTestCase("Module_Jmp_SEEN/farcallTest_0.TXT"));
+        LocateTestCase("Module_Jmp_SEEN/farcallTest_0.TXT"));
     TestSystem system;
     RLMachine rlmachine(system, arc);
     rlmachine.AttachModule(new JmpModule);
@@ -606,7 +606,7 @@ TEST(LargeJmpTest, farcall) {
 //
 //   @end
 TEST(LargeJmpTest, gosub_with) {
-  libreallive::Archive arc(locateTestCase("Module_Jmp_SEEN/gosub_with_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Jmp_SEEN/gosub_with_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new JmpModule);
@@ -696,7 +696,7 @@ static int recFib(int input) {
 //   @end
 TEST(LargeJmpTest, fibonacci) {
   for (int i = 0; i < 10; ++i) {
-    libreallive::Archive arc(locateTestCase("Module_Jmp_SEEN/fibonacci.TXT"));
+    libreallive::Archive arc(LocateTestCase("Module_Jmp_SEEN/fibonacci.TXT"));
     TestSystem system;
     RLMachine rlmachine(system, arc);
     rlmachine.AttachModule(new JmpModule);
@@ -739,7 +739,7 @@ TEST(LargeJmpTest, farcall_with) {
   for (int offset = 0; offset < 2; ++offset) {
     for (int entrypoint = 1; entrypoint < 4; ++entrypoint) {
       libreallive::Archive arc(
-          locateTestCase("Module_Jmp_SEEN/farcall_withTest.TXT"));
+          LocateTestCase("Module_Jmp_SEEN/farcall_withTest.TXT"));
       TestSystem system;
       RLMachine rlmachine(system, arc);
       rlmachine.AttachModule(new JmpModule);
@@ -760,7 +760,7 @@ TEST(LargeJmpTest, farcall_with) {
 // Tests the new pushStringValue that Little Busters depends on.
 TEST(LargeJmpTest, pushStringValueUp) {
   libreallive::Archive arc(
-      locateTestCase("Module_Jmp_SEEN/pushStringValueUp.TXT"));
+      LocateTestCase("Module_Jmp_SEEN/pushStringValueUp.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new JmpModule);

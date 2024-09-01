@@ -38,33 +38,41 @@ namespace fs = std::filesystem;
 
 const std::vector<std::string> testPaths = {"./", "./build/test/", "./test/"};
 
-std::string locateTestCase(const std::string& baseName) {
+fs::path PathToTestCase(const std::string& baseName) {
   for (const auto& it : testPaths) {
     fs::path testName = fs::path(it) / baseName;
     if (fs::exists(testName))
-      return testName.string();
+      return testName;
   }
 
   std::ostringstream oss;
-  oss << "Could not locate data file '" << baseName << "' in locateTestCase.";
+  oss << "Could not locate data file '" << baseName << "' in LocateTestCase.";
   throw std::runtime_error(oss.str());
 }
 
-std::string locateTestDirectory(const std::string& baseName) {
+std::string LocateTestCase(const std::string& baseName) {
+  return PathToTestCase(baseName).string();
+}
+
+fs::path PathToTestDirectory(const std::string& baseName) {
   for (const auto& it : testPaths) {
     fs::path dirName = fs::path(it) / baseName;
     if (fs::is_directory(dirName))
-      return dirName.string();
+      return dirName;
   }
 
   throw std::runtime_error("Could not locate directory " + baseName);
 }
 
+std::string LocateTestDirectory(const std::string& baseName) {
+  return PathToTestDirectory(baseName).string();
+}
+
 // -----------------------------------------------------------------------
 
 FullSystemTest::FullSystemTest()
-    : arc(locateTestCase("Module_Str_SEEN/strcpy_0.TXT")),
-      system(locateTestCase("Gameexe_data/Gameexe.ini")),
+    : arc(LocateTestCase("Module_Str_SEEN/strcpy_0.TXT")),
+      system(LocateTestCase("Gameexe_data/Gameexe.ini")),
       rlmachine(system, arc) {}
 
 FullSystemTest::~FullSystemTest() {}

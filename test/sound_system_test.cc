@@ -42,7 +42,7 @@ using std::stringstream;
 
 // Makes sure we can parse the bizarre Gameexe.ini keys for KOEONOFF
 TEST(SoundSystem, CanParseKOEONOFFKeys) {
-  TestSystem top(locateTestCase("Gameexe_data/Gameexe_koeonoff.ini"));
+  TestSystem top(LocateTestCase("Gameexe_data/Gameexe_koeonoff.ini"));
   SoundSystem& sys = top.sound();
 
   // Test the UseKoe side of things
@@ -61,7 +61,7 @@ TEST(SoundSystem, CanParseKOEONOFFKeys) {
 
 // Tests that SetUseKoe sets values correctly
 TEST(SoundSystem, SetUseKoeCorrectly) {
-  TestSystem top(locateTestCase("Gameexe_data/Gameexe_koeonoff.ini"));
+  TestSystem top(LocateTestCase("Gameexe_data/Gameexe_koeonoff.ini"));
   SoundSystem& sys = top.sound();
 
   sys.SetUseKoeForCharacter(0, 0);
@@ -86,7 +86,7 @@ TEST(SoundSystem, SetUseKoeCorrectly) {
 
 // Make sure we thaw previously serialized character_koe_enabled data correctly.
 TEST(SoundSystem, SetUseKoeSerialization) {
-  std::string gexe = locateTestCase("Gameexe_data/Gameexe_koeonoff.ini");
+  std::string gexe = LocateTestCase("Gameexe_data/Gameexe_koeonoff.ini");
   stringstream ss;
   {
     TestSystem top(gexe);

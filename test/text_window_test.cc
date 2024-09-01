@@ -69,7 +69,7 @@ const std::string kPeriod = "\xe3\x80\x82";
 class TextWindowTest : public ::testing::Test {
  protected:
   TextWindowTest()
-      : arc(locateTestCase("Module_Str_SEEN/strcpy_0.TXT")),
+      : arc(LocateTestCase("Module_Str_SEEN/strcpy_0.TXT")),
         system(),
         rlmachine(system, arc) {}
 

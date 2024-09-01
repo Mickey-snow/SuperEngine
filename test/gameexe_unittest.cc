@@ -37,13 +37,13 @@
 using namespace std;
 
 TEST(GameexeUnit, ReadAllKeys) {
-  Gameexe ini(locateTestCase("Gameexe_data/Gameexe.ini"));
+  Gameexe ini(LocateTestCase("Gameexe_data/Gameexe.ini"));
   EXPECT_EQ(26, ini.Size()) << "Wrong number of keys";
 }
 
 // Make sure #CAPTION exists and that we read its value correctly.
 TEST(GameexeUnit, ReadsCaption) {
-  Gameexe ini(locateTestCase("Gameexe_data/Gameexe.ini"));
+  Gameexe ini(LocateTestCase("Gameexe_data/Gameexe.ini"));
   ASSERT_TRUE(ini("CAPTION").Exists()) << "#CAPTION should exist";
   EXPECT_EQ(string("Canon: A firearm"), ini("CAPTION").ToString())
       << "Wrong value for CAPTION";
@@ -51,13 +51,13 @@ TEST(GameexeUnit, ReadsCaption) {
 
 // Make sure #RANDOM_KEY doesn't exist.
 TEST(GameexeUnit, RandomKeyDoesntExist) {
-  Gameexe ini(locateTestCase("Gameexe_data/Gameexe.ini"));
+  Gameexe ini(LocateTestCase("Gameexe_data/Gameexe.ini"));
   EXPECT_FALSE(ini("RANDOM_KEY").Exists()) << "#RANDOM_KEY should not exist";
 }
 
 // Test ToIntVector() parsing.
 TEST(GameexeUnit, IntVectorParsing) {
-  Gameexe ini(locateTestCase("Gameexe_data/Gameexe.ini"));
+  Gameexe ini(LocateTestCase("Gameexe_data/Gameexe.ini"));
   ASSERT_TRUE(ini("WINDOW_ATTR").Exists()) << "#WINDOW_ATTR should exist!";
 
   vector<int> ints = ini("WINDOW_ATTR").ToIntVector();
@@ -68,7 +68,7 @@ TEST(GameexeUnit, IntVectorParsing) {
 
 // Make sure operator() works with multiple keys...
 TEST(GameexeUnit, MultipleKeys) {
-  Gameexe ini(locateTestCase("Gameexe_data/Gameexe.ini"));
+  Gameexe ini(LocateTestCase("Gameexe_data/Gameexe.ini"));
   EXPECT_EQ(1, ini("IMAGINE", "ONE"));
   EXPECT_EQ(2, ini("IMAGINE", "TWO"));
   EXPECT_EQ(3, ini("IMAGINE", "THREE"));
@@ -83,7 +83,7 @@ TEST(GameexeUnit, MultipleKeys) {
 
 // Make sure GameexeInterpretObject chaining works correctly.
 TEST(GameexeUnit, ChainingWorks) {
-  Gameexe ini(locateTestCase("Gameexe_data/Gameexe.ini"));
+  Gameexe ini(LocateTestCase("Gameexe_data/Gameexe.ini"));
   auto imagine = ini("IMAGINE");
   EXPECT_EQ(1, imagine("ONE"));
   EXPECT_EQ(2, imagine("TWO"));
@@ -105,7 +105,7 @@ TEST(GameexeUnit, ChainingWorks) {
 }
 
 TEST(GameexeUnit, FilteringIterator){
-  Gameexe ini(locateTestCase("Gameexe_data/Gameexe.ini"));
+  Gameexe ini(LocateTestCase("Gameexe_data/Gameexe.ini"));
   auto begin = ini.FilterBegin("IMAGINE."), end = ini.FilterEnd();
   std::vector<int> expected = {1,3,2};
   for(int i=0;i<3;++i,++begin){
@@ -129,7 +129,7 @@ TEST(GameexeUnit, FilteringIterator){
 }
 
 TEST(GameexeUnit, FilterEmpty){
-  Gameexe ini(locateTestCase("Gameexe_data/Gameexe.ini"));
+  Gameexe ini(LocateTestCase("Gameexe_data/Gameexe.ini"));
   auto begin = ini.FilterBegin("OBJECT."), end = ini.FilterEnd();
   EXPECT_EQ(begin, end);
   for(;begin!=end;++begin)
@@ -137,7 +137,7 @@ TEST(GameexeUnit, FilterEmpty){
 }
 
 TEST(GameexeUnit, KeyParts) {
-  Gameexe ini(locateTestCase("Gameexe_data/Gameexe.ini"));
+  Gameexe ini(LocateTestCase("Gameexe_data/Gameexe.ini"));
   auto gio = ini("WINDOW.000.ATTR_MOD");
   vector<string> pieces = gio.GetKeyParts();
   EXPECT_EQ(3, pieces.size());
@@ -160,7 +160,7 @@ TEST(GameexeUnit, KeyParts) {
 //
 // This test ensures that the gameexe parser can handle both.
 TEST(GameexeUnit, DstrackRegression) {
-  Gameexe ini(locateTestCase("Gameexe_data/Gameexe_tokenization.ini"));
+  Gameexe ini(LocateTestCase("Gameexe_data/Gameexe_tokenization.ini"));
 
   GameexeInterpretObject clannad = ini("CLANNADDSTRACK");
   EXPECT_EQ(0, clannad.GetIntAt(0));

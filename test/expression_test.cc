@@ -42,7 +42,7 @@ using namespace libreallive;
 TEST(ExpressionTest, BasicArithmatic) {
   TestSystem system;
   libreallive::Archive arc(
-      locateTestCase("ExpressionTest_SEEN/basicOperators.TXT"));
+      LocateTestCase("ExpressionTest_SEEN/basicOperators.TXT"));
   RLMachine rlmachine(system, arc);
   rlmachine.ExecuteUntilHalted();
 
@@ -65,7 +65,7 @@ TEST(ExpressionTest, BasicArithmatic) {
 TEST(ExpressionTest, ComparisonOperators) {
   TestSystem system;
   libreallive::Archive arc(
-      locateTestCase("ExpressionTest_SEEN/comparisonOperators.TXT"));
+      LocateTestCase("ExpressionTest_SEEN/comparisonOperators.TXT"));
   RLMachine rlmachine(system, arc);
   rlmachine.ExecuteUntilHalted();
 
@@ -92,7 +92,7 @@ TEST(ExpressionTest, ComparisonOperators) {
 TEST(ExpressionTest, LogicalOperators) {
   TestSystem system;
   libreallive::Archive arc(
-      locateTestCase("ExpressionTest_SEEN/logicalOperators.TXT"));
+      LocateTestCase("ExpressionTest_SEEN/logicalOperators.TXT"));
   RLMachine rlmachine(system, arc);
   rlmachine.ExecuteUntilHalted();
 
@@ -112,7 +112,7 @@ TEST(ExpressionTest, LogicalOperators) {
 TEST(ExpressionTest, PreviousErrors) {
   TestSystem system;
   libreallive::Archive arc(
-      locateTestCase("ExpressionTest_SEEN/previousErrors.TXT"));
+      LocateTestCase("ExpressionTest_SEEN/previousErrors.TXT"));
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new JmpModule);
   rlmachine.ExecuteUntilHalted();

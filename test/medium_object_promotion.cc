@@ -55,8 +55,8 @@ typedef std::tuple<std::string,               // function name
 class PromotionTest : public ::testing::TestWithParam<PromotionData> {
  public:
   PromotionTest()
-      : arc(locateTestCase("Module_Str_SEEN/strcpy_0.TXT")),
-        system(locateTestCase("Gameexe_data/Gameexe.ini")),
+      : arc(LocateTestCase("Module_Str_SEEN/strcpy_0.TXT")),
+        system(LocateTestCase("Gameexe_data/Gameexe.ini")),
         rlmachine(system, arc) {
     rlmachine.AttachModule(new GrpModule);
   }

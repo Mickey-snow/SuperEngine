@@ -169,7 +169,7 @@ TEST_P(WavCodecTest, EncoderTest) {
 }
 
 std::vector<std::string> GetTestWavFiles() {
-  static const std::string testdir = locateTestDirectory("Gameroot/WAV");
+  static const std::string testdir = LocateTestDirectory("Gameroot/WAV");
   static const std::regex pattern(".*test[0-9]+\\.wav");
 
   std::vector<std::string> testFiles;

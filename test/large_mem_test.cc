@@ -48,7 +48,7 @@ using libreallive::IntMemRef;
 //   setarray(intA[0], 1, 2, 3)
 //
 TEST(LargeMemTest, setarray_0) {
-  libreallive::Archive arc(locateTestCase("Module_Mem_SEEN/setarray_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Mem_SEEN/setarray_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new MemModule);
@@ -72,7 +72,7 @@ TEST(LargeMemTest, setarray_0) {
 //   intA[0] = -1
 //   setrng(intA[0], intA[3])
 TEST(LargeMemTest, setrng_0) {
-  libreallive::Archive arc(locateTestCase("Module_Mem_SEEN/setrng_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Mem_SEEN/setrng_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new MemModule);
@@ -96,7 +96,7 @@ TEST(LargeMemTest, setrng_0) {
 //   intA[0] = -1
 //   setrng(intA[0], intA[3], 4)
 TEST(LargeMemTest, setrng_1) {
-  libreallive::Archive arc(locateTestCase("Module_Mem_SEEN/setrng_1.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Mem_SEEN/setrng_1.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new MemModule);
@@ -116,7 +116,7 @@ TEST(LargeMemTest, setrng_1) {
 
 // Tests cpyrng_0.
 TEST(LargeMemTest, cpyrng_0) {
-  libreallive::Archive arc(locateTestCase("Module_Mem_SEEN/cpyrng_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Mem_SEEN/cpyrng_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new MemModule);
@@ -146,7 +146,7 @@ TEST(LargeMemTest, cpyrng_0) {
 //
 TEST(LargeMemTest, setarray_stepped_0) {
   libreallive::Archive arc(
-      locateTestCase("Module_Mem_SEEN/setarray_stepped_0.TXT"));
+      LocateTestCase("Module_Mem_SEEN/setarray_stepped_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new MemModule);
@@ -175,7 +175,7 @@ TEST(LargeMemTest, setarray_stepped_0) {
 //
 TEST(LargeMemTest, setrng_stepped_0) {
   libreallive::Archive arc(
-      locateTestCase("Module_Mem_SEEN/setrng_stepped_0.TXT"));
+      LocateTestCase("Module_Mem_SEEN/setrng_stepped_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new MemModule);
@@ -204,7 +204,7 @@ TEST(LargeMemTest, setrng_stepped_0) {
 //
 TEST(LargeMemTest, setrng_stepped_1) {
   libreallive::Archive arc(
-      locateTestCase("Module_Mem_SEEN/setrng_stepped_1.TXT"));
+      LocateTestCase("Module_Mem_SEEN/setrng_stepped_1.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new MemModule);
@@ -233,7 +233,7 @@ TEST(LargeMemTest, setrng_stepped_1) {
 //   intB[8] = 2
 //   cpyvars(intA[0], 2, intB[1], intB[3], intB[6])
 TEST(LargeMemTest, cpyvars) {
-  libreallive::Archive arc(locateTestCase("Module_Mem_SEEN/cpyvars_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Mem_SEEN/cpyvars_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new MemModule);
@@ -257,7 +257,7 @@ TEST(LargeMemTest, cpyvars) {
 //   intA[10] = sum(intA[0], intA[3])
 //
 TEST(LargeMemTest, sum_0) {
-  libreallive::Archive arc(locateTestCase("Module_Mem_SEEN/sum_0.TXT"));
+  libreallive::Archive arc(LocateTestCase("Module_Mem_SEEN/sum_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
   rlmachine.AttachModule(new MemModule);

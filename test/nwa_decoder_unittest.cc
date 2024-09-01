@@ -91,7 +91,7 @@ TEST_F(NwaDecoderTest, NoCompress) {
   const std::string filename = "Gameroot/BGM/BGM01.nwa";
   const float maxstd = 1e-4 * INT16_MAX;
 
-  auto file = MappedFile(locateTestCase(filename));
+  auto file = MappedFile(LocateTestCase(filename));
   NwaDecoder decoder(file.Read());
 
   AudioData result = decoder.DecodeAll();
@@ -110,7 +110,7 @@ TEST_F(NwaDecoderTest, Compress2) {
   const std::string filename = "Gameroot/BGM/BGM02.nwa";
   const float maxstd = 0.02 * INT16_MAX;
 
-  auto file = MappedFile(locateTestCase(filename));
+  auto file = MappedFile(LocateTestCase(filename));
   NwaDecoder decoder(file.Read());
 
   AudioData result = decoder.DecodeAll();
@@ -129,7 +129,7 @@ TEST_F(NwaDecoderTest, Compress1) {
   const std::string filename = "Gameroot/BGM/BGM03.nwa";
   const float maxstd = 0.05 * INT16_MAX;
 
-  auto file = MappedFile(locateTestCase(filename));
+  auto file = MappedFile(LocateTestCase(filename));
   NwaDecoder decoder(file.Read());
 
   AudioData result = decoder.DecodeAll();
@@ -148,7 +148,7 @@ TEST_F(NwaDecoderTest, Compress0) {
   const std::string filename = "Gameroot/BGM/BGM04.nwa";
   const float maxstd = 0.025 * INT16_MAX;
 
-  auto file = MappedFile(locateTestCase(filename));
+  auto file = MappedFile(LocateTestCase(filename));
   NwaDecoder decoder(file.Read());
 
   AudioData result = decoder.DecodeAll();
@@ -167,7 +167,7 @@ TEST_F(NwaDecoderTest, Compress3) {
   const std::string filename = "Gameroot/BGM/BGM05.nwa";
   const float maxstd = 0.0035 * INT16_MAX;
 
-  auto file = MappedFile(locateTestCase(filename));
+  auto file = MappedFile(LocateTestCase(filename));
   NwaDecoder decoder(file.Read());
 
   AudioData result = decoder.DecodeAll();
@@ -186,7 +186,7 @@ TEST_F(NwaDecoderTest, Compress4) {
   const std::string filename = "Gameroot/BGM/BGM06.nwa";
   const float maxstd = 0.001 * INT16_MAX;
 
-  auto file = MappedFile(locateTestCase(filename));
+  auto file = MappedFile(LocateTestCase(filename));
   NwaDecoder decoder(file.Read());
 
   AudioData result = decoder.DecodeAll();
@@ -205,7 +205,7 @@ TEST_F(NwaDecoderTest, Compress5) {
   const std::string filename = "Gameroot/BGM/BGM07.nwa";
   const float maxstd = 0.0007 * INT16_MAX;
 
-  auto file = MappedFile(locateTestCase(filename));
+  auto file = MappedFile(LocateTestCase(filename));
   NwaDecoder decoder(file.Read());
 
   AudioData result = decoder.DecodeAll();

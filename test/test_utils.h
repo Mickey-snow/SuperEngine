@@ -29,6 +29,7 @@
 #define TEST_TESTUTILS_HPP_
 
 #include <string>
+#include <filesystem>
 
 #include "gtest/gtest.h"
 #include "libreallive/archive.h"
@@ -36,10 +37,12 @@
 #include "test_system/test_system.h"
 
 // Locates a test file in the test/ directory.
-std::string locateTestCase(const std::string& baseName);
+std::filesystem::path PathToTestCase(const std::string& baseName);
+std::string LocateTestCase(const std::string& baseName);
 
 // Locates a directory under the test/ directory.
-std::string locateTestDirectory(const std::string& baseName);
+std::filesystem::path PathToTestDirectory(const std::string& baseName);
+std::string LocateTestDirectory(const std::string& baseName);
 
 // A base class for all tests that instantiate an archive, a System and a
 // Machine.
