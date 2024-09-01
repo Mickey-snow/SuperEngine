@@ -193,6 +193,7 @@ librlvm_files = [
   "src/systems/base/voice_cache.cc",
   "src/utilities/exception.cc",
   "src/utilities/file.cc",
+  "src/utilities/mapped_file.cc",
   "src/utilities/graphics.cc",
   "src/utilities/string_utilities.cc",
   "src/utilities/date_util.cc",
