@@ -32,7 +32,7 @@
 #include "xclannad/endian.hpp"
 #include "xclannad/wavfile.h"
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 namespace {
 
@@ -40,7 +40,7 @@ namespace {
 // NWA files thrown together with
 class NWKVoiceSample : public VoiceSample {
  public:
-  NWKVoiceSample(boost::filesystem::path file, int offset, int length);
+  NWKVoiceSample(std::filesystem::path file, int offset, int length);
   virtual ~NWKVoiceSample();
 
   // Overridden from VoiceSample:
@@ -52,7 +52,7 @@ class NWKVoiceSample : public VoiceSample {
   int length_;
 };
 
-NWKVoiceSample::NWKVoiceSample(boost::filesystem::path file,
+NWKVoiceSample::NWKVoiceSample(std::filesystem::path file,
                                int offset,
                                int length)
     : stream_(std::fopen(file.native().c_str(), "rb")),

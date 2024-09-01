@@ -28,20 +28,18 @@
 #include "machine/serialization.h"
 
 // include headers that implement a archive in simple text format
-#include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/iostreams/filter/zlib.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
+#include <boost/serialization/map.hpp>
+#include <boost/serialization/set.hpp>
 #include <boost/serialization/split_free.hpp>
 #include <boost/serialization/vector.hpp>
-#include <boost/serialization/set.hpp>
-#include <boost/serialization/map.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/fstream.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/iostreams/filtering_stream.hpp>
-#include <boost/iostreams/filter/zlib.hpp>
+#include <filesystem>
 #include <fstream>
-#include <sstream>
 #include <iostream>
+#include <sstream>
 
 #include "libreallive/intmemref.h"
 #include "machine/memory.h"
@@ -55,7 +53,7 @@
 #include "utilities/exception.h"
 #include "utilities/gettext.h"
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 namespace Serialization {
 
@@ -72,7 +70,7 @@ fs::path buildGlobalMemoryFilename(RLMachine& machine) {
 
 void saveGlobalMemory(RLMachine& machine) {
   fs::path home = buildGlobalMemoryFilename(machine);
-  fs::ofstream file(home, std::ios::binary);
+  std::ofstream file(home, std::ios::binary);
   if (!file) {
     throw rlvm::Exception(_("Could not open global memory file."));
   }
@@ -99,7 +97,7 @@ void saveGlobalMemoryTo(std::ostream& oss, RLMachine& machine) {
 
 void loadGlobalMemory(RLMachine& machine) {
   fs::path home = buildGlobalMemoryFilename(machine);
-  fs::ifstream file(home, std::ios::binary);
+  std::ifstream file(home, std::ios::binary);
 
   // If we were able to open the file for reading, load it. Don't
   // complain if we're unable to, since this may be the first run on
@@ -107,8 +105,7 @@ void loadGlobalMemory(RLMachine& machine) {
   if (file) {
     try {
       loadGlobalMemoryFrom(file, machine);
-    }
-    catch (...) {
+    } catch (...) {
       // Swallow ALL exceptions during file reading. If loading the global
       // memory file fails in any way, something is EXTREMELY wrong. Either
       // we're trying to read an incompatible old version's files or the global

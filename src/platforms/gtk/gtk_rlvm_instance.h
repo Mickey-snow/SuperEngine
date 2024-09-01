@@ -37,7 +37,7 @@ class GtkRLVMInstance : public RLVMInstance {
   GtkRLVMInstance(int* argc, char** argv[]);
   virtual ~GtkRLVMInstance();
 
-  virtual boost::filesystem::path SelectGameDirectory();
+  virtual std::filesystem::path SelectGameDirectory();
 
  protected:
   void DoNativeWork();

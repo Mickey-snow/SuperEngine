@@ -27,7 +27,7 @@
 #ifndef SRC_SYSTEMS_BASE_HIK_SCRIPT_H_
 #define SRC_SYSTEMS_BASE_HIK_SCRIPT_H_
 
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 #include <memory>
 #include <string>
@@ -41,11 +41,11 @@ class Surface;
 // Class that parses and executes HIK files.
 class HIKScript {
  public:
-  HIKScript(System& system, const boost::filesystem::path& file);
+  HIKScript(System& system, const std::filesystem::path& file);
   ~HIKScript();
 
   // Loads our data from a HIK file.
-  void LoadHikFile(System& system, const boost::filesystem::path& file);
+  void LoadHikFile(System& system, const std::filesystem::path& file);
 
   // Make sure all graphics data is ready to be presented to the user.
   void EnsureUploaded();

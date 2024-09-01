@@ -32,7 +32,7 @@
 // -----------------------------------------------------------------------
 
 #include <boost/algorithm/string.hpp>
-#include <boost/filesystem.hpp>
+#include <filesystem>
 #include <cstring>
 #include <string>
 
@@ -42,7 +42,7 @@
 
 using boost::iends_with;
 using boost::istarts_with;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 namespace libreallive {
 

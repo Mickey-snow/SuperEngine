@@ -28,14 +28,14 @@
 #include "modules/module_sys_save.h"
 
 #include <boost/algorithm/string/predicate.hpp>
-#include <boost/filesystem/fstream.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
 
 #include <algorithm>
+#include <filesystem>
 #include <limits>
+#include <optional>
 #include <string>
 
+#include "libreallive/intmemref.h"
 #include "long_operations/load_game_long_operation.h"
 #include "machine/general_operations.h"
 #include "machine/long_operation.h"
@@ -45,20 +45,19 @@
 #include "machine/rloperation.h"
 #include "machine/rloperation/argc_t.h"
 #include "machine/rloperation/complex_t.h"
-#include "machine/rloperation/rlop_store.h"
 #include "machine/rloperation/references.h"
+#include "machine/rloperation/rlop_store.h"
 #include "machine/rloperation/special_t.h"
 #include "machine/save_game_header.h"
 #include "machine/serialization.h"
 #include "systems/base/colour.h"
 #include "systems/base/surface.h"
 #include "systems/base/system.h"
-#include "libreallive/intmemref.h"
 #include "utf8cpp/utf8.h"
 
-using boost::starts_with;
 using boost::ends_with;
-namespace fs = boost::filesystem;
+using boost::starts_with;
+namespace fs = std::filesystem;
 using std::get;
 
 // -----------------------------------------------------------------------
@@ -73,10 +72,10 @@ struct SaveExists : public RLStoreOpcode<IntConstant_T> {
 };
 
 struct SaveDate : public RLStoreOpcode<IntConstant_T,
-                                      IntReference_T,
-                                      IntReference_T,
-                                      IntReference_T,
-                                      IntReference_T> {
+                                       IntReference_T,
+                                       IntReference_T,
+                                       IntReference_T,
+                                       IntReference_T> {
   int operator()(RLMachine& machine,
                  int slot,
                  IntReferenceIterator yIt,
@@ -99,10 +98,10 @@ struct SaveDate : public RLStoreOpcode<IntConstant_T,
 };
 
 struct SaveTime : public RLStoreOpcode<IntConstant_T,
-                                      IntReference_T,
-                                      IntReference_T,
-                                      IntReference_T,
-                                      IntReference_T> {
+                                       IntReference_T,
+                                       IntReference_T,
+                                       IntReference_T,
+                                       IntReference_T> {
   int operator()(RLMachine& machine,
                  int slot,
                  IntReferenceIterator hhIt,
@@ -205,10 +204,11 @@ struct SaveInfo : public RLStoreOpcode<IntConstant_T,
   }
 };
 
-typedef Argc_T<Special_T<
-    DefaultSpecialMapper,
-    Complex_T<IntReference_T, IntReference_T, IntConstant_T>,
-    Complex_T<StrReference_T, StrReference_T, IntConstant_T>>> GetSaveFlagList;
+typedef Argc_T<
+    Special_T<DefaultSpecialMapper,
+              Complex_T<IntReference_T, IntReference_T, IntConstant_T>,
+              Complex_T<StrReference_T, StrReference_T, IntConstant_T>>>
+    GetSaveFlagList;
 
 // Retrieves the values of variables from saved games. If slot is
 // empty, returns 0 and does nothing further; if slot contains a saved
@@ -238,8 +238,7 @@ struct GetSaveFlag : public RLStoreOpcode<IntConstant_T, GetSaveFlagList> {
     Serialization::loadLocalMemoryForSlot(machine, slot, overlayedMemory);
 
     for (GetSaveFlagList::type::iterator it = flagList.begin();
-         it != flagList.end();
-         ++it) {
+         it != flagList.end(); ++it) {
       switch (it->type) {
         case 0: {
           IntReferenceIterator jt =
@@ -269,16 +268,16 @@ struct LatestSave : public RLStoreOpcode<> {
   int operator()(RLMachine& machine) {
     fs::path saveDir = machine.system().GameSaveDirectory();
     int latestSlot = -1;
-    time_t latestTime = std::numeric_limits<time_t>::min();
+    std::optional<fs::file_time_type> latestTime;
 
     if (fs::exists(saveDir)) {
       fs::directory_iterator end;
       for (fs::directory_iterator it(saveDir); it != end; ++it) {
         string filename = it->path().filename().string();
         if (starts_with(filename, "save") && ends_with(filename, ".sav.gz")) {
-          time_t mtime = fs::last_write_time(*it);
+          auto mtime = fs::last_write_time(*it);
 
-          if (mtime > latestTime) {
+          if (!latestTime || mtime > latestTime) {
             latestTime = mtime;
             latestSlot = std::stoi(filename.substr(4, 3));
           }
@@ -333,10 +332,10 @@ void AddSysSaveOpcodes(RLModule& m) {
   m.AddUnsupportedOpcode(1451, 0, "SetSaveComment");
   m.AddUnsupportedOpcode(1452, 0, "ClearSaveComment");
 
-  m.AddOpcode(
-      2053, 0, "SetConfirmSaveLoad", CallFunction(&System::set_confirm_save_load));
-  m.AddOpcode(
-      2003, 0, "ConfirmSaveLoad", ReturnIntValue(&System::confirm_save_load));
+  m.AddOpcode(2053, 0, "SetConfirmSaveLoad",
+              CallFunction(&System::set_confirm_save_load));
+  m.AddOpcode(2003, 0, "ConfirmSaveLoad",
+              ReturnIntValue(&System::confirm_save_load));
 
   m.AddOpcode(3000, 0, "menu_save", new InvokeSyscomAsOp(0));
   m.AddOpcode(3001, 0, "menu_load", new InvokeSyscomAsOp(1));
@@ -351,12 +350,8 @@ void AddSysSaveOpcodes(RLModule& m) {
   m.AddOpcode(3101, 0, "menu_load_always", new InvokeSyscomAsOp(1));
 
   m.AddOpcode(3500, 0, "Savepoint", CallFunction(&RLMachine::MarkSavepoint));
-  m.AddOpcode(3501,
-              0,
-              "EnableAutoSavepoints",
+  m.AddOpcode(3501, 0, "EnableAutoSavepoints",
               CallFunctionWith(&RLMachine::SetMarkSavepoints, 1));
-  m.AddOpcode(3502,
-              0,
-              "DisableAutoSavepoints",
+  m.AddOpcode(3502, 0, "DisableAutoSavepoints",
               CallFunctionWith(&RLMachine::SetMarkSavepoints, 0));
 }

@@ -34,7 +34,7 @@
 
 #include "boost/filesystem/operations.hpp"
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 const char* western_platform_fonts[] = {
 #if defined(__APPLE__)

@@ -27,11 +27,12 @@
 #include "platforms/gcn/gcn_save_load_window.h"
 
 #include <boost/date_time/posix_time/time_formatters_limited.hpp>
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 #include <algorithm>
 #include <iomanip>
 #include <limits>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -44,7 +45,7 @@
 #include "platforms/gcn/gcn_scroll_area.h"
 #include "utilities/string_utilities.h"
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 const int PADDING = 5;
 
@@ -78,7 +79,7 @@ class SaveGameListModel : public gcn::ListModel {
 SaveGameListModel::SaveGameListModel(const std::string& no_data,
                                      RLMachine& machine) {
   int latestSlot = -1;
-  time_t latestTime = std::numeric_limits<time_t>::min();
+  std::optional<fs::file_time_type> latestTime;
 
   for (int slot = 0; slot < 100; ++slot) {
     fs::path saveFile = Serialization::buildSaveGameFilename(machine, slot);
@@ -92,9 +93,8 @@ SaveGameListModel::SaveGameListModel(const std::string& no_data,
       oss << to_simple_string(header.save_time) << " - "
           << cp932toUTF8(header.title, machine.GetTextEncoding());
 
-      time_t mtime = fs::last_write_time(saveFile);
-
-      if (mtime > latestTime) {
+      auto mtime = fs::last_write_time(saveFile);
+      if (!latestTime || mtime > latestTime) {
         latestTime = mtime;
         latestSlot = slot;
       }
@@ -177,8 +177,8 @@ GCNSaveLoadWindow::GCNSaveLoadWindow(RLMachine& machine,
   int button_left = getWidth() - PADDING - action_button_->getWidth();
   int button_top = getHeight() - PADDING - action_button_->getHeight();
   Container::add(action_button_, button_left, button_top);
-  Container::add(
-      button, button_left - PADDING - button->getWidth(), button_top);
+  Container::add(button, button_left - PADDING - button->getWidth(),
+                 button_top);
   owned_widgets_.emplace_back(action_button_);
   owned_widgets_.emplace_back(button);
 

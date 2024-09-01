@@ -30,7 +30,7 @@
 
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/version.hpp>
-#include <boost/filesystem/path.hpp>
+#include <filesystem>
 
 #include <map>
 #include <memory>
@@ -227,7 +227,7 @@ class System {
 
   // Finds a file on disk based on its basename with a list of possible
   // extensions, or empty() if file not found.
-  boost::filesystem::path FindFile(const std::string& fileName,
+  std::filesystem::path FindFile(const std::string& fileName,
                                    const std::vector<std::string>& extensions);
 
   // Resets the present values of the system; this doesn't clear user settings,
@@ -245,14 +245,14 @@ class System {
   // Shift-JIS.
   std::string Regname();
 
-  // Returns a boost::filesystem object which points to the directory
+  // Returns a std::filesystem object which points to the directory
   // where saved game data, preferences, etc should be stored
   // for this game.
   //
   // The default implementation returns "~/.rlvm/#{REGNAME}/". A Mac
   // specific override could return "~/Library/Application
   // Support/rlvm/#{REGNAME}/"
-  boost::filesystem::path GameSaveDirectory();
+  std::filesystem::path GameSaveDirectory();
 
   // Testing and Debugging Tools
 
@@ -281,10 +281,10 @@ class System {
 
  private:
   typedef std::multimap<std::string,
-                        std::pair<std::string, boost::filesystem::path>>
+                        std::pair<std::string, std::filesystem::path>>
       FileSystemCache;
 
-  boost::filesystem::path GetHomeDirectory();
+  std::filesystem::path GetHomeDirectory();
 
   // Invokes a custom dialog or the standard one if none present.
   void InvokeSaveOrLoad(RLMachine& machine,
@@ -301,7 +301,7 @@ class System {
 
   // Recurses on |directory| and adds all filetypes that we can read to our
   // FileSystemCache.
-  void AddDirectoryToCache(const boost::filesystem::path& directory);
+  void AddDirectoryToCache(const std::filesystem::path& directory);
 
   // The visibility status for all syscom entries
   int syscom_status_[NUM_SYSCOM_ENTRIES];

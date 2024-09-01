@@ -33,14 +33,14 @@
 #include "utilities/file.h"
 #include "utilities/gettext.h"
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 namespace {
 
 void on_selection_changed(GtkFileChooser* chooser) {
   gchar* name = gtk_file_chooser_get_filename(chooser);
   if (name) {
-    boost::filesystem::path path =
+    std::filesystem::path path =
         CorrectPathCase(fs::path(name) / fs::path("Gameexe.ini"));
     gtk_dialog_set_response_sensitive(
         GTK_DIALOG(chooser), GTK_RESPONSE_ACCEPT, fs::exists(path));
@@ -65,7 +65,7 @@ GtkRLVMInstance::GtkRLVMInstance(int* argc, char** argv[]) : RLVMInstance() {
 
 GtkRLVMInstance::~GtkRLVMInstance() {}
 
-boost::filesystem::path GtkRLVMInstance::SelectGameDirectory() {
+std::filesystem::path GtkRLVMInstance::SelectGameDirectory() {
   GtkWidget* dialog = gtk_file_chooser_dialog_new(_("Select Game Directory"),
                                                   NULL,
                                                   GTK_FILE_CHOOSER_ACTION_OPEN,
@@ -81,7 +81,7 @@ boost::filesystem::path GtkRLVMInstance::SelectGameDirectory() {
   g_signal_connect(
       dialog, "selection-changed", G_CALLBACK(on_selection_changed), NULL);
 
-  boost::filesystem::path out_path;
+  std::filesystem::path out_path;
   if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
     char* filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
     out_path = filename;

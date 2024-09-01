@@ -50,7 +50,7 @@
 #include "utilities/gettext.h"
 #include "utilities/string_utilities.h"
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 // AVG32 file checks. We can't run AVG32 games.
 const char* avg32_exes[] = {"avg3216m.exe", "avg3217m.exe", NULL};
@@ -73,7 +73,7 @@ RLVMInstance::RLVMInstance()
 
 RLVMInstance::~RLVMInstance() {}
 
-void RLVMInstance::Run(const boost::filesystem::path& gamerootPath) {
+void RLVMInstance::Run(const std::filesystem::path& gamerootPath) {
   try {
     fs::path gameexePath = FindGameFile(gamerootPath, "Gameexe.ini");
     fs::path seenPath = FindGameFile(gamerootPath, "Seen.txt");
@@ -203,8 +203,8 @@ void RLVMInstance::Run(const boost::filesystem::path& gamerootPath) {
   }
 }
 
-boost::filesystem::path RLVMInstance::SelectGameDirectory() {
-  return boost::filesystem::path();
+std::filesystem::path RLVMInstance::SelectGameDirectory() {
+  return std::filesystem::path();
 }
 
 void RLVMInstance::ReportFatalError(const std::string& message_text,
@@ -243,8 +243,8 @@ void RLVMInstance::DoUserNameCheck(RLMachine& machine) {
   }
 }
 
-boost::filesystem::path RLVMInstance::FindGameFile(
-    const boost::filesystem::path& gamerootPath,
+std::filesystem::path RLVMInstance::FindGameFile(
+    const std::filesystem::path& gamerootPath,
     const std::string& filename) {
   fs::path search_for = gamerootPath / filename;
   fs::path corrected_path = CorrectPathCase(search_for);
@@ -258,7 +258,7 @@ boost::filesystem::path RLVMInstance::FindGameFile(
   return corrected_path;
 }
 
-void RLVMInstance::CheckBadEngine(const boost::filesystem::path& gamerootPath,
+void RLVMInstance::CheckBadEngine(const std::filesystem::path& gamerootPath,
                                   const char** filenames,
                                   const std::string& message_text) {
   for (const char** cur_file = filenames; *cur_file; cur_file++) {

@@ -27,8 +27,8 @@
 
 #include "systems/base/cgm_table.h"
 
-#include <boost/filesystem.hpp>
-#include <boost/filesystem/fstream.hpp>
+#include <filesystem>
+#include <filesystem>
 
 #include <fstream>
 #include <iostream>
@@ -44,7 +44,7 @@
 #include "xclannad/endian.hpp"
 #include "xclannad/file.h"
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 static unsigned char cgm_xor_key[256] = {
     0x8b, 0xe5, 0x5d, 0xc3, 0xa1, 0xe0, 0x30, 0x44, 0x00, 0x85, 0xc0, 0x74,

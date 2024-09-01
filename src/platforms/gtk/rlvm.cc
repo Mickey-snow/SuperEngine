@@ -38,7 +38,7 @@
 #include "utilities/file.h"
 
 namespace po = boost::program_options;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 using std::cerr;
 using std::cout;

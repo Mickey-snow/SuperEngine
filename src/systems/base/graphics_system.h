@@ -28,7 +28,7 @@
 #ifndef SRC_SYSTEMS_BASE_GRAPHICS_SYSTEM_H_
 #define SRC_SYSTEMS_BASE_GRAPHICS_SYSTEM_H_
 
-#include <boost/filesystem/path.hpp>
+#include <filesystem>
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/split_member.hpp>
 #include <boost/serialization/version.hpp>
@@ -442,13 +442,13 @@ class GraphicsSystem : public EventListener {
   void PreloadHIKScript(System& system,
                         int slot,
                         const std::string& name,
-                        const boost::filesystem::path& file);
+                        const std::filesystem::path& file);
   void ClearPreloadedHIKScript(int slot);
   void ClearAllPreloadedHIKScripts();
   std::shared_ptr<HIKScript> GetHIKScript(
       System& system,
       const std::string& name,
-      const boost::filesystem::path& file);
+      const std::filesystem::path& file);
 
   // We have a cache of preloaded g00 files.
   void PreloadG00(int slot, const std::string& name);

@@ -28,7 +28,7 @@
 #ifndef SRC_SYSTEMS_SDL_SDL_SOUND_SYSTEM_H_
 #define SRC_SYSTEMS_SDL_SDL_SOUND_SYSTEM_H_
 
-#include <boost/filesystem/operations.hpp>
+#include <filesystem>
 #include <SDL/SDL.h>
 
 #include <memory>

@@ -27,7 +27,7 @@
 #ifndef SRC_SYSTEMS_BASE_NWK_VOICE_ARCHIVE_H_
 #define SRC_SYSTEMS_BASE_NWK_VOICE_ARCHIVE_H_
 
-#include <boost/filesystem/path.hpp>
+#include <filesystem>
 
 #include <vector>
 
@@ -37,14 +37,14 @@
 // NWA files.
 class NWKVoiceArchive : public VoiceArchive {
  public:
-  NWKVoiceArchive(boost::filesystem::path file, int file_no);
+  NWKVoiceArchive(std::filesystem::path file, int file_no);
   virtual ~NWKVoiceArchive();
 
   virtual std::shared_ptr<VoiceSample> FindSample(int sample_num) override;
 
  private:
   // The file to read from
-  boost::filesystem::path file_;
+  std::filesystem::path file_;
 
   std::vector<Entry> entries_;
 };

@@ -26,7 +26,7 @@
 
 #include "platforms/gcn/gcn_platform.h"
 
-#include <boost/filesystem.hpp>
+#include <filesystem>
 #include <functional>
 #include <iomanip>
 #include <queue>
@@ -52,7 +52,7 @@
 
 using std::bind;
 using std::placeholders::_1;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 const char* EVENT_CANCEL = "EVENT_CANCEL";
 

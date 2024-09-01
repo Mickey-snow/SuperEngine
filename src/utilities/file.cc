@@ -28,8 +28,8 @@
 #include "utilities/file.h"
 
 #include <boost/algorithm/string.hpp>
-#include <boost/filesystem/fstream.hpp>
-#include <boost/filesystem/operations.hpp>
+#include <filesystem>
+#include <filesystem>
 
 #include <algorithm>
 #include <cctype>
@@ -51,7 +51,7 @@ using std::string;
 using std::ifstream;
 using std::ios;
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 // -----------------------------------------------------------------------
 
@@ -113,10 +113,10 @@ fs::path CorrectPathCase(fs::path Path) {
 
 // -----------------------------------------------------------------------
 
-bool LoadFileData(const boost::filesystem::path& path,
+bool LoadFileData(const std::filesystem::path& path,
                   std::unique_ptr<char[]>& fileData,
                   int& fileSize) {
-  fs::ifstream ifs(path, ifstream::in | ifstream::binary);
+  std::ifstream ifs(path, ifstream::in | ifstream::binary);
   if (!ifs) {
     ostringstream oss;
     oss << "Could not open file \"" << path << "\".";

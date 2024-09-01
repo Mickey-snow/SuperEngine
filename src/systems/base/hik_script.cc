@@ -26,7 +26,7 @@
 
 #include "systems/base/hik_script.h"
 
-#include <boost/filesystem.hpp>
+#include <filesystem>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -40,7 +40,7 @@
 #include "utilities/file.h"
 #include "utilities/graphics.h"
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 // TODO(erg): Move everything to a common reader.
 using libreallive::read_i32;

@@ -27,7 +27,7 @@
 #ifndef SRC_SYSTEMS_BASE_KOEPAC_VOICE_ARCHIVE_H_
 #define SRC_SYSTEMS_BASE_KOEPAC_VOICE_ARCHIVE_H_
 
-#include <boost/filesystem/path.hpp>
+#include <filesystem>
 #include <vector>
 
 #include "systems/base/voice_archive.h"
@@ -35,17 +35,17 @@
 // A VoiceArchive that reads the older KOEPAC archives (KOE files).
 class KOEPACVoiceArchive : public VoiceArchive {
  public:
-  KOEPACVoiceArchive(boost::filesystem::path file, int file_no);
+  KOEPACVoiceArchive(std::filesystem::path file, int file_no);
   virtual ~KOEPACVoiceArchive();
 
   // Overridden from VoiceArchive:
   virtual std::shared_ptr<VoiceSample> FindSample(int sample_num) override;
 
  private:
-  void ReadTable(boost::filesystem::path file);
+  void ReadTable(std::filesystem::path file);
 
   // The file to read from
-  boost::filesystem::path file_;
+  std::filesystem::path file_;
 
   // The rate of the samples in this file.
   int rate_;

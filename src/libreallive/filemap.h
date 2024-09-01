@@ -34,16 +34,15 @@
 #ifndef SRC_LIBREALLIVE_FILEMAP_H_
 #define SRC_LIBREALLIVE_FILEMAP_H_
 
-#include <string_view>
-
 #include "libreallive/alldefs.h"
 
-#include "boost/filesystem.hpp"
+#include <string_view>
+#include <filesystem>
 #include "boost/iostreams/device/mapped_file.hpp"
 
 namespace libreallive {
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 class MappedFile {
  public:

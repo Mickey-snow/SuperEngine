@@ -28,7 +28,7 @@
 #ifndef SRC_MACHINE_SERIALIZATION_H_
 #define SRC_MACHINE_SERIALIZATION_H_
 
-#include <boost/filesystem/path.hpp>
+#include <filesystem>
 
 #include "machine/save_game_header.h"
 
@@ -52,7 +52,7 @@ void saveGlobalMemoryTo(std::ostream& oss, RLMachine& machine);
 void loadGlobalMemory(RLMachine& machine);
 void loadGlobalMemoryFrom(std::istream& iss, RLMachine& machine);
 
-boost::filesystem::path buildSaveGameFilename(RLMachine& machine, int slot);
+std::filesystem::path buildSaveGameFilename(RLMachine& machine, int slot);
 
 void saveGameForSlot(RLMachine& machine, int slot);
 void saveGameTo(std::ostream& oss, RLMachine& machine);

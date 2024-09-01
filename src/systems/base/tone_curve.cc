@@ -27,8 +27,8 @@
 
 #include "systems/base/tone_curve.h"
 
-#include <boost/filesystem.hpp>
-#include <boost/filesystem/fstream.hpp>
+#include <filesystem>
+#include <filesystem>
 
 #include <fstream>
 #include <sstream>
@@ -43,7 +43,7 @@
 #include "xclannad/endian.hpp"
 #include "xclannad/file.h"
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 ToneCurve::ToneCurve() {}
 

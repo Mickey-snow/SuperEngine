@@ -42,7 +42,7 @@
 #include "systems/sdl/sdl_sound_chunk.h"
 #include "utilities/exception.h"
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 // -----------------------------------------------------------------------
 // RealLive Sound Qualities table

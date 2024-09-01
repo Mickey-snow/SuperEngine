@@ -27,7 +27,7 @@
 #ifndef SRC_SYSTEMS_BASE_OVK_VOICE_SAMPLE_H_
 #define SRC_SYSTEMS_BASE_OVK_VOICE_SAMPLE_H_
 
-#include <boost/filesystem/path.hpp>
+#include <filesystem>
 #include <vorbis/vorbisfile.h>
 
 #include "systems/base/voice_archive.h"
@@ -35,10 +35,10 @@
 class OVKVoiceSample : public VoiceSample {
  public:
   // Creates a sample from a full .ogg |file|.
-  explicit OVKVoiceSample(boost::filesystem::path file);
+  explicit OVKVoiceSample(std::filesystem::path file);
 
   // Creates a sample from an ogg file embedded in the archive at |file|.
-  OVKVoiceSample(boost::filesystem::path file, int offset, int length);
+  OVKVoiceSample(std::filesystem::path file, int offset, int length);
   virtual ~OVKVoiceSample();
 
   // Overridden from VoiceSample:

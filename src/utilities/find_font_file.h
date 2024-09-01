@@ -32,7 +32,7 @@
 // under OSX, where all of my Point/Size/Rect classes clash with a
 // MacTypes.h file.
 
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 class Gameexe;
 class RLMachine;
@@ -40,6 +40,6 @@ class System;
 
 // Hack. Tries to find a font. Once I go in and allow the selection of
 // arbitrary fonts, this method and the other FindFontFile need to go away.
-boost::filesystem::path FindFontFile(System& system);
+std::filesystem::path FindFontFile(System& system);
 
 #endif  // SRC_UTILITIES_FIND_FONT_FILE_H_

@@ -27,7 +27,7 @@
 #include "systems/base/voice_cache.h"
 
 #include <boost/algorithm/string.hpp>
-#include <boost/filesystem/path.hpp>
+#include <filesystem>
 #include <iomanip>
 #include <sstream>
 #include <string>
@@ -46,7 +46,7 @@ const int ID_RADIX = 100000;
 using boost::iends_with;
 using std::string;
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 VoiceCache::VoiceCache(SoundSystem& sound_system)
     : sound_system_(sound_system), file_cache_(7) {}

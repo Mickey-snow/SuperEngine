@@ -54,7 +54,7 @@
 
 using libreallive::read_i32;
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 // -----------------------------------------------------------------------
 

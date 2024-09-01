@@ -57,8 +57,8 @@
 
 #include "systems/base/koepac_voice_archive.h"
 
-#include <boost/filesystem/fstream.hpp>
-#include <boost/filesystem/path.hpp>
+#include <filesystem>
+#include <filesystem>
 
 #include <algorithm>
 #include <cstring>
@@ -71,7 +71,7 @@
 
 using std::ifstream;
 using std::ostringstream;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 namespace {
 
@@ -276,8 +276,8 @@ std::shared_ptr<VoiceSample> KOEPACVoiceArchive::FindSample(int sample_num) {
 
 // -----------------------------------------------------------------------
 
-void KOEPACVoiceArchive::ReadTable(boost::filesystem::path file) {
-  fs::ifstream ifs(file, ifstream::in | ifstream::binary);
+void KOEPACVoiceArchive::ReadTable(std::filesystem::path file) {
+  std::ifstream ifs(file, ifstream::in | ifstream::binary);
   if (!ifs) {
     std::ostringstream oss;
     oss << "Could not open file \"" << file << "\".";

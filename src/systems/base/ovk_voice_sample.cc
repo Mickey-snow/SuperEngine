@@ -69,7 +69,7 @@
 
 using std::ifstream;
 using std::ostringstream;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 namespace {
 

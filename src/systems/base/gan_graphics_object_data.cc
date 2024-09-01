@@ -35,7 +35,7 @@
 #include "systems/base/gan_graphics_object_data.h"
 
 #include <boost/serialization/export.hpp>
-#include <boost/filesystem/fstream.hpp>
+#include <filesystem>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -58,7 +58,7 @@ using std::cerr;
 using std::endl;
 using std::vector;
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 // -----------------------------------------------------------------------
 // GanGraphicsObjectData

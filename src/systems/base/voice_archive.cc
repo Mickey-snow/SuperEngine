@@ -26,7 +26,7 @@
 
 #include "systems/base/voice_archive.h"
 
-#include <boost/filesystem/fstream.hpp>
+#include <filesystem>
 
 #include <algorithm>
 #include <cstring>
@@ -36,7 +36,7 @@
 #include "utilities/exception.h"
 #include "xclannad/endian.hpp"
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 namespace {
 
@@ -84,10 +84,10 @@ VoiceArchive::VoiceArchive(int file_number) : file_number_(file_number) {}
 
 VoiceArchive::~VoiceArchive() {}
 
-void VoiceArchive::ReadVisualArtsTable(boost::filesystem::path file,
+void VoiceArchive::ReadVisualArtsTable(std::filesystem::path file,
                                        int entry_length,
                                        std::vector<Entry>& entries) {
-  fs::ifstream ifs(file, fs::ifstream::in | fs::ifstream::binary);
+  std::ifstream ifs(file, std::ios::in | std::ios::binary);
   if (!ifs) {
     std::ostringstream oss;
     oss << "Could not open file \"" << file << "\".";

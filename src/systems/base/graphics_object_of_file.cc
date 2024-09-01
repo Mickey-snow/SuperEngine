@@ -43,7 +43,7 @@
 #include "systems/base/system.h"
 #include "utilities/file.h"
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 // -----------------------------------------------------------------------
 

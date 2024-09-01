@@ -30,8 +30,8 @@
 #include <typeinfo>
 #include <sstream>
 #include <string>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
+#include <filesystem>
+#include <filesystem>
 
 #include "modules/module_sel.h"
 #include "script_machine/luabind_event_system.h"
@@ -53,7 +53,7 @@ extern "C" {
 
 using namespace std;
 using namespace luabind;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 ScriptWorld::ScriptWorld() {
   L = lua_open();

@@ -28,9 +28,9 @@
 #include "systems/base/system.h"
 
 #include <boost/algorithm/string.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
+#include <filesystem>
+#include <filesystem>
+#include <filesystem>
 
 #include <algorithm>
 #include <fstream>
@@ -59,7 +59,7 @@
 using boost::replace_all;
 using boost::to_lower;
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 namespace {
 
@@ -327,7 +327,7 @@ void System::ShowSystemInfo(RLMachine& machine) {
   }
 }
 
-boost::filesystem::path System::FindFile(
+std::filesystem::path System::FindFile(
     const std::string& file_name,
     const std::vector<std::string>& extensions) {
   if (filesystem_cache_.empty())
@@ -375,7 +375,7 @@ std::string System::Regname() {
   return cp932toUTF8(regname, 0);
 }
 
-boost::filesystem::path System::GameSaveDirectory() {
+std::filesystem::path System::GameSaveDirectory() {
   fs::path base_dir = GetHomeDirectory() / ".rlvm" / Regname();
   fs::create_directories(base_dir);
 
@@ -396,7 +396,7 @@ void System::DumpRenderTree(RLMachine& machine) {
   graphics().Refresh(&tree);
 }
 
-boost::filesystem::path System::GetHomeDirectory() {
+std::filesystem::path System::GetHomeDirectory() {
   std::string drive, home;
   char* homeptr = getenv("HOME");
   char* driveptr = getenv("HOMEDRIVE");

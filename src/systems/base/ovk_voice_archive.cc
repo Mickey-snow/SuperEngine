@@ -57,8 +57,8 @@
 
 #include "systems/base/ovk_voice_archive.h"
 
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/fstream.hpp>
+#include <filesystem>
+#include <filesystem>
 
 #include <algorithm>
 #include <fstream>
@@ -70,7 +70,7 @@
 #include "utilities/exception.h"
 #include "xclannad/endian.hpp"
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 // -----------------------------------------------------------------------
 // OVKVoiceArchive

@@ -29,7 +29,7 @@
 
 #include <SDL/SDL_mixer.h>
 #include <boost/algorithm/string.hpp>
-#include <boost/filesystem/operations.hpp>
+#include <filesystem>
 #include <functional>
 #include <iostream>
 #include <map>
@@ -42,7 +42,7 @@
 #include "systems/sdl/sdl_audio_locker.h"
 #include "utilities/exception.h"
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 const int STOP_AT_END = -1;
 const int STOP_NOW = -2;

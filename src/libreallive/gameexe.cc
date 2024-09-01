@@ -35,7 +35,7 @@
 #include "libreallive/gameexe.h"
 
 #include <boost/algorithm/string.hpp>
-#include <boost/filesystem/fstream.hpp>
+#include <filesystem>
 #include <boost/tokenizer.hpp>
 
 #include <fstream>
@@ -44,7 +44,7 @@
 
 #include "libreallive/alldefs.h"
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 // A boost::TokenizerFunction used to extract valid pieces of data
 // from the value part of a gameexe key/value pair.
@@ -166,7 +166,7 @@ Gameexe::Gameexe() {}
 // -----------------------------------------------------------------------
 
 Gameexe::Gameexe(const fs::path& gameexefile) : data_() {
-  fs::ifstream ifs(gameexefile);
+  std::ifstream ifs(gameexefile);
   if (!ifs) {
     std::ostringstream oss;
     oss << "Could not find Gameexe.ini file! (Looking in " << gameexefile

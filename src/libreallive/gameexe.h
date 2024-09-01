@@ -35,7 +35,7 @@
 #ifndef SRC_LIBREALLIVE_GAMEEXE_H_
 #define SRC_LIBREALLIVE_GAMEEXE_H_
 
-#include <boost/filesystem/path.hpp>
+#include <filesystem>
 #include <boost/iterator/iterator_facade.hpp>
 
 #include <iomanip>
@@ -188,7 +188,7 @@ class GameexeInterpretObject {
 // to make accessing data in the Gameexe as easy as possible.
 class Gameexe {
  public:
-  explicit Gameexe(const boost::filesystem::path& filename);
+  explicit Gameexe(const std::filesystem::path& filename);
   Gameexe();
   ~Gameexe();
 

@@ -32,8 +32,8 @@
 #include "machine/rlmachine.h"
 
 #include <boost/algorithm/string/predicate.hpp>
-#include <boost/filesystem/fstream.hpp>
-#include <boost/filesystem/path.hpp>
+#include <filesystem>
+#include <filesystem>
 
 #include <functional>
 #include <iostream>
@@ -67,7 +67,7 @@
 #include "utilities/exception.h"
 #include "utilities/string_utilities.h"
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 using std::cerr;
 using std::cout;

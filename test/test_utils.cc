@@ -26,13 +26,13 @@
 // -----------------------------------------------------------------------
 
 #include "test_utils.h"
-#include <boost/filesystem/operations.hpp>
+#include <filesystem>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 // -----------------------------------------------------------------------
 

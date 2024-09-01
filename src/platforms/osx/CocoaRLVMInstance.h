@@ -41,7 +41,7 @@ class CocoaRLVMInstance : public RLVMInstance {
   CocoaRLVMInstance();
   virtual ~CocoaRLVMInstance();
 
-  virtual boost::filesystem::path SelectGameDirectory();
+  virtual std::filesystem::path SelectGameDirectory();
 
  protected:
   // Overridden from RLVMInstance:

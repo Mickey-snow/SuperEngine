@@ -81,7 +81,7 @@ using std::for_each;
 using std::ostringstream;
 using std::vector;
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 // -----------------------------------------------------------------------
 // GraphicsSystem::GraphicsObjectSettings
@@ -586,7 +586,7 @@ void GraphicsSystem::PreloadHIKScript(
     System& system,
     int slot,
     const std::string& name,
-    const boost::filesystem::path& file_path) {
+    const std::filesystem::path& file_path) {
   HIKScript* script = new HIKScript(system, file_path);
   script->EnsureUploaded();
 
@@ -606,7 +606,7 @@ void GraphicsSystem::ClearAllPreloadedHIKScripts() {
 std::shared_ptr<HIKScript> GraphicsSystem::GetHIKScript(
     System& system,
     const std::string& name,
-    const boost::filesystem::path& file_path) {
+    const std::filesystem::path& file_path) {
   for (HIKArrayItem& item : preloaded_hik_scripts_) {
     if (item.first == name)
       return item.second;

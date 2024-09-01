@@ -25,7 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#include <boost/filesystem/operations.hpp>
+#include <filesystem>
 #include <boost/program_options.hpp>
 #include <iostream>
 #include <sstream>
@@ -56,7 +56,7 @@
 using namespace std;
 
 namespace po = boost::program_options;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 // -----------------------------------------------------------------------
 

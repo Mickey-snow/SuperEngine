@@ -28,7 +28,7 @@
 #ifndef SRC_UTILITIES_FILE_H_
 #define SRC_UTILITIES_FILE_H_
 
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 #include <iosfwd>
 #include <memory>
@@ -42,11 +42,11 @@ class System;
 // On platforms with case-insensitive file systems, returns a copy of the input
 // unchanged. On less tolerant platforms, returns a copy of the input with
 // correct case, or the empty string if no solution could be found.
-boost::filesystem::path CorrectPathCase(boost::filesystem::path Path);
+std::filesystem::path CorrectPathCase(std::filesystem::path Path);
 
 // Reads the entire contents of a file into the passed in |data| and
 // |size|. Returns true if there were no problems.
-bool LoadFileData(const boost::filesystem::path& path,
+bool LoadFileData(const std::filesystem::path& path,
                   std::unique_ptr<char[]>& fileData,
                   int& fileSize);
 

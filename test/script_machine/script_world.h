@@ -31,7 +31,7 @@
 #include <map>
 #include <string>
 #include <vector>
-#include <boost/filesystem/path.hpp>
+#include <filesystem>
 #include <luabind/luabind.hpp>
 
 extern "C" {
@@ -92,7 +92,7 @@ class ScriptWorld {
   static void RunHandler(luabind::object handler);
 
   // The directory containg the passed in |lua_file|. Used as a search path.
-  boost::filesystem::path script_dir_;
+  std::filesystem::path script_dir_;
 
   std::vector<std::string> decisions_;
 

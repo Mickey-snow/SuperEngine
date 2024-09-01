@@ -27,7 +27,7 @@
 #include "modules/module_bgr.h"
 
 #include <boost/algorithm/string.hpp>
-#include <boost/filesystem.hpp>
+#include <filesystem>
 #include <iostream>
 #include <string>
 
@@ -48,7 +48,7 @@
 #include "systems/base/system.h"
 #include "utilities/graphics.h"
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 using boost::iends_with;
 
 // Working theory of how this module works: The haikei module is one backing

@@ -27,7 +27,7 @@
 #ifndef SRC_SYSTEMS_BASE_OVK_VOICE_ARCHIVE_H_
 #define SRC_SYSTEMS_BASE_OVK_VOICE_ARCHIVE_H_
 
-#include <boost/filesystem/path.hpp>
+#include <filesystem>
 
 #include <vector>
 
@@ -36,7 +36,7 @@
 // A VoiceArchive that reads the Ogg Vorbis archives (OVK files).
 class OVKVoiceArchive : public VoiceArchive {
  public:
-  OVKVoiceArchive(boost::filesystem::path file, int file_no);
+  OVKVoiceArchive(std::filesystem::path file, int file_no);
   virtual ~OVKVoiceArchive();
 
   // Overridden from VoiceArchive:
@@ -44,7 +44,7 @@ class OVKVoiceArchive : public VoiceArchive {
 
  private:
   // The file to read from
-  boost::filesystem::path file_;
+  std::filesystem::path file_;
 
   // A list of samples in this archive
   std::vector<Entry> entries_;

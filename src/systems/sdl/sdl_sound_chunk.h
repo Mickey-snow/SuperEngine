@@ -28,7 +28,7 @@
 #ifndef SRC_SYSTEMS_SDL_SDL_SOUND_CHUNK_H_
 #define SRC_SYSTEMS_SDL_SDL_SOUND_CHUNK_H_
 
-#include <boost/filesystem/operations.hpp>
+#include <filesystem>
 
 #include <SDL/SDL_mixer.h>
 
@@ -42,7 +42,7 @@
 class SDLSoundChunk : public std::enable_shared_from_this<SDLSoundChunk> {
  public:
   // Builds a Mix_Chunk from a file.
-  explicit SDLSoundChunk(const boost::filesystem::path& path);
+  explicit SDLSoundChunk(const std::filesystem::path& path);
 
   // Builds a Mix_Chunk from a chunk of memory.
   SDLSoundChunk(char* data, int length);
@@ -73,7 +73,7 @@ class SDLSoundChunk : public std::enable_shared_from_this<SDLSoundChunk> {
  private:
   // Used in the path constructor to actually create the Mix_Chunk, which
   // requires a hack for NWA support.
-  Mix_Chunk* LoadSample(const boost::filesystem::path& path);
+  Mix_Chunk* LoadSample(const std::filesystem::path& path);
 
   // Static table which deliberately creates cycles. When a chunk
   // starts playing, it's associated with its channel ID in this table

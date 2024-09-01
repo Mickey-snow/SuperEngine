@@ -32,8 +32,8 @@
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/export.hpp>
 #include <boost/date_time/posix_time/time_serialize.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/fstream.hpp>
+#include <filesystem>
+#include <filesystem>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/filter/zlib.hpp>
 #include <fstream>
@@ -63,7 +63,7 @@
 #include "utilities/exception.h"
 #include "utilities/gettext.h"
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 namespace Serialization {
 
@@ -89,7 +89,7 @@ namespace Serialization {
 
 void saveGameForSlot(RLMachine& machine, int slot) {
   fs::path path = buildSaveGameFilename(machine, slot);
-  fs::ofstream file(path, std::ios::binary);
+  std::ofstream file(path, std::ios::binary);
   checkInFileOpened(file, path);
 
   saveGameTo(file, machine);
@@ -134,7 +134,7 @@ fs::path buildSaveGameFilename(RLMachine& machine, int slot) {
 
 SaveGameHeader loadHeaderForSlot(RLMachine& machine, int slot) {
   fs::path path = buildSaveGameFilename(machine, slot);
-  fs::ifstream file(path, std::ios::binary);
+  std::ifstream file(path, std::ios::binary);
   checkInFileOpened(file, path);
 
   return loadHeaderFrom(file);
@@ -157,7 +157,7 @@ SaveGameHeader loadHeaderFrom(std::istream& iss) {
 
 void loadLocalMemoryForSlot(RLMachine& machine, int slot, Memory& memory) {
   fs::path path = buildSaveGameFilename(machine, slot);
-  fs::ifstream file(path, std::ios::binary);
+  std::ifstream file(path, std::ios::binary);
   checkInFileOpened(file, path);
 
   loadLocalMemoryFrom(file, memory);
@@ -178,7 +178,7 @@ void loadLocalMemoryFrom(std::istream& iss, Memory& memory) {
 
 void loadGameForSlot(RLMachine& machine, int slot) {
   fs::path path = buildSaveGameFilename(machine, slot);
-  fs::ifstream file(path, std::ios::binary);
+  std::ifstream file(path, std::ios::binary);
   checkInFileOpened(file, path);
 
   loadGameFrom(file, machine);

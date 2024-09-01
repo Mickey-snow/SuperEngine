@@ -27,7 +27,7 @@
 #ifndef SRC_MACHINE_RLVM_INSTANCE_H_
 #define SRC_MACHINE_RLVM_INSTANCE_H_
 
-#include <boost/filesystem/operations.hpp>
+#include <filesystem>
 #include <string>
 
 class Platform;
@@ -42,7 +42,7 @@ class RLVMInstance {
   virtual ~RLVMInstance();
 
   // Runs the main emulation loop.
-  void Run(const boost::filesystem::path& gamepath);
+  void Run(const std::filesystem::path& gamepath);
 
   void set_seen_start(int in) { seen_start_ = in; }
   void set_memory() { memory_ = true; }
@@ -57,7 +57,7 @@ class RLVMInstance {
   // Optionally brings up a file selection dialog to get the game directory. In
   // case this isn't implemented or the user clicks cancel, returns an empty
   // path.
-  virtual boost::filesystem::path SelectGameDirectory();
+  virtual std::filesystem::path SelectGameDirectory();
 
  protected:
   // Should bring up a platform native dialog box to report the message.
@@ -72,8 +72,8 @@ class RLVMInstance {
 
  private:
   // Finds a game file, causing an error if not found.
-  boost::filesystem::path FindGameFile(
-      const boost::filesystem::path& gamerootPath,
+  std::filesystem::path FindGameFile(
+      const std::filesystem::path& gamerootPath,
       const std::string& filename);
 
   // Checks to see if the user ran the Japanese version and than installed a
@@ -82,7 +82,7 @@ class RLVMInstance {
   void DoUserNameCheck(RLMachine& machine);
 
   // Checks for AVG32/Siglus engine games, which people may be confused about.
-  void CheckBadEngine(const boost::filesystem::path& gamerootPath,
+  void CheckBadEngine(const std::filesystem::path& gamerootPath,
                       const char** filenames,
                       const std::string& message_text);
 
