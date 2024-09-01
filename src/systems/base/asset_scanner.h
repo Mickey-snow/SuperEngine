@@ -31,11 +31,20 @@
 #include <map>
 #include <set>
 
-class rlFileSystem {
+class IAssetScanner {
  public:
-  rlFileSystem() = default;
-  rlFileSystem(Gameexe& gexe);
-  ~rlFileSystem() = default;
+  virtual ~IAssetScanner() = default;
+
+  virtual std::filesystem::path FindFile(
+      std::string filename,
+      const std::set<std::string>& extension_filter = {}) = 0;
+};
+
+class AssetScanner : public IAssetScanner {
+ public:
+  AssetScanner() = default;
+  AssetScanner(Gameexe& gexe);
+  ~AssetScanner() = default;
 
   /* read and scan all the directories defined in the #FOLDNAME section. */
   void BuildFromGameexe(Gameexe& gexe);
@@ -46,7 +55,7 @@ class rlFileSystem {
 
   std::filesystem::path FindFile(
       std::string filename,
-      const std::set<std::string>& extension_filter = {});
+      const std::set<std::string>& extension_filter = {}) override;
 
   /* mapping lowercase filename to extension and path pairs */
   using fs_cache_t =

@@ -28,7 +28,7 @@
 #ifndef SRC_SYSTEMS_BASE_SYSTEM_H_
 #define SRC_SYSTEMS_BASE_SYSTEM_H_
 
-#include "systems/base/rlfilesystem.h"
+#include "systems/base/asset_scanner.h"
 
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/version.hpp>
@@ -276,7 +276,7 @@ class System {
   virtual TextSystem& text() = 0;
   virtual SoundSystem& sound() = 0;
 
-  std::shared_ptr<rlFileSystem> GetFileSystem();
+  std::shared_ptr<AssetScanner> GetFileSystem();
 
  protected:
   // Native widget drawer. Can be NULL. This field is protected instead of
@@ -313,7 +313,7 @@ class System {
   bool use_western_font_;
 
   // Object to index and find rlvm related files
-  std::shared_ptr<rlFileSystem> filesystem_;
+  std::shared_ptr<AssetScanner> rlvm_assets_;
 
   SystemGlobals globals_;
 

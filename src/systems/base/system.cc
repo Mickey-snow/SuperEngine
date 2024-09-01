@@ -322,17 +322,17 @@ void System::ShowSystemInfo(RLMachine& machine) {
 std::filesystem::path System::FindFile(
     const std::string& file_name,
     const std::vector<std::string>& extensions) {
-  if (!filesystem_)
-    filesystem_ = std::make_shared<rlFileSystem>(gameexe());
+  if (!rlvm_assets_)
+    rlvm_assets_ = std::make_shared<AssetScanner>(gameexe());
   std::set<std::string> extension_filter(extensions.cbegin(),
                                          extensions.cend());
-  return filesystem_->FindFile(file_name, extension_filter);
+  return rlvm_assets_->FindFile(file_name, extension_filter);
 }
 
-std::shared_ptr<rlFileSystem> System::GetFileSystem() {
-  if (!filesystem_)
-    filesystem_ = std::make_shared<rlFileSystem>(gameexe());
-  return filesystem_;
+std::shared_ptr<AssetScanner> System::GetFileSystem() {
+  if (!rlvm_assets_)
+    rlvm_assets_ = std::make_shared<AssetScanner>(gameexe());
+  return rlvm_assets_;
 }
 
 void System::Reset() {

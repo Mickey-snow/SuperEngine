@@ -25,7 +25,7 @@
 #include <gtest/gtest.h>
 
 #include "libreallive/gameexe.h"
-#include "systems/base/rlfilesystem.h"
+#include "systems/base/asset_scanner.h"
 #include "test_utils.h"
 
 #include <filesystem>
@@ -54,44 +54,44 @@ class rlfsTest : public ::testing::Test {
     fs::remove_all(extradir);
   }
 
-  rlFileSystem gameroot;
+  AssetScanner game_assets;
   std::set<std::string> rlvm_extension, nonrlvm_extension;
   fs::path emptydir, extradir;  // tmp directories under Gameroot for testing
 };
 
 TEST_F(rlfsTest, IndexDirectory) {
-  gameroot.IndexDirectory(PathToTestDirectory("Gameroot"));
+  game_assets.IndexDirectory(PathToTestDirectory("Gameroot"));
 
-  EXPECT_EQ(gameroot.FindFile("bgm01"),
+  EXPECT_EQ(game_assets.FindFile("bgm01"),
             PathToTestCase("Gameroot/BGM/BGM01.nwa"));
-  EXPECT_EQ(gameroot.FindFile("doesntmatter", rlvm_extension),
+  EXPECT_EQ(game_assets.FindFile("doesntmatter", rlvm_extension),
             PathToTestCase("Gameroot/g00/doesntmatter.g00"));
-  EXPECT_THROW(gameroot.FindFile("BGM01", nonrlvm_extension),
+  EXPECT_THROW(game_assets.FindFile("BGM01", nonrlvm_extension),
                std::runtime_error);
 
-  EXPECT_THROW(gameroot.FindFile("nosuchfile"), std::runtime_error);
+  EXPECT_THROW(game_assets.FindFile("nosuchfile"), std::runtime_error);
 }
 
 TEST_F(rlfsTest, BuildFromGexe) {
   Gameexe gexe(PathToTestCase("Gameexe_data/rl_filesystem.ini"));
   gexe("__GAMEPATH") = LocateTestDirectory("Gameroot");
 
-  gameroot = rlFileSystem(gexe);
+  game_assets = AssetScanner(gexe);
 
-  EXPECT_EQ(gameroot.FindFile("bgm01"),
+  EXPECT_EQ(game_assets.FindFile("bgm01"),
             PathToTestCase("Gameroot/BGM/BGM01.nwa"));
-  EXPECT_EQ(gameroot.FindFile("doesntmatter", rlvm_extension),
+  EXPECT_EQ(game_assets.FindFile("doesntmatter", rlvm_extension),
             PathToTestCase("Gameroot/g00/doesntmatter.g00"));
-  EXPECT_THROW(gameroot.FindFile("BGM01", nonrlvm_extension),
+  EXPECT_THROW(game_assets.FindFile("BGM01", nonrlvm_extension),
                std::runtime_error);
 
-  EXPECT_THROW(gameroot.FindFile("nosuchfile"), std::runtime_error);
+  EXPECT_THROW(game_assets.FindFile("nosuchfile"), std::runtime_error);
 }
 
 TEST_F(rlfsTest, EmptyDir) {
-  EXPECT_NO_THROW(gameroot.IndexDirectory(emptydir));
-  EXPECT_NO_THROW(gameroot.IndexDirectory(emptydir, rlvm_extension));
-  EXPECT_THROW(gameroot.FindFile("nonexistentfile"), std::runtime_error);
+  EXPECT_NO_THROW(game_assets.IndexDirectory(emptydir));
+  EXPECT_NO_THROW(game_assets.IndexDirectory(emptydir, rlvm_extension));
+  EXPECT_THROW(game_assets.FindFile("nonexistentfile"), std::runtime_error);
 }
 
 TEST_F(rlfsTest, SpecialFiles) {
@@ -105,20 +105,20 @@ TEST_F(rlfsTest, SpecialFiles) {
     std::ofstream d(extradir / "noextension!!!");
   }
 
-  gameroot.IndexDirectory(extradir, rlvm_extension);
-  EXPECT_EQ(gameroot.FindFile("@special!"), specialnwa);
-  EXPECT_EQ(gameroot.FindFile(".hidden"), hiddeng00);
-  EXPECT_THROW(gameroot.FindFile("abc"), std::runtime_error);
-  EXPECT_THROW(gameroot.FindFile("noextension!!!"), std::runtime_error);
+  game_assets.IndexDirectory(extradir, rlvm_extension);
+  EXPECT_EQ(game_assets.FindFile("@special!"), specialnwa);
+  EXPECT_EQ(game_assets.FindFile(".hidden"), hiddeng00);
+  EXPECT_THROW(game_assets.FindFile("abc"), std::runtime_error);
+  EXPECT_THROW(game_assets.FindFile("noextension!!!"), std::runtime_error);
 }
 
 TEST_F(rlfsTest, InvalidInput) {
   EXPECT_THROW(
-      gameroot.IndexDirectory(PathToTestDirectory("Gameroot") / "InvalidDir"),
+      game_assets.IndexDirectory(PathToTestDirectory("Gameroot") / "InvalidDir"),
       std::invalid_argument);
 
   // Pass an invalid Gameexe configuration
   Gameexe invalidGexe;
   invalidGexe("__GAMEPATH") = "";
-  EXPECT_THROW(gameroot.BuildFromGameexe(invalidGexe), std::runtime_error);
+  EXPECT_THROW(game_assets.BuildFromGameexe(invalidGexe), std::runtime_error);
 }

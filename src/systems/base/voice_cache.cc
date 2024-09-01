@@ -48,8 +48,8 @@ using std::string;
 
 namespace fs = std::filesystem;
 
-VoiceCache::VoiceCache(std::shared_ptr<rlFileSystem> filesystem)
-    : file_cache_(7), filesystem_(filesystem) {}
+VoiceCache::VoiceCache(std::shared_ptr<AssetScanner> assets)
+    : file_cache_(7), assets_(assets) {}
 
 VoiceCache::~VoiceCache() {}
 
@@ -86,7 +86,7 @@ std::shared_ptr<VoiceArchive> VoiceCache::FindArchive(int file_no) const {
   static const std::set<std::string> koe_archive_filetypes{"ovk", "koe", "nwk"};
   fs::path file;
   try {
-    file = filesystem_->FindFile(oss.str(), koe_archive_filetypes);
+    file = assets_->FindFile(oss.str(), koe_archive_filetypes);
   } catch (...) {
     return std::shared_ptr<VoiceArchive>();
   }
@@ -112,7 +112,7 @@ std::shared_ptr<VoiceSample> VoiceCache::FindUnpackedSample(int file_no,
       << std::setfill('0') << index;
 
   static const std::set<std::string> koe_loose_filetypes{"ogg"};
-  fs::path file = filesystem_->FindFile(oss.str(), koe_loose_filetypes);
+  fs::path file = assets_->FindFile(oss.str(), koe_loose_filetypes);
   string file_str = file.string();
 
   if (iends_with(file_str, "ogg")) {

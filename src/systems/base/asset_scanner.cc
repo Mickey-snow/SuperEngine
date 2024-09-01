@@ -22,7 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#include "systems/base/rlfilesystem.h"
+#include "systems/base/asset_scanner.h"
 
 #include <algorithm>
 #include <cctype>
@@ -37,10 +37,10 @@ void to_lower(std::string& input) {
                  [](unsigned char c) { return std::tolower(c); });
 }
 
-rlFileSystem::rlFileSystem(Gameexe& gexe) { BuildFromGameexe(gexe); }
+AssetScanner::AssetScanner(Gameexe& gexe) { BuildFromGameexe(gexe); }
 
 // Builds file system from Gameexe object
-void rlFileSystem::BuildFromGameexe(Gameexe& gexe) {
+void AssetScanner::BuildFromGameexe(Gameexe& gexe) {
   namespace fs = std::filesystem;
 
   std::set<std::string> valid_directories;
@@ -78,7 +78,7 @@ void rlFileSystem::BuildFromGameexe(Gameexe& gexe) {
   }
 }
 
-void rlFileSystem::IndexDirectory(
+void AssetScanner::IndexDirectory(
     const std::filesystem::path& dir,
     const std::set<std::string>& extension_filter) {
   namespace fs = std::filesystem;
@@ -113,7 +113,7 @@ void rlFileSystem::IndexDirectory(
   }
 }
 
-std::filesystem::path rlFileSystem::FindFile(
+std::filesystem::path AssetScanner::FindFile(
     std::string filename,
     const std::set<std::string>& extension_filter) {
   // Hack to get around fileNames like "REALNAME?010", where we only

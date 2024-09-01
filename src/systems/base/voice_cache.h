@@ -31,14 +31,14 @@
 #include <memory>
 
 #include "lru_cache.hpp"
-#include "systems/base/rlfilesystem.h"
+#include "systems/base/asset_scanner.h"
 
 class VoiceArchive;
 class VoiceSample;
 
 class VoiceCache {
  public:
-  VoiceCache(std::shared_ptr<rlFileSystem> filesystem_);
+  VoiceCache(std::shared_ptr<AssetScanner> filesystem_);
   ~VoiceCache();
 
   std::shared_ptr<VoiceSample> Find(int id);
@@ -53,7 +53,7 @@ class VoiceCache {
   // A mapping between a file id number and the underlying file object.
   LRUCache<int, std::shared_ptr<VoiceArchive>> file_cache_;
 
-  std::shared_ptr<rlFileSystem> filesystem_;
+  std::shared_ptr<AssetScanner> assets_;
 };  // class VoiceCache
 
 #endif  // SRC_SYSTEMS_BASE_VOICE_CACHE_H_
