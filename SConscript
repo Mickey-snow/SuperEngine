@@ -190,6 +190,7 @@ librlvm_files = [
   "src/systems/base/tone_curve.cc",
   "src/systems/base/voice_archive.cc",
   "src/systems/base/voice_cache.cc",
+  "src/systems/base/rlfilesystem.cc",
   "src/utilities/exception.cc",
   "src/utilities/file.cc",
   "src/utilities/mapped_file.cc",
