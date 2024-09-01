@@ -21,6 +21,7 @@ files_to_copy = [
   'Gameexe_data/Gameexe.ini',
   'Gameexe_data/Gameexe_koeonoff.ini',
   'Gameexe_data/Gameexe_tokenization.ini',
+  'Gameexe_data/rl_filesystem.ini',
   'Gameroot/g00/doesntmatter.g00',
   'Gameroot/WAV/empty.wav',
   'Gameroot/BGM/BGM01.nwa',

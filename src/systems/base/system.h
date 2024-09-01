@@ -28,6 +28,8 @@
 #ifndef SRC_SYSTEMS_BASE_SYSTEM_H_
 #define SRC_SYSTEMS_BASE_SYSTEM_H_
 
+#include "systems/base/rlfilesystem.h"
+
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/version.hpp>
 #include <filesystem>
@@ -119,10 +121,10 @@ struct SystemGlobals {
   // boost::serialization support
   template <class Archive>
   void serialize(Archive& ar, const unsigned int version) {
-    ar& confirm_save_load_;
+    ar & confirm_save_load_;
 
     if (version > 0)
-      ar& low_priority_;
+      ar & low_priority_;
   }
 };
 
@@ -228,7 +230,7 @@ class System {
   // Finds a file on disk based on its basename with a list of possible
   // extensions, or empty() if file not found.
   std::filesystem::path FindFile(const std::string& fileName,
-                                   const std::vector<std::string>& extensions);
+                                 const std::vector<std::string>& extensions);
 
   // Resets the present values of the system; this doesn't clear user settings,
   // but clears things like the current graphics state and the status of all
@@ -295,14 +297,6 @@ class System {
   // Verify that |index| is valid and throw if it isn't.
   void CheckSyscomIndex(int index, const char* function);
 
-  // Builds a list of all files that are in a directory specified in the
-  // #FOLDNAME part of the Gameexe.ini file.
-  void BuildFileSystemCache();
-
-  // Recurses on |directory| and adds all filetypes that we can read to our
-  // FileSystemCache.
-  void AddDirectoryToCache(const std::filesystem::path& directory);
-
   // The visibility status for all syscom entries
   int syscom_status_[NUM_SYSCOM_ENTRIES];
 
@@ -320,9 +314,8 @@ class System {
   // Whether we should be trying to find a western font.
   bool use_western_font_;
 
-  // Cached view of the filesystem, mapping a lowercase filename to an
-  // extension and the local file path for that file.
-  FileSystemCache filesystem_cache_;
+  // Object to index and find rlvm related files
+  std::shared_ptr<rlFileSystem> filesystem_;
 
   SystemGlobals globals_;
 

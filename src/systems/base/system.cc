@@ -29,8 +29,6 @@
 
 #include <boost/algorithm/string.hpp>
 #include <filesystem>
-#include <filesystem>
-#include <filesystem>
 
 #include <algorithm>
 #include <fstream>
@@ -125,8 +123,7 @@ System::System()
       force_fast_forward_(false),
       force_wait_(false),
       use_western_font_(false) {
-  std::fill(syscom_status_,
-            syscom_status_ + NUM_SYSCOM_ENTRIES,
+  std::fill(syscom_status_, syscom_status_ + NUM_SYSCOM_ENTRIES,
             SYSCOM_VISIBLE);
 }
 
@@ -171,8 +168,7 @@ int System::IsSyscomEnabled(int syscom) {
 }
 
 void System::HideSyscom() {
-  std::fill(syscom_status_,
-            syscom_status_ + NUM_SYSCOM_ENTRIES,
+  std::fill(syscom_status_, syscom_status_ + NUM_SYSCOM_ENTRIES,
             SYSCOM_INVISIBLE);
 }
 
@@ -182,8 +178,7 @@ void System::HideSyscomEntry(int syscom) {
 }
 
 void System::EnableSyscom() {
-  std::fill(syscom_status_,
-            syscom_status_ + NUM_SYSCOM_ENTRIES,
+  std::fill(syscom_status_, syscom_status_ + NUM_SYSCOM_ENTRIES,
             SYSCOM_VISIBLE);
 }
 
@@ -193,8 +188,7 @@ void System::EnableSyscomEntry(int syscom) {
 }
 
 void System::DisableSyscom() {
-  std::fill(syscom_status_,
-            syscom_status_ + NUM_SYSCOM_ENTRIES,
+  std::fill(syscom_status_, syscom_status_ + NUM_SYSCOM_ENTRIES,
             SYSCOM_GREYED_OUT);
 }
 
@@ -231,12 +225,12 @@ void System::ShowSyscomMenu(RLMachine& machine) {
 void System::InvokeSyscom(RLMachine& machine, int syscom) {
   switch (syscom) {
     case SYSCOM_SAVE:
-      InvokeSaveOrLoad(
-          machine, syscom, "SYSTEMCALL_SAVE_MOD", "SYSTEMCALL_SAVE");
+      InvokeSaveOrLoad(machine, syscom, "SYSTEMCALL_SAVE_MOD",
+                       "SYSTEMCALL_SAVE");
       break;
     case SYSCOM_LOAD:
-      InvokeSaveOrLoad(
-          machine, syscom, "SYSTEMCALL_LOAD_MOD", "SYSTEMCALL_LOAD");
+      InvokeSaveOrLoad(machine, syscom, "SYSTEMCALL_LOAD_MOD",
+                       "SYSTEMCALL_LOAD");
       break;
     case SYSCOM_MESSAGE_SPEED:
     case SYSCOM_WINDOW_ATTRIBUTES:
@@ -330,28 +324,11 @@ void System::ShowSystemInfo(RLMachine& machine) {
 std::filesystem::path System::FindFile(
     const std::string& file_name,
     const std::vector<std::string>& extensions) {
-  if (filesystem_cache_.empty())
-    BuildFileSystemCache();
-
-  // Hack to get around fileNames like "REALNAME?010", where we only
-  // want REALNAME.
-  std::string lower_name =
-      string(file_name.begin(), find(file_name.begin(), file_name.end(), '?'));
-  to_lower(lower_name);
-
-  std::pair<FileSystemCache::const_iterator, FileSystemCache::const_iterator>
-      ret = filesystem_cache_.equal_range(lower_name);
-  for (const std::string& extension : extensions) {
-    for (FileSystemCache::const_iterator it = ret.first; it != ret.second;
-         ++it) {
-      if (extension == it->second.first) {
-        return it->second.second;
-      }
-    }
-  }
-
-  // Error.
-  return fs::path();
+  if (!filesystem_)
+    filesystem_ = std::make_shared<rlFileSystem>(gameexe());
+  std::set<std::string> extension_filter(extensions.cbegin(),
+                                         extensions.cend());
+  return filesystem_->FindFile(file_name, extension_filter);
 }
 
 void System::Reset() {
@@ -442,56 +419,6 @@ void System::CheckSyscomIndex(int index, const char* function) {
     std::ostringstream oss;
     oss << "Illegal syscom index #" << index << " in " << function;
     throw std::runtime_error(oss.str());
-  }
-}
-
-void System::BuildFileSystemCache() {
-  // First retrieve all the directories defined in the #FOLDNAME section.
-  std::vector<std::string> valid_directories;
-  Gameexe& gexe = gameexe();
-  GameexeFilteringIterator it = gexe.FilterBegin("FOLDNAME");
-  GameexeFilteringIterator end = gexe.FilterEnd();
-  for (; it != end; ++it) {
-    std::string dir = it->ToString();
-    if (!dir.empty()) {
-      to_lower(dir);
-      valid_directories.push_back(dir);
-    }
-  }
-
-  fs::path gamepath(gexe("__GAMEPATH").ToString());
-  fs::directory_iterator dir_end;
-  for (fs::directory_iterator dir(gamepath); dir != dir_end; ++dir) {
-    if (fs::is_directory(dir->status())) {
-      std::string lowername = dir->path().filename().string();
-      to_lower(lowername);
-      if (find(valid_directories.begin(), valid_directories.end(), lowername) !=
-          valid_directories.end()) {
-        AddDirectoryToCache(dir->path());
-      }
-    }
-  }
-}
-
-void System::AddDirectoryToCache(const fs::path& directory) {
-  fs::directory_iterator dir_end;
-  for (fs::directory_iterator dir(directory); dir != dir_end; ++dir) {
-    if (fs::is_directory(dir->status())) {
-      AddDirectoryToCache(dir->path());
-    } else {
-      std::string extension = dir->path().extension().string();
-      if (extension.size() > 1 && extension[0] == '.')
-        extension = extension.substr(1);
-      to_lower(extension);
-
-      if (find(ALL_FILETYPES.begin(), ALL_FILETYPES.end(), extension) !=
-          ALL_FILETYPES.end()) {
-        std::string stem = dir->path().stem().string();
-        to_lower(stem);
-
-        filesystem_cache_.emplace(stem, make_pair(extension, dir->path()));
-      }
-    }
   }
 }
 
