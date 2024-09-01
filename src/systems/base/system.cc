@@ -91,8 +91,6 @@ const std::vector<std::string> GAN_FILETYPES = {"gan"};
 const std::vector<std::string> ANM_FILETYPES = {"anm"};
 const std::vector<std::string> HIK_FILETYPES = {"hik", "g00", "pdt"};
 const std::vector<std::string> SOUND_FILETYPES = {"wav", "ogg", "nwa", "mp3"};
-const std::vector<std::string> KOE_ARCHIVE_FILETYPES = {"ovk", "koe", "nwk"};
-const std::vector<std::string> KOE_LOOSE_FILETYPES = {"ogg"};
 
 class MenuReseter : public LongOperation {
  public:
@@ -329,6 +327,12 @@ std::filesystem::path System::FindFile(
   std::set<std::string> extension_filter(extensions.cbegin(),
                                          extensions.cend());
   return filesystem_->FindFile(file_name, extension_filter);
+}
+
+std::shared_ptr<rlFileSystem> System::GetFileSystem() {
+  if (!filesystem_)
+    filesystem_ = std::make_shared<rlFileSystem>(gameexe());
+  return filesystem_;
 }
 
 void System::Reset() {

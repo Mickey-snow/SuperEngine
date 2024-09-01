@@ -276,16 +276,14 @@ class System {
   virtual TextSystem& text() = 0;
   virtual SoundSystem& sound() = 0;
 
+  std::shared_ptr<rlFileSystem> GetFileSystem();
+
  protected:
   // Native widget drawer. Can be NULL. This field is protected instead of
   // private because we need to be destroy the Platform before we destroy SDL.
   std::shared_ptr<Platform> platform_;
 
  private:
-  typedef std::multimap<std::string,
-                        std::pair<std::string, std::filesystem::path>>
-      FileSystemCache;
-
   std::filesystem::path GetHomeDirectory();
 
   // Invokes a custom dialog or the standard one if none present.

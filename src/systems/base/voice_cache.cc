@@ -48,8 +48,8 @@ using std::string;
 
 namespace fs = std::filesystem;
 
-VoiceCache::VoiceCache(SoundSystem& sound_system)
-    : sound_system_(sound_system), file_cache_(7) {}
+VoiceCache::VoiceCache(std::shared_ptr<rlFileSystem> filesystem)
+    : file_cache_(7), filesystem_(filesystem) {}
 
 VoiceCache::~VoiceCache() {}
 
@@ -69,8 +69,7 @@ std::shared_ptr<VoiceSample> VoiceCache::Find(int id) {
     } else {
       // There aren't any archives with |file_no|. Look for an individual file
       // instead.
-      std::shared_ptr<VoiceSample> sample =
-          FindUnpackedSample(file_no, index);
+      std::shared_ptr<VoiceSample> sample = FindUnpackedSample(file_no, index);
       if (sample) {
         return sample;
       } else {
@@ -84,9 +83,11 @@ std::shared_ptr<VoiceArchive> VoiceCache::FindArchive(int file_no) const {
   std::ostringstream oss;
   oss << "z" << std::setw(4) << std::setfill('0') << file_no;
 
-  fs::path file =
-      sound_system_.system().FindFile(oss.str(), KOE_ARCHIVE_FILETYPES);
-  if (file.empty()) {
+  static const std::set<std::string> koe_archive_filetypes{"ovk", "koe", "nwk"};
+  fs::path file;
+  try {
+    file = filesystem_->FindFile(oss.str(), koe_archive_filetypes);
+  } catch (...) {
     return std::shared_ptr<VoiceArchive>();
   }
 
@@ -96,23 +97,22 @@ std::shared_ptr<VoiceArchive> VoiceCache::FindArchive(int file_no) const {
   } else if (iends_with(file_str, "nwk")) {
     return std::shared_ptr<VoiceArchive>(new NWKVoiceArchive(file, file_no));
   } else if (iends_with(file_str, "koe")) {
-    return std::shared_ptr<VoiceArchive>(
-        new KOEPACVoiceArchive(file, file_no));
+    return std::shared_ptr<VoiceArchive>(new KOEPACVoiceArchive(file, file_no));
   }
 
   return std::shared_ptr<VoiceArchive>();
 }
 
 std::shared_ptr<VoiceSample> VoiceCache::FindUnpackedSample(int file_no,
-                                                              int index) const {
+                                                            int index) const {
   // Loose voice files are packed into directories, like:
   // /KOE/0008/z000800073.ogg. We only need to search for the filename though.
   std::ostringstream oss;
   oss << "z" << std::setw(4) << std::setfill('0') << file_no << std::setw(5)
       << std::setfill('0') << index;
 
-  fs::path file =
-      sound_system_.system().FindFile(oss.str(), KOE_LOOSE_FILETYPES);
+  static const std::set<std::string> koe_loose_filetypes{"ogg"};
+  fs::path file = filesystem_->FindFile(oss.str(), koe_loose_filetypes);
   string file_str = file.string();
 
   if (iends_with(file_str, "ogg")) {

@@ -110,12 +110,12 @@ struct SoundSystemGlobals {
   // boost::serialization support
   template <class Archive>
   void serialize(Archive& ar, const unsigned int version) {
-    ar& sound_quality& bgm_enabled& bgm_volume_mod& pcm_enabled& pcm_volume_mod&
-        se_enabled& se_volume_mod;
+    ar & sound_quality & bgm_enabled & bgm_volume_mod & pcm_enabled &
+        pcm_volume_mod & se_enabled & se_volume_mod;
 
     if (version >= 1) {
-      ar& koe_mode& koe_enabled& GetKoeVolume_mod& bgm_koe_fade& bgm_koe_fade_vol&
-          character_koe_enabled;
+      ar & koe_mode & koe_enabled & GetKoeVolume_mod & bgm_koe_fade &
+          bgm_koe_fade_vol & character_koe_enabled;
     }
   }
 };

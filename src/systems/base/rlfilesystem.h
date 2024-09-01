@@ -38,7 +38,17 @@ class rlFileSystem {
     static const std::set<std::string> rlvm_file_types{
         "g00", "pdt", "anm", "gan", "hik", "wav",
         "ogg", "nwa", "mp3", "ovk", "koe", "nwk"};
-    fs::path gamepath(gexe("__GAMEPATH").ToString());
+
+    fs::path gamepath;
+    // TODO: the key '__GAMEPATH' might not be set correctly in full system
+    // tests, remove those tests (as they really aren't testing anything),
+    // remove underhanded xxxSystem subclasses, and throw a proper error here.
+    try {
+      gamepath = gexe("__GAMEPATH").ToString();
+    } catch (...) {
+      return;
+    }
+
     for (const auto& dir : fs::directory_iterator(gamepath)) {
       if (fs::is_directory(dir.status())) {
         std::string lowername = dir.path().filename().string();

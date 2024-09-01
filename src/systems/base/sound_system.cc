@@ -38,10 +38,10 @@
 #include <utility>
 #include <vector>
 
+#include "libreallive/gameexe.h"
 #include "machine/serialization.h"
 #include "systems/base/event_system.h"
 #include "systems/base/system.h"
-#include "libreallive/gameexe.h"
 
 // -----------------------------------------------------------------------
 // SoundSystemGlobals
@@ -121,7 +121,7 @@ SoundSystem::CDTrack::CDTrack(const std::string in_name,
 // SoundSystem
 // -----------------------------------------------------------------------
 SoundSystem::SoundSystem(System& system)
-    : voice_cache_(*this),
+    : voice_cache_(system.GetFileSystem()),
       system_(system),
       bgm_volume_script_(255),
       globals_(system.gameexe()) {
@@ -287,9 +287,8 @@ void SoundSystem::SetChannelVolume(const int channel,
   unsigned int cur_time = system().event().GetTicks();
 
   pcm_adjustment_tasks_.emplace(
-      channel,
-      VolumeAdjustTask(
-          cur_time, channel_volume_[channel], level, fade_time_in_ms));
+      channel, VolumeAdjustTask(cur_time, channel_volume_[channel], level,
+                                fade_time_in_ms));
 }
 
 int SoundSystem::GetChannelVolume(const int channel) const {
@@ -352,7 +351,9 @@ void SoundSystem::set_bgm_koe_fadeVolume(const int level) {
   globals_.bgm_koe_fade_vol = level;
 }
 
-int SoundSystem::bgm_koe_fadeVolume() const { return globals_.bgm_koe_fade_vol; }
+int SoundSystem::bgm_koe_fadeVolume() const {
+  return globals_.bgm_koe_fade_vol;
+}
 
 void SoundSystem::KoePlay(int id) {
   if (!system_.ShouldFastForward())
@@ -402,7 +403,7 @@ template <class Archive>
 void SoundSystem::load(Archive& ar, unsigned int version) {
   std::string track_name;
   bool looping;
-  ar& track_name& looping;
+  ar & track_name & looping;
 
   if (track_name != "")
     BgmPlay(track_name, looping);
@@ -418,7 +419,7 @@ void SoundSystem::save(Archive& ar, unsigned int version) const {
     looping = BgmLooping();
   }
 
-  ar& track_name& looping;
+  ar & track_name & looping;
 }
 
 // -----------------------------------------------------------------------

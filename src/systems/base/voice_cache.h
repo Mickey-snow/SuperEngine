@@ -27,17 +27,18 @@
 #ifndef SRC_SYSTEMS_BASE_VOICE_CACHE_H_
 #define SRC_SYSTEMS_BASE_VOICE_CACHE_H_
 
+#include <filesystem>
 #include <memory>
 
 #include "lru_cache.hpp"
+#include "systems/base/rlfilesystem.h"
 
-class SoundSystem;
 class VoiceArchive;
 class VoiceSample;
 
 class VoiceCache {
  public:
-  explicit VoiceCache(SoundSystem& sound_system);
+  VoiceCache(std::shared_ptr<rlFileSystem> filesystem_);
   ~VoiceCache();
 
   std::shared_ptr<VoiceSample> Find(int id);
@@ -47,13 +48,12 @@ class VoiceCache {
   std::shared_ptr<VoiceArchive> FindArchive(int file_no) const;
 
   // Searches for an unarchived ogg or mp3 file.
-  std::shared_ptr<VoiceSample> FindUnpackedSample(int file_no,
-                                                    int index) const;
-
-  SoundSystem& sound_system_;
+  std::shared_ptr<VoiceSample> FindUnpackedSample(int file_no, int index) const;
 
   // A mapping between a file id number and the underlying file object.
   LRUCache<int, std::shared_ptr<VoiceArchive>> file_cache_;
+
+  std::shared_ptr<rlFileSystem> filesystem_;
 };  // class VoiceCache
 
 #endif  // SRC_SYSTEMS_BASE_VOICE_CACHE_H_
