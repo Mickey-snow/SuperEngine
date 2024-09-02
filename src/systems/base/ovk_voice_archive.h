@@ -33,8 +33,18 @@
 
 #include "systems/base/voice_archive.h"
 
+struct OVK_Header {
+  int32_t size;
+  int32_t offset;
+  int32_t id;
+  int32_t sample_count;
+
+  bool operator<(const OVK_Header& rhs) const { return id < rhs.id; }
+  bool operator<(const int rhs) const { return id < rhs; }
+};
+
 // A VoiceArchive that reads the Ogg Vorbis archives (OVK files).
-class OVKVoiceArchive : public VoiceArchive {
+class OVKVoiceArchive : public VoiceArchive, public IVoiceArchive {
  public:
   OVKVoiceArchive(std::filesystem::path file, int file_no);
   virtual ~OVKVoiceArchive();
@@ -42,12 +52,20 @@ class OVKVoiceArchive : public VoiceArchive {
   // Overridden from VoiceArchive:
   virtual std::shared_ptr<VoiceSample> FindSample(int sample_num) override;
 
+  virtual FilePos LoadContent(int sample_num) override;
+
  private:
+  void ReadEntry();
+
   // The file to read from
   std::filesystem::path file_;
 
+  int file_no_;
+
+  std::shared_ptr<MappedFile> file_content_;
+
   // A list of samples in this archive
-  std::vector<Entry> entries_;
+  std::vector<OVK_Header> entries_;
 };  // class OVKVoiceArchive
 
 #endif  // SRC_SYSTEMS_BASE_OVK_VOICE_ARCHIVE_H_

@@ -48,12 +48,14 @@ using std::string;
 
 namespace fs = std::filesystem;
 
-VoiceCache::VoiceCache(std::shared_ptr<AssetScanner> assets)
+VoiceCache::VoiceCache(std::shared_ptr<IAssetScanner> assets)
     : file_cache_(7), assets_(assets) {}
 
 VoiceCache::~VoiceCache() {}
 
+#include <iostream>
 std::shared_ptr<VoiceSample> VoiceCache::Find(int id) {
+  std::cout << "Find: " << id << std::endl;
   int file_no = id / ID_RADIX;
   int index = id % ID_RADIX;
 
@@ -79,7 +81,7 @@ std::shared_ptr<VoiceSample> VoiceCache::Find(int id) {
   }
 }
 
-std::shared_ptr<VoiceArchive> VoiceCache::FindArchive(int file_no) const {
+fs::path VoiceCache::LocateArchive(int file_no) const {
   std::ostringstream oss;
   oss << "z" << std::setw(4) << std::setfill('0') << file_no;
 
@@ -88,23 +90,12 @@ std::shared_ptr<VoiceArchive> VoiceCache::FindArchive(int file_no) const {
   try {
     file = assets_->FindFile(oss.str(), koe_archive_filetypes);
   } catch (...) {
-    return std::shared_ptr<VoiceArchive>();
+    return {};
   }
-
-  string file_str = file.string();
-  if (iends_with(file_str, "ovk")) {
-    return std::shared_ptr<VoiceArchive>(new OVKVoiceArchive(file, file_no));
-  } else if (iends_with(file_str, "nwk")) {
-    return std::shared_ptr<VoiceArchive>(new NWKVoiceArchive(file, file_no));
-  } else if (iends_with(file_str, "koe")) {
-    return std::shared_ptr<VoiceArchive>(new KOEPACVoiceArchive(file, file_no));
-  }
-
-  return std::shared_ptr<VoiceArchive>();
+  return file;
 }
 
-std::shared_ptr<VoiceSample> VoiceCache::FindUnpackedSample(int file_no,
-                                                            int index) const {
+fs::path VoiceCache::LocateUnpackedSample(int file_no, int index) const {
   // Loose voice files are packed into directories, like:
   // /KOE/0008/z000800073.ogg. We only need to search for the filename though.
   std::ostringstream oss;
@@ -112,12 +103,48 @@ std::shared_ptr<VoiceSample> VoiceCache::FindUnpackedSample(int file_no,
       << std::setfill('0') << index;
 
   static const std::set<std::string> koe_loose_filetypes{"ogg"};
-  fs::path file = assets_->FindFile(oss.str(), koe_loose_filetypes);
-  string file_str = file.string();
-
-  if (iends_with(file_str, "ogg")) {
-    return std::shared_ptr<VoiceSample>(new OVKVoiceSample(file));
+  fs::path file;
+  try {
+    file = assets_->FindFile(oss.str(), koe_loose_filetypes);
+  } catch (...) {
+    return {};
   }
+  return file;
+}
 
-  return std::shared_ptr<VoiceSample>();
+std::shared_ptr<VoiceArchive> VoiceCache::FindArchive(int file_no) const {
+  fs::path file = LocateArchive(file_no);
+
+  std::string file_str = file.string();
+  if (iends_with(file_str, "ovk")) {
+    return std::make_shared<OVKVoiceArchive>(file, file_no);
+  } else if (iends_with(file_str, "nwk")) {
+    return std::make_shared<NWKVoiceArchive>(file, file_no);
+  } else if (iends_with(file_str, "koe")) {
+    return std::make_shared<KOEPACVoiceArchive>(file, file_no);
+  }
+  return nullptr;
+}
+
+std::shared_ptr<IVoiceArchive> VoiceCache::_FindArchive(int file_no) const {
+  fs::path file = LocateArchive(file_no);
+
+  std::string file_str = file.string();
+  if (iends_with(file_str, "ovk")) {
+    return std::make_shared<OVKVoiceArchive>(file, file_no);
+  } else if (iends_with(file_str, "nwk")) {
+    return std::make_shared<NWKVoiceArchive>(file, file_no);
+  }
+  return nullptr;
+}
+
+std::shared_ptr<VoiceSample> VoiceCache::FindUnpackedSample(int file_no,
+                                                            int index) const {
+  fs::path file = LocateUnpackedSample(file_no, index);
+  std::string file_str = file.string();
+
+  if (iends_with(file_str, "ogg"))
+    return std::make_shared<OVKVoiceSample>(file);
+
+  return nullptr;
 }

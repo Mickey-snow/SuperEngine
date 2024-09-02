@@ -33,27 +33,33 @@
 #include "lru_cache.hpp"
 #include "systems/base/asset_scanner.h"
 
+class IVoiceArchive;
 class VoiceArchive;
 class VoiceSample;
 
 class VoiceCache {
  public:
-  VoiceCache(std::shared_ptr<AssetScanner> filesystem_);
+  VoiceCache(std::shared_ptr<IAssetScanner> assets);
   ~VoiceCache();
 
   std::shared_ptr<VoiceSample> Find(int id);
 
- private:
+  std::filesystem::path LocateArchive(int file_no) const;
+
+  std::filesystem::path LocateUnpackedSample(int file_no, int index) const;
+
   // Searches for a file archive of voices.
   std::shared_ptr<VoiceArchive> FindArchive(int file_no) const;
+  std::shared_ptr<IVoiceArchive> _FindArchive(int file_no) const;
 
   // Searches for an unarchived ogg or mp3 file.
   std::shared_ptr<VoiceSample> FindUnpackedSample(int file_no, int index) const;
 
+ private:
   // A mapping between a file id number and the underlying file object.
   LRUCache<int, std::shared_ptr<VoiceArchive>> file_cache_;
 
-  std::shared_ptr<AssetScanner> assets_;
+  std::shared_ptr<IAssetScanner> assets_;
 };  // class VoiceCache
 
 #endif  // SRC_SYSTEMS_BASE_VOICE_CACHE_H_

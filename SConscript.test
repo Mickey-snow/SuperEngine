@@ -57,6 +57,7 @@ test_case_files = [
   "test/ogg_decoder_unittest.cc",
   "test/mapped_file_unittest.cc",
   "test/asset_scanner_unittest.cc",
+  "test/va_factory_unittest.cc",
 
   # medium tests
   "test/medium_eventloop_test.cc",

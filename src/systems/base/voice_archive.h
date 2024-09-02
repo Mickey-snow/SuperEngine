@@ -32,6 +32,8 @@
 #include <memory>
 #include <vector>
 
+#include "utilities/mapped_file.h"
+
 class VoiceArchive;
 
 const int WAV_HEADER_SIZE = 0x2c;
@@ -82,5 +84,12 @@ class VoiceArchive : public std::enable_shared_from_this<VoiceArchive> {
  private:
   int file_number_;
 };  // end of class VoiceArchive
+
+class IVoiceArchive {
+ public:
+  virtual ~IVoiceArchive() = default;
+
+  virtual FilePos LoadContent(int sample_num) = 0;
+};
 
 #endif  // SRC_SYSTEMS_BASE_VOICE_ARCHIVE_H_

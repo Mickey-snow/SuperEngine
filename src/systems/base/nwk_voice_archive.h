@@ -33,20 +33,37 @@
 
 #include "systems/base/voice_archive.h"
 
+struct NWK_Header {
+  int32_t size;
+  int32_t offset;
+  int32_t id;
+
+  bool operator<(const NWK_Header& rhs) const { return id < rhs.id; }
+  bool operator<(const int rhs) const { return id < rhs; }
+};
+
 // A VoiceArchive that reads VisualArts' NWK archives, which are collections of
 // NWA files.
-class NWKVoiceArchive : public VoiceArchive {
+class NWKVoiceArchive : public VoiceArchive, public IVoiceArchive {
  public:
   NWKVoiceArchive(std::filesystem::path file, int file_no);
   virtual ~NWKVoiceArchive();
 
   virtual std::shared_ptr<VoiceSample> FindSample(int sample_num) override;
 
+  virtual FilePos LoadContent(int sample_num) override;
+
  private:
+  void ReadEntry();
+
   // The file to read from
   std::filesystem::path file_;
 
-  std::vector<Entry> entries_;
+  int file_no_;
+
+  std::shared_ptr<MappedFile> file_content_;
+
+  std::vector<NWK_Header> entries_;
 };
 
 #endif  // SRC_SYSTEMS_BASE_NWK_VOICE_ARCHIVE_H_

@@ -25,6 +25,7 @@
 // -----------------------------------------------------------------------
 
 #include "systems/base/nwk_voice_archive.h"
+#include "utilities/byte_reader.h"
 
 #include <cstdio>
 
@@ -72,19 +73,45 @@ char* NWKVoiceSample::Decode(int* size) {
 }  // namespace
 
 NWKVoiceArchive::NWKVoiceArchive(fs::path file, int file_no)
-    : VoiceArchive(file_no), file_(file) {
-  ReadVisualArtsTable(file, 12, entries_);
+    : VoiceArchive(file_no),
+      file_(file),
+      file_no_(file_no),
+      file_content_(std::make_shared<MappedFile>(file)) {
+  ReadEntry();
 }
 
 NWKVoiceArchive::~NWKVoiceArchive() {}
 
 std::shared_ptr<VoiceSample> NWKVoiceArchive::FindSample(int sample_num) {
-  std::vector<Entry>::const_iterator it =
-      std::lower_bound(entries_.begin(), entries_.end(), sample_num);
+  auto it = std::lower_bound(entries_.begin(), entries_.end(), sample_num);
   if (it != entries_.end()) {
     return std::shared_ptr<VoiceSample>(
-        new NWKVoiceSample(file_, it->offset, it->length));
+        new NWKVoiceSample(file_, it->offset, it->size));
   }
 
   throw rlvm::Exception("Couldn't find sample in NWKVoiceArchive");
+}
+
+FilePos NWKVoiceArchive::LoadContent(int sample_num) {
+  auto it = std::lower_bound(entries_.cbegin(), entries_.cend(), sample_num);
+  if (it == entries_.end() || it->id != sample_num)
+    throw std::runtime_error("Couldn't find sample in NWKVoiceArchive: " +
+                             std::to_string(sample_num));
+
+  return FilePos{
+      .file_ = file_content_, .position = it->offset, .length = it->size};
+}
+
+void NWKVoiceArchive::ReadEntry() {
+  int entry_count = ByteReader(file_content_->Read(0, 4)).PopBytes(4);
+
+  entries_.reserve(entry_count);
+  ByteReader reader(file_content_->Read(4, entry_count * sizeof(NWK_Header)));
+  for (int i = 0; i < entry_count; ++i) {
+    NWK_Header entry;
+    reader >> entry.size >> entry.offset >> entry.id;
+    entries_.emplace_back(std::move(entry));
+  }
+
+  std::sort(entries_.begin(), entries_.end());
 }

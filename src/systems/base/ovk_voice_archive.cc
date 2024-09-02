@@ -56,8 +56,8 @@
 // -----------------------------------------------------------------------
 
 #include "systems/base/ovk_voice_archive.h"
+#include "utilities/byte_reader.h"
 
-#include <filesystem>
 #include <filesystem>
 
 #include <algorithm>
@@ -76,8 +76,11 @@ namespace fs = std::filesystem;
 // OVKVoiceArchive
 // -----------------------------------------------------------------------
 OVKVoiceArchive::OVKVoiceArchive(fs::path file, int file_no)
-    : VoiceArchive(file_no), file_(file) {
-  ReadVisualArtsTable(file, 16, entries_);
+    : VoiceArchive(file_no),
+      file_(file),
+      file_no_(file_no),
+      file_content_(std::make_shared<MappedFile>(file)) {
+  ReadEntry();
 }
 
 // -----------------------------------------------------------------------
@@ -87,12 +90,35 @@ OVKVoiceArchive::~OVKVoiceArchive() {}
 // -----------------------------------------------------------------------
 
 std::shared_ptr<VoiceSample> OVKVoiceArchive::FindSample(int sample_num) {
-  std::vector<Entry>::const_iterator it =
-      std::lower_bound(entries_.begin(), entries_.end(), sample_num);
+  auto it = std::lower_bound(entries_.begin(), entries_.end(), sample_num);
   if (it != entries_.end()) {
     return std::shared_ptr<VoiceSample>(
-        new OVKVoiceSample(file_, it->offset, it->length));
+        new OVKVoiceSample(file_, it->offset, it->size));
   }
 
   throw rlvm::Exception("Couldn't find sample in OVKVoiceArchive");
+}
+
+FilePos OVKVoiceArchive::LoadContent(int sample_num) {
+  auto it = std::lower_bound(entries_.cbegin(), entries_.cend(), sample_num);
+  if (it == entries_.end() || it->id != sample_num)
+    throw std::runtime_error("Couldn't find sample in OVKVoiceArchive: " +
+                             std::to_string(sample_num));
+
+  return FilePos{
+      .file_ = file_content_, .position = it->offset, .length = it->size};
+}
+
+void OVKVoiceArchive::ReadEntry() {
+  int entry_count = ByteReader(file_content_->Read(0, 4)).PopBytes(4);
+
+  ByteReader reader(file_content_->Read(4, entry_count * sizeof(OVK_Header)));
+  entries_.reserve(entry_count);
+  for (int i = 0; i < entry_count; ++i) {
+    OVK_Header entry;
+    reader >> entry.size >> entry.offset >> entry.id >> entry.sample_count;
+    entries_.emplace_back(std::move(entry));
+  }
+
+  std::sort(entries_.begin(), entries_.end());
 }
