@@ -48,4 +48,15 @@ class MappedFile {
   boost::iostreams::mapped_file file_;
 };
 
+struct FilePos {
+  std::shared_ptr<MappedFile> file_;
+  int position, length;
+
+  std::string_view Read() const {
+    if (!file_)
+      throw std::runtime_error("File is nullptr");
+    return file_->Read(position, length);
+  }
+};
+
 #endif
