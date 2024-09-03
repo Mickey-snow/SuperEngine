@@ -28,7 +28,7 @@
 #define ZITA_RESAMPLER_MAJOR_VERSION 1
 #define ZITA_RESAMPLER_MINOR_VERSION 3
 
-
+namespace zita_resampler{
 extern int zita_resampler_major_version (void);
 extern int zita_resampler_minor_version (void);
 
@@ -75,6 +75,6 @@ private:
     static Resampler_table  *_list;
     static Resampler_mutex   _mutex;
 };
-
+}
 
 #endif

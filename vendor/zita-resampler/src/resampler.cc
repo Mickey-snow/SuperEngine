@@ -24,7 +24,7 @@
 #include <math.h>
 #include <zita-resampler/resampler.h>
 
-
+namespace zita_resampler{
 static unsigned int gcd (unsigned int a, unsigned int b)
 {
     if (a == 0) return b;
@@ -259,5 +259,5 @@ int Resampler::process (void)
 
     return 0;
 }
-
+}
 

@@ -24,7 +24,7 @@
 #include <math.h>
 #include <zita-resampler/resampler-table.h>
 
-
+namespace zita_resampler{
 int zita_resampler_major_version (void)
 {
     return ZITA_RESAMPLER_MAJOR_VERSION;
@@ -158,4 +158,4 @@ void Resampler_table::print_list (void)
     }
     printf ("----\n\n");
 }
-
+}

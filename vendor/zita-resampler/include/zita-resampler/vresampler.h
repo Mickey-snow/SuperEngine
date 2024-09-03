@@ -24,7 +24,7 @@
 
 #include <zita-resampler/resampler-table.h>
 
-
+namespace zita_resampler{
 class VResampler
 {
 public:
@@ -78,6 +78,6 @@ private:
     float               *_c2;
     void                *_dummy [8];
 };
-
+}
 
 #endif

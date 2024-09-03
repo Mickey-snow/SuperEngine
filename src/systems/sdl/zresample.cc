@@ -37,6 +37,8 @@ static unsigned int form = Audiofile::FORM_16BIT;
 static unsigned int dith = Audiofile::DITHER_NONE;
 static bool         zpad = false;
 
+using zita_resampler::Resampler;
+
 int zresample_main(const char* infile, const char* outfile, unsigned int rout) {
     Audiofile     Ainp;
     Audiofile     Aout;

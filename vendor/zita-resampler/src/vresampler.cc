@@ -24,7 +24,7 @@
 #include <math.h>
 #include <zita-resampler/vresampler.h>
 
-
+namespace zita_resampler{
 VResampler::VResampler (void) :
     _table (0),
     _nchan (0),
@@ -266,4 +266,5 @@ int VResampler::process (void)
     _nzero = nz;
 
     return 0;
+}
 }
