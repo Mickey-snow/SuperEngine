@@ -30,7 +30,6 @@
 #include <filesystem>
 #include <memory>
 
-#include "base/avdec/iadec.h"
 #include "lru_cache.hpp"
 #include "systems/base/voice_archive.h"
 #include "utilities/mapped_file.h"
@@ -42,8 +41,6 @@ class VoiceFactory {
  public:
   VoiceFactory(std::shared_ptr<IAssetScanner> assets);
   ~VoiceFactory();
-
-  std::shared_ptr<IAudioDecoder> Find(int id);
 
   VoiceClip LoadSample(int id);
 
