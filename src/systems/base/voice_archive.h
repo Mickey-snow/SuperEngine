@@ -86,11 +86,16 @@ class VoiceArchive : public std::enable_shared_from_this<VoiceArchive> {
   int file_number_;
 };  // end of class VoiceArchive
 
+struct VoiceClip {
+  FilePos content;
+  std::string format_name;
+};
+
 class IVoiceArchive {
  public:
   virtual ~IVoiceArchive() = default;
 
-  virtual FilePos LoadContent(int sample_num) = 0;
+  virtual VoiceClip LoadContent(int sample_num) = 0;
 
   virtual std::shared_ptr<IAudioDecoder> MakeDecoder(int sample_num) = 0;
 };

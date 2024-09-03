@@ -40,18 +40,19 @@ NWKVoiceArchive::NWKVoiceArchive(fs::path file, int file_no)
 
 NWKVoiceArchive::~NWKVoiceArchive() {}
 
-FilePos NWKVoiceArchive::LoadContent(int sample_num) {
+VoiceClip NWKVoiceArchive::LoadContent(int sample_num) {
   auto it = std::lower_bound(entries_.cbegin(), entries_.cend(), sample_num);
   if (it == entries_.end() || it->id != sample_num)
     throw std::runtime_error("Couldn't find sample in NWKVoiceArchive: " +
                              std::to_string(sample_num));
 
-  return FilePos{
+  auto content = FilePos{
       .file_ = file_content_, .position = it->offset, .length = it->size};
+  return VoiceClip{.content = std::move(content), .format_name = "nwa"};
 }
 
 std::shared_ptr<IAudioDecoder> NWKVoiceArchive::MakeDecoder(int sample_num) {
-  return std::make_shared<AudioDecoder>(LoadContent(sample_num), "nwa");
+  return std::make_shared<AudioDecoder>(LoadContent(sample_num));
 }
 
 void NWKVoiceArchive::ReadEntry() {

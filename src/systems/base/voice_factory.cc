@@ -27,6 +27,7 @@
 #include "systems/base/voice_factory.h"
 
 #include "base/avdec/audio_decoder.h"
+#include "systems/base/asset_scanner.h"
 #include "systems/base/nwk_voice_archive.h"
 #include "systems/base/ovk_voice_archive.h"
 #include "systems/base/voice_archive.h"
@@ -38,7 +39,7 @@ const int ID_RADIX = 100000;
 namespace fs = std::filesystem;
 
 VoiceFactory::VoiceFactory(std::shared_ptr<IAssetScanner> assets)
-    : file_cache_(7), assets_(assets) {}
+    : assets_(assets) {}
 
 VoiceFactory::~VoiceFactory() {}
 
@@ -55,6 +56,24 @@ std::shared_ptr<IAudioDecoder> VoiceFactory::Find(int id) {
   }
 
   throw std::runtime_error("No such voice archive or sample");
+}
+
+VoiceClip VoiceFactory::LoadSample(int id) {
+  int file_no = id / ID_RADIX;
+  int index = id % ID_RADIX;
+
+  if (std::shared_ptr<IVoiceArchive> archive = FindArchive(file_no))
+    return archive->LoadContent(index);
+
+  // fs::path sample = LocateUnpackedSample(file_no, index);
+  // if (fs::exists(sample)) {
+  //   auto f = std::make_shared<MappedFile>(sample);
+  //   return {.content = {.file_ = f, .position = 0, .length = f->Size()},
+  //           .format_name = "ogg"};
+  // }
+
+  throw std::invalid_argument("No such voice archive or sample: " +
+                              std::to_string(id));
 }
 
 fs::path VoiceFactory::LocateArchive(int file_no) const {

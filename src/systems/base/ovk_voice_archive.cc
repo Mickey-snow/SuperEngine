@@ -53,18 +53,19 @@ OVKVoiceArchive::~OVKVoiceArchive() {}
 
 // -----------------------------------------------------------------------
 
-FilePos OVKVoiceArchive::LoadContent(int sample_num) {
+VoiceClip OVKVoiceArchive::LoadContent(int sample_num) {
   auto it = std::lower_bound(entries_.cbegin(), entries_.cend(), sample_num);
   if (it == entries_.end() || it->id != sample_num)
     throw std::runtime_error("Couldn't find sample in OVKVoiceArchive: " +
                              std::to_string(sample_num));
 
-  return FilePos{
+  auto content = FilePos{
       .file_ = file_content_, .position = it->offset, .length = it->size};
+  return VoiceClip{.content = std::move(content), .format_name = "ogg"};
 }
 
 std::shared_ptr<IAudioDecoder> OVKVoiceArchive::MakeDecoder(int sample_num) {
-  return std::make_shared<AudioDecoder>(LoadContent(sample_num), "ogg");
+  return std::make_shared<AudioDecoder>(LoadContent(sample_num));
 }
 
 void OVKVoiceArchive::ReadEntry() {

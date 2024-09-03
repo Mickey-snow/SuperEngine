@@ -23,6 +23,8 @@
 
 #include <gtest/gtest.h>
 
+#include "systems/base/nwk_voice_archive.h"
+#include "systems/base/ovk_voice_archive.h"
 #include "systems/base/voice_archive.h"
 #include "systems/base/voice_factory.h"
 #include "test_utils.h"
@@ -31,66 +33,31 @@
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
+#include <random>
 #include <sstream>
 #include <string>
 
 namespace fs = std::filesystem;
 
+static std::random_device rd;
+static std::mt19937 gen(rd());
+
 class VoiceFactoryTest : public ::testing::Test {
  public:
-  static void SetUpTestSuite() {
+  static fs::path SetUpTestDir(std::string baseName) {
     testdir = PathToTestDirectory("Gameroot") / "vcache";
     fs::create_directories(testdir);
 
-    fs::path baseDir = testdir / "ogg";
-    for (int i = 400; i < 450; ++i)
-      Touch(baseDir / (Encode_fileno(i) + ".ovk"));
-
-    baseDir = testdir / "koe";
-    for (int i = 1000; i < 1050; ++i)
-      Touch(baseDir / (Encode_fileno(i) + ".koe"));
-
-    baseDir = testdir / "nwa";
-    for (int i = 2100; i < 2150; ++i)
-      Touch(baseDir / (Encode_fileno(i) + ".nwk"));
-
-    assets = std::make_shared<AssetScanner>();
-    assets->IndexDirectory(testdir);
-
-    SetUpOvk();
-    SetUpNwk();
+    fs::path baseDir = testdir / baseName;
+    for (int i = 0; i <= 100; ++i)
+      Touch(baseDir / (Encode_fileno(i) + '.' + baseName));
+    return baseDir;
   }
 
-  static void SetUpOvk() {
-    oBytestream obs;
-    obs << 2 << 6 << 0x24 << 20 << 0;
-    obs << 7 << 0x2b << 40 << 0;
-    obs << "Hello, wworld!";
-    auto data = obs.Get();
-
-    std::ofstream ovk414(testdir / "ogg" / "z0414.ovk",
-                         std::ios::out | std::ios::binary);
-    if (!ovk414.is_open())
-      FAIL() << "Failed to open ovk414";
-    ovk414.write(reinterpret_cast<const char*>(data.data()), data.size());
+  static void TearDownTestDir() {
+    if (fs::exists(testdir))
+      fs::remove_all(testdir);
   }
-
-  static void SetUpNwk() {
-    oBytestream obs;
-    obs << 2;
-    obs << 7 << 0x2b << 66;
-    obs << 6 << 0x24 << 33;
-    obs << "aaaaeeee" << "Hello, wworld!";
-    auto data = obs.Get();
-
-    std::ofstream nwk2101(testdir / "nwa" / "z2101.nwk",
-                          std::ios::out | std::ios::binary);
-    if (!nwk2101.is_open())
-      FAIL() << "Failed to open nwk2101";
-    nwk2101.write(reinterpret_cast<const char*>(data.data()), data.size());
-  }
-
-  static void TearDownTestSuite() { fs::remove_all(testdir); }
 
   static std::string Encode_fileno(int file_no) {
     std::ostringstream oss;
@@ -104,6 +71,10 @@ class VoiceFactoryTest : public ::testing::Test {
     return oss.str();
   }
 
+  static int Encode_id(int file_no, int index) {
+    return file_no * 100000 + index;
+  }
+
   static void Touch(fs::path path) {
     try {
       fs::create_directories(path.parent_path());
@@ -113,34 +84,167 @@ class VoiceFactoryTest : public ::testing::Test {
     }
   }
 
+  static std::vector<char> RandomVector() {
+    static constexpr auto MAXSIZE = 100;
+    std::uniform_int_distribution<> distrib(1, MAXSIZE);
+    std::vector<char> ret(distrib(gen));
+    std::generate(ret.begin(), ret.end(), [&]() { return distrib(gen); });
+    return ret;
+  }
+
   inline static fs::path testdir;
+};
+
+class OvkVoiceTest : public VoiceFactoryTest {
+ protected:
+  static void SetUpTestSuite() {
+    base_dir = SetUpTestDir("ovk");
+    SetUpOvk();
+    assets = std::make_shared<AssetScanner>();
+    assets->IndexDirectory(testdir);
+  }
+
+  static void TearDownTestSuite() { fs::remove_all(testdir); }
+
+  static void SetUpOvk() {
+    ovk_file_no = 14;
+    ovk_archive_path = base_dir / "z0014.ovk";
+
+    oBytestream obs;
+    OVK_Header hdr[100];
+    int loc = sizeof(int) + sizeof(hdr);
+
+    for (int i = 0; i < 100; ++i) {
+      ovk_voice[i] = RandomVector();
+      int n = static_cast<int>(ovk_voice[i].size());
+      hdr[i] = {.size = n, .offset = loc, .id = i, .sample_count = -1};
+      loc += n;
+    }
+    std::shuffle(hdr, hdr + 100, gen);
+
+    // write header
+    obs << 100;
+    for (int i = 0; i < 100; ++i)
+      obs << hdr[i].size << hdr[i].offset << hdr[i].id << hdr[i].sample_count;
+
+    auto data = obs.Get();
+    std::ofstream ofs(ovk_archive_path, std::ios::out | std::ios::binary);
+    if (!ofs.is_open())
+      FAIL() << "Failed to open " << ovk_archive_path.string();
+    ofs.write(reinterpret_cast<const char*>(data.data()), data.size());
+
+    // write archive
+    for (int i = 0; i < 100; ++i)
+      ofs.write(ovk_voice[i].data(), ovk_voice[i].size());
+  }
+
+  inline static std::vector<char> ovk_voice[100];
+  inline static fs::path ovk_archive_path, base_dir;
+  inline static int ovk_file_no;
   inline static std::shared_ptr<AssetScanner> assets;
 };
 
-TEST_F(VoiceFactoryTest, LocateOvk) {
+TEST_F(OvkVoiceTest, LocateArchive) {
   VoiceFactory vc(assets);
 
-  auto basedir = testdir / "ogg";
-  EXPECT_EQ(vc.LocateArchive(447), basedir / "z0447.ovk");
-  ASSERT_EQ(vc.LocateArchive(414), basedir / "z0414.ovk");
-
-  auto archive = vc.FindArchive(414);
-  EXPECT_EQ(archive->LoadContent(20).Read(), "Hello,");
-  EXPECT_EQ(archive->LoadContent(40).Read(), "wworld!");
-  EXPECT_THROW(archive->LoadContent(18), std::runtime_error);
-  EXPECT_THROW(archive->LoadContent(41), std::runtime_error);
+  EXPECT_EQ(vc.LocateArchive(47), base_dir / "z0047.ovk");
+  EXPECT_EQ(vc.LocateArchive(4), base_dir / "z0004.ovk");
+  EXPECT_EQ(vc.LocateArchive(14), ovk_archive_path);
 }
 
-TEST_F(VoiceFactoryTest, LocateNwk) {
+TEST_F(OvkVoiceTest, LoadOggSample) {
   VoiceFactory vc(assets);
 
-  auto basedir = testdir / "nwa";
-  EXPECT_EQ(vc.LocateArchive(2149), basedir / "z2149.nwk");
-  ASSERT_EQ(vc.LocateArchive(2101), basedir / "z2101.nwk");
-
-  auto archive = vc.FindArchive(2101);
-  EXPECT_EQ(archive->LoadContent(33).Read(), "Hello,");
-  EXPECT_EQ(archive->LoadContent(66).Read(), "wworld!");
-  EXPECT_THROW(archive->LoadContent(20), std::runtime_error);
-  EXPECT_THROW(archive->LoadContent(40), std::runtime_error);
+  for (int i = 0; i < 100; ++i) {
+    VoiceClip sample = vc.LoadSample(Encode_id(ovk_file_no, i));
+    EXPECT_EQ(sample.format_name, "ogg");
+    auto expect_content =
+        std::string_view(ovk_voice[i].data(), ovk_voice[i].size());
+    EXPECT_EQ(sample.content.Read(), expect_content);
+  }
 }
+
+class NwaVoiceTest : public VoiceFactoryTest {
+ protected:
+  static void SetUpTestSuite() {
+    base_dir = SetUpTestDir("nwk");
+    SetUpNwk();
+    assets = std::make_shared<AssetScanner>();
+    assets->IndexDirectory(testdir);
+  }
+
+  static void TearDownTestSuite() { TearDownTestDir(); }
+
+  static void SetUpNwk() {
+    nwk_file_no = 1;
+    nwk_archive_path = base_dir / (Encode_fileno(nwk_file_no) + ".nwk");
+
+    oBytestream obs;
+    NWK_Header hdr[100];
+    int loc = sizeof(int) + sizeof(hdr);
+
+    for (int i = 0; i < 100; ++i) {
+      nwk_voice[i] = RandomVector();
+      int n = static_cast<int>(nwk_voice[i].size());
+      hdr[i] = {.size = n, .offset = loc, .id = i};
+      loc += n + 10;  // padding bytes
+    }
+
+    std::ofstream ofs(nwk_archive_path, std::ios::out | std::ios::binary);
+    if (!ofs.is_open())
+      FAIL() << "Failed to open " << nwk_archive_path.string();
+    for (int i = 0; i < 100; ++i) {
+      ofs.seekp(hdr[i].offset, std::ios::beg);
+      ofs.write(nwk_voice[i].data(), nwk_voice[i].size());
+    }
+
+    obs << 100;
+    std::shuffle(hdr, hdr + 100, gen);
+    for (int i = 0; i < 100; ++i)
+      obs << hdr[i].size << hdr[i].offset << hdr[i].id;
+    auto data = obs.Get();
+    ofs.seekp(0, std::ios::beg);
+    ofs.write(reinterpret_cast<const char*>(data.data()), data.size());
+  }
+
+  inline static std::vector<char> nwk_voice[100];
+  inline static fs::path base_dir, nwk_archive_path;
+  inline static int nwk_file_no;
+  inline static std::shared_ptr<AssetScanner> assets;
+};
+
+TEST_F(NwaVoiceTest, LocateArchive) {
+  VoiceFactory vc(assets);
+
+  EXPECT_EQ(vc.LocateArchive(49), base_dir / "z0049.nwk");
+  EXPECT_EQ(vc.LocateArchive(11), base_dir / "z0011.nwk");
+  EXPECT_EQ(vc.LocateArchive(1), nwk_archive_path);
+}
+
+TEST_F(NwaVoiceTest, LoadNwaSample) {
+  VoiceFactory vc(assets);
+
+  for (int i = 0; i < 100; ++i) {
+    VoiceClip sample = vc.LoadSample(Encode_id(nwk_file_no, i));
+    EXPECT_EQ(sample.format_name, "nwa");
+    auto expect_content =
+        std::string_view(nwk_voice[i].data(), nwk_voice[i].size());
+    EXPECT_EQ(sample.content.Read(), expect_content);
+  }
+}
+
+class OggVoiceTest : public VoiceFactoryTest {
+ protected:
+  static void SetUpTestSuite() {
+    SetUpTestDir("ogg");
+    SetUpOgg();
+    assets = std::make_shared<AssetScanner>();
+    assets->IndexDirectory(testdir);
+  }
+
+  static void SetUpOgg();
+
+  inline static std::vector<char> ogg_voice;
+  inline static fs::path ogg_path;
+  inline static std::shared_ptr<AssetScanner> assets;
+};

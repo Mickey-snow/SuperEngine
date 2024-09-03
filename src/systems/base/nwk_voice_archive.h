@@ -49,7 +49,7 @@ class NWKVoiceArchive : public IVoiceArchive {
   NWKVoiceArchive(std::filesystem::path file, int file_no);
   virtual ~NWKVoiceArchive();
 
-  virtual FilePos LoadContent(int sample_num) override;
+  virtual VoiceClip LoadContent(int sample_num) override;
 
   virtual std::shared_ptr<IAudioDecoder> MakeDecoder(int sample_num) override;
 
