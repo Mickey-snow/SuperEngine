@@ -35,7 +35,7 @@
 #include <sstream>
 #include <string>
 
-#include "base/avdec/wav.h"
+#include "base/avdec/audio_decoder.h"
 #include "systems/base/system.h"
 #include "systems/base/system_error.h"
 #include "systems/base/voice_archive.h"
@@ -394,8 +394,9 @@ void SDLSoundSystem::KoePlayImpl(int id) {
   }
 
   // Get the VoiceSample.
-  auto decoder = voice_factory_.Find(id);
-  auto audio_data = decoder->DecodeAll();
+  auto voice_sample = voice_factory_.LoadSample(id);
+  AudioDecoder decoder(voice_sample.content, voice_sample.format_name);
+  auto audio_data = decoder.DecodeAll();
 
   std::vector<uint8_t> wav_data = EncodeWav(audio_data);
 

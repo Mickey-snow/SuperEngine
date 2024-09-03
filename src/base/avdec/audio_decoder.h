@@ -25,7 +25,6 @@
 #ifndef BASE_AVDEC_AUDIO_DECODER_H_
 #define BASE_AVDEC_AUDIO_DECODER_H_
 
-#include "systems/base/voice_archive.h"
 #include "base/avdec/iadec.h"
 #include "base/avdec/nwa.h"
 #include "base/avdec/ogg.h"
@@ -41,12 +40,12 @@
 
 class AudioDecoder : public IAudioDecoder {
  public:
-  AudioDecoder(VoiceClip koe)
-      : dataholder_(koe.content), decoderimpl_(nullptr) {
-    if (koe.format_name == "nwa")
-      decoderimpl_ = std::make_shared<NwaDecoder>(koe.content.Read());
-    else if (koe.format_name == "ogg")
-      decoderimpl_ = std::make_shared<OggDecoder>(koe.content.Read());
+  AudioDecoder(FilePos fp, const std::string& format)
+      : dataholder_(fp), decoderimpl_(nullptr) {
+    if (format == "nwa")
+      decoderimpl_ = std::make_shared<NwaDecoder>(fp.Read());
+    else if (format == "ogg")
+      decoderimpl_ = std::make_shared<OggDecoder>(fp.Read());
 
     else
       throw std::logic_error("No valid decoder found.");

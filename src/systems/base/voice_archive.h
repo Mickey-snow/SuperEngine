@@ -96,8 +96,6 @@ class IVoiceArchive {
   virtual ~IVoiceArchive() = default;
 
   virtual VoiceClip LoadContent(int sample_num) = 0;
-
-  virtual std::shared_ptr<IAudioDecoder> MakeDecoder(int sample_num) = 0;
 };
 
 #endif  // SRC_SYSTEMS_BASE_VOICE_ARCHIVE_H_

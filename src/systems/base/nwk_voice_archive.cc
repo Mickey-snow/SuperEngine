@@ -51,10 +51,6 @@ VoiceClip NWKVoiceArchive::LoadContent(int sample_num) {
   return VoiceClip{.content = std::move(content), .format_name = "nwa"};
 }
 
-std::shared_ptr<IAudioDecoder> NWKVoiceArchive::MakeDecoder(int sample_num) {
-  return std::make_shared<AudioDecoder>(LoadContent(sample_num));
-}
-
 void NWKVoiceArchive::ReadEntry() {
   int entry_count = ByteReader(file_content_->Read(0, 4)).PopBytes(4);
 

@@ -64,10 +64,6 @@ VoiceClip OVKVoiceArchive::LoadContent(int sample_num) {
   return VoiceClip{.content = std::move(content), .format_name = "ogg"};
 }
 
-std::shared_ptr<IAudioDecoder> OVKVoiceArchive::MakeDecoder(int sample_num) {
-  return std::make_shared<AudioDecoder>(LoadContent(sample_num));
-}
-
 void OVKVoiceArchive::ReadEntry() {
   int entry_count = ByteReader(file_content_->Read(0, 4)).PopBytes(4);
 

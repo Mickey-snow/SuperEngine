@@ -51,8 +51,6 @@ class OVKVoiceArchive : public IVoiceArchive {
 
   virtual VoiceClip LoadContent(int sample_num) override;
 
-  virtual std::shared_ptr<IAudioDecoder> MakeDecoder(int sample_num) override;
-
  private:
   void ReadEntry();
 

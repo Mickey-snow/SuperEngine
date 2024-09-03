@@ -43,21 +43,6 @@ VoiceFactory::VoiceFactory(std::shared_ptr<IAssetScanner> assets)
 
 VoiceFactory::~VoiceFactory() {}
 
-std::shared_ptr<IAudioDecoder> VoiceFactory::Find(int id) {
-  int file_no = id / ID_RADIX;
-  int index = id % ID_RADIX;
-
-  if (std::shared_ptr<IVoiceArchive> archive = FindArchive(file_no))
-    return archive->MakeDecoder(index);
-
-  fs::path sample = LocateUnpackedSample(file_no, index);
-  if (fs::exists(sample)) {
-    // return unpacked audio
-  }
-
-  throw std::runtime_error("No such voice archive or sample");
-}
-
 VoiceClip VoiceFactory::LoadSample(int id) {
   int file_no = id / ID_RADIX;
   int index = id % ID_RADIX;
