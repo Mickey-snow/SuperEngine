@@ -53,6 +53,8 @@ class VoiceFactory {
 
  private:
   std::shared_ptr<IAssetScanner> assets_;
+
+  mutable LRUCache<int, std::shared_ptr<IVoiceArchive>> cache_;
 };  // class VoiceCache
 
 #endif  // SRC_SYSTEMS_BASE_VOICE_CACHE_H_

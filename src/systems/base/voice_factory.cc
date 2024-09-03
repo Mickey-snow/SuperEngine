@@ -39,7 +39,7 @@ const int ID_RADIX = 100000;
 namespace fs = std::filesystem;
 
 VoiceFactory::VoiceFactory(std::shared_ptr<IAssetScanner> assets)
-    : assets_(assets) {}
+    : assets_(assets), cache_(10) {}
 
 VoiceFactory::~VoiceFactory() {}
 
@@ -93,14 +93,20 @@ fs::path VoiceFactory::LocateUnpackedSample(int file_no, int index) const {
 }
 
 std::shared_ptr<IVoiceArchive> VoiceFactory::FindArchive(int file_no) const {
-  using boost::iends_with;
+  std::shared_ptr<IVoiceArchive> ret = cache_.fetch(file_no);
+  if (ret)
+    return ret;
 
   fs::path file = LocateArchive(file_no);
   std::string file_str = file.string();
+
+  using boost::iends_with;
   if (iends_with(file_str, "ovk")) {
-    return std::make_shared<OVKVoiceArchive>(file, file_no);
+    ret = std::make_shared<OVKVoiceArchive>(file, file_no);
   } else if (iends_with(file_str, "nwk")) {
-    return std::make_shared<NWKVoiceArchive>(file, file_no);
+    ret = std::make_shared<NWKVoiceArchive>(file, file_no);
   }
-  return nullptr;
+
+  cache_.insert(file_no, ret);
+  return ret;
 }
