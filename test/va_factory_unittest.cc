@@ -236,15 +236,36 @@ TEST_F(NwaVoiceTest, LoadNwaSample) {
 class OggVoiceTest : public VoiceFactoryTest {
  protected:
   static void SetUpTestSuite() {
-    SetUpTestDir("ogg");
+    base_dir = SetUpTestDir("ogg");
     SetUpOgg();
     assets = std::make_shared<AssetScanner>();
     assets->IndexDirectory(testdir);
   }
 
-  static void SetUpOgg();
+  static void TearDownTestSuite() { TearDownTestDir(); }
+
+  static void SetUpOgg() {
+    ogg_file_no = 49;
+    ogg_index = 73;
+    ogg_voice = RandomVector();
+    ogg_path = base_dir / "0049" / "z004900073.ogg";
+    Touch(ogg_path);
+    std::ofstream ofs(ogg_path, std::ios::out | std::ios::binary);
+    if (!ofs.is_open())
+      FAIL() << "Failed to open " << ogg_path.string();
+    ofs.write(ogg_voice.data(), ogg_voice.size());
+  }
 
   inline static std::vector<char> ogg_voice;
-  inline static fs::path ogg_path;
+  inline static fs::path ogg_path, base_dir;
+  inline static int ogg_file_no, ogg_index;
   inline static std::shared_ptr<AssetScanner> assets;
 };
+
+TEST_F(OggVoiceTest, LoadUnpackedSample) {
+  VoiceFactory vc(assets);
+  VoiceClip sample = vc.LoadSample(Encode_id(ogg_file_no, ogg_index));
+  EXPECT_EQ(sample.format_name, "ogg");
+  auto expect_content = std::string_view(ogg_voice.data(), ogg_voice.size());
+  EXPECT_EQ(sample.content.Read(), expect_content);
+}

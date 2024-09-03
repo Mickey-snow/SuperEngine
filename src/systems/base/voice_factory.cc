@@ -65,12 +65,12 @@ VoiceClip VoiceFactory::LoadSample(int id) {
   if (std::shared_ptr<IVoiceArchive> archive = FindArchive(file_no))
     return archive->LoadContent(index);
 
-  // fs::path sample = LocateUnpackedSample(file_no, index);
-  // if (fs::exists(sample)) {
-  //   auto f = std::make_shared<MappedFile>(sample);
-  //   return {.content = {.file_ = f, .position = 0, .length = f->Size()},
-  //           .format_name = "ogg"};
-  // }
+  fs::path sample = LocateUnpackedSample(file_no, index);
+  if (fs::exists(sample)) {
+    auto f = std::make_shared<MappedFile>(sample);
+    return {.content = {.file_ = f, .position = 0, .length = f->Size()},
+            .format_name = "ogg"};
+  }
 
   throw std::invalid_argument("No such voice archive or sample: " +
                               std::to_string(id));
