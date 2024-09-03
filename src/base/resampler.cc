@@ -41,11 +41,20 @@ struct remove_cvref {
 template <class T>
 using remove_cvref_t = typename remove_cvref<T>::type;
 
+struct ResamplerResources {
+  zr::Resampler impl;
+};
+
+Resampler::Resampler(int freq)
+    : target_frequency_(freq), data_(std::make_unique<ResamplerResources>()) {}
+
+Resampler::~Resampler() = default;
+
 void Resampler::Resample(AudioData& in_data) {
   if (in_data.spec.sample_rate == target_frequency_)
     return;
 
-  zr::Resampler impl;
+  zr::Resampler& impl = data_->impl;
 
   if (impl.setup(in_data.spec.sample_rate, target_frequency_, 1, 64)) {
     std::ostringstream os;

@@ -27,14 +27,21 @@
 
 #include "base/avspec.h"
 
+#include <memory>
+
+struct ResamplerResources;
+
 class Resampler {
  public:
-  Resampler(int freq) : target_frequency_(freq) {}
+  Resampler(int freq);
+  ~Resampler();
 
   void Resample(AudioData& in_data);
 
  private:
   int target_frequency_;
+
+  std::unique_ptr<ResamplerResources> data_;
 };
 
 #endif

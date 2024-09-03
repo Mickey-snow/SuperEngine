@@ -35,6 +35,7 @@
 #include <sstream>
 #include <string>
 
+#include "base/resampler.h"
 #include "base/avdec/audio_decoder.h"
 #include "systems/base/system.h"
 #include "systems/base/system_error.h"
@@ -393,27 +394,16 @@ void SDLSoundSystem::KoePlayImpl(int id) {
     return;
   }
 
-  // Get the VoiceSample.
   auto voice_sample = voice_factory_.LoadSample(id);
   AudioDecoder decoder(voice_sample.content, voice_sample.format_name);
   auto audio_data = decoder.DecodeAll();
-
+  Resampler resampler(WAVFILE::freq);
+  resampler.Resample(audio_data);
   std::vector<uint8_t> wav_data = EncodeWav(audio_data);
 
   int length = static_cast<int>(wav_data.size());
   char* data = new char[length];
   std::memcpy(data, wav_data.data(), length);
-
-  // TODO(erg): SDL is supposed to have a real resampler, but doesn't, so for
-  // example, 48k -> 41k is at best tone shifted, and at worst, is a pure
-  // static. So we have to do our own manual resampling.
-  //
-  // The correct way to deal with this is to move off SDL's audio subsystem
-  // entirely or to contribute upstream to SDL so that its default behaviour is
-  // sane. There's no time left to do either of those, as there's a fairly
-  // hard deadline of 9/11 for the birthday release, and this is the last
-  // blocker.
-  data = EnsureDataIsCorrectBitrate(data, &length);
 
   SDLSoundChunkPtr koe = BuildKoeChunk(data, length);
   SetChannelVolumeImpl(KOE_CHANNEL);
