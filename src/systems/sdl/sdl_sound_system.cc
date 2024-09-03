@@ -40,7 +40,6 @@
 #include "systems/base/system.h"
 #include "systems/base/system_error.h"
 #include "systems/base/voice_archive.h"
-#include "systems/sdl/resample.h"
 #include "systems/sdl/sdl_music.h"
 #include "systems/sdl/sdl_sound_chunk.h"
 #include "utilities/exception.h"

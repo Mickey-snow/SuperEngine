@@ -225,12 +225,6 @@ libsystemsdl_files = [
   "src/systems/sdl/shaders.cc",
   "src/systems/sdl/texture.cc",
 
-  # Parts of zresample
-  "src/systems/sdl/resample.cc",
-  "src/systems/sdl/audiofile.cc",
-  "src/systems/sdl/dither.cc",
-  "src/systems/sdl/zresample.cc",
-
   # Parts of pygame.
   "vendor/pygame/alphablit.cc"
 ]
