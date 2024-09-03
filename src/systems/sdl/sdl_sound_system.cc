@@ -394,7 +394,7 @@ void SDLSoundSystem::KoePlayImpl(int id) {
   }
 
   // Get the VoiceSample.
-  auto decoder = voice_cache_.Find(id);
+  auto decoder = voice_factory_.Find(id);
   auto audio_data = decoder->DecodeAll();
 
   std::vector<uint8_t> wav_data = EncodeWav(audio_data);

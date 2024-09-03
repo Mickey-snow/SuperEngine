@@ -121,7 +121,7 @@ SoundSystem::CDTrack::CDTrack(const std::string in_name,
 // SoundSystem
 // -----------------------------------------------------------------------
 SoundSystem::SoundSystem(System& system)
-    : voice_cache_(system.GetFileSystem()),
+    : voice_factory_(system.GetFileSystem()),
       system_(system),
       bgm_volume_script_(255),
       globals_(system.gameexe()) {

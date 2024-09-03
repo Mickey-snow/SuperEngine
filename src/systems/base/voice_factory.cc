@@ -24,7 +24,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#include "systems/base/voice_cache.h"
+#include "systems/base/voice_factory.h"
 
 #include "base/avdec/audio_decoder.h"
 #include "systems/base/nwk_voice_archive.h"
@@ -37,12 +37,12 @@ const int ID_RADIX = 100000;
 
 namespace fs = std::filesystem;
 
-VoiceCache::VoiceCache(std::shared_ptr<IAssetScanner> assets)
+VoiceFactory::VoiceFactory(std::shared_ptr<IAssetScanner> assets)
     : file_cache_(7), assets_(assets) {}
 
-VoiceCache::~VoiceCache() {}
+VoiceFactory::~VoiceFactory() {}
 
-std::shared_ptr<IAudioDecoder> VoiceCache::Find(int id) {
+std::shared_ptr<IAudioDecoder> VoiceFactory::Find(int id) {
   int file_no = id / ID_RADIX;
   int index = id % ID_RADIX;
 
@@ -57,7 +57,7 @@ std::shared_ptr<IAudioDecoder> VoiceCache::Find(int id) {
   throw std::runtime_error("No such voice archive or sample");
 }
 
-fs::path VoiceCache::LocateArchive(int file_no) const {
+fs::path VoiceFactory::LocateArchive(int file_no) const {
   std::ostringstream oss;
   oss << "z" << std::setw(4) << std::setfill('0') << file_no;
 
@@ -71,7 +71,7 @@ fs::path VoiceCache::LocateArchive(int file_no) const {
   return file;
 }
 
-fs::path VoiceCache::LocateUnpackedSample(int file_no, int index) const {
+fs::path VoiceFactory::LocateUnpackedSample(int file_no, int index) const {
   // Loose voice files are packed into directories, like:
   // /KOE/0008/z000800073.ogg. We only need to search for the filename though.
   std::ostringstream oss;
@@ -88,7 +88,7 @@ fs::path VoiceCache::LocateUnpackedSample(int file_no, int index) const {
   return file;
 }
 
-std::shared_ptr<IVoiceArchive> VoiceCache::FindArchive(int file_no) const {
+std::shared_ptr<IVoiceArchive> VoiceFactory::FindArchive(int file_no) const {
   using boost::iends_with;
 
   fs::path file = LocateArchive(file_no);

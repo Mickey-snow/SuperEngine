@@ -36,7 +36,7 @@
 #include <string>
 #include <utility>
 
-#include "systems/base/voice_cache.h"
+#include "systems/base/voice_factory.h"
 
 class Gameexe;
 class System;
@@ -374,7 +374,7 @@ class SoundSystem {
   static void CheckChannel(int channel, const char* function_name);
   static void CheckVolume(int level, const char* function_name);
 
-  VoiceCache voice_cache_;
+  VoiceFactory voice_factory_;
 
  private:
   System& system_;

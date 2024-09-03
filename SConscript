@@ -188,7 +188,7 @@ librlvm_files = [
   "src/systems/base/tomoyo_after_dt00dll.cc",
   "src/systems/base/tone_curve.cc",
   "src/systems/base/voice_archive.cc",
-  "src/systems/base/voice_cache.cc",
+  "src/systems/base/voice_factory.cc",
   "src/systems/base/asset_scanner.cc",
   "src/utilities/exception.cc",
   "src/utilities/file.cc",

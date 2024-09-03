@@ -24,7 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "systems/base/voice_archive.h"
-#include "systems/base/voice_cache.h"
+#include "systems/base/voice_factory.h"
 #include "test_utils.h"
 #include "utilities/bytestream.h"
 
@@ -36,7 +36,7 @@
 
 namespace fs = std::filesystem;
 
-class VoiceCacheTest : public ::testing::Test {
+class VoiceFactoryTest : public ::testing::Test {
  public:
   static void SetUpTestSuite() {
     testdir = PathToTestDirectory("Gameroot") / "vcache";
@@ -117,8 +117,8 @@ class VoiceCacheTest : public ::testing::Test {
   inline static std::shared_ptr<AssetScanner> assets;
 };
 
-TEST_F(VoiceCacheTest, LocateOvk) {
-  VoiceCache vc(assets);
+TEST_F(VoiceFactoryTest, LocateOvk) {
+  VoiceFactory vc(assets);
 
   auto basedir = testdir / "ogg";
   EXPECT_EQ(vc.LocateArchive(447), basedir / "z0447.ovk");
@@ -131,8 +131,8 @@ TEST_F(VoiceCacheTest, LocateOvk) {
   EXPECT_THROW(archive->LoadContent(41), std::runtime_error);
 }
 
-TEST_F(VoiceCacheTest, LocateNwk) {
-  VoiceCache vc(assets);
+TEST_F(VoiceFactoryTest, LocateNwk) {
+  VoiceFactory vc(assets);
 
   auto basedir = testdir / "nwa";
   EXPECT_EQ(vc.LocateArchive(2149), basedir / "z2149.nwk");

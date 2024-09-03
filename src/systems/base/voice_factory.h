@@ -24,8 +24,8 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_VOICE_CACHE_H_
-#define SRC_SYSTEMS_BASE_VOICE_CACHE_H_
+#ifndef SRC_SYSTEMS_BASE_VOICE_FACTORY_H_
+#define SRC_SYSTEMS_BASE_VOICE_FACTORY_H_
 
 #include <filesystem>
 #include <memory>
@@ -38,10 +38,10 @@ class IVoiceArchive;
 class VoiceArchive;
 class VoiceSample;
 
-class VoiceCache {
+class VoiceFactory {
  public:
-  VoiceCache(std::shared_ptr<IAssetScanner> assets);
-  ~VoiceCache();
+  VoiceFactory(std::shared_ptr<IAssetScanner> assets);
+  ~VoiceFactory();
 
   std::shared_ptr<IAudioDecoder> Find(int id);
 
