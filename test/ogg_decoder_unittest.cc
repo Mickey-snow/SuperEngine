@@ -28,7 +28,6 @@
 
 #include "base/avdec/ogg.h"
 #include "base/avdec/wav.h"
-#include "systems/base/ovk_voice_sample.h"
 #include "utilities/mapped_file.h"
 #include "utilities/numbers.h"
 
@@ -87,22 +86,6 @@ class OggDecoderTest : public ::testing::Test {
   const int freq_left = 440, freq_right = 554;
   int sample_count;
 };
-
-TEST_F(OggDecoderTest, OVKVoiceSample) {
-  AudioData audio;
-
-  {
-    int len = 0;
-    char* result = nullptr;
-    OVKVoiceSample decoder(file_str);
-    result = decoder.Decode(&len);
-
-    audio = WavDecoder(std::string_view(result, len)).DecodeAll();
-  }
-
-  EXPECT_EQ(audio.spec, DetermineSpecification());
-  EXPECT_LE(Deviation(Normalize(audio.data), ReproduceAudio()), 0.01);
-}
 
 TEST_F(OggDecoderTest, oggDecoder) {
   static constexpr double max_std = 0.01;

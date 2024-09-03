@@ -41,7 +41,7 @@ SDLSoundChunk::SDLSoundChunk(const std::filesystem::path& path)
     : sample_(LoadSample(path)) {}
 
 SDLSoundChunk::SDLSoundChunk(char* data, int length)
-    : sample_(Mix_LoadWAV_RW(SDL_RWFromMem(data, length + 0x2c), 1)),
+    : sample_(Mix_LoadWAV_RW(SDL_RWFromMem(data, length), 1)),
       data_(data) {}
 
 SDLSoundChunk::~SDLSoundChunk() {

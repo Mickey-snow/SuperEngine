@@ -30,6 +30,7 @@
 #include <filesystem>
 #include <memory>
 
+#include "base/avdec/iadec.h"
 #include "lru_cache.hpp"
 #include "systems/base/asset_scanner.h"
 
@@ -42,18 +43,18 @@ class VoiceCache {
   VoiceCache(std::shared_ptr<IAssetScanner> assets);
   ~VoiceCache();
 
-  std::shared_ptr<VoiceSample> Find(int id);
+  std::shared_ptr<IAudioDecoder> Find(int id);
 
   std::filesystem::path LocateArchive(int file_no) const;
 
   std::filesystem::path LocateUnpackedSample(int file_no, int index) const;
 
   // Searches for a file archive of voices.
-  std::shared_ptr<VoiceArchive> FindArchive(int file_no) const;
-  std::shared_ptr<IVoiceArchive> _FindArchive(int file_no) const;
+  // std::shared_ptr<VoiceArchive> FindArchive(int file_no) const;
+  std::shared_ptr<IVoiceArchive> FindArchive(int file_no) const;
 
   // Searches for an unarchived ogg or mp3 file.
-  std::shared_ptr<VoiceSample> FindUnpackedSample(int file_no, int index) const;
+  // std::shared_ptr<VoiceSample> FindUnpackedSample(int file_no, int index) const;
 
  private:
   // A mapping between a file id number and the underlying file object.

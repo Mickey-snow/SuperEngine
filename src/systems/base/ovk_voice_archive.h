@@ -44,15 +44,14 @@ struct OVK_Header {
 };
 
 // A VoiceArchive that reads the Ogg Vorbis archives (OVK files).
-class OVKVoiceArchive : public VoiceArchive, public IVoiceArchive {
+class OVKVoiceArchive : public IVoiceArchive {
  public:
   OVKVoiceArchive(std::filesystem::path file, int file_no);
   virtual ~OVKVoiceArchive();
 
-  // Overridden from VoiceArchive:
-  virtual std::shared_ptr<VoiceSample> FindSample(int sample_num) override;
-
   virtual FilePos LoadContent(int sample_num) override;
+
+  virtual std::shared_ptr<IAudioDecoder> MakeDecoder(int sample_num) override;
 
  private:
   void ReadEntry();

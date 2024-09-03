@@ -31,9 +31,11 @@
 #include <SDL/SDL_mixer.h>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <iostream>
 #include <sstream>
 #include <string>
 
+#include "base/avdec/wav.h"
 #include "systems/base/system.h"
 #include "systems/base/system_error.h"
 #include "systems/base/voice_archive.h"
@@ -111,11 +113,13 @@ void SDLSoundSystem::SetChannelVolumeImpl(int channel) {
 
 std::shared_ptr<SDLMusic> SDLSoundSystem::LoadMusic(
     const std::string& bgm_name) {
-  DSTable::const_iterator ds_it = ds_table().find(boost::to_lower_copy(bgm_name));
+  DSTable::const_iterator ds_it =
+      ds_table().find(boost::to_lower_copy(bgm_name));
   if (ds_it != ds_table().end())
     return SDLMusic::CreateMusic(system(), ds_it->second);
 
-  CDTable::const_iterator cd_it = cd_table().find(boost::to_lower_copy(bgm_name));
+  CDTable::const_iterator cd_it =
+      cd_table().find(boost::to_lower_copy(bgm_name));
   if (cd_it != cd_table().end()) {
     std::ostringstream oss;
     oss << "CD music not supported yet. Could not play track \"" << bgm_name
@@ -190,7 +194,8 @@ void SDLSoundSystem::SetBgmEnabled(const int in) {
 
 void SDLSoundSystem::SetBgmVolumeMod(const int in) {
   SoundSystem::SetBgmVolumeMod(in);
-  SDLMusic::SetComputedBgmVolume(compute_channel_volume(in, bgm_volume_script()));
+  SDLMusic::SetComputedBgmVolume(
+      compute_channel_volume(in, bgm_volume_script()));
 }
 
 void SDLSoundSystem::SetBgmVolumeScript(const int level, int fade_in_ms) {
@@ -199,7 +204,8 @@ void SDLSoundSystem::SetBgmVolumeScript(const int level, int fade_in_ms) {
     // If a fade was requested by the script, we don't want to set the volume
     // here right now. This is only slightly cleaner than having separate
     // methods because of the function casting in the modules.
-    SDLMusic::SetComputedBgmVolume(compute_channel_volume(bgm_volume_mod(), level));
+    SDLMusic::SetComputedBgmVolume(
+        compute_channel_volume(bgm_volume_mod(), level));
   }
 }
 
@@ -388,15 +394,14 @@ void SDLSoundSystem::KoePlayImpl(int id) {
   }
 
   // Get the VoiceSample.
-  std::shared_ptr<VoiceSample> sample = voice_cache_.Find(id);
-  if (!sample) {
-    std::ostringstream oss;
-    oss << "No sample for " << id;
-    throw std::runtime_error(oss.str());
-  }
+  auto decoder = voice_cache_.Find(id);
+  auto audio_data = decoder->DecodeAll();
 
-  int length;
-  char* data = sample->Decode(&length);
+  std::vector<uint8_t> wav_data = EncodeWav(audio_data);
+
+  int length = static_cast<int>(wav_data.size());
+  char* data = new char[length];
+  std::memcpy(data, wav_data.data(), length);
 
   // TODO(erg): SDL is supposed to have a real resampler, but doesn't, so for
   // example, 48k -> 41k is at best tone shifted, and at worst, is a pure

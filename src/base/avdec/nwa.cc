@@ -162,8 +162,9 @@ class NwaCompDecoder : public NwaDecoderImpl {
             if (zero_count == 0b11)
               zero_count = reader.Popbits(8);
 
-            while (--zero_count)  // generate (zero_count-1) samples here, the
-                                  // last one will be created outside switch
+            for (int i = 1; i < zero_count;
+                 ++i)  // generate (zero_count-1) samples here, the
+                       // last one will be created outside switch
               AppendSample(sample[channel]);
           }
           break;

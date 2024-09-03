@@ -118,6 +118,9 @@ class ov_adapter {
 
   ~ov_adapter() { ov_clear(&vf); }
 
+  ov_adapter(const ov_adapter&) = delete;
+  ov_adapter& operator=(const ov_adapter&) = delete;
+
   static size_t ov_readfunc(void* dst,
                             size_t size,
                             size_t nmemb,

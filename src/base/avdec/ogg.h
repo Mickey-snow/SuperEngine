@@ -37,6 +37,9 @@ class OggDecoder : public IAudioDecoder {
   explicit OggDecoder(std::string_view sv);
   ~OggDecoder();
 
+  OggDecoder(const OggDecoder&) = delete;
+  OggDecoder& operator=(const OggDecoder&) = delete;
+
   std::string DecoderName() const override;
 
   AVSpec GetSpec() override;

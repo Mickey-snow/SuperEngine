@@ -28,7 +28,7 @@
 #define SRC_SYSTEMS_BASE_NWK_VOICE_ARCHIVE_H_
 
 #include <filesystem>
-
+#include <memory>
 #include <vector>
 
 #include "systems/base/voice_archive.h"
@@ -44,14 +44,14 @@ struct NWK_Header {
 
 // A VoiceArchive that reads VisualArts' NWK archives, which are collections of
 // NWA files.
-class NWKVoiceArchive : public VoiceArchive, public IVoiceArchive {
+class NWKVoiceArchive : public IVoiceArchive {
  public:
   NWKVoiceArchive(std::filesystem::path file, int file_no);
   virtual ~NWKVoiceArchive();
 
-  virtual std::shared_ptr<VoiceSample> FindSample(int sample_num) override;
-
   virtual FilePos LoadContent(int sample_num) override;
+
+  virtual std::shared_ptr<IAudioDecoder> MakeDecoder(int sample_num) override;
 
  private:
   void ReadEntry();

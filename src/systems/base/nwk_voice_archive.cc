@@ -25,72 +25,20 @@
 // -----------------------------------------------------------------------
 
 #include "systems/base/nwk_voice_archive.h"
+
+#include "base/avdec/audio_decoder.h"
 #include "utilities/byte_reader.h"
-
-#include <cstdio>
-
-#include "utilities/exception.h"
-#include "xclannad/endian.hpp"
-#include "xclannad/wavfile.h"
 
 namespace fs = std::filesystem;
 
-namespace {
-
-// A VoiceSample that reads from a NWKVoiceArchive, which is just a bunch of
-// NWA files thrown together with
-class NWKVoiceSample : public VoiceSample {
- public:
-  NWKVoiceSample(std::filesystem::path file, int offset, int length);
-  virtual ~NWKVoiceSample();
-
-  // Overridden from VoiceSample:
-  virtual char* Decode(int* size) override;
-
- private:
-  FILE* stream_;
-  int offset_;
-  int length_;
-};
-
-NWKVoiceSample::NWKVoiceSample(std::filesystem::path file,
-                               int offset,
-                               int length)
-    : stream_(std::fopen(file.native().c_str(), "rb")),
-      offset_(offset),
-      length_(length) {}
-
-NWKVoiceSample::~NWKVoiceSample() {
-  if (stream_)
-    fclose(stream_);
-}
-
-char* NWKVoiceSample::Decode(int* size) {
-  // Defined in nwatowav.cc
-  return decode_koe_nwa(stream_, offset_, length_, size);
-}
-
-}  // namespace
-
 NWKVoiceArchive::NWKVoiceArchive(fs::path file, int file_no)
-    : VoiceArchive(file_no),
-      file_(file),
+    : file_(file),
       file_no_(file_no),
       file_content_(std::make_shared<MappedFile>(file)) {
   ReadEntry();
 }
 
 NWKVoiceArchive::~NWKVoiceArchive() {}
-
-std::shared_ptr<VoiceSample> NWKVoiceArchive::FindSample(int sample_num) {
-  auto it = std::lower_bound(entries_.begin(), entries_.end(), sample_num);
-  if (it != entries_.end()) {
-    return std::shared_ptr<VoiceSample>(
-        new NWKVoiceSample(file_, it->offset, it->size));
-  }
-
-  throw rlvm::Exception("Couldn't find sample in NWKVoiceArchive");
-}
 
 FilePos NWKVoiceArchive::LoadContent(int sample_num) {
   auto it = std::lower_bound(entries_.cbegin(), entries_.cend(), sample_num);
@@ -100,6 +48,10 @@ FilePos NWKVoiceArchive::LoadContent(int sample_num) {
 
   return FilePos{
       .file_ = file_content_, .position = it->offset, .length = it->size};
+}
+
+std::shared_ptr<IAudioDecoder> NWKVoiceArchive::MakeDecoder(int sample_num) {
+  return std::make_shared<AudioDecoder>(LoadContent(sample_num), "nwa");
 }
 
 void NWKVoiceArchive::ReadEntry() {

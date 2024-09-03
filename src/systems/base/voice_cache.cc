@@ -26,25 +26,14 @@
 
 #include "systems/base/voice_cache.h"
 
-#include <boost/algorithm/string.hpp>
-#include <filesystem>
-#include <iomanip>
-#include <sstream>
-#include <string>
-
-#include "systems/base/koepac_voice_archive.h"
+#include "base/avdec/audio_decoder.h"
 #include "systems/base/nwk_voice_archive.h"
 #include "systems/base/ovk_voice_archive.h"
-#include "systems/base/ovk_voice_sample.h"
-#include "systems/base/sound_system.h"
-#include "systems/base/system.h"
 #include "systems/base/voice_archive.h"
-#include "utilities/exception.h"
+
+#include <boost/algorithm/string.hpp>
 
 const int ID_RADIX = 100000;
-
-using boost::iends_with;
-using std::string;
 
 namespace fs = std::filesystem;
 
@@ -53,32 +42,19 @@ VoiceCache::VoiceCache(std::shared_ptr<IAssetScanner> assets)
 
 VoiceCache::~VoiceCache() {}
 
-#include <iostream>
-std::shared_ptr<VoiceSample> VoiceCache::Find(int id) {
-  std::cout << "Find: " << id << std::endl;
+std::shared_ptr<IAudioDecoder> VoiceCache::Find(int id) {
   int file_no = id / ID_RADIX;
   int index = id % ID_RADIX;
 
-  std::shared_ptr<VoiceArchive> archive = file_cache_.fetch(file_no);
-  if (archive) {
-    return archive->FindSample(index);
-  } else {
-    archive = FindArchive(file_no);
-    if (archive) {
-      // Cache for later use.
-      file_cache_.insert(file_no, archive);
-      return archive->FindSample(index);
-    } else {
-      // There aren't any archives with |file_no|. Look for an individual file
-      // instead.
-      std::shared_ptr<VoiceSample> sample = FindUnpackedSample(file_no, index);
-      if (sample) {
-        return sample;
-      } else {
-        throw rlvm::Exception("No such voice archive or sample");
-      }
-    }
+  if (std::shared_ptr<IVoiceArchive> archive = FindArchive(file_no))
+    return archive->MakeDecoder(index);
+
+  fs::path sample = LocateUnpackedSample(file_no, index);
+  if (fs::exists(sample)) {
+    // return unpacked audio
   }
+
+  throw std::runtime_error("No such voice archive or sample");
 }
 
 fs::path VoiceCache::LocateArchive(int file_no) const {
@@ -112,39 +88,15 @@ fs::path VoiceCache::LocateUnpackedSample(int file_no, int index) const {
   return file;
 }
 
-std::shared_ptr<VoiceArchive> VoiceCache::FindArchive(int file_no) const {
+std::shared_ptr<IVoiceArchive> VoiceCache::FindArchive(int file_no) const {
+  using boost::iends_with;
+
   fs::path file = LocateArchive(file_no);
-
-  std::string file_str = file.string();
-  if (iends_with(file_str, "ovk")) {
-    return std::make_shared<OVKVoiceArchive>(file, file_no);
-  } else if (iends_with(file_str, "nwk")) {
-    return std::make_shared<NWKVoiceArchive>(file, file_no);
-  } else if (iends_with(file_str, "koe")) {
-    return std::make_shared<KOEPACVoiceArchive>(file, file_no);
-  }
-  return nullptr;
-}
-
-std::shared_ptr<IVoiceArchive> VoiceCache::_FindArchive(int file_no) const {
-  fs::path file = LocateArchive(file_no);
-
   std::string file_str = file.string();
   if (iends_with(file_str, "ovk")) {
     return std::make_shared<OVKVoiceArchive>(file, file_no);
   } else if (iends_with(file_str, "nwk")) {
     return std::make_shared<NWKVoiceArchive>(file, file_no);
   }
-  return nullptr;
-}
-
-std::shared_ptr<VoiceSample> VoiceCache::FindUnpackedSample(int file_no,
-                                                            int index) const {
-  fs::path file = LocateUnpackedSample(file_no, index);
-  std::string file_str = file.string();
-
-  if (iends_with(file_str, "ogg"))
-    return std::make_shared<OVKVoiceSample>(file);
-
   return nullptr;
 }

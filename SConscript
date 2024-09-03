@@ -167,7 +167,6 @@ librlvm_files = [
   "src/systems/base/object_mutator.cc",
   "src/systems/base/object_settings.cc",
   "src/systems/base/ovk_voice_archive.cc",
-  "src/systems/base/ovk_voice_sample.cc",
   "src/systems/base/parent_graphics_object_data.cc",
   "src/systems/base/platform.cc",
   "src/systems/base/rltimer.cc",
