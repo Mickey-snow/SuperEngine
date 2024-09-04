@@ -28,6 +28,8 @@
 #include <cstdint>
 #include <tuple>
 
+#include "base/avspec.h"
+
 struct Mix_Chunk;
 using Chunk_t = Mix_Chunk;
 
@@ -40,11 +42,11 @@ class SoundSystemImpl {
   virtual void QuitSystem() const;
   virtual void AllocateChannels(const int& num) const;
   virtual int OpenAudio(int rate,
-                        uint16_t format,
+                        AV_SAMPLE_FMT format,
                         int channels,
                         int buffers) const;
   virtual void CloseAudio() const;
-  virtual std::tuple<int, uint16_t, int> QuerySpec() const;
+  virtual AVSpec QuerySpec() const;
   virtual void ChannelFinished(void (*callback)(int)) const;
   virtual void SetVolume(int channel, int vol) const;
   virtual int Playing(int channel) const;
@@ -64,9 +66,8 @@ class SoundSystemImpl {
   virtual void FreeChunk(Chunk_t* chunk) const;
   virtual const char* GetError() const;
 
- public:
-  // Sound Format Table
-  static const uint16_t S8, S16;
+  uint16_t ToSDLSoundFormat(AV_SAMPLE_FMT fmt) const;
+  AV_SAMPLE_FMT FromSDLSoundFormat(uint16_t fmt) const;
 };
 
 #endif

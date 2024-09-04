@@ -27,6 +27,8 @@
 #include <SDL/SDL.h>
 #include <SDL/SDL_mixer.h>
 
+#include <stdexcept>
+
 void SoundSystemImpl::InitSystem() const { SDL_InitSubSystem(SDL_INIT_AUDIO); }
 
 void SoundSystemImpl::QuitSystem() const { SDL_QuitSubSystem(SDL_INIT_AUDIO); }
@@ -36,19 +38,21 @@ void SoundSystemImpl::AllocateChannels(const int& num) const {
 }
 
 int SoundSystemImpl::OpenAudio(int rate,
-                               Uint16 format,
+                               AV_SAMPLE_FMT format,
                                int channels,
                                int buffers) const {
-  return Mix_OpenAudio(rate, format, channels, buffers);
+  return Mix_OpenAudio(rate, ToSDLSoundFormat(format), channels, buffers);
 }
 
 void SoundSystemImpl::CloseAudio() const { Mix_CloseAudio(); }
 
-std::tuple<int, Uint16, int> SoundSystemImpl::QuerySpec() const {
+AVSpec SoundSystemImpl::QuerySpec() const {
   int freq, channels;
   Uint16 format;
   Mix_QuerySpec(&freq, &format, &channels);
-  return std::make_tuple(freq, format, channels);
+  return AVSpec{.sample_rate = freq,
+                .sample_format = FromSDLSoundFormat(format),
+                .channel_count = channels};
 }
 
 void SoundSystemImpl::ChannelFinished(void (*callback)(int)) const {
@@ -109,5 +113,37 @@ void SoundSystemImpl::FreeChunk(Chunk_t* chunk) const { Mix_FreeChunk(chunk); }
 
 const char* SoundSystemImpl::GetError() const { return Mix_GetError(); }
 
-const uint16_t SoundSystemImpl::S8 = AUDIO_S8;
-const uint16_t SoundSystemImpl::S16 = AUDIO_S16;
+uint16_t SoundSystemImpl::ToSDLSoundFormat(AV_SAMPLE_FMT fmt) const {
+  switch (fmt) {
+    case AV_SAMPLE_FMT::U8:
+      return AUDIO_U8;
+    case AV_SAMPLE_FMT::S8:
+      return AUDIO_S8;
+    case AV_SAMPLE_FMT::S16:
+      return AUDIO_S16SYS;
+    case AV_SAMPLE_FMT::S32:
+    case AV_SAMPLE_FMT::S64:
+    case AV_SAMPLE_FMT::FLT:
+    case AV_SAMPLE_FMT::DBL:
+      throw std::invalid_argument("Unsupported SDL1.2 audio format for: " +
+                                  to_string(fmt));
+
+    default:
+      throw std::invalid_argument("Invalid AV_SAMPLE_FMT format: " +
+                                  std::to_string(static_cast<int>(fmt)));
+  }
+}
+
+AV_SAMPLE_FMT SoundSystemImpl::FromSDLSoundFormat(uint16_t fmt) const {
+  switch (fmt) {
+    case AUDIO_U8:
+      return AV_SAMPLE_FMT::U8;
+    case AUDIO_S8:
+      return AV_SAMPLE_FMT::S8;
+    case AUDIO_S16SYS:
+      return AV_SAMPLE_FMT::S16;
+    default:
+      throw std::invalid_argument("Invalid SDL audio format: " +
+                                  std::to_string(fmt));
+  }
+}

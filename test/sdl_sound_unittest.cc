@@ -26,14 +26,18 @@
 
 #include "test_utils.h"
 
+#include "base/avspec.h"
 #include "systems/sdl/sdl_sound_system.h"
 #include "systems/sdl/sound_implementor.h"
 
+#include <filesystem>
 #include <memory>
 #include <tuple>
 
 class FakeAudioImpl : public SoundSystemImpl {
  public:
+  using super = SoundSystemImpl;
+
   FakeAudioImpl() = default;
   ~FakeAudioImpl() = default;
 
@@ -46,9 +50,9 @@ class FakeAudioImpl : public SoundSystemImpl {
   void QuitSystem() const override { activate_ = false; }
 
   mutable int frequency_ = -1, channels_ = -1, buffers_ = -1;
-  mutable uint16_t format_;
+  mutable AV_SAMPLE_FMT format_;
   int OpenAudio(int rate,
-                uint16_t format,
+                AV_SAMPLE_FMT format,
                 int channels,
                 int buffers) const override {
     CheckSystemActivate();
@@ -58,9 +62,11 @@ class FakeAudioImpl : public SoundSystemImpl {
     buffers_ = buffers;
     return 0;
   }
-  std::tuple<int, uint16_t, int> QuerySpec() const override {
+  AVSpec QuerySpec() const override {
     CheckSystemActivate();
-    return std::make_tuple(frequency_, format_, channels_);
+    return AVSpec{.sample_rate = frequency_,
+                  .sample_format = format_,
+                  .channel_count = channels_};
   }
 
   void CloseAudio() const override { frequency_ = channels_ = buffers_ = -1; }
@@ -176,6 +182,9 @@ class FakeAudioImpl : public SoundSystemImpl {
   MOCK_METHOD(int, MaxVolumn, (), (const, override));
 
   const char* GetError() const override { return nullptr; }
+
+  using super::FromSDLSoundFormat;
+  using super::ToSDLSoundFormat;
 };
 using ::testing::EndsWith;
 using ::testing::Return;
@@ -206,4 +215,29 @@ TEST(SDLSound, Playwav) {
   EXPECT_EQ(aimpl->chunk_handle_.size(), 1);
   auto chunk = aimpl->GetChunk(1);
   EXPECT_THAT(chunk, EndsWith(filename + filename_extension));
+}
+
+TEST(SDLSound, SoundFormat) {
+  // sdl1.2 audio format flags
+  constexpr auto AUDIO_S8 = 0x8008;
+  constexpr auto AUDIO_U8 = 0x0008;
+  constexpr auto AUDIO_S16SYS = 0x8010;
+
+  auto aimpl = std::make_shared<FakeAudioImpl>();
+  EXPECT_EQ(aimpl->ToSDLSoundFormat(AV_SAMPLE_FMT::U8), AUDIO_U8);
+  EXPECT_EQ(aimpl->ToSDLSoundFormat(AV_SAMPLE_FMT::S8), AUDIO_S8);
+  EXPECT_EQ(aimpl->ToSDLSoundFormat(AV_SAMPLE_FMT::S16), AUDIO_S16SYS);
+  EXPECT_THROW(aimpl->ToSDLSoundFormat(AV_SAMPLE_FMT::S64),
+               std::invalid_argument);
+  EXPECT_THROW(aimpl->ToSDLSoundFormat(AV_SAMPLE_FMT::DBL),
+               std::invalid_argument);
+  EXPECT_THROW(aimpl->ToSDLSoundFormat(AV_SAMPLE_FMT::NONE),
+               std::invalid_argument);
+
+  EXPECT_EQ(aimpl->FromSDLSoundFormat(AUDIO_U8), AV_SAMPLE_FMT::U8);
+  EXPECT_EQ(aimpl->FromSDLSoundFormat(AUDIO_S8), AV_SAMPLE_FMT::S8);
+  EXPECT_EQ(aimpl->FromSDLSoundFormat(AUDIO_S16SYS), AV_SAMPLE_FMT::S16);
+
+  EXPECT_THROW(aimpl->FromSDLSoundFormat(0), std::invalid_argument);
+  EXPECT_THROW(aimpl->FromSDLSoundFormat(12345), std::invalid_argument);
 }

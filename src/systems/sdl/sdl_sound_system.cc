@@ -33,8 +33,9 @@
 #include <sstream>
 #include <string>
 
-#include "base/resampler.h"
 #include "base/avdec/audio_decoder.h"
+#include "base/avspec.h"
+#include "base/resampler.h"
 #include "systems/base/system.h"
 #include "systems/base/system_error.h"
 #include "systems/base/voice_archive.h"
@@ -49,20 +50,20 @@ namespace fs = std::filesystem;
 // -----------------------------------------------------------------------
 struct RealLiveSoundQualities {
   int rate;
-  uint16_t format;
+  AV_SAMPLE_FMT format;
 };
 
 // A mapping between SoundQualities() and the values need to be passed
 // to Mix_OpenAudio()
 static RealLiveSoundQualities s_real_live_sound_qualities[] = {
-    {11025, SoundSystemImpl::S8},   // 11 k_hz, 8 bit stereo
-    {11025, SoundSystemImpl::S16},  // 11 k_hz, 16 bit stereo
-    {22050, SoundSystemImpl::S8},   // 22 k_hz, 8 bit stereo
-    {22050, SoundSystemImpl::S16},  // 22 k_hz, 16 bit stereo
-    {44100, SoundSystemImpl::S8},   // 44 k_hz, 8 bit stereo
-    {44100, SoundSystemImpl::S16},  // 44 k_hz, 16 bit stereo
-    {48000, SoundSystemImpl::S8},   // 48 k_hz, 8 bit stereo
-    {48000, SoundSystemImpl::S16}   // 48 k_hz, 16 bit stereo
+    {11025, AV_SAMPLE_FMT::S8},   // 11 k_hz, 8 bit stereo
+    {11025, AV_SAMPLE_FMT::S16},  // 11 k_hz, 16 bit stereo
+    {22050, AV_SAMPLE_FMT::S8},   // 22 k_hz, 8 bit stereo
+    {22050, AV_SAMPLE_FMT::S16},  // 22 k_hz, 16 bit stereo
+    {44100, AV_SAMPLE_FMT::S8},   // 44 k_hz, 8 bit stereo
+    {44100, AV_SAMPLE_FMT::S16},  // 44 k_hz, 16 bit stereo
+    {48000, AV_SAMPLE_FMT::S8},   // 48 k_hz, 8 bit stereo
+    {48000, AV_SAMPLE_FMT::S16}   // 48 k_hz, 16 bit stereo
 };
 
 // -----------------------------------------------------------------------
@@ -147,7 +148,7 @@ SDLSoundSystem::SDLSoundSystem(System& system,
   /* We're going to be requesting certain things from our audio
      device, so we set them up beforehand */
   int audio_rate = s_real_live_sound_qualities[sound_quality()].rate;
-  uint16_t audio_format = s_real_live_sound_qualities[sound_quality()].format;
+  auto audio_format = s_real_live_sound_qualities[sound_quality()].format;
   int audio_channels = 2;
   int audio_buffers = 4096;
 
@@ -162,10 +163,10 @@ SDLSoundSystem::SDLSoundSystem(System& system,
   }
 
   // Jagarl's sound system wants information on the audio settings.
-  auto [freq, format, channels] = sound_impl_->QuerySpec();
-  WAVFILE::freq = freq;
-  WAVFILE::format = format;
-  WAVFILE::channels = channels;
+  AVSpec spec = sound_impl_->QuerySpec();
+  WAVFILE::freq = spec.sample_rate;
+  WAVFILE::format = sound_impl_->ToSDLSoundFormat(spec.sample_format);
+  WAVFILE::channels = spec.channel_count;
 
   sound_impl_->AllocateChannels(NUM_TOTAL_CHANNELS);
   sound_impl_->ChannelFinished(&SDLSoundChunk::SoundChunkFinishedPlayback);
