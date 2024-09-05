@@ -48,6 +48,8 @@ class OggDecoder : public IAudioDecoder {
 
   AudioData DecodeNext() override;
 
+  bool HasNext() override { return false; }
+
  private:
   std::unique_ptr<ov_adapter> impl_;
 };

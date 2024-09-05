@@ -45,6 +45,8 @@ class IAudioDecoder {
 
   virtual AudioData DecodeNext() = 0;
 
+  virtual bool HasNext() = 0;
+
   virtual SEEK_RESULT Seek(long long offset, SEEKDIR whence = SEEKDIR::CUR);
 
   using time_ms_t = long long;

@@ -219,3 +219,67 @@ TEST_F(NwaDecoderTest, Compress5) {
   EXPECT_LE(Deviation(lch, expect_wav), maxstd);
   EXPECT_LE(Deviation(rch, expect_wav), maxstd);
 }
+
+TEST_F(NwaDecoderTest, RewindComp) {
+  const std::string filename = "Gameroot/BGM/BGM03.nwa";
+  float maxstd = 0.05 * INT16_MAX;
+
+  auto file = MappedFile(LocateTestCase(filename));
+  NwaDecoder decoder(file.Read());
+
+  // decode the first 3 units
+  AudioData result_front;
+  {
+    auto a = decoder.DecodeNext();
+    auto b = decoder.DecodeNext();
+    auto c = decoder.DecodeNext();
+    result_front = AudioData::Concat(std::move(a), std::move(b), std::move(c));
+  }
+  auto [lch_front, rch_front] = SplitChannels(ToInt16Vec(result_front.data));
+  EXPECT_EQ(lch_front.size(), rch_front.size());
+
+  // rewind then decode all
+  EXPECT_EQ(decoder.Seek(0, SEEKDIR::BEG), SEEK_RESULT::PRECISE_SEEK);
+  AudioData result = decoder.DecodeAll();
+  auto [lch, rch] = SplitChannels(ToInt16Vec(result.data));
+  auto expect_wav = GetExpectedPcm();
+  size_t n = expect_wav.size();
+  EXPECT_LE(Deviation(lch, expect_wav), maxstd);
+  EXPECT_LE(Deviation(rch, expect_wav), maxstd);
+
+  n = lch_front.size();
+  expect_wav.resize(n);
+  EXPECT_LE(Deviation(lch_front, expect_wav), maxstd);
+  EXPECT_LE(Deviation(rch_front, expect_wav), maxstd);
+}
+
+TEST_F(NwaDecoderTest, RewindHQ) {
+  const std::string filename = "Gameroot/BGM/BGM01.nwa";
+  const float maxstd = 1e-4 * INT16_MAX;
+
+  auto file = MappedFile(LocateTestCase(filename));
+  NwaDecoder decoder(file.Read());
+
+  AudioData result_front;
+  {
+    auto a = decoder.DecodeNext();
+    auto b = decoder.DecodeNext();
+    auto c = decoder.DecodeNext();
+    result_front = AudioData::Concat(std::move(a), std::move(b), std::move(c));
+  }
+  auto [lch_front, rch_front] = SplitChannels(ToInt16Vec(result_front.data));
+  EXPECT_EQ(lch_front.size(), rch_front.size());
+
+  EXPECT_EQ(decoder.Seek(0, SEEKDIR::BEG), SEEK_RESULT::PRECISE_SEEK);
+  AudioData result = decoder.DecodeAll();
+  auto [lch, rch] = SplitChannels(ToInt16Vec(result.data));
+  auto expect_wav = GetExpectedPcm();
+  size_t n = expect_wav.size();
+  EXPECT_LE(Deviation(lch, expect_wav), maxstd);
+  EXPECT_LE(Deviation(rch, expect_wav), maxstd);
+
+  n = lch_front.size();
+  expect_wav.resize(n);
+  EXPECT_LE(Deviation(lch_front, expect_wav), maxstd);
+  EXPECT_LE(Deviation(rch_front, expect_wav), maxstd);
+}

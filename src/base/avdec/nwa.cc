@@ -36,7 +36,11 @@ class NwaHQDecoder : public NwaDecoderImpl {
     header_ = reinterpret_cast<const NwaHeader*>(data_.data());
     sample_stream_ = reinterpret_cast<const avsample_s16_t*>(data_.data() +
                                                              sizeof(NwaHeader));
+    cursor_ = sample_stream_;
     ValidateData();
+
+    static constexpr size_t default_chunk_size = 512;
+    SetChunkSize(default_chunk_size);
   }
 
   std::vector<avsample_s16_t> DecodeAll() override {
@@ -46,7 +50,27 @@ class NwaHQDecoder : public NwaDecoderImpl {
     return ret;
   }
 
-  std::vector<avsample_s16_t> DecodeNext() override { return DecodeAll(); }
+  std::vector<avsample_s16_t> DecodeNext() override {
+    if (Location() >= header_->total_sample_count)
+      throw std::logic_error(
+          "DecodeNext() called when no more data is available for decoding.");
+
+    const size_t remain_samples = header_->total_sample_count - Location();
+    const size_t sample_count = std::min(remain_samples, chunk_size_);
+
+    std::vector<avsample_s16_t> ret(sample_count);
+    std::copy_n(cursor_, ret.size(), ret.begin());
+    cursor_ += sample_count;
+    return ret;
+  }
+
+  bool HasNext() override { return Location() < header_->total_sample_count; }
+
+  void Rewind() override { cursor_ = sample_stream_; }
+
+  size_t Location() const noexcept { return cursor_ - sample_stream_; }
+
+  void SetChunkSize(size_t size) { chunk_size_ = size; }
 
  private:
   void ValidateData() {
@@ -75,7 +99,8 @@ class NwaHQDecoder : public NwaDecoderImpl {
 
   std::string_view data_;
   const NwaHeader* header_;
-  const avsample_s16_t* sample_stream_;
+  const avsample_s16_t *sample_stream_, *cursor_;
+  size_t chunk_size_;
 };
 
 // -----------------------------------------------------------------------
@@ -110,6 +135,8 @@ class NwaCompDecoder : public NwaDecoderImpl {
   }
 
   bool HasNext() override { return current_unit_ < unit_count_; }
+
+  void Rewind() override { current_unit_ = 0; }
 
   std::vector<avsample_s16_t> DecodeUnit(int id) {
     int start_offset = offset_table_[id],
@@ -308,4 +335,14 @@ void NwaDecoder::CreateImplementation() {
   } else {
     impl_ = std::make_unique<NwaCompDecoder>(data_);
   }
+}
+
+SEEK_RESULT NwaDecoder::Seek(long long offset, SEEKDIR whence) {
+  if (whence != SEEKDIR::BEG || offset != 0)
+    throw std::invalid_argument(
+        "Only rewind back to the beginning is currently supported for nwa "
+        "decoder");
+  impl_->Rewind();
+
+  return SEEK_RESULT::PRECISE_SEEK;
 }

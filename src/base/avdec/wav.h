@@ -57,6 +57,8 @@ class WavDecoder : public IAudioDecoder {
 
   AudioData DecodeAll() override;
 
+  bool HasNext() override { return false; }
+
  private:
   std::string_view wavdata_;
   const fmtHeader* fmt_;
