@@ -32,14 +32,15 @@
 #include "utilities/numbers.h"
 
 #include <cmath>
-#include <fstream>
-#include <iostream>
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 class OggDecoderTest : public ::testing::Test {
  protected:
   void SetUp() {
     sample_count = std::round(duration * sample_rate);
-    file_str = LocateTestCase("Gameroot/OGG/test.ogg");
+    file_path = PathToTestCase("Gameroot/OGG/test.ogg");
   }
 
   AVSpec DetermineSpecification() const {
@@ -73,24 +74,24 @@ class OggDecoderTest : public ::testing::Test {
   double Deviation(const std::vector<double>& a,
                    const std::vector<double>& b) const {
     auto sqr = [](auto x) { return x * x; };
-    size_t n = a.size();
+    size_t n = std::min(a.size(), b.size());
     double var = 0;
     for (size_t i = 0; i < n; ++i)
       var += sqr(a[i] - b[i]) / n;
     return sqrt(var);
   }
 
-  std::string file_str;
+  fs::path file_path;
   const float duration = 0.2;
   const int sample_rate = 44100;
   const int freq_left = 440, freq_right = 554;
   int sample_count;
 };
 
-TEST_F(OggDecoderTest, oggDecoder) {
+TEST_F(OggDecoderTest, DecodeOgg) {
   static constexpr double max_std = 0.01;
 
-  auto file = MappedFile(file_str);
+  auto file = MappedFile(file_path);
   OggDecoder decoder(file.Read());
   AudioData audio = decoder.DecodeAll();
   EXPECT_EQ(audio.spec, DetermineSpecification());
@@ -99,4 +100,29 @@ TEST_F(OggDecoderTest, oggDecoder) {
   auto expect_wav = ReproduceAudio();
   ASSERT_EQ(actual_wav.size(), expect_wav.size());
   EXPECT_LE(Deviation(expect_wav, actual_wav), max_std);
+}
+
+TEST_F(OggDecoderTest, Rewind) {
+  static constexpr double max_std = 0.01;
+
+  auto file = MappedFile(file_path);
+  OggDecoder decoder(file.Read());
+
+  auto expect_wav = ReproduceAudio();
+  for (int i = 0; i < 3; ++i) {
+    EXPECT_EQ(decoder.Seek(0, SEEKDIR::BEG), SEEK_RESULT::PRECISE_SEEK);
+    AudioData result_front;
+    {
+      auto a = decoder.DecodeNext();
+      auto b = decoder.DecodeNext();
+      AudioData result_front = AudioData::Concat(std::move(a), std::move(b));
+    }
+    EXPECT_LE(Deviation(expect_wav, Normalize(result_front.data)), max_std);
+    EXPECT_TRUE(decoder.HasNext());
+
+    EXPECT_EQ(decoder.Seek(0, SEEKDIR::BEG), SEEK_RESULT::PRECISE_SEEK);
+    auto actual_wav = Normalize(decoder.DecodeAll().data);
+    EXPECT_LE(Deviation(expect_wav, actual_wav), max_std);
+    EXPECT_FALSE(decoder.HasNext());
+  }
 }

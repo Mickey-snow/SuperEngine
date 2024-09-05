@@ -47,10 +47,10 @@ class IAudioDecoder {
 
   virtual bool HasNext() = 0;
 
-  virtual SEEK_RESULT Seek(long long offset, SEEKDIR whence = SEEKDIR::CUR);
+  using pcm_count_t = long long;
+  virtual SEEK_RESULT Seek(pcm_count_t offset, SEEKDIR whence = SEEKDIR::CUR);
 
-  using time_ms_t = long long;
-  virtual time_ms_t Tell();
+  virtual pcm_count_t Tell();
 };
 
 #endif

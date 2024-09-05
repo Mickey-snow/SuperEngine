@@ -120,7 +120,7 @@ for sample_rate in [8000, 16000, 44100]:
     for sample_width in [8, 16, 32]:
       file_name = f'test{len(wav_to_generate)}.wav'
       frequency = random.randint(100,8000)
-      duration = random.random()
+      duration = random.random() + 0.1
       param = f'--frequency={frequency} --sample_rate={sample_rate} --channel={channel} '
       param += f'--sample_format={sample_width} --duration={duration:.2f}'
       wav_to_generate.append((file_name, param))

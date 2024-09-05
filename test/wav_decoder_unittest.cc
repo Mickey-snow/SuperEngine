@@ -140,6 +140,29 @@ TEST_P(WavCodecTest, DecodeWav) {
   EXPECT_LE(Deviation(expect_wav, result_wav), max_std);
 }
 
+TEST_P(WavCodecTest, RewindDecode) {
+  const double max_std = 0.075 * exp(-sample_width);
+
+  auto file = MappedFile(GetParam());
+  WavDecoder decoder(file.Read());
+
+  {
+    auto a = decoder.DecodeNext();
+    auto b = decoder.DecodeNext();
+    AudioData result = AudioData::Concat(std::move(a), std::move(b));
+  }
+  EXPECT_TRUE(decoder.HasNext());
+
+  const auto expect_wav = ReproduceAudio();
+  for (int i = 0; i < 3; ++i) {
+    EXPECT_EQ(decoder.Seek(0, SEEKDIR::BEG), SEEK_RESULT::PRECISE_SEEK);
+    EXPECT_TRUE(decoder.HasNext());
+    auto result_wav = Normalize(decoder.DecodeAll().data);
+    EXPECT_LE(Deviation(expect_wav, result_wav), max_std);
+    EXPECT_FALSE(decoder.HasNext());
+  }
+}
+
 TEST_P(WavCodecTest, EncodeRiffHeader) {
   auto spec = DetermineSpecification();
   auto header_raw = MakeRiffHeader(spec, 0);

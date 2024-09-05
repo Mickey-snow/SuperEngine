@@ -221,3 +221,34 @@ AudioData OggDecoder::DecodeAll() {
   result.data = std::move(samples);
   return result;
 }
+
+bool OggDecoder::HasNext() { return Tell() < PcmTotal(); }
+
+using pcm_count_t = typename OggDecoder::pcm_count_t;
+pcm_count_t OggDecoder::PcmTotal() const {
+  return ov_pcm_total(&impl_->vf, -1);
+}
+
+pcm_count_t OggDecoder::Tell() { return ov_pcm_tell(&impl_->vf); }
+
+SEEK_RESULT OggDecoder::Seek(long long offset, SEEKDIR whence) {
+  long long pos = 0;
+  switch (whence) {
+    case SEEKDIR::CUR:
+      pos = offset + Tell();
+      break;
+    case SEEKDIR::BEG:
+      pos = offset;
+      break;
+    case SEEKDIR::END:
+      pos = offset + PcmTotal();
+      break;
+  }
+
+  int result = ov_pcm_seek(&impl_->vf, pos);
+  if (result != 0)
+    throw std::runtime_error("Error seeking to sample position " +
+                             std::to_string(pos));
+
+  return SEEK_RESULT::PRECISE_SEEK;
+}

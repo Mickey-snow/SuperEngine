@@ -127,16 +127,17 @@ AVSpec WavDecoder::GetSpec() {
 }
 
 AudioData WavDecoder::DecodeNext() {
-  if (data_.empty())
+  if (remain_data_.empty())
     throw std::logic_error("No more data to decode.");
 
   AudioData result;
   result.spec = GetSpec();
 
   static constexpr size_t batch_size = 1024;
-  std::string_view to_decode =
-      data_.size() < batch_size ? data_ : data_.substr(0, batch_size);
-  data_.remove_prefix(std::min(batch_size, data_.size()));
+  std::string_view to_decode = remain_data_.size() < batch_size
+                                   ? remain_data_
+                                   : remain_data_.substr(0, batch_size);
+  remain_data_.remove_prefix(std::min(batch_size, remain_data_.size()));
 
   switch (fmt_->wBitsPerSample) {
     case 8u:
@@ -162,7 +163,7 @@ AudioData WavDecoder::DecodeAll() {
   result.spec = GetSpec();
   result.PrepareDatabuf();
 
-  while (!data_.empty()) {
+  while (!remain_data_.empty()) {
     AudioData next_batch = DecodeNext();
     std::visit(
         [](auto& result, auto&& append) {
@@ -241,4 +242,18 @@ void WavDecoder::ParseChunks() {
   if (!has_datachunk) {
     throw std::logic_error("No data chunk found");
   }
+
+  remain_data_ = data_;
+}
+
+bool WavDecoder::HasNext() noexcept { return !remain_data_.empty(); }
+
+SEEK_RESULT WavDecoder::Seek(long long offset, SEEKDIR whence) {
+  if (whence != SEEKDIR::BEG || offset != 0)
+    throw std::invalid_argument(
+        "Only rewind back to the beginning is currently supported for wav "
+        "decoder");
+  remain_data_ = data_;
+
+  return SEEK_RESULT::PRECISE_SEEK;
 }

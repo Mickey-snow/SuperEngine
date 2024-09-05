@@ -48,7 +48,15 @@ class OggDecoder : public IAudioDecoder {
 
   AudioData DecodeNext() override;
 
-  bool HasNext() override { return false; }
+  bool HasNext() override;
+
+  using pcm_count_t = typename IAudioDecoder::pcm_count_t;
+
+  pcm_count_t PcmTotal() const;
+
+  pcm_count_t Tell() override;
+
+  SEEK_RESULT Seek(pcm_count_t offset, SEEKDIR whence = SEEKDIR::CUR) override;
 
  private:
   std::unique_ptr<ov_adapter> impl_;

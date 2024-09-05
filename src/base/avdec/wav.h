@@ -57,12 +57,14 @@ class WavDecoder : public IAudioDecoder {
 
   AudioData DecodeAll() override;
 
-  bool HasNext() override { return false; }
+  bool HasNext() noexcept override;
+
+  SEEK_RESULT Seek(long long offset, SEEKDIR whence = SEEKDIR::BEG) override;
 
  private:
   std::string_view wavdata_;
   const fmtHeader* fmt_;
-  std::string_view data_;
+  std::string_view data_, remain_data_;
 
   void ValidateWav();
   void ParseChunks();

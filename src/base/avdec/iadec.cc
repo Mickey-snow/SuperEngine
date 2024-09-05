@@ -31,8 +31,7 @@ SEEK_RESULT IAudioDecoder::Seek(long long, SEEKDIR) {
       "Method Seek not implemented for decoder: " + DecoderName() + '.');
 }
 
-using time_ms_t = IAudioDecoder::time_ms_t;
-time_ms_t IAudioDecoder::Tell() {
+long long IAudioDecoder::Tell() {
   throw std::logic_error(
       "Method Tell not implemented for decoder: " + DecoderName() + '.');
 }
