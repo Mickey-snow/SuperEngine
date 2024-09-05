@@ -60,6 +60,7 @@ test_case_files = [
   "test/va_factory_unittest.cc",
   "test/lrucache_unittest.cc",
   "test/sdl_sound_unittest.cc",
+  "test/audio_player_unittest.cc",
 
   # medium tests
   "test/medium_eventloop_test.cc",

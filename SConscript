@@ -49,6 +49,7 @@ librlvm_files = [
   "src/base/avdec/wav.cc",
   "src/base/avdec/ogg.cc",
   "src/base/avspec.cc",
+  "src/base/audio_player.cc",
   "src/base/resampler.cc",
   "src/effects/blind_effect.cc",
   "src/effects/effect.cc",

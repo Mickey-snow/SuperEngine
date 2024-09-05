@@ -50,17 +50,18 @@ class AudioDecoder {
     else
       throw std::logic_error("No valid decoder found.");
   }
-
-  AVSpec GetSpec() { return decoderimpl_->GetSpec(); }
+  AudioDecoder(std::shared_ptr<IAudioDecoder> dec)
+      : dataholder_(), decoderimpl_(dec) {}
 
   AudioData DecodeAll() { return decoderimpl_->DecodeAll(); }
 
   AudioData DecodeNext() { return decoderimpl_->DecodeNext(); }
 
-  /* exposed for testing */
-  std::shared_ptr<IAudioDecoder> GetDecoder() const { return decoderimpl_; }
+  bool HasNext() const { return decoderimpl_->HasNext(); }
 
-  void SetDecoder(std::shared_ptr<IAudioDecoder> impl) { decoderimpl_ = impl; }
+  void Rewind() const { decoderimpl_->Seek(0, SEEKDIR::BEG); }
+
+  AVSpec GetSpec() const { return decoderimpl_->GetSpec(); }
 
  private:
   std::any dataholder_; /* if we are responsible for memory management, the

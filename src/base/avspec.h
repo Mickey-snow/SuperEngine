@@ -114,6 +114,9 @@ struct AudioData {
 
   size_t SampleCount() const;
 
+  AudioData& Concat(const AudioData& rhs);
+  AudioData& Concat(AudioData&& rhs);
+
   template <typename... Ts>
   static AudioData Concat(Ts&&... params) {
     static_assert((sizeof...(Ts) > 0), "Parameter pack must not be empty");
