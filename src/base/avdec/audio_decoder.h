@@ -38,7 +38,7 @@
 #include <string>
 #include <string_view>
 
-class AudioDecoder : public IAudioDecoder {
+class AudioDecoder {
  public:
   AudioDecoder(FilePos fp, const std::string& format)
       : dataholder_(fp), decoderimpl_(nullptr) {
@@ -51,13 +51,11 @@ class AudioDecoder : public IAudioDecoder {
       throw std::logic_error("No valid decoder found.");
   }
 
-  std::string DecoderName() const override { return "AudioDecoder"; }
+  AVSpec GetSpec() { return decoderimpl_->GetSpec(); }
 
-  AVSpec GetSpec() override { return decoderimpl_->GetSpec(); }
+  AudioData DecodeAll() { return decoderimpl_->DecodeAll(); }
 
-  AudioData DecodeAll() override { return decoderimpl_->DecodeAll(); }
-
-  AudioData DecodeNext() override { return decoderimpl_->DecodeNext(); }
+  AudioData DecodeNext() { return decoderimpl_->DecodeNext(); }
 
   /* exposed for testing */
   std::shared_ptr<IAudioDecoder> GetDecoder() const { return decoderimpl_; }
