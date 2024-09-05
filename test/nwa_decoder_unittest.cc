@@ -30,17 +30,20 @@
 #include "utilities/numbers.h"
 
 #include <cstdlib>
-#include <fstream>
+#include <filesystem>
+#include <regex>
 #include <string>
 
-class NwaDecoderTest : public ::testing::Test {
+namespace fs = std::filesystem;
+
+class NwaDecoderTest : public ::testing::TestWithParam<fs::path> {
  protected:
   static constexpr float duration = 0.2;
   static constexpr int channels = 2;
   static constexpr int freq = 22050;
   static constexpr int samplesPerChannel = freq * duration;
 
-  int16_t GetSampleAt(float t) {
+  inline static int16_t GetSampleAt(float t) {
     static const float freq[] = {440, 523.25, 349.23};
     static const float amp[] = {0.5, 0.3, 0.2};
     static const float phase[] = {0, 0, pi / 2};
@@ -50,7 +53,7 @@ class NwaDecoderTest : public ::testing::Test {
     return sample * INT16_MAX;
   };
 
-  std::vector<int16_t> GetExpectedPcm() {
+  inline static std::vector<int16_t> GetExpectedPcm() {
     static std::vector<int16_t> expect_wav;
     if (expect_wav.empty()) {
       expect_wav.reserve(samplesPerChannel);
@@ -62,12 +65,12 @@ class NwaDecoderTest : public ::testing::Test {
     return expect_wav;
   }
 
-  std::vector<int16_t> ToInt16Vec(const avsample_buffer_t& data) {
+  inline static std::vector<int16_t> ToInt16Vec(const avsample_buffer_t& data) {
     return std::get<std::vector<int16_t>>(data);
   }
 
-  std::tuple<std::vector<int16_t>, std::vector<int16_t>> SplitChannels(
-      std::vector<int16_t> samples) {
+  inline static std::tuple<std::vector<int16_t>, std::vector<int16_t>>
+  SplitChannels(std::vector<int16_t> samples) {
     std::vector<int16_t> ch[2];
     int current_channel = 0;
     for (const auto& it : samples) {
@@ -77,7 +80,8 @@ class NwaDecoderTest : public ::testing::Test {
     return std::make_tuple(std::move(ch[0]), std::move(ch[1]));
   }
 
-  double Deviation(std::vector<int16_t> a, std::vector<int16_t> b) {
+  inline static double Deviation(std::vector<int16_t> a,
+                                 std::vector<int16_t> b) {
     auto sqr = [](double x) { return x * x; };
     size_t n = a.size();
     double var = 0;
@@ -85,14 +89,39 @@ class NwaDecoderTest : public ::testing::Test {
       var += sqr(a[i] - b[i]) / n;
     return sqrt(var);
   }
+
+  void SetUp() override {
+    file_content = std::make_unique<MappedFile>(GetParam());
+  }
+
+  float DeviationThreshold() {
+    std::string filename = GetParam().stem().string();
+    if (filename == "BGM01")
+      return 1e-4;
+    else if (filename == "BGM02")
+      return 0.02;
+    else if (filename == "BGM03")
+      return 0.05;
+    else if (filename == "BGM04")
+      return 0.025;
+    else if (filename == "BGM05")
+      return 0.0035;
+    else if (filename == "BGM06")
+      return 0.001;
+    else if (filename == "BGM07")
+      return 0.0007;
+    else {
+      ADD_FAILURE() << "Unknown data file: " << filename;
+      return 0;
+    }
+  }
+
+  std::unique_ptr<MappedFile> file_content;
 };
 
-TEST_F(NwaDecoderTest, NoCompress) {
-  const std::string filename = "Gameroot/BGM/BGM01.nwa";
-  const float maxstd = 1e-4 * INT16_MAX;
-
-  auto file = MappedFile(LocateTestCase(filename));
-  NwaDecoder decoder(file.Read());
+TEST_P(NwaDecoderTest, DecodeAll) {
+  const float maxstd = DeviationThreshold() * INT16_MAX;
+  NwaDecoder decoder(file_content->Read());
 
   AudioData result = decoder.DecodeAll();
   auto [lch, rch] = SplitChannels(ToInt16Vec(result.data));
@@ -106,126 +135,9 @@ TEST_F(NwaDecoderTest, NoCompress) {
   EXPECT_LE(Deviation(rch, expect_wav), maxstd);
 }
 
-TEST_F(NwaDecoderTest, Compress2) {
-  const std::string filename = "Gameroot/BGM/BGM02.nwa";
-  const float maxstd = 0.02 * INT16_MAX;
-
-  auto file = MappedFile(LocateTestCase(filename));
-  NwaDecoder decoder(file.Read());
-
-  AudioData result = decoder.DecodeAll();
-  auto [lch, rch] = SplitChannels(ToInt16Vec(result.data));
-  auto expect_wav = GetExpectedPcm();
-
-  size_t n = expect_wav.size();
-  ASSERT_EQ(lch.size(), n);
-  ASSERT_EQ(rch.size(), n);
-
-  EXPECT_LE(Deviation(lch, expect_wav), maxstd);
-  EXPECT_LE(Deviation(rch, expect_wav), maxstd);
-}
-
-TEST_F(NwaDecoderTest, Compress1) {
-  const std::string filename = "Gameroot/BGM/BGM03.nwa";
-  const float maxstd = 0.05 * INT16_MAX;
-
-  auto file = MappedFile(LocateTestCase(filename));
-  NwaDecoder decoder(file.Read());
-
-  AudioData result = decoder.DecodeAll();
-  auto [lch, rch] = SplitChannels(ToInt16Vec(result.data));
-  auto expect_wav = GetExpectedPcm();
-
-  size_t n = expect_wav.size();
-  ASSERT_EQ(lch.size(), n);
-  ASSERT_EQ(rch.size(), n);
-
-  EXPECT_LE(Deviation(lch, expect_wav), maxstd);
-  EXPECT_LE(Deviation(rch, expect_wav), maxstd);
-}
-
-TEST_F(NwaDecoderTest, Compress0) {
-  const std::string filename = "Gameroot/BGM/BGM04.nwa";
-  const float maxstd = 0.025 * INT16_MAX;
-
-  auto file = MappedFile(LocateTestCase(filename));
-  NwaDecoder decoder(file.Read());
-
-  AudioData result = decoder.DecodeAll();
-  auto [lch, rch] = SplitChannels(ToInt16Vec(result.data));
-  auto expect_wav = GetExpectedPcm();
-
-  size_t n = expect_wav.size();
-  ASSERT_EQ(lch.size(), n);
-  ASSERT_EQ(rch.size(), n);
-
-  EXPECT_LE(Deviation(lch, expect_wav), maxstd);
-  EXPECT_LE(Deviation(rch, expect_wav), maxstd);
-}
-
-TEST_F(NwaDecoderTest, Compress3) {
-  const std::string filename = "Gameroot/BGM/BGM05.nwa";
-  const float maxstd = 0.0035 * INT16_MAX;
-
-  auto file = MappedFile(LocateTestCase(filename));
-  NwaDecoder decoder(file.Read());
-
-  AudioData result = decoder.DecodeAll();
-  auto [lch, rch] = SplitChannels(ToInt16Vec(result.data));
-  auto expect_wav = GetExpectedPcm();
-
-  size_t n = expect_wav.size();
-  ASSERT_EQ(lch.size(), n);
-  ASSERT_EQ(rch.size(), n);
-
-  EXPECT_LE(Deviation(lch, expect_wav), maxstd);
-  EXPECT_LE(Deviation(rch, expect_wav), maxstd);
-}
-
-TEST_F(NwaDecoderTest, Compress4) {
-  const std::string filename = "Gameroot/BGM/BGM06.nwa";
-  const float maxstd = 0.001 * INT16_MAX;
-
-  auto file = MappedFile(LocateTestCase(filename));
-  NwaDecoder decoder(file.Read());
-
-  AudioData result = decoder.DecodeAll();
-  auto [lch, rch] = SplitChannels(ToInt16Vec(result.data));
-  auto expect_wav = GetExpectedPcm();
-
-  size_t n = expect_wav.size();
-  ASSERT_EQ(lch.size(), n);
-  ASSERT_EQ(rch.size(), n);
-
-  EXPECT_LE(Deviation(lch, expect_wav), maxstd);
-  EXPECT_LE(Deviation(rch, expect_wav), maxstd);
-}
-
-TEST_F(NwaDecoderTest, Compress5) {
-  const std::string filename = "Gameroot/BGM/BGM07.nwa";
-  const float maxstd = 0.0007 * INT16_MAX;
-
-  auto file = MappedFile(LocateTestCase(filename));
-  NwaDecoder decoder(file.Read());
-
-  AudioData result = decoder.DecodeAll();
-  auto [lch, rch] = SplitChannels(ToInt16Vec(result.data));
-  auto expect_wav = GetExpectedPcm();
-
-  size_t n = expect_wav.size();
-  ASSERT_EQ(lch.size(), n);
-  ASSERT_EQ(rch.size(), n);
-
-  EXPECT_LE(Deviation(lch, expect_wav), maxstd);
-  EXPECT_LE(Deviation(rch, expect_wav), maxstd);
-}
-
-TEST_F(NwaDecoderTest, RewindComp) {
-  const std::string filename = "Gameroot/BGM/BGM03.nwa";
-  float maxstd = 0.05 * INT16_MAX;
-
-  auto file = MappedFile(LocateTestCase(filename));
-  NwaDecoder decoder(file.Read());
+TEST_P(NwaDecoderTest, Rewind) {
+  const float maxstd = DeviationThreshold() * INT16_MAX;
+  NwaDecoder decoder(file_content->Read());
 
   // decode the first 3 units
   AudioData result_front;
@@ -235,12 +147,15 @@ TEST_F(NwaDecoderTest, RewindComp) {
     auto c = decoder.DecodeNext();
     result_front = AudioData::Concat(std::move(a), std::move(b), std::move(c));
   }
+  EXPECT_TRUE(decoder.HasNext());
   auto [lch_front, rch_front] = SplitChannels(ToInt16Vec(result_front.data));
   EXPECT_EQ(lch_front.size(), rch_front.size());
 
   // rewind then decode all
   EXPECT_EQ(decoder.Seek(0, SEEKDIR::BEG), SEEK_RESULT::PRECISE_SEEK);
   AudioData result = decoder.DecodeAll();
+  EXPECT_FALSE(decoder.HasNext());
+
   auto [lch, rch] = SplitChannels(ToInt16Vec(result.data));
   auto expect_wav = GetExpectedPcm();
   size_t n = expect_wav.size();
@@ -253,33 +168,26 @@ TEST_F(NwaDecoderTest, RewindComp) {
   EXPECT_LE(Deviation(rch_front, expect_wav), maxstd);
 }
 
-TEST_F(NwaDecoderTest, RewindHQ) {
-  const std::string filename = "Gameroot/BGM/BGM01.nwa";
-  const float maxstd = 1e-4 * INT16_MAX;
+std::vector<fs::path> GetTestNwaFiles() {
+  static const std::string testdir = LocateTestDirectory("Gameroot/BGM");
+  static const std::regex pattern(".*BGM[0-9]+\\.nwa");
 
-  auto file = MappedFile(LocateTestCase(filename));
-  NwaDecoder decoder(file.Read());
-
-  AudioData result_front;
-  {
-    auto a = decoder.DecodeNext();
-    auto b = decoder.DecodeNext();
-    auto c = decoder.DecodeNext();
-    result_front = AudioData::Concat(std::move(a), std::move(b), std::move(c));
+  std::vector<fs::path> testFiles;
+  for (const auto& entry : fs::directory_iterator(testdir)) {
+    auto entryPath = entry.path().string();
+    if (entry.is_regular_file() && std::regex_match(entryPath, pattern))
+      testFiles.push_back(entry);
   }
-  auto [lch_front, rch_front] = SplitChannels(ToInt16Vec(result_front.data));
-  EXPECT_EQ(lch_front.size(), rch_front.size());
-
-  EXPECT_EQ(decoder.Seek(0, SEEKDIR::BEG), SEEK_RESULT::PRECISE_SEEK);
-  AudioData result = decoder.DecodeAll();
-  auto [lch, rch] = SplitChannels(ToInt16Vec(result.data));
-  auto expect_wav = GetExpectedPcm();
-  size_t n = expect_wav.size();
-  EXPECT_LE(Deviation(lch, expect_wav), maxstd);
-  EXPECT_LE(Deviation(rch, expect_wav), maxstd);
-
-  n = lch_front.size();
-  expect_wav.resize(n);
-  EXPECT_LE(Deviation(lch_front, expect_wav), maxstd);
-  EXPECT_LE(Deviation(rch_front, expect_wav), maxstd);
+  return testFiles;
 }
+
+using ::testing::ValuesIn;
+INSTANTIATE_TEST_SUITE_P(NwaDecoderDataTest,
+                         NwaDecoderTest,
+                         ValuesIn(GetTestNwaFiles()),
+                         ([](const auto& info) {
+                           std::string name = info.param;
+                           size_t begin = name.rfind('/') + 1,
+                                  end = name.rfind('.');
+                           return name.substr(begin, end - begin);
+                         }));

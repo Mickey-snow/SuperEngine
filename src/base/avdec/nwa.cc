@@ -47,6 +47,7 @@ class NwaHQDecoder : public NwaDecoderImpl {
     const int sample_count = header_->total_sample_count;
     std::vector<avsample_s16_t> ret(sample_count);
     std::copy_n(sample_stream_, ret.size(), ret.begin());
+    cursor_ += sample_count;
     return ret;
   }
 
