@@ -36,7 +36,7 @@ class AudioPlayer {
   AudioPlayer(AudioDecoder&& dec)
       : decoder_(std::move(dec)),
         should_loop_(false),
-        is_playing_(true),
+        is_active_(true),
         pcm_cur_(0) {}
 
   using time_ms_t = long long;
@@ -71,27 +71,83 @@ class AudioPlayer {
   bool IsLoopingEnabled() const { return should_loop_; }
   void SetLooping(bool loop) { should_loop_ = loop; }
 
-  bool IsPlaybackActive() const { return is_playing_; }
+  bool IsPlaying() const { return is_active_ || buf_size_ > 0; }
 
-  void FadeIn(time_ms_t ms);
+  void FadeIn(time_ms_t ms) {
+    if (ms < 0)
+      throw std::invalid_argument(
+          "Fade duration must be greater than or equal to 0, got: " +
+          std::to_string(ms));
 
-  void Fadeout(time_ms_t ms);
+    sample_count_t fade_samples = TimeToSampleCount(ms);
+    Preserve(fade_samples);
+    for (int i = 0, chunk_id = 0; i < fade_samples; ++chunk_id) {
+      auto& chunk = buf_.at(chunk_id);
+      std::visit(
+          [&](auto& pcm) {
+            for (auto& it : pcm) {
+              if (i >= fade_samples)
+                return;
+              // TODO: support unsigned pcm
+              float fade_factor = static_cast<float>(i++) / fade_samples;
+              it *= fade_factor;
+            }
+          },
+          chunk.data);
+    }
+  }
 
-  void Terminate() { is_playing_ = false; }
+  void FadeOut(time_ms_t ms) {
+    if (ms < 0)
+      throw std::invalid_argument(
+          "Fade duration must be greater than or equal to 0, got: " +
+          std::to_string(ms));
+
+    sample_count_t fade_samples = TimeToSampleCount(ms);
+    Preserve(fade_samples);
+
+    if (buf_size_ > fade_samples) {
+      auto discard_size = buf_size_ - fade_samples;
+      std::visit(
+          [&](auto& last) {
+            last.erase(last.end() - discard_size, last.end());
+          },
+          buf_.back().data);
+      buf_size_ = fade_samples;
+    }
+
+    sample_count_t current_sample = 0;
+    for (size_t i = 0; i < buf_.size(); ++i) {
+      std::visit(
+          [&current_sample, fade_samples](auto& data) {
+            for (auto& pcm : data) {
+              // TODO: support unsigned
+              float fade_factor =
+                  1.0 - static_cast<float>(current_sample++) / fade_samples;
+              pcm *= fade_factor;
+            }
+          },
+          buf_[i].data);
+    }
+
+    Terminate();
+  }
+
+  void Terminate() { is_active_ = false; }
 
   AVSpec GetSpec() const { return decoder_.GetSpec(); }
 
  private:
   void OnEndOfPlayback() {
     if (should_loop_) {
-      buf_.push(AudioData{});  // loop marker
+      buf_.push_back(AudioData{});  // loop marker
       decoder_.Rewind();
     } else
       Terminate();
   }
 
   void Preserve(size_t size) {
-    while (buf_size_ < size && IsPlaybackActive()) {
+    while (buf_size_ < size && is_active_) {
       if (!decoder_.HasNext()) {
         OnEndOfPlayback();
         continue;
@@ -101,7 +157,7 @@ class AudioPlayer {
       if (next_chunk.SampleCount() == 0)
         throw std::runtime_error("AudioPlayer error: Found empty pcm chunk");
 
-      buf_.push(std::move(next_chunk));
+      buf_.push_back(std::move(next_chunk));
       buf_size_ += buf_.back().SampleCount();
     }
 
@@ -128,7 +184,7 @@ class AudioPlayer {
             data.push_back(silent);
         },
         tail.data);
-    buf_.push(std::move(tail));
+    buf_.push_back(std::move(tail));
   }
 
   AudioData PopFront(size_t size) {
@@ -137,7 +193,7 @@ class AudioPlayer {
 
     if (buf_.front().SampleCount() <= size) {
       ret = buf_.front();
-      buf_.pop();
+      buf_.pop_front();
     } else {
       ret.data = std::visit(
           [size](auto& front) -> avsample_buffer_t {
@@ -156,11 +212,22 @@ class AudioPlayer {
     return ret;
   }
 
+  static constexpr long long s_over_ms = 1000;
+  sample_count_t TimeToSampleCount(time_ms_t time) {
+    auto spec = GetSpec();
+    return time * spec.sample_rate * spec.channel_count / s_over_ms;
+  }
+
+  time_ms_t SampleCountToTime(sample_count_t samples) {
+    auto spec = GetSpec();
+    return samples * s_over_ms / (spec.sample_rate * spec.channel_count);
+  }
+
   AudioDecoder decoder_;
-  bool should_loop_, is_playing_;
+  bool should_loop_, is_active_;
   long long pcm_cur_;
 
-  std::queue<AudioData> buf_;
+  std::deque<AudioData> buf_;
   size_t buf_size_ = 0;
 };
 

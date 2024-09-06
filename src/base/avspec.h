@@ -109,6 +109,34 @@ struct AudioData {
   AVSpec spec;
   avsample_buffer_t data;
 
+  AudioData Slice(int fr, int to, int step = 0) {
+    if (fr < 0)
+      fr = SampleCount() + fr;
+    if (to < 0)
+      to = SampleCount() + to;
+
+    if (fr < 0 || fr >= SampleCount() || to < 0 || to > SampleCount())
+      throw std::out_of_range("Index out of range");
+
+    if (step == 0)
+      step = (fr < to) ? 1 : -1;
+
+    avsample_buffer_t slicedData = std::visit(
+        [&](const auto& buf) -> avsample_buffer_t {
+          using container_t = std::decay_t<decltype(buf)>;
+          container_t result;
+          if (step > 0)
+            for (int i = fr; i < to; i += step)
+              result.push_back(buf[i]);
+          else
+            for (int i = fr; i > to; i += step)
+              result.push_back(buf[i]);
+          return result;
+        },
+        data);
+    return {spec, std::move(slicedData)};
+  }
+
   // Initializes the audio data buffer based on spec.sample_format.
   void PrepareDatabuf();
 
