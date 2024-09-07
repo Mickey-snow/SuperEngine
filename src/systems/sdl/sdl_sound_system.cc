@@ -69,25 +69,6 @@ static RealLiveSoundQualities s_real_live_sound_qualities[] = {
 // -----------------------------------------------------------------------
 // SDLSoundSystem (private)
 // -----------------------------------------------------------------------
-SDLSoundSystem::SDLSoundChunkPtr SDLSoundSystem::GetSoundChunk(
-    const std::string& file_name,
-    SoundChunkCache& cache) {
-  SDLSoundChunkPtr sample = cache.fetch(file_name);
-  if (sample == NULL) {
-    fs::path file_path = system().FindFile(file_name, SOUND_FILETYPES);
-    if (file_path.empty()) {
-      std::ostringstream oss;
-      oss << "Could not find sound file \"" << file_name << "\".";
-      throw rlvm::Exception(oss.str());
-    }
-
-    sample.reset(new SDLSoundChunk(file_path));
-    cache.insert(file_name, sample);
-  }
-
-  return sample;
-}
-
 SDLSoundSystem::SDLSoundChunkPtr SDLSoundSystem::BuildKoeChunk(char* data,
                                                                int length) {
   return SDLSoundChunkPtr(new SDLSoundChunk(data, length));
@@ -97,10 +78,11 @@ void SDLSoundSystem::WavPlayImpl(const std::string& wav_file,
                                  const int channel,
                                  bool loop) {
   if (is_pcm_enabled()) {
-    SDLSoundChunkPtr sample = GetSoundChunk(wav_file, wav_cache_);
+    fs::path wav_file_path = system().FindFile(wav_file, SOUND_FILETYPES);
+    player_t player = CreateAudioPlayer(wav_file_path);
+    player->SetLooping(loop);
     SetChannelVolumeImpl(channel);
-    int loop_num = loop ? -1 : 0;
-    sample->PlayChunkOn(channel, loop_num);
+    sound_impl_->PlayChannel(channel, player);
   }
 }
 
@@ -163,6 +145,7 @@ SDLSoundSystem::SDLSoundSystem(System& system,
   }
 
   // Jagarl's sound system wants information on the audio settings.
+  // TODO: remove this
   AVSpec spec = sound_impl_->QuerySpec();
   WAVFILE::freq = spec.sample_rate;
   WAVFILE::format = sound_impl_->ToSDLSoundFormat(spec.sample_format);
@@ -240,11 +223,12 @@ void SDLSoundSystem::WavPlay(const std::string& wav_file,
   CheckChannel(channel, "SDLSoundSystem::wav_play");
 
   if (is_pcm_enabled()) {
-    SDLSoundChunkPtr sample = GetSoundChunk(wav_file, wav_cache_);
+    auto wav_file_path = system().FindFile(wav_file, SOUND_FILETYPES);
+    player_t player = CreateAudioPlayer(wav_file_path);
+    player->SetLooping(loop);
+    player->FadeIn(fadein_ms);
     SetChannelVolumeImpl(channel);
-
-    int loop_num = loop ? -1 : 0;
-    sample->FadeInChunkOn(channel, loop_num, fadein_ms);
+    sound_impl_->PlayChannel(channel, player);
   }
 }
 
@@ -288,18 +272,19 @@ void SDLSoundSystem::PlaySe(const int se_num) {
 
     // Make sure there isn't anything playing on the current channel
     sound_impl_->HaltChannel(channel);
-
     if (file_name == "") {
       // Just stop a channel in case of an empty file name.
       return;
     }
 
-    SDLSoundChunkPtr sample = GetSoundChunk(file_name, wav_cache_);
+    auto file_path = system().FindFile(file_name, SOUND_FILETYPES);
+    player_t player = CreateAudioPlayer(file_path);
+    player->SetLooping(false);
 
     // SE chunks have no volume other than the modifier.
     sound_impl_->SetVolume(channel,
                            realLiveVolumeToSDLMixerVolume(se_volume_mod()));
-    sample->PlayChunkOn(channel, 0);
+    sound_impl_->PlayChannel(channel, player);
   }
 }
 

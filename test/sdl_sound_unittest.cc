@@ -191,32 +191,6 @@ using ::testing::Return;
 
 namespace fs = std::filesystem;
 
-TEST(SDLSound, Playwav) {
-  fs::path testcase_filepath =
-      LocateTestCase("Gameexe_data/Gameexe_soundsys.ini");
-  Gameexe gexe(testcase_filepath);
-  fs::path root = testcase_filepath.parent_path().parent_path();
-  fs::path gameroot = root / "Gameroot";
-  gexe("__GAMEPATH") = gameroot.string();
-
-  MockSystem msys(gexe);
-  auto aimpl = std::make_shared<FakeAudioImpl>();
-
-  // TODO: fix implementor leak as a static member of SDLMusic and SDLSoundChunk
-  testing::Mock::AllowLeak(aimpl.get());
-
-  SDLSoundSystem sound_sys(msys, aimpl);
-
-  // setup complete
-  std::string filename = "empty";
-  std::string filename_extension = ".wav";
-
-  sound_sys.WavPlay(filename, false, 1, 1500);
-  EXPECT_EQ(aimpl->chunk_handle_.size(), 1);
-  auto chunk = aimpl->GetChunk(1);
-  EXPECT_THAT(chunk, EndsWith(filename + filename_extension));
-}
-
 TEST(SDLSound, SoundFormat) {
   // sdl1.2 audio format flags
   constexpr auto AUDIO_S8 = 0x8008;

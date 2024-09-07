@@ -28,6 +28,8 @@
 #include <cstdint>
 #include <tuple>
 
+#include "base/audio_player.h"
+#include "base/avdec/wav.h"
 #include "base/avspec.h"
 
 struct Mix_Chunk;
@@ -35,6 +37,8 @@ using Chunk_t = Mix_Chunk;
 
 class SoundSystemImpl {
  public:
+  using player_t = std::shared_ptr<AudioPlayer>;
+
   SoundSystemImpl() = default;
   ~SoundSystemImpl() = default;
 
@@ -54,6 +58,11 @@ class SoundSystemImpl {
                          void* data) const;
   virtual void MixAudio(uint8_t* dst, uint8_t* src, int len, int volume) const;
   virtual int MaxVolumn() const;
+
+  virtual player_t GetChannel(int channel) const { return ch_[channel].player; }
+  virtual int PlayChannel(int channel, std::shared_ptr<AudioPlayer> audio);
+  virtual int PlayBgm(player_t audio);
+
   virtual int PlayChannel(int channel, Chunk_t* chunk, int loops) const;
   virtual int FadeInChannel(int channel,
                             Mix_Chunk* chunk,
@@ -68,6 +77,18 @@ class SoundSystemImpl {
 
   uint16_t ToSDLSoundFormat(AV_SAMPLE_FMT fmt) const;
   AV_SAMPLE_FMT FromSDLSoundFormat(uint16_t fmt) const;
+
+ private:
+  static void OnChannelFinished(int channel);
+
+  struct ChannelInfo {
+    player_t player;
+    SoundSystemImpl* implementor;
+    std::vector<uint8_t> buffer;
+  };
+
+  static std::vector<ChannelInfo> ch_;
+  static std::function<void(int)> channel_finished_callback;
 };
 
 #endif

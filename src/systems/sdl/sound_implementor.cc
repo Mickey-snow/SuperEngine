@@ -35,6 +35,7 @@ void SoundSystemImpl::QuitSystem() const { SDL_QuitSubSystem(SDL_INIT_AUDIO); }
 
 void SoundSystemImpl::AllocateChannels(const int& num) const {
   Mix_AllocateChannels(num);
+  ch_.resize(num);
 }
 
 int SoundSystemImpl::OpenAudio(int rate,
@@ -82,6 +83,25 @@ int SoundSystemImpl::MaxVolumn() const { return MIX_MAX_VOLUME; }
 int SoundSystemImpl::PlayChannel(int channel, Chunk_t* chunk, int loops) const {
   return Mix_PlayChannel(channel, chunk, loops);
 }
+
+int SoundSystemImpl::PlayChannel(int channel,
+                                 std::shared_ptr<AudioPlayer> audio) {
+  std::vector<uint8_t> pcm = EncodeWav(audio->LoadRemain());
+  auto sound_chunk = Mix_LoadWAV_RW(SDL_RWFromMem(pcm.data(), pcm.size()), 0);
+  if (!sound_chunk)
+    throw std::runtime_error("SDL failed to create a new chunk.");
+
+  ch_[channel] = ChannelInfo{
+      .player = audio, .implementor = this, .buffer = std::move(pcm)};
+
+  int ret = Mix_PlayChannel(channel, sound_chunk, audio->IsLoopingEnabled());
+  if (ret == -1)
+    throw std::runtime_error("Failed to play on channel: " +
+                             std::to_string(channel));
+  return ret;
+}
+
+int SoundSystemImpl::PlayBgm(player_t audio) { return -1; }
 
 int SoundSystemImpl::FadeInChannel(int channel,
                                    Mix_Chunk* chunk,
@@ -147,3 +167,17 @@ AV_SAMPLE_FMT SoundSystemImpl::FromSDLSoundFormat(uint16_t fmt) const {
                                   std::to_string(fmt));
   }
 }
+
+void SoundSystemImpl::OnChannelFinished(int channel) {
+  auto player = ch_[channel].player;
+  auto implementor = ch_[channel].implementor;
+  ch_[channel] = {};
+
+  channel_finished_callback(channel);
+  if (player->IsPlaying())
+    implementor->PlayChannel(channel, player);
+}
+
+std::vector<SoundSystemImpl::ChannelInfo> SoundSystemImpl::ch_;
+std::function<void(int)> SoundSystemImpl::channel_finished_callback = [](int) {
+};

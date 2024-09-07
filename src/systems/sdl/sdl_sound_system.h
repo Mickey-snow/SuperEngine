@@ -100,11 +100,6 @@ class SDLSoundSystem : public SoundSystem {
 
   virtual void KoePlayImpl(int id) override;
 
-  // Retrieves a sound chunk from the passed in cache (or loads it if
-  // it's not in the cache and then stuffs it into the cache.)
-  SDLSoundChunkPtr GetSoundChunk(const std::string& file_name,
-                                 SoundChunkCache& cache);
-
   // Builds a SoundChunk from a piece of memory. This is used for playing
   // voice. These chunks are not put in a SoundChunkCache since there's no
   // string to cache on.

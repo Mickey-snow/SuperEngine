@@ -64,10 +64,12 @@ class AudioPlayer {
   size_t buf_size_;
 };
 
-template<typename... Ts>
-AudioPlayer CreateAudioPlayer(Ts&&... params){
+using player_t = std::shared_ptr<AudioPlayer>;
+
+template <typename... Ts>
+player_t CreateAudioPlayer(Ts&&... params) {
   AudioDecoder decoder(std::forward<Ts>(params)...);
-  return AudioPlayer(std::move(decoder));
+  return std::make_shared<AudioPlayer>(std::move(decoder));
 }
 
 #endif
