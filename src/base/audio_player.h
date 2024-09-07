@@ -64,4 +64,10 @@ class AudioPlayer {
   size_t buf_size_;
 };
 
+template<typename... Ts>
+AudioPlayer CreateAudioPlayer(Ts&&... params){
+  AudioDecoder decoder(std::forward<Ts>(params)...);
+  return AudioPlayer(std::move(decoder));
+}
+
 #endif

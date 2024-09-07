@@ -32,7 +32,6 @@
 #include "base/avspec.h"
 #include "utilities/mapped_file.h"
 
-#include <algorithm>
 #include <any>
 #include <filesystem>
 #include <memory>
@@ -47,30 +46,10 @@ class ADecoderFactory {
  public:
   using decoder_constructor_t = std::function<decoder_t(std::string_view)>;
 
-  ADecoderFactory() : decoder_map_(&default_decoder_map_) {}
+  ADecoderFactory();
 
   decoder_t Create(std::string_view data,
-                   std::optional<std::string> format_hint = {}) {
-    using std::string_literals::operator""s;
-    std::string format = format_hint.value_or("unknown"s);
-
-    try {
-      const auto& fn = decoder_map_->at(format);
-      return fn(data);
-    } catch (...) {
-      // format wrong or unknown, fallback to a chain of responsibility factory
-    }
-
-    for (const auto& [key, fn] : *decoder_map_) {
-      try {
-        return fn(data);
-      } catch (...) {
-      }
-    }
-
-    throw std::runtime_error("No Decoder found for format: " +
-                             std::string(format));
-  }
+                   std::optional<std::string> format_hint = {});
 
  protected:
   const std::unordered_map<std::string, decoder_constructor_t>* decoder_map_;
@@ -82,30 +61,16 @@ class ADecoderFactory {
 
 class AudioDecoder {
  public:
-  AudioDecoder(FilePos fp, const std::string& format)
-      : dataholder_(fp), decoderimpl_(factory_.Create(fp.Read(), format)) {}
+  AudioDecoder(FilePos fp, const std::string& format = "");
+  AudioDecoder(std::shared_ptr<IAudioDecoder> dec);
+  AudioDecoder(std::filesystem::path filepath, const std::string& format = "");
+  AudioDecoder(std::string filestr, const std::string& format = "");
 
-  AudioDecoder(std::shared_ptr<IAudioDecoder> dec)
-      : dataholder_(), decoderimpl_(dec) {}
-
-  AudioDecoder(std::filesystem::path filepath, const std::string& format = "") {
-    auto file = std::make_shared<MappedFile>(filepath);
-    dataholder_ = file;
-    decoderimpl_ = factory_.Create(file->Read(), format);
-  }
-
-  AudioDecoder(std::string filestr, const std::string& format = "")
-      : AudioDecoder(std::filesystem::path(filestr), format) {}
-
-  AudioData DecodeAll() { return decoderimpl_->DecodeAll(); }
-
-  AudioData DecodeNext() { return decoderimpl_->DecodeNext(); }
-
-  bool HasNext() const { return decoderimpl_->HasNext(); }
-
-  void Rewind() const { decoderimpl_->Seek(0, SEEKDIR::BEG); }
-
-  AVSpec GetSpec() const { return decoderimpl_->GetSpec(); }
+  AudioData DecodeAll();
+  AudioData DecodeNext();
+  bool HasNext() const;
+  void Rewind() const;
+  AVSpec GetSpec() const;
 
  private:
   std::any dataholder_; /* if we are responsible for memory management, the
