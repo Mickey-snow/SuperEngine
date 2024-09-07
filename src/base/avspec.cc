@@ -110,7 +110,7 @@ size_t AudioData::SampleCount() const {
                     data);
 }
 
-AudioData& AudioData::Concat(const AudioData& rhs) {
+AudioData& AudioData::Append(const AudioData& rhs) {
   if (SampleCount() == 0)
     return *this = rhs;
   else if (rhs.SampleCount() == 0)
@@ -119,7 +119,7 @@ AudioData& AudioData::Concat(const AudioData& rhs) {
     return *this = AudioData::Concat(std::move(*this), rhs);
 }
 
-AudioData& AudioData::Concat(AudioData&& rhs) {
+AudioData& AudioData::Append(AudioData&& rhs) {
   if (SampleCount() == 0)
     return *this = std::move(rhs);
   else if (rhs.SampleCount() == 0)

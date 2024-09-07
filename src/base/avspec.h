@@ -142,8 +142,8 @@ struct AudioData {
 
   size_t SampleCount() const;
 
-  AudioData& Concat(const AudioData& rhs);
-  AudioData& Concat(AudioData&& rhs);
+  AudioData& Append(const AudioData& rhs);
+  AudioData& Append(AudioData&& rhs);
 
   template <typename... Ts>
   static AudioData Concat(Ts&&... params) {

@@ -157,6 +157,21 @@ TEST_F(AudioPlayerTest, LoadPCM) {
             1e-4);
 }
 
+TEST_F(AudioPlayerTest, LoadInvalid) {
+  EXPECT_THROW(player->LoadPCM(0), std::invalid_argument);
+  EXPECT_THROW(player->LoadPCM(-123), std::invalid_argument);
+}
+
+TEST_F(AudioPlayerTest, LoadAll) {
+  const int samples = sample_rate * channel_count * duration;
+  auto result = player->LoadPCM(samples - 3);
+  EXPECT_NO_THROW(result.Append(player->LoadRemain()));
+  EXPECT_EQ(result.SampleCount(), decoder->buffer_.size());
+  EXPECT_LE(
+      Deviation(std::get<std::vector<float>>(result.data), decoder->buffer_),
+      1e-4);
+}
+
 TEST_F(AudioPlayerTest, LoopPlayback) {
   player->SetLooping(true);
   ASSERT_TRUE(player->IsLoopingEnabled());
@@ -166,11 +181,11 @@ TEST_F(AudioPlayerTest, LoopPlayback) {
   EXPECT_EQ(player->GetCurrentTime(), GetTicks(duration * 0.5));
 
   EXPECT_TRUE(player->IsPlaying());
-  result.Concat(player->LoadPCM(tot_samples));
+  result.Append(player->LoadPCM(tot_samples));
   EXPECT_EQ(player->GetCurrentTime(), GetTicks(duration * 0.5));
 
   player->SetLooping(false);
-  result.Concat(player->LoadPCM(tot_samples * 0.5));
+  result.Append(player->LoadPCM(tot_samples * 0.5));
   EXPECT_FALSE(player->IsPlaying());
   EXPECT_EQ(player->GetCurrentTime(), GetTicks(duration));
 
@@ -236,4 +251,48 @@ TEST_F(AudioPlayerTest, Fadeout) {
     EXPECT_LT(current_volume, last_volume);
     last_volume = current_volume;
   }
+}
+
+TEST_F(AudioPlayerTest, LoopingRewind) {
+  player->SetLooping(true);
+  ASSERT_TRUE(player->IsLoopingEnabled());
+
+  const auto tot_samples = sample_rate * duration * channel_count;
+
+  auto result = player->LoadPCM(tot_samples * 2);
+
+  EXPECT_EQ(player->GetCurrentTime(), GetTicks(0.0));
+  EXPECT_TRUE(player->IsPlaying());
+}
+
+TEST_F(AudioPlayerTest, TerminateLoop) {
+  const auto tot_samples = sample_rate * duration * channel_count;
+  player->SetLooping(true);
+  auto result = player->LoadPCM(tot_samples * 2 - 5);
+  EXPECT_TRUE(player->IsPlaying());
+
+  player->SetLooping(false);
+  result.Append(player->LoadRemain());
+  EXPECT_EQ(player->LoadRemain().SampleCount(), 0);
+
+  EXPECT_EQ(result.SampleCount(), tot_samples * 2);
+  auto expect = decoder->buffer_;
+  expect.insert(expect.end(), decoder->buffer_.begin(), decoder->buffer_.end());
+
+  EXPECT_LE(Deviation(std::get<std::vector<float>>(result.data), expect), 1e-4);
+  EXPECT_FALSE(player->IsPlaying());
+}
+
+TEST_F(AudioPlayerTest, StartTerminated) {
+  const auto tot_samples = sample_rate * duration * channel_count;
+
+  EXPECT_TRUE(player->IsPlaying());
+
+  player->Terminate();
+  EXPECT_FALSE(player->IsPlaying());
+
+  auto result = std::get<std::vector<float>>(player->LoadPCM(tot_samples).data);
+  EXPECT_EQ(result.size(), tot_samples);
+  EXPECT_LE(Deviation(result, std::vector<float>(tot_samples)), 1e-4);
+  EXPECT_FALSE(player->IsPlaying());
 }
