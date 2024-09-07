@@ -392,7 +392,7 @@ void SDLSoundSystem::KoePlayImpl(int id) {
     return;
   }
 
-  auto voice_sample = voice_factory_.LoadSample(id);
+  VoiceClip voice_sample = voice_factory_.LoadSample(id);
   AudioDecoder decoder(voice_sample.content, voice_sample.format_name);
   auto audio_data = decoder.DecodeAll();
   Resampler resampler(WAVFILE::freq);

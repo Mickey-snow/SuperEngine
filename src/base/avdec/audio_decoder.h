@@ -32,26 +32,70 @@
 #include "base/avspec.h"
 #include "utilities/mapped_file.h"
 
+#include <algorithm>
 #include <any>
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_map>
+
+using decoder_t = std::shared_ptr<IAudioDecoder>;
+
+class ADecoderFactory {
+ public:
+  using decoder_constructor_t = std::function<decoder_t(std::string_view)>;
+
+  ADecoderFactory() : decoder_map_(&default_decoder_map_) {}
+
+  decoder_t Create(std::string_view data,
+                   std::optional<std::string> format_hint = {}) {
+    using std::string_literals::operator""s;
+    std::string format = format_hint.value_or("unknown"s);
+
+    try {
+      const auto& fn = decoder_map_->at(format);
+      return fn(data);
+    } catch (...) {
+      // format wrong or unknown, fallback to a chain of responsibility factory
+    }
+
+    for (const auto& [key, fn] : *decoder_map_) {
+      try {
+        return fn(data);
+      } catch (...) {
+      }
+    }
+
+    throw std::runtime_error("No Decoder found for format: " +
+                             std::string(format));
+  }
+
+ protected:
+  const std::unordered_map<std::string, decoder_constructor_t>* decoder_map_;
+
+ private:
+  static std::unordered_map<std::string, decoder_constructor_t>
+      default_decoder_map_;
+};
 
 class AudioDecoder {
  public:
   AudioDecoder(FilePos fp, const std::string& format)
-      : dataholder_(fp), decoderimpl_(nullptr) {
-    if (format == "nwa")
-      decoderimpl_ = std::make_shared<NwaDecoder>(fp.Read());
-    else if (format == "ogg")
-      decoderimpl_ = std::make_shared<OggDecoder>(fp.Read());
+      : dataholder_(fp), decoderimpl_(factory_.Create(fp.Read(), format)) {}
 
-    else
-      throw std::logic_error("No valid decoder found.");
-  }
   AudioDecoder(std::shared_ptr<IAudioDecoder> dec)
       : dataholder_(), decoderimpl_(dec) {}
+
+  AudioDecoder(std::filesystem::path filepath, const std::string& format = "") {
+    auto file = std::make_shared<MappedFile>(filepath);
+    dataholder_ = file;
+    decoderimpl_ = factory_.Create(file->Read(), format);
+  }
+
+  AudioDecoder(std::string filestr, const std::string& format = "")
+      : AudioDecoder(std::filesystem::path(filestr), format) {}
 
   AudioData DecodeAll() { return decoderimpl_->DecodeAll(); }
 
@@ -66,7 +110,9 @@ class AudioDecoder {
  private:
   std::any dataholder_; /* if we are responsible for memory management, the
                            container class is being held here */
-  std::shared_ptr<IAudioDecoder> decoderimpl_;
+  decoder_t decoderimpl_;
+
+  static ADecoderFactory factory_;
 };
 
 #endif
