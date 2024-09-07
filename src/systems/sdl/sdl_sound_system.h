@@ -100,11 +100,6 @@ class SDLSoundSystem : public SoundSystem {
 
   virtual void KoePlayImpl(int id) override;
 
-  // Builds a SoundChunk from a piece of memory. This is used for playing
-  // voice. These chunks are not put in a SoundChunkCache since there's no
-  // string to cache on.
-  static SDLSoundChunkPtr BuildKoeChunk(char* data, int length);
-
   // Implementation to play a wave file. Two wavPlay() versions use this
   // underlying implementation, which is split out so the one that takes a raw
   // channel can verify its input.
