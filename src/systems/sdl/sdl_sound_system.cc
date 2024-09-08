@@ -40,7 +40,6 @@
 #include "systems/base/system_error.h"
 #include "systems/base/voice_archive.h"
 #include "systems/sdl/sdl_music.h"
-#include "systems/sdl/sdl_sound_chunk.h"
 #include "utilities/exception.h"
 
 namespace fs = std::filesystem;
@@ -233,14 +232,13 @@ void SDLSoundSystem::WavPlay(const std::string& wav_file,
 
 bool SDLSoundSystem::WavPlaying(const int channel) {
   CheckChannel(channel, "SDLSoundSystem::wav_playing");
-  return sound_impl_->Playing(channel);
+  return sound_impl_->IsPlaying(channel);
 }
 
 void SDLSoundSystem::WavStop(const int channel) {
   CheckChannel(channel, "SDLSoundSystem::wav_stop");
 
   if (is_pcm_enabled()) {
-    // SDLSoundChunk::StopChannel(channel);
     sound_impl_->HaltChannel(channel);
   }
 }
@@ -248,7 +246,6 @@ void SDLSoundSystem::WavStop(const int channel) {
 void SDLSoundSystem::WavStopAll() {
   if (is_pcm_enabled()) {
     sound_impl_->HaltAllChannels();
-    // SDLSoundChunk::StopAllChannels();
   }
 }
 
@@ -257,7 +254,6 @@ void SDLSoundSystem::WavFadeOut(const int channel, const int fadetime) {
 
   if (is_pcm_enabled())
     sound_impl_->FadeOutChannel(channel, fadetime);
-  // SDLSoundChunk::FadeOut(channel, fadetime);
 }
 
 void SDLSoundSystem::PlaySe(const int se_num) {
@@ -369,7 +365,7 @@ bool SDLSoundSystem::BgmLooping() const {
 }
 
 bool SDLSoundSystem::KoePlaying() const {
-  return sound_impl_->Playing(KOE_CHANNEL);
+  return sound_impl_->IsPlaying(KOE_CHANNEL);
 }
 
 void SDLSoundSystem::KoeStop() { sound_impl_->HaltChannel(KOE_CHANNEL); }

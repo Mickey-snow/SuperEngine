@@ -187,7 +187,7 @@ void SDLMusic::MixMusic(void* udata, uint8_t* stream, int len) {
     music->fade_count_ += len / 4;
   }
 
-  if (cur_vol != sound_impl_->MaxVolumn()) {
+  if (cur_vol != sound_impl_->MaxVolume()) {
     char stream_dup[len];  // NOLINT
     memcpy(stream_dup, stream, len);
     memset(stream, 0, len);

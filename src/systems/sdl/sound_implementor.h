@@ -44,60 +44,46 @@ class SoundSystemImpl {
 
   virtual void InitSystem() const;
   virtual void QuitSystem() const;
-  virtual void AllocateChannels(const int& num) const;
+  virtual void AllocateChannels(int num) const;
   virtual int OpenAudio(int rate,
                         AV_SAMPLE_FMT format,
                         int channels,
                         int buffers) const;
   virtual void CloseAudio() const;
   virtual AVSpec QuerySpec() const;
-  virtual void ChannelFinished(void (*callback)(int)) const;
   virtual void SetVolume(int channel, int vol) const;
-  virtual int Playing(int channel) const;
+  virtual bool IsPlaying(int channel) const;
   virtual void HookMusic(void (*callback)(void*, uint8_t*, int),
                          void* data) const;
   virtual void MixAudio(uint8_t* dst, uint8_t* src, int len, int volume) const;
-  virtual int MaxVolumn() const;
+  virtual int MaxVolume() const;
 
   virtual int FindIdleChannel() const;
-  virtual player_t GetChannel(int channel) const { return ch_[channel].player; }
   virtual int PlayChannel(int channel, std::shared_ptr<AudioPlayer> audio);
   virtual int PlayBgm(player_t audio);
 
-  virtual int PlayChannel(int channel, Chunk_t* chunk, int loops) const;
-  virtual int FadeInChannel(int channel,
-                            Mix_Chunk* chunk,
-                            int loops,
-                            int ms) const;
   virtual int FadeOutChannel(int channel, int fadetime) const;
   virtual void HaltChannel(int channel) const;
   virtual void HaltAllChannels() const;
-  virtual Chunk_t* LoadWAV_RW(char* data, int length) const;
-  virtual Chunk_t* LoadWAV(const char* path) const;
-  virtual void FreeChunk(Chunk_t* chunk) const;
   virtual const char* GetError() const;
 
   uint16_t ToSDLSoundFormat(AV_SAMPLE_FMT fmt) const;
   AV_SAMPLE_FMT FromSDLSoundFormat(uint16_t fmt) const;
 
  private:
-  static void OnChannelFinished(int channel);
+  static void OnChannelFinished(int channel); // callback
 
   struct ChannelInfo {
     player_t player;
     SoundSystemImpl* implementor;
     std::vector<uint8_t> buffer;
+    void* chunk;
 
-    bool IsIdle() const { return implementor == nullptr; }
-    void Reset() {
-      player = nullptr;
-      implementor = nullptr;
-      buffer.clear();
-    }
+    bool IsIdle() const;
+    void Reset();
   };
 
   static std::vector<ChannelInfo> ch_;
-  static std::function<void(int)> channel_finished_callback;
 };
 
 #endif

@@ -217,7 +217,6 @@ libsystemsdl_files = [
   "src/systems/sdl/sdl_graphics_system.cc",
   "src/systems/sdl/sdl_music.cc",
   "src/systems/sdl/sdl_render_to_texture_surface.cc",
-  "src/systems/sdl/sdl_sound_chunk.cc",
   "src/systems/sdl/sdl_sound_system.cc",
   "src/systems/sdl/sdl_surface.cc",
   "src/systems/sdl/sdl_system.cc",

@@ -29,11 +29,25 @@
 
 #include <stdexcept>
 
+// -----------------------------------------------------------------------
+
+class SDLAudioLocker{
+public:
+  SDLAudioLocker(){
+    SDL_LockAudio();
+  }
+  ~SDLAudioLocker(){
+    SDL_UnlockAudio();
+  }
+};
+
+// -----------------------------------------------------------------------
+
 void SoundSystemImpl::InitSystem() const { SDL_InitSubSystem(SDL_INIT_AUDIO); }
 
 void SoundSystemImpl::QuitSystem() const { SDL_QuitSubSystem(SDL_INIT_AUDIO); }
 
-void SoundSystemImpl::AllocateChannels(const int& num) const {
+void SoundSystemImpl::AllocateChannels(int num) const {
   Mix_AllocateChannels(num);
   ch_.resize(num);
 }
@@ -56,15 +70,11 @@ AVSpec SoundSystemImpl::QuerySpec() const {
                 .channel_count = channels};
 }
 
-void SoundSystemImpl::ChannelFinished(void (*callback)(int)) const {
-  Mix_ChannelFinished(callback);
-}
-
 void SoundSystemImpl::SetVolume(int channel, int vol) const {
   Mix_Volume(channel, vol);
 }
 
-int SoundSystemImpl::Playing(int channel) const { return Mix_Playing(channel); }
+bool SoundSystemImpl::IsPlaying(int channel) const { return Mix_Playing(channel); }
 
 void SoundSystemImpl::HookMusic(void (*callback)(void*, Uint8*, int),
                                 void* data) const {
@@ -78,44 +88,41 @@ void SoundSystemImpl::MixAudio(uint8_t* dst,
   SDL_MixAudio(dst, src, len, volume);
 }
 
-int SoundSystemImpl::MaxVolumn() const { return MIX_MAX_VOLUME; }
+int SoundSystemImpl::MaxVolume() const { return MIX_MAX_VOLUME; }
 
 int SoundSystemImpl::FindIdleChannel() const {
+  if (ch_.empty())
+    throw std::runtime_error("Channel not allocated.");
+
   for (int i = 0; i < ch_.size(); ++i)
     if (ch_[i].IsIdle())
       return i;
   throw std::runtime_error("All channels are busy.");
 }
 
-int SoundSystemImpl::PlayChannel(int channel, Chunk_t* chunk, int loops) const {
-  return Mix_PlayChannel(channel, chunk, loops);
-}
-
 int SoundSystemImpl::PlayChannel(int channel,
                                  std::shared_ptr<AudioPlayer> audio) {
   std::vector<uint8_t> pcm = EncodeWav(audio->LoadRemain());
-  auto sound_chunk = Mix_LoadWAV_RW(SDL_RWFromMem(pcm.data(), pcm.size()), 0);
+  auto sound_chunk = Mix_LoadWAV_RW(SDL_RWFromMem(pcm.data(), pcm.size()), 1);
   if (!sound_chunk)
     throw std::runtime_error("SDL failed to create a new chunk.");
 
-  ch_[channel] = ChannelInfo{
-      .player = audio, .implementor = this, .buffer = std::move(pcm)};
+  ch_[channel] = ChannelInfo{.player = audio,
+                             .implementor = this,
+                             .buffer = std::move(pcm),
+                             .chunk = sound_chunk};
 
   int ret = Mix_PlayChannel(channel, sound_chunk, audio->IsLoopingEnabled());
-  if (ret == -1)
+  if (ret == -1) {
+    ch_[channel].Reset();
     throw std::runtime_error("Failed to play on channel: " +
                              std::to_string(channel));
+  }
+
   return ret;
 }
 
 int SoundSystemImpl::PlayBgm(player_t audio) { return -1; }
-
-int SoundSystemImpl::FadeInChannel(int channel,
-                                   Mix_Chunk* chunk,
-                                   int loops,
-                                   int ms) const {
-  return Mix_FadeInChannel(channel, chunk, loops, ms);
-}
 
 int SoundSystemImpl::FadeOutChannel(int channel, int fadetime) const {
   return Mix_FadeOutChannel(channel, fadetime);
@@ -128,17 +135,6 @@ void SoundSystemImpl::HaltChannel(int channel) const {
 }
 
 void SoundSystemImpl::HaltAllChannels() const { HaltChannel(-1); }
-
-Chunk_t* SoundSystemImpl::LoadWAV_RW(char* data, int length) const {
-  auto rw = SDL_RWFromMem(data, length);
-  return Mix_LoadWAV_RW(rw, 1);
-}
-
-Chunk_t* SoundSystemImpl::LoadWAV(const char* path) const {
-  return Mix_LoadWAV(path);
-}
-
-void SoundSystemImpl::FreeChunk(Chunk_t* chunk) const { Mix_FreeChunk(chunk); }
 
 const char* SoundSystemImpl::GetError() const { return Mix_GetError(); }
 
@@ -182,11 +178,24 @@ void SoundSystemImpl::OnChannelFinished(int channel) {
   auto implementor = ch_[channel].implementor;
   ch_[channel].Reset();
 
-  channel_finished_callback(channel);
   if (player->IsPlaying())  // loop
     implementor->PlayChannel(channel, player);
 }
 
 std::vector<SoundSystemImpl::ChannelInfo> SoundSystemImpl::ch_;
-std::function<void(int)> SoundSystemImpl::channel_finished_callback = [](int) {
-};
+
+// -----------------------------------------------------------------------
+
+bool SoundSystemImpl::ChannelInfo::IsIdle() const {
+  return implementor == nullptr;
+}
+
+void SoundSystemImpl::ChannelInfo::Reset() {
+  player = nullptr;
+  implementor = nullptr;
+  buffer.clear();
+  if (chunk != nullptr) {
+    Mix_FreeChunk(static_cast<Mix_Chunk*>(chunk));
+    chunk = nullptr;
+  }
+}
