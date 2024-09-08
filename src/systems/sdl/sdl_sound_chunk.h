@@ -97,10 +97,4 @@ class SDLSoundChunk : public std::enable_shared_from_this<SDLSoundChunk> {
   std::unique_ptr<char[]> data_;
 };
 
-// -----------------------------------------------------------------------
-
-// Changes an incoming RealLive volume (0-256) to the range SDL_Mixer expects
-// (0-128).
-inline int realLiveVolumeToSDLMixerVolume(int in_vol) { return in_vol / 2; }
-
 #endif  // SRC_SYSTEMS_SDL_SDL_SOUND_CHUNK_H_

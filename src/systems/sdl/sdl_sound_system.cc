@@ -45,6 +45,12 @@
 
 namespace fs = std::filesystem;
 
+// Changes an incoming RealLive volume (0-256) to the range SDL_Mixer expects
+// (0-128).
+inline static int realLiveVolumeToSDLMixerVolume(int in_vol) {
+  return in_vol / 2;
+}
+
 // -----------------------------------------------------------------------
 // RealLive Sound Qualities table
 // -----------------------------------------------------------------------
@@ -120,7 +126,6 @@ SDLSoundSystem::SDLSoundSystem(System& system,
     sound_impl_ = std::make_shared<SoundSystemImpl>();
   sound_impl_->InitSystem();
   SDLMusic::SetImplementor(sound_impl_);
-  SDLSoundChunk::SetImplementor(sound_impl_);
 
   /* We're going to be requesting certain things from our audio
      device, so we set them up beforehand */
@@ -147,7 +152,6 @@ SDLSoundSystem::SDLSoundSystem(System& system,
   WAVFILE::channels = spec.channel_count;
 
   sound_impl_->AllocateChannels(NUM_TOTAL_CHANNELS);
-  sound_impl_->ChannelFinished(&SDLSoundChunk::SoundChunkFinishedPlayback);
   sound_impl_->HookMusic(&SDLMusic::MixMusic, NULL);
 }
 
@@ -194,7 +198,7 @@ void SDLSoundSystem::SetChannelVolume(const int channel, const int level) {
 }
 
 void SDLSoundSystem::WavPlay(const std::string& wav_file, bool loop) {
-  int channel_number = SDLSoundChunk::FindNextFreeExtraChannel();
+  int channel_number = sound_impl_->FindIdleChannel();
   if (channel_number == -1) {
     std::ostringstream oss;
     oss << "Couldn't find a free channel for wavPlay()";
@@ -236,13 +240,15 @@ void SDLSoundSystem::WavStop(const int channel) {
   CheckChannel(channel, "SDLSoundSystem::wav_stop");
 
   if (is_pcm_enabled()) {
-    SDLSoundChunk::StopChannel(channel);
+    // SDLSoundChunk::StopChannel(channel);
+    sound_impl_->HaltChannel(channel);
   }
 }
 
 void SDLSoundSystem::WavStopAll() {
   if (is_pcm_enabled()) {
-    SDLSoundChunk::StopAllChannels();
+    sound_impl_->HaltAllChannels();
+    // SDLSoundChunk::StopAllChannels();
   }
 }
 
@@ -250,7 +256,8 @@ void SDLSoundSystem::WavFadeOut(const int channel, const int fadetime) {
   CheckChannel(channel, "SDLSoundSystem::wav_fade_out");
 
   if (is_pcm_enabled())
-    SDLSoundChunk::FadeOut(channel, fadetime);
+    sound_impl_->FadeOutChannel(channel, fadetime);
+  // SDLSoundChunk::FadeOut(channel, fadetime);
 }
 
 void SDLSoundSystem::PlaySe(const int se_num) {
@@ -365,7 +372,7 @@ bool SDLSoundSystem::KoePlaying() const {
   return sound_impl_->Playing(KOE_CHANNEL);
 }
 
-void SDLSoundSystem::KoeStop() { SDLSoundChunk::StopChannel(KOE_CHANNEL); }
+void SDLSoundSystem::KoeStop() { sound_impl_->HaltChannel(KOE_CHANNEL); }
 
 void SDLSoundSystem::KoePlayImpl(int id) {
   if (!is_koe_enabled()) {

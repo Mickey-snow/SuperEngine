@@ -80,6 +80,13 @@ void SoundSystemImpl::MixAudio(uint8_t* dst,
 
 int SoundSystemImpl::MaxVolumn() const { return MIX_MAX_VOLUME; }
 
+int SoundSystemImpl::FindIdleChannel() const {
+  for (int i = 0; i < ch_.size(); ++i)
+    if (ch_[i].IsIdle())
+      return i;
+  throw std::runtime_error("All channels are busy.");
+}
+
 int SoundSystemImpl::PlayChannel(int channel, Chunk_t* chunk, int loops) const {
   return Mix_PlayChannel(channel, chunk, loops);
 }
@@ -119,6 +126,8 @@ void SoundSystemImpl::HaltChannel(int channel) const {
     channel = -1;
   Mix_HaltChannel(channel);
 }
+
+void SoundSystemImpl::HaltAllChannels() const { HaltChannel(-1); }
 
 Chunk_t* SoundSystemImpl::LoadWAV_RW(char* data, int length) const {
   auto rw = SDL_RWFromMem(data, length);
@@ -171,10 +180,10 @@ AV_SAMPLE_FMT SoundSystemImpl::FromSDLSoundFormat(uint16_t fmt) const {
 void SoundSystemImpl::OnChannelFinished(int channel) {
   auto player = ch_[channel].player;
   auto implementor = ch_[channel].implementor;
-  ch_[channel] = {};
+  ch_[channel].Reset();
 
   channel_finished_callback(channel);
-  if (player->IsPlaying())
+  if (player->IsPlaying())  // loop
     implementor->PlayChannel(channel, player);
 }
 

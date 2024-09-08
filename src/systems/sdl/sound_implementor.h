@@ -59,6 +59,7 @@ class SoundSystemImpl {
   virtual void MixAudio(uint8_t* dst, uint8_t* src, int len, int volume) const;
   virtual int MaxVolumn() const;
 
+  virtual int FindIdleChannel() const;
   virtual player_t GetChannel(int channel) const { return ch_[channel].player; }
   virtual int PlayChannel(int channel, std::shared_ptr<AudioPlayer> audio);
   virtual int PlayBgm(player_t audio);
@@ -70,6 +71,7 @@ class SoundSystemImpl {
                             int ms) const;
   virtual int FadeOutChannel(int channel, int fadetime) const;
   virtual void HaltChannel(int channel) const;
+  virtual void HaltAllChannels() const;
   virtual Chunk_t* LoadWAV_RW(char* data, int length) const;
   virtual Chunk_t* LoadWAV(const char* path) const;
   virtual void FreeChunk(Chunk_t* chunk) const;
@@ -85,6 +87,13 @@ class SoundSystemImpl {
     player_t player;
     SoundSystemImpl* implementor;
     std::vector<uint8_t> buffer;
+
+    bool IsIdle() const { return implementor == nullptr; }
+    void Reset() {
+      player = nullptr;
+      implementor = nullptr;
+      buffer.clear();
+    }
   };
 
   static std::vector<ChannelInfo> ch_;
