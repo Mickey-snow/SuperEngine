@@ -66,11 +66,13 @@ class AudioDecoder {
   AudioDecoder(std::filesystem::path filepath, const std::string& format = "");
   AudioDecoder(std::string filestr, const std::string& format = "");
 
-  AudioData DecodeAll();
-  AudioData DecodeNext();
+  AudioData DecodeAll() const;
+  AudioData DecodeNext() const;
   bool HasNext() const;
   void Rewind() const;
   AVSpec GetSpec() const;
+  SEEK_RESULT Seek(long long offset, SEEKDIR whence = SEEKDIR::CUR) const;
+  long long Tell() const;
 
  private:
   std::any dataholder_; /* if we are responsible for memory management, the

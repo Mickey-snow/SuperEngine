@@ -99,12 +99,20 @@ AudioDecoder::AudioDecoder(std::filesystem::path filepath,
 AudioDecoder::AudioDecoder(std::string filestr, const std::string& format)
     : AudioDecoder(std::filesystem::path(filestr), format) {}
 
-AudioData AudioDecoder::DecodeAll() { return decoderimpl_->DecodeAll(); }
+AudioData AudioDecoder::DecodeAll() const { return decoderimpl_->DecodeAll(); }
 
-AudioData AudioDecoder::DecodeNext() { return decoderimpl_->DecodeNext(); }
+AudioData AudioDecoder::DecodeNext() const {
+  return decoderimpl_->DecodeNext();
+}
 
 bool AudioDecoder::HasNext() const { return decoderimpl_->HasNext(); }
 
 void AudioDecoder::Rewind() const { decoderimpl_->Seek(0, SEEKDIR::BEG); }
 
 AVSpec AudioDecoder::GetSpec() const { return decoderimpl_->GetSpec(); }
+
+SEEK_RESULT AudioDecoder::Seek(long long offset, SEEKDIR whence) const {
+  return decoderimpl_->Seek(offset, whence);
+}
+
+long long AudioDecoder::Tell() const { return decoderimpl_->Tell(); }

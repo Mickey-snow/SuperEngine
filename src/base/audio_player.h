@@ -35,33 +35,38 @@ class AudioPlayer {
   using time_ms_t = long long;
   using sample_count_t = long long;
 
+  static constexpr size_t npos = std::numeric_limits<int32_t>::max();
+
   AudioPlayer(AudioDecoder&& dec);
+
   time_ms_t GetCurrentTime() const;
   AudioData LoadPCM(sample_count_t nsamples);
   AudioData LoadRemain();
   bool IsLoopingEnabled() const;
   void SetLooping(bool loop);
+  void SetLoop(size_t loop_fr, size_t loop_to);
   bool IsPlaying() const;
-  void FadeIn(time_ms_t ms);
-  void FadeOut(time_ms_t ms);
   void Terminate();
-  AVSpec GetSpec() const;
 
  private:
+  struct AudioFrame {
+    AudioData ad;
+    long long cur;
+    size_t SampleCount() const { return ad.SampleCount(); }
+  };
+
   void OnEndOfPlayback();
-  void EnsureBufferCapacity(size_t size);
-  void PushEmpty(size_t size);
-  AudioData PopFront(size_t size);
-  sample_count_t TimeToSampleCount(time_ms_t time);
-  time_ms_t SampleCountToTime(sample_count_t samples);
+  AudioFrame LoadNext();
+  void ClipFrame(AudioFrame&) const;
 
   AudioDecoder decoder_;
-  bool should_loop_;
+  std::optional<size_t> loop_fr_, loop_to_;
   bool is_active_;
-  long long pcm_cur_;
+  AVSpec spec;
+  std::optional<AudioFrame> buffer_;
 
-  std::deque<AudioData> buf_;
-  size_t buf_size_;
+  sample_count_t TimeToSampleCount(time_ms_t time);
+  time_ms_t SampleCountToTime(sample_count_t samples);
 };
 
 using player_t = std::shared_ptr<AudioPlayer>;
