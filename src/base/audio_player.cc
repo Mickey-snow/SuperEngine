@@ -162,6 +162,31 @@ bool AudioPlayer::IsPlaying() const {
 
 void AudioPlayer::Terminate() { is_active_ = false; }
 
+void AudioPlayer::FadeIn(float fadein_ms) {
+  class FadeinImpl : public ICommand {
+   public:
+    FadeinImpl(sample_count_t fadein_samples)
+        : samples_(fadein_samples), faded_samples_(0) {}
+    void Execute(AudioFrame& af) override {
+      std::visit(
+          [&](auto& data) {
+            for (auto& it : data) {
+              if (faded_samples_ >= samples_)
+                break;
+              auto fade_factor =
+                  static_cast<float>(faded_samples_++) / samples_;
+              it *= fade_factor;
+            }
+          },
+          af.ad.data);
+    }
+    bool IsFinished() override { return faded_samples_ >= samples_; }
+    sample_count_t samples_, faded_samples_;
+  };
+
+  cmd_.emplace_back(std::make_unique<FadeinImpl>(TimeToSampleCount(fadein_ms)));
+}
+
 void AudioPlayer::OnEndOfPlayback() {
   size_t seek_to = loop_fr_.value_or(npos);
   if (seek_to != npos)
@@ -188,7 +213,22 @@ AudioPlayer::AudioFrame AudioPlayer::LoadNext() {
 
   if (!decoder_.HasNext())
     OnEndOfPlayback();
-  return AudioFrame{.ad = std::move(next_chunk), .cur = std::move(cur)};
+
+  AudioFrame frame{.ad = std::move(next_chunk), .cur = std::move(cur)};
+  for (auto it = cmd_.begin(); it != cmd_.end();) {
+    if (it->get()->IsFinished()) {
+      it = cmd_.erase(it);
+      continue;
+    }
+    it->get()->Execute(frame);
+    if (it->get()->IsFinished()) {
+      it = cmd_.erase(it);
+      continue;
+    }
+    ++it;
+  }
+
+  return frame;
 }
 
 void AudioPlayer::ClipFrame(AudioFrame& frame) const {

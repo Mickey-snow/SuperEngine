@@ -28,7 +28,8 @@
 #include "base/avdec/audio_decoder.h"
 #include "base/avspec.h"
 
-#include <queue>
+#include <deque>
+#include <list>
 
 class AudioPlayer {
  public:
@@ -48,7 +49,9 @@ class AudioPlayer {
   bool IsPlaying() const;
   void Terminate();
 
- private:
+  void FadeIn(float fadein_ms);
+
+private:
   struct AudioFrame {
     AudioData ad;
     long long cur;
@@ -64,6 +67,17 @@ class AudioPlayer {
   bool is_active_;
   AVSpec spec;
   std::optional<AudioFrame> buffer_;
+
+ public:
+  class ICommand {
+   public:
+    virtual ~ICommand() = default;
+    virtual void Execute(AudioFrame&) = 0;
+    virtual bool IsFinished() = 0;
+  };
+
+ private:
+  std::list<std::unique_ptr<ICommand>> cmd_;
 
   sample_count_t TimeToSampleCount(time_ms_t time);
   time_ms_t SampleCountToTime(sample_count_t samples);

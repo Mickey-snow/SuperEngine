@@ -200,36 +200,35 @@ TEST_F(AudioPlayerTest, LoopPlayback) {
   EXPECT_LE(Deviation(std::get<std::vector<float>>(result.data), expect), 1e-4);
 }
 
-// TEST_F(AudioPlayerTest, Fadein) {
-//   const float fadein_ms = duration * 1000 / 2.0;
-//   player->FadeIn(fadein_ms);
+TEST_F(AudioPlayerTest, Fadein) {
+  const float fadein_ms = duration * 1000 / 2.0;
+  player->FadeIn(fadein_ms);
 
-//   auto result = player->LoadPCM(tot_samples);
-//   auto first =
-//       std::get<std::vector<float>>(result.Slice(0, tot_samples / 2).data);
-//   auto second = std::get<std::vector<float>>(
-//       result.Slice(tot_samples / 2, tot_samples).data);
+  auto result = player->LoadPCM(tot_samples);
+  auto first =
+      std::get<std::vector<float>>(result.Slice(0, tot_samples / 2).data);
+  auto second = std::get<std::vector<float>>(
+      result.Slice(tot_samples / 2, tot_samples).data);
 
-//   auto actual = std::vector<float>(decoder->buffer_.begin(),
-//                                    decoder->buffer_.begin() + tot_samples /
-//                                    2);
-//   float last_volume = -0.01, current_volume = 0;
-//   ASSERT_EQ(actual.size(), first.size());
-//   for (size_t i = 0; i < actual.size(); ++i) {
-//     if (fabs(actual[i]) < 1e-5) {  // avoid divide by zero
-//       EXPECT_LT(fabs(first[i]), 1e-5);
-//       continue;
-//     }
+  auto actual = std::vector<float>(decoder->buffer_.begin(),
+                                   decoder->buffer_.begin() + tot_samples / 2);
+  float last_volume = -0.01, current_volume = 0;
+  ASSERT_EQ(actual.size(), first.size());
+  for (size_t i = 0; i < actual.size(); ++i) {
+    if (fabs(actual[i]) < 1e-5) {  // avoid divide by zero
+      EXPECT_LT(fabs(first[i]), 1e-5);
+      continue;
+    }
 
-//     current_volume = first[i] / actual[i];
-//     EXPECT_GT(current_volume, last_volume);
-//     last_volume = current_volume;
-//   }
+    current_volume = first[i] / actual[i];
+    EXPECT_GT(current_volume, last_volume);
+    last_volume = current_volume;
+  }
 
-//   actual = std::vector<float>(decoder->buffer_.begin() + tot_samples / 2,
-//                               decoder->buffer_.end());
-//   EXPECT_LE(Deviation(actual, second), 1e-4);
-// }
+  actual = std::vector<float>(decoder->buffer_.begin() + tot_samples / 2,
+                              decoder->buffer_.end());
+  EXPECT_LE(Deviation(actual, second), 1e-4);
+}
 
 // TEST_F(AudioPlayerTest, Fadeout) {
 //   const float fadeout_ms = duration * 1000 / 2.0;
