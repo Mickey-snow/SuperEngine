@@ -35,7 +35,6 @@
 
 #include "base/avdec/audio_decoder.h"
 #include "base/avspec.h"
-#include "base/resampler.h"
 #include "systems/base/system.h"
 #include "systems/base/system_error.h"
 #include "systems/base/voice_archive.h"
@@ -377,31 +376,7 @@ void SDLSoundSystem::KoePlayImpl(int id) {
 
   VoiceClip voice_sample = voice_factory_.LoadSample(id);
   AudioDecoder decoder(voice_sample.content, voice_sample.format_name);
-  auto audio_data = decoder.DecodeAll();
-  Resampler resampler(WAVFILE::freq);
-  resampler.Resample(audio_data);
-
-  // TODO: Integrate Resampler to AudioPlayer, and refactor this
-  class KoeWrapper : public IAudioDecoder {
-   public:
-    KoeWrapper(AudioData&& data) : data_(data) {}
-    std::string DecoderName() const override { return "Koe Wrapper"; }
-    AVSpec GetSpec() override { return data_.spec; }
-    AudioData DecodeAll() override {
-      AudioData ret = std::move(data_);
-      data_ = {};
-      return ret;
-    }
-    AudioData DecodeNext() override { return DecodeAll(); }
-    bool HasNext() override { return data_.SampleCount() != 0; }
-    AudioData data_;
-  };
-
-  std::shared_ptr<IAudioDecoder> koedec =
-      std::make_shared<KoeWrapper>(std::move(audio_data));
-  AudioDecoder dummy(koedec);
-  auto player = std::make_shared<AudioPlayer>(std::move(dummy));
-  player->SetLooping(false);
+  auto player = std::make_shared<AudioPlayer>(std::move(decoder));
 
   SetChannelVolumeImpl(KOE_CHANNEL);
   sound_impl_->PlayChannel(KOE_CHANNEL, player);

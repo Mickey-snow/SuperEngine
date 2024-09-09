@@ -24,6 +24,8 @@
 
 #include "sound_implementor.h"
 
+#include "base/resampler.h"
+
 #include <SDL/SDL.h>
 #include <SDL/SDL_mixer.h>
 
@@ -31,14 +33,10 @@
 
 // -----------------------------------------------------------------------
 
-class SDLAudioLocker{
-public:
-  SDLAudioLocker(){
-    SDL_LockAudio();
-  }
-  ~SDLAudioLocker(){
-    SDL_UnlockAudio();
-  }
+class SDLAudioLocker {
+ public:
+  SDLAudioLocker() { SDL_LockAudio(); }
+  ~SDLAudioLocker() { SDL_UnlockAudio(); }
 };
 
 // -----------------------------------------------------------------------
@@ -74,7 +72,9 @@ void SoundSystemImpl::SetVolume(int channel, int vol) const {
   Mix_Volume(channel, vol);
 }
 
-bool SoundSystemImpl::IsPlaying(int channel) const { return Mix_Playing(channel); }
+bool SoundSystemImpl::IsPlaying(int channel) const {
+  return Mix_Playing(channel);
+}
 
 void SoundSystemImpl::HookMusic(void (*callback)(void*, Uint8*, int),
                                 void* data) const {
@@ -102,7 +102,14 @@ int SoundSystemImpl::FindIdleChannel() const {
 
 int SoundSystemImpl::PlayChannel(int channel,
                                  std::shared_ptr<AudioPlayer> audio) {
-  std::vector<uint8_t> pcm = EncodeWav(audio->LoadRemain());
+  AudioData audio_data = audio->LoadRemain();
+  const auto system_frequency = QuerySpec().sample_rate;
+  if (audio_data.spec.sample_rate != system_frequency) {
+    Resampler resampler(system_frequency);
+    resampler.Resample(audio_data);
+  }
+
+  std::vector<uint8_t> pcm = EncodeWav(std::move(audio_data));
   auto sound_chunk = Mix_LoadWAV_RW(SDL_RWFromMem(pcm.data(), pcm.size()), 1);
   if (!sound_chunk)
     throw std::runtime_error("SDL failed to create a new chunk.");
