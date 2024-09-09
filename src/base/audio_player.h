@@ -50,14 +50,21 @@ class AudioPlayer {
   void Terminate();
 
   void FadeIn(float fadein_ms);
+  void FadeOut(float fadeout_ms, bool should_then_terminate = true);
 
-private:
   struct AudioFrame {
     AudioData ad;
     long long cur;
     size_t SampleCount() const { return ad.SampleCount(); }
   };
+  class ICommand {
+   public:
+    virtual ~ICommand() = default;
+    virtual void Execute(AudioFrame&) = 0;
+    virtual bool IsFinished() = 0;
+  };
 
+ private:
   void OnEndOfPlayback();
   AudioFrame LoadNext();
   void ClipFrame(AudioFrame&) const;
@@ -68,15 +75,6 @@ private:
   AVSpec spec;
   std::optional<AudioFrame> buffer_;
 
- public:
-  class ICommand {
-   public:
-    virtual ~ICommand() = default;
-    virtual void Execute(AudioFrame&) = 0;
-    virtual bool IsFinished() = 0;
-  };
-
- private:
   std::list<std::unique_ptr<ICommand>> cmd_;
 
   sample_count_t TimeToSampleCount(time_ms_t time);

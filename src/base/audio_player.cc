@@ -26,6 +26,40 @@
 
 #include <stdexcept>
 
+using sample_count_t = AudioPlayer::sample_count_t;
+
+// -----------------------------------------------------------------------
+
+class VolumeAdjustCmd : public AudioPlayer::ICommand {
+ public:
+  VolumeAdjustCmd(float start_volume,
+                  float end_volume,
+                  sample_count_t fadein_samples)
+      : start_volume_(start_volume),
+        end_volume_(end_volume),
+        samples_(fadein_samples),
+        faded_samples_(0) {}
+  void Execute(AudioPlayer::AudioFrame& af) override {
+    std::visit(
+        [&](auto& data) {
+          for (auto& it : data) {
+            if (faded_samples_ >= samples_)
+              break;
+            auto fade_factor = static_cast<float>(faded_samples_++) / samples_;
+            it *= start_volume_ + fade_factor * (end_volume_ - start_volume_);
+          }
+        },
+        af.ad.data);
+  }
+  bool IsFinished() override { return faded_samples_ >= samples_; }
+
+ private:
+  float start_volume_, end_volume_;
+  sample_count_t samples_, faded_samples_;
+};
+
+// -----------------------------------------------------------------------
+
 AudioPlayer::AudioPlayer(AudioDecoder&& dec)
     : decoder_(std::move(dec)),
       loop_fr_(),
@@ -156,35 +190,38 @@ void AudioPlayer::SetLooping(bool loop) {
   }
 }
 
-bool AudioPlayer::IsPlaying() const {
-  return is_active_ || buffer_.has_value();
-}
+bool AudioPlayer::IsPlaying() const { return is_active_; }
 
 void AudioPlayer::Terminate() { is_active_ = false; }
 
 void AudioPlayer::FadeIn(float fadein_ms) {
-  class FadeinImpl : public ICommand {
-   public:
-    FadeinImpl(sample_count_t fadein_samples)
-        : samples_(fadein_samples), faded_samples_(0) {}
-    void Execute(AudioFrame& af) override {
-      std::visit(
-          [&](auto& data) {
-            for (auto& it : data) {
-              if (faded_samples_ >= samples_)
-                break;
-              auto fade_factor =
-                  static_cast<float>(faded_samples_++) / samples_;
-              it *= fade_factor;
-            }
-          },
-          af.ad.data);
-    }
-    bool IsFinished() override { return faded_samples_ >= samples_; }
-    sample_count_t samples_, faded_samples_;
-  };
+  auto fadein_samples = TimeToSampleCount(fadein_ms);
+  cmd_.emplace_back(std::make_unique<VolumeAdjustCmd>(0, 1, fadein_samples));
+}
 
-  cmd_.emplace_back(std::make_unique<FadeinImpl>(TimeToSampleCount(fadein_ms)));
+void AudioPlayer::FadeOut(float fadeout_ms, bool should_then_terminate) {
+  auto fadeout_samples = TimeToSampleCount(fadeout_ms);
+  cmd_.emplace_back(std::make_unique<VolumeAdjustCmd>(1, 0, fadeout_samples));
+
+  if (should_then_terminate) {
+    class TerminateAfter : public ICommand {
+     public:
+      TerminateAfter(AudioPlayer& client, sample_count_t samples)
+          : client_(client), samples_(samples) {}
+      void Execute(AudioFrame& af) override {
+        samples_ -= af.SampleCount();
+        if (IsFinished())
+          client_.Terminate();
+      }
+      bool IsFinished() override { return samples_ <= 0; }
+
+     private:
+      AudioPlayer& client_;
+      sample_count_t samples_;
+    };
+
+    cmd_.emplace_back(std::make_unique<TerminateAfter>(*this, fadeout_samples));
+  }
 }
 
 void AudioPlayer::OnEndOfPlayback() {

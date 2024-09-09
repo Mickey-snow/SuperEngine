@@ -230,29 +230,29 @@ TEST_F(AudioPlayerTest, Fadein) {
   EXPECT_LE(Deviation(actual, second), 1e-4);
 }
 
-// TEST_F(AudioPlayerTest, Fadeout) {
-//   const float fadeout_ms = duration * 1000 / 2.0;
-//   player->FadeOut(fadeout_ms);
-//   EXPECT_TRUE(player->IsPlaying());
+TEST_F(AudioPlayerTest, Fadeout) {
+  const float fadeout_ms = duration * 1000 / 2.0;
+  player->FadeOut(fadeout_ms);
+  EXPECT_TRUE(player->IsPlaying());
 
-//   const auto fadeout_samples = fadeout_ms * sample_rate * channel_count /
-//   1000; auto result =
-//       std::get<std::vector<float>>(player->LoadPCM(fadeout_samples).data);
-//   EXPECT_FALSE(player->IsPlaying());
+  const auto fadeout_samples = fadeout_ms * sample_rate * channel_count / 1000;
+  auto result =
+      std::get<std::vector<float>>(player->LoadPCM(fadeout_samples).data);
+  EXPECT_FALSE(player->IsPlaying());
 
-//   float last_volume = 1.01, current_volume = 0;
-//   for (size_t i = 0; i < result.size(); ++i) {
-//     const auto& actual = decoder->buffer_;
-//     if (fabs(actual[i]) < 1e-5) {
-//       EXPECT_LT(fabs(result[i]), 1e-5);
-//       continue;
-//     }
+  float last_volume = 1.01, current_volume = 0;
+  for (size_t i = 0; i < result.size(); ++i) {
+    const auto& actual = decoder->buffer_;
+    if (fabs(actual[i]) < 1e-5) {
+      EXPECT_LT(fabs(result[i]), 1e-5);
+      continue;
+    }
 
-//     current_volume = result[i] / actual[i];
-//     EXPECT_LT(current_volume, last_volume);
-//     last_volume = current_volume;
-//   }
-// }
+    current_volume = result[i] / actual[i];
+    EXPECT_LT(current_volume, last_volume);
+    last_volume = current_volume;
+  }
+}
 
 TEST_F(AudioPlayerTest, LoopingRewind) {
   player->SetLooping(true);
@@ -271,6 +271,7 @@ TEST_F(AudioPlayerTest, TerminateLoop) {
 
   player->SetLooping(false);
   result.Append(player->LoadRemain());
+  // EXPECT_EQ(player->LoadRemain().SampleCount(), 0);
   // ideally player should terminate here after reading the remaining 5 samples,
   // but the current implementation goes on for another loop
 

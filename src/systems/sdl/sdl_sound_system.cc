@@ -224,8 +224,7 @@ void SDLSoundSystem::WavPlay(const std::string& wav_file,
     auto wav_file_path = system().FindFile(wav_file, SOUND_FILETYPES);
     player_t player = CreateAudioPlayer(wav_file_path);
     player->SetLooping(loop);
-    // TODO: fix fade in
-    // player->FadeIn(fadein_ms);
+    player->FadeIn(fadein_ms);
     SetChannelVolumeImpl(channel);
     sound_impl_->PlayChannel(channel, player);
   }
