@@ -31,6 +31,7 @@
 
 #include <cstdlib>
 #include <filesystem>
+#include <random>
 #include <regex>
 #include <string>
 
@@ -166,6 +167,56 @@ TEST_P(NwaDecoderTest, Rewind) {
   expect_wav.resize(n);
   EXPECT_LE(Deviation(lch_front, expect_wav), maxstd);
   EXPECT_LE(Deviation(rch_front, expect_wav), maxstd);
+}
+
+TEST_P(NwaDecoderTest, RandomAccess) {
+  const float maxstd = DeviationThreshold() * INT16_MAX;
+  NwaDecoder decoder(file_content->Read());
+  auto expect_wav = GetExpectedPcm();
+  auto n = expect_wav.size();
+
+  std::vector<int16_t> actual_wav(n);
+  std::vector<bool> has_value(n);
+  std::mt19937 rng;
+  std::fill(has_value.begin(), has_value.end(), false);
+  std::generate(actual_wav.begin(), actual_wav.end(), [&rng]() -> int16_t {
+    static std::uniform_int_distribution<> dist(
+        std::numeric_limits<int16_t>::min(),
+        std::numeric_limits<int16_t>::max());
+    return dist(rng);
+  });
+
+  auto handle_decoded_chunk = [&](int offset, AudioData ad) {
+    auto [lch, rch] = SplitChannels(ToInt16Vec(ad.data));
+    for (size_t i = 0; i < lch.size(); ++i) {
+      EXPECT_EQ(lch[i], rch[i]);
+      has_value[i + offset] = true;
+      actual_wav[i + offset] = lch[i];
+    }
+  };
+
+  std::uniform_int_distribution<> dist(0, n - 1);
+  for (int i = 0; i < 16; ++i) {
+    int idx = dist(rng);
+    auto seek_result = decoder.Seek(idx, SEEKDIR::BEG);
+    ASSERT_NE(seek_result, SEEK_RESULT::FAIL);
+
+    idx = decoder.Tell();
+    handle_decoded_chunk(idx, decoder.DecodeNext());
+  }
+
+  ASSERT_NE(decoder.Seek(0, SEEKDIR::BEG), SEEK_RESULT::FAIL);
+  size_t idx = 0;
+  for (size_t i = 0; i < n; ++i) {
+    if (has_value[i])
+      continue;
+    decoder.Seek(i - idx, SEEKDIR::CUR);
+    idx = decoder.Tell();
+    handle_decoded_chunk(idx, decoder.DecodeNext());
+    idx = decoder.Tell();
+  }
+
+  EXPECT_LE(Deviation(actual_wav, expect_wav), maxstd);
 }
 
 std::vector<fs::path> GetTestNwaFiles() {

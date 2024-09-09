@@ -27,6 +27,8 @@
 #include <algorithm>
 #include <sstream>
 
+using pcm_count_t = NwaDecoder::pcm_count_t;
+
 // -----------------------------------------------------------------------
 // class NwaHQDecoder
 // -----------------------------------------------------------------------
@@ -43,6 +45,8 @@ class NwaHQDecoder : public NwaDecoderImpl {
     SetChunkSize(default_chunk_size);
   }
 
+  std::string DecoderName() const override { return "NwaHQDecoder"; }
+
   std::vector<avsample_s16_t> DecodeAll() override {
     const int sample_count = header_->total_sample_count;
     std::vector<avsample_s16_t> ret(sample_count);
@@ -57,7 +61,8 @@ class NwaHQDecoder : public NwaDecoderImpl {
           "DecodeNext() called when no more data is available for decoding.");
 
     const size_t remain_samples = header_->total_sample_count - Location();
-    const size_t sample_count = std::min(remain_samples, chunk_size_);
+    const size_t sample_count =
+        std::min(remain_samples, chunk_size_ * header_->channel_count);
 
     std::vector<avsample_s16_t> ret(sample_count);
     std::copy_n(cursor_, ret.size(), ret.begin());
@@ -72,6 +77,26 @@ class NwaHQDecoder : public NwaDecoderImpl {
   size_t Location() const noexcept { return cursor_ - sample_stream_; }
 
   void SetChunkSize(size_t size) { chunk_size_ = size; }
+
+  SEEK_RESULT Seek(long long offset, SEEKDIR whence) override {
+    offset *= header_->channel_count;
+    switch (whence) {
+      case SEEKDIR::BEG:
+        cursor_ = sample_stream_ + offset;
+        break;
+      case SEEKDIR::CUR:
+        cursor_ = sample_stream_ + (Location() + offset);
+        break;
+      case SEEKDIR::END:
+        cursor_ = (sample_stream_ + header_->total_sample_count) + offset;
+        break;
+      default:
+        return SEEK_RESULT::FAIL;
+    }
+    return SEEK_RESULT::PRECISE_SEEK;
+  }
+
+  pcm_count_t Tell() override { return Location() / header_->channel_count; }
 
  private:
   void ValidateData() {
@@ -118,6 +143,8 @@ class NwaCompDecoder : public NwaDecoderImpl {
     ValidateData();
   }
 
+  std::string DecoderName() const override { return "NwaCompDecoder"; }
+
   std::vector<avsample_s16_t> DecodeAll() override {
     std::vector<avsample_s16_t> ret;
     ret.reserve(header_->samples_per_unit * header_->unit_count);
@@ -131,7 +158,8 @@ class NwaCompDecoder : public NwaDecoderImpl {
   std::vector<avsample_s16_t> DecodeNext() override {
     if (current_unit_ >= unit_count_)
       throw std::logic_error(
-          "DecodeNext() called when no more data is available for decoding.");
+          "DecodeNext() called when no more data is available for "
+          "decoding.");
     return DecodeUnit(current_unit_++);
   }
 
@@ -234,6 +262,60 @@ class NwaCompDecoder : public NwaDecoderImpl {
     return samples;
   }
 
+  pcm_count_t SamplesBefore(int unit_id) {
+    if (unit_id == unit_count_) {
+      return (unit_count_ - 1) * header_->samples_per_unit +
+             header_->last_unit_sample_count;
+    } else {
+      return unit_id * header_->samples_per_unit;
+    }
+  }
+
+  SEEK_RESULT Seek(long long offset, SEEKDIR whence) override {
+    long long target_offset = 0;
+    offset *= header_->channel_count;
+
+    switch (whence) {
+      case SEEKDIR::BEG:
+        target_offset = offset;
+        break;
+      case SEEKDIR::CUR:
+        target_offset = Tell() * header_->channel_count + offset;
+        break;
+      case SEEKDIR::END:
+        target_offset = header_->total_sample_count + offset;
+        break;
+      default:
+        return SEEK_RESULT::FAIL;
+    }
+
+    if (target_offset < 0 || target_offset >= header_->total_sample_count) {
+      std::ostringstream oss;
+      oss << DecoderName() << ": ";
+      oss << "Seek out of range (" << 0 << ',' << header_->total_sample_count
+          << ") ";
+      oss << '[' << target_offset << ']';
+      throw std::invalid_argument(oss.str());
+    }
+
+    long long result_offset = 0;
+    for (int i = 0; i < unit_count_; ++i) {
+      auto this_offset = SamplesBefore(i);
+      if (this_offset <= target_offset) {
+        result_offset = this_offset;
+        current_unit_ = i;
+      } else
+        break;
+    }
+
+    return result_offset == target_offset ? SEEK_RESULT::PRECISE_SEEK
+                                          : SEEK_RESULT::IMPRECISE_SEEK;
+  }
+
+  pcm_count_t Tell() override {
+    return SamplesBefore(current_unit_) / header_->channel_count;
+  }
+
  private:
   void ValidateData() {
     std::ostringstream os;
@@ -287,7 +369,11 @@ NwaDecoder::NwaDecoder(std::string_view data)
 NwaDecoder::NwaDecoder(char* data, size_t length)
     : NwaDecoder(std::string_view(data, length)) {}
 
-std::string NwaDecoder::DecoderName() const { return "NwaDecoder"; }
+std::string NwaDecoder::DecoderName() const {
+  if (impl_)
+    return impl_->DecoderName();
+  return "NwaDecoder(no implementation)";
+}
 
 AudioData NwaDecoder::DecodeNext() {
   return AudioData{.spec = GetSpec(), .data = impl_->DecodeNext()};
@@ -308,7 +394,8 @@ AVSpec NwaDecoder::GetSpec() {
 void NwaDecoder::ValidateHeader() const {
   if (data_.size() <= sizeof(NwaHeader)) {
     throw std::runtime_error(
-        "Invalid NWA data: data size is too small to contain a valid header.");
+        "Invalid NWA data: data size is too small to contain a valid "
+        "header.");
   }
 
   std::ostringstream os;
@@ -339,11 +426,7 @@ void NwaDecoder::CreateImplementation() {
 }
 
 SEEK_RESULT NwaDecoder::Seek(long long offset, SEEKDIR whence) {
-  if (whence != SEEKDIR::BEG || offset != 0)
-    throw std::invalid_argument(
-        "Only rewind back to the beginning is currently supported for nwa "
-        "decoder");
-  impl_->Rewind();
-
-  return SEEK_RESULT::PRECISE_SEEK;
+  return impl_->Seek(offset, whence);
 }
+
+pcm_count_t NwaDecoder::Tell() { return impl_->Tell(); }

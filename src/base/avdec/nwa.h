@@ -53,10 +53,13 @@ class NwaDecoderImpl {
  public:
   virtual ~NwaDecoderImpl() = default;
 
+  virtual std::string DecoderName() const = 0;
   virtual bool HasNext() = 0;
   virtual std::vector<avsample_s16_t> DecodeNext() = 0;
   virtual std::vector<avsample_s16_t> DecodeAll() = 0;
   virtual void Rewind() = 0;
+  virtual SEEK_RESULT Seek(long long offset, SEEKDIR whence = SEEKDIR::CUR) = 0;
+  virtual long long Tell() = 0;
 };
 
 // Main NWA Decoder class
@@ -76,6 +79,8 @@ class NwaDecoder : public IAudioDecoder {
   AVSpec GetSpec() override;
 
   SEEK_RESULT Seek(long long offset, SEEKDIR whence = SEEKDIR::CUR) override;
+
+  pcm_count_t Tell() override;
 
  private:
   std::string_view data_;
