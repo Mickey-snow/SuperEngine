@@ -139,6 +139,7 @@ struct AudioData {
 
   // Initializes the audio data buffer based on spec.sample_format.
   void PrepareDatabuf();
+  void Clear() { PrepareDatabuf(); }
 
   size_t SampleCount() const;
 

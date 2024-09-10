@@ -28,17 +28,17 @@
 
 using sample_count_t = AudioPlayer::sample_count_t;
 
-// -----------------------------------------------------------------------
-
-class VolumeAdjustCmd : public AudioPlayer::ICommand {
+namespace predefined_audioplayer_commands {
+class AdjustVolume : public AudioPlayer::ICommand {
  public:
-  VolumeAdjustCmd(float start_volume,
-                  float end_volume,
-                  sample_count_t fadein_samples)
+  AdjustVolume(float start_volume,
+               float end_volume,
+               sample_count_t fadein_samples)
       : start_volume_(start_volume),
         end_volume_(end_volume),
         samples_(fadein_samples),
         faded_samples_(0) {}
+  std::string Name() const override { return "AdjustVolume"; }
   void Execute(AudioPlayer::AudioFrame& af) override {
     std::visit(
         [&](auto& data) {
@@ -58,10 +58,34 @@ class VolumeAdjustCmd : public AudioPlayer::ICommand {
   sample_count_t samples_, faded_samples_;
 };
 
-// -----------------------------------------------------------------------
+class TerminateAfterNLoops : public AudioPlayer::ICommand {
+ public:
+  TerminateAfterNLoops(AudioPlayer& player, sample_count_t cur, int n)
+      : player_(player), cur_(cur), n_(n) {}
+  std::string Name() const override { return "TerminateAfterNLoops"; }
+  void Execute(AudioPlayer::AudioFrame& af) override {
+    if (af.cur < cur_)
+      --n_;
+    cur_ = af.cur;
+    if (IsFinished()) {
+      af.ad.Clear();
+      player_.Terminate();
+    }
+  }
+  bool IsFinished() override { return n_ < 0; }
 
+ private:
+  AudioPlayer& player_;
+  sample_count_t cur_;
+  int n_;
+};
+
+}  // namespace predefined_audioplayer_commands
+
+inline static size_t aplayer_id = 0;
 AudioPlayer::AudioPlayer(AudioDecoder&& dec)
-    : decoder_(std::move(dec)),
+    : name_("AudioPlayer (" + std::to_string(++aplayer_id) + ')'),
+      decoder_(std::move(dec)),
       loop_fr_(),
       loop_to_(),
       status_(decoder_.HasNext() ? STATUS::PLAYING : STATUS::TERMINATED),
@@ -70,14 +94,31 @@ AudioPlayer::AudioPlayer(AudioDecoder&& dec)
       volume_(1.0f) {}
 
 AudioPlayer::time_ms_t AudioPlayer::GetCurrentTime() const {
-  long long location;
-  if (buffer_.has_value())
-    location = buffer_->cur;
-  else
-    location = decoder_.Tell();
-
-  return location * 1000 / spec.sample_rate;
+  return PcmLocation() * 1000 / spec.sample_rate;
 }
+
+struct Multiply {
+  Multiply(float x) : x_(x) {}
+  template <typename T>
+  void operator()(std::vector<T>& data) {
+    for (auto& it : data)
+      it *= x_;
+  }
+  float x_;
+};
+
+struct FillZeros {
+  FillZeros(size_t count) : cnt(count) {}
+  template <typename T>
+  void operator()(std::vector<T>& data) {
+    T silent = T();
+    if constexpr (std::is_unsigned_v<T>)
+      silent = static_cast<T>(std::numeric_limits<T>::max() / 2);
+    data.resize(data.size() + cnt);
+    std::fill(data.end() - cnt, data.end(), silent);
+  }
+  size_t cnt;
+};
 
 AudioData AudioPlayer::LoadPCM(sample_count_t nsamples) {
   if (nsamples <= 0)
@@ -104,12 +145,7 @@ AudioData AudioPlayer::LoadPCM(sample_count_t nsamples) {
       ret.Append(std::move(next.ad));
     }
 
-    std::visit(
-        [&](auto& data) {
-          for (auto& it : data)
-            it *= volume_;
-        },
-        ret.data);
+    std::visit(Multiply(volume_), ret.data);
 
     if (ret.SampleCount() > nsamples) {
       std::visit(
@@ -127,20 +163,8 @@ AudioData AudioPlayer::LoadPCM(sample_count_t nsamples) {
   }
 
   nsamples -= ret.SampleCount();
-  if (nsamples > 0) {
-    std::visit(
-        [&nsamples](auto& data) {
-          using container_t = std::decay_t<decltype(data)>;
-          using value_t = typename container_t::value_type;
-          value_t silent = value_t();
-          if constexpr (std::is_unsigned_v<value_t>)
-            silent =
-                static_cast<value_t>(std::numeric_limits<value_t>::max() / 2);
-          while (nsamples--)
-            data.push_back(silent);
-        },
-        ret.data);
-  }
+  if (nsamples > 0)
+    std::visit(FillZeros(nsamples), ret.data);
 
   return ret;
 }
@@ -153,9 +177,8 @@ AudioData AudioPlayer::LoadRemain() {
   if (status_ == STATUS::PAUSED)
     return ret;
 
-  auto cur = decoder_.Tell();
+  auto cur = PcmLocation();
   if (buffer_.has_value()) {
-    cur = buffer_->cur;
     ret = buffer_->ad;
     buffer_.reset();
   }
@@ -173,42 +196,47 @@ AudioData AudioPlayer::LoadRemain() {
     ret.Append(std::move(next.ad));
   }
 
-  std::visit(
-      [&](auto& data) {
-        for (auto& it : data)
-          it *= volume_;
-      },
-      ret.data);
-
+  std::visit(Multiply(volume_), ret.data);
   return ret;
 }
 
 bool AudioPlayer::IsLoopingEnabled() const { return loop_fr_.has_value(); }
 
-void AudioPlayer::SetLoop(size_t loop_fr, size_t loop_to) {
-  if (loop_fr >= loop_to) {
+void AudioPlayer::SetLoop(size_t ab_loop_a, size_t ab_loop_b) {
+  if (ab_loop_a >= ab_loop_b) {
     std::ostringstream oss;
-    oss << "Loop from (" << loop_fr << ')';
-    oss << " must be less than loop to (" << loop_to << ").";
+    oss << "Loop from (" << ab_loop_a << ')';
+    oss << " must be less than loop to (" << ab_loop_b << ").";
     throw std::invalid_argument(oss.str());
   }
 
-  loop_fr_ = loop_fr;
-  loop_to_ = loop_to;
+  loop_fr_ = ab_loop_a;
+  loop_to_ = ab_loop_b;
 
-  auto cur = buffer_.has_value() ? buffer_->cur : decoder_.Tell();
-  if (cur < loop_fr || cur >= loop_to) {
+  auto cur = PcmLocation();
+  if (cur < ab_loop_a || cur >= ab_loop_b) {
     buffer_.reset();
-    decoder_.Seek(loop_fr, SEEKDIR::BEG);
+    decoder_.Seek(ab_loop_a, SEEKDIR::BEG);
   }
 }
 
-void AudioPlayer::SetLooping(bool loop) {
-  if (loop) {
-    SetLoop(0, npos);
+void AudioPlayer::SetLoopTimes(int n) {
+  using namespace predefined_audioplayer_commands;
+  for (auto it = cmd_.begin(); it != cmd_.end();) {
+    if (it->get()->Name() == "TerminateAfterNLoops")
+      it = cmd_.erase(it);
+    else
+      ++it;
+  }
+
+  loop_fr_ = loop_fr_.value_or(0);
+  loop_to_ = loop_to_.value_or(npos);
+
+  if (n < 0) {  // infinity loop
+    return;
   } else {
-    loop_fr_.reset();
-    loop_to_.reset();
+    cmd_.emplace_back(
+        std::make_unique<TerminateAfterNLoops>(*this, PcmLocation(), n));
   }
 }
 
@@ -218,20 +246,27 @@ AudioPlayer::STATUS AudioPlayer::GetStatus() const { return status_; }
 
 void AudioPlayer::Terminate() { status_ = STATUS::TERMINATED; }
 
+void AudioPlayer::SetName(std::string name) { name_ = std::move(name); }
+
+std::string AudioPlayer::GetName() const { return name_; }
+
 void AudioPlayer::FadeIn(float fadein_ms) {
+  using namespace predefined_audioplayer_commands;
   auto fadein_samples = TimeToSampleCount(fadein_ms);
-  cmd_.emplace_back(std::make_unique<VolumeAdjustCmd>(0, 1, fadein_samples));
+  cmd_.emplace_back(std::make_unique<AdjustVolume>(0, 1, fadein_samples));
 }
 
 void AudioPlayer::FadeOut(float fadeout_ms, bool should_then_terminate) {
+  using namespace predefined_audioplayer_commands;
   auto fadeout_samples = TimeToSampleCount(fadeout_ms);
-  cmd_.emplace_back(std::make_unique<VolumeAdjustCmd>(1, 0, fadeout_samples));
+  cmd_.emplace_back(std::make_unique<AdjustVolume>(1, 0, fadeout_samples));
 
   if (should_then_terminate) {
     class TerminateAfter : public ICommand {
      public:
       TerminateAfter(AudioPlayer& client, sample_count_t samples)
           : client_(client), samples_(samples) {}
+      std::string Name() const override { return "TerminateAfter"; }
       void Execute(AudioFrame& af) override {
         samples_ -= af.SampleCount();
         if (IsFinished())
@@ -328,6 +363,10 @@ void AudioPlayer::ClipFrame(AudioFrame& frame) const {
         },
         frame.ad.data);
   }
+}
+
+sample_count_t AudioPlayer::PcmLocation() const {
+  return buffer_.has_value() ? buffer_->cur : decoder_.Tell();
 }
 
 static constexpr auto s_over_ms = 1000;

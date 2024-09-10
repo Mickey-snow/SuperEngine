@@ -46,11 +46,13 @@ class AudioPlayer {
   AudioData LoadPCM(sample_count_t nsamples);
   AudioData LoadRemain();
   bool IsLoopingEnabled() const;
-  void SetLooping(bool loop);
-  void SetLoop(size_t loop_fr, size_t loop_to);
+  void SetLoop(size_t ab_loop_a = 0, size_t ab_loop_b = npos);
+  void SetLoopTimes(int N);
   bool IsPlaying() const;
   STATUS GetStatus() const;
   void Terminate();
+  void SetName(std::string);
+  std::string GetName() const;
 
   void FadeIn(float fadein_ms);
   void FadeOut(float fadeout_ms, bool should_then_terminate = true);
@@ -64,29 +66,33 @@ class AudioPlayer {
     long long cur;
     size_t SampleCount() const { return ad.SampleCount(); }
   };
+
   class ICommand {
    public:
     virtual ~ICommand() = default;
+    virtual std::string Name() const = 0;
     virtual void Execute(AudioFrame&) = 0;
     virtual bool IsFinished() = 0;
   };
+  friend class ICommand;
 
  private:
   void OnEndOfPlayback();
   AudioFrame LoadNext();
   void ClipFrame(AudioFrame&) const;
+  sample_count_t PcmLocation() const;
+  sample_count_t TimeToSampleCount(time_ms_t time);
+  time_ms_t SampleCountToTime(sample_count_t samples);
 
+ private:
+  std::string name_;
   AudioDecoder decoder_;
   std::optional<size_t> loop_fr_, loop_to_;
   STATUS status_;
   AVSpec spec;
   std::optional<AudioFrame> buffer_;
   float volume_;
-
   std::list<std::unique_ptr<ICommand>> cmd_;
-
-  sample_count_t TimeToSampleCount(time_ms_t time);
-  time_ms_t SampleCountToTime(sample_count_t samples);
 };
 
 using player_t = std::shared_ptr<AudioPlayer>;

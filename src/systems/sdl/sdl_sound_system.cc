@@ -79,7 +79,7 @@ void SDLSoundSystem::WavPlayImpl(const std::string& wav_file,
   if (is_pcm_enabled()) {
     fs::path wav_file_path = system().FindFile(wav_file, SOUND_FILETYPES);
     player_t player = CreateAudioPlayer(wav_file_path);
-    player->SetLooping(loop);
+    player->SetLoopTimes(loop?-1:0);
     SetChannelVolumeImpl(channel);
     sound_impl_->PlayChannel(channel, player);
   }
@@ -222,7 +222,7 @@ void SDLSoundSystem::WavPlay(const std::string& wav_file,
   if (is_pcm_enabled()) {
     auto wav_file_path = system().FindFile(wav_file, SOUND_FILETYPES);
     player_t player = CreateAudioPlayer(wav_file_path);
-    player->SetLooping(loop);
+    player->SetLoopTimes(loop?-1:0);
     player->FadeIn(fadein_ms);
     SetChannelVolumeImpl(channel);
     sound_impl_->PlayChannel(channel, player);
@@ -276,7 +276,7 @@ void SDLSoundSystem::PlaySe(const int se_num) {
 
     auto file_path = system().FindFile(file_name, SOUND_FILETYPES);
     player_t player = CreateAudioPlayer(file_path);
-    player->SetLooping(false);
+    player->SetLoopTimes(0);
 
     // SE chunks have no volume other than the modifier.
     sound_impl_->SetVolume(channel,
