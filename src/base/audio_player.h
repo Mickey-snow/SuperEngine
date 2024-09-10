@@ -38,6 +38,8 @@ class AudioPlayer {
 
   static constexpr size_t npos = std::numeric_limits<int32_t>::max();
 
+  enum class STATUS { TERMINATED, PAUSED, PLAYING };
+
   AudioPlayer(AudioDecoder&& dec);
 
   time_ms_t GetCurrentTime() const;
@@ -47,10 +49,15 @@ class AudioPlayer {
   void SetLooping(bool loop);
   void SetLoop(size_t loop_fr, size_t loop_to);
   bool IsPlaying() const;
+  STATUS GetStatus() const;
   void Terminate();
 
   void FadeIn(float fadein_ms);
   void FadeOut(float fadeout_ms, bool should_then_terminate = true);
+  void SetVolume(float vol);
+  float GetVolume() const;
+  void Pause();
+  void Unpause();
 
   struct AudioFrame {
     AudioData ad;
@@ -71,9 +78,10 @@ class AudioPlayer {
 
   AudioDecoder decoder_;
   std::optional<size_t> loop_fr_, loop_to_;
-  bool is_active_;
+  STATUS status_;
   AVSpec spec;
   std::optional<AudioFrame> buffer_;
+  float volume_;
 
   std::list<std::unique_ptr<ICommand>> cmd_;
 

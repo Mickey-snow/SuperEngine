@@ -324,3 +324,40 @@ TEST_F(AudioPlayerTest, ABloop) {
                             decoder->buffer_.cbegin() + 3 * quarter_samples);
   EXPECT_LE(Deviation(std::get<std::vector<float>>(result.data), expect), 1e-4);
 }
+
+TEST_F(AudioPlayerTest, PausePlayback) {
+  const auto tot_samples = sample_rate * channel_count * duration;
+
+  auto result = player->LoadPCM(tot_samples * 5 / 8);
+  player->Pause();
+  EXPECT_EQ(player->GetStatus(), AudioPlayer::STATUS::PAUSED);
+
+  auto silent = player->LoadPCM(tot_samples * 3 / 8);
+  EXPECT_EQ(silent.SampleCount(), tot_samples * 3 / 8);
+  EXPECT_LE(Deviation(std::get<std::vector<float>>(silent.data),
+                      std::vector<float>(tot_samples * 3 / 8)),
+            1e-4);
+  EXPECT_EQ(player->LoadRemain().SampleCount(), 0);
+
+  player->Unpause();
+  EXPECT_TRUE(player->IsPlaying());
+  result.Append(player->LoadPCM(tot_samples * 3 / 8));
+}
+
+TEST_F(AudioPlayerTest, AujustVolume) {
+  const auto quarter_samples = sample_rate * channel_count * duration / 4;
+  player->SetLoop(quarter_samples / channel_count,
+                  quarter_samples * 2 / channel_count);
+  std::vector<float> orig_pcm(decoder->buffer_.begin() + quarter_samples,
+                              decoder->buffer_.begin() + quarter_samples * 2);
+  for (int i = 0; i < 4; ++i) {
+    float volume = static_cast<float>(i) / 4.0f;
+    player->SetVolume(volume);
+    auto pcm =
+        std::get<std::vector<float>>(player->LoadPCM(quarter_samples).data);
+    EXPECT_EQ(player->GetVolume(), volume);
+
+    for (int j = 0; j < quarter_samples; ++j)
+      EXPECT_NEAR(pcm[j], orig_pcm[j] * volume, 1e-4);
+  }
+}

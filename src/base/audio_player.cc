@@ -64,9 +64,10 @@ AudioPlayer::AudioPlayer(AudioDecoder&& dec)
     : decoder_(std::move(dec)),
       loop_fr_(),
       loop_to_(),
-      is_active_(decoder_.HasNext()),
+      status_(decoder_.HasNext() ? STATUS::PLAYING : STATUS::TERMINATED),
       spec(decoder_.GetSpec()),
-      buffer_() {}
+      buffer_(),
+      volume_(1.0f) {}
 
 AudioPlayer::time_ms_t AudioPlayer::GetCurrentTime() const {
   long long location;
@@ -87,33 +88,42 @@ AudioData AudioPlayer::LoadPCM(sample_count_t nsamples) {
   ret.spec = spec;
   ret.PrepareDatabuf();
 
-  if (buffer_.has_value()) {
-    ret.Append(buffer_->ad);
-    buffer_.reset();
-  }
+  if (IsPlaying()) {
+    if (buffer_.has_value()) {
+      ret.Append(buffer_->ad);
+      buffer_.reset();
+    }
 
-  auto cur = decoder_.Tell();
-  while (ret.SampleCount() < nsamples) {
-    auto next = LoadNext();
-    if (next.SampleCount() == 0)
-      break;
-    ClipFrame(next);
-    cur = next.cur + next.SampleCount() / spec.channel_count;
-    ret.Append(std::move(next.ad));
-  }
+    auto cur = decoder_.Tell();
+    while (ret.SampleCount() < nsamples) {
+      auto next = LoadNext();
+      if (next.SampleCount() == 0)
+        break;
+      ClipFrame(next);
+      cur = next.cur + next.SampleCount() / spec.channel_count;
+      ret.Append(std::move(next.ad));
+    }
 
-  if (ret.SampleCount() > nsamples) {
     std::visit(
         [&](auto& data) {
-          const auto n = data.size() - nsamples;
-          cur -= n / spec.channel_count;
-
-          using container_t = std::decay_t<decltype(data)>;
-          container_t buf(data.end() - n, data.end());
-          buffer_ = AudioFrame{.ad = {spec, std::move(buf)}, .cur = cur};
-          data.erase(data.end() - n, data.end());
+          for (auto& it : data)
+            it *= volume_;
         },
         ret.data);
+
+    if (ret.SampleCount() > nsamples) {
+      std::visit(
+          [&](auto& data) {
+            const auto n = data.size() - nsamples;
+            cur -= n / spec.channel_count;
+
+            using container_t = std::decay_t<decltype(data)>;
+            container_t buf(data.end() - n, data.end());
+            buffer_ = AudioFrame{.ad = {spec, std::move(buf)}, .cur = cur};
+            data.erase(data.end() - n, data.end());
+          },
+          ret.data);
+    }
   }
 
   nsamples -= ret.SampleCount();
@@ -136,9 +146,14 @@ AudioData AudioPlayer::LoadPCM(sample_count_t nsamples) {
 }
 
 AudioData AudioPlayer::LoadRemain() {
-  auto cur = decoder_.Tell();
   AudioData ret;
+  ret.spec = spec;
+  ret.PrepareDatabuf();
 
+  if (status_ == STATUS::PAUSED)
+    return ret;
+
+  auto cur = decoder_.Tell();
   if (buffer_.has_value()) {
     cur = buffer_->cur;
     ret = buffer_->ad;
@@ -157,6 +172,13 @@ AudioData AudioPlayer::LoadRemain() {
     ClipFrame(next);
     ret.Append(std::move(next.ad));
   }
+
+  std::visit(
+      [&](auto& data) {
+        for (auto& it : data)
+          it *= volume_;
+      },
+      ret.data);
 
   return ret;
 }
@@ -190,9 +212,11 @@ void AudioPlayer::SetLooping(bool loop) {
   }
 }
 
-bool AudioPlayer::IsPlaying() const { return is_active_; }
+bool AudioPlayer::IsPlaying() const { return status_ == STATUS::PLAYING; }
 
-void AudioPlayer::Terminate() { is_active_ = false; }
+AudioPlayer::STATUS AudioPlayer::GetStatus() const { return status_; }
+
+void AudioPlayer::Terminate() { status_ = STATUS::TERMINATED; }
 
 void AudioPlayer::FadeIn(float fadein_ms) {
   auto fadein_samples = TimeToSampleCount(fadein_ms);
@@ -224,6 +248,20 @@ void AudioPlayer::FadeOut(float fadeout_ms, bool should_then_terminate) {
   }
 }
 
+void AudioPlayer::SetVolume(float vol) { volume_ = vol; }
+
+float AudioPlayer::GetVolume() const { return volume_; }
+
+void AudioPlayer::Pause() {
+  if (IsPlaying())
+    status_ = STATUS::PAUSED;
+}
+
+void AudioPlayer::Unpause() {
+  if (status_ == STATUS::PAUSED)
+    status_ = STATUS::PLAYING;
+}
+
 void AudioPlayer::OnEndOfPlayback() {
   size_t seek_to = loop_fr_.value_or(npos);
   if (seek_to != npos)
@@ -233,7 +271,7 @@ void AudioPlayer::OnEndOfPlayback() {
 }
 
 AudioPlayer::AudioFrame AudioPlayer::LoadNext() {
-  if (!is_active_)
+  if (!IsPlaying())
     return {};
   if (!decoder_.HasNext())
     return {};
