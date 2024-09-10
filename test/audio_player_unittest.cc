@@ -359,3 +359,35 @@ TEST_F(AudioPlayerTest, AujustVolume) {
       EXPECT_NEAR(pcm[j], orig_pcm[j] * volume, 1e-4);
   }
 }
+
+TEST_F(AudioPlayerTest, SetPLoop) {
+  const auto quarter_samples = sample_rate * channel_count * duration / 4;
+  player->SetPLoop(quarter_samples / channel_count,
+                   3 * quarter_samples / channel_count,
+                   2 * quarter_samples / channel_count);
+  player->SetLoopTimes(0);
+  auto result = player->LoadPCM(3 * quarter_samples);
+  std::vector<float> expect(decoder->buffer_.begin() + quarter_samples,
+                            decoder->buffer_.begin() + 3 * quarter_samples);
+  expect.resize(3 * quarter_samples);
+
+  ASSERT_EQ(result.SampleCount(), expect.size());
+  EXPECT_LE(Deviation(std::get<std::vector<float>>(result.data), expect), 1e-4);
+}
+
+TEST_F(AudioPlayerTest, PlayPLoop) {
+  const auto quarter_samples = sample_rate * channel_count * duration / 4;
+  player->SetPLoop(quarter_samples / channel_count,
+                   3 * quarter_samples / channel_count,
+                   2 * quarter_samples / channel_count);
+  player->SetLoopTimes(3);
+  auto result = player->LoadPCM(2 * quarter_samples - 6);
+  result.Append(player->LoadPCM(quarter_samples+6));
+  std::vector<float> expect(decoder->buffer_.begin() + quarter_samples,
+                            decoder->buffer_.begin() + 3 * quarter_samples);
+  expect.insert(expect.end(), decoder->buffer_.begin() + 2 * quarter_samples,
+                decoder->buffer_.begin() + 3 * quarter_samples);
+
+  ASSERT_EQ(result.SampleCount(), expect.size());
+  EXPECT_LE(Deviation(std::get<std::vector<float>>(result.data), expect), 1e-4);
+}

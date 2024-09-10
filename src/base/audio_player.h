@@ -47,6 +47,7 @@ class AudioPlayer {
   AudioData LoadRemain();
   bool IsLoopingEnabled() const;
   void SetLoop(size_t ab_loop_a = 0, size_t ab_loop_b = npos);
+  void SetPLoop(size_t from, size_t to, size_t loop);
   void SetLoopTimes(int N);
   bool IsPlaying() const;
   STATUS GetStatus() const;

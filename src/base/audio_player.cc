@@ -136,10 +136,10 @@ AudioData AudioPlayer::LoadPCM(sample_count_t nsamples) {
     }
 
     auto cur = decoder_.Tell();
-    while (ret.SampleCount() < nsamples) {
+    while (ret.SampleCount() < nsamples && IsPlaying()) {
       auto next = LoadNext();
       if (next.SampleCount() == 0)
-        break;
+        continue;
       ClipFrame(next);
       cur = next.cur + next.SampleCount() / spec.channel_count;
       ret.Append(std::move(next.ad));
@@ -218,6 +218,41 @@ void AudioPlayer::SetLoop(size_t ab_loop_a, size_t ab_loop_b) {
     buffer_.reset();
     decoder_.Seek(ab_loop_a, SEEKDIR::BEG);
   }
+}
+
+void AudioPlayer::SetPLoop(size_t from, size_t to, size_t loop) {
+  if (!(from < to && loop < to)) {
+    std::ostringstream oss;
+    oss << "Invalid p-loop: (";
+    oss << from << ',' << loop << ',' << to << ").";
+    throw std::invalid_argument(oss.str());
+  }
+
+  SetLoop(from, to);
+  struct RegisterNextLoop : public ICommand {
+    RegisterNextLoop(AudioPlayer& player, size_t from, size_t to, long long cur)
+        : player_(player), from_(from), to_(to), cur_(cur), fin_(false) {}
+    std::string Name() const override { return "NextLoop"; }
+    void Execute(AudioFrame& af) override {
+      if (IsFinished())
+        return;
+      if (af.cur < cur_) {
+        player_.SetLoop(from_, to_);
+        af.ad.Clear();
+        fin_ = true;
+      }
+      cur_ = af.cur;
+    }
+    bool IsFinished() override { return fin_; }
+
+    AudioPlayer& player_;
+    size_t from_, to_;
+    long long cur_;
+    bool fin_;
+  };
+
+  cmd_.emplace_front(
+      std::make_unique<RegisterNextLoop>(*this, loop, to, PcmLocation()));
 }
 
 void AudioPlayer::SetLoopTimes(int n) {
