@@ -61,6 +61,8 @@ class WavDecoder : public IAudioDecoder {
 
   SEEK_RESULT Seek(long long offset, SEEKDIR whence = SEEKDIR::BEG) override;
 
+  pcm_count_t Tell() override;
+
  private:
   std::string_view wavdata_;
   const fmtHeader* fmt_;

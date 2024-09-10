@@ -34,6 +34,7 @@
 #include <filesystem>
 #include <fstream>
 #include <limits>
+#include <random>
 #include <regex>
 #include <string>
 #include <type_traits>
@@ -140,27 +141,48 @@ TEST_P(WavCodecTest, DecodeWav) {
   EXPECT_LE(Deviation(expect_wav, result_wav), max_std);
 }
 
-TEST_P(WavCodecTest, RewindDecode) {
+TEST_P(WavCodecTest, RandomAccess) {
   const double max_std = 0.075 * exp(-sample_width);
-
   auto file = MappedFile(GetParam());
   WavDecoder decoder(file.Read());
 
-  {
-    auto a = decoder.DecodeNext();
-    auto b = decoder.DecodeNext();
-    AudioData result = AudioData::Concat(std::move(a), std::move(b));
-  }
-  EXPECT_TRUE(decoder.HasNext());
+  auto expect_wav = ReproduceAudio();
+  const auto n = expect_wav.size();
+  std::vector<double> result_wav(n);
+  std::vector<bool> has_value(n);
+  std::mt19937 rng;
+  std::fill(has_value.begin(), has_value.end(), false);
+  std::generate(result_wav.begin(), result_wav.end(), [&]() {
+    static std::uniform_real_distribution<> dist(-1.0, 1.0);
+    return dist(rng);
+  });
 
-  const auto expect_wav = ReproduceAudio();
-  for (int i = 0; i < 3; ++i) {
-    EXPECT_EQ(decoder.Seek(0, SEEKDIR::BEG), SEEK_RESULT::PRECISE_SEEK);
-    EXPECT_TRUE(decoder.HasNext());
-    auto result_wav = Normalize(decoder.DecodeAll().data);
-    EXPECT_LE(Deviation(expect_wav, result_wav), max_std);
-    EXPECT_FALSE(decoder.HasNext());
+  for (int i = 0; i < 16; ++i) {
+    std::uniform_int_distribution<> dist(0, n - 1);
+    auto idx = dist(rng);
+    idx -= idx & 1;
+
+    EXPECT_EQ(decoder.Seek(idx / channel, SEEKDIR::BEG),
+              SEEK_RESULT::PRECISE_SEEK);
+    auto audio_data = Normalize(decoder.DecodeNext().data);
+    EXPECT_EQ(idx + audio_data.size(), decoder.Tell() * channel);
+    std::copy(audio_data.cbegin(), audio_data.cend(), result_wav.begin() + idx);
+    std::fill_n(has_value.begin() + idx, audio_data.size(), true);
   }
+
+  for (size_t i = 0; i < n; i += 2) {
+    if (has_value[i])
+      continue;
+    EXPECT_EQ(decoder.Seek(i / channel, SEEKDIR::BEG),
+              SEEK_RESULT::PRECISE_SEEK);
+    auto ad = decoder.DecodeNext();
+    auto audio_data = Normalize(ad.data);
+    EXPECT_EQ(i + audio_data.size(), decoder.Tell() * channel);
+    std::copy(audio_data.cbegin(), audio_data.cend(), result_wav.begin() + i);
+    std::fill_n(has_value.begin() + i, audio_data.size(), true);
+  }
+
+  EXPECT_LE(Deviation(expect_wav, result_wav), max_std);
 }
 
 TEST_P(WavCodecTest, EncodeRiffHeader) {

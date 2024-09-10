@@ -30,6 +30,8 @@
 #include <sstream>
 #include <stdexcept>
 
+using pcm_count_t = WavDecoder::pcm_count_t;
+
 std::vector<uint8_t> MakeRiffHeader(AVSpec spec, size_t data_cksize) {
   const int sample_width = Bytecount(spec.sample_format);
 
@@ -133,7 +135,7 @@ AudioData WavDecoder::DecodeNext() {
   AudioData result;
   result.spec = GetSpec();
 
-  static constexpr size_t batch_size = 1024;
+  const size_t batch_size = 512 * fmt_->nChannels * (fmt_->wBitsPerSample / 8);
   std::string_view to_decode = remain_data_.size() < batch_size
                                    ? remain_data_
                                    : remain_data_.substr(0, batch_size);
@@ -249,11 +251,33 @@ void WavDecoder::ParseChunks() {
 bool WavDecoder::HasNext() noexcept { return !remain_data_.empty(); }
 
 SEEK_RESULT WavDecoder::Seek(long long offset, SEEKDIR whence) {
-  if (whence != SEEKDIR::BEG || offset != 0)
-    throw std::invalid_argument(
-        "Only rewind back to the beginning is currently supported for wav "
-        "decoder");
-  remain_data_ = data_;
+  offset *= fmt_->nChannels * (fmt_->wBitsPerSample / 8);
+  switch (whence) {
+    case SEEKDIR::BEG:
+      break;
+    case SEEKDIR::CUR:
+      offset += data_.size() - remain_data_.size();
+      break;
+    case SEEKDIR::END:
+      offset += data_.size();
+      break;
+    default:
+      return SEEK_RESULT::FAIL;
+  }
 
+  if (offset < 0 || offset > data_.size()) {
+    std::ostringstream oss;
+    oss << DecoderName() << ": ";
+    oss << "Seek out of range (" << 0 << ',' << data_.size() << ") ";
+    oss << '[' << offset << ']';
+    throw std::invalid_argument(oss.str());
+  }
+
+  remain_data_ = data_.substr(offset);
   return SEEK_RESULT::PRECISE_SEEK;
+}
+
+pcm_count_t WavDecoder::Tell() {
+  long long offset = data_.size() - remain_data_.size();
+  return offset / fmt_->nChannels / (fmt_->wBitsPerSample / 8);
 }
