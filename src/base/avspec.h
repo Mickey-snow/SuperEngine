@@ -85,6 +85,41 @@ struct av_sample_fmt<avsample_dbl_t> {
 template <typename T>
 constexpr AV_SAMPLE_FMT av_sample_fmt_v = av_sample_fmt<T>::value;
 
+template <AV_SAMPLE_FMT fmt>
+struct av_sample_fmt_type {
+  using type = void;
+};
+template <>
+struct av_sample_fmt_type<AV_SAMPLE_FMT::U8> {
+  using type = avsample_u8_t;
+};
+template <>
+struct av_sample_fmt_type<AV_SAMPLE_FMT::S8> {
+  using type = avsample_s8_t;
+};
+template <>
+struct av_sample_fmt_type<AV_SAMPLE_FMT::S16> {
+  using type = avsample_s16_t;
+};
+template <>
+struct av_sample_fmt_type<AV_SAMPLE_FMT::S32> {
+  using type = avsample_s32_t;
+};
+template <>
+struct av_sample_fmt_type<AV_SAMPLE_FMT::S64> {
+  using type = avsample_s64_t;
+};
+template <>
+struct av_sample_fmt_type<AV_SAMPLE_FMT::FLT> {
+  using type = avsample_flt_t;
+};
+template <>
+struct av_sample_fmt_type<AV_SAMPLE_FMT::DBL> {
+  using type = avsample_dbl_t;
+};
+template <AV_SAMPLE_FMT fmt>
+using av_sample_fmt_t = typename av_sample_fmt_type<fmt>::type;
+
 std::string to_string(AV_SAMPLE_FMT fmt);
 
 size_t Bytecount(AV_SAMPLE_FMT fmt) noexcept;

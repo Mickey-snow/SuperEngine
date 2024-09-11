@@ -78,7 +78,6 @@ class AudioPlayer {
     virtual void Execute(AudioFrame&) = 0;
     virtual bool IsFinished() = 0;
   };
-  friend class ICommand;
 
  private:
   void OnEndOfPlayback();

@@ -394,7 +394,18 @@ TEST_F(AudioPlayerTest, PlayPLoop) {
   EXPECT_LE(Deviation(std::get<std::vector<float>>(result.data), expect), 1e-4);
 }
 
-TEST_F(AudioPlayerTest, ThreadSafe) {
+class APlayerConcurrentTest : public ::testing::Test {
+ protected:
+  void SetUp() override {
+    decoder = std::make_shared<NoiseGenerator>();
+    player = std::make_unique<AudioPlayer>(AudioDecoder(decoder));
+  }
+
+  std::shared_ptr<NoiseGenerator> decoder;
+  std::unique_ptr<AudioPlayer> player;
+};
+
+TEST_F(APlayerConcurrentTest, StressTest) {
   const auto quarter_samples = sample_rate * channel_count * duration / 4;
   player->SetLoopTimes(-1);
   std::atomic_bool should_continue = true;
