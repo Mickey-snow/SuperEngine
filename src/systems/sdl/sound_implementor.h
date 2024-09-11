@@ -60,7 +60,10 @@ class SoundSystemImpl {
 
   virtual int FindIdleChannel() const;
   virtual int PlayChannel(int channel, std::shared_ptr<AudioPlayer> audio);
-  virtual int PlayBgm(player_t audio);
+  virtual void PlayBgm(player_t audio);
+  virtual player_t GetBgm() const;
+  virtual void EnableBgm();
+  virtual void DisableBgm();
 
   virtual int FadeOutChannel(int channel, int fadetime) const;
   virtual void HaltChannel(int channel) const;
@@ -71,8 +74,12 @@ class SoundSystemImpl {
   AV_SAMPLE_FMT FromSDLSoundFormat(uint16_t fmt) const;
 
  private:
-  static void OnChannelFinished(int channel); // callback
+  static void OnChannelFinished(int channel);  // callback
 
+ public:
+  static void OnMusic(void*, uint8_t* buffer, int size);  // callback
+
+ private:
   struct ChannelInfo {
     player_t player;
     SoundSystemImpl* implementor;
@@ -84,6 +91,8 @@ class SoundSystemImpl {
   };
 
   static std::vector<ChannelInfo> ch_;
+  static player_t bgm_player_;
+  static bool bgm_enabled_;
 };
 
 #endif

@@ -139,6 +139,7 @@ class SDLMusic : public std::enable_shared_from_this<SDLMusic> {
 
   // The currently playing track.
   static std::shared_ptr<SDLMusic> s_currently_playing;
+  static player_t player;
 
   // Whether we should even be playing music.
   static bool s_bgm_enabled;

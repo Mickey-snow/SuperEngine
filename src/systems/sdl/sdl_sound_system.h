@@ -114,13 +114,13 @@ class SDLSoundSystem : public SoundSystem {
   // Creates an SDLMusic object from a name. Throws if the bgm isn't
   // found.
   std::shared_ptr<SDLMusic> LoadMusic(const std::string& bgm_name);
+  player_t __LoadMusic(const std::string& bgm_name);
+
+  DSTrack FindBgm(const std::string& bgm_name);
 
  private:
   // The bridge to sdl sound implementor
   std::shared_ptr<SoundSystemImpl> sound_impl_;
-
-  SoundChunkCache se_cache_;
-  SoundChunkCache wav_cache_;
 
   // The music to play next as soon as the current track finishes.
   SDLMusicPtr queued_music_;

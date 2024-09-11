@@ -48,6 +48,7 @@ void SoundSystemImpl::QuitSystem() const { SDL_QuitSubSystem(SDL_INIT_AUDIO); }
 void SoundSystemImpl::AllocateChannels(int num) const {
   Mix_AllocateChannels(num);
   ch_.resize(num);
+  Mix_ChannelFinished(&SoundSystemImpl::OnChannelFinished);
 }
 
 int SoundSystemImpl::OpenAudio(int rate,
@@ -119,7 +120,7 @@ int SoundSystemImpl::PlayChannel(int channel,
                              .buffer = std::move(pcm),
                              .chunk = sound_chunk};
 
-  int ret = Mix_PlayChannel(channel, sound_chunk, audio->IsLoopingEnabled());
+  int ret = Mix_PlayChannel(channel, sound_chunk, 0);
   if (ret == -1) {
     ch_[channel].Reset();
     throw std::runtime_error("Failed to play on channel: " +
@@ -129,7 +130,16 @@ int SoundSystemImpl::PlayChannel(int channel,
   return ret;
 }
 
-int SoundSystemImpl::PlayBgm(player_t audio) { return -1; }
+void SoundSystemImpl::PlayBgm(player_t audio) {
+  SDLAudioLocker lock;
+  bgm_player_ = audio;
+}
+
+player_t SoundSystemImpl::GetBgm() const { return bgm_player_; }
+
+void SoundSystemImpl::EnableBgm() { bgm_enabled_ = true; }
+
+void SoundSystemImpl::DisableBgm() { bgm_enabled_ = false; }
 
 int SoundSystemImpl::FadeOutChannel(int channel, int fadetime) const {
   return Mix_FadeOutChannel(channel, fadetime);
@@ -189,7 +199,29 @@ void SoundSystemImpl::OnChannelFinished(int channel) {
     implementor->PlayChannel(channel, player);
 }
 
+void SoundSystemImpl::OnMusic(void*, uint8_t* stream, int len) {
+  memset(stream, 0, len);
+
+  if (!bgm_player_ || !bgm_enabled_)
+    return;
+  if (bgm_player_->GetStatus() == AudioPlayer::STATUS::TERMINATED) {
+    bgm_player_ = nullptr;
+    return;
+  }
+
+  // TODO: Implement logic for sample format other than 16bits width
+  auto audio_data = bgm_player_->LoadPCM(len / 2);
+  std::visit(
+      [&](auto&& data) {
+        memmove(stream, data.data(), len);
+        data.clear();
+      },
+      std::move(audio_data.data));
+}
+
 std::vector<SoundSystemImpl::ChannelInfo> SoundSystemImpl::ch_;
+player_t SoundSystemImpl::bgm_player_ = nullptr;
+bool SoundSystemImpl::bgm_enabled_ = true;
 
 // -----------------------------------------------------------------------
 

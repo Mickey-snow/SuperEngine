@@ -76,6 +76,8 @@ bool AVSpec::operator==(const AVSpec& rhs) const {
          channel_count == rhs.channel_count;
 }
 
+bool AVSpec::operator!=(const AVSpec& rhs) const { return !(*this == rhs); }
+
 void AudioData::PrepareDatabuf() {
   switch (spec.sample_format) {
     case AV_SAMPLE_FMT::U8:

@@ -95,6 +95,7 @@ struct AVSpec {
   int channel_count;
 
   bool operator==(const AVSpec& rhs) const;
+  bool operator!=(const AVSpec& rhs) const;
 };
 
 using avsample_buffer_t = std::variant<std::vector<avsample_u8_t>,

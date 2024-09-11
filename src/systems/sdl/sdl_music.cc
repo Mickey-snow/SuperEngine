@@ -53,6 +53,8 @@ std::shared_ptr<SDLMusic> SDLMusic::s_currently_playing;
 bool SDLMusic::s_bgm_enabled = true;
 int SDLMusic::s_computed_bgm_vol = 128;
 
+player_t SDLMusic::player;
+
 // -----------------------------------------------------------------------
 // SDLMusic
 // -----------------------------------------------------------------------

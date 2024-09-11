@@ -38,7 +38,6 @@
 #include "systems/base/system.h"
 #include "systems/base/system_error.h"
 #include "systems/base/voice_archive.h"
-#include "systems/sdl/sdl_music.h"
 #include "utilities/exception.h"
 
 namespace fs = std::filesystem;
@@ -79,7 +78,7 @@ void SDLSoundSystem::WavPlayImpl(const std::string& wav_file,
   if (is_pcm_enabled()) {
     fs::path wav_file_path = system().FindFile(wav_file, SOUND_FILETYPES);
     player_t player = CreateAudioPlayer(wav_file_path);
-    player->SetLoopTimes(loop?-1:0);
+    player->SetLoopTimes(loop ? -1 : 0);
     SetChannelVolumeImpl(channel);
     sound_impl_->PlayChannel(channel, player);
   }
@@ -95,8 +94,38 @@ std::shared_ptr<SDLMusic> SDLSoundSystem::LoadMusic(
     const std::string& bgm_name) {
   DSTable::const_iterator ds_it =
       ds_table().find(boost::to_lower_copy(bgm_name));
+  // if (ds_it != ds_table().end())
+  //   return SDLMusic::CreateMusic(system(), ds_it->second);
+
+  CDTable::const_iterator cd_it =
+      cd_table().find(boost::to_lower_copy(bgm_name));
+  if (cd_it != cd_table().end()) {
+    std::ostringstream oss;
+    oss << "CD music not supported yet. Could not play track \"" << bgm_name
+        << "\"";
+    throw std::runtime_error(oss.str());
+  }
+
+  std::ostringstream oss;
+  oss << "Could not find music track \"" << bgm_name << "\"";
+  throw std::runtime_error(oss.str());
+}
+
+player_t SDLSoundSystem::__LoadMusic(const std::string& bgm_name) {
+  auto track = FindBgm(bgm_name);
+  auto file_path = system().FindFile(track.file, SOUND_FILETYPES);
+
+  player_t player = CreateAudioPlayer(file_path);
+  player->SetName(track.name);
+  player->SetPLoop(track.from, track.to, track.loop);
+  return player;
+}
+
+SoundSystem::DSTrack SDLSoundSystem::FindBgm(const std::string& bgm_name) {
+  DSTable::const_iterator ds_it =
+      ds_table().find(boost::to_lower_copy(bgm_name));
   if (ds_it != ds_table().end())
-    return SDLMusic::CreateMusic(system(), ds_it->second);
+    return ds_it->second;
 
   CDTable::const_iterator cd_it =
       cd_table().find(boost::to_lower_copy(bgm_name));
@@ -117,13 +146,12 @@ std::shared_ptr<SDLMusic> SDLSoundSystem::LoadMusic(
 // -----------------------------------------------------------------------
 SDLSoundSystem::SDLSoundSystem(System& system,
                                std::shared_ptr<SoundSystemImpl> impl)
-    : SoundSystem(system), sound_impl_(impl), se_cache_(5), wav_cache_(5) {
+    : SoundSystem(system), sound_impl_(impl) {
   // Set up audio implementor for SDLMusic and SDLSoundChunk
   // if an implementor is not specified, use default sdl
   if (sound_impl_ == nullptr)
     sound_impl_ = std::make_shared<SoundSystemImpl>();
   sound_impl_->InitSystem();
-  SDLMusic::SetImplementor(sound_impl_);
 
   /* We're going to be requesting certain things from our audio
      device, so we set them up beforehand */
@@ -142,15 +170,8 @@ SDLSoundSystem::SDLSoundSystem(System& system,
     throw SystemError(oss.str());
   }
 
-  // Jagarl's sound system wants information on the audio settings.
-  // TODO: remove this
-  AVSpec spec = sound_impl_->QuerySpec();
-  WAVFILE::freq = spec.sample_rate;
-  WAVFILE::format = sound_impl_->ToSDLSoundFormat(spec.sample_format);
-  WAVFILE::channels = spec.channel_count;
-
   sound_impl_->AllocateChannels(NUM_TOTAL_CHANNELS);
-  sound_impl_->HookMusic(&SDLMusic::MixMusic, NULL);
+  sound_impl_->HookMusic(&SoundSystemImpl::OnMusic, NULL);
 }
 
 SDLSoundSystem::~SDLSoundSystem() {
@@ -162,21 +183,31 @@ SDLSoundSystem::~SDLSoundSystem() {
 void SDLSoundSystem::ExecuteSoundSystem() {
   SoundSystem::ExecuteSoundSystem();
 
-  if (queued_music_ && !SDLMusic::IsCurrentlyPlaying()) {
-    queued_music_->FadeIn(queued_music_loop_, queued_music_fadein_);
-    queued_music_.reset();
-  }
+  // if (queued_music_ && !SDLMusic::IsCurrentlyPlaying()) {
+  //   queued_music_->FadeIn(queued_music_loop_, queued_music_fadein_);
+  //   queued_music_.reset();
+  // }
 }
 
 void SDLSoundSystem::SetBgmEnabled(const int in) {
-  SDLMusic::SetBgmEnabled(in);
+  if (in)
+    sound_impl_->EnableBgm();
+  else
+    sound_impl_->DisableBgm();
   SoundSystem::SetBgmEnabled(in);
 }
 
 void SDLSoundSystem::SetBgmVolumeMod(const int in) {
   SoundSystem::SetBgmVolumeMod(in);
-  SDLMusic::SetComputedBgmVolume(
-      compute_channel_volume(in, bgm_volume_script()));
+  // SDLMusic::SetComputedBgmVolume(
+  //     compute_channel_volume(in, bgm_volume_script()));
+
+  player_t player = sound_impl_->GetBgm();
+  if (player) {
+    float volume =
+        static_cast<float>(in * bgm_volume_script()) / (255.0 * 255.0);
+    player->SetVolume(volume);
+  }
 }
 
 void SDLSoundSystem::SetBgmVolumeScript(const int level, int fade_in_ms) {
@@ -185,8 +216,15 @@ void SDLSoundSystem::SetBgmVolumeScript(const int level, int fade_in_ms) {
     // If a fade was requested by the script, we don't want to set the volume
     // here right now. This is only slightly cleaner than having separate
     // methods because of the function casting in the modules.
-    SDLMusic::SetComputedBgmVolume(
-        compute_channel_volume(bgm_volume_mod(), level));
+    // SDLMusic::SetComputedBgmVolume(
+    //     compute_channel_volume(bgm_volume_mod(), level));
+
+    player_t player = sound_impl_->GetBgm();
+    if (player) {
+      float volume =
+          static_cast<float>(bgm_volume_mod() * level) / (255.0 * 255.0);
+      player->SetVolume(volume);
+    }
   }
 }
 
@@ -222,7 +260,7 @@ void SDLSoundSystem::WavPlay(const std::string& wav_file,
   if (is_pcm_enabled()) {
     auto wav_file_path = system().FindFile(wav_file, SOUND_FILETYPES);
     player_t player = CreateAudioPlayer(wav_file_path);
-    player->SetLoopTimes(loop?-1:0);
+    player->SetLoopTimes(loop ? -1 : 0);
     player->FadeIn(fadein_ms);
     SetChannelVolumeImpl(channel);
     sound_impl_->PlayChannel(channel, player);
@@ -286,18 +324,19 @@ void SDLSoundSystem::PlaySe(const int se_num) {
 }
 
 int SDLSoundSystem::BgmStatus() const {
-  std::shared_ptr<SDLMusic> currently_playing = SDLMusic::CurrnetlyPlaying();
-  if (currently_playing) {
-    return currently_playing->BgmStatus();
-  } else {
+  auto player = sound_impl_->GetBgm();
+  if (!player)
     return 0;
-  }
+
+  if (player->GetStatus() == AudioPlayer::STATUS::PLAYING)
+    return 1;
+  return 0;
 }
 
 void SDLSoundSystem::BgmPlay(const std::string& bgm_name, bool loop) {
   if (!boost::iequals(GetBgmName(), bgm_name)) {
-    std::shared_ptr<SDLMusic> bgm = LoadMusic(bgm_name);
-    bgm->Play(loop);
+    player_t player = __LoadMusic(bgm_name);
+    sound_impl_->PlayBgm(player);
   }
 }
 
@@ -305,8 +344,9 @@ void SDLSoundSystem::BgmPlay(const std::string& bgm_name,
                              bool loop,
                              int fade_in_ms) {
   if (!boost::iequals(GetBgmName(), bgm_name)) {
-    std::shared_ptr<SDLMusic> bgm = LoadMusic(bgm_name);
-    bgm->FadeIn(loop, fade_in_ms);
+    player_t player = __LoadMusic(bgm_name);
+    player->FadeIn(fade_in_ms);
+    sound_impl_->PlayBgm(player);
   }
 }
 
@@ -315,53 +355,45 @@ void SDLSoundSystem::BgmPlay(const std::string& bgm_name,
                              int fade_in_ms,
                              int fade_out_ms) {
   if (!boost::iequals(GetBgmName(), bgm_name)) {
-    queued_music_ = LoadMusic(bgm_name);
-    queued_music_loop_ = loop;
-    queued_music_fadein_ = fade_in_ms;
-
-    BgmFadeOut(fade_out_ms);
+    player_t player = __LoadMusic(bgm_name);
+    player->FadeIn(fade_in_ms);
+    // TODO: Fade out currently playing bgm
+    sound_impl_->PlayBgm(player);
   }
 }
 
 void SDLSoundSystem::BgmStop() {
-  std::shared_ptr<SDLMusic> currently_playing = SDLMusic::CurrnetlyPlaying();
-  if (currently_playing)
-    currently_playing->Stop();
+  player_t player = sound_impl_->GetBgm();
+  if (player)
+    player->Terminate();
 }
 
 void SDLSoundSystem::BgmPause() {
-  std::shared_ptr<SDLMusic> currently_playing = SDLMusic::CurrnetlyPlaying();
-  if (currently_playing)
-    currently_playing->Pause();
+  player_t player = sound_impl_->GetBgm();
+  if (player)
+    player->Pause();
 }
 
 void SDLSoundSystem::BgmUnPause() {
-  std::shared_ptr<SDLMusic> currently_playing = SDLMusic::CurrnetlyPlaying();
-  if (currently_playing)
-    currently_playing->Unpause();
+  player_t player = sound_impl_->GetBgm();
+  if (player)
+    player->Unpause();
 }
 
 void SDLSoundSystem::BgmFadeOut(int fade_out_ms) {
-  std::shared_ptr<SDLMusic> currently_playing = SDLMusic::CurrnetlyPlaying();
-  if (currently_playing)
-    currently_playing->FadeOut(fade_out_ms);
+  player_t player = sound_impl_->GetBgm();
+  if (player)
+    player->FadeOut(fade_out_ms);
 }
 
 std::string SDLSoundSystem::GetBgmName() const {
-  std::shared_ptr<SDLMusic> currently_playing = SDLMusic::CurrnetlyPlaying();
-  if (currently_playing)
-    return currently_playing->GetName();
-  else
-    return "";
+  auto player = sound_impl_->GetBgm();
+  if (player)
+    return player->GetName();
+  return "";
 }
 
-bool SDLSoundSystem::BgmLooping() const {
-  std::shared_ptr<SDLMusic> currently_playing = SDLMusic::CurrnetlyPlaying();
-  if (currently_playing)
-    return currently_playing->IsLooping();
-  else
-    return false;
-}
+bool SDLSoundSystem::BgmLooping() const { return true; }
 
 bool SDLSoundSystem::KoePlaying() const {
   return sound_impl_->IsPlaying(KOE_CHANNEL);
@@ -387,13 +419,4 @@ void SDLSoundSystem::Reset() {
   WavStopAll();
 
   SoundSystem::Reset();
-}
-
-void SDLSoundSystem::SetMusicHook(void (*mix_func)(void* udata,
-                                                   uint8_t* stream,
-                                                   int len)) {
-  if (!mix_func)
-    mix_func = &SDLMusic::MixMusic;
-
-  sound_impl_->HookMusic(mix_func, NULL);
 }
