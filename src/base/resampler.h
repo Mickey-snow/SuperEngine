@@ -25,7 +25,7 @@
 #ifndef SRC_BASE_RESAMPLER_H_
 #define SRC_BASE_RESAMPLER_H_
 
-#include "base/avspec.h"
+#include "base/audio_data.h"
 
 #include <memory>
 
