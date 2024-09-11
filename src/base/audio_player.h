@@ -30,6 +30,7 @@
 
 #include <deque>
 #include <list>
+#include <mutex>
 
 class AudioPlayer {
  public:
@@ -47,11 +48,13 @@ class AudioPlayer {
   AudioData LoadRemain();
   bool IsLoopingEnabled() const;
   void SetLoop(size_t ab_loop_a = 0, size_t ab_loop_b = npos);
+  void SetLoopImpl(size_t fr, size_t to);
   void SetPLoop(size_t from, size_t to, size_t loop);
   void SetLoopTimes(int N);
   bool IsPlaying() const;
   STATUS GetStatus() const;
   void Terminate();
+  void TerminateImpl();
   void SetName(std::string);
   std::string GetName() const;
 
@@ -94,6 +97,8 @@ class AudioPlayer {
   std::optional<AudioFrame> buffer_;
   float volume_;
   std::list<std::unique_ptr<ICommand>> cmd_;
+
+  mutable std::mutex mutex_;
 };
 
 using player_t = std::shared_ptr<AudioPlayer>;
