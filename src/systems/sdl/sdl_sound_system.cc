@@ -51,22 +51,16 @@ inline static int realLiveVolumeToSDLMixerVolume(int in_vol) {
 // -----------------------------------------------------------------------
 // RealLive Sound Qualities table
 // -----------------------------------------------------------------------
-struct RealLiveSoundQualities {
-  int rate;
-  AV_SAMPLE_FMT format;
-};
 
-// A mapping between SoundQualities() and the values need to be passed
-// to Mix_OpenAudio()
-static RealLiveSoundQualities s_real_live_sound_qualities[] = {
-    {11025, AV_SAMPLE_FMT::S8},   // 11 k_hz, 8 bit stereo
-    {11025, AV_SAMPLE_FMT::S16},  // 11 k_hz, 16 bit stereo
-    {22050, AV_SAMPLE_FMT::S8},   // 22 k_hz, 8 bit stereo
-    {22050, AV_SAMPLE_FMT::S16},  // 22 k_hz, 16 bit stereo
-    {44100, AV_SAMPLE_FMT::S8},   // 44 k_hz, 8 bit stereo
-    {44100, AV_SAMPLE_FMT::S16},  // 44 k_hz, 16 bit stereo
-    {48000, AV_SAMPLE_FMT::S8},   // 48 k_hz, 8 bit stereo
-    {48000, AV_SAMPLE_FMT::S16}   // 48 k_hz, 16 bit stereo
+static constexpr AVSpec s_reallive_sound_qualities[] = {
+    (AVSpec){11025, AV_SAMPLE_FMT::S8, 2},   // 11 k_hz, 8 bit stereo
+    (AVSpec){11025, AV_SAMPLE_FMT::S16, 2},  // 11 k_hz, 16 bit stereo
+    (AVSpec){22050, AV_SAMPLE_FMT::S8, 2},   // 22 k_hz, 8 bit stereo
+    (AVSpec){22050, AV_SAMPLE_FMT::S16, 2},  // 22 k_hz, 16 bit stereo
+    (AVSpec){44100, AV_SAMPLE_FMT::S8, 2},   // 44 k_hz, 8 bit stereo
+    (AVSpec){44100, AV_SAMPLE_FMT::S16, 2},  // 44 k_hz, 16 bit stereo
+    (AVSpec){48000, AV_SAMPLE_FMT::S8, 2},   // 48 k_hz, 8 bit stereo
+    (AVSpec){48000, AV_SAMPLE_FMT::S16, 2}   // 48 k_hz, 16 bit stereo
 };
 
 // -----------------------------------------------------------------------
@@ -87,31 +81,11 @@ void SDLSoundSystem::WavPlayImpl(const std::string& wav_file,
 void SDLSoundSystem::SetChannelVolumeImpl(int channel) {
   int base = channel == KOE_CHANNEL ? GetKoeVolume_mod() : pcm_volume_mod();
   int adjusted = compute_channel_volume(GetChannelVolume(channel), base);
+
   sound_impl_->SetVolume(channel, realLiveVolumeToSDLMixerVolume(adjusted));
 }
 
-std::shared_ptr<SDLMusic> SDLSoundSystem::LoadMusic(
-    const std::string& bgm_name) {
-  DSTable::const_iterator ds_it =
-      ds_table().find(boost::to_lower_copy(bgm_name));
-  // if (ds_it != ds_table().end())
-  //   return SDLMusic::CreateMusic(system(), ds_it->second);
-
-  CDTable::const_iterator cd_it =
-      cd_table().find(boost::to_lower_copy(bgm_name));
-  if (cd_it != cd_table().end()) {
-    std::ostringstream oss;
-    oss << "CD music not supported yet. Could not play track \"" << bgm_name
-        << "\"";
-    throw std::runtime_error(oss.str());
-  }
-
-  std::ostringstream oss;
-  oss << "Could not find music track \"" << bgm_name << "\"";
-  throw std::runtime_error(oss.str());
-}
-
-player_t SDLSoundSystem::__LoadMusic(const std::string& bgm_name) {
+player_t SDLSoundSystem::LoadMusic(const std::string& bgm_name) {
   auto track = FindBgm(bgm_name);
   auto file_path = system().FindFile(track.file, SOUND_FILETYPES);
 
@@ -155,38 +129,21 @@ SDLSoundSystem::SDLSoundSystem(System& system,
 
   /* We're going to be requesting certain things from our audio
      device, so we set them up beforehand */
-  int audio_rate = s_real_live_sound_qualities[sound_quality()].rate;
-  auto audio_format = s_real_live_sound_qualities[sound_quality()].format;
-  int audio_channels = 2;
-  int audio_buffers = 4096;
-
-  /* This is where we open up our audio device.  Mix_OpenAudio takes
-     as its parameters the audio format we'd /like/ to have. */
-
-  if (sound_impl_->OpenAudio(audio_rate, audio_format, audio_channels,
-                             audio_buffers)) {
+  sound_quality_ = s_reallive_sound_qualities[sound_quality()];
+  static constexpr int audio_buffer_size = 4096;
+  try {
+    sound_impl_->OpenAudio(sound_quality_, audio_buffer_size);
+    sound_impl_->AllocateChannels(NUM_TOTAL_CHANNELS);
+  } catch (std::runtime_error& e) {
     std::ostringstream oss;
-    oss << "Couldn't initialize audio: " << sound_impl_->GetError();
+    oss << "Couldn't initialize audio: " << e.what();
     throw SystemError(oss.str());
   }
-
-  sound_impl_->AllocateChannels(NUM_TOTAL_CHANNELS);
-  sound_impl_->HookMusic(&SoundSystemImpl::OnMusic, NULL);
 }
 
 SDLSoundSystem::~SDLSoundSystem() {
-  sound_impl_->HookMusic(NULL, NULL);
   sound_impl_->CloseAudio();
   sound_impl_->QuitSystem();
-}
-
-void SDLSoundSystem::ExecuteSoundSystem() {
-  SoundSystem::ExecuteSoundSystem();
-
-  // if (queued_music_ && !SDLMusic::IsCurrentlyPlaying()) {
-  //   queued_music_->FadeIn(queued_music_loop_, queued_music_fadein_);
-  //   queued_music_.reset();
-  // }
 }
 
 void SDLSoundSystem::SetBgmEnabled(const int in) {
@@ -199,8 +156,6 @@ void SDLSoundSystem::SetBgmEnabled(const int in) {
 
 void SDLSoundSystem::SetBgmVolumeMod(const int in) {
   SoundSystem::SetBgmVolumeMod(in);
-  // SDLMusic::SetComputedBgmVolume(
-  //     compute_channel_volume(in, bgm_volume_script()));
 
   player_t player = sound_impl_->GetBgm();
   if (player) {
@@ -216,8 +171,6 @@ void SDLSoundSystem::SetBgmVolumeScript(const int level, int fade_in_ms) {
     // If a fade was requested by the script, we don't want to set the volume
     // here right now. This is only slightly cleaner than having separate
     // methods because of the function casting in the modules.
-    // SDLMusic::SetComputedBgmVolume(
-    //     compute_channel_volume(bgm_volume_mod(), level));
 
     player_t player = sound_impl_->GetBgm();
     if (player) {
@@ -234,10 +187,13 @@ void SDLSoundSystem::SetChannelVolume(const int channel, const int level) {
 }
 
 void SDLSoundSystem::WavPlay(const std::string& wav_file, bool loop) {
-  int channel_number = sound_impl_->FindIdleChannel();
-  if (channel_number == -1) {
+  int channel_number = -1;
+
+  try {
+    channel_number = sound_impl_->FindIdleChannel();
+  } catch (std::runtime_error& e) {
     std::ostringstream oss;
-    oss << "Couldn't find a free channel for wavPlay()";
+    oss << "Couldn't find a free channel for wavPlay(): " << e.what();
     throw std::runtime_error(oss.str());
   }
 
@@ -248,6 +204,7 @@ void SDLSoundSystem::WavPlay(const std::string& wav_file,
                              bool loop,
                              const int channel) {
   CheckChannel(channel, "SDLSoundSystem::wav_play");
+
   WavPlayImpl(wav_file, channel, loop);
 }
 
@@ -325,17 +282,14 @@ void SDLSoundSystem::PlaySe(const int se_num) {
 
 int SDLSoundSystem::BgmStatus() const {
   auto player = sound_impl_->GetBgm();
-  if (!player)
-    return 0;
-
-  if (player->GetStatus() == AudioPlayer::STATUS::PLAYING)
+  if (player && player->GetStatus() == AudioPlayer::STATUS::PLAYING)
     return 1;
   return 0;
 }
 
 void SDLSoundSystem::BgmPlay(const std::string& bgm_name, bool loop) {
   if (!boost::iequals(GetBgmName(), bgm_name)) {
-    player_t player = __LoadMusic(bgm_name);
+    player_t player = LoadMusic(bgm_name);
     sound_impl_->PlayBgm(player);
   }
 }
@@ -344,7 +298,7 @@ void SDLSoundSystem::BgmPlay(const std::string& bgm_name,
                              bool loop,
                              int fade_in_ms) {
   if (!boost::iequals(GetBgmName(), bgm_name)) {
-    player_t player = __LoadMusic(bgm_name);
+    player_t player = LoadMusic(bgm_name);
     player->FadeIn(fade_in_ms);
     sound_impl_->PlayBgm(player);
   }
@@ -355,7 +309,7 @@ void SDLSoundSystem::BgmPlay(const std::string& bgm_name,
                              int fade_in_ms,
                              int fade_out_ms) {
   if (!boost::iequals(GetBgmName(), bgm_name)) {
-    player_t player = __LoadMusic(bgm_name);
+    player_t player = LoadMusic(bgm_name);
     player->FadeIn(fade_in_ms);
     // TODO: Fade out currently playing bgm
     sound_impl_->PlayBgm(player);
@@ -393,7 +347,11 @@ std::string SDLSoundSystem::GetBgmName() const {
   return "";
 }
 
-bool SDLSoundSystem::BgmLooping() const { return true; }
+bool SDLSoundSystem::BgmLooping() const {
+  // TODO: maintain the looping status
+  // this funtion is used for serialization
+  return true;
+}
 
 bool SDLSoundSystem::KoePlaying() const {
   return sound_impl_->IsPlaying(KOE_CHANNEL);

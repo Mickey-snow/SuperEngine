@@ -26,59 +26,46 @@
 #define SRC_SYSTEMS_SDL_SOUND_IMPLEMENTOR_H_
 
 #include <cstdint>
-#include <tuple>
 
 #include "base/audio_player.h"
-#include "base/avdec/wav.h"
 #include "base/avspec.h"
-
-class SDLSoundChunk;
 
 class SoundSystemImpl {
  public:
-  using player_t = std::shared_ptr<AudioPlayer>;
-
   SoundSystemImpl() = default;
   ~SoundSystemImpl() = default;
 
   virtual void InitSystem() const;
   virtual void QuitSystem() const;
+
   virtual void AllocateChannels(int num) const;
-  virtual int OpenAudio(int rate,
-                        AV_SAMPLE_FMT format,
-                        int channels,
-                        int buffers) const;
+  virtual void OpenAudio(AVSpec spec, int buffer_size) const;
   virtual void CloseAudio() const;
   virtual AVSpec QuerySpec() const;
-  virtual void SetVolume(int channel, int vol) const;
-  virtual bool IsPlaying(int channel) const;
-  virtual void HookMusic(void (*callback)(void*, uint8_t*, int),
-                         void* data) const;
-  virtual void MixAudio(uint8_t* dst, uint8_t* src, int len, int volume) const;
-  virtual int MaxVolume() const;
 
   virtual int FindIdleChannel() const;
-  virtual int PlayChannel(int channel, std::shared_ptr<AudioPlayer> audio);
+  virtual void SetVolume(int channel, int vol) const;
+  virtual bool IsPlaying(int channel) const;
+  virtual int PlayChannel(int channel, player_t audio);
+  virtual int FadeOutChannel(int channel, int fadetime) const;
+  virtual void HaltChannel(int channel) const;
+  virtual void HaltAllChannels() const;
+
   virtual void PlayBgm(player_t audio);
   virtual player_t GetBgm() const;
   virtual void EnableBgm();
   virtual void DisableBgm();
 
-  virtual int FadeOutChannel(int channel, int fadetime) const;
-  virtual void HaltChannel(int channel) const;
-  virtual void HaltAllChannels() const;
-  virtual const char* GetError() const;
-
   uint16_t ToSDLSoundFormat(AV_SAMPLE_FMT fmt) const;
   AV_SAMPLE_FMT FromSDLSoundFormat(uint16_t fmt) const;
 
  private:
-  static void OnChannelFinished(int channel);  // callback
+  const char* GetError() const;
 
- public:
+  static void OnChannelFinished(int channel);             // callback
   static void OnMusic(void*, uint8_t* buffer, int size);  // callback
 
- private:
+  class SDLSoundChunk;
   struct ChannelInfo {
     player_t player;
     SoundSystemImpl* implementor;
@@ -92,6 +79,7 @@ class SoundSystemImpl {
   static std::vector<ChannelInfo> ch_;
   static player_t bgm_player_;
   static bool bgm_enabled_;
+  static AVSpec spec_;
 };
 
 #endif

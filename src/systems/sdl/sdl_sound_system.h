@@ -28,8 +28,6 @@
 #ifndef SRC_SYSTEMS_SDL_SDL_SOUND_SYSTEM_H_
 #define SRC_SYSTEMS_SDL_SDL_SOUND_SYSTEM_H_
 
-#include <boost/filesystem/operations.hpp>
-
 #include <memory>
 #include <string>
 
@@ -37,16 +35,11 @@
 #include "systems/base/sound_system.h"
 #include "systems/sdl/sound_implementor.h"
 
-class SDLSoundChunk;
-class SDLMusic;
-
 class SDLSoundSystem : public SoundSystem {
  public:
   explicit SDLSoundSystem(System& system,
                           std::shared_ptr<SoundSystemImpl> impl = nullptr);
   ~SDLSoundSystem();
-
-  virtual void ExecuteSoundSystem() override;
 
   virtual void SetBgmEnabled(const int in) override;
   virtual void SetBgmVolumeMod(const int in) override;
@@ -89,15 +82,7 @@ class SDLSoundSystem : public SoundSystem {
 
   virtual void Reset() override;
 
-  // Wrapper around SDL_mixer's hook function. We do this because we need to
-  // have our own default music mixing function which is set at startup.
-  void SetMusicHook(void (*mix_func)(void* udata, uint8_t* stream, int len));
-
  private:
-  typedef std::shared_ptr<SDLSoundChunk> SDLSoundChunkPtr;
-  typedef std::shared_ptr<SDLMusic> SDLMusicPtr;
-  typedef LRUCache<std::string, SDLSoundChunkPtr> SoundChunkCache;
-
   virtual void KoePlayImpl(int id) override;
 
   // Implementation to play a wave file. Two wavPlay() versions use this
@@ -111,25 +96,16 @@ class SDLSoundSystem : public SoundSystem {
   // Computes and passes a volume to SDL_mixer for |channel|.
   void SetChannelVolumeImpl(int channel);
 
-  // Creates an SDLMusic object from a name. Throws if the bgm isn't
-  // found.
-  std::shared_ptr<SDLMusic> LoadMusic(const std::string& bgm_name);
-  player_t __LoadMusic(const std::string& bgm_name);
-
+  // Creates a player object from a name. Throws if the bgm isn't found.
+  player_t LoadMusic(const std::string& bgm_name);
   DSTrack FindBgm(const std::string& bgm_name);
 
  private:
+  AVSpec sound_quality_;
+  
   // The bridge to sdl sound implementor
   std::shared_ptr<SoundSystemImpl> sound_impl_;
-
-  // The music to play next as soon as the current track finishes.
-  SDLMusicPtr queued_music_;
-
-  // Whether the next piece of music loops
-  bool queued_music_loop_;
-
-  // The fadein time for queued piece of music
-  int queued_music_fadein_;
+  
 };  // end of class SDLSoundSystem
 
 #endif  // SRC_SYSTEMS_SDL_SDL_SOUND_SYSTEM_H_

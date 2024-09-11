@@ -30,6 +30,9 @@
 #include <SDL/SDL_mixer.h>
 
 #include <stdexcept>
+#include <string>
+
+using std::string_literals::operator""s;
 
 // -----------------------------------------------------------------------
 
@@ -41,7 +44,7 @@ class SDLAudioLocker {
 
 // -----------------------------------------------------------------------
 
-class SDLSoundChunk {
+class SoundSystemImpl::SDLSoundChunk {
  public:
   SDLSoundChunk(Mix_Chunk* chunk) : chunk_(chunk) {}
   ~SDLSoundChunk() { Mix_FreeChunk(chunk_); }
@@ -51,6 +54,19 @@ class SDLSoundChunk {
  private:
   Mix_Chunk* chunk_;
 };
+
+// -----------------------------------------------------------------------
+
+bool SoundSystemImpl::ChannelInfo::IsIdle() const {
+  return implementor == nullptr;
+}
+
+void SoundSystemImpl::ChannelInfo::Reset() {
+  player = nullptr;
+  implementor = nullptr;
+  buffer.clear();
+  chunk = nullptr;
+}
 
 // -----------------------------------------------------------------------
 
@@ -64,14 +80,20 @@ void SoundSystemImpl::AllocateChannels(int num) const {
   Mix_ChannelFinished(&SoundSystemImpl::OnChannelFinished);
 }
 
-int SoundSystemImpl::OpenAudio(int rate,
-                               AV_SAMPLE_FMT format,
-                               int channels,
-                               int buffers) const {
-  return Mix_OpenAudio(rate, ToSDLSoundFormat(format), channels, buffers);
+void SoundSystemImpl::OpenAudio(AVSpec spec, int buf_size) const {
+  if (Mix_OpenAudio(spec.sample_rate, ToSDLSoundFormat(spec.sample_format),
+                    spec.channel_count, buf_size) == -1) {
+    throw std::runtime_error("SDL Error: "s + GetError());
+  }
+
+  spec_ = spec;
+  Mix_HookMusic(&SoundSystemImpl::OnMusic, NULL);
 }
 
-void SoundSystemImpl::CloseAudio() const { Mix_CloseAudio(); }
+void SoundSystemImpl::CloseAudio() const {
+  Mix_HookMusic(NULL, NULL);
+  Mix_CloseAudio();
+}
 
 AVSpec SoundSystemImpl::QuerySpec() const {
   int freq, channels;
@@ -90,27 +112,14 @@ bool SoundSystemImpl::IsPlaying(int channel) const {
   return Mix_Playing(channel);
 }
 
-void SoundSystemImpl::HookMusic(void (*callback)(void*, Uint8*, int),
-                                void* data) const {
-  Mix_HookMusic(callback, data);
-}
-
-void SoundSystemImpl::MixAudio(uint8_t* dst,
-                               uint8_t* src,
-                               int len,
-                               int volume) const {
-  SDL_MixAudio(dst, src, len, volume);
-}
-
-int SoundSystemImpl::MaxVolume() const { return MIX_MAX_VOLUME; }
-
 int SoundSystemImpl::FindIdleChannel() const {
   if (ch_.empty())
-    throw std::runtime_error("Channel not allocated.");
+    throw std::runtime_error("SDL Error: Channel not allocated.");
 
   for (int i = 0; i < ch_.size(); ++i)
     if (ch_[i].IsIdle())
       return i;
+
   throw std::runtime_error("All channels are busy.");
 }
 
@@ -237,16 +246,4 @@ void SoundSystemImpl::OnMusic(void*, uint8_t* stream, int len) {
 std::vector<SoundSystemImpl::ChannelInfo> SoundSystemImpl::ch_;
 player_t SoundSystemImpl::bgm_player_ = nullptr;
 bool SoundSystemImpl::bgm_enabled_ = true;
-
-// -----------------------------------------------------------------------
-
-bool SoundSystemImpl::ChannelInfo::IsIdle() const {
-  return implementor == nullptr;
-}
-
-void SoundSystemImpl::ChannelInfo::Reset() {
-  player = nullptr;
-  implementor = nullptr;
-  buffer.clear();
-  chunk = nullptr;
-}
+AVSpec SoundSystemImpl::spec_;

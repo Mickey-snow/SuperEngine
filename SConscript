@@ -211,11 +211,9 @@ librlvm_files = [
 root_env.StaticLibrary('rlvm', librlvm_files)
 
 libsystemsdl_files = [
-  "src/systems/sdl/sdl_audio_locker.cc",
   "src/systems/sdl/sdl_colour_filter.cc",
   "src/systems/sdl/sdl_event_system.cc",
   "src/systems/sdl/sdl_graphics_system.cc",
-  "src/systems/sdl/sdl_music.cc",
   "src/systems/sdl/sdl_render_to_texture_surface.cc",
   "src/systems/sdl/sdl_sound_system.cc",
   "src/systems/sdl/sdl_surface.cc",
