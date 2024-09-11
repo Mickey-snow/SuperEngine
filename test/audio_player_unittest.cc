@@ -32,6 +32,8 @@ using ::testing::Return;
 #include "base/avdec/audio_decoder.h"
 #include "utilities/numbers.h"
 
+#include <atomic>
+#include <future>
 #include <random>
 
 constexpr auto sample_rate = 44100;
@@ -382,7 +384,7 @@ TEST_F(AudioPlayerTest, PlayPLoop) {
                    2 * quarter_samples / channel_count);
   player->SetLoopTimes(3);
   auto result = player->LoadPCM(2 * quarter_samples - 6);
-  result.Append(player->LoadPCM(quarter_samples+6));
+  result.Append(player->LoadPCM(quarter_samples + 6));
   std::vector<float> expect(decoder->buffer_.begin() + quarter_samples,
                             decoder->buffer_.begin() + 3 * quarter_samples);
   expect.insert(expect.end(), decoder->buffer_.begin() + 2 * quarter_samples,
@@ -390,4 +392,79 @@ TEST_F(AudioPlayerTest, PlayPLoop) {
 
   ASSERT_EQ(result.SampleCount(), expect.size());
   EXPECT_LE(Deviation(std::get<std::vector<float>>(result.data), expect), 1e-4);
+}
+
+class APlayerConcurrentTest : public ::testing::Test {
+ protected:
+  void SetUp() override {
+    decoder = std::make_shared<NoiseGenerator>();
+    player = std::make_unique<AudioPlayer>(AudioDecoder(decoder));
+  }
+
+  std::shared_ptr<NoiseGenerator> decoder;
+  std::unique_ptr<AudioPlayer> player;
+};
+
+TEST_F(APlayerConcurrentTest, StressTest) {
+  const auto quarter_samples = sample_rate * channel_count * duration / 4;
+  player->SetLoopTimes(-1);
+  std::atomic_bool should_continue = true;
+
+  std::thread t1([&]() {
+    std::mt19937 rng;
+    std::uniform_int_distribution<> dist(1, 5);
+    while (should_continue) {
+      auto status = player->GetStatus();
+      switch (dist(rng)) {
+        case 1:
+          if (status == AudioPlayer::STATUS::PAUSED)
+            player->Unpause();
+          if (status == AudioPlayer::STATUS::PLAYING)
+            player->Pause();
+          break;
+        default:
+          break;
+      }
+    }
+  });
+
+  std::thread t2([&]() {
+    std::mt19937 rng;
+    std::uniform_int_distribution<> dist(0, 3);
+    while (should_continue) {
+      auto i = dist(rng);
+      const auto begin = i * quarter_samples / channel_count;
+      const auto end = begin + quarter_samples / channel_count / 2;
+      player->SetLoop(begin, end);
+    }
+  });
+
+  std::vector<float> acceptable_pcm[5];
+  acceptable_pcm[4].resize(quarter_samples);
+  for (int i = 0; i < 4; ++i) {
+    const auto begin = i * quarter_samples;
+    const auto end = begin + i * quarter_samples / 2;
+    acceptable_pcm[i] = std::vector<float>(decoder->buffer_.begin() + begin,
+                                           decoder->buffer_.begin() + end);
+  }
+
+  const auto reps = 1000;
+  for (int i = 0; i < reps; ++i) {
+    bool result = false;
+    EXPECT_NO_THROW({
+      auto pcm =
+          std::get<std::vector<float>>(player->LoadPCM(quarter_samples).data);
+      for (int j = 0; j < 5; ++j) {
+        if (Deviation(pcm, acceptable_pcm[j]) < 1e-4) {
+          result = true;
+          break;
+        }
+      }
+    });
+    EXPECT_TRUE(result);
+  }
+
+  should_continue = false;
+  t1.join();
+  t2.join();
 }

@@ -69,7 +69,7 @@ class TerminateAfterNLoops : public AudioPlayer::ICommand {
     cur_ = af.cur;
     if (IsFinished()) {
       af.ad.Clear();
-      player_.Terminate();
+      player_.TerminateImpl();
     }
   }
   bool IsFinished() override { return n_ < 0; }
@@ -130,35 +130,39 @@ AudioData AudioPlayer::LoadPCM(sample_count_t nsamples) {
   ret.PrepareDatabuf();
 
   if (IsPlaying()) {
-    if (buffer_.has_value()) {
-      ret.Append(buffer_->ad);
-      buffer_.reset();
-    }
+    std::lock_guard<std::mutex> lock(mutex_);
 
-    auto cur = decoder_.Tell();
-    while (ret.SampleCount() < nsamples && IsPlaying()) {
-      auto next = LoadNext();
-      if (next.SampleCount() == 0)
-        continue;
-      ClipFrame(next);
-      cur = next.cur + next.SampleCount() / spec.channel_count;
-      ret.Append(std::move(next.ad));
-    }
+    if (IsPlaying()) {
+      if (buffer_.has_value()) {
+        ret.Append(buffer_->ad);
+        buffer_.reset();
+      }
 
-    std::visit(Multiply(volume_), ret.data);
+      auto cur = decoder_.Tell();
+      while (ret.SampleCount() < nsamples && IsPlaying()) {
+        auto next = LoadNext();
+        if (next.SampleCount() == 0)
+          continue;
+        ClipFrame(next);
+        cur = next.cur + next.SampleCount() / spec.channel_count;
+        ret.Append(std::move(next.ad));
+      }
 
-    if (ret.SampleCount() > nsamples) {
-      std::visit(
-          [&](auto& data) {
-            const auto n = data.size() - nsamples;
-            cur -= n / spec.channel_count;
+      std::visit(Multiply(volume_), ret.data);
 
-            using container_t = std::decay_t<decltype(data)>;
-            container_t buf(data.end() - n, data.end());
-            buffer_ = AudioFrame{.ad = {spec, std::move(buf)}, .cur = cur};
-            data.erase(data.end() - n, data.end());
-          },
-          ret.data);
+      if (ret.SampleCount() > nsamples) {
+        std::visit(
+            [&](auto& data) {
+              const auto n = data.size() - nsamples;
+              cur -= n / spec.channel_count;
+
+              using container_t = std::decay_t<decltype(data)>;
+              container_t buf(data.end() - n, data.end());
+              buffer_ = AudioFrame{.ad = {spec, std::move(buf)}, .cur = cur};
+              data.erase(data.end() - n, data.end());
+            },
+            ret.data);
+      }
     }
   }
 
@@ -170,10 +174,13 @@ AudioData AudioPlayer::LoadPCM(sample_count_t nsamples) {
 }
 
 AudioData AudioPlayer::LoadRemain() {
+  std::unique_lock<std::mutex> lock(mutex_, std::defer_lock);
+
   AudioData ret;
   ret.spec = spec;
   ret.PrepareDatabuf();
 
+  lock.lock();
   if (status_ == STATUS::PAUSED)
     return ret;
 
@@ -195,6 +202,7 @@ AudioData AudioPlayer::LoadRemain() {
     ClipFrame(next);
     ret.Append(std::move(next.ad));
   }
+  lock.unlock();
 
   std::visit(Multiply(volume_), ret.data);
   return ret;
@@ -210,6 +218,11 @@ void AudioPlayer::SetLoop(size_t ab_loop_a, size_t ab_loop_b) {
     throw std::invalid_argument(oss.str());
   }
 
+  std::lock_guard<std::mutex> lock(mutex_);
+  SetLoopImpl(ab_loop_a, ab_loop_b);
+}
+
+void AudioPlayer::SetLoopImpl(size_t ab_loop_a, size_t ab_loop_b) {
   loop_fr_ = ab_loop_a;
   loop_to_ = ab_loop_b;
 
@@ -228,7 +241,8 @@ void AudioPlayer::SetPLoop(size_t from, size_t to, size_t loop) {
     throw std::invalid_argument(oss.str());
   }
 
-  SetLoop(from, to);
+  std::lock_guard<std::mutex> lock(mutex_);
+  SetLoopImpl(from, to);
   struct RegisterNextLoop : public ICommand {
     RegisterNextLoop(AudioPlayer& player, size_t from, size_t to, long long cur)
         : player_(player), from_(from), to_(to), cur_(cur), fin_(false) {}
@@ -237,7 +251,7 @@ void AudioPlayer::SetPLoop(size_t from, size_t to, size_t loop) {
       if (IsFinished())
         return;
       if (af.cur < cur_) {
-        player_.SetLoop(from_, to_);
+        player_.SetLoopImpl(from_, to_);
         af.ad.Clear();
         fin_ = true;
       }
@@ -257,6 +271,8 @@ void AudioPlayer::SetPLoop(size_t from, size_t to, size_t loop) {
 
 void AudioPlayer::SetLoopTimes(int n) {
   using namespace predefined_audioplayer_commands;
+  std::lock_guard<std::mutex> lock(mutex_);
+
   for (auto it = cmd_.begin(); it != cmd_.end();) {
     if (it->get()->Name() == "TerminateAfterNLoops")
       it = cmd_.erase(it);
@@ -279,20 +295,32 @@ bool AudioPlayer::IsPlaying() const { return status_ == STATUS::PLAYING; }
 
 AudioPlayer::STATUS AudioPlayer::GetStatus() const { return status_; }
 
-void AudioPlayer::Terminate() { status_ = STATUS::TERMINATED; }
+void AudioPlayer::Terminate() {
+  std::lock_guard<std::mutex> lock(mutex_);
+  TerminateImpl();
+}
 
-void AudioPlayer::SetName(std::string name) { name_ = std::move(name); }
+void AudioPlayer::TerminateImpl() { status_ = STATUS::TERMINATED; }
+
+void AudioPlayer::SetName(std::string name) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  name_ = std::move(name);
+}
 
 std::string AudioPlayer::GetName() const { return name_; }
 
 void AudioPlayer::FadeIn(float fadein_ms) {
   using namespace predefined_audioplayer_commands;
+  std::lock_guard<std::mutex> lock(mutex_);
+
   auto fadein_samples = TimeToSampleCount(fadein_ms);
   cmd_.emplace_back(std::make_unique<AdjustVolume>(0, 1, fadein_samples));
 }
 
 void AudioPlayer::FadeOut(float fadeout_ms, bool should_then_terminate) {
   using namespace predefined_audioplayer_commands;
+  std::lock_guard<std::mutex> lock(mutex_);
+
   auto fadeout_samples = TimeToSampleCount(fadeout_ms);
   cmd_.emplace_back(std::make_unique<AdjustVolume>(1, 0, fadeout_samples));
 
@@ -305,7 +333,7 @@ void AudioPlayer::FadeOut(float fadeout_ms, bool should_then_terminate) {
       void Execute(AudioFrame& af) override {
         samples_ -= af.SampleCount();
         if (IsFinished())
-          client_.Terminate();
+          client_.TerminateImpl();
       }
       bool IsFinished() override { return samples_ <= 0; }
 
@@ -323,11 +351,19 @@ void AudioPlayer::SetVolume(float vol) { volume_ = vol; }
 float AudioPlayer::GetVolume() const { return volume_; }
 
 void AudioPlayer::Pause() {
+  if (!IsPlaying())
+    return;
+
+  std::lock_guard<std::mutex> lock(mutex_);
   if (IsPlaying())
     status_ = STATUS::PAUSED;
 }
 
 void AudioPlayer::Unpause() {
+  if (status_ != STATUS::PAUSED)
+    return;
+
+  std::lock_guard<std::mutex> lock(mutex_);
   if (status_ == STATUS::PAUSED)
     status_ = STATUS::PLAYING;
 }
@@ -337,7 +373,7 @@ void AudioPlayer::OnEndOfPlayback() {
   if (seek_to != npos)
     decoder_.Seek(seek_to, SEEKDIR::BEG);
   else
-    Terminate();
+    TerminateImpl();
 }
 
 AudioPlayer::AudioFrame AudioPlayer::LoadNext() {
