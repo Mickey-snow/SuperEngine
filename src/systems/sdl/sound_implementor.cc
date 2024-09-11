@@ -41,6 +41,19 @@ class SDLAudioLocker {
 
 // -----------------------------------------------------------------------
 
+class SDLSoundChunk {
+ public:
+  SDLSoundChunk(Mix_Chunk* chunk) : chunk_(chunk) {}
+  ~SDLSoundChunk() { Mix_FreeChunk(chunk_); }
+
+  Mix_Chunk* Get() const noexcept { return chunk_; }
+
+ private:
+  Mix_Chunk* chunk_;
+};
+
+// -----------------------------------------------------------------------
+
 void SoundSystemImpl::InitSystem() const { SDL_InitSubSystem(SDL_INIT_AUDIO); }
 
 void SoundSystemImpl::QuitSystem() const { SDL_QuitSubSystem(SDL_INIT_AUDIO); }
@@ -111,14 +124,16 @@ int SoundSystemImpl::PlayChannel(int channel,
   }
 
   std::vector<uint8_t> pcm = EncodeWav(std::move(audio_data));
-  auto sound_chunk = Mix_LoadWAV_RW(SDL_RWFromMem(pcm.data(), pcm.size()), 1);
+  Mix_Chunk* sound_chunk =
+      Mix_LoadWAV_RW(SDL_RWFromMem(pcm.data(), pcm.size()), 1);
   if (!sound_chunk)
     throw std::runtime_error("SDL failed to create a new chunk.");
 
-  ch_[channel] = ChannelInfo{.player = audio,
-                             .implementor = this,
-                             .buffer = std::move(pcm),
-                             .chunk = sound_chunk};
+  ch_[channel] =
+      (ChannelInfo){.player = audio,
+                    .implementor = this,
+                    .buffer = std::move(pcm),
+                    .chunk = std::make_unique<SDLSoundChunk>(sound_chunk)};
 
   int ret = Mix_PlayChannel(channel, sound_chunk, 0);
   if (ret == -1) {
@@ -233,8 +248,5 @@ void SoundSystemImpl::ChannelInfo::Reset() {
   player = nullptr;
   implementor = nullptr;
   buffer.clear();
-  if (chunk != nullptr) {
-    Mix_FreeChunk(static_cast<Mix_Chunk*>(chunk));
-    chunk = nullptr;
-  }
+  chunk = nullptr;
 }

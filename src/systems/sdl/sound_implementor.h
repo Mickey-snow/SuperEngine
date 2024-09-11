@@ -32,8 +32,7 @@
 #include "base/avdec/wav.h"
 #include "base/avspec.h"
 
-struct Mix_Chunk;
-using Chunk_t = Mix_Chunk;
+class SDLSoundChunk;
 
 class SoundSystemImpl {
  public:
@@ -84,7 +83,7 @@ class SoundSystemImpl {
     player_t player;
     SoundSystemImpl* implementor;
     std::vector<uint8_t> buffer;
-    void* chunk;
+    std::unique_ptr<SDLSoundChunk> chunk;
 
     bool IsIdle() const;
     void Reset();
