@@ -27,10 +27,19 @@
 
 #include "base/avspec.h"
 
+#include <algorithm>
+#include <functional>
 #include <limits>
 #include <stdexcept>
 #include <variant>
 #include <vector>
+
+#ifdef PARALLEL
+#include <execution>
+namespace execution = std::execution;
+#else
+enum class execution { seq, unseq, par_unseq, par };
+#endif
 
 using avsample_buffer_t = std::variant<std::vector<avsample_u8_t>,
                                        std::vector<avsample_s8_t>,
@@ -55,6 +64,19 @@ struct AudioData {
   template <typename T>
   const std::vector<T>* Get() const {
     return const_cast<const std::vector<T>*>(Get<T>());
+  }
+
+  template <typename T>
+  void Apply(std::function<void(T&)> fn) {
+    std::visit(
+        [&fn](auto& data) {
+#ifdef PARALLEL
+          std::for_each(execution::par_unseq, data.begin(), data.end(), fn);
+#else
+          std::for_each(data.begin(), data.end(), fn);
+#endif
+        },
+        data);
   }
 
   AudioData Slice(int fr, int to, int step = 0);
