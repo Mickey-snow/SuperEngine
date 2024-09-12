@@ -27,9 +27,10 @@
 
 #include "base/avspec.h"
 
+#include <limits>
+#include <stdexcept>
 #include <variant>
 #include <vector>
-#include <stdexcept>
 
 using avsample_buffer_t = std::variant<std::vector<avsample_u8_t>,
                                        std::vector<avsample_s8_t>,
@@ -44,6 +45,63 @@ struct AudioData {
   avsample_buffer_t data;
 
   AudioData Slice(int fr, int to, int step = 0);
+
+  template <typename OutType>
+  std::vector<OutType> GetAs() {
+    [[maybe_unused]] auto scale_to_float = [](auto sample) -> double {
+      using T = std::decay_t<decltype(sample)>;
+
+      constexpr double min = static_cast<double>(std::numeric_limits<T>::min());
+      constexpr double max = static_cast<double>(std::numeric_limits<T>::max());
+
+      if constexpr (std::is_unsigned_v<T>)
+        return (static_cast<double>(sample) - min) / (max - min) * 2.0 - 1.0;
+      else
+        return static_cast<double>(sample) / (sample < 0 ? -min : max);
+    };
+
+    [[maybe_unused]] auto scale_to_int = [](double sample) -> OutType {
+      constexpr double min =
+          static_cast<double>(std::numeric_limits<OutType>::min());
+      constexpr double max =
+          static_cast<double>(std::numeric_limits<OutType>::max());
+
+      if constexpr (std::is_unsigned_v<OutType>)
+        return static_cast<OutType>((sample + 1.0) / 2.0 * (max - min) + min);
+      else
+        return static_cast<OutType>(sample * (sample < 0 ? -min : max));
+    };
+
+    return std::visit(
+        [&](auto& data) -> std::vector<OutType> {
+          using container_t = std::decay_t<decltype(data)>;
+          using InType = typename container_t::value_type;
+
+          std::vector<OutType> result;
+          result.reserve(data.size());
+          for (const auto& sample : data) {
+            if constexpr (std::is_same_v<InType, OutType>)
+              result.push_back(sample);
+
+            else if constexpr (std::is_floating_point<InType>::value &&
+                               std::is_integral<OutType>::value) {
+              result.push_back(scale_to_int(sample));
+            } else if constexpr (std::is_integral<InType>::value &&
+                                 std::is_floating_point<OutType>::value) {
+              result.push_back(static_cast<OutType>(scale_to_float(sample)));
+            } else if constexpr (std::is_integral<InType>::value &&
+                                 std::is_integral<OutType>::value) {
+              result.push_back(scale_to_int(scale_to_float(sample)));
+            } else {
+              // Default case for floating-point to floating-point
+              result.push_back(static_cast<OutType>(sample));
+            }
+          }
+
+          return result;
+        },
+        data);
+  }
 
   // Initializes the audio data buffer based on spec.sample_format.
   void PrepareDatabuf();
