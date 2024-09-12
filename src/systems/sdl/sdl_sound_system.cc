@@ -353,6 +353,8 @@ bool SDLSoundSystem::BgmLooping() const {
   return true;
 }
 
+player_t SDLSoundSystem::GetBgm() const { return sound_impl_->GetBgm(); }
+
 bool SDLSoundSystem::KoePlaying() const {
   return sound_impl_->IsPlaying(KOE_CHANNEL);
 }

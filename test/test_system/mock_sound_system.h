@@ -42,6 +42,7 @@ class MockSoundSystem : public SoundSystem {
   MOCK_METHOD(void, BgmPause, (), (override));
   MOCK_METHOD(void, BgmUnPause, (), (override));
   MOCK_METHOD(void, BgmFadeOut, (int), (override));
+  MOCK_METHOD(player_t, GetBgm, (), (const override));
   MOCK_METHOD(std::string, GetBgmName, (), (const, override));
   MOCK_METHOD(bool, BgmLooping, (), (const, override));
   MOCK_METHOD(void, WavPlay, (const std::string&, bool), (override));

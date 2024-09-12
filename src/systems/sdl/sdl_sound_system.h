@@ -59,6 +59,7 @@ class SDLSoundSystem : public SoundSystem {
   virtual void BgmFadeOut(int fade_out_ms) override;
   virtual std::string GetBgmName() const override;
   virtual bool BgmLooping() const override;
+  virtual player_t GetBgm() const override;
 
   virtual void SetChannelVolume(const int channel, const int level) override;
 
@@ -102,10 +103,10 @@ class SDLSoundSystem : public SoundSystem {
 
  private:
   AVSpec sound_quality_;
-  
+
   // The bridge to sdl sound implementor
   std::shared_ptr<SoundSystemImpl> sound_impl_;
-  
+
 };  // end of class SDLSoundSystem
 
 #endif  // SRC_SYSTEMS_SDL_SDL_SOUND_SYSTEM_H_

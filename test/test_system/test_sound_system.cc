@@ -68,6 +68,8 @@ std::string TestSoundSystem::GetBgmName() const { return bgm_name_; }
 
 bool TestSoundSystem::BgmLooping() const { return false; }
 
+player_t TestSoundSystem::GetBgm() const { return nullptr; }
+
 void TestSoundSystem::WavPlay(const std::string& wav_file, bool loop) {}
 
 void TestSoundSystem::WavPlay(const std::string& wav_file,

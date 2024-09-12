@@ -36,6 +36,7 @@
 #include <string>
 #include <utility>
 
+#include "base/audio_player.h"
 #include "systems/base/voice_factory.h"
 
 class Gameexe;
@@ -235,6 +236,8 @@ class SoundSystem {
   // Programmer configured volume setting
   int bgm_volume_script() const { return bgm_volume_script_; }
   virtual void SetBgmVolumeScript(const int level, const int fade_in_ms);
+
+  virtual player_t GetBgm() const = 0;
 
   // Status of the music subsystem
   //

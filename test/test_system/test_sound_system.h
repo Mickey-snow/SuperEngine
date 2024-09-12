@@ -29,6 +29,7 @@
 #define TEST_TEST_SYSTEM_TEST_SOUND_SYSTEM_H_
 
 #include "systems/base/sound_system.h"
+
 #include <string>
 
 class Gameexe;
@@ -42,7 +43,8 @@ class TestSoundSystem : public SoundSystem {
   virtual int BgmStatus() const override;
 
   virtual void BgmPlay(const std::string& bgm_name, bool loop) override;
-  virtual void BgmPlay(const std::string& bgm_name, bool loop,
+  virtual void BgmPlay(const std::string& bgm_name,
+                       bool loop,
                        int fade_in_ms) override;
   virtual void BgmPlay(const std::string& bgm_name,
                        bool loop,
@@ -54,6 +56,7 @@ class TestSoundSystem : public SoundSystem {
   virtual void BgmFadeOut(int fade_out_ms) override;
   virtual std::string GetBgmName() const override;
   virtual bool BgmLooping() const override;
+  virtual player_t GetBgm() const override;
 
   virtual void WavPlay(const std::string& wav_file, bool loop) override;
   virtual void WavPlay(const std::string& wav_file,
