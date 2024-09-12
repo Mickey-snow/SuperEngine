@@ -44,6 +44,19 @@ struct AudioData {
   AVSpec spec;
   avsample_buffer_t data;
 
+  template <typename T>
+  std::vector<T>* Get() {
+    if (auto ptr = std::get_if<std::vector<T>>(&data)) {
+      return ptr;
+    }
+    return nullptr;
+  }
+
+  template <typename T>
+  const std::vector<T>* Get() const {
+    return const_cast<const std::vector<T>*>(Get<T>());
+  }
+
   AudioData Slice(int fr, int to, int step = 0);
 
   template <typename OutType>
