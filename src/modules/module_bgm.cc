@@ -31,14 +31,14 @@
 #include <string>
 
 #include "long_operations/wait_long_operation.h"
+#include "machine/general_operations.h"
+#include "machine/long_operation.h"
 #include "machine/rlmachine.h"
 #include "machine/rloperation.h"
-#include "machine/long_operation.h"
-#include "machine/general_operations.h"
 #include "machine/rloperation/default_value.h"
 #include "machine/rloperation/rlop_store.h"
-#include "systems/base/system.h"
 #include "systems/base/sound_system.h"
+#include "systems/base/system.h"
 
 namespace {
 
@@ -139,6 +139,15 @@ struct bgmMute_1 : public RLOpcode<IntConstant_T> {
   }
 };
 
+struct bgmTimer : public RLStoreOpcode<> {
+  int operator()(RLMachine& machine) {
+    auto bgmPlayer = machine.system().sound().GetBgm();
+    if (!bgmPlayer)
+      return 0;
+    return bgmPlayer->GetCurrentTime();
+  }
+};
+
 }  // namespace
 
 BgmModule::BgmModule() : RLModule("Bgm", 1, 20) {
@@ -163,19 +172,16 @@ BgmModule::BgmModule() : RLModule("Bgm", 1, 20) {
   AddUnsupportedOpcode(8, 0, "bgmRewind");
   AddOpcode(9, 0, "bgmPause", CallFunction(&SoundSystem::BgmPause));
   AddOpcode(10, 0, "bgmUnPause", CallFunction(&SoundSystem::BgmUnPause));
-  AddOpcode(11, 0, "bgmVolume", ReturnIntValue(&SoundSystem::bgm_volume_script));
+  AddOpcode(11, 0, "bgmVolume",
+            ReturnIntValue(&SoundSystem::bgm_volume_script));
 
   AddOpcode(12, 0, "bgmSetVolume", new bgmSetVolume_0);
-  AddOpcode(
-      12, 1, "bgmSetVolume", CallFunction(&SoundSystem::SetBgmVolumeScript));
-  AddOpcode(13,
-            0,
-            "bgmUnMute",
+  AddOpcode(12, 1, "bgmSetVolume",
+            CallFunction(&SoundSystem::SetBgmVolumeScript));
+  AddOpcode(13, 0, "bgmUnMute",
             CallFunctionWith(&SoundSystem::SetBgmVolumeScript, 255, 0));
   AddOpcode(13, 1, "bgmUnMute", new bgmUnMute_1);
-  AddOpcode(14,
-            0,
-            "bgmMute",
+  AddOpcode(14, 0, "bgmMute",
             CallFunctionWith(&SoundSystem::SetBgmVolumeScript, 0, 0));
   AddOpcode(14, 1, "bgmMute", new bgmMute_1);
 
@@ -184,6 +190,7 @@ BgmModule::BgmModule() : RLModule("Bgm", 1, 20) {
   AddOpcode(106, 0, "bgmFadeOutEx", new bgmFadeOutEx);
   AddOpcode(106, 1, "bgmFadeOutEx", new bgmFadeOutEx);
 
+  AddOpcode(200, 0, "bgmTimer", new bgmTimer);
+
   AddUnsupportedOpcode(107, 0, "bgmStatus2");
-  AddUnsupportedOpcode(200, 0, "bgmTimer");
 }
