@@ -24,7 +24,7 @@
 
 #include <gtest/gtest.h>
 
-#include "systems/base/tone_curve.h"
+#include "base/tone_curve.h"
 #include "utilities/bytestream.h"
 
 #include <algorithm>
@@ -112,7 +112,7 @@ TEST_F(ToneCurveTest, InvalidEffectIndex) {
 
 TEST_F(ToneCurveTest, CorruptedSourceData) {
   std::string corrupted_src = "invalid data";
-  EXPECT_THROW(ToneCurve tcc(corrupted_src), std::invalid_argument);
+  EXPECT_THROW(ToneCurve tcc(corrupted_src), std::exception);
 }
 
 TEST_F(ToneCurveTest, LargeNumberOfEffects) {

@@ -32,8 +32,8 @@
 
 #include "base/notification/observer.h"
 #include "base/notification/registrar.h"
+#include "base/tone_curve.h"
 #include "systems/base/surface.h"
-#include "systems/base/tone_curve.h"
 
 struct SDL_Surface;
 class Texture;
@@ -130,18 +130,22 @@ class SDLSurface : public Surface, public NotificationObserver {
 
   virtual void Fill(const RGBAColour& colour) override;
   virtual void Fill(const RGBAColour& colour, const Rect& area) override;
-  virtual void ToneCurve(const ToneCurveRGBMap effect, const Rect& area) override;
+  virtual void ToneCurve(const ToneCurveRGBMap effect,
+                         const Rect& area) override;
   virtual void Invert(const Rect& rect) override;
   virtual void Mono(const Rect& area) override;
   virtual void ApplyColour(const RGBColour& colour, const Rect& area) override;
 
   SDL_Surface* surface() { return surface_; }
 
-  virtual void GetDCPixel(const Point& pos, int& r, int& g, int& b) const override;
+  virtual void GetDCPixel(const Point& pos,
+                          int& r,
+                          int& g,
+                          int& b) const override;
   virtual std::shared_ptr<Surface> ClipAsColorMask(const Rect& clip_rect,
-                                                     int r,
-                                                     int g,
-                                                     int b) const override;
+                                                   int r,
+                                                   int g,
+                                                   int b) const override;
 
   virtual Surface* Clone() const;
 

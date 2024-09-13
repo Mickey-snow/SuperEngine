@@ -31,7 +31,7 @@
 #include <memory>
 
 #include "systems/base/rect.h"
-#include "systems/base/tone_curve.h"
+#include "base/tone_curve.h"
 
 class RGBColour;
 class RGBAColour;

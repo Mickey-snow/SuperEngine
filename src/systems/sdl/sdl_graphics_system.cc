@@ -47,6 +47,7 @@
 #include <vector>
 
 #include "base/notification/source.h"
+#include "base/tone_curve.h"
 #include "libreallive/gameexe.h"
 #include "machine/rlmachine.h"
 #include "systems/base/cgm_table.h"
@@ -58,7 +59,6 @@
 #include "systems/base/system.h"
 #include "systems/base/system_error.h"
 #include "systems/base/text_system.h"
-#include "systems/base/tone_curve.h"
 #include "systems/sdl/sdl_colour_filter.h"
 #include "systems/sdl/sdl_event_system.h"
 #include "systems/sdl/sdl_render_to_texture_surface.h"
@@ -94,12 +94,8 @@ void SDLGraphicsSystem::BeginFrame() {
 
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  glOrtho(0.0,
-          (GLdouble)screen_size().width(),
-          (GLdouble)screen_size().height(),
-          0.0,
-          0.0,
-          1.0);
+  glOrtho(0.0, (GLdouble)screen_size().width(),
+          (GLdouble)screen_size().height(), 0.0, 0.0, 1.0);
   DebugShowGLErrors();
 
   glMatrixMode(GL_MODELVIEW);
@@ -113,7 +109,8 @@ void SDLGraphicsSystem::BeginFrame() {
 
 void SDLGraphicsSystem::MarkScreenAsDirty(GraphicsUpdateType type) {
   if (is_responsible_for_update() &&
-      screen_update_mode() == SCREENUPDATEMODE_MANUAL && type == GUT_MOUSE_MOTION)
+      screen_update_mode() == SCREENUPDATEMODE_MANUAL &&
+      type == GUT_MOUSE_MOTION)
     redraw_last_frame_ = true;
   else
     GraphicsSystem::MarkScreenAsDirty(type);
@@ -132,13 +129,7 @@ void SDLGraphicsSystem::EndFrame() {
     // and I've just been lucky that the Intel i810 and whatever my Mac machine
     // has have been doing things that way.)
     glBindTexture(GL_TEXTURE_2D, screen_contents_texture_);
-    glCopyTexSubImage2D(GL_TEXTURE_2D,
-                        0,
-                        0,
-                        0,
-                        0,
-                        0,
-                        screen_size().width(),
+    glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, screen_size().width(),
                         screen_size().height());
     screen_contents_texture_valid_ = true;
   } else {
@@ -250,8 +241,7 @@ SDLGraphicsSystem::SDLGraphicsSystem(System& system, Gameexe& gameexe)
   // automatically and this doesn't look too awesome.
   SDL_Surface* icon = IMG_ReadXPMFromArray(rlvm_icon_48);
   if (icon) {
-    SDL_SetColorKey(icon,
-                    SDL_SRCCOLORKEY,
+    SDL_SetColorKey(icon, SDL_SRCCOLORKEY,
                     SDL_MapRGB(icon->format, 255, 255, 255));
     SDL_WM_SetIcon(icon, NULL);
     SDL_FreeSurface(icon);
@@ -265,8 +255,7 @@ SDLGraphicsSystem::SDLGraphicsSystem(System& system, Gameexe& gameexe)
 
   SDL_ShowCursor(ShouldUseCustomCursor() ? SDL_DISABLE : SDL_ENABLE);
 
-  registrar_.Add(this,
-                 NotificationType::FULLSCREEN_STATE_CHANGED,
+  registrar_.Add(this, NotificationType::FULLSCREEN_STATE_CHANGED,
                  Source<GraphicsSystem>(static_cast<GraphicsSystem*>(this)));
 }
 
@@ -299,9 +288,8 @@ void SDLGraphicsSystem::SetupVideo() {
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
   // Set the video mode
-  if ((screen_ = SDL_SetVideoMode(
-           screen_size().width(), screen_size().height(), bpp, video_flags)) ==
-      0) {
+  if ((screen_ = SDL_SetVideoMode(screen_size().width(), screen_size().height(),
+                                  bpp, video_flags)) == 0) {
     // This could happen for a variety of reasons,
     // including DISPLAY not being set, the specified
     // resolution not being available, etc.
@@ -355,15 +343,8 @@ void SDLGraphicsSystem::SetupVideo() {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   screen_tex_width_ = SafeSize(screen_size().width());
   screen_tex_height_ = SafeSize(screen_size().height());
-  glTexImage2D(GL_TEXTURE_2D,
-               0,
-               GL_RGBA,
-               screen_tex_width_,
-               screen_tex_height_,
-               0,
-               GL_RGB,
-               GL_UNSIGNED_BYTE,
-               NULL);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, screen_tex_width_, screen_tex_height_,
+               0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
 
   ShowGLErrors();
 }
@@ -478,9 +459,9 @@ void SDLGraphicsSystem::SetMinimumSizeForDC(int dc, Size size) {
       std::shared_ptr<SDLSurface> newdc(new SDLSurface(this));
       newdc->allocate(maxSize);
 
-      display_contexts_[dc]->BlitToSurface(
-          *newdc, display_contexts_[dc]->GetRect(),
-          display_contexts_[dc]->GetRect());
+      display_contexts_[dc]->BlitToSurface(*newdc,
+                                           display_contexts_[dc]->GetRect(),
+                                           display_contexts_[dc]->GetRect());
 
       display_contexts_[dc] = newdc;
     }
@@ -529,15 +510,9 @@ static SDL_Surface* newSurfaceFromRGBAData(int w,
                                            char* data,
                                            MaskType with_mask) {
   int amask = (with_mask == ALPHA_MASK) ? DefaultAmask : 0;
-  SDL_Surface* tmp = SDL_CreateRGBSurfaceFrom(data,
-                                              w,
-                                              h,
-                                              DefaultBpp,
-                                              w * 4,
-                                              DefaultRmask,
-                                              DefaultGmask,
-                                              DefaultBmask,
-                                              amask);
+  SDL_Surface* tmp =
+      SDL_CreateRGBSurfaceFrom(data, w, h, DefaultBpp, w * 4, DefaultRmask,
+                               DefaultGmask, DefaultBmask, amask);
 
   // We now need to convert this surface to a format suitable for use across
   // the rest of the program. We can't (regretfully) rely on
@@ -594,8 +569,7 @@ std::shared_ptr<const Surface> SDLGraphicsSystem::LoadSurfaceFromFile(
   fread(d.get(), size, 1, file);
   fclose(file);
 
-  std::unique_ptr<GRPCONV> conv(
-      GRPCONV::AssignConverter(d.get(), size, "???"));
+  std::unique_ptr<GRPCONV> conv(GRPCONV::AssignConverter(d.get(), size, "???"));
   if (conv == 0) {
     throw SystemError("Failure in GRPCONV.");
   }
@@ -626,10 +600,8 @@ std::shared_ptr<const Surface> SDLGraphicsSystem::LoadSurfaceFromFile(
   // default region if none exist
   std::vector<SDLSurface::GrpRect> region_table;
   if (conv->region_table.size()) {
-    std::transform(conv->region_table.begin(),
-                   conv->region_table.end(),
-                   std::back_inserter(region_table),
-                   xclannadRegionToGrpRect);
+    std::transform(conv->region_table.begin(), conv->region_table.end(),
+                   std::back_inserter(region_table), xclannadRegionToGrpRect);
   } else {
     SDLSurface::GrpRect rect;
     rect.rect = Rect(Point(0, 0), Size(conv->Width(), conv->Height()));

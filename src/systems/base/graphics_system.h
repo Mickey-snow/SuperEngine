@@ -28,10 +28,10 @@
 #ifndef SRC_SYSTEMS_BASE_GRAPHICS_SYSTEM_H_
 #define SRC_SYSTEMS_BASE_GRAPHICS_SYSTEM_H_
 
-#include <filesystem>
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/split_member.hpp>
 #include <boost/serialization/version.hpp>
+#include <filesystem>
 
 #include <iosfwd>
 #include <map>
@@ -42,13 +42,13 @@
 #include <utility>
 #include <vector>
 
+#include "base/tone_curve.h"
 #include "systems/base/cgm_table.h"
 #include "systems/base/event_listener.h"
 #include "systems/base/rect.h"
-#include "systems/base/tone_curve.h"
 
-#include "utilities/lazy_array.h"
 #include "lru_cache.hpp"
+#include "utilities/lazy_array.h"
 
 class ColourFilter;
 class Gameexe;
@@ -95,13 +95,13 @@ struct GraphicsSystemGlobals {
   // boost::serialization support
   template <class Archive>
   void serialize(Archive& ar, const unsigned int version) {
-    ar& show_object_1& show_object_2& show_weather;
+    ar & show_object_1 & show_object_2 & show_weather;
 
     if (version > 0)
-      ar& cg_table;
+      ar & cg_table;
 
     if (version > 1)
-      ar& screen_mode;
+      ar & screen_mode;
   }
 };
 
@@ -445,10 +445,9 @@ class GraphicsSystem : public EventListener {
                         const std::filesystem::path& file);
   void ClearPreloadedHIKScript(int slot);
   void ClearAllPreloadedHIKScripts();
-  std::shared_ptr<HIKScript> GetHIKScript(
-      System& system,
-      const std::string& name,
-      const std::filesystem::path& file);
+  std::shared_ptr<HIKScript> GetHIKScript(System& system,
+                                          const std::string& name,
+                                          const std::filesystem::path& file);
 
   // We have a cache of preloaded g00 files.
   void PreloadG00(int slot, const std::string& name);
