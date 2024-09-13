@@ -41,6 +41,7 @@
 #include "systems/sdl/sdl_graphics_system.h"
 #include "systems/sdl/sdl_sound_system.h"
 #include "systems/sdl/sdl_text_system.h"
+#include "systems/sdl/sound_implementor.h"
 
 // -----------------------------------------------------------------------
 
@@ -53,10 +54,19 @@ SDLSystem::SDLSystem(Gameexe& gameexe) : System(), gameexe_(gameexe) {
   }
 
   // Initialize the various subsystems
-  graphics_system_.reset(new SDLGraphicsSystem(*this, gameexe));
-  event_system_.reset(new SDLEventSystem(*this, gameexe));
-  text_system_.reset(new SDLTextSystem(*this, gameexe));
-  sound_system_.reset(new SDLSoundSystem(*this));
+  graphics_system_ = std::make_unique<SDLGraphicsSystem>(*this, gameexe);
+  event_system_ = std::make_unique<SDLEventSystem>(*this, gameexe);
+  text_system_ = std::make_unique<SDLTextSystem>(*this, gameexe);
+
+  // The implementor for sound system
+  std::unique_ptr<SDLSoundImpl> sound_impl =
+      std::make_unique<SDLSoundImpl>();
+  // Currently only sound system is refactored to use the bridge pattern, other
+  // subsystem's implementation are bound permanently with their abstraction,
+  // meaning all classes in systems/sdl needed to be reimplemented for a new
+  // system or different implementation.
+  sound_system_ =
+      std::make_unique<SDLSoundSystem>(*this, std::move(sound_impl));
 
   event_system_->AddMouseListener(graphics_system_.get());
   event_system_->AddMouseListener(text_system_.get());

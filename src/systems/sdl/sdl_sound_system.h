@@ -33,12 +33,12 @@
 
 #include "lru_cache.hpp"
 #include "systems/base/sound_system.h"
-#include "systems/sdl/sound_implementor.h"
+#include "systems/base/isound_system.h"
 
 class SDLSoundSystem : public SoundSystem {
  public:
   explicit SDLSoundSystem(System& system,
-                          std::shared_ptr<SoundSystemImpl> impl = nullptr);
+                          std::unique_ptr<ISoundSystem> impl = nullptr);
   ~SDLSoundSystem();
 
   virtual void SetBgmEnabled(const int in) override;
@@ -105,7 +105,7 @@ class SDLSoundSystem : public SoundSystem {
   AVSpec sound_quality_;
 
   // The bridge to sdl sound implementor
-  std::shared_ptr<SoundSystemImpl> sound_impl_;
+  std::unique_ptr<ISoundSystem> sound_impl_;
 
 };  // end of class SDLSoundSystem
 

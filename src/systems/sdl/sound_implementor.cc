@@ -44,7 +44,7 @@ class SDLAudioLocker {
 
 // -----------------------------------------------------------------------
 
-class SoundSystemImpl::SDLSoundChunk {
+class SDLSoundImpl::SDLSoundChunk {
  public:
   SDLSoundChunk(Mix_Chunk* chunk) : chunk_(chunk) {}
   ~SDLSoundChunk() { Mix_FreeChunk(chunk_); }
@@ -57,11 +57,11 @@ class SoundSystemImpl::SDLSoundChunk {
 
 // -----------------------------------------------------------------------
 
-bool SoundSystemImpl::ChannelInfo::IsIdle() const {
+bool SDLSoundImpl::ChannelInfo::IsIdle() const {
   return implementor == nullptr;
 }
 
-void SoundSystemImpl::ChannelInfo::Reset() {
+void SDLSoundImpl::ChannelInfo::Reset() {
   player = nullptr;
   implementor = nullptr;
   buffer.clear();
@@ -70,32 +70,36 @@ void SoundSystemImpl::ChannelInfo::Reset() {
 
 // -----------------------------------------------------------------------
 
-void SoundSystemImpl::InitSystem() const { SDL_InitSubSystem(SDL_INIT_AUDIO); }
+SDLSoundImpl::SDLSoundImpl() = default;
 
-void SoundSystemImpl::QuitSystem() const { SDL_QuitSubSystem(SDL_INIT_AUDIO); }
+SDLSoundImpl::~SDLSoundImpl() = default;
 
-void SoundSystemImpl::AllocateChannels(int num) const {
+void SDLSoundImpl::InitSystem() const { SDL_InitSubSystem(SDL_INIT_AUDIO); }
+
+void SDLSoundImpl::QuitSystem() const { SDL_QuitSubSystem(SDL_INIT_AUDIO); }
+
+void SDLSoundImpl::AllocateChannels(int num) const {
   Mix_AllocateChannels(num);
   ch_.resize(num);
-  Mix_ChannelFinished(&SoundSystemImpl::OnChannelFinished);
+  Mix_ChannelFinished(&SDLSoundImpl::OnChannelFinished);
 }
 
-void SoundSystemImpl::OpenAudio(AVSpec spec, int buf_size) const {
+void SDLSoundImpl::OpenAudio(AVSpec spec, int buf_size) const {
   if (Mix_OpenAudio(spec.sample_rate, ToSDLSoundFormat(spec.sample_format),
                     spec.channel_count, buf_size) == -1) {
     throw std::runtime_error("SDL Error: "s + GetError());
   }
 
   spec_ = spec;
-  Mix_HookMusic(&SoundSystemImpl::OnMusic, NULL);
+  Mix_HookMusic(&SDLSoundImpl::OnMusic, NULL);
 }
 
-void SoundSystemImpl::CloseAudio() const {
+void SDLSoundImpl::CloseAudio() const {
   Mix_HookMusic(NULL, NULL);
   Mix_CloseAudio();
 }
 
-AVSpec SoundSystemImpl::QuerySpec() const {
+AVSpec SDLSoundImpl::QuerySpec() const {
   int freq, channels;
   Uint16 format;
   Mix_QuerySpec(&freq, &format, &channels);
@@ -104,15 +108,15 @@ AVSpec SoundSystemImpl::QuerySpec() const {
                 .channel_count = channels};
 }
 
-void SoundSystemImpl::SetVolume(int channel, int vol) const {
+void SDLSoundImpl::SetVolume(int channel, int vol) const {
   Mix_Volume(channel, vol);
 }
 
-bool SoundSystemImpl::IsPlaying(int channel) const {
+bool SDLSoundImpl::IsPlaying(int channel) const {
   return Mix_Playing(channel);
 }
 
-int SoundSystemImpl::FindIdleChannel() const {
+int SDLSoundImpl::FindIdleChannel() const {
   if (ch_.empty())
     throw std::runtime_error("SDL Error: Channel not allocated.");
 
@@ -123,7 +127,7 @@ int SoundSystemImpl::FindIdleChannel() const {
   throw std::runtime_error("All channels are busy.");
 }
 
-int SoundSystemImpl::PlayChannel(int channel,
+int SDLSoundImpl::PlayChannel(int channel,
                                  std::shared_ptr<AudioPlayer> audio) {
   AudioData audio_data = audio->LoadRemain();
   const auto system_frequency = QuerySpec().sample_rate;
@@ -154,32 +158,32 @@ int SoundSystemImpl::PlayChannel(int channel,
   return ret;
 }
 
-void SoundSystemImpl::PlayBgm(player_t audio) {
+void SDLSoundImpl::PlayBgm(player_t audio) {
   SDLAudioLocker lock;
   bgm_player_ = audio;
 }
 
-player_t SoundSystemImpl::GetBgm() const { return bgm_player_; }
+player_t SDLSoundImpl::GetBgm() const { return bgm_player_; }
 
-void SoundSystemImpl::EnableBgm() { bgm_enabled_ = true; }
+void SDLSoundImpl::EnableBgm() { bgm_enabled_ = true; }
 
-void SoundSystemImpl::DisableBgm() { bgm_enabled_ = false; }
+void SDLSoundImpl::DisableBgm() { bgm_enabled_ = false; }
 
-int SoundSystemImpl::FadeOutChannel(int channel, int fadetime) const {
+int SDLSoundImpl::FadeOutChannel(int channel, int fadetime) const {
   return Mix_FadeOutChannel(channel, fadetime);
 }
 
-void SoundSystemImpl::HaltChannel(int channel) const {
+void SDLSoundImpl::HaltChannel(int channel) const {
   if (channel < 0) /* all channels */
     channel = -1;
   Mix_HaltChannel(channel);
 }
 
-void SoundSystemImpl::HaltAllChannels() const { HaltChannel(-1); }
+void SDLSoundImpl::HaltAllChannels() const { HaltChannel(-1); }
 
-const char* SoundSystemImpl::GetError() const { return Mix_GetError(); }
+const char* SDLSoundImpl::GetError() const { return Mix_GetError(); }
 
-uint16_t SoundSystemImpl::ToSDLSoundFormat(AV_SAMPLE_FMT fmt) const {
+uint16_t SDLSoundImpl::ToSDLSoundFormat(AV_SAMPLE_FMT fmt) const {
   switch (fmt) {
     case AV_SAMPLE_FMT::U8:
       return AUDIO_U8;
@@ -200,7 +204,7 @@ uint16_t SoundSystemImpl::ToSDLSoundFormat(AV_SAMPLE_FMT fmt) const {
   }
 }
 
-AV_SAMPLE_FMT SoundSystemImpl::FromSDLSoundFormat(uint16_t fmt) const {
+AV_SAMPLE_FMT SDLSoundImpl::FromSDLSoundFormat(uint16_t fmt) const {
   switch (fmt) {
     case AUDIO_U8:
       return AV_SAMPLE_FMT::U8;
@@ -214,7 +218,7 @@ AV_SAMPLE_FMT SoundSystemImpl::FromSDLSoundFormat(uint16_t fmt) const {
   }
 }
 
-void SoundSystemImpl::OnChannelFinished(int channel) {
+void SDLSoundImpl::OnChannelFinished(int channel) {
   auto player = ch_[channel].player;
   auto implementor = ch_[channel].implementor;
   ch_[channel].Reset();
@@ -223,7 +227,7 @@ void SoundSystemImpl::OnChannelFinished(int channel) {
     implementor->PlayChannel(channel, player);
 }
 
-void SoundSystemImpl::OnMusic(void*, uint8_t* stream, int len) {
+void SDLSoundImpl::OnMusic(void*, uint8_t* stream, int len) {
   memset(stream, 0, len);
 
   if (!bgm_player_ || !bgm_enabled_)
@@ -243,7 +247,7 @@ void SoundSystemImpl::OnMusic(void*, uint8_t* stream, int len) {
       std::move(audio_data.data));
 }
 
-std::vector<SoundSystemImpl::ChannelInfo> SoundSystemImpl::ch_;
-player_t SoundSystemImpl::bgm_player_ = nullptr;
-bool SoundSystemImpl::bgm_enabled_ = true;
-AVSpec SoundSystemImpl::spec_;
+std::vector<SDLSoundImpl::ChannelInfo> SDLSoundImpl::ch_;
+player_t SDLSoundImpl::bgm_player_ = nullptr;
+bool SDLSoundImpl::bgm_enabled_ = true;
+AVSpec SDLSoundImpl::spec_;

@@ -34,9 +34,9 @@
 #include <memory>
 #include <tuple>
 
-class FakeAudioImpl : public SoundSystemImpl {
+class FakeAudioImpl : public SDLSoundImpl {
  public:
-  using super = SoundSystemImpl;
+  using super = SDLSoundImpl;
 
   FakeAudioImpl() = default;
   ~FakeAudioImpl() = default;

@@ -192,6 +192,7 @@ librlvm_files = [
   "src/systems/base/tone_curve.cc",
   "src/systems/base/voice_factory.cc",
   "src/systems/base/asset_scanner.cc",
+  "src/systems/sdl/sdl_sound_system.cc",
   "src/utilities/exception.cc",
   "src/utilities/file.cc",
   "src/utilities/mapped_file.cc",
@@ -212,18 +213,21 @@ librlvm_files = [
 root_env.StaticLibrary('rlvm', librlvm_files)
 
 libsystemsdl_files = [
-  "src/systems/sdl/sdl_colour_filter.cc",
+  "src/systems/sdl/sdl_system.cc",
+
   "src/systems/sdl/sdl_event_system.cc",
+
+  "src/systems/sdl/sdl_colour_filter.cc",
   "src/systems/sdl/sdl_graphics_system.cc",
   "src/systems/sdl/sdl_render_to_texture_surface.cc",
-  "src/systems/sdl/sdl_sound_system.cc",
   "src/systems/sdl/sdl_surface.cc",
-  "src/systems/sdl/sdl_system.cc",
-  "src/systems/sdl/sdl_text_system.cc",
-  "src/systems/sdl/sdl_text_window.cc",
-  "src/systems/sdl/sdl_utils.cc",
   "src/systems/sdl/shaders.cc",
   "src/systems/sdl/texture.cc",
+  "src/systems/sdl/sdl_utils.cc",
+
+  "src/systems/sdl/sdl_text_system.cc",
+  "src/systems/sdl/sdl_text_window.cc",
+
   "src/systems/sdl/sound_implementor.cc",
 
   # Parts of pygame.

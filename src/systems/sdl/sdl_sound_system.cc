@@ -38,6 +38,7 @@
 #include "systems/base/system.h"
 #include "systems/base/system_error.h"
 #include "systems/base/voice_archive.h"
+#include "systems/sdl/sound_implementor.h"
 #include "utilities/exception.h"
 
 namespace fs = std::filesystem;
@@ -119,12 +120,11 @@ SoundSystem::DSTrack SDLSoundSystem::FindBgm(const std::string& bgm_name) {
 // SDLSoundSystem
 // -----------------------------------------------------------------------
 SDLSoundSystem::SDLSoundSystem(System& system,
-                               std::shared_ptr<SoundSystemImpl> impl)
-    : SoundSystem(system), sound_impl_(impl) {
-  // Set up audio implementor for SDLMusic and SDLSoundChunk
-  // if an implementor is not specified, use default sdl
+                               std::unique_ptr<ISoundSystem> impl)
+    : SoundSystem(system), sound_impl_(std::move(impl)) {
   if (sound_impl_ == nullptr)
-    sound_impl_ = std::make_shared<SoundSystemImpl>();
+    throw std::invalid_argument("Sound implementor is nullptr.");
+
   sound_impl_->InitSystem();
 
   /* We're going to be requesting certain things from our audio

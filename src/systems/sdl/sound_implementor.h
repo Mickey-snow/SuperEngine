@@ -25,36 +25,37 @@
 #ifndef SRC_SYSTEMS_SDL_SOUND_IMPLEMENTOR_H_
 #define SRC_SYSTEMS_SDL_SOUND_IMPLEMENTOR_H_
 
+#include "systems/base/isound_system.h"
+
 #include <cstdint>
+#include <memory>
+#include <vector>
 
-#include "base/audio_player.h"
-#include "base/avspec.h"
-
-class SoundSystemImpl {
+class SDLSoundImpl : public ISoundSystem {
  public:
-  SoundSystemImpl() = default;
-  ~SoundSystemImpl() = default;
+  SDLSoundImpl();
+  ~SDLSoundImpl();
 
-  virtual void InitSystem() const;
-  virtual void QuitSystem() const;
+  virtual void InitSystem() const override;
+  virtual void QuitSystem() const override;
 
-  virtual void AllocateChannels(int num) const;
-  virtual void OpenAudio(AVSpec spec, int buffer_size) const;
-  virtual void CloseAudio() const;
-  virtual AVSpec QuerySpec() const;
+  virtual void AllocateChannels(int num) const override;
+  virtual void OpenAudio(AVSpec spec, int buffer_size) const override;
+  virtual void CloseAudio() const override;
+  virtual AVSpec QuerySpec() const override;
 
-  virtual int FindIdleChannel() const;
-  virtual void SetVolume(int channel, int vol) const;
-  virtual bool IsPlaying(int channel) const;
-  virtual int PlayChannel(int channel, player_t audio);
-  virtual int FadeOutChannel(int channel, int fadetime) const;
-  virtual void HaltChannel(int channel) const;
-  virtual void HaltAllChannels() const;
+  virtual int FindIdleChannel() const override;
+  virtual void SetVolume(int channel, int vol) const override;
+  virtual bool IsPlaying(int channel) const override;
+  virtual int PlayChannel(int channel, player_t audio) override;
+  virtual int FadeOutChannel(int channel, int fadetime) const override;
+  virtual void HaltChannel(int channel) const override;
+  virtual void HaltAllChannels() const override;
 
-  virtual void PlayBgm(player_t audio);
-  virtual player_t GetBgm() const;
-  virtual void EnableBgm();
-  virtual void DisableBgm();
+  virtual void PlayBgm(player_t audio) override;
+  virtual player_t GetBgm() const override;
+  virtual void EnableBgm() override;
+  virtual void DisableBgm() override;
 
   uint16_t ToSDLSoundFormat(AV_SAMPLE_FMT fmt) const;
   AV_SAMPLE_FMT FromSDLSoundFormat(uint16_t fmt) const;
@@ -68,7 +69,7 @@ class SoundSystemImpl {
   class SDLSoundChunk;
   struct ChannelInfo {
     player_t player;
-    SoundSystemImpl* implementor;
+    SDLSoundImpl* implementor;
     std::vector<uint8_t> buffer;
     std::unique_ptr<SDLSoundChunk> chunk;
 
