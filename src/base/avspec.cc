@@ -24,7 +24,6 @@
 
 #include "base/avspec.h"
 
-#include <stdexcept>
 #include <string>
 
 std::string to_string(AV_SAMPLE_FMT fmt) {
@@ -77,55 +76,3 @@ bool AVSpec::operator==(const AVSpec& rhs) const {
 }
 
 bool AVSpec::operator!=(const AVSpec& rhs) const { return !(*this == rhs); }
-
-void AudioData::PrepareDatabuf() {
-  switch (spec.sample_format) {
-    case AV_SAMPLE_FMT::U8:
-      data = std::vector<avsample_u8_t>{};
-      break;
-    case AV_SAMPLE_FMT::S8:
-      data = std::vector<avsample_s8_t>{};
-      break;
-    case AV_SAMPLE_FMT::S16:
-      data = std::vector<avsample_s16_t>{};
-      break;
-    case AV_SAMPLE_FMT::S32:
-      data = std::vector<avsample_s32_t>{};
-      break;
-    case AV_SAMPLE_FMT::S64:
-      data = std::vector<avsample_s64_t>{};
-      break;
-    case AV_SAMPLE_FMT::FLT:
-      data = std::vector<avsample_flt_t>{};
-      break;
-    case AV_SAMPLE_FMT::DBL:
-      data = std::vector<avsample_dbl_t>{};
-      break;
-    default:
-      // Handle AV_SAMPLE_FMT::NONE
-      throw std::runtime_error("Unsupported audio sample format");
-  }
-}
-
-size_t AudioData::SampleCount() const {
-  return std::visit([](const auto& data) -> size_t { return data.size(); },
-                    data);
-}
-
-AudioData& AudioData::Append(const AudioData& rhs) {
-  if (SampleCount() == 0)
-    return *this = rhs;
-  else if (rhs.SampleCount() == 0)
-    return *this;
-  else
-    return *this = AudioData::Concat(std::move(*this), rhs);
-}
-
-AudioData& AudioData::Append(AudioData&& rhs) {
-  if (SampleCount() == 0)
-    return *this = std::move(rhs);
-  else if (rhs.SampleCount() == 0)
-    return *this;
-  else
-    return *this = AudioData::Concat(std::move(*this), std::move(rhs));
-}

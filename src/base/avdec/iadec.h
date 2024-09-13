@@ -25,7 +25,7 @@
 #ifndef BASE_AVDEC_IADEC_H_
 #define BASE_AVDEC_IADEC_H_
 
-#include "base/avspec.h"
+#include "base/audio_data.h"
 
 #include <string>
 
