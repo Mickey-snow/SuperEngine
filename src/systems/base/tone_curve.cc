@@ -27,21 +27,17 @@
 
 #include "systems/base/tone_curve.h"
 
+#include <cstring>
 #include <filesystem>
-#include <filesystem>
-
 #include <fstream>
 #include <sstream>
 #include <string>
 
 #include "libreallive/gameexe.h"
-#include "libreallive/intmemref.h"
-#include "machine/memory.h"
-#include "machine/rlmachine.h"
 #include "utilities/exception.h"
 #include "utilities/file.h"
+#include "utilities/mapped_file.h"
 #include "xclannad/endian.hpp"
-#include "xclannad/file.h"
 
 namespace fs = std::filesystem;
 
@@ -51,8 +47,7 @@ ToneCurve::ToneCurve(Gameexe& gameexe) {
   GameexeInterpretObject filename_key = gameexe("TONECURVE_FILENAME");
   if (!filename_key.Exists()) {
     // It is perfectly valid not to have a tone curve key. All operations in
-    // this
-    // class become noops.
+    // this class become noops.
     return;
   }
 
@@ -100,6 +95,37 @@ ToneCurve::ToneCurve(Gameexe& gameexe) {
     rgb[0] = red;
     rgb[1] = green;
     rgb[2] = blue;
+
+    tcc_info_.push_back(rgb);
+    offset += 0x40;
+  }
+}
+
+ToneCurve::ToneCurve(std::string_view data) {
+  if (read_little_endian_int(data.data()) != 1000) {
+    throw std::invalid_argument("Not a TCC file!");
+  }
+
+  effect_count_ = read_little_endian_int(data.data() + 4);
+  tcc_info_.clear();
+  int offset = 0xFE8;
+  for (int i = 0; i < effect_count_; i++) {
+    ToneCurveColorMap red;
+    ToneCurveColorMap green;
+    ToneCurveColorMap blue;
+    ToneCurveRGBMap rgb;
+
+    memcpy(red.data(), data.data() + offset, 256);
+    offset += 256;
+    memcpy(green.data(), data.data() + offset, 256);
+    offset += 256;
+    memcpy(blue.data(), data.data() + offset, 256);
+    offset += 256;
+
+    rgb[0] = red;
+    rgb[1] = green;
+    rgb[2] = blue;
+
     tcc_info_.push_back(rgb);
     offset += 0x40;
   }
@@ -111,11 +137,34 @@ ToneCurveRGBMap ToneCurve::GetEffect(int index) {
   if (index >= GetEffectCount() || index < 0) {
     std::ostringstream oss;
     oss << "Requested tone curve index " << index
-        << " exceeds the amount of effects in the tone curve file.";
-    throw rlvm::Exception(oss.str());
+        << " exceeds the amount of effects (" << GetEffectCount() << ')'
+        << " in the tone curve file.";
+    throw std::out_of_range(oss.str());
   }
 
   return tcc_info_[index];
 }
 
 ToneCurve::~ToneCurve() { tcc_info_.clear(); }
+
+ToneCurve CreateToneCurve(Gameexe& gameexe) {
+  GameexeInterpretObject filename_key = gameexe("TONECURVE_FILENAME");
+  if (!filename_key.Exists()) {
+    // It is perfectly valid not to have a tone curve key. All operations in
+    // this class become noops.
+    return ToneCurve();
+  }
+
+  std::string tonecurve = filename_key.ToString("");
+  if (tonecurve == "") {
+    // It is perfectly valid not to have a tone curve. All operations in this
+    // class become noops.
+    return ToneCurve();
+  }
+
+  fs::path basename = gameexe("__GAMEPATH").ToString();
+  fs::path filename = CorrectPathCase(basename / "dat" / tonecurve);
+
+  MappedFile mfile(filename);
+  return ToneCurve(mfile.Read());
+}

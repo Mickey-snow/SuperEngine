@@ -63,6 +63,7 @@ test_case_files = [
   "test/audio_player_unittest.cc",
   "test/audio_databuf_unittest.cc",
   "test/decoder_factory_unittest.cc",
+  "test/tone_curve_unittest.cc",
 
   # medium tests
   "test/medium_eventloop_test.cc",

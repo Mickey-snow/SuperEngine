@@ -29,10 +29,10 @@
 #define SRC_SYSTEMS_BASE_TONE_CURVE_H_
 
 #include <array>
+#include <string_view>
 #include <vector>
 
 class Gameexe;
-class RLMachine;
 
 typedef std::array<unsigned char, 256> ToneCurveColorMap;
 typedef std::array<ToneCurveColorMap, 3> ToneCurveRGBMap;
@@ -53,17 +53,16 @@ class ToneCurve {
   // Initializes an empty tone curve set (for games that don't use this
   // feature).
   ToneCurve();
-
-  // Initializes the CG table with the TCC data file specified in the
-  // #TONECURVE_FILENAME gameexe key.
-  explicit ToneCurve(Gameexe& gameexe);
   ~ToneCurve();
+
+  ToneCurve(std::string_view data);
+  explicit ToneCurve(Gameexe& gameexe);
 
   // Returns the total number of tone curve effects available in the tone curve
   // file
   int GetEffectCount() const;
 
-  // Return the effect at the given index (used by Surface in tone_curve()).  The
+  // Return the effect at the given index (used by Surface in tone_curve()). The
   // effects are indexed from 0 to effect_count - 1
   ToneCurveRGBMap GetEffect(int index);
 
@@ -72,5 +71,10 @@ class ToneCurve {
   ToneCurveEffects tcc_info_;
   int effect_count_;
 };  // end of class ToneCurve
+
+// Helper function for instantiating a ToneCurve class
+// Initializes the CG table with the TCC data file specified in the
+// #TONECURVE_FILENAME gameexe key.
+ToneCurve CreateToneCurve(Gameexe& gameexe);
 
 #endif  // SRC_SYSTEMS_BASE_TONE_CURVE_H_

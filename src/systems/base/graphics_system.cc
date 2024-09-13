@@ -172,7 +172,7 @@ GraphicsSystemGlobals::GraphicsSystemGlobals(Gameexe& gameexe)
       skip_animations(0),
       screen_mode(1),
       cg_table(gameexe),
-      tone_curves(gameexe) {}
+      tone_curves(CreateToneCurve(gameexe)) {}
 
 // -----------------------------------------------------------------------
 // GraphicsObjectImpl
