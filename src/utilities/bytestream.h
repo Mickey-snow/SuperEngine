@@ -51,6 +51,8 @@ class oBytestream {
 
   void Flush() { buffer_.clear(); }
 
+  size_t Tell() const { return buffer_.size(); }
+
  private:
   ByteBuffer_t buffer_;
   ByteInserter back_;

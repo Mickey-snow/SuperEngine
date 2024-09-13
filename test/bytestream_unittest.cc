@@ -55,6 +55,7 @@ TEST(oBytestreamTest, InsertBasicTypes) {
 
   const auto& buffer = stream.Get();
   ASSERT_EQ(buffer.size(), sizeof(u8) + sizeof(i32) + sizeof(d));
+  EXPECT_EQ(stream.Tell(), 13);
 
   uint8_t u8_result;
   int32_t i32_result;
@@ -79,6 +80,7 @@ TEST(oBytestreamTest, InsertStrings) {
 
   stream << str << sv << "! ";
 
+  EXPECT_EQ(stream.Tell(), 13);
   const auto& buffer = stream.Get();
   ASSERT_EQ(buffer.size(), str.size() + sv.size() + 2);
 
@@ -91,6 +93,7 @@ TEST(oBytestreamTest, BufferManipulation) {
 
   stream << int32_t(100);
 
+  EXPECT_EQ(stream.Tell(), 4);
   auto& buffer = stream.Get();
   EXPECT_EQ(buffer.size(), sizeof(int32_t));
 
@@ -115,8 +118,10 @@ TEST(oBytestreamTest, GetCopy) {
 
   stream << int32_t(100) << double(2.718);
 
+  EXPECT_EQ(stream.Tell(), 12);
   auto copy = stream.GetCopy();
   stream.Flush();
+  EXPECT_EQ(stream.Tell(), 0);
   ASSERT_EQ(copy.size(), sizeof(int32_t) + sizeof(double));
 
   int32_t i32_result;
