@@ -66,6 +66,7 @@ test_case_files = [
   "test/tone_curve_unittest.cc",
   "test/lzss_unittest.cc",
   "test/cgmtable_unittest.cc",
+  "test/g00dec_unittest.cc",
 
   # medium tests
   "test/medium_eventloop_test.cc",
