@@ -35,16 +35,53 @@
  * @version 1.1
  * @date March 2006
  * @par
- * This cache is thread safe if compiled with the _REENTRANT defined.  It
- * uses the BOOST scientific computing library to provide the thread safety
- * mutexes.
+ * This cache uses `ThreadingModel` policy for dealing with threading issues.
  */
 #include <list>
 #include <map>
+#include <memory>
+#include <mutex>
 #include <vector>
-#ifdef _REENTRANT
-#include <boost/thread/mutex.hpp>
-#endif
+
+namespace ThreadingModel {
+class ILock {
+ public:
+  virtual ~ILock() = default;
+};
+using Lock = std::unique_ptr<ILock>;
+
+class UniqueLock : public ILock {
+ public:
+  UniqueLock(std::unique_lock<std::mutex>&& lock) : _lock(std::move(lock)) {}
+  ~UniqueLock() = default;
+
+ private:
+  std::unique_lock<std::mutex> _lock;
+};
+
+class DummyLock : public ILock {};
+
+class SingleThreaded {
+ public:
+  SingleThreaded() = default;
+  ~SingleThreaded() = default;
+
+  Lock GetLock() { return std::make_unique<DummyLock>(); }
+};
+
+class MultiThreaded {
+ public:
+  MultiThreaded() = default;
+  ~MultiThreaded() = default;
+
+  Lock GetLock() {
+    return std::make_unique<UniqueLock>(std::unique_lock<std::mutex>(_mutex));
+  }
+
+ private:
+  std::mutex _mutex;
+};
+}  // namespace ThreadingModel
 
 /**
  * @brief Template cache with an LRU removal policy.
@@ -57,7 +94,7 @@
  * discard the Least Recently Used element on each insertion.
  *
  */
-template <class Key, class Data>
+template <class Key, class Data, class Locker = ThreadingModel::SingleThreaded>
 class LRUCache {
  public:
   typedef std::list<std::pair<Key, Data>> List;  ///< Main cache storage typedef
@@ -82,9 +119,8 @@ class LRUCache {
   /// Maximum size of the cache in elements
   unsigned long _max_size;
 
-#ifdef _REENTRANT
-  mutable boost::mutex _mutex;
-#endif
+  mutable Locker _locker;
+  using Lock = ThreadingModel::Lock;
 
  public:
   /** @brief Creates a cache that holds at most Size elements.
@@ -98,9 +134,7 @@ class LRUCache {
    *  @return size in elements
    */
   unsigned long size(void) const {
-#ifdef _REENTRANT
-    boost::mutex::scoped_lock lock(_mutex);
-#endif
+    Lock lock = _locker.GetLock();
     return _list.size();
   }
 
@@ -111,9 +145,7 @@ class LRUCache {
 
   /// Clears all storage and indices.
   void clear(void) {
-#ifdef _REENTRANT
-    boost::mutex::scoped_lock lock(_mutex);
-#endif
+    Lock lock = _locker.GetLock();
     _list.clear();
     _index.clear();
   };
@@ -123,9 +155,7 @@ class LRUCache {
    *  @return bool indicating whether or not the key was found.
    */
   bool exists(const Key& key) const {
-#ifdef _REENTRANT
-    boost::mutex::scoped_lock lock(_mutex);
-#endif
+    Lock lock = _locker.GetLock();
     return _index.find(key) != _index.end();
   }
 
@@ -133,9 +163,7 @@ class LRUCache {
    *  @param key to be removed
    */
   void remove(const Key& key) {
-#ifdef _REENTRANT
-    boost::mutex::scoped_lock lock(_mutex);
-#endif
+    Lock lock = _locker.GetLock();
     Map_Iter miter = _index.find(key);
     if (miter == _index.end())
       return;
@@ -146,9 +174,7 @@ class LRUCache {
    *  @param key to be touched
    */
   void touch(const Key& key) {
-#ifdef _REENTRANT
-    boost::mutex::scoped_lock lock(_mutex);
-#endif
+    Lock lock = _locker.GetLock();
     auto miter = _index.find(key);
     if (miter == _index.end())
       return;
@@ -161,9 +187,7 @@ class LRUCache {
    *  @return pointer to data or NULL on error
    */
   Data* fetch_ptr(const Key& key, bool should_touch = true) {
-#ifdef _REENTRANT
-    boost::mutex::scoped_lock lock(_mutex);
-#endif
+    Lock lock = _locker.GetLock();
     auto miter = _index.find(key);
     if (miter == _index.end())
       return NULL;
@@ -178,12 +202,29 @@ class LRUCache {
    *  @return copy of the data or an empty Data object if not found
    */
   Data fetch(const Key& key, bool should_touch = true) {
-#ifdef _REENTRANT
-    boost::mutex::scoped_lock lock(_mutex);
-#endif
+    Lock lock = _locker.GetLock();
     auto miter = _index.find(key);
     if (miter == _index.end())
       return Data();
+    Data tmp = miter->second->second;
+    if (should_touch)
+      _touch(miter);
+    return tmp;
+  }
+
+  /** @brief Fetches a copy of cached data.
+   *  @param key to fetch data for
+   *  @param default_value default value if not found
+   *  @param touch_data whether or not to touch the data
+   *  @return copy of the data or the default value
+   */
+  Data fetch_or(const Key& key,
+                const Data& default_value,
+                bool should_touch = true) {
+    Lock lock = _locker.GetLock();
+    auto miter = _index.find(key);
+    if (miter == _index.end())
+      return default_value;
     Data tmp = miter->second->second;
     if (should_touch)
       _touch(miter);
@@ -198,9 +239,7 @@ class LRUCache {
    * exists.
    */
   void insert(const Key& key, const Data& data) {
-#ifdef _REENTRANT
-    boost::mutex::scoped_lock lock(_mutex);
-#endif
+    Lock lock = _locker.GetLock();
     auto miter = _index.find(key);
     if (miter != _index.end()) {
       _remove(miter);
@@ -220,9 +259,7 @@ class LRUCache {
                   @return list of the current keys.
   */
   std::vector<Key> get_all_keys(void) const {
-#ifdef _REENTRANT
-    boost::mutex::scoped_lock lock(_mutex);
-#endif
+    Lock lock = _locker.GetLock();
     std::vector<Key> keys;
     for (const auto& item : _list) {
       keys.push_back(item.first);

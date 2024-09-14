@@ -33,6 +33,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <cmath>
 
 #include "libreallive/alldefs.h"
 #include "libreallive/gameexe.h"
