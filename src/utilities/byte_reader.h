@@ -101,8 +101,7 @@ class ByteReader {
         std::memcpy(&ret, &value, sizeof(T));
         return ret;
       } else {
-        throw std::logic_error(
-            "Unsupported arithmetic type provided to ReadAs.");
+        static_assert(false, "Unsupported arithmetic type provided to ReadAs.");
       }
     } else {  // string type
       if (count < 0 || current_ + count > end_)

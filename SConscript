@@ -54,6 +54,7 @@ librlvm_files = [
   "src/base/audio_player.cc",
   "src/base/resampler.cc",
   "src/base/tone_curve.cc",
+  "src/base/compression.cc",
   "src/effects/blind_effect.cc",
   "src/effects/effect.cc",
   "src/effects/effect_factory.cc",
