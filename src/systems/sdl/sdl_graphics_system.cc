@@ -50,7 +50,7 @@
 #include "base/tone_curve.h"
 #include "libreallive/gameexe.h"
 #include "machine/rlmachine.h"
-#include "systems/base/cgm_table.h"
+#include "base/cgm_table.h"
 #include "systems/base/colour.h"
 #include "systems/base/event_system.h"
 #include "systems/base/graphics_object.h"

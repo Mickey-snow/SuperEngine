@@ -53,7 +53,7 @@
 #include "modules/module_sys_timer.h"
 #include "modules/module_sys_timetable2.h"
 #include "modules/module_sys_wait.h"
-#include "systems/base/cgm_table.h"
+#include "base/cgm_table.h"
 #include "systems/base/event_system.h"
 #include "systems/base/graphics_system.h"
 #include "systems/base/sound_system.h"

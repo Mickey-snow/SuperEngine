@@ -32,9 +32,9 @@
 #include <map>
 #include <set>
 #include <string>
+#include <string_view>
 
 class Gameexe;
-class RLMachine;
 
 // Manages whether a certain CG was viewed.
 //
@@ -46,11 +46,10 @@ class CGMTable {
  public:
   // Initializes an empty CG table (for games that don't use this feature).
   CGMTable();
-
-  // Initializes the CG table with the CGM data file specified in the
-  // #CGTABLE_FILENAME gameexe key.
-  explicit CGMTable(Gameexe& gameexe);
   ~CGMTable();
+
+  // Initializes the CG table with a raw .cgm file content
+  CGMTable(std::string_view data);
 
   // Returns the total number of images designated as CGs.
   int GetTotal() const;
@@ -70,14 +69,12 @@ class CGMTable {
   //  -1   filename is not a CG image
   int GetStatus(const std::string& filename) const;
 
-  // Mark a cg as viewed. Sets intZ[getFlag()] to 1.
-  void SetViewed(RLMachine& machine, const std::string& filename);
+  // Mark a cg as viewed.
+  void SetViewed(const std::string& filename);
 
  private:
-  typedef std::map<std::string, int> CGMMap;
-
   // Mapping between a graphics file name and the file's cg index.
-  CGMMap cgm_info_;
+  std::map<std::string, int> cgm_info_;
 
   // When a CG is viewed, its index is added to this set. This data is
   // considered global and persists through interpreter invocations.
@@ -89,8 +86,12 @@ class CGMTable {
   void serialize(Archive& ar, unsigned int version) {
     // We don't save |cgm_info_|. That will be the same during each run since
     // it's read from a game data file.
-    ar& cgm_data_;
+    ar & cgm_data_;
   }
 };  // end of class CGMTable
+
+// Initializes the CG table with the CGM data file specified in the
+// #CGTABLE_FILENAME gameexe key.
+CGMTable CreateCGMTable(Gameexe& gexe);
 
 #endif  // SRC_SYSTEMS_BASE_CGM_TABLE_H_

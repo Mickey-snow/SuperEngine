@@ -25,28 +25,17 @@
 //
 // -----------------------------------------------------------------------
 
-#include "systems/base/cgm_table.h"
+#include "base/cgm_table.h"
 
-#include <filesystem>
-#include <filesystem>
-
-#include <fstream>
-#include <iostream>
-#include <sstream>
-#include <string>
-
+#include "base/compression.h"
 #include "libreallive/gameexe.h"
-#include "libreallive/intmemref.h"
-#include "machine/memory.h"
-#include "machine/rlmachine.h"
-#include "utilities/exception.h"
+#include "utilities/byte_reader.h"
 #include "utilities/file.h"
-#include "xclannad/endian.hpp"
-#include "xclannad/file.h"
+#include "utilities/mapped_file.h"
 
 namespace fs = std::filesystem;
 
-static unsigned char cgm_xor_key[256] = {
+static unsigned char cgm_xor_key[256] = {  // tpc
     0x8b, 0xe5, 0x5d, 0xc3, 0xa1, 0xe0, 0x30, 0x44, 0x00, 0x85, 0xc0, 0x74,
     0x09, 0x5f, 0x5e, 0x33, 0xc0, 0x5b, 0x8b, 0xe5, 0x5d, 0xc3, 0x8b, 0x45,
     0x0c, 0x85, 0xc0, 0x75, 0x14, 0x8b, 0x55, 0xec, 0x83, 0xc2, 0x20, 0x52,
@@ -72,66 +61,58 @@ static unsigned char cgm_xor_key[256] = {
 
 CGMTable::CGMTable() {}
 
-CGMTable::CGMTable(Gameexe& gameexe) {
-  GameexeInterpretObject filename_key = gameexe("CGTABLE_FILENAME");
-  if (!filename_key.Exists()) {
-    // It is perfectly valid not to have a CG table key. All operations in this
-    // class become noops.
-    return;
+CGMTable::~CGMTable() {}
+
+CGMTable::CGMTable(std::string_view data) {
+  if (data.size() < 32)
+    throw std::invalid_argument(
+        "data too small to contain a valid AVG cg table header");
+
+  ByteReader reader(data.substr(0, 32));
+  std::string_view magic = reader.PopAs<std::string_view>(16);
+  int32_t data_count = reader.PopAs<int32_t>(4);
+  [[maybe_unused]] int32_t auto_flag = reader.PopAs<int32_t>(4);
+  [[maybe_unused]] int32_t unknown1 = reader.PopAs<int32_t>(4);
+  [[maybe_unused]] int32_t unknown2 = reader.PopAs<int32_t>(4);
+
+  if (magic.substr(0, 7) != "CGTABLE") {
+    throw std::logic_error("Incorrect magic number in CGM table header.");
   }
 
-  std::string cgtable = filename_key.ToString("");
-  if (cgtable == "") {
-    // It is perfectly valid not to have a CG table. All operations in this
-    // class become noops.
-    return;
-  }
+  int version = (magic.substr(0, 8) == "CGTABLE2") ? 2 : 1;
 
-  fs::path basename = gameexe("__GAMEPATH").ToString();
-  fs::path filename = CorrectPathCase(basename / "dat" / cgtable);
+  data = data.substr(32);
+  std::string compressed;
+  compressed.reserve(data.size());
+  std::transform(
+      data.cbegin(), data.cend(), std::back_inserter(compressed),
+      [&](auto x) { return x ^ cgm_xor_key[compressed.size() & 0xff]; });
+  std::string decompressed = Decompress_lzss(compressed);
+  compressed.clear();
 
-  int size;
-  std::unique_ptr<char[]> data;
-  if (LoadFileData(filename, data, size)) {
-    std::ostringstream oss;
-    oss << "Could not read contents of file \"" << filename << "\".";
-    throw rlvm::Exception(oss.str());
-  }
+  reader = ByteReader(decompressed);
+  auto Trim = [](std::string str) {
+    while (!str.empty() && str.back() == '\0') {
+      str.pop_back();
+    }
+    return str;
+  };
 
-  if (strncmp(data.get(), "CGTABLE", 7) != 0) {
-    std::ostringstream oss;
-    oss << "File '" << filename << "' is not a CGM file!";
-    throw rlvm::Exception(oss.str());
-  }
+  for (int i = 0; i < data_count; ++i) {
+    std::string name = Trim(reader.PopAs<std::string>(32));
+    std::transform(name.begin(), name.end(), name.begin(), ::toupper);
+    int flag_no = reader.PopAs<int32_t>(4);
 
-  int record_size = 36;
-  if (data[7] == '2') {
-    // I'm not sure when this started, but in Kud Wafter, the record size for
-    // an entry in a CGM file seems to have changed. Possibly as a version 2
-    // for the file? None of the rest of the added bytes appear to be set,
-    // though.
-    record_size = 60;
-  }
+    if (version >= 2) {
+      [[maybe_unused]] int32_t code[5];
+      for (int i = 0; i < 5; ++i)
+        code[i] = reader.PopAs<int32_t>(4);
+      [[maybe_unused]] int32_t code_count = reader.PopAs<int32_t>(4);
+    }
 
-  int cgm_size = read_little_endian_int(data.get() + 0x10);
-  for (int i = 0; i < size - 0x20; i++) {
-    data[i + 0x20] ^= cgm_xor_key[i & 0xff];
-  }
-
-  int dest_size = cgm_size * record_size;
-  std::unique_ptr<char[]> dest_orig(new char[dest_size + 1024]);
-  char* dest = dest_orig.get();
-  char* src = data.get() + 0x28;
-  ARCINFO::Extract2k(dest, src, dest + dest_size, data.get() + size);
-  dest = dest_orig.get();
-  for (int i = 0; i < cgm_size; i++) {
-    char* s = dest + i * record_size;
-    int n = read_little_endian_int(dest + i * record_size + 32);
-    cgm_info_[s] = n;
+    cgm_info_.emplace(std::move(name), flag_no);
   }
 }
-
-CGMTable::~CGMTable() {}
 
 int CGMTable::GetTotal() const { return cgm_info_.size(); }
 
@@ -139,14 +120,19 @@ int CGMTable::GetViewed() const { return cgm_data_.size(); }
 
 int CGMTable::GetPercent() const {
   // Prevent divide by zero
-  if (GetTotal())
-    return (GetViewed() / double(GetTotal())) * 100;
-  else
+  auto total = GetTotal();
+  if (total == 0)
     return 0;
+
+  auto viewed = GetViewed();
+  auto percentage = viewed * 100 / total;
+  if (percentage == 0 && viewed)
+    percentage = 1;
+  return percentage;
 }
 
 int CGMTable::GetFlag(const std::string& filename) const {
-  CGMMap::const_iterator it = cgm_info_.find(filename);
+  const auto it = cgm_info_.find(filename);
   if (it == cgm_info_.end())
     return -1;
 
@@ -164,14 +150,32 @@ int CGMTable::GetStatus(const std::string& filename) const {
   return 0;
 }
 
-void CGMTable::SetViewed(RLMachine& machine, const std::string& filename) {
+void CGMTable::SetViewed(const std::string& filename) {
   int flag = GetFlag(filename);
 
   if (flag != -1) {
-    // Set the intZ[] flag
-    machine.memory().SetIntValue(
-        libreallive::IntMemRef(libreallive::INTZ_LOCATION, 0, flag), 1);
-
     cgm_data_.insert(flag);
   }
+}
+
+CGMTable CreateCGMTable(Gameexe& gameexe) {
+  GameexeInterpretObject filename_key = gameexe("CGTABLE_FILENAME");
+  if (!filename_key.Exists()) {
+    // It is perfectly valid not to have a CG table key. All operations in this
+    // class become noops.
+    return CGMTable();
+  }
+
+  std::string cgtable = filename_key.ToString("");
+  if (cgtable == "") {
+    // It is perfectly valid not to have a CG table. All operations in this
+    // class become noops.
+    return CGMTable();
+  }
+
+  fs::path basepath = gameexe("__GAMEPATH").ToString();
+  fs::path filepath = CorrectPathCase(basepath / "dat" / cgtable);
+
+  MappedFile mfile(filepath);
+  return CGMTable(mfile.Read());
 }

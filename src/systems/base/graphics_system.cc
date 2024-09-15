@@ -48,12 +48,13 @@
 #include "base/notification/source.h"
 #include "libreallive/expression.h"
 #include "libreallive/gameexe.h"
+#include "machine/memory.h"
 #include "machine/rlmachine.h"
 #include "machine/serialization.h"
 #include "machine/stack_frame.h"
 #include "modules/module_grp.h"
 #include "systems/base/anm_graphics_object_data.h"
-#include "systems/base/cgm_table.h"
+#include "base/cgm_table.h"
 #include "systems/base/event_system.h"
 #include "systems/base/graphics_object.h"
 #include "systems/base/graphics_object_data.h"
@@ -76,8 +77,8 @@ using std::cerr;
 using std::cout;
 using std::endl;
 using std::fill;
-using std::get;
 using std::for_each;
+using std::get;
 using std::ostringstream;
 using std::vector;
 
@@ -171,7 +172,7 @@ GraphicsSystemGlobals::GraphicsSystemGlobals(Gameexe& gameexe)
       show_weather(gameexe("INIT_WEATHER_ONOFF_MOD").ToInt(0) ? 0 : 1),
       skip_animations(0),
       screen_mode(1),
-      cg_table(gameexe),
+      cg_table(CreateCGMTable(gameexe)),
       tone_curves(CreateToneCurve(gameexe)) {}
 
 // -----------------------------------------------------------------------
@@ -448,14 +449,15 @@ void GraphicsSystem::SetScreenMode(const int in) {
   if (changed) {
     NotificationService::current()->Notify(
         NotificationType::FULLSCREEN_STATE_CHANGED,
-        Source<GraphicsSystem>(this),
-        Details<const int>(&in));
+        Source<GraphicsSystem>(this), Details<const int>(&in));
   }
 }
 
 // -----------------------------------------------------------------------
 
-void GraphicsSystem::ToggleFullscreen() { SetScreenMode(screen_mode() ? 0 : 1); }
+void GraphicsSystem::ToggleFullscreen() {
+  SetScreenMode(screen_mode() ? 0 : 1);
+}
 
 // -----------------------------------------------------------------------
 
@@ -582,11 +584,10 @@ std::shared_ptr<const Surface> GraphicsSystem::GetEmojiSurface() {
   return std::shared_ptr<const Surface>();
 }
 
-void GraphicsSystem::PreloadHIKScript(
-    System& system,
-    int slot,
-    const std::string& name,
-    const std::filesystem::path& file_path) {
+void GraphicsSystem::PreloadHIKScript(System& system,
+                                      int slot,
+                                      const std::string& name,
+                                      const std::filesystem::path& file_path) {
   HIKScript* script = new HIKScript(system, file_path);
   script->EnsureUploaded();
 
@@ -649,7 +650,14 @@ std::shared_ptr<const Surface> GraphicsSystem::GetSurfaceNamedAndMarkViewed(
     RLMachine& machine,
     const std::string& short_filename) {
   // Record that we viewed this CG.
-  cg_table().SetViewed(machine, short_filename);
+  cg_table().SetViewed(short_filename);
+
+  // Set the intZ[] flag
+  int flag = cg_table().GetFlag(short_filename);
+  if (flag != -1) {
+    machine.memory().SetIntValue(
+        libreallive::IntMemRef(libreallive::INTZ_LOCATION, 0, flag), 1);
+  }
 
   return GetSurfaceNamed(short_filename);
 }
@@ -791,8 +799,10 @@ bool GraphicsSystem::AnimationsPlaying() const {
 // -----------------------------------------------------------------------
 
 void GraphicsSystem::TakeSavepointSnapshot() {
-  GetForegroundObjects().CopyTo(graphics_object_impl_->saved_foreground_objects);
-  GetBackgroundObjects().CopyTo(graphics_object_impl_->saved_background_objects);
+  GetForegroundObjects().CopyTo(
+      graphics_object_impl_->saved_foreground_objects);
+  GetBackgroundObjects().CopyTo(
+      graphics_object_impl_->saved_background_objects);
   graphics_object_impl_->saved_graphics_stack =
       graphics_object_impl_->graphics_stack;
 }
@@ -827,8 +837,8 @@ void GraphicsSystem::RenderObjects(std::ostream* tree) {
     else if (settings.space_key && is_interface_hidden())
       continue;
 
-    to_render_.emplace_back(
-        it->z_order(), it->z_layer(), it->z_depth(), it.pos(), &*it);
+    to_render_.emplace_back(it->z_order(), it->z_layer(), it->z_depth(),
+                            it.pos(), &*it);
   }
 
   // Sort by all the ordering values.
@@ -917,28 +927,29 @@ GraphicsObjectData* GraphicsSystem::BuildObjOfFile(
 
 template <class Archive>
 void GraphicsSystem::save(Archive& ar, unsigned int version) const {
-  ar& subtitle_& default_grp_name_& default_bgr_name_& graphics_object_impl_
-      ->saved_graphics_stack& graphics_object_impl_->saved_background_objects&
-            graphics_object_impl_->saved_foreground_objects;
+  ar & subtitle_ & default_grp_name_ & default_bgr_name_ &
+      graphics_object_impl_->saved_graphics_stack &
+      graphics_object_impl_->saved_background_objects &
+      graphics_object_impl_->saved_foreground_objects;
 }
 
 // -----------------------------------------------------------------------
 
 template <class Archive>
 void GraphicsSystem::load(Archive& ar, unsigned int version) {
-  ar& subtitle_;
+  ar & subtitle_;
   if (version > 0) {
-    ar& default_grp_name_;
-    ar& default_bgr_name_;
+    ar & default_grp_name_;
+    ar & default_bgr_name_;
     graphics_object_impl_->use_old_graphics_stack = false;
-    ar& graphics_object_impl_->graphics_stack;
+    ar & graphics_object_impl_->graphics_stack;
   } else {
     graphics_object_impl_->use_old_graphics_stack = true;
-    ar& graphics_object_impl_->old_graphics_stack;
+    ar & graphics_object_impl_->old_graphics_stack;
   }
 
-  ar& graphics_object_impl_->background_objects& graphics_object_impl_
-      ->foreground_objects;
+  ar & graphics_object_impl_->background_objects &
+      graphics_object_impl_->foreground_objects;
 
   // Now alert all subclasses that we've set the subtitle
   SetWindowSubtitle(subtitle_,

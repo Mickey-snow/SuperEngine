@@ -31,6 +31,8 @@ files_to_copy = [
   'Gameroot/BGM/BGM05.nwa',
   'Gameroot/BGM/BGM06.nwa',
   'Gameroot/BGM/BGM07.nwa',
+  'Gameroot/data/clannad.cgm',
+  'Gameroot/data/tomoyoafter.cgm',
   'Module_Jmp_SEEN/farcallTest_0.TXT',
   'Module_Jmp_SEEN/farcall_withTest.TXT',
   'Module_Jmp_SEEN/fibonacci.TXT',

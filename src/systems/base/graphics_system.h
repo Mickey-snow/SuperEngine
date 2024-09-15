@@ -43,7 +43,7 @@
 #include <vector>
 
 #include "base/tone_curve.h"
-#include "systems/base/cgm_table.h"
+#include "base/cgm_table.h"
 #include "systems/base/event_listener.h"
 #include "systems/base/rect.h"
 
