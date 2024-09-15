@@ -31,12 +31,11 @@
 //
 // -----------------------------------------------------------------------
 
-#include "libreallive/compression.h"
+#include "libreallive/xorkey.h"
 
 #include <string>
 
 namespace libreallive {
-namespace compression {
 
 /* RealLive uses a rather basic XOR encryption scheme, to which this
  * is the key. */
@@ -120,5 +119,4 @@ const XorKey kud_wafter_all_ages_xor_mask[] = {
      257},
     {{0x0}, -1, -1}};
 
-}  // namespace compression
 }  // namespace libreallive

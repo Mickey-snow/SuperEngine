@@ -38,7 +38,7 @@
 #include <string>
 
 #include "base/compression.h"
-#include "libreallive/compression.h"
+#include "libreallive/xorkey.h"
 #include "utilities/exception.h"
 #include "utilities/gettext.h"
 #include "utilities/string_utilities.h"
@@ -115,7 +115,7 @@ Script::Script(const Header& hdr,
                const size_t length,
                const std::string& regname,
                bool use_xor_2,
-               const compression::XorKey* second_level_xor_key) {
+               const XorKey* second_level_xor_key) {
   // Kidoku/entrypoint table
   const int kidoku_offs = read_i32(data + 0x08);
   const size_t kidoku_length = read_i32(data + 0x0c);
@@ -124,7 +124,7 @@ Script::Script(const Header& hdr,
   for (size_t i = 0; i < kidoku_length; ++i)
     cdat->kidoku_table[i] = read_i32(data + kidoku_offs + i * 4);
 
-  const compression::XorKey* key = NULL;
+  const XorKey* key = NULL;
   if (use_xor_2) {
     if (second_level_xor_key) {
       key = second_level_xor_key;
@@ -145,7 +145,7 @@ Script::Script(const Header& hdr,
   int idx = 0;
   std::transform(
       compressed.begin(), compressed.end(), compressed.begin(),
-      [&](auto x) { return x ^ compression::xor_mask[idx++ & 0xff]; });
+      [&](auto x) { return x ^ xor_mask[idx++ & 0xff]; });
 
   std::string decompressed = Decompress_lzss(compressed);
 
@@ -194,7 +194,7 @@ Script::Script(const Header& hdr,
                const std::string_view& data,
                const std::string& regname,
                bool use_xor_2,
-               const compression::XorKey* second_level_xor_key)
+               const XorKey* second_level_xor_key)
     : Script(hdr,
              data.data(),
              data.length(),
@@ -215,7 +215,7 @@ const pointer_t Script::GetEntrypoint(int entrypoint) const {
 Scenario::Scenario(const std::string_view& data,
                    int sn,
                    const std::string& regname,
-                   const compression::XorKey* second_level_xor_key)
+                   const XorKey* second_level_xor_key)
     : header(data),
       script(header, data, regname, header.use_xor_2_, second_level_xor_key),
       scenario_number_(sn) {}
@@ -223,7 +223,7 @@ Scenario::Scenario(const std::string_view& data,
 Scenario::Scenario(FilePos fp,
                    int sn,
                    const std::string& regname,
-                   const compression::XorKey* second_level_xor_key)
+                   const XorKey* second_level_xor_key)
     : Scenario(fp.Read(), sn, regname, second_level_xor_key) {}
 
 Scenario::~Scenario() {}

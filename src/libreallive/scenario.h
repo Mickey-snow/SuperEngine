@@ -43,9 +43,7 @@
 
 namespace libreallive {
 
-namespace compression {
 struct XorKey;
-}  // namespace compression
 
 class Metadata {
  public:
@@ -93,12 +91,12 @@ class Script {
          const size_t length,
          const std::string& regname,
          bool use_xor_2,
-         const compression::XorKey* second_level_xor_key);
+         const XorKey* second_level_xor_key);
   Script(const Header& hdr,
          const std::string_view& data,
          const std::string& regname,
          bool use_xor_2,
-         const compression::XorKey* second_level_xor_key);
+         const XorKey* second_level_xor_key);
   ~Script();
 
   // A sequence of semi-parsed/tokenized bytecode elements, which are
@@ -115,11 +113,11 @@ class Scenario {
   Scenario(const std::string_view& data,
            int scenarioNum,
            const std::string& regname,
-           const compression::XorKey* second_level_xor_key);
+           const XorKey* second_level_xor_key);
   Scenario(FilePos fp,
            int scenarioNum,
            const std::string& regname,
-           const compression::XorKey* second_level_xor_key);
+           const XorKey* second_level_xor_key);
   ~Scenario();
 
   // Get the scenario number

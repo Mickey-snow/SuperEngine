@@ -69,7 +69,7 @@ librlvm_files = [
   "src/encodings/western.cc",
   "src/libreallive/archive.cc",
   "src/libreallive/parser.cc",
-  "src/libreallive/compression.cc",
+  "src/libreallive/xorkey.cc",
   "src/libreallive/expression.cc",
   "src/libreallive/gameexe.cc",
   "src/libreallive/intmemref.cc",

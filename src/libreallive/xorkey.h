@@ -34,7 +34,6 @@
 #include "libreallive/alldefs.h"
 
 namespace libreallive {
-namespace compression {
 
 extern char xor_mask[256];
 
@@ -54,7 +53,6 @@ extern const XorKey snow_standard_edition_xor_mask[];
 extern const XorKey kud_wafter_xor_mask[];
 extern const XorKey kud_wafter_all_ages_xor_mask[];
 
-}  // namespace compression
 }  // namespace libreallive
 
 #endif  // SRC_LIBREALLIVE_COMPRESSION_H_

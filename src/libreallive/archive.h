@@ -46,9 +46,7 @@
 
 namespace libreallive {
 
-namespace compression {
 struct XorKey;
-}  // namespace compression
 
 namespace fs = std::filesystem;
 
@@ -90,7 +88,7 @@ class Archive {
 
   // Now that VisualArts is using per game xor keys, this is equivalent to the
   // game's second level xor key.
-  const compression::XorKey* second_level_xor_key_;
+  const XorKey* second_level_xor_key_;
 
   // The #REGNAME key from the Gameexe.ini file. Passed down to Scenario for
   // prettier error messages.
