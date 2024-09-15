@@ -26,6 +26,7 @@
 
 #include "test_system/test_machine.h"
 
+#include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -34,11 +35,10 @@
 #include "machine/rlmodule.h"
 #include "machine/rloperation.h"
 #include "utilities/exception.h"
-#include "xclannad/endian.hpp"
 
 using libreallive::insert_i16;
+using libreallive::insert_i32;
 using rlvm::Exception;
-using std::make_pair;
 
 TestMachine::TestMachine(System& in_system, libreallive::Archive& in_archive)
     : RLMachine(in_system, in_archive) {}
@@ -62,8 +62,8 @@ void TestMachine::AttachModule(RLModule* module) {
     auto key = make_pair(op->name(), overload);
     if (registry_.count(key) > 0) {
       std::ostringstream ss;
-      ss << "Duplicate registry key (" << op->name()
-         << ", " << static_cast<int>(overload) << ")";
+      ss << "Duplicate registry key (" << op->name() << ", "
+         << static_cast<int>(overload) << ")";
       throw rlvm::Exception(ss.str());
     }
     registry_.emplace(std::move(key), op);
@@ -94,7 +94,7 @@ void TestMachine::AddEntity(std::string& output, const int arg) {
   char buf[6];
   buf[0] = '$';
   buf[1] = 0xff;
-  write_little_endian_int(buf + 2, arg);
+  insert_i32(buf + 2, arg);
   output.append(buf, 6);
 }
 

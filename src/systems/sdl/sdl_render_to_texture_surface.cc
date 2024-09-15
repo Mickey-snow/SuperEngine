@@ -27,7 +27,6 @@
 
 #include "systems/sdl/sdl_render_to_texture_surface.h"
 
-#include <SDL/SDL.h>
 #include <iostream>
 #include <sstream>
 
