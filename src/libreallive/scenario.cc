@@ -34,10 +34,10 @@
 #include "libreallive/scenario.h"
 
 #include <algorithm>
-#include <cassert>
 #include <sstream>
 #include <string>
 
+#include "base/compression.h"
 #include "libreallive/compression.h"
 #include "utilities/exception.h"
 #include "utilities/gettext.h"
@@ -119,12 +119,10 @@ Script::Script(const Header& hdr,
   // Kidoku/entrypoint table
   const int kidoku_offs = read_i32(data + 0x08);
   const size_t kidoku_length = read_i32(data + 0x0c);
-  std::shared_ptr<ConstructionData> cdat = std::make_shared<ConstructionData>(kidoku_length, elts_.end());
+  std::shared_ptr<ConstructionData> cdat =
+      std::make_shared<ConstructionData>(kidoku_length, elts_.end());
   for (size_t i = 0; i < kidoku_length; ++i)
     cdat->kidoku_table[i] = read_i32(data + kidoku_offs + i * 4);
-
-  // Decompress data
-  const size_t dlen = read_i32(data + 0x24);
 
   const compression::XorKey* key = NULL;
   if (use_xor_2) {
@@ -142,12 +140,28 @@ Script::Script(const Header& hdr,
     }
   }
 
-  char* uncompressed = new char[dlen];
-  compression::Decompress(data + read_i32(data + 0x20), read_i32(data + 0x28),
-                          uncompressed, dlen, key);
+  auto compressed =
+      std::string(data + read_i32(data + 0x20), read_i32(data + 0x28));
+  int idx = 0;
+  std::transform(
+      compressed.begin(), compressed.end(), compressed.begin(),
+      [&](auto x) { return x ^ compression::xor_mask[idx++ & 0xff]; });
+
+  std::string decompressed = Decompress_lzss(compressed);
+
+  if (key != nullptr) {
+    for (auto mykey = key; mykey->xor_offset != -1; ++mykey) {
+      idx = mykey->xor_offset;
+      for (int i = 0; i < mykey->xor_length && idx < decompressed.size();
+           ++i, ++idx)
+        decompressed[idx] ^= mykey->xor_key[i & 0xf];
+    }
+  }
+
   // Read bytecode
-  const char* stream = uncompressed;
-  const char* end = uncompressed + dlen;
+  const char* stream = decompressed.data();
+  const size_t dlen = decompressed.size();
+  const char* end = stream + dlen;
   size_t pos = 0;
   pointer_t it = elts_.before_begin();
 
@@ -174,8 +188,6 @@ Script::Script(const Header& hdr,
   for (auto& element : elts_) {
     element->SetPointers(*cdat);
   }
-
-  delete[] uncompressed;
 }
 
 Script::Script(const Header& hdr,

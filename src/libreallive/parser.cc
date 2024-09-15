@@ -178,7 +178,7 @@ Expression ExpressionParser::GetExpressionToken(const char*& src) {
     throw Error("Unexpected end of buffer in GetExpressionToken");
   } else {
     std::ostringstream err;
-    err << "Unknown toke type 0x" << std::hex << (short)src[0]
+    err << "Unknown token type 0x" << std::hex << (short)src[0]
         << " in GetExpressionToken" << std::endl;
     throw Error(err.str());
   }

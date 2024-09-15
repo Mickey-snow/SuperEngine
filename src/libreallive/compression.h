@@ -36,6 +36,8 @@
 namespace libreallive {
 namespace compression {
 
+extern char xor_mask[256];
+
 // An individual xor key; some games use multiple ones.
 struct XorKey {
   char xor_key[16];
@@ -51,9 +53,6 @@ extern const XorKey little_busters_ex_xor_mask[];
 extern const XorKey snow_standard_edition_xor_mask[];
 extern const XorKey kud_wafter_xor_mask[];
 extern const XorKey kud_wafter_all_ages_xor_mask[];
-
-void Decompress(const char* src, size_t src_len, char* dst, size_t dst_len,
-                const XorKey* per_game_xor_key);
 
 }  // namespace compression
 }  // namespace libreallive
