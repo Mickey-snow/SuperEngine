@@ -23,10 +23,10 @@
 
 #include <gtest/gtest.h>
 
-#include "systems/base/nwk_voice_archive.h"
-#include "systems/base/ovk_voice_archive.h"
-#include "systems/base/voice_archive.h"
-#include "systems/base/voice_factory.h"
+#include "base/voice_archive/ivoicearchive.h"
+#include "base/voice_archive/nwk.h"
+#include "base/voice_archive/ovk.h"
+#include "base/voice_factory.h"
 #include "test_utils.h"
 #include "utilities/bytestream.h"
 

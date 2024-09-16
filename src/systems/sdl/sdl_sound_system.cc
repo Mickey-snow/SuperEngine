@@ -37,7 +37,6 @@
 #include "base/avspec.h"
 #include "systems/base/system.h"
 #include "systems/base/system_error.h"
-#include "systems/base/voice_archive.h"
 #include "systems/sdl/sound_implementor.h"
 #include "utilities/exception.h"
 

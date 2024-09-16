@@ -37,7 +37,7 @@
 #include <utility>
 
 #include "base/audio_player.h"
-#include "systems/base/voice_factory.h"
+#include "base/voice_factory.h"
 
 class Gameexe;
 class System;

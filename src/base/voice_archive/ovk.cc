@@ -25,7 +25,8 @@
 //
 // -----------------------------------------------------------------------
 
-#include "systems/base/ovk_voice_archive.h"
+#include "base/voice_archive/ovk.h"
+
 #include "base/avdec/audio_decoder.h"
 #include "utilities/byte_reader.h"
 

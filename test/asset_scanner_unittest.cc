@@ -25,7 +25,7 @@
 #include <gtest/gtest.h>
 
 #include "libreallive/gameexe.h"
-#include "systems/base/asset_scanner.h"
+#include "base/asset_scanner.h"
 #include "test_utils.h"
 
 #include <filesystem>

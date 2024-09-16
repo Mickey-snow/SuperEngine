@@ -22,7 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#include "systems/base/asset_scanner.h"
+#include "base/asset_scanner.h"
 
 #include <algorithm>
 #include <cctype>

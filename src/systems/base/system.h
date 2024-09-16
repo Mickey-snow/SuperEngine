@@ -28,7 +28,7 @@
 #ifndef SRC_SYSTEMS_BASE_SYSTEM_H_
 #define SRC_SYSTEMS_BASE_SYSTEM_H_
 
-#include "systems/base/asset_scanner.h"
+#include "base/asset_scanner.h"
 
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/version.hpp>

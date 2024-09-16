@@ -25,8 +25,8 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_VOICE_ARCHIVE_H_
-#define SRC_SYSTEMS_BASE_VOICE_ARCHIVE_H_
+#ifndef SRC_BASE_VOICE_ARCHIVE_IVOICEARCHIVE_H_
+#define SRC_BASE_VOICE_ARCHIVE_IVOICEARCHIVE_H_
 
 #include "utilities/mapped_file.h"
 
@@ -44,4 +44,4 @@ class IVoiceArchive {
   virtual VoiceClip LoadContent(int sample_num) = 0;
 };
 
-#endif  // SRC_SYSTEMS_BASE_VOICE_ARCHIVE_H_
+#endif

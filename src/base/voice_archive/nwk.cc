@@ -24,7 +24,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#include "systems/base/nwk_voice_archive.h"
+#include "base/voice_archive/nwk.h"
 
 #include "base/avdec/audio_decoder.h"
 #include "utilities/byte_reader.h"

@@ -7,7 +7,7 @@
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2009 Elliot Glaysher
+// Copyright (C) 2011 Elliot Glaysher
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,37 +24,44 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_VOICE_FACTORY_H_
-#define SRC_SYSTEMS_BASE_VOICE_FACTORY_H_
+#ifndef SRC_BASE_VOICE_ARCHIVE_NWK_H_
+#define SRC_BASE_VOICE_ARCHIVE_NWK_H_
 
 #include <filesystem>
 #include <memory>
+#include <vector>
 
-#include "lru_cache.hpp"
-#include "systems/base/voice_archive.h"
-#include "utilities/mapped_file.h"
+#include "base/voice_archive/ivoicearchive.h"
 
-class IAssetScanner;
-class IVoiceArchive;
+struct NWK_Header {
+  int32_t size;
+  int32_t offset;
+  int32_t id;
 
-class VoiceFactory {
+  bool operator<(const NWK_Header& rhs) const { return id < rhs.id; }
+  bool operator<(const int rhs) const { return id < rhs; }
+};
+
+// A VoiceArchive that reads VisualArts' NWK archives, which are collections of
+// NWA files.
+class NWKVoiceArchive : public IVoiceArchive {
  public:
-  VoiceFactory(std::shared_ptr<IAssetScanner> assets);
-  ~VoiceFactory();
+  NWKVoiceArchive(std::filesystem::path file, int file_no);
+  virtual ~NWKVoiceArchive();
 
-  VoiceClip LoadSample(int id);
-
-  std::filesystem::path LocateArchive(int file_no) const;
-
-  std::filesystem::path LocateUnpackedSample(int file_no, int index) const;
-
-  // Searches for a file archive of voices.
-  std::shared_ptr<IVoiceArchive> FindArchive(int file_no) const;
+  virtual VoiceClip LoadContent(int sample_num) override;
 
  private:
-  std::shared_ptr<IAssetScanner> assets_;
+  void ReadEntry();
 
-  mutable LRUCache<int, std::shared_ptr<IVoiceArchive>> cache_;
-};  // class VoiceCache
+  // The file to read from
+  std::filesystem::path file_;
 
-#endif  // SRC_SYSTEMS_BASE_VOICE_CACHE_H_
+  int file_no_;
+
+  std::shared_ptr<MappedFile> file_content_;
+
+  std::vector<NWK_Header> entries_;
+};
+
+#endif

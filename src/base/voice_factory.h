@@ -7,7 +7,7 @@
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2011 Elliot Glaysher
+// Copyright (C) 2009 Elliot Glaysher
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,44 +24,37 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_NWK_VOICE_ARCHIVE_H_
-#define SRC_SYSTEMS_BASE_NWK_VOICE_ARCHIVE_H_
+#ifndef SRC_BASE_VOICE_FACTORY_H_
+#define SRC_BASE_VOICE_FACTORY_H_
 
 #include <filesystem>
 #include <memory>
-#include <vector>
 
-#include "systems/base/voice_archive.h"
+#include "base/voice_archive/ivoicearchive.h"
+#include "lru_cache.hpp"
+#include "utilities/mapped_file.h"
 
-struct NWK_Header {
-  int32_t size;
-  int32_t offset;
-  int32_t id;
+class IAssetScanner;
+class IVoiceArchive;
 
-  bool operator<(const NWK_Header& rhs) const { return id < rhs.id; }
-  bool operator<(const int rhs) const { return id < rhs; }
-};
-
-// A VoiceArchive that reads VisualArts' NWK archives, which are collections of
-// NWA files.
-class NWKVoiceArchive : public IVoiceArchive {
+class VoiceFactory {
  public:
-  NWKVoiceArchive(std::filesystem::path file, int file_no);
-  virtual ~NWKVoiceArchive();
+  VoiceFactory(std::shared_ptr<IAssetScanner> assets);
+  ~VoiceFactory();
 
-  virtual VoiceClip LoadContent(int sample_num) override;
+  VoiceClip LoadSample(int id);
+
+  std::filesystem::path LocateArchive(int file_no) const;
+
+  std::filesystem::path LocateUnpackedSample(int file_no, int index) const;
+
+  // Searches for a file archive of voices.
+  std::shared_ptr<IVoiceArchive> FindArchive(int file_no) const;
 
  private:
-  void ReadEntry();
+  std::shared_ptr<IAssetScanner> assets_;
 
-  // The file to read from
-  std::filesystem::path file_;
+  mutable LRUCache<int, std::shared_ptr<IVoiceArchive>> cache_;
+};  // class VoiceCache
 
-  int file_no_;
-
-  std::shared_ptr<MappedFile> file_content_;
-
-  std::vector<NWK_Header> entries_;
-};
-
-#endif  // SRC_SYSTEMS_BASE_NWK_VOICE_ARCHIVE_H_
+#endif

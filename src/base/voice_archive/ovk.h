@@ -24,14 +24,13 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_OVK_VOICE_ARCHIVE_H_
-#define SRC_SYSTEMS_BASE_OVK_VOICE_ARCHIVE_H_
+#ifndef SRC_BASE_VOICE_ARCHIVE_OVK_H_
+#define SRC_BASE_VOICE_ARCHIVE_OVK_H_
 
 #include <filesystem>
-
 #include <vector>
 
-#include "systems/base/voice_archive.h"
+#include "base/voice_archive/ivoicearchive.h"
 
 struct OVK_Header {
   int32_t size;
@@ -65,4 +64,4 @@ class OVKVoiceArchive : public IVoiceArchive {
   std::vector<OVK_Header> entries_;
 };  // class OVKVoiceArchive
 
-#endif  // SRC_SYSTEMS_BASE_OVK_VOICE_ARCHIVE_H_
+#endif

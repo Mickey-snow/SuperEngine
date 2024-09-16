@@ -22,8 +22,8 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_RLFILESYSTEM_H_
-#define SRC_SYSTEMS_BASE_RLFILESYSTEM_H_
+#ifndef SRC_BASE_ASSET_SCANNER_H_
+#define SRC_BASE_ASSET_SCANNER_H_
 
 #include "libreallive/gameexe.h"
 

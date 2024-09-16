@@ -24,13 +24,13 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#include "systems/base/voice_factory.h"
+#include "base/voice_factory.h"
 
+#include "base/asset_scanner.h"
 #include "base/avdec/audio_decoder.h"
-#include "systems/base/asset_scanner.h"
-#include "systems/base/nwk_voice_archive.h"
-#include "systems/base/ovk_voice_archive.h"
-#include "systems/base/voice_archive.h"
+#include "base/voice_archive/ivoicearchive.h"
+#include "base/voice_archive/nwk.h"
+#include "base/voice_archive/ovk.h"
 
 #include <boost/algorithm/string.hpp>
 
