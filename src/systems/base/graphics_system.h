@@ -54,7 +54,6 @@ class ColourFilter;
 class Gameexe;
 class GraphicsObject;
 class GraphicsObjectData;
-class GraphicsStackFrame;
 class HIKRenderer;
 class HIKScript;
 class MouseCursor;

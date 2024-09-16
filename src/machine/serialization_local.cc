@@ -55,7 +55,6 @@
 #include "systems/base/gan_graphics_object_data.h"
 #include "systems/base/graphics_object.h"
 #include "systems/base/graphics_object_of_file.h"
-#include "systems/base/graphics_stack_frame.h"
 #include "systems/base/graphics_system.h"
 #include "systems/base/sound_system.h"
 #include "systems/base/system.h"

@@ -35,8 +35,6 @@
 #include "machine/mapped_rlmodule.h"
 #include "machine/rloperation.h"
 
-class GraphicsStackFrame;
-
 // Contains functions for mod<1:33>, Grp.
 class GrpModule : public MappedRLModule {
  public:
@@ -52,16 +50,5 @@ RLOperation* GraphicsStackMappingFun(RLOperation* op);
 // Replays the new Graphics stack, string representations of reallive bytecode.
 void ReplayGraphicsStackCommand(RLMachine& machine,
                                 const std::deque<std::string>& stack);
-
-// Replays the serialized graphics stack; this should put the graphics
-// DCs in the same state as they were before the game was saved.
-//
-// If the command has no transition effect, we can safely call it, but
-// we often have to call the implementation function so that we don't
-// display all the transition effects that happened since the last
-// stackTrunc on load.
-void ReplayDepricatedGraphicsStackVector(
-    RLMachine& machine,
-    const std::vector<GraphicsStackFrame>& serializedStack);
 
 #endif  // SRC_MODULES_MODULE_GRP_H_

@@ -171,7 +171,6 @@ librlvm_files = [
   "src/systems/base/graphics_object.cc",
   "src/systems/base/graphics_object_data.cc",
   "src/systems/base/graphics_object_of_file.cc",
-  "src/systems/base/graphics_stack_frame.cc",
   "src/systems/base/graphics_system.cc",
   "src/systems/base/graphics_text_object.cc",
   "src/systems/base/hik_renderer.cc",

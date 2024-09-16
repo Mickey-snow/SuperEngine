@@ -30,7 +30,6 @@
 #include "machine/general_operations.h"
 #include "machine/rlmachine.h"
 #include "machine/rloperation.h"
-#include "systems/base/graphics_stack_frame.h"
 #include "systems/base/graphics_system.h"
 #include "systems/base/surface.h"
 #include "systems/base/system.h"

@@ -43,6 +43,7 @@
 #include <utility>
 #include <vector>
 
+#include "base/cgm_table.h"
 #include "base/notification/details.h"
 #include "base/notification/service.h"
 #include "base/notification/source.h"
@@ -54,12 +55,10 @@
 #include "machine/stack_frame.h"
 #include "modules/module_grp.h"
 #include "systems/base/anm_graphics_object_data.h"
-#include "base/cgm_table.h"
 #include "systems/base/event_system.h"
 #include "systems/base/graphics_object.h"
 #include "systems/base/graphics_object_data.h"
 #include "systems/base/graphics_object_of_file.h"
-#include "systems/base/graphics_stack_frame.h"
 #include "systems/base/hik_renderer.h"
 #include "systems/base/hik_script.h"
 #include "systems/base/mouse_cursor.h"
@@ -193,19 +192,12 @@ struct GraphicsSystem::GraphicsObjectImpl {
   // Background objects (at the time of the last save)
   LazyArray<GraphicsObject> saved_background_objects;
 
-  // Whether we restore |old_graphics_stack| using the old method instead of
-  // replaying the new graphics stack format.
-  bool use_old_graphics_stack;
-
   // List of commands in RealLive bytecode to rebuild the graphics stack at the
   // current moment.
   std::deque<std::string> graphics_stack;
 
   // Commands to rebuild the graphics stack (at the time of the last savepoint)
   std::deque<std::string> saved_graphics_stack;
-
-  // Old style graphics stack implementation.
-  std::vector<GraphicsStackFrame> old_graphics_stack;
 };
 
 // -----------------------------------------------------------------------
@@ -214,8 +206,7 @@ GraphicsSystem::GraphicsObjectImpl::GraphicsObjectImpl(int size)
     : foreground_objects(size),
       background_objects(size),
       saved_foreground_objects(size),
-      saved_background_objects(size),
-      use_old_graphics_stack(false) {}
+      saved_background_objects(size) {}
 
 // -----------------------------------------------------------------------
 // GraphicsSystem
@@ -397,21 +388,12 @@ void GraphicsSystem::StackPop(int items) {
 // -----------------------------------------------------------------------
 
 void GraphicsSystem::ReplayGraphicsStack(RLMachine& machine) {
-  if (graphics_object_impl_->use_old_graphics_stack) {
-    // The actual act of replaying the graphics stack will recreate the graphics
-    // stack, so clear it.
-    vector<GraphicsStackFrame> stack_to_replay;
-    stack_to_replay.swap(graphics_object_impl_->old_graphics_stack);
-    ReplayDepricatedGraphicsStackVector(machine, stack_to_replay);
-    graphics_object_impl_->use_old_graphics_stack = false;
-  } else {
-    std::deque<std::string> stack_to_replay;
-    stack_to_replay.swap(graphics_object_impl_->graphics_stack);
+  std::deque<std::string> stack_to_replay;
+  stack_to_replay.swap(graphics_object_impl_->graphics_stack);
 
-    machine.set_replaying_graphics_stack(true);
-    ReplayGraphicsStackCommand(machine, stack_to_replay);
-    machine.set_replaying_graphics_stack(false);
-  }
+  machine.set_replaying_graphics_stack(true);
+  ReplayGraphicsStackCommand(machine, stack_to_replay);
+  machine.set_replaying_graphics_stack(false);
 }
 
 // -----------------------------------------------------------------------
@@ -941,11 +923,9 @@ void GraphicsSystem::load(Archive& ar, unsigned int version) {
   if (version > 0) {
     ar & default_grp_name_;
     ar & default_bgr_name_;
-    graphics_object_impl_->use_old_graphics_stack = false;
     ar & graphics_object_impl_->graphics_stack;
   } else {
-    graphics_object_impl_->use_old_graphics_stack = true;
-    ar & graphics_object_impl_->old_graphics_stack;
+    throw std::runtime_error("Deprecated old graphics stack has been removed");
   }
 
   ar & graphics_object_impl_->background_objects &

@@ -35,9 +35,9 @@
 
 #include "effects/effect.h"
 #include "effects/effect_factory.h"
-#include "libreallive/parser.h"
 #include "libreallive/expression.h"
 #include "libreallive/gameexe.h"
+#include "libreallive/parser.h"
 #include "long_operations/wait_long_operation.h"
 #include "long_operations/zoom_long_operation.h"
 #include "machine/general_operations.h"
@@ -50,7 +50,6 @@
 #include "machine/rloperation/rgb_colour_t.h"
 #include "machine/rloperation/special_t.h"
 #include "systems/base/colour.h"
-#include "systems/base/graphics_stack_frame.h"
 #include "systems/base/graphics_system.h"
 #include "systems/base/surface.h"
 #include "systems/base/system.h"
@@ -118,11 +117,8 @@ void loadImageToDC1(RLMachine& machine,
     // Load the section of the image file on top of dc1
     std::shared_ptr<const Surface> surface(
         graphics.GetSurfaceNamedAndMarkViewed(machine, name));
-    surface->BlitToSurface(*graphics.GetDC(1),
-                           Rect(srcRect.origin(), size),
-                           Rect(dest, size),
-                           opacity,
-                           useAlpha);
+    surface->BlitToSurface(*graphics.GetDC(1), Rect(srcRect.origin(), size),
+                           Rect(dest, size), opacity, useAlpha);
   }
 }
 
@@ -138,8 +134,8 @@ void loadDCToDC1(RLMachine& machine,
   // Inclusive ranges are a monstrosity to computer people
   Size size = srcRect.size() + Size(1, 1);
 
-  src->BlitToSurface(
-      *dc1, Rect(srcRect.origin(), size), Rect(dest, size), opacity, false);
+  src->BlitToSurface(*dc1, Rect(srcRect.origin(), size), Rect(dest, size),
+                     opacity, false);
 }
 
 void performEffect(RLMachine& machine,
@@ -165,18 +161,9 @@ void performEffect(RLMachine& machine,
                    int b,
                    int c) {
   if (!machine.replaying_graphics_stack()) {
-    LongOperation* lop = EffectFactory::Build(machine,
-                                              src,
-                                              dst,
-                                              time,
-                                              style,
-                                              direction,
-                                              interpolation,
-                                              xsize,
-                                              ysize,
-                                              a,
-                                              b,
-                                              c);
+    LongOperation* lop =
+        EffectFactory::Build(machine, src, dst, time, style, direction,
+                             interpolation, xsize, ysize, a, b, c);
     machine.PushLongOperation(lop);
   }
 }
@@ -205,8 +192,7 @@ void OpenBgPrelude(RLMachine& machine, const std::string& filename) {
 // Allocates a blank width * height bitmap in dc. Any DC apart from DC 0 may be
 // allocated thus, although DC 1 is never given a size smaller than the screen
 // resolution. Any previous contents of dc are erased.
-struct allocDC
-    : public RLOpcode<IntConstant_T, IntConstant_T, IntConstant_T> {
+struct allocDC : public RLOpcode<IntConstant_T, IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int dc, int width, int height) {
     machine.system().graphics().AllocateDC(dc, Size(width, height));
   }
@@ -216,9 +202,9 @@ struct allocDC
 //
 // Fills dc with the colour indicated by the given RGB triplet.
 struct wipe : public RLOpcode<IntConstant_T,
-                             IntConstant_T,
-                             IntConstant_T,
-                             IntConstant_T> {
+                              IntConstant_T,
+                              IntConstant_T,
+                              IntConstant_T> {
   void operator()(RLMachine& machine, int dc, int r, int g, int b) {
     machine.system().graphics().GetDC(dc)->Fill(RGBAColour(r, g, b));
   }
@@ -264,11 +250,8 @@ struct load_1
       graphics.AllocateDC(dc, surface->GetSize());
     }
 
-    surface->BlitToSurface(*graphics.GetDC(dc),
-                           surface->GetRect(),
-                           surface->GetRect(),
-                           opacity,
-                           use_alpha_);
+    surface->BlitToSurface(*graphics.GetDC(dc), surface->GetRect(),
+                           surface->GetRect(), opacity, use_alpha_);
   }
 };
 
@@ -279,10 +262,10 @@ struct load_1
 // form, the given area of the bitmap is loaded at the given location.
 template <typename SPACE>
 struct load_3 : public RLOpcode<StrConstant_T,
-                               IntConstant_T,
-                               Rect_T<SPACE>,
-                               Point_T,
-                               DefaultIntValue_T<255>> {
+                                IntConstant_T,
+                                Rect_T<SPACE>,
+                                Point_T,
+                                DefaultIntValue_T<255>> {
   bool use_alpha_;
   explicit load_3(bool in) : use_alpha_(in) {}
 
@@ -302,8 +285,8 @@ struct load_3 : public RLOpcode<StrConstant_T,
       graphics.SetMinimumSizeForDC(dc, surface->GetSize());
     }
 
-    surface->BlitToSurface(
-        *graphics.GetDC(dc), srcRect, destRect, opacity, use_alpha_);
+    surface->BlitToSurface(*graphics.GetDC(dc), srcRect, destRect, opacity,
+                           use_alpha_);
   }
 };
 
@@ -341,10 +324,10 @@ struct display_0 : public RLOpcode<IntConstant_T, IntConstant_T> {
 
 template <typename SPACE>
 struct display_3 : public RLOpcode<IntConstant_T,
-                                  IntConstant_T,
-                                  Rect_T<SPACE>,
-                                  Point_T,
-                                  IntConstant_T> {
+                                   IntConstant_T,
+                                   Rect_T<SPACE>,
+                                   Point_T,
+                                   IntConstant_T> {
   void operator()(RLMachine& machine,
                   int dc,
                   int effectNum,
@@ -378,18 +361,18 @@ struct display_2
 
 template <typename SPACE>
 struct display_4 : public RLOpcode<IntConstant_T,
-                                  Rect_T<SPACE>,
-                                  Point_T,
-                                  IntConstant_T,
-                                  IntConstant_T,
-                                  IntConstant_T,
-                                  IntConstant_T,
-                                  IntConstant_T,
-                                  IntConstant_T,
-                                  IntConstant_T,
-                                  IntConstant_T,
-                                  IntConstant_T,
-                                  IntConstant_T> {
+                                   Rect_T<SPACE>,
+                                   Point_T,
+                                   IntConstant_T,
+                                   IntConstant_T,
+                                   IntConstant_T,
+                                   IntConstant_T,
+                                   IntConstant_T,
+                                   IntConstant_T,
+                                   IntConstant_T,
+                                   IntConstant_T,
+                                   IntConstant_T,
+                                   IntConstant_T> {
   void operator()(RLMachine& machine,
                   int dc,
                   Rect srcRect,
@@ -412,18 +395,8 @@ struct display_4 : public RLOpcode<IntConstant_T,
     blitDC1toDC0(machine);
 
     std::shared_ptr<Surface> after = graphics.RenderToSurface();
-    performEffect(machine,
-                  after,
-                  before,
-                  time,
-                  style,
-                  direction,
-                  interpolation,
-                  xsize,
-                  ysize,
-                  a,
-                  b,
-                  c);
+    performEffect(machine, after, before, time, style, direction, interpolation,
+                  xsize, ysize, a, b, c);
   }
 };
 
@@ -439,8 +412,7 @@ struct display_4 : public RLOpcode<IntConstant_T,
 // perform some intermediary steps and then render DC1 to DC0.
 //
 // TODO(erg): factor out the common code between grpOpens!
-struct open_1
-    : public RLOpcode<StrConstant_T, IntConstant_T, IntConstant_T> {
+struct open_1 : public RLOpcode<StrConstant_T, IntConstant_T, IntConstant_T> {
   bool use_alpha_;
   explicit open_1(bool in) : use_alpha_(in) {}
 
@@ -481,10 +453,10 @@ struct open_0 : public RLOpcode<StrConstant_T, IntConstant_T> {
 
 template <typename SPACE>
 struct open_3 : public RLOpcode<StrConstant_T,
-                               IntConstant_T,
-                               Rect_T<SPACE>,
-                               Point_T,
-                               IntConstant_T> {
+                                IntConstant_T,
+                                Rect_T<SPACE>,
+                                Point_T,
+                                IntConstant_T> {
   bool use_alpha_;
   explicit open_3(bool in) : use_alpha_(in) {}
 
@@ -533,18 +505,18 @@ struct open_2
 
 template <typename SPACE>
 struct open_4 : public RLOpcode<StrConstant_T,
-                                    Rect_T<SPACE>,
-                                    Point_T,
-                                    IntConstant_T,
-                                    IntConstant_T,
-                                    IntConstant_T,
-                                    IntConstant_T,
-                                    IntConstant_T,
-                                    IntConstant_T,
-                                    IntConstant_T,
-                                    IntConstant_T,
-                                    IntConstant_T,
-                                    IntConstant_T> {
+                                Rect_T<SPACE>,
+                                Point_T,
+                                IntConstant_T,
+                                IntConstant_T,
+                                IntConstant_T,
+                                IntConstant_T,
+                                IntConstant_T,
+                                IntConstant_T,
+                                IntConstant_T,
+                                IntConstant_T,
+                                IntConstant_T,
+                                IntConstant_T> {
   bool use_alpha_;
   explicit open_4(bool in) : use_alpha_(in) {}
 
@@ -572,24 +544,13 @@ struct open_4 : public RLOpcode<StrConstant_T,
     blitDC1toDC0(machine);
 
     std::shared_ptr<Surface> after = graphics.RenderToSurface();
-    performEffect(machine,
-                  after,
-                  before,
-                  time,
-                  style,
-                  direction,
-                  interpolation,
-                  xsize,
-                  ysize,
-                  a,
-                  b,
-                  c);
+    performEffect(machine, after, before, time, style, direction, interpolation,
+                  xsize, ysize, a, b, c);
     performHideAllTextWindows(machine);
   }
 };
 
-struct openBg_1
-    : public RLOpcode<StrConstant_T, IntConstant_T, IntConstant_T> {
+struct openBg_1 : public RLOpcode<StrConstant_T, IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine,
                   string fileName,
                   int effectNum,
@@ -623,10 +584,10 @@ struct openBg_0 : public RLOpcode<StrConstant_T, IntConstant_T> {
 
 template <typename SPACE>
 struct openBg_3 : public RLOpcode<StrConstant_T,
-                                 IntConstant_T,
-                                 Rect_T<SPACE>,
-                                 Point_T,
-                                 IntConstant_T> {
+                                  IntConstant_T,
+                                  Rect_T<SPACE>,
+                                  Point_T,
+                                  IntConstant_T> {
   bool use_alpha_;
   explicit openBg_3(bool in) : use_alpha_(in) {}
 
@@ -669,18 +630,18 @@ struct openBg_2
 
 template <typename SPACE>
 struct openBg_4 : public RLOpcode<StrConstant_T,
-                                      Rect_T<SPACE>,
-                                      Point_T,
-                                      IntConstant_T,
-                                      IntConstant_T,
-                                      IntConstant_T,
-                                      IntConstant_T,
-                                      IntConstant_T,
-                                      IntConstant_T,
-                                      IntConstant_T,
-                                      IntConstant_T,
-                                      IntConstant_T,
-                                      IntConstant_T> {
+                                  Rect_T<SPACE>,
+                                  Point_T,
+                                  IntConstant_T,
+                                  IntConstant_T,
+                                  IntConstant_T,
+                                  IntConstant_T,
+                                  IntConstant_T,
+                                  IntConstant_T,
+                                  IntConstant_T,
+                                  IntConstant_T,
+                                  IntConstant_T,
+                                  IntConstant_T> {
   bool use_alpha_;
   explicit openBg_4(bool in) : use_alpha_(in) {}
 
@@ -709,18 +670,8 @@ struct openBg_4 : public RLOpcode<StrConstant_T,
 
     // Render the screen to a temporary
     std::shared_ptr<Surface> after = graphics.RenderToSurface();
-    performEffect(machine,
-                  after,
-                  before,
-                  time,
-                  style,
-                  direction,
-                  interpolation,
-                  xsize,
-                  ysize,
-                  a,
-                  b,
-                  c);
+    performEffect(machine, after, before, time, style, direction, interpolation,
+                  xsize, ysize, a, b, c);
     performHideAllTextWindows(machine);
   }
 };
@@ -730,10 +681,10 @@ struct openBg_4 : public RLOpcode<StrConstant_T,
 // -----------------------------------------------------------------------
 template <typename SPACE>
 struct copy_3 : public RLOpcode<Rect_T<SPACE>,
-                               IntConstant_T,
-                               Point_T,
-                               IntConstant_T,
-                               DefaultIntValue_T<255>> {
+                                IntConstant_T,
+                                Point_T,
+                                IntConstant_T,
+                                DefaultIntValue_T<255>> {
   bool use_alpha_;
   explicit copy_3(bool in) : use_alpha_(in) {}
 
@@ -755,10 +706,8 @@ struct copy_3 : public RLOpcode<Rect_T<SPACE>,
       graphics.SetMinimumSizeForDC(dst, srcRect.size());
     }
 
-    sourceSurface->BlitToSurface(*graphics.GetDC(dst),
-                                 srcRect,
-                                 Rect(destPoint, srcRect.size()),
-                                 opacity,
+    sourceSurface->BlitToSurface(*graphics.GetDC(dst), srcRect,
+                                 Rect(destPoint, srcRect.size()), opacity,
                                  use_alpha_);
   }
 };
@@ -781,11 +730,8 @@ struct copy_1
       graphics.SetMinimumSizeForDC(dst, sourceSurface->GetSize());
     }
 
-    sourceSurface->BlitToSurface(*graphics.GetDC(dst),
-                                 sourceSurface->GetRect(),
-                                 sourceSurface->GetRect(),
-                                 opacity,
-                                 use_alpha_);
+    sourceSurface->BlitToSurface(*graphics.GetDC(dst), sourceSurface->GetRect(),
+                                 sourceSurface->GetRect(), opacity, use_alpha_);
   }
 };
 
@@ -857,8 +803,7 @@ struct colour_1 : public RLOpcode<IntConstant_T, RGBColour_T> {
 };
 
 template <typename SPACE>
-struct colour_2
-    : public RLOpcode<Rect_T<SPACE>, IntConstant_T, RGBColour_T> {
+struct colour_2 : public RLOpcode<Rect_T<SPACE>, IntConstant_T, RGBColour_T> {
   void operator()(RLMachine& machine, Rect rect, int dc, RGBAColour colour) {
     std::shared_ptr<Surface> surface = machine.system().graphics().GetDC(dc);
     surface->ApplyColour(colour.rgb(), rect);
@@ -873,8 +818,7 @@ struct light_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
 };
 
 template <typename SPACE>
-struct light_2
-    : public RLOpcode<Rect_T<SPACE>, IntConstant_T, IntConstant_T> {
+struct light_2 : public RLOpcode<Rect_T<SPACE>, IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, Rect rect, int dc, int level) {
     std::shared_ptr<Surface> surface = machine.system().graphics().GetDC(dc);
     surface->ApplyColour(RGBColour(level, level, level), rect);
@@ -937,10 +881,10 @@ struct fade_1 : public RLOpcode<IntConstant_T, DefaultIntValue_T<0>> {
 // -----------------------------------------------------------------------
 template <typename SPACE>
 struct stretchBlit_1 : public RLOpcode<Rect_T<SPACE>,
-                                      IntConstant_T,
-                                      Rect_T<SPACE>,
-                                      IntConstant_T,
-                                      DefaultIntValue_T<255>> {
+                                       IntConstant_T,
+                                       Rect_T<SPACE>,
+                                       IntConstant_T,
+                                       DefaultIntValue_T<255>> {
   bool use_alpha_;
   explicit stretchBlit_1(bool in) : use_alpha_(in) {}
 
@@ -961,17 +905,17 @@ struct stretchBlit_1 : public RLOpcode<Rect_T<SPACE>,
       graphics.SetMinimumSizeForDC(dst, sourceSurface->GetSize());
     }
 
-    sourceSurface->BlitToSurface(
-        *graphics.GetDC(dst), src_rect, dst_rect, opacity, use_alpha_);
+    sourceSurface->BlitToSurface(*graphics.GetDC(dst), src_rect, dst_rect,
+                                 opacity, use_alpha_);
   }
 };
 
 template <typename SPACE>
 struct zoom : public RLOpcode<Rect_T<SPACE>,
-                             Rect_T<SPACE>,
-                             IntConstant_T,
-                             Rect_T<SPACE>,
-                             IntConstant_T> {
+                              Rect_T<SPACE>,
+                              IntConstant_T,
+                              Rect_T<SPACE>,
+                              IntConstant_T> {
   void operator()(RLMachine& machine,
                   Rect frect,
                   Rect trect,
@@ -995,31 +939,33 @@ struct zoom : public RLOpcode<Rect_T<SPACE>,
 
 // Defines the fairly complex parameter definition for the list of functions to
 // call in a {grp,rec}Multi command.
-typedef Argc_T<Special_T<
-    DefaultSpecialMapper,
-    // 0:copy(strC 'filename')
-    StrConstant_T,
-    // 1:copy(strC 'filename', 'effect')
-    Complex_T<StrConstant_T, IntConstant_T>,
-    // 2:copy(strC 'filename', 'effect', 'alpha')
-    Complex_T<StrConstant_T, IntConstant_T, IntConstant_T>,
-    // 3:area(strC 'filename', 'x1', 'y1', 'x2', 'y2', 'dx', 'dy')
-    Complex_T<StrConstant_T,
-              IntConstant_T,
-              IntConstant_T,
-              IntConstant_T,
-              IntConstant_T,
-              IntConstant_T,
-              IntConstant_T>,
-    // 4:area(strC 'filename', 'x1', 'y1', 'x2', 'y2', 'dx', 'dy', 'alpha')
-    Complex_T<StrConstant_T,
-              IntConstant_T,
-              IntConstant_T,
-              IntConstant_T,
-              IntConstant_T,
-              IntConstant_T,
-              IntConstant_T,
-              IntConstant_T>>> MultiCommand;
+typedef Argc_T<Special_T<DefaultSpecialMapper,
+                         // 0:copy(strC 'filename')
+                         StrConstant_T,
+                         // 1:copy(strC 'filename', 'effect')
+                         Complex_T<StrConstant_T, IntConstant_T>,
+                         // 2:copy(strC 'filename', 'effect', 'alpha')
+                         Complex_T<StrConstant_T, IntConstant_T, IntConstant_T>,
+                         // 3:area(strC 'filename', 'x1', 'y1', 'x2', 'y2',
+                         // 'dx', 'dy')
+                         Complex_T<StrConstant_T,
+                                   IntConstant_T,
+                                   IntConstant_T,
+                                   IntConstant_T,
+                                   IntConstant_T,
+                                   IntConstant_T,
+                                   IntConstant_T>,
+                         // 4:area(strC 'filename', 'x1', 'y1', 'x2', 'y2',
+                         // 'dx', 'dy', 'alpha')
+                         Complex_T<StrConstant_T,
+                                   IntConstant_T,
+                                   IntConstant_T,
+                                   IntConstant_T,
+                                   IntConstant_T,
+                                   IntConstant_T,
+                                   IntConstant_T,
+                                   IntConstant_T>>>
+    MultiCommand;
 
 // -----------------------------------------------------------------------
 
@@ -1045,8 +991,7 @@ void multi_command<SPACE>::handleMultiCommands(
     RLMachine& machine,
     const MultiCommand::type& commands) {
   for (MultiCommand::type::const_iterator it = commands.begin();
-       it != commands.end();
-       it++) {
+       it != commands.end(); it++) {
     switch (it->type) {
       case 0:
         // 0:copy(strC 'filename')
@@ -1060,8 +1005,8 @@ void multi_command<SPACE>::handleMultiCommands(
           Point dest;
           GetSELPointAndRect(machine, get<1>(it->second), src, dest);
 
-          load_3<SPACE>(true)(
-              machine, get<0>(it->second), MULTI_TARGET_DC, src, dest, 255);
+          load_3<SPACE>(true)(machine, get<0>(it->second), MULTI_TARGET_DC, src,
+                              dest, 255);
         }
         break;
       }
@@ -1072,42 +1017,30 @@ void multi_command<SPACE>::handleMultiCommands(
           Point dest;
           GetSELPointAndRect(machine, get<1>(it->third), src, dest);
 
-          load_3<SPACE>(true)(machine,
-                              get<0>(it->third),
-                              MULTI_TARGET_DC,
-                              src,
-                              dest,
-                              get<2>(it->third));
+          load_3<SPACE>(true)(machine, get<0>(it->third), MULTI_TARGET_DC, src,
+                              dest, get<2>(it->third));
         }
         break;
       }
       case 3: {
         // 3:area(strC 'filename', 'x1', 'y1', 'x2', 'y2', 'dx', 'dy')
         if (get<0>(it->fourth) != "") {
-          load_3<SPACE>(true)(machine,
-                              get<0>(it->fourth),
-                              MULTI_TARGET_DC,
-                              SPACE::makeRect(get<1>(it->fourth),
-                                              get<2>(it->fourth),
-                                              get<3>(it->fourth),
-                                              get<4>(it->fourth)),
-                              Point(get<5>(it->fourth), get<6>(it->fourth)),
-                              255);
+          load_3<SPACE>(true)(
+              machine, get<0>(it->fourth), MULTI_TARGET_DC,
+              SPACE::makeRect(get<1>(it->fourth), get<2>(it->fourth),
+                              get<3>(it->fourth), get<4>(it->fourth)),
+              Point(get<5>(it->fourth), get<6>(it->fourth)), 255);
         }
         break;
       }
       case 4: {
         // 4:area(strC 'filename', 'x1', 'y1', 'x2', 'y2', 'dx', 'dy', 'alpha')
         if (get<0>(it->fifth) != "") {
-          load_3<SPACE>(true)(machine,
-                              get<0>(it->fifth),
-                              MULTI_TARGET_DC,
-                              SPACE::makeRect(get<1>(it->fifth),
-                                              get<2>(it->fifth),
-                                              get<3>(it->fifth),
-                                              get<4>(it->fifth)),
-                              Point(get<5>(it->fifth), get<6>(it->fifth)),
-                              get<7>(it->fifth));
+          load_3<SPACE>(true)(
+              machine, get<0>(it->fifth), MULTI_TARGET_DC,
+              SPACE::makeRect(get<1>(it->fifth), get<2>(it->fifth),
+                              get<3>(it->fifth), get<4>(it->fifth)),
+              Point(get<5>(it->fifth), get<6>(it->fifth)), get<7>(it->fifth));
         }
         break;
       }
@@ -1118,9 +1051,9 @@ void multi_command<SPACE>::handleMultiCommands(
 // fun grpMulti <1:Grp:00075, 4> (<strC 'filename', <'effect', MultiCommand)
 template <typename SPACE>
 struct multi_str_1 : public RLOpcode<StrConstant_T,
-                                    IntConstant_T,
-                                    IntConstant_T,
-                                    MultiCommand>,
+                                     IntConstant_T,
+                                     IntConstant_T,
+                                     MultiCommand>,
                      public multi_command<SPACE> {
   void operator()(RLMachine& machine,
                   string filename,
@@ -1148,9 +1081,9 @@ struct multi_str_0
 
 template <typename SPACE>
 struct multi_dc_1 : public RLOpcode<IntConstant_T,
-                                   IntConstant_T,
-                                   IntConstant_T,
-                                   MultiCommand>,
+                                    IntConstant_T,
+                                    IntConstant_T,
+                                    MultiCommand>,
                     public multi_command<SPACE> {
   void operator()(RLMachine& machine,
                   int dc,
@@ -1446,8 +1379,8 @@ void ReplayGraphicsStackCommand(RLMachine& machine,
       if (command != "") {
         // Parse the string as a chunk of Reallive bytecode.
         libreallive::Parser parser;
-        libreallive::BytecodeElement* element =
-          parser.ParseBytecode(command.c_str(), command.c_str() + command.size());
+        libreallive::BytecodeElement* element = parser.ParseBytecode(
+            command.c_str(), command.c_str() + command.size());
         libreallive::CommandElement* command =
             dynamic_cast<libreallive::CommandElement*>(element);
         if (command) {
@@ -1455,82 +1388,9 @@ void ReplayGraphicsStackCommand(RLMachine& machine,
         }
       }
     }
-  }
-  catch (std::exception& e) {
+  } catch (std::exception& e) {
     std::cerr << "Error while replaying graphics stack: " << e.what()
               << std::endl;
     return;
-  }
-}
-
-// -----------------------------------------------------------------------
-
-void ReplayDepricatedGraphicsStackVector(
-    RLMachine& machine,
-    const std::vector<GraphicsStackFrame>& gstack) {
-  for (auto const& frame : gstack) {
-    try {
-      if (frame.name() == GRP_LOAD) {
-        if (frame.hasTargetCoordinates()) {
-          load_3<rect_impl::REC>(frame.mask())(machine,
-                                               frame.filename(),
-                                               frame.targetDC(),
-                                               frame.sourceRect(),
-                                               frame.targetPoint(),
-                                               frame.opacity());
-        } else {
-          // Older versions of rlvm didn't record the mask bit, so make sure we
-          // check for that since we don't want to break old save games.
-          bool mask = (frame.hasMask() ? frame.mask() : true);
-          load_1 loader(mask);
-          loader(machine, frame.filename(), frame.targetDC(), frame.opacity());
-        }
-      } else if (frame.name() == GRP_OPEN) {
-        // open is just a load + an animation.
-        loadImageToDC1(machine,
-                       frame.filename(),
-                       frame.sourceRect(),
-                       frame.targetPoint(),
-                       frame.opacity(),
-                       frame.mask());
-        blitDC1toDC0(machine);
-      } else if (frame.name() == GRP_COPY) {
-        if (frame.hasSourceCoordinates()) {
-          copy_3<rect_impl::REC>(frame.mask())(machine,
-                                               frame.sourceRect(),
-                                               frame.sourceDC(),
-                                               frame.targetPoint(),
-                                               frame.targetDC(),
-                                               frame.opacity());
-        } else {
-          copy_1(frame.mask())(
-              machine, frame.sourceDC(), frame.targetDC(), frame.opacity());
-        }
-      } else if (frame.name() == GRP_DISPLAY) {
-        loadDCToDC1(machine,
-                    frame.sourceDC(),
-                    frame.sourceRect(),
-                    frame.targetPoint(),
-                    frame.opacity());
-        blitDC1toDC0(machine);
-      } else if (frame.name() == GRP_OPENBG) {
-        loadImageToDC1(machine,
-                       frame.filename(),
-                       frame.sourceRect(),
-                       frame.targetPoint(),
-                       frame.opacity(),
-                       false);
-        blitDC1toDC0(machine);
-      } else if (frame.name() == GRP_ALLOC) {
-        Point target = frame.targetPoint();
-        allocDC()(machine, frame.targetDC(), target.x(), target.y());
-      } else if (frame.name() == GRP_WIPE) {
-        wipe()(machine, frame.targetDC(), frame.r(), frame.g(), frame.b());
-      }
-    }
-    catch (rlvm::Exception& e) {
-      std::cerr << "WARNING: Error while thawing graphics stack: "
-                << e.what() << std::endl;
-    }
   }
 }
