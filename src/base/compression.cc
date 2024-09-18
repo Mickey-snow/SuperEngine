@@ -41,18 +41,20 @@ std::string Decompress_lzss(std::string_view data) {
 
   ByteReader reader(data);
   int32_t arc_size = reader.PopAs<int32_t>(4);
-  int32_t orig_size = reader.PopAs<int32_t>(4);
+  size_t orig_size = reader.PopAs<size_t>(4);
 
   if (arc_size != data.size())
     throw std::logic_error("File size mismatch");
 
   std::string result;
+  result.reserve(orig_size);
+
   bool should_repeat = true;
-  while (should_repeat && result.size() < static_cast<size_t>(orig_size)) {
+  while (should_repeat && result.size() < orig_size) {
     uint8_t flags = reader.PopAs<uint8_t>(1);
 
     for (int bit = 0; bit < 8; ++bit) {
-      if (result.size() >= static_cast<size_t>(orig_size)) {
+      if (result.size() >= orig_size) {
         should_repeat = false;
         break;
       }
@@ -72,9 +74,60 @@ std::string Decompress_lzss(std::string_view data) {
     }
   }
 
-  if (result.size() != static_cast<size_t>(orig_size))
+  if (result.size() != orig_size)
     throw std::runtime_error("Decompressed size does not match original size");
   return result;
 }
 
-std::string Decompress_lzss32(std::string_view data) { return ""; }
+std::string Decompress_lzss32(std::string_view data) {
+  if (data.empty())
+    return "";
+
+  if (data.size() < 8) {
+    throw std::invalid_argument(
+        "Data too small to contain a valid LZSS32 header");
+  }
+
+  ByteReader reader(data);
+  int32_t arc_size = reader.PopAs<int32_t>(4);
+  int32_t orig_size = reader.PopAs<size_t>(4);
+
+  if (arc_size != data.size())
+    throw std::logic_error("File size mismatch");
+
+  std::string result;
+  result.reserve(arc_size);
+
+  bool should_repeat = true;
+  while (should_repeat && result.size() < orig_size) {
+    uint8_t flags = reader.PopAs<uint8_t>(1);
+
+    for (int bit = 0; bit < 8; ++bit) {
+      if (result.size() >= orig_size) {
+        should_repeat = false;
+        break;
+      }
+
+      if (flags & 1) {
+        result += reader.PopAs<char>(1);
+        result += reader.PopAs<char>(1);
+        result += reader.PopAs<char>(1);
+        result += static_cast<char>(255);
+      } else {
+        uint16_t chunk_data = reader.PopAs<uint16_t>(2);
+        uint16_t chunk_size = 1 + (chunk_data & 0b1111);
+        size_t chunk_offset = result.size() - ((chunk_data >> 2) & (~0b11));
+
+        chunk_size *= 4;
+        for (size_t i = 0; i < chunk_size; ++i)
+          result += result[chunk_offset + i];
+      }
+
+      flags >>= 1;
+    }
+  }
+
+  if (result.size() != orig_size)
+    throw std::runtime_error("Decompressed size does not match original size");
+  return result;
+}
