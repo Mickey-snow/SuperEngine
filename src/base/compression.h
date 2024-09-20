@@ -28,8 +28,10 @@
 #include <string>
 #include <string_view>
 
+std::string Decompress_lzss(std::string data);
 std::string Decompress_lzss(std::string_view data);
 
+std::string Decompress_lzss32(std::string data);
 std::string Decompress_lzss32(std::string_view data);
 
 #endif

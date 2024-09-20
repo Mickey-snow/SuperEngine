@@ -30,6 +30,11 @@
 #include <string>
 #include <string_view>
 
+std::string Decompress_lzss(std::string data) {
+  std::string_view sv = data;
+  return Decompress_lzss(sv);
+}
+
 std::string Decompress_lzss(std::string_view data) {
   if (data.empty())
     return "";
@@ -77,6 +82,11 @@ std::string Decompress_lzss(std::string_view data) {
   if (result.size() != orig_size)
     throw std::runtime_error("Decompressed size does not match original size");
   return result;
+}
+
+std::string Decompress_lzss32(std::string data) {
+  std::string_view sv = data;
+  return Decompress_lzss32(sv);
 }
 
 std::string Decompress_lzss32(std::string_view data) {
