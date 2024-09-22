@@ -24,6 +24,7 @@
 
 #include <gtest/gtest.h>
 
+#include "base/avdec/image_decoder.h"
 #include "base/compression.h"
 #include "test_utils.h"
 #include "utilities/bytestream.h"
@@ -37,24 +38,15 @@
 
 TEST(g00Test, MonochromaticGrad) {
   MappedFile file(PathToTestCase("Gameroot/g00/monochrome.g00"));
+  ImageDecoder dec(file.Read());
 
-  std::string_view sv = file.Read();
-  std::unique_ptr<char[]> src(new char[sv.size() + 1]);
-  std::memcpy(src.get(), sv.data(), sv.size());
-
-  std::unique_ptr<GRPCONV> conv(
-      GRPCONV::AssignConverter(src.get(), sv.size(), "???"));
-
-  const auto height = conv->Height();
-  const auto width = conv->Width();
+  auto width = dec.width;
+  auto height = dec.height;
   ASSERT_EQ(width, 16);
   ASSERT_EQ(height, 8);
-  EXPECT_EQ(conv->region_table.size(), 0);
+  EXPECT_EQ(dec.region_table.size(), 0);
 
-  char* mem = (char*)malloc(width * height * 4 + 1024);
-  ASSERT_TRUE(conv->Read(mem));
-
-  char* result = mem;
+  auto result = dec.mem.data();
   for (int j = 0; j < height; ++j)
     for (int i = 0; i < width; ++i) {
       float fr = static_cast<float>(i) / width;
@@ -68,29 +60,19 @@ TEST(g00Test, MonochromaticGrad) {
       }
       EXPECT_EQ(*result++, 0xff);
     }
-  delete[] mem;
 }
 
 TEST(g00Test, ChromaticGrad) {
   MappedFile file(PathToTestCase("Gameroot/g00/rainbow.g00"));
+  ImageDecoder dec(file.Read());
 
-  std::string_view sv = file.Read();
-  std::unique_ptr<char[]> src(new char[sv.size() + 1]);
-  std::memcpy(src.get(), sv.data(), sv.size());
-
-  std::unique_ptr<GRPCONV> conv(
-      GRPCONV::AssignConverter(src.get(), sv.size(), "???"));
-
-  const auto height = conv->Height();
-  const auto width = conv->Width();
+  const auto height = dec.height;
+  const auto width = dec.width;
   ASSERT_EQ(width, 16);
   ASSERT_EQ(height, 8);
-  EXPECT_EQ(conv->region_table.size(), 0);
+  EXPECT_EQ(dec.region_table.size(), 0);
 
-  char* mem = (char*)malloc(width * height * 4 + 1024);
-  ASSERT_TRUE(conv->Read(mem));
-
-  char* result = mem;
+  char* result = dec.mem.data();
   for (int j = 0; j < height; ++j)
     for (int i = 0; i < width; ++i) {
       float val =
@@ -104,27 +86,20 @@ TEST(g00Test, ChromaticGrad) {
       EXPECT_NEAR(*result++, b, 13.0f);
       EXPECT_EQ(*result++, 0xff);
     }
-  delete[] mem;
 }
 
 TEST(g00Test, RegionTable) {
   MappedFile file(PathToTestCase("Gameroot/g00/rainbow_cut.g00"));
+  ImageDecoder dec(file.Read());
 
-  std::string_view sv = file.Read();
-  std::unique_ptr<char[]> src(new char[sv.size() + 1]);
-  std::memcpy(src.get(), sv.data(), sv.size());
-
-  std::unique_ptr<GRPCONV> conv(
-      GRPCONV::AssignConverter(src.get(), sv.size(), "???"));
-
-  const auto height = conv->Height();
-  const auto width = conv->Width();
+  const auto height = dec.height;
+  const auto width = dec.width;
   ASSERT_EQ(width, 16);
   ASSERT_EQ(height, 8);
-  ASSERT_EQ(conv->region_table.size(), 8);
+  ASSERT_EQ(dec.region_table.size(), 8);
   for (int j = 0; j < 2; ++j)
     for (int i = 0; i < 4; ++i) {
-      auto region = conv->region_table[j * 4 + i];
+      auto region = dec.region_table[j * 4 + i];
       EXPECT_EQ(region.y1, j * 4);
       EXPECT_EQ(region.y2, (j + 1) * 4 - 1);
       EXPECT_EQ(region.x1, i * 4);
@@ -162,39 +137,37 @@ TEST(g00Test, IndexColor) {
       colorAt[j][i] = dist(gen);
     }
 
-  oBytestream obs;
-  obs << static_cast<uint8_t>(1) << static_cast<uint16_t>(w)
-      << static_cast<uint16_t>(h);
-  obs << PackLzss([&]() -> std::string {
+  auto Prepare_data = [&]() {
     oBytestream obs;
-    obs << static_cast<uint16_t>(256);
-    for (int i = 0; i < 256; ++i)
-      obs << palette[i];
+    obs << static_cast<uint8_t>(1) << static_cast<uint16_t>(w)
+        << static_cast<uint16_t>(h);
+    obs << PackLzss([&]() -> std::string {
+      oBytestream obs;
+      obs << static_cast<uint16_t>(256);
+      for (int i = 0; i < 256; ++i)
+        obs << palette[i];
 
-    for (uint32_t j = 0; j < h; ++j)
-      for (uint32_t i = 0; i < w; ++i)
-        obs << static_cast<uint8_t>(colorAt[j][i]);
-    auto data = obs.Get();
-    return std::string(reinterpret_cast<char*>(data.data()), data.size());
-  }());
+      for (uint32_t j = 0; j < h; ++j)
+        for (uint32_t i = 0; i < w; ++i)
+          obs << static_cast<uint8_t>(colorAt[j][i]);
+      auto data = obs.Get();
+      return std::string(reinterpret_cast<char*>(data.data()), data.size());
+    }());
 
-  auto data = obs.Get();
-  std::unique_ptr<char[]> src(new char[data.size() + 1]);
-  std::memcpy(src.get(), data.data(), data.size());
+    std::vector<uint8_t> data_vec = obs.Get();
+    return std::string(reinterpret_cast<const char*>(data_vec.data()),
+                       data_vec.size());
+  };
 
-  std::unique_ptr<GRPCONV> conv(
-      GRPCONV::AssignConverter(src.get(), data.size(), "???"));
-
-  const auto height = conv->Height();
-  const auto width = conv->Width();
+  std::string data = Prepare_data();
+  ImageDecoder dec(data);
+  const auto height = dec.height;
+  const auto width = dec.width;
   EXPECT_EQ(height, h);
   EXPECT_EQ(width, w);
 
-  char* mem = (char*)malloc(width * height * 4 + 1024);
-  ASSERT_TRUE(conv->Read(mem));
-  uint32_t* result = reinterpret_cast<uint32_t*>(mem);
+  uint32_t* result = reinterpret_cast<uint32_t*>(dec.mem.data());
   for (uint32_t j = 0; j < h; ++j)
     for (uint32_t i = 0; i < w; ++i)
       EXPECT_EQ(*result++, palette[colorAt[j][i]]);
-  delete[] mem;
 }

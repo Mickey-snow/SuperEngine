@@ -46,11 +46,12 @@
 #include <string>
 #include <vector>
 
+#include "base/avdec/image_decoder.h"
+#include "base/cgm_table.h"
 #include "base/notification/source.h"
 #include "base/tone_curve.h"
 #include "libreallive/gameexe.h"
 #include "machine/rlmachine.h"
-#include "base/cgm_table.h"
 #include "systems/base/colour.h"
 #include "systems/base/event_system.h"
 #include "systems/base/graphics_object.h"
@@ -69,8 +70,8 @@
 #include "utilities/exception.h"
 #include "utilities/graphics.h"
 #include "utilities/lazy_array.h"
+#include "utilities/mapped_file.h"
 #include "utilities/string_utilities.h"
-#include "xclannad/file.h"
 
 // -----------------------------------------------------------------------
 // Private Interface
@@ -554,57 +555,41 @@ std::shared_ptr<const Surface> SDLGraphicsSystem::LoadSurfaceFromFile(
     throw rlvm::Exception(oss.str());
   }
 
-  // Glue code to allow my stuff to work with Jagarl's loader
-  FILE* file = fopen(filename.string().c_str(), "rb");
-  if (!file) {
-    std::ostringstream oss;
-    oss << "Could not open file: " << filename;
-    throw rlvm::Exception(oss.str());
-  }
+  MappedFile file(filename);
+  ImageDecoder dec(file.Read());
 
-  fseek(file, 0, SEEK_END);
-  size_t size = ftell(file);
-  std::unique_ptr<char[]> d(new char[size + 1]);
-  fseek(file, 0, SEEK_SET);
-  fread(d.get(), size, 1, file);
-  fclose(file);
+  const auto width = dec.width;
+  const auto height = dec.height;
 
-  std::unique_ptr<GRPCONV> conv(GRPCONV::AssignConverter(d.get(), size, "???"));
-  if (conv == 0) {
-    throw SystemError("Failure in GRPCONV.");
-  }
   // do not free until SDL_FreeSurface() is called on the surface using it
-  char* mem = (char*)malloc(conv->Width() * conv->Height() * 4 + 1024);
-  SDL_Surface* s = 0;
-  if (conv->Read(mem)) {
-    MaskType is_mask = conv->IsMask() ? ALPHA_MASK : NO_MASK;
-    if (is_mask == ALPHA_MASK) {
-      int len = conv->Width() * conv->Height();
-      unsigned int* d = (unsigned int*)mem;
-      int i;
-      for (i = 0; i < len; i++) {
-        if ((*d & 0xff000000) != 0xff000000)
-          break;
-        d++;
-      }
-      if (i == len) {
-        is_mask = NO_MASK;
-      }
+  char* mem = dec.mem.data();
+  SDL_Surface* s = nullptr;
+  MaskType is_mask = dec.ismask ? ALPHA_MASK : NO_MASK;
+  if (is_mask == ALPHA_MASK) {
+    int len = width * height;
+    uint32_t* d = reinterpret_cast<uint32_t*>(mem);
+    int i;
+    for (i = 0; i < len; i++) {
+      if ((*d & 0xff000000) != 0xff000000)
+        break;
+      d++;
     }
-
-    s = newSurfaceFromRGBAData(conv->Width(), conv->Height(), mem, is_mask);
+    if (i == len) {
+      is_mask = NO_MASK;
+    }
   }
-  free(mem);
+
+  s = newSurfaceFromRGBAData(width, height, mem, is_mask);
 
   // Grab the Type-2 information out of the converter or create one
   // default region if none exist
   std::vector<SDLSurface::GrpRect> region_table;
-  if (conv->region_table.size()) {
-    std::transform(conv->region_table.begin(), conv->region_table.end(),
+  if (!dec.region_table.empty()) {
+    std::transform(dec.region_table.cbegin(), dec.region_table.cend(),
                    std::back_inserter(region_table), xclannadRegionToGrpRect);
   } else {
     SDLSurface::GrpRect rect;
-    rect.rect = Rect(Point(0, 0), Size(conv->Width(), conv->Height()));
+    rect.rect = Rect(Point(0, 0), Size(width, height));
     rect.originX = 0;
     rect.originY = 0;
     region_table.push_back(rect);
@@ -627,7 +612,7 @@ std::shared_ptr<const Surface> SDLGraphicsSystem::LoadSurfaceFromFile(
     }
     surface_to_ret.get()->ToneCurve(
         globals().tone_curves.GetEffect(effect_no / 10 - 1),
-        Rect(Point(0, 0), Size(conv->Width(), conv->Height())));
+        Rect(Point(0, 0), Size(width, height)));
   }
 
   return surface_to_ret;
