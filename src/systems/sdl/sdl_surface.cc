@@ -791,7 +791,7 @@ void SDLSurface::markWrittenTo(const Rect& written_rect) {
   }
 
   // Mark that the texture needs reuploading
-  dirty_rectangle_ = dirty_rectangle_.RectUnion(written_rect);
+  dirty_rectangle_ = dirty_rectangle_.Union(written_rect);
   texture_is_valid_ = false;
 }
 
