@@ -34,7 +34,7 @@
 #include "machine/long_operation.h"
 #include "systems/base/colour.h"
 #include "systems/base/event_listener.h"
-#include "systems/base/rect.h"
+#include "base/rect.h"
 #include "systems/base/renderable.h"
 #include "systems/base/surface.h"
 

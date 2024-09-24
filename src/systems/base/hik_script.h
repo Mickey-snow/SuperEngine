@@ -33,7 +33,7 @@
 #include <string>
 #include <vector>
 
-#include "systems/base/rect.h"
+#include "base/rect.h"
 
 class System;
 class Surface;

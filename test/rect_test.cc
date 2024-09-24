@@ -26,7 +26,7 @@
 
 #include "gtest/gtest.h"
 
-#include "systems/base/rect.h"
+#include "base/rect.h"
 
 TEST(RectTest, EmptyIntersection) {
   Rect empty;

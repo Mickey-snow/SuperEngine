@@ -31,7 +31,7 @@
 #include <SDL/SDL_events.h>
 
 #include "systems/base/event_system.h"
-#include "systems/base/rect.h"
+#include "base/rect.h"
 
 class SDLSystem;
 

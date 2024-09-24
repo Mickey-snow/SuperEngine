@@ -34,7 +34,7 @@
 #include "machine/rlmachine.h"
 #include "machine/serialization.h"
 #include "systems/base/graphics_object_data.h"
-#include "systems/base/rect.h"
+#include "base/rect.h"
 
 class ColourFilter;
 class GraphicsObject;

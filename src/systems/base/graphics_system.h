@@ -45,7 +45,7 @@
 #include "base/tone_curve.h"
 #include "base/cgm_table.h"
 #include "systems/base/event_listener.h"
-#include "systems/base/rect.h"
+#include "base/rect.h"
 
 #include "lru_cache.hpp"
 #include "utilities/lazy_array.h"

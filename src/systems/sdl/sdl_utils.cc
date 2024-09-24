@@ -37,7 +37,7 @@
 #include <sstream>
 
 #include "systems/base/system_error.h"
-#include "systems/base/rect.h"
+#include "base/rect.h"
 #include "systems/base/colour.h"
 
 // -----------------------------------------------------------------------

@@ -35,7 +35,7 @@
 
 #include "machine/reallive_dll.h"
 #include "machine/reference.h"
-#include "systems/base/rect.h"
+#include "base/rect.h"
 
 class TextWindow;
 

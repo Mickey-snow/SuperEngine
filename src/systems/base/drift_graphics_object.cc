@@ -36,7 +36,7 @@
 #include "systems/base/event_system.h"
 #include "systems/base/graphics_object.h"
 #include "systems/base/graphics_system.h"
-#include "systems/base/rect.h"
+#include "base/rect.h"
 #include "systems/base/surface.h"
 #include "systems/base/system.h"
 #include "utilities/graphics.h"

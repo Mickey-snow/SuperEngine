@@ -30,7 +30,7 @@
 #include <guichan/image.hpp>
 #include <guichan/rectangle.hpp>
 
-#include "systems/base/rect.h"
+#include "base/rect.h"
 
 enum ThemeImage {
   IMG_BUTTON_DISABLED = 0,

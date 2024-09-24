@@ -37,7 +37,7 @@
 #include <vector>
 
 #include "systems/base/colour.h"
-#include "systems/base/rect.h"
+#include "base/rect.h"
 
 class RLMachine;
 class GraphicsObject;

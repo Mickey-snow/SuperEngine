@@ -34,7 +34,7 @@
 #include <string>
 #include <utility>
 
-#include "systems/base/rect.h"
+#include "base/rect.h"
 #include "systems/base/colour.h"
 
 class Gameexe;

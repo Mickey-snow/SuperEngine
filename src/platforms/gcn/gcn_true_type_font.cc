@@ -34,7 +34,7 @@
 #include <string>
 
 #include "base/notification/service.h"
-#include "systems/base/rect.h"
+#include "base/rect.h"
 #include "systems/sdl/sdl_surface.h"
 
 // -----------------------------------------------------------------------

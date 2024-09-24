@@ -34,7 +34,7 @@
 #include <set>
 
 #include "systems/base/rltimer.h"
-#include "systems/base/rect.h"
+#include "base/rect.h"
 
 class RLMachine;
 

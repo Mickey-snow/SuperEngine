@@ -31,7 +31,7 @@
 #include <vector>
 
 #include "machine/rloperation.h"
-#include "systems/base/rect.h"
+#include "base/rect.h"
 
 struct Point_T {
   typedef Point type;

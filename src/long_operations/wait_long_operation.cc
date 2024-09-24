@@ -30,7 +30,7 @@
 #include "systems/base/event_listener.h"
 #include "systems/base/event_system.h"
 #include "systems/base/graphics_system.h"
-#include "systems/base/rect.h"
+#include "base/rect.h"
 #include "systems/base/system.h"
 #include "systems/base/text_system.h"
 

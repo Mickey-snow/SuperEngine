@@ -42,7 +42,7 @@
 #include "platforms/gcn/gcn_true_type_font.h"
 #include "platforms/gcn/gcn_utils.h"
 #include "systems/base/graphics_system.h"
-#include "systems/base/rect.h"
+#include "base/rect.h"
 #include "systems/base/system.h"
 #include "systems/base/text_system.h"
 #include "systems/sdl/sdl_event_system.h"

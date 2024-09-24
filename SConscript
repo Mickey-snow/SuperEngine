@@ -60,6 +60,7 @@ librlvm_files = [
   "src/base/compression.cc",
   "src/base/voice_factory.cc",
   "src/base/asset_scanner.cc",
+  "src/base/rect.cc",
 
   "src/effects/blind_effect.cc",
   "src/effects/effect.cc",
@@ -184,7 +185,6 @@ librlvm_files = [
   "src/systems/base/platform.cc",
   "src/systems/base/rltimer.cc",
   "src/systems/base/rlbabel_dll.cc",
-  "src/systems/base/rect.cc",
   "src/systems/base/selection_element.cc",
   "src/systems/base/sound_system.cc",
   "src/systems/base/surface.cc",

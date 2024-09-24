@@ -32,7 +32,7 @@
 #include "systems/base/graphics_object.h"
 #include "systems/base/graphics_object_of_file.h"
 #include "systems/base/surface.h"
-#include "systems/base/rect.h"
+#include "base/rect.h"
 
 // -----------------------------------------------------------------------
 // GraphicsObjectData

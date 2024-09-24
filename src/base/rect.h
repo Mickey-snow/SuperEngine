@@ -7,6 +7,7 @@
 //
 // -----------------------------------------------------------------------
 //
+// Copyright (C) 2024 Serina Sakurai
 // Copyright (C) 2008 Elliot Glaysher
 //
 // This program is free software; you can redistribute it and/or modify
@@ -25,8 +26,8 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_RECT_H_
-#define SRC_SYSTEMS_BASE_RECT_H_
+#ifndef SRC_BASE_RECT_H_
+#define SRC_BASE_RECT_H_
 
 #include <boost/serialization/access.hpp>
 #include <iosfwd>
@@ -68,7 +69,7 @@ class Point {
   friend class boost::serialization::access;
   template <class Archive>
   void serialize(Archive& ar, unsigned int version) {
-    ar& x_& y_;
+    ar & x_ & y_;
   }
 };
 
@@ -110,7 +111,7 @@ class Size {
   friend class boost::serialization::access;
   template <class Archive>
   void serialize(Archive& ar, unsigned int version) {
-    ar& width_& height_;
+    ar & width_ & height_;
   }
 };
 class Rect {
@@ -159,12 +160,12 @@ class Rect {
  private:
   Point origin_;
   Size size_;
-  
+
   // boost::serialization support
   friend class boost::serialization::access;
   template <class Archive>
   void serialize(Archive& ar, unsigned int version) {
-    ar& origin_& size_;
+    ar & origin_ & size_;
   }
 };  // end of class Rect
 
@@ -174,4 +175,4 @@ std::ostream& operator<<(std::ostream& os, const Size& s);
 std::ostream& operator<<(std::ostream& os, const Point& p);
 std::ostream& operator<<(std::ostream& os, const Rect& r);
 
-#endif  // SRC_SYSTEMS_BASE_RECT_H_
+#endif

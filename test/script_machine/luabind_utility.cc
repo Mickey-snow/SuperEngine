@@ -29,7 +29,7 @@
 #include <luabind/luabind.hpp>
 #include <luabind/operator.hpp>
 
-#include "systems/base/rect.h"
+#include "base/rect.h"
 
 using namespace luabind;
 

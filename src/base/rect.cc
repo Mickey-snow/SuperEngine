@@ -7,6 +7,7 @@
 //
 // -----------------------------------------------------------------------
 //
+// Copyright (C) 2024 Serina Sakurai
 // Copyright (C) 2008 Elliot Glaysher
 //
 // This program is free software; you can redistribute it and/or modify
@@ -25,12 +26,14 @@
 //
 // -----------------------------------------------------------------------
 
-#include "systems/base/rect.h"
+#include "base/rect.h"
 
 #include <algorithm>
 #include <ostream>
 
-// Implementations for Point class
+// -----------------------------------------------------------------------
+// class Point
+// -----------------------------------------------------------------------
 
 Point::Point(int x, int y) : x_(x), y_(y) {}
 
@@ -72,11 +75,11 @@ bool Point::operator==(const Point& rhs) const {
   return x_ == rhs.x_ && y_ == rhs.y_;
 }
 
-bool Point::operator!=(const Point& rhs) const {
-  return !(*this == rhs);
-}
+bool Point::operator!=(const Point& rhs) const { return !(*this == rhs); }
 
-// Implementations for Size class
+// -----------------------------------------------------------------------
+// class Size
+// -----------------------------------------------------------------------
 
 Size::Size(int width, int height) : width_(width), height_(height) {}
 
@@ -117,7 +120,8 @@ Size Size::operator-(const Size& rhs) const {
 }
 
 Size Size::operator*(float factor) const {
-  return Size(static_cast<int>(width_ * factor), static_cast<int>(height_ * factor));
+  return Size(static_cast<int>(width_ * factor),
+              static_cast<int>(height_ * factor));
 }
 
 Size Size::operator/(int denominator) const {
@@ -128,11 +132,11 @@ bool Size::operator==(const Size& rhs) const {
   return width_ == rhs.width_ && height_ == rhs.height_;
 }
 
-bool Size::operator!=(const Size& rhs) const {
-  return !(*this == rhs);
-}
+bool Size::operator!=(const Size& rhs) const { return !(*this == rhs); }
 
-// Implementations for Rect class
+// -----------------------------------------------------------------------
+// class Rect
+// -----------------------------------------------------------------------
 
 Rect::Rect(const Point& point1, const Point& point2)
     : origin_(point1),
@@ -141,8 +145,7 @@ Rect::Rect(const Point& point1, const Point& point2)
 Rect::Rect(const Point& origin, const Size& size)
     : origin_(origin), size_(size) {}
 
-Rect::Rect(int x, int y, const Size& size)
-    : origin_(x, y), size_(size) {}
+Rect::Rect(int x, int y, const Size& size) : origin_(x, y), size_(size) {}
 
 Rect Rect::GRP(int x1, int y1, int x2, int y2) {
   return Rect(Point(x1, y1), Point(x2, y2));
@@ -180,7 +183,8 @@ bool Rect::Intersects(const Rect& rhs) const {
 }
 
 Rect Rect::Intersection(const Rect& rhs) const {
-  if (!Intersects(rhs)) return Rect();
+  if (!Intersects(rhs))
+    return Rect();
 
   int new_x = std::max(x(), rhs.x());
   int new_y = std::max(y(), rhs.y());
@@ -191,8 +195,10 @@ Rect Rect::Intersection(const Rect& rhs) const {
 }
 
 Rect Rect::Union(const Rect& rhs) const {
-  if (is_empty()) return rhs;
-  if (rhs.is_empty()) return *this;
+  if (is_empty())
+    return rhs;
+  if (rhs.is_empty())
+    return *this;
 
   int new_x = std::min(x(), rhs.x());
   int new_y = std::min(y(), rhs.y());
@@ -216,10 +222,9 @@ bool Rect::operator==(const Rect& rhs) const {
   return origin_ == rhs.origin_ && size_ == rhs.size_;
 }
 
-bool Rect::operator!=(const Rect& rhs) const {
-  return !(*this == rhs);
-}
+bool Rect::operator!=(const Rect& rhs) const { return !(*this == rhs); }
 
+// -----------------------------------------------------------------------
 // Overloaded output operators
 
 std::ostream& operator<<(std::ostream& os, const Point& p) {

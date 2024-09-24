@@ -36,7 +36,7 @@
 #include <vector>
 
 #include "systems/base/graphics_system.h"
-#include "systems/base/rect.h"
+#include "base/rect.h"
 #include "systems/base/system_error.h"
 #include "systems/base/text_key_cursor.h"
 #include "systems/sdl/sdl_surface.h"

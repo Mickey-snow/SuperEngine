@@ -27,7 +27,7 @@
 #include "gtest/gtest.h"
 
 #include "libreallive/gameexe.h"
-#include "systems/base/rect.h"
+#include "base/rect.h"
 #include "utilities/graphics.h"
 
 TEST(UtilitiesTest, ClipDestination_Superset) {

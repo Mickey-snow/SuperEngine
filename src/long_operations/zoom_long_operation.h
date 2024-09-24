@@ -31,7 +31,7 @@
 #include <memory>
 
 #include "machine/long_operation.h"
-#include "systems/base/rect.h"
+#include "base/rect.h"
 
 class RLMachine;
 class Surface;

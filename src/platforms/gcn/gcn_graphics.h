@@ -35,7 +35,7 @@
 #include "base/notification/observer.h"
 #include "base/notification/registrar.h"
 #include "platforms/gcn/gcn_utils.h"
-#include "systems/base/rect.h"
+#include "base/rect.h"
 
 
 // 9 rectangles in an image. 4 corners, 4 sides and a middle area. The

@@ -31,7 +31,7 @@
 #include <sstream>
 #include <string>
 
-#include "systems/base/rect.h"
+#include "base/rect.h"
 #include "test_system/mock_surface.h"
 
 using std::ostringstream;

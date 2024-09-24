@@ -28,7 +28,7 @@
 #ifndef TEST_TEST_SYSTEM_TEST_TEXT_SYSTEM_H_
 #define TEST_TEST_SYSTEM_TEST_TEXT_SYSTEM_H_
 
-#include "systems/base/rect.h"
+#include "base/rect.h"
 #include "systems/base/text_system.h"
 
 #include <string>

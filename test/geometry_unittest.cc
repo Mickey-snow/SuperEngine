@@ -24,7 +24,7 @@
 
 #include <gtest/gtest.h>
 
-#include "systems/base/rect.h"
+#include "base/rect.h"
 
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>

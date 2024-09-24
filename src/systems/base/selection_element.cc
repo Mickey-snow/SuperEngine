@@ -32,7 +32,7 @@
 #include "systems/base/sound_system.h"
 #include "systems/base/surface.h"
 #include "systems/base/system.h"
-#include "systems/base/rect.h"
+#include "base/rect.h"
 
 // -----------------------------------------------------------------------
 // SelectionElement
