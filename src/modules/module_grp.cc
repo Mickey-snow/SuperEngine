@@ -56,20 +56,9 @@
 #include "systems/base/text_system.h"
 #include "utilities/graphics.h"
 
-using std::get;
-
 namespace fs = std::filesystem;
 
 namespace {
-
-// Constant names used in the graphics stack.
-const std::string GRP_ALLOC = "allocDC";
-const std::string GRP_WIPE = "wipe";
-const std::string GRP_COPY = "copy";
-const std::string GRP_DISPLAY = "display";
-const std::string GRP_LOAD = "grpLoad";
-const std::string GRP_OPEN = "grpOpen";
-const std::string GRP_OPENBG = "grpOpenBg";
 
 void blitDC1toDC0(RLMachine& machine) {
   GraphicsSystem& graphics = machine.system().graphics();
@@ -992,6 +981,7 @@ void multi_command<SPACE>::handleMultiCommands(
     const MultiCommand::type& commands) {
   for (MultiCommand::type::const_iterator it = commands.begin();
        it != commands.end(); it++) {
+    using std::get;
     switch (it->type) {
       case 0:
         // 0:copy(strC 'filename')

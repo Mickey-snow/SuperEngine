@@ -327,7 +327,6 @@ SDLSurface::~SDLSurface() { deallocate(); }
 // -----------------------------------------------------------------------
 
 Size SDLSurface::GetSize() const {
-  assert(surface_);
   return Size(surface_->w, surface_->h);
 }
 
