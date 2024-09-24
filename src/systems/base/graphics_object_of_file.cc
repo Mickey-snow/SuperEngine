@@ -91,7 +91,7 @@ void GraphicsObjectOfFile::LoadFile() {
 // -----------------------------------------------------------------------
 
 int GraphicsObjectOfFile::PixelWidth(const GraphicsObject& rp) {
-  const Surface::GrpRect& rect = surface_->GetPattern(rp.GetPattNo());
+  const GrpRect& rect = surface_->GetPattern(rp.GetPattNo());
   int width = rect.rect.width();
   return int(rp.GetWidthScaleFactor() * width);
 }
@@ -99,7 +99,7 @@ int GraphicsObjectOfFile::PixelWidth(const GraphicsObject& rp) {
 // -----------------------------------------------------------------------
 
 int GraphicsObjectOfFile::PixelHeight(const GraphicsObject& rp) {
-  const Surface::GrpRect& rect = surface_->GetPattern(rp.GetPattNo());
+  const GrpRect& rect = surface_->GetPattern(rp.GetPattNo());
   int height = rect.rect.height();
   return int(rp.GetHeightScaleFactor() * height);
 }

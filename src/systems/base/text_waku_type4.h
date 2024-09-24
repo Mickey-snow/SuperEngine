@@ -87,16 +87,16 @@ class TextWakuType4 : public TextWaku {
   std::shared_ptr<Surface> cached_backing_;
 
   // G00 regions in |waku_main_|.
-  Surface::GrpRect top_left;
-  Surface::GrpRect top_center;
-  Surface::GrpRect top_right;
+  GrpRect top_left;
+  GrpRect top_center;
+  GrpRect top_right;
 
-  Surface::GrpRect left_side;
-  Surface::GrpRect right_side;
+  GrpRect left_side;
+  GrpRect right_side;
 
-  Surface::GrpRect bottom_left;
-  Surface::GrpRect bottom_center;
-  Surface::GrpRect bottom_right;
+  GrpRect bottom_left;
+  GrpRect bottom_center;
+  GrpRect bottom_right;
 };
 
 #endif  // SRC_SYSTEMS_BASE_TEXT_WAKU_TYPE4_H_

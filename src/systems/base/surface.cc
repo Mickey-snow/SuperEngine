@@ -53,7 +53,7 @@ int Surface::GetNumPatterns() const { return 1; }
 
 // -----------------------------------------------------------------------
 
-const Surface::GrpRect& Surface::GetPattern(int patt_no) const {
+const GrpRect& Surface::GetPattern(int patt_no) const {
   static GrpRect rect;
   return rect;
 }

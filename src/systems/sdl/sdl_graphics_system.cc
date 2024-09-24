@@ -41,6 +41,7 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <iostream>
 #include <set>
 #include <sstream>
 #include <string>
@@ -534,17 +535,6 @@ static SDL_Surface* newSurfaceFromRGBAData(int w,
   return surf;
 }
 
-// Helper function for load_surface_from_file; invoked in a stl loop.
-static SDLSurface::GrpRect xclannadRegionToGrpRect(
-    const GRPCONV::REGION& region) {
-  SDLSurface::GrpRect rect;
-  rect.rect =
-      Rect(Point(region.x1, region.y1), Point(region.x2 + 1, region.y2 + 1));
-  rect.originX = region.origin_x;
-  rect.originY = region.origin_y;
-  return rect;
-}
-
 std::shared_ptr<const Surface> SDLGraphicsSystem::LoadSurfaceFromFile(
     const std::string& short_filename) {
   std::filesystem::path filename =
@@ -583,20 +573,17 @@ std::shared_ptr<const Surface> SDLGraphicsSystem::LoadSurfaceFromFile(
 
   // Grab the Type-2 information out of the converter or create one
   // default region if none exist
-  std::vector<SDLSurface::GrpRect> region_table;
-  if (!dec.region_table.empty()) {
-    std::transform(dec.region_table.cbegin(), dec.region_table.cend(),
-                   std::back_inserter(region_table), xclannadRegionToGrpRect);
-  } else {
-    SDLSurface::GrpRect rect;
+  std::vector<GrpRect> region_table = dec.region_table;
+  if (region_table.empty()) {
+    GrpRect rect;
     rect.rect = Rect(Point(0, 0), Size(width, height));
     rect.originX = 0;
     rect.originY = 0;
     region_table.push_back(rect);
   }
 
-  std::shared_ptr<Surface> surface_to_ret(
-      new SDLSurface(this, s, region_table));
+  std::shared_ptr<Surface> surface_to_ret =
+      std::make_shared<SDLSurface>(this, s, region_table);
   // handle tone curve effect loading
   if (short_filename.find("?") != short_filename.npos) {
     std::string effect_no_str =

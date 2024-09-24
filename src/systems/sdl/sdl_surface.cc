@@ -268,7 +268,7 @@ SDLSurface::SDLSurface(SDLGraphicsSystem* system, SDL_Surface* surf)
 // Surface that takes ownership of an externally created surface.
 SDLSurface::SDLSurface(SDLGraphicsSystem* system,
                        SDL_Surface* surf,
-                       const std::vector<SDLSurface::GrpRect>& region_table)
+                       const std::vector<GrpRect>& region_table)
     : surface_(surf),
       region_table_(region_table),
       texture_is_valid_(false),
@@ -313,7 +313,7 @@ void SDLSurface::buildRegionTable(const Size& size) {
   // should never need to be used with objects created with this
   // constructor, but let's make sure everything is initialized since
   // it'll happen somehow.)
-  SDLSurface::GrpRect rect;
+  GrpRect rect;
   rect.rect = Rect(Point(0, 0), size);
   rect.originX = 0;
   rect.originY = 0;
@@ -664,7 +664,7 @@ int SDLSurface::GetNumPatterns() const { return region_table_.size(); }
 
 // -----------------------------------------------------------------------
 
-const SDLSurface::GrpRect& SDLSurface::GetPattern(int patt_no) const {
+const GrpRect& SDLSurface::GetPattern(int patt_no) const {
   if (patt_no < region_table_.size())
     return region_table_[patt_no];
   else

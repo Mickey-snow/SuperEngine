@@ -99,11 +99,9 @@ TEST(g00Test, RegionTable) {
   ASSERT_EQ(dec.region_table.size(), 8);
   for (int j = 0; j < 2; ++j)
     for (int i = 0; i < 4; ++i) {
-      auto region = dec.region_table[j * 4 + i];
-      EXPECT_EQ(region.y1, j * 4);
-      EXPECT_EQ(region.y2, (j + 1) * 4 - 1);
-      EXPECT_EQ(region.x1, i * 4);
-      EXPECT_EQ(region.x2, (i + 1) * 4 - 1);
+      auto rect = dec.region_table[j * 4 + i].rect;
+      const Point upleft(i * 4, j * 4), downright((i + 1) * 4, (j + 1) * 4);
+      EXPECT_EQ(rect, Rect(upleft, downright));
     }
 }
 

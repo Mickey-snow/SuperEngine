@@ -4,7 +4,7 @@
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2024 Serina Sakurai
+// Copyright (C) 2007 Elliot Glaysher
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,23 +22,17 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef BASE_AVDEC_IMAGE_DECODER_H_
-#define BASE_AVDEC_IMAGE_DECODER_H_
+#ifndef SRC_BASE_GRPRECT_H_
+#define SRC_BASE_GRPRECT_H_
 
-#include "base/grprect.h"
+#include "base/rect.h"
 
-#include <vector>
-#include <string_view>
+struct GrpRect {
+  Rect rect;
 
-class ImageDecoder {
- public:
-  ImageDecoder(std::string_view sv);
-  ~ImageDecoder() = default;
-
-  bool ismask;
-  int height, width;
-  std::vector<GrpRect> region_table;
-  std::vector<char> mem;
+  // Describes an offset to rect. Why VisualArts threw this in is
+  // unknown.
+  int originX, originY;
 };
 
 #endif

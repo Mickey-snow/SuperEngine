@@ -31,6 +31,7 @@
 #include <memory>
 
 #include "base/rect.h"
+#include "base/grprect.h"
 #include "base/tone_curve.h"
 
 class RGBColour;
@@ -41,15 +42,6 @@ struct GraphicsObjectOverride;
 // Abstract surface used in rlvm. Various systems graphics systems should
 // provide a subclass of Surface that implement all the following primitives.
 class Surface : public std::enable_shared_from_this<Surface> {
- public:
-  struct GrpRect {
-    Rect rect;
-
-    // Describes an offset to rect. Why VisualArts threw this in is
-    // unknown.
-    int originX, originY;
-  };
-
  public:
   Surface();
   virtual ~Surface();

@@ -112,7 +112,7 @@ void DigitsGraphicsObject::UpdateSurface(const GraphicsObject& rp) {
   int printed = 0;
   do {
     int digit = i % 10;
-    const Surface::GrpRect& grp = font_->GetPattern(digit);
+    const GrpRect& grp = font_->GetPattern(digit);
 
     font_->BlitToSurface(
         *surface_, grp.rect, Rect(x_offset, 0, grp.rect.size()), 255, false);
@@ -122,7 +122,7 @@ void DigitsGraphicsObject::UpdateSurface(const GraphicsObject& rp) {
     x_offset -= digit_pixel_width;
   } while (i > 0);
 
-  const Surface::GrpRect& zero_grp = font_->GetPattern(0);
+  const GrpRect& zero_grp = font_->GetPattern(0);
   bool print_zeros = rp.GetDigitZero();
   while (printed < num_chars) {
     if (print_zeros) {

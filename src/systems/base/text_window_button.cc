@@ -172,7 +172,7 @@ void TextWindowButton::Render(TextWindow& window,
                               const std::shared_ptr<const Surface>& buttons,
                               int base_pattern) {
   if (IsValid()) {
-    Surface::GrpRect rect = buttons->GetPattern(base_pattern + state_);
+    GrpRect rect = buttons->GetPattern(base_pattern + state_);
     if (!(rect.rect.is_empty())) {
       Rect dest = Rect(Location(window).origin(), rect.rect.size());
       buttons->RenderToScreen(rect.rect, dest, 255);

@@ -49,6 +49,7 @@ librlvm_files = [
   "src/base/avdec/wav.cc",
   "src/base/avdec/audio_decoder.cc",
   "src/base/avdec/ogg.cc",
+  "src/base/avdec/image_decoder.cc",
   "src/base/voice_archive/nwk.cc",
   "src/base/voice_archive/ovk.cc",
   "src/base/avspec.cc",

@@ -61,7 +61,7 @@ class SDLSurface : public Surface, public NotificationObserver {
   // Surface that takes ownership of an externally created surface.
   SDLSurface(SDLGraphicsSystem* system,
              SDL_Surface* surf,
-             const std::vector<SDLSurface::GrpRect>& region_table);
+             const std::vector<GrpRect>& region_table);
 
   // Surface created with a specified width and height
   SDLSurface(SDLGraphicsSystem* system, const Size& size);
