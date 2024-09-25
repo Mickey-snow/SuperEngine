@@ -31,12 +31,9 @@
 #include <memory>
 
 class RLMachine;
-
 class Size;
 class Surface;
 class Effect;
-class ScrollSquashSlideDrawer;
-class ScrollSquashSlideEffectTypeBase;
 
 // Factory that creates all Effects. This factory is called with
 // either a Gameexe and the \#SEL or \#SELR number, or it is passed the
@@ -88,11 +85,6 @@ class EffectFactory {
                                   int direction,
                                   int xsize,
                                   int ysize);
-
-  static ScrollSquashSlideDrawer* BuildScrollSquashSlideDrawer(int drawerType);
-
-  static ScrollSquashSlideEffectTypeBase* BuildScrollSquashSlideTypeBase(
-      int style);
 };
 
 #endif  // SRC_EFFECTS_EFFECT_FACTORY_H_

@@ -7,6 +7,7 @@
 //
 // -----------------------------------------------------------------------
 //
+// Copyright (C) 2024 Serina Sakurai
 // Copyright (C) 2006 Elliot Glaysher
 //
 // This program is free software; you can redistribute it and/or modify
@@ -27,315 +28,128 @@
 
 #include "effects/scroll_on_scroll_off.h"
 
-#include <cmath>
+#include <sstream>
 
 #include "machine/rlmachine.h"
-#include "systems/base/system.h"
 #include "systems/base/graphics_system.h"
 #include "systems/base/surface.h"
+#include "systems/base/system.h"
 
-// -----------------------------------------------------------------------
-// ScrollOnScrollOff base class
-// -----------------------------------------------------------------------
-ScrollSquashSlideBaseEffect::ScrollSquashSlideBaseEffect(
-    RLMachine& machine,
-    std::shared_ptr<Surface> src,
-    std::shared_ptr<Surface> dst,
-    ScrollSquashSlideDrawer* drawer,
-    ScrollSquashSlideEffectTypeBase* effect_type,
-    const Size& s,
-    int time)
-    : Effect(machine, src, dst, s, time),
-      drawer_(drawer),
-      effect_type_(effect_type) {}
+namespace DrawerEffectDetails {
 
-ScrollSquashSlideBaseEffect::~ScrollSquashSlideBaseEffect() {}
+// Rotator implementations
+Rotator::Rotator(Size size, Direction direction)
+    : screen_(size), direction_(direction) {}
 
-int ScrollSquashSlideBaseEffect::CalculateAmountVisible(int current_time,
-                                                        int screen_size) {
-  return int((float(current_time) / duration()) * screen_size);
+Size Rotator::GetSize() const { return Rotate(screen_); }
+
+Size Rotator::Rotate(Size in) const {
+  switch (direction_) {
+    case Direction::LeftToRight:
+    case Direction::RightToLeft:
+      return Size(in.height(), in.width());
+    default:
+      return in;
+  }
 }
 
-bool ScrollSquashSlideBaseEffect::BlitOriginalImage() const { return false; }
-
-void ScrollSquashSlideBaseEffect::PerformEffectForTime(RLMachine& machine,
-                                                       int current_time) {
-  GraphicsSystem& graphics = machine.system().graphics();
-  int amount_visible =
-      CalculateAmountVisible(current_time, drawer_->GetMaxSize(graphics));
-  effect_type_->ComposeEffectsFor(graphics, *this, *drawer_, amount_visible);
+Rect Rotator::Rotate(Rect in) const {
+  switch (direction_) {
+    case Direction::BottomToTop:
+      return Rect(Point(screen_) - Size(in.lower_right()), in.size());
+    case Direction::LeftToRight:
+      return Rect(Point(in.y(), screen_.height() - in.x2()),
+                  Size(in.size().height(), in.size().width()));
+    case Direction::RightToLeft:
+      return Rect(Point(screen_.width() - in.y2(), in.x()),
+                  Size(in.size().height(), in.size().width()));
+    default:
+      return in;
+  }
 }
 
-// -----------------------------------------------------------------------
-// Direction Interface
-// -----------------------------------------------------------------------
+// DrawInstruction implementation
+std::string DrawInstruction::ToString() const {
+  auto rect_to_string = [](Rect rect) -> std::string {
+    std::ostringstream oss;
+    oss << '(' << rect.x() << ',' << rect.y() << ',';
+    oss << rect.x2() << ',' << rect.y2() << ')';
+    return oss.str();
+  };
 
-// ------------------------------------------- [ ScrollSquashSlideDrawer ]
-
-ScrollSquashSlideDrawer::ScrollSquashSlideDrawer() {}
-ScrollSquashSlideDrawer::~ScrollSquashSlideDrawer() {}
-
-// ------------------------------------------------- [ TopToBottomDrawer ]
-
-int TopToBottomDrawer::GetMaxSize(GraphicsSystem& gs) {
-  return gs.screen_size().height();
+  std::ostringstream oss;
+  oss << "src: " << rect_to_string(src_from) << " -> " << rect_to_string(src_to)
+      << '\n';
+  oss << "dst: " << rect_to_string(dst_from) << " -> "
+      << rect_to_string(dst_to);
+  return oss.str();
 }
 
-void TopToBottomDrawer::ScrollOff(GraphicsSystem& graphics,
-                                  ScrollSquashSlideBaseEffect& effect,
-                                  int amount_visible,
-                                  int width,
-                                  int height) {
-  effect.dst_surface().RenderToScreen(
-      Rect::GRP(0, 0, width, height - amount_visible),
-      Rect::GRP(0, amount_visible, width, height),
-      255);
+// Strategy implementations
+Rect ScrollStrategy::ComputeSrcRect(int amount_visible,
+                                    const Size& size) const {
+  return Rect::GRP(0, size.height() - amount_visible, size.width(),
+                   size.height());
 }
 
-void TopToBottomDrawer::ScrollOn(GraphicsSystem& graphics,
-                                 ScrollSquashSlideBaseEffect& effect,
-                                 int amount_visible,
-                                 int width,
-                                 int height) {
-  effect.src_surface().RenderToScreen(
-      Rect::GRP(0, height - amount_visible, width, height),
-      Rect::GRP(0, 0, width, amount_visible),
-      255);
+Rect ScrollStrategy::ComputeDstRect(int amount_visible,
+                                    const Size& size) const {
+  return Rect::GRP(0, 0, size.width(), size.height() - amount_visible);
 }
 
-void TopToBottomDrawer::SquashOff(GraphicsSystem& graphics,
-                                  ScrollSquashSlideBaseEffect& effect,
-                                  int amount_visible,
-                                  int width,
-                                  int height) {
-  effect.dst_surface().RenderToScreen(
-      Rect::GRP(0, 0, width, height),
-      Rect::GRP(0, amount_visible, width, height),
-      255);
+Rect SquashStrategy::ComputeSrcRect(int amount_visible,
+                                    const Size& size) const {
+  return Rect::GRP(0, 0, size.width(), size.height());
 }
 
-void TopToBottomDrawer::SquashOn(GraphicsSystem& graphics,
-                                 ScrollSquashSlideBaseEffect& effect,
-                                 int amount_visible,
-                                 int width,
-                                 int height) {
-  effect.src_surface().RenderToScreen(Rect::GRP(0, 0, width, height),
-                                      Rect::GRP(0, 0, width, amount_visible),
-                                      255);
+Rect SquashStrategy::ComputeDstRect(int amount_visible,
+                                    const Size& size) const {
+  return Rect::GRP(0, 0, size.width(), size.height());
 }
 
-// ------------------------------------------------- [ BottomToTopDrawer ]
-
-int BottomToTopDrawer::GetMaxSize(GraphicsSystem& gs) {
-  return gs.screen_size().height();
+Rect SlideStrategy::ComputeSrcRect(int amount_visible, const Size& size) const {
+  return Rect::GRP(0, size.height() - amount_visible, size.width(),
+                   size.height());
 }
 
-void BottomToTopDrawer::ScrollOn(GraphicsSystem& graphics,
-                                 ScrollSquashSlideBaseEffect& effect,
-                                 int amount_visible,
-                                 int width,
-                                 int height) {
-  effect.src_surface().RenderToScreen(
-      Rect::GRP(0, 0, width, amount_visible),
-      Rect::GRP(0, height - amount_visible, width, height),
-      255);
+Rect SlideStrategy::ComputeDstRect(int amount_visible, const Size& size) const {
+  return Rect::GRP(0, 0, size.width(), size.height() - amount_visible);
 }
 
-void BottomToTopDrawer::ScrollOff(GraphicsSystem& graphics,
-                                  ScrollSquashSlideBaseEffect& effect,
-                                  int amount_visible,
-                                  int width,
-                                  int height) {
-  effect.dst_surface().RenderToScreen(
-      Rect::GRP(0, amount_visible, width, height),
-      Rect::GRP(0, 0, width, height - amount_visible),
-      255);
+Rect NoneStrategy::ComputeSrcRect(int amount_visible, const Size& size) const {
+  return Rect::GRP(0, 0, size.width(), amount_visible);
 }
 
-void BottomToTopDrawer::SquashOn(GraphicsSystem& graphics,
-                                 ScrollSquashSlideBaseEffect& effect,
-                                 int amount_visible,
-                                 int width,
-                                 int height) {
-  effect.src_surface().RenderToScreen(
-      Rect::GRP(0, 0, width, height),
-      Rect::GRP(0, height - amount_visible, width, height),
-      255);
+Rect NoneStrategy::ComputeDstRect(int amount_visible, const Size& size) const {
+  return Rect::GRP(0, amount_visible, size.width(), size.height());
 }
 
-void BottomToTopDrawer::SquashOff(GraphicsSystem& graphics,
-                                  ScrollSquashSlideBaseEffect& effect,
-                                  int amount_visible,
-                                  int width,
-                                  int height) {
-  effect.dst_surface().RenderToScreen(
-      Rect::GRP(0, 0, width, height),
-      Rect::GRP(0, 0, width, height - amount_visible),
-      255);
+// Composer implementations
+Composer::Composer(Size src, Size dst, Size screen, Direction direction)
+    : src_rotator_(src, direction),
+      dst_rotator_(dst, direction),
+      screen_(Rotator(screen, direction).GetSize()) {}
+
+DrawInstruction Composer::Compose(const Strategy& on_effect,
+                                  const Strategy& off_effect,
+                                  int amount_visible) const {
+  DrawInstruction instruction;
+  instruction.src_to =
+      src_rotator_.Rotate(Rect::GRP(0, 0, screen_.width(), amount_visible));
+  instruction.dst_to = dst_rotator_.Rotate(
+      Rect::GRP(0, amount_visible, screen_.width(), screen_.height()));
+  instruction.src_from = src_rotator_.Rotate(
+      on_effect.ComputeSrcRect(amount_visible, src_rotator_.GetSize()));
+  instruction.dst_from = dst_rotator_.Rotate(
+      off_effect.ComputeDstRect(amount_visible, dst_rotator_.GetSize()));
+  return instruction;
 }
 
-// ------------------------------------------------- [ LeftToRightDrawer ]
-
-int LeftToRightDrawer::GetMaxSize(GraphicsSystem& gs) {
-  return gs.screen_size().width();
+DrawInstruction Composer::Compose(const Strategy& on_effect,
+                                  const Strategy& off_effect,
+                                  float percentage_visible) const {
+  int amount_visible = static_cast<int>(percentage_visible * screen_.height());
+  return Compose(on_effect, off_effect, amount_visible);
 }
 
-void LeftToRightDrawer::ScrollOn(GraphicsSystem& graphics,
-                                 ScrollSquashSlideBaseEffect& effect,
-                                 int amount_visible,
-                                 int width,
-                                 int height) {
-  effect.src_surface().RenderToScreen(
-      Rect::GRP(width - amount_visible, 0, width, height),
-      Rect::GRP(0, 0, amount_visible, height),
-      255);
-}
-
-void LeftToRightDrawer::ScrollOff(GraphicsSystem& graphics,
-                                  ScrollSquashSlideBaseEffect& effect,
-                                  int amount_visible,
-                                  int width,
-                                  int height) {
-  effect.dst_surface().RenderToScreen(
-      Rect::GRP(0, 0, width - amount_visible, height),
-      Rect::GRP(amount_visible, 0, width, height),
-      255);
-}
-
-void LeftToRightDrawer::SquashOn(GraphicsSystem& graphics,
-                                 ScrollSquashSlideBaseEffect& effect,
-                                 int amount_visible,
-                                 int width,
-                                 int height) {
-  effect.src_surface().RenderToScreen(Rect::GRP(0, 0, width, height),
-                                      Rect::GRP(0, 0, amount_visible, height),
-                                      255);
-}
-
-void LeftToRightDrawer::SquashOff(GraphicsSystem& graphics,
-                                  ScrollSquashSlideBaseEffect& effect,
-                                  int amount_visible,
-                                  int width,
-                                  int height) {
-  effect.dst_surface().RenderToScreen(
-      Rect::GRP(0, 0, width, height),
-      Rect::GRP(amount_visible, 0, width, height),
-      255);
-}
-
-// ------------------------------------------------- [ RightToLeftDrawer ]
-
-int RightToLeftDrawer::GetMaxSize(GraphicsSystem& gs) {
-  return gs.screen_size().width();
-}
-
-void RightToLeftDrawer::ScrollOff(GraphicsSystem& graphics,
-                                  ScrollSquashSlideBaseEffect& effect,
-                                  int amount_visible,
-                                  int width,
-                                  int height) {
-  effect.dst_surface().RenderToScreen(
-      Rect::GRP(amount_visible, 0, width, height),
-      Rect::GRP(0, 0, width - amount_visible, height),
-      255);
-}
-
-void RightToLeftDrawer::ScrollOn(GraphicsSystem& graphics,
-                                 ScrollSquashSlideBaseEffect& effect,
-                                 int amount_visible,
-                                 int width,
-                                 int height) {
-  effect.src_surface().RenderToScreen(
-      Rect::GRP(0, 0, amount_visible, height),
-      Rect::GRP(width - amount_visible, 0, width, height),
-      255);
-}
-
-void RightToLeftDrawer::SquashOff(GraphicsSystem& graphics,
-                                  ScrollSquashSlideBaseEffect& effect,
-                                  int amount_visible,
-                                  int width,
-                                  int height) {
-  effect.dst_surface().RenderToScreen(
-      Rect::GRP(0, 0, width, height),
-      Rect::GRP(0, 0, width - amount_visible, height),
-      255);
-}
-
-void RightToLeftDrawer::SquashOn(GraphicsSystem& graphics,
-                                 ScrollSquashSlideBaseEffect& effect,
-                                 int amount_visible,
-                                 int width,
-                                 int height) {
-  effect.src_surface().RenderToScreen(
-      Rect::GRP(0, 0, width, height),
-      Rect::GRP(width - amount_visible, 0, width, height),
-      255);
-}
-
-// -----------------------------------------------------------------------
-// Effect Type Interface
-// -----------------------------------------------------------------------
-
-ScrollSquashSlideEffectTypeBase::~ScrollSquashSlideEffectTypeBase() {}
-
-void ScrollOnScrollOff::ComposeEffectsFor(GraphicsSystem& system,
-                                          ScrollSquashSlideBaseEffect& effect,
-                                          ScrollSquashSlideDrawer& drawer,
-                                          int amount_visible) {
-  Size s = system.screen_size();
-  drawer.ScrollOn(system, effect, amount_visible, s.width(), s.height());
-  drawer.ScrollOff(system, effect, amount_visible, s.width(), s.height());
-}
-
-void ScrollOnSquashOff::ComposeEffectsFor(GraphicsSystem& system,
-                                          ScrollSquashSlideBaseEffect& effect,
-                                          ScrollSquashSlideDrawer& drawer,
-                                          int amount_visible) {
-  Size s = system.screen_size();
-  drawer.ScrollOn(system, effect, amount_visible, s.width(), s.height());
-  drawer.SquashOff(system, effect, amount_visible, s.width(), s.height());
-}
-
-void SquashOnScrollOff::ComposeEffectsFor(GraphicsSystem& system,
-                                          ScrollSquashSlideBaseEffect& effect,
-                                          ScrollSquashSlideDrawer& drawer,
-                                          int amount_visible) {
-  Size s = system.screen_size();
-  drawer.SquashOn(system, effect, amount_visible, s.width(), s.height());
-  drawer.ScrollOff(system, effect, amount_visible, s.width(), s.height());
-}
-
-void SquashOnSquashOff::ComposeEffectsFor(GraphicsSystem& system,
-                                          ScrollSquashSlideBaseEffect& effect,
-                                          ScrollSquashSlideDrawer& drawer,
-                                          int amount_visible) {
-  Size s = system.screen_size();
-  drawer.SquashOn(system, effect, amount_visible, s.width(), s.height());
-  drawer.SquashOff(system, effect, amount_visible, s.width(), s.height());
-}
-
-void SlideOn::ComposeEffectsFor(GraphicsSystem& system,
-                                ScrollSquashSlideBaseEffect& effect,
-                                ScrollSquashSlideDrawer& drawer,
-                                int amount_visible) {
-  Size s = system.screen_size();
-  Rect screen_rect = system.screen_rect();
-
-  // Draw the old image
-  effect.dst_surface().RenderToScreen(screen_rect, screen_rect, 255);
-
-  drawer.ScrollOn(system, effect, amount_visible, s.width(), s.height());
-}
-
-void SlideOff::ComposeEffectsFor(GraphicsSystem& system,
-                                 ScrollSquashSlideBaseEffect& effect,
-                                 ScrollSquashSlideDrawer& drawer,
-                                 int amount_visible) {
-  Size s = system.screen_size();
-  Rect screen_rect = system.screen_rect();
-
-  effect.src_surface().RenderToScreen(screen_rect, screen_rect, 255);
-
-  drawer.ScrollOff(system, effect, amount_visible, s.width(), s.height());
-}
+}  // namespace DrawerEffectDetails

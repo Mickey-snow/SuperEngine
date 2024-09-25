@@ -7,6 +7,7 @@
 //
 // -----------------------------------------------------------------------
 //
+// Copyright (C) 2024 Serina Sakurai
 // Copyright (C) 2006 Elliot Glaysher
 //
 // This program is free software; you can redistribute it and/or modify
@@ -29,265 +30,129 @@
 #define SRC_EFFECTS_SCROLL_ON_SCROLL_OFF_H_
 
 #include "effects/effect.h"
+#include "systems/base/surface.h"
 
-class GraphicsSystem;
-class ScrollSquashSlideDrawer;
-class ScrollSquashSlideEffectTypeBase;
+#include <string>
 
-// Base class for all the classess that implement variations on \#SEL
-// transition styles #15 (Scroll on, Scroll off), #16 (Scroll on,
-// Squash off), #17 (Squash on, Scroll off), #18 (Squash on, Squash
-// off), #20 (Slide on), #21 (Slide off).
-//
-// These effects are all very similar and are implemented by passing
-// two behaviour classes to an instance of
-// ScrollSquashSlideBaseEffect. The first behavioural class are the
-// subclassess of ScrollSquashSlideDrawer, which describe the
-// direction to draw in. The second is
-// ScrollSquashSlideEffectTypeBase, which defines what combination of
-// primitives to use.
-//
-// There are four drawer classes:
-// - TopToBottomDrawer
-// - BottomToTopDrawer
-// - LeftToRightDrawer
-// - RightToLeftDrawer
-//
-// and six effect type classes:
-// - ScrollOnScrollOff
-// - ScrollOnSquashOff
-// - SquashOnScrollOff
-// - SquashOnSquashOff
-// - SlideOn
-// - SlideOff
-class ScrollSquashSlideBaseEffect : public Effect {
+namespace DrawerEffectDetails {
+
+enum class Direction { TopToBottom, BottomToTop, LeftToRight, RightToLeft };
+
+class Rotator {
  public:
-  ScrollSquashSlideBaseEffect(RLMachine& machine,
-                              std::shared_ptr<Surface> src,
-                              std::shared_ptr<Surface> dst,
-                              ScrollSquashSlideDrawer* drawer,
-                              ScrollSquashSlideEffectTypeBase* effect_type,
-                              const Size& s,
-                              int time);
+  Rotator(Size size, Direction direction);
 
-  virtual ~ScrollSquashSlideBaseEffect();
+  Size GetSize() const;
+
+  Size Rotate(Size in) const;
+
+  Rect Rotate(Rect in) const;
 
  private:
-  // Calculates the amount_visible passed into composeEffectsFor().
-  int CalculateAmountVisible(int current_time, int screen_size);
-
-  // Don't blit the original image.
-  virtual bool BlitOriginalImage() const final;
-
-  // Implement the Effect interface
-  virtual void PerformEffectForTime(RLMachine& machine,
-                                    int current_time) final;
-
-  // Drawer behavior class
-  std::unique_ptr<ScrollSquashSlideDrawer> drawer_;
-
-  // Effect type behavior class
-  std::unique_ptr<ScrollSquashSlideEffectTypeBase> effect_type_;
+  Size screen_;
+  Direction direction_;
 };
 
-// Drawer Behavior classes
-//
-// These classess implement drawing for directions; They are used by
-// child classes of ScrollOnScrollOff to perform the requested
-// operation in a certain direction.
-//
-// There are four, all representing the four directions used in these selections
+struct DrawInstruction {
+  Rect src_from, src_to;
+  Rect dst_from, dst_to;
 
-// Base interface which describes the (very) high level primatives
-// that are composed in the ScrollSquashSlideEffectTypeBase subclasses.
-class ScrollSquashSlideDrawer {
- public:
-  ScrollSquashSlideDrawer();
-  virtual ~ScrollSquashSlideDrawer();
-
-  virtual int GetMaxSize(GraphicsSystem& gs) = 0;
-  virtual void ScrollOn(GraphicsSystem&,
-                        ScrollSquashSlideBaseEffect&,
-                        int amount_visible,
-                        int width,
-                        int height) = 0;
-  virtual void ScrollOff(GraphicsSystem&,
-                         ScrollSquashSlideBaseEffect&,
-                         int amount_visible,
-                         int width,
-                         int height) = 0;
-  virtual void SquashOn(GraphicsSystem&,
-                        ScrollSquashSlideBaseEffect&,
-                        int amount_visible,
-                        int width,
-                        int height) = 0;
-  virtual void SquashOff(GraphicsSystem&,
-                         ScrollSquashSlideBaseEffect&,
-                         int amount_visible,
-                         int width,
-                         int height) = 0;
+  std::string ToString() const;
 };
 
-class TopToBottomDrawer : public ScrollSquashSlideDrawer {
+class Strategy {
  public:
-  virtual int GetMaxSize(GraphicsSystem& gs) final;
-  virtual void ScrollOn(GraphicsSystem&,
-                        ScrollSquashSlideBaseEffect&,
-                        int amount_visible,
-                        int width,
-                        int height) final;
-  virtual void ScrollOff(GraphicsSystem&,
-                         ScrollSquashSlideBaseEffect&,
-                         int amount_visible,
-                         int width,
-                         int height) final;
-  virtual void SquashOn(GraphicsSystem&,
-                        ScrollSquashSlideBaseEffect&,
-                        int amount_visible,
-                        int width,
-                        int height) final;
-  virtual void SquashOff(GraphicsSystem&,
-                         ScrollSquashSlideBaseEffect&,
-                         int amount_visible,
-                         int width,
-                         int height) final;
+  virtual ~Strategy() = default;
+  virtual Rect ComputeSrcRect(int amount_visible, const Size& size) const= 0;
+  virtual Rect ComputeDstRect(int amount_visible, const Size& size) const= 0;
 };
 
-class BottomToTopDrawer : public ScrollSquashSlideDrawer {
+class ScrollStrategy : public Strategy {
  public:
-  virtual int GetMaxSize(GraphicsSystem& gs) final;
-  virtual void ScrollOn(GraphicsSystem&,
-                        ScrollSquashSlideBaseEffect&,
-                        int amount_visible,
-                        int width,
-                        int height) final;
-  virtual void ScrollOff(GraphicsSystem&,
-                         ScrollSquashSlideBaseEffect&,
-                         int amount_visible,
-                         int width,
-                         int height) final;
-  virtual void SquashOn(GraphicsSystem&,
-                        ScrollSquashSlideBaseEffect&,
-                        int amount_visible,
-                        int width,
-                        int height) final;
-  virtual void SquashOff(GraphicsSystem&,
-                         ScrollSquashSlideBaseEffect&,
-                         int amount_visible,
-                         int width,
-                         int height) final;
+  Rect ComputeSrcRect(int amount_visible, const Size& size) const override;
+  Rect ComputeDstRect(int amount_visible, const Size& size) const override;
 };
 
-class LeftToRightDrawer : public ScrollSquashSlideDrawer {
+class SquashStrategy : public Strategy {
  public:
-  virtual int GetMaxSize(GraphicsSystem& gs) final;
-  virtual void ScrollOn(GraphicsSystem&,
-                        ScrollSquashSlideBaseEffect&,
-                        int amount_visible,
-                        int width,
-                        int height) final;
-  virtual void ScrollOff(GraphicsSystem&,
-                         ScrollSquashSlideBaseEffect&,
-                         int amount_visible,
-                         int width,
-                         int height) final;
-  virtual void SquashOn(GraphicsSystem&,
-                        ScrollSquashSlideBaseEffect&,
-                        int amount_visible,
-                        int width,
-                        int height) final;
-  virtual void SquashOff(GraphicsSystem&,
-                         ScrollSquashSlideBaseEffect&,
-                         int amount_visible,
-                         int width,
-                         int height) final;
+  Rect ComputeSrcRect(int amount_visible, const Size& size) const override;
+  Rect ComputeDstRect(int amount_visible, const Size& size) const override;
 };
 
-class RightToLeftDrawer : public ScrollSquashSlideDrawer {
+class SlideStrategy : public Strategy {
  public:
-  virtual int GetMaxSize(GraphicsSystem& gs) final;
-  virtual void ScrollOn(GraphicsSystem&,
-                        ScrollSquashSlideBaseEffect&,
-                        int amount_visible,
-                        int width,
-                        int height) final;
-  virtual void ScrollOff(GraphicsSystem&,
-                         ScrollSquashSlideBaseEffect&,
-                         int amount_visible,
-                         int width,
-                         int height) final;
-  virtual void SquashOn(GraphicsSystem&,
-                        ScrollSquashSlideBaseEffect&,
-                        int amount_visible,
-                        int width,
-                        int height) final;
-  virtual void SquashOff(GraphicsSystem&,
-                         ScrollSquashSlideBaseEffect&,
-                         int amount_visible,
-                         int width,
-                         int height) final;
+  Rect ComputeSrcRect(int amount_visible, const Size& size) const override;
+  Rect ComputeDstRect(int amount_visible, const Size& size) const override;
 };
 
-// Effect Types
-//
-// Each EffectType that derives from ScrollSquashSlideEffectTypeBase
-// represents one of the SEL effects.
-
-class ScrollSquashSlideEffectTypeBase {
+class NoneStrategy : public Strategy {
  public:
-  virtual ~ScrollSquashSlideEffectTypeBase();
-  virtual void ComposeEffectsFor(GraphicsSystem& system,
-                                 ScrollSquashSlideBaseEffect& event,
-                                 ScrollSquashSlideDrawer& drawer,
-                                 int amount_visible) = 0;
+  Rect ComputeSrcRect(int amount_visible, const Size& size) const override;
+  Rect ComputeDstRect(int amount_visible, const Size& size) const override;
 };
 
-class ScrollOnScrollOff : public ScrollSquashSlideEffectTypeBase {
+class Composer {
  public:
-  virtual void ComposeEffectsFor(GraphicsSystem& system,
-                                 ScrollSquashSlideBaseEffect& event,
-                                 ScrollSquashSlideDrawer& drawer,
-                                 int amount_visible) final;
+  Composer(Size src, Size dst, Size screen, Direction direction);
+
+  DrawInstruction Compose(const Strategy& on_effect,
+                          const Strategy& off_effect,
+                          int amount_visible) const;
+
+  DrawInstruction Compose(const Strategy& on_effect,
+                          const Strategy& off_effect,
+                          float percentage_visible) const;
+
+ private:
+  Rotator src_rotator_;
+  Rotator dst_rotator_;
+  Size screen_;
 };
 
-class ScrollOnSquashOff : public ScrollSquashSlideEffectTypeBase {
- public:
-  virtual void ComposeEffectsFor(GraphicsSystem& system,
-                                 ScrollSquashSlideBaseEffect& event,
-                                 ScrollSquashSlideDrawer& drawer,
-                                 int amount_visible) final;
-};
+}  // namespace DrawerEffectDetails
 
-class SquashOnScrollOff : public ScrollSquashSlideEffectTypeBase {
+// Implement variations on \#SEL transition styles #15 (Scroll on, Scroll off),
+// #16 (Scroll on, Squash off), #17 (Squash on, Scroll off), #18 (Squash on,
+// Squash off), #20 (Slide on), #21 (Slide off). These effects are all very
+// similar and are implemented by passing an enum of effect direction, and
+// specifying two strategy classes, which describes how the surface should be
+// drawn
+template <class OnStrategy, class OffStrategy>
+class DrawerEffect : public Effect {
  public:
-  virtual void ComposeEffectsFor(GraphicsSystem& system,
-                                 ScrollSquashSlideBaseEffect& event,
-                                 ScrollSquashSlideDrawer& drawer,
-                                 int amount_visible) final;
-};
+  static_assert(std::is_base_of_v<DrawerEffectDetails::Strategy, OnStrategy>,
+                "OnStrategy must derive from Strategy");
+  static_assert(std::is_base_of_v<DrawerEffectDetails::Strategy, OffStrategy>,
+                "OffStrategy must derive from Strategy");
 
-class SquashOnSquashOff : public ScrollSquashSlideEffectTypeBase {
- public:
-  virtual void ComposeEffectsFor(GraphicsSystem& system,
-                                 ScrollSquashSlideBaseEffect& event,
-                                 ScrollSquashSlideDrawer& drawer,
-                                 int amount_visible) final;
-};
+  DrawerEffect(RLMachine& machine,
+               DrawerEffectDetails::Direction direction,
+               std::shared_ptr<Surface> src,
+               std::shared_ptr<Surface> dst,
+               const Size& screen,
+               int time)
+      : Effect(machine, src, dst, screen, time), direction_(direction) {}
 
-class SlideOn : public ScrollSquashSlideEffectTypeBase {
- public:
-  virtual void ComposeEffectsFor(GraphicsSystem& system,
-                                 ScrollSquashSlideBaseEffect& event,
-                                 ScrollSquashSlideDrawer& drawer,
-                                 int amount_visible) final;
-};
+  bool BlitOriginalImage() const final { return false; }
 
-class SlideOff : public ScrollSquashSlideEffectTypeBase {
- public:
-  virtual void ComposeEffectsFor(GraphicsSystem& system,
-                                 ScrollSquashSlideBaseEffect& event,
-                                 ScrollSquashSlideDrawer& drawer,
-                                 int amount_visible) final;
+  void PerformEffectForTime(RLMachine& machine, int current_time) final {
+    const int duration = this->duration();
+    const float percentage_visible =
+        duration == 0 ? 1.0f : static_cast<float>(current_time) / duration;
+
+    DrawerEffectDetails::Composer composer(
+        src_surface().GetSize(), dst_surface().GetSize(), size(), direction_);
+    auto draw_instruction =
+        composer.Compose(OnStrategy(), OffStrategy(), percentage_visible);
+
+    src_surface().RenderToScreen(draw_instruction.src_from,
+                                 draw_instruction.src_to, 255);
+    dst_surface().RenderToScreen(draw_instruction.dst_from,
+                                 draw_instruction.dst_to, 255);
+  }
+
+ private:
+  DrawerEffectDetails::Direction direction_;
 };
 
 #endif  // SRC_EFFECTS_SCROLL_ON_SCROLL_OFF_H_
