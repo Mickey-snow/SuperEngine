@@ -49,6 +49,12 @@ TEST(PointTest, DefaultConstructor) {
   EXPECT_TRUE(p.is_empty());
 }
 
+TEST(PointTest, ConstructFromSize) {
+  Size ps(15, 20);
+  Point p = Point(ps);
+  EXPECT_EQ(ToString(p.x(), p.y()), "15 20");
+}
+
 TEST(PointTest, ParameterizedConstructor) {
   Point p(5, 10);
   EXPECT_EQ(ToString(p.x(), p.y()), "5 10");
@@ -144,6 +150,12 @@ TEST(PointTest, Serialization) {
 TEST(SizeTest, DefaultConstructor) {
   Size s;
   EXPECT_EQ(ToString(s.width(), s.height(), s.is_empty()), "0 0 1");
+}
+
+TEST(SizeTest, ConstructFromPoint) {
+  Point p(15, 20);
+  Size ps = Size(p);
+  EXPECT_EQ(ToString(ps.width(), ps.height()), "15 20");
 }
 
 TEST(SizeTest, ParameterizedConstructor) {

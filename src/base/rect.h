@@ -40,6 +40,7 @@ class Point {
   // Constructors
   Point() = default;
   Point(int x, int y);
+  explicit Point(Size size);
 
   // Accessors
   int x() const;
@@ -78,6 +79,7 @@ class Size {
   // Constructors
   Size() = default;
   Size(int width, int height);
+  explicit Size(Point p);
 
   // Accessors
   int width() const;

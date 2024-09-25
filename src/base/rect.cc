@@ -36,6 +36,7 @@
 // -----------------------------------------------------------------------
 
 Point::Point(int x, int y) : x_(x), y_(y) {}
+Point::Point(Size size) : x_(size.width()), y_(size.height()) {}
 
 int Point::x() const { return x_; }
 void Point::set_x(int in) { x_ = in; }
@@ -82,6 +83,7 @@ bool Point::operator!=(const Point& rhs) const { return !(*this == rhs); }
 // -----------------------------------------------------------------------
 
 Size::Size(int width, int height) : width_(width), height_(height) {}
+Size::Size(Point p) : width_(p.x()), height_(p.y()) {}
 
 int Size::width() const { return width_; }
 void Size::set_width(int width) { width_ = width; }
