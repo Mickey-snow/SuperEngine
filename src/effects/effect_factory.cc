@@ -30,21 +30,16 @@
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
-#include <vector>
 
 #include "effects/blind_effect.h"
 #include "effects/drawer_effect.h"
 #include "effects/fade_effect.h"
 #include "effects/sel_record.h"
 #include "effects/wipe_effect.h"
-#include "libreallive/gameexe.h"
 #include "machine/rlmachine.h"
 #include "systems/base/graphics_system.h"
 #include "systems/base/surface.h"
 #include "systems/base/system.h"
-#include "systems/base/system_error.h"
-#include "utilities/exception.h"
-#include "utilities/graphics.h"
 
 enum ScreenDirection {
   TOP_TO_BOTTOM = 0,  // From the top to the bottom
@@ -52,6 +47,10 @@ enum ScreenDirection {
   LEFT_TO_RIGHT = 2,  // From left to right
   RIGHT_TO_LEFT = 3   // From right to left
 };
+
+// -----------------------------------------------------------------------
+// Factory methods for EffectFactory
+// -----------------------------------------------------------------------
 
 Effect* BuildDrawerEffect(RLMachine& machine,
                           std::shared_ptr<Surface> src,
@@ -99,6 +98,80 @@ Effect* BuildDrawerEffect(RLMachine& machine,
                              std::to_string(style));
   }
 };
+
+// Creates a specific subclass of WipeEffect for \#SEL #10, Wipe.
+Effect* BuildWipeEffect(RLMachine& machine,
+                        std::shared_ptr<Surface> src,
+                        std::shared_ptr<Surface> dst,
+                        const Size& screen_size,
+                        int time,
+                        int direction,
+                        int interpolation) {
+  switch (direction) {
+    case TOP_TO_BOTTOM:
+      return new WipeTopToBottomEffect(machine, src, dst, screen_size, time,
+                                       interpolation);
+    case BOTTOM_TO_TOP:
+      return new WipeBottomToTopEffect(machine, src, dst, screen_size, time,
+                                       interpolation);
+    case LEFT_TO_RIGHT:
+      return new WipeLeftToRightEffect(machine, src, dst, screen_size, time,
+                                       interpolation);
+    case RIGHT_TO_LEFT:
+      return new WipeRightToLeftEffect(machine, src, dst, screen_size, time,
+                                       interpolation);
+    default:
+      std::cerr << "WARNING! Unsupported direction " << direction
+                << " in EffectFactory::buildWipeEffect. Returning Top to"
+                << " Bottom effect." << std::endl;
+      return new WipeTopToBottomEffect(machine, src, dst, screen_size, time,
+                                       interpolation);
+  }
+}
+
+// Creates a specific subclass of BlindEffect for \#SEL #120, Blind.
+Effect* BuildBlindEffect(RLMachine& machine,
+                         std::shared_ptr<Surface> src,
+                         std::shared_ptr<Surface> dst,
+                         const Size& screen_size,
+                         int time,
+                         int direction,
+                         int xsize,
+                         int ysize) {
+  // RL does something really weird: if the wrong xsize/ysize was set
+  // (the correct one is zero), it uses the other.
+  switch (direction) {
+    case TOP_TO_BOTTOM:
+      if (xsize == 0 && ysize > 0)
+        xsize = ysize;
+      return new BlindTopToBottomEffect(machine, src, dst, screen_size, time,
+                                        xsize);
+    case BOTTOM_TO_TOP:
+      if (xsize == 0 && ysize > 0)
+        xsize = ysize;
+      return new BlindBottomToTopEffect(machine, src, dst, screen_size, time,
+                                        xsize);
+    case LEFT_TO_RIGHT:
+      if (ysize == 0 && xsize > 0)
+        ysize = xsize;
+      return new BlindLeftToRightEffect(machine, src, dst, screen_size, time,
+                                        ysize);
+    case RIGHT_TO_LEFT:
+      if (ysize == 0 && xsize > 0)
+        ysize = xsize;
+      return new BlindRightToLeftEffect(machine, src, dst, screen_size, time,
+                                        ysize);
+
+    default:
+      std::cerr << "WARNING! Unsupported direction " << direction
+                << " in EffectFactory::buildWipeEffect. Returning Top to"
+                << " Bottom effect." << std::endl;
+      if (xsize == 0 && ysize > 0)
+        xsize = ysize;
+      return new BlindTopToBottomEffect(machine, src, dst, screen_size, time,
+                                        xsize);
+  }
+}
 
 // -----------------------------------------------------------------------
 // EffectFactory
@@ -154,81 +227,5 @@ Effect* EffectFactory::Build(RLMachine& machine,
     case 50:
     default:
       return new FadeEffect(machine, src, dst, screen_size, time);
-  }
-}
-
-// -----------------------------------------------------------------------
-// Private methods
-// -----------------------------------------------------------------------
-
-Effect* EffectFactory::BuildWipeEffect(RLMachine& machine,
-                                       std::shared_ptr<Surface> src,
-                                       std::shared_ptr<Surface> dst,
-                                       const Size& screen_size,
-                                       int time,
-                                       int direction,
-                                       int interpolation) {
-  switch (direction) {
-    case TOP_TO_BOTTOM:
-      return new WipeTopToBottomEffect(machine, src, dst, screen_size, time,
-                                       interpolation);
-    case BOTTOM_TO_TOP:
-      return new WipeBottomToTopEffect(machine, src, dst, screen_size, time,
-                                       interpolation);
-    case LEFT_TO_RIGHT:
-      return new WipeLeftToRightEffect(machine, src, dst, screen_size, time,
-                                       interpolation);
-    case RIGHT_TO_LEFT:
-      return new WipeRightToLeftEffect(machine, src, dst, screen_size, time,
-                                       interpolation);
-    default:
-      std::cerr << "WARNING! Unsupported direction " << direction
-                << " in EffectFactory::buildWipeEffect. Returning Top to"
-                << " Bottom effect." << std::endl;
-      return new WipeTopToBottomEffect(machine, src, dst, screen_size, time,
-                                       interpolation);
-  }
-}
-
-Effect* EffectFactory::BuildBlindEffect(RLMachine& machine,
-                                        std::shared_ptr<Surface> src,
-                                        std::shared_ptr<Surface> dst,
-                                        const Size& screen_size,
-                                        int time,
-                                        int direction,
-                                        int xsize,
-                                        int ysize) {
-  // RL does something really weird: if the wrong xsize/ysize was set
-  // (the correct one is zero), it uses the other.
-  switch (direction) {
-    case TOP_TO_BOTTOM:
-      if (xsize == 0 && ysize > 0)
-        xsize = ysize;
-      return new BlindTopToBottomEffect(machine, src, dst, screen_size, time,
-                                        xsize);
-    case BOTTOM_TO_TOP:
-      if (xsize == 0 && ysize > 0)
-        xsize = ysize;
-      return new BlindBottomToTopEffect(machine, src, dst, screen_size, time,
-                                        xsize);
-    case LEFT_TO_RIGHT:
-      if (ysize == 0 && xsize > 0)
-        ysize = xsize;
-      return new BlindLeftToRightEffect(machine, src, dst, screen_size, time,
-                                        ysize);
-    case RIGHT_TO_LEFT:
-      if (ysize == 0 && xsize > 0)
-        ysize = xsize;
-      return new BlindRightToLeftEffect(machine, src, dst, screen_size, time,
-                                        ysize);
-
-    default:
-      std::cerr << "WARNING! Unsupported direction " << direction
-                << " in EffectFactory::buildWipeEffect. Returning Top to"
-                << " Bottom effect." << std::endl;
-      if (xsize == 0 && ysize > 0)
-        xsize = ysize;
-      return new BlindTopToBottomEffect(machine, src, dst, screen_size, time,
-                                        xsize);
   }
 }

@@ -31,7 +31,6 @@
 #include <memory>
 
 class RLMachine;
-class Size;
 class Surface;
 class Effect;
 struct selRecord;
@@ -51,33 +50,11 @@ class EffectFactory {
                               int selnum);
 
   // Returns a constructed LongOperation with the following properties
-  // to perform a transition. Note: Effect's external interface work on
-  // the rec* coordinate system (x, y, width, height) instead of the
-  // grp* coordinate system (x1, y1, x2, y2) .
+  // to perform a transition.
   static Effect* Build(RLMachine& machine,
                        std::shared_ptr<Surface> src,
                        std::shared_ptr<Surface> dst,
                        selRecord record);
-
- private:
-  // Creates a specific subclass of WipeEffect for \#SEL #10, Wipe.
-  static Effect* BuildWipeEffect(RLMachine& machine,
-                                 std::shared_ptr<Surface> src,
-                                 std::shared_ptr<Surface> dst,
-                                 const Size& screen_size,
-                                 int time,
-                                 int direction,
-                                 int interpolation);
-
-  // Creates a specific subclass of BlindEffect for \#SEL #120, Blind.
-  static Effect* BuildBlindEffect(RLMachine& machine,
-                                  std::shared_ptr<Surface> src,
-                                  std::shared_ptr<Surface> dst,
-                                  const Size& screen_size,
-                                  int time,
-                                  int direction,
-                                  int xsize,
-                                  int ysize);
 };
 
 #endif  // SRC_EFFECTS_EFFECT_FACTORY_H_
