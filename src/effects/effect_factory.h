@@ -34,6 +34,7 @@ class RLMachine;
 class Size;
 class Surface;
 class Effect;
+struct selRecord;
 
 // Factory that creates all Effects. This factory is called with
 // either a Gameexe and the \#SEL or \#SELR number, or it is passed the
@@ -64,7 +65,8 @@ class EffectFactory {
                        int ysize,
                        int a,
                        int b,
-                       int c);
+                       int c,
+                       selRecord record);
 
  private:
   // Creates a specific subclass of WipeEffect for \#SEL #10, Wipe.

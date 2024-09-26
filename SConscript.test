@@ -68,6 +68,7 @@ test_case_files = [
   "test/g00dec_unittest.cc",
   "test/geometry_unittest.cc",
   "test/drawer_effect_unittest.cc",
+  "test/effect_selrecord_unittest.cc",
 
   # medium tests
   "test/medium_eventloop_test.cc",

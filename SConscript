@@ -64,6 +64,7 @@ librlvm_files = [
   "src/base/rect.cc",
 
   "src/effects/effect.cc",
+  "src/effects/sel_record.cc",
   "src/effects/effect_factory.cc",
   "src/effects/blind_effect.cc",
   "src/effects/fade_effect.cc",

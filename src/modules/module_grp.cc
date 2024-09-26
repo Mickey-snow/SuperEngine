@@ -35,6 +35,7 @@
 
 #include "effects/effect.h"
 #include "effects/effect_factory.h"
+#include "effects/sel_record.h"
 #include "libreallive/expression.h"
 #include "libreallive/gameexe.h"
 #include "libreallive/parser.h"
@@ -127,6 +128,33 @@ void loadDCToDC1(RLMachine& machine,
                      opacity, false);
 }
 
+selRecord PackEffectParam(Rect srcRect,
+                          Point dest,
+                          int time,
+                          int style,
+                          int direction = 0,
+                          int v1 = 0,
+                          int v2 = 0,
+                          int v3 = 0,
+                          int v4 = 0,
+                          int v5 = 0,
+                          int tr = 0,
+                          int lv = 0) {
+  selRecord effect_param;
+  effect_param.rect = srcRect;
+  effect_param.point = dest;
+  effect_param.duration = time;
+  effect_param.dsp = style;
+  effect_param.direction = direction;
+  effect_param.op[0] = v1;
+  effect_param.op[1] = v2;
+  effect_param.op[2] = v3;
+  effect_param.op[3] = v4;
+  effect_param.op[4] = v5;
+  effect_param.transparency = tr;
+  effect_param.lv = lv;
+  return effect_param;
+}
 void performEffect(RLMachine& machine,
                    const std::shared_ptr<Surface>& src,
                    const std::shared_ptr<Surface>& dst,
@@ -148,11 +176,12 @@ void performEffect(RLMachine& machine,
                    int ysize,
                    int a,
                    int b,
-                   int c) {
+                   int c,
+                   selRecord effect_param) {
   if (!machine.replaying_graphics_stack()) {
-    LongOperation* lop =
-        EffectFactory::Build(machine, src, dst, time, style, direction,
-                             interpolation, xsize, ysize, a, b, c);
+    LongOperation* lop = EffectFactory::Build(machine, src, dst, time, style,
+                                              direction, interpolation, xsize,
+                                              ysize, a, b, c, effect_param);
     machine.PushLongOperation(lop);
   }
 }
@@ -384,8 +413,12 @@ struct display_4 : public RLOpcode<IntConstant_T,
     blitDC1toDC0(machine);
 
     std::shared_ptr<Surface> after = graphics.RenderToSurface();
-    performEffect(machine, after, before, time, style, direction, interpolation,
-                  xsize, ysize, a, b, c);
+
+    performEffect(
+        machine, after, before, time, style, direction, interpolation, xsize,
+        ysize, a, b, c,
+        PackEffectParam(srcRect, dest, time, style, direction, interpolation,
+                        xsize, ysize, a, b, opacity, c));
   }
 };
 
@@ -533,8 +566,12 @@ struct open_4 : public RLOpcode<StrConstant_T,
     blitDC1toDC0(machine);
 
     std::shared_ptr<Surface> after = graphics.RenderToSurface();
-    performEffect(machine, after, before, time, style, direction, interpolation,
-                  xsize, ysize, a, b, c);
+
+    performEffect(
+        machine, after, before, time, style, direction, interpolation, xsize,
+        ysize, a, b, c,
+        PackEffectParam(srcRect, dest, time, style, direction, interpolation,
+                        xsize, ysize, a, b, opacity, c));
     performHideAllTextWindows(machine);
   }
 };
@@ -659,8 +696,12 @@ struct openBg_4 : public RLOpcode<StrConstant_T,
 
     // Render the screen to a temporary
     std::shared_ptr<Surface> after = graphics.RenderToSurface();
-    performEffect(machine, after, before, time, style, direction, interpolation,
-                  xsize, ysize, a, b, c);
+
+    performEffect(
+        machine, after, before, time, style, direction, interpolation, xsize,
+        ysize, a, b, c,
+        PackEffectParam(srcRect, destPt, time, style, direction, interpolation,
+                        xsize, ysize, a, b, opacity, c));
     performHideAllTextWindows(machine);
   }
 };
@@ -828,7 +869,8 @@ struct fade_7
     std::shared_ptr<Surface> after = graphics.RenderToSurface();
 
     if (time > 0) {
-      performEffect(machine, after, before, time, 0, 0, 0, 0, 0, 0, 0, 0);
+      performEffect(machine, after, before, time, 0, 0, 0, 0, 0, 0, 0, 0,
+                    PackEffectParam(rect, rect.origin(), time, 0));
     }
   }
 };

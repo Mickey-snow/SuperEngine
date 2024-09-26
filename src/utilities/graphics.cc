@@ -30,9 +30,9 @@
 #include <sstream>
 #include <vector>
 
+#include "base/rect.h"
 #include "libreallive/gameexe.h"
 #include "machine/rlmachine.h"
-#include "base/rect.h"
 #include "systems/base/system.h"
 #include "systems/base/system_error.h"
 
@@ -42,15 +42,16 @@ std::vector<int> GetSELEffect(RLMachine& machine, int selNum) {
 
   if (gexe("SEL", selNum).Exists()) {
     selEffect = gexe("SEL", selNum).ToIntVector();
-    grp_to_rec_coordinates(selEffect[0], selEffect[1], selEffect[2], selEffect[3]);
+    grp_to_rec_coordinates(selEffect[0], selEffect[1], selEffect[2],
+                           selEffect[3]);
   } else if (gexe("SELR", selNum).Exists()) {
     selEffect = gexe("SELR", selNum).ToIntVector();
   } else {
     // Can't find the specified #SEL effect. See if there's a #SEL.000 effect:
     if (gexe("SEL", 0).Exists()) {
       selEffect = gexe("SEL", 0).ToIntVector();
-      grp_to_rec_coordinates(
-          selEffect[0], selEffect[1], selEffect[2], selEffect[3]);
+      grp_to_rec_coordinates(selEffect[0], selEffect[1], selEffect[2],
+                             selEffect[3]);
     } else if (gexe("SELR", 0).Exists()) {
       selEffect = gexe("SELR", 0).ToIntVector();
     } else {
@@ -58,8 +59,22 @@ std::vector<int> GetSELEffect(RLMachine& machine, int selNum) {
       // a SEL vector that is a screenwide, short fade because we absolutely
       // can't fail here.
       Size screen = GetScreenSize(gexe);
-      selEffect = {0, 0, screen.width(), screen.height(), 0, 0, 1000, 000,
-                   0, 0, 0,              0,               0, 0, 255,  0};
+      selEffect = {0,
+                   0,
+                   screen.width(),
+                   screen.height(),
+                   0,
+                   0,
+                   1000,
+                   000,
+                   0,
+                   0,
+                   0,
+                   0,
+                   0,
+                   0,
+                   255,
+                   0};
     }
   }
 

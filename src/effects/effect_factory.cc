@@ -33,8 +33,9 @@
 #include <vector>
 
 #include "effects/blind_effect.h"
-#include "effects/fade_effect.h"
 #include "effects/drawer_effect.h"
+#include "effects/fade_effect.h"
+#include "effects/sel_record.h"
 #include "effects/wipe_effect.h"
 #include "libreallive/gameexe.h"
 #include "machine/rlmachine.h"
@@ -108,10 +109,11 @@ Effect* EffectFactory::BuildFromSEL(RLMachine& machine,
                                     std::shared_ptr<Surface> dst,
                                     int selNum) {
   std::vector<int> sel_params = GetSELEffect(machine, selNum);
+  auto sel_record = GetSelRecord(machine.system().gameexe(), selNum);
 
   return Build(machine, src, dst, sel_params[6], sel_params[7], sel_params[8],
                sel_params[9], sel_params[10], sel_params[11], sel_params[12],
-               sel_params[13], sel_params[15]);
+               sel_params[13], sel_params[15], sel_record);
 }
 
 Effect* EffectFactory::Build(RLMachine& machine,
@@ -125,7 +127,8 @@ Effect* EffectFactory::Build(RLMachine& machine,
                              int ysize,
                              int a,
                              int b,
-                             int c) {
+                             int c,
+                             selRecord record) {
   Size screen_size = machine.system().graphics().screen_size();
 
   // Ensure that both of our images are on the graphics card so we don't
