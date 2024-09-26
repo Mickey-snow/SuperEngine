@@ -26,8 +26,8 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_EFFECTS_SCROLL_ON_SCROLL_OFF_H_
-#define SRC_EFFECTS_SCROLL_ON_SCROLL_OFF_H_
+#ifndef SRC_EFFECTS_DRAWER_EFFECT_H_
+#define SRC_EFFECTS_DRAWER_EFFECT_H_
 
 #include "effects/effect.h"
 #include "systems/base/surface.h"
@@ -155,4 +155,4 @@ class DrawerEffect : public Effect {
   DrawerEffectDetails::Direction direction_;
 };
 
-#endif  // SRC_EFFECTS_SCROLL_ON_SCROLL_OFF_H_
+#endif

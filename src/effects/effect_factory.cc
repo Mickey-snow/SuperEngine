@@ -34,7 +34,7 @@
 
 #include "effects/blind_effect.h"
 #include "effects/fade_effect.h"
-#include "effects/scroll_on_scroll_off.h"
+#include "effects/drawer_effect.h"
 #include "effects/wipe_effect.h"
 #include "libreallive/gameexe.h"
 #include "machine/rlmachine.h"

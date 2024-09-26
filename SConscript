@@ -63,11 +63,11 @@ librlvm_files = [
   "src/base/asset_scanner.cc",
   "src/base/rect.cc",
 
-  "src/effects/blind_effect.cc",
   "src/effects/effect.cc",
   "src/effects/effect_factory.cc",
+  "src/effects/blind_effect.cc",
   "src/effects/fade_effect.cc",
-  "src/effects/scroll_on_scroll_off.cc",
+  "src/effects/drawer_effect.cc",
   "src/effects/wipe_effect.cc",
 
   "src/encodings/codepage.cc",

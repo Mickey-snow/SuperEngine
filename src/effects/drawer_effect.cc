@@ -26,7 +26,7 @@
 //
 // -----------------------------------------------------------------------
 
-#include "effects/scroll_on_scroll_off.h"
+#include "effects/drawer_effect.h"
 
 #include <sstream>
 
