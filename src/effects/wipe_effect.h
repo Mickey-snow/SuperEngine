@@ -72,8 +72,7 @@ class WipeTopToBottomEffect : public WipeEffect {
   virtual ~WipeTopToBottomEffect();
 
  protected:
-  virtual void PerformEffectForTime(RLMachine& machine,
-                                    int currentTime) final;
+  virtual void PerformEffectForTime(int currentTime) final;
 };
 
 // Implements SEL #10, Wipe, with direction 1, bottom to top.
@@ -88,8 +87,7 @@ class WipeBottomToTopEffect : public WipeEffect {
   virtual ~WipeBottomToTopEffect();
 
  protected:
-  virtual void PerformEffectForTime(RLMachine& machine,
-                                    int currentTime) final;
+  virtual void PerformEffectForTime(int currentTime) final;
 };
 
 // Implements SEL #10, Wipe, with direction 2, left to right.
@@ -104,8 +102,7 @@ class WipeLeftToRightEffect : public WipeEffect {
   virtual ~WipeLeftToRightEffect();
 
  protected:
-  virtual void PerformEffectForTime(RLMachine& machine,
-                                    int currentTime) final;
+  virtual void PerformEffectForTime(int currentTime) final;
 };
 
 // Implements SEL #10, Wipe, with direction 3, right to left.
@@ -120,8 +117,7 @@ class WipeRightToLeftEffect : public WipeEffect {
   virtual ~WipeRightToLeftEffect();
 
  protected:
-  virtual void PerformEffectForTime(RLMachine& machine,
-                                    int currentTime) final;
+  virtual void PerformEffectForTime(int currentTime) final;
 };
 
 #endif  // SRC_EFFECTS_WIPE_EFFECT_H_

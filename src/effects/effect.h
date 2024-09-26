@@ -28,10 +28,11 @@
 #ifndef SRC_EFFECTS_EFFECT_H_
 #define SRC_EFFECTS_EFFECT_H_
 
+#include <functional>
 #include <memory>
 
-#include "machine/long_operation.h"
 #include "base/rect.h"
+#include "machine/long_operation.h"
 
 class Surface;
 class RLMachine;
@@ -86,7 +87,7 @@ class Effect : public LongOperation {
 
   // Implements the effect. Usually, this is all that needs to be
   // overriden, other then the public constructor.
-  virtual void PerformEffectForTime(RLMachine& machine, int currentTime) = 0;
+  virtual void PerformEffectForTime(int currentTime) = 0;
 
  private:
   // Whether the orriginal dc0 should be blitted onto the target

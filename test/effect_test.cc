@@ -25,8 +25,8 @@
 //
 // -----------------------------------------------------------------------
 
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 #include "effects/blind_effect.h"
 #include "effects/effect.h"
@@ -71,8 +71,8 @@ class MockEffect : public Effect {
              int time)
       : Effect(machine, src, dst, size, time) {}
 
-  MOCK_METHOD2(PerformEffectForTime, void(RLMachine& machine, int));
-  MOCK_CONST_METHOD0(BlitOriginalImage, bool());
+  MOCK_METHOD(void, PerformEffectForTime, (int));
+  MOCK_METHOD(bool, BlitOriginalImage, (), (const));
 };
 
 TEST_F(EffectTest, TestBase) {
@@ -85,7 +85,7 @@ TEST_F(EffectTest, TestBase) {
   bool retVal = false;
   for (int i = 0; i < 2; ++i) {
     EXPECT_CALL(*effect, BlitOriginalImage()).WillOnce(Return(false));
-    EXPECT_CALL(*effect, PerformEffectForTime(_, i)).Times(1);
+    EXPECT_CALL(*effect, PerformEffectForTime(i)).Times(1);
     EXPECT_FALSE((*effect)(rlmachine)) << "Didn't prematurely quit";
     ASSERT_TRUE(::testing::Mock::VerifyAndClearExpectations(effect.get()));
 
@@ -113,8 +113,8 @@ class MockBlitTopToBottom : public BlindTopToBottomEffect {
                                time,
                                blindSize) {}
 
-  MOCK_METHOD2(PerformEffectForTime, void(const RLMachine& machine, int));
-  MOCK_METHOD2(RenderPolygon, void(int, int));
+  using BlindTopToBottomEffect::PerformEffectForTime;
+  MOCK_METHOD(void, RenderPolygon, (int, int));
 };
 
 TEST_F(EffectTest, BlindTopToBottomEffect) {
@@ -124,8 +124,9 @@ TEST_F(EffectTest, BlindTopToBottomEffect) {
   const int DURATION = 100;
   const int BLIND_SIZE = 50;
   const int HEIGHT = 480;
-  std::unique_ptr<MockBlitTopToBottom> effect(new MockBlitTopToBottom(
-      rlmachine, src, dst, 640, HEIGHT, DURATION, BLIND_SIZE));
+  std::unique_ptr<MockBlitTopToBottom> effect =
+      std::make_unique<MockBlitTopToBottom>(rlmachine, src, dst, 640, HEIGHT,
+                                            DURATION, BLIND_SIZE);
 
   int numBlinds = (HEIGHT / BLIND_SIZE) + 1;
 

@@ -41,8 +41,7 @@ class FadeEffect : public Effect {
   virtual ~FadeEffect();
 
  protected:
-  virtual void PerformEffectForTime(RLMachine& machine,
-                                    int currentTime) final;
+  virtual void PerformEffectForTime(int currentTime) final;
 
  private:
   virtual bool BlitOriginalImage() const final;

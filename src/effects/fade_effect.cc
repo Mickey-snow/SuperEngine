@@ -42,7 +42,7 @@ FadeEffect::FadeEffect(RLMachine& machine,
 
 FadeEffect::~FadeEffect() {}
 
-void FadeEffect::PerformEffectForTime(RLMachine& machine, int currentTime) {
+void FadeEffect::PerformEffectForTime(int currentTime) {
   // Blit the source image to the screen with the opacity
   int opacity = int((float(currentTime) / duration()) * 255);
 

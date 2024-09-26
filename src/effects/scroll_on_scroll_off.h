@@ -63,8 +63,8 @@ struct DrawInstruction {
 class Strategy {
  public:
   virtual ~Strategy() = default;
-  virtual Rect ComputeSrcRect(int amount_visible, const Size& size) const= 0;
-  virtual Rect ComputeDstRect(int amount_visible, const Size& size) const= 0;
+  virtual Rect ComputeSrcRect(int amount_visible, const Size& size) const = 0;
+  virtual Rect ComputeDstRect(int amount_visible, const Size& size) const = 0;
 };
 
 class ScrollStrategy : public Strategy {
@@ -135,7 +135,7 @@ class DrawerEffect : public Effect {
 
   bool BlitOriginalImage() const final { return false; }
 
-  void PerformEffectForTime(RLMachine& machine, int current_time) final {
+  void PerformEffectForTime(int current_time) final {
     const int duration = this->duration();
     const float percentage_visible =
         duration == 0 ? 1.0f : static_cast<float>(current_time) / duration;

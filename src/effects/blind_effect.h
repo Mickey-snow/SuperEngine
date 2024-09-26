@@ -44,8 +44,8 @@ class BlindEffect : public Effect {
  protected:
   const int blind_size() const { return blind_size_; }
 
-  void ComputeGrowing(RLMachine& machine, int maxSize, int currentTime);
-  void ComputeDecreasing(RLMachine& machine, int maxSize, int currentTime);
+  void ComputeGrowing(int maxSize, int currentTime);
+  void ComputeDecreasing(int maxSize, int currentTime);
 
   virtual void RenderPolygon(int polyStart, int polyEnd) = 0;
 
@@ -66,8 +66,7 @@ class BlindTopToBottomEffect : public BlindEffect {
   virtual ~BlindTopToBottomEffect();
 
  protected:
-  virtual void PerformEffectForTime(RLMachine& machine,
-                                    int currentTime) override;
+  virtual void PerformEffectForTime(int currentTime) override;
   virtual void RenderPolygon(int polyStart, int polyEnd) override;
 };
 
@@ -82,8 +81,7 @@ class BlindBottomToTopEffect : public BlindEffect {
   virtual ~BlindBottomToTopEffect();
 
  protected:
-  virtual void PerformEffectForTime(RLMachine& machine,
-                                    int currentTime) final;
+  virtual void PerformEffectForTime(int currentTime) final;
   virtual void RenderPolygon(int polyStart, int polyEnd) final;
 };
 
@@ -98,8 +96,7 @@ class BlindLeftToRightEffect : public BlindEffect {
   virtual ~BlindLeftToRightEffect();
 
  protected:
-  virtual void PerformEffectForTime(RLMachine& machine,
-                                    int currentTime) final;
+  virtual void PerformEffectForTime(int currentTime) final;
   virtual void RenderPolygon(int polyStart, int polyEnd) final;
 };
 
@@ -114,8 +111,7 @@ class BlindRightToLeftEffect : public BlindEffect {
   virtual ~BlindRightToLeftEffect();
 
  protected:
-  virtual void PerformEffectForTime(RLMachine& machine,
-                                    int currentTime) final;
+  virtual void PerformEffectForTime(int currentTime) final;
   virtual void RenderPolygon(int polyStart, int polyEnd) final;
 };
 

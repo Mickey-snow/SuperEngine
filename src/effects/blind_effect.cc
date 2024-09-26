@@ -45,9 +45,7 @@ BlindEffect::BlindEffect(RLMachine& machine,
 
 BlindEffect::~BlindEffect() {}
 
-void BlindEffect::ComputeGrowing(RLMachine& machine,
-                                 int maxSize,
-                                 int currentTime) {
+void BlindEffect::ComputeGrowing(int maxSize, int currentTime) {
   int num_blinds = maxSize / blind_size() + 1;
   int rows_to_display =
       int((float(currentTime) / duration()) * (blind_size() + num_blinds));
@@ -64,9 +62,7 @@ void BlindEffect::ComputeGrowing(RLMachine& machine,
   }
 }
 
-void BlindEffect::ComputeDecreasing(RLMachine& machine,
-                                    int maxSize,
-                                    int currentTime) {
+void BlindEffect::ComputeDecreasing(int maxSize, int currentTime) {
   int num_blinds = maxSize / blind_size() + 1;
   int rows_to_display =
       int((float(currentTime) / duration()) * (blind_size() + num_blinds));
@@ -101,15 +97,13 @@ BlindTopToBottomEffect::BlindTopToBottomEffect(RLMachine& machine,
 
 BlindTopToBottomEffect::~BlindTopToBottomEffect() {}
 
-void BlindTopToBottomEffect::PerformEffectForTime(RLMachine& machine,
-                                                  int currentTime) {
-  ComputeGrowing(machine, height(), currentTime);
+void BlindTopToBottomEffect::PerformEffectForTime(int currentTime) {
+  ComputeGrowing(height(), currentTime);
 }
 
 void BlindTopToBottomEffect::RenderPolygon(int polyStart, int polyEnd) {
   src_surface().RenderToScreen(Rect::GRP(0, polyStart, width(), polyEnd),
-                               Rect::GRP(0, polyStart, width(), polyEnd),
-                               255);
+                               Rect::GRP(0, polyStart, width(), polyEnd), 255);
 }
 
 // -----------------------------------------------------------------------
@@ -126,16 +120,14 @@ BlindBottomToTopEffect::BlindBottomToTopEffect(RLMachine& machine,
 
 BlindBottomToTopEffect::~BlindBottomToTopEffect() {}
 
-void BlindBottomToTopEffect::PerformEffectForTime(RLMachine& machine,
-                                                  int currentTime) {
-  ComputeDecreasing(machine, height(), currentTime);
+void BlindBottomToTopEffect::PerformEffectForTime(int currentTime) {
+  ComputeDecreasing(height(), currentTime);
 }
 
 void BlindBottomToTopEffect::RenderPolygon(int polyStart, int polyEnd) {
   // Render polygon
   src_surface().RenderToScreen(Rect::GRP(0, polyEnd, width(), polyStart),
-                               Rect::GRP(0, polyEnd, width(), polyStart),
-                               255);
+                               Rect::GRP(0, polyEnd, width(), polyStart), 255);
 }
 
 // -----------------------------------------------------------------------
@@ -152,15 +144,13 @@ BlindLeftToRightEffect::BlindLeftToRightEffect(RLMachine& machine,
 
 BlindLeftToRightEffect::~BlindLeftToRightEffect() {}
 
-void BlindLeftToRightEffect::PerformEffectForTime(RLMachine& machine,
-                                                  int currentTime) {
-  ComputeGrowing(machine, width(), currentTime);
+void BlindLeftToRightEffect::PerformEffectForTime(int currentTime) {
+  ComputeGrowing(width(), currentTime);
 }
 
 void BlindLeftToRightEffect::RenderPolygon(int polyStart, int polyEnd) {
   src_surface().RenderToScreen(Rect::GRP(polyStart, 0, polyEnd, height()),
-                               Rect::GRP(polyStart, 0, polyEnd, height()),
-                               255);
+                               Rect::GRP(polyStart, 0, polyEnd, height()), 255);
 }
 
 // -----------------------------------------------------------------------
@@ -177,13 +167,11 @@ BlindRightToLeftEffect::BlindRightToLeftEffect(RLMachine& machine,
 
 BlindRightToLeftEffect::~BlindRightToLeftEffect() {}
 
-void BlindRightToLeftEffect::PerformEffectForTime(RLMachine& machine,
-                                                  int currentTime) {
-  ComputeDecreasing(machine, width(), currentTime);
+void BlindRightToLeftEffect::PerformEffectForTime(int currentTime) {
+  ComputeDecreasing(width(), currentTime);
 }
 
 void BlindRightToLeftEffect::RenderPolygon(int polyStart, int polyEnd) {
   src_surface().RenderToScreen(Rect::GRP(polyEnd, 0, polyStart, height()),
-                               Rect::GRP(polyEnd, 0, polyStart, height()),
-                               255);
+                               Rect::GRP(polyEnd, 0, polyStart, height()), 255);
 }

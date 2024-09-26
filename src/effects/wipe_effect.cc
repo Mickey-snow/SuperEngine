@@ -98,8 +98,7 @@ WipeTopToBottomEffect::WipeTopToBottomEffect(RLMachine& machine,
 
 WipeTopToBottomEffect::~WipeTopToBottomEffect() {}
 
-void WipeTopToBottomEffect::PerformEffectForTime(RLMachine& machine,
-                                                 int currentTime) {
+void WipeTopToBottomEffect::PerformEffectForTime(int currentTime) {
   int sizeOfInterpolation, sizeOfMainPolygon;
   CalculateSizes(currentTime, sizeOfInterpolation, sizeOfMainPolygon, height());
 
@@ -113,13 +112,9 @@ void WipeTopToBottomEffect::PerformEffectForTime(RLMachine& machine,
     int opacity[4] = {255, 255, 0, 0};
 
     src_surface().RenderToScreen(
-        Rect::GRP(0,
-                  sizeOfMainPolygon,
-                  width(),
+        Rect::GRP(0, sizeOfMainPolygon, width(),
                   sizeOfMainPolygon + sizeOfInterpolation),
-        Rect::GRP(0,
-                  sizeOfMainPolygon,
-                  width(),
+        Rect::GRP(0, sizeOfMainPolygon, width(),
                   sizeOfMainPolygon + sizeOfInterpolation),
         opacity);
   }
@@ -139,8 +134,7 @@ WipeBottomToTopEffect::WipeBottomToTopEffect(RLMachine& machine,
 
 WipeBottomToTopEffect::~WipeBottomToTopEffect() {}
 
-void WipeBottomToTopEffect::PerformEffectForTime(RLMachine& machine,
-                                                 int currentTime) {
+void WipeBottomToTopEffect::PerformEffectForTime(int currentTime) {
   int sizeOfInterpolation, sizeOfMainPolygon;
   CalculateSizes(currentTime, sizeOfInterpolation, sizeOfMainPolygon, height());
 
@@ -148,21 +142,16 @@ void WipeBottomToTopEffect::PerformEffectForTime(RLMachine& machine,
   if (sizeOfMainPolygon) {
     src_surface().RenderToScreen(
         Rect::GRP(0, height() - sizeOfMainPolygon, width(), height()),
-        Rect::GRP(0, height() - sizeOfMainPolygon, width(), height()),
-        255);
+        Rect::GRP(0, height() - sizeOfMainPolygon, width(), height()), 255);
   }
 
   if (sizeOfInterpolation) {
     int opacity[4] = {0, 0, 255, 255};
     src_surface().RenderToScreen(
-        Rect::GRP(0,
-                  height() - sizeOfMainPolygon - sizeOfInterpolation,
-                  width(),
-                  height() - sizeOfMainPolygon),
-        Rect::GRP(0,
-                  height() - sizeOfMainPolygon - sizeOfInterpolation,
-                  width(),
-                  height() - sizeOfMainPolygon),
+        Rect::GRP(0, height() - sizeOfMainPolygon - sizeOfInterpolation,
+                  width(), height() - sizeOfMainPolygon),
+        Rect::GRP(0, height() - sizeOfMainPolygon - sizeOfInterpolation,
+                  width(), height() - sizeOfMainPolygon),
         opacity);
   }
 }
@@ -181,8 +170,7 @@ WipeLeftToRightEffect::WipeLeftToRightEffect(RLMachine& machine,
 
 WipeLeftToRightEffect::~WipeLeftToRightEffect() {}
 
-void WipeLeftToRightEffect::PerformEffectForTime(RLMachine& machine,
-                                                 int currentTime) {
+void WipeLeftToRightEffect::PerformEffectForTime(int currentTime) {
   int sizeOfInterpolation, sizeOfMainPolygon;
   CalculateSizes(currentTime, sizeOfInterpolation, sizeOfMainPolygon, width());
 
@@ -197,13 +185,9 @@ void WipeLeftToRightEffect::PerformEffectForTime(RLMachine& machine,
   if (sizeOfInterpolation) {
     int opacity[4] = {255, 0, 0, 255};
     src_surface().RenderToScreen(
-        Rect::GRP(sizeOfMainPolygon,
-                  0,
-                  sizeOfMainPolygon + sizeOfInterpolation,
+        Rect::GRP(sizeOfMainPolygon, 0, sizeOfMainPolygon + sizeOfInterpolation,
                   height()),
-        Rect::GRP(sizeOfMainPolygon,
-                  0,
-                  sizeOfMainPolygon + sizeOfInterpolation,
+        Rect::GRP(sizeOfMainPolygon, 0, sizeOfMainPolygon + sizeOfInterpolation,
                   height()),
         opacity);
   }
@@ -223,29 +207,23 @@ WipeRightToLeftEffect::WipeRightToLeftEffect(RLMachine& machine,
 
 WipeRightToLeftEffect::~WipeRightToLeftEffect() {}
 
-void WipeRightToLeftEffect::PerformEffectForTime(RLMachine& machine,
-                                                 int currentTime) {
+void WipeRightToLeftEffect::PerformEffectForTime(int currentTime) {
   int sizeOfInterpolation, sizeOfMainPolygon;
   CalculateSizes(currentTime, sizeOfInterpolation, sizeOfMainPolygon, width());
 
   if (sizeOfMainPolygon) {
     src_surface().RenderToScreen(
         Rect::GRP(width() - sizeOfMainPolygon, 0, width(), height()),
-        Rect::GRP(width() - sizeOfMainPolygon, 0, width(), height()),
-        255);
+        Rect::GRP(width() - sizeOfMainPolygon, 0, width(), height()), 255);
   }
 
   if (sizeOfInterpolation) {
     int opacity[4] = {0, 255, 255, 0};
     src_surface().RenderToScreen(
-        Rect::GRP(width() - sizeOfInterpolation - sizeOfMainPolygon,
-                  0,
-                  width() - sizeOfMainPolygon,
-                  height()),
-        Rect::GRP(width() - sizeOfInterpolation - sizeOfMainPolygon,
-                  0,
-                  width() - sizeOfMainPolygon,
-                  height()),
+        Rect::GRP(width() - sizeOfInterpolation - sizeOfMainPolygon, 0,
+                  width() - sizeOfMainPolygon, height()),
+        Rect::GRP(width() - sizeOfInterpolation - sizeOfMainPolygon, 0,
+                  width() - sizeOfMainPolygon, height()),
         opacity);
   }
 }
