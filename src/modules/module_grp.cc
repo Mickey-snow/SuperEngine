@@ -128,6 +128,7 @@ void loadDCToDC1(RLMachine& machine,
                      opacity, false);
 }
 
+// TODO: Move this to the mpl parameter parser
 selRecord PackEffectParam(Rect srcRect,
                           Point dest,
                           int time,
@@ -155,6 +156,7 @@ selRecord PackEffectParam(Rect srcRect,
   effect_param.lv = lv;
   return effect_param;
 }
+
 void performEffect(RLMachine& machine,
                    const std::shared_ptr<Surface>& src,
                    const std::shared_ptr<Surface>& dst,
@@ -168,20 +170,9 @@ void performEffect(RLMachine& machine,
 void performEffect(RLMachine& machine,
                    const std::shared_ptr<Surface>& src,
                    const std::shared_ptr<Surface>& dst,
-                   int time,
-                   int style,
-                   int direction,
-                   int interpolation,
-                   int xsize,
-                   int ysize,
-                   int a,
-                   int b,
-                   int c,
                    selRecord effect_param) {
   if (!machine.replaying_graphics_stack()) {
-    LongOperation* lop = EffectFactory::Build(machine, src, dst, time, style,
-                                              direction, interpolation, xsize,
-                                              ysize, a, b, c, effect_param);
+    LongOperation* lop = EffectFactory::Build(machine, src, dst, effect_param);
     machine.PushLongOperation(lop);
   }
 }
@@ -415,8 +406,7 @@ struct display_4 : public RLOpcode<IntConstant_T,
     std::shared_ptr<Surface> after = graphics.RenderToSurface();
 
     performEffect(
-        machine, after, before, time, style, direction, interpolation, xsize,
-        ysize, a, b, c,
+        machine, after, before,
         PackEffectParam(srcRect, dest, time, style, direction, interpolation,
                         xsize, ysize, a, b, opacity, c));
   }
@@ -568,8 +558,7 @@ struct open_4 : public RLOpcode<StrConstant_T,
     std::shared_ptr<Surface> after = graphics.RenderToSurface();
 
     performEffect(
-        machine, after, before, time, style, direction, interpolation, xsize,
-        ysize, a, b, c,
+        machine, after, before,
         PackEffectParam(srcRect, dest, time, style, direction, interpolation,
                         xsize, ysize, a, b, opacity, c));
     performHideAllTextWindows(machine);
@@ -698,8 +687,7 @@ struct openBg_4 : public RLOpcode<StrConstant_T,
     std::shared_ptr<Surface> after = graphics.RenderToSurface();
 
     performEffect(
-        machine, after, before, time, style, direction, interpolation, xsize,
-        ysize, a, b, c,
+        machine, after, before,
         PackEffectParam(srcRect, destPt, time, style, direction, interpolation,
                         xsize, ysize, a, b, opacity, c));
     performHideAllTextWindows(machine);
@@ -869,7 +857,7 @@ struct fade_7
     std::shared_ptr<Surface> after = graphics.RenderToSurface();
 
     if (time > 0) {
-      performEffect(machine, after, before, time, 0, 0, 0, 0, 0, 0, 0, 0,
+      performEffect(machine, after, before,
                     PackEffectParam(rect, rect.origin(), time, 0));
     }
   }

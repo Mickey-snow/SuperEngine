@@ -108,26 +108,13 @@ Effect* EffectFactory::BuildFromSEL(RLMachine& machine,
                                     std::shared_ptr<Surface> src,
                                     std::shared_ptr<Surface> dst,
                                     int selNum) {
-  std::vector<int> sel_params = GetSELEffect(machine, selNum);
   auto sel_record = GetSelRecord(machine.system().gameexe(), selNum);
-
-  return Build(machine, src, dst, sel_params[6], sel_params[7], sel_params[8],
-               sel_params[9], sel_params[10], sel_params[11], sel_params[12],
-               sel_params[13], sel_params[15], sel_record);
+  return Build(machine, src, dst, sel_record);
 }
 
 Effect* EffectFactory::Build(RLMachine& machine,
                              std::shared_ptr<Surface> src,
                              std::shared_ptr<Surface> dst,
-                             int time,
-                             int style,
-                             int direction,
-                             int interpolation,
-                             int xsize,
-                             int ysize,
-                             int a,
-                             int b,
-                             int c,
                              selRecord record) {
   Size screen_size = machine.system().graphics().screen_size();
 
@@ -138,10 +125,15 @@ Effect* EffectFactory::Build(RLMachine& machine,
   if (dst)
     dst->EnsureUploaded();
 
+  const auto time = record.duration;
+  const auto direction = record.direction;
+  const auto style = record.dsp;
   switch (style) {
-    case 10:
+    case 10: {
+      const auto interpolation = record.op[0];
       return BuildWipeEffect(machine, src, dst, screen_size, time, direction,
                              interpolation);
+    }
     // We have the bunch of similar effects that are all implemented by
     // class DrawerEffect
     case 15:
@@ -152,9 +144,12 @@ Effect* EffectFactory::Build(RLMachine& machine,
     case 21:
       return BuildDrawerEffect(machine, src, dst, screen_size, time, style,
                                direction);
-    case 120:
+    case 120: {
+      const auto xsize = record.op[1];
+      const auto ysize = record.op[2];
       return BuildBlindEffect(machine, src, dst, screen_size, time, direction,
                               xsize, ysize);
+    }
     case 0:
     case 50:
     default:

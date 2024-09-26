@@ -57,15 +57,6 @@ class EffectFactory {
   static Effect* Build(RLMachine& machine,
                        std::shared_ptr<Surface> src,
                        std::shared_ptr<Surface> dst,
-                       int time,
-                       int style,
-                       int direction,
-                       int interpolation,
-                       int xsize,
-                       int ysize,
-                       int a,
-                       int b,
-                       int c,
                        selRecord record);
 
  private:
