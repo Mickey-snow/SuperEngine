@@ -21,18 +21,17 @@ added to RealLive for Little Busters, to \\{jyuichi} for help with Kud Wafter, a
 
 ## STATUS
 
-| Titles                 | Status          | Notes                                 |
-|------------------------|-----------------|---------------------------------------|
-| Kanon Standard Edition | Full Support    | Also supports [NDT's patch][kanon]    |
-| Air Standard Edition   | Full Support    |                                       |
-| CLANNAD                | Full Support    |                                       |
-| CLANNAD (Full Voice)   | Full Support    | [Licensed][clannad]                   |
-| CLANNAD Side Stories   | Not Supported   | [Licensed][clannad_side_stories]      |
-| Planetarian CD         | Full Support    | [Licensed][planetarian]               |
-| Tomoyo After           | Full Support    |                                       |
-| Little Busters         | Partial Support | Untested, Steam edition not supported |
-| Kud Wafter             | Full Support    |                                       |
-| Planetarian            | Full Support    | [buy here][planetarian]               |
+| Titles                 | Status          | Notes                                                     |
+|------------------------|-----------------|-----------------------------------------------------------|
+| Kanon Standard Edition | Full Support    | Also supports [NDT's patch][kanon]                        |
+| Air Standard Edition   | Full Support    |                                                           |
+| CLANNAD                | Full Support    |                                                           |
+| CLANNAD (Full Voice)   | Full Support    | [Licensed][clannad]                                       |
+| CLANNAD Side Stories   | Partial Support | [Licensed][clannad_side_stories]                          |
+| Planetarian CD         | Full Support    | [Discontinued][planetarian], Planetarian HD not supported |
+| Tomoyo After           | Full Support    |                                                           |
+| Little Busters         | Partial Support | Untested, Steam edition not supported                     |
+| Kud Wafter             | Full Support    |                                                           |
 
 [kanon]: http://radicalr.pestermom.com/vn.html
 [clannad]: http://store.steampowered.com/app/324160/
@@ -144,15 +143,23 @@ To build a dmg file for distribution, type:
 
 ## KNOWN ISSUES
 
-Little Busters' baseball doesn't work because it is implemented as a
-Windows DLL instead. For the same reason, the dungeon crawling minigame
-in Tomoyo After does not work.
+- **Clannad Side Stories**: The game runs, but due to incomplete opcode support,
+  several issues remain:
+  - Missing sound effects.
+  - Background music may be tone-shifted.
+  - Menu may not work.
 
-## GETTING INVOLVED
+  It is advised to delete `~/.rlvm/KEY_HIKARI_SAKA_STEAM_EN` before first running
+  the game in newer versions of rlvm.
 
-Little Buster's baseball minigame appears to be implemented by a DLL,
-not RealLive bytecode. Figuring out what its doing is the first step to
-getting it working.
+- **Little Busters' Baseball Minigame**: This minigame doesn't function because
+  it relies on a Windows DLL, which rlvm does not support. Similarly, the
+  **dungeon crawling minigame** in *Tomoyo After* is also affected for the same
+  reason.
+
+- **Steam Edition of Little Busters**: The asset files in this version are
+  packed into `.PAK` archives, which rlvm currently cannot recognize. As a
+  result, this edition of the game is not supported.
 
 ## DONATE
 
