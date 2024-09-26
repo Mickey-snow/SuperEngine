@@ -303,31 +303,34 @@ struct load_3 : public RLOpcode<StrConstant_T,
 // {grp,rec}Display
 // -----------------------------------------------------------------------
 
+void DisplayEffect(RLMachine& machine, int dc, const selRecord& param) {
+  const Rect& src = param.rect;
+  const Point& dest = param.point;
+  const auto transparency = param.transparency;
+
+  GraphicsSystem& graphics = machine.system().graphics();
+
+  std::shared_ptr<Surface> before = graphics.RenderToSurface();
+  loadDCToDC1(machine, dc, src, dest, transparency);
+  blitDC1toDC0(machine);
+  std::shared_ptr<Surface> after = graphics.RenderToSurface();
+
+  performEffect(machine, after, before, param);
+}
+
 struct display_1
     : public RLOpcode<IntConstant_T, IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int dc, int effectNum, int opacity) {
-    Rect src;
-    Point dest;
-    GetSELPointAndRect(machine, effectNum, src, dest);
-
-    GraphicsSystem& graphics = machine.system().graphics();
-
-    std::shared_ptr<Surface> before = graphics.RenderToSurface();
-
-    loadDCToDC1(machine, dc, src, dest, opacity);
-    blitDC1toDC0(machine);
-
-    std::shared_ptr<Surface> after = graphics.RenderToSurface();
-    performEffect(machine, after, before, effectNum);
+    auto sel_record = GetSelRecord(machine.system().gameexe(), effectNum);
+    sel_record.transparency = opacity;
+    DisplayEffect(machine, dc, sel_record);
   }
 };
 
 struct display_0 : public RLOpcode<IntConstant_T, IntConstant_T> {
-  display_1 delegate_;
-
   void operator()(RLMachine& machine, int dc, int effectNum) {
-    std::vector<int> selEffect = GetSELEffect(machine, effectNum);
-    delegate_(machine, dc, effectNum, selEffect.at(14));
+    auto sel_record = GetSelRecord(machine.system().gameexe(), effectNum);
+    DisplayEffect(machine, dc, sel_record);
   }
 };
 
@@ -343,15 +346,11 @@ struct display_3 : public RLOpcode<IntConstant_T,
                   Rect srcRect,
                   Point dest,
                   int opacity) {
-    GraphicsSystem& graphics = machine.system().graphics();
-
-    std::shared_ptr<Surface> before = graphics.RenderToSurface();
-
-    loadDCToDC1(machine, dc, srcRect, dest, opacity);
-    blitDC1toDC0(machine);
-
-    std::shared_ptr<Surface> after = graphics.RenderToSurface();
-    performEffect(machine, after, before, effectNum);
+    auto sel_record = GetSelRecord(machine.system().gameexe(), effectNum);
+    sel_record.rect = srcRect;
+    sel_record.point = dest;
+    sel_record.transparency = opacity;
+    DisplayEffect(machine, dc, sel_record);
   }
 };
 
@@ -361,10 +360,12 @@ struct display_2
   void operator()(RLMachine& machine,
                   int dc,
                   int effectNum,
-                  Rect src_rect,
+                  Rect srcRect,
                   Point dest) {
-    int opacity = GetSELEffect(machine, effectNum).at(14);
-    display_3<SPACE>()(machine, dc, effectNum, src_rect, dest, opacity);
+    auto sel_record = GetSelRecord(machine.system().gameexe(), effectNum);
+    sel_record.rect = srcRect;
+    sel_record.point = dest;
+    DisplayEffect(machine, dc, sel_record);
   }
 };
 
@@ -396,19 +397,12 @@ struct display_4 : public RLOpcode<IntConstant_T,
                   int b,
                   int opacity,
                   int c) {
-    GraphicsSystem& graphics = machine.system().graphics();
-
-    std::shared_ptr<Surface> before = graphics.RenderToSurface();
-
-    loadDCToDC1(machine, dc, srcRect, dest, opacity);
-    blitDC1toDC0(machine);
-
-    std::shared_ptr<Surface> after = graphics.RenderToSurface();
-
-    performEffect(
-        machine, after, before,
+    auto sel_record =
         PackEffectParam(srcRect, dest, time, style, direction, interpolation,
-                        xsize, ysize, a, b, opacity, c));
+                        xsize, ysize, a, b, opacity, c);
+    DisplayEffect(machine, dc, sel_record);
+  }
+};
   }
 };
 
