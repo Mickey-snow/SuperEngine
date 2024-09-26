@@ -96,13 +96,6 @@ Size GetScreenSize(Gameexe& gameexe) {
   throw SystemError(oss.str());
 }
 
-void Clamp(float& var, float min, float max) {
-  if (var < min)
-    var = min;
-  else if (var > max)
-    var = max;
-}
-
 void ClipDestination(const Rect& clip_rect, Rect& src, Rect& dest) {
   Rect intersection = clip_rect.Intersection(dest);
   if (intersection.size().is_empty()) {

@@ -57,9 +57,6 @@ void GetSELPointAndRect(RLMachine& machine,
 // Gets the size of the screen and sets it in width/height.
 Size GetScreenSize(Gameexe& gameexe);
 
-// Clamp var between [min, max].
-void Clamp(float& var, float min, float max);
-
 // Clips |dest| to |clip_rect|, adjusting |src|.
 void ClipDestination(const Rect& clip_rect, Rect& src, Rect& dest);
 
