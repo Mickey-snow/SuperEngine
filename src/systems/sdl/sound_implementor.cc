@@ -112,9 +112,7 @@ void SDLSoundImpl::SetVolume(int channel, int vol) const {
   Mix_Volume(channel, vol);
 }
 
-bool SDLSoundImpl::IsPlaying(int channel) const {
-  return Mix_Playing(channel);
-}
+bool SDLSoundImpl::IsPlaying(int channel) const { return Mix_Playing(channel); }
 
 int SDLSoundImpl::FindIdleChannel() const {
   if (ch_.empty())
@@ -127,8 +125,7 @@ int SDLSoundImpl::FindIdleChannel() const {
   throw std::runtime_error("All channels are busy.");
 }
 
-int SDLSoundImpl::PlayChannel(int channel,
-                                 std::shared_ptr<AudioPlayer> audio) {
+int SDLSoundImpl::PlayChannel(int channel, std::shared_ptr<AudioPlayer> audio) {
   AudioData audio_data = audio->LoadRemain();
   const auto system_frequency = QuerySpec().sample_rate;
   if (audio_data.spec.sample_rate != system_frequency) {
@@ -223,6 +220,8 @@ void SDLSoundImpl::OnChannelFinished(int channel) {
   auto implementor = ch_[channel].implementor;
   ch_[channel].Reset();
 
+  if (!player || !implementor)
+    return;
   if (player->IsPlaying())  // loop
     implementor->PlayChannel(channel, player);
 }
