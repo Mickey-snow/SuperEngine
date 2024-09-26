@@ -403,6 +403,13 @@ struct display_4 : public RLOpcode<IntConstant_T,
     DisplayEffect(machine, dc, sel_record);
   }
 };
+
+struct display_5
+    : public RLOpcode<IntConstant_T, IntConstant_T, IntConstant_T> {
+  void operator()(RLMachine& machine, int dc, int effectNum, int time) {
+    auto sel_record = GetSelRecord(machine.system().gameexe(), effectNum);
+    sel_record.duration = time;
+    DisplayEffect(machine, dc, sel_record);
   }
 };
 
@@ -1287,6 +1294,7 @@ GrpModule::GrpModule() : MappedRLModule(GraphicsStackMappingFun, "Grp", 1, 33) {
   AddOpcode(1051, 2, "recMaskLoad", new load_3<REC>(true));
   AddOpcode(1051, 3, "recMaskLoad", new load_3<REC>(true));
 
+  AddOpcode(82, 0, "WAIP_TIME", new display_5);
   AddOpcode(1052, 0, "recDisplay", new display_0);
   AddOpcode(1052, 1, "recDisplay", new display_1);
   AddOpcode(1052, 2, "recDisplay", new display_2<REC>());
