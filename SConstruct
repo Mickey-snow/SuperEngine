@@ -259,6 +259,11 @@ local_sdl_libraries = [
     'function' : '',
   },
   {
+    'include'  : 'libsamplerate/samplerate.h',
+    'library'  : 'libsamplerate',
+    'function' : '',
+  },
+  {
     "include"  : 'GL/glew.h',
     "library"  : 'GLEW',
     "function" : 'glewInit();'
