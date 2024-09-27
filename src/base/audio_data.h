@@ -143,6 +143,7 @@ struct AudioData {
   void Clear() { PrepareDatabuf(); }
 
   size_t SampleCount() const;
+  size_t ByteLength() const;
 
   AudioData& Append(const AudioData& rhs);
   AudioData& Append(AudioData&& rhs);

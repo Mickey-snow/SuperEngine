@@ -140,3 +140,25 @@ TEST(SampleConversionTest, U8ToFloat) {
   EXPECT_NEAR(result[2], 0.0f, 1.0f / 255);
   EXPECT_NEAR(result[3], -0.5f, 1.0f / 255);
 }
+
+TEST(AudioDataTest, SampleLength) {
+  {
+    std::vector<avsample_u8_t> u8_audio{255, 0, 128, 64};
+    AudioData audio_data;
+    audio_data.data = u8_audio;
+    audio_data.spec = {.sample_rate = 44100,
+                       .sample_format = AV_SAMPLE_FMT::U8,
+                       .channel_count = 1};
+    EXPECT_EQ(audio_data.ByteLength(), 4);
+  }
+
+  {
+    std::vector<avsample_s16_t> s16_audio{32767, -32768, 0, -128, 33};
+    AudioData audio_data;
+    audio_data.data = s16_audio;
+    audio_data.spec = {.sample_rate = 44100,
+                       .sample_format = AV_SAMPLE_FMT::S16,
+                       .channel_count = 1};
+    EXPECT_EQ(audio_data.ByteLength(), 10);
+  }
+}

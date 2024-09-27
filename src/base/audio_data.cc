@@ -86,6 +86,13 @@ size_t AudioData::SampleCount() const {
                     data);
 }
 
+size_t AudioData::ByteLength() const {
+  auto sample_count = SampleCount();
+  if (sample_count == 0)
+    return 0;
+  return sample_count * Bytecount(spec.sample_format);
+}
+
 AudioData& AudioData::Append(const AudioData& rhs) {
   if (SampleCount() == 0)
     return *this = rhs;
