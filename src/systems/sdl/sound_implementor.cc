@@ -99,15 +99,6 @@ void SDLSoundImpl::CloseAudio() const {
   Mix_CloseAudio();
 }
 
-AVSpec SDLSoundImpl::QuerySpec() const {
-  int freq, channels;
-  Uint16 format;
-  Mix_QuerySpec(&freq, &format, &channels);
-  return AVSpec{.sample_rate = freq,
-                .sample_format = FromSDLSoundFormat(format),
-                .channel_count = channels};
-}
-
 void SDLSoundImpl::SetVolume(int channel, int vol) const {
   Mix_Volume(channel, vol);
 }
@@ -127,7 +118,7 @@ int SDLSoundImpl::FindIdleChannel() const {
 
 int SDLSoundImpl::PlayChannel(int channel, std::shared_ptr<AudioPlayer> audio) {
   AudioData audio_data = audio->LoadRemain();
-  const auto system_frequency = QuerySpec().sample_rate;
+  const auto system_frequency = spec_.sample_rate;
   if (audio_data.spec.sample_rate != system_frequency) {
     Resampler resampler(system_frequency);
     resampler.Resample(audio_data);

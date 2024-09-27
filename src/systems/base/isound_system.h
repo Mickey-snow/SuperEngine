@@ -38,7 +38,6 @@ class ISoundSystem {
   virtual void AllocateChannels(int num) const = 0;
   virtual void OpenAudio(AVSpec spec, int buffer_size) const = 0;
   virtual void CloseAudio() const = 0;
-  virtual AVSpec QuerySpec() const = 0;
 
   virtual int FindIdleChannel() const = 0;
   virtual void SetVolume(int channel, int vol) const = 0;
