@@ -29,19 +29,20 @@
 
 #include <memory>
 
-struct ResamplerResources;
-
-class Resampler {
+class zitaResampler {
  public:
-  Resampler(int freq);
-  ~Resampler();
+  zitaResampler(int freq);
+  ~zitaResampler();
 
   void Resample(AudioData& in_data);
 
  private:
   int target_frequency_;
 
-  std::unique_ptr<ResamplerResources> data_;
+  struct Context;
+  std::unique_ptr<Context> data_;
 };
+
+using Resampler = zitaResampler;
 
 #endif
