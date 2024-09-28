@@ -146,7 +146,6 @@ To build a dmg file for distribution, type:
 - **Clannad Side Stories**: The game runs, but due to incomplete opcode support,
   several issues remain:
   - Missing sound effects.
-  - Background music may be tone-shifted.
   - Menu may not work.
 
   It is advised to delete `~/.rlvm/KEY_HIKARI_SAKA_STEAM_EN` before first running

@@ -96,6 +96,7 @@ void SDLSoundImpl::OpenAudio(AVSpec spec, int buf_size) const {
 
 void SDLSoundImpl::CloseAudio() const {
   Mix_HookMusic(NULL, NULL);
+  ch_.clear();
   Mix_CloseAudio();
 }
 
@@ -147,6 +148,18 @@ int SDLSoundImpl::PlayChannel(int channel, std::shared_ptr<AudioPlayer> audio) {
 }
 
 void SDLSoundImpl::PlayBgm(player_t audio) {
+  auto audio_spec = audio->GetSpec();
+  if (audio_spec.sample_rate != spec_.sample_rate) {
+    // CLANNAD Side Stories wish to open the audio with frequency 48khz, but all
+    // their audio assets are in 44.1khz. wtf? For now, simply restart the
+    // system to get what we want.
+    auto channels = ch_.size();
+    CloseAudio();
+    spec_.sample_rate = audio_spec.sample_rate;
+    OpenAudio(spec_);
+    AllocateChannels(channels);
+  }
+
   SDLAudioLocker lock;
   bgm_player_ = audio;
 }
@@ -218,7 +231,7 @@ void SDLSoundImpl::OnChannelFinished(int channel) {
 }
 
 void SDLSoundImpl::OnMusic(void*, uint8_t* stream, int len) {
-  memset(stream, 0, len);
+  std::memset(stream, 0, len);
 
   if (!bgm_player_ || !bgm_enabled_)
     return;
@@ -227,14 +240,10 @@ void SDLSoundImpl::OnMusic(void*, uint8_t* stream, int len) {
     return;
   }
 
-  // TODO: Implement logic for sample format other than 16bits width
-  auto audio_data = bgm_player_->LoadPCM(len / 2);
-  std::visit(
-      [&](auto&& data) {
-        memmove(stream, data.data(), len);
-        data.clear();
-      },
-      std::move(audio_data.data));
+  auto pcm_count = len / Bytecount(spec_.sample_format);
+  auto audio_data = bgm_player_->LoadPCM(pcm_count).GetAs(spec_.sample_format);
+  std::visit([&](auto&& buf) { std::memmove(stream, buf.data(), len); },
+             std::move(audio_data));
 }
 
 std::vector<SDLSoundImpl::ChannelInfo> SDLSoundImpl::ch_;

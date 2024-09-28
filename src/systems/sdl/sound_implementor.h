@@ -40,7 +40,7 @@ class SDLSoundImpl : public ISoundSystem {
   virtual void QuitSystem() const override;
 
   virtual void AllocateChannels(int num) const override;
-  virtual void OpenAudio(AVSpec spec, int buffer_size) const override;
+  virtual void OpenAudio(AVSpec spec, int buffer_size = 2048) const override;
   virtual void CloseAudio() const override;
 
   virtual int FindIdleChannel() const override;
