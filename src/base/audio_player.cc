@@ -93,6 +93,8 @@ AudioPlayer::AudioPlayer(AudioDecoder&& dec)
       buffer_(),
       volume_(1.0f) {}
 
+AVSpec AudioPlayer::GetSpec() const { return spec; }
+
 AudioPlayer::time_ms_t AudioPlayer::GetCurrentTime() const {
   return PcmLocation() * 1000 / spec.sample_rate;
 }
