@@ -52,6 +52,34 @@ AudioData AudioData::Slice(int fr, int to, int step) {
   return {spec, std::move(slicedData)};
 }
 
+avsample_buffer_t AudioData::GetAs(AV_SAMPLE_FMT fmt) const {
+  switch (fmt) {
+    case AV_SAMPLE_FMT::U8:
+      return this->GetAs<avsample_u8_t>();
+      break;
+    case AV_SAMPLE_FMT::S8:
+      return this->GetAs<avsample_s8_t>();
+      break;
+    case AV_SAMPLE_FMT::S16:
+      return this->GetAs<avsample_s16_t>();
+      break;
+    case AV_SAMPLE_FMT::S32:
+      return this->GetAs<avsample_s32_t>();
+      break;
+    case AV_SAMPLE_FMT::S64:
+      return this->GetAs<avsample_s64_t>();
+      break;
+    case AV_SAMPLE_FMT::FLT:
+      return this->GetAs<avsample_flt_t>();
+      break;
+    case AV_SAMPLE_FMT::DBL:
+      return this->GetAs<avsample_dbl_t>();
+      break;
+    default:
+      throw std::runtime_error("Unsupported audio sample format.");
+  }
+}
+
 void AudioData::PrepareDatabuf() {
   switch (spec.sample_format) {
     case AV_SAMPLE_FMT::U8:

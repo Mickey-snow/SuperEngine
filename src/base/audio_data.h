@@ -82,7 +82,7 @@ struct AudioData {
   AudioData Slice(int fr, int to, int step = 0);
 
   template <typename OutType>
-  std::vector<OutType> GetAs() {
+  std::vector<OutType> GetAs() const {
     [[maybe_unused]] auto scale_to_float = [](auto sample) -> double {
       using T = std::decay_t<decltype(sample)>;
 
@@ -137,6 +137,8 @@ struct AudioData {
         },
         data);
   }
+
+  avsample_buffer_t GetAs(AV_SAMPLE_FMT fmt) const;
 
   // Initializes the audio data buffer based on spec.sample_format.
   void PrepareDatabuf();
