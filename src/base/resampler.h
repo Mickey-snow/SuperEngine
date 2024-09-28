@@ -34,13 +34,24 @@ class zitaResampler {
   zitaResampler(int freq);
   ~zitaResampler();
 
-  void Resample(AudioData& in_data);
+  void Resample(AudioData&);
 
  private:
   int target_frequency_;
 
   struct Context;
   std::unique_ptr<Context> data_;
+};
+
+class srcResampler{
+public:
+  srcResampler(int freq);
+  ~srcResampler();
+
+  void Resample(AudioData&);
+
+private:
+  int target_frequency_;
 };
 
 using Resampler = zitaResampler;

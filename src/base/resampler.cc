@@ -24,6 +24,7 @@
 
 #include "base/resampler.h"
 
+#include "samplerate.h"
 #include "zita-resampler/resampler.h"
 
 #include <algorithm>
@@ -47,24 +48,24 @@ zitaResampler::zitaResampler(int freq)
 
 zitaResampler::~zitaResampler() = default;
 
-void zitaResampler::Resample(AudioData& in_data) {
-  if (in_data.spec.sample_rate == target_frequency_)
+void zitaResampler::Resample(AudioData& pcm) {
+  if (pcm.spec.sample_rate == target_frequency_)
     return;
 
   zr::Resampler& impl = data_->impl;
 
   const auto hlen = 96;
-  const auto channels = in_data.spec.channel_count;
-  if (impl.setup(in_data.spec.sample_rate, target_frequency_, channels, hlen)) {
+  const auto channels = pcm.spec.channel_count;
+  if (impl.setup(pcm.spec.sample_rate, target_frequency_, channels, hlen)) {
     std::ostringstream os;
     os << "Sample rate ratio " << target_frequency_ << '/'
-       << in_data.spec.sample_rate << " is not supported.";
+       << pcm.spec.sample_rate << " is not supported.";
     throw std::runtime_error(os.str());
   }
 
-  auto in_pcm = in_data.GetAs<float>();
+  auto in_pcm = pcm.GetAs<float>();
   std::vector<float> out_pcm(
-      in_pcm.size() * target_frequency_ / in_data.spec.sample_rate + 1024, 0);
+      in_pcm.size() * target_frequency_ / pcm.spec.sample_rate + 1024, 0);
 
   impl.inp_count = in_pcm.size();
   impl.out_count = out_pcm.size();
@@ -76,7 +77,50 @@ void zitaResampler::Resample(AudioData& in_data) {
     throw std::runtime_error("Resampler error");
 
   out_pcm.resize(out_pcm.size() - impl.out_count);
-  in_data.spec.sample_rate = target_frequency_;
-  in_data.data = std::move(out_pcm);
-  in_data.data = in_data.GetAs(in_data.spec.sample_format);
+  pcm.spec.sample_rate = target_frequency_;
+  pcm.data = std::move(out_pcm);
+  pcm.data = pcm.GetAs(pcm.spec.sample_format);
+}
+
+// -----------------------------------------------------------------------
+// class srcResampler
+// -----------------------------------------------------------------------
+
+srcResampler::srcResampler(int freq) : target_frequency_(freq) {}
+srcResampler::~srcResampler() = default;
+
+void srcResampler::Resample(AudioData& pcm) {
+  const double ratio =
+      static_cast<double>(target_frequency_) / pcm.spec.sample_rate;
+  const auto channels = pcm.spec.channel_count;
+  auto input = pcm.GetAs<float>();
+  std::vector<float> output(input.size() * ratio + 1024, 0);
+
+  SRC_DATA src_data;
+  src_data.data_in = input.data();
+  src_data.input_frames = input.size() / channels;
+  src_data.data_out = output.data();
+  src_data.output_frames = output.size() / channels;
+  src_data.src_ratio = ratio;
+  const auto src_quality = SRC_SINC_BEST_QUALITY;
+
+  int error_code;
+  if ((error_code = src_simple(&src_data, src_quality, channels)) != 0) {
+    using std::string_literals::operator""s;
+    throw std::runtime_error("srcResampler: error converting samples. "s +
+                             src_strerror(error_code));
+  }
+
+  if (src_data.input_frames_used * channels != input.size()) {
+    std::ostringstream oss;
+    oss << "srcResampler: resample incomplete. (";
+    oss << src_data.input_frames_used * channels;
+    oss << " out of " << input.size() << " converted)";
+    throw std::runtime_error(oss.str());
+  }
+
+  output.resize(src_data.output_frames_gen * channels);
+  pcm.spec.sample_rate = target_frequency_;
+  pcm.data = std::move(output);
+  pcm.data = pcm.GetAs(pcm.spec.sample_format);
 }
