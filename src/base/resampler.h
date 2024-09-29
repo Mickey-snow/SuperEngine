@@ -54,6 +54,6 @@ private:
   int target_frequency_;
 };
 
-using Resampler = zitaResampler;
+using Resampler = srcResampler;
 
 #endif
