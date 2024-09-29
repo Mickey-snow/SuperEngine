@@ -31,6 +31,9 @@
 #include <string>
 #include <vector>
 
+#include "libreallive/expression.h"
+#include "libreallive/gameexe.h"
+#include "libreallive/parser.h"
 #include "machine/long_operation.h"
 #include "machine/rlmachine.h"
 #include "systems/base/event_listener.h"
@@ -42,18 +45,10 @@
 #include "systems/base/text_system.h"
 #include "systems/base/text_window.h"
 #include "utilities/string_utilities.h"
-#include "libreallive/parser.h"
-#include "libreallive/expression.h"
-#include "libreallive/gameexe.h"
 
 using libreallive::CommandElement;
 using libreallive::SelectElement;
-using std::cerr;
-using std::distance;
-using std::endl;
 using std::placeholders::_1;
-using std::string;
-using std::vector;
 
 // -----------------------------------------------------------------------
 // SelectLongOperation
@@ -79,7 +74,8 @@ SelectLongOperation::SelectLongOperation(RLMachine& machine,
           bool value = false;
           if (condition.condition != "") {
             const char* location = condition.condition.c_str();
-            libreallive::Expression condition(libreallive::ExpressionParser::GetExpression(location));
+            libreallive::Expression condition(
+                libreallive::ExpressionParser::GetExpression(location));
             value = !condition->GetIntegerValue(machine);
           }
 
@@ -90,7 +86,8 @@ SelectLongOperation::SelectLongOperation(RLMachine& machine,
           bool enabled = false;
           if (condition.condition != "") {
             const char* location = condition.condition.c_str();
-            libreallive::Expression condition(libreallive::ExpressionParser::GetExpression(location));
+            libreallive::Expression condition(
+                libreallive::ExpressionParser::GetExpression(location));
             enabled = !condition->GetIntegerValue(machine);
           }
 
@@ -110,12 +107,14 @@ SelectLongOperation::SelectLongOperation(RLMachine& machine,
           break;
         }
         default:
-          cerr << "Unsupported option in select statement "
-               << "(condition: "
-               << libreallive::ParsableToPrintableString(condition.condition)
-               << ", effect: " << condition.effect << ", effect_argument: "
-               << libreallive::ParsableToPrintableString(
-                      condition.effect_argument) << ")" << endl;
+          std::cerr << "Unsupported option in select statement "
+                    << "(condition: "
+                    << libreallive::ParsableToPrintableString(
+                           condition.condition)
+                    << ", effect: " << condition.effect << ", effect_argument: "
+                    << libreallive::ParsableToPrintableString(
+                           condition.effect_argument)
+                    << ")" << std::endl;
           break;
       }
     }
@@ -135,9 +134,8 @@ void SelectLongOperation::SelectByIndex(int num) {
 
 bool SelectLongOperation::SelectByText(const std::string& str) {
   std::vector<Option>::iterator it =
-      find_if(options_.begin(), options_.end(), [&](Option& o) {
-        return o.str == str;
-      });
+      find_if(options_.begin(), options_.end(),
+              [&](Option& o) { return o.str == str; });
 
   if (it != options_.end() && it->shown) {
     SelectByIndex(distance(options_.begin(), it));
@@ -183,8 +181,9 @@ NormalSelectLongOperation::NormalSelectLongOperation(
     // TODO(erg): Also deal with colour.
     if (options_[i].shown) {
       if (options_[i].use_colour == true || options_[i].enabled == false) {
-        cerr << "We don't deal with color/enabled state in normal selections..."
-             << endl;
+        std::cerr
+            << "We don't deal with color/enabled state in normal selections..."
+            << std::endl;
       }
 
       text_window_->AddSelectionItem(options_[i].str, i);
@@ -249,7 +248,7 @@ ButtonSelectLongOperation::ButtonSelectLongOperation(
   Gameexe& gexe = machine.system().gameexe();
   GameexeInterpretObject selbtn(gexe("SELBTN", selbtn_set));
 
-  vector<int> vec = selbtn("BASEPOS");
+  std::vector<int> vec = selbtn("BASEPOS");
   basepos_x_ = vec.at(0);
   basepos_y_ = vec.at(1);
 
@@ -314,8 +313,8 @@ ButtonSelectLongOperation::ButtonSelectLongOperation(
 
   // Build graphic representations of the choices to display to the user.
   TextSystem& ts = machine.system().text();
-  int shown_option_count = std::count_if(
-      options_.begin(), options_.end(), [&](Option& o) { return o.shown; });
+  int shown_option_count = std::count_if(options_.begin(), options_.end(),
+                                         [&](Option& o) { return o.shown; });
 
   // Calculate out the bounding rectangles for all the options.
   Size screen_size = machine.system().graphics().screen_size();
@@ -457,8 +456,7 @@ void ButtonSelectLongOperation::Render() {
 
     if (back_surface_) {
       back_surface_->RenderToScreenAsColorMask(back_surface_->GetRect(),
-                                               bounding_rect,
-                                               window_bg_colour_,
+                                               bounding_rect, window_bg_colour_,
                                                window_filter_);
     }
     if (name_surface_) {

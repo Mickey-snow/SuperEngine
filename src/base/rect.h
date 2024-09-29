@@ -116,6 +116,7 @@ class Size {
     ar & width_ & height_;
   }
 };
+
 class Rect {
  public:
   // Constructors

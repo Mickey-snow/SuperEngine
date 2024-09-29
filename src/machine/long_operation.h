@@ -73,7 +73,7 @@ class PerformAfterLongOperationDecorator : public LongOperation {
   virtual bool KeyStateChanged(KeyCode key_code, bool pressed) override;
 
   // Overridden from LongOperation:
-  virtual bool operator()(RLMachine& machine);
+  virtual bool operator()(RLMachine& machine) override;
 
  private:
   // Payload of decorator implemented by subclasses
