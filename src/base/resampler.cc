@@ -33,6 +33,8 @@
 #include <stdexcept>
 #include <type_traits>
 
+static const auto clamp_flt = [](float& x) { x = std::clamp(x, -1.0f, 1.0f); };
+
 // -----------------------------------------------------------------------
 // class zitaResampler
 // -----------------------------------------------------------------------
@@ -78,8 +80,9 @@ void zitaResampler::Resample(AudioData& pcm) {
 
   out_pcm.resize(out_pcm.size() - impl.out_count);
   pcm.spec.sample_rate = target_frequency_;
+  pcm.spec.sample_format = AV_SAMPLE_FMT::FLT;
+  std::for_each(out_pcm.begin(), out_pcm.end(), clamp_flt);
   pcm.data = std::move(out_pcm);
-  pcm.data = pcm.GetAs(pcm.spec.sample_format);
 }
 
 // -----------------------------------------------------------------------
@@ -120,7 +123,9 @@ void srcResampler::Resample(AudioData& pcm) {
   }
 
   output.resize(src_data.output_frames_gen * channels);
+  std::for_each(output.begin(), output.end(), clamp_flt);
+
   pcm.spec.sample_rate = target_frequency_;
+  pcm.spec.sample_format = AV_SAMPLE_FMT::FLT;
   pcm.data = std::move(output);
-  pcm.data = pcm.GetAs(pcm.spec.sample_format);
 }

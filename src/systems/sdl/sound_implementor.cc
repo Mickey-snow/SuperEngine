@@ -46,7 +46,10 @@ class SDLAudioLocker {
 
 class SDLSoundImpl::SDLSoundChunk {
  public:
-  SDLSoundChunk(Mix_Chunk* chunk) : chunk_(chunk) {}
+  SDLSoundChunk() : chunk_(new Mix_Chunk) {
+    if (!chunk_)
+      throw std::runtime_error("SDLSoundChunk: Failed to create a Mix_Chunk");
+  }
   ~SDLSoundChunk() { Mix_FreeChunk(chunk_); }
 
   Mix_Chunk* Get() const noexcept { return chunk_; }
@@ -125,19 +128,38 @@ int SDLSoundImpl::PlayChannel(int channel, std::shared_ptr<AudioPlayer> audio) {
     resampler.Resample(audio_data);
   }
 
-  std::vector<uint8_t> pcm = EncodeWav(std::move(audio_data));
-  Mix_Chunk* sound_chunk =
-      Mix_LoadWAV_RW(SDL_RWFromMem(pcm.data(), pcm.size()), 1);
-  if (!sound_chunk)
-    throw std::runtime_error("SDL failed to create a new chunk.");
+  std::vector<uint8_t> pcm = std::visit(
+      [&](auto&& pcm_data) -> std::vector<uint8_t> {
+        using container_t = std::decay_t<decltype(pcm_data)>;
+        using value_t = typename container_t::value_type;
 
-  ch_[channel] =
-      (ChannelInfo){.player = audio,
-                    .implementor = this,
-                    .buffer = std::move(pcm),
-                    .chunk = std::make_unique<SDLSoundChunk>(sound_chunk)};
+        // TODO: For now, this is the only place where mono to stereo conversion
+        // is needed. Consider extract function and pull it up to `AudioData` if
+        // needed frequently in the future
+        if (spec_.channel_count == 2 && audio_data.spec.channel_count == 1) {
+          pcm_data.resize(pcm_data.size() * 2);
+          for (size_t i = pcm_data.size(); i-- > 0;)
+            pcm_data[i] = pcm_data[i >> 1];
+        }
 
-  int ret = Mix_PlayChannel(channel, sound_chunk, 0);
+        std::vector<uint8_t> raw_bytes(pcm_data.size() * sizeof(value_t));
+        std::memmove(raw_bytes.data(), pcm_data.data(), raw_bytes.size());
+        return raw_bytes;
+      },
+      audio_data.GetAs(spec_.sample_format));
+  auto sound_chunk = std::make_unique<SDLSoundChunk>();
+  Mix_Chunk* mix_chunk = sound_chunk->Get();
+  mix_chunk->allocated = 0;
+  mix_chunk->volume = MIX_MAX_VOLUME;
+  mix_chunk->abuf = pcm.data();
+  mix_chunk->alen = pcm.size();
+
+  ch_[channel] = (ChannelInfo){.player = audio,
+                               .implementor = this,
+                               .buffer = std::move(pcm),
+                               .chunk = std::move(sound_chunk)};
+
+  int ret = Mix_PlayChannel(channel, mix_chunk, 0);
   if (ret == -1) {
     ch_[channel].Reset();
     throw std::runtime_error("Failed to play on channel: " +

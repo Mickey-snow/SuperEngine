@@ -120,6 +120,13 @@ struct AudioData {
 
             else if constexpr (std::is_floating_point<InType>::value &&
                                std::is_integral<OutType>::value) {
+              if (sample < -1.0 || sample > 1.0) {
+                throw std::out_of_range(
+                    "Floating point samples should be within range [-1.0,1.0], "
+                    "got: " +
+                    std::to_string(sample));
+              }
+
               result.push_back(scale_to_int(sample));
             } else if constexpr (std::is_integral<InType>::value &&
                                  std::is_floating_point<OutType>::value) {
