@@ -49,8 +49,7 @@ Expression ExpressionElement::ParsedExpression() const {
   return parsed_expression_;
 }
 
-std::string ExpressionElement::GetSourceRepresentation(
-    RLMachine* machine) const {
+std::string ExpressionElement::GetSourceRepresentation(IModuleManager*) const {
   return ParsedExpression()->GetDebugString();
 }
 

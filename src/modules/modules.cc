@@ -29,8 +29,8 @@
 
 #include "modules/module_bgm.h"
 #include "modules/module_bgr.h"
-#include "modules/module_dll.h"
 #include "modules/module_debug.h"
+#include "modules/module_dll.h"
 #include "modules/module_event_loop.h"
 #include "modules/module_g00.h"
 #include "modules/module_gan.h"
@@ -42,8 +42,8 @@
 #include "modules/module_msg.h"
 #include "modules/module_obj_creation.h"
 #include "modules/module_obj_fg_bg.h"
-#include "modules/module_obj_management.h"
 #include "modules/module_obj_getters.h"
+#include "modules/module_obj_management.h"
 #include "modules/module_os.h"
 #include "modules/module_pcm.h"
 #include "modules/module_refresh.h"
@@ -57,54 +57,54 @@
 #include "systems/base/graphics_system.h"
 #include "systems/base/system.h"
 
-void AddAllModules(RLMachine& rlmachine) {
+void AddAllModules(IModuleManager& manager) {
   // Attatch the modules for some commands
-  rlmachine.AttachModule(new BgmModule);
-  rlmachine.AttachModule(new BgrModule);
-  rlmachine.AttachModule(new BraModule);
-  rlmachine.AttachModule(new ChildGanBgModule);
-  rlmachine.AttachModule(new ChildGanFgModule);
-  rlmachine.AttachModule(new ChildObjBgCreationModule);
-  rlmachine.AttachModule(new ChildObjBgGettersModule);
-  rlmachine.AttachModule(new ChildObjBgManagement);
-  rlmachine.AttachModule(new ChildObjBgModule);
-  rlmachine.AttachModule(new ChildObjFgCreationModule);
-  rlmachine.AttachModule(new ChildObjFgGettersModule);
-  rlmachine.AttachModule(new ChildObjFgManagement);
-  rlmachine.AttachModule(new ChildObjFgModule);
-  rlmachine.AttachModule(new ChildObjRangeBgModule);
-  rlmachine.AttachModule(new ChildObjRangeFgModule);
-  rlmachine.AttachModule(new DLLModule);
-  rlmachine.AttachModule(new DebugModule);
-  rlmachine.AttachModule(new EventLoopModule);
-  rlmachine.AttachModule(new G00Module);
-  rlmachine.AttachModule(new GanBgModule);
-  rlmachine.AttachModule(new GanFgModule);
-  rlmachine.AttachModule(new GrpModule);
-  rlmachine.AttachModule(new JmpModule);
-  rlmachine.AttachModule(new KoeModule);
-  rlmachine.AttachModule(new LayeredShakingModule);
-  rlmachine.AttachModule(new MemModule);
-  rlmachine.AttachModule(new MovModule);
-  rlmachine.AttachModule(new MsgModule);
-  rlmachine.AttachModule(new ObjBgCreationModule);
-  rlmachine.AttachModule(new ObjBgGettersModule);
-  rlmachine.AttachModule(new ObjBgManagement);
-  rlmachine.AttachModule(new ObjBgModule);
-  rlmachine.AttachModule(new ObjFgCreationModule);
-  rlmachine.AttachModule(new ObjFgGettersModule);
-  rlmachine.AttachModule(new ObjFgManagement);
-  rlmachine.AttachModule(new ObjFgModule);
-  rlmachine.AttachModule(new ObjManagement);
-  rlmachine.AttachModule(new ObjRangeBgModule);
-  rlmachine.AttachModule(new ObjRangeFgModule);
-  rlmachine.AttachModule(new OsModule);
-  rlmachine.AttachModule(new PcmModule);
-  rlmachine.AttachModule(new RefreshModule);
-  rlmachine.AttachModule(new ScrModule);
-  rlmachine.AttachModule(new SeModule);
-  rlmachine.AttachModule(new SelModule);
-  rlmachine.AttachModule(new ShakingModule);
-  rlmachine.AttachModule(new StrModule);
-  rlmachine.AttachModule(new SysModule);
+  manager.AttachModule(new BgmModule);
+  manager.AttachModule(new BgrModule);
+  manager.AttachModule(new BraModule);
+  manager.AttachModule(new ChildGanBgModule);
+  manager.AttachModule(new ChildGanFgModule);
+  manager.AttachModule(new ChildObjBgCreationModule);
+  manager.AttachModule(new ChildObjBgGettersModule);
+  manager.AttachModule(new ChildObjBgManagement);
+  manager.AttachModule(new ChildObjBgModule);
+  manager.AttachModule(new ChildObjFgCreationModule);
+  manager.AttachModule(new ChildObjFgGettersModule);
+  manager.AttachModule(new ChildObjFgManagement);
+  manager.AttachModule(new ChildObjFgModule);
+  manager.AttachModule(new ChildObjRangeBgModule);
+  manager.AttachModule(new ChildObjRangeFgModule);
+  manager.AttachModule(new DLLModule);
+  manager.AttachModule(new DebugModule);
+  manager.AttachModule(new EventLoopModule);
+  manager.AttachModule(new G00Module);
+  manager.AttachModule(new GanBgModule);
+  manager.AttachModule(new GanFgModule);
+  manager.AttachModule(new GrpModule);
+  manager.AttachModule(new JmpModule);
+  manager.AttachModule(new KoeModule);
+  manager.AttachModule(new LayeredShakingModule);
+  manager.AttachModule(new MemModule);
+  manager.AttachModule(new MovModule);
+  manager.AttachModule(new MsgModule);
+  manager.AttachModule(new ObjBgCreationModule);
+  manager.AttachModule(new ObjBgGettersModule);
+  manager.AttachModule(new ObjBgManagement);
+  manager.AttachModule(new ObjBgModule);
+  manager.AttachModule(new ObjFgCreationModule);
+  manager.AttachModule(new ObjFgGettersModule);
+  manager.AttachModule(new ObjFgManagement);
+  manager.AttachModule(new ObjFgModule);
+  manager.AttachModule(new ObjManagement);
+  manager.AttachModule(new ObjRangeBgModule);
+  manager.AttachModule(new ObjRangeFgModule);
+  manager.AttachModule(new OsModule);
+  manager.AttachModule(new PcmModule);
+  manager.AttachModule(new RefreshModule);
+  manager.AttachModule(new ScrModule);
+  manager.AttachModule(new SeModule);
+  manager.AttachModule(new SelModule);
+  manager.AttachModule(new ShakingModule);
+  manager.AttachModule(new StrModule);
+  manager.AttachModule(new SysModule);
 }

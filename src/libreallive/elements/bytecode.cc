@@ -52,12 +52,12 @@ BytecodeElement::~BytecodeElement() {}
 
 BytecodeElement::BytecodeElement(const BytecodeElement& c) {}
 
-void BytecodeElement::PrintSourceRepresentation(RLMachine* machine,
+void BytecodeElement::PrintSourceRepresentation(IModuleManager* manager,
                                                 std::ostream& oss) const {
-  oss << GetSourceRepresentation(machine) << std::endl;
+  oss << GetSourceRepresentation(manager) << std::endl;
 }
 
-std::string BytecodeElement::GetSourceRepresentation(RLMachine* machine) const {
+std::string BytecodeElement::GetSourceRepresentation(IModuleManager*) const {
   return "<unspecified bytecode>";
 }
 

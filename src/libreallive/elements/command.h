@@ -102,7 +102,7 @@ class CommandElement : public BytecodeElement {
   virtual Expression GetCase(int i) const;
 
   // Overridden from BytecodeElement:
-  virtual std::string GetSourceRepresentation(RLMachine* machine) const;
+  virtual std::string GetSourceRepresentation(IModuleManager*) const override;
   virtual void RunOnMachine(RLMachine& machine) const final;
 
  protected:
@@ -193,7 +193,7 @@ class GotoElement : public CommandElement {
   virtual std::string GetParam(int i) const final;
   virtual const size_t GetPointersCount() const final;
   virtual pointer_t GetPointer(int i) const final;
-  virtual std::string GetSourceRepresentation(RLMachine*) const override;
+  virtual std::string GetSourceRepresentation(IModuleManager*) const override;
 
   // Overridden from BytecodeElement:
   virtual const size_t GetBytecodeLength() const final;
@@ -212,7 +212,7 @@ class GotoIfElement : public CommandElement {
   // Overridden from CommandElement:
   virtual const size_t GetPointersCount() const final;
   virtual pointer_t GetPointer(int i) const final;
-  virtual std::string GetSourceRepresentation(RLMachine*) const override;
+  virtual std::string GetSourceRepresentation(IModuleManager*) const override;
 
   // Overridden from BytecodeElement:
   virtual const size_t GetBytecodeLength() const final;
@@ -241,7 +241,7 @@ class GotoCaseElement : public CommandElement {
   virtual const size_t GetParamCount() const final;
   virtual size_t GetCaseCount() const final;
   virtual Expression GetCase(int i) const final;
-  virtual std::string GetSourceRepresentation(RLMachine*) const override;
+  virtual std::string GetSourceRepresentation(IModuleManager*) const override;
 
   const size_t GetPointersCount() const final;
   pointer_t GetPointer(int) const final;
@@ -268,8 +268,7 @@ class GotoOnElement : public CommandElement {
   const size_t GetPointersCount() const final;
   pointer_t GetPointer(int) const final;
   void SetPointers(ConstructionData& cdata) final;
-  virtual std::string GetSourceRepresentation(
-      RLMachine* machine) const override;
+  virtual std::string GetSourceRepresentation(IModuleManager*) const override;
 
   // Overridden from BytecodeElement:
   const size_t GetBytecodeLength() const final;
@@ -291,8 +290,7 @@ class GosubWithElement : public CommandElement {
   // Overridden from CommandElement:
   virtual const size_t GetPointersCount() const final;
   virtual pointer_t GetPointer(int i) const final;
-  virtual std::string GetSourceRepresentation(
-      RLMachine* machine) const override;
+  virtual std::string GetSourceRepresentation(IModuleManager*) const override;
 
   // Overridden from BytecodeElement:
   virtual const size_t GetBytecodeLength() const final;

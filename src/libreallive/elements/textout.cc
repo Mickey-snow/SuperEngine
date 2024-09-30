@@ -67,7 +67,7 @@ std::string TextoutElement::GetText() const {
   return rv;
 }
 
-std::string TextoutElement::GetSourceRepresentation(RLMachine* machine) const {
+std::string TextoutElement::GetSourceRepresentation(IModuleManager*) const {
   return "\"" + GetText() + "\"";
 }
 

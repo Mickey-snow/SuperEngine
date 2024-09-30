@@ -40,7 +40,7 @@ MetaElement::MetaElement(const MetaElementType& type,
 
 MetaElement::~MetaElement() {}
 
-std::string MetaElement::GetSourceRepresentation(RLMachine* machine) const {
+std::string MetaElement::GetSourceRepresentation(IModuleManager*) const {
   using std::string_literals::operator""s;
 
   if (type_ == Line_)
