@@ -122,8 +122,7 @@ class RLModule {
   void DispatchFunction(RLMachine& machine,
                         const libreallive::CommandElement& f);
 
-  std::string GetCommandName(RLMachine& machine,
-                             const libreallive::CommandElement& f);
+  std::string GetCommandName(const libreallive::CommandElement& f);
 
   OpcodeMap::iterator begin() { return stored_operations_.begin(); }
   OpcodeMap::iterator end() { return stored_operations_.end(); }

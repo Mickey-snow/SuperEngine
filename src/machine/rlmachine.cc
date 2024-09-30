@@ -33,7 +33,6 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <filesystem>
-#include <filesystem>
 
 #include <functional>
 #include <iostream>
@@ -43,10 +42,10 @@
 #include <vector>
 
 #include "libreallive/archive.h"
-#include "libreallive/parser.h"
 #include "libreallive/expression.h"
 #include "libreallive/gameexe.h"
 #include "libreallive/intmemref.h"
+#include "libreallive/parser.h"
 #include "libreallive/scenario.h"
 #include "long_operations/pause_long_operation.h"
 #include "long_operations/textout_long_operation.h"
@@ -135,7 +134,8 @@ RLMachine::RLMachine(System& in_system, libreallive::Archive& in_archive)
   for (; it != end; ++it) {
     const std::string& name = it->ToString("");
     try {
-      std::string index_str = it->key().substr(it->key().find_first_of(".") + 1);
+      std::string index_str =
+          it->key().substr(it->key().find_first_of(".") + 1);
       int index = std::stoi(index_str);
       LoadDLL(index, name);
     } catch (rlvm::Exception& e) {
@@ -331,7 +331,7 @@ std::string RLMachine::GetCommandName(const libreallive::CommandElement& f) {
       modules_.find(PackModuleNumber(f.modtype(), f.module()));
   std::string name;
   if (it != modules_.end())
-    name = it->second->GetCommandName(*this, f);
+    name = it->second->GetCommandName(f);
   return name;
 }
 
@@ -578,8 +578,8 @@ void RLMachine::PerformTextout(const std::string& cp932str) {
   TextSystem& ts = system().text();
 
   // Display UTF-8 characters
-  std::unique_ptr<TextoutLongOperation> ptr = 
-    std::make_unique<TextoutLongOperation>(*this, utf8str);
+  std::unique_ptr<TextoutLongOperation> ptr =
+      std::make_unique<TextoutLongOperation>(*this, utf8str);
 
   if (system().ShouldFastForward() || ts.message_no_wait() ||
       ts.script_message_nowait()) {

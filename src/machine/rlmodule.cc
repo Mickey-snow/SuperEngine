@@ -29,9 +29,9 @@
 
 #include <iomanip>
 #include <iostream>
-#include <utility>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "libreallive/parser.h"
@@ -87,11 +87,9 @@ void RLModule::AddOpcode(int opcode,
 void RLModule::AddUnsupportedOpcode(int opcode,
                                     unsigned char overload,
                                     const std::string& name) {
-  AddOpcode(opcode,
-            overload,
-            name,
-            new UndefinedFunction(
-                module_type_, module_number_, opcode, (int)overload));
+  AddOpcode(opcode, overload, name,
+            new UndefinedFunction(module_type_, module_number_, opcode,
+                                  (int)overload));
 }
 
 void RLModule::SetProperty(int property, int value) {
@@ -122,13 +120,11 @@ bool RLModule::GetProperty(int property, int& value) const {
 }
 
 RLModule::PropertyList::iterator RLModule::FindProperty(int property) const {
-  return find_if(property_list_->begin(),
-                 property_list_->end(),
+  return find_if(property_list_->begin(), property_list_->end(),
                  [&](Property& p) { return p.first == property; });
 }
 
-std::string RLModule::GetCommandName(RLMachine& machine,
-                                     const libreallive::CommandElement& f) {
+std::string RLModule::GetCommandName(const libreallive::CommandElement& f) {
   OpcodeMap::iterator it =
       stored_operations_.find(PackOpcodeNumber(f.opcode(), f.overload()));
   std::string name;
@@ -145,16 +141,14 @@ void RLModule::DispatchFunction(RLMachine& machine,
     try {
       if (machine.is_tracing_on()) {
         std::cerr << "(SEEN" << std::setw(4) << std::setfill('0')
-                  << machine.SceneNumber()
-                  << ")(Line " << std::setw(4) << std::setfill('0')
-                  << machine.line_number() << "): " << it->second->name();
-        libreallive::PrintParameterString(std::cerr,
-                                          f.GetParsedParameters());
+                  << machine.SceneNumber() << ")(Line " << std::setw(4)
+                  << std::setfill('0') << machine.line_number()
+                  << "): " << it->second->name();
+        libreallive::PrintParameterString(std::cerr, f.GetParsedParameters());
         std::cerr << std::endl;
       }
       it->second->DispatchFunction(machine, f);
-    }
-    catch (rlvm::Exception& e) {
+    } catch (rlvm::Exception& e) {
       e.setOperation(it->second.get());
       throw;
     }
