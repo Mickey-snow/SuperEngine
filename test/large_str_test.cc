@@ -27,9 +27,9 @@
 
 #include "gtest/gtest.h"
 
-#include "modules/module_str.h"
 #include "libreallive/archive.h"
 #include "libreallive/intmemref.h"
+#include "modules/module_str.h"
 
 #include "machine/rlmachine.h"
 
@@ -37,8 +37,8 @@
 
 #include "test_utils.h"
 
-#include <string>
 #include <iostream>
+#include <string>
 
 using namespace std;
 using namespace libreallive;
@@ -53,7 +53,7 @@ TEST(LargeModuleStrTest, strcpy0) {
   libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strcpy_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   string one = rlmachine.GetStringValue(STRS_LOCATION, 0);
@@ -70,7 +70,7 @@ TEST(LargeModuleStrTest, strcpy1) {
   libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strcpy_1.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   string one = rlmachine.GetStringValue(STRS_LOCATION, 0);
@@ -89,7 +89,7 @@ TEST(LargeModuleStrTest, strclear0) {
   libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strclear_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   string one = rlmachine.GetStringValue(STRS_LOCATION, 0);
@@ -112,7 +112,7 @@ TEST(LargeModuleStrTest, strclear1) {
   libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strclear_1.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   string one = rlmachine.GetStringValue(STRS_LOCATION, 0);
@@ -138,7 +138,7 @@ TEST(LargeModuleStrTest, strcat) {  // NOLINT
   libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strcat_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   string one = rlmachine.GetStringValue(STRS_LOCATION, 0);
@@ -156,7 +156,7 @@ TEST(LargeModuleStrTest, strlen) {
   libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strlen_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   int one = rlmachine.GetIntValue(IntMemRef('A', 0));
@@ -179,7 +179,7 @@ TEST(LargeModuleStrTest, strcmp) {
   libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strcmp_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ(strcmp("a", "b"), rlmachine.GetIntValue(IntMemRef('A', 0)))
@@ -195,7 +195,7 @@ TEST(LargeModuleStrTest, strsub0_ascii) {
   libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strsub_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ("lid", rlmachine.GetStringValue(STRS_LOCATION, 1))
@@ -211,7 +211,7 @@ TEST(LargeModuleStrTest, strsub0_shiftjis) {
   libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strsub_1.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ("\x82\xDC\x82\xBE\x8A\x6F\x82\xA6\x82\xC4\x82\xE9\x81\x48",
@@ -228,7 +228,7 @@ TEST(LargeModuleStrTest, strsub1_ascii) {
   libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strsub_2.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ("al", rlmachine.GetStringValue(STRS_LOCATION, 1))
@@ -244,7 +244,7 @@ TEST(LargeModuleStrTest, strsub1_shiftjis) {
   libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strsub_3.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ("\x96\xBC\x91\x4F", rlmachine.GetStringValue(STRS_LOCATION, 1))
@@ -262,7 +262,7 @@ TEST(LargeModuleStrTest, strrsub_0) {
   libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strrsub_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ("id", rlmachine.GetStringValue(STRS_LOCATION, 1))
@@ -278,7 +278,7 @@ TEST(LargeModuleStrTest, strrsub_1) {
   libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strrsub_1.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ("i", rlmachine.GetStringValue(STRS_LOCATION, 1))
@@ -294,7 +294,7 @@ TEST(LargeModuleStrTest, strcharlen_ascii) {
   libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strcharlen_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ(5, rlmachine.GetIntValue(IntMemRef('A', 0)))
@@ -310,7 +310,7 @@ TEST(LargeModuleStrTest, srcharlen_shiftjis) {
   libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strcharlen_1.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ(14, rlmachine.GetIntValue(IntMemRef('A', 0)))
@@ -326,7 +326,7 @@ TEST(LargeModuleStrTest, strtrunc_ascii) {
   libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strtrunc_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ("va", rlmachine.GetStringValue(STRS_LOCATION, 0))
@@ -338,7 +338,7 @@ TEST(LargeModuleStrTest, strtrunc_shiftjis) {
   libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strtrunc_1.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ("\x82\xED\x82\xBD\x82\xB5",
@@ -355,7 +355,7 @@ TEST(LargeModuleStrTest, hantozen_ascii) {
   libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/hantozen_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ("\x82\x50\x82\x51\x82\x52\x82\x53\x82\x54",
@@ -373,7 +373,7 @@ TEST(LargeModuleStrTest, hantozen_half_width_katakana) {
   libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/hantozen_1.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ("\x83\x8F\x83\x5E\x83\x56\x83\x6D\x83\x69\x83\x7D\x83\x47",
@@ -390,7 +390,7 @@ TEST(LargeModuleStrTest, hantozen_fullwidth_ascii) {
   libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/zentohan_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ("12345", rlmachine.GetStringValue(STRS_LOCATION, 0))
@@ -406,7 +406,7 @@ TEST(LargeModuleStrTest, zentohan_fullwidth_katakana) {
   libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/zentohan_1.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ("\xDC\xC0\xBC\xC9\xC5\xCF\xB4",
@@ -424,7 +424,7 @@ TEST(LargeModuleStrTest, Uppercase_0) {
   libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/uppercase_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ("VALID", rlmachine.GetStringValue(STRS_LOCATION, 0))
@@ -441,7 +441,7 @@ TEST(LargeModuleStrTest, Uppercase_1) {
   libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/uppercase_1.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ("Valid", rlmachine.GetStringValue(STRS_LOCATION, 0))
@@ -460,7 +460,7 @@ TEST(LargeModuleStrTest, Lowercase_0) {
   libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/lowercase_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ("valid", rlmachine.GetStringValue(STRS_LOCATION, 0))
@@ -477,7 +477,7 @@ TEST(LargeModuleStrTest, Lowercase_1) {
   libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/lowercase_1.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ("Valid", rlmachine.GetStringValue(STRS_LOCATION, 0))
@@ -497,7 +497,7 @@ TEST(LargeModuleStrTest, itoa_ws) {
   libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/itoa_ws_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ("\x81\x7C\x82\x50", rlmachine.GetStringValue(STRS_LOCATION, 0))
@@ -523,7 +523,7 @@ TEST(LargeModuleStrTest, itoa_s) {
   libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/itoa_s_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ("-1", rlmachine.GetStringValue(STRS_LOCATION, 0))
@@ -547,7 +547,7 @@ TEST(LargeModuleStrTest, itoa_w) {
   libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/itoa_w_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ("\x81\x7C\x82\x50", rlmachine.GetStringValue(STRS_LOCATION, 0))
@@ -573,7 +573,7 @@ TEST(LargeModuleStrTest, itoa) {
   libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/itoa_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ("-1", rlmachine.GetStringValue(STRS_LOCATION, 0))
@@ -598,7 +598,7 @@ TEST(LargeModuleStrTest, atoi) {
   libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/atoi_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ(15, rlmachine.GetIntValue(IntMemRef('A', 0)))
@@ -623,7 +623,7 @@ TEST(LargeModuleStrTest, digits) {
   libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/digits_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ(1, rlmachine.GetIntValue(IntMemRef('A', 0)))
@@ -644,7 +644,7 @@ TEST(LargeModuleStrTest, strpos) {
   libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strpos_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ(0, rlmachine.GetIntValue(IntMemRef('A', 0)))
@@ -665,7 +665,7 @@ TEST(LargeModuleStrTest, strlpos) {
   libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strlpos_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ(0, rlmachine.GetIntValue(IntMemRef('A', 0)))
@@ -686,7 +686,7 @@ TEST(LargeModuleStrTest, strused) {
   libreallive::Archive arc(LocateTestCase("Module_Str_SEEN/strused_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ(0, rlmachine.GetIntValue(IntMemRef('A', 0)))

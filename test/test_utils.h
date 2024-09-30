@@ -36,7 +36,6 @@
 #include "test_system/mock_event_system.h"
 #include "test_system/mock_sound_system.h"
 #include "test_system/mock_system.h"
-#include "test_system/test_machine.h"
 #include "test_system/test_system.h"
 
 // Locates a test file in the test/ directory.

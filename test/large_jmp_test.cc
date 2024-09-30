@@ -54,7 +54,7 @@ TEST(LargeJmpTest, goto) {
   libreallive::Archive arc(LocateTestCase("Module_Jmp_SEEN/goto_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new JmpModule);
+  rlmachine.GetModuleManager().AttachModule(new JmpModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ(1, rlmachine.GetIntValue(IntMemRef('A', 0)))
@@ -81,7 +81,7 @@ TEST(LargeJmpTest, goto_if_false) {
   libreallive::Archive arc(LocateTestCase("Module_Jmp_SEEN/goto_if_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new JmpModule);
+  rlmachine.GetModuleManager().AttachModule(new JmpModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ(1, rlmachine.GetIntValue(IntMemRef('A', 0)))
@@ -108,7 +108,7 @@ TEST(LargeJmpTest, goto_if_true) {
   libreallive::Archive arc(LocateTestCase("Module_Jmp_SEEN/goto_if_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new JmpModule);
+  rlmachine.GetModuleManager().AttachModule(new JmpModule);
   rlmachine.SetIntValue(IntMemRef('B', 0), 1);
 
   rlmachine.ExecuteUntilHalted();
@@ -137,7 +137,7 @@ TEST(LargeJmpTest, goto_unless_false) {
   libreallive::Archive arc(LocateTestCase("Module_Jmp_SEEN/goto_unless_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new JmpModule);
+  rlmachine.GetModuleManager().AttachModule(new JmpModule);
 
   rlmachine.ExecuteUntilHalted();
 
@@ -178,7 +178,7 @@ TEST(LargeJmpTest, goto_on) {
     libreallive::Archive arc(LocateTestCase("Module_Jmp_SEEN/goto_on_0.TXT"));
     TestSystem system;
     RLMachine rlmachine(system, arc);
-    rlmachine.AttachModule(new JmpModule);
+    rlmachine.GetModuleManager().AttachModule(new JmpModule);
     rlmachine.SetIntValue(IntMemRef('B', 0), i);
     rlmachine.ExecuteUntilHalted();
 
@@ -214,7 +214,7 @@ TEST(LargeJmpTest, goto_on_illegal) {
   libreallive::Archive arc(LocateTestCase("Module_Jmp_SEEN/goto_on_0.TXT"));
   TestSystem system(LocateTestCase("Gameexe_data/Gameexe.ini"));
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new JmpModule);
+  rlmachine.GetModuleManager().AttachModule(new JmpModule);
   rlmachine.SetIntValue(IntMemRef('B', 0), 7);
   rlmachine.ExecuteUntilHalted();
 
@@ -251,7 +251,7 @@ TEST(LargeJmpTest, goto_case) {
     libreallive::Archive arc(LocateTestCase("Module_Jmp_SEEN/goto_case_0.TXT"));
     TestSystem system;
     RLMachine rlmachine(system, arc);
-    rlmachine.AttachModule(new JmpModule);
+    rlmachine.GetModuleManager().AttachModule(new JmpModule);
     rlmachine.SetIntValue(IntMemRef('B', 0), i);
     rlmachine.ExecuteUntilHalted();
 
@@ -263,7 +263,7 @@ TEST(LargeJmpTest, goto_case) {
   libreallive::Archive arc(LocateTestCase("Module_Jmp_SEEN/goto_case_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new JmpModule);
+  rlmachine.GetModuleManager().AttachModule(new JmpModule);
   rlmachine.SetIntValue(IntMemRef('B', 0), 29);
   rlmachine.ExecuteUntilHalted();
 
@@ -293,7 +293,7 @@ TEST(LargeJmpTest, gosub_0) {
   libreallive::Archive arc(LocateTestCase("Module_Jmp_SEEN/gosub_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new JmpModule);
+  rlmachine.GetModuleManager().AttachModule(new JmpModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ(1, rlmachine.GetIntValue(IntMemRef('A', 0)))
@@ -311,7 +311,7 @@ TEST(LargeJmpTest, gosub_if_false) {
   libreallive::Archive arc(LocateTestCase("Module_Jmp_SEEN/gosub_if_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new JmpModule);
+  rlmachine.GetModuleManager().AttachModule(new JmpModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ(1, rlmachine.GetIntValue(IntMemRef('A', 0)))
@@ -329,7 +329,7 @@ TEST(LargeJmpTest, gosub_if_true) {
   libreallive::Archive arc(LocateTestCase("Module_Jmp_SEEN/gosub_if_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new JmpModule);
+  rlmachine.GetModuleManager().AttachModule(new JmpModule);
   rlmachine.SetIntValue(IntMemRef('B', 0), 1);
 
   rlmachine.ExecuteUntilHalted();
@@ -365,7 +365,7 @@ TEST(LargeJmpTest, gosub_unless_false) {
       LocateTestCase("Module_Jmp_SEEN/gosub_unless_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new JmpModule);
+  rlmachine.GetModuleManager().AttachModule(new JmpModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ(1, rlmachine.GetIntValue(IntMemRef('A', 0)))
@@ -399,7 +399,7 @@ TEST(LargeJmpTest, gosub_unless_true) {
       LocateTestCase("Module_Jmp_SEEN/gosub_unless_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new JmpModule);
+  rlmachine.GetModuleManager().AttachModule(new JmpModule);
   rlmachine.SetIntValue(IntMemRef('B', 0), 1);
 
   rlmachine.ExecuteUntilHalted();
@@ -442,7 +442,7 @@ TEST(LargeJmpTest, gosub_case) {
         LocateTestCase("Module_Jmp_SEEN/gosub_case_0.TXT"));
     TestSystem system(LocateTestCase("Gameexe_data/Gameexe.ini"));
     RLMachine rlmachine(system, arc);
-    rlmachine.AttachModule(new JmpModule);
+    rlmachine.GetModuleManager().AttachModule(new JmpModule);
     rlmachine.SetIntValue(IntMemRef('B', 0), i);
     rlmachine.ExecuteUntilHalted();
 
@@ -454,7 +454,7 @@ TEST(LargeJmpTest, gosub_case) {
   libreallive::Archive arc(LocateTestCase("Module_Jmp_SEEN/gosub_case_0.TXT"));
   TestSystem system(LocateTestCase("Gameexe_data/Gameexe.ini"));
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new JmpModule);
+  rlmachine.GetModuleManager().AttachModule(new JmpModule);
   rlmachine.SetIntValue(IntMemRef('B', 0), 29);
   rlmachine.ExecuteUntilHalted();
 
@@ -489,7 +489,7 @@ TEST(LargeJmpTest, jump) {
     libreallive::Archive arc(LocateTestCase("Module_Jmp_SEEN/jump_0.TXT"));
     TestSystem system;
     RLMachine rlmachine(system, arc);
-    rlmachine.AttachModule(new JmpModule);
+    rlmachine.GetModuleManager().AttachModule(new JmpModule);
     rlmachine.SetIntValue(IntMemRef('B', 0), i);
     rlmachine.ExecuteUntilHalted();
 
@@ -526,7 +526,7 @@ TEST(LargeJmpTest, jumpTest) {
     libreallive::Archive arc(LocateTestCase("Module_Jmp_SEEN/jumpTest.TXT"));
     TestSystem system;
     RLMachine rlmachine(system, arc);
-    rlmachine.AttachModule(new JmpModule);
+    rlmachine.GetModuleManager().AttachModule(new JmpModule);
     rlmachine.SetIntValue(IntMemRef('B', 0), i);
     rlmachine.ExecuteUntilHalted();
 
@@ -564,7 +564,7 @@ TEST(LargeJmpTest, farcall) {
         LocateTestCase("Module_Jmp_SEEN/farcallTest_0.TXT"));
     TestSystem system;
     RLMachine rlmachine(system, arc);
-    rlmachine.AttachModule(new JmpModule);
+    rlmachine.GetModuleManager().AttachModule(new JmpModule);
     rlmachine.SetIntValue(IntMemRef('B', 0), i);
     rlmachine.ExecuteUntilHalted();
 
@@ -609,8 +609,8 @@ TEST(LargeJmpTest, gosub_with) {
   libreallive::Archive arc(LocateTestCase("Module_Jmp_SEEN/gosub_with_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new JmpModule);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new JmpModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   // Original states that shouldn't be modified
@@ -699,8 +699,8 @@ TEST(LargeJmpTest, fibonacci) {
     libreallive::Archive arc(LocateTestCase("Module_Jmp_SEEN/fibonacci.TXT"));
     TestSystem system;
     RLMachine rlmachine(system, arc);
-    rlmachine.AttachModule(new JmpModule);
-    rlmachine.AttachModule(new StrModule);
+    rlmachine.GetModuleManager().AttachModule(new JmpModule);
+    rlmachine.GetModuleManager().AttachModule(new StrModule);
     rlmachine.SetIntValue(IntMemRef('D', 0), i);
     rlmachine.ExecuteUntilHalted();
 
@@ -742,8 +742,8 @@ TEST(LargeJmpTest, farcall_with) {
           LocateTestCase("Module_Jmp_SEEN/farcall_withTest.TXT"));
       TestSystem system;
       RLMachine rlmachine(system, arc);
-      rlmachine.AttachModule(new JmpModule);
-      rlmachine.AttachModule(new StrModule);
+      rlmachine.GetModuleManager().AttachModule(new JmpModule);
+      rlmachine.GetModuleManager().AttachModule(new StrModule);
       rlmachine.SetIntValue(IntMemRef('B', 0), entrypoint);
       rlmachine.SetIntValue(IntMemRef('B', 1), offset);
       rlmachine.ExecuteUntilHalted();
@@ -763,8 +763,8 @@ TEST(LargeJmpTest, pushStringValueUp) {
       LocateTestCase("Module_Jmp_SEEN/pushStringValueUp.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new JmpModule);
-  rlmachine.AttachModule(new StrModule);
+  rlmachine.GetModuleManager().AttachModule(new JmpModule);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ("GOOD", rlmachine.GetStringValue(STRM_LOCATION, 0));

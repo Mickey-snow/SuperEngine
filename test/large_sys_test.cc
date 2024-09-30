@@ -48,8 +48,8 @@ TEST(LargeModuleSysTest, SceneNum) {
   libreallive::Archive arc(LocateTestCase("Module_Sys_SEEN/SceneNum.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new SysModule);
-  rlmachine.AttachModule(new JmpModule);
+  rlmachine.GetModuleManager().AttachModule(new SysModule);
+  rlmachine.GetModuleManager().AttachModule(new JmpModule);
   rlmachine.ExecuteUntilHalted();
 
   int values[3];
@@ -66,7 +66,7 @@ TEST(LargeModuleSysTest, BuiltIns) {
   libreallive::Archive arc(LocateTestCase("Module_Sys_SEEN/builtins.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new SysModule);
+  rlmachine.GetModuleManager().AttachModule(new SysModule);
   rlmachine.ExecuteUntilHalted();
 
   int values[6];

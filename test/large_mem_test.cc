@@ -51,7 +51,7 @@ TEST(LargeMemTest, setarray_0) {
   libreallive::Archive arc(LocateTestCase("Module_Mem_SEEN/setarray_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new MemModule);
+  rlmachine.GetModuleManager().AttachModule(new MemModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ(1, rlmachine.GetIntValue(IntMemRef('A', 0)))
@@ -75,7 +75,7 @@ TEST(LargeMemTest, setrng_0) {
   libreallive::Archive arc(LocateTestCase("Module_Mem_SEEN/setrng_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new MemModule);
+  rlmachine.GetModuleManager().AttachModule(new MemModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ(0, rlmachine.GetIntValue(IntMemRef('A', 0)))
@@ -99,7 +99,7 @@ TEST(LargeMemTest, setrng_1) {
   libreallive::Archive arc(LocateTestCase("Module_Mem_SEEN/setrng_1.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new MemModule);
+  rlmachine.GetModuleManager().AttachModule(new MemModule);
   rlmachine.ExecuteUntilHalted();
 
   EXPECT_EQ(4, rlmachine.GetIntValue(IntMemRef('A', 0)))
@@ -119,7 +119,7 @@ TEST(LargeMemTest, cpyrng_0) {
   libreallive::Archive arc(LocateTestCase("Module_Mem_SEEN/cpyrng_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new MemModule);
+  rlmachine.GetModuleManager().AttachModule(new MemModule);
   rlmachine.ExecuteUntilHalted();
 
   // First make sure setarray did what we expected it to...
@@ -149,7 +149,7 @@ TEST(LargeMemTest, setarray_stepped_0) {
       LocateTestCase("Module_Mem_SEEN/setarray_stepped_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new MemModule);
+  rlmachine.GetModuleManager().AttachModule(new MemModule);
   rlmachine.ExecuteUntilHalted();
 
   // First make sure setarray_stepped did what we expected it to, and that it
@@ -178,7 +178,7 @@ TEST(LargeMemTest, setrng_stepped_0) {
       LocateTestCase("Module_Mem_SEEN/setrng_stepped_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new MemModule);
+  rlmachine.GetModuleManager().AttachModule(new MemModule);
   rlmachine.ExecuteUntilHalted();
 
   // First make sure setrng_stepped did what we expected it to, and that it
@@ -207,7 +207,7 @@ TEST(LargeMemTest, setrng_stepped_1) {
       LocateTestCase("Module_Mem_SEEN/setrng_stepped_1.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new MemModule);
+  rlmachine.GetModuleManager().AttachModule(new MemModule);
   rlmachine.ExecuteUntilHalted();
 
   // First make sure setrng_stepped did what we expected it to, and that it
@@ -236,7 +236,7 @@ TEST(LargeMemTest, cpyvars) {
   libreallive::Archive arc(LocateTestCase("Module_Mem_SEEN/cpyvars_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new MemModule);
+  rlmachine.GetModuleManager().AttachModule(new MemModule);
   rlmachine.ExecuteUntilHalted();
 
   // First make sure cpyvars did what we expected it to...
@@ -260,7 +260,7 @@ TEST(LargeMemTest, sum_0) {
   libreallive::Archive arc(LocateTestCase("Module_Mem_SEEN/sum_0.TXT"));
   TestSystem system;
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new MemModule);
+  rlmachine.GetModuleManager().AttachModule(new MemModule);
   rlmachine.ExecuteUntilHalted();
 
   // First make sure sum did what we expected it to...
