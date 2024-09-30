@@ -40,11 +40,12 @@
 
 #include "libreallive/bytecode_fwd.h"
 #include "libreallive/scenario.h"
+#include "machine/module_manager.h"
 
 namespace libreallive {
 class Archive;
 class IntMemRef;
-};
+};  // namespace libreallive
 
 class LongOperation;
 class Memory;
@@ -57,7 +58,7 @@ struct StackFrame;
 // The RealLive virtual machine implementation. This class is the main user
 // facing class which contains all state regarding integer/string memory, flow
 // control, and other execution issues.
-class RLMachine {
+class RLMachine : public IModuleManager {
  public:
   RLMachine(System& in_system, libreallive::Archive& in_archive);
   virtual ~RLMachine();
@@ -101,7 +102,7 @@ class RLMachine {
   // Registers a given module with this RLMachine instance. A module is a set
   // of different functions registered as one unit. Takes ownership of
   // |module|.
-  virtual void AttachModule(RLModule* module);
+  virtual void AttachModule(RLModule* module) override;
 
   // ------------------------------------- [ Implicit savepoint management ]
   // RealLive will save the latest savepoint for the topmost stack
@@ -283,7 +284,8 @@ class RLMachine {
   void AdvanceInstructionPointer();
 
   // Returns the command name of |f|.
-  std::string GetCommandName(const libreallive::CommandElement& f);
+  std::string GetCommandName(
+      const libreallive::CommandElement& f) const override;
 
   // Pauses execution and notifies the System. Every call to
   // executeNextInstruction() will return immediately and the System's internal
@@ -314,7 +316,7 @@ class RLMachine {
   // it will.
   void SetHaltOnException(bool halt_on_exception);
 
-  unsigned int PackModuleNumber(int modtype, int module);
+  unsigned int PackModuleNumber(int modtype, int module) const;
 
   // Pushes a stack frame onto the call stack, alerting possible
   // LongOperations of this change if needed.

@@ -326,9 +326,9 @@ void RLMachine::AdvanceInstructionPointer() {
   }
 }
 
-std::string RLMachine::GetCommandName(const libreallive::CommandElement& f) {
-  ModuleMap::iterator it =
-      modules_.find(PackModuleNumber(f.modtype(), f.module()));
+std::string RLMachine::GetCommandName(
+    const libreallive::CommandElement& f) const {
+  auto it = modules_.find(PackModuleNumber(f.modtype(), f.module()));
   std::string name;
   if (it != modules_.end())
     name = it->second->GetCommandName(f);
@@ -647,7 +647,7 @@ int RLMachine::CallDLL(int slot,
   }
 }
 
-unsigned int RLMachine::PackModuleNumber(int modtype, int module) {
+unsigned int RLMachine::PackModuleNumber(int modtype, int module) const {
   return (modtype << 8) | module;
 }
 
