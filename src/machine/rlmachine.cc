@@ -305,11 +305,6 @@ void RLMachine::AdvanceInstructionPointer() {
   }
 }
 
-std::string RLMachine::GetCommandName(
-    const libreallive::CommandElement& f) const {
-  return module_manager_.GetCommandName(f);
-}
-
 void RLMachine::ExecuteCommand(const libreallive::CommandElement& f) {
   auto module_ptr = module_manager_.GetModule(f.modtype(), f.module());
   if (module_ptr) {

@@ -58,7 +58,7 @@ struct StackFrame;
 // The RealLive virtual machine implementation. This class is the main user
 // facing class which contains all state regarding integer/string memory, flow
 // control, and other execution issues.
-class RLMachine : public IModuleManager {
+class RLMachine {
  public:
   RLMachine(System& in_system, libreallive::Archive& in_archive);
   virtual ~RLMachine();
@@ -98,8 +98,6 @@ class RLMachine : public IModuleManager {
   // An option which prints out all commands executed to the console.
   void set_tracing_on() { tracing_ = true; }
   bool is_tracing_on() const { return tracing_; }
-
-  void AttachModule(RLModule*) override { throw -1; }
 
   ModuleManager& GetModuleManager() { return module_manager_; }
   const ModuleManager& GetModuleManager() const { return module_manager_; }
@@ -282,10 +280,6 @@ class RLMachine : public IModuleManager {
   // Increments the stack pointer in the current frame. If we have run
   // off the end of the current scenario, set the halted bit.
   void AdvanceInstructionPointer();
-
-  // Returns the command name of |f|.
-  std::string GetCommandName(
-      const libreallive::CommandElement& f) const override;
 
   // Pauses execution and notifies the System. Every call to
   // executeNextInstruction() will return immediately and the System's internal

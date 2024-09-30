@@ -51,7 +51,7 @@ std::string MetaElement::GetSourceRepresentation(IModuleManager*) const {
     return "{- Kidoku "s + std::to_string(value_) + " -}";
 }
 
-void MetaElement::PrintSourceRepresentation(RLMachine* machine,
+void MetaElement::PrintSourceRepresentation(IModuleManager* machine,
                                             std::ostream& oss) const {
   oss << GetSourceRepresentation(machine) << std::endl;
 }
