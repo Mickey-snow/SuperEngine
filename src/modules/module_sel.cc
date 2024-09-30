@@ -37,6 +37,7 @@
 #include "long_operations/select_long_operation.h"
 #include "machine/rlmachine.h"
 #include "machine/rloperation.h"
+#include "machine/rloperation/rlop_store.h"
 #include "systems/base/event_system.h"
 #include "systems/base/graphics_object.h"
 #include "systems/base/graphics_system.h"
@@ -192,6 +193,17 @@ struct objbtn_init_1 : public RLOpcode<> {
   void operator()(RLMachine& machine) {}
 };
 
+struct btnobjnow_hit : public RLStoreOpcode<> {
+  int operator()(RLMachine& machine) override { return -1; }
+};
+
+struct btnobjnow_push : public RLStoreOpcode<> {
+  int operator()(RLMachine& machine) override { return -1; }
+};
+
+struct btnobjnow_decide : public RLStoreOpcode<> {
+  int operator()(RLMachine& machine) override { return -2; }
+};
 }  // namespace
 
 SelModule::SelModule() : RLModule("Sel", 0, 2) {
@@ -206,4 +218,8 @@ SelModule::SelModule() : RLModule("Sel", 0, 2) {
 
   AddOpcode(20, 0, "objbtn_init", new objbtn_init_0);
   AddOpcode(20, 1, "objbtn_init", new objbtn_init_1);
+
+  AddOpcode(30, 0, "select_btnobjnow_hit", new btnobjnow_hit);
+  AddOpcode(31, 0, "select_btnobjnow_push", new btnobjnow_push);
+  AddOpcode(32, 0, "select_btnobjnow_decide", new btnobjnow_decide);
 }
