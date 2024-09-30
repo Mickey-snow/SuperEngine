@@ -353,10 +353,6 @@ class RLMachine {
   // The RealLive machine's single result register
   int store_register_ = 0;
 
-  // Mapping between the module_type:module pair and the module implementation
-  typedef std::unordered_map<unsigned int, std::unique_ptr<RLModule>> ModuleMap;
-  // Mapping between the module_type:module pair and the module implementation
-  ModuleMap modules_;
   ModuleManager module_manager_;
 
   // States whether the RLMachine is in the halted state (and thus won't

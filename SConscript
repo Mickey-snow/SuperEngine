@@ -120,6 +120,7 @@ librlvm_files = [
   "src/machine/serialization_global.cc",
   "src/machine/serialization_local.cc",
   "src/machine/stack_frame.cc",
+  "src/machine/module_manager.cc",
 
   "src/modules/module_bgm.cc",
   "src/modules/object_mutator_operations.cc",
