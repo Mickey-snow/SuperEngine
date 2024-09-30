@@ -363,6 +363,7 @@ class RLMachine : public IModuleManager {
   typedef std::unordered_map<unsigned int, std::unique_ptr<RLModule>> ModuleMap;
   // Mapping between the module_type:module pair and the module implementation
   ModuleMap modules_;
+  ModuleManager module_manager_;
 
   // States whether the RLMachine is in the halted state (and thus won't
   // execute more instructions)

@@ -29,7 +29,10 @@
 #include "machine/rlmodule.h"
 #include "modules/modules.h"
 
+#include <memory>
+#include <stdexcept>
 #include <string>
+#include <utility>
 
 class IModuleManager {
  public:
@@ -42,14 +45,46 @@ class IModuleManager {
 
 class ModuleManager : public IModuleManager {
  public:
-  ModuleManager() = default;
+  ModuleManager() : modules_() {};
   ~ModuleManager() = default;
 
-  void AttachModule(RLModule* mod) override {}
+  void AttachModule(RLModule* mod) override {
+    AttachModule(std::unique_ptr<RLModule>(mod));
+  }
+
+  void AttachModule(std::unique_ptr<RLModule> mod) {
+    if (!mod)
+      return;
+
+    const auto hash = GetModuleHash(mod->module_type(), mod->module_number());
+    auto result = modules_.try_emplace(hash, std::move(mod));
+    if (!result.second) {
+      throw std::invalid_argument("Module hash clash: " + std::to_string(hash));
+    }
+  }
+
+  RLModule* GetModule(int module_type, int module_id) {
+    auto it = modules_.find(GetModuleHash(module_type, module_id));
+    if (it != modules_.end())
+      return it->second.get();
+    return nullptr;
+  }
+
   std::string GetCommandName(
       const libreallive::CommandElement& f) const override {
-    return "ModuleManager::GetCommandName called.";
+    const auto hash = GetModuleHash(f.modtype(), f.module());
+    auto it = modules_.find(hash);
+    if (it == modules_.cend())
+      return {};
+    return it->second->GetCommandName(f);
   }
+
+ private:
+  static int GetModuleHash(int module_type, int module_id) noexcept {
+    return (module_type << 8) | module_id;
+  }
+
+  std::unordered_map<int, std::unique_ptr<RLModule>> modules_;
 };
 
 #endif

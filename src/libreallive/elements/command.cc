@@ -110,8 +110,10 @@ Expression CommandElement::GetCase(int i) const {
 
 std::string CommandElement::GetSourceRepresentation(
     IModuleManager* manager) const {
-  std::string repr = manager ? manager->GetCommandName(*this) : "";
-  if (repr == "") {
+  std::string repr;
+  if (manager)
+    repr = manager->GetCommandName(*this);
+  if (repr.empty()) {
     std::ostringstream op;
     op << "op<" << modtype() << ":" << std::setw(3) << std::setfill('0')
        << module() << ":" << std::setw(5) << std::setfill('0') << opcode()

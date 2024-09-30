@@ -79,11 +79,11 @@ class CommandElement : public BytecodeElement {
   virtual ~CommandElement();
 
   // Identity information.
-  const int modtype() const { return command[1]; }
-  const int module() const { return command[2]; }
-  const int opcode() const { return command[3] | (command[4] << 8); }
-  const int argc() const { return command[5] | (command[6] << 8); }
-  const int overload() const { return command[7]; }
+  virtual int modtype() const { return command[1]; }
+  virtual int module() const { return command[2]; }
+  virtual int opcode() const { return command[3] | (command[4] << 8); }
+  virtual int argc() const { return command[5] | (command[6] << 8); }
+  virtual int overload() const { return command[7]; }
 
   // Gets/Sets the cached parameters.
   void SetParsedParameters(ExpressionPiecesVector p) const;

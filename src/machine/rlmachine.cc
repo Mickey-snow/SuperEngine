@@ -151,24 +151,7 @@ RLMachine::~RLMachine() {
 }
 
 void RLMachine::AttachModule(RLModule* module) {
-  int module_type = module->module_type();
-  int module_number = module->module_number();
-  unsigned int packed_module = PackModuleNumber(module_type, module_number);
-
-  ModuleMap::iterator it = modules_.find(packed_module);
-  if (it != modules_.end()) {
-    RLModule& cur_mod = *it->second;
-    std::ostringstream ss;
-    ss << "Module identification clash: trying to overwrite " << cur_mod
-       << " with " << *module << std::endl;
-
-    // Free |module| since we took ownership of it
-    delete module;
-
-    throw rlvm::Exception(ss.str());
-  }
-
-  modules_.emplace(packed_module, std::unique_ptr<RLModule>(module));
+  module_manager_.AttachModule(module);
 }
 
 int RLMachine::GetIntValue(const libreallive::IntMemRef& ref) {
@@ -328,18 +311,13 @@ void RLMachine::AdvanceInstructionPointer() {
 
 std::string RLMachine::GetCommandName(
     const libreallive::CommandElement& f) const {
-  auto it = modules_.find(PackModuleNumber(f.modtype(), f.module()));
-  std::string name;
-  if (it != modules_.end())
-    name = it->second->GetCommandName(f);
-  return name;
+  return module_manager_.GetCommandName(f);
 }
 
 void RLMachine::ExecuteCommand(const libreallive::CommandElement& f) {
-  ModuleMap::iterator it =
-      modules_.find(PackModuleNumber(f.modtype(), f.module()));
-  if (it != modules_.end()) {
-    it->second->DispatchFunction(*this, f);
+  auto module_ptr = module_manager_.GetModule(f.modtype(), f.module());
+  if (module_ptr) {
+    module_ptr->DispatchFunction(*this, f);
   } else {
     throw rlvm::UnimplementedOpcode(*this, f);
   }
