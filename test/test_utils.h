@@ -28,16 +28,16 @@
 #ifndef TEST_TESTUTILS_HPP_
 #define TEST_TESTUTILS_HPP_
 
-#include <string>
 #include <filesystem>
+#include <string>
 
 #include "gtest/gtest.h"
 #include "libreallive/archive.h"
+#include "test_system/mock_event_system.h"
+#include "test_system/mock_sound_system.h"
+#include "test_system/mock_system.h"
 #include "test_system/test_machine.h"
 #include "test_system/test_system.h"
-#include "test_system/mock_sound_system.h"
-#include "test_system/mock_event_system.h"
-#include "test_system/mock_system.h"
 
 // Locates a test file in the test/ directory.
 std::filesystem::path PathToTestCase(const std::string& baseName);
@@ -46,18 +46,5 @@ std::string LocateTestCase(const std::string& baseName);
 // Locates a directory under the test/ directory.
 std::filesystem::path PathToTestDirectory(const std::string& baseName);
 std::string LocateTestDirectory(const std::string& baseName);
-
-// A base class for all tests that instantiate an archive, a System and a
-// Machine.
-class FullSystemTest : public ::testing::Test {
- protected:
-  // Grab a random SEEN.TXT file and the Gameexe.ini file and load them.
-  FullSystemTest();
-  ~FullSystemTest();
-
-  libreallive::Archive arc;
-  TestSystem system;
-  TestMachine rlmachine;
-};
 
 #endif  // TEST_TESTUTILS_HPP_

@@ -99,10 +99,10 @@ class RLMachine : public IModuleManager {
   void set_tracing_on() { tracing_ = true; }
   bool is_tracing_on() const { return tracing_; }
 
-  // Registers a given module with this RLMachine instance. A module is a set
-  // of different functions registered as one unit. Takes ownership of
-  // |module|.
-  virtual void AttachModule(RLModule* module) override;
+  void AttachModule(RLModule*) override { throw -1; }
+
+  ModuleManager& GetModuleManager() { return module_manager_; }
+  const ModuleManager& GetModuleManager() const { return module_manager_; }
 
   // ------------------------------------- [ Implicit savepoint management ]
   // RealLive will save the latest savepoint for the topmost stack

@@ -150,10 +150,6 @@ RLMachine::~RLMachine() {
     cerr << *undefined_log_;
 }
 
-void RLMachine::AttachModule(RLModule* module) {
-  module_manager_.AttachModule(module);
-}
-
 int RLMachine::GetIntValue(const libreallive::IntMemRef& ref) {
   return memory_->GetIntValue(ref);
 }

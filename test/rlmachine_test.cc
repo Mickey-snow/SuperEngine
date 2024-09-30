@@ -28,17 +28,17 @@
 #include "gtest/gtest.h"
 
 #include <iostream>
-#include <utility>
 #include <string>
+#include <utility>
 #include <vector>
 
+#include "libreallive/intmemref.h"
 #include "machine/memory.h"
 #include "machine/rlmachine.h"
 #include "machine/serialization.h"
 #include "modules/module_str.h"
-#include "utilities/exception.h"
-#include "libreallive/intmemref.h"
 #include "test_utils.h"
+#include "utilities/exception.h"
 
 using namespace std;
 using namespace libreallive;
@@ -49,8 +49,7 @@ class RLMachineTest : public FullSystemTest {
                                 const vector<pair<int, char>>& banks,
                                 int count) {
     for (vector<pair<int, char>>::const_iterator it = banks.begin();
-         it != banks.end();
-         ++it) {
+         it != banks.end(); ++it) {
       for (int i = 0; i < SIZE_OF_MEM_BANK; ++i) {
         saveMachine.SetIntValue(IntMemRef(it->second, i), count);
         count++;
@@ -69,8 +68,7 @@ class RLMachineTest : public FullSystemTest {
                                    const vector<pair<int, char>>& banks,
                                    int count) {
     for (vector<pair<int, char>>::const_iterator it = banks.begin();
-         it != banks.end();
-         ++it) {
+         it != banks.end(); ++it) {
       for (int i = 0; i < SIZE_OF_MEM_BANK; ++i) {
         EXPECT_EQ(count, loadMachine.GetIntValue(IntMemRef(it->second, i)));
         count++;
@@ -89,8 +87,10 @@ class RLMachineTest : public FullSystemTest {
 };
 
 TEST_F(RLMachineTest, RejectsDoubleAttachs) {
-  rlmachine.AttachModule(new StrModule);
-  EXPECT_THROW({ rlmachine.AttachModule(new StrModule); }, rlvm::Exception);
+  rlmachine.GetModuleManager().AttachModule(new StrModule);
+  EXPECT_THROW(
+      { rlmachine.GetModuleManager().AttachModule(new StrModule); },
+      std::invalid_argument);
 }
 
 TEST_F(RLMachineTest, ReturnFromFarcallMismatch) {
@@ -128,10 +128,11 @@ TEST_F(RLMachineTest, StringMemory) {
 
 // Test error-inducing, string memory access.
 TEST_F(RLMachineTest, StringMemoryErrors) {
-  EXPECT_THROW({ rlmachine.SetStringValue(STRM_LOCATION, 2000, "Blah"); },
-               rlvm::Exception);
-  EXPECT_THROW({ rlmachine.GetStringValue(STRM_LOCATION, 2000); },
-               rlvm::Exception);
+  EXPECT_THROW(
+      { rlmachine.SetStringValue(STRM_LOCATION, 2000, "Blah"); },
+      rlvm::Exception);
+  EXPECT_THROW(
+      { rlmachine.GetStringValue(STRM_LOCATION, 2000); }, rlvm::Exception);
 }
 
 // Test valid integer access of all types.
@@ -171,11 +172,11 @@ TEST_F(RLMachineTest, IntegerMemory) {
 }
 
 TEST_F(RLMachineTest, IntegerMemoryErrors) {
-  EXPECT_THROW({ rlmachine.GetIntValue(IntMemRef(10, 0, 0)); },
-               rlvm::Exception);
+  EXPECT_THROW(
+      { rlmachine.GetIntValue(IntMemRef(10, 0, 0)); }, rlvm::Exception);
   EXPECT_NO_THROW({ rlmachine.GetIntValue(IntMemRef('A', 1999)); });  // NOLINT
-  EXPECT_THROW({ rlmachine.GetIntValue(IntMemRef('A', 2000)); },
-               rlvm::Exception);
+  EXPECT_THROW(
+      { rlmachine.GetIntValue(IntMemRef('A', 2000)); }, rlvm::Exception);
 }
 
 TEST_F(RLMachineTest, CheckNameLetterIndex) {
