@@ -106,12 +106,12 @@ void RLVMInstance::Run(const std::filesystem::path& gamerootPath) {
     libreallive::Archive arc(seenPath.string(), gameexe("REGNAME"));
     SDLSystem sdlSystem(gameexe);
     RLMachine rlmachine(sdlSystem, arc);
-    AddAllModules(rlmachine);
+    AddAllModules(rlmachine.GetModuleManager());
     AddGameHacks(rlmachine);
 
     if (dump_seen_ != -1) {
       libreallive::Scenario* scenario = arc.GetScenario(dump_seen_);
-      DumpScenario(&rlmachine, scenario);
+      DumpScenario(&rlmachine.GetModuleManager(), scenario);
       return;
     }
 

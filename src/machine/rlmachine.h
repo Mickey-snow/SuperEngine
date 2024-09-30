@@ -40,11 +40,12 @@
 
 #include "libreallive/bytecode_fwd.h"
 #include "libreallive/scenario.h"
+#include "machine/module_manager.h"
 
 namespace libreallive {
 class Archive;
 class IntMemRef;
-};
+};  // namespace libreallive
 
 class LongOperation;
 class Memory;
@@ -98,10 +99,8 @@ class RLMachine {
   void set_tracing_on() { tracing_ = true; }
   bool is_tracing_on() const { return tracing_; }
 
-  // Registers a given module with this RLMachine instance. A module is a set
-  // of different functions registered as one unit. Takes ownership of
-  // |module|.
-  virtual void AttachModule(RLModule* module);
+  ModuleManager& GetModuleManager() { return module_manager_; }
+  const ModuleManager& GetModuleManager() const { return module_manager_; }
 
   // ------------------------------------- [ Implicit savepoint management ]
   // RealLive will save the latest savepoint for the topmost stack
@@ -282,9 +281,6 @@ class RLMachine {
   // off the end of the current scenario, set the halted bit.
   void AdvanceInstructionPointer();
 
-  // Returns the command name of |f|.
-  std::string GetCommandName(const libreallive::CommandElement& f);
-
   // Pauses execution and notifies the System. Every call to
   // executeNextInstruction() will return immediately and the System's internal
   // timer will stop ticking.
@@ -314,7 +310,7 @@ class RLMachine {
   // it will.
   void SetHaltOnException(bool halt_on_exception);
 
-  unsigned int PackModuleNumber(int modtype, int module);
+  unsigned int PackModuleNumber(int modtype, int module) const;
 
   // Pushes a stack frame onto the call stack, alerting possible
   // LongOperations of this change if needed.
@@ -357,10 +353,7 @@ class RLMachine {
   // The RealLive machine's single result register
   int store_register_ = 0;
 
-  // Mapping between the module_type:module pair and the module implementation
-  typedef std::unordered_map<unsigned int, std::unique_ptr<RLModule>> ModuleMap;
-  // Mapping between the module_type:module pair and the module implementation
-  ModuleMap modules_;
+  ModuleManager module_manager_;
 
   // States whether the RLMachine is in the halted state (and thus won't
   // execute more instructions)

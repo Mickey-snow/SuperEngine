@@ -36,7 +36,7 @@ namespace libreallive {
 CommaElement::CommaElement() {}
 CommaElement::~CommaElement() {}
 
-std::string CommaElement::GetSourceRepresentation(RLMachine* machine) const {
+std::string CommaElement::GetSourceRepresentation(IModuleManager*) const {
   return "<CommaElement>";
 }
 

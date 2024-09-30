@@ -40,7 +40,7 @@ MetaElement::MetaElement(const MetaElementType& type,
 
 MetaElement::~MetaElement() {}
 
-std::string MetaElement::GetSourceRepresentation(RLMachine* machine) const {
+std::string MetaElement::GetSourceRepresentation(IModuleManager*) const {
   using std::string_literals::operator""s;
 
   if (type_ == Line_)
@@ -51,7 +51,7 @@ std::string MetaElement::GetSourceRepresentation(RLMachine* machine) const {
     return "{- Kidoku "s + std::to_string(value_) + " -}";
 }
 
-void MetaElement::PrintSourceRepresentation(RLMachine* machine,
+void MetaElement::PrintSourceRepresentation(IModuleManager* machine,
                                             std::ostream& oss) const {
   oss << GetSourceRepresentation(machine) << std::endl;
 }

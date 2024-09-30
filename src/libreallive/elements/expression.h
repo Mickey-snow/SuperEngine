@@ -34,8 +34,8 @@
 #include "libreallive/elements/bytecode.h"
 #include "libreallive/expression.h"
 
-namespace libreallive{
-  // Expression elements.
+namespace libreallive {
+// Expression elements.
 // Construct from long to build a representation of an integer constant.
 
 // A BytecodeElement that represents an expression
@@ -49,7 +49,7 @@ class ExpressionElement : public BytecodeElement {
   Expression ParsedExpression() const;
 
   // Overridden from BytecodeElement:
-  virtual std::string GetSourceRepresentation(RLMachine* machine) const final;
+  virtual std::string GetSourceRepresentation(IModuleManager*) const final;
   virtual const size_t GetBytecodeLength() const final;
   virtual void RunOnMachine(RLMachine& machine) const final;
 
@@ -60,7 +60,7 @@ class ExpressionElement : public BytecodeElement {
   // it once (and so we can return it by const reference)
   Expression parsed_expression_;
 };
-  
-}
+
+}  // namespace libreallive
 
 #endif

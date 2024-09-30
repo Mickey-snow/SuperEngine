@@ -39,6 +39,7 @@
 #include "libreallive/bytecode_fwd.h"
 
 class RLMachine;
+class IModuleManager;
 
 namespace libreallive {
 class Script;
@@ -62,12 +63,11 @@ class BytecodeElement {
   BytecodeElement();
   virtual ~BytecodeElement();
 
-  // Prints a human readable version of this bytecode element to |oss|. This
-  // tries to match Haeleth's kepago language as much as is feasible.
-  virtual void PrintSourceRepresentation(RLMachine* machine,
+  // Prints a human readable version of this bytecode element to |oss|.
+  virtual void PrintSourceRepresentation(IModuleManager*,
                                          std::ostream& oss) const;
 
-  virtual std::string GetSourceRepresentation(RLMachine* machine) const;
+  virtual std::string GetSourceRepresentation(IModuleManager*) const;
 
   // Returns the length of this element in bytes in the source file.
   virtual const size_t GetBytecodeLength() const = 0;

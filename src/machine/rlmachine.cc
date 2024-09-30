@@ -33,7 +33,6 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <filesystem>
-#include <filesystem>
 
 #include <functional>
 #include <iostream>
@@ -43,10 +42,10 @@
 #include <vector>
 
 #include "libreallive/archive.h"
-#include "libreallive/parser.h"
 #include "libreallive/expression.h"
 #include "libreallive/gameexe.h"
 #include "libreallive/intmemref.h"
+#include "libreallive/parser.h"
 #include "libreallive/scenario.h"
 #include "long_operations/pause_long_operation.h"
 #include "long_operations/textout_long_operation.h"
@@ -135,7 +134,8 @@ RLMachine::RLMachine(System& in_system, libreallive::Archive& in_archive)
   for (; it != end; ++it) {
     const std::string& name = it->ToString("");
     try {
-      std::string index_str = it->key().substr(it->key().find_first_of(".") + 1);
+      std::string index_str =
+          it->key().substr(it->key().find_first_of(".") + 1);
       int index = std::stoi(index_str);
       LoadDLL(index, name);
     } catch (rlvm::Exception& e) {
@@ -148,27 +148,6 @@ RLMachine::RLMachine(System& in_system, libreallive::Archive& in_archive)
 RLMachine::~RLMachine() {
   if (undefined_log_)
     cerr << *undefined_log_;
-}
-
-void RLMachine::AttachModule(RLModule* module) {
-  int module_type = module->module_type();
-  int module_number = module->module_number();
-  unsigned int packed_module = PackModuleNumber(module_type, module_number);
-
-  ModuleMap::iterator it = modules_.find(packed_module);
-  if (it != modules_.end()) {
-    RLModule& cur_mod = *it->second;
-    std::ostringstream ss;
-    ss << "Module identification clash: trying to overwrite " << cur_mod
-       << " with " << *module << std::endl;
-
-    // Free |module| since we took ownership of it
-    delete module;
-
-    throw rlvm::Exception(ss.str());
-  }
-
-  modules_.emplace(packed_module, std::unique_ptr<RLModule>(module));
 }
 
 int RLMachine::GetIntValue(const libreallive::IntMemRef& ref) {
@@ -326,20 +305,10 @@ void RLMachine::AdvanceInstructionPointer() {
   }
 }
 
-std::string RLMachine::GetCommandName(const libreallive::CommandElement& f) {
-  ModuleMap::iterator it =
-      modules_.find(PackModuleNumber(f.modtype(), f.module()));
-  std::string name;
-  if (it != modules_.end())
-    name = it->second->GetCommandName(*this, f);
-  return name;
-}
-
 void RLMachine::ExecuteCommand(const libreallive::CommandElement& f) {
-  ModuleMap::iterator it =
-      modules_.find(PackModuleNumber(f.modtype(), f.module()));
-  if (it != modules_.end()) {
-    it->second->DispatchFunction(*this, f);
+  auto module_ptr = module_manager_.GetModule(f.modtype(), f.module());
+  if (module_ptr) {
+    module_ptr->DispatchFunction(*this, f);
   } else {
     throw rlvm::UnimplementedOpcode(*this, f);
   }
@@ -578,8 +547,8 @@ void RLMachine::PerformTextout(const std::string& cp932str) {
   TextSystem& ts = system().text();
 
   // Display UTF-8 characters
-  std::unique_ptr<TextoutLongOperation> ptr = 
-    std::make_unique<TextoutLongOperation>(*this, utf8str);
+  std::unique_ptr<TextoutLongOperation> ptr =
+      std::make_unique<TextoutLongOperation>(*this, utf8str);
 
   if (system().ShouldFastForward() || ts.message_no_wait() ||
       ts.script_message_nowait()) {
@@ -647,7 +616,7 @@ int RLMachine::CallDLL(int slot,
   }
 }
 
-unsigned int RLMachine::PackModuleNumber(int modtype, int module) {
+unsigned int RLMachine::PackModuleNumber(int modtype, int module) const {
   return (modtype << 8) | module;
 }
 

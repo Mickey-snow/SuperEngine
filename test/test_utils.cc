@@ -34,8 +34,6 @@
 
 namespace fs = std::filesystem;
 
-// -----------------------------------------------------------------------
-
 const std::vector<std::string> testPaths = {"./", "./build/test/", "./test/"};
 
 fs::path PathToTestCase(const std::string& baseName) {
@@ -67,12 +65,3 @@ fs::path PathToTestDirectory(const std::string& baseName) {
 std::string LocateTestDirectory(const std::string& baseName) {
   return PathToTestDirectory(baseName).string();
 }
-
-// -----------------------------------------------------------------------
-
-FullSystemTest::FullSystemTest()
-    : arc(LocateTestCase("Module_Str_SEEN/strcpy_0.TXT")),
-      system(LocateTestCase("Gameexe_data/Gameexe.ini")),
-      rlmachine(system, arc) {}
-
-FullSystemTest::~FullSystemTest() {}

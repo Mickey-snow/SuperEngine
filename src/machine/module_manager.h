@@ -1,13 +1,10 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2007 Elliot Glaysher
+// Copyright (C) 2024 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,13 +22,44 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MODULES_MODULES_H_
-#define SRC_MODULES_MODULES_H_
+#ifndef SRC_MACHINE_MODULE_MANAGER_H_
+#define SRC_MACHINE_MODULE_MANAGER_H_
 
-class IModuleManager;
+#include <memory>
+#include <string>
+#include <unordered_map>
 
-// Convenience function to add all known module to a certain machine;
-// This keeps us from having to recompile rlvm.cpp all the time.
-void AddAllModules(IModuleManager&);
+namespace libreallive {
+class CommandElement;
+}
+class RLModule;
 
-#endif  // SRC_MODULES_MODULES_H_
+class IModuleManager {
+ public:
+  virtual ~IModuleManager() = default;
+
+  virtual void AttachModule(RLModule*) = 0;
+  virtual std::string GetCommandName(
+      const libreallive::CommandElement&) const = 0;
+};
+
+class ModuleManager : public IModuleManager {
+ public:
+  ModuleManager();
+  ~ModuleManager();
+
+  void AttachModule(RLModule* mod) override;
+  void AttachModule(std::unique_ptr<RLModule> mod);
+
+  RLModule* GetModule(int module_type, int module_id);
+
+  std::string GetCommandName(
+      const libreallive::CommandElement& f) const override;
+
+ private:
+  static int GetModuleHash(int module_type, int module_id) noexcept;
+
+  std::unordered_map<int, std::unique_ptr<RLModule>> modules_;
+};
+
+#endif

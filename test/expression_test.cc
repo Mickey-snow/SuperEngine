@@ -114,7 +114,7 @@ TEST(ExpressionTest, PreviousErrors) {
   libreallive::Archive arc(
       LocateTestCase("ExpressionTest_SEEN/previousErrors.TXT"));
   RLMachine rlmachine(system, arc);
-  rlmachine.AttachModule(new JmpModule);
+  rlmachine.GetModuleManager().AttachModule(new JmpModule);
   rlmachine.ExecuteUntilHalted();
 
   int values[6];

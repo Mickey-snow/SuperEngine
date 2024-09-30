@@ -42,22 +42,24 @@ class MetaElement : public BytecodeElement {
   enum MetaElementType { Line_ = '\n', Kidoku_ = '@', Entrypoint_ };
 
  public:
-  MetaElement(const MetaElementType& type, const int& value, const int& entrypoint_index);
+  MetaElement(const MetaElementType& type,
+              const int& value,
+              const int& entrypoint_index);
   virtual ~MetaElement();
 
   const int value() const { return value_; }
   void set_value(const int value) { value_ = value; }
 
-  std::string GetSourceRepresentation(RLMachine* machine) const;
+  std::string GetSourceRepresentation(IModuleManager*) const;
 
   // Overridden from BytecodeElement:
-  virtual void PrintSourceRepresentation(RLMachine* machine,
+  virtual void PrintSourceRepresentation(IModuleManager* machine,
                                          std::ostream& oss) const final;
   virtual const size_t GetBytecodeLength() const final;
   virtual const int GetEntrypoint() const final;
   virtual void RunOnMachine(RLMachine& machine) const final;
 
-private:
+ private:
   MetaElementType type_;
   int value_;
   int entrypoint_index_;

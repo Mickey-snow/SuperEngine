@@ -44,7 +44,7 @@ class CommaElement : public BytecodeElement {
   virtual ~CommaElement();
 
   // Overridden from BytecodeElement:
-  std::string GetSourceRepresentation(RLMachine* machine) const final;
+  std::string GetSourceRepresentation(IModuleManager*) const final;
 
   virtual const size_t GetBytecodeLength() const final;
 };

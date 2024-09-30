@@ -33,6 +33,7 @@
 #include <vector>
 
 #include "libreallive/elements/command.h"
+#include "machine/module_manager.h"
 #include "machine/rlmachine.h"
 
 namespace libreallive {
@@ -107,9 +108,12 @@ Expression CommandElement::GetCase(int i) const {
   throw Error("Call to CommandElement::GetCase is invalid");
 }
 
-std::string CommandElement::GetSourceRepresentation(RLMachine* machine) const {
-  std::string repr = machine ? machine->GetCommandName(*this) : "";
-  if (repr == "") {
+std::string CommandElement::GetSourceRepresentation(
+    IModuleManager* manager) const {
+  std::string repr;
+  if (manager)
+    repr = manager->GetCommandName(*this);
+  if (repr.empty()) {
     std::ostringstream op;
     op << "op<" << modtype() << ":" << std::setw(3) << std::setfill('0')
        << module() << ":" << std::setw(5) << std::setfill('0') << opcode()
@@ -290,8 +294,9 @@ pointer_t GotoElement::GetPointer(int i) const {
   return pointer_;
 }
 
-std::string GotoElement::GetSourceRepresentation(RLMachine* machine) const {
-  std::string repr = CommandElement::GetSourceRepresentation(machine);
+std::string GotoElement::GetSourceRepresentation(
+    IModuleManager* manager) const {
+  std::string repr = CommandElement::GetSourceRepresentation(manager);
   repr += " @" + std::to_string(id_);
   return repr;
 }
@@ -322,8 +327,9 @@ pointer_t GotoIfElement::GetPointer(int i) const {
   return pointer_;
 }
 
-std::string GotoIfElement::GetSourceRepresentation(RLMachine* machine) const {
-  std::string repr = CommandElement::GetSourceRepresentation(machine);
+std::string GotoIfElement::GetSourceRepresentation(
+    IModuleManager* manager) const {
+  std::string repr = CommandElement::GetSourceRepresentation(manager);
   repr += " @" + std::to_string(id_);
   return repr;
 }
@@ -355,8 +361,9 @@ const size_t GotoCaseElement::GetPointersCount() const {
   return targets_.size();
 }
 
-std::string GotoCaseElement::GetSourceRepresentation(RLMachine* machine) const {
-  std::string repr = CommandElement::GetSourceRepresentation(machine);
+std::string GotoCaseElement::GetSourceRepresentation(
+    IModuleManager* manager) const {
+  std::string repr = CommandElement::GetSourceRepresentation(manager);
   for (int i = 0; i < targets_.idSize(); ++i) {
     std::string param =
         parsed_cases_[i] ? parsed_cases_[i]->GetDebugString() : "";
@@ -391,8 +398,9 @@ void GotoOnElement::SetPointers(ConstructionData& cdata) {
   targets_.SetPointers(cdata);
 }
 
-std::string GotoOnElement::GetSourceRepresentation(RLMachine* machine) const {
-  std::string repr = CommandElement::GetSourceRepresentation(machine);
+std::string GotoOnElement::GetSourceRepresentation(
+    IModuleManager* manager) const {
+  std::string repr = CommandElement::GetSourceRepresentation(manager);
 
   repr += '{';
   for (size_t i = 0; i < targets_.idSize(); ++i) {
@@ -424,8 +432,8 @@ pointer_t GosubWithElement::GetPointer(int i) const {
 }
 
 std::string GosubWithElement::GetSourceRepresentation(
-    RLMachine* machine) const {
-  std::string repr = CommandElement::GetSourceRepresentation(machine);
+    IModuleManager* manager) const {
+  std::string repr = CommandElement::GetSourceRepresentation(manager);
   repr += " @" + std::to_string(id_);
   return repr;
 }

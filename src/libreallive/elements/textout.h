@@ -49,7 +49,7 @@ class TextoutElement : public BytecodeElement {
   std::string GetText() const;
 
   // Overridden from BytecodeElement::
-  std::string GetSourceRepresentation(RLMachine* machine) const final;
+  std::string GetSourceRepresentation(IModuleManager*) const final;
   virtual const size_t GetBytecodeLength() const final;
   virtual void RunOnMachine(RLMachine& machine) const final;
 

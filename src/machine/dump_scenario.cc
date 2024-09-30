@@ -31,12 +31,12 @@
 #include "libreallive/parser.h"
 #include "libreallive/scenario.h"
 
-void DumpScenario(RLMachine* machine, libreallive::Scenario* scenario) {
+void DumpScenario(IModuleManager* manager, libreallive::Scenario* scenario) {
   if (!scenario) {
     std::cout << "Invalid scenario number." << std::endl;
     return;
   }
 
   for (auto const& instruction : *scenario)
-    instruction->PrintSourceRepresentation(machine, std::cout);
+    instruction->PrintSourceRepresentation(manager, std::cout);
 }
