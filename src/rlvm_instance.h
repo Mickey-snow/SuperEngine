@@ -24,8 +24,8 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MACHINE_RLVM_INSTANCE_H_
-#define SRC_MACHINE_RLVM_INSTANCE_H_
+#ifndef SRC_RLVM_INSTANCE_H_
+#define SRC_RLVM_INSTANCE_H_
 
 #include <filesystem>
 #include <string>
@@ -60,6 +60,7 @@ class RLVMInstance {
   virtual std::filesystem::path SelectGameDirectory();
 
  protected:
+  // TODO: use an implementor for those two functions.
   // Should bring up a platform native dialog box to report the message.
   virtual void ReportFatalError(const std::string& message_text,
                                 const std::string& informative_text);

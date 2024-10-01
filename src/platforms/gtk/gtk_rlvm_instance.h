@@ -29,7 +29,7 @@
 
 #include <string>
 
-#include "machine/rlvm_instance.h"
+#include "rlvm_instance.h"
 
 // A GTK subclass of RLVMInstance that displays GTK dialogs.
 class GtkRLVMInstance : public RLVMInstance {
