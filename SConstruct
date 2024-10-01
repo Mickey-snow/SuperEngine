@@ -66,6 +66,8 @@ env = Environment(
   # Whether we build the test binary that requires lua.
   BUILD_LUA_TESTS = False,
 )
+env.Tool('compilation_db')
+env.CompilationDatabase()
 
 if env['PLATFORM'] == "darwin":
   env.Append(

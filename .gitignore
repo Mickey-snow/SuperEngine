@@ -18,3 +18,4 @@ rlvm.suo
 /.sconsign.dblite
 _site
 .dir-locals.el
+compile_commands.json
