@@ -7,6 +7,8 @@ EnsureSConsVersion(0, 98, 5)
 
 ############################################################# [ World options ]
 
+AddOption('--platform', dest='platform', type='string',
+          action='store', help='specify which platform(s) to build')
 AddOption('--release', action='store_true',
           help='Builds an optimized release for the platform.')
 AddOption('--coverage', action='store_true',
@@ -251,6 +253,8 @@ else:
 if 'TERM' in os.environ:
     env.Append(CCFLAGS=['-fdiagnostics-color=always'])
 
+env.Append(LIBS = ["GL", "GLU"])
+
 # Libraries we need, but will use a local copy if not installed.
 local_sdl_libraries = [
   {
@@ -393,28 +397,31 @@ else:
     ]
   )
 
-# Cross platform core of rlvm. Produces librlvm.a and libsystem_sdl.a
-env.SConscript("SConscript",
-               variant_dir="$BUILD_DIR/",
-               duplicate=False,
-               exports='env')
 
-# Run the correct port script. If we're on darwin, we'll run the cocoa version,
-# everywhere else we assume GTK+.
-if env['PLATFORM'] == 'darwin':
-  env.SConscript("SConscript.cocoa",
-                 variant_dir="$BUILD_DIR/",
-                 duplicate=False,
-                 exports='env')
-else:
-  env.SConscript("SConscript.gtk",
-                 variant_dir="$BUILD_DIR/",
-                 duplicate=False,
-                 exports='env')
+# Build platform-specific library
+platform_option = GetOption('platform')
+platform_to_build = platform_option.split(',') if platform_option else ["gtk"]
+print("platform to build: [" + ','.join(platform_to_build) + ']')
+for platform in platform_to_build:
+    source_dir = os.path.join('src', 'platforms', platform)
+    if not os.path.isdir(source_dir):
+       print(f"Error: Platform '{source_dir}' does not exist.")
+       Exit(1)
+    platform_src = env.SConscript(f"{source_dir}/SConscript",
+                                  variant_dir=f"$BUILD_DIR/{platform}",
+			          duplicate=False,
+			          exports="env")
+    env.Append(PLATFORM_SRC = platform_src)
 
 # Copy test asset files to output directory
 env.SConscript("test/SConscript.testdata",
                variant_dir="build/test",
+               duplicate=False,
+               exports='env')
+
+# Cross platform core of rlvm. Produces rlvm executable
+env.SConscript("SConscript",
+               variant_dir="$BUILD_DIR/",
                duplicate=False,
                exports='env')
 
