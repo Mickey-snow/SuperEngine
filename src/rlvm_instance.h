@@ -56,7 +56,7 @@ class RLVMInstance {
   void set_custom_font(const std::string& font) { custom_font_ = font; }
   void set_dump_seen(int in) { dump_seen_ = in; }
 
-  void SetPlatformImplementor(std::unique_ptr<IPlatformImplementor> impl);
+  void SetPlatformImplementor(std::shared_ptr<IPlatformImplementor> impl);
 
  protected:
   // Should bring up a platform native dialog box to report the message.
@@ -110,7 +110,7 @@ class RLVMInstance {
   int dump_seen_;
 
   // The bridge to the class that implements platform-specific code
-  std::unique_ptr<IPlatformImplementor> platform_implementor_;
+  std::shared_ptr<IPlatformImplementor> platform_implementor_;
 };
 
 #endif  // SRC_MACHINE_RLVM_INSTANCE_H_

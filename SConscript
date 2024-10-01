@@ -34,6 +34,8 @@ root_env.Append(
 #########################################################################
 
 librlvm_files = [
+  "src/platforms/platform_factory.cc",
+
   "src/base/notification/details.cc",
   "src/base/notification/registrar.cc",
   "src/base/notification/service.cc",

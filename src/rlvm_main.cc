@@ -36,7 +36,7 @@
 #include <iostream>
 #include <string>
 
-#include "platforms/gtk/gtk_implementor.h"
+#include "platforms/platform_factory.h"
 #include "platforms/implementor.h"
 #include "rlvm_instance.h"
 #include "systems/base/system.h"
@@ -165,11 +165,8 @@ int main(int argc, char* argv[]) {
   // This is where we need platform implementor to pop up platform-specific
   // dialogue if we need to ask user for providing the path.
   //  TODO: make this a command line argument
-  [[maybe_unused]] const std::string selected_platform = "gtk";
-  // TODO: Use a factory to control which platform implementor to create, hide
-  // it from our client code.
-  std::unique_ptr<IPlatformImplementor> platform_impl =
-      std::make_unique<GtkImplementor>();
+  const std::string selected_platform = "gtk";
+  PlatformImpl_t platform_impl = PlatformFactory::Create(selected_platform);
 
   if (vm.count("game-root")) {
     gamerootPath = vm["game-root"].as<std::string>();
@@ -210,7 +207,7 @@ int main(int argc, char* argv[]) {
   // Create game instance
 
   RLVMInstance instance;
-  instance.SetPlatformImplementor(std::move(platform_impl));
+  instance.SetPlatformImplementor(platform_impl);
 
   if (vm.count("start-seen"))
     instance.set_seen_start(vm["start-seen"].as<int>());

@@ -77,8 +77,8 @@ RLVMInstance::RLVMInstance()
 RLVMInstance::~RLVMInstance() {}
 
 void RLVMInstance::SetPlatformImplementor(
-    std::unique_ptr<IPlatformImplementor> impl) {
-  platform_implementor_ = std::move(impl);
+    std::shared_ptr<IPlatformImplementor> impl) {
+  platform_implementor_ = impl;
 }
 
 void RLVMInstance::Run(const std::filesystem::path& gamerootPath) {
