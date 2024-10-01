@@ -1,4 +1,5 @@
 # Builds the rlvm.app with all binaries and files.
+# TODO: This is currently broken. Fix it and test it.
 
 import re
 import string
@@ -38,7 +39,7 @@ cocoarlvm_files = [
   # Technically cross platform, but put here for SDL dependency.
   "src/machine/rlvm_instance.cc",
 
-  "src/platforms/osx/CocoaRLVMInstance.mm",
+  "src/platforms/osx/CocoaImplementor.mm",
   "src/platforms/osx/SDLMain.mm"
 ]
 

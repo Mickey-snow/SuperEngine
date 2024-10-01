@@ -31,26 +31,26 @@
 
 #include <string>
 
-#include "machine/rlvm_instance.h"
+#include "platforms/implementor.h"
 
 @class FileValidator;
 
-// A Cocoa subclass of RLVMInstance that displays Cocoa dialogs.
-class CocoaRLVMInstance : public RLVMInstance {
+// A Cocoa implementor
+// WARNING: untested. broken, perhaps.
+class CocoaImplementor : public IPlatformImplementor {
  public:
-  CocoaRLVMInstance();
-  virtual ~CocoaRLVMInstance();
+  CocoaImplementor();
+  virtual ~CocoaImplementor();
 
-  virtual std::filesystem::path SelectGameDirectory();
+  std::filesystem::path SelectGameDirectory()override;
 
- protected:
-  // Overridden from RLVMInstance:
-  virtual void ReportFatalError(const std::string& message_text,
-                                const std::string& informative_text);
-  virtual bool AskUserPrompt(const std::string& message_text,
-                             const std::string& informative_text,
-                             const std::string& true_button,
-                             const std::string& false_button);
+  void ReportFatalError(const std::string& message_text,
+                       const std::string& informative_text)override;
+
+  bool AskUserPrompt(const std::string& message_text,
+                    const std::string& informative_text,
+                    const std::string& true_button,
+                    const std::string& false_button)override;
 
   FileValidator* validator_;
 };
