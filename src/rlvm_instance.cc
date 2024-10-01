@@ -70,7 +70,7 @@ RLVMInstance::RLVMInstance()
       tracing_(false),
       load_save_(-1),
       dump_seen_(-1),
-      platform_implementor_(std::make_unique<DefaultPlatformImpl>()) {
+      platform_implementor_(nullptr) {
   srand(time(NULL));
 }
 

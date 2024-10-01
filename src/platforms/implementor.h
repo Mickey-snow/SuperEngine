@@ -46,23 +46,4 @@ class IPlatformImplementor {
                              const std::string& false_button) = 0;
 };
 
-class DefaultPlatformImpl : public IPlatformImplementor {
- public:
-  DefaultPlatformImpl() = default;
-  virtual ~DefaultPlatformImpl() = default;
-
-  // when this has no implementation, simply return an empty path
-  virtual std::filesystem::path SelectGameDirectory() override { return {}; }
-
-  virtual void ReportFatalError(const std::string& message_test,
-                                const std::string& informative_text) override {}
-
-  virtual bool AskUserPrompt(const std::string&,
-                             const std::string&,
-                             const std::string&,
-                             const std::string&) override {
-    return true;
-  }
-};
-
 #endif

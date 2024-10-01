@@ -62,7 +62,6 @@ unittest_files = [
   "test/drawer_effect_unittest.cc",
   "test/effect_selrecord_unittest.cc",
   "test/module_manager_unittest.cc",
-  "test/default_platformimpl_unittest.cc",
 ]
 
 system_test_files = [
