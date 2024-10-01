@@ -165,7 +165,7 @@ int main(int argc, char* argv[]) {
   // TODO: Extract an interface for `RLVMInstance` and use that instead.
   // TODO: Use a factory to control which instance to create, hide it from our
   // client code.
-  GtkRLVMInstance instance(&argc, &argv);
+  std::unique_ptr<RLVMInstance> instance = std::make_unique<GtkRLVMInstance>();
 
   if (vm.count("game-root")) {
     gamerootPath = vm["game-root"].as<std::string>();
@@ -197,36 +197,36 @@ int main(int argc, char* argv[]) {
       }
     }
   } else {
-    gamerootPath = instance.SelectGameDirectory();
+    gamerootPath = instance->SelectGameDirectory();
     if (gamerootPath.empty())
       return -1;
   }
 
   if (vm.count("start-seen"))
-    instance.set_seen_start(vm["start-seen"].as<int>());
+    instance->set_seen_start(vm["start-seen"].as<int>());
 
   if (vm.count("dump-seen"))
-    instance.set_dump_seen(vm["dump-seen"].as<int>());
+    instance->set_dump_seen(vm["dump-seen"].as<int>());
 
   if (vm.count("memory"))
-    instance.set_memory();
+    instance->set_memory();
 
   if (vm.count("undefined-opcodes"))
-    instance.set_undefined_opcodes();
+    instance->set_undefined_opcodes();
 
   if (vm.count("count-undefined"))
-    instance.set_count_undefined();
+    instance->set_count_undefined();
 
   if (vm.count("trace"))
-    instance.set_tracing();
+    instance->set_tracing();
 
   if (vm.count("load-save"))
-    instance.set_load_save(vm["load-save"].as<int>());
+    instance->set_load_save(vm["load-save"].as<int>());
 
   if (vm.count("font"))
-    instance.set_custom_font(vm["font"].as<std::string>());
+    instance->set_custom_font(vm["font"].as<std::string>());
 
-  instance.Run(gamerootPath);
+  instance->Run(gamerootPath);
 
   return 0;
 }

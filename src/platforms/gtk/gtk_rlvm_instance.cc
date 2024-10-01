@@ -50,11 +50,11 @@ void on_selection_changed(GtkFileChooser* chooser) {
 
 }  // namespace
 
-GtkRLVMInstance::GtkRLVMInstance(int* argc, char** argv[]) : RLVMInstance() {
+GtkRLVMInstance::GtkRLVMInstance() : RLVMInstance() {
 #if defined ENABLE_NLS
   gtk_set_locale();
 #endif
-  gtk_init(argc, argv);
+  gtk_init(0, nullptr);
 
 #if defined ENABLE_NLS
   setlocale(LC_ALL, "");

@@ -34,7 +34,7 @@
 // A GTK subclass of RLVMInstance that displays GTK dialogs.
 class GtkRLVMInstance : public RLVMInstance {
  public:
-  GtkRLVMInstance(int* argc, char** argv[]);
+  GtkRLVMInstance();
   virtual ~GtkRLVMInstance();
 
   virtual std::filesystem::path SelectGameDirectory();
