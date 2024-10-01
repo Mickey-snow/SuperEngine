@@ -37,6 +37,7 @@
 #include <string>
 
 #include "platforms/gtk/gtk_rlvm_instance.h"
+#include "platforms/implementor.h"
 #include "systems/base/system.h"
 #include "utilities/file.h"
 
@@ -82,9 +83,9 @@ void printUsage(const std::string& name, po::options_description& opts) {
 
 int main(int argc, char* argv[]) {
   // -----------------------------------------------------------------------
-  // Parse command line options
+  // Set up argument parser
 
-  // Declare the supported options.
+  // Declare command line options
   po::options_description opts("Options");
   opts.add_options()("help", "Produce help message")(
       "help-debug", "Print help message for people working on rlvm")(
@@ -162,10 +163,10 @@ int main(int argc, char* argv[]) {
   // Create rlvm_instance using the selected platform
   // TODO: make this a command line argument
   [[maybe_unused]] const std::string selected_platform = "gtk";
-  // TODO: Extract an interface for `RLVMInstance` and use that instead.
-  // TODO: Use a factory to control which instance to create, hide it from our
-  // client code.
-  std::unique_ptr<RLVMInstance> instance = std::make_unique<GtkRLVMInstance>();
+  // TODO: Use a factory to control which platform implementor to create, hide
+  // it from our client code.
+  std::unique_ptr<IPlatformImplementor> platform_impl =
+      std::make_unique<DefaultPlatformImpl>();
 
   if (vm.count("game-root")) {
     gamerootPath = vm["game-root"].as<std::string>();
@@ -197,11 +198,19 @@ int main(int argc, char* argv[]) {
       }
     }
   } else {
-    gamerootPath = instance->SelectGameDirectory();
+    gamerootPath = platform_impl->SelectGameDirectory();
     if (gamerootPath.empty())
       return -1;
   }
 
+  // -----------------------------------------------------------------------
+  // Create game instance
+
+  // TODO: Move `GtkRLVMInstance` to `GtkPlatformImplementor`
+  // TODO: Let `RLVMInstance` use the implementor, remove class
+  // `GtkRLVMInstance`
+  std::unique_ptr<RLVMInstance> instance = std::make_unique<GtkRLVMInstance>();
+  instance->SetPlatformImplementor(std::move(platform_impl));
   if (vm.count("start-seen"))
     instance->set_seen_start(vm["start-seen"].as<int>());
 

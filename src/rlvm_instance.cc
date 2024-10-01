@@ -70,11 +70,16 @@ RLVMInstance::RLVMInstance()
       tracing_(false),
       load_save_(-1),
       dump_seen_(-1),
-      platform_implementor_(nullptr) {
+      platform_implementor_(std::make_unique<DefaultPlatformImpl>()) {
   srand(time(NULL));
 }
 
 RLVMInstance::~RLVMInstance() {}
+
+void RLVMInstance::SetPlatformImplementor(
+    std::unique_ptr<IPlatformImplementor> impl) {
+  platform_implementor_ = std::move(impl);
+}
 
 void RLVMInstance::Run(const std::filesystem::path& gamerootPath) {
   try {
@@ -130,6 +135,8 @@ void RLVMInstance::Run(const std::filesystem::path& gamerootPath) {
 
     // Initialize our platform dialogs (we have to do this after
     // looking for a font because we use that font internally).
+    // TODO: Rename this, consider move guichan code elsewhere. Guichan library
+    // doesn't depend on a windowing system
     std::shared_ptr<GCNPlatform> platform(
         new GCNPlatform(sdlSystem, sdlSystem.graphics().screen_rect()));
     sdlSystem.SetPlatform(platform);
@@ -199,13 +206,17 @@ void RLVMInstance::Run(const std::filesystem::path& gamerootPath) {
   }
 }
 
-std::filesystem::path RLVMInstance::SelectGameDirectory() {
-  return std::filesystem::path();
-}
-
 void RLVMInstance::ReportFatalError(const std::string& message_text,
                                     const std::string& informative_text) {
-  std::cerr << message_text << ": " << informative_text << std::endl;
+  platform_implementor_->ReportFatalError(message_text, informative_text);
+}
+
+bool RLVMInstance::AskUserPrompt(const std::string& message_text,
+                                 const std::string& informative_text,
+                                 const std::string& true_button,
+                                 const std::string& false_button) {
+  return platform_implementor_->AskUserPrompt(message_text, informative_text,
+                                              true_button, false_button);
 }
 
 void RLVMInstance::DoUserNameCheck(RLMachine& machine) {

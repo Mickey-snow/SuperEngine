@@ -56,13 +56,9 @@ class RLVMInstance {
   void set_custom_font(const std::string& font) { custom_font_ = font; }
   void set_dump_seen(int in) { dump_seen_ = in; }
 
-  // Optionally brings up a file selection dialog to get the game directory. In
-  // case this isn't implemented or the user clicks cancel, returns an empty
-  // path.
-  virtual std::filesystem::path SelectGameDirectory();
+  void SetPlatformImplementor(std::unique_ptr<IPlatformImplementor> impl);
 
  protected:
-  // TODO: use an implementor for those two functions.
   // Should bring up a platform native dialog box to report the message.
   virtual void ReportFatalError(const std::string& message_text,
                                 const std::string& informative_text);
@@ -71,7 +67,7 @@ class RLVMInstance {
   virtual bool AskUserPrompt(const std::string& message_text,
                              const std::string& informative_text,
                              const std::string& true_button,
-                             const std::string& false_button) = 0;
+                             const std::string& false_button);
 
  private:
   // Finds a game file, causing an error if not found.
