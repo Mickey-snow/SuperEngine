@@ -137,8 +137,8 @@ void RLVMInstance::Run(const std::filesystem::path& gamerootPath) {
     // looking for a font because we use that font internally).
     // TODO: Rename this, consider move guichan code elsewhere. Guichan library
     // doesn't depend on a windowing system
-    std::shared_ptr<GCNPlatform> platform(
-        new GCNPlatform(sdlSystem, sdlSystem.graphics().screen_rect()));
+    std::shared_ptr<GCNPlatform> platform = std::make_shared<GCNPlatform>(
+        sdlSystem, sdlSystem.graphics().screen_rect());
     sdlSystem.SetPlatform(platform);
 
     if (undefined_opcodes_)
@@ -208,13 +208,16 @@ void RLVMInstance::Run(const std::filesystem::path& gamerootPath) {
 
 void RLVMInstance::ReportFatalError(const std::string& message_text,
                                     const std::string& informative_text) {
-  platform_implementor_->ReportFatalError(message_text, informative_text);
+  if (platform_implementor_)
+    platform_implementor_->ReportFatalError(message_text, informative_text);
 }
 
 bool RLVMInstance::AskUserPrompt(const std::string& message_text,
                                  const std::string& informative_text,
                                  const std::string& true_button,
                                  const std::string& false_button) {
+  if (!platform_implementor_)
+    return true;
   return platform_implementor_->AskUserPrompt(message_text, informative_text,
                                               true_button, false_button);
 }
