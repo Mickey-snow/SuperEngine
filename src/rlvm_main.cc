@@ -36,8 +36,9 @@
 #include <iostream>
 #include <string>
 
-#include "platforms/gtk/gtk_rlvm_instance.h"
+#include "platforms/gtk/gtk_implementor.h"
 #include "platforms/implementor.h"
+#include "rlvm_instance.h"
 #include "systems/base/system.h"
 #include "utilities/file.h"
 
@@ -160,13 +161,15 @@ int main(int argc, char* argv[]) {
     return 0;
   }
 
-  // Create rlvm_instance using the selected platform
-  // TODO: make this a command line argument
+  // Select game root directory.
+  // This is where we need platform implementor to pop up platform-specific
+  // dialogue if we need to ask user for providing the path.
+  //  TODO: make this a command line argument
   [[maybe_unused]] const std::string selected_platform = "gtk";
   // TODO: Use a factory to control which platform implementor to create, hide
   // it from our client code.
   std::unique_ptr<IPlatformImplementor> platform_impl =
-      std::make_unique<DefaultPlatformImpl>();
+      std::make_unique<GtkImplementor>();
 
   if (vm.count("game-root")) {
     gamerootPath = vm["game-root"].as<std::string>();
@@ -206,36 +209,34 @@ int main(int argc, char* argv[]) {
   // -----------------------------------------------------------------------
   // Create game instance
 
-  // TODO: Move `GtkRLVMInstance` to `GtkPlatformImplementor`
-  // TODO: Let `RLVMInstance` use the implementor, remove class
-  // `GtkRLVMInstance`
-  std::unique_ptr<RLVMInstance> instance = std::make_unique<GtkRLVMInstance>();
-  instance->SetPlatformImplementor(std::move(platform_impl));
+  RLVMInstance instance;
+  instance.SetPlatformImplementor(std::move(platform_impl));
+
   if (vm.count("start-seen"))
-    instance->set_seen_start(vm["start-seen"].as<int>());
+    instance.set_seen_start(vm["start-seen"].as<int>());
 
   if (vm.count("dump-seen"))
-    instance->set_dump_seen(vm["dump-seen"].as<int>());
+    instance.set_dump_seen(vm["dump-seen"].as<int>());
 
   if (vm.count("memory"))
-    instance->set_memory();
+    instance.set_memory();
 
   if (vm.count("undefined-opcodes"))
-    instance->set_undefined_opcodes();
+    instance.set_undefined_opcodes();
 
   if (vm.count("count-undefined"))
-    instance->set_count_undefined();
+    instance.set_count_undefined();
 
   if (vm.count("trace"))
-    instance->set_tracing();
+    instance.set_tracing();
 
   if (vm.count("load-save"))
-    instance->set_load_save(vm["load-save"].as<int>());
+    instance.set_load_save(vm["load-save"].as<int>());
 
   if (vm.count("font"))
-    instance->set_custom_font(vm["font"].as<std::string>());
+    instance.set_custom_font(vm["font"].as<std::string>());
 
-  instance->Run(gamerootPath);
+  instance.Run(gamerootPath);
 
   return 0;
 }

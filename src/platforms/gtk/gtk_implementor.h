@@ -1,12 +1,10 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
 //
 // -----------------------------------------------------------------------
 //
+// Copyright (C) 2011 Serina Sakurai
 // Copyright (C) 2011 Elliot Glaysher
 //
 // This program is free software; you can redistribute it and/or modify
@@ -24,31 +22,31 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_PLATFORMS_GTK_GTK_RLVM_INSTANCE_H_
-#define SRC_PLATFORMS_GTK_GTK_RLVM_INSTANCE_H_
+#ifndef SRC_PLATFORMS_GTK_GTK_IMPLEMENTOR_H_
+#define SRC_PLATFORMS_GTK_GTK_IMPLEMENTOR_H_
 
+#include "platforms/implementor.h"
+
+#include <filesystem>
 #include <string>
 
-#include "rlvm_instance.h"
-
-// A GTK subclass of RLVMInstance that displays GTK dialogs.
-class GtkRLVMInstance : public RLVMInstance {
+class GtkImplementor : public IPlatformImplementor {
  public:
-  GtkRLVMInstance();
-  virtual ~GtkRLVMInstance();
+  GtkImplementor();
+  ~GtkImplementor() = default;
 
-  virtual std::filesystem::path SelectGameDirectory();
+  std::filesystem::path SelectGameDirectory() override;
 
- protected:
+  void ReportFatalError(const std::string& message_text,
+                        const std::string& informative_text) override;
+
+  bool AskUserPrompt(const std::string& message_text,
+                     const std::string& informative_text,
+                     const std::string& true_button,
+                     const std::string& false_button) override;
+
+ private:
   void DoNativeWork();
-
-  virtual void ReportFatalError(const std::string& message_text,
-                                const std::string& informative_text);
-
-  virtual bool AskUserPrompt(const std::string& message_text,
-                             const std::string& informative_text,
-                             const std::string& true_button,
-                             const std::string& false_button);
 };
 
-#endif  // SRC_PLATFORMS_GTK_GTK_RLVM_INSTANCE_H_
+#endif
