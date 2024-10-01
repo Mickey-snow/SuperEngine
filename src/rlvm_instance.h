@@ -28,11 +28,14 @@
 #define SRC_RLVM_INSTANCE_H_
 
 #include <filesystem>
+#include <memory>
 #include <string>
+#include <vector>
 
 class Platform;
 class RLMachine;
 class System;
+class IPlatformImplementor;
 
 // The main, cross platform emulator class. Has template methods for
 // implementing platform specific GUI.
@@ -72,9 +75,8 @@ class RLVMInstance {
 
  private:
   // Finds a game file, causing an error if not found.
-  std::filesystem::path FindGameFile(
-      const std::filesystem::path& gamerootPath,
-      const std::string& filename);
+  std::filesystem::path FindGameFile(const std::filesystem::path& gamerootPath,
+                                     const std::string& filename);
 
   // Checks to see if the user ran the Japanese version and than installed a
   // fan patch. In this case, we need to warn and let the user reset global
@@ -83,7 +85,7 @@ class RLVMInstance {
 
   // Checks for AVG32/Siglus engine games, which people may be confused about.
   void CheckBadEngine(const std::filesystem::path& gamerootPath,
-                      const char** filenames,
+                      const std::vector<std::string> filenames,
                       const std::string& message_text);
 
   // Whether we should set a custom font.
@@ -110,6 +112,9 @@ class RLVMInstance {
 
   // Dumps pseudo-kepago of the current seen to stdout and exit if not -1.
   int dump_seen_;
+
+  // The bridge to the class that implements platform-specific code
+  std::unique_ptr<IPlatformImplementor> platform_implementor_;
 };
 
 #endif  // SRC_MACHINE_RLVM_INSTANCE_H_
