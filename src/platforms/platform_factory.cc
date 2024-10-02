@@ -44,6 +44,12 @@ PlatformImpl_t PlatformFactory::CreateDefault() {
 
 void PlatformFactory::Reset() { GetContext().map_.clear(); }
 
+using const_iterator_t = PlatformFactory::const_iterator_t;
+const_iterator_t PlatformFactory::cbegin() {
+  return GetContext().map_.cbegin();
+}
+const_iterator_t PlatformFactory::cend() { return GetContext().map_.cend(); }
+
 PlatformFactory::Registrar::Registrar(
     const std::string& name,
     std::function<PlatformImpl_t()> constructor) {

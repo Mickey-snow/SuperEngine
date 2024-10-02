@@ -60,6 +60,12 @@ class PlatformFactory {
 
   static void Reset();
 
+  using const_iterator_t =
+      typename std::map<std::string,
+                        std::function<PlatformImpl_t()>>::const_iterator;
+  static const_iterator_t cbegin();
+  static const_iterator_t cend();
+
   /**
    * @class PlatformFactory::Registrar
    * @brief Helper class for registering platform implementations.
