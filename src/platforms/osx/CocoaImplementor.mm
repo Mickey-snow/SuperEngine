@@ -24,16 +24,16 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#include "platforms/osx/CocoaRLVMInstance.h"
+#include "platforms/osx/CocoaImplementor.h"
 
 #include <AppKit/AppKit.h>
 #include <Cocoa/Cocoa.h>
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 #include "utilities/file.h"
 #include "utilities/gettext.h"
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 @interface FileValidator : NSObject
 - (BOOL)panel:(id)sender isValidFilename:(NSString *)filename;
@@ -57,16 +57,14 @@ namespace fs = boost::filesystem;
 }
 @end
 
-CocoaRLVMInstance::CocoaRLVMInstance()
-    : RLVMInstance(),
-      validator_([[FileValidator alloc] init]) {
-}
+CocoaImplementor::CocoaImplementor()
+    : validator_([[FileValidator alloc] init]) {}
 
-CocoaRLVMInstance::~CocoaRLVMInstance() {
+CocoaImplementor::~CocoaImplementor() {
   [validator_ release];
 }
 
-boost::filesystem::path CocoaRLVMInstance::SelectGameDirectory() {
+std::filesystem::path CocoaImplementor::SelectGameDirectory() {
   NSOpenPanel *oPanel = [NSOpenPanel openPanel];
   [oPanel setAllowsMultipleSelection:NO];
   [oPanel setCanChooseFiles:NO];
@@ -75,20 +73,18 @@ boost::filesystem::path CocoaRLVMInstance::SelectGameDirectory() {
   [oPanel setDelegate:validator_];
 
   int status = [oPanel runModal];
-  boost::filesystem::path out_path;
+  fs::path out_path;
   if (status == NSOKButton) {
     NSArray* filenames = [oPanel filenames];
     NSString* filename = [filenames objectAtIndex:0];
-    out_path = boost::filesystem::path([filename UTF8String]);
+    out_path = fs::path([filename UTF8String]);
   }
 
   return out_path;
 }
 
-void CocoaRLVMInstance::ReportFatalError(const std::string& message_text,
+void CocoaImplementor::ReportFatalError(const std::string& message_text,
                                          const std::string& informative_text) {
-  RLVMInstance::ReportFatalError(message_text, informative_text);
-
   NSString* message = UTF8ToNSString(message_text);
   NSString* information = UTF8ToNSString(informative_text);
 
@@ -100,7 +96,7 @@ void CocoaRLVMInstance::ReportFatalError(const std::string& message_text,
   [alert runModal];
 }
 
-bool CocoaRLVMInstance::AskUserPrompt(const std::string& message_text,
+bool CocoaImplementor::AskUserPrompt(const std::string& message_text,
                                       const std::string& informative_text,
                                       const std::string& true_button,
                                       const std::string& false_button) {

@@ -24,7 +24,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#include "machine/rlvm_instance.h"
+#include "rlvm_instance.h"
 
 #include <iostream>
 #include <string>
@@ -39,6 +39,7 @@
 #include "modules/module_sys_save.h"
 #include "modules/modules.h"
 #include "platforms/gcn/gcn_platform.h"
+#include "platforms/implementor.h"
 #include "systems/base/event_system.h"
 #include "systems/base/graphics_system.h"
 #include "systems/base/system_error.h"
@@ -53,12 +54,13 @@
 namespace fs = std::filesystem;
 
 // AVG32 file checks. We can't run AVG32 games.
-const char* avg32_exes[] = {"avg3216m.exe", "avg3217m.exe", NULL};
+static const std::vector<std::string> avg32_exes{"avg3216m.exe",
+                                                 "avg3217m.exe"};
 
 // Siglus engine filenames. We can't run VisualArts' newer engine.
-const char* siglus_exes[] = {"siglus.exe",       "siglusengine-ch.exe",
-                             "siglusengine.exe", "siglusenginechs.exe",
-                             NULL};
+static const std::vector<std::string> siglus_exes{
+    "siglus.exe", "siglusengine-ch.exe", "siglusengine.exe",
+    "siglusenginechs.exe"};
 
 RLVMInstance::RLVMInstance()
     : seen_start_(-1),
@@ -67,11 +69,17 @@ RLVMInstance::RLVMInstance()
       count_undefined_copcodes_(false),
       tracing_(false),
       load_save_(-1),
-      dump_seen_(-1) {
+      dump_seen_(-1),
+      platform_implementor_(nullptr) {
   srand(time(NULL));
 }
 
 RLVMInstance::~RLVMInstance() {}
+
+void RLVMInstance::SetPlatformImplementor(
+    std::unique_ptr<IPlatformImplementor> impl) {
+  platform_implementor_ = std::move(impl);
+}
 
 void RLVMInstance::Run(const std::filesystem::path& gamerootPath) {
   try {
@@ -127,6 +135,8 @@ void RLVMInstance::Run(const std::filesystem::path& gamerootPath) {
 
     // Initialize our platform dialogs (we have to do this after
     // looking for a font because we use that font internally).
+    // TODO: Rename this, consider move guichan code elsewhere. Guichan library
+    // doesn't depend on a windowing system
     std::shared_ptr<GCNPlatform> platform(
         new GCNPlatform(sdlSystem, sdlSystem.graphics().screen_rect()));
     sdlSystem.SetPlatform(platform);
@@ -165,8 +175,7 @@ void RLVMInstance::Run(const std::filesystem::path& gamerootPath) {
       do {
         rlmachine.ExecuteNextInstruction();
         end_ticks = sdlSystem.event().GetTicks();
-      } while (!rlmachine.CurrentLongOperation() &&
-               !sdlSystem.force_wait() &&
+      } while (!rlmachine.CurrentLongOperation() && !sdlSystem.force_wait() &&
                (end_ticks - start_ticks < 10));
 
       // Sleep to be nice to the processor and to give the GPU a chance to
@@ -182,34 +191,32 @@ void RLVMInstance::Run(const std::filesystem::path& gamerootPath) {
     }
 
     Serialization::saveGlobalMemory(rlmachine);
-  }
-  catch (rlvm::UserPresentableError& e) {
+  } catch (rlvm::UserPresentableError& e) {
     ReportFatalError(e.message_text(), e.informative_text());
-  }
-  catch (rlvm::Exception& e) {
+  } catch (rlvm::Exception& e) {
     ReportFatalError(_("Fatal RLVM error"), e.what());
-  }
-  catch (libreallive::Error& e) {
+  } catch (libreallive::Error& e) {
     ReportFatalError(_("Fatal libreallive error"), e.what());
-  }
-  catch (SystemError& e) {
+  } catch (SystemError& e) {
     ReportFatalError(_("Fatal local system error"), e.what());
-  }
-  catch (std::exception& e) {
+  } catch (std::exception& e) {
     ReportFatalError(_("Uncaught exception"), e.what());
-  }
-  catch (const char* e) {
+  } catch (const char* e) {
     ReportFatalError(_("Uncaught exception"), e);
   }
 }
 
-std::filesystem::path RLVMInstance::SelectGameDirectory() {
-  return std::filesystem::path();
-}
-
 void RLVMInstance::ReportFatalError(const std::string& message_text,
                                     const std::string& informative_text) {
-  std::cerr << message_text << ": " << informative_text << std::endl;
+  platform_implementor_->ReportFatalError(message_text, informative_text);
+}
+
+bool RLVMInstance::AskUserPrompt(const std::string& message_text,
+                                 const std::string& informative_text,
+                                 const std::string& true_button,
+                                 const std::string& false_button) {
+  return platform_implementor_->AskUserPrompt(message_text, informative_text,
+                                              true_button, false_button);
 }
 
 void RLVMInstance::DoUserNameCheck(RLMachine& machine) {
@@ -224,8 +231,7 @@ void RLVMInstance::DoUserNameCheck(RLMachine& machine) {
     LocalMemory& l = machine.memory().local();
     for (int i = 0; i < SIZE_OF_NAME_BANK; ++i)
       cp932toUTF8(l.local_names[i], encoding);
-  }
-  catch (...) {
+  } catch (...) {
     // We've failed to interpret one of the name strings as a string in the
     // text encoding of the current native encoding. We're going to fail to
     // display any line that refers to the player's name.
@@ -236,8 +242,7 @@ void RLVMInstance::DoUserNameCheck(RLMachine& machine) {
             _("Corrupted global memory"),
             _("You appear to have run this game without a translation patch "
               "previously. This can cause lines of text to not print."),
-            _("Reset"),
-            _("Continue with broken names"))) {
+            _("Reset"), _("Continue with broken names"))) {
       machine.HardResetMemory();
     }
   }
@@ -259,10 +264,10 @@ std::filesystem::path RLVMInstance::FindGameFile(
 }
 
 void RLVMInstance::CheckBadEngine(const std::filesystem::path& gamerootPath,
-                                  const char** filenames,
+                                  const std::vector<std::string> filenames,
                                   const std::string& message_text) {
-  for (const char** cur_file = filenames; *cur_file; cur_file++) {
-    if (fs::exists(CorrectPathCase(gamerootPath / *cur_file))) {
+  for (const auto& cur_file : filenames) {
+    if (fs::exists(CorrectPathCase(gamerootPath / cur_file))) {
       throw rlvm::UserPresentableError(message_text,
                                        _("rlvm can only play RealLive games."));
     }

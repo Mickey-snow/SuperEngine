@@ -26,72 +26,76 @@
 // -----------------------------------------------------------------------
 
 // We include this here because SDL is retarded and works by #define
-// main(inat argc, char* agrv[]). Loosers.
+// main(int argc, char* agrv[]). Loosers.
 #include <SDL/SDL.h>
+// TODO: Clean up platform-specific dependencies (SDL, GTK, etc.) once
+// abstractions and implementations are separated properly. Consider
+// refactoring for better cross-platform support and modularity.
 
 #include <boost/program_options.hpp>
 #include <iostream>
 #include <string>
 
-#include "platforms/gtk/gtk_rlvm_instance.h"
+#include "platforms/gtk/gtk_implementor.h"
+#include "platforms/implementor.h"
+#include "rlvm_instance.h"
 #include "systems/base/system.h"
 #include "utilities/file.h"
 
 namespace po = boost::program_options;
 namespace fs = std::filesystem;
 
-using std::cerr;
-using std::cout;
-using std::endl;
-using std::string;
-
 // -----------------------------------------------------------------------
 
 void printVersionInformation() {
-  cout
-      << "rlvm (" << GetRlvmVersionString() << ")" << endl
-      << "Copyright (C) 2006-2014 Elliot Glaysher, et all." << endl << endl
-      << "Contains code that is: " << endl
-      << "  Copyright (C) 2006-2007 Peter \"Haeleth\" Jolly" << endl
-      << "  Copyright (C) 2004-2006 Kazunori \"jagarl\" Ueno" << endl << endl
+  std::cout
+      << "rlvm (" << GetRlvmVersionString() << ")\n"
+      << "Copyright (C) 2006-2014 Elliot Glaysher, et all.\n\n"
+      << "Contains code that is: \n"
+      << "  Copyright (C) 2006-2007 Peter \"Haeleth\" Jolly\n"
+      << "  Copyright (C) 2004-2006 Kazunori \"jagarl\" Ueno\n\n"
+
       << "This program is free software: you can redistribute it and/or modify"
-      << endl
+      << '\n'
       << "it under the terms of the GNU General Public License as published by"
-      << endl
+      << '\n'
       << "the Free Software Foundation, either version 3 of the License, or"
-      << endl << "(at your option) any later version." << endl << endl
+      << '\n'
+      << "(at your option) any later version.\n\n"
+
       << "This program is distributed in the hope that it will be useful,"
-      << endl
+      << '\n'
       << "but WITHOUT ANY WARRANTY; without even the implied warranty of"
-      << endl << "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the"
-      << endl << "GNU General Public License for more details." << endl << endl
+      << '\n'
+      << "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n"
+      << "GNU General Public License for more details.\n\n"
+
       << "You should have received a copy of the GNU General Public License"
-      << endl
+      << '\n'
       << "along with this program.  If not, see <http://www.gnu.org/licenses/>."
-      << endl << endl;
+      << std::endl
+      << std::endl;
 }
 
-void printUsage(const string& name, po::options_description& opts) {
-  cout << "Usage: " << name << " [options] <game root>" << endl;
-  cout << opts << endl;
+void printUsage(const std::string& name, po::options_description& opts) {
+  std::cout << "Usage: " << name << " [options] <game root>" << std::endl;
+  std::cout << opts << std::endl;
 }
 
 int main(int argc, char* argv[]) {
-  GtkRLVMInstance instance(&argc, &argv);
-
   // -----------------------------------------------------------------------
-  // Parse command line options
+  // Set up argument parser
 
-  // Declare the supported options.
+  // Declare command line options
   po::options_description opts("Options");
   opts.add_options()("help", "Produce help message")(
       "help-debug", "Print help message for people working on rlvm")(
       "version", "Display version and license information")(
-      "font", po::value<string>(), "Specifies TrueType font to use.");
+      "font", po::value<std::string>(), "Specifies TrueType font to use.");
 
   po::options_description debugOpts("Debugging Options");
-  debugOpts.add_options()(
-      "start-seen", po::value<int>(), "Force start at SEEN#")(
+  debugOpts.add_options()("start-seen", po::value<int>(),
+                          "Force start at SEEN#")(
       "dump-seen", po::value<int>(), "Dumps rlvm's internal parsing of SEEN#")(
       "load-save", po::value<int>(), "Load a saved game on start")(
       "memory", "Forces debug mode (Sets #MEMORY=1 in the Gameexe.ini file)")(
@@ -102,8 +106,8 @@ int main(int argc, char* argv[]) {
 
   // Declare the final option to be game-root
   po::options_description hidden("Hidden");
-  hidden.add_options()(
-      "game-root", po::value<string>(), "Location of game root");
+  hidden.add_options()("game-root", po::value<std::string>(),
+                       "Location of game root");
 
   po::positional_options_description p;
   p.add("game-root", -1);
@@ -120,17 +124,16 @@ int main(int argc, char* argv[]) {
                   .run(),
               vm);
     po::notify(vm);
-  }
-  catch (boost::program_options::multiple_occurrences& e) {
-    cerr << "Couldn't parse command line: multiple_occurances." << endl
-         << " (Hint: this can happen when your shell doesn't escape properly,"
-         << endl
-         << "  e.g. \"/path/to/Clannad Full Voice/\" without the quotes.)"
-         << endl;
+  } catch (boost::program_options::multiple_occurrences& e) {
+    std::cerr
+        << "Couldn't parse command line: multiple_occurances." << std::endl
+        << " (Hint: this can happen when your shell doesn't escape properly,"
+        << std::endl
+        << "  e.g. \"/path/to/Clannad Full Voice/\" without the quotes.)"
+        << std::endl;
     return -1;
-  }
-  catch (boost::program_options::error& e) {
-    cerr << "Couldn't parse command line: " << e.what() << endl;
+  } catch (boost::program_options::error& e) {
+    std::cerr << "Couldn't parse command line: " << e.what() << std::endl;
     return -1;
   }
 
@@ -158,17 +161,28 @@ int main(int argc, char* argv[]) {
     return 0;
   }
 
+  // Select game root directory.
+  // This is where we need platform implementor to pop up platform-specific
+  // dialogue if we need to ask user for providing the path.
+  //  TODO: make this a command line argument
+  [[maybe_unused]] const std::string selected_platform = "gtk";
+  // TODO: Use a factory to control which platform implementor to create, hide
+  // it from our client code.
+  std::unique_ptr<IPlatformImplementor> platform_impl =
+      std::make_unique<GtkImplementor>();
+
   if (vm.count("game-root")) {
-    gamerootPath = vm["game-root"].as<string>();
+    gamerootPath = vm["game-root"].as<std::string>();
 
     if (!fs::exists(gamerootPath)) {
-      cerr << "ERROR: Path '" << gamerootPath << "' does not exist." << endl;
+      std::cerr << "ERROR: Path '" << gamerootPath << "' does not exist."
+                << std::endl;
       return -1;
     }
 
     if (!fs::is_directory(gamerootPath)) {
-      cerr << "ERROR: Path '" << gamerootPath << "' is not a directory."
-           << endl;
+      std::cerr << "ERROR: Path '" << gamerootPath << "' is not a directory."
+                << std::endl;
       return -1;
     }
 
@@ -182,15 +196,21 @@ int main(int argc, char* argv[]) {
                       .empty()) {
         gamerootPath /= "REALLIVEDATA/";
       } else {
-        cerr << "WARNING: Path '" << gamerootPath << "' may not contain a "
-             << "RealLive game." << endl;
+        std::cerr << "WARNING: Path '" << gamerootPath << "' may not contain a "
+                  << "RealLive game." << std::endl;
       }
     }
   } else {
-    gamerootPath = instance.SelectGameDirectory();
+    gamerootPath = platform_impl->SelectGameDirectory();
     if (gamerootPath.empty())
       return -1;
   }
+
+  // -----------------------------------------------------------------------
+  // Create game instance
+
+  RLVMInstance instance;
+  instance.SetPlatformImplementor(std::move(platform_impl));
 
   if (vm.count("start-seen"))
     instance.set_seen_start(vm["start-seen"].as<int>());
@@ -214,7 +234,7 @@ int main(int argc, char* argv[]) {
     instance.set_load_save(vm["load-save"].as<int>());
 
   if (vm.count("font"))
-    instance.set_custom_font(vm["font"].as<string>());
+    instance.set_custom_font(vm["font"].as<std::string>());
 
   instance.Run(gamerootPath);
 

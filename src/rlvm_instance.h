@@ -24,15 +24,18 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MACHINE_RLVM_INSTANCE_H_
-#define SRC_MACHINE_RLVM_INSTANCE_H_
+#ifndef SRC_RLVM_INSTANCE_H_
+#define SRC_RLVM_INSTANCE_H_
 
 #include <filesystem>
+#include <memory>
 #include <string>
+#include <vector>
 
 class Platform;
 class RLMachine;
 class System;
+class IPlatformImplementor;
 
 // The main, cross platform emulator class. Has template methods for
 // implementing platform specific GUI.
@@ -51,13 +54,9 @@ class RLVMInstance {
   void set_tracing() { tracing_ = true; }
   void set_load_save(int in) { load_save_ = in; }
   void set_custom_font(const std::string& font) { custom_font_ = font; }
-
   void set_dump_seen(int in) { dump_seen_ = in; }
 
-  // Optionally brings up a file selection dialog to get the game directory. In
-  // case this isn't implemented or the user clicks cancel, returns an empty
-  // path.
-  virtual std::filesystem::path SelectGameDirectory();
+  void SetPlatformImplementor(std::unique_ptr<IPlatformImplementor> impl);
 
  protected:
   // Should bring up a platform native dialog box to report the message.
@@ -68,13 +67,12 @@ class RLVMInstance {
   virtual bool AskUserPrompt(const std::string& message_text,
                              const std::string& informative_text,
                              const std::string& true_button,
-                             const std::string& false_button) = 0;
+                             const std::string& false_button);
 
  private:
   // Finds a game file, causing an error if not found.
-  std::filesystem::path FindGameFile(
-      const std::filesystem::path& gamerootPath,
-      const std::string& filename);
+  std::filesystem::path FindGameFile(const std::filesystem::path& gamerootPath,
+                                     const std::string& filename);
 
   // Checks to see if the user ran the Japanese version and than installed a
   // fan patch. In this case, we need to warn and let the user reset global
@@ -83,7 +81,7 @@ class RLVMInstance {
 
   // Checks for AVG32/Siglus engine games, which people may be confused about.
   void CheckBadEngine(const std::filesystem::path& gamerootPath,
-                      const char** filenames,
+                      const std::vector<std::string> filenames,
                       const std::string& message_text);
 
   // Whether we should set a custom font.
@@ -110,6 +108,9 @@ class RLVMInstance {
 
   // Dumps pseudo-kepago of the current seen to stdout and exit if not -1.
   int dump_seen_;
+
+  // The bridge to the class that implements platform-specific code
+  std::unique_ptr<IPlatformImplementor> platform_implementor_;
 };
 
 #endif  // SRC_MACHINE_RLVM_INSTANCE_H_

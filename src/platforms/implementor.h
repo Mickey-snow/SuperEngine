@@ -1,13 +1,10 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2011 Elliot Glaysher
+// Copyright (C) 2024 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,40 +19,31 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
+//
 // -----------------------------------------------------------------------
 
-#ifndef SRC_PLATFORMS_OSX_COCOARLVMINSTANCE_H_
-#define SRC_PLATFORMS_OSX_COCOARLVMINSTANCE_H_
+#ifndef SRC_PLATFORM_IMPLEMENTOR_H_
+#define SRC_PLATFORM_IMPLEMENTOR_H_
 
-#include <Foundation/Foundation.h>
-
+#include <filesystem>
 #include <string>
 
-#include "machine/rlvm_instance.h"
-
-@class FileValidator;
-
-// A Cocoa subclass of RLVMInstance that displays Cocoa dialogs.
-class CocoaRLVMInstance : public RLVMInstance {
+class IPlatformImplementor {
  public:
-  CocoaRLVMInstance();
-  virtual ~CocoaRLVMInstance();
+  virtual ~IPlatformImplementor() = default;
 
-  virtual std::filesystem::path SelectGameDirectory();
+  // ask the user to select game directory, return path to directory root.
+  virtual std::filesystem::path SelectGameDirectory() = 0;
 
- protected:
-  // Overridden from RLVMInstance:
+  // report error before program crashes
   virtual void ReportFatalError(const std::string& message_text,
-                                const std::string& informative_text);
+                                const std::string& informative_text) = 0;
+
+  // ask the user to select a yes/no
   virtual bool AskUserPrompt(const std::string& message_text,
                              const std::string& informative_text,
                              const std::string& true_button,
-                             const std::string& false_button);
-
-  FileValidator* validator_;
+                             const std::string& false_button) = 0;
 };
 
-// A helper method for converting between string representations.
-NSString* UTF8ToNSString(const std::string& in);
-
-#endif  // SRC_PLATFORMS_OSX_COCOARLVMINSTANCE_H_
+#endif

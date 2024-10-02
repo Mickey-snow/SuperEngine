@@ -396,7 +396,7 @@ else:
 # Cross platform core of rlvm. Produces librlvm.a and libsystem_sdl.a
 env.SConscript("SConscript",
                variant_dir="$BUILD_DIR/",
-               duplicate=0,
+               duplicate=False,
                exports='env')
 
 # Run the correct port script. If we're on darwin, we'll run the cocoa version,
@@ -404,36 +404,35 @@ env.SConscript("SConscript",
 if env['PLATFORM'] == 'darwin':
   env.SConscript("SConscript.cocoa",
                  variant_dir="$BUILD_DIR/",
-                 duplicate=0,
+                 duplicate=False,
                  exports='env')
 else:
   env.SConscript("SConscript.gtk",
                  variant_dir="$BUILD_DIR/",
-                 duplicate=0,
+                 duplicate=False,
                  exports='env')
 
-# Copy the platform independent SEEN.TXT files to output (we no longer depend
-# on rldev because I can no longer reliably compile it).
+# Copy test asset files to output directory
 env.SConscript("test/SConscript.testdata",
                variant_dir="build/test",
-               duplicate=0,
+               duplicate=False,
                exports='env')
 
-# Build the rlvmTests binary that uses those SEEN.TXT files.
+# Build unit tests
 env.SConscript("SConscript.test",
                variant_dir="$BUILD_DIR/",
-               duplicate=0,
+               duplicate=False,
                exports='env')
 
 env.SConscript("SConscript.luarlvm",
                variant_dir="$BUILD_DIR/",
-               duplicate=0,
+               duplicate=False,
                exports='env')
 
 if GetOption("coverage"):
   env.SConscript("SConscript.coverage",
                  variant_dir="$BUILD_DIR/",
-                 duplicate=0,
+                 duplicate=False,
                  exports='env')
 
 # In addition to all that, we also want to build the translation files.
