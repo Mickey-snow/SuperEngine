@@ -27,12 +27,19 @@
 #include <stdexcept>
 
 PlatformImpl_t PlatformFactory::Create(const std::string& platform_name) {
-  Context& ctx = GetContext();
+  const Context& ctx = GetContext();
   auto it = ctx.map_.find(platform_name);
   if (it == ctx.map_.cend())
     throw std::runtime_error("Constructor for platform " + platform_name +
                              " not found.");
   return std::invoke(it->second);
+}
+
+PlatformImpl_t PlatformFactory::CreateDefault() {
+  const Context& ctx = GetContext();
+  if (ctx.map_.empty())
+    return nullptr;
+  return std::invoke(ctx.map_.begin()->second);
 }
 
 void PlatformFactory::Reset() { GetContext().map_.clear(); }

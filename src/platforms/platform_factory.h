@@ -56,6 +56,8 @@ class PlatformFactory {
 
   static PlatformImpl_t Create(const std::string& platform_name);
 
+  static PlatformImpl_t CreateDefault();
+
   static void Reset();
 
   /**

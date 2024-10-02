@@ -126,3 +126,14 @@ TEST_F(PlatformFactoryTest, DoubleRegister) {
                    existing_name, []() -> PlatformImpl_t { return nullptr; }),
                std::invalid_argument);
 }
+
+TEST_F(PlatformFactoryTest, CreateDefaultPlatform) {
+  auto platform = PlatformFactory::CreateDefault();
+
+  auto good_platform = std::dynamic_pointer_cast<GoodPlatform>(platform);
+  auto bad_platform = std::dynamic_pointer_cast<BadPlatform>(platform);
+  EXPECT_TRUE(good_platform != nullptr || bad_platform != nullptr);
+
+  PlatformFactory::Reset();
+  EXPECT_EQ(PlatformFactory::CreateDefault(), nullptr);
+}
