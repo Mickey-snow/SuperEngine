@@ -36,8 +36,8 @@
 #include <iostream>
 #include <string>
 
-#include "platforms/gtk/gtk_implementor.h"
 #include "platforms/implementor.h"
+#include "platforms/platform_factory.h"
 #include "rlvm_instance.h"
 #include "systems/base/system.h"
 #include "utilities/file.h"
@@ -91,7 +91,10 @@ int main(int argc, char* argv[]) {
   opts.add_options()("help", "Produce help message")(
       "help-debug", "Print help message for people working on rlvm")(
       "version", "Display version and license information")(
-      "font", po::value<std::string>(), "Specifies TrueType font to use.");
+      "font", po::value<std::string>(), "Specifies TrueType font to use.")(
+      "platform", po::value<std::string>(),
+      "Specifies which gui platform to use.")(
+      "show-platforms", "Print all avaliable gui platforms.");
 
   po::options_description debugOpts("Debugging Options");
   debugOpts.add_options()("start-seen", po::value<int>(),
@@ -161,16 +164,36 @@ int main(int argc, char* argv[]) {
     return 0;
   }
 
-  // Select game root directory.
+  if (vm.count("show-platforms")) {
+    for (auto begin = PlatformFactory::cbegin(), end = PlatformFactory::cend();
+         begin != end; ++begin) {
+      std::cout << begin->first << std::endl;
+    }
+    return 0;
+  }
+
   // This is where we need platform implementor to pop up platform-specific
   // dialogue if we need to ask user for providing the path.
-  //  TODO: make this a command line argument
-  [[maybe_unused]] const std::string selected_platform = "gtk";
-  // TODO: Use a factory to control which platform implementor to create, hide
-  // it from our client code.
-  std::unique_ptr<IPlatformImplementor> platform_impl =
-      std::make_unique<GtkImplementor>();
+  PlatformImpl_t platform_impl = nullptr;
+  if (vm.count("platform")) {
+    try {
+      platform_impl = PlatformFactory::Create(vm["platform"].as<std::string>());
+    } catch (std::exception& e) {
+      std::cerr << e.what() << std::endl;
+      platform_impl = nullptr;
+    }
+  }
+  if (!platform_impl) {
+    std::cerr << "Fallback to default gui implementation" << std::endl;
+    platform_impl = PlatformFactory::CreateDefault();
+  }
+  if (!platform_impl) {
+    // If everything fails
+    std::cerr << "WARNING: No gui implementation found." << std::endl;
+  }
 
+  // -----------------------------------------------------------------------
+  // Select game root directory.
   if (vm.count("game-root")) {
     gamerootPath = vm["game-root"].as<std::string>();
 
@@ -210,7 +233,7 @@ int main(int argc, char* argv[]) {
   // Create game instance
 
   RLVMInstance instance;
-  instance.SetPlatformImplementor(std::move(platform_impl));
+  instance.SetPlatformImplementor(platform_impl);
 
   if (vm.count("start-seen"))
     instance.set_seen_start(vm["start-seen"].as<int>());

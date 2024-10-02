@@ -27,6 +27,7 @@
 #include <libintl.h>
 #include <string>
 
+#include "platforms/platform_factory.h"
 #include "utilities/file.h"
 #include "utilities/gettext.h"
 
@@ -125,3 +126,9 @@ bool GtkImplementor::AskUserPrompt(const std::string& message_text,
 
   return result;
 }
+
+namespace {
+PlatformFactory::Registrar gtk_platform_registry("gtk", []() {
+  return std::make_shared<GtkImplementor>();
+});
+}  // namespace
