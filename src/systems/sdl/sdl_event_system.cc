@@ -221,10 +221,6 @@ void SDLEventSystem::HandleKeyUp(RLMachine& machine, SDL_Event& event) {
       machine.system().ShowSystemInfo(machine);
       break;
     }
-    case SDLK_F12: {
-      machine.system().DumpRenderTree(machine);
-      break;
-    }
     default:
       break;
   }

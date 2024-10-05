@@ -30,9 +30,9 @@
 
 #include <functional>
 #include <memory>
-#include <vector>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "base/rect.h"
 #include "systems/base/colour.h"
@@ -129,9 +129,7 @@ class TextWindow {
   // TODO(erg): What's SetMousePosition and how does it differ from mouse
   // listeners?
   void SetMousePosition(const Point& pos);
-  bool HandleMouseClick(RLMachine& machine,
-                        const Point& pos,
-                        bool pressed);
+  bool HandleMouseClick(RLMachine& machine, const Point& pos, bool pressed);
 
   // Sets how the name is displayed
   void set_name_mod(const int in) { name_mod_ = in; }
@@ -175,8 +173,12 @@ class TextWindow {
 
   int insertion_point_x() const { return text_insertion_point_x_; }
   int insertion_point_y() const { return text_insertion_point_y_; }
-  void offset_insertion_point_x(int offset) { text_insertion_point_x_ += offset; }
-  void offset_insertion_point_y(int offset) { text_insertion_point_y_ += offset; }
+  void offset_insertion_point_x(int offset) {
+    text_insertion_point_x_ += offset;
+  }
+  void offset_insertion_point_y(int offset) {
+    text_insertion_point_y_ += offset;
+  }
   void set_insertion_point_x(int x) { text_insertion_point_x_ = x; }
   void set_insertion_point_y(int y) { text_insertion_point_y_ = y; }
 
@@ -194,7 +196,7 @@ class TextWindow {
   void NextCharIsItalic();
 
   // ------------------------------------------------ [ Abstract interface ]
-  void Render(std::ostream* tree);
+  void Render();
 
   // Returns a surface that is the text.
   virtual std::shared_ptr<Surface> GetTextSurface() = 0;
@@ -255,9 +257,9 @@ class TextWindow {
   System& system() { return system_; }
 
   // Render faces implementation.
-  void RenderFaces(std::ostream* tree, int behind);
+  void RenderFaces(int behind);
 
-  void RenderKoeReplayButtons(std::ostream* tree);
+  void RenderKoeReplayButtons();
 
   int GetWrappingWidthFor(int cur_codepoint);
 

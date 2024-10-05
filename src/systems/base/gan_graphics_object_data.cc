@@ -29,8 +29,8 @@
 // (which translates binary GAN files to and from an XML
 // representation), found at rldev/src/rlxml/gan.ml.
 
-#include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
 
 #include "systems/base/gan_graphics_object_data.h"
 
@@ -51,11 +51,11 @@
 #include "utilities/file.h"
 
 using libreallive::read_i32;
-using std::string;
-using std::ifstream;
-using std::ostringstream;
 using std::cerr;
 using std::endl;
+using std::ifstream;
+using std::ostringstream;
+using std::string;
 using std::vector;
 
 namespace fs = std::filesystem;
@@ -313,9 +313,9 @@ int GanGraphicsObjectData::GetRenderingAlpha(const GraphicsObject& go,
   }
 }
 
-void GanGraphicsObjectData::ObjectInfo(std::ostream& tree) {
-  tree << "  GAN file: " << gan_filename_ << " (Using image: " << img_filename_
-       << ")" << endl;
+void GanGraphicsObjectData::ObjectInfo(std::ostream& oss) {
+  oss << "  GAN file: " << gan_filename_ << " (Using image: " << img_filename_
+      << ")" << endl;
 }
 
 void GanGraphicsObjectData::PlaySet(int set) {

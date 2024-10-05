@@ -31,14 +31,14 @@
 #include <sstream>
 #include <string>
 
-#include "systems/base/graphics_system.h"
 #include "base/rect.h"
+#include "libreallive/gameexe.h"
+#include "systems/base/graphics_system.h"
 #include "systems/base/surface.h"
 #include "systems/base/system.h"
 #include "systems/base/text_system.h"
 #include "systems/base/text_window.h"
 #include "systems/base/text_window_button.h"
-#include "libreallive/gameexe.h"
 
 using std::endl;
 using std::ostringstream;
@@ -94,34 +94,18 @@ void TextWakuNormal::Execute() {
   }
 }
 
-void TextWakuNormal::Render(std::ostream* tree,
-                            Point box_location,
-                            Size namebox_size) {
-  if (tree) {
-    *tree << "    Window Waku(" << setno_ << ", " << no_ << "):" << endl;
-  }
-
+void TextWakuNormal::Render(Point box_location, Size namebox_size) {
   if (waku_backing_) {
     Size backing_size = waku_backing_->GetSize();
-    waku_backing_->RenderToScreenAsColorMask(Rect(Point(0, 0), backing_size),
-                                             Rect(box_location, backing_size),
-                                             window_.colour(),
-                                             window_.filter());
-
-    if (tree) {
-      *tree << "      Backing Area: " << Rect(box_location, backing_size)
-            << endl;
-    }
+    waku_backing_->RenderToScreenAsColorMask(
+        Rect(Point(0, 0), backing_size), Rect(box_location, backing_size),
+        window_.colour(), window_.filter());
   }
 
   if (waku_main_) {
     Size main_size = waku_main_->GetSize();
-    waku_main_->RenderToScreen(
-        Rect(Point(0, 0), main_size), Rect(box_location, main_size), 255);
-
-    if (tree) {
-      *tree << "      Main Area: " << Rect(box_location, main_size) << endl;
-    }
+    waku_main_->RenderToScreen(Rect(Point(0, 0), main_size),
+                               Rect(box_location, main_size), 255);
   }
 
   if (waku_button_)
@@ -194,26 +178,18 @@ void TextWakuNormal::LoadWindowWaku() {
 
   if (waku("CLEAR_BOX").Exists()) {
     button_map_[0].reset(new ActionTextWindowButton(
-        system_,
-        ts.window_clear_use(),
-        waku("CLEAR_BOX"),
+        system_, ts.window_clear_use(), waku("CLEAR_BOX"),
         std::bind(&GraphicsSystem::ToggleInterfaceHidden, std::ref(gs))));
   }
   if (waku("MSGBKLEFT_BOX").Exists()) {
     button_map_[1].reset(new RepeatActionWhileHoldingWindowButton(
-        system_,
-        ts.window_msgbkleft_use(),
-        waku("MSGBKLEFT_BOX"),
-        std::bind(&TextSystem::BackPage, std::ref(ts)),
-        250));
+        system_, ts.window_msgbkleft_use(), waku("MSGBKLEFT_BOX"),
+        std::bind(&TextSystem::BackPage, std::ref(ts)), 250));
   }
   if (waku("MSGBKRIGHT_BOX").Exists()) {
     button_map_[2].reset(new RepeatActionWhileHoldingWindowButton(
-        system_,
-        ts.window_msgbkright_use(),
-        waku("MSGBKRIGHT_BOX"),
-        std::bind(&TextSystem::ForwardPage, std::ref(ts)),
-        250));
+        system_, ts.window_msgbkright_use(), waku("MSGBKRIGHT_BOX"),
+        std::bind(&TextSystem::ForwardPage, std::ref(ts)), 250));
   }
 
   for (int i = 0; i < 7; ++i) {
@@ -228,9 +204,7 @@ void TextWakuNormal::LoadWindowWaku() {
 
   if (waku("READJUMP_BOX").Exists()) {
     ActivationTextWindowButton* readjump_box = new ActivationTextWindowButton(
-        system_,
-        ts.window_read_jump_use(),
-        waku("READJUMP_BOX"),
+        system_, ts.window_read_jump_use(), waku("READJUMP_BOX"),
         std::bind(&TextSystem::SetSkipMode, std::ref(ts), _1));
     readjump_box->SetEnabledNotification(
         NotificationType::SKIP_MODE_ENABLED_CHANGED);
@@ -247,9 +221,7 @@ void TextWakuNormal::LoadWindowWaku() {
   if (waku("AUTOMODE_BOX").Exists()) {
     ActivationTextWindowButton* automode_button =
         new ActivationTextWindowButton(
-            system_,
-            ts.window_automode_use(),
-            waku("AUTOMODE_BOX"),
+            system_, ts.window_automode_use(), waku("AUTOMODE_BOX"),
             std::bind(&TextSystem::SetAutoMode, std::ref(ts), _1));
     automode_button->SetChangeNotification(
         NotificationType::AUTO_MODE_STATE_CHANGED);

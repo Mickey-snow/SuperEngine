@@ -263,9 +263,6 @@ class System {
   // text.
   bool ShouldFastForward();
 
-  // Renders the screen and dumps a textual representation of the screen.
-  void DumpRenderTree(RLMachine& machine);
-
   // Called once per gameloop.
   virtual void Run(RLMachine& machine) = 0;
 

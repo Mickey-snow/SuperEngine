@@ -57,19 +57,14 @@ void HIKRenderer::Execute(RLMachine& machine) {
   machine.system().graphics().MarkScreenAsDirty(GUT_DRAW_HIK);
 }
 
-void HIKRenderer::Render(std::ostream* tree) {
+void HIKRenderer::Render() {
   int current_ticks = system_.event().GetTicks();
   int time_since_creation = current_ticks - creation_time_;
 
-  if (tree) {
-    *tree << "  HIK Script:" << std::endl;
-  }
-
   int layer_num = 0;
-  for (std::vector<HIKScript::Layer>::const_iterator
-           it = script_->layers().begin();
-       it != script_->layers().end();
-       ++it, ++layer_num) {
+  for (std::vector<HIKScript::Layer>::const_iterator it =
+           script_->layers().begin();
+       it != script_->layers().end(); ++it, ++layer_num) {
     // Calculate the source rectangle
 
     Point dest_point = it->top_offset;
@@ -153,18 +148,6 @@ void HIKRenderer::Render(std::ostream* tree) {
       ClipDestination(it->clip_area, src_rect, dest_rect);
 
     frame.surface->RenderToScreen(src_rect, dest_rect, frame.opacity);
-
-    if (tree) {
-      *tree << "    [L:" << (std::distance(script_->layers().begin(), it) + 1)
-            << "/" << script_->layers().size()
-            << ", A:" << (layer_data.animation_num_ + 1) << "/"
-            << it->animations.size() << ", F:" << (frame_to_use + 1) << "/"
-            << animation->frames.size() << ", P:" << pattern_to_use
-            << ", ??: " << animation->use_multiframe_animation << "/"
-            << animation->i_30101 << "/" << animation->i_30102
-            << ", O:" << frame.opacity << ", Image: " << frame.image << "]"
-            << std::endl;
-    }
   }
 }
 
@@ -173,8 +156,7 @@ void HIKRenderer::NextAnimationFrame() {
 
   int idx = 0;
   for (std::vector<LayerData>::iterator it = layer_to_animation_num_.begin();
-       it != layer_to_animation_num_.end();
-       ++it, ++idx) {
+       it != layer_to_animation_num_.end(); ++it, ++idx) {
     it->animation_num_++;
     if (it->animation_num_ == script_->layers().at(idx).animations.size())
       it->animation_num_ = 0;

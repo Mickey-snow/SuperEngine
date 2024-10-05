@@ -186,7 +186,7 @@ class GCNPlatformBlocker : public LongOperation,
   }
 
   // Overridden from Renderable:
-  virtual void Render(std::ostream* tree) override { platform_->render(); }
+  virtual void Render() override { platform_->render(); }
 
   // Overridden from RawSDLInputHandler:
   virtual void pushInput(SDL_Event event) override {

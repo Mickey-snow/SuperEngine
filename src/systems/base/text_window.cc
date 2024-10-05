@@ -28,12 +28,12 @@
 #include "systems/base/text_window.h"
 
 #include <algorithm>
+#include <cmath>
 #include <iomanip>
 #include <ostream>
 #include <string>
 #include <utility>
 #include <vector>
-#include <cmath>
 
 #include "libreallive/alldefs.h"
 #include "libreallive/gameexe.h"
@@ -175,8 +175,7 @@ TextWindow::TextWindow(System& system, int window_num)
       if (slot < kNumFaceSlots) {
         face_slot_[slot].reset(new FaceSlot(it->ToIntVector()));
       }
-    }
-    catch (...) {
+    } catch (...) {
       // Parsing failure. Ignore this key.
     }
   }
@@ -203,9 +202,8 @@ void TextWindow::SetName(const std::string& utf8name,
     std::string interpreted_name = text_system_.InterpretName(utf8name);
 
     // Display the name in one pass
-    PrintTextToFunction(
-        bind(&TextWindow::DisplayCharacter, ref(*this), _1, _2),
-        interpreted_name, next_char);
+    PrintTextToFunction(bind(&TextWindow::DisplayCharacter, ref(*this), _1, _2),
+                        interpreted_name, next_char);
     SetIndentation();
   }
 
@@ -218,10 +216,9 @@ void TextWindow::SetNameWithoutDisplay(const std::string& utf8name) {
 
     namebox_characters_ = 0;
     try {
-      namebox_characters_ = utf8::distance(interpreted_name.begin(),
-                                           interpreted_name.end());
-    }
-    catch (...) {
+      namebox_characters_ =
+          utf8::distance(interpreted_name.begin(), interpreted_name.end());
+    } catch (...) {
       // If utf8name isn't a real UTF-8 string, possibly overestimate:
       namebox_characters_ = interpreted_name.size();
     }
@@ -341,8 +338,8 @@ Rect TextWindow::GetTextSurfaceRect() const {
 }
 
 Rect TextWindow::GetNameboxWakuRect() const {
-  // Like the main GetWindowRect(), we need to ask the waku what size it wants to
-  // be.
+  // Like the main GetWindowRect(), we need to ask the waku what size it wants
+  // to be.
   Size boxSize = namebox_waku_->GetSize(GetNameboxTextArea());
 
   // The waku is offset from the top left corner of the text window.
@@ -416,13 +413,11 @@ void TextWindow::FaceClose(int index) {
   }
 }
 
-void TextWindow::NextCharIsItalic() {
-  next_char_italic_ = true;
-}
+void TextWindow::NextCharIsItalic() { next_char_italic_ = true; }
 
 // TODO(erg): Make this pass the #WINDOW_ATTR colour off wile rendering the
 // waku_backing.
-void TextWindow::Render(std::ostream* tree) {
+void TextWindow::Render() {
   std::shared_ptr<Surface> text_surface = GetTextSurface();
 
   if (text_surface && is_visible()) {
@@ -431,14 +426,10 @@ void TextWindow::Render(std::ostream* tree) {
     // POINT
     Point box = GetWindowRect().origin();
 
-    if (tree) {
-      *tree << "  Text Window #" << window_num_ << endl;
-    }
-
     Point textOrigin = GetTextSurfaceRect().origin();
 
-    textbox_waku_->Render(tree, box, surface_size);
-    RenderFaces(tree, 1);
+    textbox_waku_->Render(box, surface_size);
+    RenderFaces(1);
 
     if (in_selection_mode()) {
       for_each(selections_.begin(), selections_.end(),
@@ -451,38 +442,27 @@ void TextWindow::Render(std::ostream* tree) {
         if (namebox_waku_) {
           // TODO(erg): The waku needs to be adjusted to be the minimum size of
           // the window in characters
-          namebox_waku_->Render(tree, r.origin(), GetNameboxTextArea());
+          namebox_waku_->Render(r.origin(), GetNameboxTextArea());
         }
 
         Point insertion_point = namebox_waku_->InsertionPoint(
-            r,
-            Size(horizontal_namebox_padding_, vertical_namebox_padding_),
-            name_surface->GetSize(),
-            namebox_centering_);
+            r, Size(horizontal_namebox_padding_, vertical_namebox_padding_),
+            name_surface->GetSize(), namebox_centering_);
         name_surface->RenderToScreen(
             name_surface->GetRect(),
-            Rect(insertion_point, name_surface->GetSize()),
-            255);
-
-        if (tree) {
-          *tree << "    Name Area: " << r << endl;
-        }
+            Rect(insertion_point, name_surface->GetSize()), 255);
       }
 
-      RenderFaces(tree, 0);
-      RenderKoeReplayButtons(tree);
+      RenderFaces(0);
+      RenderKoeReplayButtons();
 
-      text_surface->RenderToScreen(
-          Rect(Point(0, 0), surface_size), Rect(textOrigin, surface_size), 255);
-
-      if (tree) {
-        *tree << "    Text Area: " << Rect(textOrigin, surface_size) << endl;
-      }
+      text_surface->RenderToScreen(Rect(Point(0, 0), surface_size),
+                                   Rect(textOrigin, surface_size), 255);
     }
   }
 }
 
-void TextWindow::RenderFaces(std::ostream* tree, int behind) {
+void TextWindow::RenderFaces(int behind) {
   for (int i = 0; i < kNumFaceSlots; ++i) {
     if (face_slot_[i] && face_slot_[i]->face_surface &&
         face_slot_[i]->behind == behind) {
@@ -490,22 +470,16 @@ void TextWindow::RenderFaces(std::ostream* tree, int behind) {
           face_slot_[i]->face_surface;
 
       Rect dest(GetWindowRect().x() + face_slot_[i]->x,
-                GetWindowRect().y() + face_slot_[i]->y,
-                surface->GetSize());
+                GetWindowRect().y() + face_slot_[i]->y, surface->GetSize());
       surface->RenderToScreen(surface->GetRect(), dest, 255);
-
-      if (tree) {
-        *tree << "    Face Slot #" << i << ": " << dest << endl;
-      }
     }
   }
 }
 
-void TextWindow::RenderKoeReplayButtons(std::ostream* tree) {
+void TextWindow::RenderKoeReplayButtons() {
   for (std::vector<std::pair<Point, int>>::const_iterator it =
            koe_replay_button_.begin();
-       it != koe_replay_button_.end();
-       ++it) {
+       it != koe_replay_button_.end(); ++it) {
     koe_replay_info_->icon->RenderToScreen(
         Rect(Point(0, 0), koe_replay_info_->icon->GetSize()),
         Rect(GetTextSurfaceRect().origin() + it->first,
@@ -562,14 +536,10 @@ bool TextWindow::DisplayCharacter(const std::string& current,
     }
 
     RGBColour shadow = RGBAColour::Black().rgb();
-    text_system_.RenderGlyphOnto(current,
-                                 font_size_in_pixels(),
-                                 next_char_italic_,
-                                 font_colour_,
-                                 &shadow,
+    text_system_.RenderGlyphOnto(current, font_size_in_pixels(),
+                                 next_char_italic_, font_colour_, &shadow,
                                  text_insertion_point_x_,
-                                 text_insertion_point_y_,
-                                 GetTextSurface());
+                                 text_insertion_point_y_, GetTextSurface());
     next_char_italic_ = false;
     text_wrapping_point_x_ += GetWrappingWidthFor(cur_codepoint);
 
@@ -616,13 +586,14 @@ bool TextWindow::DisplayCharacter(const std::string& current,
 // <rlmax> = Official RealLive's breaking
 // <rlvm> = Where rlvm places the line break
 //
-// - "Whose ides was it to put a school at the top of a giant <rlmax> slope,<rlvm> anyway?"
+// - "Whose ides was it to put a school at the top of a giant <rlmax>
+// slope,<rlvm> anyway?"
 //
 
 bool TextWindow::MustLineBreak(int cur_codepoint, const std::string& rest) {
   int char_width = GetWrappingWidthFor(cur_codepoint);
-  bool cur_codepoint_is_kinsoku = IsKinsoku(cur_codepoint) ||
-                                  cur_codepoint == 0x20;
+  bool cur_codepoint_is_kinsoku =
+      IsKinsoku(cur_codepoint) || cur_codepoint == 0x20;
   int normal_width =
       x_window_size_in_chars_ * (default_font_size_in_pixels_ + x_spacing_);
   int extended_width = normal_width + default_font_size_in_pixels_;
@@ -655,7 +626,8 @@ bool TextWindow::MustLineBreak(int cur_codepoint, const std::string& rest) {
         if (final_insertion_x > extended_width) {
           return true;
         }
-      // OK, is this correct? I'm now having places where we prematurely break.
+        // OK, is this correct? I'm now having places where we prematurely
+        // break.
       } else if (IsWrappingRomanCharacter(point)) {
         final_insertion_x += GetWrappingWidthFor(point);
 
@@ -721,10 +693,9 @@ void TextWindow::SetRGBAF(const vector<int>& attr) {
 
 void TextWindow::SetMousePosition(const Point& pos) {
   if (in_selection_mode()) {
-    for_each(selections_.begin(),
-             selections_.end(),
-             [&](unique_ptr<SelectionElement>& e) {
-               e->SetMousePosition(pos); });
+    for_each(
+        selections_.begin(), selections_.end(),
+        [&](unique_ptr<SelectionElement>& e) { e->SetMousePosition(pos); });
   }
 
   textbox_waku_->SetMousePosition(pos);
@@ -734,11 +705,10 @@ bool TextWindow::HandleMouseClick(RLMachine& machine,
                                   const Point& pos,
                                   bool pressed) {
   if (in_selection_mode()) {
-    bool found =
-      find_if(selections_.begin(), selections_.end(),
-              [&](unique_ptr<SelectionElement> &e) {
-                return e->HandleMouseClick(pos, pressed);
-              }) != selections_.end();
+    bool found = find_if(selections_.begin(), selections_.end(),
+                         [&](unique_ptr<SelectionElement>& e) {
+                           return e->HandleMouseClick(pos, pressed);
+                         }) != selections_.end();
 
     if (found)
       return true;
@@ -746,8 +716,7 @@ bool TextWindow::HandleMouseClick(RLMachine& machine,
 
   for (std::vector<std::pair<Point, int>>::const_iterator it =
            koe_replay_button_.begin();
-       it != koe_replay_button_.end();
-       ++it) {
+       it != koe_replay_button_.end(); ++it) {
     Rect r = Rect(GetTextSurfaceRect().origin() + it->first,
                   koe_replay_info_->icon->GetSize());
     if (r.Contains(pos)) {

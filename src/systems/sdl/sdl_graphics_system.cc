@@ -122,7 +122,7 @@ void SDLGraphicsSystem::EndFrame() {
   FinalRenderers::iterator it = renderer_begin();
   FinalRenderers::iterator end = renderer_end();
   for (; it != end; ++it) {
-    (*it)->Render(NULL);
+    (*it)->Render();
   }
 
   if (screen_update_mode() == SCREENUPDATEMODE_MANUAL) {
@@ -357,7 +357,7 @@ void SDLGraphicsSystem::ExecuteGraphicsSystem(RLMachine& machine) {
   // For now, nothing, but later, we need to put all code each cycle
   // here.
   if (is_responsible_for_update() && screen_needs_refresh()) {
-    Refresh(NULL);
+    Refresh();
     OnScreenRefreshed();
     redraw_last_frame_ = false;
   } else if (is_responsible_for_update() && redraw_last_frame_) {

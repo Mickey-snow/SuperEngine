@@ -29,8 +29,8 @@
 
 #include <string>
 
-#include "systems/base/text_waku.h"
 #include "systems/base/surface.h"
+#include "systems/base/text_waku.h"
 
 // Waku which is a modified Ninebox. Instead of a ninebox, it's really a 12-box
 // where four of the entries aren't used and the center is never defined. This
@@ -41,9 +41,7 @@ class TextWakuType4 : public TextWaku {
   virtual ~TextWakuType4();
 
   virtual void Execute() override;
-  virtual void Render(std::ostream* tree,
-                      Point box_location,
-                      Size namebox_size) override;
+  virtual void Render(Point box_location, Size namebox_size) override;
 
   // We have no size other than what is passed to |namebox_size|. Always
   // returns false and resets |out|.

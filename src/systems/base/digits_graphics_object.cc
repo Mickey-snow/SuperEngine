@@ -34,10 +34,10 @@
 #include <iostream>
 
 #include "systems/base/colour.h"
-#include "systems/base/system.h"
 #include "systems/base/graphics_object.h"
 #include "systems/base/graphics_system.h"
 #include "systems/base/surface.h"
+#include "systems/base/system.h"
 
 DigitsGraphicsObject::DigitsGraphicsObject(System& system)
     : system_(system), value_(0) {}
@@ -79,8 +79,8 @@ std::shared_ptr<const Surface> DigitsGraphicsObject::CurrentSurface(
   return surface_;
 }
 
-void DigitsGraphicsObject::ObjectInfo(std::ostream& tree) {
-  tree << "  Digits: \"" << value_ << "\"" << std::endl;
+void DigitsGraphicsObject::ObjectInfo(std::ostream& oss) {
+  oss << "  Digits: \"" << value_ << "\"" << std::endl;
 }
 
 void DigitsGraphicsObject::UpdateSurface(const GraphicsObject& rp) {
@@ -91,7 +91,8 @@ void DigitsGraphicsObject::UpdateSurface(const GraphicsObject& rp) {
                               ? rp.GetDigitSpace()
                               : font_->GetPattern(0).rect.size().width();
   int num_chars = 0;
-  for (int a = value_; a > 0; a = a / 10, num_chars++) {}
+  for (int a = value_; a > 0; a = a / 10, num_chars++) {
+  }
   num_chars = std::max(num_chars, rp.GetDigitDigits());
 
   int num_extra = 0;
@@ -114,8 +115,8 @@ void DigitsGraphicsObject::UpdateSurface(const GraphicsObject& rp) {
     int digit = i % 10;
     const GrpRect& grp = font_->GetPattern(digit);
 
-    font_->BlitToSurface(
-        *surface_, grp.rect, Rect(x_offset, 0, grp.rect.size()), 255, false);
+    font_->BlitToSurface(*surface_, grp.rect,
+                         Rect(x_offset, 0, grp.rect.size()), 255, false);
 
     i = i / 10;
     printed++;
@@ -126,11 +127,8 @@ void DigitsGraphicsObject::UpdateSurface(const GraphicsObject& rp) {
   bool print_zeros = rp.GetDigitZero();
   while (printed < num_chars) {
     if (print_zeros) {
-      font_->BlitToSurface(*surface_,
-                           zero_grp.rect,
-                           Rect(x_offset, 0, zero_grp.rect.size()),
-                           255,
-                           false);
+      font_->BlitToSurface(*surface_, zero_grp.rect,
+                           Rect(x_offset, 0, zero_grp.rect.size()), 255, false);
     }
     printed++;
     x_offset -= digit_pixel_width;

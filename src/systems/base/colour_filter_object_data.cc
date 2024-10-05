@@ -30,8 +30,8 @@
 
 #include "systems/base/colour_filter_object_data.h"
 
-#include <ostream>
 #include <iostream>
+#include <ostream>
 
 #include "systems/base/colour.h"
 #include "systems/base/colour_filter.h"
@@ -53,8 +53,7 @@ ColourFilter* ColourFilterObjectData::GetColourFilter() {
 }
 
 void ColourFilterObjectData::Render(const GraphicsObject& go,
-                                    const GraphicsObject* parent,
-                                    std::ostream* tree) {
+                                    const GraphicsObject* parent) {
   if (go.width() != 100 || go.height() != 100) {
     static bool printed = false;
     if (!printed) {
@@ -65,14 +64,6 @@ void ColourFilterObjectData::Render(const GraphicsObject& go,
 
   RGBAColour colour = go.colour();
   GetColourFilter()->Fill(go, screen_rect_, colour);
-
-  if (tree) {
-    *tree << "  ColourFilterObjectData" << std::endl
-          << "  Screen rect: " << screen_rect_ << std::endl
-          << "  Colour: " << colour << std::endl << "  Properties: ";
-    PrintGraphicsObjectToTree(go, tree);
-    *tree << std::endl;
-  }
 }
 
 int ColourFilterObjectData::PixelWidth(
@@ -114,7 +105,7 @@ ColourFilterObjectData::ColourFilterObjectData(System& system)
 template <class Archive>
 void ColourFilterObjectData::serialize(Archive& ar, unsigned int version) {
   ar& boost::serialization::base_object<GraphicsObjectData>(*this);
-  ar& screen_rect_;
+  ar & screen_rect_;
 }
 
 // -----------------------------------------------------------------------

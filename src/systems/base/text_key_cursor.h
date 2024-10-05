@@ -55,7 +55,7 @@ class TextKeyCursor {
 
   // Render this key cursor to the specified window, which owns
   // positional information.
-  void Render(TextWindow& text_window, std::ostream* tree);
+  void Render(TextWindow& text_window);
 
   // Returns which cursor we are.
   int cursor_number() const { return cursor_number_; }

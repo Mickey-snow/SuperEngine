@@ -49,8 +49,7 @@ class ParentGraphicsObjectData : public GraphicsObjectData {
   LazyArray<GraphicsObject>& objects();
 
   virtual void Render(const GraphicsObject& go,
-                      const GraphicsObject* parent,
-                      std::ostream* tree) override;
+                      const GraphicsObject* parent) override;
   virtual int PixelWidth(const GraphicsObject& rendering_properties) override;
   virtual int PixelHeight(const GraphicsObject& rendering_properties) override;
   virtual GraphicsObjectData* Clone() const override;

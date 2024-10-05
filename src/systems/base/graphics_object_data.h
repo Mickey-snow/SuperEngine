@@ -63,9 +63,7 @@ class GraphicsObjectData {
   // afterAnimation() is set to AFTER_NONE.)
   bool animation_finished() const { return animation_finished_; }
 
-  virtual void Render(const GraphicsObject& go,
-                      const GraphicsObject* parent,
-                      std::ostream* tree);
+  virtual void Render(const GraphicsObject& go, const GraphicsObject* parent);
 
   virtual int PixelWidth(const GraphicsObject& rendering_properties) = 0;
   virtual int PixelHeight(const GraphicsObject& rendering_properties) = 0;
@@ -94,10 +92,10 @@ class GraphicsObjectData {
   // animation.
   void EndAnimation();
 
-  void PrintGraphicsObjectToTree(const GraphicsObject& go, std::ostream* tree);
+  void PrintGraphicsObjectToTree(const GraphicsObject& go);
 
   void PrintStringVector(const std::vector<std::string>& names,
-                         std::ostream* tree);
+                         std::ostream* oss);
 
   // Template method used during rendering to get the surface to render.
   // Return a null shared_ptr to disable rendering.
@@ -138,7 +136,7 @@ class GraphicsObjectData {
   void serialize(Archive& ar, unsigned int version) {
     // boost::serialization should take care of the swizzling of
     // owned_by_.
-    ar& after_animation_& owned_by_& currently_playing_;
+    ar & after_animation_ & owned_by_ & currently_playing_;
   }
 };
 

@@ -33,10 +33,10 @@
 #include <string>
 #include <vector>
 
+#include "base/rect.h"
 #include "systems/base/event_system.h"
 #include "systems/base/graphics_object.h"
 #include "systems/base/graphics_system.h"
-#include "base/rect.h"
 #include "systems/base/surface.h"
 #include "systems/base/system.h"
 #include "utilities/graphics.h"
@@ -75,8 +75,7 @@ DriftGraphicsObject::DriftGraphicsObject(System& system,
 DriftGraphicsObject::~DriftGraphicsObject() {}
 
 void DriftGraphicsObject::Render(const GraphicsObject& go,
-                                 const GraphicsObject* parent,
-                                 std::ostream* tree) {
+                                 const GraphicsObject* parent) {
   std::shared_ptr<const Surface> surface = CurrentSurface(go);
   if (surface) {
     int current_time = system_.event().GetTicks();

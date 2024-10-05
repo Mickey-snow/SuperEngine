@@ -193,7 +193,7 @@ class GraphicsObject {
   void SetObjectData(GraphicsObjectData* obj);
 
   // Render!
-  void Render(int objNum, const GraphicsObject* parent, std::ostream* tree);
+  void Render(int objNum, const GraphicsObject* parent);
 
   // Frees the object data. Corresponds to objFree, but is also invoked by
   // other commands.

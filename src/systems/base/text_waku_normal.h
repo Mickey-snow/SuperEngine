@@ -51,9 +51,7 @@ class TextWakuNormal : public TextWaku {
   virtual ~TextWakuNormal();
 
   virtual void Execute() override;
-  virtual void Render(std::ostream* tree,
-                      Point box_location,
-                      Size namebox_size) override;
+  virtual void Render(Point box_location, Size namebox_size) override;
   virtual Size GetSize(const Size& text_surface) const override;
   virtual Point InsertionPoint(const Rect& waku_rect,
                                const Size& padding,

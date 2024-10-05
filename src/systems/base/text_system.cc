@@ -134,16 +134,14 @@ TextSystem::TextSystem(System& system, Gameexe& gexe)
   // Iterate over all the NAMAE keys, which is a feature that Clannad English
   // Edition uses to translate the Japanese names into English.
   for (GameexeFilteringIterator it = gexe.FilterBegin("NAMAE");
-       it != gexe.FilterEnd();
-       ++it) {
+       it != gexe.FilterEnd(); ++it) {
     try {
       // Data in the Gameexe.ini file is implicitly in Shift-JIS and needs to
       // be converted to UTF-8.
       std::string key = cp932toUTF8(it->GetStringAt(0), 0);
       std::string value = cp932toUTF8(it->GetStringAt(1), 0);
       namae_mapping_[key] = value;
-    }
-    catch (...) {
+    } catch (...) {
       // Gameexe.ini file is malformed.
     }
   }
@@ -174,17 +172,12 @@ void TextSystem::ExecuteTextSystem() {
   }
 }
 
-void TextSystem::Render(std::ostream* tree) {
+void TextSystem::Render() {
   if (system_visible()) {
-    if (tree) {
-      *tree << "Text System:" << endl;
-    }
-
     for (WindowMap::iterator it = text_window_.begin();
-         it != text_window_.end();
-         ++it) {
+         it != text_window_.end(); ++it) {
       if (ShowWindow(it->first)) {
-        it->second->Render(tree);
+        it->second->Render();
       }
     }
 
@@ -196,7 +189,7 @@ void TextSystem::Render(std::ostream* tree) {
         if (!text_key_cursor_)
           SetKeyCursor(0);
 
-        text_key_cursor_->Render(*it->second, tree);
+        text_key_cursor_->Render(*it->second);
       }
     }
   }
@@ -297,8 +290,7 @@ bool TextSystem::KeyStateChanged(KeyCode key_code, bool pressed) {
 vector<int> TextSystem::GetActiveWindows() {
   vector<int> tmp;
   for (PageSet::iterator it = current_pageset_.begin();
-       it != current_pageset_.end();
-       ++it) {
+       it != current_pageset_.end(); ++it) {
     tmp.push_back(it->first);
   }
   return tmp;
@@ -306,8 +298,7 @@ vector<int> TextSystem::GetActiveWindows() {
 
 void TextSystem::Snapshot() {
   bool all_empty = std::all_of(
-      current_pageset_.begin(),
-      current_pageset_.end(),
+      current_pageset_.begin(), current_pageset_.end(),
       [&](std::pair<const int, TextPage>& rhs) { return rhs.second.empty(); });
 
   if (!all_empty) {
@@ -332,8 +323,9 @@ TextPage& TextSystem::GetCurrentPage() {
   // Check to see if the active window has a current page.
   PageSet::iterator it = current_pageset_.find(active_window_);
   if (it == current_pageset_.end())
-    it = current_pageset_.emplace(active_window_,
-                                  TextPage(system(), active_window_)).first;
+    it = current_pageset_
+             .emplace(active_window_, TextPage(system(), active_window_))
+             .first;
 
   return it->second;
 }
@@ -373,8 +365,7 @@ void TextSystem::ReplayPageSet(PageSet& set, bool is_current_page) {
   for (PageSet::iterator it = set.begin(); it != set.end(); ++it) {
     try {
       it->second.Replay(is_current_page);
-    }
-    catch (rlvm::Exception& e) {
+    } catch (rlvm::Exception& e) {
       // Currently, the text system can throw on a few unimplemented situations,
       // such as ruby across lines.
 
@@ -406,8 +397,7 @@ void TextSystem::SetAutoMode(int i) {
   auto_mode_ = (bool)i;
 
   NotificationService::current()->Notify(
-      NotificationType::AUTO_MODE_STATE_CHANGED,
-      Source<TextSystem>(this),
+      NotificationType::AUTO_MODE_STATE_CHANGED, Source<TextSystem>(this),
       Details<const int>(&i));
 }
 
@@ -494,8 +484,7 @@ bool TextSystem::HandleMouseClick(RLMachine& machine,
                                   bool pressed) {
   if (system_visible()) {
     for (WindowMap::iterator it = text_window_.begin();
-         it != text_window_.end();
-         ++it) {
+         it != text_window_.end(); ++it) {
       if (ShowWindow(it->first)) {
         if (it->second->HandleMouseClick(machine, pos, pressed))
           return true;
@@ -529,12 +518,12 @@ bool parseInteger(std::string::const_iterator& begin,
 }
 
 std::shared_ptr<Surface> TextSystem::RenderText(const std::string& utf8str,
-                                                  int size,
-                                                  int xspace,
-                                                  int yspace,
-                                                  const RGBColour& colour,
-                                                  RGBColour* shadow_colour,
-                                                  int max_chars_in_line) {
+                                                int size,
+                                                int xspace,
+                                                int yspace,
+                                                const RGBColour& colour,
+                                                RGBColour* shadow_colour,
+                                                int max_chars_in_line) {
   const int line_max_width =
       (max_chars_in_line > 0) ? (size + xspace) * max_chars_in_line : INT_MAX;
 
@@ -756,14 +745,8 @@ std::shared_ptr<Surface> TextSystem::RenderText(const std::string& utf8str,
     }
 
     if (add_char) {
-      Size s = RenderGlyphOnto(character,
-                               current_size,
-                               false,
-                               current_colour,
-                               shadow_colour,
-                               currentX,
-                               currentY,
-                               surface);
+      Size s = RenderGlyphOnto(character, current_size, false, current_colour,
+                               shadow_colour, currentX, currentY, surface);
       currentX += s.width() + xspace;
       current_line_height = std::max(current_line_height, current_size);
     } else if (is_emoji) {
@@ -810,8 +793,7 @@ void TextSystem::SetKidokuRead(const int in) {
 
   kidoku_read_ = in;
   NotificationService::current()->Notify(
-      NotificationType::SKIP_MODE_ENABLED_CHANGED,
-      Source<TextSystem>(this),
+      NotificationType::SKIP_MODE_ENABLED_CHANGED, Source<TextSystem>(this),
       Details<const int>(&in));
 
   if (value_changed && !kidoku_read_ && skip_mode_) {
@@ -826,8 +808,7 @@ void TextSystem::SetSkipMode(int in) {
 
   if (value_changed) {
     NotificationService::current()->Notify(
-        NotificationType::SKIP_MODE_STATE_CHANGED,
-        Source<TextSystem>(this),
+        NotificationType::SKIP_MODE_STATE_CHANGED, Source<TextSystem>(this),
         Details<int>(&in));
   }
 }
@@ -835,7 +816,7 @@ void TextSystem::SetSkipMode(int in) {
 template <class Archive>
 void TextSystem::load(Archive& ar, unsigned int version) {
   int win, cursor_num;
-  ar& win& cursor_num;
+  ar & win & cursor_num;
 
   set_active_window(win);
   SetKeyCursor(cursor_num);
@@ -843,7 +824,7 @@ void TextSystem::load(Archive& ar, unsigned int version) {
 
 template <class Archive>
 void TextSystem::save(Archive& ar, unsigned int version) const {
-  ar& savepoint_active_window_& savepoint_cursor_number_;
+  ar & savepoint_active_window_ & savepoint_cursor_number_;
 }
 
 // -----------------------------------------------------------------------
@@ -861,8 +842,7 @@ template void TextSystem::load<boost::archive::text_iarchive>(
 
 // -----------------------------------------------------------------------
 
-std::string parseNames(const Memory& memory,
-                       const std::string& input) {
+std::string parseNames(const Memory& memory, const std::string& input) {
   std::string output;
   const char* cur = input.c_str();
 

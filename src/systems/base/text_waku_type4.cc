@@ -30,12 +30,12 @@
 #include <string>
 #include <vector>
 
+#include "libreallive/gameexe.h"
 #include "systems/base/colour.h"
 #include "systems/base/graphics_system.h"
 #include "systems/base/surface.h"
 #include "systems/base/system.h"
 #include "systems/base/text_window.h"
-#include "libreallive/gameexe.h"
 
 using std::endl;
 
@@ -86,13 +86,7 @@ TextWakuType4::~TextWakuType4() {}
 
 void TextWakuType4::Execute() {}
 
-void TextWakuType4::Render(std::ostream* tree,
-                           Point box_location,
-                           Size content_size) {
-  if (tree) {
-    *tree << "    Window Waku(" << setno_ << ", " << no_ << "):" << endl;
-  }
-
+void TextWakuType4::Render(Point box_location, Size content_size) {
   if (waku_main_) {
     // Calculate the location/area and render the filtered background.
     Point backing_point =
@@ -103,8 +97,7 @@ void TextWakuType4::Render(std::ostream* tree,
     std::shared_ptr<Surface> backing = GetWakuBackingOfSize(backing_size);
     backing->RenderToScreenAsColorMask(backing->GetRect(),
                                        Rect(backing_point, backing_size),
-                                       window_.colour(),
-                                       window_.filter());
+                                       window_.colour(), window_.filter());
 
     // Calculate the total size of the waku decoration. We need this to get the
     // size of the non-corners correct.
@@ -160,10 +153,6 @@ void TextWakuType4::Render(std::ostream* tree,
     const Point bottom_right_p = bottom_center_p + Size(bottom_center_width, 0);
     waku_main_->RenderToScreen(bottom_right.rect,
                                Rect(bottom_right_p, bottom_right.rect.size()));
-
-    if (tree) {
-      *tree << "      Main Area: " << Rect(box_location, content_size) << endl;
-    }
   }
 }
 
@@ -224,8 +213,7 @@ void TextWakuType4::SetWakuMain(const std::string& name) {
   }
 }
 
-const std::shared_ptr<Surface>& TextWakuType4::GetWakuBackingOfSize(
-    Size size) {
+const std::shared_ptr<Surface>& TextWakuType4::GetWakuBackingOfSize(Size size) {
   if (!cached_backing_ || cached_backing_->GetSize() != size) {
     cached_backing_ = system_.graphics().BuildSurface(size);
     cached_backing_->Fill(RGBAColour::Black());

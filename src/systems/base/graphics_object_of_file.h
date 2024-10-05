@@ -71,7 +71,7 @@ class GraphicsObjectOfFile : public GraphicsObjectData {
   virtual std::shared_ptr<const Surface> CurrentSurface(
       const GraphicsObject& go) override;
   virtual Rect SrcRect(const GraphicsObject& go) override;
-  virtual void ObjectInfo(std::ostream& tree) override;
+  virtual void ObjectInfo(std::ostream&) override;
 
  private:
   // Private constructor for cloning

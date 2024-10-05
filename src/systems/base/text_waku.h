@@ -48,9 +48,7 @@ class TextWaku {
   virtual ~TextWaku();
 
   virtual void Execute() = 0;
-  virtual void Render(std::ostream* tree,
-                      Point box_location,
-                      Size namebox_size) = 0;
+  virtual void Render(Point box_location, Size namebox_size) = 0;
 
   // Possibly returns the size if this TextWaku object has a known size on
   // screen.

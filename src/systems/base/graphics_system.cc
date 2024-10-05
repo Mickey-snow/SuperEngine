@@ -455,46 +455,39 @@ const ObjectSettings& GraphicsSystem::GetObjectSettings(const int obj_num) {
 
 // -----------------------------------------------------------------------
 
-void GraphicsSystem::Refresh(std::ostream* tree) {
+void GraphicsSystem::Refresh() {
   BeginFrame();
-  DrawFrame(tree);
+  DrawFrame();
   EndFrame();
 }
 
 std::shared_ptr<Surface> GraphicsSystem::RenderToSurface() {
   BeginFrame();
-  DrawFrame(NULL);
+  DrawFrame();
   return EndFrameToSurface();
 }
 
-void GraphicsSystem::DrawFrame(std::ostream* tree) {
+void GraphicsSystem::DrawFrame() {
   switch (background_type_) {
     case BACKGROUND_DC0: {
       // Display DC0
       GetDC(0)->RenderToScreen(screen_rect(), screen_rect(), 255);
-      if (tree) {
-        // TODO(erg): How do we print the new graphics stack?
-        *tree << "Graphic Stack: UNDER CONSTRUCTION" << endl;
-      }
       break;
     }
     case BACKGROUND_HIK: {
       if (hik_renderer_) {
-        hik_renderer_->Render(tree);
+        hik_renderer_->Render();
       } else {
         GetHaikei()->RenderToScreen(screen_rect(), screen_rect(), 255);
-        if (tree) {
-          *tree << "[Haikei bitmap: " << default_bgr_name_ << "]" << endl;
-        }
       }
     }
   }
 
-  RenderObjects(tree);
+  RenderObjects();
 
   // Render text
   if (!is_interface_hidden())
-    system().text().Render(tree);
+    system().text().Render();
 }
 
 // -----------------------------------------------------------------------
@@ -800,7 +793,7 @@ void GraphicsSystem::ClearAllDCs() {
 
 // -----------------------------------------------------------------------
 
-void GraphicsSystem::RenderObjects(std::ostream* tree) {
+void GraphicsSystem::RenderObjects() {
   to_render_.clear();
 
   // Collate all objects that we might want to render.
@@ -828,7 +821,7 @@ void GraphicsSystem::RenderObjects(std::ostream* tree) {
 
   for (ToRenderVec::iterator it = to_render_.begin(); it != to_render_.end();
        ++it) {
-    get<4>(*it)->Render(get<3>(*it), NULL, tree);
+    get<4>(*it)->Render(get<3>(*it), nullptr);
   }
 }
 

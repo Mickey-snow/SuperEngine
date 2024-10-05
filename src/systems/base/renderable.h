@@ -32,9 +32,8 @@ class Renderable {
  public:
   virtual ~Renderable() {}
 
-  // Renders this object to screen (and optionally writes metadata about what
-  // was rendered to |tree|).
-  virtual void Render(std::ostream* tree) = 0;
+  // Renders this object to screen
+  virtual void Render() = 0;
 };
 
 #endif  // SRC_SYSTEMS_BASE_RENDERABLE_H_

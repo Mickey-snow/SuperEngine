@@ -54,12 +54,11 @@ LazyArray<GraphicsObject>& ParentGraphicsObjectData::objects() {
 }
 
 void ParentGraphicsObjectData::Render(const GraphicsObject& go,
-                                      const GraphicsObject* parent,
-                                      std::ostream* tree) {
+                                      const GraphicsObject* parent) {
   AllocatedLazyArrayIterator<GraphicsObject> it = objects_.begin();
   AllocatedLazyArrayIterator<GraphicsObject> end = objects_.end();
   for (; it != end; ++it) {
-    it->Render(it.pos(), &go, tree);
+    it->Render(it.pos(), &go);
   }
 }
 
@@ -111,7 +110,7 @@ ParentGraphicsObjectData::ParentGraphicsObjectData() : objects_(0) {}
 template <class Archive>
 void ParentGraphicsObjectData::serialize(Archive& ar, unsigned int version) {
   ar& boost::serialization::base_object<GraphicsObjectData>(*this);
-  ar& objects_;
+  ar & objects_;
 }
 
 // -----------------------------------------------------------------------

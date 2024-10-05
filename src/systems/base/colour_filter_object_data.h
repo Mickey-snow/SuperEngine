@@ -31,10 +31,10 @@
 
 #include <memory>
 
+#include "base/rect.h"
 #include "machine/rlmachine.h"
 #include "machine/serialization.h"
 #include "systems/base/graphics_object_data.h"
-#include "base/rect.h"
 
 class ColourFilter;
 class GraphicsObject;
@@ -55,8 +55,7 @@ class ColourFilterObjectData : public GraphicsObjectData {
 
   // Overridden from GraphicsObjectData:
   virtual void Render(const GraphicsObject& go,
-                      const GraphicsObject* parent,
-                      std::ostream* tree) override;
+                      const GraphicsObject* parent) override;
   virtual int PixelWidth(const GraphicsObject& rendering_properties) override;
   virtual int PixelHeight(const GraphicsObject& rendering_properties) override;
   virtual GraphicsObjectData* Clone() const override;

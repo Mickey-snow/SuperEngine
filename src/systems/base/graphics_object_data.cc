@@ -29,10 +29,10 @@
 
 #include <ostream>
 
+#include "base/rect.h"
 #include "systems/base/graphics_object.h"
 #include "systems/base/graphics_object_of_file.h"
 #include "systems/base/surface.h"
-#include "base/rect.h"
 
 // -----------------------------------------------------------------------
 // GraphicsObjectData
@@ -53,8 +53,7 @@ GraphicsObjectData::GraphicsObjectData(const GraphicsObjectData& obj)
 GraphicsObjectData::~GraphicsObjectData() {}
 
 void GraphicsObjectData::Render(const GraphicsObject& go,
-                                const GraphicsObject* parent,
-                                std::ostream* tree) {
+                                const GraphicsObject* parent) {
   std::shared_ptr<const Surface> surface = CurrentSurface(go);
   if (surface) {
     Rect src = SrcRect(go);
@@ -69,32 +68,6 @@ void GraphicsObjectData::Render(const GraphicsObject& go,
       dst = Rect(dst.origin() + Size(go.GetButtonXOffsetOverride(),
                                      go.GetButtonYOffsetOverride()),
                  dst.size());
-    }
-
-    if (tree) {
-      ObjectInfo(*tree);
-      *tree << "  Rendering " << src << " to " << dst << std::endl;
-      if (parent) {
-        *tree << "  Parent Properties: ";
-        PrintGraphicsObjectToTree(*parent, tree);
-        *tree << std::endl;
-      }
-
-      *tree << "  Properties: ";
-      if (alpha != 255)
-        *tree << "(alpha=" << alpha << ") ";
-      PrintGraphicsObjectToTree(go, tree);
-      *tree << std::endl;
-
-      if (parent) {
-        *tree << "  Parent Mutators: ";
-        PrintStringVector(parent->GetMutatorNames(), tree);
-        *tree << std::endl;
-      }
-
-      *tree << "  Mutators: ";
-      PrintStringVector(go.GetMutatorNames(), tree);
-      *tree << std::endl;
     }
 
     if (parent && parent->has_own_clip_rect()) {
@@ -113,23 +86,11 @@ void GraphicsObjectData::Render(const GraphicsObject& go,
       Rect inset = dst.GetInsetRectangle(clipped_dest);
       dst = clipped_dest;
       src = src.ApplyInset(inset);
-
-      if (tree) {
-        *tree << "  Parent Own Clipping Rect: " << parent->own_clip_rect()
-              << std::endl
-              << "  After clipping: " << src << " to " << dst << std::endl;
-      }
     }
 
     if (go.has_own_clip_rect()) {
       dst = dst.ApplyInset(go.own_clip_rect());
       src = src.ApplyInset(go.own_clip_rect());
-
-      if (tree) {
-        *tree << "  Internal Clipping Rect: " << go.own_clip_rect() << std::endl
-              << "  After internal clipping: " << src << " to " << dst
-              << std::endl;
-      }
     }
 
     // Perform the object clipping.
@@ -145,11 +106,6 @@ void GraphicsObjectData::Render(const GraphicsObject& go,
 
       dst = clipped_dest;
       src = src.ApplyInset(inset);
-
-      if (tree) {
-        *tree << "  Clipping Rect: " << go.clip_rect() << std::endl
-              << "  After clipping: " << src << " to " << dst << std::endl;
-      }
     }
 
     // TODO(erg): Do we want to skip this if no alpha?
@@ -180,38 +136,18 @@ void GraphicsObjectData::EndAnimation() {
   }
 }
 
-void GraphicsObjectData::PrintGraphicsObjectToTree(const GraphicsObject& go,
-                                                   std::ostream* tree) {
-  if (go.mono())
-    *tree << "(mono) ";
-  if (go.invert())
-    *tree << "(invert) ";
-  if (go.light())
-    *tree << "(light=" << go.light() << ") ";
-  if (go.tint() != RGBColour::Black())
-    *tree << "(tint=" << go.tint() << ") ";
-  if (go.colour() != RGBAColour::Clear())
-    *tree << "(colour=" << go.colour() << ") ";
-  if (go.composite_mode())
-    *tree << "(composite=" << go.composite_mode() << ") ";
-  if (go.origin_x())
-    *tree << "(origin_x=" << go.origin_x() << ") ";
-  if (go.origin_y())
-    *tree << "(origin_y=" << go.origin_y() << ") ";
-}
-
 void GraphicsObjectData::PrintStringVector(
     const std::vector<std::string>& names,
-    std::ostream* tree) {
+    std::ostream* oss) {
   bool first = true;
 
   for (auto const& name : names) {
     if (!first)
-      *tree << ", ";
+      *oss << ", ";
     else
       first = false;
 
-    *tree << name;
+    *oss << name;
   }
 }
 

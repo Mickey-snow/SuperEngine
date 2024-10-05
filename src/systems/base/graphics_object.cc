@@ -858,19 +858,11 @@ void GraphicsObject::MakeImplUnique() {
   }
 }
 
-void GraphicsObject::DeleteObjectMutators() {
-  object_mutators_.clear();
-}
+void GraphicsObject::DeleteObjectMutators() { object_mutators_.clear(); }
 
-void GraphicsObject::Render(int objNum,
-                            const GraphicsObject* parent,
-                            std::ostream* tree) {
+void GraphicsObject::Render(int objNum, const GraphicsObject* parent) {
   if (object_data_ && visible()) {
-    if (tree) {
-      *tree << "Object #" << objNum << ":" << std::endl;
-    }
-
-    object_data_->Render(*this, parent, tree);
+    object_data_->Render(*this, parent);
   }
 }
 
@@ -909,7 +901,7 @@ void GraphicsObject::Execute(RLMachine& machine) {
 
 template <class Archive>
 void GraphicsObject::serialize(Archive& ar, unsigned int version) {
-  ar& impl_& object_data_;
+  ar & impl_ & object_data_;
 }
 
 // -----------------------------------------------------------------------
@@ -1092,33 +1084,33 @@ void GraphicsObject::Impl::MakeSureHaveButtonProperties() {
 // boost::serialization support
 template <class Archive>
 void GraphicsObject::Impl::serialize(Archive& ar, unsigned int version) {
-  ar& visible_& x_& y_& whatever_adjust_vert_operates_on_& origin_x_& origin_y_&
-      rep_origin_x_& rep_origin_y_& width_& height_& rotation_& patt_no_&
-          alpha_& clip_& mono_& invert_& tint_& colour_& composite_mode_&
-              text_properties_& wipe_copy_;
+  ar & visible_ & x_ & y_ & whatever_adjust_vert_operates_on_ & origin_x_ &
+      origin_y_ & rep_origin_x_ & rep_origin_y_ & width_ & height_ & rotation_ &
+      patt_no_ & alpha_ & clip_ & mono_ & invert_ & tint_ & colour_ &
+      composite_mode_ & text_properties_ & wipe_copy_;
 
   if (version > 0) {
-    ar& drift_properties_;
+    ar & drift_properties_;
   }
 
   if (version > 1) {
-    ar& digit_properties_;
+    ar & digit_properties_;
   }
 
   if (version > 2) {
-    ar& adjust_x_& adjust_y_& adjust_alpha_;
+    ar & adjust_x_ & adjust_y_ & adjust_alpha_;
   }
 
   if (version > 3) {
-    ar& hq_width_& hq_height_& button_properties_;
+    ar & hq_width_ & hq_height_ & button_properties_;
   }
 
   if (version > 4) {
-    ar& own_clip_;
+    ar & own_clip_;
   }
 
   if (version > 5) {
-    ar& z_order_& z_layer_& z_depth_;
+    ar & z_order_ & z_layer_ & z_depth_;
   }
 
   if (version < 7) {
@@ -1149,7 +1141,8 @@ template void GraphicsObject::Impl::serialize<boost::archive::text_iarchive>(
 template <class Archive>
 void GraphicsObject::Impl::TextProperties::serialize(Archive& ar,
                                                      unsigned int version) {
-  ar& value& text_size& xspace& yspace& char_count& colour& shadow_colour;
+  ar & value & text_size & xspace & yspace & char_count & colour &
+      shadow_colour;
 }
 
 // -----------------------------------------------------------------------
@@ -1171,9 +1164,9 @@ template void GraphicsObject::Impl::TextProperties::serialize<
 template <class Archive>
 void GraphicsObject::Impl::DriftProperties::serialize(Archive& ar,
                                                       unsigned int version) {
-  ar& count& use_animation& start_pattern& end_pattern& total_animation_time_ms&
-      yspeed& period& amplitude& use_drift& unknown_drift_property& driftspeed&
-          drift_area;
+  ar & count & use_animation & start_pattern & end_pattern &
+      total_animation_time_ms & yspeed & period & amplitude & use_drift &
+      unknown_drift_property & driftspeed & drift_area;
 }
 
 // -----------------------------------------------------------------------
@@ -1192,7 +1185,7 @@ template void GraphicsObject::Impl::DriftProperties::serialize<
 template <class Archive>
 void GraphicsObject::Impl::DigitProperties::serialize(Archive& ar,
                                                       unsigned int version) {
-  ar& value& digits& zero& sign& pack& space;
+  ar & value & digits & zero & sign & pack & space;
 }
 
 // -----------------------------------------------------------------------
@@ -1213,8 +1206,8 @@ void GraphicsObject::Impl::ButtonProperties::serialize(Archive& ar,
                                                        unsigned int version) {
   // The override values are stuck here because I'm not sure about
   // initialization otherwise.
-  ar& is_button& action& se& group& button_number& state& using_overides&
-      pattern_override& x_offset_override& y_offset_override;
+  ar & is_button & action & se & group & button_number & state &
+      using_overides & pattern_override & x_offset_override & y_offset_override;
 }
 
 // -----------------------------------------------------------------------

@@ -334,7 +334,7 @@ class GraphicsSystem : public EventListener {
   virtual std::shared_ptr<Surface> EndFrameToSurface() = 0;
 
   // Performs a full redraw of the screen.
-  void Refresh(std::ostream* tree);
+  void Refresh();
 
   // Draws the screen (as if refresh() was called), but draw to the returned
   // surface instead of the screen.
@@ -379,7 +379,7 @@ class GraphicsSystem : public EventListener {
 
   // Calls render() on all foreground objects that need to be
   // rendered.
-  void RenderObjects(std::ostream* tree);
+  void RenderObjects();
 
   // Creates rendering data for a graphics object from a G00, PDT or ANM file.
   // Does not deal with GAN files. Those are built with a separate function.
@@ -466,7 +466,7 @@ class GraphicsSystem : public EventListener {
 
   void SetScreenSize(const Size& size);
 
-  void DrawFrame(std::ostream* tree);
+  void DrawFrame();
 
  private:
   // Gets a platform appropriate surface loaded.

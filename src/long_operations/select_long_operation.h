@@ -129,7 +129,7 @@ class ButtonSelectLongOperation : public SelectLongOperation,
                                        bool pressed) override;
 
   // Overridden from Renderable:
-  virtual void Render(std::ostream* tree) override;
+  virtual void Render() override;
 
  private:
   struct ButtonOption {

@@ -368,15 +368,6 @@ bool System::ShouldFastForward() {
          text().CurrentlySkipping() || force_fast_forward_;
 }
 
-void System::DumpRenderTree(RLMachine& machine) {
-  std::ostringstream oss;
-  oss << "Dump_SEEN" << std::setw(4) << std::setfill('0')
-      << machine.SceneNumber() << "_Line" << machine.line_number() << ".txt";
-
-  std::ofstream tree(oss.str().c_str());
-  graphics().Refresh(&tree);
-}
-
 std::filesystem::path System::GetHomeDirectory() {
   std::string drive, home;
   char* homeptr = getenv("HOME");

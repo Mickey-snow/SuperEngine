@@ -102,7 +102,7 @@ class TextSystem : public EventListener {
 
   void ExecuteTextSystem();
 
-  void Render(std::ostream* tree);
+  void Render();
   void HideTextWindow(int win_number);
   void HideAllTextWindows();
   void HideAllTextWindowsExcept(int i);

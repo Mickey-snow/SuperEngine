@@ -35,8 +35,8 @@
 #include <vector>
 
 #include "machine/rlmachine.h"
-#include "systems/base/graphics_object_data.h"
 #include "machine/serialization.h"
+#include "systems/base/graphics_object_data.h"
 
 class GraphicsObject;
 class Surface;
@@ -60,8 +60,7 @@ class DriftGraphicsObject : public GraphicsObjectData {
 
   // Implementation of GraphicsObjectData:
   virtual void Render(const GraphicsObject& go,
-                      const GraphicsObject* parent,
-                      std::ostream* tree) override;
+                      const GraphicsObject* parent) override;
   virtual int PixelWidth(const GraphicsObject& rendering_properties) override;
   virtual int PixelHeight(const GraphicsObject& rendering_properties) override;
   virtual GraphicsObjectData* Clone() const override;
@@ -129,7 +128,7 @@ inline void load_construct_data(Archive& ar,
                                 const unsigned int file_version) {
   ::new (t) DriftGraphicsObject(Serialization::g_current_machine->system());
 }
-}
-}
+}  // namespace serialization
+}  // namespace boost
 
 #endif  // SRC_SYSTEMS_BASE_DRIFT_GRAPHICS_OBJECT_H_
