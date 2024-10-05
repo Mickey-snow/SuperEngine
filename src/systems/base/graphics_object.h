@@ -29,15 +29,15 @@
 #define SRC_SYSTEMS_BASE_GRAPHICS_OBJECT_H_
 
 #include <boost/scoped_ptr.hpp>
-#include <boost/shared_ptr.hpp>
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/version.hpp>
+#include <boost/shared_ptr.hpp>
 
 #include <string>
 #include <vector>
 
-#include "systems/base/colour.h"
 #include "base/rect.h"
+#include "systems/base/colour.h"
 
 class RLMachine;
 class GraphicsObject;
@@ -534,7 +534,6 @@ class GraphicsObject {
 
 BOOST_CLASS_VERSION(GraphicsObject::Impl, 7)
 
-static const int OBJ_FG = 0;
-static const int OBJ_BG = 1;
+enum { OBJ_FG = 0, OBJ_BG = 1 };
 
-#endif  // SRC_SYSTEMS_BASE_GRAPHICS_OBJECT_H_
+#endif
