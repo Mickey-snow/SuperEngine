@@ -159,6 +159,8 @@ librlvm_files = [
   "src/modules/modules.cc",
   "src/modules/object_module.cc",
 
+  "src/object/parameter_manager.cc",
+
   "src/systems/base/anm_graphics_object_data.cc",
   "src/systems/base/colour.cc",
   "src/systems/base/colour_filter_object_data.cc",

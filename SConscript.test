@@ -64,6 +64,7 @@ unittest_files = [
   "test/module_manager_unittest.cc",
   "test/platform_factory_unittest.cc",
   "test/graphics_object_unittest.cc",
+  "test/scapegoat_unittest.cc",
 ]
 
 system_test_files = [
