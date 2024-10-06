@@ -37,6 +37,7 @@
 #include <vector>
 
 #include "base/rect.h"
+#include "object/properties.h"
 #include "systems/base/colour.h"
 
 class RLMachine;
@@ -402,98 +403,18 @@ class GraphicsObject {
     int z_order_, z_layer_, z_depth_;
 
     // Text Object properties
-    struct TextProperties {
-      TextProperties();
-
-      std::string value;
-
-      int text_size, xspace, yspace;
-
-      int char_count;
-      int colour;
-      int shadow_colour;
-
-      // boost::serialization support
-      template <class Archive>
-      void serialize(Archive& ar, unsigned int version);
-    };
-
     void MakeSureHaveTextProperties();
     boost::scoped_ptr<TextProperties> text_properties_;
 
     // Drift Object properties
-    struct DriftProperties {
-      DriftProperties();
-
-      int count;
-
-      int use_animation;
-      int start_pattern;
-      int end_pattern;
-      int total_animation_time_ms;
-
-      int yspeed;
-
-      int period;
-      int amplitude;
-
-      int use_drift;
-      int unknown_drift_property;
-      int driftspeed;
-
-      Rect drift_area;
-
-      // boost::serialization support
-      template <class Archive>
-      void serialize(Archive& ar, unsigned int version);
-    };
-
     void MakeSureHaveDriftProperties();
     boost::scoped_ptr<DriftProperties> drift_properties_;
 
     // Digit Object properties
-    struct DigitProperties {
-      DigitProperties();
-
-      int value;
-
-      int digits;
-      int zero;
-      int sign;
-      int pack;
-      int space;
-
-      // boost::serialization support
-      template <class Archive>
-      void serialize(Archive& ar, unsigned int version);
-    };
-
     void MakeSureHaveDigitProperties();
     boost::scoped_ptr<DigitProperties> digit_properties_;
 
     // Button Object properties
-    struct ButtonProperties {
-      ButtonProperties();
-
-      int is_button;
-
-      int action;
-      int se;
-      int group;
-      int button_number;
-
-      int state;
-
-      bool using_overides;
-      int pattern_override;
-      int x_offset_override;
-      int y_offset_override;
-
-      // boost::serialization support
-      template <class Archive>
-      void serialize(Archive& ar, unsigned int version);
-    };
-
     void MakeSureHaveButtonProperties();
     boost::scoped_ptr<ButtonProperties> button_properties_;
 
@@ -501,7 +422,6 @@ class GraphicsObject {
     int wipe_copy_;
 
     friend class boost::serialization::access;
-
     // boost::serialization support
     template <class Archive>
     void serialize(Archive& ar, unsigned int version);

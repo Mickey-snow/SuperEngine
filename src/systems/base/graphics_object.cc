@@ -46,93 +46,10 @@
 #include "systems/base/object_mutator.h"
 #include "utilities/exception.h"
 
-const int DEFAULT_TEXT_SIZE = 14;
-const int DEFAULT_TEXT_XSPACE = 0;
-const int DEFAULT_TEXT_YSPACE = 0;
-const int DEFAULT_TEXT_CHAR_COUNT = 0;
-const int DEFAULT_TEXT_COLOUR = 0;
-const int DEFAULT_TEXT_SHADOWCOLOUR = -1;
-
-const int DEFAULT_DRIFT_COUNT = 1;
-const int DEFAULT_DRIFT_USE_ANIMATION = 0;
-const int DEFAULT_DRIFT_START_PATTERN = 0;
-const int DEFAULT_DRIFT_END_PATTERN = 0;
-const int DEFAULT_DRIFT_ANIMATION_TIME = 0;
-const int DEFAULT_DRIFT_YSPEED = 1000;
-const int DEFAULT_DRIFT_PERIOD = 0;
-const int DEFAULT_DRIFT_AMPLITUDE = 0;
-const int DEFAULT_DRIFT_USE_DRIFT = 0;
-const int DEFAULT_DRIFT_UNKNOWN_PROP = 0;
-const int DEFAULT_DRIFT_DRIFTSPEED = 0;
-const Rect DEFAULT_DRIFT_AREA = Rect(Point(-1, -1), Size(-1, -1));
-
-const int DEFAULT_DIGITS_VALUE = 0;
-const int DEFAULT_DIGITS_DIGITS = 0;
-const int DEFAULT_DIGITS_ZERO = 0;
-const int DEFAULT_DIGITS_SIGN = 0;
-const int DEFAULT_DIGITS_PACK = 0;
-const int DEFAULT_DIGITS_SPACE = 0;
-
-const int DEFAULT_BUTTON_IS_BUTTON = 0;
-const int DEFAULT_BUTTON_ACTION = 0;
-const int DEFAULT_BUTTON_SE = -1;
-const int DEFAULT_BUTTON_GROUP = 0;
-const int DEFAULT_BUTTON_NUMBER = 0;
-const int DEFAULT_BUTTON_STATE = 0;
-const bool DEFAULT_BUTTON_USING_OVERRIDES = 0;
-const int DEFAULT_BUTTON_PATTERN_OVERRIDE = 0;
-const int DEFAULT_BUTTON_X_OFFSET = 0;
-const int DEFAULT_BUTTON_Y_OFFSET = 0;
-
 const Rect EMPTY_CLIP = Rect(Point(0, 0), Size(-1, -1));
 
 const boost::shared_ptr<GraphicsObject::Impl> GraphicsObject::s_empty_impl(
     new GraphicsObject::Impl);
-
-// -----------------------------------------------------------------------
-// GraphicsObject::TextProperties
-// -----------------------------------------------------------------------
-GraphicsObject::Impl::TextProperties::TextProperties()
-    : text_size(DEFAULT_TEXT_SIZE),
-      xspace(DEFAULT_TEXT_XSPACE),
-      yspace(DEFAULT_TEXT_YSPACE),
-      char_count(DEFAULT_TEXT_CHAR_COUNT),
-      colour(DEFAULT_TEXT_COLOUR),
-      shadow_colour(DEFAULT_TEXT_SHADOWCOLOUR) {}
-
-GraphicsObject::Impl::DriftProperties::DriftProperties()
-    : count(DEFAULT_DRIFT_COUNT),
-      use_animation(DEFAULT_DRIFT_USE_ANIMATION),
-      start_pattern(DEFAULT_DRIFT_START_PATTERN),
-      end_pattern(DEFAULT_DRIFT_END_PATTERN),
-      total_animation_time_ms(DEFAULT_DRIFT_ANIMATION_TIME),
-      yspeed(DEFAULT_DRIFT_YSPEED),
-      period(DEFAULT_DRIFT_PERIOD),
-      amplitude(DEFAULT_DRIFT_AMPLITUDE),
-      use_drift(DEFAULT_DRIFT_USE_DRIFT),
-      unknown_drift_property(DEFAULT_DRIFT_UNKNOWN_PROP),
-      driftspeed(DEFAULT_DRIFT_DRIFTSPEED),
-      drift_area(DEFAULT_DRIFT_AREA) {}
-
-GraphicsObject::Impl::DigitProperties::DigitProperties()
-    : value(DEFAULT_DIGITS_VALUE),
-      digits(DEFAULT_DIGITS_DIGITS),
-      zero(DEFAULT_DIGITS_ZERO),
-      sign(DEFAULT_DIGITS_SIGN),
-      pack(DEFAULT_DIGITS_PACK),
-      space(DEFAULT_DIGITS_SPACE) {}
-
-GraphicsObject::Impl::ButtonProperties::ButtonProperties()
-    : is_button(DEFAULT_BUTTON_IS_BUTTON),
-      action(DEFAULT_BUTTON_ACTION),
-      se(DEFAULT_BUTTON_SE),
-      group(DEFAULT_BUTTON_GROUP),
-      button_number(DEFAULT_BUTTON_NUMBER),
-      state(DEFAULT_BUTTON_STATE),
-      using_overides(DEFAULT_BUTTON_USING_OVERRIDES),
-      pattern_override(DEFAULT_BUTTON_PATTERN_OVERRIDE),
-      x_offset_override(DEFAULT_BUTTON_X_OFFSET),
-      y_offset_override(DEFAULT_BUTTON_Y_OFFSET) {}
 
 // -----------------------------------------------------------------------
 // GraphicsObject
@@ -1059,25 +976,25 @@ GraphicsObject::Impl& GraphicsObject::Impl::operator=(
 
 void GraphicsObject::Impl::MakeSureHaveTextProperties() {
   if (!text_properties_) {
-    text_properties_.reset(new Impl::TextProperties());
+    text_properties_.reset(new TextProperties());
   }
 }
 
 void GraphicsObject::Impl::MakeSureHaveDriftProperties() {
   if (!drift_properties_) {
-    drift_properties_.reset(new Impl::DriftProperties());
+    drift_properties_.reset(new DriftProperties());
   }
 }
 
 void GraphicsObject::Impl::MakeSureHaveDigitProperties() {
   if (!digit_properties_) {
-    digit_properties_.reset(new Impl::DigitProperties());
+    digit_properties_.reset(new DigitProperties());
   }
 }
 
 void GraphicsObject::Impl::MakeSureHaveButtonProperties() {
   if (!button_properties_) {
-    button_properties_.reset(new Impl::ButtonProperties());
+    button_properties_.reset(new ButtonProperties());
   }
 }
 
@@ -1134,88 +1051,3 @@ template void GraphicsObject::Impl::serialize<boost::archive::text_oarchive>(
 template void GraphicsObject::Impl::serialize<boost::archive::text_iarchive>(
     boost::archive::text_iarchive& ar,
     unsigned int version);
-
-// -----------------------------------------------------------------------
-// GraphicsObject::Impl::TextProperties
-// -----------------------------------------------------------------------
-template <class Archive>
-void GraphicsObject::Impl::TextProperties::serialize(Archive& ar,
-                                                     unsigned int version) {
-  ar & value & text_size & xspace & yspace & char_count & colour &
-      shadow_colour;
-}
-
-// -----------------------------------------------------------------------
-
-// Explicit instantiations for text archives (since we hide the
-// implementation)
-
-template void GraphicsObject::Impl::TextProperties::serialize<
-    boost::archive::text_oarchive>(boost::archive::text_oarchive& ar,
-                                   unsigned int version);
-
-template void GraphicsObject::Impl::TextProperties::serialize<
-    boost::archive::text_iarchive>(boost::archive::text_iarchive& ar,
-                                   unsigned int version);
-
-// -----------------------------------------------------------------------
-// GraphicsObject::Impl::DirftProperties
-// -----------------------------------------------------------------------
-template <class Archive>
-void GraphicsObject::Impl::DriftProperties::serialize(Archive& ar,
-                                                      unsigned int version) {
-  ar & count & use_animation & start_pattern & end_pattern &
-      total_animation_time_ms & yspeed & period & amplitude & use_drift &
-      unknown_drift_property & driftspeed & drift_area;
-}
-
-// -----------------------------------------------------------------------
-
-template void GraphicsObject::Impl::DriftProperties::serialize<
-    boost::archive::text_oarchive>(boost::archive::text_oarchive& ar,
-                                   unsigned int version);
-
-template void GraphicsObject::Impl::DriftProperties::serialize<
-    boost::archive::text_iarchive>(boost::archive::text_iarchive& ar,
-                                   unsigned int version);
-
-// -----------------------------------------------------------------------
-// GraphicsObject::Impl::DigitProperties
-// -----------------------------------------------------------------------
-template <class Archive>
-void GraphicsObject::Impl::DigitProperties::serialize(Archive& ar,
-                                                      unsigned int version) {
-  ar & value & digits & zero & sign & pack & space;
-}
-
-// -----------------------------------------------------------------------
-
-template void GraphicsObject::Impl::DigitProperties::serialize<
-    boost::archive::text_oarchive>(boost::archive::text_oarchive& ar,
-                                   unsigned int version);
-
-template void GraphicsObject::Impl::DigitProperties::serialize<
-    boost::archive::text_iarchive>(boost::archive::text_iarchive& ar,
-                                   unsigned int version);
-
-// -----------------------------------------------------------------------
-// GraphicsObject::Impl::ButtonProperties
-// -----------------------------------------------------------------------
-template <class Archive>
-void GraphicsObject::Impl::ButtonProperties::serialize(Archive& ar,
-                                                       unsigned int version) {
-  // The override values are stuck here because I'm not sure about
-  // initialization otherwise.
-  ar & is_button & action & se & group & button_number & state &
-      using_overides & pattern_override & x_offset_override & y_offset_override;
-}
-
-// -----------------------------------------------------------------------
-
-template void GraphicsObject::Impl::ButtonProperties::serialize<
-    boost::archive::text_oarchive>(boost::archive::text_oarchive& ar,
-                                   unsigned int version);
-
-template void GraphicsObject::Impl::ButtonProperties::serialize<
-    boost::archive::text_iarchive>(boost::archive::text_iarchive& ar,
-                                   unsigned int version);
