@@ -663,10 +663,10 @@ std::shared_ptr<const Surface> GraphicsSystem::GetSurfaceNamed(
 void GraphicsSystem::ClearAndPromoteObjects() {
   typedef LazyArray<GraphicsObject>::full_iterator FullIterator;
 
-  FullIterator bg = graphics_object_impl_->background_objects.full_begin();
-  FullIterator bg_end = graphics_object_impl_->background_objects.full_end();
-  FullIterator fg = graphics_object_impl_->foreground_objects.full_begin();
-  FullIterator fg_end = graphics_object_impl_->foreground_objects.full_end();
+  FullIterator bg = graphics_object_impl_->background_objects.fbegin();
+  FullIterator bg_end = graphics_object_impl_->background_objects.fend();
+  FullIterator fg = graphics_object_impl_->foreground_objects.fbegin();
+  FullIterator fg_end = graphics_object_impl_->foreground_objects.fend();
   for (; bg != bg_end && fg != fg_end; bg++, fg++) {
     if (fg.valid() && !fg->wipe_copy()) {
       fg->InitializeParams();
@@ -774,10 +774,8 @@ bool GraphicsSystem::AnimationsPlaying() const {
 // -----------------------------------------------------------------------
 
 void GraphicsSystem::TakeSavepointSnapshot() {
-  GetForegroundObjects().CopyTo(
-      graphics_object_impl_->saved_foreground_objects);
-  GetBackgroundObjects().CopyTo(
-      graphics_object_impl_->saved_background_objects);
+  graphics_object_impl_->saved_foreground_objects = GetForegroundObjects();
+  graphics_object_impl_->saved_background_objects = GetBackgroundObjects();
   graphics_object_impl_->saved_graphics_stack =
       graphics_object_impl_->graphics_stack;
 }

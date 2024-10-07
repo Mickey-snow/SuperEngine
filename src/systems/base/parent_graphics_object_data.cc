@@ -73,15 +73,9 @@ int ParentGraphicsObjectData::PixelHeight(
 }
 
 GraphicsObjectData* ParentGraphicsObjectData::Clone() const {
-  int size = objects_.size();
+  int size = objects_.Size();
   ParentGraphicsObjectData* cloned = new ParentGraphicsObjectData(size);
-
-  for (int i = 0; i < size; ++i) {
-    if (objects_.exists(i)) {
-      cloned->objects_[i] = GraphicsObject(objects_[i]);
-    }
-  }
-
+  cloned->objects_ = objects_;
   return cloned;
 }
 

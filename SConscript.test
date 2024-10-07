@@ -37,7 +37,7 @@ unittest_files = [
 
   "test/notification_service_unittest.cc",
   "test/gameexe_unittest.cc",
-  "test/lazy_array_test.cc",
+  "test/lazy_array_unittest.cc",
   "test/bitstream_unittest.cc",
   "test/byte_reader_unittest.cc",
   "test/byte_inserter_unittest.cc",
