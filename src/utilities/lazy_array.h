@@ -234,30 +234,20 @@ class LazyArray {
     int magic;
 
     ar & magic;
-    // version 0 of LazyArray::serialization saves the size of array n, then n
-    // pointers T* to array elements, empty positions are nullptr
-    // TODO: Remove this when backward compatibility with old serialized data is
-    // no longer required
     if (magic >= 0) {
-      size_t size = static_cast<size_t>(magic);
-      arr_.resize(size);
-      for (size_t i = 0; i < size; ++i) {
-        T* data;
-        ar & data;
-        if (data)
-          arr_[i] = std::move(*data);
-      }
-    } else {
-      size_t size, count;
-      ar & size & count;
-      arr_.resize(size);
+      throw std::runtime_error(
+          "LazyArray: Error reading from outdated archive.");
+    }
 
-      while (count--) {
-        size_t pos;
-        T value;
-        ar & pos & value;
-        arr_[pos] = std::move(value);
-      }
+    size_t size, count;
+    ar & size & count;
+    arr_.resize(size);
+
+    while (count--) {
+      size_t pos;
+      T value;
+      ar & pos & value;
+      arr_[pos] = std::move(value);
     }
   }
 

@@ -29,8 +29,6 @@
 
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
-#include <boost/serialization/export.hpp>
-#include <boost/serialization/tracking.hpp>
 
 #include "test_utils.h"
 #include "utilities/lazy_array.h"
@@ -92,14 +90,6 @@ class LazyArrayTest : public ::testing::Test {
     }
   }
 };
-
-// -----------------------------------------------------------------------
-
-BOOST_CLASS_EXPORT(LazyArrayTest::IntWrapper);
-BOOST_CLASS_TRACKING(LazyArrayTest::IntWrapper,
-                     boost::serialization::track_always);
-
-// -----------------------------------------------------------------------
 
 TEST_F(LazyArrayTest, EmptyArray) {
   // Empty lazy arrays should simply set size
@@ -170,24 +160,14 @@ TEST_F(LazyArrayTest, CopyAssign) {
   array[2] = 24;
 
   auto newarray = array;
+  array[0] = 123;
+  array[1] = 456;
+  newarray[4] = 48;
+
   EXPECT_EQ(newarray[0], 12);
-}
-
-TEST_F(LazyArrayTest, SerializationVer0) {
-  std::stringstream ss(
-      "22 serialization::archive 20 0 0 10 1 1 0\n"
-      "0 0 -1 1\n"
-      "1 2 -1 1\n"
-      "2 4 -1 1\n"
-      "3 6 -1 1\n"
-      "4 8 -1\n");
-
-  {
-    LazyArray<IntWrapper> newArray(SIZE);
-    boost::archive::text_iarchive ia(ss);
-    ia >> newArray;
-    checkArray(newArray);
-  }
+  EXPECT_EQ(newarray[2], 24);
+  EXPECT_EQ(newarray[4], 48);
+  EXPECT_EQ(array[0], 123);
 }
 
 TEST_F(LazyArrayTest, SerializationVer1) {
@@ -205,19 +185,18 @@ TEST_F(LazyArrayTest, SerializationVer1) {
     checkArray(arr);
   }
 
-  // {
-  //   std::stringstream ss(
-  //       "22 serialization::archive 20 0 0 -1 10 5 0 0 2 2 4 4 6 6 8 8");
-  //   boost::archive::text_iarchive ia(ss);
-  //   LazyArray<int> arr;
-  //   ia >> arr;
-  //   for (int i = 0; i < SIZE; ++i) {
-  //     if (i % 2 == 0) {
-  //       EXPECT_EQ(arr[i], i);
-  //     } else {
-  //       EXPECT_FALSE(arr.Exists(i));
-  //     }
-  //   }
-  // }
-  // currently cannot compile
+  {
+    std::stringstream ss(
+        "22 serialization::archive 20 0 0 -1 10 5 0 0 2 2 4 4 6 6 8 8");
+    boost::archive::text_iarchive ia(ss);
+    LazyArray<int> arr;
+    ia >> arr;
+    for (int i = 0; i < SIZE; ++i) {
+      if (i % 2 == 0) {
+        EXPECT_EQ(arr[i], i);
+      } else {
+        EXPECT_FALSE(arr.Exists(i));
+      }
+    }
+  }
 }
