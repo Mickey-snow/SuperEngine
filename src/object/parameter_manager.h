@@ -33,48 +33,46 @@
 
 class Scapegoat {
  public:
-  using key_t = std::pair<size_t, std::string>;
+  using key_t = int;
   using value_t = std::any;
   static constexpr float alpha = 0.78f;
 
   Scapegoat();
   ~Scapegoat();
 
-  std::any const& operator[](const std::string& key_str) const;
-  std::any const& Get(const std::string& key_str) const;
+  std::any const& operator[](int key) const;
+  std::any const& Get(int key) const;
 
-  void Set(const std::string& key_str, std::any value);
+  void Set(int key, std::any value);
 
-  bool Contains(const std::string& key_str);
+  bool Contains(int key) const;
 
-  void Remove(const std::string& key_str);
+  void Remove(int key);
 
  private:
-  static key_t MakeKey(const std::string& key_str);
-
   struct Node {
-    std::pair<size_t, std::string> key;
-    std::any value;
+    key_t key;
+    value_t value;
     size_t tree_size;
     std::shared_ptr<Node> lch, rch;
 
-    Node(const std::pair<size_t, std::string>& ikey, std::any ival = {});
+    Node(key_t ikey, std::any ival = {});
 
     Node& Update();
 
     bool IsBalance() const;
   };
 
-  std::shared_ptr<Node> Find(const key_t& key,
+  std::shared_ptr<Node> Find(key_t key,
                              const std::shared_ptr<Node>& nowAt) const;
 
-  std::shared_ptr<Node> Touch(const key_t& key,
+  std::shared_ptr<Node> Touch(key_t key,
                               value_t value,
                               std::shared_ptr<Node>& nowAt);
 
-  void Remove(const key_t& key, std::shared_ptr<Node>& nowAt);
+  void Remove(key_t key, std::shared_ptr<Node>& nowAt);
 
-  void CheckRebuild(const key_t& key, std::shared_ptr<Node>& nowAt);
+  void CheckRebuild(key_t key, std::shared_ptr<Node>& nowAt);
 
   std::shared_ptr<Node> Rebuild(std::shared_ptr<Node> root);
 

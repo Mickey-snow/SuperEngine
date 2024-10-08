@@ -30,46 +30,34 @@ Scapegoat::Scapegoat() : root(nullptr) {}
 
 Scapegoat::~Scapegoat() = default;
 
-std::any const& Scapegoat::operator[](const std::string& key_str) const {
-  return Get(key_str);
-}
+std::any const& Scapegoat::operator[](int key) const { return Get(key); }
 
-std::any const& Scapegoat::Get(const std::string& key_str) const {
-  auto key = MakeKey(key_str);
+std::any const& Scapegoat::Get(int key) const {
   const auto& ptr = Find(key, root);
 
   if (!ptr || !ptr->value.has_value()) {
-    throw std::out_of_range("ScapegoatTree: Non-existent key " + key_str);
+    throw std::out_of_range("ScapegoatTree: Non-existent key " +
+                            std::to_string(key));
   }
   return ptr->value;
 }
 
-void Scapegoat::Set(const std::string& key_str, std::any value) {
-  auto key = MakeKey(key_str);
+void Scapegoat::Set(int key, std::any value) {
   Touch(key, std::move(value), root);
   CheckRebuild(key, root);
 }
 
-bool Scapegoat::Contains(const std::string& key_str) {
-  auto key = MakeKey(key_str);
+bool Scapegoat::Contains(int key) const {
   const auto& ptr = Find(key, root);
   return ptr && ptr->value.has_value();
 }
 
-void Scapegoat::Remove(const std::string& key_str) {
-  auto key = MakeKey(key_str);
+void Scapegoat::Remove(int key) {
   Remove(key, root);
   CheckRebuild(key, root);
 }
 
-Scapegoat::key_t Scapegoat::MakeKey(const std::string& key_str) {
-  static std::hash<std::string> hash;
-  return std::make_pair(hash(key_str), key_str);
-}
-
-// Node Definitions
-
-Scapegoat::Node::Node(const std::pair<size_t, std::string>& ikey, std::any ival)
+Scapegoat::Node::Node(key_t ikey, std::any ival)
     : key(ikey),
       value(std::move(ival)),
       tree_size(1),
@@ -94,10 +82,8 @@ bool Scapegoat::Node::IsBalance() const {
   return true;
 }
 
-// Private Method Definitions
-
 std::shared_ptr<Scapegoat::Node> Scapegoat::Find(
-    const key_t& key,
+    key_t key,
     const std::shared_ptr<Node>& nowAt) const {
   if (!nowAt)
     return nullptr;
@@ -106,10 +92,8 @@ std::shared_ptr<Scapegoat::Node> Scapegoat::Find(
   return Find(key, key < nowAt->key ? nowAt->lch : nowAt->rch);
 }
 
-std::shared_ptr<Scapegoat::Node> Scapegoat::Touch(
-    const key_t& key,
-    value_t value,
-    std::shared_ptr<Node>& nowAt) {
+std::shared_ptr<Scapegoat::Node>
+Scapegoat::Touch(key_t key, value_t value, std::shared_ptr<Node>& nowAt) {
   if (!nowAt) {
     return nowAt = std::make_shared<Node>(key, std::move(value));
   }
@@ -128,7 +112,7 @@ std::shared_ptr<Scapegoat::Node> Scapegoat::Touch(
   }
 }
 
-void Scapegoat::Remove(const key_t& key, std::shared_ptr<Node>& nowAt) {
+void Scapegoat::Remove(key_t key, std::shared_ptr<Node>& nowAt) {
   if (!nowAt)
     return;
   if (nowAt->key == key) {
@@ -140,7 +124,7 @@ void Scapegoat::Remove(const key_t& key, std::shared_ptr<Node>& nowAt) {
   nowAt->Update();
 }
 
-void Scapegoat::CheckRebuild(const key_t& key, std::shared_ptr<Node>& nowAt) {
+void Scapegoat::CheckRebuild(key_t key, std::shared_ptr<Node>& nowAt) {
   if (!nowAt || nowAt->tree_size < 16)
     return;
   if (!nowAt->IsBalance()) {

@@ -32,29 +32,29 @@ class ScapegoatTest : public ::testing::Test {
 };
 
 TEST_F(ScapegoatTest, InsertAndRetrieve) {
-  paramManager.Set("health", 100);
-  paramManager.Set("name", std::string("Player1"));
+  paramManager.Set(1, 100);
+  paramManager.Set(2, std::string("Player1"));
 
   struct CustomType {
     int x;
     float y;
   };
-  paramManager.Set("custom", CustomType{42, 3.14f});
+  paramManager.Set(3, CustomType{42, 3.14f});
 
   {
-    std::any value = paramManager["health"];
+    std::any value = paramManager[1];
     EXPECT_TRUE(value.has_value());
     EXPECT_EQ(std::any_cast<int>(value), 100);
   }
 
   {
-    std::any value = paramManager["name"];
+    std::any value = paramManager[2];
     EXPECT_TRUE(value.has_value());
     EXPECT_EQ(std::any_cast<std::string>(value), "Player1");
   }
 
   {
-    std::any value = paramManager["custom"];
+    std::any value = paramManager[3];
     EXPECT_TRUE(value.has_value());
     CustomType retrievedValue = std::any_cast<CustomType>(value);
     EXPECT_EQ(retrievedValue.x, 42);
@@ -63,16 +63,15 @@ TEST_F(ScapegoatTest, InsertAndRetrieve) {
 }
 
 TEST_F(ScapegoatTest, RetrieveNonExistentKey) {
-  paramManager.Set("some_key", 123);
+  paramManager.Set(1, 123);
   EXPECT_THROW(
-      { int value = std::any_cast<int>(paramManager["non_existent_key"]); },
-      std::out_of_range);
+      { int value = std::any_cast<int>(paramManager[2]); }, std::out_of_range);
 }
 
 TEST_F(ScapegoatTest, ModifyValue) {
-  paramManager.Set("score", 50);
-  paramManager.Set("score", 75);
-  std::any value = paramManager["score"];
+  paramManager.Set(1, 50);
+  paramManager.Set(1, 75);
+  std::any value = paramManager[1];
   EXPECT_EQ(std::any_cast<int>(value), 75);
 }
 
@@ -95,73 +94,77 @@ TEST_F(ScapegoatTest, CopyOnWrite) {
     }
   };
 
-  paramManager.Set("root", IntValue(1));
+  paramManager.Set(0, IntValue(1));
   for (int i = 1; i <= 1000; ++i)
-    paramManager.Set("member" + std::to_string(i), IntValue(i + 100));
+    paramManager.Set(i, IntValue(i + 100));
   copy_count = move_count = 0;
 
   Scapegoat paramManagerCopy = paramManager;
-  paramManagerCopy.Set("root", IntValue(2));
-  EXPECT_EQ(std::any_cast<IntValue>(paramManager["root"]).value, 1);
-  EXPECT_EQ(std::any_cast<IntValue>(paramManagerCopy["root"]).value, 2);
+  paramManagerCopy.Set(0, IntValue(2));
+  EXPECT_EQ(std::any_cast<IntValue>(paramManager[0]).value, 1);
+  EXPECT_EQ(std::any_cast<IntValue>(paramManagerCopy[0]).value, 2);
   EXPECT_LE(copy_count, 14);
 }
 
 TEST_F(ScapegoatTest, Persistence) {
-  paramManager.Set("experience", 1000);
+  paramManager.Set(1, 1000);
 
   Scapegoat version1 = paramManager;
-  paramManager.Set("experience", 2000);
+  paramManager.Set(1, 2000);
   Scapegoat version2 = paramManager;
-  paramManager.Set("experience", 3000);
+  paramManager.Set(1, 3000);
 
-  EXPECT_EQ(std::any_cast<int>(version1["experience"]), 1000);
-  EXPECT_EQ(std::any_cast<int>(version2["experience"]), 2000);
-  EXPECT_EQ(std::any_cast<int>(paramManager["experience"]), 3000);
+  EXPECT_EQ(std::any_cast<int>(version1[1]), 1000);
+  EXPECT_EQ(std::any_cast<int>(version2[1]), 2000);
+  EXPECT_EQ(std::any_cast<int>(paramManager[1]), 3000);
 }
 
 TEST_F(ScapegoatTest, RemoveKey) {
-  paramManager.Set("temp", 42);
-  EXPECT_TRUE(paramManager.Contains("temp"));
-  paramManager.Remove("temp");
-  EXPECT_FALSE(paramManager.Contains("temp"));
-  EXPECT_THROW({ std::any value = paramManager["temp"]; }, std::out_of_range);
+  paramManager.Set(1, 42);
+  EXPECT_TRUE(paramManager.Contains(1));
+  paramManager.Remove(1);
+  EXPECT_FALSE(paramManager.Contains(1));
+  EXPECT_THROW({ std::any value = paramManager[1]; }, std::out_of_range);
 }
 
-TEST_F(ScapegoatTest, StressTest) {
-  const int num_entries = 1000;
+class ScapegoatStressTest : public ::testing::Test {
+ protected:
+  Scapegoat bst;
+};
+TEST_F(ScapegoatStressTest, PerformanceTest) {
+  const int num_entries = 5000;
 
-  std::vector<std::string> keys;
+  std::vector<int> keys;
   std::vector<std::any> values;
 
   for (int i = 0; i < num_entries; ++i) {
-    keys.push_back("key_" + std::to_string(i));
+    keys.push_back(i);
 
     switch (i % 5) {
-        case 0:
+      case 0:
         values.push_back(i);
         break;
-        case 1:
-          values.push_back(static_cast<double>(i) * 0.1);
-          break;
-        case 2:
-          values.push_back("string_" + std::to_string(i));
-          break;
-        case 3:
-          values.push_back(std::vector<int>{i, i + 1, i + 2});
-          break;
-        case 4:
-          values.push_back(std::map<std::string, int>{{"a", i}, {"b", i +
-          1}}); break;
+      case 1:
+        values.push_back(static_cast<double>(i) * 0.1);
+        break;
+      case 2:
+        values.push_back("string_" + std::to_string(i));
+        break;
+      case 3:
+        values.push_back(std::vector<int>{i, i + 1, i + 2});
+        break;
+      case 4:
+        values.push_back(std::map<std::string, int>{{"a", i}, {"b", i + 1}});
+        break;
     }
   }
 
   for (int i = 0; i < num_entries; ++i) {
-    paramManager.Set(keys[i], values[i]);
+    bst.Set(keys[i], values[i]);
   }
 
   for (int i = 0; i < num_entries; ++i) {
-    std::any retrieved_value = paramManager[keys[i]];
+    std::any retrieved_value = bst[keys[i]];
     ASSERT_TRUE(retrieved_value.has_value());
 
     switch (i % 5) {
@@ -182,12 +185,11 @@ TEST_F(ScapegoatTest, StressTest) {
                   std::any_cast<std::vector<int>>(values[i]));
         break;
       case 4:
-        EXPECT_EQ((std::any_cast<std::map<std::string,
-        int>>(retrieved_value)),
+        EXPECT_EQ((std::any_cast<std::map<std::string, int>>(retrieved_value)),
                   (std::any_cast<std::map<std::string, int>>(values[i])));
         break;
     }
   }
 
-  EXPECT_THROW(paramManager["non_existent_key"], std::out_of_range);
+  EXPECT_THROW(bst[1000000], std::out_of_range);
 }
