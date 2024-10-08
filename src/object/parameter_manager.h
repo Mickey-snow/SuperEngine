@@ -82,7 +82,7 @@ class Scapegoat {
       size_t to);
 
   void Collect(std::shared_ptr<Node> nowAt,
-               std::vector<std::pair<key_t, value_t>>& container);
+               std::vector<std::pair<key_t, value_t>>& container) const;
 
   std::shared_ptr<Node> root;
 };

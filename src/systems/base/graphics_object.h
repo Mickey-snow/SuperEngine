@@ -50,8 +50,6 @@ class ObjectMutator;
 // screen. GraphicsObject, internally, references a copy-on-write
 // datastructure, which in turn has optional components to save
 // memory.
-//
-// TODO(erg): I want to put index checks on a lot of these accessors.
 class GraphicsObject {
  public:
   GraphicsObject();
@@ -342,7 +340,7 @@ class GraphicsObject {
 
     // Eight additional parameters that are added to x and y during
     // rendering.
-    int adjust_x_[8], adjust_y_[8];
+    std::array<int, 8> adjust_x_, adjust_y_;
 
     // Whatever obj_adjust_vert operates on; what's this used for?
     int whatever_adjust_vert_operates_on_;
@@ -373,7 +371,7 @@ class GraphicsObject {
     int alpha_;
 
     // Eight additional alphas that are averaged during rendering.
-    int adjust_alpha_[8];
+    std::array<int, 8> adjust_alpha_;
 
     // The clipping region for this image
     Rect clip_;
@@ -402,21 +400,13 @@ class GraphicsObject {
     // Three deep zordering.
     int z_order_, z_layer_, z_depth_;
 
-    // Text Object properties
-    void MakeSureHaveTextProperties();
-    boost::scoped_ptr<TextProperties> text_properties_;
+    TextProperties text_properties_;
 
-    // Drift Object properties
-    void MakeSureHaveDriftProperties();
-    boost::scoped_ptr<DriftProperties> drift_properties_;
+    DriftProperties drift_properties_;
 
-    // Digit Object properties
-    void MakeSureHaveDigitProperties();
-    boost::scoped_ptr<DigitProperties> digit_properties_;
+    DigitProperties digit_properties_;
 
-    // Button Object properties
-    void MakeSureHaveButtonProperties();
-    boost::scoped_ptr<ButtonProperties> button_properties_;
+    ButtonProperties button_properties_;
 
     // The wipe_copy bit
     int wipe_copy_;

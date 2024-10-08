@@ -159,8 +159,9 @@ std::shared_ptr<Scapegoat::Node> Scapegoat::Build(
   return nowAt;
 }
 
-void Scapegoat::Collect(std::shared_ptr<Node> nowAt,
-                        std::vector<std::pair<key_t, value_t>>& container) {
+void Scapegoat::Collect(
+    std::shared_ptr<Node> nowAt,
+    std::vector<std::pair<key_t, value_t>>& container) const {
   if (!nowAt)
     return;
   Collect(nowAt->lch, container);

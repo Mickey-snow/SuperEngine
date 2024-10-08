@@ -31,7 +31,8 @@
 // TextProperties
 // -----------------------------------------------------------------------
 TextProperties::TextProperties()
-    : text_size(DEFAULT_TEXT_SIZE),
+    : value(),
+      text_size(DEFAULT_TEXT_SIZE),
       xspace(DEFAULT_TEXT_XSPACE),
       yspace(DEFAULT_TEXT_YSPACE),
       char_count(DEFAULT_TEXT_CHAR_COUNT),

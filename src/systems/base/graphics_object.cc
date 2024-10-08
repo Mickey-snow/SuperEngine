@@ -32,6 +32,7 @@
 
 #include "systems/base/graphics_object.h"
 
+#include <boost/serialization/array.hpp>
 #include <boost/serialization/scoped_ptr.hpp>
 #include <boost/serialization/shared_ptr.hpp>
 
@@ -108,7 +109,7 @@ void GraphicsObject::SetY(const int y) {
 }
 
 int GraphicsObject::GetXAdjustmentSum() const {
-  return std::accumulate(impl_->adjust_x_, impl_->adjust_x_ + 8, 0);
+  return std::accumulate(impl_->adjust_x_.cbegin(), impl_->adjust_x_.cend(), 0);
 }
 
 void GraphicsObject::SetXAdjustment(int idx, int x) {
@@ -117,7 +118,7 @@ void GraphicsObject::SetXAdjustment(int idx, int x) {
 }
 
 int GraphicsObject::GetYAdjustmentSum() const {
-  return std::accumulate(impl_->adjust_y_, impl_->adjust_y_ + 8, 0);
+  return std::accumulate(impl_->adjust_y_.cbegin(), impl_->adjust_y_.cend(), 0);
 }
 
 void GraphicsObject::SetYAdjustment(int idx, int y) {
@@ -353,59 +354,35 @@ void GraphicsObject::SetWipeCopy(const int wipe_copy) {
 
 void GraphicsObject::SetTextText(const std::string& utf8str) {
   MakeImplUnique();
-  impl_->MakeSureHaveTextProperties();
-  impl_->text_properties_->value = utf8str;
+  impl_->text_properties_.value = utf8str;
 }
 
 const std::string& GraphicsObject::GetTextText() const {
-  static const std::string empty = "";
-
-  if (impl_->text_properties_)
-    return impl_->text_properties_->value;
-  else
-    return empty;
+  return impl_->text_properties_.value;
 }
 
 int GraphicsObject::GetTextSize() const {
-  if (impl_->text_properties_)
-    return impl_->text_properties_->text_size;
-  else
-    return DEFAULT_TEXT_SIZE;
+  return impl_->text_properties_.text_size;
 }
 
 int GraphicsObject::GetTextXSpace() const {
-  if (impl_->text_properties_)
-    return impl_->text_properties_->xspace;
-  else
-    return DEFAULT_TEXT_XSPACE;
+  return impl_->text_properties_.xspace;
 }
 
 int GraphicsObject::GetTextYSpace() const {
-  if (impl_->text_properties_)
-    return impl_->text_properties_->yspace;
-  else
-    return DEFAULT_TEXT_YSPACE;
+  return impl_->text_properties_.yspace;
 }
 
 int GraphicsObject::GetTextCharCount() const {
-  if (impl_->text_properties_)
-    return impl_->text_properties_->char_count;
-  else
-    return DEFAULT_TEXT_CHAR_COUNT;
+  return impl_->text_properties_.char_count;
 }
 
 int GraphicsObject::GetTextColour() const {
-  if (impl_->text_properties_)
-    return impl_->text_properties_->colour;
-  else
-    return DEFAULT_TEXT_COLOUR;
+  return impl_->text_properties_.colour;
 }
 
 int GraphicsObject::GetTextShadowColour() const {
-  if (impl_->text_properties_)
-    return impl_->text_properties_->shadow_colour;
-  else
-    return DEFAULT_TEXT_SHADOWCOLOUR;
+  return impl_->text_properties_.shadow_colour;
 }
 
 void GraphicsObject::SetTextOps(int size,
@@ -416,13 +393,12 @@ void GraphicsObject::SetTextOps(int size,
                                 int shadow) {
   MakeImplUnique();
 
-  impl_->MakeSureHaveTextProperties();
-  impl_->text_properties_->text_size = size;
-  impl_->text_properties_->xspace = xspace;
-  impl_->text_properties_->yspace = yspace;
-  impl_->text_properties_->char_count = char_count;
-  impl_->text_properties_->colour = colour;
-  impl_->text_properties_->shadow_colour = shadow;
+  impl_->text_properties_.text_size = size;
+  impl_->text_properties_.xspace = xspace;
+  impl_->text_properties_.yspace = yspace;
+  impl_->text_properties_.char_count = char_count;
+  impl_->text_properties_.colour = colour;
+  impl_->text_properties_.shadow_colour = shadow;
 }
 
 void GraphicsObject::SetDriftOpts(int count,
@@ -439,109 +415,71 @@ void GraphicsObject::SetDriftOpts(int count,
                                   Rect driftarea) {
   MakeImplUnique();
 
-  impl_->MakeSureHaveDriftProperties();
-  impl_->drift_properties_->count = count;
-  impl_->drift_properties_->use_animation = use_animation;
-  impl_->drift_properties_->start_pattern = start_pattern;
-  impl_->drift_properties_->end_pattern = end_pattern;
-  impl_->drift_properties_->total_animation_time_ms = total_animation_time_ms;
-  impl_->drift_properties_->yspeed = yspeed;
-  impl_->drift_properties_->period = period;
-  impl_->drift_properties_->amplitude = amplitude;
-  impl_->drift_properties_->use_drift = use_drift;
-  impl_->drift_properties_->unknown_drift_property = unknown_drift_property;
-  impl_->drift_properties_->driftspeed = driftspeed;
-  impl_->drift_properties_->drift_area = driftarea;
+  impl_->drift_properties_.count = count;
+  impl_->drift_properties_.use_animation = use_animation;
+  impl_->drift_properties_.start_pattern = start_pattern;
+  impl_->drift_properties_.end_pattern = end_pattern;
+  impl_->drift_properties_.total_animation_time_ms = total_animation_time_ms;
+  impl_->drift_properties_.yspeed = yspeed;
+  impl_->drift_properties_.period = period;
+  impl_->drift_properties_.amplitude = amplitude;
+  impl_->drift_properties_.use_drift = use_drift;
+  impl_->drift_properties_.unknown_drift_property = unknown_drift_property;
+  impl_->drift_properties_.driftspeed = driftspeed;
+  impl_->drift_properties_.drift_area = driftarea;
 }
 
 int GraphicsObject::GetDriftParticleCount() const {
-  if (impl_->drift_properties_)
-    return impl_->drift_properties_->count;
-  else
-    return DEFAULT_DRIFT_COUNT;
+  return impl_->drift_properties_.count;
 }
 
 int GraphicsObject::GetDriftUseAnimation() const {
-  if (impl_->drift_properties_)
-    return impl_->drift_properties_->use_animation;
-  else
-    return DEFAULT_DRIFT_USE_ANIMATION;
+  return impl_->drift_properties_.use_animation;
 }
 
 int GraphicsObject::GetDriftStartPattern() const {
-  if (impl_->drift_properties_)
-    return impl_->drift_properties_->start_pattern;
-  else
-    return DEFAULT_DRIFT_START_PATTERN;
+  return impl_->drift_properties_.start_pattern;
 }
 
 int GraphicsObject::GetDriftEndPattern() const {
-  if (impl_->drift_properties_)
-    return impl_->drift_properties_->end_pattern;
-  else
-    return DEFAULT_DRIFT_END_PATTERN;
+  return impl_->drift_properties_.end_pattern;
 }
 
 int GraphicsObject::GetDriftAnimationTime() const {
-  if (impl_->drift_properties_)
-    return impl_->drift_properties_->total_animation_time_ms;
-  else
-    return DEFAULT_DRIFT_ANIMATION_TIME;
+  return impl_->drift_properties_.total_animation_time_ms;
 }
 
 int GraphicsObject::GetDriftYSpeed() const {
-  if (impl_->drift_properties_)
-    return impl_->drift_properties_->yspeed;
-  else
-    return DEFAULT_DRIFT_YSPEED;
+  return impl_->drift_properties_.yspeed;
 }
 
 int GraphicsObject::GetDriftPeriod() const {
-  if (impl_->drift_properties_)
-    return impl_->drift_properties_->period;
-  else
-    return DEFAULT_DRIFT_PERIOD;
+  return impl_->drift_properties_.period;
 }
 
 int GraphicsObject::GetDriftAmplitude() const {
-  if (impl_->drift_properties_)
-    return impl_->drift_properties_->amplitude;
-  else
-    return DEFAULT_DRIFT_AMPLITUDE;
+  return impl_->drift_properties_.amplitude;
 }
 
 int GraphicsObject::GetDriftUseDrift() const {
-  if (impl_->drift_properties_)
-    return impl_->drift_properties_->use_drift;
-  else
-    return DEFAULT_DRIFT_USE_DRIFT;
+  return impl_->drift_properties_.use_drift;
 }
 
 int GraphicsObject::GetDriftUnknown() const {
-  if (impl_->drift_properties_)
-    return impl_->drift_properties_->unknown_drift_property;
-  else
-    return DEFAULT_DRIFT_UNKNOWN_PROP;
+  return impl_->drift_properties_.unknown_drift_property;
 }
 
 int GraphicsObject::GetDriftDriftSpeed() const {
-  if (impl_->drift_properties_)
-    return impl_->drift_properties_->driftspeed;
-  else
-    return DEFAULT_DRIFT_UNKNOWN_PROP;
+  return impl_->drift_properties_.driftspeed;
 }
 
 Rect GraphicsObject::GetDriftArea() const {
-  if (impl_->drift_properties_)
-    return impl_->drift_properties_->drift_area;
-  else
-    return Rect();
+  return impl_->drift_properties_.drift_area;
 }
 
 void GraphicsObject::SetDigitValue(int value) {
   MakeImplUnique();
-  impl_->MakeSureHaveDigitProperties();
-  impl_->digit_properties_->value = value;
+  impl_->digit_properties_.value = value;
 }
 
 void GraphicsObject::SetDigitOpts(int digits,
@@ -551,54 +489,35 @@ void GraphicsObject::SetDigitOpts(int digits,
                                   int space) {
   MakeImplUnique();
 
-  impl_->MakeSureHaveDigitProperties();
-  impl_->digit_properties_->digits = digits;
-  impl_->digit_properties_->zero = zero;
-  impl_->digit_properties_->sign = sign;
-  impl_->digit_properties_->pack = pack;
-  impl_->digit_properties_->space = space;
+  impl_->digit_properties_.digits = digits;
+  impl_->digit_properties_.zero = zero;
+  impl_->digit_properties_.sign = sign;
+  impl_->digit_properties_.pack = pack;
+  impl_->digit_properties_.space = space;
 }
 
 int GraphicsObject::GetDigitValue() const {
-  if (impl_->digit_properties_)
-    return impl_->digit_properties_->value;
-  else
-    return DEFAULT_DIGITS_VALUE;
+  return impl_->digit_properties_.value;
 }
 
 int GraphicsObject::GetDigitDigits() const {
-  if (impl_->digit_properties_)
-    return impl_->digit_properties_->digits;
-  else
-    return DEFAULT_DIGITS_DIGITS;
+  return impl_->digit_properties_.digits;
 }
 
 int GraphicsObject::GetDigitZero() const {
-  if (impl_->digit_properties_)
-    return impl_->digit_properties_->zero;
-  else
-    return DEFAULT_DIGITS_ZERO;
+  return impl_->digit_properties_.zero;
 }
 
 int GraphicsObject::GetDigitSign() const {
-  if (impl_->digit_properties_)
-    return impl_->digit_properties_->sign;
-  else
-    return DEFAULT_DIGITS_SIGN;
+  return impl_->digit_properties_.sign;
 }
 
 int GraphicsObject::GetDigitPack() const {
-  if (impl_->digit_properties_)
-    return impl_->digit_properties_->pack;
-  else
-    return DEFAULT_DIGITS_PACK;
+  return impl_->digit_properties_.pack;
 }
 
 int GraphicsObject::GetDigitSpace() const {
-  if (impl_->digit_properties_)
-    return impl_->digit_properties_->space;
-  else
-    return DEFAULT_DIGITS_SPACE;
+  return impl_->digit_properties_.space;
 }
 
 void GraphicsObject::SetButtonOpts(int action,
@@ -606,105 +525,69 @@ void GraphicsObject::SetButtonOpts(int action,
                                    int group,
                                    int button_number) {
   MakeImplUnique();
-  impl_->MakeSureHaveButtonProperties();
-  impl_->button_properties_->is_button = true;
-  impl_->button_properties_->action = action;
-  impl_->button_properties_->se = se;
-  impl_->button_properties_->group = group;
-  impl_->button_properties_->button_number = button_number;
+  impl_->button_properties_.is_button = true;
+  impl_->button_properties_.action = action;
+  impl_->button_properties_.se = se;
+  impl_->button_properties_.group = group;
+  impl_->button_properties_.button_number = button_number;
 }
 
 void GraphicsObject::SetButtonState(int state) {
   MakeImplUnique();
-  impl_->MakeSureHaveButtonProperties();
-  impl_->button_properties_->state = state;
+  impl_->button_properties_.state = state;
 }
 
 int GraphicsObject::IsButton() const {
-  if (impl_->button_properties_)
-    return impl_->button_properties_->is_button;
-  else
-    return DEFAULT_BUTTON_IS_BUTTON;
+  return impl_->button_properties_.is_button;
 }
 
 int GraphicsObject::GetButtonAction() const {
-  if (impl_->button_properties_)
-    return impl_->button_properties_->action;
-  else
-    return DEFAULT_BUTTON_ACTION;
+  return impl_->button_properties_.action;
 }
 
-int GraphicsObject::GetButtonSe() const {
-  if (impl_->button_properties_)
-    return impl_->button_properties_->se;
-  else
-    return DEFAULT_BUTTON_SE;
-}
+int GraphicsObject::GetButtonSe() const { return impl_->button_properties_.se; }
 
 int GraphicsObject::GetButtonGroup() const {
-  if (impl_->button_properties_)
-    return impl_->button_properties_->group;
-  else
-    return DEFAULT_BUTTON_GROUP;
+  return impl_->button_properties_.group;
 }
 
 int GraphicsObject::GetButtonNumber() const {
-  if (impl_->button_properties_)
-    return impl_->button_properties_->button_number;
-  else
-    return DEFAULT_BUTTON_NUMBER;
+  return impl_->button_properties_.button_number;
 }
 
 int GraphicsObject::GetButtonState() const {
-  if (impl_->button_properties_)
-    return impl_->button_properties_->state;
-  else
-    return DEFAULT_BUTTON_STATE;
+  return impl_->button_properties_.state;
 }
 
 void GraphicsObject::SetButtonOverrides(int override_pattern,
                                         int override_x_offset,
                                         int override_y_offset) {
   MakeImplUnique();
-  impl_->MakeSureHaveButtonProperties();
-  impl_->button_properties_->using_overides = true;
-  impl_->button_properties_->pattern_override = override_pattern;
-  impl_->button_properties_->x_offset_override = override_x_offset;
-  impl_->button_properties_->y_offset_override = override_y_offset;
+  impl_->button_properties_.using_overides = true;
+  impl_->button_properties_.pattern_override = override_pattern;
+  impl_->button_properties_.x_offset_override = override_x_offset;
+  impl_->button_properties_.y_offset_override = override_y_offset;
 }
 
 void GraphicsObject::ClearButtonOverrides() {
   MakeImplUnique();
-  impl_->MakeSureHaveButtonProperties();
-  impl_->button_properties_->using_overides = false;
+  impl_->button_properties_.using_overides = false;
 }
 
 bool GraphicsObject::GetButtonUsingOverides() const {
-  if (impl_->button_properties_)
-    return impl_->button_properties_->using_overides;
-  else
-    return DEFAULT_BUTTON_USING_OVERRIDES;
+  return impl_->button_properties_.using_overides;
 }
 
 int GraphicsObject::GetButtonPatternOverride() const {
-  if (impl_->button_properties_)
-    return impl_->button_properties_->pattern_override;
-  else
-    return DEFAULT_BUTTON_PATTERN_OVERRIDE;
+  return impl_->button_properties_.pattern_override;
 }
 
 int GraphicsObject::GetButtonXOffsetOverride() const {
-  if (impl_->button_properties_)
-    return impl_->button_properties_->x_offset_override;
-  else
-    return DEFAULT_BUTTON_X_OFFSET;
+  return impl_->button_properties_.x_offset_override;
 }
 
 int GraphicsObject::GetButtonYOffsetOverride() const {
-  if (impl_->button_properties_)
-    return impl_->button_properties_->y_offset_override;
-  else
-    return DEFAULT_BUTTON_Y_OFFSET;
+  return impl_->button_properties_.y_offset_override;
 }
 
 void GraphicsObject::AddObjectMutator(std::unique_ptr<ObjectMutator> mutator) {
@@ -838,6 +721,8 @@ GraphicsObject::Impl::Impl()
     : visible_(false),
       x_(0),
       y_(0),
+      adjust_x_(),
+      adjust_y_(),
       whatever_adjust_vert_operates_on_(0),
       origin_x_(0),
       origin_y_(0),
@@ -852,6 +737,7 @@ GraphicsObject::Impl::Impl()
       rotation_(0),
       patt_no_(0),
       alpha_(255),
+      adjust_alpha_(),
       clip_(EMPTY_CLIP),
       own_clip_(EMPTY_CLIP),
       mono_(0),
@@ -867,16 +753,15 @@ GraphicsObject::Impl::Impl()
       z_layer_(0),
       z_depth_(0),
       wipe_copy_(0) {
-  // Regretfully, we can't do this in the initializer list.
-  std::fill(adjust_x_, adjust_x_ + 8, 0);
-  std::fill(adjust_y_, adjust_y_ + 8, 0);
-  std::fill(adjust_alpha_, adjust_alpha_ + 8, 255);
+  std::fill(adjust_alpha_.begin(), adjust_alpha_.end(), 255);
 }
 
 GraphicsObject::Impl::Impl(const Impl& rhs)
     : visible_(rhs.visible_),
       x_(rhs.x_),
       y_(rhs.y_),
+      adjust_x_(rhs.adjust_x_),
+      adjust_y_(rhs.adjust_y_),
       whatever_adjust_vert_operates_on_(rhs.whatever_adjust_vert_operates_on_),
       origin_x_(rhs.origin_x_),
       origin_y_(rhs.origin_y_),
@@ -889,6 +774,7 @@ GraphicsObject::Impl::Impl(const Impl& rhs)
       rotation_(rhs.rotation_),
       patt_no_(rhs.patt_no_),
       alpha_(rhs.alpha_),
+      adjust_alpha_(rhs.adjust_alpha_),
       clip_(rhs.clip_),
       own_clip_(rhs.own_clip_),
       mono_(rhs.mono_),
@@ -903,18 +789,10 @@ GraphicsObject::Impl::Impl(const Impl& rhs)
       z_layer_(rhs.z_layer_),
       z_depth_(rhs.z_depth_),
       wipe_copy_(0) {
-  if (rhs.text_properties_)
-    text_properties_.reset(new TextProperties(*rhs.text_properties_));
-  if (rhs.drift_properties_)
-    drift_properties_.reset(new DriftProperties(*rhs.drift_properties_));
-  if (rhs.digit_properties_)
-    digit_properties_.reset(new DigitProperties(*rhs.digit_properties_));
-  if (rhs.button_properties_)
-    button_properties_.reset(new ButtonProperties(*rhs.button_properties_));
-
-  std::copy(rhs.adjust_x_, rhs.adjust_x_ + 8, adjust_x_);
-  std::copy(rhs.adjust_y_, rhs.adjust_y_ + 8, adjust_y_);
-  std::copy(rhs.adjust_alpha_, rhs.adjust_alpha_ + 8, adjust_alpha_);
+  text_properties_ = rhs.text_properties_;
+  drift_properties_ = rhs.drift_properties_;
+  digit_properties_ = rhs.digit_properties_;
+  button_properties_ = rhs.button_properties_;
 }
 
 GraphicsObject::Impl::~Impl() {}
@@ -925,10 +803,9 @@ GraphicsObject::Impl& GraphicsObject::Impl::operator=(
     visible_ = rhs.visible_;
     x_ = rhs.x_;
     y_ = rhs.y_;
-
-    std::copy(rhs.adjust_x_, rhs.adjust_x_ + 8, adjust_x_);
-    std::copy(rhs.adjust_y_, rhs.adjust_y_ + 8, adjust_y_);
-    std::copy(rhs.adjust_alpha_, rhs.adjust_alpha_ + 8, adjust_alpha_);
+    adjust_x_ = rhs.adjust_x_;
+    adjust_y_ = rhs.adjust_y_;
+    adjust_alpha_ = rhs.adjust_alpha_;
 
     whatever_adjust_vert_operates_on_ = rhs.whatever_adjust_vert_operates_on_;
     origin_x_ = rhs.origin_x_;
@@ -959,43 +836,15 @@ GraphicsObject::Impl& GraphicsObject::Impl::operator=(
     z_layer_ = rhs.z_layer_;
     z_depth_ = rhs.z_depth_;
 
-    if (rhs.text_properties_)
-      text_properties_.reset(new TextProperties(*rhs.text_properties_));
-    if (rhs.drift_properties_)
-      drift_properties_.reset(new DriftProperties(*rhs.drift_properties_));
-    if (rhs.digit_properties_)
-      digit_properties_.reset(new DigitProperties(*rhs.digit_properties_));
-    if (rhs.button_properties_)
-      button_properties_.reset(new ButtonProperties(*rhs.button_properties_));
+    text_properties_ = rhs.text_properties_;
+    drift_properties_ = rhs.drift_properties_;
+    digit_properties_ = rhs.digit_properties_;
+    button_properties_ = rhs.button_properties_;
 
     wipe_copy_ = rhs.wipe_copy_;
   }
 
   return *this;
-}
-
-void GraphicsObject::Impl::MakeSureHaveTextProperties() {
-  if (!text_properties_) {
-    text_properties_.reset(new TextProperties());
-  }
-}
-
-void GraphicsObject::Impl::MakeSureHaveDriftProperties() {
-  if (!drift_properties_) {
-    drift_properties_.reset(new DriftProperties());
-  }
-}
-
-void GraphicsObject::Impl::MakeSureHaveDigitProperties() {
-  if (!digit_properties_) {
-    digit_properties_.reset(new DigitProperties());
-  }
-}
-
-void GraphicsObject::Impl::MakeSureHaveButtonProperties() {
-  if (!button_properties_) {
-    button_properties_.reset(new ButtonProperties());
-  }
 }
 
 // boost::serialization support
