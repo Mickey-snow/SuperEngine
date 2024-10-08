@@ -30,6 +30,12 @@
 // -----------------------------------------------------------------------
 // TextProperties
 // -----------------------------------------------------------------------
+[[maybe_unused]] constexpr int DEFAULT_TEXT_SIZE = 14;
+[[maybe_unused]] constexpr int DEFAULT_TEXT_XSPACE = 0;
+[[maybe_unused]] constexpr int DEFAULT_TEXT_YSPACE = 0;
+[[maybe_unused]] constexpr int DEFAULT_TEXT_CHAR_COUNT = 0;
+[[maybe_unused]] constexpr int DEFAULT_TEXT_COLOUR = 0;
+[[maybe_unused]] constexpr int DEFAULT_TEXT_SHADOWCOLOUR = -1;
 TextProperties::TextProperties()
     : value(),
       text_size(DEFAULT_TEXT_SIZE),
@@ -61,7 +67,19 @@ template void TextProperties::serialize<boost::archive::text_iarchive>(
 // -----------------------------------------------------------------------
 // DirftProperties
 // -----------------------------------------------------------------------
-
+[[maybe_unused]] constexpr int DEFAULT_DRIFT_COUNT = 1;
+[[maybe_unused]] constexpr int DEFAULT_DRIFT_USE_ANIMATION = 0;
+[[maybe_unused]] constexpr int DEFAULT_DRIFT_START_PATTERN = 0;
+[[maybe_unused]] constexpr int DEFAULT_DRIFT_END_PATTERN = 0;
+[[maybe_unused]] constexpr int DEFAULT_DRIFT_ANIMATION_TIME = 0;
+[[maybe_unused]] constexpr int DEFAULT_DRIFT_YSPEED = 1000;
+[[maybe_unused]] constexpr int DEFAULT_DRIFT_PERIOD = 0;
+[[maybe_unused]] constexpr int DEFAULT_DRIFT_AMPLITUDE = 0;
+[[maybe_unused]] constexpr int DEFAULT_DRIFT_USE_DRIFT = 0;
+[[maybe_unused]] constexpr int DEFAULT_DRIFT_UNKNOWN_PROP = 0;
+[[maybe_unused]] constexpr int DEFAULT_DRIFT_DRIFTSPEED = 0;
+[[maybe_unused]] const Rect DEFAULT_DRIFT_AREA =
+    Rect(Point(-1, -1), Size(-1, -1));
 DriftProperties::DriftProperties()
     : count(DEFAULT_DRIFT_COUNT),
       use_animation(DEFAULT_DRIFT_USE_ANIMATION),
@@ -96,6 +114,12 @@ template void DriftProperties::serialize<boost::archive::text_iarchive>(
 // -----------------------------------------------------------------------
 // DigitProperties
 // -----------------------------------------------------------------------
+[[maybe_unused]] constexpr int DEFAULT_DIGITS_VALUE = 0;
+[[maybe_unused]] constexpr int DEFAULT_DIGITS_DIGITS = 0;
+[[maybe_unused]] constexpr int DEFAULT_DIGITS_ZERO = 0;
+[[maybe_unused]] constexpr int DEFAULT_DIGITS_SIGN = 0;
+[[maybe_unused]] constexpr int DEFAULT_DIGITS_PACK = 0;
+[[maybe_unused]] constexpr int DEFAULT_DIGITS_SPACE = 0;
 
 DigitProperties::DigitProperties()
     : value(DEFAULT_DIGITS_VALUE),
@@ -123,6 +147,16 @@ template void DigitProperties::serialize<boost::archive::text_iarchive>(
 // -----------------------------------------------------------------------
 // ButtonProperties
 // -----------------------------------------------------------------------
+[[maybe_unused]] constexpr int DEFAULT_BUTTON_IS_BUTTON = 0;
+[[maybe_unused]] constexpr int DEFAULT_BUTTON_ACTION = 0;
+[[maybe_unused]] constexpr int DEFAULT_BUTTON_SE = -1;
+[[maybe_unused]] constexpr int DEFAULT_BUTTON_GROUP = 0;
+[[maybe_unused]] constexpr int DEFAULT_BUTTON_NUMBER = 0;
+[[maybe_unused]] constexpr int DEFAULT_BUTTON_STATE = 0;
+[[maybe_unused]] constexpr bool DEFAULT_BUTTON_USING_OVERRIDES = false;
+[[maybe_unused]] constexpr int DEFAULT_BUTTON_PATTERN_OVERRIDE = 0;
+[[maybe_unused]] constexpr int DEFAULT_BUTTON_X_OFFSET = 0;
+[[maybe_unused]] constexpr int DEFAULT_BUTTON_Y_OFFSET = 0;
 
 ButtonProperties::ButtonProperties()
     : is_button(DEFAULT_BUTTON_IS_BUTTON),

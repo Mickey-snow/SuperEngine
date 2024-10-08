@@ -29,12 +29,44 @@
 
 #include <string>
 
-[[maybe_unused]] constexpr int DEFAULT_TEXT_SIZE = 14;
-[[maybe_unused]] constexpr int DEFAULT_TEXT_XSPACE = 0;
-[[maybe_unused]] constexpr int DEFAULT_TEXT_YSPACE = 0;
-[[maybe_unused]] constexpr int DEFAULT_TEXT_CHAR_COUNT = 0;
-[[maybe_unused]] constexpr int DEFAULT_TEXT_COLOUR = 0;
-[[maybe_unused]] constexpr int DEFAULT_TEXT_SHADOWCOLOUR = -1;
+enum class ObjectProperty {
+  IsVisible = 1,
+  PositionX,
+  PositionY,
+  AdjustmentOffsetsX,
+  AdjustmentOffsetsY,
+  AdjustmentVertical,
+  OriginX,
+  OriginY,
+  RepetitionOriginX,
+  RepetitionOriginY,
+  WidthPercent,
+  HeightPercent,
+  HighQualityWidthPercent,
+  HighQualityHeightPercent,
+  RotationDiv10,
+  PatternNumber,
+  AlphaSource,
+  AdjustmentAlphas,
+  ClippingRegion,
+  OwnSpaceClippingRegion,
+  MonochromeTransform,
+  InvertTransform,
+  LightLevel,
+  TintColour,
+  BlendColour,
+  CompositeMode,
+  ScrollRateX,
+  ScrollRateY,
+  ZOrder,
+  ZLayer,
+  ZDepth,
+  TextProperties,
+  DriftProperties,
+  DigitProperties,
+  ButtonProperties,
+  WipeCopy
+};
 
 struct TextProperties {
   TextProperties();
@@ -51,20 +83,6 @@ struct TextProperties {
   template <class Archive>
   void serialize(Archive& ar, unsigned int version);
 };
-
-[[maybe_unused]] constexpr int DEFAULT_DRIFT_COUNT = 1;
-[[maybe_unused]] constexpr int DEFAULT_DRIFT_USE_ANIMATION = 0;
-[[maybe_unused]] constexpr int DEFAULT_DRIFT_START_PATTERN = 0;
-[[maybe_unused]] constexpr int DEFAULT_DRIFT_END_PATTERN = 0;
-[[maybe_unused]] constexpr int DEFAULT_DRIFT_ANIMATION_TIME = 0;
-[[maybe_unused]] constexpr int DEFAULT_DRIFT_YSPEED = 1000;
-[[maybe_unused]] constexpr int DEFAULT_DRIFT_PERIOD = 0;
-[[maybe_unused]] constexpr int DEFAULT_DRIFT_AMPLITUDE = 0;
-[[maybe_unused]] constexpr int DEFAULT_DRIFT_USE_DRIFT = 0;
-[[maybe_unused]] constexpr int DEFAULT_DRIFT_UNKNOWN_PROP = 0;
-[[maybe_unused]] constexpr int DEFAULT_DRIFT_DRIFTSPEED = 0;
-[[maybe_unused]] const Rect DEFAULT_DRIFT_AREA =
-    Rect(Point(-1, -1), Size(-1, -1));
 
 struct DriftProperties {
   DriftProperties();
@@ -92,13 +110,6 @@ struct DriftProperties {
   void serialize(Archive& ar, unsigned int version);
 };
 
-[[maybe_unused]] constexpr int DEFAULT_DIGITS_VALUE = 0;
-[[maybe_unused]] constexpr int DEFAULT_DIGITS_DIGITS = 0;
-[[maybe_unused]] constexpr int DEFAULT_DIGITS_ZERO = 0;
-[[maybe_unused]] constexpr int DEFAULT_DIGITS_SIGN = 0;
-[[maybe_unused]] constexpr int DEFAULT_DIGITS_PACK = 0;
-[[maybe_unused]] constexpr int DEFAULT_DIGITS_SPACE = 0;
-
 struct DigitProperties {
   DigitProperties();
 
@@ -114,17 +125,6 @@ struct DigitProperties {
   template <class Archive>
   void serialize(Archive& ar, unsigned int version);
 };
-
-[[maybe_unused]] constexpr int DEFAULT_BUTTON_IS_BUTTON = 0;
-[[maybe_unused]] constexpr int DEFAULT_BUTTON_ACTION = 0;
-[[maybe_unused]] constexpr int DEFAULT_BUTTON_SE = -1;
-[[maybe_unused]] constexpr int DEFAULT_BUTTON_GROUP = 0;
-[[maybe_unused]] constexpr int DEFAULT_BUTTON_NUMBER = 0;
-[[maybe_unused]] constexpr int DEFAULT_BUTTON_STATE = 0;
-[[maybe_unused]] constexpr bool DEFAULT_BUTTON_USING_OVERRIDES = false;
-[[maybe_unused]] constexpr int DEFAULT_BUTTON_PATTERN_OVERRIDE = 0;
-[[maybe_unused]] constexpr int DEFAULT_BUTTON_X_OFFSET = 0;
-[[maybe_unused]] constexpr int DEFAULT_BUTTON_Y_OFFSET = 0;
 
 struct ButtonProperties {
   ButtonProperties();
