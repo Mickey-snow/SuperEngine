@@ -65,6 +65,7 @@ unittest_files = [
   "test/platform_factory_unittest.cc",
   "test/graphics_object_unittest.cc",
   "test/scapegoat_unittest.cc",
+  "test/mpl_unittest.cc",
 ]
 
 system_test_files = [
