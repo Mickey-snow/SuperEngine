@@ -26,47 +26,11 @@
 #define SRC_OBJECT_PROPERTIES_H_
 
 #include "base/rect.h"
+#include "systems/base/colour.h"
+#include "utilities/mpl.h"
 
+#include <array>
 #include <string>
-
-enum class ObjectProperty {
-  IsVisible = 1,
-  PositionX,
-  PositionY,
-  AdjustmentOffsetsX,
-  AdjustmentOffsetsY,
-  AdjustmentVertical,
-  OriginX,
-  OriginY,
-  RepetitionOriginX,
-  RepetitionOriginY,
-  WidthPercent,
-  HeightPercent,
-  HighQualityWidthPercent,
-  HighQualityHeightPercent,
-  RotationDiv10,
-  PatternNumber,
-  AlphaSource,
-  AdjustmentAlphas,
-  ClippingRegion,
-  OwnSpaceClippingRegion,
-  MonochromeTransform,
-  InvertTransform,
-  LightLevel,
-  TintColour,
-  BlendColour,
-  CompositeMode,
-  ScrollRateX,
-  ScrollRateY,
-  ZOrder,
-  ZLayer,
-  ZDepth,
-  TextProperties,
-  DriftProperties,
-  DigitProperties,
-  ButtonProperties,
-  WipeCopy
-};
 
 struct TextProperties {
   TextProperties();
@@ -146,6 +110,84 @@ struct ButtonProperties {
   // boost::serialization support
   template <class Archive>
   void serialize(Archive& ar, unsigned int version);
+};
+
+using ObjectPropertyType = TypeList<NullType,            // Index 0 (unused)
+                                    bool,                // IsVisible
+                                    int,                 // PositionX
+                                    int,                 // PositionY
+                                    std::array<int, 8>,  // AdjustmentOffsetsX
+                                    std::array<int, 8>,  // AdjustmentOffsetsY
+                                    int,                 // AdjustmentVertical
+                                    int,                 // OriginX
+                                    int,                 // OriginY
+                                    int,                 // RepetitionOriginX
+                                    int,                 // RepetitionOriginY
+                                    int,                 // WidthPercent
+                                    int,                 // HeightPercent
+                                    int,  // HighQualityWidthPercent
+                                    int,  // HighQualityHeightPercent
+                                    int,  // RotationDiv10
+                                    int,  // PatternNumber
+                                    int,  // AlphaSource
+                                    std::array<int, 8>,  // AdjustmentAlphas
+                                    Rect,                // ClippingRegion
+                                    Rect,              // OwnSpaceClippingRegion
+                                    int,               // MonochromeTransform
+                                    int,               // InvertTransform
+                                    int,               // LightLevel
+                                    RGBColour,         // TintColour
+                                    RGBAColour,        // BlendColour
+                                    int,               // CompositeMode
+                                    int,               // ScrollRateX
+                                    int,               // ScrollRateY
+                                    int,               // ZOrder
+                                    int,               // ZLayer
+                                    int,               // ZDepth
+                                    TextProperties,    // TextProperties
+                                    DriftProperties,   // DriftProperties
+                                    DigitProperties,   // DigitProperties
+                                    ButtonProperties,  // ButtonProperties
+                                    int                // WipeCopy
+                                    >;
+
+enum class ObjectProperty {
+  IsVisible = 1,
+  PositionX,
+  PositionY,
+  AdjustmentOffsetsX,
+  AdjustmentOffsetsY,
+  AdjustmentVertical,
+  OriginX,
+  OriginY,
+  RepetitionOriginX,
+  RepetitionOriginY,
+  WidthPercent,
+  HeightPercent,
+  HighQualityWidthPercent,
+  HighQualityHeightPercent,
+  RotationDiv10,
+  PatternNumber,
+  AlphaSource,
+  AdjustmentAlphas,
+  ClippingRegion,
+  OwnSpaceClippingRegion,
+  MonochromeTransform,
+  InvertTransform,
+  LightLevel,
+  TintColour,
+  BlendColour,
+  CompositeMode,
+  ScrollRateX,
+  ScrollRateY,
+  ZOrder,
+  ZLayer,
+  ZDepth,
+  TextProperties,
+  DriftProperties,
+  DigitProperties,
+  ButtonProperties,
+  WipeCopy
 };
 
 #endif

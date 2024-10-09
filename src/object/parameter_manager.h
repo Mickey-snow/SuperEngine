@@ -25,8 +25,12 @@
 #ifndef SRC_OBJECT_PARAMETER_MANAGER_H_
 #define SRC_OBJECT_PARAMETER_MANAGER_H_
 
+#include "object/properties.h"
+#include "utilities/mpl.h"
+
 #include <any>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -87,6 +91,34 @@ class Scapegoat {
   std::shared_ptr<Node> root;
 };
 
-using ParameterManager = Scapegoat;
+class ParameterManager {
+ public:
+  ParameterManager() = default;
+  ~ParameterManager() = default;
+
+  void Set(ObjectProperty property, std::any value) {
+    bst_.Set(static_cast<int>(property), std::move(value));
+  }
+
+  template <ObjectProperty property>
+  auto Get() {
+    constexpr int param_id = static_cast<int>(property);
+    if constexpr (param_id < 0) {
+      static_assert(false, "Invalid parameter ID");
+    }
+
+    using result_t = typename GetNthType<static_cast<size_t>(property),
+                                         ObjectPropertyType>::type;
+    try {
+      return std::any_cast<result_t>(bst_.Get(param_id));
+    } catch (std::bad_any_cast& e) {
+      throw std::logic_error("ParameterManager: Parameter type mismatch (" +
+                             std::to_string(param_id) + ")\n" + e.what());
+    }
+  }
+
+ private:
+  Scapegoat bst_;
+};
 
 #endif

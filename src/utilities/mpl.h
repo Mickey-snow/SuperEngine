@@ -26,6 +26,8 @@
 
 #include <cstddef>
 
+struct NullType{};
+
 template <typename... Ts>
 struct TypeList {};
 

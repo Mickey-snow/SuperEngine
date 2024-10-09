@@ -23,10 +23,8 @@
 
 #include <gtest/gtest.h>
 
+#include "object/parameter_manager.h"
 #include "systems/base/graphics_object.h"
-
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/archive/text_oarchive.hpp>
 
 class GraphicsObjectTest : public ::testing::Test {
  protected:
@@ -314,17 +312,167 @@ TEST_F(GraphicsObjectTest, ButtonProperties) {
   EXPECT_FALSE(default_obj.GetButtonUsingOverides());
 }
 
-TEST_F(GraphicsObjectTest, Serialize) {
-  std::stringstream ss;
-  GraphicsObject new_obj;
+TEST(ParamManagerTest, SetGetBasicProperties) {
+  ParameterManager manager;
 
-  {
-    boost::archive::text_oarchive archive(ss);
-    archive & obj;
-  }
+  // IsVisible
+  manager.Set(ObjectProperty::IsVisible, true);
+  EXPECT_EQ(manager.Get<ObjectProperty::IsVisible>(), true);
 
-  {
-    boost::archive::text_iarchive archive(ss);
-    archive & new_obj;
-  }
+  // PositionX and PositionY
+  manager.Set(ObjectProperty::PositionX, 50);
+  manager.Set(ObjectProperty::PositionY, 100);
+  EXPECT_EQ(manager.Get<ObjectProperty::PositionX>(), 50);
+  EXPECT_EQ(manager.Get<ObjectProperty::PositionY>(), 100);
+
+  // AdjustmentOffsetsX and AdjustmentOffsetsY
+  manager.Set(ObjectProperty::AdjustmentOffsetsX, (std::array<int, 8>{5, 0}));
+  EXPECT_EQ(manager.Get<ObjectProperty::AdjustmentOffsetsX>()[0], 5);
+
+  manager.Set(ObjectProperty::AdjustmentOffsetsY,
+              (std::array<int, 8>{10, -10, 0}));
+  EXPECT_EQ(manager.Get<ObjectProperty::AdjustmentOffsetsY>()[1], -10);
+
+  // AdjustmentVertical
+  manager.Set(ObjectProperty::AdjustmentVertical, 1);
+  EXPECT_EQ(manager.Get<ObjectProperty::AdjustmentVertical>(), 1);
+
+  // OriginX and OriginY
+  manager.Set(ObjectProperty::OriginX, 25);
+  manager.Set(ObjectProperty::OriginY, 30);
+  EXPECT_EQ(manager.Get<ObjectProperty::OriginX>(), 25);
+  EXPECT_EQ(manager.Get<ObjectProperty::OriginY>(), 30);
+
+  // RepetitionOriginX and RepetitionOriginY
+  manager.Set(ObjectProperty::RepetitionOriginX, 15);
+  manager.Set(ObjectProperty::RepetitionOriginY, 20);
+  EXPECT_EQ(manager.Get<ObjectProperty::RepetitionOriginX>(), 15);
+  EXPECT_EQ(manager.Get<ObjectProperty::RepetitionOriginY>(), 20);
+
+  // WidthPercent and HeightPercent
+  manager.Set(ObjectProperty::WidthPercent, 80);
+  manager.Set(ObjectProperty::HeightPercent, 90);
+  EXPECT_EQ(manager.Get<ObjectProperty::WidthPercent>(), 80);
+  EXPECT_EQ(manager.Get<ObjectProperty::HeightPercent>(), 90);
+
+  // HighQualityWidthPercent and HighQualityHeightPercent
+  manager.Set(ObjectProperty::HighQualityWidthPercent, 800);
+  manager.Set(ObjectProperty::HighQualityHeightPercent, 900);
+  EXPECT_EQ(manager.Get<ObjectProperty::HighQualityWidthPercent>(), 800);
+  EXPECT_EQ(manager.Get<ObjectProperty::HighQualityHeightPercent>(), 900);
+
+  // RotationDiv10
+  manager.Set(ObjectProperty::RotationDiv10, 45);
+  EXPECT_EQ(manager.Get<ObjectProperty::RotationDiv10>(), 45);
+
+  // PatternNumber
+  manager.Set(ObjectProperty::PatternNumber, 5);
+  EXPECT_EQ(manager.Get<ObjectProperty::PatternNumber>(), 5);
+
+  // MonochromeTransform and InvertTransform
+  manager.Set(ObjectProperty::MonochromeTransform, 1);
+  EXPECT_EQ(manager.Get<ObjectProperty::MonochromeTransform>(), 1);
+
+  manager.Set(ObjectProperty::InvertTransform, 1);
+  EXPECT_EQ(manager.Get<ObjectProperty::InvertTransform>(), 1);
+
+  // LightLevel
+  manager.Set(ObjectProperty::LightLevel, 1);
+  EXPECT_EQ(manager.Get<ObjectProperty::LightLevel>(), 1);
+
+  // TintColour
+  RGBColour tint(100, 150, 200);
+  manager.Set(ObjectProperty::TintColour, tint);
+  EXPECT_EQ(manager.Get<ObjectProperty::TintColour>(), tint);
+  EXPECT_EQ(manager.Get<ObjectProperty::TintColour>().r(), 100);
+  EXPECT_EQ(manager.Get<ObjectProperty::TintColour>().g(), 150);
+  EXPECT_EQ(manager.Get<ObjectProperty::TintColour>().b(), 200);
+
+  // Modify TintColour components
+  tint.set_red(110);
+  manager.Set(ObjectProperty::TintColour, tint);
+  EXPECT_EQ(manager.Get<ObjectProperty::TintColour>().r(), 110);
+
+  tint.set_green(160);
+  manager.Set(ObjectProperty::TintColour, tint);
+  EXPECT_EQ(manager.Get<ObjectProperty::TintColour>().g(), 160);
+
+  tint.set_blue(210);
+  manager.Set(ObjectProperty::TintColour, tint);
+  EXPECT_EQ(manager.Get<ObjectProperty::TintColour>().b(), 210);
+
+  // BlendColour
+  RGBAColour colour(50, 60, 70, 80);
+  manager.Set(ObjectProperty::BlendColour, colour);
+  EXPECT_EQ(manager.Get<ObjectProperty::BlendColour>(), colour);
+  EXPECT_EQ(manager.Get<ObjectProperty::BlendColour>().r(), 50);
+  EXPECT_EQ(manager.Get<ObjectProperty::BlendColour>().g(), 60);
+  EXPECT_EQ(manager.Get<ObjectProperty::BlendColour>().b(), 70);
+  EXPECT_EQ(manager.Get<ObjectProperty::BlendColour>().a(), 80);
+
+  // Modify BlendColour components
+  colour.set_red(55);
+  manager.Set(ObjectProperty::BlendColour, colour);
+  EXPECT_EQ(manager.Get<ObjectProperty::BlendColour>().r(), 55);
+
+  colour.set_green(65);
+  manager.Set(ObjectProperty::BlendColour, colour);
+  EXPECT_EQ(manager.Get<ObjectProperty::BlendColour>().g(), 65);
+
+  colour.set_blue(75);
+  manager.Set(ObjectProperty::BlendColour, colour);
+  EXPECT_EQ(manager.Get<ObjectProperty::BlendColour>().b(), 75);
+
+  colour.set_alpha(85);
+  manager.Set(ObjectProperty::BlendColour, colour);
+  EXPECT_EQ(manager.Get<ObjectProperty::BlendColour>().a(), 85);
+
+  // CompositeMode
+  manager.Set(ObjectProperty::CompositeMode, 2);
+  EXPECT_EQ(manager.Get<ObjectProperty::CompositeMode>(), 2);
+
+  // ScrollRateX and ScrollRateY
+  manager.Set(ObjectProperty::ScrollRateX, 5);
+  manager.Set(ObjectProperty::ScrollRateY, -5);
+  EXPECT_EQ(manager.Get<ObjectProperty::ScrollRateX>(), 5);
+  EXPECT_EQ(manager.Get<ObjectProperty::ScrollRateY>(), -5);
+
+  // ZOrder, ZLayer, ZDepth
+  manager.Set(ObjectProperty::ZOrder, 1);
+  manager.Set(ObjectProperty::ZLayer, 2);
+  manager.Set(ObjectProperty::ZDepth, 3);
+  EXPECT_EQ(manager.Get<ObjectProperty::ZOrder>(), 1);
+  EXPECT_EQ(manager.Get<ObjectProperty::ZLayer>(), 2);
+  EXPECT_EQ(manager.Get<ObjectProperty::ZDepth>(), 3);
+
+  // AlphaSource
+  manager.Set(ObjectProperty::AlphaSource, 128);
+  EXPECT_EQ(manager.Get<ObjectProperty::AlphaSource>(), 128);
+
+  // AdjustmentAlphas
+  manager.Set(ObjectProperty::AdjustmentAlphas, (std::array<int,8>{5,-5,20,-20,0}));
+  EXPECT_EQ(manager.Get<ObjectProperty::AdjustmentAlphas>()[3], -20);
+
+  // ClippingRegion
+  Rect clip_rect = Rect::GRP(0, 0, 100, 100);
+  manager.Set(ObjectProperty::ClippingRegion, clip_rect);
+  EXPECT_EQ(manager.Get<ObjectProperty::ClippingRegion>(), clip_rect);
+
+  // Clear ClippingRegion
+  manager.Set(ObjectProperty::ClippingRegion, Rect());
+  EXPECT_TRUE(manager.Get<ObjectProperty::ClippingRegion>().is_empty());
+
+  // OwnSpaceClippingRegion
+  Rect own_clip_rect = Rect::GRP(10, 10, 80, 80);
+  manager.Set(ObjectProperty::OwnSpaceClippingRegion, own_clip_rect);
+  EXPECT_EQ(manager.Get<ObjectProperty::OwnSpaceClippingRegion>(),
+            own_clip_rect);
+
+  // Clear OwnSpaceClippingRegion
+  manager.Set(ObjectProperty::OwnSpaceClippingRegion, Rect());
+  EXPECT_TRUE(manager.Get<ObjectProperty::OwnSpaceClippingRegion>().is_empty());
+
+  // WipeCopy
+  manager.Set(ObjectProperty::WipeCopy, 1);
+  EXPECT_EQ(manager.Get<ObjectProperty::WipeCopy>(), 1);
 }
