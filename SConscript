@@ -159,7 +159,7 @@ librlvm_files = [
   "src/modules/modules.cc",
   "src/modules/object_module.cc",
 
-  "src/object/parameter_manager.cc",
+  "src/object/bst.cc",
   "src/object/properties.cc",
 
   "src/systems/base/anm_graphics_object_data.cc",
