@@ -23,7 +23,7 @@
 
 #include <gtest/gtest.h>
 
-#include "utilities/math_util.h"
+#include "utilities/interpolation.h"
 
 #include <cmath>
 
@@ -61,35 +61,31 @@ TEST(InterpolationTests, Interpolate) {
 
 TEST(InterpolationTests, InterpolateBetween) {
   {
-    InterpolationRange range(0.0, 5.0, 10.0);
-    double start_val = 100.0;
-    double end_val = 200.0;
+    InterpolationRange time(0.0, 5.0, 10.0);
+    Range value(100.0, 200.0);
     double expected = 150.0;
 
-    double result = InterpolateBetween(range, start_val, end_val,
-                                       InterpolationMode::Linear);
+    double result = InterpolateBetween(time, value, InterpolationMode::Linear);
     EXPECT_NEAR(result, expected, EPS);
   }
 
   {
     InterpolationRange range(0.0, 5.0, 10.0);
-    double start_val = 100.0;
-    double end_val = 200.0;
+    Range value(100.0, 200.0);
     double expected = 158.496;
 
-    double result = InterpolateBetween(range, start_val, end_val,
-                                       InterpolationMode::LogEaseOut);
+    double result =
+        InterpolateBetween(range, value, InterpolationMode::LogEaseOut);
     EXPECT_NEAR(result, 158.496, 1e-3);  // Allowing higher tolerance
   }
 
   {
     InterpolationRange range(0.0, 5.0, 10.0);
-    double start_val = 100.0;
-    double end_val = 200.0;
+    Range value(100.0, 200.0);
     double expected = 158.49696;
 
-    double result = InterpolateBetween(range, start_val, end_val,
-                                       InterpolationMode::LogEaseIn);
+    double result =
+        InterpolateBetween(range, value, InterpolationMode::LogEaseIn);
     EXPECT_NEAR(result, expected, 1e-3);
   }
 }
@@ -115,23 +111,19 @@ TEST(InterpolationTests, Clamped) {
 
   {
     InterpolationRange range(10.0, 5.0, 20.0);  // current < start
-    double start_val = 100.0;
-    double end_val = 200.0;
+    Range value(100.0, 200.0);
     double expected = 100.0;  // start_val + 0
 
-    double result = InterpolateBetween(range, start_val, end_val,
-                                       InterpolationMode::Linear);
+    double result = InterpolateBetween(range, value, InterpolationMode::Linear);
     EXPECT_NEAR(result, expected, EPS);
   }
 
   {
     InterpolationRange range(0.0, 25.0, 20.0);  // current > end
-    double start_val = 100.0;
-    double end_val = 200.0;
+    Range value(100.0, 200.0);
     double expected = 200.0;  // start_val + amount (100)
 
-    double result = InterpolateBetween(range, start_val, end_val,
-                                       InterpolationMode::Linear);
+    double result = InterpolateBetween(range, value, InterpolationMode::Linear);
     EXPECT_NEAR(result, expected, EPS);
   }
 }

@@ -32,7 +32,7 @@
 
 #include "machine/rlmachine.h"
 #include "machine/rlmodule.h"
-#include "utilities/math_util.h"
+#include "utilities/interpolation.h"
 
 using std::get;
 

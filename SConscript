@@ -211,7 +211,7 @@ librlvm_files = [
   "src/utilities/string_utilities.cc",
   "src/utilities/date_util.cc",
   "src/utilities/find_font_file.cc",
-  "src/utilities/math_util.cc",
+  "src/utilities/interpolation.cc",
   "src/utilities/bitstream.cc",
   "src/utilities/byte_reader.cc",
 

@@ -33,7 +33,7 @@
 #include "systems/base/graphics_system.h"
 #include "systems/base/parent_graphics_object_data.h"
 #include "systems/base/system.h"
-#include "utilities/math_util.h"
+#include "utilities/interpolation.h"
 
 ObjectMutator::ObjectMutator(int repr,
                              const std::string& name,
@@ -69,7 +69,7 @@ int ObjectMutator::GetValueForTime(RLMachine& machine, int start, int end) {
     return InterpolateBetween(
         InterpolationRange(creation_time_ + delay_, ticks,
                            creation_time_ + delay_ + duration_time_),
-        start, end, static_cast<InterpolationMode>(type_));
+        Range(start, end), static_cast<InterpolationMode>(type_));
   } else {
     return end;
   }

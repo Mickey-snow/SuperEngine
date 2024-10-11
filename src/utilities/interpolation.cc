@@ -24,34 +24,45 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_UTILITIES_MATH_UTIL_H_
-#define SRC_UTILITIES_MATH_UTIL_H_
+#include "utilities/interpolation.h"
 
-enum class InterpolationMode { Linear = 0, LogEaseOut = 1, LogEaseIn = 2 };
+#include <cmath>
+#include <stdexcept>
 
-struct InterpolationRange {
-  double start;
-  double current;
-  double end;
+#include "utilities/exception.h"
 
-  InterpolationRange() : start(0.0), current(0.0), end(1.0) {}
-  InterpolationRange(double s, double c, double e)
-      : start(s), current(c), end(e) {}
-  InterpolationRange(int s, int c, int e)
-      : start(static_cast<double>(s)),
-        current(static_cast<double>(c)),
-        end(static_cast<double>(e)) {}
-};
-
-// Interpolates between |start| and |end|. Returns a percentage of |amount|.
 double Interpolate(const InterpolationRange& range,
                    double amount,
-                   InterpolationMode mode);
+                   InterpolationMode mode) {
+  double cur = std::clamp(range.current, range.start, range.end);
+  double percentage = (cur - range.start) / (range.end - range.start);
+  static const double logBase = std::log(2.0);  // Cached log(2)
 
-// Interpolates a value between |start_val| and |end_val|.
+  switch (mode) {
+    case InterpolationMode::Linear:
+      return percentage * amount;
+
+    case InterpolationMode::LogEaseOut: {
+      // Eases out using logarithmic scaling
+      double logPercentage = std::log(percentage + 1.0) / logBase;
+      return logPercentage * amount;
+    }
+
+    case InterpolationMode::LogEaseIn: {
+      // Eases in using inverse logarithmic scaling
+      double logPercentage = std::log(percentage + 1.0) / logBase;
+      return amount - (1.0 - logPercentage) * amount;
+    }
+
+    default:
+      throw std::invalid_argument("Invalid interpolation mode: " +
+                                  std::to_string(static_cast<int>(mode)));
+  }
+}
+
 double InterpolateBetween(const InterpolationRange& range,
-                          double start_val,
-                          double end_val,
-                          InterpolationMode mode);
-
-#endif  // SRC_UTILITIES_MATH_UTIL_H_
+                          const Range& value,
+                          InterpolationMode mode) {
+  double to_add = value.end - value.start;
+  return value.start + Interpolate(range, to_add, mode);
+}

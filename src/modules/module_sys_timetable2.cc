@@ -31,7 +31,7 @@
 #include "machine/rlmachine.h"
 #include "machine/rlmodule.h"
 #include "utilities/exception.h"
-#include "utilities/math_util.h"
+#include "utilities/interpolation.h"
 
 // static
 int TimeTableMapper::GetTypeForTag(libreallive::Expression sp) {
@@ -85,8 +85,8 @@ int Sys_timetable2::operator()(RLMachine& machine,
         int end_num = std::get<1>(it->first);
         if (now_time > start_time && now_time <= end_time) {
           return InterpolateBetween(
-              InterpolationRange(start_time, now_time, end_time), value,
-              end_num, InterpolationMode::Linear);
+              InterpolationRange(start_time, now_time, end_time),
+              Range(value, end_num), InterpolationMode::Linear);
         } else {
           value = end_num;
         }
@@ -101,8 +101,8 @@ int Sys_timetable2::operator()(RLMachine& machine,
 
         if (now_time > start_time && now_time <= end_time) {
           return InterpolateBetween(
-              InterpolationRange(start_time, now_time, end_time), value,
-              end_num, static_cast<InterpolationMode>(mod));
+              InterpolationRange(start_time, now_time, end_time),
+              Range(value, end_num), static_cast<InterpolationMode>(mod));
         } else {
           value = end_num;
         }
