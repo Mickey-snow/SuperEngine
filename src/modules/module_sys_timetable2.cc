@@ -84,8 +84,9 @@ int Sys_timetable2::operator()(RLMachine& machine,
         int end_time = std::get<0>(it->first);
         int end_num = std::get<1>(it->first);
         if (now_time > start_time && now_time <= end_time) {
-          return InterpolateBetween(start_time, now_time, end_time, value,
-                                    end_num, 0);
+          return InterpolateBetween(
+              InterpolationRange(start_time, now_time, end_time), value,
+              end_num, InterpolationMode::Linear);
         } else {
           value = end_num;
         }
@@ -99,8 +100,9 @@ int Sys_timetable2::operator()(RLMachine& machine,
         int mod = std::get<2>(it->second);
 
         if (now_time > start_time && now_time <= end_time) {
-          return InterpolateBetween(start_time, now_time, end_time, value,
-                                    end_num, mod);
+          return InterpolateBetween(
+              InterpolationRange(start_time, now_time, end_time), value,
+              end_num, static_cast<InterpolationMode>(mod));
         } else {
           value = end_num;
         }

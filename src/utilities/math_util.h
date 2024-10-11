@@ -27,11 +27,31 @@
 #ifndef SRC_UTILITIES_MATH_UTIL_H_
 #define SRC_UTILITIES_MATH_UTIL_H_
 
+enum class InterpolationMode { Linear = 0, LogEaseOut = 1, LogEaseIn = 2 };
+
+struct InterpolationRange {
+  double start;
+  double current;
+  double end;
+
+  InterpolationRange() : start(0.0), current(0.0), end(1.0) {}
+  InterpolationRange(double s, double c, double e)
+      : start(s), current(c), end(e) {}
+  InterpolationRange(int s, int c, int e)
+      : start(static_cast<double>(s)),
+        current(static_cast<double>(c)),
+        end(static_cast<double>(e)) {}
+};
+
 // Interpolates between |start| and |end|. Returns a percentage of |amount|.
-int Interpolate(int start, int current, int end, int amount, int mod);
+double Interpolate(const InterpolationRange& range,
+                   double amount,
+                   InterpolationMode mode);
 
 // Interpolates a value between |start_val| and |end_val|.
-int InterpolateBetween(int start, int current, int end,
-                       int start_val, int end_val, int mod);
+double InterpolateBetween(const InterpolationRange& range,
+                          double start_val,
+                          double end_val,
+                          InterpolationMode mode);
 
 #endif  // SRC_UTILITIES_MATH_UTIL_H_

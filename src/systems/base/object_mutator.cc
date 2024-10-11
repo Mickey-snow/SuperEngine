@@ -46,8 +46,7 @@ ObjectMutator::ObjectMutator(int repr,
       creation_time_(creation_time),
       duration_time_(duration_time),
       delay_(delay),
-      type_(type) {
-}
+      type_(type) {}
 
 bool ObjectMutator::operator()(RLMachine& machine, GraphicsObject& object) {
   unsigned int ticks = machine.system().event().GetTicks();
@@ -67,12 +66,10 @@ int ObjectMutator::GetValueForTime(RLMachine& machine, int start, int end) {
   if (ticks < (creation_time_ + delay_)) {
     return start;
   } else if (ticks < (creation_time_ + delay_ + duration_time_)) {
-    return InterpolateBetween(creation_time_ + delay_,
-                              ticks,
-                              creation_time_ + delay_ + duration_time_,
-                              start,
-                              end,
-                              type_);
+    return InterpolateBetween(
+        InterpolationRange(creation_time_ + delay_, ticks,
+                           creation_time_ + delay_ + duration_time_),
+        start, end, static_cast<InterpolationMode>(type_));
   } else {
     return end;
   }
@@ -96,7 +93,7 @@ OneIntObjectMutator::OneIntObjectMutator(const std::string& name,
 OneIntObjectMutator::~OneIntObjectMutator() {}
 
 OneIntObjectMutator::OneIntObjectMutator(const OneIntObjectMutator& rhs) =
-  default;
+    default;
 
 void OneIntObjectMutator::SetToEnd(RLMachine& machine, GraphicsObject& object) {
   (object.*setter_)(endval_);
@@ -132,7 +129,7 @@ RepnoIntObjectMutator::RepnoIntObjectMutator(const std::string& name,
 RepnoIntObjectMutator::~RepnoIntObjectMutator() {}
 
 RepnoIntObjectMutator::RepnoIntObjectMutator(const RepnoIntObjectMutator& rhs) =
-  default;
+    default;
 
 void RepnoIntObjectMutator::SetToEnd(RLMachine& machine,
                                      GraphicsObject& object) {
@@ -173,7 +170,7 @@ TwoIntObjectMutator::TwoIntObjectMutator(const std::string& name,
 TwoIntObjectMutator::~TwoIntObjectMutator() {}
 
 TwoIntObjectMutator::TwoIntObjectMutator(const TwoIntObjectMutator& rhs) =
-  default;
+    default;
 
 void TwoIntObjectMutator::SetToEnd(RLMachine& machine, GraphicsObject& object) {
   (object.*setter_one_)(endval_one_);

@@ -47,8 +47,7 @@ int Sys_index_series::operator()(RLMachine& machine,
   bool previous_term_finished = false;
 
   for (IndexList::type::iterator it = index_list.begin();
-       it != index_list.end();
-       ++it) {
+       it != index_list.end(); ++it) {
     switch (it->type) {
       case 0: {
         if (previous_term_finished) {
@@ -62,8 +61,8 @@ int Sys_index_series::operator()(RLMachine& machine,
         int start = get<0>(it->second) + offset;
         int end = get<1>(it->second) + offset;
         int endval = get<2>(it->second);
-        Adder(
-            index, start, end, endval, 0, value, init, previous_term_finished);
+        Adder(index, start, end, endval, 0, value, init,
+              previous_term_finished);
         break;
       }
       case 2: {
@@ -71,13 +70,7 @@ int Sys_index_series::operator()(RLMachine& machine,
         int end = get<1>(it->third) + offset;
         int endval = get<2>(it->third);
         int mod = get<3>(it->third);
-        Adder(index,
-              start,
-              end,
-              endval,
-              mod,
-              value,
-              init,
+        Adder(index, start, end, endval, mod, value, init,
               previous_term_finished);
         break;
       }
@@ -97,7 +90,8 @@ void Sys_index_series::Adder(int index,
                              bool& previous_term_finished) {
   if (index > start && index < end) {
     int amount = endval - init;
-    value += Interpolate(start, index, end, amount, mod);
+    value += Interpolate(InterpolationRange(start, index, end), amount,
+                         static_cast<InterpolationMode>(mod));
     previous_term_finished = false;
   } else if (index >= end) {
     // Prevent us from going over the endval.

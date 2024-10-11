@@ -27,8 +27,46 @@
 #include "utilities/math_util.h"
 
 #include <cmath>
+#include <stdexcept>
 
 #include "utilities/exception.h"
+
+double Interpolate(const InterpolationRange& range,
+                   double amount,
+                   InterpolationMode mode) {
+  double cur = std::clamp(range.current, range.start, range.end);
+  double percentage = (cur - range.start) / (range.end - range.start);
+  static const double logBase = std::log(2.0);  // Cached log(2)
+
+  switch (mode) {
+    case InterpolationMode::Linear:
+      return percentage * amount;
+
+    case InterpolationMode::LogEaseOut: {
+      // Eases out using logarithmic scaling
+      double logPercentage = std::log(percentage + 1.0) / logBase;
+      return logPercentage * amount;
+    }
+
+    case InterpolationMode::LogEaseIn: {
+      // Eases in using inverse logarithmic scaling
+      double logPercentage = std::log(percentage + 1.0) / logBase;
+      return amount - (1.0 - logPercentage) * amount;
+    }
+
+    default:
+      throw std::invalid_argument("Invalid interpolation mode: " +
+                            std::to_string(static_cast<int>(mode)));
+  }
+}
+
+double InterpolateBetween(const InterpolationRange& range,
+                          double start_val,
+                          double end_val,
+                          InterpolationMode mode) {
+  double to_add = end_val - start_val;
+  return start_val + Interpolate(range, to_add, mode);
+}
 
 int Interpolate(int start, int current, int end, int amount, int mod) {
   double percentage = double(current - start) / double(end - start);
@@ -42,12 +80,16 @@ int Interpolate(int start, int current, int end, int amount, int mod) {
     double log_percentage = std::log(percentage + 1) / std::log(2);
     return (log_percentage * amount);
   } else {
-    throw rlvm::Exception("Invalid mod in Interpolate");
+    throw std::invalid_argument("Invalid mod in Interpolate");
   }
 }
 
-int InterpolateBetween(int start, int current, int end,
-                       int start_val, int end_val, int mod) {
+int InterpolateBetween(int start,
+                       int current,
+                       int end,
+                       int start_val,
+                       int end_val,
+                       int mod) {
   int to_add = end_val - start_val;
   return start_val + Interpolate(start, current, end, to_add, mod);
 }
