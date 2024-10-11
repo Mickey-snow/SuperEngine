@@ -52,17 +52,21 @@ DigitsGraphicsObject::DigitsGraphicsObject(System& system,
 DigitsGraphicsObject::~DigitsGraphicsObject() {}
 
 int DigitsGraphicsObject::PixelWidth(const GraphicsObject& rp) {
+  auto& param = rp.Param();
+
   if (NeedsUpdate(rp))
     UpdateSurface(rp);
 
-  return int(rp.GetWidthScaleFactor() * surface_->GetSize().width());
+  return int(param.GetWidthScaleFactor() * surface_->GetSize().width());
 }
 
 int DigitsGraphicsObject::PixelHeight(const GraphicsObject& rp) {
+  auto& param = rp.Param();
+
   if (NeedsUpdate(rp))
     UpdateSurface(rp);
 
-  return int(rp.GetHeightScaleFactor() * surface_->GetSize().height());
+  return int(param.GetHeightScaleFactor() * surface_->GetSize().height());
 }
 
 GraphicsObjectData* DigitsGraphicsObject::Clone() const {
@@ -84,19 +88,21 @@ void DigitsGraphicsObject::ObjectInfo(std::ostream& oss) {
 }
 
 void DigitsGraphicsObject::UpdateSurface(const GraphicsObject& rp) {
-  value_ = rp.GetDigitValue();
+  auto& param = rp.Param();
+
+  value_ = param.GetDigitValue();
 
   // Calculate the size our canvas will have to be.
-  int digit_pixel_width = rp.GetDigitSpace()
-                              ? rp.GetDigitSpace()
+  int digit_pixel_width = param.GetDigitSpace()
+                              ? param.GetDigitSpace()
                               : font_->GetPattern(0).rect.size().width();
   int num_chars = 0;
   for (int a = value_; a > 0; a = a / 10, num_chars++) {
   }
-  num_chars = std::max(num_chars, rp.GetDigitDigits());
+  num_chars = std::max(num_chars, param.GetDigitDigits());
 
   int num_extra = 0;
-  if (value_ < 0 || rp.GetDigitSign())
+  if (value_ < 0 || param.GetDigitSign())
     num_extra++;
 
   int total_pixel_width = (num_chars + num_extra) * digit_pixel_width;
@@ -124,7 +130,7 @@ void DigitsGraphicsObject::UpdateSurface(const GraphicsObject& rp) {
   } while (i > 0);
 
   const GrpRect& zero_grp = font_->GetPattern(0);
-  bool print_zeros = rp.GetDigitZero();
+  bool print_zeros = param.GetDigitZero();
   while (printed < num_chars) {
     if (print_zeros) {
       font_->BlitToSurface(*surface_, zero_grp.rect,
@@ -134,14 +140,14 @@ void DigitsGraphicsObject::UpdateSurface(const GraphicsObject& rp) {
     x_offset -= digit_pixel_width;
   }
 
-  if (value_ < 0 || rp.GetDigitSign()) {
+  if (value_ < 0 || param.GetDigitSign()) {
     std::cerr << "We don't support negative numbers in objOfDigits() yet."
               << std::endl;
   }
 }
 
 bool DigitsGraphicsObject::NeedsUpdate(const GraphicsObject& rp) {
-  return !surface_ || rp.GetDigitValue() != value_;
+  return !surface_ || rp.Param().GetDigitValue() != value_;
 }
 
 // -----------------------------------------------------------------------

@@ -211,8 +211,9 @@ void GanGraphicsObjectData::ThrowBadFormat(const std::string& file_name,
   throw rlvm::Exception(oss.str());
 }
 
-int GanGraphicsObjectData::PixelWidth(
-    const GraphicsObject& rendering_properties) {
+int GanGraphicsObjectData::PixelWidth(const GraphicsObject& go) {
+  auto& rendering_properties = go.Param();
+
   if (current_set_ != -1 && current_frame_ != -1) {
     const Frame& frame = animation_sets.at(current_set_).at(current_frame_);
     if (frame.pattern != -1) {
@@ -225,8 +226,9 @@ int GanGraphicsObjectData::PixelWidth(
   return 0;
 }
 
-int GanGraphicsObjectData::PixelHeight(
-    const GraphicsObject& rendering_properties) {
+int GanGraphicsObjectData::PixelHeight(const GraphicsObject& go) {
+  auto& rendering_properties = go.Param();
+
   if (current_set_ != -1 && current_frame_ != -1) {
     const Frame& frame = animation_sets.at(current_set_).at(current_frame_);
     if (frame.pattern != -1) {
@@ -269,7 +271,7 @@ void GanGraphicsObjectData::Execute(RLMachine& machine) {
 void GanGraphicsObjectData::LoopAnimation() { current_frame_ = 0; }
 
 std::shared_ptr<const Surface> GanGraphicsObjectData::CurrentSurface(
-    const GraphicsObject& go) {
+    const GraphicsObject&) {
   if (current_set_ != -1 && current_frame_ != -1) {
     const Frame& frame = animation_sets.at(current_set_).at(current_frame_);
 
@@ -283,7 +285,7 @@ std::shared_ptr<const Surface> GanGraphicsObjectData::CurrentSurface(
   return std::shared_ptr<const Surface>();
 }
 
-Rect GanGraphicsObjectData::SrcRect(const GraphicsObject& go) {
+Rect GanGraphicsObjectData::SrcRect(const GraphicsObject&) {
   const Frame& frame = animation_sets.at(current_set_).at(current_frame_);
   if (frame.pattern != -1) {
     return image_->GetPattern(frame.pattern).rect;
@@ -299,17 +301,19 @@ Point GanGraphicsObjectData::DstOrigin(const GraphicsObject& go) {
 
 int GanGraphicsObjectData::GetRenderingAlpha(const GraphicsObject& go,
                                              const GraphicsObject* parent) {
+  auto& param = go.Param();
+
   const Frame& frame = animation_sets.at(current_set_).at(current_frame_);
   if (frame.pattern != -1) {
     // Calculate the combination of our frame alpha with the current object
     // alpha.
     float parent_alpha = parent ? (parent->GetComputedAlpha() / 255.0f) : 1;
-    return int(((frame.alpha / 255.0f) * (go.GetComputedAlpha() / 255.0f) *
+    return int(((frame.alpha / 255.0f) * (param.GetComputedAlpha() / 255.0f) *
                 parent_alpha) *
                255);
   } else {
     // Should never happen.
-    return go.GetComputedAlpha();
+    return param.GetComputedAlpha();
   }
 }
 

@@ -54,7 +54,9 @@ ColourFilter* ColourFilterObjectData::GetColourFilter() {
 
 void ColourFilterObjectData::Render(const GraphicsObject& go,
                                     const GraphicsObject* parent) {
-  if (go.width() != 100 || go.height() != 100) {
+  auto& param = go.Param();
+
+  if (param.width() != 100 || param.height() != 100) {
     static bool printed = false;
     if (!printed) {
       printed = true;
@@ -62,17 +64,15 @@ void ColourFilterObjectData::Render(const GraphicsObject& go,
     }
   }
 
-  RGBAColour colour = go.colour();
+  RGBAColour colour = param.colour();
   GetColourFilter()->Fill(go, screen_rect_, colour);
 }
 
-int ColourFilterObjectData::PixelWidth(
-    const GraphicsObject& rendering_properties) {
+int ColourFilterObjectData::PixelWidth(const GraphicsObject&) {
   throw rlvm::Exception("There is no sane value for this!");
 }
 
-int ColourFilterObjectData::PixelHeight(
-    const GraphicsObject& rendering_properties) {
+int ColourFilterObjectData::PixelHeight(const GraphicsObject&) {
   throw rlvm::Exception("There is no sane value for this!");
 }
 
@@ -91,7 +91,7 @@ void ColourFilterObjectData::PlaySet(int set) {
 }
 
 std::shared_ptr<const Surface> ColourFilterObjectData::CurrentSurface(
-    const GraphicsObject& rp) {
+    const GraphicsObject&) {
   return std::shared_ptr<const Surface>();
 }
 

@@ -62,13 +62,11 @@ void ParentGraphicsObjectData::Render(const GraphicsObject& go,
   }
 }
 
-int ParentGraphicsObjectData::PixelWidth(
-    const GraphicsObject& rendering_properties) {
+int ParentGraphicsObjectData::PixelWidth(const GraphicsObject&) {
   throw rlvm::Exception("There is no sane value for this!");
 }
 
-int ParentGraphicsObjectData::PixelHeight(
-    const GraphicsObject& rendering_properties) {
+int ParentGraphicsObjectData::PixelHeight(const GraphicsObject&) {
   throw rlvm::Exception("There is no sane value for this!");
 }
 

@@ -76,23 +76,25 @@ DriftGraphicsObject::~DriftGraphicsObject() {}
 
 void DriftGraphicsObject::Render(const GraphicsObject& go,
                                  const GraphicsObject* parent) {
+  auto& param = go.Param();
   std::shared_ptr<const Surface> surface = CurrentSurface(go);
+
   if (surface) {
     int current_time = system_.event().GetTicks();
     last_rendered_time_ = current_time;
 
-    size_t count = go.GetDriftParticleCount();
-    bool use_animation = go.GetDriftUseAnimation();
-    int start_pattern = go.GetDriftStartPattern();
-    int end_pattern = go.GetDriftEndPattern();
-    int animation_time = go.GetDriftAnimationTime();
-    int yspeed = go.GetDriftYSpeed();
-    int period = go.GetDriftPeriod();
-    int amplitude = go.GetDriftAmplitude();
-    int use_drift = go.GetDriftUseDrift();
-    int drift_speed = go.GetDriftDriftSpeed();
+    size_t count = param.GetDriftParticleCount();
+    bool use_animation = param.GetDriftUseAnimation();
+    int start_pattern = param.GetDriftStartPattern();
+    int end_pattern = param.GetDriftEndPattern();
+    int animation_time = param.GetDriftAnimationTime();
+    int yspeed = param.GetDriftYSpeed();
+    int period = param.GetDriftPeriod();
+    int amplitude = param.GetDriftAmplitude();
+    int use_drift = param.GetDriftUseDrift();
+    int drift_speed = param.GetDriftDriftSpeed();
 
-    Rect bounding_box = go.GetDriftArea();
+    Rect bounding_box = param.GetDriftArea();
     if (bounding_box.x() == -1) {
       bounding_box = system_.graphics().screen_rect();
     }
@@ -160,8 +162,8 @@ void DriftGraphicsObject::Render(const GraphicsObject& go,
         dest_y %= bounding_box.size().height();
       Rect dest(bounding_box.origin() + Size(dest_x, dest_y), src.size());
 
-      if (go.has_clip_rect())
-        ClipDestination(go.clip_rect(), src, dest);
+      if (param.has_clip_rect())
+        ClipDestination(param.clip_rect(), src, dest);
 
       surface->RenderToScreen(src, dest, particle.alpha);
     }

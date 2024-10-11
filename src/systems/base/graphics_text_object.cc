@@ -34,11 +34,11 @@
 #include <ostream>
 #include <vector>
 
+#include "libreallive/gameexe.h"
 #include "systems/base/graphics_object.h"
 #include "systems/base/surface.h"
 #include "systems/base/system.h"
 #include "systems/base/text_system.h"
-#include "libreallive/gameexe.h"
 
 // -----------------------------------------------------------------------
 
@@ -58,48 +58,48 @@ GraphicsTextObject::~GraphicsTextObject() {}
 // -----------------------------------------------------------------------
 
 void GraphicsTextObject::UpdateSurface(const GraphicsObject& rp) {
-  cached_utf8_str_ = rp.GetTextText();
+  auto& param = rp.Param();
+
+  cached_utf8_str_ = param.GetTextText();
 
   // Get the correct colour
   Gameexe& gexe = system_.gameexe();
-  std::vector<int> vec = gexe("COLOR_TABLE", rp.GetTextColour());
-  cached_text_colour_ = rp.GetTextColour();
+  std::vector<int> vec = gexe("COLOR_TABLE", param.GetTextColour());
+  cached_text_colour_ = param.GetTextColour();
   RGBColour colour(vec.at(0), vec.at(1), vec.at(2));
 
   RGBColour* shadow = NULL;
   RGBColour shadow_impl;
-  cached_shadow_colour_ = rp.GetTextShadowColour();
-  if (rp.GetTextShadowColour() != -1) {
-    vec = gexe("COLOR_TABLE", rp.GetTextShadowColour());
+  cached_shadow_colour_ = param.GetTextShadowColour();
+  if (param.GetTextShadowColour() != -1) {
+    vec = gexe("COLOR_TABLE", param.GetTextShadowColour());
     shadow_impl = RGBColour(vec.at(0), vec.at(1), vec.at(2));
     shadow = &shadow_impl;
   }
 
-  cached_text_size_ = rp.GetTextSize();
-  cached_x_space_ = rp.GetTextXSpace();
-  cached_y_space_ = rp.GetTextYSpace();
-  cached_char_count_ = rp.GetTextCharCount();
+  cached_text_size_ = param.GetTextSize();
+  cached_x_space_ = param.GetTextXSpace();
+  cached_y_space_ = param.GetTextYSpace();
+  cached_char_count_ = param.GetTextCharCount();
 
-  surface_ = system_.text().RenderText(cached_utf8_str_,
-                                       rp.GetTextSize(),
-                                       rp.GetTextXSpace(),
-                                       rp.GetTextYSpace(),
-                                       colour,
-                                       shadow,
-                                       cached_char_count_);
+  surface_ = system_.text().RenderText(
+      cached_utf8_str_, param.GetTextSize(), param.GetTextXSpace(),
+      param.GetTextYSpace(), colour, shadow, cached_char_count_);
   surface_->EnsureUploaded();
 }
 
 // -----------------------------------------------------------------------
 
 bool GraphicsTextObject::NeedsUpdate(const GraphicsObject& rp) {
-  return !surface_ || rp.GetTextColour() != cached_text_colour_ ||
-         rp.GetTextShadowColour() != cached_shadow_colour_ ||
-         rp.GetTextSize() != cached_text_size_ ||
-         rp.GetTextXSpace() != cached_x_space_ ||
-         rp.GetTextYSpace() != cached_y_space_ ||
-         rp.GetTextCharCount() != cached_char_count_ ||
-         rp.GetTextText() != cached_utf8_str_;
+  auto& param = rp.Param();
+
+  return !surface_ || param.GetTextColour() != cached_text_colour_ ||
+         param.GetTextShadowColour() != cached_shadow_colour_ ||
+         param.GetTextSize() != cached_text_size_ ||
+         param.GetTextXSpace() != cached_x_space_ ||
+         param.GetTextYSpace() != cached_y_space_ ||
+         param.GetTextCharCount() != cached_char_count_ ||
+         param.GetTextText() != cached_utf8_str_;
 }
 
 // -----------------------------------------------------------------------
@@ -121,19 +121,23 @@ void GraphicsTextObject::ObjectInfo(std::ostream& tree) {
 // -----------------------------------------------------------------------
 
 int GraphicsTextObject::PixelWidth(const GraphicsObject& rp) {
+  auto& param = rp.Param();
+
   if (NeedsUpdate(rp))
     UpdateSurface(rp);
 
-  return int(rp.GetWidthScaleFactor() * surface_->GetSize().width());
+  return int(param.GetWidthScaleFactor() * surface_->GetSize().width());
 }
 
 // -----------------------------------------------------------------------
 
 int GraphicsTextObject::PixelHeight(const GraphicsObject& rp) {
+  auto& param = rp.Param();
+
   if (NeedsUpdate(rp))
     UpdateSurface(rp);
 
-  return int(rp.GetHeightScaleFactor() * surface_->GetSize().height());
+  return int(param.GetHeightScaleFactor() * surface_->GetSize().height());
 }
 
 // -----------------------------------------------------------------------
