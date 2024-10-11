@@ -93,6 +93,8 @@ void GraphicsObject::SetObjectData(GraphicsObjectData* obj) {
   object_data_->set_owned_by(*this);
 }
 
+// -----------------------------------------------------------------------
+
 void GraphicsObject::SetVisible(const int in) {
   MakeImplUnique();
   impl_->visible_ = in;
@@ -590,6 +592,8 @@ int GraphicsObject::GetButtonYOffsetOverride() const {
   return impl_->button_properties_.y_offset_override;
 }
 
+// -----------------------------------------------------------------------
+
 void GraphicsObject::AddObjectMutator(std::unique_ptr<ObjectMutator> mutator) {
   MakeImplUnique();
 
@@ -601,7 +605,7 @@ void GraphicsObject::AddObjectMutator(std::unique_ptr<ObjectMutator> mutator) {
     }
   }
 
-  object_mutators_.push_back(std::move(mutator));
+  object_mutators_.emplace_back(std::move(mutator));
 }
 
 bool GraphicsObject::IsMutatorRunningMatching(int repno,
@@ -641,6 +645,7 @@ void GraphicsObject::EndObjectMutatorMatching(RLMachine& machine,
 std::vector<std::string> GraphicsObject::GetMutatorNames() const {
   std::vector<std::string> names;
 
+  names.reserve(object_mutators_.size());
   for (auto& mutator : object_mutators_) {
     std::ostringstream oss;
     oss << mutator->name();
@@ -661,7 +666,7 @@ void GraphicsObject::MakeImplUnique() {
 void GraphicsObject::DeleteObjectMutators() { object_mutators_.clear(); }
 
 void GraphicsObject::Render(int objNum, const GraphicsObject* parent) {
-  if (object_data_ && visible()) {
+  if (object_data_ && Param().visible()) {
     object_data_->Render(*this, parent);
   }
 }
@@ -673,12 +678,14 @@ void GraphicsObject::FreeObjectData() {
 
 void GraphicsObject::InitializeParams() {
   impl_ = s_empty_impl;
+  param_ = ParameterManager();
   DeleteObjectMutators();
 }
 
 void GraphicsObject::FreeDataAndInitializeParams() {
   object_data_.reset();
   impl_ = s_empty_impl;
+  param_ = ParameterManager();
   DeleteObjectMutators();
 }
 

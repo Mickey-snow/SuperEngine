@@ -49,10 +49,6 @@ ObjectMutator::ObjectMutator(int repr,
       type_(type) {
 }
 
-ObjectMutator::ObjectMutator(const ObjectMutator& mutator) = default;
-
-ObjectMutator::~ObjectMutator() {}
-
 bool ObjectMutator::operator()(RLMachine& machine, GraphicsObject& object) {
   unsigned int ticks = machine.system().event().GetTicks();
   if (ticks > (creation_time_ + delay_)) {

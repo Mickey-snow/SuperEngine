@@ -41,7 +41,7 @@ class ObjectMutator {
                 int duration_time,
                 int delay,
                 int type);
-  virtual ~ObjectMutator();
+  virtual ~ObjectMutator() = default;
 
   int repr() const { return repr_; }
   const std::string& name() const { return name_; }
@@ -60,8 +60,6 @@ class ObjectMutator {
   virtual ObjectMutator* Clone() const = 0;
 
  protected:
-  ObjectMutator(const ObjectMutator& mutator);
-
   // Returns what value should be set on the object at the current time.
   int GetValueForTime(RLMachine& machine, int start, int end);
 
