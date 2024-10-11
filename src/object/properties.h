@@ -187,7 +187,9 @@ enum class ObjectProperty {
   DriftProperties,
   DigitProperties,
   ButtonProperties,
-  WipeCopy
+  WipeCopy,
+
+  TOTAL_COUNT
 };
 
 #endif

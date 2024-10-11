@@ -37,7 +37,7 @@
 #include <vector>
 
 #include "base/rect.h"
-#include "object/properties.h"
+#include "object/parameter_manager.h"
 #include "systems/base/colour.h"
 
 class RLMachine;
@@ -57,11 +57,9 @@ class GraphicsObject {
   ~GraphicsObject();
   GraphicsObject& operator=(const GraphicsObject& obj);
 
-  // Object Position Accessors
+  ParameterManager& Param() { return param_; }
+  ParameterManager const& Param() const { return param_; }
 
-  // This code, while a boolean, uses an int so that we can get rid
-  // of one template parameter in one of the generic operation
-  // functors.
   int visible() const { return impl_->visible_; }
   void SetVisible(const int in);
 
@@ -186,32 +184,9 @@ class GraphicsObject {
   void ClearOwnClipRect();
   void SetOwnClipRect(const Rect& rec);
 
-  bool has_object_data() const { return object_data_.get(); }
-
-  GraphicsObjectData& GetObjectData();
-  void SetObjectData(GraphicsObjectData* obj);
-
-  // Render!
-  void Render(int objNum, const GraphicsObject* parent);
-
-  // Frees the object data. Corresponds to objFree, but is also invoked by
-  // other commands.
-  void FreeObjectData();
-
-  // Resets/reinitializes all the object parameters without deleting the loaded
-  // graphics object data.
-  void InitializeParams();
-
-  // Both frees the object data and initializes parameters.
-  void FreeDataAndInitializeParams();
-
   int wipe_copy() const { return impl_->wipe_copy_; }
   void SetWipeCopy(const int wipe_copy);
-
-  // Called each pass through the gameloop to see if this object needs
-  // to force a redraw, or something.
-  void Execute(RLMachine& machine);
-
+  
   // Text Object accessors
   void SetTextText(const std::string& utf8str);
   const std::string& GetTextText() const;
@@ -289,6 +264,31 @@ class GraphicsObject {
   int GetButtonPatternOverride() const;
   int GetButtonXOffsetOverride() const;
   int GetButtonYOffsetOverride() const;
+
+  // end of properties
+
+  bool has_object_data() const { return object_data_.get(); }
+
+  GraphicsObjectData& GetObjectData();
+  void SetObjectData(GraphicsObjectData* obj);
+
+  // Render!
+  void Render(int objNum, const GraphicsObject* parent);
+
+  // Frees the object data. Corresponds to objFree, but is also invoked by
+  // other commands.
+  void FreeObjectData();
+
+  // Resets/reinitializes all the object parameters without deleting the loaded
+  // graphics object data.
+  void InitializeParams();
+
+  // Both frees the object data and initializes parameters.
+  void FreeDataAndInitializeParams();
+
+  // Called each pass through the gameloop to see if this object needs
+  // to force a redraw, or something.
+  void Execute(RLMachine& machine);
 
   // Adds a mutator to the list of active mutators. GraphicsSystem takes
   // ownership of the passed in object.
@@ -416,14 +416,15 @@ class GraphicsObject {
     template <class Archive>
     void serialize(Archive& ar, unsigned int version);
   };
-
   // Default empty GraphicsObject::Impl. This variable is allocated
   // once, and then is used as the initial value of impl_, where it
   // is cloned on write.
   static const boost::shared_ptr<GraphicsObject::Impl> s_empty_impl;
-
   // Our actual implementation data
   boost::shared_ptr<GraphicsObject::Impl> impl_;
+
+  // Class to manage the actual implementation data
+  ParameterManager param_;
 
   // The actual data used to render the object
   boost::scoped_ptr<GraphicsObjectData> object_data_;
