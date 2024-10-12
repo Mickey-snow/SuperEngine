@@ -33,7 +33,6 @@
 #include "systems/base/graphics_system.h"
 #include "systems/base/parent_graphics_object_data.h"
 #include "systems/base/system.h"
-#include "utilities/interpolation.h"
 
 ObjectMutator::ObjectMutator(int repr,
                              const std::string& name,
@@ -41,6 +40,19 @@ ObjectMutator::ObjectMutator(int repr,
                              int duration_time,
                              int delay,
                              int type)
+    : ObjectMutator(repr,
+                    name,
+                    creation_time,
+                    duration_time,
+                    delay,
+                    static_cast<InterpolationMode>(type)) {}
+
+ObjectMutator::ObjectMutator(int repr,
+                             const std::string& name,
+                             int creation_time,
+                             int duration_time,
+                             int delay,
+                             InterpolationMode type)
     : repr_(repr),
       name_(name),
       creation_time_(creation_time),
@@ -69,7 +81,7 @@ int ObjectMutator::GetValueForTime(RLMachine& machine, int start, int end) {
     return InterpolateBetween(
         InterpolationRange(creation_time_ + delay_, ticks,
                            creation_time_ + delay_ + duration_time_),
-        Range(start, end), static_cast<InterpolationMode>(type_));
+        Range(start, end), type_);
   } else {
     return end;
   }
@@ -92,15 +104,12 @@ OneIntObjectMutator::OneIntObjectMutator(const std::string& name,
 
 OneIntObjectMutator::~OneIntObjectMutator() {}
 
-OneIntObjectMutator::OneIntObjectMutator(const OneIntObjectMutator& rhs) =
-    default;
-
 void OneIntObjectMutator::SetToEnd(RLMachine& machine, GraphicsObject& object) {
   (object.*setter_)(endval_);
 }
 
-ObjectMutator* OneIntObjectMutator::Clone() const {
-  return new OneIntObjectMutator(*this);
+std::unique_ptr<ObjectMutator> OneIntObjectMutator::Clone() const {
+  return std::make_unique<OneIntObjectMutator>(*this);
 }
 
 void OneIntObjectMutator::PerformSetting(RLMachine& machine,
@@ -128,16 +137,13 @@ RepnoIntObjectMutator::RepnoIntObjectMutator(const std::string& name,
 
 RepnoIntObjectMutator::~RepnoIntObjectMutator() {}
 
-RepnoIntObjectMutator::RepnoIntObjectMutator(const RepnoIntObjectMutator& rhs) =
-    default;
-
 void RepnoIntObjectMutator::SetToEnd(RLMachine& machine,
                                      GraphicsObject& object) {
   (object.*setter_)(repno_, endval_);
 }
 
-ObjectMutator* RepnoIntObjectMutator::Clone() const {
-  return new RepnoIntObjectMutator(*this);
+std::unique_ptr<ObjectMutator> RepnoIntObjectMutator::Clone() const {
+  return std::make_unique<RepnoIntObjectMutator>(*this);
 }
 
 void RepnoIntObjectMutator::PerformSetting(RLMachine& machine,
@@ -169,16 +175,13 @@ TwoIntObjectMutator::TwoIntObjectMutator(const std::string& name,
 
 TwoIntObjectMutator::~TwoIntObjectMutator() {}
 
-TwoIntObjectMutator::TwoIntObjectMutator(const TwoIntObjectMutator& rhs) =
-    default;
-
 void TwoIntObjectMutator::SetToEnd(RLMachine& machine, GraphicsObject& object) {
   (object.*setter_one_)(endval_one_);
   (object.*setter_two_)(endval_two_);
 }
 
-ObjectMutator* TwoIntObjectMutator::Clone() const {
-  return new TwoIntObjectMutator(*this);
+std::unique_ptr<ObjectMutator> TwoIntObjectMutator::Clone() const {
+  return std::make_unique<TwoIntObjectMutator>(*this);
 }
 
 void TwoIntObjectMutator::PerformSetting(RLMachine& machine,

@@ -27,6 +27,9 @@
 #ifndef SRC_SYSTEMS_BASE_OBJECT_MUTATOR_H_
 #define SRC_SYSTEMS_BASE_OBJECT_MUTATOR_H_
 
+#include "utilities/interpolation.h"
+
+#include <memory>
 #include <string>
 
 class GraphicsObject;
@@ -41,14 +44,19 @@ class ObjectMutator {
                 int duration_time,
                 int delay,
                 int type);
+  ObjectMutator(int repr,
+                const std::string& name,
+                int creation_time,
+                int duration_time,
+                int delay,
+                InterpolationMode type);
   virtual ~ObjectMutator() = default;
 
   int repr() const { return repr_; }
   const std::string& name() const { return name_; }
 
-  // Called every tick. Returns true if the command has completed. Virtual for
-  // testing.
-  virtual bool operator()(RLMachine& machine, GraphicsObject& object);
+  // Called every tick. Returns true if the command has completed.
+  bool operator()(RLMachine& machine, GraphicsObject& object);
 
   // Returns true if this ObjectMutator is operating on |name|/|repr|.
   bool OperationMatches(int repr, const std::string& name) const;
@@ -57,7 +65,7 @@ class ObjectMutator {
   virtual void SetToEnd(RLMachine& machine, GraphicsObject& object) = 0;
 
   // Builds a copy of the ObjectMutator. Used during object promotion.
-  virtual ObjectMutator* Clone() const = 0;
+  virtual std::unique_ptr<ObjectMutator> Clone() const = 0;
 
  protected:
   // Returns what value should be set on the object at the current time.
@@ -84,7 +92,7 @@ class ObjectMutator {
   int delay_;
 
   // What sort of interpolation we should do here.
-  int type_;
+  InterpolationMode type_;
 };
 
 // -----------------------------------------------------------------------
@@ -105,10 +113,8 @@ class OneIntObjectMutator : public ObjectMutator {
   virtual ~OneIntObjectMutator();
 
  private:
-  OneIntObjectMutator(const OneIntObjectMutator& rhs);
-
   virtual void SetToEnd(RLMachine& machine, GraphicsObject& object) override;
-  virtual ObjectMutator* Clone() const override;
+  virtual std::unique_ptr<ObjectMutator> Clone() const override;
   virtual void PerformSetting(RLMachine& machine,
                               GraphicsObject& object) override;
 
@@ -136,10 +142,8 @@ class RepnoIntObjectMutator : public ObjectMutator {
   virtual ~RepnoIntObjectMutator();
 
  private:
-  RepnoIntObjectMutator(const RepnoIntObjectMutator& rhs);
-
   virtual void SetToEnd(RLMachine& machine, GraphicsObject& object) override;
-  virtual ObjectMutator* Clone() const override;
+  virtual std::unique_ptr<ObjectMutator> Clone() const override;
   virtual void PerformSetting(RLMachine& machine,
                               GraphicsObject& object) override;
 
@@ -170,10 +174,8 @@ class TwoIntObjectMutator : public ObjectMutator {
   virtual ~TwoIntObjectMutator();
 
  private:
-  TwoIntObjectMutator(const TwoIntObjectMutator& rhs);
-
   virtual void SetToEnd(RLMachine& machine, GraphicsObject& object) override;
-  virtual ObjectMutator* Clone() const override;
+  virtual std::unique_ptr<ObjectMutator> Clone() const override;
   virtual void PerformSetting(RLMachine& machine,
                               GraphicsObject& object) override;
 
