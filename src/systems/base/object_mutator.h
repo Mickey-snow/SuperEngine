@@ -188,4 +188,74 @@ class TwoIntObjectMutator : public ObjectMutator {
   Setter setter_two_;
 };
 
+// -----------------------------------------------------------------------
+
+class AdjustMutator : public ObjectMutator {
+ public:
+  AdjustMutator(RLMachine& machine,
+                int repno,
+                int creation_time,
+                int duration_time,
+                int delay,
+                int type,
+                int start_x,
+                int target_x,
+                int start_y,
+                int target_y);
+
+ private:
+  virtual void SetToEnd(RLMachine& machine, GraphicsObject& object) override;
+  virtual std::unique_ptr<ObjectMutator> Clone() const override;
+  virtual void PerformSetting(RLMachine& machine, GraphicsObject& object) override;
+
+  int repno_;
+  int start_x_;
+  int end_x_;
+  int start_y_;
+  int end_y_;
+};
+
+// -----------------------------------------------------------------------
+
+class DisplayMutator : public ObjectMutator {
+ public:
+  DisplayMutator(RLMachine& machine,
+                 GraphicsObject& object,
+                 int creation_time,
+                 int duration_time,
+                 int delay,
+                 int display,
+                 int dip_event_mod,  // ignored
+                 int tr_mod,
+                 int move_mod,
+                 int move_len_x,
+                 int move_len_y,
+                 int rotate_mod,
+                 int rotate_count,
+                 int scale_x_mod,
+                 int scale_x_percent,
+                 int scale_y_mod,
+                 int scale_y_percent,
+                 int sin_mod,
+                 int sin_len,
+                 int sin_count);
+
+ private:
+  virtual void SetToEnd(RLMachine& machine, GraphicsObject& object) override;
+  virtual std::unique_ptr<ObjectMutator> Clone() const override;
+  virtual void PerformSetting(RLMachine& machine, GraphicsObject& object) override;
+
+  bool display_;
+  bool tr_mod_;
+  int tr_start_;
+  int tr_end_;
+  bool move_mod_;
+  int move_start_x_;
+  int move_end_x_;
+  int move_start_y_;
+  int move_end_y_;
+  bool rotate_mod_;
+  bool scale_x_mod_;
+  bool scale_y_mod_;
+};
 #endif  // SRC_SYSTEMS_BASE_OBJECT_MUTATOR_H_

@@ -34,6 +34,8 @@
 #include "systems/base/parent_graphics_object_data.h"
 #include "systems/base/system.h"
 
+#include <iostream>
+
 ObjectMutator::ObjectMutator(int repr,
                              const std::string& name,
                              int creation_time,
@@ -191,4 +193,171 @@ void TwoIntObjectMutator::PerformSetting(RLMachine& machine,
 
   value = GetValueForTime(machine, startval_two_, endval_two_);
   (object.*setter_two_)(value);
+}
+
+// -----------------------------------------------------------------------
+
+AdjustMutator::AdjustMutator(RLMachine& machine,
+                             int repno,
+                             int creation_time,
+                             int duration_time,
+                             int delay,
+                             int type,
+                             int start_x,
+                             int target_x,
+                             int start_y,
+                             int target_y)
+    : ObjectMutator(repno,
+                    "objEveAdjust",
+                    creation_time,
+                    duration_time,
+                    delay,
+                    type),
+      repno_(repno),
+      start_x_(start_x),
+      end_x_(target_x),
+      start_y_(start_y),
+      end_y_(target_y) {}
+
+void AdjustMutator::SetToEnd(RLMachine& machine, GraphicsObject& object) {
+  object.SetXAdjustment(repno_, end_x_);
+  object.SetYAdjustment(repno_, end_y_);
+}
+
+std::unique_ptr<ObjectMutator> AdjustMutator::Clone() const {
+  return std::make_unique<AdjustMutator>(*this);
+}
+
+void AdjustMutator::PerformSetting(RLMachine& machine, GraphicsObject& object) {
+  int x = GetValueForTime(machine, start_x_, end_x_);
+  object.SetXAdjustment(repno_, x);
+
+  int y = GetValueForTime(machine, start_y_, end_y_);
+  object.SetYAdjustment(repno_, y);
+}
+
+// -----------------------------------------------------------------------
+
+DisplayMutator::DisplayMutator(RLMachine& machine,
+                               GraphicsObject& object,
+                               int creation_time,
+                               int duration_time,
+                               int delay,
+                               int display,
+                               int dip_event_mod,  // ignored
+                               int tr_mod,
+                               int move_mod,
+                               int move_len_x,
+                               int move_len_y,
+                               int rotate_mod,
+                               int rotate_count,
+                               int scale_x_mod,
+                               int scale_x_percent,
+                               int scale_y_mod,
+                               int scale_y_percent,
+                               int sin_mod,
+                               int sin_len,
+                               int sin_count)
+    : ObjectMutator(-1,
+                    "objEveDisplay",
+                    creation_time,
+                    duration_time,
+                    delay,
+                    0),
+      display_(display),
+      tr_mod_(tr_mod),
+      tr_start_(0),
+      tr_end_(0),
+      move_mod_(move_mod),
+      move_start_x_(0),
+      move_end_x_(0),
+      move_start_y_(0),
+      move_end_y_(0),
+      rotate_mod_(rotate_mod),
+      scale_x_mod_(scale_x_mod),
+      scale_y_mod_(scale_y_mod) {
+  if (tr_mod_) {
+    tr_start_ = display ? 0 : 255;
+    tr_end_ = display ? 255 : 0;
+  }
+
+  if (move_mod_) {
+    if (display) {
+      move_start_x_ = object.x() - move_len_x;
+      move_end_x_ = object.x();
+      move_start_y_ = object.y() - move_len_y;
+      move_end_y_ = object.y();
+    } else {
+      move_start_x_ = object.x();
+      move_end_x_ = object.x() + move_len_x;
+      move_start_y_ = object.y();
+      move_end_y_ = object.y() + move_len_y;
+    }
+  }
+
+  if (rotate_mod_) {
+    static bool printed = false;
+    if (!printed) {
+      std::cerr << "We don't support rotate mod yet." << std::endl;
+      printed = true;
+    }
+  }
+
+  if (scale_x_mod_) {
+    static bool printed = false;
+    if (!printed) {
+      std::cerr << "We don't support scale X mod yet." << std::endl;
+      printed = true;
+    }
+  }
+
+  if (scale_y_mod_) {
+    static bool printed = false;
+    if (!printed) {
+      std::cerr << "We don't support scale Y mod yet." << std::endl;
+      printed = true;
+    }
+  }
+
+  if (sin_mod) {
+    static bool printed = false;
+    if (!printed) {
+      std::cerr << "  We don't support \"sin\" yet." << std::endl;
+      printed = true;
+    }
+  }
+}
+
+void DisplayMutator::SetToEnd(RLMachine& machine, GraphicsObject& object) {
+  object.SetVisible(display_);
+
+  if (tr_mod_)
+    object.SetAlpha(tr_end_);
+
+  if (move_mod_) {
+    object.SetX(move_end_x_);
+    object.SetY(move_end_y_);
+  }
+}
+
+std::unique_ptr<ObjectMutator> DisplayMutator::Clone() const {
+  return std::make_unique<DisplayMutator>(*this);
+}
+
+void DisplayMutator::PerformSetting(RLMachine& machine,
+                                    GraphicsObject& object) {
+  object.SetVisible(true);
+
+  if (tr_mod_) {
+    int alpha = GetValueForTime(machine, tr_start_, tr_end_);
+    object.SetAlpha(alpha);
+  }
+
+  if (move_mod_) {
+    int x = GetValueForTime(machine, move_start_x_, move_end_x_);
+    object.SetX(x);
+
+    int y = GetValueForTime(machine, move_start_y_, move_end_y_);
+    object.SetY(y);
+  }
 }
