@@ -24,61 +24,9 @@
 #include <gtest/gtest.h>
 
 #include "object/parameter_manager.h"
-#include "systems/base/graphics_object.h"
 
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/archive/text_oarchive.hpp>
-
-class GraphicsObjectTest : public ::testing::Test {
- protected:
-  void SetUp() override {
-    auto& param = obj.Param();
-
-    // uncategorized basic properties
-    param.SetVert(1);
-    param.SetOriginX(25);
-    param.SetOriginY(30);
-    param.SetRepOriginX(15);
-    param.SetRepOriginY(20);
-    param.SetWidth(80);
-    param.SetHeight(90);
-    param.SetHqWidth(800);
-    param.SetHqHeight(900);
-    param.SetRotation(45);
-    param.SetPattNo(5);
-    param.SetMono(1);
-    param.SetInvert(1);
-    param.SetLight(1);
-    RGBColour tint(100, 150, 200);
-    param.SetTint(tint);
-    RGBAColour colour(50, 60, 70, 80);
-    param.SetColour(colour);
-    Rect clip_rect = Rect::GRP(0, 0, 100, 100);
-    param.SetClipRect(clip_rect);
-
-    // text properties
-    param.SetTextText("Hello World");
-    param.SetTextOps(12, 2, 3, 5, 255, 128);
-
-    // drift properties
-    Rect drift_area = Rect::GRP(0, 0, 100, 100);
-    param.SetDriftOpts(10, 1, 0, 5, 1000, 2, 50, 10, 1, 0, 1, drift_area);
-
-    // digit properties
-    param.SetDigitValue(12345);
-    param.SetDigitOpts(5, 1, 1, 0, 2);
-
-    // button properties
-    param.SetButtonOpts(1, 10, 2, 3);
-    param.SetButtonState(1);
-    param.SetButtonOverrides(5, 10, 15);
-  }
-
-  GraphicsObject obj, default_obj;
-};
-
-TEST_F(GraphicsObjectTest, DefaultBasicProperty) {
-  auto& default_param = default_obj.Param();
+TEST(ParameterManagerTest, DefaultInit) {
+  ParameterManager default_param;
 
   EXPECT_EQ(default_param.visible(), false);
   EXPECT_EQ(default_param.x(), 0);
@@ -110,211 +58,6 @@ TEST_F(GraphicsObjectTest, DefaultBasicProperty) {
   EXPECT_EQ(default_param.raw_alpha(), 255);
   EXPECT_FALSE(default_param.has_clip_rect());
   EXPECT_EQ(default_param.wipe_copy(), 0);
-}
-
-TEST_F(GraphicsObjectTest, SetGetBasicProperties) {
-  default_obj.Param().SetVisible(true);
-  EXPECT_EQ(default_obj.Param().visible(), true);
-
-  default_obj.Param().SetX(50);
-  EXPECT_EQ(default_obj.Param().x(), 50);
-
-  default_obj.Param().SetY(100);
-  EXPECT_EQ(default_obj.Param().y(), 100);
-
-  default_obj.Param().SetXAdjustment(0, 5);
-  EXPECT_EQ(default_obj.Param().x_adjustment(0), 5);
-  EXPECT_EQ(default_obj.Param().GetXAdjustmentSum(), 5);
-
-  default_obj.Param().SetYAdjustment(0, -10);
-  EXPECT_EQ(default_obj.Param().y_adjustment(0), -10);
-  EXPECT_EQ(default_obj.Param().GetYAdjustmentSum(), -10);
-
-  default_obj.Param().SetVert(1);
-  EXPECT_EQ(default_obj.Param().vert(), 1);
-
-  default_obj.Param().SetOriginX(25);
-  EXPECT_EQ(default_obj.Param().origin_x(), 25);
-
-  default_obj.Param().SetOriginY(30);
-  EXPECT_EQ(default_obj.Param().origin_y(), 30);
-
-  default_obj.Param().SetRepOriginX(15);
-  EXPECT_EQ(default_obj.Param().rep_origin_x(), 15);
-
-  default_obj.Param().SetRepOriginY(20);
-  EXPECT_EQ(default_obj.Param().rep_origin_y(), 20);
-
-  default_obj.Param().SetWidth(80);
-  EXPECT_EQ(default_obj.Param().width(), 80);
-
-  default_obj.Param().SetHeight(90);
-  EXPECT_EQ(default_obj.Param().height(), 90);
-
-  default_obj.Param().SetHqWidth(800);
-  EXPECT_EQ(default_obj.Param().hq_width(), 800);
-
-  default_obj.Param().SetHqHeight(900);
-  EXPECT_EQ(default_obj.Param().hq_height(), 900);
-
-  default_obj.Param().SetRotation(45);
-  EXPECT_EQ(default_obj.Param().rotation(), 45);
-
-  default_obj.Param().SetPattNo(5);
-  EXPECT_EQ(default_obj.Param().GetPattNo(), 5);
-
-  default_obj.Param().SetMono(1);
-  EXPECT_EQ(default_obj.Param().mono(), 1);
-
-  default_obj.Param().SetInvert(1);
-  EXPECT_EQ(default_obj.Param().invert(), 1);
-
-  default_obj.Param().SetLight(1);
-  EXPECT_EQ(default_obj.Param().light(), 1);
-
-  RGBColour tint(100, 150, 200);
-  default_obj.Param().SetTint(tint);
-  EXPECT_EQ(default_obj.Param().tint(), tint);
-  EXPECT_EQ(default_obj.Param().tint_red(), 100);
-  EXPECT_EQ(default_obj.Param().tint_green(), 150);
-  EXPECT_EQ(default_obj.Param().tint_blue(), 200);
-
-  default_obj.Param().SetTintRed(110);
-  EXPECT_EQ(default_obj.Param().tint_red(), 110);
-
-  default_obj.Param().SetTintGreen(160);
-  EXPECT_EQ(default_obj.Param().tint_green(), 160);
-
-  default_obj.Param().SetTintBlue(210);
-  EXPECT_EQ(default_obj.Param().tint_blue(), 210);
-
-  RGBAColour colour(50, 60, 70, 80);
-  default_obj.Param().SetColour(colour);
-  EXPECT_EQ(default_obj.Param().colour(), colour);
-  EXPECT_EQ(default_obj.Param().colour_red(), 50);
-  EXPECT_EQ(default_obj.Param().colour_green(), 60);
-  EXPECT_EQ(default_obj.Param().colour_blue(), 70);
-  EXPECT_EQ(default_obj.Param().colour_level(), 80);
-
-  default_obj.Param().SetColourRed(55);
-  EXPECT_EQ(default_obj.Param().colour_red(), 55);
-
-  default_obj.Param().SetColourGreen(65);
-  EXPECT_EQ(default_obj.Param().colour_green(), 65);
-
-  default_obj.Param().SetColourBlue(75);
-  EXPECT_EQ(default_obj.Param().colour_blue(), 75);
-
-  default_obj.Param().SetColourLevel(85);
-  EXPECT_EQ(default_obj.Param().colour_level(), 85);
-
-  default_obj.Param().SetCompositeMode(2);
-  EXPECT_EQ(default_obj.Param().composite_mode(), 2);
-
-  default_obj.Param().SetScrollRateX(5);
-  EXPECT_EQ(default_obj.Param().scroll_rate_x(), 5);
-
-  default_obj.Param().SetScrollRateY(-5);
-  EXPECT_EQ(default_obj.Param().scroll_rate_y(), -5);
-
-  default_obj.Param().SetZOrder(1);
-  EXPECT_EQ(default_obj.Param().z_order(), 1);
-
-  default_obj.Param().SetZLayer(2);
-  EXPECT_EQ(default_obj.Param().z_layer(), 2);
-
-  default_obj.Param().SetZDepth(3);
-  EXPECT_EQ(default_obj.Param().z_depth(), 3);
-
-  default_obj.Param().SetAlpha(128);
-  EXPECT_EQ(default_obj.Param().raw_alpha(), 128);
-
-  default_obj.Param().SetAlphaAdjustment(0, 10);
-  EXPECT_EQ(default_obj.Param().alpha_adjustment(0), 10);
-
-  Rect clip_rect = Rect::GRP(0, 0, 100, 100);
-  default_obj.Param().SetClipRect(clip_rect);
-  EXPECT_TRUE(default_obj.Param().has_clip_rect());
-  EXPECT_EQ(default_obj.Param().clip_rect(), clip_rect);
-
-  default_obj.Param().ClearClipRect();
-  EXPECT_FALSE(default_obj.Param().has_clip_rect());
-
-  Rect own_clip_rect = Rect::GRP(10, 10, 80, 80);
-  default_obj.Param().SetOwnClipRect(own_clip_rect);
-  EXPECT_TRUE(default_obj.Param().has_own_clip_rect());
-  EXPECT_EQ(default_obj.Param().own_clip_rect(), own_clip_rect);
-
-  default_obj.Param().ClearOwnClipRect();
-  EXPECT_FALSE(default_obj.Param().has_own_clip_rect());
-
-  default_obj.Param().SetWipeCopy(1);
-  EXPECT_EQ(default_obj.Param().wipe_copy(), 1);
-}
-
-TEST_F(GraphicsObjectTest, TextProperties) {
-  default_obj.Param().SetTextText("Hello World");
-  EXPECT_EQ(default_obj.Param().GetTextText(), "Hello World");
-
-  default_obj.Param().SetTextOps(12, 2, 3, 5, 255, 128);
-  EXPECT_EQ(default_obj.Param().GetTextSize(), 12);
-  EXPECT_EQ(default_obj.Param().GetTextXSpace(), 2);
-  EXPECT_EQ(default_obj.Param().GetTextYSpace(), 3);
-  EXPECT_EQ(default_obj.Param().GetTextCharCount(), 5);
-  EXPECT_EQ(default_obj.Param().GetTextColour(), 255);
-  EXPECT_EQ(default_obj.Param().GetTextShadowColour(), 128);
-}
-
-TEST_F(GraphicsObjectTest, DriftProperties) {
-  Rect drift_area = Rect::GRP(0, 0, 100, 100);
-  default_obj.Param().SetDriftOpts(10, 1, 0, 5, 1000, 2, 50, 10, 1, 0, 1,
-                                   drift_area);
-
-  EXPECT_EQ(default_obj.Param().GetDriftParticleCount(), 10);
-  EXPECT_EQ(default_obj.Param().GetDriftUseAnimation(), 1);
-  EXPECT_EQ(default_obj.Param().GetDriftStartPattern(), 0);
-  EXPECT_EQ(default_obj.Param().GetDriftEndPattern(), 5);
-  EXPECT_EQ(default_obj.Param().GetDriftAnimationTime(), 1000);
-  EXPECT_EQ(default_obj.Param().GetDriftYSpeed(), 2);
-  EXPECT_EQ(default_obj.Param().GetDriftPeriod(), 50);
-  EXPECT_EQ(default_obj.Param().GetDriftAmplitude(), 10);
-  EXPECT_EQ(default_obj.Param().GetDriftUseDrift(), 1);
-  EXPECT_EQ(default_obj.Param().GetDriftUnknown(), 0);
-  EXPECT_EQ(default_obj.Param().GetDriftDriftSpeed(), 1);
-  EXPECT_EQ(default_obj.Param().GetDriftArea(), drift_area);
-}
-
-TEST_F(GraphicsObjectTest, DigitProperties) {
-  default_obj.Param().SetDigitValue(12345);
-  EXPECT_EQ(default_obj.Param().GetDigitValue(), 12345);
-
-  default_obj.Param().SetDigitOpts(5, 1, 1, 0, 2);
-  EXPECT_EQ(default_obj.Param().GetDigitDigits(), 5);
-  EXPECT_EQ(default_obj.Param().GetDigitZero(), 1);
-  EXPECT_EQ(default_obj.Param().GetDigitSign(), 1);
-  EXPECT_EQ(default_obj.Param().GetDigitPack(), 0);
-  EXPECT_EQ(default_obj.Param().GetDigitSpace(), 2);
-}
-
-TEST_F(GraphicsObjectTest, ButtonProperties) {
-  default_obj.Param().SetButtonOpts(1, 10, 2, 3);
-  EXPECT_EQ(default_obj.Param().IsButton(), 1);
-  EXPECT_EQ(default_obj.Param().GetButtonAction(), 1);
-  EXPECT_EQ(default_obj.Param().GetButtonSe(), 10);
-  EXPECT_EQ(default_obj.Param().GetButtonGroup(), 2);
-  EXPECT_EQ(default_obj.Param().GetButtonNumber(), 3);
-
-  default_obj.Param().SetButtonState(1);
-  EXPECT_EQ(default_obj.Param().GetButtonState(), 1);
-
-  default_obj.Param().SetButtonOverrides(5, 10, 15);
-  EXPECT_TRUE(default_obj.Param().GetButtonUsingOverides());
-  EXPECT_EQ(default_obj.Param().GetButtonPatternOverride(), 5);
-  EXPECT_EQ(default_obj.Param().GetButtonXOffsetOverride(), 10);
-  EXPECT_EQ(default_obj.Param().GetButtonYOffsetOverride(), 15);
-
-  default_obj.Param().ClearButtonOverrides();
-  EXPECT_FALSE(default_obj.Param().GetButtonUsingOverides());
 }
 
 TEST(ParamManagerTest, SetGetBasicProperties) {
@@ -481,4 +224,74 @@ TEST(ParamManagerTest, SetGetBasicProperties) {
   // WipeCopy
   manager.Set(ObjectProperty::WipeCopy, 1);
   EXPECT_EQ(manager.Get<ObjectProperty::WipeCopy>(), 1);
+}
+
+TEST(ParameterManagerTest, TextProperties) {
+  ParameterManager manager;
+  manager.SetTextText("Hello World");
+  EXPECT_EQ(manager.GetTextText(), "Hello World");
+  manager.SetTextOps(12, 2, 3, 5, 255, 128);
+  EXPECT_EQ(manager.GetTextSize(), 12);
+  EXPECT_EQ(manager.GetTextXSpace(), 2);
+  EXPECT_EQ(manager.GetTextYSpace(), 3);
+  EXPECT_EQ(manager.GetTextCharCount(), 5);
+  EXPECT_EQ(manager.GetTextColour(), 255);
+  EXPECT_EQ(manager.GetTextShadowColour(), 128);
+}
+
+TEST(ParameterManagerTest, DriftProperties) {
+  ParameterManager manager;
+
+  Rect drift_area = Rect::GRP(0, 0, 100, 100);
+  manager.SetDriftOpts(10, 1, 0, 5, 1000, 2, 50, 10, 1, 0, 1, drift_area);
+
+  EXPECT_EQ(manager.GetDriftParticleCount(), 10);
+  EXPECT_EQ(manager.GetDriftUseAnimation(), 1);
+  EXPECT_EQ(manager.GetDriftStartPattern(), 0);
+  EXPECT_EQ(manager.GetDriftEndPattern(), 5);
+  EXPECT_EQ(manager.GetDriftAnimationTime(), 1000);
+  EXPECT_EQ(manager.GetDriftYSpeed(), 2);
+  EXPECT_EQ(manager.GetDriftPeriod(), 50);
+  EXPECT_EQ(manager.GetDriftAmplitude(), 10);
+  EXPECT_EQ(manager.GetDriftUseDrift(), 1);
+  EXPECT_EQ(manager.GetDriftUnknown(), 0);
+  EXPECT_EQ(manager.GetDriftDriftSpeed(), 1);
+  EXPECT_EQ(manager.GetDriftArea(), drift_area);
+}
+
+TEST(ParameterManagerTest, DigitProperties) {
+  ParameterManager manager;
+
+  manager.SetDigitValue(12345);
+  EXPECT_EQ(manager.GetDigitValue(), 12345);
+
+  manager.SetDigitOpts(5, 1, 1, 0, 2);
+  EXPECT_EQ(manager.GetDigitDigits(), 5);
+  EXPECT_EQ(manager.GetDigitZero(), 1);
+  EXPECT_EQ(manager.GetDigitSign(), 1);
+  EXPECT_EQ(manager.GetDigitPack(), 0);
+  EXPECT_EQ(manager.GetDigitSpace(), 2);
+}
+
+TEST(ParameterManagerTest, ButtonProperties) {
+  ParameterManager manager;
+
+  manager.SetButtonOpts(1, 10, 2, 3);
+  EXPECT_EQ(manager.IsButton(), 1);
+  EXPECT_EQ(manager.GetButtonAction(), 1);
+  EXPECT_EQ(manager.GetButtonSe(), 10);
+  EXPECT_EQ(manager.GetButtonGroup(), 2);
+  EXPECT_EQ(manager.GetButtonNumber(), 3);
+
+  manager.SetButtonState(1);
+  EXPECT_EQ(manager.GetButtonState(), 1);
+
+  manager.SetButtonOverrides(5, 10, 15);
+  EXPECT_TRUE(manager.GetButtonUsingOverides());
+  EXPECT_EQ(manager.GetButtonPatternOverride(), 5);
+  EXPECT_EQ(manager.GetButtonXOffsetOverride(), 10);
+  EXPECT_EQ(manager.GetButtonYOffsetOverride(), 15);
+
+  manager.ClearButtonOverrides();
+  EXPECT_FALSE(manager.GetButtonUsingOverides());
 }
