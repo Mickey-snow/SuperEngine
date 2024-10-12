@@ -295,3 +295,37 @@ TEST(ParameterManagerTest, ButtonProperties) {
   manager.ClearButtonOverrides();
   EXPECT_FALSE(manager.GetButtonUsingOverides());
 }
+
+TEST(ParameterManagerTest, GetterProxy) {
+  ParameterManager manager;
+  auto repnoGetter = CreateGetter<ObjectProperty::AdjustmentOffsetsX>();
+  auto intGetter = CreateGetter<ObjectProperty::AlphaSource>();
+
+  manager.Set(ObjectProperty::AdjustmentOffsetsX,
+              std::array<int, 8>{1, 2, 3, 4, 5, 6, 7, 8});
+  EXPECT_EQ(repnoGetter(manager, 1), 2);
+  manager.Set(ObjectProperty::AdjustmentOffsetsX,
+              std::array<int, 8>{10, -10, 20, -20});
+  EXPECT_EQ(repnoGetter(manager, 2), 20);
+
+  manager.Set(ObjectProperty::AlphaSource, 128);
+  EXPECT_EQ(intGetter(manager), 128);
+  manager.Set(ObjectProperty::AlphaSource, 255);
+  EXPECT_EQ(intGetter(manager), 255);
+}
+
+TEST(ParameterManagerTest, SetterProxy) {
+  ParameterManager manager;
+
+  auto intSetter = CreateSetter<ObjectProperty::CompositeMode>();
+  intSetter(manager, 12);
+  EXPECT_EQ(manager.Get<ObjectProperty::CompositeMode>(), 12);
+  intSetter(manager, 36);
+  EXPECT_EQ(manager.Get<ObjectProperty::CompositeMode>(), 36);
+
+  auto repnoSetter = CreateSetter<ObjectProperty::AdjustmentOffsetsY>();
+  repnoSetter(manager, 2, 24);
+  repnoSetter(manager, 3, -12);
+  EXPECT_EQ(manager.Get<ObjectProperty::AdjustmentOffsetsY>(),
+            (std::array<int, 8>{0, 0, 24, -12}));
+}

@@ -27,7 +27,9 @@
 
 #include "object/bst.h"
 #include "object/properties.h"
+#include "utilities/mpl.h"
 
+#include <functional>
 #include <numeric>
 
 class ParameterManager {
@@ -447,5 +449,49 @@ class ParameterManager {
   Scapegoat bst_;
 };
 
+template <ObjectProperty p>
+auto CreateGetter() {
+  using property_type =
+      typename GetNthType<static_cast<size_t>(p), ObjectPropertyType>::type;
+
+  if constexpr (std::is_same_v<property_type, std::array<int, 8>>) {  // repno
+    return static_cast<std::function<int(const ParameterManager&, int)>>(
+        [](const ParameterManager& param, int repno) -> int {
+          auto array = param.template Get<p>();
+          return array[repno];
+        });
+  } else if constexpr (std::is_same_v<property_type, int> ||
+                       std::is_same_v<property_type, bool>) {
+    return static_cast<std::function<int(const ParameterManager&)>>(
+        [](const ParameterManager& param) -> int {
+          return param.template Get<p>();
+        });
+  } else {
+    static_assert(false, "Unsupported type.");
+  }
+}
+
+template <ObjectProperty p>
+auto CreateSetter() {
+  using property_type =
+      typename GetNthType<static_cast<size_t>(p), ObjectPropertyType>::type;
+
+  if constexpr (std::is_same_v<property_type, std::array<int, 8>>) {  // repno
+    return static_cast<std::function<void(ParameterManager&, int, int)>>(
+        [](ParameterManager& param, int repno, int value) {
+          auto array = param.template Get<p>();
+          array[repno] = value;
+          param.Set(p, std::move(array));
+        });
+  } else if constexpr (std::is_same_v<property_type, int> ||
+                       std::is_same_v<property_type, bool>) {
+    return static_cast<std::function<void(ParameterManager&, int)>>(
+        [](ParameterManager& param, int value) {
+          param.Set(p, static_cast<property_type>(value));
+        });
+  } else {
+    static_assert(false, "Unsupported type.");
+  }
+}
 
 #endif
