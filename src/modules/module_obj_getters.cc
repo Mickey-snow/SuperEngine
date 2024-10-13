@@ -33,7 +33,10 @@
 #include "machine/rloperation/references.h"
 #include "machine/rloperation/rlop_store.h"
 #include "modules/module_obj.h"
+#include "object/parameter_manager.h"
 #include "systems/base/graphics_object.h"
+
+#include <functional>
 
 // -----------------------------------------------------------------------
 
@@ -41,14 +44,14 @@ namespace {
 
 class Obj_GetInt : public RLStoreOpcode<IntConstant_T> {
  public:
-  typedef int (GraphicsObject::*Getter)() const;
+  using Getter = std::function<int(const ParameterManager&)>;
 
   explicit Obj_GetInt(Getter getter) : getter_(getter) {}
   virtual ~Obj_GetInt() {}
 
   virtual int operator()(RLMachine& machine, int buf) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
-    return ((obj).*(getter_))();
+    return std::invoke(getter_, obj.Param());
   }
 
  private:
@@ -125,21 +128,28 @@ struct objGetDims : public RLOpcode<IntConstant_T,
 
 void addFunctions(RLModule& m) {
   m.AddOpcode(1000, 0, "objGetPos", new objGetPos);
-  m.AddOpcode(1001, 0, "objGetPosX", new Obj_GetInt(&GraphicsObject::x));
-  m.AddOpcode(1002, 0, "objGetPosY", new Obj_GetInt(&GraphicsObject::y));
+  m.AddOpcode(1001, 0, "objGetPosX",
+              new Obj_GetInt(CreateGetter<ObjectProperty::PositionX>()));
+  m.AddOpcode(1002, 0, "objGetPosY",
+              new Obj_GetInt(CreateGetter<ObjectProperty::PositionX>()));
   m.AddOpcode(1003, 0, "objGetAlpha",
-              new Obj_GetInt(&GraphicsObject::raw_alpha));
-  m.AddOpcode(1004, 0, "objGetShow", new Obj_GetInt(&GraphicsObject::visible));
+              new Obj_GetInt(CreateGetter<ObjectProperty::AlphaSource>()));
+  m.AddOpcode(1004, 0, "objGetShow",
+              new Obj_GetInt(CreateGetter<ObjectProperty::IsVisible>()));
 
   m.AddOpcode(1006, 0, "objGetAdjust", new objGetAdjust);
   m.AddOpcode(1007, 0, "objGetAdjustX", new objGetAdjustX);
   m.AddOpcode(1008, 0, "objGetAdjustY", new objGetAdjustY);
-  m.AddOpcode(1009, 0, "objGetMono", new Obj_GetInt(&GraphicsObject::mono));
-  m.AddOpcode(1010, 0, "objGetInvert", new Obj_GetInt(&GraphicsObject::invert));
-  m.AddOpcode(1011, 0, "objGetLight", new Obj_GetInt(&GraphicsObject::light));
+  m.AddOpcode(
+      1009, 0, "objGetMono",
+      new Obj_GetInt(CreateGetter<ObjectProperty::MonochromeTransform>()));
+  m.AddOpcode(1010, 0, "objGetInvert",
+              new Obj_GetInt(CreateGetter<ObjectProperty::InvertTransform>()));
+  m.AddOpcode(1011, 0, "objGetLight",
+              new Obj_GetInt(CreateGetter<ObjectProperty::LightLevel>()));
 
   m.AddOpcode(1039, 0, "objGetPattNo",
-              new Obj_GetInt(&GraphicsObject::GetPattNo));
+              new Obj_GetInt(CreateGetter<ObjectProperty::PatternNumber>()));
   m.AddOpcode(1100, 0, "objGetDims", new objGetDims);
   m.AddOpcode(1100, 1, "objGetDims", new objGetDims);
 }

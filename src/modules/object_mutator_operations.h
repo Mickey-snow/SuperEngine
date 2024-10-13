@@ -29,17 +29,20 @@
 
 #include "machine/rloperation.h"
 #include "machine/rloperation/rlop_store.h"
+#include "object/parameter_manager.h"
+
+#include <functional>
 
 class GraphicsObject;
 
 class Op_ObjectMutatorInt : public RLOpcode<IntConstant_T,
-                                           IntConstant_T,
-                                           IntConstant_T,
-                                           IntConstant_T,
-                                           IntConstant_T> {
+                                            IntConstant_T,
+                                            IntConstant_T,
+                                            IntConstant_T,
+                                            IntConstant_T> {
  public:
-  typedef int (GraphicsObject::*Getter)() const;
-  typedef void (GraphicsObject::*Setter)(const int);
+  using Getter = std::function<int(const ParameterManager&)>;
+  using Setter = std::function<void(ParameterManager&, int)>;
 
   Op_ObjectMutatorInt(Getter getter, Setter setter, const std::string& name);
   virtual ~Op_ObjectMutatorInt();
@@ -58,16 +61,18 @@ class Op_ObjectMutatorInt : public RLOpcode<IntConstant_T,
 };
 
 class Op_ObjectMutatorRepnoInt : public RLOpcode<IntConstant_T,
-                                                IntConstant_T,
-                                                IntConstant_T,
-                                                IntConstant_T,
-                                                IntConstant_T,
-                                                IntConstant_T> {
+                                                 IntConstant_T,
+                                                 IntConstant_T,
+                                                 IntConstant_T,
+                                                 IntConstant_T,
+                                                 IntConstant_T> {
  public:
-  typedef int (GraphicsObject::*Getter)(const int) const;
-  typedef void (GraphicsObject::*Setter)(const int, const int);
+  using Getter = std::function<int(const ParameterManager&, int)>;
+  using Setter = std::function<void(ParameterManager&, int, int)>;
 
-  Op_ObjectMutatorRepnoInt(Getter getter, Setter setter, const std::string& name);
+  Op_ObjectMutatorRepnoInt(Getter getter,
+                           Setter setter,
+                           const std::string& name);
   virtual ~Op_ObjectMutatorRepnoInt();
 
   virtual void operator()(RLMachine& machine,
@@ -85,14 +90,14 @@ class Op_ObjectMutatorRepnoInt : public RLOpcode<IntConstant_T,
 };
 
 class Op_ObjectMutatorIntInt : public RLOpcode<IntConstant_T,
-                                              IntConstant_T,
-                                              IntConstant_T,
-                                              IntConstant_T,
-                                              IntConstant_T,
-                                              IntConstant_T> {
+                                               IntConstant_T,
+                                               IntConstant_T,
+                                               IntConstant_T,
+                                               IntConstant_T,
+                                               IntConstant_T> {
  public:
-  typedef int (GraphicsObject::*Getter)() const;
-  typedef void (GraphicsObject::*Setter)(const int);
+  using Getter = std::function<int(const ParameterManager&)>;
+  using Setter = std::function<void(ParameterManager&, int)>;
 
   Op_ObjectMutatorIntInt(Getter getter_one,
                          Setter setter_one,

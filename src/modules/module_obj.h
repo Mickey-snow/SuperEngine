@@ -28,12 +28,13 @@
 #ifndef SRC_MODULES_MODULE_OBJ_H_
 #define SRC_MODULES_MODULE_OBJ_H_
 
-// Reusable function objects for the GraphicsObject system.
-
 #include "machine/rloperation.h"
 #include "utilities/lazy_array.h"
 
+#include <functional>
+
 class GraphicsObject;
+class ParameterManager;
 
 // -----------------------------------------------------------------------
 
@@ -149,8 +150,7 @@ class Obj_CallFunction : public RLOpcode<IntConstant_T> {
 // structs.
 class Obj_SetOneIntOnObj : public RLOpcode<IntConstant_T, IntConstant_T> {
  public:
-  // The function signature for the setter function
-  typedef void (GraphicsObject::*Setter)(const int);
+  using Setter = std::function<void(ParameterManager&, int)>;
 
   explicit Obj_SetOneIntOnObj(Setter s);
   virtual ~Obj_SetOneIntOnObj();
@@ -171,7 +171,7 @@ class Obj_SetOneIntOnObj : public RLOpcode<IntConstant_T, IntConstant_T> {
 class Obj_SetTwoIntOnObj
     : public RLOpcode<IntConstant_T, IntConstant_T, IntConstant_T> {
  public:
-  typedef void (GraphicsObject::*Setter)(const int);
+  using Setter = std::function<void(ParameterManager&, int)>;
 
   Obj_SetTwoIntOnObj(Setter one, Setter two);
   virtual ~Obj_SetTwoIntOnObj();
@@ -191,15 +191,12 @@ class Obj_SetTwoIntOnObj
 class Obj_SetRepnoIntOnObj
     : public RLOpcode<IntConstant_T, IntConstant_T, IntConstant_T> {
  public:
-  typedef void (GraphicsObject::*Setter)(const int, const int);
+  using Setter = std::function<void(ParameterManager&, int, int)>;
 
   Obj_SetRepnoIntOnObj(Setter setter);
   virtual ~Obj_SetRepnoIntOnObj();
 
-  virtual void operator()(RLMachine& machine,
-                          int buf,
-                          int idx,
-                          int val) final;
+  virtual void operator()(RLMachine& machine, int buf, int idx, int val) final;
 
  private:
   Setter setter;

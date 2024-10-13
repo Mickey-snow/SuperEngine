@@ -27,6 +27,7 @@
 #include "systems/base/object_mutator.h"
 
 #include "machine/rlmachine.h"
+#include "object/parameter_manager.h"
 #include "systems/base/event_system.h"
 #include "systems/base/graphics_object.h"
 #include "systems/base/graphics_object_data.h"
@@ -34,6 +35,7 @@
 #include "systems/base/parent_graphics_object_data.h"
 #include "systems/base/system.h"
 
+#include <functional>
 #include <iostream>
 
 ObjectMutator::ObjectMutator(int repr,
@@ -107,7 +109,7 @@ OneIntObjectMutator::OneIntObjectMutator(const std::string& name,
 OneIntObjectMutator::~OneIntObjectMutator() {}
 
 void OneIntObjectMutator::SetToEnd(RLMachine& machine, GraphicsObject& object) {
-  (object.*setter_)(endval_);
+  std::invoke(setter_, object.Param(), endval_);
 }
 
 std::unique_ptr<ObjectMutator> OneIntObjectMutator::Clone() const {
@@ -117,7 +119,7 @@ std::unique_ptr<ObjectMutator> OneIntObjectMutator::Clone() const {
 void OneIntObjectMutator::PerformSetting(RLMachine& machine,
                                          GraphicsObject& object) {
   int value = GetValueForTime(machine, startval_, endval_);
-  (object.*setter_)(value);
+  std::invoke(setter_, object.Param(), value);
 }
 
 // -----------------------------------------------------------------------
@@ -141,7 +143,7 @@ RepnoIntObjectMutator::~RepnoIntObjectMutator() {}
 
 void RepnoIntObjectMutator::SetToEnd(RLMachine& machine,
                                      GraphicsObject& object) {
-  (object.*setter_)(repno_, endval_);
+  std::invoke(setter_, object.Param(), repno_, endval_);
 }
 
 std::unique_ptr<ObjectMutator> RepnoIntObjectMutator::Clone() const {
@@ -151,7 +153,7 @@ std::unique_ptr<ObjectMutator> RepnoIntObjectMutator::Clone() const {
 void RepnoIntObjectMutator::PerformSetting(RLMachine& machine,
                                            GraphicsObject& object) {
   int value = GetValueForTime(machine, startval_, endval_);
-  (object.*setter_)(repno_, value);
+  std::invoke(setter_, object.Param(), repno_, value);
 }
 
 // -----------------------------------------------------------------------
@@ -178,8 +180,8 @@ TwoIntObjectMutator::TwoIntObjectMutator(const std::string& name,
 TwoIntObjectMutator::~TwoIntObjectMutator() {}
 
 void TwoIntObjectMutator::SetToEnd(RLMachine& machine, GraphicsObject& object) {
-  (object.*setter_one_)(endval_one_);
-  (object.*setter_two_)(endval_two_);
+  std::invoke(setter_one_, object.Param(), endval_one_);
+  std::invoke(setter_two_, object.Param(), endval_two_);
 }
 
 std::unique_ptr<ObjectMutator> TwoIntObjectMutator::Clone() const {
@@ -189,10 +191,10 @@ std::unique_ptr<ObjectMutator> TwoIntObjectMutator::Clone() const {
 void TwoIntObjectMutator::PerformSetting(RLMachine& machine,
                                          GraphicsObject& object) {
   int value = GetValueForTime(machine, startval_one_, endval_one_);
-  (object.*setter_one_)(value);
+  std::invoke(setter_one_, object.Param(), value);
 
   value = GetValueForTime(machine, startval_two_, endval_two_);
-  (object.*setter_two_)(value);
+  std::invoke(setter_two_, object.Param(), value);
 }
 
 // -----------------------------------------------------------------------
@@ -220,8 +222,8 @@ AdjustMutator::AdjustMutator(RLMachine& machine,
       end_y_(target_y) {}
 
 void AdjustMutator::SetToEnd(RLMachine& machine, GraphicsObject& object) {
-  object.SetXAdjustment(repno_, end_x_);
-  object.SetYAdjustment(repno_, end_y_);
+  object.Param().SetXAdjustment(repno_, end_x_);
+  object.Param().SetYAdjustment(repno_, end_y_);
 }
 
 std::unique_ptr<ObjectMutator> AdjustMutator::Clone() const {
@@ -230,10 +232,10 @@ std::unique_ptr<ObjectMutator> AdjustMutator::Clone() const {
 
 void AdjustMutator::PerformSetting(RLMachine& machine, GraphicsObject& object) {
   int x = GetValueForTime(machine, start_x_, end_x_);
-  object.SetXAdjustment(repno_, x);
+  object.Param().SetXAdjustment(repno_, x);
 
   int y = GetValueForTime(machine, start_y_, end_y_);
-  object.SetYAdjustment(repno_, y);
+  object.Param().SetYAdjustment(repno_, y);
 }
 
 // -----------------------------------------------------------------------
@@ -329,14 +331,16 @@ DisplayMutator::DisplayMutator(RLMachine& machine,
 }
 
 void DisplayMutator::SetToEnd(RLMachine& machine, GraphicsObject& object) {
-  object.SetVisible(display_);
+  auto& param = object.Param();
+
+  param.SetVisible(display_);
 
   if (tr_mod_)
-    object.SetAlpha(tr_end_);
+    param.SetAlpha(tr_end_);
 
   if (move_mod_) {
-    object.SetX(move_end_x_);
-    object.SetY(move_end_y_);
+    param.SetX(move_end_x_);
+    param.SetY(move_end_y_);
   }
 }
 
@@ -346,18 +350,19 @@ std::unique_ptr<ObjectMutator> DisplayMutator::Clone() const {
 
 void DisplayMutator::PerformSetting(RLMachine& machine,
                                     GraphicsObject& object) {
-  object.SetVisible(true);
+  auto& param = object.Param();
+  param.SetVisible(true);
 
   if (tr_mod_) {
     int alpha = GetValueForTime(machine, tr_start_, tr_end_);
-    object.SetAlpha(alpha);
+    param.SetAlpha(alpha);
   }
 
   if (move_mod_) {
     int x = GetValueForTime(machine, move_start_x_, move_end_x_);
-    object.SetX(x);
+    param.SetX(x);
 
     int y = GetValueForTime(machine, move_start_y_, move_end_y_);
-    object.SetY(y);
+    param.SetY(y);
   }
 }

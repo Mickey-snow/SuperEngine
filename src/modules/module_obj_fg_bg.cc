@@ -436,98 +436,189 @@ struct objEveDisplay_3 : public RLOpcode<IntConstant_T,
 // -----------------------------------------------------------------------
 
 void addUnifiedFunctions(ObjectModule& h) {
-  h.AddDoubleObjectCommands(0, "Move", &GraphicsObject::x,
-                            &GraphicsObject::SetX, &GraphicsObject::y,
-                            &GraphicsObject::SetY);
-  h.AddSingleObjectCommands(1, "Left", &GraphicsObject::x,
-                            &GraphicsObject::SetX);
-  h.AddSingleObjectCommands(2, "Top", &GraphicsObject::y,
-                            &GraphicsObject::SetY);
-  h.AddSingleObjectCommands(3, "Alpha", &GraphicsObject::raw_alpha,
-                            &GraphicsObject::SetAlpha);
+  h.AddDoubleObjectCommands(0, "Move",
+                            CreateGetter<ObjectProperty::PositionX>(),
+                            CreateSetter<ObjectProperty::PositionX>(),
+                            CreateGetter<ObjectProperty::PositionY>(),
+                            CreateSetter<ObjectProperty::PositionY>());
+  h.AddSingleObjectCommands(1, "Left",
+                            CreateGetter<ObjectProperty::PositionX>(),
+                            CreateSetter<ObjectProperty::PositionX>());
+  h.AddSingleObjectCommands(2, "Top", CreateGetter<ObjectProperty::PositionY>(),
+                            CreateSetter<ObjectProperty::PositionY>());
+  h.AddSingleObjectCommands(3, "Alpha",
+                            CreateGetter<ObjectProperty::AlphaSource>(),
+                            CreateSetter<ObjectProperty::AlphaSource>());
 
   // ----
 
   h.AddCustomRepno<adjust, objEveAdjust>(6, "Adjust");
-  h.AddRepnoObjectCommands(7, "AdjustX", &GraphicsObject::x_adjustment,
-                           &GraphicsObject::SetXAdjustment);
-  h.AddRepnoObjectCommands(8, "AdjustY", &GraphicsObject::y_adjustment,
-                           &GraphicsObject::SetYAdjustment);
-  h.AddSingleObjectCommands(9, "Mono", &GraphicsObject::mono,
-                            &GraphicsObject::SetMono);
-  h.AddSingleObjectCommands(10, "Invert", &GraphicsObject::invert,
-                            &GraphicsObject::SetInvert);
-  h.AddSingleObjectCommands(11, "Light", &GraphicsObject::light,
-                            &GraphicsObject::SetLight);
+  h.AddRepnoObjectCommands(7, "AdjustX",
+                           CreateGetter<ObjectProperty::AdjustmentOffsetsX>(),
+                           CreateSetter<ObjectProperty::AdjustmentOffsetsX>());
+  h.AddRepnoObjectCommands(8, "AdjustY",
+                           CreateGetter<ObjectProperty::AdjustmentOffsetsY>(),
+                           CreateSetter<ObjectProperty::AdjustmentOffsetsY>());
+  h.AddSingleObjectCommands(
+      9, "Mono", CreateGetter<ObjectProperty::MonochromeTransform>(),
+      CreateSetter<ObjectProperty::MonochromeTransform>());
+  h.AddSingleObjectCommands(10, "Invert",
+                            CreateGetter<ObjectProperty::InvertTransform>(),
+                            CreateSetter<ObjectProperty::InvertTransform>());
+  h.AddSingleObjectCommands(11, "Light",
+                            CreateGetter<ObjectProperty::LightLevel>(),
+                            CreateSetter<ObjectProperty::LightLevel>());
 
   // ---
 
-  h.AddSingleObjectCommands(13, "TintR", &GraphicsObject::tint_red,
-                            &GraphicsObject::SetTintRed);
-  h.AddSingleObjectCommands(14, "TintG", &GraphicsObject::tint_green,
-                            &GraphicsObject::SetTintGreen);
-  h.AddSingleObjectCommands(15, "TintB", &GraphicsObject::tint_blue,
-                            &GraphicsObject::SetTintBlue);
+  h.AddSingleObjectCommands(
+      13, "TintR",
+      [](const ParameterManager& param) {
+        auto colour = param.Get<ObjectProperty::TintColour>();
+        return colour.r();
+      },
+      [](ParameterManager& param, int value) {
+        auto colour = param.Get<ObjectProperty::TintColour>();
+        colour.set_red(value);
+        param.Set(ObjectProperty::TintColour, colour);
+      });
+  h.AddSingleObjectCommands(
+      14, "TintG",
+      [](const ParameterManager& param) {
+        auto colour = param.Get<ObjectProperty::TintColour>();
+        return colour.g();
+      },
+      [](ParameterManager& param, int value) {
+        auto colour = param.Get<ObjectProperty::TintColour>();
+        colour.set_green(value);
+        param.Set(ObjectProperty::TintColour, colour);
+      });
+  h.AddSingleObjectCommands(
+      15, "TintB",
+      [](const ParameterManager& param) {
+        auto colour = param.Get<ObjectProperty::TintColour>();
+        return colour.b();
+      },
+      [](ParameterManager& param, int value) {
+        auto colour = param.Get<ObjectProperty::TintColour>();
+        colour.set_blue(value);
+        param.Set(ObjectProperty::TintColour, colour);
+      });
 
   // ---
 
-  h.AddSingleObjectCommands(17, "ColR", &GraphicsObject::colour_red,
-                            &GraphicsObject::SetColourRed);
-  h.AddSingleObjectCommands(18, "ColG", &GraphicsObject::colour_green,
-                            &GraphicsObject::SetColourGreen);
-  h.AddSingleObjectCommands(19, "ColB", &GraphicsObject::colour_blue,
-                            &GraphicsObject::SetColourBlue);
-  h.AddSingleObjectCommands(20, "ColLevel", &GraphicsObject::colour_level,
-                            &GraphicsObject::SetColourLevel);
+  h.AddSingleObjectCommands(
+      17, "ColR",
+      [](const ParameterManager& param) {
+        auto colour = param.Get<ObjectProperty::BlendColour>();
+        return colour.r();
+      },
+      [](ParameterManager& param, int value) {
+        auto colour = param.Get<ObjectProperty::BlendColour>();
+        colour.set_red(value);
+        param.Set(ObjectProperty::BlendColour, colour);
+      });
+  h.AddSingleObjectCommands(
+      18, "ColG",
+      [](const ParameterManager& param) {
+        auto colour = param.Get<ObjectProperty::BlendColour>();
+        return colour.g();
+      },
+      [](ParameterManager& param, int value) {
+        auto colour = param.Get<ObjectProperty::BlendColour>();
+        colour.set_green(value);
+        param.Set(ObjectProperty::BlendColour, colour);
+      });
+  h.AddSingleObjectCommands(
+      19, "ColB",
+      [](const ParameterManager& param) {
+        auto colour = param.Get<ObjectProperty::BlendColour>();
+        return colour.b();
+      },
+      [](ParameterManager& param, int value) {
+        auto colour = param.Get<ObjectProperty::BlendColour>();
+        colour.set_blue(value);
+        param.Set(ObjectProperty::BlendColour, colour);
+      });
+  h.AddSingleObjectCommands(
+      20, "ColLevel",
+      [](const ParameterManager& param) {
+        auto colour = param.Get<ObjectProperty::BlendColour>();
+        return colour.a();
+      },
+      [](ParameterManager& param, int value) {
+        auto colour = param.Get<ObjectProperty::BlendColour>();
+        colour.set_alpha(value);
+        param.Set(ObjectProperty::BlendColour, colour);
+      });
 
   // ---
 
-  h.AddSingleObjectCommands(36, "AdjustVert", &GraphicsObject::vert,
-                            &GraphicsObject::SetVert);
+  h.AddSingleObjectCommands(36, "AdjustVert",
+                            CreateGetter<ObjectProperty::AdjustmentVertical>(),
+                            CreateSetter<ObjectProperty::AdjustmentVertical>());
 
-  h.AddRepnoObjectCommands(40, "AdjustAlpha", &GraphicsObject::alpha_adjustment,
-                           &GraphicsObject::SetAlphaAdjustment);
+  h.AddRepnoObjectCommands(40, "AdjustAlpha",
+                           CreateGetter<ObjectProperty::AdjustmentAlphas>(),
+                           CreateSetter<ObjectProperty::AdjustmentAlphas>());
 
   // --
-  h.AddDoubleObjectCommands(46, "Scale", &GraphicsObject::width,
-                            &GraphicsObject::SetWidth, &GraphicsObject::height,
-                            &GraphicsObject::SetHeight);
-  h.AddSingleObjectCommands(47, "Width", &GraphicsObject::width,
-                            &GraphicsObject::SetWidth);
-  h.AddSingleObjectCommands(48, "Height", &GraphicsObject::height,
-                            &GraphicsObject::SetHeight);
-  h.AddSingleObjectCommands(49, "Rotate", &GraphicsObject::rotation,
-                            &GraphicsObject::SetRotation);
-  h.AddDoubleObjectCommands(50, "RepOrigin", &GraphicsObject::rep_origin_x,
-                            &GraphicsObject::SetRepOriginX,
-                            &GraphicsObject::rep_origin_y,
-                            &GraphicsObject::SetRepOriginY);
-  h.AddSingleObjectCommands(51, "RepOriginX", &GraphicsObject::rep_origin_x,
-                            &GraphicsObject::SetRepOriginX);
-  h.AddSingleObjectCommands(52, "RepOriginY", &GraphicsObject::rep_origin_y,
-                            &GraphicsObject::SetRepOriginY);
-  h.AddDoubleObjectCommands(
-      53, "Origin", &GraphicsObject::origin_x, &GraphicsObject::SetOriginX,
-      &GraphicsObject::origin_y, &GraphicsObject::SetOriginY);
-  h.AddSingleObjectCommands(54, "OriginX", &GraphicsObject::origin_x,
-                            &GraphicsObject::SetOriginX);
-  h.AddSingleObjectCommands(55, "OriginY", &GraphicsObject::origin_y,
-                            &GraphicsObject::SetOriginY);
+  h.AddDoubleObjectCommands(46, "Scale",
+                            CreateGetter<ObjectProperty::WidthPercent>(),
+                            CreateSetter<ObjectProperty::WidthPercent>(),
+                            CreateGetter<ObjectProperty::HeightPercent>(),
+                            CreateSetter<ObjectProperty::HeightPercent>());
+  h.AddSingleObjectCommands(47, "Width",
+                            CreateGetter<ObjectProperty::WidthPercent>(),
+                            CreateSetter<ObjectProperty::WidthPercent>());
+  h.AddSingleObjectCommands(48, "Height",
+                            CreateGetter<ObjectProperty::HeightPercent>(),
+                            CreateSetter<ObjectProperty::HeightPercent>());
+  h.AddSingleObjectCommands(49, "Rotate",
+                            CreateGetter<ObjectProperty::RotationDiv10>(),
+                            CreateSetter<ObjectProperty::RotationDiv10>());
+  h.AddDoubleObjectCommands(50, "RepOrigin",
+                            CreateGetter<ObjectProperty::RepetitionOriginX>(),
+                            CreateSetter<ObjectProperty::RepetitionOriginX>(),
+                            CreateGetter<ObjectProperty::RepetitionOriginY>(),
+                            CreateSetter<ObjectProperty::RepetitionOriginY>());
+  h.AddSingleObjectCommands(51, "RepOriginX",
+                            CreateGetter<ObjectProperty::RepetitionOriginX>(),
+                            CreateSetter<ObjectProperty::RepetitionOriginX>());
+  h.AddSingleObjectCommands(52, "RepOriginY",
+                            CreateGetter<ObjectProperty::RepetitionOriginY>(),
+                            CreateSetter<ObjectProperty::RepetitionOriginY>());
+  h.AddDoubleObjectCommands(53, "Origin",
+                            CreateGetter<ObjectProperty::OriginX>(),
+                            CreateSetter<ObjectProperty::OriginX>(),
+                            CreateGetter<ObjectProperty::OriginY>(),
+                            CreateSetter<ObjectProperty::OriginY>());
+  h.AddSingleObjectCommands(54, "OriginX",
+                            CreateGetter<ObjectProperty::OriginX>(),
+                            CreateSetter<ObjectProperty::OriginX>());
+  h.AddSingleObjectCommands(55, "OriginY",
+                            CreateGetter<ObjectProperty::OriginY>(),
+                            CreateSetter<ObjectProperty::OriginY>());
 
   // ---
 
   h.AddDoubleObjectCommands(
-      61, "HqScale", &GraphicsObject::hq_width, &GraphicsObject::SetHqWidth,
-      &GraphicsObject::hq_height, &GraphicsObject::SetHqHeight);
-  h.AddSingleObjectCommands(62, "HqWidth", &GraphicsObject::hq_width,
-                            &GraphicsObject::SetHqWidth);
-  h.AddSingleObjectCommands(63, "HqHeight", &GraphicsObject::hq_height,
-                            &GraphicsObject::SetHqHeight);
+      61, "HqScale", CreateGetter<ObjectProperty::HighQualityWidthPercent>(),
+      CreateSetter<ObjectProperty::HighQualityWidthPercent>(),
+      CreateGetter<ObjectProperty::HighQualityHeightPercent>(),
+      CreateSetter<ObjectProperty::HighQualityHeightPercent>());
+  h.AddSingleObjectCommands(
+      62, "HqWidth", CreateGetter<ObjectProperty::HighQualityWidthPercent>(),
+      CreateSetter<ObjectProperty::HighQualityWidthPercent>());
+  h.AddSingleObjectCommands(
+      63, "HqHeight", CreateGetter<ObjectProperty::HighQualityHeightPercent>(),
+      CreateSetter<ObjectProperty::HighQualityHeightPercent>());
 }
 
 void addObjectFunctions(RLModule& m) {
-  m.AddOpcode(1004, 0, "objShow",
-              new Obj_SetOneIntOnObj(&GraphicsObject::SetVisible));
+  m.AddOpcode(
+      1004, 0, "objShow",
+      new Obj_SetOneIntOnObj(CreateSetter<ObjectProperty::IsVisible>()));
   m.AddOpcode(1005, 0, "objDispArea", new dispArea_0);
   m.AddOpcode(1005, 1, "objDispArea", new dispArea_1);
 
@@ -535,8 +626,9 @@ void addObjectFunctions(RLModule& m) {
 
   m.AddOpcode(1016, 0, "objColour", new colour);
 
-  m.AddOpcode(1021, 0, "objComposite",
-              new Obj_SetOneIntOnObj(&GraphicsObject::SetCompositeMode));
+  m.AddOpcode(
+      1021, 0, "objComposite",
+      new Obj_SetOneIntOnObj(CreateSetter<ObjectProperty::CompositeMode>()));
 
   m.AddOpcode(1022, 0, "objSetRect", new objSetRect_0);
   m.AddOpcode(1022, 1, "objSetRect", new objSetRect_1);
@@ -547,17 +639,19 @@ void addObjectFunctions(RLModule& m) {
   m.AddOpcode(1025, 1, "objTextOpts", new objTextOpts);
 
   m.AddOpcode(1026, 0, "objLayer",
-              new Obj_SetOneIntOnObj(&GraphicsObject::SetZLayer));
+              new Obj_SetOneIntOnObj(CreateSetter<ObjectProperty::ZLayer>()));
   m.AddOpcode(1027, 0, "objDepth",
-              new Obj_SetOneIntOnObj(&GraphicsObject::SetZDepth));
+              new Obj_SetOneIntOnObj(CreateSetter<ObjectProperty::ZDepth>()));
   m.AddUnsupportedOpcode(1028, 0, "objScrollRate");
-  m.AddOpcode(1029, 0, "objScrollRateX",
-              new Obj_SetOneIntOnObj(&GraphicsObject::SetScrollRateX));
-  m.AddOpcode(1030, 0, "objScrollRateY",
-              new Obj_SetOneIntOnObj(&GraphicsObject::SetScrollRateY));
+  m.AddOpcode(
+      1029, 0, "objScrollRateX",
+      new Obj_SetOneIntOnObj(CreateSetter<ObjectProperty::ScrollRateX>()));
+  m.AddOpcode(
+      1030, 0, "objScrollRateY",
+      new Obj_SetOneIntOnObj(CreateSetter<ObjectProperty::ScrollRateY>()));
   m.AddOpcode(1031, 0, "objDriftOpts", new objDriftOpts);
   m.AddOpcode(1032, 0, "objOrder",
-              new Obj_SetOneIntOnObj(&GraphicsObject::SetZOrder));
+              new Obj_SetOneIntOnObj(CreateSetter<ObjectProperty::ZOrder>()));
   m.AddUnsupportedOpcode(1033, 0, "objQuarterView");
 
   m.AddOpcode(1034, 0, "objDispRect", new dispArea_0);
@@ -567,10 +661,15 @@ void addObjectFunctions(RLModule& m) {
   m.AddOpcode(1035, 2, "objDispCorner", new dispCorner_1);
 
   m.AddOpcode(1037, 0, "objSetDigits",
-              new Obj_SetOneIntOnObj(&GraphicsObject::SetDigitValue));
+              new Obj_SetOneIntOnObj([](ParameterManager& param, int value) {
+                auto digit = param.Get<ObjectProperty::DigitProperties>();
+                digit.digits = value;
+                param.Set(ObjectProperty::DigitProperties, std::move(digit));
+              }));
   m.AddOpcode(1038, 0, "objNumOpts", new objNumOpts);
-  m.AddOpcode(1039, 0, "objPattNo",
-              new Obj_SetOneIntOnObj(&GraphicsObject::SetPattNo));
+  m.AddOpcode(
+      1039, 0, "objPattNo",
+      new Obj_SetOneIntOnObj(CreateSetter<ObjectProperty::PatternNumber>()));
 
   m.AddUnsupportedOpcode(1041, 0, "objAdjustAll");
   m.AddUnsupportedOpcode(1042, 0, "objAdjustAllX");
@@ -580,7 +679,11 @@ void addObjectFunctions(RLModule& m) {
 
   m.AddOpcode(1064, 2, "objButtonOpts", new objButtonOpts);
   m.AddOpcode(1066, 0, "objBtnState",
-              new Obj_SetOneIntOnObj(&GraphicsObject::SetButtonState));
+              new Obj_SetOneIntOnObj([](ParameterManager& param, int value) {
+                auto btn = param.Get<ObjectProperty::ButtonProperties>();
+                btn.state = value;
+                param.Set(ObjectProperty::ButtonProperties, std::move(btn));
+              }));
 
   m.AddOpcode(1070, 0, "objOwnDispArea", new dispOwnArea_0);
   m.AddOpcode(1070, 1, "objOwnDispArea", new dispOwnArea_1);
@@ -589,8 +692,9 @@ void addObjectFunctions(RLModule& m) {
 }
 
 void addEveObjectFunctions(RLModule& m) {
-  m.AddOpcode(2004, 0, "objEveDisplay",
-              new Obj_SetOneIntOnObj(&GraphicsObject::SetVisible));
+  m.AddOpcode(
+      2004, 0, "objEveDisplay",
+      new Obj_SetOneIntOnObj(CreateSetter<ObjectProperty::IsVisible>()));
   m.AddOpcode(2004, 1, "objEveDisplay", new objEveDisplay_1);
   m.AddOpcode(2004, 2, "objEveDisplay", new objEveDisplay_2);
   m.AddOpcode(2004, 3, "objEveDisplay", new objEveDisplay_3);

@@ -29,11 +29,13 @@
 
 #include "utilities/interpolation.h"
 
+#include <functional>
 #include <memory>
 #include <string>
 
 class GraphicsObject;
 class RLMachine;
+class ParameterManager;
 
 // An object that changes the value of an object parameter over time.
 class ObjectMutator {
@@ -100,7 +102,7 @@ class ObjectMutator {
 // An object mutator that takes a single integer.
 class OneIntObjectMutator : public ObjectMutator {
  public:
-  typedef void (GraphicsObject::*Setter)(const int);
+  using Setter = std::function<void(ParameterManager&, int)>;
 
   OneIntObjectMutator(const std::string& name,
                       int creation_time,
@@ -128,7 +130,7 @@ class OneIntObjectMutator : public ObjectMutator {
 // An object mutator that takes a repno and an integer.
 class RepnoIntObjectMutator : public ObjectMutator {
  public:
-  typedef void (GraphicsObject::*Setter)(const int, const int);
+  using Setter = std::function<void(ParameterManager&, int, int)>;
 
   RepnoIntObjectMutator(const std::string& name,
                         int creation_time,
@@ -158,7 +160,7 @@ class RepnoIntObjectMutator : public ObjectMutator {
 // An object mutator that varies two integers.
 class TwoIntObjectMutator : public ObjectMutator {
  public:
-  typedef void (GraphicsObject::*Setter)(const int);
+  using Setter = std::function<void(ParameterManager&, int)>;
 
   TwoIntObjectMutator(const std::string& name,
                       int creation_time,
@@ -206,7 +208,8 @@ class AdjustMutator : public ObjectMutator {
  private:
   virtual void SetToEnd(RLMachine& machine, GraphicsObject& object) override;
   virtual std::unique_ptr<ObjectMutator> Clone() const override;
-  virtual void PerformSetting(RLMachine& machine, GraphicsObject& object) override;
+  virtual void PerformSetting(RLMachine& machine,
+                              GraphicsObject& object) override;
 
   int repno_;
   int start_x_;
@@ -243,7 +246,8 @@ class DisplayMutator : public ObjectMutator {
  private:
   virtual void SetToEnd(RLMachine& machine, GraphicsObject& object) override;
   virtual std::unique_ptr<ObjectMutator> Clone() const override;
-  virtual void PerformSetting(RLMachine& machine, GraphicsObject& object) override;
+  virtual void PerformSetting(RLMachine& machine,
+                              GraphicsObject& object) override;
 
   bool display_;
   bool tr_mod_;

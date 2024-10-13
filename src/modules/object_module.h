@@ -38,17 +38,19 @@ class RLOperation;
 
 class ObjectModule {
  public:
-  typedef int (GraphicsObject::*NormalGetter)() const;
-  typedef void (GraphicsObject::*NormalSetter)(const int);
+  using NormalGetter = std::function<int(const ParameterManager&)>;
+  using NormalSetter = std::function<void(ParameterManager&, int)>;
 
-  typedef int (GraphicsObject::*RepnoGetter)(const int) const;
-  typedef void (GraphicsObject::*RepnoSetter)(const int, const int);
+  using RepnoGetter = std::function<int(const ParameterManager&, int)>;
+  using RepnoSetter = std::function<void(ParameterManager&, int, int)>;
 
   ObjectModule(const std::string& prefix, RLModule* module);
   virtual ~ObjectModule();
 
-  void AddSingleObjectCommands(int base_id, const std::string& name,
-                               NormalGetter getter, NormalSetter setter);
+  void AddSingleObjectCommands(int base_id,
+                               const std::string& name,
+                               NormalGetter getter,
+                               NormalSetter setter);
   void AddDoubleObjectCommands(int base_id,
                                const std::string& name,
                                NormalGetter getter_one,
@@ -61,8 +63,7 @@ class ObjectModule {
                               RepnoSetter setter);
 
   template <typename first, typename second>
-  void AddCustomRepno(int base_id,
-                      const std::string& name);
+  void AddCustomRepno(int base_id, const std::string& name);
 
  private:
   void AddCheck(const std::string& eve_name,
@@ -85,8 +86,7 @@ class ObjectModule {
 };
 
 template <typename first, typename second>
-void ObjectModule::AddCustomRepno(int base_id,
-                                  const std::string& name) {
+void ObjectModule::AddCustomRepno(int base_id, const std::string& name) {
   std::string base_name = prefix_ + name;
   module_->AddOpcode(1000 + base_id, 0, base_name, new first);
 
@@ -98,6 +98,5 @@ void ObjectModule::AddCustomRepno(int base_id,
   AddCheck(eve_name, base_eve_name, base_id);
   AddRepnoFinale(eve_name, base_eve_name, base_id);
 }
-
 
 #endif  // SRC_MODULES_OBJECT_MODULE_H_

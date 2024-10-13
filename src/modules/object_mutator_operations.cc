@@ -76,16 +76,10 @@ void Op_ObjectMutatorInt::operator()(RLMachine& machine,
   unsigned int creation_time = machine.system().event().GetTicks();
   GraphicsObject& obj = GetGraphicsObject(machine, this, object);
 
-  int startval = (obj.*getter_)();
+  int startval = std::invoke(getter_, obj.Param());
   obj.AddObjectMutator(std::unique_ptr<ObjectMutator>(
-      new OneIntObjectMutator(name_,
-                              creation_time,
-                              duration_time,
-                              delay,
-                              type,
-                              startval,
-                              endval,
-                              setter_)));
+      new OneIntObjectMutator(name_, creation_time, duration_time, delay, type,
+                              startval, endval, setter_)));
 }
 
 // -----------------------------------------------------------------------
@@ -107,17 +101,10 @@ void Op_ObjectMutatorRepnoInt::operator()(RLMachine& machine,
   unsigned int creation_time = machine.system().event().GetTicks();
   GraphicsObject& obj = GetGraphicsObject(machine, this, object);
 
-  int startval = (obj.*getter_)(repno);
+  int startval = std::invoke(getter_, obj.Param(), repno);
   obj.AddObjectMutator(std::unique_ptr<ObjectMutator>(
-      new RepnoIntObjectMutator(name_,
-                                creation_time,
-                                duration_time,
-                                delay,
-                                type,
-                                repno,
-                                startval,
-                                endval,
-                                setter_)));
+      new RepnoIntObjectMutator(name_, creation_time, duration_time, delay,
+                                type, repno, startval, endval, setter_)));
 }
 
 // -----------------------------------------------------------------------
@@ -144,21 +131,12 @@ void Op_ObjectMutatorIntInt::operator()(RLMachine& machine,
                                         int type) {
   unsigned int creation_time = machine.system().event().GetTicks();
   GraphicsObject& obj = GetGraphicsObject(machine, this, object);
-  int startval_one = (obj.*getter_one_)();
-  int startval_two = (obj.*getter_two_)();
+  int startval_one = std::invoke(getter_one_, obj.Param());
+  int startval_two = std::invoke(getter_two_, obj.Param());
 
-  obj.AddObjectMutator(std::unique_ptr<ObjectMutator>(
-      new TwoIntObjectMutator(name_,
-                              creation_time,
-                              duration_time,
-                              delay,
-                              type,
-                              startval_one,
-                              endval_one,
-                              setter_one_,
-                              startval_two,
-                              endval_two,
-                              setter_two_)));
+  obj.AddObjectMutator(std::unique_ptr<ObjectMutator>(new TwoIntObjectMutator(
+      name_, creation_time, duration_time, delay, type, startval_one,
+      endval_one, setter_one_, startval_two, endval_two, setter_two_)));
 }
 
 // -----------------------------------------------------------------------
@@ -193,8 +171,7 @@ void Op_EndObjectMutation_RepNo::operator()(RLMachine& machine,
 
 // -----------------------------------------------------------------------
 
-Op_MutatorCheck::Op_MutatorCheck(const std::string& name)
-    : name_(name) {}
+Op_MutatorCheck::Op_MutatorCheck(const std::string& name) : name_(name) {}
 
 Op_MutatorCheck::~Op_MutatorCheck() {}
 
@@ -241,8 +218,8 @@ Op_MutatorWaitCNormal::~Op_MutatorWaitCNormal() {}
 void Op_MutatorWaitCNormal::operator()(RLMachine& machine, int obj) {
   WaitLongOperation* wait_op = new WaitLongOperation(machine);
   wait_op->BreakOnClicks();
-  wait_op->BreakOnEvent(std::bind(
-      ObjectMutatorIsWorking, std::ref(machine), this, obj, -1, name_));
+  wait_op->BreakOnEvent(std::bind(ObjectMutatorIsWorking, std::ref(machine),
+                                  this, obj, -1, name_));
   machine.PushLongOperation(wait_op);
 }
 
@@ -256,7 +233,7 @@ Op_MutatorWaitCRepNo::~Op_MutatorWaitCRepNo() {}
 void Op_MutatorWaitCRepNo::operator()(RLMachine& machine, int obj, int repno) {
   WaitLongOperation* wait_op = new WaitLongOperation(machine);
   wait_op->BreakOnClicks();
-  wait_op->BreakOnEvent(std::bind(
-      ObjectMutatorIsWorking, std::ref(machine), this, obj, repno, name_));
+  wait_op->BreakOnEvent(std::bind(ObjectMutatorIsWorking, std::ref(machine),
+                                  this, obj, repno, name_));
   machine.PushLongOperation(wait_op);
 }

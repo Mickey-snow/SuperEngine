@@ -224,7 +224,8 @@ void ChildObjRangeAdapter::operator()(RLMachine& machine,
   // the front. We will update this integer each time through the loop below.
   libreallive::ExpressionPiecesVector parameters;
   parameters.reserve(allParameters.size() - 2);
-  parameters.emplace_back(libreallive::ExpressionFactory::IntConstant(lowerRange));
+  parameters.emplace_back(
+      libreallive::ExpressionFactory::IntConstant(lowerRange));
 
   // Copy everything after the first three items
   libreallive::ExpressionPiecesVector::const_iterator it =
@@ -271,7 +272,7 @@ Obj_SetOneIntOnObj::~Obj_SetOneIntOnObj() {}
 
 void Obj_SetOneIntOnObj::operator()(RLMachine& machine, int buf, int incoming) {
   GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
-  ((obj).*(setter))(incoming);
+  std::invoke(setter, obj.Param(), incoming);
 
   machine.system().graphics().mark_object_state_as_dirty();
 }
@@ -290,8 +291,8 @@ void Obj_SetTwoIntOnObj::operator()(RLMachine& machine,
                                     int incoming_one,
                                     int incoming_two) {
   GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
-  ((obj).*(setter_one_))(incoming_one);
-  ((obj).*(setter_two_))(incoming_two);
+  std::invoke(setter_one_, obj.Param(), incoming_one);
+  std::invoke(setter_two_, obj.Param(), incoming_two);
 
   machine.system().graphics().mark_object_state_as_dirty();
 }
@@ -309,6 +310,6 @@ void Obj_SetRepnoIntOnObj::operator()(RLMachine& machine,
                                       int idx,
                                       int val) {
   GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
-  ((obj).*(setter))(idx, val);
+  std::invoke(setter, obj.Param(), idx, val);
   machine.system().graphics().mark_object_state_as_dirty();
 }
