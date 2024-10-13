@@ -36,6 +36,8 @@
 #include "systems/base/system.h"
 #include "utilities/exception.h"
 
+#include <iostream>
+
 void EnsureIsParentObject(GraphicsObject& parent, int size) {
   if (parent.has_object_data()) {
     if (parent.GetObjectData().IsParentLayer()) {

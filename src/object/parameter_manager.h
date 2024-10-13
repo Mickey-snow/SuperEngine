@@ -32,6 +32,8 @@
 #include <functional>
 #include <numeric>
 
+extern const Rect EMPTY_RECT;
+
 class ParameterManager {
  public:
   ParameterManager();
@@ -259,7 +261,7 @@ class ParameterManager {
     const auto clip = clip_rect();
     return clip.width() >= 0 || clip.height() >= 0;
   }
-  void ClearClipRect() { SetClipRect(Rect(Point(0, 0), Size(-1, -1))); }
+  void ClearClipRect() { SetClipRect(EMPTY_RECT); }
   void SetClipRect(const Rect& in) { Set(ObjectProperty::ClippingRegion, in); }
 
   Rect own_clip_rect() const {
@@ -269,7 +271,7 @@ class ParameterManager {
     const auto clip = own_clip_rect();
     return clip.width() >= 0 || clip.height() >= 0;
   }
-  void ClearOwnClipRect() { SetOwnClipRect(Rect(Point(0, 0), Size(-1, -1))); }
+  void ClearOwnClipRect() { SetOwnClipRect(EMPTY_RECT); }
   void SetOwnClipRect(const Rect& in) {
     Set(ObjectProperty::OwnSpaceClippingRegion, in);
   }

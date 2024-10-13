@@ -209,6 +209,7 @@ Rect GraphicsObjectData::DstRect(const GraphicsObject& go,
 int GraphicsObjectData::GetRenderingAlpha(const GraphicsObject& go,
                                           const GraphicsObject* parent) {
   auto& param = go.Param();
+
   if (!parent) {
     return param.GetComputedAlpha();
   } else {

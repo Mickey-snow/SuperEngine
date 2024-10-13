@@ -56,6 +56,8 @@ TEST(ParameterManagerTest, DefaultInit) {
   EXPECT_EQ(default_param.z_layer(), 0);
   EXPECT_EQ(default_param.z_depth(), 0);
   EXPECT_EQ(default_param.raw_alpha(), 255);
+  EXPECT_EQ(default_param.Get<ObjectProperty::AdjustmentAlphas>(),
+            (std::array<int, 8>{255, 255, 255, 255, 255, 255, 255, 255}));
   EXPECT_FALSE(default_param.has_clip_rect());
   EXPECT_EQ(default_param.wipe_copy(), 0);
 }

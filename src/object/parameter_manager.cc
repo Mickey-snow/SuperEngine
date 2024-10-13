@@ -24,6 +24,8 @@
 
 #include "object/parameter_manager.h"
 
+const Rect EMPTY_RECT = Rect(Point(0, 0), Size(-1, -1));
+
 namespace details {
 
 template <size_t I>
@@ -41,13 +43,18 @@ static const Scapegoat init_param = []() -> Scapegoat {
   Scapegoat result;
   Set_all_impl(result, std::make_index_sequence<static_cast<size_t>(
                            ObjectProperty::TOTAL_COUNT)>{});
+
   result.Set(static_cast<int>(ObjectProperty::AlphaSource), 255);
   result.Set(static_cast<int>(ObjectProperty::HeightPercent), 100);
   result.Set(static_cast<int>(ObjectProperty::WidthPercent), 100);
   result.Set(static_cast<int>(ObjectProperty::HighQualityWidthPercent), 1000);
   result.Set(static_cast<int>(ObjectProperty::HighQualityHeightPercent), 1000);
-  result.Set(static_cast<int>(ObjectProperty::ClippingRegion),
-             Rect(Point(0, 0), Size(-1, -1)));
+  result.Set(static_cast<int>(ObjectProperty::ClippingRegion), EMPTY_RECT);
+  result.Set(static_cast<int>(ObjectProperty::OwnSpaceClippingRegion),
+             EMPTY_RECT);
+  result.Set(static_cast<int>(ObjectProperty::AdjustmentAlphas),
+             (std::array<int, 8>{255, 255, 255, 255, 255, 255, 255, 255}));
+
   return result;
 }();
 }  // namespace details
