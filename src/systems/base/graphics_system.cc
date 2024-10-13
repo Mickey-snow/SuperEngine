@@ -668,7 +668,7 @@ void GraphicsSystem::ClearAndPromoteObjects() {
   FullIterator fg = graphics_object_impl_->foreground_objects.fbegin();
   FullIterator fg_end = graphics_object_impl_->foreground_objects.fend();
   for (; bg != bg_end && fg != fg_end; bg++, fg++) {
-    if (fg.valid() && !fg->wipe_copy()) {
+    if (fg.valid() && !fg->Param().wipe_copy()) {
       fg->InitializeParams();
       fg->FreeObjectData();
     }
@@ -810,8 +810,8 @@ void GraphicsSystem::RenderObjects() {
     else if (settings.space_key && is_interface_hidden())
       continue;
 
-    to_render_.emplace_back(it->z_order(), it->z_layer(), it->z_depth(),
-                            it.pos(), &*it);
+    to_render_.emplace_back(it->Param().z_order(), it->Param().z_layer(),
+                            it->Param().z_depth(), it.pos(), &*it);
   }
 
   // Sort by all the ordering values.

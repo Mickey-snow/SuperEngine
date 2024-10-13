@@ -170,13 +170,13 @@ void DriftGraphicsObject::Render(const GraphicsObject& go,
   }
 }
 
-int DriftGraphicsObject::PixelWidth(
-    const GraphicsObject& rendering_properties) {
+int DriftGraphicsObject::PixelWidth(const GraphicsObject& go) {
+  auto& rendering_properties = go.Param();
   return rendering_properties.GetDriftArea().width();
 }
 
-int DriftGraphicsObject::PixelHeight(
-    const GraphicsObject& rendering_properties) {
+int DriftGraphicsObject::PixelHeight(const GraphicsObject& go) {
+  auto& rendering_properties = go.Param();
   return rendering_properties.GetDriftArea().height();
 }
 

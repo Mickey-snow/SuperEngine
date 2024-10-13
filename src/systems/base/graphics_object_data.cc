@@ -60,27 +60,29 @@ void GraphicsObjectData::Render(const GraphicsObject& go,
     Rect dst = DstRect(go, parent);
     int alpha = GetRenderingAlpha(go, parent);
 
-    if (go.GetButtonUsingOverides()) {
+    auto& param = go.Param();
+    if (param.GetButtonUsingOverides()) {
       // Tacked on side channel that lets a ButtonObjectSelectLongOperation
       // tweak the x/y coordinates of dst. There isn't really a better place to
       // put this. It can't go in dstRect() because the LongOperation also
       // consults the data from dstRect().
-      dst = Rect(dst.origin() + Size(go.GetButtonXOffsetOverride(),
-                                     go.GetButtonYOffsetOverride()),
+      dst = Rect(dst.origin() + Size(param.GetButtonXOffsetOverride(),
+                                     param.GetButtonYOffsetOverride()),
                  dst.size());
     }
 
-    if (parent && parent->has_own_clip_rect()) {
+    if (parent && parent->Param().has_own_clip_rect()) {
       // In Little Busters, a parent clip rect is used to clip text scrolling
       // in the battle system. rlvm has the concept of parent objects badly
       // hacked in, and that means we can't directly apply the own clip
       // rect. Instead we have to calculate this in terms of the screen
       // coordinates and then apply that as a global clip rect.
-      Point parent_start(parent->x() + parent->GetXAdjustmentSum(),
-                         parent->y() + parent->GetYAdjustmentSum());
+      Point parent_start(
+          parent->Param().x() + parent->Param().GetXAdjustmentSum(),
+          parent->Param().y() + parent->Param().GetYAdjustmentSum());
       Rect full_parent_clip =
-          Rect(parent_start + parent->own_clip_rect().origin(),
-               parent->own_clip_rect().size());
+          Rect(parent_start + parent->Param().own_clip_rect().origin(),
+               parent->Param().own_clip_rect().size());
 
       Rect clipped_dest = dst.Intersection(full_parent_clip);
       Rect inset = dst.GetInsetRectangle(clipped_dest);
@@ -88,14 +90,14 @@ void GraphicsObjectData::Render(const GraphicsObject& go,
       src = src.ApplyInset(inset);
     }
 
-    if (go.has_own_clip_rect()) {
-      dst = dst.ApplyInset(go.own_clip_rect());
-      src = src.ApplyInset(go.own_clip_rect());
+    if (param.has_own_clip_rect()) {
+      dst = dst.ApplyInset(param.own_clip_rect());
+      src = src.ApplyInset(param.own_clip_rect());
     }
 
     // Perform the object clipping.
-    if (go.has_clip_rect()) {
-      Rect clipped_dest = dst.Intersection(go.clip_rect());
+    if (param.has_clip_rect()) {
+      Rect clipped_dest = dst.Intersection(param.clip_rect());
 
       // Do nothing if object falls wholly outside clip area
       if (clipped_dest.is_empty())
@@ -152,18 +154,19 @@ void GraphicsObjectData::PrintStringVector(
 }
 
 Rect GraphicsObjectData::SrcRect(const GraphicsObject& go) {
-  return CurrentSurface(go)->GetPattern(go.GetPattNo()).rect;
+  return CurrentSurface(go)->GetPattern(go.Param().GetPattNo()).rect;
 }
 
 Point GraphicsObjectData::DstOrigin(const GraphicsObject& go) {
-  if (go.origin_x() || go.origin_y()) {
-    return Point(go.origin_x(), go.origin_y());
+  auto& param = go.Param();
+  if (param.origin_x() || param.origin_y()) {
+    return Point(param.origin_x(), param.origin_y());
   }
 
   std::shared_ptr<const Surface> surface = CurrentSurface(go);
   if (surface) {
-    return Point(surface->GetPattern(go.GetPattNo()).originX,
-                 surface->GetPattern(go.GetPattNo()).originY);
+    return Point(surface->GetPattern(param.GetPattNo()).originX,
+                 surface->GetPattern(param.GetPattNo()).originY);
   }
 
   return Point();
@@ -173,26 +176,27 @@ Rect GraphicsObjectData::DstRect(const GraphicsObject& go,
                                  const GraphicsObject* parent) {
   Point origin = DstOrigin(go);
   Rect src = SrcRect(go);
+  auto& param = go.Param();
 
   int center_x =
-      go.x() + go.GetXAdjustmentSum() - origin.x() + (src.width() / 2.0f);
-  int center_y =
-      go.y() + go.GetYAdjustmentSum() - origin.y() + (src.height() / 2.0f);
+      param.x() + param.GetXAdjustmentSum() - origin.x() + (src.width() / 2.0f);
+  int center_y = param.y() + param.GetYAdjustmentSum() - origin.y() +
+                 (src.height() / 2.0f);
 
   float second_factor_x = 1.0f;
   float second_factor_y = 1.0f;
   if (parent) {
-    center_x += parent->x() + parent->GetXAdjustmentSum();
-    center_y += parent->y() + parent->GetYAdjustmentSum();
+    center_x += parent->Param().x() + parent->Param().GetXAdjustmentSum();
+    center_y += parent->Param().y() + parent->Param().GetYAdjustmentSum();
 
-    second_factor_x = parent->GetWidthScaleFactor();
-    second_factor_y = parent->GetHeightScaleFactor();
+    second_factor_x = parent->Param().GetWidthScaleFactor();
+    second_factor_y = parent->Param().GetHeightScaleFactor();
   }
 
   int half_real_width =
-      (src.width() * second_factor_x * go.GetWidthScaleFactor()) / 2.0f;
+      (src.width() * second_factor_x * param.GetWidthScaleFactor()) / 2.0f;
   int half_real_height =
-      (src.height() * second_factor_y * go.GetHeightScaleFactor()) / 2.0f;
+      (src.height() * second_factor_y * param.GetHeightScaleFactor()) / 2.0f;
 
   int xPos1 = center_x - half_real_width;
   int yPos1 = center_y - half_real_height;
@@ -204,11 +208,12 @@ Rect GraphicsObjectData::DstRect(const GraphicsObject& go,
 
 int GraphicsObjectData::GetRenderingAlpha(const GraphicsObject& go,
                                           const GraphicsObject* parent) {
+  auto& param = go.Param();
   if (!parent) {
-    return go.GetComputedAlpha();
+    return param.GetComputedAlpha();
   } else {
-    return int((parent->GetComputedAlpha() / 255.0f) *
-               (go.GetComputedAlpha() / 255.0f) * 255);
+    return int((parent->Param().GetComputedAlpha() / 255.0f) *
+               (param.GetComputedAlpha() / 255.0f) * 255);
   }
 }
 

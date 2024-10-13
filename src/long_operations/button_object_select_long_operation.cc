@@ -45,7 +45,7 @@ ButtonObjectSelectLongOperation::ButtonObjectSelectLongOperation(
       currently_pressed_button_(NULL) {
   GraphicsSystem& graphics = machine.system().graphics();
   for (GraphicsObject& obj : graphics.GetForegroundObjects()) {
-    if (obj.IsButton() && obj.GetButtonGroup() == group_) {
+    if (obj.Param().IsButton() && obj.Param().GetButtonGroup() == group_) {
       buttons_.emplace_back(&obj, static_cast<GraphicsObject*>(NULL));
     } else if (obj.has_object_data()) {
       ParentGraphicsObjectData* parent =
@@ -53,7 +53,7 @@ ButtonObjectSelectLongOperation::ButtonObjectSelectLongOperation(
 
       if (parent) {
         for (GraphicsObject& child : parent->objects()) {
-          if (child.IsButton() && child.GetButtonGroup() == group_) {
+          if (child.Param().IsButton() && child.Param().GetButtonGroup() == group_) {
             buttons_.emplace_back(&child, &obj);
           }
         }
@@ -70,7 +70,7 @@ ButtonObjectSelectLongOperation::ButtonObjectSelectLongOperation(
 ButtonObjectSelectLongOperation::~ButtonObjectSelectLongOperation() {
   // Disable overrides on all graphics objects we've dealt with.
   for (ButtonPair& button_pair : buttons_) {
-    button_pair.first->ClearButtonOverrides();
+    button_pair.first->Param().ClearButtonOverrides();
   }
 }
 
@@ -114,7 +114,7 @@ bool ButtonObjectSelectLongOperation::MouseButtonStateChanged(
       if (currently_hovering_button_ &&
           currently_hovering_button_ == currently_pressed_button_) {
         has_return_value_ = true;
-        return_value_ = currently_pressed_button_->GetButtonNumber();
+        return_value_ = currently_pressed_button_->Param().GetButtonNumber();
         SetButtonOverride(currently_pressed_button_, "HIT");
       }
     }
@@ -143,11 +143,11 @@ bool ButtonObjectSelectLongOperation::operator()(RLMachine& machine) {
 
 void ButtonObjectSelectLongOperation::SetButtonOverride(GraphicsObject* object,
                                                         const char* type) {
-  int action = object->GetButtonAction();
+  int action = object->Param().GetButtonAction();
 
   GameexeInterpretObject key = gameexe_("BTNOBJ.ACTION", action, type);
   if (key.Exists()) {
     std::vector<int> ints = key.ToIntVector();
-    object->SetButtonOverrides(ints[0], ints[2], ints[3]);
+    object->Param().SetButtonOverrides(ints[0], ints[2], ints[3]);
   }
 }

@@ -81,7 +81,7 @@ void objOfTextBuilder(RLMachine& machine,
                       const std::string& val) {
   // The text at this point is still cp932. Convert it.
   std::string utf8str = cp932toUTF8(val, machine.GetTextEncoding());
-  obj.SetTextText(utf8str);
+  obj.Param().SetTextText(utf8str);
   GraphicsTextObject* text_obj = new GraphicsTextObject(machine.system());
   obj.SetObjectData(text_obj);
   text_obj->UpdateSurface(obj);
@@ -120,7 +120,7 @@ struct objGeneric_1
                   int visible) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
     data_fun_(machine, obj, filename);
-    obj.SetVisible(visible);
+    obj.Param().SetVisible(visible);
   }
 };
 
@@ -140,9 +140,9 @@ struct objGeneric_2 : public RLOpcode<IntConstant_T,
                   int y) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
     data_fun_(machine, obj, filename);
-    obj.SetVisible(visible);
-    obj.SetX(x);
-    obj.SetY(y);
+    obj.Param().SetVisible(visible);
+    obj.Param().SetX(x);
+    obj.Param().SetY(y);
   }
 };
 
@@ -164,10 +164,10 @@ struct objGeneric_3 : public RLOpcode<IntConstant_T,
                   int pattern) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
     data_fun_(machine, obj, filename);
-    obj.SetVisible(visible);
-    obj.SetX(x);
-    obj.SetY(y);
-    obj.SetPattNo(pattern);
+    obj.Param().SetVisible(visible);
+    obj.Param().SetX(x);
+    obj.Param().SetY(y);
+    obj.Param().SetPattNo(pattern);
   }
 };
 
@@ -194,12 +194,12 @@ struct objGeneric_4 : public RLOpcode<IntConstant_T,
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
 
     data_fun_(machine, obj, filename);
-    obj.SetVisible(visible);
-    obj.SetX(x);
-    obj.SetY(y);
-    obj.SetPattNo(pattern);
-    obj.SetScrollRateX(scrollX);
-    obj.SetScrollRateY(scrollY);
+    obj.Param().SetVisible(visible);
+    obj.Param().SetX(x);
+    obj.Param().SetY(y);
+    obj.Param().SetPattNo(pattern);
+    obj.Param().SetScrollRateX(scrollX);
+    obj.Param().SetScrollRateY(scrollY);
   }
 };
 
@@ -211,7 +211,7 @@ struct objOfFileGan_0
                   string ganFilename) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
     SetObjectDataToGan(machine, obj, imgFilename, ganFilename);
-    obj.SetVisible(true);
+    obj.Param().SetVisible(true);
   }
 };
 
@@ -226,7 +226,7 @@ struct objOfFileGan_1 : public RLOpcode<IntConstant_T,
                   int visible) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
     SetObjectDataToGan(machine, obj, imgFilename, ganFilename);
-    obj.SetVisible(visible);
+    obj.Param().SetVisible(visible);
   }
 };
 
@@ -245,9 +245,9 @@ struct objOfFileGan_2 : public RLOpcode<IntConstant_T,
                   int y) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
     SetObjectDataToGan(machine, obj, imgFilename, ganFilename);
-    obj.SetVisible(visible);
-    obj.SetX(x);
-    obj.SetY(y);
+    obj.Param().SetVisible(visible);
+    obj.Param().SetX(x);
+    obj.Param().SetY(y);
   }
 };
 
@@ -268,10 +268,10 @@ struct objOfFileGan_3 : public RLOpcode<IntConstant_T,
                   int pattern) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
     SetObjectDataToGan(machine, obj, imgFilename, ganFilename);
-    obj.SetVisible(visible);
-    obj.SetX(x);
-    obj.SetY(y);
-    obj.SetPattNo(pattern);
+    obj.Param().SetVisible(visible);
+    obj.Param().SetX(x);
+    obj.Param().SetY(y);
+    obj.Param().SetPattNo(pattern);
   }
 };
 
@@ -302,7 +302,7 @@ struct objOfArea_2
     SetObjectDataToRect(machine, this, buf, rect);
 
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
-    obj.SetVisible(visible);
+    obj.Param().SetVisible(visible);
   }
 };
 
@@ -353,7 +353,7 @@ struct objOfRect_2 : public RLOpcode<IntConstant_T,
 
     SetObjectDataToRect(machine, this, buf, data_rect);
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
-    obj.SetVisible(visible);
+    obj.Param().SetVisible(visible);
   }
 };
 
@@ -371,7 +371,7 @@ struct objOfChild_0 : public RLOpcode<IntConstant_T,
                   string ganFilename) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
     obj.SetObjectData(new ParentGraphicsObjectData(count));
-    obj.SetVisible(true);
+    obj.Param().SetVisible(true);
   }
 };
 
@@ -388,7 +388,7 @@ struct objOfChild_1 : public RLOpcode<IntConstant_T,
                   int visible) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
     obj.SetObjectData(new ParentGraphicsObjectData(count));
-    obj.SetVisible(visible);
+    obj.Param().SetVisible(visible);
   }
 };
 
@@ -409,9 +409,9 @@ struct objOfChild_2 : public RLOpcode<IntConstant_T,
                   int y) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
     obj.SetObjectData(new ParentGraphicsObjectData(count));
-    obj.SetVisible(visible);
-    obj.SetX(x);
-    obj.SetY(y);
+    obj.Param().SetVisible(visible);
+    obj.Param().SetX(x);
+    obj.Param().SetY(y);
   }
 };
 

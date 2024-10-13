@@ -81,7 +81,7 @@ void SDLColourFilter::Fill(const GraphicsObject& go,
     glUseProgramObjectARB(Shaders::GetObjectProgram());
     glUniform1iARB(Shaders::GetObjectUniformImage(), 0);
     glUniform1fARB(Shaders::GetObjectUniformAlpha(),
-                   (go.GetComputedAlpha() / 255.0f));
+                   (go.Param().GetComputedAlpha() / 255.0f));
     Shaders::loadObjectUniformFromGraphicsObject(go);
 
     float thisx1 = 0;

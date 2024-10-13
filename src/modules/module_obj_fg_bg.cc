@@ -67,7 +67,7 @@ namespace {
 struct dispArea_0 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int buf) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
-    obj.ClearClipRect();
+    obj.Param().ClearClipRect();
     machine.system().graphics().mark_object_state_as_dirty();
   }
 };
@@ -79,7 +79,7 @@ struct dispArea_1 : RLOpcode<IntConstant_T,
                              IntConstant_T> {
   void operator()(RLMachine& machine, int buf, int x1, int y1, int x2, int y2) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
-    obj.SetClipRect(Rect::GRP(x1, y1, x2, y2));
+    obj.Param().SetClipRect(Rect::GRP(x1, y1, x2, y2));
     machine.system().graphics().mark_object_state_as_dirty();
   }
 };
@@ -91,7 +91,7 @@ struct dispRect_1 : RLOpcode<IntConstant_T,
                              IntConstant_T> {
   void operator()(RLMachine& machine, int buf, int x, int y, int w, int h) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
-    obj.SetClipRect(Rect::REC(x, y, w, h));
+    obj.Param().SetClipRect(Rect::REC(x, y, w, h));
     machine.system().graphics().mark_object_state_as_dirty();
   }
 };
@@ -99,7 +99,7 @@ struct dispRect_1 : RLOpcode<IntConstant_T,
 struct dispCorner_1 : RLOpcode<IntConstant_T, IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int buf, int x, int y) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
-    obj.SetClipRect(Rect::GRP(0, 0, x, y));
+    obj.Param().SetClipRect(Rect::GRP(0, 0, x, y));
     machine.system().graphics().mark_object_state_as_dirty();
   }
 };
@@ -107,7 +107,7 @@ struct dispCorner_1 : RLOpcode<IntConstant_T, IntConstant_T, IntConstant_T> {
 struct dispOwnArea_0 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int buf) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
-    obj.ClearOwnClipRect();
+    obj.Param().ClearOwnClipRect();
     machine.system().graphics().mark_object_state_as_dirty();
   }
 };
@@ -119,7 +119,7 @@ struct dispOwnArea_1 : RLOpcode<IntConstant_T,
                                 IntConstant_T> {
   void operator()(RLMachine& machine, int buf, int x1, int y1, int x2, int y2) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
-    obj.SetOwnClipRect(Rect::GRP(x1, y1, x2, y2));
+    obj.Param().SetOwnClipRect(Rect::GRP(x1, y1, x2, y2));
     machine.system().graphics().mark_object_state_as_dirty();
   }
 };
@@ -131,7 +131,7 @@ struct dispOwnRect_1 : RLOpcode<IntConstant_T,
                                 IntConstant_T> {
   void operator()(RLMachine& machine, int buf, int x, int y, int w, int h) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
-    obj.SetOwnClipRect(Rect::REC(x, y, w, h));
+    obj.Param().SetOwnClipRect(Rect::REC(x, y, w, h));
     machine.system().graphics().mark_object_state_as_dirty();
   }
 };
@@ -140,8 +140,8 @@ struct adjust
     : RLOpcode<IntConstant_T, IntConstant_T, IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int buf, int idx, int x, int y) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
-    obj.SetXAdjustment(idx, x);
-    obj.SetYAdjustment(idx, y);
+    obj.Param().SetXAdjustment(idx, x);
+    obj.Param().SetYAdjustment(idx, y);
     machine.system().graphics().mark_object_state_as_dirty();
   }
 };
@@ -150,7 +150,7 @@ struct tint
     : RLOpcode<IntConstant_T, IntConstant_T, IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int buf, int r, int g, int b) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
-    obj.SetTint(RGBColour(r, g, b));
+    obj.Param().SetTint(RGBColour(r, g, b));
     machine.system().graphics().mark_object_state_as_dirty();
   }
 };
@@ -162,7 +162,7 @@ struct colour : RLOpcode<IntConstant_T,
                          IntConstant_T> {
   void operator()(RLMachine& machine, int buf, int r, int g, int b, int level) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
-    obj.SetColour(RGBAColour(r, g, b, level));
+    obj.Param().SetColour(RGBAColour(r, g, b, level));
     machine.system().graphics().mark_object_state_as_dirty();
   }
 };
@@ -192,7 +192,7 @@ struct objSetText : public RLOpcode<IntConstant_T, DefaultStrValue_T> {
   void operator()(RLMachine& machine, int buf, string val) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
     std::string utf8str = cp932toUTF8(val, machine.GetTextEncoding());
-    obj.SetTextText(utf8str);
+    obj.Param().SetTextText(utf8str);
     machine.system().graphics().mark_object_state_as_dirty();
   }
 };
@@ -217,7 +217,7 @@ struct objTextOpts : public RLOpcode<IntConstant_T,
                   int colour,
                   int shadow) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
-    obj.SetTextOps(size, xspace, yspace, char_count, colour, shadow);
+    obj.Param().SetTextOps(size, xspace, yspace, char_count, colour, shadow);
     machine.system().graphics().mark_object_state_as_dirty();
   }
 };
@@ -250,7 +250,7 @@ struct objDriftOpts : public RLOpcode<IntConstant_T,
                   int driftspeed,
                   Rect drift_area) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
-    obj.SetDriftOpts(count, use_animation, start_pattern, end_pattern,
+    obj.Param().SetDriftOpts(count, use_animation, start_pattern, end_pattern,
                      total_animaton_time_ms, yspeed, period, amplitude,
                      use_drift, unknown, driftspeed, drift_area);
     machine.system().graphics().mark_object_state_as_dirty();
@@ -271,7 +271,7 @@ struct objNumOpts : public RLOpcode<IntConstant_T,
                   int pack,
                   int space) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
-    obj.SetDigitOpts(digits, zero, sign, pack, space);
+    obj.Param().SetDigitOpts(digits, zero, sign, pack, space);
     machine.system().graphics().mark_object_state_as_dirty();
   }
 };
@@ -280,7 +280,7 @@ struct objAdjustAlpha
     : public RLOpcode<IntConstant_T, IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int buf, int idx, int alpha) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
-    obj.SetAlphaAdjustment(idx, alpha);
+    obj.Param().SetAlphaAdjustment(idx, alpha);
     machine.system().graphics().mark_object_state_as_dirty();
   }
 };
@@ -297,7 +297,7 @@ struct objButtonOpts : public RLOpcode<IntConstant_T,
                   int group,
                   int button_number) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
-    obj.SetButtonOpts(action, se, group, button_number);
+    obj.Param().SetButtonOpts(action, se, group, button_number);
     machine.system().graphics().mark_object_state_as_dirty();
   }
 };
@@ -323,8 +323,8 @@ class objEveAdjust : public RLOpcode<IntConstant_T,
     unsigned int creation_time = machine.system().event().GetTicks();
 
     GraphicsObject& object = GetGraphicsObject(machine, this, obj);
-    int start_x = object.x_adjustment(repno);
-    int start_y = object.y_adjustment(repno);
+    int start_x = object.Param().x_adjustment(repno);
+    int start_y = object.Param().y_adjustment(repno);
 
     object.AddObjectMutator(std::unique_ptr<ObjectMutator>(
         new AdjustMutator(machine, repno, creation_time, duration_time, delay,

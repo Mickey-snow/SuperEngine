@@ -194,24 +194,26 @@ GLint Shaders::GetObjectUniformImage() {
 }
 
 void Shaders::loadObjectUniformFromGraphicsObject(const GraphicsObject& go) {
-  RGBAColour colour = go.colour();
+  auto& param = go.Param();
+  
+  RGBAColour colour = param.colour();
   glUniform4fARB(Shaders::GetObjectUniformColour(),
                  colour.r_float(),
                  colour.g_float(),
                  colour.b_float(),
                  colour.a_float());
 
-  RGBColour tint = go.tint();
+  RGBColour tint = param.tint();
   glUniform3fARB(Shaders::GetObjectUniformTint(),
                  tint.r_float(),
                  tint.g_float(),
                  tint.b_float());
 
-  glUniform1fARB(Shaders::GetObjectUniformLight(), go.light() / 255.0f);
+  glUniform1fARB(Shaders::GetObjectUniformLight(), param.light() / 255.0f);
 
-  glUniform1fARB(Shaders::GetObjectUniformMono(), go.mono() / 255.0f);
+  glUniform1fARB(Shaders::GetObjectUniformMono(), param.mono() / 255.0f);
 
-  glUniform1fARB(Shaders::GetObjectUniformInvert(), go.invert() / 255.0f);
+  glUniform1fARB(Shaders::GetObjectUniformInvert(), param.invert() / 255.0f);
 }
 
 GLint Shaders::GetObjectUniformColour() {

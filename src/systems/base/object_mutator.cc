@@ -284,16 +284,17 @@ DisplayMutator::DisplayMutator(RLMachine& machine,
   }
 
   if (move_mod_) {
+    auto& param = object.Param();
     if (display) {
-      move_start_x_ = object.x() - move_len_x;
-      move_end_x_ = object.x();
-      move_start_y_ = object.y() - move_len_y;
-      move_end_y_ = object.y();
+      move_start_x_ = param.x() - move_len_x;
+      move_end_x_ = param.x();
+      move_start_y_ = param.y() - move_len_y;
+      move_end_y_ = param.y();
     } else {
-      move_start_x_ = object.x();
-      move_end_x_ = object.x() + move_len_x;
-      move_start_y_ = object.y();
-      move_end_y_ = object.y() + move_len_y;
+      move_start_x_ = param.x();
+      move_end_x_ = param.x() + move_len_x;
+      move_start_y_ = param.y();
+      move_end_y_ = param.y() + move_len_y;
     }
   }
 

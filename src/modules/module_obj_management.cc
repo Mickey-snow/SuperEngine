@@ -77,7 +77,7 @@ struct SetWipeCopyTo_0 : public RLOpcode<IntConstant_T> {
   explicit SetWipeCopyTo_0(int value) : val_(value) {}
 
   void operator()(RLMachine& machine, int buf) {
-    GetGraphicsObject(machine, this, buf).SetWipeCopy(val_);
+    GetGraphicsObject(machine, this, buf).Param().SetWipeCopy(val_);
   }
 };
 
@@ -88,7 +88,7 @@ struct SetWipeCopyTo_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int min, int numObjsToSet) {
     int maxObj = min + numObjsToSet;
     for (int i = min; i < maxObj; ++i) {
-      GetGraphicsObject(machine, this, i).SetWipeCopy(val_);
+      GetGraphicsObject(machine, this, i).Param().SetWipeCopy(val_);
     }
   }
 };

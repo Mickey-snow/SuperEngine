@@ -172,8 +172,8 @@ struct Sel_select_objbtn_cancel_2 : public RLOpcode<> {
     auto& fg_objs = machine.system().graphics().GetForegroundObjects();
     int group = 0;
     for (GraphicsObject& obj : fg_objs)
-      if (obj.IsButton()) {
-        group = obj.GetButtonGroup();
+      if (obj.Param().IsButton()) {
+        group = obj.Param().GetButtonGroup();
         break;
       }
 

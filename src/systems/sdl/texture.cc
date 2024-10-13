@@ -635,20 +635,21 @@ void Texture::RenderToScreenAsObject(const GraphicsObject& go,
     int width = fdx2 - fdx1;
     int height = fdy2 - fdy1;
 
+    auto& param = go.Param();
     // Rotate the texture around the point (origin + position + reporigin)
-    float x_rep = (width / 2.0f) + go.rep_origin_x();
-    float y_rep = (height / 2.0f) + go.rep_origin_y();
+    float x_rep = (width / 2.0f) + param.rep_origin_x();
+    float y_rep = (height / 2.0f) + param.rep_origin_y();
 
     glTranslatef(x_rep, y_rep, 0);
-    glRotatef(float(go.rotation()) / 10, 0, 0, 1);
+    glRotatef(float(param.rotation()) / 10, 0, 0, 1);
     glTranslatef(-x_rep, -y_rep, 0);
 
     // RealLive has its own complex shading/tinting system which we implement
     // in a shader if available. It's costly enough that we make sure we need
     // to use it.
     bool using_shader = false;
-    if ((go.light() || go.tint() != RGBColour::Black() ||
-         go.colour() != RGBAColour::Clear() || go.mono() || go.invert()) &&
+    if ((param.light() || param.tint() != RGBColour::Black() ||
+         param.colour() != RGBAColour::Clear() || param.mono() || param.invert()) &&
         GLEW_ARB_fragment_shader && GLEW_ARB_multitexture) {
       // Image
       glActiveTexture(GL_TEXTURE0_ARB);
@@ -673,7 +674,7 @@ void Texture::RenderToScreenAsObject(const GraphicsObject& go,
 
     // Make this so that when we have composite 1, we're doing a pure
     // additive blend, (ignoring the alpha channel?)
-    switch (go.composite_mode()) {
+    switch (param.composite_mode()) {
       case 0:
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         break;
@@ -687,7 +688,7 @@ void Texture::RenderToScreenAsObject(const GraphicsObject& go,
       }
       default: {
         std::ostringstream oss;
-        oss << "Invalid composite_mode in render: " << go.composite_mode();
+        oss << "Invalid composite_mode in render: " << param.composite_mode();
         throw SystemError(oss.str());
       }
     }
