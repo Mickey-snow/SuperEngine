@@ -66,6 +66,7 @@ unittest_files = [
   "test/scapegoat_unittest.cc",
   "test/mpl_unittest.cc",
   "test/interpolation_unittest.cc",
+  "test/graphics_object_unittest.cc",
   "test/parameter_manager_unittest.cc",
 ]
 

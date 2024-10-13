@@ -47,8 +47,6 @@
 #include "systems/base/object_mutator.h"
 #include "utilities/exception.h"
 
-const Rect EMPTY_CLIP = Rect(Point(0, 0), Size(-1, -1));
-
 const boost::shared_ptr<GraphicsObject::Impl> GraphicsObject::s_empty_impl(
     new GraphicsObject::Impl);
 
@@ -57,7 +55,8 @@ const boost::shared_ptr<GraphicsObject::Impl> GraphicsObject::s_empty_impl(
 // -----------------------------------------------------------------------
 GraphicsObject::GraphicsObject() : impl_(s_empty_impl) {}
 
-GraphicsObject::GraphicsObject(const GraphicsObject& rhs) : impl_(rhs.impl_) {
+GraphicsObject::GraphicsObject(const GraphicsObject& rhs)
+    : impl_(rhs.impl_), param_(rhs.param_) {
   if (rhs.object_data_) {
     object_data_.reset(rhs.object_data_->Clone());
     object_data_->set_owned_by(*this);
@@ -71,18 +70,19 @@ GraphicsObject::GraphicsObject(const GraphicsObject& rhs) : impl_(rhs.impl_) {
 
 GraphicsObject::~GraphicsObject() { DeleteObjectMutators(); }
 
-GraphicsObject& GraphicsObject::operator=(const GraphicsObject& obj) {
+GraphicsObject& GraphicsObject::operator=(const GraphicsObject& rhs) {
   DeleteObjectMutators();
-  impl_ = obj.impl_;
+  impl_ = rhs.impl_;
+  param_ = rhs.param_;
 
-  if (obj.object_data_) {
-    object_data_.reset(obj.object_data_->Clone());
+  if (rhs.object_data_) {
+    object_data_.reset(rhs.object_data_->Clone());
     object_data_->set_owned_by(*this);
   } else {
     object_data_.reset();
   }
 
-  for (auto const& mutator : obj.object_mutators_)
+  for (auto const& mutator : rhs.object_mutators_)
     object_mutators_.emplace_back(mutator->Clone());
 
   return *this;

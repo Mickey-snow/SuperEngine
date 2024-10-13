@@ -47,9 +47,7 @@ class GraphicsObjectData;
 class ObjectMutator;
 
 // Describes an independent, movable graphical object on the
-// screen. GraphicsObject, internally, references a copy-on-write
-// datastructure, which in turn has optional components to save
-// memory.
+// screen.
 class GraphicsObject {
  public:
   GraphicsObject();
