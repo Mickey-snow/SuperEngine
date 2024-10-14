@@ -50,13 +50,13 @@
 #include "machine/rloperation/rect_t.h"
 #include "modules/module_obj.h"
 #include "modules/object_mutator_operations.h"
+#include "object/mutator.h"
 #include "systems/base/colour_filter_object_data.h"
 #include "systems/base/event_system.h"
 #include "systems/base/graphics_object.h"
 #include "systems/base/graphics_object_data.h"
 #include "systems/base/graphics_system.h"
 #include "systems/base/graphics_text_object.h"
-#include "object/mutator.h"
 #include "systems/base/system.h"
 #include "utilities/exception.h"
 #include "utilities/graphics.h"
@@ -251,8 +251,8 @@ struct objDriftOpts : public RLOpcode<IntConstant_T,
                   Rect drift_area) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
     obj.Param().SetDriftOpts(count, use_animation, start_pattern, end_pattern,
-                     total_animaton_time_ms, yspeed, period, amplitude,
-                     use_drift, unknown, driftspeed, drift_area);
+                             total_animaton_time_ms, yspeed, period, amplitude,
+                             use_drift, unknown, driftspeed, drift_area);
     machine.system().graphics().mark_object_state_as_dirty();
   }
 };
@@ -348,11 +348,11 @@ struct objEveDisplay_1 : public RLOpcode<IntConstant_T,
 
     GraphicsObject& object = GetGraphicsObject(machine, this, obj);
     unsigned int creation_time = machine.system().event().GetTicks();
-    object.AddObjectMutator(std::unique_ptr<ObjectMutator>(new DisplayMutator(
-        machine, object, creation_time, duration_time, delay, display,
+    object.AddObjectMutator(std::make_unique<DisplayMutator>(
+        object.Param(), creation_time, duration_time, delay, display,
         disp.at(0), disp.at(1), disp.at(2), disp.at(3), disp.at(4), disp.at(5),
         disp.at(6), disp.at(7), disp.at(8), disp.at(9), disp.at(10),
-        disp.at(11), disp.at(12), disp.at(13))));
+        disp.at(11), disp.at(12), disp.at(13)));
   }
 };
 
@@ -377,10 +377,10 @@ struct objEveDisplay_2 : public RLOpcode<IntConstant_T,
                   int move_len_y) {
     GraphicsObject& object = GetGraphicsObject(machine, this, obj);
     unsigned int creation_time = machine.system().event().GetTicks();
-    object.AddObjectMutator(std::unique_ptr<ObjectMutator>(
-        new DisplayMutator(machine, object, creation_time, duration_time, delay,
-                           display, disp_event_mod, tr_mod, move_mod,
-                           move_len_x, move_len_y, 0, 0, 0, 0, 0, 0, 0, 0, 0)));
+    object.AddObjectMutator(std::make_unique<DisplayMutator>(
+        object.Param(), creation_time, duration_time, delay, display,
+        disp_event_mod, tr_mod, move_mod, move_len_x, move_len_y, 0, 0, 0, 0, 0,
+        0, 0, 0, 0));
   }
 };
 
@@ -423,11 +423,11 @@ struct objEveDisplay_3 : public RLOpcode<IntConstant_T,
                   int sin_count) {
     GraphicsObject& object = GetGraphicsObject(machine, this, obj);
     unsigned int creation_time = machine.system().event().GetTicks();
-    object.AddObjectMutator(std::unique_ptr<ObjectMutator>(new DisplayMutator(
-        machine, object, creation_time, duration_time, delay, display,
+    object.AddObjectMutator(std::make_unique<DisplayMutator>(
+        object.Param(), creation_time, duration_time, delay, display,
         disp_event_mod, tr_mod, move_mod, move_len_x, move_len_y, rotate_mod,
         rotate_count, scale_x_mod, scale_x_percent, scale_y_mod,
-        scale_y_percent, sin_mod, sin_len, sin_count)));
+        scale_y_percent, sin_mod, sin_len, sin_count));
   }
 };
 

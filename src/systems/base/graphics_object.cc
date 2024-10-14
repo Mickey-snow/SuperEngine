@@ -140,7 +140,7 @@ void GraphicsObject::EndObjectMutatorMatching(RLMachine& machine,
         object_mutators_.begin();
     while (it != object_mutators_.end()) {
       if ((*it)->OperationMatches(repno, name)) {
-        (*it)->SetToEnd(*this);
+        (*it)->SetToEnd(this->Param());
         it = object_mutators_.erase(it);
       } else {
         ++it;

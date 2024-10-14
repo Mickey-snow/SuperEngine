@@ -52,13 +52,13 @@ class ObjectMutator {
 
   // Called every tick. Returns true if the command has completed.
   virtual bool operator()(RLMachine&, GraphicsObject& object) = 0;
-  virtual bool operator()(MutatorService&, GraphicsObject& object) = 0;
+  virtual bool operator()(MutatorService&, ParameterManager& param) = 0;
 
   // Returns true if this ObjectMutator is operating on |repr| and |name|.
   virtual bool OperationMatches(int repr, const std::string& name) const = 0;
 
   // Called to end the mutation prematurely.
-  virtual void SetToEnd(GraphicsObject& object) = 0;
+  virtual void SetToEnd(ParameterManager& param) = 0;
 
   // Builds a copy of the ObjectMutator. Used during object promotion.
   virtual std::unique_ptr<ObjectMutator> Clone() const = 0;
@@ -95,13 +95,13 @@ class OneIntObjectMutator : public ObjectMutator {
 
   virtual bool operator()(RLMachine& machine, GraphicsObject& object) override {
     MutatorService locator(machine);
-    return this->operator()(locator, object);
+    return this->operator()(locator, object.Param());
   }
   virtual bool operator()(MutatorService& locator,
-                          GraphicsObject& object) override {
+                          ParameterManager& param) override {
     unsigned int ticks = locator.GetTicks();
     if (ticks > (creation_time_ + delay_)) {
-      PerformSetting(locator, object);
+      PerformSetting(locator, param);
       locator.MarkObjStateDirty();
     }
     return ticks > (creation_time_ + delay_ + duration_time_);
@@ -112,8 +112,8 @@ class OneIntObjectMutator : public ObjectMutator {
     return repr_ == repr && name_ == name;
   }
 
-  virtual void SetToEnd(GraphicsObject& object) override {
-    std::invoke(setter_, object.Param(), endval_);
+  virtual void SetToEnd(ParameterManager& param) override {
+    std::invoke(setter_, param, endval_);
   }
 
   virtual std::unique_ptr<ObjectMutator> Clone() const override {
@@ -135,9 +135,9 @@ class OneIntObjectMutator : public ObjectMutator {
     }
   }
 
-  void PerformSetting(MutatorService& locator, GraphicsObject& object) {
+  void PerformSetting(MutatorService& locator, ParameterManager& param) {
     int value = GetValueForTime(locator, startval_, endval_);
-    std::invoke(setter_, object.Param(), value);
+    std::invoke(setter_, param, value);
   }
 
  private:
@@ -186,13 +186,13 @@ class RepnoIntObjectMutator : public ObjectMutator {
 
   virtual bool operator()(RLMachine& machine, GraphicsObject& object) override {
     MutatorService locator(machine);
-    return this->operator()(locator, object);
+    return this->operator()(locator, object.Param());
   }
   virtual bool operator()(MutatorService& locator,
-                          GraphicsObject& object) override {
+                          ParameterManager& param) override {
     unsigned int ticks = locator.GetTicks();
     if (ticks > (creation_time_ + delay_)) {
-      PerformSetting(locator, object);
+      PerformSetting(locator, param);
       locator.MarkObjStateDirty();
     }
     return ticks > (creation_time_ + delay_ + duration_time_);
@@ -203,8 +203,8 @@ class RepnoIntObjectMutator : public ObjectMutator {
     return repr_ == repr && name_ == name;
   }
 
-  virtual void SetToEnd(GraphicsObject& object) override {
-    std::invoke(setter_, object.Param(), repno_, endval_);
+  virtual void SetToEnd(ParameterManager& param) override {
+    std::invoke(setter_, param, repno_, endval_);
   }
 
   virtual std::unique_ptr<ObjectMutator> Clone() const override {
@@ -226,9 +226,9 @@ class RepnoIntObjectMutator : public ObjectMutator {
     }
   }
 
-  void PerformSetting(MutatorService& locator, GraphicsObject& object) {
+  void PerformSetting(MutatorService& locator, ParameterManager& param) {
     int value = GetValueForTime(locator, startval_, endval_);
-    std::invoke(setter_, object.Param(), repno_, value);
+    std::invoke(setter_, param, repno_, value);
   }
 
  private:
@@ -282,13 +282,13 @@ class TwoIntObjectMutator : public ObjectMutator {
 
   virtual bool operator()(RLMachine& machine, GraphicsObject& object) override {
     MutatorService locator(machine);
-    return this->operator()(locator, object);
+    return this->operator()(locator, object.Param());
   }
   virtual bool operator()(MutatorService& locator,
-                          GraphicsObject& object) override {
+                          ParameterManager& param) override {
     unsigned int ticks = locator.GetTicks();
     if (ticks > (creation_time_ + delay_)) {
-      PerformSetting(locator, object);
+      PerformSetting(locator, param);
       locator.MarkObjStateDirty();
     }
     return ticks > (creation_time_ + delay_ + duration_time_);
@@ -299,9 +299,9 @@ class TwoIntObjectMutator : public ObjectMutator {
     return repr_ == repr && name_ == name;
   }
 
-  virtual void SetToEnd(GraphicsObject& object) override {
-    std::invoke(setter_one_, object.Param(), endval_one_);
-    std::invoke(setter_two_, object.Param(), endval_two_);
+  virtual void SetToEnd(ParameterManager& param) override {
+    std::invoke(setter_one_, param, endval_one_);
+    std::invoke(setter_two_, param, endval_two_);
   }
 
   virtual std::unique_ptr<ObjectMutator> Clone() const override {
@@ -323,12 +323,12 @@ class TwoIntObjectMutator : public ObjectMutator {
     }
   }
 
-  void PerformSetting(MutatorService& locator, GraphicsObject& object) {
+  void PerformSetting(MutatorService& locator, ParameterManager& param) {
     int value_one = GetValueForTime(locator, startval_one_, endval_one_);
-    std::invoke(setter_one_, object.Param(), value_one);
+    std::invoke(setter_one_, param, value_one);
 
     int value_two = GetValueForTime(locator, startval_two_, endval_two_);
-    std::invoke(setter_two_, object.Param(), value_two);
+    std::invoke(setter_two_, param, value_two);
   }
 
  private:
@@ -381,13 +381,13 @@ class AdjustMutator : public ObjectMutator {
 
   virtual bool operator()(RLMachine& machine, GraphicsObject& object) override {
     MutatorService locator(machine);
-    return this->operator()(locator, object);
+    return this->operator()(locator, object.Param());
   }
   virtual bool operator()(MutatorService& locator,
-                          GraphicsObject& object) override {
+                          ParameterManager& param) override {
     unsigned int ticks = locator.GetTicks();
     if (ticks > (creation_time_ + delay_)) {
-      PerformSetting(locator, object);
+      PerformSetting(locator, param);
       locator.MarkObjStateDirty();
     }
     return ticks > (creation_time_ + delay_ + duration_time_);
@@ -398,9 +398,9 @@ class AdjustMutator : public ObjectMutator {
     return repr_ == repr && name_ == name;
   }
 
-  virtual void SetToEnd(GraphicsObject& object) override {
-    object.Param().SetXAdjustment(repno_, end_x_);
-    object.Param().SetYAdjustment(repno_, end_y_);
+  virtual void SetToEnd(ParameterManager& param) override {
+    param.SetXAdjustment(repno_, end_x_);
+    param.SetYAdjustment(repno_, end_y_);
   }
 
   virtual std::unique_ptr<ObjectMutator> Clone() const override {
@@ -422,12 +422,12 @@ class AdjustMutator : public ObjectMutator {
     }
   }
 
-  void PerformSetting(MutatorService& machine, GraphicsObject& object) {
+  void PerformSetting(MutatorService& machine, ParameterManager& param) {
     int x = GetValueForTime(machine, start_x_, end_x_);
-    object.Param().SetXAdjustment(repno_, x);
+    param.SetXAdjustment(repno_, x);
 
     int y = GetValueForTime(machine, start_y_, end_y_);
-    object.Param().SetYAdjustment(repno_, y);
+    param.SetYAdjustment(repno_, y);
   }
 
  private:
@@ -449,8 +449,7 @@ class AdjustMutator : public ObjectMutator {
 
 class DisplayMutator : public ObjectMutator {
  public:
-  DisplayMutator(RLMachine& machine,
-                 GraphicsObject& object,
+  DisplayMutator(ParameterManager& param,
                  int creation_time,
                  int duration_time,
                  int delay,
@@ -493,7 +492,6 @@ class DisplayMutator : public ObjectMutator {
     }
 
     if (move_mod_) {
-      auto& param = object.Param();
       if (display) {
         move_start_x_ = param.x() - move_len_x;
         move_end_x_ = param.x();
@@ -547,13 +545,13 @@ class DisplayMutator : public ObjectMutator {
 
   virtual bool operator()(RLMachine& machine, GraphicsObject& object) override {
     MutatorService locator(machine);
-    return this->operator()(locator, object);
+    return this->operator()(locator, object.Param());
   }
   virtual bool operator()(MutatorService& locator,
-                          GraphicsObject& object) override {
+                          ParameterManager& param) override {
     unsigned int ticks = locator.GetTicks();
     if (ticks > (creation_time_ + delay_)) {
-      PerformSetting(locator, object);
+      PerformSetting(locator, param);
       locator.MarkObjStateDirty();
     }
     return ticks > (creation_time_ + delay_ + duration_time_);
@@ -564,9 +562,7 @@ class DisplayMutator : public ObjectMutator {
     return repr_ == repr && name_ == name;
   }
 
-  virtual void SetToEnd(GraphicsObject& object) override {
-    auto& param = object.Param();
-
+  virtual void SetToEnd(ParameterManager& param) override {
     param.SetVisible(display_);
 
     if (tr_mod_)
@@ -597,8 +593,7 @@ class DisplayMutator : public ObjectMutator {
     }
   }
 
-  void PerformSetting(MutatorService& locator, GraphicsObject& object) {
-    auto& param = object.Param();
+  void PerformSetting(MutatorService& locator, ParameterManager& param) {
     param.SetVisible(true);
 
     if (tr_mod_) {
