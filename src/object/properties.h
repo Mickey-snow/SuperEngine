@@ -32,84 +32,107 @@
 #include <array>
 #include <string>
 
+#include <boost/serialization/serialization.hpp>
+
 struct TextProperties {
-  TextProperties();
+  std::string value = "";
 
-  std::string value;
+  int text_size = 14;
+  int xspace = 0, yspace = 0;
 
-  int text_size, xspace, yspace;
+  int char_count = 0;
+  int colour = 0;
+  int shadow_colour = -1;
 
-  int char_count;
-  int colour;
-  int shadow_colour;
+  // for debug
+  std::string ToString() const;
 
   // boost::serialization support
   template <class Archive>
-  void serialize(Archive& ar, unsigned int version);
+  void serialize(Archive& ar, unsigned int version) {
+    ar & value & text_size & xspace & yspace & char_count & colour &
+        shadow_colour;
+  }
 };
 
 struct DriftProperties {
-  DriftProperties();
+  int count = 1;
 
-  int count;
+  int use_animation = 0;
+  int start_pattern = 0;
+  int end_pattern = 0;
+  int total_animation_time_ms = 0;
 
-  int use_animation;
-  int start_pattern;
-  int end_pattern;
-  int total_animation_time_ms;
+  int yspeed = 1000;
 
-  int yspeed;
+  int period = 0;
+  int amplitude = 0;
 
-  int period;
-  int amplitude;
+  int use_drift = 0;
+  int unknown_drift_property = 0;
+  int driftspeed = 0;
 
-  int use_drift;
-  int unknown_drift_property;
-  int driftspeed;
+  Rect drift_area = Rect(Point(-1, -1), Size(-1, -1));
 
-  Rect drift_area;
+  // for debug
+  std::string ToString() const;
 
   // boost::serialization support
+
   template <class Archive>
-  void serialize(Archive& ar, unsigned int version);
+  void serialize(Archive& ar, unsigned int version) {
+    ar & count & use_animation & start_pattern & end_pattern &
+        total_animation_time_ms & yspeed & period & amplitude & use_drift &
+        unknown_drift_property & driftspeed & drift_area;
+  }
 };
 
 struct DigitProperties {
-  DigitProperties();
+  int value = 0;
 
-  int value;
+  int digits = 0;
+  int zero = 0;
+  int sign = 0;
+  int pack = 0;
+  int space = 0;
 
-  int digits;
-  int zero;
-  int sign;
-  int pack;
-  int space;
+  // for debug
+  std::string ToString() const;
 
   // boost::serialization support
   template <class Archive>
-  void serialize(Archive& ar, unsigned int version);
+  void serialize(Archive& ar, unsigned int version) {
+    ar & value & digits & zero & sign & pack & space;
+  }
 };
 
 struct ButtonProperties {
-  ButtonProperties();
+  int is_button = 0;
 
-  int is_button;
+  int action = 0;
+  int se = -1;
+  int group = 0;
+  int button_number = 0;
 
-  int action;
-  int se;
-  int group;
-  int button_number;
+  int state = 0;
 
-  int state;
+  bool using_overides = false;
+  int pattern_override = 0;
+  int x_offset_override = 0;
+  int y_offset_override = 0;
 
-  bool using_overides;
-  int pattern_override;
-  int x_offset_override;
-  int y_offset_override;
+  // for debug
+  std::string ToString() const;
 
   // boost::serialization support
   template <class Archive>
-  void serialize(Archive& ar, unsigned int version);
+  void serialize(Archive& ar, unsigned int version) {
+    // The override values are stuck here because I'm not sure about
+    // initialization otherwise.
+    ar & is_button & action & se & group & button_number & state &
+        using_overides & pattern_override & x_offset_override &
+        y_offset_override;
+  }
 };
 
 using ObjectPropertyType = TypeList<NullType,            // Index 0 (unused)

@@ -239,6 +239,11 @@ TEST(ParameterManagerTest, TextProperties) {
   EXPECT_EQ(manager.GetTextCharCount(), 5);
   EXPECT_EQ(manager.GetTextColour(), 255);
   EXPECT_EQ(manager.GetTextShadowColour(), 128);
+
+  auto text_props = manager.Get<ObjectProperty::TextProperties>();
+  EXPECT_EQ(text_props.ToString(),
+            "value=\"Hello World\", text_size=12, xspace=2, yspace=3, "
+            "char_count=5, colour=255, shadow_colour=128");
 }
 
 TEST(ParameterManagerTest, DriftProperties) {
@@ -247,55 +252,38 @@ TEST(ParameterManagerTest, DriftProperties) {
   Rect drift_area = Rect::GRP(0, 0, 100, 100);
   manager.SetDriftOpts(10, 1, 0, 5, 1000, 2, 50, 10, 1, 0, 1, drift_area);
 
-  EXPECT_EQ(manager.GetDriftParticleCount(), 10);
-  EXPECT_EQ(manager.GetDriftUseAnimation(), 1);
-  EXPECT_EQ(manager.GetDriftStartPattern(), 0);
-  EXPECT_EQ(manager.GetDriftEndPattern(), 5);
-  EXPECT_EQ(manager.GetDriftAnimationTime(), 1000);
-  EXPECT_EQ(manager.GetDriftYSpeed(), 2);
-  EXPECT_EQ(manager.GetDriftPeriod(), 50);
-  EXPECT_EQ(manager.GetDriftAmplitude(), 10);
-  EXPECT_EQ(manager.GetDriftUseDrift(), 1);
-  EXPECT_EQ(manager.GetDriftUnknown(), 0);
-  EXPECT_EQ(manager.GetDriftDriftSpeed(), 1);
-  EXPECT_EQ(manager.GetDriftArea(), drift_area);
+  auto drift_props = manager.Get<ObjectProperty::DriftProperties>();
+  EXPECT_EQ(drift_props.ToString(),
+            "count=10, use_animation=1, start_pattern=0, end_pattern=5, "
+            "total_animation_time_ms=1000, yspeed=2, period=50, amplitude=10, "
+            "use_drift=1, unknown_drift_property=0, driftspeed=1, "
+            "drift_area={Rect(0, 0, Size(100, 100))}");
 }
 
 TEST(ParameterManagerTest, DigitProperties) {
   ParameterManager manager;
-
   manager.SetDigitValue(12345);
-  EXPECT_EQ(manager.GetDigitValue(), 12345);
-
   manager.SetDigitOpts(5, 1, 1, 0, 2);
-  EXPECT_EQ(manager.GetDigitDigits(), 5);
-  EXPECT_EQ(manager.GetDigitZero(), 1);
-  EXPECT_EQ(manager.GetDigitSign(), 1);
-  EXPECT_EQ(manager.GetDigitPack(), 0);
-  EXPECT_EQ(manager.GetDigitSpace(), 2);
+
+  auto digit_props = manager.Get<ObjectProperty::DigitProperties>();
+  EXPECT_EQ(digit_props.ToString(),
+            "value=12345, digits=5, zero=1, sign=1, pack=0, space=2");
 }
 
 TEST(ParameterManagerTest, ButtonProperties) {
   ParameterManager manager;
-
   manager.SetButtonOpts(1, 10, 2, 3);
-  EXPECT_EQ(manager.IsButton(), 1);
-  EXPECT_EQ(manager.GetButtonAction(), 1);
-  EXPECT_EQ(manager.GetButtonSe(), 10);
-  EXPECT_EQ(manager.GetButtonGroup(), 2);
-  EXPECT_EQ(manager.GetButtonNumber(), 3);
-
   manager.SetButtonState(1);
-  EXPECT_EQ(manager.GetButtonState(), 1);
-
   manager.SetButtonOverrides(5, 10, 15);
-  EXPECT_TRUE(manager.GetButtonUsingOverides());
-  EXPECT_EQ(manager.GetButtonPatternOverride(), 5);
-  EXPECT_EQ(manager.GetButtonXOffsetOverride(), 10);
-  EXPECT_EQ(manager.GetButtonYOffsetOverride(), 15);
+
+  auto btn_props = manager.Get<ObjectProperty::ButtonProperties>();
+  EXPECT_EQ(btn_props.ToString(),
+            "is_button=1, action=1, se=10, group=2, button_number=3, state=1, "
+            "using_overides=true, pattern_override=5, x_offset_override=10, "
+            "y_offset_override=15");
 
   manager.ClearButtonOverrides();
-  EXPECT_FALSE(manager.GetButtonUsingOverides());
+  EXPECT_FALSE(manager.Get<ObjectProperty::ButtonProperties>().using_overides);
 }
 
 TEST(ParameterManagerTest, GetterProxy) {
