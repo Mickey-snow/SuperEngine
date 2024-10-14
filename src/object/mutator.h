@@ -29,7 +29,17 @@
 
 #include "utilities/interpolation.h"
 
+#include "machine/rlmachine.h"
+#include "object/parameter_manager.h"
+#include "systems/base/event_system.h"
+#include "systems/base/graphics_object.h"
+#include "systems/base/graphics_object_data.h"
+#include "systems/base/graphics_system.h"
+#include "systems/base/parent_graphics_object_data.h"
+#include "systems/base/system.h"
+
 #include <functional>
+#include <iostream>
 #include <memory>
 #include <string>
 
@@ -37,64 +47,25 @@ class GraphicsObject;
 class RLMachine;
 class ParameterManager;
 
-// An object that changes the value of an object parameter over time.
+// Pure abstract interface for object mutators.
 class ObjectMutator {
  public:
-  ObjectMutator(int repr,
-                const std::string& name,
-                int creation_time,
-                int duration_time,
-                int delay,
-                int type);
-  ObjectMutator(int repr,
-                const std::string& name,
-                int creation_time,
-                int duration_time,
-                int delay,
-                InterpolationMode type);
   virtual ~ObjectMutator() = default;
 
-  int repr() const { return repr_; }
-  const std::string& name() const { return name_; }
+  virtual int repr() const = 0;
+  virtual const std::string& name() const = 0;
 
   // Called every tick. Returns true if the command has completed.
-  bool operator()(RLMachine& machine, GraphicsObject& object);
+  virtual bool operator()(RLMachine& machine, GraphicsObject& object) = 0;
 
-  // Returns true if this ObjectMutator is operating on |name|/|repr|.
-  bool OperationMatches(int repr, const std::string& name) const;
+  // Returns true if this ObjectMutator is operating on |repr| and |name|.
+  virtual bool OperationMatches(int repr, const std::string& name) const = 0;
 
   // Called to end the mutation prematurely.
   virtual void SetToEnd(RLMachine& machine, GraphicsObject& object) = 0;
 
   // Builds a copy of the ObjectMutator. Used during object promotion.
   virtual std::unique_ptr<ObjectMutator> Clone() const = 0;
-
- protected:
-  // Returns what value should be set on the object at the current time.
-  int GetValueForTime(RLMachine& machine, int start, int end);
-
-  // Template method that actually sets the values.
-  virtual void PerformSetting(RLMachine& machine, GraphicsObject& object) = 0;
-
- private:
-  // An optional paramater to identify object setters that pass additional
-  // arguments.
-  int repr_;
-
-  // The name of our operation.
-  const std::string name_;
-
-  // Clock value at time of creation
-  int creation_time_;
-
-  // How long the mutation should go on.
-  int duration_time_;
-
-  // An optional duration after |creation_time_| where we don't do anything.
-  int delay_;
-
-  // What sort of interpolation we should do here.
-  InterpolationMode type_;
 };
 
 // -----------------------------------------------------------------------
@@ -111,14 +82,70 @@ class OneIntObjectMutator : public ObjectMutator {
                       int type,
                       int start_value,
                       int target_value,
-                      Setter setter);
-  virtual ~OneIntObjectMutator();
+                      Setter setter)
+      : repr_(-1),
+        name_(name),
+        creation_time_(creation_time),
+        duration_time_(duration_time),
+        delay_(delay),
+        type_(static_cast<InterpolationMode>(type)),
+        startval_(start_value),
+        endval_(target_value),
+        setter_(setter) {}
+  virtual ~OneIntObjectMutator() {}
+
+  virtual int repr() const override { return repr_; }
+  virtual const std::string& name() const override { return name_; }
+
+  virtual bool operator()(RLMachine& machine, GraphicsObject& object) override {
+    unsigned int ticks = machine.system().event().GetTicks();
+    if (ticks > (creation_time_ + delay_)) {
+      PerformSetting(machine, object);
+      machine.system().graphics().mark_object_state_as_dirty();
+    }
+    return ticks > (creation_time_ + delay_ + duration_time_);
+  }
+
+  virtual bool OperationMatches(int repr,
+                                const std::string& name) const override {
+    return repr_ == repr && name_ == name;
+  }
+
+  virtual void SetToEnd(RLMachine& machine, GraphicsObject& object) override {
+    std::invoke(setter_, object.Param(), endval_);
+  }
+
+  virtual std::unique_ptr<ObjectMutator> Clone() const override {
+    return std::make_unique<OneIntObjectMutator>(*this);
+  }
+
+ protected:
+  int GetValueForTime(RLMachine& machine, int start, int end) {
+    unsigned int ticks = machine.system().event().GetTicks();
+    if (ticks < (creation_time_ + delay_)) {
+      return start;
+    } else if (ticks < (creation_time_ + delay_ + duration_time_)) {
+      return InterpolateBetween(
+          InterpolationRange(creation_time_ + delay_, ticks,
+                             creation_time_ + delay_ + duration_time_),
+          Range(start, end), type_);
+    } else {
+      return end;
+    }
+  }
+
+  void PerformSetting(RLMachine& machine, GraphicsObject& object) {
+    int value = GetValueForTime(machine, startval_, endval_);
+    std::invoke(setter_, object.Param(), value);
+  }
 
  private:
-  virtual void SetToEnd(RLMachine& machine, GraphicsObject& object) override;
-  virtual std::unique_ptr<ObjectMutator> Clone() const override;
-  virtual void PerformSetting(RLMachine& machine,
-                              GraphicsObject& object) override;
+  int repr_;
+  std::string name_;
+  int creation_time_;
+  int duration_time_;
+  int delay_;
+  InterpolationMode type_;
 
   int startval_;
   int endval_;
@@ -140,14 +167,71 @@ class RepnoIntObjectMutator : public ObjectMutator {
                         int repno,
                         int start_value,
                         int target_value,
-                        Setter setter);
-  virtual ~RepnoIntObjectMutator();
+                        Setter setter)
+      : repr_(repno),
+        name_(name),
+        creation_time_(creation_time),
+        duration_time_(duration_time),
+        delay_(delay),
+        type_(static_cast<InterpolationMode>(type)),
+        repno_(repno),
+        startval_(start_value),
+        endval_(target_value),
+        setter_(setter) {}
+  virtual ~RepnoIntObjectMutator() {}
+
+  virtual int repr() const override { return repr_; }
+  virtual const std::string& name() const override { return name_; }
+
+  virtual bool operator()(RLMachine& machine, GraphicsObject& object) override {
+    unsigned int ticks = machine.system().event().GetTicks();
+    if (ticks > (creation_time_ + delay_)) {
+      PerformSetting(machine, object);
+      machine.system().graphics().mark_object_state_as_dirty();
+    }
+    return ticks > (creation_time_ + delay_ + duration_time_);
+  }
+
+  virtual bool OperationMatches(int repr,
+                                const std::string& name) const override {
+    return repr_ == repr && name_ == name;
+  }
+
+  virtual void SetToEnd(RLMachine& machine, GraphicsObject& object) override {
+    std::invoke(setter_, object.Param(), repno_, endval_);
+  }
+
+  virtual std::unique_ptr<ObjectMutator> Clone() const override {
+    return std::make_unique<RepnoIntObjectMutator>(*this);
+  }
+
+ protected:
+  int GetValueForTime(RLMachine& machine, int start, int end) {
+    unsigned int ticks = machine.system().event().GetTicks();
+    if (ticks < (creation_time_ + delay_)) {
+      return start;
+    } else if (ticks < (creation_time_ + delay_ + duration_time_)) {
+      return InterpolateBetween(
+          InterpolationRange(creation_time_ + delay_, ticks,
+                             creation_time_ + delay_ + duration_time_),
+          Range(start, end), type_);
+    } else {
+      return end;
+    }
+  }
+
+  void PerformSetting(RLMachine& machine, GraphicsObject& object) {
+    int value = GetValueForTime(machine, startval_, endval_);
+    std::invoke(setter_, object.Param(), repno_, value);
+  }
 
  private:
-  virtual void SetToEnd(RLMachine& machine, GraphicsObject& object) override;
-  virtual std::unique_ptr<ObjectMutator> Clone() const override;
-  virtual void PerformSetting(RLMachine& machine,
-                              GraphicsObject& object) override;
+  int repr_;
+  std::string name_;
+  int creation_time_;
+  int duration_time_;
+  int delay_;
+  InterpolationMode type_;
 
   int repno_;
   int startval_;
@@ -172,14 +256,77 @@ class TwoIntObjectMutator : public ObjectMutator {
                       Setter setter_one,
                       int start_two,
                       int target_two,
-                      Setter setter_two);
-  virtual ~TwoIntObjectMutator();
+                      Setter setter_two)
+      : repr_(-1),
+        name_(name),
+        creation_time_(creation_time),
+        duration_time_(duration_time),
+        delay_(delay),
+        type_(static_cast<InterpolationMode>(type)),
+        startval_one_(start_one),
+        endval_one_(target_one),
+        setter_one_(setter_one),
+        startval_two_(start_two),
+        endval_two_(target_two),
+        setter_two_(setter_two) {}
+  virtual ~TwoIntObjectMutator() {}
+
+  virtual int repr() const override { return repr_; }
+  virtual const std::string& name() const override { return name_; }
+
+  virtual bool operator()(RLMachine& machine, GraphicsObject& object) override {
+    unsigned int ticks = machine.system().event().GetTicks();
+    if (ticks > (creation_time_ + delay_)) {
+      PerformSetting(machine, object);
+      machine.system().graphics().mark_object_state_as_dirty();
+    }
+    return ticks > (creation_time_ + delay_ + duration_time_);
+  }
+
+  virtual bool OperationMatches(int repr,
+                                const std::string& name) const override {
+    return repr_ == repr && name_ == name;
+  }
+
+  virtual void SetToEnd(RLMachine& machine, GraphicsObject& object) override {
+    std::invoke(setter_one_, object.Param(), endval_one_);
+    std::invoke(setter_two_, object.Param(), endval_two_);
+  }
+
+  virtual std::unique_ptr<ObjectMutator> Clone() const override {
+    return std::make_unique<TwoIntObjectMutator>(*this);
+  }
+
+ protected:
+  int GetValueForTime(RLMachine& machine, int start, int end) {
+    unsigned int ticks = machine.system().event().GetTicks();
+    if (ticks < (creation_time_ + delay_)) {
+      return start;
+    } else if (ticks < (creation_time_ + delay_ + duration_time_)) {
+      return InterpolateBetween(
+          InterpolationRange(creation_time_ + delay_, ticks,
+                             creation_time_ + delay_ + duration_time_),
+          Range(start, end), type_);
+    } else {
+      return end;
+    }
+  }
+
+  void PerformSetting(RLMachine& machine, GraphicsObject& object) {
+    int value_one = GetValueForTime(machine, startval_one_, endval_one_);
+    std::invoke(setter_one_, object.Param(), value_one);
+
+    int value_two = GetValueForTime(machine, startval_two_, endval_two_);
+    std::invoke(setter_two_, object.Param(), value_two);
+  }
 
  private:
-  virtual void SetToEnd(RLMachine& machine, GraphicsObject& object) override;
-  virtual std::unique_ptr<ObjectMutator> Clone() const override;
-  virtual void PerformSetting(RLMachine& machine,
-                              GraphicsObject& object) override;
+  int repr_;
+  std::string name_;
+  int creation_time_;
+  int duration_time_;
+  int delay_;
+  InterpolationMode type_;
 
   int startval_one_;
   int endval_one_;
@@ -203,13 +350,77 @@ class AdjustMutator : public ObjectMutator {
                 int start_x,
                 int target_x,
                 int start_y,
-                int target_y);
+                int target_y)
+      : repr_(repno),
+        name_("objEveAdjust"),
+        creation_time_(creation_time),
+        duration_time_(duration_time),
+        delay_(delay),
+        type_(static_cast<InterpolationMode>(type)),
+        repno_(repno),
+        start_x_(start_x),
+        end_x_(target_x),
+        start_y_(start_y),
+        end_y_(target_y) {}
+
+  virtual ~AdjustMutator() {}
+
+  virtual int repr() const override { return repr_; }
+  virtual const std::string& name() const override { return name_; }
+
+  virtual bool operator()(RLMachine& machine, GraphicsObject& object) override {
+    unsigned int ticks = machine.system().event().GetTicks();
+    if (ticks > (creation_time_ + delay_)) {
+      PerformSetting(machine, object);
+      machine.system().graphics().mark_object_state_as_dirty();
+    }
+    return ticks > (creation_time_ + delay_ + duration_time_);
+  }
+
+  virtual bool OperationMatches(int repr,
+                                const std::string& name) const override {
+    return repr_ == repr && name_ == name;
+  }
+
+  virtual void SetToEnd(RLMachine& machine, GraphicsObject& object) override {
+    object.Param().SetXAdjustment(repno_, end_x_);
+    object.Param().SetYAdjustment(repno_, end_y_);
+  }
+
+  virtual std::unique_ptr<ObjectMutator> Clone() const override {
+    return std::make_unique<AdjustMutator>(*this);
+  }
+
+ protected:
+  int GetValueForTime(RLMachine& machine, int start, int end) {
+    unsigned int ticks = machine.system().event().GetTicks();
+    if (ticks < (creation_time_ + delay_)) {
+      return start;
+    } else if (ticks < (creation_time_ + delay_ + duration_time_)) {
+      return InterpolateBetween(
+          InterpolationRange(creation_time_ + delay_, ticks,
+                             creation_time_ + delay_ + duration_time_),
+          Range(start, end), type_);
+    } else {
+      return end;
+    }
+  }
+
+  void PerformSetting(RLMachine& machine, GraphicsObject& object) {
+    int x = GetValueForTime(machine, start_x_, end_x_);
+    object.Param().SetXAdjustment(repno_, x);
+
+    int y = GetValueForTime(machine, start_y_, end_y_);
+    object.Param().SetYAdjustment(repno_, y);
+  }
 
  private:
-  virtual void SetToEnd(RLMachine& machine, GraphicsObject& object) override;
-  virtual std::unique_ptr<ObjectMutator> Clone() const override;
-  virtual void PerformSetting(RLMachine& machine,
-                              GraphicsObject& object) override;
+  int repr_;
+  std::string name_;
+  int creation_time_;
+  int duration_time_;
+  int delay_;
+  InterpolationMode type_;
 
   int repno_;
   int start_x_;
@@ -241,26 +452,170 @@ class DisplayMutator : public ObjectMutator {
                  int scale_y_percent,
                  int sin_mod,
                  int sin_len,
-                 int sin_count);
+                 int sin_count)
+      : repr_(-1),
+        name_("objEveDisplay"),
+        creation_time_(creation_time),
+        duration_time_(duration_time),
+        delay_(delay),
+        type_(InterpolationMode::Linear),
+        display_(display),
+        tr_mod_(tr_mod),
+        move_mod_(move_mod),
+        rotate_mod_(rotate_mod),
+        scale_x_mod_(scale_x_mod),
+        scale_y_mod_(scale_y_mod),
+        tr_start_(0),
+        tr_end_(0),
+        move_start_x_(0),
+        move_end_x_(0),
+        move_start_y_(0),
+        move_end_y_(0) {
+    if (tr_mod_) {
+      tr_start_ = display ? 0 : 255;
+      tr_end_ = display ? 255 : 0;
+    }
+
+    if (move_mod_) {
+      auto& param = object.Param();
+      if (display) {
+        move_start_x_ = param.x() - move_len_x;
+        move_end_x_ = param.x();
+        move_start_y_ = param.y() - move_len_y;
+        move_end_y_ = param.y();
+      } else {
+        move_start_x_ = param.x();
+        move_end_x_ = param.x() + move_len_x;
+        move_start_y_ = param.y();
+        move_end_y_ = param.y() + move_len_y;
+      }
+    }
+
+    if (rotate_mod_) {
+      static bool printed = false;
+      if (!printed) {
+        std::cerr << "We don't support rotate mod yet." << std::endl;
+        printed = true;
+      }
+    }
+
+    if (scale_x_mod_) {
+      static bool printed = false;
+      if (!printed) {
+        std::cerr << "We don't support scale X mod yet." << std::endl;
+        printed = true;
+      }
+    }
+
+    if (scale_y_mod_) {
+      static bool printed = false;
+      if (!printed) {
+        std::cerr << "We don't support scale Y mod yet." << std::endl;
+        printed = true;
+      }
+    }
+
+    if (sin_mod) {
+      static bool printed = false;
+      if (!printed) {
+        std::cerr << "  We don't support \"sin\" yet." << std::endl;
+        printed = true;
+      }
+    }
+  }
+
+  virtual ~DisplayMutator() {}
+
+  virtual int repr() const override { return repr_; }
+  virtual const std::string& name() const override { return name_; }
+
+  virtual bool operator()(RLMachine& machine, GraphicsObject& object) override {
+    unsigned int ticks = machine.system().event().GetTicks();
+    if (ticks > (creation_time_ + delay_)) {
+      PerformSetting(machine, object);
+      machine.system().graphics().mark_object_state_as_dirty();
+    }
+    return ticks > (creation_time_ + delay_ + duration_time_);
+  }
+
+  virtual bool OperationMatches(int repr,
+                                const std::string& name) const override {
+    return repr_ == repr && name_ == name;
+  }
+
+  virtual void SetToEnd(RLMachine& machine, GraphicsObject& object) override {
+    auto& param = object.Param();
+
+    param.SetVisible(display_);
+
+    if (tr_mod_)
+      param.SetAlpha(tr_end_);
+
+    if (move_mod_) {
+      param.SetX(move_end_x_);
+      param.SetY(move_end_y_);
+    }
+  }
+
+  virtual std::unique_ptr<ObjectMutator> Clone() const override {
+    return std::make_unique<DisplayMutator>(*this);
+  }
+
+ protected:
+  int GetValueForTime(RLMachine& machine, int start, int end) {
+    unsigned int ticks = machine.system().event().GetTicks();
+    if (ticks < (creation_time_ + delay_)) {
+      return start;
+    } else if (ticks < (creation_time_ + delay_ + duration_time_)) {
+      return InterpolateBetween(
+          InterpolationRange(creation_time_ + delay_, ticks,
+                             creation_time_ + delay_ + duration_time_),
+          Range(start, end), type_);
+    } else {
+      return end;
+    }
+  }
+
+  void PerformSetting(RLMachine& machine, GraphicsObject& object) {
+    auto& param = object.Param();
+    param.SetVisible(true);
+
+    if (tr_mod_) {
+      int alpha = GetValueForTime(machine, tr_start_, tr_end_);
+      param.SetAlpha(alpha);
+    }
+
+    if (move_mod_) {
+      int x = GetValueForTime(machine, move_start_x_, move_end_x_);
+      param.SetX(x);
+
+      int y = GetValueForTime(machine, move_start_y_, move_end_y_);
+      param.SetY(y);
+    }
+  }
 
  private:
-  virtual void SetToEnd(RLMachine& machine, GraphicsObject& object) override;
-  virtual std::unique_ptr<ObjectMutator> Clone() const override;
-  virtual void PerformSetting(RLMachine& machine,
-                              GraphicsObject& object) override;
+  int repr_;
+  std::string name_;
+  int creation_time_;
+  int duration_time_;
+  int delay_;
+  InterpolationMode type_;
 
   bool display_;
   bool tr_mod_;
+  bool move_mod_;
+  bool rotate_mod_;
+  bool scale_x_mod_;
+  bool scale_y_mod_;
+
   int tr_start_;
   int tr_end_;
-  bool move_mod_;
+
   int move_start_x_;
   int move_end_x_;
   int move_start_y_;
   int move_end_y_;
-  bool rotate_mod_;
-  bool scale_x_mod_;
-  bool scale_y_mod_;
 };
 
 #endif
