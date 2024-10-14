@@ -24,8 +24,8 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_OBJECT_MUTATOR_H_
-#define SRC_SYSTEMS_BASE_OBJECT_MUTATOR_H_
+#ifndef SRC_OBJECT_MUTATOR_H_
+#define SRC_OBJECT_MUTATOR_H_
 
 #include "utilities/interpolation.h"
 
@@ -262,4 +262,5 @@ class DisplayMutator : public ObjectMutator {
   bool scale_x_mod_;
   bool scale_y_mod_;
 };
-#endif  // SRC_SYSTEMS_BASE_OBJECT_MUTATOR_H_
+
+#endif

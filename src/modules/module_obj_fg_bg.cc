@@ -56,7 +56,7 @@
 #include "systems/base/graphics_object_data.h"
 #include "systems/base/graphics_system.h"
 #include "systems/base/graphics_text_object.h"
-#include "systems/base/object_mutator.h"
+#include "object/mutator.h"
 #include "systems/base/system.h"
 #include "utilities/exception.h"
 #include "utilities/graphics.h"

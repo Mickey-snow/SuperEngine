@@ -62,7 +62,7 @@
 #include "systems/base/hik_renderer.h"
 #include "systems/base/hik_script.h"
 #include "systems/base/mouse_cursor.h"
-#include "systems/base/object_mutator.h"
+#include "object/mutator.h"
 #include "systems/base/object_settings.h"
 #include "systems/base/surface.h"
 #include "systems/base/system.h"

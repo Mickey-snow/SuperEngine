@@ -44,7 +44,7 @@
 #include <vector>
 
 #include "systems/base/graphics_object_data.h"
-#include "systems/base/object_mutator.h"
+#include "object/mutator.h"
 #include "utilities/exception.h"
 
 // -----------------------------------------------------------------------

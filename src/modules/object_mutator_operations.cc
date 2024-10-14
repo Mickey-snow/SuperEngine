@@ -33,7 +33,7 @@
 #include "systems/base/event_system.h"
 #include "systems/base/graphics_object.h"
 #include "systems/base/graphics_system.h"
-#include "systems/base/object_mutator.h"
+#include "object/mutator.h"
 #include "systems/base/system.h"
 
 namespace {

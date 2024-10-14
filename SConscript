@@ -162,6 +162,7 @@ librlvm_files = [
   "src/object/bst.cc",
   "src/object/properties.cc",
   "src/object/parameter_manager.cc",
+  "src/object/mutator.cc",
 
   "src/systems/base/anm_graphics_object_data.cc",
   "src/systems/base/colour.cc",
@@ -182,7 +183,6 @@ librlvm_files = [
   "src/systems/base/little_busters_ef00dll.cc",
   "src/systems/base/little_busters_pt00dll.cc",
   "src/systems/base/mouse_cursor.cc",
-  "src/systems/base/object_mutator.cc",
   "src/systems/base/object_settings.cc",
   "src/systems/base/parent_graphics_object_data.cc",
   "src/systems/base/platform.cc",
