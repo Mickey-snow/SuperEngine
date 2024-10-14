@@ -337,47 +337,17 @@ TEST(ParameterManagerTest, Serialization) {
     manager.Set(ObjectProperty::BlendColour, RGBAColour(1, 2, 3, 4));
     manager.Set(ObjectProperty::TintColour, RGBColour(5, 6, 7));
 
-    auto textp = TextProperties{.value = "This is a sample text.",
-                                .text_size = 1,
-                                .xspace = 2,
-                                .yspace = 3,
-                                .char_count = 4,
-                                .colour = 5,
-                                .shadow_colour = 6};
+    auto textp = TextProperties{"This is a sample text.", 1, 2, 3, 4, 5, 6};
     manager.Set(ObjectProperty::TextProperties, textp);
 
-    DriftProperties driftp{.count = 1,
-                           .use_animation = 2,
-                           .start_pattern = 3,
-                           .end_pattern = 4,
-                           .total_animation_time_ms = 5,
-                           .yspeed = 6,
-                           .period = 7,
-                           .amplitude = 8,
-                           .use_drift = 9,
-                           .unknown_drift_property = 10,
-                           .driftspeed = 11,
-                           .drift_area = Rect::GRP(12, 13, 14, 15)};
+    DriftProperties driftp{1, 2, 3, 4,  5,  6,
+                           7, 8, 9, 10, 11, Rect::GRP(12, 13, 14, 15)};
     manager.Set(ObjectProperty::DriftProperties, driftp);
 
-    DigitProperties digitp{.value = 16,
-                           .digits = 17,
-                           .zero = 18,
-                           .sign = 19,
-                           .pack = 20,
-                           .space = 21};
+    DigitProperties digitp{16, 17, 18, 19, 20, 21};
     manager.Set(ObjectProperty::DigitProperties, digitp);
 
-    ButtonProperties buttonp{.is_button = 1,
-                             .action = 22,
-                             .se = 23,
-                             .group = 24,
-                             .button_number = 25,
-                             .state = 26,
-                             .using_overides = true,
-                             .pattern_override = 27,
-                             .x_offset_override = 28,
-                             .y_offset_override = 29};
+    ButtonProperties buttonp{1, 22, 23, 24, 25, 26, true, 27, 28, 29};
     manager.Set(ObjectProperty::ButtonProperties, buttonp);
 
     boost::archive::text_oarchive oa(ss);

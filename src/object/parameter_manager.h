@@ -466,8 +466,8 @@ class ParameterManager {
     ar & temp;
     Set(static_cast<ObjectProperty>(idx), std::move(temp));
   }
-  template <class Archive, size_t Null, size_t... I>
-  auto load_all_impl(Archive& ar, std::index_sequence<Null, I...> /*unused*/) {
+  template <class Archive, size_t... I>
+  auto load_all_impl(Archive& ar, std::index_sequence<I...> /*unused*/) {
     (load_one_impl<Archive, I>(ar), ...);
   }
   template <class Archive>
@@ -476,9 +476,8 @@ class ParameterManager {
                           ObjectProperty::TOTAL_COUNT)>{});
   }
 
-  template <class Archive, size_t Null, size_t... I>
-  void save_all_impl(Archive& ar,
-                     std::index_sequence<Null, I...> /*unused*/) const {
+  template <class Archive, size_t... I>
+  void save_all_impl(Archive& ar, std::index_sequence<I...> /*unused*/) const {
     ((ar & Get<static_cast<ObjectProperty>(I)>()), ...);
   }
   template <class Archive>

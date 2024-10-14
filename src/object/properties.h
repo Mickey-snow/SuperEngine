@@ -135,8 +135,7 @@ struct ButtonProperties {
   }
 };
 
-using ObjectPropertyType = TypeList<NullType,            // Index 0 (unused)
-                                    bool,                // IsVisible
+using ObjectPropertyType = TypeList<bool,                // IsVisible
                                     int,                 // PositionX
                                     int,                 // PositionY
                                     std::array<int, 8>,  // AdjustmentOffsetsX
@@ -175,7 +174,7 @@ using ObjectPropertyType = TypeList<NullType,            // Index 0 (unused)
                                     >;
 
 enum class ObjectProperty {
-  IsVisible = 1,
+  IsVisible = 0,
   PositionX,
   PositionY,
   AdjustmentOffsetsX,
