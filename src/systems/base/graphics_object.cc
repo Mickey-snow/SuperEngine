@@ -47,16 +47,13 @@
 #include "systems/base/object_mutator.h"
 #include "utilities/exception.h"
 
-const boost::shared_ptr<GraphicsObject::Impl> GraphicsObject::s_empty_impl(
-    new GraphicsObject::Impl);
-
 // -----------------------------------------------------------------------
 // GraphicsObject
 // -----------------------------------------------------------------------
-GraphicsObject::GraphicsObject() : impl_(s_empty_impl) {}
+GraphicsObject::GraphicsObject() = default;
+GraphicsObject::~GraphicsObject() = default;
 
-GraphicsObject::GraphicsObject(const GraphicsObject& rhs)
-    : impl_(rhs.impl_), param_(rhs.param_) {
+GraphicsObject::GraphicsObject(const GraphicsObject& rhs) : param_(rhs.param_) {
   if (rhs.object_data_) {
     object_data_.reset(rhs.object_data_->Clone());
     object_data_->set_owned_by(*this);
@@ -68,11 +65,8 @@ GraphicsObject::GraphicsObject(const GraphicsObject& rhs)
     object_mutators_.emplace_back(mutator->Clone());
 }
 
-GraphicsObject::~GraphicsObject() { DeleteObjectMutators(); }
-
 GraphicsObject& GraphicsObject::operator=(const GraphicsObject& rhs) {
   DeleteObjectMutators();
-  impl_ = rhs.impl_;
   param_ = rhs.param_;
 
   if (rhs.object_data_) {
@@ -116,8 +110,6 @@ GraphicsObjectData& GraphicsObject::GetObjectData() {
   }
 }
 void GraphicsObject::AddObjectMutator(std::unique_ptr<ObjectMutator> mutator) {
-  MakeImplUnique();
-
   // If there's a currently running mutator that matches the incoming mutator,
   // we ignore the incoming mutator. Kud Wafter's ED relies on this behavior.
   for (std::unique_ptr<ObjectMutator>& mutator_ptr : object_mutators_) {
@@ -178,12 +170,6 @@ std::vector<std::string> GraphicsObject::GetMutatorNames() const {
   return names;
 }
 
-void GraphicsObject::MakeImplUnique() {
-  if (!impl_.unique()) {
-    impl_.reset(new Impl(*impl_));
-  }
-}
-
 void GraphicsObject::DeleteObjectMutators() { object_mutators_.clear(); }
 
 void GraphicsObject::Render(int objNum, const GraphicsObject* parent) {
@@ -198,14 +184,12 @@ void GraphicsObject::FreeObjectData() {
 }
 
 void GraphicsObject::InitializeParams() {
-  impl_ = s_empty_impl;
   param_ = ParameterManager();
   DeleteObjectMutators();
 }
 
 void GraphicsObject::FreeDataAndInitializeParams() {
   object_data_.reset();
-  impl_ = s_empty_impl;
   param_ = ParameterManager();
   DeleteObjectMutators();
 }
@@ -226,72 +210,3 @@ void GraphicsObject::Execute(RLMachine& machine) {
     }
   }
 }
-
-template <class Archive>
-void GraphicsObject::serialize(Archive& ar, unsigned int version) {
-  ar & impl_ & object_data_;
-}
-
-// -----------------------------------------------------------------------
-
-template void GraphicsObject::serialize<boost::archive::text_oarchive>(
-    boost::archive::text_oarchive& ar,
-    unsigned int version);
-
-template void GraphicsObject::serialize<boost::archive::text_iarchive>(
-    boost::archive::text_iarchive& ar,
-    unsigned int version);
-
-// boost::serialization support
-template <class Archive>
-void GraphicsObject::Impl::serialize(Archive& ar, unsigned int version) {
-  ar & visible_ & x_ & y_ & whatever_adjust_vert_operates_on_ & origin_x_ &
-      origin_y_ & rep_origin_x_ & rep_origin_y_ & width_ & height_ & rotation_ &
-      patt_no_ & alpha_ & clip_ & mono_ & invert_ & tint_ & colour_ &
-      composite_mode_ & text_properties_ & wipe_copy_;
-
-  if (version > 0) {
-    ar & drift_properties_;
-  }
-
-  if (version > 1) {
-    ar & digit_properties_;
-  }
-
-  if (version > 2) {
-    ar & adjust_x_ & adjust_y_ & adjust_alpha_;
-  }
-
-  if (version > 3) {
-    ar & hq_width_ & hq_height_ & button_properties_;
-  }
-
-  if (version > 4) {
-    ar & own_clip_;
-  }
-
-  if (version > 5) {
-    ar & z_order_ & z_layer_ & z_depth_;
-  }
-
-  if (version < 7) {
-    // Before version 7, tint and colour were set incorrectly. Therefore the
-    // vast majority of values in save games were set incorrectly. Oops. Set to
-    // the default here.
-    tint_ = RGBColour::Black();
-    colour_ = RGBAColour::Clear();
-  }
-}
-
-// -----------------------------------------------------------------------
-
-// Explicit instantiations for text archives (since we hide the
-// implementation)
-
-template void GraphicsObject::Impl::serialize<boost::archive::text_oarchive>(
-    boost::archive::text_oarchive& ar,
-    unsigned int version);
-
-template void GraphicsObject::Impl::serialize<boost::archive::text_iarchive>(
-    boost::archive::text_iarchive& ar,
-    unsigned int version);

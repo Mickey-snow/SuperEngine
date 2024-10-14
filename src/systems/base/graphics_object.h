@@ -33,6 +33,7 @@
 #include <boost/serialization/version.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -50,8 +51,8 @@ class ObjectMutator;
 class GraphicsObject {
  public:
   GraphicsObject();
-  GraphicsObject(const GraphicsObject& obj);
   ~GraphicsObject();
+  GraphicsObject(const GraphicsObject& obj);
   GraphicsObject& operator=(const GraphicsObject& obj);
 
   ParameterManager& Param() { return param_; }
@@ -100,115 +101,9 @@ class GraphicsObject {
   // Returns a string for each mutator.
   std::vector<std::string> GetMutatorNames() const;
 
-  // Returns the number of GraphicsObject instances sharing the
-  // internal copy-on-write object. Only used in unit testing.
-  int32_t reference_count() const { return impl_.use_count(); }
-
-  // Whether we have the default shared data. Only used in unit testing.
-  bool is_cleared() const { return impl_ == s_empty_impl; }
-
  private:
-  // Makes the internal copy for our copy-on-write semantics. This function
-  // checks to see if our Impl object has only one reference to it. If it
-  // doesn't, a local copy is made.
-  void MakeImplUnique();
-
   // Immediately delete all mutators; doesn't run their SetToEnd() method.
   void DeleteObjectMutators();
-
-  // Implementation data structure. GraphicsObject::Impl is the internal data
-  // store for GraphicsObjects' copy-on-write semantics.
-  struct Impl {
-    // Visibility. Different from whether an object is in the bg or fg layer
-    bool visible_;
-
-    // The positional coordinates of the object
-    int x_, y_;
-
-    // Eight additional parameters that are added to x and y during
-    // rendering.
-    std::array<int, 8> adjust_x_, adjust_y_;
-
-    // Whatever obj_adjust_vert operates on; what's this used for?
-    int whatever_adjust_vert_operates_on_;
-
-    // The origin
-    int origin_x_, origin_y_;
-
-    // "Rep" origin. This second origin is added to the normal origin
-    // only in cases of rotating and scaling.
-    int rep_origin_x_, rep_origin_y_;
-
-    // The size of the object, given in integer percentages of [0,
-    // 100]. Used for scaling.
-    int width_, height_;
-
-    // A second scaling factor, given between [0, 1000].
-    int hq_width_, hq_height_;
-
-    // The rotation degree / 10
-    int rotation_;
-
-    // Object attributes.
-
-    // The region ("pattern") in g00 bitmaps
-    int patt_no_;
-
-    // The source alpha for this image
-    int alpha_;
-
-    // Eight additional alphas that are averaged during rendering.
-    std::array<int, 8> adjust_alpha_;
-
-    // The clipping region for this image
-    Rect clip_;
-
-    // A second clipping region in the object's own space.
-    Rect own_clip_;
-
-    // The monochrome transformation
-    int mono_;
-
-    // The invert transformation
-    int invert_;
-
-    int light_;
-
-    RGBColour tint_;
-
-    // Applies a colour to the object by blending it directly at the
-    // alpha components opacity.
-    RGBAColour colour_;
-
-    int composite_mode_;
-
-    int scroll_rate_x_, scroll_rate_y_;
-
-    // Three deep zordering.
-    int z_order_, z_layer_, z_depth_;
-
-    TextProperties text_properties_;
-
-    DriftProperties drift_properties_;
-
-    DigitProperties digit_properties_;
-
-    ButtonProperties button_properties_;
-
-    // The wipe_copy bit
-    int wipe_copy_;
-
-    friend class boost::serialization::access;
-    // boost::serialization support
-    template <class Archive>
-    void serialize(Archive& ar, unsigned int version);
-  };
-  // Default empty GraphicsObject::Impl. This variable is allocated
-  // once, and then is used as the initial value of impl_, where it
-  // is cloned on write.
-  static const boost::shared_ptr<GraphicsObject::Impl> s_empty_impl;
-  // Our actual implementation data
-  boost::shared_ptr<GraphicsObject::Impl> impl_;
 
   // Class to manage the actual implementation data
   ParameterManager param_;
@@ -223,14 +118,20 @@ class GraphicsObject {
   // RLMAX SDK.
   std::vector<std::unique_ptr<ObjectMutator>> object_mutators_;
 
+  // boost::serialization support
   friend class boost::serialization::access;
 
-  // boost::serialization support
   template <class Archive>
-  void serialize(Archive& ar, unsigned int version);
+  void serialize(Archive& ar, unsigned int version) {
+    if (version < 1)
+      throw std::runtime_error(
+          "GraphicsObject: serialization for version<1 is unsupported.");
+
+    std::cerr << "Currently under construction." << std::endl;
+  }
 };
 
-BOOST_CLASS_VERSION(GraphicsObject::Impl, 7)
+BOOST_CLASS_VERSION(GraphicsObject, 1)
 
 enum { OBJ_FG = 0, OBJ_BG = 1 };
 
