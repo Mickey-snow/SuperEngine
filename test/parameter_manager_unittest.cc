@@ -25,6 +25,9 @@
 
 #include "object/parameter_manager.h"
 
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
+
 TEST(ParameterManagerTest, DefaultInit) {
   ParameterManager default_param;
 
@@ -318,4 +321,96 @@ TEST(ParameterManagerTest, SetterProxy) {
   repnoSetter(manager, 3, -12);
   EXPECT_EQ(manager.Get<ObjectProperty::AdjustmentOffsetsY>(),
             (std::array<int, 8>{0, 0, 24, -12}));
+}
+
+TEST(ParameterManagerTest, Serialization) {
+  std::stringstream ss;
+
+  {
+    ParameterManager manager;
+    manager.Set(ObjectProperty::IsVisible, true);
+    manager.Set(ObjectProperty::PositionX, 50);
+    manager.Set(ObjectProperty::PositionY, 100);
+    manager.Set(ObjectProperty::AdjustmentOffsetsX, (std::array<int, 8>{5, 0}));
+    manager.Set(ObjectProperty::AdjustmentOffsetsY,
+                (std::array<int, 8>{10, -10, 0}));
+    manager.Set(ObjectProperty::BlendColour, RGBAColour(1, 2, 3, 4));
+    manager.Set(ObjectProperty::TintColour, RGBColour(5, 6, 7));
+
+    auto textp = TextProperties{.value = "This is a sample text.",
+                                .text_size = 1,
+                                .xspace = 2,
+                                .yspace = 3,
+                                .char_count = 4,
+                                .colour = 5,
+                                .shadow_colour = 6};
+    manager.Set(ObjectProperty::TextProperties, textp);
+
+    DriftProperties driftp{.count = 1,
+                           .use_animation = 2,
+                           .start_pattern = 3,
+                           .end_pattern = 4,
+                           .total_animation_time_ms = 5,
+                           .yspeed = 6,
+                           .period = 7,
+                           .amplitude = 8,
+                           .use_drift = 9,
+                           .unknown_drift_property = 10,
+                           .driftspeed = 11,
+                           .drift_area = Rect::GRP(12, 13, 14, 15)};
+    manager.Set(ObjectProperty::DriftProperties, driftp);
+
+    DigitProperties digitp{.value = 16,
+                           .digits = 17,
+                           .zero = 18,
+                           .sign = 19,
+                           .pack = 20,
+                           .space = 21};
+    manager.Set(ObjectProperty::DigitProperties, digitp);
+
+    ButtonProperties buttonp{.is_button = 1,
+                             .action = 22,
+                             .se = 23,
+                             .group = 24,
+                             .button_number = 25,
+                             .state = 26,
+                             .using_overides = true,
+                             .pattern_override = 27,
+                             .x_offset_override = 28,
+                             .y_offset_override = 29};
+    manager.Set(ObjectProperty::ButtonProperties, buttonp);
+
+    boost::archive::text_oarchive oa(ss);
+    oa << manager;
+  }
+
+  {
+    boost::archive::text_iarchive ia(ss);
+    ParameterManager deserialized;
+
+    ia >> deserialized;
+    EXPECT_TRUE(deserialized.Get<ObjectProperty::IsVisible>());
+    EXPECT_EQ(deserialized.Get<ObjectProperty::PositionX>(), 50);
+    EXPECT_EQ(deserialized.Get<ObjectProperty::PositionY>(), 100);
+    EXPECT_EQ(deserialized.Get<ObjectProperty::AdjustmentOffsetsX>()[0], 5);
+    EXPECT_EQ(deserialized.Get<ObjectProperty::AdjustmentOffsetsY>()[1], -10);
+    EXPECT_EQ(deserialized.Get<ObjectProperty::BlendColour>(),
+              RGBAColour(1, 2, 3, 4));
+    EXPECT_EQ(deserialized.Get<ObjectProperty::TintColour>(),
+              RGBColour(5, 6, 7));
+    EXPECT_EQ(deserialized.Get<ObjectProperty::TextProperties>().ToString(),
+              "value=\"This is a sample text.\", text_size=1, xspace=2, "
+              "yspace=3, char_count=4, colour=5, shadow_colour=6");
+    EXPECT_EQ(deserialized.Get<ObjectProperty::DriftProperties>().ToString(),
+              "count=1, use_animation=2, start_pattern=3, end_pattern=4, "
+              "total_animation_time_ms=5, yspeed=6, period=7, amplitude=8, "
+              "use_drift=9, unknown_drift_property=10, driftspeed=11, "
+              "drift_area={Rect(12, 13, Size(2, 2))}");
+    EXPECT_EQ(deserialized.Get<ObjectProperty::DigitProperties>().ToString(),
+              "value=16, digits=17, zero=18, sign=19, pack=20, space=21");
+    EXPECT_EQ(deserialized.Get<ObjectProperty::ButtonProperties>().ToString(),
+              "is_button=1, action=22, se=23, group=24, button_number=25, "
+              "state=26, using_overides=true, pattern_override=27, "
+              "x_offset_override=28, y_offset_override=29");
+  }
 }

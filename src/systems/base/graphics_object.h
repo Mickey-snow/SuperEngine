@@ -46,8 +46,7 @@ class GraphicsObjectSlot;
 class GraphicsObjectData;
 class ObjectMutator;
 
-// Describes an independent, movable graphical object on the
-// screen.
+// Describes an graphical object on the screen.
 class GraphicsObject {
  public:
   GraphicsObject();

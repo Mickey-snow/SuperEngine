@@ -31,6 +31,11 @@
 
 #include <functional>
 #include <numeric>
+#include <utility>
+
+#include <boost/serialization/array.hpp>
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/split_member.hpp>
 
 extern const Rect EMPTY_RECT;
 
@@ -449,6 +454,38 @@ class ParameterManager {
 
  private:
   Scapegoat bst_;
+
+  // boost serialization support
+  friend class boost::serialization::access;
+  BOOST_SERIALIZATION_SPLIT_MEMBER();
+
+  template <class Archive, size_t idx>
+  void load_one_impl(Archive& ar) {
+    using T = typename GetNthType<idx, ObjectPropertyType>::type;
+    T temp;
+    ar & temp;
+    Set(static_cast<ObjectProperty>(idx), std::move(temp));
+  }
+  template <class Archive, size_t Null, size_t... I>
+  auto load_all_impl(Archive& ar, std::index_sequence<Null, I...> /*unused*/) {
+    (load_one_impl<Archive, I>(ar), ...);
+  }
+  template <class Archive>
+  void load(Archive& ar, const unsigned int version) {
+    load_all_impl(ar, std::make_index_sequence<static_cast<size_t>(
+                          ObjectProperty::TOTAL_COUNT)>{});
+  }
+
+  template <class Archive, size_t Null, size_t... I>
+  void save_all_impl(Archive& ar,
+                     std::index_sequence<Null, I...> /*unused*/) const {
+    ((ar & Get<static_cast<ObjectProperty>(I)>()), ...);
+  }
+  template <class Archive>
+  void save(Archive& ar, const unsigned int version) const {
+    save_all_impl(ar, std::make_index_sequence<static_cast<size_t>(
+                          ObjectProperty::TOTAL_COUNT)>{});
+  }
 };
 
 template <ObjectProperty p>
