@@ -43,8 +43,8 @@
 #include <string>
 #include <vector>
 
-#include "systems/base/graphics_object_data.h"
 #include "object/mutator.h"
+#include "systems/base/graphics_object_data.h"
 #include "utilities/exception.h"
 
 // -----------------------------------------------------------------------
@@ -140,7 +140,7 @@ void GraphicsObject::EndObjectMutatorMatching(RLMachine& machine,
         object_mutators_.begin();
     while (it != object_mutators_.end()) {
       if ((*it)->OperationMatches(repno, name)) {
-        (*it)->SetToEnd(machine, *this);
+        (*it)->SetToEnd(*this);
         it = object_mutators_.erase(it);
       } else {
         ++it;

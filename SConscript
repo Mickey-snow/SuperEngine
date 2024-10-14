@@ -163,6 +163,7 @@ librlvm_files = [
   "src/object/properties.cc",
   "src/object/parameter_manager.cc",
   "src/object/mutator.cc",
+  "src/object/service_locator.cc",
 
   "src/systems/base/anm_graphics_object_data.cc",
   "src/systems/base/colour.cc",
