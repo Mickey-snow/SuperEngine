@@ -84,21 +84,21 @@ std::shared_ptr<const Surface> DigitsGraphicsObject::CurrentSurface(
 }
 
 void DigitsGraphicsObject::UpdateSurface(const GraphicsObject& rp) {
-  auto& param = rp.Param();
+  auto digit_param = rp.Param().Get<ObjectProperty::DigitProperties>();
 
-  value_ = param.GetDigitValue();
+  value_ = digit_param.value;
 
   // Calculate the size our canvas will have to be.
-  int digit_pixel_width = param.GetDigitSpace()
-                              ? param.GetDigitSpace()
+  int digit_pixel_width = digit_param.space
+                              ? digit_param.space
                               : font_->GetPattern(0).rect.size().width();
   int num_chars = 0;
-  for (int a = value_; a > 0; a = a / 10, num_chars++) {
-  }
-  num_chars = std::max(num_chars, param.GetDigitDigits());
+  for (int a = value_; a > 0; a /= 10)
+    ++num_chars;
+  num_chars = std::max(num_chars, digit_param.digits);
 
   int num_extra = 0;
-  if (value_ < 0 || param.GetDigitSign())
+  if (value_ < 0 || digit_param.sign)
     num_extra++;
 
   int total_pixel_width = (num_chars + num_extra) * digit_pixel_width;
@@ -126,7 +126,7 @@ void DigitsGraphicsObject::UpdateSurface(const GraphicsObject& rp) {
   } while (i > 0);
 
   const GrpRect& zero_grp = font_->GetPattern(0);
-  bool print_zeros = param.GetDigitZero();
+  bool print_zeros = digit_param.zero;
   while (printed < num_chars) {
     if (print_zeros) {
       font_->BlitToSurface(*surface_, zero_grp.rect,
@@ -136,7 +136,7 @@ void DigitsGraphicsObject::UpdateSurface(const GraphicsObject& rp) {
     x_offset -= digit_pixel_width;
   }
 
-  if (value_ < 0 || param.GetDigitSign()) {
+  if (value_ < 0 || digit_param.sign) {
     std::cerr << "We don't support negative numbers in objOfDigits() yet."
               << std::endl;
   }

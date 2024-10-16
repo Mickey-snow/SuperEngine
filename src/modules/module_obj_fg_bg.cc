@@ -660,10 +660,10 @@ void addObjectFunctions(RLModule& m) {
   m.AddOpcode(1035, 1, "objDispCorner", new dispArea_1);
   m.AddOpcode(1035, 2, "objDispCorner", new dispCorner_1);
 
-  m.AddOpcode(1037, 0, "objSetDigits",
+  m.AddOpcode(1037, 0, "objSetDigitValue",
               new Obj_SetOneIntOnObj([](ParameterManager& param, int value) {
                 auto digit = param.Get<ObjectProperty::DigitProperties>();
-                digit.digits = value;
+                digit.value = value;
                 param.Set(ObjectProperty::DigitProperties, std::move(digit));
               }));
   m.AddOpcode(1038, 0, "objNumOpts", new objNumOpts);
