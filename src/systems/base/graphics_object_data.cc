@@ -110,7 +110,6 @@ void GraphicsObjectData::Render(const GraphicsObject& go,
       src = src.ApplyInset(inset);
     }
 
-    // TODO(erg): Do we want to skip this if no alpha?
     surface->RenderToScreenAsObject(go, src, dst, alpha);
   }
 }
@@ -135,21 +134,6 @@ void GraphicsObjectData::EndAnimation() {
       LoopAnimation();
       break;
     }
-  }
-}
-
-void GraphicsObjectData::PrintStringVector(
-    const std::vector<std::string>& names,
-    std::ostream* oss) {
-  bool first = true;
-
-  for (auto const& name : names) {
-    if (!first)
-      *oss << ", ";
-    else
-      first = false;
-
-    *oss << name;
   }
 }
 

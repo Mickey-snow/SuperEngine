@@ -36,10 +36,10 @@
 #include "machine/serialization.h"
 #include "systems/base/anm_graphics_object_data.h"
 
-#include <iterator>
 #include <fstream>
-#include <string>
+#include <iterator>
 #include <sstream>
+#include <string>
 #include <vector>
 
 #include "libreallive/alldefs.h"
@@ -143,12 +143,10 @@ void AnmGraphicsObjectData::LoadAnmFileFromData(
     buf += 0x60;
   }
 
-  ReadIntegerList(
-      data + 0xb8 + frames_len * 0x60, 0x68, framelist_len, framelist_);
-  ReadIntegerList(data + 0xb8 + frames_len * 0x60 + framelist_len * 0x68,
-                  0x78,
-                  animation_set_len,
-                  animation_set_);
+  ReadIntegerList(data + 0xb8 + frames_len * 0x60, 0x68, framelist_len,
+                  framelist_);
+  ReadIntegerList(data + 0xb8 + frames_len * 0x60 + framelist_len * 0x68, 0x78,
+                  animation_set_len, animation_set_);
 }
 
 void AnmGraphicsObjectData::ReadIntegerList(
@@ -196,9 +194,7 @@ void AnmGraphicsObjectData::Execute(RLMachine& machine) {
     AdvanceFrame();
 }
 
-bool AnmGraphicsObjectData::IsAnimation() const {
-  return true;
-}
+bool AnmGraphicsObjectData::IsAnimation() const { return true; }
 
 void AnmGraphicsObjectData::AdvanceFrame() {
   // Do things that advance the state
@@ -281,34 +277,28 @@ Rect AnmGraphicsObjectData::DstRect(const GraphicsObject& go,
   if (current_frame_ != -1) {
     // TODO(erg): Should this account for either |go| or |parent|?
     const Frame& frame = frames.at(current_frame_);
-    return Rect::REC(frame.dest_x,
-                     frame.dest_y,
-                     (frame.src_x2 - frame.src_x1),
+    return Rect::REC(frame.dest_x, frame.dest_y, (frame.src_x2 - frame.src_x1),
                      (frame.src_y2 - frame.src_y1));
   }
 
   return Rect();
 }
 
-void AnmGraphicsObjectData::ObjectInfo(std::ostream& tree) {
-  tree << "  ANM file: " << filename_ << std::endl;
-}
-
 template <class Archive>
 void AnmGraphicsObjectData::load(Archive& ar, unsigned int version) {
   ar& boost::serialization::base_object<GraphicsObjectData>(*this);
 
-  ar& filename_;
+  ar & filename_;
 
   // Reconstruct the ANM data from whatever file was linked.
   LoadAnmFile();
 
   // Now load the rest of the data.
-  ar& currently_playing_& current_set_;
+  ar & currently_playing_ & current_set_;
 
   // Reconstruct the cur_* variables from their
   int cur_frame_set, current_frame;
-  ar& cur_frame_set& current_frame;
+  ar & cur_frame_set & current_frame;
 
   cur_frame_set_ = animation_set_.at(current_set_).begin();
   advance(cur_frame_set_, cur_frame_set);
@@ -322,7 +312,7 @@ void AnmGraphicsObjectData::load(Archive& ar, unsigned int version) {
 template <class Archive>
 void AnmGraphicsObjectData::save(Archive& ar, unsigned int version) const {
   ar& boost::serialization::base_object<GraphicsObjectData>(*this);
-  ar& filename_& currently_playing_& current_set_;
+  ar & filename_ & currently_playing_ & current_set_;
 
   // Figure out what set we're playing, which
   int cur_frame_set =
@@ -330,7 +320,7 @@ void AnmGraphicsObjectData::save(Archive& ar, unsigned int version) const {
   int current_frame =
       distance(framelist_.at(*cur_frame_set_).begin(), cur_frame_);
 
-  ar& cur_frame_set& current_frame;
+  ar & cur_frame_set & current_frame;
 }
 
 // -----------------------------------------------------------------------

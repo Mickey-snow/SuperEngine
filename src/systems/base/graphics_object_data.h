@@ -40,9 +40,6 @@ class RLMachine;
 class Rect;
 class Surface;
 
-// Describes what is rendered in a graphics object; Subclasses will
-// store image or text data that need to be associated with a
-// GraphicsObject.
 class GraphicsObjectData {
  public:
   enum AfterAnimation { AFTER_NONE, AFTER_CLEAR, AFTER_LOOP };
@@ -52,10 +49,9 @@ class GraphicsObjectData {
   explicit GraphicsObjectData(const GraphicsObjectData& obj);
   virtual ~GraphicsObjectData();
 
-  void set_after_action(AfterAnimation after) { after_animation_ = after; }
-
   void set_owned_by(GraphicsObject& godata) { owned_by_ = &godata; }
 
+  void set_after_action(AfterAnimation after) { after_animation_ = after; }
   void set_is_currently_playing(bool in) { currently_playing_ = in; }
   bool is_currently_playing() const { return currently_playing_; }
 
@@ -63,25 +59,24 @@ class GraphicsObjectData {
   // afterAnimation() is set to AFTER_NONE.)
   bool animation_finished() const { return animation_finished_; }
 
+  virtual bool IsAnimation() const;
+  virtual void PlaySet(int set);
+
   virtual void Render(const GraphicsObject& go, const GraphicsObject* parent);
 
   virtual int PixelWidth(const GraphicsObject& rendering_properties) = 0;
   virtual int PixelHeight(const GraphicsObject& rendering_properties) = 0;
+  // Returns the destination rectangle on the screen to draw srcRect()
+  // to. Override to return custom rectangles in the case of a custom animation
+  // format.
+  virtual Rect DstRect(const GraphicsObject& go, const GraphicsObject* parent);
 
   virtual GraphicsObjectData* Clone() const = 0;
 
   virtual void Execute(RLMachine& machine) = 0;
 
-  virtual bool IsAnimation() const;
-  virtual void PlaySet(int set);
-
   // Whether this object data owns another layer of objects.
   virtual bool IsParentLayer() const;
-
-  // Returns the destination rectangle on the screen to draw srcRect()
-  // to. Override to return custom rectangles in the case of a custom animation
-  // format.
-  virtual Rect DstRect(const GraphicsObject& go, const GraphicsObject* parent);
 
  protected:
   // Function called after animation ends when this object has been
@@ -91,11 +86,6 @@ class GraphicsObjectData {
   // Takes the specified action when we've reached the last frame of
   // animation.
   void EndAnimation();
-
-  void PrintGraphicsObjectToTree(const GraphicsObject& go);
-
-  void PrintStringVector(const std::vector<std::string>& names,
-                         std::ostream* oss);
 
   // Template method used during rendering to get the surface to render.
   // Return a null shared_ptr to disable rendering.
@@ -114,9 +104,6 @@ class GraphicsObjectData {
   // the GraphicsObject.
   virtual int GetRenderingAlpha(const GraphicsObject& go,
                                 const GraphicsObject* parent);
-
-  // Prints a description of this object for the RenderTree log.
-  virtual void ObjectInfo(std::ostream& tree) = 0;
 
  private:
   // Policy of what to do after an animation is finished.

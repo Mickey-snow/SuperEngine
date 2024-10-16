@@ -45,11 +45,6 @@ GraphicsObject& GetGraphicsObject(RLMachine& machine, RLOperation* op, int obj);
 LazyArray<GraphicsObject>& GetGraphicsObjects(RLMachine& machine,
                                               RLOperation* op);
 
-void SetGraphicsObject(RLMachine& machine,
-                       RLOperation* op,
-                       int obj,
-                       GraphicsObject& gobj);
-
 // -----------------------------------------------------------------------
 
 // Special adapter to make any of obj* and objBg* operation structs

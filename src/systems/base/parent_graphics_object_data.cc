@@ -93,10 +93,6 @@ std::shared_ptr<const Surface> ParentGraphicsObjectData::CurrentSurface(
   return std::shared_ptr<const Surface>();
 }
 
-void ParentGraphicsObjectData::ObjectInfo(std::ostream& tree) {
-  tree << "ParentGraphicsObjectData::objectInfo is a TODO";
-}
-
 ParentGraphicsObjectData::ParentGraphicsObjectData() : objects_(0) {}
 
 template <class Archive>

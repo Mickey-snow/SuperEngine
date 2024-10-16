@@ -98,13 +98,7 @@ class GraphicsObject {
                                 const std::string& name,
                                 int speedup);
 
-  // Returns a string for each mutator.
-  std::vector<std::string> GetMutatorNames() const;
-
  private:
-  // Immediately delete all mutators; doesn't run their SetToEnd() method.
-  void DeleteObjectMutators();
-
   // Class to manage the actual implementation data
   ParameterManager param_;
 

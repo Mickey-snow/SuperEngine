@@ -78,7 +78,6 @@ class GanGraphicsObjectData : public GraphicsObjectData {
   virtual Point DstOrigin(const GraphicsObject& go) override;
   virtual int GetRenderingAlpha(const GraphicsObject& go,
                                 const GraphicsObject* parent) override;
-  virtual void ObjectInfo(std::ostream&) override;
 
  private:
   struct Frame {

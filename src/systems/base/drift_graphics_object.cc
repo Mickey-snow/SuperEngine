@@ -198,10 +198,6 @@ std::shared_ptr<const Surface> DriftGraphicsObject::CurrentSurface(
   return surface_;
 }
 
-void DriftGraphicsObject::ObjectInfo(std::ostream& tree) {
-  tree << "  Drift image: " << filename_ << std::endl;
-}
-
 void DriftGraphicsObject::LoadFile() {
   surface_ = system_.graphics().GetSurfaceNamed(filename_);
   surface_->EnsureUploaded();

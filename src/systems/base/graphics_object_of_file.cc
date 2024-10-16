@@ -116,7 +116,7 @@ GraphicsObjectData* GraphicsObjectOfFile::Clone() const {
 
 // -----------------------------------------------------------------------
 
-void GraphicsObjectOfFile::Execute(RLMachine& machine) {
+void GraphicsObjectOfFile::Execute(RLMachine&) {
   if (is_currently_playing()) {
     unsigned int current_time = system_.event().GetTicks();
     unsigned int time_since_last_frame_change =
@@ -163,12 +163,6 @@ Rect GraphicsObjectOfFile::SrcRect(const GraphicsObject& go) {
   }
 
   return GraphicsObjectData::SrcRect(go);
-}
-
-// -----------------------------------------------------------------------
-
-void GraphicsObjectOfFile::ObjectInfo(std::ostream& tree) {
-  tree << "  Image: " << filename_ << std::endl;
 }
 
 // -----------------------------------------------------------------------

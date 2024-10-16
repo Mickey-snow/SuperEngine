@@ -114,12 +114,6 @@ std::shared_ptr<const Surface> GraphicsTextObject::CurrentSurface(
 
 // -----------------------------------------------------------------------
 
-void GraphicsTextObject::ObjectInfo(std::ostream& tree) {
-  tree << "  Text: \"" << cached_utf8_str_ << "\"" << std::endl;
-}
-
-// -----------------------------------------------------------------------
-
 int GraphicsTextObject::PixelWidth(const GraphicsObject& rp) {
   auto& param = rp.Param();
 

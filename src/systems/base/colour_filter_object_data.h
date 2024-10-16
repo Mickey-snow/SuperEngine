@@ -66,7 +66,6 @@ class ColourFilterObjectData : public GraphicsObjectData {
  protected:
   virtual std::shared_ptr<const Surface> CurrentSurface(
       const GraphicsObject& rp) override;
-  virtual void ObjectInfo(std::ostream& tree) override;
 
  private:
   GraphicsSystem& graphics_system_;

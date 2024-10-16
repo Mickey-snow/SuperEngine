@@ -95,10 +95,6 @@ std::shared_ptr<const Surface> ColourFilterObjectData::CurrentSurface(
   return std::shared_ptr<const Surface>();
 }
 
-void ColourFilterObjectData::ObjectInfo(std::ostream& tree) {
-  tree << "ColourFilterObjectData(" << screen_rect_ << ")" << std::endl;
-}
-
 ColourFilterObjectData::ColourFilterObjectData(System& system)
     : graphics_system_(system.graphics()) {}
 

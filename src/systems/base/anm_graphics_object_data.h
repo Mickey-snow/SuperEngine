@@ -68,8 +68,6 @@ class AnmGraphicsObjectData : public GraphicsObjectData {
   virtual Rect DstRect(const GraphicsObject& go,
                        const GraphicsObject* parent) override;
 
-  virtual void ObjectInfo(std::ostream& tree) override;
-
  private:
   // Advance the position in the animation.
   void AdvanceFrame();

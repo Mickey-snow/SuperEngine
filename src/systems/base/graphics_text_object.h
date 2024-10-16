@@ -60,7 +60,6 @@ class GraphicsTextObject : public GraphicsObjectData {
  protected:
   virtual std::shared_ptr<const Surface> CurrentSurface(
       const GraphicsObject& go) override;
-  virtual void ObjectInfo(std::ostream& tree) override;
 
  private:
   // Current machine context.
@@ -100,7 +99,7 @@ inline void load_construct_data(Archive& ar,
                                 const unsigned int file_version) {
   ::new (t) GraphicsTextObject(Serialization::g_current_machine->system());
 }
-}
-}
+}  // namespace serialization
+}  // namespace boost
 
 #endif  // SRC_SYSTEMS_BASE_GRAPHICS_TEXT_OBJECT_H_

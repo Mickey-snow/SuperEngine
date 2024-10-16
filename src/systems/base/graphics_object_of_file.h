@@ -71,7 +71,6 @@ class GraphicsObjectOfFile : public GraphicsObjectData {
   virtual std::shared_ptr<const Surface> CurrentSurface(
       const GraphicsObject& go) override;
   virtual Rect SrcRect(const GraphicsObject& go) override;
-  virtual void ObjectInfo(std::ostream&) override;
 
  private:
   // Private constructor for cloning
@@ -122,7 +121,7 @@ inline void load_construct_data(Archive& ar,
                                 const unsigned int file_version) {
   ::new (t) GraphicsObjectOfFile(Serialization::g_current_machine->system());
 }
-}
-}
+}  // namespace serialization
+}  // namespace boost
 
 #endif  // SRC_SYSTEMS_BASE_GRAPHICS_OBJECT_OF_FILE_H_

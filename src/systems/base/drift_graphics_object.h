@@ -69,7 +69,6 @@ class DriftGraphicsObject : public GraphicsObjectData {
  protected:
   virtual std::shared_ptr<const Surface> CurrentSurface(
       const GraphicsObject& go) override;
-  virtual void ObjectInfo(std::ostream& tree) override;
 
  private:
   // Individual particle on screen.

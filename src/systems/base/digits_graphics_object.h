@@ -55,7 +55,6 @@ class DigitsGraphicsObject : public GraphicsObjectData {
  protected:
   virtual std::shared_ptr<const Surface> CurrentSurface(
       const GraphicsObject& go) override;
-  virtual void ObjectInfo(std::ostream&) override;
 
  private:
   void UpdateSurface(const GraphicsObject& rp);
@@ -95,7 +94,7 @@ inline void load_construct_data(Archive& ar,
                                 const unsigned int file_version) {
   ::new (t) DigitsGraphicsObject(Serialization::g_current_machine->system());
 }
-}
-}
+}  // namespace serialization
+}  // namespace boost
 
 #endif  // SRC_SYSTEMS_BASE_DIGITS_GRAPHICS_OBJECT_H_

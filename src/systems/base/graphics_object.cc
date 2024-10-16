@@ -66,7 +66,7 @@ GraphicsObject::GraphicsObject(const GraphicsObject& rhs) : param_(rhs.param_) {
 }
 
 GraphicsObject& GraphicsObject::operator=(const GraphicsObject& rhs) {
-  DeleteObjectMutators();
+  object_mutators_.clear();
   param_ = rhs.param_;
 
   if (rhs.object_data_) {
@@ -155,23 +155,6 @@ void GraphicsObject::EndObjectMutatorMatching(RLMachine& machine,
   }
 }
 
-std::vector<std::string> GraphicsObject::GetMutatorNames() const {
-  std::vector<std::string> names;
-
-  names.reserve(object_mutators_.size());
-  for (auto& mutator : object_mutators_) {
-    std::ostringstream oss;
-    oss << mutator->name();
-    if (mutator->repr() != -1)
-      oss << "/" << mutator->repr();
-    names.push_back(oss.str());
-  }
-
-  return names;
-}
-
-void GraphicsObject::DeleteObjectMutators() { object_mutators_.clear(); }
-
 void GraphicsObject::Render(int objNum, const GraphicsObject* parent) {
   if (object_data_ && Param().visible()) {
     object_data_->Render(*this, parent);
@@ -180,18 +163,18 @@ void GraphicsObject::Render(int objNum, const GraphicsObject* parent) {
 
 void GraphicsObject::FreeObjectData() {
   object_data_.reset();
-  DeleteObjectMutators();
+  object_mutators_.clear();
 }
 
 void GraphicsObject::InitializeParams() {
   param_ = ParameterManager();
-  DeleteObjectMutators();
+  object_mutators_.clear();
 }
 
 void GraphicsObject::FreeDataAndInitializeParams() {
   object_data_.reset();
   param_ = ParameterManager();
-  DeleteObjectMutators();
+  object_mutators_.clear();
 }
 
 void GraphicsObject::Execute(RLMachine& machine) {

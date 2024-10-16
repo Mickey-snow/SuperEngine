@@ -89,27 +89,6 @@ LazyArray<GraphicsObject>& GetGraphicsObjects(RLMachine& machine,
   }
 }
 
-void SetGraphicsObject(RLMachine& machine,
-                       RLOperation* op,
-                       int obj,
-                       GraphicsObject& gobj) {
-  GraphicsSystem& graphics = machine.system().graphics();
-
-  int fgbg;
-  if (!op->GetProperty(P_FGBG, fgbg))
-    fgbg = OBJ_FG;
-
-  int parentobj;
-  if (op->GetProperty(P_PARENTOBJ, parentobj)) {
-    GraphicsObject& parent = graphics.GetObject(fgbg, parentobj);
-    EnsureIsParentObject(parent, graphics.GetObjectLayerSize());
-    static_cast<ParentGraphicsObjectData&>(parent.GetObjectData())
-        .SetObject(obj, gobj);
-  } else {
-    graphics.SetObject(fgbg, obj, gobj);
-  }
-}
-
 // -----------------------------------------------------------------------
 
 ObjRangeAdapter::ObjRangeAdapter(RLOperation* in) : handler(in) {}

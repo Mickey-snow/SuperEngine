@@ -83,10 +83,6 @@ std::shared_ptr<const Surface> DigitsGraphicsObject::CurrentSurface(
   return surface_;
 }
 
-void DigitsGraphicsObject::ObjectInfo(std::ostream& oss) {
-  oss << "  Digits: \"" << value_ << "\"" << std::endl;
-}
-
 void DigitsGraphicsObject::UpdateSurface(const GraphicsObject& rp) {
   auto& param = rp.Param();
 
