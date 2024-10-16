@@ -208,7 +208,7 @@ struct isGanDonePlaying : public RLStoreOpcode<IntConstant_T> {
     if (obj.has_object_data()) {
       GraphicsObjectData& data = obj.GetObjectData();
       if (data.IsAnimation()) {
-        if (data.animation_finished()) {
+        if (data.is_animation_finished()) {
           return 0;
         } else {
           return 1;

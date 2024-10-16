@@ -25,13 +25,13 @@
 //
 // -----------------------------------------------------------------------
 
+#include "graphics_object.h"
+#include "object/mutator.h"
+#include "systems/base/graphics_object_data.h"
+#include "utilities/exception.h"
+
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
-
-// -----------------------------------------------------------------------
-
-#include "systems/base/graphics_object.h"
-
 #include <boost/serialization/array.hpp>
 #include <boost/serialization/scoped_ptr.hpp>
 #include <boost/serialization/shared_ptr.hpp>
@@ -42,10 +42,6 @@
 #include <sstream>
 #include <string>
 #include <vector>
-
-#include "object/mutator.h"
-#include "systems/base/graphics_object_data.h"
-#include "utilities/exception.h"
 
 // -----------------------------------------------------------------------
 // GraphicsObject
@@ -58,7 +54,6 @@ GraphicsObject GraphicsObject::Clone() const {
   result.param_ = param_;
   if (object_data_) {
     result.object_data_.reset(object_data_->Clone());
-    result.object_data_->set_owned_by(result);
   }
 
   for (const auto& mutator : object_mutators_)
@@ -71,7 +66,6 @@ GraphicsObject::GraphicsObject(GraphicsObject&& rhs)
     : param_(rhs.param_), object_data_(nullptr), object_mutators_() {
   if (rhs.object_data_) {
     object_data_ = std::move(rhs.object_data_);
-    object_data_->set_owned_by(*this);
   }
   object_mutators_ = std::move(rhs.object_mutators_);
 
@@ -82,7 +76,6 @@ GraphicsObject& GraphicsObject::operator=(GraphicsObject&& rhs) {
   param_ = rhs.param_;
   if (rhs.object_data_) {
     object_data_ = std::move(rhs.object_data_);
-    object_data_->set_owned_by(*this);
   } else {
     object_data_ = nullptr;
   }
@@ -95,7 +88,6 @@ GraphicsObject& GraphicsObject::operator=(GraphicsObject&& rhs) {
 
 void GraphicsObject::SetObjectData(GraphicsObjectData* obj) {
   object_data_.reset(obj);
-  object_data_->set_owned_by(*this);
 }
 
 int GraphicsObject::PixelWidth() const {
@@ -191,6 +183,12 @@ void GraphicsObject::FreeDataAndInitializeParams() {
 void GraphicsObject::Execute(RLMachine& machine) {
   if (object_data_) {
     object_data_->Execute(machine);
+    auto should_delete = [](GraphicsObjectData* it) -> bool {
+      return it->is_animation_finished() &&
+             it->get_after_action() == GraphicsObjectData::AFTER_CLEAR;
+    };
+    if (should_delete(object_data_.get()))
+      object_data_ = nullptr;
   }
 
   // Run each mutator. If it returns true, remove it.

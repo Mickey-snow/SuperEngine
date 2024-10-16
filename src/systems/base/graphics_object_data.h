@@ -49,15 +49,12 @@ class GraphicsObjectData {
   explicit GraphicsObjectData(const GraphicsObjectData& obj);
   virtual ~GraphicsObjectData();
 
-  void set_owned_by(GraphicsObject& godata) { owned_by_ = &godata; }
-
   void set_after_action(AfterAnimation after) { after_animation_ = after; }
+  AfterAnimation get_after_action() const { return after_animation_; }
   void set_is_currently_playing(bool in) { currently_playing_ = in; }
   bool is_currently_playing() const { return currently_playing_; }
-
-  // Returns when an animation has completed. (This only returns true when
-  // afterAnimation() is set to AFTER_NONE.)
-  bool animation_finished() const { return animation_finished_; }
+  bool is_animation_finished() const { return animation_finished_; }
+  void set_animation_finished(bool in) { animation_finished_ = in; }
 
   virtual bool IsAnimation() const;
   virtual void PlaySet(int set);
@@ -109,11 +106,9 @@ class GraphicsObjectData {
   // Policy of what to do after an animation is finished.
   AfterAnimation after_animation_;
 
-  GraphicsObject* owned_by_;
-
   bool currently_playing_;
 
-  // Whether we're on the final frame (and are in AFTER_NONE mode).
+  // Whether we're on the final frame.
   bool animation_finished_;
 
   friend class boost::serialization::access;
@@ -121,9 +116,7 @@ class GraphicsObjectData {
   // boost::serialization support
   template <class Archive>
   void serialize(Archive& ar, unsigned int version) {
-    // boost::serialization should take care of the swizzling of
-    // owned_by_.
-    ar & after_animation_ & owned_by_ & currently_playing_;
+    ar & after_animation_ & currently_playing_;
   }
 };
 

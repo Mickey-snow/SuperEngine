@@ -31,7 +31,6 @@
 
 #include "base/rect.h"
 #include "systems/base/graphics_object.h"
-#include "systems/base/graphics_object_of_file.h"
 #include "systems/base/surface.h"
 
 // -----------------------------------------------------------------------
@@ -40,13 +39,11 @@
 
 GraphicsObjectData::GraphicsObjectData()
     : after_animation_(AFTER_NONE),
-      owned_by_(NULL),
       currently_playing_(false),
       animation_finished_(false) {}
 
 GraphicsObjectData::GraphicsObjectData(const GraphicsObjectData& obj)
     : after_animation_(obj.after_animation_),
-      owned_by_(NULL),
       currently_playing_(obj.currently_playing_),
       animation_finished_(false) {}
 
@@ -117,23 +114,13 @@ void GraphicsObjectData::Render(const GraphicsObject& go,
 void GraphicsObjectData::LoopAnimation() {}
 
 void GraphicsObjectData::EndAnimation() {
-  // Set first, because we may deallocate this by one of our actions
-  currently_playing_ = false;
+  set_is_currently_playing(false);
+  set_animation_finished(true);
 
-  switch (after_animation_) {
-    case AFTER_NONE:
-      animation_finished_ = true;
-      break;
-    case AFTER_CLEAR:
-      if (owned_by_)
-        owned_by_->FreeObjectData();
-      break;
-    case AFTER_LOOP: {
-      // Reset from the beginning
-      currently_playing_ = true;
-      LoopAnimation();
-      break;
-    }
+  if (get_after_action() == AFTER_LOOP) {
+    // Reset from the beginning
+    set_is_currently_playing(true);
+    LoopAnimation();
   }
 }
 

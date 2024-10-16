@@ -245,7 +245,7 @@ GraphicsObjectData* GanGraphicsObjectData::Clone() const {
   return new GanGraphicsObjectData(*this);
 }
 
-void GanGraphicsObjectData::Execute(RLMachine& machine) {
+void GanGraphicsObjectData::Execute(RLMachine&) {
   if (is_currently_playing() && current_frame_ >= 0) {
     unsigned int current_time = system_.event().GetTicks();
     unsigned int time_since_last_frame_change =
@@ -255,10 +255,8 @@ void GanGraphicsObjectData::Execute(RLMachine& machine) {
     unsigned int frame_time = (unsigned int)(current_set[current_frame_].time);
     if (time_since_last_frame_change > frame_time) {
       current_frame_++;
-      if (size_t(current_frame_) == current_set.size()) {
+      if (static_cast<size_t>(current_frame_) == current_set.size()) {
         current_frame_--;
-        // endAnimation() can delete this, so it needs to be the last thing
-        // done in this code path...
         EndAnimation();
       } else {
         time_at_last_frame_change_ = current_time;

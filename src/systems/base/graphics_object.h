@@ -40,7 +40,6 @@
 #include "systems/base/colour.h"
 
 class RLMachine;
-class GraphicsObject;
 class GraphicsObjectSlot;
 class GraphicsObjectData;
 class ObjectMutator;
