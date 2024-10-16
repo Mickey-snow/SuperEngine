@@ -46,7 +46,7 @@ struct objCopyFgToBg_0 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int buf) {
     GraphicsSystem& sys = machine.system().graphics();
     GraphicsObject& go = sys.GetObject(OBJ_FG, buf);
-    sys.SetObject(OBJ_BG, buf, go);
+    sys.SetObject(OBJ_BG, buf, go.Clone());
   }
 };
 
@@ -56,7 +56,7 @@ struct objCopyFgToBg_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
 
     for (int i = start; i <= end; ++i) {
       GraphicsObject& go = sys.GetObject(OBJ_FG, i);
-      sys.SetObject(OBJ_BG, i, go);
+      sys.SetObject(OBJ_BG, i, go.Clone());
     }
   }
 };
@@ -68,7 +68,7 @@ struct objCopy : public RLOpcode<IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int sbuf, int dbuf) {
     GraphicsSystem& sys = machine.system().graphics();
     GraphicsObject& go = sys.GetObject(from_fgbg_, sbuf);
-    sys.SetObject(to_fgbg_, dbuf, go);
+    sys.SetObject(to_fgbg_, dbuf, go.Clone());
   }
 };
 
@@ -164,7 +164,7 @@ struct objChildCopy : public RLOpcode<IntConstant_T, IntConstant_T> {
           static_cast<ParentGraphicsObjectData&>(go.GetObjectData());
 
       GraphicsObject& src_obj = parent.GetObject(sbuf);
-      parent.SetObject(dbuf, src_obj);
+      parent.SetObject(dbuf, src_obj.Clone());
     }
   }
 };

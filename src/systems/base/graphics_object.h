@@ -28,10 +28,8 @@
 #ifndef SRC_SYSTEMS_BASE_GRAPHICS_OBJECT_H_
 #define SRC_SYSTEMS_BASE_GRAPHICS_OBJECT_H_
 
-#include <boost/scoped_ptr.hpp>
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/version.hpp>
-#include <boost/shared_ptr.hpp>
 
 #include <iostream>
 #include <string>
@@ -52,8 +50,15 @@ class GraphicsObject {
  public:
   GraphicsObject();
   ~GraphicsObject();
-  GraphicsObject(const GraphicsObject& obj);
-  GraphicsObject& operator=(const GraphicsObject& obj);
+
+  // Use this->Clone() instead.
+  GraphicsObject(const GraphicsObject& obj) = delete;
+  GraphicsObject& operator=(const GraphicsObject& obj) = delete;
+
+  GraphicsObject(GraphicsObject&& rhs);
+  GraphicsObject& operator=(GraphicsObject&& rhs);
+
+  GraphicsObject Clone() const;
 
   ParameterManager& Param() { return param_; }
   ParameterManager const& Param() const { return param_; }
@@ -103,7 +108,7 @@ class GraphicsObject {
   ParameterManager param_;
 
   // The actual data used to render the object
-  boost::scoped_ptr<GraphicsObjectData> object_data_;
+  std::unique_ptr<GraphicsObjectData> object_data_;
 
   // Tasks that run every tick. Used to mutate object parameters over time (and
   // how we check from a blocking LongOperation if the mutation is ongoing).

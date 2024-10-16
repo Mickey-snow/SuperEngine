@@ -45,8 +45,8 @@ GraphicsObject& ParentGraphicsObjectData::GetObject(int obj_number) {
 }
 
 void ParentGraphicsObjectData::SetObject(int obj_number,
-                                         GraphicsObject& object) {
-  objects_[obj_number] = object;
+                                         GraphicsObject&& object) {
+  objects_[obj_number] = std::move(object);
 }
 
 LazyArray<GraphicsObject>& ParentGraphicsObjectData::objects() {
@@ -73,7 +73,12 @@ int ParentGraphicsObjectData::PixelHeight(const GraphicsObject&) {
 GraphicsObjectData* ParentGraphicsObjectData::Clone() const {
   int size = objects_.Size();
   ParentGraphicsObjectData* cloned = new ParentGraphicsObjectData(size);
-  cloned->objects_ = objects_;
+  for (int i = 0; i < size; ++i) {
+    if (!objects_.Exists(i))
+      continue;
+    cloned->objects_[i] = objects_.At(i)->Clone();
+  }
+
   return cloned;
 }
 

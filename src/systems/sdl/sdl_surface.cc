@@ -28,6 +28,7 @@
 #include "systems/sdl/sdl_surface.h"
 
 #include <SDL/SDL.h>
+#include <algorithm>
 #include <iostream>
 #include <sstream>
 #include <vector>
@@ -542,9 +543,10 @@ void SDLSurface::uploadTextureIfNeeded() const {
       }
     } else {
       // Reupload the textures without reallocating them.
-      for_each(textures_.begin(), textures_.end(), [&](TextureRecord& record) {
-        record.reupload(surface_, dirty_rectangle_);
-      });
+      std::for_each(textures_.begin(), textures_.end(),
+                    [&](TextureRecord& record) {
+                      record.reupload(surface_, dirty_rectangle_);
+                    });
     }
 
     dirty_rectangle_ = Rect();

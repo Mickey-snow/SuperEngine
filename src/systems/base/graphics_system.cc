@@ -54,6 +54,7 @@
 #include "machine/serialization.h"
 #include "machine/stack_frame.h"
 #include "modules/module_grp.h"
+#include "object/mutator.h"
 #include "systems/base/anm_graphics_object_data.h"
 #include "systems/base/event_system.h"
 #include "systems/base/graphics_object.h"
@@ -62,7 +63,6 @@
 #include "systems/base/hik_renderer.h"
 #include "systems/base/hik_script.h"
 #include "systems/base/mouse_cursor.h"
-#include "object/mutator.h"
 #include "systems/base/object_settings.h"
 #include "systems/base/surface.h"
 #include "systems/base/system.h"
@@ -674,9 +674,7 @@ void GraphicsSystem::ClearAndPromoteObjects() {
     }
 
     if (bg.valid()) {
-      *fg = *bg;
-      bg->InitializeParams();
-      bg->FreeObjectData();
+      *fg = std::move(*bg);
     }
   }
 }
@@ -695,14 +693,16 @@ GraphicsObject& GraphicsSystem::GetObject(int layer, int obj_number) {
 
 // -----------------------------------------------------------------------
 
-void GraphicsSystem::SetObject(int layer, int obj_number, GraphicsObject& obj) {
+void GraphicsSystem::SetObject(int layer,
+                               int obj_number,
+                               GraphicsObject&& obj) {
   if (layer < 0 || layer > 1)
     throw rlvm::Exception("Invalid layer number");
 
   if (layer == OBJ_BG)
-    graphics_object_impl_->background_objects[obj_number] = obj;
+    graphics_object_impl_->background_objects[obj_number] = std::move(obj);
   else
-    graphics_object_impl_->foreground_objects[obj_number] = obj;
+    graphics_object_impl_->foreground_objects[obj_number] = std::move(obj);
 }
 
 // -----------------------------------------------------------------------
@@ -774,8 +774,19 @@ bool GraphicsSystem::AnimationsPlaying() const {
 // -----------------------------------------------------------------------
 
 void GraphicsSystem::TakeSavepointSnapshot() {
-  graphics_object_impl_->saved_foreground_objects = GetForegroundObjects();
-  graphics_object_impl_->saved_background_objects = GetBackgroundObjects();
+  auto& foreground = GetForegroundObjects();
+  auto& background = GetBackgroundObjects();
+
+  graphics_object_impl_->saved_foreground_objects.Clear();
+  for (auto it = foreground.begin(), end = foreground.end(); it != end; ++it) {
+    graphics_object_impl_->saved_foreground_objects[it.pos()] = it->Clone();
+  }
+
+  graphics_object_impl_->saved_background_objects.Clear();
+  for (auto it = background.begin(), end = background.end(); it != end; ++it) {
+    graphics_object_impl_->saved_background_objects[it.pos()] = it->Clone();
+  }
+
   graphics_object_impl_->saved_graphics_stack =
       graphics_object_impl_->graphics_stack;
 }

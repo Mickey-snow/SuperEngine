@@ -42,10 +42,10 @@
 #include <utility>
 #include <vector>
 
-#include "base/tone_curve.h"
 #include "base/cgm_table.h"
-#include "systems/base/event_listener.h"
 #include "base/rect.h"
+#include "base/tone_curve.h"
+#include "systems/base/event_listener.h"
 
 #include "lru_cache.hpp"
 #include "utilities/lazy_array.h"
@@ -374,7 +374,8 @@ class GraphicsSystem : public EventListener {
 
   virtual ColourFilter* BuildColourFiller() = 0;
 
-  // Clears and promotes objects.
+  // A process where the front and back buffers swap, updating the display to
+  // show objects prepared in the back buffer. Documented as "Wipe operation".
   void ClearAndPromoteObjects();
 
   // Calls render() on all foreground objects that need to be
@@ -388,7 +389,7 @@ class GraphicsSystem : public EventListener {
   // Object getters
   // layer == 0 for fg, layer == 1 for bg.
   GraphicsObject& GetObject(int layer, int obj_number);
-  void SetObject(int layer, int obj_number, GraphicsObject& object);
+  void SetObject(int layer, int obj_number, GraphicsObject&& object);
 
   // Frees the object data (but not the parameters).
   void FreeObjectData(int obj_number);

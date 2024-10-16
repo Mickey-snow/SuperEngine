@@ -53,31 +53,42 @@
 GraphicsObject::GraphicsObject() = default;
 GraphicsObject::~GraphicsObject() = default;
 
-GraphicsObject::GraphicsObject(const GraphicsObject& rhs) : param_(rhs.param_) {
-  if (rhs.object_data_) {
-    object_data_.reset(rhs.object_data_->Clone());
-    object_data_->set_owned_by(*this);
-  } else {
-    object_data_.reset();
+GraphicsObject GraphicsObject::Clone() const {
+  GraphicsObject result;
+  result.param_ = param_;
+  if (object_data_) {
+    result.object_data_.reset(object_data_->Clone());
+    result.object_data_->set_owned_by(result);
   }
 
-  for (auto const& mutator : rhs.object_mutators_)
-    object_mutators_.emplace_back(mutator->Clone());
+  for (const auto& mutator : object_mutators_)
+    result.object_mutators_.emplace_back(mutator->Clone());
+
+  return result;
 }
 
-GraphicsObject& GraphicsObject::operator=(const GraphicsObject& rhs) {
-  object_mutators_.clear();
-  param_ = rhs.param_;
-
+GraphicsObject::GraphicsObject(GraphicsObject&& rhs)
+    : param_(rhs.param_), object_data_(nullptr), object_mutators_() {
   if (rhs.object_data_) {
-    object_data_.reset(rhs.object_data_->Clone());
+    object_data_ = std::move(rhs.object_data_);
+    object_data_->set_owned_by(*this);
+  }
+  object_mutators_ = std::move(rhs.object_mutators_);
+
+  rhs.param_ = ParameterManager();
+}
+
+GraphicsObject& GraphicsObject::operator=(GraphicsObject&& rhs) {
+  param_ = rhs.param_;
+  if (rhs.object_data_) {
+    object_data_ = std::move(rhs.object_data_);
     object_data_->set_owned_by(*this);
   } else {
-    object_data_.reset();
+    object_data_ = nullptr;
   }
+  object_mutators_ = std::move(rhs.object_mutators_);
 
-  for (auto const& mutator : rhs.object_mutators_)
-    object_mutators_.emplace_back(mutator->Clone());
+  rhs.param_ = ParameterManager();
 
   return *this;
 }

@@ -39,9 +39,21 @@ class GraphicsObjectTest : public ::testing::Test {
 };
 
 TEST_F(GraphicsObjectTest, MoveSemantics) {
-  GraphicsObject other = obj;
+  GraphicsObject other = std::move(obj);
 
   EXPECT_TRUE(other.Param().Get<ObjectProperty::IsVisible>());
   EXPECT_EQ(other.Param().Get<ObjectProperty::PositionX>(), 10);
   EXPECT_EQ(other.Param().Get<ObjectProperty::PositionY>(), 20);
+
+  EXPECT_FALSE(obj.Param().Get<ObjectProperty::IsVisible>());
+}
+
+TEST_F(GraphicsObjectTest, Clone) {
+  GraphicsObject other = obj.Clone();
+
+  other.Param().Set(ObjectProperty::PositionX, 100);
+  EXPECT_TRUE(other.Param().Get<ObjectProperty::IsVisible>());
+  EXPECT_EQ(other.Param().Get<ObjectProperty::PositionX>(), 100);
+  EXPECT_EQ(other.Param().Get<ObjectProperty::PositionY>(), 20);
+  EXPECT_EQ(obj.Param().Get<ObjectProperty::PositionX>(), 10);
 }
