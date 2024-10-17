@@ -49,12 +49,14 @@ class GraphicsObjectData {
   explicit GraphicsObjectData(const GraphicsObjectData& obj);
   virtual ~GraphicsObjectData();
 
-  void set_after_action(AfterAnimation after) { after_animation_ = after; }
-  AfterAnimation get_after_action() const { return after_animation_; }
-  void set_is_currently_playing(bool in) { currently_playing_ = in; }
-  bool is_currently_playing() const { return currently_playing_; }
-  bool is_animation_finished() const { return animation_finished_; }
-  void set_animation_finished(bool in) { animation_finished_ = in; }
+  void set_after_action(AfterAnimation after) {
+    animator_.after_animation_ = after;
+  }
+  AfterAnimation get_after_action() const { return animator_.after_animation_; }
+  void set_is_currently_playing(bool in) { animator_.currently_playing_ = in; }
+  bool is_currently_playing() const { return animator_.currently_playing_; }
+  bool is_animation_finished() const { return animator_.animation_finished_; }
+  void set_animation_finished(bool in) { animator_.animation_finished_ = in; }
 
   virtual bool IsAnimation() const;
   virtual void PlaySet(int set);
@@ -103,21 +105,29 @@ class GraphicsObjectData {
                                 const GraphicsObject* parent);
 
  private:
-  // Policy of what to do after an animation is finished.
-  AfterAnimation after_animation_;
+  class Animator {
+   public:
+    // Policy of what to do after an animation is finished.
+    AfterAnimation after_animation_;
 
-  bool currently_playing_;
+    bool currently_playing_;
 
-  // Whether we're on the final frame.
-  bool animation_finished_;
+    // Whether we're on the final frame.
+    bool animation_finished_;
+
+    // boost::serialization support
+    friend class boost::serialization::access;
+    template <class Archive>
+    void serialize(Archive& ar, unsigned int version) {
+      ar & after_animation_ & currently_playing_;
+    }
+  } animator_;
 
   friend class boost::serialization::access;
 
   // boost::serialization support
   template <class Archive>
-  void serialize(Archive& ar, unsigned int version) {
-    ar & after_animation_ & currently_playing_;
-  }
+  void serialize(Archive& ar, unsigned int version) {}
 };
 
 #endif  // SRC_SYSTEMS_BASE_GRAPHICS_OBJECT_DATA_H_

@@ -57,7 +57,7 @@ double ScaleAmplitude(int amplitude) {
 }  // namespace
 
 DriftGraphicsObject::DriftGraphicsObject(System& system)
-    : system_(system), filename_(), surface_(), last_rendered_time_(0) {}
+    : system_(system), filename_(), surface_(nullptr), last_rendered_time_(0) {}
 
 DriftGraphicsObject::DriftGraphicsObject(const DriftGraphicsObject& obj)
     : GraphicsObjectData(obj),
@@ -68,7 +68,10 @@ DriftGraphicsObject::DriftGraphicsObject(const DriftGraphicsObject& obj)
 
 DriftGraphicsObject::DriftGraphicsObject(System& system,
                                          const std::string& filename)
-    : system_(system), filename_(filename), surface_(), last_rendered_time_(0) {
+    : system_(system),
+      filename_(filename),
+      surface_(nullptr),
+      last_rendered_time_(0) {
   LoadFile();
 }
 
@@ -79,94 +82,96 @@ void DriftGraphicsObject::Render(const GraphicsObject& go,
   auto& param = go.Param();
   std::shared_ptr<const Surface> surface = CurrentSurface(go);
 
-  if (surface) {
-    int current_time = system_.event().GetTicks();
-    last_rendered_time_ = current_time;
+  if (!surface)
+    return;
 
-    size_t count = param.GetDriftParticleCount();
-    bool use_animation = param.GetDriftUseAnimation();
-    int start_pattern = param.GetDriftStartPattern();
-    int end_pattern = param.GetDriftEndPattern();
-    int animation_time = param.GetDriftAnimationTime();
-    int yspeed = param.GetDriftYSpeed();
-    int period = param.GetDriftPeriod();
-    int amplitude = param.GetDriftAmplitude();
-    int use_drift = param.GetDriftUseDrift();
-    int drift_speed = param.GetDriftDriftSpeed();
+  int current_time = system_.event().GetTicks();
+  last_rendered_time_ = current_time;
 
-    Rect bounding_box = param.GetDriftArea();
-    if (bounding_box.x() == -1) {
-      bounding_box = system_.graphics().screen_rect();
+  size_t count = param.GetDriftParticleCount();
+  bool use_animation = param.GetDriftUseAnimation();
+  int start_pattern = param.GetDriftStartPattern();
+  int end_pattern = param.GetDriftEndPattern();
+  int animation_time = param.GetDriftAnimationTime();
+  int yspeed = param.GetDriftYSpeed();
+  int period = param.GetDriftPeriod();
+  int amplitude = param.GetDriftAmplitude();
+  int use_drift = param.GetDriftUseDrift();
+  int drift_speed = param.GetDriftDriftSpeed();
+
+  DriftProperties property = go.Param().Get<ObjectProperty::DriftProperties>();
+  Rect bounding_box = property.drift_area;
+  if (bounding_box.x() == -1) {
+    bounding_box = system_.graphics().screen_rect();
+  }
+
+  double scaled_amplitude =
+      bounding_box.size().width() * ScaleAmplitude(amplitude);
+
+  // Grab the drift object
+  if (particles_.size() < count) {
+    Particle p;
+    p.x = rand() % bounding_box.size().width();   // NOLINT
+    p.y = rand() % bounding_box.size().height();  // NOLINT
+    p.alpha = 255;
+    p.start_time = current_time;
+
+    particles_.push_back(p);
+  }
+
+  // Now that we have all the particles, update state and render each
+  // particle.
+  for (const Particle& particle : particles_) {
+    int pattern = start_pattern;
+    if (use_animation && end_pattern > start_pattern) {
+      int number_of_patterns = end_pattern - start_pattern + 1;
+      int frame_time = animation_time / number_of_patterns;
+      int frame_number = ((current_time - particle.start_time) / frame_time) %
+                         number_of_patterns;
+      pattern = start_pattern + frame_number;
+    }
+    Rect src = surface->GetPattern(pattern).rect;
+
+    int dest_x = particle.x;
+    int dest_y = particle.y;
+
+    // Add the base yspeed.
+    dest_y +=
+        bounding_box.size().height() *
+        (static_cast<double>((current_time - particle.start_time) % yspeed) /
+         static_cast<double>(yspeed));
+
+    // Add the sine wave that defines how the particle moves back and forth.
+    if (period != 0 && amplitude != 0) {
+      double result = sin(
+          (static_cast<double>(current_time - particle.start_time) / period) *
+          (2 * 3.14));
+      dest_x += scaled_amplitude * result;
     }
 
-    double scaled_amplitude =
-        bounding_box.size().width() * ScaleAmplitude(amplitude);
-
-    // Grab the drift object
-    if (particles_.size() < count) {
-      Particle p;
-      p.x = rand() % bounding_box.size().width();   // NOLINT
-      p.y = rand() % bounding_box.size().height();  // NOLINT
-      p.alpha = 255;
-      p.start_time = current_time;
-
-      particles_.push_back(p);
+    // Add the left drift if we have this bit set.
+    if (use_drift) {
+      dest_x -= bounding_box.size().width() *
+                (static_cast<double>((current_time - particle.start_time) %
+                                     drift_speed) /
+                 static_cast<double>(drift_speed));
     }
 
-    // Now that we have all the particles, update state and render each
-    // particle.
-    for (const Particle& particle : particles_) {
-      int pattern = start_pattern;
-      if (use_animation && end_pattern > start_pattern) {
-        int number_of_patterns = end_pattern - start_pattern + 1;
-        int frame_time = animation_time / number_of_patterns;
-        int frame_number = ((current_time - particle.start_time) / frame_time) %
-                           number_of_patterns;
-        pattern = start_pattern + frame_number;
-      }
-      Rect src = surface->GetPattern(pattern).rect;
+    if (dest_x < 0)
+      dest_x += bounding_box.size().width();
+    else
+      dest_x %= bounding_box.size().width();
 
-      int dest_x = particle.x;
-      int dest_y = particle.y;
+    if (dest_y < 0)
+      dest_y += bounding_box.size().height();
+    else
+      dest_y %= bounding_box.size().height();
+    Rect dest(bounding_box.origin() + Size(dest_x, dest_y), src.size());
 
-      // Add the base yspeed.
-      dest_y +=
-          bounding_box.size().height() *
-          (static_cast<double>((current_time - particle.start_time) % yspeed) /
-           static_cast<double>(yspeed));
+    if (param.has_clip_rect())
+      ClipDestination(param.clip_rect(), src, dest);
 
-      // Add the sine wave that defines how the particle moves back and forth.
-      if (period != 0 && amplitude != 0) {
-        double result = sin(
-            (static_cast<double>(current_time - particle.start_time) / period) *
-            (2 * 3.14));
-        dest_x += scaled_amplitude * result;
-      }
-
-      // Add the left drift if we have this bit set.
-      if (use_drift) {
-        dest_x -= bounding_box.size().width() *
-                  (static_cast<double>((current_time - particle.start_time) %
-                                       drift_speed) /
-                   static_cast<double>(drift_speed));
-      }
-
-      if (dest_x < 0)
-        dest_x += bounding_box.size().width();
-      else
-        dest_x %= bounding_box.size().width();
-
-      if (dest_y < 0)
-        dest_y += bounding_box.size().height();
-      else
-        dest_y %= bounding_box.size().height();
-      Rect dest(bounding_box.origin() + Size(dest_x, dest_y), src.size());
-
-      if (param.has_clip_rect())
-        ClipDestination(param.clip_rect(), src, dest);
-
-      surface->RenderToScreen(src, dest, particle.alpha);
-    }
+    surface->RenderToScreen(src, dest, particle.alpha);
   }
 }
 
