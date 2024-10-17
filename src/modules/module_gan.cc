@@ -36,9 +36,9 @@
 #include "machine/rloperation/rlop_store.h"
 #include "modules/module_obj.h"
 #include "object/drawer/gan.h"
+#include "object/drawer/parent.h"
 #include "systems/base/graphics_object.h"
 #include "systems/base/graphics_system.h"
-#include "object/drawer/parent.h"
 #include "systems/base/system.h"
 
 // -----------------------------------------------------------------------
@@ -121,9 +121,9 @@ struct WaitForGanToFinish : public LongOperation {
 
 struct ganPlay : public RLOpcode<IntConstant_T, IntConstant_T> {
   bool block_;
-  GraphicsObjectData::AfterAnimation after_effect_;
+  AfterAnimation after_effect_;
 
-  ganPlay(bool block, GraphicsObjectData::AfterAnimation after)
+  ganPlay(bool block, AfterAnimation after)
       : block_(block), after_effect_(after) {}
 
   void operator()(RLMachine& machine, int buf, int animationSet) {
@@ -242,43 +242,22 @@ void addGanOperationsTo(RLModule& m) {
 
   m.AddOpcode(104, 0, "objWaitAll", new objWaitAll);
 
-  m.AddOpcode(
-      1001, 0, "ganLoop", new ganPlay(false, GraphicsObjectData::AFTER_LOOP));
-  m.AddOpcode(
-      1003, 0, "ganPlay", new ganPlay(false, GraphicsObjectData::AFTER_NONE));
-  m.AddOpcode(1005,
-              0,
-              "ganPlayOnce",
-              new ganPlay(false, GraphicsObjectData::AFTER_CLEAR));
-  m.AddOpcode(
-      1006, 0, "ganPlayEx", new ganPlay(true, GraphicsObjectData::AFTER_NONE));
-  m.AddOpcode(1007,
-              0,
-              "ganPlayOnceEx",
-              new ganPlay(true, GraphicsObjectData::AFTER_CLEAR));
+  m.AddOpcode(1001, 0, "ganLoop", new ganPlay(false, AFTER_LOOP));
+  m.AddOpcode(1003, 0, "ganPlay", new ganPlay(false, AFTER_NONE));
+  m.AddOpcode(1005, 0, "ganPlayOnce", new ganPlay(false, AFTER_CLEAR));
+  m.AddOpcode(1006, 0, "ganPlayEx", new ganPlay(true, AFTER_NONE));
+  m.AddOpcode(1007, 0, "ganPlayOnceEx", new ganPlay(true, AFTER_CLEAR));
 
-  m.AddOpcode(
-      2001, 0, "objLoop", new ganPlay(false, GraphicsObjectData::AFTER_LOOP));
-  m.AddOpcode(
-      2003, 0, "objPlay", new ganPlay(false, GraphicsObjectData::AFTER_NONE));
+  m.AddOpcode(2001, 0, "objLoop", new ganPlay(false, AFTER_LOOP));
+  m.AddOpcode(2003, 0, "objPlay", new ganPlay(false, AFTER_NONE));
 
-  m.AddOpcode(
-      3001, 0, "ganLoop2", new ganPlay(false, GraphicsObjectData::AFTER_LOOP));
-  m.AddOpcode(
-      3003, 0, "ganPlay2", new ganPlay(false, GraphicsObjectData::AFTER_NONE));
-  m.AddOpcode(3005,
-              0,
-              "ganPlayOnce2",
-              new ganPlay(false, GraphicsObjectData::AFTER_CLEAR));
-  m.AddOpcode(
-      3006, 0, "ganPlayEx2", new ganPlay(true, GraphicsObjectData::AFTER_NONE));
-  m.AddOpcode(3007,
-              0,
-              "ganPlayOnceEx2",
-              new ganPlay(true, GraphicsObjectData::AFTER_CLEAR));
+  m.AddOpcode(3001, 0, "ganLoop2", new ganPlay(false, AFTER_LOOP));
+  m.AddOpcode(3003, 0, "ganPlay2", new ganPlay(false, AFTER_NONE));
+  m.AddOpcode(3005, 0, "ganPlayOnce2", new ganPlay(false, AFTER_CLEAR));
+  m.AddOpcode(3006, 0, "ganPlayEx2", new ganPlay(true, AFTER_NONE));
+  m.AddOpcode(3007, 0, "ganPlayOnceEx2", new ganPlay(true, AFTER_CLEAR));
 
-  m.AddOpcode(
-      3103, 0, "ganPlay3", new ganPlay(false, GraphicsObjectData::AFTER_NONE));
+  m.AddOpcode(3103, 0, "ganPlay3", new ganPlay(false, AFTER_NONE));
 }
 
 // -----------------------------------------------------------------------

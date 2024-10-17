@@ -28,6 +28,8 @@
 #ifndef SRC_OBJECT_DRAWER_H_
 #define SRC_OBJECT_DRAWER_H_
 
+#include "object/animator.h"
+
 #include <boost/serialization/access.hpp>
 
 #include <memory>
@@ -42,7 +44,8 @@ class Surface;
 
 class GraphicsObjectData {
  public:
-  enum AfterAnimation { AFTER_NONE, AFTER_CLEAR, AFTER_LOOP };
+  // TODO: just a reminder to decouple them later
+  friend class Animator;
 
  public:
   GraphicsObjectData();
@@ -104,28 +107,6 @@ class GraphicsObjectData {
   virtual int GetRenderingAlpha(const GraphicsObject& go,
                                 const GraphicsObject* parent);
 
-  class Animator {
-   public:
-    Animator()
-        : after_animation_(AFTER_NONE),
-          currently_playing_(false),
-          animation_finished_(false) {}
-
-    // Policy of what to do after an animation is finished.
-    AfterAnimation after_animation_;
-
-    bool currently_playing_;
-
-    // Whether we're on the final frame.
-    bool animation_finished_;
-
-    // boost::serialization support
-    friend class boost::serialization::access;
-    template <class Archive>
-    void serialize(Archive& ar, unsigned int version) {
-      ar & after_animation_ & currently_playing_;
-    }
-  };
   Animator const& GetAnimator() const { return animator_; }
 
  private:
@@ -135,7 +116,9 @@ class GraphicsObjectData {
 
   // boost::serialization support
   template <class Archive>
-  void serialize(Archive& ar, unsigned int version) {}
+  void serialize(Archive& ar, unsigned int version) {
+    ar & animator_;
+  }
 };
 
 #endif

@@ -185,7 +185,7 @@ void GraphicsObject::Execute(RLMachine& machine) {
     object_data_->Execute(machine);
     auto should_delete = [](GraphicsObjectData* it) -> bool {
       return it->is_animation_finished() &&
-             it->get_after_action() == GraphicsObjectData::AFTER_CLEAR;
+             it->get_after_action() == AFTER_CLEAR;
     };
     if (should_delete(object_data_.get()))
       object_data_ = nullptr;
