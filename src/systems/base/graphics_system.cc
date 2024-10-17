@@ -763,7 +763,7 @@ bool GraphicsSystem::AnimationsPlaying() const {
   for (GraphicsObject& object : graphics_object_impl_->foreground_objects) {
     if (object.has_object_data()) {
       GraphicsObjectData& data = object.GetObjectData();
-      if (data.IsAnimation() && data.is_currently_playing())
+      if (data.IsAnimation() && data.GetAnimator().IsPlaying())
         return true;
     }
   }

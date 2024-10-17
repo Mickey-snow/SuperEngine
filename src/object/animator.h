@@ -42,6 +42,14 @@ class Animator {
         currently_playing_(false),
         animation_finished_(false) {}
 
+  void SetAfterAction(AfterAnimation after) { after_animation_ = after; }
+  AfterAnimation GetAfterAction() const { return after_animation_; }
+  void SetIsPlaying(bool in) { currently_playing_ = in; }
+  bool IsPlaying() const { return currently_playing_; }
+  bool IsFinished() const { return animation_finished_; }
+  void SetIsFinished(bool in) { animation_finished_ = in; }
+
+ private:
   // Policy of what to do after an animation is finished.
   AfterAnimation after_animation_;
 

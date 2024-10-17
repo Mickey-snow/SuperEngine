@@ -246,7 +246,7 @@ GraphicsObjectData* GanGraphicsObjectData::Clone() const {
 }
 
 void GanGraphicsObjectData::Execute(RLMachine&) {
-  if (is_currently_playing() && current_frame_ >= 0) {
+  if (GetAnimator().IsPlaying() && current_frame_ >= 0) {
     unsigned int current_time = system_.event().GetTicks();
     unsigned int time_since_last_frame_change =
         current_time - time_at_last_frame_change_;
@@ -317,7 +317,7 @@ int GanGraphicsObjectData::GetRenderingAlpha(const GraphicsObject& go,
 }
 
 void GanGraphicsObjectData::PlaySet(int set) {
-  set_is_currently_playing(true);
+  GetAnimator().SetIsPlaying(true);
   current_set_ = set;
   current_frame_ = 0;
   time_at_last_frame_change_ = system_.event().GetTicks();

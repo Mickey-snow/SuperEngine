@@ -109,12 +109,12 @@ void GraphicsObjectData::Render(const GraphicsObject& go,
 void GraphicsObjectData::LoopAnimation() {}
 
 void GraphicsObjectData::EndAnimation() {
-  set_is_currently_playing(false);
-  set_animation_finished(true);
+  GetAnimator().SetIsPlaying(false);
+  GetAnimator().SetIsFinished(true);
 
-  if (get_after_action() == AFTER_LOOP) {
+  if (GetAnimator().GetAfterAction() == AFTER_LOOP) {
     // Reset from the beginning
-    set_is_currently_playing(true);
+    GetAnimator().SetIsPlaying(true);
     LoopAnimation();
   }
 }
