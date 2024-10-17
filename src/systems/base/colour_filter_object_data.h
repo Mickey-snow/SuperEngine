@@ -60,8 +60,6 @@ class ColourFilterObjectData : public GraphicsObjectData {
   virtual int PixelHeight(const GraphicsObject& rendering_properties) override;
   virtual GraphicsObjectData* Clone() const override;
   virtual void Execute(RLMachine& machine) override;
-  virtual bool IsAnimation() const override;
-  virtual void PlaySet(int set) override;
 
  protected:
   virtual std::shared_ptr<const Surface> CurrentSurface(

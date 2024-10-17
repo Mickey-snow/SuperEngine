@@ -84,12 +84,6 @@ void ColourFilterObjectData::Execute(RLMachine& machine) {
   // Nothing to do.
 }
 
-bool ColourFilterObjectData::IsAnimation() const { return false; }
-
-void ColourFilterObjectData::PlaySet(int set) {
-  // No op
-}
-
 std::shared_ptr<const Surface> ColourFilterObjectData::CurrentSurface(
     const GraphicsObject&) {
   return std::shared_ptr<const Surface>();

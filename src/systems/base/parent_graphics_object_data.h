@@ -36,8 +36,74 @@
 
 class GraphicsObject;
 
+/**
+ * @brief Parent Parameter Influence on Children
+ *
+ * The following parent parameters always affect children:
+ * - **Visibility:** `IsVisible`
+ * - **Opacity:** `AlphaSource`, `AdjustmentAlphas`
+ * - **Coordinates and Positioning:**
+ *   - `PositionX`, `PositionY`
+ *   - `AdjustmentOffsetsX`, `AdjustmentOffsetsY`
+ *   - `AdjustmentVertical`
+ * - **Clipping Regions:**
+ *   - `ClippingRegion`
+ *   - `OwnSpaceClippingRegion`
+ *
+ * @note
+ * If a child's parameter is neutral or not set, it inherits the following
+ * parent parameters:
+ * - **Composite Mode:** `CompositeMode` (Normal, Additive, Subtractive)
+ * - **Monochrome Transform:** `MonochromeTransform`
+ * - **Invert Transform:** `InvertTransform`
+ * - **Tint and Blend Colors:**
+ *   - `TintColour`
+ *   - `BlendColour`
+ * - **Brightness:** `LightLevel`
+ */
+
+/**
+ * @brief Parameters That Do Not Affect Children
+ *
+ * The following parameters do not affect children:
+ * - **Pattern Number:** `PatternNumber`
+ * - **Transformations:**
+ *   - **Origin Points:** `OriginX`, `OriginY`
+ *   - **Repetition Origins:** `RepetitionOriginX`, `RepetitionOriginY`
+ *   - **Scaling:** `WidthPercent`, `HeightPercent`
+ *   - **Rotation:** `RotationDiv10`
+ * - **Others:** Display order (`ZOrder`, `ZLayer`, `ZDepth`), etc.
+ */
+
+/**
+ * @brief Capabilities Children Do Not Have
+ *
+ * - **Gameexe.ini Object Settings:** Children cannot have their own object
+ * settings (e.g., level, object ON/OFF, time control mode). They inherit from
+ * the parent.
+ *
+ * - **Display Order Control Between Objects:** The parent controls display
+ * order with other objects, while children follow the parent's display order.
+ *   - Children have `ZOrder` and `ZLayer` properties to control display order
+ * among themselves.
+ *
+ * - **Automatic Wipe Copying:** Children cannot have their own wipe copying
+ * behavior (`WipeCopy`). Setting it on the parent applies to all children.
+ *
+ * - **Wipe Disappearance:** Children cannot disappear independently in the next
+ * wipe. Setting it on the parent affects all children.
+ *
+ * - **Object Copy Between Different Objects:** Children cannot use commands
+ * like `OBJCOPY` or `OBJFRONTCOPYFRONT`. However, copying between children of
+ * the same object is possible using `OBJFRONTCHILDCOPY`.
+ *
+ * - **Unsupported Object Types:** Environment objects, Bust shots created using
+ * `BustShotEditor.exe`, and old animations are unsupported. Children also
+ * cannot create their own children.
+ */
+
 // A GraphicsObjectData implementation which owns a full set of graphics
-// objects which inherit some(?) of its parent properties.
+// objects which inherit some of its parent properties.
 class ParentGraphicsObjectData : public GraphicsObjectData {
  public:
   explicit ParentGraphicsObjectData(int size);
@@ -54,8 +120,6 @@ class ParentGraphicsObjectData : public GraphicsObjectData {
   virtual int PixelHeight(const GraphicsObject& rendering_properties) override;
   virtual GraphicsObjectData* Clone() const override;
   virtual void Execute(RLMachine& machine) override;
-  virtual bool IsAnimation() const override;
-  virtual void PlaySet(int set) override;
 
   virtual bool IsParentLayer() const override { return true; }
 

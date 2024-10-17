@@ -26,6 +26,16 @@
 
 #include <sstream>
 
+bool TextProperties::operator==(const TextProperties& rhs) const {
+  return value == rhs.value && text_size == rhs.text_size &&
+         xspace == rhs.xspace && yspace == rhs.yspace &&
+         char_count == rhs.char_count && colour == rhs.colour &&
+         shadow_colour == rhs.shadow_colour;
+}
+bool TextProperties::operator!=(const TextProperties& rhs) const {
+  return !(*this == rhs);
+}
+
 std::string TextProperties::ToString() const {
   std::ostringstream oss;
   oss << "value=\"" << value << "\"";
@@ -36,6 +46,19 @@ std::string TextProperties::ToString() const {
   oss << ", colour=" << colour;
   oss << ", shadow_colour=" << shadow_colour;
   return oss.str();
+}
+
+bool DriftProperties::operator==(const DriftProperties& rhs) const {
+  return count == rhs.count && use_animation == rhs.use_animation &&
+         start_pattern == rhs.start_pattern && end_pattern == rhs.end_pattern &&
+         total_animation_time_ms == rhs.total_animation_time_ms &&
+         yspeed == rhs.yspeed && period == rhs.period &&
+         amplitude == rhs.amplitude && use_drift == rhs.use_drift &&
+         unknown_drift_property == rhs.unknown_drift_property &&
+         driftspeed == rhs.driftspeed && drift_area == rhs.drift_area;
+}
+bool DriftProperties::operator!=(const DriftProperties& rhs) const {
+  return !(*this == rhs);
 }
 
 std::string DriftProperties::ToString() const {
@@ -55,6 +78,15 @@ std::string DriftProperties::ToString() const {
   return oss.str();
 }
 
+bool DigitProperties::operator==(const DigitProperties& rhs) const {
+  return value == rhs.value && digits == rhs.digits && zero == rhs.zero &&
+         sign == rhs.sign && pack == rhs.pack && space == rhs.space;
+}
+
+bool DigitProperties::operator!=(const DigitProperties& rhs) const {
+  return !(*this == rhs);
+}
+
 std::string DigitProperties::ToString() const {
   std::ostringstream oss;
   oss << "value=" << value;
@@ -64,6 +96,19 @@ std::string DigitProperties::ToString() const {
   oss << ", pack=" << pack;
   oss << ", space=" << space;
   return oss.str();
+}
+
+bool ButtonProperties::operator==(const ButtonProperties& rhs) const {
+  return is_button == rhs.is_button && action == rhs.action && se == rhs.se &&
+         group == rhs.group && button_number == rhs.button_number &&
+         state == rhs.state && using_overides == rhs.using_overides &&
+         pattern_override == rhs.pattern_override &&
+         x_offset_override == rhs.x_offset_override &&
+         y_offset_override == rhs.y_offset_override;
+}
+
+bool ButtonProperties::operator!=(const ButtonProperties& rhs) const {
+  return !(*this == rhs);
 }
 
 std::string ButtonProperties::ToString() const {

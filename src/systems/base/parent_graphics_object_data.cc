@@ -87,12 +87,6 @@ void ParentGraphicsObjectData::Execute(RLMachine& machine) {
     obj.Execute(machine);
 }
 
-bool ParentGraphicsObjectData::IsAnimation() const { return false; }
-
-void ParentGraphicsObjectData::PlaySet(int set) {
-  // Deliberately empty.
-}
-
 std::shared_ptr<const Surface> ParentGraphicsObjectData::CurrentSurface(
     const GraphicsObject& rp) {
   return std::shared_ptr<const Surface>();

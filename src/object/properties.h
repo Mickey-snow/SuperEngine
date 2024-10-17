@@ -44,6 +44,9 @@ struct TextProperties {
   int colour = 0;
   int shadow_colour = -1;
 
+  bool operator==(const TextProperties& rhs) const;
+  bool operator!=(const TextProperties& rhs) const;
+
   // for debug
   std::string ToString() const;
 
@@ -74,6 +77,9 @@ struct DriftProperties {
 
   Rect drift_area = Rect(Point(-1, -1), Size(-1, -1));
 
+  bool operator==(const DriftProperties& rhs) const;
+  bool operator!=(const DriftProperties& rhs) const;
+
   // for debug
   std::string ToString() const;
 
@@ -95,6 +101,9 @@ struct DigitProperties {
   int sign = 0;
   int pack = 0;
   int space = 0;
+
+  bool operator==(const DigitProperties& rhs) const;
+  bool operator!=(const DigitProperties& rhs) const;
 
   // for debug
   std::string ToString() const;
@@ -120,6 +129,9 @@ struct ButtonProperties {
   int pattern_override = 0;
   int x_offset_override = 0;
   int y_offset_override = 0;
+
+  bool operator==(const ButtonProperties& rhs) const;
+  bool operator!=(const ButtonProperties& rhs) const;
 
   // for debug
   std::string ToString() const;
