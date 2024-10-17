@@ -28,7 +28,7 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/serialization/export.hpp>
 
-#include "systems/base/drift_graphics_object.h"
+#include "object/drawer/drift.h"
 
 #include <string>
 #include <vector>

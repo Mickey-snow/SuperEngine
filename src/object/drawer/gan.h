@@ -25,8 +25,8 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_GAN_GRAPHICS_OBJECT_DATA_H_
-#define SRC_SYSTEMS_BASE_GAN_GRAPHICS_OBJECT_DATA_H_
+#ifndef SRC_OBJECT_DRAWER_GAN_H_
+#define SRC_OBJECT_DRAWER_GAN_H_
 
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/split_member.hpp>
@@ -38,7 +38,7 @@
 
 #include "machine/rlmachine.h"
 #include "machine/serialization.h"
-#include "systems/base/graphics_object_data.h"
+#include "object/objdrawer.h"
 
 class Surface;
 class System;
@@ -142,4 +142,4 @@ inline void load_construct_data(Archive& ar,
 }  // namespace serialization
 }  // namespace boost
 
-#endif  // SRC_SYSTEMS_BASE_GAN_GRAPHICS_OBJECT_DATA_H_
+#endif

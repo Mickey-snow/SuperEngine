@@ -24,14 +24,14 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_PARENT_GRAPHICS_OBJECT_DATA_H_
-#define SRC_SYSTEMS_BASE_PARENT_GRAPHICS_OBJECT_DATA_H_
+#ifndef SRC_OBJECT_DRAWER_PARENT_H_
+#define SRC_OBJECT_DRAWER_PARENT_H_
 
 #include <boost/serialization/access.hpp>
 
 #include <iosfwd>
 
-#include "systems/base/graphics_object_data.h"
+#include "object/objdrawer.h"
 #include "utilities/lazy_array.h"
 
 class GraphicsObject;
@@ -135,6 +135,6 @@ class ParentGraphicsObjectData : public GraphicsObjectData {
   friend class boost::serialization::access;
   template <class Archive>
   void serialize(Archive& ar, const unsigned int file_version);
-};  // class ParentGraphicsObjectData
+};
 
-#endif  // SRC_SYSTEMS_BASE_PARENT_GRAPHICS_OBJECT_DATA_H_
+#endif

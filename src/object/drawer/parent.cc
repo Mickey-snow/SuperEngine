@@ -28,7 +28,7 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/serialization/export.hpp>
 
-#include "systems/base/parent_graphics_object_data.h"
+#include "object/drawer/parent.h"
 
 #include "systems/base/graphics_object.h"
 #include "utilities/exception.h"

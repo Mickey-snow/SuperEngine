@@ -29,7 +29,7 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/serialization/export.hpp>
 
-#include "systems/base/graphics_object_of_file.h"
+#include "object/drawer/file.h"
 
 #include <iostream>
 #include <memory>

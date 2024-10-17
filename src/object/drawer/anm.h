@@ -25,8 +25,8 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_ANM_GRAPHICS_OBJECT_DATA_H_
-#define SRC_SYSTEMS_BASE_ANM_GRAPHICS_OBJECT_DATA_H_
+#ifndef SRC_OBJECT_DRAWER_ANM_H_
+#define SRC_OBJECT_DRAWER_ANM_H_
 
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/split_member.hpp>
@@ -36,7 +36,7 @@
 #include <vector>
 
 #include "machine/rlmachine.h"
-#include "systems/base/graphics_object_data.h"
+#include "object/objdrawer.h"
 
 class Surface;
 class System;
@@ -138,4 +138,4 @@ inline void load_construct_data(Archive& ar,
 }  // namespace serialization
 }  // namespace boost
 
-#endif  // SRC_SYSTEMS_BASE_ANM_GRAPHICS_OBJECT_DATA_H_
+#endif

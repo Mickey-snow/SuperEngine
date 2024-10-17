@@ -28,7 +28,7 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/serialization/export.hpp>
 
-#include "systems/base/colour_filter_object_data.h"
+#include "object/drawer/colour_filter.h"
 
 #include <iostream>
 #include <ostream>

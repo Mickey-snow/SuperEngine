@@ -25,10 +25,9 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_GRAPHICS_OBJECT_OF_FILE_H_
-#define SRC_SYSTEMS_BASE_GRAPHICS_OBJECT_OF_FILE_H_
+#ifndef SRC_OBJECT_DRAWER_TEXT_H_
+#define SRC_OBJECT_DRAWER_TEXT_H_
 
-#include <boost/serialization/access.hpp>
 #include <boost/serialization/split_member.hpp>
 
 #include <memory>
@@ -36,68 +35,42 @@
 
 #include "machine/rlmachine.h"
 #include "machine/serialization.h"
-#include "systems/base/graphics_object_data.h"
+#include "object/objdrawer.h"
+#include "object/properties.h"
 
-class System;
+class GraphicsObject;
 class Surface;
-class RLMachine;
+class System;
 
-// -----------------------------------------------------------------------
-
-// GraphicsObjectData class that encapsulates a G00 or ANM file.
-//
-// GraphicsObjectOfFile is used for loading individual bitmaps into an
-// object. It has support for normal display, and also
-class GraphicsObjectOfFile : public GraphicsObjectData {
+// Represents the textual data made with commands such as obj_of_text,
+// obj_set_text, obj_text_opts, etc.
+class GraphicsTextObject : public GraphicsObjectData {
  public:
-  explicit GraphicsObjectOfFile(System& system);
-  GraphicsObjectOfFile(System& system, const std::string& filename);
-  virtual ~GraphicsObjectOfFile();
+  explicit GraphicsTextObject(System& system);
+  virtual ~GraphicsTextObject();
 
-  const std::string& filename() const { return filename_; }
+  void UpdateSurface(const GraphicsObject& rp);
 
-  virtual int PixelWidth(const GraphicsObject& rp) override;
-  virtual int PixelHeight(const GraphicsObject& rp) override;
+  // ------------------------------------ [ GraphicsObjectData interface ]
+  virtual int PixelWidth(const GraphicsObject& rendering_properties) override;
+  virtual int PixelHeight(const GraphicsObject& rendering_properties) override;
 
   virtual GraphicsObjectData* Clone() const override;
-
   virtual void Execute(RLMachine& machine) override;
 
-  virtual bool IsAnimation() const override;
-  virtual void PlaySet(int set) override;
-
  protected:
-  virtual void LoopAnimation() override;
   virtual std::shared_ptr<const Surface> CurrentSurface(
       const GraphicsObject& go) override;
-  virtual Rect SrcRect(const GraphicsObject& go) override;
 
  private:
-  // Private constructor for cloning
-  GraphicsObjectOfFile(const GraphicsObjectOfFile& obj);
-
-  // Used in serialization system.
-  void LoadFile();
-
-  // Our parent system.
+  // Current machine context.
   System& system_;
 
-  // The name of the graphics file that was loaded.
-  std::string filename_;
+  TextProperties cached_param_;
 
-  // The encapsulated surface to render
-  std::shared_ptr<const Surface> surface_;
+  std::shared_ptr<Surface> surface_;
 
-  // Number of milliseconds to spend on a single frame in the
-  // animation
-  unsigned int frame_time_;
-
-  // Current frame displayed (when animating)
-  int current_frame_;
-
-  // While currentlyPlaying() is true, this variable is used to store
-  // the time when the frame was switched last
-  unsigned int time_at_last_frame_change_;
+  bool NeedsUpdate(const GraphicsObject& rendering_properties);
 
   // boost::serialization support
   friend class boost::serialization::access;
@@ -111,17 +84,17 @@ class GraphicsObjectOfFile : public GraphicsObjectData {
   BOOST_SERIALIZATION_SPLIT_MEMBER()
 };
 
-// We need help creating AnmGraphicsObjectData s since they don't have a
-// default constructor:
+// We need help creating GraphicsTextObject s since they don't have a default
+// constructor:
 namespace boost {
 namespace serialization {
 template <class Archive>
 inline void load_construct_data(Archive& ar,
-                                GraphicsObjectOfFile* t,
+                                GraphicsTextObject* t,
                                 const unsigned int file_version) {
-  ::new (t) GraphicsObjectOfFile(Serialization::g_current_machine->system());
+  ::new (t) GraphicsTextObject(Serialization::g_current_machine->system());
 }
 }  // namespace serialization
 }  // namespace boost
 
-#endif  // SRC_SYSTEMS_BASE_GRAPHICS_OBJECT_OF_FILE_H_
+#endif

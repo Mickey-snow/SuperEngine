@@ -35,10 +35,10 @@
 #include "machine/rloperation.h"
 #include "machine/rloperation/rlop_store.h"
 #include "modules/module_obj.h"
-#include "systems/base/gan_graphics_object_data.h"
+#include "object/drawer/gan.h"
 #include "systems/base/graphics_object.h"
 #include "systems/base/graphics_system.h"
-#include "systems/base/parent_graphics_object_data.h"
+#include "object/drawer/parent.h"
 #include "systems/base/system.h"
 
 // -----------------------------------------------------------------------

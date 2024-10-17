@@ -27,7 +27,7 @@
 
 #include "graphics_object.h"
 #include "object/mutator.h"
-#include "systems/base/graphics_object_data.h"
+#include "object/objdrawer.h"
 #include "utilities/exception.h"
 
 #include <boost/archive/text_iarchive.hpp>

@@ -24,77 +24,70 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_DIGITS_GRAPHICS_OBJECT_H_
-#define SRC_SYSTEMS_BASE_DIGITS_GRAPHICS_OBJECT_H_
+#ifndef SRC_OBJECT_DRAWER_COLOUR_FILTER_H_
+#define SRC_OBJECT_DRAWER_COLOUR_FILTER_H_
 
-#include <boost/serialization/split_member.hpp>
+#include <boost/serialization/access.hpp>
 
 #include <memory>
-#include <string>
 
+#include "base/rect.h"
 #include "machine/rlmachine.h"
 #include "machine/serialization.h"
-#include "systems/base/graphics_object_data.h"
+#include "object/objdrawer.h"
 
+class ColourFilter;
 class GraphicsObject;
-class Surface;
-class System;
+class GraphicsSystem;
 
-class DigitsGraphicsObject : public GraphicsObjectData {
+class ColourFilterObjectData : public GraphicsObjectData {
  public:
-  explicit DigitsGraphicsObject(System& system);
-  DigitsGraphicsObject(System& system, const std::string& font);
-  virtual ~DigitsGraphicsObject();
+  ColourFilterObjectData(GraphicsSystem& system, const Rect& screen_rect);
+  virtual ~ColourFilterObjectData();
 
+  // load_construct_data helper. Wish I could make this private.
+  explicit ColourFilterObjectData(System& system);
+
+  void set_rect(const Rect& screen_rect) { screen_rect_ = screen_rect; }
+
+  // Returns the colour filter, lazily creating it if necessary.
+  ColourFilter* GetColourFilter();
+
+  // Overridden from GraphicsObjectData:
+  virtual void Render(const GraphicsObject& go,
+                      const GraphicsObject* parent) override;
   virtual int PixelWidth(const GraphicsObject& rendering_properties) override;
   virtual int PixelHeight(const GraphicsObject& rendering_properties) override;
-
   virtual GraphicsObjectData* Clone() const override;
   virtual void Execute(RLMachine& machine) override;
 
  protected:
   virtual std::shared_ptr<const Surface> CurrentSurface(
-      const GraphicsObject& go) override;
+      const GraphicsObject& rp) override;
 
  private:
-  void UpdateSurface(const GraphicsObject& rp);
-  bool NeedsUpdate(const GraphicsObject& rendering_properties);
+  GraphicsSystem& graphics_system_;
 
-  System& system_;
+  Rect screen_rect_;
 
-  // The actual numerical value to display.
-  int value_;
+  std::unique_ptr<ColourFilter> colour_filer_;
 
-  // The source font.
-  std::string font_name_;
-  std::shared_ptr<const Surface> font_;
-
-  // The current composited surface.
-  std::shared_ptr<Surface> surface_;
-
-  // boost::serialization support
   friend class boost::serialization::access;
-
   template <class Archive>
-  void save(Archive& ar, const unsigned int file_version) const;
-
-  template <class Archive>
-  void load(Archive& ar, const unsigned int file_version);
-
-  BOOST_SERIALIZATION_SPLIT_MEMBER()
+  void serialize(Archive& ar, const unsigned int file_version);
 };
 
-// We need help creating DigitsGraphicsObject s since they don't have a default
-// constructor:
+// We need help creating ColourFilterObjectData s since they don't have a
+// default constructor:
 namespace boost {
 namespace serialization {
 template <class Archive>
 inline void load_construct_data(Archive& ar,
-                                DigitsGraphicsObject* t,
+                                ColourFilterObjectData* t,
                                 const unsigned int file_version) {
-  ::new (t) DigitsGraphicsObject(Serialization::g_current_machine->system());
+  ::new (t) ColourFilterObjectData(Serialization::g_current_machine->system());
 }
 }  // namespace serialization
 }  // namespace boost
 
-#endif  // SRC_SYSTEMS_BASE_DIGITS_GRAPHICS_OBJECT_H_
+#endif

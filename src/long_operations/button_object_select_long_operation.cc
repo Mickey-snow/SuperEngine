@@ -29,7 +29,7 @@
 #include "machine/rlmachine.h"
 #include "systems/base/graphics_object.h"
 #include "systems/base/graphics_system.h"
-#include "systems/base/parent_graphics_object_data.h"
+#include "object/drawer/parent.h"
 #include "systems/base/system.h"
 
 ButtonObjectSelectLongOperation::ButtonObjectSelectLongOperation(

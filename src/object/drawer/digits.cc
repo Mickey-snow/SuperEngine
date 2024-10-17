@@ -28,7 +28,7 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/serialization/export.hpp>
 
-#include "systems/base/digits_graphics_object.h"
+#include "object/drawer/digits.h"
 
 #include <algorithm>
 #include <iostream>

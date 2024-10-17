@@ -37,7 +37,7 @@
 #include "pygame/alphablit.h"
 #include "systems/base/colour.h"
 #include "systems/base/graphics_object.h"
-#include "systems/base/graphics_object_data.h"
+#include "object/objdrawer.h"
 #include "systems/base/system_error.h"
 #include "systems/sdl/sdl_graphics_system.h"
 #include "systems/sdl/sdl_utils.h"

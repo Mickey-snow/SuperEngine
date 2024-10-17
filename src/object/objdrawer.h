@@ -25,8 +25,8 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_GRAPHICS_OBJECT_DATA_H_
-#define SRC_SYSTEMS_BASE_GRAPHICS_OBJECT_DATA_H_
+#ifndef SRC_OBJECT_DRAWER_H_
+#define SRC_OBJECT_DRAWER_H_
 
 #include <boost/serialization/access.hpp>
 
@@ -104,9 +104,13 @@ class GraphicsObjectData {
   virtual int GetRenderingAlpha(const GraphicsObject& go,
                                 const GraphicsObject* parent);
 
- private:
   class Animator {
    public:
+    Animator()
+        : after_animation_(AFTER_NONE),
+          currently_playing_(false),
+          animation_finished_(false) {}
+
     // Policy of what to do after an animation is finished.
     AfterAnimation after_animation_;
 
@@ -121,7 +125,11 @@ class GraphicsObjectData {
     void serialize(Archive& ar, unsigned int version) {
       ar & after_animation_ & currently_playing_;
     }
-  } animator_;
+  };
+  Animator const& GetAnimator() const { return animator_; }
+
+ private:
+  Animator animator_;
 
   friend class boost::serialization::access;
 
@@ -130,4 +138,4 @@ class GraphicsObjectData {
   void serialize(Archive& ar, unsigned int version) {}
 };
 
-#endif  // SRC_SYSTEMS_BASE_GRAPHICS_OBJECT_DATA_H_
+#endif

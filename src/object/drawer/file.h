@@ -7,7 +7,7 @@
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2009 Elliot Glaysher
+// Copyright (C) 2007 Elliot Glaysher
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,75 +22,64 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
+//
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_DRIFT_GRAPHICS_OBJECT_H_
-#define SRC_SYSTEMS_BASE_DRIFT_GRAPHICS_OBJECT_H_
+#ifndef SRC_OBJECT_DRAWER_FILE_H_
+#define SRC_OBJECT_DRAWER_FILE_H_
 
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/split_member.hpp>
 
 #include <memory>
 #include <string>
-#include <vector>
 
 #include "machine/rlmachine.h"
 #include "machine/serialization.h"
-#include "systems/base/graphics_object_data.h"
+#include "object/objdrawer.h"
 
-class GraphicsObject;
-class Surface;
 class System;
+class Surface;
+class RLMachine;
 
-// Draws a collection of particles to the screen. Used to implement snow and
-// sakura petals.
+// -----------------------------------------------------------------------
+
+// GraphicsObjectData class that encapsulates a G00 or ANM file.
 //
-// This implementation is incomplete, but hopefully a good enough
-// approximate. There are full parameters that we don't take use, and
-// speculation/approximations of what some things are.
-//
-// There's an additional set of commands that look like they control how these
-// particles fade in and out, which is another thing we don't implement right
-// now.
-class DriftGraphicsObject : public GraphicsObjectData {
+// GraphicsObjectOfFile is used for loading individual bitmaps into an
+// object. It has support for normal display, and also
+class GraphicsObjectOfFile : public GraphicsObjectData {
  public:
-  explicit DriftGraphicsObject(System& system);
-  DriftGraphicsObject(System& system, const std::string& filename);
-  virtual ~DriftGraphicsObject();
+  explicit GraphicsObjectOfFile(System& system);
+  GraphicsObjectOfFile(System& system, const std::string& filename);
+  virtual ~GraphicsObjectOfFile();
 
-  // Implementation of GraphicsObjectData:
-  virtual void Render(const GraphicsObject& go,
-                      const GraphicsObject* parent) override;
-  virtual int PixelWidth(const GraphicsObject& rendering_properties) override;
-  virtual int PixelHeight(const GraphicsObject& rendering_properties) override;
+  const std::string& filename() const { return filename_; }
+
+  virtual int PixelWidth(const GraphicsObject& rp) override;
+  virtual int PixelHeight(const GraphicsObject& rp) override;
+
   virtual GraphicsObjectData* Clone() const override;
+
   virtual void Execute(RLMachine& machine) override;
 
+  virtual bool IsAnimation() const override;
+  virtual void PlaySet(int set) override;
+
  protected:
+  virtual void LoopAnimation() override;
   virtual std::shared_ptr<const Surface> CurrentSurface(
       const GraphicsObject& go) override;
+  virtual Rect SrcRect(const GraphicsObject& go) override;
 
  private:
-  // Individual particle on screen.
-  struct Particle {
-    // Randomly generated starting location for this particle.
-    int x;
-    int y;
+  // Private constructor for cloning
+  GraphicsObjectOfFile(const GraphicsObjectOfFile& obj);
 
-    // Current alpha
-    int alpha;
-
-    // The number of ticks when this particle was first
-    int start_time;
-  };
-
-  // Private constructor for cloning.
-  DriftGraphicsObject(const DriftGraphicsObject& system);
-
-  // Loading step separate for de-serialization purposes.
+  // Used in serialization system.
   void LoadFile();
 
-  // Current machine context.
+  // Our parent system.
   System& system_;
 
   // The name of the graphics file that was loaded.
@@ -99,12 +88,16 @@ class DriftGraphicsObject : public GraphicsObjectData {
   // The encapsulated surface to render
   std::shared_ptr<const Surface> surface_;
 
-  // The individual particles that make up this drift object.
-  std::vector<Particle> particles_;
+  // Number of milliseconds to spend on a single frame in the
+  // animation
+  unsigned int frame_time_;
 
-  // The last time we were rendered. We keep track of this to make sure we
-  // don't force refresh in a loop.
-  int last_rendered_time_;
+  // Current frame displayed (when animating)
+  int current_frame_;
+
+  // While currentlyPlaying() is true, this variable is used to store
+  // the time when the frame was switched last
+  unsigned int time_at_last_frame_change_;
 
   // boost::serialization support
   friend class boost::serialization::access;
@@ -118,16 +111,17 @@ class DriftGraphicsObject : public GraphicsObjectData {
   BOOST_SERIALIZATION_SPLIT_MEMBER()
 };
 
-// DriftGraphicsObject doesn't have a default constructor:
+// We need help creating AnmGraphicsObjectData s since they don't have a
+// default constructor:
 namespace boost {
 namespace serialization {
 template <class Archive>
 inline void load_construct_data(Archive& ar,
-                                DriftGraphicsObject* t,
+                                GraphicsObjectOfFile* t,
                                 const unsigned int file_version) {
-  ::new (t) DriftGraphicsObject(Serialization::g_current_machine->system());
+  ::new (t) GraphicsObjectOfFile(Serialization::g_current_machine->system());
 }
 }  // namespace serialization
 }  // namespace boost
 
-#endif  // SRC_SYSTEMS_BASE_DRIFT_GRAPHICS_OBJECT_H_
+#endif

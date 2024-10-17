@@ -30,9 +30,9 @@
 #include "object/parameter_manager.h"
 #include "systems/base/event_system.h"
 #include "systems/base/graphics_object.h"
-#include "systems/base/graphics_object_data.h"
+#include "object/objdrawer.h"
 #include "systems/base/graphics_system.h"
-#include "systems/base/parent_graphics_object_data.h"
+#include "object/drawer/parent.h"
 #include "systems/base/system.h"
 
 #include <functional>

@@ -32,7 +32,7 @@
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
 
-#include "systems/base/gan_graphics_object_data.h"
+#include "object/drawer/gan.h"
 
 #include <boost/serialization/export.hpp>
 #include <filesystem>

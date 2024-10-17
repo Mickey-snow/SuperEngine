@@ -35,7 +35,7 @@
 #include "libreallive/gameexe.h"
 #include "machine/rlmachine.h"
 #include "systems/base/graphics_object.h"
-#include "systems/base/graphics_object_data.h"
+#include "object/objdrawer.h"
 #include "systems/base/platform.h"
 #include "systems/sdl/sdl_event_system.h"
 #include "systems/sdl/sdl_graphics_system.h"

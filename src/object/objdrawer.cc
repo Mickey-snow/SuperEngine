@@ -25,7 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#include "systems/base/graphics_object_data.h"
+#include "object/objdrawer.h"
 
 #include <ostream>
 
@@ -37,15 +37,10 @@
 // GraphicsObjectData
 // -----------------------------------------------------------------------
 
-GraphicsObjectData::GraphicsObjectData()
-    : after_animation_(AFTER_NONE),
-      currently_playing_(false),
-      animation_finished_(false) {}
+GraphicsObjectData::GraphicsObjectData() : animator_() {}
 
 GraphicsObjectData::GraphicsObjectData(const GraphicsObjectData& obj)
-    : after_animation_(obj.after_animation_),
-      currently_playing_(obj.currently_playing_),
-      animation_finished_(false) {}
+    : animator_(obj.GetAnimator()) {}
 
 GraphicsObjectData::~GraphicsObjectData() {}
 

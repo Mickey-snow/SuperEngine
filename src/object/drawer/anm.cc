@@ -34,7 +34,7 @@
 #include <boost/serialization/export.hpp>
 
 #include "machine/serialization.h"
-#include "systems/base/anm_graphics_object_data.h"
+#include "object/drawer/anm.h"
 
 #include <fstream>
 #include <iterator>
