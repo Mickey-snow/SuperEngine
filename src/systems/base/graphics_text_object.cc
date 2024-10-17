@@ -43,13 +43,7 @@
 // -----------------------------------------------------------------------
 
 GraphicsTextObject::GraphicsTextObject(System& system)
-    : system_(system),
-      cached_text_colour_(-1),
-      cached_shadow_colour_(-1),
-      cached_text_size_(-1),
-      cached_x_space_(-1),
-      cached_y_space_(-1),
-      cached_char_count_(-1) {}
+    : system_(system), cached_param_(), surface_(nullptr) {}
 
 // -----------------------------------------------------------------------
 
@@ -58,48 +52,35 @@ GraphicsTextObject::~GraphicsTextObject() {}
 // -----------------------------------------------------------------------
 
 void GraphicsTextObject::UpdateSurface(const GraphicsObject& rp) {
-  auto& param = rp.Param();
+  auto text_property = rp.Param().Get<ObjectProperty::TextProperties>();
 
-  cached_utf8_str_ = param.GetTextText();
+  cached_param_ = text_property;
 
   // Get the correct colour
   Gameexe& gexe = system_.gameexe();
-  std::vector<int> vec = gexe("COLOR_TABLE", param.GetTextColour());
-  cached_text_colour_ = param.GetTextColour();
+  std::vector<int> vec = gexe("COLOR_TABLE", text_property.colour);
   RGBColour colour(vec.at(0), vec.at(1), vec.at(2));
 
-  RGBColour* shadow = NULL;
+  RGBColour* shadow = nullptr;
   RGBColour shadow_impl;
-  cached_shadow_colour_ = param.GetTextShadowColour();
-  if (param.GetTextShadowColour() != -1) {
-    vec = gexe("COLOR_TABLE", param.GetTextShadowColour());
+  if (text_property.shadow_colour != -1) {
+    vec = gexe("COLOR_TABLE", text_property.shadow_colour);
     shadow_impl = RGBColour(vec.at(0), vec.at(1), vec.at(2));
     shadow = &shadow_impl;
   }
 
-  cached_text_size_ = param.GetTextSize();
-  cached_x_space_ = param.GetTextXSpace();
-  cached_y_space_ = param.GetTextYSpace();
-  cached_char_count_ = param.GetTextCharCount();
-
   surface_ = system_.text().RenderText(
-      cached_utf8_str_, param.GetTextSize(), param.GetTextXSpace(),
-      param.GetTextYSpace(), colour, shadow, cached_char_count_);
+      text_property.value, text_property.text_size, text_property.xspace,
+      text_property.yspace, colour, shadow, text_property.char_count);
   surface_->EnsureUploaded();
 }
 
 // -----------------------------------------------------------------------
 
 bool GraphicsTextObject::NeedsUpdate(const GraphicsObject& rp) {
-  auto& param = rp.Param();
-
-  return !surface_ || param.GetTextColour() != cached_text_colour_ ||
-         param.GetTextShadowColour() != cached_shadow_colour_ ||
-         param.GetTextSize() != cached_text_size_ ||
-         param.GetTextXSpace() != cached_x_space_ ||
-         param.GetTextYSpace() != cached_y_space_ ||
-         param.GetTextCharCount() != cached_char_count_ ||
-         param.GetTextText() != cached_utf8_str_;
+  if (surface_ == nullptr)
+    return true;
+  return cached_param_ != rp.Param().Get<ObjectProperty::TextProperties>();
 }
 
 // -----------------------------------------------------------------------
@@ -150,14 +131,7 @@ template <class Archive>
 void GraphicsTextObject::load(Archive& ar, unsigned int version) {
   ar& boost::serialization::base_object<GraphicsObjectData>(*this);
 
-  cached_text_colour_ = -1;
-  cached_shadow_colour_ = -1;
-  cached_text_size_ = -1;
-  cached_x_space_ = -1;
-  cached_y_space_ = -1;
-
-  cached_utf8_str_ = "";
-  surface_.reset();
+  surface_ = nullptr;
 }
 
 // -----------------------------------------------------------------------

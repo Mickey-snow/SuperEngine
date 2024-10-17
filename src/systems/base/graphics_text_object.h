@@ -35,6 +35,7 @@
 
 #include "machine/rlmachine.h"
 #include "machine/serialization.h"
+#include "object/properties.h"
 #include "systems/base/graphics_object_data.h"
 
 class GraphicsObject;
@@ -65,13 +66,7 @@ class GraphicsTextObject : public GraphicsObjectData {
   // Current machine context.
   System& system_;
 
-  int cached_text_colour_;
-  int cached_shadow_colour_;
-  int cached_text_size_;
-  int cached_x_space_;
-  int cached_y_space_;
-  int cached_char_count_;
-  std::string cached_utf8_str_;
+  TextProperties cached_param_;
 
   std::shared_ptr<Surface> surface_;
 
