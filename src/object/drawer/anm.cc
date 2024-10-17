@@ -241,8 +241,8 @@ int AnmGraphicsObjectData::PixelHeight(const GraphicsObject& rp) {
   return int(rp.Param().GetHeightScaleFactor() * height);
 }
 
-GraphicsObjectData* AnmGraphicsObjectData::Clone() const {
-  return new AnmGraphicsObjectData(*this);
+std::unique_ptr<GraphicsObjectData> AnmGraphicsObjectData::Clone() const {
+  return std::make_unique<AnmGraphicsObjectData>(*this);
 }
 
 void AnmGraphicsObjectData::PlaySet(int set) {

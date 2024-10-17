@@ -117,8 +117,8 @@ int GraphicsTextObject::PixelHeight(const GraphicsObject& rp) {
 
 // -----------------------------------------------------------------------
 
-GraphicsObjectData* GraphicsTextObject::Clone() const {
-  return new GraphicsTextObject(*this);
+std::unique_ptr<GraphicsObjectData> GraphicsTextObject::Clone() const {
+  return std::make_unique<GraphicsTextObject>(*this);
 }
 
 // -----------------------------------------------------------------------

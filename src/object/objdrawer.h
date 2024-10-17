@@ -64,7 +64,7 @@ class GraphicsObjectData {
   // format.
   virtual Rect DstRect(const GraphicsObject& go, const GraphicsObject* parent);
 
-  virtual GraphicsObjectData* Clone() const = 0;
+  virtual std::unique_ptr<GraphicsObjectData> Clone() const = 0;
 
   virtual void Execute(RLMachine& machine) = 0;
 

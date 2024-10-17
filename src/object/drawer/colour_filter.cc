@@ -76,8 +76,9 @@ int ColourFilterObjectData::PixelHeight(const GraphicsObject&) {
   throw rlvm::Exception("There is no sane value for this!");
 }
 
-GraphicsObjectData* ColourFilterObjectData::Clone() const {
-  return new ColourFilterObjectData(graphics_system_, screen_rect_);
+std::unique_ptr<GraphicsObjectData> ColourFilterObjectData::Clone() const {
+  return std::make_unique<ColourFilterObjectData>(graphics_system_,
+                                                  screen_rect_);
 }
 
 void ColourFilterObjectData::Execute(RLMachine& machine) {

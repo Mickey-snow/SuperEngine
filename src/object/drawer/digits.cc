@@ -69,8 +69,8 @@ int DigitsGraphicsObject::PixelHeight(const GraphicsObject& rp) {
   return int(param.GetHeightScaleFactor() * surface_->GetSize().height());
 }
 
-GraphicsObjectData* DigitsGraphicsObject::Clone() const {
-  return new DigitsGraphicsObject(*this);
+std::unique_ptr<GraphicsObjectData> DigitsGraphicsObject::Clone() const {
+  return std::make_unique<DigitsGraphicsObject>(*this);
 }
 
 void DigitsGraphicsObject::Execute(RLMachine& machine) {}

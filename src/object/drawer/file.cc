@@ -56,17 +56,6 @@ GraphicsObjectOfFile::GraphicsObjectOfFile(System& system)
 
 // -----------------------------------------------------------------------
 
-GraphicsObjectOfFile::GraphicsObjectOfFile(const GraphicsObjectOfFile& obj)
-    : GraphicsObjectData(obj),
-      system_(obj.system_),
-      filename_(obj.filename_),
-      surface_(obj.surface_),
-      frame_time_(obj.frame_time_),
-      current_frame_(obj.current_frame_),
-      time_at_last_frame_change_(obj.time_at_last_frame_change_) {}
-
-// -----------------------------------------------------------------------
-
 GraphicsObjectOfFile::GraphicsObjectOfFile(System& system,
                                            const std::string& filename)
     : system_(system),
@@ -110,8 +99,8 @@ int GraphicsObjectOfFile::PixelHeight(const GraphicsObject& rp) {
 
 // -----------------------------------------------------------------------
 
-GraphicsObjectData* GraphicsObjectOfFile::Clone() const {
-  return new GraphicsObjectOfFile(*this);
+std::unique_ptr<GraphicsObjectData> GraphicsObjectOfFile::Clone() const {
+  return std::make_unique<GraphicsObjectOfFile>(*this);
 }
 
 // -----------------------------------------------------------------------

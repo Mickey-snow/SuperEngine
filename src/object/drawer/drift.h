@@ -56,6 +56,7 @@ class DriftGraphicsObject : public GraphicsObjectData {
  public:
   explicit DriftGraphicsObject(System& system);
   DriftGraphicsObject(System& system, const std::string& filename);
+  DriftGraphicsObject(const DriftGraphicsObject& system);
   virtual ~DriftGraphicsObject();
 
   // Implementation of GraphicsObjectData:
@@ -63,7 +64,7 @@ class DriftGraphicsObject : public GraphicsObjectData {
                       const GraphicsObject* parent) override;
   virtual int PixelWidth(const GraphicsObject& rendering_properties) override;
   virtual int PixelHeight(const GraphicsObject& rendering_properties) override;
-  virtual GraphicsObjectData* Clone() const override;
+  virtual std::unique_ptr<GraphicsObjectData> Clone() const override;
   virtual void Execute(RLMachine& machine) override;
 
  protected:
@@ -83,9 +84,6 @@ class DriftGraphicsObject : public GraphicsObjectData {
     // The number of ticks when this particle was first
     int start_time;
   };
-
-  // Private constructor for cloning.
-  DriftGraphicsObject(const DriftGraphicsObject& system);
 
   // Loading step separate for de-serialization purposes.
   void LoadFile();

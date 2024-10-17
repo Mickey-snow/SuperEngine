@@ -70,9 +70,9 @@ int ParentGraphicsObjectData::PixelHeight(const GraphicsObject&) {
   throw rlvm::Exception("There is no sane value for this!");
 }
 
-GraphicsObjectData* ParentGraphicsObjectData::Clone() const {
+std::unique_ptr<GraphicsObjectData> ParentGraphicsObjectData::Clone() const {
   int size = objects_.Size();
-  ParentGraphicsObjectData* cloned = new ParentGraphicsObjectData(size);
+  auto cloned = std::make_unique<ParentGraphicsObjectData>(size);
   for (int i = 0; i < size; ++i) {
     if (!objects_.Exists(i))
       continue;

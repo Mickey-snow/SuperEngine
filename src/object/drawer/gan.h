@@ -62,7 +62,7 @@ class GanGraphicsObjectData : public GraphicsObjectData {
   virtual int PixelWidth(const GraphicsObject& rendering_properties) override;
   virtual int PixelHeight(const GraphicsObject& rendering_properties) override;
 
-  virtual GraphicsObjectData* Clone() const override;
+  virtual std::unique_ptr<GraphicsObjectData> Clone() const override;
   virtual void Execute(RLMachine& machine) override;
 
   virtual bool IsAnimation() const override { return true; }

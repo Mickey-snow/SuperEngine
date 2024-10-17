@@ -59,7 +59,7 @@ class GraphicsObjectOfFile : public GraphicsObjectData {
   virtual int PixelWidth(const GraphicsObject& rp) override;
   virtual int PixelHeight(const GraphicsObject& rp) override;
 
-  virtual GraphicsObjectData* Clone() const override;
+  virtual std::unique_ptr<GraphicsObjectData> Clone() const override;
 
   virtual void Execute(RLMachine& machine) override;
 
@@ -73,9 +73,6 @@ class GraphicsObjectOfFile : public GraphicsObjectData {
   virtual Rect SrcRect(const GraphicsObject& go) override;
 
  private:
-  // Private constructor for cloning
-  GraphicsObjectOfFile(const GraphicsObjectOfFile& obj);
-
   // Used in serialization system.
   void LoadFile();
 

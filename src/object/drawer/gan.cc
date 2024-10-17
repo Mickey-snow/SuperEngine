@@ -241,8 +241,8 @@ int GanGraphicsObjectData::PixelHeight(const GraphicsObject& go) {
   return 0;
 }
 
-GraphicsObjectData* GanGraphicsObjectData::Clone() const {
-  return new GanGraphicsObjectData(*this);
+std::unique_ptr<GraphicsObjectData> GanGraphicsObjectData::Clone() const {
+  return std::make_unique<GanGraphicsObjectData>(*this);
 }
 
 void GanGraphicsObjectData::Execute(RLMachine&) {

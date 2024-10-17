@@ -53,7 +53,7 @@ GraphicsObject GraphicsObject::Clone() const {
   GraphicsObject result;
   result.param_ = param_;
   if (object_data_) {
-    result.object_data_.reset(object_data_->Clone());
+    result.object_data_ = object_data_->Clone();
   }
 
   for (const auto& mutator : object_mutators_)

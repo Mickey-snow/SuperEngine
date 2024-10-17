@@ -185,8 +185,8 @@ int DriftGraphicsObject::PixelHeight(const GraphicsObject& go) {
   return rendering_properties.GetDriftArea().height();
 }
 
-GraphicsObjectData* DriftGraphicsObject::Clone() const {
-  return new DriftGraphicsObject(*this);
+std::unique_ptr<GraphicsObjectData> DriftGraphicsObject::Clone() const {
+  return std::make_unique<DriftGraphicsObject>(*this);
 }
 
 void DriftGraphicsObject::Execute(RLMachine& machine) {
