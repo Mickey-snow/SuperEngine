@@ -67,6 +67,13 @@ GraphicsObjectOfFile::GraphicsObjectOfFile(System& system,
 }
 
 // -----------------------------------------------------------------------
+// for testing
+GraphicsObjectOfFile::GraphicsObjectOfFile(
+    std::shared_ptr<IRenderingService> service,
+    std::shared_ptr<const Surface> surface)
+    : service_(service), surface_(surface) {}
+
+// -----------------------------------------------------------------------
 
 GraphicsObjectOfFile::~GraphicsObjectOfFile() {}
 
@@ -105,7 +112,8 @@ std::unique_ptr<GraphicsObjectData> GraphicsObjectOfFile::Clone() const {
 
 // -----------------------------------------------------------------------
 
-void GraphicsObjectOfFile::Execute(RLMachine&) {
+void GraphicsObjectOfFile::Execute(RLMachine&) { Execute(); }
+void GraphicsObjectOfFile::Execute() {
   if (GetAnimator()->IsPlaying()) {
     unsigned int current_time = service_->GetTicks();
     unsigned int time_since_last_frame_change =

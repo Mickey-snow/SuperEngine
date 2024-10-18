@@ -53,6 +53,8 @@ class GraphicsObjectOfFile : public GraphicsObjectData {
  public:
   explicit GraphicsObjectOfFile(System& system);
   GraphicsObjectOfFile(System& system, const std::string& filename);
+  GraphicsObjectOfFile(std::shared_ptr<IRenderingService>,
+                       std::shared_ptr<const Surface>);
   virtual ~GraphicsObjectOfFile();
 
   const std::string& filename() const { return filename_; }
@@ -63,6 +65,7 @@ class GraphicsObjectOfFile : public GraphicsObjectData {
   virtual std::unique_ptr<GraphicsObjectData> Clone() const override;
 
   virtual void Execute(RLMachine& machine) override;
+  void Execute();
 
   virtual bool IsAnimation() const override;
   virtual void PlaySet(int set) override;
@@ -86,6 +89,7 @@ class GraphicsObjectOfFile : public GraphicsObjectData {
   // The encapsulated surface to render
   std::shared_ptr<const Surface> surface_;
 
+ public:
   // Number of milliseconds to spend on a single frame in the
   // animation
   unsigned int frame_time_;
@@ -97,6 +101,7 @@ class GraphicsObjectOfFile : public GraphicsObjectData {
   // the time when the frame was switched last
   unsigned int time_at_last_frame_change_;
 
+ private:
   // boost::serialization support
   friend class boost::serialization::access;
 

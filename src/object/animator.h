@@ -41,6 +41,8 @@ class IAnimator {
   virtual bool IsPlaying() const = 0;
   virtual bool IsFinished() const = 0;
   virtual void SetIsFinished(bool in) = 0;
+
+protected:
   // virtual void EndAnimation() = 0;
   // virtual void LoopAnimation() = 0;
 };

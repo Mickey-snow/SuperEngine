@@ -65,17 +65,7 @@ unittest_files = [
   "test/graphics_object_unittest.cc",
   "test/parameter_manager_unittest.cc",
   "test/audio_table_unittest.cc",
-]
-
-null_system_files = [
-  "test/test_system/test_event_system.cc",
-  "test/test_system/test_graphics_system.cc",
-  "test/test_system/test_sound_system.cc",
-  "test/test_system/test_system.cc",
-  "test/test_system/test_text_system.cc",
-  "test/test_system/test_text_window.cc",
-  "test/test_system/mock_surface.cc",
-  "test/test_system/mock_text_window.cc"
+  "test/animator_unittest.cc",
 ]
 
 test_env.RlvmProgram('rlvm_unittests',
