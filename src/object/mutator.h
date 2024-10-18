@@ -52,7 +52,7 @@ class ObjectMutator {
 
   // Called every tick. Returns true if the command has completed.
   virtual bool operator()(RLMachine&, GraphicsObject& object) = 0;
-  virtual bool operator()(MutatorService&, ParameterManager& param) = 0;
+  virtual bool operator()(RenderingService&, ParameterManager& param) = 0;
 
   // Returns true if this ObjectMutator is operating on |repr| and |name|.
   virtual bool OperationMatches(int repr, const std::string& name) const = 0;
@@ -94,10 +94,10 @@ class OneIntObjectMutator : public ObjectMutator {
   virtual const std::string& name() const override { return name_; }
 
   virtual bool operator()(RLMachine& machine, GraphicsObject& object) override {
-    MutatorService locator(machine);
+    RenderingService locator(machine);
     return this->operator()(locator, object.Param());
   }
-  virtual bool operator()(MutatorService& locator,
+  virtual bool operator()(RenderingService& locator,
                           ParameterManager& param) override {
     unsigned int ticks = locator.GetTicks();
     if (ticks > (creation_time_ + delay_)) {
@@ -121,7 +121,7 @@ class OneIntObjectMutator : public ObjectMutator {
   }
 
  protected:
-  int GetValueForTime(MutatorService& locator, int start, int end) {
+  int GetValueForTime(RenderingService& locator, int start, int end) {
     unsigned int ticks = locator.GetTicks();
     if (ticks < (creation_time_ + delay_)) {
       return start;
@@ -135,7 +135,7 @@ class OneIntObjectMutator : public ObjectMutator {
     }
   }
 
-  void PerformSetting(MutatorService& locator, ParameterManager& param) {
+  void PerformSetting(RenderingService& locator, ParameterManager& param) {
     int value = GetValueForTime(locator, startval_, endval_);
     std::invoke(setter_, param, value);
   }
@@ -185,10 +185,10 @@ class RepnoIntObjectMutator : public ObjectMutator {
   virtual const std::string& name() const override { return name_; }
 
   virtual bool operator()(RLMachine& machine, GraphicsObject& object) override {
-    MutatorService locator(machine);
+    RenderingService locator(machine);
     return this->operator()(locator, object.Param());
   }
-  virtual bool operator()(MutatorService& locator,
+  virtual bool operator()(RenderingService& locator,
                           ParameterManager& param) override {
     unsigned int ticks = locator.GetTicks();
     if (ticks > (creation_time_ + delay_)) {
@@ -212,7 +212,7 @@ class RepnoIntObjectMutator : public ObjectMutator {
   }
 
  protected:
-  int GetValueForTime(MutatorService& locator, int start, int end) {
+  int GetValueForTime(RenderingService& locator, int start, int end) {
     unsigned int ticks = locator.GetTicks();
     if (ticks < (creation_time_ + delay_)) {
       return start;
@@ -226,7 +226,7 @@ class RepnoIntObjectMutator : public ObjectMutator {
     }
   }
 
-  void PerformSetting(MutatorService& locator, ParameterManager& param) {
+  void PerformSetting(RenderingService& locator, ParameterManager& param) {
     int value = GetValueForTime(locator, startval_, endval_);
     std::invoke(setter_, param, repno_, value);
   }
@@ -281,10 +281,10 @@ class TwoIntObjectMutator : public ObjectMutator {
   virtual const std::string& name() const override { return name_; }
 
   virtual bool operator()(RLMachine& machine, GraphicsObject& object) override {
-    MutatorService locator(machine);
+    RenderingService locator(machine);
     return this->operator()(locator, object.Param());
   }
-  virtual bool operator()(MutatorService& locator,
+  virtual bool operator()(RenderingService& locator,
                           ParameterManager& param) override {
     unsigned int ticks = locator.GetTicks();
     if (ticks > (creation_time_ + delay_)) {
@@ -309,7 +309,7 @@ class TwoIntObjectMutator : public ObjectMutator {
   }
 
  protected:
-  int GetValueForTime(MutatorService& locator, int start, int end) {
+  int GetValueForTime(RenderingService& locator, int start, int end) {
     unsigned int ticks = locator.GetTicks();
     if (ticks < (creation_time_ + delay_)) {
       return start;
@@ -323,7 +323,7 @@ class TwoIntObjectMutator : public ObjectMutator {
     }
   }
 
-  void PerformSetting(MutatorService& locator, ParameterManager& param) {
+  void PerformSetting(RenderingService& locator, ParameterManager& param) {
     int value_one = GetValueForTime(locator, startval_one_, endval_one_);
     std::invoke(setter_one_, param, value_one);
 
@@ -380,10 +380,10 @@ class AdjustMutator : public ObjectMutator {
   virtual const std::string& name() const override { return name_; }
 
   virtual bool operator()(RLMachine& machine, GraphicsObject& object) override {
-    MutatorService locator(machine);
+    RenderingService locator(machine);
     return this->operator()(locator, object.Param());
   }
-  virtual bool operator()(MutatorService& locator,
+  virtual bool operator()(RenderingService& locator,
                           ParameterManager& param) override {
     unsigned int ticks = locator.GetTicks();
     if (ticks > (creation_time_ + delay_)) {
@@ -408,7 +408,7 @@ class AdjustMutator : public ObjectMutator {
   }
 
  protected:
-  int GetValueForTime(MutatorService& machine, int start, int end) {
+  int GetValueForTime(RenderingService& machine, int start, int end) {
     unsigned int ticks = machine.GetTicks();
     if (ticks < (creation_time_ + delay_)) {
       return start;
@@ -422,7 +422,7 @@ class AdjustMutator : public ObjectMutator {
     }
   }
 
-  void PerformSetting(MutatorService& machine, ParameterManager& param) {
+  void PerformSetting(RenderingService& machine, ParameterManager& param) {
     int x = GetValueForTime(machine, start_x_, end_x_);
     param.SetXAdjustment(repno_, x);
 
@@ -544,10 +544,10 @@ class DisplayMutator : public ObjectMutator {
   virtual const std::string& name() const override { return name_; }
 
   virtual bool operator()(RLMachine& machine, GraphicsObject& object) override {
-    MutatorService locator(machine);
+    RenderingService locator(machine);
     return this->operator()(locator, object.Param());
   }
-  virtual bool operator()(MutatorService& locator,
+  virtual bool operator()(RenderingService& locator,
                           ParameterManager& param) override {
     unsigned int ticks = locator.GetTicks();
     if (ticks > (creation_time_ + delay_)) {
@@ -579,7 +579,7 @@ class DisplayMutator : public ObjectMutator {
   }
 
  protected:
-  int GetValueForTime(MutatorService& locator, int start, int end) {
+  int GetValueForTime(RenderingService& locator, int start, int end) {
     unsigned int ticks = locator.GetTicks();
     if (ticks < (creation_time_ + delay_)) {
       return start;
@@ -593,7 +593,7 @@ class DisplayMutator : public ObjectMutator {
     }
   }
 
-  void PerformSetting(MutatorService& locator, ParameterManager& param) {
+  void PerformSetting(RenderingService& locator, ParameterManager& param) {
     param.SetVisible(true);
 
     if (tr_mod_) {

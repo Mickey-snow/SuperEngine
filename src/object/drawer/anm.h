@@ -36,6 +36,7 @@
 #include <vector>
 
 #include "machine/rlmachine.h"
+#include "machine/serialization.h"
 #include "object/objdrawer.h"
 
 class Surface;

@@ -24,19 +24,19 @@
 #ifndef SRC_OBJECT_SERVICE_LOCATOR_H_
 #define SRC_OBJECT_SERVICE_LOCATOR_H_
 
-class IMutatorService {
+class IRenderingService {
  public:
-  virtual ~IMutatorService() = default;
+  virtual ~IRenderingService() = default;
 
   virtual unsigned int GetTicks() const = 0;
   virtual void MarkObjStateDirty() const = 0;
 };
 
 class RLMachine;
-class MutatorService : public IMutatorService {
+class RenderingService : public IRenderingService {
  public:
-  MutatorService(RLMachine&);
-  virtual ~MutatorService() = default;
+  RenderingService(RLMachine&);
+  virtual ~RenderingService() = default;
 
   virtual unsigned int GetTicks() const override;
   virtual void MarkObjStateDirty() const override;

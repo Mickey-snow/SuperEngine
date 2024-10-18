@@ -31,12 +31,12 @@
 #include "object/drawer/parent.h"
 #include "systems/base/system.h"
 
-MutatorService::MutatorService(RLMachine& imachine) : machine_(imachine) {}
+RenderingService::RenderingService(RLMachine& imachine) : machine_(imachine) {}
 
-unsigned int MutatorService::GetTicks() const {
+unsigned int RenderingService::GetTicks() const {
   return machine_.system().event().GetTicks();
 }
 
-void MutatorService::MarkObjStateDirty() const {
+void RenderingService::MarkObjStateDirty() const {
   machine_.system().graphics().mark_object_state_as_dirty();
 }
