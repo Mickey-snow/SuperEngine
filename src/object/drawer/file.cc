@@ -106,7 +106,7 @@ std::unique_ptr<GraphicsObjectData> GraphicsObjectOfFile::Clone() const {
 // -----------------------------------------------------------------------
 
 void GraphicsObjectOfFile::Execute(RLMachine&) {
-  if (GetAnimator().IsPlaying()) {
+  if (GetAnimator()->IsPlaying()) {
     unsigned int current_time = system_.event().GetTicks();
     unsigned int time_since_last_frame_change =
         current_time - time_at_last_frame_change_;
@@ -157,7 +157,7 @@ Rect GraphicsObjectOfFile::SrcRect(const GraphicsObject& go) {
 // -----------------------------------------------------------------------
 
 void GraphicsObjectOfFile::PlaySet(int frame_time) {
-  GetAnimator().SetIsPlaying(true);
+  GetAnimator()->SetIsPlaying(true);
   frame_time_ = frame_time;
   current_frame_ = 0;
 

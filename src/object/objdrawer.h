@@ -49,7 +49,6 @@ class GraphicsObjectData {
 
  public:
   GraphicsObjectData();
-  explicit GraphicsObjectData(const GraphicsObjectData& obj);
   virtual ~GraphicsObjectData();
 
   virtual bool IsAnimation() const;
@@ -71,8 +70,8 @@ class GraphicsObjectData {
   // Whether this object data owns another layer of objects.
   virtual bool IsParentLayer() const;
 
-  Animator const& GetAnimator() const { return animator_; }
-  Animator& GetAnimator() { return animator_; }
+  IAnimator const* GetAnimator() const { return &animator_; }
+  IAnimator* GetAnimator() { return &animator_; }
 
  protected:
   // Function called after animation ends when this object has been

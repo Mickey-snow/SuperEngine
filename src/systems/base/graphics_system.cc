@@ -54,12 +54,12 @@
 #include "machine/serialization.h"
 #include "machine/stack_frame.h"
 #include "modules/module_grp.h"
-#include "object/mutator.h"
 #include "object/drawer/anm.h"
+#include "object/drawer/file.h"
+#include "object/mutator.h"
+#include "object/objdrawer.h"
 #include "systems/base/event_system.h"
 #include "systems/base/graphics_object.h"
-#include "object/objdrawer.h"
-#include "object/drawer/file.h"
 #include "systems/base/hik_renderer.h"
 #include "systems/base/hik_script.h"
 #include "systems/base/mouse_cursor.h"
@@ -763,7 +763,7 @@ bool GraphicsSystem::AnimationsPlaying() const {
   for (GraphicsObject& object : graphics_object_impl_->foreground_objects) {
     if (object.has_object_data()) {
       GraphicsObjectData& data = object.GetObjectData();
-      if (data.IsAnimation() && data.GetAnimator().IsPlaying())
+      if (data.IsAnimation() && data.GetAnimator()->IsPlaying())
         return true;
     }
   }

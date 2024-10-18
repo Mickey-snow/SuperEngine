@@ -87,7 +87,7 @@ struct WaitForGanToFinish : public LongOperation {
     if (obj.has_object_data()) {
       const GraphicsObjectData& data = obj.GetObjectData();
       if (data.IsAnimation())
-        done = !data.GetAnimator().IsPlaying();
+        done = !data.GetAnimator()->IsPlaying();
     }
 
     if (done) {
@@ -133,7 +133,7 @@ struct ganPlay : public RLOpcode<IntConstant_T, IntConstant_T> {
       GraphicsObjectData& data = obj.GetObjectData();
       if (data.IsAnimation()) {
         data.PlaySet(animationSet);
-        data.GetAnimator().SetAfterAction(after_effect_);
+        data.GetAnimator()->SetAfterAction(after_effect_);
 
         if (block_) {
           int fgbg;
@@ -208,7 +208,7 @@ struct isGanDonePlaying : public RLStoreOpcode<IntConstant_T> {
     if (obj.has_object_data()) {
       GraphicsObjectData& data = obj.GetObjectData();
       if (data.IsAnimation()) {
-        if (data.GetAnimator().IsFinished()) {
+        if (data.GetAnimator()->IsFinished()) {
           return 0;
         } else {
           return 1;
@@ -224,7 +224,7 @@ struct objStop_0 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int obj_num) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, obj_num);
     if (obj.has_object_data())
-      obj.GetObjectData().GetAnimator().SetIsPlaying(false);
+      obj.GetObjectData().GetAnimator()->SetIsPlaying(false);
   }
 };
 

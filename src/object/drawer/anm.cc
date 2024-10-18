@@ -190,7 +190,7 @@ void AnmGraphicsObjectData::FixAxis(Frame& frame, int width, int height) {
 }
 
 void AnmGraphicsObjectData::Execute(RLMachine& machine) {
-  if (GetAnimator().IsPlaying())
+  if (GetAnimator()->IsPlaying())
     AdvanceFrame();
 }
 
@@ -202,7 +202,7 @@ void AnmGraphicsObjectData::AdvanceFrame() {
       system_.event().GetTicks() - time_at_last_frame_change_;
   bool done = false;
 
-  while (GetAnimator().IsPlaying() && !done) {
+  while (GetAnimator()->IsPlaying() && !done) {
     if (time_since_last_frame_change > frames[current_frame_].time) {
       time_since_last_frame_change -= frames[current_frame_].time;
       time_at_last_frame_change_ += frames[current_frame_].time;
@@ -212,7 +212,7 @@ void AnmGraphicsObjectData::AdvanceFrame() {
       if (cur_frame_ == cur_frame_end_) {
         cur_frame_set_++;
         if (cur_frame_set_ == cur_frame_set_end_) {
-          GetAnimator().SetIsPlaying(false);
+          GetAnimator()->SetIsPlaying(false);
         } else {
           cur_frame_ = framelist_.at(*cur_frame_set_).begin();
           cur_frame_end_ = framelist_.at(*cur_frame_set_).end();
@@ -246,7 +246,7 @@ std::unique_ptr<GraphicsObjectData> AnmGraphicsObjectData::Clone() const {
 }
 
 void AnmGraphicsObjectData::PlaySet(int set) {
-  GetAnimator().SetIsPlaying(true);
+  GetAnimator()->SetIsPlaying(true);
   time_at_last_frame_change_ = system_.event().GetTicks();
 
   cur_frame_set_ = animation_set_.at(set).begin();

@@ -39,9 +39,6 @@
 
 GraphicsObjectData::GraphicsObjectData() : animator_() {}
 
-GraphicsObjectData::GraphicsObjectData(const GraphicsObjectData& obj)
-    : animator_(obj.GetAnimator()) {}
-
 GraphicsObjectData::~GraphicsObjectData() {}
 
 void GraphicsObjectData::Render(const GraphicsObject& go,
@@ -109,12 +106,12 @@ void GraphicsObjectData::Render(const GraphicsObject& go,
 void GraphicsObjectData::LoopAnimation() {}
 
 void GraphicsObjectData::EndAnimation() {
-  GetAnimator().SetIsPlaying(false);
-  GetAnimator().SetIsFinished(true);
+  GetAnimator()->SetIsPlaying(false);
+  GetAnimator()->SetIsFinished(true);
 
-  if (GetAnimator().GetAfterAction() == AFTER_LOOP) {
+  if (GetAnimator()->GetAfterAction() == AFTER_LOOP) {
     // Reset from the beginning
-    GetAnimator().SetIsPlaying(true);
+    GetAnimator()->SetIsPlaying(true);
     LoopAnimation();
   }
 }
