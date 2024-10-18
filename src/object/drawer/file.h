@@ -37,6 +37,7 @@
 #include "machine/rlmachine.h"
 #include "machine/serialization.h"
 #include "object/objdrawer.h"
+#include "object/service_locator.h"
 
 class System;
 class Surface;
@@ -74,10 +75,10 @@ class GraphicsObjectOfFile : public GraphicsObjectData {
 
  private:
   // Used in serialization system.
-  void LoadFile();
+  void LoadFile(System&);
 
-  // Our parent system.
-  System& system_;
+  // Service locator providing runtime resolve for rendering funtions
+  std::shared_ptr<IRenderingService> service_;
 
   // The name of the graphics file that was loaded.
   std::string filename_;

@@ -48,7 +48,7 @@ namespace fs = std::filesystem;
 // -----------------------------------------------------------------------
 
 GraphicsObjectOfFile::GraphicsObjectOfFile(System& system)
-    : system_(system),
+    : service_(std::make_shared<RenderingService>(system)),
       filename_(""),
       frame_time_(0),
       current_frame_(0),
@@ -58,12 +58,12 @@ GraphicsObjectOfFile::GraphicsObjectOfFile(System& system)
 
 GraphicsObjectOfFile::GraphicsObjectOfFile(System& system,
                                            const std::string& filename)
-    : system_(system),
+    : service_(std::make_shared<RenderingService>(system)),
       filename_(filename),
       frame_time_(0),
       current_frame_(0),
       time_at_last_frame_change_(0) {
-  LoadFile();
+  LoadFile(system);
 }
 
 // -----------------------------------------------------------------------
@@ -72,8 +72,8 @@ GraphicsObjectOfFile::~GraphicsObjectOfFile() {}
 
 // -----------------------------------------------------------------------
 
-void GraphicsObjectOfFile::LoadFile() {
-  surface_ = system_.graphics().GetSurfaceNamed(filename_);
+void GraphicsObjectOfFile::LoadFile(System& system) {
+  surface_ = system.graphics().GetSurfaceNamed(filename_);
   surface_->EnsureUploaded();
 }
 
@@ -107,7 +107,7 @@ std::unique_ptr<GraphicsObjectData> GraphicsObjectOfFile::Clone() const {
 
 void GraphicsObjectOfFile::Execute(RLMachine&) {
   if (GetAnimator()->IsPlaying()) {
-    unsigned int current_time = system_.event().GetTicks();
+    unsigned int current_time = service_->GetTicks();
     unsigned int time_since_last_frame_change =
         current_time - time_at_last_frame_change_;
 
@@ -120,7 +120,7 @@ void GraphicsObjectOfFile::Execute(RLMachine&) {
 
       time_at_last_frame_change_ += frame_time_;
       time_since_last_frame_change = current_time - time_at_last_frame_change_;
-      system_.graphics().MarkScreenAsDirty(GUT_DISPLAY_OBJ);
+      service_->MarkScreenDirty(GUT_DISPLAY_OBJ);
     }
   }
 }
@@ -168,8 +168,8 @@ void GraphicsObjectOfFile::PlaySet(int frame_time) {
     frame_time_ = 10;
   }
 
-  time_at_last_frame_change_ = system_.event().GetTicks();
-  system_.graphics().MarkScreenAsDirty(GUT_DISPLAY_OBJ);
+  time_at_last_frame_change_ = service_->GetTicks();
+  service_->MarkScreenDirty(GUT_DISPLAY_OBJ);
 }
 
 // -----------------------------------------------------------------------
@@ -179,14 +179,14 @@ void GraphicsObjectOfFile::load(Archive& ar, unsigned int version) {
   ar& boost::serialization::base_object<GraphicsObjectData>(*this) & filename_ &
       frame_time_ & current_frame_ & time_at_last_frame_change_;
 
-  LoadFile();
+  LoadFile(Serialization::g_current_machine->system());
 
   // Saving |time_at_last_frame_change_| as part of the format is obviously a
   // mistake, but is now baked into the file format. Ask the clock for a more
   // suitable value.
   if (time_at_last_frame_change_ != 0) {
-    time_at_last_frame_change_ = system_.event().GetTicks();
-    system_.graphics().MarkScreenAsDirty(GUT_DISPLAY_OBJ);
+    time_at_last_frame_change_ = service_->GetTicks();
+    service_->MarkScreenDirty(GUT_DISPLAY_OBJ);
   }
 }
 

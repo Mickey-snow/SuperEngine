@@ -24,19 +24,26 @@
 #include "service_locator.h"
 
 #include "machine/rlmachine.h"
+#include "object/drawer/parent.h"
+#include "object/objdrawer.h"
 #include "systems/base/event_system.h"
 #include "systems/base/graphics_object.h"
-#include "object/objdrawer.h"
 #include "systems/base/graphics_system.h"
-#include "object/drawer/parent.h"
 #include "systems/base/system.h"
 
-RenderingService::RenderingService(RLMachine& imachine) : machine_(imachine) {}
+RenderingService::RenderingService(RLMachine& imachine)
+    : system_(imachine.system()) {}
+
+RenderingService::RenderingService(System& isystem) : system_(isystem) {}
 
 unsigned int RenderingService::GetTicks() const {
-  return machine_.system().event().GetTicks();
+  return system_.event().GetTicks();
 }
 
 void RenderingService::MarkObjStateDirty() const {
-  machine_.system().graphics().mark_object_state_as_dirty();
+  system_.graphics().mark_object_state_as_dirty();
+}
+
+void RenderingService::MarkScreenDirty(GraphicsUpdateType type) {
+  system_.graphics().MarkScreenAsDirty(type);
 }

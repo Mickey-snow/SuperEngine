@@ -24,25 +24,30 @@
 #ifndef SRC_OBJECT_SERVICE_LOCATOR_H_
 #define SRC_OBJECT_SERVICE_LOCATOR_H_
 
+#include "systems/base/graphics_system.h"
+
 class IRenderingService {
  public:
   virtual ~IRenderingService() = default;
 
   virtual unsigned int GetTicks() const = 0;
   virtual void MarkObjStateDirty() const = 0;
+  virtual void MarkScreenDirty(GraphicsUpdateType type) = 0;
 };
 
 class RLMachine;
 class RenderingService : public IRenderingService {
  public:
   RenderingService(RLMachine&);
+  RenderingService(System&);
   virtual ~RenderingService() = default;
 
   virtual unsigned int GetTicks() const override;
   virtual void MarkObjStateDirty() const override;
+  virtual void MarkScreenDirty(GraphicsUpdateType type) override;
 
  private:
-  RLMachine& machine_;
+  System& system_;
 };
 
 #endif
