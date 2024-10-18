@@ -27,11 +27,27 @@
 
 #include <boost/serialization/access.hpp>
 
+#include <functional>
+
 enum AfterAnimation { AFTER_NONE, AFTER_CLEAR, AFTER_LOOP };
+
+class IAnimator {
+ public:
+  virtual ~IAnimator() = default;
+
+  virtual void SetAfterAction(AfterAnimation after) = 0;
+  virtual AfterAnimation GetAfterAction() const = 0;
+  virtual void SetIsPlaying(bool in) = 0;
+  virtual bool IsPlaying() const = 0;
+  virtual bool IsFinished() const = 0;
+  virtual void SetIsFinished(bool in) = 0;
+  // virtual void EndAnimation() = 0;
+  // virtual void LoopAnimation() = 0;
+};
 
 class GraphicsObjectData;
 
-class Animator {
+class Animator : public IAnimator {
  public:
   // TODO: just a reminder to decouple them later
   friend class GraphicsObjectData;
@@ -42,12 +58,16 @@ class Animator {
         currently_playing_(false),
         animation_finished_(false) {}
 
-  void SetAfterAction(AfterAnimation after) { after_animation_ = after; }
-  AfterAnimation GetAfterAction() const { return after_animation_; }
-  void SetIsPlaying(bool in) { currently_playing_ = in; }
-  bool IsPlaying() const { return currently_playing_; }
-  bool IsFinished() const { return animation_finished_; }
-  void SetIsFinished(bool in) { animation_finished_ = in; }
+  virtual void SetAfterAction(AfterAnimation after) override {
+    after_animation_ = after;
+  }
+  virtual AfterAnimation GetAfterAction() const override {
+    return after_animation_;
+  }
+  virtual void SetIsPlaying(bool in) override { currently_playing_ = in; }
+  virtual bool IsPlaying() const override { return currently_playing_; }
+  virtual bool IsFinished() const override { return animation_finished_; }
+  virtual void SetIsFinished(bool in) override { animation_finished_ = in; }
 
  private:
   // Policy of what to do after an animation is finished.
