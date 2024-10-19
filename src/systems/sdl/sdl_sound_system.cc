@@ -289,6 +289,7 @@ int SDLSoundSystem::BgmStatus() const {
 void SDLSoundSystem::BgmPlay(const std::string& bgm_name, bool loop) {
   if (!boost::iequals(GetBgmName(), bgm_name)) {
     player_t player = LoadMusic(bgm_name);
+    player->SetLoopTimes(loop ? -1 : 0);
     sound_impl_->PlayBgm(player);
   }
 }
@@ -299,6 +300,7 @@ void SDLSoundSystem::BgmPlay(const std::string& bgm_name,
   if (!boost::iequals(GetBgmName(), bgm_name)) {
     player_t player = LoadMusic(bgm_name);
     player->FadeIn(fade_in_ms);
+    player->SetLoopTimes(loop ? -1 : 0);
     sound_impl_->PlayBgm(player);
   }
 }
@@ -310,6 +312,7 @@ void SDLSoundSystem::BgmPlay(const std::string& bgm_name,
   if (!boost::iequals(GetBgmName(), bgm_name)) {
     player_t player = LoadMusic(bgm_name);
     player->FadeIn(fade_in_ms);
+    player->SetLoopTimes(loop ? -1 : 0);
     // TODO: Fade out currently playing bgm
     sound_impl_->PlayBgm(player);
   }
