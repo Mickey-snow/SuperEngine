@@ -58,6 +58,7 @@ librlvm_files = [
   "src/base/voice_factory.cc",
   "src/base/asset_scanner.cc",
   "src/base/rect.cc",
+  "src/base/sound_settings.cc",
 
   "src/effects/effect.cc",
   "src/effects/sel_record.cc",

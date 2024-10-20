@@ -37,91 +37,20 @@
 #include <utility>
 
 #include "base/audio_player.h"
+#include "base/sound_settings.h"
 #include "base/voice_factory.h"
 
 class Gameexe;
 class System;
 
-const int NUM_BASE_CHANNELS = 16;
-const int NUM_EXTRA_WAVPLAY_CHANNELS = 8;
-const int NUM_KOE_CHANNELS = 1;
-const int NUM_TOTAL_CHANNELS =
+constexpr int NUM_BASE_CHANNELS = 16;
+constexpr int NUM_EXTRA_WAVPLAY_CHANNELS = 8;
+constexpr int NUM_KOE_CHANNELS = 1;
+constexpr int NUM_TOTAL_CHANNELS =
     NUM_BASE_CHANNELS + NUM_EXTRA_WAVPLAY_CHANNELS + NUM_KOE_CHANNELS;
 
 // The koe channel is the last one.
-const int KOE_CHANNEL = NUM_BASE_CHANNELS + NUM_EXTRA_WAVPLAY_CHANNELS;
-
-// Global sound settings and data, saved and restored when rlvm is shutdown and
-// started up.
-struct SoundSystemGlobals {
-  SoundSystemGlobals();
-  explicit SoundSystemGlobals(Gameexe& gexe);
-
-  // Number passed in from RealLive that represents what we want the
-  // sound system to do. Right now is fairly securely set to 5 since I
-  // have no idea how to change this property at runtime.
-  //
-  // 0              11 k_hz               8 bit
-  // 1              11 k_hz               16 bit
-  // 2              22 k_hz               8 bit
-  // 3              22 k_hz               16 bit
-  // 4              44 k_hz               8 bit
-  // 5              44 k_hz               16 bit
-  // 6              48 k_hz               8 bit
-  // 7              48 h_kz               16 bit
-  int sound_quality;
-
-  // Whether music playback is enabled
-  bool bgm_enabled;
-
-  // Volume for the music
-  int bgm_volume_mod;
-
-  // Whether the Wav functions are enabled
-  bool pcm_enabled;
-
-  // Volume of wave files relative to other sound playback.
-  int pcm_volume_mod;
-
-  // Whether the Se functions are enabled
-  bool se_enabled;
-
-  // Volume of interface sound effects relative to other sound playback.
-  int se_volume_mod;
-
-  // Voice playback mode (see setKoeMode() for details).
-  int koe_mode;
-
-  // Whether we play any voiceovers.
-  bool koe_enabled;
-
-  // Volume of the koe relative to other sound playback.
-  int GetKoeVolume_mod;
-
-  // Whether we fade the background music when a voiceover is playing.
-  bool bgm_koe_fade;
-
-  // How much to modify the bgm volume if |bgm_koe_fade| is on.
-  int bgm_koe_fade_vol;
-
-  // Maps between a koePlay character number, and whether we enable voices for
-  // them.
-  std::map<int, int> character_koe_enabled;
-
-  // boost::serialization support
-  template <class Archive>
-  void serialize(Archive& ar, const unsigned int version) {
-    ar & sound_quality & bgm_enabled & bgm_volume_mod & pcm_enabled &
-        pcm_volume_mod & se_enabled & se_volume_mod;
-
-    if (version >= 1) {
-      ar & koe_mode & koe_enabled & GetKoeVolume_mod & bgm_koe_fade &
-          bgm_koe_fade_vol & character_koe_enabled;
-    }
-  }
-};
-
-BOOST_CLASS_VERSION(SoundSystemGlobals, 1)
+constexpr int KOE_CHANNEL = NUM_BASE_CHANNELS + NUM_EXTRA_WAVPLAY_CHANNELS;
 
 // -----------------------------------------------------------------------
 
@@ -211,12 +140,12 @@ class SoundSystem {
 
   // ---------------------------------------------------------------------
 
-  // Sets how much sound hertz.
-  virtual void SetSoundQuality(const int quality);
+  int sound_quality() const { return settings_.sound_quality; }
 
-  int sound_quality() const { return globals_.sound_quality; }
-
-  SoundSystemGlobals& globals() { return globals_; }
+  rlSoundSettings const& globals() const { return settings_; }
+  rlSoundSettings& globals() { return settings_; }
+  rlSoundSettings const& GetSettings() const { return settings_; }
+  void SetSettings(const rlSoundSettings& settings) { settings_ = settings; }
 
   // After loading global memory, there may be a mismatch between global state
   // and what subclasses of SoundSystem think because they overloaded a setter,
@@ -226,11 +155,11 @@ class SoundSystem {
   // ---------------------------------------------------------------------
 
   // BGM functions
-  int bgm_enabled() const { return globals_.bgm_enabled; }
+  int bgm_enabled() const { return settings_.bgm_enabled; }
   virtual void SetBgmEnabled(const int in);
 
   // User configured volume setting
-  int bgm_volume_mod() const { return globals_.bgm_volume_mod; }
+  int bgm_volume_mod() const { return settings_.bgm_volume_mod; }
   virtual void SetBgmVolumeMod(const int in);
 
   // Programmer configured volume setting
@@ -267,10 +196,10 @@ class SoundSystem {
   // @name PCM/Wave functions
 
   // Sets whether the wav* functions play
-  int is_pcm_enabled() const { return globals_.pcm_enabled; }
+  int is_pcm_enabled() const { return settings_.pcm_enabled; }
   virtual void SetIsPcmEnabled(const int in);
 
-  int pcm_volume_mod() const { return globals_.pcm_volume_mod; }
+  int pcm_volume_mod() const { return settings_.pcm_volume_mod; }
   virtual void SetPcmVolumeMod(const int in);
 
   // Sets an individual channel volume
@@ -303,12 +232,12 @@ class SoundSystem {
   // Sound Effect functions
 
   // Whether we should have interface sound effects
-  int is_se_enabled() const { return globals_.se_enabled; }
+  int is_se_enabled() const { return settings_.se_enabled; }
   virtual void SetIsSeEnabled(const int in);
 
   // The volume of interface sound effects relative to other sound
   // playback. (0-255)
-  int se_volume_mod() const { return globals_.se_volume_mod; }
+  int se_volume_mod() const { return settings_.se_volume_mod; }
   virtual void SetSeVolumeMod(const int in);
 
   // Plays an interface sound effect. |se_num| is an index into the #SE table.
@@ -332,11 +261,11 @@ class SoundSystem {
   // - 2: Voice only
   //
   // TODO(erg): We keep track of this value, but we don't really USE it yet.
-  int koe_mode() const { return globals_.koe_mode; }
-  void setKoeMode(const int in) { globals_.koe_mode = in; }
+  int koe_mode() const { return settings_.koe_mode; }
+  void setKoeMode(const int in) { settings_.koe_mode = in; }
 
   // Whether we should play voices (in general).
-  int is_koe_enabled() const { return globals_.koe_enabled; }
+  int is_koe_enabled() const { return settings_.koe_enabled; }
   virtual void SetKoeEnabled(const int in);
 
   // Sets whether we play voices for certain characters.
@@ -347,7 +276,7 @@ class SoundSystem {
   // from within rlvm; use the |globals_.character_koe_enabled| map instead.
   int ShouldUseKoeForCharacter(const int usekoe_id) const;
 
-  int GetKoeVolume_mod() const { return globals_.GetKoeVolume_mod; }
+  int GetKoeVolume_mod() const { return settings_.GetKoeVolume_mod; }
   virtual void SetKoeVolumeMod(const int level);
 
   // The volume for all voice levels (0-255). If |fadetime| is non-zero,
@@ -357,8 +286,8 @@ class SoundSystem {
   virtual void SetKoeVolume(const int level, const int fadetime);
 
   // Whether we fade the background when playing a voiceover.
-  int bgm_koe_fade() const { return globals_.bgm_koe_fade; }
-  void set_bgm_koe_fade(const int in) { globals_.bgm_koe_fade = in; }
+  int bgm_koe_fade() const { return settings_.bgm_koe_fade; }
+  void set_bgm_koe_fade(const int in) { settings_.bgm_koe_fade = in; }
 
   // Sets the amount by which the music volume is modified when the music/voice
   // fade flag is active.
@@ -435,7 +364,7 @@ class SoundSystem {
   // Maps each UseKoe id to one or more koePlay ids.
   std::multimap<int, int> usekoe_to_koeplay_mapping_;
 
-  SoundSystemGlobals globals_;
+  rlSoundSettings settings_;
 
   // boost::serialization support
   friend class boost::serialization::access;
