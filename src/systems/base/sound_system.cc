@@ -92,7 +92,6 @@ SoundSystem::CDTrack::CDTrack(const std::string in_name,
 SoundSystem::SoundSystem(System& system)
     : voice_factory_(system.GetFileSystem()),
       system_(system),
-      bgm_volume_script_(255),
       settings_(system.gameexe()) {
   Gameexe& gexe = system_.gameexe();
 
@@ -200,12 +199,12 @@ void SoundSystem::SetBgmVolumeScript(const int level, const int fade_in_ms) {
   CheckVolume(level, "SetBgmVolumeScript");
 
   if (fade_in_ms == 0) {
-    bgm_volume_script_ = level;
+    settings_.bgm_volume = level;
   } else {
     unsigned int cur_time = system().event().GetTicks();
 
     bgm_adjustment_task_.reset(
-        new VolumeAdjustTask(cur_time, bgm_volume_script_, level, fade_in_ms));
+        new VolumeAdjustTask(cur_time, settings_.bgm_volume, level, fade_in_ms));
   }
 }
 
@@ -238,7 +237,7 @@ void SoundSystem::SetIsSeEnabled(const int in) { settings_.se_enabled = in; }
 
 void SoundSystem::SetSeVolumeMod(const int level) {
   CheckVolume(level, "set_se_volume");
-  settings_.se_volume_mod = level;
+  settings_.se_volume = level;
 }
 
 void SoundSystem::SetUseKoeForCharacter(const int character,

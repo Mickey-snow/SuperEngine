@@ -79,8 +79,8 @@ void SDLSoundSystem::WavPlayImpl(const std::string& wav_file,
 }
 
 void SDLSoundSystem::SetChannelVolumeImpl(int channel) {
-  int base = channel == KOE_CHANNEL ? settings_.GetKoeVolume_mod
-                                    : settings_.pcm_volume_mod;
+  int base =
+      channel == KOE_CHANNEL ? settings_.koe_volume : settings_.pcm_volume;
   int adjusted = compute_channel_volume(GetChannelVolume(channel), base);
 
   sound_impl_->SetVolume(channel, realLiveVolumeToSDLMixerVolume(adjusted));
@@ -155,13 +155,11 @@ void SDLSoundSystem::SetBgmEnabled(const int in) {
 }
 
 void SDLSoundSystem::SetBgmVolumeMod(const int in) {
-  settings_.bgm_volume_mod = in;
+  settings_.bgm_volume = in;
 
   player_t player = sound_impl_->GetBgm();
   if (player) {
-    float volume =
-        static_cast<float>(in * bgm_volume_script()) / (255.0 * 255.0);
-    player->SetVolume(volume);
+    player->SetVolume(static_cast<float>(in) / 255.0f);
   }
 }
 
@@ -171,13 +169,13 @@ void SDLSoundSystem::SetBgmVolumeScript(const int level, int fade_in_ms) {
     // If a fade was requested by the script, we don't want to set the volume
     // here right now. This is only slightly cleaner than having separate
     // methods because of the function casting in the modules.
+  }
 
-    player_t player = sound_impl_->GetBgm();
-    if (player) {
-      float volume = static_cast<float>(settings_.bgm_volume_mod * level) /
-                     (255.0 * 255.0);
-      player->SetVolume(volume);
-    }
+  player_t player = sound_impl_->GetBgm();
+  if (player) {
+    float volume =
+        static_cast<float>(settings_.bgm_volume * level) / (255.0 * 255.0);
+    player->SetVolume(volume);
   }
 }
 

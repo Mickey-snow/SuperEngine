@@ -120,6 +120,13 @@ struct bgmSetVolume_0 : public RLOpcode<IntConstant_T> {
   }
 };
 
+struct bgmGetVolume : public RLStoreOpcode<> {
+  int operator()(RLMachine& machine) {
+    const auto& settings = machine.system().sound().GetSettings();
+    return settings.bgm_volume;
+  }
+};
+
 struct bgmFadeOutEx : public RLOpcode<DefaultIntValue_T<1000>> {
   void operator()(RLMachine& machine, int fadeout) {
     machine.system().sound().BgmFadeOut(fadeout);
@@ -172,8 +179,7 @@ BgmModule::BgmModule() : RLModule("Bgm", 1, 20) {
   AddUnsupportedOpcode(8, 0, "bgmRewind");
   AddOpcode(9, 0, "bgmPause", CallFunction(&SoundSystem::BgmPause));
   AddOpcode(10, 0, "bgmUnPause", CallFunction(&SoundSystem::BgmUnPause));
-  AddOpcode(11, 0, "bgmVolume",
-            ReturnIntValue(&SoundSystem::bgm_volume_script));
+  AddOpcode(11, 0, "bgmVolume", new bgmGetVolume);
 
   AddOpcode(12, 0, "bgmSetVolume", new bgmSetVolume_0);
   AddOpcode(12, 1, "bgmSetVolume",

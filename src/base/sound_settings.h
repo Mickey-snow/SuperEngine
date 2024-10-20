@@ -56,19 +56,19 @@ struct rlSoundSettings {
   bool bgm_enabled;
 
   // Volume for the music
-  int bgm_volume_mod;
+  int bgm_volume;
 
   // Whether the Wav functions are enabled
   bool pcm_enabled;
 
   // Volume of wave files relative to other sound playback.
-  int pcm_volume_mod;
+  int pcm_volume;
 
   // Whether the Se functions are enabled
   bool se_enabled;
 
   // Volume of interface sound effects relative to other sound playback.
-  int se_volume_mod;
+  int se_volume;
 
   // Voice playback mode, i.e. which form of communication to use for
   // strings having both text and voice data:
@@ -84,7 +84,7 @@ struct rlSoundSettings {
   bool koe_enabled;
 
   // Volume of the koe relative to other sound playback.
-  int GetKoeVolume_mod;
+  int koe_volume;
 
   // Whether we fade the background music when a voiceover is playing.
   bool bgm_koe_fade;
@@ -99,11 +99,11 @@ struct rlSoundSettings {
   // boost::serialization support
   template <class Archive>
   void serialize(Archive& ar, const unsigned int version) {
-    ar & sound_quality & bgm_enabled & bgm_volume_mod & pcm_enabled &
-        pcm_volume_mod & se_enabled & se_volume_mod;
+    ar & sound_quality & bgm_enabled & bgm_volume & pcm_enabled &
+        pcm_volume & se_enabled & se_volume;
 
     if (version >= 1) {
-      ar & koe_mode & koe_enabled & GetKoeVolume_mod & bgm_koe_fade &
+      ar & koe_mode & koe_enabled & koe_volume & bgm_koe_fade &
           bgm_koe_fade_vol & character_koe_enabled;
     }
   }

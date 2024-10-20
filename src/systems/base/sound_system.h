@@ -155,10 +155,7 @@ class SoundSystem {
   virtual void SetBgmVolumeMod(const int in) = 0;
   // ---------------------------------------------------------------------
 
-  // Programmer configured volume setting
-  int bgm_volume_script() const { return bgm_volume_script_; }
   virtual void SetBgmVolumeScript(const int level, const int fade_in_ms);
-
   virtual player_t GetBgm() const = 0;
 
   // Status of the music subsystem
@@ -223,7 +220,7 @@ class SoundSystem {
 
   // The volume of interface sound effects relative to other sound
   // playback. (0-255)
-  int se_volume_mod() const { return settings_.se_volume_mod; }
+  int se_volume_mod() const { return settings_.se_volume; }
   virtual void SetSeVolumeMod(const int in);
 
   // Plays an interface sound effect. |se_num| is an index into the #SE table.
@@ -275,19 +272,18 @@ class SoundSystem {
 
   VoiceFactory voice_factory_;
 
-  rlSoundSettings settings_;
-
  private:
   System& system_;
 
+ protected:
+  rlSoundSettings settings_;
+
+ private:
   // Defined music tracks (files)
   DSTable ds_tracks_;
 
   // Defined music tracks (cd tracks)
   CDTable cd_tracks_;
-
-  // The programmer controlled volume know for music.
-  int bgm_volume_script_;
 
   // ---------------------------------------------------------------------
 

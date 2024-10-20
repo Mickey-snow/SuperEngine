@@ -566,37 +566,37 @@ SysModule::SysModule() : RLModule("Sys", 1, 004) {
   AddUnsupportedOpcode(2603, 0, "DefBgmKoeFade");
   AddOpcode(2330, 0, "BgmVolMod",
             new GetSoundSettings([](const rlSoundSettings& settings) {
-              return settings.bgm_volume_mod;
+              return settings.bgm_volume;
             }));
   AddOpcode(2230, 0, "SetBgmVolMod",
             new ChangeSoundSettings([](rlSoundSettings& settings, int value) {
-              settings.bgm_volume_mod = value;
+              settings.bgm_volume = value;
             }));
 
   AddOpcode(2331, 0, "KoeVolMod",
             new GetSoundSettings([](const rlSoundSettings& settings) {
-              return settings.GetKoeVolume_mod;
+              return settings.koe_volume;
             }));
   AddOpcode(2231, 0, "SetKoeVolMod",
             new ChangeSoundSettings([](rlSoundSettings& settings, int value) {
-              settings.GetKoeVolume_mod = value;
+              settings.koe_volume = value;
             }));
   AddOpcode(2332, 0, "PcmVolMod",
             new GetSoundSettings([](const rlSoundSettings& settings) {
-              return settings.pcm_volume_mod;
+              return settings.pcm_volume;
             }));
   AddOpcode(2232, 0, "SetPcmVolMod",
             new ChangeSoundSettings([](rlSoundSettings& settings, int value) {
-              settings.pcm_volume_mod = value;
+              settings.pcm_volume = value;
             }));
 
   AddOpcode(2333, 0, "SeVolMod",
             new GetSoundSettings([](const rlSoundSettings& settings) {
-              return settings.se_volume_mod;
+              return settings.se_volume;
             }));
   AddOpcode(2233, 0, "SetSeVolMod",
             new ChangeSoundSettings([](rlSoundSettings& settings, int value) {
-              settings.se_volume_mod = value;
+              settings.se_volume = value;
             }));
   AddOpcode(2340, 0, "BgmEnabled",
             new GetSoundSettings([](const rlSoundSettings& settings) {
