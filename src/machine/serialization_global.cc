@@ -92,7 +92,7 @@ void saveGlobalMemoryTo(std::ostream& oss, RLMachine& machine) {
      << const_cast<const GraphicsSystemGlobals&>(sys.graphics().globals())
      << const_cast<const EventSystemGlobals&>(sys.event().globals())
      << const_cast<const TextSystemGlobals&>(sys.text().globals())
-     << const_cast<const SoundSystemGlobals&>(sys.sound().globals());
+     << sys.sound().GetSettings();
 }
 
 void loadGlobalMemory(RLMachine& machine) {
@@ -152,11 +152,11 @@ void loadGlobalMemoryFrom(std::istream& iss, RLMachine& machine) {
   // memory still work (per above.)
   if (version == CURRENT_GLOBAL_VERSION) {
     ia >> sys.globals() >> sys.graphics().globals() >> sys.event().globals() >>
-        sys.text().globals() >> sys.sound().globals();
+        sys.text().globals();
 
-    // Restore options which may have System specific implementations. (This
-    // will probably expand as more of RealLive is implemented).
-    sys.sound().RestoreFromGlobals();
+    rlSoundSettings sound_settings;
+    ia >> sound_settings;
+    sys.sound().SetSettings(sound_settings);
   }
 }
 

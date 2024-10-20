@@ -70,7 +70,14 @@ struct rlSoundSettings {
   // Volume of interface sound effects relative to other sound playback.
   int se_volume_mod;
 
-  // Voice playback mode (see setKoeMode() for details).
+  // Voice playback mode, i.e. which form of communication to use for
+  // strings having both text and voice data:
+  //
+  // - 0: Text and voice
+  // - 1: Text only
+  // - 2: Voice only
+  //
+  // TODO(erg): We keep track of this value, but we don't really USE it yet.
   int koe_mode;
 
   // Whether we play any voiceovers.

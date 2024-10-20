@@ -69,7 +69,7 @@ static constexpr AVSpec s_reallive_sound_qualities[] = {
 void SDLSoundSystem::WavPlayImpl(const std::string& wav_file,
                                  const int channel,
                                  bool loop) {
-  if (is_pcm_enabled()) {
+  if (settings_.pcm_enabled) {
     fs::path wav_file_path = system().FindFile(wav_file, SOUND_FILETYPES);
     player_t player = CreateAudioPlayer(wav_file_path);
     player->SetLoopTimes(loop ? -1 : 0);
@@ -79,7 +79,8 @@ void SDLSoundSystem::WavPlayImpl(const std::string& wav_file,
 }
 
 void SDLSoundSystem::SetChannelVolumeImpl(int channel) {
-  int base = channel == KOE_CHANNEL ? GetKoeVolume_mod() : pcm_volume_mod();
+  int base = channel == KOE_CHANNEL ? settings_.GetKoeVolume_mod
+                                    : settings_.pcm_volume_mod;
   int adjusted = compute_channel_volume(GetChannelVolume(channel), base);
 
   sound_impl_->SetVolume(channel, realLiveVolumeToSDLMixerVolume(adjusted));
@@ -128,7 +129,7 @@ SDLSoundSystem::SDLSoundSystem(System& system,
 
   /* We're going to be requesting certain things from our audio
      device, so we set them up beforehand */
-  sound_quality_ = s_reallive_sound_qualities[sound_quality()];
+  sound_quality_ = s_reallive_sound_qualities[settings_.sound_quality];
   static constexpr int audio_buffer_size = 4096;
   try {
     sound_impl_->OpenAudio(sound_quality_, audio_buffer_size);
@@ -150,11 +151,11 @@ void SDLSoundSystem::SetBgmEnabled(const int in) {
     sound_impl_->EnableBgm();
   else
     sound_impl_->DisableBgm();
-  SoundSystem::SetBgmEnabled(in);
+  settings_.bgm_enabled = in;
 }
 
 void SDLSoundSystem::SetBgmVolumeMod(const int in) {
-  SoundSystem::SetBgmVolumeMod(in);
+  settings_.bgm_volume_mod = in;
 
   player_t player = sound_impl_->GetBgm();
   if (player) {
@@ -173,8 +174,8 @@ void SDLSoundSystem::SetBgmVolumeScript(const int level, int fade_in_ms) {
 
     player_t player = sound_impl_->GetBgm();
     if (player) {
-      float volume =
-          static_cast<float>(bgm_volume_mod() * level) / (255.0 * 255.0);
+      float volume = static_cast<float>(settings_.bgm_volume_mod * level) /
+                     (255.0 * 255.0);
       player->SetVolume(volume);
     }
   }
@@ -213,7 +214,7 @@ void SDLSoundSystem::WavPlay(const std::string& wav_file,
                              const int fadein_ms) {
   CheckChannel(channel, "SDLSoundSystem::wav_play");
 
-  if (is_pcm_enabled()) {
+  if (settings_.pcm_enabled) {
     auto wav_file_path = system().FindFile(wav_file, SOUND_FILETYPES);
     player_t player = CreateAudioPlayer(wav_file_path);
     player->SetLoopTimes(loop ? -1 : 0);
@@ -231,13 +232,13 @@ bool SDLSoundSystem::WavPlaying(const int channel) {
 void SDLSoundSystem::WavStop(const int channel) {
   CheckChannel(channel, "SDLSoundSystem::wav_stop");
 
-  if (is_pcm_enabled()) {
+  if (settings_.pcm_enabled) {
     sound_impl_->HaltChannel(channel);
   }
 }
 
 void SDLSoundSystem::WavStopAll() {
-  if (is_pcm_enabled()) {
+  if (settings_.pcm_enabled) {
     sound_impl_->HaltAllChannels();
   }
 }
@@ -245,7 +246,7 @@ void SDLSoundSystem::WavStopAll() {
 void SDLSoundSystem::WavFadeOut(const int channel, const int fadetime) {
   CheckChannel(channel, "SDLSoundSystem::wav_fade_out");
 
-  if (is_pcm_enabled())
+  if (settings_.pcm_enabled)
     sound_impl_->FadeOutChannel(channel, fadetime);
 }
 
@@ -364,7 +365,7 @@ bool SDLSoundSystem::KoePlaying() const {
 void SDLSoundSystem::KoeStop() { sound_impl_->HaltChannel(KOE_CHANNEL); }
 
 void SDLSoundSystem::KoePlayImpl(int id) {
-  if (!is_koe_enabled()) {
+  if (!settings_.koe_enabled) {
     return;
   }
 

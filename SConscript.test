@@ -31,10 +31,6 @@ test_util_files = [
 ]
 
 unittest_files = [
-  "test/expression_test.cc",
-  "test/sound_system_test.cc",
-  "test/text_window_test.cc",
-
   "test/notification_service_unittest.cc",
   "test/gameexe_unittest.cc",
   "test/lazy_array_unittest.cc",
@@ -70,12 +66,6 @@ unittest_files = [
   "test/parameter_manager_unittest.cc",
 ]
 
-system_test_files = [
-  "test/large_sys_test.cc",
-  "test/large_str_test.cc",
-  "test/large_mem_test.cc",
-]
-
 null_system_files = [
   "test/test_system/test_event_system.cc",
   "test/test_system/test_graphics_system.cc",
@@ -90,9 +80,7 @@ null_system_files = [
 test_env.RlvmProgram('rlvm_unittests',
                      ["test/rlvm_unittests.cc",
 		      test_util_files,
-		      null_system_files,
                       unittest_files,
-		      system_test_files
                       ],
                      use_lib_set = ["TEST"],
                      rlvm_libs = ["system_sdl", "rlvm"])

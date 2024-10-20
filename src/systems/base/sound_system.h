@@ -140,27 +140,20 @@ class SoundSystem {
 
   // ---------------------------------------------------------------------
 
-  int sound_quality() const { return settings_.sound_quality; }
-
-  rlSoundSettings const& globals() const { return settings_; }
-  rlSoundSettings& globals() { return settings_; }
   rlSoundSettings const& GetSettings() const { return settings_; }
   void SetSettings(const rlSoundSettings& settings) { settings_ = settings; }
 
-  // After loading global memory, there may be a mismatch between global state
-  // and what subclasses of SoundSystem think because they overloaded a setter,
-  // so set all values from the data in globals().
-  void RestoreFromGlobals();
+  // Sets whether we play voices for certain characters.
+  void SetUseKoeForCharacter(const int usekoe_id, const int enabled);
 
+  virtual void SetBgmEnabled(const int in) = 0;
+  // Returns whether we should play voices for certain characters. This
+  // function is tied to UseKoe() family of functions and should not be queried
+  // from within rlvm; use the |globals_.character_koe_enabled| map instead.
+  int ShouldUseKoeForCharacter(const int usekoe_id) const;
+
+  virtual void SetBgmVolumeMod(const int in) = 0;
   // ---------------------------------------------------------------------
-
-  // BGM functions
-  int bgm_enabled() const { return settings_.bgm_enabled; }
-  virtual void SetBgmEnabled(const int in);
-
-  // User configured volume setting
-  int bgm_volume_mod() const { return settings_.bgm_volume_mod; }
-  virtual void SetBgmVolumeMod(const int in);
 
   // Programmer configured volume setting
   int bgm_volume_script() const { return bgm_volume_script_; }
@@ -194,13 +187,6 @@ class SoundSystem {
   // ---------------------------------------------------------------------
 
   // @name PCM/Wave functions
-
-  // Sets whether the wav* functions play
-  int is_pcm_enabled() const { return settings_.pcm_enabled; }
-  virtual void SetIsPcmEnabled(const int in);
-
-  int pcm_volume_mod() const { return settings_.pcm_volume_mod; }
-  virtual void SetPcmVolumeMod(const int in);
 
   // Sets an individual channel volume
   virtual void SetChannelVolume(const int channel, const int level);
@@ -253,46 +239,11 @@ class SoundSystem {
 
   // Koe (voice) functions
 
-  // Selects a voice playback mode, i.e. which form of communication to use for
-  // strings having both text and voice data:
-  //
-  // - 0: Text and voice
-  // - 1: Text only
-  // - 2: Voice only
-  //
-  // TODO(erg): We keep track of this value, but we don't really USE it yet.
-  int koe_mode() const { return settings_.koe_mode; }
-  void setKoeMode(const int in) { settings_.koe_mode = in; }
-
-  // Whether we should play voices (in general).
-  int is_koe_enabled() const { return settings_.koe_enabled; }
-  virtual void SetKoeEnabled(const int in);
-
-  // Sets whether we play voices for certain characters.
-  void SetUseKoeForCharacter(const int usekoe_id, const int enabled);
-
-  // Returns whether we should play voices for certain characters. This
-  // function is tied to UseKoe() family of functions and should not be queried
-  // from within rlvm; use the |globals_.character_koe_enabled| map instead.
-  int ShouldUseKoeForCharacter(const int usekoe_id) const;
-
-  int GetKoeVolume_mod() const { return settings_.GetKoeVolume_mod; }
-  virtual void SetKoeVolumeMod(const int level);
-
   // The volume for all voice levels (0-255). If |fadetime| is non-zero,
   // the volume will change smoothly, with the change taking |fadetime| ms,
   // otherwise it will change instantly.
   int GetKoeVolume() const;
   virtual void SetKoeVolume(const int level, const int fadetime);
-
-  // Whether we fade the background when playing a voiceover.
-  int bgm_koe_fade() const { return settings_.bgm_koe_fade; }
-  void set_bgm_koe_fade(const int in) { settings_.bgm_koe_fade = in; }
-
-  // Sets the amount by which the music volume is modified when the music/voice
-  // fade flag is active.
-  int bgm_koe_fadeVolume() const;
-  void set_bgm_koe_fadeVolume(const int level);
 
   void KoePlay(int id);
   void KoePlay(int id, int charid);
@@ -323,6 +274,8 @@ class SoundSystem {
   static void CheckVolume(int level, const char* function_name);
 
   VoiceFactory voice_factory_;
+
+  rlSoundSettings settings_;
 
  private:
   System& system_;
@@ -363,8 +316,6 @@ class SoundSystem {
 
   // Maps each UseKoe id to one or more koePlay ids.
   std::multimap<int, int> usekoe_to_koeplay_mapping_;
-
-  rlSoundSettings settings_;
 
   // boost::serialization support
   friend class boost::serialization::access;

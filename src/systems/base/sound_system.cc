@@ -196,27 +196,6 @@ void SoundSystem::ExecuteSoundSystem() {
   }
 }
 
-void SoundSystem::RestoreFromGlobals() {
-  SetBgmEnabled(bgm_enabled());
-  SetBgmVolumeMod(bgm_volume_mod());
-
-  SetIsPcmEnabled(is_pcm_enabled());
-  SetPcmVolumeMod(pcm_volume_mod());
-
-  SetKoeEnabled(is_koe_enabled());
-  SetKoeVolumeMod(GetKoeVolume_mod());
-
-  SetIsSeEnabled(is_se_enabled());
-  SetSeVolumeMod(se_volume_mod());
-}
-
-void SoundSystem::SetBgmEnabled(const int in) { settings_.bgm_enabled = in; }
-
-void SoundSystem::SetBgmVolumeMod(const int in) {
-  CheckVolume(in, "SetBgmVolumeMod");
-  settings_.bgm_volume_mod = in;
-}
-
 void SoundSystem::SetBgmVolumeScript(const int level, const int fade_in_ms) {
   CheckVolume(level, "SetBgmVolumeScript");
 
@@ -228,12 +207,6 @@ void SoundSystem::SetBgmVolumeScript(const int level, const int fade_in_ms) {
     bgm_adjustment_task_.reset(
         new VolumeAdjustTask(cur_time, bgm_volume_script_, level, fade_in_ms));
   }
-}
-
-void SoundSystem::SetIsPcmEnabled(const int in) { settings_.pcm_enabled = in; }
-
-void SoundSystem::SetPcmVolumeMod(const int in) {
-  settings_.pcm_volume_mod = in;
 }
 
 void SoundSystem::SetChannelVolume(const int channel, const int level) {
@@ -268,8 +241,6 @@ void SoundSystem::SetSeVolumeMod(const int level) {
   settings_.se_volume_mod = level;
 }
 
-void SoundSystem::SetKoeEnabled(const int in) { settings_.koe_enabled = in; }
-
 void SoundSystem::SetUseKoeForCharacter(const int character,
                                         const int enabled) {
   auto range = usekoe_to_koeplay_mapping_.equal_range(character);
@@ -297,11 +268,6 @@ int SoundSystem::ShouldUseKoeForCharacter(const int character) const {
   return 1;
 }
 
-void SoundSystem::SetKoeVolumeMod(const int level) {
-  CheckVolume(level, "SetKoeVolumeMod");
-  settings_.GetKoeVolume_mod = level;
-}
-
 void SoundSystem::SetKoeVolume(const int level, const int fadetime) {
   if (fadetime == 0) {
     SetChannelVolume(KOE_CHANNEL, level);
@@ -311,14 +277,6 @@ void SoundSystem::SetKoeVolume(const int level, const int fadetime) {
 }
 
 int SoundSystem::GetKoeVolume() const { return GetChannelVolume(KOE_CHANNEL); }
-
-void SoundSystem::set_bgm_koe_fadeVolume(const int level) {
-  settings_.bgm_koe_fade_vol = level;
-}
-
-int SoundSystem::bgm_koe_fadeVolume() const {
-  return settings_.bgm_koe_fade_vol;
-}
 
 void SoundSystem::KoePlay(int id) {
   if (!system_.ShouldFastForward())
