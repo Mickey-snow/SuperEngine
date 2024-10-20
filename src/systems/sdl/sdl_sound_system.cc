@@ -66,11 +66,14 @@ static constexpr AVSpec s_reallive_sound_qualities[] = {
 // -----------------------------------------------------------------------
 // SDLSoundSystem (private)
 // -----------------------------------------------------------------------
+
+const std::set<std::string> SOUNDFILETYPES{"wav", "ogg", "nwa", "mp3"};
+
 void SDLSoundSystem::WavPlayImpl(const std::string& wav_file,
                                  const int channel,
                                  bool loop) {
   if (settings_.pcm_enabled) {
-    fs::path wav_file_path = system().FindFile(wav_file, SOUND_FILETYPES);
+    fs::path wav_file_path = voice_assets_->FindFile(wav_file, SOUNDFILETYPES);
     player_t player = CreateAudioPlayer(wav_file_path);
     player->SetLoopTimes(loop ? -1 : 0);
     SetChannelVolumeImpl(channel);
@@ -88,7 +91,7 @@ void SDLSoundSystem::SetChannelVolumeImpl(int channel) {
 
 player_t SDLSoundSystem::LoadMusic(const std::string& bgm_name) {
   auto track = FindBgm(bgm_name);
-  auto file_path = system().FindFile(track.file, SOUND_FILETYPES);
+  auto file_path = voice_assets_->FindFile(track.file, SOUNDFILETYPES);
 
   player_t player = CreateAudioPlayer(file_path);
   player->SetName(track.name);
@@ -213,7 +216,7 @@ void SDLSoundSystem::WavPlay(const std::string& wav_file,
   CheckChannel(channel, "SDLSoundSystem::wav_play");
 
   if (settings_.pcm_enabled) {
-    auto wav_file_path = system().FindFile(wav_file, SOUND_FILETYPES);
+    auto wav_file_path = voice_assets_->FindFile(wav_file, SOUNDFILETYPES);
     player_t player = CreateAudioPlayer(wav_file_path);
     player->SetLoopTimes(loop ? -1 : 0);
     player->FadeIn(fadein_ms);
@@ -267,7 +270,7 @@ void SDLSoundSystem::PlaySe(const int se_num) {
       return;
     }
 
-    auto file_path = system().FindFile(file_name, SOUND_FILETYPES);
+    auto file_path = voice_assets_->FindFile(file_name, SOUNDFILETYPES);
     player_t player = CreateAudioPlayer(file_path);
     player->SetLoopTimes(0);
 

@@ -90,7 +90,8 @@ SoundSystem::CDTrack::CDTrack(const std::string in_name,
 // SoundSystem
 // -----------------------------------------------------------------------
 SoundSystem::SoundSystem(System& system)
-    : voice_factory_(system.GetFileSystem()),
+    : voice_assets_(system.GetFileSystem()),
+      voice_factory_(system.GetFileSystem()),
       system_(system),
       settings_(system.gameexe()) {
   Gameexe& gexe = system_.gameexe();
@@ -203,8 +204,8 @@ void SoundSystem::SetBgmVolumeScript(const int level, const int fade_in_ms) {
   } else {
     unsigned int cur_time = system().event().GetTicks();
 
-    bgm_adjustment_task_.reset(
-        new VolumeAdjustTask(cur_time, settings_.bgm_volume, level, fade_in_ms));
+    bgm_adjustment_task_.reset(new VolumeAdjustTask(
+        cur_time, settings_.bgm_volume, level, fade_in_ms));
   }
 }
 

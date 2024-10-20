@@ -90,7 +90,6 @@ const std::vector<std::string> PDT_IMAGE_FILETYPES = {"pdt"};
 const std::vector<std::string> GAN_FILETYPES = {"gan"};
 const std::vector<std::string> ANM_FILETYPES = {"anm"};
 const std::vector<std::string> HIK_FILETYPES = {"hik", "g00", "pdt"};
-const std::vector<std::string> SOUND_FILETYPES = {"wav", "ogg", "nwa", "mp3"};
 
 class MenuReseter : public LongOperation {
  public:
