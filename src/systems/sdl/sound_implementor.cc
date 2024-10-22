@@ -103,14 +103,27 @@ void SDLSoundImpl::CloseAudio() const {
   Mix_CloseAudio();
 }
 
+inline static void CheckChannel(int ch_id,
+                                size_t tot_channel,
+                                std::string function_name = "sdl implementor") {
+  if (ch_id < 0 || ch_id >= tot_channel)
+    throw std::invalid_argument(function_name + ": Invalid channel number " +
+                                std::to_string(ch_id));
+}
+
 void SDLSoundImpl::SetVolume(int channel, int vol) const {
   if (vol < 0 || vol > 127)
     throw std::invalid_argument("sdl SetVolume: Invalid volume " +
                                 std::to_string(vol));
+  CheckChannel(channel, ch_.size(), "sdl SetVolume");
+
   Mix_Volume(channel, vol);
 }
 
-bool SDLSoundImpl::IsPlaying(int channel) const { return Mix_Playing(channel); }
+bool SDLSoundImpl::IsPlaying(int channel) const {
+  CheckChannel(channel, ch_.size(), "sdl IsPlaying");
+  return Mix_Playing(channel);
+}
 
 int SDLSoundImpl::FindIdleChannel() const {
   if (ch_.empty())
@@ -124,6 +137,8 @@ int SDLSoundImpl::FindIdleChannel() const {
 }
 
 int SDLSoundImpl::PlayChannel(int channel, std::shared_ptr<AudioPlayer> audio) {
+  CheckChannel(channel, ch_.size(), "sdl PlayChannel");
+
   AudioData audio_data = audio->LoadRemain();
   const auto system_frequency = spec_.sample_rate;
   if (audio_data.spec.sample_rate != system_frequency) {
@@ -196,6 +211,8 @@ void SDLSoundImpl::EnableBgm() { bgm_enabled_ = true; }
 void SDLSoundImpl::DisableBgm() { bgm_enabled_ = false; }
 
 int SDLSoundImpl::FadeOutChannel(int channel, int fadetime) const {
+  CheckChannel(channel, ch_.size(), "sdl FadeOutChannel");
+
   return Mix_FadeOutChannel(channel, fadetime);
 }
 

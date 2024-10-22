@@ -147,14 +147,12 @@ void SoundSystem::SetBgmVolumeScript(const int level, const int fade_in_ms) {
 }
 
 void SoundSystem::SetChannelVolume(const int channel, const int level) {
-  CheckChannel(channel, "set_channel_volume");
   channel_volume_[channel] = level;
 }
 
 void SoundSystem::SetChannelVolume(const int channel,
                                    const int level,
                                    const int fade_time_in_ms) {
-  CheckChannel(channel, "set_channel_volume");
   unsigned int cur_time = system().event().GetTicks();
 
   pcm_adjustment_tasks_.emplace(
@@ -163,7 +161,6 @@ void SoundSystem::SetChannelVolume(const int channel,
 }
 
 int SoundSystem::GetChannelVolume(const int channel) const {
-  CheckChannel(channel, "channel_volume");
   return channel_volume_[channel];
 }
 
@@ -228,15 +225,6 @@ void SoundSystem::KoePlay(int id, int charid) {
     if (play_voice) {
       KoePlayImpl(id);
     }
-  }
-}
-
-// static
-void SoundSystem::CheckChannel(int channel, const char* function_name) {
-  if (channel < 0 || channel > NUM_TOTAL_CHANNELS) {
-    std::ostringstream oss;
-    oss << "Invalid channel number " << channel << " in " << function_name;
-    throw std::runtime_error(oss.str());
   }
 }
 

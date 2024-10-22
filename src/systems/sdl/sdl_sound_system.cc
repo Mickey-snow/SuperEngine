@@ -184,8 +184,6 @@ void SDLSoundSystem::WavPlay(const std::string& wav_file, bool loop) {
 void SDLSoundSystem::WavPlay(const std::string& wav_file,
                              bool loop,
                              const int channel) {
-  CheckChannel(channel, "SDLSoundSystem::wav_play");
-
   WavPlayImpl(wav_file, channel, loop);
 }
 
@@ -193,8 +191,6 @@ void SDLSoundSystem::WavPlay(const std::string& wav_file,
                              bool loop,
                              const int channel,
                              const int fadein_ms) {
-  CheckChannel(channel, "SDLSoundSystem::wav_play");
-
   if (settings_.pcm_enabled) {
     auto wav_file_path = voice_assets_->FindFile(wav_file, SOUNDFILETYPES);
     player_t player = CreateAudioPlayer(wav_file_path);
@@ -206,13 +202,10 @@ void SDLSoundSystem::WavPlay(const std::string& wav_file,
 }
 
 bool SDLSoundSystem::WavPlaying(const int channel) {
-  CheckChannel(channel, "SDLSoundSystem::wav_playing");
   return sound_impl_->IsPlaying(channel);
 }
 
 void SDLSoundSystem::WavStop(const int channel) {
-  CheckChannel(channel, "SDLSoundSystem::wav_stop");
-
   if (settings_.pcm_enabled) {
     sound_impl_->HaltChannel(channel);
   }
@@ -225,8 +218,6 @@ void SDLSoundSystem::WavStopAll() {
 }
 
 void SDLSoundSystem::WavFadeOut(const int channel, const int fadetime) {
-  CheckChannel(channel, "SDLSoundSystem::wav_fade_out");
-
   if (settings_.pcm_enabled)
     sound_impl_->FadeOutChannel(channel, fadetime);
 }

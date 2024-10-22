@@ -217,8 +217,6 @@ class SoundSystem {
   // Plays a voice sample.
   virtual void KoePlayImpl(int id) = 0;
 
-  static void CheckChannel(int channel, const char* function_name);
-
   std::shared_ptr<IAssetScanner> voice_assets_;
 
   VoiceFactory voice_factory_;
