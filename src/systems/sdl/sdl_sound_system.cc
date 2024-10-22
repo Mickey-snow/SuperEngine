@@ -99,7 +99,7 @@ player_t SDLSoundSystem::LoadMusic(const std::string& bgm_name) {
   return player;
 }
 
-SoundSystem::DSTrack SDLSoundSystem::FindBgm(const std::string& bgm_name) {
+DSTrack SDLSoundSystem::FindBgm(const std::string& bgm_name) {
   DSTable::const_iterator ds_it =
       ds_table().find(boost::to_lower_copy(bgm_name));
   if (ds_it != ds_table().end())
@@ -381,6 +381,4 @@ void SDLSoundSystem::KoePlayImpl(int id) {
 void SDLSoundSystem::Reset() {
   BgmStop();
   WavStopAll();
-
-  SoundSystem::Reset();
 }

@@ -63,30 +63,6 @@ int SoundSystem::VolumeAdjustTask::calculateVolumeFor(unsigned int in_time) {
 }
 
 // -----------------------------------------------------------------------
-// SoundSystem::DSTrack
-// -----------------------------------------------------------------------
-SoundSystem::DSTrack::DSTrack()
-    : name(""), file(""), from(-1), to(-1), loop(-1) {}
-
-SoundSystem::DSTrack::DSTrack(const std::string in_name,
-                              const std::string in_file,
-                              int in_from,
-                              int in_to,
-                              int in_loop)
-    : name(in_name), file(in_file), from(in_from), to(in_to), loop(in_loop) {}
-
-// -----------------------------------------------------------------------
-// SoundSystem::CDTrack
-// -----------------------------------------------------------------------
-SoundSystem::CDTrack::CDTrack() : name(""), from(-1), to(-1), loop(-1) {}
-
-SoundSystem::CDTrack::CDTrack(const std::string in_name,
-                              int in_from,
-                              int in_to,
-                              int in_loop)
-    : name(in_name), from(in_from), to(in_to), loop(in_loop) {}
-
-// -----------------------------------------------------------------------
 // SoundSystem
 // -----------------------------------------------------------------------
 SoundSystem::SoundSystem(System& system)

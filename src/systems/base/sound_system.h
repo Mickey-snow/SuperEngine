@@ -37,6 +37,7 @@
 #include <utility>
 
 #include "base/audio_player.h"
+#include "base/audio_table.h"
 #include "base/sound_settings.h"
 #include "base/voice_factory.h"
 
@@ -54,49 +55,12 @@ constexpr int KOE_CHANNEL = NUM_BASE_CHANNELS + NUM_EXTRA_WAVPLAY_CHANNELS;
 
 // -----------------------------------------------------------------------
 
+
+
+// -----------------------------------------------------------------------
+
 // Generalized interface to sound commands.
 class SoundSystem {
- public:
-  // Defines a piece of background music who's backed by a file, usually
-  // VisualArt's nwa format.
-  struct DSTrack {
-    DSTrack();
-    DSTrack(const std::string name,
-            const std::string file,
-            int from,
-            int to,
-            int loop);
-
-    std::string name;
-    std::string file;
-    int from;
-    int to;
-    int loop;
-
-    bool operator==(const DSTrack& rhs) const {
-      return from == rhs.from && to == rhs.to && loop == rhs.loop &&
-             name == rhs.name && file == rhs.file;
-    }
-    bool operator!=(const DSTrack& rhs) const { return !(*this == rhs); }
-  };
-
-  // Defines a piece of background music who's backed by a cd audio track.
-  struct CDTrack {
-    CDTrack();
-    CDTrack(const std::string name, int from, int to, int loop);
-
-    std::string name;
-    int from;
-    int to;
-    int loop;
-
-    bool operator==(const CDTrack& rhs) const {
-      return from == rhs.from && to == rhs.to && loop == rhs.loop &&
-             name == rhs.name;
-    }
-    bool operator!=(const CDTrack& rhs) const { return !(*this == rhs); }
-  };
-
  protected:
   // Type for a parsed \#SE table.
   using SoundEffect = std::pair<std::string, int>;

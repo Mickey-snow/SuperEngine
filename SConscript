@@ -59,6 +59,7 @@ librlvm_files = [
   "src/base/asset_scanner.cc",
   "src/base/rect.cc",
   "src/base/sound_settings.cc",
+  "src/base/audio_table.cc",
 
   "src/effects/effect.cc",
   "src/effects/sel_record.cc",
