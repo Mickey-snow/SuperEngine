@@ -64,6 +64,7 @@ unittest_files = [
   "test/interpolation_unittest.cc",
   "test/graphics_object_unittest.cc",
   "test/parameter_manager_unittest.cc",
+  "test/audio_table_unittest.cc",
 ]
 
 null_system_files = [

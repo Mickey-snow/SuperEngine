@@ -99,7 +99,6 @@ class SDLSoundSystem : public SoundSystem {
 
   // Creates a player object from a name. Throws if the bgm isn't found.
   player_t LoadMusic(const std::string& bgm_name);
-  DSTrack FindBgm(const std::string& bgm_name);
 
  private:
   AVSpec sound_quality_;

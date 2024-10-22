@@ -28,6 +28,7 @@
 
 #include <map>
 #include <string>
+#include <string_view>
 
 // Defines a piece of background music who's backed by a file, usually
 // VisualArt's nwa format.
@@ -67,6 +68,31 @@ struct CDTrack {
            name == rhs.name;
   }
   bool operator!=(const CDTrack& rhs) const { return !(*this == rhs); }
+};
+
+struct SETrack {
+  std::string file;
+  int channel;
+};
+
+class Gameexe;
+class AudioTable {
+ public:
+  AudioTable() = default;
+  AudioTable(Gameexe&);
+  ~AudioTable() = default;
+
+  auto se_table() const { return se_table_; }
+  auto ds_table() const { return ds_tracks_; }
+  auto cd_table() const { return cd_tracks_; }
+
+  DSTrack FindBgm(std::string bgm_name) const;
+  SETrack FindSE(int se_num) const;
+
+ private:
+  std::map<int, std::pair<std::string, int>> se_table_;
+  std::map<std::string, DSTrack> ds_tracks_;
+  std::map<std::string, CDTrack> cd_tracks_;
 };
 
 #endif

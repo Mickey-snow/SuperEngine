@@ -90,33 +90,13 @@ void SDLSoundSystem::SetChannelVolumeImpl(int channel) {
 }
 
 player_t SDLSoundSystem::LoadMusic(const std::string& bgm_name) {
-  auto track = FindBgm(bgm_name);
+  auto track = audio_table_.FindBgm(bgm_name);
   auto file_path = voice_assets_->FindFile(track.file, SOUNDFILETYPES);
 
   player_t player = CreateAudioPlayer(file_path);
   player->SetName(track.name);
   player->SetPLoop(track.from, track.to, track.loop);
   return player;
-}
-
-DSTrack SDLSoundSystem::FindBgm(const std::string& bgm_name) {
-  DSTable::const_iterator ds_it =
-      ds_table().find(boost::to_lower_copy(bgm_name));
-  if (ds_it != ds_table().end())
-    return ds_it->second;
-
-  CDTable::const_iterator cd_it =
-      cd_table().find(boost::to_lower_copy(bgm_name));
-  if (cd_it != cd_table().end()) {
-    std::ostringstream oss;
-    oss << "CD music not supported yet. Could not play track \"" << bgm_name
-        << "\"";
-    throw std::runtime_error(oss.str());
-  }
-
-  std::ostringstream oss;
-  oss << "Could not find music track \"" << bgm_name << "\"";
-  throw std::runtime_error(oss.str());
 }
 
 // -----------------------------------------------------------------------
@@ -252,33 +232,28 @@ void SDLSoundSystem::WavFadeOut(const int channel, const int fadetime) {
 }
 
 void SDLSoundSystem::PlaySe(const int se_num) {
-  if (is_se_enabled()) {
-    SeTable::const_iterator it = se_table().find(se_num);
-    if (it == se_table().end()) {
-      std::ostringstream oss;
-      oss << "No #SE entry found for sound effect number " << se_num;
-      throw rlvm::Exception(oss.str());
-    }
+  if (!is_se_enabled())
+    return;
 
-    const std::string& file_name = it->second.first;
-    int channel = it->second.second;
+  auto se = audio_table_.FindSE(se_num);
+  const std::string& file_name = se.file;
+  int channel = se.channel;
 
-    // Make sure there isn't anything playing on the current channel
-    sound_impl_->HaltChannel(channel);
-    if (file_name == "") {
-      // Just stop a channel in case of an empty file name.
-      return;
-    }
-
-    auto file_path = voice_assets_->FindFile(file_name, SOUNDFILETYPES);
-    player_t player = CreateAudioPlayer(file_path);
-    player->SetLoopTimes(0);
-
-    // SE chunks have no volume other than the modifier.
-    sound_impl_->SetVolume(channel,
-                           realLiveVolumeToSDLMixerVolume(se_volume_mod()));
-    sound_impl_->PlayChannel(channel, player);
+  // Make sure there isn't anything playing on the current channel
+  sound_impl_->HaltChannel(channel);
+  if (file_name == "") {
+    // Just stop a channel in case of an empty file name.
+    return;
   }
+
+  auto file_path = voice_assets_->FindFile(file_name, SOUNDFILETYPES);
+  player_t player = CreateAudioPlayer(file_path);
+  player->SetLoopTimes(0);
+
+  // SE chunks have no volume other than the modifier.
+  sound_impl_->SetVolume(channel,
+                         realLiveVolumeToSDLMixerVolume(se_volume_mod()));
+  sound_impl_->PlayChannel(channel, player);
 }
 
 int SDLSoundSystem::BgmStatus() const {

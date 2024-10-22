@@ -55,23 +55,9 @@ constexpr int KOE_CHANNEL = NUM_BASE_CHANNELS + NUM_EXTRA_WAVPLAY_CHANNELS;
 
 // -----------------------------------------------------------------------
 
-
-
-// -----------------------------------------------------------------------
-
 // Generalized interface to sound commands.
 class SoundSystem {
  protected:
-  // Type for a parsed \#SE table.
-  using SoundEffect = std::pair<std::string, int>;
-  using SeTable = std::map<int, SoundEffect>;
-
-  // Type for parsed \#DSTRACK entries.
-  using DSTable = std::map<std::string, DSTrack>;
-
-  // Type for parsed \#CDTRACK entries.
-  using CDTable = std::map<std::string, CDTrack>;
-
   // Stores data about an ongoing volume adjustment (such as those started by
   // fun wavSetVolume(int, int, int).)
   struct VolumeAdjustTask {
@@ -192,8 +178,12 @@ class SoundSystem {
 
   // Returns whether there is a sound effect |se_num| in the table.
   virtual bool HasSe(const int se_num) {
-    SeTable::const_iterator it = se_table().find(se_num);
-    return it != se_table().end();
+    try {
+      auto se = audio_table_.FindSE(se_num);
+    } catch (std::invalid_argument&) {
+      return false;
+    }
+    return true;
   }
 
   // ---------------------------------------------------------------------
@@ -212,15 +202,11 @@ class SoundSystem {
   virtual bool KoePlaying() const = 0;
   virtual void KoeStop() = 0;
 
-  virtual void Reset();
+  virtual void Reset() = 0;
 
   System& system() { return system_; }
 
  protected:
-  SeTable& se_table() { return se_table_; }
-  const DSTable& ds_table() { return ds_tracks_; }
-  const CDTable& cd_table() { return cd_tracks_; }
-
   // Computes the actual volume for a channel based on the per channel
   // and the per system volume.
   int compute_channel_volume(const int channel_volume,
@@ -244,17 +230,9 @@ class SoundSystem {
  protected:
   rlSoundSettings settings_;
 
+  AudioTable audio_table_;
+
  private:
-  // Defined music tracks (files)
-  DSTable ds_tracks_;
-
-  // Defined music tracks (cd tracks)
-  CDTable cd_tracks_;
-
-  // ---------------------------------------------------------------------
-
-  // PCM/Wave sound effect data
-
   // Per channel volume
   unsigned char channel_volume_[NUM_TOTAL_CHANNELS];
 
@@ -267,14 +245,6 @@ class SoundSystem {
   ChannelAdjustmentMap pcm_adjustment_tasks_;
 
   std::unique_ptr<VolumeAdjustTask> bgm_adjustment_task_;
-
-  // ---------------------------------------------------------------------
-
-  // @name Interface sound effect data
-
-  // Parsed #SE.index entries. Maps a sound effect number to the filename to
-  // play and the channel to play it on.
-  SeTable se_table_;
 
   // Maps each UseKoe id to one or more koePlay ids.
   std::multimap<int, int> usekoe_to_koeplay_mapping_;

@@ -69,52 +69,15 @@ SoundSystem::SoundSystem(System& system)
     : voice_assets_(system.GetFileSystem()),
       voice_factory_(system.GetFileSystem()),
       system_(system),
-      settings_(system.gameexe()) {
+      settings_(system.gameexe()),
+      audio_table_(system.gameexe()) {
   Gameexe& gexe = system_.gameexe();
 
   std::fill_n(channel_volume_, NUM_TOTAL_CHANNELS, 255);
 
-  // Read the \#SE.xxx entries from the Gameexe
-  GameexeFilteringIterator se = gexe.FilterBegin("SE.");
-  GameexeFilteringIterator end = gexe.FilterEnd();
-  for (; se != end; ++se) {
-    std::string raw_number = se->GetKeyParts().at(1);
-    int entry_number = std::stoi(raw_number);
-
-    std::string file_name = se->GetStringAt(0);
-    int target_channel = se->GetIntAt(1);
-
-    se_table_[entry_number] = std::make_pair(file_name, target_channel);
-  }
-
-  // Read the \#DSTRACK entries
-  GameexeFilteringIterator dstrack = gexe.FilterBegin("DSTRACK");
-  for (; dstrack != end; ++dstrack) {
-    int from = dstrack->GetIntAt(0);
-    int to = dstrack->GetIntAt(1);
-    int loop = dstrack->GetIntAt(2);
-    const std::string& file = dstrack->GetStringAt(3);
-    std::string name = dstrack->GetStringAt(4);
-    boost::to_lower(name);
-
-    ds_tracks_[name] = DSTrack(name, file, from, to, loop);
-  }
-
-  // Read the \#CDTRACK entries
-  GameexeFilteringIterator cdtrack = gexe.FilterBegin("CDTRACK");
-  for (; cdtrack != end; ++cdtrack) {
-    int from = cdtrack->GetIntAt(0);
-    int to = cdtrack->GetIntAt(1);
-    int loop = cdtrack->GetIntAt(2);
-    std::string name = cdtrack->GetStringAt(3);
-    boost::to_lower(name);
-
-    cd_tracks_[name] = CDTrack(name, from, to, loop);
-  }
-
   // Read the \#KOEONOFF entries
-  GameexeFilteringIterator koeonoff = gexe.FilterBegin("KOEONOFF.");
-  for (; koeonoff != end; ++koeonoff) {
+  for (auto koeonoff = gexe.FilterBegin("KOEONOFF."), end = gexe.FilterEnd();
+       koeonoff != end; ++koeonoff) {
     std::vector<std::string> keyparts = koeonoff->GetKeyParts();
     int usekoe_id = std::stoi(keyparts.at(1));
 
@@ -273,10 +236,6 @@ void SoundSystem::KoePlay(int id, int charid) {
       KoePlayImpl(id);
     }
   }
-}
-
-void SoundSystem::Reset() {
-  // empty
 }
 
 // static
