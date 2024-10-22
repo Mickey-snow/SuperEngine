@@ -104,6 +104,9 @@ void SDLSoundImpl::CloseAudio() const {
 }
 
 void SDLSoundImpl::SetVolume(int channel, int vol) const {
+  if (vol < 0 || vol > 127)
+    throw std::invalid_argument("sdl SetVolume: Invalid volume " +
+                                std::to_string(vol));
   Mix_Volume(channel, vol);
 }
 

@@ -136,8 +136,6 @@ void SoundSystem::ExecuteSoundSystem() {
 }
 
 void SoundSystem::SetBgmVolumeScript(const int level, const int fade_in_ms) {
-  CheckVolume(level, "SetBgmVolumeScript");
-
   if (fade_in_ms == 0) {
     settings_.bgm_volume = level;
   } else {
@@ -150,8 +148,6 @@ void SoundSystem::SetBgmVolumeScript(const int level, const int fade_in_ms) {
 
 void SoundSystem::SetChannelVolume(const int channel, const int level) {
   CheckChannel(channel, "set_channel_volume");
-  CheckVolume(level, "set_channel_volume");
-
   channel_volume_[channel] = level;
 }
 
@@ -159,8 +155,6 @@ void SoundSystem::SetChannelVolume(const int channel,
                                    const int level,
                                    const int fade_time_in_ms) {
   CheckChannel(channel, "set_channel_volume");
-  CheckVolume(level, "set_channel_volume");
-
   unsigned int cur_time = system().event().GetTicks();
 
   pcm_adjustment_tasks_.emplace(
@@ -176,7 +170,6 @@ int SoundSystem::GetChannelVolume(const int channel) const {
 void SoundSystem::SetIsSeEnabled(const int in) { settings_.se_enabled = in; }
 
 void SoundSystem::SetSeVolumeMod(const int level) {
-  CheckVolume(level, "set_se_volume");
   settings_.se_volume = level;
 }
 
@@ -243,16 +236,6 @@ void SoundSystem::CheckChannel(int channel, const char* function_name) {
   if (channel < 0 || channel > NUM_TOTAL_CHANNELS) {
     std::ostringstream oss;
     oss << "Invalid channel number " << channel << " in " << function_name;
-    throw std::runtime_error(oss.str());
-  }
-}
-
-// static
-void SoundSystem::CheckVolume(int level, const char* function_name) {
-  if (level < 0 || level > 255) {
-    std::ostringstream oss;
-    oss << "Invalid volume \"" << level << "\" in " << function_name
-        << ". Valid values are 0-255.";
     throw std::runtime_error(oss.str());
   }
 }

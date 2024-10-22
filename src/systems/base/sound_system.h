@@ -218,7 +218,6 @@ class SoundSystem {
   virtual void KoePlayImpl(int id) = 0;
 
   static void CheckChannel(int channel, const char* function_name);
-  static void CheckVolume(int level, const char* function_name);
 
   std::shared_ptr<IAssetScanner> voice_assets_;
 
