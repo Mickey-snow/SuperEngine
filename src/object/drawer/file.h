@@ -65,7 +65,7 @@ class GraphicsObjectOfFile : public GraphicsObjectData {
   virtual std::unique_ptr<GraphicsObjectData> Clone() const override;
 
   virtual void Execute(RLMachine& machine) override;
-  void Execute();
+  void Execute(unsigned int);
 
   virtual bool IsAnimation() const override;
   virtual void PlaySet(int set) override;

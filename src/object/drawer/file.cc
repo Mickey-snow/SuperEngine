@@ -112,10 +112,9 @@ std::unique_ptr<GraphicsObjectData> GraphicsObjectOfFile::Clone() const {
 
 // -----------------------------------------------------------------------
 
-void GraphicsObjectOfFile::Execute(RLMachine&) { Execute(); }
-void GraphicsObjectOfFile::Execute() {
+void GraphicsObjectOfFile::Execute(RLMachine&) { Execute(service_->GetTicks()); }
+void GraphicsObjectOfFile::Execute(unsigned int current_time) {
   if (GetAnimator()->IsPlaying()) {
-    unsigned int current_time = service_->GetTicks();
     unsigned int time_since_last_frame_change =
         current_time - time_at_last_frame_change_;
 
