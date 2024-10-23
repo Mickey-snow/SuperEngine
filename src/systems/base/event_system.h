@@ -31,6 +31,7 @@
 #include <functional>
 #include <memory>
 #include <queue>
+#include <chrono>
 #include <set>
 
 #include "systems/base/rltimer.h"
@@ -124,7 +125,8 @@ class EventSystem {
 
   // Returns the number of milliseconds since the program
   // started. Used for timing things.
-  virtual unsigned int GetTicks() const = 0;
+  virtual unsigned int GetTicks() const;
+  virtual std::chrono::time_point<std::chrono::steady_clock> GetTime() const;
 
   // Idles the program for a certain amount of time in milliseconds.
   virtual void Wait(unsigned int milliseconds) const = 0;

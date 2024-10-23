@@ -34,12 +34,12 @@
 #include "systems/base/frame_counter.h"
 #include "utilities/exception.h"
 
+#include <chrono>
+
 // -----------------------------------------------------------------------
 // EventSystemGlobals
 // -----------------------------------------------------------------------
-EventSystemGlobals::EventSystemGlobals()
-    : generic1_(false), generic2_(false) {
-}
+EventSystemGlobals::EventSystemGlobals() : generic1_(false), generic2_(false) {}
 
 EventSystemGlobals::EventSystemGlobals(Gameexe& gexe)
     : generic1_(gexe("INIT_ORIGINALSETING1_MOD").ToInt(0)),
@@ -91,6 +91,16 @@ void EventSystem::AddMouseListener(EventListener* listener) {
 
 void EventSystem::RemoveMouseListener(EventListener* listener) {
   event_listeners_.erase(listener);
+}
+
+unsigned int EventSystem::GetTicks() const {
+  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+      GetTime().time_since_epoch());
+  return static_cast<unsigned int>(duration.count());
+}
+std::chrono::time_point<std::chrono::steady_clock> EventSystem::GetTime()
+    const {
+  return std::chrono::steady_clock::now();
 }
 
 void EventSystem::DispatchEvent(
