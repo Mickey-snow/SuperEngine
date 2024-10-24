@@ -48,9 +48,10 @@ EventSystemGlobals::EventSystemGlobals(Gameexe& gexe)
 // -----------------------------------------------------------------------
 // EventSystem
 // -----------------------------------------------------------------------
-EventSystem::EventSystem(Gameexe& gexe) : globals_(gexe) {}
+EventSystem::EventSystem(Gameexe& gexe)
+    : clock_(std::make_shared<Clock>()), globals_(gexe) {}
 
-EventSystem::~EventSystem() {}
+EventSystem::~EventSystem() = default;
 
 RLTimer& EventSystem::GetTimer(int layer, int counter) {
   if (layer >= 2)
@@ -94,13 +95,11 @@ void EventSystem::RemoveMouseListener(EventListener* listener) {
 }
 
 unsigned int EventSystem::GetTicks() const {
-  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
-      GetTime().time_since_epoch());
-  return static_cast<unsigned int>(duration.count());
+  return static_cast<unsigned int>(clock_->GetTicks().count());
 }
 std::chrono::time_point<std::chrono::steady_clock> EventSystem::GetTime()
     const {
-  return std::chrono::steady_clock::now();
+  return clock_->GetTime();
 }
 
 void EventSystem::DispatchEvent(

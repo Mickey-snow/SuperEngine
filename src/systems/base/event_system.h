@@ -28,14 +28,15 @@
 #ifndef SRC_SYSTEMS_BASE_EVENT_SYSTEM_H_
 #define SRC_SYSTEMS_BASE_EVENT_SYSTEM_H_
 
+#include <chrono>
 #include <functional>
 #include <memory>
 #include <queue>
-#include <chrono>
 #include <set>
 
-#include "systems/base/rltimer.h"
 #include "base/rect.h"
+#include "systems/base/rltimer.h"
+#include "utilities/clock.h"
 
 class RLMachine;
 
@@ -57,7 +58,7 @@ struct EventSystemGlobals {
   // boost::serialization support
   template <class Archive>
   void serialize(Archive& ar, const unsigned int version) {
-    ar& generic1_ & generic2_;
+    ar & generic1_ & generic2_;
   }
 };
 
@@ -191,6 +192,8 @@ class EventSystem {
 
   std::unique_ptr<FrameCounter> frame_counters_[2][255];
   RLTimer timers_[2][255];
+
+  std::shared_ptr<Clock> clock_;
 
   EventListeners event_listeners_;
 
