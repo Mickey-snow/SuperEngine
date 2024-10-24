@@ -26,7 +26,9 @@
 #define SRC_OBJECT_ANIMATOR_H_
 
 #include <boost/serialization/access.hpp>
+#include <boost/serialization/serialization.hpp>
 
+#include <chrono>
 #include <functional>
 
 enum AfterAnimation { AFTER_NONE, AFTER_CLEAR, AFTER_LOOP };
@@ -50,11 +52,16 @@ class Animator : public IAnimator {
   // TODO: just a reminder to decouple them later
   friend class GraphicsObjectData;
 
+  using timepoint_t = std::chrono::time_point<std::chrono::steady_clock>;
+  using duration_t = std::chrono::milliseconds;
+
  public:
   Animator()
       : after_animation_(AFTER_NONE),
+        state_(State::Paused),
         currently_playing_(false),
-        animation_finished_(false) {}
+        animation_finished_(false),
+        animation_time_(duration_t::zero()) {}
 
   virtual void SetAfterAction(AfterAnimation after) override {
     after_animation_ = after;
@@ -67,14 +74,54 @@ class Animator : public IAnimator {
   virtual bool IsFinished() const override { return animation_finished_; }
   virtual void SetIsFinished(bool in) override { animation_finished_ = in; }
 
+  enum class Action { Pause, Play, Stop };
+  virtual void Apply(Action action, timepoint_t now) {
+    Notify(now);
+
+    switch (action) {
+      case Action::Pause: {
+        if (state_ != State::Finished)
+          state_ = State::Paused;
+      } break;
+
+      case Action::Play:
+        state_ = State::Playing;
+        break;
+
+      case Action::Stop: {
+        animation_time_ = decltype(animation_time_)::zero();
+        state_ = State::Finished;
+      } break;
+
+      default:
+        throw std::invalid_argument("Animator: invalid action " +
+                                    std::to_string(static_cast<int>(action)));
+    }
+  }
+
+  enum class State { Paused, Playing, Finished };
+  State GetState(void) const { return state_; }
+
+  duration_t GetAnmTime() const { return animation_time_; }
+
+  void Notify(timepoint_t tp) {
+    if (state_ == State::Playing)
+      animation_time_ +=
+          std::chrono::duration_cast<duration_t>(tp - last_tick_);
+    last_tick_ = tp;
+  }
+
  private:
   // Policy of what to do after an animation is finished.
-  AfterAnimation after_animation_;
+  AfterAnimation after_animation_;  // dummy
 
-  bool currently_playing_;
+  State state_;
 
-  // Whether we're on the final frame.
-  bool animation_finished_;
+  bool currently_playing_;   // dummy
+  bool animation_finished_;  // dummy
+
+  timepoint_t last_tick_;
+  duration_t animation_time_;
 
   // boost::serialization support
   friend class boost::serialization::access;
