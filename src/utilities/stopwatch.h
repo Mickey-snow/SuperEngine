@@ -25,7 +25,10 @@
 #ifndef SRC_UTILITIES_STOPWATCH_H_
 #define SRC_UTILITIES_STOPWATCH_H_
 
+#include "utilities/clock.h"
+
 #include <chrono>
+#include <memory>
 #include <stdexcept>
 
 class Stopwatch {
@@ -34,11 +37,15 @@ class Stopwatch {
   using duration_t = std::chrono::milliseconds;
 
  public:
-  Stopwatch() : state_(State::Paused), time_(duration_t::zero()) {}
+  Stopwatch(std::shared_ptr<Clock> clock)
+      : clock_(clock), state_(State::Paused), time_(duration_t::zero()) {
+    if (clock_ == nullptr)
+      throw std::invalid_argument("Stopwatch: no clock provided.");
+  }
 
   enum class Action { Pause, Run, Reset };
-  virtual void Apply(Action action, timepoint_t now) {
-    Notify(now);
+  virtual void Apply(Action action) {
+    Update();
 
     switch (action) {
       case Action::Pause: {
@@ -64,16 +71,20 @@ class Stopwatch {
   enum class State { Paused, Running, Set };
   State GetState(void) const { return state_; }
 
-  duration_t GetReading() const { return time_; }
-
-  void Notify(timepoint_t tp) {
-    if (state_ == State::Running)
-      time_ +=
-          std::chrono::duration_cast<duration_t>(tp - last_tick_);
-    last_tick_ = tp;
+  duration_t GetReading() {
+    Update();
+    return time_;
   }
 
  private:
+  void Update() {
+    auto tp = clock_->GetTime();
+    if (state_ == State::Running)
+      time_ += std::chrono::duration_cast<duration_t>(tp - last_tick_);
+    last_tick_ = tp;
+  }
+
+  std::shared_ptr<Clock> clock_;
   State state_;
   timepoint_t last_tick_;
   duration_t time_;
