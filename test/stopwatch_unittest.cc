@@ -82,7 +82,7 @@ class StopwatchTest : public ::testing::Test {
       size_t action_idx = 0, checker_idx = 0;
       for (const auto& duration : keytimes) {
         auto now = epoch + duration;
-	clock->SetTime(now);
+        clock->SetTime(now);
 
         while (action_idx < actions.size() &&
                actions[action_idx].first == duration) {
@@ -115,7 +115,7 @@ class StopwatchTest : public ::testing::Test {
   // possible stopwatch state
   inline static constexpr auto Running = Stopwatch::State::Running,
                                Paused = Stopwatch::State::Paused,
-                               Set = Stopwatch::State::Set;
+                               Set = Stopwatch::State::Stopped;
 };
 
 TEST_F(StopwatchTest, Countup) {
@@ -287,4 +287,34 @@ TEST_F(StopwatchTest, TypicalControl) {
   };
 
   testinstance.Doit();
+}
+
+TEST_F(StopwatchTest, ReadFromInit) {
+  using std::chrono_literals::operator""ms;
+  StopwatchTestCtx testinstance;
+
+  testinstance.actions = {
+      // none
+  };
+
+  testinstance.checkers = {{0ms, Paused, 0ms}};
+
+  testinstance.Doit();
+}
+
+TEST_F(StopwatchTest, BrokenClock) {
+  using std::chrono_literals::operator""ms;
+
+  auto clock = std::make_shared<FakeClock>();
+  auto epoch = std::chrono::steady_clock::now();
+  clock->SetTime(epoch);
+
+  Stopwatch stopwatch(clock);
+  stopwatch.Apply(Run);
+
+  clock->SetTime(epoch + 10ms);  // Advance time
+  EXPECT_EQ(stopwatch.GetReading(), 10ms);
+
+  clock->SetTime(epoch + 5ms);  // Move time backward
+  EXPECT_THROW(stopwatch.GetReading(), std::runtime_error);
 }

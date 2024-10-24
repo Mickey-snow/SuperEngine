@@ -218,6 +218,7 @@ librlvm_files = [
   "src/utilities/bitstream.cc",
   "src/utilities/byte_reader.cc",
   "src/utilities/clock.cc",
+  "src/utilities/stopwatch.cc",
 
   "vendor/xclannad/endian.cpp",
   "vendor/xclannad/file.cc",

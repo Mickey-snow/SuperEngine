@@ -25,69 +25,69 @@
 #ifndef SRC_UTILITIES_STOPWATCH_H_
 #define SRC_UTILITIES_STOPWATCH_H_
 
-#include "utilities/clock.h"
-
 #include <chrono>
 #include <memory>
-#include <stdexcept>
 
+class Clock;
+
+/**
+ * @class Stopwatch
+ * @brief A class representing a stopwatch that can be started, paused, and reset.
+ */
 class Stopwatch {
  public:
   using timepoint_t = std::chrono::time_point<std::chrono::steady_clock>;
   using duration_t = std::chrono::milliseconds;
 
- public:
-  Stopwatch(std::shared_ptr<Clock> clock)
-      : clock_(clock), state_(State::Paused), time_(duration_t::zero()) {
-    if (clock_ == nullptr)
-      throw std::invalid_argument("Stopwatch: no clock provided.");
-  }
+  /**
+   * @brief Constructs a Stopwatch with the provided clock.
+   * @param clock A shared pointer to a Clock instance.
+   * @throws std::invalid_argument if clock is nullptr.
+   */
+  explicit Stopwatch(std::shared_ptr<Clock> clock);
 
+  /**
+   * @enum Action
+   * @brief Actions that can be applied to the stopwatch.
+   */
   enum class Action { Pause, Run, Reset };
-  virtual void Apply(Action action) {
-    Update();
 
-    switch (action) {
-      case Action::Pause: {
-        if (state_ != State::Set)
-          state_ = State::Paused;
-      } break;
+  /**
+   * @brief Applies an action to the stopwatch (Pause, Run, Reset).
+   * @param action The action to apply.
+   * @throws std::invalid_argument if an invalid action is provided.
+   */
+  virtual void Apply(Action action);
 
-      case Action::Run:
-        state_ = State::Running;
-        break;
+  /**
+   * @enum State
+   * @brief Possible states of the stopwatch.
+   */
+  enum class State { Paused, Running, Stopped };
 
-      case Action::Reset: {
-        time_ = decltype(time_)::zero();
-        state_ = State::Set;
-      } break;
+  /**
+   * @brief Retrieves the current state of the stopwatch.
+   * @return The current state.
+   */
+  State GetState() const;
 
-      default:
-        throw std::invalid_argument("Stopwatch: invalid action " +
-                                    std::to_string(static_cast<int>(action)));
-    }
-  }
-
-  enum class State { Paused, Running, Set };
-  State GetState(void) const { return state_; }
-
-  duration_t GetReading() {
-    Update();
-    return time_;
-  }
+  /**
+   * @brief Gets the current elapsed time of the stopwatch.
+   * @return The elapsed time as duration_t.
+   */
+  duration_t GetReading();
 
  private:
-  void Update() {
-    auto tp = clock_->GetTime();
-    if (state_ == State::Running)
-      time_ += std::chrono::duration_cast<duration_t>(tp - last_tick_);
-    last_tick_ = tp;
-  }
+  /**
+   * @brief Updates the internal time based on the clock.
+   * @throws std::runtime_error if the clock time moves backward.
+   */
+  void Update();
 
-  std::shared_ptr<Clock> clock_;
-  State state_;
-  timepoint_t last_tick_;
-  duration_t time_;
+  std::shared_ptr<Clock> clock_;  ///< The clock used for time measurement.
+  State state_;                   ///< The current state of the stopwatch.
+  timepoint_t last_tick_;         ///< The last recorded time point.
+  duration_t time_;               ///< The accumulated time.
 };
 
 #endif
