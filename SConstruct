@@ -114,6 +114,7 @@ if ARGUMENTS.get('VERBOSE') != '1':
 #########################################################################
 ## Platform Specific Locations
 #########################################################################
+env.Append(LIBPATH = ["build/libraries/"])
 if env['PLATFORM'] == "darwin":
   # Fink based mac
   if os.path.exists("/sw/"):
@@ -265,11 +266,6 @@ local_sdl_libraries = [
     'function' : '',
   },
   {
-    'include'  : 'libsamplerate/samplerate.h',
-    'library'  : 'libsamplerate',
-    'function' : '',
-  },
-  {
     "include"  : 'GL/glew.h',
     "library"  : 'GLEW',
     "function" : 'glewInit();'
@@ -399,6 +395,12 @@ else:
     ]
   )
 
+# Build library
+libsrc = SConscript('vendor/SConscript.src',
+	            variant_dir="build/libraries/",
+                    duplicate=False,
+                    exports='env')
+env.Append(LIBS = [libsrc])
 
 # Build platform-specific library
 platform_option = GetOption('platform')

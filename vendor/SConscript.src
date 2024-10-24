@@ -1,0 +1,34 @@
+
+component_env = Environment()
+
+component_env.Append(
+  CPPPATH = [
+    "#/vendor/libsamplerate/include/",
+  ],
+
+  CCFLAGS = [
+    # Ignore all warnings in this upstream code.
+    "-w"
+  ],
+
+  CPPDEFINES=[
+    "ENABLE_SINC_FAST_CONVERTER",
+    "ENABLE_SINC_MEDIUM_CONVERTER",
+    "ENABLE_SINC_BEST_CONVERTER",
+    ("VERSION", "'\"0.2.2\"'"),
+    ("PACKAGE", "'\"libsamplerate\"'")
+  ]
+)
+
+component_env.Append(CCFLAGS=['-include', 'stdbool.h'])
+
+libsamplerate_files = [
+  "libsamplerate/src/samplerate.c",
+  "libsamplerate/src/src_linear.c",
+  "libsamplerate/src/src_sinc.c",
+  "libsamplerate/src/src_zoh.c",
+]
+
+samplerate_obj = component_env.Object(libsamplerate_files)
+samplerate = component_env.Library("samplerate", samplerate_obj)
+Return('samplerate')
