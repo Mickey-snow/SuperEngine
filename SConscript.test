@@ -65,7 +65,7 @@ unittest_files = [
   "test/graphics_object_unittest.cc",
   "test/parameter_manager_unittest.cc",
   "test/audio_table_unittest.cc",
-  "test/animator_unittest.cc",
+  "test/stopwatch_unittest.cc",
 ]
 
 test_env.RlvmProgram('rlvm_unittests',

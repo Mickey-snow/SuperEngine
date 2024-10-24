@@ -23,7 +23,7 @@
 
 #include <gtest/gtest.h>
 
-#include "object/animator.h"
+#include "utilities/stopwatch.h"
 
 #include <algorithm>
 #include <chrono>
@@ -33,13 +33,13 @@
 namespace chr = std::chrono;
 using timepoint_t = std::chrono::time_point<std::chrono::steady_clock>;
 
-class AnimatorTest : public ::testing::Test {
+class StopwatchTest : public ::testing::Test {
  protected:
-  struct AnimatorTestCtx {
-    std::shared_ptr<Animator> animator;
-    std::vector<std::pair<chr::milliseconds, Animator::Action>> actions;
+  struct StopwatchTestCtx {
+    std::shared_ptr<Stopwatch> stopwatch;
+    std::vector<std::pair<chr::milliseconds, Stopwatch::Action>> actions;
     std::vector<
-        std::tuple<chr::milliseconds, Animator::State, Animator::duration_t>>
+        std::tuple<chr::milliseconds, Stopwatch::State, Stopwatch::duration_t>>
         checkers;
 
     void Doit() {
@@ -58,28 +58,28 @@ class AnimatorTest : public ::testing::Test {
 
       auto epoch = std::chrono::steady_clock::now();
       size_t action_idx = 0, checker_idx = 0;
-      animator->Notify(epoch);
+      stopwatch->Notify(epoch);
       for (const auto& duration : keytimes) {
         auto now = epoch + duration;
 
         while (action_idx < actions.size() &&
                actions[action_idx].first == duration) {
-          animator->Apply(actions[action_idx++].second, now);
+          stopwatch->Apply(actions[action_idx++].second, now);
         }
-        animator->Notify(now);
+        stopwatch->Notify(now);
 
         while (checker_idx < checkers.size() &&
                std::get<0>(checkers[checker_idx]) == duration) {
           auto expect_state = std::get<1>(checkers[checker_idx]);
           auto expect_anmtime =
-              chr::duration_cast<Animator::duration_t>(std::get<2>(
+              chr::duration_cast<Stopwatch::duration_t>(std::get<2>(
                   checkers[checker_idx]));  // Cast before EXPECT_ marco to
                                             // prevent unexpected gtest behavior
           ++checker_idx;
 
-          EXPECT_EQ(expect_state, animator->GetState())
+          EXPECT_EQ(expect_state, stopwatch->GetState())
               << "at tick " << duration.count();
-          EXPECT_EQ(expect_anmtime, animator->GetAnmTime())
+          EXPECT_EQ(expect_anmtime, stopwatch->GetReading())
               << "at tick " << duration.count();
         }
       }
@@ -87,210 +87,191 @@ class AnimatorTest : public ::testing::Test {
   };
 
   // possible controlling actions
-  inline static constexpr auto Play = Animator::Action::Play,
-                               Pause = Animator::Action::Pause,
-                               Stop = Animator::Action::Stop;
+  inline static constexpr auto Run = Stopwatch::Action::Run,
+                               Pause = Stopwatch::Action::Pause,
+                               Reset = Stopwatch::Action::Reset;
 
-  // possible animator state
-  inline static constexpr auto Playing = Animator::State::Playing,
-                               Paused = Animator::State::Paused,
-                               Finished = Animator::State::Finished;
+  // possible stopwatch state
+  inline static constexpr auto Running = Stopwatch::State::Running,
+                               Paused = Stopwatch::State::Paused,
+                               Set = Stopwatch::State::Set;
 };
 
-TEST_F(AnimatorTest, OnepassAnimation) {
+TEST_F(StopwatchTest, Countup) {
   using std::chrono_literals::operator""ms;
 
-  AnimatorTestCtx testinstance;
-  testinstance.animator = std::make_shared<Animator>();
-  testinstance.actions = {
-      {0ms, Play},
-      {15ms, Play}
-  };
+  StopwatchTestCtx testinstance;
+  testinstance.stopwatch = std::make_shared<Stopwatch>();
+  testinstance.actions = {{0ms, Run}, {15ms, Run}};
   testinstance.checkers = {
-      {1ms, Playing, 1ms},
-      {10ms, Playing, 10ms},
-      {50ms, Playing, 50ms},
+      {1ms, Running, 1ms},
+      {10ms, Running, 10ms},
+      {50ms, Running, 50ms},
   };
 
   testinstance.Doit();
 }
 
-TEST_F(AnimatorTest, TogglePlaying) {
+TEST_F(StopwatchTest, ToggleRun) {
   using std::chrono_literals::operator""ms;
-  AnimatorTestCtx testinstance;
-  testinstance.animator = std::make_shared<Animator>();
+  StopwatchTestCtx testinstance;
+  testinstance.stopwatch = std::make_shared<Stopwatch>();
 
   testinstance.actions = {
-      {0ms, Play},
+      {0ms, Run},
       {12ms, Pause},
       {20ms, Pause},
-      {22ms, Play},
+      {22ms, Run},
   };
-  testinstance.checkers = {{0ms, Playing, 0ms},
-                           {11ms, Playing, 11ms},
+  testinstance.checkers = {{0ms, Running, 0ms},
+                           {11ms, Running, 11ms},
                            {20ms, Paused, 12ms},
-                           {32ms, Playing, 22ms}};
+                           {32ms, Running, 22ms}};
 
   testinstance.Doit();
 }
 
-TEST_F(AnimatorTest, StopReset) {
+TEST_F(StopwatchTest, StopReset) {
   using std::chrono_literals::operator""ms;
-  AnimatorTestCtx testinstance;
-  testinstance.animator = std::make_shared<Animator>();
+  StopwatchTestCtx testinstance;
+  testinstance.stopwatch = std::make_shared<Stopwatch>();
 
   testinstance.actions = {
-      {5ms, Play}, {12ms, Stop}, {15ms, Pause}, {20ms, Play}};
+      {5ms, Run}, {12ms, Reset}, {15ms, Pause}, {20ms, Run}};
   testinstance.checkers = {
       {0ms, Paused, 0ms},
-      {11ms, Playing, 7ms},
-      {13ms, Finished, 0ms},
-      {16ms, Finished,
+      {11ms, Running, 7ms},
+      {13ms, Set, 0ms},
+      {16ms, Set,
        0ms},  // Pause action should be ignored when at Finished state
-      {32ms, Playing, 12ms}};
+      {32ms, Running, 12ms}};
 }
 
-TEST_F(AnimatorTest, StopWhenAlreadyStopped) {
+TEST_F(StopwatchTest, StopWhenAlreadyStopped) {
   // Test applying Stop action when already in Finished state.
   using std::chrono_literals::operator""ms;
-  AnimatorTestCtx testinstance;
-  testinstance.animator = std::make_shared<Animator>();
+  StopwatchTestCtx testinstance;
+  testinstance.stopwatch = std::make_shared<Stopwatch>();
 
   testinstance.actions = {
-    {0ms, Stop},
-    {10ms, Stop},
+      {0ms, Reset},
+      {10ms, Reset},
   };
 
   testinstance.checkers = {
-    {5ms, Finished, 0ms},
-    {15ms, Finished, 0ms},
+      {5ms, Set, 0ms},
+      {15ms, Set, 0ms},
   };
 
   testinstance.Doit();
 }
 
-TEST_F(AnimatorTest, RapidTransitions) {
+TEST_F(StopwatchTest, RapidTransitions) {
   using std::chrono_literals::operator""ms;
-  AnimatorTestCtx testinstance;
-  testinstance.animator = std::make_shared<Animator>();
+  StopwatchTestCtx testinstance;
+  testinstance.stopwatch = std::make_shared<Stopwatch>();
 
   testinstance.actions = {
-    {0ms, Play},
-    {1ms, Pause},
-    {2ms, Play},
-    {3ms, Pause},
-    {4ms, Play},
+      {0ms, Run}, {1ms, Pause}, {2ms, Run}, {3ms, Pause}, {4ms, Run},
   };
 
   testinstance.checkers = {
-    {0ms, Playing, 0ms},
-    {1ms, Paused, 1ms},
-    {2ms, Playing, 1ms},
-    {3ms, Paused, 2ms},
-    {4ms, Playing, 2ms},
-    {5ms, Playing, 3ms},
+      {0ms, Running, 0ms}, {1ms, Paused, 1ms},  {2ms, Running, 1ms},
+      {3ms, Paused, 2ms},  {4ms, Running, 2ms}, {5ms, Running, 3ms},
   };
 
   testinstance.Doit();
 }
 
-TEST_F(AnimatorTest, NoActions) {
+TEST_F(StopwatchTest, NoActions) {
   using std::chrono_literals::operator""ms;
-  AnimatorTestCtx testinstance;
-  testinstance.animator = std::make_shared<Animator>();
+  StopwatchTestCtx testinstance;
+  testinstance.stopwatch = std::make_shared<Stopwatch>();
 
   testinstance.checkers = {
-    {0ms, Paused, 0ms},
-    {10ms, Paused, 0ms},
-    {20ms, Paused, 0ms},
+      {0ms, Paused, 0ms},
+      {10ms, Paused, 0ms},
+      {20ms, Paused, 0ms},
   };
 
   testinstance.Doit();
 }
 
-TEST_F(AnimatorTest, Interrupt) {
+TEST_F(StopwatchTest, Interrupt) {
   using std::chrono_literals::operator""ms;
-  AnimatorTestCtx testinstance;
-  testinstance.animator = std::make_shared<Animator>();
+  StopwatchTestCtx testinstance;
+  testinstance.stopwatch = std::make_shared<Stopwatch>();
 
   testinstance.actions = {
-    {0ms, Play},
-    {0ms, Stop},
+      {0ms, Run},
+      {0ms, Reset},
   };
 
   testinstance.checkers = {
-    {0ms, Finished, 0ms},
-    {10ms, Finished, 0ms},
+      {0ms, Set, 0ms},
+      {10ms, Set, 0ms},
   };
 
   testinstance.Doit();
 }
 
-TEST_F(AnimatorTest, LongDuration) {
+TEST_F(StopwatchTest, LongDuration) {
   using namespace std::chrono_literals;
-  AnimatorTestCtx testinstance;
-  testinstance.animator = std::make_shared<Animator>();
+  StopwatchTestCtx testinstance;
+  testinstance.stopwatch = std::make_shared<Stopwatch>();
 
   testinstance.actions = {
-    {0ms, Play},
-    {5000h, Pause},
-    {7000h, Play},
-    {10000h, Stop},
+      {0ms, Run},
+      {5000h, Pause},
+      {7000h, Run},
+      {10000h, Reset},
   };
 
   testinstance.checkers = {
-    {2500h, Playing, 2500h},
-    {6000h, Paused, 5000h},
-    {8000h, Playing, 6000h},
-    {11000h, Finished, 0ms},
+      {2500h, Running, 2500h},
+      {6000h, Paused, 5000h},
+      {8000h, Running, 6000h},
+      {11000h, Set, 0ms},
   };
 
   testinstance.Doit();
 }
 
-TEST_F(AnimatorTest, MultipleToggles) {
+TEST_F(StopwatchTest, MultipleToggles) {
   using std::chrono_literals::operator""ms;
-  AnimatorTestCtx testinstance;
-  testinstance.animator = std::make_shared<Animator>();
+  StopwatchTestCtx testinstance;
+  testinstance.stopwatch = std::make_shared<Stopwatch>();
 
   testinstance.actions = {
-    {0ms, Play},
-    {100ms, Pause},
-    {200ms, Play},
-    {300ms, Pause},
-    {400ms, Play},
-    {500ms, Stop},
+      {0ms, Run},     {100ms, Pause}, {200ms, Run},
+      {300ms, Pause}, {400ms, Run},   {500ms, Reset},
   };
 
   testinstance.checkers = {
-    {50ms, Playing, 50ms},
-    {150ms, Paused, 100ms},
-    {250ms, Playing, 150ms},
-    {350ms, Paused, 200ms},
-    {450ms, Playing, 250ms},
-    {550ms, Finished, 0ms},
+      {50ms, Running, 50ms},  {150ms, Paused, 100ms},  {250ms, Running, 150ms},
+      {350ms, Paused, 200ms}, {450ms, Running, 250ms}, {550ms, Set, 0ms},
   };
 
   testinstance.Doit();
 }
 
-TEST_F(AnimatorTest, TypicalAnimation) {
+TEST_F(StopwatchTest, TypicalControl) {
   using std::chrono_literals::operator""ms;
-  AnimatorTestCtx testinstance;
-  testinstance.animator = std::make_shared<Animator>();
+  StopwatchTestCtx testinstance;
+  testinstance.stopwatch = std::make_shared<Stopwatch>();
 
   testinstance.actions = {
-    {0ms, Play},
-    {5ms, Pause},
-    {10ms, Play},
-    {15ms, Stop},
+      {0ms, Run},
+      {5ms, Pause},
+      {10ms, Run},
+      {15ms, Reset},
   };
 
   testinstance.checkers = {
-    {3ms, Playing, 3ms},
-    {8ms, Paused, 5ms},
-    {12ms, Playing, 7ms},
-    {18ms, Finished, 0ms},
+      {3ms, Running, 3ms},
+      {8ms, Paused, 5ms},
+      {12ms, Running, 7ms},
+      {18ms, Set, 0ms},
   };
 
   testinstance.Doit();
