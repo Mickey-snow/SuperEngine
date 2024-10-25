@@ -32,7 +32,8 @@ class Clock;
 
 /**
  * @class Stopwatch
- * @brief A class representing a stopwatch that can be started, paused, and reset.
+ * @brief A class representing a stopwatch that can be started, paused, and
+ * reset.
  */
 class Stopwatch {
  public:
@@ -77,6 +78,13 @@ class Stopwatch {
    */
   duration_t GetReading();
 
+  /**
+   * @brief Gets the current elapsed time since last calling of this method, or
+   * since stopwatch started running if never called.
+   * @return The elapsed time as duration_t.
+   */
+  duration_t LapTime();
+
  private:
   /**
    * @brief Updates the internal time based on the clock.
@@ -88,6 +96,7 @@ class Stopwatch {
   State state_;                   ///< The current state of the stopwatch.
   timepoint_t last_tick_;         ///< The last recorded time point.
   duration_t time_;               ///< The accumulated time.
+  duration_t lap_time_;           ///< The accumulated lap time.
 };
 
 #endif

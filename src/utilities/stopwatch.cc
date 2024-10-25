@@ -31,7 +31,10 @@
 #include <stdexcept>
 
 Stopwatch::Stopwatch(std::shared_ptr<Clock> clock)
-    : clock_(clock), state_(State::Paused), time_(duration_t::zero()) {
+    : clock_(clock),
+      state_(State::Paused),
+      time_(duration_t::zero()),
+      lap_time_(duration_t::zero()) {
   if (clock_ == nullptr) {
     throw std::invalid_argument("Stopwatch: no clock provided.");
   }
@@ -54,6 +57,7 @@ void Stopwatch::Apply(Action action) {
 
     case Action::Reset:
       time_ = duration_t::zero();
+      lap_time_ = duration_t::zero();
       state_ = State::Stopped;
       break;
 
@@ -70,6 +74,13 @@ Stopwatch::duration_t Stopwatch::GetReading() {
   return time_;
 }
 
+Stopwatch::duration_t Stopwatch::LapTime() {
+  Update();
+  const auto result = lap_time_;
+  lap_time_ = duration_t::zero();
+  return result;
+}
+
 void Stopwatch::Update() {
   auto now = clock_->GetTime();
   if (now < last_tick_) {
@@ -83,7 +94,10 @@ void Stopwatch::Update() {
   }
 
   if (state_ == State::Running) {
-    time_ += std::chrono::duration_cast<duration_t>(now - last_tick_);
+    const auto deltaTime =
+        std::chrono::duration_cast<duration_t>(now - last_tick_);
+    time_ += deltaTime;
+    lap_time_ += deltaTime;
   }
   last_tick_ = now;
 }

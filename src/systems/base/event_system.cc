@@ -97,10 +97,13 @@ void EventSystem::RemoveMouseListener(EventListener* listener) {
 unsigned int EventSystem::GetTicks() const {
   return static_cast<unsigned int>(clock_->GetTicks().count());
 }
+
 std::chrono::time_point<std::chrono::steady_clock> EventSystem::GetTime()
     const {
   return clock_->GetTime();
 }
+
+std::shared_ptr<Clock> EventSystem::GetClock() const { return clock_; }
 
 void EventSystem::DispatchEvent(
     RLMachine& machine,

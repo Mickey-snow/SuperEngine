@@ -307,3 +307,27 @@ TEST_F(StopwatchTest, BrokenClock) {
   clock->SetTime(epoch + 5ms);  // Move time backward
   EXPECT_THROW(stopwatch.GetReading(), std::runtime_error);
 }
+
+TEST_F(StopwatchTest, LapTime) {
+  auto clock = std::make_shared<FakeClock>();
+  auto epoch = std::chrono::steady_clock::now();
+  clock->SetTime(epoch);
+
+  Stopwatch stopwatch(clock);
+  stopwatch.Apply(Run);
+
+  clock->SetTime(epoch + 5ms);
+  EXPECT_EQ(stopwatch.LapTime(), 5ms);
+
+  clock->SetTime(epoch + 10ms);
+  stopwatch.Apply(Pause);
+
+  clock->SetTime(epoch + 25ms);
+  stopwatch.Apply(Run);
+
+  clock->SetTime(epoch + 30ms);
+  EXPECT_EQ(stopwatch.LapTime(), 10ms);
+
+  clock->SetTime(epoch + 40ms);
+  EXPECT_EQ(stopwatch.LapTime(), 10ms);
+}

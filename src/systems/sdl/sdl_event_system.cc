@@ -126,8 +126,6 @@ unsigned int SDLEventSystem::TimeOfLastMouseMove() {
   return last_mouse_move_time_;
 }
 
-unsigned int SDLEventSystem::GetTicks() const { return SDL_GetTicks(); }
-
 void SDLEventSystem::Wait(unsigned int milliseconds) const {
   SDL_Delay(milliseconds);
 }
