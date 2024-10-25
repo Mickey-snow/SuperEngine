@@ -49,6 +49,7 @@ namespace fs = std::filesystem;
 
 GraphicsObjectOfFile::GraphicsObjectOfFile(System& system)
     : service_(std::make_shared<RenderingService>(system)),
+      animator_(system.event().GetClock()),
       filename_(""),
       frame_time_(0),
       current_frame_(-1) {}
@@ -58,6 +59,7 @@ GraphicsObjectOfFile::GraphicsObjectOfFile(System& system)
 GraphicsObjectOfFile::GraphicsObjectOfFile(System& system,
                                            const std::string& filename)
     : service_(std::make_shared<RenderingService>(system)),
+      animator_(system.event().GetClock()),
       filename_(filename),
       frame_time_(0),
       current_frame_(-1) {
@@ -66,7 +68,7 @@ GraphicsObjectOfFile::GraphicsObjectOfFile(System& system,
 
 // -----------------------------------------------------------------------
 
-GraphicsObjectOfFile::~GraphicsObjectOfFile() {}
+GraphicsObjectOfFile::~GraphicsObjectOfFile() = default;
 
 // -----------------------------------------------------------------------
 
@@ -126,12 +128,6 @@ void GraphicsObjectOfFile::Execute() {
 
 // -----------------------------------------------------------------------
 
-bool GraphicsObjectOfFile::IsAnimation() const {
-  return surface_->GetNumPatterns();
-}
-
-// -----------------------------------------------------------------------
-
 std::shared_ptr<const Surface> GraphicsObjectOfFile::CurrentSurface(
     const GraphicsObject& rp) {
   return surface_;
@@ -152,7 +148,6 @@ Rect GraphicsObjectOfFile::SrcRect(const GraphicsObject& go) {
 // -----------------------------------------------------------------------
 
 void GraphicsObjectOfFile::PlaySet(int frame_time) {
-  GetAnimator()->SetIsPlaying(true);
   frame_time_ = frame_time;
   current_frame_ = 0;
 
@@ -169,13 +164,27 @@ void GraphicsObjectOfFile::PlaySet(int frame_time) {
 
 // -----------------------------------------------------------------------
 
+Animator const* GraphicsObjectOfFile::GetAnimator() const {
+  if (surface_->GetNumPatterns() <= 0)
+    return nullptr;
+  return &animator_;
+}
+
+// -----------------------------------------------------------------------
+
+Animator* GraphicsObjectOfFile::GetAnimator() {
+  if (surface_->GetNumPatterns() <= 0)
+    return nullptr;
+  return &animator_;
+}
+
+// -----------------------------------------------------------------------
+
 template <class Archive>
 void GraphicsObjectOfFile::load(Archive& ar, unsigned int version) {
-  ar& boost::serialization::base_object<GraphicsObjectData>(*this) & filename_ &
-      frame_time_ & current_frame_;
+  ar & animator_ & filename_ & frame_time_ & current_frame_;
 
   LoadFile(Serialization::g_current_machine->system());
-
   service_->MarkScreenDirty(GUT_DISPLAY_OBJ);
 }
 
@@ -183,8 +192,7 @@ void GraphicsObjectOfFile::load(Archive& ar, unsigned int version) {
 
 template <class Archive>
 void GraphicsObjectOfFile::save(Archive& ar, unsigned int version) const {
-  ar& boost::serialization::base_object<GraphicsObjectData>(*this) & filename_ &
-      frame_time_ & current_frame_;
+  ar & animator_ & filename_ & frame_time_ & current_frame_;
 }
 
 // -----------------------------------------------------------------------

@@ -32,19 +32,14 @@
 #include "base/rect.h"
 #include "systems/base/graphics_object.h"
 #include "systems/base/surface.h"
-#include "utilities/clock.h"
 
 // -----------------------------------------------------------------------
 // GraphicsObjectData
 // -----------------------------------------------------------------------
 
-GraphicsObjectData::GraphicsObjectData()
-    : GraphicsObjectData(std::make_shared<Clock>()) {}
+GraphicsObjectData::GraphicsObjectData() = default;
 
-GraphicsObjectData::GraphicsObjectData(std::shared_ptr<Clock> clock)
-    : animator_(clock) {}
-
-GraphicsObjectData::~GraphicsObjectData() {}
+GraphicsObjectData::~GraphicsObjectData() = default;
 
 void GraphicsObjectData::Render(const GraphicsObject& go,
                                 const GraphicsObject* parent) {
@@ -172,8 +167,6 @@ int GraphicsObjectData::GetRenderingAlpha(const GraphicsObject& go,
                (param.GetComputedAlpha() / 255.0f) * 255);
   }
 }
-
-bool GraphicsObjectData::IsAnimation() const { return false; }
 
 void GraphicsObjectData::PlaySet(int set) {}
 

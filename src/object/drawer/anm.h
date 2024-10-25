@@ -37,6 +37,7 @@
 
 #include "machine/rlmachine.h"
 #include "machine/serialization.h"
+#include "object/animator.h"
 #include "object/objdrawer.h"
 
 class Surface;
@@ -59,7 +60,6 @@ class AnmGraphicsObjectData : public GraphicsObjectData {
   virtual std::unique_ptr<GraphicsObjectData> Clone() const override;
   virtual void Execute(RLMachine& machine) override;
 
-  virtual bool IsAnimation() const override;
   virtual void PlaySet(int set) override;
 
  protected:
@@ -68,6 +68,9 @@ class AnmGraphicsObjectData : public GraphicsObjectData {
   virtual Rect SrcRect(const GraphicsObject& go) override;
   virtual Rect DstRect(const GraphicsObject& go,
                        const GraphicsObject* parent) override;
+
+  virtual Animator const* GetAnimator() const override { return &animator_; }
+  virtual Animator* GetAnimator() override { return &animator_; }
 
  private:
   // Advance the position in the animation.
@@ -90,6 +93,8 @@ class AnmGraphicsObjectData : public GraphicsObjectData {
 
   // The system we are a part of.
   System& system_;
+
+  Animator animator_;
 
   // Raw, short name for the ANM file.
   std::string filename_;

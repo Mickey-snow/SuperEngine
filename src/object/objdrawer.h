@@ -28,8 +28,6 @@
 #ifndef SRC_OBJECT_DRAWER_H_
 #define SRC_OBJECT_DRAWER_H_
 
-#include "object/animator.h"
-
 #include <boost/serialization/access.hpp>
 
 #include <memory>
@@ -41,14 +39,13 @@ class Point;
 class RLMachine;
 class Rect;
 class Surface;
+class Animator;
 
 class GraphicsObjectData {
  public:
   GraphicsObjectData();
-  GraphicsObjectData(std::shared_ptr<Clock>);
   virtual ~GraphicsObjectData();
 
-  virtual bool IsAnimation() const;
   virtual void PlaySet(int set);
 
   virtual void Render(const GraphicsObject& go, const GraphicsObject* parent);
@@ -67,8 +64,9 @@ class GraphicsObjectData {
   // Whether this object data owns another layer of objects.
   virtual bool IsParentLayer() const;
 
-  Animator const* GetAnimator() const { return &animator_; }
-  Animator* GetAnimator() { return &animator_; }
+  bool IsAnimation() const { return GetAnimator() != nullptr; }
+  virtual Animator const* GetAnimator() const { return nullptr; }
+  virtual Animator* GetAnimator() { return nullptr; }
 
  protected:
   // Template method used during rendering to get the surface to render.
@@ -90,14 +88,10 @@ class GraphicsObjectData {
                                 const GraphicsObject* parent);
 
  protected:
-  Animator animator_;
-
   // boost::serialization support
   friend class boost::serialization::access;
   template <class Archive>
-  void serialize(Archive& ar, unsigned int version) {
-    ar & animator_;
-  }
+  void serialize(Archive& ar, unsigned int version) {}
 };
 
 #endif

@@ -29,11 +29,10 @@
 // (which translates binary GAN files to and from an XML
 // representation), found at rldev/src/rlxml/gan.ml.
 
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/archive/text_oarchive.hpp>
-
 #include "object/drawer/gan.h"
 
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
 #include <boost/serialization/export.hpp>
 #include <filesystem>
 #include <iostream>
@@ -42,6 +41,7 @@
 
 #include "libreallive/alldefs.h"
 #include "machine/serialization.h"
+#include "object/animator.h"
 #include "systems/base/event_system.h"
 #include "systems/base/graphics_object.h"
 #include "systems/base/graphics_system.h"
@@ -65,12 +65,16 @@ namespace fs = std::filesystem;
 // -----------------------------------------------------------------------
 
 GanGraphicsObjectData::GanGraphicsObjectData(System& system)
-    : system_(system), current_set_(-1), current_frame_(-1) {}
+    : system_(system),
+      animator_(system.event().GetClock()),
+      current_set_(-1),
+      current_frame_(-1) {}
 
 GanGraphicsObjectData::GanGraphicsObjectData(System& system,
                                              const std::string& gan_file,
                                              const std::string& img_file)
     : system_(system),
+      animator_(system.event().GetClock()),
       gan_filename_(gan_file),
       img_filename_(img_file),
       current_set_(-1),
@@ -238,7 +242,8 @@ int GanGraphicsObjectData::PixelHeight(const GraphicsObject& go) {
 }
 
 std::unique_ptr<GraphicsObjectData> GanGraphicsObjectData::Clone() const {
-  return std::make_unique<GanGraphicsObjectData>(*this);
+  return std::make_unique<GanGraphicsObjectData>(system_, gan_filename_,
+                                                 img_filename_);
 }
 
 void GanGraphicsObjectData::Execute(RLMachine&) {
@@ -329,8 +334,8 @@ void GanGraphicsObjectData::PlaySet(int set) {
 
 template <class Archive>
 void GanGraphicsObjectData::load(Archive& ar, unsigned int version) {
-  ar& boost::serialization::base_object<GraphicsObjectData>(*this) &
-      gan_filename_ & img_filename_ & current_set_ & current_frame_;
+  ar & animator_ & gan_filename_ & img_filename_ & current_set_ &
+      current_frame_;
 
   LoadGANData();
   system_.graphics().MarkScreenAsDirty(GUT_DISPLAY_OBJ);
@@ -338,8 +343,8 @@ void GanGraphicsObjectData::load(Archive& ar, unsigned int version) {
 
 template <class Archive>
 void GanGraphicsObjectData::save(Archive& ar, unsigned int version) const {
-  ar& boost::serialization::base_object<GraphicsObjectData>(*this) &
-      gan_filename_ & img_filename_ & current_set_ & current_frame_;
+  ar & animator_ & gan_filename_ & img_filename_ & current_set_ &
+      current_frame_;
 }
 
 // -----------------------------------------------------------------------

@@ -36,6 +36,7 @@
 
 #include "machine/rlmachine.h"
 #include "machine/serialization.h"
+#include "object/animator.h"
 #include "object/objdrawer.h"
 #include "object/service_locator.h"
 
@@ -67,8 +68,10 @@ class GraphicsObjectOfFile : public GraphicsObjectData {
   virtual void Execute(RLMachine& machine) override;
   void Execute();
 
-  virtual bool IsAnimation() const override;
   virtual void PlaySet(int set) override;
+
+  virtual Animator const* GetAnimator() const override;
+  virtual Animator* GetAnimator() override;
 
  protected:
   virtual std::shared_ptr<const Surface> CurrentSurface(
@@ -82,13 +85,14 @@ class GraphicsObjectOfFile : public GraphicsObjectData {
   // Service locator providing runtime resolve for rendering funtions
   std::shared_ptr<IRenderingService> service_;
 
+  Animator animator_;
+
   // The name of the graphics file that was loaded.
   std::string filename_;
 
   // The encapsulated surface to render
   std::shared_ptr<const Surface> surface_;
 
- public:
   // Number of milliseconds to spend on a single frame in the
   // animation
   unsigned int frame_time_;
@@ -96,7 +100,6 @@ class GraphicsObjectOfFile : public GraphicsObjectData {
   // Current frame displayed (when animating)
   int current_frame_;
 
- private:
   // boost::serialization support
   friend class boost::serialization::access;
 

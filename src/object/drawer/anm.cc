@@ -68,15 +68,18 @@ static const char ANM_MAGIC[ANM_MAGIC_SIZE] = {'A', 'N', 'M', '3', '2', 0,
 // -----------------------------------------------------------------------
 
 AnmGraphicsObjectData::AnmGraphicsObjectData(System& system)
-    : system_(system), current_set_(-1) {}
+    : system_(system), animator_(system.event().GetClock()), current_set_(-1) {}
 
 AnmGraphicsObjectData::AnmGraphicsObjectData(System& system,
                                              const std::string& file)
-    : system_(system), filename_(file), current_set_(-1) {
+    : system_(system),
+      animator_(system.event().GetClock()),
+      filename_(file),
+      current_set_(-1) {
   LoadAnmFile();
 }
 
-AnmGraphicsObjectData::~AnmGraphicsObjectData() {}
+AnmGraphicsObjectData::~AnmGraphicsObjectData() = default;
 
 bool AnmGraphicsObjectData::TestFileMagic(std::unique_ptr<char[]>& anm_data) {
   return memcmp(anm_data.get(), ANM_MAGIC, ANM_MAGIC_SIZE) != 0;
@@ -194,8 +197,6 @@ void AnmGraphicsObjectData::Execute(RLMachine&) {
     AdvanceFrame();
 }
 
-bool AnmGraphicsObjectData::IsAnimation() const { return true; }
-
 void AnmGraphicsObjectData::AdvanceFrame() {
   // Do things that advance the state
   int deltaTime =
@@ -289,9 +290,7 @@ Rect AnmGraphicsObjectData::DstRect(const GraphicsObject& go,
 
 template <class Archive>
 void AnmGraphicsObjectData::load(Archive& ar, unsigned int version) {
-  ar& boost::serialization::base_object<GraphicsObjectData>(*this);
-
-  ar & filename_;
+  ar & animator_ & filename_;
 
   // Reconstruct the ANM data from whatever file was linked.
   LoadAnmFile();
@@ -314,8 +313,7 @@ void AnmGraphicsObjectData::load(Archive& ar, unsigned int version) {
 
 template <class Archive>
 void AnmGraphicsObjectData::save(Archive& ar, unsigned int version) const {
-  ar& boost::serialization::base_object<GraphicsObjectData>(*this);
-  ar & filename_ & currently_playing_ & current_set_;
+  ar & animator_ & filename_ & currently_playing_ & current_set_;
 
   // Figure out what set we're playing, which
   int cur_frame_set =

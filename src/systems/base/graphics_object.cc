@@ -26,6 +26,8 @@
 // -----------------------------------------------------------------------
 
 #include "graphics_object.h"
+
+#include "object/animator.h"
 #include "object/mutator.h"
 #include "object/objdrawer.h"
 #include "utilities/exception.h"
@@ -183,7 +185,11 @@ void GraphicsObject::FreeDataAndInitializeParams() {
 void GraphicsObject::Execute(RLMachine& machine) {
   if (object_data_) {
     object_data_->Execute(machine);
+
     auto should_delete = [](GraphicsObjectData* it) -> bool {
+      auto animator = it->GetAnimator();
+      if (animator == nullptr)
+        return false;
       return it->GetAnimator()->IsFinished() &&
              it->GetAnimator()->GetAfterAction() == AFTER_CLEAR;
     };

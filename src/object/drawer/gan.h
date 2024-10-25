@@ -38,6 +38,7 @@
 
 #include "machine/rlmachine.h"
 #include "machine/serialization.h"
+#include "object/animator.h"
 #include "object/objdrawer.h"
 
 class Surface;
@@ -65,8 +66,10 @@ class GanGraphicsObjectData : public GraphicsObjectData {
   virtual std::unique_ptr<GraphicsObjectData> Clone() const override;
   virtual void Execute(RLMachine& machine) override;
 
-  virtual bool IsAnimation() const override { return true; }
   virtual void PlaySet(int set) override;
+
+  virtual Animator const* GetAnimator() const override { return &animator_; }
+  virtual Animator* GetAnimator() override { return &animator_; }
 
  protected:
   virtual std::shared_ptr<const Surface> CurrentSurface(
@@ -101,6 +104,7 @@ class GanGraphicsObjectData : public GraphicsObjectData {
 
   System& system_;
 
+  Animator animator_;
   AnimationSets animation_sets;
 
   std::string gan_filename_;
