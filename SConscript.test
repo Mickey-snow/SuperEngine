@@ -46,7 +46,6 @@ unittest_files = [
   "test/asset_scanner_unittest.cc",
   "test/va_factory_unittest.cc",
   "test/lrucache_unittest.cc",
-  "test/sdl_sound_unittest.cc",
   "test/audio_player_unittest.cc",
   "test/audio_databuf_unittest.cc",
   "test/decoder_factory_unittest.cc",
@@ -74,5 +73,5 @@ test_env.RlvmProgram('rlvm_unittests',
                       unittest_files,
                       ],
                      use_lib_set = ["TEST"],
-                     rlvm_libs = ["system_sdl", "rlvm"])
+                     rlvm_libs = ["rlvm"])
 test_env.Install('$OUTPUT_DIR', 'rlvm_unittests')

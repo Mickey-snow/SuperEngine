@@ -106,9 +106,11 @@ class AnmGraphicsObjectData : public GraphicsObjectData {
 
   int current_set_;
 
+  // iterators of animation_set_
   std::vector<int>::const_iterator cur_frame_set_;
   std::vector<int>::const_iterator cur_frame_set_end_;
 
+  // iterators of framelist_
   std::vector<int>::const_iterator cur_frame_;
   std::vector<int>::const_iterator cur_frame_end_;
 

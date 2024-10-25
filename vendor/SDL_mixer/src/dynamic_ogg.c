@@ -105,7 +105,7 @@ int Mix_InitOgg()
 	if ( vorbis.loaded == 0 ) {
 		vorbis.ov_clear = ov_clear;
 		vorbis.ov_info = ov_info;
-		vorbis.ov_open_callbacks = ov_open_callbacks;
+		vorbis.ov_open_callbacks = (int (*)(void *, OggVorbis_File *, char *, long int,  ov_callbacks))ov_open_callbacks;
 		vorbis.ov_pcm_total = ov_pcm_total;
 		vorbis.ov_read = ov_read;
 		vorbis.ov_time_seek = ov_time_seek;

@@ -28,10 +28,10 @@
 #ifndef SRC_SYSTEMS_SDL_SDL_EVENT_SYSTEM_H_
 #define SRC_SYSTEMS_SDL_SDL_EVENT_SYSTEM_H_
 
-#include <SDL/SDL_events.h>
-
-#include "systems/base/event_system.h"
 #include "base/rect.h"
+#include "systems/base/event_system.h"
+
+#include <SDL/SDL_events.h>
 
 class SDLSystem;
 

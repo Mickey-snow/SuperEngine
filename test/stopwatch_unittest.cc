@@ -32,6 +32,8 @@
 #include <vector>
 
 namespace chr = std::chrono;
+using namespace std::chrono_literals;
+
 using timepoint_t = Clock::timepoint_t;
 using duration_t = Clock::duration_t;
 
@@ -115,12 +117,10 @@ class StopwatchTest : public ::testing::Test {
   // possible stopwatch state
   inline static constexpr auto Running = Stopwatch::State::Running,
                                Paused = Stopwatch::State::Paused,
-                               Set = Stopwatch::State::Stopped;
+                               Finished = Stopwatch::State::Stopped;
 };
 
 TEST_F(StopwatchTest, Countup) {
-  using std::chrono_literals::operator""ms;
-
   StopwatchTestCtx testinstance;
 
   testinstance.actions = {{0ms, Run}, {15ms, Run}};
@@ -134,7 +134,6 @@ TEST_F(StopwatchTest, Countup) {
 }
 
 TEST_F(StopwatchTest, ToggleRun) {
-  using std::chrono_literals::operator""ms;
   StopwatchTestCtx testinstance;
 
   testinstance.actions = {
@@ -152,7 +151,6 @@ TEST_F(StopwatchTest, ToggleRun) {
 }
 
 TEST_F(StopwatchTest, StopReset) {
-  using std::chrono_literals::operator""ms;
   StopwatchTestCtx testinstance;
 
   testinstance.actions = {
@@ -160,15 +158,14 @@ TEST_F(StopwatchTest, StopReset) {
   testinstance.checkers = {
       {0ms, Paused, 0ms},
       {11ms, Running, 7ms},
-      {13ms, Set, 0ms},
-      {16ms, Set,
+      {13ms, Finished, 0ms},
+      {16ms, Finished,
        0ms},  // Pause action should be ignored when at Finished state
       {32ms, Running, 12ms}};
 }
 
 TEST_F(StopwatchTest, StopWhenAlreadyStopped) {
   // Test applying Stop action when already in Finished state.
-  using std::chrono_literals::operator""ms;
   StopwatchTestCtx testinstance;
 
   testinstance.actions = {
@@ -177,15 +174,14 @@ TEST_F(StopwatchTest, StopWhenAlreadyStopped) {
   };
 
   testinstance.checkers = {
-      {5ms, Set, 0ms},
-      {15ms, Set, 0ms},
+      {5ms, Finished, 0ms},
+      {15ms, Finished, 0ms},
   };
 
   testinstance.Doit();
 }
 
 TEST_F(StopwatchTest, RapidTransitions) {
-  using std::chrono_literals::operator""ms;
   StopwatchTestCtx testinstance;
 
   testinstance.actions = {
@@ -201,7 +197,6 @@ TEST_F(StopwatchTest, RapidTransitions) {
 }
 
 TEST_F(StopwatchTest, NoActions) {
-  using std::chrono_literals::operator""ms;
   StopwatchTestCtx testinstance;
 
   testinstance.checkers = {
@@ -214,7 +209,6 @@ TEST_F(StopwatchTest, NoActions) {
 }
 
 TEST_F(StopwatchTest, Interrupt) {
-  using std::chrono_literals::operator""ms;
   StopwatchTestCtx testinstance;
 
   testinstance.actions = {
@@ -223,8 +217,8 @@ TEST_F(StopwatchTest, Interrupt) {
   };
 
   testinstance.checkers = {
-      {0ms, Set, 0ms},
-      {10ms, Set, 0ms},
+      {0ms, Finished, 0ms},
+      {10ms, Finished, 0ms},
   };
 
   testinstance.Doit();
@@ -245,14 +239,13 @@ TEST_F(StopwatchTest, LongDuration) {
       {2500h, Running, 2500h},
       {6000h, Paused, 5000h},
       {8000h, Running, 6000h},
-      {11000h, Set, 0ms},
+      {11000h, Finished, 0ms},
   };
 
   testinstance.Doit();
 }
 
 TEST_F(StopwatchTest, MultipleToggles) {
-  using std::chrono_literals::operator""ms;
   StopwatchTestCtx testinstance;
 
   testinstance.actions = {
@@ -262,14 +255,13 @@ TEST_F(StopwatchTest, MultipleToggles) {
 
   testinstance.checkers = {
       {50ms, Running, 50ms},  {150ms, Paused, 100ms},  {250ms, Running, 150ms},
-      {350ms, Paused, 200ms}, {450ms, Running, 250ms}, {550ms, Set, 0ms},
+      {350ms, Paused, 200ms}, {450ms, Running, 250ms}, {550ms, Finished, 0ms},
   };
 
   testinstance.Doit();
 }
 
 TEST_F(StopwatchTest, TypicalControl) {
-  using std::chrono_literals::operator""ms;
   StopwatchTestCtx testinstance;
 
   testinstance.actions = {
@@ -283,14 +275,13 @@ TEST_F(StopwatchTest, TypicalControl) {
       {3ms, Running, 3ms},
       {8ms, Paused, 5ms},
       {12ms, Running, 7ms},
-      {18ms, Set, 0ms},
+      {18ms, Finished, 0ms},
   };
 
   testinstance.Doit();
 }
 
 TEST_F(StopwatchTest, ReadFromInit) {
-  using std::chrono_literals::operator""ms;
   StopwatchTestCtx testinstance;
 
   testinstance.actions = {
@@ -303,8 +294,6 @@ TEST_F(StopwatchTest, ReadFromInit) {
 }
 
 TEST_F(StopwatchTest, BrokenClock) {
-  using std::chrono_literals::operator""ms;
-
   auto clock = std::make_shared<FakeClock>();
   auto epoch = std::chrono::steady_clock::now();
   clock->SetTime(epoch);
