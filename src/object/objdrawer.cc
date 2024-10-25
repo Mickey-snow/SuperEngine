@@ -108,19 +108,6 @@ void GraphicsObjectData::Render(const GraphicsObject& go,
   }
 }
 
-void GraphicsObjectData::LoopAnimation() {}
-
-void GraphicsObjectData::EndAnimation() {
-  GetAnimator()->SetIsPlaying(false);
-  GetAnimator()->SetIsFinished(true);
-
-  if (GetAnimator()->GetAfterAction() == AFTER_LOOP) {
-    // Reset from the beginning
-    GetAnimator()->SetIsPlaying(true);
-    LoopAnimation();
-  }
-}
-
 Rect GraphicsObjectData::SrcRect(const GraphicsObject& go) {
   return CurrentSurface(go)->GetPattern(go.Param().GetPattNo()).rect;
 }

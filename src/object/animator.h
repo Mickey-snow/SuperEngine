@@ -65,6 +65,10 @@ class Animator {
     return timer_.GetReading();
   }
 
+  virtual Stopwatch::duration_t GetDeltaTime() const {
+    return timer_.LapTime();
+  }
+
   virtual void Reset() const {
     timer_.Apply(Stopwatch::Action::Reset);
     timer_.Apply(Stopwatch::Action::Run);

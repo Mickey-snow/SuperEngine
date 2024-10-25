@@ -65,10 +65,7 @@ namespace fs = std::filesystem;
 // -----------------------------------------------------------------------
 
 GanGraphicsObjectData::GanGraphicsObjectData(System& system)
-    : system_(system),
-      current_set_(-1),
-      current_frame_(-1),
-      time_at_last_frame_change_(0) {}
+    : system_(system), current_set_(-1), current_frame_(-1) {}
 
 GanGraphicsObjectData::GanGraphicsObjectData(System& system,
                                              const std::string& gan_file,
@@ -77,8 +74,7 @@ GanGraphicsObjectData::GanGraphicsObjectData(System& system,
       gan_filename_(gan_file),
       img_filename_(img_file),
       current_set_(-1),
-      current_frame_(-1),
-      time_at_last_frame_change_(0) {
+      current_frame_(-1) {
   LoadGANData();
 }
 
@@ -246,27 +242,35 @@ std::unique_ptr<GraphicsObjectData> GanGraphicsObjectData::Clone() const {
 }
 
 void GanGraphicsObjectData::Execute(RLMachine&) {
-  if (GetAnimator()->IsPlaying() && current_frame_ >= 0) {
-    unsigned int current_time = system_.event().GetTicks();
-    unsigned int time_since_last_frame_change =
-        current_time - time_at_last_frame_change_;
+  if (!animator_.IsPlaying())
+    return;
+
+  if (current_frame_ >= 0) {
+    unsigned int deltaTime = static_cast<unsigned int>(
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            animator_.GetDeltaTime())
+            .count());
 
     const vector<Frame>& current_set = animation_sets.at(current_set_);
-    unsigned int frame_time = (unsigned int)(current_set[current_frame_].time);
-    if (time_since_last_frame_change > frame_time) {
-      current_frame_++;
-      if (static_cast<size_t>(current_frame_) == current_set.size()) {
-        current_frame_--;
-        EndAnimation();
-      } else {
-        time_at_last_frame_change_ = current_time;
-        system_.graphics().MarkScreenAsDirty(GUT_DISPLAY_OBJ);
+    const auto total_frames = current_set.size();
+
+    while (deltaTime >= current_set[current_frame_].time) {
+      deltaTime -= current_set[current_frame_++].time;
+
+      if (current_frame_ >= total_frames) {
+        if (animator_.GetAfterAction() == AFTER_LOOP)
+          current_frame_ %= total_frames;
+        else {
+          deltaTime = 0;
+          current_frame_ = total_frames - 1;
+          break;
+        }
       }
+
+      system_.graphics().MarkScreenAsDirty(GUT_DISPLAY_OBJ);
     }
   }
 }
-
-void GanGraphicsObjectData::LoopAnimation() { current_frame_ = 0; }
 
 std::shared_ptr<const Surface> GanGraphicsObjectData::CurrentSurface(
     const GraphicsObject&) {
@@ -317,35 +321,25 @@ int GanGraphicsObjectData::GetRenderingAlpha(const GraphicsObject& go,
 }
 
 void GanGraphicsObjectData::PlaySet(int set) {
-  GetAnimator()->SetIsPlaying(true);
+  animator_.Reset();
   current_set_ = set;
   current_frame_ = 0;
-  time_at_last_frame_change_ = system_.event().GetTicks();
   system_.graphics().MarkScreenAsDirty(GUT_DISPLAY_OBJ);
 }
 
 template <class Archive>
 void GanGraphicsObjectData::load(Archive& ar, unsigned int version) {
   ar& boost::serialization::base_object<GraphicsObjectData>(*this) &
-      gan_filename_ & img_filename_ & current_set_ & current_frame_ &
-      time_at_last_frame_change_;
+      gan_filename_ & img_filename_ & current_set_ & current_frame_;
 
   LoadGANData();
-
-  // Saving |time_at_last_frame_change_| as part of the format is obviously a
-  // mistake, but is now baked into the file format. Ask the clock for a more
-  // suitable value.
-  if (time_at_last_frame_change_ != 0) {
-    time_at_last_frame_change_ = system_.event().GetTicks();
-    system_.graphics().MarkScreenAsDirty(GUT_DISPLAY_OBJ);
-  }
+  system_.graphics().MarkScreenAsDirty(GUT_DISPLAY_OBJ);
 }
 
 template <class Archive>
 void GanGraphicsObjectData::save(Archive& ar, unsigned int version) const {
   ar& boost::serialization::base_object<GraphicsObjectData>(*this) &
-      gan_filename_ & img_filename_ & current_set_ & current_frame_ &
-      time_at_last_frame_change_;
+      gan_filename_ & img_filename_ & current_set_ & current_frame_;
 }
 
 // -----------------------------------------------------------------------

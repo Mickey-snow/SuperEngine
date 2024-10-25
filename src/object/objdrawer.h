@@ -71,14 +71,6 @@ class GraphicsObjectData {
   Animator* GetAnimator() { return &animator_; }
 
  protected:
-  // Function called after animation ends when this object has been
-  // set up to loop. Default implementation does nothing.
-  virtual void LoopAnimation();
-
-  // Takes the specified action when we've reached the last frame of
-  // animation.
-  void EndAnimation();
-
   // Template method used during rendering to get the surface to render.
   // Return a null shared_ptr to disable rendering.
   virtual std::shared_ptr<const Surface> CurrentSurface(

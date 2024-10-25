@@ -69,9 +69,6 @@ class GanGraphicsObjectData : public GraphicsObjectData {
   virtual void PlaySet(int set) override;
 
  protected:
-  // Resets to the first frame.
-  virtual void LoopAnimation() override;
-
   virtual std::shared_ptr<const Surface> CurrentSurface(
       const GraphicsObject& go) override;
   virtual Rect SrcRect(const GraphicsObject& go) override;
@@ -111,7 +108,6 @@ class GanGraphicsObjectData : public GraphicsObjectData {
 
   int current_set_;
   int current_frame_;
-  int time_at_last_frame_change_;
 
   // The image the above coordinates map into.
   std::shared_ptr<const Surface> image_;

@@ -189,8 +189,8 @@ void AnmGraphicsObjectData::FixAxis(Frame& frame, int width, int height) {
   }
 }
 
-void AnmGraphicsObjectData::Execute(RLMachine& machine) {
-  if (GetAnimator()->IsPlaying())
+void AnmGraphicsObjectData::Execute(RLMachine&) {
+  if (animator_.IsPlaying())
     AdvanceFrame();
 }
 
@@ -198,13 +198,16 @@ bool AnmGraphicsObjectData::IsAnimation() const { return true; }
 
 void AnmGraphicsObjectData::AdvanceFrame() {
   // Do things that advance the state
-  int time_since_last_frame_change =
-      system_.event().GetTicks() - time_at_last_frame_change_;
+  int deltaTime =
+      static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(
+                           animator_.GetDeltaTime())
+                           .count()) -
+      time_at_last_frame_change_;
   bool done = false;
 
-  while (GetAnimator()->IsPlaying() && !done) {
-    if (time_since_last_frame_change > frames[current_frame_].time) {
-      time_since_last_frame_change -= frames[current_frame_].time;
+  while (animator_.IsPlaying() && !done) {
+    if (deltaTime > frames[current_frame_].time) {
+      deltaTime -= frames[current_frame_].time;
       time_at_last_frame_change_ += frames[current_frame_].time;
       system_.graphics().MarkScreenAsDirty(GUT_DISPLAY_OBJ);
 
