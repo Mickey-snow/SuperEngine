@@ -46,10 +46,15 @@ static decoder_constructor_t nwa = [](std::string_view data) {
   return std::make_shared<NwaDecoder>(data);
 };
 
+static decoder_constructor_t owp = [](std::string_view data) {
+  static constexpr uint8_t owp_xorkey = 0x39;
+  return std::make_shared<OggDecoder>(data, owp_xorkey);
+};
+
 std::unordered_map<std::string, decoder_constructor_t>
-    ADecoderFactory::default_decoder_map_ = {{"ogg", ogg}, {".ogg", ogg},
-                                             {"nwa", nwa}, {".nwa", nwa},
-                                             {"wav", wav}, {".wav", wav}};
+    ADecoderFactory::default_decoder_map_ = {
+        {"ogg", ogg}, {".ogg", ogg}, {"nwa", nwa}, {".nwa", nwa},
+        {"wav", wav}, {".wav", wav}, {"owp", owp}, {".owp", owp}};
 
 ADecoderFactory::ADecoderFactory() : decoder_map_(&default_decoder_map_) {}
 

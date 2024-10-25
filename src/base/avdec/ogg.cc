@@ -4,6 +4,7 @@
 //
 // -----------------------------------------------------------------------
 //
+// Copyright (C) 2024 Serina Sakurai
 // Copyright (C) 2009 Elliot Glaysher
 //
 // This program is free software; you can redistribute it and/or modify
@@ -104,7 +105,8 @@ std::string oggErrorCodeToString(int code) {
 
 class ov_adapter {
  public:
-  ov_adapter(std::string_view sv) : data_(sv), current_(0) {
+  ov_adapter(std::string_view sv, uint8_t key)
+      : data_(sv), current_(0), key_(key) {
     ov_callbacks callback;
     callback.read_func = ov_adapter::ov_readfunc;
     callback.seek_func = ov_adapter::ov_seekfunc;
@@ -133,6 +135,13 @@ class ov_adapter {
     }
     std::memcpy(dst, me->data_.data() + me->current_, size * nmemb);
     me->current_ = next;
+
+    if (me->key_) {
+      auto* dst_byte = static_cast<uint8_t*>(dst);
+      for (size_t i = 0; i < size * nmemb; ++i)
+        dst_byte[i] ^= me->key_;
+    }
+
     return nmemb;
   }
 
@@ -161,14 +170,16 @@ class ov_adapter {
   std::string_view data_;
   long long current_;
   OggVorbis_File vf;
+
+  uint8_t key_;
 };
 
 // -----------------------------------------------------------------------
 // class OggDecoder
 // -----------------------------------------------------------------------
 
-OggDecoder::OggDecoder(std::string_view sv)
-    : impl_(std::make_unique<ov_adapter>(sv)) {}
+OggDecoder::OggDecoder(std::string_view sv, std::optional<uint8_t> key)
+    : impl_(std::make_unique<ov_adapter>(sv, key.value_or(0))) {}
 
 OggDecoder::~OggDecoder() = default;
 

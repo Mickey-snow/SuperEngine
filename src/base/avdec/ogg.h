@@ -4,6 +4,7 @@
 //
 // -----------------------------------------------------------------------
 //
+// Copyright (C) 2024 Serina Sakurai
 // Copyright (C) 2009 Elliot Glaysher
 //
 // This program is free software; you can redistribute it and/or modify
@@ -29,12 +30,13 @@
 #include "base/avspec.h"
 
 #include <memory>
+#include <optional>
 
 class ov_adapter;
 
 class OggDecoder : public IAudioDecoder {
  public:
-  explicit OggDecoder(std::string_view sv);
+  explicit OggDecoder(std::string_view sv, std::optional<uint8_t> key = {});
   ~OggDecoder();
 
   OggDecoder(const OggDecoder&) = delete;
