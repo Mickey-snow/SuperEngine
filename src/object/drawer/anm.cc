@@ -68,14 +68,18 @@ static const char ANM_MAGIC[ANM_MAGIC_SIZE] = {'A', 'N', 'M', '3', '2', 0,
 // -----------------------------------------------------------------------
 
 AnmGraphicsObjectData::AnmGraphicsObjectData(System& system)
-    : system_(system), animator_(system.event().GetClock()), current_set_(-1) {}
+    : system_(system),
+      animator_(system.event().GetClock()),
+      current_set_(-1),
+      delta_time_(0) {}
 
 AnmGraphicsObjectData::AnmGraphicsObjectData(System& system,
                                              const std::string& file)
     : system_(system),
       animator_(system.event().GetClock()),
       filename_(file),
-      current_set_(-1) {
+      current_set_(-1),
+      delta_time_(0) {
   LoadAnmFile();
 }
 
@@ -199,17 +203,15 @@ void AnmGraphicsObjectData::Execute(RLMachine&) {
 
 void AnmGraphicsObjectData::AdvanceFrame() {
   // Do things that advance the state
-  int deltaTime =
-      static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(
-                           animator_.GetDeltaTime())
-                           .count()) -
-      time_at_last_frame_change_;
+  delta_time_ += static_cast<unsigned int>(
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          animator_.GetDeltaTime())
+          .count());
   bool done = false;
 
   while (animator_.IsPlaying() && !done) {
-    if (deltaTime > frames[current_frame_].time) {
-      deltaTime -= frames[current_frame_].time;
-      time_at_last_frame_change_ += frames[current_frame_].time;
+    if (delta_time_ > frames[current_frame_].time) {
+      delta_time_ -= frames[current_frame_].time;
       system_.graphics().MarkScreenAsDirty(GUT_DISPLAY_OBJ);
 
       cur_frame_++;
@@ -250,8 +252,7 @@ std::unique_ptr<GraphicsObjectData> AnmGraphicsObjectData::Clone() const {
 }
 
 void AnmGraphicsObjectData::PlaySet(int set) {
-  GetAnimator()->SetIsPlaying(true);
-  time_at_last_frame_change_ = system_.event().GetTicks();
+  animator_.Reset();
 
   cur_frame_set_ = animation_set_.at(set).begin();
   cur_frame_set_end_ = animation_set_.at(set).end();

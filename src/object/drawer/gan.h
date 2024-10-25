@@ -113,6 +113,8 @@ class GanGraphicsObjectData : public GraphicsObjectData {
   int current_set_;
   int current_frame_;
 
+  unsigned int delta_time_;
+
   // The image the above coordinates map into.
   std::shared_ptr<const Surface> image_;
 

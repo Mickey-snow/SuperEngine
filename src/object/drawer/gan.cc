@@ -68,7 +68,8 @@ GanGraphicsObjectData::GanGraphicsObjectData(System& system)
     : system_(system),
       animator_(system.event().GetClock()),
       current_set_(-1),
-      current_frame_(-1) {}
+      current_frame_(-1),
+      delta_time_(0) {}
 
 GanGraphicsObjectData::GanGraphicsObjectData(System& system,
                                              const std::string& gan_file,
@@ -78,7 +79,8 @@ GanGraphicsObjectData::GanGraphicsObjectData(System& system,
       gan_filename_(gan_file),
       img_filename_(img_file),
       current_set_(-1),
-      current_frame_(-1) {
+      current_frame_(-1),
+      delta_time_(0) {
   LoadGANData();
 }
 
@@ -247,26 +249,28 @@ std::unique_ptr<GraphicsObjectData> GanGraphicsObjectData::Clone() const {
 }
 
 void GanGraphicsObjectData::Execute(RLMachine&) {
+  // obtain delta time first to avoid adding up when paused
+  unsigned int deltaTime = static_cast<unsigned int>(
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          animator_.GetDeltaTime())
+          .count());
+
   if (!animator_.IsPlaying())
     return;
 
+  delta_time_ += deltaTime;
   if (current_frame_ >= 0) {
-    unsigned int deltaTime = static_cast<unsigned int>(
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-            animator_.GetDeltaTime())
-            .count());
-
     const vector<Frame>& current_set = animation_sets.at(current_set_);
     const auto total_frames = current_set.size();
 
-    while (deltaTime >= current_set[current_frame_].time) {
-      deltaTime -= current_set[current_frame_++].time;
+    while (delta_time_ >= current_set[current_frame_].time) {
+      delta_time_ -= current_set[current_frame_++].time;
 
       if (current_frame_ >= total_frames) {
         if (animator_.GetAfterAction() == AFTER_LOOP)
           current_frame_ %= total_frames;
         else {
-          deltaTime = 0;
+          delta_time_ = 0;
           current_frame_ = total_frames - 1;
           break;
         }

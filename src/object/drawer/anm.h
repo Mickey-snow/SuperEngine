@@ -111,6 +111,8 @@ class AnmGraphicsObjectData : public GraphicsObjectData {
 
   int current_set_;
 
+  unsigned int delta_time_;
+
   // iterators of animation_set_
   std::vector<int>::const_iterator cur_frame_set_;
   std::vector<int>::const_iterator cur_frame_set_end_;
@@ -120,8 +122,6 @@ class AnmGraphicsObjectData : public GraphicsObjectData {
   std::vector<int>::const_iterator cur_frame_end_;
 
   int current_frame_;
-
-  unsigned int time_at_last_frame_change_;
 
   friend class boost::serialization::access;
   template <class Archive>
