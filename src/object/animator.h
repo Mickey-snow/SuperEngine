@@ -65,6 +65,11 @@ class Animator {
     return timer_.GetReading();
   }
 
+  virtual void Reset() const {
+    timer_.Apply(Stopwatch::Action::Reset);
+    timer_.Apply(Stopwatch::Action::Run);
+  }
+
  private:
   AfterAnimation after_;
   mutable Stopwatch

@@ -39,7 +39,10 @@
 // -----------------------------------------------------------------------
 
 GraphicsObjectData::GraphicsObjectData()
-    : animator_(std::make_shared<Clock>()) {}
+    : GraphicsObjectData(std::make_shared<Clock>()) {}
+
+GraphicsObjectData::GraphicsObjectData(std::shared_ptr<Clock> clock)
+    : animator_(clock) {}
 
 GraphicsObjectData::~GraphicsObjectData() {}
 

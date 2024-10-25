@@ -65,13 +65,12 @@ class GraphicsObjectOfFile : public GraphicsObjectData {
   virtual std::unique_ptr<GraphicsObjectData> Clone() const override;
 
   virtual void Execute(RLMachine& machine) override;
-  void Execute(unsigned int);
+  void Execute();
 
   virtual bool IsAnimation() const override;
   virtual void PlaySet(int set) override;
 
  protected:
-  virtual void LoopAnimation() override;
   virtual std::shared_ptr<const Surface> CurrentSurface(
       const GraphicsObject& go) override;
   virtual Rect SrcRect(const GraphicsObject& go) override;
@@ -96,10 +95,6 @@ class GraphicsObjectOfFile : public GraphicsObjectData {
 
   // Current frame displayed (when animating)
   int current_frame_;
-
-  // While currentlyPlaying() is true, this variable is used to store
-  // the time when the frame was switched last
-  unsigned int time_at_last_frame_change_;
 
  private:
   // boost::serialization support

@@ -51,8 +51,7 @@ GraphicsObjectOfFile::GraphicsObjectOfFile(System& system)
     : service_(std::make_shared<RenderingService>(system)),
       filename_(""),
       frame_time_(0),
-      current_frame_(0),
-      time_at_last_frame_change_(0) {}
+      current_frame_(-1) {}
 
 // -----------------------------------------------------------------------
 
@@ -61,17 +60,9 @@ GraphicsObjectOfFile::GraphicsObjectOfFile(System& system,
     : service_(std::make_shared<RenderingService>(system)),
       filename_(filename),
       frame_time_(0),
-      current_frame_(0),
-      time_at_last_frame_change_(0) {
+      current_frame_(-1) {
   LoadFile(system);
 }
-
-// -----------------------------------------------------------------------
-// for testing
-GraphicsObjectOfFile::GraphicsObjectOfFile(
-    std::shared_ptr<IRenderingService> service,
-    std::shared_ptr<const Surface> surface)
-    : service_(service), surface_(surface) {}
 
 // -----------------------------------------------------------------------
 
@@ -112,24 +103,25 @@ std::unique_ptr<GraphicsObjectData> GraphicsObjectOfFile::Clone() const {
 
 // -----------------------------------------------------------------------
 
-void GraphicsObjectOfFile::Execute(RLMachine&) { Execute(service_->GetTicks()); }
-void GraphicsObjectOfFile::Execute(unsigned int current_time) {
-  if (GetAnimator()->IsPlaying()) {
-    unsigned int time_since_last_frame_change =
-        current_time - time_at_last_frame_change_;
+void GraphicsObjectOfFile::Execute(RLMachine&) { Execute(); }
+void GraphicsObjectOfFile::Execute() {
+  if (!animator_.IsPlaying())
+    return;
 
-    while (time_since_last_frame_change > frame_time_) {
-      current_frame_++;
-      if (current_frame_ == surface_->GetNumPatterns()) {
-        current_frame_--;
-        EndAnimation();
-      }
+  auto anmtime = animator_.GetAnimationTime();
+  size_t current_frame =
+      std::chrono::duration_cast<std::chrono::milliseconds>(anmtime).count() /
+      frame_time_;
 
-      time_at_last_frame_change_ += frame_time_;
-      time_since_last_frame_change = current_time - time_at_last_frame_change_;
-      service_->MarkScreenDirty(GUT_DISPLAY_OBJ);
-    }
+  const auto total_frames = surface_->GetNumPatterns();
+  if (current_frame >= total_frames) {
+    if (animator_.GetAfterAction() == AFTER_LOOP)
+      current_frame %= total_frames;
+    else
+      current_frame = total_frames - 1;
   }
+
+  service_->MarkScreenDirty(GUT_DISPLAY_OBJ);
 }
 
 // -----------------------------------------------------------------------
@@ -137,10 +129,6 @@ void GraphicsObjectOfFile::Execute(unsigned int current_time) {
 bool GraphicsObjectOfFile::IsAnimation() const {
   return surface_->GetNumPatterns();
 }
-
-// -----------------------------------------------------------------------
-
-void GraphicsObjectOfFile::LoopAnimation() { current_frame_ = 0; }
 
 // -----------------------------------------------------------------------
 
@@ -152,7 +140,7 @@ std::shared_ptr<const Surface> GraphicsObjectOfFile::CurrentSurface(
 // -----------------------------------------------------------------------
 
 Rect GraphicsObjectOfFile::SrcRect(const GraphicsObject& go) {
-  if (time_at_last_frame_change_ != 0) {
+  if (current_frame_ >= 0) {
     // If we've ever been treated as an animation, we need to continue acting
     // as an animation even if we've stopped.
     return surface_->GetPattern(current_frame_).rect;
@@ -175,7 +163,7 @@ void GraphicsObjectOfFile::PlaySet(int frame_time) {
     frame_time_ = 10;
   }
 
-  time_at_last_frame_change_ = service_->GetTicks();
+  animator_.Reset();
   service_->MarkScreenDirty(GUT_DISPLAY_OBJ);
 }
 
@@ -184,17 +172,11 @@ void GraphicsObjectOfFile::PlaySet(int frame_time) {
 template <class Archive>
 void GraphicsObjectOfFile::load(Archive& ar, unsigned int version) {
   ar& boost::serialization::base_object<GraphicsObjectData>(*this) & filename_ &
-      frame_time_ & current_frame_ & time_at_last_frame_change_;
+      frame_time_ & current_frame_;
 
   LoadFile(Serialization::g_current_machine->system());
 
-  // Saving |time_at_last_frame_change_| as part of the format is obviously a
-  // mistake, but is now baked into the file format. Ask the clock for a more
-  // suitable value.
-  if (time_at_last_frame_change_ != 0) {
-    time_at_last_frame_change_ = service_->GetTicks();
-    service_->MarkScreenDirty(GUT_DISPLAY_OBJ);
-  }
+  service_->MarkScreenDirty(GUT_DISPLAY_OBJ);
 }
 
 // -----------------------------------------------------------------------
@@ -202,7 +184,7 @@ void GraphicsObjectOfFile::load(Archive& ar, unsigned int version) {
 template <class Archive>
 void GraphicsObjectOfFile::save(Archive& ar, unsigned int version) const {
   ar& boost::serialization::base_object<GraphicsObjectData>(*this) & filename_ &
-      frame_time_ & current_frame_ & time_at_last_frame_change_;
+      frame_time_ & current_frame_;
 }
 
 // -----------------------------------------------------------------------

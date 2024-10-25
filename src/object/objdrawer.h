@@ -45,6 +45,7 @@ class Surface;
 class GraphicsObjectData {
  public:
   GraphicsObjectData();
+  GraphicsObjectData(std::shared_ptr<Clock>);
   virtual ~GraphicsObjectData();
 
   virtual bool IsAnimation() const;
@@ -96,7 +97,7 @@ class GraphicsObjectData {
   virtual int GetRenderingAlpha(const GraphicsObject& go,
                                 const GraphicsObject* parent);
 
- private:
+ protected:
   Animator animator_;
 
   // boost::serialization support
