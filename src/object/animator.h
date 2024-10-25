@@ -25,110 +25,67 @@
 #ifndef SRC_OBJECT_ANIMATOR_H_
 #define SRC_OBJECT_ANIMATOR_H_
 
+#include "utilities/stopwatch.h"
+
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/serialization.hpp>
+#include <boost/serialization/split_member.hpp>
 
 #include <chrono>
 #include <functional>
 
 enum AfterAnimation { AFTER_NONE, AFTER_CLEAR, AFTER_LOOP };
 
-class IAnimator {
+class Animator {
  public:
-  virtual ~IAnimator() = default;
+  explicit Animator(std::shared_ptr<Clock> clock)
+      : after_(AFTER_NONE), timer_(clock) {}
+  virtual ~Animator() = default;
 
-  virtual void SetAfterAction(AfterAnimation after) = 0;
-  virtual AfterAnimation GetAfterAction() const = 0;
-  virtual void SetIsPlaying(bool in) = 0;
-  virtual bool IsPlaying() const = 0;
-  virtual bool IsFinished() const = 0;
-  virtual void SetIsFinished(bool in) = 0;
-};
-
-class GraphicsObjectData;
-
-class Animator : public IAnimator {
- public:
-  // TODO: just a reminder to decouple them later
-  friend class GraphicsObjectData;
-
-  using timepoint_t = std::chrono::time_point<std::chrono::steady_clock>;
-  using duration_t = std::chrono::milliseconds;
-
- public:
-  Animator()
-      : after_animation_(AFTER_NONE),
-        state_(State::Paused),
-        currently_playing_(false),
-        animation_finished_(false),
-        animation_time_(duration_t::zero()) {}
-
-  virtual void SetAfterAction(AfterAnimation after) override {
-    after_animation_ = after;
+  virtual void SetAfterAction(AfterAnimation after) { after_ = after; }
+  virtual AfterAnimation GetAfterAction() const { return after_; }
+  virtual void SetIsPlaying(bool in) {
+    if (in) {
+      timer_.Apply(Stopwatch::Action::Run);
+    } else
+      timer_.Apply(Stopwatch::Action::Pause);
   }
-  virtual AfterAnimation GetAfterAction() const override {
-    return after_animation_;
+  virtual bool IsPlaying() const {
+    return timer_.GetState() == Stopwatch::State::Running;
   }
-  virtual void SetIsPlaying(bool in) override { currently_playing_ = in; }
-  virtual bool IsPlaying() const override { return currently_playing_; }
-  virtual bool IsFinished() const override { return animation_finished_; }
-  virtual void SetIsFinished(bool in) override { animation_finished_ = in; }
-
-  enum class Action { Pause, Play, Stop };
-  virtual void Apply(Action action, timepoint_t now) {
-    Notify(now);
-
-    switch (action) {
-      case Action::Pause: {
-        if (state_ != State::Finished)
-          state_ = State::Paused;
-      } break;
-
-      case Action::Play:
-        state_ = State::Playing;
-        break;
-
-      case Action::Stop: {
-        animation_time_ = decltype(animation_time_)::zero();
-        state_ = State::Finished;
-      } break;
-
-      default:
-        throw std::invalid_argument("Animator: invalid action " +
-                                    std::to_string(static_cast<int>(action)));
-    }
+  virtual bool IsFinished() const {
+    return timer_.GetState() == Stopwatch::State::Stopped;
+  }
+  virtual void SetIsFinished(bool in) {
+    if (in)
+      timer_.Apply(Stopwatch::Action::Reset);
   }
 
-  enum class State { Paused, Playing, Finished };
-  State GetState(void) const { return state_; }
-
-  duration_t GetAnmTime() const { return animation_time_; }
-
-  void Notify(timepoint_t tp) {
-    if (state_ == State::Playing)
-      animation_time_ +=
-          std::chrono::duration_cast<duration_t>(tp - last_tick_);
-    last_tick_ = tp;
+  virtual Stopwatch::duration_t GetAnimationTime() const {
+    return timer_.GetReading();
   }
 
  private:
-  // Policy of what to do after an animation is finished.
-  AfterAnimation after_animation_;  // dummy
-
-  State state_;
-
-  bool currently_playing_;   // dummy
-  bool animation_finished_;  // dummy
-
-  timepoint_t last_tick_;
-  duration_t animation_time_;
+  AfterAnimation after_;
+  mutable Stopwatch
+      timer_;  // mutable because internal state is coupled with time
 
   // boost::serialization support
   friend class boost::serialization::access;
   template <class Archive>
-  void serialize(Archive& ar, unsigned int version) {
-    ar & after_animation_ & currently_playing_;
+  void save(Archive& ar, const unsigned int version) const {
+    ar & after_& IsPlaying();
   }
+  template <class Archive>
+  void load(Archive& ar, const unsigned int version) {
+    ar & after_;
+    bool is_playing;
+    ar & is_playing;
+    if (is_playing)
+      timer_.Apply(Stopwatch::Action::Run);
+  }
+
+  BOOST_SERIALIZATION_SPLIT_MEMBER();
 };
 
 #endif

@@ -32,12 +32,14 @@
 #include "base/rect.h"
 #include "systems/base/graphics_object.h"
 #include "systems/base/surface.h"
+#include "utilities/clock.h"
 
 // -----------------------------------------------------------------------
 // GraphicsObjectData
 // -----------------------------------------------------------------------
 
-GraphicsObjectData::GraphicsObjectData() : animator_() {}
+GraphicsObjectData::GraphicsObjectData()
+    : animator_(std::make_shared<Clock>()) {}
 
 GraphicsObjectData::~GraphicsObjectData() {}
 

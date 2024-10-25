@@ -44,10 +44,6 @@ class Surface;
 
 class GraphicsObjectData {
  public:
-  // TODO: just a reminder to decouple them later
-  friend class Animator;
-
- public:
   GraphicsObjectData();
   virtual ~GraphicsObjectData();
 
@@ -70,8 +66,8 @@ class GraphicsObjectData {
   // Whether this object data owns another layer of objects.
   virtual bool IsParentLayer() const;
 
-  IAnimator const* GetAnimator() const { return &animator_; }
-  IAnimator* GetAnimator() { return &animator_; }
+  Animator const* GetAnimator() const { return &animator_; }
+  Animator* GetAnimator() { return &animator_; }
 
  protected:
   // Function called after animation ends when this object has been
