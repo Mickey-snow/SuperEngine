@@ -40,7 +40,8 @@
 #include <memory>
 #include <string>
 
-struct Codepage {
+class Codepage {
+public:
   virtual ~Codepage();
   virtual unsigned short JisDecode(unsigned short ch) const;
   virtual void JisDecodeString(const char* s, char* buf, size_t buflen) const;

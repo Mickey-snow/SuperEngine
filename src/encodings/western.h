@@ -37,13 +37,14 @@
 
 #include "encodings/codepage.h"
 
-struct Cp1252 : public Codepage {
-  unsigned short JisDecode(unsigned short ch) const;
-  void JisEncodeString(const char* s, char* buf, size_t buflen) const;
-  unsigned short Convert(unsigned short ch) const;
-  std::wstring ConvertString(const std::string& s) const;
-  bool DbcsDelim(char* str) const;
-  bool IsItalic(unsigned short ch) const;
+class Cp1252 : public Codepage {
+public:
+  unsigned short JisDecode(unsigned short ch) const override;
+  void JisEncodeString(const char* s, char* buf, size_t buflen) const override;
+  unsigned short Convert(unsigned short ch) const override;
+  std::wstring ConvertString(const std::string& s) const override;
+  bool DbcsDelim(char* str) const override;
+  bool IsItalic(unsigned short ch) const override;
   Cp1252();
 };
 

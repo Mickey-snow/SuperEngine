@@ -5,8 +5,8 @@
 
   This library is free software; you can redistribute it and/or modify it under
   the terms of the GNU Lesser General Public License as published by the Free
-  Software Foundation; either version 2.1 of the License, or (at your option) any
-  later version.
+  Software Foundation; either version 2.1 of the License, or (at your option)
+  any later version.
 
   This library is distributed in the hope that it will be useful, but WITHOUT
   ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
@@ -41,11 +41,12 @@
 
 #include "encodings/codepage.h"
 
-struct Cp949 : public Codepage {
-  unsigned short JisDecode(unsigned short ch) const;
-  void JisEncodeString(const char* s, char* buf, size_t buflen) const;
-  unsigned short Convert(unsigned short ch) const;
-  std::wstring ConvertString(const std::string& s) const;
+class Cp949 : public Codepage {
+ public:
+  unsigned short JisDecode(unsigned short ch) const override;
+  void JisEncodeString(const char* s, char* buf, size_t buflen) const override;
+  unsigned short Convert(unsigned short ch) const override;
+  std::wstring ConvertString(const std::string& s) const override;
   Cp949();
 };
 
