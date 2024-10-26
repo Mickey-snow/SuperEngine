@@ -85,7 +85,7 @@ class Scene {
 
     {
       stridx_ = sv.substr(hdr_->str_idxlist_offset, 8 * hdr_->str_idxlist_size);
-      strdata_ = sv.substr(hdr_->str_list_offset, hdr_->str_list_size);
+      strdata_ = sv.substr(hdr_->str_list_offset);
       ByteReader reader(stridx_);
       for (int i = 0; i < hdr_->str_idxlist_size; ++i) {
         auto offset = reader.PopAs<uint32_t>(4);

@@ -30,6 +30,8 @@
 #include "utilities/byte_reader.h"
 
 #include <cstdint>
+#include <iostream>
+#include <map>
 #include <string_view>
 #include <vector>
 
@@ -65,6 +67,7 @@ class Script {
   Script(std::string_view data, const XorKey& key) : data_(data), key_(key) {
     hdr_ = reinterpret_cast<PackedScene_hdr const*>(data.data());
     ParseScndata();
+    ParseScnmap();
   }
 
   void ParseScndata() {
@@ -93,11 +96,28 @@ class Script {
       scene_data[i] ^= key_.easykey[i & 0xff];
   }
 
+  void ParseScnmap() {
+    std::string_view names = data_.substr(hdr_->scn_name_list_ofs);
+    ByteReader reader(data_.substr(hdr_->scn_name_index_list_ofs,
+                                   8 * hdr_->scn_name_index_cnt));
+
+    // map from scene name to scene id
+    for (int i = 0; i < hdr_->scn_name_cnt; ++i) {
+      auto offset = reader.PopAs<uint32_t>(4);
+      auto size = reader.PopAs<uint32_t>(4);
+      std::u16string name(reinterpret_cast<const char16_t*>(names.data()+offset),
+			  size / sizeof(char16_t));
+      scn_name2idx_.emplace(name, i);
+    }
+  }
+
   std::string_view data_;
   const XorKey& key_;
 
   PackedScene_hdr const* hdr_;
   std::vector<Scene> scndata;
+
+  std::map<std::u16string, int> scn_name2idx_;
 };
 
 }  // namespace libsiglus
