@@ -77,7 +77,7 @@ struct Scene_hdr {
 
 class Scene {
  public:
-  Scene(std::string data) : data_(std::move(data)) {
+  Scene(std::string data, uint16_t key = 0) : data_(std::move(data)) {
     hdr_ = reinterpret_cast<Scene_hdr const*>(data_.data());
     std::string_view sv = data_;
 
@@ -85,12 +85,21 @@ class Scene {
 
     {
       stridx_ = sv.substr(hdr_->str_idxlist_offset, 8 * hdr_->str_idxlist_size);
-      strdata_ = sv.substr(hdr_->str_list_offset);
+      std::u16string_view strdata_ = [](std::string_view bytedata) {
+        return std::u16string_view(
+            reinterpret_cast<const char16_t*>(bytedata.data()),
+            bytedata.length() / sizeof(char16_t));
+      }(sv.substr(hdr_->str_list_offset));
       ByteReader reader(stridx_);
       for (int i = 0; i < hdr_->str_idxlist_size; ++i) {
         auto offset = reader.PopAs<uint32_t>(4);
         auto size = reader.PopAs<uint32_t>(4);
-        str_.push_back(strdata_.substr(offset, size));
+
+        std::u16string str(strdata_.substr(offset, size));
+        for (char16_t& c : str)
+          c ^= 28807 * i;
+
+        str_.emplace_back(std::move(str));
       }
     }
 
@@ -121,7 +130,7 @@ class Scene {
 
   std::string_view scene_;
   std::string_view stridx_, strdata_;
-  std::vector<std::string_view> str_;
+  std::vector<std::u16string> str_;
 
   std::string_view labellist_, zlabellist_, cmdlabellist_;
   std::string_view scnprop_, scnprop_nameidx_, scnprop_name_;
