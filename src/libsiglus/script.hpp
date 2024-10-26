@@ -75,8 +75,9 @@ class Script {
       auto offset = reader.PopAs<uint32_t>(4);
       auto size = reader.PopAs<uint32_t>(4);
 
-      std::string scene_data = Decompress_lzss(data_.substr(offset, size));
+      std::string scene_data(data_.substr(offset, size));
       Decrypt(scene_data);
+      scene_data = Decompress_lzss(scene_data);
       scndata.emplace_back(std::move(scene_data), key_);
     }
   }
