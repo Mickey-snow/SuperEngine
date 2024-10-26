@@ -90,6 +90,8 @@ librlvm_files = [
   "src/libreallive/elements/expression.cc",
   "src/libreallive/elements/textout.cc",
 
+  "src/libsiglus/xorkey.cpp",
+
   "src/long_operations/button_object_select_long_operation.cc",
   "src/long_operations/load_game_long_operation.cc",
   "src/long_operations/pause_long_operation.cc",
