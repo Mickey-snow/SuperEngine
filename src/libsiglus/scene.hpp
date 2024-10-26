@@ -82,8 +82,17 @@ class Scene {
     std::string_view sv = data_;
 
     scene_ = sv.substr(hdr_->scene_offset, hdr_->scene_size);
-    stridx_ = sv.substr(hdr_->str_idxlist_offset, hdr_->str_idxlist_size);
-    str_ = sv.substr(hdr_->str_list_offset, hdr_->str_list_size);
+
+    {
+      stridx_ = sv.substr(hdr_->str_idxlist_offset, 8 * hdr_->str_idxlist_size);
+      strdata_ = sv.substr(hdr_->str_list_offset, hdr_->str_list_size);
+      ByteReader reader(stridx_);
+      for (int i = 0; i < hdr_->str_idxlist_size; ++i) {
+        auto offset = reader.PopAs<uint32_t>(4);
+        auto size = reader.PopAs<uint32_t>(4);
+        str_.push_back(strdata_.substr(offset, size));
+      }
+    }
 
     labellist_ = sv.substr(hdr_->label_list_offset, 4 * hdr_->label_cnt);
     zlabellist_ = sv.substr(hdr_->zlabel_list_offset, 4 * hdr_->zlabel_cnt);
@@ -96,23 +105,32 @@ class Scene {
     scnprop_nameidx_ =
         sv.substr(hdr_->scnprop_nameidx_offset, hdr_->scnprop_nameidx_cnt);
 
+    cmd_ = sv.substr(hdr_->cmd_offset, hdr_->cmd_cnt);
+    cmdname_ = sv.substr(hdr_->cmd_name_offset, hdr_->cmd_name_cnt);
+
+    callnameidx_ = sv.substr(hdr_->call_nameidx_offset, hdr_->call_name_cnt);
+    callname_ = sv.substr(hdr_->call_name_offset, hdr_->call_name_cnt);
+
     namae_ = sv.substr(hdr_->namae_offset, hdr_->namae_cnt);
     kidoku_ = sv.substr(hdr_->kidoku_offset, hdr_->kidoku_cnt);
   }
 
   std::string data_;
+
   Scene_hdr const* hdr_;
 
   std::string_view scene_;
-  std::string_view stridx_, str_;
-  std::string_view labellist_, label_, zlabellist_, zlabel_, cmdlabellist_,
-      cmdlabel_;
+  std::string_view stridx_, strdata_;
+  std::vector<std::string_view> str_;
+
+  std::string_view labellist_, zlabellist_, cmdlabellist_;
   std::string_view scnprop_, scnprop_nameidx_, scnprop_name_;
   std::string_view cmd_, cmdname_;
   std::string_view callnameidx_, callname_;
   std::string_view namae_;
   std::string_view kidoku_;
 };
+
 }  // namespace libsiglus
 
 #endif

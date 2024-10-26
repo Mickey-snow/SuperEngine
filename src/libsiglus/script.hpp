@@ -71,14 +71,15 @@ class Script {
     scndata.clear();
     ByteReader reader(data_.substr(hdr_->scn_data_index_list_ofs,
                                    8 * hdr_->scn_data_index_cnt));
-    for (int i = 0; i < hdr_->scn_data_index_cnt; ++i) {
+    for (int i = 0; i < hdr_->scn_data_cnt; ++i) {
       auto offset = reader.PopAs<uint32_t>(4);
       auto size = reader.PopAs<uint32_t>(4);
 
-      std::string scene_data(data_.substr(offset, size));
+      std::string scene_data(
+          data_.substr(offset + hdr_->scn_data_list_ofs, size));
       Decrypt(scene_data);
       scene_data = Decompress_lzss(scene_data);
-      scndata.emplace_back(std::move(scene_data), key_);
+      scndata.emplace_back(std::move(scene_data));
     }
   }
 
