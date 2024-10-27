@@ -21,8 +21,8 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LIBSIGLUS_SCRIPT_HPP_
-#define SRC_LIBSIGLUS_SCRIPT_HPP_
+#ifndef SRC_LIBSIGLUS_ARCHIVE_HPP_
+#define SRC_LIBSIGLUS_ARCHIVE_HPP_
 
 #include "base/compression.h"
 #include "encodings/utf16.hpp"
@@ -37,7 +37,7 @@
 #include <vector>
 
 namespace libsiglus {
-struct PackedScene_hdr {
+struct Pack_hdr {
   int32_t header_size;
   int32_t inc_prop_list_ofs;
   int32_t inc_prop_cnt;
@@ -63,10 +63,10 @@ struct PackedScene_hdr {
   int32_t original_source_header_size;
 };
 
-class Script {
+class Archive {
  public:
-  Script(std::string_view data, const XorKey& key) : data_(data), key_(key) {
-    hdr_ = reinterpret_cast<PackedScene_hdr const*>(data.data());
+  Archive(std::string_view data, const XorKey& key) : data_(data), key_(key) {
+    hdr_ = reinterpret_cast<Pack_hdr const*>(data.data());
     ParseScndata();
     CreateScnMap();
 
@@ -168,7 +168,7 @@ class Script {
   std::string_view data_;
   const XorKey& key_;
 
-  PackedScene_hdr const* hdr_;
+  Pack_hdr const* hdr_;
   std::vector<Scene> scndata;
 
   std::map<std::string, int> scn_map_;
