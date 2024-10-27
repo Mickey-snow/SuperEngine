@@ -121,10 +121,8 @@ GraphicsSystem::GraphicsObjectSettings::GraphicsObjectSettings(
     data.emplace_back();
 
   // Read the #OBJECT.xxx entries from the Gameexe
-  GameexeFilteringIterator it = gameexe.FilterBegin("OBJECT.");
-  GameexeFilteringIterator end = gameexe.FilterEnd();
-  for (; it != end; ++it) {
-    string s = it->key().substr(it->key().find_first_of(".") + 1);
+  for(auto it:gameexe.Filter("OBJECT.")){
+    string s = it.key().substr(it.key().find_first_of(".") + 1);
     std::list<int> object_nums;
     string::size_type poscolon = s.find_first_of(":");
     if (poscolon != string::npos) {
@@ -140,7 +138,7 @@ GraphicsSystem::GraphicsObjectSettings::GraphicsObjectSettings(
     for (int obj_num : object_nums) {
       if (obj_num != 999 && obj_num < objects_in_a_layer) {
         position[obj_num] = data.size();
-        data.emplace_back(*it);
+        data.emplace_back(it);
       }
     }
   }
@@ -546,11 +544,9 @@ void GraphicsSystem::Reset() {
 }
 
 std::shared_ptr<const Surface> GraphicsSystem::GetEmojiSurface() {
-  GameexeFilteringIterator it = system().gameexe().FilterBegin("E_MOJI.");
-  GameexeFilteringIterator end = system().gameexe().FilterEnd();
-  for (; it != end; ++it) {
+  for(auto it:system().gameexe().Filter("E_MOJI.")){
     // Try to interpret each key as a filename.
-    std::string file_name = it->ToString("");
+    std::string file_name = it.ToString("");
     std::shared_ptr<const Surface> surface = GetSurfaceNamed(file_name);
     if (surface)
       return surface;

@@ -34,34 +34,39 @@
 
 using std::string;
 
-const char* ADDTIONAL_STRINGS_TO_LOAD[] = {
-    "SAVE_NODATA",              "SYSTEM_SAVELOADMESSAGE_STR",
-    "SAVEMESSAGE_TITLE_STR",    "SAVEMESSAGE_MESS_STR",
-    "SAVEMESSAGE_MESS2_STR",    "LOADMESSAGE_TITLE_STR",
-    "LOADMESSAGE_MESS_STR",     "LOADMESSAGE_MESS2_STR",
-    "DLGSAVEMESSAGE_TITLE_STR", "DLGSAVEMESSAGE_OK_BUTTON_STR",
-    "DLGLOADMESSAGE_TITLE_STR", "DLGLOADMESSAGE_OK_BUTTON_STR",
-    "SYSTEM_ANIME_STR",         "SELPOINT_RETURN_MESS_STR",
-    "VERSION_STR",              "MENU_RETURN_MESS_STR",
-    "GAME_END_MESS_STR",        NULL};
+const char* ADDTIONAL_STRINGS_TO_LOAD[] = {"SAVE_NODATA",
+                                           "SYSTEM_SAVELOADMESSAGE_STR",
+                                           "SAVEMESSAGE_TITLE_STR",
+                                           "SAVEMESSAGE_MESS_STR",
+                                           "SAVEMESSAGE_MESS2_STR",
+                                           "LOADMESSAGE_TITLE_STR",
+                                           "LOADMESSAGE_MESS_STR",
+                                           "LOADMESSAGE_MESS2_STR",
+                                           "DLGSAVEMESSAGE_TITLE_STR",
+                                           "DLGSAVEMESSAGE_OK_BUTTON_STR",
+                                           "DLGLOADMESSAGE_TITLE_STR",
+                                           "DLGLOADMESSAGE_OK_BUTTON_STR",
+                                           "SYSTEM_ANIME_STR",
+                                           "SELPOINT_RETURN_MESS_STR",
+                                           "VERSION_STR",
+                                           "MENU_RETURN_MESS_STR",
+                                           "GAME_END_MESS_STR",
+                                           NULL};
 
 // -----------------------------------------------------------------------
 // Platform
 // -----------------------------------------------------------------------
 Platform::Platform(Gameexe& gameexe) {
   // Parse the Gameexe.ini syscom entries.
-  GameexeFilteringIterator end = gameexe.FilterEnd();
-  for (GameexeFilteringIterator it = gameexe.FilterBegin("SYSCOM.");
-       it != end;
-       ++it) {
-    string key = it->key().substr(7);
+  for (auto it : gameexe.Filter("SYSCOM.")) {
+    string key = it.key().substr(7);
     if (key.size() == 3 && isdigit(key[0]) && isdigit(key[1]) &&
         isdigit(key[2])) {
-      AddSyscomStringFor(key, it->ToString());
+      AddSyscomStringFor(key, it.ToString());
     } else if (key.size() == 7 && isdigit(key[0]) && isdigit(key[1]) &&
                isdigit(key[2]) && key[3] == '.' && isdigit(key[4]) &&
                isdigit(key[5]) && isdigit(key[6])) {
-      AddSyscomStringFor(key, it->ToString());
+      AddSyscomStringFor(key, it.ToString());
     }
   }
 

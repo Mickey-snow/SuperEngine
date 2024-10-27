@@ -243,26 +243,6 @@ void Gameexe::SetIntAt(const std::string& key, const int value) {
 
 // -----------------------------------------------------------------------
 
-Gameexe::filtering_iterator Gameexe::FilterBegin(std::string filter) {
-  GameexeData_t::const_iterator begin = data_.lower_bound(filter), end;
-  if (!filter.empty()) {
-    filter.back()++;
-    end = data_.lower_bound(filter);
-  } else {
-    end = data_.end();
-  }
-
-  return Gameexe::filtering_iterator(begin, end, &data_);
-}
-
-// -----------------------------------------------------------------------
-
-Gameexe::filtering_iterator Gameexe::FilterEnd() {
-  return Gameexe::filtering_iterator(data_.end(), data_.end(), &data_);
-}
-
-// -----------------------------------------------------------------------
-
 Gameexe::range Gameexe::Filter(const std::string& filter) {
   return range(&data_, filter);
 }

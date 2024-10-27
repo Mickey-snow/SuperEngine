@@ -102,30 +102,6 @@ TEST(GameexeUnit, ChainingWorks) {
   EXPECT_EQ(10, imagine("FOUR"));
 }
 
-TEST(GameexeUnit, FilteringIterator) {
-  Gameexe ini(LocateTestCase("Gameexe_data/Gameexe.ini"));
-  auto begin = ini.FilterBegin("IMAGINE."), end = ini.FilterEnd();
-  std::vector<int> expected = {1, 3, 2};
-  for (int i = 0; i < 3; ++i, ++begin) {
-    EXPECT_NE(begin, end);
-    EXPECT_EQ(expected[i], *begin);
-    EXPECT_EQ("IMAGINE", begin->GetKeyParts().at(0));
-  }
-  EXPECT_EQ(begin, end);
-
-  begin = ini.FilterBegin("WINDOW");
-  std::set<std::string> window_entries, window_keys;
-  for (int i = 0; i < 13; ++i, ++begin) {
-    EXPECT_NE(begin, end);
-    EXPECT_NO_THROW({
-      window_entries.insert(begin->key());
-      window_keys.insert(begin->ToString());
-    });
-  }
-  EXPECT_EQ(begin, end);
-  EXPECT_EQ(13, window_entries.size());
-}
-
 TEST(GameexeUnit, FilterRange) {
   Gameexe ini(LocateTestCase("Gameexe_data/Gameexe.ini"));
 
@@ -147,11 +123,22 @@ TEST(GameexeUnit, FilterRange) {
   }
 }
 
+TEST(GameexeUnit, MultipleIterate) {
+  Gameexe ini(LocateTestCase("Gameexe_data/Gameexe.ini"));
+
+  const std::vector<int> expected{1, 3, 2};
+  auto filter_range = ini.Filter("IMAGINE");
+  for (int i = 0; i < 10; ++i) {
+    std::vector<int> actual;
+    for (auto it : filter_range)
+      actual.push_back(it);
+    EXPECT_EQ(expected, actual);
+  }
+}
+
 TEST(GameexeUnit, FilterEmpty) {
   Gameexe ini(LocateTestCase("Gameexe_data/Gameexe.ini"));
-  auto begin = ini.FilterBegin("OBJECT."), end = ini.FilterEnd();
-  EXPECT_EQ(begin, end);
-  for (; begin != end; ++begin)
+  for (const auto it : ini.Filter("nonexist.OBJECT"))
     FAIL() << "Filter should be empty";
 }
 

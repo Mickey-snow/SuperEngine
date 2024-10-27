@@ -202,14 +202,6 @@ class Gameexe {
     return it(std::forward<Ts>(keys)...);
   }
 
-  class filtering_iterator;
-
-  // Returns iterators that filter on a possible value.
-  [[deprecated]]
-  filtering_iterator FilterBegin(std::string filter);
-  [[deprecated]]
-  filtering_iterator FilterEnd();
-
   class range;
   range Filter(const std::string& filter);
 
@@ -227,41 +219,6 @@ class Gameexe {
   GameexeData_t data_;
 
  public:
-  // const filtering iterator
-  class filtering_iterator
-      : public boost::iterator_facade<filtering_iterator,
-                                      GameexeInterpretObject,
-                                      boost::forward_traversal_tag,
-                                      GameexeInterpretObject> {
-   public:
-    explicit filtering_iterator(GameexeData_t::const_iterator begin,
-                                GameexeData_t::const_iterator end,
-                                GameexeData_t* indata)
-        : currentIt(begin), endIt(end), data_(indata) {
-      if (begin == end)
-        currentIt = indata->end();  // range is empty
-    }
-
-   private:
-    friend class boost::iterator_core_access;
-
-    bool equal(filtering_iterator const& other) const {
-      return currentIt == other.currentIt;
-    }
-
-    void increment() {
-      if (++currentIt == endIt)
-        currentIt = data_->end();
-    }
-
-    GameexeInterpretObject dereference() const {
-      return GameexeInterpretObject(currentIt, data_);
-    }
-
-    GameexeData_t::const_iterator currentIt, endIt;
-    GameexeData_t* data_;  // We don't own this object
-  };
-
   // const iterator
   class iterator : public boost::iterator_facade<iterator,
                                                  GameexeInterpretObject,
@@ -310,7 +267,5 @@ class Gameexe {
     std::string key_;
   };
 };
-
-using GameexeFilteringIterator = Gameexe::filtering_iterator;
 
 #endif

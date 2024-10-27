@@ -52,37 +52,33 @@ inline void to_lower(std::string& str) {
 
 AudioTable::AudioTable(Gameexe& gexe) {
   // Read the \#SE.xxx entries from the Gameexe
-  GameexeFilteringIterator se = gexe.FilterBegin("SE.");
-  GameexeFilteringIterator end = gexe.FilterEnd();
-  for (; se != end; ++se) {
-    std::string raw_number = se->GetKeyParts().at(1);
+  for (auto se : gexe.Filter("SE.")) {
+    std::string raw_number = se.GetKeyParts().at(1);
     int entry_number = std::stoi(raw_number);
 
-    std::string file_name = se->GetStringAt(0);
-    int target_channel = se->GetIntAt(1);
+    std::string file_name = se.GetStringAt(0);
+    int target_channel = se.GetIntAt(1);
 
     se_table_[entry_number] = std::make_pair(file_name, target_channel);
   }
 
   // Read the \#DSTRACK entries
-  GameexeFilteringIterator dstrack = gexe.FilterBegin("DSTRACK");
-  for (; dstrack != end; ++dstrack) {
-    int from = dstrack->GetIntAt(0);
-    int to = dstrack->GetIntAt(1);
-    int loop = dstrack->GetIntAt(2);
-    const std::string& file = dstrack->GetStringAt(3);
-    std::string name = dstrack->GetStringAt(4);
+  for (auto dstrack : gexe.Filter("DSTRACK")) {
+    int from = dstrack.GetIntAt(0);
+    int to = dstrack.GetIntAt(1);
+    int loop = dstrack.GetIntAt(2);
+    const std::string& file = dstrack.GetStringAt(3);
+    std::string name = dstrack.GetStringAt(4);
     to_lower(name);
     ds_tracks_[name] = DSTrack(name, file, from, to, loop);
   }
 
   // Read the \#CDTRACK entries
-  GameexeFilteringIterator cdtrack = gexe.FilterBegin("CDTRACK");
-  for (; cdtrack != end; ++cdtrack) {
-    int from = cdtrack->GetIntAt(0);
-    int to = cdtrack->GetIntAt(1);
-    int loop = cdtrack->GetIntAt(2);
-    std::string name = cdtrack->GetStringAt(3);
+  for (auto cdtrack : gexe.Filter("CDTRACK")) {
+    int from = cdtrack.GetIntAt(0);
+    int to = cdtrack.GetIntAt(1);
+    int loop = cdtrack.GetIntAt(2);
+    std::string name = cdtrack.GetStringAt(3);
     to_lower(name);
 
     cd_tracks_[name] = CDTrack(name, from, to, loop);

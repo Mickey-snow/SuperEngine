@@ -44,10 +44,8 @@ void AssetScanner::BuildFromGameexe(Gameexe& gexe) {
   namespace fs = std::filesystem;
 
   std::set<std::string> valid_directories;
-  for (GameexeFilteringIterator it = gexe.FilterBegin("FOLDNAME"),
-                                end = gexe.FilterEnd();
-       it != end; ++it) {
-    std::string dir = it->ToString();
+  for (auto it : gexe.Filter("FOLDNAME")) {
+    std::string dir = it.ToString();
     if (!dir.empty()) {
       to_lower(dir);
       valid_directories.insert(dir);
