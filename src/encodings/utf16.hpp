@@ -29,6 +29,11 @@
 #include <string_view>
 #include <vector>
 
+inline std::u16string_view sv_to_u16sv(std::string_view sv) {
+  return std::u16string_view(reinterpret_cast<const char16_t*>(sv.data()),
+                             sv.size() / sizeof(char16_t));
+}
+
 class utf16le {
  public:
   // decode from raw bytes
@@ -37,6 +42,7 @@ class utf16le {
 
   // decode from u16string
   static std::string Decode(const std::u16string&);
+  static std::string Decode(std::u16string_view);
 };
 
 #endif

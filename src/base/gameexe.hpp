@@ -47,39 +47,47 @@
 #include <vector>
 
 class Gameexe;
-
-// -----------------------------------------------------------------------
-
 class Token;
 
 // Storage backend for the Gameexe
-typedef std::vector<std::shared_ptr<Token>> Gameexe_vec_type;
-typedef std::multimap<std::string, Gameexe_vec_type> GameexeData_t;
+using Gameexe_vec_type = std::vector<std::shared_ptr<Token>>;
+using GameexeData_t = std::multimap<std::string, Gameexe_vec_type>;
 
 // -----------------------------------------------------------------------
 
-// Encapsulates a line of the game configuration file that's passed to the
-// user. This is a temporary class, which should hopefully be inlined
-// away from the target implementation.
-//
-// This allows us to write code like this:
-//
-//   vector<string> x = gameexe("WHATEVER", 5).to_strVector();
-//   int var = gameexe("EXPLICIT_CAST").ToInt();
-//   int var2 = gameexe("IMPLICIT_CAST");
-//   gameexe("SOMEVAL") = 5;
-//
-// This design solves the problem with the old interface, where all
-// the default parameters and overloads lead to confusion about
-// whether a parameter was part of the key, or was the deafult
-// value. Saying that components of the key are part of the operator()
-// on Gameexe and that default values are in the casting function in
-// GameexeInterpretObject solves this accidental difficulty.
+/**
+ * @brief Encapsulates a line of the game configuration file that's passed to
+ * the user.
+ *
+ * This is a temporary class, which should hopefully be inlined away from the
+ * target implementation.
+ *
+ * This allows us to write code like this:
+ * @code
+ * vector<string> x = gameexe("WHATEVER", 5).to_strVector();
+ * int var = gameexe("EXPLICIT_CAST").ToInt();
+ * int var2 = gameexe("IMPLICIT_CAST");
+ * gameexe("SOMEVAL") = 5;
+ * @endcode
+ *
+ * This design solves the problem with the old interface, where all
+ * the default parameters and overloads lead to confusion about
+ * whether a parameter was part of the key, or was the default
+ * value. Saying that components of the key are part of the operator()
+ * on Gameexe and that default values are in the casting function in
+ * GameexeInterpretObject solves this accidental difficulty.
+ */
 class GameexeInterpretObject {
  public:
   ~GameexeInterpretObject();
 
  private:
+  /**
+   * @brief Converts an integer value to a key string with leading zeros.
+   *
+   * @param value The integer value to convert.
+   * @return The formatted key string.
+   */
   std::string ToKeyString(const int& value) {
     std::ostringstream ss;
     ss << std::setw(3) << std::setfill('0') << value;
@@ -88,7 +96,15 @@ class GameexeInterpretObject {
 
   std::string ToKeyString(const std::string& value) { return value; }
 
-  // Connect several key pieces together to form a key string
+  /**
+   * @brief Connects several key pieces together to form a key string.
+   *
+   * @tparam T The type of the first parameter.
+   * @tparam Ts The types of the remaining parameters.
+   * @param first The first key piece.
+   * @param params The remaining key pieces.
+   * @return A concatenated key string.
+   */
   template <typename T, typename... Ts>
   std::string MakeKey(T&& first, Ts&&... params) {
     std::string key = ToKeyString(std::forward<T>(first));
@@ -98,7 +114,13 @@ class GameexeInterpretObject {
   }
 
  public:
-  // Extend a key by several key pieces
+  /**
+   * @brief Extends the key by appending additional key pieces.
+   *
+   * @tparam Ts The types of the key pieces.
+   * @param nextKeys The key pieces to append.
+   * @return A new GameexeInterpretObject with the extended key.
+   */
   template <typename... Ts>
   GameexeInterpretObject operator()(Ts&&... nextKeys) {
     std::string newkey = key_;
@@ -147,10 +169,7 @@ class GameexeInterpretObject {
   // Returns the key splitted on periods.
   std::vector<std::string> GetKeyParts() const;
 
-  // Assign a value. Unlike all the other methods, we can safely
-  // templatize this since the functions it calls can be overloaded.
   GameexeInterpretObject& operator=(const std::string& value);
-
   GameexeInterpretObject& operator=(const int value);
 
  private:
@@ -165,26 +184,41 @@ class GameexeInterpretObject {
   GameexeData_t* data_;  // We don't own this object
   GameexeData_t::const_iterator iterator_;
 
-  // Private; only allow construction by Gameexe and GameexeFilteringiterator
-  // Two instantiation methods:
-  // 1. By string key: Does not validate key; defers error checking to data
-  // accessing
-  //    For instance, using Gameexe("IMG") and then accessing with ini("005") is
-  //    permitted if "IMG.005" is valid.
-  // Note: Iterators are generated on-demand via data->find(key) when accessed
-  // by key, which may not align with client expectations due to the multimap
-  // nature of GameexeData.
+  /**
+   * @brief Constructs a GameexeInterpretObject with the specified key.
+   *
+   * Private constructor; only accessible by Gameexe and
+   * GameexeFilteringIterator.
+   *
+   * Does not validate the key; defers error checking to data accessing.
+   * For example, using Gameexe("IMG") and then accessing with ini("005") is
+   * permitted if "IMG.005" is valid.
+   *
+   * Note: Iterators are generated on-demand via data->find(key) when accessed
+   * by key, which may not align with client expectations due to the multimap
+   * nature of GameexeData.
+   *
+   * @param key The key string.
+   * @param data Pointer to the Gameexe data.
+   */
   GameexeInterpretObject(const std::string& key, GameexeData_t* data);
-  // 2. By iterator: Directly accesses a multimap entry at the iterator's
-  // position.
-  //    The iterator must be valid and not at data->end(), with key_ initialized
-  //    to it->first.
+
+  /**
+   * @brief Constructs a GameexeInterpretObject with the specified iterator.
+   *
+   * Private constructor; only accessible by Gameexe and
+   * GameexeFilteringIterator.
+   *
+   * Directly accesses a multimap entry at the iterator's position.
+   * The iterator must be valid and not at data->end(), with key_ initialized
+   * to it->first.
+   *
+   * @param it The iterator pointing to the multimap entry.
+   * @param data Pointer to the Gameexe data.
+   */
   GameexeInterpretObject(GameexeData_t::const_iterator it, GameexeData_t* data);
 };
 
-// New interface to Gameexe, replacing the one inherited from Haeleth,
-// which was hard to use and was very C-ish. This interface's goal is
-// to make accessing data in the Gameexe as easy as possible.
 class Gameexe {
  public:
   explicit Gameexe(const std::filesystem::path& filename);
@@ -194,8 +228,16 @@ class Gameexe {
   // Parses an individual Gameexe.ini line.
   void parseLine(const std::string& line);
 
-  // When the client code trys to access/modify data, create a
-  // GameexeInterpretobject, transfer control of read/write to the object
+  /**
+   * @brief Accesses or modifies data associated with the given keys.
+   *
+   * When the client code tries to access or modify data, this function creates
+   * a GameexeInterpretObject and transfers control of read/write to the object.
+   *
+   * @tparam Ts Types of the keys.
+   * @param keys The keys to access.
+   * @return A GameexeInterpretObject for the specified keys.
+   */
   template <typename... Ts>
   GameexeInterpretObject operator()(Ts&&... keys) {
     auto it = GameexeInterpretObject("", &data_);

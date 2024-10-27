@@ -26,8 +26,7 @@
 #include <boost/locale.hpp>
 
 std::string utf16le::Decode(std::string_view sv) {
-  return Decode(std::u16string(reinterpret_cast<const char16_t*>(sv.data()),
-                               sv.size() / sizeof(char16_t)));
+  return Decode(sv_to_u16sv(sv));
 }
 
 std::string utf16le::Decode(std::vector<uint8_t> vec) {
@@ -37,4 +36,8 @@ std::string utf16le::Decode(std::vector<uint8_t> vec) {
 
 std::string utf16le::Decode(const std::u16string& str) {
   return boost::locale::conv::utf_to_utf<char>(str);
+}
+
+std::string utf16le::Decode(std::u16string_view sv) {
+  return Decode(std::u16string(sv));
 }
