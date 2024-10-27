@@ -62,12 +62,20 @@ struct PackedScene_hdr {
   int32_t original_source_header_size;
 };
 
+inline static std::u16string_view sv_to_u16sv(std::string_view sv) {
+  return std::u16string_view(reinterpret_cast<const char16_t*>(sv.data()),
+                             sv.size() / sizeof(char16_t));
+}
+
 class Script {
  public:
   Script(std::string_view data, const XorKey& key) : data_(data), key_(key) {
     hdr_ = reinterpret_cast<PackedScene_hdr const*>(data.data());
     ParseScndata();
-    ParseScnmap();
+
+    CreateScnMap();
+    CreateIncpropMap();
+    CreateIncCmdMap();
   }
 
   void ParseScndata() {
@@ -96,8 +104,9 @@ class Script {
       scene_data[i] ^= key_.easykey[i & 0xff];
   }
 
-  void ParseScnmap() {
-    std::string_view names = data_.substr(hdr_->scn_name_list_ofs);
+  void CreateScnMap() {
+    std::u16string_view names =
+        sv_to_u16sv(data_.substr(hdr_->scn_name_list_ofs));
     ByteReader reader(data_.substr(hdr_->scn_name_index_list_ofs,
                                    8 * hdr_->scn_name_index_cnt));
 
@@ -105,9 +114,36 @@ class Script {
     for (int i = 0; i < hdr_->scn_name_cnt; ++i) {
       auto offset = reader.PopAs<uint32_t>(4);
       auto size = reader.PopAs<uint32_t>(4);
-      std::u16string name(reinterpret_cast<const char16_t*>(names.data()+offset),
-			  size / sizeof(char16_t));
-      scn_name2idx_.emplace(name, i);
+      std::u16string name(names.substr(offset, size));
+      scn_map_.emplace(name, i);
+    }
+  }
+
+  void CreateIncpropMap() {
+    ByteReader reader(data_.substr(hdr_->inc_prop_name_index_list_ofs,
+                                   8 * hdr_->inc_prop_name_cnt));
+    std::u16string_view props =
+        sv_to_u16sv(data_.substr(hdr_->inc_prop_name_list_ofs));
+
+    for (int i = 0; i < hdr_->inc_prop_name_cnt; ++i) {
+      auto offset = reader.PopAs<uint32_t>(4);
+      auto size = reader.PopAs<uint32_t>(4);
+      std::u16string name(props.substr(offset, size));
+      prop_map_.emplace(std::move(name), i);
+    }
+  }
+
+  void CreateIncCmdMap() {
+    ByteReader reader(data_.substr(hdr_->inc_cmd_name_index_list_ofs,
+                                   8 * hdr_->inc_cmd_name_index_cnt));
+    std::u16string_view cmds =
+        sv_to_u16sv(data_.substr(hdr_->inc_cmd_name_list_ofs));
+
+    for (int i = 0; i < hdr_->inc_cmd_name_cnt; ++i) {
+      auto offset = reader.PopAs<uint32_t>(4);
+      auto size = reader.PopAs<uint32_t>(4);
+      std::u16string name(cmds.substr(offset, size));
+      cmd_map_.emplace(std::move(name), i);
     }
   }
 
@@ -117,7 +153,9 @@ class Script {
   PackedScene_hdr const* hdr_;
   std::vector<Scene> scndata;
 
-  std::map<std::u16string, int> scn_name2idx_;
+  std::map<std::u16string, int> scn_map_;
+  std::map<std::u16string, int> prop_map_;
+  std::map<std::u16string, int> cmd_map_;
 };
 
 }  // namespace libsiglus
