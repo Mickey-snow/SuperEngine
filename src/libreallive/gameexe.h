@@ -35,8 +35,8 @@
 #ifndef SRC_LIBREALLIVE_GAMEEXE_H_
 #define SRC_LIBREALLIVE_GAMEEXE_H_
 
-#include <filesystem>
 #include <boost/iterator/iterator_facade.hpp>
+#include <filesystem>
 
 #include <iomanip>
 #include <map>
@@ -46,7 +46,6 @@
 #include <vector>
 
 class Gameexe;
-class GameexeFilteringIterator;
 
 // -----------------------------------------------------------------------
 
@@ -58,7 +57,7 @@ typedef std::multimap<std::string, Gameexe_vec_type> GameexeData_t;
 
 // -----------------------------------------------------------------------
 
-// Encapsulates a line of the Gameexe file that's passed to the
+// Encapsulates a line of the game configuration file that's passed to the
 // user. This is a temporary class, which should hopefully be inlined
 // away from the target implementation.
 //
@@ -156,7 +155,6 @@ class GameexeInterpretObject {
  private:
   // We expose our private constructor to Gameexe and GameexeFilteringiterator
   friend class Gameexe;
-  friend class GameexeFilteringIterator;
 
   std::vector<int> GetIntArray() const;
 
@@ -203,9 +201,14 @@ class Gameexe {
     return it(std::forward<Ts>(keys)...);
   }
 
+  class filtering_iterator;
+
   // Returns iterators that filter on a possible value.
-  GameexeFilteringIterator FilterBegin(std::string filter);
-  GameexeFilteringIterator FilterEnd();
+  filtering_iterator FilterBegin(std::string filter);
+  filtering_iterator FilterEnd();
+
+  class range;
+  range Filter(const std::string& filter);
 
   // Returns whether key exists in the stored data
   bool Exists(const std::string& key);
@@ -218,49 +221,94 @@ class Gameexe {
   void SetIntAt(const std::string& key, const int value);
 
  private:
-  // Implementation detail of how parsed Gameexe.ini data is stored in
-  // the class. This was stolen directly from Haeleth's parser in
-  // rlBabel. Eventually, this should be redone, since everything is
-  // really a vector of ints, unless you want a string in which case
-  // that int is an index into a vector of strings on the side.
   GameexeData_t data_;
-};
 
-class GameexeFilteringIterator
-    : public boost::iterator_facade<GameexeFilteringIterator,
-                                    GameexeInterpretObject,
-                                    boost::forward_traversal_tag,
-                                    GameexeInterpretObject> {
  public:
-  explicit GameexeFilteringIterator(GameexeData_t::const_iterator begin,
-                                    GameexeData_t::const_iterator end,
-                                    GameexeData_t* indata)
-      : currentIt(begin), endIt(end), data_(indata) {
-    if (begin == end)
-      currentIt = indata->end();  // range is empty
-  }
+  // const filtering iterator
+  class filtering_iterator
+      : public boost::iterator_facade<filtering_iterator,
+                                      GameexeInterpretObject,
+                                      boost::forward_traversal_tag,
+                                      GameexeInterpretObject> {
+   public:
+    explicit filtering_iterator(GameexeData_t::const_iterator begin,
+                                GameexeData_t::const_iterator end,
+                                GameexeData_t* indata)
+        : currentIt(begin), endIt(end), data_(indata) {
+      if (begin == end)
+        currentIt = indata->end();  // range is empty
+    }
 
- private:
-  friend class boost::iterator_core_access;
+   private:
+    friend class boost::iterator_core_access;
 
-  bool equal(GameexeFilteringIterator const& other) const {
-    // It is deliberate that we only compare the current keys. This
-    // means you don't need to
-    return currentIt == other.currentIt;
-  }
+    bool equal(filtering_iterator const& other) const {
+      return currentIt == other.currentIt;
+    }
 
-  void increment() {
-    if (++currentIt == endIt)
-      currentIt = data_->end();
-  }
+    void increment() {
+      if (++currentIt == endIt)
+        currentIt = data_->end();
+    }
 
-  GameexeInterpretObject dereference() const {
-    return GameexeInterpretObject(currentIt, data_);
-  }
+    GameexeInterpretObject dereference() const {
+      return GameexeInterpretObject(currentIt, data_);
+    }
 
-  GameexeData_t::const_iterator currentIt, endIt;
-  GameexeData_t* data_;  // We don't own this object
+    GameexeData_t::const_iterator currentIt, endIt;
+    GameexeData_t* data_;  // We don't own this object
+  };
+
+  // const iterator
+  class iterator : public boost::iterator_facade<iterator,
+                                                 GameexeInterpretObject,
+                                                 boost::forward_traversal_tag,
+                                                 GameexeInterpretObject> {
+   public:
+    iterator(GameexeData_t::const_iterator it, GameexeData_t* indata)
+        : it_(it), data_(indata) {}
+
+   private:
+    friend class boost::iterator_core_access;
+
+    bool equal(iterator const& other) const { return it_ == other.it_; }
+
+    void increment() { ++it_; }
+
+    GameexeInterpretObject dereference() const {
+      return GameexeInterpretObject(it_, data_);
+    }
+
+   private:
+    GameexeData_t::const_iterator it_;
+    GameexeData_t* data_;
+  };
+
+  // range that can be iterate through
+  class range {
+   public:
+    range(GameexeData_t* indata, const std::string& inkey)
+        : data_(indata), key_(inkey) {}
+
+    iterator begin() const { return iterator(data_->lower_bound(key_), data_); }
+    iterator end() const {
+      std::string upper_key = key_;
+      GameexeData_t::const_iterator end_it;
+      if (!upper_key.empty()) {
+        upper_key.back()++;
+        end_it = data_->lower_bound(upper_key);
+      } else
+        end_it = data_->cend();
+      return iterator(end_it, data_);
+    }
+
+   private:
+    GameexeData_t* data_;
+    std::string key_;
+  };
 };
+
+using GameexeFilteringIterator = Gameexe::filtering_iterator;
 
 // -----------------------------------------------------------------------
 
