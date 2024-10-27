@@ -29,7 +29,7 @@
 #include <functional>
 #include <string>
 
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 #include "machine/rlmachine.h"
 #include "systems/base/graphics_system.h"
 #include "systems/base/system.h"

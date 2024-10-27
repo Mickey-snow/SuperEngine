@@ -29,7 +29,7 @@
 #include <iostream>
 #include <string>
 
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 #include "libreallive/reallive.h"
 #include "machine/dump_scenario.h"
 #include "machine/game_hacks.h"

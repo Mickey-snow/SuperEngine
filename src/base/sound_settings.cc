@@ -24,7 +24,7 @@
 
 #include "base/sound_settings.h"
 
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 
 rlSoundSettings::rlSoundSettings()
     : sound_quality(5),

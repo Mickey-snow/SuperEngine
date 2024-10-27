@@ -43,7 +43,7 @@
 
 #include "libreallive/archive.h"
 #include "libreallive/expression.h"
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 #include "libreallive/intmemref.h"
 #include "libreallive/parser.h"
 #include "libreallive/scenario.h"

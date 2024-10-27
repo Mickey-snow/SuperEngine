@@ -45,7 +45,7 @@
 #include "systems/sdl/sdl_utils.h"
 #include "utilities/exception.h"
 #include "utilities/find_font_file.h"
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 
 SDLTextSystem::SDLTextSystem(SDLSystem& system, Gameexe& gameexe)
     : TextSystem(system, gameexe), sdl_system_(system) {

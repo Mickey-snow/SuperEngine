@@ -27,7 +27,7 @@
 
 #include <gtest/gtest.h>
 
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 
 #include "test_utils.h"
 

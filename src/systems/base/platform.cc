@@ -29,7 +29,7 @@
 #include <map>
 #include <string>
 
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 #include "utilities/string_utilities.h"
 
 using std::string;

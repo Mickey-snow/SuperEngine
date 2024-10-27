@@ -37,7 +37,7 @@
 #include "effects/effect_factory.h"
 #include "effects/sel_record.h"
 #include "libreallive/expression.h"
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 #include "libreallive/parser.h"
 #include "long_operations/wait_long_operation.h"
 #include "long_operations/zoom_long_operation.h"

@@ -37,7 +37,7 @@
 #include "systems/base/text_page.h"
 #include "systems/base/text_system.h"
 #include "systems/base/text_window.h"
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 
 // -----------------------------------------------------------------------
 // PauseLongOperation

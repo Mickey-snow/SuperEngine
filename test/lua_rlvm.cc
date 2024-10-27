@@ -35,7 +35,7 @@
 // main(inat argc, char* agrv[]). Loosers.
 #include <SDL/SDL.h>
 
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 #include "libreallive/reallive.h"
 #include "machine/game_hacks.h"
 #include "machine/rlmachine.h"

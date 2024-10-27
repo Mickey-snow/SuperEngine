@@ -39,7 +39,7 @@
 #include "base/notification/details.h"
 #include "base/notification/service.h"
 #include "base/notification/source.h"
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 #include "machine/memory.h"
 #include "machine/rlmachine.h"
 #include "machine/serialization.h"

@@ -33,7 +33,7 @@
 #include <string>
 #include <vector>
 
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 #include "systems/base/colour.h"
 #include "systems/base/graphics_system.h"
 #include "systems/base/selection_element.h"

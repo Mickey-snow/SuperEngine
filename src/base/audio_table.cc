@@ -25,7 +25,7 @@
 
 #include "base/audio_table.h"
 
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 
 #include <cctype>
 #include <sstream>

@@ -24,7 +24,7 @@
 
 #include "effects/sel_record.h"
 
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 #include "utilities/graphics.h"
 
 #include <sstream>

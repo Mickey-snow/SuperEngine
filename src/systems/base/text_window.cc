@@ -36,7 +36,7 @@
 #include <vector>
 
 #include "libreallive/alldefs.h"
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 #include "machine/rlmachine.h"
 #include "systems/base/graphics_system.h"
 #include "systems/base/selection_element.h"

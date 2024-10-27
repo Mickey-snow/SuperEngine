@@ -30,7 +30,7 @@
 #include <string>
 #include <iostream>
 
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 #include "machine/rlmachine.h"
 #include "machine/rloperation.h"
 #include "systems/base/system.h"

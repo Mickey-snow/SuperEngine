@@ -41,7 +41,7 @@
 
 #include "base/cgm_table.h"
 #include "effects/fade_effect.h"
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 #include "machine/general_operations.h"
 #include "machine/rloperation.h"
 #include "machine/rloperation/default_value.h"

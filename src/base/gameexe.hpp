@@ -9,6 +9,7 @@
 //
 // Copyright (c) 2006, 2007 Peter Jolly
 // Copyright (c) 2007 Elliot Glaysher
+// Copyright (c) 2024 Serina Sakurai
 //
 // Permission is hereby granted, free of charge, to any person
 // obtaining a copy of this software and associated documentation
@@ -32,8 +33,8 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LIBREALLIVE_GAMEEXE_H_
-#define SRC_LIBREALLIVE_GAMEEXE_H_
+#ifndef SRC_BASE_GAMEEXE_HPP_
+#define SRC_BASE_GAMEEXE_HPP_
 
 #include <boost/iterator/iterator_facade.hpp>
 #include <filesystem>
@@ -204,7 +205,9 @@ class Gameexe {
   class filtering_iterator;
 
   // Returns iterators that filter on a possible value.
+  [[deprecated]]
   filtering_iterator FilterBegin(std::string filter);
+  [[deprecated]]
   filtering_iterator FilterEnd();
 
   class range;
@@ -310,6 +313,4 @@ class Gameexe {
 
 using GameexeFilteringIterator = Gameexe::filtering_iterator;
 
-// -----------------------------------------------------------------------
-
-#endif  // SRC_LIBREALLIVE_GAMEEXE_H_
+#endif

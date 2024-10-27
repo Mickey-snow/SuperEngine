@@ -32,7 +32,7 @@
 #include <string>
 
 #include "base/rect.h"
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 #include "systems/base/graphics_system.h"
 #include "systems/base/surface.h"
 #include "systems/base/system.h"

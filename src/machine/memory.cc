@@ -31,7 +31,7 @@
 #include <map>
 #include <string>
 
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 #include "libreallive/intmemref.h"
 #include "machine/rlmachine.h"
 #include "utilities/exception.h"
