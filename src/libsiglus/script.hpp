@@ -72,9 +72,12 @@ class Script {
   Script(std::string_view data, const XorKey& key) : data_(data), key_(key) {
     hdr_ = reinterpret_cast<PackedScene_hdr const*>(data.data());
     ParseScndata();
-
     CreateScnMap();
+
+    ParseIncprop();
     CreateIncpropMap();
+
+    ParseIncCmd();
     CreateIncCmdMap();
   }
 
@@ -119,6 +122,17 @@ class Script {
     }
   }
 
+  void ParseIncprop() {
+    ByteReader reader(data_.substr(hdr_->inc_prop_list_ofs,
+                                   sizeof(Incprop) * hdr_->inc_prop_cnt));
+    for (int i = 0; i < hdr_->inc_prop_cnt; ++i) {
+      Incprop incprop;
+      incprop.form = reader.PopAs<int32_t>(4);
+      incprop.size = reader.PopAs<int32_t>(4);
+      prop_.emplace_back(std::move(incprop));
+    }
+  }
+
   void CreateIncpropMap() {
     ByteReader reader(data_.substr(hdr_->inc_prop_name_index_list_ofs,
                                    8 * hdr_->inc_prop_name_cnt));
@@ -130,6 +144,17 @@ class Script {
       auto size = reader.PopAs<uint32_t>(4);
       std::u16string name(props.substr(offset, size));
       prop_map_.emplace(std::move(name), i);
+    }
+  }
+
+  void ParseIncCmd() {
+    ByteReader reader(data_.substr(hdr_->inc_cmd_list_ofs,
+                                   sizeof(Inccmd) * hdr_->inc_cmd_cnt));
+    for (int i = 0; i < hdr_->inc_cmd_cnt; ++i) {
+      Inccmd inccmd;
+      inccmd.scene_id = reader.PopAs<int32_t>(4);
+      inccmd.offset = reader.PopAs<int32_t>(4);
+      cmd_.emplace_back(std::move(inccmd));
     }
   }
 
@@ -154,7 +179,19 @@ class Script {
   std::vector<Scene> scndata;
 
   std::map<std::u16string, int> scn_map_;
+
+  struct Incprop {
+    int32_t form;
+    int32_t size;
+  };
+  std::vector<Incprop> prop_;
   std::map<std::u16string, int> prop_map_;
+
+  struct Inccmd {
+    int32_t scene_id;
+    int32_t offset;
+  };
+  std::vector<Inccmd> cmd_;
   std::map<std::u16string, int> cmd_map_;
 };
 
