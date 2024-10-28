@@ -25,10 +25,12 @@
 #define SRC_LIBSIGLUS_SCENE_HPP_
 
 #include "base/compression.h"
+#include "encodings/utf16.hpp"
 #include "libsiglus/xorkey.hpp"
 #include "utilities/byte_reader.h"
 
 #include <cstdint>
+#include <map>
 #include <string_view>
 #include <vector>
 
@@ -51,15 +53,17 @@ struct Scene_hdr {
   int32_t cmdlabel_list_offset;
   int32_t cmdlabel_cnt;
 
-  int32_t scnprop_offset;
-  int32_t scnprop_cnt;
-  int32_t scnprop_nameidx_offset;
-  int32_t scnprop_nameidx_cnt;
-  int32_t scnprop_name_offset;
-  int32_t scnprop_name_cnt;
+  int32_t prop_offset;
+  int32_t prop_cnt;
+  int32_t prop_nameidx_offset;
+  int32_t prop_nameidx_cnt;
+  int32_t prop_name_offset;
+  int32_t prop_name_cnt;
 
-  int32_t cmd_offset;
+  int32_t cmdlist_offset;
   int32_t cmd_cnt;
+  int32_t cmd_nameidx_offset;
+  int32_t cmd_nameidx_cnt;
   int32_t cmd_name_offset;
   int32_t cmd_name_cnt;
 
@@ -77,67 +81,146 @@ struct Scene_hdr {
 
 class Scene {
  public:
-  Scene(std::string data, uint16_t key = 0) : data_(std::move(data)) {
+  Scene(std::string data) : data_(std::move(data)) {
     hdr_ = reinterpret_cast<Scene_hdr const*>(data_.data());
     std::string_view sv = data_;
 
     scene_ = sv.substr(hdr_->scene_offset, hdr_->scene_size);
 
     {
-      stridx_ = sv.substr(hdr_->str_idxlist_offset, 8 * hdr_->str_idxlist_size);
-      std::u16string_view strdata_ = [](std::string_view bytedata) {
-        return std::u16string_view(
-            reinterpret_cast<const char16_t*>(bytedata.data()),
-            bytedata.length() / sizeof(char16_t));
-      }(sv.substr(hdr_->str_list_offset));
-      ByteReader reader(stridx_);
+      std::string_view stridx =
+          sv.substr(hdr_->str_idxlist_offset, 8 * hdr_->str_idxlist_size);
+      std::u16string_view strdata =
+          sv_to_u16sv(sv.substr(hdr_->str_list_offset));
+      ByteReader reader(stridx);
       for (int i = 0; i < hdr_->str_idxlist_size; ++i) {
         auto offset = reader.PopAs<uint32_t>(4);
         auto size = reader.PopAs<uint32_t>(4);
 
-        std::u16string str(strdata_.substr(offset, size));
+        std::u16string str(strdata.substr(offset, size));
         for (char16_t& c : str)
           c ^= 28807 * i;
 
-        str_.emplace_back(std::move(str));
+        str_.emplace_back(utf16le::Decode(str));
       }
     }
 
-    labellist_ = sv.substr(hdr_->label_list_offset, 4 * hdr_->label_cnt);
-    zlabellist_ = sv.substr(hdr_->zlabel_list_offset, 4 * hdr_->zlabel_cnt);
-    cmdlabellist_ =
-        sv.substr(hdr_->cmdlabel_list_offset, 8 * hdr_->cmdlabel_cnt);
+    {
+      ByteReader reader(
+          sv.substr(hdr_->label_list_offset, 4 * hdr_->label_cnt));
+      label.reserve(hdr_->label_cnt);
+      for (int i = 0; i < hdr_->label_cnt; ++i)
+        label.push_back(reader.PopAs<int32_t>(4));
+    }
 
-    scnprop_ = sv.substr(hdr_->scnprop_offset, hdr_->scnprop_cnt);
-    scnprop_name_ =
-        sv.substr(hdr_->scnprop_name_offset, hdr_->scnprop_name_cnt);
-    scnprop_nameidx_ =
-        sv.substr(hdr_->scnprop_nameidx_offset, hdr_->scnprop_nameidx_cnt);
+    {
+      ByteReader reader(
+          sv.substr(hdr_->zlabel_list_offset, 4 * hdr_->zlabel_cnt));
+      zlabel.reserve(hdr_->zlabel_cnt);
+      for (int i = 0; i < hdr_->zlabel_cnt; ++i)
+        zlabel.push_back(reader.PopAs<int32_t>(4));
+    }
 
-    cmd_ = sv.substr(hdr_->cmd_offset, hdr_->cmd_cnt);
-    cmdname_ = sv.substr(hdr_->cmd_name_offset, hdr_->cmd_name_cnt);
+    {
+      ByteReader reader(sv.substr(hdr_->cmdlabel_list_offset,
+                                  sizeof(CmdLabel) * hdr_->cmdlabel_cnt));
+      for (int i = 0; i < hdr_->cmdlabel_cnt; ++i) {
+        CmdLabel label;
+        label.cmd_id = reader.PopAs<int32_t>(4);
+        label.offset = reader.PopAs<int32_t>(4);
+        cmdlabel.push_back(label);
+      }
+    }
 
-    callnameidx_ = sv.substr(hdr_->call_nameidx_offset, hdr_->call_name_cnt);
-    callname_ = sv.substr(hdr_->call_name_offset, hdr_->call_name_cnt);
+    {
+      ByteReader reader(
+          sv.substr(hdr_->prop_offset, sizeof(Property) * hdr_->prop_cnt));
+      property.reserve(hdr_->prop_cnt);
+      for (int i = 0; i < hdr_->prop_cnt; ++i) {
+        Property prop;
+        prop.form = reader.PopAs<int32_t>(4);
+        prop.size = reader.PopAs<int32_t>(4);
+        property.emplace_back(std::move(prop));
+      }
 
-    namae_ = sv.substr(hdr_->namae_offset, hdr_->namae_cnt);
-    kidoku_ = sv.substr(hdr_->kidoku_offset, hdr_->kidoku_cnt);
+      std::u16string_view names =
+          sv_to_u16sv(sv.substr(hdr_->prop_name_offset));
+      reader = ByteReader(
+          sv.substr(hdr_->prop_nameidx_offset, 8 * hdr_->prop_nameidx_cnt));
+      for (int i = 0; i < hdr_->prop_nameidx_cnt; ++i) {
+        auto offset = reader.PopAs<int32_t>(4);
+        auto size = reader.PopAs<int32_t>(4);
+        property_map.emplace(utf16le::Decode(names.substr(offset, size)), i);
+      }
+    }
+
+    {
+      ByteReader reader(sv.substr(hdr_->cmdlist_offset, 4 * hdr_->cmd_cnt));
+      for (int i = 0; i < hdr_->cmd_cnt; ++i)
+        cmd.push_back(reader.PopAs<int32_t>(4));
+
+      std::u16string_view names = sv_to_u16sv(sv.substr(hdr_->cmd_name_offset));
+      reader = ByteReader(
+          sv.substr(hdr_->cmd_nameidx_offset, 8 * hdr_->cmd_nameidx_cnt));
+      for (int i = 0; i < hdr_->cmd_nameidx_cnt; ++i) {
+        auto offset = reader.PopAs<int32_t>(4);
+        auto size = reader.PopAs<int32_t>(4);
+        cmd_map.emplace(utf16le::Decode(names.substr(offset, size)), i);
+      }
+    }
+
+    {
+      ByteReader reader(
+          sv.substr(hdr_->call_nameidx_offset, 8 * hdr_->call_nameidx_cnt));
+      std::u16string_view names =
+          sv_to_u16sv(sv.substr(hdr_->call_name_offset));
+      for (int i = 0; i < hdr_->call_nameidx_cnt; ++i) {
+        auto offset = reader.PopAs<int32_t>(4);
+        auto size = reader.PopAs<int32_t>(4);
+        callproperty.emplace_back(utf16le::Decode(names.substr(offset, size)));
+      }
+    }
+
+    {
+      ByteReader reader(sv.substr(hdr_->namae_offset, 4 * hdr_->namae_cnt));
+      for (int i = 0; i < hdr_->namae_cnt; ++i)
+        namae.push_back(reader.PopAs<int32_t>(4));
+    }
+
+    {
+      ByteReader reader(sv.substr(hdr_->kidoku_offset, 4 * hdr_->kidoku_cnt));
+      for (int i = 0; i < hdr_->kidoku_cnt; ++i)
+        kidoku.push_back(reader.PopAs<int32_t>(4));
+    }
   }
 
   std::string data_;
-
   Scene_hdr const* hdr_;
 
   std::string_view scene_;
-  std::string_view stridx_, strdata_;
-  std::vector<std::u16string> str_;
 
-  std::string_view labellist_, zlabellist_, cmdlabellist_;
-  std::string_view scnprop_, scnprop_nameidx_, scnprop_name_;
-  std::string_view cmd_, cmdname_;
-  std::string_view callnameidx_, callname_;
-  std::string_view namae_;
-  std::string_view kidoku_;
+  std::vector<std::string> str_;
+
+  std::vector<int> label, zlabel;
+  struct CmdLabel {
+    int32_t cmd_id;
+    int32_t offset;
+  };
+  std::vector<CmdLabel> cmdlabel;
+
+  struct Property {
+    int32_t form;
+    int32_t size;
+  };
+  std::vector<Property> property;
+  std::map<std::string, int> property_map;
+
+  std::vector<int> cmd;  // to offset
+  std::map<std::string, int> cmd_map;
+
+  std::vector<std::string> callproperty;
+  std::vector<int> namae;   // index to string list
+  std::vector<int> kidoku;  // line_no
 };
 
 }  // namespace libsiglus

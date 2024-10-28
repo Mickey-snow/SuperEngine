@@ -63,11 +63,6 @@ struct PackedScene_hdr {
   int32_t original_source_header_size;
 };
 
-inline static std::u16string_view sv_to_u16sv(std::string_view sv) {
-  return std::u16string_view(reinterpret_cast<const char16_t*>(sv.data()),
-                             sv.size() / sizeof(char16_t));
-}
-
 class Script {
  public:
   Script(std::string_view data, const XorKey& key) : data_(data), key_(key) {
