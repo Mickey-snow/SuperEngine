@@ -25,6 +25,7 @@
 #define SRC_LIBSIGLUS_SCRIPT_HPP_
 
 #include "base/compression.h"
+#include "encodings/utf16.hpp"
 #include "libsiglus/scene.hpp"
 #include "libsiglus/xorkey.hpp"
 #include "utilities/byte_reader.h"
@@ -117,8 +118,7 @@ class Script {
     for (int i = 0; i < hdr_->scn_name_cnt; ++i) {
       auto offset = reader.PopAs<uint32_t>(4);
       auto size = reader.PopAs<uint32_t>(4);
-      std::u16string name(names.substr(offset, size));
-      scn_map_.emplace(name, i);
+      scn_map_.emplace(utf16le::Decode(names.substr(offset, size)), i);
     }
   }
 
@@ -142,8 +142,7 @@ class Script {
     for (int i = 0; i < hdr_->inc_prop_name_cnt; ++i) {
       auto offset = reader.PopAs<uint32_t>(4);
       auto size = reader.PopAs<uint32_t>(4);
-      std::u16string name(props.substr(offset, size));
-      prop_map_.emplace(std::move(name), i);
+      prop_map_.emplace(utf16le::Decode(props.substr(offset, size)), i);
     }
   }
 
@@ -167,8 +166,7 @@ class Script {
     for (int i = 0; i < hdr_->inc_cmd_name_cnt; ++i) {
       auto offset = reader.PopAs<uint32_t>(4);
       auto size = reader.PopAs<uint32_t>(4);
-      std::u16string name(cmds.substr(offset, size));
-      cmd_map_.emplace(std::move(name), i);
+      cmd_map_.emplace(utf16le::Decode(cmds.substr(offset, size)), i);
     }
   }
 
@@ -178,21 +176,21 @@ class Script {
   PackedScene_hdr const* hdr_;
   std::vector<Scene> scndata;
 
-  std::map<std::u16string, int> scn_map_;
+  std::map<std::string, int> scn_map_;
 
   struct Incprop {
     int32_t form;
     int32_t size;
   };
   std::vector<Incprop> prop_;
-  std::map<std::u16string, int> prop_map_;
+  std::map<std::string, int> prop_map_;
 
   struct Inccmd {
     int32_t scene_id;
     int32_t offset;
   };
   std::vector<Inccmd> cmd_;
-  std::map<std::u16string, int> cmd_map_;
+  std::map<std::string, int> cmd_map_;
 };
 
 }  // namespace libsiglus
