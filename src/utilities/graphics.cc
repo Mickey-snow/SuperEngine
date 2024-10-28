@@ -31,7 +31,7 @@
 #include <vector>
 
 #include "base/rect.h"
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 #include "machine/rlmachine.h"
 #include "systems/base/system.h"
 #include "systems/base/system_error.h"

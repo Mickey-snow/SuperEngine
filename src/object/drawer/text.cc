@@ -34,7 +34,7 @@
 #include <ostream>
 #include <vector>
 
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 #include "systems/base/graphics_object.h"
 #include "systems/base/surface.h"
 #include "systems/base/system.h"

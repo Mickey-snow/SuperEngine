@@ -30,7 +30,7 @@
 #include <string>
 
 #include "systems/base/system.h"
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 
 #include "boost/filesystem/operations.hpp"
 

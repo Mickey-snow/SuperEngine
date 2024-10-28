@@ -30,7 +30,7 @@
 #include <utility>
 #include <vector>
 
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 #include "machine/long_operation.h"
 
 class GraphicsObject;

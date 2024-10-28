@@ -41,9 +41,9 @@
 #include <string>
 #include <vector>
 
+#include "base/gameexe.hpp"
 #include "libreallive/archive.h"
 #include "libreallive/expression.h"
-#include "libreallive/gameexe.h"
 #include "libreallive/intmemref.h"
 #include "libreallive/parser.h"
 #include "libreallive/scenario.h"
@@ -129,13 +129,10 @@ RLMachine::RLMachine(System& in_system, libreallive::Archive& in_archive)
   MarkSavepoint();
 
   // Load the "DLLs" required
-  GameexeFilteringIterator it = gameexe.FilterBegin("DLL.");
-  GameexeFilteringIterator end = gameexe.FilterEnd();
-  for (; it != end; ++it) {
-    const std::string& name = it->ToString("");
+  for (auto it : gameexe.Filter("DLL.")) {
+    const std::string& name = it.ToString("");
     try {
-      std::string index_str =
-          it->key().substr(it->key().find_first_of(".") + 1);
+      std::string index_str = it.key().substr(it.key().find_first_of(".") + 1);
       int index = std::stoi(index_str);
       LoadDLL(index, name);
     } catch (rlvm::Exception& e) {

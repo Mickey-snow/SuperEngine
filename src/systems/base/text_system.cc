@@ -36,10 +36,10 @@
 #include <string>
 #include <vector>
 
+#include "base/gameexe.hpp"
 #include "base/notification/details.h"
 #include "base/notification/service.h"
 #include "base/notification/source.h"
-#include "libreallive/gameexe.h"
 #include "machine/memory.h"
 #include "machine/rlmachine.h"
 #include "machine/serialization.h"
@@ -133,13 +133,12 @@ TextSystem::TextSystem(System& system, Gameexe& gexe)
 
   // Iterate over all the NAMAE keys, which is a feature that Clannad English
   // Edition uses to translate the Japanese names into English.
-  for (GameexeFilteringIterator it = gexe.FilterBegin("NAMAE");
-       it != gexe.FilterEnd(); ++it) {
+  for (auto it : gexe.Filter("NAMAE")) {
     try {
       // Data in the Gameexe.ini file is implicitly in Shift-JIS and needs to
       // be converted to UTF-8.
-      std::string key = cp932toUTF8(it->GetStringAt(0), 0);
-      std::string value = cp932toUTF8(it->GetStringAt(1), 0);
+      std::string key = cp932toUTF8(it.GetStringAt(0), 0);
+      std::string value = cp932toUTF8(it.GetStringAt(1), 0);
       namae_mapping_[key] = value;
     } catch (...) {
       // Gameexe.ini file is malformed.

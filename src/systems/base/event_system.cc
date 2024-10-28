@@ -27,7 +27,7 @@
 
 #include "systems/base/event_system.h"
 
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 #include "machine/long_operation.h"
 #include "machine/rlmachine.h"
 #include "systems/base/event_listener.h"

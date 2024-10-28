@@ -31,7 +31,7 @@
 #include <sstream>
 #include <string>
 
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 #include "utilities/byte_reader.h"
 #include "utilities/file.h"
 #include "utilities/mapped_file.h"

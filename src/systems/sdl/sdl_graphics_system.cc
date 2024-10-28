@@ -51,7 +51,7 @@
 #include "base/cgm_table.h"
 #include "base/notification/source.h"
 #include "base/tone_curve.h"
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 #include "machine/rlmachine.h"
 #include "systems/base/colour.h"
 #include "systems/base/event_system.h"

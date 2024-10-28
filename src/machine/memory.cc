@@ -31,7 +31,7 @@
 #include <map>
 #include <string>
 
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 #include "libreallive/intmemref.h"
 #include "machine/rlmachine.h"
 #include "utilities/exception.h"
@@ -247,24 +247,21 @@ int Memory::ConvertLetterIndexToInt(const std::string& value) {
 void Memory::InitializeDefaultValues(Gameexe& gameexe) {
   // Note: We ignore the \#NAME_MAXLEN variable because manual allocation is
   // error prone and for losers.
-  GameexeFilteringIterator end = gameexe.FilterEnd();
-  for (GameexeFilteringIterator it = gameexe.FilterBegin("NAME.");
-       it != end; ++it) {
+  for (auto it : gameexe.Filter("NAME.")) {
     try {
-      SetName(ConvertLetterIndexToInt(it->GetKeyParts().at(1)),
-              RemoveQuotes(it->ToString()));
+      SetName(ConvertLetterIndexToInt(it.GetKeyParts().at(1)),
+              RemoveQuotes(it.ToString()));
     } catch (...) {
-      std::cerr << "WARNING: Invalid format for key " << it->key() << std::endl;
+      std::cerr << "WARNING: Invalid format for key " << it.key() << std::endl;
     }
   }
 
-  for (GameexeFilteringIterator it = gameexe.FilterBegin("LOCALNAME.");
-       it != end; ++it) {
+  for (auto it : gameexe.Filter("LOCALNAME.")) {
     try {
-      SetLocalName(ConvertLetterIndexToInt(it->GetKeyParts().at(1)),
-                   RemoveQuotes(it->ToString()));
+      SetLocalName(ConvertLetterIndexToInt(it.GetKeyParts().at(1)),
+                   RemoveQuotes(it.ToString()));
     } catch (...) {
-      std::cerr << "WARNING: Invalid format for key " << it->key() << std::endl;
+      std::cerr << "WARNING: Invalid format for key " << it.key() << std::endl;
     }
   }
 }

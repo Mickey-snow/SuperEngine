@@ -31,7 +31,7 @@
 #include <vector>
 
 #include "libreallive/parser.h"
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 #include "machine/rlmachine.h"
 #include "systems/base/graphics_system.h"
 #include "systems/base/system.h"

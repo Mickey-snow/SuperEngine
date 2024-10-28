@@ -51,7 +51,7 @@
 
 #include "encodings/codepage.h"
 #include "encodings/western.h"
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 #include "libreallive/intmemref.h"
 #include "machine/memory.h"
 #include "machine/rlmachine.h"

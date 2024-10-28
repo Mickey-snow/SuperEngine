@@ -48,7 +48,7 @@
 #include "systems/sdl/sdl_event_system.h"
 #include "utilities/exception.h"
 #include "utilities/find_font_file.h"
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 
 using std::bind;
 using std::placeholders::_1;

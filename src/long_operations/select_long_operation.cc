@@ -32,7 +32,7 @@
 #include <vector>
 
 #include "libreallive/expression.h"
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 #include "libreallive/parser.h"
 #include "machine/long_operation.h"
 #include "machine/rlmachine.h"

@@ -4,7 +4,7 @@
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2007 Elliot Glaysher
+// Copyright (C) 2024 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,37 +19,25 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
-//
 // -----------------------------------------------------------------------
 
-#include "base/sound_settings.h"
+#include "encodings/utf16.hpp"
 
-#include "base/gameexe.hpp"
+#include <boost/locale.hpp>
 
-rlSoundSettings::rlSoundSettings()
-    : sound_quality(5),
-      bgm_enabled(true),
-      bgm_volume(255),
-      pcm_enabled(true),
-      pcm_volume(255),
-      se_enabled(true),
-      se_volume(255),
-      koe_mode(0),
-      koe_enabled(true),
-      koe_volume(255),
-      bgm_koe_fade(true),
-      bgm_koe_fade_vol(128) {}
+std::string utf16le::Decode(std::string_view sv) {
+  return Decode(sv_to_u16sv(sv));
+}
 
-rlSoundSettings::rlSoundSettings(Gameexe& gexe)
-    : sound_quality(gexe("SOUND_DEFAULT").ToInt(5)),
-      bgm_enabled(true),
-      bgm_volume(255),
-      pcm_enabled(true),
-      pcm_volume(255),
-      se_enabled(true),
-      se_volume(255),
-      koe_mode(0),
-      koe_enabled(true),
-      koe_volume(255),
-      bgm_koe_fade(true),
-      bgm_koe_fade_vol(128) {}
+std::string utf16le::Decode(std::vector<uint8_t> vec) {
+  return Decode(
+      std::string_view(reinterpret_cast<const char*>(vec.data()), vec.size()));
+}
+
+std::string utf16le::Decode(const std::u16string& str) {
+  return boost::locale::conv::utf_to_utf<char>(str);
+}
+
+std::string utf16le::Decode(std::u16string_view sv) {
+  return Decode(std::u16string(sv));
+}

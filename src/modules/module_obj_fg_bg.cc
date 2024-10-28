@@ -39,7 +39,7 @@
 #include <string>
 #include <vector>
 
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 #include "libreallive/parser.h"
 #include "machine/long_operation.h"
 #include "machine/properties.h"

@@ -25,16 +25,14 @@
 //
 // -----------------------------------------------------------------------
 
-#include "libreallive/gameexe.h"
+#include <gtest/gtest.h>
 
-#include "gtest/gtest.h"
+#include "base/gameexe.hpp"
 
 #include "test_utils.h"
 
 #include <string>
 #include <vector>
-
-using namespace std;
 
 TEST(GameexeUnit, ReadAllKeys) {
   Gameexe ini(LocateTestCase("Gameexe_data/Gameexe.ini"));
@@ -60,7 +58,7 @@ TEST(GameexeUnit, IntVectorParsing) {
   Gameexe ini(LocateTestCase("Gameexe_data/Gameexe.ini"));
   ASSERT_TRUE(ini("WINDOW_ATTR").Exists()) << "#WINDOW_ATTR should exist!";
 
-  vector<int> ints = ini("WINDOW_ATTR").ToIntVector();
+  std::vector<int> ints = ini("WINDOW_ATTR").ToIntVector();
   for (int i = 0; i < 5; ++i) {
     EXPECT_EQ(i + 1, ints.at(i));
   }
@@ -104,42 +102,50 @@ TEST(GameexeUnit, ChainingWorks) {
   EXPECT_EQ(10, imagine("FOUR"));
 }
 
-TEST(GameexeUnit, FilteringIterator){
+TEST(GameexeUnit, FilterRange) {
   Gameexe ini(LocateTestCase("Gameexe_data/Gameexe.ini"));
-  auto begin = ini.FilterBegin("IMAGINE."), end = ini.FilterEnd();
-  std::vector<int> expected = {1,3,2};
-  for(int i=0;i<3;++i,++begin){
-    EXPECT_NE(begin, end);
-    EXPECT_EQ(expected[i], *begin);
-    EXPECT_EQ("IMAGINE", begin->GetKeyParts().at(0));
-  }
-  EXPECT_EQ(begin, end);
 
-  begin = ini.FilterBegin("WINDOW");
-  std::set<std::string> window_entries, window_keys;
-  for(int i=0;i<13;++i,++begin){
-    EXPECT_NE(begin, end);
-    EXPECT_NO_THROW({
-        window_entries.insert(begin->key());
-        window_keys.insert(begin->ToString());
-      });
+  {
+    std::vector<int> expected{1, 3, 2};
+    std::vector<int> actual;
+    for (auto it : ini.Filter("IMAGINE."))
+      actual.push_back(it);
+    EXPECT_EQ(expected, actual);
   }
-  EXPECT_EQ(begin ,end);
-  EXPECT_EQ(13, window_entries.size());
+
+  {
+    std::multiset<std::string> expected{"-1", "0", "0",  "0",  "0",  "0",
+                                        "1",  "2", "22", "25", "42", "90"};
+    std::multiset<std::string> actual;
+    for (const auto it : ini.Filter("WINDOW."))
+      actual.insert(it);
+    EXPECT_EQ(expected, actual);
+  }
 }
 
-TEST(GameexeUnit, FilterEmpty){
+TEST(GameexeUnit, MultipleIterate) {
   Gameexe ini(LocateTestCase("Gameexe_data/Gameexe.ini"));
-  auto begin = ini.FilterBegin("OBJECT."), end = ini.FilterEnd();
-  EXPECT_EQ(begin, end);
-  for(;begin!=end;++begin)
+
+  const std::vector<int> expected{1, 3, 2};
+  auto filter_range = ini.Filter("IMAGINE");
+  for (int i = 0; i < 10; ++i) {
+    std::vector<int> actual;
+    for (auto it : filter_range)
+      actual.push_back(it);
+    EXPECT_EQ(expected, actual);
+  }
+}
+
+TEST(GameexeUnit, FilterEmpty) {
+  Gameexe ini(LocateTestCase("Gameexe_data/Gameexe.ini"));
+  for (const auto it : ini.Filter("nonexist.OBJECT"))
     FAIL() << "Filter should be empty";
 }
 
 TEST(GameexeUnit, KeyParts) {
   Gameexe ini(LocateTestCase("Gameexe_data/Gameexe.ini"));
   auto gio = ini("WINDOW.000.ATTR_MOD");
-  vector<string> pieces = gio.GetKeyParts();
+  std::vector<string> pieces = gio.GetKeyParts();
   EXPECT_EQ(3, pieces.size());
   EXPECT_EQ("WINDOW", pieces[0]);
   EXPECT_EQ("000", pieces[1]);

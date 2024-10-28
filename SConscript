@@ -60,6 +60,7 @@ librlvm_files = [
   "src/base/rect.cc",
   "src/base/sound_settings.cc",
   "src/base/audio_table.cc",
+  "src/base/gameexe.cpp",
 
   "src/effects/effect.cc",
   "src/effects/sel_record.cc",
@@ -75,12 +76,12 @@ librlvm_files = [
   "src/encodings/cp949.cc",
   "src/encodings/han2zen.cc",
   "src/encodings/western.cc",
+  "src/encodings/utf16.cpp",
 
   "src/libreallive/archive.cc",
   "src/libreallive/parser.cc",
   "src/libreallive/xorkey.cc",
   "src/libreallive/expression.cc",
-  "src/libreallive/gameexe.cc",
   "src/libreallive/intmemref.cc",
   "src/libreallive/scenario.cc",
   "src/libreallive/elements/bytecode.cc",

@@ -35,8 +35,8 @@
 #include <utility>
 #include <vector>
 
+#include "base/gameexe.hpp"
 #include "libreallive/alldefs.h"
-#include "libreallive/gameexe.h"
 #include "machine/rlmachine.h"
 #include "systems/base/graphics_system.h"
 #include "systems/base/selection_element.h"
@@ -164,16 +164,14 @@ TextWindow::TextWindow(System& system, int window_num)
   }
 
   // Load #FACE information.
-  GameexeFilteringIterator it = gexe.FilterBegin(window.key() + ".FACE");
-  GameexeFilteringIterator end = gexe.FilterEnd();
-  for (; it != end; ++it) {
+  for (auto it : gexe.Filter(window.key() + ".FACE")) {
     // Retrieve the face slot number
-    std::vector<std::string> GetKeyParts = it->GetKeyParts();
+    std::vector<std::string> GetKeyParts = it.GetKeyParts();
 
     try {
       int slot = std::stoi(GetKeyParts.at(3));
       if (slot < kNumFaceSlots) {
-        face_slot_[slot].reset(new FaceSlot(it->ToIntVector()));
+        face_slot_[slot].reset(new FaceSlot(it.ToIntVector()));
       }
     } catch (...) {
       // Parsing failure. Ignore this key.

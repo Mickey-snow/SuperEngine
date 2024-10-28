@@ -4,7 +4,7 @@
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2007 Elliot Glaysher
+// Copyright (C) 2024 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,37 +19,30 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
-//
 // -----------------------------------------------------------------------
 
-#include "base/sound_settings.h"
+#ifndef SRC_ENCODINGS_UTF16_HPP
+#define SRC_ENCODINGS_UTF16_HPP
 
-#include "base/gameexe.hpp"
+#include <cstdint>
+#include <string>
+#include <string_view>
+#include <vector>
 
-rlSoundSettings::rlSoundSettings()
-    : sound_quality(5),
-      bgm_enabled(true),
-      bgm_volume(255),
-      pcm_enabled(true),
-      pcm_volume(255),
-      se_enabled(true),
-      se_volume(255),
-      koe_mode(0),
-      koe_enabled(true),
-      koe_volume(255),
-      bgm_koe_fade(true),
-      bgm_koe_fade_vol(128) {}
+inline std::u16string_view sv_to_u16sv(std::string_view sv) {
+  return std::u16string_view(reinterpret_cast<const char16_t*>(sv.data()),
+                             sv.size() / sizeof(char16_t));
+}
 
-rlSoundSettings::rlSoundSettings(Gameexe& gexe)
-    : sound_quality(gexe("SOUND_DEFAULT").ToInt(5)),
-      bgm_enabled(true),
-      bgm_volume(255),
-      pcm_enabled(true),
-      pcm_volume(255),
-      se_enabled(true),
-      se_volume(255),
-      koe_mode(0),
-      koe_enabled(true),
-      koe_volume(255),
-      bgm_koe_fade(true),
-      bgm_koe_fade_vol(128) {}
+class utf16le {
+ public:
+  // decode from raw bytes
+  static std::string Decode(std::string_view);
+  static std::string Decode(std::vector<uint8_t>);
+
+  // decode from u16string
+  static std::string Decode(const std::u16string&);
+  static std::string Decode(std::u16string_view);
+};
+
+#endif

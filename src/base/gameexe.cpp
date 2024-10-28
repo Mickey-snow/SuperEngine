@@ -9,6 +9,7 @@
 //
 // Copyright (c) 2006, 2007 Peter Jolly
 // Copyright (c) 2007 Elliot Glaysher
+// Copyright (c) 2024 Serina Sakurai
 //
 // Permission is hereby granted, free of charge, to any person
 // obtaining a copy of this software and associated documentation
@@ -32,17 +33,15 @@
 //
 // -----------------------------------------------------------------------
 
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 
 #include <boost/algorithm/string.hpp>
-#include <filesystem>
 #include <boost/tokenizer.hpp>
-
+#include <filesystem>
 #include <fstream>
-#include <iomanip>
 #include <iostream>
-
-#include "libreallive/alldefs.h"
+#include <sstream>
+#include <stdexcept>
 
 namespace fs = std::filesystem;
 
@@ -171,7 +170,7 @@ Gameexe::Gameexe(const fs::path& gameexefile) : data_() {
     std::ostringstream oss;
     oss << "Could not find Gameexe.ini file! (Looking in " << gameexefile
         << ")";
-    throw libreallive::Error(oss.str());
+    throw std::runtime_error(oss.str());
   }
 
   std::string line;
@@ -244,22 +243,8 @@ void Gameexe::SetIntAt(const std::string& key, const int value) {
 
 // -----------------------------------------------------------------------
 
-GameexeFilteringIterator Gameexe::FilterBegin(std::string filter) {
-  GameexeData_t::const_iterator begin = data_.lower_bound(filter), end;
-  if (!filter.empty()) {
-    filter.back()++;
-    end = data_.lower_bound(filter);
-  } else {
-    end = data_.end();
-  }
-
-  return GameexeFilteringIterator(begin, end, &data_);
-}
-
-// -----------------------------------------------------------------------
-
-GameexeFilteringIterator Gameexe::FilterEnd() {
-  return GameexeFilteringIterator(data_.end(), data_.end(), &data_);
+Gameexe::range Gameexe::Filter(const std::string& filter) {
+  return range(&data_, filter);
 }
 
 // -----------------------------------------------------------------------
@@ -388,7 +373,7 @@ GameexeInterpretObject& GameexeInterpretObject::operator=(const int value) {
 void GameexeInterpretObject::ThrowUnknownKey(const std::string& key) {
   std::ostringstream ss;
   ss << "Unknown Gameexe key '" << key << "'";
-  throw libreallive::Error(ss.str());
+  throw std::runtime_error(ss.str());
 }
 
 std::vector<int> GameexeInterpretObject::GetIntArray() const {

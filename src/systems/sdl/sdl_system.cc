@@ -32,7 +32,7 @@
 #include <sstream>
 
 #include "libreallive/alldefs.h"
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 #include "machine/rlmachine.h"
 #include "systems/base/graphics_object.h"
 #include "object/objdrawer.h"

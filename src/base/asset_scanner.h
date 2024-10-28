@@ -25,7 +25,7 @@
 #ifndef SRC_BASE_ASSET_SCANNER_H_
 #define SRC_BASE_ASSET_SCANNER_H_
 
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 
 #include <filesystem>
 #include <map>

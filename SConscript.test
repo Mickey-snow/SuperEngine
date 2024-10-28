@@ -65,6 +65,8 @@ unittest_files = [
   "test/parameter_manager_unittest.cc",
   "test/audio_table_unittest.cc",
   "test/stopwatch_unittest.cc",
+  "test/codepage_unittest.cpp",
+  "test/encodings_unittest.cpp",
 ]
 
 test_env.RlvmProgram('rlvm_unittests',

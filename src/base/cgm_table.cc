@@ -28,7 +28,7 @@
 #include "base/cgm_table.h"
 
 #include "base/compression.h"
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 #include "utilities/byte_reader.h"
 #include "utilities/file.h"
 #include "utilities/mapped_file.h"

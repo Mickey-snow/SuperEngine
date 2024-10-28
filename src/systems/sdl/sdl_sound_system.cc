@@ -121,9 +121,8 @@ SDLSoundSystem::SDLSoundSystem(System& system,
   std::fill_n(channel_volume_, NUM_TOTAL_CHANNELS, 255);
 
   // Read the \#KOEONOFF entries
-  for (auto koeonoff = gexe.FilterBegin("KOEONOFF."), end = gexe.FilterEnd();
-       koeonoff != end; ++koeonoff) {
-    std::vector<std::string> keyparts = koeonoff->GetKeyParts();
+  for (auto koeonoff : gexe.Filter("KOEONOFF.")) {
+    std::vector<std::string> keyparts = koeonoff.GetKeyParts();
     int usekoe_id = std::stoi(keyparts.at(1));
 
     // Find the corresponding koeplay ids.

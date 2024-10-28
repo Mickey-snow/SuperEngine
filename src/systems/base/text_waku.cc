@@ -29,7 +29,7 @@
 #include "systems/base/system.h"
 #include "systems/base/text_waku_normal.h"
 #include "systems/base/text_waku_type4.h"
-#include "libreallive/gameexe.h"
+#include "base/gameexe.hpp"
 
 // static
 TextWaku* TextWaku::Create(System& system,
