@@ -93,6 +93,7 @@ librlvm_files = [
 
   "src/libsiglus/xorkey.cpp",
   "src/libsiglus/gexedat.cpp",
+  "src/libsiglus/lexer.cpp",
 
   "src/long_operations/button_object_select_long_operation.cc",
   "src/long_operations/load_game_long_operation.cc",
