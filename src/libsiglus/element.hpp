@@ -133,6 +133,33 @@ class Operate2 : public IElement {
   OperatorCode op_;
 };
 
+class Goto : public IElement {
+ public:
+  enum class Condition { True, False, Uncondition };
+
+  Goto(Condition cond, int label) : cond_(cond), label_(label) {}
+
+  std::string ToDebugString() const override {
+    std::string str = '(' + std::to_string(label_) + ')';
+    switch (cond_) {
+      case Condition::True:
+        return "goto_true" + str;
+      case Condition::False:
+        return "goto_false" + str;
+      case Condition::Uncondition:
+        return "goto" + str;
+      default:
+        return "goto?" + str;
+    }
+  }
+
+  size_t ByteLength() const override { return 10; }
+
+ private:
+  Condition cond_;
+  int label_;
+};
+
 }  // namespace libsiglus
 
 #endif

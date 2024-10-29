@@ -44,6 +44,10 @@ enum class CommandCode : uint8_t {
 
   Marker = 0x08,
 
+  Goto = 0x10,
+  Goto_true = 0x11,
+  Goto_false = 0x12,
+
   Op2 = 0x22,
 
   Cmd = 0x30,
@@ -87,6 +91,16 @@ Element Lexer::Parse(std::string_view data) const {
       auto v4 = reader.PopAs<int32_t>(4);
       return std::make_shared<Command>(v1, v2, v3, v4);
     }
+
+    case CommandCode::Goto:
+      return std::make_shared<Goto>(Goto::Condition::Uncondition,
+                                    reader.PopAs<int32_t>(4));
+    case CommandCode::Goto_true:
+      return std::make_shared<Goto>(Goto::Condition::True,
+                                    reader.PopAs<int32_t>(4));
+    case CommandCode::Goto_false:
+      return std::make_shared<Goto>(Goto::Condition::False,
+                                    reader.PopAs<int32_t>(4));
 
     default: {
       std::stringstream ss;
