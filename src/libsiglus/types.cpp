@@ -31,8 +31,12 @@ std::string ToString(Type type) {
       return "int";
     case Type::String:
       return "str";
+    case Type::Label:
+      return "lebel";
+    case Type::List:
+      return "list";
     default:
-      return "unknown";
+      return "typeid:" + std::to_string(static_cast<uint32_t>(type));
   }
 }
 
@@ -40,8 +44,46 @@ std::string ToString(OperatorCode op) {
   switch (op) {
     case OperatorCode::None:
       return "<none>";
+    case OperatorCode::Plus:
+      return "+";
+    case OperatorCode::Minus:
+      return "-";
+    case OperatorCode::Mult:
+      return "*";
+    case OperatorCode::Div:
+      return "/";
+    case OperatorCode::Mod:
+      return "%";
     case OperatorCode::Equal:
       return "==";
+    case OperatorCode::Ne:
+      return "!=";
+    case OperatorCode::Gt:
+      return ">";
+    case OperatorCode::Ge:
+      return ">=";
+    case OperatorCode::Lt:
+      return "<";
+    case OperatorCode::Le:
+      return "<=";
+    case OperatorCode::LogicalAnd:
+      return "&&";
+    case OperatorCode::LogicalOr:
+      return "||";
+    case OperatorCode::Inv:
+      return "~";
+    case OperatorCode::And:
+      return "&";
+    case OperatorCode::Or:
+      return "|";
+    case OperatorCode::Xor:
+      return "^";
+    case OperatorCode::Sl:
+      return "<<";
+    case OperatorCode::Sr:
+      return ">>";
+    case OperatorCode::Sru:
+      return "u>>";
     default:
       return "<?>";
   }

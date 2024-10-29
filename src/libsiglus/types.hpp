@@ -29,13 +29,42 @@
 
 namespace libsiglus {
 
-enum class Type : int32_t { Unknown = 0x00, Int = 0x0a, String = 0x14 };
+enum class Type : uint32_t {
+  Unknown = 0x00,
+  Int = 0x0a,
+  String = 0x14,
+  Label = 0x1e,
+  List = 0xFFFFFFFF
+};
 
 std::string ToString(Type type);
 
 enum class OperatorCode : uint8_t {
   None = 0x00,
+
+  Plus = 0x01,
+  Minus = 0x02,
+  Mult = 0x03,
+  Div = 0x04,
+  Mod = 0x05,
+
   Equal = 0x10,
+  Ne = 0x11,
+  Gt = 0x12,
+  Ge = 0x13,
+  Lt = 0x14,
+  Le = 0x15,
+
+  LogicalAnd = 0x20,
+  LogicalOr = 0x21,
+
+  Inv = 0x30,
+  And = 0x31,
+  Or = 0x32,
+  Xor = 0x33,
+  Sl = 0x34,
+  Sr = 0x35,
+  Sru = 0x36
 };
 
 std::string ToString(OperatorCode op);
