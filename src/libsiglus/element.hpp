@@ -28,6 +28,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace libsiglus {
 
@@ -94,18 +95,45 @@ class Marker : public IElement {
 
 class Command : public IElement {
  public:
-  Command(int v1, int v2, int v3, int v4)
-      : v1_(v1), v2_(v2), v3_(v3), v4_(v4) {}
+  Command(int arglist,
+          std::vector<Type> stackarg,
+          std::vector<int> extraarg,
+          Type returntype)
+      : alist_(arglist),
+        stack_arg_(std::move(stackarg)),
+        extra_arg_(std::move(extraarg)),
+        rettype_(returntype) {}
 
   std::string ToDebugString() const override {
-    return "cmd(" + std::to_string(v1_) + ',' + std::to_string(v2_) + ',' +
-           std::to_string(v3_) + ',' + std::to_string(v4_) + ')';
+    std::string result = "cmd[" + std::to_string(alist_) + "](";
+    bool first = true;
+    for (const auto it : stack_arg_) {
+      if (!first)
+        result += ',';
+      else
+        first = false;
+      result += ToString(it);
+    }
+    for (const auto it : extra_arg_) {
+      if (!first)
+        result += ',';
+      else
+        first = false;
+      result += std::to_string(it);
+    }
+
+    result += ") -> " + ToString(rettype_);
+
+    return result;
   }
 
   size_t ByteLength() const override { return 17; }
 
  private:
-  int v1_, v2_, v3_, v4_;
+  int alist_;
+  std::vector<Type> stack_arg_;
+  std::vector<int> extra_arg_;
+  Type rettype_;
 };
 
 class Property : public IElement {
@@ -135,7 +163,7 @@ class Operate2 : public IElement {
 
 class Goto : public IElement {
  public:
-  enum class Condition { True, False, Uncondition };
+  enum class Condition { True, False, Unconditional };
 
   Goto(Condition cond, int label) : cond_(cond), label_(label) {}
 
@@ -146,7 +174,7 @@ class Goto : public IElement {
         return "goto_true" + str;
       case Condition::False:
         return "goto_false" + str;
-      case Condition::Uncondition:
+      case Condition::Unconditional:
         return "goto" + str;
       default:
         return "goto?" + str;
@@ -166,7 +194,7 @@ class Assign : public IElement {
       : ltype_(ltype), rtype_(rtype), v1_(v1) {}
 
   std::string ToDebugString() const override {
-    return "let(" + std::to_string(v1_) + ") " + ToString(ltype_) +
+    return "let[" + std::to_string(v1_) + "] " + ToString(ltype_) +
            " := " + ToString(rtype_);
   }
 

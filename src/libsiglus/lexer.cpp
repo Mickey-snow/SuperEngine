@@ -86,15 +86,22 @@ Element Lexer::Parse(std::string_view data) const {
     }
 
     case CommandCode::Cmd: {
-      auto v1 = reader.PopAs<int32_t>(4);
-      auto v2 = reader.PopAs<int32_t>(4);
-      auto v3 = reader.PopAs<int32_t>(4);
-      auto v4 = reader.PopAs<int32_t>(4);
-      return std::make_shared<Command>(v1, v2, v3, v4);
+      std::vector<Type> stackarg;
+      std::vector<int> extraarg;
+      int arglist_id = reader.PopAs<int32_t>(4);
+      int stack_arg_cnt = reader.PopAs<int32_t>(4);
+      while (stack_arg_cnt-- > 0)
+        stackarg.push_back(static_cast<Type>(reader.PopAs<uint32_t>(4)));
+      int extra_arg_cnt = reader.PopAs<int32_t>(4);
+      while (extra_arg_cnt-- > 0)
+        extraarg.push_back(reader.PopAs<int32_t>(4));
+      Type return_type = static_cast<Type>(reader.PopAs<uint32_t>(4));
+      return std::make_shared<Command>(arglist_id, std::move(stackarg),
+                                       std::move(extraarg), return_type);
     }
 
     case CommandCode::Goto:
-      return std::make_shared<Goto>(Goto::Condition::Uncondition,
+      return std::make_shared<Goto>(Goto::Condition::Unconditional,
                                     reader.PopAs<int32_t>(4));
     case CommandCode::Goto_true:
       return std::make_shared<Goto>(Goto::Condition::True,

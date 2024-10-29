@@ -92,15 +92,20 @@ TEST_F(LexerTest, ElmMarker) {
 TEST_F(LexerTest, Command) {
   std::vector<uint8_t> raw{
       0x30,                    // cmd
-      0x01, 0x00, 0x00, 0x00,  // 1
-      0x02, 0x00, 0x00, 0x00,  // 2
-      0x03, 0x00, 0x00, 0x00,  // 3
-      0x04, 0x00, 0x00, 0x00,  // 4
+      0x01, 0x00, 0x00, 0x00,  // arg_list_id
+      0x03, 0x00, 0x00, 0x00,  // stack_arg_cnt
+      0x0a, 0x00, 0x00, 0x00,  // arg_type1
+      0x0a, 0x00, 0x00, 0x00,  // arg_type2
+      0x14, 0x00, 0x00, 0x00,  // arg_type3
+      0x02, 0x00, 0x00, 0x00,  // extra_arg_cnt
+      0x03, 0x00, 0x00, 0x00,  // arg1
+      0x04, 0x00, 0x00, 0x00,  // arg2
+      0x0a, 0x00, 0x00, 0x00,  // return_type -> int
       0x05, 0x06, 0x07, 0x08,  // garbage
-  };
+  };  // note: pop stack from right to left
 
   auto result = lex.Parse(vec_to_sv(raw));
-  EXPECT_EQ(result->ToDebugString(), "cmd(1,2,3,4)");
+  EXPECT_EQ(result->ToDebugString(), "cmd[1](int,int,str,3,4) -> int");
 }
 
 TEST_F(LexerTest, PropertyExpand) {
@@ -168,5 +173,5 @@ TEST_F(LexerTest, Assign) {
   };
 
   auto result = lex.Parse(vec_to_sv(raw));
-  EXPECT_EQ(result->ToDebugString(), "let(1) unknown := int");
+  EXPECT_EQ(result->ToDebugString(), "let[1] unknown := int");
 }
