@@ -43,7 +43,6 @@ enum class CommandCode : uint8_t {
   Copy = 0x04,
   Property = 0x05,
   CopyElm = 0x06,
-
   Marker = 0x08,
 
   Goto = 0x10,
@@ -51,6 +50,7 @@ enum class CommandCode : uint8_t {
   Goto_false = 0x12,
   Gosub_int = 0x13,
   Gosub_str = 0x14,
+  Return = 0x15,
   End = 0x16,
 
   Assign = 0x20,
@@ -163,6 +163,9 @@ Element Lexer::Parse(std::string_view data) const {
 
     case CommandCode::Text:
       return std::make_shared<Textout>(reader.PopAs<int32_t>(4));
+
+    case CommandCode::Return:
+      return std::make_shared<Return>(ParseArglist(reader));
 
     default: {
       std::stringstream ss;

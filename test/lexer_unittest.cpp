@@ -86,7 +86,7 @@ TEST_F(LexerTest, ElmMarker) {
   std::vector<uint8_t> raw{0x08};
 
   auto result = lex.Parse(vec_to_sv(raw));
-  EXPECT_EQ(result->ToDebugString(), "push(<elm>)");
+  EXPECT_EQ(result->ToDebugString(), "<elm>");
 }
 
 TEST_F(LexerTest, Command) {
@@ -249,4 +249,28 @@ TEST_F(LexerTest, Text) {
   auto result = lex.Parse(vec_to_sv(raw));
   EXPECT_EQ(result->ToDebugString(), "text@5(<str>)");
   EXPECT_EQ(result->ByteLength(), 5);
+}
+
+TEST_F(LexerTest, Return) {
+  {
+    std::vector<uint8_t> raw{
+        0x15,                   // ret
+        0x00, 0x00, 0x00, 0x00  // no arg
+    };
+    auto result = lex.Parse(vec_to_sv(raw));
+    EXPECT_EQ(result->ToDebugString(), "ret()");
+    EXPECT_EQ(result->ByteLength(), 5);
+  }
+
+  {
+    std::vector<uint8_t> raw{
+        0x15,                    // ret
+        0x02, 0x00, 0x00, 0x00,  // 2 args
+        0x14, 0x00, 0x00, 0x00,  // str
+        0x0a, 0x00, 0x00, 0x00   // int
+    };
+    auto result = lex.Parse(vec_to_sv(raw));
+    EXPECT_EQ(result->ToDebugString(), "ret(int,str)");
+    EXPECT_EQ(result->ByteLength(), 13);
+  }
 }

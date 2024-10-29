@@ -88,7 +88,7 @@ class Marker : public IElement {
  public:
   Marker() = default;
 
-  std::string ToDebugString() const override { return "push(<elm>)"; }
+  std::string ToDebugString() const override { return "<elm>"; }
 
   size_t ByteLength() const override { return 1; }
 };
@@ -303,6 +303,31 @@ class Textout : public IElement {
 
  private:
   int kidoku_;
+};
+
+class Return : public IElement {
+ public:
+  Return(std::vector<Type> rettypes) : ret_types_(std::move(rettypes)) {}
+
+  std::string ToDebugString() const override {
+    std::string result = "ret(";
+    bool first = true;
+    for (const auto it : ret_types_) {
+      if (!first)
+        result += ',';
+      else
+        first = false;
+      result += ToString(it);
+    }
+
+    result += ')';
+    return result;
+  }
+
+  size_t ByteLength() const override { return 5 + 4 * ret_types_.size(); }
+
+ private:
+  std::vector<Type> ret_types_;
 };
 
 }  // namespace libsiglus
