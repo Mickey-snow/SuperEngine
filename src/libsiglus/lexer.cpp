@@ -40,8 +40,11 @@ enum class CommandCode : uint8_t {
   Newline = 0x01,
   Push = 0x02,
   Pop = 0x03,
+  Property = 0x05,
 
   Marker = 0x08,
+
+  Op2 = 0x22,
 
   Cmd = 0x30,
 };
@@ -64,8 +67,18 @@ Element Lexer::Parse(std::string_view data) const {
       return std::make_shared<Pop>(type);
     }
 
+    case CommandCode::Property:
+      return std::make_shared<Property>();
+
     case CommandCode::Marker:
       return std::make_shared<Marker>();
+
+    case CommandCode::Op2: {
+      auto ltype = static_cast<Type>(reader.PopAs<int32_t>(4));
+      auto rtype = static_cast<Type>(reader.PopAs<int32_t>(4));
+      auto op = static_cast<OperatorCode>(reader.PopAs<uint8_t>(1));
+      return std::make_shared<Operate2>(ltype, rtype, op);
+    }
 
     case CommandCode::Cmd: {
       auto v1 = reader.PopAs<int32_t>(4);

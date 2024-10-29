@@ -24,6 +24,7 @@
 #include "libsiglus/types.hpp"
 
 namespace libsiglus {
+
 std::string ToString(Type type) {
   switch (type) {
     case Type::Int:
@@ -34,4 +35,16 @@ std::string ToString(Type type) {
       return "unknown";
   }
 }
+
+std::string ToString(OperatorCode op) {
+  switch (op) {
+    case OperatorCode::None:
+      return "<none>";
+    case OperatorCode::Equal:
+      return "=";
+    default:
+      return "<?>";
+  }
+}
+
 }  // namespace libsiglus

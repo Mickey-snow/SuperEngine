@@ -33,5 +33,12 @@ enum class Type : int32_t { Unknown = 0x00, Int = 0x0a, String = 0x14 };
 
 std::string ToString(Type type);
 
+enum class OperatorCode : uint8_t {
+  None = 0x00,
+  Equal = 0x10,
+};
+
+std::string ToString(OperatorCode op);
+
 }  // namespace libsiglus
 #endif

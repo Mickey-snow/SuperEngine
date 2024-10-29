@@ -108,6 +108,31 @@ class Command : public IElement {
   int v1_, v2_, v3_, v4_;
 };
 
+class Property : public IElement {
+ public:
+  Property() = default;
+
+  std::string ToDebugString() const override { return "<prop>"; }
+
+  size_t ByteLength() const override { return 1; }
+};
+
+class Operate2 : public IElement {
+ public:
+  Operate2(Type lt, Type rt, OperatorCode op)
+      : ltype_(lt), rtype_(rt), op_(op) {}
+
+  std::string ToDebugString() const override {
+    return ToString(ltype_) + ' ' + ToString(op_) + ' ' + ToString(rtype_);
+  }
+
+  size_t ByteLength() const override { return 10; }
+
+ private:
+  Type ltype_, rtype_;
+  OperatorCode op_;
+};
+
 }  // namespace libsiglus
 
 #endif

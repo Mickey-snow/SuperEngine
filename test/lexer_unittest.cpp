@@ -102,3 +102,27 @@ TEST_F(LexerTest, Command) {
   auto result = lex.Parse(vec_to_sv(raw));
   EXPECT_EQ(result->ToDebugString(), "cmd(1,2,3,4)");
 }
+
+TEST_F(LexerTest, PropertyExpand) {
+  std::vector<uint8_t> raw{
+      0x05,       // prop
+      0x02, 0x0a  // garbage
+  };
+
+  auto result = lex.Parse(vec_to_sv(raw));
+  EXPECT_EQ(result->ToDebugString(), "<prop>");
+}
+
+TEST_F(LexerTest, Operator2) {
+  {
+    std::vector<uint8_t> raw{
+        0x22,                    // op2
+        0x0a, 0x00, 0x00, 0x00,  // int
+        0x0a, 0x00, 0x00, 0x00,  // int
+	0x10			 // equal
+    };
+
+    auto result = lex.Parse(vec_to_sv(raw));
+    EXPECT_EQ(result->ToDebugString(), "int = int");
+  }
+}
