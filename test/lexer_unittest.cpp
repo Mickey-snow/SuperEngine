@@ -106,6 +106,7 @@ TEST_F(LexerTest, Command) {
 
   auto result = lex.Parse(vec_to_sv(raw));
   EXPECT_EQ(result->ToDebugString(), "cmd[1](str,int,int,4,3) -> int");
+  EXPECT_EQ(result->ByteLength(), 37);
 }
 
 TEST_F(LexerTest, PropertyExpand) {
@@ -205,4 +206,47 @@ TEST_F(LexerTest, PushElm) {
 
   auto result = lex.Parse(vec_to_sv(raw));
   EXPECT_EQ(result->ToDebugString(), "push(<elm>)");
+}
+
+TEST_F(LexerTest, GosubInt) {
+  {
+    std::vector<uint8_t> raw{
+        0x13,                    // gosub_int
+        0x0b, 0x00, 0x00, 0x00,  // label 11
+        0x00, 0x00, 0x00, 0x00   // no argument
+    };
+    auto result = lex.Parse(vec_to_sv(raw));
+    EXPECT_EQ(result->ToDebugString(), "gosub@11() -> int");
+    EXPECT_EQ(result->ByteLength(), 9);
+  }
+}
+
+TEST_F(LexerTest, GosubStr) {
+  {
+    std::vector<uint8_t> raw{
+        0x14,                    // gosub_str
+        0x0d, 0x00, 0x00, 0x00,  // label 13
+        0x00, 0x00, 0x00, 0x00   // no argument
+    };
+    auto result = lex.Parse(vec_to_sv(raw));
+    EXPECT_EQ(result->ToDebugString(), "gosub@13() -> str");
+    EXPECT_EQ(result->ByteLength(), 9);
+  }
+}
+
+TEST_F(LexerTest, Namae) {
+  std::vector<uint8_t> raw{0x32};
+  auto result = lex.Parse(vec_to_sv(raw));
+  EXPECT_EQ(result->ToDebugString(), "namae(<str>)");
+  EXPECT_EQ(result->ByteLength(), 1);
+}
+
+TEST_F(LexerTest, Text) {
+  std::vector<uint8_t> raw{
+      0x31,                   // textout
+      0x05, 0x00, 0x00, 0x00  // kidoku 5
+  };
+  auto result = lex.Parse(vec_to_sv(raw));
+  EXPECT_EQ(result->ToDebugString(), "text@5(<str>)");
+  EXPECT_EQ(result->ByteLength(), 5);
 }

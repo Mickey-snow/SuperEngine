@@ -49,13 +49,26 @@ enum class CommandCode : uint8_t {
   Goto = 0x10,
   Goto_true = 0x11,
   Goto_false = 0x12,
+  Gosub_int = 0x13,
+  Gosub_str = 0x14,
+  End = 0x16,
 
   Assign = 0x20,
   Op1 = 0x21,
   Op2 = 0x22,
 
   Cmd = 0x30,
+  Text = 0x31,
+  Namae = 0x32,
 };
+
+std::vector<Type> ParseArglist(ByteReader& reader) {
+  int cnt = reader.PopAs<int32_t>(4);
+  std::vector<Type> arglist(cnt);
+  while (--cnt >= 0)
+    arglist[cnt] = static_cast<Type>(reader.PopAs<uint32_t>(4));
+  return arglist;
+}
 
 Element Lexer::Parse(std::string_view data) const {
   ByteReader reader(data);
@@ -102,10 +115,7 @@ Element Lexer::Parse(std::string_view data) const {
 
     case CommandCode::Cmd: {
       int arglist_id = reader.PopAs<int32_t>(4);
-      int stack_arg_cnt = reader.PopAs<int32_t>(4);
-      std::vector<Type> stackarg(stack_arg_cnt);
-      while (--stack_arg_cnt >= 0)
-        stackarg[stack_arg_cnt] = static_cast<Type>(reader.PopAs<uint32_t>(4));
+      std::vector<Type> stackarg = ParseArglist(reader);
 
       int extra_arg_cnt = reader.PopAs<int32_t>(4);
       std::vector<int> extraarg(extra_arg_cnt);
@@ -127,12 +137,32 @@ Element Lexer::Parse(std::string_view data) const {
       return std::make_shared<Goto>(Goto::Condition::False,
                                     reader.PopAs<int32_t>(4));
 
+    case CommandCode::Gosub_int: {
+      int label = reader.PopAs<int32_t>(4);
+      auto arglist = ParseArglist(reader);
+      return std::make_shared<Gosub>(Type::Int, label, std::move(arglist));
+    }
+    case CommandCode::Gosub_str: {
+      int label = reader.PopAs<int32_t>(4);
+      auto arglist = ParseArglist(reader);
+      return std::make_shared<Gosub>(Type::String, label, std::move(arglist));
+    }
+
     case CommandCode::Assign: {
       auto ltype = static_cast<Type>(reader.PopAs<int32_t>(4));
       auto rtype = static_cast<Type>(reader.PopAs<int32_t>(4));
       auto v1 = reader.PopAs<int32_t>(4);
       return std::make_shared<Assign>(ltype, rtype, v1);
     }
+
+    case CommandCode::Namae:
+      return std::make_shared<Namae>();
+
+    case CommandCode::End:
+      return std::make_shared<EndOfScene>();
+
+    case CommandCode::Text:
+      return std::make_shared<Textout>(reader.PopAs<int32_t>(4));
 
     default: {
       std::stringstream ss;

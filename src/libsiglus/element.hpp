@@ -127,7 +127,9 @@ class Command : public IElement {
     return result;
   }
 
-  size_t ByteLength() const override { return 17; }
+  size_t ByteLength() const override {
+    return 17 + stack_arg_.size() * 4 + extra_arg_.size() * 4;
+  }
 
  private:
   int alist_;
@@ -241,6 +243,66 @@ class CopyElm : public IElement {
   std::string ToDebugString() const override { return "push(<elm>)"; }
 
   size_t ByteLength() const override { return 1; }
+};
+
+class Gosub : public IElement {
+ public:
+  Gosub(Type rettype, int label, std::vector<Type> argt)
+      : return_type_(rettype), label_(label), argt_(argt) {}
+
+  std::string ToDebugString() const override {
+    std::string result = "gosub@" + std::to_string(label_) + '(';
+    bool first = true;
+    for (const auto it : argt_) {
+      if (!first)
+        result += ',';
+      else
+        first = false;
+      result += ToString(it);
+    }
+
+    result += ") -> " + ToString(return_type_);
+    return result;
+  }
+
+  size_t ByteLength() const override { return 9 + 4 * argt_.size(); }
+
+ private:
+  Type return_type_;
+  int label_;
+  std::vector<Type> argt_;
+};
+
+class Namae : public IElement {
+ public:
+  Namae() = default;
+
+  std::string ToDebugString() const override { return "namae(<str>)"; }
+
+  size_t ByteLength() const override { return 1; }
+};
+
+class EndOfScene : public IElement {
+ public:
+  EndOfScene() = default;
+
+  std::string ToDebugString() const override { return "#EOF"; }
+
+  size_t ByteLength() const override { return 1; }
+};
+
+class Textout : public IElement {
+ public:
+  Textout(int kidoku) : kidoku_(kidoku) {}
+
+  std::string ToDebugString() const override {
+    return "text@" + std::to_string(kidoku_) + "(<str>)";
+  }
+
+  size_t ByteLength() const override { return 5; }
+
+ private:
+  int kidoku_;
 };
 
 }  // namespace libsiglus
