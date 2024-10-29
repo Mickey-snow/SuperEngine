@@ -94,18 +94,18 @@ TEST_F(LexerTest, Command) {
       0x30,                    // cmd
       0x01, 0x00, 0x00, 0x00,  // arg_list_id
       0x03, 0x00, 0x00, 0x00,  // stack_arg_cnt
-      0x0a, 0x00, 0x00, 0x00,  // arg_type1
+      0x0a, 0x00, 0x00, 0x00,  // arg_type3
       0x0a, 0x00, 0x00, 0x00,  // arg_type2
-      0x14, 0x00, 0x00, 0x00,  // arg_type3
+      0x14, 0x00, 0x00, 0x00,  // arg_type1
       0x02, 0x00, 0x00, 0x00,  // extra_arg_cnt
-      0x03, 0x00, 0x00, 0x00,  // arg1
-      0x04, 0x00, 0x00, 0x00,  // arg2
+      0x03, 0x00, 0x00, 0x00,  // arg2
+      0x04, 0x00, 0x00, 0x00,  // arg1
       0x0a, 0x00, 0x00, 0x00,  // return_type -> int
       0x05, 0x06, 0x07, 0x08,  // garbage
   };  // note: pop stack from right to left
 
   auto result = lex.Parse(vec_to_sv(raw));
-  EXPECT_EQ(result->ToDebugString(), "cmd[1](int,int,str,3,4) -> int");
+  EXPECT_EQ(result->ToDebugString(), "cmd[1](str,int,int,4,3) -> int");
 }
 
 TEST_F(LexerTest, PropertyExpand) {
@@ -130,6 +130,17 @@ TEST_F(LexerTest, Operator2) {
     auto result = lex.Parse(vec_to_sv(raw));
     EXPECT_EQ(result->ToDebugString(), "int == int");
   }
+}
+
+TEST_F(LexerTest, Operator1) {
+  std::vector<uint8_t> raw{
+      0x21,                    // op1
+      0x0a, 0x00, 0x00, 0x00,  // int
+      0x02                     // minus(-)
+  };
+
+  auto result = lex.Parse(vec_to_sv(raw));
+  EXPECT_EQ(result->ToDebugString(), "- int");
 }
 
 TEST_F(LexerTest, Goto) {
@@ -173,5 +184,25 @@ TEST_F(LexerTest, Assign) {
   };
 
   auto result = lex.Parse(vec_to_sv(raw));
-  EXPECT_EQ(result->ToDebugString(), "let[1] unknown := int");
+  EXPECT_EQ(result->ToDebugString(), "let[1] typeid:13 := int");
+}
+
+TEST_F(LexerTest, PushCopy) {
+  std::vector<uint8_t> raw{
+      0x04,                   // copy
+      0x0a, 0x00, 0x00, 0x00  // int
+  };
+
+  auto result = lex.Parse(vec_to_sv(raw));
+  EXPECT_EQ(result->ToDebugString(), "push(<int>)");
+}
+
+TEST_F(LexerTest, PushElm) {
+  std::vector<uint8_t> raw{
+      0x06,  // copy elm
+      0x0a   // garbage
+  };
+
+  auto result = lex.Parse(vec_to_sv(raw));
+  EXPECT_EQ(result->ToDebugString(), "push(<elm>)");
 }

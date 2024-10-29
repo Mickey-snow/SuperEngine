@@ -145,6 +145,21 @@ class Property : public IElement {
   size_t ByteLength() const override { return 1; }
 };
 
+class Operate1 : public IElement {
+ public:
+  Operate1(Type t, OperatorCode op) : type_(t), op_(op) {}
+
+  std::string ToDebugString() const override {
+    return ToString(op_) + ' ' + ToString(type_);
+  }
+
+  size_t ByteLength() const override { return 6; }
+
+ private:
+  Type type_;
+  OperatorCode op_;
+};
+
 class Operate2 : public IElement {
  public:
   Operate2(Type lt, Type rt, OperatorCode op)
@@ -203,6 +218,29 @@ class Assign : public IElement {
  private:
   Type ltype_, rtype_;
   int v1_;
+};
+
+class Copy : public IElement {
+ public:
+  Copy(Type type) : type_(type) {}
+
+  std::string ToDebugString() const override {
+    return "push(<" + ToString(type_) + ">)";
+  }
+
+  size_t ByteLength() const override { return 5; }
+
+ private:
+  Type type_;
+};
+
+class CopyElm : public IElement {
+ public:
+  CopyElm() = default;
+
+  std::string ToDebugString() const override { return "push(<elm>)"; }
+
+  size_t ByteLength() const override { return 1; }
 };
 
 }  // namespace libsiglus

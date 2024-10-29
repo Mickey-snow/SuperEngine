@@ -40,7 +40,9 @@ enum class CommandCode : uint8_t {
   Newline = 0x01,
   Push = 0x02,
   Pop = 0x03,
+  Copy = 0x04,
   Property = 0x05,
+  CopyElm = 0x06,
 
   Marker = 0x08,
 
@@ -49,6 +51,7 @@ enum class CommandCode : uint8_t {
   Goto_false = 0x12,
 
   Assign = 0x20,
+  Op1 = 0x21,
   Op2 = 0x22,
 
   Cmd = 0x30,
@@ -78,6 +81,18 @@ Element Lexer::Parse(std::string_view data) const {
     case CommandCode::Marker:
       return std::make_shared<Marker>();
 
+    case CommandCode::Copy:
+      return std::make_shared<Copy>(
+          static_cast<Type>(reader.PopAs<int32_t>(4)));
+
+    case CommandCode::CopyElm:
+      return std::make_shared<CopyElm>();
+
+    case CommandCode::Op1: {
+      auto type = static_cast<Type>(reader.PopAs<int32_t>(4));
+      auto op = static_cast<OperatorCode>(reader.PopAs<uint8_t>(1));
+      return std::make_shared<Operate1>(type, op);
+    }
     case CommandCode::Op2: {
       auto ltype = static_cast<Type>(reader.PopAs<int32_t>(4));
       auto rtype = static_cast<Type>(reader.PopAs<int32_t>(4));
@@ -86,15 +101,17 @@ Element Lexer::Parse(std::string_view data) const {
     }
 
     case CommandCode::Cmd: {
-      std::vector<Type> stackarg;
-      std::vector<int> extraarg;
       int arglist_id = reader.PopAs<int32_t>(4);
       int stack_arg_cnt = reader.PopAs<int32_t>(4);
-      while (stack_arg_cnt-- > 0)
-        stackarg.push_back(static_cast<Type>(reader.PopAs<uint32_t>(4)));
+      std::vector<Type> stackarg(stack_arg_cnt);
+      while (--stack_arg_cnt >= 0)
+        stackarg[stack_arg_cnt] = static_cast<Type>(reader.PopAs<uint32_t>(4));
+
       int extra_arg_cnt = reader.PopAs<int32_t>(4);
-      while (extra_arg_cnt-- > 0)
-        extraarg.push_back(reader.PopAs<int32_t>(4));
+      std::vector<int> extraarg(extra_arg_cnt);
+      while (--extra_arg_cnt >= 0)
+        extraarg[extra_arg_cnt] = reader.PopAs<int32_t>(4);
+
       Type return_type = static_cast<Type>(reader.PopAs<uint32_t>(4));
       return std::make_shared<Command>(arglist_id, std::move(stackarg),
                                        std::move(extraarg), return_type);
