@@ -36,6 +36,7 @@ class IElement {
   virtual ~IElement() = default;
 
   virtual std::string ToDebugString() const = 0;
+  virtual size_t ByteLength() const = 0;
 };
 using Element = std::shared_ptr<IElement>;
 
@@ -46,6 +47,8 @@ class Line : public IElement {
   std::string ToDebugString() const override {
     return "#line " + std::to_string(linenum_);
   }
+
+  size_t ByteLength() const override { return 5; }
 
  private:
   int linenum_;
@@ -58,6 +61,8 @@ class Push : public IElement {
   std::string ToDebugString() const override {
     return "push(" + ToString(type_) + ':' + std::to_string(value_) + ')';
   }
+
+  size_t ByteLength() const override { return 9; }
 
  private:
   Type type_;
@@ -72,6 +77,8 @@ class Pop : public IElement {
     return "pop<" + ToString(type_) + ">()";
   }
 
+  size_t ByteLength() const override { return 5; }
+
  private:
   Type type_;
 };
@@ -81,6 +88,8 @@ class Marker : public IElement {
   Marker() = default;
 
   std::string ToDebugString() const override { return "push(<elm>)"; }
+
+  size_t ByteLength() const override { return 1; }
 };
 
 class Command : public IElement {
@@ -92,6 +101,8 @@ class Command : public IElement {
     return "cmd(" + std::to_string(v1_) + ',' + std::to_string(v2_) + ',' +
            std::to_string(v3_) + ',' + std::to_string(v4_) + ')';
   }
+
+  size_t ByteLength() const override { return 17; }
 
  private:
   int v1_, v2_, v3_, v4_;
