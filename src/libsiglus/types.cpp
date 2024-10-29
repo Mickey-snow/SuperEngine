@@ -41,7 +41,7 @@ std::string ToString(OperatorCode op) {
     case OperatorCode::None:
       return "<none>";
     case OperatorCode::Equal:
-      return "=";
+      return "==";
     default:
       return "<?>";
   }

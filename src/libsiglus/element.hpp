@@ -160,6 +160,23 @@ class Goto : public IElement {
   int label_;
 };
 
+class Assign : public IElement {
+ public:
+  Assign(Type ltype, Type rtype, int v1)
+      : ltype_(ltype), rtype_(rtype), v1_(v1) {}
+
+  std::string ToDebugString() const override {
+    return "let(" + std::to_string(v1_) + ") " + ToString(ltype_) +
+           " := " + ToString(rtype_);
+  }
+
+  size_t ByteLength() const override { return 13; }
+
+ private:
+  Type ltype_, rtype_;
+  int v1_;
+};
+
 }  // namespace libsiglus
 
 #endif

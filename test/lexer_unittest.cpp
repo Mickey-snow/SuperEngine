@@ -123,7 +123,7 @@ TEST_F(LexerTest, Operator2) {
     };
 
     auto result = lex.Parse(vec_to_sv(raw));
-    EXPECT_EQ(result->ToDebugString(), "int = int");
+    EXPECT_EQ(result->ToDebugString(), "int == int");
   }
 }
 
@@ -157,4 +157,16 @@ TEST_F(LexerTest, Goto) {
     auto result = lex.Parse(vec_to_sv(raw));
     EXPECT_EQ(result->ToDebugString(), "goto(16)");
   }
+}
+
+TEST_F(LexerTest, Assign) {
+  std::vector<uint8_t> raw{
+      0x20,                    // assign
+      0x0d, 0x00, 0x00, 0x00,  // (?)
+      0x0a, 0x00, 0x00, 0x00,  // int
+      0x01, 0x00, 0x00, 0x00   // 1
+  };
+
+  auto result = lex.Parse(vec_to_sv(raw));
+  EXPECT_EQ(result->ToDebugString(), "let(1) unknown := int");
 }
