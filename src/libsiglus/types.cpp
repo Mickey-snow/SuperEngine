@@ -21,17 +21,17 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LIBSIGLUS_TYPES_HPP
-#define SRC_LIBSIGLUS_TYPES_HPP
-
-#include <cstdint>
-#include <string>
+#include "libsiglus/types.hpp"
 
 namespace libsiglus {
-
-enum class Type : int32_t { Unknown = 0x00, Int = 0x0a, String = 0x14 };
-
-std::string ToString(Type type);
-
+std::string ToString(Type type) {
+  switch (type) {
+    case Type::Int:
+      return "int";
+    case Type::String:
+      return "str";
+    default:
+      return "unknown";
+  }
+}
 }  // namespace libsiglus
-#endif

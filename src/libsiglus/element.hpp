@@ -24,6 +24,8 @@
 #ifndef SRC_LIBSIGLUS_ELEMENT_HPP_
 #define SRC_LIBSIGLUS_ELEMENT_HPP_
 
+#include "libsiglus/types.hpp"
+
 #include <memory>
 #include <string>
 
@@ -35,8 +37,66 @@ class IElement {
 
   virtual std::string ToDebugString() const = 0;
 };
-
 using Element = std::shared_ptr<IElement>;
 
+class Line : public IElement {
+ public:
+  Line(int linenum) : linenum_(linenum) {}
+
+  std::string ToDebugString() const override {
+    return "#line " + std::to_string(linenum_);
+  }
+
+ private:
+  int linenum_;
+};
+
+class Push : public IElement {
+ public:
+  Push(Type type, int value) : type_(type), value_(value) {}
+
+  std::string ToDebugString() const override {
+    return "push(" + ToString(type_) + ':' + std::to_string(value_) + ')';
+  }
+
+ private:
+  Type type_;
+  int value_;
+};
+
+class Pop : public IElement {
+ public:
+  Pop(Type type) : type_(type) {}
+
+  std::string ToDebugString() const override {
+    return "pop<" + ToString(type_) + ">()";
+  }
+
+ private:
+  Type type_;
+};
+
+class Marker : public IElement {
+ public:
+  Marker() = default;
+
+  std::string ToDebugString() const override { return "push(<elm>)"; }
+};
+
+class Command : public IElement {
+ public:
+  Command(int v1, int v2, int v3, int v4)
+      : v1_(v1), v2_(v2), v3_(v3), v4_(v4) {}
+
+  std::string ToDebugString() const override {
+    return "cmd(" + std::to_string(v1_) + ',' + std::to_string(v2_) + ',' +
+           std::to_string(v3_) + ',' + std::to_string(v4_) + ')';
+  }
+
+ private:
+  int v1_, v2_, v3_, v4_;
+};
+
 }  // namespace libsiglus
+
 #endif

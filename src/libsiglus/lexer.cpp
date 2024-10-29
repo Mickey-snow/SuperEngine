@@ -23,6 +23,10 @@
 
 #include "libsiglus/lexer.hpp"
 
+#include "libsiglus/element.hpp"
+#include "libsiglus/types.hpp"
+#include "utilities/byte_reader.h"
+
 #include <cstdint>
 #include <iomanip>
 #include <sstream>
@@ -33,12 +37,43 @@ namespace libsiglus {
 enum class CommandCode : uint8_t {
   None = 0x00,
 
+  Newline = 0x01,
+  Push = 0x02,
+  Pop = 0x03,
+
+  Marker = 0x08,
+
+  Cmd = 0x30,
 };
 
 Element Lexer::Parse(std::string_view data) const {
-  switch (static_cast<CommandCode>(data[0])) {
-    case CommandCode::None:
-      break;
+  ByteReader reader(data);
+  switch (static_cast<CommandCode>(reader.PopAs<uint8_t>(1))) {
+    case CommandCode::Newline: {
+      const int linenum = reader.PopAs<int>(4);
+      return std::make_shared<Line>(linenum);
+    }
+
+    case CommandCode::Push: {
+      auto type = static_cast<Type>(reader.PopAs<int32_t>(4));
+      return std::make_shared<Push>(type, reader.PopAs<int32_t>(4));
+    }
+
+    case CommandCode::Pop: {
+      auto type = static_cast<Type>(reader.PopAs<int32_t>(4));
+      return std::make_shared<Pop>(type);
+    }
+
+    case CommandCode::Marker:
+      return std::make_shared<Marker>();
+
+    case CommandCode::Cmd: {
+      auto v1 = reader.PopAs<int32_t>(4);
+      auto v2 = reader.PopAs<int32_t>(4);
+      auto v3 = reader.PopAs<int32_t>(4);
+      auto v4 = reader.PopAs<int32_t>(4);
+      return std::make_shared<Command>(v1, v2, v3, v4);
+    }
 
     default: {
       std::stringstream ss;
@@ -57,7 +92,6 @@ Element Lexer::Parse(std::string_view data) const {
       throw std::runtime_error(ss.str());
     }
   }
-  return nullptr;
 }
 
 }  // namespace libsiglus

@@ -57,10 +57,12 @@ TEST_F(LexerTest, Newline) {
 TEST_F(LexerTest, Pushstk) {
   {
     std::vector<uint8_t> raw{
-        0x02,                    // push
-        0x0a,                    // int
-        0x3f, 0x00, 0x00, 0x00,  // 63
-        0xaa                     // garbage
+        0x02,  // push
+        0x0a, 0x00, 0x00,
+        0x00,  // int
+        0x3f, 0x00, 0x00,
+        0x00,  // 63
+        0xaa   // garbage
     };
 
     auto result = lex.Parse(vec_to_sv(raw));
@@ -71,8 +73,8 @@ TEST_F(LexerTest, Pushstk) {
 TEST_F(LexerTest, Popstk) {
   {
     std::vector<uint8_t> raw{
-        0x03,  // pop
-        0x0a   // int
+        0x03,                         // pop
+        0x0a, 0x00, 0x00, 0x00, 0x00  // int
     };
 
     auto result = lex.Parse(vec_to_sv(raw));
@@ -85,4 +87,18 @@ TEST_F(LexerTest, ElmMarker) {
 
   auto result = lex.Parse(vec_to_sv(raw));
   EXPECT_EQ(result->ToDebugString(), "push(<elm>)");
+}
+
+TEST_F(LexerTest, Command) {
+  std::vector<uint8_t> raw{
+      0x30,                    // cmd
+      0x01, 0x00, 0x00, 0x00,  // 1
+      0x02, 0x00, 0x00, 0x00,  // 2
+      0x03, 0x00, 0x00, 0x00,  // 3
+      0x04, 0x00, 0x00, 0x00,  // 4
+      0x05, 0x06, 0x07, 0x08,  // garbage
+  };
+
+  auto result = lex.Parse(vec_to_sv(raw));
+  EXPECT_EQ(result->ToDebugString(), "cmd(1,2,3,4)");
 }
