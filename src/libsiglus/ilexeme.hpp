@@ -21,22 +21,24 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LIBSIGLUS_LEXER_HPP_
-#define SRC_LIBSIGLUS_LEXER_HPP_
+#ifndef SRC_LIBSIGLUS_ILEXEME_HPP_
+#define SRC_LIBSIGLUS_ILEXEME_HPP_
 
-#include "libsiglus/ilexeme.hpp"
+#include "libsiglus/types.hpp"
 
 #include <memory>
-#include <string_view>
+#include <string>
 
 namespace libsiglus {
 
-class Lexer {
+class ILexeme {
  public:
-  Lexer() = default;
+  virtual ~ILexeme() = default;
 
-  Lexeme Parse(std::string_view) const;
+  virtual std::string ToDebugString() const = 0;
+  virtual size_t ByteLength() const = 0;
 };
+using Lexeme = std::shared_ptr<ILexeme>;
 
 }  // namespace libsiglus
 

@@ -23,7 +23,8 @@
 
 #include "libsiglus/lexer.hpp"
 
-#include "libsiglus/element.hpp"
+#include "libsiglus/ilexeme.hpp"
+#include "libsiglus/lexeme.hpp"
 #include "libsiglus/types.hpp"
 #include "utilities/byte_reader.h"
 
@@ -62,6 +63,8 @@ enum class CommandCode : uint8_t {
   Namae = 0x32,
 };
 
+using namespace libsiglus::lex;
+
 std::vector<Type> ParseArglist(ByteReader& reader) {
   int cnt = reader.PopAs<int32_t>(4);
   std::vector<Type> arglist(cnt);
@@ -70,7 +73,7 @@ std::vector<Type> ParseArglist(ByteReader& reader) {
   return arglist;
 }
 
-Element Lexer::Parse(std::string_view data) const {
+Lexeme Lexer::Parse(std::string_view data) const {
   ByteReader reader(data);
   switch (static_cast<CommandCode>(reader.PopAs<uint8_t>(1))) {
     case CommandCode::Newline: {

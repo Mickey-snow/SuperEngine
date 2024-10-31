@@ -21,27 +21,18 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LIBSIGLUS_ELEMENT_HPP_
-#define SRC_LIBSIGLUS_ELEMENT_HPP_
+#ifndef SRC_LIBSIGLUS_LEXEME_HPP_
+#define SRC_LIBSIGLUS_LEXEME_HPP_
 
+#include "libsiglus/ilexeme.hpp"
 #include "libsiglus/types.hpp"
 
-#include <memory>
-#include <string>
 #include <vector>
 
 namespace libsiglus {
+namespace lex {
 
-class IElement {
- public:
-  virtual ~IElement() = default;
-
-  virtual std::string ToDebugString() const = 0;
-  virtual size_t ByteLength() const = 0;
-};
-using Element = std::shared_ptr<IElement>;
-
-class Line : public IElement {
+class Line : public ILexeme {
  public:
   Line(int linenum) : linenum_(linenum) {}
 
@@ -55,7 +46,7 @@ class Line : public IElement {
   int linenum_;
 };
 
-class Push : public IElement {
+class Push : public ILexeme {
  public:
   Push(Type type, int value) : type_(type), value_(value) {}
 
@@ -70,7 +61,7 @@ class Push : public IElement {
   int value_;
 };
 
-class Pop : public IElement {
+class Pop : public ILexeme {
  public:
   Pop(Type type) : type_(type) {}
 
@@ -84,7 +75,7 @@ class Pop : public IElement {
   Type type_;
 };
 
-class Marker : public IElement {
+class Marker : public ILexeme {
  public:
   Marker() = default;
 
@@ -93,7 +84,7 @@ class Marker : public IElement {
   size_t ByteLength() const override { return 1; }
 };
 
-class Command : public IElement {
+class Command : public ILexeme {
  public:
   Command(int arglist,
           std::vector<Type> stackarg,
@@ -138,7 +129,7 @@ class Command : public IElement {
   Type rettype_;
 };
 
-class Property : public IElement {
+class Property : public ILexeme {
  public:
   Property() = default;
 
@@ -147,7 +138,7 @@ class Property : public IElement {
   size_t ByteLength() const override { return 1; }
 };
 
-class Operate1 : public IElement {
+class Operate1 : public ILexeme {
  public:
   Operate1(Type t, OperatorCode op) : type_(t), op_(op) {}
 
@@ -162,7 +153,7 @@ class Operate1 : public IElement {
   OperatorCode op_;
 };
 
-class Operate2 : public IElement {
+class Operate2 : public ILexeme {
  public:
   Operate2(Type lt, Type rt, OperatorCode op)
       : ltype_(lt), rtype_(rt), op_(op) {}
@@ -178,7 +169,7 @@ class Operate2 : public IElement {
   OperatorCode op_;
 };
 
-class Goto : public IElement {
+class Goto : public ILexeme {
  public:
   enum class Condition { True, False, Unconditional };
 
@@ -205,7 +196,7 @@ class Goto : public IElement {
   int label_;
 };
 
-class Assign : public IElement {
+class Assign : public ILexeme {
  public:
   Assign(Type ltype, Type rtype, int v1)
       : ltype_(ltype), rtype_(rtype), v1_(v1) {}
@@ -222,7 +213,7 @@ class Assign : public IElement {
   int v1_;
 };
 
-class Copy : public IElement {
+class Copy : public ILexeme {
  public:
   Copy(Type type) : type_(type) {}
 
@@ -236,7 +227,7 @@ class Copy : public IElement {
   Type type_;
 };
 
-class CopyElm : public IElement {
+class CopyElm : public ILexeme {
  public:
   CopyElm() = default;
 
@@ -245,7 +236,7 @@ class CopyElm : public IElement {
   size_t ByteLength() const override { return 1; }
 };
 
-class Gosub : public IElement {
+class Gosub : public ILexeme {
  public:
   Gosub(Type rettype, int label, std::vector<Type> argt)
       : return_type_(rettype), label_(label), argt_(argt) {}
@@ -273,7 +264,7 @@ class Gosub : public IElement {
   std::vector<Type> argt_;
 };
 
-class Namae : public IElement {
+class Namae : public ILexeme {
  public:
   Namae() = default;
 
@@ -282,7 +273,7 @@ class Namae : public IElement {
   size_t ByteLength() const override { return 1; }
 };
 
-class EndOfScene : public IElement {
+class EndOfScene : public ILexeme {
  public:
   EndOfScene() = default;
 
@@ -291,7 +282,7 @@ class EndOfScene : public IElement {
   size_t ByteLength() const override { return 1; }
 };
 
-class Textout : public IElement {
+class Textout : public ILexeme {
  public:
   Textout(int kidoku) : kidoku_(kidoku) {}
 
@@ -305,7 +296,7 @@ class Textout : public IElement {
   int kidoku_;
 };
 
-class Return : public IElement {
+class Return : public ILexeme {
  public:
   Return(std::vector<Type> rettypes) : ret_types_(std::move(rettypes)) {}
 
@@ -330,6 +321,7 @@ class Return : public IElement {
   std::vector<Type> ret_types_;
 };
 
+}  // namespace lex
 }  // namespace libsiglus
 
 #endif

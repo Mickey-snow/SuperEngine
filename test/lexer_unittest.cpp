@@ -23,7 +23,7 @@
 
 #include <gtest/gtest.h>
 
-#include "libsiglus/element.hpp"
+#include "libsiglus/ilexeme.hpp"
 #include "libsiglus/lexer.hpp"
 
 #include <cstdint>
