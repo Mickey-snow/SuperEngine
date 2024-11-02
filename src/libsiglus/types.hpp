@@ -30,9 +30,18 @@
 namespace libsiglus {
 
 enum class Type : uint32_t {
-  Unknown = 0x00,
+  None = 0x00,
   Int = 0x0a,
+  IntList = 0x0b,
+  IntRef = 0x0d,
+  IntListRef = 0x0e,
   String = 0x14,
+  StrList = 0x15,
+  StrRef = 0x17,
+  StrListRef = 0x18,
+  Object = 0x51e,
+  ObjList,
+  StageElem = 0x514,
   Label = 0x1e,
   List = 0xFFFFFFFF
 };
