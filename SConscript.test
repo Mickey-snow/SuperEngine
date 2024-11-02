@@ -69,6 +69,7 @@ unittest_files = [
   "test/encodings_unittest.cpp",
 
   "test/lexer_unittest.cpp",
+  "test/stack_unittest.cpp",
 ]
 
 test_env.RlvmProgram('rlvm_unittests',
