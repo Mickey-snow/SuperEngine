@@ -65,7 +65,6 @@ class Line : public ILexeme {
 
   size_t ByteLength() const override { return 5; }
 
- private:
   int linenum_;
 };
 
@@ -81,7 +80,6 @@ class Push : public ILexeme {
 
   size_t ByteLength() const override { return 9; }
 
- private:
   Type type_;
   int value_;
 };

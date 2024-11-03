@@ -95,6 +95,7 @@ librlvm_files = [
   "src/libsiglus/gexedat.cpp",
   "src/libsiglus/lexer.cpp",
   "src/libsiglus/types.cpp",
+  "src/libsiglus/interpreter.cpp",
 
   "src/long_operations/button_object_select_long_operation.cc",
   "src/long_operations/load_game_long_operation.cc",
