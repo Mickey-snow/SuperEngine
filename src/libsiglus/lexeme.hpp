@@ -27,14 +27,37 @@
 #include "libsiglus/ilexeme.hpp"
 #include "libsiglus/types.hpp"
 
+#include <string>
 #include <vector>
 
 namespace libsiglus {
 namespace lex {
 
+enum class LexType {
+  Line,
+  Push,
+  Pop,
+  Marker,
+  Command,
+  Operate1,
+  Operate2,
+  Property,
+  Assign,
+  Copy,
+  CopyElm,
+  Textout,
+  Goto,
+  Gosub,
+  Return,
+  Namae,
+  End
+};
+
 class Line : public ILexeme {
  public:
   Line(int linenum) : linenum_(linenum) {}
+
+  int GetType() const override { return static_cast<int>(LexType::Line); }
 
   std::string ToDebugString() const override {
     return "#line " + std::to_string(linenum_);
@@ -49,6 +72,8 @@ class Line : public ILexeme {
 class Push : public ILexeme {
  public:
   Push(Type type, int value) : type_(type), value_(value) {}
+
+  int GetType() const override { return static_cast<int>(LexType::Push); }
 
   std::string ToDebugString() const override {
     return "push(" + ToString(type_) + ':' + std::to_string(value_) + ')';
@@ -65,6 +90,8 @@ class Pop : public ILexeme {
  public:
   Pop(Type type) : type_(type) {}
 
+  int GetType() const override { return static_cast<int>(LexType::Pop); }
+
   std::string ToDebugString() const override {
     return "pop<" + ToString(type_) + ">()";
   }
@@ -78,6 +105,8 @@ class Pop : public ILexeme {
 class Marker : public ILexeme {
  public:
   Marker() = default;
+
+  int GetType() const override { return static_cast<int>(LexType::Marker); }
 
   std::string ToDebugString() const override { return "<elm>"; }
 
@@ -94,6 +123,8 @@ class Command : public ILexeme {
         stack_arg_(std::move(stackarg)),
         extra_arg_(std::move(extraarg)),
         rettype_(returntype) {}
+
+  int GetType() const override { return static_cast<int>(LexType::Command); }
 
   std::string ToDebugString() const override {
     std::string result = "cmd[" + std::to_string(alist_) + "](";
@@ -133,6 +164,8 @@ class Property : public ILexeme {
  public:
   Property() = default;
 
+  int GetType() const override { return static_cast<int>(LexType::Property); }
+
   std::string ToDebugString() const override { return "<prop>"; }
 
   size_t ByteLength() const override { return 1; }
@@ -141,6 +174,8 @@ class Property : public ILexeme {
 class Operate1 : public ILexeme {
  public:
   Operate1(Type t, OperatorCode op) : type_(t), op_(op) {}
+
+  int GetType() const override { return static_cast<int>(LexType::Operate1); }
 
   std::string ToDebugString() const override {
     return ToString(op_) + ' ' + ToString(type_);
@@ -158,6 +193,8 @@ class Operate2 : public ILexeme {
   Operate2(Type lt, Type rt, OperatorCode op)
       : ltype_(lt), rtype_(rt), op_(op) {}
 
+  int GetType() const override { return static_cast<int>(LexType::Operate2); }
+
   std::string ToDebugString() const override {
     return ToString(ltype_) + ' ' + ToString(op_) + ' ' + ToString(rtype_);
   }
@@ -174,6 +211,8 @@ class Goto : public ILexeme {
   enum class Condition { True, False, Unconditional };
 
   Goto(Condition cond, int label) : cond_(cond), label_(label) {}
+
+  int GetType() const override { return static_cast<int>(LexType::Goto); }
 
   std::string ToDebugString() const override {
     std::string str = '(' + std::to_string(label_) + ')';
@@ -201,6 +240,8 @@ class Assign : public ILexeme {
   Assign(Type ltype, Type rtype, int v1)
       : ltype_(ltype), rtype_(rtype), v1_(v1) {}
 
+  int GetType() const override { return static_cast<int>(LexType::Assign); }
+
   std::string ToDebugString() const override {
     return "let[" + std::to_string(v1_) + "] " + ToString(ltype_) +
            " := " + ToString(rtype_);
@@ -217,6 +258,8 @@ class Copy : public ILexeme {
  public:
   Copy(Type type) : type_(type) {}
 
+  int GetType() const override { return static_cast<int>(LexType::Copy); }
+
   std::string ToDebugString() const override {
     return "push(<" + ToString(type_) + ">)";
   }
@@ -231,6 +274,8 @@ class CopyElm : public ILexeme {
  public:
   CopyElm() = default;
 
+  int GetType() const override { return static_cast<int>(LexType::CopyElm); }
+
   std::string ToDebugString() const override { return "push(<elm>)"; }
 
   size_t ByteLength() const override { return 1; }
@@ -240,6 +285,8 @@ class Gosub : public ILexeme {
  public:
   Gosub(Type rettype, int label, std::vector<Type> argt)
       : return_type_(rettype), label_(label), argt_(argt) {}
+
+  int GetType() const override { return static_cast<int>(LexType::Gosub); }
 
   std::string ToDebugString() const override {
     std::string result = "gosub@" + std::to_string(label_) + '(';
@@ -268,6 +315,8 @@ class Namae : public ILexeme {
  public:
   Namae() = default;
 
+  int GetType() const override { return static_cast<int>(LexType::Namae); }
+
   std::string ToDebugString() const override { return "namae(<str>)"; }
 
   size_t ByteLength() const override { return 1; }
@@ -277,6 +326,8 @@ class EndOfScene : public ILexeme {
  public:
   EndOfScene() = default;
 
+  int GetType() const override { return static_cast<int>(LexType::End); }
+
   std::string ToDebugString() const override { return "#EOF"; }
 
   size_t ByteLength() const override { return 1; }
@@ -285,6 +336,8 @@ class EndOfScene : public ILexeme {
 class Textout : public ILexeme {
  public:
   Textout(int kidoku) : kidoku_(kidoku) {}
+
+  int GetType() const override { return static_cast<int>(LexType::Textout); }
 
   std::string ToDebugString() const override {
     return "text@" + std::to_string(kidoku_) + "(<str>)";
@@ -299,6 +352,8 @@ class Textout : public ILexeme {
 class Return : public ILexeme {
  public:
   Return(std::vector<Type> rettypes) : ret_types_(std::move(rettypes)) {}
+
+  int GetType() const override { return static_cast<int>(LexType::Return); }
 
   std::string ToDebugString() const override {
     std::string result = "ret(";

@@ -35,6 +35,8 @@ class ILexeme {
  public:
   virtual ~ILexeme() = default;
 
+  virtual int GetType() const = 0;
+
   virtual std::string ToDebugString() const = 0;
   virtual size_t ByteLength() const = 0;
 };
