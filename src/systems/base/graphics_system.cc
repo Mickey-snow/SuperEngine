@@ -49,7 +49,7 @@
 #include "base/notification/source.h"
 #include "libreallive/expression.h"
 #include "base/gameexe.hpp"
-#include "machine/memory.h"
+#include "base/memory.hpp"
 #include "machine/rlmachine.h"
 #include "machine/serialization.h"
 #include "machine/stack_frame.h"

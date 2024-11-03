@@ -39,7 +39,7 @@
 #include "long_operations/load_game_long_operation.h"
 #include "machine/general_operations.h"
 #include "machine/long_operation.h"
-#include "machine/memory.h"
+#include "base/memory.hpp"
 #include "machine/rlmachine.h"
 #include "machine/rlmodule.h"
 #include "machine/rloperation.h"

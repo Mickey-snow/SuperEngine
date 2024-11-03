@@ -25,7 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#include "machine/memory.h"
+#include "base/memory.hpp"
 
 #include <iostream>
 #include <map>

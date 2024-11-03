@@ -29,7 +29,7 @@
 
 #include <string>
 
-#include "machine/memory.h"
+#include "base/memory.hpp"
 #include "libreallive/intmemref.h"
 
 using libreallive::IntMemRef;

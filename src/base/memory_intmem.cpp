@@ -44,10 +44,10 @@
 #include <sstream>
 #include <string>
 
-#include "machine/memory.h"
+#include "libreallive/intmemref.h"
+#include "base/memory.hpp"
 #include "machine/rlmachine.h"
 #include "utilities/exception.h"
-#include "libreallive/intmemref.h"
 
 using libreallive::IntMemRef;
 
@@ -75,32 +75,32 @@ void saveOriginalValue(int* bank,
 
 int Memory::GetIntValue(const IntMemRef& ref) {
   int type = ref.type();
-  int index = ref.bank();
-  int location = ref.location();
+  int bankid = ref.bank();
+  int index = ref.location();
 
   int* bank = NULL;
-  if (index == 8) {
+  if (bankid == 8) {
     bank = machine_.CurrentIntLBank();
-  } else if (index < 0 || index > NUMBER_OF_INT_LOCATIONS) {
+  } else if (bankid < 0 || bankid > NUMBER_OF_INT_LOCATIONS) {
     throwIllegalIndex(ref, "RLMachine::GetIntValue()");
   } else {
-    bank = int_var[index];
+    bank = int_var[bankid];
   }
 
   if (type == 0) {
     // A[]..G[], Z[] を直に読む
-    if ((unsigned int)(location) >= 2000)
+    if ((unsigned int)(index) >= 2000)
       throwIllegalIndex(ref, "RLMachine::GetIntValue()");
 
-    return bank[location];
+    return bank[index];
   } else {
     // Ab[]..G4b[], Z8b[] などを読む
     int factor = 1 << (type - 1);
     int eltsize = 32 / factor;
-    if ((unsigned int)(location) >= (64000u / factor))
+    if ((unsigned int)(index) >= (64000u / factor))
       throwIllegalIndex(ref, "RLMachine::GetIntValue()");
 
-    return (bank[location / eltsize] >> ((location % eltsize) * factor)) &
+    return (bank[index / eltsize] >> ((index % eltsize) * factor)) &
            ((1 << factor) - 1);
   }
 }

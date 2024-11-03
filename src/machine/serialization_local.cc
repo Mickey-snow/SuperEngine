@@ -45,7 +45,7 @@
 
 #include "libreallive/archive.h"
 #include "libreallive/intmemref.h"
-#include "machine/memory.h"
+#include "base/memory.hpp"
 #include "machine/rlmachine.h"
 #include "machine/save_game_header.h"
 #include "machine/serialization.h"

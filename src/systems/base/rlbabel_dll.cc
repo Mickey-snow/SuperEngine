@@ -53,7 +53,7 @@
 #include "encodings/western.h"
 #include "base/gameexe.hpp"
 #include "libreallive/intmemref.h"
-#include "machine/memory.h"
+#include "base/memory.hpp"
 #include "machine/rlmachine.h"
 #include "systems/base/system.h"
 #include "systems/base/text_system.h"

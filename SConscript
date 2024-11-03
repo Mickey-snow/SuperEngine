@@ -61,6 +61,8 @@ librlvm_files = [
   "src/base/sound_settings.cc",
   "src/base/audio_table.cc",
   "src/base/gameexe.cpp",
+  "src/base/memory.cpp",
+  "src/base/memory_intmem.cpp",
 
   "src/effects/effect.cc",
   "src/effects/sel_record.cc",
@@ -104,8 +106,6 @@ librlvm_files = [
   "src/machine/general_operations.cc",
   "src/machine/long_operation.cc",
   "src/machine/mapped_rlmodule.cc",
-  "src/machine/memory.cc",
-  "src/machine/memory_intmem.cc",
   "src/machine/opcode_log.cc",
   "src/machine/reallive_dll.cc",
   "src/machine/reference.cc",

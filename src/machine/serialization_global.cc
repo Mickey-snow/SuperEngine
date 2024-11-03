@@ -42,7 +42,7 @@
 #include <sstream>
 
 #include "libreallive/intmemref.h"
-#include "machine/memory.h"
+#include "base/memory.hpp"
 #include "machine/rlmachine.h"
 #include "systems/base/event_system.h"
 #include "systems/base/graphics_system.h"

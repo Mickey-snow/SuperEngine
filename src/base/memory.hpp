@@ -25,8 +25,8 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MACHINE_MEMORY_H_
-#define SRC_MACHINE_MEMORY_H_
+#ifndef SRC_BASE_MEMORY_HPP_
+#define SRC_BASE_MEMORY_HPP_
 
 #include <boost/dynamic_bitset.hpp>
 #include <boost/serialization/split_member.hpp>
@@ -73,12 +73,12 @@ struct GlobalMemory {
   // boost::serialization
   template <class Archive>
   void serialize(Archive& ar, unsigned int version) {
-    ar& intG& intZ& strM;
+    ar & intG & intZ & strM;
 
     // Starting in version 1, \#NAME variable storage were added.
     if (version > 0) {
-      ar& global_names;
-      ar& kidoku_data;
+      ar & global_names;
+      ar & kidoku_data;
     }
   }
 };
@@ -135,7 +135,7 @@ struct LocalMemory {
     for (auto it = original.cbegin(); it != original.cend(); ++it) {
       merged[it->first] = it->second;
     }
-    ar& merged;
+    ar & merged;
   }
 
   // boost::serialization support
@@ -150,27 +150,27 @@ struct LocalMemory {
 
     saveArrayRevertingChanges(ar, strS, original_strS);
 
-    ar& local_names;
+    ar & local_names;
   }
 
   template <class Archive>
   void load(Archive& ar, unsigned int version) {
-    ar& intA& intB& intC& intD& intE& intF& strS;
+    ar & intA & intB & intC & intD & intE & intF & strS;
 
     // Starting in version 2, we no longer have the intL and strK in
     // LocalMemory. They were moved to StackFrame because they're stack
     // local. Throw away old data.
     if (version < 2) {
       int intL[SIZE_OF_INT_PASSING_MEM];
-      ar& intL;
+      ar & intL;
 
       std::string strK[3];
-      ar& strK;
+      ar & strK;
     }
 
     // Starting in version 1, \#LOCALNAME variable storage were added.
     if (version > 0)
-      ar& local_names;
+      ar & local_names;
   }
 
   BOOST_SERIALIZATION_SPLIT_MEMBER()
@@ -296,4 +296,4 @@ int GetIntValue(const libreallive::IntMemRef& ref, int* bank);
 // frames bank for intL[] access.
 void SetIntValue(const libreallive::IntMemRef& ref, int* bank, int value);
 
-#endif  // SRC_MACHINE_MEMORY_H_
+#endif
