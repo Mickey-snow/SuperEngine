@@ -114,14 +114,15 @@ std::ostream& operator<<(std::ostream& oss,
   else
     oss << "{Invalid bank# " << bank << "}";
 
-  if (bank == 0) {
-  } else if (bank == 1) {
+  int type = memref.type();
+  if (type == 0) {
+  } else if (type == 1) {
     oss << "b";
-  } else if (bank == 2) {
+  } else if (type == 2) {
     oss << "2b";
-  } else if (bank == 3) {
+  } else if (type == 3) {
     oss << "4b";
-  } else if (bank == 4) {
+  } else if (type == 4) {
     oss << "8b";
   }
 

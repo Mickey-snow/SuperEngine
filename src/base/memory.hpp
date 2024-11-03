@@ -284,16 +284,6 @@ class Memory {
 
   // Change records for original.
   std::map<int, int>* original_int_var[NUMBER_OF_INT_LOCATIONS];
-};  // end of class Memory
-
-// Implementation of getting an integer out of an array. Global because we need
-// share this implementation with RLMachine which passes in the local stack
-// frames bank for intL[] access.
-int GetIntValue(const libreallive::IntMemRef& ref, int* bank);
-
-// Implementation of setting an integer out of an array. Global because we need
-// share this implementation with RLMachine which passes in the local stack
-// frames bank for intL[] access.
-void SetIntValue(const libreallive::IntMemRef& ref, int* bank, int value);
+};
 
 #endif
