@@ -39,6 +39,7 @@
 #include <utility>
 #include <vector>
 
+#include "base/memory_services.hpp"
 #include "libreallive/intmemref.h"
 
 const int NUMBER_OF_INT_LOCATIONS = 8;
@@ -276,6 +277,7 @@ class Memory {
   // Our owning machine. We keep this reference so we can ask for the current
   // stackframe.
   RLMachine& machine_;
+  std::shared_ptr<IMemoryServices> service_;
 
   // Integer variable pointers. This redirect into Global and local
   // memory (as the case may be) allows us to overlay new views of

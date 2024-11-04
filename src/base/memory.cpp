@@ -84,7 +84,10 @@ void LocalMemory::reset() {
 // Memory
 // -----------------------------------------------------------------------
 Memory::Memory(RLMachine& machine, Gameexe& gameexe)
-    : global_(new GlobalMemory), local_(), machine_(machine) {
+    : global_(new GlobalMemory),
+      local_(),
+      machine_(machine),
+      service_(std::make_shared<MemoryServices>(machine)) {
   ConnectIntVarPointers();
 
   InitializeDefaultValues(gameexe);
@@ -93,7 +96,8 @@ Memory::Memory(RLMachine& machine, Gameexe& gameexe)
 Memory::Memory(RLMachine& machine, int slot)
     : global_(machine.memory().global_),
       local_(dont_initialize()),
-      machine_(machine) {
+      machine_(machine),
+      service_(std::make_shared<MemoryServices>(machine)) {
   ConnectIntVarPointers();
 }
 
@@ -126,7 +130,8 @@ const std::string& Memory::GetStringValue(int type, int location) {
 
   switch (type) {
     case libreallive::STRK_LOCATION: {
-      auto& currentStrKBank = machine_.CurrentStrKBank();
+      // auto& currentStrKBank = machine_.CurrentStrKBank();
+      auto& currentStrKBank = service_->StrKBank();
       if ((location + 1) > currentStrKBank.size())
         currentStrKBank.resize(location + 1);
       return currentStrKBank[location];
@@ -140,30 +145,30 @@ const std::string& Memory::GetStringValue(int type, int location) {
   }
 }
 
-void Memory::SetStringValue(int type, int number, const std::string& value) {
-  if (number > (SIZE_OF_MEM_BANK - 1))
+void Memory::SetStringValue(int bank, int index, const std::string& value) {
+  if (index > (SIZE_OF_MEM_BANK - 1))
     throw rlvm::Exception(
         "Invalid range access in RLMachine::set_string_value");
 
-  switch (type) {
+  switch (bank) {
     case libreallive::STRK_LOCATION: {
-      auto& currentStrKBank = machine_.CurrentStrKBank();
-      if ((number + 1) > currentStrKBank.size())
-        currentStrKBank.resize(number + 1);
-      currentStrKBank[number] = value;
+      // auto& currentStrKBank = machine_.CurrentStrKBank();
+      auto& currentStrKBank = service_->StrKBank();
+      if ((index + 1) > currentStrKBank.size())
+        currentStrKBank.resize(index + 1);
+      currentStrKBank[index] = value;
     } break;
     case libreallive::STRM_LOCATION:
-      global_->strM[number] = value;
+      global_->strM[index] = value;
       break;
     case libreallive::STRS_LOCATION: {
       // Possibly record the original value for a piece of local memory.
       std::map<int, std::string>::iterator it =
-          local_.original_strS.find(number);
+          local_.original_strS.find(index);
       if (it == local_.original_strS.end()) {
-        local_.original_strS.insert(
-            std::make_pair(number, local_.strS[number]));
+        local_.original_strS.insert(std::make_pair(index, local_.strS[index]));
       }
-      local_.strS[number] = value;
+      local_.strS[index] = value;
       break;
     }
     default:

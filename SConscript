@@ -63,6 +63,7 @@ librlvm_files = [
   "src/base/gameexe.cpp",
   "src/base/memory.cpp",
   "src/base/memory_intmem.cpp",
+  "src/base/memory_services.cpp",
 
   "src/effects/effect.cc",
   "src/effects/sel_record.cc",

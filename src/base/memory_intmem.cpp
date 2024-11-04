@@ -80,7 +80,8 @@ int Memory::GetIntValue(const IntMemRef& ref) {
 
   int* bank = NULL;
   if (bankid == 8) {
-    bank = machine_.CurrentIntLBank();
+    // bank = machine_.CurrentIntLBank();
+    bank = service_->IntLBank();
   } else if (bankid < 0 || bankid > NUMBER_OF_INT_LOCATIONS) {
     throwIllegalIndex(ref, "RLMachine::GetIntValue()");
   } else {
@@ -113,7 +114,8 @@ void Memory::SetIntValue(const IntMemRef& ref, int value) {
   int* bank = NULL;
   std::map<int, int>* original_bank = NULL;
   if (index == 8) {
-    bank = machine_.CurrentIntLBank();
+    // bank = machine_.CurrentIntLBank();
+    bank = service_->IntLBank();
   } else if (index < 0 || index > NUMBER_OF_INT_LOCATIONS) {
     throwIllegalIndex(ref, "RLMachine::SetIntValue()");
   } else {
