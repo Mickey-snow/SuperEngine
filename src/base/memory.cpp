@@ -84,20 +84,17 @@ void LocalMemory::reset() {
 // Memory
 // -----------------------------------------------------------------------
 Memory::Memory(RLMachine& machine, Gameexe& gameexe)
-    : global_(new GlobalMemory),
-      local_(),
-      machine_(machine),
-      service_(std::make_shared<MemoryServices>(machine)) {
-  ConnectIntVarPointers();
-
+    : Memory(nullptr, std::make_shared<MemoryServices>(machine)) {
   InitializeDefaultValues(gameexe);
 }
 
-Memory::Memory(RLMachine& machine, int slot)
-    : global_(machine.memory().global_),
-      local_(dont_initialize()),
-      machine_(machine),
-      service_(std::make_shared<MemoryServices>(machine)) {
+Memory::Memory(std::shared_ptr<GlobalMemory> global,
+               std::shared_ptr<IMemoryServices> services)
+    : global_(global), local_(), service_(services) {
+  if (service_ == nullptr)
+    throw std::invalid_argument("Memory: no service locator provided");
+  if (global_ == nullptr)
+    global_ = std::make_shared<GlobalMemory>();
   ConnectIntVarPointers();
 }
 

@@ -35,6 +35,7 @@
 #include <algorithm>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -196,14 +197,8 @@ class Memory {
   //       declaration of the form \#intvar[index] or \#strvar[index].
   Memory(RLMachine& machine, Gameexe& gamexe);
 
-  // Creates an overlaid memory object. An overlay takes another Memory's
-  // global memory. Local integer memory isn't initialized; it isn't even
-  // memset zeroed out.
-  //
-  // Theoretically, |slot| is the save game slot to read local memory from, but
-  // this is a misnomer. |slot| isn't used and appears only for the type
-  // system(?).
-  Memory(RLMachine& machine, int slot);
+  Memory(std::shared_ptr<GlobalMemory> global_memptr = nullptr,
+         std::shared_ptr<IMemoryServices> services = nullptr);
 
   ~Memory();
 
@@ -241,6 +236,7 @@ class Memory {
 
   // Accessors for serialization.
   GlobalMemory& global() { return *global_; }
+  auto globalptr() { return global_; }
   const GlobalMemory& global() const { return *global_; }
   LocalMemory& local() { return local_; }
   const LocalMemory& local() const { return local_; }
@@ -274,9 +270,6 @@ class Memory {
   // Local memory to a save file
   LocalMemory local_;
 
-  // Our owning machine. We keep this reference so we can ask for the current
-  // stackframe.
-  RLMachine& machine_;
   std::shared_ptr<IMemoryServices> service_;
 
   // Integer variable pointers. This redirect into Global and local
