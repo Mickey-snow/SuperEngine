@@ -37,20 +37,6 @@
 #include "utilities/exception.h"
 #include "utilities/string_utilities.h"
 
-using std::make_pair;
-
-const IntegerBank_t LOCAL_INTEGER_BANKS = {
-    make_pair(libreallive::INTA_LOCATION, 'A'),
-    make_pair(libreallive::INTB_LOCATION, 'B'),
-    make_pair(libreallive::INTC_LOCATION, 'C'),
-    make_pair(libreallive::INTD_LOCATION, 'D'),
-    make_pair(libreallive::INTE_LOCATION, 'E'),
-    make_pair(libreallive::INTF_LOCATION, 'F')};
-
-const IntegerBank_t GLOBAL_INTEGER_BANKS = {
-    make_pair(libreallive::INTG_LOCATION, 'G'),
-    make_pair(libreallive::INTZ_LOCATION, 'Z')};
-
 // -----------------------------------------------------------------------
 // GlobalMemory
 // -----------------------------------------------------------------------
@@ -63,8 +49,6 @@ GlobalMemory::GlobalMemory() {
 // LocalMemory
 // -----------------------------------------------------------------------
 LocalMemory::LocalMemory() { reset(); }
-
-LocalMemory::LocalMemory(dont_initialize) {}
 
 void LocalMemory::reset() {
   memset(intA, 0, sizeof(intA));
@@ -84,12 +68,12 @@ void LocalMemory::reset() {
 // Memory
 // -----------------------------------------------------------------------
 Memory::Memory(RLMachine& machine, Gameexe& gameexe)
-    : Memory(nullptr, std::make_shared<MemoryServices>(machine)) {
+    : Memory(std::make_shared<MemoryServices>(machine)) {
   InitializeDefaultValues(gameexe);
 }
 
-Memory::Memory(std::shared_ptr<GlobalMemory> global,
-               std::shared_ptr<IMemoryServices> services)
+Memory::Memory(std::shared_ptr<IMemoryServices> services,
+               std::shared_ptr<GlobalMemory> global)
     : global_(global), local_(), service_(services) {
   if (service_ == nullptr)
     throw std::invalid_argument("Memory: no service locator provided");

@@ -234,8 +234,8 @@ struct GetSaveFlag : public RLStoreOpcode<IntConstant_T, GetSaveFlagList> {
     if (!fileExists)
       return 0;
 
-    Memory overlayedMemory(machine.memory().globalptr(),
-                           std::make_shared<MemoryServices>(machine));
+    Memory overlayedMemory(std::make_shared<MemoryServices>(machine),
+                           machine.memory().globalptr());
     Serialization::loadLocalMemoryForSlot(machine, slot, overlayedMemory);
 
     for (GetSaveFlagList::type::iterator it = flagList.begin();

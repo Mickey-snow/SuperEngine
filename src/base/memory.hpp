@@ -48,10 +48,6 @@ const int SIZE_OF_MEM_BANK = 2000;
 const int SIZE_OF_INT_PASSING_MEM = 40;
 const int SIZE_OF_NAME_BANK = 702;
 
-typedef std::vector<std::pair<int, char>> IntegerBank_t;
-extern const IntegerBank_t LOCAL_INTEGER_BANKS;
-extern const IntegerBank_t GLOBAL_INTEGER_BANKS;
-
 class RLMachine;
 class Gameexe;
 
@@ -87,16 +83,10 @@ struct GlobalMemory {
 
 BOOST_CLASS_VERSION(GlobalMemory, 1)
 
-struct dont_initialize {};
-
 // Struct that represents Local Memory. In any one rlvm process, lots
 // of these things will be created, because there are commands
 struct LocalMemory {
   LocalMemory();
-
-  // Constructor that prevents the memory banks from being memset
-  // (since they'll be overwritten entirely by the thawing process.
-  explicit LocalMemory(dont_initialize);
 
   // Zeros and clears all of local memory.
   void reset();
@@ -189,7 +179,7 @@ BOOST_CLASS_VERSION(LocalMemory, 2)
 //       into memory_intmem.cc.
 class Memory {
  public:
-  // Default constructor; creates a Memory object which owns its own
+  // Creates a Memory object which owns its own
   // GlobalMemory. Initial memory values are read from the passed in Gameexe
   // object.
   //
@@ -197,8 +187,8 @@ class Memory {
   //       declaration of the form \#intvar[index] or \#strvar[index].
   Memory(RLMachine& machine, Gameexe& gamexe);
 
-  Memory(std::shared_ptr<GlobalMemory> global_memptr = nullptr,
-         std::shared_ptr<IMemoryServices> services = nullptr);
+  Memory(std::shared_ptr<IMemoryServices> services,
+         std::shared_ptr<GlobalMemory> global_memptr = nullptr);
 
   ~Memory();
 
