@@ -42,8 +42,10 @@
 #include <utility>
 #include <vector>
 
-#include "memory/services.hpp"
 #include "libreallive/intmemref.h"
+#include "memory/bank.hpp"
+#include "memory/location.hpp"
+#include "memory/services.hpp"
 
 constexpr int NUMBER_OF_INT_LOCATIONS = 8;
 constexpr int SIZE_OF_MEM_BANK = 2000;
@@ -269,6 +271,31 @@ class Memory {
 
   // Change records for original.
   std::map<int, int>* original_int_var[NUMBER_OF_INT_LOCATIONS];
+
+  // -----------------------------------------------------------
+
+ public:
+  void Write(IntMemoryLocation, int);
+  void Write(StrMemoryLocation, const std::string&);
+  void Fill(IntBank, size_t begin, size_t end, int value);
+  void Fill(StrBank, size_t begin, size_t end, const std::string& value);
+  int Read(IntMemoryLocation) const;
+  std::string const& Read(StrMemoryLocation) const;
+
+  void Resize(IntBank, std::size_t);
+  void Resize(StrBank, std::size_t);
+
+ private:
+  const MemoryBank<int>& GetBank(IntBank) const;
+  const MemoryBank<std::string>& GetBank(StrBank) const;
+
+  static constexpr auto int_bank_cnt = static_cast<size_t>(IntBank::CNT);
+  static constexpr auto str_bank_cnt = static_cast<size_t>(StrBank::CNT);
+
+  // internally MemoryBank<T> is a structure representing a dynamic array,
+  // supports COW and can be trivally copied.
+  MemoryBank<int> intbanks_[int_bank_cnt];
+  MemoryBank<std::string> strbanks_[str_bank_cnt];
 };
 
 #endif  // SRC_MEMORY_MEMORY_HPP_

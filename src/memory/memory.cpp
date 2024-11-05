@@ -77,6 +77,11 @@ Memory::Memory(std::shared_ptr<IMemoryServices> services,
   if (global_ == nullptr)
     global_ = std::make_shared<GlobalMemory>();
   ConnectIntVarPointers();
+
+  for (size_t i = 0; i < int_bank_cnt; ++i)
+    intbanks_[i].Resize(SIZE_OF_MEM_BANK);
+  for (size_t i = 0; i < str_bank_cnt; ++i)
+    strbanks_[i].Resize(SIZE_OF_MEM_BANK);
 }
 
 Memory::~Memory() {}
@@ -247,4 +252,83 @@ void Memory::InitializeDefaultValues(Gameexe& gameexe) {
       std::cerr << "WARNING: Invalid format for key " << it.key() << std::endl;
     }
   }
+}
+
+// -----------------------------------------------------------------------
+
+const MemoryBank<int>& Memory::GetBank(IntBank bank) const {
+  const auto bankidx = static_cast<uint8_t>(bank);
+  if (bankidx >= int_bank_cnt)
+    throw std::invalid_argument("Memory: invalid int bank " +
+                                std::to_string(bankidx));
+  return intbanks_[bankidx];
+}
+
+const MemoryBank<std::string>& Memory::GetBank(StrBank bank) const {
+  const auto bankidx = static_cast<uint8_t>(bank);
+  if (bankidx >= str_bank_cnt)
+    throw std::invalid_argument("Memory: invalid string bank " +
+                                std::to_string(bankidx));
+  return strbanks_[bankidx];
+}
+
+int Memory::Read(IntMemoryLocation loc) const {
+  return GetBank(loc.Bank()).Get(loc.Index());
+}
+
+std::string const& Memory::Read(StrMemoryLocation loc) const {
+  return GetBank(loc.Bank()).Get(loc.Index());
+}
+
+void Memory::Write(IntMemoryLocation loc, int value) {
+  auto& bank = const_cast<MemoryBank<int>&>(GetBank(loc.Bank()));
+  bank.Set(loc.Index(), value);
+}
+
+void Memory::Write(StrMemoryLocation loc, const std::string& value) {
+  auto& bank = const_cast<MemoryBank<std::string>&>(GetBank(loc.Bank()));
+  bank.Set(loc.Index(), value);
+}
+
+void Memory::Fill(IntBank bankid, size_t begin, size_t end, int value) {
+  auto& bank = const_cast<MemoryBank<int>&>(GetBank(bankid));
+  if (begin > end) {
+    throw std::invalid_argument("Memory::Fill: invalid range [" +
+                                std::to_string(begin) + ',' +
+                                std::to_string(end) + ").");
+  }
+  if (end > bank.GetSize()) {
+    throw std::out_of_range("Memory::Fill: range [" + std::to_string(begin) +
+                            ',' + std::to_string(end) + ") out of bounds.");
+  }
+
+  bank.Fill(begin, end, value);
+}
+
+void Memory::Fill(StrBank bankid,
+                  size_t begin,
+                  size_t end,
+                  const std::string& value) {
+  auto& bank = const_cast<MemoryBank<std::string>&>(GetBank(bankid));
+  if (begin > end) {
+    throw std::invalid_argument("Memory::Fill: invalid range [" +
+                                std::to_string(begin) + ',' +
+                                std::to_string(end) + ").");
+  }
+  if (end > bank.GetSize()) {
+    throw std::out_of_range("Memory::Fill: range [" + std::to_string(begin) +
+                            ',' + std::to_string(end) + ") out of bounds.");
+  }
+
+  bank.Fill(begin, end, value);
+}
+
+void Memory::Resize(IntBank bankid, std::size_t size) {
+  auto& bank = const_cast<MemoryBank<int>&>(GetBank(bankid));
+  bank.Resize(size);
+}
+
+void Memory::Resize(StrBank bankid, std::size_t size) {
+  auto& bank = const_cast<MemoryBank<std::string>&>(GetBank(bankid));
+  bank.Resize(size);
 }

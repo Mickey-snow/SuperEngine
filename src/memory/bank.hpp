@@ -26,6 +26,7 @@
 #define SRC_MEMORY_BANK_HPP_
 
 #include <cstddef>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <stdexcept>
@@ -58,8 +59,16 @@ class MemoryBank {
   void Resize(size_t size) {
     size_ = size;
     size_t newsize = root_ == nullptr ? 32 : root_->to;
-    while (newsize < size_)
+
+    static_assert(std::numeric_limits<size_t>::radix == 2);
+
+    for (int i = 0; newsize < size && i < std::numeric_limits<size_t>::digits;
+         ++i)
       newsize <<= 1;
+    if (newsize < size) {
+      // special case: expanding the size by exponent of 2 causing overflow
+      newsize = std::numeric_limits<size_t>::max();
+    }
 
     auto oldroot = root_;
     root_ = std::make_shared<Node>(0, newsize - 1);
@@ -68,7 +77,8 @@ class MemoryBank {
   size_t GetSize() const { return size_; }
 
   void Fill(size_t begin, size_t end, T const& value) {
-    Set_impl(begin, end, value, root_);
+    // the implementation code uses ranges [begin,end] everywhere.
+    Set_impl(begin, end - 1, value, root_);
   }
 
  private:
@@ -84,7 +94,7 @@ class MemoryBank {
       if (fr == to)
         throw std::runtime_error("Node: pushdown() called at leaf node " +
                                  std::to_string(fr));
-      size_t mid = (fr + to) >> 1;
+      const size_t mid = Midpoint();
       if (lch == nullptr)
         lch = std::make_shared<Node>(fr, mid);
       if (rch == nullptr)
@@ -96,16 +106,19 @@ class MemoryBank {
         tag.reset();
       }
     }
+
+    size_t Midpoint() const { return fr + ((to - fr) >> 1); }
   };
 
-  T Get_impl(size_t index, std::shared_ptr<Node> const& nowAt) const {
-    if (nowAt == nullptr)
-      return T{};
+  T const& Get_impl(size_t index, std::shared_ptr<Node> const& nowAt) const {
+    if (nowAt == nullptr) {
+      throw std::runtime_error(
+          "MemoryBank::Get_impl: Unknown error nowAt is nullptr");
+    }
 
     if (nowAt->tag.has_value())
       return nowAt->tag.value();
-    size_t mid = (nowAt->fr + nowAt->to) >> 1;
-    if (index <= mid)
+    if (index <= nowAt->Midpoint())
       return Get_impl(index, nowAt->lch);
     else
       return Get_impl(index, nowAt->rch);

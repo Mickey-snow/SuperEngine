@@ -70,7 +70,7 @@ TEST(MemoryBankTest, FillValues) {
   MemoryBank<int> bank;
   bank.Resize(10);
   bank.Fill(2, 5, 7);
-  for (size_t i = 2; i <= 5; ++i) {
+  for (size_t i = 2; i < 5; ++i) {
     EXPECT_EQ(bank.Get(i), 7);
   }
   EXPECT_NE(bank.Get(6), 7);

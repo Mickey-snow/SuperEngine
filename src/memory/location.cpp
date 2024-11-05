@@ -26,6 +26,7 @@
 
 #include <sstream>
 #include <stdexcept>
+#include <utility>
 
 #include "libreallive/intmemref.h"
 
@@ -33,7 +34,9 @@
 // class IntMemoryLocation
 // -----------------------------------------------------------------------
 
-IntMemoryLocation::IntMemoryLocation(IntBank bank, size_t location, uint8_t bits)
+IntMemoryLocation::IntMemoryLocation(IntBank bank,
+                                     size_t location,
+                                     uint8_t bits)
     : bank_(bank), location_(location), bits_(bits) {
   if (bits_ == 0)
     bits_ = 32;
@@ -55,8 +58,9 @@ IntMemoryLocation::IntMemoryLocation(libreallive::IntMemRef rlint) {
       if (0 <= bankid && bankid <= 5)
         bank_ = static_cast<IntBank>(bankid);
       else
-        throw std::invalid_argument("IntMemoryLocation: invalid libreallive bank id " +
-                                    std::to_string(bankid));
+        throw std::invalid_argument(
+            "IntMemoryLocation: invalid libreallive bank id " +
+            std::to_string(bankid));
   }
 
   location_ = rlint.location();
@@ -68,8 +72,9 @@ IntMemoryLocation::IntMemoryLocation(libreallive::IntMemRef rlint) {
       break;
     default:
       if (access_type < 0 || access_type > 4)
-        throw std::invalid_argument("IntMemoryLocation: invalid libreallive access type " +
-                                    std::to_string(access_type));
+        throw std::invalid_argument(
+            "IntMemoryLocation: invalid libreallive access type " +
+            std::to_string(access_type));
       bits_ = 1 << (access_type - 1);
   }
 }
@@ -143,6 +148,16 @@ IntMemoryLocation::operator std::string() const {
   return oss.str();
 }
 
+bool IntMemoryLocation::operator<(const IntMemoryLocation& other) const {
+  return std::make_tuple(bank_, location_, bits_) <
+         std::make_tuple(other.bank_, other.location_, other.bits_);
+}
+
+bool IntMemoryLocation::operator==(const IntMemoryLocation& other) const {
+  return bank_ == other.bank_ && location_ == other.location_ &&
+         bits_ == other.bits_;
+}
+
 // -----------------------------------------------------------------------
 // class StrMemoryLocation
 // -----------------------------------------------------------------------
@@ -188,4 +203,13 @@ StrMemoryLocation::operator std::string() const {
   std::ostringstream oss;
   oss << *this;
   return oss.str();
+}
+
+bool StrMemoryLocation::operator<(const StrMemoryLocation& other) const {
+  return std::make_tuple(bank_, location_) <
+         std::make_tuple(other.bank_, other.location_);
+}
+
+bool StrMemoryLocation::operator==(const StrMemoryLocation& other) const {
+  return bank_ == other.bank_ && location_ == other.location_;
 }

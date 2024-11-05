@@ -30,7 +30,9 @@
 #include <string>
 #include <variant>
 
-#include "libreallive/intmemref.h"
+namespace libreallive {
+class IntMemRef;
+}
 
 /*
  * @brief Defines classes to represent memory locations in the virtual machine.
@@ -59,7 +61,7 @@ class IntMemoryLocation {
    * This constructor is compatible with libreallive and allows for easy
    * conversion from libreallive's `IntMemRef`.
    */
-  IntMemoryLocation(libreallive::IntMemRef rlint);
+  IntMemoryLocation(libreallive::IntMemRef);
 
   IntBank Bank() const;
   size_t Index() const;
@@ -69,6 +71,9 @@ class IntMemoryLocation {
   friend std::ostream& operator<<(std::ostream& os,
                                   const IntMemoryLocation& memref);
   explicit operator std::string() const;
+
+  bool operator<(const IntMemoryLocation&) const;
+  bool operator==(const IntMemoryLocation&) const;
 
  private:
   IntBank bank_;
@@ -88,6 +93,9 @@ class StrMemoryLocation {
   friend std::ostream& operator<<(std::ostream& os,
                                   const StrMemoryLocation& memref);
   explicit operator std::string() const;
+
+  bool operator<(const StrMemoryLocation&) const;
+  bool operator==(const StrMemoryLocation&) const;
 
  private:
   StrBank bank_;
