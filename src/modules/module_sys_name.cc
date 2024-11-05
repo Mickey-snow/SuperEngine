@@ -33,7 +33,7 @@
 #include "machine/rloperation/references.h"
 #include "machine/rlmachine.h"
 #include "machine/rlmodule.h"
-#include "base/memory.hpp"
+#include "memory/memory.hpp"
 
 // -----------------------------------------------------------------------
 

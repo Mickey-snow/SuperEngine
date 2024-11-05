@@ -40,7 +40,7 @@
 #include "base/notification/details.h"
 #include "base/notification/service.h"
 #include "base/notification/source.h"
-#include "base/memory.hpp"
+#include "memory/memory.hpp"
 #include "machine/rlmachine.h"
 #include "machine/serialization.h"
 #include "systems/base/graphics_system.h"

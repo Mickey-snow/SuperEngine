@@ -45,7 +45,7 @@
 #include <string>
 
 #include "libreallive/intmemref.h"
-#include "base/memory.hpp"
+#include "memory/memory.hpp"
 #include "machine/rlmachine.h"
 #include "utilities/exception.h"
 

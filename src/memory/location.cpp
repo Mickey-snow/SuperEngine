@@ -22,7 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#include "base/memory_location.hpp"
+#include "memory/location.hpp"
 
 #include <sstream>
 #include <stdexcept>

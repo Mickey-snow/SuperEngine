@@ -50,7 +50,7 @@
 #include "long_operations/pause_long_operation.h"
 #include "long_operations/textout_long_operation.h"
 #include "machine/long_operation.h"
-#include "base/memory.hpp"
+#include "memory/memory.hpp"
 #include "machine/opcode_log.h"
 #include "machine/reallive_dll.h"
 #include "machine/rlmodule.h"

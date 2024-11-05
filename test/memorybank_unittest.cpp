@@ -24,7 +24,7 @@
 
 #include <gtest/gtest.h>
 
-#include "base/memory_bank.hpp"
+#include "memory/bank.hpp"
 
 #include <string>
 

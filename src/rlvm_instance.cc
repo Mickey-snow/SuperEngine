@@ -33,7 +33,7 @@
 #include "libreallive/reallive.h"
 #include "machine/dump_scenario.h"
 #include "machine/game_hacks.h"
-#include "base/memory.hpp"
+#include "memory/memory.hpp"
 #include "machine/rlmachine.h"
 #include "machine/serialization.h"
 #include "modules/module_sys_save.h"

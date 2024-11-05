@@ -61,10 +61,11 @@ librlvm_files = [
   "src/base/sound_settings.cc",
   "src/base/audio_table.cc",
   "src/base/gameexe.cpp",
-  "src/base/memory.cpp",
-  "src/base/memory_intmem.cpp",
-  "src/base/memory_services.cpp",
-  "src/base/memory_location.cpp",
+
+  "src/memory/memory.cpp",
+  "src/memory/intmem.cpp",
+  "src/memory/services.cpp",
+  "src/memory/location.cpp",
 
   "src/effects/effect.cc",
   "src/effects/sel_record.cc",

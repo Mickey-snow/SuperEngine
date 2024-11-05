@@ -42,7 +42,7 @@
 #include <utility>
 #include <vector>
 
-#include "base/memory_services.hpp"
+#include "memory/services.hpp"
 #include "libreallive/intmemref.h"
 
 constexpr int NUMBER_OF_INT_LOCATIONS = 8;

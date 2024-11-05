@@ -24,8 +24,8 @@
 
 #include <gtest/gtest.h>
 
-#include "base/memory.hpp"
-#include "base/memory_location.hpp"
+#include "memory/memory.hpp"
+#include "memory/location.hpp"
 #include "libreallive/intmemref.h"
 
 #include <sstream>

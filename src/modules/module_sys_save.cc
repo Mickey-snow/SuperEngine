@@ -35,7 +35,7 @@
 #include <optional>
 #include <string>
 
-#include "base/memory.hpp"
+#include "memory/memory.hpp"
 #include "libreallive/intmemref.h"
 #include "long_operations/load_game_long_operation.h"
 #include "machine/general_operations.h"
