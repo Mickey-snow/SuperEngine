@@ -1,5 +1,5 @@
-#ifndef SRC_BASE_MEMORY_SERVICES_HPP_
-#define SRC_BASE_MEMORY_SERVICES_HPP_
+#ifndef SRC_MEMORY_SERVICES_HPP_
+#define SRC_MEMORY_SERVICES_HPP_
 
 #include <string>
 #include <vector>
@@ -26,4 +26,4 @@ class MemoryServices : public IMemoryServices {
   RLMachine& machine_;
 };
 
-#endif
+#endif  // SRC_MEMORY_SERVICES_HPP_

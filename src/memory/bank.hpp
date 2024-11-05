@@ -22,8 +22,8 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_BASE_MEMORY_BANK_HPP_
-#define SRC_BASE_MEMORY_BANK_HPP_
+#ifndef SRC_MEMORY_BANK_HPP_
+#define SRC_MEMORY_BANK_HPP_
 
 #include <cstddef>
 #include <memory>
@@ -147,4 +147,4 @@ class MemoryBank {
   size_t size_;
 };
 
-#endif
+#endif  // SRC_MEMORY_BANK_HPP_

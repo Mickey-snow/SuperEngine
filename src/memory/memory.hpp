@@ -25,8 +25,8 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_BASE_MEMORY_HPP_
-#define SRC_BASE_MEMORY_HPP_
+#ifndef SRC_MEMORY_MEMORY_HPP_
+#define SRC_MEMORY_MEMORY_HPP_
 
 #include <boost/dynamic_bitset.hpp>
 #include <boost/serialization/array.hpp>
@@ -271,4 +271,4 @@ class Memory {
   std::map<int, int>* original_int_var[NUMBER_OF_INT_LOCATIONS];
 };
 
-#endif
+#endif  // SRC_MEMORY_MEMORY_HPP_
