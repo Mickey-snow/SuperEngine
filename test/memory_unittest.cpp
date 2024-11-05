@@ -25,18 +25,19 @@
 #include <gtest/gtest.h>
 
 #include "base/memory.hpp"
+#include "base/memory_location.hpp"
 #include "libreallive/intmemref.h"
 
 #include <sstream>
 #include <string>
 
-std::string ToString(libreallive::IntMemRef ref) {
-  std::ostringstream os;
-  os << ref;
-  return os.str();
-}
+TEST(MemlocTest, rlIntMemref) {
+  auto ToString = [](libreallive::IntMemRef ref) -> std::string {
+    std::ostringstream os;
+    os << ref;
+    return os.str();
+  };
 
-TEST(MemrefTest, rlIntMemref) {
   {
     int bytecode = 27;  // IntBb
     int location = 0;
@@ -72,4 +73,22 @@ TEST(MemrefTest, rlIntMemref) {
     EXPECT_EQ(ref.type(), 3);
     EXPECT_EQ(ToString(ref), "intL4b[623]");
   }
+}
+
+TEST(MemlocTest, IntLocations) {
+  auto a3 = IntMemoryLocation(IntBank::A, 3);
+  EXPECT_EQ(static_cast<std::string>(a3), "intA[3]");
+  auto x32_2b = IntMemoryLocation(IntBank::X, 32, 2);
+  EXPECT_EQ(static_cast<std::string>(x32_2b), "intX2b[32]");
+  auto l128_4b = IntMemoryLocation(libreallive::IntMemRef('L', "4b", 128));
+  EXPECT_EQ(static_cast<std::string>(l128_4b), "intL4b[128]");
+  auto e0_8b = IntMemoryLocation(libreallive::IntMemRef('E', "8b", 0));
+  EXPECT_EQ(static_cast<std::string>(e0_8b), "intE8b[0]");
+}
+
+TEST(MemlocTest, StrLocations) {
+  auto s2 = StrMemoryLocation(StrBank::S, 2);
+  EXPECT_EQ(static_cast<std::string>(s2), "strS[2]");
+  auto k0 = StrMemoryLocation(StrBank::K, 0);
+  EXPECT_EQ(static_cast<std::string>(k0), "strK[0]");
 }
