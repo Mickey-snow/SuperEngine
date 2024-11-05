@@ -40,28 +40,25 @@
 // -----------------------------------------------------------------------
 // GlobalMemory
 // -----------------------------------------------------------------------
-GlobalMemory::GlobalMemory() {
-  memset(intG, 0, sizeof(intG));
-  memset(intZ, 0, sizeof(intZ));
-}
+GlobalMemory::GlobalMemory() = default;
 
 // -----------------------------------------------------------------------
 // LocalMemory
 // -----------------------------------------------------------------------
-LocalMemory::LocalMemory() { reset(); }
+LocalMemory::LocalMemory() = default;
 
 void LocalMemory::reset() {
-  memset(intA, 0, sizeof(intA));
-  memset(intB, 0, sizeof(intB));
-  memset(intC, 0, sizeof(intC));
-  memset(intD, 0, sizeof(intD));
-  memset(intE, 0, sizeof(intE));
-  memset(intF, 0, sizeof(intF));
+  intA.fill(0);
+  intB.fill(0);
+  intC.fill(0);
+  intD.fill(0);
+  intE.fill(0);
+  intF.fill(0);
 
-  for (int i = 0; i < SIZE_OF_MEM_BANK; ++i)
-    strS[i].clear();
-  for (int i = 0; i < SIZE_OF_NAME_BANK; ++i)
-    local_names[i].clear();
+  for (auto& str : strS)
+    str.clear();
+  for (auto& name : local_names)
+    name.clear();
 }
 
 // -----------------------------------------------------------------------
@@ -85,14 +82,14 @@ Memory::Memory(std::shared_ptr<IMemoryServices> services,
 Memory::~Memory() {}
 
 void Memory::ConnectIntVarPointers() {
-  int_var[0] = local_.intA;
-  int_var[1] = local_.intB;
-  int_var[2] = local_.intC;
-  int_var[3] = local_.intD;
-  int_var[4] = local_.intE;
-  int_var[5] = local_.intF;
-  int_var[6] = global_->intG;
-  int_var[7] = global_->intZ;
+  int_var[0] = local_.intA.data();
+  int_var[1] = local_.intB.data();
+  int_var[2] = local_.intC.data();
+  int_var[3] = local_.intD.data();
+  int_var[4] = local_.intE.data();
+  int_var[5] = local_.intF.data();
+  int_var[6] = global_->intG.data();
+  int_var[7] = global_->intZ.data();
 
   original_int_var[0] = &local_.original_intA;
   original_int_var[1] = &local_.original_intB;

@@ -29,10 +29,12 @@
 #define SRC_BASE_MEMORY_HPP_
 
 #include <boost/dynamic_bitset.hpp>
+#include <boost/serialization/array.hpp>
 #include <boost/serialization/split_member.hpp>
 #include <boost/serialization/version.hpp>
 
 #include <algorithm>
+#include <array>
 #include <map>
 #include <memory>
 #include <optional>
@@ -43,10 +45,10 @@
 #include "base/memory_services.hpp"
 #include "libreallive/intmemref.h"
 
-const int NUMBER_OF_INT_LOCATIONS = 8;
-const int SIZE_OF_MEM_BANK = 2000;
-const int SIZE_OF_INT_PASSING_MEM = 40;
-const int SIZE_OF_NAME_BANK = 702;
+constexpr int NUMBER_OF_INT_LOCATIONS = 8;
+constexpr int SIZE_OF_MEM_BANK = 2000;
+constexpr int SIZE_OF_INT_PASSING_MEM = 40;
+constexpr int SIZE_OF_NAME_BANK = 702;
 
 class RLMachine;
 class Gameexe;
@@ -57,12 +59,9 @@ class Gameexe;
 struct GlobalMemory {
   GlobalMemory();
 
-  int intG[SIZE_OF_MEM_BANK];
-  int intZ[SIZE_OF_MEM_BANK];
-
-  std::string strM[SIZE_OF_MEM_BANK];
-
-  std::string global_names[SIZE_OF_NAME_BANK];
+  std::array<int, SIZE_OF_MEM_BANK> intG, intZ;
+  std::array<std::string, SIZE_OF_MEM_BANK> strM;
+  std::array<std::string, SIZE_OF_NAME_BANK> global_names;
 
   // A mapping from a scenario number to a dynamic bitset, where each bit
   // represents a specific kidoku bit.
@@ -71,13 +70,20 @@ struct GlobalMemory {
   // boost::serialization
   template <class Archive>
   void serialize(Archive& ar, unsigned int version) {
-    ar & intG & intZ & strM;
+    int _G[2000] = {}, _Z[2000] = {};
+    std::string _M[2000], _name[702];
+    ar & _G & _Z & _M;
 
     // Starting in version 1, \#NAME variable storage were added.
     if (version > 0) {
-      ar & global_names;
+      ar & _name;
       ar & kidoku_data;
     }
+
+    std::copy(_G, _G + 2000, intG.begin());
+    std::copy(_Z, _Z + 2000, intZ.begin());
+    std::copy(_M, _M + 2000, strM.begin());
+    std::copy(_name, _name + 702, global_names.begin());
   }
 };
 
@@ -91,15 +97,9 @@ struct LocalMemory {
   // Zeros and clears all of local memory.
   void reset();
 
-  int intA[SIZE_OF_MEM_BANK];
-  int intB[SIZE_OF_MEM_BANK];
-  int intC[SIZE_OF_MEM_BANK];
-  int intD[SIZE_OF_MEM_BANK];
-  int intE[SIZE_OF_MEM_BANK];
-  int intF[SIZE_OF_MEM_BANK];
+  std::array<int, SIZE_OF_MEM_BANK> intA, intB, intC, intD, intE, intF;
 
-  // Local string bank
-  std::string strS[SIZE_OF_MEM_BANK];
+  std::array<std::string, SIZE_OF_MEM_BANK> strS;
 
   // When one of our values is changed, we put the original value in here. Why?
   // So that we can save the state of string memory at the time of the last
@@ -114,33 +114,33 @@ struct LocalMemory {
   std::map<int, int> original_intF;
   std::map<int, std::string> original_strS;
 
-  std::string local_names[SIZE_OF_NAME_BANK];
+  std::array<std::string, SIZE_OF_NAME_BANK> local_names;
 
   // Combines an array with a log of original values and writes the de-modified
   // array to |ar|.
-  template <class Archive, typename T>
-  void saveArrayRevertingChanges(Archive& ar,
-                                 const T (&a)[SIZE_OF_MEM_BANK],
-                                 const std::map<int, T>& original) const {
-    T merged[SIZE_OF_MEM_BANK];
-    std::copy(a, a + SIZE_OF_MEM_BANK, merged);
-    for (auto it = original.cbegin(); it != original.cend(); ++it) {
-      merged[it->first] = it->second;
-    }
-    ar & merged;
-  }
+  // template <class Archive, typename T>
+  // void saveArrayRevertingChanges(Archive& ar,
+  //                                const T& a,
+  //                                const std::map<int, T>& original) const {
+  //   T merged[SIZE_OF_MEM_BANK];
+  //   std::copy(a.cbegin(), a.cend(), merged);
+  //   for (auto it = original.cbegin(); it != original.cend(); ++it) {
+  //     merged[it->first] = it->second;
+  //   }
+  //   ar & merged;
+  // }
 
   // boost::serialization support
   template <class Archive>
   void save(Archive& ar, unsigned int version) const {
-    saveArrayRevertingChanges(ar, intA, original_intA);
-    saveArrayRevertingChanges(ar, intB, original_intB);
-    saveArrayRevertingChanges(ar, intC, original_intC);
-    saveArrayRevertingChanges(ar, intD, original_intD);
-    saveArrayRevertingChanges(ar, intE, original_intE);
-    saveArrayRevertingChanges(ar, intF, original_intF);
+    // saveArrayRevertingChanges(ar, intA, original_intA);
+    // saveArrayRevertingChanges(ar, intB, original_intB);
+    // saveArrayRevertingChanges(ar, intC, original_intC);
+    // saveArrayRevertingChanges(ar, intD, original_intD);
+    // saveArrayRevertingChanges(ar, intE, original_intE);
+    // saveArrayRevertingChanges(ar, intF, original_intF);
 
-    saveArrayRevertingChanges(ar, strS, original_strS);
+    // saveArrayRevertingChanges(ar, strS, original_strS);
 
     ar & local_names;
   }

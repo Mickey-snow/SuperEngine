@@ -32,21 +32,21 @@
 
 namespace libreallive {
 
-const int INTA_LOCATION = 0;
-const int INTB_LOCATION = 1;
-const int INTC_LOCATION = 2;
-const int INTD_LOCATION = 3;
-const int INTE_LOCATION = 4;
-const int INTF_LOCATION = 5;
-const int INTG_LOCATION = 6;
+[[maybe_unused]] const int INTA_LOCATION = 0;
+[[maybe_unused]] const int INTB_LOCATION = 1;
+[[maybe_unused]] const int INTC_LOCATION = 2;
+[[maybe_unused]] const int INTD_LOCATION = 3;
+[[maybe_unused]] const int INTE_LOCATION = 4;
+[[maybe_unused]] const int INTF_LOCATION = 5;
+[[maybe_unused]] const int INTG_LOCATION = 6;
 
-const int INTZ_LOCATION = 7;
-const int INTL_LOCATION = 8;
+[[maybe_unused]] const int INTZ_LOCATION = 7;
+[[maybe_unused]] const int INTL_LOCATION = 8;
 
 // -----------------------------------------------------------------------
 
-const int INTZ_LOCATION_IN_BYTECODE = 25;
-const int INTL_LOCATION_IN_BYTECODE = 11;
+[[maybe_unused]] const int INTZ_LOCATION_IN_BYTECODE = 25;
+[[maybe_unused]] const int INTL_LOCATION_IN_BYTECODE = 11;
 
 // -----------------------------------------------------------------------
 
@@ -58,7 +58,7 @@ const int STRS_LOCATION = 0x12;
 
 inline bool is_string_location(const int type) {
   return type == STRS_LOCATION || type == STRK_LOCATION ||
-      type == STRM_LOCATION;
+         type == STRM_LOCATION;
 }
 
 // -----------------------------------------------------------------------
