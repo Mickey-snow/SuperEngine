@@ -30,6 +30,7 @@
 #include <iostream>
 #include <map>
 #include <string>
+#include <unordered_set>
 
 #include "base/gameexe.hpp"
 #include "libreallive/intmemref.h"
@@ -218,7 +219,21 @@ const MemoryBank<std::string>& Memory::GetBank(StrBank bank) const {
 }
 
 int Memory::Read(IntMemoryLocation loc) const {
-  return GetBank(loc.Bank()).Get(loc.Index());
+  const auto bits = loc.Bitwidth();
+  if (bits == 32)
+    return GetBank(loc.Bank()).Get(loc.Index());
+  else {
+    static const std::unordered_set<int> allowed_bits{1, 2, 4, 8, 16};
+    if (!allowed_bits.count(bits))
+      throw std::invalid_argument("Memory: access type " +
+                                  std::to_string(bits) + " not supported.");
+
+    const auto index32 = loc.Index() * bits / 32;
+    auto val32 = Read(IntMemoryLocation(loc.Bank(), index32));
+    const int mask = (1 << bits) - 1;
+    const int shiftbits = loc.Index() * bits % 32;
+    return (val32 >> shiftbits) & mask;
+  }
 }
 
 std::string const& Memory::Read(StrMemoryLocation loc) const {
@@ -227,7 +242,31 @@ std::string const& Memory::Read(StrMemoryLocation loc) const {
 
 void Memory::Write(IntMemoryLocation loc, int value) {
   auto& bank = const_cast<MemoryBank<int>&>(GetBank(loc.Bank()));
-  bank.Set(loc.Index(), value);
+
+  if (loc.Bitwidth() == 32)
+    bank.Set(loc.Index(), value);
+  else {
+    const auto bits = loc.Bitwidth();
+
+    static const std::unordered_set<int> allowed_bits{1, 2, 4, 8, 16};
+    if (!allowed_bits.count(bits))
+      throw std::invalid_argument("Memory: access type " +
+                                  std::to_string(bits) + " not supported.");
+
+    const auto index32 = loc.Index() * bits / 32;
+    auto val32 = Read(IntMemoryLocation(loc.Bank(), index32));
+    int mask = (1 << bits) - 1;
+    if (value > mask) {
+      throw std::overflow_error("Memory: value " + std::to_string(value) +
+                                " overflow when casting to " +
+                                std::to_string(bits) + " bit int.");
+    }
+    const int shiftbits = loc.Index() * bits % 32;
+    mask <<= shiftbits;
+    val32 &= (~mask);
+    val32 |= value << shiftbits;
+    bank.Set(index32, val32);
+  }
 }
 
 void Memory::Write(StrMemoryLocation loc, const std::string& value) {

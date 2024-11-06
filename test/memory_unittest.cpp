@@ -29,6 +29,7 @@
 #include "memory/memory.hpp"
 #include "memory/services.hpp"
 
+#include <bitset>
 #include <map>
 #include <random>
 #include <sstream>
@@ -116,6 +117,27 @@ TEST_F(MemoryTest, ReadWrite) {
     EXPECT_THROW(memory_->Read(invalid_loc), std::out_of_range);
     EXPECT_THROW(memory_->Write(invalid_loc, "Test"), std::out_of_range);
   }
+}
+
+TEST_F(MemoryTest, WriteInt) {
+  auto Write = [&](int bit, int index, int value) {
+    auto loc = IntMemoryLocation(IntBank::B, index, bit);
+    memory_->Write(loc, value);
+  };
+
+  Write(2, 16, 0b01);
+  Write(1, 35, 0b1);
+  Write(8, 5, 0b10000101);
+  Write(4, 9, 0b101);
+  Write(16, 3, 0b0100110110011100);
+
+  EXPECT_EQ(memory_->Read(IntMemoryLocation(IntBank::B, 1)), 1302103385)
+      << std::bitset<32>(memory_->Read(IntMemoryLocation(IntBank::B, 1)));
+  EXPECT_EQ(memory_->Read(IntMemoryLocation(IntBank::B, 8, 4)), 0b1001)
+      << std::bitset<4>(memory_->Read(IntMemoryLocation(IntBank::B, 8, 4)));
+
+  EXPECT_THROW(Write(4, 0, 0b10000), std::overflow_error);
+  EXPECT_THROW(Write(5, 0, 0), std::invalid_argument);
 }
 
 TEST_F(MemoryTest, IntFill) {
