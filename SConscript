@@ -63,7 +63,6 @@ librlvm_files = [
   "src/base/gameexe.cpp",
 
   "src/memory/memory.cpp",
-  "src/memory/intmem.cpp",
   "src/memory/services.cpp",
   "src/memory/location.cpp",
 

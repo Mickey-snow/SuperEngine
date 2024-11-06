@@ -194,12 +194,6 @@ class Memory {
 
   ~Memory();
 
-  // Returns the integer value of a certain memory location
-  int GetIntValue(const libreallive::IntMemRef& ref);
-
-  // Sets the value of a certain memory location
-  void SetIntValue(const libreallive::IntMemRef& ref, int value);
-
   // Name table functions:
 
   // Sets the local name slot index to name.

@@ -148,11 +148,11 @@ RLMachine::~RLMachine() {
 }
 
 int RLMachine::GetIntValue(const libreallive::IntMemRef& ref) {
-  return memory_->GetIntValue(ref);
+  return memory_->Read(ref);
 }
 
 void RLMachine::SetIntValue(const libreallive::IntMemRef& ref, int value) {
-  memory_->SetIntValue(ref, value);
+  memory_->Write(ref, value);
 }
 
 const std::string& RLMachine::GetStringValue(int type, int location) {

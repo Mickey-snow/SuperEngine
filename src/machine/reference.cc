@@ -48,14 +48,14 @@ IntAccessor::operator int() const {
   if (store_register_)
     return *store_register_;
   else
-    return it->memory_->GetIntValue(IntMemRef(it->type_, it->location_));
+    return it->memory_->Read(IntMemRef(it->type_, it->location_));
 }
 
 IntAccessor& IntAccessor::operator=(const int new_value) {
   if (store_register_)
     *store_register_ = new_value;
   else
-    it->memory_->SetIntValue(IntMemRef(it->type_, it->location_), new_value);
+    it->memory_->Write(IntMemRef(it->type_, it->location_), new_value);
   return *this;
 }
 

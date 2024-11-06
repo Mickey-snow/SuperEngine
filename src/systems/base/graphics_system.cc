@@ -44,15 +44,15 @@
 #include <vector>
 
 #include "base/cgm_table.h"
+#include "base/gameexe.hpp"
 #include "base/notification/details.h"
 #include "base/notification/service.h"
 #include "base/notification/source.h"
 #include "libreallive/expression.h"
-#include "base/gameexe.hpp"
-#include "memory/memory.hpp"
 #include "machine/rlmachine.h"
 #include "machine/serialization.h"
 #include "machine/stack_frame.h"
+#include "memory/memory.hpp"
 #include "modules/module_grp.h"
 #include "object/drawer/anm.h"
 #include "object/drawer/file.h"
@@ -121,7 +121,7 @@ GraphicsSystem::GraphicsObjectSettings::GraphicsObjectSettings(
     data.emplace_back();
 
   // Read the #OBJECT.xxx entries from the Gameexe
-  for(auto it:gameexe.Filter("OBJECT.")){
+  for (auto it : gameexe.Filter("OBJECT.")) {
     string s = it.key().substr(it.key().find_first_of(".") + 1);
     std::list<int> object_nums;
     string::size_type poscolon = s.find_first_of(":");
@@ -544,7 +544,7 @@ void GraphicsSystem::Reset() {
 }
 
 std::shared_ptr<const Surface> GraphicsSystem::GetEmojiSurface() {
-  for(auto it:system().gameexe().Filter("E_MOJI.")){
+  for (auto it : system().gameexe().Filter("E_MOJI.")) {
     // Try to interpret each key as a filename.
     std::string file_name = it.ToString("");
     std::shared_ptr<const Surface> surface = GetSurfaceNamed(file_name);
@@ -626,7 +626,7 @@ std::shared_ptr<const Surface> GraphicsSystem::GetSurfaceNamedAndMarkViewed(
   // Set the intZ[] flag
   int flag = cg_table().GetFlag(short_filename);
   if (flag != -1) {
-    machine.memory().SetIntValue(
+    machine.memory().Write(
         libreallive::IntMemRef(libreallive::INTZ_LOCATION, 0, flag), 1);
   }
 
