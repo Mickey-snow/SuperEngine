@@ -200,12 +200,6 @@ class Memory {
   // Sets the value of a certain memory location
   void SetIntValue(const libreallive::IntMemRef& ref, int value);
 
-  // Returns the string value of a string memory bank
-  const std::string& GetStringValue(int type, int location);
-
-  // Sets the string value of one of the string banks
-  void SetStringValue(int type, int number, const std::string& value);
-
   // Name table functions:
 
   // Sets the local name slot index to name.

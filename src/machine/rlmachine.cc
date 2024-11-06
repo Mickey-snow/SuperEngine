@@ -50,13 +50,13 @@
 #include "long_operations/pause_long_operation.h"
 #include "long_operations/textout_long_operation.h"
 #include "machine/long_operation.h"
-#include "memory/memory.hpp"
 #include "machine/opcode_log.h"
 #include "machine/reallive_dll.h"
 #include "machine/rlmodule.h"
 #include "machine/rloperation.h"
 #include "machine/serialization.h"
 #include "machine/stack_frame.h"
+#include "memory/memory.hpp"
 #include "systems/base/graphics_system.h"
 #include "systems/base/system.h"
 #include "systems/base/system_error.h"
@@ -156,11 +156,11 @@ void RLMachine::SetIntValue(const libreallive::IntMemRef& ref, int value) {
 }
 
 const std::string& RLMachine::GetStringValue(int type, int location) {
-  return memory_->GetStringValue(type, location);
+  return memory_->Read(StrMemoryLocation(type, location));
 }
 
-void RLMachine::SetStringValue(int type, int number, const std::string& value) {
-  memory_->SetStringValue(type, number, value);
+void RLMachine::SetStringValue(int type, int index, const std::string& value) {
+  memory_->Write(StrMemoryLocation(type, index), value);
 }
 
 void RLMachine::HardResetMemory() {

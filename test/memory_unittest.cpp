@@ -204,6 +204,16 @@ TEST_F(MemoryTest, EdgeCases) {
   EXPECT_THROW(memory_->Read(loc), std::out_of_range);
 }
 
+TEST_F(MemoryTest, StrK) {
+  std::vector<std::string> expected;
+  for (int i = 0; i < 50; ++i) {
+    memory_->Write(StrMemoryLocation(StrBank::K, i), std::to_string(i * i));
+    expected.emplace_back(std::to_string(i * i));
+  }
+  service->str_k_bank_.resize(50);
+  EXPECT_EQ(service->str_k_bank_, expected);
+}
+
 class MemoryStressTest : public ::testing::Test {
  protected:
   MemoryStressTest()

@@ -72,8 +72,6 @@ Memory::Memory(RLMachine& machine, Gameexe& gameexe)
 Memory::Memory(std::shared_ptr<IMemoryServices> services,
                std::shared_ptr<GlobalMemory> global)
     : global_(global), local_(), service_(services) {
-  if (service_ == nullptr)
-    throw std::invalid_argument("Memory: no service locator provided");
   if (global_ == nullptr)
     global_ = std::make_shared<GlobalMemory>();
   ConnectIntVarPointers();
@@ -104,59 +102,6 @@ void Memory::ConnectIntVarPointers() {
   original_int_var[5] = &local_.original_intF;
   original_int_var[6] = NULL;
   original_int_var[7] = NULL;
-}
-
-const std::string& Memory::GetStringValue(int type, int location) {
-  if (location > (SIZE_OF_MEM_BANK - 1))
-    throw rlvm::Exception(
-        "Invalid range access in RLMachine::set_string_value");
-
-  switch (type) {
-    case libreallive::STRK_LOCATION: {
-      // auto& currentStrKBank = machine_.CurrentStrKBank();
-      auto& currentStrKBank = service_->StrKBank();
-      if ((location + 1) > currentStrKBank.size())
-        currentStrKBank.resize(location + 1);
-      return currentStrKBank[location];
-    }
-    case libreallive::STRM_LOCATION:
-      return global_->strM[location];
-    case libreallive::STRS_LOCATION:
-      return local_.strS[location];
-    default:
-      throw rlvm::Exception("Invalid type in RLMachine::get_string_value");
-  }
-}
-
-void Memory::SetStringValue(int bank, int index, const std::string& value) {
-  if (index > (SIZE_OF_MEM_BANK - 1))
-    throw rlvm::Exception(
-        "Invalid range access in RLMachine::set_string_value");
-
-  switch (bank) {
-    case libreallive::STRK_LOCATION: {
-      // auto& currentStrKBank = machine_.CurrentStrKBank();
-      auto& currentStrKBank = service_->StrKBank();
-      if ((index + 1) > currentStrKBank.size())
-        currentStrKBank.resize(index + 1);
-      currentStrKBank[index] = value;
-    } break;
-    case libreallive::STRM_LOCATION:
-      global_->strM[index] = value;
-      break;
-    case libreallive::STRS_LOCATION: {
-      // Possibly record the original value for a piece of local memory.
-      std::map<int, std::string>::iterator it =
-          local_.original_strS.find(index);
-      if (it == local_.original_strS.end()) {
-        local_.original_strS.insert(std::make_pair(index, local_.strS[index]));
-      }
-      local_.strS[index] = value;
-      break;
-    }
-    default:
-      throw rlvm::Exception("Invalid type in RLMachine::set_string_value");
-  }
 }
 
 void Memory::CheckNameIndex(int index, const std::string& name) const {
@@ -288,6 +233,14 @@ void Memory::Write(IntMemoryLocation loc, int value) {
 void Memory::Write(StrMemoryLocation loc, const std::string& value) {
   auto& bank = const_cast<MemoryBank<std::string>&>(GetBank(loc.Bank()));
   bank.Set(loc.Index(), value);
+
+  if (loc.Bank() == StrBank::K) {
+    auto& currentStrKBank = service_->StrKBank();
+    const auto index = loc.Index();
+    if (index >= currentStrKBank.size())
+      currentStrKBank.resize(index + 1);
+    currentStrKBank[index] = value;
+  }
 }
 
 void Memory::Fill(IntBank bankid, size_t begin, size_t end, int value) {

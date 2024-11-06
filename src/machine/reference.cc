@@ -29,8 +29,9 @@
 
 #include <string>
 
-#include "memory/memory.hpp"
 #include "libreallive/intmemref.h"
+#include "memory/location.hpp"
+#include "memory/memory.hpp"
 
 using libreallive::IntMemRef;
 
@@ -72,11 +73,11 @@ StringAccessor::StringAccessor(MemoryReferenceIterator<StringAccessor>* i)
 StringAccessor::~StringAccessor() {}
 
 StringAccessor::operator std::string() const {
-  return it->memory_->GetStringValue(it->type_, it->location_);
+  return it->memory_->Read(StrMemoryLocation(it->type_, it->location_));
 }
 
 StringAccessor& StringAccessor::operator=(const std::string& new_value) {
-  it->memory_->SetStringValue(it->type_, it->location_, new_value);
+  it->memory_->Write(StrMemoryLocation(it->type_, it->location_), new_value);
   return *this;
 }
 
