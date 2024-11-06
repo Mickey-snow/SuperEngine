@@ -86,6 +86,14 @@ class StrMemoryLocation {
  public:
   StrMemoryLocation(StrBank bank, size_t location);
 
+  /**
+   * @brief Constructs an StrMemorylocation from libreallive enum and index
+   * @param bank The libreallive representation of a string bank.
+   *
+   * This constructor is compatible with libreallive.
+   */
+  StrMemoryLocation(int bank, size_t location);
+
   StrBank Bank() const;
   size_t Index() const;
 

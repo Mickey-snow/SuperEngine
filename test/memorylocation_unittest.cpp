@@ -24,9 +24,9 @@
 
 #include <gtest/gtest.h>
 
-#include "memory/memory.hpp"
-#include "memory/location.hpp"
 #include "libreallive/intmemref.h"
+#include "memory/location.hpp"
+#include "memory/memory.hpp"
 
 #include <sstream>
 #include <string>
@@ -91,4 +91,11 @@ TEST(MemlocTest, StrLocations) {
   EXPECT_EQ(static_cast<std::string>(s2), "strS[2]");
   auto k0 = StrMemoryLocation(StrBank::K, 0);
   EXPECT_EQ(static_cast<std::string>(k0), "strK[0]");
+
+  auto k12 = StrMemoryLocation(libreallive::STRK_LOCATION, 12);
+  EXPECT_EQ(static_cast<std::string>(k12), "strK[12]");
+  auto s13 = StrMemoryLocation(libreallive::STRS_LOCATION, 13);
+  EXPECT_EQ(static_cast<std::string>(s13), "strS[13]");
+  auto m14 = StrMemoryLocation(libreallive::STRM_LOCATION, 14);
+  EXPECT_EQ(static_cast<std::string>(m14), "strM[14]");
 }

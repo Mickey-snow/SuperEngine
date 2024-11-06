@@ -165,6 +165,25 @@ bool IntMemoryLocation::operator==(const IntMemoryLocation& other) const {
 StrMemoryLocation::StrMemoryLocation(StrBank bank, size_t location)
     : bank_(bank), location_(location) {}
 
+StrMemoryLocation::StrMemoryLocation(int bank, size_t location)
+    : bank_(), location_(location) {
+  switch (bank) {
+    case libreallive::STRK_LOCATION:
+      bank_ = StrBank::K;
+      break;
+    case libreallive::STRM_LOCATION:
+      bank_ = StrBank::M;
+      break;
+    case libreallive::STRS_LOCATION:
+      bank_ = StrBank::S;
+      break;
+    default:
+      throw std::invalid_argument(
+          "StrMemoryLocation: unknown libreallive string bank enum " +
+          std::to_string(bank));
+  }
+}
+
 StrBank StrMemoryLocation::Bank() const { return bank_; }
 size_t StrMemoryLocation::Index() const { return location_; }
 
