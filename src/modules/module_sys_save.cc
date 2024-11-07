@@ -35,7 +35,6 @@
 #include <optional>
 #include <string>
 
-#include "memory/memory.hpp"
 #include "libreallive/intmemref.h"
 #include "long_operations/load_game_long_operation.h"
 #include "machine/general_operations.h"
@@ -50,6 +49,7 @@
 #include "machine/rloperation/special_t.h"
 #include "machine/save_game_header.h"
 #include "machine/serialization.h"
+#include "memory/memory.hpp"
 #include "systems/base/colour.h"
 #include "systems/base/surface.h"
 #include "systems/base/system.h"
@@ -234,8 +234,7 @@ struct GetSaveFlag : public RLStoreOpcode<IntConstant_T, GetSaveFlagList> {
     if (!fileExists)
       return 0;
 
-    Memory overlayedMemory(std::make_shared<MemoryServices>(machine),
-                           machine.memory().globalptr());
+    Memory overlayedMemory(machine.memory().globalptr());
     Serialization::loadLocalMemoryForSlot(machine, slot, overlayedMemory);
 
     for (GetSaveFlagList::type::iterator it = flagList.begin();

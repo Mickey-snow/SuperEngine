@@ -101,11 +101,14 @@ bool IsNotLongOp(StackFrame& frame) {
 // -----------------------------------------------------------------------
 
 RLMachine::RLMachine(System& in_system, libreallive::Archive& in_archive)
-    : memory_(new Memory(*this, in_system.gameexe())),
+    : memory_(std::make_unique<Memory>()),
       archive_(in_archive),
       system_(in_system) {
   // Search in the Gameexe for #SEEN_START and place us there
   Gameexe& gameexe = in_system.gameexe();
+
+  memory_->LoadFrom(gameexe);
+
   libreallive::Scenario* scenario = NULL;
   if (gameexe.Exists("SEEN_START")) {
     int first_seen = gameexe("SEEN_START").ToInt();
@@ -164,7 +167,8 @@ void RLMachine::SetStringValue(int type, int index, const std::string& value) {
 }
 
 void RLMachine::HardResetMemory() {
-  memory_.reset(new Memory(*this, system().gameexe()));
+  memory_ = std::make_unique<Memory>();
+  memory_->LoadFrom(system().gameexe());
 }
 
 void RLMachine::MarkSavepoint() {

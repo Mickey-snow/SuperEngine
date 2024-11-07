@@ -63,14 +63,9 @@ void LocalMemory::reset() {
 // -----------------------------------------------------------------------
 // Memory
 // -----------------------------------------------------------------------
-Memory::Memory(RLMachine& machine, Gameexe& gameexe)
-    : Memory(std::make_shared<MemoryServices>(machine)) {
-  InitializeDefaultValues(gameexe);
-}
-
-Memory::Memory(std::shared_ptr<IMemoryServices> services,
+Memory::Memory(
                std::shared_ptr<GlobalMemory> global)
-    : global_(global), local_(), service_(services) {
+    : global_(global), local_() {
   if (global_ == nullptr)
     global_ = std::make_shared<GlobalMemory>();
   ConnectIntVarPointers();
@@ -130,8 +125,6 @@ void Memory::TakeSavepointSnapshot() {
   local_.original_intE.clear();
   local_.original_intF.clear();
   local_.original_strS.clear();
-
-  snapshot_ = *this;
 }
 
 // static
@@ -150,7 +143,7 @@ int Memory::ConvertLetterIndexToInt(const std::string& value) {
   return total;
 }
 
-void Memory::InitializeDefaultValues(Gameexe& gameexe) {
+void Memory::LoadFrom(Gameexe& gameexe) {
   // Note: We ignore the \#NAME_MAXLEN variable because manual allocation is
   // error prone and for losers.
   for (auto it : gameexe.Filter("NAME.")) {
@@ -258,14 +251,6 @@ void Memory::Write(IntBank bankid, size_t index, int value) {
 void Memory::Write(StrMemoryLocation loc, const std::string& value) {
   auto& bank = const_cast<MemoryBank<std::string>&>(GetBank(loc.Bank()));
   bank.Set(loc.Index(), value);
-
-  if (loc.Bank() == StrBank::K) {
-    auto& currentStrKBank = service_->StrKBank();
-    const auto index = loc.Index();
-    if (index >= currentStrKBank.size())
-      currentStrKBank.resize(index + 1);
-    currentStrKBank[index] = value;
-  }
 }
 
 void Memory::Write(StrBank bank, size_t index, const std::string& value) {
@@ -324,6 +309,3 @@ void Memory::PartialReset(Stack stack_memory) {
   intbanks_[static_cast<uint8_t>(IntBank::L)] = std::move(stack_memory.L);
   strbanks_[static_cast<uint8_t>(StrBank::K)] = std::move(stack_memory.K);
 }
-
-// static
-Memory Memory::snapshot_(nullptr, nullptr);

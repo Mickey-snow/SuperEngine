@@ -22,7 +22,6 @@
 //
 // -----------------------------------------------------------------------
 
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include "memory/location.hpp"
@@ -35,39 +34,10 @@
 #include <sstream>
 #include <string>
 
-class FakeStackMemory : public IMemoryServices {
- public:
-  FakeStackMemory() {
-    int_l_bank_ = new int[2000]{};
-    str_k_bank_.resize(2000);
-  }
-  ~FakeStackMemory() { delete[] int_l_bank_; }
-
-  MOCK_METHOD((int*), IntLBank, (), (override));
-  MOCK_METHOD((std::vector<std::string>&), StrKBank, (), (override));
-
-  int* int_l_bank_;
-  std::vector<std::string> str_k_bank_;
-};
-
-using ::testing::_;
-using ::testing::Return;
-using ::testing::ReturnRef;
-
 class MemoryTest : public ::testing::Test {
  protected:
-  MemoryTest()
-      : service(std::make_shared<FakeStackMemory>()),
-        memory_(std::make_unique<Memory>(service)) {}
+  MemoryTest() : memory_(std::make_unique<Memory>()) {}
 
-  void SetUp() override {
-    EXPECT_CALL(*service, IntLBank())
-        .WillRepeatedly(Return(service->int_l_bank_));
-    EXPECT_CALL(*service, StrKBank())
-        .WillRepeatedly(ReturnRef(service->str_k_bank_));
-  }
-
-  std::shared_ptr<FakeStackMemory> service;
   std::unique_ptr<Memory> memory_;
 };
 
@@ -227,16 +197,6 @@ TEST_F(MemoryTest, EdgeCases) {
   EXPECT_THROW(memory_->Read(loc), std::out_of_range);
 }
 
-TEST_F(MemoryTest, StrK) {
-  std::vector<std::string> expected;
-  for (int i = 0; i < 50; ++i) {
-    memory_->Write(StrMemoryLocation(StrBank::K, i), std::to_string(i * i));
-    expected.emplace_back(std::to_string(i * i));
-  }
-  service->str_k_bank_.resize(50);
-  EXPECT_EQ(service->str_k_bank_, expected);
-}
-
 TEST_F(MemoryTest, GetStack) {
   for (int i = 0; i < 15; ++i) {
     memory_->Write(IntBank::L, i, i);
@@ -316,8 +276,7 @@ class MemoryStressTest : public ::testing::Test {
         int_dist(std::numeric_limits<int>::min(),
                  std::numeric_limits<int>::max()),
         bankid_dist(0, static_cast<uint8_t>(IntBank::CNT) - 1),
-        service(std::make_shared<FakeStackMemory>()),
-        memory_(std::make_shared<Memory>(service)) {}
+        memory_(std::make_shared<Memory>()) {}
 
   std::random_device rd;
   std::mt19937 gen;
@@ -330,13 +289,6 @@ class MemoryStressTest : public ::testing::Test {
                              size_dist(gen));
   }
 
-  void SetUp() override {
-    EXPECT_CALL(*service, IntLBank())
-        .WillRepeatedly(Return(service->int_l_bank_));
-    EXPECT_CALL(*service, StrKBank())
-        .WillRepeatedly(ReturnRef(service->str_k_bank_));
-  }
-  std::shared_ptr<FakeStackMemory> service;
   std::shared_ptr<Memory> memory_;
 };
 

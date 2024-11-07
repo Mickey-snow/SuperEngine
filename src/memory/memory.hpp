@@ -179,17 +179,7 @@ BOOST_CLASS_VERSION(LocalMemory, 2)
 //       into memory_intmem.cc.
 class Memory {
  public:
-  // Creates a Memory object which owns its own
-  // GlobalMemory. Initial memory values are read from the passed in Gameexe
-  // object.
-  //
-  // @note For now, we only read \#NAME and \#LOCALNAME variables, skipping any
-  //       declaration of the form \#intvar[index] or \#strvar[index].
-  Memory(RLMachine& machine, Gameexe& gamexe);
-
-  Memory(std::shared_ptr<IMemoryServices> services,
-         std::shared_ptr<GlobalMemory> global_memptr = nullptr);
-
+  Memory(std::shared_ptr<GlobalMemory> global_memptr = nullptr);
   ~Memory();
 
   // Methods that record whether a piece of text has been read. RealLive
@@ -214,16 +204,18 @@ class Memory {
   // equivalent. These letter indexes are used in \#NAME definitions.
   static int ConvertLetterIndexToInt(const std::string& value);
 
+  // Reads in default memory values from the passed in Gameexe, such as \#NAME
+  // and \#LOCALNAME values.
+  // @note For now, we only read \#NAME and \#LOCALNAME variables, skipping any
+  // declaration of the form \#intvar[index] or \#strvar[index].
+  void LoadFrom(Gameexe& gameexe);
+
  private:
   // Connects the memory banks in local_ and in global_ into int_var.
   void ConnectIntVarPointers();
 
   // Input validating function to the {get,set}(Local)?Name set of functions.
   void CheckNameIndex(int index, const std::string& name) const;
-
-  // Reads in default memory values from the passed in Gameexe, such as \#NAME
-  // and \#LOCALNAME values.
-  void InitializeDefaultValues(Gameexe& gameexe);
 
   // Pointer to the GlobalMemory structure. While there can (and will
   // be) multiple Memory instances (this is how we implement
@@ -233,8 +225,6 @@ class Memory {
 
   // Local memory to a save file
   LocalMemory local_;
-
-  std::shared_ptr<IMemoryServices> service_;
 
   // Integer variable pointers. This redirect into Global and local
   // memory (as the case may be) allows us to overlay new views of
@@ -283,8 +273,6 @@ class Memory {
   // supports COW and can be trivally copied.
   MemoryBank<int> intbanks_[int_bank_cnt];
   MemoryBank<std::string> strbanks_[str_bank_cnt];
-
-  static Memory snapshot_;
 };
 
 #endif  // SRC_MEMORY_MEMORY_HPP_
