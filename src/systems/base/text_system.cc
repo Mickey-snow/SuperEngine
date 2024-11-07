@@ -865,7 +865,7 @@ std::string parseNames(const Memory& memory, const std::string& input) {
         continue;
       }
 
-      int index = Memory::ConvertLetterIndexToInt(strindex);
+      int index = ConvertLetterIndexToInt(strindex);
       if (type == LOWER_BYTE_FULLWIDTH_ASTERISK)
         output += memory.Read(StrBank::global_name, index);
       else

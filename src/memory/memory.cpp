@@ -63,8 +63,7 @@ void LocalMemory::reset() {
 // -----------------------------------------------------------------------
 // Memory
 // -----------------------------------------------------------------------
-Memory::Memory(
-               std::shared_ptr<GlobalMemory> global)
+Memory::Memory(std::shared_ptr<GlobalMemory> global)
     : global_(global), local_() {
   if (global_ == nullptr)
     global_ = std::make_shared<GlobalMemory>();
@@ -125,22 +124,6 @@ void Memory::TakeSavepointSnapshot() {
   local_.original_intE.clear();
   local_.original_intF.clear();
   local_.original_strS.clear();
-}
-
-// static
-int Memory::ConvertLetterIndexToInt(const std::string& value) {
-  int total = 0;
-
-  if (value.size() == 1) {
-    total += (value[0] - 'A');
-  } else if (value.size() == 2) {
-    total += 26 * ((value[0] - 'A') + 1);
-    total += (value[1] - 'A');
-  } else {
-    throw rlvm::Exception("Invalid value in convert_name_var!");
-  }
-
-  return total;
 }
 
 void Memory::LoadFrom(Gameexe& gameexe) {

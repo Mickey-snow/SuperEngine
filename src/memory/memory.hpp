@@ -200,10 +200,6 @@ class Memory {
   // that have been made since.
   void TakeSavepointSnapshot();
 
-  // Converts a RealLive letter index (A-Z, AA-ZZ) to its numeric
-  // equivalent. These letter indexes are used in \#NAME definitions.
-  static int ConvertLetterIndexToInt(const std::string& value);
-
   // Reads in default memory values from the passed in Gameexe, such as \#NAME
   // and \#LOCALNAME values.
   // @note For now, we only read \#NAME and \#LOCALNAME variables, skipping any

@@ -30,8 +30,8 @@
 #include <string>
 
 #include "encodings/codepage.h"
-#include "utilities/exception.h"
 #include "utf8cpp/utf8.h"
+#include "utilities/exception.h"
 
 using std::string;
 using std::wstring;
@@ -76,8 +76,7 @@ bool IsOpeningQuoteMark(int codepoint) {
 
 bool IsWrappingRomanCharacter(int codepoint) {
   if ((codepoint >= 'A' && codepoint <= 'Z') ||
-      (codepoint >= 'a' && codepoint <= 'z') ||
-      codepoint == '\'' ||
+      (codepoint >= 'a' && codepoint <= 'z') || codepoint == '\'' ||
       codepoint == '-') {
     return true;
   }
@@ -191,4 +190,33 @@ string RemoveQuotes(const string& quotedString) {
     output = output.substr(0, output.size() - 2);
 
   return output;
+}
+
+int ConvertLetterIndexToInt(const std::string& value) {
+  if (value.empty()) {
+    throw std::invalid_argument(
+        "ConvertLetterIndexToInt: Input string is empty.");
+  }
+
+  int total = 0;
+  for (size_t i = 0; i < value.size(); ++i) {
+    char current = value[i];
+
+    if (current < 'A' || current > 'Z') {
+      throw std::invalid_argument(
+          "ConvertLetterIndexToInt: Invalid character '" +
+          std::string(1, current) + "' in input string.");
+    }
+    int digit = current - 'A';
+
+    if (total > (INT32_MAX - digit) / 26) {
+      throw std::overflow_error(
+          "ConvertLetterIndexToInt: Integer overflow for input value '" +
+          value + "'.");
+    }
+
+    total = total * 26 + digit;
+  }
+
+  return total;
 }

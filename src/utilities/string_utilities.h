@@ -106,4 +106,37 @@ void PrintTextToFunction(
 // Removes quotes from the beginning and end of the string.
 std::string RemoveQuotes(const std::string& quotedString);
 
+/**
+ * @brief Converts a base-26 letter string to its corresponding integer value.
+ *
+ * This function interprets a string composed of one or more uppercase letters
+ * ('A' to 'Z') as a number in a base-26 system and converts it to
+ * its integer equivalent.
+ *
+ * Each character in the string represents a digit in base-26:
+ * - 'A' corresponds to 0
+ * - 'B' corresponds to 1
+ * - ...
+ * - 'Z' corresponds to 25
+ *
+ * @param value The input string representing a base-26 number. Must consist
+ *              of one or more uppercase letters ('A' to 'Z') only.
+ *
+ * @return The integer equivalent of the base-26 number.
+ *
+ * @throws std::invalid_argument If the input string is empty, contains
+ *                                characters outside the range 'A' to 'Z',
+ *                                or has an invalid format.
+ * @throws std::overflow_error   If the resulting integer exceeds the maximum
+ *                                value for a 32-bit signed integer.
+ *
+ * @example
+ * @code
+ * int num1 = ConvertLetterIndexToInt("A");    // Returns 0
+ * int num2 = ConvertLetterIndexToInt("Z");    // Returns 25
+ * int num3 = ConvertLetterIndexToInt("AB");   // Returns 27
+ * @endcode
+ */
+int ConvertLetterIndexToInt(const std::string& value);
+
 #endif  // SRC_UTILITIES_STRING_UTILITIES_H_
