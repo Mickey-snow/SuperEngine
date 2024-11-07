@@ -444,26 +444,6 @@ void RLMachine::PopStackFrame() {
 
 int RLMachine::GetStackSize() { return call_stack_.size(); }
 
-int* RLMachine::CurrentIntLBank() {
-  std::vector<StackFrame>::reverse_iterator it =
-      find_if(call_stack_.rbegin(), call_stack_.rend(), IsNotLongOp);
-  if (it != call_stack_.rend()) {
-    return it->intL;
-  }
-
-  throw rlvm::Exception("No valid intL bank");
-}
-
-std::vector<std::string>& RLMachine::CurrentStrKBank() {
-  std::vector<StackFrame>::reverse_iterator it =
-      find_if(call_stack_.rbegin(), call_stack_.rend(), IsNotLongOp);
-  if (it != call_stack_.rend()) {
-    return it->strK;
-  }
-
-  throw rlvm::Exception("No valid strK bank");
-}
-
 void RLMachine::ClearLongOperationsOffBackOfStack() {
   if (delay_stack_modifications_) {
     delayed_modifications_.push_back(

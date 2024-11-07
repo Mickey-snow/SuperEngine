@@ -43,7 +43,6 @@
 #include "libreallive/intmemref.h"
 #include "memory/bank.hpp"
 #include "memory/location.hpp"
-#include "memory/services.hpp"
 
 constexpr int NUMBER_OF_INT_LOCATIONS = 8;
 constexpr int SIZE_OF_MEM_BANK = 2000;
