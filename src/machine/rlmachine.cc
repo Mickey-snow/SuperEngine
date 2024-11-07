@@ -173,7 +173,7 @@ void RLMachine::HardResetMemory() {
 
 void RLMachine::MarkSavepoint() {
   savepoint_call_stack_ = call_stack_;
-  memory_->TakeSavepointSnapshot();
+  savepoint_memory_ = std::make_unique<Memory>(*memory_);
   system().graphics().TakeSavepointSnapshot();
   system().text().TakeSavepointSnapshot();
 }

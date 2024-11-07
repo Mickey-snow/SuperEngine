@@ -116,16 +116,6 @@ void Memory::RecordKidoku(int scenario, int kidoku) {
   bitset[kidoku] = true;
 }
 
-void Memory::TakeSavepointSnapshot() {
-  local_.original_intA.clear();
-  local_.original_intB.clear();
-  local_.original_intC.clear();
-  local_.original_intD.clear();
-  local_.original_intE.clear();
-  local_.original_intF.clear();
-  local_.original_strS.clear();
-}
-
 void Memory::LoadFrom(Gameexe& gameexe) {
   // Note: We ignore the \#NAME_MAXLEN variable because manual allocation is
   // error prone and for losers.

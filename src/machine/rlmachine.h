@@ -369,6 +369,8 @@ class RLMachine {
   // The state of the call stack the last time a savepoint was called
   std::vector<StackFrame> savepoint_call_stack_;
 
+  std::unique_ptr<Memory> savepoint_memory_;
+
   // The most recent line marker we've come across
   int line_ = 0;
 

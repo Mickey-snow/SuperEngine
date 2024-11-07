@@ -194,11 +194,6 @@ class Memory {
   LocalMemory& local() { return local_; }
   const LocalMemory& local() const { return local_; }
 
-  // Commit changes in local memory. Unlike the code in src/Systems/ which
-  // copies current values to shadow values, Memory clears a list of changes
-  // that have been made since.
-  void TakeSavepointSnapshot();
-
   // Reads in default memory values from the passed in Gameexe, such as \#NAME
   // and \#LOCALNAME values.
   // @note For now, we only read \#NAME and \#LOCALNAME variables, skipping any
@@ -208,9 +203,6 @@ class Memory {
  private:
   // Connects the memory banks in local_ and in global_ into int_var.
   void ConnectIntVarPointers();
-
-  // Input validating function to the {get,set}(Local)?Name set of functions.
-  void CheckNameIndex(int index, const std::string& name) const;
 
   // Pointer to the GlobalMemory structure. While there can (and will
   // be) multiple Memory instances (this is how we implement
