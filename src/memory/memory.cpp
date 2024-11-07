@@ -224,7 +224,7 @@ std::string const& Memory::Read(StrBank bank, size_t index) const {
 
 void Memory::Write(IntMemoryLocation loc, int value) {
   const auto bits = loc.Bitwidth();
-  if (bits == 32){
+  if (bits == 32) {
     Write(loc.Bank(), loc.Index(), value);
     return;
   }
@@ -313,6 +313,16 @@ void Memory::Resize(IntBank bankid, std::size_t size) {
 void Memory::Resize(StrBank bankid, std::size_t size) {
   auto& bank = const_cast<MemoryBank<std::string>&>(GetBank(bankid));
   bank.Resize(size);
+}
+
+Memory::Stack Memory::StackMemory() const {
+  return Stack{intbanks_[static_cast<uint8_t>(IntBank::L)],
+               strbanks_[static_cast<uint8_t>(StrBank::K)]};
+}
+
+void Memory::PartialReset(Stack stack_memory) {
+  intbanks_[static_cast<uint8_t>(IntBank::L)] = std::move(stack_memory.L);
+  strbanks_[static_cast<uint8_t>(StrBank::K)] = std::move(stack_memory.K);
 }
 
 // static

@@ -314,7 +314,7 @@ class RLMachine {
 
   // Pushes a stack frame onto the call stack, alerting possible
   // LongOperations of this change if needed.
-  void PushStackFrame(const StackFrame& frame);
+  void PushStackFrame(StackFrame frame);
 
   // Pops a stack frame from the call stack, alerting possible
   // LongOperations of this change if needed.

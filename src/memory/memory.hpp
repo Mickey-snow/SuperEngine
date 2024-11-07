@@ -263,6 +263,15 @@ class Memory {
   void Resize(IntBank, std::size_t);
   void Resize(StrBank, std::size_t);
 
+  struct Stack {
+    MemoryBank<int> L;
+    MemoryBank<std::string> K;
+  };
+  // Create and return a copy of stack memory
+  Stack StackMemory() const;
+
+  void PartialReset(Stack stack_memory);
+
  private:
   const MemoryBank<int>& GetBank(IntBank) const;
   const MemoryBank<std::string>& GetBank(StrBank) const;

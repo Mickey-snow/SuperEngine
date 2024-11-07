@@ -391,19 +391,10 @@ void RLMachine::PushStringValueUp(int index, const std::string& val) {
     throw rlvm::Exception("Invalid index in pushStringValue");
   }
 
-  // Find the first real stack frame.
   std::vector<StackFrame>::reverse_iterator it =
       find_if(call_stack_.rbegin(), call_stack_.rend(), IsNotLongOp);
   if (it != call_stack_.rend()) {
-    // Now try to move one stack frame up.
-    it++;
-    it = find_if(it, call_stack_.rend(), IsNotLongOp);
-
-    if (it != call_stack_.rend()) {
-      if ((index + 1) > it->strK.size())
-        it->strK.resize(index + 1);
-      it->strK[index] = val;
-    }
+    it->previous_stack_snapshot->K.Set(index, val);
   }
 }
 
@@ -412,12 +403,19 @@ void RLMachine::PushLongOperation(LongOperation* long_operation) {
                             long_operation));
 }
 
-void RLMachine::PushStackFrame(const StackFrame& frame) {
+void RLMachine::PushStackFrame(StackFrame frame) {
   if (delay_stack_modifications_) {
     delayed_modifications_.push_back(
-        std::bind(&RLMachine::PushStackFrame, this, frame));
+        std::bind(&RLMachine::PushStackFrame, this, std::move(frame)));
     return;
   }
+
+  if (frame.frame_type != StackFrame::TYPE_LONGOP)
+    frame.previous_stack_snapshot = memory_->StackMemory();
+  memory_->Resize(StrBank::K, 2000);
+  memory_->Fill(StrBank::K, 0, 2000, "");
+  memory_->Resize(IntBank::L, 40);
+  memory_->Fill(IntBank::L, 0, 40, 0);
 
   call_stack_.push_back(frame);
 
@@ -433,6 +431,10 @@ void RLMachine::PopStackFrame() {
     return;
   }
 
+  const auto& frame = call_stack_.back();
+  if (frame.previous_stack_snapshot.has_value()) {
+    memory_->PartialReset(frame.previous_stack_snapshot.value());
+  }
   call_stack_.pop_back();
 }
 

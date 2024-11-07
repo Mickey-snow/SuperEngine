@@ -83,8 +83,9 @@ TEST_F(MemoryTest, Init) {
   for (size_t bank = 0; bank < static_cast<size_t>(StrBank::CNT); ++bank) {
     for (size_t index = 0; index < 2000; ++index) {
       StrMemoryLocation loc(static_cast<StrBank>(bank), index);
-      EXPECT_EQ(memory_->Read(loc), "") << "each StrBank is initialized with "
-                                           "size 2000 and default empty string";
+      EXPECT_EQ(memory_->Read(loc), "")
+          << "each StrBank should be initialized with "
+             "size 2000 and default empty string";
     }
   }
 }
@@ -234,6 +235,77 @@ TEST_F(MemoryTest, StrK) {
   }
   service->str_k_bank_.resize(50);
   EXPECT_EQ(service->str_k_bank_, expected);
+}
+
+TEST_F(MemoryTest, GetStack) {
+  for (int i = 0; i < 15; ++i) {
+    memory_->Write(IntBank::L, i, i);
+    memory_->Write(StrBank::K, i, std::to_string(i));
+  }
+  auto frame1 = memory_->StackMemory();
+
+  for (int i = 10; i < 20; ++i) {
+    memory_->Write(IntBank::L, i, i * i);
+    memory_->Write(StrBank::K, i, std::to_string(i * i));
+  }
+  auto frame2 = memory_->StackMemory();
+
+  // check stack frame 1
+  for (int i = 0; i < 15; ++i) {
+    EXPECT_EQ(frame1.L.Get(i), i);
+    EXPECT_EQ(frame1.K.Get(i), std::to_string(i));
+  }
+
+  // check stack frame 2
+  for (int i = 10; i < 20; ++i) {
+    EXPECT_EQ(frame2.L.Get(i), i * i);
+    EXPECT_EQ(frame2.K.Get(i), std::to_string(i * i));
+  }
+
+  // check memory
+  for (int i = 0; i < 10; ++i) {
+    EXPECT_EQ(memory_->Read(IntBank::L, i), i);
+    EXPECT_EQ(memory_->Read(StrBank::K, i), std::to_string(i));
+  }
+  for (int i = 10; i < 20; ++i) {
+    EXPECT_EQ(memory_->Read(IntBank::L, i), i * i);
+    EXPECT_EQ(memory_->Read(StrBank::K, i), std::to_string(i * i));
+  }
+}
+
+TEST_F(MemoryTest, SetStack) {
+  Memory::Stack frame1, frame2;
+  frame1.L.Resize(50);
+  frame1.K.Resize(50);
+  frame2.L.Resize(60);
+  frame2.K.Resize(60);
+
+  for (int i = 0; i < 15; ++i) {
+    frame1.L.Set(i, i);
+    frame1.K.Set(i, std::to_string(i));
+  }
+  for (int i = 10; i < 20; ++i) {
+    frame2.L.Set(i, i * i);
+    frame2.K.Set(i, std::to_string(i * i));
+  }
+
+  memory_->Fill(IntBank::L, 0, 100, -123);
+  memory_->Fill(StrBank::K, 0, 100, "some string");
+  memory_->PartialReset(frame1);
+  for (int i = 0; i < 15; ++i) {
+    EXPECT_EQ(memory_->Read(IntBank::L, i), i);
+    EXPECT_EQ(memory_->Read(StrBank::K, i), std::to_string(i));
+  }
+
+  memory_->PartialReset(frame2);
+  for (int i = 0; i < 10; ++i) {
+    EXPECT_EQ(memory_->Read(IntBank::L, i), 0);
+    EXPECT_EQ(memory_->Read(StrBank::K, i), "");
+  }
+  for (int i = 10; i < 20; ++i) {
+    EXPECT_EQ(memory_->Read(IntBank::L, i), i * i);
+    EXPECT_EQ(memory_->Read(StrBank::K, i), std::to_string(i * i));
+  }
 }
 
 class MemoryStressTest : public ::testing::Test {

@@ -32,9 +32,11 @@
 #include <boost/serialization/version.hpp>
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "libreallive/scenario.h"
+#include "memory/memory.hpp"
 
 class LongOperation;
 
@@ -66,6 +68,12 @@ struct StackFrame {
   // Parameter passing string bank. I have no idea how large this should
   // actually be, so accept any number and grow to fit.
   std::vector<std::string> strK;
+
+  // Previous stack memory. Stack memory is used for passing parameters, we save
+  // the status of previous stack here and restore when this frame is poped. For
+  // certain types of stack frame, restoring stack memory is not necessary and
+  // this field does't hold a value.
+  std::optional<Memory::Stack> previous_stack_snapshot;
 
   // The function that pushed the current frame onto the
   // stack. Used in error checking.
