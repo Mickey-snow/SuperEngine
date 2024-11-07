@@ -42,6 +42,9 @@ enum class IntBank : uint8_t { A = 0, B, C, D, E, F, X, G, Z, H, I, J, L, CNT };
 
 enum class StrBank : uint8_t { S = 0, M, K, local_name, global_name, CNT };
 
+std::string ToString(IntBank bank, uint8_t bits = 32);
+std::string ToString(StrBank bank);
+
 /**
  * @class IntMemoryLocation
  * @brief Represents an integer memory location in the virtual machine.

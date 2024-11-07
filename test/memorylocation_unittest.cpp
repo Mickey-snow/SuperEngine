@@ -99,3 +99,22 @@ TEST(MemlocTest, StrLocations) {
   auto m14 = StrMemoryLocation(libreallive::STRM_LOCATION, 14);
   EXPECT_EQ(static_cast<std::string>(m14), "strM[14]");
 }
+
+TEST(MemlocTest, BankString) {
+  EXPECT_EQ(ToString(IntBank::A, 0), "intA");
+  EXPECT_EQ(ToString(IntBank::B), "intB");
+  EXPECT_EQ(ToString(IntBank::C, 2), "intC2b");
+  EXPECT_EQ(ToString(IntBank::D, 3), "intD3b");
+  EXPECT_EQ(ToString(IntBank::E, 4), "intE4b");
+  EXPECT_EQ(ToString(IntBank::F, 5), "intF5b");
+  EXPECT_EQ(ToString(IntBank::X, 32), "intX");
+  EXPECT_EQ(ToString(IntBank::G, 8), "intG8b");
+  EXPECT_EQ(ToString(IntBank::CNT, 132), "{Invalid int bank #13}");
+
+  EXPECT_EQ(ToString(StrBank::S), "strS");
+  EXPECT_EQ(ToString(StrBank::M), "strM");
+  EXPECT_EQ(ToString(StrBank::K), "strK");
+  EXPECT_EQ(ToString(StrBank::global_name), "GlobalName");
+  EXPECT_EQ(ToString(StrBank::local_name), "LocalName");
+  EXPECT_EQ(ToString(StrBank::CNT), "{Invalid str bank #5}");
+}

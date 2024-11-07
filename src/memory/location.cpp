@@ -30,6 +30,90 @@
 
 #include "libreallive/intmemref.h"
 
+std::string ToString(IntBank bank, uint8_t bits) {
+  std::string result = "int";
+
+  switch (bank) {
+    case IntBank::A:
+      result += 'A';
+      break;
+    case IntBank::B:
+      result += 'B';
+      break;
+    case IntBank::C:
+      result += 'C';
+      break;
+    case IntBank::D:
+      result += 'D';
+      break;
+    case IntBank::E:
+      result += 'E';
+      break;
+    case IntBank::F:
+      result += 'F';
+      break;
+    case IntBank::X:
+      result += 'X';
+      break;
+    case IntBank::G:
+      result += 'G';
+      break;
+    case IntBank::Z:
+      result += 'Z';
+      break;
+    case IntBank::H:
+      result += 'H';
+      break;
+    case IntBank::I:
+      result += 'I';
+      break;
+    case IntBank::J:
+      result += 'J';
+      break;
+    case IntBank::L:
+      result += 'L';
+      break;
+    default:
+      return "{Invalid int bank #" + std::to_string(static_cast<int>(bank)) +
+             '}';
+      break;
+  }
+
+  if (bits != 32 && bits != 0)
+    result += std::to_string(static_cast<int>(bits)) + 'b';
+
+  return result;
+}
+
+std::string ToString(StrBank bank) {
+  std::string result;
+
+  if (bank == StrBank::local_name)
+    return "LocalName";
+  else if (bank == StrBank::global_name)
+    return "GlobalName";
+  else {
+    result += "str";
+    switch (bank) {
+      case StrBank::S:
+        result += 'S';
+        break;
+      case StrBank::M:
+        result += 'M';
+        break;
+      case StrBank::K:
+        result += 'K';
+        break;
+      default:
+        return "{Invalid str bank #" + std::to_string(static_cast<int>(bank)) +
+               '}';
+        break;
+    }
+  }
+
+  return result;
+}
+
 // -----------------------------------------------------------------------
 // class IntMemoryLocation
 // -----------------------------------------------------------------------
@@ -84,60 +168,7 @@ size_t IntMemoryLocation::Index() const { return location_; }
 uint8_t IntMemoryLocation::Bitwidth() const { return bits_; }
 
 std::ostream& operator<<(std::ostream& os, const IntMemoryLocation& memref) {
-  os << "int";
-
-  switch (memref.bank_) {
-    case IntBank::A:
-      os << 'A';
-      break;
-    case IntBank::B:
-      os << 'B';
-      break;
-    case IntBank::C:
-      os << 'C';
-      break;
-    case IntBank::D:
-      os << 'D';
-      break;
-    case IntBank::E:
-      os << 'E';
-      break;
-    case IntBank::F:
-      os << 'F';
-      break;
-    case IntBank::X:
-      os << 'X';
-      break;
-    case IntBank::G:
-      os << 'G';
-      break;
-    case IntBank::Z:
-      os << 'Z';
-      break;
-    case IntBank::H:
-      os << 'H';
-      break;
-    case IntBank::I:
-      os << 'I';
-      break;
-    case IntBank::J:
-      os << 'J';
-      break;
-    case IntBank::L:
-      os << 'L';
-      break;
-    case IntBank::CNT:
-      os << "{Invalid bank CNT}";
-      break;
-    default:
-      os << "{Invalid bank #" << static_cast<int>(memref.bank_) << '}';
-      break;
-  }
-
-  if (memref.bits_ != 32) {
-    os << static_cast<int>(memref.bits_) << 'b';
-  }
-
+  os << ToString(memref.bank_, memref.Bitwidth());
   os << '[' << memref.location_ << ']';
   return os;
 }
@@ -188,31 +219,7 @@ StrBank StrMemoryLocation::Bank() const { return bank_; }
 size_t StrMemoryLocation::Index() const { return location_; }
 
 std::ostream& operator<<(std::ostream& os, const StrMemoryLocation& memref) {
-  if (memref.bank_ == StrBank::local_name)
-    os << "LocalName";
-  else if (memref.bank_ == StrBank::global_name)
-    os << "GlobalName";
-  else {
-    os << "str";
-    switch (memref.bank_) {
-      case StrBank::S:
-        os << 'S';
-        break;
-      case StrBank::M:
-        os << 'M';
-        break;
-      case StrBank::K:
-        os << 'K';
-        break;
-      case StrBank::CNT:
-        os << "{Invalid bank CNT}";
-        break;
-      default:
-        os << "{Invalid bank #" << static_cast<int>(memref.bank_) << '}';
-        break;
-    }
-  }
-
+  os << ToString(memref.Bank());
   os << '[' << memref.location_ << ']';
 
   return os;
