@@ -1,12 +1,10 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
 //
 // -----------------------------------------------------------------------
 //
+// Copyright (C) 2024 Serina Sakurai
 // Copyright (C) 2007 Elliot Glaysher
 //
 // This program is free software; you can redistribute it and/or modify
@@ -105,34 +103,6 @@ void Memory::ConnectIntVarPointers() {
   original_int_var[7] = NULL;
 }
 
-void Memory::CheckNameIndex(int index, const std::string& name) const {
-  if (index > (SIZE_OF_NAME_BANK - 1)) {
-    std::ostringstream oss;
-    oss << "Invalid index " << index << " in " << name;
-    throw rlvm::Exception(oss.str());
-  }
-}
-
-void Memory::SetName(int index, const std::string& name) {
-  CheckNameIndex(index, "Memory::set_name");
-  global_->global_names[index] = name;
-}
-
-const std::string& Memory::GetName(int index) const {
-  CheckNameIndex(index, "Memory::get_name");
-  return global_->global_names[index];
-}
-
-void Memory::SetLocalName(int index, const std::string& name) {
-  CheckNameIndex(index, "Memory::set_local_name");
-  local_.local_names[index] = name;
-}
-
-const std::string& Memory::GetLocalName(int index) const {
-  CheckNameIndex(index, "Memory::set_local_name");
-  return local_.local_names[index];
-}
-
 bool Memory::HasBeenRead(int scenario, int kidoku) const {
   std::map<int, boost::dynamic_bitset<>>::const_iterator it =
       global_->kidoku_data.find(scenario);
@@ -160,6 +130,8 @@ void Memory::TakeSavepointSnapshot() {
   local_.original_intE.clear();
   local_.original_intF.clear();
   local_.original_strS.clear();
+
+  snapshot_ = *this;
 }
 
 // static
@@ -183,8 +155,9 @@ void Memory::InitializeDefaultValues(Gameexe& gameexe) {
   // error prone and for losers.
   for (auto it : gameexe.Filter("NAME.")) {
     try {
-      SetName(ConvertLetterIndexToInt(it.GetKeyParts().at(1)),
-              RemoveQuotes(it.ToString()));
+      Write(StrMemoryLocation(StrBank::global_name,
+                              ConvertLetterIndexToInt(it.GetKeyParts().at(1))),
+            RemoveQuotes(it.ToString()));
     } catch (...) {
       std::cerr << "WARNING: Invalid format for key " << it.key() << std::endl;
     }
@@ -192,8 +165,9 @@ void Memory::InitializeDefaultValues(Gameexe& gameexe) {
 
   for (auto it : gameexe.Filter("LOCALNAME.")) {
     try {
-      SetLocalName(ConvertLetterIndexToInt(it.GetKeyParts().at(1)),
-                   RemoveQuotes(it.ToString()));
+      Write(StrMemoryLocation(StrBank::local_name,
+                              ConvertLetterIndexToInt(it.GetKeyParts().at(1))),
+            RemoveQuotes(it.ToString()));
     } catch (...) {
       std::cerr << "WARNING: Invalid format for key " << it.key() << std::endl;
     }
@@ -221,12 +195,12 @@ const MemoryBank<std::string>& Memory::GetBank(StrBank bank) const {
 int Memory::Read(IntMemoryLocation loc) const {
   const auto bits = loc.Bitwidth();
   if (bits == 32)
-    return GetBank(loc.Bank()).Get(loc.Index());
+    return Read(loc.Bank(), loc.Index());
   else {
     static const std::unordered_set<int> allowed_bits{1, 2, 4, 8, 16};
     if (!allowed_bits.count(bits))
       throw std::invalid_argument("Memory: access type " +
-                                  std::to_string(bits) + " not supported.");
+                                  std::to_string(bits) + "b not supported.");
 
     const auto index32 = loc.Index() * bits / 32;
     auto val32 = Read(IntMemoryLocation(loc.Bank(), index32));
@@ -236,37 +210,49 @@ int Memory::Read(IntMemoryLocation loc) const {
   }
 }
 
+int Memory::Read(IntBank bank, size_t index) const {
+  return GetBank(bank).Get(index);
+}
+
 std::string const& Memory::Read(StrMemoryLocation loc) const {
-  return GetBank(loc.Bank()).Get(loc.Index());
+  return Read(loc.Bank(), loc.Index());
+}
+
+std::string const& Memory::Read(StrBank bank, size_t index) const {
+  return GetBank(bank).Get(index);
 }
 
 void Memory::Write(IntMemoryLocation loc, int value) {
-  auto& bank = const_cast<MemoryBank<int>&>(GetBank(loc.Bank()));
-
-  if (loc.Bitwidth() == 32)
-    bank.Set(loc.Index(), value);
-  else {
-    const auto bits = loc.Bitwidth();
-
-    static const std::unordered_set<int> allowed_bits{1, 2, 4, 8, 16};
-    if (!allowed_bits.count(bits))
-      throw std::invalid_argument("Memory: access type " +
-                                  std::to_string(bits) + " not supported.");
-
-    const auto index32 = loc.Index() * bits / 32;
-    auto val32 = Read(IntMemoryLocation(loc.Bank(), index32));
-    int mask = (1 << bits) - 1;
-    if (value > mask) {
-      throw std::overflow_error("Memory: value " + std::to_string(value) +
-                                " overflow when casting to " +
-                                std::to_string(bits) + " bit int.");
-    }
-    const int shiftbits = loc.Index() * bits % 32;
-    mask <<= shiftbits;
-    val32 &= (~mask);
-    val32 |= value << shiftbits;
-    bank.Set(index32, val32);
+  const auto bits = loc.Bitwidth();
+  if (bits == 32){
+    Write(loc.Bank(), loc.Index(), value);
+    return;
   }
+
+  auto& bank = const_cast<MemoryBank<int>&>(GetBank(loc.Bank()));
+  static const std::unordered_set<int> allowed_bits{1, 2, 4, 8, 16};
+  if (!allowed_bits.count(bits))
+    throw std::invalid_argument("Memory: access type " + std::to_string(bits) +
+                                "b not supported.");
+
+  const auto index32 = loc.Index() * bits / 32;
+  auto val32 = Read(IntMemoryLocation(loc.Bank(), index32));
+  int mask = (1 << bits) - 1;
+  if (value > mask) {
+    throw std::overflow_error("Memory: value " + std::to_string(value) +
+                              " overflow when casting to " +
+                              std::to_string(bits) + " bit int.");
+  }
+  const int shiftbits = loc.Index() * bits % 32;
+  mask <<= shiftbits;
+  val32 &= (~mask);
+  val32 |= value << shiftbits;
+  bank.Set(index32, val32);
+}
+
+void Memory::Write(IntBank bankid, size_t index, int value) {
+  auto& bank = const_cast<MemoryBank<int>&>(GetBank(bankid));
+  bank.Set(index, value);
 }
 
 void Memory::Write(StrMemoryLocation loc, const std::string& value) {
@@ -280,6 +266,10 @@ void Memory::Write(StrMemoryLocation loc, const std::string& value) {
       currentStrKBank.resize(index + 1);
     currentStrKBank[index] = value;
   }
+}
+
+void Memory::Write(StrBank bank, size_t index, const std::string& value) {
+  Write(StrMemoryLocation(bank, index), value);
 }
 
 void Memory::Fill(IntBank bankid, size_t begin, size_t end, int value) {
@@ -324,3 +314,6 @@ void Memory::Resize(StrBank bankid, std::size_t size) {
   auto& bank = const_cast<MemoryBank<std::string>&>(GetBank(bankid));
   bank.Resize(size);
 }
+
+// static
+Memory Memory::snapshot_(nullptr, nullptr);

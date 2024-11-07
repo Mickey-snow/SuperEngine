@@ -1,12 +1,10 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
 //
 // -----------------------------------------------------------------------
 //
+// Copyright (C) 2024 Serina Sakurai
 // Copyright (C) 2007 Elliot Glaysher
 //
 // This program is free software; you can redistribute it and/or modify
@@ -194,20 +192,6 @@ class Memory {
 
   ~Memory();
 
-  // Name table functions:
-
-  // Sets the local name slot index to name.
-  void SetName(int index, const std::string& name);
-
-  // Returns the local name slot index.
-  const std::string& GetName(int index) const;
-
-  // Sets the local name slot index to name.
-  void SetLocalName(int index, const std::string& name);
-
-  // Returns the local name slot index.
-  const std::string& GetLocalName(int index) const;
-
   // Methods that record whether a piece of text has been read. RealLive
   // scripts have a piece of metadata called a kidoku marker which signifies if
   // the text between that and the next kidoku marker have been previously read.
@@ -264,11 +248,17 @@ class Memory {
 
  public:
   void Write(IntMemoryLocation, int);
+  void Write(IntBank bank, size_t index, int value);
   void Write(StrMemoryLocation, const std::string&);
+  void Write(StrBank bank, size_t index, const std::string& value);
+
   void Fill(IntBank, size_t begin, size_t end, int value);
   void Fill(StrBank, size_t begin, size_t end, const std::string& value);
+
   int Read(IntMemoryLocation) const;
+  int Read(IntBank bank, size_t index) const;
   std::string const& Read(StrMemoryLocation) const;
+  std::string const& Read(StrBank bank, size_t index) const;
 
   void Resize(IntBank, std::size_t);
   void Resize(StrBank, std::size_t);
@@ -284,6 +274,8 @@ class Memory {
   // supports COW and can be trivally copied.
   MemoryBank<int> intbanks_[int_bank_cnt];
   MemoryBank<std::string> strbanks_[str_bank_cnt];
+
+  static Memory snapshot_;
 };
 
 #endif  // SRC_MEMORY_MEMORY_HPP_

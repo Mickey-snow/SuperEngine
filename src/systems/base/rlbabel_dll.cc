@@ -49,12 +49,12 @@
 #include <string>
 #include <vector>
 
+#include "base/gameexe.hpp"
 #include "encodings/codepage.h"
 #include "encodings/western.h"
-#include "base/gameexe.hpp"
 #include "libreallive/intmemref.h"
-#include "memory/memory.hpp"
 #include "machine/rlmachine.h"
+#include "memory/memory.hpp"
 #include "systems/base/system.h"
 #include "systems/base/text_system.h"
 #include "systems/base/text_window.h"
@@ -89,8 +89,8 @@ Gloss::Gloss(const std::shared_ptr<TextWindow>& window,
   int line_height = window->line_height();
   while (y1 < y2) {
     // Special case for multi-line links.  Hopefully these will be rare...
-    link_areas_.push_back(
-        Rect::GRP(x1, y1, window->GetTextWindowSize().width(), y1 + line_height));
+    link_areas_.push_back(Rect::GRP(x1, y1, window->GetTextWindowSize().width(),
+                                    y1 + line_height));
 
     y1 += line_height;
     x1 = window->current_indentation();
@@ -205,8 +205,9 @@ int RlBabelDLL::TextoutAdd(const std::string& str) {
         string += 2;
       }
       Memory& memory = machine_.memory();
-      const char* namestr = global ? memory.GetName(idx).c_str()
-                                   : memory.GetLocalName(idx).c_str();
+      const auto nameloc = StrMemoryLocation(
+          global ? StrBank::global_name : StrBank::local_name, idx);
+      const char* namestr = memory.Read(nameloc).c_str();
 
       // Copy to string.
       if (string[0] == 0x82 && (string[1] >= 0x4f && string[1] <= 0x58)) {
@@ -377,7 +378,8 @@ int RlBabelDLL::TextoutGetChar(StringReferenceIterator buffer,
           return getcEndOfString;
         // Add indentation as appropriate.
         text_index = --end_token_index;
-        if (end_token(2) == '"' || end_token(2) == '(' || end_token(2) == '\'') {
+        if (end_token(2) == '"' || end_token(2) == '(' ||
+            end_token(2) == '\'') {
           end_token(0) = ' ';
           end_token(1) = end_token(2);
           end_token(2) = 4;
@@ -542,11 +544,8 @@ int RlBabelDLL::NewGloss() {
 
 int RlBabelDLL::AddGloss(const std::string& cp932_gloss_text) {
   std::shared_ptr<TextWindow> window = GetWindow(-1);
-  glosses_.emplace_back(window,
-                        cp932_gloss_text,
-                        gloss_start_x_,
-                        gloss_start_y_,
-                        window->insertion_point_x(),
+  glosses_.emplace_back(window, cp932_gloss_text, gloss_start_x_,
+                        gloss_start_y_, window->insertion_point_x(),
                         window->insertion_point_y());
   return 1;
 }
@@ -562,9 +561,8 @@ int RlBabelDLL::TestGlosses(int x,
   y -= textOrigin.y();
 
   std::vector<Gloss>::const_iterator it =
-      std::find_if(glosses_.begin(), glosses_.end(), [&](Gloss& gloss) {
-        return gloss.Contains(Point(x, y));
-      });
+      std::find_if(glosses_.begin(), glosses_.end(),
+                   [&](Gloss& gloss) { return gloss.Contains(Point(x, y)); });
   if (it == glosses_.end())
     return 0;
 
@@ -579,7 +577,8 @@ int RlBabelDLL::GetCharWidth(uint16_t cp932_char, bool as_xmod) {
   std::shared_ptr<TextWindow> window = GetWindow(-1);
   int font_size = window->font_size_in_pixels();
   // TODO(erg): Can I somehow modify this to try to do proper kerning?
-  int width = machine_.system().text().GetCharWidth(font_size, unicode_codepoint);
+  int width =
+      machine_.system().text().GetCharWidth(font_size, unicode_codepoint);
   return as_xmod ? window->insertion_point_x() + width : width;
 }
 
