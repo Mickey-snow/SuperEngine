@@ -60,7 +60,7 @@ TEST_F(MemorySerializationTest, Global) {
   }
 
   {
-    _GlobalMemory deserialized;
+    GlobalMemory deserialized;
     boost::archive::text_iarchive ia(ss);
     ia >> deserialized;
 
@@ -93,7 +93,7 @@ TEST_F(MemorySerializationTest, Local) {
   }
 
   {
-    _LocalMemory deserialized;
+    LocalMemory deserialized;
     boost::archive::text_iarchive ia(ss);
     ia >> deserialized;
 

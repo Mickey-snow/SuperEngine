@@ -35,7 +35,7 @@
 #include <string>
 #include <type_traits>
 
-struct _LocalMemory {
+struct LocalMemory {
   MemoryBank<int> A, B, C, D, E, F, X, H, I, J;
   MemoryBank<std::string> S, local_names;
 

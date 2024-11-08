@@ -201,13 +201,13 @@ TEST_F(MemoryTest, GetStack) {
     memory_->Write(IntBank::L, i, i);
     memory_->Write(StrBank::K, i, std::to_string(i));
   }
-  auto frame1 = memory_->StackMemory();
+  auto frame1 = memory_->GetStackMemory();
 
   for (int i = 10; i < 20; ++i) {
     memory_->Write(IntBank::L, i, i * i);
     memory_->Write(StrBank::K, i, std::to_string(i * i));
   }
-  auto frame2 = memory_->StackMemory();
+  auto frame2 = memory_->GetStackMemory();
 
   // check stack frame 1
   for (int i = 0; i < 15; ++i) {

@@ -57,6 +57,7 @@
 #include "machine/serialization.h"
 #include "machine/stack_frame.h"
 #include "memory/memory.hpp"
+#include "memory/serialization_local.hpp"
 #include "systems/base/graphics_system.h"
 #include "systems/base/system.h"
 #include "systems/base/system_error.h"
@@ -415,7 +416,7 @@ void RLMachine::PushStackFrame(StackFrame frame) {
   }
 
   if (frame.frame_type != StackFrame::TYPE_LONGOP)
-    frame.previous_stack_snapshot = memory_->StackMemory();
+    frame.previous_stack_snapshot = memory_->GetStackMemory();
   memory_->Resize(StrBank::K, 2000);
   memory_->Fill(StrBank::K, 0, 2000, "");
   memory_->Resize(IntBank::L, 40);
@@ -466,7 +467,7 @@ void RLMachine::Reset() {
 
 void RLMachine::LocalReset() {
   savepoint_call_stack_.clear();
-  memory_->local().reset();
+  memory_->PartialReset(LocalMemory());
   system().Reset();
 }
 

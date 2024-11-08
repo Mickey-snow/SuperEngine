@@ -31,79 +31,15 @@
 #include <unordered_set>
 
 #include "base/gameexe.hpp"
-#include "libreallive/intmemref.h"
-#include "machine/rlmachine.h"
 #include "memory/serialization_global.hpp"
 #include "memory/serialization_local.hpp"
-#include "utilities/exception.h"
 #include "utilities/string_utilities.h"
-
-// -----------------------------------------------------------------------
-// GlobalMemory
-// -----------------------------------------------------------------------
-GlobalMemory::GlobalMemory() = default;
-
-// -----------------------------------------------------------------------
-// LocalMemory
-// -----------------------------------------------------------------------
-LocalMemory::LocalMemory() = default;
-
-void LocalMemory::reset() {
-  intA.fill(0);
-  intB.fill(0);
-  intC.fill(0);
-  intD.fill(0);
-  intE.fill(0);
-  intF.fill(0);
-
-  for (auto& str : strS)
-    str.clear();
-  for (auto& name : local_names)
-    name.clear();
-}
-
-// -----------------------------------------------------------------------
-// Memory
-// -----------------------------------------------------------------------
-Memory::Memory(std::shared_ptr<GlobalMemory> global)
-    : global_(global), local_() {
-  if (global_ == nullptr)
-    global_ = std::make_shared<GlobalMemory>();
-  ConnectIntVarPointers();
-
-  for (size_t i = 0; i < int_bank_cnt; ++i)
-    intbanks_[i].Resize(SIZE_OF_MEM_BANK);
-  for (size_t i = 0; i < str_bank_cnt; ++i)
-    strbanks_[i].Resize(SIZE_OF_MEM_BANK);
-}
-
-Memory::~Memory() {}
-
-void Memory::ConnectIntVarPointers() {
-  int_var[0] = local_.intA.data();
-  int_var[1] = local_.intB.data();
-  int_var[2] = local_.intC.data();
-  int_var[3] = local_.intD.data();
-  int_var[4] = local_.intE.data();
-  int_var[5] = local_.intF.data();
-  int_var[6] = global_->intG.data();
-  int_var[7] = global_->intZ.data();
-
-  original_int_var[0] = &local_.original_intA;
-  original_int_var[1] = &local_.original_intB;
-  original_int_var[2] = &local_.original_intC;
-  original_int_var[3] = &local_.original_intD;
-  original_int_var[4] = &local_.original_intE;
-  original_int_var[5] = &local_.original_intF;
-  original_int_var[6] = NULL;
-  original_int_var[7] = NULL;
-}
 
 bool Memory::HasBeenRead(int scenario, int kidoku) const {
   std::map<int, boost::dynamic_bitset<>>::const_iterator it =
-      global_->kidoku_data.find(scenario);
+      kidoku_data.find(scenario);
 
-  if ((it != global_->kidoku_data.end()) &&
+  if ((it != kidoku_data.end()) &&
       (static_cast<size_t>(kidoku) < it->second.size()))
     return it->second.test(kidoku);
 
@@ -111,12 +47,21 @@ bool Memory::HasBeenRead(int scenario, int kidoku) const {
 }
 
 void Memory::RecordKidoku(int scenario, int kidoku) {
-  boost::dynamic_bitset<>& bitset = global_->kidoku_data[scenario];
+  boost::dynamic_bitset<>& bitset = kidoku_data[scenario];
   if (bitset.size() <= static_cast<size_t>(kidoku))
     bitset.resize(kidoku + 1, false);
 
   bitset[kidoku] = true;
 }
+
+Memory::Memory() {
+  for (size_t i = 0; i < int_bank_cnt; ++i)
+    intbanks_[i].Resize(SIZE_OF_MEM_BANK);
+  for (size_t i = 0; i < str_bank_cnt; ++i)
+    strbanks_[i].Resize(SIZE_OF_MEM_BANK);
+}
+
+Memory::~Memory() {}
 
 void Memory::LoadFrom(Gameexe& gameexe) {
   // Note: We ignore the \#NAME_MAXLEN variable because manual allocation is
@@ -141,8 +86,6 @@ void Memory::LoadFrom(Gameexe& gameexe) {
     }
   }
 }
-
-// -----------------------------------------------------------------------
 
 const MemoryBank<int>& Memory::GetBank(IntBank bank) const {
   const auto bankidx = static_cast<uint8_t>(bank);
@@ -275,7 +218,7 @@ void Memory::Resize(StrBank bankid, std::size_t size) {
   bank.Resize(size);
 }
 
-Memory::Stack Memory::StackMemory() const {
+Memory::Stack Memory::GetStackMemory() const {
   return Stack{intbanks_[static_cast<uint8_t>(IntBank::L)],
                strbanks_[static_cast<uint8_t>(StrBank::K)]};
 }
@@ -285,15 +228,15 @@ void Memory::PartialReset(Stack stack_memory) {
   strbanks_[static_cast<uint8_t>(StrBank::K)] = std::move(stack_memory.K);
 }
 
-_GlobalMemory Memory::GetGlobalMemory() const {
-  return _GlobalMemory{
+GlobalMemory Memory::GetGlobalMemory() const {
+  return GlobalMemory{
       .G = intbanks_[static_cast<uint8_t>(IntBank::G)],
       .Z = intbanks_[static_cast<uint8_t>(IntBank::Z)],
       .M = strbanks_[static_cast<uint8_t>(StrBank::M)],
       .global_names = strbanks_[static_cast<uint8_t>(StrBank::global_name)]};
 }
 
-void Memory::PartialReset(_GlobalMemory global_memory) {
+void Memory::PartialReset(GlobalMemory global_memory) {
   intbanks_[static_cast<uint8_t>(IntBank::G)] = std::move(global_memory.G);
   intbanks_[static_cast<uint8_t>(IntBank::Z)] = std::move(global_memory.Z);
   strbanks_[static_cast<uint8_t>(StrBank::M)] = std::move(global_memory.M);
@@ -301,8 +244,8 @@ void Memory::PartialReset(_GlobalMemory global_memory) {
       std::move(global_memory.global_names);
 }
 
-_LocalMemory Memory::GetLocalMemory() const {
-  return _LocalMemory{
+LocalMemory Memory::GetLocalMemory() const {
+  return LocalMemory{
       .A = intbanks_[static_cast<uint8_t>(IntBank::A)],
       .B = intbanks_[static_cast<uint8_t>(IntBank::B)],
       .C = intbanks_[static_cast<uint8_t>(IntBank::C)],
@@ -318,7 +261,7 @@ _LocalMemory Memory::GetLocalMemory() const {
   };
 }
 
-void Memory::PartialReset(_LocalMemory local_memory) {
+void Memory::PartialReset(LocalMemory local_memory) {
   intbanks_[static_cast<uint8_t>(IntBank::A)] = std::move(local_memory.A);
   intbanks_[static_cast<uint8_t>(IntBank::B)] = std::move(local_memory.B);
   intbanks_[static_cast<uint8_t>(IntBank::C)] = std::move(local_memory.C);

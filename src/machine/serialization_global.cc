@@ -42,8 +42,10 @@
 #include <sstream>
 
 #include "libreallive/intmemref.h"
-#include "memory/memory.hpp"
 #include "machine/rlmachine.h"
+#include "memory/memory.hpp"
+#include "memory/serialization_global.hpp"
+#include "memory/serialization_local.hpp"
 #include "systems/base/event_system.h"
 #include "systems/base/graphics_system.h"
 #include "systems/base/sound_system.h"
@@ -86,8 +88,7 @@ void saveGlobalMemoryTo(std::ostream& oss, RLMachine& machine) {
   boost::archive::text_oarchive oa(filtered_output);
   System& sys = machine.system();
 
-  oa << CURRENT_GLOBAL_VERSION
-     << const_cast<const GlobalMemory&>(machine.memory().global())
+  oa << CURRENT_GLOBAL_VERSION << machine.memory().GetGlobalMemory()
      << const_cast<const SystemGlobals&>(sys.globals())
      << const_cast<const GraphicsSystemGlobals&>(sys.graphics().globals())
      << const_cast<const EventSystemGlobals&>(sys.event().globals())
@@ -136,7 +137,9 @@ void loadGlobalMemoryFrom(std::istream& iss, RLMachine& machine) {
   ia >> version;
 
   // Load global memory.
-  ia >> machine.memory().global();
+  GlobalMemory global_memory;
+  ia >> global_memory;
+  machine.memory().PartialReset(std::move(global_memory));
 
   // When Karmic Koala came out, support for all boost earlier than 1.36 was
   // dropped. For years, I had used boost 1.35 on Ubuntu. It turns out that

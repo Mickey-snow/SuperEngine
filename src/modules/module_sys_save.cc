@@ -50,6 +50,7 @@
 #include "machine/save_game_header.h"
 #include "machine/serialization.h"
 #include "memory/memory.hpp"
+#include "memory/serialization_global.hpp"
 #include "systems/base/colour.h"
 #include "systems/base/surface.h"
 #include "systems/base/system.h"
@@ -234,8 +235,10 @@ struct GetSaveFlag : public RLStoreOpcode<IntConstant_T, GetSaveFlagList> {
     if (!fileExists)
       return 0;
 
-    Memory overlayedMemory(machine.memory().globalptr());
+    auto global_memory = machine.memory().GetGlobalMemory();
+    Memory overlayedMemory;
     Serialization::loadLocalMemoryForSlot(machine, slot, overlayedMemory);
+    overlayedMemory.PartialReset(std::move(global_memory));
 
     for (GetSaveFlagList::type::iterator it = flagList.begin();
          it != flagList.end(); ++it) {

@@ -35,7 +35,7 @@
 #include <string>
 #include <type_traits>
 
-struct _GlobalMemory {
+struct GlobalMemory {
   MemoryBank<int> G, Z;
   MemoryBank<std::string> M, global_names;
 
