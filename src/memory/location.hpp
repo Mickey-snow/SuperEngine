@@ -27,6 +27,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <stdexcept>
 #include <string>
 #include <variant>
 
@@ -42,8 +43,37 @@ enum class IntBank : uint8_t { A = 0, B, C, D, E, F, X, G, Z, H, I, J, L, CNT };
 
 enum class StrBank : uint8_t { S = 0, M, K, local_name, global_name, CNT };
 
+IntBank ToIntBank(char c);
 std::string ToString(IntBank bank, uint8_t bits = 32);
 std::string ToString(StrBank bank);
+
+/*
+ *@brief For serialization support
+ */
+template <class Archive>
+void SerializeBankTag(Archive& ar, std::variant<IntBank, StrBank> bank) {
+  struct Visitor {
+    Archive& ar;
+    void operator()(IntBank bank) const { ar & 0 & static_cast<uint8_t>(bank); }
+    void operator()(StrBank bank) const { ar & 1 & static_cast<uint8_t>(bank); }
+  };
+  std::visit(Visitor{ar}, bank);
+}
+template <class Archive>
+std::variant<IntBank, StrBank> DeserializeBankTag(Archive& ar) {
+  int tag;
+  uint8_t bank;
+  ar & tag & bank;
+  switch (tag) {
+    case 0:
+      return static_cast<IntBank>(bank);
+    case 1:
+      return static_cast<StrBank>(bank);
+    default:
+      throw std::runtime_error("DeserializeBankTag: unknown tag " +
+                               std::to_string(tag));
+  }
+}
 
 /**
  * @class IntMemoryLocation
@@ -116,7 +146,8 @@ class StrMemoryLocation {
 using MemoryLocation = std::variant<IntMemoryLocation, StrMemoryLocation>;
 
 /**
- * @brief Parses a memory location string and returns a `MemoryLocation` object.
+ * @brief Parses a memory location string and returns a `MemoryLocation`
+ * object.
  * @param location_str The string representing the memory location.
  * @return A `MemoryLocation` object parsed from the string.
  *

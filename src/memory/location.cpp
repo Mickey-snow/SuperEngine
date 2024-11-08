@@ -30,6 +30,40 @@
 
 #include "libreallive/intmemref.h"
 
+IntBank ToIntBank(char c) {
+  switch (c) {
+    case 'A':
+      return IntBank::A;
+    case 'B':
+      return IntBank::B;
+    case 'C':
+      return IntBank::C;
+    case 'D':
+      return IntBank::D;
+    case 'E':
+      return IntBank::E;
+    case 'F':
+      return IntBank::F;
+    case 'X':
+      return IntBank::X;
+    case 'G':
+      return IntBank::G;
+    case 'Z':
+      return IntBank::Z;
+    case 'H':
+      return IntBank::H;
+    case 'I':
+      return IntBank::I;
+    case 'J':
+      return IntBank::J;
+    case 'L':
+      return IntBank::L;
+    default:
+      throw std::invalid_argument("Invalid character for IntBank: " +
+                                  std::string(1, c));
+  }
+}
+
 std::string ToString(IntBank bank, uint8_t bits) {
   std::string result = "int";
 

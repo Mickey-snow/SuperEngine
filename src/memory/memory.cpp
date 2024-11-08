@@ -33,6 +33,8 @@
 #include "base/gameexe.hpp"
 #include "libreallive/intmemref.h"
 #include "machine/rlmachine.h"
+#include "memory/serialization_global.hpp"
+#include "memory/serialization_local.hpp"
 #include "utilities/exception.h"
 #include "utilities/string_utilities.h"
 
@@ -281,4 +283,53 @@ Memory::Stack Memory::StackMemory() const {
 void Memory::PartialReset(Stack stack_memory) {
   intbanks_[static_cast<uint8_t>(IntBank::L)] = std::move(stack_memory.L);
   strbanks_[static_cast<uint8_t>(StrBank::K)] = std::move(stack_memory.K);
+}
+
+_GlobalMemory Memory::GetGlobalMemory() const {
+  return _GlobalMemory{
+      .G = intbanks_[static_cast<uint8_t>(IntBank::G)],
+      .Z = intbanks_[static_cast<uint8_t>(IntBank::Z)],
+      .M = strbanks_[static_cast<uint8_t>(StrBank::M)],
+      .global_names = strbanks_[static_cast<uint8_t>(StrBank::global_name)]};
+}
+
+void Memory::PartialReset(_GlobalMemory global_memory) {
+  intbanks_[static_cast<uint8_t>(IntBank::G)] = std::move(global_memory.G);
+  intbanks_[static_cast<uint8_t>(IntBank::Z)] = std::move(global_memory.Z);
+  strbanks_[static_cast<uint8_t>(StrBank::M)] = std::move(global_memory.M);
+  strbanks_[static_cast<uint8_t>(StrBank::global_name)] =
+      std::move(global_memory.global_names);
+}
+
+_LocalMemory Memory::GetLocalMemory() const {
+  return _LocalMemory{
+      .A = intbanks_[static_cast<uint8_t>(IntBank::A)],
+      .B = intbanks_[static_cast<uint8_t>(IntBank::B)],
+      .C = intbanks_[static_cast<uint8_t>(IntBank::C)],
+      .D = intbanks_[static_cast<uint8_t>(IntBank::D)],
+      .E = intbanks_[static_cast<uint8_t>(IntBank::E)],
+      .F = intbanks_[static_cast<uint8_t>(IntBank::F)],
+      .X = intbanks_[static_cast<uint8_t>(IntBank::X)],
+      .H = intbanks_[static_cast<uint8_t>(IntBank::H)],
+      .I = intbanks_[static_cast<uint8_t>(IntBank::I)],
+      .J = intbanks_[static_cast<uint8_t>(IntBank::J)],
+      .S = strbanks_[static_cast<uint8_t>(StrBank::S)],
+      .local_names = strbanks_[static_cast<uint8_t>(StrBank::local_name)],
+  };
+}
+
+void Memory::PartialReset(_LocalMemory local_memory) {
+  intbanks_[static_cast<uint8_t>(IntBank::A)] = std::move(local_memory.A);
+  intbanks_[static_cast<uint8_t>(IntBank::B)] = std::move(local_memory.B);
+  intbanks_[static_cast<uint8_t>(IntBank::C)] = std::move(local_memory.C);
+  intbanks_[static_cast<uint8_t>(IntBank::D)] = std::move(local_memory.D);
+  intbanks_[static_cast<uint8_t>(IntBank::E)] = std::move(local_memory.E);
+  intbanks_[static_cast<uint8_t>(IntBank::F)] = std::move(local_memory.F);
+  intbanks_[static_cast<uint8_t>(IntBank::X)] = std::move(local_memory.X);
+  intbanks_[static_cast<uint8_t>(IntBank::H)] = std::move(local_memory.H);
+  intbanks_[static_cast<uint8_t>(IntBank::I)] = std::move(local_memory.I);
+  intbanks_[static_cast<uint8_t>(IntBank::J)] = std::move(local_memory.J);
+  strbanks_[static_cast<uint8_t>(StrBank::S)] = std::move(local_memory.S);
+  strbanks_[static_cast<uint8_t>(StrBank::local_name)] =
+      std::move(local_memory.local_names);
 }

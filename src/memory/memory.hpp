@@ -52,6 +52,9 @@ constexpr int SIZE_OF_NAME_BANK = 702;
 class RLMachine;
 class Gameexe;
 
+struct _GlobalMemory;
+struct _LocalMemory;
+
 // Struct that represents Global Memory. In any one rlvm process, there
 // should only be one GlobalMemory struct existing, as it will be
 // shared over all the Memory objects in the process.
@@ -247,7 +250,15 @@ class Memory {
   // Create and return a copy of stack memory
   Stack StackMemory() const;
 
+  // Create and return a copy of global memory
+  _GlobalMemory GetGlobalMemory() const;
+
+  // Create and return a copy of local memory
+  _LocalMemory GetLocalMemory() const;
+
   void PartialReset(Stack stack_memory);
+  void PartialReset(_GlobalMemory global_memory);
+  void PartialReset(_LocalMemory local_memory);
 
  private:
   const MemoryBank<int>& GetBank(IntBank) const;
