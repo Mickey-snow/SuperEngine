@@ -40,9 +40,9 @@
 #include "base/notification/details.h"
 #include "base/notification/service.h"
 #include "base/notification/source.h"
-#include "machine/memory.h"
 #include "machine/rlmachine.h"
 #include "machine/serialization.h"
+#include "memory/memory.hpp"
 #include "systems/base/graphics_system.h"
 #include "systems/base/surface.h"
 #include "systems/base/system.h"
@@ -865,11 +865,11 @@ std::string parseNames(const Memory& memory, const std::string& input) {
         continue;
       }
 
-      int index = Memory::ConvertLetterIndexToInt(strindex);
+      int index = ConvertLetterIndexToInt(strindex);
       if (type == LOWER_BYTE_FULLWIDTH_ASTERISK)
-        output += memory.GetName(index);
+        output += memory.Read(StrBank::global_name, index);
       else
-        output += memory.GetLocalName(index);
+        output += memory.Read(StrBank::local_name, index);
     } else {
       CopyOneShiftJisCharacter(cur, output);
     }

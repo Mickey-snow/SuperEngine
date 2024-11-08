@@ -30,35 +30,29 @@
 
 #include "machine/stack_frame.h"
 
-#include <boost/serialization/vector.hpp>
-#include <typeinfo>
-
 #include "libreallive/archive.h"
 #include "machine/long_operation.h"
 #include "machine/rlmachine.h"
 #include "machine/serialization.h"
 #include "utilities/exception.h"
 
+#include <iostream>
+#include <typeinfo>
+
 // -----------------------------------------------------------------------
 // StackFrame
 // -----------------------------------------------------------------------
-StackFrame::StackFrame() : scenario(NULL), ip(), frame_type() {
-  memset(intL, 0, sizeof(intL));
-}
+StackFrame::StackFrame() : scenario(NULL), ip(), frame_type() {}
 
 StackFrame::StackFrame(libreallive::Scenario const* s,
                        const libreallive::Scenario::const_iterator& i,
                        FrameType t)
-    : scenario(s), ip(i), frame_type(t) {
-  memset(intL, 0, sizeof(intL));
-}
+    : scenario(s), ip(i), frame_type(t) {}
 
 StackFrame::StackFrame(libreallive::Scenario const* s,
                        const libreallive::Scenario::const_iterator& i,
                        LongOperation* op)
-    : scenario(s), ip(i), long_op(op), frame_type(TYPE_LONGOP) {
-  memset(intL, 0, sizeof(intL));
-}
+    : scenario(s), ip(i), long_op(op), frame_type(TYPE_LONGOP) {}
 
 StackFrame::~StackFrame() {}
 
@@ -76,52 +70,56 @@ std::ostream& operator<<(std::ostream& os, const StackFrame& frame) {
 
 template <class Archive>
 void StackFrame::save(Archive& ar, unsigned int version) const {
-  int scene_number = scenario->scene_number();
-  int position = distance(scenario->begin(), ip);
-  ar& scene_number& position& frame_type& intL& strK;
+  std::cerr << "fixme! StackFrame::save" << std::endl;
+  // int scene_number = scenario->scene_number();
+  // int position = distance(scenario->begin(), ip);
+  // ar& scene_number& position& frame_type& intL& strK;
 }
 
 template <class Archive>
 void StackFrame::load(Archive& ar, unsigned int version) {
-  int scene_number, offset;
-  FrameType type;
-  ar& scene_number& offset& type;
+  std::cerr << "fixme! StackFrame::load" << std::endl;
 
-  libreallive::Scenario const* scenario =
-      Serialization::g_current_machine->archive().GetScenario(scene_number);
-  if (scenario == NULL) {
-    std::ostringstream oss;
-    oss << "Unknown SEEN #" << scene_number << " in save file!";
-    throw rlvm::Exception(oss.str());
-  }
+  // int scene_number, offset;
+  // FrameType type;
+  // ar& scene_number& offset& type;
 
-  if (offset > distance(scenario->begin(), scenario->end()) || offset < 0) {
-    std::ostringstream oss;
-    oss << offset << " is an illegal bytecode offset for SEEN #" << scene_number
-        << " in save file!";
-    throw rlvm::Exception(oss.str());
-  }
+  // libreallive::Scenario const* scenario =
+  //     Serialization::g_current_machine->archive().GetScenario(scene_number);
+  // if (scenario == NULL) {
+  //   std::ostringstream oss;
+  //   oss << "Unknown SEEN #" << scene_number << " in save file!";
+  //   throw rlvm::Exception(oss.str());
+  // }
 
-  libreallive::Scenario::const_iterator position_it = scenario->begin();
-  advance(position_it, offset);
+  // if (offset > distance(scenario->begin(), scenario->end()) || offset < 0) {
+  //   std::ostringstream oss;
+  //   oss << offset << " is an illegal bytecode offset for SEEN #" <<
+  //   scene_number
+  //       << " in save file!";
+  //   throw rlvm::Exception(oss.str());
+  // }
 
-  *this = StackFrame(scenario, position_it, type);
+  // libreallive::Scenario::const_iterator position_it = scenario->begin();
+  // advance(position_it, offset);
 
-  if (version >= 1) {
-    ar& intL;
-  }
+  // *this = StackFrame(scenario, position_it, type);
 
-  if (version == 1) {
-    std::string old_strk[3];
-    ar & old_strk;
+  // if (version >= 1) {
+  //   ar& intL;
+  // }
 
-    strK.resize(3);
-    strK[0] = old_strk[0];
-    strK[1] = old_strk[1];
-    strK[2] = old_strk[2];
-  } else if (version > 1) {
-    ar & strK;
-  }
+  // if (version == 1) {
+  //   std::string old_strk[3];
+  //   ar & old_strk;
+
+  //   strK.resize(3);
+  //   strK[0] = old_strk[0];
+  //   strK[1] = old_strk[1];
+  //   strK[2] = old_strk[2];
+  // } else if (version > 1) {
+  //   ar & strK;
+  // }
 }
 
 // -----------------------------------------------------------------------

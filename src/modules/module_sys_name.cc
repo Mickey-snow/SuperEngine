@@ -29,11 +29,11 @@
 
 #include <string>
 
-#include "machine/rloperation.h"
-#include "machine/rloperation/references.h"
 #include "machine/rlmachine.h"
 #include "machine/rlmodule.h"
-#include "machine/memory.h"
+#include "machine/rloperation.h"
+#include "machine/rloperation/references.h"
+#include "memory/memory.hpp"
 
 // -----------------------------------------------------------------------
 
@@ -43,13 +43,13 @@ struct GetName : public RLOpcode<IntConstant_T, StrReference_T> {
   void operator()(RLMachine& machine,
                   int index,
                   StringReferenceIterator strIt) {
-    *strIt = machine.memory().GetName(index);
+    *strIt = machine.memory().Read(StrBank::global_name, index);
   }
 };
 
 struct SetName : public RLOpcode<IntConstant_T, StrConstant_T> {
   void operator()(RLMachine& machine, int index, string name) {
-    machine.memory().SetName(index, name);
+    machine.memory().Write(StrBank::global_name, index, name);
   }
 };
 
@@ -57,13 +57,13 @@ struct GetLocalName : public RLOpcode<IntConstant_T, StrReference_T> {
   void operator()(RLMachine& machine,
                   int index,
                   StringReferenceIterator strIt) {
-    *strIt = machine.memory().GetLocalName(index);
+    *strIt = machine.memory().Read(StrBank::local_name, index);
   }
 };
 
 struct SetLocalName : public RLOpcode<IntConstant_T, StrConstant_T> {
   void operator()(RLMachine& machine, int index, string name) {
-    machine.memory().SetLocalName(index, name);
+    machine.memory().Write(StrBank::local_name, index, name);
   }
 };
 

@@ -50,13 +50,14 @@
 #include "long_operations/pause_long_operation.h"
 #include "long_operations/textout_long_operation.h"
 #include "machine/long_operation.h"
-#include "machine/memory.h"
 #include "machine/opcode_log.h"
 #include "machine/reallive_dll.h"
 #include "machine/rlmodule.h"
 #include "machine/rloperation.h"
 #include "machine/serialization.h"
 #include "machine/stack_frame.h"
+#include "memory/memory.hpp"
+#include "memory/serialization_local.hpp"
 #include "systems/base/graphics_system.h"
 #include "systems/base/system.h"
 #include "systems/base/system_error.h"
@@ -101,11 +102,14 @@ bool IsNotLongOp(StackFrame& frame) {
 // -----------------------------------------------------------------------
 
 RLMachine::RLMachine(System& in_system, libreallive::Archive& in_archive)
-    : memory_(new Memory(*this, in_system.gameexe())),
+    : memory_(std::make_unique<Memory>()),
       archive_(in_archive),
       system_(in_system) {
   // Search in the Gameexe for #SEEN_START and place us there
   Gameexe& gameexe = in_system.gameexe();
+
+  memory_->LoadFrom(gameexe);
+
   libreallive::Scenario* scenario = NULL;
   if (gameexe.Exists("SEEN_START")) {
     int first_seen = gameexe("SEEN_START").ToInt();
@@ -148,28 +152,29 @@ RLMachine::~RLMachine() {
 }
 
 int RLMachine::GetIntValue(const libreallive::IntMemRef& ref) {
-  return memory_->GetIntValue(ref);
+  return memory_->Read(ref);
 }
 
 void RLMachine::SetIntValue(const libreallive::IntMemRef& ref, int value) {
-  memory_->SetIntValue(ref, value);
+  memory_->Write(ref, value);
 }
 
 const std::string& RLMachine::GetStringValue(int type, int location) {
-  return memory_->GetStringValue(type, location);
+  return memory_->Read(StrMemoryLocation(type, location));
 }
 
-void RLMachine::SetStringValue(int type, int number, const std::string& value) {
-  memory_->SetStringValue(type, number, value);
+void RLMachine::SetStringValue(int type, int index, const std::string& value) {
+  memory_->Write(StrMemoryLocation(type, index), value);
 }
 
 void RLMachine::HardResetMemory() {
-  memory_.reset(new Memory(*this, system().gameexe()));
+  memory_ = std::make_unique<Memory>();
+  memory_->LoadFrom(system().gameexe());
 }
 
 void RLMachine::MarkSavepoint() {
   savepoint_call_stack_ = call_stack_;
-  memory_->TakeSavepointSnapshot();
+  savepoint_memory_ = std::make_unique<Memory>(*memory_);
   system().graphics().TakeSavepointSnapshot();
   system().text().TakeSavepointSnapshot();
 }
@@ -391,19 +396,10 @@ void RLMachine::PushStringValueUp(int index, const std::string& val) {
     throw rlvm::Exception("Invalid index in pushStringValue");
   }
 
-  // Find the first real stack frame.
   std::vector<StackFrame>::reverse_iterator it =
       find_if(call_stack_.rbegin(), call_stack_.rend(), IsNotLongOp);
   if (it != call_stack_.rend()) {
-    // Now try to move one stack frame up.
-    it++;
-    it = find_if(it, call_stack_.rend(), IsNotLongOp);
-
-    if (it != call_stack_.rend()) {
-      if ((index + 1) > it->strK.size())
-        it->strK.resize(index + 1);
-      it->strK[index] = val;
-    }
+    it->previous_stack_snapshot->K.Set(index, val);
   }
 }
 
@@ -412,12 +408,19 @@ void RLMachine::PushLongOperation(LongOperation* long_operation) {
                             long_operation));
 }
 
-void RLMachine::PushStackFrame(const StackFrame& frame) {
+void RLMachine::PushStackFrame(StackFrame frame) {
   if (delay_stack_modifications_) {
     delayed_modifications_.push_back(
-        std::bind(&RLMachine::PushStackFrame, this, frame));
+        std::bind(&RLMachine::PushStackFrame, this, std::move(frame)));
     return;
   }
+
+  if (frame.frame_type != StackFrame::TYPE_LONGOP)
+    frame.previous_stack_snapshot = memory_->GetStackMemory();
+  memory_->Resize(StrBank::K, 2000);
+  memory_->Fill(StrBank::K, 0, 2000, "");
+  memory_->Resize(IntBank::L, 40);
+  memory_->Fill(IntBank::L, 0, 40, 0);
 
   call_stack_.push_back(frame);
 
@@ -433,30 +436,14 @@ void RLMachine::PopStackFrame() {
     return;
   }
 
+  const auto& frame = call_stack_.back();
+  if (frame.previous_stack_snapshot.has_value()) {
+    memory_->PartialReset(frame.previous_stack_snapshot.value());
+  }
   call_stack_.pop_back();
 }
 
 int RLMachine::GetStackSize() { return call_stack_.size(); }
-
-int* RLMachine::CurrentIntLBank() {
-  std::vector<StackFrame>::reverse_iterator it =
-      find_if(call_stack_.rbegin(), call_stack_.rend(), IsNotLongOp);
-  if (it != call_stack_.rend()) {
-    return it->intL;
-  }
-
-  throw rlvm::Exception("No valid intL bank");
-}
-
-std::vector<std::string>& RLMachine::CurrentStrKBank() {
-  std::vector<StackFrame>::reverse_iterator it =
-      find_if(call_stack_.rbegin(), call_stack_.rend(), IsNotLongOp);
-  if (it != call_stack_.rend()) {
-    return it->strK;
-  }
-
-  throw rlvm::Exception("No valid strK bank");
-}
 
 void RLMachine::ClearLongOperationsOffBackOfStack() {
   if (delay_stack_modifications_) {
@@ -480,7 +467,7 @@ void RLMachine::Reset() {
 
 void RLMachine::LocalReset() {
   savepoint_call_stack_.clear();
-  memory_->local().reset();
+  memory_->PartialReset(LocalMemory());
   system().Reset();
 }
 

@@ -33,9 +33,11 @@
 #include "libreallive/reallive.h"
 #include "machine/dump_scenario.h"
 #include "machine/game_hacks.h"
-#include "machine/memory.h"
 #include "machine/rlmachine.h"
 #include "machine/serialization.h"
+#include "memory/memory.hpp"
+#include "memory/serialization_global.hpp"
+#include "memory/serialization_local.hpp"
 #include "modules/module_sys_save.h"
 #include "modules/modules.h"
 #include "platforms/gcn/gcn_platform.h"
@@ -227,13 +229,23 @@ void RLVMInstance::DoUserNameCheck(RLMachine& machine) {
     int encoding = machine.GetProbableEncodingType();
 
     // Iterate over all the names in both global and local memory banks.
-    GlobalMemory& g = machine.memory().global();
-    for (int i = 0; i < SIZE_OF_NAME_BANK; ++i)
-      cp932toUTF8(g.global_names[i], encoding);
+    GlobalMemory g = machine.memory().GetGlobalMemory();
+    LocalMemory l = machine.memory().GetLocalMemory();
+    std::string line;
+    for (int i = 0; i < SIZE_OF_NAME_BANK; ++i) {
+      line = g.global_names.Get(i);
+      cp932toUTF8(line, encoding);
+      g.global_names.Set(i, line);
+    }
 
-    LocalMemory& l = machine.memory().local();
-    for (int i = 0; i < SIZE_OF_NAME_BANK; ++i)
-      cp932toUTF8(l.local_names[i], encoding);
+    for (int i = 0; i < SIZE_OF_NAME_BANK; ++i) {
+      line = l.local_names.Get(i);
+      cp932toUTF8(line, encoding);
+      l.local_names.Set(i, line);
+    }
+
+    machine.memory().PartialReset(std::move(g));
+    machine.memory().PartialReset(std::move(l));
   } catch (...) {
     // We've failed to interpret one of the name strings as a string in the
     // text encoding of the current native encoding. We're going to fail to

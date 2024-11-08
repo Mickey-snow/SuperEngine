@@ -314,7 +314,7 @@ class RLMachine {
 
   // Pushes a stack frame onto the call stack, alerting possible
   // LongOperations of this change if needed.
-  void PushStackFrame(const StackFrame& frame);
+  void PushStackFrame(StackFrame frame);
 
   // Pops a stack frame from the call stack, alerting possible
   // LongOperations of this change if needed.
@@ -322,12 +322,6 @@ class RLMachine {
 
   // Returns the current stack size.
   int GetStackSize();
-
-  // Returns the intL bank of the current stack frame.
-  int* CurrentIntLBank();
-
-  // Returns the strK bank of the current stack frame.
-  std::vector<std::string>& CurrentStrKBank();
 
   // Clears all LongOperations from the back of the stack.
   void ClearLongOperationsOffBackOfStack();
@@ -374,6 +368,8 @@ class RLMachine {
 
   // The state of the call stack the last time a savepoint was called
   std::vector<StackFrame> savepoint_call_stack_;
+
+  std::unique_ptr<Memory> savepoint_memory_;
 
   // The most recent line marker we've come across
   int line_ = 0;

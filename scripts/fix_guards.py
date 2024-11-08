@@ -4,41 +4,42 @@ import sys
 import os
 import re
 
+# Compile regular expressions for matching include guards
 ifndef = re.compile('^\#ifndef')
 define = re.compile('^\#define')
 endif  = re.compile('^\#endif')
 
-name = sys.argv[1]
-bak_name = name + ".bak"
+# Function to update include guards in a single file
+def process_file(name):
+  bak_name = name + ".bak"
+  new_guard_name = name.replace('/', '_').replace('.', '_').upper() + "_"
+  try:
+    os.rename(name, bak_name)
+    with open(bak_name, 'r') as input, open(name, 'w') as output:
+      for line in input:
+        if ifndef.search(line):
+          output.write('#ifndef ' + new_guard_name + '\n')
+          continue
+        if define.search(line):
+          output.write('#define ' + new_guard_name + '\n')
+          continue
+        if endif.search(line):
+          output.write('#endif  // ' + new_guard_name + '\n')
+          continue
+        output.write(line)
+  except IOError:
+    sys.stderr.write(f'Cannot open "{name}"\n')
 
-new_guard_name = name.replace('/', '_').replace('.', '_').upper()
-new_guard_name += "_"
+def main():
+  directory = sys.argv[1]  # Get directory path from command line
+  header_file_pattern = re.compile(r".*\.(h|hpp)$")
 
-try:
-  os.rename(name, bak_name)
+  # Iterate over all files in the specified directory
+  for root, _, files in os.walk(directory):
+    for file in files:
+      if header_file_pattern.match(file):
+        full_path = os.path.join(root, file)
+        process_file(full_path)
 
-  input = file(bak_name, 'r')
-  output = file(name, 'w')
-
-  for line in input:
-    m = ifndef.search(line)
-    if m is not None:
-      output.write('#ifndef ' + new_guard_name + '\n')
-      continue
-
-    m = define.search(line)
-    if m is not None:
-      output.write('#define ' + new_guard_name + '\n')
-      continue
-
-    m = endif.search(line)
-    if m is not None:
-      output.write('#endif  // ' + new_guard_name + '\n')
-      continue
-
-    output.write(line)
-
-  input.close()
-  output.close()
-except IOError:
-  sys.stderr.write('Cannot open "%s"\n' % arg)
+if __name__ == "__main__":
+  main()

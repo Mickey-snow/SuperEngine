@@ -67,6 +67,10 @@ unittest_files = [
   "test/stopwatch_unittest.cc",
   "test/codepage_unittest.cpp",
   "test/encodings_unittest.cpp",
+  "test/memorybank_unittest.cpp",
+  "test/memory_unittest.cpp",
+  "test/memorylocation_unittest.cpp",
+  "test/memory_serialization_unittest.cpp",
 ]
 
 test_env.RlvmProgram('rlvm_unittests',

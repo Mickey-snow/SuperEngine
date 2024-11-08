@@ -787,7 +787,7 @@ class ComplexEx : public IExpression {
     string s = "(";
     for (auto const& piece : expression_) {
       s += piece->GetDebugString();
-      if(piece != expression_.back())
+      if (piece != expression_.back())
         s += ", ";
     }
     s += ")";

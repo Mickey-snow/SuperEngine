@@ -105,7 +105,7 @@ void srcResampler::Resample(AudioData& pcm) {
   src_data.data_out = output.data();
   src_data.output_frames = output.size() / channels;
   src_data.src_ratio = ratio;
-  const auto src_quality = SRC_SINC_BEST_QUALITY;
+  static constexpr auto src_quality = SRC_SINC_FASTEST;
 
   int error_code;
   if ((error_code = src_simple(&src_data, src_quality, channels)) != 0) {

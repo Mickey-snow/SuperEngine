@@ -32,12 +32,13 @@
 #include <string>
 #include <vector>
 
-#include "libreallive/parser.h"
 #include "libreallive/intmemref.h"
+#include "libreallive/parser.h"
 #include "machine/rlmachine.h"
 #include "machine/rloperation.h"
 #include "machine/rloperation/argc_t.h"
 #include "machine/rloperation/special_t.h"
+#include "memory/memory.hpp"
 #include "utilities/exception.h"
 
 using libreallive::CommandElement;
@@ -115,12 +116,11 @@ void WriteWithData(RLMachine& machine,
                    const std::vector<int>& integers,
                    const std::vector<std::string>& strings) {
   for (int i = 0; i < 40 && i < integers.size(); ++i) {
-    machine.SetIntValue(
-        libreallive::IntMemRef(libreallive::INTL_LOCATION, 0, i), integers[i]);
+    machine.memory().Write(IntBank::L, i, integers[i]);
   }
 
   for (int i = 0; i < strings.size(); ++i) {
-    machine.SetStringValue(libreallive::STRK_LOCATION, i, strings[i]);
+    machine.memory().Write(StrBank::K, i, strings[i]);
   }
 }
 

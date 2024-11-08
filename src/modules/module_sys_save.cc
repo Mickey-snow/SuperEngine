@@ -39,7 +39,6 @@
 #include "long_operations/load_game_long_operation.h"
 #include "machine/general_operations.h"
 #include "machine/long_operation.h"
-#include "machine/memory.h"
 #include "machine/rlmachine.h"
 #include "machine/rlmodule.h"
 #include "machine/rloperation.h"
@@ -50,6 +49,8 @@
 #include "machine/rloperation/special_t.h"
 #include "machine/save_game_header.h"
 #include "machine/serialization.h"
+#include "memory/memory.hpp"
+#include "memory/serialization_global.hpp"
 #include "systems/base/colour.h"
 #include "systems/base/surface.h"
 #include "systems/base/system.h"
@@ -234,8 +235,10 @@ struct GetSaveFlag : public RLStoreOpcode<IntConstant_T, GetSaveFlagList> {
     if (!fileExists)
       return 0;
 
-    Memory overlayedMemory(machine, slot);
+    auto global_memory = machine.memory().GetGlobalMemory();
+    Memory overlayedMemory;
     Serialization::loadLocalMemoryForSlot(machine, slot, overlayedMemory);
+    overlayedMemory.PartialReset(std::move(global_memory));
 
     for (GetSaveFlagList::type::iterator it = flagList.begin();
          it != flagList.end(); ++it) {

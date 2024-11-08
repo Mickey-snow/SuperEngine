@@ -26,35 +26,35 @@
 // -----------------------------------------------------------------------
 
 // include headers that implement a archive in simple text format
-#include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/date_time/posix_time/time_serialize.hpp>
+#include <boost/iostreams/filter/zlib.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
+#include <boost/serialization/export.hpp>
 #include <boost/serialization/split_free.hpp>
 #include <boost/serialization/vector.hpp>
-#include <boost/serialization/export.hpp>
-#include <boost/date_time/posix_time/time_serialize.hpp>
-#include <filesystem>
-#include <filesystem>
-#include <boost/iostreams/filtering_stream.hpp>
-#include <boost/iostreams/filter/zlib.hpp>
-#include <fstream>
-#include <sstream>
-#include <iostream>
 #include <exception>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 
 #include "libreallive/archive.h"
 #include "libreallive/intmemref.h"
-#include "machine/memory.h"
 #include "machine/rlmachine.h"
 #include "machine/save_game_header.h"
 #include "machine/serialization.h"
 #include "machine/stack_frame.h"
+#include "memory/memory.hpp"
+#include "memory/serialization_local.hpp"
 #include "object/drawer/anm.h"
-#include "systems/base/event_system.h"
-#include "object/drawer/gan.h"
-#include "systems/base/graphics_object.h"
 #include "object/drawer/file.h"
+#include "object/drawer/gan.h"
+#include "systems/base/event_system.h"
+#include "systems/base/graphics_object.h"
 #include "systems/base/graphics_system.h"
 #include "systems/base/sound_system.h"
 #include "systems/base/system.h"
@@ -105,15 +105,13 @@ void saveGameTo(std::ostream& oss, RLMachine& machine) {
 
   try {
     boost::archive::text_oarchive oa(filtered_output);
-    oa << CURRENT_LOCAL_VERSION << header
-       << const_cast<const LocalMemory&>(machine.memory().local())
+    oa << CURRENT_LOCAL_VERSION << header << machine.memory().GetLocalMemory()
        << const_cast<const RLMachine&>(machine)
        << const_cast<const System&>(machine.system())
        << const_cast<const GraphicsSystem&>(machine.system().graphics())
        << const_cast<const TextSystem&>(machine.system().text())
        << const_cast<const SoundSystem&>(machine.system().sound());
-  }
-  catch (std::exception& e) {
+  } catch (std::exception& e) {
     std::cerr << "--- WARNING: ERROR DURING SAVING FILE: " << e.what() << " ---"
               << std::endl;
 
@@ -169,10 +167,12 @@ void loadLocalMemoryFrom(std::istream& iss, Memory& memory) {
 
   int version;
   SaveGameHeader header;
+  LocalMemory local_memory;
 
   // Only load the header
   boost::archive::text_iarchive ia(filtered_input);
-  ia >> version >> header >> memory.local();
+  ia >> version >> header >> local_memory;
+  memory.PartialReset(std::move(local_memory));
 }
 
 void loadGameForSlot(RLMachine& machine, int slot) {
@@ -199,15 +199,17 @@ void loadGameFrom(std::istream& iss, RLMachine& machine) {
     machine.Reset();
 
     boost::archive::text_iarchive ia(filtered_input);
-    ia >> version >> header >> machine.memory().local() >> machine >>
-        machine.system() >> machine.system().graphics() >>
-        machine.system().text() >> machine.system().sound();
+    LocalMemory local_memory;
+    ia >> version >> header >> local_memory >> machine >> machine.system() >>
+        machine.system().graphics() >> machine.system().text() >>
+        machine.system().sound();
+
+    machine.memory().PartialReset(std::move(local_memory));
 
     machine.system().graphics().ReplayGraphicsStack(machine);
 
     machine.system().graphics().ForceRefresh();
-  }
-  catch (std::exception& e) {
+  } catch (std::exception& e) {
     std::cerr << "--- WARNING: ERROR DURING LOADING FILE: " << e.what()
               << " ---" << std::endl;
 
