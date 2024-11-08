@@ -26,6 +26,10 @@
 
 #include "memory/bank.hpp"
 
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
+
+#include <cmath>
 #include <string>
 
 TEST(MemoryBankTest, Basic) {
@@ -118,4 +122,44 @@ TEST(MemoryBankTest, Persistence) {
   bank = memento1;
   EXPECT_EQ(bank.GetSize(), 5);
   EXPECT_EQ(bank.Get(0), 1);
+}
+
+TEST(MemoryBankTest, Serialization) {
+  const size_t size = 100000;
+  std::stringstream ss;
+  size_t serialized_data_len = 0;
+
+  {
+    MemoryBank<std::string> arr;
+    arr.Resize(size);
+    for (size_t i = 0; i < 100; ++i) {
+      // fill random data
+      const auto value = std::to_string(i * i);
+      arr.Set(i, value);
+      serialized_data_len += value.length();
+    }
+    for (size_t i = 100; i < size;) {
+      // fill with data chunk
+      const size_t end = std::min(size, i + 1000);
+      const auto value = std::to_string(i);
+      arr.Fill(i, end, value);
+      serialized_data_len += value.length();
+      i = end + 1;
+    }
+
+    boost::archive::text_oarchive oa(ss);
+    oa << arr;
+  }
+
+  EXPECT_LE(ss.tellp(), 4 * std::log2(size) * serialized_data_len);
+
+  {
+    boost::archive::text_iarchive ia(ss);
+    MemoryBank<std::string> deserialized;
+    ia >> deserialized;
+
+    ASSERT_EQ(deserialized.GetSize(), 100000);
+    for (size_t i = 0; i < 100; ++i)
+      EXPECT_EQ(deserialized.Get(i), std::to_string(i * i));
+  }
 }

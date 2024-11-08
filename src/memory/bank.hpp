@@ -25,6 +25,9 @@
 #ifndef SRC_MEMORY_BANK_HPP_
 #define SRC_MEMORY_BANK_HPP_
 
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/split_member.hpp>
+
 #include <cstddef>
 #include <functional>
 #include <limits>
@@ -78,9 +81,10 @@ class MemoryBank {
       Rebuild(newsize);
     } else {
       size_t newsize = current_size;
-      while (newsize / 4 >= size){
+      while (newsize / 4 >= size) {
         newsize >>= 1;
-	if(newsize <= 32) break;
+        if (newsize <= 32)
+          break;
       }
       if (newsize < current_size / 4)
         Rebuild(newsize);
@@ -179,6 +183,40 @@ class MemoryBank {
 
   std::shared_ptr<Node> root_;
   size_t size_;
+
+  // boost::serialization support
+  friend class boost::serialization::access;
+  BOOST_SERIALIZATION_SPLIT_MEMBER();
+
+  // serialization format:
+  // <size> <cnt>
+  // repeat cnt times: [<fr>,<to>) <value>
+  template <class Archive>
+  void save(Archive& ar, unsigned int version) const {
+    std::vector<std::tuple<size_t, size_t, T>> flat_data;
+    Apply(root_, [&flat_data](size_t fr, size_t to, T value) {
+      flat_data.emplace_back(std::make_tuple(fr, to + 1, std::move(value)));
+    });
+
+    ar & size_ & flat_data.size();
+    for (const auto& [fr, to, val] : flat_data) {
+      ar & fr & to & val;
+    }
+  }
+
+  template <class Archive>
+  void load(Archive& ar, unsigned int version) {
+    size_t size, cnt;
+
+    ar & size & cnt;
+    this->Resize(size);
+    for (size_t i = 0; i < cnt; ++i) {
+      size_t fr, to;
+      T value;
+      ar & fr & to & value;
+      this->Fill(fr, to, value);
+    }
+  }
 };
 
 #endif  // SRC_MEMORY_BANK_HPP_
