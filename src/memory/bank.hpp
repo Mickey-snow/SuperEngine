@@ -26,6 +26,7 @@
 #define SRC_MEMORY_BANK_HPP_
 
 #include <cstddef>
+#include <functional>
 #include <limits>
 #include <memory>
 #include <optional>
@@ -58,21 +59,32 @@ class MemoryBank {
 
   void Resize(size_t size) {
     size_ = size;
-    size_t newsize = root_ == nullptr ? 32 : root_->to;
+    const auto current_size = root_ == nullptr ? 0 : root_->to + 1;
 
-    static_assert(std::numeric_limits<size_t>::radix == 2);
+    if (current_size < size) {
+      size_t newsize = current_size;
+      if (newsize == 0)
+        newsize = 32;
+      static_assert(std::numeric_limits<size_t>::radix == 2);
+      for (int i = 0; newsize < size && i < std::numeric_limits<size_t>::digits;
+           ++i) {
+        newsize <<= 1;
+      }
+      if (newsize < size) {
+        // special case: expanding the size by exponent of 2 causing overflow
+        newsize = std::numeric_limits<size_t>::max();
+      }
 
-    for (int i = 0; newsize < size && i < std::numeric_limits<size_t>::digits;
-         ++i)
-      newsize <<= 1;
-    if (newsize < size) {
-      // special case: expanding the size by exponent of 2 causing overflow
-      newsize = std::numeric_limits<size_t>::max();
+      Rebuild(newsize);
+    } else {
+      size_t newsize = current_size;
+      while (newsize / 4 >= size){
+        newsize >>= 1;
+	if(newsize <= 32) break;
+      }
+      if (newsize < current_size / 4)
+        Rebuild(newsize);
     }
-
-    auto oldroot = root_;
-    root_ = std::make_shared<Node>(0, newsize - 1);
-    RebuildFrom(oldroot);
   };
   size_t GetSize() const { return size_; }
 
@@ -145,15 +157,24 @@ class MemoryBank {
     }
   }
 
-  void RebuildFrom(std::shared_ptr<const Node> nowAt) {
+  void Rebuild(const size_t size) {
+    auto oldroot = root_;
+    root_ = std::make_shared<Node>(0, size - 1);
+    Apply(oldroot, [&](size_t fr, size_t to, const T& value) {
+      this->Set_impl(fr, to, value, root_);
+    });
+  }
+
+  template <class U>
+  static void Apply(std::shared_ptr<const Node> nowAt, const U& fn) {
     if (nowAt == nullptr)
       return;
     if (nowAt->tag.has_value()) {
-      Set_impl(nowAt->fr, nowAt->to, nowAt->tag.value(), root_);
+      std::invoke(fn, nowAt->fr, nowAt->to, nowAt->tag.value());
       return;
     }
-    RebuildFrom(nowAt->lch);
-    RebuildFrom(nowAt->rch);
+    Apply(nowAt->lch, fn);
+    Apply(nowAt->rch, fn);
   }
 
   std::shared_ptr<Node> root_;

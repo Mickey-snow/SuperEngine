@@ -76,6 +76,20 @@ TEST(MemoryBankTest, FillValues) {
   EXPECT_NE(bank.Get(6), 7);
 }
 
+TEST(MemoryBankTest, Append) {
+  MemoryBank<int> bank;
+  for (int i = 0; i < 1000; ++i) {
+    bank.Resize(i + 1);
+    bank.Set(i, i);
+  }
+
+  for (int i = 1000 - 1; i >= 0; --i) {
+    EXPECT_EQ(bank.Get(i), i);
+    bank.Resize(i);
+  }
+  EXPECT_EQ(bank.GetSize(), 0);
+}
+
 TEST(MemoryBankTest, Persistence) {
   MemoryBank<int> bank;
   bank.Resize(5);
