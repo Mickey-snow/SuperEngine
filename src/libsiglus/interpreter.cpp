@@ -30,39 +30,33 @@
 namespace libsiglus {
 
 void Interpreter::Interpret(Lexeme lex) {
-  switch (static_cast<lex::LexType>(lex->GetType())) {
-    case lex::LexType::Line: {
-      auto line = std::dynamic_pointer_cast<lex::Line>(lex);
-      lineno_ = line->linenum_;
-      break;
-    }
+  std::visit(
+      [&](auto& lex) {
+        using T = std::decay_t<decltype(lex)>;
 
-    case lex::LexType::Marker:
-      stk_.PushMarker();
-      break;
-
-    case lex::LexType::Push: {
-      auto push = std::dynamic_pointer_cast<lex::Push>(lex);
-      DispatchPush(push);
-      break;
-    }
-
-    default:
-      throw std::runtime_error("Interpreter: Unknown lexeme type " +
-                               std::to_string(lex->GetType()));
-  }
+        if constexpr (std::is_same_v<T, lex::Line>) {
+          lineno_ = lex.linenum_;
+        } else if constexpr (std::is_same_v<T, lex::Marker>) {
+          stk_.PushMarker();
+        } else if constexpr (std::is_same_v<T, lex::Push>) {
+          DispatchPush(lex);
+        } else {
+          throw std::runtime_error("Interpreter: Unknown lexeme type.");
+        }
+      },
+      lex);
 }
 
-void Interpreter::DispatchPush(std::shared_ptr<lex::Push> push) {
-  switch (push->type_) {
+void Interpreter::DispatchPush(lex::Push push) {
+  switch (push.type_) {
     case Type::Int:
-      stk_.Push(push->value_);
+      stk_.Push(push.value_);
       break;
 
     default:
       throw std::runtime_error(
           "Interpreter: Unknow type id " +
-          std::to_string(static_cast<uint32_t>(push->type_)));
+          std::to_string(static_cast<uint32_t>(push.type_)));
   }
 }
 

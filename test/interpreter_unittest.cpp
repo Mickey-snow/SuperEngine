@@ -35,25 +35,20 @@ using namespace libsiglus;
 class InterpreterTest : public ::testing::Test {
  protected:
   Interpreter itp;
-
-  template <typename T, typename... U>
-  Lexeme Makelex(U&&... params) {
-    return std::make_shared<T>(std::forward<U>(params)...);
-  }
 };
 
 TEST_F(InterpreterTest, Line) {
   const int lineno = 123;
-  itp.Interpret(Makelex<lex::Line>(lineno));
+  itp.Interpret(lex::Line(lineno));
 
   EXPECT_EQ(itp.GetLinenum(), lineno);
 }
 
 TEST_F(InterpreterTest, Element) {
   const ElementCode elm{0x3f, 0x4f};
-  itp.Interpret(Makelex<lex::Marker>());
+  itp.Interpret(lex::Marker());
   for (const auto& it : elm)
-    itp.Interpret(Makelex<lex::Push>(Type::Int, it));
+    itp.Interpret(lex::Push(Type::Int, it));
 
   EXPECT_EQ(itp.GetStack().Backelm(), elm);
 }

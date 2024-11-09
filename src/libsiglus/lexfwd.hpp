@@ -21,26 +21,54 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LIBSIGLUS_ILEXEME_HPP_
-#define SRC_LIBSIGLUS_ILEXEME_HPP_
+#ifndef SRC_LIBSIGLUS_LEXFWD_HPP_
+#define SRC_LIBSIGLUS_LEXFWD_HPP_
 
 #include "libsiglus/types.hpp"
 
 #include <memory>
 #include <string>
+#include <variant>
 
 namespace libsiglus {
 
-class ILexeme {
- public:
-  virtual ~ILexeme() = default;
+namespace lex {
+class Line;
+class Push;
+class Pop;
+class Marker;
+class Command;
+class Property;
+class Operate1;
+class Operate2;
+class Goto;
+class Assign;
+class Copy;
+class CopyElm;
+class Gosub;
+class Return;
+class Namae;
+class EndOfScene;
+class Textout;
+}  // namespace lex
 
-  virtual int GetType() const = 0;
-
-  virtual std::string ToDebugString() const = 0;
-  virtual size_t ByteLength() const = 0;
-};
-using Lexeme = std::shared_ptr<ILexeme>;
+using Lexeme = std::variant<lex::Line,
+                            lex::Push,
+                            lex::Pop,
+                            lex::Marker,
+                            lex::Command,
+                            lex::Property,
+                            lex::Operate1,
+                            lex::Operate2,
+                            lex::Goto,
+                            lex::Assign,
+                            lex::Copy,
+                            lex::CopyElm,
+                            lex::Gosub,
+                            lex::Return,
+                            lex::Namae,
+                            lex::EndOfScene,
+                            lex::Textout>;
 
 }  // namespace libsiglus
 

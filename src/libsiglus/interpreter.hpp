@@ -24,7 +24,7 @@
 #ifndef SRC_LIBSIGLUS_INTERPRETER_HPP_
 #define SRC_LIBSIGLUS_INTERPRETER_HPP_
 
-#include "libsiglus/ilexeme.hpp"
+#include "libsiglus/lexfwd.hpp"
 #include "libsiglus/stack.hpp"
 
 namespace libsiglus {
@@ -47,7 +47,7 @@ class Interpreter {
   int lineno_;
   Stack stk_;
 
-  void DispatchPush(std::shared_ptr<lex::Push>);
+  void DispatchPush(lex::Push);
 };
 
 }  // namespace libsiglus

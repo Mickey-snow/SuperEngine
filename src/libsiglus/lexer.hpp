@@ -24,7 +24,7 @@
 #ifndef SRC_LIBSIGLUS_LEXER_HPP_
 #define SRC_LIBSIGLUS_LEXER_HPP_
 
-#include "libsiglus/ilexeme.hpp"
+#include "libsiglus/lexfwd.hpp"
 
 #include <memory>
 #include <string_view>
