@@ -27,12 +27,46 @@
 #include "libsiglus/lexfwd.hpp"
 #include "libsiglus/stack.hpp"
 
+#include <string>
 #include <variant>
 
 namespace libsiglus {
 
-using Instruction = std::variant<std::monostate>;
+struct Command {
+  int overload_id;
+  std::vector<int> elm;
+  std::vector<int> arg;
+  Type return_type;
 
+  std::string ToDebugString() const {
+    std::string result = "cmd<";
+    bool first = true;
+    for (const auto it : elm) {
+      if (first)
+        first = false;
+      else
+        result += ',';
+      result += std::to_string(it);
+    }
+    result += ':' + std::to_string(overload_id) + ">(";
+
+    first = true;
+    for (const auto it : arg) {
+      if (first)
+        first = false;
+      else
+        result += ',';
+      result += std::to_string(it);
+    }
+    result += ") -> " + ToString(return_type);
+    return result;
+  }
+};
+
+using Instruction = std::variant<std::monostate, Command>;
+
+// this class takes the low-level `Lexeme` and constructs `Instruction` objects
+// that are ready for execution.
 class Assembler {
  public:
   Assembler() = default;
@@ -44,6 +78,7 @@ class Assembler {
   Instruction operator()(lex::Push);
   Instruction operator()(lex::Line);
   Instruction operator()(lex::Marker);
+  Instruction operator()(lex::Command);
 
   template <typename T>
   Instruction operator()(T) {

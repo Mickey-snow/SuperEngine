@@ -320,16 +320,18 @@ class Return {
 }  // namespace lex
 
 struct DebugStringOf {
+  std::string operator()(std::monostate) { return ""; }
+
   template <typename T>
-  auto operator()(const T& lex) {
-    return lex.ToDebugString();
+  auto operator()(const T& it) {
+    return it.ToDebugString();
   }
 };
 
 struct ByteLengthOf {
   template <typename T>
-  auto operator()(const T& lex) {
-    return lex.ByteLength();
+  auto operator()(const T& it) {
+    return it.ByteLength();
   }
 };
 

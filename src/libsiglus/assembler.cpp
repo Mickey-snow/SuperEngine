@@ -29,9 +29,7 @@
 
 namespace libsiglus {
 
-Instruction Assembler::Interpret(Lexeme lex) {
-  return std::visit(*this, lex);
-}
+Instruction Assembler::Interpret(Lexeme lex) { return std::visit(*this, lex); }
 
 Instruction Assembler::operator()(lex::Push push) {
   switch (push.type_) {
@@ -47,14 +45,27 @@ Instruction Assembler::operator()(lex::Push push) {
   return std::monostate();
 }
 
-  Instruction Assembler::operator()(lex::Line line){
-    lineno_ = line.linenum_;
-    return std::monostate();
-  }
+Instruction Assembler::operator()(lex::Line line) {
+  lineno_ = line.linenum_;
+  return std::monostate();
+}
 
-  Instruction Assembler::operator()(lex::Marker marker){
-    stack_.PushMarker();
-    return std::monostate();
+Instruction Assembler::operator()(lex::Marker marker) {
+  stack_.PushMarker();
+  return std::monostate();
+}
+
+Instruction Assembler::operator()(lex::Command command) {
+  Command result;
+  result.return_type = command.rettype_;
+  result.overload_id = command.alist_;
+
+  for (auto it = result.arg.rend(); it != result.arg.rbegin(); ++it) {
+    *it = stack_.Popint();
   }
+  result.elm = stack_.Popelm();
+
+  return result;
+}
 
 }  // namespace libsiglus

@@ -29,6 +29,7 @@
 #include <cstdint>
 #include <string_view>
 #include <vector>
+#include <variant>
 
 using namespace libsiglus;
 
@@ -53,11 +54,13 @@ TEST_F(AssemblerTest, Element) {
   EXPECT_EQ(itp.stack_.Backelm(), elm);
 }
 
-// TEST_F(AssemblerTest, Command) {
-//   const ElementCode elm{0x3f, 0x4f};
-//   itp.Interpret(lex::Marker());
-//   for (const auto& it : elm)
-//     itp.Interpret(lex::Push(Type::Int, it));
+TEST_F(AssemblerTest, Command) {
+  const ElementCode elm{0x3f, 0x4f};
+  itp.Interpret(lex::Marker());
+  for (const auto& it : elm)
+    itp.Interpret(lex::Push(Type::Int, it));
 
-//   auto result = itp.Interpret(lex::Command(0, {}, {}, libsiglus::Type::Int));
-// }
+  auto result = itp.Interpret(lex::Command(0, {}, {}, libsiglus::Type::Int));
+  ASSERT_TRUE(std::holds_alternative<Command>(result));
+  EXPECT_EQ(std::visit(DebugStringOf(), result), "cmd<63,79:0>() -> int");
+}
