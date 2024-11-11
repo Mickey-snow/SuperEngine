@@ -21,40 +21,43 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#include "libsiglus/interpreter.hpp"
+#include <gtest/gtest.h>
 
+#include "libsiglus/assembler.hpp"
 #include "libsiglus/lexeme.hpp"
 
-#include <stdexcept>
+#include <cstdint>
+#include <string_view>
+#include <vector>
 
-namespace libsiglus {
+using namespace libsiglus;
 
-Instruction Interpreter::Interpret(Lexeme lex) {
-  return std::visit(*this, lex);
+class AssemblerTest : public ::testing::Test {
+ protected:
+  Assembler itp;
+};
+
+TEST_F(AssemblerTest, Line) {
+  const int lineno = 123;
+  itp.Interpret(lex::Line(lineno));
+
+  EXPECT_EQ(itp.lineno_, lineno);
 }
 
-Instruction Interpreter::operator()(lex::Push push) {
-  switch (push.type_) {
-    case Type::Int:
-      stack_.Push(push.value_);
-      break;
+TEST_F(AssemblerTest, Element) {
+  const ElementCode elm{0x3f, 0x4f};
+  itp.Interpret(lex::Marker());
+  for (const auto& it : elm)
+    itp.Interpret(lex::Push(Type::Int, it));
 
-    default:
-      throw std::runtime_error(
-          "Interpreter: Unknow type id " +
-          std::to_string(static_cast<uint32_t>(push.type_)));
-  }
-  return std::monostate();
+  EXPECT_EQ(itp.stack_.Backelm(), elm);
 }
 
-  Instruction Interpreter::operator()(lex::Line line){
-    lineno_ = line.linenum_;
-    return std::monostate();
-  }
+// TEST_F(AssemblerTest, Command) {
+//   const ElementCode elm{0x3f, 0x4f};
+//   itp.Interpret(lex::Marker());
+//   for (const auto& it : elm)
+//     itp.Interpret(lex::Push(Type::Int, it));
 
-  Instruction Interpreter::operator()(lex::Marker marker){
-    stack_.PushMarker();
-    return std::monostate();
-  }
-
-}  // namespace libsiglus
+//   auto result = itp.Interpret(lex::Command(0, {}, {}, libsiglus::Type::Int));
+// }

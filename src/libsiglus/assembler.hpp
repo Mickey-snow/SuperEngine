@@ -21,8 +21,8 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LIBSIGLUS_INTERPRETER_HPP_
-#define SRC_LIBSIGLUS_INTERPRETER_HPP_
+#ifndef SRC_LIBSIGLUS_ASSEMBLER_HPP_
+#define SRC_LIBSIGLUS_ASSEMBLER_HPP_
 
 #include "libsiglus/lexfwd.hpp"
 #include "libsiglus/stack.hpp"
@@ -33,9 +33,9 @@ namespace libsiglus {
 
 using Instruction = std::variant<std::monostate>;
 
-class Interpreter {
+class Assembler {
  public:
-  Interpreter() = default;
+  Assembler() = default;
 
   Instruction Interpret(Lexeme);
 
@@ -44,10 +44,10 @@ class Interpreter {
   Instruction operator()(lex::Push);
   Instruction operator()(lex::Line);
   Instruction operator()(lex::Marker);
-  
+
   template <typename T>
   Instruction operator()(T) {
-    throw -1;			// not implemented yet
+    throw -1;  // not implemented yet
   }
 
  public:
