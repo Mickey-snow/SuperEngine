@@ -27,27 +27,32 @@
 #include "libsiglus/lexfwd.hpp"
 #include "libsiglus/stack.hpp"
 
+#include <variant>
+
 namespace libsiglus {
 
-namespace lex {
-class Push;
-class Pop;
-}  // namespace lex
+using Instruction = std::variant<std::monostate>;
 
 class Interpreter {
  public:
   Interpreter() = default;
 
-  void Interpret(Lexeme);
+  Instruction Interpret(Lexeme);
 
-  int GetLinenum() const { return lineno_; }
-  Stack const& GetStack() const { return stk_; }
+ public:
+  // dispatch functions
+  Instruction operator()(lex::Push);
+  Instruction operator()(lex::Line);
+  Instruction operator()(lex::Marker);
+  
+  template <typename T>
+  Instruction operator()(T) {
+    throw -1;			// not implemented yet
+  }
 
- private:
+ public:
   int lineno_;
-  Stack stk_;
-
-  void DispatchPush(lex::Push);
+  Stack stack_;
 };
 
 }  // namespace libsiglus

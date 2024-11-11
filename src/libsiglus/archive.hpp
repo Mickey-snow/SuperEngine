@@ -137,7 +137,9 @@ class Archive {
     for (int i = 0; i < hdr_->inc_prop_name_cnt; ++i) {
       auto offset = reader.PopAs<uint32_t>(4);
       auto size = reader.PopAs<uint32_t>(4);
-      prop_map_.emplace(utf16le::Decode(props.substr(offset, size)), i);
+      const auto name = utf16le::Decode(props.substr(offset, size));
+      prop_map_.emplace(name, i);
+      prop_[i].name = name;
     }
   }
 
@@ -161,7 +163,9 @@ class Archive {
     for (int i = 0; i < hdr_->inc_cmd_name_cnt; ++i) {
       auto offset = reader.PopAs<uint32_t>(4);
       auto size = reader.PopAs<uint32_t>(4);
-      cmd_map_.emplace(utf16le::Decode(cmds.substr(offset, size)), i);
+      const auto name = utf16le::Decode(cmds.substr(offset, size));
+      cmd_map_.emplace(name, i);
+      cmd_[i].name = name;
     }
   }
 
@@ -176,6 +180,7 @@ class Archive {
   struct Incprop {
     int32_t form;
     int32_t size;
+    std::string name;
   };
   std::vector<Incprop> prop_;
   std::map<std::string, int> prop_map_;
@@ -183,6 +188,7 @@ class Archive {
   struct Inccmd {
     int32_t scene_id;
     int32_t offset;
+    std::string name;
   };
   std::vector<Inccmd> cmd_;
   std::map<std::string, int> cmd_map_;

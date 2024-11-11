@@ -119,7 +119,6 @@ class Command {
     return 17 + stack_arg_.size() * 4 + extra_arg_.size() * 4;
   }
 
- private:
   int alist_;
   std::vector<Type> stack_arg_;
   std::vector<int> extra_arg_;
@@ -322,14 +321,14 @@ class Return {
 
 struct DebugStringOf {
   template <typename T>
-  std::string operator()(const T& lex) {
+  auto operator()(const T& lex) {
     return lex.ToDebugString();
   }
 };
 
 struct ByteLengthOf {
   template <typename T>
-  size_t operator()(const T& lex) {
+  auto operator()(const T& lex) {
     return lex.ByteLength();
   }
 };

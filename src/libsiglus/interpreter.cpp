@@ -29,28 +29,14 @@
 
 namespace libsiglus {
 
-void Interpreter::Interpret(Lexeme lex) {
-  std::visit(
-      [&](auto& lex) {
-        using T = std::decay_t<decltype(lex)>;
-
-        if constexpr (std::is_same_v<T, lex::Line>) {
-          lineno_ = lex.linenum_;
-        } else if constexpr (std::is_same_v<T, lex::Marker>) {
-          stk_.PushMarker();
-        } else if constexpr (std::is_same_v<T, lex::Push>) {
-          DispatchPush(lex);
-        } else {
-          throw std::runtime_error("Interpreter: Unknown lexeme type.");
-        }
-      },
-      lex);
+Instruction Interpreter::Interpret(Lexeme lex) {
+  return std::visit(*this, lex);
 }
 
-void Interpreter::DispatchPush(lex::Push push) {
+Instruction Interpreter::operator()(lex::Push push) {
   switch (push.type_) {
     case Type::Int:
-      stk_.Push(push.value_);
+      stack_.Push(push.value_);
       break;
 
     default:
@@ -58,6 +44,17 @@ void Interpreter::DispatchPush(lex::Push push) {
           "Interpreter: Unknow type id " +
           std::to_string(static_cast<uint32_t>(push.type_)));
   }
+  return std::monostate();
 }
+
+  Instruction Interpreter::operator()(lex::Line line){
+    lineno_ = line.linenum_;
+    return std::monostate();
+  }
+
+  Instruction Interpreter::operator()(lex::Marker marker){
+    stack_.PushMarker();
+    return std::monostate();
+  }
 
 }  // namespace libsiglus

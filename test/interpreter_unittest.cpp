@@ -41,7 +41,7 @@ TEST_F(InterpreterTest, Line) {
   const int lineno = 123;
   itp.Interpret(lex::Line(lineno));
 
-  EXPECT_EQ(itp.GetLinenum(), lineno);
+  EXPECT_EQ(itp.lineno_, lineno);
 }
 
 TEST_F(InterpreterTest, Element) {
@@ -50,5 +50,5 @@ TEST_F(InterpreterTest, Element) {
   for (const auto& it : elm)
     itp.Interpret(lex::Push(Type::Int, it));
 
-  EXPECT_EQ(itp.GetStack().Backelm(), elm);
+  EXPECT_EQ(itp.stack_.Backelm(), elm);
 }
