@@ -96,6 +96,7 @@ librlvm_files = [
   "src/libsiglus/lexer.cpp",
   "src/libsiglus/types.cpp",
   "src/libsiglus/assembler.cpp",
+  "src/libsiglus/stack.cpp",
 
   "src/long_operations/button_object_select_long_operation.cc",
   "src/long_operations/load_game_long_operation.cc",

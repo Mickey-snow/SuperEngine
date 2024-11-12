@@ -28,7 +28,7 @@
 #include "libsiglus/value.hpp"
 
 #include <stack>
-#include <stdexcept>
+#include <exception>
 #include <string>
 #include <vector>
 
@@ -38,112 +38,35 @@ using ElementCode = std::vector<int>;
 
 class StackUnderflow : public std::exception {
  public:
-  const char* what() const noexcept override {
-    return "Stack underflow: Attempted to access an element from an empty "
-           "stack.";
-  }
+  const char* what() const noexcept override;
 };
 
 class Stack {
  public:
-  Stack() = default;
-  ~Stack() = default;
+  Stack();
+  ~Stack();
 
-  void Clearint() {
-    intstk_.clear();
-    elm_point_ = decltype(elm_point_){};
-  }
-  void Clearstr() { strstk_.clear(); }
-  void Clear() {
-    Clearint();
-    Clearstr();
-  }
+  void Clearint();
+  void Clearstr();
+  void Clear();
 
-  Stack& Push(int value) {
-    intstk_.push_back(value);
-    return *this;
-  }
-  Stack& Push(std::string value) {
-    strstk_.emplace_back(std::move(value));
-    return *this;
-  }
-  Stack& PushMarker() {
-    elm_point_.push(intstk_.size());
-    return *this;
-  }
-  Stack& Push(const ElementCode& elm) {
-    PushMarker();
-    for (const auto& it : elm)
-      intstk_.push_back(it);
-    return *this;
-  }
+  Stack& Push(int value);
+  Stack& Push(std::string value);
+  Stack& PushMarker();
+  Stack& Push(const ElementCode& elm);
 
-  int Backint() const {
-    if (intstk_.empty()) {
-      throw StackUnderflow();
-    }
-    return intstk_.back();
-  }
-  int& Backint() {
-    if (intstk_.empty()) {
-      throw StackUnderflow();
-    }
-    return intstk_.back();
-  }
-  int Popint() {
-    if (intstk_.empty()) {
-      throw StackUnderflow();
-    }
-    int result = intstk_.back();
-    intstk_.pop_back();
-    if (!elm_point_.empty() && elm_point_.top() >= intstk_.size())
-      elm_point_.pop();
-    return result;
-  }
+  int Backint() const;
+  int& Backint();
+  int Popint();
 
-  std::string const& Backstr() const {
-    if (strstk_.empty()) {
-      throw StackUnderflow();
-    }
-    return strstk_.back();
-  }
-  std::string& Backstr() {
-    if (strstk_.empty()) {
-      throw StackUnderflow();
-    }
-    return strstk_.back();
-  }
-  std::string Popstr() {
-    if (strstk_.empty()) {
-      throw StackUnderflow();
-    }
-    std::string result = std::move(strstk_.back());
-    strstk_.pop_back();
-    return result;
-  }
+  const std::string& Backstr() const;
+  std::string& Backstr();
+  std::string Popstr();
 
-  Value Pop(Type type) {
-    if (type == Type::Int)
-      return Popint();
-    else if (type == Type::String)
-      return Popstr();
-    else
-      throw std::invalid_argument("Stack: unknown type " +
-                                  std::to_string(static_cast<int>(type)));
-  }
+  Value Pop(Type type);
 
-  ElementCode Backelm() const {
-    if (elm_point_.empty())
-      throw StackUnderflow();
-    ElementCode result(intstk_.cbegin() + elm_point_.top(), intstk_.cend());
-    return result;
-  }
-  ElementCode Popelm() {
-    auto result = Backelm();
-    intstk_.resize(elm_point_.top());
-    elm_point_.pop();
-    return result;
-  }
+  ElementCode Backelm() const;
+  ElementCode Popelm();
 
  private:
   std::vector<int> intstk_;
@@ -153,4 +76,4 @@ class Stack {
 
 }  // namespace libsiglus
 
-#endif
+#endif  // SRC_LIBSIGLUS_STACK_HPP_
