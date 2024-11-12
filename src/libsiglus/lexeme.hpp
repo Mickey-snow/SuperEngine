@@ -85,43 +85,40 @@ class Command {
  public:
   Command(int arglist,
           std::vector<Type> stackarg,
-          std::vector<int> extraarg,
+          std::vector<int> argtags,
           Type returntype)
       : alist_(arglist),
-        stack_arg_(std::move(stackarg)),
-        extra_arg_(std::move(extraarg)),
+        arg_(std::move(stackarg)),
+        arg_tag_(std::move(argtags)),
         rettype_(returntype) {}
 
   std::string ToDebugString() const {
     std::string result = "cmd[" + std::to_string(alist_) + "](";
     bool first = true;
-    for (const auto it : stack_arg_) {
+    for (size_t i = 0; i < arg_.size(); ++i) {
       if (!first)
         result += ',';
       else
         first = false;
-      result += ToString(it);
-    }
-    for (const auto it : extra_arg_) {
-      if (!first)
-        result += ',';
-      else
-        first = false;
-      result += std::to_string(it);
+
+      if (arg_.size() - i <= arg_tag_.size())
+        result +=
+            '_' +
+            std::to_string(arg_tag_[i - (arg_.size() - arg_tag_.size())]) + '=';
+      result += ToString(arg_[i]);
     }
 
     result += ") -> " + ToString(rettype_);
-
     return result;
   }
 
   size_t ByteLength() const {
-    return 17 + stack_arg_.size() * 4 + extra_arg_.size() * 4;
+    return 17 + arg_.size() * 4 + arg_tag_.size() * 4;
   }
 
   int alist_;
-  std::vector<Type> stack_arg_;
-  std::vector<int> extra_arg_;
+  std::vector<Type> arg_;
+  std::vector<int> arg_tag_;
   Type rettype_;
 };
 

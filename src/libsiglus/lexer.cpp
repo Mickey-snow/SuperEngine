@@ -25,6 +25,7 @@
 
 #include "libsiglus/lexeme.hpp"
 #include "libsiglus/types.hpp"
+#include "libsiglus/value.hpp"
 #include "utilities/byte_reader.h"
 
 #include <cstdint>
@@ -118,13 +119,13 @@ Lexeme Lexer::Parse(std::string_view data) const {
       int arglist_id = reader.PopAs<int32_t>(4);
       std::vector<Type> stackarg = ParseArglist(reader);
 
-      int extra_arg_cnt = reader.PopAs<int32_t>(4);
-      std::vector<int> extraarg(extra_arg_cnt);
-      while (--extra_arg_cnt >= 0)
-        extraarg[extra_arg_cnt] = reader.PopAs<int32_t>(4);
+      int named_arg_cnt = reader.PopAs<int32_t>(4);
+      std::vector<int> argtags(named_arg_cnt);
+      while (--named_arg_cnt >= 0)
+        argtags[named_arg_cnt] = reader.PopAs<int32_t>(4);
 
       Type return_type = static_cast<Type>(reader.PopAs<uint32_t>(4));
-      return Command(arglist_id, std::move(stackarg), std::move(extraarg),
+      return Command(arglist_id, std::move(stackarg), std::move(argtags),
                      return_type);
     }
 

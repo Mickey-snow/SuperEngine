@@ -68,14 +68,16 @@ TEST_F(AssemblerTest, Command) {
   }
 
   {
+    std::vector<std::string> string_table{"ef00", "ef01", "ef02", "ef03"};
+    itp.str_table_ = &string_table;
+
     const ElementCode elm{37, 2, -1, 2, 93, -1, 33, 93, -1, 0, 120};
     itp.Interpret(lex::Marker());
     for (const auto& it : elm)
       itp.Interpret(lex::Push(Type::Int, it));
     itp.Interpret(lex::Push(Type::String, 2));
-    for (auto& it : ElementCode{1, 0, 5, 10})
+    for (auto& it : ElementCode{0, 5, 10})
       itp.Interpret(lex::Push(Type::Int, it));
-    std::vector<std::string> string_table{"ef00", "ef01", "ef02", "ef03"};
 
     auto result = itp.Interpret(
         lex::Command(2,
@@ -83,8 +85,8 @@ TEST_F(AssemblerTest, Command) {
                       libsiglus::Type::Int, libsiglus::Type::Int},
                      {2}, libsiglus::Type::None));
     ASSERT_TRUE(std::holds_alternative<Command>(result));
-    // EXPECT_EQ(
-    //     std::visit(DebugStringOf(), result),
-    //     "cmd<37,2,-1,2,93,-1,33,93,-1,0,120:2>(ef02,1,0,5,_2=10) -> typeid:0");
+    EXPECT_EQ(std::visit(DebugStringOf(), result),
+              "cmd<37,2,-1,2,93,-1,33,93,-1,0,120:2>(str:ef02,int:0,int:5,_2="
+              "int:10) -> typeid:0");
   }
 }

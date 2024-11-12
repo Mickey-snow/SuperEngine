@@ -26,6 +26,7 @@
 
 #include "libsiglus/lexfwd.hpp"
 #include "libsiglus/stack.hpp"
+#include "libsiglus/value.hpp"
 
 #include <string>
 #include <variant>
@@ -35,7 +36,8 @@ namespace libsiglus {
 struct Command {
   int overload_id;
   std::vector<int> elm;
-  std::vector<int> arg;
+  std::vector<Value> arg;
+  std::vector<std::pair<int, Value>> named_arg;
   Type return_type;
 
   std::string ToDebugString() const {
@@ -51,13 +53,22 @@ struct Command {
     result += ':' + std::to_string(overload_id) + ">(";
 
     first = true;
-    for (const auto it : arg) {
+    for (const auto& it : arg) {
       if (first)
         first = false;
       else
         result += ',';
-      result += std::to_string(it);
+      result += std::visit(DebugStringOf(), it);
     }
+    for (const auto& [name, it] : named_arg) {
+      if (first)
+        first = false;
+      else
+        result += ',';
+      result +=
+          '_' + std::to_string(name) + '=' + std::visit(DebugStringOf(), it);
+    }
+
     result += ") -> " + ToString(return_type);
     return result;
   }
@@ -88,6 +99,7 @@ class Assembler {
  public:
   int lineno_;
   Stack stack_;
+  std::vector<std::string>* str_table_;
 };
 
 }  // namespace libsiglus

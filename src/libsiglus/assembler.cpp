@@ -36,9 +36,11 @@ Instruction Assembler::operator()(lex::Push push) {
     case Type::Int:
       stack_.Push(push.value_);
       break;
-    case Type::String:
-      stack_.Push(push.value_);
+    case Type::String: {
+      const auto str_val = (*str_table_)[push.value_];
+      stack_.Push(str_val);
       break;
+    }
 
     default:
       throw std::runtime_error(
@@ -63,9 +65,20 @@ Instruction Assembler::operator()(lex::Command command) {
   result.return_type = command.rettype_;
   result.overload_id = command.alist_;
 
-  for (auto it = result.arg.rend(); it != result.arg.rbegin(); ++it) {
-    *it = stack_.Popint();
+  result.named_arg.resize(command.arg_tag_.size());
+  result.arg.resize(command.arg_.size() - command.arg_tag_.size());
+  for (auto it = result.named_arg.rbegin(); it != result.named_arg.rend();
+       ++it) {
+    it->first = command.arg_tag_.back();
+    it->second = stack_.Pop(command.arg_.back());
+    command.arg_tag_.pop_back();
+    command.arg_.pop_back();
   }
+  for (auto it = result.arg.rbegin(); it != result.arg.rend(); ++it) {
+    *it = stack_.Pop(command.arg_.back());
+    command.arg_.pop_back();
+  }
+
   result.elm = stack_.Popelm();
 
   return result;

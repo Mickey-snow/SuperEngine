@@ -24,8 +24,11 @@
 #ifndef SRC_LIBSIGLUS_STACK_HPP_
 #define SRC_LIBSIGLUS_STACK_HPP_
 
-#include <exception>
+#include "libsiglus/types.hpp"
+#include "libsiglus/value.hpp"
+
 #include <stack>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -117,6 +120,16 @@ class Stack {
     std::string result = std::move(strstk_.back());
     strstk_.pop_back();
     return result;
+  }
+
+  Value Pop(Type type) {
+    if (type == Type::Int)
+      return Popint();
+    else if (type == Type::String)
+      return Popstr();
+    else
+      throw std::invalid_argument("Stack: unknown type " +
+                                  std::to_string(static_cast<int>(type)));
   }
 
   ElementCode Backelm() const {
