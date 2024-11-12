@@ -25,6 +25,7 @@
 
 #include "libsiglus/lexeme.hpp"
 #include "libsiglus/lexer.hpp"
+#include "libsiglus/value.hpp"
 
 #include <cstdint>
 #include <string_view>

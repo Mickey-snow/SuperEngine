@@ -36,10 +36,13 @@ Instruction Assembler::operator()(lex::Push push) {
     case Type::Int:
       stack_.Push(push.value_);
       break;
+    case Type::String:
+      stack_.Push(push.value_);
+      break;
 
     default:
       throw std::runtime_error(
-          "Interpreter: Unknow type id " +
+          "Assembler: Unknow type id " +
           std::to_string(static_cast<uint32_t>(push.type_)));
   }
   return std::monostate();

@@ -25,11 +25,12 @@
 
 #include "libsiglus/assembler.hpp"
 #include "libsiglus/lexeme.hpp"
+#include "libsiglus/value.hpp"
 
 #include <cstdint>
 #include <string_view>
-#include <vector>
 #include <variant>
+#include <vector>
 
 using namespace libsiglus;
 
@@ -55,12 +56,35 @@ TEST_F(AssemblerTest, Element) {
 }
 
 TEST_F(AssemblerTest, Command) {
-  const ElementCode elm{0x3f, 0x4f};
-  itp.Interpret(lex::Marker());
-  for (const auto& it : elm)
-    itp.Interpret(lex::Push(Type::Int, it));
+  {
+    const ElementCode elm{0x3f, 0x4f};
+    itp.Interpret(lex::Marker());
+    for (const auto& it : elm)
+      itp.Interpret(lex::Push(Type::Int, it));
 
-  auto result = itp.Interpret(lex::Command(0, {}, {}, libsiglus::Type::Int));
-  ASSERT_TRUE(std::holds_alternative<Command>(result));
-  EXPECT_EQ(std::visit(DebugStringOf(), result), "cmd<63,79:0>() -> int");
+    auto result = itp.Interpret(lex::Command(0, {}, {}, libsiglus::Type::Int));
+    ASSERT_TRUE(std::holds_alternative<Command>(result));
+    EXPECT_EQ(std::visit(DebugStringOf(), result), "cmd<63,79:0>() -> int");
+  }
+
+  {
+    const ElementCode elm{37, 2, -1, 2, 93, -1, 33, 93, -1, 0, 120};
+    itp.Interpret(lex::Marker());
+    for (const auto& it : elm)
+      itp.Interpret(lex::Push(Type::Int, it));
+    itp.Interpret(lex::Push(Type::String, 2));
+    for (auto& it : ElementCode{1, 0, 5, 10})
+      itp.Interpret(lex::Push(Type::Int, it));
+    std::vector<std::string> string_table{"ef00", "ef01", "ef02", "ef03"};
+
+    auto result = itp.Interpret(
+        lex::Command(2,
+                     {libsiglus::Type::String, libsiglus::Type::Int,
+                      libsiglus::Type::Int, libsiglus::Type::Int},
+                     {2}, libsiglus::Type::None));
+    ASSERT_TRUE(std::holds_alternative<Command>(result));
+    // EXPECT_EQ(
+    //     std::visit(DebugStringOf(), result),
+    //     "cmd<37,2,-1,2,93,-1,33,93,-1,0,120:2>(ef02,1,0,5,_2=10) -> typeid:0");
+  }
 }
