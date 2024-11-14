@@ -28,7 +28,10 @@
 #ifndef SRC_SYSTEMS_SDL_TEXTURE_H_
 #define SRC_SYSTEMS_SDL_TEXTURE_H_
 
-#include <SDL/SDL_opengl.h>
+#include "GL/glew.h"
+
+#include "base/rect.h"
+#include "systems/base/colour.h"
 
 #include <memory>
 #include <string>

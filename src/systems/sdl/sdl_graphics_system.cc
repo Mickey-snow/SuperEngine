@@ -30,7 +30,6 @@
 #include "systems/sdl/sdl_graphics_system.h"
 
 #include <SDL/SDL.h>
-#include <SDL/SDL_opengl.h>
 
 #if !defined(__APPLE__) && !defined(_WIN32)
 #include <SDL/SDL_image.h>

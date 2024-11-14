@@ -38,9 +38,9 @@
 
 #include "systems/base/platform.h"
 #include "systems/base/renderable.h"
-#include "platforms/gcn/gcn_menu.h"
-#include "platforms/gcn/gcn_window.h"
-#include "platforms/gcn/gcn_save_load_window.h"
+#include "systems/gcn/gcn_menu.h"
+#include "systems/gcn/gcn_window.h"
+#include "systems/gcn/gcn_save_load_window.h"
 
 class Gameexe;
 class GCNPlatformBlocker;

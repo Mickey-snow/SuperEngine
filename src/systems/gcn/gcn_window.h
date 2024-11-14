@@ -7,7 +7,7 @@
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2009 Elliot Glaysher
+// Copyright (C) 2008 Elliot Glaysher
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,30 +24,35 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_PLATFORMS_GCN_GCN_INFO_WINDOW_H_
-#define SRC_PLATFORMS_GCN_GCN_INFO_WINDOW_H_
+#ifndef SRC_PLATFORMS_GCN_GCN_WINDOW_H_
+#define SRC_PLATFORMS_GCN_GCN_WINDOW_H_
 
-#include "platforms/gcn/gcn_window.h"
+#include <guichan/widgets/container.hpp>
 
-#include <guichan/actionlistener.hpp>
-#include <guichan/widgets/button.hpp>
+#include "systems/gcn/gcn_graphics.h"
 
-class RLMachine;
-struct RlvmInfo;
+class GCNPlatform;
+class Size;
 
-// Displays information about the currently played game.
-class GCNInfoWindow : public GCNWindow, public gcn::ActionListener {
+// Base window. Later, this should be themed correctly. Default ugliness for
+// now.
+class GCNWindow : public gcn::Container {
  public:
-  GCNInfoWindow(RLMachine& machine,
-                const RlvmInfo& info,
-                GCNPlatform* platform);
-  ~GCNInfoWindow();
+  explicit GCNWindow(GCNPlatform* platform);
+  ~GCNWindow();
 
-  // Overriden from gcn::ActionListener:
-  virtual void action(const gcn::ActionEvent& actionEvent);
+  // Centers this GCNWindow in the rlvm window.
+  void centerInWindow(const Size& screen_size);
 
- private:
-  gcn::Button* ok_button_;
-};  // end of class GCNInfoWindow
+  // Override from gcn::Container:
+  virtual void draw(gcn::Graphics* graphics);
 
-#endif  // SRC_PLATFORMS_GCN_GCN_INFO_WINDOW_H_
+ protected:
+  // Our owning platform.
+  GCNPlatform* platform_;
+
+  // The border that's put around a window
+  static ImageRect s_border;
+};  // end of class GCNWindow
+
+#endif  // SRC_PLATFORMS_GCN_GCN_WINDOW_H_

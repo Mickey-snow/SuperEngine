@@ -28,7 +28,6 @@
 #include "GL/glew.h"
 
 #include <SDL/SDL.h>
-#include <SDL/SDL_opengl.h>
 
 #include <algorithm>
 #include <cmath>

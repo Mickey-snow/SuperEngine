@@ -24,10 +24,10 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#include "platforms/gcn/gcn_scroll_area.h"
+#include "systems/gcn/gcn_scroll_area.h"
 
 #include "base/notification/service.h"
-#include "platforms/gcn/gcn_utils.h"
+#include "systems/gcn/gcn_utils.h"
 
 static int bggridx[] = {0, 3, 28, 31};
 static int bggridy[] = {0, 3, 28, 31};

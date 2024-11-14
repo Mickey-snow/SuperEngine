@@ -28,7 +28,7 @@
 #ifndef SRC_SYSTEMS_SDL_SDL_GRAPHICS_SYSTEM_H_
 #define SRC_SYSTEMS_SDL_SDL_GRAPHICS_SYSTEM_H_
 
-#include <SDL/SDL_opengl.h>
+#include "GL/glew.h"
 
 #include <memory>
 #include <set>

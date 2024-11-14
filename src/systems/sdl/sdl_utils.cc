@@ -25,31 +25,49 @@
 //
 // -----------------------------------------------------------------------
 
-#include "GL/glew.h"
-
 #include "systems/sdl/sdl_utils.h"
 
 #include <SDL/SDL.h>
-#include <SDL/SDL_opengl.h>
+#include "GL/glew.h"
 
 #include <cassert>
-#include <string>
 #include <sstream>
+#include <string>
 
-#include "systems/base/system_error.h"
 #include "base/rect.h"
 #include "systems/base/colour.h"
+#include "systems/base/system_error.h"
 
 // -----------------------------------------------------------------------
 
 void ShowGLErrors(void) {
   GLenum error;
-  const GLubyte* err_str;
   if ((error = glGetError()) != GL_NO_ERROR) {
-    err_str = gluErrorString(error);
-    std::ostringstream oss;
-    oss << "OpenGL Error: " << (char*)err_str;
-    throw SystemError(oss.str());
+    std::string error_string = "OpenGL Error: ";
+    switch (error) {
+      case GL_NO_ERROR:
+        error_string += "No error has been recorded.";
+      case GL_INVALID_ENUM:
+        error_string +=
+            "An unacceptable value is specified for an enumerated argument.";
+      case GL_INVALID_VALUE:
+        error_string += "A numeric argument is out of range.";
+      case GL_INVALID_OPERATION:
+        error_string +=
+            "The specified operation is not allowed in the current state.";
+      case GL_STACK_OVERFLOW:
+        error_string += "This command would cause a stack overflow.";
+      case GL_STACK_UNDERFLOW:
+        error_string += "This command would cause a stack underflow.";
+      case GL_OUT_OF_MEMORY:
+        error_string +=
+            "There is not enough memory left to execute the command.";
+      case GL_INVALID_FRAMEBUFFER_OPERATION:
+        error_string += "The framebuffer object is not complete.";
+      default:
+        error_string += "An unknown OpenGL error has occurred.";
+    }
+    throw SystemError(error_string);
   }
 }
 
@@ -113,14 +131,9 @@ SDL_Surface* AlphaInvert(SDL_Surface* in_surface) {
     throw SystemError("AlphaInvert requires an alpha channel!");
 
   // Build a copy of the surface
-  SDL_Surface* dst = SDL_AllocSurface(in_surface->flags,
-                                      in_surface->w,
-                                      in_surface->h,
-                                      format->BitsPerPixel,
-                                      format->Rmask,
-                                      format->Gmask,
-                                      format->Bmask,
-                                      format->Amask);
+  SDL_Surface* dst = SDL_AllocSurface(
+      in_surface->flags, in_surface->w, in_surface->h, format->BitsPerPixel,
+      format->Rmask, format->Gmask, format->Bmask, format->Amask);
 
   SDL_BlitSurface(in_surface, NULL, dst, NULL);
 

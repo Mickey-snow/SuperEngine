@@ -35,7 +35,7 @@
 
 #include <vector>
 
-#include "platforms/gcn/gcn_window.h"
+#include "systems/gcn/gcn_window.h"
 
 class RLMachine;
 class SaveGameListModel;

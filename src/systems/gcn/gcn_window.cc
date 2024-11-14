@@ -24,35 +24,36 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_PLATFORMS_GCN_GCN_WINDOW_H_
-#define SRC_PLATFORMS_GCN_GCN_WINDOW_H_
+#include "systems/gcn/gcn_window.h"
 
-#include <guichan/widgets/container.hpp>
+#include "systems/gcn/gcn_utils.h"
+#include "base/rect.h"
 
-#include "platforms/gcn/gcn_graphics.h"
+static int xpos[] = {0, 4, 7, 11};
+static int ypos[] = {0, 4, 15, 19};
+ImageRect GCNWindow::s_border(IMG_VSCROLL_GREY, xpos, ypos);
 
-class GCNPlatform;
-class Size;
+// -----------------------------------------------------------------------
+// GCNWindow
+// -----------------------------------------------------------------------
+GCNWindow::GCNWindow(GCNPlatform* platform) : platform_(platform) {}
 
-// Base window. Later, this should be themed correctly. Default ugliness for
-// now.
-class GCNWindow : public gcn::Container {
- public:
-  explicit GCNWindow(GCNPlatform* platform);
-  ~GCNWindow();
+// -----------------------------------------------------------------------
 
-  // Centers this GCNWindow in the rlvm window.
-  void centerInWindow(const Size& screen_size);
+GCNWindow::~GCNWindow() {}
 
-  // Override from gcn::Container:
-  virtual void draw(gcn::Graphics* graphics);
+// -----------------------------------------------------------------------
 
- protected:
-  // Our owning platform.
-  GCNPlatform* platform_;
+void GCNWindow::centerInWindow(const Size& screen_size) {
+  setPosition((screen_size.width() / 2) - (getWidth() / 2),
+              (screen_size.height() / 2) - (getHeight() / 2));
+}
 
-  // The border that's put around a window
-  static ImageRect s_border;
-};  // end of class GCNWindow
+// -----------------------------------------------------------------------
 
-#endif  // SRC_PLATFORMS_GCN_GCN_WINDOW_H_
+void GCNWindow::draw(gcn::Graphics* graphics) {
+  GCNGraphics* g = static_cast<GCNGraphics*>(graphics);
+  g->drawImageRect(0, 0, getWidth(), getHeight(), s_border);
+
+  drawChildren(graphics);
+}

@@ -40,7 +40,7 @@
 #include "memory/serialization_local.hpp"
 #include "modules/module_sys_save.h"
 #include "modules/modules.h"
-#include "platforms/gcn/gcn_platform.h"
+#include "systems/gcn/gcn_platform.h"
 #include "platforms/implementor.h"
 #include "systems/base/event_system.h"
 #include "systems/base/graphics_system.h"

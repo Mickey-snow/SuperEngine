@@ -34,7 +34,7 @@
 
 #include "base/notification/observer.h"
 #include "base/notification/registrar.h"
-#include "platforms/gcn/gcn_utils.h"
+#include "systems/gcn/gcn_utils.h"
 #include "base/rect.h"
 
 

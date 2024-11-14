@@ -24,42 +24,37 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_PLATFORMS_GCN_GCN_MENU_H_
-#define SRC_PLATFORMS_GCN_GCN_MENU_H_
+#ifndef SRC_PLATFORMS_GCN_GCN_BUTTON_H_
+#define SRC_PLATFORMS_GCN_GCN_BUTTON_H_
 
-#include "platforms/gcn/gcn_window.h"
+#include <guichan/widgets/button.hpp>
 
-#include <guichan/actionlistener.hpp>
 #include <string>
-#include <vector>
 
-class GCNMenu;
+#include "systems/gcn/gcn_graphics.h"
 
-// -----------------------------------------------------------------------
-
-// Input struct for a GCNMenu. GCNPlatform creates a vector of this struct.
-struct GCNMenuButton {
-  GCNMenuButton() : enabled(false), separator(false) {}
-
-  std::string label;
-  std::string action;
-  bool enabled;
-  bool separator;
-};
-
-// A GCNMenu is a window that just auto-lays out a set of buttons.
-class GCNMenu : public GCNWindow, public gcn::ActionListener {
+// Graphical button overriding the default GUIchan ugliness.
+//
+// Spiritual copy of The Mana World's Button class; the resource images are
+// actual copies.
+class GCNButton : public gcn::Button {
  public:
-  GCNMenu(const std::string& title,
-          const std::vector<GCNMenuButton>& buttons,
-          GCNPlatform* platform);
-  ~GCNMenu();
+  GCNButton();
+  explicit GCNButton(const std::string& label);
+  ~GCNButton();
 
-  // Overriden from gcn::ActionListener:
-  virtual void action(const gcn::ActionEvent& actionEvent);
+  // Override from gcn::Button:
+  virtual void draw(gcn::Graphics* graphics);
 
  private:
-  std::vector<std::unique_ptr<gcn::Widget>> owned_widgets_;
-};  // end of class GCNMenu
+  void init();
 
-#endif  // SRC_PLATFORMS_GCN_GCN_MENU_H_
+  ImageRect& currentButtonImage();
+
+  static ImageRect s_button;
+  static ImageRect s_buttonhi;
+  static ImageRect s_buttonpress;
+  static ImageRect s_button_disabled;
+};  // end of class GCNButton
+
+#endif  // SRC_PLATFORMS_GCN_GCN_BUTTON_H_

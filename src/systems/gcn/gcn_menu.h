@@ -24,36 +24,42 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#include "platforms/gcn/gcn_window.h"
+#ifndef SRC_PLATFORMS_GCN_GCN_MENU_H_
+#define SRC_PLATFORMS_GCN_GCN_MENU_H_
 
-#include "platforms/gcn/gcn_utils.h"
-#include "base/rect.h"
+#include "systems/gcn/gcn_window.h"
 
-static int xpos[] = {0, 4, 7, 11};
-static int ypos[] = {0, 4, 15, 19};
-ImageRect GCNWindow::s_border(IMG_VSCROLL_GREY, xpos, ypos);
+#include <guichan/actionlistener.hpp>
+#include <string>
+#include <vector>
 
-// -----------------------------------------------------------------------
-// GCNWindow
-// -----------------------------------------------------------------------
-GCNWindow::GCNWindow(GCNPlatform* platform) : platform_(platform) {}
+class GCNMenu;
 
 // -----------------------------------------------------------------------
 
-GCNWindow::~GCNWindow() {}
+// Input struct for a GCNMenu. GCNPlatform creates a vector of this struct.
+struct GCNMenuButton {
+  GCNMenuButton() : enabled(false), separator(false) {}
 
-// -----------------------------------------------------------------------
+  std::string label;
+  std::string action;
+  bool enabled;
+  bool separator;
+};
 
-void GCNWindow::centerInWindow(const Size& screen_size) {
-  setPosition((screen_size.width() / 2) - (getWidth() / 2),
-              (screen_size.height() / 2) - (getHeight() / 2));
-}
+// A GCNMenu is a window that just auto-lays out a set of buttons.
+class GCNMenu : public GCNWindow, public gcn::ActionListener {
+ public:
+  GCNMenu(const std::string& title,
+          const std::vector<GCNMenuButton>& buttons,
+          GCNPlatform* platform);
+  ~GCNMenu();
 
-// -----------------------------------------------------------------------
+  // Overriden from gcn::ActionListener:
+  virtual void action(const gcn::ActionEvent& actionEvent);
 
-void GCNWindow::draw(gcn::Graphics* graphics) {
-  GCNGraphics* g = static_cast<GCNGraphics*>(graphics);
-  g->drawImageRect(0, 0, getWidth(), getHeight(), s_border);
+ private:
+  std::vector<std::unique_ptr<gcn::Widget>> owned_widgets_;
+};  // end of class GCNMenu
 
-  drawChildren(graphics);
-}
+#endif  // SRC_PLATFORMS_GCN_GCN_MENU_H_

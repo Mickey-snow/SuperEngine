@@ -7,7 +7,7 @@
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2008 Elliot Glaysher
+// Copyright (C) 2009 Elliot Glaysher
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,37 +24,30 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_PLATFORMS_GCN_GCN_BUTTON_H_
-#define SRC_PLATFORMS_GCN_GCN_BUTTON_H_
+#ifndef SRC_PLATFORMS_GCN_GCN_INFO_WINDOW_H_
+#define SRC_PLATFORMS_GCN_GCN_INFO_WINDOW_H_
 
+#include "systems/gcn/gcn_window.h"
+
+#include <guichan/actionlistener.hpp>
 #include <guichan/widgets/button.hpp>
 
-#include <string>
+class RLMachine;
+struct RlvmInfo;
 
-#include "platforms/gcn/gcn_graphics.h"
-
-// Graphical button overriding the default GUIchan ugliness.
-//
-// Spiritual copy of The Mana World's Button class; the resource images are
-// actual copies.
-class GCNButton : public gcn::Button {
+// Displays information about the currently played game.
+class GCNInfoWindow : public GCNWindow, public gcn::ActionListener {
  public:
-  GCNButton();
-  explicit GCNButton(const std::string& label);
-  ~GCNButton();
+  GCNInfoWindow(RLMachine& machine,
+                const RlvmInfo& info,
+                GCNPlatform* platform);
+  ~GCNInfoWindow();
 
-  // Override from gcn::Button:
-  virtual void draw(gcn::Graphics* graphics);
+  // Overriden from gcn::ActionListener:
+  virtual void action(const gcn::ActionEvent& actionEvent);
 
  private:
-  void init();
+  gcn::Button* ok_button_;
+};  // end of class GCNInfoWindow
 
-  ImageRect& currentButtonImage();
-
-  static ImageRect s_button;
-  static ImageRect s_buttonhi;
-  static ImageRect s_buttonpress;
-  static ImageRect s_button_disabled;
-};  // end of class GCNButton
-
-#endif  // SRC_PLATFORMS_GCN_GCN_BUTTON_H_
+#endif  // SRC_PLATFORMS_GCN_GCN_INFO_WINDOW_H_

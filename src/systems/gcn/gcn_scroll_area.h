@@ -31,7 +31,7 @@
 
 #include "base/notification/observer.h"
 #include "base/notification/registrar.h"
-#include "platforms/gcn/gcn_graphics.h"
+#include "systems/gcn/gcn_graphics.h"
 
 // Copy of TMW's ScrollArea class, adapted to my system.
 class GCNScrollArea : public gcn::ScrollArea, public NotificationObserver {

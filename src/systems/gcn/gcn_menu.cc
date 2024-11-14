@@ -24,7 +24,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#include "platforms/gcn/gcn_menu.h"
+#include "systems/gcn/gcn_menu.h"
 
 #include <guichan/widgets/button.hpp>
 
@@ -32,8 +32,8 @@
 #include <string>
 #include <vector>
 
-#include "platforms/gcn/gcn_button.h"
-#include "platforms/gcn/gcn_platform.h"
+#include "systems/gcn/gcn_button.h"
+#include "systems/gcn/gcn_platform.h"
 
 using std::vector;
 using gcn::Button;

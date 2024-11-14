@@ -24,7 +24,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#include "platforms/gcn/gcn_utils.h"
+#include "systems/gcn/gcn_utils.h"
 
 #include <SDL/SDL.h>
 #include <SDL/SDL_image.h>
@@ -35,20 +35,20 @@
 
 #include <string>
 
-#include "platforms/gcn/button_disabled.xpm"
-#include "platforms/gcn/buttonhi.xpm"
-#include "platforms/gcn/buttonpress.xpm"
-#include "platforms/gcn/button.xpm"
-#include "platforms/gcn/deepbox.xpm"
-#include "platforms/gcn/hscroll_left_default.xpm"
-#include "platforms/gcn/hscroll_left_pressed.xpm"
-#include "platforms/gcn/hscroll_right_default.xpm"
-#include "platforms/gcn/hscroll_right_pressed.xpm"
-#include "platforms/gcn/vscroll_down_default.xpm"
-#include "platforms/gcn/vscroll_down_pressed.xpm"
-#include "platforms/gcn/vscroll_grey.xpm"
-#include "platforms/gcn/vscroll_up_default.xpm"
-#include "platforms/gcn/vscroll_up_pressed.xpm"
+#include "systems/gcn/button_disabled.xpm"
+#include "systems/gcn/buttonhi.xpm"
+#include "systems/gcn/buttonpress.xpm"
+#include "systems/gcn/button.xpm"
+#include "systems/gcn/deepbox.xpm"
+#include "systems/gcn/hscroll_left_default.xpm"
+#include "systems/gcn/hscroll_left_pressed.xpm"
+#include "systems/gcn/hscroll_right_default.xpm"
+#include "systems/gcn/hscroll_right_pressed.xpm"
+#include "systems/gcn/vscroll_down_default.xpm"
+#include "systems/gcn/vscroll_down_pressed.xpm"
+#include "systems/gcn/vscroll_grey.xpm"
+#include "systems/gcn/vscroll_up_default.xpm"
+#include "systems/gcn/vscroll_up_pressed.xpm"
 
 // -----------------------------------------------------------------------
 

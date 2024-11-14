@@ -24,7 +24,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#include "platforms/gcn/gcn_platform.h"
+#include "systems/gcn/gcn_platform.h"
 
 #include <filesystem>
 #include <functional>
@@ -37,10 +37,10 @@
 #include "machine/rlmachine.h"
 #include "machine/serialization.h"
 #include "modules/module_sys_save.h"
-#include "platforms/gcn/gcn_graphics.h"
-#include "platforms/gcn/gcn_info_window.h"
-#include "platforms/gcn/gcn_true_type_font.h"
-#include "platforms/gcn/gcn_utils.h"
+#include "systems/gcn/gcn_graphics.h"
+#include "systems/gcn/gcn_info_window.h"
+#include "systems/gcn/gcn_true_type_font.h"
+#include "systems/gcn/gcn_utils.h"
 #include "systems/base/graphics_system.h"
 #include "base/rect.h"
 #include "systems/base/system.h"

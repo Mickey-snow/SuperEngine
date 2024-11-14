@@ -24,13 +24,13 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#include "platforms/gcn/gcn_info_window.h"
+#include "systems/gcn/gcn_info_window.h"
 
 #include <algorithm>
 #include <vector>
 
-#include "platforms/gcn/gcn_button.h"
-#include "platforms/gcn/gcn_platform.h"
+#include "systems/gcn/gcn_button.h"
+#include "systems/gcn/gcn_platform.h"
 #include "systems/base/rlvm_info.h"
 #include "utilities/string_utilities.h"
 

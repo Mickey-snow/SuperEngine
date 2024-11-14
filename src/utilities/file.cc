@@ -29,7 +29,6 @@
 
 #include <boost/algorithm/string.hpp>
 #include <filesystem>
-#include <filesystem>
 
 #include <algorithm>
 #include <cctype>
@@ -45,22 +44,17 @@
 #include "utilities/exception.h"
 
 using boost::to_upper;
-using std::stack;
-using std::ostringstream;
-using std::string;
 using std::ifstream;
 using std::ios;
+using std::ostringstream;
+using std::stack;
+using std::string;
 
 namespace fs = std::filesystem;
 
 // -----------------------------------------------------------------------
 
 fs::path CorrectPathCase(fs::path Path) {
-#ifndef CASE_SENSITIVE_FILESYSTEM
-  if (!fs::exists(Path))
-    return path();
-  return Path;
-#else
   // If the path is OK as it stands, do nothing.
   if (fs::exists(Path))
     return Path;
@@ -108,7 +102,6 @@ fs::path CorrectPathCase(fs::path Path) {
     }
   }
   return Path.string();
-#endif
 }
 
 // -----------------------------------------------------------------------
