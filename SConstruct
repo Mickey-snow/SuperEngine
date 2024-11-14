@@ -434,20 +434,3 @@ env.SConscript("SConscript.test",
                variant_dir="$BUILD_DIR/",
                duplicate=False,
                exports='env')
-
-env.SConscript("SConscript.luarlvm",
-               variant_dir="$BUILD_DIR/",
-               duplicate=False,
-               exports='env')
-
-if GetOption("coverage"):
-  env.SConscript("SConscript.coverage",
-                 variant_dir="$BUILD_DIR/",
-                 duplicate=False,
-                 exports='env')
-
-# In addition to all that, we also want to build the translation files.
-env.Command("build/locale/ja/LC_MESSAGES/rlvm.mo",
-            "po/ja.po",
-            ["mkdir -p build/locale/ja/LC_MESSAGES/",
-             "msgfmt -o build/locale/ja/LC_MESSAGES/rlvm.mo po/ja.po"])
