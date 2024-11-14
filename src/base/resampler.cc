@@ -25,7 +25,6 @@
 #include "base/resampler.h"
 
 #include "samplerate.h"
-#include "zita-resampler/resampler.h"
 
 #include <algorithm>
 #include <limits>
@@ -34,56 +33,6 @@
 #include <type_traits>
 
 static const auto clamp_flt = [](float& x) { x = std::clamp(x, -1.0f, 1.0f); };
-
-// -----------------------------------------------------------------------
-// class zitaResampler
-// -----------------------------------------------------------------------
-
-namespace zr = zita_resampler;
-
-struct zitaResampler::Context {
-  zr::Resampler impl;
-};
-
-zitaResampler::zitaResampler(int freq)
-    : target_frequency_(freq), data_(std::make_unique<Context>()) {}
-
-zitaResampler::~zitaResampler() = default;
-
-void zitaResampler::Resample(AudioData& pcm) {
-  if (pcm.spec.sample_rate == target_frequency_)
-    return;
-
-  zr::Resampler& impl = data_->impl;
-
-  const auto hlen = 96;
-  const auto channels = pcm.spec.channel_count;
-  if (impl.setup(pcm.spec.sample_rate, target_frequency_, channels, hlen)) {
-    std::ostringstream os;
-    os << "Sample rate ratio " << target_frequency_ << '/'
-       << pcm.spec.sample_rate << " is not supported.";
-    throw std::runtime_error(os.str());
-  }
-
-  auto in_pcm = pcm.GetAs<float>();
-  std::vector<float> out_pcm(
-      in_pcm.size() * target_frequency_ / pcm.spec.sample_rate + 1024, 0);
-
-  impl.inp_count = in_pcm.size();
-  impl.out_count = out_pcm.size();
-  impl.inp_data = in_pcm.data();
-  impl.out_data = out_pcm.data();
-  impl.process();
-
-  if (impl.inp_count != 0)
-    throw std::runtime_error("Resampler error");
-
-  out_pcm.resize(out_pcm.size() - impl.out_count);
-  pcm.spec.sample_rate = target_frequency_;
-  pcm.spec.sample_format = AV_SAMPLE_FMT::FLT;
-  std::for_each(out_pcm.begin(), out_pcm.end(), clamp_flt);
-  pcm.data = std::move(out_pcm);
-}
 
 // -----------------------------------------------------------------------
 // class srcResampler
