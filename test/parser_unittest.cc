@@ -27,6 +27,7 @@
 #include "encodings/cp932.h"
 #include "libreallive/parser.h"
 
+#include <iomanip>
 #include <string>
 
 using namespace libreallive;

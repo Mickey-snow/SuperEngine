@@ -34,7 +34,7 @@ endif()
 # -------------------------------------------------------------------
 # Find Boost Libraries
 # -------------------------------------------------------------------
-set(BOOST_COMPONENTS program_options serialization iostreams)
+set(BOOST_COMPONENTS program_options serialization iostreams filesystem)
 
 # Find the Boost library
 find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
@@ -101,4 +101,4 @@ endif()
 include_directories(vendor)
 add_subdirectory(vendor)
 add_subdirectory(src)
-#add_subdirectory(test)
+add_subdirectory(test)

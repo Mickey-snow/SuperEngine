@@ -68,7 +68,7 @@ target_include_directories(rlvm_src PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_compile_options(rlvm_src PRIVATE
   -Wno-narrowing
-  -w
+  -Wall
 )
 
 target_link_libraries(rlvm_src PUBLIC ${RLVM_REQUIRED_LIBRARIES})

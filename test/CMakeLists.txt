@@ -46,5 +46,6 @@ else()
     )
 endif()
 
-include(GoogleTest)
-gtest_discover_tests(unittest)
+target_link_libraries(unittest
+    rlvm_src
+)
