@@ -32,8 +32,8 @@
 // -----------------------------------------------------------------------
 
 #include <boost/algorithm/string.hpp>
-#include <filesystem>
 #include <cstring>
+#include <filesystem>
 #include <string>
 
 #include "libreallive/archive.h"
@@ -130,8 +130,7 @@ void Archive::ReadOverrides(const fs::path& filepath) {
 
 void Archive::FindXorKey() {
   if (regname_ == "KEY\\CLANNAD_FV") {
-    second_level_xor_key_ =
-        libreallive::clannad_full_voice_xor_mask;
+    second_level_xor_key_ = libreallive::clannad_full_voice_xor_mask;
   } else if (regname_ ==
              "\x4b\x45\x59\x5c\x83\x8a\x83\x67\x83\x8b\x83"
              "\x6f\x83\x58\x83\x5e\x81\x5b\x83\x59\x81\x49") {
@@ -141,11 +140,9 @@ void Archive::FindXorKey() {
              "\x81\x5b\x83\x59\x81\x49\x82\x64\x82\x77") {
     // "KEY\<little busters in katakana>!EX", with all fullwidth latin
     // characters.
-    second_level_xor_key_ =
-        libreallive::little_busters_ex_xor_mask;
+    second_level_xor_key_ = libreallive::little_busters_ex_xor_mask;
   } else if (regname_ == "StudioMebius\\SNOWSE") {
-    second_level_xor_key_ =
-        libreallive::snow_standard_edition_xor_mask;
+    second_level_xor_key_ = libreallive::snow_standard_edition_xor_mask;
   } else if (regname_ ==
              "\x4b\x45\x59\x5c\x83\x4e\x83\x68\x82\xed\x82\xd3\x82"
              "\xbd\x81\x5b") {
@@ -155,8 +152,7 @@ void Archive::FindXorKey() {
              "\x4b\x45\x59\x5c\x83\x4e\x83\x68\x82\xed\x82\xd3\x82"
              "\xbd\x81\x5b\x81\x79\x91\x53\x94\x4e\x97\xee\x91\xce"
              "\x8f\xdb\x94\xc5\x81\x7a") {
-    second_level_xor_key_ =
-        libreallive::kud_wafter_all_ages_xor_mask;
+    second_level_xor_key_ = libreallive::kud_wafter_all_ages_xor_mask;
   }
 }
 

@@ -1,0 +1,71 @@
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/utf8cpp/include)
+
+# -------------------------------------------------------------------
+# xclannad
+# -------------------------------------------------------------------
+file(GLOB XCLANNAD_SRC_FILES "xclannad/*.cc" "xclannad/*.cpp")
+add_library(xclannad STATIC ${XCLANNAD_SRC_FILES})
+
+# -------------------------------------------------------------------
+# pygame
+# -------------------------------------------------------------------
+add_library(pygame STATIC "pygame/alphablit.cc")
+
+# -------------------------------------------------------------------
+# GLEW
+# -------------------------------------------------------------------
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/GLEW/include)
+add_library(glew STATIC GLEW/src/glew.c)
+
+# -------------------------------------------------------------------
+# guichan
+# -------------------------------------------------------------------
+file(GLOB_RECURSE GUICHAN_SRC_FILES "guichan/src/*.cpp")
+add_library(guichan STATIC ${GUICHAN_SRC_FILES})
+target_include_directories(guichan PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/guichan/include
+)
+target_link_libraries(guichan PUBLIC OpenGL::GL)
+
+# -------------------------------------------------------------------
+# libsamplerate
+# -------------------------------------------------------------------
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/libsamplerate)
+target_include_directories(samplerate PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/libsamplerate/include
+)
+
+# -------------------------------------------------------------------
+# vorbis
+# -------------------------------------------------------------------
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vorbis)
+target_link_libraries(vorbis PUBLIC ${OGG_LIBRARIES})
+
+# -------------------------------------------------------------------
+# SDL_image
+# -------------------------------------------------------------------
+add_library(sdl_image STATIC SDL_image/src/IMG_xpm.c)
+target_include_directories(sdl_image PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/SDL_image/include
+)
+target_link_libraries(sdl_image PUBLIC ${SDL_LIBRARIES})
+
+# -------------------------------------------------------------------
+# SDL_mixer
+# -------------------------------------------------------------------
+file(GLOB SDLMIXER_SRC_FILES "SDL_mixer/src/*.c")
+add_library(sdl_mixer STATIC ${SDLMIXER_SRC_FILES})
+target_include_directories(sdl_mixer PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/SDL_mixer/include
+)
+target_link_libraries(sdl_mixer PUBLIC ${SDL_LIBRARIES})
+
+# -------------------------------------------------------------------
+# SDL_ttf
+# -------------------------------------------------------------------
+add_library(sdl_ttf STATIC SDL_ttf/src/SDL_ttf.c)
+target_include_directories(sdl_ttf PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/SDL_ttf/include
+)
+target_link_libraries(sdl_ttf PUBLIC ${FREETYPE_LIBRARIES})
+target_link_libraries(sdl_ttf PUBLIC ${SDL_LIBRARIES})
