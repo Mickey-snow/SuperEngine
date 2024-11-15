@@ -99,7 +99,9 @@ add_custom_target(generate_wav_files ALL DEPENDS ${WAV_FILES})
 add_dependencies(unittest generate_wav_files)
 
 # Generate ogg test files
-set(OGG_TARGET "${CMAKE_BINARY_DIR}/test/Gameroot/OGG/test.ogg")
+set(OGG_OUTPUT_DIR "${CMAKE_BINARY_DIR}/test/Gameroot/OGG")
+file(MAKE_DIRECTORY ${OGG_OUTPUT_DIR})
+set(OGG_TARGET "${OGG_OUTPUT_DIR}/test.ogg")
 set(SCRIPT_FILE "${CMAKE_CURRENT_SOURCE_DIR}/scripts/ogg_generator.py")
 add_custom_command(
     OUTPUT ${OGG_TARGET}
