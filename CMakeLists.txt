@@ -12,10 +12,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 # -------------------------------------------------------------------
 find_package(OpenGL REQUIRED)
 if (OpenGL_FOUND)
-    message(STATUS "OpenGL found: ${OpenGL_VERSION}")
-    include_directories(${OpenGL_INCLUDE_DIRS})
+  message(STATUS "OpenGL found: ${OpenGL_VERSION}")
+  include_directories(${OpenGL_INCLUDE_DIRS})
 else()
-    message(FATAL_ERROR "OpenGL not found. Please install OpenGL.")
+  message(FATAL_ERROR "OpenGL not found. Please install OpenGL.")
 endif()
 
 # -------------------------------------------------------------------
@@ -25,10 +25,10 @@ endif()
 find_package(SDL REQUIRED)
 
 if (SDL_FOUND)
-    message(STATUS "SDL1 found: ${SDL_VERSION}")
-    include_directories(${SDL_INCLUDE_DIRS})
+  message(STATUS "SDL1 found: ${SDL_VERSION}")
+  include_directories(${SDL_INCLUDE_DIRS})
 else()
-    message(FATAL_ERROR "SDL1 not found. Please install SDL1.2 development libraries.")
+  message(FATAL_ERROR "SDL1 not found. Please install SDL1.2 development libraries.")
 endif()
 
 # -------------------------------------------------------------------
@@ -40,10 +40,10 @@ set(BOOST_COMPONENTS program_options serialization iostreams filesystem)
 find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 
 if (Boost_FOUND)
-    message(STATUS "Boost found: ${Boost_VERSION}")
-    include_directories(${Boost_INCLUDE_DIRS})
+  message(STATUS "Boost found: ${Boost_VERSION}")
+  include_directories(${Boost_INCLUDE_DIRS})
 else()
-    message(FATAL_ERROR "Boost libraries not found. Please install Boost.")
+  message(FATAL_ERROR "Boost libraries not found. Please install Boost.")
 endif()
 
 # -------------------------------------------------------------------
@@ -52,10 +52,10 @@ endif()
 find_package(Freetype REQUIRED)
 
 if (Freetype_FOUND)
-    message(STATUS "Freetype2 found: ${Freetype_VERSION}")
-    include_directories(${FREETYPE_INCLUDE_DIRS})
+  message(STATUS "Freetype2 found: ${Freetype_VERSION}")
+  include_directories(${FREETYPE_INCLUDE_DIRS})
 else()
-    message(FATAL_ERROR "Freetype2 not found. Please install Freetype2 development libraries.")
+  message(FATAL_ERROR "Freetype2 not found. Please install Freetype2 development libraries.")
 endif()
 
 
@@ -65,10 +65,10 @@ endif()
 find_package(ZLIB REQUIRED)
 
 if (ZLIB_FOUND)
-    message(STATUS "zlib found: ${ZLIB_VERSION}")
-    include_directories(${ZLIB_INCLUDE_DIRS})
+  message(STATUS "zlib found: ${ZLIB_VERSION}")
+  include_directories(${ZLIB_INCLUDE_DIRS})
 else()
-    message(FATAL_ERROR "zlib not found. Please install zlib development libraries.")
+  message(FATAL_ERROR "zlib not found. Please install zlib development libraries.")
 endif()
 
 # -------------------------------------------------------------------
@@ -77,10 +77,10 @@ endif()
 find_package(Ogg REQUIRED)
 
 if (Ogg_FOUND)
-    message(STATUS "Ogg found: ${OGG_VERSION}")
-    include_directories(${OGG_INCLUDE_DIRS})
+  message(STATUS "Ogg found: ${OGG_VERSION}")
+  include_directories(${OGG_INCLUDE_DIRS})
 else()
-    message(FATAL_ERROR "Ogg not found. Please install libogg development libraries.")
+  message(FATAL_ERROR "Ogg not found. Please install libogg development libraries.")
 endif()
 
 # -------------------------------------------------------------------
@@ -89,10 +89,10 @@ endif()
 find_package(GTK2)
 
 if (GTK2_FOUND)
-    message(STATUS "GTK 2.0 found.")
-    include_directories(${GTK2_INCLUDE_DIRS})
+  message(STATUS "GTK 2.0 found.")
+  include_directories(${GTK2_INCLUDE_DIRS})
 else()
-    message(STATUS "GTK 2.0 not found. Continuing without GTK 2.0 support.")
+  message(STATUS "GTK 2.0 not found. Continuing without GTK 2.0 support.")
 endif()
 
 # -------------------------------------------------------------------
