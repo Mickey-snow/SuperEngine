@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_SURFACE_H_
-#define SRC_SYSTEMS_BASE_SURFACE_H_
+#pragma once
 
 #include <memory>
 
@@ -115,5 +114,3 @@ class Surface : public std::enable_shared_from_this<Surface> {
 
   virtual Surface* Clone() const = 0;
 };
-
-#endif  // SRC_SYSTEMS_BASE_SURFACE_H_

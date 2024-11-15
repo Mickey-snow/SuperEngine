@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MACHINE_SERIALIZATION_H_
-#define SRC_MACHINE_SERIALIZATION_H_
+#pragma once
 
 #include <filesystem>
 
@@ -67,5 +66,3 @@ void loadGameForSlot(RLMachine& machine, int slot);
 void loadGameFrom(std::istream& iss, RLMachine& machine);
 
 }  // namespace Serialization
-
-#endif  // SRC_MACHINE_SERIALIZATION_H_

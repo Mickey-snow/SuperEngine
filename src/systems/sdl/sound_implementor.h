@@ -22,8 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_SDL_SOUND_IMPLEMENTOR_H_
-#define SRC_SYSTEMS_SDL_SOUND_IMPLEMENTOR_H_
+#pragma once
 
 #include "systems/base/isound_system.h"
 
@@ -81,5 +80,3 @@ class SDLSoundImpl : public ISoundSystem {
   static bool bgm_enabled_;
   static AVSpec spec_;
 };
-
-#endif

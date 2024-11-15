@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MODULES_MODULE_OBJ_FG_BG_H_
-#define SRC_MODULES_MODULE_OBJ_FG_BG_H_
+#pragma once
 
 #include "machine/rlmodule.h"
 #include "machine/mapped_rlmodule.h"
@@ -96,5 +95,3 @@ class ChildObjRangeBgModule : public MappedRLModule {
  private:
   ObjectModule helper_;
 };
-
-#endif  // SRC_MODULES_MODULE_OBJ_FG_BG_H_

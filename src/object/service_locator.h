@@ -21,8 +21,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_OBJECT_SERVICE_LOCATOR_H_
-#define SRC_OBJECT_SERVICE_LOCATOR_H_
+#pragma once
 
 #include "systems/base/graphics_system.h"
 
@@ -49,5 +48,3 @@ class RenderingService : public IRenderingService {
  private:
   System& system_;
 };
-
-#endif

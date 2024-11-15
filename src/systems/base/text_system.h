@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_TEXT_SYSTEM_H_
-#define SRC_SYSTEMS_BASE_TEXT_SYSTEM_H_
+#pragma once
 
 #include <boost/serialization/split_member.hpp>
 #include <boost/serialization/version.hpp>
@@ -382,5 +381,3 @@ std::string parseNames(const Memory& memory,
 struct RestoreTextSystemVisibility : public LongOperation {
   virtual bool operator()(RLMachine& machine);
 };
-
-#endif  // SRC_SYSTEMS_BASE_TEXT_SYSTEM_H_

@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MODULES_MODULE_SYS_INDEX_SERIES_H_
-#define SRC_MODULES_MODULE_SYS_INDEX_SERIES_H_
+#pragma once
 
 class RLModule;
 
@@ -71,5 +70,3 @@ struct Sys_index_series : public RLStoreOpcode<IntConstant_T,
 
 // index_series has its own file.
 void AddIndexSeriesOpcode(RLModule& module);
-
-#endif  // SRC_MODULES_MODULE_SYS_INDEX_SERIES_H_

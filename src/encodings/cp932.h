@@ -34,8 +34,7 @@
   the work might be covered by the LGPL.
 */
 
-#ifndef SRC_ENCODINGS_CP932_H_
-#define SRC_ENCODINGS_CP932_H_
+#pragma once
 
 #include <string>
 
@@ -47,5 +46,3 @@ struct Cp932 : public Codepage {
   virtual std::wstring ConvertString(const std::string& s) const override;
   Cp932();
 };
-
-#endif  // SRC_ENCODINGS_CP932_H_

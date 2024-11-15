@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_EFFECTS_EFFECT_FACTORY_H_
-#define SRC_EFFECTS_EFFECT_FACTORY_H_
+#pragma once
 
 #include <memory>
 
@@ -56,5 +55,3 @@ class EffectFactory {
                        std::shared_ptr<Surface> dst,
                        selRecord record);
 };
-
-#endif  // SRC_EFFECTS_EFFECT_FACTORY_H_

@@ -24,8 +24,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_PLATFORMS_GCN_GCN_UTILS_H_
-#define SRC_PLATFORMS_GCN_GCN_UTILS_H_
+#pragma once
 
 #include <guichan/image.hpp>
 #include <guichan/rectangle.hpp>
@@ -54,5 +53,3 @@ gcn::Image* getThemeImage(enum ThemeImage img);
 inline gcn::Rectangle rectConvert(const Rect& obj) {
   return gcn::Rectangle(obj.x(), obj.y(), obj.x2(), obj.y2());
 }
-
-#endif  // SRC_PLATFORMS_GCN_GCN_UTILS_H_

@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MACHINE_REFERENCE_H_
-#define SRC_MACHINE_REFERENCE_H_
+#pragma once
 
 #include <string>
 #include <iterator>
@@ -208,5 +207,3 @@ typedef MemoryReferenceIterator<IntAccessor> IntReferenceIterator;
 
 // Defines a MemoryReferenceIterator that operates on the string memory
 typedef MemoryReferenceIterator<StringAccessor> StringReferenceIterator;
-
-#endif  // SRC_MACHINE_REFERENCE_H_

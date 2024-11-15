@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_SDL_SDL_TEXT_WINDOW_H_
-#define SRC_SYSTEMS_SDL_SDL_TEXT_WINDOW_H_
+#pragma once
 
 #include <SDL/SDL_ttf.h>
 
@@ -59,5 +58,3 @@ class SDLTextWindow : public TextWindow {
   std::shared_ptr<SDLSurface> surface_;
   std::shared_ptr<Surface> name_surface_;
 };
-
-#endif  // SRC_SYSTEMS_SDL_SDL_TEXT_WINDOW_H_

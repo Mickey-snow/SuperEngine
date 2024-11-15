@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_OBJECT_SETTINGS_H_
-#define SRC_SYSTEMS_BASE_OBJECT_SETTINGS_H_
+#pragma once
 
 #include <vector>
 
@@ -65,5 +64,3 @@ struct ObjectSettings {
   // be shown and hidden with [Set]ShowWeather(), \#SYSCOM 17.
   int weather_on_off;
 };
-
-#endif  // SRC_SYSTEMS_BASE_OBJECT_SETTINGS_H_

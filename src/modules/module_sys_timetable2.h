@@ -24,8 +24,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MODULES_MODULE_SYS_TIMETABLE2_H_
-#define SRC_MODULES_MODULE_SYS_TIMETABLE2_H_
+#pragma once
 
 class RLModule;
 
@@ -88,5 +87,3 @@ struct Sys_timetable2 : public RLStoreOpcode<IntConstant_T,
 
 // index_series has its own file.
 void AddTimetable2Opcode(RLModule& module);
-
-#endif  // SRC_MODULES_MODULE_SYS_TIMETABLE2_H_

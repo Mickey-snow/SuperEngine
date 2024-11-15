@@ -22,8 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_UTILITIES_STOPWATCH_H_
-#define SRC_UTILITIES_STOPWATCH_H_
+#pragma once
 
 #include <chrono>
 #include <memory>
@@ -98,5 +97,3 @@ class Stopwatch {
   duration_t time_;               ///< The accumulated time.
   duration_t lap_time_;           ///< The accumulated lap time.
 };
-
-#endif

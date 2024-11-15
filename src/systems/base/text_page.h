@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_TEXT_PAGE_H_
-#define SRC_SYSTEMS_BASE_TEXT_PAGE_H_
+#pragma once
 
 #include <algorithm>
 #include <functional>
@@ -149,5 +148,3 @@ class TextPage {
   // A list of the text elements to replay on this page.
   std::vector<Command> elements_to_replay_;
 };
-
-#endif  // SRC_SYSTEMS_BASE_TEXT_PAGE_H_

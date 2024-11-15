@@ -26,8 +26,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LIBREALLIVE_REALLIVE_H_
-#define SRC_LIBREALLIVE_REALLIVE_H_
+#pragma once
 
 // libreallive is a library for manipulating Reallive bytecode. It was
 // orriginally written by Haeleth, and was copy/pasted into
@@ -78,5 +77,3 @@
 #include "libreallive/parser.h"
 #include "libreallive/alldefs.h"
 #include "libreallive/scenario.h"
-
-#endif  // SRC_LIBREALLIVE_REALLIVE_H_

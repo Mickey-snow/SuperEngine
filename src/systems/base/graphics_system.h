@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_GRAPHICS_SYSTEM_H_
-#define SRC_SYSTEMS_BASE_GRAPHICS_SYSTEM_H_
+#pragma once
 
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/split_member.hpp>
@@ -604,5 +603,3 @@ class GraphicsSystem : public EventListener {
 };
 
 BOOST_CLASS_VERSION(GraphicsSystem, 1)
-
-#endif  // SRC_SYSTEMS_BASE_GRAPHICS_SYSTEM_H_

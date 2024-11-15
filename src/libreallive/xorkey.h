@@ -26,8 +26,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LIBREALLIVE_COMPRESSION_H_
-#define SRC_LIBREALLIVE_COMPRESSION_H_
+#pragma once
 
 #include <string>
 
@@ -54,5 +53,3 @@ extern const XorKey kud_wafter_xor_mask[];
 extern const XorKey kud_wafter_all_ages_xor_mask[];
 
 }  // namespace libreallive
-
-#endif  // SRC_LIBREALLIVE_COMPRESSION_H_

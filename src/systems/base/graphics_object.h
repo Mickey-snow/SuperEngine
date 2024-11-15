@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_GRAPHICS_OBJECT_H_
-#define SRC_SYSTEMS_BASE_GRAPHICS_OBJECT_H_
+#pragma once
 
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/version.hpp>
@@ -132,5 +131,3 @@ class GraphicsObject {
 BOOST_CLASS_VERSION(GraphicsObject, 1)
 
 enum { OBJ_FG = 0, OBJ_BG = 1 };
-
-#endif

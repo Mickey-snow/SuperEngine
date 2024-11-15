@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_SDL_SDL_TEXT_SYSTEM_H_
-#define SRC_SYSTEMS_SDL_SDL_TEXT_SYSTEM_H_
+#pragma once
 
 #include <SDL/SDL_ttf.h>
 
@@ -71,5 +70,3 @@ class SDLTextSystem : public TextSystem {
 
   std::unique_ptr<bool> is_monospace_;
 };
-
-#endif  // SRC_SYSTEMS_SDL_SDL_TEXT_SYSTEM_H_

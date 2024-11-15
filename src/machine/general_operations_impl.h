@@ -24,8 +24,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MACHINE_GENERAL_OPERATIONS_IMPL_H_
-#define SRC_MACHINE_GENERAL_OPERATIONS_IMPL_H_
+#pragma once
 
 // Implementation details of the GeneralOperations functions. This internal
 // interface is hidden and should only be accessed through the functions
@@ -312,5 +311,3 @@ class Op_ReturnStringValue : public RLOpcode<StrReference_T> {
 };
 
 }  // namespace binderImpl
-
-#endif  // SRC_MACHINE_GENERAL_OPERATIONS_IMPL_H_

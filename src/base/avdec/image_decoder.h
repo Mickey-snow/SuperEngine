@@ -22,8 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef BASE_AVDEC_IMAGE_DECODER_H_
-#define BASE_AVDEC_IMAGE_DECODER_H_
+#pragma once
 
 #include "base/grprect.h"
 
@@ -40,5 +39,3 @@ class ImageDecoder {
   std::vector<GrpRect> region_table;
   std::vector<char> mem;
 };
-
-#endif

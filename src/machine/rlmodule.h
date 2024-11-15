@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MACHINE_RLMODULE_H_
-#define SRC_MACHINE_RLMODULE_H_
+#pragma once
 
 #include <map>
 #include <memory>
@@ -154,5 +153,3 @@ class RLModule {
 };
 
 std::ostream& operator<<(std::ostream&, const RLModule& module);
-
-#endif  // SRC_MACHINE_RLMODULE_H_

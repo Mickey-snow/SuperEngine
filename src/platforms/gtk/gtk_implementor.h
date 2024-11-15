@@ -22,8 +22,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_PLATFORMS_GTK_GTK_IMPLEMENTOR_H_
-#define SRC_PLATFORMS_GTK_GTK_IMPLEMENTOR_H_
+#pragma once
 
 #include "platforms/implementor.h"
 
@@ -48,5 +47,3 @@ class GtkImplementor : public IPlatformImplementor {
  private:
   void DoNativeWork();
 };
-
-#endif

@@ -26,8 +26,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_BASE_TONE_CURVE_H_
-#define SRC_BASE_TONE_CURVE_H_
+#pragma once
 
 #include <array>
 #include <string_view>
@@ -137,5 +136,3 @@ class ToneCurve {
  * @return A `ToneCurve` object initialized with the TCC data.
  */
 ToneCurve CreateToneCurve(Gameexe& gameexe);
-
-#endif  // SRC_SYSTEMS_BASE_TONE_CURVE_H_

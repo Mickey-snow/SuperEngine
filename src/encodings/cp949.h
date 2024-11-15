@@ -34,8 +34,7 @@
   the work might be covered by the LGPL.
 */
 
-#ifndef SRC_ENCODINGS_CP949_H_
-#define SRC_ENCODINGS_CP949_H_
+#pragma once
 
 #include <string>
 
@@ -49,5 +48,3 @@ class Cp949 : public Codepage {
   std::wstring ConvertString(const std::string& s) const override;
   Cp949();
 };
-
-#endif  // SRC_ENCODINGS_CP949_H_

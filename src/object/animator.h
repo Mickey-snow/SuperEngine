@@ -22,8 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_OBJECT_ANIMATOR_H_
-#define SRC_OBJECT_ANIMATOR_H_
+#pragma once
 
 #include "utilities/stopwatch.h"
 
@@ -96,5 +95,3 @@ class Animator {
 
   BOOST_SERIALIZATION_SPLIT_MEMBER();
 };
-
-#endif

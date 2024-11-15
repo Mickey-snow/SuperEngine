@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MACHINE_GENERAL_OPERATIONS_H_
-#define SRC_MACHINE_GENERAL_OPERATIONS_H_
+#pragma once
 
 #include <memory>
 #include <string>
@@ -218,5 +217,3 @@ extern template RLOperation* ReturnIntValue<GraphicsSystem, int>(int (GraphicsSy
 extern template RLOperation* ReturnIntValue<RLMachine, int>(int (RLMachine::*)() const);
 extern template RLOperation* ReturnIntValue<SoundSystem, int>(int (SoundSystem::*)() const);
 extern template RLOperation* ReturnIntValue<TextSystem, int>(int (TextSystem::*)() const);
-
-#endif  // SRC_MACHINE_GENERAL_OPERATIONS_H_

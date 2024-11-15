@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MODULES_MODULE_SCR_H_
-#define SRC_MODULES_MODULE_SCR_H_
+#pragma once
 
 #include "machine/rlmodule.h"
 
@@ -35,5 +34,3 @@ class ScrModule : public RLModule {
  public:
   ScrModule();
 };
-
-#endif  // SRC_MODULES_MODULE_SCR_H_

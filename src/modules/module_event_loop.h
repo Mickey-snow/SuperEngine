@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MODULES_MODULE_EVENT_LOOP_H_
-#define SRC_MODULES_MODULE_EVENT_LOOP_H_
+#pragma once
 
 #include "machine/rlmodule.h"
 
@@ -35,5 +34,3 @@ class EventLoopModule : public RLModule {
  public:
   EventLoopModule();
 };
-
-#endif  // SRC_MODULES_MODULE_EVENT_LOOP_H_

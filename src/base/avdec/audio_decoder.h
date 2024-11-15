@@ -22,8 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef BASE_AVDEC_AUDIO_DECODER_H_
-#define BASE_AVDEC_AUDIO_DECODER_H_
+#pragma once
 
 #include "base/avdec/iadec.h"
 #include "base/avdec/nwa.h"
@@ -81,5 +80,3 @@ class AudioDecoder {
 
   static ADecoderFactory factory_;
 };
-
-#endif

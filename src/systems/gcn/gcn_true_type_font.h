@@ -24,8 +24,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_PLATFORMS_GCN_GCN_TRUE_TYPE_FONT_H_
-#define SRC_PLATFORMS_GCN_GCN_TRUE_TYPE_FONT_H_
+#pragma once
 
 #include <SDL/SDL_ttf.h>
 
@@ -111,5 +110,3 @@ class GCNTrueTypeFont : public gcn::Font, public NotificationObserver {
 
   NotificationRegistrar registrar_;
 };
-
-#endif  // SRC_PLATFORMS_GCN_GCN_TRUE_TYPE_FONT_H_

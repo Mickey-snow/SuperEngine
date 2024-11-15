@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MODULES_MODULE_OBJ_GETTERS_H_
-#define SRC_MODULES_MODULE_OBJ_GETTERS_H_
+#pragma once
 
 #include "machine/rlmodule.h"
 #include "machine/mapped_rlmodule.h"
@@ -56,5 +55,3 @@ class ChildObjBgGettersModule : public MappedRLModule {
  public:
   ChildObjBgGettersModule();
 };
-
-#endif  // SRC_MODULES_MODULE_OBJ_GETTERS_H_

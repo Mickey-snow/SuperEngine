@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_EVENT_SYSTEM_H_
-#define SRC_SYSTEMS_BASE_EVENT_SYSTEM_H_
+#pragma once
 
 #include <chrono>
 #include <functional>
@@ -200,5 +199,3 @@ class EventSystem {
 
   EventSystemGlobals globals_;
 };
-
-#endif  // SRC_SYSTEMS_BASE_EVENT_SYSTEM_H_

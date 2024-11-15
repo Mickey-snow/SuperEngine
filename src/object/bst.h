@@ -22,8 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_OBJECT_BST_H_
-#define SRC_OBJECT_BST_H_
+#pragma once
 
 #include "object/properties.h"
 #include "utilities/mpl.h"
@@ -90,5 +89,3 @@ class Scapegoat {
 
   std::shared_ptr<Node> root;
 };
-
-#endif

@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LONG_OPERATIONS_PAUSE_LONG_OPERATION_H_
-#define SRC_LONG_OPERATIONS_PAUSE_LONG_OPERATION_H_
+#pragma once
 
 #include "machine/long_operation.h"
 #include "systems/base/event_listener.h"
@@ -101,5 +100,3 @@ class NewParagraphAfterLongop : public PerformAfterLongOperationDecorator {
  private:
   virtual void PerformAfterLongOperation(RLMachine& machine) override;
 };
-
-#endif  // SRC_LONG_OPERATIONS_PAUSE_LONG_OPERATION_H_

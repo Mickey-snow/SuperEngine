@@ -24,8 +24,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_RENDERABLE_H_
-#define SRC_SYSTEMS_BASE_RENDERABLE_H_
+#pragma once
 
 // An object that is renderable to screen.
 class Renderable {
@@ -35,5 +34,3 @@ class Renderable {
   // Renders this object to screen
   virtual void Render() = 0;
 };
-
-#endif  // SRC_SYSTEMS_BASE_RENDERABLE_H_

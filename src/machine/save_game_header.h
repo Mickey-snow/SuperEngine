@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MACHINE_SAVE_GAME_HEADER_H_
-#define SRC_MACHINE_SAVE_GAME_HEADER_H_
+#pragma once
 
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <string>
@@ -51,5 +50,3 @@ struct SaveGameHeader {
     ar& title& save_time;
   }
 };
-
-#endif  // SRC_MACHINE_SAVE_GAME_HEADER_H_

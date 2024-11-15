@@ -24,8 +24,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_UTILITIES_GRAPHICS_H_
-#define SRC_UTILITIES_GRAPHICS_H_
+#pragma once
 
 #include <vector>
 
@@ -59,5 +58,3 @@ Size GetScreenSize(Gameexe& gameexe);
 
 // Clips |dest| to |clip_rect|, adjusting |src|.
 void ClipDestination(const Rect& clip_rect, Rect& src, Rect& dest);
-
-#endif  // SRC_UTILITIES_GRAPHICS_H_

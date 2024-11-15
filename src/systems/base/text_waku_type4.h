@@ -24,8 +24,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_TEXT_WAKU_TYPE4_H_
-#define SRC_SYSTEMS_BASE_TEXT_WAKU_TYPE4_H_
+#pragma once
 
 #include <string>
 
@@ -96,5 +95,3 @@ class TextWakuType4 : public TextWaku {
   GrpRect bottom_center;
   GrpRect bottom_right;
 };
-
-#endif  // SRC_SYSTEMS_BASE_TEXT_WAKU_TYPE4_H_

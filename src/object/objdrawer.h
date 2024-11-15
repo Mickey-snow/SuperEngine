@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_OBJECT_DRAWER_H_
-#define SRC_OBJECT_DRAWER_H_
+#pragma once
 
 #include <boost/serialization/access.hpp>
 
@@ -93,5 +92,3 @@ class GraphicsObjectData {
   template <class Archive>
   void serialize(Archive& ar, unsigned int version) {}
 };
-
-#endif

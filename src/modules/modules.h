@@ -25,13 +25,10 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MODULES_MODULES_H_
-#define SRC_MODULES_MODULES_H_
+#pragma once
 
 class IModuleManager;
 
 // Convenience function to add all known module to a certain machine;
 // This keeps us from having to recompile rlvm.cpp all the time.
 void AddAllModules(IModuleManager&);
-
-#endif  // SRC_MODULES_MODULES_H_

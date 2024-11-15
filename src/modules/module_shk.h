@@ -24,8 +24,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MODULES_MODULE_SHK_H_
-#define SRC_MODULES_MODULE_SHK_H_
+#pragma once
 
 #include "machine/rlmodule.h"
 
@@ -34,5 +33,3 @@ class ShakingModule : public RLModule {
  public:
   ShakingModule();
 };
-
-#endif  // SRC_MODULES_MODULE_SHK_H_

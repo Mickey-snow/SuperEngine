@@ -24,8 +24,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_PLATFORMS_GCN_GCN_SCROLL_AREA_H_
-#define SRC_PLATFORMS_GCN_GCN_SCROLL_AREA_H_
+#pragma once
 
 #include <guichan/widgets/scrollarea.hpp>
 
@@ -77,5 +76,3 @@ class GCNScrollArea : public gcn::ScrollArea, public NotificationObserver {
   static ImageRect s_background;
   static ImageRect s_vMarker;
 };  // end of class GCNScrollArea
-
-#endif  // SRC_PLATFORMS_GCN_GCN_SCROLL_AREA_H_

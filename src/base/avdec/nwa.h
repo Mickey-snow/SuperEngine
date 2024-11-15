@@ -22,8 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef BASE_ACODEC_NWA_H_
-#define BASE_ACODEC_NWA_H_
+#pragma once
 
 #include <memory>
 #include <string_view>
@@ -90,5 +89,3 @@ class NwaDecoder : public IAudioDecoder {
   void ValidateHeader() const;
   void CreateImplementation();
 };
-
-#endif

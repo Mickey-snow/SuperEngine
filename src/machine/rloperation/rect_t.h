@@ -24,8 +24,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MACHINE_RLOPERATION_RECT_T_H_
-#define SRC_MACHINE_RLOPERATION_RECT_T_H_
+#pragma once
 
 #include <string>
 #include <vector>
@@ -97,5 +96,3 @@ struct Rect_T {
 
   enum { is_complex = false };
 };
-
-#endif  // SRC_MACHINE_RLOPERATION_RECT_T_H_

@@ -24,8 +24,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_LITTLE_BUSTERS_PT00DLL_H_
-#define SRC_SYSTEMS_BASE_LITTLE_BUSTERS_PT00DLL_H_
+#pragma once
 
 #include <string>
 
@@ -47,5 +46,3 @@ class LittleBustersPT00DLL : public RealLiveDLL {
                       int arg4) override;
   virtual const std::string& GetDLLName() const override;
 };
-
-#endif  // SRC_SYSTEMS_BASE_LITTLE_BUSTERS_PT00DLL_H_

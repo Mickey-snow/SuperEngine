@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MODULES_MODULE_OBJ_MANAGEMENT_H_
-#define SRC_MODULES_MODULE_OBJ_MANAGEMENT_H_
+#pragma once
 
 #include "machine/rlmodule.h"
 #include "machine/mapped_rlmodule.h"
@@ -55,5 +54,3 @@ class ChildObjBgManagement : public MappedRLModule {
  public:
   ChildObjBgManagement();
 };
-
-#endif  // SRC_MODULES_MODULE_OBJ_MANAGEMENT_H_

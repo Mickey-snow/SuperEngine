@@ -24,8 +24,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_PLATFORMS_GCN_GCN_GRAPHICS_H_
-#define SRC_PLATFORMS_GCN_GCN_GRAPHICS_H_
+#pragma once
 
 #include <guichan/opengl/openglgraphics.hpp>
 #include <guichan/image.hpp>
@@ -115,5 +114,3 @@ class GCNGraphics : public gcn::OpenGLGraphics {
 
   void drawImageImpl(gcn::Image* image, const Rect& source, int dstX, int dstY);
 };
-
-#endif  // SRC_PLATFORMS_GCN_GCN_GRAPHICS_H_

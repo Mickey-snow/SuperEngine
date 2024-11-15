@@ -24,8 +24,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_RLVM_INFO_H_
-#define SRC_SYSTEMS_BASE_RLVM_INFO_H_
+#pragma once
 
 #include <string>
 
@@ -41,5 +40,3 @@ struct RlvmInfo {
   bool rlbabel_loaded;
   int text_transformation;
 };
-
-#endif  // SRC_SYSTEMS_BASE_RLVM_INFO_H_

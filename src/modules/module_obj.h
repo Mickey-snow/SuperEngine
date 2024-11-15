@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MODULES_MODULE_OBJ_H_
-#define SRC_MODULES_MODULE_OBJ_H_
+#pragma once
 
 #include "machine/rloperation.h"
 #include "utilities/lazy_array.h"
@@ -196,5 +195,3 @@ class Obj_SetRepnoIntOnObj
  private:
   Setter setter;
 };
-
-#endif  // SRC_MODULES_MODULE_OBJ_H_

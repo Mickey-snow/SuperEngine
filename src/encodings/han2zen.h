@@ -24,8 +24,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_ENCODINGS_HAN2ZEN_H_
-#define SRC_ENCODINGS_HAN2ZEN_H_
+#pragma once
 
 #include <string>
 
@@ -38,5 +37,3 @@ std::string hantozen_cp932(const std::string& string, int transformation);
 // equivalents in a CP932 string. This is a no-op when |transformation| is
 // anything other than 0.
 std::string zentohan_cp932(const std::string& string, int transformation);
-
-#endif  // SRC_ENCODINGS_HAN2ZEN_H_

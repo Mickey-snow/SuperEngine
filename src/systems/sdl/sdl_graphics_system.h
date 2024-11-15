@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_SDL_SDL_GRAPHICS_SYSTEM_H_
-#define SRC_SYSTEMS_SDL_SDL_GRAPHICS_SYSTEM_H_
+#pragma once
 
 #include "GL/glew.h"
 
@@ -162,5 +161,3 @@ class SDLGraphicsSystem : public GraphicsSystem, public NotificationObserver {
 
   NotificationRegistrar registrar_;
 };
-
-#endif  // SRC_SYSTEMS_SDL_SDL_GRAPHICS_SYSTEM_H_

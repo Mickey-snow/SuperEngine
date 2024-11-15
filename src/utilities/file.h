@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_UTILITIES_FILE_H_
-#define SRC_UTILITIES_FILE_H_
+#pragma once
 
 #include <filesystem>
 
@@ -49,5 +48,3 @@ std::filesystem::path CorrectPathCase(std::filesystem::path Path);
 bool LoadFileData(const std::filesystem::path& path,
                   std::unique_ptr<char[]>& fileData,
                   int& fileSize);
-
-#endif  // SRC_UTILITIES_FILE_H_

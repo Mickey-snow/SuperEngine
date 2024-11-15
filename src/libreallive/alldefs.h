@@ -26,8 +26,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LIBREALLIVE_ALLDEFS_H_
-#define SRC_LIBREALLIVE_ALLDEFS_H_
+#pragma once
 
 #include <algorithm>
 #include <cstdio>
@@ -108,5 +107,3 @@ class Error : public std::exception {
 };
 
 }  // namespace libreallive
-
-#endif  // SRC_LIBREALLIVE_ALLDEFS_H_

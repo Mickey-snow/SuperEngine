@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MODULES_MODULE_KOE_H_
-#define SRC_MODULES_MODULE_KOE_H_
+#pragma once
 
 #include "machine/rlmodule.h"
 
@@ -35,5 +34,3 @@ class KoeModule : public RLModule {
  public:
   KoeModule();
 };
-
-#endif  // SRC_MODULES_MODULE_KOE_H_

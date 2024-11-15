@@ -22,8 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_ISOUND_SYSTEM_H_
-#define SRC_SYSTEMS_BASE_ISOUND_SYSTEM_H_
+#pragma once
 
 #include "base/audio_player.h"
 #include "base/avspec.h"
@@ -52,5 +51,3 @@ class ISoundSystem {
   virtual void EnableBgm() = 0;
   virtual void DisableBgm() = 0;
 };
-
-#endif

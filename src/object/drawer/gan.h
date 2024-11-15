@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_OBJECT_DRAWER_GAN_H_
-#define SRC_OBJECT_DRAWER_GAN_H_
+#pragma once
 
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/split_member.hpp>
@@ -143,5 +142,3 @@ inline void load_construct_data(Archive& ar,
 }
 }  // namespace serialization
 }  // namespace boost
-
-#endif

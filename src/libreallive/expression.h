@@ -32,8 +32,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LIBREALLIVE_EXPRESSION_H_
-#define SRC_LIBREALLIVE_EXPRESSION_H_
+#pragma once
 
 #include <memory>
 #include <string>
@@ -160,5 +159,3 @@ class ExpressionFactory {
 typedef std::vector<libreallive::Expression> ExpressionPiecesVector;
 
 }  // namespace libreallive
-
-#endif  // SRC_LIBREALLIVE_EXPRESSION_H_

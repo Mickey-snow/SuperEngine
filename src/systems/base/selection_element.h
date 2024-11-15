@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_SELECTION_ELEMENT_H_
-#define SRC_SYSTEMS_BASE_SELECTION_ELEMENT_H_
+#pragma once
 
 #include <functional>
 #include <memory>
@@ -72,5 +71,3 @@ class SelectionElement {
 
   System& system_;
 };
-
-#endif  // SRC_SYSTEMS_BASE_SELECTION_ELEMENT_H_

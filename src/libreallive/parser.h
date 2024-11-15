@@ -31,8 +31,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LIBREALLIVE_PARSER_H_
-#define SRC_LIBREALLIVE_PARSER_H_
+#pragma once
 
 #include <ostream>
 #include <string>
@@ -155,5 +154,3 @@ class Parser {
 };
 
 }  // namespace libreallive
-
-#endif  // SRC_LIBREALLIVE_BYTECODE_H_

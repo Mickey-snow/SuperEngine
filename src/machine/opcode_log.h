@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MACHINE_OPCODE_LOG_H_
-#define SRC_MACHINE_OPCODE_LOG_H_
+#pragma once
 
 #include <iosfwd>
 #include <map>
@@ -57,5 +56,3 @@ class OpcodeLog {
 
 // Pretty prints the contents of an OpcodeLog.
 std::ostream& operator<<(std::ostream& os, const OpcodeLog& log);
-
-#endif  // SRC_MACHINE_OPCODE_LOG_H_

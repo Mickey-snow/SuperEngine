@@ -22,8 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_BASE_ASSET_SCANNER_H_
-#define SRC_BASE_ASSET_SCANNER_H_
+#pragma once
 
 #include "base/gameexe.hpp"
 
@@ -62,5 +61,3 @@ class AssetScanner : public IAssetScanner {
       std::multimap<std::string, std::pair<std::string, std::filesystem::path>>;
   fs_cache_t filesystem_cache_;
 };
-
-#endif

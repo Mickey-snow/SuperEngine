@@ -36,8 +36,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_LITTLE_BUSTERS_EF00DLL_H_
-#define SRC_SYSTEMS_BASE_LITTLE_BUSTERS_EF00DLL_H_
+#pragma once
 
 #include <memory>
 #include <string>
@@ -68,5 +67,3 @@ class LittleBustersEF00DLL : public RealLiveDLL {
 
   std::unique_ptr<double[]> lb_ef_param;
 };
-
-#endif  // SRC_SYSTEMS_BASE_LITTLE_BUSTERS_EF00DLL_H_

@@ -22,8 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef BASE_AVDEC_IADEC_H_
-#define BASE_AVDEC_IADEC_H_
+#pragma once
 
 #include "base/audio_data.h"
 
@@ -52,5 +51,3 @@ class IAudioDecoder {
 
   virtual pcm_count_t Tell();
 };
-
-#endif

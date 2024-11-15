@@ -26,8 +26,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_EFFECTS_DRAWER_EFFECT_H_
-#define SRC_EFFECTS_DRAWER_EFFECT_H_
+#pragma once
 
 #include "effects/effect.h"
 #include "systems/base/surface.h"
@@ -154,5 +153,3 @@ class DrawerEffect : public Effect {
  private:
   DrawerEffectDetails::Direction direction_;
 };
-
-#endif

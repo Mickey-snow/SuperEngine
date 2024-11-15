@@ -24,8 +24,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_TEXT_WAKU_NORMAL_H_
-#define SRC_SYSTEMS_BASE_TEXT_WAKU_NORMAL_H_
+#pragma once
 
 #include <iosfwd>
 #include <memory>
@@ -104,5 +103,3 @@ class TextWakuNormal : public TextWaku {
   // custom handler (EXBTN_index_BOX).
   std::unique_ptr<TextWindowButton> button_map_[12];
 };  // end of class TextWakuNormal
-
-#endif  // SRC_SYSTEMS_BASE_TEXT_WAKU_NORMAL_H_

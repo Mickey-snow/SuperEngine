@@ -28,8 +28,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LIBREALLIVE_ELEMENTS_COMMA_H_
-#define SRC_LIBREALLIVE_ELEMENTS_COMMA_H_
+#pragma once
 
 #include <ostream>
 #include <string>
@@ -50,5 +49,3 @@ class CommaElement : public BytecodeElement {
 };
 
 }  // namespace libreallive
-
-#endif

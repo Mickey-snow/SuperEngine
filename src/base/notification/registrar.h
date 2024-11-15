@@ -2,8 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SRC_BASE_NOTIFICATION_REGISTRAR_H_
-#define SRC_BASE_NOTIFICATION_REGISTRAR_H_
+#pragma once
 
 #include <cstdint>
 #include <vector>
@@ -59,5 +58,3 @@ class NotificationRegistrar {
   // Lists all notifications we're currently registered for.
   RecordVector registered_;
 };
-
-#endif  // SRC_BASE_NOTIFICATION_REGISTRAR_H_

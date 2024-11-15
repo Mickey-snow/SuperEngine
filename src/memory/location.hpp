@@ -22,8 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MEMORY_LOCATION_HPP_
-#define SRC_MEMORY_LOCATION_HPP_
+#pragma once
 
 #include <cstddef>
 #include <cstdint>
@@ -157,5 +156,3 @@ using MemoryLocation = std::variant<IntMemoryLocation, StrMemoryLocation>;
  * @note not implemented yet.
  */
 MemoryLocation ParseMemoryLocation(std::string);
-
-#endif  // SRC_MEMORY_LOCATION_HPP_

@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_UTILITIES_STRING_UTILITIES_H_
-#define SRC_UTILITIES_STRING_UTILITIES_H_
+#pragma once
 
 #include <cstdint>
 #include <functional>
@@ -138,5 +137,3 @@ std::string RemoveQuotes(const std::string& quotedString);
  * @endcode
  */
 int ConvertLetterIndexToInt(const std::string& value);
-
-#endif  // SRC_UTILITIES_STRING_UTILITIES_H_

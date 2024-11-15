@@ -26,8 +26,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LIBREALLIVE_BYTECODE_FWD_H_
-#define SRC_LIBREALLIVE_BYTECODE_FWD_H_
+#pragma once
 
 #include <forward_list>
 #include <memory>
@@ -57,5 +56,3 @@ class GotoOnElement;
 class GosubWithElement;
 
 }  // namespace libreallive
-
-#endif  // SRC_LIBREALLIVE_BYTECODE_FWD_H_

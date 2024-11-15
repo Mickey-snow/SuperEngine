@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MODULES_MODULE_SYS_H_
-#define SRC_MODULES_MODULE_SYS_H_
+#pragma once
 
 #include "machine/rlmodule.h"
 #include "machine/rloperation.h"
@@ -46,5 +45,3 @@ struct Sys_MenuReturn : public RLOpcode<> {
   virtual bool AdvanceInstructionPointer() override;
   virtual void operator()(RLMachine& machine) override;
 };
-
-#endif  // SRC_MODULES_MODULE_SYS_H_

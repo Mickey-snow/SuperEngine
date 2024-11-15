@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_SDL_TEXTURE_H_
-#define SRC_SYSTEMS_SDL_TEXTURE_H_
+#pragma once
 
 #include "GL/glew.h"
 
@@ -156,5 +155,3 @@ class Texture {
   // buffer used to upload data into.
   static std::unique_ptr<char[]> s_upload_buffer;
 };
-
-#endif  // SRC_SYSTEMS_SDL_TEXTURE_H_

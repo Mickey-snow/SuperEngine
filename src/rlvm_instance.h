@@ -24,8 +24,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_RLVM_INSTANCE_H_
-#define SRC_RLVM_INSTANCE_H_
+#pragma once
 
 #include <filesystem>
 #include <memory>
@@ -112,5 +111,3 @@ class RLVMInstance {
   // The bridge to the class that implements platform-specific code
   std::shared_ptr<IPlatformImplementor> platform_implementor_;
 };
-
-#endif  // SRC_MACHINE_RLVM_INSTANCE_H_

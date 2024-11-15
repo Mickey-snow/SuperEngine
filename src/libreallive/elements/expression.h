@@ -28,8 +28,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LIBREALLIVE_ELEMENTS_EXPRESSION_H_
-#define SRC_LIBREALLIVE_ELEMENTS_EXPRESSION_H_
+#pragma once
 
 #include "libreallive/elements/bytecode.h"
 #include "libreallive/expression.h"
@@ -62,5 +61,3 @@ class ExpressionElement : public BytecodeElement {
 };
 
 }  // namespace libreallive
-
-#endif

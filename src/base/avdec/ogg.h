@@ -23,8 +23,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_BASE_AVDEC_OGG_H_
-#define SRC_BASE_AVDEC_OGG_H_
+#pragma once
 
 #include "base/avdec/iadec.h"
 #include "base/avspec.h"
@@ -63,5 +62,3 @@ class OggDecoder : public IAudioDecoder {
  private:
   std::unique_ptr<ov_adapter> impl_;
 };
-
-#endif

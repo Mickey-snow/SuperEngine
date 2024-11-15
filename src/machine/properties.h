@@ -24,9 +24,6 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MACHINE_PROPERTIES_H_
-#define SRC_MACHINE_PROPERTIES_H_
+#pragma once
 
 enum Properties { P_FGBG = 1, P_PARENTOBJ };
-
-#endif  // SRC_MACHINE_PROPERTIES_H_

@@ -20,8 +20,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MACHINE_RLOPERATION_COMPLEX_T_H_
-#define SRC_MACHINE_RLOPERATION_COMPLEX_T_H_
+#pragma once
 
 #include <string>
 #include <tuple>
@@ -83,5 +82,3 @@ extern template struct Complex_T<IntConstant_T, IntReference_T>;
 extern template struct Complex_T<IntReference_T, IntReference_T>;
 extern template struct Complex_T<StrConstant_T, IntConstant_T, IntConstant_T>;
 extern template struct Complex_T<StrConstant_T, IntConstant_T>;
-
-#endif  // SRC_MACHINE_RLOPERATION_COMPLEX_T_H_

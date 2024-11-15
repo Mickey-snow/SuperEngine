@@ -22,8 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_UTILITIES_BYTEREADER_H_
-#define SRC_UTILITIES_BYTEREADER_H_
+#pragma once
 
 #include <cstddef>
 #include <cstdint>
@@ -204,5 +203,3 @@ class ByteReader {
       current_;     /**< Pointer to the current position in the byte array. */
   const char* end_; /**< Pointer to the end of the byte array. */
 };
-
-#endif

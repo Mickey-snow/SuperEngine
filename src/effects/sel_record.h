@@ -22,8 +22,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_EFFECTS_SEL_RECORD_H_
-#define SRC_EFFECTS_SEL_RECORD_H_
+#pragma once
 
 #include "base/rect.h"
 
@@ -49,5 +48,3 @@ struct selRecord {
 };
 
 selRecord GetSelRecord(Gameexe& gexe, int selNum);
-
-#endif  // SRC_EFFECTS_SEL_RECORD_H_

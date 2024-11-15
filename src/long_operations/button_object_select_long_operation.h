@@ -24,8 +24,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LONG_OPERATIONS_BUTTON_OBJECT_SELECT_LONG_OPERATION_H_
-#define SRC_LONG_OPERATIONS_BUTTON_OBJECT_SELECT_LONG_OPERATION_H_
+#pragma once
 
 #include <utility>
 #include <vector>
@@ -88,5 +87,3 @@ class ButtonObjectSelectLongOperation : public LongOperation {
   // mousedown and mouseup in the same button, we consider that a mouse press.
   GraphicsObject* currently_pressed_button_;
 };
-
-#endif  // SRC_LONG_OPERATIONS_BUTTON_OBJECT_SELECT_LONG_OPERATION_H_

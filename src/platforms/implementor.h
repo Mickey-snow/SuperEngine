@@ -22,8 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_PLATFORM_IMPLEMENTOR_H_
-#define SRC_PLATFORM_IMPLEMENTOR_H_
+#pragma once
 
 #include <filesystem>
 #include <memory>
@@ -112,5 +111,3 @@ class IPlatformImplementor {
  * @brief Smart pointer type for handling platform implementations.
  */
 using PlatformImpl_t = std::shared_ptr<IPlatformImplementor>;
-
-#endif

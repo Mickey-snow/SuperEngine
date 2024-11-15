@@ -24,8 +24,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_HIK_RENDERER_H_
-#define SRC_SYSTEMS_BASE_HIK_RENDERER_H_
+#pragma once
 
 #include <memory>
 #include <vector>
@@ -76,5 +75,3 @@ class HIKRenderer {
   // Which animation frame to use per layer. Defaults to zero.
   std::vector<LayerData> layer_to_animation_num_;
 };
-
-#endif  // SRC_SYSTEMS_BASE_HIK_RENDERER_H_

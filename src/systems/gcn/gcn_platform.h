@@ -24,8 +24,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_PLATFORMS_GCN_GCN_PLATFORM_H_
-#define SRC_PLATFORMS_GCN_GCN_PLATFORM_H_
+#pragma once
 
 #include <guichan.hpp>
 #include <guichan/opengl.hpp>
@@ -135,5 +134,3 @@ class GCNPlatform : public Platform,
 
   friend class GCNPlatformBlocker;
 };  // end of class GCNPlatform
-
-#endif  // SRC_PLATFORMS_GCN_GCN_PLATFORM_H_

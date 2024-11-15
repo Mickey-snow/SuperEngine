@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_SDL_SDL_SYSTEM_H_
-#define SRC_SYSTEMS_SDL_SDL_SYSTEM_H_
+#pragma once
 
 #include <memory>
 
@@ -63,5 +62,3 @@ class SDLSystem : public System {
 
 // Convenience function to do the casting.
 SDLGraphicsSystem* getSDLGraphics(System& system);
-
-#endif  // SRC_SYSTEMS_SDL_SDL_SYSTEM_H_

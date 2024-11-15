@@ -31,8 +31,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LIBREALLIVE_SCENARIO_H_
-#define SRC_LIBREALLIVE_SCENARIO_H_
+#pragma once
 
 #include <string>
 #include <string_view>
@@ -149,5 +148,3 @@ class Scenario {
 };
 
 }  // namespace libreallive
-
-#endif  // SRC_LIBREALLIVE_SCENARIO_H_

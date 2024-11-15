@@ -24,8 +24,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_PLATFORMS_GCN_GCN_WINDOW_H_
-#define SRC_PLATFORMS_GCN_GCN_WINDOW_H_
+#pragma once
 
 #include <guichan/widgets/container.hpp>
 
@@ -54,5 +53,3 @@ class GCNWindow : public gcn::Container {
   // The border that's put around a window
   static ImageRect s_border;
 };  // end of class GCNWindow
-
-#endif  // SRC_PLATFORMS_GCN_GCN_WINDOW_H_

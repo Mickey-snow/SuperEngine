@@ -24,8 +24,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_TEXT_WAKU_H_
-#define SRC_SYSTEMS_BASE_TEXT_WAKU_H_
+#pragma once
 
 #include <iosfwd>
 
@@ -63,5 +62,3 @@ class TextWaku {
                                 const Point& pos,
                                 bool pressed);
 };
-
-#endif  // SRC_SYSTEMS_BASE_TEXT_WAKU_H_

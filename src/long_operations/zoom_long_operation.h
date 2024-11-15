@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LONG_OPERATIONS_ZOOM_LONG_OPERATION_H_
-#define SRC_LONG_OPERATIONS_ZOOM_LONG_OPERATION_H_
+#pragma once
 
 #include <memory>
 
@@ -60,5 +59,3 @@ class ZoomLongOperation : public LongOperation {
 
   unsigned int start_time_;
 };
-
-#endif  // SRC_LONG_OPERATIONS_ZOOM_LONG_OPERATION_H_

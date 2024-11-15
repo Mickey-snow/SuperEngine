@@ -24,8 +24,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_SDL_SHADERS_H_
-#define SRC_SYSTEMS_SDL_SHADERS_H_
+#pragma once
 
 #include "GL/glew.h"
 
@@ -80,5 +79,3 @@ class Shaders {
   static GLint object_mono_;
   static GLint object_invert_;
 };
-
-#endif  // SRC_SYSTEMS_SDL_SHADERS_H_

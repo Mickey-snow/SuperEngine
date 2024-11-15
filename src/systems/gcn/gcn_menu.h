@@ -24,8 +24,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_PLATFORMS_GCN_GCN_MENU_H_
-#define SRC_PLATFORMS_GCN_GCN_MENU_H_
+#pragma once
 
 #include "systems/gcn/gcn_window.h"
 
@@ -61,5 +60,3 @@ class GCNMenu : public GCNWindow, public gcn::ActionListener {
  private:
   std::vector<std::unique_ptr<gcn::Widget>> owned_widgets_;
 };  // end of class GCNMenu
-
-#endif  // SRC_PLATFORMS_GCN_GCN_MENU_H_

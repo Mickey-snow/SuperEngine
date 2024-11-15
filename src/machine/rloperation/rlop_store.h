@@ -20,8 +20,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MACHINE_RLOPERATION_RLOP_STORE_H_
-#define SRC_MACHINE_RLOPERATION_RLOP_STORE_H_
+#pragma once
 
 #include "machine/rlmachine.h"
 #include "machine/rloperation.h"
@@ -79,5 +78,3 @@ extern template class RLStoreOpcode<IntConstant_T>;
 extern template class RLStoreOpcode<IntConstant_T, IntConstant_T>;
 extern template class RLStoreOpcode<IntReference_T>;
 extern template class RLStoreOpcode<IntReference_T, IntReference_T>;
-
-#endif  // SRC_MACHINE_RLOPERATION_RLOP_STORE_H_

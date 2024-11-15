@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MODULES_MODULE_SHL_H_
-#define SRC_MODULES_MODULE_SHL_H_
+#pragma once
 
 #include "machine/rlmodule.h"
 
@@ -35,5 +34,3 @@ class LayeredShakingModule : public RLModule {
  public:
   LayeredShakingModule();
 };
-
-#endif  // SRC_MODULES_MODULE_SHL_H_

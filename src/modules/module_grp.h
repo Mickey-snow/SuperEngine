@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MODULES_MODULE_GRP_H_
-#define SRC_MODULES_MODULE_GRP_H_
+#pragma once
 
 #include <deque>
 #include <string>
@@ -50,5 +49,3 @@ RLOperation* GraphicsStackMappingFun(RLOperation* op);
 // Replays the new Graphics stack, string representations of reallive bytecode.
 void ReplayGraphicsStackCommand(RLMachine& machine,
                                 const std::deque<std::string>& stack);
-
-#endif  // SRC_MODULES_MODULE_GRP_H_

@@ -24,8 +24,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_HIK_SCRIPT_H_
-#define SRC_SYSTEMS_BASE_HIK_SCRIPT_H_
+#pragma once
 
 #include <filesystem>
 
@@ -122,5 +121,3 @@ class HIKScript {
   // Size of the hik graphic as reported by the hik.
   Size size_of_hik_;
 };
-
-#endif  // SRC_SYSTEMS_BASE_HIK_SCRIPT_H_

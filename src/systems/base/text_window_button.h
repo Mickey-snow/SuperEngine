@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_TEXT_WINDOW_BUTTON_H_
-#define SRC_SYSTEMS_BASE_TEXT_WINDOW_BUTTON_H_
+#pragma once
 
 #include <functional>
 #include <memory>
@@ -187,5 +186,3 @@ class ExbtnWindowButton : public TextWindowButton {
   int scenario_;
   int entrypoint_;
 };
-
-#endif  // SRC_SYSTEMS_BASE_TEXT_WINDOW_BUTTON_H_

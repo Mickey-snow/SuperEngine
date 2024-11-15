@@ -20,8 +20,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MACHINE_RLOPERATION_REFERENCES_H_
-#define SRC_MACHINE_RLOPERATION_REFERENCES_H_
+#pragma once
 
 #include <string>
 #include <vector>
@@ -76,5 +75,3 @@ struct StrReference_T {
 
   enum { is_complex = false };
 };
-
-#endif  // SRC_MACHINE_RLOPERATION_REFERENCES_H_

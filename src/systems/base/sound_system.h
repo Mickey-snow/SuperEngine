@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_SOUND_SYSTEM_H_
-#define SRC_SYSTEMS_BASE_SOUND_SYSTEM_H_
+#pragma once
 
 #include <boost/serialization/serialization.hpp>
 #include <map>
@@ -135,5 +134,3 @@ class SoundSystem {
   template <class Archive>
   void serialize(Archive& ar, unsigned int version) {}
 };
-
-#endif  // SRC_SYSTEMS_BASE_SOUND_SYSTEM_H_

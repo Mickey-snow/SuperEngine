@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MODULES_MODULE_SYS_SAVE_H_
-#define SRC_MODULES_MODULE_SYS_SAVE_H_
+#pragma once
 
 #include "machine/rloperation.h"
 
@@ -55,5 +54,3 @@ struct Sys_load : public RLOpcode<IntConstant_T> {
   // and then enter the next stage, the LongOperation LoadingGame.
   virtual void operator()(RLMachine& machine, int slot);
 };
-
-#endif  // SRC_MODULES_MODULE_SYS_SAVE_H_

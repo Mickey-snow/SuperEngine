@@ -24,8 +24,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_OBJECT_DRAWER_PARENT_H_
-#define SRC_OBJECT_DRAWER_PARENT_H_
+#pragma once
 
 #include <boost/serialization/access.hpp>
 
@@ -136,5 +135,3 @@ class ParentGraphicsObjectData : public GraphicsObjectData {
   template <class Archive>
   void serialize(Archive& ar, const unsigned int file_version);
 };
-
-#endif

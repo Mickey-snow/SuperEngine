@@ -22,8 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_OBJECT_PROPERTIES_H_
-#define SRC_OBJECT_PROPERTIES_H_
+#pragma once
 
 #include "base/rect.h"
 #include "systems/base/colour.h"
@@ -225,5 +224,3 @@ enum class ObjectProperty {
 
   TOTAL_COUNT
 };
-
-#endif

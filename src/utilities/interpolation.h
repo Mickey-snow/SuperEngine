@@ -24,8 +24,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_UTILITIES_INTERPOLATION_H_
-#define SRC_UTILITIES_INTERPOLATION_H_
+#pragma once
 
 enum class InterpolationMode { Linear = 0, LogEaseOut = 1, LogEaseIn = 2 };
 
@@ -60,5 +59,3 @@ double Interpolate(const InterpolationRange& range,
 double InterpolateBetween(const InterpolationRange& time,
                           const Range& value,
                           InterpolationMode mode);
-
-#endif

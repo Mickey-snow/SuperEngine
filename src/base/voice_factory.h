@@ -24,8 +24,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_BASE_VOICE_FACTORY_H_
-#define SRC_BASE_VOICE_FACTORY_H_
+#pragma once
 
 #include <filesystem>
 #include <memory>
@@ -56,5 +55,3 @@ class VoiceFactory {
 
   mutable LRUCache<int, std::shared_ptr<IVoiceArchive>> cache_;
 };  // class VoiceCache
-
-#endif

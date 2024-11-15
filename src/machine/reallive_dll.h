@@ -24,8 +24,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MACHINE_REALLIVE_DLL_H_
-#define SRC_MACHINE_REALLIVE_DLL_H_
+#pragma once
 
 #include <string>
 
@@ -54,5 +53,3 @@ class RealLiveDLL {
   // Returns the DLL's name.
   virtual const std::string& GetDLLName() const = 0;
 };  // end of class RealLiveDLL
-
-#endif  // SRC_MACHINE_REALLIVE_DLL_H_

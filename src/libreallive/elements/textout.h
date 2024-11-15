@@ -28,8 +28,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LIBREALLIVE_ELEMENTS_TEXTOUT_H_
-#define SRC_LIBREALLIVE_ELEMENTS_TEXTOUT_H_
+#pragma once
 
 #include <ostream>
 #include <string>
@@ -58,5 +57,3 @@ class TextoutElement : public BytecodeElement {
 };
 
 }  // namespace libreallive
-
-#endif

@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_EFFECTS_FADE_EFFECT_H_
-#define SRC_EFFECTS_FADE_EFFECT_H_
+#pragma once
 
 #include "effects/effect.h"
 
@@ -46,5 +45,3 @@ class FadeEffect : public Effect {
  private:
   virtual bool BlitOriginalImage() const final;
 };
-
-#endif  // SRC_EFFECTS_FADE_EFFECT_H_

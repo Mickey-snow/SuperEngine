@@ -20,8 +20,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_UTILITIES_DATE_UTIL_H_
-#define SRC_UTILITIES_DATE_UTIL_H_
+#pragma once
 
 namespace datetime {
 
@@ -35,5 +34,3 @@ int GetSecond();
 int GetMs();
 
 }  // namespace datetime
-
-#endif  // SRC_UTILITIES_DATE_UTIL_H_

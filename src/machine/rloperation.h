@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MACHINE_RLOPERATION_H_
-#define SRC_MACHINE_RLOPERATION_H_
+#pragma once
 
 #include <string>
 #include <type_traits>
@@ -418,5 +417,3 @@ extern template class RLOpcode<StrConstant_T>;
 extern template class RLOpcode<StrConstant_T, IntConstant_T>;
 extern template class RLOpcode<StrConstant_T, StrConstant_T>;
 extern template class RLOpcode<StrReference_T>;
-
-#endif  // SRC_MACHINE_RLOPERATION_H_

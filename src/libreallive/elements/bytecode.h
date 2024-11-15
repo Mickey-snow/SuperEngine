@@ -28,8 +28,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LIBREALLIVE_ELEMENTS_BYTECODE_H_
-#define SRC_LIBREALLIVE_ELEMENTS_BYTECODE_H_
+#pragma once
 
 #include <map>
 #include <ostream>
@@ -94,5 +93,3 @@ class BytecodeElement {
   friend class Script;
 };
 }  // namespace libreallive
-
-#endif

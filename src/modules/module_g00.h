@@ -24,8 +24,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MODULES_MODULE_G00_H_
-#define SRC_MODULES_MODULE_G00_H_
+#pragma once
 
 #include "machine/rlmodule.h"
 
@@ -34,5 +33,3 @@ class G00Module : public RLModule {
  public:
   G00Module();
 };
-
-#endif  // SRC_MODULES_MODULE_G00_H_

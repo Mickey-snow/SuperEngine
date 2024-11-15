@@ -24,8 +24,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_SDL_SDL_COLOUR_FILTER_H_
-#define SRC_SYSTEMS_SDL_SDL_COLOUR_FILTER_H_
+#pragma once
 
 #include "GL/glew.h"
 
@@ -51,5 +50,3 @@ class SDLColourFilter : public ColourFilter {
 
   GLuint back_texture_id_;
 };
-
-#endif  // SRC_SYSTEMS_SDL_SDL_COLOUR_FILTER_H_

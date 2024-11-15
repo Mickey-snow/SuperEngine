@@ -22,8 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_UTILITIES_MAPPED_FILE_H
-#define SRC_UTILITIES_MAPPED_FILE_H
+#pragma once
 
 #include <filesystem>
 #include <string>
@@ -58,5 +57,3 @@ struct FilePos {
     return file_->Read(position, length);
   }
 };
-
-#endif

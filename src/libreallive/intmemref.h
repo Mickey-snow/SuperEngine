@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LIBREALLIVE_INTMEMREF_H_
-#define SRC_LIBREALLIVE_INTMEMREF_H_
+#pragma once
 
 #include <iosfwd>
 
@@ -92,5 +91,3 @@ class IntMemRef {
 
 std::ostream& operator<<(std::ostream& oss,
                          const libreallive::IntMemRef& memref);
-
-#endif  // SRC_LIBREALLIVE_INTMEMREF_H_

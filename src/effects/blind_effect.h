@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_EFFECTS_BLIND_EFFECT_H_
-#define SRC_EFFECTS_BLIND_EFFECT_H_
+#pragma once
 
 #include "effects/effect.h"
 
@@ -114,5 +113,3 @@ class BlindRightToLeftEffect : public BlindEffect {
   virtual void PerformEffectForTime(int currentTime) final;
   virtual void RenderPolygon(int polyStart, int polyEnd) final;
 };
-
-#endif  // SRC_EFFECTS_BLIND_EFFECT_H_

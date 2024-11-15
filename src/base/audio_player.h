@@ -22,8 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_BASE_AUDIO_PLAYER_H_
-#define SRC_BASE_AUDIO_PLAYER_H_
+#pragma once
 
 #include "base/avdec/audio_decoder.h"
 #include "base/avspec.h"
@@ -108,5 +107,3 @@ player_t CreateAudioPlayer(Ts&&... params) {
   AudioDecoder decoder(std::forward<Ts>(params)...);
   return std::make_shared<AudioPlayer>(std::move(decoder));
 }
-
-#endif

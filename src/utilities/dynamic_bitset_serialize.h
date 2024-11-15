@@ -24,8 +24,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_UTILITIES_DYNAMIC_BITSET_SERIALIZE_H_
-#define SRC_UTILITIES_DYNAMIC_BITSET_SERIALIZE_H_
+#pragma once
 
 // boost::serialization doesn't come with built in support for
 // serializing dynamic_bitset, so write our own version.
@@ -73,5 +72,3 @@ inline void serialize(Archive& ar,
 
 }  // namespace serialization
 }  // namespace boost
-
-#endif  // SRC_UTILITIES_DYNAMIC_BITSET_SERIALIZE_H_

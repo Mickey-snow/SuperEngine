@@ -24,8 +24,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_PLATFORM_H_
-#define SRC_SYSTEMS_BASE_PLATFORM_H_
+#pragma once
 
 #include <map>
 #include <string>
@@ -67,5 +66,3 @@ class Platform {
   // expects UTF-8, so pre-parse them.
   std::map<std::string, std::string> utf8_syscom_strings_;
 };
-
-#endif  // SRC_SYSTEMS_BASE_PLATFORM_H_

@@ -25,13 +25,10 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MODULES_MODULE_SYS_DATE_H_
-#define SRC_MODULES_MODULE_SYS_DATE_H_
+#pragma once
 
 class RLModule;
 
 // Public access to the date functions. Meant to be called from the
 // constructor of SysModule.
 void AddSysDateOpcodes(RLModule& module);
-
-#endif  // SRC_MODULES_MODULE_SYS_DATE_H_

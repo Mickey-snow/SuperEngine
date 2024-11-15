@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_RLBABEL_DLL_H_
-#define SRC_SYSTEMS_BASE_RLBABEL_DLL_H_
+#pragma once
 
 #include <cstdint>
 #include <memory>
@@ -241,5 +240,3 @@ class RlBabelDLL : public RealLiveDLL {
   // Reference to our enclosing system.
   RLMachine& machine_;
 };  // end of class RlBabelDll
-
-#endif  // SRC_SYSTEMS_BASE_RLBABEL_DLL_H_

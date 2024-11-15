@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_SYSTEM_ERROR_H_
-#define SRC_SYSTEMS_BASE_SYSTEM_ERROR_H_
+#pragma once
 
 #include <exception>
 #include <string>
@@ -44,5 +43,3 @@ class SystemError : public std::exception {
  private:
   std::string description;
 };
-
-#endif  // SRC_SYSTEMS_BASE_SYSTEM_ERROR_H_

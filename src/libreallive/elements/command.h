@@ -28,8 +28,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LIBREALLIVE_ELEMENTS_COMMAND_H_
-#define SRC_LIBREALLIVE_ELEMENTS_COMMAND_H_
+#pragma once
 
 #include <array>
 #include <ostream>
@@ -303,5 +302,3 @@ class GosubWithElement : public CommandElement {
 };
 
 }  // namespace libreallive
-
-#endif

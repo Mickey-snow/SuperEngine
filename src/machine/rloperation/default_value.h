@@ -20,8 +20,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MACHINE_RLOPERATION_DEFAULT_VALUE_H_
-#define SRC_MACHINE_RLOPERATION_DEFAULT_VALUE_H_
+#pragma once
 
 #include <string>
 #include <vector>
@@ -88,5 +87,3 @@ struct DefaultStrValue_T {
 
   enum { is_complex = false };
 };
-
-#endif  // SRC_MACHINE_RLOPERATION_DEFAULT_VALUE_H_

@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_SDL_SDL_EVENT_SYSTEM_H_
-#define SRC_SYSTEMS_SDL_SDL_EVENT_SYSTEM_H_
+#pragma once
 
 #include "base/rect.h"
 #include "systems/base/event_system.h"
@@ -106,5 +105,3 @@ class SDLEventSystem : public EventSystem {
   // etc who want to suck raw SDL events).
   RawSDLInputHandler* raw_handler_;
 };
-
-#endif  // SRC_SYSTEMS_SDL_SDL_EVENT_SYSTEM_H_

@@ -22,8 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef TEST_TEST_SYSTEM_MOCK_SYSTEM_H_
-#define TEST_TEST_SYSTEM_MOCK_SYSTEM_H_
+#pragma once
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -44,5 +43,3 @@ class MockSystem : public System {
 
   Gameexe& gexe_;
 };
-
-#endif

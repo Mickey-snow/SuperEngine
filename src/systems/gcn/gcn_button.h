@@ -24,8 +24,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_PLATFORMS_GCN_GCN_BUTTON_H_
-#define SRC_PLATFORMS_GCN_GCN_BUTTON_H_
+#pragma once
 
 #include <guichan/widgets/button.hpp>
 
@@ -56,5 +55,3 @@ class GCNButton : public gcn::Button {
   static ImageRect s_buttonpress;
   static ImageRect s_button_disabled;
 };  // end of class GCNButton
-
-#endif  // SRC_PLATFORMS_GCN_GCN_BUTTON_H_

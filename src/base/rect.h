@@ -26,8 +26,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_BASE_RECT_H_
-#define SRC_BASE_RECT_H_
+#pragma once
 
 #include <boost/serialization/access.hpp>
 #include <iosfwd>
@@ -177,5 +176,3 @@ class Rect {
 std::ostream& operator<<(std::ostream& os, const Size& s);
 std::ostream& operator<<(std::ostream& os, const Point& p);
 std::ostream& operator<<(std::ostream& os, const Rect& r);
-
-#endif

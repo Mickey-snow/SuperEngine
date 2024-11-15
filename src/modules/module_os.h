@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MODULES_MODULE_OS_H_
-#define SRC_MODULES_MODULE_OS_H_
+#pragma once
 
 #include "machine/rlmodule.h"
 
@@ -35,5 +34,3 @@ class OsModule : public RLModule {
  public:
   OsModule();
 };
-
-#endif  // SRC_MODULES_MODULE_OS_H_

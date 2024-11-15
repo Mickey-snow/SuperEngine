@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MODULES_MODULE_BGM_H_
-#define SRC_MODULES_MODULE_BGM_H_
+#pragma once
 
 #include "machine/rlmodule.h"
 
@@ -35,5 +34,3 @@ class BgmModule : public RLModule {
  public:
   BgmModule();
 };
-
-#endif  // SRC_MODULES_MODULE_BGM_H_

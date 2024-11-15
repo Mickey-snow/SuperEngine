@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_EFFECTS_WIPE_EFFECT_H_
-#define SRC_EFFECTS_WIPE_EFFECT_H_
+#pragma once
 
 #include <memory>
 
@@ -119,5 +118,3 @@ class WipeRightToLeftEffect : public WipeEffect {
  protected:
   virtual void PerformEffectForTime(int currentTime) final;
 };
-
-#endif  // SRC_EFFECTS_WIPE_EFFECT_H_

@@ -25,13 +25,10 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MODULES_MODULE_SYS_SYSCOM_H_
-#define SRC_MODULES_MODULE_SYS_SYSCOM_H_
+#pragma once
 
 class RLModule;
 
 // Public access to the frame counter operations. Meant to be called
 // from the constructor of SysModule.
 void AddSysSyscomOpcodes(RLModule& module);
-
-#endif  // SRC_MODULES_MODULE_SYS_SYSCOM_H_

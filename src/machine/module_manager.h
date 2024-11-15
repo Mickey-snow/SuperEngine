@@ -22,8 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MACHINE_MODULE_MANAGER_H_
-#define SRC_MACHINE_MODULE_MANAGER_H_
+#pragma once
 
 #include <memory>
 #include <string>
@@ -61,5 +60,3 @@ class ModuleManager : public IModuleManager {
 
   std::unordered_map<int, std::unique_ptr<RLModule>> modules_;
 };
-
-#endif

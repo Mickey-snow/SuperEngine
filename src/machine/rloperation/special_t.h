@@ -20,8 +20,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MACHINE_RLOPERATION_SPECIAL_T_H_
-#define SRC_MACHINE_RLOPERATION_SPECIAL_T_H_
+#pragma once
 
 #include <sstream>
 #include <string>
@@ -162,5 +161,3 @@ struct Special_T {
 
   enum { is_complex = false };
 };
-
-#endif  // SRC_MACHINE_RLOPERATION_SPECIAL_T_H_

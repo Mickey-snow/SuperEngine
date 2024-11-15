@@ -23,8 +23,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MEMORY_MEMORY_HPP_
-#define SRC_MEMORY_MEMORY_HPP_
+#pragma once
 
 #include "libreallive/intmemref.h"
 #include "memory/bank.hpp"
@@ -120,5 +119,3 @@ class Memory {
   MemoryBank<int> intbanks_[int_bank_cnt];
   MemoryBank<std::string> strbanks_[str_bank_cnt];
 };
-
-#endif  // SRC_MEMORY_MEMORY_HPP_

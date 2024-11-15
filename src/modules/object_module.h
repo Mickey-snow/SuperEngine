@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MODULES_OBJECT_MODULE_H_
-#define SRC_MODULES_OBJECT_MODULE_H_
+#pragma once
 
 #include <string>
 
@@ -98,5 +97,3 @@ void ObjectModule::AddCustomRepno(int base_id, const std::string& name) {
   AddCheck(eve_name, base_eve_name, base_id);
   AddRepnoFinale(eve_name, base_eve_name, base_id);
 }
-
-#endif  // SRC_MODULES_OBJECT_MODULE_H_

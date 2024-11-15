@@ -21,8 +21,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_UTILITIES_MPL_H_
-#define SRC_UTILITIES_MPL_H_
+#pragma once
 
 #include <cstddef>
 
@@ -76,5 +75,3 @@ template <typename... Ts, typename... Us>
 struct Append<TypeList<Ts...>, TypeList<Us...>> {
     using type = TypeList<Ts..., Us...>;
 };
-
-#endif

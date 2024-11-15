@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MODULES_MODULE_JMP_H_
-#define SRC_MODULES_MODULE_JMP_H_
+#pragma once
 
 #include "machine/rlmodule.h"
 
@@ -42,5 +41,3 @@ class BraModule : public RLModule {
  public:
   BraModule();
 };
-
-#endif  // SRC_MODULES_MODULE_JMP_H_

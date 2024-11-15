@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_SYSTEM_H_
-#define SRC_SYSTEMS_BASE_SYSTEM_H_
+#pragma once
 
 #include "base/asset_scanner.h"
 
@@ -334,5 +333,3 @@ class System {
 // Returns a version string suitable for printing. Used on the command line
 // interface and on the info screen.
 std::string GetRlvmVersionString();
-
-#endif  // SRC_SYSTEMS_BASE_SYSTEM_H_

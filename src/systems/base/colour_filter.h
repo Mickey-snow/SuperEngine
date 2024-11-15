@@ -24,8 +24,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_COLOUR_FILTER_H_
-#define SRC_SYSTEMS_BASE_COLOUR_FILTER_H_
+#pragma once
 
 class GraphicsObject;
 class Rect;
@@ -41,5 +40,3 @@ class ColourFilter {
                     const Rect& screen_rect,
                     const RGBAColour& colour) = 0;
 };
-
-#endif  // SRC_SYSTEMS_BASE_COLOUR_FILTER_H_

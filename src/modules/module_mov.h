@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MODULES_MODULE_MOV_H_
-#define SRC_MODULES_MODULE_MOV_H_
+#pragma once
 
 #include "machine/rlmodule.h"
 
@@ -35,5 +34,3 @@ class MovModule : public RLModule {
  public:
   MovModule();
 };
-
-#endif  // SRC_MODULES_MODULE_MOV_H_

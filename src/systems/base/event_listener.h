@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_EVENT_LISTENER_H_
-#define SRC_SYSTEMS_BASE_EVENT_LISTENER_H_
+#pragma once
 
 class RLMachine;
 class Point;
@@ -314,5 +313,3 @@ class EventListener {
   // Dispatched to other EventListeners).
   virtual bool KeyStateChanged(KeyCode key_code, bool pressed);
 };
-
-#endif  // SRC_SYSTEMS_BASE_EVENT_LISTENER_H_

@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_EFFECTS_EFFECT_H_
-#define SRC_EFFECTS_EFFECT_H_
+#pragma once
 
 #include <functional>
 #include <memory>
@@ -142,5 +141,3 @@ class BlitAfterEffectFinishes : public PerformAfterLongOperationDecorator {
 
   Rect src_rect_, dest_rect_;
 };
-
-#endif  // SRC_EFFECTS_EFFECT_H_

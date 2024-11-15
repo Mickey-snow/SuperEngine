@@ -22,8 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_UTILITIES_BITSTREAM_H_
-#define SRC_UTILITIES_BITSTREAM_H_
+#pragma once
 
 #include <cstddef>
 #include <cstdint>
@@ -173,5 +172,3 @@ class BitStream {
   uint64_t number_; /**< Current working number holding up to 64 bits. */
   size_t pos_;      /**< Current position in the bit stream. */
 };
-
-#endif

@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_TEXT_WINDOW_H_
-#define SRC_SYSTEMS_BASE_TEXT_WINDOW_H_
+#pragma once
 
 #include <functional>
 #include <memory>
@@ -424,5 +423,3 @@ class TextWindow {
   System& system_;
   TextSystem& text_system_;
 };
-
-#endif  // SRC_SYSTEMS_BASE_TEXT_WINDOW_H_

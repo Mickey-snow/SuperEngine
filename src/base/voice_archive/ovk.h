@@ -24,8 +24,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_BASE_VOICE_ARCHIVE_OVK_H_
-#define SRC_BASE_VOICE_ARCHIVE_OVK_H_
+#pragma once
 
 #include <filesystem>
 #include <vector>
@@ -63,5 +62,3 @@ class OVKVoiceArchive : public IVoiceArchive {
   // A list of samples in this archive
   std::vector<OVK_Header> entries_;
 };  // class OVKVoiceArchive
-
-#endif

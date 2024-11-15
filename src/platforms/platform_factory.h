@@ -22,8 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_PLATFORMS_PLATFORM_FACTORY_H_
-#define SRC_PLATFORMS_PLATFORM_FACTORY_H_
+#pragma once
 
 #include "platforms/implementor.h"
 
@@ -120,5 +119,3 @@ class PlatformFactory {
 
   friend class Registrar;
 };
-
-#endif

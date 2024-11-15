@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_SDL_SDL_RENDER_TO_TEXTURE_SURFACE_H_
-#define SRC_SYSTEMS_SDL_SDL_RENDER_TO_TEXTURE_SURFACE_H_
+#pragma once
 
 #include <memory>
 
@@ -98,5 +97,3 @@ class SDLRenderToTextureSurface : public Surface, public NotificationObserver {
 
   NotificationRegistrar registrar_;
 };
-
-#endif  // SRC_SYSTEMS_SDL_SDL_RENDER_TO_TEXTURE_SURFACE_H_

@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_FRAME_COUNTER_H_
-#define SRC_SYSTEMS_BASE_FRAME_COUNTER_H_
+#pragma once
 
 class EventSystem;
 
@@ -172,5 +171,3 @@ class DeceleratingFrameCounter : public FrameCounter {
   unsigned int start_time_;
   float time_at_last_check_;
 };
-
-#endif  // SRC_SYSTEMS_BASE_FRAME_COUNTER_H_

@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MACHINE_MAPPED_RLMODULE_H_
-#define SRC_MACHINE_MAPPED_RLMODULE_H_
+#pragma once
 
 #include <functional>
 #include <string>
@@ -58,5 +57,3 @@ class MappedRLModule : public RLModule {
   // ownership of the incoming RLOperation.
   MappingFunction map_function_;
 };
-
-#endif  // SRC_MACHINE_MAPPED_RLMODULE_H_

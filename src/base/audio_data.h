@@ -22,8 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_BASE_AUDIO_DATA_H_
-#define SRC_BASE_AUDIO_DATA_H_
+#pragma once
 
 #include "base/avspec.h"
 
@@ -204,5 +203,3 @@ struct AudioData {
     return AudioData{.spec = first_spec, .data = std::move(concat_data)};
   }
 };
-
-#endif

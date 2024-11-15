@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_MOUSE_CURSOR_H_
-#define SRC_SYSTEMS_BASE_MOUSE_CURSOR_H_
+#pragma once
 
 #include <memory>
 
@@ -77,5 +76,3 @@ class MouseCursor {
   // The hotspot location.
   Size hotspot_offset_;
 };  // end of class MouseCursor
-
-#endif  // SRC_SYSTEMS_BASE_MOUSE_CURSOR_H_

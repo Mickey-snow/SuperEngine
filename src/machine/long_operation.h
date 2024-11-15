@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MACHINE_LONG_OPERATION_H_
-#define SRC_MACHINE_LONG_OPERATION_H_
+#pragma once
 
 #include <memory>
 
@@ -81,5 +80,3 @@ class PerformAfterLongOperationDecorator : public LongOperation {
 
   std::unique_ptr<LongOperation> operation_;
 };
-
-#endif  // SRC_MACHINE_LONG_OPERATION_H_

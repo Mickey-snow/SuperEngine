@@ -24,8 +24,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MODULES_OBJECT_MUTATOR_OPERATIONS_H_
-#define SRC_MODULES_OBJECT_MUTATOR_OPERATIONS_H_
+#pragma once
 
 #include "machine/rloperation.h"
 #include "machine/rloperation/rlop_store.h"
@@ -217,5 +216,3 @@ class Op_MutatorWaitCRepNo : public RLOpcode<IntConstant_T, IntConstant_T> {
  private:
   const std::string name_;
 };
-
-#endif  // SRC_MODULES_OBJECT_MUTATOR_OPERATIONS_H_

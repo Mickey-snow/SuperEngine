@@ -24,8 +24,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MACHINE_DUMP_SCENARIO_H_
-#define SRC_MACHINE_DUMP_SCENARIO_H_
+#pragma once
 
 namespace libreallive {
 class Scenario;
@@ -35,5 +34,3 @@ class IModuleManager;
 
 // A really cheap disassembler now that kprl can't be compiled anymore.
 void DumpScenario(IModuleManager* manager, libreallive::Scenario* scenario);
-
-#endif  // SRC_MACHINE_DUMP_SCENARIO_H_

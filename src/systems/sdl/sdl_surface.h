@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_SDL_SDL_SURFACE_H_
-#define SRC_SYSTEMS_SDL_SDL_SURFACE_H_
+#pragma once
 
 #include <vector>
 
@@ -229,5 +228,3 @@ class SDLSurface : public Surface, public NotificationObserver {
 
   NotificationRegistrar registrar_;
 };
-
-#endif  // SRC_SYSTEMS_SDL_SDL_SURFACE_H_

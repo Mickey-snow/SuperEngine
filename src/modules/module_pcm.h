@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MODULES_MODULE_PCM_H_
-#define SRC_MODULES_MODULE_PCM_H_
+#pragma once
 
 #include "machine/rlmodule.h"
 
@@ -35,5 +34,3 @@ class PcmModule : public RLModule {
  public:
   PcmModule();
 };
-
-#endif  // SRC_MODULES_MODULE_PCM_H_

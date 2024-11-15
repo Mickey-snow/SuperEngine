@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MODULES_MODULE_MEM_H_
-#define SRC_MODULES_MODULE_MEM_H_
+#pragma once
 
 #include "machine/rlmodule.h"
 
@@ -35,5 +34,3 @@ class MemModule : public RLModule {
  public:
   MemModule();
 };
-
-#endif  // SRC_MODULES_MODULE_MEM_H_

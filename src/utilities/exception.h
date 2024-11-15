@@ -24,8 +24,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_UTILITIES_EXCEPTION_H_
-#define SRC_UTILITIES_EXCEPTION_H_
+#pragma once
 
 #include <exception>
 #include <stdexcept>
@@ -113,5 +112,3 @@ class UnimplementedOpcode : public Exception {
 };
 
 }  // namespace rlvm
-
-#endif  // SRC_UTILITIES_EXCEPTION_H_

@@ -24,12 +24,9 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MACHINE_GAME_HACKS_H__
-#define SRC_MACHINE_GAME_HACKS_H__
+#pragma once
 
 class RLMachine;
 
 // Adds game specific hacks that execute at certain seen/line pairs.
 void AddGameHacks(RLMachine& machine);
-
-#endif  // SRC_MACHINE_GAME_HACKS_H__

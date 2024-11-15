@@ -24,8 +24,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MODULES_MODULE_BGR_H_
-#define SRC_MODULES_MODULE_BGR_H_
+#pragma once
 
 #include "machine/mapped_rlmodule.h"
 
@@ -34,5 +33,3 @@ class BgrModule : public MappedRLModule {
  public:
   BgrModule();
 };
-
-#endif  // SRC_MODULES_MODULE_BGR_H_

@@ -24,8 +24,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_BASE_VOICE_ARCHIVE_NWK_H_
-#define SRC_BASE_VOICE_ARCHIVE_NWK_H_
+#pragma once
 
 #include <filesystem>
 #include <memory>
@@ -63,5 +62,3 @@ class NWKVoiceArchive : public IVoiceArchive {
 
   std::vector<NWK_Header> entries_;
 };
-
-#endif

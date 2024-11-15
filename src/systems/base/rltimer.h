@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_RLTIMER_H_
-#define SRC_SYSTEMS_BASE_RLTIMER_H_
+#pragma once
 
 class EventSystem;
 
@@ -63,5 +62,3 @@ class RLTimer {
  private:
   unsigned int time_at_last_set_;
 };
-
-#endif  // SRC_SYSTEMS_BASE_RLTIMER_H_

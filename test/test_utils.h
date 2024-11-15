@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef TEST_TESTUTILS_HPP_
-#define TEST_TESTUTILS_HPP_
+#pragma once
 
 #include <filesystem>
 #include <string>
@@ -43,5 +42,3 @@ std::string LocateTestCase(const std::string& baseName);
 // Locates a directory under the test/ directory.
 std::filesystem::path PathToTestDirectory(const std::string& baseName);
 std::string LocateTestDirectory(const std::string& baseName);
-
-#endif  // TEST_TESTUTILS_HPP_

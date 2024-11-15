@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MODULES_MODULE_REFRESH_H_
-#define SRC_MODULES_MODULE_REFRESH_H_
+#pragma once
 
 #include "machine/rlmodule.h"
 
@@ -35,5 +34,3 @@ class RefreshModule : public RLModule {
  public:
   RefreshModule();
 };
-
-#endif  // SRC_MODULES_MODULE_REFRESH_H_

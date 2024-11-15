@@ -24,8 +24,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_OBJECT_MUTATOR_H_
-#define SRC_OBJECT_MUTATOR_H_
+#pragma once
 
 #include "utilities/interpolation.h"
 
@@ -633,5 +632,3 @@ class DisplayMutator : public ObjectMutator {
   int move_start_y_;
   int move_end_y_;
 };
-
-#endif

@@ -21,8 +21,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_ENCODINGS_UTF16_HPP
-#define SRC_ENCODINGS_UTF16_HPP
+#pragma once
 
 #include <cstdint>
 #include <string>
@@ -44,5 +43,3 @@ class utf16le {
   static std::string Decode(const std::u16string&);
   static std::string Decode(std::u16string_view);
 };
-
-#endif

@@ -25,11 +25,8 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MODULES_MODULE_SYS_WAIT_H_
-#define SRC_MODULES_MODULE_SYS_WAIT_H_
+#pragma once
 
 class RLModule;
 
 void AddWaitAndMouseOpcodes(RLModule& m);
-
-#endif  // SRC_MODULES_MODULE_SYS_WAIT_H_

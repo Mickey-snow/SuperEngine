@@ -2,8 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SRC_BASE_OBSERVER_LIST_H_
-#define SRC_BASE_OBSERVER_LIST_H_
+#pragma once
 
 #include <algorithm>
 #include <limits>
@@ -195,5 +194,3 @@ class ObserverList : public ObserverListBase<ObserverType> {
     while ((obs = it.GetNext()) != NULL)                      \
       obs->func;                                              \
   } while (0)
-
-#endif  // SRC_BASE_OBSERVER_LIST_H_

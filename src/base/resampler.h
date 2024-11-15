@@ -22,8 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_BASE_RESAMPLER_H_
-#define SRC_BASE_RESAMPLER_H_
+#pragma once
 
 #include "base/audio_data.h"
 
@@ -41,5 +40,3 @@ private:
 };
 
 using Resampler = srcResampler;
-
-#endif

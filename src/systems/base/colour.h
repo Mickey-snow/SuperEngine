@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_COLOUR_H_
-#define SRC_SYSTEMS_BASE_COLOUR_H_
+#pragma once
 
 #include <boost/serialization/access.hpp>
 #include <vector>
@@ -125,5 +124,3 @@ class RGBAColour {
 
 std::ostream& operator<<(std::ostream& os, const RGBColour& rgb);
 std::ostream& operator<<(std::ostream& os, const RGBAColour& rgba);
-
-#endif  // SRC_SYSTEMS_BASE_COLOUR_H_

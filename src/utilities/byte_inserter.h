@@ -22,8 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_UTILITIES_BYTE_INSERTER_H_
-#define SRC_UTILITIES_BYTE_INSERTER_H_
+#pragma once
 
 #include <algorithm>
 #include <cstdint>
@@ -83,5 +82,3 @@ class ByteInserter {
  private:
   std::back_insert_iterator<ByteBuffer_t> back_;
 };
-
-#endif

@@ -22,8 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_UTILITIES_BYTESTREAM_H_
-#define SRC_UTILITIES_BYTESTREAM_H_
+#pragma once
 
 #include "utilities/byte_inserter.h"
 
@@ -57,5 +56,3 @@ class oBytestream {
   ByteBuffer_t buffer_;
   ByteInserter back_;
 };
-
-#endif

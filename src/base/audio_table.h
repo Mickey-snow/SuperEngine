@@ -23,8 +23,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_BASE_AUDIO_TABLE_H_
-#define SRC_BASE_AUDIO_TABLE_H_
+#pragma once
 
 #include <map>
 #include <string>
@@ -94,5 +93,3 @@ class AudioTable {
   std::map<std::string, DSTrack> ds_tracks_;
   std::map<std::string, CDTrack> cd_tracks_;
 };
-
-#endif

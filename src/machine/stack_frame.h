@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MACHINE_STACK_FRAME_H_
-#define SRC_MACHINE_STACK_FRAME_H_
+#pragma once
 
 #include <boost/serialization/split_member.hpp>
 #include <boost/serialization/version.hpp>
@@ -104,5 +103,3 @@ struct StackFrame {
 BOOST_CLASS_VERSION(StackFrame, 2)
 
 std::ostream& operator<<(std::ostream& os, const StackFrame& frame);
-
-#endif  // SRC_MACHINE_STACK_FRAME_H_

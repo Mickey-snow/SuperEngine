@@ -22,8 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_BASE_SOUND_SETTINGS_H_
-#define SRC_BASE_SOUND_SETTINGS_H_
+#pragma once
 
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/version.hpp>
@@ -112,5 +111,3 @@ struct rlSoundSettings {
 BOOST_CLASS_VERSION(rlSoundSettings, 1);
 
 using SoundSystemGlobals = rlSoundSettings;
-
-#endif

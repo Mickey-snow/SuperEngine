@@ -22,8 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_BASE_GRPRECT_H_
-#define SRC_BASE_GRPRECT_H_
+#pragma once
 
 #include "base/rect.h"
 
@@ -34,5 +33,3 @@ struct GrpRect {
   // unknown.
   int originX, originY;
 };
-
-#endif

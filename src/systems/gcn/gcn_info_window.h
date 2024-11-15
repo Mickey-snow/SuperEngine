@@ -24,8 +24,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_PLATFORMS_GCN_GCN_INFO_WINDOW_H_
-#define SRC_PLATFORMS_GCN_GCN_INFO_WINDOW_H_
+#pragma once
 
 #include "systems/gcn/gcn_window.h"
 
@@ -49,5 +48,3 @@ class GCNInfoWindow : public GCNWindow, public gcn::ActionListener {
  private:
   gcn::Button* ok_button_;
 };  // end of class GCNInfoWindow
-
-#endif  // SRC_PLATFORMS_GCN_GCN_INFO_WINDOW_H_

@@ -22,8 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef TEST_TEST_SYSTEM_MOCK_EVENT_SYSTEM_H_
-#define TEST_TEST_SYSTEM_MOCK_EVENT_SYSTEM_H_
+#pragma once
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -54,5 +53,3 @@ class MockEventSystem : public EventSystem {
   MOCK_METHOD(void, InjectMouseDown, (RLMachine & machine), (override));
   MOCK_METHOD(void, InjectMouseUp, (RLMachine & machine), (override));
 };
-
-#endif

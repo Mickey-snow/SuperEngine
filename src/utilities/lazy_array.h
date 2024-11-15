@@ -21,8 +21,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_UTILITIES_LAZY_ARRAY_H_
-#define SRC_UTILITIES_LAZY_ARRAY_H_
+#pragma once
 
 #include <boost/iterator/iterator_facade.hpp>
 #include <boost/serialization/split_member.hpp>
@@ -280,5 +279,3 @@ template <typename T>
 using FullLazyArrayIterator = typename LazyArray<T>::full_iterator;
 template <typename T>
 using AllocatedLazyArrayIterator = typename LazyArray<T>::alloc_iterator;
-
-#endif  // SRC_UTILITIES_LAZY_ARRAY_H_

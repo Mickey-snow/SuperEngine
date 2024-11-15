@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_TEXT_KEY_CURSOR_H_
-#define SRC_SYSTEMS_BASE_TEXT_KEY_CURSOR_H_
+#pragma once
 
 #include <memory>
 #include <string>
@@ -94,5 +93,3 @@ class TextKeyCursor {
 
   System& system_;
 };
-
-#endif  // SRC_SYSTEMS_BASE_TEXT_KEY_CURSOR_H_

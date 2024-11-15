@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MACHINE_RLMACHINE_H_
-#define SRC_MACHINE_RLMACHINE_H_
+#pragma once
 
 #include <boost/serialization/split_member.hpp>
 
@@ -421,5 +420,3 @@ class RLMachine {
 
   BOOST_SERIALIZATION_SPLIT_MEMBER()
 };
-
-#endif  // SRC_MACHINE_RLMACHINE_H_

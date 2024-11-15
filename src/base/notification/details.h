@@ -5,8 +5,7 @@
 // This file defines the type used to provide details for NotificationService
 // notifications.
 
-#ifndef SRC_BASE_NOTIFICATION_DETAILS_H_
-#define SRC_BASE_NOTIFICATION_DETAILS_H_
+#pragma once
 
 #include <cstdint>
 
@@ -52,5 +51,3 @@ class Details : public NotificationDetails {
   // The casts here allow this to compile with both T = Foo and T = const Foo.
   T* ptr() const { return static_cast<T*>(const_cast<void*>(ptr_)); }
 };
-
-#endif  // SRC_BASE_NOTIFICATION_DETAILS_H_

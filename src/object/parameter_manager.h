@@ -22,8 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_OBJECT_PARAMETER_MANAGER_H_
-#define SRC_OBJECT_PARAMETER_MANAGER_H_
+#pragma once
 
 #include "object/bst.h"
 #include "object/properties.h"
@@ -531,5 +530,3 @@ auto CreateSetter() {
     static_assert(false, "Unsupported type.");
   }
 }
-
-#endif

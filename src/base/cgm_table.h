@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_BASE_CGM_TABLE_H_
-#define SRC_SYSTEMS_BASE_CGM_TABLE_H_
+#pragma once
 
 #include <boost/serialization/access.hpp>
 #include <map>
@@ -93,5 +92,3 @@ class CGMTable {
 // Initializes the CG table with the CGM data file specified in the
 // #CGTABLE_FILENAME gameexe key.
 CGMTable CreateCGMTable(Gameexe& gexe);
-
-#endif  // SRC_SYSTEMS_BASE_CGM_TABLE_H_

@@ -24,8 +24,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_OBJECT_DRAWER_COLOUR_FILTER_H_
-#define SRC_OBJECT_DRAWER_COLOUR_FILTER_H_
+#pragma once
 
 #include <boost/serialization/access.hpp>
 
@@ -89,5 +88,3 @@ inline void load_construct_data(Archive& ar,
 }
 }  // namespace serialization
 }  // namespace boost
-
-#endif

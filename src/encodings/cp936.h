@@ -34,8 +34,7 @@
   the work might be covered by the LGPL.
 */
 
-#ifndef SRC_ENCODINGS_CP936_H_
-#define SRC_ENCODINGS_CP936_H_
+#pragma once
 
 #include <string>
 
@@ -49,5 +48,3 @@ class Cp936 : public Codepage {
   std::wstring ConvertString(const std::string& s) const override;
   Cp936();
 };
-
-#endif  // SRC_ENCODINGS_CP936_H_

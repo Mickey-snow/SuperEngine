@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LONG_OPERATIONS_TEXTOUT_LONG_OPERATION_H_
-#define SRC_LONG_OPERATIONS_TEXTOUT_LONG_OPERATION_H_
+#pragma once
 
 #include <string>
 
@@ -72,5 +71,3 @@ class TextoutLongOperation : public LongOperation {
   // A countdown in milliseconds until we display the next character.
   static int next_character_countdown_;
 };
-
-#endif  // SRC_LONG_OPERATIONS_TEXTOUT_LONG_OPERATION_H_

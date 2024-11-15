@@ -31,8 +31,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LIBREALLIVE_ARCHIVE_H_
-#define SRC_LIBREALLIVE_ARCHIVE_H_
+#pragma once
 
 #include <filesystem>
 #include <map>
@@ -96,5 +95,3 @@ class Archive {
 };
 
 }  // namespace libreallive
-
-#endif  // SRC_LIBREALLIVE_ARCHIVE_H_

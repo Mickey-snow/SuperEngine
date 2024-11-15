@@ -28,8 +28,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LIBREALLIVE_ELEMENTS_META_H_
-#define SRC_LIBREALLIVE_ELEMENTS_META_H_
+#pragma once
 
 #include "libreallive/elements/bytecode.h"
 
@@ -66,5 +65,3 @@ class MetaElement : public BytecodeElement {
 };
 
 }  // namespace libreallive
-
-#endif

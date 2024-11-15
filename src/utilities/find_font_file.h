@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_UTILITIES_FIND_FONT_FILE_H_
-#define SRC_UTILITIES_FIND_FONT_FILE_H_
+#pragma once
 
 // This file is seperated out from Utilities because of compile errors
 // under OSX, where all of my Point/Size/Rect classes clash with a
@@ -41,5 +40,3 @@ class System;
 // Hack. Tries to find a font. Once I go in and allow the selection of
 // arbitrary fonts, this method and the other FindFontFile need to go away.
 std::filesystem::path FindFontFile(System& system);
-
-#endif  // SRC_UTILITIES_FIND_FONT_FILE_H_

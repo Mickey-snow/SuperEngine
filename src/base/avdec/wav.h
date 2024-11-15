@@ -22,8 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_BASE_AVDEC_WAV_H_
-#define SRC_BASE_AVDEC_WAV_H_
+#pragma once
 
 #include "base/avdec/iadec.h"
 #include "base/avspec.h"
@@ -71,5 +70,3 @@ class WavDecoder : public IAudioDecoder {
   void ValidateWav();
   void ParseChunks();
 };
-
-#endif

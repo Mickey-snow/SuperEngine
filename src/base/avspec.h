@@ -22,8 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_BASE_AVSPEC_H_
-#define SRC_BASE_AVSPEC_H_
+#pragma once
 
 #include <cstdint>
 #include <string>
@@ -129,5 +128,3 @@ struct AVSpec {
   bool operator==(const AVSpec& rhs) const;
   bool operator!=(const AVSpec& rhs) const;
 };
-
-#endif

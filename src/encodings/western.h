@@ -30,8 +30,7 @@
   GNU Lesser General Public License.
 */
 
-#ifndef SRC_ENCODINGS_WESTERN_H_
-#define SRC_ENCODINGS_WESTERN_H_
+#pragma once
 
 #include <string>
 
@@ -50,5 +49,3 @@ public:
 
 unsigned short GetItalic(unsigned short ch);
 unsigned short Italicise(unsigned short ch);
-
-#endif  // SRC_ENCODINGS_WESTERN_H_

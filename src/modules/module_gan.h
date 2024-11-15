@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MODULES_MODULE_GAN_H_
-#define SRC_MODULES_MODULE_GAN_H_
+#pragma once
 
 #include "machine/rlmodule.h"
 #include "machine/mapped_rlmodule.h"
@@ -50,5 +49,3 @@ class ChildGanBgModule : public MappedRLModule {
  public:
   ChildGanBgModule();
 };
-
-#endif  // SRC_MODULES_MODULE_GAN_H_

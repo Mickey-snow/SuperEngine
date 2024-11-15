@@ -2,8 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SRC_BASE_NOTIFICATION_TYPE_H_
-#define SRC_BASE_NOTIFICATION_TYPE_H_
+#pragma once
 
 // A list of all possible notifications.
 //
@@ -65,5 +64,3 @@ inline bool operator==(NotificationType::Type a, NotificationType b) {
 inline bool operator!=(NotificationType::Type a, NotificationType b) {
   return a != b.value;
 }
-
-#endif  // SRC_BASE_NOTIFICATION_TYPE_H_

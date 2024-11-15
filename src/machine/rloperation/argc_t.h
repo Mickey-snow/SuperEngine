@@ -20,8 +20,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MACHINE_RLOPERATION_ARGC_T_H_
-#define SRC_MACHINE_RLOPERATION_ARGC_T_H_
+#pragma once
 
 #include <string>
 #include <vector>
@@ -78,5 +77,3 @@ void Argc_T<CON>::ParseParameters(unsigned int& position,
 
 extern template struct Argc_T<IntConstant_T>;
 extern template struct Argc_T<IntReference_T>;
-
-#endif  // SRC_MACHINE_RLOPERATION_ARGC_T_H_

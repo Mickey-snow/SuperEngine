@@ -25,8 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_SYSTEMS_SDL_SDL_SOUND_SYSTEM_H_
-#define SRC_SYSTEMS_SDL_SDL_SOUND_SYSTEM_H_
+#pragma once
 
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/access.hpp>
@@ -204,5 +203,3 @@ class SDLSoundSystem : public SoundSystem {
 
   BOOST_SERIALIZATION_SPLIT_MEMBER();
 };  // end of class SDLSoundSystem
-
-#endif  // SRC_SYSTEMS_SDL_SDL_SOUND_SYSTEM_H_
