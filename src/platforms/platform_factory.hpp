@@ -28,7 +28,6 @@
 
 #include <functional>
 #include <map>
-#include <stdexcept>
 #include <string>
 
 /**
@@ -44,9 +43,6 @@
  * Example usage:
  * @code
  * PlatformImpl_t platform = PlatformFactory::Create("my_platform_name");
- * if (!platform) {
- *   platform = PlatformFactory::CreateDefault();
- * }
  * @endcode
  */
 class PlatformFactory {
@@ -54,8 +50,6 @@ class PlatformFactory {
   PlatformFactory() = delete;
 
   static PlatformImpl_t Create(const std::string& platform_name);
-
-  static PlatformImpl_t CreateDefault();
 
   static void Reset();
 

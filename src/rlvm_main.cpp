@@ -175,21 +175,14 @@ int main(int argc, char* argv[]) {
   // This is where we need platform implementor to pop up platform-specific
   // dialogue if we need to ask user for providing the path.
   PlatformImpl_t platform_impl = nullptr;
-  if (vm.count("platform")) {
-    try {
-      platform_impl = PlatformFactory::Create(vm["platform"].as<std::string>());
-    } catch (std::exception& e) {
-      std::cerr << e.what() << std::endl;
-      platform_impl = nullptr;
-    }
-  }
-  if (!platform_impl) {
-    std::cerr << "Fallback to default gui implementation" << std::endl;
-    platform_impl = PlatformFactory::CreateDefault();
-  }
+  if (vm.count("platform"))
+    platform_impl = PlatformFactory::Create(vm["platform"].as<std::string>());
+  else
+    platform_impl = PlatformFactory::Create("default");
+
   if (!platform_impl) {
     // If everything fails
-    std::cerr << "WARNING: No gui implementation found." << std::endl;
+    std::cerr << "[WARNING] No gui implementation found." << std::endl;
   }
 
   // -----------------------------------------------------------------------

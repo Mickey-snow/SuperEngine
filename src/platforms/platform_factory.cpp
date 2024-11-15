@@ -24,22 +24,36 @@
 
 #include "platforms/platform_factory.hpp"
 
+#include <filesystem>
+#include <iostream>
 #include <stdexcept>
+
+namespace fs = std::filesystem;
 
 PlatformImpl_t PlatformFactory::Create(const std::string& platform_name) {
   const Context& ctx = GetContext();
   auto it = ctx.map_.find(platform_name);
-  if (it == ctx.map_.cend())
-    throw std::runtime_error("Constructor for platform " + platform_name +
-                             " not found.");
-  return std::invoke(it->second);
-}
+  if (it != ctx.map_.cend())
+    return std::invoke(it->second);
 
-PlatformImpl_t PlatformFactory::CreateDefault() {
-  const Context& ctx = GetContext();
-  if (ctx.map_.empty())
-    return nullptr;
-  return std::invoke(ctx.map_.begin()->second);
+  std::cerr << "[WARNING] Constructor for platform " << platform_name
+            << " not found.";
+
+  struct FakePlatform : public IPlatformImplementor {
+    fs::path SelectGameDirectory() override { return fs::path("gamedir"); }
+    void ReportFatalError(const std::string& message_text,
+                          const std::string& informative_text) override {
+      std::cerr << "ReportFatalError:" << message_text << '\n'
+                << informative_text << std::endl;
+    }
+    bool AskUserPrompt(const std::string& message_text,
+                       const std::string& informative_text,
+                       const std::string& true_button,
+                       const std::string& false_button) override {
+      return false;
+    }
+  };
+  return std::make_shared<FakePlatform>();
 }
 
 void PlatformFactory::Reset() { GetContext().map_.clear(); }

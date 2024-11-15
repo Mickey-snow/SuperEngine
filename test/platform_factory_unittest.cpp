@@ -113,12 +113,6 @@ TEST_F(PlatformFactoryTest, CreateMyPlatform) {
             "AskUserPrompt(text,msg,yes,no)\n");
 }
 
-TEST_F(PlatformFactoryTest, CreateNonexist) {
-  const std::string name = "doesnt matter";
-
-  EXPECT_THROW(PlatformFactory::Create(name), std::runtime_error);
-}
-
 TEST_F(PlatformFactoryTest, DoubleRegister) {
   const std::string existing_name = "Good Platform";
 
@@ -128,12 +122,12 @@ TEST_F(PlatformFactoryTest, DoubleRegister) {
 }
 
 TEST_F(PlatformFactoryTest, CreateDefaultPlatform) {
-  auto platform = PlatformFactory::CreateDefault();
+  auto platform = PlatformFactory::Create("default");
 
   auto good_platform = std::dynamic_pointer_cast<GoodPlatform>(platform);
   auto bad_platform = std::dynamic_pointer_cast<BadPlatform>(platform);
-  EXPECT_TRUE(good_platform != nullptr || bad_platform != nullptr);
+  EXPECT_TRUE(good_platform == nullptr && bad_platform == nullptr);
 
   PlatformFactory::Reset();
-  EXPECT_EQ(PlatformFactory::CreateDefault(), nullptr);
+  EXPECT_NE(PlatformFactory::Create("default"), nullptr);
 }
