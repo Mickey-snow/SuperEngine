@@ -51,6 +51,10 @@ namespace fs = std::filesystem;
 class WavCodecTest : public ::testing::TestWithParam<std::string> {
  public:
   void SetUp() override {
+    if (GetParam() == "NONE") {
+      GTEST_SKIP() << "[WARNING] Test skipped due to uninitialized parameter.";
+    }
+
     const std::string filepath = GetParam() + ".param";
     std::ifstream param_fs(filepath);
     if (!param_fs)
@@ -223,6 +227,9 @@ std::vector<std::string> GetTestWavFiles() {
     if (entry.is_regular_file() && std::regex_match(entryPath, pattern))
       testFiles.push_back(entryPath);
   }
+
+  if (testFiles.empty())
+    return {"NONE"};
   return testFiles;
 }
 

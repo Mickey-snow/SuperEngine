@@ -40,7 +40,12 @@ class OggDecoderTest : public ::testing::Test {
  protected:
   void SetUp() {
     sample_count = std::round(duration * sample_rate);
-    file_path = PathToTestCase("Gameroot/OGG/test.ogg");
+
+    try {
+      file_path = PathToTestCase("Gameroot/OGG/test.ogg");
+    } catch (std::exception& e) {
+      GTEST_SKIP() << "[WARNING] Test skipped due to an error: " << e.what();
+    }
   }
 
   AVSpec DetermineSpecification() const {
