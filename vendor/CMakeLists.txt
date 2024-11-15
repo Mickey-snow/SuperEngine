@@ -30,6 +30,8 @@ target_link_libraries(guichan PUBLIC OpenGL::GL sdl_image sdl_ttf)
 # -------------------------------------------------------------------
 # libsamplerate
 # -------------------------------------------------------------------
+set(LIBSAMPLERATE_EXAMPLES OFF CACHE BOOL "Disable src examples" FORCE)
+set(BUILD_TESTING OFF CACHE BOOL "Disable src tests" FORCE)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/libsamplerate)
 target_include_directories(samplerate PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/libsamplerate/include
@@ -38,6 +40,7 @@ target_include_directories(samplerate PUBLIC
 # -------------------------------------------------------------------
 # vorbis
 # -------------------------------------------------------------------
+set(BUILD_TESTING OFF CACHE BOOL "Disable vorbis tests" FORCE)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vorbis)
 target_link_libraries(vorbis PUBLIC ${OGG_LIBRARIES})
 

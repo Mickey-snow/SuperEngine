@@ -7,6 +7,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 option(RLVM_BUILD_TESTS "Build unit test program" OFF)
+option(RLVM_FULLSTATIC "Build executables that are linked statically" OFF)
+
+if(RLVM_FULLSTATIC)
+  set(BUILD_SHARED_LIBS OFF)
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static -static-libgcc -static-libstdc++")
+endif()
 
 # -------------------------------------------------------------------
 # Find OpenGL Library
@@ -22,7 +28,6 @@ endif()
 # -------------------------------------------------------------------
 # Find SDL1 Library
 # -------------------------------------------------------------------
-# CMake has a built-in module to find SDL (usually SDL1.2)
 find_package(SDL REQUIRED)
 
 if (SDL_FOUND)
@@ -36,8 +41,6 @@ endif()
 # Find Boost Libraries
 # -------------------------------------------------------------------
 set(BOOST_COMPONENTS program_options serialization iostreams filesystem)
-
-# Find the Boost library
 find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 
 if (Boost_FOUND)
@@ -87,7 +90,7 @@ endif()
 # -------------------------------------------------------------------
 # Find GTK 2.0 Library (optional)
 # -------------------------------------------------------------------
-find_package(GTK2)
+find_package(GTK2 QUIET)
 
 if (GTK2_FOUND)
   message(STATUS "GTK 2.0 found.")
