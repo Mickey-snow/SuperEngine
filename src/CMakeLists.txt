@@ -66,10 +66,11 @@ endif()
 add_library(rlvm_src OBJECT ${RLVM_SRC_FILES})
 target_include_directories(rlvm_src PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-target_compile_options(rlvm_src PRIVATE
-  -Wno-narrowing
+target_compile_options(rlvm_src PUBLIC
   -funsigned-char
   -Wall
+  -Wno-narrowing
+  -Wno-write-strings
 )
 
 target_link_libraries(rlvm_src PUBLIC ${RLVM_REQUIRED_LIBRARIES})
