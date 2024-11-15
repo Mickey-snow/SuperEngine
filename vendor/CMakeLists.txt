@@ -25,7 +25,7 @@ add_library(guichan STATIC ${GUICHAN_SRC_FILES})
 target_include_directories(guichan PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/guichan/include
 )
-target_link_libraries(guichan PUBLIC OpenGL::GL)
+target_link_libraries(guichan PUBLIC OpenGL::GL sdl_image sdl_ttf)
 
 # -------------------------------------------------------------------
 # libsamplerate
@@ -48,6 +48,9 @@ add_library(sdl_image STATIC SDL_image/src/IMG_xpm.c)
 target_include_directories(sdl_image PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/SDL_image/include
 )
+target_include_directories(sdl_image PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/SDL_image/include/SDL
+)
 target_link_libraries(sdl_image PUBLIC ${SDL_LIBRARIES})
 
 # -------------------------------------------------------------------
@@ -57,6 +60,9 @@ file(GLOB SDLMIXER_SRC_FILES "SDL_mixer/src/*.c")
 add_library(sdl_mixer STATIC ${SDLMIXER_SRC_FILES})
 target_include_directories(sdl_mixer PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/SDL_mixer/include
+)
+target_include_directories(sdl_mixer PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/SDL_mixer/include/SDL
 )
 target_link_libraries(sdl_mixer PUBLIC ${SDL_LIBRARIES})
 
