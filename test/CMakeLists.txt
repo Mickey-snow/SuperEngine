@@ -32,6 +32,7 @@ add_executable(unittest ${TEST_SRC_FILES})
 target_compile_options(unittest PRIVATE
   -Wno-narrowing
   -Wall
+  -funsigned-char
 )
 
 if (GTest_FOUND)
