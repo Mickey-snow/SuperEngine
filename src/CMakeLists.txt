@@ -20,45 +20,24 @@ set(RLVM_REQUIRED_LIBRARIES
 # -------------------------------------------------------------------
 file(GLOB_RECURSE RLVM_SRC_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/base/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/base/*.cc"
-
     "${CMAKE_CURRENT_SOURCE_DIR}/effects/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/effects/*.cc"
-
     "${CMAKE_CURRENT_SOURCE_DIR}/encodings/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/encodings/*.cc"
-
     "${CMAKE_CURRENT_SOURCE_DIR}/libreallive/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/libreallive/*.cc"
-
     "${CMAKE_CURRENT_SOURCE_DIR}/long_operations/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/long_operations/*.cc"
-
     "${CMAKE_CURRENT_SOURCE_DIR}/machine/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/machine/*.cc"
-
     "${CMAKE_CURRENT_SOURCE_DIR}/modules/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/modules/*.cc"
-
     "${CMAKE_CURRENT_SOURCE_DIR}/object/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/object/*.cc"
-
     "${CMAKE_CURRENT_SOURCE_DIR}/utilities/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/utilities/*.cc"
-
     "${CMAKE_CURRENT_SOURCE_DIR}/memory/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/memory/*.cc"
-    
     "${CMAKE_CURRENT_SOURCE_DIR}/systems/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/systems/*.cc"
 )
 list(APPEND RLVM_SRC_FILES
-    "${CMAKE_CURRENT_SOURCE_DIR}/platforms/platform_factory.cc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/platforms/platform_factory.cpp"
 )
 
 if (GTK2_FOUND) # use gtk
    list(APPEND RLVM_SRC_FILES
-       "${CMAKE_CURRENT_SOURCE_DIR}/platforms/gtk/gtk_implementor.cc"
+       "${CMAKE_CURRENT_SOURCE_DIR}/platforms/gtk/gtk_implementor.cpp"
    )
    list(APPEND RLVM_REQUIRED_LIBRARIES ${GTK2_LIBRARIES})
 endif()
@@ -79,8 +58,8 @@ target_link_libraries(rlvm_src PUBLIC ${RLVM_REQUIRED_LIBRARIES})
 # Build RLVM
 # -------------------------------------------------------------------
 set(SRC_FILES
-    "${CMAKE_CURRENT_SOURCE_DIR}/rlvm_instance.cc"
-    "${CMAKE_CURRENT_SOURCE_DIR}/rlvm_main.cc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/rlvm_instance.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/rlvm_main.cpp"
 )
 
 add_executable(rlvm ${SRC_FILES})

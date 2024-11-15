@@ -28,7 +28,7 @@
 #include <stdexcept>
 #include <utility>
 
-#include "libreallive/intmemref.h"
+#include "libreallive/intmemref.hpp"
 
 IntBank ToIntBank(char c) {
   switch (c) {

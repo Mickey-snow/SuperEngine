@@ -25,7 +25,7 @@
 
 #pragma once
 
-#include "libreallive/intmemref.h"
+#include "libreallive/intmemref.hpp"
 #include "memory/bank.hpp"
 #include "memory/location.hpp"
 
