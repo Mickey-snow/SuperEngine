@@ -33,7 +33,7 @@
 #include "base/gameexe.hpp"
 #include "memory/serialization_global.hpp"
 #include "memory/serialization_local.hpp"
-#include "utilities/string_utilities.h"
+#include "utilities/string_utilities.hpp"
 
 bool Memory::HasBeenRead(int scenario, int kidoku) const {
   std::map<int, boost::dynamic_bitset<>>::const_iterator it =

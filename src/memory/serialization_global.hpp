@@ -22,8 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MEMORY_SERIALIZATION_GLOBAL_HPP_
-#define SRC_MEMORY_SERIALIZATION_GLOBAL_HPP_
+#pragma once
 
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/split_member.hpp>
@@ -89,5 +88,3 @@ struct GlobalMemory {
 
   BOOST_SERIALIZATION_SPLIT_MEMBER();
 };
-
-#endif

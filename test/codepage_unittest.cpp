@@ -23,11 +23,11 @@
 
 #include <gtest/gtest.h>
 
-#include "encodings/codepage.h"
-#include "encodings/cp932.h"
-#include "encodings/cp936.h"
-#include "encodings/cp949.h"
-#include "encodings/western.h"
+#include "encodings/codepage.hpp"
+#include "encodings/cp932.hpp"
+#include "encodings/cp936.hpp"
+#include "encodings/cp949.hpp"
+#include "encodings/western.hpp"
 
 #include <string>
 

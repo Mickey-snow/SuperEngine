@@ -19,6 +19,13 @@ Kazunori "jagarl" Ueno
 Rasqual Twilight
 - Provided Win32 build files and several small bugfixes
 
+Special thanks to Jagarl for the first work on reverse engineering the RealLive
+interpreter and for Free software licensed source code for decoding their file
+formats, to Richard 23 for figuring out features added to RealLive for Little
+Busters, to \\{jyuichi} for help with Kud Wafter, and to Haeleth for creating
+rldev, along with answering all my dumb questions about the internal workings of
+the RealLive system.
+
 
 Libraries used (and included in the distribution)
 -------------------------------------------------------------------------
@@ -28,11 +35,11 @@ SDL_ttf - http://www.libsdl.org/projects/SDL_ttf/
 SDL_image - http://www.libsdl.org/projects/SDL_image/
 SDL_mixer - http://www.libsdl.org/projects/SDL_mixer/
 C++ LRU Cache - http://lifelines.blackcat.ca/lifeline/query.php/tag=LRU_CACHE
-luabind - http://www.rasterbar.com/products/luabind.html
 guichan - http://guichan.sourceforge.net/
 googletest - http://code.google.com/p/googletest/
 googlemock - http://code.google.com/p/googlemock/
-zita-resampler - http://kokkinizita.linuxaudio.org/linuxaudio/zita-resampler/resampler.
+libsamplerate - https://libsndfile.github.io/libsamplerate/
+
 
 Libraries depended on (and are not included)
 -------------------------------------------------------------------------

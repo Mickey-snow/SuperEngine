@@ -22,8 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_MEMORY_BANK_HPP_
-#define SRC_MEMORY_BANK_HPP_
+#pragma once
 
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/split_member.hpp>
@@ -218,5 +217,3 @@ class MemoryBank {
     }
   }
 };
-
-#endif  // SRC_MEMORY_BANK_HPP_
