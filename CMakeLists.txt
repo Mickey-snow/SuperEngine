@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+option(RLVM_BUILD_TESTS "Build unit test program" OFF)
 
 # -------------------------------------------------------------------
 # Find OpenGL Library
@@ -101,4 +102,6 @@ endif()
 include_directories(vendor)
 add_subdirectory(vendor)
 add_subdirectory(src)
-add_subdirectory(test)
+if(RLVM_BUILD_TESTS)
+  add_subdirectory(test)
+endif()
