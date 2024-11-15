@@ -170,10 +170,42 @@ TEST_F(LazyArrayTest, CopyAssign) {
   EXPECT_EQ(array[0], 123);
 }
 
-TEST_F(LazyArrayTest, SerializationVer1) {
+TEST_F(LazyArrayTest, Serialization) {
+  const auto SIZE = 100;
+  std::stringstream ss;
+
+  {
+    LazyArray<std::string> arr(SIZE);
+    for (int i = 0; i < 100; ++i) {
+      if (i % 3 != 0)
+        continue;
+      arr[i] = std::to_string(i * i);
+    }
+
+    boost::archive::text_oarchive oa(ss);
+    oa << arr;
+  }
+
+  {
+    LazyArray<std::string> arr;
+    boost::archive::text_iarchive ia(ss);
+    ia >> arr;
+
+    ASSERT_EQ(arr.Size(), SIZE);
+    for (int i = 0; i < SIZE; ++i) {
+      if (i % 3 != 0) {
+        EXPECT_FALSE(arr.Exists(i));
+      } else {
+        EXPECT_EQ(arr[i], std::to_string(i * i));
+      }
+    }
+  }
+}
+
+TEST_F(LazyArrayTest, DeserializationVer1) {
   {
     std::stringstream ss(
-        "22 serialization::archive 20 0 0 -1 10 5 0 1 0\n"
+        "22 serialization::archive 19 0 0 -1 10 5 0 1 0\n"
         "0 0 2\n"
         "1 2 4\n"
         "2 4 6\n"
@@ -187,7 +219,7 @@ TEST_F(LazyArrayTest, SerializationVer1) {
 
   {
     std::stringstream ss(
-        "22 serialization::archive 20 0 0 -1 10 5 0 0 2 2 4 4 6 6 8 8");
+        "22 serialization::archive 19 0 0 -1 10 5 0 0 2 2 4 4 6 6 8 8");
     boost::archive::text_iarchive ia(ss);
     LazyArray<int> arr;
     ia >> arr;
