@@ -44,7 +44,7 @@
 namespace gcn {
 class Graphics;
 class OpenGLImage;
-};
+};  // namespace gcn
 
 // -----------------------------------------------------------------------
 
@@ -106,7 +106,8 @@ class GCNTrueTypeFont : public gcn::Font, public NotificationObserver {
   bool anti_alias_;
 
   LRUCache<std::pair<std::string, std::string>,
-           std::shared_ptr<gcn::OpenGLImage>> image_cache_;
+           std::shared_ptr<gcn::OpenGLImage>>
+      image_cache_;
 
   NotificationRegistrar registrar_;
 };

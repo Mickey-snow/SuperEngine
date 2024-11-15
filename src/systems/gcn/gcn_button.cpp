@@ -57,8 +57,8 @@ GCNButton::~GCNButton() {}
 // -----------------------------------------------------------------------
 
 void GCNButton::draw(gcn::Graphics* graphics) {
-  static_cast<GCNGraphics*>(graphics)
-      ->drawImageRect(0, 0, getWidth(), getHeight(), currentButtonImage());
+  static_cast<GCNGraphics*>(graphics)->drawImageRect(
+      0, 0, getWidth(), getHeight(), currentButtonImage());
 
   graphics->setColor(getForegroundColor());
 

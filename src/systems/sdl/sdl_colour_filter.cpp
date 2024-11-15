@@ -55,15 +55,8 @@ void SDLColourFilter::Fill(const GraphicsObject& go,
 
       texture_width_ = SafeSize(screen_rect.width());
       texture_height_ = SafeSize(screen_rect.height());
-      glTexImage2D(GL_TEXTURE_2D,
-                   0,
-                   GL_RGBA,
-                   texture_width_,
-                   texture_height_,
-                   0,
-                   GL_RGB,
-                   GL_UNSIGNED_BYTE,
-                   NULL);
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture_width_, texture_height_,
+                   0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
       DebugShowGLErrors();
     }
 
@@ -73,8 +66,8 @@ void SDLColourFilter::Fill(const GraphicsObject& go,
     int ystart =
         int(Texture::ScreenHeight() - screen_rect.y() - screen_rect.height());
     int idx1 = screen_rect.x();
-    glCopyTexSubImage2D(
-        GL_TEXTURE_2D, 0, 0, 0, idx1, ystart, texture_width_, texture_height_);
+    glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, idx1, ystart, texture_width_,
+                        texture_height_);
     DebugShowGLErrors();
 
     // Set up shader

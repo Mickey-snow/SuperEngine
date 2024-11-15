@@ -29,8 +29,8 @@
 
 #include <memory>
 
-#include "base/rect.hpp"
 #include "base/grprect.hpp"
+#include "base/rect.hpp"
 #include "base/tone_curve.hpp"
 
 class RGBColour;
@@ -108,9 +108,9 @@ class Surface : public std::enable_shared_from_this<Surface> {
   virtual void GetDCPixel(const Point& pos, int& r, int& g, int& b) const = 0;
 
   virtual std::shared_ptr<Surface> ClipAsColorMask(const Rect& clip_rect,
-                                                     int r,
-                                                     int g,
-                                                     int b) const;
+                                                   int r,
+                                                   int g,
+                                                   int b) const;
 
   virtual Surface* Clone() const = 0;
 };

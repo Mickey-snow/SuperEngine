@@ -24,8 +24,8 @@
 
 #include <gtest/gtest.h>
 
-#include "effects/sel_record.hpp"
 #include "base/gameexe.hpp"
+#include "effects/sel_record.hpp"
 
 class SelRecordTest : public ::testing::Test {
  protected:

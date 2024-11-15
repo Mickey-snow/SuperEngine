@@ -47,8 +47,7 @@ ImageRect GCNScrollArea::s_vMarker(IMG_VSCROLL_GREY, vsgridx, vsgridy);
 // -----------------------------------------------------------------------
 
 GCNScrollArea::GCNScrollArea(gcn::Widget* widget) : gcn::ScrollArea(widget) {
-  registrar_.Add(this,
-                 NotificationType::FULLSCREEN_STATE_CHANGED,
+  registrar_.Add(this, NotificationType::FULLSCREEN_STATE_CHANGED,
                  NotificationService::AllSources());
 }
 
@@ -101,8 +100,7 @@ void GCNScrollArea::draw(gcn::Graphics* graphics) {
     graphics->setColor(getBaseColor());
     graphics->fillRectangle(gcn::Rectangle(getWidth() - mScrollbarWidth,
                                            getHeight() - mScrollbarWidth,
-                                           mScrollbarWidth,
-                                           mScrollbarWidth));
+                                           mScrollbarWidth, mScrollbarWidth));
   }
 
   drawChildren(graphics);
@@ -208,8 +206,8 @@ void GCNScrollArea::drawHBar(gcn::Graphics* graphics) {
 void GCNScrollArea::drawVMarker(gcn::Graphics* graphics) {
   gcn::Rectangle dim = getVerticalMarkerDimension();
 
-  static_cast<GCNGraphics*>(graphics)
-      ->drawImageRect(dim.x, dim.y, dim.width, dim.height, s_vMarker);
+  static_cast<GCNGraphics*>(graphics)->drawImageRect(dim.x, dim.y, dim.width,
+                                                     dim.height, s_vMarker);
 }
 
 // -----------------------------------------------------------------------
@@ -217,8 +215,8 @@ void GCNScrollArea::drawVMarker(gcn::Graphics* graphics) {
 void GCNScrollArea::drawHMarker(gcn::Graphics* graphics) {
   gcn::Rectangle dim = getHorizontalMarkerDimension();
 
-  static_cast<GCNGraphics*>(graphics)
-      ->drawImageRect(dim.x, dim.y, dim.width, dim.height, s_vMarker);
+  static_cast<GCNGraphics*>(graphics)->drawImageRect(dim.x, dim.y, dim.width,
+                                                     dim.height, s_vMarker);
 }
 
 void GCNScrollArea::Observe(NotificationType type,

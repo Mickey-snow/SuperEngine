@@ -25,8 +25,8 @@
 #include <string>
 #include <vector>
 
-#include "machine/reference.hpp"
 #include "libreallive/expression.hpp"
+#include "machine/reference.hpp"
 
 // Type definition for a reference into the RLMachine's memory,
 // referencing an integer value.

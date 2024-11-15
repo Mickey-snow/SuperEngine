@@ -5,8 +5,8 @@
 
   This library is free software; you can redistribute it and/or modify it under
   the terms of the GNU Lesser General Public License as published by the Free
-  Software Foundation; either version 2.1 of the License, or (at your option) any
-  later version.
+  Software Foundation; either version 2.1 of the License, or (at your option)
+  any later version.
 
   This library is distributed in the hope that it will be useful, but WITHOUT
   ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
@@ -40,7 +40,7 @@
 #include <string>
 
 class Codepage {
-public:
+ public:
   virtual ~Codepage();
   virtual unsigned short JisDecode(unsigned short ch) const;
   virtual void JisDecodeString(const char* s, char* buf, size_t buflen) const;
@@ -59,6 +59,7 @@ class Cp {
  public:
   // Singleton constructor
   static Codepage& instance(int desired);
+
  private:
   static std::unique_ptr<Codepage> instance_;
   static int codepage;

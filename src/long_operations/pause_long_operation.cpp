@@ -29,6 +29,7 @@
 
 #include <vector>
 
+#include "base/gameexe.hpp"
 #include "machine/rlmachine.hpp"
 #include "systems/base/event_system.hpp"
 #include "systems/base/graphics_system.hpp"
@@ -37,7 +38,6 @@
 #include "systems/base/text_page.hpp"
 #include "systems/base/text_system.hpp"
 #include "systems/base/text_window.hpp"
-#include "base/gameexe.hpp"
 
 // -----------------------------------------------------------------------
 // PauseLongOperation
@@ -143,7 +143,8 @@ bool PauseLongOperation::KeyStateChanged(KeyCode keyCode, bool pressed) {
       TextSystem& text = machine_.system().text();
       bool ctrl_key_skips = text.ctrl_key_skip();
 
-      if (ctrl_key_skips && (keyCode == RLKEY_RCTRL || keyCode == RLKEY_LCTRL)) {
+      if (ctrl_key_skips &&
+          (keyCode == RLKEY_RCTRL || keyCode == RLKEY_LCTRL)) {
         is_done_ = true;
         handled = true;
       } else if (keyCode == RLKEY_SPACE) {

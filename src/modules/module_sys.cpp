@@ -40,8 +40,8 @@
 #include <vector>
 
 #include "base/cgm_table.hpp"
-#include "effects/fade_effect.hpp"
 #include "base/gameexe.hpp"
+#include "effects/fade_effect.hpp"
 #include "machine/general_operations.hpp"
 #include "machine/rloperation.hpp"
 #include "machine/rloperation/default_value.hpp"

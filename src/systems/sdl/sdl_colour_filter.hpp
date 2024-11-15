@@ -28,8 +28,8 @@
 
 #include "GL/glew.h"
 
-#include "systems/base/colour_filter.hpp"
 #include "base/rect.hpp"
+#include "systems/base/colour_filter.hpp"
 
 class RGBAColour;
 

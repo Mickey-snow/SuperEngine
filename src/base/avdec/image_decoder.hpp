@@ -26,8 +26,8 @@
 
 #include "base/grprect.hpp"
 
-#include <vector>
 #include <string_view>
+#include <vector>
 
 class ImageDecoder {
  public:

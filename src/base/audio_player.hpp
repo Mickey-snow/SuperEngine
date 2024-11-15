@@ -42,7 +42,7 @@ class AudioPlayer {
 
   AudioPlayer(AudioDecoder&& dec);
 
-  AVSpec GetSpec()const;
+  AVSpec GetSpec() const;
   time_ms_t GetCurrentTime() const;
   AudioData LoadPCM(sample_count_t nsamples);
   AudioData LoadRemain();

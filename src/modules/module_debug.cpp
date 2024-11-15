@@ -27,8 +27,8 @@
 
 #include "modules/module_debug.hpp"
 
-#include <string>
 #include <iostream>
+#include <string>
 
 #include "base/gameexe.hpp"
 #include "machine/rlmachine.hpp"

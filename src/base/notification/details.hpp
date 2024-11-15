@@ -45,7 +45,7 @@ class Details : public NotificationDetails {
   // TODO(erg): Our code hard relies on implicit conversion
   Details(T* ptr) : NotificationDetails(ptr) {}  // NOLINT
   Details(const NotificationDetails& other)      // NOLINT
-    : NotificationDetails(other) {}
+      : NotificationDetails(other) {}
 
   T* operator->() const { return ptr(); }
   // The casts here allow this to compile with both T = Foo and T = const Foo.

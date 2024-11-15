@@ -10,8 +10,8 @@
 
 #include <map>
 
-#include "base/notification/observer_list.hpp"
 #include "base/notification/details.hpp"
+#include "base/notification/observer_list.hpp"
 #include "base/notification/source.hpp"
 #include "base/notification/type.hpp"
 
@@ -78,7 +78,8 @@ class NotificationService {
   //
   // The caller retains ownership of the object pointed to by observer.
   void AddObserver(NotificationObserver* observer,
-                   NotificationType type, const NotificationSource& source);
+                   NotificationType type,
+                   const NotificationSource& source);
 
   // NOTE: Rather than using this directly, you should use a
   // NotificationRegistrar.
@@ -87,7 +88,8 @@ class NotificationService {
   // that match type and source.  If no object matching the parameters is
   // currently registered, this method is a no-op.
   void RemoveObserver(NotificationObserver* observer,
-                      NotificationType type, const NotificationSource& source);
+                      NotificationType type,
+                      const NotificationSource& source);
 
   // Keeps track of the observers for each type of notification.
   // Until we get a prohibitively large number of notification types,

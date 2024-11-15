@@ -72,7 +72,8 @@ void Complex_T<Args...>::ParseParameters(
     const std::vector<std::string>& input,
     libreallive::ExpressionPiecesVector& output) {
   const char* data = input.at(position).c_str();
-  libreallive::Expression ep(libreallive::ExpressionParser::GetComplexParam(data));
+  libreallive::Expression ep(
+      libreallive::ExpressionParser::GetComplexParam(data));
   output.push_back(ep);
   position++;
 }

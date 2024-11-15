@@ -29,9 +29,9 @@
 #include <algorithm>
 #include <vector>
 
+#include "systems/base/rlvm_info.hpp"
 #include "systems/gcn/gcn_button.hpp"
 #include "systems/gcn/gcn_platform.hpp"
-#include "systems/base/rlvm_info.hpp"
 #include "utilities/string_utilities.hpp"
 
 using std::vector;

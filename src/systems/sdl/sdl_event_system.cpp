@@ -27,8 +27,8 @@
 
 #include "systems/sdl/sdl_event_system.hpp"
 
-#include <SDL/SDL_events.h>
 #include <SDL/SDL.h>
+#include <SDL/SDL_events.h>
 
 #include <functional>
 
@@ -141,18 +141,16 @@ void SDLEventSystem::InjectMouseDown(RLMachine& machine) {
   button1_state_ = 1;
   button2_state_ = 0;
 
-  DispatchEvent(
-      machine,
-      bind(&EventListener::MouseButtonStateChanged, _1, MOUSE_LEFT, 1));
+  DispatchEvent(machine, bind(&EventListener::MouseButtonStateChanged, _1,
+                              MOUSE_LEFT, 1));
 }
 
 void SDLEventSystem::InjectMouseUp(RLMachine& machine) {
   button1_state_ = 2;
   button2_state_ = 0;
 
-  DispatchEvent(
-      machine,
-      bind(&EventListener::MouseButtonStateChanged, _1, MOUSE_LEFT, 1));
+  DispatchEvent(machine, bind(&EventListener::MouseButtonStateChanged, _1,
+                              MOUSE_LEFT, 1));
 }
 
 void SDLEventSystem::PreventCursorPosSpinning() {
@@ -271,9 +269,8 @@ void SDLEventSystem::HandleMouseButtonEvent(RLMachine& machine,
         break;
     }
 
-    DispatchEvent(
-        machine,
-        bind(&EventListener::MouseButtonStateChanged, _1, button, pressed));
+    DispatchEvent(machine, bind(&EventListener::MouseButtonStateChanged, _1,
+                                button, pressed));
   }
 }
 

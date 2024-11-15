@@ -30,16 +30,16 @@
 #include "machine/general_operations.hpp"
 #include "machine/rlmodule.hpp"
 #include "machine/rloperation.hpp"
-#include "machine/rloperation/rlop_store.hpp"
 #include "machine/rloperation/references.hpp"
+#include "machine/rloperation/rlop_store.hpp"
 #include "utilities/date_util.hpp"
 
 namespace {
 
 struct GetDate : public RLOpcode<IntReference_T,
-                                    IntReference_T,
-                                    IntReference_T,
-                                    IntReference_T> {
+                                 IntReference_T,
+                                 IntReference_T,
+                                 IntReference_T> {
   void operator()(RLMachine& machine,
                   IntReferenceIterator y,
                   IntReferenceIterator m,
@@ -53,9 +53,9 @@ struct GetDate : public RLOpcode<IntReference_T,
 };
 
 struct GetTime : public RLOpcode<IntReference_T,
-                                    IntReference_T,
-                                    IntReference_T,
-                                    IntReference_T> {
+                                 IntReference_T,
+                                 IntReference_T,
+                                 IntReference_T> {
   void operator()(RLMachine& machine,
                   IntReferenceIterator hh,
                   IntReferenceIterator mm,
@@ -69,13 +69,13 @@ struct GetTime : public RLOpcode<IntReference_T,
 };
 
 struct GetDateTime : public RLOpcode<IntReference_T,
-                                        IntReference_T,
-                                        IntReference_T,
-                                        IntReference_T,
-                                        IntReference_T,
-                                        IntReference_T,
-                                        IntReference_T,
-                                        IntReference_T> {
+                                     IntReference_T,
+                                     IntReference_T,
+                                     IntReference_T,
+                                     IntReference_T,
+                                     IntReference_T,
+                                     IntReference_T,
+                                     IntReference_T> {
   void operator()(RLMachine& machine,
                   IntReferenceIterator y,
                   IntReferenceIterator m,

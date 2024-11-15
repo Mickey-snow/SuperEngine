@@ -27,8 +27,8 @@
 
 #pragma once
 
-#include "machine/rlmodule.hpp"
 #include "machine/mapped_rlmodule.hpp"
+#include "machine/rlmodule.hpp"
 
 class ObjFgGettersModule : public RLModule {
  public:

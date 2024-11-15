@@ -32,8 +32,8 @@
 #include <vector>
 
 #include "machine/rloperation.hpp"
-#include "machine/rloperation/rlop_store.hpp"
 #include "machine/rloperation/references.hpp"
+#include "machine/rloperation/rlop_store.hpp"
 
 class System;
 class EventSystem;
@@ -116,7 +116,7 @@ RLOperation* ReturnIntValue(RETTYPE (OBJTYPE::*s)(const std::string&) const) {
 
 template <typename OBJTYPE>
 RLOperation* returnStringValue(const std::string& (OBJTYPE::*s)()
-                               const) {  // NOLINT
+                                   const) {  // NOLINT
   return new binderImpl::Op_ReturnStringValue<OBJTYPE>(s);
 }
 
@@ -177,10 +177,7 @@ class InvokeSyscomAsOp : public RLOpcode<> {
 // unimplemented functions.
 class UndefinedFunction : public RLOp_SpecialCase {
  public:
-  UndefinedFunction(int modtype,
-                    int module,
-                    int opcode,
-                    int overload);
+  UndefinedFunction(int modtype, int module, int opcode, int overload);
 
   // A note on UGLY HACKS: We need to override RLOp_SpecialCase::Dispatch()
   // because that's the entry point when using ChildObjAdapter. So we overload
@@ -207,13 +204,22 @@ class UndefinedFunction : public RLOp_SpecialCase {
 };
 
 // extern template declarations; manually instantiated in the cc file.
-extern template RLOperation* CallFunction<EventSystem>(void (EventSystem::*)(int));
-extern template RLOperation* CallFunction<GraphicsSystem>(void (GraphicsSystem::*)(int));
-extern template RLOperation* CallFunction<SoundSystem>(void (SoundSystem::*)(int));
+extern template RLOperation* CallFunction<EventSystem>(
+    void (EventSystem::*)(int));
+extern template RLOperation* CallFunction<GraphicsSystem>(
+    void (GraphicsSystem::*)(int));
+extern template RLOperation* CallFunction<SoundSystem>(
+    void (SoundSystem::*)(int));
 extern template RLOperation* CallFunction<System>(void (System::*)(int));
-extern template RLOperation* CallFunction<TextSystem>(void (TextSystem::*)(int));
-extern template RLOperation* ReturnIntValue<EventSystem, int>(int (EventSystem::*)() const);
-extern template RLOperation* ReturnIntValue<GraphicsSystem, int>(int (GraphicsSystem::*)() const);
-extern template RLOperation* ReturnIntValue<RLMachine, int>(int (RLMachine::*)() const);
-extern template RLOperation* ReturnIntValue<SoundSystem, int>(int (SoundSystem::*)() const);
-extern template RLOperation* ReturnIntValue<TextSystem, int>(int (TextSystem::*)() const);
+extern template RLOperation* CallFunction<TextSystem>(
+    void (TextSystem::*)(int));
+extern template RLOperation* ReturnIntValue<EventSystem, int>(
+    int (EventSystem::*)() const);
+extern template RLOperation* ReturnIntValue<GraphicsSystem, int>(
+    int (GraphicsSystem::*)() const);
+extern template RLOperation* ReturnIntValue<RLMachine, int>(int (RLMachine::*)()
+                                                                const);
+extern template RLOperation* ReturnIntValue<SoundSystem, int>(
+    int (SoundSystem::*)() const);
+extern template RLOperation* ReturnIntValue<TextSystem, int>(
+    int (TextSystem::*)() const);

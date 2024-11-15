@@ -30,8 +30,8 @@
 #include <string>
 #include <vector>
 
-#include "libreallive/parser.hpp"
 #include "base/gameexe.hpp"
+#include "libreallive/parser.hpp"
 #include "machine/rlmachine.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/system.hpp"

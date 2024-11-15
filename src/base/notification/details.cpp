@@ -6,15 +6,11 @@
 
 #include <cstddef>
 
-NotificationDetails::NotificationDetails() : ptr_(NULL) {
-}
+NotificationDetails::NotificationDetails() : ptr_(NULL) {}
 
 NotificationDetails::NotificationDetails(const NotificationDetails& other)
-    : ptr_(other.ptr_) {
-}
+    : ptr_(other.ptr_) {}
 
-NotificationDetails::NotificationDetails(const void* ptr) : ptr_(ptr) {
-}
+NotificationDetails::NotificationDetails(const void* ptr) : ptr_(ptr) {}
 
-NotificationDetails::~NotificationDetails() {
-}
+NotificationDetails::~NotificationDetails() {}

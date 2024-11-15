@@ -29,8 +29,8 @@
 
 #include <memory>
 
-#include "machine/long_operation.hpp"
 #include "base/rect.hpp"
+#include "machine/long_operation.hpp"
 
 class RLMachine;
 class Surface;

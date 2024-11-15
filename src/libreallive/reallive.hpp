@@ -73,7 +73,7 @@
 // - A list of entrypoints into the scenario
 // - A list of pointers (for goto, et cetera)
 
+#include "libreallive/alldefs.hpp"
 #include "libreallive/archive.hpp"
 #include "libreallive/parser.hpp"
-#include "libreallive/alldefs.hpp"
 #include "libreallive/scenario.hpp"

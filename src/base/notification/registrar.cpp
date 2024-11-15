@@ -17,22 +17,18 @@ struct NotificationRegistrar::Record {
 };
 
 bool NotificationRegistrar::Record::operator==(const Record& other) const {
-  return observer == other.observer &&
-         type == other.type &&
+  return observer == other.observer && type == other.type &&
          source == other.source;
 }
 
-NotificationRegistrar::NotificationRegistrar() {
-}
+NotificationRegistrar::NotificationRegistrar() {}
 
-NotificationRegistrar::~NotificationRegistrar() {
-  RemoveAll();
-}
+NotificationRegistrar::~NotificationRegistrar() { RemoveAll(); }
 
 void NotificationRegistrar::Add(NotificationObserver* observer,
                                 NotificationType type,
                                 const NotificationSource& source) {
-  Record record = { observer, type, source };
+  Record record = {observer, type, source};
   registered_.push_back(record);
 
   NotificationService::current()->AddObserver(observer, type, source);
@@ -45,7 +41,7 @@ void NotificationRegistrar::Remove(NotificationObserver* observer,
     return;
   }
 
-  Record record = { observer, type, source };
+  Record record = {observer, type, source};
   auto found = std::find(registered_.cbegin(), registered_.cend(), record);
   registered_.erase(found);
 
@@ -71,22 +67,19 @@ void NotificationRegistrar::RemoveAll() {
   NotificationService* service = NotificationService::current();
   if (service) {
     for (size_t i = 0; i < registered_.size(); i++) {
-      service->RemoveObserver(registered_[i].observer,
-                              registered_[i].type,
+      service->RemoveObserver(registered_[i].observer, registered_[i].type,
                               registered_[i].source);
     }
   }
   registered_.clear();
 }
 
-bool NotificationRegistrar::IsEmpty() const {
-  return registered_.empty();
-}
+bool NotificationRegistrar::IsEmpty() const { return registered_.empty(); }
 
 bool NotificationRegistrar::IsRegistered(NotificationObserver* observer,
                                          NotificationType type,
                                          const NotificationSource& source) {
-  Record record = { observer, type, source };
+  Record record = {observer, type, source};
   return std::find(registered_.cbegin(), registered_.cend(), record) !=
-      registered_.cend();
+         registered_.cend();
 }

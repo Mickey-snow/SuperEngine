@@ -20,8 +20,7 @@ bool NotificationService::HasKey(const NotificationSourceMap& map,
   return map.find(source.map_key()) != map.end();
 }
 
-NotificationService::NotificationService() {
-}
+NotificationService::NotificationService() {}
 
 void NotificationService::AddObserver(NotificationObserver* observer,
                                       NotificationType type,
@@ -58,21 +57,21 @@ void NotificationService::Notify(NotificationType type,
   // Notify observers of all types and all sources
   if (HasKey(observers_[NotificationType::ALL], AllSources()) &&
       source != AllSources()) {
-    FOR_EACH_OBSERVER(NotificationObserver,
-       *observers_[NotificationType::ALL][AllSources().map_key()],
-       Observe(type, source, details));
+    FOR_EACH_OBSERVER(
+        NotificationObserver,
+        *observers_[NotificationType::ALL][AllSources().map_key()],
+        Observe(type, source, details));
   }
 
   // Notify observers of all types and the given source
   if (HasKey(observers_[NotificationType::ALL], source)) {
     FOR_EACH_OBSERVER(NotificationObserver,
-        *observers_[NotificationType::ALL][source.map_key()],
-        Observe(type, source, details));
+                      *observers_[NotificationType::ALL][source.map_key()],
+                      Observe(type, source, details));
   }
 
   // Notify observers of the given type and all sources
-  if (HasKey(observers_[type.value], AllSources()) &&
-      source != AllSources()) {
+  if (HasKey(observers_[type.value], AllSources()) && source != AllSources()) {
     FOR_EACH_OBSERVER(NotificationObserver,
                       *observers_[type.value][AllSources().map_key()],
                       Observe(type, source, details));
@@ -86,12 +85,11 @@ void NotificationService::Notify(NotificationType type,
   }
 }
 
-
 NotificationService::~NotificationService() {
   for (int i = 0; i < NotificationType::NOTIFICATION_TYPE_COUNT; i++) {
     NotificationSourceMap omap = observers_[i];
-    for (NotificationSourceMap::iterator it = omap.begin();
-         it != omap.end(); ++it)
+    for (NotificationSourceMap::iterator it = omap.begin(); it != omap.end();
+         ++it)
       delete it->second;
   }
 }

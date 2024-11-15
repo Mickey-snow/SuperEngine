@@ -32,10 +32,10 @@
 
 #include <cstdint>
 #include <list>
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
-#include <map>
 
 #include "machine/long_operation.hpp"
 #include "systems/base/event_listener.hpp"
@@ -75,10 +75,11 @@ struct TextSystemGlobals {
   // boost::serialization support
   template <class Archive>
   void serialize(Archive& ar, const unsigned int version) {
-    ar& auto_mode_base_time& auto_mode_char_time& message_speed& window_attr;
+    ar & auto_mode_base_time & auto_mode_char_time & message_speed &
+        window_attr;
 
     if (version > 0)
-      ar& font_weight& font_shadow;
+      ar & font_weight & font_shadow;
   }
 };
 
@@ -221,23 +222,22 @@ class TextSystem : public EventListener {
   // properties. Will search |utf8str| for object text syntax and will change
   // various properties based on that syntax.
   std::shared_ptr<Surface> RenderText(const std::string& utf8str,
-                                        int size,
-                                        int xspace,
-                                        int yspace,
-                                        const RGBColour& colour,
-                                        RGBColour* shadow_colour,
-                                        int max_chars_in_line);
+                                      int size,
+                                      int xspace,
+                                      int yspace,
+                                      const RGBColour& colour,
+                                      RGBColour* shadow_colour,
+                                      int max_chars_in_line);
 
   // Renders a glyph onto destination. Returns the size of the glyph blitted.
-  virtual Size RenderGlyphOnto(
-      const std::string& current,
-      int font_size,
-      bool italic,
-      const RGBColour& font_colour,
-      const RGBColour* shadow_colour,
-      int insertion_point_x,
-      int insertion_point_y,
-      const std::shared_ptr<Surface>& destination) = 0;
+  virtual Size RenderGlyphOnto(const std::string& current,
+                               int font_size,
+                               bool italic,
+                               const RGBColour& font_colour,
+                               const RGBColour* shadow_colour,
+                               int insertion_point_x,
+                               int insertion_point_y,
+                               const std::shared_ptr<Surface>& destination) = 0;
 
   virtual int GetCharWidth(int size, uint16_t codepoint) = 0;
 
@@ -373,9 +373,8 @@ class TextSystem : public EventListener {
 // variable placeholders with the names from Memory. This function assumes that
 // text is in CP932 encoding, and will need to be generalized when we try to
 // support other hacks on top of cp932.
-std::string parseNames(const Memory& memory,
-                       const std::string& input);
-           
+std::string parseNames(const Memory& memory, const std::string& input);
+
 // LongOperation which just calls text().set_system_visible(true) and removes
 // itself from the callstack.
 struct RestoreTextSystemVisibility : public LongOperation {

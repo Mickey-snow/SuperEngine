@@ -139,9 +139,7 @@ struct Str_strcat : public RLOpcode<StrReference_T, StrConstant_T> {
 // Implement op<1:Str:00003, 0>, fun strlen(strC). Returns the length
 // of value; Double-byte characters are counted as two bytes.
 struct Str_strlen : public RLStoreOpcode<StrConstant_T> {
-  int operator()(RLMachine& machine, std::string value) {
-    return value.size();
-  }
+  int operator()(RLMachine& machine, std::string value) { return value.size(); }
 };
 
 // Implement op<1:Str:00004, 0>, fun strcmp(strC, strC)
@@ -195,9 +193,9 @@ struct strsub_0
 //
 // Returns the substring of length length, starting at offset.
 struct strsub_1 : public RLOpcode<StrReference_T,
-                                     StrConstant_T,
-                                     IntConstant_T,
-                                     IntConstant_T> {
+                                  StrConstant_T,
+                                  IntConstant_T,
+                                  IntConstant_T> {
   void operator()(RLMachine& machine,
                   StringReferenceIterator dest,
                   std::string source,
@@ -465,8 +463,7 @@ struct itoa_0 : public RLOpcode<IntConstant_T, StrReference_T> {
 //
 // Converts the integer value into a decimal representation, right aligned with
 // zeroes to length characters.
-struct itoa_1
-    : public RLOpcode<IntConstant_T, StrReference_T, IntConstant_T> {
+struct itoa_1 : public RLOpcode<IntConstant_T, StrReference_T, IntConstant_T> {
   void operator()(RLMachine& machine,
                   int input,
                   StringReferenceIterator dest,

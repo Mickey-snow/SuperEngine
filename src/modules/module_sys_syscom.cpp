@@ -31,8 +31,8 @@
 #include "machine/rlmachine.hpp"
 #include "machine/rlmodule.hpp"
 #include "machine/rloperation.hpp"
-#include "machine/rloperation/rlop_store.hpp"
 #include "machine/rloperation/references.hpp"
+#include "machine/rloperation/rlop_store.hpp"
 #include "systems/base/event_system.hpp"
 #include "systems/base/system.hpp"
 
@@ -63,15 +63,15 @@ struct SyscomEnabled : public RLStoreOpcode<IntConstant_T> {
 void AddSysSyscomOpcodes(RLModule& m) {
   m.AddOpcode(1210, 0, "ContextMenu", new ContextMenu);
 
-  m.AddOpcode(
-      1211, 0, "EnableSyscom", CallFunction(&System::EnableSyscomEntry));
+  m.AddOpcode(1211, 0, "EnableSyscom",
+              CallFunction(&System::EnableSyscomEntry));
   m.AddOpcode(1211, 1, "EnableSyscom", CallFunction(&System::EnableSyscom));
 
   m.AddOpcode(1212, 0, "HideSyscom", CallFunction(&System::HideSyscomEntry));
   m.AddOpcode(1212, 1, "HideSyscom", CallFunction(&System::HideSyscom));
 
-  m.AddOpcode(
-      1213, 0, "DisableSyscom", CallFunction(&System::DisableSyscomEntry));
+  m.AddOpcode(1213, 0, "DisableSyscom",
+              CallFunction(&System::DisableSyscomEntry));
 
   m.AddOpcode(1214, 0, "SyscomEnabled", new SyscomEnabled);
 

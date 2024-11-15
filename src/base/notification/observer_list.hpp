@@ -76,9 +76,9 @@ class ObserverListBase {
     explicit Iterator(ObserverListBase<ObserverType>& list)
         : list_(list),
           index_(0),
-          max_index_(list.type_ == NOTIFY_ALL ?
-                     std::numeric_limits<size_t>::max() :
-                     list.observers_.size()) {
+          max_index_(list.type_ == NOTIFY_ALL
+                         ? std::numeric_limits<size_t>::max()
+                         : list.observers_.size()) {
       ++list_.notify_depth_;
     }
 
@@ -107,14 +107,12 @@ class ObserverListBase {
       : notify_depth_(0), type_(type) {}
 
   // Add an observer to the list.
-  void AddObserver(ObserverType* obs) {
-    observers_.push_back(obs);
-  }
+  void AddObserver(ObserverType* obs) { observers_.push_back(obs); }
 
   // Remove an observer from the list.
   void RemoveObserver(ObserverType* obs) {
     typename ListType::iterator it =
-      std::find(observers_.begin(), observers_.end(), obs);
+        std::find(observers_.begin(), observers_.end(), obs);
     if (it != observers_.end()) {
       if (notify_depth_) {
         *it = 0;
@@ -187,10 +185,10 @@ class ObserverList : public ObserverListBase<ObserverType> {
   }
 };
 
-#define FOR_EACH_OBSERVER(ObserverType, observer_list, func)  \
-  do {                                                        \
-    ObserverListBase<ObserverType>::Iterator it(observer_list);   \
-    ObserverType* obs;                                        \
-    while ((obs = it.GetNext()) != NULL)                      \
-      obs->func;                                              \
+#define FOR_EACH_OBSERVER(ObserverType, observer_list, func)    \
+  do {                                                          \
+    ObserverListBase<ObserverType>::Iterator it(observer_list); \
+    ObserverType* obs;                                          \
+    while ((obs = it.GetNext()) != NULL)                        \
+      obs->func;                                                \
   } while (0)

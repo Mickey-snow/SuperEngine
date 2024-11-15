@@ -34,10 +34,10 @@
 #include <vector>
 
 #include "base/notification/source.hpp"
+#include "object/objdrawer.hpp"
 #include "pygame/alphablit.h"
 #include "systems/base/colour.hpp"
 #include "systems/base/graphics_object.hpp"
-#include "object/objdrawer.hpp"
 #include "systems/base/system_error.hpp"
 #include "systems/sdl/sdl_graphics_system.hpp"
 #include "systems/sdl/sdl_utils.hpp"

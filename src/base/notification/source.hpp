@@ -42,8 +42,8 @@ class Source : public NotificationSource {
  public:
   // TODO(erg): Our code hard relies on implicit conversion
   Source(const T* ptr) : NotificationSource(ptr) {}  // NOLINT
-  Source(const NotificationSource& other)      // NOLINT
-    : NotificationSource(other) {}
+  Source(const NotificationSource& other)            // NOLINT
+      : NotificationSource(other) {}
 
   T* operator->() const { return ptr(); }
   // The casts here allow this to compile with both T = Foo and T = const Foo.

@@ -28,14 +28,14 @@
 
 #include <memory>
 
-class srcResampler{
-public:
+class srcResampler {
+ public:
   srcResampler(int freq);
   ~srcResampler();
 
   void Resample(AudioData&);
 
-private:
+ private:
   int target_frequency_;
 };
 

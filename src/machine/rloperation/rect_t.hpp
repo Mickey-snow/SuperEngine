@@ -29,8 +29,8 @@
 #include <string>
 #include <vector>
 
-#include "machine/rloperation.hpp"
 #include "base/rect.hpp"
+#include "machine/rloperation.hpp"
 
 struct Point_T {
   typedef Point type;

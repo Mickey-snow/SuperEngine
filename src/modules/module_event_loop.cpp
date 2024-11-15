@@ -145,30 +145,22 @@ EventLoopModule::EventLoopModule() : RLModule("EventLoop", 0, 4) {
   AddOpcode(371, 1, "rlm_wav_play", new rlm_wav_play_1);
   AddOpcode(371, 2, "rlm_wav_play", new rlm_wav_play_2);
 
-  AddOpcode(1000,
-            0,
-            "ShowBackground",
+  AddOpcode(1000, 0, "ShowBackground",
             CallFunction(&GraphicsSystem::ToggleInterfaceHidden));
-  AddOpcode(
-      1100, 0, "SetSkipMode", CallFunctionWith(&TextSystem::SetSkipMode, 1));
-  AddOpcode(
-      1101, 0, "ClearSkipMode", CallFunctionWith(&TextSystem::SetSkipMode, 0));
+  AddOpcode(1100, 0, "SetSkipMode",
+            CallFunctionWith(&TextSystem::SetSkipMode, 1));
+  AddOpcode(1101, 0, "ClearSkipMode",
+            CallFunctionWith(&TextSystem::SetSkipMode, 0));
   AddOpcode(1102, 0, "SkipMode", ReturnIntValue(&TextSystem::skip_mode));
 
   // opcode<0:4:1202, 0> and opcode<0:4:1200, 0> are used in the CLANNAD menu
   // system; no idea what they do.
   AddOpcode(1200, 0, "TextwindowOverrideShow", new setOverride(true));
-  AddOpcode(1200,
-            2,
-            "TextwindowOverrideShow",
+  AddOpcode(1200, 2, "TextwindowOverrideShow",
             CallFunctionWith(&TextSystem::SetVisualOverrideAll, true));
   AddOpcode(1201, 0, "TextwindowOverrideHide", new setOverride(false));
-  AddOpcode(1201,
-            2,
-            "TextwindowOverrideHide",
+  AddOpcode(1201, 2, "TextwindowOverrideHide",
             CallFunctionWith(&TextSystem::SetVisualOverrideAll, false));
-  AddOpcode(1202,
-            0,
-            "ClearTextwindowOverrides",
+  AddOpcode(1202, 0, "ClearTextwindowOverrides",
             CallFunction(&TextSystem::ClearVisualOverrides));
 }

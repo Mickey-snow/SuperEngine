@@ -195,19 +195,14 @@ GLint Shaders::GetObjectUniformImage() {
 
 void Shaders::loadObjectUniformFromGraphicsObject(const GraphicsObject& go) {
   auto& param = go.Param();
-  
+
   RGBAColour colour = param.colour();
-  glUniform4fARB(Shaders::GetObjectUniformColour(),
-                 colour.r_float(),
-                 colour.g_float(),
-                 colour.b_float(),
-                 colour.a_float());
+  glUniform4fARB(Shaders::GetObjectUniformColour(), colour.r_float(),
+                 colour.g_float(), colour.b_float(), colour.a_float());
 
   RGBColour tint = param.tint();
-  glUniform3fARB(Shaders::GetObjectUniformTint(),
-                 tint.r_float(),
-                 tint.g_float(),
-                 tint.b_float());
+  glUniform3fARB(Shaders::GetObjectUniformTint(), tint.r_float(),
+                 tint.g_float(), tint.b_float());
 
   glUniform1fARB(Shaders::GetObjectUniformLight(), param.light() / 255.0f);
 

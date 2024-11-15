@@ -206,7 +206,8 @@ void StrConstant_T::ParseParameters(
   const char* data = input.at(position).c_str();
   libreallive::Expression ep = libreallive::ExpressionParser::GetData(data);
 
-  if (ep->GetExpressionValueType() != libreallive::ExpressionValueType::String) {
+  if (ep->GetExpressionValueType() !=
+      libreallive::ExpressionValueType::String) {
     std::ostringstream oss;
     oss << "StrConstant_T parse error. Expected type string, but actually "
         << "contained \"" << ep->GetDebugString() << "\"";
@@ -231,7 +232,8 @@ void StrReference_T::ParseParameters(
   const char* data = input.at(position).c_str();
   libreallive::Expression ep = libreallive::ExpressionParser::GetData(data);
 
-  if (ep->GetExpressionValueType() != libreallive::ExpressionValueType::String) {
+  if (ep->GetExpressionValueType() !=
+      libreallive::ExpressionValueType::String) {
     std::ostringstream oss;
     oss << "StrReference_T parse error. Expected type string, but actually "
         << "contained \"" << ep->GetDebugString() << "\"";

@@ -50,7 +50,8 @@ struct DefaultIntValue_T {
     if (position < input.size()) {
       IntConstant_T::ParseParameters(position, input, output);
     } else {
-      output.emplace_back(libreallive::ExpressionFactory::IntConstant(DEFAULTVAL));
+      output.emplace_back(
+          libreallive::ExpressionFactory::IntConstant(DEFAULTVAL));
       position++;
     }
   }
@@ -80,7 +81,8 @@ struct DefaultStrValue_T {
     if (position < input.size()) {
       StrConstant_T::ParseParameters(position, input, output);
     } else {
-      output.emplace_back(libreallive::ExpressionFactory::StrConstant(std::string()));
+      output.emplace_back(
+          libreallive::ExpressionFactory::StrConstant(std::string()));
       position++;
     }
   }

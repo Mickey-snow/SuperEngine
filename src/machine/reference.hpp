@@ -27,8 +27,8 @@
 
 #pragma once
 
-#include <string>
 #include <iterator>
+#include <string>
 
 template <typename T>
 class MemoryReferenceIterator;
@@ -196,9 +196,7 @@ template <typename ACCESS>
 MemoryReferenceIterator<ACCESS>::MemoryReferenceIterator(Memory* memory,
                                                          const int in_type,
                                                          const int in_location)
-    : memory_(memory),
-      type_(in_type),
-      location_(in_location) {}
+    : memory_(memory), type_(in_type), location_(in_location) {}
 
 // -----------------------------------------------------------------------
 

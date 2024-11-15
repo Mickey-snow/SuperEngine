@@ -30,10 +30,10 @@
 #include "machine/properties.hpp"
 #include "machine/rlmachine.hpp"
 #include "modules/module_obj.hpp"
+#include "object/mutator.hpp"
 #include "systems/base/event_system.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/base/graphics_system.hpp"
-#include "object/mutator.hpp"
 #include "systems/base/system.hpp"
 
 namespace {

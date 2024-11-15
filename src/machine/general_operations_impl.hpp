@@ -117,8 +117,7 @@ class Op_CallWithMachineInt : public RLOpcode<IntConstant_T> {
 // Binds setting an internal variable to a passed in value in from a
 // running Reallive script.
 template <typename OBJTYPE>
-class Op_CallWithMachineIntInt
-    : public RLOpcode<IntConstant_T, IntConstant_T> {
+class Op_CallWithMachineIntInt : public RLOpcode<IntConstant_T, IntConstant_T> {
  public:
   // The function signature for the setter function
   typedef void (OBJTYPE::*Setter)(RLMachine&, const int, const int);
@@ -126,8 +125,8 @@ class Op_CallWithMachineIntInt
   explicit Op_CallWithMachineIntInt(Setter s) : setter(s) {}
 
   virtual void operator()(RLMachine& machine, int one, int two) override {
-    (getSystemObjImpl::GetSystemObj<OBJTYPE>(machine).*setter)(
-        machine, one, two);
+    (getSystemObjImpl::GetSystemObj<OBJTYPE>(machine).*setter)(machine, one,
+                                                               two);
   }
 
  private:
@@ -235,9 +234,7 @@ class Op_ReturnFunctionIntValue : public RLStoreOpcode<> {
 
   explicit Op_ReturnFunctionIntValue(Getter g) : getter_(g) {}
 
-  virtual int operator()(RLMachine& machine) override {
-    return (*getter_)();
-  }
+  virtual int operator()(RLMachine& machine) override { return (*getter_)(); }
 
  private:
   Getter getter_;

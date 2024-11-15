@@ -98,8 +98,8 @@ struct rlSoundSettings {
   // boost::serialization support
   template <class Archive>
   void serialize(Archive& ar, const unsigned int version) {
-    ar & sound_quality & bgm_enabled & bgm_volume & pcm_enabled &
-        pcm_volume & se_enabled & se_volume;
+    ar & sound_quality & bgm_enabled & bgm_volume & pcm_enabled & pcm_volume &
+        se_enabled & se_volume;
 
     if (version >= 1) {
       ar & koe_mode & koe_enabled & koe_volume & bgm_koe_fade &

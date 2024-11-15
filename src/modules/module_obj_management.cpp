@@ -29,13 +29,13 @@
 
 #include "machine/general_operations.hpp"
 #include "machine/properties.hpp"
-#include "machine/rloperation.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/rlmodule.hpp"
+#include "machine/rloperation.hpp"
 #include "modules/module_obj.hpp"
+#include "object/drawer/parent.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/base/graphics_system.hpp"
-#include "object/drawer/parent.hpp"
 #include "systems/base/system.hpp"
 
 // -----------------------------------------------------------------------
@@ -122,8 +122,9 @@ struct objFreeInitAll : public RLOpcode<> {
 void addObjManagementFunctions(RLModule& m, const std::string& base) {
   m.AddOpcode(0, 0, base + "Free",
               new Obj_CallFunction(&GraphicsObject::FreeObjectData));
-  m.AddOpcode(0, 1, base + "Free", RangeMappingFun(
-      new Obj_CallFunction(&GraphicsObject::FreeObjectData)));
+  m.AddOpcode(
+      0, 1, base + "Free",
+      RangeMappingFun(new Obj_CallFunction(&GraphicsObject::FreeObjectData)));
 
   m.AddOpcode(4, 0, base + "WipeCopyOn", new SetWipeCopyTo_0(1));
   m.AddOpcode(4, 1, base + "WipeCopyOn", new SetWipeCopyTo_1(1));
@@ -132,12 +133,15 @@ void addObjManagementFunctions(RLModule& m, const std::string& base) {
 
   m.AddOpcode(10, 0, base + "Init",
               new Obj_CallFunction(&GraphicsObject::InitializeParams));
-  m.AddOpcode(10, 1, base + "Init", RangeMappingFun(
-      new Obj_CallFunction(&GraphicsObject::InitializeParams)));
-  m.AddOpcode(11, 0, base + "FreeInit", new Obj_CallFunction(
-      &GraphicsObject::FreeDataAndInitializeParams));
-  m.AddOpcode(11, 1, base + "FreeInit", RangeMappingFun(new Obj_CallFunction(
-      &GraphicsObject::FreeDataAndInitializeParams)));
+  m.AddOpcode(
+      10, 1, base + "Init",
+      RangeMappingFun(new Obj_CallFunction(&GraphicsObject::InitializeParams)));
+  m.AddOpcode(
+      11, 0, base + "FreeInit",
+      new Obj_CallFunction(&GraphicsObject::FreeDataAndInitializeParams));
+  m.AddOpcode(11, 1, base + "FreeInit",
+              RangeMappingFun(new Obj_CallFunction(
+                  &GraphicsObject::FreeDataAndInitializeParams)));
 
   m.AddOpcode(100, 0, base + "FreeAll", new objFreeAll);
   m.AddOpcode(110, 0, base + "InitAll", new objInitAll);
@@ -203,17 +207,17 @@ ObjManagement::ObjManagement() : RLModule("ObjManagement", 1, 60) {
 
   AddOpcode(10, 0, "objInit",
             CallFunction(&GraphicsSystem::InitializeObjectParams));
-  AddOpcode(10, 1, "objInit", RangeMappingFun(CallFunction(
-      &GraphicsSystem::InitializeObjectParams)));
+  AddOpcode(
+      10, 1, "objInit",
+      RangeMappingFun(CallFunction(&GraphicsSystem::InitializeObjectParams)));
 
   AddOpcode(11, 0, "objFreeInit", new objFreeInit);
   AddOpcode(11, 1, "objFreeInit", RangeMappingFun(new objFreeInit));
 
-  AddOpcode(
-      100, 0, "objFreeAll", CallFunction(&GraphicsSystem::FreeAllObjectData));
-  AddOpcode(
-      110, 0, "objInitAll",
-      CallFunction(&GraphicsSystem::InitializeAllObjectParams));
+  AddOpcode(100, 0, "objFreeAll",
+            CallFunction(&GraphicsSystem::FreeAllObjectData));
+  AddOpcode(110, 0, "objInitAll",
+            CallFunction(&GraphicsSystem::InitializeAllObjectParams));
   AddOpcode(111, 0, "objFreeInitAll", new objFgBgFreeInitAll);
 }
 

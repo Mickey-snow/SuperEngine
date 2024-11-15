@@ -39,7 +39,7 @@
 using std::string;
 
 namespace libreallive {
-  
+
 inline void insert_i16(std::string& dest, int dpos, const int i16) {
   dest[dpos++] = i16 & 0xff;
   dest[dpos] = (i16 >> 8) & 0xff;

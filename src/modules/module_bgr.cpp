@@ -105,8 +105,8 @@ struct bgrLoadHaikei_main : RLOpcode<StrConstant_T, IntConstant_T> {
         std::shared_ptr<const Surface> source(
             graphics.GetSurfaceNamedAndMarkViewed(machine, filename));
         std::shared_ptr<Surface> haikei = graphics.GetHaikei();
-        source->BlitToSurface(
-            *haikei, source->GetRect(), source->GetRect(), 255, true);
+        source->BlitToSurface(*haikei, source->GetRect(), source->GetRect(),
+                              255, true);
       }
 
       // Promote the objects if we're in normal mode. If we're restoring the
@@ -135,11 +135,11 @@ struct bgrLoadHaikei_wtf
 };
 
 struct bgrLoadHaikei_wtf2 : RLOpcode<StrConstant_T,
-                                    IntConstant_T,
-                                    IntConstant_T,
-                                    IntConstant_T,
-                                    IntConstant_T,
-                                    IntConstant_T> {
+                                     IntConstant_T,
+                                     IntConstant_T,
+                                     IntConstant_T,
+                                     IntConstant_T,
+                                     IntConstant_T> {
   void operator()(RLMachine& machine,
                   string filename,
                   int sel,
@@ -157,18 +157,19 @@ struct bgrLoadHaikei_wtf2 : RLOpcode<StrConstant_T,
 
 // -----------------------------------------------------------------------
 
-typedef Argc_T<Special_T<
-    DefaultSpecialMapper,
-    // 0:copy(strC 'filename')
-    StrConstant_T,
-    // 1:DUMMY. Unknown.
-    Complex_T<StrConstant_T, IntConstant_T>,
-    // 2:copy(strC 'filename', '?')
-    Complex_T<StrConstant_T, IntConstant_T>,
-    // 3:DUMMY. Unknown.
-    Complex_T<StrConstant_T, IntConstant_T>,
-    // 4:copy(strC, '?', '?')
-    Complex_T<StrConstant_T, IntConstant_T, IntConstant_T>>> BgrMultiCommand;
+typedef Argc_T<
+    Special_T<DefaultSpecialMapper,
+              // 0:copy(strC 'filename')
+              StrConstant_T,
+              // 1:DUMMY. Unknown.
+              Complex_T<StrConstant_T, IntConstant_T>,
+              // 2:copy(strC 'filename', '?')
+              Complex_T<StrConstant_T, IntConstant_T>,
+              // 3:DUMMY. Unknown.
+              Complex_T<StrConstant_T, IntConstant_T>,
+              // 4:copy(strC, '?', '?')
+              Complex_T<StrConstant_T, IntConstant_T, IntConstant_T>>>
+    BgrMultiCommand;
 
 struct bgrMulti_1
     : public RLOpcode<StrConstant_T, IntConstant_T, BgrMultiCommand> {
@@ -191,22 +192,18 @@ struct bgrMulti_1
     // Load "filename" as the background.
     std::shared_ptr<const Surface> surface(
         graphics.GetSurfaceNamedAndMarkViewed(machine, filename));
-    surface->BlitToSurface(
-        *graphics.GetHaikei(), surface->GetRect(), surface->GetRect(), 255, true);
+    surface->BlitToSurface(*graphics.GetHaikei(), surface->GetRect(),
+                           surface->GetRect(), 255, true);
 
     // TODO(erg): Unsure about the alpha in these implementation.
     for (BgrMultiCommand::type::const_iterator it = commands.begin();
-         it != commands.end();
-         it++) {
+         it != commands.end(); it++) {
       switch (it->type) {
         case 0: {
           // 0:copy(strC 'filename')
           surface = graphics.GetSurfaceNamedAndMarkViewed(machine, it->first);
-          surface->BlitToSurface(*graphics.GetHaikei(),
-                                 surface->GetRect(),
-                                 surface->GetRect(),
-                                 255,
-                                 true);
+          surface->BlitToSurface(*graphics.GetHaikei(), surface->GetRect(),
+                                 surface->GetRect(), 255, true);
           break;
         }
         case 2: {
@@ -215,12 +212,11 @@ struct bgrMulti_1
           Point dest;
           GetSELPointAndRect(machine, std::get<1>(it->third), srcRect, dest);
 
-          surface =
-              graphics.GetSurfaceNamedAndMarkViewed(machine,
-                                                    std::get<0>(it->third));
+          surface = graphics.GetSurfaceNamedAndMarkViewed(
+              machine, std::get<0>(it->third));
           Rect destRect = Rect(dest, srcRect.size());
-          surface->BlitToSurface(
-              *graphics.GetHaikei(), srcRect, destRect, 255, true);
+          surface->BlitToSurface(*graphics.GetHaikei(), srcRect, destRect, 255,
+                                 true);
           break;
         }
         default: {
@@ -299,12 +295,8 @@ BgrModule::BgrModule() : MappedRLModule(GraphicsStackMappingFun, "Bgr", 1, 40) {
   AddOpcode(1105, 0, "bgrSetYOffset", new bgrSetYOffset);
 
   AddOpcode(2000, 0, "bgrPreloadScript", new bgrPreloadScript);
-  AddOpcode(2001,
-            0,
-            "bgrClearPreloadedScript",
+  AddOpcode(2001, 0, "bgrClearPreloadedScript",
             CallFunction(&GraphicsSystem::ClearPreloadedHIKScript));
-  AddOpcode(2002,
-            0,
-            "bgrClearAllPreloadedScripts",
+  AddOpcode(2002, 0, "bgrClearAllPreloadedScripts",
             CallFunction(&GraphicsSystem::ClearAllPreloadedHIKScripts));
 }

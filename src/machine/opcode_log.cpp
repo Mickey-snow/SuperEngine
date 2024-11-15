@@ -61,8 +61,8 @@ std::ostream& operator<<(std::ostream& os, const OpcodeLog& log) {
        << "-----" << std::endl;
 
     for (auto const& entry : log) {
-      os << std::setw(max_function_name_len) << std::left << entry.first
-         << "  " << entry.second << std::endl;
+      os << std::setw(max_function_name_len) << std::left << entry.first << "  "
+         << entry.second << std::endl;
     }
   } else {
     os << "No undefined opcodes called!";

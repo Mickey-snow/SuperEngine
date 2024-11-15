@@ -49,7 +49,7 @@ inline void save(Archive& ar,
                  const unsigned int /* file_version */) {
   std::string text_representation;
   boost::to_string(bs, text_representation);
-  ar& text_representation;
+  ar & text_representation;
 }
 
 template <class Archive, class Block, class Allocator>
@@ -57,7 +57,7 @@ inline void load(Archive& ar,
                  boost::dynamic_bitset<Block, Allocator>& bs,
                  const unsigned int /* file_version */) {
   std::string text_representation;
-  ar& text_representation;
+  ar & text_representation;
   bs = boost::dynamic_bitset<Block, Allocator>(text_representation);
 }
 

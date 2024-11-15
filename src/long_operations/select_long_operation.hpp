@@ -30,10 +30,10 @@
 #include <string>
 #include <vector>
 
+#include "base/rect.hpp"
 #include "machine/long_operation.hpp"
 #include "systems/base/colour.hpp"
 #include "systems/base/event_listener.hpp"
-#include "base/rect.hpp"
 #include "systems/base/renderable.hpp"
 #include "systems/base/surface.hpp"
 
@@ -103,7 +103,8 @@ class NormalSelectLongOperation : public SelectLongOperation {
 
   // Overridden from EventListener:
   virtual void MouseMotion(const Point&) override;
-  virtual bool MouseButtonStateChanged(MouseButton mouseButton, bool pressed) override;
+  virtual bool MouseButtonStateChanged(MouseButton mouseButton,
+                                       bool pressed) override;
 
  private:
   std::shared_ptr<TextWindow> text_window_;

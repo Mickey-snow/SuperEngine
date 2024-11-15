@@ -219,10 +219,10 @@ MsgModule::MsgModule() : RLModule("Msg", 0, 003) {
   AddOpcode(102, 0, "TextWindow", new Msg_TextWindow);
   AddOpcode(102, 1, "TextWindow", new Msg_TextWindow);
 
-  AddOpcode(
-      103, 0, "FastText", CallFunctionWith(&TextSystem::set_fast_text_mode, 1));
-  AddOpcode(
-      104, 0, "NormalText", CallFunctionWith(&TextSystem::set_fast_text_mode, 0));
+  AddOpcode(103, 0, "FastText",
+            CallFunctionWith(&TextSystem::set_fast_text_mode, 1));
+  AddOpcode(104, 0, "NormalText",
+            CallFunctionWith(&TextSystem::set_fast_text_mode, 0));
 
   AddOpcode(105, 0, "FontColor", new FontColour);
   AddOpcode(105, 1, "FontColor", new FontColour);
@@ -234,13 +234,9 @@ MsgModule::MsgModule() : RLModule("Msg", 0, 003) {
 
   AddUnsupportedOpcode(107, 0, "FontSizeAll");
 
-  AddOpcode(109,
-            0,
-            "message_no_waitOn",
+  AddOpcode(109, 0, "message_no_waitOn",
             CallFunctionWith(&TextSystem::set_script_message_nowait, 1));
-  AddOpcode(110,
-            0,
-            "message_no_waitOff",
+  AddOpcode(110, 0, "message_no_waitOff",
             CallFunctionWith(&TextSystem::set_script_message_nowait, 0));
 
   AddOpcode(111, 0, "activeWindow", ReturnIntValue(&TextSystem::active_window));
@@ -267,10 +263,10 @@ MsgModule::MsgModule() : RLModule("Msg", 0, 003) {
   AddOpcode(311, 0, "TextPosX", CallFunction(&TextPage::SetInsertionPointX));
   AddOpcode(312, 0, "TextPosY", CallFunction(&TextPage::SetInsertionPointY));
   AddOpcode(320, 0, "TextOffset", new TextOffset);
-  AddOpcode(
-      321, 0, "TextOffsetX", CallFunction(&TextPage::Offset_insertion_point_x));
-  AddOpcode(
-      322, 0, "TextOffsetY", CallFunction(&TextPage::Offset_insertion_point_y));
+  AddOpcode(321, 0, "TextOffsetX",
+            CallFunction(&TextPage::Offset_insertion_point_x));
+  AddOpcode(322, 0, "TextOffsetY",
+            CallFunction(&TextPage::Offset_insertion_point_y));
   AddOpcode(330, 0, "GetTextPos", new GetTextPos);
 
   AddUnsupportedOpcode(340, 0, "WindowLen");

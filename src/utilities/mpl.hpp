@@ -25,7 +25,7 @@
 
 #include <cstddef>
 
-struct NullType{};
+struct NullType {};
 
 template <typename... Ts>
 struct TypeList {};
@@ -35,7 +35,7 @@ struct AddFront;
 
 template <typename T, typename... Ts>
 struct AddFront<T, TypeList<Ts...>> {
-    using type = TypeList<T, Ts...>;
+  using type = TypeList<T, Ts...>;
 };
 
 template <typename List, typename T>
@@ -43,7 +43,7 @@ struct AddBack;
 
 template <typename... Ts, typename T>
 struct AddBack<TypeList<Ts...>, T> {
-    using type = TypeList<Ts..., T>;
+  using type = TypeList<Ts..., T>;
 };
 
 template <std::size_t N, typename List>
@@ -51,13 +51,13 @@ struct GetNthType;
 
 template <std::size_t N, typename T, typename... Ts>
 struct GetNthType<N, TypeList<T, Ts...>> {
-    static_assert(N < sizeof...(Ts) + 1, "Index out of bounds");
-    using type = typename GetNthType<N - 1, TypeList<Ts...>>::type;
+  static_assert(N < sizeof...(Ts) + 1, "Index out of bounds");
+  using type = typename GetNthType<N - 1, TypeList<Ts...>>::type;
 };
 
 template <typename T, typename... Ts>
 struct GetNthType<0, TypeList<T, Ts...>> {
-    using type = T;
+  using type = T;
 };
 
 template <typename List>
@@ -65,7 +65,7 @@ struct SizeOfTypeList;
 
 template <typename... Ts>
 struct SizeOfTypeList<TypeList<Ts...>> {
-    static constexpr std::size_t value = sizeof...(Ts);
+  static constexpr std::size_t value = sizeof...(Ts);
 };
 
 template <typename List1, typename List2>
@@ -73,5 +73,5 @@ struct Append;
 
 template <typename... Ts, typename... Us>
 struct Append<TypeList<Ts...>, TypeList<Us...>> {
-    using type = TypeList<Ts..., Us...>;
+  using type = TypeList<Ts..., Us...>;
 };

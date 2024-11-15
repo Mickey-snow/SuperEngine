@@ -76,10 +76,11 @@ class SDLRenderToTextureSurface : public Surface, public NotificationObserver {
   virtual void Mono(const Rect& area) override;
   virtual void ToneCurve(const ToneCurveRGBMap effect,
                          const Rect& rect) override;
-  virtual void ApplyColour(const RGBColour& colour,
-                           const Rect& area) override;
+  virtual void ApplyColour(const RGBColour& colour, const Rect& area) override;
 
-  virtual void GetDCPixel(const Point& pos, int& r, int& g,
+  virtual void GetDCPixel(const Point& pos,
+                          int& r,
+                          int& g,
                           int& b) const override;
 
   virtual Size GetSize() const override;

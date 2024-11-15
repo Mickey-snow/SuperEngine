@@ -26,8 +26,8 @@
 
 #include "systems/gcn/gcn_window.hpp"
 
-#include "systems/gcn/gcn_utils.hpp"
 #include "base/rect.hpp"
+#include "systems/gcn/gcn_utils.hpp"
 
 static int xpos[] = {0, 4, 7, 11};
 static int ypos[] = {0, 4, 15, 19};

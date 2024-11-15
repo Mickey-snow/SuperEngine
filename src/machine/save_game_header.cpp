@@ -33,13 +33,10 @@
 // SaveGameHeader
 // -----------------------------------------------------------------------
 SaveGameHeader::SaveGameHeader()
-    : title(),
-      save_time(boost::posix_time::microsec_clock::local_time()) {
-}
+    : title(), save_time(boost::posix_time::microsec_clock::local_time()) {}
 
 SaveGameHeader::SaveGameHeader(const std::string& in_title)
     : title(in_title),
-      save_time(boost::posix_time::microsec_clock::local_time()) {
-}
+      save_time(boost::posix_time::microsec_clock::local_time()) {}
 
 SaveGameHeader::~SaveGameHeader() {}

@@ -27,12 +27,12 @@
 #include "object/mutator.hpp"
 
 #include "machine/rlmachine.hpp"
+#include "object/drawer/parent.hpp"
+#include "object/objdrawer.hpp"
 #include "object/parameter_manager.hpp"
 #include "systems/base/event_system.hpp"
 #include "systems/base/graphics_object.hpp"
-#include "object/objdrawer.hpp"
 #include "systems/base/graphics_system.hpp"
-#include "object/drawer/parent.hpp"
 #include "systems/base/system.hpp"
 
 #include <functional>

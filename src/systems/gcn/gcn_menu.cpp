@@ -35,8 +35,8 @@
 #include "systems/gcn/gcn_button.hpp"
 #include "systems/gcn/gcn_platform.hpp"
 
-using std::vector;
 using gcn::Button;
+using std::vector;
 
 const int MENU_PADDING = 10;
 

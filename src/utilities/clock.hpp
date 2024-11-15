@@ -30,47 +30,49 @@
  * @brief A class for tracking the elapsed time since the program started.
  *
  * The Clock class provides functionality to retrieve the current time point
- * and the number of milliseconds elapsed since the program began. It is designed
- * to allow subclassing for testing purposes and is not strictly a singleton.
+ * and the number of milliseconds elapsed since the program began. It is
+ * designed to allow subclassing for testing purposes and is not strictly a
+ * singleton.
  */
 class Clock {
-public:
-    /**
-     * @typedef duration_t
-     * @brief Represents the duration type in milliseconds.
-     */
-    using duration_t = std::chrono::milliseconds;
+ public:
+  /**
+   * @typedef duration_t
+   * @brief Represents the duration type in milliseconds.
+   */
+  using duration_t = std::chrono::milliseconds;
 
-    /**
-     * @typedef timepoint_t
-     * @brief Represents a time point using a steady clock.
-     */
-    using timepoint_t = std::chrono::time_point<std::chrono::steady_clock>;
+  /**
+   * @typedef timepoint_t
+   * @brief Represents a time point using a steady clock.
+   */
+  using timepoint_t = std::chrono::time_point<std::chrono::steady_clock>;
 
-public:
-    Clock() = default;
-    virtual ~Clock() = default;
+ public:
+  Clock() = default;
+  virtual ~Clock() = default;
 
-    /**
-     * @brief Retrieves the current time point since the program started.
-     *
-     * @return A timepoint_t object representing the current time.
-     */
-    virtual timepoint_t GetTime() const;
+  /**
+   * @brief Retrieves the current time point since the program started.
+   *
+   * @return A timepoint_t object representing the current time.
+   */
+  virtual timepoint_t GetTime() const;
 
-    /**
-     * @brief Retrieves the number of milliseconds elapsed since the program started.
-     *
-     * @return A duration_t object representing the elapsed time in milliseconds.
-     */
-    virtual duration_t GetTicks() const;
+  /**
+   * @brief Retrieves the number of milliseconds elapsed since the program
+   * started.
+   *
+   * @return A duration_t object representing the elapsed time in milliseconds.
+   */
+  virtual duration_t GetTicks() const;
 
-private:
-    /**
-     * @brief The epoch time point marking the start of the program.
-     *
-     * This static member holds the initial time point from which elapsed time
-     * is calculated.
-     */
-    static timepoint_t epoch;
+ private:
+  /**
+   * @brief The epoch time point marking the start of the program.
+   *
+   * This static member holds the initial time point from which elapsed time
+   * is calculated.
+   */
+  static timepoint_t epoch;
 };

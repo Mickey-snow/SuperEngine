@@ -30,8 +30,8 @@
 #include <sstream>
 #include <string>
 
-#include "libreallive/parser.hpp"
 #include "libreallive/expression.hpp"
+#include "libreallive/parser.hpp"
 
 using std::ostringstream;
 
@@ -67,7 +67,7 @@ UnimplementedOpcode::UnimplementedOpcode(const std::string& funName,
                                          int module,
                                          int opcode,
                                          int overload)
-    : Exception(""){
+    : Exception("") {
   std::ostringstream oss;
   oss << funName << " (opcode<" << modtype << ":" << module << ":" << opcode
       << ", " << overload << ">)";
@@ -79,8 +79,7 @@ UnimplementedOpcode::UnimplementedOpcode(
     RLMachine& machine,
     const std::string& funName,
     const libreallive::CommandElement& command)
-    : Exception(""),
-      parameters_(command.GetParsedParameters()) {
+    : Exception(""), parameters_(command.GetParsedParameters()) {
   std::ostringstream oss;
   oss << funName << " [opcode<" << command.modtype() << ":" << command.module()
       << ":" << command.opcode() << ", " << command.overload() << ">]";
@@ -91,8 +90,7 @@ UnimplementedOpcode::UnimplementedOpcode(
 UnimplementedOpcode::UnimplementedOpcode(
     RLMachine& machine,
     const libreallive::CommandElement& command)
-    : Exception(""),
-      parameters_(command.GetParsedParameters()) {
+    : Exception(""), parameters_(command.GetParsedParameters()) {
   ostringstream oss;
   oss << "opcode<" << command.modtype() << ":" << command.module() << ":"
       << command.opcode() << ", " << command.overload() << ">";

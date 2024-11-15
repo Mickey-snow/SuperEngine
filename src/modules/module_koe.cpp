@@ -195,11 +195,11 @@ KoeModule::KoeModule() : RLModule("Koe", 1, 23) {
   AddOpcode(12, 0, "koeSetVolume", new koeSetVolume_0);
   AddOpcode(12, 1, "koeSetVolume", CallFunction(&SoundSystem::SetKoeVolume));
 
-  AddOpcode(
-      13, 0, "koeUnMute", CallFunctionWith(&SoundSystem::SetKoeVolume, 255, 0));
+  AddOpcode(13, 0, "koeUnMute",
+            CallFunctionWith(&SoundSystem::SetKoeVolume, 255, 0));
   AddOpcode(13, 1, "koeUnMute", new koeUnMute_1);
 
-  AddOpcode(
-      14, 0, "koeMute", CallFunctionWith(&SoundSystem::SetKoeVolume, 0, 0));
+  AddOpcode(14, 0, "koeMute",
+            CallFunctionWith(&SoundSystem::SetKoeVolume, 0, 0));
   AddOpcode(14, 1, "koeMute", new koeMute_1);
 }

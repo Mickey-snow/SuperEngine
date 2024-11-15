@@ -202,15 +202,14 @@ TEST(lzss32Test, IncorrectArchiveSize) {
 TEST(lzss32Test, OverlappingBackRefs) {
   // Test with overlapping back references
   uint8_t compressed[] = {
-      0x19,       0x00, 0x00, 0x00,
-      0x3c,       0x00, 0x00, 0x00,
-      0b00001111,                    // flag
-      0x32,       0xe1, 0x9f,        // pixel1
-      0xfe,       0xf3, 0x26,        // pixel2
-      0x65,       0x0a, 0x3b,        // pixel3
-      0xff,       0xff, 0xff,        // pixel4
-      0x32,       0x00,              // backref p2p3p4
-      0x67,       0x00               // backref p2p3p4p2p3p4p2p3
+      0x19,       0x00, 0x00, 0x00, 0x3c, 0x00, 0x00, 0x00,
+      0b00001111,              // flag
+      0x32,       0xe1, 0x9f,  // pixel1
+      0xfe,       0xf3, 0x26,  // pixel2
+      0x65,       0x0a, 0x3b,  // pixel3
+      0xff,       0xff, 0xff,  // pixel4
+      0x32,       0x00,        // backref p2p3p4
+      0x67,       0x00         // backref p2p3p4p2p3p4p2p3
   };
 
   std::string_view compressed_data(reinterpret_cast<char*>(compressed),

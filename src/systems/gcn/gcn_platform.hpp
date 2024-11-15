@@ -28,8 +28,8 @@
 
 #include <guichan.hpp>
 #include <guichan/opengl.hpp>
-#include <guichan/sdl.hpp>
 #include <guichan/opengl/openglsdlimageloader.hpp>
+#include <guichan/sdl.hpp>
 
 #include <memory>
 #include <string>
@@ -38,8 +38,8 @@
 #include "systems/base/platform.hpp"
 #include "systems/base/renderable.hpp"
 #include "systems/gcn/gcn_menu.hpp"
-#include "systems/gcn/gcn_window.hpp"
 #include "systems/gcn/gcn_save_load_window.hpp"
+#include "systems/gcn/gcn_window.hpp"
 
 class Gameexe;
 class GCNPlatformBlocker;

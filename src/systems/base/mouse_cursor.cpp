@@ -58,10 +58,8 @@ MouseCursor::MouseCursor(System& system,
   cursor_surface->GetDCPixel(Point(0, 0), alphaR, alphaG, alphaB);
 
   cursor_surface_ = cursor_surface->ClipAsColorMask(
-      Rect(8, 8, Size(CURSOR_SIZE_INT * count_, CURSOR_SIZE_INT)),
-      alphaR,
-      alphaG,
-      alphaB);
+      Rect(8, 8, Size(CURSOR_SIZE_INT * count_, CURSOR_SIZE_INT)), alphaR,
+      alphaG, alphaB);
 }
 
 MouseCursor::~MouseCursor() {}
@@ -101,8 +99,7 @@ void MouseCursor::FindHotspot() {
   for (int x = HOTSPOTMASK_X_OFFSET; x < HOTSPOTMASK_X_OFFSET + CURSOR_SIZE_INT;
        ++x) {
     for (int y = HOTSPOTMASK_Y_OFFSET;
-         y < HOTSPOTMASK_Y_OFFSET + CURSOR_SIZE_INT;
-         ++y) {
+         y < HOTSPOTMASK_Y_OFFSET + CURSOR_SIZE_INT; ++y) {
       cursor_surface_->GetDCPixel(Point(x, y), r, g, b);
 
       if (r == 255 && g == 255 && b == 255) {

@@ -24,8 +24,8 @@
 
 #include <gtest/gtest.h>
 
-#include "base/gameexe.hpp"
 #include "base/asset_scanner.hpp"
+#include "base/gameexe.hpp"
 #include "test_utils.hpp"
 
 #include <filesystem>
@@ -113,9 +113,9 @@ TEST_F(rlfsTest, SpecialFiles) {
 }
 
 TEST_F(rlfsTest, InvalidInput) {
-  EXPECT_THROW(
-      game_assets.IndexDirectory(PathToTestDirectory("Gameroot") / "InvalidDir"),
-      std::invalid_argument);
+  EXPECT_THROW(game_assets.IndexDirectory(PathToTestDirectory("Gameroot") /
+                                          "InvalidDir"),
+               std::invalid_argument);
 
   // Pass an invalid Gameexe configuration
   Gameexe invalidGexe;

@@ -143,9 +143,8 @@ Script::Script(const Header& hdr,
   auto compressed =
       std::string(data + read_i32(data + 0x20), read_i32(data + 0x28));
   int idx = 0;
-  std::transform(
-      compressed.begin(), compressed.end(), compressed.begin(),
-      [&](auto x) { return x ^ xor_mask[idx++ & 0xff]; });
+  std::transform(compressed.begin(), compressed.end(), compressed.begin(),
+                 [&](auto x) { return x ^ xor_mask[idx++ & 0xff]; });
 
   std::string decompressed = Decompress_lzss(compressed);
 

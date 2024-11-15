@@ -38,10 +38,10 @@
 #include <sstream>
 #include <string>
 
+#include "object/objdrawer.hpp"
 #include "pygame/alphablit.h"
 #include "systems/base/colour.hpp"
 #include "systems/base/graphics_object.hpp"
-#include "object/objdrawer.hpp"
 #include "systems/base/system_error.hpp"
 #include "systems/sdl/sdl_graphics_system.hpp"
 #include "systems/sdl/sdl_surface.hpp"
@@ -95,26 +95,12 @@ Texture::Texture(SDL_Surface* surface,
 
   if (w == total_width_ && h == total_height_) {
     SDL_LockSurface(surface);
-    glTexImage2D(GL_TEXTURE_2D,
-                 0,
-                 bytes_per_pixel,
-                 texture_width_,
-                 texture_height_,
-                 0,
-                 byte_order,
-                 byte_type,
-                 NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, bytes_per_pixel, texture_width_,
+                 texture_height_, 0, byte_order, byte_type, NULL);
     DebugShowGLErrors();
 
-    glTexSubImage2D(GL_TEXTURE_2D,
-                    0,
-                    0,
-                    0,
-                    surface->w,
-                    surface->h,
-                    byte_order,
-                    byte_type,
-                    surface->pixels);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, surface->w, surface->h, byte_order,
+                    byte_type, surface->pixels);
     DebugShowGLErrors();
 
     SDL_UnlockSurface(surface);
@@ -138,19 +124,12 @@ Texture::Texture(SDL_Surface* surface,
     }
     SDL_UnlockSurface(surface);
 
-    glTexImage2D(GL_TEXTURE_2D,
-                 0,
-                 bytes_per_pixel,
-                 texture_width_,
-                 texture_height_,
-                 0,
-                 byte_order,
-                 byte_type,
-                 NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, bytes_per_pixel, texture_width_,
+                 texture_height_, 0, byte_order, byte_type, NULL);
     DebugShowGLErrors();
 
-    glTexSubImage2D(
-        GL_TEXTURE_2D, 0, 0, 0, w, h, byte_order, byte_type, pixel_data);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, byte_order, byte_type,
+                    pixel_data);
     DebugShowGLErrors();
   }
 }
@@ -181,19 +160,12 @@ Texture::Texture(render_to_texture, int width, int height)
   texture_height_ = SafeSize(logical_height_);
 
   // This may fail.
-  glTexImage2D(GL_TEXTURE_2D,
-               0,
-               GL_RGBA,
-               texture_width_,
-               texture_height_,
-               0,
-               GL_RGB,
-               GL_UNSIGNED_BYTE,
-               NULL);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture_width_, texture_height_, 0,
+               GL_RGB, GL_UNSIGNED_BYTE, NULL);
   DebugShowGLErrors();
 
-  glCopyTexSubImage2D(
-      GL_TEXTURE_2D, 0, 0, 0, 0, 0, logical_width_, logical_height_);
+  glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, logical_width_,
+                      logical_height_);
   DebugShowGLErrors();
 }
 
@@ -236,15 +208,8 @@ void Texture::reupload(SDL_Surface* surface,
   if (w == total_width_ && h == total_height_) {
     SDL_LockSurface(surface);
 
-    glTexSubImage2D(GL_TEXTURE_2D,
-                    0,
-                    0,
-                    0,
-                    surface->w,
-                    surface->h,
-                    byte_order,
-                    byte_type,
-                    surface->pixels);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, surface->w, surface->h, byte_order,
+                    byte_type, surface->pixels);
     DebugShowGLErrors();
 
     SDL_UnlockSurface(surface);
@@ -268,15 +233,8 @@ void Texture::reupload(SDL_Surface* surface,
     }
     SDL_UnlockSurface(surface);
 
-    glTexSubImage2D(GL_TEXTURE_2D,
-                    0,
-                    offset_x,
-                    offset_y,
-                    w,
-                    h,
-                    byte_order,
-                    byte_type,
-                    pixel_data);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, offset_x, offset_y, w, h, byte_order,
+                    byte_type, pixel_data);
     DebugShowGLErrors();
   }
 }
@@ -392,15 +350,8 @@ void Texture::render_to_screen_as_colour_mask_subtractive_glsl(
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     // Generate this texture
-    glTexImage2D(GL_TEXTURE_2D,
-                 0,
-                 GL_RGBA,
-                 texture_width_,
-                 texture_height_,
-                 0,
-                 GL_RGB,
-                 GL_UNSIGNED_BYTE,
-                 NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture_width_, texture_height_, 0,
+                 GL_RGB, GL_UNSIGNED_BYTE, NULL);
     DebugShowGLErrors();
   }
 
@@ -409,8 +360,8 @@ void Texture::render_to_screen_as_colour_mask_subtractive_glsl(
   glBindTexture(GL_TEXTURE_2D, back_texture_id_);
   int ystart = int(s_screen_height - fdy1 - (fdy2 - fdy1));
   int idx1 = int(fdx1);
-  glCopyTexSubImage2D(
-      GL_TEXTURE_2D, 0, 0, 0, idx1, ystart, texture_width_, texture_height_);
+  glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, idx1, ystart, texture_width_,
+                      texture_height_);
   DebugShowGLErrors();
 
   glUseProgramObjectARB(Shaders::getColorMaskProgram());
@@ -648,7 +599,8 @@ void Texture::RenderToScreenAsObject(const GraphicsObject& go,
     // to use it.
     bool using_shader = false;
     if ((param.light() || param.tint() != RGBColour::Black() ||
-         param.colour() != RGBAColour::Clear() || param.mono() || param.invert()) &&
+         param.colour() != RGBAColour::Clear() || param.mono() ||
+         param.invert()) &&
         GLEW_ARB_fragment_shader && GLEW_ARB_multitexture) {
       // Image
       glActiveTexture(GL_TEXTURE0_ARB);

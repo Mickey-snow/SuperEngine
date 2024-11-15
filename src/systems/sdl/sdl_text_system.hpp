@@ -45,16 +45,18 @@ class SDLTextSystem : public TextSystem {
   SDLTextSystem(SDLSystem& system, Gameexe& gameexe);
   ~SDLTextSystem();
 
-  virtual std::shared_ptr<TextWindow> GetTextWindow(int text_window_number) override;
+  virtual std::shared_ptr<TextWindow> GetTextWindow(
+      int text_window_number) override;
 
-  virtual Size RenderGlyphOnto(const std::string& current,
-                               int font_size,
-                               bool italic,
-                               const RGBColour& font_colour,
-                               const RGBColour* shadow_colour,
-                               int insertion_point_x,
-                               int insertion_point_y,
-                               const std::shared_ptr<Surface>& destination) override;
+  virtual Size RenderGlyphOnto(
+      const std::string& current,
+      int font_size,
+      bool italic,
+      const RGBColour& font_colour,
+      const RGBColour* shadow_colour,
+      int insertion_point_x,
+      int insertion_point_y,
+      const std::shared_ptr<Surface>& destination) override;
   virtual int GetCharWidth(int size, uint16_t codepoint) override;
   bool FontIsMonospaced() override;
 

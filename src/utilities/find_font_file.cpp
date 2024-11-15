@@ -29,8 +29,8 @@
 
 #include <string>
 
-#include "systems/base/system.hpp"
 #include "base/gameexe.hpp"
+#include "systems/base/system.hpp"
 
 #include "boost/filesystem/operations.hpp"
 

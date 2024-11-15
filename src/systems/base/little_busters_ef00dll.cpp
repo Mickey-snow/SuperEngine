@@ -29,9 +29,9 @@
 #include <iostream>
 #include <string>
 
+#include "libreallive/intmemref.hpp"
 #include "machine/rlmachine.hpp"
 #include "utilities/exception.hpp"
-#include "libreallive/intmemref.hpp"
 
 using libreallive::IntMemRef;
 

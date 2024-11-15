@@ -28,8 +28,8 @@
 #pragma once
 
 #include <boost/serialization/access.hpp>
-#include <vector>
 #include <iosfwd>
+#include <vector>
 
 // A colour without an alpha channel.
 class RGBColour {
@@ -65,7 +65,7 @@ class RGBColour {
   friend class boost::serialization::access;
   template <class Archive>
   void serialize(Archive& ar, unsigned int version) {
-    ar& r_& g_& b_;
+    ar & r_ & g_ & b_;
   }
 };  // end of class RGB
 
@@ -116,7 +116,7 @@ class RGBAColour {
   friend class boost::serialization::access;
   template <class Archive>
   void serialize(Archive& ar, unsigned int version) {
-    ar& rgb_& alpha_;
+    ar & rgb_ & alpha_;
   }
 };  // end of class RGBA
 

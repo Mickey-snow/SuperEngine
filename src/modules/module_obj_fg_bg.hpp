@@ -27,8 +27,8 @@
 
 #pragma once
 
-#include "machine/rlmodule.hpp"
 #include "machine/mapped_rlmodule.hpp"
+#include "machine/rlmodule.hpp"
 #include "modules/object_module.hpp"
 
 // Contains functions for mod<1:10>, Obj.

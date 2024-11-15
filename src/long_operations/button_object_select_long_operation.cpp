@@ -27,9 +27,9 @@
 #include "long_operations/button_object_select_long_operation.hpp"
 
 #include "machine/rlmachine.hpp"
+#include "object/drawer/parent.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/base/graphics_system.hpp"
-#include "object/drawer/parent.hpp"
 #include "systems/base/system.hpp"
 
 ButtonObjectSelectLongOperation::ButtonObjectSelectLongOperation(
@@ -53,7 +53,8 @@ ButtonObjectSelectLongOperation::ButtonObjectSelectLongOperation(
 
       if (parent) {
         for (GraphicsObject& child : parent->objects()) {
-          if (child.Param().IsButton() && child.Param().GetButtonGroup() == group_) {
+          if (child.Param().IsButton() &&
+              child.Param().GetButtonGroup() == group_) {
             buttons_.emplace_back(&child, &obj);
           }
         }

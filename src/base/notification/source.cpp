@@ -5,13 +5,8 @@
 #include "base/notification/source.hpp"
 
 NotificationSource::NotificationSource(const NotificationSource& other)
-    : ptr_(other.ptr_) {
-}
+    : ptr_(other.ptr_) {}
 
-NotificationSource::NotificationSource(const void* ptr) : ptr_(ptr) {
-}
+NotificationSource::NotificationSource(const void* ptr) : ptr_(ptr) {}
 
-NotificationSource::~NotificationSource() {
-}
-
-
+NotificationSource::~NotificationSource() {}

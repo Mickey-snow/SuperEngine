@@ -35,8 +35,8 @@
 #include "machine/rloperation.hpp"
 #include "machine/rloperation/argc_t.hpp"
 #include "machine/rloperation/complex_t.hpp"
-#include "machine/rloperation/rlop_store.hpp"
 #include "machine/rloperation/references.hpp"
+#include "machine/rloperation/rlop_store.hpp"
 
 // -----------------------------------------------------------------------
 
@@ -85,8 +85,7 @@ struct setrng_1
 //
 // Copies a block of values of length count from source to dest. The
 // function appears to succeed even if the ranges overlap.
-struct cpyrng
-    : public RLOpcode<IntReference_T, IntReference_T, IntConstant_T> {
+struct cpyrng : public RLOpcode<IntReference_T, IntReference_T, IntConstant_T> {
   void operator()(RLMachine& machine,
                   IntReferenceIterator source,
                   IntReferenceIterator dest,
@@ -108,8 +107,7 @@ struct setarray_stepped
                   int step,
                   std::vector<int> values) {
     // Sigh. No more simple STL statements
-    for (std::vector<int>::iterator it = values.begin();
-         it != values.end();
+    for (std::vector<int>::iterator it = values.begin(); it != values.end();
          ++it) {
       *origin = *it;
       std::advance(origin, step);
@@ -139,9 +137,9 @@ struct setrng_stepped_0
 // Sets count number of memory locations to the passed in constant, starting at
 // origin and going forward step.
 struct setrng_stepped_1 : public RLOpcode<IntReference_T,
-                                             IntConstant_T,
-                                             IntConstant_T,
-                                             IntConstant_T> {
+                                          IntConstant_T,
+                                          IntConstant_T,
+                                          IntConstant_T> {
   void operator()(RLMachine& machine,
                   IntReferenceIterator origin,
                   int step,
@@ -157,16 +155,14 @@ struct setrng_stepped_1 : public RLOpcode<IntReference_T,
 // Implement op<1:Mem:00006, 0>, fun cpyvars(int, intC, int+).
 //
 // I'm not even going to try for this one. See RLDev.
-struct cpyvars : public RLOpcode<IntReference_T,
-                                    IntConstant_T,
-                                    Argc_T<IntReference_T>> {
+struct cpyvars
+    : public RLOpcode<IntReference_T, IntConstant_T, Argc_T<IntReference_T>> {
   void operator()(RLMachine& machine,
                   IntReferenceIterator origin,
                   int offset,
                   std::vector<IntReferenceIterator> values) {
     for (std::vector<IntReferenceIterator>::iterator it = values.begin();
-         it != values.end();
-         ++it) {
+         it != values.end(); ++it) {
       IntReferenceIterator irIt = *it;
       std::advance(irIt, offset);
       *origin++ = *irIt;
@@ -193,8 +189,8 @@ struct sums
     : public RLStoreOpcode<Argc_T<Complex_T<IntReference_T, IntReference_T>>> {
   int operator()(
       RLMachine& machine,
-      std::vector<std::tuple<IntReferenceIterator,
-      IntReferenceIterator>> ranges) {
+      std::vector<std::tuple<IntReferenceIterator, IntReferenceIterator>>
+          ranges) {
     int total = 0;
     for (auto it = ranges.cbegin(); it != ranges.cend(); ++it) {
       IntReferenceIterator last = std::get<1>(*it);

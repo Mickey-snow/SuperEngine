@@ -31,11 +31,8 @@
 #include "modules/module_obj.hpp"
 #include "modules/object_mutator_operations.hpp"
 
-ObjectModule::ObjectModule(const std::string& prefix,
-                           RLModule* module)
-    : prefix_(prefix),
-      module_(module) {
-}
+ObjectModule::ObjectModule(const std::string& prefix, RLModule* module)
+    : prefix_(prefix), module_(module) {}
 
 ObjectModule::~ObjectModule() {}
 
@@ -72,13 +69,10 @@ void ObjectModule::AddDoubleObjectCommands(int base_id,
   string base_eve_name = "objEve" + name;
   module_->AddOpcode(2000 + base_id, 0, eve_name,
                      new Obj_SetTwoIntOnObj(setter_one, setter_two));
-  module_->AddOpcode(2000 + base_id, 1, eve_name,
-                     new Op_ObjectMutatorIntInt(
-                         getter_one,
-                         setter_one,
-                         getter_two,
-                         setter_two,
-                         base_eve_name));
+  module_->AddOpcode(
+      2000 + base_id, 1, eve_name,
+      new Op_ObjectMutatorIntInt(getter_one, setter_one, getter_two, setter_two,
+                                 base_eve_name));
 
   AddCheck(eve_name, base_eve_name, base_id);
   AddNormalFinale(eve_name, base_eve_name, base_id);
@@ -96,11 +90,9 @@ void ObjectModule::AddRepnoObjectCommands(int base_id,
   string base_eve_name = "objEve" + name;
   module_->AddOpcode(2000 + base_id, 0, eve_name,
                      new Obj_SetRepnoIntOnObj(setter));
-  module_->AddOpcode(2000 + base_id, 1, eve_name,
-                     new Op_ObjectMutatorRepnoInt(
-                         getter,
-                         setter,
-                         base_eve_name));
+  module_->AddOpcode(
+      2000 + base_id, 1, eve_name,
+      new Op_ObjectMutatorRepnoInt(getter, setter, base_eve_name));
 
   AddCheck(eve_name, base_eve_name, base_id);
   AddRepnoFinale(eve_name, base_eve_name, base_id);

@@ -42,10 +42,10 @@
 #include "object/drawer/digits.hpp"
 #include "object/drawer/drift.hpp"
 #include "object/drawer/gan.hpp"
+#include "object/drawer/parent.hpp"
+#include "object/drawer/text.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/base/graphics_system.hpp"
-#include "object/drawer/text.hpp"
-#include "object/drawer/parent.hpp"
 #include "systems/base/surface.hpp"
 #include "systems/base/system.hpp"
 #include "utilities/graphics.hpp"
@@ -125,10 +125,10 @@ struct objGeneric_1
 };
 
 struct objGeneric_2 : public RLOpcode<IntConstant_T,
-                                         StrConstant_T,
-                                         IntConstant_T,
-                                         IntConstant_T,
-                                         IntConstant_T> {
+                                      StrConstant_T,
+                                      IntConstant_T,
+                                      IntConstant_T,
+                                      IntConstant_T> {
   DataFunction data_fun_;
   explicit objGeneric_2(const DataFunction& fun) : data_fun_(fun) {}
 
@@ -147,11 +147,11 @@ struct objGeneric_2 : public RLOpcode<IntConstant_T,
 };
 
 struct objGeneric_3 : public RLOpcode<IntConstant_T,
-                                         StrConstant_T,
-                                         IntConstant_T,
-                                         IntConstant_T,
-                                         IntConstant_T,
-                                         IntConstant_T> {
+                                      StrConstant_T,
+                                      IntConstant_T,
+                                      IntConstant_T,
+                                      IntConstant_T,
+                                      IntConstant_T> {
   DataFunction data_fun_;
   explicit objGeneric_3(const DataFunction& fun) : data_fun_(fun) {}
 
@@ -172,13 +172,13 @@ struct objGeneric_3 : public RLOpcode<IntConstant_T,
 };
 
 struct objGeneric_4 : public RLOpcode<IntConstant_T,
-                                         StrConstant_T,
-                                         IntConstant_T,
-                                         IntConstant_T,
-                                         IntConstant_T,
-                                         IntConstant_T,
-                                         IntConstant_T,
-                                         IntConstant_T> {
+                                      StrConstant_T,
+                                      IntConstant_T,
+                                      IntConstant_T,
+                                      IntConstant_T,
+                                      IntConstant_T,
+                                      IntConstant_T,
+                                      IntConstant_T> {
   DataFunction data_fun_;
   explicit objGeneric_4(const DataFunction& fun) : data_fun_(fun) {}
 
@@ -216,9 +216,9 @@ struct objOfFileGan_0
 };
 
 struct objOfFileGan_1 : public RLOpcode<IntConstant_T,
-                                           StrConstant_T,
-                                           StrConstant_T,
-                                           IntConstant_T> {
+                                        StrConstant_T,
+                                        StrConstant_T,
+                                        IntConstant_T> {
   void operator()(RLMachine& machine,
                   int buf,
                   string imgFilename,
@@ -231,11 +231,11 @@ struct objOfFileGan_1 : public RLOpcode<IntConstant_T,
 };
 
 struct objOfFileGan_2 : public RLOpcode<IntConstant_T,
-                                           StrConstant_T,
-                                           StrConstant_T,
-                                           IntConstant_T,
-                                           IntConstant_T,
-                                           IntConstant_T> {
+                                        StrConstant_T,
+                                        StrConstant_T,
+                                        IntConstant_T,
+                                        IntConstant_T,
+                                        IntConstant_T> {
   void operator()(RLMachine& machine,
                   int buf,
                   string imgFilename,
@@ -252,12 +252,12 @@ struct objOfFileGan_2 : public RLOpcode<IntConstant_T,
 };
 
 struct objOfFileGan_3 : public RLOpcode<IntConstant_T,
-                                           StrConstant_T,
-                                           StrConstant_T,
-                                           IntConstant_T,
-                                           IntConstant_T,
-                                           IntConstant_T,
-                                           IntConstant_T> {
+                                        StrConstant_T,
+                                        StrConstant_T,
+                                        IntConstant_T,
+                                        IntConstant_T,
+                                        IntConstant_T,
+                                        IntConstant_T> {
   void operator()(RLMachine& machine,
                   int buf,
                   string imgFilename,
@@ -307,10 +307,10 @@ struct objOfArea_2
 };
 
 struct objOfRect_1 : public RLOpcode<IntConstant_T,
-                                        IntConstant_T,
-                                        IntConstant_T,
-                                        DefaultIntValue_T<INT_MIN>,
-                                        DefaultIntValue_T<INT_MIN>> {
+                                     IntConstant_T,
+                                     IntConstant_T,
+                                     DefaultIntValue_T<INT_MIN>,
+                                     DefaultIntValue_T<INT_MIN>> {
   void operator()(RLMachine& machine,
                   int buf,
                   int x,
@@ -329,11 +329,11 @@ struct objOfRect_1 : public RLOpcode<IntConstant_T,
 };
 
 struct objOfRect_2 : public RLOpcode<IntConstant_T,
-                                        IntConstant_T,
-                                        IntConstant_T,
-                                        IntConstant_T,
-                                        DefaultIntValue_T<INT_MIN>,
-                                        DefaultIntValue_T<INT_MIN>> {
+                                     IntConstant_T,
+                                     IntConstant_T,
+                                     IntConstant_T,
+                                     DefaultIntValue_T<INT_MIN>,
+                                     DefaultIntValue_T<INT_MIN>> {
   void operator()(RLMachine& machine,
                   int buf,
                   int x,
@@ -361,9 +361,9 @@ struct objOfRect_2 : public RLOpcode<IntConstant_T,
 // objOfRect_4. Blank until I see it in the wild.
 
 struct objOfChild_0 : public RLOpcode<IntConstant_T,
-                                         IntConstant_T,
-                                         StrConstant_T,
-                                         StrConstant_T> {
+                                      IntConstant_T,
+                                      StrConstant_T,
+                                      StrConstant_T> {
   void operator()(RLMachine& machine,
                   int buf,
                   int count,
@@ -376,10 +376,10 @@ struct objOfChild_0 : public RLOpcode<IntConstant_T,
 };
 
 struct objOfChild_1 : public RLOpcode<IntConstant_T,
-                                         IntConstant_T,
-                                         StrConstant_T,
-                                         StrConstant_T,
-                                         IntConstant_T> {
+                                      IntConstant_T,
+                                      StrConstant_T,
+                                      StrConstant_T,
+                                      IntConstant_T> {
   void operator()(RLMachine& machine,
                   int buf,
                   int count,
@@ -393,12 +393,12 @@ struct objOfChild_1 : public RLOpcode<IntConstant_T,
 };
 
 struct objOfChild_2 : public RLOpcode<IntConstant_T,
-                                         IntConstant_T,
-                                         StrConstant_T,
-                                         StrConstant_T,
-                                         IntConstant_T,
-                                         IntConstant_T,
-                                         IntConstant_T> {
+                                      IntConstant_T,
+                                      StrConstant_T,
+                                      StrConstant_T,
+                                      IntConstant_T,
+                                      IntConstant_T,
+                                      IntConstant_T> {
   void operator()(RLMachine& machine,
                   int buf,
                   int count,

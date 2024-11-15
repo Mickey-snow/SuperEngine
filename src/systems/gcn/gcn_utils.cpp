@@ -29,16 +29,16 @@
 #include <SDL/SDL.h>
 #include <SDL/SDL_image.h>
 
-#include <guichan/opengl/openglimage.hpp>
 #include <guichan/exception.hpp>
 #include <guichan/image.hpp>
+#include <guichan/opengl/openglimage.hpp>
 
 #include <string>
 
+#include "systems/gcn/button.xpm"
 #include "systems/gcn/button_disabled.xpm"
 #include "systems/gcn/buttonhi.xpm"
 #include "systems/gcn/buttonpress.xpm"
-#include "systems/gcn/button.xpm"
 #include "systems/gcn/deepbox.xpm"
 #include "systems/gcn/hscroll_left_default.xpm"
 #include "systems/gcn/hscroll_left_pressed.xpm"
@@ -52,22 +52,20 @@
 
 // -----------------------------------------------------------------------
 
-char** IMAGE_TABLE[] =  {
-  button_disabled,
-  buttonhi,
-  button,
-  buttonpress,
-  deepbox,
-  hscroll_left_default,
-  hscroll_left_pressed,
-  hscroll_right_default,
-  hscroll_right_pressed,
-  vscroll_down_default,
-  vscroll_down_pressed,
-  vscroll_grey,
-  vscroll_up_default,
-  vscroll_up_pressed
-};
+char** IMAGE_TABLE[] = {button_disabled,
+                        buttonhi,
+                        button,
+                        buttonpress,
+                        deepbox,
+                        hscroll_left_default,
+                        hscroll_left_pressed,
+                        hscroll_right_default,
+                        hscroll_right_pressed,
+                        vscroll_down_default,
+                        vscroll_down_pressed,
+                        vscroll_grey,
+                        vscroll_up_default,
+                        vscroll_up_pressed};
 
 // -----------------------------------------------------------------------
 
@@ -112,8 +110,8 @@ static gcn::Image* buildThemeGCNImageFrom(SDL_Surface* loadedSurface) {
     throw GCN_EXCEPTION(std::string("Not enough memory to load theme image"));
   }
 
-  gcn::OpenGLImage* image = new gcn::OpenGLImage(
-      (unsigned int*)surface->pixels, surface->w, surface->h, true);
+  gcn::OpenGLImage* image = new gcn::OpenGLImage((unsigned int*)surface->pixels,
+                                                 surface->w, surface->h, true);
   SDL_FreeSurface(surface);
 
   return image;

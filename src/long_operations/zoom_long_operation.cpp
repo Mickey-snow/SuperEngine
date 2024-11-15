@@ -69,8 +69,8 @@ bool ZoomLongOperation::operator()(RLMachine& machine) {
     graphics.BeginFrame();
 
     // First blit the original dc0 to the screen
-    orig_surface_->RenderToScreen(
-        orig_surface_->GetRect(), orig_surface_->GetRect(), 255);
+    orig_surface_->RenderToScreen(orig_surface_->GetRect(),
+                                  orig_surface_->GetRect(), 255);
 
     // figure out the new coordinates for the zoom.
     float ratio = currentFrame / float(duration_);

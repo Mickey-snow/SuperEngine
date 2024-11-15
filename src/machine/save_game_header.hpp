@@ -47,6 +47,6 @@ struct SaveGameHeader {
   // boost::serialization support
   template <class Archive>
   void serialize(Archive& ar, unsigned int version) {
-    ar& title& save_time;
+    ar & title & save_time;
   }
 };

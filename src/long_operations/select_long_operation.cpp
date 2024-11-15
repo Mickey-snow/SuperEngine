@@ -31,8 +31,8 @@
 #include <string>
 #include <vector>
 
-#include "libreallive/expression.hpp"
 #include "base/gameexe.hpp"
+#include "libreallive/expression.hpp"
 #include "libreallive/parser.hpp"
 #include "machine/long_operation.hpp"
 #include "machine/rlmachine.hpp"

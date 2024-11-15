@@ -27,13 +27,13 @@
 #include "machine/reallive_dll.hpp"
 
 #include <boost/algorithm/string/predicate.hpp>
-#include <string>
 #include <sstream>
+#include <string>
 
 #include "systems/base/little_busters_ef00dll.hpp"
 #include "systems/base/little_busters_pt00dll.hpp"
-#include "systems/base/tomoyo_after_dt00dll.hpp"
 #include "systems/base/rlbabel_dll.hpp"
+#include "systems/base/tomoyo_after_dt00dll.hpp"
 #include "utilities/exception.hpp"
 
 using std::ostringstream;
@@ -42,8 +42,7 @@ namespace {
 
 class IgnoredDLL : public RealLiveDLL {
  public:
-  IgnoredDLL(const std::string& name)
-      : name_(name) {}
+  IgnoredDLL(const std::string& name) : name_(name) {}
   ~IgnoredDLL() override {}
 
   int CallDLL(RLMachine& machine,
@@ -55,9 +54,7 @@ class IgnoredDLL : public RealLiveDLL {
     return 0;
   }
 
-  const std::string& GetDLLName() const override {
-    return name_;
-  }
+  const std::string& GetDLLName() const override { return name_; }
 
  private:
   const std::string& name_;

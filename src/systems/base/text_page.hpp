@@ -130,8 +130,7 @@ class TextPage {
   bool CharacterImpl(const std::string& c, const std::string& rest);
 
   // Actually performs the command in most cases.
-  void RunTextPageCommand(const Command& command,
-                          bool is_active_page);
+  void RunTextPageCommand(const Command& command, bool is_active_page);
 
   System* system_;
 

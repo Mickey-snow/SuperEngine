@@ -32,9 +32,9 @@
 #include <string>
 #include <vector>
 
+#include "base/rect.hpp"
 #include "machine/reallive_dll.hpp"
 #include "machine/reference.hpp"
-#include "base/rect.hpp"
 
 class TextWindow;
 

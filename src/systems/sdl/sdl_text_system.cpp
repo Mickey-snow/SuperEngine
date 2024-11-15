@@ -35,8 +35,9 @@
 #include <string>
 #include <vector>
 
-#include "systems/base/graphics_system.hpp"
+#include "base/gameexe.hpp"
 #include "base/rect.hpp"
+#include "systems/base/graphics_system.hpp"
 #include "systems/base/system_error.hpp"
 #include "systems/base/text_key_cursor.hpp"
 #include "systems/sdl/sdl_surface.hpp"
@@ -45,7 +46,6 @@
 #include "systems/sdl/sdl_utils.hpp"
 #include "utilities/exception.hpp"
 #include "utilities/find_font_file.hpp"
-#include "base/gameexe.hpp"
 
 SDLTextSystem::SDLTextSystem(SDLSystem& system, Gameexe& gameexe)
     : TextSystem(system, gameexe), sdl_system_(system) {
@@ -64,9 +64,11 @@ SDLTextSystem::~SDLTextSystem() {
 std::shared_ptr<TextWindow> SDLTextSystem::GetTextWindow(int text_window) {
   WindowMap::iterator it = text_window_.find(text_window);
   if (it == text_window_.end()) {
-    it = text_window_.emplace(text_window,
-                              std::shared_ptr<TextWindow>(new SDLTextWindow(
-                                  sdl_system_, text_window))).first;
+    it =
+        text_window_
+            .emplace(text_window, std::shared_ptr<TextWindow>(new SDLTextWindow(
+                                      sdl_system_, text_window)))
+            .first;
   }
 
   return it->second;
@@ -121,15 +123,13 @@ Size SDLTextSystem::RenderGlyphOnto(
 
   if (shadow) {
     Size offset(shadow->w, shadow->h);
-    sdl_surface->blitFROMSurface(shadow.get(),
-                                 Rect(Point(0, 0), offset),
-                                 Rect(insertion + Point(2, 2), offset),
-                                 255);
+    sdl_surface->blitFROMSurface(shadow.get(), Rect(Point(0, 0), offset),
+                                 Rect(insertion + Point(2, 2), offset), 255);
   }
 
   Size size(character->w, character->h);
-  sdl_surface->blitFROMSurface(
-      character.get(), Rect(Point(0, 0), size), Rect(insertion, size), 255);
+  sdl_surface->blitFROMSurface(character.get(), Rect(Point(0, 0), size),
+                               Rect(insertion, size), 255);
   return size;
 }
 

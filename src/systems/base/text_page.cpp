@@ -130,8 +130,7 @@ struct TextPage::Command {
   };
 };
 
-TextPage::Command::Command(CommandType type)
-    : command(type) {
+TextPage::Command::Command(CommandType type) : command(type) {
   switch (type) {
     case TYPE_HARD_BREAK:
     case TYPE_SET_INDENTATION:
@@ -149,8 +148,7 @@ TextPage::Command::Command(CommandType type)
   }
 }
 
-TextPage::Command::Command(CommandType type, int one)
-    : command(type) {
+TextPage::Command::Command(CommandType type, int one) : command(type) {
   switch (type) {
     case TYPE_KOE_MARKER:
       koe_id = one;
@@ -206,9 +204,7 @@ TextPage::Command::Command(CommandType type,
   }
 }
 
-TextPage::Command::Command(CommandType type,
-                           const std::string& one,
-                           int two)
+TextPage::Command::Command(CommandType type, const std::string& one, int two)
     : command(type) {
   switch (type) {
     case TYPE_FACE_OPEN:
@@ -220,8 +216,7 @@ TextPage::Command::Command(CommandType type,
   }
 }
 
-TextPage::Command::Command(const Command& rhs)
-    : command(rhs.command) {
+TextPage::Command::Command(const Command& rhs) : command(rhs.command) {
   switch (rhs.command) {
     case TYPE_HARD_BREAK:
     case TYPE_SET_INDENTATION:
@@ -304,8 +299,7 @@ TextPage::TextPage(System& system, int window_num)
     : system_(&system),
       window_num_(window_num),
       number_of_chars_on_page_(0),
-      in_ruby_gloss_(false) {
-}
+      in_ruby_gloss_(false) {}
 
 TextPage::TextPage(const TextPage& rhs) = default;
 
@@ -323,8 +317,7 @@ void TextPage::Replay(bool is_active_page) {
     }
   }
 
-  for_each(elements_to_replay_.begin(),
-           elements_to_replay_.end(),
+  for_each(elements_to_replay_.begin(), elements_to_replay_.end(),
            [&](Command& c) { RunTextPageCommand(c, is_active_page); });
 }
 
@@ -352,17 +345,11 @@ void TextPage::Name(const string& name, const string& next_char) {
   number_of_chars_on_page_++;
 }
 
-void TextPage::KoeMarker(int id) {
-  AddAction(Command(TYPE_KOE_MARKER, id));
-}
+void TextPage::KoeMarker(int id) { AddAction(Command(TYPE_KOE_MARKER, id)); }
 
-void TextPage::HardBrake() {
-  AddAction(Command(TYPE_HARD_BREAK));
-}
+void TextPage::HardBrake() { AddAction(Command(TYPE_HARD_BREAK)); }
 
-void TextPage::SetIndentation() {
-  AddAction(Command(TYPE_SET_INDENTATION));
-}
+void TextPage::SetIndentation() { AddAction(Command(TYPE_SET_INDENTATION)); }
 
 void TextPage::ResetIndentation() {
   AddAction(Command(TYPE_RESET_INDENTATION));
@@ -372,17 +359,13 @@ void TextPage::FontColour(int colour) {
   AddAction(Command(TYPE_FONT_COLOUR, colour));
 }
 
-void TextPage::DefaultFontSize() {
-  AddAction(Command(TYPE_DEFAULT_FONT_SIZE));
-}
+void TextPage::DefaultFontSize() { AddAction(Command(TYPE_DEFAULT_FONT_SIZE)); }
 
 void TextPage::FontSize(const int size) {
   AddAction(Command(TYPE_FONT_SIZE, size));
 }
 
-void TextPage::MarkRubyBegin() {
-  AddAction(Command(TYPE_RUBY_BEGIN));
-}
+void TextPage::MarkRubyBegin() { AddAction(Command(TYPE_RUBY_BEGIN)); }
 
 void TextPage::DisplayRubyText(const std::string& utf8str) {
   AddAction(Command(TYPE_RUBY_END, utf8str));
@@ -429,18 +412,15 @@ bool TextPage::CharacterImpl(const string& c, const string& rest) {
   return system_->text().GetTextWindow(window_num_)->DisplayCharacter(c, rest);
 }
 
-void TextPage::RunTextPageCommand(const Command& command,
-                                  bool is_active_page) {
+void TextPage::RunTextPageCommand(const Command& command, bool is_active_page) {
   std::shared_ptr<TextWindow> window =
       system_->text().GetTextWindow(window_num_);
 
   switch (command.command) {
     case TYPE_CHARACTERS:
       if (command.characters.size()) {
-        PrintTextToFunction(
-            bind(&TextPage::CharacterImpl, ref(*this), _1, _2),
-            command.characters,
-            "");
+        PrintTextToFunction(bind(&TextPage::CharacterImpl, ref(*this), _1, _2),
+                            command.characters, "");
       }
       break;
     case TYPE_NAME:

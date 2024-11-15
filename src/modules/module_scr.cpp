@@ -54,11 +54,11 @@ struct stackTrunc : public RLOpcode<IntConstant_T> {
 };
 
 struct GetDCPixel : public RLOpcode<IntConstant_T,
-                                       IntConstant_T,
-                                       IntConstant_T,
-                                       IntReference_T,
-                                       IntReference_T,
-                                       IntReference_T> {
+                                    IntConstant_T,
+                                    IntConstant_T,
+                                    IntReference_T,
+                                    IntReference_T,
+                                    IntReference_T> {
   void operator()(RLMachine& machine,
                   int x,
                   int y,
@@ -67,8 +67,8 @@ struct GetDCPixel : public RLOpcode<IntConstant_T,
                   IntReferenceIterator g,
                   IntReferenceIterator b) {
     int rval, gval, bval;
-    machine.system().graphics().GetDC(dc)->GetDCPixel(
-        Point(x, y), rval, gval, bval);
+    machine.system().graphics().GetDC(dc)->GetDCPixel(Point(x, y), rval, gval,
+                                                      bval);
     *r = rval;
     *g = gval;
     *b = bval;
@@ -86,19 +86,13 @@ ScrModule::ScrModule() : RLModule("Scr", 1, 30) {
   AddOpcode(3, 0, "StackSize", ReturnIntValue(&GraphicsSystem::StackSize));
   AddOpcode(4, 0, "stackTrunc", new stackTrunc);
 
-  AddOpcode(20,
-            0,
-            "DrawAuto",
+  AddOpcode(20, 0, "DrawAuto",
             CallFunctionWith(&GraphicsSystem::SetScreenUpdateMode,
                              GraphicsSystem::SCREENUPDATEMODE_AUTOMATIC));
-  AddOpcode(21,
-            0,
-            "DrawSemiAuto",
+  AddOpcode(21, 0, "DrawSemiAuto",
             CallFunctionWith(&GraphicsSystem::SetScreenUpdateMode,
                              GraphicsSystem::SCREENUPDATEMODE_SEMIAUTOMATIC));
-  AddOpcode(22,
-            0,
-            "DrawManual",
+  AddOpcode(22, 0, "DrawManual",
             CallFunctionWith(&GraphicsSystem::SetScreenUpdateMode,
                              GraphicsSystem::SCREENUPDATEMODE_MANUAL));
 

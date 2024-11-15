@@ -26,11 +26,11 @@
 
 #include "long_operations/wait_long_operation.hpp"
 
+#include "base/rect.hpp"
 #include "machine/rlmachine.hpp"
 #include "systems/base/event_listener.hpp"
 #include "systems/base/event_system.hpp"
 #include "systems/base/graphics_system.hpp"
-#include "base/rect.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/text_system.hpp"
 

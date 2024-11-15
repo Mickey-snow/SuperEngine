@@ -65,7 +65,8 @@ void SDLTextWindow::ClearWin() {
 
   // Allocate the text window surface
   if (!surface_)
-    surface_.reset(new SDLSurface(getSDLGraphics(system()), GetTextSurfaceSize()));
+    surface_.reset(
+        new SDLSurface(getSDLGraphics(system()), GetTextSurfaceSize()));
   surface_->Fill(RGBAColour::Clear());
 
   name_surface_.reset();
@@ -73,8 +74,8 @@ void SDLTextWindow::ClearWin() {
 
 void SDLTextWindow::RenderNameInBox(const std::string& utf8str) {
   RGBColour shadow = RGBAColour::Black().rgb();
-  name_surface_ = system_.text().RenderText(
-      utf8str, font_size_in_pixels(), 0, 0, font_colour_, &shadow, 0);
+  name_surface_ = system_.text().RenderText(utf8str, font_size_in_pixels(), 0,
+                                            0, font_colour_, &shadow, 0);
 }
 
 void SDLTextWindow::AddSelectionItem(const std::string& utf8str,
@@ -96,15 +97,13 @@ void SDLTextWindow::AddSelectionItem(const std::string& utf8str,
   Point position = GetTextSurfaceRect().origin() +
                    Size(text_insertion_point_x_, text_insertion_point_y_);
 
-  std::unique_ptr<SelectionElement> element(
-      new SelectionElement(system(),
-                           std::shared_ptr<Surface>(new SDLSurface(
-                               getSDLGraphics(system()), normal)),
-                           std::shared_ptr<Surface>(new SDLSurface(
-                               getSDLGraphics(system()), inverted)),
-                           selectionCallback(),
-                           selection_id,
-                           position));
+  std::unique_ptr<SelectionElement> element(new SelectionElement(
+      system(),
+      std::shared_ptr<Surface>(
+          new SDLSurface(getSDLGraphics(system()), normal)),
+      std::shared_ptr<Surface>(
+          new SDLSurface(getSDLGraphics(system()), inverted)),
+      selectionCallback(), selection_id, position));
 
   text_insertion_point_y_ += (font_size_in_pixels_ + y_spacing_ + ruby_size_);
   selections_.push_back(std::move(element));
@@ -134,10 +133,8 @@ void SDLTextWindow::DisplayRubyText(const std::string& utf8str) {
         int(ruby_begin_point_ + ((end_point - ruby_begin_point_) * 0.5f) -
             (w * 0.5f));
     surface_->blitFROMSurface(
-        tmp,
-        Rect(Point(0, 0), Size(w, h)),
-        Rect(Point(width_start, height_location), Size(w, h)),
-        255);
+        tmp, Rect(Point(0, 0), Size(w, h)),
+        Rect(Point(width_start, height_location), Size(w, h)), 255);
     SDL_FreeSurface(tmp);
 
     system_.graphics().MarkScreenAsDirty(GUT_TEXTSYS);

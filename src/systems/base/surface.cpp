@@ -61,8 +61,8 @@ const GrpRect& Surface::GetPattern(int patt_no) const {
 // -----------------------------------------------------------------------
 
 std::shared_ptr<Surface> Surface::ClipAsColorMask(const Rect& clip_rect,
-                                                    int r,
-                                                    int g,
-                                                    int b) const {
+                                                  int r,
+                                                  int g,
+                                                  int b) const {
   throw rlvm::Exception("Unimplemented function Surface::ClipAsColorMask()");
 }

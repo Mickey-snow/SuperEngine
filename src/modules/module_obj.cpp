@@ -30,9 +30,9 @@
 #include "libreallive/parser.hpp"
 #include "machine/properties.hpp"
 #include "machine/rlmachine.hpp"
+#include "object/drawer/parent.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/base/graphics_system.hpp"
-#include "object/drawer/parent.hpp"
 #include "systems/base/system.hpp"
 #include "utilities/exception.hpp"
 

@@ -26,16 +26,15 @@
 
 #pragma once
 
-#include <guichan/opengl/openglgraphics.hpp>
 #include <guichan/image.hpp>
+#include <guichan/opengl/openglgraphics.hpp>
 
 #include <memory>
 
 #include "base/notification/observer.hpp"
 #include "base/notification/registrar.hpp"
-#include "systems/gcn/gcn_utils.hpp"
 #include "base/rect.hpp"
-
+#include "systems/gcn/gcn_utils.hpp"
 
 // 9 rectangles in an image. 4 corners, 4 sides and a middle area. The
 // topology is as follows:

@@ -32,11 +32,11 @@
 
 #include "base/notification/details.hpp"
 #include "base/notification/service.hpp"
+#include "base/rect.hpp"
 #include "machine/long_operation.hpp"
 #include "machine/rlmachine.hpp"
 #include "systems/base/event_system.hpp"
 #include "systems/base/graphics_system.hpp"
-#include "base/rect.hpp"
 #include "systems/base/surface.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/system_error.hpp"
@@ -110,7 +110,9 @@ Rect TextWindowButton::Location(TextWindow& window) {
                           win_rect.size().height() - size.height());
       return Rect(origin, size);
     }
-    default: { throw SystemError("Unsupported coordinate system"); }
+    default: {
+      throw SystemError("Unsupported coordinate system");
+    }
   }
 }
 

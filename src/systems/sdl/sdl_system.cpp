@@ -31,11 +31,11 @@
 
 #include <sstream>
 
-#include "libreallive/alldefs.hpp"
 #include "base/gameexe.hpp"
+#include "libreallive/alldefs.hpp"
 #include "machine/rlmachine.hpp"
-#include "systems/base/graphics_object.hpp"
 #include "object/objdrawer.hpp"
+#include "systems/base/graphics_object.hpp"
 #include "systems/base/platform.hpp"
 #include "systems/sdl/sdl_event_system.hpp"
 #include "systems/sdl/sdl_graphics_system.hpp"
@@ -59,8 +59,7 @@ SDLSystem::SDLSystem(Gameexe& gameexe) : System(), gameexe_(gameexe) {
   text_system_ = std::make_unique<SDLTextSystem>(*this, gameexe);
 
   // The implementor for sound system
-  std::unique_ptr<SDLSoundImpl> sound_impl =
-      std::make_unique<SDLSoundImpl>();
+  std::unique_ptr<SDLSoundImpl> sound_impl = std::make_unique<SDLSoundImpl>();
   // Currently only sound system is refactored to use the bridge pattern, other
   // subsystem's implementation are bound permanently with their abstraction,
   // meaning all classes in systems/sdl needed to be reimplemented for a new

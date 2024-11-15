@@ -33,11 +33,11 @@
 #include <string>
 #include <vector>
 
+#include "base/gameexe.hpp"
 #include "effects/effect.hpp"
 #include "effects/effect_factory.hpp"
 #include "effects/sel_record.hpp"
 #include "libreallive/expression.hpp"
-#include "base/gameexe.hpp"
 #include "libreallive/parser.hpp"
 #include "long_operations/wait_long_operation.hpp"
 #include "long_operations/zoom_long_operation.hpp"

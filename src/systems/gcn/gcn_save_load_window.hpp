@@ -27,10 +27,10 @@
 #pragma once
 
 #include <guichan/actionlistener.hpp>
-#include <guichan/widgets/listbox.hpp>
-#include <guichan/selectionlistener.hpp>
 #include <guichan/listmodel.hpp>
+#include <guichan/selectionlistener.hpp>
 #include <guichan/widgets/button.hpp>
+#include <guichan/widgets/listbox.hpp>
 
 #include <vector>
 

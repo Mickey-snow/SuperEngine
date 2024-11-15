@@ -55,8 +55,7 @@ GCNTrueTypeFont::GCNTrueTypeFont(const std::string& filename, int size)
                         std::string(TTF_GetError()));
   }
 
-  registrar_.Add(this,
-                 NotificationType::FULLSCREEN_STATE_CHANGED,
+  registrar_.Add(this, NotificationType::FULLSCREEN_STATE_CHANGED,
                  NotificationService::AllSources());
 }
 
@@ -107,8 +106,7 @@ void GCNTrueTypeFont::drawString(gcn::Graphics* graphics,
     SDL_LockSurface(textSurface);
     {
       image.reset(new gcn::OpenGLImage((const unsigned int*)textSurface->pixels,
-                                       textSurface->w,
-                                       textSurface->h));
+                                       textSurface->w, textSurface->h));
     }
     SDL_UnlockSurface(textSurface);
     SDL_FreeSurface(textSurface);
@@ -116,8 +114,8 @@ void GCNTrueTypeFont::drawString(gcn::Graphics* graphics,
     image_cache_.insert(make_pair(text, colstr), image);
   }
 
-  graphics->drawImage(
-      image.get(), 0, 0, x, y + yoffset, image->getWidth(), image->getHeight());
+  graphics->drawImage(image.get(), 0, 0, x, y + yoffset, image->getWidth(),
+                      image->getHeight());
 }
 
 void GCNTrueTypeFont::setRowSpacing(int spacing) { row_spacing_ = spacing; }
