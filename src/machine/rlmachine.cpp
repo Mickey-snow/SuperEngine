@@ -302,11 +302,38 @@ void RLMachine::AdvanceInstructionPointer() {
 }
 
 void RLMachine::ExecuteCommand(const libreallive::CommandElement& f) {
-  auto module_ptr = module_manager_.GetModule(f.modtype(), f.module());
-  if (module_ptr) {
-    module_ptr->DispatchFunction(*this, f);
-  } else {
+  auto op = module_manager_.Dispatch(f);
+  if (op == nullptr) {  // unimplemented opcode
     throw rlvm::UnimplementedOpcode(*this, f);
+  }
+
+  try {
+    if (is_tracing_on()) {
+      std::cerr << "(SEEN" << std::setw(4) << std::setfill('0') << SceneNumber()
+                << ")(Line " << std::setw(4) << std::setfill('0')
+                << line_number() << "): " << op->name();
+      auto PrintParamterString =
+          [](std::ostream& oss,
+             const std::vector<libreallive::Expression>& params) {
+            bool first = true;
+            oss << "(";
+            for (auto const& param : params) {
+              if (!first) {
+                oss << ", ";
+              }
+              first = false;
+
+              oss << param->GetDebugString();
+            }
+            oss << ")";
+          };
+      PrintParamterString(std::cerr, f.GetParsedParameters());
+      std::cerr << std::endl;
+    }
+    op->DispatchFunction(*this, f);
+  } catch (rlvm::Exception& e) {
+    e.setOperation(op);
+    throw e;
   }
 }
 

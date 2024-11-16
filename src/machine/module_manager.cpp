@@ -69,11 +69,10 @@ RLOperation* ModuleManager::Dispatch(
 
 std::string ModuleManager::GetCommandName(
     const libreallive::CommandElement& f) const {
-  const auto hash = GetModuleHash(f.modtype(), f.module());
-  auto it = modules_.find(hash);
-  if (it == modules_.cend())
+  auto op = Dispatch(f);
+  if (op == nullptr)
     return {};
-  return it->second->GetCommandName(f);
+  return op->name();
 }
 
 int ModuleManager::GetModuleHash(int module_type, int module_id) noexcept {

@@ -132,43 +132,6 @@ RLOperation* RLModule::Dispatch(const libreallive::CommandElement& f) const {
   return it->second.get();
 }
 
-void RLModule::DispatchFunction(RLMachine& machine,
-                                const libreallive::CommandElement& f) {
-  auto op = Dispatch(f);
-  if (op == nullptr)
-    throw rlvm::UnimplementedOpcode(machine, f);
-
-  try {
-    if (machine.is_tracing_on()) {
-      std::cerr << "(SEEN" << std::setw(4) << std::setfill('0')
-                << machine.SceneNumber() << ")(Line " << std::setw(4)
-                << std::setfill('0') << machine.line_number()
-                << "): " << op->name();
-      auto PrintParamterString =
-          [](std::ostream& oss,
-             const std::vector<libreallive::Expression>& params) {
-            bool first = true;
-            oss << "(";
-            for (auto const& param : params) {
-              if (!first) {
-                oss << ", ";
-              }
-              first = false;
-
-              oss << param->GetDebugString();
-            }
-            oss << ")";
-          };
-      PrintParamterString(std::cerr, f.GetParsedParameters());
-      std::cerr << std::endl;
-    }
-    op->DispatchFunction(machine, f);
-  } catch (rlvm::Exception& e) {
-    e.setOperation(op);
-    throw;
-  }
-}
-
 std::ostream& operator<<(std::ostream& os, const RLModule& module) {
   os << "mod<" << module.module_name() << "," << module.module_type() << ":"
      << module.module_number() << ">";

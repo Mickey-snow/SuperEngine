@@ -116,11 +116,8 @@ class RLModule {
   bool GetProperty(int property, int& value) const;
 
   // Using the bytecode element CommandElement f, try to find an
-  // RLOperation implementation of the instruction in this module, and
-  // execute it.
-  void DispatchFunction(RLMachine& machine,
-                        const libreallive::CommandElement& f);
-
+  // RLOperation implementation of the instruction in this module.
+  // Returns the pointer if found, returns nullptr if not found.
   RLOperation* Dispatch(const libreallive::CommandElement& f) const;
 
   std::string GetCommandName(const libreallive::CommandElement& f);
