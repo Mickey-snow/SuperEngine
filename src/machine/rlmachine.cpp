@@ -423,10 +423,6 @@ void RLMachine::PushStackFrame(StackFrame frame) {
 
   if (frame.frame_type != StackFrame::TYPE_LONGOP)
     frame.previous_stack_snapshot = memory_->GetStackMemory();
-  memory_->Resize(StrBank::K, 2000);
-  memory_->Fill(StrBank::K, 0, 2000, "");
-  memory_->Resize(IntBank::L, 40);
-  memory_->Fill(IntBank::L, 0, 40, 0);
 
   call_stack_.push_back(frame);
 
