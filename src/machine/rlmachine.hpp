@@ -293,11 +293,6 @@ class RLMachine {
   // Whether we report to stderr when we hit an undefined opcode.
   void SetPrintUndefinedOpcodes(bool in);
 
-  // Starts logging opcodes that we don't handle. Over very long runs, this is
-  // easier to deal with than set_print_undefined_opcodes. Will print the
-  // results to stderr on machine destruction.
-  void RecordUndefinedOpcodeCounts();
-
   // ---------------------------------------------------------------------
 
   // Force the machine to halt. This should terminate the execution of
@@ -376,10 +371,6 @@ class RLMachine {
   // The RLMachine carried around a reference to the local system, to keep it
   // from being a Singleton so we can do proper unit testing.
   System& system_;
-
-  // (Optional) A structure that keeps track of how many times we encountered
-  // undefined opcodes.
-  std::unique_ptr<OpcodeLog> undefined_log_;
 
   // Override defaults
   bool mark_savepoints_ = true;

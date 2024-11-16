@@ -1,3 +1,8 @@
+
+set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS 1 CACHE INTERNAL
+  "Suppress warnings from dependencies"
+)
+
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/utf8cpp/include)
 
 # -------------------------------------------------------------------

@@ -146,9 +146,6 @@ void RLVMInstance::Run(const std::filesystem::path& gamerootPath) {
     if (undefined_opcodes_)
       rlmachine.SetPrintUndefinedOpcodes(true);
 
-    if (count_undefined_copcodes_)
-      rlmachine.RecordUndefinedOpcodeCounts();
-
     if (tracing_)
       rlmachine.set_tracing_on();
 

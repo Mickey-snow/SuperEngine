@@ -50,7 +50,6 @@
 #include "long_operations/pause_long_operation.hpp"
 #include "long_operations/textout_long_operation.hpp"
 #include "machine/long_operation.hpp"
-#include "machine/opcode_log.hpp"
 #include "machine/reallive_dll.hpp"
 #include "machine/rlmodule.hpp"
 #include "machine/rloperation.hpp"
@@ -146,10 +145,7 @@ RLMachine::RLMachine(System& in_system, libreallive::Archive& in_archive)
   }
 }
 
-RLMachine::~RLMachine() {
-  if (undefined_log_)
-    cerr << *undefined_log_;
-}
+RLMachine::~RLMachine() {}
 
 int RLMachine::GetIntValue(const libreallive::IntMemRef& ref) {
   return memory_->Read(ref);
@@ -252,8 +248,6 @@ void RLMachine::ExecuteNextInstruction() {
              << ")(Line " << line_ << "):  " << e.what() << endl;
       }
 
-      if (undefined_log_)
-        undefined_log_->Increment(e.opcode_name());
     } catch (rlvm::Exception& e) {
       if (halt_on_exception_) {
         halted_ = true;
@@ -606,10 +600,6 @@ unsigned int RLMachine::PackModuleNumber(int modtype, int module) const {
 
 void RLMachine::SetPrintUndefinedOpcodes(bool in) {
   print_undefined_opcodes_ = in;
-}
-
-void RLMachine::RecordUndefinedOpcodeCounts() {
-  undefined_log_.reset(new OpcodeLog);
 }
 
 void RLMachine::Halt() { halted_ = true; }

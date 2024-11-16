@@ -31,13 +31,15 @@
 namespace fs = std::filesystem;
 
 PlatformImpl_t PlatformFactory::Create(const std::string& platform_name) {
-  const Context& ctx = GetContext();
-  auto it = ctx.map_.find(platform_name);
-  if (it != ctx.map_.cend())
-    return std::invoke(it->second);
+  if (platform_name != "default") {
+    const Context& ctx = GetContext();
+    auto it = ctx.map_.find(platform_name);
+    if (it != ctx.map_.cend())
+      return std::invoke(it->second);
 
-  std::cerr << "[WARNING] Constructor for platform " << platform_name
-            << " not found.";
+    std::cerr << "[WARNING] Constructor for platform " << platform_name
+              << " not found.";
+  }
 
   struct FakePlatform : public IPlatformImplementor {
     fs::path SelectGameDirectory() override { return fs::path("gamedir"); }
