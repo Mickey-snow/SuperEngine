@@ -85,9 +85,9 @@ class ByteReader {
    * @throws std::logic_error if type T is unsupported.
    */
   template <typename T>
-  T ReadAs(int count) {
+  T ReadAs(unsigned int count) {
     if constexpr (std::is_arithmetic_v<T>) {  // numerical type
-      if (count < 0 || count > sizeof(T)) {
+      if (count > sizeof(T)) {
         throw std::invalid_argument(
             "Byte count is out of range for the specified type T.");
       }
@@ -103,7 +103,7 @@ class ByteReader {
         static_assert(false, "Unsupported arithmetic type provided to ReadAs.");
       }
     } else {  // string type
-      if (count < 0 || current_ + count > end_)
+      if (current_ + count > end_)
         throw std::out_of_range(
             "Attempt to read beyond the end of the byte array.");
 

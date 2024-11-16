@@ -144,7 +144,22 @@ void RLModule::DispatchFunction(RLMachine& machine,
                   << machine.SceneNumber() << ")(Line " << std::setw(4)
                   << std::setfill('0') << machine.line_number()
                   << "): " << it->second->name();
-        libreallive::PrintParameterString(std::cerr, f.GetParsedParameters());
+        auto PrintParamterString =
+            [](std::ostream& oss,
+               const std::vector<libreallive::Expression>& params) {
+              bool first = true;
+              oss << "(";
+              for (auto const& param : params) {
+                if (!first) {
+                  oss << ", ";
+                }
+                first = false;
+
+                oss << param->GetDebugString();
+              }
+              oss << ")";
+            };
+        PrintParamterString(std::cerr, f.GetParsedParameters());
         std::cerr << std::endl;
       }
       it->second->DispatchFunction(machine, f);

@@ -48,12 +48,11 @@ std::string Decompress_lzss(std::string_view data) {
   int32_t arc_size = reader.PopAs<int32_t>(4);
   size_t orig_size = reader.PopAs<size_t>(4);
 
-  if (arc_size != data.size())
+  if (static_cast<size_t>(arc_size) != data.size())
     throw std::logic_error("File size mismatch");
 
   std::string result;
   result.reserve(orig_size);
-
   bool should_repeat = true;
   while (should_repeat && result.size() < orig_size) {
     uint8_t flags = reader.PopAs<uint8_t>(1);
@@ -100,9 +99,9 @@ std::string Decompress_lzss32(std::string_view data) {
 
   ByteReader reader(data);
   int32_t arc_size = reader.PopAs<int32_t>(4);
-  int32_t orig_size = reader.PopAs<size_t>(4);
+  size_t orig_size = reader.PopAs<size_t>(4);
 
-  if (arc_size != data.size())
+  if (static_cast<size_t>(arc_size) != data.size())
     throw std::logic_error("File size mismatch");
 
   std::string result;

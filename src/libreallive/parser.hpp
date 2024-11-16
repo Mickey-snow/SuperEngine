@@ -55,9 +55,6 @@ std::string ParsableToPrintableString(const std::string& src);
 // into one that can be parsed by all the get_expr family of functions.
 std::string PrintableToParsableString(const std::string& src);
 
-void PrintParameterString(std::ostream& oss,
-                          const std::vector<Expression>& params);
-
 class Factory {
  public:
   static ExpressionElement* MakeExpression(const char* stream);

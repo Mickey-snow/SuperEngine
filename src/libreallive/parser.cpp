@@ -98,21 +98,6 @@ std::string PrintableToParsableString(const std::string& src) {
   return output;
 }
 
-void PrintParameterString(std::ostream& oss,
-                          const std::vector<Expression>& params) {
-  bool first = true;
-  oss << "(";
-  for (auto const& param : params) {
-    if (!first) {
-      oss << ", ";
-    }
-    first = false;
-
-    oss << param->GetDebugString();
-  }
-  oss << ")";
-}
-
 // -----------------------------------------------------------------------
 // class Factory
 // -----------------------------------------------------------------------
