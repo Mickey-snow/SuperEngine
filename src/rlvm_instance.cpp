@@ -147,7 +147,7 @@ void RLVMInstance::Run(const std::filesystem::path& gamerootPath) {
       rlmachine.SetPrintUndefinedOpcodes(true);
 
     if (tracing_)
-      rlmachine.set_tracing_on();
+      rlmachine.tracer_ = std::make_shared<Tracer>();
 
     Serialization::loadGlobalMemory(rlmachine);
 

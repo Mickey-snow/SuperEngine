@@ -152,6 +152,8 @@ int RLMachine::GetIntValue(const libreallive::IntMemRef& ref) {
 }
 
 void RLMachine::SetIntValue(const libreallive::IntMemRef& ref, int value) {
+  if (tracer_)
+    tracer_->Log(SceneNumber(), line_number(), ref, value);
   memory_->Write(ref, value);
 }
 
@@ -160,7 +162,10 @@ const std::string& RLMachine::GetStringValue(int type, int location) {
 }
 
 void RLMachine::SetStringValue(int type, int index, const std::string& value) {
-  memory_->Write(StrMemoryLocation(type, index), value);
+  auto loc = StrMemoryLocation(type, index);
+  if (tracer_)
+    tracer_->Log(SceneNumber(), line_number(), loc, value);
+  memory_->Write(loc, value);
 }
 
 void RLMachine::HardResetMemory() {
@@ -308,28 +313,8 @@ void RLMachine::ExecuteCommand(const libreallive::CommandElement& f) {
   }
 
   try {
-    if (is_tracing_on()) {
-      std::cerr << "(SEEN" << std::setw(4) << std::setfill('0') << SceneNumber()
-                << ")(Line " << std::setw(4) << std::setfill('0')
-                << line_number() << "): " << op->name();
-      auto PrintParamterString =
-          [](std::ostream& oss,
-             const std::vector<libreallive::Expression>& params) {
-            bool first = true;
-            oss << "(";
-            for (auto const& param : params) {
-              if (!first) {
-                oss << ", ";
-              }
-              first = false;
-
-              oss << param->GetDebugString();
-            }
-            oss << ")";
-          };
-      PrintParamterString(std::cerr, f.GetParsedParameters());
-      std::cerr << std::endl;
-    }
+    if (tracer_)
+      tracer_->Log(SceneNumber(), line_number(), op, f);
     op->DispatchFunction(*this, f);
   } catch (rlvm::Exception& e) {
     e.setOperation(op);

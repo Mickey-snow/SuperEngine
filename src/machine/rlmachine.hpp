@@ -39,6 +39,7 @@
 
 #include "libreallive/bytecode_fwd.hpp"
 #include "libreallive/scenario.hpp"
+#include "log/tracer.hpp"
 #include "machine/module_manager.hpp"
 
 namespace libreallive {
@@ -93,10 +94,6 @@ class RLMachine {
 
   // Returns the current System that this RLMachine outputs to.
   System& system() { return system_; }
-
-  // An option which prints out all commands executed to the console.
-  void set_tracing_on() { tracing_ = true; }
-  bool is_tracing_on() const { return tracing_; }
 
   ModuleManager& GetModuleManager() { return module_manager_; }
   const ModuleManager& GetModuleManager() const { return module_manager_; }
@@ -385,9 +382,10 @@ class RLMachine {
   // stuff.
   bool replaying_graphics_stack_ = false;
 
-  // Whether we should print out all commands to the console.
-  bool tracing_ = false;
+ public:
+  std::shared_ptr<Tracer> tracer_ = nullptr;
 
+ private:
   // The actions that were delayed when |delay_stack_modifications_| is on.
   std::vector<std::function<void(void)>> delayed_modifications_;
 

@@ -30,6 +30,7 @@ file(GLOB_RECURSE RLVM_SRC_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/utilities/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/memory/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/systems/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/log/*.cpp"
 )
 list(APPEND RLVM_SRC_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/platforms/platform_factory.cpp"
