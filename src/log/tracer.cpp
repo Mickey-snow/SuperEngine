@@ -25,6 +25,7 @@
 #include "log/tracer.hpp"
 
 #include "libreallive/elements/command.hpp"
+#include "libreallive/elements/expression.hpp"
 #include "machine/rloperation.hpp"
 #include "memory/location.hpp"
 
@@ -65,23 +66,11 @@ void Tracer::Log(int scene,
   std::clog << oss.str() << std::endl;
 }
 
-void Tracer::Log(int scene, int line, IntMemoryLocation loc, int value) {
+void Tracer::Log(int scene, int line, const libreallive::ExpressionElement& f) {
   std::ostringstream oss;
   oss << "(SEEN" << std::setw(4) << std::setfill('0') << scene << ")(Line "
       << std::setw(4) << std::setfill('0') << line << "): ";
-  oss << loc << " = " << value;
-
-  std::clog << oss.str() << std::endl;
-}
-
-void Tracer::Log(int scene,
-                 int line,
-                 StrMemoryLocation loc,
-                 std::string value) {
-  std::ostringstream oss;
-  oss << "(SEEN" << std::setw(4) << std::setfill('0') << scene << ")(Line "
-      << std::setw(4) << std::setfill('0') << line << "): ";
-  oss << loc << " = " << std::move(value);
+  oss << f.GetSourceRepresentation(nullptr);
 
   std::clog << oss.str() << std::endl;
 }

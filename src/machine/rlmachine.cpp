@@ -152,8 +152,6 @@ int RLMachine::GetIntValue(const libreallive::IntMemRef& ref) {
 }
 
 void RLMachine::SetIntValue(const libreallive::IntMemRef& ref, int value) {
-  if (tracer_)
-    tracer_->Log(SceneNumber(), line_number(), ref, value);
   memory_->Write(ref, value);
 }
 
@@ -162,9 +160,7 @@ const std::string& RLMachine::GetStringValue(int type, int location) {
 }
 
 void RLMachine::SetStringValue(int type, int index, const std::string& value) {
-  auto loc = StrMemoryLocation(type, index);
-  if (tracer_)
-    tracer_->Log(SceneNumber(), line_number(), loc, value);
+  const auto loc = StrMemoryLocation(type, index);
   memory_->Write(loc, value);
 }
 
@@ -243,6 +239,10 @@ void RLMachine::ExecuteNextInstruction() {
         }
         delayed_modifications_.clear();
       } else {
+        auto expression = dynamic_cast<libreallive::ExpressionElement const*>(
+            (call_stack_.back().ip)->get());
+        if (expression && tracer_)
+          tracer_->Log(SceneNumber(), line_number(), *expression);
         (*(call_stack_.back().ip))->RunOnMachine(*this);
       }
     } catch (rlvm::UnimplementedOpcode& e) {

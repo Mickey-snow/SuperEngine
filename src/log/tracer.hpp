@@ -30,7 +30,8 @@
 class RLOperation;
 namespace libreallive {
 class CommandElement;
-}
+class ExpressionElement;
+}  // namespace libreallive
 class IntMemoryLocation;
 class StrMemoryLocation;
 
@@ -40,6 +41,5 @@ class Tracer {
            int line,
            RLOperation* op,
            const libreallive::CommandElement& f);
-  void Log(int scene, int line, IntMemoryLocation loc, int value);
-  void Log(int scene, int line, StrMemoryLocation loc, std::string value);
+  void Log(int scene, int line, const libreallive::ExpressionElement& f);
 };
