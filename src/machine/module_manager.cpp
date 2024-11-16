@@ -26,6 +26,7 @@
 
 #include "libreallive/elements/command.hpp"
 #include "machine/rlmodule.hpp"
+#include "machine/rloperation.hpp"
 #include "modules/modules.hpp"
 
 #include <stdexcept>
@@ -50,11 +51,20 @@ void ModuleManager::AttachModule(std::unique_ptr<RLModule> mod) {
   }
 }
 
-RLModule* ModuleManager::GetModule(int module_type, int module_id) {
+RLModule* ModuleManager::GetModule(int module_type, int module_id) const {
   auto it = modules_.find(GetModuleHash(module_type, module_id));
-  if (it != modules_.end())
+  if (it != modules_.cend())
     return it->second.get();
   return nullptr;
+}
+
+RLOperation* ModuleManager::Dispatch(
+    const libreallive::CommandElement& cmd) const {
+  auto mod = GetModule(cmd.modtype(), cmd.module());
+  if (mod == nullptr)
+    return nullptr;
+
+  return mod->Dispatch(cmd);
 }
 
 std::string ModuleManager::GetCommandName(

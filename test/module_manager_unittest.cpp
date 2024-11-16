@@ -118,6 +118,16 @@ class ModuleManagerTest : public ::testing::Test {
   std::shared_ptr<MockCommandElement> boo3_cmd;
 };
 
+TEST_F(ModuleManagerTest, ResolveOperation) {
+  RLOperation* op = manager.Dispatch(*foo1_cmd);
+  ASSERT_NE(op, nullptr);
+  EXPECT_EQ(op->name(), "Foo1");
+
+  op = manager.Dispatch(*boo2_cmd);
+  ASSERT_NE(op, nullptr);
+  EXPECT_EQ(op->name(), "Boo2");
+}
+
 TEST_F(ModuleManagerTest, GetCommandName) {
   EXPECT_EQ(manager.GetCommandName(*foo1_cmd), "Foo1");
   EXPECT_EQ(manager.GetCommandName(*foo2_cmd), "Foo2");

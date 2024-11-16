@@ -32,6 +32,7 @@ namespace libreallive {
 class CommandElement;
 }
 class RLModule;
+class RLOperation;
 
 class IModuleManager {
  public:
@@ -50,7 +51,11 @@ class ModuleManager : public IModuleManager {
   void AttachModule(RLModule* mod) override;
   void AttachModule(std::unique_ptr<RLModule> mod);
 
-  RLModule* GetModule(int module_type, int module_id);
+  RLModule* GetModule(int module_type, int module_id) const;
+
+  // Directly resolve to get a command-like `RLOperation`, skipping the middle
+  // man class `RLModule`
+  RLOperation* Dispatch(const libreallive::CommandElement&) const;
 
   std::string GetCommandName(
       const libreallive::CommandElement& f) const override;

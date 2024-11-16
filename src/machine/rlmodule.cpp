@@ -53,15 +53,8 @@ RLModule::RLModule(const std::string& in_module_name,
 
 RLModule::~RLModule() {}
 
-int RLModule::PackOpcodeNumber(int opcode, unsigned char overload) {
+inline static int PackOpcodeNumber(int opcode, unsigned char overload) {
   return ((int)opcode << 8) | overload;
-}
-
-void RLModule::UnpackOpcodeNumber(int packed_opcode,
-                                  int& opcode,
-                                  unsigned char& overload) {
-  opcode = (packed_opcode >> 8);
-  overload = packed_opcode & 0xFF;
 }
 
 void RLModule::AddOpcode(int opcode,
@@ -71,16 +64,15 @@ void RLModule::AddOpcode(int opcode,
   int packed_opcode = PackOpcodeNumber(opcode, overload);
   op->set_name(name);
   op->module_ = this;
-#ifndef NDEBUG
-  OpcodeMap::iterator it = stored_operations_.find(packed_opcode);
 
+  OpcodeMap::iterator it = stored_operations_.find(packed_opcode);
   if (it != stored_operations_.end()) {
     std::ostringstream oss;
     oss << "Duplicate opcode in " << *this << ": opcode " << opcode << ", "
         << int(overload);
-    throw rlvm::Exception(oss.str());
+    throw std::invalid_argument(oss.str());
   }
-#endif
+
   stored_operations_.emplace(packed_opcode, std::unique_ptr<RLOperation>(op));
 }
 
@@ -133,42 +125,47 @@ std::string RLModule::GetCommandName(const libreallive::CommandElement& f) {
   return name;
 }
 
+RLOperation* RLModule::Dispatch(const libreallive::CommandElement& f) const {
+  auto it = stored_operations_.find(PackOpcodeNumber(f.opcode(), f.overload()));
+  if (it == stored_operations_.cend())
+    return nullptr;
+  return it->second.get();
+}
+
 void RLModule::DispatchFunction(RLMachine& machine,
                                 const libreallive::CommandElement& f) {
-  OpcodeMap::iterator it =
-      stored_operations_.find(PackOpcodeNumber(f.opcode(), f.overload()));
-  if (it != stored_operations_.end()) {
-    try {
-      if (machine.is_tracing_on()) {
-        std::cerr << "(SEEN" << std::setw(4) << std::setfill('0')
-                  << machine.SceneNumber() << ")(Line " << std::setw(4)
-                  << std::setfill('0') << machine.line_number()
-                  << "): " << it->second->name();
-        auto PrintParamterString =
-            [](std::ostream& oss,
-               const std::vector<libreallive::Expression>& params) {
-              bool first = true;
-              oss << "(";
-              for (auto const& param : params) {
-                if (!first) {
-                  oss << ", ";
-                }
-                first = false;
-
-                oss << param->GetDebugString();
-              }
-              oss << ")";
-            };
-        PrintParamterString(std::cerr, f.GetParsedParameters());
-        std::cerr << std::endl;
-      }
-      it->second->DispatchFunction(machine, f);
-    } catch (rlvm::Exception& e) {
-      e.setOperation(it->second.get());
-      throw;
-    }
-  } else {
+  auto op = Dispatch(f);
+  if (op == nullptr)
     throw rlvm::UnimplementedOpcode(machine, f);
+
+  try {
+    if (machine.is_tracing_on()) {
+      std::cerr << "(SEEN" << std::setw(4) << std::setfill('0')
+                << machine.SceneNumber() << ")(Line " << std::setw(4)
+                << std::setfill('0') << machine.line_number()
+                << "): " << op->name();
+      auto PrintParamterString =
+          [](std::ostream& oss,
+             const std::vector<libreallive::Expression>& params) {
+            bool first = true;
+            oss << "(";
+            for (auto const& param : params) {
+              if (!first) {
+                oss << ", ";
+              }
+              first = false;
+
+              oss << param->GetDebugString();
+            }
+            oss << ")";
+          };
+      PrintParamterString(std::cerr, f.GetParsedParameters());
+      std::cerr << std::endl;
+    }
+    op->DispatchFunction(machine, f);
+  } catch (rlvm::Exception& e) {
+    e.setOperation(op);
+    throw;
   }
 }
 

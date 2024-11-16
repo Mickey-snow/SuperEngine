@@ -121,15 +121,9 @@ class RLModule {
   void DispatchFunction(RLMachine& machine,
                         const libreallive::CommandElement& f);
 
+  RLOperation* Dispatch(const libreallive::CommandElement& f) const;
+
   std::string GetCommandName(const libreallive::CommandElement& f);
-
-  OpcodeMap::iterator begin() { return stored_operations_.begin(); }
-  OpcodeMap::iterator end() { return stored_operations_.end(); }
-
-  static int PackOpcodeNumber(int opcode, unsigned char overload);
-  static void UnpackOpcodeNumber(int packed_opcode,
-                                 int& opcode,
-                                 unsigned char& overload);
 
  protected:
   RLModule(const std::string& in_module_name,
