@@ -83,9 +83,6 @@ class BytecodeElement {
   // other cases.
   virtual std::string GetSerializedCommand(RLMachine& machine) const;
 
-  // Execute this bytecode instruction on this virtual machine
-  virtual void RunOnMachine(RLMachine& machine) const;
-
   virtual Bytecode_ptr DownCast() const = 0;
 
  protected:

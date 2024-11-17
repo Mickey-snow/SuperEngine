@@ -1,4 +1,4 @@
-rlvm: A RealLive interpreter.
+1rlvm: A RealLive interpreter.
 ===============================================
 
 ## INTRODUCTION
@@ -72,7 +72,7 @@ line with --font.
 
 Before you begin, ensure you have the following libraries and utilities installed:
 
-- **CMake** (version 3.15 or higher):
+- **CMake** (version 3.18 or higher):
   [https://cmake.org/](https://cmake.org/)
 - **Boost** (version 1.40 or higher):
   [https://www.boost.org/](https://www.boost.org/)

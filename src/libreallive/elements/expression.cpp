@@ -29,7 +29,6 @@
 // -----------------------------------------------------------------------
 
 #include "libreallive/elements/expression.hpp"
-#include "machine/rlmachine.hpp"
 
 namespace libreallive {
 
@@ -54,10 +53,6 @@ std::string ExpressionElement::GetSourceRepresentation(IModuleManager*) const {
 }
 
 const size_t ExpressionElement::GetBytecodeLength() const { return length_; }
-
-void ExpressionElement::RunOnMachine(RLMachine& machine) const {
-  machine.ExecuteExpression(*this);
-}
 
 Bytecode_ptr ExpressionElement::DownCast() const { return this; }
 

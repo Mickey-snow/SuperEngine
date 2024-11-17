@@ -29,7 +29,6 @@
 // -----------------------------------------------------------------------
 
 #include "libreallive/elements/comma.hpp"
-#include "machine/rlmachine.hpp"
 
 namespace libreallive {
 

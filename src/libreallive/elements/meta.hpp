@@ -56,11 +56,9 @@ class MetaElement : public BytecodeElement {
                                          std::ostream& oss) const final;
   virtual const size_t GetBytecodeLength() const final;
   virtual const int GetEntrypoint() const final;
-  virtual void RunOnMachine(RLMachine& machine) const final;
 
   virtual Bytecode_ptr DownCast() const final;
 
- private:
   MetaElementType type_;
   int value_;
   int entrypoint_index_;

@@ -28,13 +28,12 @@
 //
 // -----------------------------------------------------------------------
 
-#include <cassert>
-#include <iomanip>
-#include <vector>
-
 #include "libreallive/elements/command.hpp"
 #include "machine/module_manager.hpp"
 #include "machine/rlmachine.hpp"
+
+#include <iomanip>
+#include <vector>
 
 namespace libreallive {
 
@@ -132,10 +131,6 @@ std::string CommandElement::GetSourceRepresentation(
   }
   repr += ')';
   return repr;
-}
-
-void CommandElement::RunOnMachine(RLMachine& machine) const {
-  machine.ExecuteCommand(*this);
 }
 
 Bytecode_ptr CommandElement::DownCast() const { return this; }

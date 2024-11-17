@@ -30,10 +30,9 @@
 
 #pragma once
 
-#include <ostream>
-#include <string>
-
 #include "libreallive/elements/bytecode.hpp"
+
+#include <string>
 
 namespace libreallive {
 

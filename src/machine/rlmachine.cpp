@@ -225,11 +225,14 @@ void RLMachine::ExecuteNextInstruction() {
         }
         delayed_modifications_.clear();
       } else {
-        auto expression = dynamic_cast<libreallive::ExpressionElement const*>(
-            (call_stack_.back().ip)->get());
-        if (expression && tracer_)
-          tracer_->Log(SceneNumber(), line_number(), *expression);
-        (*(call_stack_.back().ip))->RunOnMachine(*this);
+        auto instruction_vari = call_stack_.back().ip->get()->DownCast();
+        if (std::visit([](auto ptr) -> bool { return ptr != nullptr; },
+                       instruction_vari)) {
+          std::visit(*this, instruction_vari);
+        } else {
+          throw rlvm::Exception(
+              "Unexpected null pointer encountered as an instruction");
+        }
       }
     } catch (rlvm::UnimplementedOpcode& e) {
       AdvanceInstructionPointer();
@@ -289,22 +292,6 @@ void RLMachine::AdvanceInstructionPointer() {
       if (it->ip == it->scenario->end())
         halted_ = true;
     }
-  }
-}
-
-void RLMachine::ExecuteCommand(const libreallive::CommandElement& f) {
-  auto op = module_manager_.Dispatch(f);
-  if (op == nullptr) {  // unimplemented opcode
-    throw rlvm::UnimplementedOpcode(*this, f);
-  }
-
-  try {
-    if (tracer_)
-      tracer_->Log(SceneNumber(), line_number(), op, f);
-    op->DispatchFunction(*this, f);
-  } catch (rlvm::Exception& e) {
-    e.setOperation(op);
-    throw e;
   }
 }
 
@@ -481,39 +468,12 @@ const libreallive::Scenario& RLMachine::Scenario() const {
   return *call_stack_.back().scenario;
 }
 
-void RLMachine::ExecuteExpression(const libreallive::ExpressionElement& e) {
-  e.ParsedExpression()->GetIntegerValue(*this);
-  AdvanceInstructionPointer();
-}
-
 int RLMachine::GetTextEncoding() const {
   return call_stack_.back().scenario->encoding();
 }
 
 int RLMachine::GetProbableEncodingType() const {
   return archive_.GetProbableEncodingType();
-}
-
-void RLMachine::PerformTextout(const libreallive::TextoutElement& e) {
-  // Seen files are terminated with the string "SeenEnd", which isn't NULL
-  // terminated and has a bunch of random garbage after it.
-  constexpr std::string_view SeenEnd{
-      "\x82\x72"  // S
-      "\x82\x85"  // e
-      "\x82\x85"  // e
-      "\x82\x8e"  // n
-      "\x82\x64"  // E
-      "\x82\x8e"  // n
-      "\x82\x84"  // d
-  };
-
-  std::string unparsed_text = e.GetText();
-  if (unparsed_text.starts_with(SeenEnd)) {
-    unparsed_text = SeenEnd;
-    Halt();
-  }
-
-  PerformTextout(unparsed_text);
 }
 
 void RLMachine::PerformTextout(const std::string& cp932str) {
@@ -634,6 +594,67 @@ void RLMachine::AddLineAction(const int seen,
 
   (*on_line_actions_)[std::make_pair(seen, line)] = function;
 }
+
+// -----------------------------------------------------------------------
+
+void RLMachine::operator()(libreallive::CommaElement const*) {
+  AdvanceInstructionPointer();
+}
+
+void RLMachine::operator()(libreallive::MetaElement const* m) {
+  if (m->type_ == libreallive::MetaElement::Line_)
+    SetLineNumber(m->value_);
+  else if (m->type_ == libreallive::MetaElement::Kidoku_)
+    SetKidokuMarker(m->value_);
+
+  AdvanceInstructionPointer();
+}
+
+void RLMachine::operator()(libreallive::CommandElement const* f) {
+  auto op = module_manager_.Dispatch(*f);
+  if (op == nullptr) {  // unimplemented opcode
+    throw rlvm::UnimplementedOpcode(*this, *f);
+  }
+
+  try {
+    if (tracer_)
+      tracer_->Log(SceneNumber(), line_number(), op, *f);
+    op->DispatchFunction(*this, *f);
+  } catch (rlvm::Exception& e) {
+    e.setOperation(op);
+    throw e;
+  }
+}
+
+void RLMachine::operator()(libreallive::ExpressionElement const* e) {
+  e->ParsedExpression()->GetIntegerValue(*this);  // (?)
+  AdvanceInstructionPointer();
+}
+
+void RLMachine::operator()(libreallive::TextoutElement const* e) {
+  // Seen files are terminated with the string "SeenEnd", which isn't NULL
+  // terminated and has a bunch of random garbage after it.
+  constexpr std::string_view SeenEnd{
+      "\x82\x72"  // S
+      "\x82\x85"  // e
+      "\x82\x85"  // e
+      "\x82\x8e"  // n
+      "\x82\x64"  // E
+      "\x82\x8e"  // n
+      "\x82\x84"  // d
+  };
+
+  std::string unparsed_text = e->GetText();
+  if (unparsed_text.starts_with(SeenEnd)) {
+    unparsed_text = SeenEnd;
+    Halt();
+  }
+
+  PerformTextout(unparsed_text);
+  AdvanceInstructionPointer();
+}
+
+// -----------------------------------------------------------------------
 
 template <class Archive>
 void RLMachine::save(Archive& ar, unsigned int version) const {

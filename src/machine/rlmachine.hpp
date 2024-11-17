@@ -230,9 +230,6 @@ class RLMachine {
   // that hasn't been patched at the time this method is called.)
   int GetProbableEncodingType() const;
 
-  void ExecuteCommand(const libreallive::CommandElement& f);
-  void ExecuteExpression(const libreallive::ExpressionElement& e);
-  void PerformTextout(const libreallive::TextoutElement& e);
   void PerformTextout(const std::string& cp932str);
 
   // Marks a kidoku marker as visited.
@@ -330,6 +327,15 @@ class RLMachine {
   // drive rlvm's playing certain games, but is also used for game specific
   // hacks.
   void AddLineAction(const int seen, const int line, std::function<void(void)>);
+
+ public:
+  // Methods to be called with executing a libreallive::BytecodeElement as a
+  // visitor
+  void operator()(libreallive::CommaElement const*);
+  void operator()(libreallive::MetaElement const*);
+  void operator()(libreallive::CommandElement const*);
+  void operator()(libreallive::ExpressionElement const*);
+  void operator()(libreallive::TextoutElement const*);
 
  private:
   // The Reallive VM's integer and string memory

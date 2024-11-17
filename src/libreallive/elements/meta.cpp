@@ -29,7 +29,6 @@
 // -----------------------------------------------------------------------
 
 #include "libreallive/elements/meta.hpp"
-#include "machine/rlmachine.hpp"
 
 namespace libreallive {
 
@@ -60,15 +59,6 @@ const size_t MetaElement::GetBytecodeLength() const { return 3; }
 
 const int MetaElement::GetEntrypoint() const {
   return type_ == Entrypoint_ ? entrypoint_index_ : kInvalidEntrypoint;
-}
-
-void MetaElement::RunOnMachine(RLMachine& machine) const {
-  if (type_ == Line_)
-    machine.SetLineNumber(value_);
-  else if (type_ == Kidoku_)
-    machine.SetKidokuMarker(value_);
-
-  machine.AdvanceInstructionPointer();
 }
 
 Bytecode_ptr MetaElement::DownCast() const { return this; }

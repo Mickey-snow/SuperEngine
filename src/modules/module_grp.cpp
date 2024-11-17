@@ -1406,7 +1406,7 @@ void ReplayGraphicsStackCommand(RLMachine& machine,
         libreallive::CommandElement* command =
             dynamic_cast<libreallive::CommandElement*>(element);
         if (command) {
-          machine.ExecuteCommand(*command);
+          machine(command);
         }
       }
     }

@@ -71,8 +71,4 @@ string BytecodeElement::GetSerializedCommand(RLMachine& machine) const {
       "FunctionElements");
 }
 
-void BytecodeElement::RunOnMachine(RLMachine& machine) const {
-  machine.AdvanceInstructionPointer();
-}
-
 }  // namespace libreallive

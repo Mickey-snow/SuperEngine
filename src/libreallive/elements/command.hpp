@@ -102,7 +102,6 @@ class CommandElement : public BytecodeElement {
 
   // Overridden from BytecodeElement:
   virtual std::string GetSourceRepresentation(IModuleManager*) const override;
-  virtual void RunOnMachine(RLMachine& machine) const final;
 
   virtual Bytecode_ptr DownCast() const override;
 
