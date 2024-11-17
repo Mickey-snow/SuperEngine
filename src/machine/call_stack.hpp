@@ -26,6 +26,8 @@
 
 #include "machine/stack_frame.hpp"
 
+// TODO: serialization support
+
 /**
  * @file call_stack.hpp
  * @brief Declaration of the CallStack class for managing a stack of StackFrame

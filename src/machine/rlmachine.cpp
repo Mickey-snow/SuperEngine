@@ -73,16 +73,6 @@ using std::cout;
 using std::endl;
 
 // -----------------------------------------------------------------------
-
-namespace {
-
-bool IsNotLongOp(StackFrame& frame) {
-  return frame.frame_type != StackFrame::TYPE_LONGOP;
-}
-
-}  // namespace
-
-// -----------------------------------------------------------------------
 // RLMachine
 // -----------------------------------------------------------------------
 
@@ -111,7 +101,8 @@ RLMachine::RLMachine(System& in_system, libreallive::Archive& in_archive)
 
   if (scenario == 0)
     throw rlvm::Exception("Invalid scenario file");
-  PushStackFrame(
+
+  call_stack_.Push(
       StackFrame(scenario, scenario->begin(), StackFrame::TYPE_ROOT));
 
   // Initial value of the savepoint
@@ -156,7 +147,7 @@ void RLMachine::HardResetMemory() {
 }
 
 void RLMachine::MarkSavepoint() {
-  savepoint_call_stack_ = call_stack_;
+  savepoint_call_stack_ = call_stack_.Clone();
   savepoint_memory_ = std::make_unique<Memory>(*memory_);
   system().graphics().TakeSavepointSnapshot();
   system().text().TakeSavepointSnapshot();
@@ -173,7 +164,6 @@ bool RLMachine::SavepointDecide(AttributeFunction func,
   else if (attribute == 2)
     return false;
 
-  //
   // check Gameexe key
   Gameexe& gexe = system_.gameexe();
   if (gexe.Exists(gameexe_key)) {
@@ -210,22 +200,27 @@ void RLMachine::ExecuteNextInstruction() {
   if (halted() == true) {
     return;
   } else {
+    const auto top_frame = call_stack_.Top();
+    if (top_frame == nullptr) {
+      std::cerr << "RLMachine: Stack underflow" << std::endl;
+      Halt();
+      return;
+    }
+
     try {
-      if (call_stack_.back().frame_type == StackFrame::TYPE_LONGOP) {
-        delay_stack_modifications_ = true;
-        bool ret_val = (*call_stack_.back().long_op)(*this);
-        delay_stack_modifications_ = false;
-
-        if (ret_val)
-          PopStackFrame();
-
-        // Now we can perform the queued actions
-        for (auto const& action : delayed_modifications_) {
-          (action)();
+      if (top_frame->frame_type == StackFrame::TYPE_LONGOP) {
+        bool finished = false;
+        {
+          auto lock = call_stack_.GetLock();
+          finished = (*top_frame->long_op)(*this);
         }
-        delayed_modifications_.clear();
+
+        if (finished) {
+          call_stack_.Pop();
+        }
+
       } else {
-        auto instruction_vari = call_stack_.back().ip->get()->DownCast();
+        auto instruction_vari = top_frame->ip->get()->DownCast();
         if (std::visit([](auto ptr) -> bool { return ptr != nullptr; },
                        instruction_vari)) {
           std::visit(*this, instruction_vari);
@@ -238,8 +233,8 @@ void RLMachine::ExecuteNextInstruction() {
       AdvanceInstructionPointer();
 
       if (print_undefined_opcodes_) {
-        cout << "(SEEN" << call_stack_.back().scenario->scene_number()
-             << ")(Line " << line_ << "):  " << e.what() << endl;
+        cout << "(SEEN" << top_frame->scenario->scene_number() << ")(Line "
+             << line_ << "):  " << e.what() << endl;
       }
 
     } catch (rlvm::Exception& e) {
@@ -251,8 +246,8 @@ void RLMachine::ExecuteNextInstruction() {
         AdvanceInstructionPointer();
       }
 
-      cout << "(SEEN" << call_stack_.back().scenario->scene_number()
-           << ")(Line " << line_ << ")";
+      cout << "(SEEN" << top_frame->scenario->scene_number() << ")(Line "
+           << line_ << ")";
 
       // We specialcase rlvm::Exception because we might have the name of the
       // opcode.
@@ -270,8 +265,8 @@ void RLMachine::ExecuteNextInstruction() {
         AdvanceInstructionPointer();
       }
 
-      cout << "(SEEN" << call_stack_.back().scenario->scene_number()
-           << ")(Line " << line_ << "):  " << e.what() << endl;
+      cout << "(SEEN" << top_frame->scenario->scene_number() << ")(Line "
+           << line_ << "):  " << e.what() << endl;
     }
   }
 }
@@ -284,10 +279,8 @@ void RLMachine::ExecuteUntilHalted() {
 
 void RLMachine::AdvanceInstructionPointer() {
   if (!replaying_graphics_stack()) {
-    std::vector<StackFrame>::reverse_iterator it =
-        find_if(call_stack_.rbegin(), call_stack_.rend(), IsNotLongOp);
-
-    if (it != call_stack_.rend()) {
+    const auto it = call_stack_.FindTopRealFrame();
+    if (it != nullptr) {
       it->ip++;
       if (it->ip == it->scenario->end())
         halted_ = true;
@@ -305,22 +298,10 @@ void RLMachine::Jump(int scenario_num, int entrypoint) {
     throw rlvm::Exception(oss.str());
   }
 
-  if (call_stack_.back().frame_type == StackFrame::TYPE_LONGOP) {
-    // For some reason this is slow; REALLY slow, so for now I'm trying to
-    // optimize the common case (no long operations on the back of the stack. I
-    // assume there's some weird speed issue with reverse_iterator?
-    //
-    // The lag is noticeable on the CLANNAD menu, without profiling tools.
-    std::vector<StackFrame>::reverse_iterator it =
-        find_if(call_stack_.rbegin(), call_stack_.rend(), IsNotLongOp);
-
-    if (it != call_stack_.rend()) {
-      it->scenario = scenario;
-      it->ip = scenario->FindEntrypoint(entrypoint);
-    }
-  } else {
-    call_stack_.back().scenario = scenario;
-    call_stack_.back().ip = scenario->FindEntrypoint(entrypoint);
+  auto it = call_stack_.FindTopRealFrame();
+  if (it != nullptr) {
+    it->scenario = scenario;
+    it->ip = scenario->FindEntrypoint(entrypoint);
   }
 }
 
@@ -339,137 +320,80 @@ void RLMachine::Farcall(int scenario_num, int entrypoint) {
   if (entrypoint == 0 && ShouldSetSeentopSavepoint())
     MarkSavepoint();
 
-  PushStackFrame(StackFrame(scenario, it, StackFrame::TYPE_FARCALL));
+  call_stack_.Push(StackFrame(scenario, it, StackFrame::TYPE_FARCALL));
 }
 
-void RLMachine::ReturnFromFarcall() {
-  // Check to make sure the types match up.
-  if (call_stack_.back().frame_type != StackFrame::TYPE_FARCALL) {
-    throw rlvm::Exception("Callstack type mismatch in returnFromFarcall()");
-  }
-
-  PopStackFrame();
-}
+void RLMachine::ReturnFromFarcall() { call_stack_.Pop(); }
 
 void RLMachine::GotoLocation(libreallive::BytecodeList::iterator new_location) {
-  // Modify the current frame of the call stack so that it's
-  call_stack_.back().ip = new_location;
+  call_stack_.Top()->ip = new_location;
 }
 
 void RLMachine::Gosub(libreallive::BytecodeList::iterator new_location) {
-  PushStackFrame(StackFrame(call_stack_.back().scenario, new_location,
-                            StackFrame::TYPE_GOSUB));
+  call_stack_.Push(StackFrame(call_stack_.Top()->scenario, new_location,
+                               StackFrame::TYPE_GOSUB));
 }
 
-void RLMachine::ReturnFromGosub() {
-  // Check to make sure the types match up.
-  if (call_stack_.back().frame_type != StackFrame::TYPE_GOSUB) {
-    throw rlvm::Exception("Callstack type mismatch in returnFromGosub()");
-  }
-
-  PopStackFrame();
-}
+void RLMachine::ReturnFromGosub() { call_stack_.Pop(); }
 
 void RLMachine::PushStringValueUp(int index, const std::string& val) {
   if (index < 0 || index > 2) {
     throw rlvm::Exception("Invalid index in pushStringValue");
   }
 
-  std::vector<StackFrame>::reverse_iterator it =
-      find_if(call_stack_.rbegin(), call_stack_.rend(), IsNotLongOp);
-  if (it != call_stack_.rend()) {
+  const auto it = call_stack_.FindTopRealFrame();
+  if (it)
     it->previous_stack_snapshot->K.Set(index, val);
-  }
 }
 
 void RLMachine::PushLongOperation(LongOperation* long_operation) {
-  PushStackFrame(StackFrame(call_stack_.back().scenario, call_stack_.back().ip,
-                            long_operation));
+  const auto top_frame = call_stack_.Top();
+  call_stack_.Push(
+      StackFrame(top_frame->scenario, top_frame->ip, long_operation));
 }
 
-void RLMachine::PushStackFrame(StackFrame frame) {
-  if (delay_stack_modifications_) {
-    delayed_modifications_.push_back(
-        std::bind(&RLMachine::PushStackFrame, this, std::move(frame)));
-    return;
-  }
+void RLMachine::PopStackFrame() { call_stack_.Pop(); }
 
-  if (frame.frame_type != StackFrame::TYPE_LONGOP)
-    frame.previous_stack_snapshot = memory_->GetStackMemory();
-
-  call_stack_.push_back(frame);
-
-  // Font hack. Try using a western font if we haven't already loaded a font.
-  if (GetTextEncoding() == 2)
-    system().set_use_western_font();
-}
-
-void RLMachine::PopStackFrame() {
-  if (delay_stack_modifications_) {
-    delayed_modifications_.push_back(
-        std::bind(&RLMachine::PopStackFrame, this));
-    return;
-  }
-
-  const auto& frame = call_stack_.back();
-  if (frame.previous_stack_snapshot.has_value()) {
-    memory_->PartialReset(frame.previous_stack_snapshot.value());
-  }
-  call_stack_.pop_back();
-}
-
-int RLMachine::GetStackSize() { return call_stack_.size(); }
+int RLMachine::GetStackSize() { return call_stack_.Size(); }
 
 void RLMachine::ClearLongOperationsOffBackOfStack() {
-  if (delay_stack_modifications_) {
-    delayed_modifications_.push_back(
-        std::bind(&RLMachine::ClearLongOperationsOffBackOfStack, this));
-    return;
-  }
-
-  // Need to do stuff here...
-  while (call_stack_.size() &&
-         call_stack_.back().frame_type == StackFrame::TYPE_LONGOP) {
-    call_stack_.pop_back();
-  }
+  while (call_stack_.Size() &&
+         call_stack_.Top() != call_stack_.FindTopRealFrame())
+    call_stack_.Pop();
 }
 
 void RLMachine::Reset() {
-  call_stack_.clear();
-  savepoint_call_stack_.clear();
+  call_stack_ = CallStack();
+  savepoint_call_stack_ = CallStack();
   system().Reset();
 }
 
 void RLMachine::LocalReset() {
-  savepoint_call_stack_.clear();
+  savepoint_call_stack_ = CallStack();
   memory_->PartialReset(LocalMemory());
   system().Reset();
 }
 
 std::shared_ptr<LongOperation> RLMachine::CurrentLongOperation() const {
-  if (call_stack_.size() &&
-      call_stack_.back().frame_type == StackFrame::TYPE_LONGOP) {
-    return call_stack_.back().long_op;
-  }
+  auto top = call_stack_.Top();
+  if (top && top->frame_type == StackFrame::TYPE_LONGOP)
+    return top->long_op;
 
   return std::shared_ptr<LongOperation>();
 }
 
-void RLMachine::ClearCallstack() {
-  while (call_stack_.size())
-    PopStackFrame();
-}
+void RLMachine::ClearCallstack() { call_stack_ = CallStack(); }
 
 int RLMachine::SceneNumber() const {
-  return call_stack_.back().scenario->scene_number();
+  return call_stack_.Top()->scenario->scene_number();
 }
 
 const libreallive::Scenario& RLMachine::Scenario() const {
-  return *call_stack_.back().scenario;
+  return *(call_stack_.Top()->scenario);
 }
 
 int RLMachine::GetTextEncoding() const {
-  return call_stack_.back().scenario->encoding();
+  return call_stack_.Top()->scenario->encoding();
 }
 
 int RLMachine::GetProbableEncodingType() const {
@@ -662,7 +586,7 @@ void RLMachine::save(Archive& ar, unsigned int version) const {
   ar & line_num;
 
   // Save the state of the stack when the last save point was hit
-  ar & savepoint_call_stack_;
+  // ar & savepoint_call_stack_;
 }
 
 template <class Archive>
@@ -672,7 +596,7 @@ void RLMachine::load(Archive& ar, unsigned int version) {
   // Just thaw the call_stack_; all preprocessing was done at freeze
   // time.
   // assert(call_stack_.size() == 0);
-  ar & call_stack_;
+  // ar & call_stack_;
 }
 
 // -----------------------------------------------------------------------

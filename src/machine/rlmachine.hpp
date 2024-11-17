@@ -40,6 +40,7 @@
 #include "libreallive/bytecode_fwd.hpp"
 #include "libreallive/scenario.hpp"
 #include "log/tracer.hpp"
+#include "machine/call_stack.hpp"
 #include "machine/module_manager.hpp"
 
 namespace libreallive {
@@ -300,10 +301,6 @@ class RLMachine {
 
   unsigned int PackModuleNumber(int modtype, int module) const;
 
-  // Pushes a stack frame onto the call stack, alerting possible
-  // LongOperations of this change if needed.
-  void PushStackFrame(StackFrame frame);
-
   // Pops a stack frame from the call stack, alerting possible
   // LongOperations of this change if needed.
   void PopStackFrame();
@@ -360,12 +357,6 @@ class RLMachine {
   // The SEEN.TXT the machine is currently executing.
   libreallive::Archive& archive_;
 
-  // The actual call stack.
-  std::vector<StackFrame> call_stack_;
-
-  // The state of the call stack the last time a savepoint was called
-  std::vector<StackFrame> savepoint_call_stack_;
-
   std::unique_ptr<Memory> savepoint_memory_;
 
   // The most recent line marker we've come across
@@ -378,23 +369,18 @@ class RLMachine {
   // Override defaults
   bool mark_savepoints_ = true;
 
-  // Whether the stack was modified during the running of a
-  // LongOperation. Used to signal that any stack mutating functions should be
-  // be placed in |delay_modifications_| for execution later.
-  bool delay_stack_modifications_ = false;
-
   // Whether we are currently replaying the graphics stack. While replaying the
   // graphics stack, we shouldn't advance the instruction pointer and do other
   // stuff.
   bool replaying_graphics_stack_ = false;
 
+ private:
+  CallStack call_stack_, savepoint_call_stack_;
+
  public:
   std::shared_ptr<Tracer> tracer_ = nullptr;
 
  private:
-  // The actions that were delayed when |delay_stack_modifications_| is on.
-  std::vector<std::function<void(void)>> delayed_modifications_;
-
   // An optional set of game specific hacks that run at certain SEEN/line
   // pairs. These run during setLineNumer().
   typedef std::map<std::pair<int, int>, std::function<void(void)>> ActionMap;
