@@ -76,20 +76,6 @@ using std::endl;
 
 namespace {
 
-// Seen files are terminated with the string "SeenEnd", which isn't NULL
-// terminated and has a bunch of random garbage after it.
-const char seen_end[] = {
-    130, 114,  // S
-    130, 133,  // e
-    130, 133,  // e
-    130, 142,  // n
-    130, 100,  // E
-    130, 142,  // n
-    130, 132   // d
-};
-
-const std::string SeenEnd(seen_end, 14);
-
 bool IsNotLongOp(StackFrame& frame) {
   return frame.frame_type != StackFrame::TYPE_LONGOP;
 }
@@ -509,8 +495,20 @@ int RLMachine::GetProbableEncodingType() const {
 }
 
 void RLMachine::PerformTextout(const libreallive::TextoutElement& e) {
+  // Seen files are terminated with the string "SeenEnd", which isn't NULL
+  // terminated and has a bunch of random garbage after it.
+  constexpr std::string_view SeenEnd{
+      "\x82\x72"  // S
+      "\x82\x85"  // e
+      "\x82\x85"  // e
+      "\x82\x8e"  // n
+      "\x82\x64"  // E
+      "\x82\x8e"  // n
+      "\x82\x84"  // d
+  };
+
   std::string unparsed_text = e.GetText();
-  if (boost::starts_with(unparsed_text, SeenEnd)) {
+  if (unparsed_text.starts_with(SeenEnd)) {
     unparsed_text = SeenEnd;
     Halt();
   }

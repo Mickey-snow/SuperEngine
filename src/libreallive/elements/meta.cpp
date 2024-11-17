@@ -71,4 +71,6 @@ void MetaElement::RunOnMachine(RLMachine& machine) const {
   machine.AdvanceInstructionPointer();
 }
 
+Bytecode_ptr MetaElement::DownCast() const { return this; }
+
 }  // namespace libreallive

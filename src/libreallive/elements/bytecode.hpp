@@ -86,6 +86,8 @@ class BytecodeElement {
   // Execute this bytecode instruction on this virtual machine
   virtual void RunOnMachine(RLMachine& machine) const;
 
+  virtual Bytecode_ptr DownCast() const = 0;
+
  protected:
   BytecodeElement(const BytecodeElement& c);
 

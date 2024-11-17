@@ -85,16 +85,17 @@ TEST(CommaParserTest, ParseCommaElement) {
   Parser parser;
   std::string parsable = PrintableToParsableString("00");
   auto parsed = parser.ParseBytecode(parsable);
-  if (auto commaElement = dynamic_cast<CommaElement*>(parsed)) {
-    auto repr = commaElement->GetSourceRepresentation(nullptr);
-    EXPECT_EQ(repr, "<CommaElement>"s);
-    std::ostringstream oss;
-    parsed->PrintSourceRepresentation(nullptr, oss);
-    EXPECT_EQ(oss.str(), "<CommaElement>\n"s);
-  } else {
-    ADD_FAILURE()
-        << "Parser failed to produce CommaElement object from '<CommaElement>'";
-  }
+  CommaElement const* commaElement = nullptr;
+  EXPECT_NO_THROW({
+    commaElement = std::get<CommaElement const*>(parsed->DownCast());
+  }) << "Parser failed to produce CommaElement object from '<CommaElement>'";
+
+  auto repr = commaElement->GetSourceRepresentation(nullptr);
+  EXPECT_EQ(repr, "<CommaElement>"s);
+  std::ostringstream oss;
+  parsed->PrintSourceRepresentation(nullptr, oss);
+  EXPECT_EQ(oss.str(), "<CommaElement>\n"s);
+
   delete parsed;
 }
 
@@ -108,13 +109,15 @@ TEST(TextoutParserTest, ParseCp932Text) {
       "81 79 90 ba 81 7a 81 75 82 ab 82 e5 81 5b 82 b7 82 af 82 aa 8b 41 82 c1 "
       "82 c4 82 ab 82 bd 82 bc 81 5b 82 c1 81 49 81 76");
   auto parsed = parser.ParseBytecode(parsable);
-  if (auto textoutElement = dynamic_cast<TextoutElement*>(parsed)) {
-    std::wstring text = L"【声】「きょーすけが帰ってきたぞーっ！」";
-    Cp932 encoding;
-    EXPECT_EQ(encoding.ConvertString(textoutElement->GetText()), text);
-  } else {
-    ADD_FAILURE();
-  }
+  TextoutElement const* textoutElement = nullptr;
+  EXPECT_NO_THROW({
+    textoutElement = std::get<TextoutElement const*>(parsed->DownCast());
+  });
+
+  std::wstring text = L"【声】「きょーすけが帰ってきたぞーっ！」";
+  Cp932 encoding;
+  EXPECT_EQ(encoding.ConvertString(textoutElement->GetText()), text);
+
   delete parsed;
 }
 
@@ -130,11 +133,12 @@ TEST(TextoutParserTest, ParseQuotedEnglishString) {
   Parser parser;
   auto parsed = parser.ParseBytecode(PrintableToParsableString(ss.str()));
   EXPECT_EQ(16, parsed->GetBytecodeLength());
-  if (auto textoutElement = dynamic_cast<TextoutElement*>(parsed)) {
-    EXPECT_EQ(textoutElement->GetText(), "Say \"Hello.\""s);
-  } else {
-    ADD_FAILURE();
-  }
+  TextoutElement const* textoutElement = nullptr;
+  EXPECT_NO_THROW({
+    textoutElement = std::get<TextoutElement const*>(parsed->DownCast());
+  });
+  EXPECT_EQ(textoutElement->GetText(), "Say \"Hello.\""s);
+
   delete parsed;
 }
 
@@ -147,26 +151,26 @@ TEST(MetaParserTest, ParseLineElement) {
   {
     std::string parsable = PrintableToParsableString("0a 10 00");
     auto parsed = parser.ParseBytecode(parsable);
-    if (auto lineElement = dynamic_cast<MetaElement*>(parsed)) {
-      auto repr = lineElement->GetSourceRepresentation(nullptr);
-      EXPECT_EQ(repr, "#line 16"s);
-    } else {
-      ADD_FAILURE()
-          << "Parser failed to produce MetaElement object from '#line 16'";
-    }
+    MetaElement const* lineElement = nullptr;
+    EXPECT_NO_THROW(
+        { lineElement = std::get<MetaElement const*>(parsed->DownCast()); });
+
+    auto repr = lineElement->GetSourceRepresentation(nullptr);
+    EXPECT_EQ(repr, "#line 16"s);
+
     delete parsed;
   }
 
   {
     std::string parsable = PrintableToParsableString("0a ff ff");
     auto parsed = parser.ParseBytecode(parsable);
-    if (auto lineElement = dynamic_cast<MetaElement*>(parsed)) {
-      auto repr = lineElement->GetSourceRepresentation(nullptr);
-      EXPECT_EQ(repr, "#line 65535"s);
-    } else {
-      ADD_FAILURE()
-          << "Parser failed to produce MetaElement object from '#line 65535'";
-    }
+    MetaElement const* lineElement = nullptr;
+    EXPECT_NO_THROW(
+        { lineElement = std::get<MetaElement const*>(parsed->DownCast()); });
+
+    auto repr = lineElement->GetSourceRepresentation(nullptr);
+    EXPECT_EQ(repr, "#line 65535"s);
+
     delete parsed;
   }
 }
@@ -178,14 +182,15 @@ TEST(MetaParserTest, ParseEntrypointElement) {
 
   std::string parsable = PrintableToParsableString("21 00 00");
   auto parsed = parser.ParseBytecode(parsable);
-  if (auto entrypointElement = dynamic_cast<MetaElement*>(parsed)) {
-    auto repr = entrypointElement->GetSourceRepresentation(nullptr);
-    EXPECT_EQ(repr, "#entrypoint 0"s);
-    EXPECT_EQ(entrypointElement->GetEntrypoint(), 564);
-  } else {
-    ADD_FAILURE()
-        << "Parser failed to produce MetaElement object from '#entrypoint 0'";
-  }
+  MetaElement const* entrypointElement = nullptr;
+  EXPECT_NO_THROW({
+    entrypointElement = std::get<MetaElement const*>(parsed->DownCast());
+  });
+
+  auto repr = entrypointElement->GetSourceRepresentation(nullptr);
+  EXPECT_EQ(repr, "#entrypoint 0"s);
+  EXPECT_EQ(entrypointElement->GetEntrypoint(), 564);
+
   delete parsed;
 }
 
@@ -197,13 +202,12 @@ TEST(MetaParserTest, ParseKidoku) {
   Parser parser(cdata);
   std::string parsable = PrintableToParsableString("40 03 00");
   auto parsed = parser.ParseBytecode(parsable);
-  if (auto kidokuElement = dynamic_cast<MetaElement*>(parsed)) {
-    auto repr = kidokuElement->GetSourceRepresentation(nullptr);
-    EXPECT_EQ(repr, "{- Kidoku 3 -}");
-  } else {
-    ADD_FAILURE()
-        << "Parser failed to produce MetaElement object from '{- Kidoku 3 -}'";
-  }
+  MetaElement const* kidokuElement = nullptr;
+  EXPECT_NO_THROW(
+      { kidokuElement = std::get<MetaElement const*>(parsed->DownCast()); });
+  auto repr = kidokuElement->GetSourceRepresentation(nullptr);
+  EXPECT_EQ(repr, "{- Kidoku 3 -}");
+
   delete parsed;
 }
 

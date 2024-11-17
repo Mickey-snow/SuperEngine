@@ -59,4 +59,6 @@ void ExpressionElement::RunOnMachine(RLMachine& machine) const {
   machine.ExecuteExpression(*this);
 }
 
+Bytecode_ptr ExpressionElement::DownCast() const { return this; }
+
 }  // namespace libreallive

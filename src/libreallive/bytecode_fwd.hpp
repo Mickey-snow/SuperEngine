@@ -30,6 +30,7 @@
 
 #include <forward_list>
 #include <memory>
+#include <variant>
 
 namespace libreallive {
 
@@ -46,6 +47,7 @@ class DataElement;
 class MetaElement;
 class TextoutElement;
 class ExpressionElement;
+class CommaElement;
 class CommandElement;
 class SelectElement;
 class FunctionElement;
@@ -55,4 +57,9 @@ class GotoCaseElement;
 class GotoOnElement;
 class GosubWithElement;
 
+using Bytecode_ptr = std::variant<CommandElement const*,
+                                  CommaElement const*,
+                                  MetaElement const*,
+                                  TextoutElement const*,
+                                  ExpressionElement const*>;
 }  // namespace libreallive

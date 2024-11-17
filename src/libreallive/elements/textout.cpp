@@ -78,4 +78,6 @@ void TextoutElement::RunOnMachine(RLMachine& machine) const {
   machine.AdvanceInstructionPointer();
 }
 
+Bytecode_ptr TextoutElement::DownCast() const { return this; }
+
 }  // namespace libreallive

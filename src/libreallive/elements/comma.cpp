@@ -41,4 +41,7 @@ std::string CommaElement::GetSourceRepresentation(IModuleManager*) const {
 }
 
 const size_t CommaElement::GetBytecodeLength() const { return 1; }
+
+Bytecode_ptr CommaElement::DownCast() const { return this; }
+
 }  // namespace libreallive

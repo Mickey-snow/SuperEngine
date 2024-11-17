@@ -138,6 +138,8 @@ void CommandElement::RunOnMachine(RLMachine& machine) const {
   machine.ExecuteCommand(*this);
 }
 
+Bytecode_ptr CommandElement::DownCast() const { return this; }
+
 // -----------------------------------------------------------------------
 // SelectElement
 // -----------------------------------------------------------------------

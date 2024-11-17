@@ -58,6 +58,8 @@ class MetaElement : public BytecodeElement {
   virtual const int GetEntrypoint() const final;
   virtual void RunOnMachine(RLMachine& machine) const final;
 
+  virtual Bytecode_ptr DownCast() const final;
+
  private:
   MetaElementType type_;
   int value_;

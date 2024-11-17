@@ -104,6 +104,8 @@ class CommandElement : public BytecodeElement {
   virtual std::string GetSourceRepresentation(IModuleManager*) const override;
   virtual void RunOnMachine(RLMachine& machine) const final;
 
+  virtual Bytecode_ptr DownCast() const override;
+
  protected:
   static constexpr size_t COMMAND_SIZE = 8;
   std::array<unsigned char, COMMAND_SIZE> command;
