@@ -99,7 +99,7 @@ WipeTopToBottomEffect::WipeTopToBottomEffect(RLMachine& machine,
 WipeTopToBottomEffect::~WipeTopToBottomEffect() {}
 
 void WipeTopToBottomEffect::PerformEffectForTime(int currentTime) {
-  int sizeOfInterpolation, sizeOfMainPolygon;
+  int sizeOfInterpolation = 0, sizeOfMainPolygon = 0;
   CalculateSizes(currentTime, sizeOfInterpolation, sizeOfMainPolygon, height());
 
   if (sizeOfMainPolygon) {
@@ -135,7 +135,7 @@ WipeBottomToTopEffect::WipeBottomToTopEffect(RLMachine& machine,
 WipeBottomToTopEffect::~WipeBottomToTopEffect() {}
 
 void WipeBottomToTopEffect::PerformEffectForTime(int currentTime) {
-  int sizeOfInterpolation, sizeOfMainPolygon;
+  int sizeOfInterpolation = 0, sizeOfMainPolygon = 0;
   CalculateSizes(currentTime, sizeOfInterpolation, sizeOfMainPolygon, height());
 
   // Render the sliding on frame
@@ -171,7 +171,7 @@ WipeLeftToRightEffect::WipeLeftToRightEffect(RLMachine& machine,
 WipeLeftToRightEffect::~WipeLeftToRightEffect() {}
 
 void WipeLeftToRightEffect::PerformEffectForTime(int currentTime) {
-  int sizeOfInterpolation, sizeOfMainPolygon;
+  int sizeOfInterpolation = 0, sizeOfMainPolygon = 0;
   CalculateSizes(currentTime, sizeOfInterpolation, sizeOfMainPolygon, width());
 
   // CONTINUE FIXING THE WIPES HERE!
@@ -208,7 +208,7 @@ WipeRightToLeftEffect::WipeRightToLeftEffect(RLMachine& machine,
 WipeRightToLeftEffect::~WipeRightToLeftEffect() {}
 
 void WipeRightToLeftEffect::PerformEffectForTime(int currentTime) {
-  int sizeOfInterpolation, sizeOfMainPolygon;
+  int sizeOfInterpolation = 0, sizeOfMainPolygon = 0;
   CalculateSizes(currentTime, sizeOfInterpolation, sizeOfMainPolygon, width());
 
   if (sizeOfMainPolygon) {

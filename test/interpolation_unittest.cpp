@@ -76,7 +76,7 @@ TEST(InterpolationTests, InterpolateBetween) {
 
     double result =
         InterpolateBetween(range, value, InterpolationMode::LogEaseOut);
-    EXPECT_NEAR(result, 158.496, 1e-3);  // Allowing higher tolerance
+    EXPECT_NEAR(result, expected, 1e-3);  // Allowing higher tolerance
   }
 
   {
@@ -149,18 +149,19 @@ TEST(InterpolationTests, DefaultRange) {
 TEST(InterpolationTests, MaxValues) {
   InterpolationRange range(0.0, 100.0, 1000.0);
   double amount = 1000000.0;
-  double percentage = (100.0 - 0.0) / (1000.0 - 0.0);  // 0.1
-  double expected = 0.1 * amount;                      // 100000.0
+  [[maybe_unused]] double percentage = (100.0 - 0.0) / (1000.0 - 0.0);  // 0.1
+  double expected = 0.1 * amount;  // 100000.0
 
   double result = Interpolate(range, amount, InterpolationMode::Linear);
-  EXPECT_NEAR(result, 100000.0, EPS);
+  EXPECT_NEAR(result, expected, EPS);
 }
 
 TEST(InterpolationTests, MinValues) {
   InterpolationRange range(-100.0, -50.0, 0.0);
   double amount = 200.0;
-  double percentage = (-50.0 - (-100.0)) / (0.0 - (-100.0));  // 0.5
-  double expected = 0.5 * amount;                             // 100.0
+  [[maybe_unused]] double percentage =
+      (-50.0 - (-100.0)) / (0.0 - (-100.0));  // 0.5
+  double expected = 0.5 * amount;             // 100.0
 
   double result = Interpolate(range, amount, InterpolationMode::Linear);
   EXPECT_NEAR(result, expected, EPS);

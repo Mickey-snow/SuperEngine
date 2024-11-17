@@ -64,8 +64,7 @@ TEST_F(ScapegoatTest, InsertAndRetrieve) {
 
 TEST_F(ScapegoatTest, RetrieveNonExistentKey) {
   paramManager.Set(1, 123);
-  EXPECT_THROW(
-      { int value = std::any_cast<int>(paramManager[2]); }, std::out_of_range);
+  EXPECT_THROW({ std::any_cast<int>(paramManager[2]); }, std::out_of_range);
 }
 
 TEST_F(ScapegoatTest, ModifyValue) {

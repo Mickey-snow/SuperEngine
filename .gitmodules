@@ -1,6 +1,3 @@
 [submodule "vendor/libsamplerate"]
 	path = vendor/libsamplerate
 	url = https://github.com/libsndfile/libsamplerate.git
-[submodule "vendor/vorbis"]
-	path = vendor/vorbis
-	url = https://github.com/xiph/vorbis.git

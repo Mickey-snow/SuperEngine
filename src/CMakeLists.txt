@@ -4,12 +4,12 @@ set(RLVM_REQUIRED_LIBRARIES
     ${ZLIB_LIBRARIES}
     ${OPENGL_LIBRARIES}
     ${Boost_LIBRARIES}
+    VorbisFile::VorbisFile
     xclannad
     glew
     guichan
     pygame
     samplerate
-    vorbisfile
     sdl_image
     sdl_ttf
     sdl_mixer
@@ -43,14 +43,13 @@ if (GTK2_FOUND) # use gtk
    list(APPEND RLVM_REQUIRED_LIBRARIES ${GTK2_LIBRARIES})
 endif()
 
-add_library(rlvm_src OBJECT ${RLVM_SRC_FILES})
+add_library(rlvm_src OBJECT)
+target_sources(rlvm_src PRIVATE ${RLVM_SRC_FILES})
 target_include_directories(rlvm_src PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_compile_options(rlvm_src PUBLIC
-  -funsigned-char
-  -Wall
-  -Wno-narrowing
-  -Wno-write-strings
+  $<$<CXX_COMPILER_ID:GNU,Clang>:-funsigned-char -Wall -Wno-narrowing -Wno-write-strings
+  -Wno-sign-compare>
 )
 
 target_link_libraries(rlvm_src PUBLIC ${RLVM_REQUIRED_LIBRARIES})

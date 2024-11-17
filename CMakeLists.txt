@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.18)
 
 project(RLVM VERSION 0.14.1 LANGUAGES CXX C)
 
@@ -9,9 +9,23 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 option(RLVM_BUILD_TESTS "Build unit test program" OFF)
 option(RLVM_FULLSTATIC "Build executables that are linked statically" OFF)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+
 if(RLVM_FULLSTATIC)
   set(BUILD_SHARED_LIBS OFF)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static -static-libgcc -static-libstdc++")
+  set(CMAKE_FIND_LIBRARY_SUFFIXES .a .lib ${CMAKE_FIND_LIBRARY_SUFFIXES})
+  set(CMAKE_LINK_SEARCH_START_STATIC ON)
+  set(CMAKE_LINK_SEARCH_END_STATIC ON)
+
+  message(WARNING "Building static targets. This is currently untested and not guaranteed to work.")
+endif()
+
+find_package(PkgConfig REQUIRED)
+if(RLVM_FULLSTATIC)
+  set(_PKG_CONFIG_ARGS "--static")
+else()
+  set(_PKG_CONFIG_ARGS "")
 endif()
 
 # -------------------------------------------------------------------
@@ -28,14 +42,9 @@ endif()
 # -------------------------------------------------------------------
 # Find SDL1 Library
 # -------------------------------------------------------------------
-find_package(SDL REQUIRED)
-
-if (SDL_FOUND)
-  message(STATUS "SDL1 found: ${SDL_VERSION}")
-  include_directories(${SDL_INCLUDE_DIRS})
-else()
-  message(FATAL_ERROR "SDL1 not found. Please install SDL1.2 development libraries.")
-endif()
+pkg_check_modules(SDL1 REQUIRED sdl "${_PKG_CONFIG_ARGS}")
+include_directories(${SDL1_INCLUDE_DIRS})
+link_directories(${SDL1_LIBRARY_DIRS})
 
 # -------------------------------------------------------------------
 # Find Boost Libraries
@@ -57,7 +66,7 @@ find_package(Freetype REQUIRED)
 
 if (Freetype_FOUND)
   message(STATUS "Freetype2 found: ${Freetype_VERSION}")
-  include_directories(${FREETYPE_INCLUDE_DIRS})
+  include_directories(${Freetype_INCLUDE_DIRS})
 else()
   message(FATAL_ERROR "Freetype2 not found. Please install Freetype2 development libraries.")
 endif()
@@ -76,15 +85,15 @@ else()
 endif()
 
 # -------------------------------------------------------------------
-# Find Ogg Library
+# Find Vorbis Library
 # -------------------------------------------------------------------
-find_package(Ogg REQUIRED)
+find_package(VorbisFile REQUIRED)
 
-if (Ogg_FOUND)
-  message(STATUS "Ogg found: ${OGG_VERSION}")
-  include_directories(${OGG_INCLUDE_DIRS})
+if (VorbisFile_FOUND)
+  message(STATUS "VorbisFile found: ${VorbisFile_VERSION}")
+  include_directories(${VorbisFile_DIRS})
 else()
-  message(FATAL_ERROR "Ogg not found. Please install libogg development libraries.")
+  message(FATAL_ERROR "VorbisFile not found. Please install VorbisFile development libraries.")
 endif()
 
 # -------------------------------------------------------------------

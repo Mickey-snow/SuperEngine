@@ -81,6 +81,9 @@ Before you begin, ensure you have the following libraries and utilities installe
 - **FreeType**:
   [https://www.freetype.org/](https://www.freetype.org/)
 - **GNU gettext**
+- **zlib**
+- **vorbisfile** (part of the Ogg Vorbis audio codec):
+  [https://xiph.org/vorbis/](https://xiph.org/vorbis/)
 
 ### Obtaining the Source Code
 
@@ -123,12 +126,7 @@ After a successful build, you can run RLVM using the following command:
 To run unit tests, additional dependencies are required:
 
 - **GoogleTest** and **GoogleMock**
-- **Python 3** with the following packages:
-  - `numpy`
-  - `wave`
-  - `soundfile`
-  - `struct`
-  - `argparse`
+- **Python 3** with the following packages: `numpy`, `wave`, `soundfile`
 
 1. **Configure the Build with Tests Enabled**
 

@@ -37,12 +37,6 @@ file(GLOB_RECURSE TEST_SRC_FILES
   "*.cc"
 )
 add_executable(unittest ${TEST_SRC_FILES})
-target_compile_options(unittest PRIVATE
-  -Wno-narrowing
-  -Wall
-  -funsigned-char
-)
-
 target_link_libraries(unittest ${GTEST_LIBRARIES} rlvm_src)
 
 # -------------------------------------------------------------------

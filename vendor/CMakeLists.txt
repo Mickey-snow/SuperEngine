@@ -30,7 +30,7 @@ add_library(guichan STATIC ${GUICHAN_SRC_FILES})
 target_include_directories(guichan PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/guichan/include
 )
-target_link_libraries(guichan PUBLIC OpenGL::GL sdl_image sdl_ttf)
+target_link_libraries(guichan PUBLIC ${OpenGL_LIBRARIES} sdl_image sdl_ttf)
 
 # -------------------------------------------------------------------
 # libsamplerate
@@ -43,13 +43,6 @@ target_include_directories(samplerate PUBLIC
 )
 
 # -------------------------------------------------------------------
-# vorbis
-# -------------------------------------------------------------------
-set(BUILD_TESTING OFF CACHE BOOL "Disable vorbis tests" FORCE)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vorbis)
-target_link_libraries(vorbis PUBLIC ${OGG_LIBRARIES})
-
-# -------------------------------------------------------------------
 # SDL_image
 # -------------------------------------------------------------------
 add_library(sdl_image STATIC SDL_image/src/IMG_xpm.c)
@@ -59,7 +52,7 @@ target_include_directories(sdl_image PUBLIC
 target_include_directories(sdl_image PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/SDL_image/include/SDL
 )
-target_link_libraries(sdl_image PUBLIC ${SDL_LIBRARIES})
+target_link_libraries(sdl_image PUBLIC ${SDL1_LIBRARIES})
 
 # -------------------------------------------------------------------
 # SDL_mixer
@@ -72,7 +65,7 @@ target_include_directories(sdl_mixer PUBLIC
 target_include_directories(sdl_mixer PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/SDL_mixer/include/SDL
 )
-target_link_libraries(sdl_mixer PUBLIC ${SDL_LIBRARIES})
+target_link_libraries(sdl_mixer PUBLIC ${SDL1_LIBRARIES})
 
 # -------------------------------------------------------------------
 # SDL_ttf
@@ -83,3 +76,6 @@ target_include_directories(sdl_ttf PUBLIC
 )
 target_link_libraries(sdl_ttf PUBLIC ${FREETYPE_LIBRARIES})
 target_link_libraries(sdl_ttf PUBLIC ${SDL_LIBRARIES})
+target_compile_options(sdl_ttf PRIVATE
+  $<$<CXX_COMPILER_ID:GNU,Clang>:-w>
+)

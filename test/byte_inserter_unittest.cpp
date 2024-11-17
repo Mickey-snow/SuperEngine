@@ -91,6 +91,7 @@ TEST(ByteInserterTest, InsertMixedUnions) {
   ByteInserter back(buf);
 
   union MixedUnion {
+    MixedUnion() : int_val(0) {}
     int32_t int_val;
     float float_val;
     char char_val;
