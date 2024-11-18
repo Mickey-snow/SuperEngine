@@ -26,10 +26,10 @@
 
 #include "machine/dump_scenario.hpp"
 
-#include <iostream>
-
 #include "libreallive/parser.hpp"
 #include "libreallive/scenario.hpp"
+
+#include <iostream>
 
 void DumpScenario(IModuleManager* manager, libreallive::Scenario* scenario) {
   if (!scenario) {

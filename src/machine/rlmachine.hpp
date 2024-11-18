@@ -141,18 +141,6 @@ class RLMachine {
 
   // ------------------------------------- [ Memory manipulation functions ]
 
-  // Returns the integer value of a certain memory location
-  int GetIntValue(const libreallive::IntMemRef& ref);
-
-  // Sets the value of a certain memory location
-  void SetIntValue(const libreallive::IntMemRef& ref, int value);
-
-  // Returns the string value of a string memory bank
-  const std::string& GetStringValue(int type, int location);
-
-  // Sets the string value of one of the string banks
-  void SetStringValue(int type, int number, const std::string& value);
-
   // Reinitializes all memory to a pristine, default state as specified in the
   // Gameexe.ini file.
   void HardResetMemory();
@@ -299,8 +287,6 @@ class RLMachine {
   // it will.
   void SetHaltOnException(bool halt_on_exception);
 
-  unsigned int PackModuleNumber(int modtype, int module) const;
-
   // Pops a stack frame from the call stack, alerting possible
   // LongOperations of this change if needed.
   void PopStackFrame();
@@ -357,7 +343,7 @@ class RLMachine {
   // The SEEN.TXT the machine is currently executing.
   libreallive::Archive& archive_;
 
-  std::unique_ptr<Memory> savepoint_memory_;
+  Memory savepoint_memory_;
 
   // The most recent line marker we've come across
   int line_ = 0;

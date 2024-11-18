@@ -123,23 +123,6 @@ RLMachine::RLMachine(System& in_system, libreallive::Archive& in_archive)
 
 RLMachine::~RLMachine() {}
 
-int RLMachine::GetIntValue(const libreallive::IntMemRef& ref) {
-  return memory_->Read(ref);
-}
-
-void RLMachine::SetIntValue(const libreallive::IntMemRef& ref, int value) {
-  memory_->Write(ref, value);
-}
-
-const std::string& RLMachine::GetStringValue(int type, int location) {
-  return memory_->Read(StrMemoryLocation(type, location));
-}
-
-void RLMachine::SetStringValue(int type, int index, const std::string& value) {
-  const auto loc = StrMemoryLocation(type, index);
-  memory_->Write(loc, value);
-}
-
 void RLMachine::HardResetMemory() {
   memory_ = std::make_unique<Memory>();
   memory_->LoadFrom(system().gameexe());
@@ -147,7 +130,7 @@ void RLMachine::HardResetMemory() {
 
 void RLMachine::MarkSavepoint() {
   savepoint_call_stack_ = call_stack_.Clone();
-  savepoint_memory_ = std::make_unique<Memory>(*memory_);
+  savepoint_memory_ = memory();
   system().graphics().TakeSavepointSnapshot();
   system().text().TakeSavepointSnapshot();
 }
@@ -402,7 +385,7 @@ int RLMachine::GetProbableEncodingType() const {
 void RLMachine::PerformTextout(const std::string& cp932str) {
   std::string name_parsed_text;
   try {
-    name_parsed_text = parseNames(*memory_, cp932str);
+    name_parsed_text = parseNames(memory(), cp932str);
   } catch (rlvm::Exception& e) {
     // WEIRD: Sometimes rldev (and the official compiler?) will generate strings
     // that aren't valid shift_jis. Fall back while I figure out how to handle
@@ -481,10 +464,6 @@ int RLMachine::CallDLL(int slot,
         << " when no DLL is loaded there!";
     throw rlvm::Exception(oss.str());
   }
-}
-
-unsigned int RLMachine::PackModuleNumber(int modtype, int module) const {
-  return (modtype << 8) | module;
 }
 
 void RLMachine::SetPrintUndefinedOpcodes(bool in) {
