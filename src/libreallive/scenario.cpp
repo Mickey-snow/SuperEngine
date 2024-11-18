@@ -38,24 +38,25 @@
 
 namespace libreallive {
 
-Scenario::Scenario(const std::string_view& data,
-                   int sn,
-                   const std::string& regname,
-                   const XorKey* second_level_xor_key)
-    : header(data),
-      script(header, data, regname, header.use_xor_2_, second_level_xor_key),
-      scenario_number_(sn) {}
+Scenario::Scenario(Header hdr, Script scr, int num)
+    : header(hdr), script(scr), scenario_number_(num) {}
 
-Scenario::Scenario(FilePos fp,
-                   int sn,
-                   const std::string& regname,
-                   const XorKey* second_level_xor_key)
-    : Scenario(fp.Read(), sn, regname, second_level_xor_key) {}
-
-Scenario::~Scenario() {}
+Scenario::~Scenario() = default;
 
 Scenario::const_iterator Scenario::FindEntrypoint(int entrypoint) const {
   return script.GetEntrypoint(entrypoint);
+}
+
+std::unique_ptr<Scenario> ParseScenario(FilePos fp,
+                                        int scenarioNum,
+                                        const std::string& regname,
+                                        const XorKey* second_level_xor_key) {
+  auto data = fp.Read();
+  auto header = Header(data);
+  auto script =
+      Script(header, data, regname, header.use_xor_2_, second_level_xor_key);
+  return std::make_unique<Scenario>(std::move(header), std::move(script),
+                                    scenarioNum);
 }
 
 }  // namespace libreallive

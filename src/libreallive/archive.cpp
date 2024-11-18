@@ -59,16 +59,17 @@ Archive::Archive(const fs::path& filepath, const std::string& regname)
 Archive::~Archive() {}
 
 Scenario* Archive::GetScenario(int index) {
-  scenario_t::const_iterator at = scenario_.find(index);
+  auto at = scenario_.find(index);
   if (at != scenario_.end())
     return at->second.get();
   else {  // make the scenario on demand
     toc_t::const_iterator st = toc_.find(index);
     if (st != toc_.end()) {
-      Scenario* scene =
-          new Scenario(st->second, index, regname_, second_level_xor_key_);
-      scenario_[index].reset(scene);
-      return scene;
+      auto scene_ptr =
+          ParseScenario(st->second, index, regname_, second_level_xor_key_);
+      auto raw_ptr = scene_ptr.get();
+      scenario_[index] = std::move(scene_ptr);
+      return raw_ptr;
     }
     return NULL;
   }

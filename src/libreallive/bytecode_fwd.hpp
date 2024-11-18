@@ -37,7 +37,7 @@ namespace libreallive {
 // List definitions.
 class ExpressionPiece;
 class BytecodeElement;
-typedef std::forward_list<std::unique_ptr<BytecodeElement>> BytecodeList;
+typedef std::forward_list<std::shared_ptr<BytecodeElement>> BytecodeList;
 typedef BytecodeList::iterator pointer_t;
 
 struct ConstructionData;

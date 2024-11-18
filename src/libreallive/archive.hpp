@@ -71,7 +71,6 @@ class Archive {
 
  private:
   typedef std::map<int, FilePos> toc_t;
-  typedef std::map<int, std::unique_ptr<Scenario>> scenario_t;
 
   void ReadTOC(const fs::path& filepath);
 
@@ -80,7 +79,7 @@ class Archive {
   void FindXorKey();
 
   toc_t toc_;
-  scenario_t scenario_;
+  std::map<int, std::unique_ptr<Scenario>> scenario_;
 
   // Mappings to unarchived SEEN\d{4}.TXT files on disk.
   // std::vector<std::unique_ptr<Mapping>> maps_to_delete_;

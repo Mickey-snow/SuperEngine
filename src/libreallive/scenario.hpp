@@ -42,14 +42,7 @@ namespace libreallive {
 
 class Scenario {
  public:
-  Scenario(const std::string_view& data,
-           int scenarioNum,
-           const std::string& regname,
-           const XorKey* second_level_xor_key);
-  Scenario(FilePos fp,
-           int scenarioNum,
-           const std::string& regname,
-           const XorKey* second_level_xor_key);
+  Scenario(Header hdr, Script scr, int num);
   ~Scenario();
 
   // Get the scenario number
@@ -68,8 +61,8 @@ class Scenario {
   typedef BytecodeList::const_iterator const_iterator;
   typedef BytecodeList::iterator iterator;
 
-  const_iterator begin() const { return script.elts_.cbegin(); }
-  const_iterator end() const { return script.elts_.cend(); }
+  auto begin() const { return script.elts_.cbegin(); }
+  auto end() const { return script.elts_.cend(); }
 
   // Locate the entrypoint
   const_iterator FindEntrypoint(int entrypoint) const;
@@ -79,5 +72,10 @@ class Scenario {
   Script script;
   int scenario_number_;
 };
+
+std::unique_ptr<Scenario> ParseScenario(FilePos fp,
+                                        int scenarioNum,
+                                        const std::string& regname,
+                                        const XorKey* second_level_xor_key);
 
 }  // namespace libreallive

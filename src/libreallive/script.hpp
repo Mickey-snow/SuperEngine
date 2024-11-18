@@ -41,9 +41,6 @@ class Script {
  public:
   const pointer_t GetEntrypoint(int entrypoint) const;
 
- private:
-  friend class Scenario;
-
   Script(const Header& hdr,
          const char* const data,
          const size_t length,
