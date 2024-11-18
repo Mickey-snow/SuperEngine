@@ -32,6 +32,7 @@
 
 #include "base/compression.hpp"
 #include "libreallive/alldefs.hpp"
+#include "libreallive/bytecode_table.hpp"
 #include "libreallive/elements/bytecode.hpp"
 #include "libreallive/header.hpp"
 #include "libreallive/parser.hpp"
@@ -45,17 +46,20 @@
 
 namespace libreallive {
 
-Script::Script(BytecodeList elts, std::map<int, pointer_t> entrypoints)
+Script::Script(BytecodeList elts,
+               std::map<int, pointer_t> entrypoints,
+               std::shared_ptr<BytecodeTable> table)
     : elts_(std::move(elts)),
-      entrypoint_associations_(std::move(entrypoints)) {}
+      entrypoint_associations_(std::move(entrypoints)),
+      table_(table) {}
 
 Script::~Script() {}
 
 const pointer_t Script::GetEntrypoint(int entrypoint) const {
-  pointernumber::const_iterator it = entrypoint_associations_.find(entrypoint);
-  if (it == entrypoint_associations_.end())
-    throw Error("Unknown entrypoint");
-
+  const auto it = entrypoint_associations_.find(entrypoint);
+  if (it == entrypoint_associations_.cend())
+    throw std::invalid_argument("Script::GetEntrypoint: Unknown entrypoint " +
+                                std::to_string(entrypoint) + '.');
   return it->second;
 }
 
@@ -72,10 +76,10 @@ Script ParseScript(const Header& hdr,
   // Kidoku/entrypoint table
   const int kidoku_offs = read_i32(data + 0x08);
   const size_t kidoku_length = read_i32(data + 0x0c);
-  std::shared_ptr<BytecodeTable> cdat = std::make_shared<BytecodeTable>();
-  cdat->kidoku_table.resize(kidoku_length);
+  std::shared_ptr<BytecodeTable> ctable = std::make_shared<BytecodeTable>();
+  ctable->kidoku_table.resize(kidoku_length);
   for (size_t i = 0; i < kidoku_length; ++i)
-    cdat->kidoku_table[i] = read_i32(data + kidoku_offs + i * 4);
+    ctable->kidoku_table[i] = read_i32(data + kidoku_offs + i * 4);
 
   const XorKey* key = NULL;
   if (use_xor_2) {
@@ -114,11 +118,11 @@ Script ParseScript(const Header& hdr,
   size_t pos = 0;
   pointer_t it = elts_.before_begin();
 
-  Parser parser(cdat);
+  Parser parser(ctable);
   while (pos < dlen) {
     // Read element
     it = elts_.emplace_after(it, parser.ParseBytecode(stream, end));
-    cdat->offsets[pos] = it;
+    ctable->offsets[pos] = it;
 
     // Keep track of the entrypoints
     int entrypoint = (*it)->GetEntrypoint();
@@ -135,10 +139,10 @@ Script ParseScript(const Header& hdr,
 
   // Resolve pointers
   for (auto& element : elts_) {
-    element->SetPointers(*cdat);
+    element->SetPointers(*ctable);
   }
 
-  return Script(std::move(elts_), std::move(entrypoint_associations_));
+  return Script(std::move(elts_), std::move(entrypoint_associations_), ctable);
 }
 
 }  // namespace libreallive

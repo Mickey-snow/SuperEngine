@@ -34,12 +34,15 @@
 #include "libreallive/header.hpp"
 
 #include <map>
+#include <memory>
 
 namespace libreallive {
 
 class Script {
  public:
-  Script(BytecodeList elts, std::map<int, pointer_t> entrypoints);
+  Script(BytecodeList elts,
+         std::map<int, pointer_t> entrypoints,
+         std::shared_ptr<BytecodeTable> table = nullptr);
   ~Script();
 
   const pointer_t GetEntrypoint(int entrypoint) const;
@@ -49,8 +52,10 @@ class Script {
   BytecodeList elts_;
 
   // Entrypoint handeling
-  typedef std::map<int, pointer_t> pointernumber;
-  pointernumber entrypoint_associations_;
+  std::map<int, pointer_t> entrypoint_associations_;
+
+  // Original bytecode table to allow reconstruction after parsing
+  std::shared_ptr<BytecodeTable> table_;
 };
 
 Script ParseScript(const Header& hdr,

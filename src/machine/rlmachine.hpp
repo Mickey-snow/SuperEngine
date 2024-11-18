@@ -378,6 +378,7 @@ class RLMachine {
   CallStack call_stack_, savepoint_call_stack_;
 
  public:
+  // For logging
   std::shared_ptr<Tracer> tracer_ = nullptr;
 
  private:

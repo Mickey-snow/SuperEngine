@@ -102,7 +102,7 @@ RLMachine::RLMachine(System& in_system, libreallive::Archive& in_archive)
     throw rlvm::Exception("Invalid scenario file");
 
   call_stack_.Push(
-      StackFrame(scenario, scenario->begin(), StackFrame::TYPE_ROOT));
+      StackFrame(scenario, scenario->cbegin(), StackFrame::TYPE_ROOT));
 
   // Initial value of the savepoint
   MarkSavepoint();
@@ -281,7 +281,7 @@ void RLMachine::AdvanceInstructionPointer() {
     const auto it = call_stack_.FindTopRealFrame();
     if (it != nullptr) {
       it->ip++;
-      if (it->ip == it->scenario->end())
+      if (it->ip == it->scenario->cend())
         halted_ = true;
     }
   }
