@@ -121,7 +121,10 @@ Script ParseScript(const Header& hdr,
   Parser parser(ctable);
   while (pos < dlen) {
     // Read element
-    it = elts_.emplace_after(it, parser.ParseBytecode(stream, end));
+    auto elm = parser.ParseBytecode(stream, end);
+    if (!elm)
+      throw std::runtime_error("ParseScript: parser produced a null pointer.");
+    it = elts_.emplace_after(it, elm);
     ctable->offsets[pos] = it;
 
     // Keep track of the entrypoints

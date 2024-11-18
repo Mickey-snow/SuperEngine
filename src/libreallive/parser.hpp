@@ -33,10 +33,6 @@
 
 #pragma once
 
-#include <ostream>
-#include <string>
-#include <vector>
-
 #include "libreallive/alldefs.hpp"
 #include "libreallive/elements/bytecode.hpp"
 #include "libreallive/elements/comma.hpp"
@@ -44,6 +40,11 @@
 #include "libreallive/elements/expression.hpp"
 #include "libreallive/elements/meta.hpp"
 #include "libreallive/elements/textout.hpp"
+
+#include <memory>
+#include <ostream>
+#include <string>
+#include <vector>
 
 namespace libreallive {
 
@@ -57,10 +58,11 @@ std::string PrintableToParsableString(const std::string& src);
 
 class Factory {
  public:
-  static ExpressionElement* MakeExpression(const char* stream);
+  static std::shared_ptr<ExpressionElement> MakeExpression(const char* stream);
 
-  static MetaElement* MakeMeta(std::shared_ptr<BytecodeTable> cdata,
-                               const char* stream);
+  static std::shared_ptr<MetaElement> MakeMeta(
+      std::shared_ptr<BytecodeTable> cdata,
+      const char* stream);
 };
 
 class ExpressionParser {
@@ -114,19 +116,19 @@ class CommandParser {
  public:
   CommandParser() = default;
 
-  static CommandElement* ParseNormalFunction(const char* src);
+  static std::shared_ptr<CommandElement> ParseNormalFunction(const char* src);
 
-  static GotoElement* ParseGoto(const char* src);
+  static std::shared_ptr<GotoElement> ParseGoto(const char* src);
 
-  static GotoIfElement* ParseGotoIf(const char* src);
+  static std::shared_ptr<GotoIfElement> ParseGotoIf(const char* src);
 
-  static GotoOnElement* ParseGotoOn(const char* src);
+  static std::shared_ptr<GotoOnElement> ParseGotoOn(const char* src);
 
-  static GotoCaseElement* ParseGotoCase(const char* src);
+  static std::shared_ptr<GotoCaseElement> ParseGotoCase(const char* src);
 
-  static GosubWithElement* ParseGosubWith(const char* src);
+  static std::shared_ptr<GosubWithElement> ParseGosubWith(const char* src);
 
-  static SelectElement* ParseSelect(const char* src);
+  static std::shared_ptr<SelectElement> ParseSelect(const char* src);
 };
 
 class Parser {
@@ -134,15 +136,18 @@ class Parser {
   explicit Parser();
   explicit Parser(std::shared_ptr<BytecodeTable> cdata);
 
-  BytecodeElement* ParseBytecode(const char* stream, const char* end);
+  std::shared_ptr<BytecodeElement> ParseBytecode(const char* stream,
+                                                 const char* end);
 
-  BytecodeElement* ParseBytecode(const std::string& src);
+  std::shared_ptr<BytecodeElement> ParseBytecode(const std::string& src);
 
-  TextoutElement* ParseTextout(const char* stream, const char* end);
+  std::shared_ptr<TextoutElement> ParseTextout(const char* stream,
+                                               const char* end);
 
-  CommandElement* ParseCommand(const char* stream);
+  std::shared_ptr<CommandElement> ParseCommand(const char* stream);
 
-  static CommandElement* BuildFunctionElement(const char* stream);
+  static std::shared_ptr<CommandElement> BuildFunctionElement(
+      const char* stream);
 
  private:
   std::shared_ptr<BytecodeTable> cdata_;

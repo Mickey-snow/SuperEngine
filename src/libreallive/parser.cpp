@@ -102,23 +102,25 @@ std::string PrintableToParsableString(const std::string& src) {
 // class Factory
 // -----------------------------------------------------------------------
 
-ExpressionElement* Factory::MakeExpression(const char* stream) {
+std::shared_ptr<ExpressionElement> Factory::MakeExpression(const char* stream) {
   const char* end = stream;
   auto expr = ExpressionParser::GetAssignment(end);
   auto len = std::distance(stream, end);
-  return new ExpressionElement(len, expr);
+  return std::make_shared<ExpressionElement>(len, expr);
 }
 
-MetaElement* Factory::MakeMeta(std::shared_ptr<BytecodeTable> cdata,
-                               const char* stream) {
+std::shared_ptr<MetaElement> Factory::MakeMeta(
+    std::shared_ptr<BytecodeTable> cdata,
+    const char* stream) {
   int value = read_i16(stream + 1);
   if (!cdata)
-    return new MetaElement(MetaElement::Line_, value, 0);
+    return std::make_shared<MetaElement>(MetaElement::Line_, value, 0);
   else if (cdata->kidoku_table.at(value) >= 1000000) {
     const auto entry_idx = cdata->kidoku_table[value] - 1000000;
-    return new MetaElement(MetaElement::Entrypoint_, value, entry_idx);
+    return std::make_shared<MetaElement>(MetaElement::Entrypoint_, value,
+                                         entry_idx);
   } else
-    return new MetaElement(MetaElement::Kidoku_, value, 0);
+    return std::make_shared<MetaElement>(MetaElement::Kidoku_, value, 0);
 }
 
 // -----------------------------------------------------------------------
@@ -407,7 +409,8 @@ CommandInfo GetCommandinfo(const char* stream) {
   return cmd;
 }
 
-CommandElement* CommandParser::ParseNormalFunction(const char* stream) {
+std::shared_ptr<CommandElement> CommandParser::ParseNormalFunction(
+    const char* stream) {
   auto cmd = GetCommandinfo(stream);
   std::vector<std::string> params;
   auto& parsed_params = cmd.param;
@@ -430,17 +433,17 @@ CommandElement* CommandParser::ParseNormalFunction(const char* stream) {
     end++;
   }
 
-  return new FunctionElement(std::move(cmd), end - stream);
+  return std::make_shared<FunctionElement>(std::move(cmd), end - stream);
 }
 
 // <goto> -> opcode id
-GotoElement* CommandParser::ParseGoto(const char* stream) {
+std::shared_ptr<GotoElement> CommandParser::ParseGoto(const char* stream) {
   unsigned long id = read_i32(stream + 8);
-  return new GotoElement(stream, id);
+  return std::make_shared<GotoElement>(stream, id);
 }
 
 // <gotoif> -> opcode ( expr ) id
-GotoIfElement* CommandParser::ParseGotoIf(const char* stream) {
+std::shared_ptr<GotoIfElement> CommandParser::ParseGotoIf(const char* stream) {
   auto begin = stream;
   auto cmd = GetCommandinfo(stream);
   stream += 8;
@@ -454,10 +457,10 @@ GotoIfElement* CommandParser::ParseGotoIf(const char* stream) {
 
   unsigned long id = read_i32(stream);
   stream += 4;
-  return new GotoIfElement(std::move(cmd), id, stream - begin);
+  return std::make_shared<GotoIfElement>(std::move(cmd), id, stream - begin);
 }
 
-GotoOnElement* CommandParser::ParseGotoOn(const char* stream) {
+std::shared_ptr<GotoOnElement> CommandParser::ParseGotoOn(const char* stream) {
   auto begin = stream;
   auto cmd = GetCommandinfo(stream);
   stream += 8;
@@ -477,10 +480,12 @@ GotoOnElement* CommandParser::ParseGotoOn(const char* stream) {
   if (*stream++ != '}')
     throw Error("GotoOnElement(): expected `}'");
 
-  return new GotoOnElement(std::move(cmd), targets, stream - begin);
+  return std::make_shared<GotoOnElement>(std::move(cmd), targets,
+                                         stream - begin);
 }
 
-GotoCaseElement* CommandParser::ParseGotoCase(const char* stream) {
+std::shared_ptr<GotoCaseElement> CommandParser::ParseGotoCase(
+    const char* stream) {
   auto begin = stream;
   auto cmd = GetCommandinfo(stream);
   stream += 8;
@@ -509,11 +514,12 @@ GotoCaseElement* CommandParser::ParseGotoCase(const char* stream) {
   }
   if (*stream++ != '}')
     throw Error("GotoCaseElement(): expected `}'");
-  return new GotoCaseElement(std::move(cmd), stream - begin, targets,
-                             parsed_cases);
+  return std::make_shared<GotoCaseElement>(std::move(cmd), stream - begin,
+                                           targets, parsed_cases);
 }
 
-GosubWithElement* CommandParser::ParseGosubWith(const char* stream) {
+std::shared_ptr<GosubWithElement> CommandParser::ParseGosubWith(
+    const char* stream) {
   auto begin = stream;
   auto cmd = GetCommandinfo(stream);
   auto& parsed_param = cmd.param;
@@ -530,11 +536,11 @@ GosubWithElement* CommandParser::ParseGosubWith(const char* stream) {
 
   id = read_i32(stream);
   stream += 4;
-  return new GosubWithElement(std::move(cmd), id, stream - begin);
+  return std::make_shared<GosubWithElement>(std::move(cmd), id, stream - begin);
 }
 
-SelectElement* CommandParser::ParseSelect(const char* stream) {
-  return new SelectElement(stream);
+std::shared_ptr<SelectElement> CommandParser::ParseSelect(const char* stream) {
+  return std::make_shared<SelectElement>(stream);
 }
 
 // -----------------------------------------------------------------------
@@ -547,22 +553,23 @@ Parser::Parser()
 Parser::Parser(std::shared_ptr<BytecodeTable> data)
     : cdata_(data), entrypoint_marker_('@') {}
 
-BytecodeElement* Parser::ParseBytecode(const std::string& src) {
+std::shared_ptr<BytecodeElement> Parser::ParseBytecode(const std::string& src) {
   return ParseBytecode(src.c_str(), src.c_str() + src.size());
 }
 
-BytecodeElement* Parser::ParseBytecode(const char* stream, const char* end) {
+std::shared_ptr<BytecodeElement> Parser::ParseBytecode(const char* stream,
+                                                       const char* end) {
   const char c = *stream;
   if (c == '!')
     entrypoint_marker_ = '!';
 
-  BytecodeElement* result = nullptr;
+  std::shared_ptr<BytecodeElement> result = nullptr;
 
   try {
     switch (c) {
       case 0:
       case ',':
-        result = new CommaElement;
+        result = std::make_shared<CommaElement>();
         break;
       case '\n':
         result = Factory::MakeMeta(nullptr, stream);
@@ -591,7 +598,8 @@ BytecodeElement* Parser::ParseBytecode(const char* stream, const char* end) {
   return result;
 }
 
-TextoutElement* Parser::ParseTextout(const char* src, const char* file_end) {
+std::shared_ptr<TextoutElement> Parser::ParseTextout(const char* src,
+                                                     const char* file_end) {
   const char* end = src;
   bool quoted = false;
   while (end < file_end) {
@@ -616,10 +624,10 @@ TextoutElement* Parser::ParseTextout(const char* src, const char* file_end) {
       ++end;
   }
 
-  return new TextoutElement(src, end);
+  return std::make_shared<TextoutElement>(src, end);
 }
 
-CommandElement* Parser::ParseCommand(const char* stream) {
+std::shared_ptr<CommandElement> Parser::ParseCommand(const char* stream) {
   CommandParser command_parser_;
 
   // opcode: 0xttmmoooo (Type, Module, Opcode: e.g. 0x01030101 = 1:03:00257

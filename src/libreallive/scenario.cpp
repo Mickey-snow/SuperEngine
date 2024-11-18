@@ -39,7 +39,7 @@
 namespace libreallive {
 
 Scenario::Scenario(Header hdr, Script scr, int num)
-    : header(hdr), script(scr), scenario_number_(num) {}
+    : header(std::move(hdr)), script(std::move(scr)), scenario_number_(num) {}
 
 Scenario::~Scenario() = default;
 

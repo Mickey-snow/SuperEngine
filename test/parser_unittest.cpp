@@ -95,8 +95,6 @@ TEST(CommaParserTest, ParseCommaElement) {
   std::ostringstream oss;
   parsed->PrintSourceRepresentation(nullptr, oss);
   EXPECT_EQ(oss.str(), "<CommaElement>\n"s);
-
-  delete parsed;
 }
 
 // -----------------------------------------------------------------------
@@ -117,8 +115,6 @@ TEST(TextoutParserTest, ParseCp932Text) {
   std::wstring text = L"【声】「きょーすけが帰ってきたぞーっ！」";
   Cp932 encoding;
   EXPECT_EQ(encoding.ConvertString(textoutElement->GetText()), text);
-
-  delete parsed;
 }
 
 TEST(TextoutParserTest, ParseQuotedEnglishString) {
@@ -138,8 +134,6 @@ TEST(TextoutParserTest, ParseQuotedEnglishString) {
     textoutElement = std::get<TextoutElement const*>(parsed->DownCast());
   });
   EXPECT_EQ(textoutElement->GetText(), "Say \"Hello.\""s);
-
-  delete parsed;
 }
 
 // -----------------------------------------------------------------------
@@ -157,8 +151,6 @@ TEST(MetaParserTest, ParseLineElement) {
 
     auto repr = lineElement->GetSourceRepresentation(nullptr);
     EXPECT_EQ(repr, "#line 16"s);
-
-    delete parsed;
   }
 
   {
@@ -170,8 +162,6 @@ TEST(MetaParserTest, ParseLineElement) {
 
     auto repr = lineElement->GetSourceRepresentation(nullptr);
     EXPECT_EQ(repr, "#line 65535"s);
-
-    delete parsed;
   }
 }
 
@@ -190,8 +180,6 @@ TEST(MetaParserTest, ParseEntrypointElement) {
   auto repr = entrypointElement->GetSourceRepresentation(nullptr);
   EXPECT_EQ(repr, "#entrypoint 0"s);
   EXPECT_EQ(entrypointElement->GetEntrypoint(), 564);
-
-  delete parsed;
 }
 
 TEST(MetaParserTest, ParseKidoku) {
@@ -207,8 +195,6 @@ TEST(MetaParserTest, ParseKidoku) {
       { kidokuElement = std::get<MetaElement const*>(parsed->DownCast()); });
   auto repr = kidokuElement->GetSourceRepresentation(nullptr);
   EXPECT_EQ(repr, "{- Kidoku 3 -}");
-
-  delete parsed;
 }
 
 // -----------------------------------------------------------------------
@@ -340,17 +326,13 @@ TEST(ExpressionParserTest, ComplexParam) {
 
 class CommandParserTest : public ::testing::Test {
  protected:
-  void TearDown() override {
-    for (auto& it : parsed_cmds)
-      delete it;
-  }
-
   using data_t = std::vector<std::pair<std::string, std::string>>;
   void TestWith(const data_t& data) {
     parsed_cmds.reserve(data.size());
     for (const auto& [printable, repr] : data) {
       const auto parsable = PrintableToParsableString(printable);
-      CommandElement* parsed = parser.ParseCommand(parsable.c_str());
+      std::shared_ptr<CommandElement> parsed =
+          parser.ParseCommand(parsable.c_str());
       ASSERT_NE(parsed, nullptr);
       EXPECT_EQ(parsed->GetBytecodeLength(), parsable.length());
       EXPECT_EQ(parsed->GetSourceRepresentation(nullptr), repr);
@@ -359,7 +341,7 @@ class CommandParserTest : public ::testing::Test {
   }
 
   Parser parser;
-  std::vector<CommandElement*> parsed_cmds;
+  std::vector<std::shared_ptr<CommandElement>> parsed_cmds;
 };
 
 TEST_F(CommandParserTest, GotoElement) {
@@ -388,11 +370,11 @@ TEST_F(CommandParserTest, GotoOnElement) {
        "op<0:001:00008, 0>(intL[1]){ @24807 @26277 @27285 @28313 @29577 @30627 @31651 @33949 @35062 @36143}"s}};
   TestWith(data);
   {
-    auto cmd = dynamic_cast<GotoOnElement*>(parsed_cmds[0]);
+    auto cmd = std::dynamic_pointer_cast<GotoOnElement>(parsed_cmds[0]);
     ASSERT_NE(cmd, nullptr);
   }
   {
-    auto cmd = dynamic_cast<GotoOnElement*>(parsed_cmds[1]);
+    auto cmd = std::dynamic_pointer_cast<GotoOnElement>(parsed_cmds[1]);
     ASSERT_NE(cmd, nullptr);
   }
 }
@@ -423,7 +405,7 @@ TEST_F(CommandParserTest, SelectElement) {
   TestWith(data);
 
   {
-    auto sel = dynamic_cast<SelectElement*>(parsed_cmds.front());
+    auto sel = std::dynamic_pointer_cast<SelectElement>(parsed_cmds.front());
     ASSERT_NE(sel, nullptr);
     EXPECT_EQ(sel->GetParamCount(), 4);
     auto param = sel->raw_params();
