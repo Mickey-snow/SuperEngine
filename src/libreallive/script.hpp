@@ -30,54 +30,40 @@
 
 #pragma once
 
-#include <string>
-#include <string_view>
-
-#include "libreallive/alldefs.hpp"
+#include "libreallive/bytecode_fwd.hpp"
 #include "libreallive/header.hpp"
-#include "libreallive/script.hpp"
-#include "utilities/mapped_file.hpp"
+
+#include <map>
 
 namespace libreallive {
 
-class Scenario {
+class Script {
  public:
-  Scenario(const std::string_view& data,
-           int scenarioNum,
-           const std::string& regname,
-           const XorKey* second_level_xor_key);
-  Scenario(FilePos fp,
-           int scenarioNum,
-           const std::string& regname,
-           const XorKey* second_level_xor_key);
-  ~Scenario();
-
-  // Get the scenario number
-  int scene_number() const { return scenario_number_; }
-
-  // Get the text encoding used for this scenario
-  int encoding() const { return header.rldev_metadata_.text_encoding(); }
-
-  // Access to metadata in the script. Don't worry about information loss;
-  // valid values are 0, 1, and 2.
-  int savepoint_message() const { return header.savepoint_message_; }
-  int savepoint_selcom() const { return header.savepoint_selcom_; }
-  int savepoint_seentop() const { return header.savepoint_seentop_; }
-
-  // Access to script
-  typedef BytecodeList::const_iterator const_iterator;
-  typedef BytecodeList::iterator iterator;
-
-  const_iterator begin() const { return script.elts_.cbegin(); }
-  const_iterator end() const { return script.elts_.cend(); }
-
-  // Locate the entrypoint
-  const_iterator FindEntrypoint(int entrypoint) const;
+  const pointer_t GetEntrypoint(int entrypoint) const;
 
  private:
-  Header header;
-  Script script;
-  int scenario_number_;
+  friend class Scenario;
+
+  Script(const Header& hdr,
+         const char* const data,
+         const size_t length,
+         const std::string& regname,
+         bool use_xor_2,
+         const XorKey* second_level_xor_key);
+  Script(const Header& hdr,
+         const std::string_view& data,
+         const std::string& regname,
+         bool use_xor_2,
+         const XorKey* second_level_xor_key);
+  ~Script();
+
+  // A sequence of semi-parsed/tokenized bytecode elements, which are
+  // the elements that RLMachine executes.
+  BytecodeList elts_;
+
+  // Entrypoint handeling
+  typedef std::map<int, pointer_t> pointernumber;
+  pointernumber entrypoint_associations_;
 };
 
 }  // namespace libreallive

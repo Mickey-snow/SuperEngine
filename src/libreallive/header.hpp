@@ -31,53 +31,44 @@
 #pragma once
 
 #include <string>
-#include <string_view>
-
-#include "libreallive/alldefs.hpp"
-#include "libreallive/header.hpp"
-#include "libreallive/script.hpp"
-#include "utilities/mapped_file.hpp"
+#include <vector>
 
 namespace libreallive {
 
-class Scenario {
+struct XorKey;
+
+class Metadata {
  public:
-  Scenario(const std::string_view& data,
-           int scenarioNum,
-           const std::string& regname,
-           const XorKey* second_level_xor_key);
-  Scenario(FilePos fp,
-           int scenarioNum,
-           const std::string& regname,
-           const XorKey* second_level_xor_key);
-  ~Scenario();
+  Metadata();
+  const std::string& to_string() const { return as_string_; }
+  const int text_encoding() const { return encoding_; }
 
-  // Get the scenario number
-  int scene_number() const { return scenario_number_; }
+  void Assign(const char* input);
 
-  // Get the text encoding used for this scenario
-  int encoding() const { return header.rldev_metadata_.text_encoding(); }
-
-  // Access to metadata in the script. Don't worry about information loss;
-  // valid values are 0, 1, and 2.
-  int savepoint_message() const { return header.savepoint_message_; }
-  int savepoint_selcom() const { return header.savepoint_selcom_; }
-  int savepoint_seentop() const { return header.savepoint_seentop_; }
-
-  // Access to script
-  typedef BytecodeList::const_iterator const_iterator;
-  typedef BytecodeList::iterator iterator;
-
-  const_iterator begin() const { return script.elts_.cbegin(); }
-  const_iterator end() const { return script.elts_.cend(); }
-
-  // Locate the entrypoint
-  const_iterator FindEntrypoint(int entrypoint) const;
+  void Assign(const std::string_view& input);
 
  private:
-  Header header;
-  Script script;
-  int scenario_number_;
+  std::string as_string_;
+  int encoding_;
+};
+
+class Header {
+ public:
+  Header(const char* const data, const size_t length);
+  Header(const std::string_view& data) : Header(data.data(), data.length()) {}
+  ~Header();
+
+  // Starting around the release of Little Busters!, scenario files has a
+  // second round of xor done to them. When will they learn?
+  bool use_xor_2_;
+
+  long z_minus_one_;
+  long z_minus_two_;
+  long savepoint_message_;
+  long savepoint_selcom_;
+  long savepoint_seentop_;
+  std::vector<std::string> dramatis_personae_;
+  Metadata rldev_metadata_;
 };
 
 }  // namespace libreallive

@@ -29,6 +29,8 @@
 // -----------------------------------------------------------------------
 
 #include "libreallive/elements/command.hpp"
+
+#include "libreallive/parser.hpp"
 #include "machine/module_manager.hpp"
 #include "machine/rlmachine.hpp"
 

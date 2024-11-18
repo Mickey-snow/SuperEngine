@@ -25,27 +25,18 @@
 //
 // -----------------------------------------------------------------------
 
-#include <boost/archive/text_iarchive.hpp>  // NOLINT
-#include <boost/archive/text_oarchive.hpp>  // NOLINT
-#include <boost/serialization/vector.hpp>   // NOLINT
-
 #include "machine/rlmachine.hpp"
-
-#include <boost/algorithm/string/predicate.hpp>
-#include <filesystem>
-
-#include <functional>
-#include <iostream>
-#include <iterator>
-#include <sstream>
-#include <string>
-#include <vector>
 
 #include "base/gameexe.hpp"
 #include "libreallive/archive.hpp"
+#include "libreallive/elements/bytecode.hpp"
+#include "libreallive/elements/comma.hpp"
+#include "libreallive/elements/command.hpp"
+#include "libreallive/elements/expression.hpp"
+#include "libreallive/elements/meta.hpp"
+#include "libreallive/elements/textout.hpp"
 #include "libreallive/expression.hpp"
 #include "libreallive/intmemref.hpp"
-#include "libreallive/parser.hpp"
 #include "libreallive/scenario.hpp"
 #include "long_operations/pause_long_operation.hpp"
 #include "long_operations/textout_long_operation.hpp"
@@ -62,9 +53,18 @@
 #include "systems/base/system_error.hpp"
 #include "systems/base/text_page.hpp"
 #include "systems/base/text_system.hpp"
-#include "utilities/date_util.hpp"
 #include "utilities/exception.hpp"
 #include "utilities/string_utilities.hpp"
+
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
+#include <filesystem>
+#include <functional>
+#include <iostream>
+#include <iterator>
+#include <sstream>
+#include <string>
+#include <vector>
 
 namespace fs = std::filesystem;
 
@@ -82,7 +82,6 @@ RLMachine::RLMachine(System& in_system, libreallive::Archive& in_archive)
       system_(in_system) {
   // Search in the Gameexe for #SEEN_START and place us there
   Gameexe& gameexe = in_system.gameexe();
-
   memory_->LoadFrom(gameexe);
 
   libreallive::Scenario* scenario = NULL;
@@ -331,7 +330,7 @@ void RLMachine::GotoLocation(libreallive::BytecodeList::iterator new_location) {
 
 void RLMachine::Gosub(libreallive::BytecodeList::iterator new_location) {
   call_stack_.Push(StackFrame(call_stack_.Top()->scenario, new_location,
-                               StackFrame::TYPE_GOSUB));
+                              StackFrame::TYPE_GOSUB));
 }
 
 void RLMachine::ReturnFromGosub() { call_stack_.Pop(); }
@@ -595,7 +594,6 @@ void RLMachine::load(Archive& ar, unsigned int version) {
 
   // Just thaw the call_stack_; all preprocessing was done at freeze
   // time.
-  // assert(call_stack_.size() == 0);
   // ar & call_stack_;
 }
 

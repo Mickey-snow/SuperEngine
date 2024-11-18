@@ -40,6 +40,7 @@
 
 #include "libreallive/alldefs.hpp"
 #include "libreallive/intmemref.hpp"
+#include "libreallive/parser.hpp"
 #include "machine/reference.hpp"
 #include "machine/rlmachine.hpp"
 
