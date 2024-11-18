@@ -45,12 +45,30 @@
 
 namespace libreallive {
 
-Script::Script(const Header& hdr,
-               const char* const data,
-               const size_t length,
-               const std::string& regname,
-               bool use_xor_2,
-               const XorKey* second_level_xor_key) {
+Script::Script(BytecodeList elts, std::map<int, pointer_t> entrypoints)
+    : elts_(std::move(elts)),
+      entrypoint_associations_(std::move(entrypoints)) {}
+
+Script::~Script() {}
+
+const pointer_t Script::GetEntrypoint(int entrypoint) const {
+  pointernumber::const_iterator it = entrypoint_associations_.find(entrypoint);
+  if (it == entrypoint_associations_.end())
+    throw Error("Unknown entrypoint");
+
+  return it->second;
+}
+
+Script ParseScript(const Header& hdr,
+                   const std::string_view& data_view,
+                   const std::string& regname,
+                   bool use_xor_2,
+                   const XorKey* second_level_xor_key) {
+  const char* const data = data_view.data();
+
+  BytecodeList elts_;
+  std::map<int, pointer_t> entrypoint_associations_;
+
   // Kidoku/entrypoint table
   const int kidoku_offs = read_i32(data + 0x08);
   const size_t kidoku_length = read_i32(data + 0x0c);
@@ -119,28 +137,8 @@ Script::Script(const Header& hdr,
   for (auto& element : elts_) {
     element->SetPointers(*cdat);
   }
-}
 
-Script::Script(const Header& hdr,
-               const std::string_view& data,
-               const std::string& regname,
-               bool use_xor_2,
-               const XorKey* second_level_xor_key)
-    : Script(hdr,
-             data.data(),
-             data.length(),
-             regname,
-             use_xor_2,
-             second_level_xor_key) {}
-
-Script::~Script() {}
-
-const pointer_t Script::GetEntrypoint(int entrypoint) const {
-  pointernumber::const_iterator it = entrypoint_associations_.find(entrypoint);
-  if (it == entrypoint_associations_.end())
-    throw Error("Unknown entrypoint");
-
-  return it->second;
+  return Script(std::move(elts_), std::move(entrypoint_associations_));
 }
 
 }  // namespace libreallive

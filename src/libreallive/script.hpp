@@ -39,20 +39,10 @@ namespace libreallive {
 
 class Script {
  public:
-  const pointer_t GetEntrypoint(int entrypoint) const;
-
-  Script(const Header& hdr,
-         const char* const data,
-         const size_t length,
-         const std::string& regname,
-         bool use_xor_2,
-         const XorKey* second_level_xor_key);
-  Script(const Header& hdr,
-         const std::string_view& data,
-         const std::string& regname,
-         bool use_xor_2,
-         const XorKey* second_level_xor_key);
+  Script(BytecodeList elts, std::map<int, pointer_t> entrypoints);
   ~Script();
+
+  const pointer_t GetEntrypoint(int entrypoint) const;
 
   // A sequence of semi-parsed/tokenized bytecode elements, which are
   // the elements that RLMachine executes.
@@ -62,5 +52,11 @@ class Script {
   typedef std::map<int, pointer_t> pointernumber;
   pointernumber entrypoint_associations_;
 };
+
+Script ParseScript(const Header& hdr,
+                   const std::string_view& data,
+                   const std::string& regname,
+                   bool use_xor_2,
+                   const XorKey* second_level_xor_key);
 
 }  // namespace libreallive

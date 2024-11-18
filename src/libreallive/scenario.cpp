@@ -53,8 +53,8 @@ std::unique_ptr<Scenario> ParseScenario(FilePos fp,
                                         const XorKey* second_level_xor_key) {
   auto data = fp.Read();
   auto header = Header(data);
-  auto script =
-      Script(header, data, regname, header.use_xor_2_, second_level_xor_key);
+  auto script = ParseScript(header, data, regname, header.use_xor_2_,
+                            second_level_xor_key);
   return std::make_unique<Scenario>(std::move(header), std::move(script),
                                     scenarioNum);
 }
