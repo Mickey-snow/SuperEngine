@@ -34,15 +34,6 @@
 namespace libreallive {
 
 // -----------------------------------------------------------------------
-// ConstructionData
-// -----------------------------------------------------------------------
-
-ConstructionData::ConstructionData(size_t kt, pointer_t pt)
-    : kidoku_table(kt), null(pt) {}
-
-ConstructionData::~ConstructionData() {}
-
-// -----------------------------------------------------------------------
 // BytecodeElement
 // -----------------------------------------------------------------------
 
@@ -61,7 +52,7 @@ std::string BytecodeElement::GetSourceRepresentation(IModuleManager*) const {
   return "<unspecified bytecode>";
 }
 
-void BytecodeElement::SetPointers(ConstructionData& cdata) {}
+void BytecodeElement::SetPointers(BytecodeTable& cdata) {}
 
 const int BytecodeElement::GetEntrypoint() const { return kInvalidEntrypoint; }
 

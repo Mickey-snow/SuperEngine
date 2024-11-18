@@ -176,7 +176,7 @@ TEST(MetaParserTest, ParseLineElement) {
 }
 
 TEST(MetaParserTest, ParseEntrypointElement) {
-  auto cdata = std::make_shared<ConstructionData>();
+  auto cdata = std::make_shared<BytecodeTable>();
   cdata->kidoku_table.push_back(1000000 + 564);
   Parser parser(cdata);
 
@@ -195,7 +195,7 @@ TEST(MetaParserTest, ParseEntrypointElement) {
 }
 
 TEST(MetaParserTest, ParseKidoku) {
-  auto cdata = std::make_shared<ConstructionData>();
+  auto cdata = std::make_shared<BytecodeTable>();
   cdata->kidoku_table.resize(4);
   cdata->kidoku_table[3] = 12;
 

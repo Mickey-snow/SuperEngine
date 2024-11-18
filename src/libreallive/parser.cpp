@@ -109,7 +109,7 @@ ExpressionElement* Factory::MakeExpression(const char* stream) {
   return new ExpressionElement(len, expr);
 }
 
-MetaElement* Factory::MakeMeta(std::shared_ptr<ConstructionData> cdata,
+MetaElement* Factory::MakeMeta(std::shared_ptr<BytecodeTable> cdata,
                                const char* stream) {
   int value = read_i16(stream + 1);
   if (!cdata)
@@ -542,9 +542,9 @@ SelectElement* CommandParser::ParseSelect(const char* stream) {
 // -----------------------------------------------------------------------
 
 Parser::Parser()
-    : cdata_(std::make_shared<ConstructionData>()), entrypoint_marker_('@') {}
+    : cdata_(std::make_shared<BytecodeTable>()), entrypoint_marker_('@') {}
 
-Parser::Parser(std::shared_ptr<ConstructionData> data)
+Parser::Parser(std::shared_ptr<BytecodeTable> data)
     : cdata_(data), entrypoint_marker_('@') {}
 
 BytecodeElement* Parser::ParseBytecode(const std::string& src) {

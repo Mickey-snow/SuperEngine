@@ -59,7 +59,7 @@ class Factory {
  public:
   static ExpressionElement* MakeExpression(const char* stream);
 
-  static MetaElement* MakeMeta(std::shared_ptr<ConstructionData> cdata,
+  static MetaElement* MakeMeta(std::shared_ptr<BytecodeTable> cdata,
                                const char* stream);
 };
 
@@ -132,7 +132,7 @@ class CommandParser {
 class Parser {
  public:
   explicit Parser();
-  explicit Parser(std::shared_ptr<ConstructionData> cdata);
+  explicit Parser(std::shared_ptr<BytecodeTable> cdata);
 
   BytecodeElement* ParseBytecode(const char* stream, const char* end);
 
@@ -145,7 +145,7 @@ class Parser {
   static CommandElement* BuildFunctionElement(const char* stream);
 
  private:
-  std::shared_ptr<ConstructionData> cdata_;
+  std::shared_ptr<BytecodeTable> cdata_;
   char entrypoint_marker_;
   CommandParser command_parser_;
 };

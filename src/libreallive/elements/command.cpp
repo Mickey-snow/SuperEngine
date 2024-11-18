@@ -47,13 +47,11 @@ Pointers::Pointers() {}
 
 Pointers::~Pointers() {}
 
-void Pointers::SetPointers(ConstructionData& cdata) {
+void Pointers::SetPointers(BytecodeTable& cdata) {
   assert(target_ids.size() != 0);
   targets.reserve(target_ids.size());
   for (unsigned int i = 0; i < target_ids.size(); ++i) {
-    ConstructionData::offsets_t::const_iterator it =
-        cdata.offsets.find(target_ids[i]);
-    assert(it != cdata.offsets.end());
+    auto it = cdata.offsets.find(target_ids[i]);
     targets.push_back(it->second);
   }
   target_ids.clear();
@@ -302,9 +300,8 @@ std::string GotoElement::GetSourceRepresentation(
 
 const size_t GotoElement::GetBytecodeLength() const { return 12; }
 
-void GotoElement::SetPointers(ConstructionData& cdata) {
-  ConstructionData::offsets_t::const_iterator it = cdata.offsets.find(id_);
-  assert(it != cdata.offsets.end());
+void GotoElement::SetPointers(BytecodeTable& cdata) {
+  const auto it = cdata.offsets.find(id_);
   pointer_ = it->second;
 }
 
@@ -335,9 +332,8 @@ std::string GotoIfElement::GetSourceRepresentation(
 
 const size_t GotoIfElement::GetBytecodeLength() const { return length_; }
 
-void GotoIfElement::SetPointers(ConstructionData& cdata) {
-  ConstructionData::offsets_t::const_iterator it = cdata.offsets.find(id_);
-  assert(it != cdata.offsets.end());
+void GotoIfElement::SetPointers(BytecodeTable& cdata) {
+  auto it = cdata.offsets.find(id_);
   pointer_ = it->second;
 }
 
@@ -373,7 +369,7 @@ std::string GotoCaseElement::GetSourceRepresentation(
 
 pointer_t GotoCaseElement::GetPointer(int i) const { return targets_[i]; }
 
-void GotoCaseElement::SetPointers(ConstructionData& cdata) {
+void GotoCaseElement::SetPointers(BytecodeTable& cdata) {
   targets_.SetPointers(cdata);
 }
 
@@ -393,7 +389,7 @@ const size_t GotoOnElement::GetPointersCount() const { return targets_.size(); }
 
 pointer_t GotoOnElement::GetPointer(int i) const { return targets_[i]; }
 
-void GotoOnElement::SetPointers(ConstructionData& cdata) {
+void GotoOnElement::SetPointers(BytecodeTable& cdata) {
   targets_.SetPointers(cdata);
 }
 
@@ -439,9 +435,8 @@ std::string GosubWithElement::GetSourceRepresentation(
 
 const size_t GosubWithElement::GetBytecodeLength() const { return length_; }
 
-void GosubWithElement::SetPointers(ConstructionData& cdata) {
-  ConstructionData::offsets_t::const_iterator it = cdata.offsets.find(id_);
-  assert(it != cdata.offsets.end());
+void GosubWithElement::SetPointers(BytecodeTable& cdata) {
+  const auto it = cdata.offsets.find(id_);
   pointer_ = it->second;
 }
 

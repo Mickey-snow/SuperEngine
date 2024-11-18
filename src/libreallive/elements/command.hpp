@@ -55,7 +55,7 @@ class Pointers {
   const size_t size() const { return targets.size(); }
   const size_t idSize() const { return target_ids.size(); }
 
-  void SetPointers(ConstructionData& cdata);
+  void SetPointers(BytecodeTable& cdata);
 
   friend class GotoCaseElement;
   friend class GotoOnElement;
@@ -197,7 +197,7 @@ class GotoElement : public CommandElement {
 
   // Overridden from BytecodeElement:
   virtual const size_t GetBytecodeLength() const final;
-  virtual void SetPointers(ConstructionData& cdata) final;
+  virtual void SetPointers(BytecodeTable& cdata) final;
 
  private:
   unsigned long id_;
@@ -216,7 +216,7 @@ class GotoIfElement : public CommandElement {
 
   // Overridden from BytecodeElement:
   virtual const size_t GetBytecodeLength() const final;
-  virtual void SetPointers(ConstructionData& cdata) final;
+  virtual void SetPointers(BytecodeTable& cdata) final;
 
  private:
   unsigned long id_;
@@ -245,7 +245,7 @@ class GotoCaseElement : public CommandElement {
 
   const size_t GetPointersCount() const final;
   pointer_t GetPointer(int) const final;
-  void SetPointers(ConstructionData& cdata) final;
+  void SetPointers(BytecodeTable& cdata) final;
 
   // Overridden from BytecodeElement:
   virtual const size_t GetBytecodeLength() const final;
@@ -267,7 +267,7 @@ class GotoOnElement : public CommandElement {
 
   const size_t GetPointersCount() const final;
   pointer_t GetPointer(int) const final;
-  void SetPointers(ConstructionData& cdata) final;
+  void SetPointers(BytecodeTable& cdata) final;
   virtual std::string GetSourceRepresentation(IModuleManager*) const override;
 
   // Overridden from BytecodeElement:
@@ -294,7 +294,7 @@ class GosubWithElement : public CommandElement {
 
   // Overridden from BytecodeElement:
   virtual const size_t GetBytecodeLength() const final;
-  virtual void SetPointers(ConstructionData& cdata) final;
+  virtual void SetPointers(BytecodeTable& cdata) final;
 
  private:
   unsigned long id_;

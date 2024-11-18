@@ -36,23 +36,13 @@
 #include <vector>
 
 #include "libreallive/bytecode_fwd.hpp"
+#include "libreallive/bytecode_table.hpp"
 
 class RLMachine;
 class IModuleManager;
 
 namespace libreallive {
 class Script;
-
-struct ConstructionData {
-  ConstructionData() = default;
-  ConstructionData(size_t kt, pointer_t pt);
-  ~ConstructionData();
-
-  std::vector<unsigned long> kidoku_table;
-  pointer_t null;
-  typedef std::map<unsigned long, pointer_t> offsets_t;
-  offsets_t offsets;
-};
 
 // Base classes for bytecode elements.
 class BytecodeElement {
@@ -73,7 +63,7 @@ class BytecodeElement {
 
   // Used to connect pointers in the bytecode after we've created all
   // BytecodeElements in a Scenario.
-  virtual void SetPointers(ConstructionData& cdata);
+  virtual void SetPointers(BytecodeTable& cdata);
 
   // Needed for MetaElement during reading the script
   virtual const int GetEntrypoint() const;

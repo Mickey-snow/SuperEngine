@@ -72,8 +72,8 @@ Script ParseScript(const Header& hdr,
   // Kidoku/entrypoint table
   const int kidoku_offs = read_i32(data + 0x08);
   const size_t kidoku_length = read_i32(data + 0x0c);
-  std::shared_ptr<ConstructionData> cdat =
-      std::make_shared<ConstructionData>(kidoku_length, elts_.end());
+  std::shared_ptr<BytecodeTable> cdat = std::make_shared<BytecodeTable>();
+  cdat->kidoku_table.resize(kidoku_length);
   for (size_t i = 0; i < kidoku_length; ++i)
     cdat->kidoku_table[i] = read_i32(data + kidoku_offs + i * 4);
 

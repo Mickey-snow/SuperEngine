@@ -1,8 +1,11 @@
+// -----------------------------------------------------------------------
+//
 // This file is part of libreallive, a dependency of RLVM.
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (c) 2006 Peter Jolly
+// Copyright (c) 2024 Serina Sakurai
+// Copyright (c) 2006, 2007 Peter Jolly
 //
 // Permission is hereby granted, free of charge, to any person
 // obtaining a copy of this software and associated documentation
@@ -28,38 +31,16 @@
 
 #pragma once
 
-#include <forward_list>
-#include <memory>
-#include <variant>
+#include "bytecode_fwd.hpp"
+
+#include <map>
+#include <vector>
 
 namespace libreallive {
 
-// List definitions.
-class ExpressionPiece;
-class BytecodeElement;
-typedef std::forward_list<std::shared_ptr<BytecodeElement>> BytecodeList;
-typedef BytecodeList::iterator pointer_t;
+struct BytecodeTable {
+  std::vector<unsigned long> kidoku_table;
+  std::map<unsigned long, pointer_t> offsets;
+};
 
-struct BytecodeTable;
-class Pointers;
-
-class DataElement;
-class MetaElement;
-class TextoutElement;
-class ExpressionElement;
-class CommaElement;
-class CommandElement;
-class SelectElement;
-class FunctionElement;
-class PointerElement;
-class GotoElement;
-class GotoCaseElement;
-class GotoOnElement;
-class GosubWithElement;
-
-using Bytecode_ptr = std::variant<CommandElement const*,
-                                  CommaElement const*,
-                                  MetaElement const*,
-                                  TextoutElement const*,
-                                  ExpressionElement const*>;
 }  // namespace libreallive
