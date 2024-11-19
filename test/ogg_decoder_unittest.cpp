@@ -29,12 +29,14 @@
 #include "base/avdec/ogg.hpp"
 #include "base/avdec/wav.hpp"
 #include "utilities/mapped_file.hpp"
-#include "utilities/numbers.hpp"
 
 #include <cmath>
 #include <filesystem>
+#include <numbers>
 
 namespace fs = std::filesystem;
+
+inline constexpr auto pi = std::numbers::pi;
 
 class OggDecoderTest : public ::testing::Test {
  protected:
