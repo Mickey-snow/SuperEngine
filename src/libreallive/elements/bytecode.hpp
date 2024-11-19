@@ -59,14 +59,14 @@ class BytecodeElement {
   virtual std::string GetSourceRepresentation(IModuleManager*) const;
 
   // Returns the length of this element in bytes in the source file.
-  virtual const size_t GetBytecodeLength() const = 0;
+  virtual size_t GetBytecodeLength() const = 0;
 
   // Used to connect pointers in the bytecode after we've created all
   // BytecodeElements in a Scenario.
   virtual void SetPointers(BytecodeTable& cdata);
 
   // Needed for MetaElement during reading the script
-  virtual const int GetEntrypoint() const;
+  virtual int GetEntrypoint() const;
 
   // Fat interface: takes a FunctionElement and returns all data serialized for
   // writing to disk so the exact command can be replayed later. Throws in all
@@ -74,11 +74,6 @@ class BytecodeElement {
   virtual std::string GetSerializedCommand(RLMachine& machine) const;
 
   virtual Bytecode_ptr DownCast() const = 0;
-
- protected:
-  BytecodeElement(const BytecodeElement& c);
-
- private:
-  friend class Script;
 };
+
 }  // namespace libreallive

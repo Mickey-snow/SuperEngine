@@ -86,7 +86,7 @@ const ExpressionPiecesVector& CommandElement::GetParsedParameters() const {
   return parsed_parameters_;
 }
 
-const size_t CommandElement::GetParamCount() const {
+size_t CommandElement::GetParamCount() const {
   return parsed_parameters_.size();
 }
 
@@ -97,7 +97,7 @@ std::string CommandElement::GetParam(int index) const {
     return {};
 }
 
-const size_t CommandElement::GetPointersCount() const { return 0; }
+size_t CommandElement::GetPointersCount() const { return 0; }
 
 pointer_t CommandElement::GetPointer(int i) const { return pointer_t(); }
 
@@ -229,7 +229,7 @@ Expression SelectElement::GetWindowExpression() const {
   return ExpressionFactory::IntConstant(-1);
 }
 
-const size_t SelectElement::GetParamCount() const { return params.size(); }
+size_t SelectElement::GetParamCount() const { return params.size(); }
 
 string SelectElement::GetParam(int i) const {
   string rv(params[i].cond_text);
@@ -237,7 +237,7 @@ string SelectElement::GetParam(int i) const {
   return rv;
 }
 
-const size_t SelectElement::GetBytecodeLength() const {
+size_t SelectElement::GetBytecodeLength() const {
   size_t rv = repr.size() + 5;
   for (Param const& param : params)
     rv += param.cond_text.size() + param.text.size() + 3;
@@ -252,7 +252,7 @@ const size_t SelectElement::GetBytecodeLength() const {
 FunctionElement::FunctionElement(CommandInfo&& cmd, size_t len)
     : CommandElement(std::move(cmd)), length_(len) {}
 
-const size_t FunctionElement::GetBytecodeLength() const { return length_; }
+size_t FunctionElement::GetBytecodeLength() const { return length_; }
 
 std::string FunctionElement::GetSerializedCommand(RLMachine& machine) const {
   std::string rv;
@@ -276,14 +276,14 @@ GotoElement::GotoElement(const char* op, const unsigned long& id)
 
 GotoElement::~GotoElement() {}
 
-const size_t GotoElement::GetParamCount() const {
+size_t GotoElement::GetParamCount() const {
   // The pointer is not counted as a parameter.
   return 0;
 }
 
 string GotoElement::GetParam(int i) const { return std::string(); }
 
-const size_t GotoElement::GetPointersCount() const { return 1; }
+size_t GotoElement::GetPointersCount() const { return 1; }
 
 pointer_t GotoElement::GetPointer(int i) const {
   if (i != 0)
@@ -298,7 +298,7 @@ std::string GotoElement::GetSourceRepresentation(
   return repr;
 }
 
-const size_t GotoElement::GetBytecodeLength() const { return 12; }
+size_t GotoElement::GetBytecodeLength() const { return 12; }
 
 void GotoElement::SetPointers(BytecodeTable& cdata) {
   const auto it = cdata.offsets.find(id_);
@@ -315,7 +315,7 @@ GotoIfElement::GotoIfElement(CommandInfo&& cmd,
 
 GotoIfElement::~GotoIfElement() {}
 
-const size_t GotoIfElement::GetPointersCount() const { return 1; }
+size_t GotoIfElement::GetPointersCount() const { return 1; }
 
 pointer_t GotoIfElement::GetPointer(int i) const {
   if (i != 0)
@@ -330,7 +330,7 @@ std::string GotoIfElement::GetSourceRepresentation(
   return repr;
 }
 
-const size_t GotoIfElement::GetBytecodeLength() const { return length_; }
+size_t GotoIfElement::GetBytecodeLength() const { return length_; }
 
 void GotoIfElement::SetPointers(BytecodeTable& cdata) {
   auto it = cdata.offsets.find(id_);
@@ -343,7 +343,7 @@ void GotoIfElement::SetPointers(BytecodeTable& cdata) {
 
 GotoCaseElement::~GotoCaseElement() {}
 
-const size_t GotoCaseElement::GetParamCount() const {
+size_t GotoCaseElement::GetParamCount() const {
   // The cases are not counted as parameters.
   return 1;
 }
@@ -352,9 +352,7 @@ size_t GotoCaseElement::GetCaseCount() const { return parsed_cases_.size(); }
 
 Expression GotoCaseElement::GetCase(int i) const { return parsed_cases_[i]; }
 
-const size_t GotoCaseElement::GetPointersCount() const {
-  return targets_.size();
-}
+size_t GotoCaseElement::GetPointersCount() const { return targets_.size(); }
 
 std::string GotoCaseElement::GetSourceRepresentation(
     IModuleManager* manager) const {
@@ -373,7 +371,7 @@ void GotoCaseElement::SetPointers(BytecodeTable& cdata) {
   targets_.SetPointers(cdata);
 }
 
-const size_t GotoCaseElement::GetBytecodeLength() const { return length_; }
+size_t GotoCaseElement::GetBytecodeLength() const { return length_; }
 
 // -----------------------------------------------------------------------
 // GotoOnElement
@@ -383,9 +381,9 @@ GotoOnElement::GotoOnElement(CommandInfo&& cmd,
                              const size_t& len)
     : CommandElement(std::move(cmd)), targets_(targets), length_(len) {}
 
-const size_t GotoOnElement::GetParamCount() const { return 1; }
+size_t GotoOnElement::GetParamCount() const { return 1; }
 
-const size_t GotoOnElement::GetPointersCount() const { return targets_.size(); }
+size_t GotoOnElement::GetPointersCount() const { return targets_.size(); }
 
 pointer_t GotoOnElement::GetPointer(int i) const { return targets_[i]; }
 
@@ -406,7 +404,7 @@ std::string GotoOnElement::GetSourceRepresentation(
   return repr;
 }
 
-const size_t GotoOnElement::GetBytecodeLength() const { return length_; }
+size_t GotoOnElement::GetBytecodeLength() const { return length_; }
 
 // -----------------------------------------------------------------------
 // GosubWithElement
@@ -418,7 +416,7 @@ GosubWithElement::GosubWithElement(CommandInfo&& cmd,
 
 GosubWithElement::~GosubWithElement() {}
 
-const size_t GosubWithElement::GetPointersCount() const { return 1; }
+size_t GosubWithElement::GetPointersCount() const { return 1; }
 
 pointer_t GosubWithElement::GetPointer(int i) const {
   if (i != 0)
@@ -433,7 +431,7 @@ std::string GosubWithElement::GetSourceRepresentation(
   return repr;
 }
 
-const size_t GosubWithElement::GetBytecodeLength() const { return length_; }
+size_t GosubWithElement::GetBytecodeLength() const { return length_; }
 
 void GosubWithElement::SetPointers(BytecodeTable& cdata) {
   const auto it = cdata.offsets.find(id_);

@@ -49,7 +49,7 @@ class TextoutElement : public BytecodeElement {
 
   // Overridden from BytecodeElement::
   std::string GetSourceRepresentation(IModuleManager*) const final;
-  virtual const size_t GetBytecodeLength() const final;
+  virtual size_t GetBytecodeLength() const final;
 
   virtual Bytecode_ptr DownCast() const final;
 

@@ -22,11 +22,11 @@
 //
 // -----------------------------------------------------------------------
 
-#include "gtest/gtest.h"
-
-#include "encodings/cp932.hpp"
 #include "libreallive/parser.hpp"
 
+#include "encodings/cp932.hpp"
+
+#include <gtest/gtest.h>
 #include <iomanip>
 #include <string>
 

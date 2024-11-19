@@ -41,8 +41,6 @@ BytecodeElement::BytecodeElement() {}
 
 BytecodeElement::~BytecodeElement() {}
 
-BytecodeElement::BytecodeElement(const BytecodeElement& c) {}
-
 void BytecodeElement::PrintSourceRepresentation(IModuleManager* manager,
                                                 std::ostream& oss) const {
   oss << GetSourceRepresentation(manager) << std::endl;
@@ -54,7 +52,7 @@ std::string BytecodeElement::GetSourceRepresentation(IModuleManager*) const {
 
 void BytecodeElement::SetPointers(BytecodeTable& cdata) {}
 
-const int BytecodeElement::GetEntrypoint() const { return kInvalidEntrypoint; }
+int BytecodeElement::GetEntrypoint() const { return kInvalidEntrypoint; }
 
 string BytecodeElement::GetSerializedCommand(RLMachine& machine) const {
   throw Error(

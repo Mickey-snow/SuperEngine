@@ -52,16 +52,15 @@ namespace fs = std::filesystem;
 // Interface to a loaded SEEN.TXT file.
 class Archive {
  public:
-  // Read a seen.txt file, assuming no per-game xor key. (Used in unit testing).
-  explicit Archive(const std::string& filename);
+  Archive() = default;
+  virtual ~Archive();
 
   // Creates an interface to a SEEN.TXT file. Uses |regname| to look up
   // per-game xor key for newer games.
   Archive(const fs::path& filename, const std::string& regname);
-  ~Archive();
 
   // Returns a specific scenario by |index| number or NULL if none exist.
-  Scenario* GetScenario(int index);
+  virtual Scenario* GetScenario(int index);
 
   Scenario* GetFirstScenario();
 

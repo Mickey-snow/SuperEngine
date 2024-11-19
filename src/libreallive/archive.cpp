@@ -47,8 +47,6 @@ namespace fs = std::filesystem;
 
 namespace libreallive {
 
-Archive::Archive(const std::string& filename) : Archive(filename, "") {}
-
 Archive::Archive(const fs::path& filepath, const std::string& regname)
     : second_level_xor_key_(NULL), regname_(regname) {
   ReadTOC(filepath);

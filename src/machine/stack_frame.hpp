@@ -101,5 +101,3 @@ struct StackFrame {
 };
 
 BOOST_CLASS_VERSION(StackFrame, 2)
-
-std::ostream& operator<<(std::ostream& os, const StackFrame& frame);

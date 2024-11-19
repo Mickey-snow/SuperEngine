@@ -55,9 +55,9 @@ void MetaElement::PrintSourceRepresentation(IModuleManager* machine,
   oss << GetSourceRepresentation(machine) << std::endl;
 }
 
-const size_t MetaElement::GetBytecodeLength() const { return 3; }
+size_t MetaElement::GetBytecodeLength() const { return 3; }
 
-const int MetaElement::GetEntrypoint() const {
+int MetaElement::GetEntrypoint() const {
   return type_ == Entrypoint_ ? entrypoint_index_ : kInvalidEntrypoint;
 }
 

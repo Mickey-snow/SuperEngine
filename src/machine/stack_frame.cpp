@@ -56,18 +56,6 @@ StackFrame::StackFrame(libreallive::Scenario const* s,
 
 StackFrame::~StackFrame() {}
 
-std::ostream& operator<<(std::ostream& os, const StackFrame& frame) {
-  os << "{seen=" << frame.scenario->scene_number()
-     << ", offset=" << distance(frame.scenario->cbegin(), frame.ip);
-
-  if (frame.long_op)
-    os << " [LONG OP=" << typeid(*frame.long_op).name() << "]";
-
-  os << "}";
-
-  return os;
-}
-
 template <class Archive>
 void StackFrame::save(Archive& ar, unsigned int version) const {
   std::cerr << "fixme! StackFrame::save" << std::endl;

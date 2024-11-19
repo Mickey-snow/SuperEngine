@@ -52,7 +52,7 @@ std::string ExpressionElement::GetSourceRepresentation(IModuleManager*) const {
   return ParsedExpression()->GetDebugString();
 }
 
-const size_t ExpressionElement::GetBytecodeLength() const { return length_; }
+size_t ExpressionElement::GetBytecodeLength() const { return length_; }
 
 Bytecode_ptr ExpressionElement::DownCast() const { return this; }
 

@@ -47,7 +47,7 @@ class MockCommandElement : public CommandElement {
   int opcode() const override { return opcode_; }
   int overload() const override { return overload_; }
 
-  MOCK_METHOD(const size_t, GetBytecodeLength, (), (const, override));
+  MOCK_METHOD(size_t, GetBytecodeLength, (), (const, override));
 
  private:
   int modtype_, module_id_, opcode_, overload_;
