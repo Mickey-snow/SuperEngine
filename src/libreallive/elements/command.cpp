@@ -99,7 +99,7 @@ std::string CommandElement::GetParam(int index) const {
 
 size_t CommandElement::GetPointersCount() const { return 0; }
 
-pointer_t CommandElement::GetPointer(int i) const { return pointer_t(); }
+unsigned long CommandElement::GetLocation(int i) const { return -1; }
 
 size_t CommandElement::GetCaseCount() const { return 0; }
 
@@ -285,10 +285,10 @@ string GotoElement::GetParam(int i) const { return std::string(); }
 
 size_t GotoElement::GetPointersCount() const { return 1; }
 
-pointer_t GotoElement::GetPointer(int i) const {
+unsigned long GotoElement::GetLocation(int i) const {
   if (i != 0)
     throw Error("GotoElement has only 1 pointer");
-  return pointer_;
+  return id_;
 }
 
 std::string GotoElement::GetSourceRepresentation(
@@ -317,10 +317,10 @@ GotoIfElement::~GotoIfElement() {}
 
 size_t GotoIfElement::GetPointersCount() const { return 1; }
 
-pointer_t GotoIfElement::GetPointer(int i) const {
+unsigned long GotoIfElement::GetLocation(int i) const {
   if (i != 0)
     throw Error("GotoIfElement has only 1 pointer");
-  return pointer_;
+  return id_;
 }
 
 std::string GotoIfElement::GetSourceRepresentation(
@@ -365,7 +365,7 @@ std::string GotoCaseElement::GetSourceRepresentation(
   return repr;
 }
 
-pointer_t GotoCaseElement::GetPointer(int i) const { return targets_[i]; }
+unsigned long GotoCaseElement::GetLocation(int i) const { return id_[i]; }
 
 void GotoCaseElement::SetPointers(BytecodeTable& cdata) {
   targets_.SetPointers(cdata);
@@ -378,14 +378,18 @@ size_t GotoCaseElement::GetBytecodeLength() const { return length_; }
 // -----------------------------------------------------------------------
 GotoOnElement::GotoOnElement(CommandInfo&& cmd,
                              const Pointers& targets,
+                             std::vector<unsigned long> ids,
                              const size_t& len)
-    : CommandElement(std::move(cmd)), targets_(targets), length_(len) {}
+    : CommandElement(std::move(cmd)),
+      targets_(targets),
+      id_(std::move(ids)),
+      length_(len) {}
 
 size_t GotoOnElement::GetParamCount() const { return 1; }
 
 size_t GotoOnElement::GetPointersCount() const { return targets_.size(); }
 
-pointer_t GotoOnElement::GetPointer(int i) const { return targets_[i]; }
+unsigned long GotoOnElement::GetLocation(int i) const { return id_[i]; }
 
 void GotoOnElement::SetPointers(BytecodeTable& cdata) {
   targets_.SetPointers(cdata);
@@ -418,10 +422,10 @@ GosubWithElement::~GosubWithElement() {}
 
 size_t GosubWithElement::GetPointersCount() const { return 1; }
 
-pointer_t GosubWithElement::GetPointer(int i) const {
+unsigned long GosubWithElement::GetLocation(int i) const {
   if (i != 0)
     throw Error("GosubWithElement has only 1 pointer");
-  return pointer_;
+  return id_;
 }
 
 std::string GosubWithElement::GetSourceRepresentation(

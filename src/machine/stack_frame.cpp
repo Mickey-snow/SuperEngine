@@ -42,17 +42,14 @@
 // -----------------------------------------------------------------------
 // StackFrame
 // -----------------------------------------------------------------------
-StackFrame::StackFrame() : scenario(NULL), ip(), frame_type() {}
+StackFrame::StackFrame() : pos(), frame_type() {}
 
-StackFrame::StackFrame(libreallive::Scenario const* s,
-                       const libreallive::Scenario::const_iterator& i,
-                       FrameType t)
-    : scenario(s), ip(i), frame_type(t) {}
+StackFrame::StackFrame(libreallive::Scriptor::const_iterator it, FrameType t)
+    : pos(it), frame_type(t) {}
 
-StackFrame::StackFrame(libreallive::Scenario const* s,
-                       const libreallive::Scenario::const_iterator& i,
+StackFrame::StackFrame(libreallive::Scriptor::const_iterator it,
                        LongOperation* op)
-    : scenario(s), ip(i), long_op(op), frame_type(TYPE_LONGOP) {}
+    : pos(it), long_op(op), frame_type(TYPE_LONGOP) {}
 
 StackFrame::~StackFrame() {}
 

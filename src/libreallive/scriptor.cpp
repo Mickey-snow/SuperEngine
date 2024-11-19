@@ -39,6 +39,8 @@ Scriptor::~Scriptor() = default;
 // const_iterator
 // -----------------------------------------------------------------------
 
+Scriptor::const_iterator::const_iterator() : scenario_(nullptr), offset_(0) {}
+
 Scriptor::const_iterator::const_iterator(const Scenario* sc, std::size_t off)
     : scenario_(sc), offset_(off) {}
 
@@ -46,7 +48,7 @@ int Scriptor::const_iterator::ScenarioNumber() const {
   return scenario_->scenario_number_;
 }
 
-uint32_t Scriptor::const_iterator::Location() const {
+unsigned long Scriptor::const_iterator::Location() const {
   return scenario_->script.elements_[offset_].first;
 }
 
@@ -73,7 +75,8 @@ const std::shared_ptr<BytecodeElement>& Scriptor::const_iterator::dereference()
 // Scriptor methods
 // -----------------------------------------------------------------------
 
-Scriptor::const_iterator Scriptor::Load(int scenario_number, uint32_t loc) {
+Scriptor::const_iterator Scriptor::Load(int scenario_number,
+                                        unsigned long loc) {
   Scenario* sc = archive_.GetScenario(scenario_number);
   if (!sc) {
     throw std::invalid_argument("Scenario " + std::to_string(scenario_number) +
@@ -82,8 +85,8 @@ Scriptor::const_iterator Scriptor::Load(int scenario_number, uint32_t loc) {
 
   const auto& elements = sc->script.elements_;
   auto comparator =
-      [](const std::pair<uint32_t, std::shared_ptr<BytecodeElement>>& elem,
-         uint32_t value) { return elem.first < value; };
+      [](const std::pair<unsigned long, std::shared_ptr<BytecodeElement>>& elem,
+         unsigned long value) { return elem.first < value; };
 
   auto it =
       std::lower_bound(elements.cbegin(), elements.cend(), loc, comparator);
@@ -95,6 +98,11 @@ Scriptor::const_iterator Scriptor::Load(int scenario_number, uint32_t loc) {
 
   return const_iterator(
       sc, static_cast<std::size_t>(std::distance(elements.cbegin(), it)));
+}
+
+Scriptor::const_iterator Scriptor::Load(int scenario_number) {
+  Scenario* sc = archive_.GetScenario(scenario_number);
+  return const_iterator(sc, 0);
 }
 
 Scriptor::const_iterator Scriptor::LoadEntry(int scenario_number, int entry) {
@@ -111,7 +119,7 @@ Scriptor::const_iterator Scriptor::LoadEntry(int scenario_number, int entry) {
                                 std::to_string(scenario_number) + ".");
   }
 
-  uint32_t loc = entry_it->second;
+  const unsigned long loc = entry_it->second;
   return Load(scenario_number, loc);
 }
 

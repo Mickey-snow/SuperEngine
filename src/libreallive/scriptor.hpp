@@ -45,8 +45,11 @@ class Scriptor {
                                       const std::shared_ptr<BytecodeElement>&,
                                       boost::forward_traversal_tag> {
    public:
+    // to construct an invalid iterator, for testing purposes
+    const_iterator();
+
     int ScenarioNumber() const;
-    uint32_t Location() const;
+    unsigned long Location() const;
     bool HasNext() const;
     const Scenario* GetScenario() const;
 
@@ -64,7 +67,8 @@ class Scriptor {
     const std::shared_ptr<BytecodeElement>& dereference() const;
   };
 
-  const_iterator Load(int scenario_number, uint32_t loc);
+  const_iterator Load(int scenario_number, unsigned long loc);
+  const_iterator Load(int scenario_number);
   const_iterator LoadEntry(int scenario_number, int entry);
 
  private:

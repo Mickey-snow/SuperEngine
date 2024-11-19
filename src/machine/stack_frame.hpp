@@ -34,7 +34,7 @@
 #include <optional>
 #include <string>
 
-#include "libreallive/scenario.hpp"
+#include "libreallive/scriptor.hpp"
 #include "memory/memory.hpp"
 
 class LongOperation;
@@ -53,10 +53,12 @@ class LongOperation;
 // StackFrames can also be added to represent LongOperations.
 struct StackFrame {
   // The scenario in the SEEN file for this stack frame.
-  libreallive::Scenario const* scenario;
+  // libreallive::Scenario const* scenario;
 
   // The instruction pointer in the stack frame.
-  libreallive::Scenario::const_iterator ip;
+  // libreallive::Scenario::const_iterator ip;
+
+  libreallive::Scriptor::const_iterator pos;
 
   // Pointer to the owned LongOperation if this is of TYPE_LONGOP.
   std::shared_ptr<LongOperation> long_op;
@@ -80,14 +82,10 @@ struct StackFrame {
   StackFrame();
 
   // Constructor for normal stack frames added by RealLive code.
-  StackFrame(libreallive::Scenario const* s,
-             const libreallive::Scenario::const_iterator& i,
-             FrameType t);
+  StackFrame(libreallive::Scriptor::const_iterator it, FrameType t);
 
   // Constructor for frames that are just LongOperations.
-  StackFrame(libreallive::Scenario const* s,
-             const libreallive::Scenario::const_iterator& i,
-             LongOperation* op);
+  StackFrame(libreallive::Scriptor::const_iterator it, LongOperation* op);
 
   ~StackFrame();
 

@@ -147,3 +147,9 @@ TEST_F(ScriptorTest, MultipleScenario) {
   EXPECT_EQ(Traverse(it2), (std::vector{100, 110, 120}));
   EXPECT_EQ(Traverse(it1), (std::vector{2, 10}));
 }
+
+TEST_F(ScriptorTest, LoadBegin) {
+  Scenario s3({}, MakeScript(1, 2, 10), 3);
+  EXPECT_CALL(archive, GetScenario(3)).WillRepeatedly(Return(&s3));
+  EXPECT_EQ(Traverse(scriptor.Load(3)), (std::vector{1, 2, 10}));
+}

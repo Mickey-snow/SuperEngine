@@ -39,12 +39,12 @@
 
 #include "libreallive/bytecode_fwd.hpp"
 #include "libreallive/scenario.hpp"
+#include "libreallive/scriptor.hpp"
 #include "log/tracer.hpp"
 #include "machine/call_stack.hpp"
 #include "machine/module_manager.hpp"
 
 namespace libreallive {
-class Archive;
 class IntMemRef;
 };  // namespace libreallive
 
@@ -159,12 +159,12 @@ class RLMachine {
 
   // Permanently moves the instruction pointer to the passed in
   // iterator in the current stack frame.
-  void GotoLocation(libreallive::BytecodeList::iterator new_location);
+  void GotoLocation(unsigned long new_location);
 
   // Pushes a new stack frame onto the call stack, saving the current
   // location. The new frame contains the current SEEN with
   // new_location as the instruction pointer.
-  void Gosub(libreallive::BytecodeList::iterator new_location);
+  void Gosub(unsigned long new_location);
 
   // Returns from the most recent gosub call. Throws if there's a mismatch
   // between farcall()/rtl() gosub()/ret() pairs.
@@ -342,6 +342,7 @@ class RLMachine {
 
   // The SEEN.TXT the machine is currently executing.
   libreallive::Archive& archive_;
+  libreallive::Scriptor scriptor_;
 
   Memory savepoint_memory_;
 

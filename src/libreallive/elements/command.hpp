@@ -94,7 +94,7 @@ class CommandElement : public BytecodeElement {
 
   // Methods that deal with pointers.
   virtual size_t GetPointersCount() const;
-  virtual pointer_t GetPointer(int i) const;
+  virtual unsigned long GetLocation(int i) const;
 
   // Fat interface stuff for GotoCase. Prevents casting, etc.
   virtual size_t GetCaseCount() const;
@@ -192,7 +192,7 @@ class GotoElement : public CommandElement {
   virtual size_t GetParamCount() const final;
   virtual std::string GetParam(int i) const final;
   virtual size_t GetPointersCount() const final;
-  virtual pointer_t GetPointer(int i) const final;
+  virtual unsigned long GetLocation(int i) const final;
   virtual std::string GetSourceRepresentation(IModuleManager*) const override;
 
   // Overridden from BytecodeElement:
@@ -211,7 +211,7 @@ class GotoIfElement : public CommandElement {
 
   // Overridden from CommandElement:
   virtual size_t GetPointersCount() const final;
-  virtual pointer_t GetPointer(int i) const final;
+  virtual unsigned long GetLocation(int i) const final;
   virtual std::string GetSourceRepresentation(IModuleManager*) const override;
 
   // Overridden from BytecodeElement:
@@ -229,10 +229,12 @@ class GotoCaseElement : public CommandElement {
   GotoCaseElement(CommandInfo&& cmd,
                   const size_t& len,
                   const Pointers& targets,
+                  const std::vector<unsigned long> ids,
                   const std::vector<Expression>& parsed_cases)
       : CommandElement(std::move(cmd)),
         length_(len),
         targets_(targets),
+        id_(std::move(ids)),
         parsed_cases_(parsed_cases) {}
 
   virtual ~GotoCaseElement();
@@ -244,7 +246,7 @@ class GotoCaseElement : public CommandElement {
   virtual std::string GetSourceRepresentation(IModuleManager*) const override;
 
   size_t GetPointersCount() const final;
-  pointer_t GetPointer(int) const final;
+  unsigned long GetLocation(int) const final;
   void SetPointers(BytecodeTable& cdata) final;
 
   // Overridden from BytecodeElement:
@@ -253,12 +255,16 @@ class GotoCaseElement : public CommandElement {
  private:
   size_t length_;
   Pointers targets_;
+  std::vector<unsigned long> id_;
   std::vector<Expression> parsed_cases_;
 };
 
 class GotoOnElement : public CommandElement {
  public:
-  GotoOnElement(CommandInfo&& cmd, const Pointers& targets, const size_t& len);
+  GotoOnElement(CommandInfo&& cmd,
+                const Pointers& targets,
+                std::vector<unsigned long> ids,
+                const size_t& len);
 
   virtual ~GotoOnElement() = default;
 
@@ -266,7 +272,7 @@ class GotoOnElement : public CommandElement {
   size_t GetParamCount() const final;
 
   size_t GetPointersCount() const final;
-  pointer_t GetPointer(int) const final;
+  unsigned long GetLocation(int) const final;
   void SetPointers(BytecodeTable& cdata) final;
   virtual std::string GetSourceRepresentation(IModuleManager*) const override;
 
@@ -275,6 +281,7 @@ class GotoOnElement : public CommandElement {
 
  private:
   Pointers targets_;
+  std::vector<unsigned long> id_;
   Expression param_;
   size_t length_;
 };
@@ -289,7 +296,7 @@ class GosubWithElement : public CommandElement {
 
   // Overridden from CommandElement:
   virtual size_t GetPointersCount() const final;
-  virtual pointer_t GetPointer(int i) const final;
+  virtual unsigned long GetLocation(int i) const final;
   virtual std::string GetSourceRepresentation(IModuleManager*) const override;
 
   // Overridden from BytecodeElement:

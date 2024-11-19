@@ -79,30 +79,23 @@ using std::endl;
 RLMachine::RLMachine(System& in_system, libreallive::Archive& in_archive)
     : memory_(std::make_unique<Memory>()),
       archive_(in_archive),
+      scriptor_(in_archive),
       system_(in_system) {
   // Search in the Gameexe for #SEEN_START and place us there
   Gameexe& gameexe = in_system.gameexe();
   memory_->LoadFrom(gameexe);
 
-  libreallive::Scenario* scenario = NULL;
-  if (gameexe.Exists("SEEN_START")) {
-    int first_seen = gameexe("SEEN_START").ToInt();
-    scenario = in_archive.GetScenario(first_seen);
+  int first_seen = -1;
+  if (gameexe.Exists("SEEN_START"))
+    first_seen = gameexe("SEEN_START").ToInt();
 
-    if (scenario == NULL)
-      cerr << "WARNING: Invalid #SEEN_START in Gameexe" << endl;
-  }
-
-  if (scenario == NULL) {
+  if (first_seen < 0) {
     // if SEEN_START is undefined, then just grab the first SEEN.
-    scenario = in_archive.GetFirstScenario();
+    first_seen = in_archive.GetFirstScenarioID();
   }
-
-  if (scenario == 0)
-    throw rlvm::Exception("Invalid scenario file");
 
   call_stack_.Push(
-      StackFrame(scenario, scenario->cbegin(), StackFrame::TYPE_ROOT));
+      StackFrame(scriptor_.Load(first_seen), StackFrame::TYPE_ROOT));
 
   // Initial value of the savepoint
   MarkSavepoint();
@@ -202,21 +195,15 @@ void RLMachine::ExecuteNextInstruction() {
         }
 
       } else {
-        auto instruction_vari = top_frame->ip->get()->DownCast();
-        if (std::visit([](auto ptr) -> bool { return ptr != nullptr; },
-                       instruction_vari)) {
-          std::visit(*this, instruction_vari);
-        } else {
-          throw rlvm::Exception(
-              "Unexpected null pointer encountered as an instruction");
-        }
+        auto bytecode = *(top_frame->pos);
+        std::visit(*this, bytecode->DownCast());
       }
     } catch (rlvm::UnimplementedOpcode& e) {
       AdvanceInstructionPointer();
 
       if (print_undefined_opcodes_) {
-        cout << "(SEEN" << top_frame->scenario->scene_number() << ")(Line "
-             << line_ << "):  " << e.what() << endl;
+        cout << "(SEEN" << top_frame->pos.ScenarioNumber() << ")(Line " << line_
+             << "):  " << e.what() << endl;
       }
 
     } catch (rlvm::Exception& e) {
@@ -228,8 +215,8 @@ void RLMachine::ExecuteNextInstruction() {
         AdvanceInstructionPointer();
       }
 
-      cout << "(SEEN" << top_frame->scenario->scene_number() << ")(Line "
-           << line_ << ")";
+      cout << "(SEEN" << top_frame->pos.ScenarioNumber() << ")(Line " << line_
+           << ")";
 
       // We specialcase rlvm::Exception because we might have the name of the
       // opcode.
@@ -247,8 +234,8 @@ void RLMachine::ExecuteNextInstruction() {
         AdvanceInstructionPointer();
       }
 
-      cout << "(SEEN" << top_frame->scenario->scene_number() << ")(Line "
-           << line_ << "):  " << e.what() << endl;
+      cout << "(SEEN" << top_frame->pos.ScenarioNumber() << ")(Line " << line_
+           << "):  " << e.what() << endl;
     }
   }
 }
@@ -263,58 +250,49 @@ void RLMachine::AdvanceInstructionPointer() {
   if (!replaying_graphics_stack()) {
     const auto it = call_stack_.FindTopRealFrame();
     if (it != nullptr) {
-      it->ip++;
-      if (it->ip == it->scenario->cend())
+      it->pos++;
+      if (!it->pos.HasNext())
         halted_ = true;
     }
   }
 }
 
 void RLMachine::Jump(int scenario_num, int entrypoint) {
-  // Check to make sure it's a valid scenario
-  libreallive::Scenario* scenario = archive_.GetScenario(scenario_num);
-  if (scenario == 0) {
-    std::ostringstream oss;
-    oss << "Invalid scenario number in jump (" << scenario_num << ", "
-        << entrypoint << ")";
-    throw rlvm::Exception(oss.str());
-  }
-
   auto it = call_stack_.FindTopRealFrame();
-  if (it != nullptr) {
-    it->scenario = scenario;
-    it->ip = scenario->FindEntrypoint(entrypoint);
-  }
+  if (it != nullptr)
+    it->pos = scriptor_.LoadEntry(scenario_num, entrypoint);
 }
 
 void RLMachine::Farcall(int scenario_num, int entrypoint) {
-  libreallive::Scenario* scenario = archive_.GetScenario(scenario_num);
-  if (scenario == 0) {
-    std::ostringstream oss;
-    oss << "Invalid scenario number in farcall (" << scenario_num << ", "
-        << entrypoint << ")";
-    throw rlvm::Exception(oss.str());
-  }
-
-  libreallive::Scenario::const_iterator it =
-      scenario->FindEntrypoint(entrypoint);
-
   if (entrypoint == 0 && ShouldSetSeentopSavepoint())
     MarkSavepoint();
 
-  call_stack_.Push(StackFrame(scenario, it, StackFrame::TYPE_FARCALL));
+  call_stack_.Push(StackFrame(scriptor_.LoadEntry(scenario_num, entrypoint),
+                              StackFrame::TYPE_FARCALL));
 }
 
 void RLMachine::ReturnFromFarcall() { call_stack_.Pop(); }
 
-void RLMachine::GotoLocation(libreallive::BytecodeList::iterator new_location) {
-  call_stack_.Top()->ip = new_location;
+void RLMachine::GotoLocation(unsigned long new_location) {
+  const auto scenario_id = call_stack_.Top()->pos.ScenarioNumber();
+  call_stack_.Top()->pos = scriptor_.Load(scenario_id, new_location);
 }
 
-void RLMachine::Gosub(libreallive::BytecodeList::iterator new_location) {
-  call_stack_.Push(StackFrame(call_stack_.Top()->scenario, new_location,
+void RLMachine::Gosub(unsigned long new_location) {
+  const auto scenario_id = call_stack_.Top()->pos.ScenarioNumber();
+  call_stack_.Push(StackFrame(scriptor_.Load(scenario_id, new_location),
                               StackFrame::TYPE_GOSUB));
 }
+
+// void RLMachine::GotoLocation(libreallive::BytecodeList::iterator
+// new_location) {
+//   call_stack_.Top()->ip = new_location;
+// }
+
+// void RLMachine::Gosub(libreallive::BytecodeList::iterator new_location) {
+//   call_stack_.Push(StackFrame(call_stack_.Top()->scenario, new_location,
+//                               StackFrame::TYPE_GOSUB));
+// }
 
 void RLMachine::ReturnFromGosub() { call_stack_.Pop(); }
 
@@ -331,7 +309,7 @@ void RLMachine::PushStringValueUp(int index, const std::string& val) {
 void RLMachine::PushLongOperation(LongOperation* long_operation) {
   const auto top_frame = call_stack_.Top();
   call_stack_.Push(
-      StackFrame(top_frame->scenario, top_frame->ip, long_operation));
+      StackFrame(top_frame->pos, long_operation));
 }
 
 void RLMachine::PopStackFrame() { call_stack_.Pop(); }
@@ -367,15 +345,15 @@ std::shared_ptr<LongOperation> RLMachine::CurrentLongOperation() const {
 void RLMachine::ClearCallstack() { call_stack_ = CallStack(); }
 
 int RLMachine::SceneNumber() const {
-  return call_stack_.Top()->scenario->scene_number();
+  return call_stack_.Top()->pos.ScenarioNumber();
 }
 
 const libreallive::Scenario& RLMachine::Scenario() const {
-  return *(call_stack_.Top()->scenario);
+  return *(call_stack_.Top()->pos.GetScenario());
 }
 
 int RLMachine::GetTextEncoding() const {
-  return call_stack_.Top()->scenario->encoding();
+  return Scenario().encoding();
 }
 
 int RLMachine::GetProbableEncodingType() const {

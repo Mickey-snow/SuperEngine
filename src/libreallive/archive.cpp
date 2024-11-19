@@ -73,10 +73,7 @@ Scenario* Archive::GetScenario(int index) {
   }
 }
 
-Scenario* Archive::GetFirstScenario() {
-  const int first_scenario_id = toc_.cbegin()->first;
-  return GetScenario(first_scenario_id);
-}
+int Archive::GetFirstScenarioID() const { return toc_.cbegin()->first; }
 
 int Archive::GetProbableEncodingType() const {
   // Directly create Header objects instead of Scenarios. We don't want to

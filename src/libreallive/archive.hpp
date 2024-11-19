@@ -62,7 +62,7 @@ class Archive {
   // Returns a specific scenario by |index| number or NULL if none exist.
   virtual Scenario* GetScenario(int index);
 
-  Scenario* GetFirstScenario();
+  int GetFirstScenarioID() const;
 
   // Does a quick pass through all scenarios in the archive, looking for any
   // with non-default encoding. This short circuits when it finds one.
