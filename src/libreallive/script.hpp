@@ -41,8 +41,10 @@ namespace libreallive {
 class Script {
  public:
   Script(BytecodeList elts,
-         std::map<int, pointer_t> entrypoints,
-         std::shared_ptr<BytecodeTable> table = nullptr);
+         std::map<int, pointer_t> __entrypoints,
+         std::vector<std::pair<unsigned long, std::shared_ptr<BytecodeElement>>>
+             elements,
+         std::map<int, unsigned long> entrypoints);
   ~Script();
 
   const pointer_t GetEntrypoint(int entrypoint) const;
@@ -54,8 +56,9 @@ class Script {
   // Entrypoint handeling
   std::map<int, pointer_t> entrypoint_associations_;
 
-  // Original bytecode table to allow reconstruction after parsing
-  std::shared_ptr<BytecodeTable> table_;
+  std::vector<std::pair<unsigned long, std::shared_ptr<BytecodeElement>>>
+      elements_;
+  std::map<int, unsigned long> entrypoints_;
 };
 
 Script ParseScript(const Header& hdr,

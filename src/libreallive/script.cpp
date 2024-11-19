@@ -46,12 +46,16 @@
 
 namespace libreallive {
 
-Script::Script(BytecodeList elts,
-               std::map<int, pointer_t> entrypoints,
-               std::shared_ptr<BytecodeTable> table)
+Script::Script(
+    BytecodeList elts,
+    std::map<int, pointer_t> __entrypoints,
+    std::vector<std::pair<unsigned long, std::shared_ptr<BytecodeElement>>>
+        elements,
+    std::map<int, unsigned long> entrypoints)
     : elts_(std::move(elts)),
-      entrypoint_associations_(std::move(entrypoints)),
-      table_(table) {}
+      entrypoint_associations_(std::move(__entrypoints)),
+      elements_(std::move(elements)),
+      entrypoints_(std::move(entrypoints)) {}
 
 Script::~Script() {}
 
@@ -118,22 +122,29 @@ Script ParseScript(const Header& hdr,
   size_t pos = 0;
   pointer_t it = elts_.before_begin();
 
+  std::vector<std::pair<unsigned long, std::shared_ptr<BytecodeElement>>>
+      elements;
+  std::map<int, unsigned long> entrypoints;
+
   Parser parser(ctable);
   while (pos < dlen) {
     // Read element
     auto elm = parser.ParseBytecode(stream, end);
-    if (!elm)
-      throw std::runtime_error("ParseScript: parser produced a null pointer.");
+
     it = elts_.emplace_after(it, elm);
     ctable->offsets[pos] = it;
 
+    elements.emplace_back(pos, elm);
+
     // Keep track of the entrypoints
-    int entrypoint = (*it)->GetEntrypoint();
-    if (entrypoint != BytecodeElement::kInvalidEntrypoint)
+    int entrypoint = elm->GetEntrypoint();
+    if (entrypoint != BytecodeElement::kInvalidEntrypoint) {
       entrypoint_associations_.emplace(entrypoint, it);
+      entrypoints.emplace(entrypoint, pos);
+    }
 
     // Advance
-    size_t l = (*it)->GetBytecodeLength();
+    size_t l = elm->GetBytecodeLength();
     if (l <= 0)
       l = 1;  // Failsafe: always advance at least one byte.
     stream += l;
@@ -145,7 +156,8 @@ Script ParseScript(const Header& hdr,
     element->SetPointers(*ctable);
   }
 
-  return Script(std::move(elts_), std::move(entrypoint_associations_), ctable);
+  return Script(std::move(elts_), std::move(entrypoint_associations_),
+                std::move(elements), std::move(entrypoints));
 }
 
 }  // namespace libreallive

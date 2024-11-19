@@ -54,6 +54,7 @@ class Metadata {
 
 class Header {
  public:
+  Header() = default;
   Header(const char* const data, const size_t length);
   Header(const std::string_view& data) : Header(data.data(), data.length()) {}
   ~Header();

@@ -34,6 +34,8 @@
 #include "bytecode_fwd.hpp"
 
 #include <map>
+#include <memory>
+#include <utility>
 #include <vector>
 
 namespace libreallive {
@@ -41,6 +43,8 @@ namespace libreallive {
 struct BytecodeTable {
   std::vector<unsigned long> kidoku_table;
   std::map<unsigned long, pointer_t> offsets;
+  std::vector<std::pair<unsigned long, std::shared_ptr<BytecodeElement>>>
+      elements;
 };
 
 }  // namespace libreallive
