@@ -35,26 +35,25 @@
 #include <stdexcept>
 
 template <typename T>
-class MemoryBank {
+struct SerializedStorage {
+  size_t size;
+  std::vector<std::tuple<size_t, size_t, T>> data;
+};
+
+template <typename T>
+class DynamicStorage {
  public:
-  MemoryBank() : root_(nullptr), size_(0) {}
+  DynamicStorage() : root_(nullptr), size_(0) {}
 
-  T Get(size_t index) {
+  T Get(size_t index) const {
     if (index >= size_)
-      throw std::out_of_range("MemoryBank: invalid access to index " +
+      throw std::out_of_range("DynamicStorage: invalid access to index " +
                               std::to_string(index));
-    return Get_impl(index, root_);
-  }
-  T const& Get(size_t index) const {
-    if (index >= size_)
-      throw std::out_of_range("MemoryBank: invalid access to index " +
-                              std::to_string(index));
-
     return Get_impl(index, root_);
   }
   void Set(size_t index, T const& value) {
     if (index >= size_)
-      throw std::out_of_range("MemoryBank: invalid write to index " +
+      throw std::out_of_range("DynamicStorage: invalid write to index " +
                               std::to_string(index));
     Set_impl(index, index, value, root_);
   };
@@ -96,6 +95,26 @@ class MemoryBank {
     Set_impl(begin, end - 1, value, root_);
   }
 
+  std::shared_ptr<DynamicStorage<T>> Clone() const {
+    return std::make_shared<DynamicStorage<T>>(*this);
+  }
+
+  SerializedStorage<T> Save() const {
+    std::vector<std::tuple<size_t, size_t, T>> serialized;
+    Apply(root_, [&serialized](size_t fr, size_t to, T value) {
+      serialized.emplace_back(std::make_tuple(fr, to + 1, std::move(value)));
+    });
+    return SerializedStorage<T>{.size = size_, .data = std::move(serialized)};
+  }
+
+  void Load(SerializedStorage<T> serialized) {
+    Resize(serialized.size);
+    Fill(0, serialized.size, T{});
+    for (const auto& [fr, to, val] : serialized.data) {
+      Fill(fr, to, val);
+    }
+  }
+
  private:
   struct Node {
     size_t fr, to;
@@ -128,7 +147,7 @@ class MemoryBank {
   T const& Get_impl(size_t index, std::shared_ptr<Node> const& nowAt) const {
     if (nowAt == nullptr) {
       throw std::runtime_error(
-          "MemoryBank::Get_impl: Unknown error nowAt is nullptr");
+          "DynamicStorage::Get_impl: Unknown error nowAt is nullptr");
     }
 
     if (nowAt->tag.has_value())
@@ -182,8 +201,37 @@ class MemoryBank {
 
   std::shared_ptr<Node> root_;
   size_t size_;
+};
 
-  // boost::serialization support
+template <typename T>
+class MemoryBank {
+ public:
+  MemoryBank() : storage_(std::make_shared<DynamicStorage<T>>()) {}
+  ~MemoryBank() = default;
+
+  MemoryBank(const MemoryBank<T>& other) : storage_(other.storage_->Clone()) {}
+  MemoryBank<T>& operator=(const MemoryBank<T>& other) {
+    storage_ = other.storage_->Clone();
+    return *this;
+  }
+
+  MemoryBank(MemoryBank<T>&&) = default;
+  MemoryBank<T>& operator=(MemoryBank<T>&& other) = default;
+
+  T Get(size_t index) const { return storage_->Get(index); }
+  void Set(size_t index, T const& value) { storage_->Set(index, value); };
+
+  void Resize(size_t size) { storage_->Resize(size); };
+  size_t GetSize() const { return storage_->GetSize(); }
+
+  void Fill(size_t begin, size_t end, T const& value) {
+    return storage_->Fill(begin, end, value);
+  }
+
+ private:
+  std::shared_ptr<DynamicStorage<T>> storage_;
+
+  // boost serialization support
   friend class boost::serialization::access;
   BOOST_SERIALIZATION_SPLIT_MEMBER();
 
@@ -192,28 +240,27 @@ class MemoryBank {
   // repeat cnt times: [<fr>,<to>) <value>
   template <class Archive>
   void save(Archive& ar, unsigned int version) const {
-    std::vector<std::tuple<size_t, size_t, T>> flat_data;
-    Apply(root_, [&flat_data](size_t fr, size_t to, T value) {
-      flat_data.emplace_back(std::make_tuple(fr, to + 1, std::move(value)));
-    });
-
-    ar & size_ & flat_data.size();
-    for (const auto& [fr, to, val] : flat_data) {
+    SerializedStorage<T> serialized = storage_->Save();
+    ar & serialized.size & serialized.data.size();
+    for (const auto& [fr, to, val] : serialized.data) {
       ar & fr & to & val;
     }
   }
 
   template <class Archive>
   void load(Archive& ar, unsigned int version) {
-    size_t size, cnt;
+    SerializedStorage<T> serialized;
+    size_t cnt;
 
-    ar & size & cnt;
-    this->Resize(size);
+    ar & serialized.size & cnt;
+    serialized.data.reserve(cnt);
     for (size_t i = 0; i < cnt; ++i) {
       size_t fr, to;
       T value;
       ar & fr & to & value;
-      this->Fill(fr, to, value);
+      serialized.data.emplace_back(std::make_tuple(fr, to, std::move(value)));
     }
+
+    storage_->Load(std::move(serialized));
   }
 };

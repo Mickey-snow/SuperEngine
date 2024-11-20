@@ -125,11 +125,11 @@ int Memory::Read(IntBank bank, size_t index) const {
   return GetBank(bank).Get(index);
 }
 
-std::string const& Memory::Read(StrMemoryLocation loc) const {
+std::string  Memory::Read(StrMemoryLocation loc) const {
   return Read(loc.Bank(), loc.Index());
 }
 
-std::string const& Memory::Read(StrBank bank, size_t index) const {
+std::string  Memory::Read(StrBank bank, size_t index) const {
   return GetBank(bank).Get(index);
 }
 
