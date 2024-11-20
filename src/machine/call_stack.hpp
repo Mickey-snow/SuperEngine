@@ -96,21 +96,18 @@ class CallStack {
 
   /**
    * @brief Returns a reverse iterator to the topmost frame of the stack.
-   * @return A `const_reverse_iterator` pointing to the topmost frame.
-   *
-   * This allows iteration over the stack from top to bottom in a read-only
-   * fashion.
+   * @return A `reverse_iterator` pointing to the topmost frame.
    */
-  std::vector<StackFrame>::const_reverse_iterator cbegin() const;
+  std::vector<StackFrame>::reverse_iterator begin();
 
   /**
    * @brief Returns a reverse iterator past the bottom frame of the stack.
-   * @return A `const_reverse_iterator` pointing past the bottom frame.
+   * @return A `reverse_iterator` pointing past the bottom frame.
    *
-   * This is used in conjunction with `cbegin()` to iterate over the entire
+   * This is used in conjunction with `begin()` to iterate over the entire
    * stack.
    */
-  std::vector<StackFrame>::const_reverse_iterator cend() const;
+  std::vector<StackFrame>::reverse_iterator end();
 
   /**
    * @brief Returns a pointer to the topmost `StackFrame`.

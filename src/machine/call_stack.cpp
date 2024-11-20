@@ -66,12 +66,12 @@ void CallStack::Pop() {
 
 size_t CallStack::Size() const { return stack_.size(); }
 
-std::vector<StackFrame>::const_reverse_iterator CallStack::cbegin() const {
-  return stack_.crbegin();
+std::vector<StackFrame>::reverse_iterator CallStack::begin() {
+  return stack_.rbegin();
 }
 
-std::vector<StackFrame>::const_reverse_iterator CallStack::cend() const {
-  return stack_.crend();
+std::vector<StackFrame>::reverse_iterator CallStack::end() {
+  return stack_.rend();
 }
 
 StackFrame* CallStack::Top() const {

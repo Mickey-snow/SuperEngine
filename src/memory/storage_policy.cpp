@@ -30,11 +30,15 @@
 #include <string>
 
 template <typename T>
-std::shared_ptr<StoragePolicy<T>> MakeStorage(Storage type) {
+std::shared_ptr<StoragePolicy<T>> MakeStorage(Storage type, size_t size) {
   switch (type) {
     case Storage::DEFAULT:
-    case Storage::DYNAMIC:
-      return std::make_shared<DynamicStorage<T>>();
+    case Storage::DYNAMIC: {
+      auto result = std::make_shared<DynamicStorage<T>>();
+      result->Resize(size);
+      return result;
+    }
+
     case Storage::STATIC:
 
     default:
@@ -43,5 +47,7 @@ std::shared_ptr<StoragePolicy<T>> MakeStorage(Storage type) {
   }
 }
 
-template std::shared_ptr<StoragePolicy<int>> MakeStorage(Storage type);
-template std::shared_ptr<StoragePolicy<std::string>> MakeStorage(Storage type);
+template std::shared_ptr<StoragePolicy<int>> MakeStorage(Storage type,
+                                                         size_t size);
+template std::shared_ptr<StoragePolicy<std::string>> MakeStorage(Storage type,
+                                                                 size_t size);

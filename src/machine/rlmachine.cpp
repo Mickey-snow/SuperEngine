@@ -48,6 +48,7 @@
 #include "machine/stack_frame.hpp"
 #include "memory/memory.hpp"
 #include "memory/serialization_local.hpp"
+#include "memory/stack_adapter.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/system_error.hpp"
@@ -81,6 +82,14 @@ RLMachine::RLMachine(System& in_system, libreallive::Archive& in_archive)
       archive_(in_archive),
       scriptor_(in_archive),
       system_(in_system) {
+  // Setup stack memory
+  Memory::Stack stack_memory;
+  stack_memory.K = MemoryBank<std::string>(
+      std::make_shared<StackMemoryAdapter<StackBank::StrK>>(call_stack_));
+  stack_memory.L = MemoryBank<int>(
+      std::make_shared<StackMemoryAdapter<StackBank::IntL>>(call_stack_));
+  memory_->PartialReset(std::move(stack_memory));
+
   // Search in the Gameexe for #SEEN_START and place us there
   Gameexe& gameexe = in_system.gameexe();
   memory_->LoadFrom(gameexe);
@@ -291,15 +300,21 @@ void RLMachine::PushStringValueUp(int index, const std::string& val) {
     throw rlvm::Exception("Invalid index in pushStringValue");
   }
 
-  const auto it = call_stack_.FindTopRealFrame();
-  if (it)
-    it->previous_stack_snapshot->K.Set(index, val);
+  bool set = false;
+  for (auto it = call_stack_.begin(); it != call_stack_.end(); ++it) {
+    if (it->frame_type != StackFrame::TYPE_LONGOP) {
+      if (!set)
+        set = true;
+      else {
+        it->strK.Set(index, val);
+      }
+    }
+  }
 }
 
 void RLMachine::PushLongOperation(LongOperation* long_operation) {
   const auto top_frame = call_stack_.Top();
-  call_stack_.Push(
-      StackFrame(top_frame->pos, long_operation));
+  call_stack_.Push(StackFrame(top_frame->pos, long_operation));
 }
 
 void RLMachine::PopStackFrame() { call_stack_.Pop(); }
@@ -342,9 +357,7 @@ const libreallive::Scenario& RLMachine::Scenario() const {
   return *(call_stack_.Top()->pos.GetScenario());
 }
 
-int RLMachine::GetTextEncoding() const {
-  return Scenario().encoding();
-}
+int RLMachine::GetTextEncoding() const { return Scenario().encoding(); }
 
 int RLMachine::GetProbableEncodingType() const {
   return archive_.GetProbableEncodingType();
@@ -497,6 +510,10 @@ void RLMachine::operator()(libreallive::CommandElement const* f) {
 }
 
 void RLMachine::operator()(libreallive::ExpressionElement const* e) {
+  if (tracer_) {
+    tracer_->Log(SceneNumber(), line_number(), *e);
+  }
+
   e->ParsedExpression()->GetIntegerValue(*this);  // (?)
   AdvanceInstructionPointer();
 }

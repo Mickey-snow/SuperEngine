@@ -22,32 +22,22 @@
 //
 // -----------------------------------------------------------------------
 
-#pragma once
+#include "serialization_local.hpp"
 
-#include <memory>
-#include <utility>
-#include <vector>
+#include "memory/storage_policy.hpp"
 
-template <typename T>
-class StoragePolicy {
- public:
-  virtual ~StoragePolicy() = default;
+LocalMemory::LocalMemory()
+    : A(MemoryBank<int>(Storage::DYNAMIC, 2000)),
+      B(MemoryBank<int>(Storage::DYNAMIC, 2000)),
+      C(MemoryBank<int>(Storage::DYNAMIC, 2000)),
+      D(MemoryBank<int>(Storage::DYNAMIC, 2000)),
+      E(MemoryBank<int>(Storage::DYNAMIC, 2000)),
+      F(MemoryBank<int>(Storage::DYNAMIC, 2000)),
+      X(MemoryBank<int>(Storage::DYNAMIC, 2000)),
+      H(MemoryBank<int>(Storage::DYNAMIC, 2000)),
+      I(MemoryBank<int>(Storage::DYNAMIC, 2000)),
+      J(MemoryBank<int>(Storage::DYNAMIC, 2000)),
+      S(MemoryBank<std::string>(Storage::DYNAMIC, 2000)),
+      local_names(MemoryBank<std::string>(Storage::DYNAMIC, 2000)) {}
 
-  virtual T Get(size_t index) const = 0;
-  virtual void Set(size_t index, T const& value) = 0;
-  virtual void Resize(size_t size) = 0;
-  virtual size_t GetSize() const = 0;
-  virtual void Fill(size_t begin, size_t end, T const& value) = 0;
-  virtual std::shared_ptr<StoragePolicy<T>> Clone() const = 0;
-
-  struct Serialized {
-    size_t size;
-    std::vector<std::tuple<size_t, size_t, T>> data;
-  };
-  virtual Serialized Save() const = 0;
-  virtual void Load(Serialized) = 0;
-};
-
-enum class Storage { STATIC, DYNAMIC, DEFAULT };
-template <typename T>
-std::shared_ptr<StoragePolicy<T>> MakeStorage(Storage type, size_t size = 0);
+LocalMemory::~LocalMemory() = default;

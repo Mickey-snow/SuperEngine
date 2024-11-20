@@ -33,8 +33,12 @@
 #include <stdexcept>
 #include <string>
 #include <type_traits>
+#include <unordered_map>
 
 struct LocalMemory {
+  LocalMemory();
+  ~LocalMemory();
+
   MemoryBank<int> A, B, C, D, E, F, X, H, I, J;
   MemoryBank<std::string> S, local_names;
 

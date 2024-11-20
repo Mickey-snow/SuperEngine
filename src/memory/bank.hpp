@@ -39,6 +39,8 @@ class MemoryBank {
     if (!storage_)
       storage_ = MakeStorage<T>(Storage::DEFAULT);
   }
+  MemoryBank(Storage policy, size_t init_size)
+      : MemoryBank(MakeStorage<T>(policy, init_size)) {}
   ~MemoryBank() = default;
 
   MemoryBank(const MemoryBank<T>& other) : storage_(other.storage_->Clone()) {}
