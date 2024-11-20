@@ -284,16 +284,6 @@ void RLMachine::Gosub(unsigned long new_location) {
                               StackFrame::TYPE_GOSUB));
 }
 
-// void RLMachine::GotoLocation(libreallive::BytecodeList::iterator
-// new_location) {
-//   call_stack_.Top()->ip = new_location;
-// }
-
-// void RLMachine::Gosub(libreallive::BytecodeList::iterator new_location) {
-//   call_stack_.Push(StackFrame(call_stack_.Top()->scenario, new_location,
-//                               StackFrame::TYPE_GOSUB));
-// }
-
 void RLMachine::ReturnFromGosub() { call_stack_.Pop(); }
 
 void RLMachine::PushStringValueUp(int index, const std::string& val) {
