@@ -71,11 +71,8 @@ std::string TextoutElement::GetSourceRepresentation(IModuleManager*) const {
   return "\"" + GetText() + "\"";
 }
 
-const size_t TextoutElement::GetBytecodeLength() const { return repr.size(); }
+size_t TextoutElement::GetBytecodeLength() const { return repr.size(); }
 
-void TextoutElement::RunOnMachine(RLMachine& machine) const {
-  machine.PerformTextout(*this);
-  machine.AdvanceInstructionPointer();
-}
+Bytecode_ptr TextoutElement::DownCast() const { return this; }
 
 }  // namespace libreallive

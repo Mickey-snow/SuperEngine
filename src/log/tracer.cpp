@@ -29,24 +29,56 @@
 #include "machine/rloperation.hpp"
 #include "memory/location.hpp"
 
-#include <iomanip>
-#include <iostream>
-#include <sstream>
+#include <boost/format.hpp>
+#include <boost/log/attributes/scoped_attribute.hpp>
+#include <boost/log/expressions.hpp>
+#include <boost/log/sources/logger.hpp>
+#include <boost/log/sources/record_ostream.hpp>
+#include <boost/log/trivial.hpp>
+#include <boost/log/utility/setup/console.hpp>
+#include <boost/log/utility/setup/file.hpp>
+
+struct Tracer_ctx {
+  boost::log::sources::logger logger_;
+};
+
+Tracer::Tracer() : ctx_(std::make_unique<Tracer_ctx>()) {
+  namespace logging = boost::log;
+  namespace keywords = boost::log::keywords;
+  namespace expr = boost::log::expressions;
+
+  logging::add_console_log(
+      std::clog, keywords::format =
+                     (expr::stream << "[" << expr::attr<std::string>("Scene")
+                                   << ':' << expr::attr<std::string>("Line")
+                                   << "]: " << expr::smessage));
+
+  logging::add_file_log(
+      keywords::file_name = "log.txt",
+      keywords::format =
+          (expr::stream << "[" << expr::attr<std::string>("Scene") << ':'
+                        << expr::attr<std::string>("Line")
+                        << "]: " << expr::smessage));
+
+  // logging::add_common_attributes();
+}
+
+Tracer::~Tracer() = default;
 
 void Tracer::Log(int scene,
                  int line,
                  RLOperation* op,
                  const libreallive::CommandElement& f) {
-  std::ostringstream oss;
-  oss << "(SEEN" << std::setw(4) << std::setfill('0') << scene << ")(Line "
-      << std::setw(4) << std::setfill('0') << line << "): ";
+  BOOST_LOG_SCOPED_THREAD_TAG("Scene", (boost::format("%04d") % scene).str());
+  BOOST_LOG_SCOPED_THREAD_TAG("Line", (boost::format("%04d") % line).str());
 
+  std::stringstream message;
   if (op == nullptr)
-    oss << "???";
+    message << "???";
   else
-    oss << op->name();
+    message << op->name();
 
-  auto PrintParamterString =
+  auto PrintParameterString =
       [](std::ostream& oss,
          const std::vector<libreallive::Expression>& params) {
         bool first = true;
@@ -56,21 +88,18 @@ void Tracer::Log(int scene,
             oss << ", ";
           }
           first = false;
-
           oss << param->GetDebugString();
         }
         oss << ")";
       };
-  PrintParamterString(oss, f.GetParsedParameters());
+  PrintParameterString(message, f.GetParsedParameters());
 
-  std::clog << oss.str() << std::endl;
+  BOOST_LOG(ctx_->logger_) << message.str();
 }
 
 void Tracer::Log(int scene, int line, const libreallive::ExpressionElement& f) {
-  std::ostringstream oss;
-  oss << "(SEEN" << std::setw(4) << std::setfill('0') << scene << ")(Line "
-      << std::setw(4) << std::setfill('0') << line << "): ";
-  oss << f.GetSourceRepresentation(nullptr);
+  BOOST_LOG_SCOPED_THREAD_TAG("Scene", (boost::format("%04d") % scene).str());
+  BOOST_LOG_SCOPED_THREAD_TAG("Line", (boost::format("%04d") % line).str());
 
-  std::clog << oss.str() << std::endl;
+  BOOST_LOG(ctx_->logger_) << f.GetSourceRepresentation(nullptr);
 }

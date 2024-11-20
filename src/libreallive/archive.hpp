@@ -52,18 +52,17 @@ namespace fs = std::filesystem;
 // Interface to a loaded SEEN.TXT file.
 class Archive {
  public:
-  // Read a seen.txt file, assuming no per-game xor key. (Used in unit testing).
-  explicit Archive(const std::string& filename);
+  Archive() = default;
+  virtual ~Archive();
 
   // Creates an interface to a SEEN.TXT file. Uses |regname| to look up
   // per-game xor key for newer games.
   Archive(const fs::path& filename, const std::string& regname);
-  ~Archive();
 
   // Returns a specific scenario by |index| number or NULL if none exist.
-  Scenario* GetScenario(int index);
+  virtual Scenario* GetScenario(int index);
 
-  Scenario* GetFirstScenario();
+  int GetFirstScenarioID() const;
 
   // Does a quick pass through all scenarios in the archive, looking for any
   // with non-default encoding. This short circuits when it finds one.
@@ -71,7 +70,6 @@ class Archive {
 
  private:
   typedef std::map<int, FilePos> toc_t;
-  typedef std::map<int, std::unique_ptr<Scenario>> scenario_t;
 
   void ReadTOC(const fs::path& filepath);
 
@@ -80,7 +78,7 @@ class Archive {
   void FindXorKey();
 
   toc_t toc_;
-  scenario_t scenario_;
+  std::map<int, std::unique_ptr<Scenario>> scenario_;
 
   // Mappings to unarchived SEEN\d{4}.TXT files on disk.
   // std::vector<std::unique_ptr<Mapping>> maps_to_delete_;

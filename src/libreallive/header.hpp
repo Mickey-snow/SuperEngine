@@ -28,32 +28,48 @@
 //
 // -----------------------------------------------------------------------
 
-#include "libreallive/elements/expression.hpp"
+#pragma once
+
+#include <string>
+#include <vector>
 
 namespace libreallive {
 
-// -----------------------------------------------------------------------
-// ExpressionElement
-// -----------------------------------------------------------------------
+struct XorKey;
 
-ExpressionElement::ExpressionElement(Expression expr)
-    : length_(0), parsed_expression_(expr) {}
+class Metadata {
+ public:
+  Metadata();
+  const std::string& to_string() const { return as_string_; }
+  const int text_encoding() const { return encoding_; }
 
-ExpressionElement::ExpressionElement(const int& len, Expression expr)
-    : length_(len), parsed_expression_(expr) {}
+  void Assign(const char* input);
 
-ExpressionElement::~ExpressionElement() {}
+  void Assign(const std::string_view& input);
 
-Expression ExpressionElement::ParsedExpression() const {
-  return parsed_expression_;
-}
+ private:
+  std::string as_string_;
+  int encoding_;
+};
 
-std::string ExpressionElement::GetSourceRepresentation(IModuleManager*) const {
-  return ParsedExpression()->GetDebugString();
-}
+class Header {
+ public:
+  Header() = default;
+  Header(const char* const data, const size_t length);
+  Header(const std::string_view& data) : Header(data.data(), data.length()) {}
+  ~Header();
 
-size_t ExpressionElement::GetBytecodeLength() const { return length_; }
+  // Starting around the release of Little Busters!, scenario files has a
+  // second round of xor done to them. When will they learn?
+  bool use_xor_2_;
 
-Bytecode_ptr ExpressionElement::DownCast() const { return this; }
+  long z_minus_one_;
+  long z_minus_two_;
+  long savepoint_message_;
+  long savepoint_selcom_;
+  long savepoint_seentop_;
+  std::vector<std::string> dramatis_personae_;
+  Metadata rldev_metadata_;
+};
 
 }  // namespace libreallive

@@ -42,31 +42,25 @@
 // -----------------------------------------------------------------------
 // StackFrame
 // -----------------------------------------------------------------------
-StackFrame::StackFrame() : scenario(NULL), ip(), frame_type() {}
+StackFrame::StackFrame() : pos(), frame_type() {
+  intL.Resize(40);
+  strK.Resize(40);
+}
 
-StackFrame::StackFrame(libreallive::Scenario const* s,
-                       const libreallive::Scenario::const_iterator& i,
-                       FrameType t)
-    : scenario(s), ip(i), frame_type(t) {}
+StackFrame::StackFrame(libreallive::Scriptor::const_iterator it, FrameType t)
+    : pos(it), frame_type(t) {
+  intL.Resize(40);
+  strK.Resize(40);
+}
 
-StackFrame::StackFrame(libreallive::Scenario const* s,
-                       const libreallive::Scenario::const_iterator& i,
+StackFrame::StackFrame(libreallive::Scriptor::const_iterator it,
                        LongOperation* op)
-    : scenario(s), ip(i), long_op(op), frame_type(TYPE_LONGOP) {}
+    : pos(it), long_op(op), frame_type(TYPE_LONGOP) {
+  intL.Resize(40);
+  strK.Resize(40);
+}
 
 StackFrame::~StackFrame() {}
-
-std::ostream& operator<<(std::ostream& os, const StackFrame& frame) {
-  os << "{seen=" << frame.scenario->scene_number()
-     << ", offset=" << distance(frame.scenario->begin(), frame.ip);
-
-  if (frame.long_op)
-    os << " [LONG OP=" << typeid(*frame.long_op).name() << "]";
-
-  os << "}";
-
-  return os;
-}
 
 template <class Archive>
 void StackFrame::save(Archive& ar, unsigned int version) const {

@@ -27,13 +27,13 @@
 #include "base/avdec/wav.hpp"
 #include "test_utils.hpp"
 #include "utilities/mapped_file.hpp"
-#include "utilities/numbers.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <limits>
+#include <numbers>
 #include <random>
 #include <regex>
 #include <string>
@@ -47,6 +47,8 @@ template <class T>
 using remove_cvref_t = typename remove_cvref<T>::type;
 
 namespace fs = std::filesystem;
+
+inline constexpr auto pi = std::numbers::pi;
 
 class WavCodecTest : public ::testing::TestWithParam<std::string> {
  public:

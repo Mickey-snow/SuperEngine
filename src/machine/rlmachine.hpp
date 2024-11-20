@@ -39,11 +39,12 @@
 
 #include "libreallive/bytecode_fwd.hpp"
 #include "libreallive/scenario.hpp"
+#include "libreallive/scriptor.hpp"
 #include "log/tracer.hpp"
+#include "machine/call_stack.hpp"
 #include "machine/module_manager.hpp"
 
 namespace libreallive {
-class Archive;
 class IntMemRef;
 };  // namespace libreallive
 
@@ -140,18 +141,6 @@ class RLMachine {
 
   // ------------------------------------- [ Memory manipulation functions ]
 
-  // Returns the integer value of a certain memory location
-  int GetIntValue(const libreallive::IntMemRef& ref);
-
-  // Sets the value of a certain memory location
-  void SetIntValue(const libreallive::IntMemRef& ref, int value);
-
-  // Returns the string value of a string memory bank
-  const std::string& GetStringValue(int type, int location);
-
-  // Sets the string value of one of the string banks
-  void SetStringValue(int type, int number, const std::string& value);
-
   // Reinitializes all memory to a pristine, default state as specified in the
   // Gameexe.ini file.
   void HardResetMemory();
@@ -170,12 +159,12 @@ class RLMachine {
 
   // Permanently moves the instruction pointer to the passed in
   // iterator in the current stack frame.
-  void GotoLocation(libreallive::BytecodeList::iterator new_location);
+  void GotoLocation(unsigned long new_location);
 
   // Pushes a new stack frame onto the call stack, saving the current
   // location. The new frame contains the current SEEN with
   // new_location as the instruction pointer.
-  void Gosub(libreallive::BytecodeList::iterator new_location);
+  void Gosub(unsigned long new_location);
 
   // Returns from the most recent gosub call. Throws if there's a mismatch
   // between farcall()/rtl() gosub()/ret() pairs.
@@ -230,9 +219,6 @@ class RLMachine {
   // that hasn't been patched at the time this method is called.)
   int GetProbableEncodingType() const;
 
-  void ExecuteCommand(const libreallive::CommandElement& f);
-  void ExecuteExpression(const libreallive::ExpressionElement& e);
-  void PerformTextout(const libreallive::TextoutElement& e);
   void PerformTextout(const std::string& cp932str);
 
   // Marks a kidoku marker as visited.
@@ -301,12 +287,6 @@ class RLMachine {
   // it will.
   void SetHaltOnException(bool halt_on_exception);
 
-  unsigned int PackModuleNumber(int modtype, int module) const;
-
-  // Pushes a stack frame onto the call stack, alerting possible
-  // LongOperations of this change if needed.
-  void PushStackFrame(StackFrame frame);
-
   // Pops a stack frame from the call stack, alerting possible
   // LongOperations of this change if needed.
   void PopStackFrame();
@@ -331,6 +311,15 @@ class RLMachine {
   // hacks.
   void AddLineAction(const int seen, const int line, std::function<void(void)>);
 
+ public:
+  // Methods to be called with executing a libreallive::BytecodeElement as a
+  // visitor
+  void operator()(libreallive::CommaElement const*);
+  void operator()(libreallive::MetaElement const*);
+  void operator()(libreallive::CommandElement const*);
+  void operator()(libreallive::ExpressionElement const*);
+  void operator()(libreallive::TextoutElement const*);
+
  private:
   // The Reallive VM's integer and string memory
   std::unique_ptr<Memory> memory_;
@@ -353,14 +342,9 @@ class RLMachine {
 
   // The SEEN.TXT the machine is currently executing.
   libreallive::Archive& archive_;
+  libreallive::Scriptor scriptor_;
 
-  // The actual call stack.
-  std::vector<StackFrame> call_stack_;
-
-  // The state of the call stack the last time a savepoint was called
-  std::vector<StackFrame> savepoint_call_stack_;
-
-  std::unique_ptr<Memory> savepoint_memory_;
+  Memory savepoint_memory_;
 
   // The most recent line marker we've come across
   int line_ = 0;
@@ -372,23 +356,19 @@ class RLMachine {
   // Override defaults
   bool mark_savepoints_ = true;
 
-  // Whether the stack was modified during the running of a
-  // LongOperation. Used to signal that any stack mutating functions should be
-  // be placed in |delay_modifications_| for execution later.
-  bool delay_stack_modifications_ = false;
-
   // Whether we are currently replaying the graphics stack. While replaying the
   // graphics stack, we shouldn't advance the instruction pointer and do other
   // stuff.
   bool replaying_graphics_stack_ = false;
 
+ private:
+  CallStack call_stack_, savepoint_call_stack_;
+
  public:
+  // For logging
   std::shared_ptr<Tracer> tracer_ = nullptr;
 
  private:
-  // The actions that were delayed when |delay_stack_modifications_| is on.
-  std::vector<std::function<void(void)>> delayed_modifications_;
-
   // An optional set of game specific hacks that run at certain SEEN/line
   // pairs. These run during setLineNumer().
   typedef std::map<std::pair<int, int>, std::function<void(void)>> ActionMap;

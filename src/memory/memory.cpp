@@ -125,11 +125,11 @@ int Memory::Read(IntBank bank, size_t index) const {
   return GetBank(bank).Get(index);
 }
 
-std::string const& Memory::Read(StrMemoryLocation loc) const {
+std::string Memory::Read(StrMemoryLocation loc) const {
   return Read(loc.Bank(), loc.Index());
 }
 
-std::string const& Memory::Read(StrBank bank, size_t index) const {
+std::string Memory::Read(StrBank bank, size_t index) const {
   return GetBank(bank).Get(index);
 }
 
@@ -245,20 +245,21 @@ void Memory::PartialReset(GlobalMemory global_memory) {
 }
 
 LocalMemory Memory::GetLocalMemory() const {
-  return LocalMemory{
-      .A = intbanks_[static_cast<uint8_t>(IntBank::A)],
-      .B = intbanks_[static_cast<uint8_t>(IntBank::B)],
-      .C = intbanks_[static_cast<uint8_t>(IntBank::C)],
-      .D = intbanks_[static_cast<uint8_t>(IntBank::D)],
-      .E = intbanks_[static_cast<uint8_t>(IntBank::E)],
-      .F = intbanks_[static_cast<uint8_t>(IntBank::F)],
-      .X = intbanks_[static_cast<uint8_t>(IntBank::X)],
-      .H = intbanks_[static_cast<uint8_t>(IntBank::H)],
-      .I = intbanks_[static_cast<uint8_t>(IntBank::I)],
-      .J = intbanks_[static_cast<uint8_t>(IntBank::J)],
-      .S = strbanks_[static_cast<uint8_t>(StrBank::S)],
-      .local_names = strbanks_[static_cast<uint8_t>(StrBank::local_name)],
-  };
+  LocalMemory local_memory;
+  local_memory.A = intbanks_[static_cast<uint8_t>(IntBank::A)];
+  local_memory.B = intbanks_[static_cast<uint8_t>(IntBank::B)];
+  local_memory.C = intbanks_[static_cast<uint8_t>(IntBank::C)];
+  local_memory.D = intbanks_[static_cast<uint8_t>(IntBank::D)];
+  local_memory.E = intbanks_[static_cast<uint8_t>(IntBank::E)];
+  local_memory.F = intbanks_[static_cast<uint8_t>(IntBank::F)];
+  local_memory.X = intbanks_[static_cast<uint8_t>(IntBank::X)];
+  local_memory.H = intbanks_[static_cast<uint8_t>(IntBank::H)];
+  local_memory.I = intbanks_[static_cast<uint8_t>(IntBank::I)];
+  local_memory.J = intbanks_[static_cast<uint8_t>(IntBank::J)];
+  local_memory.S = strbanks_[static_cast<uint8_t>(StrBank::S)];
+  local_memory.local_names =
+      strbanks_[static_cast<uint8_t>(StrBank::local_name)];
+  return local_memory;
 }
 
 void Memory::PartialReset(LocalMemory local_memory) {

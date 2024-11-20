@@ -54,11 +54,11 @@ class MetaElement : public BytecodeElement {
   // Overridden from BytecodeElement:
   virtual void PrintSourceRepresentation(IModuleManager* machine,
                                          std::ostream& oss) const final;
-  virtual const size_t GetBytecodeLength() const final;
-  virtual const int GetEntrypoint() const final;
-  virtual void RunOnMachine(RLMachine& machine) const final;
+  virtual size_t GetBytecodeLength() const final;
+  virtual int GetEntrypoint() const final;
 
- private:
+  virtual Bytecode_ptr DownCast() const final;
+
   MetaElementType type_;
   int value_;
   int entrypoint_index_;

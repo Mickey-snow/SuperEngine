@@ -30,22 +30,24 @@
 
 #include <forward_list>
 #include <memory>
+#include <variant>
 
 namespace libreallive {
 
 // List definitions.
 class ExpressionPiece;
 class BytecodeElement;
-typedef std::forward_list<std::unique_ptr<BytecodeElement>> BytecodeList;
+typedef std::forward_list<std::shared_ptr<BytecodeElement>> BytecodeList;
 typedef BytecodeList::iterator pointer_t;
 
-struct ConstructionData;
+struct BytecodeTable;
 class Pointers;
 
 class DataElement;
 class MetaElement;
 class TextoutElement;
 class ExpressionElement;
+class CommaElement;
 class CommandElement;
 class SelectElement;
 class FunctionElement;
@@ -55,4 +57,9 @@ class GotoCaseElement;
 class GotoOnElement;
 class GosubWithElement;
 
+using Bytecode_ptr = std::variant<CommandElement const*,
+                                  CommaElement const*,
+                                  MetaElement const*,
+                                  TextoutElement const*,
+                                  ExpressionElement const*>;
 }  // namespace libreallive

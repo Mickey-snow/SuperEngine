@@ -37,6 +37,7 @@ file(GLOB_RECURSE TEST_SRC_FILES
   "*.cc"
 )
 add_executable(unittest ${TEST_SRC_FILES})
+target_include_directories(unittest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(unittest ${GTEST_LIBRARIES} rlvm_src)
 
 # -------------------------------------------------------------------

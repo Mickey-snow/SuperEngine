@@ -27,15 +27,17 @@
 #include "base/avdec/nwa.hpp"
 #include "test_utils.hpp"
 #include "utilities/mapped_file.hpp"
-#include "utilities/numbers.hpp"
 
 #include <cstdlib>
 #include <filesystem>
+#include <numbers>
 #include <random>
 #include <regex>
 #include <string>
 
 namespace fs = std::filesystem;
+
+inline constexpr auto pi = std::numbers::pi;
 
 class NwaDecoderTest : public ::testing::TestWithParam<fs::path> {
  protected:

@@ -29,7 +29,6 @@
 // -----------------------------------------------------------------------
 
 #include "libreallive/elements/comma.hpp"
-#include "machine/rlmachine.hpp"
 
 namespace libreallive {
 
@@ -40,5 +39,8 @@ std::string CommaElement::GetSourceRepresentation(IModuleManager*) const {
   return "<CommaElement>";
 }
 
-const size_t CommaElement::GetBytecodeLength() const { return 1; }
+size_t CommaElement::GetBytecodeLength() const { return 1; }
+
+Bytecode_ptr CommaElement::DownCast() const { return this; }
+
 }  // namespace libreallive

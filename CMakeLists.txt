@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.18)
 
-project(RLVM VERSION 0.14.1 LANGUAGES CXX C)
+project(RLVM VERSION 0.14.2 LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -49,7 +49,7 @@ link_directories(${SDL1_LIBRARY_DIRS})
 # -------------------------------------------------------------------
 # Find Boost Libraries
 # -------------------------------------------------------------------
-set(BOOST_COMPONENTS program_options serialization iostreams filesystem)
+set(BOOST_COMPONENTS program_options serialization iostreams filesystem log)
 find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 
 if (Boost_FOUND)

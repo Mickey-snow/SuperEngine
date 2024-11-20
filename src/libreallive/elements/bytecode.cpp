@@ -34,23 +34,12 @@
 namespace libreallive {
 
 // -----------------------------------------------------------------------
-// ConstructionData
-// -----------------------------------------------------------------------
-
-ConstructionData::ConstructionData(size_t kt, pointer_t pt)
-    : kidoku_table(kt), null(pt) {}
-
-ConstructionData::~ConstructionData() {}
-
-// -----------------------------------------------------------------------
 // BytecodeElement
 // -----------------------------------------------------------------------
 
 BytecodeElement::BytecodeElement() {}
 
 BytecodeElement::~BytecodeElement() {}
-
-BytecodeElement::BytecodeElement(const BytecodeElement& c) {}
 
 void BytecodeElement::PrintSourceRepresentation(IModuleManager* manager,
                                                 std::ostream& oss) const {
@@ -61,18 +50,14 @@ std::string BytecodeElement::GetSourceRepresentation(IModuleManager*) const {
   return "<unspecified bytecode>";
 }
 
-void BytecodeElement::SetPointers(ConstructionData& cdata) {}
+void BytecodeElement::SetPointers(BytecodeTable& cdata) {}
 
-const int BytecodeElement::GetEntrypoint() const { return kInvalidEntrypoint; }
+int BytecodeElement::GetEntrypoint() const { return kInvalidEntrypoint; }
 
 string BytecodeElement::GetSerializedCommand(RLMachine& machine) const {
   throw Error(
       "Can't call GetSerializedCommand() on things other than "
       "FunctionElements");
-}
-
-void BytecodeElement::RunOnMachine(RLMachine& machine) const {
-  machine.AdvanceInstructionPointer();
 }
 
 }  // namespace libreallive

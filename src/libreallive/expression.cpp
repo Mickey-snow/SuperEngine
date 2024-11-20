@@ -40,6 +40,7 @@
 
 #include "libreallive/alldefs.hpp"
 #include "libreallive/intmemref.hpp"
+#include "libreallive/parser.hpp"
 #include "machine/reference.hpp"
 #include "machine/rlmachine.hpp"
 
@@ -341,21 +342,23 @@ class MemoryReferenceEx : public IExpression {
   }
 
   void SetIntegerValue(RLMachine& machine, int rvalue) override {
-    machine.SetIntValue(IntMemRef(type_, location_->GetIntegerValue(machine)),
-                        rvalue);
+    machine.memory().Write(
+        IntMemRef(type_, location_->GetIntegerValue(machine)), rvalue);
   }
 
   int GetIntegerValue(RLMachine& machine) const override {
-    return machine.GetIntValue(
+    return machine.memory().Read(
         IntMemRef(type_, location_->GetIntegerValue(machine)));
   }
 
   void SetStringValue(RLMachine& machine, const std::string& rval) override {
-    machine.SetStringValue(type_, location_->GetIntegerValue(machine), rval);
+    machine.memory().Write(
+        StrMemoryLocation(type_, location_->GetIntegerValue(machine)), rval);
   }
 
   std::string GetStringValue(RLMachine& machine) const override {
-    return machine.GetStringValue(type_, location_->GetIntegerValue(machine));
+    return machine.memory().Read(
+        StrMemoryLocation(type_, location_->GetIntegerValue(machine)));
   }
 
   std::string GetDebugString() const override {
@@ -413,19 +416,19 @@ class SimpleMemRefEx : public IExpression {
   }
 
   void SetIntegerValue(RLMachine& machine, int rvalue) override {
-    machine.SetIntValue(IntMemRef(type_, location_), rvalue);
+    machine.memory().Write(IntMemRef(type_, location_), rvalue);
   }
 
   int GetIntegerValue(RLMachine& machine) const override {
-    return machine.GetIntValue(IntMemRef(type_, location_));
+    return machine.memory().Read(IntMemRef(type_, location_));
   }
 
   void SetStringValue(RLMachine& machine, const std::string& rval) override {
-    machine.SetStringValue(type_, location_, rval);
+    machine.memory().Write(StrMemoryLocation(type_, location_), rval);
   }
 
   std::string GetStringValue(RLMachine& machine) const override {
-    return machine.GetStringValue(type_, location_);
+    return machine.memory().Read(StrMemoryLocation(type_, location_));
   }
 
   IntReferenceIterator GetIntegerReferenceIterator(
@@ -741,7 +744,7 @@ class SimpleAssignEx : public IExpression {
   bool is_valid() const override { return true; }
 
   int GetIntegerValue(RLMachine& machine) const override {
-    machine.SetIntValue(IntMemRef(type_, location_), value_);
+    machine.memory().Write(IntMemRef(type_, location_), value_);
     return value_;
   }
 

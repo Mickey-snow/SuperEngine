@@ -36,6 +36,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <numbers>
 #include <string>
 #include <vector>
 
@@ -61,10 +62,9 @@
 #include "systems/base/system.hpp"
 #include "systems/base/text_system.hpp"
 #include "systems/base/text_window.hpp"
-#include "utilities/numbers.hpp"
 #include "utilities/string_utilities.hpp"
 
-const float PI = pi_v<float>;
+inline constexpr float PI = std::numbers::pi;
 
 namespace {
 

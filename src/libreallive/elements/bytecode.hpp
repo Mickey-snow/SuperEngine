@@ -36,23 +36,13 @@
 #include <vector>
 
 #include "libreallive/bytecode_fwd.hpp"
+#include "libreallive/bytecode_table.hpp"
 
 class RLMachine;
 class IModuleManager;
 
 namespace libreallive {
 class Script;
-
-struct ConstructionData {
-  ConstructionData() = default;
-  ConstructionData(size_t kt, pointer_t pt);
-  ~ConstructionData();
-
-  std::vector<unsigned long> kidoku_table;
-  pointer_t null;
-  typedef std::map<unsigned long, pointer_t> offsets_t;
-  offsets_t offsets;
-};
 
 // Base classes for bytecode elements.
 class BytecodeElement {
@@ -69,27 +59,21 @@ class BytecodeElement {
   virtual std::string GetSourceRepresentation(IModuleManager*) const;
 
   // Returns the length of this element in bytes in the source file.
-  virtual const size_t GetBytecodeLength() const = 0;
+  virtual size_t GetBytecodeLength() const = 0;
 
   // Used to connect pointers in the bytecode after we've created all
   // BytecodeElements in a Scenario.
-  virtual void SetPointers(ConstructionData& cdata);
+  virtual void SetPointers(BytecodeTable& cdata);
 
   // Needed for MetaElement during reading the script
-  virtual const int GetEntrypoint() const;
+  virtual int GetEntrypoint() const;
 
   // Fat interface: takes a FunctionElement and returns all data serialized for
   // writing to disk so the exact command can be replayed later. Throws in all
   // other cases.
   virtual std::string GetSerializedCommand(RLMachine& machine) const;
 
-  // Execute this bytecode instruction on this virtual machine
-  virtual void RunOnMachine(RLMachine& machine) const;
-
- protected:
-  BytecodeElement(const BytecodeElement& c);
-
- private:
-  friend class Script;
+  virtual Bytecode_ptr DownCast() const = 0;
 };
+
 }  // namespace libreallive

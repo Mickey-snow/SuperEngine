@@ -130,7 +130,7 @@ void WriteWithData(RLMachine& machine,
 struct Jmp_goto : public RLOp_SpecialCase {
   void operator()(RLMachine& machine, const CommandElement& goto_element) {
     // Goto the first pointer
-    machine.GotoLocation(goto_element.GetPointer(0));
+    machine.GotoLocation(goto_element.GetLocation(0));
   }
 };
 
@@ -157,7 +157,7 @@ struct goto_if : public ParseGotoParametersAsExpressions {
         goto_element.GetParsedParameters();
 
     if (conditions[0]->GetIntegerValue(machine)) {
-      machine.GotoLocation(goto_element.GetPointer(0));
+      machine.GotoLocation(goto_element.GetLocation(0));
     } else {
       machine.AdvanceInstructionPointer();
     }
@@ -171,7 +171,7 @@ struct goto_unless : public ParseGotoParametersAsExpressions {
         goto_element.GetParsedParameters();
 
     if (!conditions[0]->GetIntegerValue(machine)) {
-      machine.GotoLocation(goto_element.GetPointer(0));
+      machine.GotoLocation(goto_element.GetLocation(0));
     } else {
       machine.AdvanceInstructionPointer();
     }
@@ -191,7 +191,7 @@ struct goto_on : public ParseGotoParametersAsExpressions {
     int value = conditions[0]->GetIntegerValue(machine);
 
     if (value >= 0 && value < int(goto_element.GetPointersCount())) {
-      machine.GotoLocation(goto_element.GetPointer(value));
+      machine.GotoLocation(goto_element.GetLocation(value));
     } else {
       // If the value is not a valid pointer, simply increment.
       machine.AdvanceInstructionPointer();
@@ -207,7 +207,7 @@ struct goto_on : public ParseGotoParametersAsExpressions {
 struct goto_case : public ParseGotoParametersAsExpressions {
   void operator()(RLMachine& machine, const CommandElement& goto_element) {
     int i = EvaluateCase(machine, goto_element);
-    machine.GotoLocation(goto_element.GetPointer(i));
+    machine.GotoLocation(goto_element.GetLocation(i));
   }
 };
 
@@ -217,7 +217,7 @@ struct goto_case : public ParseGotoParametersAsExpressions {
 // label @label in the current scenario.
 struct gosub : public RLOp_SpecialCase {
   void operator()(RLMachine& machine, const CommandElement& goto_element) {
-    machine.Gosub(goto_element.GetPointer(0));
+    machine.Gosub(goto_element.GetLocation(0));
   }
 };
 
@@ -232,7 +232,7 @@ struct gosub_if : public ParseGotoParametersAsExpressions {
         goto_element.GetParsedParameters();
 
     if (conditions[0]->GetIntegerValue(machine)) {
-      machine.Gosub(goto_element.GetPointer(0));
+      machine.Gosub(goto_element.GetLocation(0));
     } else {
       machine.AdvanceInstructionPointer();
     }
@@ -249,7 +249,7 @@ struct gosub_unless : public ParseGotoParametersAsExpressions {
         goto_element.GetParsedParameters();
 
     if (!conditions[0]->GetIntegerValue(machine)) {
-      machine.Gosub(goto_element.GetPointer(0));
+      machine.Gosub(goto_element.GetLocation(0));
     } else {
       machine.AdvanceInstructionPointer();
     }
@@ -269,7 +269,7 @@ struct gosub_on : public ParseGotoParametersAsExpressions {
     int value = conditions[0]->GetIntegerValue(machine);
 
     if (value >= 0 && value < int(goto_element.GetPointersCount()))
-      machine.Gosub(goto_element.GetPointer(value));
+      machine.Gosub(goto_element.GetLocation(value));
     else
       // If the value is not a valid pointer, simply increment.
       machine.AdvanceInstructionPointer();
@@ -284,7 +284,7 @@ struct gosub_on : public ParseGotoParametersAsExpressions {
 struct gosub_case : public ParseGotoParametersAsExpressions {
   void operator()(RLMachine& machine, const CommandElement& goto_element) {
     int i = EvaluateCase(machine, goto_element);
-    machine.Gosub(goto_element.GetPointer(i));
+    machine.Gosub(goto_element.GetLocation(i));
   }
 };
 
@@ -380,7 +380,7 @@ struct gosub_with : public RLOp_SpecialCase {
     std::vector<std::string> strings;
     ReadWithData(machine, data, integers, strings);
 
-    machine.Gosub(goto_element.GetPointer(0));
+    machine.Gosub(goto_element.GetLocation(0));
 
     WriteWithData(machine, integers, strings);
   }

@@ -28,32 +28,43 @@
 //
 // -----------------------------------------------------------------------
 
-#include "libreallive/elements/expression.hpp"
+#pragma once
+
+#include "libreallive/bytecode_fwd.hpp"
+#include "libreallive/header.hpp"
+
+#include <map>
+#include <memory>
 
 namespace libreallive {
 
-// -----------------------------------------------------------------------
-// ExpressionElement
-// -----------------------------------------------------------------------
+class Script {
+ public:
+  Script(BytecodeList elts,
+         std::map<int, pointer_t> __entrypoints,
+         std::vector<std::pair<unsigned long, std::shared_ptr<BytecodeElement>>>
+             elements,
+         std::map<int, unsigned long> entrypoints);
+  ~Script();
 
-ExpressionElement::ExpressionElement(Expression expr)
-    : length_(0), parsed_expression_(expr) {}
+  const pointer_t GetEntrypoint(int entrypoint) const;
 
-ExpressionElement::ExpressionElement(const int& len, Expression expr)
-    : length_(len), parsed_expression_(expr) {}
+  // A sequence of semi-parsed/tokenized bytecode elements, which are
+  // the elements that RLMachine executes.
+  BytecodeList elts_;
 
-ExpressionElement::~ExpressionElement() {}
+  // Entrypoint handeling
+  std::map<int, pointer_t> entrypoint_associations_;
 
-Expression ExpressionElement::ParsedExpression() const {
-  return parsed_expression_;
-}
+  std::vector<std::pair<unsigned long, std::shared_ptr<BytecodeElement>>>
+      elements_;
+  std::map<int, unsigned long> entrypoints_;
+};
 
-std::string ExpressionElement::GetSourceRepresentation(IModuleManager*) const {
-  return ParsedExpression()->GetDebugString();
-}
-
-size_t ExpressionElement::GetBytecodeLength() const { return length_; }
-
-Bytecode_ptr ExpressionElement::DownCast() const { return this; }
+Script ParseScript(const Header& hdr,
+                   const std::string_view& data,
+                   const std::string& regname,
+                   bool use_xor_2,
+                   const XorKey* second_level_xor_key);
 
 }  // namespace libreallive

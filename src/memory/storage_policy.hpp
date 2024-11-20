@@ -1,13 +1,10 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2013 Elliot Glaysher
+// Copyright (C) 2024 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,22 +18,36 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+// Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
+//
 // -----------------------------------------------------------------------
 
-#include "machine/dump_scenario.hpp"
+#pragma once
 
-#include "libreallive/parser.hpp"
-#include "libreallive/scenario.hpp"
+#include <memory>
+#include <utility>
+#include <vector>
 
-#include <iostream>
+template <typename T>
+class StoragePolicy {
+ public:
+  virtual ~StoragePolicy() = default;
 
-void DumpScenario(IModuleManager* manager, libreallive::Scenario* scenario) {
-  if (!scenario) {
-    std::cout << "Invalid scenario number." << std::endl;
-    return;
-  }
+  virtual T Get(size_t index) const = 0;
+  virtual void Set(size_t index, T const& value) = 0;
+  virtual void Resize(size_t size) = 0;
+  virtual size_t GetSize() const = 0;
+  virtual void Fill(size_t begin, size_t end, T const& value) = 0;
+  virtual std::shared_ptr<StoragePolicy<T>> Clone() const = 0;
 
-  for (const auto& instruction : scenario->script.elts_)
-    instruction->PrintSourceRepresentation(manager, std::cout);
-}
+  struct Serialized {
+    size_t size;
+    std::vector<std::tuple<size_t, size_t, T>> data;
+  };
+  virtual Serialized Save() const = 0;
+  virtual void Load(Serialized) = 0;
+};
+
+enum class Storage { STATIC, DYNAMIC, DEFAULT };
+template <typename T>
+std::shared_ptr<StoragePolicy<T>> MakeStorage(Storage type, size_t size = 0);

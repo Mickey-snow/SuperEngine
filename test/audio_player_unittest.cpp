@@ -30,7 +30,6 @@ using ::testing::Return;
 
 #include "base/audio_player.hpp"
 #include "base/avdec/audio_decoder.hpp"
-#include "utilities/numbers.hpp"
 
 #include <atomic>
 #include <future>
@@ -48,7 +47,7 @@ class NoiseGenerator : public IAudioDecoder {
   NoiseGenerator()
       : position_(0),
         sample_rate_(sample_rate),
-        frequency_(440.0),
+        frequency_(frequency),
         total_samples_(sample_rate_ * duration * channel_count) {
     std::generate_n(std::back_inserter(buffer_), total_samples_, []() {
       static std::mt19937 rng;

@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of libreallive, a dependency of RLVM.
@@ -37,86 +34,15 @@
 #include <string_view>
 
 #include "libreallive/alldefs.hpp"
-#include "libreallive/parser.hpp"
+#include "libreallive/header.hpp"
+#include "libreallive/script.hpp"
 #include "utilities/mapped_file.hpp"
 
 namespace libreallive {
 
-struct XorKey;
-
-class Metadata {
- public:
-  Metadata();
-  const string& to_string() const { return as_string_; }
-  const int text_encoding() const { return encoding_; }
-
-  void Assign(const char* input);
-
-  void Assign(const std::string_view& input);
-
- private:
-  std::string as_string_;
-  int encoding_;
-};
-
-class Header {
- public:
-  Header(const char* const data, const size_t length);
-  Header(const std::string_view& data) : Header(data.data(), data.length()) {}
-  ~Header();
-
-  // Starting around the release of Little Busters!, scenario files has a
-  // second round of xor done to them. When will they learn?
-  bool use_xor_2_;
-
-  long z_minus_one_;
-  long z_minus_two_;
-  long savepoint_message_;
-  long savepoint_selcom_;
-  long savepoint_seentop_;
-  std::vector<string> dramatis_personae_;
-  Metadata rldev_metadata_;
-};
-
-class Script {
- public:
-  const pointer_t GetEntrypoint(int entrypoint) const;
-
- private:
-  friend class Scenario;
-
-  Script(const Header& hdr,
-         const char* const data,
-         const size_t length,
-         const std::string& regname,
-         bool use_xor_2,
-         const XorKey* second_level_xor_key);
-  Script(const Header& hdr,
-         const std::string_view& data,
-         const std::string& regname,
-         bool use_xor_2,
-         const XorKey* second_level_xor_key);
-  ~Script();
-
-  // A sequence of semi-parsed/tokenized bytecode elements, which are
-  // the elements that RLMachine executes.
-  BytecodeList elts_;
-
-  // Entrypoint handeling
-  typedef std::map<int, pointer_t> pointernumber;
-  pointernumber entrypoint_associations_;
-};
-
 class Scenario {
  public:
-  Scenario(const std::string_view& data,
-           int scenarioNum,
-           const std::string& regname,
-           const XorKey* second_level_xor_key);
-  Scenario(FilePos fp,
-           int scenarioNum,
-           const std::string& regname,
-           const XorKey* second_level_xor_key);
+  Scenario(Header hdr, Script scr, int num);
   ~Scenario();
 
   // Get the scenario number
@@ -131,20 +57,23 @@ class Scenario {
   int savepoint_selcom() const { return header.savepoint_selcom_; }
   int savepoint_seentop() const { return header.savepoint_seentop_; }
 
+  auto cbegin() const { return script.elts_.cbegin(); }
+  auto cend() const { return script.elts_.cend(); }
+
   // Access to script
   typedef BytecodeList::const_iterator const_iterator;
   typedef BytecodeList::iterator iterator;
-
-  const_iterator begin() const { return script.elts_.cbegin(); }
-  const_iterator end() const { return script.elts_.cend(); }
-
   // Locate the entrypoint
   const_iterator FindEntrypoint(int entrypoint) const;
 
- private:
   Header header;
   Script script;
   int scenario_number_;
 };
+
+std::unique_ptr<Scenario> ParseScenario(FilePos fp,
+                                        int scenarioNum,
+                                        const std::string& regname,
+                                        const XorKey* second_level_xor_key);
 
 }  // namespace libreallive

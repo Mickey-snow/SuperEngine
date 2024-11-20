@@ -163,3 +163,24 @@ TEST(MemoryBankTest, Serialization) {
       EXPECT_EQ(deserialized.Get(i), std::to_string(i * i));
   }
 }
+
+TEST(MemoryBankTest, Deserialization) {
+  // Ensure implementations provide deserialization logic with compatibility
+  std::stringstream ss(
+      "22 serialization::archive 19 0 0 10 9 0 1 3 1 2 3 2 3 99 3 4 0 4 6 0 6 "
+      "7 0 7 8 10 8 16 0 16 32 0");
+  constexpr size_t size = 10;
+
+  std::map<int, int> data{{0, 3}, {1, 3}, {2, 99}, {7, 10}};
+  for (int i = 0; i < size; ++i)
+    data.emplace(i, 0);
+
+  MemoryBank<int> arr;
+  boost::archive::text_iarchive ia(ss);
+  ASSERT_NO_THROW({ ia >> arr; });
+
+  ASSERT_EQ(arr.GetSize(), size);
+  for (int i = 0; i < size; ++i) {
+    EXPECT_EQ(arr.Get(i), data.at(i));
+  }
+}

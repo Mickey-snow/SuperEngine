@@ -1,13 +1,10 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2013 Elliot Glaysher
+// Copyright (C) 2024 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,22 +18,26 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+// Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
+//
 // -----------------------------------------------------------------------
 
-#include "machine/dump_scenario.hpp"
+#include "serialization_local.hpp"
 
-#include "libreallive/parser.hpp"
-#include "libreallive/scenario.hpp"
+#include "memory/storage_policy.hpp"
 
-#include <iostream>
+LocalMemory::LocalMemory()
+    : A(MemoryBank<int>(Storage::DYNAMIC, 2000)),
+      B(MemoryBank<int>(Storage::DYNAMIC, 2000)),
+      C(MemoryBank<int>(Storage::DYNAMIC, 2000)),
+      D(MemoryBank<int>(Storage::DYNAMIC, 2000)),
+      E(MemoryBank<int>(Storage::DYNAMIC, 2000)),
+      F(MemoryBank<int>(Storage::DYNAMIC, 2000)),
+      X(MemoryBank<int>(Storage::DYNAMIC, 2000)),
+      H(MemoryBank<int>(Storage::DYNAMIC, 2000)),
+      I(MemoryBank<int>(Storage::DYNAMIC, 2000)),
+      J(MemoryBank<int>(Storage::DYNAMIC, 2000)),
+      S(MemoryBank<std::string>(Storage::DYNAMIC, 2000)),
+      local_names(MemoryBank<std::string>(Storage::DYNAMIC, 2000)) {}
 
-void DumpScenario(IModuleManager* manager, libreallive::Scenario* scenario) {
-  if (!scenario) {
-    std::cout << "Invalid scenario number." << std::endl;
-    return;
-  }
-
-  for (const auto& instruction : scenario->script.elts_)
-    instruction->PrintSourceRepresentation(manager, std::cout);
-}
+LocalMemory::~LocalMemory() = default;

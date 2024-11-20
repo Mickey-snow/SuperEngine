@@ -35,7 +35,6 @@
 
 namespace libreallive {
 // Expression elements.
-// Construct from long to build a representation of an integer constant.
 
 // A BytecodeElement that represents an expression
 class ExpressionElement : public BytecodeElement {
@@ -49,8 +48,9 @@ class ExpressionElement : public BytecodeElement {
 
   // Overridden from BytecodeElement:
   virtual std::string GetSourceRepresentation(IModuleManager*) const final;
-  virtual const size_t GetBytecodeLength() const final;
-  virtual void RunOnMachine(RLMachine& machine) const final;
+  virtual size_t GetBytecodeLength() const final;
+
+  virtual Bytecode_ptr DownCast() const final;
 
  private:
   int length_;

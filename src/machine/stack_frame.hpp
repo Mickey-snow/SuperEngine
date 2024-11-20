@@ -34,7 +34,8 @@
 #include <optional>
 #include <string>
 
-#include "libreallive/scenario.hpp"
+#include "libreallive/scriptor.hpp"
+#include "memory/bank.hpp"
 #include "memory/memory.hpp"
 
 class LongOperation;
@@ -53,10 +54,12 @@ class LongOperation;
 // StackFrames can also be added to represent LongOperations.
 struct StackFrame {
   // The scenario in the SEEN file for this stack frame.
-  libreallive::Scenario const* scenario;
+  // libreallive::Scenario const* scenario;
 
   // The instruction pointer in the stack frame.
-  libreallive::Scenario::const_iterator ip;
+  // libreallive::Scenario::const_iterator ip;
+
+  libreallive::Scriptor::const_iterator pos;
 
   // Pointer to the owned LongOperation if this is of TYPE_LONGOP.
   std::shared_ptr<LongOperation> long_op;
@@ -67,6 +70,10 @@ struct StackFrame {
   // this field does't hold a value.
   std::optional<Memory::Stack> previous_stack_snapshot;
 
+  // Stack memory, used for passing parameters.
+  MemoryBank<int> intL;
+  MemoryBank<std::string> strK;
+
   // The function that pushed the current frame onto the
   // stack. Used in error checking.
   enum FrameType {
@@ -76,18 +83,14 @@ struct StackFrame {
     TYPE_LONGOP    // Added by pushLongOperation()
   } frame_type;
 
-  // Default constructor. Only used during serialization.
+  // Default constructor. Used during serialization and testing.
   StackFrame();
 
   // Constructor for normal stack frames added by RealLive code.
-  StackFrame(libreallive::Scenario const* s,
-             const libreallive::Scenario::const_iterator& i,
-             FrameType t);
+  StackFrame(libreallive::Scriptor::const_iterator it, FrameType t);
 
   // Constructor for frames that are just LongOperations.
-  StackFrame(libreallive::Scenario const* s,
-             const libreallive::Scenario::const_iterator& i,
-             LongOperation* op);
+  StackFrame(libreallive::Scriptor::const_iterator it, LongOperation* op);
 
   ~StackFrame();
 
@@ -101,5 +104,3 @@ struct StackFrame {
 };
 
 BOOST_CLASS_VERSION(StackFrame, 2)
-
-std::ostream& operator<<(std::ostream& os, const StackFrame& frame);

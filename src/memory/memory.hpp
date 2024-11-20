@@ -84,8 +84,8 @@ class Memory {
 
   int Read(IntMemoryLocation) const;
   int Read(IntBank bank, size_t index) const;
-  std::string const& Read(StrMemoryLocation) const;
-  std::string const& Read(StrBank bank, size_t index) const;
+  std::string Read(StrMemoryLocation) const;
+  std::string Read(StrBank bank, size_t index) const;
 
   void Resize(IntBank, std::size_t);
   void Resize(StrBank, std::size_t);

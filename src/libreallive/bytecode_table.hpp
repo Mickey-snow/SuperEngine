@@ -4,6 +4,7 @@
 //
 // -----------------------------------------------------------------------
 //
+// Copyright (c) 2024 Serina Sakurai
 // Copyright (c) 2006, 2007 Peter Jolly
 //
 // Permission is hereby granted, free of charge, to any person
@@ -28,32 +29,22 @@
 //
 // -----------------------------------------------------------------------
 
-#include "libreallive/elements/expression.hpp"
+#pragma once
+
+#include "bytecode_fwd.hpp"
+
+#include <map>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace libreallive {
 
-// -----------------------------------------------------------------------
-// ExpressionElement
-// -----------------------------------------------------------------------
-
-ExpressionElement::ExpressionElement(Expression expr)
-    : length_(0), parsed_expression_(expr) {}
-
-ExpressionElement::ExpressionElement(const int& len, Expression expr)
-    : length_(len), parsed_expression_(expr) {}
-
-ExpressionElement::~ExpressionElement() {}
-
-Expression ExpressionElement::ParsedExpression() const {
-  return parsed_expression_;
-}
-
-std::string ExpressionElement::GetSourceRepresentation(IModuleManager*) const {
-  return ParsedExpression()->GetDebugString();
-}
-
-size_t ExpressionElement::GetBytecodeLength() const { return length_; }
-
-Bytecode_ptr ExpressionElement::DownCast() const { return this; }
+struct BytecodeTable {
+  std::vector<unsigned long> kidoku_table;
+  std::map<unsigned long, pointer_t> offsets;
+  std::vector<std::pair<unsigned long, std::shared_ptr<BytecodeElement>>>
+      elements;
+};
 
 }  // namespace libreallive
