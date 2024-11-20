@@ -63,6 +63,8 @@ class CallStack {
   CallStack(CallStack&&) = default;
   CallStack& operator=(CallStack&&) = default;
 
+  virtual ~CallStack() = default;
+
   /**
    * @brief Creates a clone of the current `CallStack`.
    * @return A new `CallStack` object that is a copy of this one.
@@ -127,7 +129,7 @@ class CallStack {
    * @return A pointer to the topmost real `StackFrame`, or `nullptr` if none
    * exist.
    */
-  StackFrame* FindTopRealFrame() const;
+  virtual StackFrame* FindTopRealFrame() const;
 
  private:
   /**

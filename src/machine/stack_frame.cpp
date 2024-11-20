@@ -42,14 +42,23 @@
 // -----------------------------------------------------------------------
 // StackFrame
 // -----------------------------------------------------------------------
-StackFrame::StackFrame() : pos(), frame_type() {}
+StackFrame::StackFrame() : pos(), frame_type() {
+  intL.Resize(40);
+  strK.Resize(40);
+}
 
 StackFrame::StackFrame(libreallive::Scriptor::const_iterator it, FrameType t)
-    : pos(it), frame_type(t) {}
+    : pos(it), frame_type(t) {
+  intL.Resize(40);
+  strK.Resize(40);
+}
 
 StackFrame::StackFrame(libreallive::Scriptor::const_iterator it,
                        LongOperation* op)
-    : pos(it), long_op(op), frame_type(TYPE_LONGOP) {}
+    : pos(it), long_op(op), frame_type(TYPE_LONGOP) {
+  intL.Resize(40);
+  strK.Resize(40);
+}
 
 StackFrame::~StackFrame() {}
 

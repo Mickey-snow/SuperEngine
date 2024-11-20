@@ -35,6 +35,7 @@
 #include <string>
 
 #include "libreallive/scriptor.hpp"
+#include "memory/bank.hpp"
 #include "memory/memory.hpp"
 
 class LongOperation;
@@ -69,6 +70,10 @@ struct StackFrame {
   // this field does't hold a value.
   std::optional<Memory::Stack> previous_stack_snapshot;
 
+  // Stack memory, used for passing parameters.
+  MemoryBank<int> intL;
+  MemoryBank<std::string> strK;
+
   // The function that pushed the current frame onto the
   // stack. Used in error checking.
   enum FrameType {
@@ -78,7 +83,7 @@ struct StackFrame {
     TYPE_LONGOP    // Added by pushLongOperation()
   } frame_type;
 
-  // Default constructor. Only used during serialization.
+  // Default constructor. Used during serialization and testing.
   StackFrame();
 
   // Constructor for normal stack frames added by RealLive code.
