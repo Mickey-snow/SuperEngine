@@ -49,7 +49,7 @@ link_directories(${SDL1_LIBRARY_DIRS})
 # -------------------------------------------------------------------
 # Find Boost Libraries
 # -------------------------------------------------------------------
-set(BOOST_COMPONENTS program_options serialization iostreams filesystem)
+set(BOOST_COMPONENTS program_options serialization iostreams filesystem log)
 find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 
 if (Boost_FOUND)

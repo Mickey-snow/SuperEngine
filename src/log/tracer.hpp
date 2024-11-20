@@ -25,6 +25,7 @@
 #pragma once
 
 #include <iostream>
+#include <memory>
 #include <string>
 
 class RLOperation;
@@ -35,11 +36,18 @@ class ExpressionElement;
 class IntMemoryLocation;
 class StrMemoryLocation;
 
+struct Tracer_ctx;
 class Tracer {
  public:
+  Tracer();
+  ~Tracer();
+
   void Log(int scene,
            int line,
            RLOperation* op,
            const libreallive::CommandElement& f);
   void Log(int scene, int line, const libreallive::ExpressionElement& f);
+
+ private:
+  std::unique_ptr<Tracer_ctx> ctx_;
 };
