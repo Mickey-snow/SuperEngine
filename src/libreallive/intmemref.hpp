@@ -31,27 +31,27 @@
 
 namespace libreallive {
 
-[[maybe_unused]] const int INTA_LOCATION = 0;
-[[maybe_unused]] const int INTB_LOCATION = 1;
-[[maybe_unused]] const int INTC_LOCATION = 2;
-[[maybe_unused]] const int INTD_LOCATION = 3;
-[[maybe_unused]] const int INTE_LOCATION = 4;
-[[maybe_unused]] const int INTF_LOCATION = 5;
-[[maybe_unused]] const int INTG_LOCATION = 6;
+[[maybe_unused]] constexpr int INTA_LOCATION = 0;
+[[maybe_unused]] constexpr int INTB_LOCATION = 1;
+[[maybe_unused]] constexpr int INTC_LOCATION = 2;
+[[maybe_unused]] constexpr int INTD_LOCATION = 3;
+[[maybe_unused]] constexpr int INTE_LOCATION = 4;
+[[maybe_unused]] constexpr int INTF_LOCATION = 5;
+[[maybe_unused]] constexpr int INTG_LOCATION = 6;
 
-[[maybe_unused]] const int INTZ_LOCATION = 7;
-[[maybe_unused]] const int INTL_LOCATION = 8;
-
-// -----------------------------------------------------------------------
-
-[[maybe_unused]] const int INTZ_LOCATION_IN_BYTECODE = 25;
-[[maybe_unused]] const int INTL_LOCATION_IN_BYTECODE = 11;
+[[maybe_unused]] constexpr int INTZ_LOCATION = 7;
+[[maybe_unused]] constexpr int INTL_LOCATION = 8;
 
 // -----------------------------------------------------------------------
 
-const int STRK_LOCATION = 0x0A;
-const int STRM_LOCATION = 0x0C;
-const int STRS_LOCATION = 0x12;
+[[maybe_unused]] constexpr int INTZ_LOCATION_IN_BYTECODE = 25;
+[[maybe_unused]] constexpr int INTL_LOCATION_IN_BYTECODE = 11;
+
+// -----------------------------------------------------------------------
+
+constexpr int STRK_LOCATION = 0x0A;
+constexpr int STRM_LOCATION = 0x0C;
+constexpr int STRS_LOCATION = 0x12;
 
 // -----------------------------------------------------------------------
 

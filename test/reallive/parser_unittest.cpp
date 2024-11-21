@@ -268,6 +268,15 @@ TEST(ExpressionParserTest, Assignment) {
     EXPECT_EQ(src, parsable.c_str() + parsable.size());
     EXPECT_EQ(parsed->GetDebugString(), "intD[342 + intD[250]] -= intL[2]"s);
   }
+
+  {
+    std::string parsable = PrintableToParsableString(
+        "$ 37 [ $ ff 0a 00 00 00 ] 5c 1e $ ff 79 00 00 00");
+    const char* src = parsable.c_str();
+    Expression parsed = parser.GetAssignment(src);
+    EXPECT_EQ(src, parsable.c_str() + parsable.size());
+    EXPECT_EQ(parsed->GetDebugString(), "intD2b[10] = 121"s);
+  }
 }
 
 TEST(ExpressionParserTest, Data) {

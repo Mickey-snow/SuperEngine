@@ -9,6 +9,7 @@
 //
 // Copyright (c) 2006, 2007 Peter Jolly
 // Copyright (c) 2007 Elliot Glaysher
+// Copyright (c) 2024 Serina Sakurai
 //
 // Permission is hereby granted, free of charge, to any person
 // obtaining a copy of this software and associated documentation
@@ -34,17 +35,17 @@
 
 #include "libreallive/expression.hpp"
 
-#include <iomanip>
-#include <sstream>
-#include <string>
-
 #include "libreallive/alldefs.hpp"
 #include "libreallive/intmemref.hpp"
 #include "libreallive/parser.hpp"
 #include "machine/reference.hpp"
 #include "machine/rlmachine.hpp"
+#include "memory/location.hpp"
 
 #include <boost/algorithm/string.hpp>
+#include <format>
+#include <sstream>
+#include <string>
 
 namespace {
 
@@ -61,10 +62,91 @@ bool IsUnescapedQuotationMark(const char* src, const char* current) {
     return *current == '"' && *(current - 1) != '\\';
 }
 
+std::string GetBankName(int type) {
+  using namespace libreallive;
+  if (is_string_location(type)) {
+    StrMemoryLocation dummy(type, 0);
+    return ToString(dummy.Bank());
+  } else {
+    IntMemoryLocation dummy(IntMemRef(type, 0));
+    return ToString(dummy.Bank(), dummy.Bitwidth());
+  }
+}
+
 }  // namespace
 
 namespace libreallive {
 
+// -----------------------------------------------------------------------
+// enum class Op
+// -----------------------------------------------------------------------
+
+std::string ToString(Op op) {
+  switch (op) {
+    case Op::Add:
+      return "+";
+    case Op::Sub:
+      return "-";
+    case Op::Mul:
+      return "*";
+    case Op::Div:
+      return "/";
+    case Op::Mod:
+      return "%";
+    case Op::BitAnd:
+      return "&";
+    case Op::BitOr:
+      return "|";
+    case Op::BitXor:
+      return "^";
+    case Op::ShiftLeft:
+      return "<<";
+    case Op::ShiftRight:
+      return ">>";
+    case Op::AddAssign:
+      return "+=";
+    case Op::SubAssign:
+      return "-=";
+    case Op::MulAssign:
+      return "*=";
+    case Op::DivAssign:
+      return "/=";
+    case Op::ModAssign:
+      return "%=";
+    case Op::BitAndAssign:
+      return "&=";
+    case Op::BitOrAssign:
+      return "|=";
+    case Op::BitXorAssign:
+      return "^=";
+    case Op::ShiftLeftAssign:
+      return "<<=";
+    case Op::ShiftRightAssign:
+      return ">>=";
+    case Op::Assign:
+      return "=";
+    case Op::Equal:
+      return "==";
+    case Op::NotEqual:
+      return "!=";
+    case Op::LessEqual:
+      return "<=";
+    case Op::Less:
+      return "<";
+    case Op::GreaterEqual:
+      return ">=";
+    case Op::Greater:
+      return ">";
+    case Op::LogicalAnd:
+      return "&&";
+    case Op::LogicalOr:
+      return "||";
+    default:
+      return "???";
+  }
+}
+
+// -----------------------------------------------------------------------
 // Expression Tokenization
 //
 // Functions that tokenize expression data while parsing the bytecode
@@ -305,28 +387,6 @@ class StringConstantEx : public IExpression {
 // Memory Reference
 // ----------------------------------------------------------------------
 
-std::string GetMemoryDebugString(int type, const std::string& location) {
-  std::ostringstream ret;
-  if (type == STRS_LOCATION) {
-    ret << "strS[";
-  } else if (type == STRK_LOCATION) {
-    ret << "strK[";
-  } else if (type == STRM_LOCATION) {
-    ret << "strM[";
-  } else if (type == INTZ_LOCATION_IN_BYTECODE) {
-    ret << "intZ[";
-  } else if (type == INTL_LOCATION_IN_BYTECODE) {
-    ret << "intL[";
-  } else {
-    char bank = 'A' + (type % 26);
-    ret << "int" << bank << "[";
-  }
-
-  ret << location;
-  ret << "]";
-  return ret.str();
-}
-
 class MemoryReferenceEx : public IExpression {
  public:
   MemoryReferenceEx(int type, Expression location)
@@ -362,7 +422,8 @@ class MemoryReferenceEx : public IExpression {
   }
 
   std::string GetDebugString() const override {
-    return GetMemoryDebugString(type_, location_->GetDebugString());
+    return std::format("{}[{}]", GetBankName(type_),
+                       location_->GetDebugString());
   }
 
   IntReferenceIterator GetIntegerReferenceIterator(
@@ -457,7 +518,7 @@ class SimpleMemRefEx : public IExpression {
   }
 
   std::string GetDebugString() const override {
-    return GetMemoryDebugString(type_, std::to_string(location_));
+    return std::format("{}[{}]", GetBankName(type_), location_);
   }
 
  private:
@@ -477,114 +538,6 @@ Expression ExpressionFactory::MemoryReference(const int& type, Expression loc) {
 // ----------------------------------------------------------------------
 // Binary Expression
 // ----------------------------------------------------------------------
-std::string GetBinaryDebugString(char operation,
-                                 const std::string& lhs,
-                                 const std::string& rhs) {
-  std::ostringstream str;
-  str << lhs;
-  str << " ";
-  switch (operation) {
-    case 0:
-      str << "+";
-      break;
-    case 1:
-      str << "-";
-      break;
-    case 2:
-      str << "*";
-      break;
-    case 3:
-      str << "/";
-      break;
-    case 4:
-      str << "%";
-      break;
-    case 5:
-      str << "&";
-      break;
-    case 6:
-      str << "|";
-      break;
-    case 7:
-      str << "^";
-      break;
-    case 8:
-      str << "<<";
-      break;
-    case 9:
-      str << ">>";
-      break;
-    case 20:
-      str << "+=";
-      break;
-    case 21:
-      str << "-=";
-      break;
-    case 22:
-      str << "*=";
-      break;
-    case 23:
-      str << "/=";
-      break;
-    case 24:
-      str << "%=";
-      break;
-    case 25:
-      str << "&=";
-      break;
-    case 26:
-      str << "|=";
-      break;
-    case 27:
-      str << "^=";
-      break;
-    case 28:
-      str << "<<=";
-      break;
-    case 29:
-      str << ">>=";
-      break;
-    case 30:
-      str << "=";
-      break;
-    case 40:
-      str << "==";
-      break;
-    case 41:
-      str << "!=";
-      break;
-    case 42:
-      str << "<=";
-      break;
-    case 43:
-      str << "<";
-      break;
-    case 44:
-      str << ">=";
-      break;
-    case 45:
-      str << ">";
-      break;
-    case 60:
-      str << "&&";
-      break;
-    case 61:
-      str << "||";
-      break;
-    default: {
-      std::ostringstream ss;
-      ss << "Invalid operator " << static_cast<int>(operation)
-         << " in expression!";
-      throw Error(ss.str());
-    }
-  }
-
-  str << " ";
-  str << rhs;
-
-  return str.str();
-}
-
 int PerformBinaryOperationOn(char operation, int lhs, int rhs) {
   switch (operation) {
     case 0:
@@ -672,8 +625,9 @@ class BinaryExpressionEx : public IExpression {
   }
 
   std::string GetDebugString() const override {
-    return GetBinaryDebugString(operation_, left_->GetDebugString(),
-                                right_->GetDebugString());
+    return std::format("{} {} {}", left_->GetDebugString(),
+                       ToString(static_cast<Op>(operation_)),
+                       right_->GetDebugString());
   }
 
  private:
@@ -753,9 +707,7 @@ class SimpleAssignEx : public IExpression {
   }
 
   std::string GetDebugString() const override {
-    return GetBinaryDebugString(
-        30, GetMemoryDebugString(type_, std::to_string(location_)),
-        std::to_string(value_));
+    return std::format("{}[{}] = {}", GetBankName(type_), location_, value_);
   }
 
  private:

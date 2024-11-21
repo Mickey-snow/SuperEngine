@@ -9,6 +9,7 @@
 //
 // Copyright (c) 2006 Peter Jolly
 // Copyright (c) 2007 Elliot Glaysher
+// Copyright (c) 2024 Serina Sakurai
 //
 // Permission is hereby granted, free of charge, to any person
 // obtaining a copy of this software and associated documentation
@@ -141,6 +142,50 @@ class IExpression {
     throw Error("Request to GetOverloadTag() invalid!");
   }
 };
+
+enum Op : char {
+  // Arithmetic Operators
+  Add = 0,  // "+"
+  Sub = 1,  // "-"
+  Mul = 2,  // "*"
+  Div = 3,  // "/"
+  Mod = 4,  // "%"
+
+  // Bitwise Operators
+  BitAnd = 5,      // "&"
+  BitOr = 6,       // "|"
+  BitXor = 7,      // "^"
+  ShiftLeft = 8,   // "<<"
+  ShiftRight = 9,  // ">>"
+
+  // Compound Assignment Operators
+  AddAssign = 20,         // "+="
+  SubAssign = 21,         // "-="
+  MulAssign = 22,         // "*="
+  DivAssign = 23,         // "/="
+  ModAssign = 24,         // "%="
+  BitAndAssign = 25,      // "&="
+  BitOrAssign = 26,       // "|="
+  BitXorAssign = 27,      // "^="
+  ShiftLeftAssign = 28,   // "<<="
+  ShiftRightAssign = 29,  // ">>="
+
+  // Assignment Operator
+  Assign = 30,  // "="
+
+  // Comparison Operators
+  Equal = 40,         // "=="
+  NotEqual = 41,      // "!="
+  LessEqual = 42,     // "<="
+  Less = 43,          // "<"
+  GreaterEqual = 44,  // ">="
+  Greater = 45,       // ">"
+
+  // Logical Operators
+  LogicalAnd = 60,  // "&&"
+  LogicalOr = 61    // "||"
+};
+std::string ToString(Op op);
 
 class ExpressionFactory {
  public:
