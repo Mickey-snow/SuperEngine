@@ -42,7 +42,6 @@ namespace libreallive {
 
 struct BytecodeTable {
   std::vector<unsigned long> kidoku_table;
-  std::map<unsigned long, pointer_t> offsets;
   std::vector<std::pair<unsigned long, std::shared_ptr<BytecodeElement>>>
       elements;
 };

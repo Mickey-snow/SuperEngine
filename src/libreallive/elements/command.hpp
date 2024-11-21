@@ -39,32 +39,6 @@
 
 namespace libreallive {
 
-class Pointers {
- public:
-  Pointers();
-  ~Pointers();
-
-  typedef std::vector<pointer_t>::iterator iterator;
-  iterator begin() { return targets.begin(); }
-  iterator end() { return targets.end(); }
-
-  void reserve(size_t i) { target_ids.reserve(i); }
-  void push_id(unsigned long id) { target_ids.push_back(id); }
-  pointer_t& operator[](long idx) { return targets.at(idx); }
-  const pointer_t& operator[](long idx) const { return targets.at(idx); }
-  size_t size() const { return targets.size(); }
-  size_t idSize() const { return target_ids.size(); }
-
-  void SetPointers(BytecodeTable& cdata);
-
-  friend class GotoCaseElement;
-  friend class GotoOnElement;
-
- private:
-  std::vector<unsigned long> target_ids;
-  std::vector<pointer_t> targets;
-};
-
 struct CommandInfo {
   std::array<unsigned char, 8> cmd;
   std::vector<Expression> param;
@@ -93,7 +67,7 @@ class CommandElement : public BytecodeElement {
   std::string GetParam(int index) const;
 
   // Methods that deal with pointers.
-  virtual size_t GetPointersCount() const;
+  virtual size_t GetLocationCount() const;
   virtual unsigned long GetLocation(int i) const;
 
   // Fat interface stuff for GotoCase. Prevents casting, etc.
@@ -191,17 +165,15 @@ class GotoElement : public CommandElement {
   // Overridden from CommandElement:
   virtual size_t GetParamCount() const final;
   virtual std::string GetParam(int i) const final;
-  virtual size_t GetPointersCount() const final;
+  virtual size_t GetLocationCount() const final;
   virtual unsigned long GetLocation(int i) const final;
   virtual std::string GetSourceRepresentation(IModuleManager*) const override;
 
   // Overridden from BytecodeElement:
   virtual size_t GetBytecodeLength() const final;
-  virtual void SetPointers(BytecodeTable& cdata) final;
 
  private:
   unsigned long id_;
-  pointer_t pointer_;
 };
 
 class GotoIfElement : public CommandElement {
@@ -210,17 +182,15 @@ class GotoIfElement : public CommandElement {
   virtual ~GotoIfElement();
 
   // Overridden from CommandElement:
-  virtual size_t GetPointersCount() const final;
+  virtual size_t GetLocationCount() const final;
   virtual unsigned long GetLocation(int i) const final;
   virtual std::string GetSourceRepresentation(IModuleManager*) const override;
 
   // Overridden from BytecodeElement:
   virtual size_t GetBytecodeLength() const final;
-  virtual void SetPointers(BytecodeTable& cdata) final;
 
  private:
   unsigned long id_;
-  pointer_t pointer_;
   size_t length_;
 };
 
@@ -228,12 +198,10 @@ class GotoCaseElement : public CommandElement {
  public:
   GotoCaseElement(CommandInfo&& cmd,
                   const size_t& len,
-                  const Pointers& targets,
                   const std::vector<unsigned long> ids,
                   const std::vector<Expression>& parsed_cases)
       : CommandElement(std::move(cmd)),
         length_(len),
-        targets_(targets),
         id_(std::move(ids)),
         parsed_cases_(parsed_cases) {}
 
@@ -245,16 +213,14 @@ class GotoCaseElement : public CommandElement {
   virtual Expression GetCase(int i) const final;
   virtual std::string GetSourceRepresentation(IModuleManager*) const override;
 
-  size_t GetPointersCount() const final;
+  size_t GetLocationCount() const final;
   unsigned long GetLocation(int) const final;
-  void SetPointers(BytecodeTable& cdata) final;
 
   // Overridden from BytecodeElement:
   virtual size_t GetBytecodeLength() const final;
 
  private:
   size_t length_;
-  Pointers targets_;
   std::vector<unsigned long> id_;
   std::vector<Expression> parsed_cases_;
 };
@@ -262,7 +228,6 @@ class GotoCaseElement : public CommandElement {
 class GotoOnElement : public CommandElement {
  public:
   GotoOnElement(CommandInfo&& cmd,
-                const Pointers& targets,
                 std::vector<unsigned long> ids,
                 const size_t& len);
 
@@ -271,16 +236,15 @@ class GotoOnElement : public CommandElement {
   // Overridden from CommandElement:
   size_t GetParamCount() const final;
 
-  size_t GetPointersCount() const final;
+  size_t GetLocationCount() const final;
   unsigned long GetLocation(int) const final;
-  void SetPointers(BytecodeTable& cdata) final;
+
   virtual std::string GetSourceRepresentation(IModuleManager*) const override;
 
   // Overridden from BytecodeElement:
   size_t GetBytecodeLength() const final;
 
  private:
-  Pointers targets_;
   std::vector<unsigned long> id_;
   Expression param_;
   size_t length_;
@@ -295,17 +259,15 @@ class GosubWithElement : public CommandElement {
   virtual ~GosubWithElement();
 
   // Overridden from CommandElement:
-  virtual size_t GetPointersCount() const final;
+  virtual size_t GetLocationCount() const final;
   virtual unsigned long GetLocation(int i) const final;
   virtual std::string GetSourceRepresentation(IModuleManager*) const override;
 
   // Overridden from BytecodeElement:
   virtual size_t GetBytecodeLength() const final;
-  virtual void SetPointers(BytecodeTable& cdata) final;
 
  private:
   unsigned long id_;
-  pointer_t pointer_;
   size_t length_;
 };
 

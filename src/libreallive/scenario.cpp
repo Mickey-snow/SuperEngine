@@ -43,10 +43,6 @@ Scenario::Scenario(Header hdr, Script scr, int num)
 
 Scenario::~Scenario() = default;
 
-Scenario::const_iterator Scenario::FindEntrypoint(int entrypoint) const {
-  return script.GetEntrypoint(entrypoint);
-}
-
 std::unique_ptr<Scenario> ParseScenario(FilePos fp,
                                         int scenarioNum,
                                         const std::string& regname,

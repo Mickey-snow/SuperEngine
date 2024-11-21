@@ -37,6 +37,6 @@ void DumpScenario(IModuleManager* manager, libreallive::Scenario* scenario) {
     return;
   }
 
-  for (const auto& instruction : scenario->script.elts_)
-    instruction->PrintSourceRepresentation(manager, std::cout);
+  // for (const auto& instruction : scenario->script.elts_)
+  //   instruction->PrintSourceRepresentation(manager, std::cout);
 }

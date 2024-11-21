@@ -28,7 +28,6 @@
 
 #pragma once
 
-#include <forward_list>
 #include <memory>
 #include <variant>
 
@@ -37,13 +36,7 @@ namespace libreallive {
 // List definitions.
 class ExpressionPiece;
 class BytecodeElement;
-typedef std::forward_list<std::shared_ptr<BytecodeElement>> BytecodeList;
-typedef BytecodeList::iterator pointer_t;
 
-struct BytecodeTable;
-class Pointers;
-
-class DataElement;
 class MetaElement;
 class TextoutElement;
 class ExpressionElement;

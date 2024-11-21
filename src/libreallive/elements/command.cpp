@@ -40,24 +40,6 @@
 namespace libreallive {
 
 // -----------------------------------------------------------------------
-// Pointers
-// -----------------------------------------------------------------------
-
-Pointers::Pointers() {}
-
-Pointers::~Pointers() {}
-
-void Pointers::SetPointers(BytecodeTable& cdata) {
-  assert(target_ids.size() != 0);
-  targets.reserve(target_ids.size());
-  for (unsigned int i = 0; i < target_ids.size(); ++i) {
-    auto it = cdata.offsets.find(target_ids[i]);
-    targets.push_back(it->second);
-  }
-  target_ids.clear();
-}
-
-// -----------------------------------------------------------------------
 // CommandElement
 // -----------------------------------------------------------------------
 
@@ -97,7 +79,7 @@ std::string CommandElement::GetParam(int index) const {
     return {};
 }
 
-size_t CommandElement::GetPointersCount() const { return 0; }
+size_t CommandElement::GetLocationCount() const { return 0; }
 
 unsigned long CommandElement::GetLocation(int i) const { return -1; }
 
@@ -283,7 +265,7 @@ size_t GotoElement::GetParamCount() const {
 
 string GotoElement::GetParam(int i) const { return std::string(); }
 
-size_t GotoElement::GetPointersCount() const { return 1; }
+size_t GotoElement::GetLocationCount() const { return 1; }
 
 unsigned long GotoElement::GetLocation(int i) const {
   if (i != 0)
@@ -300,11 +282,6 @@ std::string GotoElement::GetSourceRepresentation(
 
 size_t GotoElement::GetBytecodeLength() const { return 12; }
 
-void GotoElement::SetPointers(BytecodeTable& cdata) {
-  const auto it = cdata.offsets.find(id_);
-  pointer_ = it->second;
-}
-
 // -----------------------------------------------------------------------
 // GotoIfElement
 // -----------------------------------------------------------------------
@@ -315,7 +292,7 @@ GotoIfElement::GotoIfElement(CommandInfo&& cmd,
 
 GotoIfElement::~GotoIfElement() {}
 
-size_t GotoIfElement::GetPointersCount() const { return 1; }
+size_t GotoIfElement::GetLocationCount() const { return 1; }
 
 unsigned long GotoIfElement::GetLocation(int i) const {
   if (i != 0)
@@ -332,11 +309,6 @@ std::string GotoIfElement::GetSourceRepresentation(
 
 size_t GotoIfElement::GetBytecodeLength() const { return length_; }
 
-void GotoIfElement::SetPointers(BytecodeTable& cdata) {
-  auto it = cdata.offsets.find(id_);
-  pointer_ = it->second;
-}
-
 // -----------------------------------------------------------------------
 // GotoCaseElement
 // -----------------------------------------------------------------------
@@ -352,24 +324,20 @@ size_t GotoCaseElement::GetCaseCount() const { return parsed_cases_.size(); }
 
 Expression GotoCaseElement::GetCase(int i) const { return parsed_cases_[i]; }
 
-size_t GotoCaseElement::GetPointersCount() const { return targets_.size(); }
+size_t GotoCaseElement::GetLocationCount() const { return id_.size(); }
 
 std::string GotoCaseElement::GetSourceRepresentation(
     IModuleManager* manager) const {
   std::string repr = CommandElement::GetSourceRepresentation(manager);
-  for (int i = 0; i < targets_.idSize(); ++i) {
+  for (size_t i = 0; i < GetLocationCount(); ++i) {
     std::string param =
         parsed_cases_[i] ? parsed_cases_[i]->GetDebugString() : "";
-    repr += " [" + param + "]@" + std::to_string(targets_.target_ids[i]);
+    repr += " [" + param + "]@" + std::to_string(GetLocation(i));
   }
   return repr;
 }
 
 unsigned long GotoCaseElement::GetLocation(int i) const { return id_[i]; }
-
-void GotoCaseElement::SetPointers(BytecodeTable& cdata) {
-  targets_.SetPointers(cdata);
-}
 
 size_t GotoCaseElement::GetBytecodeLength() const { return length_; }
 
@@ -377,31 +345,23 @@ size_t GotoCaseElement::GetBytecodeLength() const { return length_; }
 // GotoOnElement
 // -----------------------------------------------------------------------
 GotoOnElement::GotoOnElement(CommandInfo&& cmd,
-                             const Pointers& targets,
                              std::vector<unsigned long> ids,
                              const size_t& len)
-    : CommandElement(std::move(cmd)),
-      targets_(targets),
-      id_(std::move(ids)),
-      length_(len) {}
+    : CommandElement(std::move(cmd)), id_(std::move(ids)), length_(len) {}
 
 size_t GotoOnElement::GetParamCount() const { return 1; }
 
-size_t GotoOnElement::GetPointersCount() const { return targets_.size(); }
+size_t GotoOnElement::GetLocationCount() const { return id_.size(); }
 
 unsigned long GotoOnElement::GetLocation(int i) const { return id_[i]; }
-
-void GotoOnElement::SetPointers(BytecodeTable& cdata) {
-  targets_.SetPointers(cdata);
-}
 
 std::string GotoOnElement::GetSourceRepresentation(
     IModuleManager* manager) const {
   std::string repr = CommandElement::GetSourceRepresentation(manager);
 
   repr += '{';
-  for (size_t i = 0; i < targets_.idSize(); ++i) {
-    repr += " @" + std::to_string(targets_.target_ids[i]);
+  for (size_t i = 0; i < GetLocationCount(); ++i) {
+    repr += " @" + std::to_string(GetLocation(i));
   }
   repr += '}';
 
@@ -416,11 +376,11 @@ size_t GotoOnElement::GetBytecodeLength() const { return length_; }
 GosubWithElement::GosubWithElement(CommandInfo&& cmd,
                                    const unsigned long& id,
                                    const size_t& len)
-    : CommandElement(std::move(cmd)), id_(id), pointer_{}, length_(len) {}
+    : CommandElement(std::move(cmd)), id_(id), length_(len) {}
 
 GosubWithElement::~GosubWithElement() {}
 
-size_t GosubWithElement::GetPointersCount() const { return 1; }
+size_t GosubWithElement::GetLocationCount() const { return 1; }
 
 unsigned long GosubWithElement::GetLocation(int i) const {
   if (i != 0)
@@ -436,10 +396,5 @@ std::string GosubWithElement::GetSourceRepresentation(
 }
 
 size_t GosubWithElement::GetBytecodeLength() const { return length_; }
-
-void GosubWithElement::SetPointers(BytecodeTable& cdata) {
-  const auto it = cdata.offsets.find(id_);
-  pointer_ = it->second;
-}
 
 }  // namespace libreallive

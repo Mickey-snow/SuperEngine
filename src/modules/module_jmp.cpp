@@ -190,7 +190,7 @@ struct goto_on : public ParseGotoParametersAsExpressions {
         goto_element.GetParsedParameters();
     int value = conditions[0]->GetIntegerValue(machine);
 
-    if (value >= 0 && value < int(goto_element.GetPointersCount())) {
+    if (value >= 0 && value < int(goto_element.GetLocationCount())) {
       machine.GotoLocation(goto_element.GetLocation(value));
     } else {
       // If the value is not a valid pointer, simply increment.
@@ -268,7 +268,7 @@ struct gosub_on : public ParseGotoParametersAsExpressions {
         goto_element.GetParsedParameters();
     int value = conditions[0]->GetIntegerValue(machine);
 
-    if (value >= 0 && value < int(goto_element.GetPointersCount()))
+    if (value >= 0 && value < int(goto_element.GetLocationCount()))
       machine.Gosub(goto_element.GetLocation(value));
     else
       // If the value is not a valid pointer, simply increment.

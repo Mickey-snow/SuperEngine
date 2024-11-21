@@ -472,19 +472,17 @@ std::shared_ptr<GotoOnElement> CommandParser::ParseGotoOn(const char* stream) {
   // Pointers
   if (*stream++ != '{')
     throw Error("GotoOnElement(): expected `{'");
-  Pointers targets;
   std::vector<unsigned long> ids;
 
   while (*stream != '}') {
     ids.push_back(read_i32(stream));
-    targets.push_id(ids.back());
     stream += 4;
   }
   if (*stream++ != '}')
     throw Error("GotoOnElement(): expected `}'");
 
-  return std::make_shared<GotoOnElement>(std::move(cmd), targets,
-                                         std::move(ids), stream - begin);
+  return std::make_shared<GotoOnElement>(std::move(cmd), std::move(ids),
+                                         stream - begin);
 }
 
 std::shared_ptr<GotoCaseElement> CommandParser::ParseGotoCase(
@@ -497,7 +495,6 @@ std::shared_ptr<GotoCaseElement> CommandParser::ParseGotoCase(
   // Cases
   std::vector<Expression> parsed_cases;
   std::vector<unsigned long> ids;
-  Pointers targets;
   if (*stream++ != '{')
     throw Error("GotoCaseElement(): expected `{'");
   while (*stream != '}') {
@@ -514,14 +511,13 @@ std::shared_ptr<GotoCaseElement> CommandParser::ParseGotoCase(
         throw Error("GotoCaseElement(): expected `)'");
     }
     ids.push_back(read_i32(stream));
-    targets.push_id(ids.back());
 
     stream += 4;
   }
   if (*stream++ != '}')
     throw Error("GotoCaseElement(): expected `}'");
-  return std::make_shared<GotoCaseElement>(
-      std::move(cmd), stream - begin, targets, std::move(ids), parsed_cases);
+  return std::make_shared<GotoCaseElement>(std::move(cmd), stream - begin,
+                                           std::move(ids), parsed_cases);
 }
 
 std::shared_ptr<GosubWithElement> CommandParser::ParseGosubWith(

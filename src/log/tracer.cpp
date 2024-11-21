@@ -38,7 +38,7 @@
 #include <boost/log/utility/setup/console.hpp>
 #include <boost/log/utility/setup/file.hpp>
 
-struct Tracer_ctx {
+struct Tracer::Tracer_ctx {
   boost::log::sources::logger logger_;
 };
 

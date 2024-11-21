@@ -50,8 +50,6 @@ std::string BytecodeElement::GetSourceRepresentation(IModuleManager*) const {
   return "<unspecified bytecode>";
 }
 
-void BytecodeElement::SetPointers(BytecodeTable& cdata) {}
-
 int BytecodeElement::GetEntrypoint() const { return kInvalidEntrypoint; }
 
 string BytecodeElement::GetSerializedCommand(RLMachine& machine) const {

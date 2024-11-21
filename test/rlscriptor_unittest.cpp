@@ -44,7 +44,6 @@ class MockBytecodeElement : public BytecodeElement {
               (IModuleManager*),
               (const, override));
   MOCK_METHOD(size_t, GetBytecodeLength, (), (const, override));
-  MOCK_METHOD(void, SetPointers, (BytecodeTable&), (override));
   MOCK_METHOD(std::string,
               GetSerializedCommand,
               (RLMachine&),
@@ -77,7 +76,7 @@ class ScriptorTest : public ::testing::Test {
         elements;
     (elements.emplace_back(locs, std::make_shared<MockBytecodeElement>(locs)),
      ...);
-    return Script({}, {}, std::move(elements), std::map<int, unsigned long>{});
+    return Script(std::move(elements), std::map<int, unsigned long>{});
   }
 
   std::vector<int> Traverse(Scriptor::const_iterator it) {

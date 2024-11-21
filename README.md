@@ -1,4 +1,4 @@
-1rlvm: A RealLive interpreter.
+rlvm: A RealLive interpreter.
 ===============================================
 
 ## INTRODUCTION

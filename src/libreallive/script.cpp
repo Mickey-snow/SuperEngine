@@ -47,25 +47,12 @@
 namespace libreallive {
 
 Script::Script(
-    BytecodeList elts,
-    std::map<int, pointer_t> __entrypoints,
     std::vector<std::pair<unsigned long, std::shared_ptr<BytecodeElement>>>
         elements,
     std::map<int, unsigned long> entrypoints)
-    : elts_(std::move(elts)),
-      entrypoint_associations_(std::move(__entrypoints)),
-      elements_(std::move(elements)),
-      entrypoints_(std::move(entrypoints)) {}
+    : elements_(std::move(elements)), entrypoints_(std::move(entrypoints)) {}
 
 Script::~Script() {}
-
-const pointer_t Script::GetEntrypoint(int entrypoint) const {
-  const auto it = entrypoint_associations_.find(entrypoint);
-  if (it == entrypoint_associations_.cend())
-    throw std::invalid_argument("Script::GetEntrypoint: Unknown entrypoint " +
-                                std::to_string(entrypoint) + '.');
-  return it->second;
-}
 
 Script ParseScript(const Header& hdr,
                    const std::string_view& data_view,
@@ -73,9 +60,6 @@ Script ParseScript(const Header& hdr,
                    bool use_xor_2,
                    const XorKey* second_level_xor_key) {
   const char* const data = data_view.data();
-
-  BytecodeList elts_;
-  std::map<int, pointer_t> entrypoint_associations_;
 
   // Kidoku/entrypoint table
   const int kidoku_offs = read_i32(data + 0x08);
@@ -120,7 +104,6 @@ Script ParseScript(const Header& hdr,
   const size_t dlen = decompressed.size();
   const char* end = stream + dlen;
   size_t pos = 0;
-  pointer_t it = elts_.before_begin();
 
   std::vector<std::pair<unsigned long, std::shared_ptr<BytecodeElement>>>
       elements;
@@ -128,18 +111,13 @@ Script ParseScript(const Header& hdr,
 
   Parser parser(ctable);
   while (pos < dlen) {
-    // Read element
-    auto elm = parser.ParseBytecode(stream, end);
-
-    it = elts_.emplace_after(it, elm);
-    ctable->offsets[pos] = it;
-
+    // Parse bytecode element
+    const auto elm = parser.ParseBytecode(stream, end);
     elements.emplace_back(pos, elm);
 
     // Keep track of the entrypoints
     int entrypoint = elm->GetEntrypoint();
     if (entrypoint != BytecodeElement::kInvalidEntrypoint) {
-      entrypoint_associations_.emplace(entrypoint, it);
       entrypoints.emplace(entrypoint, pos);
     }
 
@@ -151,13 +129,7 @@ Script ParseScript(const Header& hdr,
     pos += l;
   }
 
-  // Resolve pointers
-  for (auto& element : elts_) {
-    element->SetPointers(*ctable);
-  }
-
-  return Script(std::move(elts_), std::move(entrypoint_associations_),
-                std::move(elements), std::move(entrypoints));
+  return Script(std::move(elements), std::move(entrypoints));
 }
 
 }  // namespace libreallive

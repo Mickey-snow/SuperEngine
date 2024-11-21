@@ -57,15 +57,6 @@ class Scenario {
   int savepoint_selcom() const { return header.savepoint_selcom_; }
   int savepoint_seentop() const { return header.savepoint_seentop_; }
 
-  auto cbegin() const { return script.elts_.cbegin(); }
-  auto cend() const { return script.elts_.cend(); }
-
-  // Access to script
-  typedef BytecodeList::const_iterator const_iterator;
-  typedef BytecodeList::iterator iterator;
-  // Locate the entrypoint
-  const_iterator FindEntrypoint(int entrypoint) const;
-
   Header header;
   Script script;
   int scenario_number_;

@@ -61,10 +61,6 @@ class BytecodeElement {
   // Returns the length of this element in bytes in the source file.
   virtual size_t GetBytecodeLength() const = 0;
 
-  // Used to connect pointers in the bytecode after we've created all
-  // BytecodeElements in a Scenario.
-  virtual void SetPointers(BytecodeTable& cdata);
-
   // Needed for MetaElement during reading the script
   virtual int GetEntrypoint() const;
 

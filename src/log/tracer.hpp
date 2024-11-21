@@ -36,7 +36,6 @@ class ExpressionElement;
 class IntMemoryLocation;
 class StrMemoryLocation;
 
-struct Tracer_ctx;
 class Tracer {
  public:
   Tracer();
@@ -49,5 +48,6 @@ class Tracer {
   void Log(int scene, int line, const libreallive::ExpressionElement& f);
 
  private:
+  struct Tracer_ctx;
   std::unique_ptr<Tracer_ctx> ctx_;
 };
