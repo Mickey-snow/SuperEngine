@@ -757,6 +757,26 @@ class ComplexEx : public IExpression {
     return expression_;
   }
 
+  virtual std::string GetStringValue(RLMachine& machine) const override {
+    if (expression_.size() == 1) {
+      try {
+        return expression_.front()->GetStringValue(machine);
+      } catch (...) {
+      }
+    }
+    throw Error("ComplexEX::GetStringValue() invalid on this object");
+  }
+
+  virtual int GetIntegerValue(RLMachine& machine) const override {
+    if (expression_.size() == 1) {
+      try {
+        return expression_.front()->GetIntegerValue(machine);
+      } catch (...) {
+      }
+    }
+    throw Error("ComplexEX::GetIntegerValue() invalid on this object");
+  }
+
  private:
   std::vector<Expression> expression_;
 };
