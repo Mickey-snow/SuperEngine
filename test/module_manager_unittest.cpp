@@ -90,6 +90,7 @@ class FooModule : public RLModule {
 class ModuleManagerTest : public ::testing::Test {
  protected:
   void SetUp() override {
+    manager.DetachAll();
     manager.AttachModule(nullptr);
     auto foo = std::make_unique<FooModule>();
     foo_ptr = foo.get();
@@ -108,6 +109,8 @@ class ModuleManagerTest : public ::testing::Test {
     boo3_cmd = std::make_shared<MockCommandElement>(modtype, modid, 1, 1);
   }
 
+  void TearDown() override { manager.DetachAll(); }
+
   ModuleManager manager;
   RLModule *foo_ptr, *boo_ptr;
   std::shared_ptr<MockCommandElement> foo1_cmd;
@@ -121,11 +124,11 @@ class ModuleManagerTest : public ::testing::Test {
 TEST_F(ModuleManagerTest, ResolveOperation) {
   RLOperation* op = manager.Dispatch(*foo1_cmd);
   ASSERT_NE(op, nullptr);
-  EXPECT_EQ(op->name(), "Foo1");
+  EXPECT_EQ(op->Name(), "Foo1");
 
   op = manager.Dispatch(*boo2_cmd);
   ASSERT_NE(op, nullptr);
-  EXPECT_EQ(op->name(), "Boo2");
+  EXPECT_EQ(op->Name(), "Boo2");
 }
 
 TEST_F(ModuleManagerTest, GetCommandName) {

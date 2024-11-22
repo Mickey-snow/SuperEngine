@@ -313,7 +313,7 @@ struct LoadingGameFromSlot : public LoadGameLongOperation {
 
 // -----------------------------------------------------------------------
 
-bool Sys_load::AdvanceInstructionPointer() { return false; }
+bool Sys_load::ShouldAdvanceIP() { return false; }
 
 void Sys_load::operator()(RLMachine& machine, int slot) {
   // LoadGameLongOperation will add self to |machine|'s stack.

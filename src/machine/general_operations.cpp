@@ -151,25 +151,25 @@ UndefinedFunction::UndefinedFunction(int modtype,
 void UndefinedFunction::Dispatch(
     RLMachine& machine,
     const libreallive::ExpressionPiecesVector& parameters) {
-  throw rlvm::UnimplementedOpcode(name(), modtype_, module_, opcode_,
+  throw rlvm::UnimplementedOpcode(Name(), modtype_, module_, opcode_,
                                   overload_);
 }
 
 void UndefinedFunction::DispatchFunction(RLMachine& machine,
                                          const libreallive::CommandElement& f) {
-  throw rlvm::UnimplementedOpcode(machine, name(), f);
+  throw rlvm::UnimplementedOpcode(machine, Name(), f);
 }
 
 void UndefinedFunction::ParseParameters(
     const std::vector<std::string>& input,
     libreallive::ExpressionPiecesVector& output) {
-  throw rlvm::UnimplementedOpcode(name(), modtype_, module_, opcode_,
+  throw rlvm::UnimplementedOpcode(Name(), modtype_, module_, opcode_,
                                   overload_);
 }
 
 void UndefinedFunction::operator()(RLMachine& machine,
                                    const libreallive::CommandElement& f) {
-  throw rlvm::UnimplementedOpcode(machine, name(), f);
+  throw rlvm::UnimplementedOpcode(machine, Name(), f);
 }
 
 // Template instantiations.

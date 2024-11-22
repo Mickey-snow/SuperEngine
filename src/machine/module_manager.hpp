@@ -26,7 +26,7 @@
 
 #include <memory>
 #include <string>
-#include <unordered_map>
+#include <map>
 
 namespace libreallive {
 class CommandElement;
@@ -50,6 +50,8 @@ class ModuleManager : public IModuleManager {
 
   void AttachModule(std::unique_ptr<RLModule> mod) override;
 
+  void DetachAll();
+
   RLModule* GetModule(int module_type, int module_id) const;
 
   // Directly resolve to get a command-like `RLOperation`, skipping the middle
@@ -60,7 +62,8 @@ class ModuleManager : public IModuleManager {
       const libreallive::CommandElement& f) const override;
 
  private:
-  static int GetModuleHash(int module_type, int module_id) noexcept;
-
-  std::unordered_map<int, std::unique_ptr<RLModule>> modules_;
+  struct Ctx {
+    std::map<std::pair<int, int>, std::unique_ptr<RLModule>> modules_;
+  };
+  static Ctx& Get();
 };

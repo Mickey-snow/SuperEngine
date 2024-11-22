@@ -303,7 +303,7 @@ struct ret : public RLOpcode<> {
 //
 // Jumps the instruction pointer to the begining of the |scenario|.
 struct jump_0 : public RLOpcode<IntConstant_T> {
-  virtual bool AdvanceInstructionPointer() override { return false; }
+  virtual bool ShouldAdvanceIP() override { return false; }
 
   void operator()(RLMachine& machine, int scenario) override {
     machine.Jump(scenario, 0);
@@ -314,7 +314,7 @@ struct jump_0 : public RLOpcode<IntConstant_T> {
 //
 // Jumps the instruction pointer to |entrypoint| of |scenario|.
 struct jump_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
-  virtual bool AdvanceInstructionPointer() override { return false; }
+  virtual bool ShouldAdvanceIP() override { return false; }
 
   void operator()(RLMachine& machine, int scenario, int entrypoint) override {
     machine.Jump(scenario, entrypoint);
@@ -325,7 +325,7 @@ struct jump_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
 //
 // Farcalls the instruction pointer to the begining of the |scenario|.
 struct farcall_0 : public RLOpcode<IntConstant_T> {
-  virtual bool AdvanceInstructionPointer() override { return false; }
+  virtual bool ShouldAdvanceIP() override { return false; }
 
   void operator()(RLMachine& machine, int scenario) override {
     machine.Farcall(scenario, 0);
@@ -336,7 +336,7 @@ struct farcall_0 : public RLOpcode<IntConstant_T> {
 //
 // Farcalls the instruction pointer to |entrypoint| of |scenario|.
 struct farcall_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
-  virtual bool AdvanceInstructionPointer() override { return false; }
+  virtual bool ShouldAdvanceIP() override { return false; }
 
   void operator()(RLMachine& machine, int scenario, int entrypoint) override {
     machine.Farcall(scenario, entrypoint);
@@ -414,7 +414,7 @@ struct farcall_with
           IntConstant_T,
           Argc_T<
               Special_T<DefaultSpecialMapper, IntConstant_T, StrConstant_T>>> {
-  virtual bool AdvanceInstructionPointer() override { return false; }
+  virtual bool ShouldAdvanceIP() override { return false; }
 
   void operator()(RLMachine& machine,
                   int scenario,

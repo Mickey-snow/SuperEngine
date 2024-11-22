@@ -62,7 +62,7 @@ void RLModule::AddOpcode(int opcode,
                          const std::string& name,
                          RLOperation* op) {
   int packed_opcode = PackOpcodeNumber(opcode, overload);
-  op->set_name(name);
+  op->SetName(name);
   op->module_ = this;
 
   OpcodeMap::iterator it = stored_operations_.find(packed_opcode);
@@ -121,7 +121,7 @@ std::string RLModule::GetCommandName(const libreallive::CommandElement& f) {
       stored_operations_.find(PackOpcodeNumber(f.opcode(), f.overload()));
   std::string name;
   if (it != stored_operations_.end())
-    name = it->second->name();
+    name = it->second->Name();
   return name;
 }
 

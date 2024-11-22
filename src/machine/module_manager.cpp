@@ -32,7 +32,7 @@
 #include <stdexcept>
 #include <utility>
 
-ModuleManager::ModuleManager() : modules_() {}
+ModuleManager::ModuleManager() = default;
 
 ModuleManager::~ModuleManager() = default;
 
@@ -40,16 +40,21 @@ void ModuleManager::AttachModule(std::unique_ptr<RLModule> mod) {
   if (!mod)
     return;
 
-  const auto hash = GetModuleHash(mod->module_type(), mod->module_number());
-  auto result = modules_.try_emplace(hash, std::move(mod));
+  const auto hash = std::make_pair(mod->module_type(), mod->module_number());
+  auto result = Get().modules_.try_emplace(hash, std::move(mod));
   if (!result.second) {
-    throw std::invalid_argument("Module hash clash: " + std::to_string(hash));
+    throw std::invalid_argument(
+        "Module hash clash: " + std::to_string(std::get<0>(hash)) + ',' +
+        std::to_string(std::get<1>(hash)));
   }
 }
 
+void ModuleManager::DetachAll() { Get() = Ctx(); }
+
 RLModule* ModuleManager::GetModule(int module_type, int module_id) const {
-  auto it = modules_.find(GetModuleHash(module_type, module_id));
-  if (it != modules_.cend())
+  const auto& ctx = Get();
+  auto it = ctx.modules_.find(std::make_pair(module_type, module_id));
+  if (it != ctx.modules_.cend())
     return it->second.get();
   return nullptr;
 }
@@ -68,9 +73,12 @@ std::string ModuleManager::GetCommandName(
   auto op = Dispatch(f);
   if (op == nullptr)
     return {};
-  return op->name();
+  return op->Name();
 }
 
-int ModuleManager::GetModuleHash(int module_type, int module_id) noexcept {
-  return (module_type << 8) | module_id;
+// -----------------------------------------------------------------------
+
+ModuleManager::Ctx& ModuleManager::Get() {
+  static Ctx ctx_;
+  return ctx_;
 }

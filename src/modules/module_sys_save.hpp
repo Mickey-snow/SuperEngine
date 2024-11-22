@@ -47,10 +47,10 @@ void AddSysSaveOpcodes(RLModule& module);
 // we're going to nuke the call stack and system memory in
 // LoadingGame.
 struct Sys_load : public RLOpcode<IntConstant_T> {
-  virtual bool AdvanceInstructionPointer() override;
+  virtual bool ShouldAdvanceIP() override;
 
   // Main entrypoint into the load command. Simply sets the callstack
   // up so that we will fade to black, clear the screen and render,
   // and then enter the next stage, the LongOperation LoadingGame.
-  virtual void operator()(RLMachine& machine, int slot);
+  virtual void operator()(RLMachine& machine, int slot) override;
 };

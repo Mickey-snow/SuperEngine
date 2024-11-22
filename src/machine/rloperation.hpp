@@ -97,8 +97,8 @@ class RLOperation {
   RLOperation();
   virtual ~RLOperation();
 
-  void set_name(const std::string& name) { name_ = name; }
-  const std::string& name() const { return name_; }
+  void SetName(const std::string& name) { name_ = name; }
+  const std::string& Name() const { return name_; }
 
   RLOperation* SetProperty(int property, int value);
   bool GetProperty(int property, int& value) const;
@@ -109,7 +109,7 @@ class RLOperation {
   // instruction pointer and we don't want to mess with it afterwards.
   // The default implmentation returns true; 99% of instructions want
   // the instruction pointer to be advanced automatically.
-  virtual bool AdvanceInstructionPointer();
+  virtual bool ShouldAdvanceIP();
 
   // The Dispatch function is implemented on a per type basis and is called by
   // the Module, after checking to make sure that the

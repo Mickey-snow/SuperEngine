@@ -230,7 +230,7 @@ void RLMachine::ExecuteNextInstruction() {
       // We specialcase rlvm::Exception because we might have the name of the
       // opcode.
       if (e.operation()) {
-        cout << "[" << e.operation()->name() << "]";
+        cout << "[" << e.operation()->Name() << "]";
       }
 
       cout << ":  " << e.what() << endl;

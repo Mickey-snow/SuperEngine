@@ -85,7 +85,7 @@ RLOperation::PropertyList::iterator RLOperation::FindProperty(
                  [&](Property& p) { return p.first == property; });
 }
 
-bool RLOperation::AdvanceInstructionPointer() { return true; }
+bool RLOperation::ShouldAdvanceIP() { return true; }
 
 void RLOperation::DispatchFunction(RLMachine& machine,
                                    const libreallive::CommandElement& ff) {
@@ -98,7 +98,7 @@ void RLOperation::DispatchFunction(RLMachine& machine,
   // By default, we advacne the instruction pointer on any instruction we
   // perform. Weird special cases all derive from RLOp_SpecialCase, which
   // redefines the Dispatcher, so this is ok.
-  if (AdvanceInstructionPointer())
+  if (ShouldAdvanceIP())
     machine.AdvanceInstructionPointer();
 }
 

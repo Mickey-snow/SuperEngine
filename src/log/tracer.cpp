@@ -76,7 +76,7 @@ void Tracer::Log(int scene,
   if (op == nullptr)
     message << "???";
   else
-    message << op->name();
+    message << op->Name();
 
   auto PrintParameterString =
       [](std::ostream& oss,

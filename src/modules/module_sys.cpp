@@ -248,7 +248,7 @@ struct cos_1 : public RLStoreOpcode<IntConstant_T, IntConstant_T> {
 // This method also resets a LOT of the game state, though this isn't mentioned
 // in the rldev manual.
 struct ReturnMenu : public RLOpcode<> {
-  virtual bool AdvanceInstructionPointer() override { return false; }
+  virtual bool ShouldAdvanceIP() override { return false; }
 
   void operator()(RLMachine& machine) override {
     int scenario = machine.system().gameexe()("SEEN_MENU").ToInt();
@@ -258,7 +258,7 @@ struct ReturnMenu : public RLOpcode<> {
 };
 
 struct ReturnPrevSelect : public RLOpcode<> {
-  virtual bool AdvanceInstructionPointer() override { return false; }
+  virtual bool ShouldAdvanceIP() override { return false; }
 
   void operator()(RLMachine& machine) override {
     machine.system().RestoreSelectionSnapshot(machine);
@@ -351,7 +351,7 @@ struct ChangeSoundSettings : public RLOpcode<IntConstant_T> {
 
 }  // namespace
 
-bool Sys_MenuReturn::AdvanceInstructionPointer() { return false; }
+bool Sys_MenuReturn::ShouldAdvanceIP() { return false; }
 
 // Implementation isn't in anonymous namespace since it is used elsewhere.
 void Sys_MenuReturn::operator()(RLMachine& machine) {
