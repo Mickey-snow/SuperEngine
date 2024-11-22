@@ -31,11 +31,11 @@
 #include "libreallive/elements/command.hpp"
 
 #include "libreallive/parser.hpp"
-#include "machine/module_manager.hpp"
 #include "machine/rlmachine.hpp"
 
 #include <iomanip>
 #include <vector>
+#include <format>
 
 namespace libreallive {
 
@@ -89,31 +89,7 @@ Expression CommandElement::GetCase(int i) const {
   throw Error("Call to CommandElement::GetCase is invalid");
 }
 
-std::string CommandElement::GetSourceRepresentation(
-    IModuleManager* manager) const {
-  std::string repr;
-  if (manager)
-    repr = manager->GetCommandName(*this);
-  if (repr.empty()) {
-    std::ostringstream op;
-    op << "op<" << modtype() << ":" << std::setw(3) << std::setfill('0')
-       << module() << ":" << std::setw(5) << std::setfill('0') << opcode()
-       << ", " << overload() << ">";
-    repr += op.str();
-  }
-
-  repr += '(';
-  bool first = true;
-  for (const auto& param : parsed_parameters_) {
-    if (first)
-      first = false;
-    else
-      repr += ", ";
-    repr += param->GetDebugString();
-  }
-  repr += ')';
-  return repr;
-}
+std::string CommandElement::GetTagsRepresentation() const { return {}; }
 
 Bytecode_ptr CommandElement::DownCast() const { return this; }
 
@@ -273,11 +249,8 @@ unsigned long GotoElement::GetLocation(int i) const {
   return id_;
 }
 
-std::string GotoElement::GetSourceRepresentation(
-    IModuleManager* manager) const {
-  std::string repr = CommandElement::GetSourceRepresentation(manager);
-  repr += " @" + std::to_string(id_);
-  return repr;
+std::string GotoElement::GetTagsRepresentation() const {
+  return '@' + std::to_string(id_);
 }
 
 size_t GotoElement::GetBytecodeLength() const { return 12; }
@@ -300,11 +273,8 @@ unsigned long GotoIfElement::GetLocation(int i) const {
   return id_;
 }
 
-std::string GotoIfElement::GetSourceRepresentation(
-    IModuleManager* manager) const {
-  std::string repr = CommandElement::GetSourceRepresentation(manager);
-  repr += " @" + std::to_string(id_);
-  return repr;
+std::string GotoIfElement::GetTagsRepresentation() const {
+  return '@' + std::to_string(id_);
 }
 
 size_t GotoIfElement::GetBytecodeLength() const { return length_; }
@@ -326,14 +296,17 @@ Expression GotoCaseElement::GetCase(int i) const { return parsed_cases_[i]; }
 
 size_t GotoCaseElement::GetLocationCount() const { return id_.size(); }
 
-std::string GotoCaseElement::GetSourceRepresentation(
-    IModuleManager* manager) const {
-  std::string repr = CommandElement::GetSourceRepresentation(manager);
+std::string GotoCaseElement::GetTagsRepresentation() const {
+  std::string repr;
+
+  repr = '{';
   for (size_t i = 0; i < GetLocationCount(); ++i) {
     std::string param =
         parsed_cases_[i] ? parsed_cases_[i]->GetDebugString() : "";
-    repr += " [" + param + "]@" + std::to_string(GetLocation(i));
+    repr += std::format("[{}]@{} ", param, GetLocation(i));
   }
+  repr += '}';
+
   return repr;
 }
 
@@ -355,9 +328,8 @@ size_t GotoOnElement::GetLocationCount() const { return id_.size(); }
 
 unsigned long GotoOnElement::GetLocation(int i) const { return id_[i]; }
 
-std::string GotoOnElement::GetSourceRepresentation(
-    IModuleManager* manager) const {
-  std::string repr = CommandElement::GetSourceRepresentation(manager);
+std::string GotoOnElement::GetTagsRepresentation() const {
+  std::string repr;
 
   repr += '{';
   for (size_t i = 0; i < GetLocationCount(); ++i) {
@@ -388,11 +360,8 @@ unsigned long GosubWithElement::GetLocation(int i) const {
   return id_;
 }
 
-std::string GosubWithElement::GetSourceRepresentation(
-    IModuleManager* manager) const {
-  std::string repr = CommandElement::GetSourceRepresentation(manager);
-  repr += " @" + std::to_string(id_);
-  return repr;
+std::string GosubWithElement::GetTagsRepresentation() const {
+  return '@' + std::to_string(id_);
 }
 
 size_t GosubWithElement::GetBytecodeLength() const { return length_; }

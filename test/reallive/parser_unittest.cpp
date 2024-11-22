@@ -25,6 +25,7 @@
 #include "libreallive/parser.hpp"
 
 #include "encodings/cp932.hpp"
+#include "libreallive/visitors.hpp"
 
 #include <gtest/gtest.h>
 #include <iomanip>
@@ -344,7 +345,7 @@ class CommandParserTest : public ::testing::Test {
           parser.ParseCommand(parsable.c_str());
       ASSERT_NE(parsed, nullptr);
       EXPECT_EQ(parsed->GetBytecodeLength(), parsable.length());
-      EXPECT_EQ(parsed->GetSourceRepresentation(nullptr), repr);
+      EXPECT_EQ(std::visit(DebugStringVisitor(), parsed->DownCast()), repr);
       parsed_cmds.push_back(parsed);
     }
   }
@@ -374,9 +375,9 @@ TEST_F(CommandParserTest, GotoIfElement) {
 TEST_F(CommandParserTest, GotoOnElement) {
   std::vector<std::pair<std::string, std::string>> data = {
       {"23 00 01 03 00 0e 00 00 ( $ 0b [ $ ff 00 00 00 00 ] ) { 44 02 00 00 91 02 00 00 de 02 00 00 2b 03 00 00 78 03 00 00 c5 03 00 00 12 04 00 00 5f 04 00 00 ac 04 00 00 f9 04 00 00 46 05 00 00 93 05 00 00 e0 05 00 00 2d 06 00 00 }"s,
-       "op<0:001:00003, 0>(intL[0]){ @580 @657 @734 @811 @888 @965 @1042 @1119 @1196 @1273 @1350 @1427 @1504 @1581}"s},
+       "op<0:001:00003, 0>(intL[0]) { @580 @657 @734 @811 @888 @965 @1042 @1119 @1196 @1273 @1350 @1427 @1504 @1581}"s},
       {"23 00 01 08 00 0a 00 00 ( $ 0b [ $ ff 01 00 00 00 ] ) { e7 60 00 00 a5 66 00 00 95 6a 00 00 99 6e 00 00 89 73 00 00 a3 77 00 00 a3 7b 00 00 9d 84 00 00 f6 88 00 00 2f 8d 00 00 }"s,
-       "op<0:001:00008, 0>(intL[1]){ @24807 @26277 @27285 @28313 @29577 @30627 @31651 @33949 @35062 @36143}"s}};
+       "op<0:001:00008, 0>(intL[1]) { @24807 @26277 @27285 @28313 @29577 @30627 @31651 @33949 @35062 @36143}"s}};
   TestWith(data);
   {
     auto cmd = std::dynamic_pointer_cast<GotoOnElement>(parsed_cmds[0]);
@@ -391,7 +392,7 @@ TEST_F(CommandParserTest, GotoOnElement) {
 TEST_F(CommandParserTest, GotoCaseElement) {
   std::vector<std::pair<std::string, std::string>> data = {
       {"23 00 01 04 00 03 00 00 ( $ 0b [ $ ff 00 00 00 00 ] ) { ( $ ff 00 00 00 00 ) 6d 08 00 00 ( $ ff 01 00 00 00 ) a1 08 00 00 ( ) d5 08 00 00 }"s,
-       "op<0:001:00004, 0>(intL[0]) [0]@2157 [1]@2209 []@2261"s}};
+       "op<0:001:00004, 0>(intL[0]) {[0]@2157 [1]@2209 []@2261 }"s}};
   TestWith(data);
   auto cmd = parsed_cmds.front();
   EXPECT_EQ(cmd->GetCaseCount(), 3);

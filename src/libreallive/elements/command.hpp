@@ -75,7 +75,11 @@ class CommandElement : public BytecodeElement {
   virtual Expression GetCase(int i) const;
 
   // Overridden from BytecodeElement:
-  virtual std::string GetSourceRepresentation(IModuleManager*) const override;
+  virtual std::string GetSourceRepresentation(IModuleManager*) const final {
+    return "???";
+  }
+
+  virtual std::string GetTagsRepresentation() const;
 
   virtual Bytecode_ptr DownCast() const override;
 
@@ -146,7 +150,7 @@ class SelectElement : public CommandElement {
 
 class FunctionElement : public CommandElement {
  public:
-  FunctionElement(CommandInfo&& cmd, size_t len);
+  FunctionElement(CommandInfo&& cmd, size_t len = 0);
   virtual ~FunctionElement() = default;
 
   // Overridden from BytecodeElement:
@@ -167,7 +171,7 @@ class GotoElement : public CommandElement {
   virtual std::string GetParam(int i) const final;
   virtual size_t GetLocationCount() const final;
   virtual unsigned long GetLocation(int i) const final;
-  virtual std::string GetSourceRepresentation(IModuleManager*) const override;
+  virtual std::string GetTagsRepresentation() const override;
 
   // Overridden from BytecodeElement:
   virtual size_t GetBytecodeLength() const final;
@@ -184,7 +188,7 @@ class GotoIfElement : public CommandElement {
   // Overridden from CommandElement:
   virtual size_t GetLocationCount() const final;
   virtual unsigned long GetLocation(int i) const final;
-  virtual std::string GetSourceRepresentation(IModuleManager*) const override;
+  virtual std::string GetTagsRepresentation() const override;
 
   // Overridden from BytecodeElement:
   virtual size_t GetBytecodeLength() const final;
@@ -211,7 +215,7 @@ class GotoCaseElement : public CommandElement {
   virtual size_t GetParamCount() const final;
   virtual size_t GetCaseCount() const final;
   virtual Expression GetCase(int i) const final;
-  virtual std::string GetSourceRepresentation(IModuleManager*) const override;
+  virtual std::string GetTagsRepresentation() const override;
 
   size_t GetLocationCount() const final;
   unsigned long GetLocation(int) const final;
@@ -239,7 +243,7 @@ class GotoOnElement : public CommandElement {
   size_t GetLocationCount() const final;
   unsigned long GetLocation(int) const final;
 
-  virtual std::string GetSourceRepresentation(IModuleManager*) const override;
+  virtual std::string GetTagsRepresentation() const override;
 
   // Overridden from BytecodeElement:
   size_t GetBytecodeLength() const final;
@@ -261,7 +265,7 @@ class GosubWithElement : public CommandElement {
   // Overridden from CommandElement:
   virtual size_t GetLocationCount() const final;
   virtual unsigned long GetLocation(int i) const final;
-  virtual std::string GetSourceRepresentation(IModuleManager*) const override;
+  virtual std::string GetTagsRepresentation() const override;
 
   // Overridden from BytecodeElement:
   virtual size_t GetBytecodeLength() const final;

@@ -146,7 +146,7 @@ class IExpression {
 enum Op : char {
   // Arithmetic Operators
   Add = 0,  // "+"
-  Sub = 1,  // "-"
+  Sub = 1,  // "-", also uniary minus
   Mul = 2,  // "*"
   Div = 3,  // "/"
   Mod = 4,  // "%"
