@@ -48,10 +48,6 @@ Expression ExpressionElement::ParsedExpression() const {
   return parsed_expression_;
 }
 
-std::string ExpressionElement::GetSourceRepresentation(IModuleManager*) const {
-  return ParsedExpression()->GetDebugString();
-}
-
 std::string ExpressionElement::GetSourceRepresentation() const {
   return ParsedExpression()->GetDebugString();
 }

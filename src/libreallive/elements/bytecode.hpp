@@ -52,12 +52,6 @@ class BytecodeElement {
   BytecodeElement();
   virtual ~BytecodeElement();
 
-  // Prints a human readable version of this bytecode element to |oss|.
-  virtual void PrintSourceRepresentation(IModuleManager*,
-                                         std::ostream& oss) const;
-
-  virtual std::string GetSourceRepresentation(IModuleManager*) const;
-
   // Returns the length of this element in bytes in the source file.
   virtual size_t GetBytecodeLength() const = 0;
 

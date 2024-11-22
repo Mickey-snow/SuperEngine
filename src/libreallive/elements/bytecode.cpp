@@ -41,15 +41,6 @@ BytecodeElement::BytecodeElement() {}
 
 BytecodeElement::~BytecodeElement() {}
 
-void BytecodeElement::PrintSourceRepresentation(IModuleManager* manager,
-                                                std::ostream& oss) const {
-  oss << GetSourceRepresentation(manager) << std::endl;
-}
-
-std::string BytecodeElement::GetSourceRepresentation(IModuleManager*) const {
-  return "<unspecified bytecode>";
-}
-
 int BytecodeElement::GetEntrypoint() const { return kInvalidEntrypoint; }
 
 string BytecodeElement::GetSerializedCommand(RLMachine& machine) const {

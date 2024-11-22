@@ -37,22 +37,6 @@ MetaElement::MetaElement(MetaElementType type, int value, int entrypoint_index)
 
 MetaElement::~MetaElement() {}
 
-std::string MetaElement::GetSourceRepresentation(IModuleManager*) const {
-  using std::string_literals::operator""s;
-
-  if (type_ == Line_)
-    return "#line "s + std::to_string(value_);
-  else if (type_ == Entrypoint_)
-    return "#entrypoint "s + std::to_string(value_);
-  else
-    return "{- Kidoku "s + std::to_string(value_) + " -}";
-}
-
-void MetaElement::PrintSourceRepresentation(IModuleManager* machine,
-                                            std::ostream& oss) const {
-  oss << GetSourceRepresentation(machine) << std::endl;
-}
-
 size_t MetaElement::GetBytecodeLength() const { return 3; }
 
 int MetaElement::GetEntrypoint() const {

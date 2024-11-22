@@ -47,11 +47,6 @@ class MetaElement : public BytecodeElement {
   const int value() const { return value_; }
   void set_value(const int value) { value_ = value; }
 
-  std::string GetSourceRepresentation(IModuleManager*) const;
-
-  // Overridden from BytecodeElement:
-  virtual void PrintSourceRepresentation(IModuleManager* machine,
-                                         std::ostream& oss) const final;
   virtual size_t GetBytecodeLength() const final;
   virtual int GetEntrypoint() const final;
 

@@ -26,6 +26,8 @@
 
 #include "libreallive/elements/command.hpp"
 #include "libreallive/elements/expression.hpp"
+#include "libreallive/visitors.hpp"
+#include "machine/module_manager.hpp"
 #include "machine/rloperation.hpp"
 #include "memory/location.hpp"
 
@@ -72,34 +74,14 @@ void Tracer::Log(int scene,
   BOOST_LOG_SCOPED_THREAD_TAG("Scene", (boost::format("%04d") % scene).str());
   BOOST_LOG_SCOPED_THREAD_TAG("Line", (boost::format("%04d") % line).str());
 
-  std::stringstream message;
-  if (op == nullptr)
-    message << "???";
-  else
-    message << op->Name();
-
-  auto PrintParameterString =
-      [](std::ostream& oss,
-         const std::vector<libreallive::Expression>& params) {
-        bool first = true;
-        oss << "(";
-        for (auto const& param : params) {
-          if (!first) {
-            oss << ", ";
-          }
-          first = false;
-          oss << param->GetDebugString();
-        }
-        oss << ")";
-      };
-  PrintParameterString(message, f.GetParsedParameters());
-
-  BOOST_LOG(ctx_->logger_) << message.str();
+  static ModuleManager manager;
+  BOOST_LOG(ctx_->logger_) << std::visit(
+      libreallive::DebugStringVisitor(&manager), f.DownCast());
 }
 
 void Tracer::Log(int scene, int line, const libreallive::ExpressionElement& f) {
   BOOST_LOG_SCOPED_THREAD_TAG("Scene", (boost::format("%04d") % scene).str());
   BOOST_LOG_SCOPED_THREAD_TAG("Line", (boost::format("%04d") % line).str());
 
-  BOOST_LOG(ctx_->logger_) << f.GetSourceRepresentation(nullptr);
+  BOOST_LOG(ctx_->logger_) << f.GetSourceRepresentation();
 }

@@ -67,10 +67,6 @@ std::string TextoutElement::GetText() const {
   return rv;
 }
 
-std::string TextoutElement::GetSourceRepresentation(IModuleManager*) const {
-  return "\"" + GetText() + "\"";
-}
-
 size_t TextoutElement::GetBytecodeLength() const { return repr.size(); }
 
 Bytecode_ptr TextoutElement::DownCast() const { return this; }

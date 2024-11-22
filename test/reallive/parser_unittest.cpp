@@ -91,11 +91,8 @@ TEST(CommaParserTest, ParseCommaElement) {
     commaElement = std::get<CommaElement const*>(parsed->DownCast());
   }) << "Parser failed to produce CommaElement object from '<CommaElement>'";
 
-  auto repr = commaElement->GetSourceRepresentation(nullptr);
-  EXPECT_EQ(repr, "<CommaElement>"s);
-  std::ostringstream oss;
-  parsed->PrintSourceRepresentation(nullptr, oss);
-  EXPECT_EQ(oss.str(), "<CommaElement>\n"s);
+  EXPECT_EQ(std::visit(DebugStringVisitor(), commaElement->DownCast()),
+            "<comma>"s);
 }
 
 // -----------------------------------------------------------------------
@@ -150,8 +147,8 @@ TEST(MetaParserTest, ParseLineElement) {
     EXPECT_NO_THROW(
         { lineElement = std::get<MetaElement const*>(parsed->DownCast()); });
 
-    auto repr = lineElement->GetSourceRepresentation(nullptr);
-    EXPECT_EQ(repr, "#line 16"s);
+    EXPECT_EQ(std::visit(DebugStringVisitor(), lineElement->DownCast()),
+              "#line 16"s);
   }
 
   {
@@ -161,8 +158,8 @@ TEST(MetaParserTest, ParseLineElement) {
     EXPECT_NO_THROW(
         { lineElement = std::get<MetaElement const*>(parsed->DownCast()); });
 
-    auto repr = lineElement->GetSourceRepresentation(nullptr);
-    EXPECT_EQ(repr, "#line 65535"s);
+    EXPECT_EQ(std::visit(DebugStringVisitor(), lineElement->DownCast()),
+              "#line 65535"s);
   }
 }
 
@@ -178,8 +175,8 @@ TEST(MetaParserTest, ParseEntrypointElement) {
     entrypointElement = std::get<MetaElement const*>(parsed->DownCast());
   });
 
-  auto repr = entrypointElement->GetSourceRepresentation(nullptr);
-  EXPECT_EQ(repr, "#entrypoint 0"s);
+  EXPECT_EQ(std::visit(DebugStringVisitor(), entrypointElement->DownCast()),
+            "#entrypoint 0"s);
   EXPECT_EQ(entrypointElement->GetEntrypoint(), 564);
 }
 
@@ -194,8 +191,9 @@ TEST(MetaParserTest, ParseKidoku) {
   MetaElement const* kidokuElement = nullptr;
   EXPECT_NO_THROW(
       { kidokuElement = std::get<MetaElement const*>(parsed->DownCast()); });
-  auto repr = kidokuElement->GetSourceRepresentation(nullptr);
-  EXPECT_EQ(repr, "{- Kidoku 3 -}");
+
+  EXPECT_EQ(std::visit(DebugStringVisitor(), kidokuElement->DownCast()),
+            "#kidoku 3");
 }
 
 // -----------------------------------------------------------------------

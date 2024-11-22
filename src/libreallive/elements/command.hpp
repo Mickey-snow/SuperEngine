@@ -74,11 +74,6 @@ class CommandElement : public BytecodeElement {
   virtual size_t GetCaseCount() const;
   virtual Expression GetCase(int i) const;
 
-  // Overridden from BytecodeElement:
-  virtual std::string GetSourceRepresentation(IModuleManager*) const final {
-    return "???";
-  }
-
   virtual std::string GetTagsRepresentation() const;
 
   virtual Bytecode_ptr DownCast() const override;

@@ -34,15 +34,6 @@ using namespace libreallive;
 
 class MockBytecodeElement : public BytecodeElement {
  public:
-  MOCK_METHOD(void,
-              PrintSourceRepresentation,
-              (IModuleManager*, std::ostream&),
-              (const, override));
-
-  MOCK_METHOD(std::string,
-              GetSourceRepresentation,
-              (IModuleManager*),
-              (const, override));
   MOCK_METHOD(size_t, GetBytecodeLength, (), (const, override));
   MOCK_METHOD(std::string,
               GetSerializedCommand,

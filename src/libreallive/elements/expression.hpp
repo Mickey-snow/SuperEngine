@@ -46,8 +46,6 @@ class ExpressionElement : public BytecodeElement {
   // Returns an ExpressionPiece representing this expression.
   Expression ParsedExpression() const;
 
-  // Overridden from BytecodeElement:
-  virtual std::string GetSourceRepresentation(IModuleManager*) const final;
   virtual std::string GetSourceRepresentation() const;
 
   virtual size_t GetBytecodeLength() const final;
