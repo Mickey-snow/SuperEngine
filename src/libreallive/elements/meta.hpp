@@ -41,9 +41,7 @@ class MetaElement : public BytecodeElement {
   enum MetaElementType { Line_ = '\n', Kidoku_ = '@', Entrypoint_ };
 
  public:
-  MetaElement(const MetaElementType& type,
-              const int& value,
-              const int& entrypoint_index);
+  MetaElement(MetaElementType type, int value, int entrypoint_index = 0);
   virtual ~MetaElement();
 
   const int value() const { return value_; }

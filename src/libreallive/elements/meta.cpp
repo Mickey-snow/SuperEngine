@@ -32,9 +32,7 @@
 
 namespace libreallive {
 
-MetaElement::MetaElement(const MetaElementType& type,
-                         const int& value,
-                         const int& entrypoint_index)
+MetaElement::MetaElement(MetaElementType type, int value, int entrypoint_index)
     : type_(type), value_(value), entrypoint_index_(entrypoint_index) {}
 
 MetaElement::~MetaElement() {}

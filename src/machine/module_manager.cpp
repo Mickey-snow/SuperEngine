@@ -36,10 +36,6 @@ ModuleManager::ModuleManager() : modules_() {}
 
 ModuleManager::~ModuleManager() = default;
 
-void ModuleManager::AttachModule(RLModule* mod) {
-  AttachModule(std::unique_ptr<RLModule>(mod));
-}
-
 void ModuleManager::AttachModule(std::unique_ptr<RLModule> mod) {
   if (!mod)
     return;

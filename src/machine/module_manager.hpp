@@ -38,7 +38,7 @@ class IModuleManager {
  public:
   virtual ~IModuleManager() = default;
 
-  virtual void AttachModule(RLModule*) = 0;
+  virtual void AttachModule(std::unique_ptr<RLModule>) = 0;
   virtual std::string GetCommandName(
       const libreallive::CommandElement&) const = 0;
 };
@@ -48,8 +48,7 @@ class ModuleManager : public IModuleManager {
   ModuleManager();
   ~ModuleManager();
 
-  void AttachModule(RLModule* mod) override;
-  void AttachModule(std::unique_ptr<RLModule> mod);
+  void AttachModule(std::unique_ptr<RLModule> mod) override;
 
   RLModule* GetModule(int module_type, int module_id) const;
 
