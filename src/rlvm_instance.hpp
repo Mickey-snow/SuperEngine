@@ -53,7 +53,6 @@ class RLVMInstance {
   void set_tracing() { tracing_ = true; }
   void set_load_save(int in) { load_save_ = in; }
   void set_custom_font(const std::string& font) { custom_font_ = font; }
-  void set_dump_seen(int in) { dump_seen_ = in; }
 
   void SetPlatformImplementor(std::shared_ptr<IPlatformImplementor> impl);
 
@@ -104,9 +103,6 @@ class RLVMInstance {
 
   // Loads the specified save file as soon as emulation starts if not -1.
   int load_save_;
-
-  // Dumps pseudo-kepago of the current seen to stdout and exit if not -1.
-  int dump_seen_;
 
   // The bridge to the class that implements platform-specific code
   std::shared_ptr<IPlatformImplementor> platform_implementor_;

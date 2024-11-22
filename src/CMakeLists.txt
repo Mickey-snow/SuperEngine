@@ -63,13 +63,24 @@ target_link_libraries(rlvm_src PUBLIC ${RLVM_REQUIRED_LIBRARIES})
 # -------------------------------------------------------------------
 # Build RLVM
 # -------------------------------------------------------------------
-set(SRC_FILES
+set(RLVM_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/rlvm_instance.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/rlvm_main.cpp"
 )
 
-add_executable(rlvm ${SRC_FILES})
+add_executable(rlvm ${RLVM_FILES})
 
 target_link_libraries(rlvm PRIVATE
   rlvm_src
 )
+
+# -------------------------------------------------------------------
+# Build RLKP
+# -------------------------------------------------------------------
+set(RLKP_FILES
+  "${CMAKE_CURRENT_SOURCE_DIR}/rlkp_main.cpp"
+)
+
+add_executable(rlkp ${RLKP_FILES})
+
+target_link_libraries(rlkp PRIVATE rlvm_src)

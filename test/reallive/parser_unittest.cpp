@@ -24,7 +24,6 @@
 
 #include "libreallive/parser.hpp"
 
-#include "encodings/cp932.hpp"
 #include "libreallive/visitors.hpp"
 
 #include <gtest/gtest.h>
@@ -110,9 +109,8 @@ TEST(TextoutParserTest, ParseCp932Text) {
     textoutElement = std::get<TextoutElement const*>(parsed->DownCast());
   });
 
-  std::wstring text = L"【声】「きょーすけが帰ってきたぞーっ！」";
-  Cp932 encoding;
-  EXPECT_EQ(encoding.ConvertString(textoutElement->GetText()), text);
+  std::string text = "text(【声】「きょーすけが帰ってきたぞーっ！」)";
+  EXPECT_EQ(std::visit(DebugStringVisitor(), textoutElement->DownCast()), text);
 }
 
 TEST(TextoutParserTest, ParseQuotedEnglishString) {

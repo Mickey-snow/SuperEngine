@@ -31,7 +31,6 @@
 
 #include "base/gameexe.hpp"
 #include "libreallive/reallive.hpp"
-#include "machine/dump_scenario.hpp"
 #include "machine/game_hacks.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/serialization.hpp"
@@ -71,7 +70,6 @@ RLVMInstance::RLVMInstance()
       count_undefined_copcodes_(false),
       tracing_(false),
       load_save_(-1),
-      dump_seen_(-1),
       platform_implementor_(nullptr) {
   srand(time(NULL));
 }
@@ -118,12 +116,6 @@ void RLVMInstance::Run(const std::filesystem::path& gamerootPath) {
     RLMachine rlmachine(sdlSystem, arc);
     AddAllModules(rlmachine.GetModuleManager());
     AddGameHacks(rlmachine);
-
-    if (dump_seen_ != -1) {
-      libreallive::Scenario* scenario = arc.GetScenario(dump_seen_);
-      DumpScenario(&rlmachine.GetModuleManager(), scenario);
-      return;
-    }
 
     // Validate our font file
     // TODO(erg): Remove this when we switch to native font selection dialogs.

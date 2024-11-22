@@ -69,7 +69,7 @@ Scenario* Archive::GetScenario(int index) {
       scenario_[index] = std::move(scene_ptr);
       return raw_ptr;
     }
-    return NULL;
+    return nullptr;
   }
 }
 

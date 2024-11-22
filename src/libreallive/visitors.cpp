@@ -24,11 +24,13 @@
 
 #include "libreallive/visitors.hpp"
 
+#include "encodings/cp932.hpp"
 #include "libreallive/elements/command.hpp"
 #include "libreallive/elements/expression.hpp"
 #include "libreallive/elements/meta.hpp"
 #include "libreallive/elements/textout.hpp"
 #include "machine/module_manager.hpp"
+#include "utilities/string_utilities.hpp"
 
 #include <format>
 
@@ -94,7 +96,9 @@ std::string DebugStringVisitor::operator()(CommaElement const*) {
 }
 
 std::string DebugStringVisitor::operator()(TextoutElement const* t) {
-  return "text(" + t->GetText() + ')';
+  static Cp932 converter;
+  return std::format("text({})",
+                     UnicodeToUTF8(converter.ConvertString(t->GetText())));
 }
 
 }  // namespace libreallive
