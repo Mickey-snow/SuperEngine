@@ -1,4 +1,10 @@
 
+configure_file(
+  "${CMAKE_CURRENT_SOURCE_DIR}/version.h.in"
+  "${CMAKE_CURRENT_SOURCE_DIR}/version.h"
+  @ONLY
+)
+
 set(RLVM_REQUIRED_LIBRARIES
     ${SDL_LIBRARIES}
     ${ZLIB_LIBRARIES}

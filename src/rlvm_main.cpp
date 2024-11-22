@@ -41,6 +41,7 @@
 #include "rlvm_instance.hpp"
 #include "systems/base/system.hpp"
 #include "utilities/file.hpp"
+#include "version.h"
 
 namespace po = boost::program_options;
 namespace fs = std::filesystem;
@@ -49,7 +50,7 @@ namespace fs = std::filesystem;
 
 void printVersionInformation() {
   std::cout
-      << "rlvm (" << GetRlvmVersionString() << ")\n"
+      << "rlvm (" << rlvm_version << ")\n"
       << "Copyright (C) 2006-2014 Elliot Glaysher, et all.\n\n"
       << "Contains code that is: \n"
       << "  Copyright (C) 2006-2007 Peter \"Haeleth\" Jolly\n"

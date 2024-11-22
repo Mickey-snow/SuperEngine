@@ -53,6 +53,7 @@
 #include "systems/base/text_system.hpp"
 #include "utilities/exception.hpp"
 #include "utilities/string_utilities.hpp"
+#include "version.h"
 
 using boost::replace_all;
 using boost::to_lower;
@@ -310,7 +311,7 @@ void System::ShowSystemInfo(RLMachine& machine) {
 
     info.game_version = gameexe()("VERSION_STR").ToString("");
     info.game_path = gameexe()("__GAMEPATH").ToString("");
-    info.rlvm_version = GetRlvmVersionString();
+    info.rlvm_version = rlvm_version;
     info.rlbabel_loaded = machine.DllLoaded("rlBabel");
     info.text_transformation = machine.GetTextEncoding();
 

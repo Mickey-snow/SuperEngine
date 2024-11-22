@@ -327,9 +327,3 @@ class System {
     // For now, does nothing
   }
 };
-
-// -----------------------------------------------------------------------
-
-// Returns a version string suitable for printing. Used on the command line
-// interface and on the info screen.
-std::string GetRlvmVersionString();

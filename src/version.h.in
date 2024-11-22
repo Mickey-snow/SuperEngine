@@ -1,0 +1,2 @@
+#pragma once
+[[maybe_unused]] constexpr const char rlvm_version[] = "version @PROJECT_VERSION@";
