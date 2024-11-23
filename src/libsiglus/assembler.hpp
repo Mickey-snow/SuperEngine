@@ -81,6 +81,8 @@ class Assembler {
   Instruction operator()(lex::Line);
   Instruction operator()(lex::Marker);
   Instruction operator()(lex::Command);
+  Instruction operator()(lex::Operate1);
+  Instruction operator()(lex::Operate2);
 
   template <typename T>
   Instruction operator()(T) {

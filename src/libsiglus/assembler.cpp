@@ -25,7 +25,11 @@
 
 #include "libsiglus/lexeme.hpp"
 
+#include <boost/algorithm/string/case_conv.hpp>
+#include <compare>
+#include <functional>
 #include <stdexcept>
+#include <unordered_map>
 
 namespace libsiglus {
 
@@ -82,6 +86,113 @@ Instruction Assembler::operator()(lex::Command command) {
   result.elm = stack_.Popelm();
 
   return result;
+}
+
+Instruction Assembler::operator()(lex::Operate1 op) {
+  int rhs = stack_.Popint();
+  switch (op.op_) {
+    case OperatorCode::Plus:
+      stack_.Push(+rhs);
+      break;
+    case OperatorCode::Minus:
+      stack_.Push(-rhs);
+      break;
+    case OperatorCode::Inv:
+      stack_.Push(~rhs);
+      break;
+    default:
+      break;
+  }
+  return std::monostate();
+}
+
+Instruction Assembler::operator()(lex::Operate2 op) {
+  if (op.ltype_ == Type::Int && op.rtype_ == Type::Int) {
+    int rhs = stack_.Popint();
+    int lhs = stack_.Popint();
+    if ((op.op_ == OperatorCode::Div || op.op_ == OperatorCode::Mod) &&
+        rhs == 0) {
+      // attempt to divide by 0
+      stack_.Push(0);
+      return std::monostate();
+    }
+
+    static const std::unordered_map<OperatorCode, std::function<int(int, int)>>
+        opfun{
+            {OperatorCode::Plus, std::plus<>()},
+            {OperatorCode::Minus, std::minus<>()},
+            {OperatorCode::Mult, std::multiplies<>()},
+            {OperatorCode::Div, std::divides<>()},
+            {OperatorCode::Mod, std::modulus<>()},
+
+            {OperatorCode::And, std::bit_and<>()},
+            {OperatorCode::Or, std::bit_or<>()},
+            {OperatorCode::Xor, std::bit_xor<>()},
+            {OperatorCode::Sr, [](int lhs, int rhs) { return lhs >> rhs; }},
+            {OperatorCode::Sl, [](int lhs, int rhs) { return lhs << rhs; }},
+            {OperatorCode::Sru,
+             [](int lhs, int rhs) -> int {
+               return static_cast<unsigned int>(lhs) >> rhs;
+             }},
+
+            {OperatorCode::Equal,
+             [](int lhs, int rhs) { return lhs == rhs ? 1 : 0; }},
+            {OperatorCode::Ne,
+             [](int lhs, int rhs) { return lhs != rhs ? 1 : 0; }},
+            {OperatorCode::Le,
+             [](int lhs, int rhs) { return lhs <= rhs ? 1 : 0; }},
+            {OperatorCode::Ge,
+             [](int lhs, int rhs) { return lhs >= rhs ? 1 : 0; }},
+            {OperatorCode::Lt,
+             [](int lhs, int rhs) { return lhs < rhs ? 1 : 0; }},
+            {OperatorCode::Gt,
+             [](int lhs, int rhs) { return lhs > rhs ? 1 : 0; }},
+            {OperatorCode::LogicalAnd,
+             [](int lhs, int rhs) { return (lhs && rhs) ? 1 : 0; }},
+            {OperatorCode::LogicalOr,
+             [](int lhs, int rhs) { return (lhs || rhs) ? 1 : 0; }},
+        };
+    stack_.Push(std::invoke(opfun.at(op.op_), lhs, rhs));
+  } else if (op.ltype_ == Type::String && op.rtype_ == Type::Int) {
+    int rhs = stack_.Popint();
+    std::string lhs = stack_.Popstr();
+    if (op.op_ == OperatorCode::Mult) {
+      std::string result;
+      result.reserve(lhs.size() * rhs);
+      for (int i = 0; i < rhs; ++i)
+        result += lhs;
+      stack_.Push(std::move(result));
+    }
+  } else if (op.ltype_ == Type::String && op.rtype_ == Type::String) {
+    std::string rhs = stack_.Popstr();
+    std::string lhs = stack_.Popstr();
+
+    if (op.op_ == OperatorCode::Plus)
+      stack_.Push(lhs + rhs);
+    else {
+      boost::to_lower(lhs);
+      boost::to_lower(rhs);
+
+      static const std::unordered_map<OperatorCode,
+                                      std::function<int(std::strong_ordering)>>
+          opfun{{OperatorCode::Equal,
+                 [](std::strong_ordering ord) { return ord == 0 ? 1 : 0; }},
+                {OperatorCode::Ne,
+                 [](std::strong_ordering ord) { return ord != 0 ? 1 : 0; }},
+                {OperatorCode::Le,
+                 [](std::strong_ordering ord) { return ord <= 0 ? 1 : 0; }},
+                {OperatorCode::Ge,
+                 [](std::strong_ordering ord) { return ord >= 0 ? 1 : 0; }},
+                {OperatorCode::Lt,
+                 [](std::strong_ordering ord) { return ord < 0 ? 1 : 0; }},
+                {OperatorCode::Gt,
+                 [](std::strong_ordering ord) { return ord > 0 ? 1 : 0; }}};
+
+      stack_.Push(std::invoke(opfun.at(op.op_), lhs <=> rhs));
+    }
+  }
+
+  return std::monostate();
 }
 
 }  // namespace libsiglus

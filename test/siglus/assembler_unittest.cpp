@@ -90,3 +90,102 @@ TEST_F(AssemblerTest, Command) {
               "int:10) -> typeid:0");
   }
 }
+
+TEST_F(AssemblerTest, BinaryOp) {
+  struct TestData {
+    int lhs;
+    OperatorCode op;
+    int rhs;
+    int expected;
+  };
+  std::vector<TestData> testdata{
+      {1, OperatorCode::Plus, 1, 2},
+      {5, OperatorCode::Minus, 10, -5},
+      {3, OperatorCode::Mult, 3, 9},
+      {10, OperatorCode::Div, 3, 3},
+      {10, OperatorCode::Mod, 3, 1},
+
+      {123, OperatorCode::And, 321, 123 & 321},
+      {4567, OperatorCode::Or, 312, 4567 | 312},
+      {13, OperatorCode::Xor, 41, 13 ^ 41},
+      {10, OperatorCode::Sl, 3, 10 << 3},
+      {874356, OperatorCode::Sr, 5, 874356 >> 5},
+
+      {1, OperatorCode::LogicalAnd, 4, 1},
+      {0, OperatorCode::LogicalAnd, 1, 0},
+      {0, OperatorCode::LogicalOr, 1, 1},
+      {0, OperatorCode::LogicalOr, 0, 0},
+      {31, OperatorCode::Equal, 31, 1},
+      {32, OperatorCode::Ne, 31, 1},
+  };
+
+  for (const auto& data : testdata) {
+    assm.stack_.Clear();
+    assm.stack_.Push(data.lhs);
+    assm.stack_.Push(data.rhs);
+    assm.Assemble(lex::Operate2(Type::Int, Type::Int, data.op));
+    EXPECT_EQ(assm.stack_.Backint(), data.expected)
+        << "expected " << data.lhs << ToString(data.op) << data.rhs << '='
+        << data.expected;
+  }
+}
+
+TEST_F(AssemblerTest, BinaryOpSpecialCase) {
+  {
+    assm.stack_.Push("hello ");
+    assm.stack_.Push(3);
+    assm.Assemble(lex::Operate2(Type::String, Type::Int, OperatorCode::Mult));
+    EXPECT_EQ(assm.stack_.Popstr(), "hello hello hello ");
+  }
+
+  {
+    assm.stack_.Push("hello ");
+    assm.stack_.Push("world.");
+    assm.Assemble(
+        lex::Operate2(Type::String, Type::String, OperatorCode::Plus));
+    EXPECT_EQ(assm.stack_.Popstr(), "hello world.");
+  }
+
+  {
+    assm.stack_.Push("asm");
+    assm.stack_.Push("aSm");
+    assm.Assemble(lex::Operate2(Type::String, Type::String, OperatorCode::Ne));
+    EXPECT_EQ(assm.stack_.Popint(), 0);
+
+    assm.stack_.Push("aBc");
+    assm.stack_.Push("abcd");
+    assm.Assemble(lex::Operate2(Type::String, Type::String, OperatorCode::Le));
+    EXPECT_EQ(assm.stack_.Popint(), 1);
+  }
+
+  {
+    assm.stack_.Push(0);
+    assm.stack_.Push(0);
+    assm.Assemble(lex::Operate2(Type::Int, Type::Int, OperatorCode::Div));
+    EXPECT_EQ(assm.stack_.Popint(), 0);
+    assm.stack_.Push(0);
+    assm.stack_.Push(0);
+    assm.Assemble(lex::Operate2(Type::Int, Type::Int, OperatorCode::Mod));
+    EXPECT_EQ(assm.stack_.Popint(), 0);
+  }
+}
+
+TEST_F(AssemblerTest, UnaryOp) {
+  {
+    assm.stack_.Push(123);
+    assm.Assemble(lex::Operate1(Type::Int, OperatorCode::Plus));
+    EXPECT_EQ(assm.stack_.Popint(), 123);
+  }
+
+  {
+    assm.stack_.Push(123);
+    assm.Assemble(lex::Operate1(Type::Int, OperatorCode::Minus));
+    EXPECT_EQ(assm.stack_.Popint(), -123);
+  }
+
+  {
+    assm.stack_.Push(123);
+    assm.Assemble(lex::Operate1(Type::Int, OperatorCode::Inv));
+    EXPECT_EQ(assm.stack_.Popint(), (~123));
+  }
+}

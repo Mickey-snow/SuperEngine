@@ -122,7 +122,6 @@ class Operate1 {
 
   size_t ByteLength() const { return 6; }
 
- private:
   Type type_;
   OperatorCode op_;
 };
@@ -138,7 +137,6 @@ class Operate2 {
 
   size_t ByteLength() const { return 10; }
 
- private:
   Type ltype_, rtype_;
   OperatorCode op_;
 };
