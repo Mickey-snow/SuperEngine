@@ -73,7 +73,7 @@ class ExpressionParser {
   static Expression GetExpressionToken(const char*& src);
   // term -> $ token
   // | \ 0x00 term
-  // | \ 0x01 uniary
+  // | \ 0x01 unary
   // | ( boolean )
   static Expression GetExpressionTerm(const char*& src);
   // arithmatic -> term ( op term )*

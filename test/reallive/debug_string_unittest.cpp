@@ -105,7 +105,7 @@ TEST(DebugStringVisitorTest, Expression) {
             ExpressionFactory::BinaryExpression(Op::BitXor, num[2], num[3])),
         ExpressionFactory::BinaryExpression(
             Op::Div,
-            ExpressionFactory::UniaryExpression(
+            ExpressionFactory::UnaryExpression(
                 Op::Sub,
                 ExpressionFactory::BinaryExpression(Op::BitOr, num[4], num[5])),
             ExpressionFactory::BinaryExpression(Op::BitAnd, num[6], num[7]))));

@@ -146,7 +146,7 @@ class IExpression {
 enum Op : char {
   // Arithmetic Operators
   Add = 0,  // "+"
-  Sub = 1,  // "-", also uniary minus
+  Sub = 1,  // "-", also unary minus
   Mul = 2,  // "*"
   Div = 3,  // "/"
   Mod = 4,  // "%"
@@ -193,7 +193,7 @@ class ExpressionFactory {
   static Expression IntConstant(const int& constant);
   static Expression StrConstant(const std::string& constant);
   static Expression MemoryReference(const int& type, Expression location);
-  static Expression UniaryExpression(const char operation, Expression operand);
+  static Expression UnaryExpression(const char operation, Expression operand);
   static Expression BinaryExpression(const char operation,
                                      Expression lhs,
                                      Expression rhs);

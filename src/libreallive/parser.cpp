@@ -179,9 +179,9 @@ Expression ExpressionParser::GetExpressionTerm(const char*& src) {
     src += 2;
     return GetExpressionTerm(src);
   } else if (src[0] == '\\' && src[1] == 0x01) {
-    // Uniary -
+    // Unary -
     src += 2;
-    return ExpressionFactory::UniaryExpression(0x01, GetExpressionTerm(src));
+    return ExpressionFactory::UnaryExpression(0x01, GetExpressionTerm(src));
   } else if (src[0] == '(') {
     src++;
     Expression p = GetExpressionBoolean(src);

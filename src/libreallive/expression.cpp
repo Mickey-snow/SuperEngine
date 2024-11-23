@@ -637,18 +637,18 @@ class BinaryExpressionEx : public IExpression {
 };
 
 // ----------------------------------------------------------------------
-// Uniary Expression
+// Unary Expression
 // ----------------------------------------------------------------------
 
-class UniaryEx : public IExpression {
+class UnaryEx : public IExpression {
  public:
-  UniaryEx(const char& op, const Expression ex)
+  UnaryEx(const char& op, const Expression ex)
       : operation_(op), operand_(ex) {}
 
   bool is_valid() const override { return true; }
 
   int GetIntegerValue(RLMachine& machine) const override {
-    return PerformUniaryOperationOn(operand_->GetIntegerValue(machine));
+    return PerformUnaryOperationOn(operand_->GetIntegerValue(machine));
   }
 
   std::string GetSerializedExpression(RLMachine& machine) const override {
@@ -669,7 +669,7 @@ class UniaryEx : public IExpression {
   char operation_;
   Expression operand_;
 
-  int PerformUniaryOperationOn(int int_operand) const {
+  int PerformUnaryOperationOn(int int_operand) const {
     int result = int_operand;
     switch (operation_) {
       case 0x01:
@@ -682,9 +682,9 @@ class UniaryEx : public IExpression {
   }
 };
 
-Expression ExpressionFactory::UniaryExpression(const char operation,
+Expression ExpressionFactory::UnaryExpression(const char operation,
                                                Expression operand) {
-  return std::make_shared<UniaryEx>(operation, operand);
+  return std::make_shared<UnaryEx>(operation, operand);
 }
 
 // ----------------------------------------------------------------------
