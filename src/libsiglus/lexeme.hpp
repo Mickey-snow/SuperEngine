@@ -82,40 +82,22 @@ class Marker {
 
 class Command {
  public:
-  Command(int arglist,
+  Command(int al_id,
           std::vector<Type> stackarg,
           std::vector<int> argtags,
           Type returntype)
-      : alist_(arglist),
+      : override_(al_id),
         arg_(std::move(stackarg)),
         arg_tag_(std::move(argtags)),
         rettype_(returntype) {}
 
-  std::string ToDebugString() const {
-    std::string result = "cmd[" + std::to_string(alist_) + "](";
-    bool first = true;
-    for (size_t i = 0; i < arg_.size(); ++i) {
-      if (!first)
-        result += ',';
-      else
-        first = false;
-
-      if (arg_.size() - i <= arg_tag_.size())
-        result +=
-            '_' +
-            std::to_string(arg_tag_[i - (arg_.size() - arg_tag_.size())]) + '=';
-      result += ToString(arg_[i]);
-    }
-
-    result += ") -> " + ToString(rettype_);
-    return result;
-  }
+  std::string ToDebugString() const;
 
   size_t ByteLength() const {
     return 17 + arg_.size() * 4 + arg_tag_.size() * 4;
   }
 
-  int alist_;
+  int override_;
   std::vector<Type> arg_;
   std::vector<int> arg_tag_;
   Type rettype_;
@@ -233,20 +215,7 @@ class Gosub {
   Gosub(Type rettype, int label, std::vector<Type> argt)
       : return_type_(rettype), label_(label), argt_(argt) {}
 
-  std::string ToDebugString() const {
-    std::string result = "gosub@" + std::to_string(label_) + '(';
-    bool first = true;
-    for (const auto it : argt_) {
-      if (!first)
-        result += ',';
-      else
-        first = false;
-      result += ToString(it);
-    }
-
-    result += ") -> " + ToString(return_type_);
-    return result;
-  }
+  std::string ToDebugString() const;
 
   size_t ByteLength() const { return 9 + 4 * argt_.size(); }
 
@@ -292,20 +261,7 @@ class Return {
  public:
   Return(std::vector<Type> rettypes) : ret_types_(std::move(rettypes)) {}
 
-  std::string ToDebugString() const {
-    std::string result = "ret(";
-    bool first = true;
-    for (const auto it : ret_types_) {
-      if (!first)
-        result += ',';
-      else
-        first = false;
-      result += ToString(it);
-    }
-
-    result += ')';
-    return result;
-  }
+  std::string ToDebugString() const;
 
   size_t ByteLength() const { return 5 + 4 * ret_types_.size(); }
 

@@ -63,7 +63,7 @@ Instruction Assembler::operator()(lex::Marker marker) {
 Instruction Assembler::operator()(lex::Command command) {
   Command result;
   result.return_type = command.rettype_;
-  result.overload_id = command.alist_;
+  result.overload_id = command.override_;
 
   result.named_arg.resize(command.arg_tag_.size());
   result.arg.resize(command.arg_.size() - command.arg_tag_.size());

@@ -218,7 +218,7 @@ TEST_F(LexerTest, GosubInt) {
         0x00, 0x00, 0x00, 0x00   // no argument
     };
     auto result = lex.Parse(vec_to_sv(raw));
-    EXPECT_EQ(std::visit(DebugStringOf(), result), "gosub@11() -> int");
+    EXPECT_EQ(std::visit(DebugStringOf(), result), "gosub@11 () -> int");
     EXPECT_EQ(std::visit(ByteLengthOf(), result), 9);
   }
 }
@@ -231,7 +231,7 @@ TEST_F(LexerTest, GosubStr) {
         0x00, 0x00, 0x00, 0x00   // no argument
     };
     auto result = lex.Parse(vec_to_sv(raw));
-    EXPECT_EQ(std::visit(DebugStringOf(), result), "gosub@13() -> str");
+    EXPECT_EQ(std::visit(DebugStringOf(), result), "gosub@13 () -> str");
     EXPECT_EQ(std::visit(ByteLengthOf(), result), 9);
   }
 }

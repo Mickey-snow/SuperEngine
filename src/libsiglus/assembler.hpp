@@ -25,8 +25,10 @@
 
 #include "libsiglus/lexfwd.hpp"
 #include "libsiglus/stack.hpp"
+#include "libsiglus/strutil.hpp"
 #include "libsiglus/value.hpp"
 
+#include <format>
 #include <string>
 #include <variant>
 
@@ -40,36 +42,26 @@ struct Command {
   Type return_type;
 
   std::string ToDebugString() const {
-    std::string result = "cmd<";
-    bool first = true;
-    for (const auto it : elm) {
-      if (first)
-        first = false;
-      else
-        result += ',';
-      result += std::to_string(it);
-    }
-    result += ':' + std::to_string(overload_id) + ">(";
+    const std::string cmd_repr = std::format(
+        "cmd<{}:{}>", Join(",", elm | std::views::transform([](const auto& x) {
+                                  return std::to_string(x);
+                                })),
+        overload_id);
 
-    first = true;
-    for (const auto& it : arg) {
-      if (first)
-        first = false;
-      else
-        result += ',';
-      result += std::visit(DebugStringOf(), it);
-    }
-    for (const auto& [name, it] : named_arg) {
-      if (first)
-        first = false;
-      else
-        result += ',';
-      result +=
-          '_' + std::to_string(name) + '=' + std::visit(DebugStringOf(), it);
-    }
+    std::vector<std::string> args_repr;
+    args_repr.reserve(arg.size() + named_arg.size());
 
-    result += ") -> " + ToString(return_type);
-    return result;
+    std::transform(
+        arg.cbegin(), arg.cend(), std::back_inserter(args_repr),
+        [](const Value& value) { return std::visit(DebugStringOf(), value); });
+    std::transform(named_arg.cbegin(), named_arg.cend(),
+                   std::back_inserter(args_repr), [](const auto& it) {
+                     return std::format("_{}={}", it.first,
+                                        std::visit(DebugStringOf(), it.second));
+                   });
+
+    return std::format("{}({}) -> {}", cmd_repr, Join(",", args_repr),
+                       ToString(return_type));
   }
 };
 
