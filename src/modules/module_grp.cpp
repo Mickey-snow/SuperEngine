@@ -1406,7 +1406,7 @@ void ReplayGraphicsStackCommand(RLMachine& machine,
         if (auto command =
                 std::dynamic_pointer_cast<libreallive::CommandElement>(
                     element)) {
-          machine(command.get());
+          machine(rlCommand(command.get()));
         }
       }
     }

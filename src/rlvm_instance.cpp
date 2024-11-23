@@ -114,7 +114,6 @@ void RLVMInstance::Run(const std::filesystem::path& gamerootPath) {
     libreallive::Archive arc(seenPath.string(), gameexe("REGNAME"));
     SDLSystem sdlSystem(gameexe);
     RLMachine rlmachine(sdlSystem, arc);
-    AddAllModules(rlmachine.GetModuleManager());
     AddGameHacks(rlmachine);
 
     // Validate our font file

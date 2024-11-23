@@ -53,12 +53,6 @@ class LongOperation;
 //
 // StackFrames can also be added to represent LongOperations.
 struct StackFrame {
-  // The scenario in the SEEN file for this stack frame.
-  // libreallive::Scenario const* scenario;
-
-  // The instruction pointer in the stack frame.
-  // libreallive::Scenario::const_iterator ip;
-
   libreallive::Scriptor::const_iterator pos;
 
   // Pointer to the owned LongOperation if this is of TYPE_LONGOP.

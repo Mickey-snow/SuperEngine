@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -8,6 +5,7 @@
 // -----------------------------------------------------------------------
 //
 // Copyright (C) 2006, 2007 Elliot Glaysher
+// Copyright (C) 2024 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -29,13 +27,6 @@
 
 #include "base/gameexe.hpp"
 #include "libreallive/archive.hpp"
-#include "libreallive/elements/bytecode.hpp"
-#include "libreallive/elements/comma.hpp"
-#include "libreallive/elements/command.hpp"
-#include "libreallive/elements/expression.hpp"
-#include "libreallive/elements/meta.hpp"
-#include "libreallive/elements/textout.hpp"
-#include "libreallive/expression.hpp"
 #include "libreallive/intmemref.hpp"
 #include "libreallive/scenario.hpp"
 #include "long_operations/pause_long_operation.hpp"
@@ -49,6 +40,7 @@
 #include "memory/memory.hpp"
 #include "memory/serialization_local.hpp"
 #include "memory/stack_adapter.hpp"
+#include "modules/modules.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/system_error.hpp"
@@ -82,6 +74,9 @@ RLMachine::RLMachine(System& in_system, libreallive::Archive& in_archive)
       archive_(in_archive),
       scriptor_(in_archive),
       system_(in_system) {
+  // Attach all modules
+  AddAllModules(module_manager_);
+
   // Setup stack memory
   Memory::Stack stack_memory;
   stack_memory.K = MemoryBank<std::string>(
@@ -204,8 +199,8 @@ void RLMachine::ExecuteNextInstruction() {
         }
 
       } else {
-        auto bytecode = *(top_frame->pos);
-        std::visit(*this, bytecode->DownCast());
+        auto instruction = Resolve(*top_frame->pos);
+        std::visit(*this, std::move(instruction));
       }
     } catch (rlvm::UnimplementedOpcode& e) {
       AdvanceInstructionPointer();
@@ -363,50 +358,6 @@ int RLMachine::GetProbableEncodingType() const {
   return archive_.GetProbableEncodingType();
 }
 
-void RLMachine::PerformTextout(const std::string& cp932str) {
-  std::string name_parsed_text;
-  try {
-    name_parsed_text = parseNames(memory(), cp932str);
-  } catch (rlvm::Exception& e) {
-    // WEIRD: Sometimes rldev (and the official compiler?) will generate strings
-    // that aren't valid shift_jis. Fall back while I figure out how to handle
-    // this.
-    name_parsed_text = cp932str;
-  }
-
-  std::string utf8str = cp932toUTF8(name_parsed_text, GetTextEncoding());
-  TextSystem& ts = system().text();
-
-  // Display UTF-8 characters
-  std::unique_ptr<TextoutLongOperation> ptr =
-      std::make_unique<TextoutLongOperation>(*this, utf8str);
-
-  if (system().ShouldFastForward() || ts.message_no_wait() ||
-      ts.script_message_nowait()) {
-    ptr->set_no_wait();
-  }
-
-  // Run the textout operation once. If it doesn't fully succeed, push it onto
-  // the stack.
-  if (!(*ptr)(*this)) {
-    PushLongOperation(ptr.release());
-  }
-}
-
-void RLMachine::SetKidokuMarker(int kidoku_number) {
-  // Check to see if we mark savepoints on textout
-  if (ShouldSetMessageSavepoint() &&
-      system_.text().GetCurrentPage().number_of_chars_on_page() == 0)
-    MarkSavepoint();
-
-  // Mark if we've previously read this piece of text.
-  system_.text().SetKidokuRead(
-      memory().HasBeenRead(SceneNumber(), kidoku_number));
-
-  // Record the kidoku pair in global memory.
-  memory().RecordKidoku(SceneNumber(), kidoku_number);
-}
-
 bool RLMachine::DllLoaded(const std::string& name) {
   for (auto const& dll : loaded_dlls_) {
     if (dll.second->GetDLLName() == name)
@@ -457,18 +408,6 @@ void RLMachine::SetHaltOnException(bool halt_on_exception) {
   halt_on_exception_ = halt_on_exception;
 }
 
-void RLMachine::SetLineNumber(const int i) {
-  line_ = i;
-
-  if (on_line_actions_) {
-    ActionMap::iterator it =
-        on_line_actions_->find(std::make_pair(SceneNumber(), line_));
-    if (it != on_line_actions_->end()) {
-      it->second();
-    }
-  }
-}
-
 void RLMachine::AddLineAction(const int seen,
                               const int line,
                               std::function<void(void)> function) {
@@ -480,20 +419,72 @@ void RLMachine::AddLineAction(const int seen,
 
 // -----------------------------------------------------------------------
 
-void RLMachine::operator()(libreallive::CommaElement const*) {
+void RLMachine::PerformTextout(std::string cp932str) {
+  std::string name_parsed_text;
+  try {
+    name_parsed_text = parseNames(memory(), cp932str);
+  } catch (rlvm::Exception& e) {
+    // WEIRD: Sometimes rldev (and the official compiler?) will generate strings
+    // that aren't valid shift_jis. Fall back while I figure out how to handle
+    // this.
+    name_parsed_text = cp932str;
+  }
+
+  std::string utf8str = cp932toUTF8(name_parsed_text, GetTextEncoding());
+  TextSystem& ts = system().text();
+
+  // Display UTF-8 characters
+  std::unique_ptr<TextoutLongOperation> ptr =
+      std::make_unique<TextoutLongOperation>(*this, utf8str);
+
+  if (system().ShouldFastForward() || ts.message_no_wait() ||
+      ts.script_message_nowait()) {
+    ptr->set_no_wait();
+  }
+
+  // Run the textout operation once. If it doesn't fully succeed, push it onto
+  // the stack.
+  if (!(*ptr)(*this)) {
+    PushLongOperation(ptr.release());
+  }
+}
+
+// -----------------------------------------------------------------------
+
+void RLMachine::operator()(std::monostate) { AdvanceInstructionPointer(); }
+
+void RLMachine::operator()(Kidoku k) {
+  // Check to see if we mark savepoints on textout
+  if (ShouldSetMessageSavepoint() &&
+      system_.text().GetCurrentPage().number_of_chars_on_page() == 0)
+    MarkSavepoint();
+
+  // Mark if we've previously read this piece of text.
+  system_.text().SetKidokuRead(memory().HasBeenRead(SceneNumber(), k.num));
+
+  // Record the kidoku pair in global memory.
+  memory().RecordKidoku(SceneNumber(), k.num);
+
   AdvanceInstructionPointer();
 }
 
-void RLMachine::operator()(libreallive::MetaElement const* m) {
-  if (m->type_ == libreallive::MetaElement::Line_)
-    SetLineNumber(m->value_);
-  else if (m->type_ == libreallive::MetaElement::Kidoku_)
-    SetKidokuMarker(m->value_);
+void RLMachine::operator()(Line l) {
+  line_ = l.num;
+
+  if (on_line_actions_) {
+    ActionMap::iterator it =
+        on_line_actions_->find(std::make_pair(SceneNumber(), line_));
+    if (it != on_line_actions_->end()) {
+      it->second();
+    }
+  }
 
   AdvanceInstructionPointer();
 }
 
-void RLMachine::operator()(libreallive::CommandElement const* f) {
+void RLMachine::operator()(rlCommand cmd) {
+  auto f = cmd.cmd;
+
   auto op = module_manager_.Dispatch(*f);
   if (op == nullptr) {  // unimplemented opcode
     throw rlvm::UnimplementedOpcode(*this, *f);
@@ -509,37 +500,21 @@ void RLMachine::operator()(libreallive::CommandElement const* f) {
   }
 }
 
-void RLMachine::operator()(libreallive::ExpressionElement const* e) {
+void RLMachine::operator()(rlExpression e) {
   if (tracer_) {
-    tracer_->Log(SceneNumber(), line_number(), *e);
+    tracer_->Log(SceneNumber(), line_number(), *e.expr_);
   }
 
-  e->ParsedExpression()->GetIntegerValue(*this);  // (?)
+  e.Execute(*this);
   AdvanceInstructionPointer();
 }
 
-void RLMachine::operator()(libreallive::TextoutElement const* e) {
-  // Seen files are terminated with the string "SeenEnd", which isn't NULL
-  // terminated and has a bunch of random garbage after it.
-  constexpr std::string_view SeenEnd{
-      "\x82\x72"  // S
-      "\x82\x85"  // e
-      "\x82\x85"  // e
-      "\x82\x8e"  // n
-      "\x82\x64"  // E
-      "\x82\x8e"  // n
-      "\x82\x84"  // d
-  };
-
-  std::string unparsed_text = e->GetText();
-  if (unparsed_text.starts_with(SeenEnd)) {
-    unparsed_text = SeenEnd;
-    Halt();
-  }
-
-  PerformTextout(unparsed_text);
+void RLMachine::operator()(Textout t) {
+  PerformTextout(std::move(t.text));
   AdvanceInstructionPointer();
 }
+
+void RLMachine::operator()(End) { Halt(); }
 
 // -----------------------------------------------------------------------
 

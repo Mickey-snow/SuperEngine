@@ -37,11 +37,11 @@
 #include <utility>
 #include <vector>
 
-#include "libreallive/bytecode_fwd.hpp"
 #include "libreallive/scenario.hpp"
 #include "libreallive/scriptor.hpp"
 #include "log/tracer.hpp"
 #include "machine/call_stack.hpp"
+#include "machine/instruction.hpp"
 #include "machine/module_manager.hpp"
 
 namespace libreallive {
@@ -90,14 +90,8 @@ class RLMachine {
   void set_replaying_graphics_stack(bool in) { replaying_graphics_stack_ = in; }
   bool replaying_graphics_stack() { return replaying_graphics_stack_; }
 
-  // Returns the current Archive we are attached to.
-  libreallive::Archive& archive() { return archive_; }
-
   // Returns the current System that this RLMachine outputs to.
   System& system() { return system_; }
-
-  ModuleManager& GetModuleManager() { return module_manager_; }
-  const ModuleManager& GetModuleManager() const { return module_manager_; }
 
   // ------------------------------------- [ Implicit savepoint management ]
   // RealLive will save the latest savepoint for the topmost stack
@@ -195,12 +189,6 @@ class RLMachine {
   const libreallive::Scenario& Scenario() const;
 
   // ------------------------------------------------ [ Execution interface ]
-  // Normally, execute_next_instruction will call RunOnMachine() on
-  // whatever BytecodeElement is currently pointed to by the
-  // instruction pointer.
-
-  // Sets the current line number. This may trigger a line action.
-  void SetLineNumber(const int i);
 
   // Where the current scenario was compiled with RLdev, returns the text
   // encoding used:
@@ -218,11 +206,6 @@ class RLMachine {
   // regardless of the current scenario. (As we're probably running a scenario
   // that hasn't been patched at the time this method is called.)
   int GetProbableEncodingType() const;
-
-  void PerformTextout(const std::string& cp932str);
-
-  // Marks a kidoku marker as visited.
-  void SetKidokuMarker(int kidoku_number);
 
   // ---------------------------------------------------- [ DLL Management ]
   // RealLive has an extension system where a DLL can be loaded, and can be
@@ -312,13 +295,15 @@ class RLMachine {
   void AddLineAction(const int seen, const int line, std::function<void(void)>);
 
  public:
-  // Methods to be called with executing a libreallive::BytecodeElement as a
-  // visitor
-  void operator()(libreallive::CommaElement const*);
-  void operator()(libreallive::MetaElement const*);
-  void operator()(libreallive::CommandElement const*);
-  void operator()(libreallive::ExpressionElement const*);
-  void operator()(libreallive::TextoutElement const*);
+  void PerformTextout(std::string text);
+
+  void operator()(std::monostate);
+  void operator()(Kidoku);
+  void operator()(Line);
+  void operator()(rlCommand);
+  void operator()(rlExpression);
+  void operator()(Textout);
+  void operator()(End);
 
  private:
   // The Reallive VM's integer and string memory
