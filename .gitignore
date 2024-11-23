@@ -14,8 +14,8 @@ objs
 rlvm.ncb
 rlvm.suo
 /build
-/.sconf_temp
-/.sconsign.dblite
 _site
 .dir-locals.el
 compile_commands.json
+.ccls-cache
+.projectile

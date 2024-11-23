@@ -33,8 +33,7 @@
 //
 // -----------------------------------------------------------------------
 
-#ifndef SRC_BASE_GAMEEXE_HPP_
-#define SRC_BASE_GAMEEXE_HPP_
+#pragma once
 
 #include <boost/iterator/iterator_facade.hpp>
 #include <filesystem>
@@ -309,5 +308,3 @@ class Gameexe {
     std::string key_;
   };
 };
-
-#endif

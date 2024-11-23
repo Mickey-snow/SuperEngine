@@ -23,11 +23,11 @@
 
 #include "libsiglus/gexedat.hpp"
 
-#include "base/compression.h"
+#include "base/compression.hpp"
 #include "base/gameexe.hpp"
 #include "encodings/utf16.hpp"
 #include "libsiglus/xorkey.hpp"
-#include "utilities/byte_reader.h"
+#include "utilities/byte_reader.hpp"
 
 #include <boost/algorithm/string/trim.hpp>
 #include <iostream>

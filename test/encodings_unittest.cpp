@@ -90,7 +90,8 @@ TEST(UTF16LEDecodeTest, Ascii) {
 }
 
 TEST(UTF16LEDecodeTest, Japanese) {
-  const std::string expected = u8"こんにちは";
+  const auto data = u8"こんにちは";
+  const std::string expected(reinterpret_cast<char const*>(data));
 
   {
     std::vector<uint8_t> utf16le_bytes = {
@@ -128,7 +129,8 @@ TEST(UTF16LEDecodeTest, Japanese) {
 }
 
 TEST(UTF16LEDecodeTest, Emoji) {
-  const std::string expected = u8"😀";
+  const auto data = u8"😀";
+  const std::string expected(reinterpret_cast<char const*>(data));
 
   {
     std::vector<uint8_t> utf16le_bytes = {

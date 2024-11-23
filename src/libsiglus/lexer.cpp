@@ -26,7 +26,7 @@
 #include "libsiglus/lexeme.hpp"
 #include "libsiglus/types.hpp"
 #include "libsiglus/value.hpp"
-#include "utilities/byte_reader.h"
+#include "utilities/byte_reader.hpp"
 
 #include <cstdint>
 #include <iomanip>

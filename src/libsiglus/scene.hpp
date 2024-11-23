@@ -24,10 +24,10 @@
 #ifndef SRC_LIBSIGLUS_SCENE_HPP_
 #define SRC_LIBSIGLUS_SCENE_HPP_
 
-#include "base/compression.h"
+#include "base/compression.hpp"
 #include "encodings/utf16.hpp"
 #include "libsiglus/xorkey.hpp"
-#include "utilities/byte_reader.h"
+#include "utilities/byte_reader.hpp"
 
 #include <cstdint>
 #include <map>
