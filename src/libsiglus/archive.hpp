@@ -21,8 +21,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LIBSIGLUS_ARCHIVE_HPP_
-#define SRC_LIBSIGLUS_ARCHIVE_HPP_
+#pragma once
 
 #include "base/compression.hpp"
 #include "encodings/utf16.hpp"
@@ -195,5 +194,3 @@ class Archive {
 };
 
 }  // namespace libsiglus
-
-#endif

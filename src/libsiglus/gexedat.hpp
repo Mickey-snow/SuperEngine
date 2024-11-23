@@ -21,8 +21,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LIBSIGLUS_GEXEDAT_HPP_
-#define SRC_LIBSIGLUS_GEXEDAT_HPP_
+#pragma once
 
 #include <string_view>
 
@@ -34,5 +33,3 @@ struct XorKey;
 Gameexe CreateGexe(std::string_view sv, const XorKey& key);
 
 }  // namespace libsiglus
-
-#endif

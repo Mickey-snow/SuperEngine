@@ -21,8 +21,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LIBSIGLUS_TYPES_HPP
-#define SRC_LIBSIGLUS_TYPES_HPP
+#pragma once
 
 #include <cstdint>
 #include <string>
@@ -79,4 +78,3 @@ enum class OperatorCode : uint8_t {
 std::string ToString(OperatorCode op);
 
 }  // namespace libsiglus
-#endif

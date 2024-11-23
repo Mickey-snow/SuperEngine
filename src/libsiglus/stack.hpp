@@ -21,14 +21,13 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LIBSIGLUS_STACK_HPP_
-#define SRC_LIBSIGLUS_STACK_HPP_
+#pragma once
 
 #include "libsiglus/types.hpp"
 #include "libsiglus/value.hpp"
 
-#include <stack>
 #include <exception>
+#include <stack>
 #include <string>
 #include <vector>
 
@@ -75,5 +74,3 @@ class Stack {
 };
 
 }  // namespace libsiglus
-
-#endif  // SRC_LIBSIGLUS_STACK_HPP_

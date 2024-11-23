@@ -21,8 +21,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#ifndef SRC_LIBSIGLUS_XORKEY_HPP_
-#define SRC_LIBSIGLUS_XORKEY_HPP_
+#pragma once
 
 #include <array>
 #include <cstdint>
@@ -35,5 +34,3 @@ struct XorKey {
 
 extern const XorKey sprb_key;
 }  // namespace libsiglus
-
-#endif

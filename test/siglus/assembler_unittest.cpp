@@ -36,50 +36,50 @@ using namespace libsiglus;
 
 class AssemblerTest : public ::testing::Test {
  protected:
-  Assembler itp;
+  Assembler assm;
 };
 
 TEST_F(AssemblerTest, Line) {
   const int lineno = 123;
-  itp.Interpret(lex::Line(lineno));
+  assm.Assemble(lex::Line(lineno));
 
-  EXPECT_EQ(itp.lineno_, lineno);
+  EXPECT_EQ(assm.lineno_, lineno);
 }
 
 TEST_F(AssemblerTest, Element) {
   const ElementCode elm{0x3f, 0x4f};
-  itp.Interpret(lex::Marker());
+  assm.Assemble(lex::Marker());
   for (const auto& it : elm)
-    itp.Interpret(lex::Push(Type::Int, it));
+    assm.Assemble(lex::Push(Type::Int, it));
 
-  EXPECT_EQ(itp.stack_.Backelm(), elm);
+  EXPECT_EQ(assm.stack_.Backelm(), elm);
 }
 
 TEST_F(AssemblerTest, Command) {
   {
     const ElementCode elm{0x3f, 0x4f};
-    itp.Interpret(lex::Marker());
+    assm.Assemble(lex::Marker());
     for (const auto& it : elm)
-      itp.Interpret(lex::Push(Type::Int, it));
+      assm.Assemble(lex::Push(Type::Int, it));
 
-    auto result = itp.Interpret(lex::Command(0, {}, {}, libsiglus::Type::Int));
+    auto result = assm.Assemble(lex::Command(0, {}, {}, libsiglus::Type::Int));
     ASSERT_TRUE(std::holds_alternative<Command>(result));
     EXPECT_EQ(std::visit(DebugStringOf(), result), "cmd<63,79:0>() -> int");
   }
 
   {
     std::vector<std::string> string_table{"ef00", "ef01", "ef02", "ef03"};
-    itp.str_table_ = &string_table;
+    assm.str_table_ = &string_table;
 
     const ElementCode elm{37, 2, -1, 2, 93, -1, 33, 93, -1, 0, 120};
-    itp.Interpret(lex::Marker());
+    assm.Assemble(lex::Marker());
     for (const auto& it : elm)
-      itp.Interpret(lex::Push(Type::Int, it));
-    itp.Interpret(lex::Push(Type::String, 2));
+      assm.Assemble(lex::Push(Type::Int, it));
+    assm.Assemble(lex::Push(Type::String, 2));
     for (auto& it : ElementCode{0, 5, 10})
-      itp.Interpret(lex::Push(Type::Int, it));
+      assm.Assemble(lex::Push(Type::Int, it));
 
-    auto result = itp.Interpret(
+    auto result = assm.Assemble(
         lex::Command(2,
                      {libsiglus::Type::String, libsiglus::Type::Int,
                       libsiglus::Type::Int, libsiglus::Type::Int},

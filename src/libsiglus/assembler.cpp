@@ -29,7 +29,7 @@
 
 namespace libsiglus {
 
-Instruction Assembler::Interpret(Lexeme lex) { return std::visit(*this, lex); }
+Instruction Assembler::Assemble(Lexeme lex) { return std::visit(*this, lex); }
 
 Instruction Assembler::operator()(lex::Push push) {
   switch (push.type_) {
