@@ -38,6 +38,7 @@
 #include "machine/long_operation.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/serialization.hpp"
+#include "modules/jump.hpp"
 #include "modules/module_sys_save.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/system.hpp"
@@ -489,7 +490,7 @@ void GCNPlatform::MenuLoad(RLMachine& machine) {
 // -----------------------------------------------------------------------
 
 void GCNPlatform::DoLoad(RLMachine& machine, int slot) {
-  machine.ClearLongOperationsOffBackOfStack();
+  ClearLongOperationsOffBackOfStack(machine);
   Sys_load()(machine, slot);
 }
 

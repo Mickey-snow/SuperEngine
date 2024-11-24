@@ -86,7 +86,7 @@ RLMachine::RLMachine(System& in_system, libreallive::Archive& in_archive)
   memory_->PartialReset(std::move(stack_memory));
 
   // Search in the Gameexe for #SEEN_START and place us there
-  Gameexe& gameexe = in_system.gameexe();
+  Gameexe& gameexe = GetGameexe();
   memory_->LoadFrom(gameexe);
 
   int first_seen = -1;
@@ -119,11 +119,6 @@ RLMachine::RLMachine(System& in_system, libreallive::Archive& in_archive)
 }
 
 RLMachine::~RLMachine() {}
-
-void RLMachine::HardResetMemory() {
-  memory_ = std::make_unique<Memory>();
-  memory_->LoadFrom(system().gameexe());
-}
 
 void RLMachine::MarkSavepoint() {
   savepoint_call_stack_ = call_stack_.Clone();
@@ -176,150 +171,86 @@ bool RLMachine::ShouldSetSeentopSavepoint() const {
 
 void RLMachine::ExecuteNextInstruction() {
   // Do not execute any more instructions if the machine is halted.
-  if (halted() == true) {
+  if (halted() == true)
     return;
-  } else {
-    const auto top_frame = call_stack_.Top();
-    if (top_frame == nullptr) {
-      std::cerr << "RLMachine: Stack underflow" << std::endl;
-      Halt();
-      return;
+
+  const auto top_frame = call_stack_.Top();
+  if (top_frame == nullptr) {
+    std::cerr << "RLMachine: Stack underflow" << std::endl;
+    Halt();
+    return;
+  }
+
+  try {
+    if (top_frame->frame_type == StackFrame::TYPE_LONGOP) {
+      bool finished = false;
+      {
+        auto lock = call_stack_.GetLock();
+        finished = (*top_frame->long_op)(*this);
+      }
+
+      if (finished) {
+        call_stack_.Pop();
+      }
+
+    } else {
+      auto instruction = Resolve(*top_frame->pos);
+      std::visit(*this, std::move(instruction));
     }
+  } catch (rlvm::UnimplementedOpcode& e) {
+    AdvanceInstructionPointer();
 
-    try {
-      if (top_frame->frame_type == StackFrame::TYPE_LONGOP) {
-        bool finished = false;
-        {
-          auto lock = call_stack_.GetLock();
-          finished = (*top_frame->long_op)(*this);
-        }
-
-        if (finished) {
-          call_stack_.Pop();
-        }
-
-      } else {
-        auto instruction = Resolve(*top_frame->pos);
-        std::visit(*this, std::move(instruction));
-      }
-    } catch (rlvm::UnimplementedOpcode& e) {
-      AdvanceInstructionPointer();
-
-      if (print_undefined_opcodes_) {
-        cout << "(SEEN" << top_frame->pos.ScenarioNumber() << ")(Line " << line_
-             << "):  " << e.what() << endl;
-      }
-
-    } catch (rlvm::Exception& e) {
-      if (halt_on_exception_) {
-        halted_ = true;
-      } else {
-        // Advance the instruction pointer so as to prevent infinite
-        // loops where we throw an exception, and then try again.
-        AdvanceInstructionPointer();
-      }
-
-      cout << "(SEEN" << top_frame->pos.ScenarioNumber() << ")(Line " << line_
-           << ")";
-
-      // We specialcase rlvm::Exception because we might have the name of the
-      // opcode.
-      if (e.operation()) {
-        cout << "[" << e.operation()->Name() << "]";
-      }
-
-      cout << ":  " << e.what() << endl;
-    } catch (std::exception& e) {
-      if (halt_on_exception_) {
-        halted_ = true;
-      } else {
-        // Advance the instruction pointer so as to prevent infinite
-        // loops where we throw an exception, and then try again.
-        AdvanceInstructionPointer();
-      }
-
+    if (print_undefined_opcodes_) {
       cout << "(SEEN" << top_frame->pos.ScenarioNumber() << ")(Line " << line_
            << "):  " << e.what() << endl;
     }
-  }
-}
 
-void RLMachine::ExecuteUntilHalted() {
-  while (!halted()) {
-    ExecuteNextInstruction();
+  } catch (rlvm::Exception& e) {
+    // Advance the instruction pointer so as to prevent infinite
+    // loops where we throw an exception, and then try again.
+    AdvanceInstructionPointer();
+
+    cout << "(SEEN" << top_frame->pos.ScenarioNumber() << ")(Line " << line_
+         << ")";
+
+    // We specialcase rlvm::Exception because we might have the name of the
+    // opcode.
+    if (e.operation()) {
+      cout << "[" << e.operation()->Name() << "]";
+    }
+
+    cout << ":  " << e.what() << endl;
+  } catch (std::exception& e) {
+    // Advance the instruction pointer so as to prevent infinite
+    // loops where we throw an exception, and then try again.
+    AdvanceInstructionPointer();
+
+    cout << "(SEEN" << top_frame->pos.ScenarioNumber() << ")(Line " << line_
+         << "):  " << e.what() << endl;
   }
 }
 
 void RLMachine::AdvanceInstructionPointer() {
-  if (!replaying_graphics_stack()) {
-    const auto it = call_stack_.FindTopRealFrame();
-    if (it != nullptr) {
-      it->pos++;
-      if (!it->pos.HasNext())
-        halted_ = true;
-    }
+  if (replaying_graphics_stack())
+    return;
+
+  const auto it = call_stack_.FindTopRealFrame();
+  if (it != nullptr) {
+    it->pos++;
+    if (!it->pos.HasNext())
+      halted_ = true;
   }
 }
 
-void RLMachine::Jump(int scenario_num, int entrypoint) {
-  auto it = call_stack_.FindTopRealFrame();
-  if (it != nullptr)
-    it->pos = scriptor_.LoadEntry(scenario_num, entrypoint);
-}
+CallStack& RLMachine::Stack() { return call_stack_; }
 
-void RLMachine::Farcall(int scenario_num, int entrypoint) {
-  if (entrypoint == 0 && ShouldSetSeentopSavepoint())
-    MarkSavepoint();
+libreallive::Scriptor& RLMachine::Scriptor() { return scriptor_; }
 
-  call_stack_.Push(StackFrame(scriptor_.LoadEntry(scenario_num, entrypoint),
-                              StackFrame::TYPE_FARCALL));
-}
-
-void RLMachine::ReturnFromFarcall() { call_stack_.Pop(); }
-
-void RLMachine::GotoLocation(unsigned long new_location) {
-  const auto scenario_id = call_stack_.Top()->pos.ScenarioNumber();
-  call_stack_.Top()->pos = scriptor_.Load(scenario_id, new_location);
-}
-
-void RLMachine::Gosub(unsigned long new_location) {
-  const auto scenario_id = call_stack_.Top()->pos.ScenarioNumber();
-  call_stack_.Push(StackFrame(scriptor_.Load(scenario_id, new_location),
-                              StackFrame::TYPE_GOSUB));
-}
-
-void RLMachine::ReturnFromGosub() { call_stack_.Pop(); }
-
-void RLMachine::PushStringValueUp(int index, const std::string& val) {
-  if (index < 0 || index > 2) {
-    throw rlvm::Exception("Invalid index in pushStringValue");
-  }
-
-  bool set = false;
-  for (auto it = call_stack_.begin(); it != call_stack_.end(); ++it) {
-    if (it->frame_type != StackFrame::TYPE_LONGOP) {
-      if (!set)
-        set = true;
-      else {
-        it->strK.Set(index, val);
-      }
-    }
-  }
-}
+Gameexe& RLMachine::GetGameexe() { return system_.gameexe(); }
 
 void RLMachine::PushLongOperation(LongOperation* long_operation) {
   const auto top_frame = call_stack_.Top();
   call_stack_.Push(StackFrame(top_frame->pos, long_operation));
-}
-
-void RLMachine::PopStackFrame() { call_stack_.Pop(); }
-
-int RLMachine::GetStackSize() { return call_stack_.Size(); }
-
-void RLMachine::ClearLongOperationsOffBackOfStack() {
-  while (call_stack_.Size() &&
-         call_stack_.Top() != call_stack_.FindTopRealFrame())
-    call_stack_.Pop();
 }
 
 void RLMachine::Reset() {
@@ -341,8 +272,6 @@ std::shared_ptr<LongOperation> RLMachine::CurrentLongOperation() const {
 
   return std::shared_ptr<LongOperation>();
 }
-
-void RLMachine::ClearCallstack() { call_stack_ = CallStack(); }
 
 int RLMachine::SceneNumber() const {
   return call_stack_.Top()->pos.ScenarioNumber();
@@ -403,10 +332,6 @@ void RLMachine::SetPrintUndefinedOpcodes(bool in) {
 }
 
 void RLMachine::Halt() { halted_ = true; }
-
-void RLMachine::SetHaltOnException(bool halt_on_exception) {
-  halt_on_exception_ = halt_on_exception;
-}
 
 void RLMachine::AddLineAction(const int seen,
                               const int line,
@@ -492,7 +417,7 @@ void RLMachine::operator()(rlCommand cmd) {
 
   try {
     if (tracer_)
-      tracer_->Log(SceneNumber(), line_number(), op, *f);
+      tracer_->Log(SceneNumber(), LineNumber(), op, *f);
     op->DispatchFunction(*this, *f);
   } catch (rlvm::Exception& e) {
     e.setOperation(op);
@@ -502,7 +427,7 @@ void RLMachine::operator()(rlCommand cmd) {
 
 void RLMachine::operator()(rlExpression e) {
   if (tracer_) {
-    tracer_->Log(SceneNumber(), line_number(), *e.expr_);
+    tracer_->Log(SceneNumber(), LineNumber(), *e.expr_);
   }
 
   e.Execute(*this);
@@ -520,7 +445,7 @@ void RLMachine::operator()(End) { Halt(); }
 
 template <class Archive>
 void RLMachine::save(Archive& ar, unsigned int version) const {
-  int line_num = line_number();
+  int line_num = LineNumber();
   ar & line_num;
 
   // Save the state of the stack when the last save point was hit

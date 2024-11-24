@@ -46,6 +46,7 @@
 #include "machine/general_operations.hpp"
 #include "machine/rloperation.hpp"
 #include "machine/rloperation/default_value.hpp"
+#include "modules/jump.hpp"
 #include "modules/module_sys_date.hpp"
 #include "modules/module_sys_frame.hpp"
 #include "modules/module_sys_index_series.hpp"
@@ -112,13 +113,14 @@ struct GetCursorPos_gc2 : public RLOpcode<IntReference_T, IntReference_T> {
 
 struct CallStackPop : RLOpcode<DefaultIntValue_T<1>> {
   void operator()(RLMachine& machine, int frames_to_pop) {
-    for (int i = 0; i < frames_to_pop; ++i)
-      machine.PopStackFrame();
+    for (int i = 0; i < frames_to_pop; ++i) {
+      machine.Stack().Pop();
+    }
   }
 };
 
 struct CallStackSize : RLStoreOpcode<> {
-  int operator()(RLMachine& machine) { return machine.GetStackSize(); }
+  int operator()(RLMachine& machine) { return machine.Stack().Size(); }
 };
 
 struct PauseCursor : public RLOpcode<IntConstant_T> {
@@ -253,7 +255,7 @@ struct ReturnMenu : public RLOpcode<> {
   void operator()(RLMachine& machine) override {
     int scenario = machine.system().gameexe()("SEEN_MENU").ToInt();
     machine.LocalReset();
-    machine.Jump(scenario, 0);
+    Jump(machine, scenario, 0);
   }
 };
 
@@ -368,7 +370,7 @@ void Sys_MenuReturn::operator()(RLMachine& machine) {
 
   // First, we jump the instruction pointer to the new location.
   int scenario = machine.system().gameexe()("SEEN_MENU").ToInt();
-  machine.Jump(scenario, 0);
+  Jump(machine, scenario, 0);
 
   // Now we push a LongOperation on top of the stack; when this
   // ends, we'll be at SEEN_MENU.

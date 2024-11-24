@@ -147,8 +147,6 @@ void RLVMInstance::Run(const std::filesystem::path& gamerootPath) {
     // user data is going to be screwed!
     DoUserNameCheck(rlmachine);
 
-    rlmachine.SetHaltOnException(false);
-
     if (load_save_ != -1)
       Sys_load()(rlmachine, load_save_);
 
@@ -246,7 +244,9 @@ void RLVMInstance::DoUserNameCheck(RLMachine& machine) {
             _("You appear to have run this game without a translation patch "
               "previously. This can cause lines of text to not print."),
             _("Reset"), _("Continue with broken names"))) {
-      machine.HardResetMemory();
+      Memory memory;
+      memory.LoadFrom(machine.GetGameexe());
+      machine.memory() = std::move(memory);
     }
   }
 }

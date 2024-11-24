@@ -35,6 +35,7 @@
 #include "base/rect.hpp"
 #include "machine/long_operation.hpp"
 #include "machine/rlmachine.hpp"
+#include "modules/jump.hpp"
 #include "systems/base/event_system.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/surface.hpp"
@@ -328,5 +329,5 @@ void ExbtnWindowButton::ButtonReleased(RLMachine& machine) {
   // Push a LongOperation onto the stack which will restore
   // visibility when we return from this Exbtn call
   machine.PushLongOperation(new RestoreTextSystemVisibility);
-  machine.Farcall(scenario_, entrypoint_);
+  Farcall(machine, scenario_, entrypoint_);
 }

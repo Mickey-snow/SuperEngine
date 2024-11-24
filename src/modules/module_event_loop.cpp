@@ -30,6 +30,7 @@
 #include "long_operations/pause_long_operation.hpp"
 #include "machine/general_operations.hpp"
 #include "machine/rlmachine.hpp"
+#include "modules/jump.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/sound_system.hpp"
 #include "systems/base/system.hpp"
@@ -120,6 +121,11 @@ struct rlm_wav_play_2
   }
 };
 
+struct Ret : public RLOpcode<> {
+  // return from farcall
+  void operator()(RLMachine& machine) { Return(machine); }
+};
+
 }  // namespace
 
 EventLoopModule::EventLoopModule() : RLModule("EventLoop", 0, 4) {
@@ -137,9 +143,9 @@ EventLoopModule::EventLoopModule() : RLModule("EventLoop", 0, 4) {
   AddUnsupportedOpcode(303, 0, "yield");
 
   // Theoretically the same as rtl, but we don't really know.
-  AddOpcode(300, 0, "rtlButton", CallFunction(&RLMachine::ReturnFromFarcall));
-  AddOpcode(301, 0, "rtlCancel", CallFunction(&RLMachine::ReturnFromFarcall));
-  AddOpcode(302, 0, "rtlSystem", CallFunction(&RLMachine::ReturnFromFarcall));
+  AddOpcode(300, 0, "rtlButton", new Ret);
+  AddOpcode(301, 0, "rtlCancel", new Ret);
+  AddOpcode(302, 0, "rtlSystem", new Ret);
 
   AddOpcode(371, 0, "rlm_wav_play", new rlm_wav_play_0);
   AddOpcode(371, 1, "rlm_wav_play", new rlm_wav_play_1);

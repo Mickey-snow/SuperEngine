@@ -31,6 +31,7 @@
 
 #include "base/gameexe.hpp"
 #include "machine/rlmachine.hpp"
+#include "modules/jump.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/system.hpp"
 
@@ -51,7 +52,7 @@ void PBRIDE_ResetAutoMode(RLMachine& machine) {
 void LB_SkipBaseball(RLMachine& machine) {
   // Baseball is a weird minigame that requires talking to a DLL. :( We will
   // *never* emulate it properly without reverse engineering what the DLL does.
-  machine.ReturnFromFarcall();
+  Return(machine);
 }
 
 }  // namespace

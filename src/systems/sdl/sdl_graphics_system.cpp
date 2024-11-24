@@ -370,9 +370,9 @@ void SDLGraphicsSystem::ExecuteGraphicsSystem(RLMachine& machine) {
     time_of_last_titlebar_update_ = current_time;
 
     if (machine.SceneNumber() != last_seen_number_ ||
-        machine.line_number() != last_line_number_) {
+        machine.LineNumber() != last_line_number_) {
       last_seen_number_ = machine.SceneNumber();
-      last_line_number_ = machine.line_number();
+      last_line_number_ = machine.LineNumber();
       SetWindowTitle();
     }
   }

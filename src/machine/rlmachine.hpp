@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -8,6 +5,7 @@
 // -----------------------------------------------------------------------
 //
 // Copyright (C) 2006, 2007 Elliot Glaysher
+// Copyright (C) 2024 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -77,21 +75,23 @@ class RLMachine {
   // memory iterators to work properly.)
   int* store_register_address() { return &store_register_; }
 
-  // Returns the internal memory object for raw access to the machine object's
-  // memory. This should only be used during serialization or complex memory
-  // operations involving overlays.
-  Memory& memory() { return *memory_; }
-  const Memory& memory() const { return *memory_; }
-
   // Returns the value of the most recent line MetadataElement, which
   // should correspond with the line in the source file.
-  int line_number() const { return line_; }
+  int LineNumber() const { return line_; }
+
+  // Returns the current scene number for the Scenario on the top of
+  // the call stack.
+  int SceneNumber() const;
 
   void set_replaying_graphics_stack(bool in) { replaying_graphics_stack_ = in; }
   bool replaying_graphics_stack() { return replaying_graphics_stack_; }
 
   // Returns the current System that this RLMachine outputs to.
   System& system() { return system_; }
+
+  libreallive::Scriptor& Scriptor();
+
+  Gameexe& GetGameexe();
 
   // ------------------------------------- [ Implicit savepoint management ]
   // RealLive will save the latest savepoint for the topmost stack
@@ -133,41 +133,12 @@ class RLMachine {
   // triggered purely from bytecode.
   void SetMarkSavepoints(const int in);
 
-  // ------------------------------------- [ Memory manipulation functions ]
+  // Returns the internal memory object for raw access to the machine object's
+  // memory.
+  Memory& memory() { return *memory_; }
+  const Memory& memory() const { return *memory_; }
 
-  // Reinitializes all memory to a pristine, default state as specified in the
-  // Gameexe.ini file.
-  void HardResetMemory();
-
-  // --------------------------------- [ Call stack manipulation functions ]
-
-  // Permanently modifies the current stack frame to point to the new
-  // location.
-  void Jump(int scenario, int entrypoint);
-
-  // Push a new stack frame onto the call stack
-  void Farcall(int scenario, int entrypoint);
-
-  // Return from the most recent farcall().
-  void ReturnFromFarcall();
-
-  // Permanently moves the instruction pointer to the passed in
-  // iterator in the current stack frame.
-  void GotoLocation(unsigned long new_location);
-
-  // Pushes a new stack frame onto the call stack, saving the current
-  // location. The new frame contains the current SEEN with
-  // new_location as the instruction pointer.
-  void Gosub(unsigned long new_location);
-
-  // Returns from the most recent gosub call. Throws if there's a mismatch
-  // between farcall()/rtl() gosub()/ret() pairs.
-  void ReturnFromGosub();
-
-  // Writes |val| to strK[index] in the stack frame above the current one. Used
-  // to return strings from {farcall,gosub}_with constructs (since rtl_with
-  // only accepts integers).
-  void PushStringValueUp(int index, const std::string& val);
+  CallStack& Stack();
 
   // Pushes a long operation onto the function stack. Control will be passed to
   // this LongOperation instead of normal bytecode passing until the
@@ -177,13 +148,6 @@ class RLMachine {
   // Returns a pointer to the currently running LongOperation when the top of
   // the call stack is a LongOperation. NULL otherwise.
   std::shared_ptr<LongOperation> CurrentLongOperation() const;
-
-  // Clears the callstack, properly freeing any LongOperations.
-  void ClearCallstack();
-
-  // Returns the current scene number for the Scenario on the top of
-  // the call stack.
-  int SceneNumber() const;
 
   // Returns the actual Scenario on the top top of the call stack.
   const libreallive::Scenario& Scenario() const;
@@ -235,13 +199,6 @@ class RLMachine {
   // Executes the next instruction in the bytecode in
   void ExecuteNextInstruction();
 
-  // Call executeNextInstruction() repeatedly until the RLMachine is
-  // halted. This function is used in unit testing, and would never be
-  // called during real usage of an RLMachine instance since other
-  // subsystems (graphics, sound, etc) would need to have a chance to
-  // fire between RLMachine instructions.
-  void ExecuteUntilHalted();
-
   // Increments the stack pointer in the current frame. If we have run
   // off the end of the current scenario, set the halted bit.
   void AdvanceInstructionPointer();
@@ -264,21 +221,6 @@ class RLMachine {
   // Force the machine to halt. This should terminate the execution of
   // bytecode, and theoretically, the program.
   void Halt();
-
-  // Sets whether the RLMachine will be put into the halt state if an
-  // exception is thrown while executing an instruction. By default,
-  // it will.
-  void SetHaltOnException(bool halt_on_exception);
-
-  // Pops a stack frame from the call stack, alerting possible
-  // LongOperations of this change if needed.
-  void PopStackFrame();
-
-  // Returns the current stack size.
-  int GetStackSize();
-
-  // Clears all LongOperations from the back of the stack.
-  void ClearLongOperationsOffBackOfStack();
 
   // Clears all call stacks and other data. Does not clear any local memory, as
   // this should only be called right before a load.
@@ -308,6 +250,7 @@ class RLMachine {
  private:
   // The Reallive VM's integer and string memory
   std::unique_ptr<Memory> memory_;
+  Memory savepoint_memory_;
 
   // The RealLive machine's single result register
   int store_register_ = 0;
@@ -322,14 +265,9 @@ class RLMachine {
   // opcode.
   bool print_undefined_opcodes_ = false;
 
-  // States whether the machine should halt if an unhandled exception is thrown
-  bool halt_on_exception_ = false;
-
   // The SEEN.TXT the machine is currently executing.
   libreallive::Archive& archive_;
   libreallive::Scriptor scriptor_;
-
-  Memory savepoint_memory_;
 
   // The most recent line marker we've come across
   int line_ = 0;
@@ -346,14 +284,8 @@ class RLMachine {
   // stuff.
   bool replaying_graphics_stack_ = false;
 
- private:
   CallStack call_stack_, savepoint_call_stack_;
 
- public:
-  // For logging
-  std::shared_ptr<Tracer> tracer_ = nullptr;
-
- private:
   // An optional set of game specific hacks that run at certain SEEN/line
   // pairs. These run during setLineNumer().
   typedef std::map<std::pair<int, int>, std::function<void(void)>> ActionMap;
@@ -363,6 +295,11 @@ class RLMachine {
   // Currently loaded "DLLs".
   DLLMap loaded_dlls_;
 
+ public:
+  // For logging
+  std::shared_ptr<Tracer> tracer_ = nullptr;
+
+ private:
   // boost::serialization support
   friend class boost::serialization::access;
 

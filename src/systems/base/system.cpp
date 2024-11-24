@@ -43,6 +43,7 @@
 #include "machine/long_operation.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/serialization.hpp"
+#include "modules/jump.hpp"
 #include "modules/module_sys.hpp"
 #include "systems/base/event_system.hpp"
 #include "systems/base/graphics_system.hpp"
@@ -209,8 +210,8 @@ void System::ShowSyscomMenu(RLMachine& machine) {
       in_menu_ = true;
       machine.PushLongOperation(new MenuReseter(*this));
 
-      std::vector<int> cancelcall = gexe("CANCELCALL");
-      machine.Farcall(cancelcall.at(0), cancelcall.at(1));
+      const std::vector<int> cancelcall = gexe("CANCELCALL");
+      Farcall(machine, cancelcall.at(0), cancelcall.at(1));
     }
   } else if (platform_) {
     platform_->ShowNativeSyscomMenu(machine);
@@ -272,7 +273,7 @@ void System::InvokeSyscom(RLMachine& machine, int syscom) {
       break;
     case SYSCOM_MENU_RETURN:
       // This is a hack since we probably have a bunch of crap on the stack.
-      machine.ClearLongOperationsOffBackOfStack();
+      ClearLongOperationsOffBackOfStack(machine);
 
       // Simulate a MenuReturn.
       Sys_MenuReturn()(machine);
@@ -403,7 +404,7 @@ void System::InvokeSaveOrLoad(RLMachine& machine,
 
     text().set_system_visible(false);
     machine.PushLongOperation(new RestoreTextSystemVisibility);
-    machine.Farcall(scenario, entrypoint);
+    Farcall(machine, scenario, entrypoint);
   } else if (platform_) {
     platform_->InvokeSyscomStandardUI(machine, syscom);
   }
