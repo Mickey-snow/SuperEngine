@@ -65,7 +65,22 @@ struct Command {
   }
 };
 
-using Instruction = std::variant<std::monostate, Command>;
+struct Name {
+  std::string str;
+
+  std::string ToDebugString() const { return "Name(" + str + ')'; }
+};
+
+struct Textout {
+  int kidoku;
+  std::string str;
+
+  std::string ToDebugString() const {
+    return std::format("Textout@{} ({})", kidoku, str);
+  }
+};
+
+using Instruction = std::variant<std::monostate, Command, Name, Textout>;
 
 // this class takes the low-level `Lexeme` and constructs `Instruction` objects
 // that are ready for execution.
@@ -80,9 +95,14 @@ class Assembler {
   Instruction operator()(lex::Push);
   Instruction operator()(lex::Line);
   Instruction operator()(lex::Marker);
-  Instruction operator()(lex::Command);
   Instruction operator()(lex::Operate1);
   Instruction operator()(lex::Operate2);
+  Instruction operator()(lex::Copy);
+  Instruction operator()(lex::CopyElm);
+
+  Instruction operator()(lex::Command);
+  Instruction operator()(lex::Namae);
+  Instruction operator()(lex::Textout);
 
   template <typename T>
   Instruction operator()(T) {

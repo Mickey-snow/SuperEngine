@@ -195,7 +195,6 @@ class Copy {
 
   size_t ByteLength() const { return 5; }
 
- private:
   Type type_;
 };
 
@@ -251,7 +250,6 @@ class Textout {
 
   size_t ByteLength() const { return 5; }
 
- private:
   int kidoku_;
 };
 

@@ -189,3 +189,34 @@ TEST_F(AssemblerTest, UnaryOp) {
     EXPECT_EQ(assm.stack_.Popint(), (~123));
   }
 }
+
+TEST_F(AssemblerTest, Copy) {
+  assm.stack_.PushMarker();
+  assm.stack_.Push(10);
+  assm.stack_.Push(20);
+  assm.Assemble(lex::Copy(Type::Int));
+  assm.stack_.Push("str");
+  assm.Assemble(lex::Copy(Type::String));
+  assm.stack_.Push(30);
+  assm.Assemble(lex::CopyElm());
+
+  EXPECT_EQ(assm.stack_.Popstr(), "str");
+  EXPECT_EQ(assm.stack_.Popstr(), "str");
+  EXPECT_EQ(assm.stack_.Popelm(), (std::vector<int>{10, 20, 20, 30}));
+  EXPECT_EQ(assm.stack_.Popelm(), (std::vector<int>{10, 20, 20, 30}));
+}
+
+TEST_F(AssemblerTest, Name) {
+  assm.stack_.Push("B");
+  assm.stack_.Push("A");
+  auto result = assm.Assemble(lex::Namae());
+  ASSERT_TRUE(std::holds_alternative<Name>(result));
+  EXPECT_EQ(std::get<Name>(result).str, "A");
+}
+
+TEST_F(AssemblerTest, Text) {
+  assm.stack_.Push("some text");
+  auto result = assm.Assemble(lex::Textout(5));
+  ASSERT_TRUE(std::holds_alternative<Textout>(result));
+  EXPECT_EQ(std::visit(DebugStringOf(), result), "Textout@5 (some text)");
+}

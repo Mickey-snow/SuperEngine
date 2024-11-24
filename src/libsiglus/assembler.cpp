@@ -195,4 +195,30 @@ Instruction Assembler::operator()(lex::Operate2 op) {
   return std::monostate();
 }
 
+Instruction Assembler::operator()(lex::Copy cp) {
+  switch (cp.type_) {
+    case Type::Int:
+      stack_.Push(stack_.Backint());
+      break;
+    case Type::String:
+      stack_.Push(stack_.Backstr());
+      break;
+
+    default:
+      break;
+  }
+  return std::monostate();
+}
+
+Instruction Assembler::operator()(lex::CopyElm) {
+  stack_.Push(stack_.Backelm());
+  return std::monostate();
+}
+
+Instruction Assembler::operator()(lex::Namae) { return Name(stack_.Popstr()); }
+
+Instruction Assembler::operator()(lex::Textout t) {
+  return Textout{.kidoku = t.kidoku_, .str = stack_.Popstr()};
+}
+
 }  // namespace libsiglus
