@@ -42,37 +42,37 @@ namespace getSystemObjImpl {
 
 template <>
 System& GetSystemObj(RLMachine& machine) {
-  return machine.system();
+  return machine.GetSystem();
 }
 
 template <>
 EventSystem& GetSystemObj(RLMachine& machine) {
-  return machine.system().event();
+  return machine.GetSystem().event();
 }
 
 template <>
 GraphicsSystem& GetSystemObj(RLMachine& machine) {
-  return machine.system().graphics();
+  return machine.GetSystem().graphics();
 }
 
 template <>
 TextSystem& GetSystemObj(RLMachine& machine) {
-  return machine.system().text();
+  return machine.GetSystem().text();
 }
 
 template <>
 SoundSystem& GetSystemObj(RLMachine& machine) {
-  return machine.system().sound();
+  return machine.GetSystem().sound();
 }
 
 template <>
 CGMTable& GetSystemObj(RLMachine& machine) {
-  return machine.system().graphics().cg_table();
+  return machine.GetSystem().graphics().cg_table();
 }
 
 template <>
 TextPage& GetSystemObj(RLMachine& machine) {
-  return machine.system().text().GetCurrentPage();
+  return machine.GetSystem().text().GetCurrentPage();
 }
 
 }  // namespace getSystemObjImpl
@@ -115,7 +115,7 @@ ReturnGameexeInt::ReturnGameexeInt(const std::string& full_key, int en)
     : full_key_name_(full_key), entry_(en) {}
 
 int ReturnGameexeInt::operator()(RLMachine& machine) {
-  Gameexe& gexe = machine.system().gameexe();
+  Gameexe& gexe = machine.GetSystem().gameexe();
   std::vector<int> values = gexe(full_key_name_);
   if (static_cast<size_t>(entry_) < values.size()) {
     return values[entry_];
@@ -133,7 +133,7 @@ int ReturnGameexeInt::operator()(RLMachine& machine) {
 InvokeSyscomAsOp::InvokeSyscomAsOp(const int syscom) : syscom_(syscom) {}
 
 void InvokeSyscomAsOp::operator()(RLMachine& machine) {
-  machine.system().InvokeSyscom(machine, syscom_);
+  machine.GetSystem().InvokeSyscom(machine, syscom_);
 }
 
 // -----------------------------------------------------------------------

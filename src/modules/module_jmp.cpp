@@ -116,11 +116,11 @@ void WriteWithData(RLMachine& machine,
                    const std::vector<int>& integers,
                    const std::vector<std::string>& strings) {
   for (int i = 0; i < 40 && i < integers.size(); ++i) {
-    machine.memory().Write(IntBank::L, i, integers[i]);
+    machine.GetMemory().Write(IntBank::L, i, integers[i]);
   }
 
   for (int i = 0; i < strings.size(); ++i) {
-    machine.memory().Write(StrBank::K, i, strings[i]);
+    machine.GetMemory().Write(StrBank::K, i, strings[i]);
   }
 }
 
@@ -465,7 +465,7 @@ struct push_string_value_up : public RLOpcode<IntConstant_T, StrConstant_T> {
                                   std::to_string(index));
 
     bool set = false;
-    auto& stack = machine.Stack();
+    auto& stack = machine.GetStack();
     for (auto it = stack.begin(); it != stack.end(); ++it) {
       if (it->frame_type != StackFrame::TYPE_LONGOP) {
         if (!set)

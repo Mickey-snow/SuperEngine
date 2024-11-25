@@ -54,7 +54,7 @@ HIKRenderer::HIKRenderer(System& system,
 HIKRenderer::~HIKRenderer() {}
 
 void HIKRenderer::Execute(RLMachine& machine) {
-  machine.system().graphics().MarkScreenAsDirty(GUT_DRAW_HIK);
+  machine.GetSystem().graphics().MarkScreenAsDirty(GUT_DRAW_HIK);
 }
 
 void HIKRenderer::Render() {

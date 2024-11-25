@@ -45,8 +45,8 @@
 
 PauseLongOperation::PauseLongOperation(RLMachine& machine)
     : LongOperation(), machine_(machine), is_done_(false) {
-  TextSystem& text = machine_.system().text();
-  EventSystem& event = machine_.system().event();
+  TextSystem& text = machine_.GetSystem().text();
+  EventSystem& event = machine_.GetSystem().event();
 
   // Initialize Auto Mode (in case it's activated, or in case it gets
   // activated)
@@ -55,27 +55,27 @@ PauseLongOperation::PauseLongOperation(RLMachine& machine)
   time_at_last_pass_ = event.GetTicks();
   total_time_ = 0;
 
-  machine_.system().graphics().MarkScreenAsDirty(GUT_TEXTSYS);
+  machine_.GetSystem().graphics().MarkScreenAsDirty(GUT_TEXTSYS);
 
   // We undo this in the destructor
   text.set_in_pause_state(true);
 }
 
 PauseLongOperation::~PauseLongOperation() {
-  machine_.system().text().set_in_pause_state(false);
+  machine_.GetSystem().text().set_in_pause_state(false);
 }
 
 void PauseLongOperation::MouseMotion(const Point& p) {
   // Tell the text system about the move
-  machine_.system().text().SetMousePosition(p);
+  machine_.GetSystem().text().SetMousePosition(p);
 }
 
 bool PauseLongOperation::MouseButtonStateChanged(MouseButton mouseButton,
                                                  bool pressed) {
-  GraphicsSystem& graphics = machine_.system().graphics();
-  EventSystem& es = machine_.system().event();
+  GraphicsSystem& graphics = machine_.GetSystem().graphics();
+  EventSystem& es = machine_.GetSystem().event();
 
-  TextSystem& text = machine_.system().text();
+  TextSystem& text = machine_.GetSystem().text();
 
   switch (mouseButton) {
     case MOUSE_LEFT: {
@@ -107,7 +107,7 @@ bool PauseLongOperation::MouseButtonStateChanged(MouseButton mouseButton,
     }
     case MOUSE_RIGHT:
       if (!pressed) {
-        machine_.system().ShowSyscomMenu(machine_);
+        machine_.GetSystem().ShowSyscomMenu(machine_);
         return true;
       }
       break;
@@ -134,13 +134,13 @@ bool PauseLongOperation::KeyStateChanged(KeyCode keyCode, bool pressed) {
   bool handled = false;
 
   if (pressed) {
-    GraphicsSystem& graphics = machine_.system().graphics();
+    GraphicsSystem& graphics = machine_.GetSystem().graphics();
 
     if (graphics.is_interface_hidden()) {
       graphics.ToggleInterfaceHidden();
       handled = true;
     } else {
-      TextSystem& text = machine_.system().text();
+      TextSystem& text = machine_.GetSystem().text();
       bool ctrl_key_skips = text.ctrl_key_skip();
 
       if (ctrl_key_skips &&
@@ -172,30 +172,30 @@ bool PauseLongOperation::KeyStateChanged(KeyCode keyCode, bool pressed) {
 
 bool PauseLongOperation::operator()(RLMachine& machine) {
   // Check to see if we're done because of the auto mode timer
-  if (machine_.system().text().auto_mode()) {
-    if (AutomodeTimerFired() && !machine_.system().sound().KoePlaying())
+  if (machine_.GetSystem().text().auto_mode()) {
+    if (AutomodeTimerFired() && !machine_.GetSystem().sound().KoePlaying())
       is_done_ = true;
   }
 
   // Check to see if we're done because we're being asked to pause on a piece
   // of text we've already hit.
-  if (machine_.system().ShouldFastForward())
+  if (machine_.GetSystem().ShouldFastForward())
     is_done_ = true;
 
   if (is_done_) {
     // Stop all voices before continuing.
-    machine_.system().sound().KoeStop();
+    machine_.GetSystem().sound().KoeStop();
   }
 
   return is_done_;
 }
 
 bool PauseLongOperation::AutomodeTimerFired() {
-  int current_time = machine_.system().event().GetTicks();
+  int current_time = machine_.GetSystem().event().GetTicks();
   int time_since_last_pass = current_time - time_at_last_pass_;
   time_at_last_pass_ = current_time;
 
-  if (machine_.system().event().TimeOfLastMouseMove() < (current_time - 2000)) {
+  if (machine_.GetSystem().event().TimeOfLastMouseMove() < (current_time - 2000)) {
     // If the mouse has been moved within the last two seconds, don't advance
     // the timer so the user has a chance to click on buttons.
     total_time_ += time_since_last_pass;
@@ -214,7 +214,7 @@ NewPageAfterLongop::NewPageAfterLongop(LongOperation* inOp)
 NewPageAfterLongop::~NewPageAfterLongop() {}
 
 void NewPageAfterLongop::PerformAfterLongOperation(RLMachine& machine) {
-  TextSystem& text = machine.system().text();
+  TextSystem& text = machine.GetSystem().text();
   text.Snapshot();
   text.GetCurrentWindow()->ClearWin();
   text.NewPageOnWindow(text.active_window());
@@ -229,7 +229,7 @@ NewPageOnAllAfterLongop::NewPageOnAllAfterLongop(LongOperation* inOp)
 NewPageOnAllAfterLongop::~NewPageOnAllAfterLongop() {}
 
 void NewPageOnAllAfterLongop::PerformAfterLongOperation(RLMachine& machine) {
-  TextSystem& text = machine.system().text();
+  TextSystem& text = machine.GetSystem().text();
   text.Snapshot();
   for (int window : text.GetActiveWindows()) {
     text.GetTextWindow(window)->ClearWin();
@@ -246,7 +246,7 @@ NewParagraphAfterLongop::NewParagraphAfterLongop(LongOperation* inOp)
 NewParagraphAfterLongop::~NewParagraphAfterLongop() {}
 
 void NewParagraphAfterLongop::PerformAfterLongOperation(RLMachine& machine) {
-  TextPage& page = machine.system().text().GetCurrentPage();
+  TextPage& page = machine.GetSystem().text().GetCurrentPage();
   page.ResetIndentation();
   page.HardBrake();
 }

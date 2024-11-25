@@ -122,7 +122,7 @@ template <class Archive>
 inline void load_construct_data(Archive& ar,
                                 DriftGraphicsObject* t,
                                 const unsigned int file_version) {
-  ::new (t) DriftGraphicsObject(Serialization::g_current_machine->system());
+  ::new (t) DriftGraphicsObject(Serialization::g_current_machine->GetSystem());
 }
 }  // namespace serialization
 }  // namespace boost

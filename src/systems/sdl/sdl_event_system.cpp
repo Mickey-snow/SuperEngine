@@ -94,7 +94,7 @@ void SDLEventSystem::ExecuteEventSystem(RLMachine& machine) {
         HandleActiveEvent(machine, event);
         break;
       case SDL_VIDEOEXPOSE: {
-        machine.system().graphics().ForceRefresh();
+        machine.GetSystem().graphics().ForceRefresh();
         break;
       }
     }
@@ -124,10 +124,6 @@ void SDLEventSystem::FlushMouseClicks() {
 
 unsigned int SDLEventSystem::TimeOfLastMouseMove() {
   return last_mouse_move_time_;
-}
-
-void SDLEventSystem::Wait(unsigned int milliseconds) const {
-  SDL_Delay(milliseconds);
 }
 
 bool SDLEventSystem::ShiftPressed() const { return shift_pressed_; }
@@ -185,7 +181,7 @@ void SDLEventSystem::HandleKeyDown(RLMachine& machine, SDL_Event& event) {
     case SDLK_f: {
       if ((event.key.keysym.mod & KMOD_ALT) ||
           (event.key.keysym.mod & KMOD_META)) {
-        machine.system().graphics().ToggleFullscreen();
+        machine.GetSystem().graphics().ToggleFullscreen();
 
         // Stop processing because we don't want to Dispatch this event, which
         // might advance the text.
@@ -215,7 +211,7 @@ void SDLEventSystem::HandleKeyUp(RLMachine& machine, SDL_Event& event) {
       break;
     }
     case SDLK_F1: {
-      machine.system().ShowSystemInfo(machine);
+      machine.GetSystem().ShowSystemInfo(machine);
       break;
     }
     default:
@@ -281,11 +277,11 @@ void SDLEventSystem::HandleActiveEvent(RLMachine& machine, SDL_Event& event) {
     // that's partially covered by rlvm's window and then alt-tab back.
     mouse_inside_window_ = true;
 
-    machine.system().graphics().MarkScreenAsDirty(GUT_MOUSE_MOTION);
+    machine.GetSystem().graphics().MarkScreenAsDirty(GUT_MOUSE_MOTION);
   } else if (event.active.state & SDL_APPMOUSEFOCUS) {
     mouse_inside_window_ = event.active.gain == 1;
 
     // Force a mouse refresh:
-    machine.system().graphics().MarkScreenAsDirty(GUT_MOUSE_MOTION);
+    machine.GetSystem().graphics().MarkScreenAsDirty(GUT_MOUSE_MOTION);
   }
 }

@@ -45,7 +45,6 @@
 namespace libreallive {
 class IntMemRef;
 };  // namespace libreallive
-
 class LongOperation;
 class Memory;
 class OpcodeLog;
@@ -66,7 +65,7 @@ class RLMachine {
   // halted, no more instruction may be executed, either because it
   // ran off the end of a scenario, or because the end() or halt()
   // instruction was called explicitly in the code.
-  bool halted() const { return halted_; }
+  bool IsHalted() const { return halted_; }
 
   void set_store_register(int new_value) { store_register_ = new_value; }
   int store_register() const { return store_register_; }
@@ -87,11 +86,17 @@ class RLMachine {
   bool replaying_graphics_stack() { return replaying_graphics_stack_; }
 
   // Returns the current System that this RLMachine outputs to.
-  System& system() { return system_; }
+  System& GetSystem() { return system_; }
 
-  libreallive::Scriptor& Scriptor();
+  libreallive::Scriptor& GetScriptor();
 
   Gameexe& GetGameexe();
+
+  // Returns the internal memory object for raw access to the machine object's
+  // memory.
+  Memory& GetMemory() { return *memory_; }
+
+  CallStack& GetStack();
 
   // ------------------------------------- [ Implicit savepoint management ]
   // RealLive will save the latest savepoint for the topmost stack
@@ -133,17 +138,11 @@ class RLMachine {
   // triggered purely from bytecode.
   void SetMarkSavepoints(const int in);
 
-  // Returns the internal memory object for raw access to the machine object's
-  // memory.
-  Memory& memory() { return *memory_; }
-  const Memory& memory() const { return *memory_; }
-
-  CallStack& Stack();
-
   // Pushes a long operation onto the function stack. Control will be passed to
   // this LongOperation instead of normal bytecode passing until the
   // LongOperation gives control up.
   virtual void PushLongOperation(LongOperation* long_operation);
+  virtual void PushLongOperation(std::shared_ptr<LongOperation> long_operation);
 
   // Returns a pointer to the currently running LongOperation when the top of
   // the call stack is a LongOperation. NULL otherwise.

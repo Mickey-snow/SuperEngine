@@ -26,9 +26,6 @@
 
 #include "rlvm_instance.hpp"
 
-#include <iostream>
-#include <string>
-
 #include "base/gameexe.hpp"
 #include "libreallive/reallive.hpp"
 #include "machine/game_hacks.hpp"
@@ -51,6 +48,10 @@
 #include "utilities/find_font_file.hpp"
 #include "utilities/gettext.hpp"
 #include "utilities/string_utilities.hpp"
+
+#include <iostream>
+#include <string>
+#include <thread>
 
 namespace fs = std::filesystem;
 
@@ -150,7 +151,7 @@ void RLVMInstance::Run(const std::filesystem::path& gamerootPath) {
     if (load_save_ != -1)
       Sys_load()(rlmachine, load_save_);
 
-    while (!rlmachine.halted()) {
+    while (!rlmachine.IsHalted()) {
       // Give SDL a chance to respond to events, redraw the screen,
       // etc.
       sdlSystem.Run(rlmachine);
@@ -172,7 +173,8 @@ void RLVMInstance::Run(const std::filesystem::path& gamerootPath) {
         int real_sleep_time = 10 - (end_ticks - start_ticks);
         if (real_sleep_time < 1)
           real_sleep_time = 1;
-        sdlSystem.event().Wait(real_sleep_time);
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(real_sleep_time));
       }
 
       sdlSystem.set_force_wait(false);
@@ -215,8 +217,8 @@ void RLVMInstance::DoUserNameCheck(RLMachine& machine) {
     int encoding = machine.GetProbableEncodingType();
 
     // Iterate over all the names in both global and local memory banks.
-    GlobalMemory g = machine.memory().GetGlobalMemory();
-    LocalMemory l = machine.memory().GetLocalMemory();
+    GlobalMemory g = machine.GetMemory().GetGlobalMemory();
+    LocalMemory l = machine.GetMemory().GetLocalMemory();
     std::string line;
     for (int i = 0; i < SIZE_OF_NAME_BANK; ++i) {
       line = g.global_names.Get(i);
@@ -230,8 +232,8 @@ void RLVMInstance::DoUserNameCheck(RLMachine& machine) {
       l.local_names.Set(i, line);
     }
 
-    machine.memory().PartialReset(std::move(g));
-    machine.memory().PartialReset(std::move(l));
+    machine.GetMemory().PartialReset(std::move(g));
+    machine.GetMemory().PartialReset(std::move(l));
   } catch (...) {
     // We've failed to interpret one of the name strings as a string in the
     // text encoding of the current native encoding. We're going to fail to
@@ -239,15 +241,7 @@ void RLVMInstance::DoUserNameCheck(RLMachine& machine) {
     //
     // That's obviously bad and there's no real way to recover from this so
     // just reset all of global memory.
-    if (AskUserPrompt(
-            _("Corrupted global memory"),
-            _("You appear to have run this game without a translation patch "
-              "previously. This can cause lines of text to not print."),
-            _("Reset"), _("Continue with broken names"))) {
-      Memory memory;
-      memory.LoadFrom(machine.GetGameexe());
-      machine.memory() = std::move(memory);
-    }
+    std::cerr << "Corrupted global memory" << std::endl;
   }
 }
 

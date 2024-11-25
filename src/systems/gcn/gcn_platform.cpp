@@ -198,7 +198,7 @@ class GCNPlatformBlocker : public LongOperation,
       delayed_rlmachine_tasks_.pop();
     }
 
-    machine.system().graphics().ForceRefresh();
+    machine.GetSystem().graphics().ForceRefresh();
 
     return platform_->window_stack_.size() == 0;
   }
@@ -358,8 +358,8 @@ void GCNPlatform::pushBlocker(RLMachine& machine) {
   if (blocker_ == NULL) {
     // Block the world!
     SDLEventSystem& event =
-        dynamic_cast<SDLEventSystem&>(machine.system().event());
-    GraphicsSystem& graphics = machine.system().graphics();
+        dynamic_cast<SDLEventSystem&>(machine.GetSystem().event());
+    GraphicsSystem& graphics = machine.GetSystem().graphics();
     machine.PushLongOperation(
         new GCNPlatformBlocker(event, graphics, shared_from_this()));
   }
@@ -399,7 +399,7 @@ void GCNPlatform::initializeGuichan(System& system, const Rect& screen_size) {
 void GCNPlatform::buildSyscomMenuFor(const std::string& label,
                                      const MenuSpec menu_items[],
                                      RLMachine& machine) {
-  System& sys = machine.system();
+  System& sys = machine.GetSystem();
 
   std::vector<GCNMenuButton> buttons;
   for (int i = 0; menu_items[i].syscom_id != MENU_END; ++i) {
@@ -497,5 +497,5 @@ void GCNPlatform::DoLoad(RLMachine& machine, int slot) {
 // -----------------------------------------------------------------------
 
 void GCNPlatform::InvokeSyscom(RLMachine& machine, int syscom) {
-  machine.system().InvokeSyscom(machine, syscom);
+  machine.GetSystem().InvokeSyscom(machine, syscom);
 }

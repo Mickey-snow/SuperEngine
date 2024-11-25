@@ -324,7 +324,7 @@ ExbtnWindowButton::~ExbtnWindowButton() {}
 
 void ExbtnWindowButton::ButtonReleased(RLMachine& machine) {
   // Hide all text boxes when entering an Exbtn
-  machine.system().text().set_system_visible(false);
+  machine.GetSystem().text().set_system_visible(false);
 
   // Push a LongOperation onto the stack which will restore
   // visibility when we return from this Exbtn call

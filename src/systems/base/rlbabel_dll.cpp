@@ -169,7 +169,7 @@ int RlBabelDLL::CallDLL(RLMachine& machine,
       return TestGlosses(arg1, arg2, GetSvar(arg3), arg4);
     case dllGetRCommandMod: {
       int window = GetWindow(arg1)->window_number();
-      return machine.system().gameexe()("WINDOW")(window)("R_COMMAND_MOD");
+      return machine.GetSystem().gameexe()("WINDOW")(window)("R_COMMAND_MOD");
     }
     case dllMessageBox:
     //      return rlMsgBox(arg1, arg2);
@@ -204,7 +204,7 @@ int RlBabelDLL::TextoutAdd(const std::string& str) {
         idx = (idx + 1) * 26 + string[1] - 0x60;
         string += 2;
       }
-      Memory& memory = machine_.memory();
+      Memory& memory = machine_.GetMemory();
       const auto nameloc = StrMemoryLocation(
           global ? StrBank::global_name : StrBank::local_name, idx);
       const char* namestr = memory.Read(nameloc).c_str();
@@ -578,7 +578,7 @@ int RlBabelDLL::GetCharWidth(uint16_t cp932_char, bool as_xmod) {
   int font_size = window->font_size_in_pixels();
   // TODO(erg): Can I somehow modify this to try to do proper kerning?
   int width =
-      machine_.system().text().GetCharWidth(font_size, unicode_codepoint);
+      machine_.GetSystem().text().GetCharWidth(font_size, unicode_codepoint);
   return as_xmod ? window->insertion_point_x() + width : width;
 }
 
@@ -664,11 +664,11 @@ uint16_t RlBabelDLL::ConsumeNextCharacter(std::string::size_type& index) {
 IntReferenceIterator RlBabelDLL::GetIvar(int addr) {
   int bank = (addr >> 16) % 26;
   int location = addr & 0xffff;
-  return IntReferenceIterator(&(machine_.memory()), bank, location);
+  return IntReferenceIterator(&(machine_.GetMemory()), bank, location);
 }
 
 StringReferenceIterator RlBabelDLL::GetSvar(int addr) {
-  Memory* m = &(machine_.memory());
+  Memory* m = &(machine_.GetMemory());
   int bank = addr >> 16;
 
   switch (bank) {
@@ -692,7 +692,7 @@ StringReferenceIterator RlBabelDLL::GetSvar(int addr) {
 }
 
 std::shared_ptr<TextWindow> RlBabelDLL::GetWindow(int id) {
-  TextSystem& text_system = machine_.system().text();
+  TextSystem& text_system = machine_.GetSystem().text();
   if (id >= 0) {
     return text_system.GetTextWindow(id);
   } else {

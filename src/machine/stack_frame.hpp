@@ -85,6 +85,8 @@ struct StackFrame {
 
   // Constructor for frames that are just LongOperations.
   StackFrame(libreallive::Scriptor::const_iterator it, LongOperation* op);
+  StackFrame(libreallive::Scriptor::const_iterator it,
+             std::shared_ptr<LongOperation> op);
 
   ~StackFrame();
 

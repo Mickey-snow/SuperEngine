@@ -44,27 +44,27 @@ Effect::Effect(RLMachine& machine,
                int time)
     : screen_size_(size),
       duration_(time),
-      start_time_(machine.system().event().GetTicks()),
+      start_time_(machine.GetSystem().event().GetTicks()),
       machine_(machine),
       src_surface_(src),
       dst_surface_(dst) {
-  machine.system().graphics().set_is_responsible_for_update(false);
+  machine.GetSystem().graphics().set_is_responsible_for_update(false);
 }
 
 Effect::~Effect() {
-  machine_.system().graphics().set_is_responsible_for_update(true);
+  machine_.GetSystem().graphics().set_is_responsible_for_update(true);
 }
 
 bool Effect::operator()(RLMachine& machine) {
-  unsigned int time = machine.system().event().GetTicks();
+  unsigned int time = machine.GetSystem().event().GetTicks();
   unsigned int current_frame = time - start_time_;
 
-  bool fast_forward = machine.system().ShouldFastForward();
+  bool fast_forward = machine.GetSystem().ShouldFastForward();
 
   if (current_frame >= duration_ || fast_forward) {
     return true;
   } else {
-    GraphicsSystem& graphics = machine.system().graphics();
+    GraphicsSystem& graphics = machine.GetSystem().graphics();
     graphics.BeginFrame();
 
     if (BlitOriginalImage()) {
@@ -101,5 +101,5 @@ void BlitAfterEffectFinishes::PerformAfterLongOperation(RLMachine& machine) {
   src_surface_->BlitToSurface(*dst_surface_, src_rect_, dest_rect_, 255);
 
   // Now force a screen refresh
-  machine.system().graphics().ForceRefresh();
+  machine.GetSystem().graphics().ForceRefresh();
 }

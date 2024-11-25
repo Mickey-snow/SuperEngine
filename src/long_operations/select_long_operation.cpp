@@ -126,9 +126,9 @@ SelectLongOperation::SelectLongOperation(RLMachine& machine,
 SelectLongOperation::~SelectLongOperation() {}
 
 void SelectLongOperation::SelectByIndex(int num) {
-  if (machine_.system().sound().HasSe(1))
-    machine_.system().sound().PlaySe(1);
-  machine_.system().TakeSelectionSnapshot(machine_);
+  if (machine_.GetSystem().sound().HasSe(1))
+    machine_.GetSystem().sound().PlaySe(1);
+  machine_.GetSystem().TakeSelectionSnapshot(machine_);
   return_value_ = num;
 }
 
@@ -170,8 +170,8 @@ NormalSelectLongOperation::NormalSelectLongOperation(
     RLMachine& machine,
     const libreallive::SelectElement& commandElement)
     : SelectLongOperation(machine, commandElement),
-      text_window_(machine.system().text().GetCurrentWindow()) {
-  machine.system().text().set_in_selection_mode(true);
+      text_window_(machine.GetSystem().text().GetCurrentWindow()) {
+  machine.GetSystem().text().set_in_selection_mode(true);
   text_window_->set_is_visible(true);
   text_window_->StartSelectionMode();
   text_window_->SetSelectionCallback(
@@ -190,33 +190,33 @@ NormalSelectLongOperation::NormalSelectLongOperation(
     }
   }
 
-  machine.system().graphics().MarkScreenAsDirty(GUT_TEXTSYS);
+  machine.GetSystem().graphics().MarkScreenAsDirty(GUT_TEXTSYS);
 }
 
 NormalSelectLongOperation::~NormalSelectLongOperation() {
   text_window_->EndSelectionMode();
-  machine_.system().text().set_in_selection_mode(false);
+  machine_.GetSystem().text().set_in_selection_mode(false);
 }
 
 void NormalSelectLongOperation::MouseMotion(const Point& pos) {
   // Tell the text system about the move
-  machine_.system().text().SetMousePosition(pos);
+  machine_.GetSystem().text().SetMousePosition(pos);
 }
 
 bool NormalSelectLongOperation::MouseButtonStateChanged(MouseButton mouseButton,
                                                         bool pressed) {
-  EventSystem& es = machine_.system().event();
+  EventSystem& es = machine_.GetSystem().event();
 
   switch (mouseButton) {
     case MOUSE_LEFT: {
       Point pos = es.GetCursorPos();
-      machine_.system().text().HandleMouseClick(machine_, pos, pressed);
+      machine_.GetSystem().text().HandleMouseClick(machine_, pos, pressed);
       return true;
       break;
     }
     case MOUSE_RIGHT: {
       if (pressed) {
-        machine_.system().ShowSyscomMenu(machine_);
+        machine_.GetSystem().ShowSyscomMenu(machine_);
         return true;
       }
       break;
@@ -242,10 +242,10 @@ ButtonSelectLongOperation::ButtonSelectLongOperation(
       push_frame_(0),
       dontsel_frame_(0),
       mouse_down_(false) {
-  machine.system().graphics().AddRenderable(this);
+  machine.GetSystem().graphics().AddRenderable(this);
 
   // Load all the data about this #SELBTN from the Gameexe.ini file.
-  Gameexe& gexe = machine.system().gameexe();
+  Gameexe& gexe = machine.GetSystem().gameexe();
   GameexeInterpretObject selbtn(gexe("SELBTN", selbtn_set));
 
   std::vector<int> vec = selbtn("BASEPOS");
@@ -264,7 +264,7 @@ ButtonSelectLongOperation::ButtonSelectLongOperation(
 
   // Retrieve the parameters needed to render as a color mask.
   std::shared_ptr<TextWindow> window =
-      machine.system().text().GetCurrentWindow();
+      machine.GetSystem().text().GetCurrentWindow();
   window_bg_colour_ = window->colour();
   window_filter_ = window->filter();
 
@@ -275,7 +275,7 @@ ButtonSelectLongOperation::ButtonSelectLongOperation(
   if (select_colour_num_ == -1)  // For little busters
     select_colour_num_ = default_colour_num_;
 
-  GraphicsSystem& gs = machine.system().graphics();
+  GraphicsSystem& gs = machine.GetSystem().graphics();
   if (selbtn("NAME").Exists() && selbtn("NAME").ToString() != "")
     name_surface_ = gs.GetSurfaceNamed(selbtn("NAME"));
   if (selbtn("BACK").Exists() && selbtn("BACK").ToString() != "")
@@ -312,12 +312,12 @@ ButtonSelectLongOperation::ButtonSelectLongOperation(
   RGBColour shadow_colour(vec.at(0), vec.at(1), vec.at(2));
 
   // Build graphic representations of the choices to display to the user.
-  TextSystem& ts = machine.system().text();
+  TextSystem& ts = machine.GetSystem().text();
   int shown_option_count = std::count_if(options_.begin(), options_.end(),
                                          [&](Option& o) { return o.shown; });
 
   // Calculate out the bounding rectangles for all the options.
-  Size screen_size = machine.system().graphics().screen_size();
+  Size screen_size = machine.GetSystem().graphics().screen_size();
   int baseposx = 0;
   if (center_x) {
     int totalwidth = ((shown_option_count - 1) * reppos_x_);
@@ -376,19 +376,19 @@ ButtonSelectLongOperation::ButtonSelectLongOperation(
     }
   }
 
-  machine.system().graphics().MarkScreenAsDirty(GUT_TEXTSYS);
+  machine.GetSystem().graphics().MarkScreenAsDirty(GUT_TEXTSYS);
 }
 
 ButtonSelectLongOperation::~ButtonSelectLongOperation() {
-  machine_.system().graphics().RemoveRenderable(this);
+  machine_.GetSystem().graphics().RemoveRenderable(this);
 }
 
 void ButtonSelectLongOperation::MouseMotion(const Point& p) {
   for (size_t i = 0; i < buttons_.size(); i++) {
     if (buttons_[i].bounding_rect.Contains(p)) {
       if (options_[i].enabled) {
-        if (highlighted_item_ != i && machine_.system().sound().HasSe(0)) {
-          machine_.system().sound().PlaySe(0);
+        if (highlighted_item_ != i && machine_.GetSystem().sound().HasSe(0)) {
+          machine_.GetSystem().sound().PlaySe(0);
         }
 
         highlighted_item_ = i;
@@ -402,7 +402,7 @@ void ButtonSelectLongOperation::MouseMotion(const Point& p) {
 
 bool ButtonSelectLongOperation::MouseButtonStateChanged(MouseButton mouseButton,
                                                         bool pressed) {
-  EventSystem& es = machine_.system().event();
+  EventSystem& es = machine_.GetSystem().event();
 
   switch (mouseButton) {
     case MOUSE_LEFT: {
@@ -422,7 +422,7 @@ bool ButtonSelectLongOperation::MouseButtonStateChanged(MouseButton mouseButton,
     }
     case MOUSE_RIGHT: {
       if (pressed) {
-        machine_.system().ShowSyscomMenu(machine_);
+        machine_.GetSystem().ShowSyscomMenu(machine_);
         return true;
       }
       break;

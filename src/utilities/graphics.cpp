@@ -37,7 +37,7 @@
 #include "systems/base/system_error.hpp"
 
 std::vector<int> GetSELEffect(RLMachine& machine, int selNum) {
-  Gameexe& gexe = machine.system().gameexe();
+  Gameexe& gexe = machine.GetSystem().gameexe();
   std::vector<int> selEffect;
 
   if (gexe("SEL", selNum).Exists()) {

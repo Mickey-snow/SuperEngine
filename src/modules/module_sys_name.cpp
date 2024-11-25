@@ -43,13 +43,13 @@ struct GetName : public RLOpcode<IntConstant_T, StrReference_T> {
   void operator()(RLMachine& machine,
                   int index,
                   StringReferenceIterator strIt) {
-    *strIt = machine.memory().Read(StrBank::global_name, index);
+    *strIt = machine.GetMemory().Read(StrBank::global_name, index);
   }
 };
 
 struct SetName : public RLOpcode<IntConstant_T, StrConstant_T> {
   void operator()(RLMachine& machine, int index, string name) {
-    machine.memory().Write(StrBank::global_name, index, name);
+    machine.GetMemory().Write(StrBank::global_name, index, name);
   }
 };
 
@@ -57,13 +57,13 @@ struct GetLocalName : public RLOpcode<IntConstant_T, StrReference_T> {
   void operator()(RLMachine& machine,
                   int index,
                   StringReferenceIterator strIt) {
-    *strIt = machine.memory().Read(StrBank::local_name, index);
+    *strIt = machine.GetMemory().Read(StrBank::local_name, index);
   }
 };
 
 struct SetLocalName : public RLOpcode<IntConstant_T, StrConstant_T> {
   void operator()(RLMachine& machine, int index, string name) {
-    machine.memory().Write(StrBank::local_name, index, name);
+    machine.GetMemory().Write(StrBank::local_name, index, name);
   }
 };
 

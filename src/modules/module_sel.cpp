@@ -91,8 +91,8 @@ struct ClearAndRestoreWindow : public LongOperation {
   explicit ClearAndRestoreWindow(int in) : to_restore_(in) {}
 
   bool operator()(RLMachine& machine) {
-    machine.system().text().HideAllTextWindows();
-    machine.system().text().set_active_window(to_restore_);
+    machine.GetSystem().text().HideAllTextWindows();
+    machine.GetSystem().text().set_active_window(to_restore_);
     return true;
   }
 };
@@ -111,14 +111,14 @@ struct Sel_select_w : public RLOp_SpecialCase {
     const SelectElement& element = dynamic_cast<const SelectElement&>(ce);
 
     // Sometimes the RL bytecode will override DEFAULT_SEL_WINDOW.
-    int window = machine.system().gameexe()("DEFAULT_SEL_WINDOW").ToInt(-1);
+    int window = machine.GetSystem().gameexe()("DEFAULT_SEL_WINDOW").ToInt(-1);
     libreallive::Expression window_exp = element.GetWindowExpression();
     int computed = window_exp->GetIntegerValue(machine);
     if (computed != -1)
       window = computed;
 
     // Restore the previous text state after the select operation completes.
-    TextSystem& text = machine.system().text();
+    TextSystem& text = machine.GetSystem().text();
     int active_window = text.active_window();
     text.HideAllTextWindows();
     text.set_active_window(window);
@@ -169,7 +169,7 @@ struct Sel_select_objbtn_cancel_2 : public RLOpcode<> {
     if (machine.ShouldSetSelcomSavepoint())
       machine.MarkSavepoint();
 
-    auto& fg_objs = machine.system().graphics().GetForegroundObjects();
+    auto& fg_objs = machine.GetSystem().graphics().GetForegroundObjects();
     int group = 0;
     for (GraphicsObject& obj : fg_objs)
       if (obj.Param().IsButton()) {

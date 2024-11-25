@@ -201,7 +201,7 @@ int System::ReadSyscom(int syscom) {
 }
 
 void System::ShowSyscomMenu(RLMachine& machine) {
-  Gameexe& gexe = machine.system().gameexe();
+  Gameexe& gexe = machine.GetSystem().gameexe();
 
   if (gexe("CANCELCALL_MOD") == 1) {
     if (!in_menu_) {

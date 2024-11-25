@@ -39,7 +39,7 @@
 namespace {
 
 bool NoLongerPlaying(RLMachine& machine, int channel) {
-  return !machine.system().sound().WavPlaying(channel);
+  return !machine.GetSystem().sound().WavPlaying(channel);
 }
 
 void addPcmWait(RLMachine& machine, int channel) {
@@ -50,13 +50,13 @@ void addPcmWait(RLMachine& machine, int channel) {
 
 struct wavPlay_0 : public RLOpcode<StrConstant_T> {
   void operator()(RLMachine& machine, std::string fileName) {
-    machine.system().sound().WavPlay(fileName, false);
+    machine.GetSystem().sound().WavPlay(fileName, false);
   }
 };
 
 struct wavPlay_1 : public RLOpcode<StrConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, std::string fileName, int channel) {
-    machine.system().sound().WavPlay(fileName, false, channel);
+    machine.GetSystem().sound().WavPlay(fileName, false, channel);
   }
 };
 
@@ -66,13 +66,13 @@ struct wavPlay_2
                   std::string fileName,
                   int channel,
                   int fadein) {
-    machine.system().sound().WavPlay(fileName, false, channel, fadein);
+    machine.GetSystem().sound().WavPlay(fileName, false, channel, fadein);
   }
 };
 
 struct wavPlayEx_0 : public RLOpcode<StrConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, std::string fileName, int channel) {
-    machine.system().sound().WavPlay(fileName, false, channel);
+    machine.GetSystem().sound().WavPlay(fileName, false, channel);
     addPcmWait(machine, channel);
   }
 };
@@ -83,14 +83,14 @@ struct wavPlayEx_1
                   std::string fileName,
                   int channel,
                   int fadein) {
-    machine.system().sound().WavPlay(fileName, false, channel, fadein);
+    machine.GetSystem().sound().WavPlay(fileName, false, channel, fadein);
     addPcmWait(machine, channel);
   }
 };
 
 struct wavLoop_0 : public RLOpcode<StrConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, std::string fileName, int channel) {
-    machine.system().sound().WavPlay(fileName, true, channel);
+    machine.GetSystem().sound().WavPlay(fileName, true, channel);
   }
 };
 
@@ -100,7 +100,7 @@ struct wavLoop_1
                   std::string fileName,
                   int channel,
                   int fadein) {
-    machine.system().sound().WavPlay(fileName, true, channel, fadein);
+    machine.GetSystem().sound().WavPlay(fileName, true, channel, fadein);
   }
 };
 
@@ -113,19 +113,19 @@ struct wavWait : public RLOpcode<IntConstant_T> {
 
 struct wavPlaying : public RLStoreOpcode<IntConstant_T> {
   int operator()(RLMachine& machine, int channel) {
-    return machine.system().sound().WavPlaying(channel);
+    return machine.GetSystem().sound().WavPlaying(channel);
   }
 };
 
 struct wavVolume : public RLStoreOpcode<IntConstant_T> {
   int operator()(RLMachine& machine, int channel) {
-    return machine.system().sound().GetChannelVolume(channel);
+    return machine.GetSystem().sound().GetChannelVolume(channel);
   }
 };
 
 struct wavSetVolume_0 : public RLOpcode<IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int channel, int level) {
-    machine.system().sound().SetChannelVolume(channel, level);
+    machine.GetSystem().sound().SetChannelVolume(channel, level);
   }
 };
 
@@ -134,31 +134,31 @@ struct wavSetVolume_0 : public RLOpcode<IntConstant_T, IntConstant_T> {
 struct wavSetVolume_1
     : public RLOpcode<IntConstant_T, IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int channel, int level, int fadeInMs) {
-    machine.system().sound().SetChannelVolume(channel, level, fadeInMs);
+    machine.GetSystem().sound().SetChannelVolume(channel, level, fadeInMs);
   }
 };
 
 struct wavUnMute_0 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int channel) {
-    machine.system().sound().SetChannelVolume(channel, 255);
+    machine.GetSystem().sound().SetChannelVolume(channel, 255);
   }
 };
 
 struct wavUnMute_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int channel, int fadein) {
-    machine.system().sound().SetChannelVolume(channel, 255, fadein);
+    machine.GetSystem().sound().SetChannelVolume(channel, 255, fadein);
   }
 };
 
 struct wavMute_0 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int channel) {
-    machine.system().sound().SetChannelVolume(channel, 0);
+    machine.GetSystem().sound().SetChannelVolume(channel, 0);
   }
 };
 
 struct wavMute_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int channel, int fadein) {
-    machine.system().sound().SetChannelVolume(channel, 0, fadein);
+    machine.GetSystem().sound().SetChannelVolume(channel, 0, fadein);
   }
 };
 

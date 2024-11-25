@@ -235,7 +235,7 @@ struct GetSaveFlag : public RLStoreOpcode<IntConstant_T, GetSaveFlagList> {
     if (!fileExists)
       return 0;
 
-    auto global_memory = machine.memory().GetGlobalMemory();
+    auto global_memory = machine.GetMemory().GetGlobalMemory();
     Memory overlayedMemory;
     Serialization::loadLocalMemoryForSlot(machine, slot, overlayedMemory);
     overlayedMemory.PartialReset(std::move(global_memory));
@@ -269,7 +269,7 @@ struct GetSaveFlag : public RLStoreOpcode<IntConstant_T, GetSaveFlagList> {
 // been saved.
 struct LatestSave : public RLStoreOpcode<> {
   int operator()(RLMachine& machine) {
-    fs::path saveDir = machine.system().GameSaveDirectory();
+    fs::path saveDir = machine.GetSystem().GameSaveDirectory();
     int latestSlot = -1;
     std::optional<fs::file_time_type> latestTime;
 

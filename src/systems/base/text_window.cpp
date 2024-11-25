@@ -726,7 +726,7 @@ bool TextWindow::HandleMouseClick(RLMachine& machine,
     }
   }
 
-  if (is_visible() && !machine.system().graphics().is_interface_hidden()) {
+  if (is_visible() && !machine.GetSystem().graphics().is_interface_hidden()) {
     return textbox_waku_->HandleMouseClick(machine, pos, pressed);
   }
 

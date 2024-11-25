@@ -40,10 +40,10 @@ ButtonObjectSelectLongOperation::ButtonObjectSelectLongOperation(
       cancelable_(false),
       has_return_value_(false),
       return_value_(-1),
-      gameexe_(machine.system().gameexe()),
+      gameexe_(machine.GetSystem().gameexe()),
       currently_hovering_button_(NULL),
       currently_pressed_button_(NULL) {
-  GraphicsSystem& graphics = machine.system().graphics();
+  GraphicsSystem& graphics = machine.GetSystem().graphics();
   for (GraphicsObject& obj : graphics.GetForegroundObjects()) {
     if (obj.Param().IsButton() && obj.Param().GetButtonGroup() == group_) {
       buttons_.emplace_back(&obj, static_cast<GraphicsObject*>(NULL));
@@ -122,7 +122,7 @@ bool ButtonObjectSelectLongOperation::MouseButtonStateChanged(
 
     // Changes override properties doesn't automatically refresh the screen the
     // way mouse movement does.
-    machine_.system().graphics().ForceRefresh();
+    machine_.GetSystem().graphics().ForceRefresh();
 
     return true;
   } else if (mouseButton == MOUSE_RIGHT && !pressed && cancelable_) {

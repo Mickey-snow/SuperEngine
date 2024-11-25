@@ -34,7 +34,7 @@
 
 struct g00Preload : public RLOpcode<IntConstant_T, StrConstant_T> {
   void operator()(RLMachine& machine, int slot, string name) {
-    machine.system().graphics().PreloadG00(slot, name);
+    machine.GetSystem().graphics().PreloadG00(slot, name);
   }
 };
 

@@ -73,7 +73,7 @@ void Op_ObjectMutatorInt::operator()(RLMachine& machine,
                                      int duration_time,
                                      int delay,
                                      int type) {
-  unsigned int creation_time = machine.system().event().GetTicks();
+  unsigned int creation_time = machine.GetSystem().event().GetTicks();
   GraphicsObject& obj = GetGraphicsObject(machine, this, object);
 
   int startval = std::invoke(getter_, obj.Param());
@@ -98,7 +98,7 @@ void Op_ObjectMutatorRepnoInt::operator()(RLMachine& machine,
                                           int duration_time,
                                           int delay,
                                           int type) {
-  unsigned int creation_time = machine.system().event().GetTicks();
+  unsigned int creation_time = machine.GetSystem().event().GetTicks();
   GraphicsObject& obj = GetGraphicsObject(machine, this, object);
 
   int startval = std::invoke(getter_, obj.Param(), repno);
@@ -129,7 +129,7 @@ void Op_ObjectMutatorIntInt::operator()(RLMachine& machine,
                                         int duration_time,
                                         int delay,
                                         int type) {
-  unsigned int creation_time = machine.system().event().GetTicks();
+  unsigned int creation_time = machine.GetSystem().event().GetTicks();
   GraphicsObject& obj = GetGraphicsObject(machine, this, object);
   int startval_one = std::invoke(getter_one_, obj.Param());
   int startval_two = std::invoke(getter_two_, obj.Param());

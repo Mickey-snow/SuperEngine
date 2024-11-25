@@ -62,7 +62,7 @@ namespace fs = std::filesystem;
 namespace {
 
 void blitDC1toDC0(RLMachine& machine) {
-  GraphicsSystem& graphics = machine.system().graphics();
+  GraphicsSystem& graphics = machine.GetSystem().graphics();
 
   std::shared_ptr<Surface> src = graphics.GetDC(1);
   std::shared_ptr<Surface> dst = graphics.GetDC(0);
@@ -90,7 +90,7 @@ void loadImageToDC1(RLMachine& machine,
                     const Point& dest,
                     int opacity,
                     bool useAlpha) {
-  GraphicsSystem& graphics = machine.system().graphics();
+  GraphicsSystem& graphics = machine.GetSystem().graphics();
 
   if (name != "?") {
     if (name == "???")
@@ -117,7 +117,7 @@ void loadDCToDC1(RLMachine& machine,
                  const Rect& srcRect,
                  const Point& dest,
                  int opacity) {
-  GraphicsSystem& graphics = machine.system().graphics();
+  GraphicsSystem& graphics = machine.GetSystem().graphics();
   std::shared_ptr<Surface> dc1 = graphics.GetDC(1);
   std::shared_ptr<Surface> src = graphics.GetDC(srcDc);
 
@@ -181,14 +181,14 @@ void performEffect(RLMachine& machine,
 // window won't be undone like it normally is!
 void performHideAllTextWindows(RLMachine& machine) {
   if (!machine.replaying_graphics_stack()) {
-    machine.system().text().HideAllTextWindows();
+    machine.GetSystem().text().HideAllTextWindows();
   }
 }
 
 // Common code to all the openBg commands.
 void OpenBgPrelude(RLMachine& machine, const std::string& filename) {
   if (!boost::starts_with(filename, "?")) {
-    GraphicsSystem& graphics = machine.system().graphics();
+    GraphicsSystem& graphics = machine.GetSystem().graphics();
     graphics.set_default_grp_name(filename);
 
     // Only clear the stack when we are the command setting the background.
@@ -203,7 +203,7 @@ void OpenBgPrelude(RLMachine& machine, const std::string& filename) {
 // resolution. Any previous contents of dc are erased.
 struct allocDC : public RLOpcode<IntConstant_T, IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int dc, int width, int height) {
-    machine.system().graphics().AllocateDC(dc, Size(width, height));
+    machine.GetSystem().graphics().AllocateDC(dc, Size(width, height));
   }
 };
 
@@ -215,13 +215,13 @@ struct wipe : public RLOpcode<IntConstant_T,
                               IntConstant_T,
                               IntConstant_T> {
   void operator()(RLMachine& machine, int dc, int r, int g, int b) {
-    machine.system().graphics().GetDC(dc)->Fill(RGBAColour(r, g, b));
+    machine.GetSystem().graphics().GetDC(dc)->Fill(RGBAColour(r, g, b));
   }
 };
 
 struct shake : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int spec) {
-    machine.system().graphics().QueueShakeSpec(spec);
+    machine.GetSystem().graphics().QueueShakeSpec(spec);
 
     WaitLongOperation* wait_op = new WaitLongOperation(machine);
     wait_op->BreakOnEvent(std::bind(StopShaking, std::ref(machine)));
@@ -229,7 +229,7 @@ struct shake : public RLOpcode<IntConstant_T> {
   }
 
   static bool StopShaking(RLMachine& machine) {
-    return machine.system().graphics().IsShaking() == false;
+    return machine.GetSystem().graphics().IsShaking() == false;
   }
 };
 
@@ -250,7 +250,7 @@ struct load_1
   explicit load_1(bool in) : use_alpha_(in) {}
 
   void operator()(RLMachine& machine, string filename, int dc, int opacity) {
-    GraphicsSystem& graphics = machine.system().graphics();
+    GraphicsSystem& graphics = machine.GetSystem().graphics();
 
     std::shared_ptr<const Surface> surface(
         graphics.GetSurfaceNamedAndMarkViewed(machine, filename));
@@ -284,7 +284,7 @@ struct load_3 : public RLOpcode<StrConstant_T,
                   Rect srcRect,
                   Point dest,
                   int opacity) {
-    GraphicsSystem& graphics = machine.system().graphics();
+    GraphicsSystem& graphics = machine.GetSystem().graphics();
     std::shared_ptr<const Surface> surface(
         graphics.GetSurfaceNamedAndMarkViewed(machine, filename));
 
@@ -308,7 +308,7 @@ void DisplayEffect(RLMachine& machine, int dc, const selRecord& param) {
   const Point& dest = param.point;
   const auto transparency = param.transparency;
 
-  GraphicsSystem& graphics = machine.system().graphics();
+  GraphicsSystem& graphics = machine.GetSystem().graphics();
 
   std::shared_ptr<Surface> before = graphics.RenderToSurface();
   loadDCToDC1(machine, dc, src, dest, transparency);
@@ -321,7 +321,7 @@ void DisplayEffect(RLMachine& machine, int dc, const selRecord& param) {
 struct display_1
     : public RLOpcode<IntConstant_T, IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int dc, int effectNum, int opacity) {
-    auto sel_record = GetSelRecord(machine.system().gameexe(), effectNum);
+    auto sel_record = GetSelRecord(machine.GetSystem().gameexe(), effectNum);
     sel_record.transparency = opacity;
     DisplayEffect(machine, dc, sel_record);
   }
@@ -329,7 +329,7 @@ struct display_1
 
 struct display_0 : public RLOpcode<IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int dc, int effectNum) {
-    auto sel_record = GetSelRecord(machine.system().gameexe(), effectNum);
+    auto sel_record = GetSelRecord(machine.GetSystem().gameexe(), effectNum);
     DisplayEffect(machine, dc, sel_record);
   }
 };
@@ -346,7 +346,7 @@ struct display_3 : public RLOpcode<IntConstant_T,
                   Rect srcRect,
                   Point dest,
                   int opacity) {
-    auto sel_record = GetSelRecord(machine.system().gameexe(), effectNum);
+    auto sel_record = GetSelRecord(machine.GetSystem().gameexe(), effectNum);
     sel_record.rect = srcRect;
     sel_record.point = dest;
     sel_record.transparency = opacity;
@@ -362,7 +362,7 @@ struct display_2
                   int effectNum,
                   Rect srcRect,
                   Point dest) {
-    auto sel_record = GetSelRecord(machine.system().gameexe(), effectNum);
+    auto sel_record = GetSelRecord(machine.GetSystem().gameexe(), effectNum);
     sel_record.rect = srcRect;
     sel_record.point = dest;
     DisplayEffect(machine, dc, sel_record);
@@ -407,7 +407,7 @@ struct display_4 : public RLOpcode<IntConstant_T,
 struct display_5
     : public RLOpcode<IntConstant_T, IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int dc, int effectNum, int time) {
-    auto sel_record = GetSelRecord(machine.system().gameexe(), effectNum);
+    auto sel_record = GetSelRecord(machine.GetSystem().gameexe(), effectNum);
     sel_record.duration = time;
     DisplayEffect(machine, dc, sel_record);
   }
@@ -437,7 +437,7 @@ struct open_1 : public RLOpcode<StrConstant_T, IntConstant_T, IntConstant_T> {
     Point dest;
     GetSELPointAndRect(machine, effectNum, src, dest);
 
-    GraphicsSystem& graphics = machine.system().graphics();
+    GraphicsSystem& graphics = machine.GetSystem().graphics();
     std::shared_ptr<Surface> before = graphics.RenderToSurface();
 
     loadImageToDC1(machine, filename, src, dest, opacity, use_alpha_);
@@ -479,7 +479,7 @@ struct open_3 : public RLOpcode<StrConstant_T,
                   Rect srcRect,
                   Point dest,
                   int opacity) {
-    GraphicsSystem& graphics = machine.system().graphics();
+    GraphicsSystem& graphics = machine.GetSystem().graphics();
 
     std::shared_ptr<Surface> before = graphics.RenderToSurface();
 
@@ -547,7 +547,7 @@ struct open_4 : public RLOpcode<StrConstant_T,
                   int b,
                   int opacity,
                   int c) {
-    GraphicsSystem& graphics = machine.system().graphics();
+    GraphicsSystem& graphics = machine.GetSystem().graphics();
 
     std::shared_ptr<Surface> before = graphics.RenderToSurface();
 
@@ -571,7 +571,7 @@ struct openBg_1 : public RLOpcode<StrConstant_T, IntConstant_T, IntConstant_T> {
                   string fileName,
                   int effectNum,
                   int opacity) {
-    GraphicsSystem& graphics = machine.system().graphics();
+    GraphicsSystem& graphics = machine.GetSystem().graphics();
     Rect srcRect;
     Point destPoint;
     GetSELPointAndRect(machine, effectNum, srcRect, destPoint);
@@ -613,7 +613,7 @@ struct openBg_3 : public RLOpcode<StrConstant_T,
                   Rect srcRect,
                   Point destPt,
                   int opacity) {
-    GraphicsSystem& graphics = machine.system().graphics();
+    GraphicsSystem& graphics = machine.GetSystem().graphics();
     OpenBgPrelude(machine, fileName);
 
     // Set the long operation for the correct transition long operation
@@ -675,7 +675,7 @@ struct openBg_4 : public RLOpcode<StrConstant_T,
                   int b,
                   int opacity,
                   int c) {
-    GraphicsSystem& graphics = machine.system().graphics();
+    GraphicsSystem& graphics = machine.GetSystem().graphics();
     OpenBgPrelude(machine, fileName);
 
     // Set the long operation for the correct transition long operation
@@ -717,7 +717,7 @@ struct copy_3 : public RLOpcode<Rect_T<SPACE>,
     if (src == dst)
       return;
 
-    GraphicsSystem& graphics = machine.system().graphics();
+    GraphicsSystem& graphics = machine.GetSystem().graphics();
 
     std::shared_ptr<Surface> sourceSurface = graphics.GetDC(src);
 
@@ -741,7 +741,7 @@ struct copy_1
     if (src == dst)
       return;
 
-    GraphicsSystem& graphics = machine.system().graphics();
+    GraphicsSystem& graphics = machine.GetSystem().graphics();
 
     std::shared_ptr<Surface> sourceSurface = graphics.GetDC(src);
 
@@ -765,13 +765,13 @@ struct fill_0 : public RLOpcode<IntConstant_T, RGBColour_T> {
     if (colour.r() == 0 && colour.g() == 0 && colour.b() == 0)
       colour.set_alpha(0);
 
-    machine.system().graphics().GetDC(dc)->Fill(colour);
+    machine.GetSystem().graphics().GetDC(dc)->Fill(colour);
   }
 };
 
 struct fill_1 : public RLOpcode<IntConstant_T, RGBMaybeAColour_T> {
   void operator()(RLMachine& machine, int dc, RGBAColour colour) {
-    machine.system().graphics().GetDC(dc)->Fill(colour);
+    machine.GetSystem().graphics().GetDC(dc)->Fill(colour);
   }
 };
 
@@ -782,13 +782,13 @@ struct fill_3
                   Rect destRect,
                   int dc,
                   RGBAColour colour) {
-    machine.system().graphics().GetDC(dc)->Fill(colour, destRect);
+    machine.GetSystem().graphics().GetDC(dc)->Fill(colour, destRect);
   }
 };
 
 struct invert_1 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int dc) {
-    std::shared_ptr<Surface> surface = machine.system().graphics().GetDC(dc);
+    std::shared_ptr<Surface> surface = machine.GetSystem().graphics().GetDC(dc);
     surface->Invert(surface->GetRect());
   }
 };
@@ -796,13 +796,13 @@ struct invert_1 : public RLOpcode<IntConstant_T> {
 template <typename SPACE>
 struct invert_3 : public RLOpcode<Rect_T<SPACE>, IntConstant_T> {
   void operator()(RLMachine& machine, Rect rect, int dc) {
-    machine.system().graphics().GetDC(dc)->Invert(rect);
+    machine.GetSystem().graphics().GetDC(dc)->Invert(rect);
   }
 };
 
 struct mono_1 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int dc) {
-    std::shared_ptr<Surface> surface = machine.system().graphics().GetDC(dc);
+    std::shared_ptr<Surface> surface = machine.GetSystem().graphics().GetDC(dc);
     surface->Mono(surface->GetRect());
   }
 };
@@ -810,13 +810,13 @@ struct mono_1 : public RLOpcode<IntConstant_T> {
 template <typename SPACE>
 struct mono_3 : public RLOpcode<Rect_T<SPACE>, IntConstant_T> {
   void operator()(RLMachine& machine, Rect rect, int dc) {
-    machine.system().graphics().GetDC(dc)->Mono(rect);
+    machine.GetSystem().graphics().GetDC(dc)->Mono(rect);
   }
 };
 
 struct colour_1 : public RLOpcode<IntConstant_T, RGBColour_T> {
   void operator()(RLMachine& machine, int dc, RGBAColour colour) {
-    std::shared_ptr<Surface> surface = machine.system().graphics().GetDC(dc);
+    std::shared_ptr<Surface> surface = machine.GetSystem().graphics().GetDC(dc);
     surface->ApplyColour(colour.rgb(), surface->GetRect());
   }
 };
@@ -824,14 +824,14 @@ struct colour_1 : public RLOpcode<IntConstant_T, RGBColour_T> {
 template <typename SPACE>
 struct colour_2 : public RLOpcode<Rect_T<SPACE>, IntConstant_T, RGBColour_T> {
   void operator()(RLMachine& machine, Rect rect, int dc, RGBAColour colour) {
-    std::shared_ptr<Surface> surface = machine.system().graphics().GetDC(dc);
+    std::shared_ptr<Surface> surface = machine.GetSystem().graphics().GetDC(dc);
     surface->ApplyColour(colour.rgb(), rect);
   }
 };
 
 struct light_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int dc, int level) {
-    std::shared_ptr<Surface> surface = machine.system().graphics().GetDC(dc);
+    std::shared_ptr<Surface> surface = machine.GetSystem().graphics().GetDC(dc);
     surface->ApplyColour(RGBColour(level, level, level), surface->GetRect());
   }
 };
@@ -839,7 +839,7 @@ struct light_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
 template <typename SPACE>
 struct light_2 : public RLOpcode<Rect_T<SPACE>, IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, Rect rect, int dc, int level) {
-    std::shared_ptr<Surface> surface = machine.system().graphics().GetDC(dc);
+    std::shared_ptr<Surface> surface = machine.GetSystem().graphics().GetDC(dc);
     surface->ApplyColour(RGBColour(level, level, level), rect);
   }
 };
@@ -852,7 +852,7 @@ template <typename SPACE>
 struct fade_7
     : public RLOpcode<Rect_T<SPACE>, RGBColour_T, DefaultIntValue_T<0>> {
   void operator()(RLMachine& machine, Rect rect, RGBAColour colour, int time) {
-    GraphicsSystem& graphics = machine.system().graphics();
+    GraphicsSystem& graphics = machine.GetSystem().graphics();
     std::shared_ptr<Surface> before = graphics.RenderToSurface();
     graphics.GetDC(0)->Fill(colour, rect);
     std::shared_ptr<Surface> after = graphics.RenderToSurface();
@@ -870,7 +870,7 @@ struct fade_5
   fade_7<SPACE> delegate_;
 
   void operator()(RLMachine& machine, Rect rect, int colour_num, int time) {
-    Gameexe& gexe = machine.system().gameexe();
+    Gameexe& gexe = machine.GetSystem().gameexe();
     const std::vector<int> rgb = gexe("COLOR_TABLE", colour_num).ToIntVector();
     delegate_(machine, rect, RGBAColour(rgb), time);
   }
@@ -880,7 +880,7 @@ struct fade_3 : public RLOpcode<RGBColour_T, DefaultIntValue_T<0>> {
   fade_7<rect_impl::REC> delegate_;
 
   void operator()(RLMachine& machine, RGBAColour colour, int time) {
-    Size screen_size = machine.system().graphics().screen_size();
+    Size screen_size = machine.GetSystem().graphics().screen_size();
     delegate_(machine, Rect(0, 0, screen_size), colour, time);
   }
 };
@@ -889,8 +889,8 @@ struct fade_1 : public RLOpcode<IntConstant_T, DefaultIntValue_T<0>> {
   fade_7<rect_impl::REC> delegate_;
 
   void operator()(RLMachine& machine, int colour_num, int time) {
-    Size screen_size = machine.system().graphics().screen_size();
-    Gameexe& gexe = machine.system().gameexe();
+    Size screen_size = machine.GetSystem().graphics().screen_size();
+    Gameexe& gexe = machine.GetSystem().gameexe();
     const std::vector<int> rgb = gexe("COLOR_TABLE", colour_num).ToIntVector();
     delegate_(machine, Rect(0, 0, screen_size), RGBAColour(rgb), time);
   }
@@ -918,7 +918,7 @@ struct stretchBlit_1 : public RLOpcode<Rect_T<SPACE>,
     if (src == dst)
       return;
 
-    GraphicsSystem& graphics = machine.system().graphics();
+    GraphicsSystem& graphics = machine.GetSystem().graphics();
     std::shared_ptr<Surface> sourceSurface = graphics.GetDC(src);
 
     if (dst != 0 && dst != 1) {
@@ -942,7 +942,7 @@ struct zoom : public RLOpcode<Rect_T<SPACE>,
                   int srcDC,
                   Rect drect,
                   int time) {
-    GraphicsSystem& gs = machine.system().graphics();
+    GraphicsSystem& gs = machine.GetSystem().graphics();
     gs.set_graphics_background(BACKGROUND_DC0);
 
     LongOperation* zoomOp = new ZoomLongOperation(
@@ -1140,7 +1140,7 @@ class GrpStackAdapter : public RLOp_SpecialCase {
     operation->DispatchFunction(machine, ff);
 
     // Record this command's reallive bytecode form onto the graphics stack.
-    machine.system().graphics().AddGraphicsStackCommand(
+    machine.GetSystem().graphics().AddGraphicsStackCommand(
         ff.GetSerializedCommand(machine));
   }
 

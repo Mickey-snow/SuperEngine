@@ -44,15 +44,15 @@ struct ContextMenu : public RLOpcode<> {
   void operator()(RLMachine& machine) {
     // Based off of ALMA, it appears that we also are responsible for flushing
     // clicks.
-    machine.system().event().FlushMouseClicks();
+    machine.GetSystem().event().FlushMouseClicks();
 
-    machine.system().ShowSyscomMenu(machine);
+    machine.GetSystem().ShowSyscomMenu(machine);
   }
 };
 
 struct SyscomEnabled : public RLStoreOpcode<IntConstant_T> {
   int operator()(RLMachine& machine, int num) {
-    return machine.system().IsSyscomEnabled(num);
+    return machine.GetSystem().IsSyscomEnabled(num);
   }
 };
 

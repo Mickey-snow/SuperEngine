@@ -52,43 +52,44 @@ class Platform;
 // Syscom Constants
 //
 // Associations between syscom integer values and their names.
-const int NUM_SYSCOM_ENTRIES = 32;
-const int SYSCOM_INVISIBLE = 0;
-const int SYSCOM_VISIBLE = 1;
-const int SYSCOM_GREYED_OUT = 2;
+[[maybe_unused]] constexpr int NUM_SYSCOM_ENTRIES = 32;
+[[maybe_unused]] constexpr int SYSCOM_INVISIBLE = 0;
+[[maybe_unused]] constexpr int SYSCOM_VISIBLE = 1;
+[[maybe_unused]] constexpr int SYSCOM_GREYED_OUT = 2;
 
-const int SYSCOM_SAVE = 0;
-const int SYSCOM_LOAD = 1;
-const int SYSCOM_MESSAGE_SPEED = 2;
-const int SYSCOM_WINDOW_ATTRIBUTES = 3;
-const int SYSCOM_VOLUME_SETTINGS = 4;
-const int SYSCOM_SCREEN_MODE = 5;
-const int SYSCOM_MISCELLANEOUS_SETTINGS = 6;
+[[maybe_unused]] constexpr int SYSCOM_SAVE = 0;
+[[maybe_unused]] constexpr int SYSCOM_LOAD = 1;
+[[maybe_unused]] constexpr int SYSCOM_MESSAGE_SPEED = 2;
+[[maybe_unused]] constexpr int SYSCOM_WINDOW_ATTRIBUTES = 3;
+[[maybe_unused]] constexpr int SYSCOM_VOLUME_SETTINGS = 4;
+[[maybe_unused]] constexpr int SYSCOM_SCREEN_MODE = 5;
+[[maybe_unused]] constexpr int SYSCOM_MISCELLANEOUS_SETTINGS = 6;
 // No 7?
-const int SYSCOM_VOICE_SETTINGS = 8;
-const int SYSCOM_FONT_SELECTION = 9;
-const int SYSCOM_BGM_FADE = 10;
-const int SYSCOM_BGM_SETTINGS = 11;
-const int SYSCOM_WINDOW_DECORATION_STYLE = 12;
-const int SYSCOM_AUTO_MODE_SETTINGS = 13;
-const int SYSCOM_RETURN_TO_PREVIOUS_SELECTION = 14;
-const int SYSCOM_USE_KOE = 15;
-const int SYSCOM_DISPLAY_VERSION = 16;
-const int SYSCOM_SHOW_WEATHER = 17;
-const int SYSCOM_SHOW_OBJECT_1 = 18;
-const int SYSCOM_SHOW_OBJECT_2 = 19;
-const int SYSCOM_CLASSIFY_TEXT = 20;  // ??????? Unknown function.
-const int SYSCOM_GENERIC_1 = 21;
-const int SYSCOM_GENERIC_2 = 22;
+[[maybe_unused]] constexpr int SYSCOM_VOICE_SETTINGS = 8;
+[[maybe_unused]] constexpr int SYSCOM_FONT_SELECTION = 9;
+[[maybe_unused]] constexpr int SYSCOM_BGM_FADE = 10;
+[[maybe_unused]] constexpr int SYSCOM_BGM_SETTINGS = 11;
+[[maybe_unused]] constexpr int SYSCOM_WINDOW_DECORATION_STYLE = 12;
+[[maybe_unused]] constexpr int SYSCOM_AUTO_MODE_SETTINGS = 13;
+[[maybe_unused]] constexpr int SYSCOM_RETURN_TO_PREVIOUS_SELECTION = 14;
+[[maybe_unused]] constexpr int SYSCOM_USE_KOE = 15;
+[[maybe_unused]] constexpr int SYSCOM_DISPLAY_VERSION = 16;
+[[maybe_unused]] constexpr int SYSCOM_SHOW_WEATHER = 17;
+[[maybe_unused]] constexpr int SYSCOM_SHOW_OBJECT_1 = 18;
+[[maybe_unused]] constexpr int SYSCOM_SHOW_OBJECT_2 = 19;
+[[maybe_unused]] constexpr int SYSCOM_CLASSIFY_TEXT =
+    20;  // ??????? Unknown function.
+[[maybe_unused]] constexpr int SYSCOM_GENERIC_1 = 21;
+[[maybe_unused]] constexpr int SYSCOM_GENERIC_2 = 22;
 // No 23?
-const int SYSCOM_OPEN_MANUAL_PATH = 24;
-const int SYSCOM_SET_SKIP_MODE = 25;
-const int SYSCOM_AUTO_MODE = 26;
+[[maybe_unused]] constexpr int SYSCOM_OPEN_MANUAL_PATH = 24;
+[[maybe_unused]] constexpr int SYSCOM_SET_SKIP_MODE = 25;
+[[maybe_unused]] constexpr int SYSCOM_AUTO_MODE = 26;
 // No 27?
-const int SYSCOM_MENU_RETURN = 28;
-const int SYSCOM_EXIT_GAME = 29;
-const int SYSCOM_HIDE_MENU = 30;
-const int SYSCOM_SHOW_BACKGROUND = 31;
+[[maybe_unused]] constexpr int SYSCOM_MENU_RETURN = 28;
+[[maybe_unused]] constexpr int SYSCOM_EXIT_GAME = 29;
+[[maybe_unused]] constexpr int SYSCOM_HIDE_MENU = 30;
+[[maybe_unused]] constexpr int SYSCOM_SHOW_BACKGROUND = 31;
 
 // File type constants.
 //

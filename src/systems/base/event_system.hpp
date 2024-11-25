@@ -38,7 +38,6 @@
 #include "utilities/clock.hpp"
 
 class RLMachine;
-
 class Gameexe;
 class FrameCounter;
 class EventListener;
@@ -128,9 +127,6 @@ class EventSystem {
   virtual unsigned int GetTicks() const;
   virtual std::chrono::time_point<std::chrono::steady_clock> GetTime() const;
   virtual std::shared_ptr<Clock> GetClock() const;
-
-  // Idles the program for a certain amount of time in milliseconds.
-  virtual void Wait(unsigned int milliseconds) const = 0;
 
   // Keyboard and Mouse Input (Reallive style)
   //

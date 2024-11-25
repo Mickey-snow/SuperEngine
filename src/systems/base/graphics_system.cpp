@@ -626,7 +626,7 @@ std::shared_ptr<const Surface> GraphicsSystem::GetSurfaceNamedAndMarkViewed(
   // Set the intZ[] flag
   int flag = cg_table().GetFlag(short_filename);
   if (flag != -1) {
-    machine.memory().Write(
+    machine.GetMemory().Write(
         libreallive::IntMemRef(libreallive::INTZ_LOCATION, 0, flag), 1);
   }
 

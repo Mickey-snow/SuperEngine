@@ -54,11 +54,15 @@ StackFrame::StackFrame(libreallive::Scriptor::const_iterator it, FrameType t)
 }
 
 StackFrame::StackFrame(libreallive::Scriptor::const_iterator it,
-                       LongOperation* op)
+                       std::shared_ptr<LongOperation> op)
     : pos(it), long_op(op), frame_type(TYPE_LONGOP) {
   intL.Resize(40);
   strK.Resize(40);
 }
+
+StackFrame::StackFrame(libreallive::Scriptor::const_iterator it,
+                       LongOperation* op)
+    : StackFrame(it, std::shared_ptr<LongOperation>(op)) {}
 
 StackFrame::~StackFrame() {}
 

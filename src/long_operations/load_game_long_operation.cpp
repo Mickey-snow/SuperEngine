@@ -37,7 +37,7 @@
 
 LoadGameLongOperation::LoadGameLongOperation(RLMachine& machine) {
   // Render the current state of the screen
-  GraphicsSystem& graphics = machine.system().graphics();
+  GraphicsSystem& graphics = machine.GetSystem().graphics();
 
   std::shared_ptr<Surface> currentWindow = graphics.RenderToSurface();
   Size s = currentWindow->GetSize();
@@ -54,7 +54,7 @@ LoadGameLongOperation::LoadGameLongOperation(RLMachine& machine) {
   // We have our before and after images to use as a transition now. Reset the
   // system to prevent a brief flash of the previous contents of the screen for
   // whatever number of user preceivable milliseconds.
-  machine.system().Reset();
+  machine.GetSystem().Reset();
 }
 
 bool LoadGameLongOperation::operator()(RLMachine& machine) {
@@ -62,7 +62,7 @@ bool LoadGameLongOperation::operator()(RLMachine& machine) {
   // Warning: the stack has now been nuked and |this| is an invalid.
 
   // Render the current state of the screen
-  GraphicsSystem& graphics = machine.system().graphics();
+  GraphicsSystem& graphics = machine.GetSystem().graphics();
 
   std::shared_ptr<Surface> currentWindow = graphics.RenderToSurface();
   Size s = currentWindow->GetSize();

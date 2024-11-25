@@ -57,7 +57,6 @@ class SDLEventSystem : public EventSystem {
 
   // Implementation of EventSystem:
   virtual void ExecuteEventSystem(RLMachine& machine) override;
-  virtual void Wait(unsigned int milliseconds) const override;
   virtual bool ShiftPressed() const override;
   virtual bool CtrlPressed() const override;
   virtual Point GetCursorPos() override;

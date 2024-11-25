@@ -49,8 +49,8 @@ struct objWaitAll : public RLOpcode<> {
   static bool WaitUntilDone(RLMachine& machine) {
     // Clannad puts us in DrawManual() right before calling us so we force
     // refreshes.
-    machine.system().graphics().ForceRefresh();
-    return !machine.system().graphics().AnimationsPlaying();
+    machine.GetSystem().graphics().ForceRefresh();
+    return !machine.GetSystem().graphics().AnimationsPlaying();
   }
 
   void operator()(RLMachine& machine) {
@@ -99,7 +99,7 @@ struct WaitForGanToFinish : public LongOperation {
   }
 
   GraphicsObject& GetObject(RLMachine& machine) {
-    GraphicsSystem& graphics = machine.system().graphics();
+    GraphicsSystem& graphics = machine.GetSystem().graphics();
 
     if (parent_ != -1) {
       GraphicsObject& parent = graphics.GetObject(fgbg_, parent_);
@@ -145,7 +145,7 @@ struct ganPlay : public RLOpcode<IntConstant_T, IntConstant_T> {
             parent_object = -1;
 
           machine.PushLongOperation(new WaitForGanToFinish(
-              machine.system().graphics(), fgbg, parent_object, buf));
+              machine.GetSystem().graphics(), fgbg, parent_object, buf));
         }
       }
     }
@@ -163,7 +163,7 @@ struct ganWait : public RLOpcode<IntConstant_T> {
       parent_object = -1;
 
     machine.PushLongOperation(new WaitForGanToFinish(
-        machine.system().graphics(), fgbg, parent_object, buf));
+        machine.GetSystem().graphics(), fgbg, parent_object, buf));
   }
 };
 

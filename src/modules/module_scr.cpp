@@ -38,7 +38,7 @@ namespace {
 
 struct stackNop : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int numberOfNops) {
-    GraphicsSystem& sys = machine.system().graphics();
+    GraphicsSystem& sys = machine.GetSystem().graphics();
 
     for (int i = 0; i < numberOfNops; ++i) {
       sys.AddGraphicsStackCommand("");
@@ -48,7 +48,7 @@ struct stackNop : public RLOpcode<IntConstant_T> {
 
 struct stackTrunc : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int count) {
-    GraphicsSystem& sys = machine.system().graphics();
+    GraphicsSystem& sys = machine.GetSystem().graphics();
     sys.StackPop(sys.StackSize() - count);
   }
 };
@@ -67,7 +67,7 @@ struct GetDCPixel : public RLOpcode<IntConstant_T,
                   IntReferenceIterator g,
                   IntReferenceIterator b) {
     int rval, gval, bval;
-    machine.system().graphics().GetDC(dc)->GetDCPixel(Point(x, y), rval, gval,
+    machine.GetSystem().graphics().GetDC(dc)->GetDCPixel(Point(x, y), rval, gval,
                                                       bval);
     *r = rval;
     *g = gval;

@@ -99,18 +99,18 @@ void saveGameTo(std::ostream& oss, RLMachine& machine) {
   filtered_output.push(boost::iostreams::zlib_compressor());
   filtered_output.push(oss);
 
-  const SaveGameHeader header(machine.system().graphics().window_subtitle());
+  const SaveGameHeader header(machine.GetSystem().graphics().window_subtitle());
 
   g_current_machine = &machine;
 
   try {
     boost::archive::text_oarchive oa(filtered_output);
-    oa << CURRENT_LOCAL_VERSION << header << machine.memory().GetLocalMemory()
+    oa << CURRENT_LOCAL_VERSION << header << machine.GetMemory().GetLocalMemory()
        << const_cast<const RLMachine&>(machine)
-       << const_cast<const System&>(machine.system())
-       << const_cast<const GraphicsSystem&>(machine.system().graphics())
-       << const_cast<const TextSystem&>(machine.system().text())
-       << const_cast<const SoundSystem&>(machine.system().sound());
+       << const_cast<const System&>(machine.GetSystem())
+       << const_cast<const GraphicsSystem&>(machine.GetSystem().graphics())
+       << const_cast<const TextSystem&>(machine.GetSystem().text())
+       << const_cast<const SoundSystem&>(machine.GetSystem().sound());
   } catch (std::exception& e) {
     std::cerr << "--- WARNING: ERROR DURING SAVING FILE: " << e.what() << " ---"
               << std::endl;
@@ -126,7 +126,7 @@ fs::path buildSaveGameFilename(RLMachine& machine, int slot) {
   std::ostringstream oss;
   oss << "save" << std::setw(3) << std::setfill('0') << slot << ".sav.gz";
 
-  return machine.system().GameSaveDirectory() / oss.str();
+  return machine.GetSystem().GameSaveDirectory() / oss.str();
 }
 
 SaveGameHeader loadHeaderForSlot(RLMachine& machine, int slot) {
@@ -200,15 +200,15 @@ void loadGameFrom(std::istream& iss, RLMachine& machine) {
 
     boost::archive::text_iarchive ia(filtered_input);
     LocalMemory local_memory;
-    ia >> version >> header >> local_memory >> machine >> machine.system() >>
-        machine.system().graphics() >> machine.system().text() >>
-        machine.system().sound();
+    ia >> version >> header >> local_memory >> machine >> machine.GetSystem() >>
+        machine.GetSystem().graphics() >> machine.GetSystem().text() >>
+        machine.GetSystem().sound();
 
-    machine.memory().PartialReset(std::move(local_memory));
+    machine.GetMemory().PartialReset(std::move(local_memory));
 
-    machine.system().graphics().ReplayGraphicsStack(machine);
+    machine.GetSystem().graphics().ReplayGraphicsStack(machine);
 
-    machine.system().graphics().ForceRefresh();
+    machine.GetSystem().graphics().ForceRefresh();
   } catch (std::exception& e) {
     std::cerr << "--- WARNING: ERROR DURING LOADING FILE: " << e.what()
               << " ---" << std::endl;

@@ -44,7 +44,7 @@ struct setOverride : public RLOpcode<IntConstant_T> {
   explicit setOverride(int value) : value_(value) {}
 
   void operator()(RLMachine& machine, int window) {
-    machine.system().text().SetVisualOverride(window, value_);
+    machine.GetSystem().text().SetVisualOverride(window, value_);
   }
 };
 
@@ -54,7 +54,7 @@ struct setOverride : public RLOpcode<IntConstant_T> {
 // This might be more like page, par or spause? Test on Planetarian.
 struct rlm_pause : public RLOpcode<> {
   void operator()(RLMachine& machine) {
-    TextSystem& text = machine.system().text();
+    TextSystem& text = machine.GetSystem().text();
     int windowNum = text.active_window();
     std::shared_ptr<TextWindow> textWindow = text.GetTextWindow(windowNum);
 
@@ -79,13 +79,13 @@ struct rlm_page : public RLOpcode<> {
 
 struct rlm_bgm_loop_0 : public RLOpcode<StrConstant_T> {
   void operator()(RLMachine& machine, string filename) {
-    machine.system().sound().BgmPlay(filename, true);
+    machine.GetSystem().sound().BgmPlay(filename, true);
   }
 };
 
 struct rlm_bgm_loop_1 : public RLOpcode<StrConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, string filename, int fadein) {
-    machine.system().sound().BgmPlay(filename, true, fadein);
+    machine.GetSystem().sound().BgmPlay(filename, true, fadein);
   }
 };
 
@@ -95,19 +95,19 @@ struct rlm_bgm_loop_2
                   string filename,
                   int fadein,
                   int fadeout) {
-    machine.system().sound().BgmPlay(filename, true, fadein, fadeout);
+    machine.GetSystem().sound().BgmPlay(filename, true, fadein, fadeout);
   }
 };
 
 struct rlm_wav_play_0 : public RLOpcode<StrConstant_T> {
   void operator()(RLMachine& machine, std::string fileName) {
-    machine.system().sound().WavPlay(fileName, false);
+    machine.GetSystem().sound().WavPlay(fileName, false);
   }
 };
 
 struct rlm_wav_play_1 : public RLOpcode<StrConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, std::string fileName, int channel) {
-    machine.system().sound().WavPlay(fileName, false, channel);
+    machine.GetSystem().sound().WavPlay(fileName, false, channel);
   }
 };
 
@@ -117,7 +117,7 @@ struct rlm_wav_play_2
                   std::string fileName,
                   int channel,
                   int fadein) {
-    machine.system().sound().WavPlay(fileName, false, channel, fadein);
+    machine.GetSystem().sound().WavPlay(fileName, false, channel, fadein);
   }
 };
 

@@ -68,7 +68,7 @@ struct dispArea_0 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int buf) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
     obj.Param().ClearClipRect();
-    machine.system().graphics().mark_object_state_as_dirty();
+    machine.GetSystem().graphics().mark_object_state_as_dirty();
   }
 };
 
@@ -80,7 +80,7 @@ struct dispArea_1 : RLOpcode<IntConstant_T,
   void operator()(RLMachine& machine, int buf, int x1, int y1, int x2, int y2) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
     obj.Param().SetClipRect(Rect::GRP(x1, y1, x2, y2));
-    machine.system().graphics().mark_object_state_as_dirty();
+    machine.GetSystem().graphics().mark_object_state_as_dirty();
   }
 };
 
@@ -92,7 +92,7 @@ struct dispRect_1 : RLOpcode<IntConstant_T,
   void operator()(RLMachine& machine, int buf, int x, int y, int w, int h) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
     obj.Param().SetClipRect(Rect::REC(x, y, w, h));
-    machine.system().graphics().mark_object_state_as_dirty();
+    machine.GetSystem().graphics().mark_object_state_as_dirty();
   }
 };
 
@@ -100,7 +100,7 @@ struct dispCorner_1 : RLOpcode<IntConstant_T, IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int buf, int x, int y) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
     obj.Param().SetClipRect(Rect::GRP(0, 0, x, y));
-    machine.system().graphics().mark_object_state_as_dirty();
+    machine.GetSystem().graphics().mark_object_state_as_dirty();
   }
 };
 
@@ -108,7 +108,7 @@ struct dispOwnArea_0 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int buf) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
     obj.Param().ClearOwnClipRect();
-    machine.system().graphics().mark_object_state_as_dirty();
+    machine.GetSystem().graphics().mark_object_state_as_dirty();
   }
 };
 
@@ -120,7 +120,7 @@ struct dispOwnArea_1 : RLOpcode<IntConstant_T,
   void operator()(RLMachine& machine, int buf, int x1, int y1, int x2, int y2) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
     obj.Param().SetOwnClipRect(Rect::GRP(x1, y1, x2, y2));
-    machine.system().graphics().mark_object_state_as_dirty();
+    machine.GetSystem().graphics().mark_object_state_as_dirty();
   }
 };
 
@@ -132,7 +132,7 @@ struct dispOwnRect_1 : RLOpcode<IntConstant_T,
   void operator()(RLMachine& machine, int buf, int x, int y, int w, int h) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
     obj.Param().SetOwnClipRect(Rect::REC(x, y, w, h));
-    machine.system().graphics().mark_object_state_as_dirty();
+    machine.GetSystem().graphics().mark_object_state_as_dirty();
   }
 };
 
@@ -142,7 +142,7 @@ struct adjust
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
     obj.Param().SetXAdjustment(idx, x);
     obj.Param().SetYAdjustment(idx, y);
-    machine.system().graphics().mark_object_state_as_dirty();
+    machine.GetSystem().graphics().mark_object_state_as_dirty();
   }
 };
 
@@ -151,7 +151,7 @@ struct tint
   void operator()(RLMachine& machine, int buf, int r, int g, int b) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
     obj.Param().SetTint(RGBColour(r, g, b));
-    machine.system().graphics().mark_object_state_as_dirty();
+    machine.GetSystem().graphics().mark_object_state_as_dirty();
   }
 };
 
@@ -163,7 +163,7 @@ struct colour : RLOpcode<IntConstant_T,
   void operator()(RLMachine& machine, int buf, int r, int g, int b, int level) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
     obj.Param().SetColour(RGBAColour(r, g, b, level));
-    machine.system().graphics().mark_object_state_as_dirty();
+    machine.GetSystem().graphics().mark_object_state_as_dirty();
   }
 };
 
@@ -175,7 +175,7 @@ struct objSetRect_1 : public RLOpcode<IntConstant_T, Rect_T<rect_impl::GRP>> {
           dynamic_cast<ColourFilterObjectData*>(&obj.GetObjectData());
       if (data) {
         data->set_rect(rect);
-        machine.system().graphics().mark_object_state_as_dirty();
+        machine.GetSystem().graphics().mark_object_state_as_dirty();
       }
     }
   }
@@ -183,7 +183,7 @@ struct objSetRect_1 : public RLOpcode<IntConstant_T, Rect_T<rect_impl::GRP>> {
 
 struct objSetRect_0 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int buf) {
-    Rect rect(0, 0, GetScreenSize(machine.system().gameexe()));
+    Rect rect(0, 0, GetScreenSize(machine.GetSystem().gameexe()));
     objSetRect_1()(machine, buf, rect);
   }
 };
@@ -193,7 +193,7 @@ struct objSetText : public RLOpcode<IntConstant_T, DefaultStrValue_T> {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
     std::string utf8str = cp932toUTF8(val, machine.GetTextEncoding());
     obj.Param().SetTextText(utf8str);
-    machine.system().graphics().mark_object_state_as_dirty();
+    machine.GetSystem().graphics().mark_object_state_as_dirty();
   }
 };
 
@@ -218,7 +218,7 @@ struct objTextOpts : public RLOpcode<IntConstant_T,
                   int shadow) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
     obj.Param().SetTextOps(size, xspace, yspace, char_count, colour, shadow);
-    machine.system().graphics().mark_object_state_as_dirty();
+    machine.GetSystem().graphics().mark_object_state_as_dirty();
   }
 };
 
@@ -253,7 +253,7 @@ struct objDriftOpts : public RLOpcode<IntConstant_T,
     obj.Param().SetDriftOpts(count, use_animation, start_pattern, end_pattern,
                              total_animaton_time_ms, yspeed, period, amplitude,
                              use_drift, unknown, driftspeed, drift_area);
-    machine.system().graphics().mark_object_state_as_dirty();
+    machine.GetSystem().graphics().mark_object_state_as_dirty();
   }
 };
 
@@ -272,7 +272,7 @@ struct objNumOpts : public RLOpcode<IntConstant_T,
                   int space) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
     obj.Param().SetDigitOpts(digits, zero, sign, pack, space);
-    machine.system().graphics().mark_object_state_as_dirty();
+    machine.GetSystem().graphics().mark_object_state_as_dirty();
   }
 };
 
@@ -281,7 +281,7 @@ struct objAdjustAlpha
   void operator()(RLMachine& machine, int buf, int idx, int alpha) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
     obj.Param().SetAlphaAdjustment(idx, alpha);
-    machine.system().graphics().mark_object_state_as_dirty();
+    machine.GetSystem().graphics().mark_object_state_as_dirty();
   }
 };
 
@@ -298,7 +298,7 @@ struct objButtonOpts : public RLOpcode<IntConstant_T,
                   int button_number) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
     obj.Param().SetButtonOpts(action, se, group, button_number);
-    machine.system().graphics().mark_object_state_as_dirty();
+    machine.GetSystem().graphics().mark_object_state_as_dirty();
   }
 };
 
@@ -320,7 +320,7 @@ class objEveAdjust : public RLOpcode<IntConstant_T,
                           int duration_time,
                           int delay,
                           int type) {
-    unsigned int creation_time = machine.system().event().GetTicks();
+    unsigned int creation_time = machine.GetSystem().event().GetTicks();
 
     GraphicsObject& object = GetGraphicsObject(machine, this, obj);
     int start_x = object.Param().x_adjustment(repno);
@@ -343,11 +343,11 @@ struct objEveDisplay_1 : public RLOpcode<IntConstant_T,
                   int duration_time,
                   int delay,
                   int param) {
-    Gameexe& gameexe = machine.system().gameexe();
+    Gameexe& gameexe = machine.GetSystem().gameexe();
     const std::vector<int> disp = gameexe("OBJDISP", param).ToIntVector();
 
     GraphicsObject& object = GetGraphicsObject(machine, this, obj);
-    unsigned int creation_time = machine.system().event().GetTicks();
+    unsigned int creation_time = machine.GetSystem().event().GetTicks();
     object.AddObjectMutator(std::make_unique<DisplayMutator>(
         object.Param(), creation_time, duration_time, delay, display,
         disp.at(0), disp.at(1), disp.at(2), disp.at(3), disp.at(4), disp.at(5),
@@ -376,7 +376,7 @@ struct objEveDisplay_2 : public RLOpcode<IntConstant_T,
                   int move_len_x,
                   int move_len_y) {
     GraphicsObject& object = GetGraphicsObject(machine, this, obj);
-    unsigned int creation_time = machine.system().event().GetTicks();
+    unsigned int creation_time = machine.GetSystem().event().GetTicks();
     object.AddObjectMutator(std::make_unique<DisplayMutator>(
         object.Param(), creation_time, duration_time, delay, display,
         disp_event_mod, tr_mod, move_mod, move_len_x, move_len_y, 0, 0, 0, 0, 0,
@@ -422,7 +422,7 @@ struct objEveDisplay_3 : public RLOpcode<IntConstant_T,
                   int sin_len,
                   int sin_count) {
     GraphicsObject& object = GetGraphicsObject(machine, this, obj);
-    unsigned int creation_time = machine.system().event().GetTicks();
+    unsigned int creation_time = machine.GetSystem().event().GetTicks();
     object.AddObjectMutator(std::make_unique<DisplayMutator>(
         object.Param(), creation_time, duration_time, delay, display,
         disp_event_mod, tr_mod, move_mod, move_len_x, move_len_y, rotate_mod,

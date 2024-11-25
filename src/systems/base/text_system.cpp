@@ -883,6 +883,6 @@ bool TextSystem::CurrentlySkipping() const {
 }
 
 bool RestoreTextSystemVisibility::operator()(RLMachine& machine) {
-  machine.system().text().set_system_visible(true);
+  machine.GetSystem().text().set_system_visible(true);
   return true;
 }

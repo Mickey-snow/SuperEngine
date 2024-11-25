@@ -181,7 +181,7 @@ Effect* EffectFactory::BuildFromSEL(RLMachine& machine,
                                     std::shared_ptr<Surface> src,
                                     std::shared_ptr<Surface> dst,
                                     int selNum) {
-  auto sel_record = GetSelRecord(machine.system().gameexe(), selNum);
+  auto sel_record = GetSelRecord(machine.GetSystem().gameexe(), selNum);
   return Build(machine, src, dst, sel_record);
 }
 
@@ -189,7 +189,7 @@ Effect* EffectFactory::Build(RLMachine& machine,
                              std::shared_ptr<Surface> src,
                              std::shared_ptr<Surface> dst,
                              selRecord record) {
-  Size screen_size = machine.system().graphics().screen_size();
+  Size screen_size = machine.GetSystem().graphics().screen_size();
 
   // Ensure that both of our images are on the graphics card so we don't
   // stutter during the loop. These can be NULL in unit tests.

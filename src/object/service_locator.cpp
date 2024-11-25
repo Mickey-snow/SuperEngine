@@ -32,7 +32,7 @@
 #include "systems/base/system.hpp"
 
 RenderingService::RenderingService(RLMachine& imachine)
-    : system_(imachine.system()) {}
+    : system_(imachine.GetSystem()) {}
 
 RenderingService::RenderingService(System& isystem) : system_(isystem) {}
 

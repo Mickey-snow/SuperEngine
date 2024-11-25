@@ -184,7 +184,7 @@ template <class Archive>
 void GraphicsObjectOfFile::load(Archive& ar, unsigned int version) {
   ar & animator_ & filename_ & frame_time_ & current_frame_;
 
-  LoadFile(Serialization::g_current_machine->system());
+  LoadFile(Serialization::g_current_machine->GetSystem());
   service_->MarkScreenDirty(GUT_DISPLAY_OBJ);
 }
 

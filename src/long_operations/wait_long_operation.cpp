@@ -44,7 +44,7 @@ WaitLongOperation::WaitLongOperation(RLMachine& machine)
       break_on_clicks_(false),
       button_pressed_(0),
       break_on_event_(false),
-      break_on_ctrl_pressed_(machine.system().text().ctrl_key_skip()),
+      break_on_ctrl_pressed_(machine.GetSystem().text().ctrl_key_skip()),
       ctrl_pressed_(false),
       mouse_moved_(false),
       save_click_location_(false) {}
@@ -53,7 +53,7 @@ WaitLongOperation::~WaitLongOperation() {}
 
 void WaitLongOperation::WaitMilliseconds(unsigned int time) {
   wait_until_target_time_ = true;
-  target_time_ = machine_.system().event().GetTicks() + time;
+  target_time_ = machine_.GetSystem().event().GetTicks() + time;
 }
 
 void WaitLongOperation::BreakOnClicks() { break_on_clicks_ = true; }
@@ -104,23 +104,23 @@ bool WaitLongOperation::KeyStateChanged(KeyCode keyCode, bool pressed) {
 }
 
 void WaitLongOperation::RecordMouseCursorPosition() {
-  Point location = machine_.system().event().GetCursorPos();
+  Point location = machine_.GetSystem().event().GetCursorPos();
   *x_ = location.x();
   *y_ = location.y();
 }
 
 bool WaitLongOperation::operator()(RLMachine& machine) {
-  bool done = ctrl_pressed_ || machine.system().ShouldFastForward();
+  bool done = ctrl_pressed_ || machine.GetSystem().ShouldFastForward();
 
   if (!done && wait_until_target_time_) {
-    done = machine.system().event().GetTicks() > target_time_;
+    done = machine.GetSystem().event().GetTicks() > target_time_;
   }
 
   if (!done && break_on_event_) {
     done = event_function_();
   }
 
-  GraphicsSystem& graphics = machine.system().graphics();
+  GraphicsSystem& graphics = machine.GetSystem().graphics();
   if (mouse_moved_) {
     graphics.MarkScreenAsDirty(GUT_MOUSE_MOTION);
     mouse_moved_ = false;

@@ -71,14 +71,14 @@ namespace {
 
 struct title : public RLOpcode<StrConstant_T> {
   void operator()(RLMachine& machine, std::string subtitle) {
-    machine.system().graphics().SetWindowSubtitle(subtitle,
+    machine.GetSystem().graphics().SetWindowSubtitle(subtitle,
                                                   machine.GetTextEncoding());
   }
 };
 
 struct GetTitle : public RLOpcode<StrReference_T> {
   void operator()(RLMachine& machine, StringReferenceIterator dest) {
-    *dest = machine.system().graphics().window_subtitle();
+    *dest = machine.GetSystem().graphics().window_subtitle();
   }
 };
 
@@ -93,7 +93,7 @@ struct GetCursorPos_gc1 : public RLOpcode<IntReference_T,
                   IntReferenceIterator button2It) {
     Point pos;
     int button1, button2;
-    machine.system().event().GetCursorPos(pos, button1, button2);
+    machine.GetSystem().event().GetCursorPos(pos, button1, button2);
     *xit = pos.x();
     *yit = pos.y();
     *button1It = button1;
@@ -105,7 +105,7 @@ struct GetCursorPos_gc2 : public RLOpcode<IntReference_T, IntReference_T> {
   void operator()(RLMachine& machine,
                   IntReferenceIterator xit,
                   IntReferenceIterator yit) {
-    Point pos = machine.system().event().GetCursorPos();
+    Point pos = machine.GetSystem().event().GetCursorPos();
     *xit = pos.x();
     *yit = pos.y();
   }
@@ -114,25 +114,25 @@ struct GetCursorPos_gc2 : public RLOpcode<IntReference_T, IntReference_T> {
 struct CallStackPop : RLOpcode<DefaultIntValue_T<1>> {
   void operator()(RLMachine& machine, int frames_to_pop) {
     for (int i = 0; i < frames_to_pop; ++i) {
-      machine.Stack().Pop();
+      machine.GetStack().Pop();
     }
   }
 };
 
 struct CallStackSize : RLStoreOpcode<> {
-  int operator()(RLMachine& machine) { return machine.Stack().Size(); }
+  int operator()(RLMachine& machine) { return machine.GetStack().Size(); }
 };
 
 struct PauseCursor : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int newCursor) {
-    machine.system().text().SetKeyCursor(newCursor);
+    machine.GetSystem().text().SetKeyCursor(newCursor);
   }
 };
 
 struct GetWakuAll : public RLStoreOpcode<> {
   int operator()(RLMachine& machine) {
     std::shared_ptr<TextWindow> window =
-        machine.system().text().GetCurrentWindow();
+        machine.GetSystem().text().GetCurrentWindow();
     return window->waku_set();
   }
 };
@@ -253,7 +253,7 @@ struct ReturnMenu : public RLOpcode<> {
   virtual bool ShouldAdvanceIP() override { return false; }
 
   void operator()(RLMachine& machine) override {
-    int scenario = machine.system().gameexe()("SEEN_MENU").ToInt();
+    int scenario = machine.GetSystem().gameexe()("SEEN_MENU").ToInt();
     machine.LocalReset();
     Jump(machine, scenario, 0);
   }
@@ -263,7 +263,7 @@ struct ReturnPrevSelect : public RLOpcode<> {
   virtual bool ShouldAdvanceIP() override { return false; }
 
   void operator()(RLMachine& machine) override {
-    machine.system().RestoreSelectionSnapshot(machine);
+    machine.GetSystem().RestoreSelectionSnapshot(machine);
   }
 };
 
@@ -280,7 +280,7 @@ struct SetWindowAttr : public RLOpcode<IntConstant_T,
     attr[3] = a;
     attr[4] = f;
 
-    machine.system().text().SetDefaultWindowAttr(attr);
+    machine.GetSystem().text().SetDefaultWindowAttr(attr);
   }
 };
 
@@ -295,7 +295,7 @@ struct GetWindowAttr : public RLOpcode<IntReference_T,
                   IntReferenceIterator b,
                   IntReferenceIterator a,
                   IntReferenceIterator f) {
-    TextSystem& text = machine.system().text();
+    TextSystem& text = machine.GetSystem().text();
 
     *r = text.window_attr_r();
     *g = text.window_attr_g();
@@ -316,7 +316,7 @@ struct DefWindowAttr : public RLOpcode<IntReference_T,
                   IntReferenceIterator b,
                   IntReferenceIterator a,
                   IntReferenceIterator f) {
-    Gameexe& gexe = machine.system().gameexe();
+    Gameexe& gexe = machine.GetSystem().gameexe();
     std::vector<int> attr = gexe("WINDOW_ATTR");
 
     *r = attr.at(0);
@@ -333,7 +333,7 @@ struct GetSoundSettings : public RLStoreOpcode<> {
   std::function<int(const rlSoundSettings&)> fn_;
 
   int operator()(RLMachine& machine) {
-    const rlSoundSettings& settings = machine.system().sound().GetSettings();
+    const rlSoundSettings& settings = machine.GetSystem().sound().GetSettings();
     return fn_(settings);
   }
 };
@@ -345,9 +345,9 @@ struct ChangeSoundSettings : public RLOpcode<IntConstant_T> {
   std::function<void(rlSoundSettings&, int)> fn_;
 
   void operator()(RLMachine& machine, int value) {
-    rlSoundSettings settings = machine.system().sound().GetSettings();
+    rlSoundSettings settings = machine.GetSystem().sound().GetSettings();
     fn_(settings, value);
-    machine.system().sound().SetSettings(settings);
+    machine.GetSystem().sound().SetSettings(settings);
   }
 };
 
@@ -357,7 +357,7 @@ bool Sys_MenuReturn::ShouldAdvanceIP() { return false; }
 
 // Implementation isn't in anonymous namespace since it is used elsewhere.
 void Sys_MenuReturn::operator()(RLMachine& machine) {
-  GraphicsSystem& graphics = machine.system().graphics();
+  GraphicsSystem& graphics = machine.GetSystem().graphics();
 
   // Render the screen as is.
   std::shared_ptr<Surface> dc0 = graphics.GetDC(0);
@@ -369,7 +369,7 @@ void Sys_MenuReturn::operator()(RLMachine& machine) {
   std::shared_ptr<Surface> after = graphics.RenderToSurface();
 
   // First, we jump the instruction pointer to the new location.
-  int scenario = machine.system().gameexe()("SEEN_MENU").ToInt();
+  int scenario = machine.GetSystem().gameexe()("SEEN_MENU").ToInt();
   Jump(machine, scenario, 0);
 
   // Now we push a LongOperation on top of the stack; when this

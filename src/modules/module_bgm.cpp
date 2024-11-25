@@ -43,7 +43,7 @@
 namespace {
 
 bool BgmWait(RLMachine& machine) {
-  return machine.system().sound().BgmStatus() == 0;
+  return machine.GetSystem().sound().BgmStatus() == 0;
 }
 
 LongOperation* MakeBgmWait(RLMachine& machine) {
@@ -54,19 +54,19 @@ LongOperation* MakeBgmWait(RLMachine& machine) {
 
 struct LongOp_bgmWait : public LongOperation {
   bool operator()(RLMachine& machine) {
-    return machine.system().sound().BgmStatus() == 0;
+    return machine.GetSystem().sound().BgmStatus() == 0;
   }
 };
 
 struct bgmLoop_0 : public RLOpcode<StrConstant_T> {
   void operator()(RLMachine& machine, string filename) {
-    machine.system().sound().BgmPlay(filename, true);
+    machine.GetSystem().sound().BgmPlay(filename, true);
   }
 };
 
 struct bgmLoop_1 : public RLOpcode<StrConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, string filename, int fadein) {
-    machine.system().sound().BgmPlay(filename, true, fadein);
+    machine.GetSystem().sound().BgmPlay(filename, true, fadein);
   }
 };
 
@@ -76,19 +76,19 @@ struct bgmLoop_2
                   string filename,
                   int fadein,
                   int fadeout) {
-    machine.system().sound().BgmPlay(filename, true, fadein, fadeout);
+    machine.GetSystem().sound().BgmPlay(filename, true, fadein, fadeout);
   }
 };
 
 struct bgmPlay_0 : public RLOpcode<StrConstant_T> {
   void operator()(RLMachine& machine, string filename) {
-    machine.system().sound().BgmPlay(filename, false);
+    machine.GetSystem().sound().BgmPlay(filename, false);
   }
 };
 
 struct bgmPlay_1 : public RLOpcode<StrConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, string filename, int fadein) {
-    machine.system().sound().BgmPlay(filename, false, fadein);
+    machine.GetSystem().sound().BgmPlay(filename, false, fadein);
   }
 };
 
@@ -98,7 +98,7 @@ struct bgmPlay_2
                   string filename,
                   int fadein,
                   int fadeout) {
-    machine.system().sound().BgmPlay(filename, false, fadein, fadeout);
+    machine.GetSystem().sound().BgmPlay(filename, false, fadein, fadeout);
   }
 };
 
@@ -110,45 +110,45 @@ struct bgmWait : public RLOpcode<> {
 
 struct bgmPlaying : public RLStoreOpcode<> {
   int operator()(RLMachine& machine) {
-    return machine.system().sound().BgmStatus() == 1;
+    return machine.GetSystem().sound().BgmStatus() == 1;
   }
 };
 
 struct bgmSetVolume_0 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int vol) {
-    machine.system().sound().SetBgmVolumeScript(vol, 0);
+    machine.GetSystem().sound().SetBgmVolumeScript(vol, 0);
   }
 };
 
 struct bgmGetVolume : public RLStoreOpcode<> {
   int operator()(RLMachine& machine) {
-    const auto& settings = machine.system().sound().GetSettings();
+    const auto& settings = machine.GetSystem().sound().GetSettings();
     return settings.bgm_volume;
   }
 };
 
 struct bgmFadeOutEx : public RLOpcode<DefaultIntValue_T<1000>> {
   void operator()(RLMachine& machine, int fadeout) {
-    machine.system().sound().BgmFadeOut(fadeout);
+    machine.GetSystem().sound().BgmFadeOut(fadeout);
     machine.PushLongOperation(MakeBgmWait(machine));
   }
 };
 
 struct bgmUnMute_1 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int fadein) {
-    machine.system().sound().SetBgmVolumeScript(255, fadein);
+    machine.GetSystem().sound().SetBgmVolumeScript(255, fadein);
   }
 };
 
 struct bgmMute_1 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int fadein) {
-    machine.system().sound().SetBgmVolumeScript(0, fadein);
+    machine.GetSystem().sound().SetBgmVolumeScript(0, fadein);
   }
 };
 
 struct bgmTimer : public RLStoreOpcode<> {
   int operator()(RLMachine& machine) {
-    auto bgmPlayer = machine.system().sound().GetBgm();
+    auto bgmPlayer = machine.GetSystem().sound().GetBgm();
     if (!bgmPlayer)
       return 0;
     return bgmPlayer->GetCurrentTime();

@@ -67,7 +67,7 @@ namespace Serialization {
 const int CURRENT_GLOBAL_VERSION = 3;
 
 fs::path buildGlobalMemoryFilename(RLMachine& machine) {
-  return machine.system().GameSaveDirectory() / "global.sav.gz";
+  return machine.GetSystem().GameSaveDirectory() / "global.sav.gz";
 }
 
 void saveGlobalMemory(RLMachine& machine) {
@@ -86,9 +86,9 @@ void saveGlobalMemoryTo(std::ostream& oss, RLMachine& machine) {
   filtered_output.push(oss);
 
   boost::archive::text_oarchive oa(filtered_output);
-  System& sys = machine.system();
+  System& sys = machine.GetSystem();
 
-  oa << CURRENT_GLOBAL_VERSION << machine.memory().GetGlobalMemory()
+  oa << CURRENT_GLOBAL_VERSION << machine.GetMemory().GetGlobalMemory()
      << const_cast<const SystemGlobals&>(sys.globals())
      << const_cast<const GraphicsSystemGlobals&>(sys.graphics().globals())
      << const_cast<const EventSystemGlobals&>(sys.event().globals())
@@ -112,7 +112,7 @@ void loadGlobalMemory(RLMachine& machine) {
       // we're trying to read an incompatible old version's files or the global
       // data is corrupted. Either way, we can't safely do ANYTHING with this
       // game's entire save data so move it out of the way.
-      fs::path save_dir = machine.system().GameSaveDirectory();
+      fs::path save_dir = machine.GetSystem().GameSaveDirectory();
       fs::path dest_save_dir = save_dir.parent_path() /
                                (save_dir.filename() / ".old_corrupted_data");
 
@@ -132,14 +132,14 @@ void loadGlobalMemoryFrom(std::istream& iss, RLMachine& machine) {
   filtered_input.push(iss);
 
   boost::archive::text_iarchive ia(filtered_input);
-  System& sys = machine.system();
+  System& sys = machine.GetSystem();
   int version;
   ia >> version;
 
   // Load global memory.
   GlobalMemory global_memory;
   ia >> global_memory;
-  machine.memory().PartialReset(std::move(global_memory));
+  machine.GetMemory().PartialReset(std::move(global_memory));
 
   // When Karmic Koala came out, support for all boost earlier than 1.36 was
   // dropped. For years, I had used boost 1.35 on Ubuntu. It turns out that

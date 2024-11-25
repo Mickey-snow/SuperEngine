@@ -51,7 +51,7 @@ void EnsureIsParentObject(GraphicsObject& parent, int size) {
 GraphicsObject& GetGraphicsObject(RLMachine& machine,
                                   RLOperation* op,
                                   int obj) {
-  GraphicsSystem& graphics = machine.system().graphics();
+  GraphicsSystem& graphics = machine.GetSystem().graphics();
 
   int fgbg;
   if (!op->GetProperty(P_FGBG, fgbg))
@@ -70,7 +70,7 @@ GraphicsObject& GetGraphicsObject(RLMachine& machine,
 
 LazyArray<GraphicsObject>& GetGraphicsObjects(RLMachine& machine,
                                               RLOperation* op) {
-  GraphicsSystem& graphics = machine.system().graphics();
+  GraphicsSystem& graphics = machine.GetSystem().graphics();
 
   int fgbg;
   if (!op->GetProperty(P_FGBG, fgbg))
@@ -255,7 +255,7 @@ void Obj_SetOneIntOnObj::operator()(RLMachine& machine, int buf, int incoming) {
   GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
   std::invoke(setter, obj.Param(), incoming);
 
-  machine.system().graphics().mark_object_state_as_dirty();
+  machine.GetSystem().graphics().mark_object_state_as_dirty();
 }
 
 // -----------------------------------------------------------------------
@@ -275,7 +275,7 @@ void Obj_SetTwoIntOnObj::operator()(RLMachine& machine,
   std::invoke(setter_one_, obj.Param(), incoming_one);
   std::invoke(setter_two_, obj.Param(), incoming_two);
 
-  machine.system().graphics().mark_object_state_as_dirty();
+  machine.GetSystem().graphics().mark_object_state_as_dirty();
 }
 
 // -----------------------------------------------------------------------
@@ -292,5 +292,5 @@ void Obj_SetRepnoIntOnObj::operator()(RLMachine& machine,
                                       int val) {
   GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
   std::invoke(setter, obj.Param(), idx, val);
-  machine.system().graphics().mark_object_state_as_dirty();
+  machine.GetSystem().graphics().mark_object_state_as_dirty();
 }

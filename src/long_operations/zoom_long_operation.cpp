@@ -51,21 +51,21 @@ ZoomLongOperation::ZoomLongOperation(
       trect_(trect),
       drect_(drect),
       duration_(time),
-      start_time_(machine.system().event().GetTicks()) {}
+      start_time_(machine.GetSystem().event().GetTicks()) {}
 
 ZoomLongOperation::~ZoomLongOperation() {}
 
 bool ZoomLongOperation::operator()(RLMachine& machine) {
-  unsigned int time = machine.system().event().GetTicks();
+  unsigned int time = machine.GetSystem().event().GetTicks();
   unsigned int currentFrame = time - start_time_;
 
-  bool fastForward = machine.system().ShouldFastForward();
+  bool fastForward = machine.GetSystem().ShouldFastForward();
 
   if (currentFrame >= duration_ || fastForward) {
     return true;
   } else {
     // Render to the screen
-    GraphicsSystem& graphics = machine.system().graphics();
+    GraphicsSystem& graphics = machine.GetSystem().graphics();
     graphics.BeginFrame();
 
     // First blit the original dc0 to the screen

@@ -45,7 +45,7 @@ void PBRIDE_ResetAutoMode(RLMachine& machine) {
   // doesn't automatically get reset to DrawAuto. RealLive.exe takes care of
   // this (draw mode on the stack, perhaps?), but until we know what causes
   // this, hack.
-  machine.system().graphics().SetScreenUpdateMode(
+  machine.GetSystem().graphics().SetScreenUpdateMode(
       GraphicsSystem::SCREENUPDATEMODE_AUTOMATIC);
 }
 
@@ -58,7 +58,7 @@ void LB_SkipBaseball(RLMachine& machine) {
 }  // namespace
 
 void AddGameHacks(RLMachine& machine) {
-  std::string diskmark = machine.system().gameexe()("DISKMARK");
+  std::string diskmark = machine.GetSystem().gameexe()("DISKMARK");
 
   if (diskmark == "P_BRIDE_SE.ENV") {
     machine.AddLineAction(310, 446, bind(PBRIDE_ResetAutoMode, ref(machine)));

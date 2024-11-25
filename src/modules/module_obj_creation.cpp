@@ -64,7 +64,7 @@ void SetObjectDataToGan(RLMachine& machine,
   if (imgFilename == "???")
     imgFilename = ganFilename;
   obj.SetObjectData(
-      new GanGraphicsObjectData(machine.system(), ganFilename, imgFilename));
+      new GanGraphicsObjectData(machine.GetSystem(), ganFilename, imgFilename));
 }
 
 typedef std::function<void(RLMachine&, GraphicsObject& obj, const string&)>
@@ -73,7 +73,7 @@ typedef std::function<void(RLMachine&, GraphicsObject& obj, const string&)>
 void objOfFileLoader(RLMachine& machine,
                      GraphicsObject& obj,
                      const std::string& val) {
-  obj.SetObjectData(machine.system().graphics().BuildObjOfFile(val));
+  obj.SetObjectData(machine.GetSystem().graphics().BuildObjOfFile(val));
 }
 
 void objOfTextBuilder(RLMachine& machine,
@@ -82,7 +82,7 @@ void objOfTextBuilder(RLMachine& machine,
   // The text at this point is still cp932. Convert it.
   std::string utf8str = cp932toUTF8(val, machine.GetTextEncoding());
   obj.Param().SetTextText(utf8str);
-  GraphicsTextObject* text_obj = new GraphicsTextObject(machine.system());
+  GraphicsTextObject* text_obj = new GraphicsTextObject(machine.GetSystem());
   obj.SetObjectData(text_obj);
   text_obj->UpdateSurface(obj);
 }
@@ -90,13 +90,13 @@ void objOfTextBuilder(RLMachine& machine,
 void objOfDriftLoader(RLMachine& machine,
                       GraphicsObject& obj,
                       const std::string& value) {
-  obj.SetObjectData(new DriftGraphicsObject(machine.system(), value));
+  obj.SetObjectData(new DriftGraphicsObject(machine.GetSystem(), value));
 }
 
 void objOfDigitsLoader(RLMachine& machine,
                        GraphicsObject& obj,
                        const std::string& value) {
-  obj.SetObjectData(new DigitsGraphicsObject(machine.system(), value));
+  obj.SetObjectData(new DigitsGraphicsObject(machine.GetSystem(), value));
 }
 
 struct objGeneric_0 : public RLOpcode<IntConstant_T, StrConstant_T> {
@@ -280,12 +280,12 @@ void SetObjectDataToRect(RLMachine& machine,
                          int buf,
                          const Rect& r) {
   GraphicsObject& obj = GetGraphicsObject(machine, op, buf);
-  obj.SetObjectData(new ColourFilterObjectData(machine.system().graphics(), r));
+  obj.SetObjectData(new ColourFilterObjectData(machine.GetSystem().graphics(), r));
 }
 
 struct objOfArea_0 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int buf) {
-    Rect rect(0, 0, GetScreenSize(machine.system().gameexe()));
+    Rect rect(0, 0, GetScreenSize(machine.GetSystem().gameexe()));
     SetObjectDataToRect(machine, this, buf, rect);
   }
 };
@@ -320,7 +320,7 @@ struct objOfRect_1 : public RLOpcode<IntConstant_T,
     // Because of the screwed up optionality here, (x and y are optional while
     // width height are not, we hack with the INT_MIN value).
     if (width == INT_MIN) {
-      Rect screen(0, 0, GetScreenSize(machine.system().gameexe()));
+      Rect screen(0, 0, GetScreenSize(machine.GetSystem().gameexe()));
       SetObjectDataToRect(machine, this, buf, Size(x, y).CenteredIn(screen));
     } else {
       SetObjectDataToRect(machine, this, buf, Rect(x, y, Size(width, height)));
@@ -343,7 +343,7 @@ struct objOfRect_2 : public RLOpcode<IntConstant_T,
                   int visible) {
     Rect data_rect;
     if (height == INT_MIN) {
-      Rect screen(0, 0, GetScreenSize(machine.system().gameexe()));
+      Rect screen(0, 0, GetScreenSize(machine.GetSystem().gameexe()));
       data_rect = Size(x, y).CenteredIn(screen);
       // Crazy optionality here.
       visible = width;

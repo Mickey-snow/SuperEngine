@@ -48,7 +48,7 @@ namespace {
 
 struct par : public RLOpcode<> {
   void operator()(RLMachine& machine) {
-    TextPage& page = machine.system().text().GetCurrentPage();
+    TextPage& page = machine.GetSystem().text().GetCurrentPage();
     page.ResetIndentation();
     page.HardBrake();
   }
@@ -56,7 +56,7 @@ struct par : public RLOpcode<> {
 
 struct Msg_pause : public RLOpcode<> {
   void operator()(RLMachine& machine) {
-    TextSystem& text = machine.system().text();
+    TextSystem& text = machine.GetSystem().text();
     int windowNum = text.active_window();
     std::shared_ptr<TextWindow> textWindow = text.GetTextWindow(windowNum);
 
@@ -72,22 +72,22 @@ struct Msg_pause : public RLOpcode<> {
 
 struct Msg_TextWindow : public RLOpcode<DefaultIntValue_T<0>> {
   void operator()(RLMachine& machine, int window) {
-    machine.system().text().set_active_window(window);
+    machine.GetSystem().text().set_active_window(window);
   }
 };
 
 struct FontColour
     : public RLOpcode<DefaultIntValue_T<0>, DefaultIntValue_T<0>> {
   void operator()(RLMachine& machine, int textColorNum, int shadowColorNum) {
-    machine.system().text().GetCurrentPage().FontColour(textColorNum);
+    machine.GetSystem().text().GetCurrentPage().FontColour(textColorNum);
   }
 };
 
 struct SetFontColour : public RLOpcode<DefaultIntValue_T<0>> {
   void operator()(RLMachine& machine, int textColorNum) {
-    Gameexe& gexe = machine.system().gameexe();
+    Gameexe& gexe = machine.GetSystem().gameexe();
     if (gexe("COLOR_TABLE", textColorNum).Exists()) {
-      machine.system().text().GetCurrentWindow()->SetDefaultTextColor(
+      machine.GetSystem().text().GetCurrentWindow()->SetDefaultTextColor(
           gexe("COLOR_TABLE", textColorNum));
     }
   }
@@ -96,13 +96,13 @@ struct SetFontColour : public RLOpcode<DefaultIntValue_T<0>> {
 struct doruby_display : public RLOpcode<StrConstant_T> {
   void operator()(RLMachine& machine, std::string cpStr) {
     std::string utf8str = cp932toUTF8(cpStr, machine.GetTextEncoding());
-    machine.system().text().GetCurrentPage().DisplayRubyText(utf8str);
+    machine.GetSystem().text().GetCurrentPage().DisplayRubyText(utf8str);
   }
 };
 
 struct msgHide : public RLOpcode<DefaultIntValue_T<0>> {
   void operator()(RLMachine& machine, int unknown) {
-    TextSystem& text = machine.system().text();
+    TextSystem& text = machine.GetSystem().text();
     int winNum = text.active_window();
     text.HideTextWindow(winNum);
     text.NewPageOnWindow(winNum);
@@ -111,7 +111,7 @@ struct msgHide : public RLOpcode<DefaultIntValue_T<0>> {
 
 struct msgHideAll : public RLOpcode<> {
   void operator()(RLMachine& machine) {
-    TextSystem& text = machine.system().text();
+    TextSystem& text = machine.GetSystem().text();
 
     for (int window : text.GetActiveWindows()) {
       text.HideTextWindow(window);
@@ -122,7 +122,7 @@ struct msgHideAll : public RLOpcode<> {
 
 struct msgClear : public RLOpcode<> {
   void operator()(RLMachine& machine) {
-    TextSystem& text = machine.system().text();
+    TextSystem& text = machine.GetSystem().text();
     int active_window = text.active_window();
     text.Snapshot();
     text.GetTextWindow(active_window)->ClearWin();
@@ -132,7 +132,7 @@ struct msgClear : public RLOpcode<> {
 
 struct msgClearAll : public RLOpcode<> {
   void operator()(RLMachine& machine) {
-    TextSystem& text = machine.system().text();
+    TextSystem& text = machine.GetSystem().text();
     std::vector<int> active_windows = text.GetActiveWindows();
     int active_window = text.active_window();
 
@@ -161,7 +161,7 @@ struct page : public RLOpcode<> {
 
 struct TextPos : public RLOpcode<IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int x, int y) {
-    TextPage& page = machine.system().text().GetCurrentPage();
+    TextPage& page = machine.GetSystem().text().GetCurrentPage();
     page.SetInsertionPointX(x);
     page.SetInsertionPointY(y);
   }
@@ -172,7 +172,7 @@ struct GetTextPos : public RLOpcode<IntReference_T, IntReference_T> {
                   IntReferenceIterator x,
                   IntReferenceIterator y) {
     std::shared_ptr<TextWindow> textWindow =
-        machine.system().text().GetCurrentWindow();
+        machine.GetSystem().text().GetCurrentWindow();
 
     if (textWindow) {
       *x = textWindow->insertion_point_x();
@@ -183,7 +183,7 @@ struct GetTextPos : public RLOpcode<IntReference_T, IntReference_T> {
 
 struct TextOffset : public RLOpcode<IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int x, int y) {
-    TextPage& page = machine.system().text().GetCurrentPage();
+    TextPage& page = machine.GetSystem().text().GetCurrentPage();
     page.Offset_insertion_point_x(x);
     page.Offset_insertion_point_y(y);
   }
@@ -191,14 +191,14 @@ struct TextOffset : public RLOpcode<IntConstant_T, IntConstant_T> {
 
 struct FaceOpen : public RLOpcode<StrConstant_T, DefaultIntValue_T<0>> {
   void operator()(RLMachine& machine, std::string file, int index) {
-    TextPage& page = machine.system().text().GetCurrentPage();
+    TextPage& page = machine.GetSystem().text().GetCurrentPage();
     page.FaceOpen(file, index);
   }
 };
 
 struct FaceClose : public RLOpcode<DefaultIntValue_T<0>> {
   void operator()(RLMachine& machine, int index) {
-    TextPage& page = machine.system().text().GetCurrentPage();
+    TextPage& page = machine.GetSystem().text().GetCurrentPage();
     page.FaceClose(index);
   }
 };

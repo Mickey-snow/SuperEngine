@@ -138,7 +138,7 @@ template <class Archive>
 inline void load_construct_data(Archive& ar,
                                 GanGraphicsObjectData* t,
                                 const unsigned int file_version) {
-  ::new (t) GanGraphicsObjectData(Serialization::g_current_machine->system());
+  ::new (t) GanGraphicsObjectData(Serialization::g_current_machine->GetSystem());
 }
 }  // namespace serialization
 }  // namespace boost

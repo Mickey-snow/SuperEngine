@@ -43,11 +43,11 @@
 namespace {
 
 void addKoeIcon(RLMachine& machine, int id) {
-  machine.system().text().GetCurrentPage().KoeMarker(id);
+  machine.GetSystem().text().GetCurrentPage().KoeMarker(id);
 }
 
 bool koeIsPlaying(RLMachine& machine) {
-  return !machine.system().sound().KoePlaying();
+  return !machine.GetSystem().sound().KoePlaying();
 }
 
 void addKoeWaitC(RLMachine& machine) {
@@ -67,21 +67,21 @@ void addKoeWait(RLMachine& machine) {
 
 struct koePlay_0 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int koe) {
-    machine.system().sound().KoePlay(koe);
+    machine.GetSystem().sound().KoePlay(koe);
     addKoeIcon(machine, koe);
   }
 };
 
 struct koePlay_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int koe, int character) {
-    machine.system().sound().KoePlay(koe, character);
+    machine.GetSystem().sound().KoePlay(koe, character);
     addKoeIcon(machine, koe);
   }
 };
 
 struct koePlayEx_0 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int koe) {
-    machine.system().sound().KoePlay(koe);
+    machine.GetSystem().sound().KoePlay(koe);
     addKoeIcon(machine, koe);
     addKoeWait(machine);
   }
@@ -89,7 +89,7 @@ struct koePlayEx_0 : public RLOpcode<IntConstant_T> {
 
 struct koePlayEx_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int koe, int character) {
-    machine.system().sound().KoePlay(koe, character);
+    machine.GetSystem().sound().KoePlay(koe, character);
     addKoeIcon(machine, koe);
     addKoeWait(machine);
   }
@@ -97,7 +97,7 @@ struct koePlayEx_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
 
 struct koeDoPlayEx_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int koe, int character) {
-    machine.system().sound().KoePlay(koe);
+    machine.GetSystem().sound().KoePlay(koe);
     addKoeIcon(machine, koe);
     addKoeWait(machine);
   }
@@ -105,7 +105,7 @@ struct koeDoPlayEx_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
 
 struct koePlayExC_0 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int koe) {
-    machine.system().sound().KoePlay(koe);
+    machine.GetSystem().sound().KoePlay(koe);
     addKoeIcon(machine, koe);
     addKoeWaitC(machine);
   }
@@ -113,7 +113,7 @@ struct koePlayExC_0 : public RLOpcode<IntConstant_T> {
 
 struct koePlayExC_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int koe, int character) {
-    machine.system().sound().KoePlay(koe, character);
+    machine.GetSystem().sound().KoePlay(koe, character);
     addKoeIcon(machine, koe);
     addKoeWait(machine);
   }
@@ -121,7 +121,7 @@ struct koePlayExC_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
 
 struct koeDoPlayExC_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int koe, int character) {
-    machine.system().sound().KoePlay(koe);
+    machine.GetSystem().sound().KoePlay(koe);
     addKoeIcon(machine, koe);
     addKoeWaitC(machine);
   }
@@ -138,7 +138,7 @@ struct koeWaitC : public RLOpcode<> {
 // Play the voice not taking |character| into account.
 struct koeDoPlay_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int koe, int character) {
-    machine.system().sound().KoePlay(koe);
+    machine.GetSystem().sound().KoePlay(koe);
   }
 };
 
@@ -146,19 +146,19 @@ struct koeDoPlay_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
 // current mixing library.
 struct koeSetVolume_0 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int level) {
-    machine.system().sound().SetKoeVolume(level, 0);
+    machine.GetSystem().sound().SetKoeVolume(level, 0);
   }
 };
 
 struct koeUnMute_1 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int fadein) {
-    machine.system().sound().SetKoeVolume(255, fadein);
+    machine.GetSystem().sound().SetKoeVolume(255, fadein);
   }
 };
 
 struct koeMute_1 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int fadein) {
-    machine.system().sound().SetKoeVolume(0, fadein);
+    machine.GetSystem().sound().SetKoeVolume(0, fadein);
   }
 };
 

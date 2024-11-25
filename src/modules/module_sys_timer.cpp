@@ -51,7 +51,7 @@ struct ResetTimer : public RLOpcode<DefaultIntValue_T<0>> {
   explicit ResetTimer(const int in) : layer_(in) {}
 
   void operator()(RLMachine& machine, int counter) {
-    EventSystem& es = machine.system().event();
+    EventSystem& es = machine.GetSystem().event();
     es.GetTimer(layer_, counter).Set(es);
   }
 };
@@ -60,7 +60,7 @@ bool TimerIsDone(RLMachine& machine,
                  int layer,
                  int counter,
                  unsigned int target_time) {
-  EventSystem& es = machine.system().event();
+  EventSystem& es = machine.GetSystem().event();
   return es.GetTimer(layer, counter).Read(es) > target_time;
 }
 
@@ -70,7 +70,7 @@ struct Sys_time : public RLOpcode<IntConstant_T, DefaultIntValue_T<0>> {
   Sys_time(const int in, const bool timeC) : layer_(in), in_time_c_(timeC) {}
 
   void operator()(RLMachine& machine, int time, int counter) {
-    EventSystem& es = machine.system().event();
+    EventSystem& es = machine.GetSystem().event();
 
     if (es.GetTimer(layer_, counter).Read(es) <
         numeric_cast<unsigned int>(time)) {
@@ -89,7 +89,7 @@ struct Timer : public RLStoreOpcode<DefaultIntValue_T<0>> {
   explicit Timer(const int in) : layer_(in) {}
 
   int operator()(RLMachine& machine, int counter) {
-    EventSystem& es = machine.system().event();
+    EventSystem& es = machine.GetSystem().event();
     return es.GetTimer(layer_, counter).Read(es);
   }
 };
@@ -99,7 +99,7 @@ struct CmpTimer : public RLStoreOpcode<IntConstant_T, DefaultIntValue_T<0>> {
   explicit CmpTimer(const int in) : layer_(in) {}
 
   int operator()(RLMachine& machine, int val, int counter) {
-    EventSystem& es = machine.system().event();
+    EventSystem& es = machine.GetSystem().event();
     return es.GetTimer(layer_, counter).Read(es) > val;
   }
 };
@@ -109,7 +109,7 @@ struct SetTimer : public RLOpcode<IntConstant_T, DefaultIntValue_T<0>> {
   explicit SetTimer(const int in) : layer_(in) {}
 
   void operator()(RLMachine& machine, int val, int counter) {
-    EventSystem& es = machine.system().event();
+    EventSystem& es = machine.GetSystem().event();
     es.GetTimer(layer_, counter).Set(es, val);
   }
 };

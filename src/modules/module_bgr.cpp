@@ -62,7 +62,7 @@ namespace {
 
 struct bgrLoadHaikei_blank : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int sel) {
-    GraphicsSystem& graphics = machine.system().graphics();
+    GraphicsSystem& graphics = machine.GetSystem().graphics();
     graphics.set_default_bgr_name("");
     graphics.SetHikRenderer(NULL);
     graphics.set_graphics_background(BACKGROUND_HIK);
@@ -83,7 +83,7 @@ struct bgrLoadHaikei_blank : public RLOpcode<IntConstant_T> {
 
 struct bgrLoadHaikei_main : RLOpcode<StrConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, std::string filename, int sel) {
-    System& system = machine.system();
+    System& system = machine.GetSystem();
     GraphicsSystem& graphics = system.graphics();
     graphics.set_default_bgr_name(filename);
     graphics.set_graphics_background(BACKGROUND_HIK);
@@ -178,7 +178,7 @@ struct bgrMulti_1
                   string filename,
                   int effectNum,
                   BgrMultiCommand::type commands) {
-    GraphicsSystem& graphics = machine.system().graphics();
+    GraphicsSystem& graphics = machine.GetSystem().graphics();
 
     // Get the state of the world before we do any processing.
     std::shared_ptr<Surface> before = graphics.RenderToSurface();
@@ -241,7 +241,7 @@ struct bgrMulti_1
 
 struct bgrNext : public RLOpcode<> {
   void operator()(RLMachine& machine) {
-    HIKRenderer* renderer = machine.system().graphics().hik_renderer();
+    HIKRenderer* renderer = machine.GetSystem().graphics().hik_renderer();
     if (renderer) {
       renderer->NextAnimationFrame();
     }
@@ -250,7 +250,7 @@ struct bgrNext : public RLOpcode<> {
 
 struct bgrSetXOffset : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int offset) {
-    HIKRenderer* renderer = machine.system().graphics().hik_renderer();
+    HIKRenderer* renderer = machine.GetSystem().graphics().hik_renderer();
     if (renderer) {
       renderer->set_x_offset(offset);
     }
@@ -259,7 +259,7 @@ struct bgrSetXOffset : public RLOpcode<IntConstant_T> {
 
 struct bgrSetYOffset : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int offset) {
-    HIKRenderer* renderer = machine.system().graphics().hik_renderer();
+    HIKRenderer* renderer = machine.GetSystem().graphics().hik_renderer();
     if (renderer) {
       renderer->set_y_offset(offset);
     }
@@ -268,7 +268,7 @@ struct bgrSetYOffset : public RLOpcode<IntConstant_T> {
 
 struct bgrPreloadScript : public RLOpcode<IntConstant_T, StrConstant_T> {
   void operator()(RLMachine& machine, int slot, string name) {
-    System& system = machine.system();
+    System& system = machine.GetSystem();
     fs::path path = system.FindFile(name, HIK_FILETYPES);
     if (iends_with(path.string(), "hik")) {
       system.graphics().PreloadHIKScript(system, slot, name, path);

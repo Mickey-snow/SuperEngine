@@ -365,7 +365,7 @@ void SDLGraphicsSystem::ExecuteGraphicsSystem(RLMachine& machine) {
   }
 
   // Update the seen.
-  int current_time = machine.system().event().GetTicks();
+  int current_time = machine.GetSystem().event().GetTicks();
   if ((current_time - time_of_last_titlebar_update_) > 60) {
     time_of_last_titlebar_update_ = current_time;
 

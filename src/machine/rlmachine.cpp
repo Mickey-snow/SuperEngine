@@ -122,9 +122,9 @@ RLMachine::~RLMachine() {}
 
 void RLMachine::MarkSavepoint() {
   savepoint_call_stack_ = call_stack_.Clone();
-  savepoint_memory_ = memory();
-  system().graphics().TakeSavepointSnapshot();
-  system().text().TakeSavepointSnapshot();
+  savepoint_memory_ = GetMemory();
+  GetSystem().graphics().TakeSavepointSnapshot();
+  GetSystem().text().TakeSavepointSnapshot();
 }
 
 bool RLMachine::SavepointDecide(AttributeFunction func,
@@ -171,7 +171,7 @@ bool RLMachine::ShouldSetSeentopSavepoint() const {
 
 void RLMachine::ExecuteNextInstruction() {
   // Do not execute any more instructions if the machine is halted.
-  if (halted() == true)
+  if (IsHalted() == true)
     return;
 
   const auto top_frame = call_stack_.Top();
@@ -242,27 +242,31 @@ void RLMachine::AdvanceInstructionPointer() {
   }
 }
 
-CallStack& RLMachine::Stack() { return call_stack_; }
+CallStack& RLMachine::GetStack() { return call_stack_; }
 
-libreallive::Scriptor& RLMachine::Scriptor() { return scriptor_; }
+libreallive::Scriptor& RLMachine::GetScriptor() { return scriptor_; }
 
 Gameexe& RLMachine::GetGameexe() { return system_.gameexe(); }
 
-void RLMachine::PushLongOperation(LongOperation* long_operation) {
+void RLMachine::PushLongOperation(
+    std::shared_ptr<LongOperation> long_operation) {
   const auto top_frame = call_stack_.Top();
   call_stack_.Push(StackFrame(top_frame->pos, long_operation));
+}
+void RLMachine::PushLongOperation(LongOperation* long_operation) {
+  PushLongOperation(std::shared_ptr<LongOperation>(long_operation));
 }
 
 void RLMachine::Reset() {
   call_stack_ = CallStack();
   savepoint_call_stack_ = CallStack();
-  system().Reset();
+  GetSystem().Reset();
 }
 
 void RLMachine::LocalReset() {
   savepoint_call_stack_ = CallStack();
   memory_->PartialReset(LocalMemory());
-  system().Reset();
+  GetSystem().Reset();
 }
 
 std::shared_ptr<LongOperation> RLMachine::CurrentLongOperation() const {
@@ -347,7 +351,7 @@ void RLMachine::AddLineAction(const int seen,
 void RLMachine::PerformTextout(std::string cp932str) {
   std::string name_parsed_text;
   try {
-    name_parsed_text = parseNames(memory(), cp932str);
+    name_parsed_text = parseNames(GetMemory(), cp932str);
   } catch (rlvm::Exception& e) {
     // WEIRD: Sometimes rldev (and the official compiler?) will generate strings
     // that aren't valid shift_jis. Fall back while I figure out how to handle
@@ -356,13 +360,13 @@ void RLMachine::PerformTextout(std::string cp932str) {
   }
 
   std::string utf8str = cp932toUTF8(name_parsed_text, GetTextEncoding());
-  TextSystem& ts = system().text();
+  TextSystem& ts = GetSystem().text();
 
   // Display UTF-8 characters
-  std::unique_ptr<TextoutLongOperation> ptr =
-      std::make_unique<TextoutLongOperation>(*this, utf8str);
+  std::shared_ptr<TextoutLongOperation> ptr =
+      std::make_shared<TextoutLongOperation>(*this, utf8str);
 
-  if (system().ShouldFastForward() || ts.message_no_wait() ||
+  if (GetSystem().ShouldFastForward() || ts.message_no_wait() ||
       ts.script_message_nowait()) {
     ptr->set_no_wait();
   }
@@ -370,7 +374,7 @@ void RLMachine::PerformTextout(std::string cp932str) {
   // Run the textout operation once. If it doesn't fully succeed, push it onto
   // the stack.
   if (!(*ptr)(*this)) {
-    PushLongOperation(ptr.release());
+    PushLongOperation(ptr);
   }
 }
 
@@ -385,10 +389,10 @@ void RLMachine::operator()(Kidoku k) {
     MarkSavepoint();
 
   // Mark if we've previously read this piece of text.
-  system_.text().SetKidokuRead(memory().HasBeenRead(SceneNumber(), k.num));
+  system_.text().SetKidokuRead(GetMemory().HasBeenRead(SceneNumber(), k.num));
 
   // Record the kidoku pair in global memory.
-  memory().RecordKidoku(SceneNumber(), k.num);
+  GetMemory().RecordKidoku(SceneNumber(), k.num);
 
   AdvanceInstructionPointer();
 }

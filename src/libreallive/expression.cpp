@@ -402,22 +402,22 @@ class MemoryReferenceEx : public IExpression {
   }
 
   void SetIntegerValue(RLMachine& machine, int rvalue) override {
-    machine.memory().Write(
+    machine.GetMemory().Write(
         IntMemRef(type_, location_->GetIntegerValue(machine)), rvalue);
   }
 
   int GetIntegerValue(RLMachine& machine) const override {
-    return machine.memory().Read(
+    return machine.GetMemory().Read(
         IntMemRef(type_, location_->GetIntegerValue(machine)));
   }
 
   void SetStringValue(RLMachine& machine, const std::string& rval) override {
-    machine.memory().Write(
+    machine.GetMemory().Write(
         StrMemoryLocation(type_, location_->GetIntegerValue(machine)), rval);
   }
 
   std::string GetStringValue(RLMachine& machine) const override {
-    return machine.memory().Read(
+    return machine.GetMemory().Read(
         StrMemoryLocation(type_, location_->GetIntegerValue(machine)));
   }
 
@@ -432,7 +432,7 @@ class MemoryReferenceEx : public IExpression {
       throw Error(
           "Request to GetIntegerReferenceIterator() on a string reference!");
 
-    return IntReferenceIterator(&machine.memory(), type_,
+    return IntReferenceIterator(&machine.GetMemory(), type_,
                                 location_->GetIntegerValue(machine));
   }
 
@@ -442,7 +442,7 @@ class MemoryReferenceEx : public IExpression {
       throw Error(
           "Request to GetStringReferenceIterator() on a string reference!");
 
-    return StringReferenceIterator(&machine.memory(), type_,
+    return StringReferenceIterator(&machine.GetMemory(), type_,
                                    location_->GetIntegerValue(machine));
   }
 
@@ -477,19 +477,19 @@ class SimpleMemRefEx : public IExpression {
   }
 
   void SetIntegerValue(RLMachine& machine, int rvalue) override {
-    machine.memory().Write(IntMemRef(type_, location_), rvalue);
+    machine.GetMemory().Write(IntMemRef(type_, location_), rvalue);
   }
 
   int GetIntegerValue(RLMachine& machine) const override {
-    return machine.memory().Read(IntMemRef(type_, location_));
+    return machine.GetMemory().Read(IntMemRef(type_, location_));
   }
 
   void SetStringValue(RLMachine& machine, const std::string& rval) override {
-    machine.memory().Write(StrMemoryLocation(type_, location_), rval);
+    machine.GetMemory().Write(StrMemoryLocation(type_, location_), rval);
   }
 
   std::string GetStringValue(RLMachine& machine) const override {
-    return machine.memory().Read(StrMemoryLocation(type_, location_));
+    return machine.GetMemory().Read(StrMemoryLocation(type_, location_));
   }
 
   IntReferenceIterator GetIntegerReferenceIterator(
@@ -498,7 +498,7 @@ class SimpleMemRefEx : public IExpression {
       throw Error(
           "Request to GetIntegerReferenceIterator() on a string reference!");
 
-    return IntReferenceIterator(&machine.memory(), type_, location_);
+    return IntReferenceIterator(&machine.GetMemory(), type_, location_);
   }
 
   StringReferenceIterator GetStringReferenceIterator(
@@ -507,7 +507,7 @@ class SimpleMemRefEx : public IExpression {
       throw Error(
           "Request to GetStringReferenceIterator() on a string reference!");
 
-    return StringReferenceIterator(&machine.memory(), type_, location_);
+    return StringReferenceIterator(&machine.GetMemory(), type_, location_);
   }
 
   std::string GetSerializedExpression(RLMachine& machine) const override {
@@ -698,7 +698,7 @@ class SimpleAssignEx : public IExpression {
   bool is_valid() const override { return true; }
 
   int GetIntegerValue(RLMachine& machine) const override {
-    machine.memory().Write(IntMemRef(type_, location_), value_);
+    machine.GetMemory().Write(IntMemRef(type_, location_), value_);
     return value_;
   }
 

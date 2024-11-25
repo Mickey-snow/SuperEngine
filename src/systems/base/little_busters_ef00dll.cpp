@@ -152,7 +152,7 @@ void LittleBustersEF00DLL::PerformCalculations(RLMachine& machine, int index) {
   }
 
   int v5_1154 =
-      machine.memory().Read(IntMemoryLocation(IntBank::F, 1154 + index));
+      machine.GetMemory().Read(IntMemoryLocation(IntBank::F, 1154 + index));
   int j = ((v5_1154) & 0x1f) + index * 0x20;
   int k = ((v5_1154 + 1) & 0x1f) + index * 0x20;
   int l = ((v5_1154 + 2) & 0x1f) + index * 0x20;
@@ -164,7 +164,7 @@ void LittleBustersEF00DLL::PerformCalculations(RLMachine& machine, int index) {
 
   // 0 < x < 1
   // va - vd は 0-1 の範囲で対称性を持つ３次関数
-  double x = 0.001 * static_cast<double>(machine.memory().Read(
+  double x = 0.001 * static_cast<double>(machine.GetMemory().Read(
                          IntMemoryLocation(IntBank::F, 1162 + index)));
 
   double va = (x * x * x) / 6;
@@ -183,7 +183,7 @@ void LittleBustersEF00DLL::PerformCalculations(RLMachine& machine, int index) {
     r3 = r3 * 700 / (400 - r1);
   }
 
-  auto& memory = machine.memory();
+  auto& memory = machine.GetMemory();
   memory.Write(IntMemoryLocation(IntBank::F, 1151), r2);
   memory.Write(IntMemoryLocation(IntBank::F, 1152), r3);
   memory.Write(IntMemoryLocation(IntBank::F, 1153), r1);
