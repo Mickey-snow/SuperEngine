@@ -89,13 +89,15 @@ class Texture {
                               int alpha);
 
   void RenderToScreen(const Rect& src, const Rect& dst, int opacity);
+  void RenderToScreen(const Rect& src, const Rect& dst, const int opacity[4]);
+  void RenderToScreen(const Rect& src,
+                      const Rect& dst,
+                      std::array<float, 4> opacity);
 
   void RenderToScreenAsColorMask(const Rect& src,
                                  const Rect& dst,
                                  const RGBAColour& rgba,
                                  int filter);
-
-  void RenderToScreen(const Rect& src, const Rect& dst, const int opacity[4]);
 
  private:
   // Returns a shared buffer of at least size. This is not thread safe

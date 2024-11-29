@@ -26,7 +26,10 @@
 
 #pragma once
 
-#include "GL/glew.h"
+#include <GL/gl.h>
+
+#include <memory>
+#include <string_view>
 
 class GraphicsObject;
 
@@ -79,3 +82,17 @@ class Shaders {
   static GLint object_mono_;
   static GLint object_invert_;
 };
+
+class ShaderProgram {
+ public:
+  ShaderProgram(std::string_view vertex_src, std::string_view frag_src);
+  ~ShaderProgram();
+
+  auto GetID() const { return id_; }
+  void SetUniform(std::string_view name, float value);
+
+ private:
+  unsigned int id_;
+};
+
+std::shared_ptr<ShaderProgram> GetOpShader();

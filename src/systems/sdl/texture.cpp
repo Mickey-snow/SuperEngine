@@ -262,6 +262,10 @@ std::string readTextFile(const std::string& file) {
 
 // This is really broken and brain dead.
 void Texture::RenderToScreen(const Rect& src, const Rect& dst, int opacity) {
+  const float op = static_cast<float>(opacity) / 255.0;
+  RenderToScreen(src, dst, {op, op, op, op});
+  return;
+
   int x1 = src.x(), y1 = src.y(), x2 = src.x2(), y2 = src.y2();
   int fdx1 = dst.x(), fdy1 = dst.y(), fdx2 = dst.x2(), fdy2 = dst.y2();
   if (!filterCoords(x1, y1, x2, y2, fdx1, fdy1, fdx2, fdy2))
@@ -296,6 +300,132 @@ void Texture::RenderToScreen(const Rect& src, const Rect& dst, int opacity) {
   }
   glEnd();
   glBlendFunc(GL_ONE, GL_ZERO);
+}
+
+// -----------------------------------------------------------------------
+
+void Texture::RenderToScreen(const Rect& src,
+                             const Rect& dst,
+                             const int opacity[4]) {
+  RenderToScreen(src, dst,
+                 {static_cast<float>(opacity[0]) / 255.0,
+                  static_cast<float>(opacity[1]) / 255.0,
+                  static_cast<float>(opacity[2]) / 255.0,
+                  static_cast<float>(opacity[3]) / 255.0});
+  return;
+
+  // For the time being, we are dumb and assume that it's one texture
+  int x1 = src.x(), y1 = src.y(), x2 = src.x2(), y2 = src.y2();
+  int fdx1 = dst.x(), fdy1 = dst.y(), fdx2 = dst.x2(), fdy2 = dst.y2();
+  if (!filterCoords(x1, y1, x2, y2, fdx1, fdy1, fdx2, fdy2))
+    return;
+
+  float thisx1 = float(x1) / texture_width_;
+  float thisy1 = float(y1) / texture_height_;
+  float thisx2 = float(x2) / texture_width_;
+  float thisy2 = float(y2) / texture_height_;
+
+  glBindTexture(GL_TEXTURE_2D, texture_id_);
+
+  // Blend when we have less opacity
+  if (std::find_if(opacity, opacity + 4, [](int o) { return o < 255; }) !=
+      opacity + 4) {
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  }
+
+  glBegin(GL_QUADS);
+  {
+    glColor4ub(255, 255, 255, opacity[0]);
+    glTexCoord2f(thisx1, thisy1);
+    glVertex2i(fdx1, fdy1);
+    glColor4ub(255, 255, 255, opacity[1]);
+    glTexCoord2f(thisx2, thisy1);
+    glVertex2i(fdx2, fdy1);
+    glColor4ub(255, 255, 255, opacity[2]);
+    glTexCoord2f(thisx2, thisy2);
+    glVertex2i(fdx2, fdy2);
+    glColor4ub(255, 255, 255, opacity[3]);
+    glTexCoord2f(thisx1, thisy2);
+    glVertex2i(fdx1, fdy2);
+  }
+  glEnd();
+  glBlendFunc(GL_ONE, GL_ZERO);
+}
+
+// -----------------------------------------------------------------------
+
+void Texture::RenderToScreen(const Rect& src,
+                             const Rect& dst,
+                             std::array<float, 4> opacity) {
+  int x1 = src.x(), y1 = src.y(), x2 = src.x2(), y2 = src.y2();
+  int fdx1 = dst.x(), fdy1 = dst.y(), fdx2 = dst.x2(), fdy2 = dst.y2();
+  if (!filterCoords(x1, y1, x2, y2, fdx1, fdy1, fdx2, fdy2))
+    return;
+
+  auto toNDC = [&](int x, int y) {
+    return std::make_pair(2.0f * x / s_screen_width - 1.0f,
+                          1.0f - (2.0f * y / s_screen_height));
+  };
+  auto [dx1, dy1] = toNDC(fdx1, fdy1);
+  auto [dx2, dy2] = toNDC(fdx2, fdy2);
+
+  float thisx1 = float(x1) / texture_width_;
+  float thisy1 = float(y1) / texture_height_;
+  float thisx2 = float(x2) / texture_width_;
+  float thisy2 = float(y2) / texture_height_;
+
+  if (is_upside_down_) {
+    thisy1 = float(logical_height_ - y1) / texture_height_;
+    thisy2 = float(logical_height_ - y2) / texture_height_;
+  }
+
+  float vertices[] = {
+      dx1, dy1, opacity[0], thisx1, thisy1,  // NOLINT
+      dx2, dy1, opacity[1], thisx2, thisy1,  // NOLINT
+      dx2, dy2, opacity[2], thisx2, thisy2,  // NOLINT
+      dx1, dy2, opacity[3], thisx1, thisy2   // NOLINT
+  };
+  unsigned int indices[] = {0, 1, 2, 0, 2, 3};
+
+  GLuint VAO, VBO, EBO;
+  glGenVertexArrays(1, &VAO);
+  glGenBuffers(1, &VBO);
+  glGenBuffers(1, &EBO);
+
+  glBindVertexArray(VAO);
+
+  glBindBuffer(GL_ARRAY_BUFFER, VBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
+               GL_STREAM_DRAW);
+
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+                        (void*)(2 * sizeof(float)));
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+                        (void*)(3 * sizeof(float)));
+  glEnableVertexAttribArray(2);
+
+  auto shader = GetOpShader();
+  glUseProgram(shader->GetID());
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, texture_id_);
+  shader->SetUniform("texture1", 0);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+  glBindVertexArray(VAO);
+  glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+  glUseProgram(0);
+  glBindVertexArray(0);
+  glBlendFunc(GL_ONE, GL_ZERO);
+
+  glDeleteVertexArrays(1, &VAO);
+  glDeleteBuffers(1, &VBO);
+  glDeleteBuffers(1, &EBO);
 }
 
 // -----------------------------------------------------------------------
@@ -500,49 +630,6 @@ void Texture::render_to_screen_as_colour_mask_additive(const Rect& src,
   }
   glEnd();
 
-  glBlendFunc(GL_ONE, GL_ZERO);
-}
-
-// -----------------------------------------------------------------------
-
-void Texture::RenderToScreen(const Rect& src,
-                             const Rect& dst,
-                             const int opacity[4]) {
-  // For the time being, we are dumb and assume that it's one texture
-  int x1 = src.x(), y1 = src.y(), x2 = src.x2(), y2 = src.y2();
-  int fdx1 = dst.x(), fdy1 = dst.y(), fdx2 = dst.x2(), fdy2 = dst.y2();
-  if (!filterCoords(x1, y1, x2, y2, fdx1, fdy1, fdx2, fdy2))
-    return;
-
-  float thisx1 = float(x1) / texture_width_;
-  float thisy1 = float(y1) / texture_height_;
-  float thisx2 = float(x2) / texture_width_;
-  float thisy2 = float(y2) / texture_height_;
-
-  glBindTexture(GL_TEXTURE_2D, texture_id_);
-
-  // Blend when we have less opacity
-  if (std::find_if(opacity, opacity + 4, [](int o) { return o < 255; }) !=
-      opacity + 4) {
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  }
-
-  glBegin(GL_QUADS);
-  {
-    glColor4ub(255, 255, 255, opacity[0]);
-    glTexCoord2f(thisx1, thisy1);
-    glVertex2i(fdx1, fdy1);
-    glColor4ub(255, 255, 255, opacity[1]);
-    glTexCoord2f(thisx2, thisy1);
-    glVertex2i(fdx2, fdy1);
-    glColor4ub(255, 255, 255, opacity[2]);
-    glTexCoord2f(thisx2, thisy2);
-    glVertex2i(fdx2, fdy2);
-    glColor4ub(255, 255, 255, opacity[3]);
-    glTexCoord2f(thisx1, thisy2);
-    glVertex2i(fdx1, fdy2);
-  }
-  glEnd();
   glBlendFunc(GL_ONE, GL_ZERO);
 }
 

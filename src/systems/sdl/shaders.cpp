@@ -302,3 +302,101 @@ void Shaders::buildShader(const char* shader, GLuint* program_object) {
   glDeleteObjectARB(shader_object);
   ShowGLErrors();
 }
+
+// -----------------------------------------------------------------------
+static_assert(std::same_as<unsigned int, GLuint>);
+
+void checkCompileError(GLuint shader) {
+  GLint success;
+  glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+  if (!success) {
+    GLchar msg[1024];
+    glGetShaderInfoLog(shader, 1024, NULL, msg);
+    throw std::runtime_error(std::string("Shader compile error: ") + msg);
+  }
+}
+
+void checkLinkError(GLuint program) {
+  GLint success;
+  glGetProgramiv(program, GL_LINK_STATUS, &success);
+  if (!success) {
+    GLchar msg[1024];
+    glGetProgramInfoLog(program, 1024, NULL, msg);
+    throw std::runtime_error(std::string("Shader linking error: ") + msg);
+  }
+}
+
+ShaderProgram::ShaderProgram(std::string_view vertex_src,
+                             std::string_view frag_src) {
+  const char *vs = vertex_src.data(), *fs = frag_src.data();
+
+  auto vertex = glCreateShader(GL_VERTEX_SHADER);
+  glShaderSource(vertex, 1, &vs, NULL);
+  glCompileShader(vertex);
+  checkCompileError(vertex);
+
+  auto fragment = glCreateShader(GL_FRAGMENT_SHADER);
+  glShaderSource(fragment, 1, &fs, NULL);
+  glCompileShader(fragment);
+  checkCompileError(fragment);
+
+  id_ = glCreateProgram();
+  glAttachShader(id_, vertex);
+  glAttachShader(id_, fragment);
+  glLinkProgram(id_);
+  checkLinkError(id_);
+
+  glDeleteShader(vertex);
+  glDeleteShader(fragment);
+}
+
+ShaderProgram::~ShaderProgram() {
+  if (id_ != 0) {
+    glDeleteProgram(id_);
+  }
+}
+
+std::shared_ptr<ShaderProgram> GetOpShader() {
+  static constexpr std::string_view vertex_src = R"glsl(
+#version 330 core
+
+layout (location = 0) in vec2 aPos;
+layout (location = 1) in float aOpacity;
+layout (location = 2) in vec2 aTexCoord;
+
+out float Opacity;
+out vec2 TexCoord;
+
+void main(){
+  gl_Position = vec4(aPos, 0.0, 1.0);
+  Opacity = aOpacity;
+  TexCoord = aTexCoord;
+}
+)glsl";
+  static constexpr std::string_view fragment_src = R"glsl(
+#version 330 core
+in float Opacity;
+in vec2 TexCoord;
+
+uniform sampler2D texture1;
+out vec4 FragColor;
+
+void main(){
+  vec4 textureColor = texture(texture1, TexCoord);
+  FragColor = vec4(textureColor.rgb, Opacity * textureColor.a);
+}
+)glsl";
+
+  static auto shader =
+      std::make_shared<ShaderProgram>(vertex_src, fragment_src);
+  return shader;
+}
+
+void ShaderProgram::SetUniform(std::string_view name, float value) {
+  auto location = glGetUniformLocation(id_, name.data());
+  if (location == -1) {
+    throw std::runtime_error("ShaderProgram: Uniform " + std::string(name) +
+                             " not found.");
+  }
+  glUniform1i(location, value);
+}
