@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -8,6 +5,7 @@
 // -----------------------------------------------------------------------
 //
 // Copyright (C) 2013 Elliot Glaysher
+// Copyright (C) 2024 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -26,62 +24,8 @@
 
 #pragma once
 
-#include <GL/gl.h>
-
 #include <memory>
 #include <string_view>
-
-class GraphicsObject;
-
-// Static state about shaders. We just leak them.
-class Shaders {
- public:
-  // Immediately frees all OpenGL resources associated with shaders.
-  static void Reset();
-
-  // Returns the shader for the subtractive color mask used in text boxes.
-  static GLuint getColorMaskProgram();
-
-  // Returns the parameters for the color mask program.
-  static GLint getColorMaskUniformCurrentValues();
-  static GLint getColorMaskUniformMask();
-
-  // Returns the shader that implements tint/light/colour on objects.
-  static GLuint GetObjectProgram();
-
-  // Returns the parameters to the object program.
-  static GLint GetObjectUniformImage();
-  static GLint GetObjectUniformAlpha();
-
-  // Set the colour/tint/light/mono/invert properties from |go|. (Individual
-  // setters also exposed.)
-  static void loadObjectUniformFromGraphicsObject(const GraphicsObject& go);
-  static GLint GetObjectUniformColour();
-  static GLint GetObjectUniformTint();
-  static GLint GetObjectUniformLight();
-  static GLint GetObjectUniformMono();
-  static GLint GetObjectUniformInvert();
-
- private:
-  // Compiles and links the text program in |shader| into a shader and program
-  // object.
-  static void buildShader(const char* shader, GLuint* program_object);
-
-  static GLuint color_mask_program_object_id_;
-  static GLuint color_mask_shader_object_id_;
-  static GLint color_mask_current_values_;
-  static GLint color_mask_mask_;
-
-  static GLuint object_program_object_id_;
-  static GLuint object_shader_object_id_;
-  static GLint object_image_;
-  static GLint object_colour_;
-  static GLint object_tint_;
-  static GLint object_light_;
-  static GLint object_alpha_;
-  static GLint object_mono_;
-  static GLint object_invert_;
-};
 
 class ShaderProgram {
  public:

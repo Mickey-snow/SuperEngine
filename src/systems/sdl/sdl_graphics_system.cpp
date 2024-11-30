@@ -404,9 +404,7 @@ void SDLGraphicsSystem::SetWindowTitle() {
 
 void SDLGraphicsSystem::Observe(NotificationType type,
                                 const NotificationSource& source,
-                                const NotificationDetails& details) {
-  Shaders::Reset();
-}
+                                const NotificationDetails& details) {}
 
 void SDLGraphicsSystem::SetWindowSubtitle(const std::string& cp932str,
                                           int text_encoding) {

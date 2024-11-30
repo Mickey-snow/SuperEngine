@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -26,8 +23,6 @@
 
 #pragma once
 
-#include "GL/glew.h"
-
 #include "base/rect.hpp"
 #include "systems/base/colour_filter.hpp"
 
@@ -48,5 +43,5 @@ class SDLColourFilter : public ColourFilter {
   unsigned int texture_width_;
   unsigned int texture_height_;
 
-  GLuint back_texture_id_;
+  unsigned int back_texture_id_;
 };

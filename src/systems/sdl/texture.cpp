@@ -25,31 +25,24 @@
 //
 // -----------------------------------------------------------------------
 
+#include "systems/sdl/texture.hpp"
+
 #include <SDL/SDL.h>
 #include "GL/glew.h"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "glm/matrix.hpp"
 
-#include <algorithm>
-#include <cmath>
-#include <cstdio>
-#include <fstream>
-#include <functional>
-#include <iostream>
-#include <sstream>
-#include <string>
-
-#include "object/objdrawer.hpp"
-#include "pygame/alphablit.h"
+#include "base/rect.hpp"
 #include "systems/base/colour.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/base/system_error.hpp"
-#include "systems/sdl/sdl_graphics_system.hpp"
 #include "systems/sdl/sdl_surface.hpp"
 #include "systems/sdl/sdl_utils.hpp"
 #include "systems/sdl/shaders.hpp"
-#include "systems/sdl/texture.hpp"
+
+#include <stdexcept>
+#include <string>
 
 unsigned int Texture::s_screen_width = 0;
 unsigned int Texture::s_screen_height = 0;
@@ -524,11 +517,9 @@ void Texture::RenderToScreenAsObject(const GraphicsObject& go,
       glBlendEquation(GL_FUNC_REVERSE_SUBTRACT);
       break;
     }
-    default: {
-      std::ostringstream oss;
-      oss << "Invalid composite_mode in render: " << param.composite_mode();
-      throw SystemError(oss.str());
-    }
+    default:
+      throw std::runtime_error("Texture: Invalid compisite mode " +
+                               std::to_string(param.composite_mode()));
   }
 
   auto toNDC = [w = s_screen_width, h = s_screen_height](glm::vec4 point) {
