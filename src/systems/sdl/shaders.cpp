@@ -356,13 +356,21 @@ ShaderProgram::~ShaderProgram() {
   }
 }
 
-void ShaderProgram::SetUniform(std::string_view name, float value) {
+unsigned int ShaderProgram::UniformLocation(std::string_view name) {
   auto location = glGetUniformLocation(id_, name.data());
   if (location == -1) {
     throw std::runtime_error("ShaderProgram: Uniform " + std::string(name) +
                              " not found.");
   }
-  glUniform1i(location, value);
+  return location;
+}
+
+void ShaderProgram::SetUniform(std::string_view name, int value) {
+  glUniform1i(UniformLocation(name), value);
+}
+
+void ShaderProgram::SetUniform(std::string_view name, float value) {
+  glUniform1f(UniformLocation(name), value);
 }
 
 void ShaderProgram::SetUniform(std::string_view name,
@@ -370,13 +378,14 @@ void ShaderProgram::SetUniform(std::string_view name,
                                float y,
                                float z,
                                float w) {
-  auto location = glGetUniformLocation(id_, name.data());
-  if (location == -1) {
-    throw std::runtime_error("ShaderProgram: Uniform " + std::string(name) +
-                             " not found.");
-  }
+  glUniform4f(UniformLocation(name), x, y, z, w);
+}
 
-  glUniform4f(location, x, y, z, w);
+void ShaderProgram::SetUniform(std::string_view name,
+                               float x,
+                               float y,
+                               float z) {
+  glUniform3f(UniformLocation(name), x, y, z);
 }
 
 std::shared_ptr<ShaderProgram> GetOpShader() {
@@ -452,6 +461,89 @@ void main(){
   float mask_strength = clamp(mask_sample.a * color.a, 0.0, 1.0);
   vec4 blended_color = bg_color - mask_strength + color * mask_strength;
   FragColor = clamp(blended_color, 0.0, 1.0);
+}
+)glsl";
+
+  static auto shader =
+      std::make_shared<ShaderProgram>(vertex_src, fragment_src);
+  return shader;
+}
+
+std::shared_ptr<ShaderProgram> GetObjectShader() {
+  static constexpr std::string_view vertex_src = R"glsl(
+#version 330 core
+
+layout (location = 0) in vec2 aPos;
+layout (location = 1) in vec2 aTexCoord;
+
+out vec2 TexCoord;
+
+void main(){
+  gl_Position = vec4(aPos, 0.0, 1.0);
+  TexCoord = aTexCoord;
+}
+)glsl";
+  static constexpr std::string_view fragment_src = R"glsl(
+#version 330 core
+in vec2 TexCoord;
+
+uniform sampler2D image;
+uniform vec4 colour;
+uniform float mono;
+uniform float invert;
+uniform float light;
+uniform vec3 tint;
+uniform float alpha;
+
+out vec4 FragColor;
+
+void tinter(in float pixel_val, in float tint_val, out float mixed) {
+  if (tint_val > 0.0) {
+    mixed = pixel_val + tint_val - (pixel_val * tint_val);
+  } else if (tint_val < 0.0) {
+    mixed = pixel_val * abs(tint_val);
+  } else {
+    mixed = pixel_val;
+  }
+}
+
+void main() {
+  vec4 pixel = texture2D(image, TexCoord);
+
+  // Blend with the input colour
+  vec3 coloured = mix(pixel.rgb, colour.rgb, colour.a);
+  pixel = vec4(coloured, pixel.a);
+
+  // Apply grayscale effect
+  if (mono > 0.0) {
+    float gray = dot(pixel.rgb, vec3(0.299, 0.587, 0.114));
+    vec3 mixed = mix(pixel.rgb, vec3(gray), mono);
+    pixel.rgb = mixed;
+  }
+
+  // Apply inversion effect
+  if (invert > 0.0) {
+    vec3 inverted = vec3(1.0) - pixel.rgb;
+    vec3 mixed = mix(pixel.rgb, inverted, invert);
+    pixel.rgb = mixed;
+  }
+
+  // Apply lighting adjustment
+  float out_r, out_g, out_b;
+  tinter(pixel.r, light, out_r);
+  tinter(pixel.g, light, out_g);
+  tinter(pixel.b, light, out_b);
+  pixel.rgb = vec3(out_r, out_g, out_b);
+
+  // Apply tint
+  tinter(pixel.r, tint.r, out_r);
+  tinter(pixel.g, tint.g, out_g);
+  tinter(pixel.b, tint.b, out_b);
+  pixel.rgb = vec3(out_r, out_g, out_b);
+
+  // Adjust alpha
+  pixel.a *= alpha;
+  FragColor = pixel;
 }
 )glsl";
 

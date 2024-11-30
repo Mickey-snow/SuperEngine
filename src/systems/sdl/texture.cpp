@@ -27,6 +27,9 @@
 
 #include <SDL/SDL.h>
 #include "GL/glew.h"
+#include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtc/type_ptr.hpp"
+#include "glm/matrix.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -338,6 +341,8 @@ void Texture::RenderToScreen(const Rect& src,
   glDeleteVertexArrays(1, &VAO);
   glDeleteBuffers(1, &VBO);
   glDeleteBuffers(1, &EBO);
+
+  DebugShowGLErrors();
 }
 
 // -----------------------------------------------------------------------
@@ -453,6 +458,8 @@ void Texture::RenderSubtractiveColorMask(const Rect& src,
   glDeleteVertexArrays(1, &VAO);
   glDeleteBuffers(1, &VBO);
   glDeleteBuffers(1, &EBO);
+
+  DebugShowGLErrors();
 }
 
 // -----------------------------------------------------------------------
@@ -483,97 +490,109 @@ void Texture::RenderToScreenAsObject(const GraphicsObject& go,
   float thisy1 = float(ySrc1) / texture_height_;
   float thisx2 = float(xSrc2) / texture_width_;
   float thisy2 = float(ySrc2) / texture_height_;
-
-  glBindTexture(GL_TEXTURE_2D, texture_id_);
-
-  glPushMatrix();
-  {
-    // Translate to where the object starts.
-    glTranslatef(fdx1, fdy1, 0);
-
-    int width = fdx2 - fdx1;
-    int height = fdy2 - fdy1;
-
-    auto& param = go.Param();
-    // Rotate the texture around the point (origin + position + reporigin)
-    float x_rep = (width / 2.0f) + param.rep_origin_x();
-    float y_rep = (height / 2.0f) + param.rep_origin_y();
-
-    glTranslatef(x_rep, y_rep, 0);
-    glRotatef(float(param.rotation()) / 10, 0, 0, 1);
-    glTranslatef(-x_rep, -y_rep, 0);
-
-    // RealLive has its own complex shading/tinting system which we implement
-    // in a shader if available. It's costly enough that we make sure we need
-    // to use it.
-    bool using_shader = false;
-    if ((param.light() || param.tint() != RGBColour::Black() ||
-         param.colour() != RGBAColour::Clear() || param.mono() ||
-         param.invert()) &&
-        GLEW_ARB_fragment_shader && GLEW_ARB_multitexture) {
-      // Image
-      glActiveTexture(GL_TEXTURE0_ARB);
-      glEnable(GL_TEXTURE_2D);
-      glBindTexture(GL_TEXTURE_2D, texture_id_);
-      glUseProgramObjectARB(Shaders::GetObjectProgram());
-      glUniform1iARB(Shaders::GetObjectUniformImage(), 0);
-
-      // Colour/Tint/Etc.
-      Shaders::loadObjectUniformFromGraphicsObject(go);
-
-      // Alpha.
-      glUniform1fARB(Shaders::GetObjectUniformAlpha(), alpha / 255.0f);
-
-      // Our final blending color has to be all white here.
-      using_shader = true;
-    } else {
-      // The shader takes care of the alpha for us, so we need to specify when
-      // not using it.
-      glColor4ub(255, 255, 255, alpha);
-    }
-
-    // Make this so that when we have composite 1, we're doing a pure
-    // additive blend, (ignoring the alpha channel?)
-    switch (param.composite_mode()) {
-      case 0:
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        break;
-      case 1:
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-        break;
-      case 2: {
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-        glBlendEquation(GL_FUNC_REVERSE_SUBTRACT);
-        break;
-      }
-      default: {
-        std::ostringstream oss;
-        oss << "Invalid composite_mode in render: " << param.composite_mode();
-        throw SystemError(oss.str());
-      }
-    }
-
-    glBegin(GL_QUADS);
-    {
-      glTexCoord2f(thisx1, thisy1);
-      glVertex2i(0, 0);
-      glTexCoord2f(thisx2, thisy1);
-      glVertex2i(width, 0);
-      glTexCoord2f(thisx2, thisy2);
-      glVertex2i(width, height);
-      glTexCoord2f(thisx1, thisy2);
-      glVertex2i(0, height);
-    }
-    glEnd();
-
-    if (using_shader) {
-      glUseProgramObjectARB(0);
-    }
-
-    glBlendEquation(GL_FUNC_ADD);
-    glBlendFunc(GL_ONE, GL_ZERO);
+  if (is_upside_down_) {
+    thisy1 = float(logical_height_ - ySrc1) / texture_height_;
+    thisy2 = float(logical_height_ - ySrc2) / texture_height_;
   }
-  glPopMatrix();
+
+  glm::mat4 model = glm::mat4(1.0f);
+  model = glm::translate(model, glm::vec3(fdx1, fdy1, 0));
+
+  int width = fdx2 - fdx1;
+  int height = fdy2 - fdy1;
+  auto& param = go.Param();
+  float x_rep = (width / 2.0f) + param.rep_origin_x();
+  float y_rep = (height / 2.0f) + param.rep_origin_y();
+  model = glm::translate(model, glm::vec3(x_rep, y_rep, 0.0f));
+  model = glm::rotate(model, glm::radians(go.Param().rotation() / 10.0f),
+                      glm::vec3(0.0f, 0.0f, 1.0f));
+  model = glm::translate(model, glm::vec3(-x_rep, -y_rep, 0.0f));
+
+  // Make this so that when we have composite 1, we're doing a pure
+  // additive blend, (ignoring the alpha channel?)
+  switch (param.composite_mode()) {
+    case 0:
+      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+      glBlendEquation(GL_FUNC_ADD);
+      break;
+    case 1:
+      glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+      glBlendEquation(GL_FUNC_ADD);
+      break;
+    case 2: {
+      glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+      glBlendEquation(GL_FUNC_REVERSE_SUBTRACT);
+      break;
+    }
+    default: {
+      std::ostringstream oss;
+      oss << "Invalid composite_mode in render: " << param.composite_mode();
+      throw SystemError(oss.str());
+    }
+  }
+
+  auto toNDC = [w = s_screen_width, h = s_screen_height](glm::vec4 point) {
+    const auto pt = glm::vec2(point) / point.w;
+    return std::make_pair(2.0f * pt.x / w - 1.0f, 1.0f - (2.0f * pt.y / h));
+  };
+  const auto top_left = glm::vec4(0.0f, height, 0.0f, 1.0f);
+  const auto bottom_right = glm::vec4(width, 0.0f, 0.0f, 1.0f);
+  auto [dx1, dy1] = toNDC(model * top_left);
+  auto [dx2, dy2] = toNDC(model * bottom_right);
+  float vertices[] = {
+      dx1, dy1, thisx1, thisy2,  // NOLINT
+      dx2, dy1, thisx2, thisy2,  // NOLINT
+      dx2, dy2, thisx2, thisy1,  // NOLINT
+      dx1, dy2, thisx1, thisy1,  // NOLINT
+  };
+  unsigned int indices[] = {0, 1, 2, 0, 2, 3};
+  GLuint VAO, VBO, EBO;
+  glGenVertexArrays(1, &VAO);
+  glGenBuffers(1, &VBO);
+  glGenBuffers(1, &EBO);
+
+  glBindVertexArray(VAO);
+  glBindBuffer(GL_ARRAY_BUFFER, VBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
+               GL_STREAM_DRAW);
+
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
+                        (void*)(2 * sizeof(float)));
+  glEnableVertexAttribArray(1);
+
+  auto shader = GetObjectShader();
+  glUseProgram(shader->GetID());
+
+  // bind texture
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, texture_id_);
+  shader->SetUniform("image", 0);
+
+  auto colour = param.colour();
+  shader->SetUniform("colour", colour.r_float(), colour.g_float(),
+                     colour.b_float(), colour.a_float());
+  auto tint = param.tint();
+  shader->SetUniform("tint", tint.r_float(), tint.g_float(), tint.b_float());
+  shader->SetUniform("alpha", Normalize(alpha, 255));
+
+  shader->SetUniform("mono", Normalize(param.mono(), 255));
+  shader->SetUniform("invert", Normalize(param.invert(), 255));
+  shader->SetUniform("light", Normalize(param.light(), 255));
+
+  glBindVertexArray(VAO);
+  glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+  glUseProgram(0);
+  glBindVertexArray(0);
+  glBlendFunc(GL_ONE, GL_ZERO);
+
+  glDeleteVertexArrays(1, &VAO);
+  glDeleteBuffers(1, &VBO);
+  glDeleteBuffers(1, &EBO);
 
   DebugShowGLErrors();
 }
