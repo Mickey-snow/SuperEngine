@@ -23,6 +23,14 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/GLEW/include)
 add_library(glew STATIC GLEW/src/glew.c)
 
 # -------------------------------------------------------------------
+# GLM
+# -------------------------------------------------------------------
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/glm)
+target_include_directories(glm PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/glm
+)
+
+# -------------------------------------------------------------------
 # guichan
 # -------------------------------------------------------------------
 file(GLOB_RECURSE GUICHAN_SRC_FILES "guichan/src/*.cpp")

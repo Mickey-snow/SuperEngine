@@ -306,7 +306,7 @@ void Shaders::buildShader(const char* shader, GLuint* program_object) {
 // -----------------------------------------------------------------------
 static_assert(std::same_as<unsigned int, GLuint>);
 
-void checkCompileError(GLuint shader) {
+static void checkCompileError(GLuint shader) {
   GLint success;
   glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
   if (!success) {
@@ -316,7 +316,7 @@ void checkCompileError(GLuint shader) {
   }
 }
 
-void checkLinkError(GLuint program) {
+static void checkLinkError(GLuint program) {
   GLint success;
   glGetProgramiv(program, GL_LINK_STATUS, &success);
   if (!success) {

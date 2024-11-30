@@ -11,6 +11,7 @@ set(RLVM_REQUIRED_LIBRARIES
     ${OPENGL_LIBRARIES}
     ${Boost_LIBRARIES}
     VorbisFile::VorbisFile
+    glm::glm
     xclannad
     glew
     guichan
