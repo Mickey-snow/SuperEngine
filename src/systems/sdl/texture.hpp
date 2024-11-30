@@ -110,10 +110,6 @@ class Texture {
   void render_to_screen_as_colour_mask_subtractive_glsl(const Rect& src,
                                                         const Rect& dst,
                                                         const RGBAColour& rgba);
-  void render_to_screen_as_colour_mask_subtractive_fallback(
-      const Rect& src,
-      const Rect& dst,
-      const RGBAColour& rgba);
   void render_to_screen_as_colour_mask_additive(const Rect& src,
                                                 const Rect& dst,
                                                 const RGBAColour& rgba);

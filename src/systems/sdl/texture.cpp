@@ -241,65 +241,9 @@ void Texture::reupload(SDL_Surface* surface,
 
 // -----------------------------------------------------------------------
 
-std::string readTextFile(const std::string& file) {
-  std::ifstream ifs(file.c_str());
-  if (!ifs) {
-    std::ostringstream oss;
-    oss << "Can't open text file: " << file;
-    throw SystemError(oss.str());
-  }
-
-  std::string out, line;
-  while (std::getline(ifs, line)) {
-    out += line;
-    out += '\n';
-  }
-
-  return out;
-}
-
-// -----------------------------------------------------------------------
-
-// This is really broken and brain dead.
 void Texture::RenderToScreen(const Rect& src, const Rect& dst, int opacity) {
   const float op = static_cast<float>(opacity) / 255.0;
   RenderToScreen(src, dst, {op, op, op, op});
-  return;
-
-  int x1 = src.x(), y1 = src.y(), x2 = src.x2(), y2 = src.y2();
-  int fdx1 = dst.x(), fdy1 = dst.y(), fdx2 = dst.x2(), fdy2 = dst.y2();
-  if (!filterCoords(x1, y1, x2, y2, fdx1, fdy1, fdx2, fdy2))
-    return;
-
-  // For the time being, we are dumb and assume that it's one texture
-
-  float thisx1 = float(x1) / texture_width_;
-  float thisy1 = float(y1) / texture_height_;
-  float thisx2 = float(x2) / texture_width_;
-  float thisy2 = float(y2) / texture_height_;
-
-  if (is_upside_down_) {
-    thisy1 = float(logical_height_ - y1) / texture_height_;
-    thisy2 = float(logical_height_ - y2) / texture_height_;
-  }
-
-  glBindTexture(GL_TEXTURE_2D, texture_id_);
-
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glBegin(GL_QUADS);
-  {
-    glColor4ub(255, 255, 255, opacity);
-    glTexCoord2f(thisx1, thisy1);
-    glVertex2i(fdx1, fdy1);
-    glTexCoord2f(thisx2, thisy1);
-    glVertex2i(fdx2, fdy1);
-    glTexCoord2f(thisx2, thisy2);
-    glVertex2i(fdx2, fdy2);
-    glTexCoord2f(thisx1, thisy2);
-    glVertex2i(fdx1, fdy2);
-  }
-  glEnd();
-  glBlendFunc(GL_ONE, GL_ZERO);
 }
 
 // -----------------------------------------------------------------------
@@ -312,44 +256,6 @@ void Texture::RenderToScreen(const Rect& src,
                   static_cast<float>(opacity[1]) / 255.0,
                   static_cast<float>(opacity[2]) / 255.0,
                   static_cast<float>(opacity[3]) / 255.0});
-  return;
-
-  // For the time being, we are dumb and assume that it's one texture
-  int x1 = src.x(), y1 = src.y(), x2 = src.x2(), y2 = src.y2();
-  int fdx1 = dst.x(), fdy1 = dst.y(), fdx2 = dst.x2(), fdy2 = dst.y2();
-  if (!filterCoords(x1, y1, x2, y2, fdx1, fdy1, fdx2, fdy2))
-    return;
-
-  float thisx1 = float(x1) / texture_width_;
-  float thisy1 = float(y1) / texture_height_;
-  float thisx2 = float(x2) / texture_width_;
-  float thisy2 = float(y2) / texture_height_;
-
-  glBindTexture(GL_TEXTURE_2D, texture_id_);
-
-  // Blend when we have less opacity
-  if (std::find_if(opacity, opacity + 4, [](int o) { return o < 255; }) !=
-      opacity + 4) {
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  }
-
-  glBegin(GL_QUADS);
-  {
-    glColor4ub(255, 255, 255, opacity[0]);
-    glTexCoord2f(thisx1, thisy1);
-    glVertex2i(fdx1, fdy1);
-    glColor4ub(255, 255, 255, opacity[1]);
-    glTexCoord2f(thisx2, thisy1);
-    glVertex2i(fdx2, fdy1);
-    glColor4ub(255, 255, 255, opacity[2]);
-    glTexCoord2f(thisx2, thisy2);
-    glVertex2i(fdx2, fdy2);
-    glColor4ub(255, 255, 255, opacity[3]);
-    glTexCoord2f(thisx1, thisy2);
-    glVertex2i(fdx1, fdy2);
-  }
-  glEnd();
-  glBlendFunc(GL_ONE, GL_ZERO);
 }
 
 // -----------------------------------------------------------------------
@@ -362,9 +268,8 @@ void Texture::RenderToScreen(const Rect& src,
   if (!filterCoords(x1, y1, x2, y2, fdx1, fdy1, fdx2, fdy2))
     return;
 
-  auto toNDC = [&](int x, int y) {
-    return std::make_pair(2.0f * x / s_screen_width - 1.0f,
-                          1.0f - (2.0f * y / s_screen_height));
+  auto toNDC = [w = s_screen_width, h = s_screen_height](int x, int y) {
+    return std::make_pair(2.0f * x / w - 1.0f, 1.0f - (2.0f * y / h));
   };
   auto [dx1, dy1] = toNDC(fdx1, fdy1);
   auto [dx2, dy2] = toNDC(fdx2, fdy2);
@@ -437,11 +342,7 @@ void Texture::RenderToScreenAsColorMask(const Rect& src,
                                         const RGBAColour& rgba,
                                         int filter) {
   if (filter == 0) {
-    if (GLEW_ARB_fragment_shader && GLEW_ARB_multitexture) {
-      render_to_screen_as_colour_mask_subtractive_glsl(src, dst, rgba);
-    } else {
-      render_to_screen_as_colour_mask_subtractive_fallback(src, dst, rgba);
-    }
+    render_to_screen_as_colour_mask_subtractive_glsl(src, dst, rgba);
   } else {
     render_to_screen_as_colour_mask_additive(src, dst, rgba);
   }
@@ -536,59 +437,6 @@ void Texture::render_to_screen_as_colour_mask_subtractive_glsl(
 
   glUseProgramObjectARB(0);
   glEnable(GL_BLEND);
-  glBlendFunc(GL_ONE, GL_ZERO);
-}
-
-// -----------------------------------------------------------------------
-
-// This fallback does not accurately render the scene according to
-// standard RealLive. This only negatively shades according to the
-// alpha value, ignoring the rest of the \#WINDOW_ATTR colour.
-//
-// This will probably only occur with mesa software and people with
-// graphics cards > 5 years old.
-void Texture::render_to_screen_as_colour_mask_subtractive_fallback(
-    const Rect& src,
-    const Rect& dst,
-    const RGBAColour& rgba) {
-  int x1 = src.x(), y1 = src.y(), x2 = src.x2(), y2 = src.y2();
-  int fdx1 = dst.x(), fdy1 = dst.y(), fdx2 = dst.x2(), fdy2 = dst.y2();
-  if (!filterCoords(x1, y1, x2, y2, fdx1, fdy1, fdx2, fdy2))
-    return;
-
-  float thisx1 = float(x1) / texture_width_;
-  float thisy1 = float(y1) / texture_height_;
-  float thisx2 = float(x2) / texture_width_;
-  float thisy2 = float(y2) / texture_height_;
-
-  if (is_upside_down_) {
-    thisy1 = float(logical_height_ - y1) / texture_height_;
-    thisy2 = float(logical_height_ - y2) / texture_height_;
-  }
-
-  // First draw the mask
-  glBindTexture(GL_TEXTURE_2D, texture_id_);
-
-  /// SERIOUS WTF: gl_blend_func_separate causes a segmentation fault
-  /// under the current i810 driver for linux.
-  //  glBlendFuncSeparate(GL_SRC_ALPHA_SATURATE, GL_ONE_MINUS_SRC_ALPHA,
-  //                      GL_SRC_COLOR, GL_ONE_MINUS_SRC_ALPHA);
-  glBlendFunc(GL_SRC_ALPHA_SATURATE, GL_ONE_MINUS_SRC_ALPHA);
-
-  glBegin(GL_QUADS);
-  {
-    glColorRGBA(rgba);
-    glTexCoord2f(thisx1, thisy1);
-    glVertex2i(fdx1, fdy1);
-    glTexCoord2f(thisx2, thisy1);
-    glVertex2i(fdx2, fdy1);
-    glTexCoord2f(thisx2, thisy2);
-    glVertex2i(fdx2, fdy2);
-    glTexCoord2f(thisx1, thisy2);
-    glVertex2i(fdx1, fdy2);
-  }
-  glEnd();
-
   glBlendFunc(GL_ONE, GL_ZERO);
 }
 
