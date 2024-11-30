@@ -356,6 +356,29 @@ ShaderProgram::~ShaderProgram() {
   }
 }
 
+void ShaderProgram::SetUniform(std::string_view name, float value) {
+  auto location = glGetUniformLocation(id_, name.data());
+  if (location == -1) {
+    throw std::runtime_error("ShaderProgram: Uniform " + std::string(name) +
+                             " not found.");
+  }
+  glUniform1i(location, value);
+}
+
+void ShaderProgram::SetUniform(std::string_view name,
+                               float x,
+                               float y,
+                               float z,
+                               float w) {
+  auto location = glGetUniformLocation(id_, name.data());
+  if (location == -1) {
+    throw std::runtime_error("ShaderProgram: Uniform " + std::string(name) +
+                             " not found.");
+  }
+
+  glUniform4f(location, x, y, z, w);
+}
+
 std::shared_ptr<ShaderProgram> GetOpShader() {
   static constexpr std::string_view vertex_src = R"glsl(
 #version 330 core
@@ -379,11 +402,13 @@ in float Opacity;
 in vec2 TexCoord;
 
 uniform sampler2D texture1;
+uniform vec4 mask_color;
 out vec4 FragColor;
 
 void main(){
   vec4 textureColor = texture(texture1, TexCoord);
-  FragColor = vec4(textureColor.rgb, Opacity * textureColor.a);
+  vec3 blend_color = clamp((textureColor.rgb + mask_color.rgb*mask_color.a), 0.0, 1.0);
+  FragColor = vec4(blend_color, Opacity * textureColor.a);
 }
 )glsl";
 
@@ -392,11 +417,45 @@ void main(){
   return shader;
 }
 
-void ShaderProgram::SetUniform(std::string_view name, float value) {
-  auto location = glGetUniformLocation(id_, name.data());
-  if (location == -1) {
-    throw std::runtime_error("ShaderProgram: Uniform " + std::string(name) +
-                             " not found.");
-  }
-  glUniform1i(location, value);
+std::shared_ptr<ShaderProgram> GetColorMaskShader() {
+  static constexpr std::string_view vertex_src = R"glsl(
+#version 330 core
+
+layout (location = 0) in vec2 aPos;
+layout (location = 1) in vec2 aTexCoord0;
+layout (location = 2) in vec2 aTexCoord1;
+
+out vec2 TexCoord0;
+out vec2 TexCoord1;
+
+void main(){
+  gl_Position = vec4(aPos, 0.0, 1.0);
+  TexCoord0 = aTexCoord0;
+  TexCoord1 = aTexCoord1;
+}
+)glsl";
+  static constexpr std::string_view fragment_src = R"glsl(
+#version 330 core
+
+in vec2 TexCoord0;
+in vec2 TexCoord1;
+
+uniform sampler2D texture0;
+uniform sampler2D texture1;
+uniform vec4 color;
+out vec4 FragColor;
+
+void main(){
+  vec4 bg_color = texture2D(texture0, TexCoord0);
+  vec4 mask_sample = texture2D(texture1, TexCoord1);
+
+  float mask_strength = clamp(mask_sample.a * color.a, 0.0, 1.0);
+  vec4 blended_color = bg_color - mask_strength + color * mask_strength;
+  FragColor = clamp(blended_color, 0.0, 1.0);
+}
+)glsl";
+
+  static auto shader =
+      std::make_shared<ShaderProgram>(vertex_src, fragment_src);
+  return shader;
 }

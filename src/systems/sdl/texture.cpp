@@ -55,6 +55,10 @@ unsigned int Texture::s_screen_height = 0;
 unsigned int Texture::s_upload_buffer_size = 0;
 std::unique_ptr<char[]> Texture::s_upload_buffer;
 
+inline static auto Normalize(auto value, auto max) {
+  return static_cast<float>(value) / static_cast<float>(max);
+}
+
 // -----------------------------------------------------------------------
 
 void Texture::SetScreenSize(const Size& s) {
@@ -241,8 +245,10 @@ void Texture::reupload(SDL_Surface* surface,
 
 // -----------------------------------------------------------------------
 
-void Texture::RenderToScreen(const Rect& src, const Rect& dst, int opacity) {
-  const float op = static_cast<float>(opacity) / 255.0;
+void Texture::RenderToScreen(const Rect& src,
+                             const Rect& dst,
+                             const int opacity) {
+  const float op = Normalize(opacity, 255);
   RenderToScreen(src, dst, {op, op, op, op});
 }
 
@@ -252,17 +258,16 @@ void Texture::RenderToScreen(const Rect& src,
                              const Rect& dst,
                              const int opacity[4]) {
   RenderToScreen(src, dst,
-                 {static_cast<float>(opacity[0]) / 255.0,
-                  static_cast<float>(opacity[1]) / 255.0,
-                  static_cast<float>(opacity[2]) / 255.0,
-                  static_cast<float>(opacity[3]) / 255.0});
+                 {Normalize(opacity[0], 255.0), Normalize(opacity[1], 255.0),
+                  Normalize(opacity[2], 255.0), Normalize(opacity[3], 255.0)});
 }
 
 // -----------------------------------------------------------------------
 
 void Texture::RenderToScreen(const Rect& src,
                              const Rect& dst,
-                             std::array<float, 4> opacity) {
+                             std::array<float, 4> opacity,
+                             RGBAColour color) {
   int x1 = src.x(), y1 = src.y(), x2 = src.x2(), y2 = src.y2();
   int fdx1 = dst.x(), fdy1 = dst.y(), fdx2 = dst.x2(), fdy2 = dst.y2();
   if (!filterCoords(x1, y1, x2, y2, fdx1, fdy1, fdx2, fdy2))
@@ -319,6 +324,9 @@ void Texture::RenderToScreen(const Rect& src,
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, texture_id_);
   shader->SetUniform("texture1", 0);
+  shader->SetUniform("mask_color", Normalize(color.r(), 255),
+                     Normalize(color.g(), 255), Normalize(color.b(), 255),
+                     Normalize(color.a(), 255));
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   glBindVertexArray(VAO);
@@ -335,29 +343,35 @@ void Texture::RenderToScreen(const Rect& src,
 
 // -----------------------------------------------------------------------
 
+// For rendering text waku and select buttons
 // TODO(erg): A function of this hairiness needs super more amounts of
 // documentation.
 void Texture::RenderToScreenAsColorMask(const Rect& src,
                                         const Rect& dst,
                                         const RGBAColour& rgba,
-                                        int filter) {
-  if (filter == 0) {
-    render_to_screen_as_colour_mask_subtractive_glsl(src, dst, rgba);
+                                        int is_filter) {
+  if (is_filter == 0) {
+    RenderSubtractiveColorMask(src, dst, rgba);
   } else {
-    render_to_screen_as_colour_mask_additive(src, dst, rgba);
+    RenderToScreen(src, dst, {1.0, 1.0, 1.0, 1.0}, rgba);
   }
 }
 
 // -----------------------------------------------------------------------
 
-void Texture::render_to_screen_as_colour_mask_subtractive_glsl(
-    const Rect& src,
-    const Rect& dst,
-    const RGBAColour& rgba) {
+void Texture::RenderSubtractiveColorMask(const Rect& src,
+                                         const Rect& dst,
+                                         const RGBAColour& color) {
   int x1 = src.x(), y1 = src.y(), x2 = src.x2(), y2 = src.y2();
   int fdx1 = dst.x(), fdy1 = dst.y(), fdx2 = dst.x2(), fdy2 = dst.y2();
   if (!filterCoords(x1, y1, x2, y2, fdx1, fdy1, fdx2, fdy2))
     return;
+
+  auto toNDC = [w = s_screen_width, h = s_screen_height](int x, int y) {
+    return std::make_pair(2.0f * x / w - 1.0f, 1.0f - (2.0f * y / h));
+  };
+  auto [dx1, dy1] = toNDC(fdx1, fdy1);
+  auto [dx2, dy2] = toNDC(fdx2, fdy2);
 
   float thisx1 = float(x1) / texture_width_;
   float thisy1 = float(y1) / texture_height_;
@@ -369,11 +383,34 @@ void Texture::render_to_screen_as_colour_mask_subtractive_glsl(
     thisy2 = float(logical_height_ - y2) / texture_height_;
   }
 
-  // If we haven't already, allocate video memory for the back
-  // texture.
-  //
-  // NOTE: Does this code deal with changing the dimensions of the
-  // text box? Does it matter?
+  float vertices[] = {
+      dx1, dy1, thisx1, thisy2, thisx1, thisy1,  // NOLINT
+      dx2, dy1, thisx2, thisy2, thisx2, thisy1,  // NOLINT
+      dx2, dy2, thisx2, thisy1, thisx2, thisy2,  // NOLINT
+      dx1, dy2, thisx1, thisy1, thisx1, thisy2   // NOLINT
+  };
+  unsigned int indices[] = {0, 1, 2, 0, 2, 3};
+  GLuint VAO, VBO, EBO;
+  glGenVertexArrays(1, &VAO);
+  glGenBuffers(1, &VBO);
+  glGenBuffers(1, &EBO);
+
+  glBindVertexArray(VAO);
+  glBindBuffer(GL_ARRAY_BUFFER, VBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
+               GL_STREAM_DRAW);
+
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float),
+                        (void*)(2 * sizeof(float)));
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float),
+                        (void*)(4 * sizeof(float)));
+  glEnableVertexAttribArray(2);
+
   if (back_texture_id_ == 0) {
     glGenTextures(1, &back_texture_id_);
     glBindTexture(GL_TEXTURE_2D, back_texture_id_);
@@ -385,7 +422,6 @@ void Texture::render_to_screen_as_colour_mask_subtractive_glsl(
                  GL_RGB, GL_UNSIGNED_BYTE, NULL);
     DebugShowGLErrors();
   }
-
   // Copy the current value of the region where we're going to render
   // to a texture for input to the shader
   glBindTexture(GL_TEXTURE_2D, back_texture_id_);
@@ -395,90 +431,29 @@ void Texture::render_to_screen_as_colour_mask_subtractive_glsl(
                       texture_height_);
   DebugShowGLErrors();
 
-  glUseProgramObjectARB(Shaders::getColorMaskProgram());
-
-  // Put the back_texture in texture slot zero and set this to be the
-  // texture "current_values" in the above shader program.
-  glActiveTextureARB(GL_TEXTURE0_ARB);
-  glEnable(GL_TEXTURE_2D);
+  auto shader = GetColorMaskShader();
+  glUseProgram(shader->GetID());
+  glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, back_texture_id_);
-  glUniform1iARB(Shaders::getColorMaskUniformCurrentValues(), 0);
-
-  // Put the mask in texture slot one and set this to be the
-  // texture "mask" in the above shader program.
-  glActiveTextureARB(GL_TEXTURE1_ARB);
-  glEnable(GL_TEXTURE_2D);
+  shader->SetUniform("texture0", 0);
+  glActiveTexture(GL_TEXTURE1);
   glBindTexture(GL_TEXTURE_2D, texture_id_);
-  glUniform1iARB(Shaders::getColorMaskUniformMask(), 1);
-
-  glDisable(GL_BLEND);
-
-  glBegin(GL_QUADS);
-  {
-    glColorRGBA(rgba);
-    glMultiTexCoord2fARB(GL_TEXTURE0_ARB, thisx1, thisy2);
-    glMultiTexCoord2fARB(GL_TEXTURE1_ARB, thisx1, thisy1);
-    glVertex2i(fdx1, fdy1);
-    glMultiTexCoord2fARB(GL_TEXTURE0_ARB, thisx2, thisy2);
-    glMultiTexCoord2fARB(GL_TEXTURE1_ARB, thisx2, thisy1);
-    glVertex2i(fdx2, fdy1);
-    glMultiTexCoord2fARB(GL_TEXTURE0_ARB, thisx2, thisy1);
-    glMultiTexCoord2fARB(GL_TEXTURE1_ARB, thisx2, thisy2);
-    glVertex2i(fdx2, fdy2);
-    glMultiTexCoord2fARB(GL_TEXTURE0_ARB, thisx1, thisy1);
-    glMultiTexCoord2fARB(GL_TEXTURE1_ARB, thisx1, thisy2);
-    glVertex2i(fdx1, fdy2);
-  }
-  glEnd();
-
-  glActiveTextureARB(GL_TEXTURE1_ARB);
-  glDisable(GL_TEXTURE_2D);
-  glActiveTextureARB(GL_TEXTURE0_ARB);
-
-  glUseProgramObjectARB(0);
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_ONE, GL_ZERO);
-}
-
-// -----------------------------------------------------------------------
-
-void Texture::render_to_screen_as_colour_mask_additive(const Rect& src,
-                                                       const Rect& dst,
-                                                       const RGBAColour& rgba) {
-  int x1 = src.x(), y1 = src.y(), x2 = src.x2(), y2 = src.y2();
-  int fdx1 = dst.x(), fdy1 = dst.y(), fdx2 = dst.x2(), fdy2 = dst.y2();
-  if (!filterCoords(x1, y1, x2, y2, fdx1, fdy1, fdx2, fdy2))
-    return;
-
-  float thisx1 = float(x1) / texture_width_;
-  float thisy1 = float(y1) / texture_height_;
-  float thisx2 = float(x2) / texture_width_;
-  float thisy2 = float(y2) / texture_height_;
-
-  if (is_upside_down_) {
-    thisy1 = float(logical_height_ - y1) / texture_height_;
-    thisy2 = float(logical_height_ - y2) / texture_height_;
-  }
-
-  // First draw the mask
-  glBindTexture(GL_TEXTURE_2D, texture_id_);
+  shader->SetUniform("texture1", 1);
+  shader->SetUniform("color", Normalize(color.r(), 255),
+                     Normalize(color.g(), 255), Normalize(color.b(), 255),
+                     Normalize(color.a(), 255));
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-  glBegin(GL_QUADS);
-  {
-    glColorRGBA(rgba);
-    glTexCoord2i(thisx1, thisy1);
-    glVertex2f(fdx1, fdy1);
-    glTexCoord2i(thisx2, thisy1);
-    glVertex2f(fdx2, fdy1);
-    glTexCoord2i(thisx2, thisy2);
-    glVertex2f(fdx2, fdy2);
-    glTexCoord2i(thisx1, thisy2);
-    glVertex2f(fdx1, fdy2);
-  }
-  glEnd();
+  glBindVertexArray(VAO);
+  glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
+  glUseProgram(0);
+  glBindVertexArray(0);
   glBlendFunc(GL_ONE, GL_ZERO);
+
+  glDeleteVertexArrays(1, &VAO);
+  glDeleteBuffers(1, &VBO);
+  glDeleteBuffers(1, &EBO);
 }
 
 // -----------------------------------------------------------------------

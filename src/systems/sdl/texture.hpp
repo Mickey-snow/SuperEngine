@@ -88,11 +88,14 @@ class Texture {
                               const Rect& dstRect,
                               int alpha);
 
-  void RenderToScreen(const Rect& src, const Rect& dst, int opacity);
+  void RenderToScreen(const Rect& src,
+                      const Rect& dst,
+                      const int opacity = 255);
   void RenderToScreen(const Rect& src, const Rect& dst, const int opacity[4]);
   void RenderToScreen(const Rect& src,
                       const Rect& dst,
-                      std::array<float, 4> opacity);
+                      std::array<float, 4> opacity,
+                      RGBAColour color = RGBAColour());
 
   void RenderToScreenAsColorMask(const Rect& src,
                                  const Rect& dst,
@@ -107,12 +110,9 @@ class Texture {
   // large enough.
   static char* uploadBuffer(unsigned int size);
 
-  void render_to_screen_as_colour_mask_subtractive_glsl(const Rect& src,
-                                                        const Rect& dst,
-                                                        const RGBAColour& rgba);
-  void render_to_screen_as_colour_mask_additive(const Rect& src,
-                                                const Rect& dst,
-                                                const RGBAColour& rgba);
+  void RenderSubtractiveColorMask(const Rect& src,
+                                  const Rect& dst,
+                                  const RGBAColour& rgba);
 
   bool filterCoords(int& x1,
                     int& y1,

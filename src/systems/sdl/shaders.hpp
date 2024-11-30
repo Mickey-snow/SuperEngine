@@ -90,9 +90,11 @@ class ShaderProgram {
 
   auto GetID() const { return id_; }
   void SetUniform(std::string_view name, float value);
+  void SetUniform(std::string_view name, float x, float y, float z, float w);
 
  private:
   unsigned int id_;
 };
 
 std::shared_ptr<ShaderProgram> GetOpShader();
+std::shared_ptr<ShaderProgram> GetColorMaskShader();
