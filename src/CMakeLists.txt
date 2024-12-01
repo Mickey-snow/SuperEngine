@@ -14,7 +14,6 @@ set(RLVM_REQUIRED_LIBRARIES
     glm::glm
     xclannad
     glew
-    guichan
     pygame
     samplerate
     sdl_image

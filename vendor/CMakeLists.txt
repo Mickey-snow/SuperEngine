@@ -31,16 +31,6 @@ target_include_directories(glm PUBLIC
 )
 
 # -------------------------------------------------------------------
-# guichan
-# -------------------------------------------------------------------
-file(GLOB_RECURSE GUICHAN_SRC_FILES "guichan/src/*.cpp")
-add_library(guichan STATIC ${GUICHAN_SRC_FILES})
-target_include_directories(guichan PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/guichan/include
-)
-target_link_libraries(guichan PUBLIC ${OpenGL_LIBRARIES} sdl_image sdl_ttf)
-
-# -------------------------------------------------------------------
 # libsamplerate
 # -------------------------------------------------------------------
 set(LIBSAMPLERATE_EXAMPLES OFF CACHE BOOL "Disable src examples" FORCE)
