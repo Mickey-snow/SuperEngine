@@ -209,10 +209,6 @@ std::shared_ptr<Surface> SDLGraphicsSystem::EndFrameToSurface() {
 SDLGraphicsSystem::SDLGraphicsSystem(System& system, Gameexe& gameexe)
     : GraphicsSystem(system, gameexe),
       redraw_last_frame_(false),
-      display_data_in_titlebar_(false),
-      time_of_last_titlebar_update_(0),
-      last_seen_number_(0),
-      last_line_number_(0),
       screen_contents_texture_valid_(false),
       screen_tex_width_(0),
       screen_tex_height_(0) {
@@ -235,7 +231,7 @@ SDLGraphicsSystem::SDLGraphicsSystem(System& system, Gameexe& gameexe)
   display_contexts_[0]->allocate(screen_size(), true);
   display_contexts_[1]->allocate(screen_size());
 
-  SetWindowTitle();
+  SetWindowTitle(caption_title_);
 
 #if !defined(__APPLE__) && !defined(_WIN32)
   // We only set the icon on Linux because OSX will use the icns file
@@ -248,11 +244,6 @@ SDLGraphicsSystem::SDLGraphicsSystem(System& system, Gameexe& gameexe)
     SDL_FreeSurface(icon);
   }
 #endif
-
-  // When debug is set, display trace data in the titlebar
-  if (gameexe("MEMORY").Exists()) {
-    display_data_in_titlebar_ = true;
-  }
 
   SDL_ShowCursor(ShouldUseCustomCursor() ? SDL_DISABLE : SDL_ENABLE);
 
@@ -365,37 +356,27 @@ void SDLGraphicsSystem::ExecuteGraphicsSystem(RLMachine& machine) {
   }
 
   // Update the seen.
-  int current_time = machine.GetSystem().event().GetTicks();
-  if ((current_time - time_of_last_titlebar_update_) > 60) {
-    time_of_last_titlebar_update_ = current_time;
-
-    if (machine.SceneNumber() != last_seen_number_ ||
-        machine.LineNumber() != last_line_number_) {
-      last_seen_number_ = machine.SceneNumber();
-      last_line_number_ = machine.LineNumber();
-      SetWindowTitle();
+  static auto clock = Clock();
+  static auto time_of_last_titlebar_update = clock.GetTime();
+  auto current_time = clock.GetTime();
+  if ((current_time - time_of_last_titlebar_update) >
+      std::chrono::milliseconds(60)) {
+    time_of_last_titlebar_update = current_time;
+    std::string new_caption = caption_title_;
+    if (should_display_subtitle() && subtitle_ != "") {
+      new_caption += ": " + subtitle_;
     }
+
+    SetWindowTitle(std::move(new_caption));
   }
 
   GraphicsSystem::ExecuteGraphicsSystem(machine);
 }
 
-void SDLGraphicsSystem::SetWindowTitle() {
-  std::ostringstream oss;
-  oss << caption_title_;
-
-  if (should_display_subtitle() && subtitle_ != "") {
-    oss << ": " << subtitle_;
-  }
-
-  if (display_data_in_titlebar_) {
-    oss << " - (SEEN" << last_seen_number_ << ")(Line " << last_line_number_
-        << ")";
-  }
-
+void SDLGraphicsSystem::SetWindowTitle(std::string new_caption) {
   // PulseAudio allocates a string each time we set the title. Make sure we
   // don't do this unnecessarily.
-  std::string new_caption = oss.str();
+  static std::string currently_set_title_ = "???";
   if (new_caption != currently_set_title_) {
     SDL_WM_SetCaption(new_caption.c_str(), NULL);
     currently_set_title_ = new_caption;
@@ -628,9 +609,4 @@ ColourFilter* SDLGraphicsSystem::BuildColourFiller() {
   return new SDLColourFilter();
 }
 
-void SDLGraphicsSystem::Reset() {
-  last_seen_number_ = 0;
-  last_line_number_ = 0;
-
-  GraphicsSystem::Reset();
-}
+void SDLGraphicsSystem::Reset() { GraphicsSystem::Reset(); }

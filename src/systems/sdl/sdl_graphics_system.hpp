@@ -88,7 +88,7 @@ class SDLGraphicsSystem : public GraphicsSystem, public NotificationObserver {
   virtual ColourFilter* BuildColourFiller() override;
 
   // -----------------------------------------------------------------------
-
+  virtual void SetWindowTitle(std::string new_caption);
   virtual void SetWindowSubtitle(const std::string& cp932str,
                                  int text_encoding) override;
 
@@ -107,8 +107,6 @@ class SDLGraphicsSystem : public GraphicsSystem, public NotificationObserver {
   // @exception Error Throws when dc is unallocated.
   void VerifySurfaceExists(int dc, const std::string& caller);
 
-  void SetWindowTitle();
-
   // NotificationObserver:
   virtual void Observe(NotificationType type,
                        const NotificationSource& source,
@@ -123,27 +121,10 @@ class SDLGraphicsSystem : public GraphicsSystem, public NotificationObserver {
 
   bool redraw_last_frame_;
 
-  // Whether to display (SEEN####)(Line ###) in the title bar
-  bool display_data_in_titlebar_;
-
-  // The last time the titlebar was updated (in GetTicks())
-  unsigned int time_of_last_titlebar_update_;
-
-  // The last seen number;
-  int last_seen_number_;
-
-  // The last line number;
-  int last_line_number_;
-
   // utf8 encoded title string
   std::string caption_title_;
-
   // utf8 encoded subtitle
   std::string subtitle_;
-
-  // The value we've set the window title to. We do this to work around a
-  // memory leak in PulseAudio.
-  std::string currently_set_title_;
 
   // Texture used to store the contents of the screen while in DrawManual()
   // mode. The stored image is then used if we need to redraw in the
