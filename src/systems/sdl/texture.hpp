@@ -30,7 +30,7 @@
 #include "GL/glew.h"
 
 #include "base/rect.hpp"
-#include "systems/base/colour.hpp"
+#include "base/colour.hpp"
 
 #include <memory>
 #include <string>

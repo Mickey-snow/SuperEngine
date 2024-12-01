@@ -51,7 +51,7 @@
 #include "machine/serialization.hpp"
 #include "memory/memory.hpp"
 #include "memory/serialization_global.hpp"
-#include "systems/base/colour.hpp"
+#include "base/colour.hpp"
 #include "systems/base/surface.hpp"
 #include "systems/base/system.hpp"
 #include "utf8cpp/utf8.h"

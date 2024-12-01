@@ -113,7 +113,7 @@ GraphicsSystem::GraphicsObjectSettings::GraphicsObjectSettings(
 
   // First we populate everything with the special value
   position.reset(new unsigned char[objects_in_a_layer]);
-  fill(position.get(), position.get() + objects_in_a_layer, 0);
+  std::fill(position.get(), position.get() + objects_in_a_layer, 0);
 
   if (gameexe.Exists("OBJECT.999"))
     data.emplace_back(gameexe("OBJECT.999"));

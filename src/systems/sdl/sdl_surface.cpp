@@ -33,10 +33,10 @@
 #include <sstream>
 #include <vector>
 
+#include "base/colour.hpp"
 #include "base/notification/source.hpp"
 #include "object/objdrawer.hpp"
 #include "pygame/alphablit.h"
-#include "systems/base/colour.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/base/system_error.hpp"
 #include "systems/sdl/sdl_graphics_system.hpp"
@@ -750,6 +750,25 @@ void SDLSurface::GetDCPixel(const Point& pos, int& r, int& g, int& b) const {
   r = colour.r;
   g = colour.g;
   b = colour.b;
+}
+
+// -----------------------------------------------------------------------
+
+RGBAColour SDLSurface::GetPixel(Point pos) const {
+  SDL_Color colour;
+  Uint32 col = 0;
+
+  char* p_position = (char*)surface_->pixels;
+  p_position += (surface_->pitch * pos.y());
+  p_position += (surface_->format->BytesPerPixel * pos.x());
+
+  // Copy pixel data
+  memcpy(&col, p_position, surface_->format->BytesPerPixel);
+
+  // Use SDL_GetRGBA to extract RGBA components
+  SDL_GetRGBA(col, surface_->format, &colour.r, &colour.g, &colour.b,
+              &colour.unused);
+  return RGBAColour(colour.r, colour.g, colour.b, colour.unused);
 }
 
 // -----------------------------------------------------------------------

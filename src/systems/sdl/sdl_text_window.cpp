@@ -34,7 +34,7 @@
 #include <vector>
 
 #include "base/gameexe.hpp"
-#include "systems/base/colour.hpp"
+#include "base/colour.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/selection_element.hpp"
 #include "systems/base/system_error.hpp"

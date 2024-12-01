@@ -36,7 +36,7 @@
 
 #include "base/rect.hpp"
 #include "object/parameter_manager.hpp"
-#include "systems/base/colour.hpp"
+#include "base/colour.hpp"
 
 class RLMachine;
 class GraphicsObjectSlot;

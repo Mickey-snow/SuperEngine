@@ -25,7 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#include "systems/base/colour.hpp"
+#include "base/colour.hpp"
 
 #include <ostream>
 #include <vector>

@@ -25,7 +25,7 @@
 
 #include "systems/sdl/sdl_colour_filter.hpp"
 
-#include "systems/base/colour.hpp"
+#include "base/colour.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/sdl/sdl_utils.hpp"
 #include "systems/sdl/shaders.hpp"

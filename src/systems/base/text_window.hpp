@@ -34,7 +34,7 @@
 #include <vector>
 
 #include "base/rect.hpp"
-#include "systems/base/colour.hpp"
+#include "base/colour.hpp"
 
 class Gameexe;
 class GameexeInterpretObject;

@@ -51,7 +51,7 @@ SDL_Surface* buildNewSurface(const Size& size);
 // don't own their surfaces (SDLSurfaces returned by GetDC()
 class SDLSurface : public Surface, public NotificationObserver {
  public:
-  explicit SDLSurface(SDLGraphicsSystem* system);
+  explicit SDLSurface(SDLGraphicsSystem* system = nullptr);
 
   // Surface that takes ownership of an externally created surface
   // and assumes it is only a single region.
@@ -141,6 +141,9 @@ class SDLSurface : public Surface, public NotificationObserver {
                           int& r,
                           int& g,
                           int& b) const override;
+
+  virtual RGBAColour GetPixel(Point pos) const;
+
   virtual std::shared_ptr<Surface> ClipAsColorMask(const Rect& clip_rect,
                                                    int r,
                                                    int g,

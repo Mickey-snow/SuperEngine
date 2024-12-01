@@ -40,7 +40,7 @@
 #include "machine/rloperation/complex_t.hpp"
 #include "machine/rloperation/special_t.hpp"
 #include "modules/module_grp.hpp"
-#include "systems/base/colour.hpp"
+#include "base/colour.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/hik_renderer.hpp"
 #include "systems/base/hik_script.hpp"

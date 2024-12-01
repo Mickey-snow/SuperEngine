@@ -34,7 +34,7 @@
 #include "glm/matrix.hpp"
 
 #include "base/rect.hpp"
-#include "systems/base/colour.hpp"
+#include "base/colour.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/base/system_error.hpp"
 #include "systems/sdl/sdl_surface.hpp"

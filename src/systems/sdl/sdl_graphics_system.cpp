@@ -48,11 +48,11 @@
 
 #include "base/avdec/image_decoder.hpp"
 #include "base/cgm_table.hpp"
+#include "base/colour.hpp"
 #include "base/gameexe.hpp"
 #include "base/notification/source.hpp"
 #include "base/tone_curve.hpp"
 #include "machine/rlmachine.hpp"
-#include "systems/base/colour.hpp"
 #include "systems/base/event_system.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/base/mouse_cursor.hpp"
