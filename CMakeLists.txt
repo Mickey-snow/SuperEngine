@@ -40,6 +40,17 @@ else()
 endif()
 
 # -------------------------------------------------------------------
+# Find GLEW Library
+# -------------------------------------------------------------------
+find_package(GLEW REQUIRED)
+if (GLEW_FOUND)
+  message(STATUS "GLEW found: ${GLEW_VERSION}")
+  include_directories(${GLEW_INCLUDE_DIRS})
+else()
+  message(FATAL_ERROR "GLEW not found. Please install GLEW.")
+endif()
+
+# -------------------------------------------------------------------
 # Find SDL1 Library
 # -------------------------------------------------------------------
 pkg_check_modules(SDL1 REQUIRED sdl "${_PKG_CONFIG_ARGS}")

@@ -78,6 +78,7 @@ Before you begin, ensure you have the following libraries and utilities installe
   [https://www.boost.org/](https://www.boost.org/)
 - **SDL 1.2**:
   [https://www.libsdl.org/download-1.2.php](https://www.libsdl.org/download-1.2.php)
+- **OpenGL** and **GLEW**.
 - **FreeType**:
   [https://www.freetype.org/](https://www.freetype.org/)
 - **GNU gettext**

@@ -17,12 +17,6 @@ add_library(xclannad STATIC ${XCLANNAD_SRC_FILES})
 add_library(pygame STATIC "pygame/alphablit.cc")
 
 # -------------------------------------------------------------------
-# GLEW
-# -------------------------------------------------------------------
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/GLEW/include)
-add_library(glew STATIC GLEW/src/glew.c)
-
-# -------------------------------------------------------------------
 # GLM
 # -------------------------------------------------------------------
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/glm)

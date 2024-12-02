@@ -10,10 +10,10 @@ set(RLVM_REQUIRED_LIBRARIES
     ${ZLIB_LIBRARIES}
     ${OPENGL_LIBRARIES}
     ${Boost_LIBRARIES}
+    ${GLEW_LIBRARIES}
     VorbisFile::VorbisFile
     glm::glm
     xclannad
-    glew
     pygame
     samplerate
     sdl_image
