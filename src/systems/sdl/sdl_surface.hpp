@@ -40,9 +40,6 @@ class GraphicsSystem;
 class SDLGraphicsSystem;
 class GraphicsObject;
 
-// Helper function. Used throughout the SDL system.
-SDL_Surface* buildNewSurface(const Size& size);
-
 // Wrapper around an OpenGL texture; meant to be passed out of the
 // graphics system.
 //
@@ -149,7 +146,7 @@ class SDLSurface : public Surface, public NotificationObserver {
                                                    int g,
                                                    int b) const override;
 
-  virtual Surface* Clone() const;
+  virtual Surface* Clone() const override;
 
   void interpretAsColorMask(int r, int g, int b, int alpha);
 
@@ -160,7 +157,7 @@ class SDLSurface : public Surface, public NotificationObserver {
   // NotificationObserver:
   virtual void Observe(NotificationType type,
                        const NotificationSource& source,
-                       const NotificationDetails& details);
+                       const NotificationDetails& details) override;
 
  private:
   // Keeps track of a texture and the information about which region

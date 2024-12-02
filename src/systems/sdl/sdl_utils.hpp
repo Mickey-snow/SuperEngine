@@ -35,7 +35,7 @@ class Rect;
 class RGBColour;
 class RGBAColour;
 
-void ShowGLErrors(void);
+void ShowGLErrors();
 
 inline void DebugShowGLErrors() {
 #ifndef SRC_SYSTEMS_SDL_SDL_UTILS_H_
@@ -66,5 +66,3 @@ void RectToSDLRect(const Rect& rect, SDL_Rect* out);
 
 void RGBColourToSDLColor(const RGBColour& in, SDL_Color* out);
 Uint32 MapRGBA(SDL_PixelFormat* fmt, const RGBAColour& in);
-
-void glColorRGBA(const RGBAColour& rgba);

@@ -178,8 +178,8 @@ uniform vec4 color;
 out vec4 FragColor;
 
 void main(){
-  vec4 bg_color = texture2D(texture0, TexCoord0);
-  vec4 mask_sample = texture2D(texture1, TexCoord1);
+  vec4 bg_color = texture(texture0, TexCoord0);
+  vec4 mask_sample = texture(texture1, TexCoord1);
 
   float mask_strength = clamp(mask_sample.a * color.a, 0.0, 1.0);
   vec4 blended_color = bg_color - mask_strength + color * mask_strength;
@@ -231,7 +231,7 @@ void tinter(in float pixel_val, in float tint_val, out float mixed) {
 }
 
 void main() {
-  vec4 pixel = texture2D(image, TexCoord);
+  vec4 pixel = texture(image, TexCoord);
 
   // Blend with the input colour
   vec3 coloured = mix(pixel.rgb, colour.rgb, colour.a);
