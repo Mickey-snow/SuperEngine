@@ -18,8 +18,6 @@
 //
 // -----------------------------------------------------------------------
 
-#pragma once
-
 #include "systems/gl_utils.hpp"
 
 #include <GL/glew.h>
@@ -64,7 +62,11 @@ void ShowGLErrors() {
 // -----------------------------------------------------------------------
 
 bool IsNPOTSafe() {
-  static bool is_safe = GLEW_VERSION_2_0 && GLEW_ARB_texture_non_power_of_two;
+#ifndef GLEW_ARB_texture_non_power_of_two
+  static bool is_safe = false;
+#else
+  static bool is_safe = GLEW_ARB_texture_non_power_of_two;
+#endif
   return is_safe;
 }
 
