@@ -40,8 +40,12 @@ file(GLOB_RECURSE TEST_SRC_FILES
 add_executable(unittest ${TEST_SRC_FILES})
 target_include_directories(unittest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(unittest PRIVATE
-  ${GTEST_LIBRARIES}
   rlvm_src
+  ${GTEST_LIBRARIES}
+
+  ${SDL_LIBRARIES}
+  ${OPENGL_LIBRARIES}
+  ${GLEW_LIBRARIES}
 )
 
 # -------------------------------------------------------------------
