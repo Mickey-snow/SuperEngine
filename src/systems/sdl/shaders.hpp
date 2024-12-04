@@ -27,10 +27,10 @@
 #include <memory>
 #include <string_view>
 
-class ShaderProgram {
+class glslProgram {
  public:
-  ShaderProgram(std::string_view vertex_src, std::string_view frag_src);
-  ~ShaderProgram();
+  glslProgram(std::string_view vertex_src, std::string_view frag_src);
+  ~glslProgram();
 
   auto GetID() const { return id_; }
   unsigned int UniformLocation(std::string_view name);
@@ -43,6 +43,6 @@ class ShaderProgram {
   unsigned int id_;
 };
 
-std::shared_ptr<ShaderProgram> GetOpShader();
-std::shared_ptr<ShaderProgram> GetColorMaskShader();
-std::shared_ptr<ShaderProgram> GetObjectShader();
+std::shared_ptr<glslProgram> GetOpShader();
+std::shared_ptr<glslProgram> GetColorMaskShader();
+std::shared_ptr<glslProgram> GetObjectShader();

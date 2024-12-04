@@ -39,6 +39,7 @@ class glRendererTest : public ::testing::Test {
  protected:
   inline static std::shared_ptr<sdlEnv> sdl_handle = nullptr;
   static void SetUpTestSuite() { sdl_handle = SetupSDL(); }
+  static void TearDownTestSuite() { sdl_handle = nullptr; }
 
   void SetUp() override {
     renderer.SetUp();

@@ -49,7 +49,7 @@ static void checkLinkError(GLuint program) {
   }
 }
 
-ShaderProgram::ShaderProgram(std::string_view vertex_src,
+glslProgram::glslProgram(std::string_view vertex_src,
                              std::string_view frag_src) {
   const char *vs = vertex_src.data(), *fs = frag_src.data();
 
@@ -73,30 +73,30 @@ ShaderProgram::ShaderProgram(std::string_view vertex_src,
   glDeleteShader(fragment);
 }
 
-ShaderProgram::~ShaderProgram() {
+glslProgram::~glslProgram() {
   if (id_ != 0) {
     glDeleteProgram(id_);
   }
 }
 
-unsigned int ShaderProgram::UniformLocation(std::string_view name) {
+unsigned int glslProgram::UniformLocation(std::string_view name) {
   auto location = glGetUniformLocation(id_, name.data());
   if (location == -1) {
-    throw std::runtime_error("ShaderProgram: Uniform " + std::string(name) +
+    throw std::runtime_error("glslProgram: Uniform " + std::string(name) +
                              " not found.");
   }
   return location;
 }
 
-void ShaderProgram::SetUniform(std::string_view name, int value) {
+void glslProgram::SetUniform(std::string_view name, int value) {
   glUniform1i(UniformLocation(name), value);
 }
 
-void ShaderProgram::SetUniform(std::string_view name, float value) {
+void glslProgram::SetUniform(std::string_view name, float value) {
   glUniform1f(UniformLocation(name), value);
 }
 
-void ShaderProgram::SetUniform(std::string_view name,
+void glslProgram::SetUniform(std::string_view name,
                                float x,
                                float y,
                                float z,
@@ -104,14 +104,14 @@ void ShaderProgram::SetUniform(std::string_view name,
   glUniform4f(UniformLocation(name), x, y, z, w);
 }
 
-void ShaderProgram::SetUniform(std::string_view name,
+void glslProgram::SetUniform(std::string_view name,
                                float x,
                                float y,
                                float z) {
   glUniform3f(UniformLocation(name), x, y, z);
 }
 
-std::shared_ptr<ShaderProgram> GetOpShader() {
+std::shared_ptr<glslProgram> GetOpShader() {
   static constexpr std::string_view vertex_src = R"glsl(
 #version 330 core
 
@@ -145,11 +145,11 @@ void main(){
 )glsl";
 
   static auto shader =
-      std::make_shared<ShaderProgram>(vertex_src, fragment_src);
+      std::make_shared<glslProgram>(vertex_src, fragment_src);
   return shader;
 }
 
-std::shared_ptr<ShaderProgram> GetColorMaskShader() {
+std::shared_ptr<glslProgram> GetColorMaskShader() {
   static constexpr std::string_view vertex_src = R"glsl(
 #version 330 core
 
@@ -188,11 +188,11 @@ void main(){
 )glsl";
 
   static auto shader =
-      std::make_shared<ShaderProgram>(vertex_src, fragment_src);
+      std::make_shared<glslProgram>(vertex_src, fragment_src);
   return shader;
 }
 
-std::shared_ptr<ShaderProgram> GetObjectShader() {
+std::shared_ptr<glslProgram> GetObjectShader() {
   static constexpr std::string_view vertex_src = R"glsl(
 #version 330 core
 
@@ -271,6 +271,6 @@ void main() {
 )glsl";
 
   static auto shader =
-      std::make_shared<ShaderProgram>(vertex_src, fragment_src);
+      std::make_shared<glslProgram>(vertex_src, fragment_src);
   return shader;
 }

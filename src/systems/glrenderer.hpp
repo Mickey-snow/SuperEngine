@@ -30,7 +30,7 @@
 #include <optional>
 
 class glTexture;
-class ShaderProgram;
+class glslProgram;
 class glFrameBuffer;
 
 struct glRenderable {
@@ -68,7 +68,7 @@ class glRenderer {
  private:
   std::shared_ptr<glFrameBuffer> canvas_;
   glm::mat4 view_, projection_;
-  std::shared_ptr<ShaderProgram> shader_;
+  std::shared_ptr<glslProgram> shader_;
 
   // struct glCtx;
   // std::unique_ptr<glCtx> ctx_;
