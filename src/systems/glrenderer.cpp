@@ -48,27 +48,25 @@ void glRenderer::SetUp() {
   ShowGLErrors();
 }
 
-void glRenderer::SetFrameBuffer(std::shared_ptr<glFrameBuffer> canvas) {
-  canvas_ = canvas;
-}
-
-void glRenderer::ClearBuffer(RGBAColour color) {
-  glBindFramebuffer(GL_FRAMEBUFFER, canvas_->GetID());
+void glRenderer::ClearBuffer(std::shared_ptr<glFrameBuffer> canvas,
+                             RGBAColour color) {
+  glBindFramebuffer(GL_FRAMEBUFFER, canvas->GetID());
   glClearColor(color.r_float(), color.g_float(), color.b_float(),
                color.a_float());
   glClear(GL_COLOR_BUFFER_BIT);
 }
 
 void glRenderer::RenderColormask(glRenderable src,
-                                 Rect dst_region,
+                                 glDestination dst,
                                  const RGBAColour mask) {
+  auto canvas_ = dst.framebuf_;
   const auto canvas_size = canvas_->GetSize();
   const auto texture_size = src.texture_->GetSize();
 
   int x1 = src.region.x(), y1 = src.region.y(), x2 = src.region.x2(),
       y2 = src.region.y2();
-  int fdx1 = dst_region.x(), fdy1 = dst_region.y(), fdx2 = dst_region.x2(),
-      fdy2 = dst_region.y2();
+  int fdx1 = dst.region.x(), fdy1 = dst.region.y(), fdx2 = dst.region.x2(),
+      fdy2 = dst.region.y2();
 
   auto toNDC = [screen_size = canvas_size](int x, int y) {
     const auto w = screen_size.width();
@@ -147,14 +145,15 @@ void glRenderer::RenderColormask(glRenderable src,
   ShowGLErrors();
 }
 
-void glRenderer::Render(glRenderable src, RenderingConfig config) {
+void glRenderer::Render(glRenderable src, glDestination dst) {
+  auto canvas_ = dst.framebuf_;
   const auto canvas_size = canvas_->GetSize();
   const auto texture_size = src.texture_->GetSize();
 
   int x1 = src.region.x(), y1 = src.region.y(), x2 = src.region.x2(),
       y2 = src.region.y2();
-  int fdx1 = config.dst.x(), fdy1 = config.dst.y(), fdx2 = config.dst.x2(),
-      fdy2 = config.dst.y2();
+  int fdx1 = dst.region.x(), fdy1 = dst.region.y(), fdx2 = dst.region.x2(),
+      fdy2 = dst.region.y2();
 
   auto toNDC = [w = canvas_size.width(), h = canvas_size.height()](int x,
                                                                    int y) {

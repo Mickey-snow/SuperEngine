@@ -57,8 +57,7 @@ class glRendererTest : public ::testing::Test {
 TEST_F(glRendererTest, ClearBuffer) {
   const auto color = RGBAColour(20, 40, 60, 100);
 
-  renderer.SetFrameBuffer(canvas);
-  renderer.ClearBuffer(color);
+  renderer.ClearBuffer(canvas, color);
   auto data = texture->Dump();
   for (size_t i = 0; i < data.size(); ++i) {
     EXPECT_EQ(data[i], color);
@@ -71,11 +70,10 @@ TEST_F(glRendererTest, SubtractiveColorMask) {
   auto masktex = std::make_shared<glTexture>(Size(2, 2), std::views::all(data));
   const auto maskcolor = RGBAColour(90, 60, 30, 120);
 
-  renderer.SetFrameBuffer(canvas);
-  renderer.ClearBuffer(RGBAColour(20, 40, 60, 100));
+  renderer.ClearBuffer(canvas, RGBAColour(20, 40, 60, 100));
   const Rect dstrect(Point(0, 2), Size(2, 2));
-  renderer.RenderColormask({masktex, Rect(Point(0, 0), Size(2, 2))}, dstrect,
-                           maskcolor);
+  renderer.RenderColormask({masktex, Rect(Point(0, 0), Size(2, 2))},
+                           {canvas, dstrect}, maskcolor);
 
   auto result = texture->Dump(dstrect);
   EXPECT_EQ(result[0], RGBAColour(20, 40, 60, 100));
@@ -126,11 +124,9 @@ TEST_F(glRendererTest, DrawColor) {
                   texture_size / 2),
              std::views::all(data));
 
-  renderer.SetFrameBuffer(canvas);
-  renderer.ClearBuffer(RGBAColour(0, 20, 80, 255));
-  RenderingConfig config;
-  config.dst = Rect(Point(32, 32), texture_size);
-  renderer.Render({tex, Rect(Point(0, 0), texture_size)}, config);
+  renderer.ClearBuffer(canvas, RGBAColour(0, 20, 80, 255));
+  renderer.Render({tex, Rect(Point(0, 0), texture_size)},
+                  {canvas, Rect(Point(32, 32), texture_size)});
 
   Rect topleft(Point(35, 35), Size(1, 1));
   Rect downleft(Point(35, 41), Size(1, 1));
