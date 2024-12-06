@@ -22,11 +22,17 @@
 // -----------------------------------------------------------------------
 
 #include "systems/gltexture.hpp"
+
+#include "base/colour.hpp"
 #include "systems/gl_utils.hpp"
 
-#include <GL/gl.h>
+#include <GL/glew.h>
 
-glTexture::glTexture(Size size, uint8_t* data) : size_(size) {
+glTexture::glTexture(Size size, uint8_t* data) { Init(size, data); }
+
+void glTexture::Init(Size size, uint8_t* data) {
+  size_ = size;
+
   glGenTextures(1, &id_);
   glBindTexture(GL_TEXTURE_2D, id_);
   ShowGLErrors();
@@ -44,10 +50,28 @@ glTexture::~glTexture() { glDeleteTextures(1, &id_); }
 
 unsigned int glTexture::GetID() const { return id_; }
 
-std::vector<uint8_t> glTexture::Dump(Rect region) {
-  std::vector<uint8_t> data(region.width() * region.height() * 4);
+Size glTexture::GetSize() const { return size_; }
+
+void glTexture::Write(Rect region, uint8_t* data) {
   glBindTexture(GL_TEXTURE_2D, id_);
-  glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, data.data());
+  glTexSubImage2D(GL_TEXTURE_2D, 0, region.x(), region.y(), region.width(),
+                  region.height(), GL_RGBA, GL_UNSIGNED_BYTE, data);
   glBindTexture(GL_TEXTURE_2D, 0);
-  return data;
+}
+
+std::vector<RGBAColour> glTexture::Dump(std::optional<Rect> in_region) {
+  glFinish();
+
+  const Rect region = Flip_y(in_region.value_or(Rect(Point(0, 0), size_)));
+  std::vector<uint8_t> data(region.width() * region.height() * 4);
+  glGetTextureSubImage(id_, 0, region.x(), region.y(), 0, region.width(),
+                       region.height(), 1, GL_RGBA, GL_UNSIGNED_BYTE,
+                       data.size(), data.data());
+  data = Flip_y(region.size(), data.data());
+
+  std::vector<RGBAColour> result(data.size() / 4);
+  for (size_t i = 0; i < result.size(); ++i)
+    result[i] = RGBAColour(data[i * 4], data[i * 4 + 1], data[i * 4 + 2],
+                           data[i * 4 + 3]);
+  return result;
 }

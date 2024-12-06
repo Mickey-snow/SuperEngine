@@ -26,13 +26,18 @@
 #include <memory>
 
 class glTexture;
+class Size;
 
 class glFrameBuffer {
  public:
-  glFrameBuffer(std::shared_ptr<glTexture> texture);
-  ~glFrameBuffer();
+  glFrameBuffer() = default;
 
-  unsigned int GetID() const;
+  glFrameBuffer(std::shared_ptr<glTexture> texture);
+  virtual ~glFrameBuffer();
+
+  virtual unsigned int GetID() const;
+
+  virtual Size GetSize() const;
 
  private:
   std::shared_ptr<glTexture> texture_;

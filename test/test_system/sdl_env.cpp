@@ -23,14 +23,17 @@
 
 #include "test_system/sdl_env.hpp"
 
+#include "base/rect.hpp"
+
 #include <GL/glew.h>
 #include <SDL/SDL.h>
 
 #include <stdexcept>
 
-sdlEnv::sdlEnv() {
+sdlEnv::sdlEnv(Size screen) {
   std::string error;
-  if (SDL_SetVideoMode(128, 128, 32, SDL_OPENGL) == NULL) {
+  if (SDL_SetVideoMode(screen.width(), screen.height(), 32, SDL_OPENGL) ==
+      NULL) {
     error += "Failed to setup sdl video: ";
     error += SDL_GetError();
     SDL_Quit();
@@ -52,12 +55,12 @@ sdlEnv::sdlEnv() {
 
 sdlEnv::~sdlEnv() { SDL_Quit(); }
 
-std::shared_ptr<sdlEnv> SetupSDL() {
+std::shared_ptr<sdlEnv> SetupSDL(Size screen) {
   static std::weak_ptr<sdlEnv> cached;
   std::shared_ptr<sdlEnv> env = cached.lock();
   if (env)
     return env;
 
-  cached = env = std::make_shared<sdlEnv>();
+  cached = env = std::make_shared<sdlEnv>(screen);
   return env;
 }

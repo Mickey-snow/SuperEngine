@@ -4,7 +4,8 @@
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2025 Serina Sakurai
+// Copyright (C) 2013 Elliot Glaysher
+// Copyright (C) 2024 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,14 +22,8 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#include <memory>
+#pragma once
 
-class Size;
+#include "systems/sdl/shaders.hpp"
 
-class sdlEnv {
- public:
-  sdlEnv(Size screen);
-  ~sdlEnv();
-};
-
-std::shared_ptr<sdlEnv> SetupSDL(Size screen);
+std::shared_ptr<glslProgram> _GetColorMaskShader();

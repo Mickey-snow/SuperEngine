@@ -31,14 +31,16 @@
 #include "systems/glrenderer.hpp"
 #include "systems/gltexture.hpp"
 
+#include <SDL/SDL.h>
 #include <glm/mat4x4.hpp>
+#include <thread>
 
-static const Size screen_size = Size(8, 8);
+static const Size screen_size = Size(128, 128);
 
 class glRendererTest : public ::testing::Test {
  protected:
   inline static std::shared_ptr<sdlEnv> sdl_handle = nullptr;
-  static void SetUpTestSuite() { sdl_handle = SetupSDL(); }
+  static void SetUpTestSuite() { sdl_handle = SetupSDL(screen_size); }
   static void TearDownTestSuite() { sdl_handle = nullptr; }
 
   void SetUp() override {
@@ -57,11 +59,86 @@ TEST_F(glRendererTest, ClearBuffer) {
 
   renderer.SetFrameBuffer(canvas);
   renderer.ClearBuffer(color);
-  auto data = texture->Dump(Rect(Point(0, 0), screen_size));
+  auto data = texture->Dump();
   for (size_t i = 0; i < data.size(); ++i) {
-    static std::vector<uint8_t> color_data{color.r(), color.g(), color.b(),
-                                           color.a()};
-    EXPECT_EQ(data[i], color_data[i % color_data.size()]);
+    EXPECT_EQ(data[i], color);
   }
-  std::cout << std::endl;
+}
+
+TEST_F(glRendererTest, SubtractiveColorMask) {
+  GTEST_SKIP();
+  uint8_t data[] = {0,  255, 0,  0,  255, 255, 255, 255,   // NOLINT
+                    10, 20,  30, 40, 255, 0,   0,   255};  // NOLINT
+  auto masktex = std::make_shared<glTexture>(Size(2, 2), data);
+  const auto maskcolor = RGBAColour(90, 60, 30, 120);
+
+  renderer.SetFrameBuffer(canvas);
+  renderer.ClearBuffer(RGBAColour(20, 40, 60, 100));
+  const Rect dstrect(Point(0, 2), Size(4, 4));
+  renderer.RenderColormask({masktex, Rect(Point(0, 0), Size(2, 2))}, dstrect,
+                           maskcolor);
+
+  // auto result = texture->Dump();
+  // for (auto it : result) {
+  //   std::cout << it << ' ';
+  // }
+  // std::cout << std::endl;
+}
+
+struct ScreenCanvas : public glFrameBuffer {
+ public:
+  ScreenCanvas(Size size) : size_(size) {}
+
+  virtual unsigned int GetID() const override { return 0; }
+  virtual Size GetSize() const override { return size_; }
+
+  Size size_;
+};
+
+TEST_F(glRendererTest, DrawColor) {
+  uint8_t col_data[] = {0,  255, 0,  0,  255, 255, 255, 255,   // NOLINT
+                        10, 20,  30, 40, 255, 0,   0,   255};  // NOLINT
+
+  auto texture_size = Size(12, 12);
+  auto tex = std::make_shared<glTexture>(texture_size);
+
+  std::vector<uint8_t> data;
+  for (int i = 0; i < texture_size.width() * texture_size.height() / 4; ++i)
+    for (int j = 0; j < 4; ++j)
+      data.push_back(col_data[j]);
+  tex->Write(Rect(Point(0, 0), texture_size / 2), std::views::all(data));
+  data.clear();
+  for (int i = 0; i < texture_size.width() * texture_size.height() / 4; ++i)
+    for (int j = 4; j < 8; ++j)
+      data.push_back(col_data[j]);
+  tex->Write(Rect(Point(texture_size.width() / 2, 0), texture_size / 2),
+             std::views::all(data));
+  data.clear();
+  for (int i = 0; i < texture_size.width() * texture_size.height() / 4; ++i)
+    for (int j = 8; j < 12; ++j)
+      data.push_back(col_data[j]);
+  tex->Write(Rect(Point(0, texture_size.height() / 2), texture_size / 2),
+             std::views::all(data));
+  data.clear();
+  for (int i = 0; i < texture_size.width() * texture_size.height() / 4; ++i)
+    for (int j = 12; j < 16; ++j)
+      data.push_back(col_data[j]);
+  tex->Write(Rect(Point(texture_size.width() / 2, texture_size.height() / 2),
+                  texture_size / 2),
+             std::views::all(data));
+
+  renderer.SetFrameBuffer(canvas);
+  renderer.ClearBuffer(RGBAColour(0, 20, 80, 255));
+  RenderingConfig config;
+  config.dst = Rect(Point(32, 32), texture_size);
+  renderer.Render({tex, Rect(Point(0, 0), texture_size)}, config);
+
+  Rect topleft(Point(35, 35), Size(1, 1));
+  Rect downleft(Point(35, 41), Size(1, 1));
+  Rect topright(Point(41, 35), Size(1, 1));
+  Rect downright(Point(41, 41), Size(1, 1));
+  EXPECT_EQ(texture->Dump(topleft).front(), RGBAColour(0, 20, 80, 255));
+  EXPECT_EQ(texture->Dump(topright).front(), RGBAColour(255, 255, 255, 255));
+  EXPECT_EQ(texture->Dump(downleft).front(), RGBAColour(2, 20, 72, 221));
+  EXPECT_EQ(texture->Dump(downright).front(), RGBAColour(255, 0, 0, 255));
 }

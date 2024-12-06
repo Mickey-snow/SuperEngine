@@ -52,9 +52,10 @@ struct RenderingConfig {
 
 class glRenderer {
  public:
-  glRenderer() = default;
+  glRenderer();
+  ~glRenderer();
 
-  void SetUp();
+  static void SetUp();
 
   void SetFrameBuffer(std::shared_ptr<glFrameBuffer>);
   void ClearBuffer(RGBAColour color);
@@ -62,14 +63,13 @@ class glRenderer {
   // void SetView(glm::mat4 transformation);
   // void SetProjection(glm::mat4 transformation);
 
-  // void RenderColormask(glRenderable, Rect dst, const RGBAColour mask);
-  // void Render(glRenderable, RenderingConfig config);
+  void RenderColormask(glRenderable, Rect dst, const RGBAColour mask);
+  void Render(glRenderable, RenderingConfig config);
 
  private:
+  struct glBuffer;
+
   std::shared_ptr<glFrameBuffer> canvas_;
   glm::mat4 view_, projection_;
   std::shared_ptr<glslProgram> shader_;
-
-  // struct glCtx;
-  // std::unique_ptr<glCtx> ctx_;
 };

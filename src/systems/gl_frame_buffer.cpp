@@ -23,6 +23,7 @@
 
 #include "systems/gl_frame_buffer.hpp"
 
+#include "base/rect.hpp"
 #include "systems/gl_utils.hpp"
 #include "systems/gltexture.hpp"
 
@@ -51,3 +52,5 @@ glFrameBuffer::glFrameBuffer(std::shared_ptr<glTexture> texture)
 glFrameBuffer::~glFrameBuffer() { glDeleteFramebuffers(1, &id_); }
 
 unsigned int glFrameBuffer::GetID() const { return id_; }
+
+Size glFrameBuffer::GetSize() const { return texture_->GetSize(); }

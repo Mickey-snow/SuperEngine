@@ -23,17 +23,58 @@
 
 #include "base/rect.hpp"
 
+#include <algorithm>
 #include <cstdint>
+#include <iterator>
+#include <optional>
+#include <ranges>
 #include <vector>
 
+class RGBAColour;
+
+// adapter to opengl texture, encapsulate the logic to read from and write to
+// the texture, automatically translate between sdl and opengl coordinate
+// systems.
 class glTexture {
+ private:
+  auto Flip_y(Size size, std::input_iterator auto it) -> std::vector<uint8_t> {
+    const auto h = size.height();
+    const auto w = size.width() * 4;
+    std::vector<uint8_t> result(h * w);
+    for (int y = h - 1; y >= 0; --y)
+      for (int x = 0; x < w; ++x)
+        result[y * w + x] = *it++;
+    return result;
+  }
+  // Flip the region's coordinates from top-left to bottom-left or vice versa.
+  auto Flip_y(Rect region) -> Rect {
+    return Rect(
+        Point(region.x(), size_.height() - region.y() - region.height()),
+        Size(region.width(), region.height()));
+  }
+
  public:
   glTexture(Size size, uint8_t* data = nullptr);
+  glTexture(Size size, std::ranges::input_range auto&& range) {
+    auto data = Flip_y(size, std::ranges::cbegin(range));
+    Init(size, data.data());
+  }
   ~glTexture();
 
   unsigned int GetID() const;
+  Size GetSize() const;
 
-  std::vector<uint8_t> Dump(Rect region);
+ private:
+  void Init(Size size, uint8_t* data);
+  void Write(Rect region, uint8_t* data);
+
+ public:
+  void Write(Rect region, std::ranges::input_range auto&& range) {
+    auto data = Flip_y(region.size(), std::ranges::cbegin(range));
+    Write(Flip_y(region), data.data());
+  }
+
+  std::vector<RGBAColour> Dump(std::optional<Rect> region = std::nullopt);
 
  private:
   unsigned int id_;
