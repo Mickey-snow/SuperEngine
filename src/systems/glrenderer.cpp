@@ -65,18 +65,6 @@ void glRenderer::RenderColormask(glRenderable src,
   const auto canvas_size = canvas_->GetSize();
   const auto texture_size = src.texture_->GetSize();
 
-  glDisable(GL_DEPTH_TEST);
-  glDisable(GL_CULL_FACE);
-  glDisable(GL_LIGHTING);
-
-  glMatrixMode(GL_PROJECTION);
-  glLoadIdentity();
-  glOrtho(0.0, (GLdouble)canvas_size.width(), (GLdouble)canvas_size.height(),
-          0.0, 0.0, 1.0);
-
-  glMatrixMode(GL_MODELVIEW);
-  glLoadIdentity();
-
   int x1 = src.region.x(), y1 = src.region.y(), x2 = src.region.x2(),
       y2 = src.region.y2();
   int fdx1 = dst_region.x(), fdy1 = dst_region.y(), fdx2 = dst_region.x2(),
@@ -91,9 +79,9 @@ void glRenderer::RenderColormask(glRenderable src,
   auto [dx2, dy2] = toNDC(fdx2, fdy2);
 
   float thisx1 = float(x1) / texture_size.width();
-  float thisy1 = float(y1) / texture_size.height();
+  float thisy1 = 1.0f - float(y1) / texture_size.height();
   float thisx2 = float(x2) / texture_size.width();
-  float thisy2 = float(y2) / texture_size.height();
+  float thisy2 = 1.0f - float(y2) / texture_size.height();
 
   static glBuffer buf = []() {
     GLuint VAO, VBO, EBO;
@@ -144,10 +132,10 @@ void glRenderer::RenderColormask(glRenderable src,
 
   glBindVertexArray(buf.VAO);
   float vertices[] = {
-      dx1, dy1, thisx1, thisy2, thisx1, thisy1,  // NOLINT
-      dx2, dy1, thisx2, thisy2, thisx2, thisy1,  // NOLINT
-      dx2, dy2, thisx2, thisy1, thisx2, thisy2,  // NOLINT
-      dx1, dy2, thisx1, thisy1, thisx1, thisy2   // NOLINT
+      dx1, dy1, thisx1, thisy1, thisx1, thisy1,  // NOLINT
+      dx2, dy1, thisx2, thisy1, thisx2, thisy1,  // NOLINT
+      dx2, dy2, thisx2, thisy2, thisx2, thisy2,  // NOLINT
+      dx1, dy2, thisx1, thisy2, thisx1, thisy2   // NOLINT
   };
   glBindBuffer(GL_ARRAY_BUFFER, buf.VBO);
   glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
@@ -162,18 +150,6 @@ void glRenderer::RenderColormask(glRenderable src,
 void glRenderer::Render(glRenderable src, RenderingConfig config) {
   const auto canvas_size = canvas_->GetSize();
   const auto texture_size = src.texture_->GetSize();
-
-  glDisable(GL_DEPTH_TEST);
-  glDisable(GL_CULL_FACE);
-  glDisable(GL_LIGHTING);
-
-  glMatrixMode(GL_PROJECTION);
-  glLoadIdentity();
-  glOrtho(0.0, (GLdouble)canvas_size.width(), (GLdouble)canvas_size.height(),
-          0.0, 0.0, 1.0);
-
-  glMatrixMode(GL_MODELVIEW);
-  glLoadIdentity();
 
   int x1 = src.region.x(), y1 = src.region.y(), x2 = src.region.x2(),
       y2 = src.region.y2();

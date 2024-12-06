@@ -66,23 +66,22 @@ TEST_F(glRendererTest, ClearBuffer) {
 }
 
 TEST_F(glRendererTest, SubtractiveColorMask) {
-  GTEST_SKIP();
   uint8_t data[] = {0,  255, 0,  0,  255, 255, 255, 255,   // NOLINT
                     10, 20,  30, 40, 255, 0,   0,   255};  // NOLINT
-  auto masktex = std::make_shared<glTexture>(Size(2, 2), data);
+  auto masktex = std::make_shared<glTexture>(Size(2, 2), std::views::all(data));
   const auto maskcolor = RGBAColour(90, 60, 30, 120);
 
   renderer.SetFrameBuffer(canvas);
   renderer.ClearBuffer(RGBAColour(20, 40, 60, 100));
-  const Rect dstrect(Point(0, 2), Size(4, 4));
+  const Rect dstrect(Point(0, 2), Size(2, 2));
   renderer.RenderColormask({masktex, Rect(Point(0, 0), Size(2, 2))}, dstrect,
                            maskcolor);
 
-  // auto result = texture->Dump();
-  // for (auto it : result) {
-  //   std::cout << it << ' ';
-  // }
-  // std::cout << std::endl;
+  auto result = texture->Dump(dstrect);
+  EXPECT_EQ(result[0], RGBAColour(20, 40, 60, 100));
+  EXPECT_EQ(result[1], RGBAColour(17, 34, 52, 91));
+  EXPECT_EQ(result[2], RGBAColour(16, 35, 54, 96));
+  EXPECT_EQ(result[3], RGBAColour(17, 34, 52, 91));
 }
 
 struct ScreenCanvas : public glFrameBuffer {
