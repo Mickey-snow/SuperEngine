@@ -57,6 +57,14 @@ class SDLGraphicsSystem : public GraphicsSystem, public NotificationObserver {
   SDLGraphicsSystem(System& system, Gameexe& gameexe);
   ~SDLGraphicsSystem();
 
+ public:
+  std::shared_ptr<SDLSurface> CreateSurface(Size size);
+  virtual std::shared_ptr<Surface> BuildSurface(const Size& size) override;
+  virtual std::shared_ptr<const Surface> LoadSurfaceFromFile(
+      const std::string& short_filename) override;
+  std::shared_ptr<Surface> CreateSurface(SDL_Surface* surface);
+
+ public:
   // When the cursor is changed, also make sure that it exists so that we can
   // switch on/off the operating system cursor when the cursor index is invalid.
   virtual void SetCursor(int cursor) override;
@@ -78,12 +86,8 @@ class SDLGraphicsSystem : public GraphicsSystem, public NotificationObserver {
   virtual void SetMinimumSizeForDC(int dc, Size size) override;
   virtual void FreeDC(int dc) override;
 
-  virtual std::shared_ptr<const Surface> LoadSurfaceFromFile(
-      const std::string& short_filename) override;
-
   virtual std::shared_ptr<Surface> GetHaikei() override;
   virtual std::shared_ptr<Surface> GetDC(int dc) override;
-  virtual std::shared_ptr<Surface> BuildSurface(const Size& size) override;
 
   virtual ColourFilter* BuildColourFiller() override;
 

@@ -513,6 +513,24 @@ static SDL_Surface* newSurfaceFromRGBAData(int w,
   return surf;
 }
 
+std::shared_ptr<SDLSurface> GetSDLSurface(std::shared_ptr<Surface> surface) {
+  if (auto sdl_surface = std::dynamic_pointer_cast<SDLSurface>(surface))
+    return sdl_surface;
+  throw std::runtime_error("SDLGraphicsSystem: expected sdl surface.");
+}
+
+std::shared_ptr<SDLSurface> SDLGraphicsSystem::CreateSurface(Size size) {
+  return std::make_shared<SDLSurface>(this, size);
+}
+std::shared_ptr<Surface> SDLGraphicsSystem::BuildSurface(const Size& size) {
+  return CreateSurface(size);
+}
+
+std::shared_ptr<Surface> SDLGraphicsSystem::CreateSurface(
+    SDL_Surface* surface) {
+  return std::make_shared<SDLSurface>(this, surface);
+}
+
 std::shared_ptr<const Surface> SDLGraphicsSystem::LoadSurfaceFromFile(
     const std::string& short_filename) {
   std::filesystem::path filename =
@@ -562,6 +580,7 @@ std::shared_ptr<const Surface> SDLGraphicsSystem::LoadSurfaceFromFile(
 
   std::shared_ptr<Surface> surface_to_ret =
       std::make_shared<SDLSurface>(this, s, region_table);
+
   // handle tone curve effect loading
   if (short_filename.find("?") != short_filename.npos) {
     std::string effect_no_str =
@@ -599,10 +618,6 @@ std::shared_ptr<Surface> SDLGraphicsSystem::GetDC(int dc) {
     AllocateDC(dc, display_contexts_[0]->GetSize());
 
   return display_contexts_[dc];
-}
-
-std::shared_ptr<Surface> SDLGraphicsSystem::BuildSurface(const Size& size) {
-  return std::shared_ptr<Surface>(new SDLSurface(this, size));
 }
 
 ColourFilter* SDLGraphicsSystem::BuildColourFiller() {

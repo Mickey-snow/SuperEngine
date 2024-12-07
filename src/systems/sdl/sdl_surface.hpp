@@ -48,7 +48,7 @@ class GraphicsObject;
 // don't own their surfaces (SDLSurfaces returned by GetDC()
 class SDLSurface : public Surface, public NotificationObserver {
  public:
-  explicit SDLSurface(SDLGraphicsSystem* system = nullptr);
+  SDLSurface(SDLGraphicsSystem* system = nullptr);
 
   // Surface that takes ownership of an externally created surface
   // and assumes it is only a single region.
