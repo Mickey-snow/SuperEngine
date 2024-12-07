@@ -27,6 +27,7 @@
 #include "systems/gl_utils.hpp"
 #include "systems/glshaders.hpp"
 #include "systems/gltexture.hpp"
+#include "systems/sdl/shaders.hpp"
 
 #include <GL/glew.h>
 
@@ -59,8 +60,8 @@ void glRenderer::ClearBuffer(std::shared_ptr<glFrameBuffer> canvas,
 void glRenderer::RenderColormask(glRenderable src,
                                  glDestination dst,
                                  const RGBAColour mask) {
-  auto canvas_ = dst.framebuf_;
-  const auto canvas_size = canvas_->GetSize();
+  auto canvas = dst.framebuf_;
+  const auto canvas_size = canvas->GetSize();
   const auto texture_size = src.texture_->GetSize();
 
   int x1 = src.region.x(), y1 = src.region.y(), x2 = src.region.x2(),
@@ -109,15 +110,15 @@ void glRenderer::RenderColormask(glRenderable src,
   }();
 
   glTexture background(canvas_size);
-  glBindFramebuffer(GL_READ_FRAMEBUFFER, canvas_->GetID());
+  glBindFramebuffer(GL_READ_FRAMEBUFFER, canvas->GetID());
   glBindTexture(GL_TEXTURE_2D, background.GetID());
   glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, canvas_size.width(),
                       canvas_size.height());
   ShowGLErrors();
 
-  auto shader = GetColorMaskShader();
+  auto shader = _GetColorMaskShader();
   glUseProgram(shader->GetID());
-  glBindFramebuffer(GL_FRAMEBUFFER, canvas_->GetID());
+  glBindFramebuffer(GL_FRAMEBUFFER, canvas->GetID());
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, background.GetID());
   shader->SetUniform("texture0", 0);
@@ -146,8 +147,14 @@ void glRenderer::RenderColormask(glRenderable src,
 }
 
 void glRenderer::Render(glRenderable src, glDestination dst) {
-  auto canvas_ = dst.framebuf_;
-  const auto canvas_size = canvas_->GetSize();
+  this->Render(src, RenderingConfig(), dst);
+}
+
+void glRenderer::Render(glRenderable src,
+                        RenderingConfig cfg,
+                        glDestination dst) {
+  auto canvas = dst.framebuf_;
+  const auto canvas_size = canvas->GetSize();
   const auto texture_size = src.texture_->GetSize();
 
   int x1 = src.region.x(), y1 = src.region.y(), x2 = src.region.x2(),
@@ -179,14 +186,15 @@ void glRenderer::Render(glRenderable src, glDestination dst) {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
                  GL_STATIC_DRAW);
+
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
                           (void*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
                           (void*)(2 * sizeof(float)));
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
-                          (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+                          (void*)(4 * sizeof(float)));
     glEnableVertexAttribArray(2);
 
     glBindVertexArray(0);
@@ -194,11 +202,12 @@ void glRenderer::Render(glRenderable src, glDestination dst) {
     return glBuffer{VAO, VBO, EBO};
   }();
 
+  auto op = cfg.vertex_alpha.value_or(std::array<float, 4>{1.0, 1.0, 1.0, 1.0});
   float vertices[] = {
-      dx1, dy1, 1.0f, thisx1, thisy1,  // NOLINT
-      dx2, dy1, 1.0f, thisx2, thisy1,  // NOLINT
-      dx2, dy2, 1.0f, thisx2, thisy2,  // NOLINT
-      dx1, dy2, 1.0f, thisx1, thisy2   // NOLINT
+      dx1, dy1, thisx1, thisy1, op[0],  // NOLINT
+      dx2, dy1, thisx2, thisy1, op[1],  // NOLINT
+      dx2, dy2, thisx2, thisy2, op[2],  // NOLINT
+      dx1, dy2, thisx1, thisy2, op[3]   // NOLINT
   };
   const GLuint VAO = buf.VAO, VBO = buf.VBO;
   glBindVertexArray(VAO);
@@ -206,16 +215,32 @@ void glRenderer::Render(glRenderable src, glDestination dst) {
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
   glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
 
-  auto shader = GetOpShader();
+  auto shader = _GetObjectShader();
   glUseProgram(shader->GetID());
+
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, src.texture_->GetID());
-  shader->SetUniform("texture1", 0);
-  shader->SetUniform("mask_color", 0.0f, 0.0f, 0.0f, 0.0f);
+  shader->SetUniform("texture0", 0);
+
+  auto color = cfg.colour.value_or(RGBAColour(0, 0, 0, 0));
+  shader->SetUniform("color", color.r_float(), color.g_float(), color.b_float(),
+                     color.a_float());
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+  auto mono = cfg.mono.value_or(0.0f);
+  shader->SetUniform("mono", mono);
+
+  auto invert = cfg.invert.value_or(0.0f);
+  shader->SetUniform("invert", invert);
+
+  auto alpha = cfg.alpha.value_or(1.0f);
+  shader->SetUniform("alpha", alpha);
+
+  auto tint = cfg.tint.value_or(RGBColour(0, 0, 0));
+  shader->SetUniform("tint", tint.r_float(), tint.g_float(), tint.b_float());
+
   glBindVertexArray(VAO);
-  glBindFramebuffer(GL_FRAMEBUFFER, canvas_->GetID());
+  glBindFramebuffer(GL_FRAMEBUFFER, canvas->GetID());
   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
   glUseProgram(0);

@@ -44,7 +44,6 @@ struct glDestination {
 };
 
 struct RenderingConfig {
-  Rect dst;
   std::optional<glm::mat4> model;
   std::optional<RGBAColour> colour;
   std::optional<float> mono;
@@ -64,18 +63,13 @@ class glRenderer {
 
   void ClearBuffer(std::shared_ptr<glFrameBuffer> canvas_, RGBAColour color);
 
-  // void SetView(glm::mat4 transformation);
-  // void SetProjection(glm::mat4 transformation);
-
   void RenderColormask(glRenderable src,
                        glDestination dst,
                        const RGBAColour mask);
   void Render(glRenderable src, glDestination dst);
-  // void Render(glRenderable src, RenderingConfig config, glDestination dst);
+  void Render(glRenderable src, RenderingConfig config, glDestination dst);
 
  private:
   struct glBuffer;
-
-  glm::mat4 view_, projection_;
   std::shared_ptr<glslProgram> shader_;
 };

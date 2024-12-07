@@ -24,6 +24,9 @@
 
 #pragma once
 
-#include "systems/sdl/shaders.hpp"
+#include <memory>
+
+class glslProgram;
 
 std::shared_ptr<glslProgram> _GetColorMaskShader();
+std::shared_ptr<glslProgram> _GetObjectShader();
