@@ -253,20 +253,15 @@ SDLSurface::SDLSurface()
 
 // -----------------------------------------------------------------------
 
-SDLSurface::SDLSurface(SDL_Surface* surf)
-    : surface_(surf), texture_is_valid_(false), is_mask_(false) {
-  buildRegionTable(Size(surf->w, surf->h));
-}
-
-// -----------------------------------------------------------------------
-
 // Surface that takes ownership of an externally created surface.
-SDLSurface::SDLSurface(SDL_Surface* surf,
-                       const std::vector<GrpRect>& region_table)
+SDLSurface::SDLSurface(SDL_Surface* surf, std::vector<GrpRect> region_table)
     : surface_(surf),
-      region_table_(region_table),
+      region_table_(std::move(region_table)),
       texture_is_valid_(false),
-      is_mask_(false) {}
+      is_mask_(false) {
+  if (region_table_.empty())
+    buildRegionTable(Size(surf->w, surf->h));
+}
 
 // -----------------------------------------------------------------------
 
@@ -305,16 +300,6 @@ SDLSurface::~SDLSurface() { deallocate(); }
 // -----------------------------------------------------------------------
 
 Size SDLSurface::GetSize() const { return Size(surface_->w, surface_->h); }
-
-// -----------------------------------------------------------------------
-
-void SDLSurface::Dump() {
-  static int count = 0;
-  std::ostringstream ss;
-  ss << "dump_" << count << ".bmp";
-  count++;
-  SDL_SaveBMP(surface_, ss.str().c_str());
-}
 
 // -----------------------------------------------------------------------
 

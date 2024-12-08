@@ -349,7 +349,9 @@ void SDLGraphicsSystem::ExecuteGraphicsSystem(RLMachine& machine) {
   // For now, nothing, but later, we need to put all code each cycle
   // here.
   if (is_responsible_for_update() && screen_needs_refresh()) {
-    Refresh();
+    BeginFrame();
+    DrawFrame();
+    EndFrame();
     screen_needs_refresh_ = false;
     object_state_dirty_ = false;
     redraw_last_frame_ = false;
@@ -419,7 +421,7 @@ void SDLGraphicsSystem::AllocateDC(int dc, Size size) {
   // DC 1 is a special case and must always be at least the size of
   // the screen.
   if (dc == 1) {
-    SDL_Surface* dc0 = *(display_contexts_[0]);
+    SDL_Surface* dc0 = display_contexts_[0]->rawSurface();
     if (size.width() < dc0->w)
       size.set_width(dc0->w);
     if (size.height() < dc0->h)
@@ -522,6 +524,7 @@ std::shared_ptr<SDLSurface> GetSDLSurface(std::shared_ptr<Surface> surface) {
   throw std::runtime_error("SDLGraphicsSystem: expected sdl surface.");
 }
 
+// Functions to create a sdl surface
 std::shared_ptr<SDLSurface> SDLGraphicsSystem::CreateSurface(Size size) {
   return std::make_shared<SDLSurface>(size);
 }

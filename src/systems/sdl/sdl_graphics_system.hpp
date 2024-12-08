@@ -38,7 +38,6 @@
 #include "systems/base/graphics_system.hpp"
 
 struct SDL_Surface;
-
 class Gameexe;
 class GraphicsObject;
 class SDLGraphicsSystem;

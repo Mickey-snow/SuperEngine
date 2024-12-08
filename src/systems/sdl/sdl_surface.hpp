@@ -29,8 +29,6 @@
 
 #include <vector>
 
-#include "base/notification/observer.hpp"
-#include "base/notification/registrar.hpp"
 #include "base/tone_curve.hpp"
 #include "systems/base/surface.hpp"
 
@@ -49,16 +47,10 @@ class GraphicsObject;
 class SDLSurface : public Surface {
  public:
   SDLSurface();
-
-  // Surface that takes ownership of an externally created surface
-  // and assumes it is only a single region.
-  SDLSurface(SDL_Surface* sruf);
-
-  // Surface that takes ownership of an externally created surface.
-  SDLSurface(SDL_Surface* surf, const std::vector<GrpRect>& region_table);
-
   // Surface created with a specified width and height
   SDLSurface(const Size& size);
+  // Surface that takes ownership of an externally created surface.
+  SDLSurface(SDL_Surface* surf, std::vector<GrpRect> region_table = {});
   ~SDLSurface();
 
   virtual void EnsureUploaded() const override;
@@ -70,12 +62,8 @@ class SDLSurface : public Surface {
 
   void buildRegionTable(const Size& size);
 
-  virtual void Dump() override;
-
   void allocate(const Size& size);
   void deallocate();
-
-  operator SDL_Surface*() { return surface_; }
 
   SDL_Surface* rawSurface() { return surface_; }
 

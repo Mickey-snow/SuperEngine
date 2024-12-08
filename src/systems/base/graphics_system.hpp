@@ -331,9 +331,6 @@ class GraphicsSystem : public EventListener {
   virtual void EndFrame() = 0;
   virtual std::shared_ptr<Surface> EndFrameToSurface() = 0;
 
-  // Performs a full redraw of the screen.
-  void Refresh();
-
   // Draws the screen (as if refresh() was called), but draw to the returned
   // surface instead of the screen.
   std::shared_ptr<Surface> RenderToSurface();

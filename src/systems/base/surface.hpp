@@ -76,8 +76,6 @@ class Surface : public std::enable_shared_from_this<Surface> {
   virtual Size GetSize() const = 0;
   Rect GetRect() const;
 
-  virtual void Dump();
-
   // Blits to another surface
   virtual void BlitToSurface(Surface& dest_surface,
                              const Rect& src,

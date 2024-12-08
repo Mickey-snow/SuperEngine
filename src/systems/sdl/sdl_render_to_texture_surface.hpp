@@ -43,8 +43,6 @@ class SDLRenderToTextureSurface : public Surface, public NotificationObserver {
   SDLRenderToTextureSurface(SDLGraphicsSystem* system, const Size& size);
   virtual ~SDLRenderToTextureSurface();
 
-  virtual void Dump() override;
-
   // Blits to another surface
   virtual void BlitToSurface(Surface& surface,
                              const Rect& src,

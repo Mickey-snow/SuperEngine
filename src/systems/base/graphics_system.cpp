@@ -448,12 +448,6 @@ const ObjectSettings& GraphicsSystem::GetObjectSettings(const int obj_num) {
 
 // -----------------------------------------------------------------------
 
-void GraphicsSystem::Refresh() {
-  BeginFrame();
-  DrawFrame();
-  EndFrame();
-}
-
 std::shared_ptr<Surface> GraphicsSystem::RenderToSurface() {
   BeginFrame();
   DrawFrame();

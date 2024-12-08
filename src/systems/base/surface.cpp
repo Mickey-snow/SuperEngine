@@ -43,12 +43,6 @@ Rect Surface::GetRect() const { return Rect(Point(0, 0), GetSize()); }
 
 // -----------------------------------------------------------------------
 
-void Surface::Dump() {
-  throw rlvm::Exception("Unimplemented function Surface::Dump()");
-}
-
-// -----------------------------------------------------------------------
-
 int Surface::GetNumPatterns() const { return 1; }
 
 // -----------------------------------------------------------------------

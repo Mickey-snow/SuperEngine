@@ -51,10 +51,6 @@ SDLRenderToTextureSurface::SDLRenderToTextureSurface(SDLGraphicsSystem* system,
 
 SDLRenderToTextureSurface::~SDLRenderToTextureSurface() {}
 
-void SDLRenderToTextureSurface::Dump() {
-  std::cerr << "Attempting to dump a remembered texture." << std::endl;
-}
-
 void SDLRenderToTextureSurface::BlitToSurface(Surface& dest_surface,
                                               const Rect& src,
                                               const Rect& dst,
