@@ -320,7 +320,6 @@ class GraphicsSystem : public EventListener {
   virtual void ForceRefresh();
 
   bool screen_needs_refresh() const { return screen_needs_refresh_; }
-  void OnScreenRefreshed();
 
   // We keep a separate state about whether object state has been modified. We
   // do this so that background object mutation in automatic mode plays nicely
@@ -468,7 +467,6 @@ class GraphicsSystem : public EventListener {
 
   void DrawFrame();
 
- private:
   // Gets a platform appropriate surface loaded.
   virtual std::shared_ptr<const Surface> LoadSurfaceFromFile(
       const std::string& short_filename) = 0;

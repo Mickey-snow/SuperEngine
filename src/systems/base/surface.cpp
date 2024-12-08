@@ -66,3 +66,15 @@ std::shared_ptr<Surface> Surface::ClipAsColorMask(const Rect& clip_rect,
                                                   int b) const {
   throw rlvm::Exception("Unimplemented function Surface::ClipAsColorMask()");
 }
+
+// -----------------------------------------------------------------------
+
+void Surface::MarkDirty(Rect dirty_rect) const {
+  for (const auto& it : observers_)
+    std::invoke(it, dirty_rect);
+}
+// -----------------------------------------------------------------------
+
+void Surface::RegisterObserver(std::function<void(Rect)> callback) {
+  observers_.emplace_back(std::move(callback));
+}

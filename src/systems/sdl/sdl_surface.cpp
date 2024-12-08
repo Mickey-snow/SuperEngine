@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -251,53 +248,32 @@ void SDLSurface::TextureRecord::forceUnload() { texture.reset(); }
 // SDLSurface
 // -----------------------------------------------------------------------
 
-SDLSurface::SDLSurface(SDLGraphicsSystem* system)
-    : surface_(NULL),
-      texture_is_valid_(false),
-      is_dc0_(false),
-      graphics_system_(system),
-      is_mask_(false) {
-  registerForNotification(system);
-}
+SDLSurface::SDLSurface()
+    : surface_(NULL), texture_is_valid_(false), is_mask_(false) {}
 
 // -----------------------------------------------------------------------
 
-SDLSurface::SDLSurface(SDLGraphicsSystem* system, SDL_Surface* surf)
-    : surface_(surf),
-      texture_is_valid_(false),
-      is_dc0_(false),
-      graphics_system_(system),
-      is_mask_(false) {
+SDLSurface::SDLSurface(SDL_Surface* surf)
+    : surface_(surf), texture_is_valid_(false), is_mask_(false) {
   buildRegionTable(Size(surf->w, surf->h));
-  registerForNotification(system);
 }
 
 // -----------------------------------------------------------------------
 
 // Surface that takes ownership of an externally created surface.
-SDLSurface::SDLSurface(SDLGraphicsSystem* system,
-                       SDL_Surface* surf,
+SDLSurface::SDLSurface(SDL_Surface* surf,
                        const std::vector<GrpRect>& region_table)
     : surface_(surf),
       region_table_(region_table),
       texture_is_valid_(false),
-      is_dc0_(false),
-      graphics_system_(system),
-      is_mask_(false) {
-  registerForNotification(system);
-}
+      is_mask_(false) {}
 
 // -----------------------------------------------------------------------
 
-SDLSurface::SDLSurface(SDLGraphicsSystem* system, const Size& size)
-    : surface_(NULL),
-      texture_is_valid_(false),
-      is_dc0_(false),
-      graphics_system_(system),
-      is_mask_(false) {
+SDLSurface::SDLSurface(const Size& size)
+    : surface_(NULL), texture_is_valid_(false), is_mask_(false) {
   allocate(size);
   buildRegionTable(size);
-  registerForNotification(system);
 }
 
 // -----------------------------------------------------------------------
@@ -305,13 +281,6 @@ SDLSurface::SDLSurface(SDLGraphicsSystem* system, const Size& size)
 void SDLSurface::EnsureUploaded() const {
   // TODO(erg): Style fix this entire file and make this implementation:
   uploadTextureIfNeeded();
-}
-
-// -----------------------------------------------------------------------
-
-void SDLSurface::registerForNotification(GraphicsSystem* system) {
-  registrar_.Add(this, NotificationType::FULLSCREEN_STATE_CHANGED,
-                 Source<GraphicsSystem>(system));
 }
 
 // -----------------------------------------------------------------------
@@ -355,13 +324,6 @@ void SDLSurface::allocate(const Size& size) {
   surface_ = buildNewSurface(size);
 
   Fill(RGBAColour::Black());
-}
-
-// -----------------------------------------------------------------------
-
-void SDLSurface::allocate(const Size& size, bool is_dc0) {
-  is_dc0_ = is_dc0;
-  allocate(size);
 }
 
 // -----------------------------------------------------------------------
@@ -694,7 +656,7 @@ Surface* SDLSurface::Clone() const {
   if (SDL_BlitSurface(surface_, NULL, tmp_surface, NULL))
     reportSDLError("SDL_BlitSurface", "SDLSurface::clone()");
 
-  return new SDLSurface(graphics_system_, tmp_surface, region_table_);
+  return new SDLSurface(tmp_surface, region_table_);
 }
 
 // -----------------------------------------------------------------------
@@ -805,34 +767,15 @@ std::shared_ptr<Surface> SDLSurface::ClipAsColorMask(const Rect& clip_rect,
 
   SDL_FreeSurface(tmp_surface);
 
-  return std::shared_ptr<Surface>(new SDLSurface(graphics_system_, surface));
+  return std::make_shared<SDLSurface>(surface);
 }
 
 // -----------------------------------------------------------------------
 
 void SDLSurface::markWrittenTo(const Rect& written_rect) {
-  // If we are marked as dc0, alert the SDLGraphicsSystem.
-  if (is_dc0_ && graphics_system_) {
-    graphics_system_->MarkScreenAsDirty(GUT_DRAW_DC0);
-  }
+  Surface::MarkDirty(written_rect);
 
   // Mark that the texture needs reuploading
   dirty_rectangle_ = dirty_rectangle_.Union(written_rect);
-  texture_is_valid_ = false;
-}
-
-void SDLSurface::Observe(NotificationType type,
-                         const NotificationSource& source,
-                         const NotificationDetails& details) {
-  if (surface_) {
-    // Force unloading of all OpenGL resources
-    for (std::vector<TextureRecord>::iterator it = textures_.begin();
-         it != textures_.end(); ++it) {
-      it->forceUnload();
-    }
-
-    dirty_rectangle_ = GetRect();
-  }
-
   texture_is_valid_ = false;
 }

@@ -212,9 +212,9 @@ SDLGraphicsSystem::SDLGraphicsSystem(System& system, Gameexe& gameexe)
       screen_contents_texture_valid_(false),
       screen_tex_width_(0),
       screen_tex_height_(0) {
-  haikei_.reset(new SDLSurface(this));
+  haikei_ = std::make_shared<SDLSurface>();
   for (int i = 0; i < 16; ++i)
-    display_contexts_[i].reset(new SDLSurface(this));
+    display_contexts_[i] = std::make_shared<SDLSurface>();
 
   SetScreenSize(GetScreenSize(gameexe));
   Texture::SetScreenSize(screen_size());
@@ -228,7 +228,9 @@ SDLGraphicsSystem::SDLGraphicsSystem(System& system, Gameexe& gameexe)
 
   // Now we allocate the first two display contexts with equal size to
   // the display
-  display_contexts_[0]->allocate(screen_size(), true);
+  display_contexts_[0]->allocate(screen_size());
+  display_contexts_[0]->RegisterObserver(
+      [this](Rect dirty_rect) { this->MarkScreenAsDirty(GUT_DRAW_DC0); });
   display_contexts_[1]->allocate(screen_size());
 
   SetWindowTitle(caption_title_);
@@ -348,7 +350,8 @@ void SDLGraphicsSystem::ExecuteGraphicsSystem(RLMachine& machine) {
   // here.
   if (is_responsible_for_update() && screen_needs_refresh()) {
     Refresh();
-    OnScreenRefreshed();
+    screen_needs_refresh_ = false;
+    object_state_dirty_ = false;
     redraw_last_frame_ = false;
   } else if (is_responsible_for_update() && redraw_last_frame_) {
     RedrawLastFrame();
@@ -436,7 +439,7 @@ void SDLGraphicsSystem::SetMinimumSizeForDC(int dc, Size size) {
       // Make a new surface of the maximum size.
       Size maxSize = current.SizeUnion(size);
 
-      std::shared_ptr<SDLSurface> newdc(new SDLSurface(this));
+      std::shared_ptr<SDLSurface> newdc = std::make_shared<SDLSurface>();
       newdc->allocate(maxSize);
 
       display_contexts_[dc]->BlitToSurface(*newdc,
@@ -520,7 +523,7 @@ std::shared_ptr<SDLSurface> GetSDLSurface(std::shared_ptr<Surface> surface) {
 }
 
 std::shared_ptr<SDLSurface> SDLGraphicsSystem::CreateSurface(Size size) {
-  return std::make_shared<SDLSurface>(this, size);
+  return std::make_shared<SDLSurface>(size);
 }
 std::shared_ptr<Surface> SDLGraphicsSystem::BuildSurface(const Size& size) {
   return CreateSurface(size);
@@ -528,7 +531,7 @@ std::shared_ptr<Surface> SDLGraphicsSystem::BuildSurface(const Size& size) {
 
 std::shared_ptr<Surface> SDLGraphicsSystem::CreateSurface(
     SDL_Surface* surface) {
-  return std::make_shared<SDLSurface>(this, surface);
+  return std::make_shared<SDLSurface>(surface);
 }
 
 std::shared_ptr<const Surface> SDLGraphicsSystem::LoadSurfaceFromFile(
@@ -579,7 +582,7 @@ std::shared_ptr<const Surface> SDLGraphicsSystem::LoadSurfaceFromFile(
   }
 
   std::shared_ptr<Surface> surface_to_ret =
-      std::make_shared<SDLSurface>(this, s, region_table);
+      std::make_shared<SDLSurface>(s, region_table);
 
   // handle tone curve effect loading
   if (short_filename.find("?") != short_filename.npos) {
@@ -604,7 +607,9 @@ std::shared_ptr<const Surface> SDLGraphicsSystem::LoadSurfaceFromFile(
 
 std::shared_ptr<Surface> SDLGraphicsSystem::GetHaikei() {
   if (haikei_->rawSurface() == NULL) {
-    haikei_->allocate(screen_size(), true);
+    haikei_->allocate(screen_size());
+    haikei_->RegisterObserver(
+        [this](Rect dirty_rect) { this->MarkScreenAsDirty(GUT_DRAW_DC0); });
   }
 
   return haikei_;

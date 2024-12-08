@@ -46,26 +46,22 @@ class GraphicsObject;
 // Some SDLSurfaces will own their underlying SDL_Surface, for
 // example, anything returned from GetSurfaceNamedAndMarkViewed(), while others
 // don't own their surfaces (SDLSurfaces returned by GetDC()
-class SDLSurface : public Surface, public NotificationObserver {
+class SDLSurface : public Surface {
  public:
-  SDLSurface(SDLGraphicsSystem* system = nullptr);
+  SDLSurface();
 
   // Surface that takes ownership of an externally created surface
   // and assumes it is only a single region.
-  SDLSurface(SDLGraphicsSystem* system, SDL_Surface* sruf);
+  SDLSurface(SDL_Surface* sruf);
 
   // Surface that takes ownership of an externally created surface.
-  SDLSurface(SDLGraphicsSystem* system,
-             SDL_Surface* surf,
-             const std::vector<GrpRect>& region_table);
+  SDLSurface(SDL_Surface* surf, const std::vector<GrpRect>& region_table);
 
   // Surface created with a specified width and height
-  SDLSurface(SDLGraphicsSystem* system, const Size& size);
+  SDLSurface(const Size& size);
   ~SDLSurface();
 
   virtual void EnsureUploaded() const override;
-
-  void registerForNotification(GraphicsSystem* system);
 
   // Whether we have an underlying allocated surface.
   bool allocated() { return surface_; }
@@ -77,7 +73,6 @@ class SDLSurface : public Surface, public NotificationObserver {
   virtual void Dump() override;
 
   void allocate(const Size& size);
-  void allocate(const Size& size, bool is_dc0);
   void deallocate();
 
   operator SDL_Surface*() { return surface_; }
@@ -154,11 +149,6 @@ class SDLSurface : public Surface, public NotificationObserver {
   // invalid and notifies SDLGraphicsSystem when appropriate.
   void markWrittenTo(const Rect& written_rect);
 
-  // NotificationObserver:
-  virtual void Observe(NotificationType type,
-                       const NotificationSource& source,
-                       const NotificationDetails& details) override;
-
  private:
   // Keeps track of a texture and the information about which region
   // of the current surface this Texture is. We keep track of this
@@ -216,15 +206,5 @@ class SDLSurface : public Surface, public NotificationObserver {
   // smallest possible area, but for simplicity, we only keep one dirty area.
   mutable Rect dirty_rectangle_;
 
-  // Whether this surface is DC0 and needs special treatment.
-  bool is_dc0_;
-
-  // A pointer to the graphics_system. We use this to make sure the
-  // GraphicsSystem has a weak_ptr to all SDLSurface instances so it can
-  // invalidate them all in the case of a screen change.
-  SDLGraphicsSystem* graphics_system_;
-
   bool is_mask_;
-
-  NotificationRegistrar registrar_;
 };

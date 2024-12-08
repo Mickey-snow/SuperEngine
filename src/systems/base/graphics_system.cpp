@@ -268,11 +268,6 @@ void GraphicsSystem::ForceRefresh() {
   }
 }
 
-void GraphicsSystem::OnScreenRefreshed() {
-  screen_needs_refresh_ = false;
-  object_state_dirty_ = false;
-}
-
 // -----------------------------------------------------------------------
 
 void GraphicsSystem::SetScreenUpdateMode(DCScreenUpdateMode u) {
