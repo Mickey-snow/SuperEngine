@@ -25,22 +25,30 @@
 #include "systems/sdl/sdl_surface.hpp"
 
 #include <SDL/SDL.h>
+
+#include "base/colour.hpp"
+#include "base/localrect.hpp"
+#include "pygame/alphablit.h"
+#include "systems/base/graphics_object.hpp"
+#include "systems/gl_frame_buffer.hpp"
+#include "systems/glrenderer.hpp"
+#include "systems/gltexture.hpp"
+#include "systems/sdl/sdl_graphics_system.hpp"
+#include "systems/sdl/sdl_utils.hpp"
+#include "systems/sdl/texture.hpp"
+#include "utilities/graphics.hpp"
+
+#include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtc/type_ptr.hpp"
+#include "glm/matrix.hpp"
+
 #include <algorithm>
 #include <cstring>
 #include <iostream>
 #include <sstream>
 #include <vector>
 
-#include "base/colour.hpp"
-#include "base/rect.hpp"
-#include "pygame/alphablit.h"
-#include "systems/base/graphics_object.hpp"
-#include "systems/base/system_error.hpp"
-#include "systems/gltexture.hpp"
-#include "systems/sdl/sdl_graphics_system.hpp"
-#include "systems/sdl/sdl_utils.hpp"
-#include "systems/sdl/texture.hpp"
-#include "utilities/graphics.hpp"
+std::shared_ptr<glFrameBuffer> screen_buffer = nullptr;
 
 namespace {
 
@@ -191,7 +199,7 @@ SDL_Surface* buildNewSurface(const Size& size) {
     std::ostringstream ss;
     ss << "Couldn't allocate surface in build_new_surface"
        << ": " << SDL_GetError();
-    throw SystemError(ss.str());
+    throw std::runtime_error(ss.str());
   }
 
   return tmp;
@@ -458,7 +466,7 @@ static void determineProperties(SDL_Surface* surface,
       std::ostringstream oss;
       oss << "Error loading texture: bytes_per_pixel == "
           << int(bytes_per_pixel) << " and we only handle 3 or 4.";
-      throw SystemError(oss.str());
+      throw std::runtime_error(oss.str());
     }
   }
   SDL_UnlockSurface(surface);
@@ -512,15 +520,39 @@ void SDLSurface::uploadTextureIfNeeded() const {
 }
 
 // -----------------------------------------------------------------------
+struct ScreenCanvas : public glFrameBuffer {
+ public:
+  ScreenCanvas(Size size) : size_(size) {}
 
-void SDLSurface::RenderToScreen(const Rect& src,
-                                const Rect& dst,
+  virtual unsigned int GetID() const override { return 0; }
+  virtual Size GetSize() const override { return size_; }
+
+  Size size_;
+};
+
+Size SDLSurface::screen_size_ = Size();
+// -----------------------------------------------------------------------
+
+void SDLSurface::RenderToScreen(const Rect& src_rect,
+                                const Rect& dst_rect,
                                 int alpha) const {
+  int op[] = {alpha, alpha, alpha, alpha};
+  this->RenderToScreen(src_rect, dst_rect, op);
+  return;
+
   uploadTextureIfNeeded();
 
-  for (std::vector<TextureRecord>::iterator it = textures_.begin();
-       it != textures_.end(); ++it) {
-    it->texture->RenderToScreen(src, dst, alpha);
+  // for (std::vector<TextureRecord>::iterator it = textures_.begin();
+  //      it != textures_.end(); ++it) {
+  //   it->texture->RenderToScreen(src_rect, dst_rect, alpha);
+  // }
+
+  auto canvas = std::make_shared<ScreenCanvas>(screen_size_);
+  for (const auto& it : textures_) {
+    auto src = src_rect, dst = dst_rect;
+    LocalRect coordinate_system(it.x_, it.y_, it.w_, it.h_);
+    if (coordinate_system.intersectAndTransform(src, dst))
+      glRenderer().Render({it.gltexture, src}, {canvas, dst});
   }
 }
 
@@ -530,24 +562,49 @@ void SDLSurface::RenderToScreenAsColorMask(const Rect& src,
                                            const Rect& dst,
                                            const RGBAColour& rgba,
                                            int filter) const {
+  if (filter != 0) {
+    // TODO
+  }
+
   uploadTextureIfNeeded();
 
-  for (std::vector<TextureRecord>::iterator it = textures_.begin();
-       it != textures_.end(); ++it) {
-    it->texture->RenderToScreenAsColorMask(src, dst, rgba, filter);
+  // for (std::vector<TextureRecord>::iterator it = textures_.begin();
+  //      it != textures_.end(); ++it) {
+  //   it->texture->RenderToScreenAsColorMask(src, dst, rgba, filter);
+  // }
+  auto canvas = std::make_shared<ScreenCanvas>(screen_size_);
+  for (const auto& it : textures_) {
+    auto src_rect = src, dst_rect = dst;
+    LocalRect coordinate_system(it.x_, it.y_, it.w_, it.h_);
+    if (coordinate_system.intersectAndTransform(src_rect, dst_rect)) {
+      glRenderer().RenderColormask({it.gltexture, src_rect}, {canvas, dst_rect},
+                                   rgba);
+    }
   }
 }
 
 // -----------------------------------------------------------------------
 
-void SDLSurface::RenderToScreen(const Rect& src,
-                                const Rect& dst,
+void SDLSurface::RenderToScreen(const Rect& src_rect,
+                                const Rect& dst_rect,
                                 const int opacity[4]) const {
   uploadTextureIfNeeded();
 
-  for (std::vector<TextureRecord>::iterator it = textures_.begin();
-       it != textures_.end(); ++it) {
-    it->texture->RenderToScreen(src, dst, opacity);
+  // for (std::vector<TextureRecord>::iterator it = textures_.begin();
+  //      it != textures_.end(); ++it) {
+  //   it->texture->RenderToScreen(src, dst, opacity);
+  // }
+  auto canvas = std::make_shared<ScreenCanvas>(screen_size_);
+  for (const auto& it : textures_) {
+    auto src = src_rect, dst = dst_rect;
+    LocalRect coordinate_system(it.x_, it.y_, it.w_, it.h_);
+    if (coordinate_system.intersectAndTransform(src, dst)) {
+      RenderingConfig config;
+      config.vertex_alpha =
+          std::array<float, 4>{opacity[0] / 255.0f, opacity[1] / 255.0f,
+                               opacity[2] / 255.0f, opacity[3] / 255.0f};
+      glRenderer().Render({it.gltexture, src}, config, {canvas, dst});
+    }
   }
 }
 
@@ -559,9 +616,41 @@ void SDLSurface::RenderToScreenAsObject(const GraphicsObject& rp,
                                         int alpha) const {
   uploadTextureIfNeeded();
 
-  for (std::vector<TextureRecord>::iterator it = textures_.begin();
-       it != textures_.end(); ++it) {
-    it->texture->RenderToScreenAsObject(rp, *this, src, dst, alpha);
+  // for (std::vector<TextureRecord>::iterator it = textures_.begin();
+  //      it != textures_.end(); ++it) {
+  //   it->texture->RenderToScreenAsObject(rp, *this, src, dst, alpha);
+  // }
+
+  auto canvas = std::make_shared<ScreenCanvas>(screen_size_);
+  for (const auto& it : textures_) {
+    auto src_rect = src, dst_rect = dst;
+    LocalRect coordinate_system(it.x_, it.y_, it.w_, it.h_);
+    if (!coordinate_system.intersectAndTransform(src_rect, dst_rect))
+      continue;
+
+    RenderingConfig config;
+    config.alpha = alpha;
+
+    auto model =
+        glm::translate(glm::mat4(1.0f), glm::vec3(dst.x(), dst.y(), 0));
+    auto& param = rp.Param();
+    float x_rep = dst.width() / 2.0f + param.rep_origin_x();
+    float y_rep = dst.height() / 2.0f + param.rep_origin_y();
+    model = glm::translate(model, glm::vec3(x_rep, y_rep, 0.0f));
+    model = glm::rotate(model, glm::radians(param.rotation() / 10.0f),
+                        glm::vec3(0.0f, 0.0f, 1.0f));
+    model = glm::translate(model, glm::vec3(-x_rep, -y_rep, 0.0f));
+    config.model = model;
+    // TODO: composite mode
+
+    config.colour = param.colour();
+    config.tint = param.tint();
+    config.mono = param.mono();
+    config.invert = param.invert();
+    config.light = param.light();
+
+    glRenderer().Render({it.gltexture, src_rect}, std::move(config),
+                        {canvas, dst_rect});
   }
 }
 
@@ -728,6 +817,7 @@ RGBAColour SDLSurface::GetPixel(Point pos) const {
   return RGBAColour(colour.r, colour.g, colour.b, colour.unused);
 }
 
+// Note: the dumped pixels are upside down
 std::vector<char> SDLSurface::Dump(Rect region) const {
   SDL_Surface* surface = this->surface();
   auto x = region.x(), y = region.y();
@@ -742,13 +832,13 @@ std::vector<char> SDLSurface::Dump(Rect region) const {
     }
   }
   char* src = static_cast<char*>(surface->pixels);
-  src += surface->pitch * y;
+  src += surface->pitch * (y + h);
   int col_offset = surface->format->BytesPerPixel * x;
   int col_size = surface->format->BytesPerPixel * w;
   for (int row = 0; row < h; ++row) {
     std::memcpy(dst, src + col_offset, col_size);
     dst += col_size;
-    src += surface->pitch;
+    src -= surface->pitch;
   }
   if (SDL_MUSTLOCK(surface)) {
     SDL_UnlockSurface(surface);

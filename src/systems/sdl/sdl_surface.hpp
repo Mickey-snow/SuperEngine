@@ -32,6 +32,9 @@
 #include "base/tone_curve.hpp"
 #include "systems/base/surface.hpp"
 
+class glFrameBuffer;
+extern std::shared_ptr<glFrameBuffer> screen_buffer;
+
 struct SDL_Surface;
 class Texture;
 class GraphicsSystem;
@@ -65,8 +68,6 @@ class SDLSurface : public Surface {
 
   void allocate(const Size& size);
   void deallocate();
-
-  SDL_Surface* rawSurface() { return surface_; }
 
   virtual void BlitToSurface(Surface& dest_surface,
                              const Rect& src,
@@ -117,6 +118,7 @@ class SDLSurface : public Surface {
   virtual void ApplyColour(const RGBColour& colour, const Rect& area) override;
 
   SDL_Surface* surface() const { return surface_; }
+  SDL_Surface* rawSurface() { return surface_; }
 
   virtual void GetDCPixel(const Point& pos,
                           int& r,
@@ -133,8 +135,6 @@ class SDLSurface : public Surface {
                                                    int b) const override;
 
   virtual Surface* Clone() const override;
-
-  void interpretAsColorMask(int r, int g, int b, int alpha);
 
   // Called after each change to surface_. Marks the texture as
   // invalid and notifies SDLGraphicsSystem when appropriate.
@@ -199,4 +199,7 @@ class SDLSurface : public Surface {
   mutable Rect dirty_rectangle_;
 
   bool is_mask_;
+
+public:
+  static Size screen_size_;
 };

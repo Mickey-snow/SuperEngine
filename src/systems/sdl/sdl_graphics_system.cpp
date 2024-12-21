@@ -218,6 +218,10 @@ SDLGraphicsSystem::SDLGraphicsSystem(System& system, Gameexe& gameexe)
 
   SetScreenSize(GetScreenSize(gameexe));
   Texture::SetScreenSize(screen_size());
+  SDLSurface::screen_size_ = screen_size();
+
+  // screen_buffer = std::make_shared<glFrameBuffer>(
+  //     std::make_shared<glTexture>(screen_size()));
 
   // Grab the caption
   std::string cp932caption = gameexe("CAPTION").ToString();

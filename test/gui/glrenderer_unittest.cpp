@@ -129,16 +129,6 @@ TEST_F(glRendererTest, DISABLED_SubtractiveColorMask) {
   EXPECT_EQ(result[3], RGBAColour(17, 34, 52, 91));
 }
 
-struct ScreenCanvas : public glFrameBuffer {
- public:
-  ScreenCanvas(Size size) : size_(size) {}
-
-  virtual unsigned int GetID() const override { return 0; }
-  virtual Size GetSize() const override { return size_; }
-
-  Size size_;
-};
-
 TEST_F(glRendererTest, DISABLED_DrawColor) {
   auto texture_size = Size(12, 12);
   auto tex = CreateTestTexture(
