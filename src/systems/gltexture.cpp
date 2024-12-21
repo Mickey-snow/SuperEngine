@@ -52,11 +52,19 @@ unsigned int glTexture::GetID() const { return id_; }
 
 Size glTexture::GetSize() const { return size_; }
 
-void glTexture::Write(Rect region, uint8_t* data) {
+void glTexture::Write(Rect region,
+                      uint32_t format,
+                      uint32_t type,
+                      const void* data) {
   glBindTexture(GL_TEXTURE_2D, id_);
   glTexSubImage2D(GL_TEXTURE_2D, 0, region.x(), region.y(), region.width(),
-                  region.height(), GL_RGBA, GL_UNSIGNED_BYTE, data);
+                  region.height(), format, type, data);
   glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void glTexture::Write(Rect region, std::vector<uint8_t> data) {
+  data = Flip_y(region.size(), data.cbegin());
+  Write(Flip_y(region), GL_RGBA, GL_UNSIGNED_BYTE, data.data());
 }
 
 std::vector<RGBAColour> glTexture::Dump(std::optional<Rect> in_region) {

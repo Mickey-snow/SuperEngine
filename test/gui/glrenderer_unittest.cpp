@@ -93,7 +93,7 @@ class glRendererTest : public ::testing::Test {
 
         Rect cell_rect(Point(col * cell_width, row * cell_height),
                        Size(cell_width, cell_height));
-        texture->Write(cell_rect, std::span<const uint8_t>(cell_data));
+        texture->Write(cell_rect, std::move(cell_data));
       }
     }
 

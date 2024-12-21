@@ -37,6 +37,7 @@ class Texture;
 class GraphicsSystem;
 class SDLGraphicsSystem;
 class GraphicsObject;
+class glTexture;
 
 // Wrapper around an OpenGL texture; meant to be passed out of the
 // graphics system.
@@ -115,7 +116,7 @@ class SDLSurface : public Surface {
   virtual void Mono(const Rect& area) override;
   virtual void ApplyColour(const RGBColour& colour, const Rect& area) override;
 
-  SDL_Surface* surface() { return surface_; }
+  SDL_Surface* surface() const { return surface_; }
 
   virtual void GetDCPixel(const Point& pos,
                           int& r,
@@ -123,6 +124,8 @@ class SDLSurface : public Surface {
                           int& b) const override;
 
   virtual RGBAColour GetPixel(Point pos) const;
+
+  std::vector<char> Dump(Rect region) const;
 
   virtual std::shared_ptr<Surface> ClipAsColorMask(const Rect& clip_rect,
                                                    int r,
@@ -144,7 +147,7 @@ class SDLSurface : public Surface {
   // without allocating a new OpenGL texture. glGenTexture()/
   // glTexImage2D() is SLOW and should never be done in a loop.)
   struct TextureRecord {
-    TextureRecord(SDL_Surface* surface,
+    TextureRecord(SDLSurface const* surface,
                   int x,
                   int y,
                   int w,
@@ -155,7 +158,7 @@ class SDLSurface : public Surface {
 
     // Reuploads this current piece of surface from the supplied
     // surface without allocating a new texture.
-    void reupload(SDL_Surface* surface, const Rect& dirty);
+    void reupload(SDLSurface const* surface, Rect dirty);
 
     // Clears |texture|. Called before a switch between windowed and
     // fullscreen mode, so that we aren't holding stale references.
@@ -163,6 +166,7 @@ class SDLSurface : public Surface {
 
     // The actual texture.
     std::shared_ptr<Texture> texture;
+    std::shared_ptr<glTexture> gltexture;
 
     int x_, y_, w_, h_;
     unsigned int bytes_per_pixel_;

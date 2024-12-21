@@ -26,16 +26,17 @@
 
 #include <SDL/SDL.h>
 #include <algorithm>
+#include <cstring>
 #include <iostream>
 #include <sstream>
 #include <vector>
 
 #include "base/colour.hpp"
-#include "base/notification/source.hpp"
-#include "object/objdrawer.hpp"
+#include "base/rect.hpp"
 #include "pygame/alphablit.h"
 #include "systems/base/graphics_object.hpp"
 #include "systems/base/system_error.hpp"
+#include "systems/gltexture.hpp"
 #include "systems/sdl/sdl_graphics_system.hpp"
 #include "systems/sdl/sdl_utils.hpp"
 #include "systems/sdl/texture.hpp"
@@ -199,7 +200,7 @@ SDL_Surface* buildNewSurface(const Size& size) {
 // -----------------------------------------------------------------------
 // SDLSurface::TextureRecord
 // -----------------------------------------------------------------------
-SDLSurface::TextureRecord::TextureRecord(SDL_Surface* surface,
+SDLSurface::TextureRecord::TextureRecord(SDLSurface const* me,
                                          int x,
                                          int y,
                                          int w,
@@ -207,42 +208,53 @@ SDLSurface::TextureRecord::TextureRecord(SDL_Surface* surface,
                                          unsigned int bytes_per_pixel,
                                          int byte_order,
                                          int byte_type)
-    : texture(new Texture(surface,
-                          x,
-                          y,
-                          w,
-                          h,
-                          bytes_per_pixel,
-                          byte_order,
-                          byte_type)),
-      x_(x),
+    : x_(x),
       y_(y),
       w_(w),
       h_(h),
       bytes_per_pixel_(bytes_per_pixel),
       byte_order_(byte_order),
-      byte_type_(byte_type) {}
+      byte_type_(byte_type) {
+  reupload(me, Rect::REC(x, y, w, h));
+}
 
 // -----------------------------------------------------------------------
 
-void SDLSurface::TextureRecord::reupload(SDL_Surface* surface,
-                                         const Rect& dirty) {
+void SDLSurface::TextureRecord::reupload(SDLSurface const* me, Rect dirty) {
   if (texture) {
-    Rect i = Rect::REC(x_, y_, w_, h_).Intersection(dirty);
-    if (!i.is_empty()) {
-      texture->reupload(surface, i.x() - x_, i.y() - y_, i.x(), i.y(),
-                        i.width(), i.height(), bytes_per_pixel_, byte_order_,
+    Rect intersect = Rect::REC(x_, y_, w_, h_).Intersection(dirty);
+    if (!intersect.is_empty()) {
+      texture->reupload(me->surface(), intersect.x() - x_, intersect.y() - y_,
+                        intersect.x(), intersect.y(), intersect.width(),
+                        intersect.height(), bytes_per_pixel_, byte_order_,
                         byte_type_);
     }
   } else {
-    texture.reset(new Texture(surface, x_, y_, w_, h_, bytes_per_pixel_,
-                              byte_order_, byte_type_));
+    texture =
+        std::make_shared<Texture>(me->surface(), x_, y_, w_, h_,
+                                  bytes_per_pixel_, byte_order_, byte_type_);
+  }
+
+  if (gltexture) {
+    Rect intersect = Rect::REC(x_, y_, w_, h_).Intersection(dirty);
+    auto data = me->Dump(intersect);
+    gltexture->Write(
+        Rect(Point(intersect.x() - x_, intersect.y() - y_), intersect.size()),
+        byte_order_, byte_type_, data.data());
+  } else {
+    auto data = me->Dump(Rect::REC(x_, y_, w_, h_));
+    gltexture = std::make_shared<glTexture>(Size(w_, h_));
+    gltexture->Write(Rect(Point(0, 0), Size(w_, h_)), byte_order_, byte_type_,
+                     data.data());
   }
 }
 
 // -----------------------------------------------------------------------
 
-void SDLSurface::TextureRecord::forceUnload() { texture.reset(); }
+void SDLSurface::TextureRecord::forceUnload() {
+  texture.reset();
+  gltexture.reset();
+}
 
 // -----------------------------------------------------------------------
 // SDLSurface
@@ -480,7 +492,7 @@ void SDLSurface::uploadTextureIfNeeded() const {
         int y_offset = 0;
         for (std::vector<int>::const_iterator jt = y_pieces.begin();
              jt != y_pieces.end(); ++jt) {
-          textures_.emplace_back(surface_, x_offset, y_offset, *it, *jt,
+          textures_.emplace_back(this, x_offset, y_offset, *it, *jt,
                                  bytes_per_pixel, byte_order, byte_type);
 
           y_offset += *jt;
@@ -490,10 +502,8 @@ void SDLSurface::uploadTextureIfNeeded() const {
       }
     } else {
       // Reupload the textures without reallocating them.
-      std::for_each(textures_.begin(), textures_.end(),
-                    [&](TextureRecord& record) {
-                      record.reupload(surface_, dirty_rectangle_);
-                    });
+      for (auto& it : textures_)
+        it.reupload(this, dirty_rectangle_);
     }
 
     dirty_rectangle_ = Rect();
@@ -716,6 +726,34 @@ RGBAColour SDLSurface::GetPixel(Point pos) const {
   SDL_GetRGBA(col, surface_->format, &colour.r, &colour.g, &colour.b,
               &colour.unused);
   return RGBAColour(colour.r, colour.g, colour.b, colour.unused);
+}
+
+std::vector<char> SDLSurface::Dump(Rect region) const {
+  SDL_Surface* surface = this->surface();
+  auto x = region.x(), y = region.y();
+  auto w = region.width(), h = region.height();
+
+  std::vector<char> buf(surface->format->BytesPerPixel * w * h);
+  char* dst = buf.data();
+  if (SDL_MUSTLOCK(surface)) {
+    if (SDL_LockSurface(surface) != 0) {
+      throw std::runtime_error("Failed to lock the SDL_Surface: " +
+                               std::string(SDL_GetError()));
+    }
+  }
+  char* src = static_cast<char*>(surface->pixels);
+  src += surface->pitch * y;
+  int col_offset = surface->format->BytesPerPixel * x;
+  int col_size = surface->format->BytesPerPixel * w;
+  for (int row = 0; row < h; ++row) {
+    std::memcpy(dst, src + col_offset, col_size);
+    dst += col_size;
+    src += surface->pitch;
+  }
+  if (SDL_MUSTLOCK(surface)) {
+    SDL_UnlockSurface(surface);
+  }
+  return buf;
 }
 
 // -----------------------------------------------------------------------

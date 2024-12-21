@@ -66,13 +66,10 @@ class glTexture {
 
  private:
   void Init(Size size, uint8_t* data);
-  void Write(Rect region, uint8_t* data);
 
  public:
-  void Write(Rect region, std::ranges::input_range auto&& range) {
-    auto data = Flip_y(region.size(), std::ranges::cbegin(range));
-    Write(Flip_y(region), data.data());
-  }
+  void Write(Rect region, uint32_t format, uint32_t type, const void* data);
+  void Write(Rect region, std::vector<uint8_t> data);
 
   std::vector<RGBAColour> Dump(std::optional<Rect> region = std::nullopt);
 
