@@ -158,6 +158,7 @@ class Rect {
   // Operators
   bool operator==(const Rect& rhs) const;
   bool operator!=(const Rect& rhs) const;
+  explicit operator std::string() const;
 
  private:
   Point origin_;
