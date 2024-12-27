@@ -538,22 +538,6 @@ void SDLSurface::RenderToScreen(const Rect& src_rect,
                                 int alpha) const {
   int op[] = {alpha, alpha, alpha, alpha};
   this->RenderToScreen(src_rect, dst_rect, op);
-  return;
-
-  uploadTextureIfNeeded();
-
-  // for (std::vector<TextureRecord>::iterator it = textures_.begin();
-  //      it != textures_.end(); ++it) {
-  //   it->texture->RenderToScreen(src_rect, dst_rect, alpha);
-  // }
-
-  auto canvas = std::make_shared<ScreenCanvas>(screen_size_);
-  for (const auto& it : textures_) {
-    auto src = src_rect, dst = dst_rect;
-    LocalRect coordinate_system(it.x_, it.y_, it.w_, it.h_);
-    if (coordinate_system.intersectAndTransform(src, dst))
-      glRenderer().Render({it.gltexture, src}, {canvas, dst});
-  }
 }
 
 // -----------------------------------------------------------------------

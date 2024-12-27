@@ -82,6 +82,18 @@ void glRenderer::RenderColormask(glRenderable src,
   float thisx2 = float(x2) / texture_size.width();
   float thisy2 = 1.0f - float(y2) / texture_size.height();
 
+  glTexture background(canvas_size);
+  glBindFramebuffer(GL_READ_FRAMEBUFFER, canvas->GetID());
+  glBindTexture(GL_TEXTURE_2D, background.GetID());
+  glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, canvas_size.width(),
+                      canvas_size.height());
+  ShowGLErrors();
+
+  float bgx1 = float(fdx1) / canvas_size.width();
+  float bgy1 = 1.0f - float(fdy1) / canvas_size.height();
+  float bgx2 = float(fdx2) / canvas_size.width();
+  float bgy2 = 1.0f - float(fdy2) / canvas_size.height();
+
   static glBuffer buf = []() {
     GLuint VAO, VBO, EBO;
     unsigned int indices[] = {0, 1, 2, 0, 2, 3};
@@ -109,13 +121,6 @@ void glRenderer::RenderColormask(glRenderable src,
     return glBuffer{VAO, VBO, EBO};
   }();
 
-  glTexture background(canvas_size);
-  glBindFramebuffer(GL_READ_FRAMEBUFFER, canvas->GetID());
-  glBindTexture(GL_TEXTURE_2D, background.GetID());
-  glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, canvas_size.width(),
-                      canvas_size.height());
-  ShowGLErrors();
-
   auto shader = _GetColorMaskShader();
   glUseProgram(shader->GetID());
   glBindFramebuffer(GL_FRAMEBUFFER, canvas->GetID());
@@ -131,10 +136,10 @@ void glRenderer::RenderColormask(glRenderable src,
 
   glBindVertexArray(buf.VAO);
   float vertices[] = {
-      dx1, dy1, thisx1, thisy1, thisx1, thisy1,  // NOLINT
-      dx2, dy1, thisx2, thisy1, thisx2, thisy1,  // NOLINT
-      dx2, dy2, thisx2, thisy2, thisx2, thisy2,  // NOLINT
-      dx1, dy2, thisx1, thisy2, thisx1, thisy2   // NOLINT
+      dx1, dy1, bgx1, bgy1, thisx1, thisy1,  // NOLINT
+      dx2, dy1, bgx2, bgy1, thisx2, thisy1,  // NOLINT
+      dx2, dy2, bgx2, bgy2, thisx2, thisy2,  // NOLINT
+      dx1, dy2, bgx1, bgy2, thisx1, thisy2   // NOLINT
   };
   glBindBuffer(GL_ARRAY_BUFFER, buf.VBO);
   glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
