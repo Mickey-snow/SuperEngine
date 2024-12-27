@@ -31,6 +31,8 @@
 
 #include <GL/glew.h>
 
+#include <format>
+
 struct glRenderer::glBuffer {
   GLuint VAO, VBO, EBO;
 };
@@ -210,6 +212,12 @@ void glRenderer::Render(glRenderable src,
   }();
 
   auto op = cfg.vertex_alpha.value_or(std::array<float, 4>{1.0, 1.0, 1.0, 1.0});
+  for (int i = 0; i < 4; ++i) {
+    if (op[i] < 0.0f || op[i] > 1.0f)
+      throw std::runtime_error("glRenderer: Invalid opacity " +
+                               std::format("op[{}]={}", i, op[i]));
+  }
+
   float vertices[] = {
       dx1, dy1, thisx1, thisy1, op[0],  // NOLINT
       dx2, dy1, thisx2, thisy1, op[1],  // NOLINT
@@ -262,6 +270,9 @@ void glRenderer::Render(glRenderable src,
   shader->SetUniform("invert", invert);
 
   auto alpha = cfg.alpha.value_or(1.0f);
+  if (alpha < 0.0f || alpha > 1.0f)
+    throw std::runtime_error("glRenderer: Invalid value for alpha (" +
+                             std::to_string(alpha) + ')');
   shader->SetUniform("alpha", alpha);
 
   auto tint = cfg.tint.value_or(RGBColour(0, 0, 0));
