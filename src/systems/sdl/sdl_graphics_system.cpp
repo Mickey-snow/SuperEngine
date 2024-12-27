@@ -60,6 +60,7 @@
 #include "systems/base/system.hpp"
 #include "systems/base/system_error.hpp"
 #include "systems/base/text_system.hpp"
+#include "systems/glrenderer.hpp"
 #include "systems/sdl/sdl_colour_filter.hpp"
 #include "systems/sdl/sdl_event_system.hpp"
 #include "systems/sdl/sdl_render_to_texture_surface.hpp"
@@ -72,6 +73,7 @@
 #include "utilities/lazy_array.hpp"
 #include "utilities/mapped_file.hpp"
 #include "utilities/string_utilities.hpp"
+#include "systems/screen_canvas.hpp"
 
 // -----------------------------------------------------------------------
 // Private Interface
@@ -84,13 +86,10 @@ void SDLGraphicsSystem::SetCursor(int cursor) {
 }
 
 void SDLGraphicsSystem::BeginFrame() {
-  glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  DebugShowGLErrors();
-
-  glDisable(GL_DEPTH_TEST);
-  glDisable(GL_CULL_FACE);
-  glDisable(GL_LIGHTING);
+  glRenderer renderer;
+  renderer.SetUp();
+  renderer.ClearBuffer(std::make_shared<ScreenCanvas>(screen_size()),
+                       RGBAColour(0,0,0,255));
   DebugShowGLErrors();
 
   glMatrixMode(GL_PROJECTION);

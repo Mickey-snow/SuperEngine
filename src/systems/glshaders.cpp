@@ -24,8 +24,8 @@
 
 #include "systems/glshaders.hpp"
 
-#include "systems/sdl/shaders.hpp"
 #include "systems/sdl/sdl_utils.hpp"
+#include "systems/sdl/shaders.hpp"
 
 #include <GL/glew.h>
 
@@ -95,6 +95,7 @@ in float Opacity;
 
 uniform sampler2D texture0;
 uniform vec4 color;
+uniform vec4 mask_color;
 uniform float mono;
 uniform float invert;
 uniform float light;
@@ -118,6 +119,7 @@ void main() {
 
   // Blend with the input color
   vec3 colored = mix(pixel.rgb, color.rgb, color.a);
+  colored = clamp(colored + mask_color.rgb*mask_color.a, 0.0, 1.0);
   pixel = vec4(colored, pixel.a);
 
   // Apply grayscale effect
@@ -153,7 +155,6 @@ void main() {
 }
 )glsl";
 
-  static auto shader =
-      std::make_shared<glslProgram>(vertex_src, fragment_src);
+  static auto shader = std::make_shared<glslProgram>(vertex_src, fragment_src);
   return shader;
 }

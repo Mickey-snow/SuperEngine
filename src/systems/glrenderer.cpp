@@ -43,6 +43,8 @@ void glRenderer::SetUp() {
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
   glShadeModel(GL_SMOOTH);
   glDisable(GL_DEPTH_TEST);
+  glDisable(GL_CULL_FACE);
+  glDisable(GL_LIGHTING);
   glEnable(GL_BLEND);
   glDepthFunc(GL_LEQUAL);
   glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
@@ -227,9 +229,13 @@ void glRenderer::Render(glRenderable src,
   glBindTexture(GL_TEXTURE_2D, src.texture_->GetID());
   shader->SetUniform("texture0", 0);
 
-  auto color = cfg.colour.value_or(RGBAColour(0, 0, 0, 0));
+  auto color = cfg.color.value_or(RGBAColour(0, 0, 0, 0));
   shader->SetUniform("color", color.r_float(), color.g_float(), color.b_float(),
                      color.a_float());
+
+  auto mask_color = cfg.mask_color.value_or(RGBAColour(0, 0, 0, 0));
+  shader->SetUniform("mask_color", mask_color.r_float(), mask_color.g_float(),
+                     mask_color.b_float(), mask_color.a_float());
 
   switch (cfg.blend_type.value_or(0)) {
     case 0:

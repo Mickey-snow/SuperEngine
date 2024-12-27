@@ -45,7 +45,8 @@ struct glDestination {
 
 struct RenderingConfig {
   std::optional<glm::mat4> model;
-  std::optional<RGBAColour> colour;
+  std::optional<RGBAColour> color;
+  std::optional<RGBAColour> mask_color;
   std::optional<float> mono;
   std::optional<float> invert;
   std::optional<float> light;

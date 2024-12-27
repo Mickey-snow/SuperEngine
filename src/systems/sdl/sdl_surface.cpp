@@ -33,6 +33,7 @@
 #include "systems/gl_frame_buffer.hpp"
 #include "systems/glrenderer.hpp"
 #include "systems/gltexture.hpp"
+#include "systems/screen_canvas.hpp"
 #include "systems/sdl/sdl_graphics_system.hpp"
 #include "systems/sdl/sdl_utils.hpp"
 #include "systems/sdl/texture.hpp"
@@ -519,17 +520,6 @@ void SDLSurface::uploadTextureIfNeeded() const {
   }
 }
 
-// -----------------------------------------------------------------------
-struct ScreenCanvas : public glFrameBuffer {
- public:
-  ScreenCanvas(Size size) : size_(size) {}
-
-  virtual unsigned int GetID() const override { return 0; }
-  virtual Size GetSize() const override { return size_; }
-
-  Size size_;
-};
-
 Size SDLSurface::screen_size_ = Size();
 // -----------------------------------------------------------------------
 
@@ -546,10 +536,6 @@ void SDLSurface::RenderToScreenAsColorMask(const Rect& src,
                                            const Rect& dst,
                                            const RGBAColour& rgba,
                                            int filter) const {
-  if (filter != 0) {
-    // TODO
-  }
-
   uploadTextureIfNeeded();
 
   // for (std::vector<TextureRecord>::iterator it = textures_.begin();
@@ -560,9 +546,16 @@ void SDLSurface::RenderToScreenAsColorMask(const Rect& src,
   for (const auto& it : textures_) {
     auto src_rect = src, dst_rect = dst;
     LocalRect coordinate_system(it.x_, it.y_, it.w_, it.h_);
-    if (coordinate_system.intersectAndTransform(src_rect, dst_rect)) {
+    if (!coordinate_system.intersectAndTransform(src_rect, dst_rect))
+      continue;
+
+    if (filter == 0) {  // subtractive color mask
       glRenderer().RenderColormask({it.gltexture, src_rect}, {canvas, dst_rect},
                                    rgba);
+    } else {
+      RenderingConfig config;
+      config.mask_color = rgba;
+      glRenderer().Render({it.gltexture, src_rect}, config, {canvas, dst_rect});
     }
   }
 }
@@ -626,7 +619,7 @@ void SDLSurface::RenderToScreenAsObject(const GraphicsObject& rp,
     model = glm::translate(model, glm::vec3(-x_rep, -y_rep, 0.0f));
     config.model = model;
     config.blend_type = param.composite_mode();
-    config.colour = param.colour();
+    config.color = param.colour();
     config.tint = param.tint();
     config.mono = param.mono();
     config.invert = param.invert();
