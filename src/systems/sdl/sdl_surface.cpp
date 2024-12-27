@@ -625,8 +625,7 @@ void SDLSurface::RenderToScreenAsObject(const GraphicsObject& rp,
                         glm::vec3(0.0f, 0.0f, 1.0f));
     model = glm::translate(model, glm::vec3(-x_rep, -y_rep, 0.0f));
     config.model = model;
-    // TODO: composite mode
-
+    config.blend_type = param.composite_mode();
     config.colour = param.colour();
     config.tint = param.tint();
     config.mono = param.mono();

@@ -52,6 +52,7 @@ struct RenderingConfig {
   std::optional<RGBColour> tint;
   std::optional<float> alpha;
   std::optional<std::array<float, 4>> vertex_alpha;
+  std::optional<int> blend_type;
 };
 
 class glRenderer {

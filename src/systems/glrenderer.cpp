@@ -230,7 +230,24 @@ void glRenderer::Render(glRenderable src,
   auto color = cfg.colour.value_or(RGBAColour(0, 0, 0, 0));
   shader->SetUniform("color", color.r_float(), color.g_float(), color.b_float(),
                      color.a_float());
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+  switch (cfg.blend_type.value_or(0)) {
+    case 0:
+      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+      glBlendEquation(GL_FUNC_ADD);
+      break;
+    case 1:
+      glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+      glBlendEquation(GL_FUNC_ADD);
+      break;
+    case 2: {
+      glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+      glBlendEquation(GL_FUNC_REVERSE_SUBTRACT);
+      break;
+    }
+    default:
+      throw std::runtime_error("glRenderer: Invalid blend type.");
+  }
 
   auto mono = cfg.mono.value_or(0.0f);
   shader->SetUniform("mono", mono);
