@@ -78,6 +78,7 @@ Texture::Texture(SDL_Surface* surface,
       y_offset_(y),
       logical_width_(w),
       logical_height_(h),
+      coordinate_system_(x, y, w, h),
       total_width_(surface->w),
       total_height_(surface->h),
       texture_width_(SafeSize(logical_width_)),
@@ -140,6 +141,7 @@ Texture::Texture(render_to_texture, int width, int height)
       y_offset_(0),
       logical_width_(width),
       logical_height_(height),
+      coordinate_system_(0, 0, width, height),
       total_width_(width),
       total_height_(height),
       texture_width_(0),
@@ -259,14 +261,15 @@ void Texture::RenderToScreen(const Rect& src,
 
 // -----------------------------------------------------------------------
 
-void Texture::RenderToScreen(const Rect& src,
-                             const Rect& dst,
+void Texture::RenderToScreen(Rect src,
+                             Rect dst,
                              std::array<float, 4> opacity,
                              RGBAColour color) {
+  if (!coordinate_system_.intersectAndTransform(src, dst))
+    return;
+
   int x1 = src.x(), y1 = src.y(), x2 = src.x2(), y2 = src.y2();
   int fdx1 = dst.x(), fdy1 = dst.y(), fdx2 = dst.x2(), fdy2 = dst.y2();
-  if (!filterCoords(x1, y1, x2, y2, fdx1, fdy1, fdx2, fdy2))
-    return;
 
   auto toNDC = [w = s_screen_width, h = s_screen_height](int x, int y) {
     return std::make_pair(2.0f * x / w - 1.0f, 1.0f - (2.0f * y / h));
@@ -356,13 +359,14 @@ void Texture::RenderToScreenAsColorMask(const Rect& src,
 
 // -----------------------------------------------------------------------
 
-void Texture::RenderSubtractiveColorMask(const Rect& src,
-                                         const Rect& dst,
+void Texture::RenderSubtractiveColorMask(Rect src,
+                                         Rect dst,
                                          const RGBAColour& color) {
+  if (!coordinate_system_.intersectAndTransform(src, dst))
+    return;
+
   int x1 = src.x(), y1 = src.y(), x2 = src.x2(), y2 = src.y2();
   int fdx1 = dst.x(), fdy1 = dst.y(), fdx2 = dst.x2(), fdy2 = dst.y2();
-  if (!filterCoords(x1, y1, x2, y2, fdx1, fdy1, fdx2, fdy2))
-    return;
 
   auto toNDC = [w = s_screen_width, h = s_screen_height](int x, int y) {
     return std::make_pair(2.0f * x / w - 1.0f, 1.0f - (2.0f * y / h));
@@ -459,14 +463,15 @@ void Texture::RenderSubtractiveColorMask(const Rect& src,
 
 void Texture::RenderToScreenAsObject(const GraphicsObject& go,
                                      const SDLSurface& surface,
-                                     const Rect& srcRect,
-                                     const Rect& dstRect,
+                                     Rect srcRect,
+                                     Rect dstRect,
                                      int alpha) {
   // This all needs to be pushed up out of the rendering code and down into
   // either GraphicsObject or the individual GraphicsObjectData subclasses.
 
-  // TODO(erg): Temporary hack while I wait to convert all of this machinery to
-  // Rects.
+  if (!coordinate_system_.intersectAndTransform(srcRect, dstRect))
+    return;
+
   int xSrc1 = srcRect.x();
   int ySrc1 = srcRect.y();
   int xSrc2 = srcRect.x2();
@@ -474,9 +479,6 @@ void Texture::RenderToScreenAsObject(const GraphicsObject& go,
 
   int fdx1 = dstRect.x(), fdy1 = dstRect.y(), fdx2 = dstRect.x2(),
       fdy2 = dstRect.y2();
-  if (!filterCoords(xSrc1, ySrc1, xSrc2, ySrc2, fdx1, fdy1, fdx2, fdy2)) {
-    return;
-  }
 
   // Convert the pixel coordinates into [0,1) texture coordinates
   float thisx1 = float(xSrc1) / texture_width_;
@@ -586,65 +588,4 @@ void Texture::RenderToScreenAsObject(const GraphicsObject& go,
   glDeleteBuffers(1, &EBO);
 
   DebugShowGLErrors();
-}
-
-// -----------------------------------------------------------------------
-
-static float our_round(float r) {
-  return (r > 0.0f) ? floor(r + 0.5f) : ceil(r - 0.5f);
-}
-
-bool Texture::filterCoords(int& x1,
-                           int& y1,
-                           int& x2,
-                           int& y2,
-                           int& dx1,
-                           int& dy1,
-                           int& dx2,
-                           int& dy2) {
-  // POINT
-  using std::max;
-  using std::min;
-
-  // Input: raw image coordinates
-  // Output: false if this doesn't intersect with the texture piece we hold.
-  //         true otherwise, and set the local coordinates
-  int w1 = x2 - x1;
-  int h1 = y2 - y1;
-
-  // First thing we do is an intersection test to see if this input
-  // range intersects the virtual range this Texture object holds.
-  //
-  /// @bug s/>/>=/?
-  if (x1 + w1 >= x_offset_ && x1 < x_offset_ + logical_width_ &&
-      y1 + h1 >= y_offset_ && y1 < y_offset_ + logical_height_) {
-    // Do an intersection test in terms of the virtual coordinates
-    int virX = max(x1, x_offset_);
-    int virY = max(y1, y_offset_);
-    int w = min(x1 + w1, x_offset_ + logical_width_) - max(x1, x_offset_);
-    int h = min(y1 + h1, y_offset_ + logical_height_) - max(y1, y_offset_);
-
-    // Adjust the destination coordinates
-    int dx_width = dx2 - dx1;
-    int dy_height = dy2 - dy1;
-    float dx1Off = (virX - x1) / float(w1);
-    dx1 = our_round(dx1 + (dx_width * dx1Off));
-    float dx2Off = w / float(w1);
-    dx2 = our_round(dx1 + (dx_width * dx2Off));
-    float dy1Off = (virY - y1) / float(h1);
-    dy1 = our_round(dy1 + (dy_height * dy1Off));
-    float dy2Off = h / float(h1);
-    dy2 = our_round(dy1 + (dy_height * dy2Off));
-
-    // Output the source intersection in real (instead of
-    // virtual) coordinates
-    x1 = virX - x_offset_;
-    x2 = x1 + w;
-    y1 = virY - y_offset_;
-    y2 = y1 + h;
-
-    return true;
-  }
-
-  return false;
 }

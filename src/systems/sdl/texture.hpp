@@ -29,8 +29,9 @@
 
 #include "GL/glew.h"
 
-#include "base/rect.hpp"
 #include "base/colour.hpp"
+#include "base/localrect.hpp"
+#include "base/rect.hpp"
 
 #include <memory>
 #include <string>
@@ -84,16 +85,16 @@ class Texture {
 
   void RenderToScreenAsObject(const GraphicsObject& go,
                               const SDLSurface& surface,
-                              const Rect& srcRect,
-                              const Rect& dstRect,
+                              Rect srcRect,
+                              Rect dstRect,
                               int alpha);
 
   void RenderToScreen(const Rect& src,
                       const Rect& dst,
                       const int opacity = 255);
   void RenderToScreen(const Rect& src, const Rect& dst, const int opacity[4]);
-  void RenderToScreen(const Rect& src,
-                      const Rect& dst,
+  void RenderToScreen(Rect src,
+                      Rect dst,
                       std::array<float, 4> opacity,
                       RGBAColour color = RGBAColour());
 
@@ -110,24 +111,15 @@ class Texture {
   // large enough.
   static char* uploadBuffer(unsigned int size);
 
-  void RenderSubtractiveColorMask(const Rect& src,
-                                  const Rect& dst,
-                                  const RGBAColour& rgba);
-
-  bool filterCoords(int& x1,
-                    int& y1,
-                    int& x2,
-                    int& y2,
-                    int& dx1,
-                    int& dy1,
-                    int& dx2,
-                    int& dy2);
+  void RenderSubtractiveColorMask(Rect src, Rect dst, const RGBAColour& rgba);
 
   int x_offset_;
   int y_offset_;
 
   int logical_width_;
   int logical_height_;
+
+  LocalRect coordinate_system_;
 
   int total_width_;
   int total_height_;
