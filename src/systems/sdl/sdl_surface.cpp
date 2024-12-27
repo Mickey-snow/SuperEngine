@@ -569,7 +569,7 @@ void SDLSurface::RenderToScreen(const Rect& src_rect,
 
   // for (std::vector<TextureRecord>::iterator it = textures_.begin();
   //      it != textures_.end(); ++it) {
-  //   it->texture->RenderToScreen(src, dst, opacity);
+  //   it->texture->RenderToScreen(src_rect, dst_rect, opacity);
   // }
   auto canvas = std::make_shared<ScreenCanvas>(screen_size_);
   for (const auto& it : textures_) {

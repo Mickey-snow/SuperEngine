@@ -30,6 +30,7 @@
 #include "systems/sdl/shaders.hpp"
 
 #include <GL/glew.h>
+#include "glm/gtc/matrix_transform.hpp"
 
 #include <format>
 
@@ -166,23 +167,6 @@ void glRenderer::Render(glRenderable src,
   const auto canvas_size = canvas->GetSize();
   const auto texture_size = src.texture_->GetSize();
 
-  int x1 = src.region.x(), y1 = src.region.y(), x2 = src.region.x2(),
-      y2 = src.region.y2();
-  int fdx1 = dst.region.x(), fdy1 = dst.region.y(), fdx2 = dst.region.x2(),
-      fdy2 = dst.region.y2();
-
-  auto toNDC = [w = canvas_size.width(), h = canvas_size.height()](int x,
-                                                                   int y) {
-    return std::make_pair(2.0f * x / w - 1.0f, 1.0f - (2.0f * y / h));
-  };
-  auto [dx1, dy1] = toNDC(fdx1, fdy1);
-  auto [dx2, dy2] = toNDC(fdx2, fdy2);
-
-  float thisx1 = float(x1) / texture_size.width();
-  float thisy1 = 1.0f - float(y1) / texture_size.height();
-  float thisx2 = float(x2) / texture_size.width();
-  float thisy2 = 1.0f - float(y2) / texture_size.height();
-
   static glBuffer buf = []() {
     GLuint VAO, VBO, EBO;
     unsigned int indices[] = {0, 1, 2, 0, 2, 3};
@@ -210,6 +194,31 @@ void glRenderer::Render(glRenderable src,
     ShowGLErrors();
     return glBuffer{VAO, VBO, EBO};
   }();
+
+  int x1 = src.region.x(), y1 = src.region.y(), x2 = src.region.x2(),
+      y2 = src.region.y2();
+  int fdx1 = dst.region.x(), fdy1 = dst.region.y(), fdx2 = dst.region.x2(),
+      fdy2 = dst.region.y2();
+
+  auto model = cfg.model.value_or(
+      glm::translate(glm::mat4(1.0f), glm::vec3(fdx1, fdy1, 0)));
+
+  auto toNDC = [w = canvas_size.width(),
+                h = canvas_size.height()](glm::vec4 point) {
+    const auto pt = glm::vec2(point) / point.w;
+    return std::make_pair(2.0f * pt.x / w - 1.0f, 1.0f - (2.0f * pt.y / h));
+  };
+  const auto width = fdx2 - fdx1;
+  const auto height = fdy2 - fdy1;
+  const auto top_left = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+  const auto bottom_right = glm::vec4(width, height, 0.0f, 1.0f);
+  auto [dx1, dy1] = toNDC(model * top_left);
+  auto [dx2, dy2] = toNDC(model * bottom_right);
+
+  float thisx1 = float(x1) / texture_size.width();
+  float thisy1 = 1.0f - float(y1) / texture_size.height();
+  float thisx2 = float(x2) / texture_size.width();
+  float thisy2 = 1.0f - float(y2) / texture_size.height();
 
   auto op = cfg.vertex_alpha.value_or(std::array<float, 4>{1.0, 1.0, 1.0, 1.0});
   for (int i = 0; i < 4; ++i) {
