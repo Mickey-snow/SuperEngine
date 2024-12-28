@@ -33,7 +33,6 @@
 #include "systems/base/surface.hpp"
 
 class glFrameBuffer;
-extern std::shared_ptr<glFrameBuffer> screen_buffer;
 
 struct SDL_Surface;
 class Texture;
@@ -200,6 +199,6 @@ class SDLSurface : public Surface {
 
   bool is_mask_;
 
-public:
-  static Size screen_size_;
+ public:
+  static std::shared_ptr<glFrameBuffer> screen_canvas;
 };

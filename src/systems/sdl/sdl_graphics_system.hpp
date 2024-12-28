@@ -101,9 +101,9 @@ class SDLGraphicsSystem : public GraphicsSystem, public NotificationObserver {
   // game.
   virtual void Reset() override;
 
- private:
-  void SetupVideo();
+  void SetupVideo(Size window_size);
 
+ private:
   // Makes sure that a passed in dc number is valid.
   //
   // @exception Error Throws when dc is greater then the maximum.

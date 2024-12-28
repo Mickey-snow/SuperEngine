@@ -30,12 +30,13 @@
 #include <SDL/SDL.h>
 #include <SDL/SDL_events.h>
 
-#include <functional>
-
 #include "machine/rlmachine.hpp"
 #include "systems/base/event_listener.hpp"
 #include "systems/base/graphics_system.hpp"
+#include "systems/sdl/sdl_graphics_system.hpp"
 #include "systems/sdl/sdl_system.hpp"
+
+#include <functional>
 
 using std::bind;
 using std::placeholders::_1;
@@ -93,10 +94,14 @@ void SDLEventSystem::ExecuteEventSystem(RLMachine& machine) {
           raw_handler_->pushInput(event);
         HandleActiveEvent(machine, event);
         break;
-      case SDL_VIDEOEXPOSE: {
+      case SDL_VIDEOEXPOSE:
         machine.GetSystem().graphics().ForceRefresh();
         break;
-      }
+      case SDL_VIDEORESIZE:
+        Size new_size = Size(event.resize.w, event.resize.h);
+        dynamic_cast<SDLGraphicsSystem&>(machine.GetSystem().graphics())
+            .SetupVideo(new_size);
+        break;
     }
   }
 }

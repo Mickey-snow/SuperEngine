@@ -61,6 +61,7 @@
 #include "systems/base/system_error.hpp"
 #include "systems/base/text_system.hpp"
 #include "systems/glrenderer.hpp"
+#include "systems/screen_canvas.hpp"
 #include "systems/sdl/sdl_colour_filter.hpp"
 #include "systems/sdl/sdl_event_system.hpp"
 #include "systems/sdl/sdl_render_to_texture_surface.hpp"
@@ -73,7 +74,6 @@
 #include "utilities/lazy_array.hpp"
 #include "utilities/mapped_file.hpp"
 #include "utilities/string_utilities.hpp"
-#include "systems/screen_canvas.hpp"
 
 // -----------------------------------------------------------------------
 // Private Interface
@@ -89,7 +89,7 @@ void SDLGraphicsSystem::BeginFrame() {
   glRenderer renderer;
   renderer.SetUp();
   renderer.ClearBuffer(std::make_shared<ScreenCanvas>(screen_size()),
-                       RGBAColour(0,0,0,255));
+                       RGBAColour(0, 0, 0, 255));
   DebugShowGLErrors();
 
   glMatrixMode(GL_PROJECTION);
@@ -215,19 +215,12 @@ SDLGraphicsSystem::SDLGraphicsSystem(System& system, Gameexe& gameexe)
   for (int i = 0; i < 16; ++i)
     display_contexts_[i] = std::make_shared<SDLSurface>();
 
-  SetScreenSize(GetScreenSize(gameexe));
-  Texture::SetScreenSize(screen_size());
-  SDLSurface::screen_size_ = screen_size();
-
-  // screen_buffer = std::make_shared<glFrameBuffer>(
-  //     std::make_shared<glTexture>(screen_size()));
-
   // Grab the caption
   std::string cp932caption = gameexe("CAPTION").ToString();
   int name_enc = gameexe("NAME_ENC").ToInt(0);
   caption_title_ = cp932toUTF8(cp932caption, name_enc);
 
-  SetupVideo();
+  SetupVideo(GetScreenSize(gameexe));
 
   // Now we allocate the first two display contexts with equal size to
   // the display
@@ -256,10 +249,13 @@ SDLGraphicsSystem::SDLGraphicsSystem(System& system, Gameexe& gameexe)
                  Source<GraphicsSystem>(static_cast<GraphicsSystem*>(this)));
 }
 
-void SDLGraphicsSystem::SetupVideo() {
+void SDLGraphicsSystem::SetupVideo(Size window_size) {
+  GraphicsSystem::SetScreenSize(window_size);
+  Texture::SetScreenSize(screen_size());
+  SDLSurface::screen_canvas = std::make_shared<ScreenCanvas>(screen_size());
+
   // Let's get some video information.
   const SDL_VideoInfo* info = SDL_GetVideoInfo();
-  SDL_WM_SetCaption("rlvm", "rlvm");
 
   if (!info) {
     std::ostringstream ss;
@@ -274,6 +270,7 @@ void SDLGraphicsSystem::SetupVideo() {
   video_flags = SDL_OPENGL;            // Enable OpenGL in SDL
   video_flags |= SDL_GL_DOUBLEBUFFER;  // Enable double buffering
   video_flags |= SDL_SWSURFACE;
+  video_flags |= SDL_RESIZABLE;
 
   if (screen_mode() == 0)
     video_flags |= SDL_FULLSCREEN;
@@ -287,9 +284,6 @@ void SDLGraphicsSystem::SetupVideo() {
   // Set the video mode
   if ((screen_ = SDL_SetVideoMode(screen_size().width(), screen_size().height(),
                                   bpp, video_flags)) == 0) {
-    // This could happen for a variety of reasons,
-    // including DISPLAY not being set, the specified
-    // resolution not being available, etc.
     std::ostringstream ss;
     ss << "Video mode set failed: " << SDL_GetError();
     throw SystemError(ss.str());
@@ -302,35 +296,6 @@ void SDLGraphicsSystem::SetupVideo() {
     oss << "Failed to initialize GLEW: " << glewGetErrorString(err);
     throw SystemError(oss.str());
   }
-
-  glEnable(GL_TEXTURE_2D);
-  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
-  // Enable Texture Mapping ( NEW )
-  glEnable(GL_TEXTURE_2D);
-
-  // Enable smooth shading
-  glShadeModel(GL_SMOOTH);
-
-  // Set the background black
-  glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-
-  // Depth buffer setup
-  glClearDepth(1.0f);
-
-  // Enables Depth Testing
-  glEnable(GL_DEPTH_TEST);
-
-  glEnable(GL_BLEND);
-
-  // The Type Of Depth Test To Do
-  glDepthFunc(GL_LEQUAL);
-
-  // Really Nice Perspective Calculations
-  glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
-
-  // Full Brightness, 50% Alpha ( NEW )
-  glColor4f(1.0f, 1.0f, 1.0f, 0.5f);
 
   // Create a small 32x32 texture for storing what's behind the mouse
   // cursor.
@@ -406,7 +371,7 @@ void SDLGraphicsSystem::SetWindowSubtitle(const std::string& cp932str,
 void SDLGraphicsSystem::SetScreenMode(const int in) {
   GraphicsSystem::SetScreenMode(in);
 
-  SetupVideo();
+  SetupVideo(screen_size());
 }
 
 void SDLGraphicsSystem::AllocateDC(int dc, Size size) {
