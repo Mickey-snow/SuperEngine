@@ -61,6 +61,7 @@
 #include "systems/base/system_error.hpp"
 #include "systems/base/text_system.hpp"
 #include "systems/glrenderer.hpp"
+#include "systems/gltexture.hpp"
 #include "systems/screen_canvas.hpp"
 #include "systems/sdl/sdl_colour_filter.hpp"
 #include "systems/sdl/sdl_event_system.hpp"
@@ -128,7 +129,7 @@ void SDLGraphicsSystem::EndFrame() {
     // the contents of the back buffer is undefined after SDL_GL_SwapBuffers()
     // and I've just been lucky that the Intel i810 and whatever my Mac machine
     // has have been doing things that way.)
-    glBindTexture(GL_TEXTURE_2D, screen_contents_texture_);
+    glBindTexture(GL_TEXTURE_2D, screen_contents_texture_->GetID());
     glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, screen_size().width(),
                         screen_size().height());
     screen_contents_texture_valid_ = true;
@@ -150,33 +151,12 @@ void SDLGraphicsSystem::RedrawLastFrame() {
   // copy of the screen to work with and we only snapshot the screen during
   // DrawManual() mode.
   if (screen_contents_texture_valid_) {
-    // Redraw the screen
-    glBindTexture(GL_TEXTURE_2D, screen_contents_texture_);
-    glBegin(GL_QUADS);
-    {
-      int dx1 = 0;
-      int dx2 = screen_size().width();
-      int dy1 = 0;
-      int dy2 = screen_size().height();
+    glRenderer renderer;
 
-      float x_cord = dx2 / float(screen_tex_width_);
-      float y_cord = dy2 / float(screen_tex_height_);
-
-      glColor4ub(255, 255, 255, 255);
-      glTexCoord2f(0, y_cord);
-      glVertex2i(dx1, dy1);
-      glTexCoord2f(x_cord, y_cord);
-      glVertex2i(dx2, dy1);
-      glTexCoord2f(x_cord, 0);
-      glVertex2i(dx2, dy2);
-      glTexCoord2f(0, 0);
-      glVertex2i(dx1, dy2);
-    }
-    glEnd();
-
-    DrawCursor();
-
-    glFlush();
+    renderer.Render(
+        {screen_contents_texture_, Rect(Point(0, 0), screen_size())},
+        {std::make_shared<ScreenCanvas>(screen_size()),
+         Rect(Point(0, 0), screen_size())});
 
     // Swap the buffers
     SDL_GL_SwapBuffers();
@@ -297,17 +277,10 @@ void SDLGraphicsSystem::SetupVideo(Size window_size) {
     throw SystemError(oss.str());
   }
 
-  // Create a small 32x32 texture for storing what's behind the mouse
-  // cursor.
-  glGenTextures(1, &screen_contents_texture_);
-  glBindTexture(GL_TEXTURE_2D, screen_contents_texture_);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   screen_tex_width_ = SafeSize(screen_size().width());
   screen_tex_height_ = SafeSize(screen_size().height());
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, screen_tex_width_, screen_tex_height_,
-               0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-
+  screen_contents_texture_ =
+      std::make_shared<glTexture>(Size(screen_tex_width_, screen_tex_height_));
   ShowGLErrors();
 }
 

@@ -44,6 +44,7 @@ class SDLGraphicsSystem;
 class SDLSurface;
 class System;
 class Texture;
+class glTexture;
 
 // -----------------------------------------------------------------------
 
@@ -132,7 +133,7 @@ class SDLGraphicsSystem : public GraphicsSystem, public NotificationObserver {
   // Texture used to store the contents of the screen while in DrawManual()
   // mode. The stored image is then used if we need to redraw in the
   // intervening time (expose events, mouse cursor moves, etc).
-  GLuint screen_contents_texture_;
+  std::shared_ptr<glTexture> screen_contents_texture_;
 
   // Whether |screen_contents_texture_| is valid to use.
   bool screen_contents_texture_valid_;
