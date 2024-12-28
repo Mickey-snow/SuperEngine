@@ -56,6 +56,7 @@ void glTexture::Write(Rect region,
                       uint32_t format,
                       uint32_t type,
                       const void* data) {
+  region = Flip_y(region);
   glBindTexture(GL_TEXTURE_2D, id_);
   glTexSubImage2D(GL_TEXTURE_2D, 0, region.x(), region.y(), region.width(),
                   region.height(), format, type, data);
