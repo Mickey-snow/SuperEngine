@@ -263,11 +263,10 @@ void glRenderer::Render(glRenderable src,
       glBlendFunc(GL_SRC_ALPHA, GL_ONE);
       glBlendEquation(GL_FUNC_ADD);
       break;
-    case 2: {
+    case 2:
       glBlendFunc(GL_SRC_ALPHA, GL_ONE);
       glBlendEquation(GL_FUNC_REVERSE_SUBTRACT);
       break;
-    }
     default:
       throw std::runtime_error("glRenderer: Invalid blend type.");
   }

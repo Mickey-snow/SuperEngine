@@ -808,7 +808,7 @@ std::vector<char> SDLSurface::Dump(Rect region) const {
     }
   }
   char* src = static_cast<char*>(surface->pixels);
-  src += surface->pitch * (y + h);
+  src += surface->pitch * (y + h - 1);
   int col_offset = surface->format->BytesPerPixel * x;
   int col_size = surface->format->BytesPerPixel * w;
   for (int row = 0; row < h; ++row) {
