@@ -36,16 +36,6 @@
 #include "../resources/48/rlvm_icon_48.xpm"
 #endif
 
-#include <boost/algorithm/string.hpp>
-
-#include <algorithm>
-#include <cstdio>
-#include <iostream>
-#include <set>
-#include <sstream>
-#include <string>
-#include <vector>
-
 #include "base/avdec/image_decoder.hpp"
 #include "base/cgm_table.hpp"
 #include "base/colour.hpp"
@@ -60,6 +50,7 @@
 #include "systems/base/system.hpp"
 #include "systems/base/system_error.hpp"
 #include "systems/base/text_system.hpp"
+#include "systems/glcanvas.hpp"
 #include "systems/glrenderer.hpp"
 #include "systems/gltexture.hpp"
 #include "systems/screen_canvas.hpp"
@@ -74,14 +65,25 @@
 #include "utilities/mapped_file.hpp"
 #include "utilities/string_utilities.hpp"
 
-// -----------------------------------------------------------------------
-// Private Interface
-// -----------------------------------------------------------------------
+#include <boost/algorithm/string.hpp>
+
+#include <algorithm>
+#include <cstdio>
+#include <iostream>
+#include <set>
+#include <sstream>
+#include <string>
+#include <vector>
 
 void SDLGraphicsSystem::SetCursor(int cursor) {
   GraphicsSystem::SetCursor(cursor);
 
   SDL_ShowCursor(ShouldUseCustomCursor() ? SDL_DISABLE : SDL_ENABLE);
+}
+
+std::shared_ptr<glCanvas> SDLGraphicsSystem::CreateCanvas() const {
+  return std::make_shared<glCanvas>(screen_size(),
+                                    Rect(GetScreenOrigin(), display_size_));
 }
 
 void SDLGraphicsSystem::BeginFrame() {
@@ -205,10 +207,6 @@ std::shared_ptr<Surface> SDLGraphicsSystem::EndFrameToSurface() {
 
   return std::make_shared<SDLSurface>(surface);
 }
-
-// -----------------------------------------------------------------------
-// Public Interface
-// -----------------------------------------------------------------------
 
 SDLGraphicsSystem::SDLGraphicsSystem(System& system, Gameexe& gameexe)
     : GraphicsSystem(system, gameexe),

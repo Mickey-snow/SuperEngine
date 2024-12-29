@@ -45,6 +45,7 @@ class SDLSurface;
 class System;
 class Texture;
 class glTexture;
+class glCanvas;
 
 // -----------------------------------------------------------------------
 
@@ -69,6 +70,7 @@ class SDLGraphicsSystem : public GraphicsSystem, public NotificationObserver {
   // switch on/off the operating system cursor when the cursor index is invalid.
   virtual void SetCursor(int cursor) override;
 
+  std::shared_ptr<glCanvas> CreateCanvas() const;
   virtual void BeginFrame() override;
 
   virtual void MarkScreenAsDirty(GraphicsUpdateType type) override;

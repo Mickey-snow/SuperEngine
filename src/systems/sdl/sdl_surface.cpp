@@ -834,3 +834,7 @@ void SDLSurface::markWrittenTo(const Rect& written_rect) {
   dirty_rectangle_ = dirty_rectangle_.Union(written_rect);
   texture_is_valid_ = false;
 }
+
+std::vector<SDLSurface::TextureRecord> SDLSurface::GetTextureArray() const {
+  return textures_;
+}

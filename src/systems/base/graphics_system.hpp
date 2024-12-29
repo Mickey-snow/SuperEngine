@@ -190,7 +190,7 @@ class GraphicsSystem : public EventListener {
 
   // Returns the current screen origin. This is used for simple #SHAKE.* based
   // screen shaking. While the screen is not shaking, this returns (0,0).
-  Point GetScreenOrigin();
+  Point GetScreenOrigin() const;
 
   // Whether we are currently shaking.
   bool IsShaking() const;

@@ -302,7 +302,7 @@ void GraphicsSystem::QueueShakeSpec(int spec) {
 
 // -----------------------------------------------------------------------
 
-Point GraphicsSystem::GetScreenOrigin() {
+Point GraphicsSystem::GetScreenOrigin() const {
   if (screen_shake_queue_.empty()) {
     return Point(0, 0);
   } else {

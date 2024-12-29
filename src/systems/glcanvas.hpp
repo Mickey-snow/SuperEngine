@@ -21,40 +21,30 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#include "systems/gl_frame_buffer.hpp"
+#pragma once
 
 #include "base/rect.hpp"
-#include "systems/gl_utils.hpp"
-#include "systems/gltexture.hpp"
 
-#include <GL/glew.h>
+#include <memory>
+#include <optional>
 
-#include <stdexcept>
+class glTexture;
+class glFrameBuffer;
+class glRenderer;
 
-glFrameBuffer::glFrameBuffer(std::shared_ptr<glTexture> texture)
-    : texture_(texture) {
-  glGenFramebuffers(1, &id_);
-  glBindFramebuffer(GL_FRAMEBUFFER, id_);
-  glBindTexture(GL_TEXTURE_2D, texture->GetID());
-  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
-                         texture->GetID(), 0);
+class glCanvas {
+ public:
+  glCanvas(Size resolution, std::optional<Rect> viewport = std::nullopt);
 
-  if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-    throw std::runtime_error("glFrameBuffer: Framebuffer not complete!");
-  }
+  void Use();
 
-  glBindTexture(GL_TEXTURE_2D, 0);
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  std::shared_ptr<glFrameBuffer> GetBuffer() const;
 
-  ShowGLErrors();
-}
+  void Flush();
 
-glFrameBuffer::~glFrameBuffer() { glDeleteFramebuffers(1, &id_); }
-
-unsigned int glFrameBuffer::GetID() const { return id_; }
-
-Size glFrameBuffer::GetSize() const { return texture_->GetSize(); }
-
-std::shared_ptr<glTexture> glFrameBuffer::GetTexture() const {
-  return texture_;
-}
+ private:
+  Size resolution_;
+  Rect viewport_;
+  std::shared_ptr<glFrameBuffer> frame_buf_;
+  std::shared_ptr<glRenderer> renderer_;
+};

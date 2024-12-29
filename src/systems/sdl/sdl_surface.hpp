@@ -126,8 +126,6 @@ class SDLSurface : public Surface {
 
   virtual RGBAColour GetPixel(Point pos) const;
 
-  std::vector<char> Dump(Rect region) const;
-
   virtual std::shared_ptr<Surface> ClipAsColorMask(const Rect& clip_rect,
                                                    int r,
                                                    int g,
@@ -139,7 +137,8 @@ class SDLSurface : public Surface {
   // invalid and notifies SDLGraphicsSystem when appropriate.
   void markWrittenTo(const Rect& written_rect);
 
- private:
+  std::vector<char> Dump(Rect region) const;
+
   // Keeps track of a texture and the information about which region
   // of the current surface this Texture is. We keep track of this
   // information so we can reupload a certain part of the Texture
@@ -171,6 +170,9 @@ class SDLSurface : public Surface {
     int byte_order_, byte_type_;
   };
 
+  std::vector<TextureRecord> GetTextureArray() const;
+
+ private:
   // Makes sure that texture_ is a valid object and that it's
   // updated. This method should be called before doing anything with
   // texture_.

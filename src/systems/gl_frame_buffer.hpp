@@ -39,6 +39,8 @@ class glFrameBuffer {
 
   virtual Size GetSize() const;
 
+  virtual std::shared_ptr<glTexture> GetTexture() const;
+
  private:
   std::shared_ptr<glTexture> texture_;
   unsigned int id_;
