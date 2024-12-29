@@ -584,3 +584,7 @@ ColourFilter* SDLGraphicsSystem::BuildColourFiller() {
 }
 
 void SDLGraphicsSystem::Reset() { GraphicsSystem::Reset(); }
+
+Size SDLGraphicsSystem::GetDisplaySize() const noexcept {
+  return display_size_;
+}

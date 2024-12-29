@@ -216,8 +216,16 @@ void SDLEventSystem::HandleKeyUp(RLMachine& machine, SDL_Event& event) {
 
 void SDLEventSystem::HandleMouseMotion(RLMachine& machine, SDL_Event& event) {
   if (mouse_inside_window_) {
-    mouse_pos_ = Point(event.motion.x, event.motion.y);
     last_mouse_move_time_ = GetTicks();
+
+    const auto& graphics_sys =
+        dynamic_cast<SDLGraphicsSystem&>(machine.GetSystem().graphics());
+    const auto aspect_ratio_w = 1.0f * graphics_sys.GetDisplaySize().width() /
+                                graphics_sys.screen_size().width();
+    const auto aspect_ratio_h = 1.0f * graphics_sys.GetDisplaySize().height() /
+                                graphics_sys.screen_size().height();
+    mouse_pos_ =
+        Point(event.motion.x / aspect_ratio_w, event.motion.y / aspect_ratio_h);
 
     // Handle this somehow.
     BroadcastEvent(machine, bind(&EventListener::MouseMotion, _1, mouse_pos_));

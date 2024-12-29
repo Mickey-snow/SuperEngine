@@ -106,6 +106,8 @@ class SDLGraphicsSystem : public GraphicsSystem, public NotificationObserver {
 
   void Resize(Size display_size);
 
+  Size GetDisplaySize() const noexcept;
+
  private:
   // Makes sure that a passed in dc number is valid.
   //
