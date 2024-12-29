@@ -27,12 +27,22 @@
 
 #include <gtest/gtest.h>
 
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
+
+#include <format>
+
 class CallStackTest : public ::testing::Test {
  protected:
   StackFrame MakeFrame(StackFrame::FrameType type) {
     auto frame = StackFrame();
     frame.frame_type = type;
     return frame;
+  }
+
+  auto desc(const StackFrame& frame) -> std::string {
+    return std::format("({},{}) {}", frame.pos.scenario_id_, frame.pos.offset_,
+                       static_cast<int>(frame.frame_type));
   }
 
   CallStack stack;
@@ -120,4 +130,43 @@ TEST_F(CallStackTest, StackSize) {
   stack.Push(MakeFrame(StackFrame::TYPE_ROOT));
   stack.Push(MakeFrame(StackFrame::TYPE_LONGOP));
   EXPECT_EQ(stack.Size(), 2);
+}
+
+TEST_F(CallStackTest, Serialization) {
+  using libreallive::ScriptLocation;
+  std::stringstream ss;
+
+  {
+    StackFrame frame1(ScriptLocation(1, 10), StackFrame::TYPE_ROOT);
+    frame1.strK.Set(2, "root");
+    StackFrame frame2(ScriptLocation(1, 20), StackFrame::TYPE_GOSUB);
+    StackFrame frame3(ScriptLocation(2, 20), StackFrame::TYPE_FARCALL);
+    frame3.strK.Set(2, "hello ");
+    frame3.strK.Set(3, "world");
+    StackFrame frame4(ScriptLocation(2, 20), StackFrame::TYPE_LONGOP);
+
+    stack.Push(std::move(frame1));
+    stack.Push(std::move(frame2));
+    stack.Push(std::move(frame3));
+    stack.Push(std::move(frame4));
+
+    boost::archive::text_oarchive oa(ss);
+    oa << stack;
+  }
+
+  {
+    CallStack deserialized;
+    boost::archive::text_iarchive ia(ss);
+    ia >> deserialized;
+
+    StackFrame* frame3 = deserialized.FindTopRealFrame();
+    EXPECT_EQ(frame3->strK.Get(2) + frame3->strK.Get(3), "hello world");
+    EXPECT_EQ(desc(*deserialized.Top()), "(2,20) 3");
+    EXPECT_EQ(desc(*frame3), "(2,20) 2");
+    deserialized.Pop();
+    deserialized.Pop();
+    EXPECT_EQ(desc(*deserialized.Top()), "(1,20) 1");
+    deserialized.Pop();
+    EXPECT_EQ(desc(*deserialized.Top()), "(1,10) 0");
+  }
 }

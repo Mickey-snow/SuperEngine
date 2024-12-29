@@ -445,36 +445,3 @@ void RLMachine::operator()(Textout t) {
 }
 
 void RLMachine::operator()(End) { Halt(); }
-
-// -----------------------------------------------------------------------
-
-template <class Archive>
-void RLMachine::save(Archive& ar, unsigned int version) const {
-  int line_num = LineNumber();
-  ar & line_num;
-
-  // Save the state of the stack when the last save point was hit
-  // ar & savepoint_call_stack_;
-}
-
-template <class Archive>
-void RLMachine::load(Archive& ar, unsigned int version) {
-  ar & line_;
-
-  // Just thaw the call_stack_; all preprocessing was done at freeze
-  // time.
-  // ar & call_stack_;
-}
-
-// -----------------------------------------------------------------------
-
-// Explicit instantiations for text archives (since we hide the
-// implementation)
-
-template void RLMachine::save<boost::archive::text_oarchive>(
-    boost::archive::text_oarchive& ar,
-    unsigned int version) const;
-
-template void RLMachine::load<boost::archive::text_iarchive>(
-    boost::archive::text_iarchive& ar,
-    unsigned int version);

@@ -24,15 +24,16 @@
 
 #pragma once
 
-#include "machine/stack_frame.hpp"
-
-// TODO: serialization support
-
 /**
  * @file call_stack.hpp
  * @brief Declaration of the CallStack class for managing a stack of StackFrame
  * objects.
  */
+
+#include "machine/stack_frame.hpp"
+
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/split_member.hpp>
 
 #include <functional>
 #include <stdexcept>
@@ -168,6 +169,36 @@ class CallStack {
    * push or pop operations that were delayed during the lock period.
    */
   void ApplyDelayedModifications();
+
+  // Boost serialization support
+  friend class boost::serialization::access;
+  BOOST_SERIALIZATION_SPLIT_MEMBER();
+
+  void save(auto& ar, const unsigned int version) const {
+    ar & stack_.size();
+    for (StackFrame frame : stack_)
+      ar & frame;
+  }
+
+  void load(auto& ar, const unsigned int version) {
+    real_frames_.clear();
+    stack_.clear();
+    delayed_modifications_.clear();
+    is_locked_ = false;
+
+    std::size_t size;
+    ar & size;
+    stack_.reserve(size);
+
+    for (std::size_t i = 0; i < size; ++i) {
+      StackFrame frame;
+      ar & frame;
+
+      if (frame.frame_type != StackFrame::TYPE_LONGOP)
+        real_frames_.push_back(stack_.size());
+      stack_.emplace_back(std::move(frame));
+    }
+  }
 };
 
 struct CallStack::Lock {

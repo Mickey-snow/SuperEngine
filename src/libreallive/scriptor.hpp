@@ -40,6 +40,10 @@ struct ScriptLocation {
 
   int scenario_id_;
   std::size_t offset_;
+
+  void serialize(auto& ar, unsigned int version) {
+    ar & scenario_id_ & offset_;
+  }
 };
 
 class Scriptor {

@@ -53,14 +53,6 @@ class LongOperation;
 //
 // StackFrames can also be added to represent LongOperations.
 struct StackFrame {
-  libreallive::ScriptLocation pos;
-  // Pointer to the owned LongOperation if this is of TYPE_LONGOP.
-  std::shared_ptr<LongOperation> long_op;
-
-  // Stack memory, used for passing parameters.
-  MemoryBank<int> intL;
-  MemoryBank<std::string> strK;
-
   // The function that pushed the current frame onto the
   // stack. Used in error checking.
   enum FrameType {
@@ -68,7 +60,7 @@ struct StackFrame {
     TYPE_GOSUB,    // Added by a call by gosub
     TYPE_FARCALL,  // Added by a call by farcall
     TYPE_LONGOP    // Added by pushLongOperation()
-  } frame_type;
+  };
 
   // Default constructor. Used during serialization and testing.
   StackFrame();
@@ -82,13 +74,22 @@ struct StackFrame {
 
   ~StackFrame();
 
-  template <class Archive>
-  void save(Archive& ar, const unsigned int file_version) const;
+  libreallive::ScriptLocation pos;
+  // Pointer to the owned LongOperation if this is of TYPE_LONGOP.
+  std::shared_ptr<LongOperation> long_op;
 
-  template <class Archive>
-  void load(Archive& ar, const unsigned int file_version);
+  // Stack memory, used for passing parameters.
+  MemoryBank<int> intL;
+  MemoryBank<std::string> strK;
 
-  BOOST_SERIALIZATION_SPLIT_MEMBER()
+  FrameType frame_type;
+
+ private:
+  // boost serialization support
+  friend class boost::serialization::access;
+
+  void serialize(auto& ar, const unsigned int version) {
+    ar & pos & frame_type;
+    ar & intL & strK;
+  }
 };
-
-BOOST_CLASS_VERSION(StackFrame, 2)

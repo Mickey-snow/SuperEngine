@@ -301,12 +301,13 @@ class RLMachine {
  private:
   // boost::serialization support
   friend class boost::serialization::access;
+  BOOST_SERIALIZATION_SPLIT_MEMBER();
 
-  template <class Archive>
-  void save(Archive& ar, const unsigned int file_version) const;
+  void save(auto& ar, const unsigned int file_version) const {
+    ar& LineNumber() & savepoint_call_stack_;
+  }
 
-  template <class Archive>
-  void load(Archive& ar, const unsigned int file_version);
-
-  BOOST_SERIALIZATION_SPLIT_MEMBER()
+  void load(auto& ar, const unsigned int file_version) {
+    ar & line_ & call_stack_;
+  }
 };
