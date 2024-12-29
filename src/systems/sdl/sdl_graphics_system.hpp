@@ -72,15 +72,13 @@ class SDLGraphicsSystem : public GraphicsSystem, public NotificationObserver {
 
   std::shared_ptr<glCanvas> CreateCanvas() const;
   virtual void BeginFrame() override;
-
-  virtual void MarkScreenAsDirty(GraphicsUpdateType type) override;
-
   virtual void EndFrame() override;
+  virtual std::shared_ptr<Surface> RenderToSurface() override;
 
   void RedrawLastFrame();
   void DrawCursor();
 
-  virtual std::shared_ptr<Surface> EndFrameToSurface() override;
+  virtual void MarkScreenAsDirty(GraphicsUpdateType type) override;
 
   virtual void ExecuteGraphicsSystem(RLMachine& machine) override;
 

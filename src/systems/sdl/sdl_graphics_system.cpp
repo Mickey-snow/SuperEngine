@@ -82,8 +82,8 @@ void SDLGraphicsSystem::SetCursor(int cursor) {
 }
 
 std::shared_ptr<glCanvas> SDLGraphicsSystem::CreateCanvas() const {
-  return std::make_shared<glCanvas>(screen_size(),
-                                    Rect(GetScreenOrigin(), display_size_));
+  return std::make_shared<glCanvas>(screen_size(), display_size_,
+                                    GetScreenOrigin());
 }
 
 void SDLGraphicsSystem::BeginFrame() {
@@ -112,15 +112,6 @@ void SDLGraphicsSystem::BeginFrame() {
   auto aspect_ratio_h =
       static_cast<float>(display_size_.height()) / screen_size().height();
   glTranslatef(origin.x() * aspect_ratio_w, origin.y() * aspect_ratio_h, 0);
-}
-
-void SDLGraphicsSystem::MarkScreenAsDirty(GraphicsUpdateType type) {
-  if (is_responsible_for_update() &&
-      screen_update_mode() == SCREENUPDATEMODE_MANUAL &&
-      type == GUT_MOUSE_MOTION)
-    redraw_last_frame_ = true;
-  else
-    GraphicsSystem::MarkScreenAsDirty(type);
 }
 
 void SDLGraphicsSystem::EndFrame() {
@@ -176,24 +167,23 @@ void SDLGraphicsSystem::RedrawLastFrame() {
   }
 }
 
-void SDLGraphicsSystem::DrawCursor() {
-  if (ShouldUseCustomCursor()) {
-    std::shared_ptr<MouseCursor> cursor;
-    if (static_cast<SDLEventSystem&>(system().event()).mouse_inside_window())
-      cursor = GetCurrentCursor();
-    if (cursor) {
-      Point hotspot = cursor_pos();
-      cursor->RenderHotspotAt(hotspot);
-    }
-  }
-}
+std::shared_ptr<Surface> SDLGraphicsSystem::RenderToSurface() {
+  auto canvas = CreateCanvas();
+  canvas->Use();
 
-std::shared_ptr<Surface> SDLGraphicsSystem::EndFrameToSurface() {
-  const auto width = display_size_.width();
-  const auto height = display_size_.height();
+  const auto original_screen = SDLSurface::screen_;
+  SDLSurface::screen_ = canvas->GetBuffer();
+  DrawFrame();  // the actual drawing
+  SDLSurface::screen_ = original_screen;
+
+  // read back pixels
+  auto texture = canvas->GetBuffer()->GetTexture();
+  const auto width = screen_size().width();
+  const auto height = screen_size().height();
 
   std::vector<GLubyte> buf(width * height * 4);
-  glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, buf.data());
+  glGetTextureSubImage(texture->GetID(), 0, 0, 0, 0, width, height, 1, GL_RGBA,
+                       GL_UNSIGNED_BYTE, buf.size(), buf.data());
 
   GLubyte* pixels = new GLubyte[buf.size()];
   for (int y = 0; y < height; ++y) {
@@ -206,6 +196,18 @@ std::shared_ptr<Surface> SDLGraphicsSystem::EndFrameToSurface() {
                                0x00FF0000, 0x0000FF00, 0x000000FF);
 
   return std::make_shared<SDLSurface>(surface);
+}
+
+void SDLGraphicsSystem::DrawCursor() {
+  if (ShouldUseCustomCursor()) {
+    std::shared_ptr<MouseCursor> cursor;
+    if (static_cast<SDLEventSystem&>(system().event()).mouse_inside_window())
+      cursor = GetCurrentCursor();
+    if (cursor) {
+      Point hotspot = cursor_pos();
+      cursor->RenderHotspotAt(hotspot);
+    }
+  }
 }
 
 SDLGraphicsSystem::SDLGraphicsSystem(System& system, Gameexe& gameexe)
@@ -251,7 +253,10 @@ SDLGraphicsSystem::SDLGraphicsSystem(System& system, Gameexe& gameexe)
 }
 
 void SDLGraphicsSystem::Resize(Size display_size) {
-  SDLSurface::screen_canvas->display_size_ = display_size;
+  if (auto fake_screen =
+          std::dynamic_pointer_cast<ScreenCanvas>(SDLSurface::screen_)) {
+    fake_screen->display_size_ = display_size;
+  }
   display_size_ = display_size;
   screen_contents_texture_ = nullptr;
 
@@ -291,7 +296,7 @@ void SDLGraphicsSystem::Resize(Size display_size) {
 
 void SDLGraphicsSystem::SetupVideo(Size window_size) {
   GraphicsSystem::SetScreenSize(window_size);
-  SDLSurface::screen_canvas = std::make_shared<ScreenCanvas>(screen_size());
+  SDLSurface::screen_ = std::make_shared<ScreenCanvas>(screen_size());
 
   Resize(window_size);
 
@@ -339,6 +344,15 @@ void SDLGraphicsSystem::ExecuteGraphicsSystem(RLMachine& machine) {
   }
 
   GraphicsSystem::ExecuteGraphicsSystem(machine);
+}
+
+void SDLGraphicsSystem::MarkScreenAsDirty(GraphicsUpdateType type) {
+  if (is_responsible_for_update() &&
+      screen_update_mode() == SCREENUPDATEMODE_MANUAL &&
+      type == GUT_MOUSE_MOTION)
+    redraw_last_frame_ = true;
+  else
+    GraphicsSystem::MarkScreenAsDirty(type);
 }
 
 void SDLGraphicsSystem::SetWindowTitle(std::string new_caption) {

@@ -48,7 +48,7 @@
 #include <sstream>
 #include <vector>
 
-std::shared_ptr<ScreenCanvas> SDLSurface::screen_canvas = nullptr;
+std::shared_ptr<glFrameBuffer> SDLSurface::screen_ = nullptr;
 
 namespace {
 
@@ -527,12 +527,12 @@ void SDLSurface::RenderToScreenAsColorMask(const Rect& src,
 
     if (filter == 0) {  // subtractive color mask
       glRenderer().RenderColormask({it.gltexture, src_rect},
-                                   {screen_canvas, dst_rect}, rgba);
+                                   {screen_, dst_rect}, rgba);
     } else {
       RenderingConfig config;
       config.mask_color = rgba;
       glRenderer().Render({it.gltexture, src_rect}, config,
-                          {screen_canvas, dst_rect});
+                          {screen_, dst_rect});
     }
   }
 }
@@ -552,7 +552,7 @@ void SDLSurface::RenderToScreen(const Rect& src_rect,
       config.vertex_alpha =
           std::array<float, 4>{opacity[0] / 255.0f, opacity[1] / 255.0f,
                                opacity[2] / 255.0f, opacity[3] / 255.0f};
-      glRenderer().Render({it.gltexture, src}, config, {screen_canvas, dst});
+      glRenderer().Render({it.gltexture, src}, config, {screen_, dst});
     }
   }
 }
@@ -592,7 +592,7 @@ void SDLSurface::RenderToScreenAsObject(const GraphicsObject& rp,
     config.light = param.light();
 
     glRenderer().Render({it.gltexture, src_rect}, std::move(config),
-                        {screen_canvas, dst_rect});
+                        {screen_, dst_rect});
   }
 }
 

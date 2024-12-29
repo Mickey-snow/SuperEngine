@@ -200,5 +200,5 @@ class SDLSurface : public Surface {
   bool is_mask_;
 
  public:
-  static std::shared_ptr<ScreenCanvas> screen_canvas;
+  static std::shared_ptr<glFrameBuffer> screen_;
 };

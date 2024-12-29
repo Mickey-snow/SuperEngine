@@ -329,11 +329,10 @@ class GraphicsSystem : public EventListener {
 
   virtual void BeginFrame() = 0;
   virtual void EndFrame() = 0;
-  virtual std::shared_ptr<Surface> EndFrameToSurface() = 0;
 
   // Draws the screen (as if refresh() was called), but draw to the returned
   // surface instead of the screen.
-  std::shared_ptr<Surface> RenderToSurface();
+  virtual std::shared_ptr<Surface> RenderToSurface() = 0;
 
   // Called from the game loop; Does everything that's needed to keep
   // things up.

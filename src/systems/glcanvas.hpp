@@ -34,7 +34,9 @@ class glRenderer;
 
 class glCanvas {
  public:
-  glCanvas(Size resolution, std::optional<Rect> viewport = std::nullopt);
+  glCanvas(Size resolution,
+           std::optional<Size> display_size = std::nullopt,
+           std::optional<Point> origin = std::nullopt);
 
   void Use();
 
@@ -43,8 +45,8 @@ class glCanvas {
   void Flush();
 
  private:
-  Size resolution_;
-  Rect viewport_;
+  Size resolution_, display_size_;
+  Point origin_;
   std::shared_ptr<glFrameBuffer> frame_buf_;
   std::shared_ptr<glRenderer> renderer_;
 };

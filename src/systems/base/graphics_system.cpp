@@ -448,12 +448,6 @@ const ObjectSettings& GraphicsSystem::GetObjectSettings(const int obj_num) {
 
 // -----------------------------------------------------------------------
 
-std::shared_ptr<Surface> GraphicsSystem::RenderToSurface() {
-  BeginFrame();
-  DrawFrame();
-  return EndFrameToSurface();
-}
-
 void GraphicsSystem::DrawFrame() {
   switch (background_type_) {
     case BACKGROUND_DC0: {

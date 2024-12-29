@@ -32,9 +32,12 @@
 
 #include <GL/glew.h>
 
-glCanvas::glCanvas(Size resolution, std::optional<Rect> viewport)
+glCanvas::glCanvas(Size resolution,
+                   std::optional<Size> display_size,
+                   std::optional<Point> origin)
     : resolution_(resolution),
-      viewport_(viewport.value_or(Rect(Point(0, 0), resolution))),
+      display_size_(display_size.value_or(resolution)),
+      origin_(origin.value_or(Point(0, 0))),
       frame_buf_(std::make_shared<glFrameBuffer>(
           std::make_shared<glTexture>(resolution))),
       renderer_(std::make_shared<glRenderer>()) {
@@ -42,23 +45,21 @@ glCanvas::glCanvas(Size resolution, std::optional<Rect> viewport)
 }
 
 void glCanvas::Use() {
-  auto display_size = viewport_.size();
-  glViewport(0, 0, display_size.width(), display_size.height());
+  glViewport(0, 0, resolution_.width(), resolution_.height());
 
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  glOrtho(0.0, (GLdouble)display_size.width(), (GLdouble)display_size.height(),
+  glOrtho(0.0, (GLdouble)resolution_.width(), (GLdouble)resolution_.height(),
           0.0, 0.0, 1.0);
 
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
 
   const auto aspect_ratio_w =
-      static_cast<float>(display_size.width()) / resolution_.width();
+      static_cast<float>(display_size_.width()) / resolution_.width();
   const auto aspect_ratio_h =
-      static_cast<float>(display_size.height()) / resolution_.height();
-  glTranslatef(viewport_.x() * aspect_ratio_w, viewport_.y() * aspect_ratio_h,
-               0);
+      static_cast<float>(display_size_.height()) / resolution_.height();
+  glTranslatef(origin_.x() * aspect_ratio_w, origin_.y() * aspect_ratio_h, 0);
 }
 
 std::shared_ptr<glFrameBuffer> glCanvas::GetBuffer() const {
@@ -66,8 +67,8 @@ std::shared_ptr<glFrameBuffer> glCanvas::GetBuffer() const {
 }
 
 void glCanvas::Flush() {
-  auto screen = std::make_shared<ScreenCanvas>(viewport_.size());
+  auto screen = std::make_shared<ScreenCanvas>(display_size_);
   const Rect src(Point(0, 0), resolution_);
-  const Rect dst(Point(0, 0), viewport_.size());
+  const Rect dst(Point(0, 0), display_size_);
   renderer_->Render({frame_buf_->GetTexture(), src}, {screen, dst});
 }
