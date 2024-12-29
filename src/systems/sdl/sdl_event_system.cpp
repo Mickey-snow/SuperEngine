@@ -51,47 +51,33 @@ SDLEventSystem::SDLEventSystem(SDLSystem& sys, Gameexe& gexe)
       button2_state_(0),
       last_get_currsor_time_(0),
       last_mouse_move_time_(0),
-      system_(sys),
-      raw_handler_(NULL) {}
+      system_(sys) {}
 
 void SDLEventSystem::ExecuteEventSystem(RLMachine& machine) {
   SDL_Event event;
   while (SDL_PollEvent(&event)) {
     switch (event.type) {
       case SDL_KEYDOWN: {
-        if (raw_handler_)
-          raw_handler_->pushInput(event);
-        else
-          HandleKeyDown(machine, event);
+        HandleKeyDown(machine, event);
         break;
       }
       case SDL_KEYUP: {
-        if (raw_handler_)
-          raw_handler_->pushInput(event);
-        else
-          HandleKeyUp(machine, event);
+        HandleKeyUp(machine, event);
         break;
       }
       case SDL_MOUSEMOTION: {
-        if (raw_handler_)
-          raw_handler_->pushInput(event);
         HandleMouseMotion(machine, event);
         break;
       }
       case SDL_MOUSEBUTTONDOWN:
       case SDL_MOUSEBUTTONUP: {
-        if (raw_handler_)
-          raw_handler_->pushInput(event);
-        else
-          HandleMouseButtonEvent(machine, event);
+        HandleMouseButtonEvent(machine, event);
         break;
       }
       case SDL_QUIT:
         machine.Halt();
         break;
       case SDL_ACTIVEEVENT:
-        if (raw_handler_)
-          raw_handler_->pushInput(event);
         HandleActiveEvent(machine, event);
         break;
       case SDL_VIDEOEXPOSE:
