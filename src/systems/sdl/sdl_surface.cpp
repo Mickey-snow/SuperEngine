@@ -36,7 +36,6 @@
 #include "systems/screen_canvas.hpp"
 #include "systems/sdl/sdl_graphics_system.hpp"
 #include "systems/sdl/sdl_utils.hpp"
-#include "systems/sdl/texture.hpp"
 #include "utilities/graphics.hpp"
 
 #include "glm/gtc/matrix_transform.hpp"

@@ -68,7 +68,6 @@
 #include "systems/sdl/sdl_surface.hpp"
 #include "systems/sdl/sdl_utils.hpp"
 #include "systems/sdl/shaders.hpp"
-#include "systems/sdl/texture.hpp"
 #include "utilities/exception.hpp"
 #include "utilities/graphics.hpp"
 #include "utilities/lazy_array.hpp"
@@ -293,7 +292,6 @@ void SDLGraphicsSystem::Resize(Size display_size) {
 
 void SDLGraphicsSystem::SetupVideo(Size window_size) {
   GraphicsSystem::SetScreenSize(window_size);
-  Texture::SetScreenSize(screen_size());
   SDLSurface::screen_canvas = std::make_shared<ScreenCanvas>(screen_size());
 
   Resize(window_size);

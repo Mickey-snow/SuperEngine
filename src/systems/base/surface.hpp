@@ -41,7 +41,7 @@ struct GraphicsObjectOverride;
 
 // Abstract surface used in rlvm. Various systems graphics systems should
 // provide a subclass of Surface that implement all the following primitives.
-class Surface : public std::enable_shared_from_this<Surface> {
+class Surface {
  public:
   Surface();
   virtual ~Surface();

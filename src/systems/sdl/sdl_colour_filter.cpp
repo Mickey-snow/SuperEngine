@@ -29,7 +29,6 @@
 #include "systems/base/graphics_object.hpp"
 #include "systems/sdl/sdl_utils.hpp"
 #include "systems/sdl/shaders.hpp"
-#include "systems/sdl/texture.hpp"
 
 SDLColourFilter::SDLColourFilter()
     : texture_width_(0), texture_height_(0), back_texture_id_(0) {}

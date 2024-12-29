@@ -73,5 +73,4 @@ class glRenderer {
 
  private:
   struct glBuffer;
-  std::shared_ptr<glslProgram> shader_;
 };
