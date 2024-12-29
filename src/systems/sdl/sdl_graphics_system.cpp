@@ -65,7 +65,6 @@
 #include "systems/screen_canvas.hpp"
 #include "systems/sdl/sdl_colour_filter.hpp"
 #include "systems/sdl/sdl_event_system.hpp"
-#include "systems/sdl/sdl_render_to_texture_surface.hpp"
 #include "systems/sdl/sdl_surface.hpp"
 #include "systems/sdl/sdl_utils.hpp"
 #include "systems/sdl/shaders.hpp"
@@ -168,6 +167,8 @@ void SDLGraphicsSystem::RedrawLastFrame() {
         {std::make_shared<ScreenCanvas>(screen_size()),
          Rect(Point(0, 0), screen_size())});
 
+    DrawCursor();
+
     // Swap the buffers
     SDL_GL_SwapBuffers();
     ShowGLErrors();
@@ -187,8 +188,23 @@ void SDLGraphicsSystem::DrawCursor() {
 }
 
 std::shared_ptr<Surface> SDLGraphicsSystem::EndFrameToSurface() {
-  return std::shared_ptr<Surface>(
-      new SDLRenderToTextureSurface(this, screen_size()));
+  const auto width = display_size_.width();
+  const auto height = display_size_.height();
+
+  std::vector<GLubyte> buf(width * height * 4);
+  glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, buf.data());
+
+  GLubyte* pixels = new GLubyte[buf.size()];
+  for (int y = 0; y < height; ++y) {
+    std::memcpy(pixels + (y * width * 4),
+                buf.data() + ((height - 1 - y) * width * 4), width * 4);
+  }
+
+  SDL_Surface* surface =
+      SDL_CreateRGBSurfaceFrom(pixels, width, height, 32, width * 4, 0xFF000000,
+                               0x00FF0000, 0x0000FF00, 0x000000FF);
+
+  return std::make_shared<SDLSurface>(surface);
 }
 
 // -----------------------------------------------------------------------

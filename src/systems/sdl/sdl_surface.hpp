@@ -164,7 +164,6 @@ class SDLSurface : public Surface {
     void forceUnload();
 
     // The actual texture.
-    std::shared_ptr<Texture> texture;
     std::shared_ptr<glTexture> gltexture;
 
     int x_, y_, w_, h_;

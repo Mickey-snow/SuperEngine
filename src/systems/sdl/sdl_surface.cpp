@@ -230,20 +230,6 @@ SDLSurface::TextureRecord::TextureRecord(SDLSurface const* me,
 // -----------------------------------------------------------------------
 
 void SDLSurface::TextureRecord::reupload(SDLSurface const* me, Rect dirty) {
-  if (texture) {
-    Rect intersect = Rect::REC(x_, y_, w_, h_).Intersection(dirty);
-    if (!intersect.is_empty()) {
-      texture->reupload(me->surface(), intersect.x() - x_, intersect.y() - y_,
-                        intersect.x(), intersect.y(), intersect.width(),
-                        intersect.height(), bytes_per_pixel_, byte_order_,
-                        byte_type_);
-    }
-  } else {
-    texture =
-        std::make_shared<Texture>(me->surface(), x_, y_, w_, h_,
-                                  bytes_per_pixel_, byte_order_, byte_type_);
-  }
-
   if (gltexture) {
     Rect intersect = Rect::REC(x_, y_, w_, h_).Intersection(dirty);
     auto data = me->Dump(intersect);
@@ -260,10 +246,7 @@ void SDLSurface::TextureRecord::reupload(SDLSurface const* me, Rect dirty) {
 
 // -----------------------------------------------------------------------
 
-void SDLSurface::TextureRecord::forceUnload() {
-  texture.reset();
-  gltexture.reset();
-}
+void SDLSurface::TextureRecord::forceUnload() { gltexture.reset(); }
 
 // -----------------------------------------------------------------------
 // SDLSurface

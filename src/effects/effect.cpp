@@ -64,6 +64,9 @@ bool Effect::operator()(RLMachine& machine) {
   if (current_frame >= duration_ || fast_forward) {
     return true;
   } else {
+    // return true;
+    // TODO: this causes frames to be rendered disproportionally after resize
+
     GraphicsSystem& graphics = machine.GetSystem().graphics();
     graphics.BeginFrame();
 
