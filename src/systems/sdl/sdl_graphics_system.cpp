@@ -93,10 +93,12 @@ void SDLGraphicsSystem::BeginFrame() {
                        RGBAColour(0, 0, 0, 255));
   DebugShowGLErrors();
 
+  glViewport(0, 0, display_size_.width(), display_size_.height());
+
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  glOrtho(0.0, (GLdouble)screen_size().width(),
-          (GLdouble)screen_size().height(), 0.0, 0.0, 1.0);
+  glOrtho(0.0, (GLdouble)display_size_.width(),
+          (GLdouble)display_size_.height(), 0.0, 0.0, 1.0);
   DebugShowGLErrors();
 
   glMatrixMode(GL_MODELVIEW);
@@ -105,7 +107,11 @@ void SDLGraphicsSystem::BeginFrame() {
 
   // Full screen shaking moves where the origin is.
   Point origin = GetScreenOrigin();
-  glTranslatef(origin.x(), origin.y(), 0);
+  auto aspect_ratio_w =
+      static_cast<float>(display_size_.width()) / screen_size().width();
+  auto aspect_ratio_h =
+      static_cast<float>(display_size_.height()) / screen_size().height();
+  glTranslatef(origin.x() * aspect_ratio_w, origin.y() * aspect_ratio_h, 0);
 }
 
 void SDLGraphicsSystem::MarkScreenAsDirty(GraphicsUpdateType type) {
@@ -229,18 +235,14 @@ SDLGraphicsSystem::SDLGraphicsSystem(System& system, Gameexe& gameexe)
                  Source<GraphicsSystem>(static_cast<GraphicsSystem*>(this)));
 }
 
-void SDLGraphicsSystem::SetupVideo(Size window_size) {
-  GraphicsSystem::SetScreenSize(window_size);
-  Texture::SetScreenSize(screen_size());
-  SDLSurface::screen_canvas = std::make_shared<ScreenCanvas>(screen_size());
+void SDLGraphicsSystem::Resize(Size display_size) {
+  display_size_ = display_size;
 
-  // Let's get some video information.
   const SDL_VideoInfo* info = SDL_GetVideoInfo();
-
   if (!info) {
     std::ostringstream ss;
     ss << "Video query failed: " << SDL_GetError();
-    throw SystemError(ss.str());
+    throw std::runtime_error(ss.str());
   }
 
   int bpp = info->vfmt->BitsPerPixel;
@@ -262,12 +264,20 @@ void SDLGraphicsSystem::SetupVideo(Size window_size) {
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
   // Set the video mode
-  if ((screen_ = SDL_SetVideoMode(screen_size().width(), screen_size().height(),
+  if ((screen_ = SDL_SetVideoMode(display_size_.width(), display_size_.height(),
                                   bpp, video_flags)) == 0) {
     std::ostringstream ss;
     ss << "Video mode set failed: " << SDL_GetError();
-    throw SystemError(ss.str());
+    throw std::runtime_error(ss.str());
   }
+}
+
+void SDLGraphicsSystem::SetupVideo(Size window_size) {
+  GraphicsSystem::SetScreenSize(window_size);
+  Texture::SetScreenSize(screen_size());
+  SDLSurface::screen_canvas = std::make_shared<ScreenCanvas>(screen_size());
+
+  Resize(window_size);
 
   // Initialize glew
   GLenum err = glewInit();

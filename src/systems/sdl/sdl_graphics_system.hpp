@@ -104,6 +104,8 @@ class SDLGraphicsSystem : public GraphicsSystem, public NotificationObserver {
 
   void SetupVideo(Size window_size);
 
+  void Resize(Size display_size);
+
  private:
   // Makes sure that a passed in dc number is valid.
   //
@@ -145,4 +147,6 @@ class SDLGraphicsSystem : public GraphicsSystem, public NotificationObserver {
   int screen_tex_height_;
 
   NotificationRegistrar registrar_;
+
+  Size display_size_;
 };

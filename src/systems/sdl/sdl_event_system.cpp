@@ -98,9 +98,9 @@ void SDLEventSystem::ExecuteEventSystem(RLMachine& machine) {
         machine.GetSystem().graphics().ForceRefresh();
         break;
       case SDL_VIDEORESIZE:
-        // Size new_size = Size(event.resize.w, event.resize.h);
-        // dynamic_cast<SDLGraphicsSystem&>(machine.GetSystem().graphics())
-        //     .SetupVideo(new_size);
+        Size new_size = Size(event.resize.w, event.resize.h);
+        dynamic_cast<SDLGraphicsSystem&>(machine.GetSystem().graphics())
+            .Resize(new_size);
         break;
     }
   }
