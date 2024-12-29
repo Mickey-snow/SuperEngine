@@ -24,10 +24,9 @@
 
 #pragma once
 
-#include <boost/iterator/iterator_facade.hpp>
+#include "lru_cache.hpp"
+
 #include <memory>
-#include <string>
-#include <vector>
 
 namespace libreallive {
 
@@ -35,44 +34,34 @@ class Archive;
 class Scenario;
 class BytecodeElement;
 
+struct ScriptLocation {
+  ScriptLocation();
+  ScriptLocation(int id, std::size_t offset);
+
+  int scenario_id_;
+  std::size_t offset_;
+};
+
 class Scriptor {
  public:
   explicit Scriptor(Archive& ar);
   ~Scriptor();
 
-  class const_iterator
-      : public boost::iterator_facade<const_iterator,
-                                      const std::shared_ptr<BytecodeElement>&,
-                                      boost::forward_traversal_tag> {
-   public:
-    // to construct an invalid iterator, for testing purposes
-    const_iterator();
+  using Reference = ScriptLocation;
 
-    int ScenarioNumber() const;
-    unsigned long Location() const;
-    bool HasNext() const;
-    const Scenario* GetScenario() const;
+  Reference Load(int scenario_number, unsigned long loc);
+  Reference Load(int scenario_number);
+  Reference LoadEntry(int scenario_number, int entry);
 
-   private:
-    friend class Scriptor;
-    const_iterator(const Scenario* sc, std::size_t off);
-
-    const Scenario* scenario_;
-    std::size_t offset_;
-
-    friend class boost::iterator_core_access;
-
-    void increment();
-    bool equal(const const_iterator& other) const;
-    const std::shared_ptr<BytecodeElement>& dereference() const;
-  };
-
-  const_iterator Load(int scenario_number, unsigned long loc);
-  const_iterator Load(int scenario_number);
-  const_iterator LoadEntry(int scenario_number, int entry);
+  unsigned long LocationNumber(Reference it) const;
+  bool HasNext(Reference it) const;
+  Reference Next(Reference it) const;
+  const Scenario* GetScenario(Reference it) const;
+  const std::shared_ptr<BytecodeElement>& Dereference(Reference it) const;
 
  private:
   Archive& archive_;
+  mutable LRUCache<int, Scenario*> cached_scenario;
 };
 
 }  // namespace libreallive

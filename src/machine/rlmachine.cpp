@@ -194,14 +194,14 @@ void RLMachine::ExecuteNextInstruction() {
       }
 
     } else {
-      auto instruction = Resolve(*top_frame->pos);
+      auto instruction = Resolve(scriptor_.Dereference(top_frame->pos));
       std::visit(*this, std::move(instruction));
     }
   } catch (rlvm::UnimplementedOpcode& e) {
     AdvanceInstructionPointer();
 
     if (print_undefined_opcodes_) {
-      cout << "(SEEN" << top_frame->pos.ScenarioNumber() << ")(Line " << line_
+      cout << "(SEEN" << top_frame->pos.scenario_id_ << ")(Line " << line_
            << "):  " << e.what() << endl;
     }
 
@@ -210,8 +210,7 @@ void RLMachine::ExecuteNextInstruction() {
     // loops where we throw an exception, and then try again.
     AdvanceInstructionPointer();
 
-    cout << "(SEEN" << top_frame->pos.ScenarioNumber() << ")(Line " << line_
-         << ")";
+    cout << "(SEEN" << top_frame->pos.scenario_id_ << ")(Line " << line_ << ")";
 
     // We specialcase rlvm::Exception because we might have the name of the
     // opcode.
@@ -225,7 +224,7 @@ void RLMachine::ExecuteNextInstruction() {
     // loops where we throw an exception, and then try again.
     AdvanceInstructionPointer();
 
-    cout << "(SEEN" << top_frame->pos.ScenarioNumber() << ")(Line " << line_
+    cout << "(SEEN" << top_frame->pos.scenario_id_ << ")(Line " << line_
          << "):  " << e.what() << endl;
   }
 }
@@ -236,8 +235,9 @@ void RLMachine::AdvanceInstructionPointer() {
 
   const auto it = call_stack_.FindTopRealFrame();
   if (it != nullptr) {
-    it->pos++;
-    if (!it->pos.HasNext())
+    it->pos = scriptor_.Next(it->pos);
+
+    if (!scriptor_.HasNext(it->pos))
       halted_ = true;
   }
 }
@@ -278,11 +278,12 @@ std::shared_ptr<LongOperation> RLMachine::CurrentLongOperation() const {
 }
 
 int RLMachine::SceneNumber() const {
-  return call_stack_.Top()->pos.ScenarioNumber();
+  return call_stack_.Top()->pos.scenario_id_;
 }
 
 const libreallive::Scenario& RLMachine::Scenario() const {
-  return *(call_stack_.Top()->pos.GetScenario());
+  auto sc = scriptor_.GetScenario(call_stack_.Top()->pos);
+  return *sc;
 }
 
 int RLMachine::GetTextEncoding() const { return Scenario().encoding(); }

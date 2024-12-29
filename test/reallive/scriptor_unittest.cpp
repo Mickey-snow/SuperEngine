@@ -70,10 +70,12 @@ class ScriptorTest : public ::testing::Test {
     return Script(std::move(elements), std::map<int, unsigned long>{});
   }
 
-  std::vector<int> Traverse(Scriptor::const_iterator it) {
+  std::vector<int> Traverse(const Scriptor& scriptor, Scriptor::Reference it) {
     std::vector<int> result;
-    while (it.HasNext())
-      result.push_back((*it++)->GetEntrypoint());
+    while (scriptor.HasNext(it)) {
+      result.push_back(scriptor.Dereference(it)->GetEntrypoint());
+      it = scriptor.Next(it);
+    }
     return result;
   }
 };
@@ -85,8 +87,8 @@ TEST_F(ScriptorTest, IterateForward) {
   EXPECT_CALL(archive, GetScenario(1)).WillRepeatedly(Return(&s1));
 
   auto it = scriptor.Load(1, 1);
-  EXPECT_EQ(it.ScenarioNumber(), 1);
-  EXPECT_EQ(Traverse(it), (std::vector{1, 2, 3}));
+  EXPECT_EQ(it.scenario_id_, 1);
+  EXPECT_EQ(Traverse(scriptor, it), (std::vector{1, 2, 3}));
 }
 
 TEST_F(ScriptorTest, SkipEmptyLocation) {
@@ -94,8 +96,8 @@ TEST_F(ScriptorTest, SkipEmptyLocation) {
   EXPECT_CALL(archive, GetScenario(2)).WillRepeatedly(Return(&s2));
 
   auto it = scriptor.Load(2, 1);
-  EXPECT_EQ(it.ScenarioNumber(), 2);
-  EXPECT_EQ(Traverse(it), (std::vector{1, 77, 177, 300}));
+  EXPECT_EQ(it.scenario_id_, 2);
+  EXPECT_EQ(Traverse(scriptor, it), (std::vector{1, 77, 177, 300}));
 }
 
 TEST_F(ScriptorTest, LoadEntrypoint) {
@@ -103,8 +105,9 @@ TEST_F(ScriptorTest, LoadEntrypoint) {
   s2.script.entrypoints_ = std::map<int, unsigned long>{{1, 77}, {2, 300}};
   EXPECT_CALL(archive, GetScenario(2)).WillRepeatedly(Return(&s2));
 
-  EXPECT_EQ(Traverse(scriptor.LoadEntry(2, 1)), (std::vector{77, 177, 300}));
-  EXPECT_EQ(Traverse(scriptor.LoadEntry(2, 2)), (std::vector{300}));
+  EXPECT_EQ(Traverse(scriptor, scriptor.LoadEntry(2, 1)),
+            (std::vector{77, 177, 300}));
+  EXPECT_EQ(Traverse(scriptor, scriptor.LoadEntry(2, 2)), (std::vector{300}));
 }
 
 TEST_F(ScriptorTest, InvalidLoad) {
@@ -120,9 +123,10 @@ TEST_F(ScriptorTest, CloneIterator) {
   EXPECT_CALL(archive, GetScenario(3)).WillRepeatedly(Return(&s3));
 
   auto it1 = scriptor.Load(3, 2);
-  auto it2 = it1++;
-  EXPECT_EQ(Traverse(it1), (std::vector{10, 20, 30, 40}));
-  EXPECT_EQ(Traverse(it2), (std::vector{2, 10, 20, 30, 40}));
+  auto it2 = it1;
+  it1 = scriptor.Next(it1);
+  EXPECT_EQ(Traverse(scriptor, it1), (std::vector{10, 20, 30, 40}));
+  EXPECT_EQ(Traverse(scriptor, it2), (std::vector{2, 10, 20, 30, 40}));
 }
 
 TEST_F(ScriptorTest, MultipleScenario) {
@@ -132,14 +136,13 @@ TEST_F(ScriptorTest, MultipleScenario) {
   EXPECT_CALL(archive, GetScenario(4)).WillRepeatedly(Return(&s4));
 
   auto it1 = scriptor.Load(3, 1);
-  EXPECT_EQ((*it1++)->GetEntrypoint(), 1);
   auto it2 = scriptor.Load(4, 100);
-  EXPECT_EQ(Traverse(it2), (std::vector{100, 110, 120}));
-  EXPECT_EQ(Traverse(it1), (std::vector{2, 10}));
+  EXPECT_EQ(Traverse(scriptor, it2), (std::vector{100, 110, 120}));
+  EXPECT_EQ(Traverse(scriptor, it1), (std::vector{1, 2, 10}));
 }
 
 TEST_F(ScriptorTest, LoadBegin) {
   Scenario s3({}, MakeScript(1, 2, 10), 3);
   EXPECT_CALL(archive, GetScenario(3)).WillRepeatedly(Return(&s3));
-  EXPECT_EQ(Traverse(scriptor.Load(3)), (std::vector{1, 2, 10}));
+  EXPECT_EQ(Traverse(scriptor, scriptor.Load(3)), (std::vector{1, 2, 10}));
 }

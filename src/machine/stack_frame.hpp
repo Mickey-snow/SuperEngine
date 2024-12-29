@@ -53,16 +53,9 @@ class LongOperation;
 //
 // StackFrames can also be added to represent LongOperations.
 struct StackFrame {
-  libreallive::Scriptor::const_iterator pos;
-
+  libreallive::ScriptLocation pos;
   // Pointer to the owned LongOperation if this is of TYPE_LONGOP.
   std::shared_ptr<LongOperation> long_op;
-
-  // Previous stack memory. Stack memory is used for passing parameters, we save
-  // the status of previous stack here and restore when this frame is poped. For
-  // certain types of stack frame, restoring stack memory is not necessary and
-  // this field does't hold a value.
-  std::optional<Memory::Stack> previous_stack_snapshot;
 
   // Stack memory, used for passing parameters.
   MemoryBank<int> intL;
@@ -81,12 +74,11 @@ struct StackFrame {
   StackFrame();
 
   // Constructor for normal stack frames added by RealLive code.
-  StackFrame(libreallive::Scriptor::const_iterator it, FrameType t);
+  StackFrame(libreallive::ScriptLocation it, FrameType t);
 
   // Constructor for frames that are just LongOperations.
-  StackFrame(libreallive::Scriptor::const_iterator it, LongOperation* op);
-  StackFrame(libreallive::Scriptor::const_iterator it,
-             std::shared_ptr<LongOperation> op);
+  StackFrame(libreallive::ScriptLocation it, LongOperation* op);
+  StackFrame(libreallive::ScriptLocation it, std::shared_ptr<LongOperation> op);
 
   ~StackFrame();
 

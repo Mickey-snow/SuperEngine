@@ -31,57 +31,35 @@
 
 namespace libreallive {
 
-Scriptor::Scriptor(Archive& ar) : archive_(ar) {}
-
-Scriptor::~Scriptor() = default;
-
 // -----------------------------------------------------------------------
-// const_iterator
+// struct ScriptLocation
 // -----------------------------------------------------------------------
 
-Scriptor::const_iterator::const_iterator() : scenario_(nullptr), offset_(0) {}
+ScriptLocation::ScriptLocation() : scenario_id_(0), offset_(0) {}
 
-Scriptor::const_iterator::const_iterator(const Scenario* sc, std::size_t off)
-    : scenario_(sc), offset_(off) {}
+ScriptLocation::ScriptLocation(int scenario_id, std::size_t off)
+    : scenario_id_(scenario_id), offset_(off) {}
 
-int Scriptor::const_iterator::ScenarioNumber() const {
-  return scenario_->scenario_number_;
-}
-
-unsigned long Scriptor::const_iterator::Location() const {
-  return scenario_->script.elements_[offset_].first;
-}
-
-bool Scriptor::const_iterator::HasNext() const {
-  return offset_ < scenario_->script.elements_.size();
-}
-
-const Scenario* Scriptor::const_iterator::GetScenario() const {
-  return scenario_;
-}
-
-void Scriptor::const_iterator::increment() { ++offset_; }
-
-bool Scriptor::const_iterator::equal(const const_iterator& other) const {
-  return scenario_ == other.scenario_ && offset_ == other.offset_;
-}
-
-const std::shared_ptr<BytecodeElement>& Scriptor::const_iterator::dereference()
-    const {
-  return scenario_->script.elements_[offset_].second;
+Scenario* FindScenario(Archive* archive, int scenario_number) {
+  Scenario* sc = archive->GetScenario(scenario_number);
+  if (!sc) {
+    throw std::runtime_error("Scenario " + std::to_string(scenario_number) +
+                             " not found.");
+  }
+  return sc;
 }
 
 // -----------------------------------------------------------------------
 // Scriptor methods
 // -----------------------------------------------------------------------
 
-Scriptor::const_iterator Scriptor::Load(int scenario_number,
-                                        unsigned long loc) {
-  Scenario* sc = archive_.GetScenario(scenario_number);
-  if (!sc) {
-    throw std::invalid_argument("Scenario " + std::to_string(scenario_number) +
-                                " not found.");
-  }
+Scriptor::Scriptor(Archive& ar) : archive_(ar), cached_scenario(64) {}
+
+Scriptor::~Scriptor() = default;
+
+ScriptLocation Scriptor::Load(int scenario_number, unsigned long loc) {
+  Scenario* sc = cached_scenario.fetch_or_else(
+      scenario_number, std::bind(FindScenario, &archive_, scenario_number));
 
   const auto& elements = sc->script.elements_;
   auto comparator =
@@ -96,21 +74,17 @@ Scriptor::const_iterator Scriptor::Load(int scenario_number,
                                 std::to_string(scenario_number) + ".");
   }
 
-  return const_iterator(
-      sc, static_cast<std::size_t>(std::distance(elements.cbegin(), it)));
+  return ScriptLocation(scenario_number, static_cast<std::size_t>(std::distance(
+                                             elements.cbegin(), it)));
 }
 
-Scriptor::const_iterator Scriptor::Load(int scenario_number) {
-  Scenario* sc = archive_.GetScenario(scenario_number);
-  return const_iterator(sc, 0);
+ScriptLocation Scriptor::Load(int scenario_number) {
+  return ScriptLocation(scenario_number, 0);
 }
 
-Scriptor::const_iterator Scriptor::LoadEntry(int scenario_number, int entry) {
-  Scenario* sc = archive_.GetScenario(scenario_number);
-  if (!sc) {
-    throw std::invalid_argument("Scenario " + std::to_string(scenario_number) +
-                                " not found.");
-  }
+ScriptLocation Scriptor::LoadEntry(int scenario_number, int entry) {
+  Scenario* sc = cached_scenario.fetch_or_else(
+      scenario_number, std::bind(FindScenario, &archive_, scenario_number));
 
   auto entry_it = sc->script.entrypoints_.find(entry);
   if (entry_it == sc->script.entrypoints_.end()) {
@@ -121,6 +95,35 @@ Scriptor::const_iterator Scriptor::LoadEntry(int scenario_number, int entry) {
 
   const unsigned long loc = entry_it->second;
   return Load(scenario_number, loc);
+}
+
+unsigned long Scriptor::LocationNumber(Scriptor::Reference it) const {
+  const Scenario* sc = cached_scenario.fetch_or_else(
+      it.scenario_id_, std::bind(FindScenario, &archive_, it.scenario_id_));
+  return sc->script.elements_[it.offset_].first;
+}
+
+bool Scriptor::HasNext(Scriptor::Reference it) const {
+  const Scenario* sc = cached_scenario.fetch_or_else(
+      it.scenario_id_, std::bind(FindScenario, &archive_, it.scenario_id_));
+  return it.offset_ < sc->script.elements_.size();
+}
+
+Scriptor::Reference Scriptor::Next(Scriptor::Reference it) const {
+  ++it.offset_;
+  return it;
+}
+
+const Scenario* Scriptor::GetScenario(Scriptor::Reference it) const {
+  return cached_scenario.fetch_or_else(
+      it.scenario_id_, std::bind(FindScenario, &archive_, it.scenario_id_));
+}
+
+const std::shared_ptr<BytecodeElement>& Scriptor::Dereference(
+    Scriptor::Reference it) const {
+  const Scenario* sc = cached_scenario.fetch_or_else(
+      it.scenario_id_, std::bind(FindScenario, &archive_, it.scenario_id_));
+  return sc->script.elements_[it.offset_].second;
 }
 
 }  // namespace libreallive
