@@ -116,6 +116,30 @@ TEST(LRUCacheTest, FetchNonExisting) {
       << "Fetch non-existing element pointer should return nullptr";
 }
 
+TEST(LRUCacheTest, FetchOrElse) {
+  LRUCache<int, std::string> cache(3);
+  cache.insert(1, "one");
+  cache.insert(2, "two");
+
+  bool factory_called = false;
+  auto default_factory = [&factory_called]() -> std::string {
+    factory_called = true;
+    return "default";
+  };
+
+  std::string result = cache.fetch_or_else(1, default_factory);
+  EXPECT_EQ(result, "one");
+  EXPECT_FALSE(factory_called)
+      << "Default factory should not be called for existing keys";
+
+  result = cache.fetch_or_else(3, default_factory);
+  EXPECT_EQ(result, "default");
+  EXPECT_TRUE(factory_called);
+
+  result = cache.fetch(3);
+  EXPECT_EQ(result, "default") << "Should be inserted into the cache";
+}
+
 TEST(LRUCacheTest, InsertDuplicateKeys) {
   LRUCache<int, int> cache(2);
   cache.insert(1, 10);
