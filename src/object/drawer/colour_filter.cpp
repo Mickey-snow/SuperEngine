@@ -34,11 +34,13 @@
 #include <ostream>
 
 #include "base/colour.hpp"
-#include "systems/base/colour_filter.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/system.hpp"
-#include "utilities/exception.hpp"
+#include "systems/gl_frame_buffer.hpp"
+#include "systems/glrenderer.hpp"
+#include "systems/gltexture.hpp"
+#include "systems/sdl/sdl_surface.hpp"
 
 ColourFilterObjectData::ColourFilterObjectData(GraphicsSystem& system,
                                                const Rect& screen_rect)
@@ -46,16 +48,9 @@ ColourFilterObjectData::ColourFilterObjectData(GraphicsSystem& system,
 
 ColourFilterObjectData::~ColourFilterObjectData() {}
 
-ColourFilter* ColourFilterObjectData::GetColourFilter() {
-  if (!colour_filer_)
-    colour_filer_.reset(graphics_system_.BuildColourFiller());
-  return colour_filer_.get();
-}
-
 void ColourFilterObjectData::Render(const GraphicsObject& go,
                                     const GraphicsObject* parent) {
   auto& param = go.Param();
-
   if (param.width() != 100 || param.height() != 100) {
     static bool printed = false;
     if (!printed) {
@@ -64,16 +59,23 @@ void ColourFilterObjectData::Render(const GraphicsObject& go,
     }
   }
 
-  RGBAColour colour = param.colour();
-  GetColourFilter()->Fill(go, screen_rect_, colour);
+  [[maybe_unused]] RGBAColour colour = param.colour();
+
+  auto screen_canvas = SDLSurface::screen_;
+  auto background = screen_canvas->GetTexture();
+
+  const Rect src(Point(0, 0), background->GetSize());
+  const Rect dst(Point(0, 0), screen_canvas->GetSize());
+  glRenderer().Render({background, src}, go.CreateRenderingConfig(),
+                      {screen_canvas, dst});
 }
 
 int ColourFilterObjectData::PixelWidth(const GraphicsObject&) {
-  throw rlvm::Exception("There is no sane value for this!");
+  throw std::runtime_error("There is no sane value for this!");
 }
 
 int ColourFilterObjectData::PixelHeight(const GraphicsObject&) {
-  throw rlvm::Exception("There is no sane value for this!");
+  throw std::runtime_error("There is no sane value for this!");
 }
 
 std::unique_ptr<GraphicsObjectData> ColourFilterObjectData::Clone() const {

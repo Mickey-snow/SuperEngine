@@ -38,6 +38,10 @@
 #include <boost/serialization/scoped_ptr.hpp>
 #include <boost/serialization/shared_ptr.hpp>
 
+#include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtc/type_ptr.hpp"
+#include "glm/matrix.hpp"
+
 #include <algorithm>
 #include <iostream>
 #include <numeric>
@@ -164,6 +168,20 @@ void GraphicsObject::Render(int objNum, const GraphicsObject* parent) {
   if (object_data_ && Param().visible()) {
     object_data_->Render(*this, parent);
   }
+}
+
+RenderingConfig GraphicsObject::CreateRenderingConfig() const {
+  RenderingConfig config;
+
+  const auto& param = Param();
+  config.blend_type = param.composite_mode();
+  config.color = param.colour();
+  config.tint = param.tint();
+  config.mono = param.mono();
+  config.invert = param.invert();
+  config.light = param.light();
+
+  return config;
 }
 
 void GraphicsObject::FreeObjectData() {

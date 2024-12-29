@@ -89,8 +89,6 @@ class SDLGraphicsSystem : public GraphicsSystem, public NotificationObserver {
   virtual std::shared_ptr<Surface> GetHaikei() override;
   virtual std::shared_ptr<Surface> GetDC(int dc) override;
 
-  virtual ColourFilter* BuildColourFiller() override;
-
   // -----------------------------------------------------------------------
   virtual void SetWindowTitle(std::string new_caption);
   virtual void SetWindowSubtitle(const std::string& cp932str,

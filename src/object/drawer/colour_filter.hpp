@@ -35,7 +35,6 @@
 #include "machine/serialization.hpp"
 #include "object/objdrawer.hpp"
 
-class ColourFilter;
 class GraphicsObject;
 class GraphicsSystem;
 
@@ -48,9 +47,6 @@ class ColourFilterObjectData : public GraphicsObjectData {
   explicit ColourFilterObjectData(System& system);
 
   void set_rect(const Rect& screen_rect) { screen_rect_ = screen_rect; }
-
-  // Returns the colour filter, lazily creating it if necessary.
-  ColourFilter* GetColourFilter();
 
   // Overridden from GraphicsObjectData:
   virtual void Render(const GraphicsObject& go,
@@ -69,8 +65,6 @@ class ColourFilterObjectData : public GraphicsObjectData {
 
   Rect screen_rect_;
 
-  std::unique_ptr<ColourFilter> colour_filer_;
-
   friend class boost::serialization::access;
   template <class Archive>
   void serialize(Archive& ar, const unsigned int file_version);
@@ -84,7 +78,8 @@ template <class Archive>
 inline void load_construct_data(Archive& ar,
                                 ColourFilterObjectData* t,
                                 const unsigned int file_version) {
-  ::new (t) ColourFilterObjectData(Serialization::g_current_machine->GetSystem());
+  ::new (t)
+      ColourFilterObjectData(Serialization::g_current_machine->GetSystem());
 }
 }  // namespace serialization
 }  // namespace boost

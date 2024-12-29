@@ -54,7 +54,6 @@
 #include "systems/glrenderer.hpp"
 #include "systems/gltexture.hpp"
 #include "systems/screen_canvas.hpp"
-#include "systems/sdl/sdl_colour_filter.hpp"
 #include "systems/sdl/sdl_event_system.hpp"
 #include "systems/sdl/sdl_surface.hpp"
 #include "systems/sdl/sdl_utils.hpp"
@@ -603,10 +602,6 @@ std::shared_ptr<Surface> SDLGraphicsSystem::GetDC(int dc) {
     AllocateDC(dc, display_contexts_[0]->GetSize());
 
   return display_contexts_[dc];
-}
-
-ColourFilter* SDLGraphicsSystem::BuildColourFiller() {
-  return new SDLColourFilter();
 }
 
 void SDLGraphicsSystem::Reset() { GraphicsSystem::Reset(); }
