@@ -33,9 +33,8 @@
 #include "systems/base/surface.hpp"
 
 class glFrameBuffer;
-
+class ScreenCanvas;
 struct SDL_Surface;
-class Texture;
 class GraphicsSystem;
 class SDLGraphicsSystem;
 class GraphicsObject;
@@ -201,5 +200,5 @@ class SDLSurface : public Surface {
   bool is_mask_;
 
  public:
-  static std::shared_ptr<glFrameBuffer> screen_canvas;
+  static std::shared_ptr<ScreenCanvas> screen_canvas;
 };

@@ -251,6 +251,7 @@ SDLGraphicsSystem::SDLGraphicsSystem(System& system, Gameexe& gameexe)
 }
 
 void SDLGraphicsSystem::Resize(Size display_size) {
+  SDLSurface::screen_canvas->display_size_ = display_size;
   display_size_ = display_size;
   screen_contents_texture_ = nullptr;
 

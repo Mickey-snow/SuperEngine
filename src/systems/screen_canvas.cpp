@@ -22,17 +22,19 @@
 //
 // -----------------------------------------------------------------------
 
-#include "base/rect.hpp"
-#include "systems/gl_frame_buffer.hpp"
+#include "systems/screen_canvas.hpp"
 
-struct ScreenCanvas : public glFrameBuffer {
- public:
-  ScreenCanvas(Size size) : size_(size) {}
+#include "systems/gltexture.hpp"
 
-  virtual unsigned int GetID() const override { return 0; }
-  virtual Size GetSize() const override { return size_; }
+#include <GL/glew.h>
 
-  virtual std::shared_ptr<glTexture> GetTexture() const override;
+std::shared_ptr<glTexture> ScreenCanvas::GetTexture() const {
+  auto result = std::make_shared<glTexture>(display_size_);
 
-  Size size_, display_size_;
-};
+  glBindFramebuffer(GL_READ_FRAMEBUFFER, GetID());
+  glBindTexture(GL_TEXTURE_2D, result->GetID());
+  glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, display_size_.width(),
+                      display_size_.height());
+
+  return result;
+}

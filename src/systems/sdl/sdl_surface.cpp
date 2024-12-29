@@ -48,7 +48,7 @@
 #include <sstream>
 #include <vector>
 
-std::shared_ptr<glFrameBuffer> SDLSurface::screen_canvas = nullptr;
+std::shared_ptr<ScreenCanvas> SDLSurface::screen_canvas = nullptr;
 
 namespace {
 
