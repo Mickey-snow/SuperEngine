@@ -131,13 +131,17 @@ void SDLGraphicsSystem::EndFrame() {
   }
 
   if (screen_update_mode() == SCREENUPDATEMODE_MANUAL) {
+    if (!screen_contents_texture_) {
+      screen_contents_texture_ = std::make_shared<glTexture>(display_size_);
+    }
+
     // Copy the area behind the cursor to the temporary buffer (drivers differ:
     // the contents of the back buffer is undefined after SDL_GL_SwapBuffers()
     // and I've just been lucky that the Intel i810 and whatever my Mac machine
     // has have been doing things that way.)
     glBindTexture(GL_TEXTURE_2D, screen_contents_texture_->GetID());
-    glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, screen_size().width(),
-                        screen_size().height());
+    glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, display_size_.width(),
+                        display_size_.height());
     screen_contents_texture_valid_ = true;
   } else {
     screen_contents_texture_valid_ = false;
@@ -156,11 +160,11 @@ void SDLGraphicsSystem::RedrawLastFrame() {
   // by the bytecode and the first refresh() is called since we need a valid
   // copy of the screen to work with and we only snapshot the screen during
   // DrawManual() mode.
-  if (screen_contents_texture_valid_) {
+  if (screen_contents_texture_valid_ && screen_contents_texture_) {
     glRenderer renderer;
 
     renderer.Render(
-        {screen_contents_texture_, Rect(Point(0, 0), screen_size())},
+        {screen_contents_texture_, Rect(Point(0, 0), display_size_)},
         {std::make_shared<ScreenCanvas>(screen_size()),
          Rect(Point(0, 0), screen_size())});
 
@@ -194,9 +198,7 @@ std::shared_ptr<Surface> SDLGraphicsSystem::EndFrameToSurface() {
 SDLGraphicsSystem::SDLGraphicsSystem(System& system, Gameexe& gameexe)
     : GraphicsSystem(system, gameexe),
       redraw_last_frame_(false),
-      screen_contents_texture_valid_(false),
-      screen_tex_width_(0),
-      screen_tex_height_(0) {
+      screen_contents_texture_valid_(false) {
   haikei_ = std::make_shared<SDLSurface>();
   for (int i = 0; i < 16; ++i)
     display_contexts_[i] = std::make_shared<SDLSurface>();
@@ -237,6 +239,7 @@ SDLGraphicsSystem::SDLGraphicsSystem(System& system, Gameexe& gameexe)
 
 void SDLGraphicsSystem::Resize(Size display_size) {
   display_size_ = display_size;
+  screen_contents_texture_ = nullptr;
 
   const SDL_VideoInfo* info = SDL_GetVideoInfo();
   if (!info) {
@@ -287,10 +290,6 @@ void SDLGraphicsSystem::SetupVideo(Size window_size) {
     throw SystemError(oss.str());
   }
 
-  screen_tex_width_ = SafeSize(screen_size().width());
-  screen_tex_height_ = SafeSize(screen_size().height());
-  screen_contents_texture_ =
-      std::make_shared<glTexture>(Size(screen_tex_width_, screen_tex_height_));
   ShowGLErrors();
 }
 

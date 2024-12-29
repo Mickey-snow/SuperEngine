@@ -142,12 +142,6 @@ class SDLGraphicsSystem : public GraphicsSystem, public NotificationObserver {
   // Whether |screen_contents_texture_| is valid to use.
   bool screen_contents_texture_valid_;
 
-  // The size of |screen_contents_texture_|. This can be different
-  // from |screen_size_| because textures need to be powers of two on
-  // OpenGL v1.x drivers.
-  int screen_tex_width_;
-  int screen_tex_height_;
-
   NotificationRegistrar registrar_;
 
   Size display_size_;
