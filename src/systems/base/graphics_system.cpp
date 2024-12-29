@@ -113,7 +113,7 @@ GraphicsSystem::GraphicsObjectSettings::GraphicsObjectSettings(
 
   // First we populate everything with the special value
   position.reset(new unsigned char[objects_in_a_layer]);
-  fill(position.get(), position.get() + objects_in_a_layer, 0);
+  std::fill(position.get(), position.get() + objects_in_a_layer, 0);
 
   if (gameexe.Exists("OBJECT.999"))
     data.emplace_back(gameexe("OBJECT.999"));
@@ -268,11 +268,6 @@ void GraphicsSystem::ForceRefresh() {
   }
 }
 
-void GraphicsSystem::OnScreenRefreshed() {
-  screen_needs_refresh_ = false;
-  object_state_dirty_ = false;
-}
-
 // -----------------------------------------------------------------------
 
 void GraphicsSystem::SetScreenUpdateMode(DCScreenUpdateMode u) {
@@ -307,7 +302,7 @@ void GraphicsSystem::QueueShakeSpec(int spec) {
 
 // -----------------------------------------------------------------------
 
-Point GraphicsSystem::GetScreenOrigin() {
+Point GraphicsSystem::GetScreenOrigin() const {
   if (screen_shake_queue_.empty()) {
     return Point(0, 0);
   } else {
@@ -452,18 +447,6 @@ const ObjectSettings& GraphicsSystem::GetObjectSettings(const int obj_num) {
 }
 
 // -----------------------------------------------------------------------
-
-void GraphicsSystem::Refresh() {
-  BeginFrame();
-  DrawFrame();
-  EndFrame();
-}
-
-std::shared_ptr<Surface> GraphicsSystem::RenderToSurface() {
-  BeginFrame();
-  DrawFrame();
-  return EndFrameToSurface();
-}
 
 void GraphicsSystem::DrawFrame() {
   switch (background_type_) {

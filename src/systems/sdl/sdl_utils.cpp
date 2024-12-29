@@ -34,84 +34,9 @@
 #include <sstream>
 #include <string>
 
+#include "base/colour.hpp"
 #include "base/rect.hpp"
-#include "systems/base/colour.hpp"
 #include "systems/base/system_error.hpp"
-
-// -----------------------------------------------------------------------
-
-void ShowGLErrors(void) {
-  GLenum error;
-  if ((error = glGetError()) != GL_NO_ERROR) {
-    std::string error_string = "OpenGL Error: ";
-    switch (error) {
-      case GL_NO_ERROR:
-        error_string += "No error has been recorded.";
-      case GL_INVALID_ENUM:
-        error_string +=
-            "An unacceptable value is specified for an enumerated argument.";
-      case GL_INVALID_VALUE:
-        error_string += "A numeric argument is out of range.";
-      case GL_INVALID_OPERATION:
-        error_string +=
-            "The specified operation is not allowed in the current state.";
-      case GL_STACK_OVERFLOW:
-        error_string += "This command would cause a stack overflow.";
-      case GL_STACK_UNDERFLOW:
-        error_string += "This command would cause a stack underflow.";
-      case GL_OUT_OF_MEMORY:
-        error_string +=
-            "There is not enough memory left to execute the command.";
-      case GL_INVALID_FRAMEBUFFER_OPERATION:
-        error_string += "The framebuffer object is not complete.";
-      default:
-        error_string += "An unknown OpenGL error has occurred.";
-    }
-    throw SystemError(error_string);
-  }
-}
-
-// -----------------------------------------------------------------------
-
-bool IsNPOTSafe() {
-  static bool is_safe = GLEW_VERSION_2_0 && GLEW_ARB_texture_non_power_of_two;
-  return is_safe;
-}
-
-int GetMaxTextureSize() {
-  static GLint max_texture_size = 0;
-  if (max_texture_size == 0) {
-    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
-    if (max_texture_size > 4096) {
-      // Little Busters tries to page in 9 images, each 1,200 x 12,000. The AMD
-      // drivers do *not* like dealing with those images as one texture, even
-      // if it advertises that it can. Chopping those images doesn't fix the
-      // memory consumption, but helps (slightly) with the allocation pause.
-      max_texture_size = 4096;
-    }
-  }
-
-  return max_texture_size;
-}
-
-int SafeSize(int i) {
-  const GLint max_texture_size = GetMaxTextureSize();
-  if (i > max_texture_size)
-    return max_texture_size;
-
-  if (IsNPOTSafe()) {
-    return i;
-  }
-
-  for (int p = 0; p < 24; p++) {
-    if (i <= (1 << p))
-      return 1 << p;
-  }
-
-  return max_texture_size;
-}
-
-// -----------------------------------------------------------------------
 
 void reportSDLError(const std::string& sdl_name,
                     const std::string& function_name) {
@@ -179,10 +104,4 @@ void RGBColourToSDLColor(const RGBColour& in, SDL_Color* out) {
 
 Uint32 MapRGBA(SDL_PixelFormat* fmt, const RGBAColour& in) {
   return SDL_MapRGBA(fmt, in.r(), in.g(), in.b(), in.a());
-}
-
-// -----------------------------------------------------------------------
-
-void glColorRGBA(const RGBAColour& rgba) {
-  glColor4ub(rgba.r(), rgba.g(), rgba.b(), rgba.a());
 }

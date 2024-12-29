@@ -49,7 +49,6 @@
 #include "lru_cache.hpp"
 #include "utilities/lazy_array.hpp"
 
-class ColourFilter;
 class Gameexe;
 class GraphicsObject;
 class GraphicsObjectData;
@@ -190,7 +189,7 @@ class GraphicsSystem : public EventListener {
 
   // Returns the current screen origin. This is used for simple #SHAKE.* based
   // screen shaking. While the screen is not shaking, this returns (0,0).
-  Point GetScreenOrigin();
+  Point GetScreenOrigin() const;
 
   // Whether we are currently shaking.
   bool IsShaking() const;
@@ -320,7 +319,6 @@ class GraphicsSystem : public EventListener {
   virtual void ForceRefresh();
 
   bool screen_needs_refresh() const { return screen_needs_refresh_; }
-  void OnScreenRefreshed();
 
   // We keep a separate state about whether object state has been modified. We
   // do this so that background object mutation in automatic mode plays nicely
@@ -330,14 +328,10 @@ class GraphicsSystem : public EventListener {
 
   virtual void BeginFrame() = 0;
   virtual void EndFrame() = 0;
-  virtual std::shared_ptr<Surface> EndFrameToSurface() = 0;
-
-  // Performs a full redraw of the screen.
-  void Refresh();
 
   // Draws the screen (as if refresh() was called), but draw to the returned
   // surface instead of the screen.
-  std::shared_ptr<Surface> RenderToSurface();
+  virtual std::shared_ptr<Surface> RenderToSurface() = 0;
 
   // Called from the game loop; Does everything that's needed to keep
   // things up.
@@ -370,8 +364,6 @@ class GraphicsSystem : public EventListener {
   virtual std::shared_ptr<Surface> GetDC(int dc) = 0;
 
   virtual std::shared_ptr<Surface> BuildSurface(const Size& size) = 0;
-
-  virtual ColourFilter* BuildColourFiller() = 0;
 
   // A process where the front and back buffers swap, updating the display to
   // show objects prepared in the back buffer. Documented as "Wipe operation".
@@ -468,7 +460,6 @@ class GraphicsSystem : public EventListener {
 
   void DrawFrame();
 
- private:
   // Gets a platform appropriate surface loaded.
   virtual std::shared_ptr<const Surface> LoadSurfaceFromFile(
       const std::string& short_filename) = 0;

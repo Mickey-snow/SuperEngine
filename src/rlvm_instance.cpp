@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -40,7 +37,6 @@
 #include "systems/base/event_system.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/system_error.hpp"
-#include "systems/gcn/gcn_platform.hpp"
 #include "systems/sdl/sdl_system.hpp"
 #include "utf8cpp/utf8.h"
 #include "utilities/exception.hpp"
@@ -126,14 +122,6 @@ void RLVMInstance::Run(const std::filesystem::path& gamerootPath) {
           _("Please place a copy of msgothic.ttc in either your home directory "
             "or in the game path."));
     }
-
-    // Initialize our platform dialogs (we have to do this after
-    // looking for a font because we use that font internally).
-    // TODO: Rename this, consider move guichan code elsewhere. Guichan library
-    // doesn't depend on a windowing system
-    std::shared_ptr<GCNPlatform> platform = std::make_shared<GCNPlatform>(
-        sdlSystem, sdlSystem.graphics().screen_rect());
-    sdlSystem.SetPlatform(platform);
 
     if (undefined_opcodes_)
       rlmachine.SetPrintUndefinedOpcodes(true);

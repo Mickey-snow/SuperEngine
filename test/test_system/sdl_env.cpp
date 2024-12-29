@@ -4,8 +4,7 @@
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2013 Elliot Glaysher
-// Copyright (C) 2024 Serina Sakurai
+// Copyright (C) 2025 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,27 +21,46 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#pragma once
+#include "test_system/sdl_env.hpp"
 
-#include <memory>
-#include <string_view>
+#include "base/rect.hpp"
 
-class glslProgram {
- public:
-  glslProgram(std::string_view vertex_src, std::string_view frag_src);
-  ~glslProgram();
+#include <GL/glew.h>
+#include <SDL/SDL.h>
 
-  auto GetID() const { return id_; }
-  unsigned int UniformLocation(std::string_view name);
-  void SetUniform(std::string_view name, int value);
-  void SetUniform(std::string_view name, float value);
-  void SetUniform(std::string_view name, float x, float y, float z, float w);
-  void SetUniform(std::string_view name, float x, float y, float z);
+#include <stdexcept>
 
- private:
-  unsigned int id_;
-};
+sdlEnv::sdlEnv(Size screen) {
+  std::string error;
+  if (SDL_SetVideoMode(screen.width(), screen.height(), 32, SDL_OPENGL) ==
+      NULL) {
+    error += "Failed to setup sdl video: ";
+    error += SDL_GetError();
+    SDL_Quit();
+  }
 
-std::shared_ptr<glslProgram> GetOpShader();
-std::shared_ptr<glslProgram> GetColorMaskShader();
-std::shared_ptr<glslProgram> GetObjectShader();
+  if (!error.empty())
+    throw std::runtime_error(error);
+
+  auto glew_status = glewInit();
+  if (glew_status != GLEW_OK) {
+    error += "GLEW Initialization failed: ";
+    error += reinterpret_cast<const char*>(glewGetErrorString(glew_status));
+    SDL_Quit();
+  }
+
+  if (!error.empty())
+    throw std::runtime_error(error);
+}
+
+sdlEnv::~sdlEnv() { SDL_Quit(); }
+
+std::shared_ptr<sdlEnv> SetupSDL(Size screen) {
+  static std::weak_ptr<sdlEnv> cached;
+  std::shared_ptr<sdlEnv> env = cached.lock();
+  if (env)
+    return env;
+
+  cached = env = std::make_shared<sdlEnv>(screen);
+  return env;
+}

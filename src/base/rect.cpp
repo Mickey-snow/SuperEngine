@@ -29,7 +29,7 @@
 #include "base/rect.hpp"
 
 #include <algorithm>
-#include <ostream>
+#include <sstream>
 
 // -----------------------------------------------------------------------
 // class Point
@@ -225,6 +225,12 @@ bool Rect::operator==(const Rect& rhs) const {
 }
 
 bool Rect::operator!=(const Rect& rhs) const { return !(*this == rhs); }
+
+Rect::operator std::string() const {
+  std::ostringstream oss;
+  oss << *this;
+  return oss.str();
+}
 
 // -----------------------------------------------------------------------
 // Overloaded output operators

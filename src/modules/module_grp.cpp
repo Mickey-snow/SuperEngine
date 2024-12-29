@@ -50,7 +50,7 @@
 #include "machine/rloperation/rect_t.hpp"
 #include "machine/rloperation/rgb_colour_t.hpp"
 #include "machine/rloperation/special_t.hpp"
-#include "systems/base/colour.hpp"
+#include "base/colour.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/surface.hpp"
 #include "systems/base/system.hpp"

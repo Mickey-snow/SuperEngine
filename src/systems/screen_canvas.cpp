@@ -4,8 +4,7 @@
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2013 Elliot Glaysher
-// Copyright (C) 2024 Serina Sakurai
+// Copyright (C) 2025 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,30 +18,23 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+// Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
+//
 // -----------------------------------------------------------------------
 
-#pragma once
+#include "systems/screen_canvas.hpp"
 
-#include <memory>
-#include <string_view>
+#include "systems/gltexture.hpp"
 
-class glslProgram {
- public:
-  glslProgram(std::string_view vertex_src, std::string_view frag_src);
-  ~glslProgram();
+#include <GL/glew.h>
 
-  auto GetID() const { return id_; }
-  unsigned int UniformLocation(std::string_view name);
-  void SetUniform(std::string_view name, int value);
-  void SetUniform(std::string_view name, float value);
-  void SetUniform(std::string_view name, float x, float y, float z, float w);
-  void SetUniform(std::string_view name, float x, float y, float z);
+std::shared_ptr<glTexture> ScreenCanvas::GetTexture() const {
+  auto result = std::make_shared<glTexture>(display_size_);
 
- private:
-  unsigned int id_;
-};
+  glBindFramebuffer(GL_READ_FRAMEBUFFER, GetID());
+  glBindTexture(GL_TEXTURE_2D, result->GetID());
+  glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, display_size_.width(),
+                      display_size_.height());
 
-std::shared_ptr<glslProgram> GetOpShader();
-std::shared_ptr<glslProgram> GetColorMaskShader();
-std::shared_ptr<glslProgram> GetObjectShader();
+  return result;
+}

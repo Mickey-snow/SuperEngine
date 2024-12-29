@@ -7,7 +7,8 @@ project(RLVMTests)
 find_package(GTest QUIET)
 
 if (GTest_FOUND)
-  message(STATUS "Found GoogleTest: ${GTest_INCLUDE_DIRS}")
+  message(STATUS "Found GoogleTest: ${GTest_VERSION}")
+  include_directories(${GTest_INCLUDE_DIRS})
   set(GTEST_LIBRARIES GTest::gtest_main GTest::gmock_main)
 else()
   message(STATUS "GoogleTest not found. Fetching using FetchContent.")
@@ -38,7 +39,14 @@ file(GLOB_RECURSE TEST_SRC_FILES
 )
 add_executable(unittest ${TEST_SRC_FILES})
 target_include_directories(unittest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(unittest ${GTEST_LIBRARIES} rlvm_src)
+target_link_libraries(unittest PRIVATE
+  rlvm_src
+  ${GTEST_LIBRARIES}
+
+  ${SDL_LIBRARIES}
+  ${OPENGL_LIBRARIES}
+  ${GLEW_LIBRARIES}
+)
 
 # -------------------------------------------------------------------
 # Prepare test files

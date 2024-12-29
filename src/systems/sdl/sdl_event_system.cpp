@@ -30,12 +30,13 @@
 #include <SDL/SDL.h>
 #include <SDL/SDL_events.h>
 
-#include <functional>
-
 #include "machine/rlmachine.hpp"
 #include "systems/base/event_listener.hpp"
 #include "systems/base/graphics_system.hpp"
+#include "systems/sdl/sdl_graphics_system.hpp"
 #include "systems/sdl/sdl_system.hpp"
+
+#include <functional>
 
 using std::bind;
 using std::placeholders::_1;
@@ -50,53 +51,43 @@ SDLEventSystem::SDLEventSystem(SDLSystem& sys, Gameexe& gexe)
       button2_state_(0),
       last_get_currsor_time_(0),
       last_mouse_move_time_(0),
-      system_(sys),
-      raw_handler_(NULL) {}
+      system_(sys) {}
 
 void SDLEventSystem::ExecuteEventSystem(RLMachine& machine) {
   SDL_Event event;
   while (SDL_PollEvent(&event)) {
     switch (event.type) {
       case SDL_KEYDOWN: {
-        if (raw_handler_)
-          raw_handler_->pushInput(event);
-        else
-          HandleKeyDown(machine, event);
+        HandleKeyDown(machine, event);
         break;
       }
       case SDL_KEYUP: {
-        if (raw_handler_)
-          raw_handler_->pushInput(event);
-        else
-          HandleKeyUp(machine, event);
+        HandleKeyUp(machine, event);
         break;
       }
       case SDL_MOUSEMOTION: {
-        if (raw_handler_)
-          raw_handler_->pushInput(event);
         HandleMouseMotion(machine, event);
         break;
       }
       case SDL_MOUSEBUTTONDOWN:
       case SDL_MOUSEBUTTONUP: {
-        if (raw_handler_)
-          raw_handler_->pushInput(event);
-        else
-          HandleMouseButtonEvent(machine, event);
+        HandleMouseButtonEvent(machine, event);
         break;
       }
       case SDL_QUIT:
         machine.Halt();
         break;
       case SDL_ACTIVEEVENT:
-        if (raw_handler_)
-          raw_handler_->pushInput(event);
         HandleActiveEvent(machine, event);
         break;
-      case SDL_VIDEOEXPOSE: {
+      case SDL_VIDEOEXPOSE:
         machine.GetSystem().graphics().ForceRefresh();
         break;
-      }
+      case SDL_VIDEORESIZE:
+        Size new_size = Size(event.resize.w, event.resize.h);
+        dynamic_cast<SDLGraphicsSystem&>(machine.GetSystem().graphics())
+            .Resize(new_size);
+        break;
     }
   }
 }
@@ -225,8 +216,16 @@ void SDLEventSystem::HandleKeyUp(RLMachine& machine, SDL_Event& event) {
 
 void SDLEventSystem::HandleMouseMotion(RLMachine& machine, SDL_Event& event) {
   if (mouse_inside_window_) {
-    mouse_pos_ = Point(event.motion.x, event.motion.y);
     last_mouse_move_time_ = GetTicks();
+
+    const auto& graphics_sys =
+        dynamic_cast<SDLGraphicsSystem&>(machine.GetSystem().graphics());
+    const auto aspect_ratio_w = 1.0f * graphics_sys.GetDisplaySize().width() /
+                                graphics_sys.screen_size().width();
+    const auto aspect_ratio_h = 1.0f * graphics_sys.GetDisplaySize().height() /
+                                graphics_sys.screen_size().height();
+    mouse_pos_ =
+        Point(event.motion.x / aspect_ratio_w, event.motion.y / aspect_ratio_h);
 
     // Handle this somehow.
     BroadcastEvent(machine, bind(&EventListener::MouseMotion, _1, mouse_pos_));

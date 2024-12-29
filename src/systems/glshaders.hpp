@@ -25,24 +25,8 @@
 #pragma once
 
 #include <memory>
-#include <string_view>
 
-class glslProgram {
- public:
-  glslProgram(std::string_view vertex_src, std::string_view frag_src);
-  ~glslProgram();
+class glslProgram;
 
-  auto GetID() const { return id_; }
-  unsigned int UniformLocation(std::string_view name);
-  void SetUniform(std::string_view name, int value);
-  void SetUniform(std::string_view name, float value);
-  void SetUniform(std::string_view name, float x, float y, float z, float w);
-  void SetUniform(std::string_view name, float x, float y, float z);
-
- private:
-  unsigned int id_;
-};
-
-std::shared_ptr<glslProgram> GetOpShader();
-std::shared_ptr<glslProgram> GetColorMaskShader();
-std::shared_ptr<glslProgram> GetObjectShader();
+std::shared_ptr<glslProgram> _GetColorMaskShader();
+std::shared_ptr<glslProgram> _GetObjectShader();

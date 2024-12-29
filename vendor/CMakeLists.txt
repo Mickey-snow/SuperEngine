@@ -17,20 +17,12 @@ add_library(xclannad STATIC ${XCLANNAD_SRC_FILES})
 add_library(pygame STATIC "pygame/alphablit.cc")
 
 # -------------------------------------------------------------------
-# GLEW
+# GLM
 # -------------------------------------------------------------------
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/GLEW/include)
-add_library(glew STATIC GLEW/src/glew.c)
-
-# -------------------------------------------------------------------
-# guichan
-# -------------------------------------------------------------------
-file(GLOB_RECURSE GUICHAN_SRC_FILES "guichan/src/*.cpp")
-add_library(guichan STATIC ${GUICHAN_SRC_FILES})
-target_include_directories(guichan PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/guichan/include
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/glm)
+target_include_directories(glm PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/glm
 )
-target_link_libraries(guichan PUBLIC ${OpenGL_LIBRARIES} sdl_image sdl_ttf)
 
 # -------------------------------------------------------------------
 # libsamplerate

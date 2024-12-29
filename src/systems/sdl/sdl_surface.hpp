@@ -29,19 +29,16 @@
 
 #include <vector>
 
-#include "base/notification/observer.hpp"
-#include "base/notification/registrar.hpp"
 #include "base/tone_curve.hpp"
 #include "systems/base/surface.hpp"
 
+class glFrameBuffer;
+class ScreenCanvas;
 struct SDL_Surface;
-class Texture;
 class GraphicsSystem;
 class SDLGraphicsSystem;
 class GraphicsObject;
-
-// Helper function. Used throughout the SDL system.
-SDL_Surface* buildNewSurface(const Size& size);
+class glTexture;
 
 // Wrapper around an OpenGL texture; meant to be passed out of the
 // graphics system.
@@ -49,26 +46,16 @@ SDL_Surface* buildNewSurface(const Size& size);
 // Some SDLSurfaces will own their underlying SDL_Surface, for
 // example, anything returned from GetSurfaceNamedAndMarkViewed(), while others
 // don't own their surfaces (SDLSurfaces returned by GetDC()
-class SDLSurface : public Surface, public NotificationObserver {
+class SDLSurface : public Surface {
  public:
-  explicit SDLSurface(SDLGraphicsSystem* system);
-
-  // Surface that takes ownership of an externally created surface
-  // and assumes it is only a single region.
-  SDLSurface(SDLGraphicsSystem* system, SDL_Surface* sruf);
-
-  // Surface that takes ownership of an externally created surface.
-  SDLSurface(SDLGraphicsSystem* system,
-             SDL_Surface* surf,
-             const std::vector<GrpRect>& region_table);
-
+  SDLSurface();
   // Surface created with a specified width and height
-  SDLSurface(SDLGraphicsSystem* system, const Size& size);
+  SDLSurface(const Size& size);
+  // Surface that takes ownership of an externally created surface.
+  SDLSurface(SDL_Surface* surf, std::vector<GrpRect> region_table = {});
   ~SDLSurface();
 
   virtual void EnsureUploaded() const override;
-
-  void registerForNotification(GraphicsSystem* system);
 
   // Whether we have an underlying allocated surface.
   bool allocated() { return surface_; }
@@ -77,15 +64,8 @@ class SDLSurface : public Surface, public NotificationObserver {
 
   void buildRegionTable(const Size& size);
 
-  virtual void Dump() override;
-
   void allocate(const Size& size);
-  void allocate(const Size& size, bool is_dc0);
   void deallocate();
-
-  operator SDL_Surface*() { return surface_; }
-
-  SDL_Surface* rawSurface() { return surface_; }
 
   virtual void BlitToSurface(Surface& dest_surface,
                              const Rect& src,
@@ -135,38 +115,36 @@ class SDLSurface : public Surface, public NotificationObserver {
   virtual void Mono(const Rect& area) override;
   virtual void ApplyColour(const RGBColour& colour, const Rect& area) override;
 
-  SDL_Surface* surface() { return surface_; }
+  SDL_Surface* surface() const { return surface_; }
+  SDL_Surface* rawSurface() { return surface_; }
 
   virtual void GetDCPixel(const Point& pos,
                           int& r,
                           int& g,
                           int& b) const override;
+
+  virtual RGBAColour GetPixel(Point pos) const;
+
   virtual std::shared_ptr<Surface> ClipAsColorMask(const Rect& clip_rect,
                                                    int r,
                                                    int g,
                                                    int b) const override;
 
-  virtual Surface* Clone() const;
-
-  void interpretAsColorMask(int r, int g, int b, int alpha);
+  virtual Surface* Clone() const override;
 
   // Called after each change to surface_. Marks the texture as
   // invalid and notifies SDLGraphicsSystem when appropriate.
   void markWrittenTo(const Rect& written_rect);
 
-  // NotificationObserver:
-  virtual void Observe(NotificationType type,
-                       const NotificationSource& source,
-                       const NotificationDetails& details);
+  std::vector<char> Dump(Rect region) const;
 
- private:
   // Keeps track of a texture and the information about which region
   // of the current surface this Texture is. We keep track of this
   // information so we can reupload a certain part of the Texture
   // without allocating a new OpenGL texture. glGenTexture()/
   // glTexImage2D() is SLOW and should never be done in a loop.)
   struct TextureRecord {
-    TextureRecord(SDL_Surface* surface,
+    TextureRecord(SDLSurface const* surface,
                   int x,
                   int y,
                   int w,
@@ -177,20 +155,23 @@ class SDLSurface : public Surface, public NotificationObserver {
 
     // Reuploads this current piece of surface from the supplied
     // surface without allocating a new texture.
-    void reupload(SDL_Surface* surface, const Rect& dirty);
+    void reupload(SDLSurface const* surface, Rect dirty);
 
     // Clears |texture|. Called before a switch between windowed and
     // fullscreen mode, so that we aren't holding stale references.
     void forceUnload();
 
     // The actual texture.
-    std::shared_ptr<Texture> texture;
+    std::shared_ptr<glTexture> gltexture;
 
     int x_, y_, w_, h_;
     unsigned int bytes_per_pixel_;
     int byte_order_, byte_type_;
   };
 
+  std::vector<TextureRecord> GetTextureArray() const;
+
+ private:
   // Makes sure that texture_ is a valid object and that it's
   // updated. This method should be called before doing anything with
   // texture_.
@@ -216,15 +197,8 @@ class SDLSurface : public Surface, public NotificationObserver {
   // smallest possible area, but for simplicity, we only keep one dirty area.
   mutable Rect dirty_rectangle_;
 
-  // Whether this surface is DC0 and needs special treatment.
-  bool is_dc0_;
-
-  // A pointer to the graphics_system. We use this to make sure the
-  // GraphicsSystem has a weak_ptr to all SDLSurface instances so it can
-  // invalidate them all in the case of a screen change.
-  SDLGraphicsSystem* graphics_system_;
-
   bool is_mask_;
 
-  NotificationRegistrar registrar_;
+ public:
+  static std::shared_ptr<glFrameBuffer> screen_;
 };

@@ -4,8 +4,7 @@
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2013 Elliot Glaysher
-// Copyright (C) 2024 Serina Sakurai
+// Copyright (C) 2025 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,25 +23,30 @@
 
 #pragma once
 
+#include "base/rect.hpp"
+
 #include <memory>
-#include <string_view>
+#include <optional>
 
-class glslProgram {
+class glTexture;
+class glFrameBuffer;
+class glRenderer;
+
+class glCanvas {
  public:
-  glslProgram(std::string_view vertex_src, std::string_view frag_src);
-  ~glslProgram();
+  glCanvas(Size resolution,
+           std::optional<Size> display_size = std::nullopt,
+           std::optional<Point> origin = std::nullopt);
 
-  auto GetID() const { return id_; }
-  unsigned int UniformLocation(std::string_view name);
-  void SetUniform(std::string_view name, int value);
-  void SetUniform(std::string_view name, float value);
-  void SetUniform(std::string_view name, float x, float y, float z, float w);
-  void SetUniform(std::string_view name, float x, float y, float z);
+  void Use();
+
+  std::shared_ptr<glFrameBuffer> GetBuffer() const;
+
+  void Flush();
 
  private:
-  unsigned int id_;
+  Size resolution_, display_size_;
+  Point origin_;
+  std::shared_ptr<glFrameBuffer> frame_buf_;
+  std::shared_ptr<glRenderer> renderer_;
 };
-
-std::shared_ptr<glslProgram> GetOpShader();
-std::shared_ptr<glslProgram> GetColorMaskShader();
-std::shared_ptr<glslProgram> GetObjectShader();

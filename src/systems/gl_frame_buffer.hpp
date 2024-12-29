@@ -4,8 +4,7 @@
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2013 Elliot Glaysher
-// Copyright (C) 2024 Serina Sakurai
+// Copyright (C) 2025 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,24 +24,24 @@
 #pragma once
 
 #include <memory>
-#include <string_view>
 
-class glslProgram {
+class glTexture;
+class Size;
+
+class glFrameBuffer {
  public:
-  glslProgram(std::string_view vertex_src, std::string_view frag_src);
-  ~glslProgram();
+  glFrameBuffer() = default;
 
-  auto GetID() const { return id_; }
-  unsigned int UniformLocation(std::string_view name);
-  void SetUniform(std::string_view name, int value);
-  void SetUniform(std::string_view name, float value);
-  void SetUniform(std::string_view name, float x, float y, float z, float w);
-  void SetUniform(std::string_view name, float x, float y, float z);
+  glFrameBuffer(std::shared_ptr<glTexture> texture);
+  virtual ~glFrameBuffer();
+
+  virtual unsigned int GetID() const;
+
+  virtual Size GetSize() const;
+
+  virtual std::shared_ptr<glTexture> GetTexture() const;
 
  private:
+  std::shared_ptr<glTexture> texture_;
   unsigned int id_;
 };
-
-std::shared_ptr<glslProgram> GetOpShader();
-std::shared_ptr<glslProgram> GetColorMaskShader();
-std::shared_ptr<glslProgram> GetObjectShader();

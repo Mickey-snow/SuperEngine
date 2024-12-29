@@ -27,11 +27,12 @@
 
 #pragma once
 
-#include <memory>
-
 #include "base/grprect.hpp"
 #include "base/rect.hpp"
 #include "base/tone_curve.hpp"
+
+#include <functional>
+#include <memory>
 
 class RGBColour;
 class RGBAColour;
@@ -40,7 +41,7 @@ struct GraphicsObjectOverride;
 
 // Abstract surface used in rlvm. Various systems graphics systems should
 // provide a subclass of Surface that implement all the following primitives.
-class Surface : public std::enable_shared_from_this<Surface> {
+class Surface {
  public:
   Surface();
   virtual ~Surface();
@@ -74,8 +75,6 @@ class Surface : public std::enable_shared_from_this<Surface> {
 
   virtual Size GetSize() const = 0;
   Rect GetRect() const;
-
-  virtual void Dump();
 
   // Blits to another surface
   virtual void BlitToSurface(Surface& dest_surface,
@@ -113,4 +112,13 @@ class Surface : public std::enable_shared_from_this<Surface> {
                                                    int b) const;
 
   virtual Surface* Clone() const = 0;
+
+ public:
+  void MarkDirty(Rect dirty_rect) const;
+
+  // Register an observer to be notified when the surface is modified.
+  void RegisterObserver(std::function<void(Rect)> callback);
+
+ private:
+  std::vector<std::function<void(Rect)>> observers_;
 };

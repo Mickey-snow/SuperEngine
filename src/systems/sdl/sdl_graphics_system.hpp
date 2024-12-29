@@ -38,13 +38,14 @@
 #include "systems/base/graphics_system.hpp"
 
 struct SDL_Surface;
-
 class Gameexe;
 class GraphicsObject;
 class SDLGraphicsSystem;
 class SDLSurface;
 class System;
 class Texture;
+class glTexture;
+class glCanvas;
 
 // -----------------------------------------------------------------------
 
@@ -57,20 +58,27 @@ class SDLGraphicsSystem : public GraphicsSystem, public NotificationObserver {
   SDLGraphicsSystem(System& system, Gameexe& gameexe);
   ~SDLGraphicsSystem();
 
+ public:
+  std::shared_ptr<SDLSurface> CreateSurface(Size size);
+  virtual std::shared_ptr<Surface> BuildSurface(const Size& size) override;
+  virtual std::shared_ptr<const Surface> LoadSurfaceFromFile(
+      const std::string& short_filename) override;
+  std::shared_ptr<Surface> CreateSurface(SDL_Surface* surface);
+
+ public:
   // When the cursor is changed, also make sure that it exists so that we can
   // switch on/off the operating system cursor when the cursor index is invalid.
   virtual void SetCursor(int cursor) override;
 
+  std::shared_ptr<glCanvas> CreateCanvas() const;
   virtual void BeginFrame() override;
-
-  virtual void MarkScreenAsDirty(GraphicsUpdateType type) override;
-
   virtual void EndFrame() override;
+  virtual std::shared_ptr<Surface> RenderToSurface() override;
 
   void RedrawLastFrame();
   void DrawCursor();
 
-  virtual std::shared_ptr<Surface> EndFrameToSurface() override;
+  virtual void MarkScreenAsDirty(GraphicsUpdateType type) override;
 
   virtual void ExecuteGraphicsSystem(RLMachine& machine) override;
 
@@ -78,17 +86,11 @@ class SDLGraphicsSystem : public GraphicsSystem, public NotificationObserver {
   virtual void SetMinimumSizeForDC(int dc, Size size) override;
   virtual void FreeDC(int dc) override;
 
-  virtual std::shared_ptr<const Surface> LoadSurfaceFromFile(
-      const std::string& short_filename) override;
-
   virtual std::shared_ptr<Surface> GetHaikei() override;
   virtual std::shared_ptr<Surface> GetDC(int dc) override;
-  virtual std::shared_ptr<Surface> BuildSurface(const Size& size) override;
-
-  virtual ColourFilter* BuildColourFiller() override;
 
   // -----------------------------------------------------------------------
-
+  virtual void SetWindowTitle(std::string new_caption);
   virtual void SetWindowSubtitle(const std::string& cp932str,
                                  int text_encoding) override;
 
@@ -98,16 +100,18 @@ class SDLGraphicsSystem : public GraphicsSystem, public NotificationObserver {
   // game.
   virtual void Reset() override;
 
- private:
-  void SetupVideo();
+  void SetupVideo(Size window_size);
 
+  void Resize(Size display_size);
+
+  Size GetDisplaySize() const noexcept;
+
+ private:
   // Makes sure that a passed in dc number is valid.
   //
   // @exception Error Throws when dc is greater then the maximum.
   // @exception Error Throws when dc is unallocated.
   void VerifySurfaceExists(int dc, const std::string& caller);
-
-  void SetWindowTitle();
 
   // NotificationObserver:
   virtual void Observe(NotificationType type,
@@ -123,41 +127,20 @@ class SDLGraphicsSystem : public GraphicsSystem, public NotificationObserver {
 
   bool redraw_last_frame_;
 
-  // Whether to display (SEEN####)(Line ###) in the title bar
-  bool display_data_in_titlebar_;
-
-  // The last time the titlebar was updated (in GetTicks())
-  unsigned int time_of_last_titlebar_update_;
-
-  // The last seen number;
-  int last_seen_number_;
-
-  // The last line number;
-  int last_line_number_;
-
   // utf8 encoded title string
   std::string caption_title_;
-
   // utf8 encoded subtitle
   std::string subtitle_;
-
-  // The value we've set the window title to. We do this to work around a
-  // memory leak in PulseAudio.
-  std::string currently_set_title_;
 
   // Texture used to store the contents of the screen while in DrawManual()
   // mode. The stored image is then used if we need to redraw in the
   // intervening time (expose events, mouse cursor moves, etc).
-  GLuint screen_contents_texture_;
+  std::shared_ptr<glTexture> screen_contents_texture_;
 
   // Whether |screen_contents_texture_| is valid to use.
   bool screen_contents_texture_valid_;
 
-  // The size of |screen_contents_texture_|. This can be different
-  // from |screen_size_| because textures need to be powers of two on
-  // OpenGL v1.x drivers.
-  int screen_tex_width_;
-  int screen_tex_height_;
-
   NotificationRegistrar registrar_;
+
+  Size display_size_;
 };

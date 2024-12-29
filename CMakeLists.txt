@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.18)
 
-project(RLVM VERSION 0.14.3 LANGUAGES CXX C)
+project(RLVM VERSION 0.14.4 LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -37,6 +37,17 @@ if (OpenGL_FOUND)
   include_directories(${OpenGL_INCLUDE_DIRS})
 else()
   message(FATAL_ERROR "OpenGL not found. Please install OpenGL.")
+endif()
+
+# -------------------------------------------------------------------
+# Find GLEW Library
+# -------------------------------------------------------------------
+find_package(GLEW REQUIRED)
+if (GLEW_FOUND)
+  message(STATUS "GLEW found: ${GLEW_VERSION}")
+  include_directories(${GLEW_INCLUDE_DIRS})
+else()
+  message(FATAL_ERROR "GLEW not found. Please install GLEW.")
 endif()
 
 # -------------------------------------------------------------------

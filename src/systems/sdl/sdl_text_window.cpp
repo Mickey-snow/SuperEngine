@@ -27,18 +27,18 @@
 
 #include "systems/sdl/sdl_text_window.hpp"
 
-#include <SDL/SDL_opengl.h>
 #include <SDL/SDL_ttf.h>
 
 #include <string>
 #include <vector>
 
+#include "base/colour.hpp"
 #include "base/gameexe.hpp"
-#include "systems/base/colour.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/selection_element.hpp"
 #include "systems/base/system_error.hpp"
 #include "systems/base/text_window_button.hpp"
+#include "systems/sdl/sdl_graphics_system.hpp"
 #include "systems/sdl/sdl_surface.hpp"
 #include "systems/sdl/sdl_system.hpp"
 #include "systems/sdl/sdl_text_system.hpp"
@@ -65,8 +65,7 @@ void SDLTextWindow::ClearWin() {
 
   // Allocate the text window surface
   if (!surface_)
-    surface_.reset(
-        new SDLSurface(getSDLGraphics(system()), GetTextSurfaceSize()));
+    surface_ = getSDLGraphics(system())->CreateSurface(GetTextSurfaceSize());
   surface_->Fill(RGBAColour::Clear());
 
   name_surface_.reset();
@@ -97,13 +96,11 @@ void SDLTextWindow::AddSelectionItem(const std::string& utf8str,
   Point position = GetTextSurfaceRect().origin() +
                    Size(text_insertion_point_x_, text_insertion_point_y_);
 
-  std::unique_ptr<SelectionElement> element(new SelectionElement(
-      system(),
-      std::shared_ptr<Surface>(
-          new SDLSurface(getSDLGraphics(system()), normal)),
-      std::shared_ptr<Surface>(
-          new SDLSurface(getSDLGraphics(system()), inverted)),
-      selectionCallback(), selection_id, position));
+  std::unique_ptr<SelectionElement> element =
+      std::make_unique<SelectionElement>(
+          system(), getSDLGraphics(system())->CreateSurface(normal),
+          getSDLGraphics(system())->CreateSurface(inverted),
+          selectionCallback(), selection_id, position);
 
   text_insertion_point_y_ += (font_size_in_pixels_ + y_spacing_ + ruby_size_);
   selections_.push_back(std::move(element));

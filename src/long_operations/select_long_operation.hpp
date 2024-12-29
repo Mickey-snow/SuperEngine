@@ -32,7 +32,7 @@
 
 #include "base/rect.hpp"
 #include "machine/long_operation.hpp"
-#include "systems/base/colour.hpp"
+#include "base/colour.hpp"
 #include "systems/base/event_listener.hpp"
 #include "systems/base/renderable.hpp"
 #include "systems/base/surface.hpp"

@@ -7,7 +7,7 @@
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2007 Elliot Glaysher
+// Copyright (C) 2008 Elliot Glaysher
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,50 +25,48 @@
 //
 // -----------------------------------------------------------------------
 
-#include "systems/base/surface.hpp"
+#include "base/colour.hpp"
 
-#include "utilities/exception.hpp"
-
-// -----------------------------------------------------------------------
-
-Surface::Surface() {}
+#include <ostream>
+#include <vector>
 
 // -----------------------------------------------------------------------
-
-Surface::~Surface() {}
-
+// RGBColour
 // -----------------------------------------------------------------------
+RGBColour::RGBColour(const std::vector<int>& colour)
+    : r_(colour.at(0)), g_(colour.at(1)), b_(colour.at(2)) {}
 
-Rect Surface::GetRect() const { return Rect(Point(0, 0), GetSize()); }
+bool RGBColour::operator==(const RGBColour& rhs) const {
+  return r_ == rhs.r_ && g_ == rhs.g_ && b_ == rhs.b_;
+}
 
-// -----------------------------------------------------------------------
+bool RGBColour::operator!=(const RGBColour& rhs) const {
+  return !operator==(rhs);
+}
 
-int Surface::GetNumPatterns() const { return 1; }
+std::ostream& operator<<(std::ostream& os, const RGBColour& rgb) {
+  os << "RGB(" << rgb.r() << ", " << rgb.g() << ", " << rgb.b() << ")";
 
-// -----------------------------------------------------------------------
-
-const GrpRect& Surface::GetPattern(int patt_no) const {
-  static GrpRect rect;
-  return rect;
+  return os;
 }
 
 // -----------------------------------------------------------------------
+// RGBAColour
+// -----------------------------------------------------------------------
+RGBAColour::RGBAColour(const std::vector<int>& colour)
+    : rgb_(colour), alpha_(255) {}
 
-std::shared_ptr<Surface> Surface::ClipAsColorMask(const Rect& clip_rect,
-                                                  int r,
-                                                  int g,
-                                                  int b) const {
-  throw rlvm::Exception("Unimplemented function Surface::ClipAsColorMask()");
+bool RGBAColour::operator==(const RGBAColour& rhs) const {
+  return rgb_ == rhs.rgb_ && alpha_ == rhs.alpha_;
 }
 
-// -----------------------------------------------------------------------
-
-void Surface::MarkDirty(Rect dirty_rect) const {
-  for (const auto& it : observers_)
-    std::invoke(it, dirty_rect);
+bool RGBAColour::operator!=(const RGBAColour& rhs) const {
+  return !operator==(rhs);
 }
-// -----------------------------------------------------------------------
 
-void Surface::RegisterObserver(std::function<void(Rect)> callback) {
-  observers_.emplace_back(std::move(callback));
+std::ostream& operator<<(std::ostream& os, const RGBAColour& rgba) {
+  os << "RGBA(" << rgba.r() << ", " << rgba.g() << ", " << rgba.b() << ", "
+     << rgba.a() << ")";
+
+  return os;
 }

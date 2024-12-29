@@ -25,19 +25,12 @@
 #include <gtest/gtest.h>
 
 #include "base/rect.hpp"
+#include "utilities/string_utilities.hpp"
 
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
 #include <sstream>
 #include <string>
-
-template <typename... Ts>
-inline std::string ToString(Ts&&... params) {
-  std::string result = ((std::to_string(std::forward<Ts>(params)) + ' ') + ...);
-  if constexpr (sizeof...(Ts) > 0)
-    result.pop_back();
-  return result;
-}
 
 // -----------------------------------------------------------------------
 // Point

@@ -30,7 +30,7 @@
 #include <vector>
 
 #include "machine/rloperation.hpp"
-#include "systems/base/colour.hpp"
+#include "base/colour.hpp"
 
 struct RGBColour_T {
   typedef RGBAColour type;
