@@ -64,10 +64,10 @@
 #include "systems/base/hik_script.hpp"
 #include "systems/base/mouse_cursor.hpp"
 #include "systems/base/object_settings.hpp"
-#include "systems/sdl_surface.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/system_error.hpp"
 #include "systems/base/text_system.hpp"
+#include "systems/sdl_surface.hpp"
 #include "utilities/exception.hpp"
 #include "utilities/lazy_array.hpp"
 
@@ -585,7 +585,7 @@ std::shared_ptr<const Surface> GraphicsSystem::GetPreloadedG00(
       return item.second;
   }
 
-  return std::shared_ptr<const Surface>();
+  return nullptr;
 }
 
 // -----------------------------------------------------------------------

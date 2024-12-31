@@ -59,12 +59,8 @@ class SDLGraphicsSystem : public GraphicsSystem, public NotificationObserver {
   SDLGraphicsSystem(System& system, Gameexe& gameexe);
   ~SDLGraphicsSystem();
 
- public:
-  std::shared_ptr<SDLSurface> CreateSurface(Size size);
-  virtual std::shared_ptr<Surface> BuildSurface(const Size& size) override;
   virtual std::shared_ptr<const Surface> LoadSurfaceFromFile(
       const std::string& short_filename) override;
-  std::shared_ptr<Surface> CreateSurface(SDL_Surface* surface);
 
  public:
   // When the cursor is changed, also make sure that it exists so that we can

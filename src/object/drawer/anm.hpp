@@ -141,7 +141,8 @@ template <class Archive>
 inline void load_construct_data(Archive& ar,
                                 AnmGraphicsObjectData* t,
                                 const unsigned int file_version) {
-  ::new (t) AnmGraphicsObjectData(Serialization::g_current_machine->GetSystem());
+  ::new (t)
+      AnmGraphicsObjectData(Serialization::g_current_machine->GetSystem());
 }
 }  // namespace serialization
 }  // namespace boost

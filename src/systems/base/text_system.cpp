@@ -44,11 +44,11 @@
 #include "machine/serialization.hpp"
 #include "memory/memory.hpp"
 #include "systems/base/graphics_system.hpp"
-#include "systems/sdl_surface.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/text_key_cursor.hpp"
 #include "systems/base/text_page.hpp"
 #include "systems/base/text_window.hpp"
+#include "systems/sdl_surface.hpp"
 #include "utf8cpp/utf8.h"
 #include "utilities/exception.hpp"
 #include "utilities/string_utilities.hpp"
@@ -633,10 +633,7 @@ std::shared_ptr<Surface> TextSystem::RenderText(const std::string& utf8str,
   if (total_height == 0)
     total_height = 1;
 
-  // TODO(erg): Surely there's a way to allocate with something other than
-  // black, right?
-  std::shared_ptr<Surface> surface(
-      system().graphics().BuildSurface(Size(max_width, total_height)));
+  auto surface = std::make_shared<Surface>(Size(max_width, total_height));
   surface->Fill(RGBAColour::Clear());
 
   RGBColour current_colour = colour;

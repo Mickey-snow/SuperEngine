@@ -364,8 +364,6 @@ class GraphicsSystem : public EventListener {
 
   virtual std::shared_ptr<Surface> GetDC(int dc) = 0;
 
-  virtual std::shared_ptr<Surface> BuildSurface(const Size& size) = 0;
-
   // A process where the front and back buffers swap, updating the display to
   // show objects prepared in the back buffer. Documented as "Wipe operation".
   void ClearAndPromoteObjects();

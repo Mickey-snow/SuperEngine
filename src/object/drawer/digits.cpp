@@ -36,8 +36,8 @@
 #include "base/colour.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/base/graphics_system.hpp"
-#include "systems/sdl_surface.hpp"
 #include "systems/base/system.hpp"
+#include "systems/sdl_surface.hpp"
 
 DigitsGraphicsObject::DigitsGraphicsObject(System& system)
     : system_(system), value_(0) {}
@@ -103,7 +103,7 @@ void DigitsGraphicsObject::UpdateSurface(const GraphicsObject& rp) {
 
   int total_pixel_width = (num_chars + num_extra) * digit_pixel_width;
 
-  surface_ = system_.graphics().BuildSurface(
+  surface_ = std::make_shared<Surface>(
       Size(total_pixel_width, font_->GetPattern(0).rect.size().height()));
   surface_->Fill(RGBAColour::Clear());
 

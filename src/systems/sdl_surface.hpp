@@ -54,12 +54,12 @@ class SDLSurface {
   SDLSurface(SDL_Surface* surf, std::vector<GrpRect> region_table = {});
   ~SDLSurface();
 
-  virtual void EnsureUploaded() const;
+  void EnsureUploaded() const;
 
   // Whether we have an underlying allocated surface.
   bool allocated() { return surface_; }
 
-  virtual void SetIsMask(const bool is) { is_mask_ = is; }
+  void SetIsMask(const bool is) { is_mask_ = is; }
 
   void buildRegionTable(const Size& size);
 
@@ -68,11 +68,11 @@ class SDLSurface {
 
   Rect GetRect() const;
 
-  virtual void BlitToSurface(Surface& dest_surface,
-                             const Rect& src,
-                             const Rect& dst,
-                             int alpha = 255,
-                             bool use_src_alpha = true) const;
+  void BlitToSurface(Surface& dest_surface,
+                     const Rect& src,
+                     const Rect& dst,
+                     int alpha = 255,
+                     bool use_src_alpha = true) const;
 
   void blitFROMSurface(SDL_Surface* src_surface,
                        const Rect& src,
@@ -80,54 +80,52 @@ class SDLSurface {
                        int alpha = 255,
                        bool use_src_alpha = true);
 
-  virtual void RenderToScreen(const Rect& src,
-                              const Rect& dst,
-                              int alpha = 255) const;
+  void RenderToScreen(const Rect& src, const Rect& dst, int alpha = 255) const;
 
-  virtual void RenderToScreenAsColorMask(const Rect& src,
-                                         const Rect& dst,
-                                         const RGBAColour& rgba,
-                                         int filter) const;
+  void RenderToScreenAsColorMask(const Rect& src,
+                                 const Rect& dst,
+                                 const RGBAColour& rgba,
+                                 int filter) const;
 
-  virtual void RenderToScreen(const Rect& src,
-                              const Rect& dst,
-                              const int opacity[4]) const;
+  void RenderToScreen(const Rect& src,
+                      const Rect& dst,
+                      const int opacity[4]) const;
 
   // Used internally; not exposed to the general graphics system
-  virtual void RenderToScreenAsObject(const GraphicsObject& rp,
-                                      const Rect& src,
-                                      const Rect& dst,
-                                      int alpha) const;
+  void RenderToScreenAsObject(const GraphicsObject& rp,
+                              const Rect& src,
+                              const Rect& dst,
+                              int alpha) const;
 
-  virtual int GetNumPatterns() const;
+  int GetNumPatterns() const;
 
   // Returns pattern information.
-  virtual const GrpRect& GetPattern(int patt_no) const;
+  const GrpRect& GetPattern(int patt_no) const;
 
   // -----------------------------------------------------------------------
 
-  virtual Size GetSize() const;
+  Size GetSize() const;
 
-  virtual void Fill(const RGBAColour& colour);
-  virtual void Fill(const RGBAColour& colour, const Rect& area);
-  virtual void ToneCurve(const ToneCurveRGBMap effect, const Rect& area);
-  virtual void Invert(const Rect& rect);
-  virtual void Mono(const Rect& area);
-  virtual void ApplyColour(const RGBColour& colour, const Rect& area);
+  void Fill(const RGBAColour& colour);
+  void Fill(const RGBAColour& colour, const Rect& area);
+  void ToneCurve(const ToneCurveRGBMap effect, const Rect& area);
+  void Invert(const Rect& rect);
+  void Mono(const Rect& area);
+  void ApplyColour(const RGBColour& colour, const Rect& area);
 
   SDL_Surface* surface() const { return surface_; }
   SDL_Surface* rawSurface() { return surface_; }
 
-  virtual void GetDCPixel(const Point& pos, int& r, int& g, int& b) const;
+  void GetDCPixel(const Point& pos, int& r, int& g, int& b) const;
 
-  virtual RGBAColour GetPixel(Point pos) const;
+  RGBAColour GetPixel(Point pos) const;
 
-  virtual std::shared_ptr<Surface> ClipAsColorMask(const Rect& clip_rect,
-                                                   int r,
-                                                   int g,
-                                                   int b) const;
+  std::shared_ptr<Surface> ClipAsColorMask(const Rect& clip_rect,
+                                           int r,
+                                           int g,
+                                           int b) const;
 
-  virtual Surface* Clone() const;
+  Surface* Clone() const;
 
   // Called after each change to surface_. Marks the texture as
   // invalid and notifies SDLGraphicsSystem when appropriate.

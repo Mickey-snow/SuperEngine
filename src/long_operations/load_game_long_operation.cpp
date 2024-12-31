@@ -69,7 +69,7 @@ bool LoadGameLongOperation::operator()(RLMachine& machine) {
 
   // Blank dc0 (because we won't be using it anyway) for the image
   // we're going to render to
-  std::shared_ptr<Surface> blankScreen = graphics.BuildSurface(s);
+  std::shared_ptr<Surface> blankScreen = std::make_shared<Surface>(s);
   blankScreen->Fill(RGBAColour::Black());
 
   machine.PushLongOperation(

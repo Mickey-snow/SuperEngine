@@ -30,12 +30,12 @@
 #include <string>
 #include <vector>
 
-#include "base/gameexe.hpp"
 #include "base/colour.hpp"
+#include "base/gameexe.hpp"
 #include "systems/base/graphics_system.hpp"
-#include "systems/sdl_surface.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/text_window.hpp"
+#include "systems/sdl_surface.hpp"
 
 using std::endl;
 
@@ -215,7 +215,7 @@ void TextWakuType4::SetWakuMain(const std::string& name) {
 
 const std::shared_ptr<Surface>& TextWakuType4::GetWakuBackingOfSize(Size size) {
   if (!cached_backing_ || cached_backing_->GetSize() != size) {
-    cached_backing_ = system_.graphics().BuildSurface(size);
+    cached_backing_ = std::make_shared<Surface>(size);
     cached_backing_->Fill(RGBAColour::Black());
   }
 

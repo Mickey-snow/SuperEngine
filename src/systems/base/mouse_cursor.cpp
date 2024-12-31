@@ -29,8 +29,8 @@
 
 #include "systems/base/event_system.hpp"
 #include "systems/base/graphics_system.hpp"
-#include "systems/sdl_surface.hpp"
 #include "systems/base/system.hpp"
+#include "systems/sdl_surface.hpp"
 
 const int CURSOR_SIZE_INT = 32;
 const Size CURSOR_SIZE = Size(CURSOR_SIZE_INT, CURSOR_SIZE_INT);

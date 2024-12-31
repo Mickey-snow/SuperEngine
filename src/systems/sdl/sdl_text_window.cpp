@@ -39,10 +39,10 @@
 #include "systems/base/system_error.hpp"
 #include "systems/base/text_window_button.hpp"
 #include "systems/sdl/sdl_graphics_system.hpp"
-#include "systems/sdl_surface.hpp"
 #include "systems/sdl/sdl_system.hpp"
 #include "systems/sdl/sdl_text_system.hpp"
 #include "systems/sdl/sdl_utils.hpp"
+#include "systems/sdl_surface.hpp"
 #include "utf8cpp/utf8.h"
 #include "utilities/exception.hpp"
 #include "utilities/string_utilities.hpp"
@@ -65,7 +65,7 @@ void SDLTextWindow::ClearWin() {
 
   // Allocate the text window surface
   if (!surface_)
-    surface_ = getSDLGraphics(system())->CreateSurface(GetTextSurfaceSize());
+    surface_ = std::make_shared<Surface>(GetTextSurfaceSize());
   surface_->Fill(RGBAColour::Clear());
 
   name_surface_.reset();
@@ -98,9 +98,9 @@ void SDLTextWindow::AddSelectionItem(const std::string& utf8str,
 
   std::unique_ptr<SelectionElement> element =
       std::make_unique<SelectionElement>(
-          system(), getSDLGraphics(system())->CreateSurface(normal),
-          getSDLGraphics(system())->CreateSurface(inverted),
-          selectionCallback(), selection_id, position);
+          system(), std::make_shared<Surface>(normal),
+          std::make_shared<Surface>(inverted), selectionCallback(),
+          selection_id, position);
 
   text_insertion_point_y_ += (font_size_in_pixels_ + y_spacing_ + ruby_size_);
   selections_.push_back(std::move(element));

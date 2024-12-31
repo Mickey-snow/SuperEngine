@@ -56,9 +56,9 @@
 #include "systems/gltexture.hpp"
 #include "systems/screen_canvas.hpp"
 #include "systems/sdl/sdl_event_system.hpp"
-#include "systems/sdl_surface.hpp"
 #include "systems/sdl/sdl_utils.hpp"
 #include "systems/sdl/shaders.hpp"
+#include "systems/sdl_surface.hpp"
 #include "utilities/exception.hpp"
 #include "utilities/graphics.hpp"
 #include "utilities/lazy_array.hpp"
@@ -459,19 +459,18 @@ void SDLGraphicsSystem::VerifySurfaceExists(int dc, const std::string& caller) {
 // -----------------------------------------------------------------------
 
 typedef enum { NO_MASK, ALPHA_MASK, COLOR_MASK } MaskType;
-
-// Note to self: These describe the byte order IN THE RAW G00 DATA!
-// These should NOT be switched to native byte order.
-#define DefaultRmask 0xff0000
-#define DefaultGmask 0xff00
-#define DefaultBmask 0xff
-#define DefaultAmask 0xff000000
-#define DefaultBpp 32
-
 static SDL_Surface* newSurfaceFromRGBAData(int w,
                                            int h,
                                            char* data,
                                            MaskType with_mask) {
+  // Note to self: These describe the byte order IN THE RAW G00 DATA!
+  // These should NOT be switched to native byte order.
+  constexpr auto DefaultBpp = 32;
+  constexpr auto DefaultAmask = 0xff000000;
+  constexpr auto DefaultRmask = 0xff0000;
+  constexpr auto DefaultGmask = 0xff00;
+  constexpr auto DefaultBmask = 0xff;
+
   int amask = (with_mask == ALPHA_MASK) ? DefaultAmask : 0;
   SDL_Surface* tmp =
       SDL_CreateRGBSurfaceFrom(data, w, h, DefaultBpp, w * 4, DefaultRmask,
@@ -500,19 +499,6 @@ std::shared_ptr<SDLSurface> GetSDLSurface(std::shared_ptr<Surface> surface) {
   if (auto sdl_surface = std::dynamic_pointer_cast<SDLSurface>(surface))
     return sdl_surface;
   throw std::runtime_error("SDLGraphicsSystem: expected sdl surface.");
-}
-
-// Functions to create a sdl surface
-std::shared_ptr<SDLSurface> SDLGraphicsSystem::CreateSurface(Size size) {
-  return std::make_shared<SDLSurface>(size);
-}
-std::shared_ptr<Surface> SDLGraphicsSystem::BuildSurface(const Size& size) {
-  return CreateSurface(size);
-}
-
-std::shared_ptr<Surface> SDLGraphicsSystem::CreateSurface(
-    SDL_Surface* surface) {
-  return std::make_shared<SDLSurface>(surface);
 }
 
 std::shared_ptr<const Surface> SDLGraphicsSystem::LoadSurfaceFromFile(
