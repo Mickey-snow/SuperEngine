@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -27,18 +24,12 @@
 
 #pragma once
 
-#include <boost/serialization/access.hpp>
-#include <boost/serialization/split_member.hpp>
-
-#include <iosfwd>
-#include <memory>
-#include <string>
-#include <vector>
-
-#include "machine/rlmachine.hpp"
-#include "machine/serialization.hpp"
+#include "base/avdec/gan.hpp"
 #include "object/animator.hpp"
 #include "object/objdrawer.hpp"
+
+#include <memory>
+#include <string>
 
 class SDLSurface;
 using Surface = SDLSurface;
@@ -52,10 +43,8 @@ class GraphicsObject;
 // storing, and rendering GAN data as a GraphicsObjectData.
 class GanGraphicsObjectData : public GraphicsObjectData {
  public:
-  explicit GanGraphicsObjectData(System& system);
-  GanGraphicsObjectData(System& system,
-                        const std::string& ganfile,
-                        const std::string& imgfile);
+  GanGraphicsObjectData(std::shared_ptr<Surface> image,
+                        std::vector<std::vector<GanDecoder::Frame>> frames);
   virtual ~GanGraphicsObjectData();
 
   void LoadGANData();
@@ -80,66 +69,14 @@ class GanGraphicsObjectData : public GraphicsObjectData {
                                 const GraphicsObject* parent) override;
 
  private:
-  struct Frame {
-    int pattern;
-    int x;
-    int y;
-    int time;
-    int alpha;
-    int other;  // No idea what this is.
-  };
-
-  typedef std::vector<std::vector<Frame>> AnimationSets;
-
-  void TestFileMagic(const std::string& file_name,
-                     std::unique_ptr<char[]>& gan_data,
-                     int file_size);
-  void ReadData(const std::string& file_name,
-                std::unique_ptr<char[]>& gan_data,
-                int file_size);
-  Frame ReadSetFrame(const std::string& filename, const char*& data);
-
-  // Throws an error on bad GAN files.
-  void ThrowBadFormat(const std::string& filename, const std::string& error);
-
-  System& system_;
-
   Animator animator_;
-  AnimationSets animation_sets;
 
-  std::string gan_filename_;
-  std::string img_filename_;
+  std::shared_ptr<Surface> image_;
+
+  using Frame = GanDecoder::Frame;
+  std::vector<std::vector<Frame>> animation_sets;
 
   int current_set_;
   int current_frame_;
-
   unsigned int delta_time_;
-
-  // The image the above coordinates map into.
-  std::shared_ptr<const Surface> image_;
-
-  friend class boost::serialization::access;
-
-  // boost::serialization forward declaration
-  template <class Archive>
-  void save(Archive& ar, const unsigned int file_version) const;
-
-  // boost::serialization forward declaration
-  template <class Archive>
-  void load(Archive& ar, const unsigned int file_version);
-
-  BOOST_SERIALIZATION_SPLIT_MEMBER()
 };
-
-// We need help creating GanGraphicsObjectData s since they don't have a
-// default constructor:
-namespace boost {
-namespace serialization {
-template <class Archive>
-inline void load_construct_data(Archive& ar,
-                                GanGraphicsObjectData* t,
-                                const unsigned int file_version) {
-  ::new (t) GanGraphicsObjectData(Serialization::g_current_machine->GetSystem());
-}
-}  // namespace serialization
-}  // namespace boost

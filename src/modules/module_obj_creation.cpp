@@ -27,6 +27,7 @@
 
 #include "modules/module_obj_creation.hpp"
 
+#include "base/avdec/gan.hpp"
 #include "machine/properties.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/rlmodule.hpp"
@@ -61,16 +62,41 @@ namespace fs = std::filesystem;
 
 namespace {
 
+std::vector<char> LoadFile(fs::path file_path) {
+  MappedFile file(file_path);
+  std::vector<char> file_content;
+  for (auto c : file.Read())
+    file_content.push_back(c);
+  return file_content;
+}
+
 void SetObjectDataToGan(RLMachine& machine,
                         GraphicsObject& obj,
                         std::string& imgFilename,
                         const std::string& ganFilename) {
-  // TODO(erg): This is a hack and probably a source of errors. Figure out what
-  // '???' means when used as the first parameter to objOfFileGan.
+  auto& system_ = machine.GetSystem();
+
+  // decode the gan file
+  static const std::set<std::string> GAN_FILETYPES = {"gan"};
+  fs::path gan_file_path =
+      system_.GetAssetScanner()->FindFile(ganFilename, GAN_FILETYPES);
+  if (gan_file_path.empty())
+    throw std::runtime_error("Could not locate GAN file " + ganFilename);
+
+  auto file_data = LoadFile(gan_file_path);
+  GanDecoder dec(std::move(file_data));
+
+  // load image associated with the gan file
   if (imgFilename == "???")
+    imgFilename = dec.raw_file_name.empty() ? ganFilename : dec.raw_file_name;
+  else if (imgFilename == "?")
     imgFilename = ganFilename;
-  obj.SetObjectData(
-      new GanGraphicsObjectData(machine.GetSystem(), ganFilename, imgFilename));
+  auto image = system_.graphics().GetSurfaceNamed(imgFilename);
+
+  // create graphics object
+  auto obj_data = std::make_unique<GanGraphicsObjectData>(
+      image, std::move(dec.animation_sets));
+  obj.SetObjectData(std::move(obj_data));
 }
 
 typedef std::function<void(RLMachine&, GraphicsObject& obj, const string&)>
@@ -98,10 +124,7 @@ void objOfFileLoader(RLMachine& machine,
     auto obj_data = std::make_unique<GraphicsObjectOfFile>(surface);
     obj.SetObjectData(std::move(obj_data));
   } else if (file_str.ends_with("anm")) {
-    MappedFile file(full_path);
-    std::vector<char> file_content;
-    for (auto c : file.Read())
-      file_content.push_back(c);
+    std::vector<char> file_content = LoadFile(full_path);
     AnmDecoder decoder(std::move(file_content));
 
     auto surface = system.graphics().GetSurfaceNamed(decoder.raw_file_name);
@@ -109,7 +132,8 @@ void objOfFileLoader(RLMachine& machine,
     for (auto& frame : decoder.frames)
       decoder.FixAxis(frame, screen_size.width(), screen_size.height());
 
-    auto obj_data = std::make_unique<AnmGraphicsObjectData>(surface, std::move(decoder));
+    auto obj_data =
+        std::make_unique<AnmGraphicsObjectData>(surface, std::move(decoder));
     obj.SetObjectData(std::move(obj_data));
   } else {
     std::ostringstream oss;

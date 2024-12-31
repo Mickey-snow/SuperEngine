@@ -31,188 +31,26 @@
 
 #include "object/drawer/gan.hpp"
 
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/serialization/export.hpp>
-#include <filesystem>
-#include <iostream>
-#include <string>
-#include <vector>
-
-#include "libreallive/alldefs.hpp"
-#include "machine/serialization.hpp"
 #include "object/animator.hpp"
-#include "systems/base/event_system.hpp"
 #include "systems/base/graphics_object.hpp"
-#include "systems/base/graphics_system.hpp"
-#include "systems/base/system.hpp"
 #include "systems/sdl_surface.hpp"
-#include "utilities/exception.hpp"
-#include "utilities/file.hpp"
-
-using libreallive::read_i32;
-using std::cerr;
-using std::endl;
-using std::ifstream;
-using std::ostringstream;
-using std::string;
-using std::vector;
-
-namespace fs = std::filesystem;
+#include "utilities/clock.hpp"
 
 // -----------------------------------------------------------------------
 // GanGraphicsObjectData
 // -----------------------------------------------------------------------
 
-GanGraphicsObjectData::GanGraphicsObjectData(System& system)
-    : system_(system),
-      animator_(system.event().GetClock()),
+GanGraphicsObjectData::GanGraphicsObjectData(
+    std::shared_ptr<Surface> image,
+    std::vector<std::vector<GanDecoder::Frame>> frames)
+    : animator_(std::make_shared<Clock>()),
+      image_(image),
+      animation_sets(std::move(frames)),
       current_set_(-1),
       current_frame_(-1),
       delta_time_(0) {}
 
-GanGraphicsObjectData::GanGraphicsObjectData(System& system,
-                                             const std::string& gan_file,
-                                             const std::string& img_file)
-    : system_(system),
-      animator_(system.event().GetClock()),
-      gan_filename_(gan_file),
-      img_filename_(img_file),
-      current_set_(-1),
-      current_frame_(-1),
-      delta_time_(0) {
-  LoadGANData();
-}
-
-GanGraphicsObjectData::~GanGraphicsObjectData() {}
-
-void GanGraphicsObjectData::LoadGANData() {
-  image_ = system_.graphics().GetSurfaceNamed(img_filename_);
-
-  static const std::set<std::string> GAN_FILETYPES = {"gan"};
-  fs::path gan_file_path =
-      system_.GetAssetScanner()->FindFile(gan_filename_, GAN_FILETYPES);
-  if (gan_file_path.empty()) {
-    ostringstream oss;
-    oss << "Could not find GAN file \"" << gan_filename_ << "\".";
-    throw rlvm::Exception(oss.str());
-  }
-
-  int file_size = 0;
-  std::unique_ptr<char[]> gan_data;
-  if (LoadFileData(gan_file_path, gan_data, file_size)) {
-    ostringstream oss;
-    oss << "Could not read the contents of \"" << gan_file_path << "\"";
-    throw rlvm::Exception(oss.str());
-  }
-
-  TestFileMagic(gan_filename_, gan_data, file_size);
-  ReadData(gan_filename_, gan_data, file_size);
-}
-
-void GanGraphicsObjectData::TestFileMagic(const std::string& file_name,
-                                          std::unique_ptr<char[]>& gan_data,
-                                          int file_size) {
-  const char* data = gan_data.get();
-  int a = read_i32(data);
-  int b = read_i32(data + 0x04);
-  int c = read_i32(data + 0x08);
-
-  if (a != 10000 || b != 10000 || c != 10100)
-    ThrowBadFormat(file_name, "Incorrect GAN file magic");
-}
-
-void GanGraphicsObjectData::ReadData(const std::string& file_name,
-                                     std::unique_ptr<char[]>& gan_data,
-                                     int file_size) {
-  const char* data = gan_data.get();
-  int file_name_length = read_i32(data + 0xc);
-  string raw_file_name = data + 0x10;
-
-  // Strings should be NULL terminated.
-  data = data + 0x10 + file_name_length - 1;
-  if (*data != 0)
-    ThrowBadFormat(file_name, "Incorrect filename length in GAN header");
-  data++;
-
-  int twenty_thousand = read_i32(data);
-  if (twenty_thousand != 20000)
-    ThrowBadFormat(file_name, "Expected start of GAN data section");
-  data += 4;
-
-  int number_of_sets = read_i32(data);
-  data += 4;
-
-  for (int i = 0; i < number_of_sets; ++i) {
-    int start_of_ganset = read_i32(data);
-    if (start_of_ganset != 0x7530)
-      ThrowBadFormat(file_name, "Expected start of GAN set");
-
-    data += 4;
-    int frame_count = read_i32(data);
-    if (frame_count < 0)
-      ThrowBadFormat(file_name,
-                     "Expected animation to contain at least one frame");
-    data += 4;
-
-    vector<Frame> animation_set;
-    for (int j = 0; j < frame_count; ++j)
-      animation_set.push_back(ReadSetFrame(file_name, data));
-    animation_sets.push_back(animation_set);
-  }
-}
-
-GanGraphicsObjectData::Frame GanGraphicsObjectData::ReadSetFrame(
-    const std::string& file_name,
-    const char*& data) {
-  GanGraphicsObjectData::Frame frame;
-
-  int tag = read_i32(data);
-  data += 4;
-  while (tag != 999999) {
-    int value = read_i32(data);
-    data += 4;
-
-    switch (tag) {
-      case 30100:
-        frame.pattern = value;
-        break;
-      case 30101:
-        frame.x = value;
-        break;
-      case 30102:
-        frame.y = value;
-        break;
-      case 30103:
-        frame.time = value;
-        break;
-      case 30104:
-        frame.alpha = value;
-        break;
-      case 30105:
-        frame.other = value;
-        break;
-      default: {
-        ostringstream oss;
-        oss << "Unknown GAN frame tag: " << tag;
-        ThrowBadFormat(file_name, oss.str());
-      }
-    }
-
-    tag = read_i32(data);
-    data += 4;
-  }
-
-  return frame;
-}
-
-void GanGraphicsObjectData::ThrowBadFormat(const std::string& file_name,
-                                           const std::string& error) {
-  ostringstream oss;
-  oss << "File \"" << file_name
-      << "\" does not appear to be in GAN format: " << error;
-  throw rlvm::Exception(oss.str());
-}
+GanGraphicsObjectData::~GanGraphicsObjectData() = default;
 
 int GanGraphicsObjectData::PixelWidth(const GraphicsObject& go) {
   auto& rendering_properties = go.Param();
@@ -245,8 +83,7 @@ int GanGraphicsObjectData::PixelHeight(const GraphicsObject& go) {
 }
 
 std::unique_ptr<GraphicsObjectData> GanGraphicsObjectData::Clone() const {
-  return std::make_unique<GanGraphicsObjectData>(system_, gan_filename_,
-                                                 img_filename_);
+  return std::make_unique<GanGraphicsObjectData>(*this);
 }
 
 void GanGraphicsObjectData::Execute(RLMachine&) {
@@ -261,7 +98,7 @@ void GanGraphicsObjectData::Execute(RLMachine&) {
 
   delta_time_ += deltaTime;
   if (current_frame_ >= 0) {
-    const vector<Frame>& current_set = animation_sets.at(current_set_);
+    const std::vector<Frame>& current_set = animation_sets.at(current_set_);
     const auto total_frames = current_set.size();
 
     while (delta_time_ >= current_set[current_frame_].time) {
@@ -334,33 +171,33 @@ void GanGraphicsObjectData::PlaySet(int set) {
   current_frame_ = 0;
 }
 
-template <class Archive>
-void GanGraphicsObjectData::load(Archive& ar, unsigned int version) {
-  ar & animator_ & gan_filename_ & img_filename_ & current_set_ &
-      current_frame_;
+// template <class Archive>
+// void GanGraphicsObjectData::load(Archive& ar, unsigned int version) {
+//   ar & animator_ & gan_filename_ & img_filename_ & current_set_ &
+//       current_frame_;
 
-  LoadGANData();
-}
+//   LoadGANData();
+// }
 
-template <class Archive>
-void GanGraphicsObjectData::save(Archive& ar, unsigned int version) const {
-  ar & animator_ & gan_filename_ & img_filename_ & current_set_ &
-      current_frame_;
-}
+// template <class Archive>
+// void GanGraphicsObjectData::save(Archive& ar, unsigned int version) const {
+//   ar & animator_ & gan_filename_ & img_filename_ & current_set_ &
+//       current_frame_;
+// }
 
-// -----------------------------------------------------------------------
+// // -----------------------------------------------------------------------
 
-// Explicit instantiations for text archives (since we hide the
-// implementation)
+// // Explicit instantiations for text archives (since we hide the
+// // implementation)
 
-template void GanGraphicsObjectData::save<boost::archive::text_oarchive>(
-    boost::archive::text_oarchive& ar,
-    unsigned int version) const;
+// template void GanGraphicsObjectData::save<boost::archive::text_oarchive>(
+//     boost::archive::text_oarchive& ar,
+//     unsigned int version) const;
 
-template void GanGraphicsObjectData::load<boost::archive::text_iarchive>(
-    boost::archive::text_iarchive& ar,
-    unsigned int version);
+// template void GanGraphicsObjectData::load<boost::archive::text_iarchive>(
+//     boost::archive::text_iarchive& ar,
+//     unsigned int version);
 
-// -----------------------------------------------------------------------
+// // -----------------------------------------------------------------------
 
-BOOST_CLASS_EXPORT(GanGraphicsObjectData);
+// BOOST_CLASS_EXPORT(GanGraphicsObjectData);
