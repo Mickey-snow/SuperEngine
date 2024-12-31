@@ -69,6 +69,7 @@ class GraphicsObject {
 
   GraphicsObjectData& GetObjectData();
   void SetObjectData(GraphicsObjectData* obj);
+  void SetObjectData(std::unique_ptr<GraphicsObjectData>);
 
   // Render!
   void Render(int objNum, const GraphicsObject* parent);
@@ -122,10 +123,8 @@ class GraphicsObject {
 
   template <class Archive>
   void serialize(Archive& ar, unsigned int version) {
-    if (version < 1)
-      throw std::runtime_error(
-          "GraphicsObject: serialization for version<1 is unsupported.");
-
+    // TODO: fix serialization. We should save and load object parameters and
+    // object_data, but not object_mutators
     std::cerr << "Currently under construction." << std::endl;
   }
 };

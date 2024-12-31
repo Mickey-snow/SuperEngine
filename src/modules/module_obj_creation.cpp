@@ -85,7 +85,7 @@ void objOfFileLoader(RLMachine& machine,
 
   // Get the path to get the file type (which won't be in filename)
   fs::path full_path =
-      machine.GetSystem().GetAssetScanner()->FindFile(filename, OBJ_FILETYPES);
+      system.GetAssetScanner()->FindFile(filename, OBJ_FILETYPES);
   if (full_path.empty()) {
     std::stringstream oss;
     oss << "Could not find Object compatible file \"" << filename << "\".";
@@ -93,18 +93,19 @@ void objOfFileLoader(RLMachine& machine,
   }
 
   string file_str = full_path.string();
-  GraphicsObjectData* obj_data = nullptr;
   if (file_str.ends_with("g00") || file_str.ends_with("pdt")) {
-    obj_data = new GraphicsObjectOfFile(system, filename);
+    auto surface = system.graphics().GetSurfaceNamed(filename);
+    surface->EnsureUploaded();
+    auto obj_data = std::make_unique<GraphicsObjectOfFile>(surface);
+    obj.SetObjectData(std::move(obj_data));
   } else if (file_str.ends_with("anm")) {
-    obj_data = new AnmGraphicsObjectData(system, filename);
+    auto obj_data = std::make_unique<AnmGraphicsObjectData>(system, filename);
+    obj.SetObjectData(std::move(obj_data));
   } else {
     std::ostringstream oss;
     oss << "Don't know how to handle object file: \"" << filename << "\"";
     throw std::runtime_error(oss.str());
   }
-
-  obj.SetObjectData(obj_data);
 }
 
 void objOfTextBuilder(RLMachine& machine,

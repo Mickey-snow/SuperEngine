@@ -498,7 +498,7 @@ std::shared_ptr<SDLSurface> GetSDLSurface(std::shared_ptr<Surface> surface) {
   throw std::runtime_error("SDLGraphicsSystem: expected sdl surface.");
 }
 
-std::shared_ptr<const Surface> SDLGraphicsSystem::LoadSurfaceFromFile(
+std::shared_ptr<Surface> SDLGraphicsSystem::LoadSurfaceFromFile(
     const std::string& short_filename) {
   static const std::set<std::string> IMAGE_FILETYPES = {"g00", "pdt"};
   std::filesystem::path filename =

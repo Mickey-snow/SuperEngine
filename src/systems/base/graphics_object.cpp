@@ -96,6 +96,10 @@ void GraphicsObject::SetObjectData(GraphicsObjectData* obj) {
   object_data_.reset(obj);
 }
 
+void GraphicsObject::SetObjectData(std::unique_ptr<GraphicsObjectData> obj) {
+  object_data_ = std::move(obj);
+}
+
 int GraphicsObject::PixelWidth() const {
   // Calculate out the pixel width of the current object taking in the
   // width() scaling.

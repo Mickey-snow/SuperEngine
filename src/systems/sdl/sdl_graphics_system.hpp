@@ -59,7 +59,7 @@ class SDLGraphicsSystem : public GraphicsSystem, public NotificationObserver {
   SDLGraphicsSystem(System& system, Gameexe& gameexe);
   ~SDLGraphicsSystem();
 
-  virtual std::shared_ptr<const Surface> LoadSurfaceFromFile(
+  virtual std::shared_ptr<Surface> LoadSurfaceFromFile(
       const std::string& short_filename) override;
 
  public:

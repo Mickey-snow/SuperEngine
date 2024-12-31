@@ -39,43 +39,23 @@
 #include "systems/base/event_system.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/base/graphics_system.hpp"
-#include "systems/sdl_surface.hpp"
 #include "systems/base/system.hpp"
+#include "systems/sdl_surface.hpp"
 #include "utilities/file.hpp"
 
 namespace fs = std::filesystem;
 
 // -----------------------------------------------------------------------
 
-GraphicsObjectOfFile::GraphicsObjectOfFile(System& system)
-    : service_(std::make_shared<RenderingService>(system)),
-      animator_(system.event().GetClock()),
-      filename_(""),
+GraphicsObjectOfFile::GraphicsObjectOfFile(std::shared_ptr<SDLSurface> surface)
+    : animator_(std::make_shared<Clock>()),
+      surface_(surface),
       frame_time_(0),
       current_frame_(-1) {}
 
 // -----------------------------------------------------------------------
 
-GraphicsObjectOfFile::GraphicsObjectOfFile(System& system,
-                                           const std::string& filename)
-    : service_(std::make_shared<RenderingService>(system)),
-      animator_(system.event().GetClock()),
-      filename_(filename),
-      frame_time_(0),
-      current_frame_(-1) {
-  LoadFile(system);
-}
-
-// -----------------------------------------------------------------------
-
 GraphicsObjectOfFile::~GraphicsObjectOfFile() = default;
-
-// -----------------------------------------------------------------------
-
-void GraphicsObjectOfFile::LoadFile(System& system) {
-  surface_ = system.graphics().GetSurfaceNamed(filename_);
-  surface_->EnsureUploaded();
-}
 
 // -----------------------------------------------------------------------
 
@@ -122,8 +102,6 @@ void GraphicsObjectOfFile::Execute() {
     else
       current_frame = total_frames - 1;
   }
-
-  service_->MarkScreenDirty(GUT_DISPLAY_OBJ);
 }
 
 // -----------------------------------------------------------------------
@@ -159,7 +137,6 @@ void GraphicsObjectOfFile::PlaySet(int frame_time) {
   }
 
   animator_.Reset();
-  service_->MarkScreenDirty(GUT_DISPLAY_OBJ);
 }
 
 // -----------------------------------------------------------------------
@@ -177,37 +154,3 @@ Animator* GraphicsObjectOfFile::GetAnimator() {
     return nullptr;
   return &animator_;
 }
-
-// -----------------------------------------------------------------------
-
-template <class Archive>
-void GraphicsObjectOfFile::load(Archive& ar, unsigned int version) {
-  ar & animator_ & filename_ & frame_time_ & current_frame_;
-
-  LoadFile(Serialization::g_current_machine->GetSystem());
-  service_->MarkScreenDirty(GUT_DISPLAY_OBJ);
-}
-
-// -----------------------------------------------------------------------
-
-template <class Archive>
-void GraphicsObjectOfFile::save(Archive& ar, unsigned int version) const {
-  ar & animator_ & filename_ & frame_time_ & current_frame_;
-}
-
-// -----------------------------------------------------------------------
-
-BOOST_CLASS_EXPORT(GraphicsObjectOfFile);
-
-// -----------------------------------------------------------------------
-
-// Explicit instantiations for text archives (since we hide the
-// implementation)
-
-template void GraphicsObjectOfFile::save<boost::archive::text_oarchive>(
-    boost::archive::text_oarchive& ar,
-    unsigned int version) const;
-
-template void GraphicsObjectOfFile::load<boost::archive::text_iarchive>(
-    boost::archive::text_iarchive& ar,
-    unsigned int version);

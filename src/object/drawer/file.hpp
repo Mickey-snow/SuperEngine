@@ -27,9 +27,6 @@
 
 #pragma once
 
-#include <boost/serialization/access.hpp>
-#include <boost/serialization/split_member.hpp>
-
 #include <memory>
 #include <string>
 
@@ -41,7 +38,6 @@
 
 class System;
 class SDLSurface;
-using Surface = SDLSurface;
 class RLMachine;
 
 // -----------------------------------------------------------------------
@@ -52,13 +48,8 @@ class RLMachine;
 // object. It has support for normal display, and also
 class GraphicsObjectOfFile : public GraphicsObjectData {
  public:
-  explicit GraphicsObjectOfFile(System& system);
-  GraphicsObjectOfFile(System& system, const std::string& filename);
-  GraphicsObjectOfFile(std::shared_ptr<IRenderingService>,
-                       std::shared_ptr<const Surface>);
+  GraphicsObjectOfFile(std::shared_ptr<SDLSurface> surface);
   virtual ~GraphicsObjectOfFile();
-
-  const std::string& filename() const { return filename_; }
 
   virtual int PixelWidth(const GraphicsObject& rp) override;
   virtual int PixelHeight(const GraphicsObject& rp) override;
@@ -79,19 +70,10 @@ class GraphicsObjectOfFile : public GraphicsObjectData {
   virtual Rect SrcRect(const GraphicsObject& go) override;
 
  private:
-  // Used in serialization system.
-  void LoadFile(System&);
-
-  // Service locator providing runtime resolve for rendering funtions
-  std::shared_ptr<IRenderingService> service_;
-
   Animator animator_;
 
-  // The name of the graphics file that was loaded.
-  std::string filename_;
-
   // The encapsulated surface to render
-  std::shared_ptr<const Surface> surface_;
+  std::shared_ptr<Surface> surface_;
 
   // Number of milliseconds to spend on a single frame in the
   // animation
@@ -99,28 +81,4 @@ class GraphicsObjectOfFile : public GraphicsObjectData {
 
   // Current frame displayed (when animating)
   int current_frame_;
-
-  // boost::serialization support
-  friend class boost::serialization::access;
-
-  template <class Archive>
-  void save(Archive& ar, const unsigned int file_version) const;
-
-  template <class Archive>
-  void load(Archive& ar, const unsigned int file_version);
-
-  BOOST_SERIALIZATION_SPLIT_MEMBER()
 };
-
-// We need help creating AnmGraphicsObjectData s since they don't have a
-// default constructor:
-namespace boost {
-namespace serialization {
-template <class Archive>
-inline void load_construct_data(Archive& ar,
-                                GraphicsObjectOfFile* t,
-                                const unsigned int file_version) {
-  ::new (t) GraphicsObjectOfFile(Serialization::g_current_machine->GetSystem());
-}
-}  // namespace serialization
-}  // namespace boost

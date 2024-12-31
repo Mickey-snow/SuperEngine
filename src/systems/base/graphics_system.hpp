@@ -337,14 +337,13 @@ class GraphicsSystem : public EventListener {
 
   // Loads an image, optionally marking that this image has been loaded (if it
   // is in the game's CGM table).
-  std::shared_ptr<const Surface> GetSurfaceNamedAndMarkViewed(
+  std::shared_ptr<Surface> GetSurfaceNamedAndMarkViewed(
       RLMachine& machine,
       const std::string& short_filename);
 
   // Just loads an image. This shouldn't be used for images that are destined
   // for one of the DCs, since those can be CGs.
-  std::shared_ptr<const Surface> GetSurfaceNamed(
-      const std::string& short_filename);
+  std::shared_ptr<Surface> GetSurfaceNamed(const std::string& short_filename);
 
   virtual std::shared_ptr<Surface> GetHaikei() = 0;
 
@@ -407,7 +406,7 @@ class GraphicsSystem : public EventListener {
   ToneCurve& tone_curve() { return globals_.tone_curves; }
 
   // Gets the emoji surface, if any.
-  std::shared_ptr<const Surface> GetEmojiSurface();
+  std::shared_ptr<Surface> GetEmojiSurface();
 
   // We have a cache of HIK scripts. This is done so we can load HIKScripts
   // outside of loops.
@@ -425,7 +424,7 @@ class GraphicsSystem : public EventListener {
   void PreloadG00(int slot, const std::string& name);
   void ClearPreloadedG00(int slot);
   void ClearAllPreloadedG00();
-  std::shared_ptr<const Surface> GetPreloadedG00(const std::string& name);
+  std::shared_ptr<Surface> GetPreloadedG00(const std::string& name);
 
  protected:
   typedef std::set<Renderable*> FinalRenderers;
@@ -442,7 +441,7 @@ class GraphicsSystem : public EventListener {
   void DrawFrame();
 
   // Gets a platform appropriate surface loaded.
-  virtual std::shared_ptr<const Surface> LoadSurfaceFromFile(
+  virtual std::shared_ptr<Surface> LoadSurfaceFromFile(
       const std::string& short_filename) = 0;
 
   // Default grp name (used in grp* and rec* functions where filename
@@ -536,14 +535,14 @@ class GraphicsSystem : public EventListener {
   HIKScriptList preloaded_hik_scripts_;
 
   // Preloaded G00 images.
-  typedef std::pair<std::string, std::shared_ptr<const Surface>> G00ArrayItem;
+  typedef std::pair<std::string, std::shared_ptr<Surface>> G00ArrayItem;
   typedef LazyArray<G00ArrayItem> G00ScriptList;
   G00ScriptList preloaded_g00_;
 
   // LRU cache filled with the last fifteen accessed images.
   //
   // This cache's contents are assumed to be immutable.
-  LRUCache<std::string, std::shared_ptr<const Surface>> image_cache_;
+  LRUCache<std::string, std::shared_ptr<Surface>> image_cache_;
 
   // Possible background script which drives graphics to the screen.
   std::unique_ptr<HIKRenderer> hik_renderer_;
