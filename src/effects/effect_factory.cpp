@@ -191,13 +191,6 @@ Effect* EffectFactory::Build(RLMachine& machine,
                              selRecord record) {
   Size screen_size = machine.GetSystem().graphics().screen_size();
 
-  // Ensure that both of our images are on the graphics card so we don't
-  // stutter during the loop. These can be NULL in unit tests.
-  if (src)
-    src->EnsureUploaded();
-  if (dst)
-    dst->EnsureUploaded();
-
   const auto time = record.duration;
   const auto direction = record.direction;
   const auto style = record.dsp;

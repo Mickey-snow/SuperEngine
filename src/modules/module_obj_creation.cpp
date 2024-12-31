@@ -95,7 +95,6 @@ void objOfFileLoader(RLMachine& machine,
   string file_str = full_path.string();
   if (file_str.ends_with("g00") || file_str.ends_with("pdt")) {
     auto surface = system.graphics().GetSurfaceNamed(filename);
-    surface->EnsureUploaded();
     auto obj_data = std::make_unique<GraphicsObjectOfFile>(surface);
     obj.SetObjectData(std::move(obj_data));
   } else if (file_str.ends_with("anm")) {
@@ -312,8 +311,7 @@ void SetObjectDataToRect(RLMachine& machine,
                          int buf,
                          const Rect& r) {
   GraphicsObject& obj = GetGraphicsObject(machine, op, buf);
-  obj.SetObjectData(
-      new ColourFilterObjectData(machine.GetSystem().graphics(), r));
+  obj.SetObjectData(std::make_unique<ColourFilterObjectData>(r));
 }
 
 struct objOfArea_0 : public RLOpcode<IntConstant_T> {

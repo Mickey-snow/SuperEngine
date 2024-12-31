@@ -72,7 +72,6 @@ void GraphicsTextObject::UpdateSurface(const GraphicsObject& rp) {
   surface_ = system_.text().RenderText(
       text_property.value, text_property.text_size, text_property.xspace,
       text_property.yspace, colour, shadow, text_property.char_count);
-  surface_->EnsureUploaded();
 }
 
 // -----------------------------------------------------------------------

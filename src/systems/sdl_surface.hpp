@@ -54,8 +54,6 @@ class SDLSurface {
   SDLSurface(SDL_Surface* surf, std::vector<GrpRect> region_table = {});
   ~SDLSurface();
 
-  void EnsureUploaded() const;
-
   // Whether we have an underlying allocated surface.
   bool allocated() { return surface_; }
 

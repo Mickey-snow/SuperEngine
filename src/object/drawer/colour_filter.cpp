@@ -42,9 +42,8 @@
 #include "systems/gltexture.hpp"
 #include "systems/sdl_surface.hpp"
 
-ColourFilterObjectData::ColourFilterObjectData(GraphicsSystem& system,
-                                               const Rect& screen_rect)
-    : graphics_system_(system), screen_rect_(screen_rect) {}
+ColourFilterObjectData::ColourFilterObjectData(const Rect& screen_rect)
+    : screen_rect_(screen_rect) {}
 
 ColourFilterObjectData::~ColourFilterObjectData() {}
 
@@ -79,8 +78,7 @@ int ColourFilterObjectData::PixelHeight(const GraphicsObject&) {
 }
 
 std::unique_ptr<GraphicsObjectData> ColourFilterObjectData::Clone() const {
-  return std::make_unique<ColourFilterObjectData>(graphics_system_,
-                                                  screen_rect_);
+  return std::make_unique<ColourFilterObjectData>(screen_rect_);
 }
 
 void ColourFilterObjectData::Execute(RLMachine& machine) {
@@ -91,26 +89,3 @@ std::shared_ptr<const Surface> ColourFilterObjectData::CurrentSurface(
     const GraphicsObject&) {
   return std::shared_ptr<const Surface>();
 }
-
-ColourFilterObjectData::ColourFilterObjectData(System& system)
-    : graphics_system_(system.graphics()) {}
-
-template <class Archive>
-void ColourFilterObjectData::serialize(Archive& ar, unsigned int version) {
-  ar& boost::serialization::base_object<GraphicsObjectData>(*this);
-  ar & screen_rect_;
-}
-
-// -----------------------------------------------------------------------
-
-// Explicit instantiations for text archives (since we hide the
-// implementation)
-
-template void ColourFilterObjectData::serialize<boost::archive::text_iarchive>(
-    boost::archive::text_iarchive& ar,
-    unsigned int version);
-template void ColourFilterObjectData::serialize<boost::archive::text_oarchive>(
-    boost::archive::text_oarchive& ar,
-    unsigned int version);
-
-BOOST_CLASS_EXPORT(ColourFilterObjectData);

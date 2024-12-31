@@ -34,8 +34,8 @@
 #include "libreallive/alldefs.hpp"
 #include "machine/rlmachine.hpp"
 #include "systems/base/graphics_system.hpp"
-#include "systems/sdl_surface.hpp"
 #include "systems/base/system.hpp"
+#include "systems/sdl_surface.hpp"
 #include "utilities/exception.hpp"
 #include "utilities/file.hpp"
 #include "utilities/graphics.hpp"
@@ -272,13 +272,13 @@ void HIKScript::LoadHikFile(System& system, const fs::path& file) {
 
 void HIKScript::EnsureUploaded() {
   // Force every frame to be uploaded.
-  for (Layer& layer : layers_) {
-    for (Animation& animation : layer.animations) {
-      for (Frame& frame : animation.frames) {
-        frame.surface->EnsureUploaded();
-      }
-    }
-  }
+  // for (Layer& layer : layers_) {
+  //   for (Animation& animation : layer.animations) {
+  //     for (Frame& frame : animation.frames) {
+  //       frame.surface->EnsureUploaded();
+  //     }
+  //   }
+  // }
 }
 
 HIKScript::Layer& HIKScript::CurrentLayer() {

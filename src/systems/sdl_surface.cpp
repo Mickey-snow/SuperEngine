@@ -276,13 +276,6 @@ SDLSurface::SDLSurface(const Size& size)
 
 // -----------------------------------------------------------------------
 
-void SDLSurface::EnsureUploaded() const {
-  // TODO(erg): Style fix this entire file and make this implementation:
-  uploadTextureIfNeeded();
-}
-
-// -----------------------------------------------------------------------
-
 // Constructor helper function
 void SDLSurface::buildRegionTable(const Size& size) {
   // Build a region table with one entry the size of the surface (This

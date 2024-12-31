@@ -543,9 +543,6 @@ void GraphicsSystem::PreloadG00(int slot, const std::string& name) {
   if (!surface)
     surface = LoadSurfaceFromFile(name);
 
-  if (surface)
-    surface->EnsureUploaded();
-
   preloaded_g00_[slot] = std::make_pair(name, surface);
 }
 

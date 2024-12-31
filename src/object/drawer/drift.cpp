@@ -198,7 +198,6 @@ std::shared_ptr<const Surface> DriftGraphicsObject::CurrentSurface(
 
 void DriftGraphicsObject::LoadFile() {
   surface_ = system_.graphics().GetSurfaceNamed(filename_);
-  surface_->EnsureUploaded();
 }
 
 template <class Archive>

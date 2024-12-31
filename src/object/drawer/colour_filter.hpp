@@ -26,25 +26,19 @@
 
 #pragma once
 
-#include <boost/serialization/access.hpp>
-
-#include <memory>
-
 #include "base/rect.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/serialization.hpp"
 #include "object/objdrawer.hpp"
 
+#include <memory>
+
 class GraphicsObject;
-class GraphicsSystem;
 
 class ColourFilterObjectData : public GraphicsObjectData {
  public:
-  ColourFilterObjectData(GraphicsSystem& system, const Rect& screen_rect);
+  ColourFilterObjectData(const Rect& screen_rect);
   virtual ~ColourFilterObjectData();
-
-  // load_construct_data helper. Wish I could make this private.
-  explicit ColourFilterObjectData(System& system);
 
   void set_rect(const Rect& screen_rect) { screen_rect_ = screen_rect; }
 
@@ -61,25 +55,5 @@ class ColourFilterObjectData : public GraphicsObjectData {
       const GraphicsObject& rp) override;
 
  private:
-  GraphicsSystem& graphics_system_;
-
   Rect screen_rect_;
-
-  friend class boost::serialization::access;
-  template <class Archive>
-  void serialize(Archive& ar, const unsigned int file_version);
 };
-
-// We need help creating ColourFilterObjectData s since they don't have a
-// default constructor:
-namespace boost {
-namespace serialization {
-template <class Archive>
-inline void load_construct_data(Archive& ar,
-                                ColourFilterObjectData* t,
-                                const unsigned int file_version) {
-  ::new (t)
-      ColourFilterObjectData(Serialization::g_current_machine->GetSystem());
-}
-}  // namespace serialization
-}  // namespace boost

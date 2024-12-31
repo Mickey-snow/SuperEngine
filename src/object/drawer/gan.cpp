@@ -88,7 +88,6 @@ GanGraphicsObjectData::~GanGraphicsObjectData() {}
 
 void GanGraphicsObjectData::LoadGANData() {
   image_ = system_.graphics().GetSurfaceNamed(img_filename_);
-  image_->EnsureUploaded();
 
   static const std::set<std::string> GAN_FILETYPES = {"gan"};
   fs::path gan_file_path =

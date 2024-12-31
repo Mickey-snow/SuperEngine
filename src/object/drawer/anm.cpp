@@ -132,7 +132,6 @@ void AnmGraphicsObjectData::LoadAnmFileFromData(
   // Read the corresponding image file we read from, and load the image.
   string raw_file_name = data + 0x1c;
   image_ = system_.graphics().GetSurfaceNamed(raw_file_name);
-  image_->EnsureUploaded();
 
   // Read the frame list
   const char* buf = data + 0xb8;
