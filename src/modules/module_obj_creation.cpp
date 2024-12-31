@@ -98,7 +98,18 @@ void objOfFileLoader(RLMachine& machine,
     auto obj_data = std::make_unique<GraphicsObjectOfFile>(surface);
     obj.SetObjectData(std::move(obj_data));
   } else if (file_str.ends_with("anm")) {
-    auto obj_data = std::make_unique<AnmGraphicsObjectData>(system, filename);
+    MappedFile file(full_path);
+    std::vector<char> file_content;
+    for (auto c : file.Read())
+      file_content.push_back(c);
+    AnmDecoder decoder(std::move(file_content));
+
+    auto surface = system.graphics().GetSurfaceNamed(decoder.raw_file_name);
+    Size screen_size = system.graphics().screen_size();
+    for (auto& frame : decoder.frames)
+      decoder.FixAxis(frame, screen_size.width(), screen_size.height());
+
+    auto obj_data = std::make_unique<AnmGraphicsObjectData>(surface, std::move(decoder));
     obj.SetObjectData(std::move(obj_data));
   } else {
     std::ostringstream oss;

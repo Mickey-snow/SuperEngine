@@ -25,25 +25,15 @@
 //
 // -----------------------------------------------------------------------
 
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/serialization/export.hpp>
-
 #include "object/drawer/file.hpp"
 
 #include <iostream>
 #include <memory>
 #include <string>
 
-#include "machine/serialization.hpp"
-#include "systems/base/event_system.hpp"
 #include "systems/base/graphics_object.hpp"
-#include "systems/base/graphics_system.hpp"
-#include "systems/base/system.hpp"
 #include "systems/sdl_surface.hpp"
-#include "utilities/file.hpp"
-
-namespace fs = std::filesystem;
+#include "utilities/clock.hpp"
 
 // -----------------------------------------------------------------------
 

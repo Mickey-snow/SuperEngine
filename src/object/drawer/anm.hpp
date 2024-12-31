@@ -27,17 +27,15 @@
 
 #pragma once
 
-#include <boost/serialization/access.hpp>
-#include <boost/serialization/split_member.hpp>
-
-#include <memory>
-#include <string>
-#include <vector>
-
+#include "base/avdec/anm.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/serialization.hpp"
 #include "object/animator.hpp"
 #include "object/objdrawer.hpp"
+
+#include <memory>
+#include <string>
+#include <vector>
 
 class SDLSurface;
 using Surface = SDLSurface;
@@ -48,11 +46,8 @@ class System;
 // changed to be all C++ like.
 class AnmGraphicsObjectData : public GraphicsObjectData {
  public:
-  explicit AnmGraphicsObjectData(System& system);
-  AnmGraphicsObjectData(System& system, const std::string& file);
+  AnmGraphicsObjectData(std::shared_ptr<Surface> surface, AnmDecoder anm_data);
   virtual ~AnmGraphicsObjectData();
-
-  void LoadAnmFile();
 
   virtual int PixelWidth(const GraphicsObject& rendering_properties) override;
   virtual int PixelHeight(const GraphicsObject& rendering_properties) override;
@@ -75,29 +70,9 @@ class AnmGraphicsObjectData : public GraphicsObjectData {
  private:
   // Advance the position in the animation.
   void AdvanceFrame();
-
-  struct Frame {
-    int src_x1, src_y1;
-    int src_x2, src_y2;
-    int dest_x, dest_y;
-    int time;
-  };
-
-  bool TestFileMagic(std::unique_ptr<char[]>& anm_data);
-  void ReadIntegerList(const char* start,
-                       int offset,
-                       int iterations,
-                       std::vector<std::vector<int>>& dest);
-  void LoadAnmFileFromData(const std::unique_ptr<char[]>& anm_data);
-  void FixAxis(Frame& frame, int width, int height);
-
-  // The system we are a part of.
-  System& system_;
+  using Frame = AnmDecoder::Frame;
 
   Animator animator_;
-
-  // Raw, short name for the ANM file.
-  std::string filename_;
 
   // Animation Data (This structure was stolen from xkanon.)
   std::vector<Frame> frames;
@@ -105,12 +80,10 @@ class AnmGraphicsObjectData : public GraphicsObjectData {
   std::vector<std::vector<int>> animation_set_;
 
   // The image the above coordinates map into.
-  std::shared_ptr<const Surface> image_;
+  std::shared_ptr<Surface> image_;
 
   bool currently_playing_;
-
   int current_set_;
-
   unsigned int delta_time_;
 
   // iterators of animation_set_
@@ -122,27 +95,4 @@ class AnmGraphicsObjectData : public GraphicsObjectData {
   std::vector<int>::const_iterator cur_frame_end_;
 
   int current_frame_;
-
-  friend class boost::serialization::access;
-  template <class Archive>
-  void save(Archive& ar, const unsigned int file_version) const;
-
-  template <class Archive>
-  void load(Archive& ar, const unsigned int file_version);
-
-  BOOST_SERIALIZATION_SPLIT_MEMBER()
 };
-
-// We need help creating AnmGraphicsObjectData s since they don't have a
-// default constructor:
-namespace boost {
-namespace serialization {
-template <class Archive>
-inline void load_construct_data(Archive& ar,
-                                AnmGraphicsObjectData* t,
-                                const unsigned int file_version) {
-  ::new (t)
-      AnmGraphicsObjectData(Serialization::g_current_machine->GetSystem());
-}
-}  // namespace serialization
-}  // namespace boost
