@@ -276,11 +276,7 @@ void SDLEventSystem::HandleActiveEvent(RLMachine& machine, SDL_Event& event) {
     // that's partially covered by rlvm's window and then alt-tab back.
     mouse_inside_window_ = true;
 
-    machine.GetSystem().graphics().MarkScreenAsDirty(GUT_MOUSE_MOTION);
   } else if (event.active.state & SDL_APPMOUSEFOCUS) {
     mouse_inside_window_ = event.active.gain == 1;
-
-    // Force a mouse refresh:
-    machine.GetSystem().graphics().MarkScreenAsDirty(GUT_MOUSE_MOTION);
   }
 }

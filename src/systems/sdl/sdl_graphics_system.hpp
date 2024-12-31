@@ -75,8 +75,6 @@ class SDLGraphicsSystem : public GraphicsSystem, public NotificationObserver {
   void RedrawLastFrame();
   void DrawCursor();
 
-  virtual void MarkScreenAsDirty(GraphicsUpdateType type) override;
-
   virtual void ExecuteGraphicsSystem(RLMachine& machine) override;
 
   virtual void AllocateDC(int dc, Size screen_size) override;
@@ -121,8 +119,6 @@ class SDLGraphicsSystem : public GraphicsSystem, public NotificationObserver {
 
   std::shared_ptr<SDLSurface> haikei_;
   std::shared_ptr<SDLSurface> display_contexts_[16];
-
-  bool redraw_last_frame_;
 
   // utf8 encoded title string
   std::string caption_title_;

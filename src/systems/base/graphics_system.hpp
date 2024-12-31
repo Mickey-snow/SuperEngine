@@ -307,25 +307,11 @@ class GraphicsSystem : public EventListener {
   // GraphicsSystem when deciding whether to render an object or not.
   const ObjectSettings& GetObjectSettings(const int obj_num);
 
-  // Should be called by any of the drawing functions the screen is
-  // invalidated.
-  //
-  // For more information, please see section 5.10.4 of the RLDev
-  // manual, which deals with the behaviour of screen updates, and the
-  // various modes.
-  virtual void MarkScreenAsDirty(GraphicsUpdateType type);
-
   // Forces a refresh of the screen the next time the graphics system
   // executes.
   virtual void ForceRefresh();
 
   bool screen_needs_refresh() const { return screen_needs_refresh_; }
-
-  // We keep a separate state about whether object state has been modified. We
-  // do this so that background object mutation in automatic mode plays nicely
-  // with LongOperations.
-  void mark_object_state_as_dirty() { object_state_dirty_ = true; }
-  bool object_state_dirty() const { return object_state_dirty_; }
 
   virtual void BeginFrame() = 0;
   virtual void EndFrame() = 0;
@@ -475,9 +461,6 @@ class GraphicsSystem : public EventListener {
 
   // Flag set to redraw the screen NOW
   bool screen_needs_refresh_;
-
-  // Whether object state has been mutated since the last screen refresh.
-  bool object_state_dirty_;
 
   // Whether it is the Graphics system's responsibility to redraw the
   // screen. Some LongOperations temporarily take this responsibility

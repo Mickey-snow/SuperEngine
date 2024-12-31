@@ -70,8 +70,6 @@ void MouseCursor::Execute(System& system) {
   if (last_time_frame_incremented_ + frame_speed_ < cur_time) {
     last_time_frame_incremented_ = cur_time;
 
-    system.graphics().MarkScreenAsDirty(GUT_MOUSE_MOTION);
-
     current_frame_++;
     if (current_frame_ >= count_)
       current_frame_ = 0;

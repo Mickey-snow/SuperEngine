@@ -55,8 +55,6 @@ PauseLongOperation::PauseLongOperation(RLMachine& machine)
   time_at_last_pass_ = event.GetTicks();
   total_time_ = 0;
 
-  machine_.GetSystem().graphics().MarkScreenAsDirty(GUT_TEXTSYS);
-
   // We undo this in the destructor
   text.set_in_pause_state(true);
 }

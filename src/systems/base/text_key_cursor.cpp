@@ -33,9 +33,9 @@
 #include "base/gameexe.hpp"
 #include "systems/base/event_system.hpp"
 #include "systems/base/graphics_system.hpp"
-#include "systems/sdl_surface.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/text_window.hpp"
+#include "systems/sdl_surface.hpp"
 
 using std::endl;
 using std::string;
@@ -71,8 +71,6 @@ void TextKeyCursor::Execute() {
 
   if (cursor_image_ && last_time_frame_incremented_ + frame_speed_ < cur_time) {
     last_time_frame_incremented_ = cur_time;
-
-    system_.graphics().MarkScreenAsDirty(GUT_TEXTSYS);
 
     current_frame_++;
     if (current_frame_ >= frame_count_)

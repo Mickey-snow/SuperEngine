@@ -119,8 +119,6 @@ RLOperation* ChildRangeMappingFun(RLOperation* op);
 
 // Calls a function on an object.
 //
-// NOTE: This does *not* call mark_object_state_as_dirty(), like the rest of
-// these adapters.
 class Obj_CallFunction : public RLOpcode<IntConstant_T> {
  public:
   typedef void (GraphicsObject::*Function)();

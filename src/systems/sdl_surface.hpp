@@ -166,8 +166,6 @@ class SDLSurface {
 
   std::vector<TextureRecord> GetTextureArray() const;
 
-  void RegisterObserver(std::function<void()> callback);
-
  private:
   // Makes sure that texture_ is a valid object and that it's
   // updated. This method should be called before doing anything with
@@ -195,8 +193,6 @@ class SDLSurface {
   mutable Rect dirty_rectangle_;
 
   bool is_mask_;
-
-  std::vector<std::function<void()>> observers_;
 
  public:
   static std::shared_ptr<glFrameBuffer> screen_;

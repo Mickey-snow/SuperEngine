@@ -212,7 +212,6 @@ void SDLGraphicsSystem::DrawCursor() {
 
 SDLGraphicsSystem::SDLGraphicsSystem(System& system, Gameexe& gameexe)
     : GraphicsSystem(system, gameexe),
-      redraw_last_frame_(false),
       screen_contents_texture_valid_(false),
       asset_scanner_(system.GetAssetScanner()) {
   haikei_ = std::make_shared<SDLSurface>();
@@ -229,8 +228,6 @@ SDLGraphicsSystem::SDLGraphicsSystem(System& system, Gameexe& gameexe)
   // Now we allocate the first two display contexts with equal size to
   // the display
   display_contexts_[0]->allocate(screen_size());
-  display_contexts_[0]->RegisterObserver(
-      [this]() { this->MarkScreenAsDirty(GUT_DRAW_DC0); });
   display_contexts_[1]->allocate(screen_size());
 
   SetWindowTitle(caption_title_);
@@ -315,18 +312,27 @@ void SDLGraphicsSystem::SetupVideo(Size window_size) {
 SDLGraphicsSystem::~SDLGraphicsSystem() {}
 
 void SDLGraphicsSystem::ExecuteGraphicsSystem(RLMachine& machine) {
-  // For now, nothing, but later, we need to put all code each cycle
-  // here.
-  if (is_responsible_for_update() && screen_needs_refresh()) {
-    BeginFrame();
-    DrawFrame();
-    EndFrame();
-    screen_needs_refresh_ = false;
-    object_state_dirty_ = false;
-    redraw_last_frame_ = false;
-  } else if (is_responsible_for_update() && redraw_last_frame_) {
-    RedrawLastFrame();
-    redraw_last_frame_ = false;
+  if (is_responsible_for_update()) {
+    switch (screen_update_mode()) {
+      case GraphicsSystem::SCREENUPDATEMODE_MANUAL:
+        break;
+      case GraphicsSystem::SCREENUPDATEMODE_SEMIAUTOMATIC:
+      case GraphicsSystem::SCREENUPDATEMODE_AUTOMATIC:
+        screen_needs_refresh_ = true;
+        break;
+      default:
+        throw std::runtime_error("GraphicsSystem: Invalid screen update mode " +
+                                 std::to_string(screen_update_mode()));
+    }
+
+    if (screen_needs_refresh_) {
+      BeginFrame();
+      DrawFrame();
+      EndFrame();
+      screen_needs_refresh_ = false;
+    } else {
+      RedrawLastFrame();
+    }
   }
 
   // Update the seen.
@@ -345,15 +351,6 @@ void SDLGraphicsSystem::ExecuteGraphicsSystem(RLMachine& machine) {
   }
 
   GraphicsSystem::ExecuteGraphicsSystem(machine);
-}
-
-void SDLGraphicsSystem::MarkScreenAsDirty(GraphicsUpdateType type) {
-  if (is_responsible_for_update() &&
-      screen_update_mode() == SCREENUPDATEMODE_MANUAL &&
-      type == GUT_MOUSE_MOTION)
-    redraw_last_frame_ = true;
-  else
-    GraphicsSystem::MarkScreenAsDirty(type);
 }
 
 void SDLGraphicsSystem::SetWindowTitle(std::string new_caption) {
@@ -577,8 +574,6 @@ std::shared_ptr<const Surface> SDLGraphicsSystem::LoadSurfaceFromFile(
 std::shared_ptr<Surface> SDLGraphicsSystem::GetHaikei() {
   if (haikei_->rawSurface() == NULL) {
     haikei_->allocate(screen_size());
-    haikei_->RegisterObserver(
-        [this]() { this->MarkScreenAsDirty(GUT_DRAW_DC0); });
   }
 
   return haikei_;

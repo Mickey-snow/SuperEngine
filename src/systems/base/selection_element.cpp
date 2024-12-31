@@ -31,8 +31,8 @@
 #include "machine/rlmachine.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/sound_system.hpp"
-#include "systems/sdl_surface.hpp"
 #include "systems/base/system.hpp"
+#include "systems/sdl_surface.hpp"
 
 // -----------------------------------------------------------------------
 // SelectionElement
@@ -68,7 +68,6 @@ void SelectionElement::SetMousePosition(const Point& pos) {
   is_highlighted_ = IsHighlighted(pos);
 
   if (start_value != is_highlighted_) {
-    system_.graphics().MarkScreenAsDirty(GUT_TEXTSYS);
     if (is_highlighted_ && system_.sound().HasSe(0))
       system_.sound().PlaySe(0);
   }

@@ -134,8 +134,6 @@ void SDLTextWindow::DisplayRubyText(const std::string& utf8str) {
         Rect(Point(width_start, height_location), Size(w, h)), 255);
     SDL_FreeSurface(tmp);
 
-    system_.graphics().MarkScreenAsDirty(GUT_TEXTSYS);
-
     ruby_begin_point_ = -1;
   }
 

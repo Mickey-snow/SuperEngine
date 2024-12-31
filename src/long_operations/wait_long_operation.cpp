@@ -120,13 +120,13 @@ bool WaitLongOperation::operator()(RLMachine& machine) {
     done = event_function_();
   }
 
-  GraphicsSystem& graphics = machine.GetSystem().graphics();
-  if (mouse_moved_) {
-    graphics.MarkScreenAsDirty(GUT_MOUSE_MOTION);
-    mouse_moved_ = false;
-  } else if (graphics.object_state_dirty()) {
-    graphics.MarkScreenAsDirty(GUT_DISPLAY_OBJ);
-  }
+  // GraphicsSystem& graphics = machine.GetSystem().graphics();
+  // if (mouse_moved_) {
+  //   graphics.MarkScreenAsDirty(GUT_MOUSE_MOTION);
+  //   mouse_moved_ = false;
+  // } else if (graphics.object_state_dirty()) {
+  //   graphics.MarkScreenAsDirty(GUT_DISPLAY_OBJ);
+  // }
 
   if (break_on_clicks_) {
     if (button_pressed_) {

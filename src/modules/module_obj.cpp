@@ -254,8 +254,6 @@ Obj_SetOneIntOnObj::~Obj_SetOneIntOnObj() {}
 void Obj_SetOneIntOnObj::operator()(RLMachine& machine, int buf, int incoming) {
   GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
   std::invoke(setter, obj.Param(), incoming);
-
-  machine.GetSystem().graphics().mark_object_state_as_dirty();
 }
 
 // -----------------------------------------------------------------------
@@ -274,8 +272,6 @@ void Obj_SetTwoIntOnObj::operator()(RLMachine& machine,
   GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
   std::invoke(setter_one_, obj.Param(), incoming_one);
   std::invoke(setter_two_, obj.Param(), incoming_two);
-
-  machine.GetSystem().graphics().mark_object_state_as_dirty();
 }
 
 // -----------------------------------------------------------------------
@@ -292,5 +288,4 @@ void Obj_SetRepnoIntOnObj::operator()(RLMachine& machine,
                                       int val) {
   GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
   std::invoke(setter, obj.Param(), idx, val);
-  machine.GetSystem().graphics().mark_object_state_as_dirty();
 }

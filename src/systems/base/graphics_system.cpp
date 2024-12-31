@@ -203,7 +203,6 @@ GraphicsSystem::GraphicsSystem(System& system, Gameexe& gameexe)
     : screen_update_mode_(SCREENUPDATEMODE_AUTOMATIC),
       background_type_(BACKGROUND_DC0),
       screen_needs_refresh_(false),
-      object_state_dirty_(false),
       is_responsible_for_update_(true),
       display_subtitle_(gameexe("SUBTITLE").ToInt(0)),
       interface_hidden_(false),
@@ -223,28 +222,6 @@ GraphicsSystem::GraphicsSystem(System& system, Gameexe& gameexe)
 // -----------------------------------------------------------------------
 
 GraphicsSystem::~GraphicsSystem() {}
-
-// -----------------------------------------------------------------------
-
-void GraphicsSystem::MarkScreenAsDirty(GraphicsUpdateType type) {
-  switch (screen_update_mode()) {
-    case SCREENUPDATEMODE_AUTOMATIC:
-    case SCREENUPDATEMODE_SEMIAUTOMATIC: {
-      // Perform a blit of DC0 to the screen, and update it.
-      screen_needs_refresh_ = true;
-      break;
-    }
-    case SCREENUPDATEMODE_MANUAL: {
-      // Don't really do anything.
-      break;
-    }
-    default: {
-      std::ostringstream oss;
-      oss << "Invalid screen update mode value: " << screen_update_mode();
-      throw SystemError(oss.str());
-    }
-  }
-}
 
 // -----------------------------------------------------------------------
 
@@ -846,9 +823,6 @@ void GraphicsSystem::SetScreenSize(const Size& size) {
 // -----------------------------------------------------------------------
 
 void GraphicsSystem::MouseMotion(const Point& new_location) {
-  if (use_custom_mouse_cursor_ && show_cursor_from_bytecode_)
-    MarkScreenAsDirty(GUT_MOUSE_MOTION);
-
   cursor_pos_ = new_location;
 }
 

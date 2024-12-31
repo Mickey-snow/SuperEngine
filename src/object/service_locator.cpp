@@ -40,10 +40,6 @@ unsigned int RenderingService::GetTicks() const {
   return system_.event().GetTicks();
 }
 
-void RenderingService::MarkObjStateDirty() const {
-  system_.graphics().mark_object_state_as_dirty();
-}
+void RenderingService::MarkObjStateDirty() const {}
 
-void RenderingService::MarkScreenDirty(GraphicsUpdateType type) {
-  system_.graphics().MarkScreenAsDirty(type);
-}
+void RenderingService::MarkScreenDirty(GraphicsUpdateType type) {}

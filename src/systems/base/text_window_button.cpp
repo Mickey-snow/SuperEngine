@@ -38,11 +38,11 @@
 #include "modules/jump.hpp"
 #include "systems/base/event_system.hpp"
 #include "systems/base/graphics_system.hpp"
-#include "systems/sdl_surface.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/system_error.hpp"
 #include "systems/base/text_system.hpp"
 #include "systems/base/text_window.hpp"
+#include "systems/sdl_surface.hpp"
 
 // Describes the state of a Waku button
 enum ButtonState {
@@ -128,7 +128,6 @@ void TextWindowButton::SetMousePosition(TextWindow& window, const Point& pos) {
     return;
 
   if (IsValid()) {
-    int orig_state = state_;
     bool in_box = Location(window).Contains(pos);
     if (in_box && state_ == BUTTONSTATE_NORMAL)
       state_ = BUTTONSTATE_HIGHLIGHTED;
@@ -136,9 +135,6 @@ void TextWindowButton::SetMousePosition(TextWindow& window, const Point& pos) {
       state_ = BUTTONSTATE_NORMAL;
     else if (!in_box && state_ == BUTTONSTATE_PRESSED)
       state_ = BUTTONSTATE_NORMAL;
-
-    if (orig_state != state_)
-      system_.graphics().MarkScreenAsDirty(GUT_TEXTSYS);
   }
 }
 
@@ -161,8 +157,6 @@ bool TextWindowButton::HandleMouseClick(RLMachine& machine,
         state_ = BUTTONSTATE_HIGHLIGHTED;
         ButtonReleased(machine);
       }
-
-      system_.graphics().MarkScreenAsDirty(GUT_TEXTSYS);
 
       return true;
     }

@@ -830,9 +830,6 @@ std::shared_ptr<Surface> SDLSurface::ClipAsColorMask(const Rect& clip_rect,
 // -----------------------------------------------------------------------
 
 void SDLSurface::markWrittenTo(const Rect& written_rect) {
-  for (const auto& it : observers_)
-    std::invoke(it);
-
   // Mark that the texture needs reuploading
   dirty_rectangle_ = dirty_rectangle_.Union(written_rect);
   texture_is_valid_ = false;
@@ -840,8 +837,4 @@ void SDLSurface::markWrittenTo(const Rect& written_rect) {
 
 std::vector<SDLSurface::TextureRecord> SDLSurface::GetTextureArray() const {
   return textures_;
-}
-
-void SDLSurface::RegisterObserver(std::function<void()> callback) {
-  observers_.emplace_back(std::move(callback));
 }

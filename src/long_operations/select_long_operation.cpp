@@ -189,8 +189,6 @@ NormalSelectLongOperation::NormalSelectLongOperation(
       text_window_->AddSelectionItem(options_[i].str, i);
     }
   }
-
-  machine.GetSystem().graphics().MarkScreenAsDirty(GUT_TEXTSYS);
 }
 
 NormalSelectLongOperation::~NormalSelectLongOperation() {
@@ -375,8 +373,6 @@ ButtonSelectLongOperation::ButtonSelectLongOperation(
       baseposy += reppos_y_;
     }
   }
-
-  machine.GetSystem().graphics().MarkScreenAsDirty(GUT_TEXTSYS);
 }
 
 ButtonSelectLongOperation::~ButtonSelectLongOperation() {

@@ -45,12 +45,12 @@
 #include "systems/base/event_system.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/base/graphics_system.hpp"
-#include "systems/sdl_surface.hpp"
 #include "systems/base/system.hpp"
+#include "systems/sdl_surface.hpp"
 #include "utilities/exception.hpp"
 #include "utilities/file.hpp"
 
-    using libreallive::read_i32;
+using libreallive::read_i32;
 using std::cerr;
 using std::endl;
 using std::ifstream;
@@ -277,8 +277,6 @@ void GanGraphicsObjectData::Execute(RLMachine&) {
           break;
         }
       }
-
-      system_.graphics().MarkScreenAsDirty(GUT_DISPLAY_OBJ);
     }
   }
 }
@@ -335,7 +333,6 @@ void GanGraphicsObjectData::PlaySet(int set) {
   animator_.Reset();
   current_set_ = set;
   current_frame_ = 0;
-  system_.graphics().MarkScreenAsDirty(GUT_DISPLAY_OBJ);
 }
 
 template <class Archive>
@@ -344,7 +341,6 @@ void GanGraphicsObjectData::load(Archive& ar, unsigned int version) {
       current_frame_;
 
   LoadGANData();
-  system_.graphics().MarkScreenAsDirty(GUT_DISPLAY_OBJ);
 }
 
 template <class Archive>

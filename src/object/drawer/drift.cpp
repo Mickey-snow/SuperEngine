@@ -37,8 +37,8 @@
 #include "systems/base/event_system.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/base/graphics_system.hpp"
-#include "systems/sdl_surface.hpp"
 #include "systems/base/system.hpp"
+#include "systems/sdl_surface.hpp"
 #include "utilities/graphics.hpp"
 
 namespace {
@@ -189,14 +189,7 @@ std::unique_ptr<GraphicsObjectData> DriftGraphicsObject::Clone() const {
   return std::make_unique<DriftGraphicsObject>(*this);
 }
 
-void DriftGraphicsObject::Execute(RLMachine& machine) {
-  // We could theoretically redraw every time around the game loop, so
-  // throttle to once every 100ms.
-  int current_time = system_.event().GetTicks();
-  if (current_time - last_rendered_time_ > 10) {
-    system_.graphics().MarkScreenAsDirty(GUT_DISPLAY_OBJ);
-  }
-}
+void DriftGraphicsObject::Execute(RLMachine&) {}
 
 std::shared_ptr<const Surface> DriftGraphicsObject::CurrentSurface(
     const GraphicsObject& rp) {

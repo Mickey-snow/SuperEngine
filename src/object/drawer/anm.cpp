@@ -214,7 +214,6 @@ void AnmGraphicsObjectData::AdvanceFrame() {
   while (animator_.IsPlaying() && !done) {
     if (delta_time_ > frames[current_frame_].time) {
       delta_time_ -= frames[current_frame_].time;
-      system_.graphics().MarkScreenAsDirty(GUT_DISPLAY_OBJ);
 
       cur_frame_++;
       if (cur_frame_ == cur_frame_end_) {
@@ -261,8 +260,6 @@ void AnmGraphicsObjectData::PlaySet(int set) {
   cur_frame_ = framelist_.at(*cur_frame_set_).begin();
   cur_frame_end_ = framelist_.at(*cur_frame_set_).end();
   current_frame_ = *cur_frame_;
-
-  system_.graphics().MarkScreenAsDirty(GUT_DISPLAY_OBJ);
 }
 
 std::shared_ptr<const Surface> AnmGraphicsObjectData::CurrentSurface(

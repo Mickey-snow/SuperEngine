@@ -32,8 +32,8 @@
 #include "systems/base/event_system.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/hik_script.hpp"
-#include "systems/sdl_surface.hpp"
 #include "systems/base/system.hpp"
+#include "systems/sdl_surface.hpp"
 #include "utilities/graphics.hpp"
 
 HIKRenderer::LayerData::LayerData(int time)
@@ -53,9 +53,7 @@ HIKRenderer::HIKRenderer(System& system,
 
 HIKRenderer::~HIKRenderer() {}
 
-void HIKRenderer::Execute(RLMachine& machine) {
-  machine.GetSystem().graphics().MarkScreenAsDirty(GUT_DRAW_HIK);
-}
+void HIKRenderer::Execute(RLMachine& machine) {}
 
 void HIKRenderer::Render() {
   int current_ticks = system_.event().GetTicks();

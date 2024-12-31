@@ -41,11 +41,11 @@
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/selection_element.hpp"
 #include "systems/base/sound_system.hpp"
-#include "systems/sdl_surface.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/system_error.hpp"
 #include "systems/base/text_system.hpp"
 #include "systems/base/text_waku.hpp"
+#include "systems/sdl_surface.hpp"
 #include "utf8cpp/utf8.h"
 #include "utilities/exception.hpp"
 #include "utilities/graphics.hpp"
@@ -571,7 +571,7 @@ bool TextWindow::DisplayCharacter(const std::string& current,
   // When we aren't rendering a piece of text with a ruby gloss, mark
   // the screen as dirty so that this character renders.
   if (ruby_begin_point_ == -1) {
-    system_.graphics().MarkScreenAsDirty(GUT_TEXTSYS);
+    // system_.graphics().MarkScreenAsDirty(GUT_TEXTSYS);
   }
 
   last_token_was_name_ = false;
