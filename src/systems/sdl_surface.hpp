@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -8,6 +5,7 @@
 // -----------------------------------------------------------------------
 //
 // Copyright (C) 2006, 2007 Elliot Glaysher
+// Copyright (C) 2025 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,10 +25,14 @@
 
 #pragma once
 
-#include <vector>
-
+#include "base/colour.hpp"
+#include "base/grprect.hpp"
+#include "base/rect.hpp"
 #include "base/tone_curve.hpp"
-#include "systems/base/surface.hpp"
+
+#include <functional>
+#include <memory>
+#include <vector>
 
 class glFrameBuffer;
 class ScreenCanvas;
@@ -40,13 +42,10 @@ class SDLGraphicsSystem;
 class GraphicsObject;
 class glTexture;
 
-// Wrapper around an OpenGL texture; meant to be passed out of the
-// graphics system.
-//
-// Some SDLSurfaces will own their underlying SDL_Surface, for
-// example, anything returned from GetSurfaceNamedAndMarkViewed(), while others
-// don't own their surfaces (SDLSurfaces returned by GetDC()
-class SDLSurface : public Surface {
+class SDLSurface;
+using Surface = SDLSurface;
+
+class SDLSurface {
  public:
   SDLSurface();
   // Surface created with a specified width and height
@@ -55,23 +54,25 @@ class SDLSurface : public Surface {
   SDLSurface(SDL_Surface* surf, std::vector<GrpRect> region_table = {});
   ~SDLSurface();
 
-  virtual void EnsureUploaded() const override;
+  virtual void EnsureUploaded() const;
 
   // Whether we have an underlying allocated surface.
   bool allocated() { return surface_; }
 
-  virtual void SetIsMask(const bool is) override { is_mask_ = is; }
+  virtual void SetIsMask(const bool is) { is_mask_ = is; }
 
   void buildRegionTable(const Size& size);
 
   void allocate(const Size& size);
   void deallocate();
 
+  Rect GetRect() const;
+
   virtual void BlitToSurface(Surface& dest_surface,
                              const Rect& src,
                              const Rect& dst,
                              int alpha = 255,
-                             bool use_src_alpha = true) const override;
+                             bool use_src_alpha = true) const;
 
   void blitFROMSurface(SDL_Surface* src_surface,
                        const Rect& src,
@@ -81,56 +82,52 @@ class SDLSurface : public Surface {
 
   virtual void RenderToScreen(const Rect& src,
                               const Rect& dst,
-                              int alpha = 255) const override;
+                              int alpha = 255) const;
 
   virtual void RenderToScreenAsColorMask(const Rect& src,
                                          const Rect& dst,
                                          const RGBAColour& rgba,
-                                         int filter) const override;
+                                         int filter) const;
 
   virtual void RenderToScreen(const Rect& src,
                               const Rect& dst,
-                              const int opacity[4]) const override;
+                              const int opacity[4]) const;
 
   // Used internally; not exposed to the general graphics system
   virtual void RenderToScreenAsObject(const GraphicsObject& rp,
                                       const Rect& src,
                                       const Rect& dst,
-                                      int alpha) const override;
+                                      int alpha) const;
 
-  virtual int GetNumPatterns() const override;
+  virtual int GetNumPatterns() const;
 
   // Returns pattern information.
-  virtual const GrpRect& GetPattern(int patt_no) const override;
+  virtual const GrpRect& GetPattern(int patt_no) const;
 
   // -----------------------------------------------------------------------
 
-  virtual Size GetSize() const override;
+  virtual Size GetSize() const;
 
-  virtual void Fill(const RGBAColour& colour) override;
-  virtual void Fill(const RGBAColour& colour, const Rect& area) override;
-  virtual void ToneCurve(const ToneCurveRGBMap effect,
-                         const Rect& area) override;
-  virtual void Invert(const Rect& rect) override;
-  virtual void Mono(const Rect& area) override;
-  virtual void ApplyColour(const RGBColour& colour, const Rect& area) override;
+  virtual void Fill(const RGBAColour& colour);
+  virtual void Fill(const RGBAColour& colour, const Rect& area);
+  virtual void ToneCurve(const ToneCurveRGBMap effect, const Rect& area);
+  virtual void Invert(const Rect& rect);
+  virtual void Mono(const Rect& area);
+  virtual void ApplyColour(const RGBColour& colour, const Rect& area);
 
   SDL_Surface* surface() const { return surface_; }
   SDL_Surface* rawSurface() { return surface_; }
 
-  virtual void GetDCPixel(const Point& pos,
-                          int& r,
-                          int& g,
-                          int& b) const override;
+  virtual void GetDCPixel(const Point& pos, int& r, int& g, int& b) const;
 
   virtual RGBAColour GetPixel(Point pos) const;
 
   virtual std::shared_ptr<Surface> ClipAsColorMask(const Rect& clip_rect,
                                                    int r,
                                                    int g,
-                                                   int b) const override;
+                                                   int b) const;
 
-  virtual Surface* Clone() const override;
+  virtual Surface* Clone() const;
 
   // Called after each change to surface_. Marks the texture as
   // invalid and notifies SDLGraphicsSystem when appropriate.
@@ -171,6 +168,8 @@ class SDLSurface : public Surface {
 
   std::vector<TextureRecord> GetTextureArray() const;
 
+  void RegisterObserver(std::function<void()> callback);
+
  private:
   // Makes sure that texture_ is a valid object and that it's
   // updated. This method should be called before doing anything with
@@ -198,6 +197,8 @@ class SDLSurface : public Surface {
   mutable Rect dirty_rectangle_;
 
   bool is_mask_;
+
+  std::vector<std::function<void()>> observers_;
 
  public:
   static std::shared_ptr<glFrameBuffer> screen_;

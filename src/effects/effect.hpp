@@ -33,7 +33,8 @@
 #include "base/rect.hpp"
 #include "machine/long_operation.hpp"
 
-class Surface;
+class SDLSurface;
+using Surface = SDLSurface;
 class RLMachine;
 
 // SEL/SELR transition effects:

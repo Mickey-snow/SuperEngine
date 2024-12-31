@@ -39,7 +39,8 @@
 #include "object/animator.hpp"
 #include "object/objdrawer.hpp"
 
-class Surface;
+class SDLSurface;
+using Surface = SDLSurface;
 class System;
 
 // Executable, in-memory representation of an ANM file. This internal structure

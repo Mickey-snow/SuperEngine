@@ -33,7 +33,8 @@
 #include "machine/long_operation.hpp"
 
 class RLMachine;
-class Surface;
+class SDLSurface;
+using Surface = SDLSurface;
 
 class ZoomLongOperation : public LongOperation {
  public:

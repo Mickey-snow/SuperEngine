@@ -40,7 +40,8 @@
 #include "object/service_locator.hpp"
 
 class System;
-class Surface;
+class SDLSurface;
+using Surface = SDLSurface;
 class RLMachine;
 
 // -----------------------------------------------------------------------

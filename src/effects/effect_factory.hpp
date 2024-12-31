@@ -30,7 +30,8 @@
 #include <memory>
 
 class RLMachine;
-class Surface;
+class SDLSurface;
+using Surface = SDLSurface;
 class Effect;
 struct selRecord;
 

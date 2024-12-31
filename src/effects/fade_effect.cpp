@@ -27,7 +27,7 @@
 
 #include "effects/fade_effect.hpp"
 
-#include "systems/base/surface.hpp"
+#include "systems/sdl_surface.hpp"
 
 // -----------------------------------------------------------------------
 // FadeEffect

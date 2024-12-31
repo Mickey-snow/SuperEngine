@@ -38,7 +38,8 @@
 #include "object/objdrawer.hpp"
 
 class GraphicsObject;
-class Surface;
+class SDLSurface;
+using Surface = SDLSurface;
 class System;
 
 // Draws a collection of particles to the screen. Used to implement snow and

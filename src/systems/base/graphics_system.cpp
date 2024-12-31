@@ -64,7 +64,7 @@
 #include "systems/base/hik_script.hpp"
 #include "systems/base/mouse_cursor.hpp"
 #include "systems/base/object_settings.hpp"
-#include "systems/base/surface.hpp"
+#include "systems/sdl_surface.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/system_error.hpp"
 #include "systems/base/text_system.hpp"

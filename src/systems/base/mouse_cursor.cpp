@@ -29,7 +29,7 @@
 
 #include "systems/base/event_system.hpp"
 #include "systems/base/graphics_system.hpp"
-#include "systems/base/surface.hpp"
+#include "systems/sdl_surface.hpp"
 #include "systems/base/system.hpp"
 
 const int CURSOR_SIZE_INT = 32;

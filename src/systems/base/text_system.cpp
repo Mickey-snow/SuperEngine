@@ -44,7 +44,7 @@
 #include "machine/serialization.hpp"
 #include "memory/memory.hpp"
 #include "systems/base/graphics_system.hpp"
-#include "systems/base/surface.hpp"
+#include "systems/sdl_surface.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/text_key_cursor.hpp"
 #include "systems/base/text_page.hpp"

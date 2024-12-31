@@ -59,7 +59,8 @@ class Renderable;
 class RGBAColour;
 class RLMachine;
 class Size;
-class Surface;
+class SDLSurface;
+using Surface = SDLSurface;
 class System;
 struct ObjectSettings;
 

@@ -39,7 +39,8 @@
 class Point;
 class RLMachine;
 class Rect;
-class Surface;
+class SDLSurface;
+using Surface = SDLSurface;
 class System;
 class TextWindow;
 

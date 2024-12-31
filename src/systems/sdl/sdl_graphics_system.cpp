@@ -56,7 +56,7 @@
 #include "systems/gltexture.hpp"
 #include "systems/screen_canvas.hpp"
 #include "systems/sdl/sdl_event_system.hpp"
-#include "systems/sdl/sdl_surface.hpp"
+#include "systems/sdl_surface.hpp"
 #include "systems/sdl/sdl_utils.hpp"
 #include "systems/sdl/shaders.hpp"
 #include "utilities/exception.hpp"
@@ -230,7 +230,7 @@ SDLGraphicsSystem::SDLGraphicsSystem(System& system, Gameexe& gameexe)
   // the display
   display_contexts_[0]->allocate(screen_size());
   display_contexts_[0]->RegisterObserver(
-      [this](Rect dirty_rect) { this->MarkScreenAsDirty(GUT_DRAW_DC0); });
+      [this]() { this->MarkScreenAsDirty(GUT_DRAW_DC0); });
   display_contexts_[1]->allocate(screen_size());
 
   SetWindowTitle(caption_title_);
@@ -592,7 +592,7 @@ std::shared_ptr<Surface> SDLGraphicsSystem::GetHaikei() {
   if (haikei_->rawSurface() == NULL) {
     haikei_->allocate(screen_size());
     haikei_->RegisterObserver(
-        [this](Rect dirty_rect) { this->MarkScreenAsDirty(GUT_DRAW_DC0); });
+        [this]() { this->MarkScreenAsDirty(GUT_DRAW_DC0); });
   }
 
   return haikei_;

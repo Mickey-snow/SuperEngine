@@ -28,7 +28,7 @@
 
 #include <string>
 
-#include "systems/base/surface.hpp"
+#include "systems/sdl_surface.hpp"
 #include "systems/base/text_waku.hpp"
 
 // Waku which is a modified Ninebox. Instead of a ninebox, it's really a 12-box

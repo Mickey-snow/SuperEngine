@@ -31,7 +31,7 @@
 
 #include "machine/rlmachine.hpp"
 #include "systems/base/graphics_system.hpp"
-#include "systems/base/surface.hpp"
+#include "systems/sdl_surface.hpp"
 #include "systems/base/system.hpp"
 
 // -----------------------------------------------------------------------

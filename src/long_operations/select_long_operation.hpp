@@ -35,7 +35,7 @@
 #include "base/colour.hpp"
 #include "systems/base/event_listener.hpp"
 #include "systems/base/renderable.hpp"
-#include "systems/base/surface.hpp"
+#include "systems/sdl_surface.hpp"
 
 class RLMachine;
 class TextWindow;

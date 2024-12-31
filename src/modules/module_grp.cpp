@@ -52,7 +52,7 @@
 #include "machine/rloperation/special_t.hpp"
 #include "base/colour.hpp"
 #include "systems/base/graphics_system.hpp"
-#include "systems/base/surface.hpp"
+#include "systems/sdl_surface.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/text_system.hpp"
 #include "utilities/graphics.hpp"

@@ -37,7 +37,7 @@
 #include "systems/base/event_system.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/base/graphics_system.hpp"
-#include "systems/base/surface.hpp"
+#include "systems/sdl_surface.hpp"
 #include "systems/base/system.hpp"
 #include "utilities/graphics.hpp"
 

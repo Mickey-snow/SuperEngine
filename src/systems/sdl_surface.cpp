@@ -22,7 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#include "systems/sdl/sdl_surface.hpp"
+#include "systems/sdl_surface.hpp"
 
 #include <SDL/SDL.h>
 
@@ -303,6 +303,8 @@ SDLSurface::~SDLSurface() { deallocate(); }
 // -----------------------------------------------------------------------
 
 Size SDLSurface::GetSize() const { return Size(surface_->w, surface_->h); }
+
+Rect SDLSurface::GetRect() const { return Rect(Point(0, 0), GetSize()); }
 
 // -----------------------------------------------------------------------
 
@@ -828,7 +830,8 @@ std::shared_ptr<Surface> SDLSurface::ClipAsColorMask(const Rect& clip_rect,
 // -----------------------------------------------------------------------
 
 void SDLSurface::markWrittenTo(const Rect& written_rect) {
-  Surface::MarkDirty(written_rect);
+  for (const auto& it : observers_)
+    std::invoke(it);
 
   // Mark that the texture needs reuploading
   dirty_rectangle_ = dirty_rectangle_.Union(written_rect);
@@ -837,4 +840,8 @@ void SDLSurface::markWrittenTo(const Rect& written_rect) {
 
 std::vector<SDLSurface::TextureRecord> SDLSurface::GetTextureArray() const {
   return textures_;
+}
+
+void SDLSurface::RegisterObserver(std::function<void()> callback) {
+  observers_.emplace_back(std::move(callback));
 }

@@ -52,7 +52,7 @@
 #include "memory/memory.hpp"
 #include "memory/serialization_global.hpp"
 #include "base/colour.hpp"
-#include "systems/base/surface.hpp"
+#include "systems/sdl_surface.hpp"
 #include "systems/base/system.hpp"
 #include "utf8cpp/utf8.h"
 

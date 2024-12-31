@@ -35,7 +35,8 @@
 #include "base/rect.hpp"
 
 class System;
-class Surface;
+class SDLSurface;
+using Surface = SDLSurface;
 
 // Class that parses and executes HIK files.
 class HIKScript {

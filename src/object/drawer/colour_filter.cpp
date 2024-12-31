@@ -40,7 +40,7 @@
 #include "systems/gl_frame_buffer.hpp"
 #include "systems/glrenderer.hpp"
 #include "systems/gltexture.hpp"
-#include "systems/sdl/sdl_surface.hpp"
+#include "systems/sdl_surface.hpp"
 
 ColourFilterObjectData::ColourFilterObjectData(GraphicsSystem& system,
                                                const Rect& screen_rect)

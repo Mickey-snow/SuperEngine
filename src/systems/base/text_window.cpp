@@ -41,7 +41,7 @@
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/selection_element.hpp"
 #include "systems/base/sound_system.hpp"
-#include "systems/base/surface.hpp"
+#include "systems/sdl_surface.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/system_error.hpp"
 #include "systems/base/text_system.hpp"

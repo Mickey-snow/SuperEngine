@@ -39,7 +39,7 @@
 #include "systems/base/system_error.hpp"
 #include "systems/base/text_window_button.hpp"
 #include "systems/sdl/sdl_graphics_system.hpp"
-#include "systems/sdl/sdl_surface.hpp"
+#include "systems/sdl_surface.hpp"
 #include "systems/sdl/sdl_system.hpp"
 #include "systems/sdl/sdl_text_system.hpp"
 #include "systems/sdl/sdl_utils.hpp"

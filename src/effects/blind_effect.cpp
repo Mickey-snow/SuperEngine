@@ -29,7 +29,7 @@
 
 #include <cstdlib>
 
-#include "systems/base/surface.hpp"
+#include "systems/sdl_surface.hpp"
 
 // -----------------------------------------------------------------------
 // BlindEffect

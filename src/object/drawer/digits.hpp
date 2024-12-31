@@ -36,7 +36,8 @@
 #include "object/objdrawer.hpp"
 
 class GraphicsObject;
-class Surface;
+class SDLSurface;
+using Surface = SDLSurface;
 class System;
 
 class DigitsGraphicsObject : public GraphicsObjectData {

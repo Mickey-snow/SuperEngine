@@ -31,7 +31,7 @@
 
 #include "base/rect.hpp"
 #include "systems/base/graphics_object.hpp"
-#include "systems/base/surface.hpp"
+#include "systems/sdl_surface.hpp"
 
 // -----------------------------------------------------------------------
 // GraphicsObjectData

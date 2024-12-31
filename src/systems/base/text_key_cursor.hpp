@@ -33,7 +33,8 @@
 
 #include "base/rect.hpp"
 
-class Surface;
+class SDLSurface;
+using Surface = SDLSurface;
 class System;
 class TextWindow;
 

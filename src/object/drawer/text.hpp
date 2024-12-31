@@ -38,7 +38,8 @@
 #include "object/properties.hpp"
 
 class GraphicsObject;
-class Surface;
+class SDLSurface;
+using Surface = SDLSurface;
 class System;
 
 // Represents the textual data made with commands such as obj_of_text,

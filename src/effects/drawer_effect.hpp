@@ -29,7 +29,7 @@
 #pragma once
 
 #include "effects/effect.hpp"
-#include "systems/base/surface.hpp"
+#include "systems/sdl_surface.hpp"
 
 #include <string>
 

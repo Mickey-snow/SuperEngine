@@ -37,7 +37,8 @@ class GraphicsObject;
 class Point;
 class RLMachine;
 class Rect;
-class Surface;
+class SDLSurface;
+using Surface = SDLSurface;
 class Animator;
 
 class GraphicsObjectData {
