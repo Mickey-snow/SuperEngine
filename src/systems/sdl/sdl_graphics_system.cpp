@@ -36,6 +36,7 @@
 #include "../resources/48/rlvm_icon_48.xpm"
 #endif
 
+#include "base/asset_scanner.hpp"
 #include "base/avdec/image_decoder.hpp"
 #include "base/cgm_table.hpp"
 #include "base/colour.hpp"
@@ -212,7 +213,8 @@ void SDLGraphicsSystem::DrawCursor() {
 SDLGraphicsSystem::SDLGraphicsSystem(System& system, Gameexe& gameexe)
     : GraphicsSystem(system, gameexe),
       redraw_last_frame_(false),
-      screen_contents_texture_valid_(false) {
+      screen_contents_texture_valid_(false),
+      asset_scanner_(system.GetAssetScanner()) {
   haikei_ = std::make_shared<SDLSurface>();
   for (int i = 0; i < 16; ++i)
     display_contexts_[i] = std::make_shared<SDLSurface>();
@@ -515,8 +517,10 @@ std::shared_ptr<Surface> SDLGraphicsSystem::CreateSurface(
 
 std::shared_ptr<const Surface> SDLGraphicsSystem::LoadSurfaceFromFile(
     const std::string& short_filename) {
+  static const std::set<std::string> IMAGE_FILETYPES = {"g00", "pdt"};
   std::filesystem::path filename =
-      system().FindFile(short_filename, IMAGE_FILETYPES);
+      asset_scanner_->FindFile(short_filename, IMAGE_FILETYPES);
+
   if (filename.empty()) {
     std::ostringstream oss;
     oss << "Could not find image file \"" << short_filename << "\".";

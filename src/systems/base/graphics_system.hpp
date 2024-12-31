@@ -373,10 +373,6 @@ class GraphicsSystem : public EventListener {
   // rendered.
   void RenderObjects();
 
-  // Creates rendering data for a graphics object from a G00, PDT or ANM file.
-  // Does not deal with GAN files. Those are built with a separate function.
-  GraphicsObjectData* BuildObjOfFile(const std::string& filename);
-
   // Object getters
   // layer == 0 for fg, layer == 1 for bg.
   GraphicsObject& GetObject(int layer, int obj_number);

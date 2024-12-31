@@ -95,8 +95,8 @@ SDLSoundSystem::SDLSoundSystem(System& system,
     : system_(system),
       settings_(system.gameexe()),
       audio_table_(system.gameexe()),
-      voice_assets_(system.GetFileSystem()),
-      voice_factory_(system.GetFileSystem()),
+      voice_assets_(system.GetAssetScanner()),
+      voice_factory_(system.GetAssetScanner()),
       sound_impl_(std::move(impl)) {
   if (sound_impl_ == nullptr)
     throw std::invalid_argument("Sound implementor is nullptr.");

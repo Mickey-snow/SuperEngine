@@ -56,15 +56,11 @@ void AssetScanner::BuildFromGameexe(Gameexe& gexe) {
       "g00", "pdt", "anm", "gan", "hik", "wav",
       "ogg", "nwa", "mp3", "ovk", "koe", "nwk"};
 
-  // TODO: the key '__GAMEPATH' might not be set correctly in full system
-  // tests, remove those tests (as they really aren't testing anything),
-  // remove underhanded xxxSystem subclasses, and throw a proper error here.
   fs::path gamepath;
-  try {
-    gamepath = gexe("__GAMEPATH").ToString();
-  } catch (...) {
-    return;
-  }
+  if (!gexe("__GAMEPATH").Exists())
+    throw std::runtime_error("AssetScanner: __GAMEPATH not exist.");
+
+  gamepath = gexe("__GAMEPATH").ToString();
 
   for (const auto& dir : fs::directory_iterator(gamepath)) {
     if (fs::is_directory(dir.status())) {
@@ -82,8 +78,8 @@ void AssetScanner::IndexDirectory(
   namespace fs = std::filesystem;
 
   if (!fs::exists(dir) || !fs::is_directory(dir))
-    throw std::invalid_argument("The provided path " + dir.string() +
-                                " is not a valid directory.");
+    throw std::invalid_argument("AssetScanner: The provided path " +
+                                dir.string() + " is not a valid directory.");
 
   try {
     for (const auto& entry : fs::recursive_directory_iterator(dir)) {

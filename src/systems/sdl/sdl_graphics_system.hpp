@@ -45,6 +45,7 @@ class SDLSurface;
 class System;
 class Texture;
 class glTexture;
+class AssetScanner;
 class glCanvas;
 
 // -----------------------------------------------------------------------
@@ -143,4 +144,6 @@ class SDLGraphicsSystem : public GraphicsSystem, public NotificationObserver {
   NotificationRegistrar registrar_;
 
   Size display_size_;
+
+  std::shared_ptr<AssetScanner> asset_scanner_;
 };

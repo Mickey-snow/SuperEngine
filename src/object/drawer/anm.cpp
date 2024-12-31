@@ -90,7 +90,9 @@ bool AnmGraphicsObjectData::TestFileMagic(std::unique_ptr<char[]>& anm_data) {
 }
 
 void AnmGraphicsObjectData::LoadAnmFile() {
-  fs::path file = system_.FindFile(filename_, ANM_FILETYPES);
+  static const std::set<std::string> ANM_FILETYPES = {"anm"};
+
+  fs::path file = system_.GetAssetScanner()->FindFile(filename_, ANM_FILETYPES);
   if (file.empty()) {
     std::ostringstream oss;
     oss << "Could not find ANM file \"" << filename_ << "\".";

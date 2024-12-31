@@ -50,7 +50,7 @@
 #include "utilities/exception.hpp"
 #include "utilities/file.hpp"
 
-using libreallive::read_i32;
+    using libreallive::read_i32;
 using std::cerr;
 using std::endl;
 using std::ifstream;
@@ -90,7 +90,9 @@ void GanGraphicsObjectData::LoadGANData() {
   image_ = system_.graphics().GetSurfaceNamed(img_filename_);
   image_->EnsureUploaded();
 
-  fs::path gan_file_path = system_.FindFile(gan_filename_, GAN_FILETYPES);
+  static const std::set<std::string> GAN_FILETYPES = {"gan"};
+  fs::path gan_file_path =
+      system_.GetAssetScanner()->FindFile(gan_filename_, GAN_FILETYPES);
   if (gan_file_path.empty()) {
     ostringstream oss;
     oss << "Could not find GAN file \"" << gan_filename_ << "\".";

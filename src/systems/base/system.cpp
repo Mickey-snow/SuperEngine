@@ -85,13 +85,7 @@ struct LoadingGameFromStream : public LoadGameLongOperation {
 
 }  // namespace
 
-// I assume GAN files can't go through the OBJ_FILETYPES path.
-const std::vector<std::string> OBJ_FILETYPES = {"anm", "g00", "pdt"};
-const std::vector<std::string> IMAGE_FILETYPES = {"g00", "pdt"};
-const std::vector<std::string> PDT_IMAGE_FILETYPES = {"pdt"};
-const std::vector<std::string> GAN_FILETYPES = {"gan"};
-const std::vector<std::string> ANM_FILETYPES = {"anm"};
-const std::vector<std::string> HIK_FILETYPES = {"hik", "g00", "pdt"};
+
 
 class MenuReseter : public LongOperation {
  public:
@@ -320,17 +314,7 @@ void System::ShowSystemInfo(RLMachine& machine) {
   }
 }
 
-std::filesystem::path System::FindFile(
-    const std::string& file_name,
-    const std::vector<std::string>& extensions) {
-  if (!rlvm_assets_)
-    rlvm_assets_ = std::make_shared<AssetScanner>(gameexe());
-  std::set<std::string> extension_filter(extensions.cbegin(),
-                                         extensions.cend());
-  return rlvm_assets_->FindFile(file_name, extension_filter);
-}
-
-std::shared_ptr<AssetScanner> System::GetFileSystem() {
+std::shared_ptr<AssetScanner> System::GetAssetScanner() {
   if (!rlvm_assets_)
     rlvm_assets_ = std::make_shared<AssetScanner>(gameexe());
   return rlvm_assets_;

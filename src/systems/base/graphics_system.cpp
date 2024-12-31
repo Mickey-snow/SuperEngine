@@ -71,16 +71,6 @@
 #include "utilities/exception.hpp"
 #include "utilities/lazy_array.hpp"
 
-using boost::iends_with;
-using std::cerr;
-using std::cout;
-using std::endl;
-using std::fill;
-using std::for_each;
-using std::get;
-using std::ostringstream;
-using std::vector;
-
 namespace fs = std::filesystem;
 
 // -----------------------------------------------------------------------
@@ -249,7 +239,7 @@ void GraphicsSystem::MarkScreenAsDirty(GraphicsUpdateType type) {
       break;
     }
     default: {
-      ostringstream oss;
+      std::ostringstream oss;
       oss << "Invalid screen update mode value: " << screen_update_mode();
       throw SystemError(oss.str());
     }
@@ -280,10 +270,10 @@ void GraphicsSystem::QueueShakeSpec(int spec) {
   Gameexe& gameexe = system().gameexe();
 
   if (gameexe("SHAKE", spec).Exists()) {
-    vector<int> spec_vector = gameexe("SHAKE", spec).ToIntVector();
+    std::vector<int> spec_vector = gameexe("SHAKE", spec).ToIntVector();
 
     int x, y, time;
-    vector<int>::const_iterator it = spec_vector.begin();
+    std::vector<int>::const_iterator it = spec_vector.begin();
     while (it != spec_vector.end()) {
       x = *it++;
       if (it != spec_vector.end()) {
@@ -860,30 +850,6 @@ void GraphicsSystem::MouseMotion(const Point& new_location) {
     MarkScreenAsDirty(GUT_MOUSE_MOTION);
 
   cursor_pos_ = new_location;
-}
-
-// -----------------------------------------------------------------------
-
-GraphicsObjectData* GraphicsSystem::BuildObjOfFile(
-    const std::string& filename) {
-  // Get the path to get the file type (which won't be in filename)
-  fs::path full_path = system().FindFile(filename, OBJ_FILETYPES);
-  if (full_path.empty()) {
-    ostringstream oss;
-    oss << "Could not find Object compatible file \"" << filename << "\".";
-    throw rlvm::Exception(oss.str());
-  }
-
-  string file_str = full_path.string();
-  if (iends_with(file_str, "g00") || iends_with(file_str, "pdt")) {
-    return new GraphicsObjectOfFile(system(), filename);
-  } else if (iends_with(file_str, "anm")) {
-    return new AnmGraphicsObjectData(system(), filename);
-  } else {
-    ostringstream oss;
-    oss << "Don't know how to handle object file: \"" << filename << "\"";
-    throw rlvm::Exception(oss.str());
-  }
 }
 
 // -----------------------------------------------------------------------

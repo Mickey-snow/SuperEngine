@@ -91,20 +91,6 @@ class Platform;
 [[maybe_unused]] constexpr int SYSCOM_HIDE_MENU = 30;
 [[maybe_unused]] constexpr int SYSCOM_SHOW_BACKGROUND = 31;
 
-// File type constants.
-//
-// These constant, externed vectors are passed as parameters to
-// FindFile to control which file types are searched for. Defaults to
-// all.
-extern const std::vector<std::string> OBJ_FILETYPES;
-extern const std::vector<std::string> IMAGE_FILETYPES;
-extern const std::vector<std::string> PDT_IMAGE_FILETYPES;
-extern const std::vector<std::string> GAN_FILETYPES;
-extern const std::vector<std::string> ANM_FILETYPES;
-extern const std::vector<std::string> HIK_FILETYPES;
-extern const std::vector<std::string> KOE_ARCHIVE_FILETYPES;
-extern const std::vector<std::string> KOE_LOOSE_FILETYPES;
-
 // Struct containing the global memory to get serialized to disk with
 // global memory.
 struct SystemGlobals {
@@ -226,11 +212,6 @@ class System {
   // interpreter.
   void ShowSystemInfo(RLMachine& machine);
 
-  // Finds a file on disk based on its basename with a list of possible
-  // extensions, or empty() if file not found.
-  std::filesystem::path FindFile(const std::string& fileName,
-                                 const std::vector<std::string>& extensions);
-
   // Resets the present values of the system; this doesn't clear user settings,
   // but clears things like the current graphics state and the status of all
   // the text windows. This method is called when the user loads a game or
@@ -272,7 +253,7 @@ class System {
   virtual TextSystem& text() = 0;
   virtual SoundSystem& sound() = 0;
 
-  std::shared_ptr<AssetScanner> GetFileSystem();
+  std::shared_ptr<AssetScanner> GetAssetScanner();
 
  protected:
   // Native widget drawer. Can be NULL. This field is protected instead of

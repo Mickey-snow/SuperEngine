@@ -27,10 +27,6 @@
 
 #include "modules/module_obj_creation.hpp"
 
-#include <cmath>
-#include <memory>
-#include <string>
-
 #include "machine/properties.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/rlmodule.hpp"
@@ -38,9 +34,11 @@
 #include "machine/rloperation/default_value.hpp"
 #include "machine/rloperation/rect_t.hpp"
 #include "modules/module_obj.hpp"
+#include "object/drawer/anm.hpp"
 #include "object/drawer/colour_filter.hpp"
 #include "object/drawer/digits.hpp"
 #include "object/drawer/drift.hpp"
+#include "object/drawer/file.hpp"
 #include "object/drawer/gan.hpp"
 #include "object/drawer/parent.hpp"
 #include "object/drawer/text.hpp"
@@ -50,6 +48,14 @@
 #include "systems/base/system.hpp"
 #include "utilities/graphics.hpp"
 #include "utilities/string_utilities.hpp"
+
+#include <cmath>
+#include <filesystem>
+#include <memory>
+#include <stdexcept>
+#include <string>
+
+namespace fs = std::filesystem;
 
 // -----------------------------------------------------------------------
 
@@ -72,8 +78,33 @@ typedef std::function<void(RLMachine&, GraphicsObject& obj, const string&)>
 
 void objOfFileLoader(RLMachine& machine,
                      GraphicsObject& obj,
-                     const std::string& val) {
-  obj.SetObjectData(machine.GetSystem().graphics().BuildObjOfFile(val));
+                     const std::string& filename) {
+  static const std::set<std::string> OBJ_FILETYPES = {"anm", "g00", "pdt"};
+
+  auto& system = machine.GetSystem();
+
+  // Get the path to get the file type (which won't be in filename)
+  fs::path full_path =
+      machine.GetSystem().GetAssetScanner()->FindFile(filename, OBJ_FILETYPES);
+  if (full_path.empty()) {
+    std::stringstream oss;
+    oss << "Could not find Object compatible file \"" << filename << "\".";
+    throw std::runtime_error(oss.str());
+  }
+
+  string file_str = full_path.string();
+  GraphicsObjectData* obj_data = nullptr;
+  if (file_str.ends_with("g00") || file_str.ends_with("pdt")) {
+    obj_data = new GraphicsObjectOfFile(system, filename);
+  } else if (file_str.ends_with("anm")) {
+    obj_data = new AnmGraphicsObjectData(system, filename);
+  } else {
+    std::ostringstream oss;
+    oss << "Don't know how to handle object file: \"" << filename << "\"";
+    throw std::runtime_error(oss.str());
+  }
+
+  obj.SetObjectData(obj_data);
 }
 
 void objOfTextBuilder(RLMachine& machine,
@@ -280,7 +311,8 @@ void SetObjectDataToRect(RLMachine& machine,
                          int buf,
                          const Rect& r) {
   GraphicsObject& obj = GetGraphicsObject(machine, op, buf);
-  obj.SetObjectData(new ColourFilterObjectData(machine.GetSystem().graphics(), r));
+  obj.SetObjectData(
+      new ColourFilterObjectData(machine.GetSystem().graphics(), r));
 }
 
 struct objOfArea_0 : public RLOpcode<IntConstant_T> {

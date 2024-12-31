@@ -31,6 +31,7 @@
 #include <iostream>
 #include <string>
 
+#include "base/colour.hpp"
 #include "effects/effect.hpp"
 #include "effects/effect_factory.hpp"
 #include "machine/general_operations.hpp"
@@ -40,7 +41,6 @@
 #include "machine/rloperation/complex_t.hpp"
 #include "machine/rloperation/special_t.hpp"
 #include "modules/module_grp.hpp"
-#include "base/colour.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/hik_renderer.hpp"
 #include "systems/base/hik_script.hpp"
@@ -50,6 +50,8 @@
 
 namespace fs = std::filesystem;
 using boost::iends_with;
+
+static const std::set<std::string> HIK_FILETYPES = {"hik", "g00", "pdt"};
 
 // Working theory of how this module works: The haikei module is one backing
 // surface and (optionally) a HIK script. Games like AIR and the Maiden Halo
@@ -91,7 +93,7 @@ struct bgrLoadHaikei_main : RLOpcode<StrConstant_T, IntConstant_T> {
     // bgrLoadHaikei clears the stack.
     graphics.ClearStack();
 
-    fs::path path = system.FindFile(filename, HIK_FILETYPES);
+    fs::path path = system.GetAssetScanner()->FindFile(filename, HIK_FILETYPES);
     if (iends_with(path.string(), "hik")) {
       if (!machine.replaying_graphics_stack())
         graphics.ClearAndPromoteObjects();
@@ -269,7 +271,7 @@ struct bgrSetYOffset : public RLOpcode<IntConstant_T> {
 struct bgrPreloadScript : public RLOpcode<IntConstant_T, StrConstant_T> {
   void operator()(RLMachine& machine, int slot, string name) {
     System& system = machine.GetSystem();
-    fs::path path = system.FindFile(name, HIK_FILETYPES);
+    fs::path path = system.GetAssetScanner()->FindFile(name, HIK_FILETYPES);
     if (iends_with(path.string(), "hik")) {
       system.graphics().PreloadHIKScript(system, slot, name, path);
     }
