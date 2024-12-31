@@ -110,7 +110,33 @@ void RLVMInstance::Run(const std::filesystem::path& gamerootPath) {
 
     libreallive::Archive arc(seenPath.string(), gameexe("REGNAME"));
     SDLSystem sdlSystem(gameexe);
-    RLMachine rlmachine(sdlSystem, arc);
+
+    // Instantiate the rl machine
+    auto memory = std::make_unique<Memory>();
+    memory->LoadFrom(gameexe);
+    int first_seen = -1;
+    if (gameexe.Exists("SEEN_START"))
+      first_seen = gameexe("SEEN_START").ToInt();
+    if (first_seen < 0) {
+      // if SEEN_START is undefined, then just grab the first SEEN.
+      first_seen = arc.GetFirstScenarioID();
+    }
+    auto scriptor = std::make_shared<libreallive::Scriptor>(arc);
+    RLMachine rlmachine(sdlSystem, scriptor, scriptor->Load(first_seen),
+                        std::move(memory));
+    // Load the "DLLs" required
+    for (auto it : gameexe.Filter("DLL.")) {
+      const std::string& name = it.ToString("");
+      try {
+        std::string index_str =
+            it.key().substr(it.key().find_first_of(".") + 1);
+        int index = std::stoi(index_str);
+        rlmachine.LoadDLL(index, name);
+      } catch (rlvm::Exception& e) {
+        std::cerr << "WARNING: Don't know what to do with DLL '" << name << "'"
+                  << std::endl;
+      }
+    }
     AddGameHacks(rlmachine);
 
     // Validate our font file
@@ -134,7 +160,7 @@ void RLVMInstance::Run(const std::filesystem::path& gamerootPath) {
     // Now to preform a quick integrity check. If the user opened the Japanese
     // version of CLANNAD (or any other game), and then installed a patch, our
     // user data is going to be screwed!
-    DoUserNameCheck(rlmachine);
+    DoUserNameCheck(rlmachine, arc.GetProbableEncodingType());
 
     if (load_save_ != -1)
       Sys_load()(rlmachine, load_save_);
@@ -200,10 +226,8 @@ bool RLVMInstance::AskUserPrompt(const std::string& message_text,
                                               true_button, false_button);
 }
 
-void RLVMInstance::DoUserNameCheck(RLMachine& machine) {
+void RLVMInstance::DoUserNameCheck(RLMachine& machine, int encoding) {
   try {
-    int encoding = machine.GetProbableEncodingType();
-
     // Iterate over all the names in both global and local memory banks.
     GlobalMemory g = machine.GetMemory().GetGlobalMemory();
     LocalMemory l = machine.GetMemory().GetLocalMemory();

@@ -69,12 +69,11 @@ using std::endl;
 // RLMachine
 // -----------------------------------------------------------------------
 
-RLMachine::RLMachine(System& in_system, libreallive::Archive& in_archive)
-    : memory_(std::make_unique<Memory>()),
-      archive_(in_archive),
-      scriptor_(in_archive),
-      system_(in_system) {
-  // Attach all modules
+RLMachine::RLMachine(System& system,
+                     std::shared_ptr<libreallive::Scriptor> scriptor,
+                     libreallive::ScriptLocation staring_location,
+                     std::unique_ptr<Memory> memory)
+    : memory_(std::move(memory)), scriptor_(scriptor), system_(system) {
   AddAllModules(module_manager_);
 
   // Setup stack memory
@@ -85,40 +84,14 @@ RLMachine::RLMachine(System& in_system, libreallive::Archive& in_archive)
       std::make_shared<StackMemoryAdapter<StackBank::IntL>>(call_stack_));
   memory_->PartialReset(std::move(stack_memory));
 
-  // Search in the Gameexe for #SEEN_START and place us there
-  Gameexe& gameexe = GetGameexe();
-  memory_->LoadFrom(gameexe);
-
-  int first_seen = -1;
-  if (gameexe.Exists("SEEN_START"))
-    first_seen = gameexe("SEEN_START").ToInt();
-
-  if (first_seen < 0) {
-    // if SEEN_START is undefined, then just grab the first SEEN.
-    first_seen = in_archive.GetFirstScenarioID();
-  }
-
-  call_stack_.Push(
-      StackFrame(scriptor_.Load(first_seen), StackFrame::TYPE_ROOT));
+  // Setup call stack
+  call_stack_.Push(StackFrame(staring_location, StackFrame::TYPE_ROOT));
 
   // Initial value of the savepoint
   MarkSavepoint();
-
-  // Load the "DLLs" required
-  for (auto it : gameexe.Filter("DLL.")) {
-    const std::string& name = it.ToString("");
-    try {
-      std::string index_str = it.key().substr(it.key().find_first_of(".") + 1);
-      int index = std::stoi(index_str);
-      LoadDLL(index, name);
-    } catch (rlvm::Exception& e) {
-      cerr << "WARNING: Don't know what to do with DLL '" << name << "'"
-           << endl;
-    }
-  }
 }
 
-RLMachine::~RLMachine() {}
+RLMachine::~RLMachine() = default;
 
 void RLMachine::MarkSavepoint() {
   savepoint_call_stack_ = call_stack_.Clone();
@@ -194,7 +167,7 @@ void RLMachine::ExecuteNextInstruction() {
       }
 
     } else {
-      auto instruction = Resolve(scriptor_.Dereference(top_frame->pos));
+      auto instruction = Resolve(scriptor_->Dereference(top_frame->pos));
       std::visit(*this, std::move(instruction));
     }
   } catch (rlvm::UnimplementedOpcode& e) {
@@ -235,16 +208,18 @@ void RLMachine::AdvanceInstructionPointer() {
 
   const auto it = call_stack_.FindTopRealFrame();
   if (it != nullptr) {
-    it->pos = scriptor_.Next(it->pos);
+    it->pos = scriptor_->Next(it->pos);
 
-    if (!scriptor_.HasNext(it->pos))
+    if (!scriptor_->HasNext(it->pos))
       halted_ = true;
   }
 }
 
 CallStack& RLMachine::GetStack() { return call_stack_; }
 
-libreallive::Scriptor& RLMachine::GetScriptor() { return scriptor_; }
+std::shared_ptr<libreallive::Scriptor> RLMachine::GetScriptor() {
+  return scriptor_;
+}
 
 Gameexe& RLMachine::GetGameexe() { return system_.gameexe(); }
 
@@ -282,15 +257,11 @@ int RLMachine::SceneNumber() const {
 }
 
 const libreallive::Scenario& RLMachine::Scenario() const {
-  auto sc = scriptor_.GetScenario(call_stack_.Top()->pos);
+  auto sc = scriptor_->GetScenario(call_stack_.Top()->pos);
   return *sc;
 }
 
 int RLMachine::GetTextEncoding() const { return Scenario().encoding(); }
-
-int RLMachine::GetProbableEncodingType() const {
-  return archive_.GetProbableEncodingType();
-}
 
 bool RLMachine::DllLoaded(const std::string& name) {
   for (auto const& dll : loaded_dlls_) {

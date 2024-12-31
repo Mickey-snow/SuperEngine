@@ -33,24 +33,24 @@
 void Jump(RLMachine& machine, int scenario, int entrypoint) {
   auto it = machine.GetStack().FindTopRealFrame();
   if (it != nullptr)
-    it->pos = machine.GetScriptor().LoadEntry(scenario, entrypoint);
+    it->pos = machine.GetScriptor()->LoadEntry(scenario, entrypoint);
 }
 
 void Farcall(RLMachine& machine, int scenario, int entrypoint) {
   if (entrypoint == 0 && machine.ShouldSetSeentopSavepoint())
     machine.MarkSavepoint();
 
-  auto ip = machine.GetScriptor().LoadEntry(scenario, entrypoint);
+  auto ip = machine.GetScriptor()->LoadEntry(scenario, entrypoint);
   machine.GetStack().Push(StackFrame(std::move(ip), StackFrame::TYPE_FARCALL));
 }
 
 void Goto(RLMachine& machine, unsigned long loc) {
   auto top_frame = machine.GetStack().Top();
-  top_frame->pos = machine.GetScriptor().Load(machine.SceneNumber(), loc);
+  top_frame->pos = machine.GetScriptor()->Load(machine.SceneNumber(), loc);
 }
 
 void Gosub(RLMachine& machine, unsigned long loc) {
-  auto ip = machine.GetScriptor().Load(machine.SceneNumber(), loc);
+  auto ip = machine.GetScriptor()->Load(machine.SceneNumber(), loc);
   machine.GetStack().Push(StackFrame(std::move(ip), StackFrame::TYPE_GOSUB));
 }
 

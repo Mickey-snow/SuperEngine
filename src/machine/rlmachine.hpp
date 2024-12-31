@@ -47,7 +47,6 @@ class IntMemRef;
 };  // namespace libreallive
 class LongOperation;
 class Memory;
-class OpcodeLog;
 class RLModule;
 class RealLiveDLL;
 class System;
@@ -58,7 +57,10 @@ struct StackFrame;
 // control, and other execution issues.
 class RLMachine {
  public:
-  RLMachine(System& in_system, libreallive::Archive& in_archive);
+  RLMachine(System& system,
+            std::shared_ptr<libreallive::Scriptor> scriptor,
+            libreallive::ScriptLocation staring_location,
+            std::unique_ptr<Memory> memory = nullptr);
   virtual ~RLMachine();
 
   // Returns whether the machine is halted. When the machine is
@@ -88,7 +90,7 @@ class RLMachine {
   // Returns the current System that this RLMachine outputs to.
   System& GetSystem() { return system_; }
 
-  libreallive::Scriptor& GetScriptor();
+  std::shared_ptr<libreallive::Scriptor> GetScriptor();
 
   Gameexe& GetGameexe();
 
@@ -161,14 +163,6 @@ class RLMachine {
   //   3 -> CP949 within CP932 codespace
   // Where a scenario was not compiled with RLdev, always returns 0.
   int GetTextEncoding() const;
-
-  // Guess the encoding for all text of the game.
-  //
-  // Because of how rlBabel works, each scenario in the SEEN archive can have
-  // its own encoding. This guesses what the text output encoding is,
-  // regardless of the current scenario. (As we're probably running a scenario
-  // that hasn't been patched at the time this method is called.)
-  int GetProbableEncodingType() const;
 
   // ---------------------------------------------------- [ DLL Management ]
   // RealLive has an extension system where a DLL can be loaded, and can be
@@ -264,9 +258,7 @@ class RLMachine {
   // opcode.
   bool print_undefined_opcodes_ = false;
 
-  // The SEEN.TXT the machine is currently executing.
-  libreallive::Archive& archive_;
-  libreallive::Scriptor scriptor_;
+  std::shared_ptr<libreallive::Scriptor> scriptor_;
 
   // The most recent line marker we've come across
   int line_ = 0;
