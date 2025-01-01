@@ -45,6 +45,8 @@ GanDecoder::GanDecoder(std::vector<char> gan_data) {
 
   int file_name_length = read_i32(data + 0xc);
   raw_file_name = std::string(data + 0x10, file_name_length);
+  if (!raw_file_name.empty() && raw_file_name.back() == '\0')
+    raw_file_name.pop_back();
 
   // Move data pointer past the filename
   data = data + 0x10 + file_name_length - 1;

@@ -123,6 +123,6 @@ std::filesystem::path AssetScanner::FindFile(
       return path;
   }
 
-  throw std::runtime_error("rlFileSystem::FindFile: file " + filename +
+  throw std::runtime_error("AssetScanner::FindFile: file " + filename +
                            " not found.");
 }
