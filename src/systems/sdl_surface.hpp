@@ -89,12 +89,6 @@ class SDLSurface {
                       const Rect& dst,
                       const int opacity[4]) const;
 
-  // Used internally; not exposed to the general graphics system
-  void RenderToScreenAsObject(const GraphicsObject& rp,
-                              const Rect& src,
-                              const Rect& dst,
-                              int alpha) const;
-
   int GetNumPatterns() const;
 
   // Returns pattern information.

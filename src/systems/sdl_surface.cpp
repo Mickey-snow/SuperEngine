@@ -38,10 +38,6 @@
 #include "systems/sdl/sdl_utils.hpp"
 #include "utilities/graphics.hpp"
 
-#include "glm/gtc/matrix_transform.hpp"
-#include "glm/gtc/type_ptr.hpp"
-#include "glm/matrix.hpp"
-
 #include <algorithm>
 #include <cstring>
 #include <iostream>
@@ -554,45 +550,6 @@ void SDLSurface::RenderToScreen(const Rect& src_rect,
 
 // -----------------------------------------------------------------------
 
-void SDLSurface::RenderToScreenAsObject(const GraphicsObject& rp,
-                                        const Rect& src,
-                                        const Rect& dst,
-                                        int alpha) const {
-  uploadTextureIfNeeded();
-
-  for (const auto& it : textures_) {
-    auto src_rect = src, dst_rect = dst;
-    LocalRect coordinate_system(it.x_, it.y_, it.w_, it.h_);
-    if (!coordinate_system.intersectAndTransform(src_rect, dst_rect))
-      continue;
-
-    RenderingConfig config;
-    config.alpha = static_cast<float>(alpha) / 255.0f;
-
-    auto model =
-        glm::translate(glm::mat4(1.0f), glm::vec3(dst.x(), dst.y(), 0));
-    auto& param = rp.Param();
-    float x_rep = dst.width() / 2.0f + param.rep_origin_x();
-    float y_rep = dst.height() / 2.0f + param.rep_origin_y();
-    model = glm::translate(model, glm::vec3(x_rep, y_rep, 0.0f));
-    model = glm::rotate(model, glm::radians(param.rotation() / 10.0f),
-                        glm::vec3(0.0f, 0.0f, 1.0f));
-    model = glm::translate(model, glm::vec3(-x_rep, -y_rep, 0.0f));
-    config.model = model;
-    config.blend_type = param.composite_mode();
-    config.color = param.colour();
-    config.tint = param.tint();
-    config.mono = param.mono();
-    config.invert = param.invert();
-    config.light = param.light();
-
-    glRenderer().Render({it.gltexture, src_rect}, std::move(config),
-                        {screen_, dst_rect});
-  }
-}
-
-// -----------------------------------------------------------------------
-
 void SDLSurface::Fill(const RGBAColour& colour) {
   // Fill the entire surface with the incoming colour
   Uint32 sdl_colour = MapRGBA(surface_->format, colour);
@@ -829,5 +786,7 @@ void SDLSurface::markWrittenTo(const Rect& written_rect) {
 }
 
 std::vector<SDLSurface::TextureRecord> SDLSurface::GetTextureArray() const {
+  uploadTextureIfNeeded();
+  
   return textures_;
 }

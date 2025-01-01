@@ -27,11 +27,17 @@
 
 #include "object/objdrawer.hpp"
 
-#include <ostream>
+#include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtc/type_ptr.hpp"
+#include "glm/matrix.hpp"
 
+#include "base/localrect.hpp"
 #include "base/rect.hpp"
 #include "systems/base/graphics_object.hpp"
+#include "systems/glrenderer.hpp"
 #include "systems/sdl_surface.hpp"
+
+#include <ostream>
 
 // -----------------------------------------------------------------------
 // GraphicsObjectData
@@ -44,62 +50,91 @@ GraphicsObjectData::~GraphicsObjectData() = default;
 void GraphicsObjectData::Render(const GraphicsObject& go,
                                 const GraphicsObject* parent) {
   std::shared_ptr<const Surface> surface = CurrentSurface(go);
-  if (surface) {
-    Rect src = SrcRect(go);
-    Rect dst = DstRect(go, parent);
-    int alpha = GetRenderingAlpha(go, parent);
+  if (!surface)
+    return;
 
-    auto& param = go.Param();
-    if (param.GetButtonUsingOverides()) {
-      // Tacked on side channel that lets a ButtonObjectSelectLongOperation
-      // tweak the x/y coordinates of dst. There isn't really a better place to
-      // put this. It can't go in dstRect() because the LongOperation also
-      // consults the data from dstRect().
-      dst = Rect(dst.origin() + Size(param.GetButtonXOffsetOverride(),
-                                     param.GetButtonYOffsetOverride()),
-                 dst.size());
-    }
+  Rect src = SrcRect(go);
+  Rect dst = DstRect(go, parent);
+  int alpha = GetRenderingAlpha(go, parent);
 
-    if (parent && parent->Param().has_own_clip_rect()) {
-      // In Little Busters, a parent clip rect is used to clip text scrolling
-      // in the battle system. rlvm has the concept of parent objects badly
-      // hacked in, and that means we can't directly apply the own clip
-      // rect. Instead we have to calculate this in terms of the screen
-      // coordinates and then apply that as a global clip rect.
-      Point parent_start(
-          parent->Param().x() + parent->Param().GetXAdjustmentSum(),
-          parent->Param().y() + parent->Param().GetYAdjustmentSum());
-      Rect full_parent_clip =
-          Rect(parent_start + parent->Param().own_clip_rect().origin(),
-               parent->Param().own_clip_rect().size());
+  auto& param = go.Param();
+  if (param.GetButtonUsingOverides()) {
+    // Tacked on side channel that lets a ButtonObjectSelectLongOperation
+    // tweak the x/y coordinates of dst. There isn't really a better place to
+    // put this. It can't go in dstRect() because the LongOperation also
+    // consults the data from dstRect().
+    dst = Rect(dst.origin() + Size(param.GetButtonXOffsetOverride(),
+                                   param.GetButtonYOffsetOverride()),
+               dst.size());
+  }
 
-      Rect clipped_dest = dst.Intersection(full_parent_clip);
-      Rect inset = dst.GetInsetRectangle(clipped_dest);
-      dst = clipped_dest;
-      src = src.ApplyInset(inset);
-    }
+  if (parent && parent->Param().has_own_clip_rect()) {
+    // In Little Busters, a parent clip rect is used to clip text scrolling
+    // in the battle system. rlvm has the concept of parent objects badly
+    // hacked in, and that means we can't directly apply the own clip
+    // rect. Instead we have to calculate this in terms of the screen
+    // coordinates and then apply that as a global clip rect.
+    Point parent_start(
+        parent->Param().x() + parent->Param().GetXAdjustmentSum(),
+        parent->Param().y() + parent->Param().GetYAdjustmentSum());
+    Rect full_parent_clip =
+        Rect(parent_start + parent->Param().own_clip_rect().origin(),
+             parent->Param().own_clip_rect().size());
 
-    if (param.has_own_clip_rect()) {
-      dst = dst.ApplyInset(param.own_clip_rect());
-      src = src.ApplyInset(param.own_clip_rect());
-    }
+    Rect clipped_dest = dst.Intersection(full_parent_clip);
+    Rect inset = dst.GetInsetRectangle(clipped_dest);
+    dst = clipped_dest;
+    src = src.ApplyInset(inset);
+  }
 
-    // Perform the object clipping.
-    if (param.has_clip_rect()) {
-      Rect clipped_dest = dst.Intersection(param.clip_rect());
+  if (param.has_own_clip_rect()) {
+    dst = dst.ApplyInset(param.own_clip_rect());
+    src = src.ApplyInset(param.own_clip_rect());
+  }
 
-      // Do nothing if object falls wholly outside clip area
-      if (clipped_dest.is_empty())
-        return;
+  // Perform the object clipping.
+  if (param.has_clip_rect()) {
+    Rect clipped_dest = dst.Intersection(param.clip_rect());
 
-      // Adjust the source rectangle
-      Rect inset = dst.GetInsetRectangle(clipped_dest);
+    // Do nothing if object falls wholly outside clip area
+    if (clipped_dest.is_empty())
+      return;
 
-      dst = clipped_dest;
-      src = src.ApplyInset(inset);
-    }
+    // Adjust the source rectangle
+    Rect inset = dst.GetInsetRectangle(clipped_dest);
 
-    surface->RenderToScreenAsObject(go, src, dst, alpha);
+    dst = clipped_dest;
+    src = src.ApplyInset(inset);
+  }
+
+  // surface->RenderToScreenAsObject(go, src, dst, alpha);
+  for (SDLSurface::TextureRecord it : surface->GetTextureArray()) {
+    auto src_rect = src, dst_rect = dst;
+    LocalRect coordinate_system(it.x_, it.y_, it.w_, it.h_);
+    if (!coordinate_system.intersectAndTransform(src_rect, dst_rect))
+      continue;
+
+    RenderingConfig config;
+    config.alpha = static_cast<float>(alpha) / 255.0f;
+
+    auto model =
+        glm::translate(glm::mat4(1.0f), glm::vec3(dst.x(), dst.y(), 0));
+    float x_rep = dst.width() / 2.0f + param.rep_origin_x();
+    float y_rep = dst.height() / 2.0f + param.rep_origin_y();
+    model = glm::translate(model, glm::vec3(x_rep, y_rep, 0.0f));
+    model = glm::rotate(model, glm::radians(param.rotation() / 10.0f),
+                        glm::vec3(0.0f, 0.0f, 1.0f));
+    model = glm::translate(model, glm::vec3(-x_rep, -y_rep, 0.0f));
+    config.model = model;
+    config.blend_type = param.composite_mode();
+    config.color = param.colour();
+    config.tint = param.tint();
+    config.mono = param.mono();
+    config.invert = param.invert();
+    config.light = param.light();
+
+    glRenderer().Render({it.gltexture, src_rect}, std::move(config),
+                        {SDLSurface::screen_, dst_rect});
   }
 }
 
