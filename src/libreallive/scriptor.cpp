@@ -25,6 +25,12 @@
 #include "libreallive/scriptor.hpp"
 
 #include "libreallive/archive.hpp"
+#include "libreallive/elements/bytecode.hpp"
+#include "libreallive/elements/comma.hpp"
+#include "libreallive/elements/command.hpp"
+#include "libreallive/elements/expression.hpp"
+#include "libreallive/elements/meta.hpp"
+#include "libreallive/elements/textout.hpp"
 
 #include <algorithm>
 #include <stdexcept>
@@ -115,14 +121,6 @@ ScriptLocation Scriptor::Next(ScriptLocation it) const {
   return it;
 }
 
-std::shared_ptr<BytecodeElement> Scriptor::Dereference(
-    ScriptLocation it) const {
-  const Scenario* sc = cached_scenario.fetch_or_else(
-      it.scenario_number,
-      std::bind(FindScenario, &archive_, it.scenario_number));
-  return sc->script.elements_[it.location_offset].second;
-}
-
 ScenarioConfig Scriptor::GetScenarioConfig(int scenario_number) const {
   const Scenario* sc = cached_scenario.fetch_or_else(
       scenario_number, std::bind(FindScenario, &archive_, scenario_number));
@@ -154,6 +152,56 @@ ScenarioConfig Scriptor::GetScenarioConfig(int scenario_number) const {
 
 void Scriptor::SetDefaultScenarioConfig(ScenarioConfig cfg) {
   default_config_ = std::move(cfg);
+}
+
+Instruction Scriptor::ResolveInstruction(ScriptLocation it) const {
+  const Scenario* sc = cached_scenario.fetch_or_else(
+      it.scenario_number,
+      std::bind(FindScenario, &archive_, it.scenario_number));
+  auto bytecode = sc->script.elements_[it.location_offset].second;
+
+  struct Visitor {
+    Instruction operator()(libreallive::CommandElement const* cmd) {
+      return rlCommand(cmd);
+    }
+    Instruction operator()(libreallive::CommaElement const*) {
+      return std::monostate();
+    }
+    Instruction operator()(libreallive::MetaElement const* m) {
+      switch (m->type_) {
+        case libreallive::MetaElement::Line_:
+          return Line(m->value_);
+        case libreallive::MetaElement::Kidoku_:
+          return Kidoku(m->value_);
+        default:
+          return std::monostate();
+      }
+    }
+    Instruction operator()(libreallive::ExpressionElement const* e) {
+      return rlExpression(e);
+    }
+    Instruction operator()(libreallive::TextoutElement const* e) {
+      // Seen files are terminated with the string "SeenEnd", which isn't NULL
+      // terminated and has a bunch of random garbage after it.
+      constexpr std::string_view SeenEnd{
+          "\x82\x72"  // S
+          "\x82\x85"  // e
+          "\x82\x85"  // e
+          "\x82\x8e"  // n
+          "\x82\x64"  // E
+          "\x82\x8e"  // n
+          "\x82\x84"  // d
+      };
+
+      std::string unparsed_text = e->GetText();
+      if (unparsed_text.starts_with(SeenEnd))
+        return End(std::move(unparsed_text));
+      else
+        return Textout(std::move(unparsed_text));
+    }
+  };
+
+  return std::visit(Visitor(), bytecode->DownCast());
 }
 
 }  // namespace libreallive

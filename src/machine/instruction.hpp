@@ -82,11 +82,14 @@ struct Textout {
   std::string text;
 };
 
-struct End{
+struct End {
   std::string extra_text;
 };
 
-using Instruction = std::
-  variant<std::monostate, Kidoku, Line, rlCommand, rlExpression, Textout, End>;
-
-Instruction Resolve(std::shared_ptr<libreallive::BytecodeElement> bytecode);
+using Instruction = std::variant<std::monostate,
+                                 Kidoku,
+                                 Line,
+                                 rlCommand,
+                                 rlExpression,
+                                 Textout,
+                                 End>;

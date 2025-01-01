@@ -26,6 +26,7 @@
 
 #include "libreallive/archive.hpp"
 #include "libreallive/elements/bytecode.hpp"
+#include "libreallive/elements/meta.hpp"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -39,12 +40,15 @@ class MockBytecodeElement : public BytecodeElement {
               GetSerializedCommand,
               (RLMachine&),
               (const, override));
-  MOCK_METHOD(Bytecode_ptr, DownCast, (), (const, override));
 
   MockBytecodeElement(int pos) : pos_(pos) {}
 
   // hijack this method for testing
-  int GetEntrypoint() const override { return pos_; }
+  Bytecode_ptr DownCast() const override {
+    static libreallive::MetaElement meta(libreallive::MetaElement::Line_, 0);
+    meta.value_ = pos_;
+    return &meta;
+  }
 
   int pos_;
 };
@@ -73,7 +77,9 @@ class ScriptorTest : public ::testing::Test {
   std::vector<int> Traverse(const Scriptor& scriptor, ScriptLocation it) {
     std::vector<int> result;
     while (scriptor.HasNext(it)) {
-      result.push_back(scriptor.Dereference(it)->GetEntrypoint());
+      auto instruction = scriptor.ResolveInstruction(it);
+      const auto value = std::get<Line>(instruction).num;
+      result.push_back(value);
       it = scriptor.Next(it);
     }
     return result;

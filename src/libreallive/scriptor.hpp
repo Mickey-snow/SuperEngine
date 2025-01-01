@@ -71,8 +71,6 @@ class Scriptor {
   void SetDefaultScenarioConfig(ScenarioConfig cfg);
   ScenarioConfig GetScenarioConfig(int scenario_number) const;
 
-  std::shared_ptr<BytecodeElement> Dereference(ScriptLocation it) const;
-
  private:
   Archive& archive_;
   ScenarioConfig default_config_;

@@ -132,7 +132,8 @@ void RLMachine::ExecuteNextInstruction() {
       }
 
     } else {
-      auto instruction = Resolve(scriptor_->Dereference(top_frame->pos));
+      // auto instruction = Resolve(scriptor_->Dereference(top_frame->pos));
+      auto instruction = scriptor_->ResolveInstruction(top_frame->pos);
       std::visit(*this, std::move(instruction));
     }
   } catch (rlvm::UnimplementedOpcode& e) {

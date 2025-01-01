@@ -24,61 +24,11 @@
 
 #include "machine/instruction.hpp"
 
-#include "libreallive/elements/bytecode.hpp"
-#include "libreallive/elements/comma.hpp"
-#include "libreallive/elements/command.hpp"
 #include "libreallive/elements/expression.hpp"
-#include "libreallive/elements/meta.hpp"
-#include "libreallive/elements/textout.hpp"
 #include "libreallive/expression.hpp"
 
 rlExpression::rlExpression(libreallive::ExpressionElement const* e)
     : expr_(e) {}
 int rlExpression::Execute(RLMachine& machine) {
   return expr_->ParsedExpression()->GetIntegerValue(machine);
-}
-
-Instruction Resolve(std::shared_ptr<libreallive::BytecodeElement> bytecode) {
-  struct Visitor {
-    Instruction operator()(libreallive::CommandElement const* cmd) {
-      return rlCommand(cmd);
-    }
-    Instruction operator()(libreallive::CommaElement const*) {
-      return std::monostate();
-    }
-    Instruction operator()(libreallive::MetaElement const* m) {
-      switch (m->type_) {
-        case libreallive::MetaElement::Line_:
-          return Line(m->value_);
-        case libreallive::MetaElement::Kidoku_:
-          return Kidoku(m->value_);
-        default:
-          return std::monostate();
-      }
-    }
-    Instruction operator()(libreallive::ExpressionElement const* e) {
-      return rlExpression(e);
-    }
-    Instruction operator()(libreallive::TextoutElement const* e) {
-      // Seen files are terminated with the string "SeenEnd", which isn't NULL
-      // terminated and has a bunch of random garbage after it.
-      constexpr std::string_view SeenEnd{
-          "\x82\x72"  // S
-          "\x82\x85"  // e
-          "\x82\x85"  // e
-          "\x82\x8e"  // n
-          "\x82\x64"  // E
-          "\x82\x8e"  // n
-          "\x82\x84"  // d
-      };
-
-      std::string unparsed_text = e->GetText();
-      if (unparsed_text.starts_with(SeenEnd))
-        return End(std::move(unparsed_text));
-      else
-        return Textout(std::move(unparsed_text));
-    }
-  };
-
-  return std::visit(Visitor(), bytecode->DownCast());
 }
