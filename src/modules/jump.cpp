@@ -25,7 +25,7 @@
 
 #include "modules/jump.hpp"
 
-#include "libreallive/scriptor.hpp"
+#include "machine/iscriptor.hpp"
 #include "machine/call_stack.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/stack_frame.hpp"

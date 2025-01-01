@@ -25,28 +25,7 @@
 #pragma once
 
 #include "lru_cache.hpp"
-#include "machine/instruction.hpp"
-
-#include <memory>
-
-struct ScriptLocation {
-  ScriptLocation();
-  ScriptLocation(int id, std::size_t offset);
-
-  int scenario_number;
-  std::size_t location_offset;
-
-  void serialize(auto& ar, unsigned int version) {
-    ar & scenario_number & location_offset;
-  }
-};
-
-struct ScenarioConfig {
-  int text_encoding;
-  bool enable_message_savepoint;
-  bool enable_selcom_savepoint;
-  bool enable_seentop_savepoint;
-};
+#include "machine/iscriptor.hpp"
 
 namespace libreallive {
 
@@ -54,22 +33,23 @@ class Archive;
 class Scenario;
 class BytecodeElement;
 
-class Scriptor {
+class Scriptor : public IScriptor {
  public:
   explicit Scriptor(Archive& ar);
-  ~Scriptor();
+  ~Scriptor() override;
 
-  ScriptLocation Load(int scenario_number, unsigned long loc);
-  ScriptLocation Load(int scenario_number);
-  ScriptLocation LoadEntry(int scenario_number, int entry);
+  // IScriptor interface implementations
+  ScriptLocation Load(int scenario_number, unsigned long loc) override;
+  ScriptLocation Load(int scenario_number) override;
+  ScriptLocation LoadEntry(int scenario_number, int entry) override;
 
-  unsigned long LocationNumber(ScriptLocation it) const;
-  bool HasNext(ScriptLocation it) const;
-  ScriptLocation Next(ScriptLocation it) const;
-  Instruction ResolveInstruction(ScriptLocation it) const;
+  unsigned long LocationNumber(ScriptLocation it) const override;
+  bool HasNext(ScriptLocation it) const override;
+  ScriptLocation Next(ScriptLocation it) const override;
+  Instruction ResolveInstruction(ScriptLocation it) const override;
 
   void SetDefaultScenarioConfig(ScenarioConfig cfg);
-  ScenarioConfig GetScenarioConfig(int scenario_number) const;
+  ScenarioConfig GetScenarioConfig(int scenario_number) const override;
 
  private:
   Archive& archive_;

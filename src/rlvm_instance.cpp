@@ -25,6 +25,7 @@
 
 #include "base/gameexe.hpp"
 #include "libreallive/reallive.hpp"
+#include "libreallive/scriptor.hpp"
 #include "machine/game_hacks.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/serialization.hpp"

@@ -34,7 +34,7 @@
 #include <optional>
 #include <string>
 
-#include "libreallive/scriptor.hpp"
+#include "machine/iscriptor.hpp"
 #include "memory/bank.hpp"
 #include "memory/memory.hpp"
 

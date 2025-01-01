@@ -35,10 +35,10 @@
 #include <utility>
 #include <vector>
 
-#include "libreallive/scriptor.hpp"
 #include "log/tracer.hpp"
 #include "machine/call_stack.hpp"
 #include "machine/instruction.hpp"
+#include "machine/iscriptor.hpp"
 #include "machine/module_manager.hpp"
 
 namespace libreallive {
@@ -57,7 +57,7 @@ struct StackFrame;
 class RLMachine {
  public:
   RLMachine(System& system,
-            std::shared_ptr<libreallive::Scriptor> scriptor,
+            std::shared_ptr<IScriptor> scriptor,
             ScriptLocation staring_location,
             std::unique_ptr<Memory> memory = nullptr);
   virtual ~RLMachine();
@@ -89,7 +89,7 @@ class RLMachine {
   // Returns the current System that this RLMachine outputs to.
   System& GetSystem() { return system_; }
 
-  std::shared_ptr<libreallive::Scriptor> GetScriptor();
+  std::shared_ptr<IScriptor> GetScriptor();
 
   Gameexe& GetGameexe();
 
@@ -230,7 +230,7 @@ class RLMachine {
   // opcode.
   bool print_undefined_opcodes_ = false;
 
-  std::shared_ptr<libreallive::Scriptor> scriptor_;
+  std::shared_ptr<IScriptor> scriptor_;
 
   // The most recent line marker we've come across
   int line_ = 0;

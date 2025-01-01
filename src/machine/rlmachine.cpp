@@ -70,7 +70,7 @@ using std::endl;
 // -----------------------------------------------------------------------
 
 RLMachine::RLMachine(System& system,
-                     std::shared_ptr<libreallive::Scriptor> scriptor,
+                     std::shared_ptr<IScriptor> scriptor,
                      ScriptLocation staring_location,
                      std::unique_ptr<Memory> memory)
     : memory_(std::move(memory)), scriptor_(scriptor), system_(system) {
@@ -132,7 +132,6 @@ void RLMachine::ExecuteNextInstruction() {
       }
 
     } else {
-      // auto instruction = Resolve(scriptor_->Dereference(top_frame->pos));
       auto instruction = scriptor_->ResolveInstruction(top_frame->pos);
       std::visit(*this, std::move(instruction));
     }
@@ -184,7 +183,7 @@ void RLMachine::AdvanceInstructionPointer() {
 
 CallStack& RLMachine::GetStack() { return call_stack_; }
 
-std::shared_ptr<libreallive::Scriptor> RLMachine::GetScriptor() {
+std::shared_ptr<IScriptor> RLMachine::GetScriptor() {
   return scriptor_;
 }
 
