@@ -45,7 +45,7 @@ TextoutElement::~TextoutElement() {}
 std::string TextoutElement::GetText() const {
   std::string rv;
   bool quoted = false;
-  string::const_iterator it = repr.cbegin();
+  std::string::const_iterator it = repr.cbegin();
   while (it != repr.cend()) {
     if (*it == '"') {
       ++it;

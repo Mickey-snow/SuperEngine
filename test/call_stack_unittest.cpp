@@ -41,7 +41,7 @@ class CallStackTest : public ::testing::Test {
   }
 
   auto desc(const StackFrame& frame) -> std::string {
-    return std::format("({},{}) {}", frame.pos.scenario_id_, frame.pos.offset_,
+    return std::format("({},{}) {}", frame.pos.scenario_number, frame.pos.location_offset,
                        static_cast<int>(frame.frame_type));
   }
 
@@ -133,7 +133,6 @@ TEST_F(CallStackTest, StackSize) {
 }
 
 TEST_F(CallStackTest, Serialization) {
-  using libreallive::ScriptLocation;
   std::stringstream ss;
 
   {

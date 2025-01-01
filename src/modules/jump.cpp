@@ -37,7 +37,7 @@ void Jump(RLMachine& machine, int scenario, int entrypoint) {
 }
 
 void Farcall(RLMachine& machine, int scenario, int entrypoint) {
-  if (entrypoint == 0 && machine.ShouldSetSeentopSavepoint())
+  if (entrypoint == 0 && machine.GetScenarioConfig().enable_seentop_savepoint)
     machine.MarkSavepoint();
 
   auto ip = machine.GetScriptor()->LoadEntry(scenario, entrypoint);

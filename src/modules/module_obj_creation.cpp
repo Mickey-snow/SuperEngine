@@ -48,6 +48,7 @@
 #include "systems/base/system.hpp"
 #include "systems/sdl_surface.hpp"
 #include "utilities/graphics.hpp"
+#include "utilities/mapped_file.hpp"
 #include "utilities/string_utilities.hpp"
 
 #include <cmath>

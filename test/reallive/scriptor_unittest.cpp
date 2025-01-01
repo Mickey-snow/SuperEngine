@@ -70,7 +70,7 @@ class ScriptorTest : public ::testing::Test {
     return Script(std::move(elements), std::map<int, unsigned long>{});
   }
 
-  std::vector<int> Traverse(const Scriptor& scriptor, Scriptor::Reference it) {
+  std::vector<int> Traverse(const Scriptor& scriptor, ScriptLocation it) {
     std::vector<int> result;
     while (scriptor.HasNext(it)) {
       result.push_back(scriptor.Dereference(it)->GetEntrypoint());
@@ -87,7 +87,7 @@ TEST_F(ScriptorTest, IterateForward) {
   EXPECT_CALL(archive, GetScenario(1)).WillRepeatedly(Return(&s1));
 
   auto it = scriptor.Load(1, 1);
-  EXPECT_EQ(it.scenario_id_, 1);
+  EXPECT_EQ(it.scenario_number, 1);
   EXPECT_EQ(Traverse(scriptor, it), (std::vector{1, 2, 3}));
 }
 
@@ -96,7 +96,7 @@ TEST_F(ScriptorTest, SkipEmptyLocation) {
   EXPECT_CALL(archive, GetScenario(2)).WillRepeatedly(Return(&s2));
 
   auto it = scriptor.Load(2, 1);
-  EXPECT_EQ(it.scenario_id_, 2);
+  EXPECT_EQ(it.scenario_number, 2);
   EXPECT_EQ(Traverse(scriptor, it), (std::vector{1, 77, 177, 300}));
 }
 
@@ -145,4 +145,17 @@ TEST_F(ScriptorTest, LoadBegin) {
   Scenario s3({}, MakeScript(1, 2, 10), 3);
   EXPECT_CALL(archive, GetScenario(3)).WillRepeatedly(Return(&s3));
   EXPECT_EQ(Traverse(scriptor, scriptor.Load(3)), (std::vector{1, 2, 10}));
+}
+
+TEST_F(ScriptorTest, SavepointDecide) {
+  libreallive::Header hdr;
+  hdr.savepoint_message_ = 1;  // true
+  hdr.savepoint_seentop_ = 2;  // false
+  hdr.savepoint_selcom_ = 0;   // default
+  Scenario sc(std::move(hdr), MakeScript(1, 2, 3), 3);
+  EXPECT_CALL(archive, GetScenario(3)).WillRepeatedly(Return(&sc));
+  auto result = scriptor.GetScenarioConfig(3);
+  EXPECT_TRUE(result.enable_message_savepoint);
+  EXPECT_TRUE(result.enable_selcom_savepoint);
+  EXPECT_FALSE(result.enable_seentop_savepoint);
 }

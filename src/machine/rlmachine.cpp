@@ -71,7 +71,7 @@ using std::endl;
 
 RLMachine::RLMachine(System& system,
                      std::shared_ptr<libreallive::Scriptor> scriptor,
-                     libreallive::ScriptLocation staring_location,
+                     ScriptLocation staring_location,
                      std::unique_ptr<Memory> memory)
     : memory_(std::move(memory)), scriptor_(scriptor), system_(system) {
   AddAllModules(module_manager_);
@@ -95,52 +95,17 @@ RLMachine::~RLMachine() = default;
 
 void RLMachine::MarkSavepoint() {
   savepoint_call_stack_ = call_stack_.Clone();
-  savepoint_memory_ = GetMemory();
+  savepoint_memory_ = Memory();
   GetSystem().graphics().TakeSavepointSnapshot();
   GetSystem().text().TakeSavepointSnapshot();
 }
 
-bool RLMachine::SavepointDecide(AttributeFunction func,
-                                const std::string& gameexe_key) const {
-  if (!mark_savepoints_)
-    return false;
-
-  int attribute = (Scenario().*func)();
-  if (attribute == 1)
-    return true;
-  else if (attribute == 2)
-    return false;
-
-  // check Gameexe key
-  Gameexe& gexe = system_.gameexe();
-  if (gexe.Exists(gameexe_key)) {
-    int value = gexe(gameexe_key);
-    if (value == 0)
-      return false;
-    else if (value == 1)
-      return true;
-  }
-
-  // Assume default of true
-  return true;
+ScenarioConfig RLMachine::GetScenarioConfig() const {
+  int current_scenario = call_stack_.Top()->pos.scenario_number;
+  return scriptor_->GetScenarioConfig(current_scenario);
 }
 
 void RLMachine::SetMarkSavepoints(const int in) { mark_savepoints_ = in; }
-
-bool RLMachine::ShouldSetMessageSavepoint() const {
-  return SavepointDecide(&libreallive::Scenario::savepoint_message,
-                         "SAVEPOINT_MESSAGE");
-}
-
-bool RLMachine::ShouldSetSelcomSavepoint() const {
-  return SavepointDecide(&libreallive::Scenario::savepoint_selcom,
-                         "SAVEPOINT_SELCOM");
-}
-
-bool RLMachine::ShouldSetSeentopSavepoint() const {
-  return SavepointDecide(&libreallive::Scenario::savepoint_seentop,
-                         "SAVEPOINT_SEENTOP");
-}
 
 void RLMachine::ExecuteNextInstruction() {
   // Do not execute any more instructions if the machine is halted.
@@ -174,7 +139,7 @@ void RLMachine::ExecuteNextInstruction() {
     AdvanceInstructionPointer();
 
     if (print_undefined_opcodes_) {
-      cout << "(SEEN" << top_frame->pos.scenario_id_ << ")(Line " << line_
+      cout << "(SEEN" << top_frame->pos.scenario_number << ")(Line " << line_
            << "):  " << e.what() << endl;
     }
 
@@ -183,7 +148,8 @@ void RLMachine::ExecuteNextInstruction() {
     // loops where we throw an exception, and then try again.
     AdvanceInstructionPointer();
 
-    cout << "(SEEN" << top_frame->pos.scenario_id_ << ")(Line " << line_ << ")";
+    cout << "(SEEN" << top_frame->pos.scenario_number << ")(Line " << line_
+         << ")";
 
     // We specialcase rlvm::Exception because we might have the name of the
     // opcode.
@@ -197,7 +163,7 @@ void RLMachine::ExecuteNextInstruction() {
     // loops where we throw an exception, and then try again.
     AdvanceInstructionPointer();
 
-    cout << "(SEEN" << top_frame->pos.scenario_id_ << ")(Line " << line_
+    cout << "(SEEN" << top_frame->pos.scenario_number << ")(Line " << line_
          << "):  " << e.what() << endl;
   }
 }
@@ -253,15 +219,13 @@ std::shared_ptr<LongOperation> RLMachine::CurrentLongOperation() const {
 }
 
 int RLMachine::SceneNumber() const {
-  return call_stack_.Top()->pos.scenario_id_;
+  return call_stack_.Top()->pos.scenario_number;
 }
 
-const libreallive::Scenario& RLMachine::Scenario() const {
-  auto sc = scriptor_->GetScenario(call_stack_.Top()->pos);
-  return *sc;
+int RLMachine::GetTextEncoding() const {
+  auto scenario_number = call_stack_.Top()->pos.scenario_number;
+  return scriptor_->GetScenarioConfig(scenario_number).text_encoding;
 }
-
-int RLMachine::GetTextEncoding() const { return Scenario().encoding(); }
 
 bool RLMachine::DllLoaded(const std::string& name) {
   for (auto const& dll : loaded_dlls_) {
@@ -356,9 +320,10 @@ void RLMachine::operator()(std::monostate) { AdvanceInstructionPointer(); }
 
 void RLMachine::operator()(Kidoku k) {
   // Check to see if we mark savepoints on textout
-  if (ShouldSetMessageSavepoint() &&
-      system_.text().GetCurrentPage().number_of_chars_on_page() == 0)
+  if (GetScenarioConfig().enable_message_savepoint &&
+      system_.text().GetCurrentPage().number_of_chars_on_page() == 0) {
     MarkSavepoint();
+  }
 
   // Mark if we've previously read this piece of text.
   system_.text().SetKidokuRead(GetMemory().HasBeenRead(SceneNumber(), k.num));

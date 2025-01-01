@@ -29,18 +29,21 @@
 #include <algorithm>
 #include <stdexcept>
 
-namespace libreallive {
-
 // -----------------------------------------------------------------------
 // struct ScriptLocation
 // -----------------------------------------------------------------------
 
-ScriptLocation::ScriptLocation() : scenario_id_(0), offset_(0) {}
+ScriptLocation::ScriptLocation() : scenario_number(0), location_offset(0) {}
 
 ScriptLocation::ScriptLocation(int scenario_id, std::size_t off)
-    : scenario_id_(scenario_id), offset_(off) {}
+    : scenario_number(scenario_id), location_offset(off) {}
 
-Scenario* FindScenario(Archive* archive, int scenario_number) {
+namespace libreallive {
+// -----------------------------------------------------------------------
+// class libreallive::Scriptor
+// -----------------------------------------------------------------------
+
+static Scenario* FindScenario(Archive* archive, int scenario_number) {
   Scenario* sc = archive->GetScenario(scenario_number);
   if (!sc) {
     throw std::runtime_error("Scenario " + std::to_string(scenario_number) +
@@ -48,10 +51,6 @@ Scenario* FindScenario(Archive* archive, int scenario_number) {
   }
   return sc;
 }
-
-// -----------------------------------------------------------------------
-// Scriptor methods
-// -----------------------------------------------------------------------
 
 Scriptor::Scriptor(Archive& ar) : archive_(ar), cached_scenario(64) {}
 
@@ -97,33 +96,64 @@ ScriptLocation Scriptor::LoadEntry(int scenario_number, int entry) {
   return Load(scenario_number, loc);
 }
 
-unsigned long Scriptor::LocationNumber(Scriptor::Reference it) const {
+unsigned long Scriptor::LocationNumber(ScriptLocation it) const {
   const Scenario* sc = cached_scenario.fetch_or_else(
-      it.scenario_id_, std::bind(FindScenario, &archive_, it.scenario_id_));
-  return sc->script.elements_[it.offset_].first;
+      it.scenario_number,
+      std::bind(FindScenario, &archive_, it.scenario_number));
+  return sc->script.elements_[it.location_offset].first;
 }
 
-bool Scriptor::HasNext(Scriptor::Reference it) const {
+bool Scriptor::HasNext(ScriptLocation it) const {
   const Scenario* sc = cached_scenario.fetch_or_else(
-      it.scenario_id_, std::bind(FindScenario, &archive_, it.scenario_id_));
-  return it.offset_ < sc->script.elements_.size();
+      it.scenario_number,
+      std::bind(FindScenario, &archive_, it.scenario_number));
+  return it.location_offset < sc->script.elements_.size();
 }
 
-Scriptor::Reference Scriptor::Next(Scriptor::Reference it) const {
-  ++it.offset_;
+ScriptLocation Scriptor::Next(ScriptLocation it) const {
+  ++it.location_offset;
   return it;
 }
 
-const Scenario* Scriptor::GetScenario(Scriptor::Reference it) const {
-  return cached_scenario.fetch_or_else(
-      it.scenario_id_, std::bind(FindScenario, &archive_, it.scenario_id_));
+std::shared_ptr<BytecodeElement> Scriptor::Dereference(
+    ScriptLocation it) const {
+  const Scenario* sc = cached_scenario.fetch_or_else(
+      it.scenario_number,
+      std::bind(FindScenario, &archive_, it.scenario_number));
+  return sc->script.elements_[it.location_offset].second;
 }
 
-const std::shared_ptr<BytecodeElement>& Scriptor::Dereference(
-    Scriptor::Reference it) const {
+ScenarioConfig Scriptor::GetScenarioConfig(int scenario_number) const {
   const Scenario* sc = cached_scenario.fetch_or_else(
-      it.scenario_id_, std::bind(FindScenario, &archive_, it.scenario_id_));
-  return sc->script.elements_[it.offset_].second;
+      scenario_number, std::bind(FindScenario, &archive_, scenario_number));
+
+  ScenarioConfig cfg;
+  cfg.text_encoding = sc->encoding();
+
+  auto header = sc->header;
+  auto value_or = [](int value, bool default_value) {
+    switch (value) {
+      case 1:
+        return true;
+      case 2:
+        return false;
+      default:
+        return default_value;
+    }
+  };
+
+  cfg.enable_message_savepoint = value_or(
+      header.savepoint_message_, default_config_.enable_message_savepoint);
+  cfg.enable_selcom_savepoint = value_or(
+      header.savepoint_selcom_, default_config_.enable_selcom_savepoint);
+  cfg.enable_seentop_savepoint = value_or(
+      header.savepoint_seentop_, default_config_.enable_seentop_savepoint);
+
+  return cfg;
+}
+
+void Scriptor::SetDefaultScenarioConfig(ScenarioConfig cfg) {
+  default_config_ = std::move(cfg);
 }
 
 }  // namespace libreallive

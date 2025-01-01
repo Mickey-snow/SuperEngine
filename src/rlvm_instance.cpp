@@ -122,6 +122,26 @@ void RLVMInstance::Run(const std::filesystem::path& gamerootPath) {
       first_seen = arc.GetFirstScenarioID();
     }
     auto scriptor = std::make_shared<libreallive::Scriptor>(arc);
+    ScenarioConfig default_config;
+    auto savepoint_decide = [&gameexe](std::string key) -> bool {
+      int value = -1;
+      if (gameexe.Exists(key))
+        value = gameexe(key);
+      switch (value) {
+        case 0:
+          return false;
+        case 1:
+        default:
+          return true;
+      }
+    };
+    default_config.enable_message_savepoint =
+        savepoint_decide("SAVEPOINT_MESSAGE");
+    default_config.enable_seentop_savepoint =
+        savepoint_decide("SAVEPOINT_SEENTOP");
+    default_config.enable_selcom_savepoint =
+        savepoint_decide("SAVEPOINT_SELCOM");
+    scriptor->SetDefaultScenarioConfig(std::move(default_config));
     RLMachine rlmachine(sdlSystem, scriptor, scriptor->Load(first_seen),
                         std::move(memory));
     // Load the "DLLs" required

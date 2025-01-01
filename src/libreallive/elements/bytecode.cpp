@@ -43,8 +43,8 @@ BytecodeElement::~BytecodeElement() {}
 
 int BytecodeElement::GetEntrypoint() const { return kInvalidEntrypoint; }
 
-string BytecodeElement::GetSerializedCommand(RLMachine& machine) const {
-  throw Error(
+std::string BytecodeElement::GetSerializedCommand(RLMachine& machine) const {
+  throw std::runtime_error(
       "Can't call GetSerializedCommand() on things other than "
       "FunctionElements");
 }

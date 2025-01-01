@@ -59,7 +59,7 @@ struct Sel_select : public RLOp_SpecialCase {
       libreallive::ExpressionPiecesVector& output) override {}
 
   void operator()(RLMachine& machine, const CommandElement& ce) override {
-    if (machine.ShouldSetSelcomSavepoint())
+    if (machine.GetScenarioConfig().enable_selcom_savepoint)
       machine.MarkSavepoint();
 
     const SelectElement& element = dynamic_cast<const SelectElement&>(ce);
@@ -76,7 +76,7 @@ struct Sel_select_s : public RLOp_SpecialCase {
       libreallive::ExpressionPiecesVector& output) override {}
 
   void operator()(RLMachine& machine, const CommandElement& ce) override {
-    if (machine.ShouldSetSelcomSavepoint())
+    if (machine.GetScenarioConfig().enable_selcom_savepoint)
       machine.MarkSavepoint();
 
     const SelectElement& element = dynamic_cast<const SelectElement&>(ce);
@@ -105,7 +105,7 @@ struct Sel_select_w : public RLOp_SpecialCase {
       libreallive::ExpressionPiecesVector& output) override {}
 
   void operator()(RLMachine& machine, const CommandElement& ce) override {
-    if (machine.ShouldSetSelcomSavepoint())
+    if (machine.GetScenarioConfig().enable_selcom_savepoint)
       machine.MarkSavepoint();
 
     const SelectElement& element = dynamic_cast<const SelectElement&>(ce);
@@ -131,7 +131,7 @@ struct Sel_select_w : public RLOp_SpecialCase {
 
 struct Sel_select_objbtn : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int group) {
-    if (machine.ShouldSetSelcomSavepoint())
+    if (machine.GetScenarioConfig().enable_selcom_savepoint)
       machine.MarkSavepoint();
 
     machine.PushLongOperation(
@@ -141,7 +141,7 @@ struct Sel_select_objbtn : public RLOpcode<IntConstant_T> {
 
 struct Sel_select_objbtn_cancel_0 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int group) {
-    if (machine.ShouldSetSelcomSavepoint())
+    if (machine.GetScenarioConfig().enable_selcom_savepoint)
       machine.MarkSavepoint();
 
     ButtonObjectSelectLongOperation* obj =
@@ -154,7 +154,7 @@ struct Sel_select_objbtn_cancel_0 : public RLOpcode<IntConstant_T> {
 struct Sel_select_objbtn_cancel_1
     : public RLOpcode<IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int group, int se) {
-    if (machine.ShouldSetSelcomSavepoint())
+    if (machine.GetScenarioConfig().enable_selcom_savepoint)
       machine.MarkSavepoint();
 
     ButtonObjectSelectLongOperation* obj =
@@ -166,7 +166,7 @@ struct Sel_select_objbtn_cancel_1
 
 struct Sel_select_objbtn_cancel_2 : public RLOpcode<> {
   void operator()(RLMachine& machine) {
-    if (machine.ShouldSetSelcomSavepoint())
+    if (machine.GetScenarioConfig().enable_selcom_savepoint)
       machine.MarkSavepoint();
 
     auto& fg_objs = machine.GetSystem().graphics().GetForegroundObjects();

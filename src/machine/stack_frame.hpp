@@ -66,15 +66,15 @@ struct StackFrame {
   StackFrame();
 
   // Constructor for normal stack frames added by RealLive code.
-  StackFrame(libreallive::ScriptLocation it, FrameType t);
+  StackFrame(ScriptLocation it, FrameType t);
 
   // Constructor for frames that are just LongOperations.
-  StackFrame(libreallive::ScriptLocation it, LongOperation* op);
-  StackFrame(libreallive::ScriptLocation it, std::shared_ptr<LongOperation> op);
+  StackFrame(ScriptLocation it, LongOperation* op);
+  StackFrame(ScriptLocation it, std::shared_ptr<LongOperation> op);
 
   ~StackFrame();
 
-  libreallive::ScriptLocation pos;
+  ScriptLocation pos;
   // Pointer to the owned LongOperation if this is of TYPE_LONGOP.
   std::shared_ptr<LongOperation> long_op;
 

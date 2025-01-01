@@ -25,8 +25,28 @@
 #pragma once
 
 #include "lru_cache.hpp"
+#include "machine/instruction.hpp"
 
 #include <memory>
+
+struct ScriptLocation {
+  ScriptLocation();
+  ScriptLocation(int id, std::size_t offset);
+
+  int scenario_number;
+  std::size_t location_offset;
+
+  void serialize(auto& ar, unsigned int version) {
+    ar & scenario_number & location_offset;
+  }
+};
+
+struct ScenarioConfig {
+  int text_encoding;
+  bool enable_message_savepoint;
+  bool enable_selcom_savepoint;
+  bool enable_seentop_savepoint;
+};
 
 namespace libreallive {
 
@@ -34,37 +54,28 @@ class Archive;
 class Scenario;
 class BytecodeElement;
 
-struct ScriptLocation {
-  ScriptLocation();
-  ScriptLocation(int id, std::size_t offset);
-
-  int scenario_id_;
-  std::size_t offset_;
-
-  void serialize(auto& ar, unsigned int version) {
-    ar & scenario_id_ & offset_;
-  }
-};
-
 class Scriptor {
  public:
   explicit Scriptor(Archive& ar);
   ~Scriptor();
 
-  using Reference = ScriptLocation;
+  ScriptLocation Load(int scenario_number, unsigned long loc);
+  ScriptLocation Load(int scenario_number);
+  ScriptLocation LoadEntry(int scenario_number, int entry);
 
-  Reference Load(int scenario_number, unsigned long loc);
-  Reference Load(int scenario_number);
-  Reference LoadEntry(int scenario_number, int entry);
+  unsigned long LocationNumber(ScriptLocation it) const;
+  bool HasNext(ScriptLocation it) const;
+  ScriptLocation Next(ScriptLocation it) const;
+  Instruction ResolveInstruction(ScriptLocation it) const;
 
-  unsigned long LocationNumber(Reference it) const;
-  bool HasNext(Reference it) const;
-  Reference Next(Reference it) const;
-  const Scenario* GetScenario(Reference it) const;
-  const std::shared_ptr<BytecodeElement>& Dereference(Reference it) const;
+  void SetDefaultScenarioConfig(ScenarioConfig cfg);
+  ScenarioConfig GetScenarioConfig(int scenario_number) const;
+
+  std::shared_ptr<BytecodeElement> Dereference(ScriptLocation it) const;
 
  private:
   Archive& archive_;
+  ScenarioConfig default_config_;
   mutable LRUCache<int, Scenario*> cached_scenario;
 };
 

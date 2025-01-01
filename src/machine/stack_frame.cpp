@@ -38,20 +38,19 @@ StackFrame::StackFrame() : pos(), frame_type() {
   strK.Resize(40);
 }
 
-StackFrame::StackFrame(libreallive::ScriptLocation it, FrameType t)
+StackFrame::StackFrame(ScriptLocation it, FrameType t)
     : pos(it), frame_type(t) {
   intL.Resize(40);
   strK.Resize(40);
 }
 
-StackFrame::StackFrame(libreallive::ScriptLocation it,
-                       std::shared_ptr<LongOperation> op)
+StackFrame::StackFrame(ScriptLocation it, std::shared_ptr<LongOperation> op)
     : pos(it), long_op(op), frame_type(TYPE_LONGOP) {
   intL.Resize(40);
   strK.Resize(40);
 }
 
-StackFrame::StackFrame(libreallive::ScriptLocation it, LongOperation* op)
+StackFrame::StackFrame(ScriptLocation it, LongOperation* op)
     : StackFrame(it, std::shared_ptr<LongOperation>(op)) {}
 
 StackFrame::~StackFrame() = default;

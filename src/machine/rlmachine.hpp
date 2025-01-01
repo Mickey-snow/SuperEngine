@@ -35,7 +35,6 @@
 #include <utility>
 #include <vector>
 
-#include "libreallive/scenario.hpp"
 #include "libreallive/scriptor.hpp"
 #include "log/tracer.hpp"
 #include "machine/call_stack.hpp"
@@ -59,7 +58,7 @@ class RLMachine {
  public:
   RLMachine(System& system,
             std::shared_ptr<libreallive::Scriptor> scriptor,
-            libreallive::ScriptLocation staring_location,
+            ScriptLocation staring_location,
             std::unique_ptr<Memory> memory = nullptr);
   virtual ~RLMachine();
 
@@ -110,32 +109,6 @@ class RLMachine {
   // an implicit savepoint.
   void MarkSavepoint();
 
-  // Checks to see if we should set a savepoint on the start of a
-  // textout when all text windows are empty (aka, when a message starts)
-  bool ShouldSetMessageSavepoint() const;
-
-  // Checks to see if we should set a savepoint on the start of a
-  // user selection choice.
-  bool ShouldSetSelcomSavepoint() const;
-
-  // Do we set a savepoint when we enter the top of a seen. (This may
-  // be on every farcall, or it may mean \#entrypoint 0. We're not sure.)
-  bool ShouldSetSeentopSavepoint() const;
-
-  typedef int (libreallive::Scenario::*AttributeFunction)() const;
-
-  // Implementation function for should_set*Savepoint().
-  //
-  // - If automatic savepoints have been explicitly disabled with
-  //   DisableAutoSavepoints, return false. Otherwise...
-  // - The current Scenario is checked; in the bytecode header, there
-  //   is a value for each of these properties. If it is 1 (always
-  //   create this class of savepoint) or 2 (never), then we
-  //   return. On any other value, we fall through to...
-  // - Check a Gameexe key, which has the final say.
-  bool SavepointDecide(AttributeFunction func,
-                       const std::string& gameexe_key) const;
-
   // Whether the DisableAutoSavepoints override is on. This is
   // triggered purely from bytecode.
   void SetMarkSavepoints(const int in);
@@ -150,8 +123,7 @@ class RLMachine {
   // the call stack is a LongOperation. NULL otherwise.
   std::shared_ptr<LongOperation> CurrentLongOperation() const;
 
-  // Returns the actual Scenario on the top top of the call stack.
-  const libreallive::Scenario& Scenario() const;
+  ScenarioConfig GetScenarioConfig() const;
 
   // ------------------------------------------------ [ Execution interface ]
 

@@ -514,7 +514,7 @@ int RlBabelDLL::StartNewScreen(const std::string& cnam) {
   if (cnam.empty())
     return getcEndOfString;
 
-  string buf = cnam;
+  std::string buf = cnam;
   buf += "\x02\"";
   buf += cp932_text_buffer.substr(text_index);
   TextoutClear();
