@@ -150,9 +150,9 @@ TEST_F(ModuleManagerTest, GetCommandNameInvalid) {
 }
 
 TEST_F(ModuleManagerTest, RejectDoubleRegister) {
-  EXPECT_THROW(ModuleManager::AttachModule(std::make_unique<FooModule>()),
+  EXPECT_THROW(ModuleManager::AttachModule(std::make_shared<FooModule>()),
                std::runtime_error);
-  EXPECT_THROW(ModuleManager::AttachModule(std::make_unique<BooModule>()),
+  EXPECT_THROW(ModuleManager::AttachModule(std::make_shared<BooModule>()),
                std::runtime_error);
 }
 

@@ -58,9 +58,18 @@ class ModuleManager {
  private:
   struct Ctx {
     std::map<std::pair<int, int>, std::shared_ptr<RLModule>> modules_;
+    std::map<std::tuple<int, int, int, int>, std::shared_ptr<RLOperation>>
+        cmd2operation_;
+    std::multimap<std::string, std::shared_ptr<RLOperation>> name2operation_;
+
+    bool AttachModule(std::shared_ptr<RLModule> mod);
 
     std::shared_ptr<RLModule> GetModule(int module_type, int module_id) const;
-    bool AttachModule(std::shared_ptr<RLModule> mod);
+    std::shared_ptr<RLOperation> GetOperation(int module_type,
+                                              int module_id,
+                                              int opcode,
+                                              int overload) const;
+    std::shared_ptr<RLOperation> GetOperation(const std::string& name) const;
   };
   static Ctx& Get();
 };

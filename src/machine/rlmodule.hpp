@@ -117,6 +117,9 @@ class RLModule {
   std::shared_ptr<RLOperation> Dispatch(
       const libreallive::CommandElement& f) const;
 
+  std::map<std::pair<int, int>, std::shared_ptr<RLOperation>> const&
+  GetStoredOperations() const;
+
  protected:
   RLModule(const std::string& in_module_name,
            int in_module_type,
@@ -134,7 +137,8 @@ class RLModule {
   int module_number_;
   std::string module_name_;
 
-  std::unordered_map<int, std::shared_ptr<RLOperation>> stored_operations_;
+  std::map<std::pair<int, int>, std::shared_ptr<RLOperation>>
+      stored_operations_;
 };
 
 std::ostream& operator<<(std::ostream&, const RLModule& module);

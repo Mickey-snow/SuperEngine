@@ -127,9 +127,24 @@ std::shared_ptr<RLModule> ModuleManager::Ctx::GetModule(int module_type,
 }
 
 bool ModuleManager::Ctx::AttachModule(std::shared_ptr<RLModule> mod) {
-  const auto hash = std::make_pair(mod->module_type(), mod->module_number());
+  const int module_type = mod->module_type();
+  const int module_number = mod->module_number();
+
+  const auto hash = std::make_pair(module_type, module_number);
   auto result = Get().modules_.try_emplace(hash, mod);
-  return result.second;
+  if (!result.second)
+    return false;
+
+  for (const auto& [op_key, op] : mod->GetStoredOperations()) {
+    const int opcode = op_key.first;
+    const int overload = op_key.second;
+    std::string op_name = op->Name();
+
+    cmd2operation_[std::make_tuple(module_type, module_number, opcode,
+                                   overload)] = op;
+    name2operation_.emplace(op_name, op);
+  }
+  return true;
 }
 
 // -----------------------------------------------------------------------
