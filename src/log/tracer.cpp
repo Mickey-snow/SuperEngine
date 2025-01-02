@@ -67,10 +67,7 @@ Tracer::Tracer() : ctx_(std::make_unique<Tracer_ctx>()) {
 
 Tracer::~Tracer() = default;
 
-void Tracer::Log(int scene,
-                 int line,
-                 RLOperation* op,
-                 const libreallive::CommandElement& f) {
+void Tracer::Log(int scene, int line, const libreallive::CommandElement& f) {
   BOOST_LOG_SCOPED_THREAD_TAG("Scene", (boost::format("%04d") % scene).str());
   BOOST_LOG_SCOPED_THREAD_TAG("Line", (boost::format("%04d") % line).str());
 

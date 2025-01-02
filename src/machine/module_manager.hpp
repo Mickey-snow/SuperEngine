@@ -38,24 +38,29 @@ class IModuleManager {
  public:
   virtual ~IModuleManager() = default;
 
-  virtual RLModule* GetModule(int module_type, int module_id) const = 0;
+  virtual std::shared_ptr<RLModule> GetModule(int module_type,
+                                              int module_id) const = 0;
   virtual std::string GetCommandName(
       const libreallive::CommandElement&) const = 0;
-  virtual RLOperation* Dispatch(const libreallive::CommandElement&) const = 0;
+  virtual std::shared_ptr<RLOperation> Dispatch(
+      const libreallive::CommandElement&) const = 0;
 };
 
 class ModuleManager {
  public:
   ModuleManager() = delete;
 
-  static void AttachModule(std::unique_ptr<RLModule> mod);
+  static void AttachModule(std::shared_ptr<RLModule> mod);
   static void DetachAll();
 
   static IModuleManager& GetInstance();
 
  private:
   struct Ctx {
-    std::map<std::pair<int, int>, std::unique_ptr<RLModule>> modules_;
+    std::map<std::pair<int, int>, std::shared_ptr<RLModule>> modules_;
+
+    std::shared_ptr<RLModule> GetModule(int module_type, int module_id) const;
+    bool AttachModule(std::shared_ptr<RLModule> mod);
   };
   static Ctx& Get();
 };

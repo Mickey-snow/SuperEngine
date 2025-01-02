@@ -41,10 +41,7 @@ class Tracer {
   Tracer();
   ~Tracer();
 
-  void Log(int scene,
-           int line,
-           RLOperation* op,
-           const libreallive::CommandElement& f);
+  void Log(int scene, int line, const libreallive::CommandElement& f);
   void Log(int scene, int line, const libreallive::ExpressionElement& f);
 
  private:

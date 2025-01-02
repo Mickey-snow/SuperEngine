@@ -85,10 +85,6 @@ class RLOperation;
 // an RLMachine before the machine starts.
 class RLModule {
  public:
-  // Storage type of the opcodes. Exposed so TestMachine can iterate over this.
-  typedef std::unordered_map<int, std::unique_ptr<RLOperation>> OpcodeMap;
-
- public:
   virtual ~RLModule();
 
   // Used in derived Module constructors to declare all the
@@ -118,9 +114,8 @@ class RLModule {
   // Using the bytecode element CommandElement f, try to find an
   // RLOperation implementation of the instruction in this module.
   // Returns the pointer if found, returns nullptr if not found.
-  RLOperation* Dispatch(const libreallive::CommandElement& f) const;
-
-  std::string GetCommandName(const libreallive::CommandElement& f);
+  std::shared_ptr<RLOperation> Dispatch(
+      const libreallive::CommandElement& f) const;
 
  protected:
   RLModule(const std::string& in_module_name,
@@ -139,8 +134,7 @@ class RLModule {
   int module_number_;
   std::string module_name_;
 
-  // Store functions.
-  OpcodeMap stored_operations_;
+  std::unordered_map<int, std::shared_ptr<RLOperation>> stored_operations_;
 };
 
 std::ostream& operator<<(std::ostream&, const RLModule& module);

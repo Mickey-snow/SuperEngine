@@ -60,16 +60,15 @@
 #include <stdexcept>
 #include <utility>
 
-void ModuleManager::AttachModule(std::unique_ptr<RLModule> mod) {
+void ModuleManager::AttachModule(std::shared_ptr<RLModule> mod) {
   if (!mod)
     return;
 
-  const auto hash = std::make_pair(mod->module_type(), mod->module_number());
-  auto result = Get().modules_.try_emplace(hash, std::move(mod));
-  if (!result.second) {
-    throw std::invalid_argument(
-        "Module hash clash: " + std::to_string(std::get<0>(hash)) + ',' +
-        std::to_string(std::get<1>(hash)));
+  auto result = Get().AttachModule(mod);
+  if (!result) {
+    throw std::runtime_error(
+        "ModuleManager::AttachModule: Unable to attach module " +
+        mod->module_name());
   }
 }
 
@@ -80,14 +79,13 @@ IModuleManager& ModuleManager::GetInstance() {
    public:
     ModuleManager_impl(Ctx& ctx_in) : ctx(ctx_in) {}
 
-    RLModule* GetModule(int module_type, int module_id) const {
-      auto it = ctx.modules_.find(std::make_pair(module_type, module_id));
-      if (it != ctx.modules_.cend())
-        return it->second.get();
-      return nullptr;
+    std::shared_ptr<RLModule> GetModule(int module_type,
+                                        int module_id) const override {
+      return ctx.GetModule(module_type, module_id);
     }
 
-    RLOperation* Dispatch(const libreallive::CommandElement& cmd) const {
+    std::shared_ptr<RLOperation> Dispatch(
+        const libreallive::CommandElement& cmd) const override {
       auto mod = GetModule(cmd.modtype(), cmd.module());
       if (mod == nullptr)
         return nullptr;
@@ -95,7 +93,8 @@ IModuleManager& ModuleManager::GetInstance() {
       return mod->Dispatch(cmd);
     }
 
-    std::string GetCommandName(const libreallive::CommandElement& f) const {
+    std::string GetCommandName(
+        const libreallive::CommandElement& f) const override {
       auto op = Dispatch(f);
       if (op == nullptr)
         return {};
@@ -111,65 +110,82 @@ IModuleManager& ModuleManager::GetInstance() {
 }
 
 // -----------------------------------------------------------------------
+// ModuleManager::Ctx
+// -----------------------------------------------------------------------
 
 ModuleManager::Ctx& ModuleManager::Get() {
   static Ctx ctx_;
   return ctx_;
 }
 
+std::shared_ptr<RLModule> ModuleManager::Ctx::GetModule(int module_type,
+                                                        int module_id) const {
+  auto it = modules_.find(std::make_pair(module_type, module_id));
+  if (it != modules_.cend())
+    return it->second;
+  return nullptr;
+}
+
+bool ModuleManager::Ctx::AttachModule(std::shared_ptr<RLModule> mod) {
+  const auto hash = std::make_pair(mod->module_type(), mod->module_number());
+  auto result = Get().modules_.try_emplace(hash, mod);
+  return result.second;
+}
+
+// -----------------------------------------------------------------------
 // Add all modules by default
 
 namespace {
 [[maybe_unused]] bool __attach_all_modules_result = []() {
   try {
-    ModuleManager::AttachModule(std::make_unique<BgmModule>());
-    ModuleManager::AttachModule(std::make_unique<BgrModule>());
-    ModuleManager::AttachModule(std::make_unique<BraModule>());
-    ModuleManager::AttachModule(std::make_unique<ChildGanBgModule>());
-    ModuleManager::AttachModule(std::make_unique<ChildGanFgModule>());
-    ModuleManager::AttachModule(std::make_unique<ChildObjBgCreationModule>());
-    ModuleManager::AttachModule(std::make_unique<ChildObjBgGettersModule>());
-    ModuleManager::AttachModule(std::make_unique<ChildObjBgManagement>());
-    ModuleManager::AttachModule(std::make_unique<ChildObjBgModule>());
-    ModuleManager::AttachModule(std::make_unique<ChildObjFgCreationModule>());
-    ModuleManager::AttachModule(std::make_unique<ChildObjFgGettersModule>());
-    ModuleManager::AttachModule(std::make_unique<ChildObjFgManagement>());
-    ModuleManager::AttachModule(std::make_unique<ChildObjFgModule>());
-    ModuleManager::AttachModule(std::make_unique<ChildObjRangeBgModule>());
-    ModuleManager::AttachModule(std::make_unique<ChildObjRangeFgModule>());
-    ModuleManager::AttachModule(std::make_unique<DLLModule>());
-    ModuleManager::AttachModule(std::make_unique<DebugModule>());
-    ModuleManager::AttachModule(std::make_unique<EventLoopModule>());
-    ModuleManager::AttachModule(std::make_unique<G00Module>());
-    ModuleManager::AttachModule(std::make_unique<GanBgModule>());
-    ModuleManager::AttachModule(std::make_unique<GanFgModule>());
-    ModuleManager::AttachModule(std::make_unique<GrpModule>());
-    ModuleManager::AttachModule(std::make_unique<JmpModule>());
-    ModuleManager::AttachModule(std::make_unique<KoeModule>());
-    ModuleManager::AttachModule(std::make_unique<LayeredShakingModule>());
-    ModuleManager::AttachModule(std::make_unique<MemModule>());
-    ModuleManager::AttachModule(std::make_unique<MovModule>());
-    ModuleManager::AttachModule(std::make_unique<MsgModule>());
-    ModuleManager::AttachModule(std::make_unique<ObjBgCreationModule>());
-    ModuleManager::AttachModule(std::make_unique<ObjBgGettersModule>());
-    ModuleManager::AttachModule(std::make_unique<ObjBgManagement>());
-    ModuleManager::AttachModule(std::make_unique<ObjBgModule>());
-    ModuleManager::AttachModule(std::make_unique<ObjFgCreationModule>());
-    ModuleManager::AttachModule(std::make_unique<ObjFgGettersModule>());
-    ModuleManager::AttachModule(std::make_unique<ObjFgManagement>());
-    ModuleManager::AttachModule(std::make_unique<ObjFgModule>());
-    ModuleManager::AttachModule(std::make_unique<ObjManagement>());
-    ModuleManager::AttachModule(std::make_unique<ObjRangeBgModule>());
-    ModuleManager::AttachModule(std::make_unique<ObjRangeFgModule>());
-    ModuleManager::AttachModule(std::make_unique<OsModule>());
-    ModuleManager::AttachModule(std::make_unique<PcmModule>());
-    ModuleManager::AttachModule(std::make_unique<RefreshModule>());
-    ModuleManager::AttachModule(std::make_unique<ScrModule>());
-    ModuleManager::AttachModule(std::make_unique<SeModule>());
-    ModuleManager::AttachModule(std::make_unique<SelModule>());
-    ModuleManager::AttachModule(std::make_unique<ShakingModule>());
-    ModuleManager::AttachModule(std::make_unique<StrModule>());
-    ModuleManager::AttachModule(std::make_unique<SysModule>());
+    ModuleManager::AttachModule(std::make_shared<BgmModule>());
+    ModuleManager::AttachModule(std::make_shared<BgrModule>());
+    ModuleManager::AttachModule(std::make_shared<BraModule>());
+    ModuleManager::AttachModule(std::make_shared<ChildGanBgModule>());
+    ModuleManager::AttachModule(std::make_shared<ChildGanFgModule>());
+    ModuleManager::AttachModule(std::make_shared<ChildObjBgCreationModule>());
+    ModuleManager::AttachModule(std::make_shared<ChildObjBgGettersModule>());
+    ModuleManager::AttachModule(std::make_shared<ChildObjBgManagement>());
+    ModuleManager::AttachModule(std::make_shared<ChildObjBgModule>());
+    ModuleManager::AttachModule(std::make_shared<ChildObjFgCreationModule>());
+    ModuleManager::AttachModule(std::make_shared<ChildObjFgGettersModule>());
+    ModuleManager::AttachModule(std::make_shared<ChildObjFgManagement>());
+    ModuleManager::AttachModule(std::make_shared<ChildObjFgModule>());
+    ModuleManager::AttachModule(std::make_shared<ChildObjRangeBgModule>());
+    ModuleManager::AttachModule(std::make_shared<ChildObjRangeFgModule>());
+    ModuleManager::AttachModule(std::make_shared<DLLModule>());
+    ModuleManager::AttachModule(std::make_shared<DebugModule>());
+    ModuleManager::AttachModule(std::make_shared<EventLoopModule>());
+    ModuleManager::AttachModule(std::make_shared<G00Module>());
+    ModuleManager::AttachModule(std::make_shared<GanBgModule>());
+    ModuleManager::AttachModule(std::make_shared<GanFgModule>());
+    ModuleManager::AttachModule(std::make_shared<GrpModule>());
+    ModuleManager::AttachModule(std::make_shared<JmpModule>());
+    ModuleManager::AttachModule(std::make_shared<KoeModule>());
+    ModuleManager::AttachModule(std::make_shared<LayeredShakingModule>());
+    ModuleManager::AttachModule(std::make_shared<MemModule>());
+    ModuleManager::AttachModule(std::make_shared<MovModule>());
+    ModuleManager::AttachModule(std::make_shared<MsgModule>());
+    ModuleManager::AttachModule(std::make_shared<ObjBgCreationModule>());
+    ModuleManager::AttachModule(std::make_shared<ObjBgGettersModule>());
+    ModuleManager::AttachModule(std::make_shared<ObjBgManagement>());
+    ModuleManager::AttachModule(std::make_shared<ObjBgModule>());
+    ModuleManager::AttachModule(std::make_shared<ObjFgCreationModule>());
+    ModuleManager::AttachModule(std::make_shared<ObjFgGettersModule>());
+    ModuleManager::AttachModule(std::make_shared<ObjFgManagement>());
+    ModuleManager::AttachModule(std::make_shared<ObjFgModule>());
+    ModuleManager::AttachModule(std::make_shared<ObjManagement>());
+    ModuleManager::AttachModule(std::make_shared<ObjRangeBgModule>());
+    ModuleManager::AttachModule(std::make_shared<ObjRangeFgModule>());
+    ModuleManager::AttachModule(std::make_shared<OsModule>());
+    ModuleManager::AttachModule(std::make_shared<PcmModule>());
+    ModuleManager::AttachModule(std::make_shared<RefreshModule>());
+    ModuleManager::AttachModule(std::make_shared<ScrModule>());
+    ModuleManager::AttachModule(std::make_shared<SeModule>());
+    ModuleManager::AttachModule(std::make_shared<SelModule>());
+    ModuleManager::AttachModule(std::make_shared<ShakingModule>());
+    ModuleManager::AttachModule(std::make_shared<StrModule>());
+    ModuleManager::AttachModule(std::make_shared<SysModule>());
   } catch (std::exception& e) {
     std::cerr << e.what() << std::endl;
     return false;

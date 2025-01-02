@@ -356,7 +356,7 @@ void RLMachine::operator()(rlCommand cmd) {
 
   try {
     if (tracer_)
-      tracer_->Log(SceneNumber(), LineNumber(), op, *f);
+      tracer_->Log(SceneNumber(), LineNumber(), *f);
     op->DispatchFunction(*this, *f);
   } catch (rlvm::Exception& e) {
     e.setOperation(op);

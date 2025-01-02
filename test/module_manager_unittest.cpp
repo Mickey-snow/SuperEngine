@@ -90,12 +90,10 @@ class FooModule : public RLModule {
 class ModuleManagerTest : public ::testing::Test {
  protected:
   static void SetUpTestSuite() {
-    auto foo = std::make_unique<FooModule>();
-    foo_ptr = foo.get();
-    auto boo = std::make_unique<BooModule>();
-    boo_ptr = boo.get();
-    ModuleManager::AttachModule(std::move(foo));
-    ModuleManager::AttachModule(std::move(boo));
+    foo_ptr = std::make_shared<FooModule>();
+    boo_ptr = std::make_shared<BooModule>();
+    ModuleManager::AttachModule(foo_ptr);
+    ModuleManager::AttachModule(boo_ptr);
   }
 
   void SetUp() override {
@@ -110,7 +108,7 @@ class ModuleManagerTest : public ::testing::Test {
   }
 
   inline static IModuleManager& manager = ModuleManager::GetInstance();
-  inline static RLModule *foo_ptr, *boo_ptr;
+  inline static std::shared_ptr<RLModule> foo_ptr, boo_ptr;
   std::shared_ptr<MockCommandElement> foo1_cmd;
   std::shared_ptr<MockCommandElement> foo2_cmd;
   std::shared_ptr<MockCommandElement> foo3_cmd;
@@ -120,7 +118,7 @@ class ModuleManagerTest : public ::testing::Test {
 };
 
 TEST_F(ModuleManagerTest, ResolveOperation) {
-  RLOperation* op = manager.Dispatch(*foo1_cmd);
+  auto op = manager.Dispatch(*foo1_cmd);
   ASSERT_NE(op, nullptr);
   EXPECT_EQ(op->Name(), "Foo1");
 
@@ -153,9 +151,9 @@ TEST_F(ModuleManagerTest, GetCommandNameInvalid) {
 
 TEST_F(ModuleManagerTest, RejectDoubleRegister) {
   EXPECT_THROW(ModuleManager::AttachModule(std::make_unique<FooModule>()),
-               std::invalid_argument);
+               std::runtime_error);
   EXPECT_THROW(ModuleManager::AttachModule(std::make_unique<BooModule>()),
-               std::invalid_argument);
+               std::runtime_error);
 }
 
 TEST_F(ModuleManagerTest, GetModule) {

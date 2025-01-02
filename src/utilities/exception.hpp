@@ -50,15 +50,17 @@ class Exception : public std::exception {
   virtual ~Exception() throw();
   virtual const char* what() const throw();
 
-  void setOperation(RLOperation* operation) { operation_ = operation; }
-  RLOperation* operation() const { return operation_; }
+  void setOperation(std::shared_ptr<RLOperation> operation) {
+    operation_ = operation;
+  }
+  std::shared_ptr<RLOperation> operation() const { return operation_; }
 
  protected:
   // Returned in what().
   std::string description_;
 
   // Optionally, the operation that we were in when we threw.
-  RLOperation* operation_;
+  std::shared_ptr<RLOperation> operation_;
 };
 
 // An exception that rlvm can't internally recover from which should trigger a

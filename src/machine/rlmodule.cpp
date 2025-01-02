@@ -65,15 +65,14 @@ void RLModule::AddOpcode(int opcode,
   op->SetName(name);
   op->module_ = this;
 
-  OpcodeMap::iterator it = stored_operations_.find(packed_opcode);
-  if (it != stored_operations_.end()) {
+  auto emplace_result = stored_operations_.try_emplace(
+      packed_opcode, std::shared_ptr<RLOperation>(op));
+  if (!emplace_result.second) {
     std::ostringstream oss;
     oss << "Duplicate opcode in " << *this << ": opcode " << opcode << ", "
         << int(overload);
     throw std::invalid_argument(oss.str());
   }
-
-  stored_operations_.emplace(packed_opcode, std::unique_ptr<RLOperation>(op));
 }
 
 void RLModule::AddUnsupportedOpcode(int opcode,
@@ -116,20 +115,12 @@ RLModule::PropertyList::iterator RLModule::FindProperty(int property) const {
                  [&](Property& p) { return p.first == property; });
 }
 
-std::string RLModule::GetCommandName(const libreallive::CommandElement& f) {
-  OpcodeMap::iterator it =
-      stored_operations_.find(PackOpcodeNumber(f.opcode(), f.overload()));
-  std::string name;
-  if (it != stored_operations_.end())
-    name = it->second->Name();
-  return name;
-}
-
-RLOperation* RLModule::Dispatch(const libreallive::CommandElement& f) const {
+std::shared_ptr<RLOperation> RLModule::Dispatch(
+    const libreallive::CommandElement& f) const {
   auto it = stored_operations_.find(PackOpcodeNumber(f.opcode(), f.overload()));
   if (it == stored_operations_.cend())
     return nullptr;
-  return it->second.get();
+  return it->second;
 }
 
 std::ostream& operator<<(std::ostream& os, const RLModule& module) {
