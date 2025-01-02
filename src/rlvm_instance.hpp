@@ -48,9 +48,6 @@ class RLVMInstance {
 
   void set_seen_start(int in) { seen_start_ = in; }
   void set_memory() { memory_ = true; }
-  void set_undefined_opcodes() { undefined_opcodes_ = true; }
-  void set_count_undefined() { count_undefined_copcodes_ = true; }
-  void set_tracing() { tracing_ = true; }
   void set_load_save(int in) { load_save_ = in; }
   void set_custom_font(const std::string& font) { custom_font_ = font; }
 
@@ -90,16 +87,6 @@ class RLVMInstance {
 
   // Whether we should force '#MEMORY=1' to enter debug mode.
   bool memory_;
-
-  // Whether we should print undefined opcode messages.
-  bool undefined_opcodes_;
-
-  // Whether we should print out a table of undefined opcodes that the game
-  // used on exit.
-  bool count_undefined_copcodes_;
-
-  // Whether we should print out the opcodes as they are running.
-  bool tracing_;
 
   // Loads the specified save file as soon as emulation starts if not -1.
   int load_save_;

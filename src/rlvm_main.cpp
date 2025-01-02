@@ -99,13 +99,9 @@ int main(int argc, char* argv[]) {
 
   po::options_description debugOpts("Debugging Options");
   debugOpts.add_options()("start-seen", po::value<int>(),
-                          "Force start at SEEN#")(
-      "load-save", po::value<int>(), "Load a saved game on start")(
-      "memory", "Forces debug mode (Sets #MEMORY=1 in the Gameexe.ini file)")(
-      "undefined-opcodes", "Display a message on undefined opcodes")(
-      "count-undefined",
-      "On exit, present a summary table about how many times each undefined "
-      "opcode was called")("trace", "Prints opcodes as they are run)");
+                          "Force start at SEEN#")("load-save", po::value<int>(),
+                                                  "Load a saved game on start")(
+      "memory", "Forces debug mode (Sets #MEMORY=1 in the Gameexe.ini file)");
 
   // Declare the final option to be game-root
   po::options_description hidden("Hidden");
@@ -233,15 +229,6 @@ int main(int argc, char* argv[]) {
 
   if (vm.count("memory"))
     instance.set_memory();
-
-  if (vm.count("undefined-opcodes"))
-    instance.set_undefined_opcodes();
-
-  if (vm.count("count-undefined"))
-    instance.set_count_undefined();
-
-  if (vm.count("trace"))
-    instance.set_tracing();
 
   if (vm.count("load-save"))
     instance.set_load_save(vm["load-save"].as<int>());

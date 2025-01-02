@@ -138,10 +138,9 @@ void RLMachine::ExecuteNextInstruction() {
   } catch (rlvm::UnimplementedOpcode& e) {
     AdvanceInstructionPointer();
 
-    if (print_undefined_opcodes_) {
-      cout << "(SEEN" << top_frame->pos.scenario_number << ")(Line " << line_
-           << "):  " << e.what() << endl;
-    }
+    // Print undefined opcodes
+    cout << "(SEEN" << top_frame->pos.scenario_number << ")(Line " << line_
+         << "):  " << e.what() << endl;
 
   } catch (rlvm::Exception& e) {
     // Advance the instruction pointer so as to prevent infinite
@@ -265,10 +264,6 @@ int RLMachine::CallDLL(int slot,
   }
 }
 
-void RLMachine::SetPrintUndefinedOpcodes(bool in) {
-  print_undefined_opcodes_ = in;
-}
-
 void RLMachine::Halt() { halted_ = true; }
 
 void RLMachine::AddLineAction(const int seen,
@@ -355,8 +350,6 @@ void RLMachine::operator()(rlCommand cmd) {
   }
 
   try {
-    if (tracer_)
-      tracer_->Log(SceneNumber(), LineNumber(), *f);
     op->DispatchFunction(*this, *f);
   } catch (rlvm::Exception& e) {
     e.setOperation(op);
@@ -365,10 +358,6 @@ void RLMachine::operator()(rlCommand cmd) {
 }
 
 void RLMachine::operator()(rlExpression e) {
-  if (tracer_) {
-    tracer_->Log(SceneNumber(), LineNumber(), *e.expr_);
-  }
-
   e.Execute(*this);
   AdvanceInstructionPointer();
 }

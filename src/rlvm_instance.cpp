@@ -63,9 +63,6 @@ static const std::vector<std::string> siglus_exes{
 RLVMInstance::RLVMInstance()
     : seen_start_(-1),
       memory_(false),
-      undefined_opcodes_(false),
-      count_undefined_copcodes_(false),
-      tracing_(false),
       load_save_(-1),
       platform_implementor_(nullptr) {
   srand(time(NULL));
@@ -168,12 +165,6 @@ void RLVMInstance::Run(const std::filesystem::path& gamerootPath) {
           _("Please place a copy of msgothic.ttc in either your home directory "
             "or in the game path."));
     }
-
-    if (undefined_opcodes_)
-      rlmachine.SetPrintUndefinedOpcodes(true);
-
-    if (tracing_)
-      rlmachine.tracer_ = std::make_shared<Tracer>();
 
     Serialization::loadGlobalMemory(rlmachine);
 

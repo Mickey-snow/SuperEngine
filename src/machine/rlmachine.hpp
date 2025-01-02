@@ -35,7 +35,6 @@
 #include <utility>
 #include <vector>
 
-#include "log/tracer.hpp"
 #include "machine/call_stack.hpp"
 #include "machine/instruction.hpp"
 #include "machine/iscriptor.hpp"
@@ -226,10 +225,6 @@ class RLMachine {
   // execute more instructions)
   bool halted_ = false;
 
-  // Whether we should print an error to stderr when we encounter an undefined
-  // opcode.
-  bool print_undefined_opcodes_ = false;
-
   std::shared_ptr<IScriptor> scriptor_;
 
   // The most recent line marker we've come across
@@ -257,10 +252,6 @@ class RLMachine {
   typedef std::unordered_map<int, std::unique_ptr<RealLiveDLL>> DLLMap;
   // Currently loaded "DLLs".
   DLLMap loaded_dlls_;
-
- public:
-  // For logging
-  std::shared_ptr<Tracer> tracer_ = nullptr;
 
  private:
   // boost::serialization support
