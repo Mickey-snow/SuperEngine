@@ -28,7 +28,6 @@
 #include "libreallive/scenario.hpp"
 #include "libreallive/visitors.hpp"
 #include "machine/module_manager.hpp"
-#include "modules/modules.hpp"
 
 #include <format>
 #include <map>
@@ -51,11 +50,7 @@ class Dumper {
     for (auto [loc, bytecode] : script.elements_)
       in_degree.emplace(loc, 0);
     for (auto [loc, bytecode] : script.elements_) {
-      static ModuleManager manager = []() {
-        ModuleManager manager;
-        AddAllModules(manager);
-        return manager;
-      }();
+      IModuleManager& manager = ModuleManager::GetInstance();
       libreallive::DebugStringVisitor visitor(&manager);
 
       auto ptr = bytecode->DownCast();

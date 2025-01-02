@@ -40,7 +40,6 @@
 #include "memory/memory.hpp"
 #include "memory/serialization_local.hpp"
 #include "memory/stack_adapter.hpp"
-#include "modules/modules.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/system_error.hpp"
@@ -73,9 +72,10 @@ RLMachine::RLMachine(System& system,
                      std::shared_ptr<IScriptor> scriptor,
                      ScriptLocation staring_location,
                      std::unique_ptr<Memory> memory)
-    : memory_(std::move(memory)), scriptor_(scriptor), system_(system) {
-  AddAllModules(module_manager_);
-
+    : memory_(std::move(memory)),
+      module_manager_(ModuleManager::GetInstance()),
+      scriptor_(scriptor),
+      system_(system) {
   // Setup stack memory
   Memory::Stack stack_memory;
   stack_memory.K = MemoryBank<std::string>(
@@ -183,9 +183,7 @@ void RLMachine::AdvanceInstructionPointer() {
 
 CallStack& RLMachine::GetStack() { return call_stack_; }
 
-std::shared_ptr<IScriptor> RLMachine::GetScriptor() {
-  return scriptor_;
-}
+std::shared_ptr<IScriptor> RLMachine::GetScriptor() { return scriptor_; }
 
 Gameexe& RLMachine::GetGameexe() { return system_.gameexe(); }
 

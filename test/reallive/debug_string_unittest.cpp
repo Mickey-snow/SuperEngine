@@ -29,7 +29,6 @@
 #include "libreallive/elements/meta.hpp"
 #include "libreallive/visitors.hpp"
 #include "machine/module_manager.hpp"
-#include "modules/modules.hpp"
 
 #include <string>
 #include <utility>
@@ -55,9 +54,7 @@ TEST(DebugStringVisitorTest, Meta) {
 }
 
 TEST(DebugStringVisitorTest, Command) {
-  ModuleManager module_manager;
-  module_manager.DetachAll();
-  AddAllModules(module_manager);
+  IModuleManager& module_manager = ModuleManager::GetInstance();
 
   {
     FunctionElement fn(

@@ -89,16 +89,16 @@ class FooModule : public RLModule {
 
 class ModuleManagerTest : public ::testing::Test {
  protected:
-  void SetUp() override {
-    manager.DetachAll();
-    manager.AttachModule(nullptr);
+  static void SetUpTestSuite() {
     auto foo = std::make_unique<FooModule>();
     foo_ptr = foo.get();
     auto boo = std::make_unique<BooModule>();
     boo_ptr = boo.get();
-    manager.AttachModule(std::move(foo));
-    manager.AttachModule(std::move(boo));
+    ModuleManager::AttachModule(std::move(foo));
+    ModuleManager::AttachModule(std::move(boo));
+  }
 
+  void SetUp() override {
     int modtype = FooModule::modtype, modid = FooModule::module_id;
     foo1_cmd = std::make_shared<MockCommandElement>(modtype, modid, 0, 0);
     foo2_cmd = std::make_shared<MockCommandElement>(modtype, modid, 0, 1);
@@ -109,10 +109,8 @@ class ModuleManagerTest : public ::testing::Test {
     boo3_cmd = std::make_shared<MockCommandElement>(modtype, modid, 1, 1);
   }
 
-  void TearDown() override { manager.DetachAll(); }
-
-  ModuleManager manager;
-  RLModule *foo_ptr, *boo_ptr;
+  inline static IModuleManager& manager = ModuleManager::GetInstance();
+  inline static RLModule *foo_ptr, *boo_ptr;
   std::shared_ptr<MockCommandElement> foo1_cmd;
   std::shared_ptr<MockCommandElement> foo2_cmd;
   std::shared_ptr<MockCommandElement> foo3_cmd;
@@ -154,9 +152,9 @@ TEST_F(ModuleManagerTest, GetCommandNameInvalid) {
 }
 
 TEST_F(ModuleManagerTest, RejectDoubleRegister) {
-  EXPECT_THROW(manager.AttachModule(std::make_unique<FooModule>()),
+  EXPECT_THROW(ModuleManager::AttachModule(std::make_unique<FooModule>()),
                std::invalid_argument);
-  EXPECT_THROW(manager.AttachModule(std::make_unique<BooModule>()),
+  EXPECT_THROW(ModuleManager::AttachModule(std::make_unique<BooModule>()),
                std::invalid_argument);
 }
 

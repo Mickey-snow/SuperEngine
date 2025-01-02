@@ -24,9 +24,9 @@
 
 #pragma once
 
+#include <map>
 #include <memory>
 #include <string>
-#include <map>
 
 namespace libreallive {
 class CommandElement;
@@ -38,28 +38,20 @@ class IModuleManager {
  public:
   virtual ~IModuleManager() = default;
 
-  virtual void AttachModule(std::unique_ptr<RLModule>) = 0;
+  virtual RLModule* GetModule(int module_type, int module_id) const = 0;
   virtual std::string GetCommandName(
       const libreallive::CommandElement&) const = 0;
+  virtual RLOperation* Dispatch(const libreallive::CommandElement&) const = 0;
 };
 
-class ModuleManager : public IModuleManager {
+class ModuleManager {
  public:
-  ModuleManager();
-  ~ModuleManager();
+  ModuleManager() = delete;
 
-  void AttachModule(std::unique_ptr<RLModule> mod) override;
+  static void AttachModule(std::unique_ptr<RLModule> mod);
+  static void DetachAll();
 
-  void DetachAll();
-
-  RLModule* GetModule(int module_type, int module_id) const;
-
-  // Directly resolve to get a command-like `RLOperation`, skipping the middle
-  // man class `RLModule`
-  RLOperation* Dispatch(const libreallive::CommandElement&) const;
-
-  std::string GetCommandName(
-      const libreallive::CommandElement& f) const override;
+  static IModuleManager& GetInstance();
 
  private:
   struct Ctx {
