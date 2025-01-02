@@ -36,7 +36,7 @@
 
 namespace libreallive {
 
-DebugStringVisitor::DebugStringVisitor(IModuleManager* manager)
+DebugStringVisitor::DebugStringVisitor(ModuleManager const* manager)
     : manager_(manager) {}
 
 std::string DebugStringVisitor::operator()(MetaElement const* meta) {

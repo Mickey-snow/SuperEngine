@@ -50,8 +50,7 @@ class Dumper {
     for (auto [loc, bytecode] : script.elements_)
       in_degree.emplace(loc, 0);
     for (auto [loc, bytecode] : script.elements_) {
-      IModuleManager& manager = ModuleManager::GetInstance();
-      libreallive::DebugStringVisitor visitor(&manager);
+      libreallive::DebugStringVisitor visitor(&module_manager_prototype);
 
       auto ptr = bytecode->DownCast();
 

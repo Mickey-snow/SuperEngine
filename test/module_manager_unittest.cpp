@@ -89,14 +89,12 @@ class FooModule : public RLModule {
 
 class ModuleManagerTest : public ::testing::Test {
  protected:
-  static void SetUpTestSuite() {
+  void SetUp() override {
     foo_ptr = std::make_shared<FooModule>();
     boo_ptr = std::make_shared<BooModule>();
-    ModuleManager::AttachModule(foo_ptr);
-    ModuleManager::AttachModule(boo_ptr);
-  }
+    manager.AttachModule(foo_ptr);
+    manager.AttachModule(boo_ptr);
 
-  void SetUp() override {
     int modtype = FooModule::modtype, modid = FooModule::module_id;
     foo1_cmd = std::make_shared<MockCommandElement>(modtype, modid, 0, 0);
     foo2_cmd = std::make_shared<MockCommandElement>(modtype, modid, 0, 1);
@@ -107,8 +105,8 @@ class ModuleManagerTest : public ::testing::Test {
     boo3_cmd = std::make_shared<MockCommandElement>(modtype, modid, 1, 1);
   }
 
-  inline static IModuleManager& manager = ModuleManager::GetInstance();
-  inline static std::shared_ptr<RLModule> foo_ptr, boo_ptr;
+  ModuleManager manager;
+  std::shared_ptr<RLModule> foo_ptr, boo_ptr;
   std::shared_ptr<MockCommandElement> foo1_cmd;
   std::shared_ptr<MockCommandElement> foo2_cmd;
   std::shared_ptr<MockCommandElement> foo3_cmd;
@@ -150,9 +148,9 @@ TEST_F(ModuleManagerTest, GetCommandNameInvalid) {
 }
 
 TEST_F(ModuleManagerTest, RejectDoubleRegister) {
-  EXPECT_THROW(ModuleManager::AttachModule(std::make_shared<FooModule>()),
+  EXPECT_THROW(manager.AttachModule(std::make_shared<FooModule>()),
                std::runtime_error);
-  EXPECT_THROW(ModuleManager::AttachModule(std::make_shared<BooModule>()),
+  EXPECT_THROW(manager.AttachModule(std::make_shared<BooModule>()),
                std::runtime_error);
 }
 

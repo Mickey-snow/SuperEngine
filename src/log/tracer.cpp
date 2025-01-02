@@ -71,9 +71,8 @@ void Tracer::Log(int scene, int line, const libreallive::CommandElement& f) {
   BOOST_LOG_SCOPED_THREAD_TAG("Scene", (boost::format("%04d") % scene).str());
   BOOST_LOG_SCOPED_THREAD_TAG("Line", (boost::format("%04d") % line).str());
 
-  IModuleManager& manager = ModuleManager::GetInstance();
   BOOST_LOG(ctx_->logger_) << std::visit(
-      libreallive::DebugStringVisitor(&manager), f.DownCast());
+      libreallive::DebugStringVisitor(&module_manager_prototype), f.DownCast());
 }
 
 void Tracer::Log(int scene, int line, const libreallive::ExpressionElement& f) {

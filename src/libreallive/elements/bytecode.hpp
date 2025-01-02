@@ -39,7 +39,6 @@
 #include "libreallive/bytecode_table.hpp"
 
 class RLMachine;
-class IModuleManager;
 
 namespace libreallive {
 class Script;

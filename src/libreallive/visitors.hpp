@@ -26,7 +26,7 @@
 
 #include <string>
 
-class IModuleManager;
+class ModuleManager;
 
 namespace libreallive {
 class MetaElement;
@@ -36,7 +36,7 @@ class CommaElement;
 class TextoutElement;
 
 struct DebugStringVisitor {
-  DebugStringVisitor(IModuleManager* manager = nullptr);
+  DebugStringVisitor(ModuleManager const* manager = nullptr);
 
   std::string operator()(MetaElement const*);
   std::string operator()(CommandElement const*);
@@ -45,7 +45,7 @@ struct DebugStringVisitor {
   std::string operator()(TextoutElement const*);
 
  private:
-  IModuleManager* manager_;
+  ModuleManager const* manager_;
 };
 
 }  // namespace libreallive
