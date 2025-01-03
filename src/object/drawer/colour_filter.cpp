@@ -58,8 +58,6 @@ void ColourFilterObjectData::Render(const GraphicsObject& go,
     }
   }
 
-  [[maybe_unused]] RGBAColour colour = param.colour();
-
   auto screen_canvas = SDLSurface::screen_;
   auto background = screen_canvas->GetTexture();
 

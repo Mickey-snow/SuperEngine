@@ -367,7 +367,8 @@ void RLMachine::operator()(rlCommand cmd) {
 
 void RLMachine::operator()(rlExpression e) {
   static DomainLogger tracer("TRACE");
-  tracer() << e.ToString();
+  tracer() << std::format("({:0>4d}:{:d}) ", SceneNumber(), line_)
+           << e.ToString();
   e.Execute(*this);
   AdvanceInstructionPointer();
 }

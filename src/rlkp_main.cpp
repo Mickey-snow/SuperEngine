@@ -24,6 +24,7 @@
 #include "base/gameexe.hpp"
 #include "encodings/cp932.hpp"
 #include "libreallive/archive.hpp"
+#include "log/domain_logger.hpp"
 #include "machine/dumper.hpp"
 #include "utilities/file.hpp"
 #include "utilities/string_utilities.hpp"
@@ -43,6 +44,8 @@ namespace fs = std::filesystem;
 namespace po = boost::program_options;
 
 int main(int argc, char* argv[]) {
+  SetupLogging(Severity::Info);
+
   std::string output;
   std::string input;
   int jobs = 0;
@@ -124,10 +127,15 @@ int main(int argc, char* argv[]) {
           que.pop();
         }
 
-        if (sc) {
-          std::ofstream ofs(output_path / std::format("{}.{:04}.txt", regname,
-                                                      sc->scene_number()));
-          ofs << Dumper(sc).Doit() << std::endl;
+        try {
+          if (sc) {
+            std::ofstream ofs(output_path / std::format("{}.{:04}.txt", regname,
+                                                        sc->scene_number()));
+            ofs << Dumper(sc).Doit() << std::endl;
+          }
+        } catch (std::exception& e) {
+          static DomainLogger logger;
+          logger(Severity::Error) << e.what();
         }
       }
     }));

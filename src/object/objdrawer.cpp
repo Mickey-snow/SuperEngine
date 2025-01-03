@@ -115,7 +115,7 @@ void GraphicsObjectData::Render(const GraphicsObject& go,
       continue;
 
     RenderingConfig config;
-    config.alpha = static_cast<float>(alpha) / 255.0f;
+    config.alpha = alpha;
 
     auto model =
         glm::translate(glm::mat4(1.0f), glm::vec3(dst.x(), dst.y(), 0));

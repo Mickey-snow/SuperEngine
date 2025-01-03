@@ -266,16 +266,13 @@ void glRenderer::Render(glRenderable src,
       throw std::runtime_error("glRenderer: Invalid blend type.");
   }
 
-  auto mono = cfg.mono.value_or(0.0f);
+  auto mono = cfg.mono.value_or(0.0f) / 255.0f;
   shader->SetUniform("mono", mono);
 
-  auto invert = cfg.invert.value_or(0.0f);
+  auto invert = cfg.invert.value_or(0.0f) / 255.0f;
   shader->SetUniform("invert", invert);
 
-  auto alpha = cfg.alpha.value_or(1.0f);
-  if (alpha < 0.0f || alpha > 1.0f)
-    throw std::runtime_error("glRenderer: Invalid value for alpha (" +
-                             std::to_string(alpha) + ')');
+  auto alpha = cfg.alpha.value_or(255.0f) / 255.0f;
   shader->SetUniform("alpha", alpha);
 
   auto tint = cfg.tint.value_or(RGBColour(0, 0, 0));
