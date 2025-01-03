@@ -35,7 +35,7 @@ class Logger;
 
 class DomainLogger {
  public:
-  DomainLogger(std::string domain_name);
+  DomainLogger(std::string domain_name = "");
   ~DomainLogger();
 
   class LoggingContent {

@@ -25,10 +25,7 @@
 
 #include "machine/rlmachine.hpp"
 
-#include "base/gameexe.hpp"
-#include "libreallive/archive.hpp"
-#include "libreallive/intmemref.hpp"
-#include "libreallive/scenario.hpp"
+#include "log/domain_logger.hpp"
 #include "long_operations/pause_long_operation.hpp"
 #include "long_operations/textout_long_operation.hpp"
 #include "machine/long_operation.hpp"
@@ -50,9 +47,10 @@
 
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
+
 #include <filesystem>
+#include <format>
 #include <functional>
-#include <iostream>
 #include <iterator>
 #include <sstream>
 #include <string>
@@ -60,9 +58,7 @@
 
 namespace fs = std::filesystem;
 
-using std::cerr;
-using std::cout;
-using std::endl;
+static DomainLogger logger("RLMachine");
 
 // -----------------------------------------------------------------------
 // RLMachine
@@ -114,7 +110,7 @@ void RLMachine::ExecuteNextInstruction() {
 
   const auto top_frame = call_stack_.Top();
   if (top_frame == nullptr) {
-    std::cerr << "RLMachine: Stack underflow" << std::endl;
+    logger(Severity::Error) << "Stack underflow";
     Halt();
     return;
   }
@@ -138,32 +134,38 @@ void RLMachine::ExecuteNextInstruction() {
   } catch (rlvm::UnimplementedOpcode& e) {
     AdvanceInstructionPointer();
 
-    // Print undefined opcodes
-    cout << "(SEEN" << top_frame->pos.scenario_number << ")(Line " << line_
-         << "):  " << e.what() << endl;
+    static DomainLogger logger("Unimplemented");
+
+    logger(Severity::Info) << std::format("({:0>4d}:{:d}) ",
+                                          top_frame->pos.scenario_number, line_)
+                           << e.what();
 
   } catch (rlvm::Exception& e) {
     // Advance the instruction pointer so as to prevent infinite
     // loops where we throw an exception, and then try again.
     AdvanceInstructionPointer();
 
-    cout << "(SEEN" << top_frame->pos.scenario_number << ")(Line " << line_
-         << ")";
+    static DomainLogger logger;
+    auto rec = logger(Severity::Error);
+    rec << std::format("({:0>4d}:{:d}) ", top_frame->pos.scenario_number,
+                       line_);
 
     // We specialcase rlvm::Exception because we might have the name of the
     // opcode.
     if (e.operation()) {
-      cout << "[" << e.operation()->Name() << "]";
+      rec << "[" << e.operation()->Name() << "]";
     }
 
-    cout << ":  " << e.what() << endl;
+    rec << ":  " << e.what();
   } catch (std::exception& e) {
     // Advance the instruction pointer so as to prevent infinite
     // loops where we throw an exception, and then try again.
     AdvanceInstructionPointer();
 
-    cout << "(SEEN" << top_frame->pos.scenario_number << ")(Line " << line_
-         << "):  " << e.what() << endl;
+    auto rec = logger(Severity::Error);
+    rec << std::format("({:0>4d}:{:d}) ", top_frame->pos.scenario_number,
+                       line_);
+    rec << e.what();
   }
 }
 
