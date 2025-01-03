@@ -24,12 +24,11 @@
 
 #pragma once
 
+#include "log/core.hpp"
+
 #include <map>
 #include <sstream>
 #include <string>
-
-enum class Severity { None = 0, Info, Warn, Error };
-std::string ToString(Severity severity);
 
 class DomainLogger {
  public:

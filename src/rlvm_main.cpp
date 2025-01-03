@@ -36,6 +36,7 @@
 #include <iostream>
 #include <string>
 
+#include "log/core.hpp"
 #include "platforms/implementor.hpp"
 #include "platforms/platform_factory.hpp"
 #include "rlvm_instance.hpp"
@@ -84,6 +85,8 @@ void printUsage(const std::string& name, po::options_description& opts) {
 }
 
 int main(int argc, char* argv[]) {
+  SetupLogging();
+
   // -----------------------------------------------------------------------
   // Set up argument parser
 

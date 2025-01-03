@@ -22,28 +22,26 @@
 //
 // -----------------------------------------------------------------------
 
-#include "log/domain_logger.hpp"
+#pragma once
 
-#include <format>
-#include <iostream>
+#include "log/core.hpp"
 
-DomainLogger::DomainLogger(std::string domain_name) : domain_(domain_name) {}
+#include <memory>
+#include <optional>
+#include <string>
 
-DomainLogger::~DomainLogger() = default;
+class Logger {
+ public:
+  Logger();
+  ~Logger();
 
-DomainLogger::LoggingContent DomainLogger::operator()(Severity severity) {
-  std::map<std::string, std::string> attr;
-  // attr["severity"] = ToString(severity);
-  attr["domain"] = domain_;
-  return LoggingContent(std::move(attr));
-}
+  void ClearAttributes() const;
+  void AddSeverity(Severity severity) const;
+  void AddScope(std::string scope) const;
 
-DomainLogger::LoggingContent::LoggingContent(
-    std::map<std::string, std::string> attr)
-    : attr_(std::move(attr)) {}
+  void Log(const std::string& msg) const;
 
-DomainLogger::LoggingContent::~LoggingContent() {
-  std::clog << std::format("[{}] {}: {}", attr_["severity"], attr_["domain"],
-                           msg_.str())
-            << std::endl;
-}
+ private:
+  struct Ctx;
+  std::unique_ptr<Ctx> ctx_;
+};

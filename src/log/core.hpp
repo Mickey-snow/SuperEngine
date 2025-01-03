@@ -22,28 +22,10 @@
 //
 // -----------------------------------------------------------------------
 
-#include "log/domain_logger.hpp"
+#pragma once
 
-#include <format>
-#include <iostream>
+enum class Severity { None = 0, Info, Warn, Error };
 
-DomainLogger::DomainLogger(std::string domain_name) : domain_(domain_name) {}
+extern bool logging_enabled;
 
-DomainLogger::~DomainLogger() = default;
-
-DomainLogger::LoggingContent DomainLogger::operator()(Severity severity) {
-  std::map<std::string, std::string> attr;
-  // attr["severity"] = ToString(severity);
-  attr["domain"] = domain_;
-  return LoggingContent(std::move(attr));
-}
-
-DomainLogger::LoggingContent::LoggingContent(
-    std::map<std::string, std::string> attr)
-    : attr_(std::move(attr)) {}
-
-DomainLogger::LoggingContent::~LoggingContent() {
-  std::clog << std::format("[{}] {}: {}", attr_["severity"], attr_["domain"],
-                           msg_.str())
-            << std::endl;
-}
+void SetupLogging();
