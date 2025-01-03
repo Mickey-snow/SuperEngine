@@ -62,7 +62,7 @@ std::ostream& operator<<(std::ostream& os, Severity severity) {
 
 bool logging_enabled = false;
 
-void SetupLogging() {
+void SetupLogging(Severity minSeverity) {
   if (logging_enabled)
     return;
   logging_enabled = true;
@@ -100,7 +100,8 @@ void SetupLogging() {
     strm << (should_insert_spc ? " " : "") << rec[expr::smessage];
   });
 
-  logging::core::get()->add_sink(sink);
+  sink->set_filter(expr::attr<Severity>("Severity") >= minSeverity);
 
+  logging::core::get()->add_sink(sink);
   logging::add_common_attributes();
 }

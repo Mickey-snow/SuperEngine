@@ -135,11 +135,9 @@ void RLMachine::ExecuteNextInstruction() {
     AdvanceInstructionPointer();
 
     static DomainLogger logger("Unimplemented");
-
-    logger() << std::format("({:0>4d}:{:d}) ", top_frame->pos.scenario_number,
-                            line_)
-             << e.FormatCommand() << e.FormatParameters();
-
+    logger(Severity::None) << std::format("({:0>4d}:{:d}) ",
+                                          top_frame->pos.scenario_number, line_)
+                           << e.FormatCommand() << e.FormatParameters();
   } catch (rlvm::Exception& e) {
     // Advance the instruction pointer so as to prevent infinite
     // loops where we throw an exception, and then try again.

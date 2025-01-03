@@ -85,8 +85,6 @@ void printUsage(const std::string& name, po::options_description& opts) {
 }
 
 int main(int argc, char* argv[]) {
-  SetupLogging();
-
   // -----------------------------------------------------------------------
   // Set up argument parser
 
@@ -98,7 +96,9 @@ int main(int argc, char* argv[]) {
       "font", po::value<std::string>(), "Specifies TrueType font to use.")(
       "platform", po::value<std::string>(),
       "Specifies which gui platform to use.")(
-      "show-platforms", "Print all avaliable gui platforms.");
+      "show-platforms", "Print all avaliable gui platforms.")(
+      "log-level", po::value<std::string>(),
+      "Minimum severity level to log (none, info, warning, error)");
 
   po::options_description debugOpts("Debugging Options");
   debugOpts.add_options()("start-seen", po::value<int>(),
@@ -147,6 +147,23 @@ int main(int argc, char* argv[]) {
   // -----------------------------------------------------------------------
   // Process command line options
   fs::path gamerootPath;
+
+  Severity log_level = Severity::Error;
+  if (vm.count("log-level")) {
+    std::string level = vm["log-level"].as<std::string>();
+    for (auto& c : level)
+      c = static_cast<char>(std::tolower(c));
+
+    if (level == "none" || level.empty())
+      log_level = Severity::None;
+    else if (level == "info")
+      log_level = Severity::Info;
+    else if (level == "warning")
+      log_level = Severity::Warn;
+    else if (level == "error")
+      log_level = Severity::Error;
+  }
+  SetupLogging(log_level);
 
   if (vm.count("help")) {
     printUsage(argv[0], opts);

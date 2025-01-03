@@ -28,4 +28,4 @@ enum class Severity { None = 0, Info, Warn, Error };
 
 extern bool logging_enabled;
 
-void SetupLogging();
+void SetupLogging(Severity minSeverity);
