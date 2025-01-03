@@ -24,6 +24,8 @@
 
 #include "log/domain_logger.hpp"
 
+#include "log/logger.hpp"
+
 #include <format>
 #include <iostream>
 
@@ -32,18 +34,20 @@ DomainLogger::DomainLogger(std::string domain_name) : domain_(domain_name) {}
 DomainLogger::~DomainLogger() = default;
 
 DomainLogger::LoggingContent DomainLogger::operator()(Severity severity) {
-  std::map<std::string, std::string> attr;
-  // attr["severity"] = ToString(severity);
-  attr["domain"] = domain_;
-  return LoggingContent(std::move(attr));
+  if (!logging_enabled)
+    return LoggingContent(nullptr);
+
+  auto logger = std::make_unique<Logger>();
+  if (!domain_.empty())
+    logger->AddScope(domain_);
+  logger->AddSeverity(severity);
+  return LoggingContent(std::move(logger));
 }
 
-DomainLogger::LoggingContent::LoggingContent(
-    std::map<std::string, std::string> attr)
-    : attr_(std::move(attr)) {}
+DomainLogger::LoggingContent::LoggingContent(std::unique_ptr<Logger> logger)
+    : logger_(std::move(logger)) {}
 
 DomainLogger::LoggingContent::~LoggingContent() {
-  std::clog << std::format("[{}] {}: {}", attr_["severity"], attr_["domain"],
-                           msg_.str())
-            << std::endl;
+  if (logger_)
+    logger_->Log(msg_.str());
 }

@@ -92,7 +92,7 @@ void SetupLogging() {
       should_insert_spc = true;
     }
 
-    if (!scope.empty()) {
+    if (scope != "") {
       strm << '[' << scope << ']';
       should_insert_spc = true;
     }

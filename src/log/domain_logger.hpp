@@ -27,8 +27,11 @@
 #include "log/core.hpp"
 
 #include <map>
+#include <memory>
 #include <sstream>
 #include <string>
+
+class Logger;
 
 class DomainLogger {
  public:
@@ -37,20 +40,21 @@ class DomainLogger {
 
   class LoggingContent {
    public:
-    LoggingContent(std::map<std::string, std::string> attr);
+    LoggingContent(std::unique_ptr<Logger> logger);
     ~LoggingContent();
 
     template <typename T>
     LoggingContent& operator<<(T&& x) {
-      msg_ << std::forward<T>(x);
+      if (logger_)
+        msg_ << std::forward<T>(x);
       return *this;
     }
 
    private:
-    std::map<std::string, std::string> attr_;
+    std::unique_ptr<Logger> logger_;
     std::stringstream msg_;
   };
-  LoggingContent operator()(Severity severity);
+  LoggingContent operator()(Severity severity = Severity::None);
 
  private:
   std::string domain_;
