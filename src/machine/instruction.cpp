@@ -24,11 +24,37 @@
 
 #include "machine/instruction.hpp"
 
+#include "libreallive/elements/command.hpp"
 #include "libreallive/elements/expression.hpp"
 #include "libreallive/expression.hpp"
 
+#include <format>
+
+std::string rlCommand::ToString() const {
+  std::string result =
+      std::format("<{},{},{}:{}>", cmd->modtype(), cmd->module(), cmd->opcode(),
+                  cmd->overload());
+
+  result += "(";
+  bool is_first = true;
+  for (const auto& it : cmd->GetParsedParameters()) {
+    if (!is_first)
+      result += ',';
+    is_first = false;
+    result += it->GetDebugString();
+  }
+  result += ')';
+
+  return result;
+}
+
 rlExpression::rlExpression(libreallive::ExpressionElement const* e)
     : expr_(e) {}
+
 int rlExpression::Execute(RLMachine& machine) {
   return expr_->ParsedExpression()->GetIntegerValue(machine);
+}
+
+std::string rlExpression::ToString() const {
+  return expr_->GetSourceRepresentation();
 }

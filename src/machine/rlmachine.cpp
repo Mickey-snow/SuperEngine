@@ -350,6 +350,14 @@ void RLMachine::operator()(rlCommand cmd) {
   }
 
   try {
+    {  // write trace log
+      static DomainLogger tracer("TRACE");
+      auto rec = tracer(Severity::None);
+      rec << std::format("({:0>4d}:{:d}) ", SceneNumber(), line_);
+      rec << module_manager_.GetCommandName(*f);
+      rec << cmd.ToString();
+    }
+
     op->DispatchFunction(*this, *f);
   } catch (rlvm::Exception& e) {
     e.setOperation(op);
@@ -358,11 +366,15 @@ void RLMachine::operator()(rlCommand cmd) {
 }
 
 void RLMachine::operator()(rlExpression e) {
+  static DomainLogger tracer("TRACE");
+  tracer() << e.ToString();
   e.Execute(*this);
   AdvanceInstructionPointer();
 }
 
 void RLMachine::operator()(Textout t) {
+  static DomainLogger tracer("TEXT");
+  tracer() << t.text;
   PerformTextout(std::move(t.text));
   AdvanceInstructionPointer();
 }

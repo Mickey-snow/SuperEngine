@@ -68,6 +68,8 @@ struct Line {
 
 struct rlCommand {
   libreallive::CommandElement const* cmd;
+
+  std::string ToString() const;
 };
 
 class rlExpression {
@@ -76,6 +78,8 @@ class rlExpression {
   int Execute(RLMachine& machine);
 
   libreallive::ExpressionElement const* expr_;
+
+  std::string ToString() const;
 };
 
 struct Textout {

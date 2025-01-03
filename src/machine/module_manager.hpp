@@ -34,17 +34,7 @@ class CommandElement;
 class RLModule;
 class RLOperation;
 
-class IModuleManager {
- public:
-  virtual ~IModuleManager() = default;
 
-  virtual std::shared_ptr<RLModule> GetModule(int module_type,
-                                              int module_id) const = 0;
-  virtual std::string GetCommandName(
-      const libreallive::CommandElement&) const = 0;
-  virtual std::shared_ptr<RLOperation> Dispatch(
-      const libreallive::CommandElement&) const = 0;
-};
 
 class ModuleManager {
  public:
