@@ -26,14 +26,13 @@
 
 #include "utilities/exception.hpp"
 
-#include <fstream>
-#include <sstream>
-#include <string>
-
 #include "libreallive/expression.hpp"
 #include "libreallive/parser.hpp"
 
-using std::ostringstream;
+#include <format>
+#include <fstream>
+#include <sstream>
+#include <string>
 
 namespace rlvm {
 
@@ -67,66 +66,45 @@ UnimplementedOpcode::UnimplementedOpcode(const std::string& funName,
                                          int module,
                                          int opcode,
                                          int overload)
-    : Exception("") {
-  std::ostringstream oss;
-  oss << funName << " (opcode<" << modtype << ":" << module << ":" << opcode
-      << ", " << overload << ">)";
-  name_ = oss.str();
-  SetSimpleDescription();
-}
+    : name(funName),
+      module_type(modtype),
+      module_id(module),
+      opcode(opcode),
+      overload(overload) {}
 
 UnimplementedOpcode::UnimplementedOpcode(
-    RLMachine& machine,
-    const std::string& funName,
+    const std::string& name,
     const libreallive::CommandElement& command)
-    : Exception(""), parameters_(command.GetParsedParameters()) {
-  std::ostringstream oss;
-  oss << funName << " [opcode<" << command.modtype() << ":" << command.module()
-      << ":" << command.opcode() << ", " << command.overload() << ">]";
-  name_ = oss.str();
-  SetFullDescription(machine);
-}
-
-UnimplementedOpcode::UnimplementedOpcode(
-    RLMachine& machine,
-    const libreallive::CommandElement& command)
-    : Exception(""), parameters_(command.GetParsedParameters()) {
-  ostringstream oss;
-  oss << "opcode<" << command.modtype() << ":" << command.module() << ":"
-      << command.opcode() << ", " << command.overload() << ">";
-  name_ = oss.str();
-  SetFullDescription(machine);
+    : UnimplementedOpcode(name,
+                          command.modtype(),
+                          command.module(),
+                          command.opcode(),
+                          command.overload()) {
+  parameters = command.GetParsedParameters();
 }
 
 UnimplementedOpcode::~UnimplementedOpcode() throw() {}
 
-void UnimplementedOpcode::SetFullDescription(RLMachine& machine) {
-  ostringstream oss;
-  oss << "Undefined: " << name_;
-
-#ifndef NDEBUG
-  const bool has_parameters_ = !parameters_.empty();
-  if (has_parameters_) {
-    bool first = true;
-    oss << "(";
-    for (const auto& it : parameters_) {
-      if (!first) {
-        oss << ", ";
-      }
-      first = false;
-      oss << it->GetDebugString();
-    }
-    oss << ")";
-  }
-#endif
-
-  description_ = oss.str();
+std::string UnimplementedOpcode::FormatCommand() const {
+  std::string cmd_name = name.empty() ? "???" : name;
+  std::string cmd_code =
+      std::format("<{},{},{}:{}>", module_type, module_id, opcode, overload);
+  return cmd_name + cmd_code;
 }
 
-void UnimplementedOpcode::SetSimpleDescription() {
-  ostringstream oss;
-  oss << "Undefined: " << name_;
-  description_ = oss.str();
+std::string UnimplementedOpcode::FormatParameters() const {
+  std::string result = "(";
+  bool is_first = true;
+
+  for (const auto& it : parameters) {
+    if (!is_first)
+      result += ',';
+    is_first = false;
+    result += it->GetDebugString();
+  }
+
+  result += ')';
+  return result;
 }
 
 }  // namespace rlvm

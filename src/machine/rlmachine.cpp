@@ -136,9 +136,9 @@ void RLMachine::ExecuteNextInstruction() {
 
     static DomainLogger logger("Unimplemented");
 
-    logger(Severity::Info) << std::format("({:0>4d}:{:d}) ",
-                                          top_frame->pos.scenario_number, line_)
-                           << e.what();
+    logger() << std::format("({:0>4d}:{:d}) ", top_frame->pos.scenario_number,
+                            line_)
+             << e.FormatCommand() << e.FormatParameters();
 
   } catch (rlvm::Exception& e) {
     // Advance the instruction pointer so as to prevent infinite
@@ -242,7 +242,7 @@ void RLMachine::LoadDLL(int slot, const std::string& name) {
   } else {
     std::ostringstream oss;
     oss << "Can't load emulated DLL named '" << name << "'";
-    throw rlvm::Exception(oss.str());
+    throw std::runtime_error(oss.str());
   }
 }
 
@@ -262,7 +262,7 @@ int RLMachine::CallDLL(int slot,
     oss << "Attempt to callDLL(" << one << ", " << two << ", " << three << ", "
         << four << ", " << five << ") on slot " << slot
         << " when no DLL is loaded there!";
-    throw rlvm::Exception(oss.str());
+    throw std::runtime_error(oss.str());
   }
 }
 
@@ -348,7 +348,7 @@ void RLMachine::operator()(rlCommand cmd) {
 
   auto op = module_manager_.Dispatch(*f);
   if (op == nullptr) {  // unimplemented opcode
-    throw rlvm::UnimplementedOpcode(*this, *f);
+    throw rlvm::UnimplementedOpcode("", *f);
   }
 
   try {

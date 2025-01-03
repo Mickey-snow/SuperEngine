@@ -177,11 +177,6 @@ class RLMachine {
 
   // ---------------------------------------------------------------------
 
-  // Whether we report to stderr when we hit an undefined opcode.
-  void SetPrintUndefinedOpcodes(bool in);
-
-  // ---------------------------------------------------------------------
-
   // Force the machine to halt. This should terminate the execution of
   // bytecode, and theoretically, the program.
   void Halt();

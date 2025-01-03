@@ -157,7 +157,7 @@ void UndefinedFunction::Dispatch(
 
 void UndefinedFunction::DispatchFunction(RLMachine& machine,
                                          const libreallive::CommandElement& f) {
-  throw rlvm::UnimplementedOpcode(machine, Name(), f);
+  throw rlvm::UnimplementedOpcode(Name(), f);
 }
 
 void UndefinedFunction::ParseParameters(
@@ -169,7 +169,7 @@ void UndefinedFunction::ParseParameters(
 
 void UndefinedFunction::operator()(RLMachine& machine,
                                    const libreallive::CommandElement& f) {
-  throw rlvm::UnimplementedOpcode(machine, Name(), f);
+  throw rlvm::UnimplementedOpcode(Name(), f);
 }
 
 // Template instantiations.

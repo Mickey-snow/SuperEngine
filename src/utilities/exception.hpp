@@ -80,37 +80,28 @@ class UserPresentableError : public Exception {
   std::string informative_text_;
 };
 
-class UnimplementedOpcode : public Exception {
+class UnimplementedOpcode : public std::exception {
  public:
   UnimplementedOpcode(const std::string& funName,
                       int modtype,
                       int module,
                       int opcode,
                       int overload);
-  UnimplementedOpcode(RLMachine& machine,
-                      const std::string& funName,
-                      const libreallive::CommandElement& command);
-  UnimplementedOpcode(RLMachine& machine,
+  UnimplementedOpcode(const std::string& name,
                       const libreallive::CommandElement& command);
   virtual ~UnimplementedOpcode() throw();
 
-  // Returns the name of the function that wasn't implemented.
-  const std::string& opcode_name() const { return name_; }
+  std::string FormatCommand() const;
+  std::string FormatParameters() const;
 
  private:
-  // Parses parameters and makes the string.
-  void SetFullDescription(RLMachine& machine);
+  std::string name;
+  int module_type;
+  int module_id;
+  int opcode;
+  int overload;
 
-  // For when we don't have parameters.
-  void SetSimpleDescription();
-
-  // Printable name of the opcode. Either "funname (opcode<W:X:Y:Z>)"
-  // or "opcode<W:X:Y:Z>".
-  std::string name_;
-
-  ExpressionPiecesVector parameters_;
-
-  void SetDescription();
+  ExpressionPiecesVector parameters;
 };
 
 }  // namespace rlvm
