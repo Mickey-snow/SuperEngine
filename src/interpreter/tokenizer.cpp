@@ -76,7 +76,7 @@ void Tokenizer::Parse() {
             break;
 
           case ID_symbol: {
-            const std::unordered_map<char, Token> symbol_table{
+            static const std::unordered_map<char, Token> symbol_table{
                 {'$', tok::Dollar()},       {'+', tok::Plus()},
                 {'-', tok::Minus()},        {'*', tok::Mult()},
                 {'/', tok::Div()},          {'=', tok::Eq()},

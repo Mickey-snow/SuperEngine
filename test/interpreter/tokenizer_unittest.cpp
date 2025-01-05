@@ -87,3 +87,27 @@ TEST_F(TokenizerTest, ParseBrackets) {
       TokenArray(tok::SquareL(), tok::SquareR(), tok::CurlyL(), tok::CurlyR(),
                  tok::ParenthesisL(), tok::ParenthesisR()));
 }
+
+TEST(TokenizerHelperTest, MatchTok) {
+  Token tok = tok::Dollar();
+  EXPECT_TRUE(match_token<tok::Dollar>()(tok));
+  EXPECT_FALSE(match_token<tok::ID>()(tok));
+}
+
+TEST(TokenizerHelperTest, MatchInt) {
+  Token tok = tok::Int(12);
+  int value = 0;
+  EXPECT_FALSE(match_int()(tok::Dollar(), value));
+  EXPECT_EQ(value, 0);
+  EXPECT_TRUE(match_int()(tok, value));
+  EXPECT_EQ(value, 12);
+}
+
+TEST(TokenizerHelperTest, MatchID) {
+  Token tok = tok::ID("intL");
+  std::string value;
+  EXPECT_FALSE(match_id()(tok::Dollar(), value));
+  EXPECT_TRUE(value.empty());
+  EXPECT_TRUE(match_id()(tok, value));
+  EXPECT_EQ(value, "intL");
+}

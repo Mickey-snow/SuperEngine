@@ -122,3 +122,31 @@ class Tokenizer {
  private:
   std::string_view input_;
 };
+
+template <typename T>
+struct match_token {
+  using result_type = bool;
+  bool operator()(const Token& t) const { return std::holds_alternative<T>(t); }
+};
+
+struct match_int {
+  using result_type = bool;
+  bool operator()(const Token& t, int& value) const {
+    if (auto p = std::get_if<tok::Int>(&t)) {
+      value = p->value;
+      return true;
+    }
+    return false;
+  }
+};
+
+struct match_id {
+  using result_type = bool;
+  bool operator()(const Token& t, std::string& value) const {
+    if (auto p = std::get_if<tok::ID>(&t)) {
+      value = p->id;
+      return true;
+    }
+    return false;
+  }
+};
