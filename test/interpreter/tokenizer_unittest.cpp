@@ -26,6 +26,8 @@
 
 #include "interpreter/tokenizer.hpp"
 
+#include "util.hpp"
+
 #include <string>
 #include <string_view>
 #include <variant>
@@ -33,25 +35,14 @@
 using std::string_view_literals::operator""sv;
 using std::string_literals::operator""s;
 
-class TokenizerTest : public ::testing::Test {
- public:
-  template <typename... Ts>
-  std::vector<Token> TokenArray(Ts&&... args) {
-    std::vector<Token> result;
-    result.reserve(sizeof...(args));
-    (result.emplace_back(std::forward<Ts>(args)), ...);
-    return result;
-  }
-};
-
-TEST_F(TokenizerTest, ParseID) {
+TEST(TokenizerTest, ParseID) {
   constexpr std::string_view input = "ObjFgInit";
 
   Tokenizer tokenizer(input);
   EXPECT_EQ(tokenizer.parsed_tok_, TokenArray(tok::ID(std::string(input))));
 }
 
-TEST_F(TokenizerTest, ParseMultiID) {
+TEST(TokenizerTest, ParseMultiID) {
   constexpr std::string_view input = "print ObjFgInit";
 
   Tokenizer tokenizer(input);
@@ -59,7 +50,7 @@ TEST_F(TokenizerTest, ParseMultiID) {
             TokenArray(tok::ID("print"s), tok::WS(), tok::ID("ObjFgInit"s)));
 }
 
-TEST_F(TokenizerTest, ParseNumbers) {
+TEST(TokenizerTest, ParseNumbers) {
   constexpr std::string_view input = "123 00321 -21";
 
   Tokenizer tokenizer(input);
@@ -68,7 +59,7 @@ TEST_F(TokenizerTest, ParseNumbers) {
                        tok::Minus(), tok::Int(21)));
 }
 
-TEST_F(TokenizerTest, ParseSymbols) {
+TEST(TokenizerTest, ParseSymbols) {
   constexpr std::string_view input = "$a_=0+1-2/3*5";
 
   Tokenizer tokenizer(input);
@@ -78,7 +69,7 @@ TEST_F(TokenizerTest, ParseSymbols) {
                        tok::Div(), tok::Int(3), tok::Mult(), tok::Int(5)));
 }
 
-TEST_F(TokenizerTest, ParseBrackets) {
+TEST(TokenizerTest, ParseBrackets) {
   constexpr std::string_view input = "[]{}()";
 
   Tokenizer tokenizer(input);

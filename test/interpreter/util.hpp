@@ -17,7 +17,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// Along with this program; if not, write to the Free Software
+// along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 //
 // -----------------------------------------------------------------------
@@ -26,19 +26,12 @@
 
 #include "interpreter/token.hpp"
 
-#include <string>
-#include <string_view>
-#include <variant>
 #include <vector>
 
-class Tokenizer {
- public:
-  Tokenizer(std::string_view input, bool should_parse = true);
-
-  void Parse();
-
-  std::vector<Token> parsed_tok_;
-
- private:
-  std::string_view input_;
-};
+template <typename... Ts>
+std::vector<Token> TokenArray(Ts&&... args) {
+  std::vector<Token> result;
+  result.reserve(sizeof...(args));
+  (result.emplace_back(std::forward<Ts>(args)), ...);
+  return result;
+}
