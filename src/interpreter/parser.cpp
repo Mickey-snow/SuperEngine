@@ -25,119 +25,133 @@
 #include "interpreter/parser.hpp"
 #include "base/expr_ast.hpp"
 
-#include <boost/phoenix/core.hpp>
-#include <boost/phoenix/object.hpp>
-#include <boost/phoenix/operator.hpp>
+#include <boost/fusion/include/deque.hpp>
 #include <boost/spirit/home/x3.hpp>
-#include <boost/spirit/include/lex_lexertl.hpp>
-#include <boost/spirit/include/qi.hpp>
 
-namespace qi = boost::spirit::qi;
-namespace phx = boost::phoenix;
 namespace x3 = boost::spirit::x3;
 
 // -----------------------------------------------------------------------
 // primitive token parsers
 namespace {
-struct int_token_parser : qi::primitive_parser<int_token_parser> {
-  template <typename Context, typename Iterator>
-  struct attribute {
-    using type = int;
-  };
+// Parser that matches an integer token (tok::Int) and returns its value.
+struct int_token_parser : x3::parser<int_token_parser> {
+  using attribute_type = int;  // The parser synthesizes an int.
 
   template <typename Iterator,
             typename Context,
-            typename Skipper,
+            typename RContext,
             typename Attribute>
   bool parse(Iterator& first,
              Iterator const& last,
-             Context&,
-             Skipper const&,
+             Context const& /*context*/,
+             RContext& /*rcontext*/,
              Attribute& attr) const {
     if (first == last)
       return false;
 
+    // Check if the current token is tok::Int
     if (auto p = std::get_if<tok::Int>(&*first)) {
-      attr = p->value;
+      // Move integer value into the attribute
+      x3::traits::move_to(p->value, attr);
       ++first;
       return true;
     }
     return false;
   }
-
-  template <typename Context>
-  boost::spirit::info what(Context&) const {
-    return boost::spirit::info{"int_token_parser"};
-  }
 };
 
-template <typename tok_t>
-struct token_parser : qi::primitive_parser<token_parser<tok_t>> {
-  template <typename Context, typename Iterator>
-  struct attribute {
-    using type = boost::spirit::unused_type;
-  };
+// Parser that matches a specific token type and ignores it.
+template <typename Tok>
+struct token_parser : x3::parser<token_parser<Tok>> {
+  using attribute_type = x3::unused_type;
 
   template <typename Iterator,
             typename Context,
-            typename Skipper,
+            typename RContext,
             typename Attribute>
   bool parse(Iterator& first,
              Iterator const& last,
-             Context&,
-             Skipper const&,
-             Attribute&) const {
+             Context const& /*context*/,
+             RContext& /*rcontext*/,
+             Attribute& /*attr*/) const {
     if (first == last)
       return false;
 
-    if (std::holds_alternative<tok_t>(*first)) {
+    if (std::holds_alternative<Tok>(*first)) {
       ++first;
       return true;
     }
     return false;
   }
-
-  template <typename Context>
-  boost::spirit::info what(Context&) const {
-    return boost::spirit::info{"token_parser"};
-  }
 };
-
 }  // namespace
 // -----------------------------------------------------------------------
 
-template <typename Iterator>
-struct expr_grammar : qi::grammar<Iterator, std::shared_ptr<ExprAST>()> {
-  expr_grammar() : expr_grammar::base_type(expression_rule) {
-    expression_rule =
-        (int_token >> token_parser<typename tok::Plus>() >>
-         int_token)[qi::_val = phx::construct<std::shared_ptr<ExprAST>>(
-                        phx::new_<ExprAST>(phx::construct<BinaryExpr>(
-                            Op::Add,
-                            phx::construct<std::shared_ptr<ExprAST>>(
-                                phx::new_<ExprAST>(qi::_1)),
-                            phx::construct<std::shared_ptr<ExprAST>>(
-                                phx::new_<ExprAST>(qi::_2)))))];
-  }
+// -----------------------------------------------------------------------
+// X3 rule declarations
+// -----------------------------------------------------------------------
+x3::rule<struct int_token_rule, int> const int_token = "int_token";
+x3::rule<struct multiplicative_rule, Op> const prec_mul_token =
+    "precedence_multiplicative_token";
+x3::rule<struct additive_rule, Op> const prec_add_token =
+    "precedence_additive_token";
+x3::rule<struct expression_rule_class, std::shared_ptr<ExprAST>> const
+    expression_rule = "expression_rule";
 
-  qi::rule<Iterator, int()> int_token = int_token_parser();
+// -----------------------------------------------------------------------
+// Rule definitions
+// -----------------------------------------------------------------------
+[[maybe_unused]] auto const int_token_def = int_token_parser();
 
-  qi::rule<Iterator, Op()> precedence_add_token;   // + -
-  qi::rule<Iterator, Op()> precedence_mult_token;  // * / %
+[[maybe_unused]] auto const prec_mul_token_def =
+    (token_parser<tok::Mult>()[([](auto& ctx) { x3::_val(ctx) = Op::Mul; })] |
+     token_parser<tok::Div>()[([](auto& ctx) { x3::_val(ctx) = Op::Div; })]);
+[[maybe_unused]] auto const prec_add_token_def =
+    (token_parser<tok::Plus>()[([](auto& ctx) { x3::_val(ctx) = Op::Add; })] |
+     token_parser<tok::Minus>()[([](auto& ctx) { x3::_val(ctx) = Op::Sub; })]);
 
-  qi::rule<Iterator, std::shared_ptr<ExprAST>()> expression_rule;
-};
+[[maybe_unused]] auto const expression_rule_def =
+    (int_token >> prec_mul_token >> int_token)[([](auto& ctx) {
+      const auto& attr = x3::_attr(ctx);
+      auto lhs = boost::fusion::at_c<0>(attr);
+      auto op = boost::fusion::at_c<1>(attr);
+      auto rhs = boost::fusion::at_c<2>(attr);
 
+      auto lhs_ast = std::make_shared<ExprAST>(lhs);
+      auto rhs_ast = std::make_shared<ExprAST>(rhs);
+
+      auto binary_expr = BinaryExpr(op, lhs_ast, rhs_ast);
+      x3::_val(ctx) = std::make_shared<ExprAST>(binary_expr);
+    })] |
+    (int_token >> prec_add_token >> int_token)[([](auto& ctx) {
+      const auto& attr = x3::_attr(ctx);
+      auto lhs = boost::fusion::at_c<0>(attr);
+      auto op = boost::fusion::at_c<1>(attr);
+      auto rhs = boost::fusion::at_c<2>(attr);
+
+      auto lhs_ast = std::make_shared<ExprAST>(lhs);
+      auto rhs_ast = std::make_shared<ExprAST>(rhs);
+
+      auto binary_expr = BinaryExpr(op, lhs_ast, rhs_ast);
+      x3::_val(ctx) = std::make_shared<ExprAST>(binary_expr);
+    })];
+
+BOOST_SPIRIT_DEFINE(int_token, expression_rule, prec_mul_token, prec_add_token);
+
+// -----------------------------------------------------------------------
+// Parse function
+// -----------------------------------------------------------------------
 std::shared_ptr<ExprAST> ParseExpression(std::span<Token> input) {
-  using iterator_t = typename std::span<Token>::iterator;
-  iterator_t begin = input.begin(), end = input.end();
+  using iterator_t = std::span<Token>::iterator;
+  iterator_t begin = input.begin();
+  iterator_t end = input.end();
 
-  std::shared_ptr<ExprAST> result = nullptr;
-  expr_grammar<iterator_t> grammar;
-
-  bool success = qi::parse(begin, end, grammar, result);
+  std::shared_ptr<ExprAST> result;
+  // Attempt to parse the entire input with our expression_rule
+  bool success = x3::parse(begin, end, expression_rule, result);
 
   if (!success || begin != end)
     throw std::runtime_error("parsing failed.");
+
   return result;
 }
