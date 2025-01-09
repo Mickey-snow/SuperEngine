@@ -82,7 +82,9 @@ std::string ExprAST::DebugString() const {
   return this->Visit([](const auto& x) -> std::string {
     using T = std::decay_t<decltype(x)>;
 
-    if constexpr (std::same_as<T, int>)
+    if constexpr (std::same_as<T, std::monostate>)
+      return "<null>";
+    else if constexpr (std::same_as<T, int>)
       return std::to_string(x);
     else if constexpr (std::same_as<T, std::string>)
       return x;

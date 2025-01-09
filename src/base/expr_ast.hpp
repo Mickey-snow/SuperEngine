@@ -80,8 +80,8 @@ std::string ToString(Op op);
 // Binary operation node
 struct BinaryExpr {
   Op op;
-  std::unique_ptr<ExprAST> lhs;
-  std::unique_ptr<ExprAST> rhs;
+  std::shared_ptr<ExprAST> lhs;
+  std::shared_ptr<ExprAST> rhs;
 
   std::string DebugString() const;
 };
@@ -89,19 +89,20 @@ struct BinaryExpr {
 // Unary operation node
 struct UnaryExpr {
   Op op;
-  std::unique_ptr<ExprAST> sub;
+  std::shared_ptr<ExprAST> sub;
 
   std::string DebugString() const;
 };
 
 // Parenthesized expression node
 struct ParenExpr {
-  std::unique_ptr<ExprAST> sub;
+  std::shared_ptr<ExprAST> sub;
 
   std::string DebugString() const;
 };
 
-using expr_variant_t = std::variant<int,          // integer literal
+using expr_variant_t = std::variant<std::monostate,
+                                    int,          // integer literal
                                     std::string,  // identifier
                                     BinaryExpr,
                                     UnaryExpr,
@@ -109,6 +110,7 @@ using expr_variant_t = std::variant<int,          // integer literal
 
 class ExprAST {
  public:
+  ExprAST() : var_(std::monostate()) {}
   ExprAST(expr_variant_t var) : var_(std::move(var)) {}
 
   std::string DebugString() const;
