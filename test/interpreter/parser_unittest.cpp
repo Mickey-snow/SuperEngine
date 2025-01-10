@@ -100,3 +100,15 @@ TEST(ExpressionParserTest, Precedence) {
     EXPECT_EQ(result->Visit(GetOp()), Op::Add);
   }
 }
+
+TEST(ExpressionParserTest, Parenthesis) {
+  std::shared_ptr<ExprAST> result = nullptr;
+  std::vector<Token> input =
+      TokenArray(tok::ParenthesisL(), tok::Int(5), tok::Plus(), tok::Int(6),
+                 tok::ParenthesisR(), tok::Div(), tok::Int(7));
+
+  ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
+  ASSERT_NE(result, nullptr);
+  EXPECT_EQ(result->Visit(GetOp()), Op::Div);
+  EXPECT_EQ(result->DebugString(), "(5+6)/7");
+}

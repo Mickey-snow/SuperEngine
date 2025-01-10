@@ -115,6 +115,13 @@ x3::rule<struct expression_rule_class, std::shared_ptr<ExprAST>> const
 [[maybe_unused]] auto const primary_expr_def =
     int_token_parser()[([](auto& ctx) {
       x3::_val(ctx) = std::make_shared<ExprAST>(x3::_attr(ctx));
+    })] |
+    (token_parser<tok::ParenthesisL>() >> expression_rule >>
+     token_parser<tok::ParenthesisR>())[([](auto& ctx) {
+      const auto& attr = x3::_attr(ctx);
+      std::shared_ptr<ExprAST> sub = boost::fusion::at_c<1>(attr);
+      ParenExpr expr(sub);
+      x3::_val(ctx) = std::make_shared<ExprAST>(std::move(expr));
     })];
 
 [[maybe_unused]] auto const expression_rule_def = additive_expr;
