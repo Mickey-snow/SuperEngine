@@ -69,3 +69,34 @@ TEST(ExpressionParserTest, Basic) {
     EXPECT_EQ(result->DebugString(), "7/8");
   }
 }
+
+struct GetOp {
+  Op operator()(const auto& x) {
+    using T = std::decay_t<decltype(x)>;
+    if constexpr (std::same_as<T, BinaryExpr>)
+      return x.op;
+    return Op::Unknown;
+  }
+};
+
+TEST(ExpressionParserTest, Precedence) {
+  {
+    std::shared_ptr<ExprAST> result = nullptr;
+    std::vector<Token> input = TokenArray(tok::Int(5), tok::Mult(), tok::Int(6),
+                                          tok::Plus(), tok::Int(7));
+
+    ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(result->Visit(GetOp()), Op::Add);
+  }
+
+  {
+    std::shared_ptr<ExprAST> result = nullptr;
+    std::vector<Token> input = TokenArray(tok::Int(5), tok::Plus(), tok::Int(6),
+                                          tok::Div(), tok::Int(7));
+
+    ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(result->Visit(GetOp()), Op::Add);
+  }
+}

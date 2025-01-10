@@ -32,7 +32,9 @@
 class ExprAST;
 
 // Expression operator
-enum Op : char {
+enum Op : int {
+  Unknown = -1,
+
   // Arithmetic Operators
   Add,  // "+"
   Sub,  // "-"
