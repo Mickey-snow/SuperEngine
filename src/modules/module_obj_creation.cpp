@@ -32,7 +32,7 @@
 #include "machine/rlmachine.hpp"
 #include "machine/rlmodule.hpp"
 #include "machine/rloperation.hpp"
-#include "machine/rloperation/default_value.hpp"
+#include "machine/rloperation/default_value_t.hpp"
 #include "machine/rloperation/rect_t.hpp"
 #include "modules/module_obj.hpp"
 #include "object/drawer/anm.hpp"

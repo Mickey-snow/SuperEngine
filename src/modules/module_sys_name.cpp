@@ -32,7 +32,7 @@
 #include "machine/rlmachine.hpp"
 #include "machine/rlmodule.hpp"
 #include "machine/rloperation.hpp"
-#include "machine/rloperation/references.hpp"
+#include "machine/rloperation/reference_types.hpp"
 #include "memory/memory.hpp"
 
 // -----------------------------------------------------------------------

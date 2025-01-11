@@ -37,7 +37,7 @@
 #include "encodings/han2zen.hpp"
 #include "encodings/western.hpp"
 #include "machine/rloperation.hpp"
-#include "machine/rloperation/references.hpp"
+#include "machine/rloperation/reference_types.hpp"
 #include "machine/rloperation/rlop_store.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/text_page.hpp"

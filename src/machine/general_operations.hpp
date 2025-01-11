@@ -32,7 +32,7 @@
 #include <vector>
 
 #include "machine/rloperation.hpp"
-#include "machine/rloperation/references.hpp"
+#include "machine/rloperation/reference_types.hpp"
 #include "machine/rloperation/rlop_store.hpp"
 
 class System;

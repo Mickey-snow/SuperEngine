@@ -30,7 +30,7 @@
 #include "libreallive/expression.hpp"
 #include "libreallive/parser.hpp"
 #include "machine/rloperation.hpp"
-#include "machine/rloperation/references.hpp"
+#include "machine/rloperation/reference_types.hpp"
 
 // Type definition that implements the complex parameter concept.
 //

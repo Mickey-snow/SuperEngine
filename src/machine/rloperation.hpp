@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -27,14 +24,14 @@
 
 #pragma once
 
+#include "libreallive/bytecode_fwd.hpp"
+#include "machine/rloperation/reference_types.hpp"
+#include "rloperation/basic_types.hpp"
+
 #include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
-
-#include "libreallive/bytecode_fwd.hpp"
-#include "libreallive/expression.hpp"
-#include "machine/rloperation/references.hpp"
 
 class MappedRLModule;
 class RLModule;
@@ -147,73 +144,6 @@ class RLOperation {
   std::string name_;
 };
 
-// Type definition for a Constant integer value.
-//
-// This struct is used to define the parameter types of a RLOperation
-// subclass, and should not be used directly. It should only be used
-// as a template parameter to one of those classes, or of another type
-// definition struct.
-struct IntConstant_T {
-  // The output type of this type struct
-  typedef int type;
-
-  // Convert the incoming parameter objects into the resulting type
-  static type getData(RLMachine& machine,
-                      const libreallive::ExpressionPiecesVector& p,
-                      unsigned int& position);
-
-  // Parse the raw parameter string and put the results in ExpressionPiece
-  static void ParseParameters(unsigned int& position,
-                              const std::vector<std::string>& input,
-                              libreallive::ExpressionPiecesVector& output);
-
-  enum { is_complex = false };
-};
-
-// Type definition for a constant string value.
-//
-// This struct is used to define the parameter types of a RLOperation
-// subclass, and should not be used directly. It should only be used
-// as a template parameter to one of those classes, or of another type
-// definition struct.
-struct StrConstant_T {
-  // The output type of this type struct
-  typedef std::string type;
-
-  // Convert the incoming parameter objects into the resulting type
-  static type getData(RLMachine& machine,
-                      const libreallive::ExpressionPiecesVector& p,
-                      unsigned int& position);
-
-  // Parse the raw parameter string and put the results in ExpressionPiece
-  static void ParseParameters(unsigned int& position,
-                              const std::vector<std::string>& input,
-                              libreallive::ExpressionPiecesVector& output);
-
-  enum { is_complex = false };
-};
-
-struct empty_struct {};
-
-// Defines a null type for the Special parameter.
-struct Empty_T {
-  typedef empty_struct type;
-
-  // Convert the incoming parameter objects into the resulting type.
-  static type getData(RLMachine& machine,
-                      const libreallive::ExpressionPiecesVector& p,
-                      unsigned int& position) {
-    return empty_struct();
-  }
-
-  // Parse the raw parameter string and put the results in ExpressionPiece
-  static void ParseParameters(unsigned int& position,
-                              const std::vector<std::string>& input,
-                              libreallive::ExpressionPiecesVector& output) {}
-
-  enum { is_complex = false };
-};
-
 // Implements a special case operation. This should be used with
 // things that don't follow the usually function syntax in the
 // bytecode, such as weird gotos, etc.
@@ -248,7 +178,6 @@ class RLOp_SpecialCase : public RLOperation {
 };
 
 namespace internal {
-
 // Machinery for doing recursion in ParseParameters.
 struct _sentinel_type {};
 
@@ -272,7 +201,6 @@ void ParseEachParameter(
   T::ParseParameters(position, input, output);
   ParseEachParameter<Args...>(position, input, output);
 }
-
 }  // namespace internal
 
 // This is the fourth time we have overhauled the implementation of RLOperation

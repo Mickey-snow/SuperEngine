@@ -31,7 +31,7 @@
 #include "machine/general_operations.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/rloperation.hpp"
-#include "machine/rloperation/default_value.hpp"
+#include "machine/rloperation/default_value_t.hpp"
 
 namespace {
 

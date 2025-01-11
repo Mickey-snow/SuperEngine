@@ -45,7 +45,7 @@
 #include "effects/fade_effect.hpp"
 #include "machine/general_operations.hpp"
 #include "machine/rloperation.hpp"
-#include "machine/rloperation/default_value.hpp"
+#include "machine/rloperation/default_value_t.hpp"
 #include "modules/jump.hpp"
 #include "modules/module_sys_date.hpp"
 #include "modules/module_sys_frame.hpp"

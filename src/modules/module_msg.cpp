@@ -37,7 +37,7 @@
 #include "machine/rlmachine.hpp"
 #include "machine/rlmodule.hpp"
 #include "machine/rloperation.hpp"
-#include "machine/rloperation/default_value.hpp"
+#include "machine/rloperation/default_value_t.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/text_page.hpp"
 #include "systems/base/text_system.hpp"

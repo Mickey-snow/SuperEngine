@@ -34,7 +34,7 @@
 #include "machine/rlmachine.hpp"
 #include "machine/rlmodule.hpp"
 #include "machine/rloperation.hpp"
-#include "machine/rloperation/default_value.hpp"
+#include "machine/rloperation/default_value_t.hpp"
 #include "machine/rloperation/rlop_store.hpp"
 #include "systems/base/event_listener.hpp"
 #include "systems/base/event_system.hpp"

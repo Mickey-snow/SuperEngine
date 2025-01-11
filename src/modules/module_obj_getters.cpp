@@ -29,8 +29,8 @@
 
 #include "machine/properties.hpp"
 #include "machine/rloperation.hpp"
-#include "machine/rloperation/default_value.hpp"
-#include "machine/rloperation/references.hpp"
+#include "machine/rloperation/default_value_t.hpp"
+#include "machine/rloperation/reference_types.hpp"
 #include "machine/rloperation/rlop_store.hpp"
 #include "modules/module_obj.hpp"
 #include "object/parameter_manager.hpp"

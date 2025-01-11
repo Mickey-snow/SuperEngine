@@ -46,7 +46,7 @@
 #include "machine/rloperation.hpp"
 #include "machine/rloperation/argc_t.hpp"
 #include "machine/rloperation/complex_t.hpp"
-#include "machine/rloperation/default_value.hpp"
+#include "machine/rloperation/default_value_t.hpp"
 #include "machine/rloperation/rect_t.hpp"
 #include "machine/rloperation/rgb_colour_t.hpp"
 #include "machine/rloperation/special_t.hpp"
