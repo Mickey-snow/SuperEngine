@@ -29,6 +29,7 @@ file(GLOB_RECURSE RLVM_SRC_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/effects/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/encodings/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/libreallive/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/libsiglus/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/long_operations/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/machine/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/modules/*.cpp"
