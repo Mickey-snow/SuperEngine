@@ -134,24 +134,11 @@ struct Jmp_goto : public RLOp_SpecialCase {
   }
 };
 
-// The rest of the goto statements must parse their expressions before use. By
-// default, special cases treat this as data instead of expressions.
-struct ParseGotoParametersAsExpressions : public RLOp_SpecialCase {
-  virtual void ParseParameters(
-      const std::vector<std::string>& input,
-      libreallive::ExpressionPiecesVector& output) override {
-    for (auto const& parameter : input) {
-      const char* src = parameter.c_str();
-      output.push_back(libreallive::ExpressionParser::GetExpression(src));
-    }
-  }
-};
-
 // Implements op<0:Jmp:00001, 0>, fun goto_if (<'condition').
 //
 // Conditional equivalents of goto; goto_if () jumps to @label if the value of
 // condition is non-zero
-struct goto_if : public ParseGotoParametersAsExpressions {
+struct goto_if : public RLOp_SpecialCase {
   void operator()(RLMachine& machine, const CommandElement& goto_element) {
     const ExpressionPiecesVector& conditions =
         goto_element.GetParsedParameters();
@@ -165,7 +152,7 @@ struct goto_if : public ParseGotoParametersAsExpressions {
 };
 
 // Implements op<0:Jmp:00002, 0>, fun goto_unless (<'condition').
-struct goto_unless : public ParseGotoParametersAsExpressions {
+struct goto_unless : public RLOp_SpecialCase {
   void operator()(RLMachine& machine, const CommandElement& goto_element) {
     const ExpressionPiecesVector& conditions =
         goto_element.GetParsedParameters();
@@ -184,7 +171,7 @@ struct goto_unless : public ParseGotoParametersAsExpressions {
 // corresponding label in the list, counting from 0. If expr falls
 // outside the valid range, no jump takes place, and execution
 // continues from the next statement instead.
-struct goto_on : public ParseGotoParametersAsExpressions {
+struct goto_on : public RLOp_SpecialCase {
   void operator()(RLMachine& machine, const CommandElement& goto_element) {
     const ExpressionPiecesVector& conditions =
         goto_element.GetParsedParameters();
@@ -204,7 +191,7 @@ struct goto_on : public ParseGotoParametersAsExpressions {
 // Conditional table jumps. expr is evaluated, and
 // compared to val1, val2, etc. in turn, and control passes to the
 // label associated with the first matching value.
-struct goto_case : public ParseGotoParametersAsExpressions {
+struct goto_case : public RLOp_SpecialCase {
   void operator()(RLMachine& machine, const CommandElement& goto_element) {
     int i = EvaluateCase(machine, goto_element);
     Goto(machine, goto_element.GetLocation(i));
@@ -226,7 +213,7 @@ struct gosub : public RLOp_SpecialCase {
 // Pushes the current location onto the call stack, then jumps to the
 // label @label in the current scenario, if the passed in condition is
 // true.
-struct gosub_if : public ParseGotoParametersAsExpressions {
+struct gosub_if : public RLOp_SpecialCase {
   void operator()(RLMachine& machine, const CommandElement& goto_element) {
     const ExpressionPiecesVector& conditions =
         goto_element.GetParsedParameters();
@@ -243,7 +230,7 @@ struct gosub_if : public ParseGotoParametersAsExpressions {
 //
 // Pushes the current location onto the call stack, then jumps to the label
 // @label in the current scenario, if the passed in condition is false.
-struct gosub_unless : public ParseGotoParametersAsExpressions {
+struct gosub_unless : public RLOp_SpecialCase {
   void operator()(RLMachine& machine, const CommandElement& goto_element) {
     const ExpressionPiecesVector& conditions =
         goto_element.GetParsedParameters();
@@ -262,7 +249,7 @@ struct gosub_unless : public ParseGotoParametersAsExpressions {
 // label in the list, counting from 0. If expr falls outside the valid range,
 // no gosub takes place, and execution continues from the next statement
 // instead.
-struct gosub_on : public ParseGotoParametersAsExpressions {
+struct gosub_on : public RLOp_SpecialCase {
   void operator()(RLMachine& machine, const CommandElement& goto_element) {
     const ExpressionPiecesVector& conditions =
         goto_element.GetParsedParameters();
@@ -281,7 +268,7 @@ struct gosub_on : public ParseGotoParametersAsExpressions {
 // Conditional table gosub. expr is evaluated, and compared to val1, val2,
 // etc. in turn, and control passes to the label associated with the first
 // matching value.
-struct gosub_case : public ParseGotoParametersAsExpressions {
+struct gosub_case : public RLOp_SpecialCase {
   void operator()(RLMachine& machine, const CommandElement& goto_element) {
     int i = EvaluateCase(machine, goto_element);
     Gosub(machine, goto_element.GetLocation(i));

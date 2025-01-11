@@ -66,9 +66,3 @@ template <>
 void RLStoreOpcode<>::Dispatch(
     RLMachine& machine,
     const libreallive::ExpressionPiecesVector& parameters);
-
-extern template class RLStoreOpcode<>;
-extern template class RLStoreOpcode<IntConstant_T>;
-extern template class RLStoreOpcode<IntConstant_T, IntConstant_T>;
-extern template class RLStoreOpcode<IntReference_T>;
-extern template class RLStoreOpcode<IntReference_T, IntReference_T>;

@@ -46,11 +46,6 @@ struct Argc_T {
                       const libreallive::ExpressionPiecesVector& p,
                       unsigned int& position);
 
-  // Parse the raw parameter string and put the results in ExpressionPiece
-  static void ParseParameters(unsigned int& position,
-                              const std::vector<std::string>& input,
-                              libreallive::ExpressionPiecesVector& output);
-
   enum { is_complex = false };
 };
 
@@ -65,15 +60,3 @@ typename Argc_T<CON>::type Argc_T<CON>::getData(
 
   return return_vector;
 }
-
-template <typename CON>
-void Argc_T<CON>::ParseParameters(unsigned int& position,
-                                  const std::vector<std::string>& input,
-                                  libreallive::ExpressionPiecesVector& output) {
-  for (; position < input.size();) {
-    CON::ParseParameters(position, input, output);
-  }
-}
-
-extern template struct Argc_T<IntConstant_T>;
-extern template struct Argc_T<IntReference_T>;

@@ -29,8 +29,8 @@
 #include <string>
 #include <vector>
 
-#include "machine/rloperation.hpp"
 #include "base/colour.hpp"
+#include "machine/rloperation.hpp"
 
 struct RGBColour_T {
   typedef RGBAColour type;
@@ -42,14 +42,6 @@ struct RGBColour_T {
     int g = IntConstant_T::getData(machine, p, position);
     int b = IntConstant_T::getData(machine, p, position);
     return RGBAColour(r, g, b);
-  }
-
-  static void ParseParameters(unsigned int& position,
-                              const std::vector<std::string>& input,
-                              libreallive::ExpressionPiecesVector& output) {
-    IntConstant_T::ParseParameters(position, input, output);
-    IntConstant_T::ParseParameters(position, input, output);
-    IntConstant_T::ParseParameters(position, input, output);
   }
 
   enum { is_complex = false };
@@ -74,21 +66,6 @@ struct RGBMaybeAColour_T {
     }
 
     return RGBAColour(r, g, b, a);
-  }
-
-  static void ParseParameters(unsigned int& position,
-                              const std::vector<std::string>& input,
-                              libreallive::ExpressionPiecesVector& output) {
-    IntConstant_T::ParseParameters(position, input, output);
-    IntConstant_T::ParseParameters(position, input, output);
-    IntConstant_T::ParseParameters(position, input, output);
-
-    if (position < input.size()) {
-      IntConstant_T::ParseParameters(position, input, output);
-    } else {
-      output.emplace_back(libreallive::ExpressionFactory::IntConstant(255));
-      position++;
-    }
   }
 
   enum { is_complex = false };

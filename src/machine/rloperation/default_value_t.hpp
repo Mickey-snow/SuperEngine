@@ -44,18 +44,6 @@ struct DefaultIntValue_T {
     }
   }
 
-  static void ParseParameters(unsigned int& position,
-                              const std::vector<std::string>& input,
-                              libreallive::ExpressionPiecesVector& output) {
-    if (position < input.size()) {
-      IntConstant_T::ParseParameters(position, input, output);
-    } else {
-      output.emplace_back(
-          libreallive::ExpressionFactory::IntConstant(DEFAULTVAL));
-      position++;
-    }
-  }
-
   enum { is_complex = false };
 };
 
@@ -72,18 +60,6 @@ struct DefaultStrValue_T {
       return StrConstant_T::getData(machine, p, position);
     } else {
       return std::string();
-    }
-  }
-
-  static void ParseParameters(unsigned int& position,
-                              const std::vector<std::string>& input,
-                              libreallive::ExpressionPiecesVector& output) {
-    if (position < input.size()) {
-      StrConstant_T::ParseParameters(position, input, output);
-    } else {
-      output.emplace_back(
-          libreallive::ExpressionFactory::StrConstant(std::string()));
-      position++;
     }
   }
 

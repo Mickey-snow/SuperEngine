@@ -151,13 +151,5 @@ struct Special_T {
     return par;
   }
 
-  static void ParseParameters(unsigned int& position,
-                              const std::vector<std::string>& input,
-                              libreallive::ExpressionPiecesVector& output) {
-    const char* data = input.at(position).c_str();
-    output.emplace_back(libreallive::ExpressionParser::GetData(data));
-    position++;
-  }
-
   enum { is_complex = false };
 };

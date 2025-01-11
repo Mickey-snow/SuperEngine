@@ -139,12 +139,8 @@ class MultiDispatch : public RLOp_SpecialCase {
   explicit MultiDispatch(RLOperation* op);
   ~MultiDispatch();
 
-  virtual void ParseParameters(
-      const std::vector<std::string>& input,
-      libreallive::ExpressionPiecesVector& output) override;
-
   virtual void operator()(RLMachine& machine,
-                          const libreallive::CommandElement& ff);
+                          const libreallive::CommandElement& ff) override;
 
  private:
   std::unique_ptr<RLOperation> handler_;
@@ -190,9 +186,6 @@ class UndefinedFunction : public RLOp_SpecialCase {
       const libreallive::ExpressionPiecesVector& parameters) override;
   virtual void DispatchFunction(RLMachine& machine,
                                 const libreallive::CommandElement& f) override;
-  virtual void ParseParameters(
-      const std::vector<std::string>& input,
-      libreallive::ExpressionPiecesVector& output) override;
   virtual void operator()(RLMachine&,
                           const libreallive::CommandElement&) override;
 

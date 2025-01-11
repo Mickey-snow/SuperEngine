@@ -108,25 +108,11 @@ void RLOp_SpecialCase::Dispatch(
   throw rlvm::Exception("Tried to call empty RLOp_SpecialCase::Dispatch().");
 }
 
-void RLOp_SpecialCase::ParseParameters(
-    const std::vector<std::string>& input,
-    libreallive::ExpressionPiecesVector& output) {
-  for (auto const& parameter : input) {
-    const char* src = parameter.c_str();
-    output.push_back(libreallive::ExpressionParser::GetData(src));
-  }
-}
-
 void RLOp_SpecialCase::DispatchFunction(RLMachine& machine,
                                         const libreallive::CommandElement& ff) {
   // Pass this on to the implementation of this functor.
   operator()(machine, ff);
 }
-
-template <>
-void RLNormalOpcode<>::ParseParameters(
-    const std::vector<std::string>& input,
-    libreallive::ExpressionPiecesVector& output) {}
 
 template <>
 void RLOpcode<>::Dispatch(

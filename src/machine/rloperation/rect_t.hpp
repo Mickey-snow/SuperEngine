@@ -43,13 +43,6 @@ struct Point_T {
     return Point(x, y);
   }
 
-  static void ParseParameters(unsigned int& position,
-                              const std::vector<std::string>& input,
-                              libreallive::ExpressionPiecesVector& output) {
-    IntConstant_T::ParseParameters(position, input, output);
-    IntConstant_T::ParseParameters(position, input, output);
-  }
-
   enum { is_complex = false };
 };
 
@@ -82,16 +75,6 @@ struct Rect_T {
     int three = IntConstant_T::getData(machine, p, position);
     int four = IntConstant_T::getData(machine, p, position);
     return T::makeRect(one, two, three, four);
-  }
-
-  // Parse the raw parameter string and put the results in ExpressionPiece
-  static void ParseParameters(unsigned int& position,
-                              const std::vector<std::string>& input,
-                              libreallive::ExpressionPiecesVector& output) {
-    IntConstant_T::ParseParameters(position, input, output);
-    IntConstant_T::ParseParameters(position, input, output);
-    IntConstant_T::ParseParameters(position, input, output);
-    IntConstant_T::ParseParameters(position, input, output);
   }
 
   enum { is_complex = false };

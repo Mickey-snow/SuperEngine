@@ -114,11 +114,6 @@ class RLOperation {
       RLMachine& machine,
       const libreallive::ExpressionPiecesVector& parameters) = 0;
 
-  // Parses the parameters in the CommandElement passed in into an
-  // output vector that contains parsed ExpressionPieces for each
-  virtual void ParseParameters(const std::vector<std::string>& input,
-                               libreallive::ExpressionPiecesVector& output) = 0;
-
   // The public interface used by the RLModule; how a method is Dispatched.
   virtual void DispatchFunction(RLMachine& machine,
                                 const libreallive::CommandElement& f);
@@ -166,42 +161,10 @@ class RLOp_SpecialCase : public RLOperation {
   virtual void DispatchFunction(RLMachine& machine,
                                 const libreallive::CommandElement& f) override;
 
-  // Default implementation that simply parses everything as data;
-  // doesn't work in the case of complex expressions.
-  virtual void ParseParameters(
-      const std::vector<std::string>& input,
-      libreallive::ExpressionPiecesVector& output) override;
-
   // Method that is overridden by all subclasses to implement the
   // function of this opcode
   virtual void operator()(RLMachine&, const libreallive::CommandElement&) = 0;
 };
-
-namespace internal {
-// Machinery for doing recursion in ParseParameters.
-struct _sentinel_type {};
-
-template <typename T>
-void ParseEachParameter(
-    unsigned int& position,
-    const std::vector<std::string>& input,
-    libreallive::ExpressionPiecesVector& output,
-    typename std::enable_if<std::is_same<T, _sentinel_type>::value, int>::type*
-        dummy = nullptr) {
-  // The recursive base case does nothing.
-}
-
-template <typename T, typename... Args>
-void ParseEachParameter(
-    unsigned int& position,
-    const std::vector<std::string>& input,
-    libreallive::ExpressionPiecesVector& output,
-    typename std::enable_if<!std::is_same<T, _sentinel_type>::value, int>::type*
-        dummy = nullptr) {
-  T::ParseParameters(position, input, output);
-  ParseEachParameter<Args...>(position, input, output);
-}
-}  // namespace internal
 
 // This is the fourth time we have overhauled the implementation of RLOperation
 // and we've become exceedingly efficient at it.
@@ -210,10 +173,6 @@ class RLNormalOpcode : public RLOperation {
  public:
   RLNormalOpcode();
   virtual ~RLNormalOpcode();
-
-  virtual void ParseParameters(
-      const std::vector<std::string>& input,
-      libreallive::ExpressionPiecesVector& output) final;
 };
 
 template <typename... Args>
@@ -221,21 +180,6 @@ RLNormalOpcode<Args...>::RLNormalOpcode() {}
 
 template <typename... Args>
 RLNormalOpcode<Args...>::~RLNormalOpcode() {}
-
-template <typename... Args>
-void RLNormalOpcode<Args...>::ParseParameters(
-    const std::vector<std::string>& input,
-    libreallive::ExpressionPiecesVector& output) {
-  unsigned int position = 0;
-  internal::ParseEachParameter<Args..., internal::_sentinel_type>(
-      position, input, output);
-}
-
-// Specialization for empty template list
-template <>
-void RLNormalOpcode<>::ParseParameters(
-    const std::vector<std::string>& input,
-    libreallive::ExpressionPiecesVector& output);
 
 template <typename... Args>
 class RLOpcode : public RLNormalOpcode<Args...> {
@@ -278,42 +222,3 @@ template <>
 void RLOpcode<>::Dispatch(
     RLMachine& machine,
     const libreallive::ExpressionPiecesVector& parameters);
-
-// Extern template declarations.
-//
-// These tell the compiler to not expand these templates; they are explicitly
-// instantiated in the cc file as these are the most common variants. Note that
-// we must explicitly instantiate both RLNormalOpcode and RLOpcode separately.
-extern template class RLNormalOpcode<>;
-extern template class RLNormalOpcode<IntConstant_T>;
-extern template class RLNormalOpcode<IntConstant_T, IntConstant_T>;
-extern template class RLNormalOpcode<IntConstant_T, StrConstant_T>;
-extern template class RLNormalOpcode<IntConstant_T,
-                                     IntConstant_T,
-                                     IntConstant_T>;
-extern template class RLNormalOpcode<IntConstant_T,
-                                     IntConstant_T,
-                                     IntConstant_T,
-                                     IntConstant_T>;
-extern template class RLNormalOpcode<IntReference_T>;
-extern template class RLNormalOpcode<IntReference_T, IntReference_T>;
-extern template class RLNormalOpcode<StrConstant_T>;
-extern template class RLNormalOpcode<StrConstant_T, IntConstant_T>;
-extern template class RLNormalOpcode<StrConstant_T, StrConstant_T>;
-extern template class RLNormalOpcode<StrReference_T>;
-
-extern template class RLOpcode<>;
-extern template class RLOpcode<IntConstant_T>;
-extern template class RLOpcode<IntConstant_T, IntConstant_T>;
-extern template class RLOpcode<IntConstant_T, StrConstant_T>;
-extern template class RLOpcode<IntConstant_T, IntConstant_T, IntConstant_T>;
-extern template class RLOpcode<IntConstant_T,
-                               IntConstant_T,
-                               IntConstant_T,
-                               IntConstant_T>;
-extern template class RLOpcode<IntReference_T>;
-extern template class RLOpcode<IntReference_T, IntReference_T>;
-extern template class RLOpcode<StrConstant_T>;
-extern template class RLOpcode<StrConstant_T, IntConstant_T>;
-extern template class RLOpcode<StrConstant_T, StrConstant_T>;
-extern template class RLOpcode<StrReference_T>;

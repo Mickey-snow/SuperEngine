@@ -35,50 +35,11 @@ IntConstant_T::type IntConstant_T::getData(
   return p[position++]->GetIntegerValue(machine);
 }
 
-// Was working to change the verify_type to parse_parameters.
-void IntConstant_T::ParseParameters(
-    unsigned int& position,
-    const std::vector<std::string>& input,
-    libreallive::ExpressionPiecesVector& output) {
-  const char* data = input.at(position).c_str();
-  libreallive::Expression ep(libreallive::ExpressionParser::GetData(data));
-
-  if (ep->GetExpressionValueType() !=
-      libreallive::ExpressionValueType::Integer) {
-    throw std::runtime_error(
-        "IntConstant_T parse error. Expected type string, but actually "
-        "contained \"" +
-        ep->GetDebugString() + "\"");
-  }
-
-  output.push_back(ep);
-  position++;
-}
-
 IntReference_T::type IntReference_T::getData(
     RLMachine& machine,
     const libreallive::ExpressionPiecesVector& p,
     unsigned int& position) {
   return p[position++]->GetIntegerReferenceIterator(machine);
-}
-
-void IntReference_T::ParseParameters(
-    unsigned int& position,
-    const std::vector<std::string>& input,
-    libreallive::ExpressionPiecesVector& output) {
-  const char* data = input.at(position).c_str();
-  libreallive::Expression ep(libreallive::ExpressionParser::GetData(data));
-
-  if (ep->GetExpressionValueType() !=
-      libreallive::ExpressionValueType::Integer) {
-    throw std::runtime_error(
-        "IntReference_T parse error. Expected type string, but actually "
-        "contained \"" +
-        ep->GetDebugString() + "\"");
-  }
-
-  output.push_back(ep);
-  position++;
 }
 
 StrConstant_T::type StrConstant_T::getData(
@@ -124,47 +85,9 @@ StrConstant_T::type StrConstant_T::getData(
   return string(tmp.data(), tmp.size());
 }
 
-void StrConstant_T::ParseParameters(
-    unsigned int& position,
-    const std::vector<std::string>& input,
-    libreallive::ExpressionPiecesVector& output) {
-  const char* data = input.at(position).c_str();
-  libreallive::Expression ep = libreallive::ExpressionParser::GetData(data);
-
-  if (ep->GetExpressionValueType() !=
-      libreallive::ExpressionValueType::String) {
-    throw std::runtime_error(
-        "StrConstant_T parse error. Expected type string, but actually "
-        "contained \"" +
-        ep->GetDebugString() + "\"");
-  }
-
-  output.push_back(ep);
-  position++;
-}
-
 StrReference_T::type StrReference_T::getData(
     RLMachine& machine,
     const libreallive::ExpressionPiecesVector& p,
     unsigned int& position) {
   return p[position++]->GetStringReferenceIterator(machine);
-}
-
-void StrReference_T::ParseParameters(
-    unsigned int& position,
-    const std::vector<std::string>& input,
-    libreallive::ExpressionPiecesVector& output) {
-  const char* data = input.at(position).c_str();
-  libreallive::Expression ep = libreallive::ExpressionParser::GetData(data);
-
-  if (ep->GetExpressionValueType() !=
-      libreallive::ExpressionValueType::String) {
-    throw std::runtime_error(
-        "StrReference_T parse error. Expected type string, but actually "
-        "contained \"" +
-        ep->GetDebugString() + "\"");
-  }
-
-  output.push_back(ep);
-  position++;
 }

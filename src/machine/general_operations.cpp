@@ -84,15 +84,6 @@ MultiDispatch::MultiDispatch(RLOperation* op) : handler_(op) {}
 
 MultiDispatch::~MultiDispatch() {}
 
-void MultiDispatch::ParseParameters(
-    const std::vector<std::string>& input,
-    libreallive::ExpressionPiecesVector& output) {
-  for (auto const& parameter : input) {
-    const char* src = parameter.c_str();
-    output.push_back(libreallive::ExpressionParser::GetComplexParam(src));
-  }
-}
-
 /// TODO(erg): Port this up to the new expression handling code
 void MultiDispatch::operator()(RLMachine& machine,
                                const libreallive::CommandElement& ff) {
@@ -158,13 +149,6 @@ void UndefinedFunction::Dispatch(
 void UndefinedFunction::DispatchFunction(RLMachine& machine,
                                          const libreallive::CommandElement& f) {
   throw rlvm::UnimplementedOpcode(Name(), f);
-}
-
-void UndefinedFunction::ParseParameters(
-    const std::vector<std::string>& input,
-    libreallive::ExpressionPiecesVector& output) {
-  throw rlvm::UnimplementedOpcode(Name(), modtype_, module_, opcode_,
-                                  overload_);
 }
 
 void UndefinedFunction::operator()(RLMachine& machine,

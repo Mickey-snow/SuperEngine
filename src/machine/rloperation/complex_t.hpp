@@ -46,10 +46,6 @@ struct Complex_T {
                       const libreallive::ExpressionPiecesVector& p,
                       unsigned int& position);
 
-  static void ParseParameters(unsigned int& position,
-                              const std::vector<std::string>& input,
-                              libreallive::ExpressionPiecesVector& output);
-
   enum { is_complex = true };
 };
 
@@ -64,22 +60,3 @@ typename Complex_T<Args...>::type Complex_T<Args...>::getData(
       p[position++]->GetContainedPieces();
   return type{Args::getData(machine, pieces, pos_in_expression)...};
 }
-
-// static
-template <typename... Args>
-void Complex_T<Args...>::ParseParameters(
-    unsigned int& position,
-    const std::vector<std::string>& input,
-    libreallive::ExpressionPiecesVector& output) {
-  const char* data = input.at(position).c_str();
-  libreallive::Expression ep(
-      libreallive::ExpressionParser::GetComplexParam(data));
-  output.push_back(ep);
-  position++;
-}
-
-extern template struct Complex_T<IntConstant_T, IntConstant_T>;
-extern template struct Complex_T<IntConstant_T, IntReference_T>;
-extern template struct Complex_T<IntReference_T, IntReference_T>;
-extern template struct Complex_T<StrConstant_T, IntConstant_T, IntConstant_T>;
-extern template struct Complex_T<StrConstant_T, IntConstant_T>;

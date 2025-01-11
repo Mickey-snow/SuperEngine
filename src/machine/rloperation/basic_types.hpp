@@ -46,11 +46,6 @@ struct IntConstant_T {
                       const libreallive::ExpressionPiecesVector& p,
                       unsigned int& position);
 
-  // Parse the raw parameter string and put the results in ExpressionPiece
-  static void ParseParameters(unsigned int& position,
-                              const std::vector<std::string>& input,
-                              libreallive::ExpressionPiecesVector& output);
-
   enum { is_complex = false };
 };
 
@@ -69,11 +64,6 @@ struct StrConstant_T {
                       const libreallive::ExpressionPiecesVector& p,
                       unsigned int& position);
 
-  // Parse the raw parameter string and put the results in ExpressionPiece
-  static void ParseParameters(unsigned int& position,
-                              const std::vector<std::string>& input,
-                              libreallive::ExpressionPiecesVector& output);
-
   enum { is_complex = false };
 };
 
@@ -89,11 +79,6 @@ struct Empty_T {
                       unsigned int& position) {
     return empty_struct();
   }
-
-  // Parse the raw parameter string and put the results in ExpressionPiece
-  static void ParseParameters(unsigned int& position,
-                              const std::vector<std::string>& input,
-                              libreallive::ExpressionPiecesVector& output) {}
 
   enum { is_complex = false };
 };
