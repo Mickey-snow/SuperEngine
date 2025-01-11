@@ -37,11 +37,11 @@ class RLStoreOpcode : public RLNormalOpcode<Args...> {
   virtual int operator()(RLMachine&, typename Args::type...) = 0;
 
  private:
-  template <int... Indexes>
+  template <std::size_t... I>
   void DispatchImpl(RLMachine& machine,
                     const std::tuple<typename Args::type...>& args,
-                    internal::index_tuple<Indexes...>) {
-    int store = operator()(machine, std::get<Indexes>(args)...);
+                    std::index_sequence<I...> /*unused*/) {
+    const int store = operator()(machine, std::get<I>(args)...);
     machine.set_store_register(store);
   }
 };
@@ -55,17 +55,11 @@ RLStoreOpcode<Args...>::~RLStoreOpcode() {}
 template <typename... Args>
 void RLStoreOpcode<Args...>::Dispatch(
     RLMachine& machine,
-    const libreallive::ExpressionPiecesVector& parameters) {
-  // The following does not work in gcc 4.8.2, but it's supposed to!
-  // Parameter unpacking inside an initializer-clause is supposed to always
-  // be evaluated in the order it appears.
-  //
-  // http://stackoverflow.com/questions/12048221/c11-variadic-template-function-parameter-pack-expansion-execution-order
+    const libreallive::ExpressionPiecesVector& params) {
   unsigned int position = 0;
-  std::tuple<typename Args::type...> tuple = std::tuple<typename Args::type...>{
-      Args::getData(machine, parameters, position)...};
-  DispatchImpl(machine, tuple,
-               typename internal::make_indexes<Args...>::type());
+  const auto args = std::tuple<typename Args::type...>{
+      Args::getData(machine, params, position)...};
+  DispatchImpl(machine, args, std::make_index_sequence<sizeof...(Args)>());
 }
 
 template <>

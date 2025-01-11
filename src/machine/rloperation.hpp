@@ -273,28 +273,6 @@ void ParseEachParameter(
   ParseEachParameter<Args...>(position, input, output);
 }
 
-// This should really be in the stdlib.
-template <int...>
-struct index_tuple {};
-
-template <int I, typename IndexTuple, typename... Types>
-struct make_indexes_impl;
-
-template <int I, int... Indexes, typename T, typename... Types>
-struct make_indexes_impl<I, index_tuple<Indexes...>, T, Types...> {
-  typedef typename make_indexes_impl<I + 1,
-                                     index_tuple<Indexes..., I>,
-                                     Types...>::type type;
-};
-
-template <int I, int... Indexes>
-struct make_indexes_impl<I, index_tuple<Indexes...>> {
-  typedef index_tuple<Indexes...> type;
-};
-
-template <typename... Types>
-struct make_indexes : make_indexes_impl<0, index_tuple<>, Types...> {};
-
 }  // namespace internal
 
 // This is the fourth time we have overhauled the implementation of RLOperation
@@ -344,11 +322,11 @@ class RLOpcode : public RLNormalOpcode<Args...> {
   virtual void operator()(RLMachine&, typename Args::type...) = 0;
 
  private:
-  template <int... Indexes>
+  template <std::size_t... I>
   void DispatchImpl(RLMachine& machine,
                     const std::tuple<typename Args::type...>& args,
-                    internal::index_tuple<Indexes...>) {
-    operator()(machine, std::get<Indexes>(args)...);
+                    std::index_sequence<I...> /*unused*/) {
+    operator()(machine, std::get<I>(args)...);
   }
 };
 
@@ -361,17 +339,11 @@ RLOpcode<Args...>::~RLOpcode() {}
 template <typename... Args>
 void RLOpcode<Args...>::Dispatch(
     RLMachine& machine,
-    const libreallive::ExpressionPiecesVector& parameters) {
-  // The following does not work in gcc 4.8.2, but it's supposed to!
-  // Parameter unpacking inside an initializer-clause is supposed to always
-  // be evaluated in the order it appears.
-  //
-  // http://stackoverflow.com/questions/12048221/c11-variadic-template-function-parameter-pack-expansion-execution-order
+    const libreallive::ExpressionPiecesVector& params) {
   unsigned int position = 0;
-  std::tuple<typename Args::type...> tuple = std::tuple<typename Args::type...>{
-      Args::getData(machine, parameters, position)...};
-  DispatchImpl(machine, tuple,
-               typename internal::make_indexes<Args...>::type());
+  const auto args = std::tuple<typename Args::type...>{
+      Args::getData(machine, params, position)...};
+  DispatchImpl(machine, args, std::make_index_sequence<sizeof...(Args)>());
 }
 
 template <>
