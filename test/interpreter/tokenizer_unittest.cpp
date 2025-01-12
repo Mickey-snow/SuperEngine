@@ -60,13 +60,14 @@ TEST(TokenizerTest, ParseNumbers) {
 }
 
 TEST(TokenizerTest, ParseSymbols) {
-  constexpr std::string_view input = "$a_=0+1-2/3*5";
+  constexpr std::string_view input = "$a_=0+1-2/3*5,6";
 
   Tokenizer tokenizer(input);
   EXPECT_EQ(tokenizer.parsed_tok_,
             TokenArray(tok::Dollar(), tok::ID("a_"s), tok::Eq(), tok::Int(0),
                        tok::Plus(), tok::Int(1), tok::Minus(), tok::Int(2),
-                       tok::Div(), tok::Int(3), tok::Mult(), tok::Int(5)));
+                       tok::Div(), tok::Int(3), tok::Mult(), tok::Int(5),
+                       tok::Comma(), tok::Int(6)));
 }
 
 TEST(TokenizerTest, ParseBrackets) {

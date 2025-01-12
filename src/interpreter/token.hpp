@@ -91,6 +91,10 @@ struct ParenthesisR {
   auto operator<=>(const ParenthesisR& rhs) const = default;
 };
 
+struct Comma {
+  auto operator<=>(const Comma& rhs) const = default;
+};
+
 }  // namespace tok
 
 using Token = std::variant<tok::ID,
@@ -107,7 +111,8 @@ using Token = std::variant<tok::ID,
                            tok::CurlyL,
                            tok::CurlyR,
                            tok::ParenthesisL,
-                           tok::ParenthesisR>;
+                           tok::ParenthesisR,
+                           tok::Comma>;
 
 template <typename T>
 struct match_token {

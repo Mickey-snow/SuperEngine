@@ -35,6 +35,8 @@ class ExprAST;
 enum Op : int {
   Unknown = -1,
 
+  Comma,  // ","
+
   // Arithmetic Operators
   Add,  // "+"
   Sub,  // "-"
@@ -103,9 +105,18 @@ struct ParenExpr {
   std::string DebugString() const;
 };
 
-using expr_variant_t = std::variant<std::monostate,
-                                    int,          // integer literal
-                                    std::string,  // identifier
+// Memory reference expression node
+struct ReferenceExpr {
+  std::string id;
+  std::shared_ptr<ExprAST> idx;
+
+  std::string DebugString() const;
+};
+
+using expr_variant_t = std::variant<std::monostate,  // null
+                                    int,             // integer literal
+                                    std::string,     // identifier
+                                    ReferenceExpr,
                                     BinaryExpr,
                                     UnaryExpr,
                                     ParenExpr>;
@@ -118,19 +129,19 @@ class ExprAST {
   std::string DebugString() const;
 
   template <class Visitor>
-  decltype(auto) Visit(Visitor&& vis) {
+  decltype(auto) Apply(Visitor&& vis) {
     return std::visit(std::forward<Visitor>(vis), var_);
   }
   template <class Visitor>
-  decltype(auto) Visit(Visitor&& vis) const {
+  decltype(auto) Apply(Visitor&& vis) const {
     return std::visit(std::forward<Visitor>(vis), var_);
   }
   template <class R, class Visitor>
-  R Visit(Visitor&& vis) {
+  R Apply(Visitor&& vis) {
     return std::visit<R>(std::forward<Visitor>(vis), var_);
   }
   template <class R, class Visitor>
-  R Visit(Visitor&& vis) const {
+  R Apply(Visitor&& vis) const {
     return std::visit<R>(std::forward<Visitor>(vis), var_);
   }
 

@@ -70,14 +70,24 @@ TEST(ExpressionParserTest, Basic) {
   }
 }
 
-struct GetOp {
-  Op operator()(const auto& x) {
-    using T = std::decay_t<decltype(x)>;
-    if constexpr (std::same_as<T, BinaryExpr>)
-      return x.op;
-    return Op::Unknown;
+struct GetPrefix {
+  std::string operator()(const BinaryExpr& x) const {
+    return ToString(x.op) + ' ' + x.lhs->Apply(*this) + ' ' +
+           x.rhs->Apply(*this);
   }
-};
+  std::string operator()(const UnaryExpr& x) const {
+    return ToString(x.op) + ' ' + x.sub->Apply(*this);
+  }
+  std::string operator()(const ParenExpr& x) const {
+    return x.sub->Apply(*this);
+  }
+  std::string operator()(const ReferenceExpr& x) const {
+    return x.id + '[' + x.idx->Apply(*this) + ']';
+  }
+  std::string operator()(std::monostate) const { return "<null>"; }
+  std::string operator()(int x) const { return std::to_string(x); }
+  std::string operator()(const std::string& str) const { return str; }
+} get_prefix_visitor;
 
 TEST(ExpressionParserTest, Precedence) {
   {
@@ -87,7 +97,7 @@ TEST(ExpressionParserTest, Precedence) {
 
     ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
     ASSERT_NE(result, nullptr);
-    EXPECT_EQ(result->Visit(GetOp()), Op::Add);
+    EXPECT_EQ(result->Apply(get_prefix_visitor), "+ * 5 6 7");
   }
 
   {
@@ -97,7 +107,7 @@ TEST(ExpressionParserTest, Precedence) {
 
     ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
     ASSERT_NE(result, nullptr);
-    EXPECT_EQ(result->Visit(GetOp()), Op::Add);
+    EXPECT_EQ(result->Apply(get_prefix_visitor), "+ 5 / 6 7");
   }
 }
 
@@ -109,6 +119,28 @@ TEST(ExpressionParserTest, Parenthesis) {
 
   ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
   ASSERT_NE(result, nullptr);
-  EXPECT_EQ(result->Visit(GetOp()), Op::Div);
-  EXPECT_EQ(result->DebugString(), "(5+6)/7");
+  EXPECT_EQ(result->Apply(get_prefix_visitor), "/ + 5 6 7");
+}
+
+TEST(ExpressionParserTest, ExprList) {
+  std::shared_ptr<ExprAST> result = nullptr;
+  std::vector<Token> input = TokenArray(tok::Int(5), tok::Plus(), tok::Int(6),
+                                        tok::Comma(), tok::Int(8), tok::Comma(),
+                                        tok::Int(9), tok::Div(), tok::Int(7));
+
+  ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
+  ASSERT_NE(result, nullptr);
+  EXPECT_EQ(result->Apply(get_prefix_visitor), ", , + 5 6 8 / 9 7");
+}
+
+TEST(ExpressionParserTest, Identifier) {
+  std::shared_ptr<ExprAST> result = nullptr;
+  std::vector<Token> input =
+      TokenArray(tok::ID("v1"), tok::Plus(), tok::ID("v2"), tok::Div(),
+                 tok::ID("v3"), tok::SquareL(), tok::ID("v4"), tok::Plus(),
+                 tok::ID("v5"), tok::SquareR());
+
+  ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
+  ASSERT_NE(result, nullptr);
+  EXPECT_EQ(result->Apply(get_prefix_visitor), "+ v1 / v2 v3[+ v4 v5]");
 }

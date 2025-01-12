@@ -33,6 +33,31 @@ namespace x3 = boost::spirit::x3;
 // -----------------------------------------------------------------------
 // primitive token parsers
 namespace {
+// Parser that matches a string token (tok::ID) and returns its value.
+struct str_token_parser : x3::parser<str_token_parser> {
+  using attribute_type = std::string;
+
+  template <typename Iterator,
+            typename Context,
+            typename RContext,
+            typename Attribute>
+  bool parse(Iterator& first,
+             Iterator const& last,
+             Context const& /*context*/,
+             RContext& /*rcontext*/,
+             Attribute& attr) const {
+    if (first == last)
+      return false;
+
+    if (auto p = std::get_if<tok::ID>(&*first)) {
+      attr = p->id;
+      ++first;
+      return true;
+    }
+    return false;
+  }
+};
+
 // Parser that matches an integer token (tok::Int) and returns its value.
 struct int_token_parser : x3::parser<int_token_parser> {
   using attribute_type = int;
@@ -49,10 +74,8 @@ struct int_token_parser : x3::parser<int_token_parser> {
     if (first == last)
       return false;
 
-    // Check if the current token is tok::Int
     if (auto p = std::get_if<tok::Int>(&*first)) {
-      // Move integer value into the attribute
-      x3::traits::move_to(p->value, attr);
+      attr = p->value;
       ++first;
       return true;
     }
@@ -87,6 +110,8 @@ struct token_parser : x3::parser<token_parser<Tok>> {
         attr = Op::Mul;
       else if constexpr (std::same_as<Tok, tok::Div>)
         attr = Op::Div;
+      else if constexpr (std::same_as<Tok, tok::Comma>)
+        attr = Op::Comma;
 
       ++first;
       return true;
@@ -116,6 +141,21 @@ x3::rule<struct expression_rule_class, std::shared_ptr<ExprAST>> const
     int_token_parser()[([](auto& ctx) {
       x3::_val(ctx) = std::make_shared<ExprAST>(x3::_attr(ctx));
     })] |
+
+    (str_token_parser() >> -(token_parser<tok::SquareL>() >> expression_rule >>
+                             token_parser<tok::SquareR>()))[([](auto& ctx) {
+      const auto& attr = x3::_attr(ctx);
+      const std::string& id = boost::fusion::at_c<0>(attr);
+      const auto& remain = boost::fusion::at_c<1>(
+          attr);  // boost::optional<boost::fusion::deque<Op, ptr<ExprAST>, OP>>
+      if (remain.has_value()) {
+        auto idx_ast = boost::fusion::at_c<1>(remain.value());
+        x3::_val(ctx) = std::make_shared<ExprAST>(ReferenceExpr(id, idx_ast));
+      } else {
+        x3::_val(ctx) = std::make_shared<ExprAST>(id);
+      }
+    })] |
+
     (token_parser<tok::ParenthesisL>() >> expression_rule >>
      token_parser<tok::ParenthesisR>())[([](auto& ctx) {
       const auto& attr = x3::_attr(ctx);
@@ -124,16 +164,23 @@ x3::rule<struct expression_rule_class, std::shared_ptr<ExprAST>> const
       x3::_val(ctx) = std::make_shared<ExprAST>(std::move(expr));
     })];
 
-[[maybe_unused]] auto const expression_rule_def = additive_expr;
-
+namespace {
 struct construct_ast {
   std::shared_ptr<ExprAST> operator()(auto& ctx) {
     const auto& attr = x3::_attr(ctx);
-    std::shared_ptr<ExprAST> result = boost::fusion::at_c<0>(attr);
+    std::shared_ptr<ExprAST> result = boost::fusion::at_c<0>(attr);  // lhs
+
+    // an array of (op,ast)
     for (const auto& it : boost::fusion::at_c<1>(attr)) {
-      Op op = boost::apply_visitor([](auto& x) { return x; },
-                                   boost::fusion::at_c<0>(it));
-      std::shared_ptr<ExprAST> rhs = boost::fusion::at_c<1>(it);
+      Op op = Op::Unknown;
+      const auto& first = boost::fusion::at_c<0>(it);
+      std::shared_ptr<ExprAST> rhs = boost::fusion::at_c<1>(it);  // second
+
+      if constexpr (std::same_as<Op, std::decay_t<decltype(first)>>)
+        op = first;
+      else
+        op = boost::apply_visitor([](const auto& x) { return x; }, first);
+
       BinaryExpr expr(op, result, rhs);
       result = std::make_shared<ExprAST>(std::move(expr));
     }
@@ -142,6 +189,11 @@ struct construct_ast {
     return result;
   }
 };
+}  // namespace
+
+[[maybe_unused]] auto const expression_rule_def =
+    (additive_expr >>
+     *(token_parser<tok::Comma>() >> additive_expr))[construct_ast()];
 
 [[maybe_unused]] auto const additive_expr_def =
     (multiplicative_expr >>

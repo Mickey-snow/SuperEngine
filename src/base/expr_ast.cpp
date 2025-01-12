@@ -29,6 +29,7 @@
 
 std::string ToString(Op op) {
   static const std::unordered_map<Op, std::string> opstr_table{
+      {Op::Comma, ","},
       {Op::Add, "+"},
       {Op::Sub, "-"},
       {Op::Mul, "*"},
@@ -78,8 +79,12 @@ std::string ParenExpr::DebugString() const {
   return '(' + sub->DebugString() + ')';
 }
 
+std::string ReferenceExpr::DebugString() const {
+  return id + idx->DebugString();
+}
+
 std::string ExprAST::DebugString() const {
-  return this->Visit([](const auto& x) -> std::string {
+  return this->Apply([](const auto& x) -> std::string {
     using T = std::decay_t<decltype(x)>;
 
     if constexpr (std::same_as<T, std::monostate>)
