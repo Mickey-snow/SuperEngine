@@ -83,10 +83,15 @@ struct int_token_parser : x3::parser<int_token_parser> {
   }
 };
 
-// Parser that matches a specific token type.
-template <typename Tok>
-struct token_parser : x3::parser<token_parser<Tok>> {
-  using attribute_type = Op;
+// Parser that matches a specified sequence of token
+template <typename R>
+struct seq_token_parser : x3::parser<seq_token_parser<R>> {
+  using attribute_type = R;
+
+  seq_token_parser(R attribute, std::vector<Token> tok)
+      : attribute_(attribute), tok_seq_(std::move(tok)) {}
+  R attribute_;
+  std::vector<Token> tok_seq_;
 
   template <typename Iterator,
             typename Context,
@@ -97,26 +102,13 @@ struct token_parser : x3::parser<token_parser<Tok>> {
              Context const& /*context*/,
              RContext& /*rcontext*/,
              Attribute& attr) const {
-    attr = Op::Unknown;
-    if (first == last)
-      return false;
+    for (std::size_t i = 0; i < tok_seq_.size(); ++i)
+      if (first + i == last || first[i] != tok_seq_[i])
+        return false;
 
-    if (std::holds_alternative<Tok>(*first)) {
-      if constexpr (std::same_as<Tok, tok::Plus>)
-        attr = Op::Add;
-      else if constexpr (std::same_as<Tok, tok::Minus>)
-        attr = Op ::Sub;
-      else if constexpr (std::same_as<Tok, tok::Mult>)
-        attr = Op::Mul;
-      else if constexpr (std::same_as<Tok, tok::Div>)
-        attr = Op::Div;
-      else if constexpr (std::same_as<Tok, tok::Comma>)
-        attr = Op::Comma;
-
-      ++first;
-      return true;
-    }
-    return false;
+    first += tok_seq_.size();
+    attr = attribute_;
+    return true;
   }
 };
 }  // namespace
@@ -127,42 +119,37 @@ struct token_parser : x3::parser<token_parser<Tok>> {
 // -----------------------------------------------------------------------
 x3::rule<struct primary_expr_rule, std::shared_ptr<ExprAST>> const
     primary_expr = "primary_expr";
+
+x3::rule<struct unary_expr_rule, std::shared_ptr<ExprAST>> const unary_expr =
+    "unary_expr";
 x3::rule<struct multiplicative_expr_rule, std::shared_ptr<ExprAST>> const
     multiplicative_expr = "multiplicative_expr";
 x3::rule<struct additive_expr_rule, std::shared_ptr<ExprAST>> const
     additive_expr = "additive_expr";
+x3::rule<struct shift_expr_rule, std::shared_ptr<ExprAST>> const shift_expr =
+    "shift_expr";
+x3::rule<struct relational_expr_rule, std::shared_ptr<ExprAST>> const
+    relational_expr = "relational_expr";
+x3::rule<struct equality_expr_rule, std::shared_ptr<ExprAST>> const
+    equality_expr = "equality_expr";
+x3::rule<struct bitwise_and_expr_rule, std::shared_ptr<ExprAST>> const
+    bitwise_and_expr = "bitwise_and_expr";
+x3::rule<struct bitwise_xor_expr_rule, std::shared_ptr<ExprAST>> const
+    bitwise_xor_expr = "bitwise_xor_expr";
+x3::rule<struct bitwise_or_expr_rule, std::shared_ptr<ExprAST>> const
+    bitwise_or_expr = "bitwise_or_expr";
+x3::rule<struct logical_and_expr_rule, std::shared_ptr<ExprAST>> const
+    logical_and_expr = "logical_and_expr";
+x3::rule<struct logical_or_expr_rule, std::shared_ptr<ExprAST>> const
+    logical_or_expr = "logical_or_expr";
+x3::rule<struct assignment_expr_rule, std::shared_ptr<ExprAST>> const
+    assignment_expr = "assignment_expr";
 x3::rule<struct expression_rule_class, std::shared_ptr<ExprAST>> const
     expression_rule = "expression_rule";
 
 // -----------------------------------------------------------------------
 // Rule definitions
 // -----------------------------------------------------------------------
-[[maybe_unused]] auto const primary_expr_def =
-    int_token_parser()[([](auto& ctx) {
-      x3::_val(ctx) = std::make_shared<ExprAST>(x3::_attr(ctx));
-    })] |
-
-    (str_token_parser() >> -(token_parser<tok::SquareL>() >> expression_rule >>
-                             token_parser<tok::SquareR>()))[([](auto& ctx) {
-      const auto& attr = x3::_attr(ctx);
-      const std::string& id = boost::fusion::at_c<0>(attr);
-      const auto& remain = boost::fusion::at_c<1>(
-          attr);  // boost::optional<boost::fusion::deque<Op, ptr<ExprAST>, OP>>
-      if (remain.has_value()) {
-        auto idx_ast = boost::fusion::at_c<1>(remain.value());
-        x3::_val(ctx) = std::make_shared<ExprAST>(ReferenceExpr(id, idx_ast));
-      } else {
-        x3::_val(ctx) = std::make_shared<ExprAST>(id);
-      }
-    })] |
-
-    (token_parser<tok::ParenthesisL>() >> expression_rule >>
-     token_parser<tok::ParenthesisR>())[([](auto& ctx) {
-      const auto& attr = x3::_attr(ctx);
-      std::shared_ptr<ExprAST> sub = boost::fusion::at_c<1>(attr);
-      ParenExpr expr(sub);
-      x3::_val(ctx) = std::make_shared<ExprAST>(std::move(expr));
-    })];
 
 namespace {
 struct construct_ast {
@@ -188,24 +175,93 @@ struct construct_ast {
     x3::_val(ctx) = result;
     return result;
   }
-};
+} construct_ast_fn;
 }  // namespace
 
 [[maybe_unused]] auto const expression_rule_def =
-    (additive_expr >>
-     *(token_parser<tok::Comma>() >> additive_expr))[construct_ast()];
+    (assignment_expr >> *(seq_token_parser(Op::Comma, {tok::Comma()}) >>
+                          assignment_expr))[construct_ast_fn];
+
+[[maybe_unused]] auto const assignment_expr_def = logical_or_expr;
+
+[[maybe_unused]] auto const logical_or_expr_def = logical_and_expr;
+
+[[maybe_unused]] auto const logical_and_expr_def = bitwise_or_expr;
+
+[[maybe_unused]] auto const bitwise_or_expr_def = bitwise_xor_expr;
+
+[[maybe_unused]] auto const bitwise_xor_expr_def = bitwise_and_expr;
+
+[[maybe_unused]] auto const bitwise_and_expr_def = equality_expr;
+
+[[maybe_unused]] auto const equality_expr_def =
+    (relational_expr >>
+     *((seq_token_parser(Op::Equal, {tok::Eq(), tok::Eq()}) |
+        seq_token_parser(Op::NotEqual, {tok::Exclam(), tok::Eq()})) >>
+       relational_expr))[construct_ast_fn];
+
+[[maybe_unused]] auto const relational_expr_def =
+    (shift_expr >>
+     *((seq_token_parser(Op::LessEqual, {tok::AngleL(), tok::Eq()}) |
+        seq_token_parser(Op::Less, {tok::AngleL()}) |
+        seq_token_parser(Op::GreaterEqual, {tok::AngleR(), tok::Eq()}) |
+        seq_token_parser(Op::Greater, {tok::AngleR()})) >>
+       shift_expr))[construct_ast_fn];
+
+[[maybe_unused]] auto const shift_expr_def = additive_expr;
 
 [[maybe_unused]] auto const additive_expr_def =
-    (multiplicative_expr >>
-     *((token_parser<tok::Plus>() | token_parser<tok::Minus>()) >>
-       multiplicative_expr))[construct_ast()];
+    (multiplicative_expr >> *((seq_token_parser(Op::Add, {tok::Plus()}) |
+                               seq_token_parser(Op::Sub, {tok::Minus()})) >>
+                              multiplicative_expr))[construct_ast_fn];
 
 [[maybe_unused]] auto const multiplicative_expr_def =
-    (primary_expr >> *((token_parser<tok::Mult>() | token_parser<tok::Div>()) >>
-                       primary_expr))[construct_ast()];
+    (unary_expr >> *((seq_token_parser(Op::Mul, {tok::Mult()}) |
+                      seq_token_parser(Op::Div, {tok::Div()})) >>
+                     unary_expr))[construct_ast_fn];
+
+[[maybe_unused]] auto const unary_expr_def = primary_expr;
+
+[[maybe_unused]] auto const primary_expr_def =
+    int_token_parser()[([](auto& ctx) {
+      x3::_val(ctx) = std::make_shared<ExprAST>(x3::_attr(ctx));
+    })] |  // integer literal
+
+    (str_token_parser() >>
+     -(seq_token_parser(Op::Unknown, {tok::SquareL()}) >> expression_rule >>
+       seq_token_parser(Op::Unknown, {tok::SquareR()})))[([](auto& ctx) {
+      const auto& attr = x3::_attr(ctx);
+      const std::string& id = boost::fusion::at_c<0>(attr);
+      const auto& remain = boost::fusion::at_c<1>(
+          attr);  // boost::optional<boost::fusion::deque<Op, ptr<ExprAST>, OP>>
+      if (remain.has_value()) {
+        auto idx_ast = boost::fusion::at_c<1>(remain.value());
+        x3::_val(ctx) = std::make_shared<ExprAST>(ReferenceExpr(id, idx_ast));
+      } else {
+        x3::_val(ctx) = std::make_shared<ExprAST>(id);
+      }
+    })] |  // memory reference
+
+    (seq_token_parser(Op::Unknown, {tok::ParenthesisL()}) >> expression_rule >>
+     seq_token_parser(Op::Unknown, {tok::ParenthesisR()}))[([](auto& ctx) {
+      const auto& attr = x3::_attr(ctx);
+      std::shared_ptr<ExprAST> sub = boost::fusion::at_c<1>(attr);
+      ParenExpr expr(sub);
+      x3::_val(ctx) = std::make_shared<ExprAST>(std::move(expr));
+    })];  // ( <expr> )
 
 BOOST_SPIRIT_DEFINE(primary_expr,
+                    assignment_expr,
+                    unary_expr,
+                    shift_expr,
+                    relational_expr,
                     expression_rule,
+                    equality_expr,
+                    bitwise_and_expr,
+                    bitwise_xor_expr,
+                    bitwise_or_expr,
+                    logical_and_expr,
+                    logical_or_expr,
                     multiplicative_expr,
                     additive_expr);
 

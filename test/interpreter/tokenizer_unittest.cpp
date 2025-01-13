@@ -60,46 +60,22 @@ TEST(TokenizerTest, ParseNumbers) {
 }
 
 TEST(TokenizerTest, ParseSymbols) {
-  constexpr std::string_view input = "$a_=0+1-2/3*5,6";
+  constexpr std::string_view input = "$a_=0+1-2/3*5,6!";
 
   Tokenizer tokenizer(input);
   EXPECT_EQ(tokenizer.parsed_tok_,
             TokenArray(tok::Dollar(), tok::ID("a_"s), tok::Eq(), tok::Int(0),
                        tok::Plus(), tok::Int(1), tok::Minus(), tok::Int(2),
                        tok::Div(), tok::Int(3), tok::Mult(), tok::Int(5),
-                       tok::Comma(), tok::Int(6)));
+                       tok::Comma(), tok::Int(6), tok::Exclam()));
 }
 
 TEST(TokenizerTest, ParseBrackets) {
-  constexpr std::string_view input = "[]{}()";
+  constexpr std::string_view input = "[]{}()<>";
 
   Tokenizer tokenizer(input);
-  EXPECT_EQ(
-      tokenizer.parsed_tok_,
-      TokenArray(tok::SquareL(), tok::SquareR(), tok::CurlyL(), tok::CurlyR(),
-                 tok::ParenthesisL(), tok::ParenthesisR()));
-}
-
-TEST(TokenizerHelperTest, MatchTok) {
-  Token tok = tok::Dollar();
-  EXPECT_TRUE(match_token<tok::Dollar>()(tok));
-  EXPECT_FALSE(match_token<tok::ID>()(tok));
-}
-
-TEST(TokenizerHelperTest, MatchInt) {
-  Token tok = tok::Int(12);
-  int value = 0;
-  EXPECT_FALSE(match_int()(tok::Dollar(), value));
-  EXPECT_EQ(value, 0);
-  EXPECT_TRUE(match_int()(tok, value));
-  EXPECT_EQ(value, 12);
-}
-
-TEST(TokenizerHelperTest, MatchID) {
-  Token tok = tok::ID("intL");
-  std::string value;
-  EXPECT_FALSE(match_id()(tok::Dollar(), value));
-  EXPECT_TRUE(value.empty());
-  EXPECT_TRUE(match_id()(tok, value));
-  EXPECT_EQ(value, "intL");
+  EXPECT_EQ(tokenizer.parsed_tok_,
+            TokenArray(tok::SquareL(), tok::SquareR(), tok::CurlyL(),
+                       tok::CurlyR(), tok::ParenthesisL(), tok::ParenthesisR(),
+                       tok::AngleL(), tok::AngleR()));
 }

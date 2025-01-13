@@ -91,8 +91,20 @@ struct ParenthesisR {
   auto operator<=>(const ParenthesisR& rhs) const = default;
 };
 
+struct AngleL {
+  auto operator<=>(const AngleL& rhs) const = default;
+};
+
+struct AngleR {
+  auto operator<=>(const AngleR& rhs) const = default;
+};
+
 struct Comma {
   auto operator<=>(const Comma& rhs) const = default;
+};
+
+struct Exclam {
+  auto operator<=>(const Exclam& rhs) const = default;
 };
 
 }  // namespace tok
@@ -112,32 +124,7 @@ using Token = std::variant<tok::ID,
                            tok::CurlyR,
                            tok::ParenthesisL,
                            tok::ParenthesisR,
-                           tok::Comma>;
-
-template <typename T>
-struct match_token {
-  using result_type = bool;
-  bool operator()(const Token& t) const { return std::holds_alternative<T>(t); }
-};
-
-struct match_int {
-  using result_type = bool;
-  bool operator()(const Token& t, int& value) const {
-    if (auto p = std::get_if<tok::Int>(&t)) {
-      value = p->value;
-      return true;
-    }
-    return false;
-  }
-};
-
-struct match_id {
-  using result_type = bool;
-  bool operator()(const Token& t, std::string& value) const {
-    if (auto p = std::get_if<tok::ID>(&t)) {
-      value = p->id;
-      return true;
-    }
-    return false;
-  }
-};
+                           tok::AngleL,
+                           tok::AngleR,
+                           tok::Comma,
+                           tok::Exclam>;

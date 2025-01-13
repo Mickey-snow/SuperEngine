@@ -45,7 +45,8 @@ void Tokenizer::Parse() {
         : identifier("[a-zA-Z_][a-zA-Z0-9_]*"),
           integer("[0-9]+"),
           ws("[ \t\n]+"),
-          symbol(R"([\+\-\*/=\(\)\[\]\{\}\$,])")  // Match any of +-*/=()[]{}$,
+          symbol(R"([\+\-\*/=\(\)\[\]\{\}\$,!<>])")  // Match any of
+                                                     // +-*/=()[]{}<>!$,
     {
       this->self.add(identifier, ID_identifier)(ws, ID_ws)(integer, ID_int)(
           symbol, ID_symbol);
@@ -83,7 +84,8 @@ void Tokenizer::Parse() {
                 {'[', tok::SquareL()},      {']', tok::SquareR()},
                 {'{', tok::CurlyL()},       {'}', tok::CurlyR()},
                 {'(', tok::ParenthesisL()}, {')', tok::ParenthesisR()},
-                {',', tok::Comma()}};
+                {',', tok::Comma()},        {'!', tok::Exclam()},
+                {'<', tok::AngleL()},       {'>', tok::AngleR()}};
             parsed_tok_.emplace_back(symbol_table.at(value.front()));
             break;
           }

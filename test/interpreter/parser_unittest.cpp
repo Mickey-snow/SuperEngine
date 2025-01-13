@@ -29,7 +29,9 @@
 #include "base/expr_ast.hpp"
 #include "interpreter/parser.hpp"
 
-TEST(ExpressionParserTest, Basic) {
+inline static GetPrefix get_prefix_visitor;
+
+TEST(ExpressionParserTest, BasicArithmetic) {
   {
     std::shared_ptr<ExprAST> result = nullptr;
     std::vector<Token> input =
@@ -69,25 +71,6 @@ TEST(ExpressionParserTest, Basic) {
     EXPECT_EQ(result->DebugString(), "7/8");
   }
 }
-
-struct GetPrefix {
-  std::string operator()(const BinaryExpr& x) const {
-    return ToString(x.op) + ' ' + x.lhs->Apply(*this) + ' ' +
-           x.rhs->Apply(*this);
-  }
-  std::string operator()(const UnaryExpr& x) const {
-    return ToString(x.op) + ' ' + x.sub->Apply(*this);
-  }
-  std::string operator()(const ParenExpr& x) const {
-    return x.sub->Apply(*this);
-  }
-  std::string operator()(const ReferenceExpr& x) const {
-    return x.id + '[' + x.idx->Apply(*this) + ']';
-  }
-  std::string operator()(std::monostate) const { return "<null>"; }
-  std::string operator()(int x) const { return std::to_string(x); }
-  std::string operator()(const std::string& str) const { return str; }
-} get_prefix_visitor;
 
 TEST(ExpressionParserTest, Precedence) {
   {
@@ -143,4 +126,17 @@ TEST(ExpressionParserTest, Identifier) {
   ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
   ASSERT_NE(result, nullptr);
   EXPECT_EQ(result->Apply(get_prefix_visitor), "+ v1 / v2 v3[+ v4 v5]");
+}
+
+TEST(ExpressionParserTest, Comparisons) {
+  std::shared_ptr<ExprAST> result = nullptr;
+  std::vector<Token> input = TokenArray(
+      tok::ID("v1"), tok::Eq(), tok::Eq(), tok::ID("v2"), tok::Exclam(),
+      tok::Eq(), tok::ID("v3"), tok::AngleR(), tok::ID("v4"), tok::AngleL(),
+      tok::ID("v5"), tok::AngleL(), tok::Eq(), tok::Int(12), tok::AngleR(),
+      tok::Eq(), tok::Int(13));
+
+  ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
+  ASSERT_NE(result, nullptr);
+  EXPECT_EQ(result->Apply(get_prefix_visitor), "!= == v1 v2 >= <= < > v3 v4 v5 12 13");
 }
