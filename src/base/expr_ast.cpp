@@ -66,6 +66,45 @@ std::string ToString(Op op) {
   else
     return std::format("<op:{}>", static_cast<int>(op));
 }
+Op CreateOp(std::string_view str) {
+  static const std::unordered_map<std::string_view, Op> strop_table{
+      {",", Op::Comma},
+      {"+", Op::Add},
+      {"-", Op::Sub},
+      {"*", Op::Mul},
+      {"/", Op::Div},
+      {"%", Op::Mod},
+      {"&", Op::BitAnd},
+      {"|", Op::BitOr},
+      {"^", Op::BitXor},
+      {"<<", Op::ShiftLeft},
+      {">>", Op::ShiftRight},
+      {"~", Op::Tilde},
+      {"+=", Op::AddAssign},
+      {"-=", Op::SubAssign},
+      {"*=", Op::MulAssign},
+      {"/=", Op::DivAssign},
+      {"%=", Op::ModAssign},
+      {"&=", Op::BitAndAssign},
+      {"|=", Op::BitOrAssign},
+      {"^=", Op::BitXorAssign},
+      {"<<=", Op::ShiftLeftAssign},
+      {">>=", Op::ShiftRightAssign},
+      {"=", Op::Assign},
+      {"==", Op::Equal},
+      {"!=", Op::NotEqual},
+      {"<=", Op::LessEqual},
+      {"<", Op::Less},
+      {">=", Op::GreaterEqual},
+      {">", Op::Greater},
+      {"&&", Op::LogicalAnd},
+      {"||", Op::LogicalOr}};
+
+  if (strop_table.contains(str))
+    return strop_table.at(str);
+  else
+    return Op::Unknown;
+}
 
 std::string BinaryExpr::DebugString() const {
   return lhs->DebugString() + ToString(op) + rhs->DebugString();

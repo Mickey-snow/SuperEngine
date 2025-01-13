@@ -35,7 +35,7 @@ TEST(ExpressionParserTest, BasicArithmetic) {
   {
     std::shared_ptr<ExprAST> result = nullptr;
     std::vector<Token> input =
-        TokenArray(tok::Int(1), tok::Plus(), tok::Int(2));
+        TokenArray(tok::Int(1), tok::Operator(Op::Add), tok::Int(2));
 
     ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
     ASSERT_NE(result, nullptr);
@@ -45,7 +45,7 @@ TEST(ExpressionParserTest, BasicArithmetic) {
   {
     std::shared_ptr<ExprAST> result = nullptr;
     std::vector<Token> input =
-        TokenArray(tok::Int(3), tok::Minus(), tok::Int(4));
+        TokenArray(tok::Int(3), tok::Operator(Op::Sub), tok::Int(4));
 
     ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
     ASSERT_NE(result, nullptr);
@@ -55,7 +55,7 @@ TEST(ExpressionParserTest, BasicArithmetic) {
   {
     std::shared_ptr<ExprAST> result = nullptr;
     std::vector<Token> input =
-        TokenArray(tok::Int(5), tok::Mult(), tok::Int(6));
+        TokenArray(tok::Int(5), tok::Operator(Op::Mul), tok::Int(6));
 
     ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
     ASSERT_NE(result, nullptr);
@@ -64,7 +64,8 @@ TEST(ExpressionParserTest, BasicArithmetic) {
 
   {
     std::shared_ptr<ExprAST> result = nullptr;
-    std::vector<Token> input = TokenArray(tok::Int(7), tok::Div(), tok::Int(8));
+    std::vector<Token> input =
+        TokenArray(tok::Int(7), tok::Operator(Op::Div), tok::Int(8));
 
     ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
     ASSERT_NE(result, nullptr);
@@ -75,8 +76,9 @@ TEST(ExpressionParserTest, BasicArithmetic) {
 TEST(ExpressionParserTest, Precedence) {
   {
     std::shared_ptr<ExprAST> result = nullptr;
-    std::vector<Token> input = TokenArray(tok::Int(5), tok::Mult(), tok::Int(6),
-                                          tok::Plus(), tok::Int(7));
+    std::vector<Token> input =
+        TokenArray(tok::Int(5), tok::Operator(Op::Mul), tok::Int(6),
+                   tok::Operator(Op::Add), tok::Int(7));
 
     ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
     ASSERT_NE(result, nullptr);
@@ -85,8 +87,9 @@ TEST(ExpressionParserTest, Precedence) {
 
   {
     std::shared_ptr<ExprAST> result = nullptr;
-    std::vector<Token> input = TokenArray(tok::Int(5), tok::Plus(), tok::Int(6),
-                                          tok::Div(), tok::Int(7));
+    std::vector<Token> input =
+        TokenArray(tok::Int(5), tok::Operator(Op::Add), tok::Int(6),
+                   tok::Operator(Op::Div), tok::Int(7));
 
     ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
     ASSERT_NE(result, nullptr);
@@ -96,9 +99,9 @@ TEST(ExpressionParserTest, Precedence) {
 
 TEST(ExpressionParserTest, Parenthesis) {
   std::shared_ptr<ExprAST> result = nullptr;
-  std::vector<Token> input =
-      TokenArray(tok::ParenthesisL(), tok::Int(5), tok::Plus(), tok::Int(6),
-                 tok::ParenthesisR(), tok::Div(), tok::Int(7));
+  std::vector<Token> input = TokenArray(
+      tok::ParenthesisL(), tok::Int(5), tok::Operator(Op::Add), tok::Int(6),
+      tok::ParenthesisR(), tok::Operator(Op::Div), tok::Int(7));
 
   ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
   ASSERT_NE(result, nullptr);
@@ -107,9 +110,10 @@ TEST(ExpressionParserTest, Parenthesis) {
 
 TEST(ExpressionParserTest, ExprList) {
   std::shared_ptr<ExprAST> result = nullptr;
-  std::vector<Token> input = TokenArray(tok::Int(5), tok::Plus(), tok::Int(6),
-                                        tok::Comma(), tok::Int(8), tok::Comma(),
-                                        tok::Int(9), tok::Div(), tok::Int(7));
+  std::vector<Token> input = TokenArray(
+      tok::Int(5), tok::Operator(Op::Add), tok::Int(6),
+      tok::Operator(Op::Comma), tok::Int(8), tok::Operator(Op::Comma),
+      tok::Int(9), tok::Operator(Op::Div), tok::Int(7));
 
   ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
   ASSERT_NE(result, nullptr);
@@ -118,10 +122,10 @@ TEST(ExpressionParserTest, ExprList) {
 
 TEST(ExpressionParserTest, Identifier) {
   std::shared_ptr<ExprAST> result = nullptr;
-  std::vector<Token> input =
-      TokenArray(tok::ID("v1"), tok::Plus(), tok::ID("v2"), tok::Div(),
-                 tok::ID("v3"), tok::SquareL(), tok::ID("v4"), tok::Plus(),
-                 tok::ID("v5"), tok::SquareR());
+  std::vector<Token> input = TokenArray(
+      tok::ID("v1"), tok::Operator(Op::Add), tok::ID("v2"),
+      tok::Operator(Op::Div), tok::ID("v3"), tok::SquareL(), tok::ID("v4"),
+      tok::Operator(Op::Add), tok::ID("v5"), tok::SquareR());
 
   ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
   ASSERT_NE(result, nullptr);
@@ -131,12 +135,14 @@ TEST(ExpressionParserTest, Identifier) {
 TEST(ExpressionParserTest, Comparisons) {
   std::shared_ptr<ExprAST> result = nullptr;
   std::vector<Token> input = TokenArray(
-      tok::ID("v1"), tok::Eq(), tok::Eq(), tok::ID("v2"), tok::Exclam(),
-      tok::Eq(), tok::ID("v3"), tok::AngleR(), tok::ID("v4"), tok::AngleL(),
-      tok::ID("v5"), tok::AngleL(), tok::Eq(), tok::Int(12), tok::AngleR(),
-      tok::Eq(), tok::Int(13));
+      tok::ID("v1"), tok::Operator(Op::Equal), tok::ID("v2"),
+      tok::Operator(Op::NotEqual), tok::ID("v3"), tok::Operator(Op::Greater),
+      tok::ID("v4"), tok::Operator(Op::Less), tok::ID("v5"),
+      tok::Operator(Op::LessEqual), tok::Int(12),
+      tok::Operator(Op::GreaterEqual), tok::Int(13));
 
   ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
   ASSERT_NE(result, nullptr);
-  EXPECT_EQ(result->Apply(get_prefix_visitor), "!= == v1 v2 >= <= < > v3 v4 v5 12 13");
+  EXPECT_EQ(result->Apply(get_prefix_visitor),
+            "!= == v1 v2 >= <= < > v3 v4 v5 12 13");
 }

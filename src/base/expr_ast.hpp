@@ -81,6 +81,7 @@ enum Op : int {
   LogicalOr    // "||"
 };
 std::string ToString(Op op);
+Op CreateOp(std::string_view str);
 
 // -----------------------------------------------------------------------
 // AST Nodes

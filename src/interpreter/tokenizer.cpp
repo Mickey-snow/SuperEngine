@@ -24,6 +24,7 @@
 
 #include "interpreter/tokenizer.hpp"
 
+#include <boost/regex.hpp>
 #include <boost/spirit/include/lex_lexertl.hpp>
 
 Tokenizer::Tokenizer(std::string_view input, bool should_parse)
@@ -34,22 +35,22 @@ Tokenizer::Tokenizer(std::string_view input, bool should_parse)
 
 void Tokenizer::Parse() {
   namespace lex = boost::spirit::lex;
-  enum token_ids { ID_identifier = 1000, ID_ws, ID_int, ID_symbol };
+  enum token_ids { ID_identifier = 1000, ID_ws, ID_int, ID_bracket, ID_op };
   struct lexer : lex::lexer<lex::lexertl::lexer<>> {
     lex::token_def<std::string> identifier;
     lex::token_def<> integer;
     lex::token_def<> ws;
-    lex::token_def<> symbol;
+    lex::token_def<> bracket;
+    lex::token_def<> op;
 
     lexer()
         : identifier("[a-zA-Z_][a-zA-Z0-9_]*"),
           integer("[0-9]+"),
           ws("[ \t\n]+"),
-          symbol(R"([\+\-\*/=\(\)\[\]\{\}\$,!<>])")  // Match any of
-                                                     // +-*/=()[]{}<>!$,
-    {
+          bracket(R"([\(\)\[\]\{\}])"),  // matches any of ()[]{}
+          op(R"(>>>=|>>>|>>=|>>|<<=|<<|\+=|\-=|\*=|\/=|%=|&=|\|=|\^=|==|!=|<=|>=|\|\||&&|=|\+|\-|\*|\/|%|~|&|\||\^|<|>|,)") {
       this->self.add(identifier, ID_identifier)(ws, ID_ws)(integer, ID_int)(
-          symbol, ID_symbol);
+          bracket, ID_bracket)(op, ID_op);
     }
   };
 
@@ -76,19 +77,18 @@ void Tokenizer::Parse() {
             parsed_tok_.emplace_back(tok::Int(std::stoi(value)));
             break;
 
-          case ID_symbol: {
+          case ID_bracket: {
             static const std::unordered_map<char, Token> symbol_table{
-                {'$', tok::Dollar()},       {'+', tok::Plus()},
-                {'-', tok::Minus()},        {'*', tok::Mult()},
-                {'/', tok::Div()},          {'=', tok::Eq()},
                 {'[', tok::SquareL()},      {']', tok::SquareR()},
                 {'{', tok::CurlyL()},       {'}', tok::CurlyR()},
-                {'(', tok::ParenthesisL()}, {')', tok::ParenthesisR()},
-                {',', tok::Comma()},        {'!', tok::Exclam()},
-                {'<', tok::AngleL()},       {'>', tok::AngleR()}};
+                {'(', tok::ParenthesisL()}, {')', tok::ParenthesisR()}};
             parsed_tok_.emplace_back(symbol_table.at(value.front()));
             break;
           }
+
+          case ID_op:
+            parsed_tok_.emplace_back(tok::Operator(CreateOp(value)));
+            break;
 
           default:
             return false;

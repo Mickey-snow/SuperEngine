@@ -28,6 +28,8 @@
 #include <boost/fusion/include/deque.hpp>
 #include <boost/spirit/home/x3.hpp>
 
+#include <unordered_set>
+
 namespace x3 = boost::spirit::x3;
 
 // -----------------------------------------------------------------------
@@ -83,15 +85,14 @@ struct int_token_parser : x3::parser<int_token_parser> {
   }
 };
 
-// Parser that matches a specified sequence of token
-template <typename R>
-struct seq_token_parser : x3::parser<seq_token_parser<R>> {
-  using attribute_type = R;
+// Parser that matches an operator token (tok::Operator) and returns its
+// operator.
+struct op_token_parser : x3::parser<op_token_parser> {
+  using attribute_type = Op;
 
-  seq_token_parser(R attribute, std::vector<Token> tok)
-      : attribute_(attribute), tok_seq_(std::move(tok)) {}
-  R attribute_;
-  std::vector<Token> tok_seq_;
+  op_token_parser(std::initializer_list<Op> accepted_operators)
+      : op_table_(accepted_operators) {}
+  std::unordered_set<Op> op_table_;
 
   template <typename Iterator,
             typename Context,
@@ -102,15 +103,47 @@ struct seq_token_parser : x3::parser<seq_token_parser<R>> {
              Context const& /*context*/,
              RContext& /*rcontext*/,
              Attribute& attr) const {
-    for (std::size_t i = 0; i < tok_seq_.size(); ++i)
-      if (first + i == last || first[i] != tok_seq_[i])
+    attr = Op::Unknown;
+
+    if (first == last)
+      return false;
+
+    if (auto p = std::get_if<tok::Operator>(&*first)) {
+      if (!op_table_.empty() && !op_table_.contains(p->op))
         return false;
 
-    first += tok_seq_.size();
-    attr = attribute_;
-    return true;
+      attr = p->op;
+      ++first;
+      return true;
+    }
+    return false;
   }
 };
+
+// Parser that matches a specified type of token.
+template <typename Tok>
+struct token_parser : x3::parser<token_parser<Tok>> {
+  using attribute_type = x3::unused_type;
+
+  template <typename Iterator,
+            typename Context,
+            typename RContext,
+            typename Attribute>
+  bool parse(Iterator& first,
+             Iterator const& last,
+             Context const& /*context*/,
+             RContext& /*rcontext*/,
+             Attribute& /*attr*/) const {
+    if (first == last)
+      return false;
+    if (std::holds_alternative<Tok>(*first)) {
+      ++first;
+      return true;
+    }
+    return false;
+  }
+};
+
 }  // namespace
 // -----------------------------------------------------------------------
 
@@ -165,7 +198,7 @@ struct construct_ast {
 
       if constexpr (std::same_as<Op, std::decay_t<decltype(first)>>)
         op = first;
-      else
+      else  // type is variant<Op,Op>
         op = boost::apply_visitor([](const auto& x) { return x; }, first);
 
       BinaryExpr expr(op, result, rhs);
@@ -179,8 +212,8 @@ struct construct_ast {
 }  // namespace
 
 [[maybe_unused]] auto const expression_rule_def =
-    (assignment_expr >> *(seq_token_parser(Op::Comma, {tok::Comma()}) >>
-                          assignment_expr))[construct_ast_fn];
+    (assignment_expr >>
+     *(op_token_parser{Op::Comma} >> assignment_expr))[construct_ast_fn];
 
 [[maybe_unused]] auto const assignment_expr_def = logical_or_expr;
 
@@ -195,30 +228,23 @@ struct construct_ast {
 [[maybe_unused]] auto const bitwise_and_expr_def = equality_expr;
 
 [[maybe_unused]] auto const equality_expr_def =
-    (relational_expr >>
-     *((seq_token_parser(Op::Equal, {tok::Eq(), tok::Eq()}) |
-        seq_token_parser(Op::NotEqual, {tok::Exclam(), tok::Eq()})) >>
-       relational_expr))[construct_ast_fn];
+    (relational_expr >> *(op_token_parser{Op::Equal, Op::NotEqual} >>
+                          relational_expr))[construct_ast_fn];
 
 [[maybe_unused]] auto const relational_expr_def =
-    (shift_expr >>
-     *((seq_token_parser(Op::LessEqual, {tok::AngleL(), tok::Eq()}) |
-        seq_token_parser(Op::Less, {tok::AngleL()}) |
-        seq_token_parser(Op::GreaterEqual, {tok::AngleR(), tok::Eq()}) |
-        seq_token_parser(Op::Greater, {tok::AngleR()})) >>
-       shift_expr))[construct_ast_fn];
+    (shift_expr >> *(op_token_parser{Op::LessEqual, Op::Less, Op::GreaterEqual,
+                                     Op::Greater} >>
+                     shift_expr))[construct_ast_fn];
 
 [[maybe_unused]] auto const shift_expr_def = additive_expr;
 
 [[maybe_unused]] auto const additive_expr_def =
-    (multiplicative_expr >> *((seq_token_parser(Op::Add, {tok::Plus()}) |
-                               seq_token_parser(Op::Sub, {tok::Minus()})) >>
+    (multiplicative_expr >> *(op_token_parser{Op::Add, Op::Sub} >>
                               multiplicative_expr))[construct_ast_fn];
 
 [[maybe_unused]] auto const multiplicative_expr_def =
-    (unary_expr >> *((seq_token_parser(Op::Mul, {tok::Mult()}) |
-                      seq_token_parser(Op::Div, {tok::Div()})) >>
-                     unary_expr))[construct_ast_fn];
+    (unary_expr >>
+     *(op_token_parser{Op::Mul, Op::Div} >> unary_expr))[construct_ast_fn];
 
 [[maybe_unused]] auto const unary_expr_def = primary_expr;
 
@@ -228,24 +254,23 @@ struct construct_ast {
     })] |  // integer literal
 
     (str_token_parser() >>
-     -(seq_token_parser(Op::Unknown, {tok::SquareL()}) >> expression_rule >>
-       seq_token_parser(Op::Unknown, {tok::SquareR()})))[([](auto& ctx) {
+     -(token_parser<tok::SquareL>() >> expression_rule >>
+       token_parser<tok::SquareR>()))[([](auto& ctx) {
       const auto& attr = x3::_attr(ctx);
       const std::string& id = boost::fusion::at_c<0>(attr);
       const auto& remain = boost::fusion::at_c<1>(
           attr);  // boost::optional<boost::fusion::deque<Op, ptr<ExprAST>, OP>>
       if (remain.has_value()) {
-        auto idx_ast = boost::fusion::at_c<1>(remain.value());
+        auto idx_ast = remain.value();
         x3::_val(ctx) = std::make_shared<ExprAST>(ReferenceExpr(id, idx_ast));
       } else {
         x3::_val(ctx) = std::make_shared<ExprAST>(id);
       }
     })] |  // memory reference
 
-    (seq_token_parser(Op::Unknown, {tok::ParenthesisL()}) >> expression_rule >>
-     seq_token_parser(Op::Unknown, {tok::ParenthesisR()}))[([](auto& ctx) {
-      const auto& attr = x3::_attr(ctx);
-      std::shared_ptr<ExprAST> sub = boost::fusion::at_c<1>(attr);
+    (token_parser<tok::ParenthesisL>() >> expression_rule >>
+     token_parser<tok::ParenthesisR>())[([](auto& ctx) {
+      std::shared_ptr<ExprAST> sub = x3::_attr(ctx);
       ParenExpr expr(sub);
       x3::_val(ctx) = std::make_shared<ExprAST>(std::move(expr));
     })];  // ( <expr> )

@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include "base/expr_ast.hpp"
+
 #include <string>
 #include <variant>
 
@@ -43,28 +45,13 @@ struct Int {
   auto operator<=>(const Int& rhs) const = default;
 };
 
+struct Operator {
+  Op op;
+  auto operator<=>(const Operator& rhs) const = default;
+};
+
 struct Dollar {
   auto operator<=>(const Dollar& rhs) const = default;
-};
-
-struct Plus {
-  auto operator<=>(const Plus& rhs) const = default;
-};
-
-struct Minus {
-  auto operator<=>(const Minus& rhs) const = default;
-};
-
-struct Mult {
-  auto operator<=>(const Mult& rhs) const = default;
-};
-
-struct Div {
-  auto operator<=>(const Div& rhs) const = default;
-};
-
-struct Eq {
-  auto operator<=>(const Eq& rhs) const = default;
 };
 
 struct SquareL {
@@ -91,40 +78,16 @@ struct ParenthesisR {
   auto operator<=>(const ParenthesisR& rhs) const = default;
 };
 
-struct AngleL {
-  auto operator<=>(const AngleL& rhs) const = default;
-};
-
-struct AngleR {
-  auto operator<=>(const AngleR& rhs) const = default;
-};
-
-struct Comma {
-  auto operator<=>(const Comma& rhs) const = default;
-};
-
-struct Exclam {
-  auto operator<=>(const Exclam& rhs) const = default;
-};
-
 }  // namespace tok
 
 using Token = std::variant<tok::ID,
                            tok::WS,
                            tok::Int,
+                           tok::Operator,
                            tok::Dollar,
-                           tok::Plus,
-                           tok::Minus,
-                           tok::Mult,
-                           tok::Div,
-                           tok::Eq,
                            tok::SquareL,
                            tok::SquareR,
                            tok::CurlyL,
                            tok::CurlyR,
                            tok::ParenthesisL,
-                           tok::ParenthesisR,
-                           tok::AngleL,
-                           tok::AngleR,
-                           tok::Comma,
-                           tok::Exclam>;
+                           tok::ParenthesisR>;

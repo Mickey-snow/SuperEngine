@@ -28,6 +28,7 @@
 
 #include "util.hpp"
 
+#include <algorithm>
 #include <string>
 #include <string_view>
 #include <variant>
@@ -56,26 +57,48 @@ TEST(TokenizerTest, ParseNumbers) {
   Tokenizer tokenizer(input);
   EXPECT_EQ(tokenizer.parsed_tok_,
             TokenArray(tok::Int(123), tok::WS(), tok::Int(321), tok::WS(),
-                       tok::Minus(), tok::Int(21)));
-}
-
-TEST(TokenizerTest, ParseSymbols) {
-  constexpr std::string_view input = "$a_=0+1-2/3*5,6!";
-
-  Tokenizer tokenizer(input);
-  EXPECT_EQ(tokenizer.parsed_tok_,
-            TokenArray(tok::Dollar(), tok::ID("a_"s), tok::Eq(), tok::Int(0),
-                       tok::Plus(), tok::Int(1), tok::Minus(), tok::Int(2),
-                       tok::Div(), tok::Int(3), tok::Mult(), tok::Int(5),
-                       tok::Comma(), tok::Int(6), tok::Exclam()));
+                       tok::Operator(Op::Sub), tok::Int(21)));
 }
 
 TEST(TokenizerTest, ParseBrackets) {
-  constexpr std::string_view input = "[]{}()<>";
+  constexpr std::string_view input = "[]{}()";
 
   Tokenizer tokenizer(input);
-  EXPECT_EQ(tokenizer.parsed_tok_,
-            TokenArray(tok::SquareL(), tok::SquareR(), tok::CurlyL(),
-                       tok::CurlyR(), tok::ParenthesisL(), tok::ParenthesisR(),
-                       tok::AngleL(), tok::AngleR()));
+  EXPECT_EQ(
+      tokenizer.parsed_tok_,
+      TokenArray(tok::SquareL(), tok::SquareR(), tok::CurlyL(), tok::CurlyR(),
+                 tok::ParenthesisL(), tok::ParenthesisR()));
+}
+
+TEST(TokenizerTest, ParseOperators) {
+  constexpr std::string_view input =
+      ", + - * / % & | ^ << >> ~ += -= *= /= %= &= |= ^= <<= >>= = == != <= < "
+      ">= "
+      "> && || ";
+  Tokenizer tokenizer(input);
+
+  std::vector<Token> result;
+  std::copy_if(tokenizer.parsed_tok_.begin(), tokenizer.parsed_tok_.end(),
+               std::back_inserter(result), [](const Token& x) {
+                 return !std::holds_alternative<tok::WS>(x);
+               });
+
+  EXPECT_EQ(result,
+            TokenArray(
+                tok::Operator(Op::Comma), tok::Operator(Op::Add),
+                tok::Operator(Op::Sub), tok::Operator(Op::Mul),
+                tok::Operator(Op::Div), tok::Operator(Op::Mod),
+                tok::Operator(Op::BitAnd), tok::Operator(Op::BitOr),
+                tok::Operator(Op::BitXor), tok::Operator(Op::ShiftLeft),
+                tok::Operator(Op::ShiftRight), tok::Operator(Op::Tilde),
+                tok::Operator(Op::AddAssign), tok::Operator(Op::SubAssign),
+                tok::Operator(Op::MulAssign), tok::Operator(Op::DivAssign),
+                tok::Operator(Op::ModAssign), tok::Operator(Op::BitAndAssign),
+                tok::Operator(Op::BitOrAssign), tok::Operator(Op::BitXorAssign),
+                tok::Operator(Op::ShiftLeftAssign),
+                tok::Operator(Op::ShiftRightAssign), tok::Operator(Op::Assign),
+                tok::Operator(Op::Equal), tok::Operator(Op::NotEqual),
+                tok::Operator(Op::LessEqual), tok::Operator(Op::Less),
+                tok::Operator(Op::GreaterEqual), tok::Operator(Op::Greater),
+                tok::Operator(Op::LogicalAnd), tok::Operator(Op::LogicalOr)));
 }
