@@ -192,14 +192,8 @@ struct construct_ast {
 
     // an array of (op,ast)
     for (const auto& it : boost::fusion::at_c<1>(attr)) {
-      Op op = Op::Unknown;
-      const auto& first = boost::fusion::at_c<0>(it);
-      std::shared_ptr<ExprAST> rhs = boost::fusion::at_c<1>(it);  // second
-
-      if constexpr (std::same_as<Op, std::decay_t<decltype(first)>>)
-        op = first;
-      else  // type is variant<Op,Op>
-        op = boost::apply_visitor([](const auto& x) { return x; }, first);
+      Op op = boost::fusion::at_c<0>(it);
+      std::shared_ptr<ExprAST> rhs = boost::fusion::at_c<1>(it);
 
       BinaryExpr expr(op, result, rhs);
       result = std::make_shared<ExprAST>(std::move(expr));
@@ -217,9 +211,13 @@ struct construct_ast {
 
 [[maybe_unused]] auto const assignment_expr_def = logical_or_expr;
 
-[[maybe_unused]] auto const logical_or_expr_def = logical_and_expr;
+[[maybe_unused]] auto const logical_or_expr_def =
+    (logical_and_expr >>
+     *(op_token_parser{Op::LogicalOr} >> logical_and_expr))[construct_ast_fn];
 
-[[maybe_unused]] auto const logical_and_expr_def = bitwise_or_expr;
+[[maybe_unused]] auto const logical_and_expr_def =
+    (bitwise_or_expr >>
+     *(op_token_parser{Op::LogicalAnd} >> bitwise_or_expr))[construct_ast_fn];
 
 [[maybe_unused]] auto const bitwise_or_expr_def = bitwise_xor_expr;
 
@@ -236,7 +234,9 @@ struct construct_ast {
                                      Op::Greater} >>
                      shift_expr))[construct_ast_fn];
 
-[[maybe_unused]] auto const shift_expr_def = additive_expr;
+[[maybe_unused]] auto const shift_expr_def =
+    (additive_expr >> *(op_token_parser{Op::ShiftLeft, Op::ShiftRight} >>
+                        additive_expr))[construct_ast_fn];
 
 [[maybe_unused]] auto const additive_expr_def =
     (multiplicative_expr >> *(op_token_parser{Op::Add, Op::Sub} >>
@@ -253,9 +253,8 @@ struct construct_ast {
       x3::_val(ctx) = std::make_shared<ExprAST>(x3::_attr(ctx));
     })] |  // integer literal
 
-    (str_token_parser() >>
-     -(token_parser<tok::SquareL>() >> expression_rule >>
-       token_parser<tok::SquareR>()))[([](auto& ctx) {
+    (str_token_parser() >> -(token_parser<tok::SquareL>() >> expression_rule >>
+                             token_parser<tok::SquareR>()))[([](auto& ctx) {
       const auto& attr = x3::_attr(ctx);
       const std::string& id = boost::fusion::at_c<0>(attr);
       const auto& remain = boost::fusion::at_c<1>(

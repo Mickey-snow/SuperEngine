@@ -146,3 +146,33 @@ TEST(ExpressionParserTest, Comparisons) {
   EXPECT_EQ(result->Apply(get_prefix_visitor),
             "!= == v1 v2 >= <= < > v3 v4 v5 12 13");
 }
+
+TEST(ExpressionParserTest, Shifts) {
+  std::shared_ptr<ExprAST> result = nullptr;
+  std::vector<Token> input = TokenArray(
+      tok::ID("v1"), tok::Operator(Op::ShiftLeft), tok::ID("v2"),
+      tok::Operator(Op::Less), tok::ID("v3"), tok::Operator(Op::ShiftRight),
+      tok::ID("v4"), tok::Operator(Op::Add), tok::ID("v5"),
+      tok::Operator(Op::ShiftLeft), tok::Int(12), tok::Operator(Op::Less),
+      tok::Int(13));
+
+  ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
+  ASSERT_NE(result, nullptr);
+  EXPECT_EQ(result->Apply(get_prefix_visitor),
+            "< < << v1 v2 << >> v3 + v4 v5 12 13");
+}
+
+TEST(ExpressionParserTest, Logical) {
+  std::shared_ptr<ExprAST> result = nullptr;
+  std::vector<Token> input =
+      TokenArray(tok::ID("v1"), tok::Operator(Op::LogicalOr), tok::ID("v2"),
+                 tok::Operator(Op::LogicalAnd), tok::ID("v3"),
+                 tok::Operator(Op::ShiftRight), tok::ID("v4"),
+                 tok::Operator(Op::LogicalOr), tok::ID("v5"),
+                 tok::Operator(Op::LogicalAnd), tok::Int(12));
+
+  ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
+  ASSERT_NE(result, nullptr);
+  EXPECT_EQ(result->Apply(get_prefix_visitor),
+            "|| || v1 && v2 >> v3 v4 && v5 12");
+}
