@@ -32,4 +32,15 @@
 
 class ExprAST;
 
+/*
+supported expression grammar
+identifiers: <str>
+memory references: <str>[<expr>]
+integer literals: <int>
+unary operators: + - ~
+binary operators: , + - * / % & | ^ << >> >>> == != <= >= < > && ||
+assignments: = += -= *= /= %= &= |= ^= <<= >>= >>>=
+parenthesis: ( )
+ */
+
 std::shared_ptr<ExprAST> ParseExpression(std::span<Token> input);

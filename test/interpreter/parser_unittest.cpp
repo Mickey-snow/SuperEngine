@@ -31,7 +31,7 @@
 
 inline static GetPrefix get_prefix_visitor;
 
-TEST(ExpressionParserTest, BasicArithmetic) {
+TEST(ExprastParserTest, BasicArithmetic) {
   {
     std::shared_ptr<ExprAST> result = nullptr;
     std::vector<Token> input =
@@ -73,7 +73,7 @@ TEST(ExpressionParserTest, BasicArithmetic) {
   }
 }
 
-TEST(ExpressionParserTest, Precedence) {
+TEST(ExprastParserTest, Precedence) {
   {
     std::shared_ptr<ExprAST> result = nullptr;
     std::vector<Token> input =
@@ -97,7 +97,7 @@ TEST(ExpressionParserTest, Precedence) {
   }
 }
 
-TEST(ExpressionParserTest, Parenthesis) {
+TEST(ExprastParserTest, Parenthesis) {
   std::shared_ptr<ExprAST> result = nullptr;
   std::vector<Token> input = TokenArray(
       tok::ParenthesisL(), tok::Int(5), tok::Operator(Op::Add), tok::Int(6),
@@ -108,7 +108,7 @@ TEST(ExpressionParserTest, Parenthesis) {
   EXPECT_EQ(result->Apply(get_prefix_visitor), "/ + 5 6 7");
 }
 
-TEST(ExpressionParserTest, ExprList) {
+TEST(ExprastParserTest, ExprList) {
   std::shared_ptr<ExprAST> result = nullptr;
   std::vector<Token> input = TokenArray(
       tok::Int(5), tok::Operator(Op::Add), tok::Int(6),
@@ -120,7 +120,7 @@ TEST(ExpressionParserTest, ExprList) {
   EXPECT_EQ(result->Apply(get_prefix_visitor), ", , + 5 6 8 / 9 7");
 }
 
-TEST(ExpressionParserTest, Identifier) {
+TEST(ExprastParserTest, Identifier) {
   std::shared_ptr<ExprAST> result = nullptr;
   std::vector<Token> input = TokenArray(
       tok::ID("v1"), tok::Operator(Op::Add), tok::ID("v2"),
@@ -132,7 +132,7 @@ TEST(ExpressionParserTest, Identifier) {
   EXPECT_EQ(result->Apply(get_prefix_visitor), "+ v1 / v2 v3[+ v4 v5]");
 }
 
-TEST(ExpressionParserTest, Comparisons) {
+TEST(ExprastParserTest, Comparisons) {
   std::shared_ptr<ExprAST> result = nullptr;
   std::vector<Token> input = TokenArray(
       tok::ID("v1"), tok::Operator(Op::Equal), tok::ID("v2"),
@@ -147,7 +147,7 @@ TEST(ExpressionParserTest, Comparisons) {
             "!= == v1 v2 >= <= < > v3 v4 v5 12 13");
 }
 
-TEST(ExpressionParserTest, Shifts) {
+TEST(ExprastParserTest, Shifts) {
   std::shared_ptr<ExprAST> result = nullptr;
   std::vector<Token> input = TokenArray(
       tok::ID("v1"), tok::Operator(Op::ShiftLeft), tok::ID("v2"),
@@ -162,7 +162,7 @@ TEST(ExpressionParserTest, Shifts) {
             "< < << v1 v2 << >> v3 + v4 v5 12 13");
 }
 
-TEST(ExpressionParserTest, Logical) {
+TEST(ExprastParserTest, Logical) {
   std::shared_ptr<ExprAST> result = nullptr;
   std::vector<Token> input =
       TokenArray(tok::ID("v1"), tok::Operator(Op::LogicalOr), tok::ID("v2"),
@@ -175,4 +175,192 @@ TEST(ExpressionParserTest, Logical) {
   ASSERT_NE(result, nullptr);
   EXPECT_EQ(result->Apply(get_prefix_visitor),
             "|| || v1 && v2 >> v3 v4 && v5 12");
+}
+
+TEST(ExprastParserTest, Assignment) {
+  {
+    std::shared_ptr<ExprAST> result = nullptr;
+    std::vector<Token> input =
+        TokenArray(tok::ID("v1"), tok::Operator(Op::Assign), tok::ID("v2"),
+                   tok::Operator(Op::ShiftLeftAssign), tok::ID("v3"),
+                   tok::Operator(Op::ShiftRight), tok::ID("v4"),
+                   tok::Operator(Op::ShiftRightAssign), tok::ID("v5"),
+                   tok::Operator(Op::LogicalAnd), tok::Int(12),
+                   tok::Operator(Op::AddAssign), tok::ID("v2"),
+                   tok::Operator(Op::SubAssign), tok::ID("v3"),
+                   tok::Operator(Op::MulAssign), tok::ID("v4"),
+                   tok::Operator(Op::ModAssign), tok::ID("v5"));
+
+    ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(result->Apply(get_prefix_visitor),
+              "%= *= -= += >>= <<= = v1 v2 >> v3 v4 && v5 12 v2 v3 v4 v5");
+  }
+
+  {
+    std::shared_ptr<ExprAST> result = nullptr;
+    std::vector<Token> input =
+        TokenArray(tok::ID("v1"), tok::Operator(Op::BitOrAssign), tok::ID("v2"),
+                   tok::Operator(Op::ShiftLeft), tok::ID("v3"),
+                   tok::Operator(Op::ShiftRight), tok::ID("v4"),
+                   tok::Operator(Op::BitXorAssign), tok::ID("v5"),
+                   tok::Operator(Op::LogicalAnd), tok::Int(12),
+                   tok::Operator(Op::BitAndAssign), tok::ID("v2"));
+
+    ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(result->Apply(get_prefix_visitor),
+              "&= ^= |= v1 >> << v2 v3 v4 && v5 12 v2");
+  }
+}
+
+TEST(ExprastParserTest, BitwiseOperators) {
+  {
+    std::vector<Token> input =
+        TokenArray(tok::ID("a"), tok::Operator(Op::BitAnd), tok::ID("b"));
+    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
+              "& a b");
+  }
+
+  {
+    std::vector<Token> input =
+        TokenArray(tok::ID("a"), tok::Operator(Op::BitOr), tok::ID("b"));
+    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
+              "| a b");
+  }
+
+  {
+    std::vector<Token> input =
+        TokenArray(tok::ID("a"), tok::Operator(Op::BitXor), tok::ID("b"));
+    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
+              "^ a b");
+  }
+
+  {
+    // a & b | c ^ d
+    std::vector<Token> input =
+        TokenArray(tok::ID("a"), tok::Operator(Op::BitAnd), tok::ID("b"),
+                   tok::Operator(Op::BitOr), tok::ID("c"),
+                   tok::Operator(Op::BitXor), tok::ID("d"));
+    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
+              "| & a b ^ c d");
+  }
+}
+
+TEST(ExprastParserTest, UnaryOperators) {
+  {
+    std::vector<Token> input = TokenArray(tok::Operator(Op::Sub), tok::ID("a"));
+    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
+              "- a");
+  }
+
+  {
+    std::vector<Token> input = TokenArray(tok::Operator(Op::Add), tok::ID("a"));
+    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
+              "+ a");
+  }
+
+  {
+    std::vector<Token> input =
+        TokenArray(tok::Operator(Op::Tilde), tok::ID("a"));
+    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
+              "~ a");
+  }
+
+  {
+    std::vector<Token> input = TokenArray(
+        tok::Operator(Op::Sub), tok::Operator(Op::Tilde), tok::ID("a"));
+    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
+              "- ~ a");
+  }
+
+  {
+    std::vector<Token> input =
+        TokenArray(tok::Operator(Op::Sub), tok::ParenthesisL(), tok::ID("a"),
+                   tok::Operator(Op::Add), tok::ID("b"), tok::ParenthesisR());
+    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
+              "- + a b");
+  }
+}
+
+TEST(ExprastParserTest, MixedPrecedence) {
+  // a + b * c
+  {
+    std::vector<Token> input =
+        TokenArray(tok::ID("a"), tok::Operator(Op::Add), tok::ID("b"),
+                   tok::Operator(Op::Mul), tok::ID("c"));
+    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
+              "+ a * b c");
+  }
+
+  // a & b | c ^ d
+  {
+    std::vector<Token> input =
+        TokenArray(tok::ID("a"), tok::Operator(Op::BitAnd), tok::ID("b"),
+                   tok::Operator(Op::BitOr), tok::ID("c"),
+                   tok::Operator(Op::BitXor), tok::ID("d"));
+    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
+              "| & a b ^ c d");
+  }
+
+  // -a + b * ~c
+  {
+    std::vector<Token> input =
+        TokenArray(tok::Operator(Op::Sub), tok::ID("a"), tok::Operator(Op::Add),
+                   tok::ID("b"), tok::Operator(Op::Mul),
+                   tok::Operator(Op::Tilde), tok::ID("c"));
+    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
+              "+ - a * b ~ c");
+  }
+
+  // (a + b) * (c - d) / ~e
+  {
+    std::vector<Token> input = TokenArray(
+        tok::ParenthesisL(), tok::ID("a"), tok::Operator(Op::Add), tok::ID("b"),
+        tok::ParenthesisR(), tok::Operator(Op::Mul), tok::ParenthesisL(),
+        tok::ID("c"), tok::Operator(Op::Sub), tok::ID("d"), tok::ParenthesisR(),
+        tok::Operator(Op::Div), tok::Operator(Op::Tilde), tok::ID("e"));
+    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
+              "/ * + a b - c d ~ e");
+  }
+
+  // a << b + c & d
+  {
+    std::vector<Token> input =
+        TokenArray(tok::ID("a"), tok::Operator(Op::ShiftLeft), tok::ID("b"),
+                   tok::Operator(Op::Add), tok::ID("c"),
+                   tok::Operator(Op::BitAnd), tok::ID("d"));
+    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
+              "& << a + b c d");
+  }
+
+  // ~a | b && c ^ d
+  {
+    std::vector<Token> input = TokenArray(
+        tok::Operator(Op::Tilde), tok::ID("a"), tok::Operator(Op::BitOr),
+        tok::ID("b"), tok::Operator(Op::LogicalAnd), tok::ID("c"),
+        tok::Operator(Op::BitXor), tok::ID("d"));
+    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
+              "&& | ~ a b ^ c d");
+  }
+
+  // a + b << c - ~d
+  {
+    std::vector<Token> input = TokenArray(
+        tok::ID("a"), tok::Operator(Op::Add), tok::ID("b"),
+        tok::Operator(Op::ShiftLeft), tok::ID("c"), tok::Operator(Op::Sub),
+        tok::Operator(Op::Tilde), tok::ID("d"));
+    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
+              "<< + a b - c ~ d");
+  }
+
+  // a && b | c ^ d & e
+  {
+    std::vector<Token> input = TokenArray(
+        tok::ID("a"), tok::Operator(Op::LogicalAnd), tok::ID("b"),
+        tok::Operator(Op::BitOr), tok::ID("c"), tok::Operator(Op::BitXor),
+        tok::ID("d"), tok::Operator(Op::BitAnd), tok::ID("e"));
+    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
+              "&& a | b ^ c & d e");
+  }
 }

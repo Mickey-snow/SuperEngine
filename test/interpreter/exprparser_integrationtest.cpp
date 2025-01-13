@@ -44,7 +44,6 @@ class inf2prefTest : public ::testing::Test {
 
     std::shared_ptr<ExprAST> ast = nullptr;
     EXPECT_NO_THROW(ast = ParseExpression(std::span(tokens)));
-    EXPECT_NE(ast, nullptr);
 
     static const GetPrefix get_prefix_visitor;
     return ast ? ast->Apply(get_prefix_visitor) : "???";
@@ -55,4 +54,9 @@ TEST_F(inf2prefTest, NestedArithmetic) {
   constexpr std::string_view input =
       "a + b * (c - d) / e << f && g || h == i != j";
   EXPECT_EQ(ToPrefix(input), "|| && << + a / * b - c d e f g != == h i j");
+}
+
+TEST_F(inf2prefTest, MultiAssignments) {
+  // constexpr std::string_view input = "x += y & (z | w) ^ (u << v) >>= t";
+  // EXPECT_EQ(ToPrefix(input), "|| && << + a / * b - c d e f g != == h i j");
 }

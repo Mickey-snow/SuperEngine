@@ -209,7 +209,13 @@ struct construct_ast {
     (assignment_expr >>
      *(op_token_parser{Op::Comma} >> assignment_expr))[construct_ast_fn];
 
-[[maybe_unused]] auto const assignment_expr_def = logical_or_expr;
+[[maybe_unused]] auto const assignment_expr_def =
+    (logical_or_expr >>
+     *(op_token_parser{Op::Assign, Op::AddAssign, Op::SubAssign, Op::MulAssign,
+                       Op::DivAssign, Op::ModAssign, Op::BitAndAssign,
+                       Op::BitOrAssign, Op::BitXorAssign, Op::ShiftLeftAssign,
+                       Op::ShiftRightAssign} >>
+       logical_or_expr))[construct_ast_fn];
 
 [[maybe_unused]] auto const logical_or_expr_def =
     (logical_and_expr >>
@@ -219,11 +225,17 @@ struct construct_ast {
     (bitwise_or_expr >>
      *(op_token_parser{Op::LogicalAnd} >> bitwise_or_expr))[construct_ast_fn];
 
-[[maybe_unused]] auto const bitwise_or_expr_def = bitwise_xor_expr;
+[[maybe_unused]] auto const bitwise_or_expr_def =
+    (bitwise_xor_expr >>
+     *(op_token_parser{Op::BitOr} >> bitwise_xor_expr))[construct_ast_fn];
 
-[[maybe_unused]] auto const bitwise_xor_expr_def = bitwise_and_expr;
+[[maybe_unused]] auto const bitwise_xor_expr_def =
+    (bitwise_and_expr >>
+     *(op_token_parser{Op::BitXor} >> bitwise_and_expr))[construct_ast_fn];
 
-[[maybe_unused]] auto const bitwise_and_expr_def = equality_expr;
+[[maybe_unused]] auto const bitwise_and_expr_def =
+    (equality_expr >>
+     *(op_token_parser{Op::BitAnd} >> equality_expr))[construct_ast_fn];
 
 [[maybe_unused]] auto const equality_expr_def =
     (relational_expr >> *(op_token_parser{Op::Equal, Op::NotEqual} >>
@@ -246,7 +258,19 @@ struct construct_ast {
     (unary_expr >>
      *(op_token_parser{Op::Mul, Op::Div} >> unary_expr))[construct_ast_fn];
 
-[[maybe_unused]] auto const unary_expr_def = primary_expr;
+[[maybe_unused]] auto const unary_expr_def =
+    (*op_token_parser{Op::Tilde, Op::Sub, Op::Add} >>
+     primary_expr)[([](auto& ctx) {
+      const auto& attr = x3::_attr(ctx);
+      std::shared_ptr<ExprAST> ast = boost::fusion::at_c<1>(attr);
+
+      const auto& op_arr = boost::fusion::at_c<0>(attr);  // type is vector<Op>
+      for (auto it = op_arr.crbegin(); it != op_arr.crend(); ++it) {
+        UnaryExpr expr(*it, ast);
+        ast = std::make_shared<ExprAST>(std::move(expr));
+      }
+      x3::_val(ctx) = ast;
+    })];
 
 [[maybe_unused]] auto const primary_expr_def =
     int_token_parser()[([](auto& ctx) {
