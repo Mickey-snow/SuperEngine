@@ -282,8 +282,8 @@ struct construct_ast {
                               multiplicative_expr))[construct_ast_fn];
 
 [[maybe_unused]] auto const multiplicative_expr_def =
-    (unary_expr >>
-     *(op_token_parser{Op::Mul, Op::Div} >> unary_expr))[construct_ast_fn];
+    (unary_expr >> *(op_token_parser{Op::Mul, Op::Div, Op::Mod} >>
+                     unary_expr))[construct_ast_fn];
 
 [[maybe_unused]] auto const unary_expr_def =
     (*op_token_parser{Op::Tilde, Op::Sub, Op::Add} >>

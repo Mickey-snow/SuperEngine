@@ -71,6 +71,17 @@ TEST(ExprastParserTest, BasicArithmetic) {
     ASSERT_NE(result, nullptr);
     EXPECT_EQ(result->DebugString(), "7/8");
   }
+
+    {
+    std::shared_ptr<ExprAST> result = nullptr;
+    std::vector<Token> input =
+        TokenArray(tok::Int(9), tok::Operator(Op::Mod), tok::Int(10));
+
+    ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(result->DebugString(), "9%10");
+  }
+
 }
 
 TEST(ExprastParserTest, Precedence) {
