@@ -91,3 +91,19 @@ using Token = std::variant<tok::ID,
                            tok::CurlyR,
                            tok::ParenthesisL,
                            tok::ParenthesisR>;
+
+namespace tok {
+struct DebugStringVisitor {
+  std::string operator()(const tok::ID&) const;
+  std::string operator()(const tok::WS&) const;
+  std::string operator()(const tok::Int&) const;
+  std::string operator()(const tok::Operator&) const;
+  std::string operator()(const tok::Dollar&) const;
+  std::string operator()(const tok::SquareL&) const;
+  std::string operator()(const tok::SquareR&) const;
+  std::string operator()(const tok::CurlyL&) const;
+  std::string operator()(const tok::CurlyR&) const;
+  std::string operator()(const tok::ParenthesisL&) const;
+  std::string operator()(const tok::ParenthesisR&) const;
+};
+}  // namespace tok

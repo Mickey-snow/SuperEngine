@@ -22,25 +22,15 @@
 //
 // -----------------------------------------------------------------------
 
-#pragma once
+#include <stdexcept>
+#include <string>
 
-#include "interpreter/token.hpp"
+class ParsingError : public std::exception {
+ private:
+  std::string message_;
 
-#include <memory>
-#include <span>
-#include <vector>
+ public:
+  explicit ParsingError(std::string msg);
 
-class ExprAST;
-
-/*
-supported expression grammar
-identifiers: <str>
-memory references: <str>[<expr>]
-integer literals: <int>
-unary operators: + - ~
-binary operators: , + - * / % & | ^ << >> == != <= >= < > && ||
-assignments: = += -= *= /= %= &= |= ^= <<= >>=
-parenthesis: ( )
- */
-
-std::shared_ptr<ExprAST> ParseExpression(std::span<Token> input);
+  const char* what() const noexcept override;
+};

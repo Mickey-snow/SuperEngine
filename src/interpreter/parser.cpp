@@ -23,11 +23,14 @@
 // -----------------------------------------------------------------------
 
 #include "interpreter/parser.hpp"
+
 #include "base/expr_ast.hpp"
+#include "interpreter/parsing_error.hpp"
 
 #include <boost/fusion/include/deque.hpp>
 #include <boost/spirit/home/x3.hpp>
 
+#include <sstream>
 #include <unordered_set>
 
 namespace x3 = boost::spirit::x3;
@@ -351,8 +354,30 @@ std::shared_ptr<ExprAST> ParseExpression(std::span<Token> input) {
   std::shared_ptr<ExprAST> result;
   bool success = x3::parse(begin, end, expression_rule, result);
 
-  if (!success || begin != end)
-    throw std::runtime_error("parsing failed.");
+  if (!success) {
+    // Parsing failed somewhere in the input.
+    std::ptrdiff_t index = std::distance(input.begin(), begin);
+    std::ostringstream oss;
+    oss << "Parsing failed at token index " << index;
+
+    if (begin != end) {
+      oss << " (near " << std::visit(tok::DebugStringVisitor(), *begin) << ")";
+    } else {
+      oss << " (reached end of input unexpectedly)";
+    }
+
+    throw ParsingError(oss.str());
+  }
+
+  if (begin != end) {
+    // Some tokens left unconsumed after a successful parse.
+    std::ptrdiff_t index = std::distance(input.begin(), begin);
+    std::ostringstream oss;
+    oss << "Parsing did not consume all tokens. Leftover begins at index "
+        << index << " with token "
+        << std::visit(tok::DebugStringVisitor(), *begin);
+    throw ParsingError(oss.str());
+  }
 
   return result;
 }

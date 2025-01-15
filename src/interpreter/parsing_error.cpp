@@ -22,25 +22,8 @@
 //
 // -----------------------------------------------------------------------
 
-#pragma once
+#include "interpreter/parsing_error.hpp"
 
-#include "interpreter/token.hpp"
+ParsingError::ParsingError(std::string msg) : message_(std::move(msg)) {}
 
-#include <memory>
-#include <span>
-#include <vector>
-
-class ExprAST;
-
-/*
-supported expression grammar
-identifiers: <str>
-memory references: <str>[<expr>]
-integer literals: <int>
-unary operators: + - ~
-binary operators: , + - * / % & | ^ << >> == != <= >= < > && ||
-assignments: = += -= *= /= %= &= |= ^= <<= >>=
-parenthesis: ( )
- */
-
-std::shared_ptr<ExprAST> ParseExpression(std::span<Token> input);
+const char* ParsingError::what() const noexcept { return message_.c_str(); }

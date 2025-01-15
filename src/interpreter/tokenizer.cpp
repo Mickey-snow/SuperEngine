@@ -24,8 +24,12 @@
 
 #include "interpreter/tokenizer.hpp"
 
+#include "interpreter/parsing_error.hpp"
+
 #include <boost/regex.hpp>
 #include <boost/spirit/include/lex_lexertl.hpp>
+
+#include <optional>
 
 Tokenizer::Tokenizer(std::string_view input, bool should_parse)
     : input_(input) {
@@ -60,6 +64,7 @@ void Tokenizer::Parse() {
   auto begin = input_.cbegin();
   auto end = input_.cend();
 
+  std::optional<std::string> error_token = std::nullopt;
   bool success =
       lex::tokenize(begin, end, mylexer, [&](const auto& tok) -> bool {
         auto value = std::string(tok.value().begin(), tok.value().end());
@@ -91,13 +96,17 @@ void Tokenizer::Parse() {
             break;
 
           default:
+            error_token = value;
             return false;
         }
         return true;
       });
 
   if (!success) {
-    throw std::runtime_error("Tokenizer: unable to parse " +
-                             std::string(input_));
+    if (error_token) {
+      throw ParsingError("Tokenizer error: unexpected token '" +
+                         error_token.value() + "'.");
+    }
+    throw ParsingError("Tokenizer: unable to parse " + std::string(input_));
   }
 }
