@@ -194,7 +194,7 @@ TEST(ExprastParserTest, Assignment) {
     ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
     ASSERT_NE(result, nullptr);
     EXPECT_EQ(result->Apply(get_prefix_visitor),
-              "%= *= -= += >>= <<= = v1 v2 >> v3 v4 && v5 12 v2 v3 v4 v5");
+              "= v1 <<= v2 >>= >> v3 v4 += && v5 12 -= v2 *= v3 %= v4 v5");
   }
 
   {
@@ -210,7 +210,7 @@ TEST(ExprastParserTest, Assignment) {
     ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
     ASSERT_NE(result, nullptr);
     EXPECT_EQ(result->Apply(get_prefix_visitor),
-              "&= ^= |= v1 >> << v2 v3 v4 && v5 12 v2");
+              "|= v1 ^= >> << v2 v3 v4 &= && v5 12 v2");
   }
 }
 

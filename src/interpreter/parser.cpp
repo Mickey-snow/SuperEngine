@@ -209,13 +209,40 @@ struct construct_ast {
     (assignment_expr >>
      *(op_token_parser{Op::Comma} >> assignment_expr))[construct_ast_fn];
 
+// note: associativity should be right-to-left
 [[maybe_unused]] auto const assignment_expr_def =
     (logical_or_expr >>
      *(op_token_parser{Op::Assign, Op::AddAssign, Op::SubAssign, Op::MulAssign,
                        Op::DivAssign, Op::ModAssign, Op::BitAndAssign,
                        Op::BitOrAssign, Op::BitXorAssign, Op::ShiftLeftAssign,
                        Op::ShiftRightAssign} >>
-       logical_or_expr))[construct_ast_fn];
+       logical_or_expr))[([](auto& ctx) {
+      const auto& attr = x3::_attr(ctx);
+      std::vector<std::shared_ptr<ExprAST>> terms{boost::fusion::at_c<0>(attr)};
+      std::vector<Op> operators;
+
+      // an array of (op,ast)
+      for (const auto& it : boost::fusion::at_c<1>(attr)) {
+        Op op = boost::fusion::at_c<0>(it);
+        std::shared_ptr<ExprAST> term = boost::fusion::at_c<1>(it);
+
+        terms.push_back(term);
+        operators.push_back(op);
+      }
+
+      std::shared_ptr<ExprAST> result = terms.back();
+      terms.pop_back();
+      while (!terms.empty()) {
+        auto lhs = terms.back();
+        terms.pop_back();
+        auto op = operators.back();
+        operators.pop_back();
+
+        BinaryExpr expr(op, lhs, result);
+        result = std::make_shared<ExprAST>(std::move(expr));
+      }
+      x3::_val(ctx) = result;
+    })];
 
 [[maybe_unused]] auto const logical_or_expr_def =
     (logical_and_expr >>
