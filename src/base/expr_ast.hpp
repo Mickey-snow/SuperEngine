@@ -160,20 +160,21 @@ class ExprAST {
 // AST visitors
 
 struct GetPrefix {
-  std::string operator()(const BinaryExpr& x) const {
-    return ToString(x.op) + ' ' + x.lhs->Apply(*this) + ' ' +
-           x.rhs->Apply(*this);
-  }
-  std::string operator()(const UnaryExpr& x) const {
-    return ToString(x.op) + ' ' + x.sub->Apply(*this);
-  }
-  std::string operator()(const ParenExpr& x) const {
-    return x.sub->Apply(*this);
-  }
-  std::string operator()(const ReferenceExpr& x) const {
-    return x.id + '[' + x.idx->Apply(*this) + ']';
-  }
-  std::string operator()(std::monostate) const { return "<null>"; }
-  std::string operator()(int x) const { return std::to_string(x); }
-  std::string operator()(const std::string& str) const { return str; }
+  std::string operator()(const BinaryExpr& x) const;
+  std::string operator()(const UnaryExpr& x) const;
+  std::string operator()(const ParenExpr& x) const;
+  std::string operator()(const ReferenceExpr& x) const;
+  std::string operator()(std::monostate) const;
+  std::string operator()(int x) const;
+  std::string operator()(const std::string& str) const;
+};
+
+struct Evaluator {
+  int operator()(std::monostate) const;
+  int operator()(const std::string& str) const;
+  int operator()(int x) const;
+  int operator()(const ReferenceExpr& x) const;
+  int operator()(const ParenExpr& x) const;
+  int operator()(const UnaryExpr& x) const;
+  int operator()(const BinaryExpr& x) const;
 };

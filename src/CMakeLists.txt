@@ -86,3 +86,14 @@ set(RLKP_FILES
 add_executable(rlkp ${RLKP_FILES})
 
 target_link_libraries(rlkp PRIVATE rlvm_src)
+
+# -------------------------------------------------------------------
+# Build RLDBG
+# -------------------------------------------------------------------
+set(RLDBG_FILES
+  "${CMAKE_CURRENT_SOURCE_DIR}/rldbg_main.cpp"
+)
+
+add_executable(rldbg ${RLDBG_FILES})
+
+target_link_libraries(rldbg PRIVATE rlvm_src)
