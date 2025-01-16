@@ -35,6 +35,7 @@
 #include <utility>
 #include <vector>
 
+#include "base/kidoku_table.hpp"
 #include "machine/call_stack.hpp"
 #include "machine/instruction.hpp"
 #include "machine/iscriptor.hpp"
@@ -57,7 +58,7 @@ class RLMachine {
  public:
   RLMachine(System& system,
             std::shared_ptr<IScriptor> scriptor,
-            ScriptLocation staring_location,
+            ScriptLocation starting_location,
             std::unique_ptr<Memory> memory = nullptr);
   virtual ~RLMachine();
 
@@ -95,6 +96,8 @@ class RLMachine {
   // Returns the internal memory object for raw access to the machine object's
   // memory.
   Memory& GetMemory() { return *memory_; }
+
+  KidokuTable& GetKidokus() { return kidoku_table_; }
 
   CallStack& GetStack();
 
@@ -210,6 +213,8 @@ class RLMachine {
   // The Reallive VM's integer and string memory
   std::unique_ptr<Memory> memory_;
   Memory savepoint_memory_;
+
+  KidokuTable kidoku_table_;
 
   // The RealLive machine's single result register
   int store_register_ = 0;

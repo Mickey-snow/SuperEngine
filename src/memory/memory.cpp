@@ -35,25 +35,6 @@
 #include "memory/serialization_local.hpp"
 #include "utilities/string_utilities.hpp"
 
-bool Memory::HasBeenRead(int scenario, int kidoku) const {
-  std::map<int, boost::dynamic_bitset<>>::const_iterator it =
-      kidoku_data.find(scenario);
-
-  if ((it != kidoku_data.end()) &&
-      (static_cast<size_t>(kidoku) < it->second.size()))
-    return it->second.test(kidoku);
-
-  return false;
-}
-
-void Memory::RecordKidoku(int scenario, int kidoku) {
-  boost::dynamic_bitset<>& bitset = kidoku_data[scenario];
-  if (bitset.size() <= static_cast<size_t>(kidoku))
-    bitset.resize(kidoku + 1, false);
-
-  bitset[kidoku] = true;
-}
-
 Memory::Memory() {
   for (size_t i = 0; i < int_bank_cnt; ++i)
     intbanks_[i].Resize(SIZE_OF_MEM_BANK);

@@ -66,7 +66,7 @@ static DomainLogger logger("RLMachine");
 
 RLMachine::RLMachine(System& system,
                      std::shared_ptr<IScriptor> scriptor,
-                     ScriptLocation staring_location,
+                     ScriptLocation starting_location,
                      std::unique_ptr<Memory> memory)
     : memory_(std::move(memory)),
       module_manager_(module_manager_prototype),
@@ -81,7 +81,7 @@ RLMachine::RLMachine(System& system,
   memory_->PartialReset(std::move(stack_memory));
 
   // Setup call stack
-  call_stack_.Push(StackFrame(staring_location, StackFrame::TYPE_ROOT));
+  call_stack_.Push(StackFrame(starting_location, StackFrame::TYPE_ROOT));
 
   // Initial value of the savepoint
   MarkSavepoint();
@@ -319,10 +319,10 @@ void RLMachine::operator()(Kidoku k) {
   }
 
   // Mark if we've previously read this piece of text.
-  system_.text().SetKidokuRead(GetMemory().HasBeenRead(SceneNumber(), k.num));
+  system_.text().SetKidokuRead(kidoku_table_.HasBeenRead(SceneNumber(), k.num));
 
   // Record the kidoku pair in global memory.
-  GetMemory().RecordKidoku(SceneNumber(), k.num);
+  kidoku_table_.RecordKidoku(SceneNumber(), k.num);
 
   AdvanceInstructionPointer();
 }

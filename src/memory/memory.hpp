@@ -31,7 +31,6 @@
 
 #include <algorithm>
 #include <array>
-#include <boost/dynamic_bitset/dynamic_bitset.hpp>
 #include <map>
 #include <memory>
 #include <optional>
@@ -62,16 +61,6 @@ class Memory {
   // @note For now, we only read \#NAME and \#LOCALNAME variables, skipping any
   // declaration of the form \#intvar[index] or \#strvar[index].
   void LoadFrom(Gameexe& gameexe);
-
-  // TODO: Extract class for this
-  // Methods that record whether a piece of text has been read. RealLive
-  // scripts have a piece of metadata called a kidoku marker which signifies if
-  // the text between that and the next kidoku marker have been previously read.
-  bool HasBeenRead(int scenario, int kidoku) const;
-  void RecordKidoku(int scenario, int kidoku);
-
- private:
-  std::map<int, boost::dynamic_bitset<>> kidoku_data;
 
  public:
   void Write(IntMemoryLocation, int);

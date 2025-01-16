@@ -29,6 +29,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <iomanip>
 #include <sstream>
 #include <string>
