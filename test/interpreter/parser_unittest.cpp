@@ -72,7 +72,7 @@ TEST(ExprastParserTest, BasicArithmetic) {
     EXPECT_EQ(result->DebugString(), "7/8");
   }
 
-    {
+  {
     std::shared_ptr<ExprAST> result = nullptr;
     std::vector<Token> input =
         TokenArray(tok::Int(9), tok::Operator(Op::Mod), tok::Int(10));
@@ -81,7 +81,6 @@ TEST(ExprastParserTest, BasicArithmetic) {
     ASSERT_NE(result, nullptr);
     EXPECT_EQ(result->DebugString(), "9%10");
   }
-
 }
 
 TEST(ExprastParserTest, Precedence) {
@@ -374,4 +373,11 @@ TEST(ExprastParserTest, MixedPrecedence) {
     EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
               "&& a | b ^ c & d e");
   }
+}
+
+TEST(ExprastParserTest, Skipper) {
+  std::vector<Token> input =
+      TokenArray(tok::WS(), tok::ID("a"), tok::Operator(Op::Add), tok::WS(),
+                 tok::ID("b"), tok::WS(), tok::WS());
+  EXPECT_EQ(ParseExpression(std::span(input))->DebugString(), "a+b");
 }

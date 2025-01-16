@@ -30,10 +30,18 @@
 #include <boost/fusion/include/deque.hpp>
 #include <boost/spirit/home/x3.hpp>
 
+#include <iterator>
 #include <sstream>
 #include <unordered_set>
 
 namespace x3 = boost::spirit::x3;
+
+// Helper function to skip over tok::WS
+template <std::forward_iterator Iterator>
+inline void skip_ws(Iterator& first, Iterator const& last) {
+  while (first != last && std::holds_alternative<tok::WS>(*first))
+    ++first;
+}
 
 // -----------------------------------------------------------------------
 // primitive token parsers
@@ -51,6 +59,7 @@ struct str_token_parser : x3::parser<str_token_parser> {
              Context const& /*context*/,
              RContext& /*rcontext*/,
              Attribute& attr) const {
+    skip_ws(first, last);
     if (first == last)
       return false;
 
@@ -76,6 +85,7 @@ struct int_token_parser : x3::parser<int_token_parser> {
              Context const& /*context*/,
              RContext& /*rcontext*/,
              Attribute& attr) const {
+    skip_ws(first, last);
     if (first == last)
       return false;
 
@@ -106,6 +116,7 @@ struct op_token_parser : x3::parser<op_token_parser> {
              Context const& /*context*/,
              RContext& /*rcontext*/,
              Attribute& attr) const {
+    skip_ws(first, last);
     attr = Op::Unknown;
 
     if (first == last)
@@ -137,6 +148,7 @@ struct token_parser : x3::parser<token_parser<Tok>> {
              Context const& /*context*/,
              RContext& /*rcontext*/,
              Attribute& /*attr*/) const {
+    skip_ws(first, last);
     if (first == last)
       return false;
     if (std::holds_alternative<Tok>(*first)) {
@@ -369,6 +381,7 @@ std::shared_ptr<ExprAST> ParseExpression(std::span<Token> input) {
     throw ParsingError(oss.str());
   }
 
+  skip_ws(begin, end);  // consume leftover white spaces
   if (begin != end) {
     // Some tokens left unconsumed after a successful parse.
     std::ptrdiff_t index = std::distance(input.begin(), begin);
