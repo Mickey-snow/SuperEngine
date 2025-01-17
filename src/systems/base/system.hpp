@@ -27,7 +27,7 @@
 
 #pragma once
 
-#include "base/asset_scanner.hpp"
+#include "core/asset_scanner.hpp"
 
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/version.hpp>

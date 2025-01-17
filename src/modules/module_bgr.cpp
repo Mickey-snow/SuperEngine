@@ -31,7 +31,7 @@
 #include <iostream>
 #include <string>
 
-#include "base/colour.hpp"
+#include "core/colour.hpp"
 #include "effects/effect.hpp"
 #include "effects/effect_factory.hpp"
 #include "machine/general_operations.hpp"
@@ -44,8 +44,8 @@
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/hik_renderer.hpp"
 #include "systems/base/hik_script.hpp"
-#include "systems/sdl_surface.hpp"
 #include "systems/base/system.hpp"
+#include "systems/sdl_surface.hpp"
 #include "utilities/graphics.hpp"
 
 namespace fs = std::filesystem;

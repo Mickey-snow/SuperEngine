@@ -24,11 +24,9 @@
 
 #include <gtest/gtest.h>
 
+#include "core/memory.hpp"
 #include "machine/call_stack.hpp"
 #include "machine/stack_frame.hpp"
-#include "memory/location.hpp"
-#include "memory/memory.hpp"
-#include "memory/stack_adapter.hpp"
 
 class FakeStack : public CallStack {
  public:

@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include "base/rect.hpp"
+#include "core/rect.hpp"
 
 #include <string>
 #include <vector>

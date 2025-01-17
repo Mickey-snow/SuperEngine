@@ -24,7 +24,7 @@
 
 #include <gtest/gtest.h>
 
-#include "base/rect.hpp"
+#include "core/rect.hpp"
 #include "effects/drawer_effect.hpp"
 
 using namespace DrawerEffectDetails;

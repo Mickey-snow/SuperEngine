@@ -25,7 +25,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "base/avdec/audio_decoder.hpp"
+#include "core/avdec/audio_decoder.hpp"
 
 #include <filesystem>
 #include <functional>

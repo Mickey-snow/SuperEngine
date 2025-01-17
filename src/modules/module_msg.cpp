@@ -31,7 +31,7 @@
 #include <string>
 #include <vector>
 
-#include "base/gameexe.hpp"
+#include "core/gameexe.hpp"
 #include "long_operations/pause_long_operation.hpp"
 #include "machine/general_operations.hpp"
 #include "machine/rlmachine.hpp"

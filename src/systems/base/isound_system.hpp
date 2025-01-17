@@ -24,8 +24,8 @@
 
 #pragma once
 
-#include "base/audio_player.hpp"
-#include "base/avspec.hpp"
+#include "core/audio_player.hpp"
+#include "core/avspec.hpp"
 
 class ISoundSystem {
  public:

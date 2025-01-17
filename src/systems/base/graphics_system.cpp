@@ -43,16 +43,16 @@
 #include <utility>
 #include <vector>
 
-#include "base/cgm_table.hpp"
-#include "base/gameexe.hpp"
-#include "base/notification/details.hpp"
-#include "base/notification/service.hpp"
-#include "base/notification/source.hpp"
+#include "core/cgm_table.hpp"
+#include "core/gameexe.hpp"
+#include "core/memory.hpp"
+#include "core/notification/details.hpp"
+#include "core/notification/service.hpp"
+#include "core/notification/source.hpp"
 #include "libreallive/expression.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/serialization.hpp"
 #include "machine/stack_frame.hpp"
-#include "memory/memory.hpp"
 #include "modules/module_grp.hpp"
 #include "object/drawer/anm.hpp"
 #include "object/drawer/file.hpp"

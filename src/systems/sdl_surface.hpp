@@ -25,10 +25,10 @@
 
 #pragma once
 
-#include "base/colour.hpp"
-#include "base/grprect.hpp"
-#include "base/rect.hpp"
-#include "base/tone_curve.hpp"
+#include "core/colour.hpp"
+#include "core/grprect.hpp"
+#include "core/rect.hpp"
+#include "core/tone_curve.hpp"
 
 #include <functional>
 #include <memory>

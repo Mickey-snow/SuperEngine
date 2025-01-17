@@ -29,7 +29,7 @@
 #include <functional>
 #include <string>
 
-#include "base/gameexe.hpp"
+#include "core/gameexe.hpp"
 #include "machine/rlmachine.hpp"
 #include "modules/jump.hpp"
 #include "systems/base/graphics_system.hpp"

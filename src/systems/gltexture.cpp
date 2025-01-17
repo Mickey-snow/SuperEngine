@@ -23,7 +23,7 @@
 
 #include "systems/gltexture.hpp"
 
-#include "base/colour.hpp"
+#include "core/colour.hpp"
 #include "systems/gl_utils.hpp"
 
 #include <GL/glew.h>

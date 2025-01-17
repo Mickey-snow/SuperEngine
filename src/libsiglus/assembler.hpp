@@ -25,8 +25,8 @@
 
 #include "libsiglus/lexfwd.hpp"
 #include "libsiglus/stack.hpp"
-#include "libsiglus/strutil.hpp"
 #include "libsiglus/value.hpp"
+#include "utilities/string_utilities.hpp"
 
 #include <format>
 #include <string>

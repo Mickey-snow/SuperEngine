@@ -24,7 +24,7 @@
 
 #include <gtest/gtest.h>
 
-#include "libsiglus/strutil.hpp"
+#include "utilities/string_utilities.hpp"
 
 #include <ranges>
 

@@ -24,7 +24,7 @@
 
 #include <gtest/gtest.h>
 
-#include "base/audio_data.hpp"
+#include "core/audio_data.hpp"
 
 TEST(SampleConversionTest, S16ToFloatConversion) {
   std::vector<avsample_s16_t> s16_audio{32767, -32768, 0, -128};

@@ -24,7 +24,7 @@
 
 #include <gtest/gtest.h>
 
-#include "base/tone_curve.hpp"
+#include "core/tone_curve.hpp"
 #include "utilities/bytestream.hpp"
 
 #include <algorithm>

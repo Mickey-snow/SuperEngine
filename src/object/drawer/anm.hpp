@@ -27,7 +27,7 @@
 
 #pragma once
 
-#include "base/avdec/anm.hpp"
+#include "core/avdec/anm.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/serialization.hpp"
 #include "object/animator.hpp"

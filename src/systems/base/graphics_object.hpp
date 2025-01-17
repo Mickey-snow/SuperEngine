@@ -34,8 +34,8 @@
 #include <string>
 #include <vector>
 
-#include "base/colour.hpp"
-#include "base/rect.hpp"
+#include "core/colour.hpp"
+#include "core/rect.hpp"
 #include "object/parameter_manager.hpp"
 #include "systems/glrenderer.hpp"
 

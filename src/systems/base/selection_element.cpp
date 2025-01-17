@@ -27,7 +27,7 @@
 
 #include "systems/base/selection_element.hpp"
 
-#include "base/rect.hpp"
+#include "core/rect.hpp"
 #include "machine/rlmachine.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/sound_system.hpp"

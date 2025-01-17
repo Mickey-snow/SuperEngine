@@ -23,15 +23,13 @@
 
 #include "rlvm_instance.hpp"
 
-#include "base/gameexe.hpp"
+#include "core/gameexe.hpp"
+#include "core/memory.hpp"
 #include "libreallive/reallive.hpp"
 #include "libreallive/scriptor.hpp"
 #include "machine/game_hacks.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/serialization.hpp"
-#include "memory/memory.hpp"
-#include "memory/serialization_global.hpp"
-#include "memory/serialization_local.hpp"
 #include "modules/module_sys_save.hpp"
 #include "platforms/implementor.hpp"
 #include "systems/base/event_system.hpp"

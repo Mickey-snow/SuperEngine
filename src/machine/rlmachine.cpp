@@ -25,6 +25,7 @@
 
 #include "machine/rlmachine.hpp"
 
+#include "core/memory.hpp"
 #include "log/domain_logger.hpp"
 #include "long_operations/pause_long_operation.hpp"
 #include "long_operations/textout_long_operation.hpp"
@@ -34,9 +35,6 @@
 #include "machine/rloperation.hpp"
 #include "machine/serialization.hpp"
 #include "machine/stack_frame.hpp"
-#include "memory/memory.hpp"
-#include "memory/serialization_local.hpp"
-#include "memory/stack_adapter.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/system_error.hpp"

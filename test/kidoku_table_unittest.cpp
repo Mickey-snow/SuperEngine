@@ -24,7 +24,7 @@
 
 #include <gtest/gtest.h>
 
-#include "base/kidoku_table.hpp"
+#include "core/kidoku_table.hpp"
 
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>

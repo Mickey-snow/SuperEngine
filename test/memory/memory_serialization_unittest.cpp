@@ -24,9 +24,7 @@
 
 #include <gtest/gtest.h>
 
-#include "memory/memory.hpp"
-#include "memory/serialization_global.hpp"
-#include "memory/serialization_local.hpp"
+#include "core/memory.hpp"
 
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>

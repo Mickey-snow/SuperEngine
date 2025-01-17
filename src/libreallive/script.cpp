@@ -30,7 +30,7 @@
 
 #include "libreallive/script.hpp"
 
-#include "base/compression.hpp"
+#include "core/compression.hpp"
 #include "libreallive/alldefs.hpp"
 #include "libreallive/bytecode_table.hpp"
 #include "libreallive/elements/bytecode.hpp"

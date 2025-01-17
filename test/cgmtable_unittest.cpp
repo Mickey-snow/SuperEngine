@@ -24,7 +24,7 @@
 
 #include <gtest/gtest.h>
 
-#include "base/cgm_table.hpp"
+#include "core/cgm_table.hpp"
 #include "utilities/mapped_file.hpp"
 
 #include "test_utils.hpp"

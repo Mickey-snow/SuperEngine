@@ -22,7 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#include "base/rect.hpp"
+#include "core/rect.hpp"
 #include "systems/gl_frame_buffer.hpp"
 
 struct ScreenCanvas : public glFrameBuffer {

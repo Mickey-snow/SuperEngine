@@ -35,15 +35,15 @@
 #include <string>
 #include <vector>
 
-#include "base/gameexe.hpp"
-#include "base/rect.hpp"
+#include "core/gameexe.hpp"
+#include "core/rect.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/system_error.hpp"
 #include "systems/base/text_key_cursor.hpp"
-#include "systems/sdl_surface.hpp"
 #include "systems/sdl/sdl_system.hpp"
 #include "systems/sdl/sdl_text_window.hpp"
 #include "systems/sdl/sdl_utils.hpp"
+#include "systems/sdl_surface.hpp"
 #include "utilities/exception.hpp"
 #include "utilities/find_font_file.hpp"
 

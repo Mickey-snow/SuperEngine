@@ -23,7 +23,7 @@
 
 #include "test_system/sdl_env.hpp"
 
-#include "base/rect.hpp"
+#include "core/rect.hpp"
 
 #include <GL/glew.h>
 #include <SDL/SDL.h>

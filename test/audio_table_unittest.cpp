@@ -24,7 +24,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-#include "base/audio_table.hpp"
+#include "core/audio_table.hpp"
 #include "test_utils.hpp"
 
 #include <sstream>

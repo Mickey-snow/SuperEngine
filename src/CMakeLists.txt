@@ -25,7 +25,7 @@ set(RLVM_REQUIRED_LIBRARIES
 # Collect RLVM Source Files
 # -------------------------------------------------------------------
 file(GLOB_RECURSE RLVM_SRC_FILES
-    "${CMAKE_CURRENT_SOURCE_DIR}/base/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/core/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/effects/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/encodings/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/libreallive/*.cpp"
@@ -35,7 +35,6 @@ file(GLOB_RECURSE RLVM_SRC_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/modules/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/object/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/utilities/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/memory/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/systems/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/log/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/interpreter/*.cpp"

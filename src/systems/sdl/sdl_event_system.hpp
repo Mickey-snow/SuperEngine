@@ -27,7 +27,7 @@
 
 #pragma once
 
-#include "base/rect.hpp"
+#include "core/rect.hpp"
 #include "systems/base/event_system.hpp"
 
 #include <SDL/SDL_events.h>

@@ -30,7 +30,7 @@
 #include <iostream>
 #include <string>
 
-#include "base/gameexe.hpp"
+#include "core/gameexe.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/rloperation.hpp"
 #include "systems/base/system.hpp"

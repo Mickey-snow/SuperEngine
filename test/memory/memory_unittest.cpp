@@ -24,8 +24,7 @@
 
 #include <gtest/gtest.h>
 
-#include "memory/location.hpp"
-#include "memory/memory.hpp"
+#include "core/memory.hpp"
 
 #include <bitset>
 #include <map>

@@ -31,8 +31,8 @@
 
 #include "machine/rlmachine.hpp"
 #include "systems/base/graphics_system.hpp"
-#include "systems/sdl_surface.hpp"
 #include "systems/base/system.hpp"
+#include "systems/sdl_surface.hpp"
 
 // -----------------------------------------------------------------------
 // WipeEffect base class

@@ -35,7 +35,7 @@
 #include <utility>
 #include <vector>
 
-#include "base/kidoku_table.hpp"
+#include "core/kidoku_table.hpp"
 #include "machine/call_stack.hpp"
 #include "machine/instruction.hpp"
 #include "machine/iscriptor.hpp"

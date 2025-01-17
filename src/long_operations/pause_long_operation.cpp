@@ -29,7 +29,7 @@
 
 #include <vector>
 
-#include "base/gameexe.hpp"
+#include "core/gameexe.hpp"
 #include "machine/rlmachine.hpp"
 #include "systems/base/event_system.hpp"
 #include "systems/base/graphics_system.hpp"
@@ -193,7 +193,8 @@ bool PauseLongOperation::AutomodeTimerFired() {
   int time_since_last_pass = current_time - time_at_last_pass_;
   time_at_last_pass_ = current_time;
 
-  if (machine_.GetSystem().event().TimeOfLastMouseMove() < (current_time - 2000)) {
+  if (machine_.GetSystem().event().TimeOfLastMouseMove() <
+      (current_time - 2000)) {
     // If the mouse has been moved within the last two seconds, don't advance
     // the timer so the user has a chance to click on buttons.
     total_time_ += time_since_last_pass;

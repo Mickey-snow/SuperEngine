@@ -24,7 +24,7 @@
 
 #include <gtest/gtest.h>
 
-#include "memory/bank.hpp"
+#include "core/memory.hpp"
 
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>

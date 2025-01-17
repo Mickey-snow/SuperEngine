@@ -24,7 +24,7 @@
 
 #include <gtest/gtest.h>
 
-#include "base/avdec/wav.hpp"
+#include "core/avdec/wav.hpp"
 #include "test_utils.hpp"
 #include "utilities/mapped_file.hpp"
 

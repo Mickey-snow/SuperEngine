@@ -29,7 +29,7 @@
 #include <utility>
 #include <vector>
 
-#include "base/gameexe.hpp"
+#include "core/gameexe.hpp"
 #include "machine/long_operation.hpp"
 
 class GraphicsObject;

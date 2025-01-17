@@ -32,7 +32,7 @@
 #include <string>
 #include <vector>
 
-#include "base/rect.hpp"
+#include "core/rect.hpp"
 #include "machine/reallive_dll.hpp"
 #include "machine/reference.hpp"
 

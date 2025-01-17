@@ -23,7 +23,7 @@
 
 #include "libsiglus/lexeme.hpp"
 
-#include "libsiglus/strutil.hpp"
+#include "utilities/string_utilities.hpp"
 
 #include <algorithm>
 #include <format>

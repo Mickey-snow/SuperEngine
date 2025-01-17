@@ -22,7 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#include "base/expr_ast.hpp"
+#include "core/expr_ast.hpp"
 #include "interpreter/parser.hpp"
 #include "interpreter/tokenizer.hpp"
 

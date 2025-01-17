@@ -29,7 +29,7 @@
 #include <string>
 #include <vector>
 
-#include "base/colour.hpp"
+#include "core/colour.hpp"
 #include "machine/rloperation.hpp"
 
 struct RGBColour_T {

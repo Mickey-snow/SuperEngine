@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include "base/avdec/gan.hpp"
+#include "core/avdec/gan.hpp"
 #include "object/animator.hpp"
 #include "object/objdrawer.hpp"
 

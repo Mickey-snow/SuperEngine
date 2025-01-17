@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "base/rect.hpp"
+#include "core/rect.hpp"
 
 #include <memory>
 #include <optional>

@@ -34,11 +34,11 @@
 #include <ostream>
 #include <vector>
 
-#include "base/gameexe.hpp"
+#include "core/gameexe.hpp"
 #include "systems/base/graphics_object.hpp"
-#include "systems/sdl_surface.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/text_system.hpp"
+#include "systems/sdl_surface.hpp"
 
 // -----------------------------------------------------------------------
 

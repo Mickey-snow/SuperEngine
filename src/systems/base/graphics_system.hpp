@@ -41,9 +41,9 @@
 #include <utility>
 #include <vector>
 
-#include "base/cgm_table.hpp"
-#include "base/rect.hpp"
-#include "base/tone_curve.hpp"
+#include "core/cgm_table.hpp"
+#include "core/rect.hpp"
+#include "core/tone_curve.hpp"
 #include "systems/base/event_listener.hpp"
 
 #include "lru_cache.hpp"

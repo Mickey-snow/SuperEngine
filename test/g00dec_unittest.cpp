@@ -24,8 +24,8 @@
 
 #include <gtest/gtest.h>
 
-#include "base/avdec/image_decoder.hpp"
-#include "base/compression.hpp"
+#include "core/avdec/image_decoder.hpp"
+#include "core/compression.hpp"
 #include "test_utils.hpp"
 #include "utilities/bytestream.hpp"
 #include "utilities/mapped_file.hpp"

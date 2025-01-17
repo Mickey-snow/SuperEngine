@@ -31,14 +31,14 @@
 #include <sstream>
 #include <string>
 
-#include "base/gameexe.hpp"
-#include "base/rect.hpp"
+#include "core/gameexe.hpp"
+#include "core/rect.hpp"
 #include "systems/base/graphics_system.hpp"
-#include "systems/sdl_surface.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/text_system.hpp"
 #include "systems/base/text_window.hpp"
 #include "systems/base/text_window_button.hpp"
+#include "systems/sdl_surface.hpp"
 
 using std::endl;
 using std::ostringstream;

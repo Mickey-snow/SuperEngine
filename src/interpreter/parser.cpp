@@ -24,7 +24,7 @@
 
 #include "interpreter/parser.hpp"
 
-#include "base/expr_ast.hpp"
+#include "core/expr_ast.hpp"
 #include "interpreter/parsing_error.hpp"
 
 #include <boost/fusion/include/deque.hpp>

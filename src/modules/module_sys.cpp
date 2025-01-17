@@ -40,8 +40,8 @@
 #include <string>
 #include <vector>
 
-#include "base/cgm_table.hpp"
-#include "base/gameexe.hpp"
+#include "core/cgm_table.hpp"
+#include "core/gameexe.hpp"
 #include "effects/fade_effect.hpp"
 #include "machine/general_operations.hpp"
 #include "machine/rloperation.hpp"
@@ -59,10 +59,10 @@
 #include "systems/base/event_system.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/sound_system.hpp"
-#include "systems/sdl_surface.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/text_system.hpp"
 #include "systems/base/text_window.hpp"
+#include "systems/sdl_surface.hpp"
 #include "utilities/string_utilities.hpp"
 
 inline constexpr float PI = std::numbers::pi;
@@ -72,7 +72,7 @@ namespace {
 struct title : public RLOpcode<StrConstant_T> {
   void operator()(RLMachine& machine, std::string subtitle) {
     machine.GetSystem().graphics().SetWindowSubtitle(subtitle,
-                                                  machine.GetTextEncoding());
+                                                     machine.GetTextEncoding());
   }
 };
 

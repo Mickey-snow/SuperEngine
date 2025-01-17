@@ -24,8 +24,8 @@
 
 #include <gtest/gtest.h>
 
-#include "base/asset_scanner.hpp"
-#include "base/gameexe.hpp"
+#include "core/asset_scanner.hpp"
+#include "core/gameexe.hpp"
 #include "test_utils.hpp"
 
 #include <filesystem>

@@ -29,11 +29,11 @@
 
 #include <string>
 
+#include "core/memory.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/rlmodule.hpp"
 #include "machine/rloperation.hpp"
 #include "machine/rloperation/reference_types.hpp"
-#include "memory/memory.hpp"
 
 // -----------------------------------------------------------------------
 

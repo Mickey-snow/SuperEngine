@@ -31,7 +31,7 @@
 #include <string>
 #include <vector>
 
-#include "base/rect.hpp"
+#include "core/rect.hpp"
 
 class SDLSurface;
 using Surface = SDLSurface;

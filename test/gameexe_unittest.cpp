@@ -27,7 +27,7 @@
 
 #include <gtest/gtest.h>
 
-#include "base/gameexe.hpp"
+#include "core/gameexe.hpp"
 
 #include "test_utils.hpp"
 

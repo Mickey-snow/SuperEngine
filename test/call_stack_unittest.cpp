@@ -41,7 +41,8 @@ class CallStackTest : public ::testing::Test {
   }
 
   auto desc(const StackFrame& frame) -> std::string {
-    return std::format("({},{}) {}", frame.pos.scenario_number, frame.pos.location_offset,
+    return std::format("({},{}) {}", frame.pos.scenario_number,
+                       frame.pos.location_offset,
                        static_cast<int>(frame.frame_type));
   }
 

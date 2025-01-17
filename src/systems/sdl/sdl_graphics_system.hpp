@@ -33,8 +33,8 @@
 #include <set>
 #include <string>
 
-#include "base/notification/observer.hpp"
-#include "base/notification/registrar.hpp"
+#include "core/notification/observer.hpp"
+#include "core/notification/registrar.hpp"
 #include "systems/base/graphics_system.hpp"
 
 struct SDL_Surface;

@@ -24,7 +24,7 @@
 
 #include "effects/sel_record.hpp"
 
-#include "base/gameexe.hpp"
+#include "core/gameexe.hpp"
 #include "utilities/graphics.hpp"
 
 #include <sstream>

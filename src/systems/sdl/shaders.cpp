@@ -50,7 +50,7 @@ static void checkLinkError(GLuint program) {
 }
 
 glslProgram::glslProgram(std::string_view vertex_src,
-                             std::string_view frag_src) {
+                         std::string_view frag_src) {
   const char *vs = vertex_src.data(), *fs = frag_src.data();
 
   auto vertex = glCreateShader(GL_VERTEX_SHADER);
@@ -97,17 +97,14 @@ void glslProgram::SetUniform(std::string_view name, float value) {
 }
 
 void glslProgram::SetUniform(std::string_view name,
-                               float x,
-                               float y,
-                               float z,
-                               float w) {
+                             float x,
+                             float y,
+                             float z,
+                             float w) {
   glUniform4f(UniformLocation(name), x, y, z, w);
 }
 
-void glslProgram::SetUniform(std::string_view name,
-                               float x,
-                               float y,
-                               float z) {
+void glslProgram::SetUniform(std::string_view name, float x, float y, float z) {
   glUniform3f(UniformLocation(name), x, y, z);
 }
 
@@ -144,8 +141,7 @@ void main(){
 }
 )glsl";
 
-  static auto shader =
-      std::make_shared<glslProgram>(vertex_src, fragment_src);
+  static auto shader = std::make_shared<glslProgram>(vertex_src, fragment_src);
   return shader;
 }
 
@@ -187,8 +183,7 @@ void main(){
 }
 )glsl";
 
-  static auto shader =
-      std::make_shared<glslProgram>(vertex_src, fragment_src);
+  static auto shader = std::make_shared<glslProgram>(vertex_src, fragment_src);
   return shader;
 }
 
@@ -270,7 +265,6 @@ void main() {
 }
 )glsl";
 
-  static auto shader =
-      std::make_shared<glslProgram>(vertex_src, fragment_src);
+  static auto shader = std::make_shared<glslProgram>(vertex_src, fragment_src);
   return shader;
 }

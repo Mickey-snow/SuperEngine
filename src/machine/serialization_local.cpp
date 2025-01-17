@@ -42,14 +42,13 @@
 #include <stdexcept>
 #include <string>
 
+#include "core/memory.hpp"
 #include "libreallive/archive.hpp"
 #include "libreallive/intmemref.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/save_game_header.hpp"
 #include "machine/serialization.hpp"
 #include "machine/stack_frame.hpp"
-#include "memory/memory.hpp"
-#include "memory/serialization_local.hpp"
 #include "object/drawer/anm.hpp"
 #include "object/drawer/file.hpp"
 #include "object/drawer/gan.hpp"
@@ -105,7 +104,8 @@ void saveGameTo(std::ostream& oss, RLMachine& machine) {
 
   try {
     boost::archive::text_oarchive oa(filtered_output);
-    oa << CURRENT_LOCAL_VERSION << header << machine.GetMemory().GetLocalMemory()
+    oa << CURRENT_LOCAL_VERSION << header
+       << machine.GetMemory().GetLocalMemory()
        << const_cast<const RLMachine&>(machine)
        << const_cast<const System&>(machine.GetSystem())
        << const_cast<const GraphicsSystem&>(machine.GetSystem().graphics())

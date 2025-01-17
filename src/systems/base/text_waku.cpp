@@ -26,7 +26,7 @@
 
 #include "systems/base/text_waku.hpp"
 
-#include "base/gameexe.hpp"
+#include "core/gameexe.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/text_waku_normal.hpp"
 #include "systems/base/text_waku_type4.hpp"

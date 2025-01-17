@@ -24,7 +24,7 @@
 
 #include <gtest/gtest.h>
 
-#include "base/compression.hpp"
+#include "core/compression.hpp"
 
 #include <string>
 #include <string_view>

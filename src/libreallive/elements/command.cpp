@@ -33,9 +33,9 @@
 #include "libreallive/parser.hpp"
 #include "machine/rlmachine.hpp"
 
+#include <format>
 #include <iomanip>
 #include <vector>
-#include <format>
 
 namespace libreallive {
 

@@ -28,12 +28,12 @@
 
 #include <memory>
 
+#include "core/colour.hpp"
 #include "effects/fade_effect.hpp"
 #include "machine/rlmachine.hpp"
-#include "base/colour.hpp"
 #include "systems/base/graphics_system.hpp"
-#include "systems/sdl_surface.hpp"
 #include "systems/base/system.hpp"
+#include "systems/sdl_surface.hpp"
 
 LoadGameLongOperation::LoadGameLongOperation(RLMachine& machine) {
   // Render the current state of the screen

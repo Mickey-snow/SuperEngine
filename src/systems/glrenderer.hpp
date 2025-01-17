@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "base/colour.hpp"
-#include "base/rect.hpp"
+#include "core/colour.hpp"
+#include "core/rect.hpp"
 #include "glm/mat4x4.hpp"
 
 #include <array>

@@ -38,7 +38,7 @@
 #include <utility>
 #include <vector>
 
-#include "base/gameexe.hpp"
+#include "core/gameexe.hpp"
 #include "long_operations/load_game_long_operation.hpp"
 #include "machine/long_operation.hpp"
 #include "machine/rlmachine.hpp"
@@ -84,8 +84,6 @@ struct LoadingGameFromStream : public LoadGameLongOperation {
 };
 
 }  // namespace
-
-
 
 class MenuReseter : public LongOperation {
  public:

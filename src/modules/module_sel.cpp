@@ -31,7 +31,7 @@
 #include <string>
 #include <vector>
 
-#include "base/gameexe.hpp"
+#include "core/gameexe.hpp"
 #include "libreallive/parser.hpp"
 #include "long_operations/button_object_select_long_operation.hpp"
 #include "long_operations/select_long_operation.hpp"

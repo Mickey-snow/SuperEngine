@@ -28,8 +28,8 @@
 
 #include <string>
 
-#include "systems/sdl_surface.hpp"
 #include "systems/base/text_waku.hpp"
+#include "systems/sdl_surface.hpp"
 
 // Waku which is a modified Ninebox. Instead of a ninebox, it's really a 12-box
 // where four of the entries aren't used and the center is never defined. This

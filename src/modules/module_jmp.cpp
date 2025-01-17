@@ -27,13 +27,13 @@
 
 #include "modules/module_jmp.hpp"
 
+#include "core/memory.hpp"
 #include "libreallive/intmemref.hpp"
 #include "libreallive/parser.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/rloperation.hpp"
 #include "machine/rloperation/argc_t.hpp"
 #include "machine/rloperation/special_t.hpp"
-#include "memory/memory.hpp"
 #include "modules/jump.hpp"
 #include "utilities/exception.hpp"
 

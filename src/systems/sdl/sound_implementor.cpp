@@ -24,7 +24,7 @@
 
 #include "sound_implementor.hpp"
 
-#include "base/resampler.hpp"
+#include "core/resampler.hpp"
 
 #include <SDL/SDL.h>
 #include <SDL/SDL_mixer.h>

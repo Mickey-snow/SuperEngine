@@ -34,9 +34,8 @@
 #include <optional>
 #include <string>
 
+#include "core/memory.hpp"
 #include "machine/iscriptor.hpp"
-#include "memory/bank.hpp"
-#include "memory/memory.hpp"
 
 class LongOperation;
 

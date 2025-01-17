@@ -31,8 +31,8 @@
 #include "machine/rlmachine.hpp"
 #include "machine/rloperation.hpp"
 #include "systems/base/graphics_system.hpp"
-#include "systems/sdl_surface.hpp"
 #include "systems/base/system.hpp"
+#include "systems/sdl_surface.hpp"
 
 namespace {
 
@@ -67,8 +67,8 @@ struct GetDCPixel : public RLOpcode<IntConstant_T,
                   IntReferenceIterator g,
                   IntReferenceIterator b) {
     int rval, gval, bval;
-    machine.GetSystem().graphics().GetDC(dc)->GetDCPixel(Point(x, y), rval, gval,
-                                                      bval);
+    machine.GetSystem().graphics().GetDC(dc)->GetDCPixel(Point(x, y), rval,
+                                                         gval, bval);
     *r = rval;
     *g = gval;
     *b = bval;

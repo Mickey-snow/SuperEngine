@@ -26,8 +26,8 @@
 
 #include "test_utils.hpp"
 
-#include "base/avdec/ogg.hpp"
-#include "base/avdec/wav.hpp"
+#include "core/avdec/ogg.hpp"
+#include "core/avdec/wav.hpp"
 #include "utilities/mapped_file.hpp"
 
 #include <cmath>

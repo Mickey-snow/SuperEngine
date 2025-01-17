@@ -28,8 +28,8 @@
 using ::testing::_;
 using ::testing::Return;
 
-#include "base/audio_player.hpp"
-#include "base/avdec/audio_decoder.hpp"
+#include "core/audio_player.hpp"
+#include "core/avdec/audio_decoder.hpp"
 
 #include <atomic>
 #include <future>

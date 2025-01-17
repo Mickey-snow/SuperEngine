@@ -29,7 +29,7 @@
 #include <map>
 #include <string>
 
-#include "base/gameexe.hpp"
+#include "core/gameexe.hpp"
 #include "utilities/string_utilities.hpp"
 
 using std::string;

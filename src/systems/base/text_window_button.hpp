@@ -31,10 +31,10 @@
 #include <memory>
 #include <vector>
 
-#include "base/gameexe.hpp"
-#include "base/notification/observer.hpp"
-#include "base/notification/registrar.hpp"
-#include "base/notification/type.hpp"
+#include "core/gameexe.hpp"
+#include "core/notification/observer.hpp"
+#include "core/notification/registrar.hpp"
+#include "core/notification/type.hpp"
 
 class Point;
 class RLMachine;

@@ -29,7 +29,7 @@
 
 #include <memory>
 
-#include "base/rect.hpp"
+#include "core/rect.hpp"
 #include "machine/long_operation.hpp"
 
 class RLMachine;

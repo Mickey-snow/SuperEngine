@@ -33,7 +33,7 @@
 #include <queue>
 #include <set>
 
-#include "base/rect.hpp"
+#include "core/rect.hpp"
 #include "systems/base/rltimer.hpp"
 #include "utilities/clock.hpp"
 

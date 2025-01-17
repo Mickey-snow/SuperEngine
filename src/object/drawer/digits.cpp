@@ -33,7 +33,7 @@
 #include <algorithm>
 #include <iostream>
 
-#include "base/colour.hpp"
+#include "core/colour.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/system.hpp"

@@ -33,7 +33,7 @@
 #include <string>
 #include <vector>
 
-#include "base/rect.hpp"
+#include "core/rect.hpp"
 #include "systems/base/event_system.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/base/graphics_system.hpp"

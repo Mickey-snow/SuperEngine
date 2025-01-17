@@ -34,8 +34,8 @@
 #include <sstream>
 #include <string>
 
-#include "base/colour.hpp"
-#include "base/rect.hpp"
+#include "core/colour.hpp"
+#include "core/rect.hpp"
 #include "systems/base/system_error.hpp"
 
 void reportSDLError(const std::string& sdl_name,

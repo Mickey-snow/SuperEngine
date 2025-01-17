@@ -41,11 +41,9 @@
 #include <iostream>
 #include <sstream>
 
+#include "core/memory.hpp"
 #include "libreallive/intmemref.hpp"
 #include "machine/rlmachine.hpp"
-#include "memory/memory.hpp"
-#include "memory/serialization_global.hpp"
-#include "memory/serialization_local.hpp"
 #include "systems/base/event_system.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/sound_system.hpp"

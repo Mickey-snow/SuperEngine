@@ -36,13 +36,13 @@
 #include <string>
 #include <vector>
 
-#include "base/gameexe.hpp"
-#include "base/notification/details.hpp"
-#include "base/notification/service.hpp"
-#include "base/notification/source.hpp"
+#include "core/gameexe.hpp"
+#include "core/memory.hpp"
+#include "core/notification/details.hpp"
+#include "core/notification/service.hpp"
+#include "core/notification/source.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/serialization.hpp"
-#include "memory/memory.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/text_key_cursor.hpp"

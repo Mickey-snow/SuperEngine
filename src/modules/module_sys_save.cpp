@@ -35,6 +35,8 @@
 #include <optional>
 #include <string>
 
+#include "core/colour.hpp"
+#include "core/memory.hpp"
 #include "libreallive/intmemref.hpp"
 #include "long_operations/load_game_long_operation.hpp"
 #include "machine/general_operations.hpp"
@@ -49,11 +51,8 @@
 #include "machine/rloperation/special_t.hpp"
 #include "machine/save_game_header.hpp"
 #include "machine/serialization.hpp"
-#include "memory/memory.hpp"
-#include "memory/serialization_global.hpp"
-#include "base/colour.hpp"
-#include "systems/sdl_surface.hpp"
 #include "systems/base/system.hpp"
+#include "systems/sdl_surface.hpp"
 #include "utf8cpp/utf8.h"
 
 using boost::ends_with;

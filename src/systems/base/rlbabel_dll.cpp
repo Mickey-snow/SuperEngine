@@ -49,12 +49,12 @@
 #include <string>
 #include <vector>
 
-#include "base/gameexe.hpp"
+#include "core/gameexe.hpp"
+#include "core/memory.hpp"
 #include "encodings/codepage.hpp"
 #include "encodings/western.hpp"
 #include "libreallive/intmemref.hpp"
 #include "machine/rlmachine.hpp"
-#include "memory/memory.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/text_system.hpp"
 #include "systems/base/text_window.hpp"

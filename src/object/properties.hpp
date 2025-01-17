@@ -24,8 +24,8 @@
 
 #pragma once
 
-#include "base/rect.hpp"
-#include "base/colour.hpp"
+#include "core/colour.hpp"
+#include "core/rect.hpp"
 #include "utilities/mpl.hpp"
 
 #include <array>

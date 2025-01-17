@@ -30,9 +30,9 @@
 #include <string>
 #include <vector>
 
-#include "base/rect.hpp"
+#include "core/colour.hpp"
+#include "core/rect.hpp"
 #include "machine/long_operation.hpp"
-#include "base/colour.hpp"
 #include "systems/base/event_listener.hpp"
 #include "systems/base/renderable.hpp"
 #include "systems/sdl_surface.hpp"

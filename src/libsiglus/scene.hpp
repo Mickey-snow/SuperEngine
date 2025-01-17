@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "base/compression.hpp"
+#include "core/compression.hpp"
 #include "encodings/utf16.hpp"
 #include "libsiglus/xorkey.hpp"
 #include "utilities/byte_reader.hpp"

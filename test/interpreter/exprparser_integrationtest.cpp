@@ -24,7 +24,7 @@
 
 #include <gtest/gtest.h>
 
-#include "base/expr_ast.hpp"
+#include "core/expr_ast.hpp"
 #include "interpreter/parser.hpp"
 #include "interpreter/tokenizer.hpp"
 
@@ -180,7 +180,7 @@ TEST_F(ExprEvaluatorTest, EvalComplexExpressions) {
   EXPECT_EQ(Eval("4 + 5 * 6 / 3 - 2"), 12);  // 5*6=30 /3=10 +4=14 -2=12
 
   // Logical and bitwise combinations
-  EXPECT_EQ(Eval("1 + 2 && 3 | 4"), 1); // 1+2=3; 3|4=7; 3&7=1
+  EXPECT_EQ(Eval("1 + 2 && 3 | 4"), 1);  // 1+2=3; 3|4=7; 3&7=1
   EXPECT_EQ(Eval("~(1 << 2)"), -5);
   EXPECT_EQ(Eval("3 + ~2 * 2"), -3);  // 3 -6 = -3
 

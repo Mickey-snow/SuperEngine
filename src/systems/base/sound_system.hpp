@@ -32,10 +32,10 @@
 #include <string>
 #include <utility>
 
-#include "base/audio_player.hpp"
-#include "base/audio_table.hpp"
-#include "base/sound_settings.hpp"
-#include "base/voice_factory.hpp"
+#include "core/audio_player.hpp"
+#include "core/audio_table.hpp"
+#include "core/sound_settings.hpp"
+#include "core/voice_factory.hpp"
 
 class Gameexe;
 class System;

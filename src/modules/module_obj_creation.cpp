@@ -27,7 +27,7 @@
 
 #include "modules/module_obj_creation.hpp"
 
-#include "base/avdec/gan.hpp"
+#include "core/avdec/gan.hpp"
 #include "machine/properties.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/rlmodule.hpp"

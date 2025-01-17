@@ -30,9 +30,9 @@
 #include <stdexcept>
 #include <vector>
 
-#include "base/notification/details.hpp"
-#include "base/notification/service.hpp"
-#include "base/rect.hpp"
+#include "core/notification/details.hpp"
+#include "core/notification/service.hpp"
+#include "core/rect.hpp"
 #include "machine/long_operation.hpp"
 #include "machine/rlmachine.hpp"
 #include "modules/jump.hpp"

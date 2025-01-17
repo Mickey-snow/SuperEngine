@@ -35,12 +35,12 @@
 
 #include "libreallive/expression.hpp"
 
+#include "core/memory.hpp"
 #include "libreallive/alldefs.hpp"
 #include "libreallive/intmemref.hpp"
 #include "libreallive/parser.hpp"
 #include "machine/reference.hpp"
 #include "machine/rlmachine.hpp"
-#include "memory/location.hpp"
 
 #include <boost/algorithm/string.hpp>
 #include <format>
@@ -642,8 +642,7 @@ class BinaryExpressionEx : public IExpression {
 
 class UnaryEx : public IExpression {
  public:
-  UnaryEx(const char& op, const Expression ex)
-      : operation_(op), operand_(ex) {}
+  UnaryEx(const char& op, const Expression ex) : operation_(op), operand_(ex) {}
 
   bool is_valid() const override { return true; }
 
@@ -683,7 +682,7 @@ class UnaryEx : public IExpression {
 };
 
 Expression ExpressionFactory::UnaryExpression(const char operation,
-                                               Expression operand) {
+                                              Expression operand) {
   return std::make_shared<UnaryEx>(operation, operand);
 }
 

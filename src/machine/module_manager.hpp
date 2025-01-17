@@ -34,8 +34,6 @@ class CommandElement;
 class RLModule;
 class RLOperation;
 
-
-
 class ModuleManager {
  public:
   ModuleManager() = default;

@@ -30,8 +30,8 @@
 #include <sstream>
 #include <vector>
 
-#include "base/gameexe.hpp"
-#include "base/rect.hpp"
+#include "core/gameexe.hpp"
+#include "core/rect.hpp"
 #include "machine/rlmachine.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/system_error.hpp"

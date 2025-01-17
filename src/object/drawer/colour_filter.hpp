@@ -26,7 +26,7 @@
 
 #pragma once
 
-#include "base/rect.hpp"
+#include "core/rect.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/serialization.hpp"
 #include "object/objdrawer.hpp"

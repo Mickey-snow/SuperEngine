@@ -26,8 +26,8 @@
 
 #include <SDL/SDL.h>
 
-#include "base/colour.hpp"
-#include "base/localrect.hpp"
+#include "core/colour.hpp"
+#include "core/localrect.hpp"
 #include "pygame/alphablit.h"
 #include "systems/base/graphics_object.hpp"
 #include "systems/gl_frame_buffer.hpp"
@@ -787,6 +787,6 @@ void SDLSurface::markWrittenTo(const Rect& written_rect) {
 
 std::vector<SDLSurface::TextureRecord> SDLSurface::GetTextureArray() const {
   uploadTextureIfNeeded();
-  
+
   return textures_;
 }

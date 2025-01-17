@@ -29,6 +29,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <ranges>
 #include <string>
 
 // Converts a CP932/Shift_JIS string into a wstring with Unicode
@@ -143,5 +144,22 @@ std::string ToString(Ts&&... params) {
   std::string result = ((std::to_string(std::forward<Ts>(params)) + ' ') + ...);
   if constexpr (sizeof...(Ts) > 0)
     result.pop_back();
+  return result;
+}
+
+template <std::ranges::input_range R>
+  requires std::convertible_to<std::ranges::range_value_t<R>, std::string_view>
+std::string Join(std::string_view sep, R&& range) {
+  std::string result;
+  bool first = true;
+
+  for (auto&& str : range) {
+    if (first)
+      first = false;
+    else
+      result += sep;
+    result += std::string_view(str);
+  }
+
   return result;
 }

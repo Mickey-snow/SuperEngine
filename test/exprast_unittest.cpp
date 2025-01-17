@@ -24,7 +24,7 @@
 
 #include <gtest/gtest.h>
 
-#include "base/expr_ast.hpp"
+#include "core/expr_ast.hpp"
 
 class ExprASTTest : public ::testing::Test {
  protected:

@@ -24,7 +24,7 @@
 
 #include <gtest/gtest.h>
 
-#include "base/avdec/nwa.hpp"
+#include "core/avdec/nwa.hpp"
 #include "test_utils.hpp"
 #include "utilities/mapped_file.hpp"
 

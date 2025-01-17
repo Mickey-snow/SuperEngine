@@ -21,7 +21,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#include "base/gameexe.hpp"
+#include "core/gameexe.hpp"
 #include "encodings/cp932.hpp"
 #include "libreallive/archive.hpp"
 #include "log/domain_logger.hpp"

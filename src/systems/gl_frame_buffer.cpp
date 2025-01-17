@@ -23,7 +23,7 @@
 
 #include "systems/gl_frame_buffer.hpp"
 
-#include "base/rect.hpp"
+#include "core/rect.hpp"
 #include "systems/gl_utils.hpp"
 #include "systems/gltexture.hpp"
 

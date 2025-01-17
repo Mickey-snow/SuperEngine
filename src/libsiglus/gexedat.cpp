@@ -23,8 +23,8 @@
 
 #include "libsiglus/gexedat.hpp"
 
-#include "base/compression.hpp"
-#include "base/gameexe.hpp"
+#include "core/compression.hpp"
+#include "core/gameexe.hpp"
 #include "encodings/utf16.hpp"
 #include "libsiglus/xorkey.hpp"
 #include "utilities/byte_reader.hpp"

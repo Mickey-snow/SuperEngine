@@ -24,7 +24,7 @@
 
 #include <gtest/gtest.h>
 
-#include "base/localrect.hpp"
+#include "core/localrect.hpp"
 
 /**
  * @brief Test case: No intersection

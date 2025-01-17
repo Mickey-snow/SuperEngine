@@ -30,7 +30,7 @@
 #include <algorithm>
 #include <string>
 
-#include "base/gameexe.hpp"
+#include "core/gameexe.hpp"
 #include "machine/rlmachine.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/text_system.hpp"

@@ -27,8 +27,8 @@
 
 #include "systems/sdl/sdl_sound_system.hpp"
 
-#include "base/avdec/audio_decoder.hpp"
-#include "base/avspec.hpp"
+#include "core/avdec/audio_decoder.hpp"
+#include "core/avspec.hpp"
 #include "systems/base/event_system.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/system_error.hpp"

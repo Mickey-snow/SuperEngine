@@ -26,7 +26,7 @@
 
 #include "long_operations/wait_long_operation.hpp"
 
-#include "base/rect.hpp"
+#include "core/rect.hpp"
 #include "machine/rlmachine.hpp"
 #include "systems/base/event_listener.hpp"
 #include "systems/base/event_system.hpp"

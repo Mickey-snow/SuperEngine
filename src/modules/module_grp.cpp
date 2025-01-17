@@ -33,7 +33,8 @@
 #include <string>
 #include <vector>
 
-#include "base/gameexe.hpp"
+#include "core/colour.hpp"
+#include "core/gameexe.hpp"
 #include "effects/effect.hpp"
 #include "effects/effect_factory.hpp"
 #include "effects/sel_record.hpp"
@@ -50,11 +51,10 @@
 #include "machine/rloperation/rect_t.hpp"
 #include "machine/rloperation/rgb_colour_t.hpp"
 #include "machine/rloperation/special_t.hpp"
-#include "base/colour.hpp"
 #include "systems/base/graphics_system.hpp"
-#include "systems/sdl_surface.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/text_system.hpp"
+#include "systems/sdl_surface.hpp"
 #include "utilities/graphics.hpp"
 
 namespace fs = std::filesystem;

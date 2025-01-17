@@ -35,7 +35,7 @@
 #include <utility>
 #include <vector>
 
-#include "base/gameexe.hpp"
+#include "core/gameexe.hpp"
 #include "libreallive/alldefs.hpp"
 #include "machine/rlmachine.hpp"
 #include "systems/base/graphics_system.hpp"
