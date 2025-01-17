@@ -26,7 +26,11 @@
 
 #include "base/kidoku_table.hpp"
 
-// Test Fixture for KidokuTable
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
+
+#include <sstream>
+
 class KidokuTableTest : public ::testing::Test {
  protected:
   KidokuTable kidoku_table;
@@ -97,4 +101,30 @@ TEST_F(KidokuTableTest, MultipleKidokus) {
   }
 
   EXPECT_FALSE(kidoku_table.HasBeenRead(scenario, 6));
+}
+
+TEST_F(KidokuTableTest, Serialization) {
+  const int scenario_nums = 100;
+  const int kidoku_nums = 100;
+
+  std::stringstream ss;
+  {
+    KidokuTable table;
+    for (int i = 1; i < scenario_nums; ++i)
+      for (int j = 0; j < kidoku_nums; ++j)
+        table.RecordKidoku(i, j * i);
+
+    boost::archive::text_oarchive oa(ss);
+    oa << table;
+  }
+
+  {
+    boost::archive::text_iarchive ia(ss);
+    ia >> kidoku_table;
+
+    for (int i = 1; i < scenario_nums; ++i)
+      for (int j = 0; j < i * kidoku_nums; ++j) {
+        EXPECT_EQ(kidoku_table.HasBeenRead(i, j), j % i == 0);
+      }
+  }
 }

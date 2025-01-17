@@ -89,7 +89,7 @@ void saveGlobalMemoryTo(std::ostream& oss, RLMachine& machine) {
   System& sys = machine.GetSystem();
 
   oa << CURRENT_GLOBAL_VERSION << machine.GetMemory().GetGlobalMemory()
-     << const_cast<const SystemGlobals&>(sys.globals())
+     << machine.GetKidokus() << const_cast<const SystemGlobals&>(sys.globals())
      << const_cast<const GraphicsSystemGlobals&>(sys.graphics().globals())
      << const_cast<const EventSystemGlobals&>(sys.event().globals())
      << const_cast<const TextSystemGlobals&>(sys.text().globals())
@@ -140,6 +140,8 @@ void loadGlobalMemoryFrom(std::istream& iss, RLMachine& machine) {
   GlobalMemory global_memory;
   ia >> global_memory;
   machine.GetMemory().PartialReset(std::move(global_memory));
+
+  ia >> machine.GetKidokus();
 
   // When Karmic Koala came out, support for all boost earlier than 1.36 was
   // dropped. For years, I had used boost 1.35 on Ubuntu. It turns out that
