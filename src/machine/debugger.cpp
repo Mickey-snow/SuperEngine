@@ -22,17 +22,16 @@
 //
 // -----------------------------------------------------------------------
 
+#include "debugger.hpp"
+
 #include "core/expr_ast.hpp"
 #include "interpreter/parser.hpp"
 #include "interpreter/tokenizer.hpp"
+#include "utilities/string_utilities.hpp"
 
-#include <algorithm>
-#include <cctype>
 #include <iostream>
-#include <locale>
-#include <span>
-#include <string>
-#include <string_view>
+
+Debugger::Debugger(RLMachine& machine) : machine_(machine) {}
 
 constexpr std::string_view copyright_info = R"(
 Copyright (C) 2025 Serina Sakurai
@@ -48,38 +47,26 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 )";
 
-inline void ltrim(std::string& s) {
-  s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
-            return !std::isspace(ch);
-          }));
-}
-inline void rtrim(std::string& s) {
-  s.erase(std::find_if(s.rbegin(), s.rend(),
-                       [](unsigned char ch) { return !std::isspace(ch); })
-              .base(),
-          s.end());
-}
-inline void trim(std::string& s) {
-  rtrim(s);
-  ltrim(s);
-}
+void Debugger::NotifyBefore(Instruction& instruction) {
+  return;
 
-int main(int argc, char* argv[]) {
-  std::cout << copyright_info << std::endl;
+  static bool should_display_info = true;
+  if (should_display_info) {
+    should_display_info = false;
+    std::cout << copyright_info << std::endl << std::endl;
+  }
 
   while (true) {
-    std::cout << "(rldbg)" << std::flush;
+    std::cout << "rldbg>" << std::flush;
     std::string input;
     std::getline(std::cin, input);
     trim(input);
 
     if (input == "q" || input == "quit")
-      exit(0);
+      break;
 
     Tokenizer tokenizer(input);
     auto expr = ParseExpression(std::span(tokenizer.parsed_tok_));
     std::cout << expr->Apply(Evaluator()) << std::endl;
   }
-
-  return 0;
 }

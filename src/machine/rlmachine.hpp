@@ -37,6 +37,7 @@
 
 #include "core/kidoku_table.hpp"
 #include "machine/call_stack.hpp"
+#include "machine/debugger.hpp"
 #include "machine/instruction.hpp"
 #include "machine/iscriptor.hpp"
 #include "machine/module_manager.hpp"
@@ -233,6 +234,8 @@ class RLMachine {
   // The RLMachine carried around a reference to the local system, to keep it
   // from being a Singleton so we can do proper unit testing.
   System& system_;
+
+  Debugger debugger_;
 
   // Override defaults
   bool mark_savepoints_ = true;

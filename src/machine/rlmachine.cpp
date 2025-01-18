@@ -69,7 +69,8 @@ RLMachine::RLMachine(System& system,
     : memory_(std::move(memory)),
       module_manager_(module_manager_prototype),
       scriptor_(scriptor),
-      system_(system) {
+      system_(system),
+      debugger_(*this) {
   // Setup stack memory
   Memory::Stack stack_memory;
   stack_memory.K = MemoryBank<std::string>(
@@ -126,7 +127,9 @@ void RLMachine::ExecuteNextInstruction() {
       }
 
     } else {
-      auto instruction = scriptor_->ResolveInstruction(top_frame->pos);
+      Instruction instruction = scriptor_->ResolveInstruction(top_frame->pos);
+      debugger_.NotifyBefore(instruction);
+
       std::visit(*this, std::move(instruction));
     }
   } catch (rlvm::UnimplementedOpcode& e) {
