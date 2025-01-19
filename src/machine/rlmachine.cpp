@@ -122,14 +122,23 @@ void RLMachine::ExecuteNextInstruction() {
         finished = (*top_frame->long_op)(*this);
       }
 
-      if (finished) {
+      if (finished)
         call_stack_.Pop();
-      }
 
-    } else {
+    } else {  // normal bytecode instruction
+
       Instruction instruction = scriptor_->ResolveInstruction(top_frame->pos);
+
+      // notify debugger
       debugger_.NotifyBefore(instruction);
 
+      // write trace log
+      static DomainLogger tracer("TRACER");
+      tracer(Severity::None)
+          << std::format("({:0>4d}:{:d}) ", SceneNumber(), line_)
+          << std::visit(InstructionToString(&module_manager_), instruction);
+
+      // execute the instruction
       std::visit(*this, std::move(instruction));
     }
   } catch (rlvm::UnimplementedOpcode& e) {
@@ -351,14 +360,6 @@ void RLMachine::operator()(rlCommand cmd) {
   }
 
   try {
-    {  // write trace log
-      static DomainLogger tracer("TRACE");
-      auto rec = tracer(Severity::None);
-      rec << std::format("({:0>4d}:{:d}) ", SceneNumber(), line_);
-      rec << module_manager_.GetCommandName(*f);
-      rec << cmd.ToString();
-    }
-
     op->DispatchFunction(*this, *f);
   } catch (rlvm::Exception& e) {
     e.setOperation(op);
@@ -367,16 +368,11 @@ void RLMachine::operator()(rlCommand cmd) {
 }
 
 void RLMachine::operator()(rlExpression e) {
-  static DomainLogger tracer("TRACE");
-  tracer() << std::format("({:0>4d}:{:d}) ", SceneNumber(), line_)
-           << e.ToString();
   e.Execute(*this);
   AdvanceInstructionPointer();
 }
 
 void RLMachine::operator()(Textout t) {
-  static DomainLogger tracer("TEXT");
-  tracer() << t.text;
   PerformTextout(std::move(t.text));
   AdvanceInstructionPointer();
 }

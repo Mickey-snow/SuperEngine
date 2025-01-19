@@ -27,26 +27,10 @@
 #include "libreallive/elements/command.hpp"
 #include "libreallive/elements/expression.hpp"
 #include "libreallive/expression.hpp"
+#include "machine/module_manager.hpp"
+#include "utilities/string_utilities.hpp"
 
 #include <format>
-
-std::string rlCommand::ToString() const {
-  std::string result =
-      std::format("<{},{},{}:{}>", cmd->modtype(), cmd->module(), cmd->opcode(),
-                  cmd->overload());
-
-  result += "(";
-  bool is_first = true;
-  for (const auto& it : cmd->GetParsedParameters()) {
-    if (!is_first)
-      result += ',';
-    is_first = false;
-    result += it->GetDebugString();
-  }
-  result += ')';
-
-  return result;
-}
 
 rlExpression::rlExpression(libreallive::ExpressionElement const* e)
     : expr_(e) {}
@@ -55,6 +39,42 @@ int rlExpression::Execute(RLMachine& machine) {
   return expr_->ParsedExpression()->GetIntegerValue(machine);
 }
 
-std::string rlExpression::ToString() const {
-  return expr_->GetSourceRepresentation();
+// -----------------------------------------------------------------------
+// struct InstructionToString
+InstructionToString::InstructionToString(ModuleManager const* manager)
+    : manager_(manager) {}
+
+std::string InstructionToString::operator()(std::monostate) const {
+  return "<null>";
+}
+std::string InstructionToString::operator()(const Kidoku& p) const {
+  return "kidoku " + std::to_string(p.num);
+}
+std::string InstructionToString::operator()(const Line& p) const {
+  return "line " + std::to_string(p.num);
+}
+std::string InstructionToString::operator()(const rlCommand& p) const {
+  std::string result =
+      manager_ == nullptr ? "???" : manager_->GetCommandName(*p.cmd);  // name
+
+  result += std::format("<{},{},{}:{}>", p.cmd->modtype(), p.cmd->module(),
+                        p.cmd->opcode(), p.cmd->overload());  // opcode
+
+  result += '(' +
+            Join(",", std::views::all(p.cmd->GetParsedParameters()) |
+                          std::views::transform([](libreallive::Expression x) {
+                            return x->GetDebugString();
+                          })) +
+            ')';  // arguments
+
+  return result;
+}
+std::string InstructionToString::operator()(const rlExpression& p) const {
+  return p.expr_->GetSourceRepresentation();
+}
+std::string InstructionToString::operator()(const Textout& p) const {
+  return "text: " + p.text;
+}
+std::string InstructionToString::operator()(const End& p) const {
+  return "<end>";
 }

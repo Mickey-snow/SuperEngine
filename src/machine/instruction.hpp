@@ -68,8 +68,6 @@ struct Line {
 
 struct rlCommand {
   libreallive::CommandElement const* cmd;
-
-  std::string ToString() const;
 };
 
 class rlExpression {
@@ -78,8 +76,6 @@ class rlExpression {
   int Execute(RLMachine& machine);
 
   libreallive::ExpressionElement const* expr_;
-
-  std::string ToString() const;
 };
 
 struct Textout {
@@ -97,3 +93,20 @@ using Instruction = std::variant<std::monostate,
                                  rlExpression,
                                  Textout,
                                  End>;
+
+class ModuleManager;
+class InstructionToString {
+ public:
+  InstructionToString(ModuleManager const* manager);
+
+  std::string operator()(std::monostate) const;
+  std::string operator()(const Kidoku&) const;
+  std::string operator()(const Line&) const;
+  std::string operator()(const rlCommand&) const;
+  std::string operator()(const rlExpression&) const;
+  std::string operator()(const Textout&) const;
+  std::string operator()(const End&) const;
+
+ private:
+  ModuleManager const* manager_;
+};
