@@ -35,11 +35,11 @@ EventListener::~EventListener() {}
 
 void EventListener::MouseMotion(const Point& new_location) {}
 
-bool EventListener::MouseButtonStateChanged(MouseButton mouse_button,
+bool EventListener::MouseButtonStateChanged(MouseBtn mouse_button,
                                             bool pressed) {
   return false;
 }
 
-bool EventListener::KeyStateChanged(KeyCode key_code, bool pressed) {
+bool EventListener::KeyStateChanged(RLKEY key_code, bool pressed) {
   return false;
 }

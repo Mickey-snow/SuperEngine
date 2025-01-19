@@ -77,14 +77,14 @@ bool WaitLongOperation::MouseButtonStateChanged(MouseButton mouseButton,
                                                 bool pressed) {
   if (pressed && break_on_clicks_) {
     if (save_click_location_ &&
-        (mouseButton == MOUSE_LEFT || mouseButton == MOUSE_RIGHT)) {
+        (mouseButton == MouseBtn::LEFT || mouseButton == MouseBtn::RIGHT)) {
       RecordMouseCursorPosition();
     }
 
-    if (mouseButton == MOUSE_LEFT) {
+    if (mouseButton == MouseBtn::LEFT) {
       button_pressed_ = 1;
       return true;
-    } else if (mouseButton == MOUSE_RIGHT) {
+    } else if (mouseButton == MouseBtn::RIGHT) {
       button_pressed_ = -1;
       return true;
     }
@@ -95,7 +95,7 @@ bool WaitLongOperation::MouseButtonStateChanged(MouseButton mouseButton,
 
 bool WaitLongOperation::KeyStateChanged(KeyCode keyCode, bool pressed) {
   if (pressed && break_on_ctrl_pressed_ &&
-      (keyCode == RLKEY_RCTRL || keyCode == RLKEY_LCTRL)) {
+      (keyCode == RLKEY::RCTRL || keyCode == RLKEY::LCTRL)) {
     ctrl_pressed_ = true;
     return true;
   }
@@ -119,14 +119,6 @@ bool WaitLongOperation::operator()(RLMachine& machine) {
   if (!done && break_on_event_) {
     done = event_function_();
   }
-
-  // GraphicsSystem& graphics = machine.GetSystem().graphics();
-  // if (mouse_moved_) {
-  //   graphics.MarkScreenAsDirty(GUT_MOUSE_MOTION);
-  //   mouse_moved_ = false;
-  // } else if (graphics.object_state_dirty()) {
-  //   graphics.MarkScreenAsDirty(GUT_DISPLAY_OBJ);
-  // }
 
   if (break_on_clicks_) {
     if (button_pressed_) {

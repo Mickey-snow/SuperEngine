@@ -48,7 +48,8 @@ GNU General Public License for more details.
 )";
 
 void Debugger::NotifyBefore(Instruction& instruction) {
-  return;
+  if (!should_break_)
+    return;
 
   static bool should_display_info = true;
   if (should_display_info) {
@@ -62,7 +63,12 @@ void Debugger::NotifyBefore(Instruction& instruction) {
     std::getline(std::cin, input);
     trim(input);
 
-    if (input == "q" || input == "quit")
+    if (input == "q" || input == "quit") {
+      should_break_ = false;
+      break;
+    }
+
+    if (input == "c" || input == "continue")
       break;
 
     Tokenizer tokenizer(input);

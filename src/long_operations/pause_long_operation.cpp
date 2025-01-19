@@ -76,7 +76,7 @@ bool PauseLongOperation::MouseButtonStateChanged(MouseButton mouseButton,
   TextSystem& text = machine_.GetSystem().text();
 
   switch (mouseButton) {
-    case MOUSE_LEFT: {
+    case MouseBtn::LEFT: {
       Point pos = es.GetCursorPos();
       // Only unhide the interface on release of the left mouse button
       if (graphics.is_interface_hidden()) {
@@ -103,19 +103,19 @@ bool PauseLongOperation::MouseButtonStateChanged(MouseButton mouseButton,
       }
       break;
     }
-    case MOUSE_RIGHT:
+    case MouseBtn::RIGHT:
       if (!pressed) {
         machine_.GetSystem().ShowSyscomMenu(machine_);
         return true;
       }
       break;
-    case MOUSE_WHEELUP:
+    case MouseBtn::WHEELUP:
       if (pressed) {
         text.BackPage();
         return true;
       }
       break;
-    case MOUSE_WHEELDOWN:
+    case MouseBtn::WHEELDOWN:
       if (pressed) {
         text.ForwardPage();
         return true;
@@ -142,19 +142,19 @@ bool PauseLongOperation::KeyStateChanged(KeyCode keyCode, bool pressed) {
       bool ctrl_key_skips = text.ctrl_key_skip();
 
       if (ctrl_key_skips &&
-          (keyCode == RLKEY_RCTRL || keyCode == RLKEY_LCTRL)) {
+          (keyCode == RLKEY::RCTRL || keyCode == RLKEY::LCTRL)) {
         is_done_ = true;
         handled = true;
-      } else if (keyCode == RLKEY_SPACE) {
+      } else if (keyCode == RLKEY::SPACE) {
         graphics.ToggleInterfaceHidden();
         handled = true;
-      } else if (keyCode == RLKEY_UP) {
+      } else if (keyCode == RLKEY::UP) {
         text.BackPage();
         handled = true;
-      } else if (keyCode == RLKEY_DOWN) {
+      } else if (keyCode == RLKEY::DOWN) {
         text.ForwardPage();
         handled = true;
-      } else if (keyCode == RLKEY_RETURN) {
+      } else if (keyCode == RLKEY::RETURN) {
         if (text.IsReadingBacklog())
           text.StopReadingBacklog();
         else

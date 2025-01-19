@@ -36,4 +36,6 @@ class Debugger {
 
  private:
   RLMachine& machine_;
+
+  bool should_break_ = false;
 };

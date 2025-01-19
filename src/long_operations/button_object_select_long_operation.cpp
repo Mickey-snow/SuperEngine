@@ -106,7 +106,7 @@ void ButtonObjectSelectLongOperation::MouseMotion(const Point& point) {
 bool ButtonObjectSelectLongOperation::MouseButtonStateChanged(
     MouseButton mouseButton,
     bool pressed) {
-  if (mouseButton == MOUSE_LEFT) {
+  if (mouseButton == MouseBtn::LEFT) {
     if (pressed) {
       currently_pressed_button_ = currently_hovering_button_;
       if (currently_pressed_button_)
@@ -125,7 +125,7 @@ bool ButtonObjectSelectLongOperation::MouseButtonStateChanged(
     machine_.GetSystem().graphics().ForceRefresh();
 
     return true;
-  } else if (mouseButton == MOUSE_RIGHT && !pressed && cancelable_) {
+  } else if (mouseButton == MouseBtn::RIGHT && !pressed && cancelable_) {
     has_return_value_ = true;
     return_value_ = -1;
   }

@@ -206,13 +206,13 @@ bool NormalSelectLongOperation::MouseButtonStateChanged(MouseButton mouseButton,
   EventSystem& es = machine_.GetSystem().event();
 
   switch (mouseButton) {
-    case MOUSE_LEFT: {
+    case MouseBtn::LEFT: {
       Point pos = es.GetCursorPos();
       machine_.GetSystem().text().HandleMouseClick(machine_, pos, pressed);
       return true;
       break;
     }
-    case MOUSE_RIGHT: {
+    case MouseBtn::RIGHT: {
       if (pressed) {
         machine_.GetSystem().ShowSyscomMenu(machine_);
         return true;
@@ -401,7 +401,7 @@ bool ButtonSelectLongOperation::MouseButtonStateChanged(MouseButton mouseButton,
   EventSystem& es = machine_.GetSystem().event();
 
   switch (mouseButton) {
-    case MOUSE_LEFT: {
+    case MouseBtn::LEFT: {
       mouse_down_ = pressed;
       if (!pressed) {
         Point pos = es.GetCursorPos();
@@ -416,7 +416,7 @@ bool ButtonSelectLongOperation::MouseButtonStateChanged(MouseButton mouseButton,
       }
       break;
     }
-    case MOUSE_RIGHT: {
+    case MouseBtn::RIGHT: {
       if (pressed) {
         machine_.GetSystem().ShowSyscomMenu(machine_);
         return true;

@@ -129,7 +129,7 @@ void SDLEventSystem::InjectMouseDown(RLMachine& machine) {
   button2_state_ = 0;
 
   DispatchEvent(machine, bind(&EventListener::MouseButtonStateChanged, _1,
-                              MOUSE_LEFT, 1));
+                              MouseBtn::LEFT, 1));
 }
 
 void SDLEventSystem::InjectMouseUp(RLMachine& machine) {
@@ -137,7 +137,7 @@ void SDLEventSystem::InjectMouseUp(RLMachine& machine) {
   button2_state_ = 0;
 
   DispatchEvent(machine, bind(&EventListener::MouseButtonStateChanged, _1,
-                              MOUSE_LEFT, 1));
+                              MouseBtn::LEFT, 1));
 }
 
 void SDLEventSystem::PreventCursorPosSpinning() {
@@ -243,22 +243,22 @@ void SDLEventSystem::HandleMouseButtonEvent(RLMachine& machine,
     else if (event.button.button == SDL_BUTTON_RIGHT)
       button2_state_ = press_code;
 
-    MouseButton button = MOUSE_NONE;
+    MouseButton button = MouseBtn::NONE;
     switch (event.button.button) {
       case SDL_BUTTON_LEFT:
-        button = MOUSE_LEFT;
+        button = MouseBtn::LEFT;
         break;
       case SDL_BUTTON_RIGHT:
-        button = MOUSE_RIGHT;
+        button = MouseBtn::RIGHT;
         break;
       case SDL_BUTTON_MIDDLE:
-        button = MOUSE_MIDDLE;
+        button = MouseBtn::MIDDLE;
         break;
       case SDL_BUTTON_WHEELUP:
-        button = MOUSE_WHEELUP;
+        button = MouseBtn::WHEELUP;
         break;
       case SDL_BUTTON_WHEELDOWN:
-        button = MOUSE_WHEELDOWN;
+        button = MouseBtn::WHEELDOWN;
         break;
       default:
         break;

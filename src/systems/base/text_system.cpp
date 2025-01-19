@@ -267,7 +267,7 @@ void TextSystem::ExpireOldPages() {
     previous_page_sets_.pop_front();
 }
 
-bool TextSystem::MouseButtonStateChanged(MouseButton mouse_button,
+bool TextSystem::MouseButtonStateChanged(MouseBtn mouse_button,
                                          bool pressed) {
   if (CurrentlySkipping() && !in_selection_mode_) {
     SetSkipMode(false);
@@ -277,7 +277,7 @@ bool TextSystem::MouseButtonStateChanged(MouseButton mouse_button,
   return false;
 }
 
-bool TextSystem::KeyStateChanged(KeyCode key_code, bool pressed) {
+bool TextSystem::KeyStateChanged(RLKEY key_code, bool pressed) {
   if (CurrentlySkipping() && !in_selection_mode_) {
     SetSkipMode(false);
     return true;
