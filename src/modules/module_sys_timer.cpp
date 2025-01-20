@@ -74,7 +74,7 @@ struct Sys_time : public RLOpcode<IntConstant_T, DefaultIntValue_T<0>> {
 
     if (es.GetTimer(layer_, counter).Read(es) <
         numeric_cast<unsigned int>(time)) {
-      WaitLongOperation* wait_op = new WaitLongOperation(machine);
+      auto wait_op = std::make_shared<WaitLongOperation>(machine);
       if (in_time_c_)
         wait_op->BreakOnClicks();
       wait_op->BreakOnEvent(

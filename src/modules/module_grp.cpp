@@ -162,7 +162,8 @@ void performEffect(RLMachine& machine,
                    const std::shared_ptr<Surface>& dst,
                    int selnum) {
   if (!machine.replaying_graphics_stack()) {
-    LongOperation* lop = EffectFactory::BuildFromSEL(machine, src, dst, selnum);
+    std::shared_ptr<LongOperation> lop(
+        EffectFactory::BuildFromSEL(machine, src, dst, selnum));
     machine.PushLongOperation(lop);
   }
 }
@@ -172,7 +173,8 @@ void performEffect(RLMachine& machine,
                    const std::shared_ptr<Surface>& dst,
                    selRecord effect_param) {
   if (!machine.replaying_graphics_stack()) {
-    LongOperation* lop = EffectFactory::Build(machine, src, dst, effect_param);
+    std::shared_ptr<LongOperation> lop(
+        EffectFactory::Build(machine, src, dst, effect_param));
     machine.PushLongOperation(lop);
   }
 }
@@ -223,7 +225,7 @@ struct shake : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int spec) {
     machine.GetSystem().graphics().QueueShakeSpec(spec);
 
-    WaitLongOperation* wait_op = new WaitLongOperation(machine);
+    auto wait_op = std::make_shared<WaitLongOperation>(machine);
     wait_op->BreakOnEvent(std::bind(StopShaking, std::ref(machine)));
     machine.PushLongOperation(wait_op);
   }
@@ -947,7 +949,7 @@ struct zoom : public RLOpcode<Rect_T<SPACE>,
 
     LongOperation* zoomOp = new ZoomLongOperation(
         machine, gs.GetDC(0), gs.GetDC(srcDC), frect, trect, drect, time);
-    BlitAfterEffectFinishes* blitOp = new BlitAfterEffectFinishes(
+    auto blitOp = std::make_shared<BlitAfterEffectFinishes>(
         zoomOp, gs.GetDC(srcDC), gs.GetDC(0), trect, drect);
     machine.PushLongOperation(blitOp);
   }

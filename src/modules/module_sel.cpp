@@ -57,7 +57,8 @@ struct Sel_select : public RLOp_SpecialCase {
       machine.MarkSavepoint();
 
     const SelectElement& element = dynamic_cast<const SelectElement&>(ce);
-    machine.PushLongOperation(new NormalSelectLongOperation(machine, element));
+    machine.PushLongOperation(
+        std::make_shared<NormalSelectLongOperation>(machine, element));
     machine.AdvanceInstructionPointer();
   }
 };
@@ -69,7 +70,7 @@ struct Sel_select_s : public RLOp_SpecialCase {
 
     const SelectElement& element = dynamic_cast<const SelectElement&>(ce);
     machine.PushLongOperation(
-        new ButtonSelectLongOperation(machine, element, 0));
+        std::make_shared<ButtonSelectLongOperation>(machine, element, 0));
     machine.AdvanceInstructionPointer();
   }
 };
@@ -104,9 +105,11 @@ struct Sel_select_w : public RLOp_SpecialCase {
     int active_window = text.active_window();
     text.HideAllTextWindows();
     text.set_active_window(window);
-    machine.PushLongOperation(new ClearAndRestoreWindow(active_window));
+    machine.PushLongOperation(
+        std::make_shared<ClearAndRestoreWindow>(active_window));
 
-    machine.PushLongOperation(new NormalSelectLongOperation(machine, element));
+    machine.PushLongOperation(
+        std::make_shared<NormalSelectLongOperation>(machine, element));
     machine.AdvanceInstructionPointer();
   }
 };
@@ -117,7 +120,7 @@ struct Sel_select_objbtn : public RLOpcode<IntConstant_T> {
       machine.MarkSavepoint();
 
     machine.PushLongOperation(
-        new ButtonObjectSelectLongOperation(machine, group));
+        std::make_shared<ButtonObjectSelectLongOperation>(machine, group));
   }
 };
 
@@ -126,8 +129,8 @@ struct Sel_select_objbtn_cancel_0 : public RLOpcode<IntConstant_T> {
     if (machine.GetScenarioConfig().enable_selcom_savepoint)
       machine.MarkSavepoint();
 
-    ButtonObjectSelectLongOperation* obj =
-        new ButtonObjectSelectLongOperation(machine, group);
+    auto obj =
+        std::make_shared<ButtonObjectSelectLongOperation>(machine, group);
     obj->set_cancelable();
     machine.PushLongOperation(obj);
   }
@@ -139,8 +142,8 @@ struct Sel_select_objbtn_cancel_1
     if (machine.GetScenarioConfig().enable_selcom_savepoint)
       machine.MarkSavepoint();
 
-    ButtonObjectSelectLongOperation* obj =
-        new ButtonObjectSelectLongOperation(machine, group);
+    auto obj =
+        std::make_shared<ButtonObjectSelectLongOperation>(machine, group);
     obj->set_cancelable();
     machine.PushLongOperation(obj);
   }
@@ -159,8 +162,8 @@ struct Sel_select_objbtn_cancel_2 : public RLOpcode<> {
         break;
       }
 
-    ButtonObjectSelectLongOperation* obj =
-        new ButtonObjectSelectLongOperation(machine, group);
+    auto obj =
+        std::make_shared<ButtonObjectSelectLongOperation>(machine, group);
     obj->set_cancelable();
     machine.PushLongOperation(obj);
   }

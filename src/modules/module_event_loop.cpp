@@ -59,11 +59,11 @@ struct rlm_pause : public RLOpcode<> {
     std::shared_ptr<TextWindow> textWindow = text.GetTextWindow(windowNum);
 
     if (textWindow->action_on_pause()) {
-      machine.PushLongOperation(
-          new NewParagraphAfterLongop(new PauseLongOperation(machine)));
+      machine.PushLongOperation(std::make_shared<NewParagraphAfterLongop>(
+          new PauseLongOperation(machine)));
     } else {
-      machine.PushLongOperation(
-          new NewPageOnAllAfterLongop(new PauseLongOperation(machine)));
+      machine.PushLongOperation(std::make_shared<NewPageOnAllAfterLongop>(
+          new PauseLongOperation(machine)));
     }
   }
 };
@@ -73,7 +73,7 @@ struct rlm_pause : public RLOpcode<> {
 struct rlm_page : public RLOpcode<> {
   void operator()(RLMachine& machine) {
     machine.PushLongOperation(
-        new NewPageAfterLongop(new PauseLongOperation(machine)));
+        std::make_shared<NewPageAfterLongop>(new PauseLongOperation(machine)));
   }
 };
 

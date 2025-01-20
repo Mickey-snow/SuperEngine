@@ -201,9 +201,6 @@ void RLMachine::PushLongOperation(
   const auto top_frame = call_stack_.Top();
   call_stack_.Push(StackFrame(top_frame->pos, long_operation));
 }
-void RLMachine::PushLongOperation(LongOperation* long_operation) {
-  PushLongOperation(std::shared_ptr<LongOperation>(long_operation));
-}
 
 void RLMachine::Reset() {
   call_stack_ = CallStack();

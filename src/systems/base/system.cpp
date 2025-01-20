@@ -197,7 +197,7 @@ void System::ShowSyscomMenu(RLMachine& machine) {
       // Multiple right clicks shouldn't spawn multiple copies of the menu
       // system on top of each other.
       in_menu_ = true;
-      machine.PushLongOperation(new MenuReseter(*this));
+      machine.PushLongOperation(std::make_shared<MenuReseter>(*this));
 
       const std::vector<int> cancelcall = gexe("CANCELCALL");
       Farcall(machine, cancelcall.at(0), cancelcall.at(1));
@@ -382,7 +382,7 @@ void System::InvokeSaveOrLoad(RLMachine& machine,
     int entrypoint = raw_ints.at(1);
 
     text().set_system_visible(false);
-    machine.PushLongOperation(new RestoreTextSystemVisibility);
+    machine.PushLongOperation(std::make_shared<RestoreTextSystemVisibility>());
     Farcall(machine, scenario, entrypoint);
   } else if (platform_) {
     platform_->InvokeSyscomStandardUI(machine, syscom);

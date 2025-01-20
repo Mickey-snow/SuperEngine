@@ -46,8 +46,8 @@ bool BgmWait(RLMachine& machine) {
   return machine.GetSystem().sound().BgmStatus() == 0;
 }
 
-LongOperation* MakeBgmWait(RLMachine& machine) {
-  WaitLongOperation* wait_op = new WaitLongOperation(machine);
+std::shared_ptr<LongOperation> MakeBgmWait(RLMachine& machine) {
+  auto wait_op = std::make_shared<WaitLongOperation>(machine);
   wait_op->BreakOnEvent(std::bind(BgmWait, std::ref(machine)));
   return wait_op;
 }

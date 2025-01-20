@@ -179,8 +179,8 @@ bool TextoutLongOperation::DisplayOneMoreCharacter(RLMachine& machine,
       // Call the pause operation if we've filled up the current page.
       if (page.IsFull()) {
         paused = true;
-        machine.PushLongOperation(
-            new NewPageAfterLongop(new PauseLongOperation(machine)));
+        machine.PushLongOperation(std::make_shared<NewPageAfterLongop>(
+            new PauseLongOperation(machine)));
       }
 
       return false;

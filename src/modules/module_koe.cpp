@@ -51,7 +51,7 @@ bool koeIsPlaying(RLMachine& machine) {
 }
 
 void addKoeWaitC(RLMachine& machine) {
-  WaitLongOperation* wait_op = new WaitLongOperation(machine);
+  auto wait_op = std::make_shared<WaitLongOperation>(machine);
   wait_op->BreakOnClicks();
   wait_op->BreakOnEvent(std::bind(koeIsPlaying, std::ref(machine)));
 
@@ -59,7 +59,7 @@ void addKoeWaitC(RLMachine& machine) {
 }
 
 void addKoeWait(RLMachine& machine) {
-  WaitLongOperation* wait_op = new WaitLongOperation(machine);
+  auto wait_op = std::make_shared<WaitLongOperation>(machine);
   wait_op->BreakOnEvent(std::bind(koeIsPlaying, std::ref(machine)));
 
   machine.PushLongOperation(wait_op);

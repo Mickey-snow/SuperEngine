@@ -77,8 +77,8 @@ struct bgrLoadHaikei_blank : public RLOpcode<IntConstant_T> {
 
     std::shared_ptr<Surface> after = graphics.RenderToSurface();
 
-    LongOperation* effect =
-        EffectFactory::BuildFromSEL(machine, after, before, sel);
+    std::shared_ptr<LongOperation> effect(
+        EffectFactory::BuildFromSEL(machine, after, before, sel));
     machine.PushLongOperation(effect);
   }
 };
@@ -118,8 +118,8 @@ struct bgrLoadHaikei_main : RLOpcode<StrConstant_T, IntConstant_T> {
 
       std::shared_ptr<Surface> after = graphics.RenderToSurface();
 
-      LongOperation* effect =
-          EffectFactory::BuildFromSEL(machine, after, before, sel);
+      std::shared_ptr<LongOperation> effect(
+          EffectFactory::BuildFromSEL(machine, after, before, sel));
       machine.PushLongOperation(effect);
     }
   }
@@ -235,8 +235,8 @@ struct bgrMulti_1
       graphics.ClearAndPromoteObjects();
 
     std::shared_ptr<Surface> after = graphics.RenderToSurface();
-    LongOperation* effect =
-        EffectFactory::BuildFromSEL(machine, after, before, effectNum);
+    std::shared_ptr<LongOperation> effect(
+        EffectFactory::BuildFromSEL(machine, after, before, effectNum));
     machine.PushLongOperation(effect);
   }
 };

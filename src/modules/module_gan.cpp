@@ -54,7 +54,7 @@ struct objWaitAll : public RLOpcode<> {
   }
 
   void operator()(RLMachine& machine) {
-    WaitLongOperation* wait_op = new WaitLongOperation(machine);
+    auto wait_op = std::make_shared<WaitLongOperation>(machine);
     wait_op->BreakOnEvent(std::bind(WaitUntilDone, std::ref(machine)));
     machine.PushLongOperation(wait_op);
   }
@@ -144,7 +144,7 @@ struct ganPlay : public RLOpcode<IntConstant_T, IntConstant_T> {
           if (!GetProperty(P_PARENTOBJ, parent_object))
             parent_object = -1;
 
-          machine.PushLongOperation(new WaitForGanToFinish(
+          machine.PushLongOperation(std::make_shared<WaitForGanToFinish>(
               machine.GetSystem().graphics(), fgbg, parent_object, buf));
         }
       }
@@ -162,7 +162,7 @@ struct ganWait : public RLOpcode<IntConstant_T> {
     if (!GetProperty(P_PARENTOBJ, parent_object))
       parent_object = -1;
 
-    machine.PushLongOperation(new WaitForGanToFinish(
+    machine.PushLongOperation(std::make_shared<WaitForGanToFinish>(
         machine.GetSystem().graphics(), fgbg, parent_object, buf));
   }
 };
