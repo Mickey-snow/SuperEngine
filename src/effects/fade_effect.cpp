@@ -34,11 +34,11 @@
 // -----------------------------------------------------------------------
 
 FadeEffect::FadeEffect(RLMachine& machine,
-                       std::shared_ptr<Surface> src,
-                       std::shared_ptr<Surface> dst,
+                       std::shared_ptr<Surface> to,
+                       std::shared_ptr<Surface> from,
                        const Size& screen_size,
                        int time)
-    : Effect(machine, src, dst, screen_size, time) {}
+    : Effect(machine, to, from, screen_size, time) {}
 
 FadeEffect::~FadeEffect() {}
 

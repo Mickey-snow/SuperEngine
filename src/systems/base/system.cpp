@@ -39,7 +39,7 @@
 #include <vector>
 
 #include "core/gameexe.hpp"
-#include "long_operations/load_game_long_operation.hpp"
+#include "effects/fade_effect.hpp"
 #include "machine/long_operation.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/serialization.hpp"
@@ -52,6 +52,7 @@
 #include "systems/base/sound_system.hpp"
 #include "systems/base/system_error.hpp"
 #include "systems/base/text_system.hpp"
+#include "systems/sdl_surface.hpp"
 #include "utilities/exception.hpp"
 #include "utilities/string_utilities.hpp"
 #include "version.h"
@@ -66,22 +67,6 @@ namespace {
 const std::vector<std::string> ALL_FILETYPES = {"g00", "pdt", "anm", "gan",
                                                 "hik", "wav", "ogg", "nwa",
                                                 "mp3", "ovk", "koe", "nwk"};
-
-struct LoadingGameFromStream : public LoadGameLongOperation {
-  LoadingGameFromStream(RLMachine& machine,
-                        const std::shared_ptr<std::stringstream>& selection)
-      : LoadGameLongOperation(machine), selection_(selection) {}
-
-  virtual void Load(RLMachine& machine) override {
-    // We need to copy data here onto the stack because the action of loading
-    // will deallocate this object.
-    std::shared_ptr<std::stringstream> s = selection_;
-    Serialization::loadGameFrom(*s, machine);
-    // Warning: |this| is an invalid pointer now.
-  }
-
-  std::shared_ptr<std::stringstream> selection_;
-};
 
 }  // namespace
 
@@ -131,13 +116,25 @@ void System::TakeSelectionSnapshot(RLMachine& machine) {
 
 void System::RestoreSelectionSnapshot(RLMachine& machine) {
   // We need to reference this on the stack because it will call
-  // System::reset() to get the black screen. (We'll reset again inside
-  // LoadingGameFromStream.)
+  // System::reset() to get the black screen.
   std::shared_ptr<std::stringstream> s = previous_selection_;
   if (s) {
-    // LoadingGameFromStream adds itself to the callstack of |machine| due to
-    // subtle timing issues.
-    new LoadingGameFromStream(machine, s);
+    std::shared_ptr<Surface> before =
+        machine.GetSystem().graphics().RenderToSurface();
+    Size screen_size = before->GetSize();
+    std::shared_ptr<Surface> black_screen =
+        std::make_shared<Surface>(screen_size);
+    black_screen->Fill(RGBAColour::Black());
+
+    Serialization::loadGameFrom(*s, machine);
+    std::shared_ptr<Surface> after =
+        machine.GetSystem().graphics().RenderToSurface();
+
+    constexpr int duration = 250;
+    machine.PushLongOperation(std::make_shared<FadeEffect>(
+        machine, after, black_screen, screen_size, duration));
+    machine.PushLongOperation(std::make_shared<FadeEffect>(
+        machine, black_screen, before, screen_size, duration));
   }
 }
 

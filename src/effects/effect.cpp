@@ -56,6 +56,13 @@ Effect::~Effect() {
 }
 
 bool Effect::operator()(RLMachine& machine) {
+  // TODO: this is ugly. Currently we have to manually manage the state of the
+  // graphic system, and prevent it from automatically drawing during effects.
+  // But when we have more than 2 effects queued up, the first one will change
+  // the state of the graphic system to enable update in its destructor.
+  // Consider introducing a concept of render layers later to make this cleaner.
+  machine.GetSystem().graphics().set_is_responsible_for_update(false);
+
   unsigned int time = machine.GetSystem().event().GetTicks();
   unsigned int current_frame = time - start_time_;
 

@@ -37,8 +37,8 @@
 
 #include "core/colour.hpp"
 #include "core/memory.hpp"
+#include "effects/fade_effect.hpp"
 #include "libreallive/intmemref.hpp"
-#include "long_operations/load_game_long_operation.hpp"
 #include "machine/general_operations.hpp"
 #include "machine/long_operation.hpp"
 #include "machine/rlmachine.hpp"
@@ -52,6 +52,7 @@
 #include "machine/save_game_header.hpp"
 #include "machine/serialization.hpp"
 #include "systems/base/system.hpp"
+#include "systems/sdl/sdl_graphics_system.hpp"
 #include "systems/sdl_surface.hpp"
 #include "utf8cpp/utf8.h"
 
@@ -298,35 +299,34 @@ struct save : public RLOpcode<IntConstant_T> {
   }
 };
 
-struct LoadingGameFromSlot : public LoadGameLongOperation {
-  int slot_;
-  explicit LoadingGameFromSlot(RLMachine& machine, int slot)
-      : LoadGameLongOperation(machine), slot_(slot) {}
-
-  virtual void Load(RLMachine& machine) override {
-    Serialization::loadGameForSlot(machine, slot_);
-  }
-};
-
 }  // namespace
 
 // -----------------------------------------------------------------------
 
 // Implementation of fun load<1:Sys:03009, 0> ('slot'): Loads data
 // from a save game slot.
-//
-// Internally, load is fairly complex, consisting of several
-// LongOperations because we can't rely on normal flow control because
-// we're going to nuke the call stack and system memory in
-// LoadingGame.
 struct Sys_load : public RLOpcode<IntConstant_T> {
   virtual bool ShouldAdvanceIP() override { return false; }
 
-  // Main entrypoint into the load command. Simply sets the callstack
-  // up so that we will fade to black, clear the screen and render,
-  // and then enter the next stage, the LongOperation LoadingGame.
   virtual void operator()(RLMachine& machine, int slot) override {
-    new LoadingGameFromSlot(machine, slot);
+    std::shared_ptr<Surface> before = machine.GetSystem().graphics().RenderToSurface();
+    auto screen_size = before->GetSize();
+
+    Serialization::loadGameForSlot(machine, slot);
+    std::shared_ptr<Surface> after = machine.GetSystem().graphics().RenderToSurface();
+
+    std::shared_ptr<Surface> black_screen =
+        std::make_shared<Surface>(screen_size);
+    black_screen->Fill(RGBAColour::Black());
+
+    // before the loaded game resumes, display a black screen fade effect to
+    // smooth out transformation
+    // Note: this creates new stack frame, so push in reversed order
+    constexpr int duration = 250;
+    machine.PushLongOperation(std::make_shared<FadeEffect>(
+        machine, after, black_screen, screen_size, duration));
+    machine.PushLongOperation(std::make_shared<FadeEffect>(
+        machine, black_screen, before, screen_size, duration));
   }
 };
 
