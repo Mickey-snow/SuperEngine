@@ -163,8 +163,9 @@ class RLMachine {
 
   // -----------------------------------------------------------------------
 
-  // Executes the next instruction in the bytecode in
-  void ExecuteNextInstruction();
+  std::shared_ptr<Instruction> ReadInstruction() const;
+
+  void ExecuteInstruction(std::shared_ptr<Instruction> instruction);
 
   // Increments the stack pointer in the current frame. If we have run
   // off the end of the current scenario, set the halted bit.

@@ -47,7 +47,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 )";
 
-void Debugger::NotifyBefore(Instruction& instruction) {
+void Debugger::NotifyBefore(std::shared_ptr<Instruction> instruction) {
   if (!should_break_)
     return;
 

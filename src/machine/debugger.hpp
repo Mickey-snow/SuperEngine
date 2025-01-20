@@ -32,7 +32,7 @@ class Debugger {
  public:
   Debugger(RLMachine& machine);
 
-  void NotifyBefore(Instruction& instruction);
+  void NotifyBefore(std::shared_ptr<Instruction> instruction);
 
  private:
   RLMachine& machine_;

@@ -182,10 +182,34 @@ void RLVMInstance::Main(const std::filesystem::path& gameroot) {
       constexpr auto frame_time = std::chrono::seconds(1) / 144.0;
       auto start = clock.GetTime();
       auto end = start;
+
       do {
-        machine_->ExecuteNextInstruction();
+        if (auto long_op = machine_->CurrentLongOperation()) {
+          CallStack& stack = machine_->GetStack();
+          bool finished = false;
+          {
+            auto lock = stack.GetLock();
+            finished = long_op->operator()(*machine_);
+          }
+
+          if (finished) {
+            machine_->GetSystem().event().RemoveListener(long_op);
+            stack.Pop();
+
+            if (auto sp = machine_->CurrentLongOperation())
+              machine_->GetSystem().event().AddListener(sp);
+          }
+
+          // for long operations, only run one per loop
+          break;
+        }
+
+        std::shared_ptr<Instruction> instruction = machine_->ReadInstruction();
+        debugger_->NotifyBefore(instruction);
+        machine_->ExecuteInstruction(instruction);
+
         end = clock.GetTime();
-      } while (!machine_->CurrentLongOperation() && !system_->force_wait() &&
+      } while (!machine_->IsHalted() && !system_->force_wait() &&
                (end - start < frame_time));
 
       // Sleep to be nice to the processor and to give the GPU a chance to

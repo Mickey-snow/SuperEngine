@@ -99,51 +99,39 @@ ScenarioConfig RLMachine::GetScenarioConfig() const {
 
 void RLMachine::SetMarkSavepoints(const int in) { mark_savepoints_ = in; }
 
-void RLMachine::ExecuteNextInstruction() {
-  // Do not execute any more instructions if the machine is halted.
-  if (IsHalted() == true)
-    return;
+std::shared_ptr<Instruction> RLMachine::ReadInstruction() const {
+  if (IsHalted())
+    return std::make_shared<Instruction>(std::monostate());
 
   const auto top_frame = call_stack_.Top();
   if (top_frame == nullptr) {
     logger(Severity::Error) << "Stack underflow";
-    Halt();
-    return;
+    return std::make_shared<Instruction>(std::monostate());
   }
 
+  if (top_frame->frame_type == StackFrame::TYPE_LONGOP)
+    return std::make_shared<Instruction>(std::monostate());
+
+  return scriptor_->ResolveInstruction(top_frame->pos);
+}
+
+void RLMachine::ExecuteInstruction(std::shared_ptr<Instruction> instruction) {
   try {
-    if (top_frame->frame_type == StackFrame::TYPE_LONGOP) {
-      bool finished = false;
-      {
-        auto lock = call_stack_.GetLock();
-        finished = (*top_frame->long_op)(*this);
-      }
+    // write trace log
+    static DomainLogger tracer("TRACER");
+    tracer(Severity::None) << std::format("({:0>4d}:{:d}) ", SceneNumber(),
+                                          line_)
+                           << std::visit(InstructionToString(&module_manager_),
+                                         *instruction);
 
-      if (finished) {
-        call_stack_.Pop();
-        if (auto sp = CurrentLongOperation())
-          GetSystem().event().AddListener(sp);
-      }
-
-    } else {  // normal bytecode instruction
-      std::shared_ptr<Instruction> instruction =
-          scriptor_->ResolveInstruction(top_frame->pos);
-
-      // write trace log
-      static DomainLogger tracer("TRACER");
-      tracer(Severity::None)
-          << std::format("({:0>4d}:{:d}) ", SceneNumber(), line_)
-          << std::visit(InstructionToString(&module_manager_), *instruction);
-
-      // execute the instruction
-      std::visit(*this, *instruction);
-    }
+    // execute the instruction
+    std::visit(*this, *instruction);
   } catch (rlvm::UnimplementedOpcode& e) {
     AdvanceInstructionPointer();
 
     static DomainLogger logger("Unimplemented");
-    logger(Severity::None) << std::format("({:0>4d}:{:d}) ",
-                                          top_frame->pos.scenario_number, line_)
+    logger(Severity::None) << std::format("({:0>4d}:{:d}) ", SceneNumber(),
+                                          line_)
                            << e.FormatCommand() << e.FormatParameters();
   } catch (rlvm::Exception& e) {
     // Advance the instruction pointer so as to prevent infinite
@@ -152,8 +140,7 @@ void RLMachine::ExecuteNextInstruction() {
 
     static DomainLogger logger;
     auto rec = logger(Severity::Error);
-    rec << std::format("({:0>4d}:{:d}) ", top_frame->pos.scenario_number,
-                       line_);
+    rec << std::format("({:0>4d}:{:d}) ", SceneNumber(), line_);
 
     // We specialcase rlvm::Exception because we might have the name of the
     // opcode.
@@ -168,8 +155,7 @@ void RLMachine::ExecuteNextInstruction() {
     AdvanceInstructionPointer();
 
     auto rec = logger(Severity::Error);
-    rec << std::format("({:0>4d}:{:d}) ", top_frame->pos.scenario_number,
-                       line_);
+    rec << std::format("({:0>4d}:{:d}) ", SceneNumber(), line_);
     rec << e.what();
   }
 }
@@ -220,7 +206,7 @@ std::shared_ptr<LongOperation> RLMachine::CurrentLongOperation() const {
   if (top && top->frame_type == StackFrame::TYPE_LONGOP)
     return top->long_op;
 
-  return std::shared_ptr<LongOperation>();
+  return nullptr;
 }
 
 int RLMachine::SceneNumber() const {
