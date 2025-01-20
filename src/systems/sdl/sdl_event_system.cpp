@@ -116,25 +116,25 @@ unsigned int SDLEventSystem::TimeOfLastMouseMove() {
 
 bool SDLEventSystem::ShiftPressed() const { return shift_pressed_; }
 
-void SDLEventSystem::InjectMouseMovement(RLMachine& machine, const Point& loc) {
+void SDLEventSystem::InjectMouseMovement(const Point& loc) {
   mouse_pos_ = loc;
-  BroadcastEvent(machine, bind(&EventListener::MouseMotion, _1, mouse_pos_));
+  BroadcastEvent(bind(&EventListener::MouseMotion, _1, mouse_pos_));
 }
 
-void SDLEventSystem::InjectMouseDown(RLMachine& machine) {
+void SDLEventSystem::InjectMouseDown() {
   button1_state_ = 1;
   button2_state_ = 0;
 
-  DispatchEvent(machine, bind(&EventListener::MouseButtonStateChanged, _1,
-                              MouseBtn::LEFT, 1));
+  DispatchEvent(
+      bind(&EventListener::MouseButtonStateChanged, _1, MouseBtn::LEFT, 1));
 }
 
-void SDLEventSystem::InjectMouseUp(RLMachine& machine) {
+void SDLEventSystem::InjectMouseUp() {
   button1_state_ = 2;
   button2_state_ = 0;
 
-  DispatchEvent(machine, bind(&EventListener::MouseButtonStateChanged, _1,
-                              MouseBtn::LEFT, 1));
+  DispatchEvent(
+      bind(&EventListener::MouseButtonStateChanged, _1, MouseBtn::LEFT, 1));
 }
 
 void SDLEventSystem::PreventCursorPosSpinning() {
@@ -183,7 +183,7 @@ void SDLEventSystem::HandleKeyDown(RLMachine& machine, SDL_Event& event) {
   }
 
   KeyCode code = KeyCode(event.key.keysym.sym);
-  DispatchEvent(machine, bind(&EventListener::KeyStateChanged, _1, code, true));
+  DispatchEvent(bind(&EventListener::KeyStateChanged, _1, code, true));
 }
 
 void SDLEventSystem::HandleKeyUp(RLMachine& machine, SDL_Event& event) {
@@ -207,8 +207,7 @@ void SDLEventSystem::HandleKeyUp(RLMachine& machine, SDL_Event& event) {
   }
 
   KeyCode code = KeyCode(event.key.keysym.sym);
-  DispatchEvent(machine,
-                bind(&EventListener::KeyStateChanged, _1, code, false));
+  DispatchEvent(bind(&EventListener::KeyStateChanged, _1, code, false));
 }
 
 void SDLEventSystem::HandleMouseMotion(RLMachine& machine, SDL_Event& event) {
@@ -225,7 +224,7 @@ void SDLEventSystem::HandleMouseMotion(RLMachine& machine, SDL_Event& event) {
         Point(event.motion.x / aspect_ratio_w, event.motion.y / aspect_ratio_h);
 
     // Handle this somehow.
-    BroadcastEvent(machine, bind(&EventListener::MouseMotion, _1, mouse_pos_));
+    BroadcastEvent(bind(&EventListener::MouseMotion, _1, mouse_pos_));
   }
 }
 
@@ -261,8 +260,8 @@ void SDLEventSystem::HandleMouseButtonEvent(RLMachine& machine,
         break;
     }
 
-    DispatchEvent(machine, bind(&EventListener::MouseButtonStateChanged, _1,
-                                button, pressed));
+    DispatchEvent(
+        bind(&EventListener::MouseButtonStateChanged, _1, button, pressed));
   }
 }
 

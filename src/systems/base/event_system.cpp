@@ -86,11 +86,11 @@ bool EventSystem::FrameCounterExists(int layer, int frame_counter) {
   return counter.get() != NULL;
 }
 
-void EventSystem::AddMouseListener(EventListener* listener) {
+void EventSystem::AddListener(std::weak_ptr<EventListener> listener) {
   event_listeners_.insert(listener);
 }
 
-void EventSystem::RemoveMouseListener(EventListener* listener) {
+void EventSystem::RemoveListener(std::weak_ptr<EventListener> listener) {
   event_listeners_.erase(listener);
 }
 
@@ -106,37 +106,36 @@ std::chrono::time_point<std::chrono::steady_clock> EventSystem::GetTime()
 std::shared_ptr<Clock> EventSystem::GetClock() const { return clock_; }
 
 void EventSystem::DispatchEvent(
-    RLMachine& machine,
     const std::function<bool(EventListener&)>& event) {
   // In addition to the handled variable, we need to add break statements to
   // the loops since |event| can be any arbitrary code and may modify listeners
   // or handlers. (i.e., System::showSyscomMenu)
   bool handled = false;
 
-  // Give the mostly passive listeners first shot at handling this event
-  EventListeners::iterator listenerIt = listeners_begin();
-  for (; !handled && listenerIt != listeners_end(); ++listenerIt) {
-    if (event(**listenerIt)) {
-      handled = true;
-      break;
+  for (auto it = event_listeners_.begin();
+       it != event_listeners_.end() && !handled;) {
+    if (auto sp = it->lock()) {
+      if (event(*sp)) {
+        handled = true;
+        break;
+      }
+      ++it;
+    } else {
+      it = event_listeners_.erase(it);
     }
   }
-
-  // Try to pass the event on to the top of the call stack.
-  std::shared_ptr<LongOperation> current_op = machine.CurrentLongOperation();
-  if (current_op)
-    event(*current_op);
 }
 
 void EventSystem::BroadcastEvent(
-    RLMachine& machine,
     const std::function<void(EventListener&)>& event) {
-  for (EventListener* listener : event_listeners_)
-    event(*listener);
-
-  std::shared_ptr<LongOperation> current_op = machine.CurrentLongOperation();
-  if (current_op)
-    event(*current_op);
+  for (auto it = event_listeners_.begin(); it != event_listeners_.end();) {
+    if (auto sp = it->lock()) {
+      event(*sp);
+      ++it;
+    } else {
+      it = event_listeners_.erase(it);
+    }
+  }
 }
 
 void EventSystem::CheckLayerAndCounter(int layer, int frame_counter) {

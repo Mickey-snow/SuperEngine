@@ -53,10 +53,10 @@ class SDLSystem : public System {
   virtual SoundSystem& sound() override;
 
  private:
-  std::unique_ptr<SDLGraphicsSystem> graphics_system_;
-  std::unique_ptr<SDLEventSystem> event_system_;
-  std::unique_ptr<SDLTextSystem> text_system_;
-  std::unique_ptr<SDLSoundSystem> sound_system_;
+  std::shared_ptr<SDLGraphicsSystem> graphics_system_;
+  std::shared_ptr<SDLEventSystem> event_system_;
+  std::shared_ptr<SDLTextSystem> text_system_;
+  std::shared_ptr<SDLSoundSystem> sound_system_;
   Gameexe& gameexe_;
 };
 

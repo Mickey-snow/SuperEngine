@@ -54,29 +54,26 @@ SDLSystem::SDLSystem(Gameexe& gameexe) : System(), gameexe_(gameexe) {
   }
 
   // Initialize the various subsystems
-  graphics_system_ = std::make_unique<SDLGraphicsSystem>(*this, gameexe);
-  event_system_ = std::make_unique<SDLEventSystem>(*this, gameexe);
-  text_system_ = std::make_unique<SDLTextSystem>(*this, gameexe);
+  graphics_system_ = std::make_shared<SDLGraphicsSystem>(*this, gameexe);
+  event_system_ = std::make_shared<SDLEventSystem>(*this, gameexe);
+  text_system_ = std::make_shared<SDLTextSystem>(*this, gameexe);
 
   // The implementor for sound system
-  std::unique_ptr<SDLSoundImpl> sound_impl = std::make_unique<SDLSoundImpl>();
+  auto sound_impl = std::make_unique<SDLSoundImpl>();
   // Currently only sound system is refactored to use the bridge pattern, other
   // subsystem's implementation are bound permanently with their abstraction,
   // meaning all classes in systems/sdl needed to be reimplemented for a new
   // system or different implementation.
   sound_system_ =
-      std::make_unique<SDLSoundSystem>(*this, std::move(sound_impl));
+      std::make_shared<SDLSoundSystem>(*this, std::move(sound_impl));
 
-  event_system_->AddMouseListener(graphics_system_.get());
-  event_system_->AddMouseListener(text_system_.get());
+  event_system_->AddListener(graphics_system_);
+  event_system_->AddListener(text_system_);
 }
 
 // -----------------------------------------------------------------------
 
 SDLSystem::~SDLSystem() {
-  event_system_->RemoveMouseListener(text_system_.get());
-  event_system_->RemoveMouseListener(graphics_system_.get());
-
   // Some combinations of SDL and FT on the Mac require us to destroy the
   // Platform first. This will crash on Tiger if this isn't here, but it won't
   // crash under Linux...

@@ -35,6 +35,7 @@
 #include "machine/rloperation.hpp"
 #include "machine/serialization.hpp"
 #include "machine/stack_frame.hpp"
+#include "systems/base/event_system.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/system_error.hpp"
@@ -42,9 +43,6 @@
 #include "systems/base/text_system.hpp"
 #include "utilities/exception.hpp"
 #include "utilities/string_utilities.hpp"
-
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/archive/text_oarchive.hpp>
 
 #include <filesystem>
 #include <format>
@@ -122,8 +120,11 @@ void RLMachine::ExecuteNextInstruction() {
         finished = (*top_frame->long_op)(*this);
       }
 
-      if (finished)
+      if (finished) {
         call_stack_.Pop();
+        if (auto sp = CurrentLongOperation())
+          GetSystem().event().AddListener(sp);
+      }
 
     } else {  // normal bytecode instruction
 
@@ -198,8 +199,12 @@ Gameexe& RLMachine::GetGameexe() { return system_.gameexe(); }
 
 void RLMachine::PushLongOperation(
     std::shared_ptr<LongOperation> long_operation) {
+  if (auto sp = CurrentLongOperation())
+    GetSystem().event().RemoveListener(sp);
+
   const auto top_frame = call_stack_.Top();
   call_stack_.Push(StackFrame(top_frame->pos, long_operation));
+  GetSystem().event().AddListener(long_operation);
 }
 
 void RLMachine::Reset() {

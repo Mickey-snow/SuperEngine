@@ -49,10 +49,9 @@ class SDLEventSystem : public EventSystem {
                             int& button2) override;
   virtual void FlushMouseClicks() override;
   virtual unsigned int TimeOfLastMouseMove() override;
-  virtual void InjectMouseMovement(RLMachine& machine,
-                                   const Point& loc) override;
-  virtual void InjectMouseDown(RLMachine& machine) override;
-  virtual void InjectMouseUp(RLMachine& machine) override;
+  virtual void InjectMouseMovement(const Point& loc) override;
+  virtual void InjectMouseDown() override;
+  virtual void InjectMouseUp() override;
 
  private:
   // Called from GetCursorPos() functions to force a pause if it's been less

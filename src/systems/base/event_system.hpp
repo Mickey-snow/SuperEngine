@@ -102,8 +102,8 @@ class EventSystem {
   // If no EventListener claims the event, then we try to reinterpret the top
   // of the RLMachine callstack as an EventListener. Otherwise, the events
   // are handled RealLive style (see below).
-  void AddMouseListener(EventListener* listener);
-  void RemoveMouseListener(EventListener* listener);
+  void AddListener(std::weak_ptr<EventListener> listener);
+  void RemoveListener(std::weak_ptr<EventListener> listener);
 
   // Generic values
   //
@@ -163,24 +163,15 @@ class EventSystem {
   // Testing
   //
   // Allows test systems like lua_rlvm to inject mouse movement and clicks.
-  virtual void InjectMouseMovement(RLMachine& machine, const Point& loc) = 0;
-  virtual void InjectMouseDown(RLMachine& machine) = 0;
-  virtual void InjectMouseUp(RLMachine& machine) = 0;
+  virtual void InjectMouseMovement(const Point& loc) = 0;
+  virtual void InjectMouseDown() = 0;
+  virtual void InjectMouseUp() = 0;
 
  protected:
-  typedef std::set<EventListener*> EventListeners;
-
-  EventListeners::iterator listeners_begin() {
-    return event_listeners_.begin();
-  }
-  EventListeners::iterator listeners_end() { return event_listeners_.end(); }
-
   // Calls a EventListener member function on all event listeners, and then
   // event handlers, stopping when an object says they handled it.
-  void DispatchEvent(RLMachine& machine,
-                     const std::function<bool(EventListener&)>& event);
-  void BroadcastEvent(RLMachine& machine,
-                      const std::function<void(EventListener&)>& event);
+  void DispatchEvent(const std::function<bool(EventListener&)>& event);
+  void BroadcastEvent(const std::function<void(EventListener&)>& event);
 
  private:
   // Helper function that verifies input
@@ -191,7 +182,9 @@ class EventSystem {
 
   std::shared_ptr<Clock> clock_;
 
-  EventListeners event_listeners_;
+  std::set<std::weak_ptr<EventListener>,
+           std::owner_less<std::weak_ptr<EventListener>>>
+      event_listeners_;
 
   EventSystemGlobals globals_;
 };
