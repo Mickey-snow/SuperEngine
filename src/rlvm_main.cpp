@@ -97,12 +97,6 @@ int main(int argc, char* argv[]) {
       "log-level", po::value<std::string>(),
       "Minimum severity level to log (none, info, warning, error)");
 
-  po::options_description debugOpts("Debugging Options");
-  debugOpts.add_options()("start-seen", po::value<int>(),
-                          "Force start at SEEN#")("load-save", po::value<int>(),
-                                                  "Load a saved game on start")(
-      "memory", "Forces debug mode (Sets #MEMORY=1 in the Gameexe.ini file)");
-
   // Declare the final option to be game-root
   po::options_description hidden("Hidden");
   hidden.add_options()("game-root", po::value<std::string>(),
@@ -113,7 +107,7 @@ int main(int argc, char* argv[]) {
 
   // Use these on the command line
   po::options_description commandLineOpts;
-  commandLineOpts.add(opts).add(hidden).add(debugOpts);
+  commandLineOpts.add(opts).add(hidden);
 
   po::variables_map vm;
   try {
@@ -139,7 +133,7 @@ int main(int argc, char* argv[]) {
   // -----------------------------------------------------------------------
 
   po::options_description allOpts("Allowed options");
-  allOpts.add(opts).add(debugOpts);
+  allOpts.add(opts);
 
   // -----------------------------------------------------------------------
   // Process command line options
@@ -240,15 +234,6 @@ int main(int argc, char* argv[]) {
 
   RLVMInstance instance;
   instance.SetPlatformImplementor(platform_impl);
-
-  if (vm.count("start-seen"))
-    instance.set_seen_start(vm["start-seen"].as<int>());
-
-  if (vm.count("memory"))
-    instance.set_memory();
-
-  if (vm.count("load-save"))
-    instance.set_load_save(vm["load-save"].as<int>());
 
   if (vm.count("font"))
     instance.set_custom_font(vm["font"].as<std::string>());

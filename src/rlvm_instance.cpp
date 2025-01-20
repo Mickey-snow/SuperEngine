@@ -58,11 +58,7 @@ static const std::vector<std::string> siglus_exes{
     "siglus.exe", "siglusengine-ch.exe", "siglusengine.exe",
     "siglusenginechs.exe"};
 
-RLVMInstance::RLVMInstance()
-    : seen_start_(-1),
-      memory_(false),
-      load_save_(-1),
-      platform_implementor_(nullptr) {
+RLVMInstance::RLVMInstance() : seen_start_(-1), platform_implementor_(nullptr) {
   srand(time(NULL));
 }
 
@@ -88,9 +84,6 @@ void RLVMInstance::Run(const std::filesystem::path& gamerootPath) {
     // Possibly force starting at a different seen
     if (seen_start_ != -1)
       gameexe("SEEN_START") = seen_start_;
-
-    if (memory_)
-      gameexe("MEMORY") = 1;
 
     if (!custom_font_.empty()) {
       if (!fs::exists(custom_font_)) {
@@ -170,9 +163,6 @@ void RLVMInstance::Run(const std::filesystem::path& gamerootPath) {
     // version of CLANNAD (or any other game), and then installed a patch, our
     // user data is going to be screwed!
     DoUserNameCheck(rlmachine, arc.GetProbableEncodingType());
-
-    if (load_save_ != -1)
-      Sys_load()(rlmachine, load_save_);
 
     while (!rlmachine.IsHalted()) {
       // Give SDL a chance to respond to events, redraw the screen,

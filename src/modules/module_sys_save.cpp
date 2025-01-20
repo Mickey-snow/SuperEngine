@@ -312,12 +312,23 @@ struct LoadingGameFromSlot : public LoadGameLongOperation {
 
 // -----------------------------------------------------------------------
 
-bool Sys_load::ShouldAdvanceIP() { return false; }
+// Implementation of fun load<1:Sys:03009, 0> ('slot'): Loads data
+// from a save game slot.
+//
+// Internally, load is fairly complex, consisting of several
+// LongOperations because we can't rely on normal flow control because
+// we're going to nuke the call stack and system memory in
+// LoadingGame.
+struct Sys_load : public RLOpcode<IntConstant_T> {
+  virtual bool ShouldAdvanceIP() override { return false; }
 
-void Sys_load::operator()(RLMachine& machine, int slot) {
-  // LoadGameLongOperation will add self to |machine|'s stack.
-  new LoadingGameFromSlot(machine, slot);
-}
+  // Main entrypoint into the load command. Simply sets the callstack
+  // up so that we will fade to black, clear the screen and render,
+  // and then enter the next stage, the LongOperation LoadingGame.
+  virtual void operator()(RLMachine& machine, int slot) override {
+    new LoadingGameFromSlot(machine, slot);
+  }
+};
 
 // -----------------------------------------------------------------------
 

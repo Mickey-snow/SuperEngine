@@ -47,8 +47,6 @@ class RLVMInstance {
   void Run(const std::filesystem::path& gamepath);
 
   void set_seen_start(int in) { seen_start_ = in; }
-  void set_memory() { memory_ = true; }
-  void set_load_save(int in) { load_save_ = in; }
   void set_custom_font(const std::string& font) { custom_font_ = font; }
 
   void SetPlatformImplementor(std::shared_ptr<IPlatformImplementor> impl);
@@ -84,12 +82,6 @@ class RLVMInstance {
 
   // Which SEEN# we should start execution from (-1 if we shouldn't set this).
   int seen_start_;
-
-  // Whether we should force '#MEMORY=1' to enter debug mode.
-  bool memory_;
-
-  // Loads the specified save file as soon as emulation starts if not -1.
-  int load_save_;
 
   // The bridge to the class that implements platform-specific code
   std::shared_ptr<IPlatformImplementor> platform_implementor_;
