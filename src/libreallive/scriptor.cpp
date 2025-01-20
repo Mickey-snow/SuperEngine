@@ -154,7 +154,8 @@ void Scriptor::SetDefaultScenarioConfig(ScenarioConfig cfg) {
   default_config_ = std::move(cfg);
 }
 
-Instruction Scriptor::ResolveInstruction(ScriptLocation it) const {
+std::shared_ptr<Instruction> Scriptor::ResolveInstruction(
+    ScriptLocation it) const {
   const Scenario* sc = cached_scenario.fetch_or_else(
       it.scenario_number,
       std::bind(FindScenario, &archive_, it.scenario_number));
@@ -201,7 +202,8 @@ Instruction Scriptor::ResolveInstruction(ScriptLocation it) const {
     }
   };
 
-  return std::visit(Visitor(), bytecode->DownCast());
+  return std::make_shared<Instruction>(
+      std::visit(Visitor(), bytecode->DownCast()));
 }
 
 }  // namespace libreallive

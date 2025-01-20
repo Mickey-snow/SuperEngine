@@ -37,6 +37,7 @@
 #include "systems/base/system_error.hpp"
 #include "systems/sdl/sdl_system.hpp"
 #include "utf8cpp/utf8.h"
+#include "utilities/clock.hpp"
 #include "utilities/exception.hpp"
 #include "utilities/file.hpp"
 #include "utilities/find_font_file.hpp"
@@ -170,6 +171,7 @@ void RLVMInstance::Bootload(const std::filesystem::path& gameroot) {
 
 void RLVMInstance::Main(const std::filesystem::path& gameroot) {
   try {
+    Clock clock;
     Bootload(gameroot);
 
     while (!machine_->IsHalted()) {
@@ -177,25 +179,24 @@ void RLVMInstance::Main(const std::filesystem::path& gameroot) {
       // etc.
       system_->Run(*machine_);
 
-      // Run the rlmachine through as many instructions as we can in a 10ms time
-      // slice. Bail out if we switch to long operation mode, or if the screen
-      // is marked as dirty.
-      unsigned int start_ticks = system_->event().GetTicks();
-      unsigned int end_ticks = start_ticks;
+      constexpr auto frame_time = std::chrono::seconds(1) / 144.0;
+      auto start = clock.GetTime();
+      auto end = start;
       do {
         machine_->ExecuteNextInstruction();
-        end_ticks = system_->event().GetTicks();
+        end = clock.GetTime();
       } while (!machine_->CurrentLongOperation() && !system_->force_wait() &&
-               (end_ticks - start_ticks < 10));
+               (end - start < frame_time));
 
       // Sleep to be nice to the processor and to give the GPU a chance to
       // catch up.
       if (!system_->ShouldFastForward()) {
-        int real_sleep_time = 10 - (end_ticks - start_ticks);
-        if (real_sleep_time < 1)
-          real_sleep_time = 1;
+        auto real_sleep_time = frame_time - (end - start);
+        using std::chrono_literals::operator""ms;
+        if (real_sleep_time < 1ms)
+          real_sleep_time = 1ms;
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(real_sleep_time));
+        std::this_thread::sleep_for(real_sleep_time);
       }
 
       system_->set_force_wait(false);

@@ -78,7 +78,7 @@ class ScriptorTest : public ::testing::Test {
     std::vector<int> result;
     while (scriptor.HasNext(it)) {
       auto instruction = scriptor.ResolveInstruction(it);
-      const auto value = std::get<Line>(instruction).num;
+      const auto value = std::get<Line>(*instruction).num;
       result.push_back(value);
       it = scriptor.Next(it);
     }

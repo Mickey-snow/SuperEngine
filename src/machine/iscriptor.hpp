@@ -61,7 +61,8 @@ class IScriptor {
   virtual unsigned long LocationNumber(ScriptLocation it) const = 0;
   virtual bool HasNext(ScriptLocation it) const = 0;
   virtual ScriptLocation Next(ScriptLocation it) const = 0;
-  virtual Instruction ResolveInstruction(ScriptLocation it) const = 0;
+  virtual std::shared_ptr<Instruction> ResolveInstruction(
+      ScriptLocation it) const = 0;
 
   virtual ScenarioConfig GetScenarioConfig(int scenario_number) const = 0;
 };

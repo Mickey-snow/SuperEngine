@@ -126,16 +126,17 @@ void RLMachine::ExecuteNextInstruction() {
       }
 
     } else {  // normal bytecode instruction
-      Instruction instruction = scriptor_->ResolveInstruction(top_frame->pos);
+      std::shared_ptr<Instruction> instruction =
+          scriptor_->ResolveInstruction(top_frame->pos);
 
       // write trace log
       static DomainLogger tracer("TRACER");
       tracer(Severity::None)
           << std::format("({:0>4d}:{:d}) ", SceneNumber(), line_)
-          << std::visit(InstructionToString(&module_manager_), instruction);
+          << std::visit(InstructionToString(&module_manager_), *instruction);
 
       // execute the instruction
-      std::visit(*this, std::move(instruction));
+      std::visit(*this, *instruction);
     }
   } catch (rlvm::UnimplementedOpcode& e) {
     AdvanceInstructionPointer();

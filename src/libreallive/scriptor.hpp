@@ -46,7 +46,8 @@ class Scriptor : public IScriptor {
   unsigned long LocationNumber(ScriptLocation it) const override;
   bool HasNext(ScriptLocation it) const override;
   ScriptLocation Next(ScriptLocation it) const override;
-  Instruction ResolveInstruction(ScriptLocation it) const override;
+  std::shared_ptr<Instruction> ResolveInstruction(
+      ScriptLocation it) const override;
 
   void SetDefaultScenarioConfig(ScenarioConfig cfg);
   ScenarioConfig GetScenarioConfig(int scenario_number) const override;
