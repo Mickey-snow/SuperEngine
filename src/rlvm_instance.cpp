@@ -27,10 +27,10 @@
 #include "core/memory.hpp"
 #include "libreallive/reallive.hpp"
 #include "libreallive/scriptor.hpp"
+#include "machine/debugger.hpp"
 #include "machine/game_hacks.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/serialization.hpp"
-#include "modules/module_sys_save.hpp"
 #include "platforms/implementor.hpp"
 #include "systems/base/event_system.hpp"
 #include "systems/base/graphics_system.hpp"
@@ -97,9 +97,8 @@ void RLVMInstance::Bootload(const std::filesystem::path& gameroot) {
 
   archive_ = std::make_shared<libreallive::Archive>(seenPath.string(),
                                                     (*gameexe_)("REGNAME"));
-  // libreallive::Archive arc(seenPath.string(), (*gameexe_)("REGNAME"));
+
   system_ = std::make_shared<SDLSystem>(*gameexe_);
-  // SDLSystem sdlSystem(*gameexe_);
 
   // Instantiate the rl machine
   auto memory = std::make_unique<Memory>();
@@ -131,10 +130,11 @@ void RLVMInstance::Bootload(const std::filesystem::path& gameroot) {
       savepoint_decide("SAVEPOINT_SEENTOP");
   default_config.enable_selcom_savepoint = savepoint_decide("SAVEPOINT_SELCOM");
   scriptor->SetDefaultScenarioConfig(std::move(default_config));
+
   machine_ = std::make_shared<RLMachine>(
       *system_, scriptor, scriptor->Load(first_seen), std::move(memory));
-  // RLMachine rlmachine(sdlSystem, scriptor, scriptor->Load(first_seen),
-  //                     std::move(memory));
+
+  debugger_ = std::make_shared<Debugger>(*machine_);
 
   // Load the "DLLs" required
   for (auto it : gameexe_->Filter("DLL.")) {

@@ -67,8 +67,7 @@ RLMachine::RLMachine(System& system,
     : memory_(std::move(memory)),
       module_manager_(module_manager_prototype),
       scriptor_(scriptor),
-      system_(system),
-      debugger_(*this) {
+      system_(system) {
   // Setup stack memory
   Memory::Stack stack_memory;
   stack_memory.K = MemoryBank<std::string>(
@@ -127,11 +126,7 @@ void RLMachine::ExecuteNextInstruction() {
       }
 
     } else {  // normal bytecode instruction
-
       Instruction instruction = scriptor_->ResolveInstruction(top_frame->pos);
-
-      // notify debugger
-      debugger_.NotifyBefore(instruction);
 
       // write trace log
       static DomainLogger tracer("TRACER");

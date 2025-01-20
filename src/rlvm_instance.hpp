@@ -35,6 +35,7 @@ class Gameexe;
 class Platform;
 class RLMachine;
 class System;
+class Debugger;
 class IPlatformImplementor;
 namespace libreallive {
 class Archive;
@@ -91,6 +92,8 @@ class RLVMInstance {
   std::shared_ptr<System> system_;
 
   std::shared_ptr<RLMachine> machine_;
+
+  std::shared_ptr<Debugger> debugger_;
 
   // Whether we should set a custom font.
   std::string custom_font_;

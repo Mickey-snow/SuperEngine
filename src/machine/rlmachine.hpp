@@ -234,8 +234,6 @@ class RLMachine {
   // from being a Singleton so we can do proper unit testing.
   System& system_;
 
-  Debugger debugger_;
-
   // Override defaults
   bool mark_savepoints_ = true;
 
