@@ -31,10 +31,14 @@
 #include <string>
 #include <vector>
 
+class Gameexe;
 class Platform;
 class RLMachine;
 class System;
 class IPlatformImplementor;
+namespace libreallive {
+class Archive;
+}
 
 // The main, cross platform emulator class. Has template methods for
 // implementing platform specific GUI.
@@ -43,8 +47,7 @@ class RLVMInstance {
   RLVMInstance();
   virtual ~RLVMInstance();
 
-  // Runs the main emulation loop.
-  void Run(const std::filesystem::path& gamepath);
+  void Main(const std::filesystem::path& gamepath);
 
   void set_seen_start(int in) { seen_start_ = in; }
   void set_custom_font(const std::string& font) { custom_font_ = font; }
@@ -76,6 +79,18 @@ class RLVMInstance {
   void CheckBadEngine(const std::filesystem::path& gamerootPath,
                       const std::vector<std::string> filenames,
                       const std::string& message_text);
+
+  // Read config files from the path and create archive, machine, system
+  // instances.
+  void Bootload(const std::filesystem::path& gamepath);
+
+  std::shared_ptr<libreallive::Archive> archive_;
+
+  std::shared_ptr<Gameexe> gameexe_;
+
+  std::shared_ptr<System> system_;
+
+  std::shared_ptr<RLMachine> machine_;
 
   // Whether we should set a custom font.
   std::string custom_font_;

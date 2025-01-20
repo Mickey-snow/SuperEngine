@@ -69,120 +69,128 @@ void RLVMInstance::SetPlatformImplementor(
   platform_implementor_ = impl;
 }
 
-void RLVMInstance::Run(const std::filesystem::path& gamerootPath) {
-  try {
-    fs::path gameexePath = FindGameFile(gamerootPath, "Gameexe.ini");
-    fs::path seenPath = FindGameFile(gamerootPath, "Seen.txt");
+void RLVMInstance::Bootload(const std::filesystem::path& gameroot) {
+  fs::path gameexePath = FindGameFile(gameroot, "Gameexe.ini");
+  fs::path seenPath = FindGameFile(gameroot, "Seen.txt");
 
-    // Check for VisualArt's older and newer engines, which we can't emulate:
-    CheckBadEngine(gamerootPath, avg32_exes, _("Can't run AVG32 games"));
-    CheckBadEngine(gamerootPath, siglus_exes, _("Can't run Siglus games"));
+  // Check for VisualArt's older and newer engines, which we can't emulate:
+  CheckBadEngine(gameroot, avg32_exes, _("Can't run AVG32 games"));
+  CheckBadEngine(gameroot, siglus_exes, _("Can't run Siglus games"));
 
-    Gameexe gameexe(gameexePath);
-    gameexe("__GAMEPATH") = gamerootPath.string();
+  gameexe_ = std::make_shared<Gameexe>(gameexePath);
+  (*gameexe_)("__GAMEPATH") = gameroot.string();
 
-    // Possibly force starting at a different seen
-    if (seen_start_ != -1)
-      gameexe("SEEN_START") = seen_start_;
+  // Possibly force starting at a different seen
+  if (seen_start_ != -1)
+    (*gameexe_)("SEEN_START") = seen_start_;
 
-    if (!custom_font_.empty()) {
-      if (!fs::exists(custom_font_)) {
-        throw rlvm::UserPresentableError(
-            _("Could not open font file."),
-            _("Please make sure the font file specified with --font exists and "
-              "is a TrueType font."));
-      }
-
-      gameexe("__GAMEFONT") = custom_font_;
-    }
-
-    libreallive::Archive arc(seenPath.string(), gameexe("REGNAME"));
-    SDLSystem sdlSystem(gameexe);
-
-    // Instantiate the rl machine
-    auto memory = std::make_unique<Memory>();
-    memory->LoadFrom(gameexe);
-    int first_seen = -1;
-    if (gameexe.Exists("SEEN_START"))
-      first_seen = gameexe("SEEN_START").ToInt();
-    if (first_seen < 0) {
-      // if SEEN_START is undefined, then just grab the first SEEN.
-      first_seen = arc.GetFirstScenarioID();
-    }
-    auto scriptor = std::make_shared<libreallive::Scriptor>(arc);
-    ScenarioConfig default_config;
-    auto savepoint_decide = [&gameexe](std::string key) -> bool {
-      int value = -1;
-      if (gameexe.Exists(key))
-        value = gameexe(key);
-      switch (value) {
-        case 0:
-          return false;
-        case 1:
-        default:
-          return true;
-      }
-    };
-    default_config.enable_message_savepoint =
-        savepoint_decide("SAVEPOINT_MESSAGE");
-    default_config.enable_seentop_savepoint =
-        savepoint_decide("SAVEPOINT_SEENTOP");
-    default_config.enable_selcom_savepoint =
-        savepoint_decide("SAVEPOINT_SELCOM");
-    scriptor->SetDefaultScenarioConfig(std::move(default_config));
-    RLMachine rlmachine(sdlSystem, scriptor, scriptor->Load(first_seen),
-                        std::move(memory));
-    // Load the "DLLs" required
-    for (auto it : gameexe.Filter("DLL.")) {
-      const std::string& name = it.ToString("");
-      try {
-        std::string index_str =
-            it.key().substr(it.key().find_first_of(".") + 1);
-        int index = std::stoi(index_str);
-        rlmachine.LoadDLL(index, name);
-      } catch (rlvm::Exception& e) {
-        std::cerr << "WARNING: Don't know what to do with DLL '" << name << "'"
-                  << std::endl;
-      }
-    }
-    AddGameHacks(rlmachine);
-
-    // Validate our font file
-    // TODO(erg): Remove this when we switch to native font selection dialogs.
-    fs::path fontFile = FindFontFile(sdlSystem);
-    if (fontFile.empty() || !fs::exists(fontFile)) {
+  if (!custom_font_.empty()) {
+    if (!fs::exists(custom_font_)) {
       throw rlvm::UserPresentableError(
-          _("Could not find msgothic.ttc or a suitable fallback font."),
-          _("Please place a copy of msgothic.ttc in either your home directory "
-            "or in the game path."));
+          _("Could not open font file."),
+          _("Please make sure the font file specified with --font exists and "
+            "is a TrueType font."));
     }
 
-    Serialization::loadGlobalMemory(rlmachine);
+    (*gameexe_)("__GAMEFONT") = custom_font_;
+  }
 
-    // Now to preform a quick integrity check. If the user opened the Japanese
-    // version of CLANNAD (or any other game), and then installed a patch, our
-    // user data is going to be screwed!
-    DoUserNameCheck(rlmachine, arc.GetProbableEncodingType());
+  archive_ = std::make_shared<libreallive::Archive>(seenPath.string(),
+                                                    (*gameexe_)("REGNAME"));
+  // libreallive::Archive arc(seenPath.string(), (*gameexe_)("REGNAME"));
+  system_ = std::make_shared<SDLSystem>(*gameexe_);
+  // SDLSystem sdlSystem(*gameexe_);
 
-    while (!rlmachine.IsHalted()) {
+  // Instantiate the rl machine
+  auto memory = std::make_unique<Memory>();
+  memory->LoadFrom(*gameexe_);
+  int first_seen = -1;
+  if ((*gameexe_).Exists("SEEN_START"))
+    first_seen = (*gameexe_)("SEEN_START").ToInt();
+  if (first_seen < 0) {
+    // if SEEN_START is undefined, then just grab the first SEEN.
+    first_seen = archive_->GetFirstScenarioID();
+  }
+  auto scriptor = std::make_shared<libreallive::Scriptor>(*archive_);
+  ScenarioConfig default_config;
+  auto savepoint_decide = [&](std::string key) -> bool {
+    int value = -1;
+    if ((*gameexe_).Exists(key))
+      value = (*gameexe_)(key);
+    switch (value) {
+      case 0:
+        return false;
+      case 1:
+      default:
+        return true;
+    }
+  };
+  default_config.enable_message_savepoint =
+      savepoint_decide("SAVEPOINT_MESSAGE");
+  default_config.enable_seentop_savepoint =
+      savepoint_decide("SAVEPOINT_SEENTOP");
+  default_config.enable_selcom_savepoint = savepoint_decide("SAVEPOINT_SELCOM");
+  scriptor->SetDefaultScenarioConfig(std::move(default_config));
+  machine_ = std::make_shared<RLMachine>(
+      *system_, scriptor, scriptor->Load(first_seen), std::move(memory));
+  // RLMachine rlmachine(sdlSystem, scriptor, scriptor->Load(first_seen),
+  //                     std::move(memory));
+
+  // Load the "DLLs" required
+  for (auto it : gameexe_->Filter("DLL.")) {
+    const std::string& name = it.ToString("");
+    try {
+      std::string index_str = it.key().substr(it.key().find_first_of(".") + 1);
+      int index = std::stoi(index_str);
+      machine_->LoadDLL(index, name);
+    } catch (rlvm::Exception& e) {
+      std::cerr << "WARNING: Don't know what to do with DLL '" << name << "'"
+                << std::endl;
+    }
+  }
+  AddGameHacks(*machine_);
+
+  // Validate our font file
+  // TODO(erg): Remove this when we switch to native font selection dialogs.
+  fs::path fontFile = FindFontFile(*system_);
+  if (fontFile.empty() || !fs::exists(fontFile)) {
+    throw rlvm::UserPresentableError(
+        _("Could not find msgothic.ttc or a suitable fallback font."),
+        _("Please place a copy of msgothic.ttc in either your home directory "
+          "or in the game path."));
+  }
+
+  Serialization::loadGlobalMemory(*machine_);
+
+  // Now to preform a quick integrity check. If the user opened the Japanese
+  // version of CLANNAD (or any other game), and then installed a patch, our
+  // user data is going to be screwed!
+  DoUserNameCheck(*machine_, archive_->GetProbableEncodingType());
+}
+
+void RLVMInstance::Main(const std::filesystem::path& gameroot) {
+  try {
+    Bootload(gameroot);
+
+    while (!machine_->IsHalted()) {
       // Give SDL a chance to respond to events, redraw the screen,
       // etc.
-      sdlSystem.Run(rlmachine);
+      system_->Run(*machine_);
 
       // Run the rlmachine through as many instructions as we can in a 10ms time
       // slice. Bail out if we switch to long operation mode, or if the screen
       // is marked as dirty.
-      unsigned int start_ticks = sdlSystem.event().GetTicks();
+      unsigned int start_ticks = system_->event().GetTicks();
       unsigned int end_ticks = start_ticks;
       do {
-        rlmachine.ExecuteNextInstruction();
-        end_ticks = sdlSystem.event().GetTicks();
-      } while (!rlmachine.CurrentLongOperation() && !sdlSystem.force_wait() &&
+        machine_->ExecuteNextInstruction();
+        end_ticks = system_->event().GetTicks();
+      } while (!machine_->CurrentLongOperation() && !system_->force_wait() &&
                (end_ticks - start_ticks < 10));
 
       // Sleep to be nice to the processor and to give the GPU a chance to
       // catch up.
-      if (!sdlSystem.ShouldFastForward()) {
+      if (!system_->ShouldFastForward()) {
         int real_sleep_time = 10 - (end_ticks - start_ticks);
         if (real_sleep_time < 1)
           real_sleep_time = 1;
@@ -190,10 +198,10 @@ void RLVMInstance::Run(const std::filesystem::path& gamerootPath) {
         std::this_thread::sleep_for(std::chrono::milliseconds(real_sleep_time));
       }
 
-      sdlSystem.set_force_wait(false);
+      system_->set_force_wait(false);
     }
 
-    Serialization::saveGlobalMemory(rlmachine);
+    Serialization::saveGlobalMemory(*machine_);
   } catch (rlvm::UserPresentableError& e) {
     ReportFatalError(e.message_text(), e.informative_text());
   } catch (rlvm::Exception& e) {

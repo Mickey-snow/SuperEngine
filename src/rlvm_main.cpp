@@ -238,7 +238,7 @@ int main(int argc, char* argv[]) {
   if (vm.count("font"))
     instance.set_custom_font(vm["font"].as<std::string>());
 
-  instance.Run(gamerootPath);
+  instance.Main(gamerootPath);
 
   return 0;
 }
