@@ -294,19 +294,14 @@ void RLMachine::PerformTextout(std::string cp932str) {
   TextSystem& ts = GetSystem().text();
 
   // Display UTF-8 characters
-  std::shared_ptr<TextoutLongOperation> ptr =
-      std::make_shared<TextoutLongOperation>(*this, utf8str);
+  auto ptr = std::make_shared<TextoutLongOperation>(*this, utf8str);
 
   if (GetSystem().ShouldFastForward() || ts.message_no_wait() ||
       ts.script_message_nowait()) {
     ptr->set_no_wait();
   }
 
-  // Run the textout operation once. If it doesn't fully succeed, push it onto
-  // the stack.
-  if (!(*ptr)(*this)) {
-    PushLongOperation(ptr);
-  }
+  PushLongOperation(ptr);
 }
 
 RLEnvironment& RLMachine::GetEnvironment() { return env_; }
