@@ -29,6 +29,7 @@
 
 #include <boost/numeric/conversion/cast.hpp>
 
+#include "log/domain_logger.hpp"
 #include "long_operations/wait_long_operation.hpp"
 #include "machine/long_operation.hpp"
 #include "machine/rlmachine.hpp"
@@ -42,6 +43,9 @@
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/system.hpp"
 
+#include <chrono>
+
+namespace chr = std::chrono;
 using boost::numeric_cast;
 
 namespace {
@@ -51,8 +55,9 @@ struct ResetTimer : public RLOpcode<DefaultIntValue_T<0>> {
   explicit ResetTimer(const int in) : layer_(in) {}
 
   void operator()(RLMachine& machine, int counter) {
-    EventSystem& es = machine.GetSystem().event();
-    es.GetTimer(layer_, counter).Set(es);
+    auto& timer = machine.GetEnvironment().GetTimer(layer_, counter);
+    timer.Apply(Stopwatch::Action::Reset);
+    timer.Apply(Stopwatch::Action::Run);
   }
 };
 
@@ -60,8 +65,9 @@ bool TimerIsDone(RLMachine& machine,
                  int layer,
                  int counter,
                  unsigned int target_time) {
-  EventSystem& es = machine.GetSystem().event();
-  return es.GetTimer(layer, counter).Read(es) > target_time;
+  auto duration = chr::duration_cast<chr::milliseconds>(
+      machine.GetEnvironment().GetTimer(layer, counter).GetReading());
+  return duration.count() > target_time;
 }
 
 struct Sys_time : public RLOpcode<IntConstant_T, DefaultIntValue_T<0>> {
@@ -70,10 +76,9 @@ struct Sys_time : public RLOpcode<IntConstant_T, DefaultIntValue_T<0>> {
   Sys_time(const int in, const bool timeC) : layer_(in), in_time_c_(timeC) {}
 
   void operator()(RLMachine& machine, int time, int counter) {
-    EventSystem& es = machine.GetSystem().event();
-
-    if (es.GetTimer(layer_, counter).Read(es) <
-        numeric_cast<unsigned int>(time)) {
+    const auto duration = chr::duration_cast<chr::milliseconds>(
+        machine.GetEnvironment().GetTimer(layer_, counter).GetReading());
+    if (duration.count() < numeric_cast<unsigned int>(time)) {
       auto wait_op = std::make_shared<WaitLongOperation>(machine);
       if (in_time_c_)
         wait_op->BreakOnClicks();
@@ -89,8 +94,10 @@ struct Timer : public RLStoreOpcode<DefaultIntValue_T<0>> {
   explicit Timer(const int in) : layer_(in) {}
 
   int operator()(RLMachine& machine, int counter) {
-    EventSystem& es = machine.GetSystem().event();
-    return es.GetTimer(layer_, counter).Read(es);
+    const auto duration = chr::duration_cast<chr::milliseconds>(
+        machine.GetEnvironment().GetTimer(layer_, counter).GetReading());
+
+    return numeric_cast<int>(duration.count());
   }
 };
 
@@ -99,8 +106,9 @@ struct CmpTimer : public RLStoreOpcode<IntConstant_T, DefaultIntValue_T<0>> {
   explicit CmpTimer(const int in) : layer_(in) {}
 
   int operator()(RLMachine& machine, int val, int counter) {
-    EventSystem& es = machine.GetSystem().event();
-    return es.GetTimer(layer_, counter).Read(es) > val;
+    const auto duration = chr::duration_cast<chr::milliseconds>(
+        machine.GetEnvironment().GetTimer(layer_, counter).GetReading());
+    return duration.count() > val;
   }
 };
 
@@ -109,8 +117,14 @@ struct SetTimer : public RLOpcode<IntConstant_T, DefaultIntValue_T<0>> {
   explicit SetTimer(const int in) : layer_(in) {}
 
   void operator()(RLMachine& machine, int val, int counter) {
-    EventSystem& es = machine.GetSystem().event();
-    es.GetTimer(layer_, counter).Set(es, val);
+    if (val) {
+      static DomainLogger logger("SetTimer");
+      logger(Severity::Warn) << "Implementation might be wrong. val = " << val;
+    }
+
+    auto& timer = machine.GetEnvironment().GetTimer(layer_, counter);
+    timer.Apply(Stopwatch::Action::Reset);
+    timer.Apply(Stopwatch::Action::Run);
   }
 };
 
@@ -129,8 +143,8 @@ void AddSysTimerOpcodes(RLModule& m) {
   m.AddOpcode(114, 1, "Timer", new Timer(0));
   m.AddOpcode(115, 0, "CmpTimer", new CmpTimer(0));
   m.AddOpcode(115, 1, "CmpTimer", new CmpTimer(0));
-  m.AddOpcode(116, 0, "CmpTimer", new SetTimer(0));
-  m.AddOpcode(116, 1, "CmpTimer", new SetTimer(0));
+  m.AddOpcode(116, 0, "SetTimer", new SetTimer(0));
+  m.AddOpcode(116, 1, "SetTimer", new SetTimer(0));
 
   m.AddOpcode(120, 0, "ResetExTimer", new ResetTimer(1));
   m.AddOpcode(120, 1, "ResetExTimer", new ResetTimer(1));

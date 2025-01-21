@@ -185,10 +185,13 @@ void RLVMInstance::Main(const std::filesystem::path& gameroot) {
       auto start = clock.GetTime();
       auto end = start;
 
-      bool should_continue = true;
-      while (should_continue) {
+      for (bool should_continue = true; should_continue;) {
+        // In one cycle in game loop, execute long operation at most once
         if (machine_->CurrentLongOperation() != nullptr)
           should_continue = false;
+
+        // todo: this is the place where i want the debugger to run
+        // debugger_->NotifyBefore(instruction);
         Step();
 
         end = clock.GetTime();
@@ -244,7 +247,6 @@ void RLVMInstance::Step() {
       }
     } else {
       std::shared_ptr<Instruction> instruction = machine_->ReadInstruction();
-      debugger_->NotifyBefore(instruction);
       machine_->ExecuteInstruction(instruction);
     }
 
@@ -252,7 +254,7 @@ void RLVMInstance::Step() {
     machine_->AdvanceInstructionPointer();
 
     static DomainLogger logger("Unimplemented");
-    logger(Severity::Info) << DescribeCurrentIP() << e.FormatCommand()
+    logger(Severity::Info) << DescribeCurrentIP() << ' ' << e.FormatCommand()
                            << e.FormatParameters();
   } catch (rlvm::Exception& e) {
     // Advance the instruction pointer so as to prevent infinite
@@ -260,7 +262,7 @@ void RLVMInstance::Step() {
     machine_->AdvanceInstructionPointer();
 
     auto rec = logger(Severity::Error);
-    rec << DescribeCurrentIP();
+    rec << DescribeCurrentIP() << ' ';
 
     // We specialcase rlvm::Exception because we might have the name of the
     // opcode.
@@ -275,7 +277,7 @@ void RLVMInstance::Step() {
     machine_->AdvanceInstructionPointer();
 
     auto rec = logger(Severity::Error);
-    rec << DescribeCurrentIP();
+    rec << DescribeCurrentIP() << ' ';
     rec << e.what();
   }
 }
@@ -283,8 +285,10 @@ void RLVMInstance::Step() {
 std::string RLVMInstance::DescribeCurrentIP() const {
   const auto scene_num = machine_->SceneNumber();
   const auto line_num = machine_->LineNumber();
-  return std::format("({:0>4d}:{:d}) ", scene_num, line_num);
+  return std::format("({:0>4d}:{:d})", scene_num, line_num);
 }
+
+// -----------------------------------------------------------------------
 
 void RLVMInstance::ReportFatalError(const std::string& message_text,
                                     const std::string& informative_text) {

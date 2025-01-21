@@ -38,8 +38,8 @@
 using std::bind;
 using std::placeholders::_1;
 
-SDLEventSystem::SDLEventSystem(SDLSystem& sys, Gameexe& gexe)
-    : EventSystem(gexe),
+SDLEventSystem::SDLEventSystem(SDLSystem& sys)
+    : EventSystem(),
       shift_pressed_(false),
       ctrl_pressed_(false),
       mouse_inside_window_(true),
@@ -115,27 +115,6 @@ unsigned int SDLEventSystem::TimeOfLastMouseMove() {
 }
 
 bool SDLEventSystem::ShiftPressed() const { return shift_pressed_; }
-
-void SDLEventSystem::InjectMouseMovement(const Point& loc) {
-  mouse_pos_ = loc;
-  BroadcastEvent(bind(&EventListener::MouseMotion, _1, mouse_pos_));
-}
-
-void SDLEventSystem::InjectMouseDown() {
-  button1_state_ = 1;
-  button2_state_ = 0;
-
-  DispatchEvent(
-      bind(&EventListener::MouseButtonStateChanged, _1, MouseBtn::LEFT, 1));
-}
-
-void SDLEventSystem::InjectMouseUp() {
-  button1_state_ = 2;
-  button2_state_ = 0;
-
-  DispatchEvent(
-      bind(&EventListener::MouseButtonStateChanged, _1, MouseBtn::LEFT, 1));
-}
 
 void SDLEventSystem::PreventCursorPosSpinning() {
   unsigned int newTime = GetTicks();

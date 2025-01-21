@@ -55,7 +55,7 @@ SDLSystem::SDLSystem(Gameexe& gameexe) : System(), gameexe_(gameexe) {
 
   // Initialize the various subsystems
   graphics_system_ = std::make_shared<SDLGraphicsSystem>(*this, gameexe);
-  event_system_ = std::make_shared<SDLEventSystem>(*this, gameexe);
+  event_system_ = std::make_shared<SDLEventSystem>(*this);
   text_system_ = std::make_shared<SDLTextSystem>(*this, gameexe);
 
   // The implementor for sound system

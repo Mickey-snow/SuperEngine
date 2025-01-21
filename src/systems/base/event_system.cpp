@@ -39,17 +39,9 @@
 // -----------------------------------------------------------------------
 // EventSystem
 // -----------------------------------------------------------------------
-EventSystem::EventSystem(Gameexe& gexe) : clock_(std::make_shared<Clock>()) {}
+EventSystem::EventSystem() : clock_(std::make_shared<Clock>()) {}
 
 EventSystem::~EventSystem() = default;
-
-RLTimer& EventSystem::GetTimer(int layer, int counter) {
-  if (layer >= 2)
-    throw rlvm::Exception("Invalid layer in EventSystem::GetTimer.");
-  if (counter >= 255)
-    throw rlvm::Exception("Invalid counter in EventSystem::GetTimer.");
-  return timers_[layer][counter];
-}
 
 void EventSystem::SetFrameCounter(int layer,
                                   int frame_counter,

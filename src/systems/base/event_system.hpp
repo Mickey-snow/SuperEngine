@@ -31,7 +31,6 @@
 #include <set>
 
 #include "core/rect.hpp"
-#include "systems/base/rltimer.hpp"
 #include "utilities/clock.hpp"
 
 class RLMachine;
@@ -50,10 +49,8 @@ class EventListener;
 // expects. The other is based on event handlers and is sane.
 class EventSystem {
  public:
-  explicit EventSystem(Gameexe& gexe);
+  explicit EventSystem();
   virtual ~EventSystem();
-
-  RLTimer& GetTimer(int layer, int counter);
 
   // Frame Counters
   //
@@ -123,13 +120,6 @@ class EventSystem {
   // Returns the time in ticks of the last mouse movement.
   virtual unsigned int TimeOfLastMouseMove() = 0;
 
-  // Testing
-  //
-  // Allows test systems like lua_rlvm to inject mouse movement and clicks.
-  virtual void InjectMouseMovement(const Point& loc) = 0;
-  virtual void InjectMouseDown() = 0;
-  virtual void InjectMouseUp() = 0;
-
  protected:
   // Calls a EventListener member function on all event listeners, and then
   // event handlers, stopping when an object says they handled it.
@@ -141,7 +131,6 @@ class EventSystem {
   void CheckLayerAndCounter(int layer, int counter);
 
   std::unique_ptr<FrameCounter> frame_counters_[2][255];
-  RLTimer timers_[2][255];
 
   std::shared_ptr<Clock> clock_;
 

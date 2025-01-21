@@ -25,7 +25,12 @@
 
 #pragma once
 
+#include "utilities/stopwatch.hpp"
+
 #include <boost/serialization/serialization.hpp>
+
+#include <map>
+#include <utility>
 
 class Gameexe;
 
@@ -53,8 +58,12 @@ class RLEnvironment {
   
   Generic& GetGenerics();
 
+  Stopwatch& GetTimer(int layer, int idx);
+
  private:
   Generic generic_;
+
+  std::map<std::pair<int,int>, Stopwatch> rltimer_;
 
   friend class boost::serialization::access;
   void serialize(auto& ar, const unsigned int ver) { ar & generic_; }
