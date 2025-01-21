@@ -79,6 +79,9 @@ RLMachine::RLMachine(System& system,
   // Setup call stack
   call_stack_.Push(StackFrame(starting_location, StackFrame::TYPE_ROOT));
 
+  // Setup runtime environment
+  env_.InitFrom(system.gameexe());
+
   // Initial value of the savepoint
   MarkSavepoint();
 }
@@ -300,6 +303,8 @@ void RLMachine::PerformTextout(std::string cp932str) {
     PushLongOperation(ptr);
   }
 }
+
+RLEnvironment& RLMachine::GetEnvironment() { return env_; }
 
 // -----------------------------------------------------------------------
 

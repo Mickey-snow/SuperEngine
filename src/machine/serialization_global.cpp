@@ -43,6 +43,7 @@
 
 #include "core/memory.hpp"
 #include "libreallive/intmemref.hpp"
+#include "machine/rlenvironment.hpp"
 #include "machine/rlmachine.hpp"
 #include "systems/base/event_system.hpp"
 #include "systems/base/graphics_system.hpp"
@@ -87,9 +88,9 @@ void saveGlobalMemoryTo(std::ostream& oss, RLMachine& machine) {
   System& sys = machine.GetSystem();
 
   oa << CURRENT_GLOBAL_VERSION << machine.GetMemory().GetGlobalMemory()
-     << machine.GetKidokus() << const_cast<const SystemGlobals&>(sys.globals())
+     << machine.GetKidokus() << machine.GetEnvironment()
+     << const_cast<const SystemGlobals&>(sys.globals())
      << const_cast<const GraphicsSystemGlobals&>(sys.graphics().globals())
-     << const_cast<const EventSystemGlobals&>(sys.event().globals())
      << const_cast<const TextSystemGlobals&>(sys.text().globals())
      << sys.sound().GetSettings();
 }
@@ -140,6 +141,7 @@ void loadGlobalMemoryFrom(std::istream& iss, RLMachine& machine) {
   machine.GetMemory().PartialReset(std::move(global_memory));
 
   ia >> machine.GetKidokus();
+  ia >> machine.GetEnvironment();
 
   // When Karmic Koala came out, support for all boost earlier than 1.36 was
   // dropped. For years, I had used boost 1.35 on Ubuntu. It turns out that
@@ -154,8 +156,7 @@ void loadGlobalMemoryFrom(std::istream& iss, RLMachine& machine) {
   // settings. Most people don't change these values and save games and global
   // memory still work (per above.)
   if (version == CURRENT_GLOBAL_VERSION) {
-    ia >> sys.globals() >> sys.graphics().globals() >> sys.event().globals() >>
-        sys.text().globals();
+    ia >> sys.globals() >> sys.graphics().globals() >> sys.text().globals();
 
     rlSoundSettings sound_settings;
     ia >> sound_settings;

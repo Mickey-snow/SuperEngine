@@ -351,6 +351,31 @@ struct ChangeSoundSettings : public RLOpcode<IntConstant_T> {
   }
 };
 
+struct SetGeneric1 : public RLOpcode<IntConstant_T> {
+  void operator()(RLMachine& machine, int value) {
+    auto& generics = machine.GetEnvironment().GetGenerics();
+    generics.val1 = value;
+  }
+};
+struct SetGeneric2 : public RLOpcode<IntConstant_T> {
+  void operator()(RLMachine& machine, int value) {
+    auto& generics = machine.GetEnvironment().GetGenerics();
+    generics.val2 = value;
+  }
+};
+struct GetGeneric1 : public RLStoreOpcode<IntConstant_T> {
+  int operator()(RLMachine& machine, int value) {
+    const auto& generics = machine.GetEnvironment().GetGenerics();
+    return generics.val1;
+  }
+};
+struct GetGeneric2 : public RLStoreOpcode<IntConstant_T> {
+  int operator()(RLMachine& machine, int value) {
+    const auto& generics = machine.GetEnvironment().GetGenerics();
+    return generics.val2;
+  }
+};
+
 }  // namespace
 
 bool Sys_MenuReturn::ShouldAdvanceIP() { return false; }
@@ -646,14 +671,14 @@ SysModule::SysModule() : RLModule("Sys", 1, 004) {
   AddUnsupportedOpcode(2059, 0, "SetSoundQuality");
   AddUnsupportedOpcode(2009, 0, "SoundQuality");
 
-  AddOpcode(2221, 0, "SetGeneric1", CallFunction(&EventSystem::set_generic1));
+  AddOpcode(2221, 0, "SetGeneric1", new SetGeneric1);
   AddOpcode(2620, 0, "DefGeneric1",
             new ReturnGameexeInt("INIT_ORIGINALSETING1_MOD", 0));
-  AddOpcode(2321, 0, "Generic1", ReturnIntValue(&EventSystem::generic1));
-  AddOpcode(2222, 0, "SetGeneric2", CallFunction(&EventSystem::set_generic2));
+  AddOpcode(2321, 0, "Generic1", new GetGeneric1);
+  AddOpcode(2222, 0, "SetGeneric2", new SetGeneric2);
   AddOpcode(2621, 0, "DefGeneric2",
             new ReturnGameexeInt("INIT_ORIGINALSETING2_MOD", 0));
-  AddOpcode(2322, 0, "Generic2", ReturnIntValue(&EventSystem::generic2));
+  AddOpcode(2322, 0, "Generic2", new GetGeneric2);
 
   AddOpcode(2260, 0, "SetWindowAttrR",
             CallFunction(&TextSystem::SetWindowAttrR));

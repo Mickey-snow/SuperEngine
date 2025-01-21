@@ -41,6 +41,7 @@
 #include "machine/instruction.hpp"
 #include "machine/iscriptor.hpp"
 #include "machine/module_manager.hpp"
+#include "machine/rlenvironment.hpp"
 
 namespace libreallive {
 class IntMemRef;
@@ -199,6 +200,8 @@ class RLMachine {
   // hacks.
   void AddLineAction(const int seen, const int line, std::function<void(void)>);
 
+  RLEnvironment& GetEnvironment();
+
  public:
   void PerformTextout(std::string text);
 
@@ -235,6 +238,8 @@ class RLMachine {
   // from being a Singleton so we can do proper unit testing.
   System& system_;
 
+  RLEnvironment env_;
+
   // Override defaults
   bool mark_savepoints_ = true;
 
@@ -260,10 +265,10 @@ class RLMachine {
   BOOST_SERIALIZATION_SPLIT_MEMBER();
 
   void save(auto& ar, const unsigned int file_version) const {
-    ar& LineNumber() & savepoint_call_stack_;
+    ar& LineNumber() & savepoint_call_stack_ & env_;
   }
 
   void load(auto& ar, const unsigned int file_version) {
-    ar & line_ & call_stack_;
+    ar & line_ & call_stack_ & env_;
   }
 };

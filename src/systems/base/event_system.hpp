@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -44,24 +41,6 @@ class EventListener;
 
 // -----------------------------------------------------------------------
 
-struct EventSystemGlobals {
-  EventSystemGlobals();
-  explicit EventSystemGlobals(Gameexe& gexe);
-
-  // The two generic values that the reallive game has control over
-  // with the Generic1 and Generic2 functions.
-  int generic1_;
-  int generic2_;
-
-  // boost::serialization support
-  template <class Archive>
-  void serialize(Archive& ar, const unsigned int version) {
-    ar & generic1_ & generic2_;
-  }
-};
-
-// -----------------------------------------------------------------------
-
 // Generalization of an event system. Reallive's event model is a bit
 // weird; interpreted code will check the state of certain keyboard
 // modifiers, with functions such as CtrlPressed() or ShiftPressed().
@@ -73,8 +52,6 @@ class EventSystem {
  public:
   explicit EventSystem(Gameexe& gexe);
   virtual ~EventSystem();
-
-  EventSystemGlobals& globals() { return globals_; }
 
   RLTimer& GetTimer(int layer, int counter);
 
@@ -104,20 +81,6 @@ class EventSystem {
   // are handled RealLive style (see below).
   void AddListener(std::weak_ptr<EventListener> listener);
   void RemoveListener(std::weak_ptr<EventListener> listener);
-
-  // Generic values
-  //
-  // These values should have, from the beginning, been placed somewhere
-  // else. They will remain here till the end of time for save game file
-  // compatibility, though.
-  //
-  // "RealLive provides two generic settings to permit games using the standard
-  // system command menu to include custom options in it. The meaning of each
-  // generic flag is left up to the programmer. Valid values are 0 to 4."
-  void set_generic1(const int in) { globals_.generic1_ = in; }
-  int generic1() const { return globals_.generic1_; }
-  void set_generic2(const int in) { globals_.generic2_ = in; }
-  int generic2() const { return globals_.generic2_; }
 
   // Run once per cycle through the game loop to process events.
   virtual void ExecuteEventSystem(RLMachine& machine) = 0;
@@ -185,6 +148,4 @@ class EventSystem {
   std::set<std::weak_ptr<EventListener>,
            std::owner_less<std::weak_ptr<EventListener>>>
       event_listeners_;
-
-  EventSystemGlobals globals_;
 };

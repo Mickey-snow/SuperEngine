@@ -37,19 +37,9 @@
 #include <chrono>
 
 // -----------------------------------------------------------------------
-// EventSystemGlobals
-// -----------------------------------------------------------------------
-EventSystemGlobals::EventSystemGlobals() : generic1_(false), generic2_(false) {}
-
-EventSystemGlobals::EventSystemGlobals(Gameexe& gexe)
-    : generic1_(gexe("INIT_ORIGINALSETING1_MOD").ToInt(0)),
-      generic2_(gexe("INIT_ORIGINALSETING2_MOD").ToInt(0)) {}
-
-// -----------------------------------------------------------------------
 // EventSystem
 // -----------------------------------------------------------------------
-EventSystem::EventSystem(Gameexe& gexe)
-    : clock_(std::make_shared<Clock>()), globals_(gexe) {}
+EventSystem::EventSystem(Gameexe& gexe) : clock_(std::make_shared<Clock>()) {}
 
 EventSystem::~EventSystem() = default;
 
