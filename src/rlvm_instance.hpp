@@ -85,6 +85,13 @@ class RLVMInstance {
   // instances.
   void Bootload(const std::filesystem::path& gamepath);
 
+  // Control the machine to execute the next operation
+  void Step();
+
+  // Returns a formatted string to descirbe current location (scene number,
+  // line)
+  std::string DescribeCurrentIP() const;
+
   std::shared_ptr<libreallive::Archive> archive_;
 
   std::shared_ptr<Gameexe> gameexe_;

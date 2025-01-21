@@ -27,9 +27,11 @@
 #include "core/memory.hpp"
 #include "libreallive/reallive.hpp"
 #include "libreallive/scriptor.hpp"
+#include "log/domain_logger.hpp"
 #include "machine/debugger.hpp"
 #include "machine/game_hacks.hpp"
 #include "machine/rlmachine.hpp"
+#include "machine/rloperation.hpp"
 #include "machine/serialization.hpp"
 #include "platforms/implementor.hpp"
 #include "systems/base/event_system.hpp"
@@ -183,34 +185,18 @@ void RLVMInstance::Main(const std::filesystem::path& gameroot) {
       auto start = clock.GetTime();
       auto end = start;
 
-      do {
-        if (auto long_op = machine_->CurrentLongOperation()) {
-          CallStack& stack = machine_->GetStack();
-          bool finished = false;
-          {
-            auto lock = stack.GetLock();
-            finished = long_op->operator()(*machine_);
-          }
-
-          if (finished) {
-            machine_->GetSystem().event().RemoveListener(long_op);
-            stack.Pop();
-
-            if (auto sp = machine_->CurrentLongOperation())
-              machine_->GetSystem().event().AddListener(sp);
-          }
-
-          // for long operations, only run one per loop
-          break;
-        }
-
-        std::shared_ptr<Instruction> instruction = machine_->ReadInstruction();
-        debugger_->NotifyBefore(instruction);
-        machine_->ExecuteInstruction(instruction);
+      bool should_continue = true;
+      while (should_continue) {
+        if (machine_->CurrentLongOperation() != nullptr)
+          should_continue = false;
+        Step();
 
         end = clock.GetTime();
-      } while (!machine_->IsHalted() && !system_->force_wait() &&
-               (end - start < frame_time));
+
+        if (machine_->IsHalted() || system_->force_wait() ||
+            (end - start) >= frame_time)
+          should_continue = false;
+      }
 
       // Sleep to be nice to the processor and to give the GPU a chance to
       // catch up.
@@ -240,6 +226,64 @@ void RLVMInstance::Main(const std::filesystem::path& gameroot) {
   } catch (const char* e) {
     ReportFatalError(_("Uncaught exception"), e);
   }
+}
+
+void RLVMInstance::Step() {
+  static DomainLogger logger("RLVMInstance::Step");
+
+  try {
+    if (auto long_op = machine_->CurrentLongOperation()) {
+      const bool finished = machine_->ExecuteLongop(long_op);
+
+      if (finished) {
+        machine_->GetSystem().event().RemoveListener(long_op);
+        machine_->GetStack().Pop();
+
+        if (auto sp = machine_->CurrentLongOperation())
+          machine_->GetSystem().event().AddListener(sp);
+      }
+    } else {
+      std::shared_ptr<Instruction> instruction = machine_->ReadInstruction();
+      debugger_->NotifyBefore(instruction);
+      machine_->ExecuteInstruction(instruction);
+    }
+
+  } catch (rlvm::UnimplementedOpcode& e) {
+    machine_->AdvanceInstructionPointer();
+
+    static DomainLogger logger("Unimplemented");
+    logger(Severity::Info) << DescribeCurrentIP() << e.FormatCommand()
+                           << e.FormatParameters();
+  } catch (rlvm::Exception& e) {
+    // Advance the instruction pointer so as to prevent infinite
+    // loops where we throw an exception, and then try again.
+    machine_->AdvanceInstructionPointer();
+
+    auto rec = logger(Severity::Error);
+    rec << DescribeCurrentIP();
+
+    // We specialcase rlvm::Exception because we might have the name of the
+    // opcode.
+    if (e.operation()) {
+      rec << "[" << e.operation()->Name() << "]";
+    }
+
+    rec << ":  " << e.what();
+  } catch (std::exception& e) {
+    // Advance the instruction pointer so as to prevent infinite
+    // loops where we throw an exception, and then try again.
+    machine_->AdvanceInstructionPointer();
+
+    auto rec = logger(Severity::Error);
+    rec << DescribeCurrentIP();
+    rec << e.what();
+  }
+}
+
+std::string RLVMInstance::DescribeCurrentIP() const {
+  const auto scene_num = machine_->SceneNumber();
+  const auto line_num = machine_->LineNumber();
+  return std::format("({:0>4d}:{:d}) ", scene_num, line_num);
 }
 
 void RLVMInstance::ReportFatalError(const std::string& message_text,

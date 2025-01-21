@@ -118,6 +118,11 @@ std::shared_ptr<Instruction> RLMachine::ReadInstruction() const {
   return scriptor_->ResolveInstruction(top_frame->pos);
 }
 
+bool RLMachine::ExecuteLongop(std::shared_ptr<LongOperation> long_op) {
+  auto lock = call_stack_.GetLock();
+  return (*long_op)(*this);
+}
+
 void RLMachine::ExecuteInstruction(std::shared_ptr<Instruction> instruction) {
   try {
     // write trace log

@@ -166,6 +166,8 @@ class RLMachine {
 
   std::shared_ptr<Instruction> ReadInstruction() const;
 
+  bool ExecuteLongop(std::shared_ptr<LongOperation> long_op);
+
   void ExecuteInstruction(std::shared_ptr<Instruction> instruction);
 
   // Increments the stack pointer in the current frame. If we have run
