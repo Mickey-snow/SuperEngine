@@ -53,7 +53,7 @@ class glCanvas;
 // Implements all screen output and screen management functionality.
 //
 // TODO(erg): This public interface really needs to be rethought out.
-class SDLGraphicsSystem : public GraphicsSystem, public NotificationObserver {
+class SDLGraphicsSystem : public GraphicsSystem {
  public:
   // SDL should be initialized before you create an SDLGraphicsSystem.
   SDLGraphicsSystem(System& system, Gameexe& gameexe);
@@ -108,11 +108,6 @@ class SDLGraphicsSystem : public GraphicsSystem, public NotificationObserver {
   // @exception Error Throws when dc is unallocated.
   void VerifySurfaceExists(int dc, const std::string& caller);
 
-  // NotificationObserver:
-  virtual void Observe(NotificationType type,
-                       const NotificationSource& source,
-                       const NotificationDetails& details) override;
-
   // ---------------------------------------------------------------------
 
   SDL_Surface* screen_;
@@ -132,8 +127,6 @@ class SDLGraphicsSystem : public GraphicsSystem, public NotificationObserver {
 
   // Whether |screen_contents_texture_| is valid to use.
   bool screen_contents_texture_valid_;
-
-  NotificationRegistrar registrar_;
 
   Size display_size_;
 

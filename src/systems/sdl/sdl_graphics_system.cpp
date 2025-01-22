@@ -245,9 +245,6 @@ SDLGraphicsSystem::SDLGraphicsSystem(System& system, Gameexe& gameexe)
 #endif
 
   SDL_ShowCursor(ShouldUseCustomCursor() ? SDL_DISABLE : SDL_ENABLE);
-
-  registrar_.Add(this, NotificationType::FULLSCREEN_STATE_CHANGED,
-                 Source<GraphicsSystem>(static_cast<GraphicsSystem*>(this)));
 }
 
 void SDLGraphicsSystem::Resize(Size display_size) {
@@ -362,10 +359,6 @@ void SDLGraphicsSystem::SetWindowTitle(std::string new_caption) {
     currently_set_title_ = new_caption;
   }
 }
-
-void SDLGraphicsSystem::Observe(NotificationType type,
-                                const NotificationSource& source,
-                                const NotificationDetails& details) {}
 
 void SDLGraphicsSystem::SetWindowSubtitle(const std::string& cp932str,
                                           int text_encoding) {

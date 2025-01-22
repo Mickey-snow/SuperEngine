@@ -267,8 +267,8 @@ void TextSystem::ExpireOldPages() {
     previous_page_sets_.pop_front();
 }
 
-bool TextSystem::MouseButtonStateChanged(MouseBtn mouse_button,
-                                         bool pressed) {
+// Quits skipping mode
+bool TextSystem::MouseButtonStateChanged(MouseBtn mouse_button, bool pressed) {
   if (CurrentlySkipping() && !in_selection_mode_) {
     SetSkipMode(false);
     return true;

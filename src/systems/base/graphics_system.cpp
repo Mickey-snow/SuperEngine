@@ -383,17 +383,7 @@ void GraphicsSystem::SetWindowSubtitle(const std::string& cp932str,
 
 // -----------------------------------------------------------------------
 
-void GraphicsSystem::SetScreenMode(const int in) {
-  bool changed = globals_.screen_mode != in;
-
-  globals_.screen_mode = in;
-
-  if (changed) {
-    NotificationService::current()->Notify(
-        NotificationType::FULLSCREEN_STATE_CHANGED,
-        Source<GraphicsSystem>(this), Details<const int>(&in));
-  }
-}
+void GraphicsSystem::SetScreenMode(const int in) { globals_.screen_mode = in; }
 
 // -----------------------------------------------------------------------
 

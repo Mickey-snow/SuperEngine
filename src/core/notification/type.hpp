@@ -22,9 +22,7 @@ class NotificationType {
     IDLE,
     BUSY,
 
-    // Signals that the screen mode changed (between fullscreen/windowed
-    // mode). The source is a GraphicsSystem and the details is a boolean of
-    // the new value.
+    // unused
     FULLSCREEN_STATE_CHANGED,
 
     // Sent whenever we change whether we're skipping text. The TextSystem is
