@@ -47,6 +47,8 @@
 #include "machine/rloperation.hpp"
 #include "machine/rloperation/default_value_t.hpp"
 #include "modules/jump.hpp"
+#include "modules/module_bgr.hpp"
+#include "modules/module_grp.hpp"
 #include "modules/module_sys_date.hpp"
 #include "modules/module_sys_frame.hpp"
 #include "modules/module_sys_index_series.hpp"
@@ -376,6 +378,24 @@ struct GetGeneric2 : public RLStoreOpcode<IntConstant_T> {
   }
 };
 
+struct Setter : public RLOpcode<StrConstant_T> {
+  std::string& ref;
+
+  Setter(std::string& ref_in) : ref(ref_in) {}
+
+  void operator()(RLMachine&, std::string value) override { ref = value; }
+};
+
+struct Getter : public RLOpcode<StrReference_T> {
+  std::string& ref;
+
+  Getter(std::string& ref_in) : ref(ref_in) {}
+
+  void operator()(RLMachine&, StringReferenceIterator dst) override {
+    (*dst) = ref;
+  }
+};
+
 }  // namespace
 
 bool Sys_MenuReturn::ShouldAdvanceIP() { return false; }
@@ -502,14 +522,10 @@ SysModule::SysModule() : RLModule("Sys", 1, 004) {
   AddOpcode(1204, 0, "ReturnPrevSelect", new ReturnPrevSelect);
   AddOpcode(1205, 0, "ReturnPrevSelect2", new ReturnPrevSelect);
 
-  AddOpcode(1130, 0, "DefaultGrp",
-            returnStringValue(&GraphicsSystem::default_grp_name));
-  AddOpcode(1131, 0, "SetDefaultGrp",
-            CallFunction(&GraphicsSystem::set_default_grp_name));
-  AddOpcode(1132, 0, "DefaultBgr",
-            returnStringValue(&GraphicsSystem::default_bgr_name));
-  AddOpcode(1133, 0, "SetDefaultBgr",
-            CallFunction(&GraphicsSystem::set_default_bgr_name));
+  AddOpcode(1130, 0, "DefaultGrp", new Getter(default_grp_name));
+  AddOpcode(1131, 0, "SetDefaultGrp", new Setter(default_grp_name));
+  AddOpcode(1132, 0, "DefaultBgr", new Getter(default_bgr_name));
+  AddOpcode(1133, 0, "SetDefaultBgr", new Setter(default_bgr_name));
 
   AddUnsupportedOpcode(1302, 0, "nwSingle");
   AddUnsupportedOpcode(1303, 0, "nwMulti");

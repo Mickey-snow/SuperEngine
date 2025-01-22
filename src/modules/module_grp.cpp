@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -27,7 +24,6 @@
 
 #include "modules/module_grp.hpp"
 
-#include <boost/algorithm/string.hpp>
 #include <functional>
 #include <iostream>
 #include <string>
@@ -58,6 +54,8 @@
 #include "utilities/graphics.hpp"
 
 namespace fs = std::filesystem;
+
+std::string default_grp_name = "";
 
 namespace {
 
@@ -94,7 +92,7 @@ void loadImageToDC1(RLMachine& machine,
 
   if (name != "?") {
     if (name == "???")
-      name = graphics.default_grp_name();
+      name = default_grp_name;
 
     std::shared_ptr<Surface> dc0 = graphics.GetDC(0);
     std::shared_ptr<Surface> dc1 = graphics.GetDC(1);
@@ -189,9 +187,9 @@ void performHideAllTextWindows(RLMachine& machine) {
 
 // Common code to all the openBg commands.
 void OpenBgPrelude(RLMachine& machine, const std::string& filename) {
-  if (!boost::starts_with(filename, "?")) {
+  if (!filename.starts_with("?")) {
     GraphicsSystem& graphics = machine.GetSystem().graphics();
-    graphics.set_default_grp_name(filename);
+    default_grp_name = filename;
 
     // Only clear the stack when we are the command setting the background.
     graphics.ClearStack();

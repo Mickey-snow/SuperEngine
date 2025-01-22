@@ -475,8 +475,6 @@ void GraphicsSystem::Reset() {
   cursor_ = system().gameexe()("MOUSE_CURSOR").ToInt(0);
   mouse_cursor_.reset();
 
-  default_grp_name_ = "";
-  default_bgr_name_ = "";
   screen_update_mode_ = SCREENUPDATEMODE_AUTOMATIC;
   background_type_ = BACKGROUND_DC0;
   subtitle_ = "";
@@ -815,8 +813,7 @@ void GraphicsSystem::MouseMotion(const Point& new_location) {
 
 template <class Archive>
 void GraphicsSystem::save(Archive& ar, unsigned int version) const {
-  ar & subtitle_ & default_grp_name_ & default_bgr_name_ &
-      graphics_object_impl_->saved_graphics_stack &
+  ar & subtitle_ & graphics_object_impl_->saved_graphics_stack &
       graphics_object_impl_->saved_background_objects &
       graphics_object_impl_->saved_foreground_objects;
 }
@@ -827,8 +824,6 @@ template <class Archive>
 void GraphicsSystem::load(Archive& ar, unsigned int version) {
   ar & subtitle_;
   if (version > 0) {
-    ar & default_grp_name_;
-    ar & default_bgr_name_;
     ar & graphics_object_impl_->graphics_stack;
   } else {
     throw std::runtime_error("Deprecated old graphics stack has been removed");

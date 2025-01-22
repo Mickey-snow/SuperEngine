@@ -161,18 +161,6 @@ class GraphicsSystem : public EventListener {
     is_responsible_for_update_ = in;
   }
 
-  // Sets the default name for certain classes of commands. (Certain graphics
-  // commands set either of these and most graphics commands can pass in '?',
-  // which is substituted with the default name.)
-  const std::string& default_grp_name() const { return default_grp_name_; }
-  void set_default_grp_name(const std::string& name) {
-    default_grp_name_ = name;
-  }
-  const std::string& default_bgr_name() const { return default_bgr_name_; }
-  void set_default_bgr_name(const std::string& name) {
-    default_bgr_name_ = name;
-  }
-
   // Define who is responsible for screen updates.
   DCScreenUpdateMode screen_update_mode() const { return screen_update_mode_; }
   virtual void SetScreenUpdateMode(DCScreenUpdateMode u);
@@ -255,6 +243,7 @@ class GraphicsSystem : public EventListener {
   void AddRenderable(Renderable* renderable);
   void RemoveRenderable(Renderable* renderable);
 
+  // -----------------------------------------------------------------------
   // Subtitle management
 
   // Sets the current value of the subtitle, as set with title(). This
@@ -443,14 +432,6 @@ class GraphicsSystem : public EventListener {
   // Gets a platform appropriate surface loaded.
   virtual std::shared_ptr<Surface> LoadSurfaceFromFile(
       const std::string& short_filename) = 0;
-
-  // Default grp name (used in grp* and rec* functions where filename
-  // is '???')
-  std::string default_grp_name_;
-
-  // Default bgr name (used in bgr* functions where filename is
-  // '???')
-  std::string default_bgr_name_;
 
   // Current screen update mode
   DCScreenUpdateMode screen_update_mode_;

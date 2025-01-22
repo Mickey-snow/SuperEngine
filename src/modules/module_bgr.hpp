@@ -33,3 +33,6 @@ class BgrModule : public MappedRLModule {
  public:
   BgrModule();
 };
+
+// bgr file last used. specified when filename is "???"
+extern std::string default_bgr_name;

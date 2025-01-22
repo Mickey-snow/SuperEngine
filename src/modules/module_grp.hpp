@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -49,3 +46,6 @@ RLOperation* GraphicsStackMappingFun(RLOperation* op);
 // Replays the new Graphics stack, string representations of reallive bytecode.
 void ReplayGraphicsStackCommand(RLMachine& machine,
                                 const std::deque<std::string>& stack);
+
+// grp file last used. specified when filename is "???"
+extern std::string default_grp_name;

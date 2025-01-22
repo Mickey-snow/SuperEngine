@@ -26,7 +26,6 @@
 
 #include "modules/module_bgr.hpp"
 
-#include <boost/algorithm/string.hpp>
 #include <filesystem>
 #include <iostream>
 #include <string>
@@ -49,9 +48,10 @@
 #include "utilities/graphics.hpp"
 
 namespace fs = std::filesystem;
-using boost::iends_with;
 
 static const std::set<std::string> HIK_FILETYPES = {"hik", "g00", "pdt"};
+
+std::string default_bgr_name = "";
 
 // Working theory of how this module works: The haikei module is one backing
 // surface and (optionally) a HIK script. Games like AIR and the Maiden Halo
@@ -65,7 +65,7 @@ namespace {
 struct bgrLoadHaikei_blank : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int sel) {
     GraphicsSystem& graphics = machine.GetSystem().graphics();
-    graphics.set_default_bgr_name("");
+    default_bgr_name = "";
     graphics.SetHikRenderer(NULL);
     graphics.set_graphics_background(BACKGROUND_HIK);
 
@@ -87,14 +87,14 @@ struct bgrLoadHaikei_main : RLOpcode<StrConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, std::string filename, int sel) {
     System& system = machine.GetSystem();
     GraphicsSystem& graphics = system.graphics();
-    graphics.set_default_bgr_name(filename);
+    default_bgr_name = filename;
     graphics.set_graphics_background(BACKGROUND_HIK);
 
     // bgrLoadHaikei clears the stack.
     graphics.ClearStack();
 
     fs::path path = system.GetAssetScanner()->FindFile(filename, HIK_FILETYPES);
-    if (iends_with(path.string(), "hik")) {
+    if (path.string().ends_with("hik")) {
       if (!machine.replaying_graphics_stack())
         graphics.ClearAndPromoteObjects();
 
@@ -189,7 +189,7 @@ struct bgrMulti_1
 
     // May need to use current background.
     if (filename == "???")
-      filename = graphics.default_bgr_name();
+      filename = default_bgr_name;
 
     // Load "filename" as the background.
     std::shared_ptr<const Surface> surface(
@@ -272,7 +272,7 @@ struct bgrPreloadScript : public RLOpcode<IntConstant_T, StrConstant_T> {
   void operator()(RLMachine& machine, int slot, string name) {
     System& system = machine.GetSystem();
     fs::path path = system.GetAssetScanner()->FindFile(name, HIK_FILETYPES);
-    if (iends_with(path.string(), "hik")) {
+    if (path.string().ends_with("hik")) {
       system.graphics().PreloadHIKScript(system, slot, name, path);
     }
   }
