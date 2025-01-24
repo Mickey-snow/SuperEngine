@@ -27,11 +27,11 @@
 
 #include "systems/base/event_system.hpp"
 
+#include "core/frame_counter.hpp"
 #include "core/gameexe.hpp"
 #include "machine/long_operation.hpp"
 #include "machine/rlmachine.hpp"
 #include "systems/base/event_listener.hpp"
-#include "core/frame_counter.hpp"
 #include "utilities/exception.hpp"
 
 #include <chrono>
@@ -42,31 +42,6 @@
 EventSystem::EventSystem() : clock_(std::make_shared<Clock>()) {}
 
 EventSystem::~EventSystem() = default;
-
-void EventSystem::SetFrameCounter(int layer,
-                                  int frame_counter,
-                                  FrameCounter* counter) {
-  CheckLayerAndCounter(layer, frame_counter);
-  frame_counters_[layer][frame_counter].reset(counter);
-}
-
-FrameCounter& EventSystem::GetFrameCounter(int layer, int frame_counter) {
-  CheckLayerAndCounter(layer, frame_counter);
-
-  std::unique_ptr<FrameCounter>& counter =
-      frame_counters_[layer][frame_counter];
-  if (counter.get() == NULL)
-    throw rlvm::Exception("Trying to get an uninitialized frame counter!");
-
-  return *counter;
-}
-
-bool EventSystem::FrameCounterExists(int layer, int frame_counter) {
-  CheckLayerAndCounter(layer, frame_counter);
-  std::unique_ptr<FrameCounter>& counter =
-      frame_counters_[layer][frame_counter];
-  return counter.get() != NULL;
-}
 
 void EventSystem::AddListener(std::weak_ptr<EventListener> listener) {
   event_listeners_.insert(listener);
@@ -118,12 +93,4 @@ void EventSystem::BroadcastEvent(
       it = event_listeners_.erase(it);
     }
   }
-}
-
-void EventSystem::CheckLayerAndCounter(int layer, int frame_counter) {
-  if (layer < 0 || layer > 1)
-    throw rlvm::Exception("Illegal frame counter layer!");
-
-  if (frame_counter < 0 || frame_counter > 255)
-    throw rlvm::Exception("Frame Counter index out of range!");
 }

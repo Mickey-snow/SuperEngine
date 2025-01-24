@@ -30,6 +30,14 @@
 
 class Clock;
 
+// Frame Counters
+//
+// "Frame counters are designed to make it simple to ensure events happen at a
+// constant speed regardless of the host system's specifications. Once a frame
+// counter has been initialized, it will count from one arbitrary number to
+// another, over a given length of time. The counter can be queried at any
+// point to get its current value."
+
 class FrameCounter {
  public:
   FrameCounter(std::shared_ptr<Clock> clock,
@@ -42,7 +50,7 @@ class FrameCounter {
   // Returns the current (integer) frame value
   virtual int ReadFrame() = 0;
 
-  void set_value(int value) { value_ = static_cast<float>(value); }
+  void SetFrame(int value) { value_ = static_cast<float>(value); }
 
   // Start or stop the timer
   void BeginTimer();
@@ -53,7 +61,7 @@ class FrameCounter {
     // but it's up to derived classes to end themselves or not.
     return is_active_;
   }
-  void set_active(bool active) { is_active_ = active; }
+  void SetActive(bool active) { is_active_ = active; }
 
  protected:
   // Computes an un-clamped fraction of how far along we are, i.e.

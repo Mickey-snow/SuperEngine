@@ -53,3 +53,27 @@ Stopwatch& RLEnvironment::GetTimer(int layer, int idx) {
   }
   return rltimer_.find(key)->second;
 }
+
+std::shared_ptr<FrameCounter> RLEnvironment::GetFrameCounter(int layer,
+                                                             int idx) {
+  static DomainLogger logger("FrameCounter");
+  if (layer < 0 || layer >= 2 || idx < 0 || idx >= 255) {
+    auto rec = logger(Severity::Warn);
+    rec << "Invalid key provided when requesting frame counter. ";
+    rec << "(layer=" << layer << " ,idx=" << idx << ')';
+  }
+
+  return frame_counter_[std::make_pair(layer, idx)];
+}
+void RLEnvironment::SetFrameCounter(int layer,
+                                    int idx,
+                                    std::shared_ptr<FrameCounter> counter) {
+  static DomainLogger logger("FrameCounter");
+  if (layer < 0 || layer >= 2 || idx < 0 || idx >= 255) {
+    auto rec = logger(Severity::Warn);
+    rec << "Invalid key provided when requesting frame counter. ";
+    rec << "(layer=" << layer << " ,idx=" << idx << ')';
+  }
+
+  frame_counter_[std::make_pair(layer, idx)] = counter;
+}

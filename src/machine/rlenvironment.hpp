@@ -33,6 +33,7 @@
 #include <utility>
 
 class Gameexe;
+class FrameCounter;
 
 // Generic values
 //
@@ -55,15 +56,22 @@ class RLEnvironment {
   RLEnvironment() = default;
 
   void InitFrom(Gameexe&);
-  
+
   Generic& GetGenerics();
 
   Stopwatch& GetTimer(int layer, int idx);
 
+  std::shared_ptr<FrameCounter> GetFrameCounter(int layer, int idx);
+  void SetFrameCounter(int layer,
+                       int idx,
+                       std::shared_ptr<FrameCounter> counter);
+
  private:
   Generic generic_;
 
-  std::map<std::pair<int,int>, Stopwatch> rltimer_;
+  std::map<std::pair<int, int>, Stopwatch> rltimer_;
+
+  std::map<std::pair<int, int>, std::shared_ptr<FrameCounter>> frame_counter_;
 
   friend class boost::serialization::access;
   void serialize(auto& ar, const unsigned int ver) { ar & generic_; }

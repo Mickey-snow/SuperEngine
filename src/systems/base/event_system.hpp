@@ -52,20 +52,6 @@ class EventSystem {
   explicit EventSystem();
   virtual ~EventSystem();
 
-  // Frame Counters
-  //
-  // "Frame counters are designed to make it simple to ensure events happen at a
-  // constant speed regardless of the host system's specifications. Once a frame
-  // counter has been initialized, it will count from one arbitrary number to
-  // another, over a given length of time. The counter can be queried at any
-  // point to get its current value."
-  //
-  // Valid values for layer are 0 and 1. Valid values for frame_counter are 0
-  // through 255.
-  void SetFrameCounter(int layer, int frame_counter, FrameCounter* counter);
-  FrameCounter& GetFrameCounter(int layer, int frame_counter);
-  bool FrameCounterExists(int layer, int frame_counter);
-
   // Keyboard and Mouse Input (Event Listener style)
   //
   // rlvm event handling works by registering objects that received input
@@ -127,11 +113,6 @@ class EventSystem {
   void BroadcastEvent(const std::function<void(EventListener&)>& event);
 
  private:
-  // Helper function that verifies input
-  void CheckLayerAndCounter(int layer, int counter);
-
-  std::unique_ptr<FrameCounter> frame_counters_[2][255];
-
   std::shared_ptr<Clock> clock_;
 
   std::set<std::weak_ptr<EventListener>,
