@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "mock_clock.hpp"
 #include "utilities/clock.hpp"
 #include "utilities/stopwatch.hpp"
 
@@ -36,23 +37,6 @@ using namespace std::chrono_literals;
 
 using timepoint_t = Clock::timepoint_t;
 using duration_t = Clock::duration_t;
-
-class FakeClock : public Clock {
- public:
-  FakeClock() = default;
-  ~FakeClock() = default;
-
-  void SetTime(timepoint_t now) { now_ = now; }
-  timepoint_t GetTime() const override { return now_; }
-
-  duration_t GetTicks() const override {
-    ADD_FAILURE() << "FakeClock::GetTicks() should not be called.";
-    return duration_t::zero();
-  }
-
- private:
-  timepoint_t now_;
-};
 
 class StopwatchTest : public ::testing::Test {
  protected:
@@ -76,15 +60,15 @@ class StopwatchTest : public ::testing::Test {
       keytimes.erase(std::unique(keytimes.begin(), keytimes.end()),
                      keytimes.end());
 
-      auto clock = std::make_shared<FakeClock>();
+      auto clock = std::make_shared<MockClock>();
       auto epoch = std::chrono::steady_clock::now();
-      clock->SetTime(epoch);
+      clock->SetEpoch(epoch);
       Stopwatch stopwatch(clock);
 
       size_t action_idx = 0, checker_idx = 0;
       for (const auto& duration : keytimes) {
         auto now = epoch + duration;
-        clock->SetTime(now);
+        clock->SetEpoch(now);
 
         while (action_idx < actions.size() &&
                actions[action_idx].first == duration) {
@@ -294,40 +278,40 @@ TEST_F(StopwatchTest, ReadFromInit) {
 }
 
 TEST_F(StopwatchTest, BrokenClock) {
-  auto clock = std::make_shared<FakeClock>();
+  auto clock = std::make_shared<MockClock>();
   auto epoch = std::chrono::steady_clock::now();
-  clock->SetTime(epoch);
+  clock->SetEpoch(epoch);
 
   Stopwatch stopwatch(clock);
   stopwatch.Apply(Run);
 
-  clock->SetTime(epoch + 10ms);  // Advance time
+  clock->SetEpoch(epoch + 10ms);  // Advance time
   EXPECT_EQ(stopwatch.GetReading(), 10ms);
 
-  clock->SetTime(epoch + 5ms);  // Move time backward
+  clock->SetEpoch(epoch + 5ms);  // Move time backward
   EXPECT_THROW(stopwatch.GetReading(), std::runtime_error);
 }
 
 TEST_F(StopwatchTest, LapTime) {
-  auto clock = std::make_shared<FakeClock>();
+  auto clock = std::make_shared<MockClock>();
   auto epoch = std::chrono::steady_clock::now();
-  clock->SetTime(epoch);
+  clock->SetEpoch(epoch);
 
   Stopwatch stopwatch(clock);
   stopwatch.Apply(Run);
 
-  clock->SetTime(epoch + 5ms);
+  clock->SetEpoch(epoch + 5ms);
   EXPECT_EQ(stopwatch.LapTime(), 5ms);
 
-  clock->SetTime(epoch + 10ms);
+  clock->SetEpoch(epoch + 10ms);
   stopwatch.Apply(Pause);
 
-  clock->SetTime(epoch + 25ms);
+  clock->SetEpoch(epoch + 25ms);
   stopwatch.Apply(Run);
 
-  clock->SetTime(epoch + 30ms);
+  clock->SetEpoch(epoch + 30ms);
   EXPECT_EQ(stopwatch.LapTime(), 10ms);
 
-  clock->SetTime(epoch + 40ms);
+  clock->SetEpoch(epoch + 40ms);
   EXPECT_EQ(stopwatch.LapTime(), 10ms);
 }
