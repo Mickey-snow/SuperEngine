@@ -57,9 +57,10 @@ class EventSystem {
   // which passively listen for input and have a first chance grab at any click
   // or keypress.
   //
-  // If no EventListener claims the event, then we try to reinterpret the top
-  // of the RLMachine callstack as an EventListener. Otherwise, the events
-  // are handled RealLive style (see below).
+  // EventListeners with higher priority can grab the event before those having
+  // lower priority. If a priority value is not given, it is set to default
+  // value 0.
+  void AddListener(int priority, std::weak_ptr<EventListener> listener);
   void AddListener(std::weak_ptr<EventListener> listener);
   void RemoveListener(std::weak_ptr<EventListener> listener);
 
@@ -134,7 +135,21 @@ class EventSystem {
  private:
   std::shared_ptr<Clock> clock_;
 
+  struct Compare {
+    bool operator()(
+        const std::pair<int, std::weak_ptr<EventListener>>& lhs,
+        const std::pair<int, std::weak_ptr<EventListener>>& rhs) const {
+      // Compare the int values first
+      if (lhs.first != rhs.first) {
+        return lhs.first > rhs.first;
+      }
+      // Compare the weak_ptrs
+      return lhs.second.owner_before(rhs.second);
+    }
+  };
+  std::set<std::pair<int, std::weak_ptr<EventListener>>, Compare>
+      event_listeners_;
   std::set<std::weak_ptr<EventListener>,
            std::owner_less<std::weak_ptr<EventListener>>>
-      event_listeners_;
+      lazy_deleted_;
 };

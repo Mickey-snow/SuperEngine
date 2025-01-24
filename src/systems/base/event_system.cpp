@@ -52,12 +52,16 @@ EventSystem::EventSystem()
 
 EventSystem::~EventSystem() = default;
 
-void EventSystem::AddListener(std::weak_ptr<EventListener> listener) {
-  event_listeners_.insert(listener);
+void EventSystem::AddListener(int priority,
+                              std::weak_ptr<EventListener> listener) {
+  event_listeners_.insert(std::make_pair(priority, listener));
 }
-
+void EventSystem::AddListener(std::weak_ptr<EventListener> listener) {
+  constexpr auto default_priority = 0;
+  AddListener(default_priority, listener);
+}
 void EventSystem::RemoveListener(std::weak_ptr<EventListener> listener) {
-  event_listeners_.erase(listener);
+  lazy_deleted_.insert(listener);
 }
 
 unsigned int EventSystem::GetTicks() const {
@@ -80,7 +84,13 @@ void EventSystem::DispatchEvent(
 
   for (auto it = event_listeners_.begin();
        it != event_listeners_.end() && !handled;) {
-    if (auto sp = it->lock()) {
+    auto wp = it->second;
+    if (lazy_deleted_.contains(wp)) {
+      it = event_listeners_.erase(it);
+      continue;
+    }
+
+    if (auto sp = wp.lock()) {
       if (event(*sp)) {
         handled = true;
         break;
@@ -90,16 +100,26 @@ void EventSystem::DispatchEvent(
       it = event_listeners_.erase(it);
     }
   }
+
+  lazy_deleted_.clear();
 }
 
 void EventSystem::BroadcastEvent(
     const std::function<void(EventListener&)>& event) {
   for (auto it = event_listeners_.begin(); it != event_listeners_.end();) {
-    if (auto sp = it->lock()) {
+    auto wp = it->second;
+    if (lazy_deleted_.contains(wp)) {
+      it = event_listeners_.erase(it);
+      continue;
+    }
+
+    if (auto sp = wp.lock()) {
       event(*sp);
       ++it;
     } else {
       it = event_listeners_.erase(it);
     }
   }
+
+  lazy_deleted_.clear();
 }
