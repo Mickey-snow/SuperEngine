@@ -5,6 +5,7 @@
 // -----------------------------------------------------------------------
 //
 // Copyright (C) 2006 Elliot Glaysher
+// Copyright (C) 2025 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,238 +25,162 @@
 
 #include "core/frame_counter.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 
 #include "utilities/clock.hpp"
 
 // -----------------------------------------------------------------------
-// Frame Counter Base Class
-// -----------------------------------------------------------------------
-
+// class FrameCounter
 FrameCounter::FrameCounter(std::shared_ptr<Clock> clock,
                            int frame_min,
                            int frame_max,
                            int milliseconds)
     : clock_(clock),
-      value_(frame_min),
+      value_(static_cast<float>(frame_min)),
       min_value_(frame_min),
       max_value_(frame_max),
       is_active_(true),
-      time_at_start_(clock_->GetTicks().count()),
-      total_time_(milliseconds) {
+      start_time_(clock_->GetTicks()),
+      total_time_(std::chrono::milliseconds(milliseconds)) {
   BeginTimer();
 
-  if (milliseconds == 0) {
-    // Prevent us from dividing by zero (OH SHI-)
-    value_ = frame_max;
+  if (milliseconds == 0 || frame_min == frame_max) {
+    value_ = static_cast<float>(frame_max);
     is_active_ = false;
   }
 }
 
 FrameCounter::~FrameCounter() {
-  if (is_active_)
+  if (is_active_) {
     EndTimer();
+  }
 }
 
-void FrameCounter::BeginTimer() { is_active_ = true; }
+void FrameCounter::BeginTimer() {
+  start_time_ = clock_->GetTicks();
+  is_active_ = true;
+}
 
 void FrameCounter::EndTimer() { is_active_ = false; }
 
-bool FrameCounter::IsActive() {
-  // Read the counter and ignore the result so is_active_ can be updated...
-  ReadFrame();
-
-  return is_active_;
-}
-
-bool FrameCounter::CheckIfFinished(float new_value) {
-  if (max_value_ > min_value_) {
-    return new_value >= max_value_;
-  } else {
-    return new_value <= max_value_;
+double FrameCounter::ComputeNormalizedTime() const {
+  if (!is_active_) {
+    // If not active, we act as if it's fully done
+    return 1.0;
   }
-}
-
-void FrameCounter::UpdateTimeValue(float num_ticks) {
-  // Update the value
-  if (max_value_ > min_value_)
-    value_ += num_ticks;
-  else
-    value_ -= num_ticks;
-}
-
-int FrameCounter::ReadNormalFrameWithChangeInterval(float change_interval,
-                                                    float& time_at_last_check) {
-  if (is_active_) {
-    unsigned int current_time = clock_->GetTicks().count();
-    float ms_elapsed = current_time - time_at_last_check;
-    float num_ticks = ms_elapsed / change_interval;
-
-    UpdateTimeValue(num_ticks);
-
-    // Set the last time checked to the current_time minus the
-    // remainder of ms that don't get counted in the ticks incremented
-    // this time.
-    time_at_last_check = current_time;
-
-    if (CheckIfFinished(value_)) {
-      Finished();
-    }
+  if (total_time_.count() <= 0) {
+    // Avoid divide-by-zero; treat as done
+    return 1.0;
   }
 
-  return int(value_);
+  auto now = clock_->GetTicks();
+  auto elapsed = now - start_time_;
+  double fraction = static_cast<double>(elapsed.count()) /
+                    static_cast<double>(total_time_.count());
+
+  return fraction;
 }
 
-void FrameCounter::Finished() {
-  value_ = max_value_;
-  EndTimer();
+double FrameCounter::ClampFractionToOneShot(double fraction) {
+  if (fraction >= 1.0) {
+    fraction = 1.0;
+    EndTimer();
+  }
+  if (fraction < 0.0) {
+    fraction = 0.0;
+  }
+  return fraction;
 }
 
 // -----------------------------------------------------------------------
-// Simple Frame Counter
-// -----------------------------------------------------------------------
-
-SimpleFrameCounter::SimpleFrameCounter(std::shared_ptr<Clock> clock,
-                                       int frame_min,
-                                       int frame_max,
-                                       int milliseconds)
-    : FrameCounter(clock, frame_min, frame_max, milliseconds),
-      time_at_last_check_(clock_->GetTicks().count()) {
-  change_interval_ = float(milliseconds) / abs(frame_max - frame_min);
-}
-
-SimpleFrameCounter::~SimpleFrameCounter() {}
-
+// class SimpleFrameCounter
 int SimpleFrameCounter::ReadFrame() {
-  return ReadNormalFrameWithChangeInterval(change_interval_,
-                                           time_at_last_check_);
+  double fraction = ComputeNormalizedTime();
+
+  fraction = ClampFractionToOneShot(fraction);
+
+  double range = double(max_value_ - min_value_);
+  double current = double(min_value_) + (fraction * range);
+
+  value_ = static_cast<float>(current);
+  return static_cast<int>(value_);
 }
 
 // -----------------------------------------------------------------------
-// Loop Frame Counter
-// -----------------------------------------------------------------------
-
-LoopFrameCounter::LoopFrameCounter(std::shared_ptr<Clock> clock,
-                                   int frame_min,
-                                   int frame_max,
-                                   int milliseconds)
-    : FrameCounter(clock, frame_min, frame_max, milliseconds),
-      time_at_last_check_(clock_->GetTicks().count()) {
-  change_interval_ = float(milliseconds) / abs(frame_max - frame_min);
-}
-
-LoopFrameCounter::~LoopFrameCounter() {}
-
+// class LoopFrameCounter
 int LoopFrameCounter::ReadFrame() {
-  return ReadNormalFrameWithChangeInterval(change_interval_,
-                                           time_at_last_check_);
-}
+  if (!IsActive()) {
+    return static_cast<int>(value_);
+  }
 
-void LoopFrameCounter::Finished() {
-  // Don't end the timer, simply reset it
-  value_ = min_value_;
+  double fraction = ComputeNormalizedTime();
+
+  double integralPart = std::floor(fraction);
+  double fracPart = fraction - integralPart;
+
+  double range = static_cast<double>(max_value_ - min_value_);
+  double current = static_cast<double>(min_value_) + (fracPart * range);
+
+  value_ = static_cast<float>(current);
+  return static_cast<int>(value_);
 }
 
 // -----------------------------------------------------------------------
-// Turn Frame Counter
-// -----------------------------------------------------------------------
-TurnFrameCounter::TurnFrameCounter(std::shared_ptr<Clock> clock,
-                                   int frame_min,
-                                   int frame_max,
-                                   int milliseconds)
-    : FrameCounter(clock, frame_min, frame_max, milliseconds),
-      time_at_last_check_(clock_->GetTicks().count()) {
-  change_interval_ = int(float(milliseconds) / abs(frame_max - frame_min));
-  going_forward_ = frame_max >= frame_min;
-}
-
-TurnFrameCounter::~TurnFrameCounter() {}
-
-// @bug This has all the bugs of the old implementation.
+// class TurnFrameCounter
 int TurnFrameCounter::ReadFrame() {
-  std::cerr << "BIG WARNING: TurnFrameCounter::read_frame DOESN'T DO THE SAFE "
-            << " THING LIKE ALL OTHER FRAME COUNTERS. FIXME." << std::endl;
-
-  if (is_active_) {
-    unsigned int current_time = clock_->GetTicks().count();
-    unsigned int ms_elapsed = current_time - time_at_last_check_;
-    unsigned int time_remainder = ms_elapsed % change_interval_;
-    unsigned int num_ticks = ms_elapsed / change_interval_;
-
-    // Update the value
-    if (going_forward_)
-      value_ += num_ticks;
-    else
-      value_ -= num_ticks;
-
-    // Set the last time checked to the current_time minus the
-    // remainder of ms that don't get counted in the ticks incremented
-    // this time.
-    time_at_last_check_ = current_time - time_remainder;
-
-    if (value_ >= max_value_) {
-      int difference = int(value_ - max_value_);
-      value_ = max_value_ - difference;
-      going_forward_ = false;
-    } else if (value_ < min_value_) {
-      int difference = int(min_value_ - value_);
-      value_ = min_value_ + difference;
-      going_forward_ = true;
-    }
+  if (!IsActive()) {
+    return static_cast<int>(value_);
   }
 
-  return int(value_);
+  double fraction = ComputeNormalizedTime();
+
+  double range = static_cast<double>(max_value_ - min_value_);
+  if (range == 0.0) {
+    return min_value_;
+  }
+
+  double cycle = std::fmod(fraction, 2.0);
+  // We want a "triangle wave" from 0..1..0 across cycle=0..1
+  // But simpler approach: if cycle < 0.5 => ascend, else descend
+  // Or more general formula for a symmetrical triangle wave:
+  // wave = 1.0 - |1.0 - cycle|
+  double wave = 1.0 - std::fabs(1.0 - cycle);
+
+  // wave now in [0..1], 0.0 at extremes of the cycle, 1.0 at mid.
+  double current = double(min_value_) + range * wave;
+  value_ = static_cast<float>(current);
+
+  return static_cast<int>(value_);
 }
 
 // -----------------------------------------------------------------------
-// Accelerating Frame Counter
-// -----------------------------------------------------------------------
-AcceleratingFrameCounter::AcceleratingFrameCounter(std::shared_ptr<Clock> clock,
-                                                   int frame_min,
-                                                   int frame_max,
-                                                   int milliseconds)
-    : FrameCounter(clock, frame_min, frame_max, milliseconds),
-      start_time_(clock_->GetTicks().count()),
-      time_at_last_check_(start_time_) {}
-
-AcceleratingFrameCounter::~AcceleratingFrameCounter() {}
-
+// class AcceleratingFrameCounter
 int AcceleratingFrameCounter::ReadFrame() {
-  if (is_active_) {
-    float base_interval = float(total_time_) / abs(max_value_ - min_value_);
-    float cur_time =
-        (clock_->GetTicks().count() - start_time_) / float(total_time_);
-    float interval = (1.1f - cur_time * 0.2f) * base_interval;
+  double fraction = ComputeNormalizedTime();
+  fraction = ClampFractionToOneShot(fraction);
 
-    return ReadNormalFrameWithChangeInterval(interval, time_at_last_check_);
-  }
+  double accelerated = fraction * fraction;
 
-  return int(value_);
+  double range = double(max_value_ - min_value_);
+  double current = double(min_value_) + (range * accelerated);
+
+  value_ = static_cast<float>(current);
+  return static_cast<int>(value_);
 }
 
 // -----------------------------------------------------------------------
-// Decelerating Frame Counter
-// -----------------------------------------------------------------------
-DeceleratingFrameCounter::DeceleratingFrameCounter(std::shared_ptr<Clock> clock,
-                                                   int frame_min,
-                                                   int frame_max,
-                                                   int milliseconds)
-    : FrameCounter(clock, frame_min, frame_max, milliseconds),
-      start_time_(clock_->GetTicks().count()),
-      time_at_last_check_(start_time_) {}
-
-DeceleratingFrameCounter::~DeceleratingFrameCounter() {}
-
+// class DeceleratingFrameCounter
 int DeceleratingFrameCounter::ReadFrame() {
-  if (is_active_) {
-    float base_interval = float(total_time_) / abs(max_value_ - min_value_);
-    float cur_time =
-        (clock_->GetTicks().count() - start_time_) / float(total_time_);
-    float interval = (0.9f + cur_time * 0.2f) * base_interval;
+  double fraction = ComputeNormalizedTime();
+  fraction = ClampFractionToOneShot(fraction);
 
-    return ReadNormalFrameWithChangeInterval(interval, time_at_last_check_);
-  }
+  double decelerated = std::sqrt(fraction);
 
-  return int(value_);
+  double range = double(max_value_ - min_value_);
+  double current = double(min_value_) + (range * decelerated);
+
+  value_ = static_cast<float>(current);
+  return static_cast<int>(value_);
 }

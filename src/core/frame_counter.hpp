@@ -5,6 +5,7 @@
 // -----------------------------------------------------------------------
 //
 // Copyright (C) 2006 Elliot Glaysher
+// Copyright (C) 2025 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,6 +25,7 @@
 
 #pragma once
 
+#include <chrono>
 #include <memory>
 
 class Clock;
@@ -37,133 +39,96 @@ class FrameCounter {
 
   virtual ~FrameCounter();
 
-  // Returns the current value of this frame counter, a value between
+  // Returns the current (integer) frame value
   virtual int ReadFrame() = 0;
 
-  // The converse is setting the value, which should be done after the
-  // frame counter has been turned off.
-  void set_value(int value) { value_ = value; }
+  void set_value(int value) { value_ = static_cast<float>(value); }
 
-  // When a timer starts, we need to tell the EventSystem that we now
-  // have a near realtime event going on and to stop being nice to the
-  // operating system.
+  // Start or stop the timer
   void BeginTimer();
-
-  // When a timer ends, there's no need to be so harsh on the
-  // system. Tell the event_system that we no longer require near
-  // realtime event handling.
   void EndTimer();
 
-  bool IsActive();
+  bool IsActive() {
+    // Sometimes we call ReadFrame() internally to see if we've ended
+    // but it's up to derived classes to end themselves or not.
+    return is_active_;
+  }
   void set_active(bool active) { is_active_ = active; }
 
-  bool CheckIfFinished(float new_value);
-  void UpdateTimeValue(float num_ticks);
-
  protected:
-  // Implementation of ReadFrame(). Called by most subclasses with their own
-  // data members.
-  int ReadNormalFrameWithChangeInterval(float change_interval,
-                                        float& time_at_last_check);
+  // Computes an un-clamped fraction of how far along we are, i.e.
+  // 0.0 at start_time_, 1.0 at exactly total_time_, and >1.0 if time is beyond
+  // total_time_. If total_time_ == 0 or is_active_ == false, it returns 1.0 by
+  // default.
+  double ComputeNormalizedTime() const;
 
-  // Called from read_normal_frame_with_change_interval when finished. This
-  // method can be overloaded to control what happens when the timer
-  // has reached its end.
-  virtual void Finished();
+  // Optionally used by derived classes to clamp fraction to [0..1] if they want
+  // a one-shot timer.
+  double ClampFractionToOneShot(double fraction);
 
+  // Data members
   std::shared_ptr<Clock> clock_;
 
-  float value_;
+  float value_;  // current float value, cast to int on return
   int min_value_;
   int max_value_;
   bool is_active_;
 
-  unsigned int time_at_start_;
-  unsigned int total_time_;
+  std::chrono::milliseconds start_time_;
+  std::chrono::milliseconds total_time_;
 };
 
-// Simple frame counter that counts from frame_min to frame_max.
 class SimpleFrameCounter : public FrameCounter {
  public:
   SimpleFrameCounter(std::shared_ptr<Clock> clock,
                      int frame_min,
                      int frame_max,
-                     int milliseconds);
-  virtual ~SimpleFrameCounter();
+                     int milliseconds)
+      : FrameCounter(clock, frame_min, frame_max, milliseconds) {}
 
   virtual int ReadFrame() override;
-
- private:
-  float change_interval_;
-  float time_at_last_check_;
 };
 
-// Loop frame counter that counts from frame_min to frame_max, starting over at
-// frame_min.
 class LoopFrameCounter : public FrameCounter {
  public:
   LoopFrameCounter(std::shared_ptr<Clock> clock,
                    int frame_min,
                    int frame_max,
-                   int milliseconds);
-  virtual ~LoopFrameCounter();
+                   int milliseconds)
+      : FrameCounter(clock, frame_min, frame_max, milliseconds) {}
 
   virtual int ReadFrame() override;
-  virtual void Finished() override;
-
- private:
-  float change_interval_;
-  float time_at_last_check_;
 };
 
-// Turn frame counter that counts from frame_min to frame_max and then counts
-// back down to frame_min.
 class TurnFrameCounter : public FrameCounter {
  public:
   TurnFrameCounter(std::shared_ptr<Clock> clock,
                    int frame_min,
                    int frame_max,
-                   int milliseconds);
-  virtual ~TurnFrameCounter();
+                   int milliseconds)
+      : FrameCounter(clock, frame_min, frame_max, milliseconds) {}
 
   virtual int ReadFrame() override;
-
- private:
-  bool going_forward_;
-  unsigned int change_interval_;
-  unsigned int time_at_last_check_;
 };
 
-// Frame counter that counts from frame_min to frame_max, speeding up as it
-// goes.
 class AcceleratingFrameCounter : public FrameCounter {
  public:
   AcceleratingFrameCounter(std::shared_ptr<Clock> clock,
                            int frame_min,
                            int frame_max,
-                           int milliseconds);
-  virtual ~AcceleratingFrameCounter();
+                           int milliseconds)
+      : FrameCounter(clock, frame_min, frame_max, milliseconds) {}
 
   virtual int ReadFrame() override;
-
- private:
-  unsigned int start_time_;
-  float time_at_last_check_;
 };
 
-// Frame counter that counts from frame_min to frame_max, slowing down as it
-// goes.
 class DeceleratingFrameCounter : public FrameCounter {
  public:
   DeceleratingFrameCounter(std::shared_ptr<Clock> clock,
                            int frame_min,
                            int frame_max,
-                           int milliseconds);
-  virtual ~DeceleratingFrameCounter();
+                           int milliseconds)
+      : FrameCounter(clock, frame_min, frame_max, milliseconds) {}
 
   virtual int ReadFrame() override;
-
- private:
-  unsigned int start_time_;
-  float time_at_last_check_;
 };
