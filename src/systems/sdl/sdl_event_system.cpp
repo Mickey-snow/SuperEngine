@@ -38,17 +38,7 @@
 using std::bind;
 using std::placeholders::_1;
 
-SDLEventSystem::SDLEventSystem(SDLSystem& sys)
-    : EventSystem(),
-      shift_pressed_(false),
-      ctrl_pressed_(false),
-      mouse_inside_window_(true),
-      mouse_pos_(),
-      button1_state_(0),
-      button2_state_(0),
-      last_get_currsor_time_(0),
-      last_mouse_move_time_(0),
-      system_(sys) {}
+SDLEventSystem::SDLEventSystem() = default;
 
 void SDLEventSystem::ExecuteEventSystem(RLMachine& machine) {
   SDL_Event event;
@@ -87,49 +77,6 @@ void SDLEventSystem::ExecuteEventSystem(RLMachine& machine) {
         break;
     }
   }
-}
-
-bool SDLEventSystem::CtrlPressed() const {
-  return system_.force_fast_forward() || ctrl_pressed_;
-}
-
-Point SDLEventSystem::GetCursorPos() {
-  PreventCursorPosSpinning();
-  return mouse_pos_;
-}
-
-void SDLEventSystem::GetCursorPos(Point& position, int& button1, int& button2) {
-  PreventCursorPosSpinning();
-  position = mouse_pos_;
-  button1 = button1_state_;
-  button2 = button2_state_;
-}
-
-void SDLEventSystem::FlushMouseClicks() {
-  button1_state_ = 0;
-  button2_state_ = 0;
-}
-
-unsigned int SDLEventSystem::TimeOfLastMouseMove() {
-  return last_mouse_move_time_;
-}
-
-bool SDLEventSystem::ShiftPressed() const { return shift_pressed_; }
-
-void SDLEventSystem::PreventCursorPosSpinning() {
-  unsigned int newTime = GetTicks();
-
-  if ((system_.graphics().screen_update_mode() !=
-       GraphicsSystem::SCREENUPDATEMODE_MANUAL) &&
-      (newTime - last_get_currsor_time_) < 20) {
-    // Prevent spinning on input. When we're not in manual mode, we don't get
-    // convenient refresh() calls to insert pauses at. Instead, we need to sort
-    // of intuit about what's going on and the easiest way to slow down is to
-    // track when the bytecode keeps spamming us for the cursor.
-    system_.set_force_wait(true);
-  }
-
-  last_get_currsor_time_ = newTime;
 }
 
 void SDLEventSystem::HandleKeyDown(RLMachine& machine, SDL_Event& event) {

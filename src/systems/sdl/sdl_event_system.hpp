@@ -33,50 +33,15 @@ class SDLSystem;
 
 class SDLEventSystem : public EventSystem {
  public:
-  SDLEventSystem(SDLSystem& sys);
+  SDLEventSystem();
 
-  // We provide this accessor to let the Graphics system query what
-  // to do when redrawing the mouse.
-  bool mouse_inside_window() const { return mouse_inside_window_; }
-
-  // Implementation of EventSystem:
   virtual void ExecuteEventSystem(RLMachine& machine) override;
-  virtual bool ShiftPressed() const override;
-  virtual bool CtrlPressed() const override;
-  virtual Point GetCursorPos() override;
-  virtual void GetCursorPos(Point& position,
-                            int& button1,
-                            int& button2) override;
-  virtual void FlushMouseClicks() override;
-  virtual unsigned int TimeOfLastMouseMove() override;
 
  private:
-  // Called from GetCursorPos() functions to force a pause if it's been less
-  // than 10ms since the last GetCursorPos() call.
-  void PreventCursorPosSpinning();
-
   // RealLive event system commands
   void HandleKeyDown(RLMachine& machine, SDL_Event& event);
   void HandleKeyUp(RLMachine& machine, SDL_Event& event);
   void HandleMouseMotion(RLMachine& machine, SDL_Event& event);
   void HandleMouseButtonEvent(RLMachine& machine, SDL_Event& event);
   void HandleActiveEvent(RLMachine& machine, SDL_Event& event);
-
-  bool shift_pressed_, ctrl_pressed_;
-
-  // Whether the mouse cursor is currently inside the window bounds.
-  bool mouse_inside_window_;
-
-  Point mouse_pos_;
-
-  int button1_state_, button2_state_;
-
-  // The last time a GetCursorPos() function was called.
-  unsigned int last_get_currsor_time_;
-
-  // The last time we received a mouse move notification.
-  unsigned int last_mouse_move_time_;
-
-  // Our owning system.
-  SDLSystem& system_;
 };

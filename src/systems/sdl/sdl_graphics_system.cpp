@@ -201,7 +201,7 @@ std::shared_ptr<Surface> SDLGraphicsSystem::RenderToSurface() {
 void SDLGraphicsSystem::DrawCursor() {
   if (ShouldUseCustomCursor()) {
     std::shared_ptr<MouseCursor> cursor;
-    if (static_cast<SDLEventSystem&>(system().event()).mouse_inside_window())
+    if (system().event().mouse_inside_window())
       cursor = GetCurrentCursor();
     if (cursor) {
       Point hotspot = cursor_pos();

@@ -38,8 +38,6 @@ class Gameexe;
 class FrameCounter;
 class EventListener;
 
-// -----------------------------------------------------------------------
-
 // Generalization of an event system. Reallive's event model is a bit
 // weird; interpreted code will check the state of certain keyboard
 // modifiers, with functions such as CtrlPressed() or ShiftPressed().
@@ -82,15 +80,17 @@ class EventSystem {
   // Don't use it. This interface is provided for RealLive
   // bytecode. EventListeners should be used within rlvm code, instead.
 
+  bool mouse_inside_window() const { return mouse_inside_window_; }
+
   // Returns whether shift is currently pressed.
-  virtual bool ShiftPressed() const = 0;
+  bool ShiftPressed() const { return shift_pressed_; }
 
   // Returns whether ctrl has been pressed since the last invocation of
   // ctrlPresesd().
-  virtual bool CtrlPressed() const = 0;
+  bool CtrlPressed() const { return ctrl_pressed_; }
 
   // Returns the current cursor hotspot.
-  virtual Point GetCursorPos() = 0;
+  Point GetCursorPos() const { return mouse_pos_; }
 
   // Gets the location of the mouse cursor and the button states.
   //
@@ -98,19 +98,38 @@ class EventSystem {
   // - 0 if unpressed
   // - 1 if being pressed
   // - 2 if pressed and released.
-  virtual void GetCursorPos(Point& position, int& button1, int& button2) = 0;
+  void GetCursorPos(Point& position, int& button1, int& button2) {
+    position = mouse_pos_;
+    button1 = button1_state_;
+    button2 = button2_state_;
+  }
 
   // Resets the state of the mouse buttons.
-  virtual void FlushMouseClicks() = 0;
+  void FlushMouseClicks() {
+    button1_state_ = 0;
+    button2_state_ = 0;
+  }
 
   // Returns the time in ticks of the last mouse movement.
-  virtual unsigned int TimeOfLastMouseMove() = 0;
+  unsigned int TimeOfLastMouseMove() { return last_mouse_move_time_; }
 
  protected:
   // Calls a EventListener member function on all event listeners, and then
   // event handlers, stopping when an object says they handled it.
   void DispatchEvent(const std::function<bool(EventListener&)>& event);
   void BroadcastEvent(const std::function<void(EventListener&)>& event);
+
+  bool shift_pressed_, ctrl_pressed_;
+
+  // Whether the mouse cursor is currently inside the window bounds.
+  bool mouse_inside_window_;
+
+  Point mouse_pos_;
+
+  int button1_state_, button2_state_;
+
+  // The last time we received a mouse move notification.
+  unsigned int last_mouse_move_time_;
 
  private:
   std::shared_ptr<Clock> clock_;
