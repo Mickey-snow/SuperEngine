@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -27,17 +24,16 @@
 
 #pragma once
 
-class EventSystem;
+#include <memory>
 
-// Frame counter used by RealLive code to ensure events happen at a constant
-// speed. Constant to all System implementations since it is implemented in
-// terms of operations on System classes.a
-//
-// See section "5.13.3 Frame counters" of the RLdev specification for more
-// details.
+class Clock;
+
 class FrameCounter {
  public:
-  FrameCounter(EventSystem& es, int frame_min, int frame_max, int milliseconds);
+  FrameCounter(std::shared_ptr<Clock> clock,
+               int frame_min,
+               int frame_max,
+               int milliseconds);
 
   virtual ~FrameCounter();
 
@@ -75,7 +71,7 @@ class FrameCounter {
   // has reached its end.
   virtual void Finished();
 
-  EventSystem& event_system_;
+  std::shared_ptr<Clock> clock_;
 
   float value_;
   int min_value_;
@@ -89,7 +85,7 @@ class FrameCounter {
 // Simple frame counter that counts from frame_min to frame_max.
 class SimpleFrameCounter : public FrameCounter {
  public:
-  SimpleFrameCounter(EventSystem& es,
+  SimpleFrameCounter(std::shared_ptr<Clock> clock,
                      int frame_min,
                      int frame_max,
                      int milliseconds);
@@ -106,7 +102,7 @@ class SimpleFrameCounter : public FrameCounter {
 // frame_min.
 class LoopFrameCounter : public FrameCounter {
  public:
-  LoopFrameCounter(EventSystem& es,
+  LoopFrameCounter(std::shared_ptr<Clock> clock,
                    int frame_min,
                    int frame_max,
                    int milliseconds);
@@ -124,7 +120,7 @@ class LoopFrameCounter : public FrameCounter {
 // back down to frame_min.
 class TurnFrameCounter : public FrameCounter {
  public:
-  TurnFrameCounter(EventSystem& es,
+  TurnFrameCounter(std::shared_ptr<Clock> clock,
                    int frame_min,
                    int frame_max,
                    int milliseconds);
@@ -142,7 +138,7 @@ class TurnFrameCounter : public FrameCounter {
 // goes.
 class AcceleratingFrameCounter : public FrameCounter {
  public:
-  AcceleratingFrameCounter(EventSystem& es,
+  AcceleratingFrameCounter(std::shared_ptr<Clock> clock,
                            int frame_min,
                            int frame_max,
                            int milliseconds);
@@ -159,7 +155,7 @@ class AcceleratingFrameCounter : public FrameCounter {
 // goes.
 class DeceleratingFrameCounter : public FrameCounter {
  public:
-  DeceleratingFrameCounter(EventSystem& es,
+  DeceleratingFrameCounter(std::shared_ptr<Clock> clock,
                            int frame_min,
                            int frame_max,
                            int milliseconds);

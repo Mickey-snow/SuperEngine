@@ -47,9 +47,6 @@ class HIKScript {
   // Loads our data from a HIK file.
   void LoadHikFile(System& system, const std::filesystem::path& file);
 
-  // Make sure all graphics data is ready to be presented to the user.
-  void EnsureUploaded();
-
   // The contents of the 40000 keys which define an individual frame.
   struct Frame {
     int opacity;

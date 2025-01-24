@@ -39,7 +39,7 @@
 #include "machine/rloperation/rlop_store.hpp"
 #include "systems/base/event_listener.hpp"
 #include "systems/base/event_system.hpp"
-#include "systems/base/frame_counter.hpp"
+#include "core/frame_counter.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/system.hpp"
 

@@ -29,6 +29,7 @@
 
 #include <vector>
 
+#include "core/frame_counter.hpp"
 #include "machine/general_operations.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/rlmodule.hpp"
@@ -37,7 +38,6 @@
 #include "machine/rloperation/complex_t.hpp"
 #include "modules/module_sys.hpp"
 #include "systems/base/event_system.hpp"
-#include "systems/base/frame_counter.hpp"
 #include "systems/base/system.hpp"
 
 using std::get;
@@ -58,8 +58,9 @@ struct InitFrame : public RLOpcode<IntConstant_T,
                   int frameMax,
                   int time) {
     EventSystem& es = machine.GetSystem().event();
-    es.SetFrameCounter(layer_, counter,
-                       new FRAMECLASS(es, frameMin, frameMax, time));
+    es.SetFrameCounter(
+        layer_, counter,
+        new FRAMECLASS(std::make_shared<Clock>(), frameMin, frameMax, time));
   }
 };
 

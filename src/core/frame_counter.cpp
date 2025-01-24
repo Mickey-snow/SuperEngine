@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -25,27 +22,27 @@
 //
 // -----------------------------------------------------------------------
 
-#include "systems/base/frame_counter.hpp"
+#include "core/frame_counter.hpp"
 
 #include <cmath>
 #include <iostream>
 
-#include "systems/base/event_system.hpp"
+#include "utilities/clock.hpp"
 
 // -----------------------------------------------------------------------
 // Frame Counter Base Class
 // -----------------------------------------------------------------------
 
-FrameCounter::FrameCounter(EventSystem& event_system,
+FrameCounter::FrameCounter(std::shared_ptr<Clock> clock,
                            int frame_min,
                            int frame_max,
                            int milliseconds)
-    : event_system_(event_system),
+    : clock_(clock),
       value_(frame_min),
       min_value_(frame_min),
       max_value_(frame_max),
       is_active_(true),
-      time_at_start_(event_system.GetTicks()),
+      time_at_start_(clock_->GetTicks().count()),
       total_time_(milliseconds) {
   BeginTimer();
 
@@ -91,7 +88,7 @@ void FrameCounter::UpdateTimeValue(float num_ticks) {
 int FrameCounter::ReadNormalFrameWithChangeInterval(float change_interval,
                                                     float& time_at_last_check) {
   if (is_active_) {
-    unsigned int current_time = event_system_.GetTicks();
+    unsigned int current_time = clock_->GetTicks().count();
     float ms_elapsed = current_time - time_at_last_check;
     float num_ticks = ms_elapsed / change_interval;
 
@@ -119,12 +116,12 @@ void FrameCounter::Finished() {
 // Simple Frame Counter
 // -----------------------------------------------------------------------
 
-SimpleFrameCounter::SimpleFrameCounter(EventSystem& es,
+SimpleFrameCounter::SimpleFrameCounter(std::shared_ptr<Clock> clock,
                                        int frame_min,
                                        int frame_max,
                                        int milliseconds)
-    : FrameCounter(es, frame_min, frame_max, milliseconds),
-      time_at_last_check_(es.GetTicks()) {
+    : FrameCounter(clock, frame_min, frame_max, milliseconds),
+      time_at_last_check_(clock_->GetTicks().count()) {
   change_interval_ = float(milliseconds) / abs(frame_max - frame_min);
 }
 
@@ -139,12 +136,12 @@ int SimpleFrameCounter::ReadFrame() {
 // Loop Frame Counter
 // -----------------------------------------------------------------------
 
-LoopFrameCounter::LoopFrameCounter(EventSystem& es,
+LoopFrameCounter::LoopFrameCounter(std::shared_ptr<Clock> clock,
                                    int frame_min,
                                    int frame_max,
                                    int milliseconds)
-    : FrameCounter(es, frame_min, frame_max, milliseconds),
-      time_at_last_check_(es.GetTicks()) {
+    : FrameCounter(clock, frame_min, frame_max, milliseconds),
+      time_at_last_check_(clock_->GetTicks().count()) {
   change_interval_ = float(milliseconds) / abs(frame_max - frame_min);
 }
 
@@ -163,12 +160,12 @@ void LoopFrameCounter::Finished() {
 // -----------------------------------------------------------------------
 // Turn Frame Counter
 // -----------------------------------------------------------------------
-TurnFrameCounter::TurnFrameCounter(EventSystem& es,
+TurnFrameCounter::TurnFrameCounter(std::shared_ptr<Clock> clock,
                                    int frame_min,
                                    int frame_max,
                                    int milliseconds)
-    : FrameCounter(es, frame_min, frame_max, milliseconds),
-      time_at_last_check_(es.GetTicks()) {
+    : FrameCounter(clock, frame_min, frame_max, milliseconds),
+      time_at_last_check_(clock_->GetTicks().count()) {
   change_interval_ = int(float(milliseconds) / abs(frame_max - frame_min));
   going_forward_ = frame_max >= frame_min;
 }
@@ -181,7 +178,7 @@ int TurnFrameCounter::ReadFrame() {
             << " THING LIKE ALL OTHER FRAME COUNTERS. FIXME." << std::endl;
 
   if (is_active_) {
-    unsigned int current_time = event_system_.GetTicks();
+    unsigned int current_time = clock_->GetTicks().count();
     unsigned int ms_elapsed = current_time - time_at_last_check_;
     unsigned int time_remainder = ms_elapsed % change_interval_;
     unsigned int num_ticks = ms_elapsed / change_interval_;
@@ -214,12 +211,12 @@ int TurnFrameCounter::ReadFrame() {
 // -----------------------------------------------------------------------
 // Accelerating Frame Counter
 // -----------------------------------------------------------------------
-AcceleratingFrameCounter::AcceleratingFrameCounter(EventSystem& es,
+AcceleratingFrameCounter::AcceleratingFrameCounter(std::shared_ptr<Clock> clock,
                                                    int frame_min,
                                                    int frame_max,
                                                    int milliseconds)
-    : FrameCounter(es, frame_min, frame_max, milliseconds),
-      start_time_(es.GetTicks()),
+    : FrameCounter(clock, frame_min, frame_max, milliseconds),
+      start_time_(clock_->GetTicks().count()),
       time_at_last_check_(start_time_) {}
 
 AcceleratingFrameCounter::~AcceleratingFrameCounter() {}
@@ -228,7 +225,7 @@ int AcceleratingFrameCounter::ReadFrame() {
   if (is_active_) {
     float base_interval = float(total_time_) / abs(max_value_ - min_value_);
     float cur_time =
-        (event_system_.GetTicks() - start_time_) / float(total_time_);
+        (clock_->GetTicks().count() - start_time_) / float(total_time_);
     float interval = (1.1f - cur_time * 0.2f) * base_interval;
 
     return ReadNormalFrameWithChangeInterval(interval, time_at_last_check_);
@@ -240,12 +237,12 @@ int AcceleratingFrameCounter::ReadFrame() {
 // -----------------------------------------------------------------------
 // Decelerating Frame Counter
 // -----------------------------------------------------------------------
-DeceleratingFrameCounter::DeceleratingFrameCounter(EventSystem& es,
+DeceleratingFrameCounter::DeceleratingFrameCounter(std::shared_ptr<Clock> clock,
                                                    int frame_min,
                                                    int frame_max,
                                                    int milliseconds)
-    : FrameCounter(es, frame_min, frame_max, milliseconds),
-      start_time_(es.GetTicks()),
+    : FrameCounter(clock, frame_min, frame_max, milliseconds),
+      start_time_(clock_->GetTicks().count()),
       time_at_last_check_(start_time_) {}
 
 DeceleratingFrameCounter::~DeceleratingFrameCounter() {}
@@ -254,7 +251,7 @@ int DeceleratingFrameCounter::ReadFrame() {
   if (is_active_) {
     float base_interval = float(total_time_) / abs(max_value_ - min_value_);
     float cur_time =
-        (event_system_.GetTicks() - start_time_) / float(total_time_);
+        (clock_->GetTicks().count() - start_time_) / float(total_time_);
     float interval = (0.9f + cur_time * 0.2f) * base_interval;
 
     return ReadNormalFrameWithChangeInterval(interval, time_at_last_check_);

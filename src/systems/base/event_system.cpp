@@ -31,7 +31,7 @@
 #include "machine/long_operation.hpp"
 #include "machine/rlmachine.hpp"
 #include "systems/base/event_listener.hpp"
-#include "systems/base/frame_counter.hpp"
+#include "core/frame_counter.hpp"
 #include "utilities/exception.hpp"
 
 #include <chrono>

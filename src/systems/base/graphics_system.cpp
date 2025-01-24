@@ -498,7 +498,6 @@ void GraphicsSystem::PreloadHIKScript(System& system,
                                       const std::string& name,
                                       const std::filesystem::path& file_path) {
   HIKScript* script = new HIKScript(system, file_path);
-  script->EnsureUploaded();
 
   preloaded_hik_scripts_[slot] =
       std::make_pair(name, std::shared_ptr<HIKScript>(script));
