@@ -54,12 +54,34 @@
 
 namespace fs = std::filesystem;
 
-static DomainLogger logger("RLMachine");
+// Adaptor class that fetches event and feed them to the topmost long operation,
+// if there is any.
+struct LongopListenerAdapter : public EventListener {
+  LongopListenerAdapter(RLMachine& machine) : machine_(machine) {}
+
+  virtual void MouseMotion(const Point& new_location) override {
+    if (auto sp = machine_.CurrentLongOperation())
+      sp->MouseMotion(new_location);
+  }
+  virtual bool MouseButtonStateChanged(MouseBtn mouse_button,
+                                       bool pressed) override {
+    if (auto sp = machine_.CurrentLongOperation())
+      return sp->MouseButtonStateChanged(mouse_button, pressed);
+    return false;
+  }
+  virtual bool KeyStateChanged(RLKEY key_code, bool pressed) override {
+    if (auto sp = machine_.CurrentLongOperation())
+      return sp->KeyStateChanged(key_code, pressed);
+    return false;
+  }
+
+  RLMachine& machine_;
+};
 
 // -----------------------------------------------------------------------
 // RLMachine
 // -----------------------------------------------------------------------
-
+static DomainLogger logger("RLMachine");
 RLMachine::RLMachine(System& system,
                      std::shared_ptr<IScriptor> scriptor,
                      ScriptLocation starting_location,
@@ -84,6 +106,10 @@ RLMachine::RLMachine(System& system,
 
   // Initial value of the savepoint
   MarkSavepoint();
+
+  longop_listener_adapter_ = std::make_shared<LongopListenerAdapter>(*this);
+  system_.event().AddListener(-20 /*we want the lowest priority*/,
+                              longop_listener_adapter_);
 }
 
 RLMachine::~RLMachine() = default;
@@ -189,12 +215,8 @@ Gameexe& RLMachine::GetGameexe() { return system_.gameexe(); }
 
 void RLMachine::PushLongOperation(
     std::shared_ptr<LongOperation> long_operation) {
-  if (auto sp = CurrentLongOperation())
-    GetSystem().event().RemoveListener(sp);
-
   const auto top_frame = call_stack_.Top();
   call_stack_.Push(StackFrame(top_frame->pos, long_operation));
-  GetSystem().event().AddListener(long_operation);
 }
 
 void RLMachine::Reset() {

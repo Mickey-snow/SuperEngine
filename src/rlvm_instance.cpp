@@ -238,13 +238,9 @@ void RLVMInstance::Step() {
     if (auto long_op = machine_->CurrentLongOperation()) {
       const bool finished = machine_->ExecuteLongop(long_op);
 
-      if (finished) {
-        machine_->GetSystem().event().RemoveListener(long_op);
+      if (finished)
         machine_->GetStack().Pop();
 
-        if (auto sp = machine_->CurrentLongOperation())
-          machine_->GetSystem().event().AddListener(sp);
-      }
     } else {
       std::shared_ptr<Instruction> instruction = machine_->ReadInstruction();
       machine_->ExecuteInstruction(instruction);

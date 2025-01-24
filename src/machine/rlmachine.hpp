@@ -52,6 +52,9 @@ class RLModule;
 class RealLiveDLL;
 class System;
 struct StackFrame;
+class EventListener;
+
+struct LongopListenerAdapter;
 
 // The RealLive virtual machine implementation. This class is the main user
 // facing class which contains all state regarding integer/string memory, flow
@@ -260,6 +263,8 @@ class RLMachine {
   typedef std::unordered_map<int, std::unique_ptr<RealLiveDLL>> DLLMap;
   // Currently loaded "DLLs".
   DLLMap loaded_dlls_;
+
+  std::shared_ptr<EventListener> longop_listener_adapter_;
 
  private:
   // boost::serialization support
