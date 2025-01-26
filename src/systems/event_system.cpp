@@ -40,14 +40,14 @@ EventSystem::~EventSystem() = default;
 
 void EventSystem::AddListener(int priority,
                               std::weak_ptr<EventListener> listener) {
-  event_listeners_.insert(std::make_pair(priority, listener));
+  listeners_[listener] = priority;
 }
 void EventSystem::AddListener(std::weak_ptr<EventListener> listener) {
   constexpr auto default_priority = 0;
   AddListener(default_priority, listener);
 }
 void EventSystem::RemoveListener(std::weak_ptr<EventListener> listener) {
-  lazy_deleted_.insert(listener);
+  listeners_.erase(listener);
 }
 
 unsigned int EventSystem::GetTicks() const {
@@ -62,32 +62,33 @@ std::chrono::time_point<std::chrono::steady_clock> EventSystem::GetTime()
 std::shared_ptr<Clock> EventSystem::GetClock() const { return clock_; }
 
 void EventSystem::ExecuteEventSystem() {
-  while (true) {
-    std::shared_ptr<Event> event = event_backend_->PollEvent();
-    if (event == nullptr)
+  std::shared_ptr<Event> event = nullptr;
+  do {
+    event = event_backend_->PollEvent();
+    DispatchEvent(event);
+  } while (event != nullptr && !std::holds_alternative<std::monostate>(*event));
+}
+
+void EventSystem::DispatchEvent(std::shared_ptr<Event> event) {
+  if (!event)
+    return;
+
+  std::vector<std::pair<int, std::shared_ptr<EventListener>>> event_listeners;
+  event_listeners.reserve(listeners_.size());
+
+  for (auto it = listeners_.begin(); it != listeners_.end();) {
+    if (auto sp = it->first.lock()) {
+      event_listeners.emplace_back(std::make_pair(it->second, sp));
+      ++it;
+    } else
+      it = listeners_.erase(it);
+  }
+
+  std::sort(event_listeners.begin(), event_listeners.end(), std::greater<>());
+
+  for (auto& [priority, ptr] : event_listeners) {
+    if (std::holds_alternative<std::monostate>(*event))
       return;
-
-    for (auto it = event_listeners_.begin(); it != event_listeners_.end();) {
-      if (std::holds_alternative<std::monostate>(*event))
-        return;
-
-      auto wp = it->second;
-
-      if (lazy_deleted_.contains(wp)) {
-        lazy_deleted_.erase(wp);
-        it = event_listeners_.erase(it);
-        continue;
-      }
-
-      if (auto sp = wp.lock()) {
-        sp->OnEvent(event);
-        ++it;
-      } else {
-        it = event_listeners_.erase(it);
-      }
-    }
-
-    // when we finished the whole loop
-    lazy_deleted_.clear();
+    ptr->OnEvent(event);
   }
 }

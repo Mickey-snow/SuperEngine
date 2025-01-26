@@ -28,6 +28,7 @@
 #include "core/event.hpp"
 
 #include <chrono>
+#include <map>
 #include <memory>
 #include <set>
 
@@ -62,33 +63,14 @@ class EventSystem {
   std::shared_ptr<Clock> GetClock() const;
 
  private:
+  void DispatchEvent(std::shared_ptr<Event>);
+
   std::shared_ptr<Clock> clock_;
 
   std::unique_ptr<IEventBackend> event_backend_;
 
-  // The container for event listeners.
-  // This really should be a multi-index container, as we want to maintain it
-  // using the pointer index and traverse it using the priority index. To
-  // balance performance and simplicity, we implement a "lazy delete" mechanism
-  // by throwing whatever we want to remove into a set, and defer the actual
-  // deletion to traverse. This works because traversals are often, and the
-  // client code is not likely going to repeatedly insert/remove the same
-  // listener.
-  struct Compare {
-    bool operator()(
-        const std::pair<int, std::weak_ptr<EventListener>>& lhs,
-        const std::pair<int, std::weak_ptr<EventListener>>& rhs) const {
-      // Compare the int values first
-      if (lhs.first != rhs.first) {
-        return lhs.first > rhs.first;
-      }
-      // Compare the weak_ptrs
-      return lhs.second.owner_before(rhs.second);
-    }
-  };
-  std::set<std::pair<int, std::weak_ptr<EventListener>>, Compare>
-      event_listeners_;
-  std::set<std::weak_ptr<EventListener>,
+  std::map<std::weak_ptr<EventListener>,
+           int,
            std::owner_less<std::weak_ptr<EventListener>>>
-      lazy_deleted_;
+      listeners_;
 };
