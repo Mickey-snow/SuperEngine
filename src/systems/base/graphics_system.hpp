@@ -156,6 +156,9 @@ class GraphicsSystem : public EventListener {
   GraphicsSystem(System& system, Gameexe& gameexe);
   virtual ~GraphicsSystem();
 
+  // Resize window
+  virtual void Resize(Size display_size) = 0;
+
   bool is_responsible_for_update() const { return is_responsible_for_update_; }
   void set_is_responsible_for_update(bool in) {
     is_responsible_for_update_ = in;
@@ -314,7 +317,8 @@ class GraphicsSystem : public EventListener {
   virtual void ExecuteGraphicsSystem(RLMachine& machine);
 
   // Returns the size of the window in pixels.
-  const Size& screen_size() const { return screen_size_; }
+  Size screen_size() const noexcept { return screen_size_; }
+  Size GetDisplaySize() const noexcept { return display_size_; }
 
   // Returns a rectangle with an origin of (0,0) and a size returned by
   // screen_size().
@@ -461,8 +465,9 @@ class GraphicsSystem : public EventListener {
   // Mutable global data to be saved in the globals file
   GraphicsSystemGlobals globals_;
 
-  // Size of our display window.
+  // Size of our screen and display window.
   Size screen_size_;
+  Size display_size_;
 
   // Rectangle of the screen.
   Rect screen_rect_;

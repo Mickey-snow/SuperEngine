@@ -4,6 +4,7 @@
 //
 // -----------------------------------------------------------------------
 //
+// Copyright (C) 2025 Serina Sakurai
 // Copyright (C) 2006, 2007 Elliot Glaysher
 //
 // This program is free software; you can redistribute it and/or modify
@@ -42,17 +43,11 @@ class EventListener;
 // Generalization of an event system. Reallive's event model is a bit
 // weird; interpreted code will check the state of certain keyboard
 // modifiers, with functions such as CtrlPressed() or ShiftPressed().
-//
-// So what's the solution? Have two different event systems side by
-// side. One is exposed to Reallive and mimics what RealLive bytecode
-// expects. The other is based on event handlers and is sane.
 class EventSystem {
  public:
   explicit EventSystem();
   virtual ~EventSystem();
 
-  // Keyboard and Mouse Input (Event Listener style)
-  //
   // rlvm event handling works by registering objects that received input
   // notifications from the EventSystem. These objects are EventListeners,
   // which passively listen for input and have a first chance grab at any click
@@ -81,7 +76,6 @@ class EventSystem {
   //
   // Don't use it. This interface is provided for RealLive
   // bytecode. EventListeners should be used within rlvm code, instead.
-
   bool mouse_inside_window() const { return mouse_inside_window_; }
 
   // Returns whether shift is currently pressed.
@@ -133,6 +127,14 @@ class EventSystem {
  private:
   std::shared_ptr<Clock> clock_;
 
+  // The container for event listeners.
+  // This really should be a multi-index container, as we want to maintain it
+  // using the pointer index and traverse it using the priority index. To
+  // balance performance and simplicity, we implement a "lazy delete" mechanism
+  // by throwing whatever we want to remove into a set, and defer the actual
+  // deletion to traverse. This works because traversals are often, and the
+  // client code is not likely going to repeatedly insert/remove the same
+  // listener.
   struct Compare {
     bool operator()(
         const std::pair<int, std::weak_ptr<EventListener>>& lhs,

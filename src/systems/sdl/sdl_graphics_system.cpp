@@ -583,7 +583,3 @@ std::shared_ptr<Surface> SDLGraphicsSystem::GetDC(int dc) {
 }
 
 void SDLGraphicsSystem::Reset() { GraphicsSystem::Reset(); }
-
-Size SDLGraphicsSystem::GetDisplaySize() const noexcept {
-  return display_size_;
-}

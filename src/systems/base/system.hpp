@@ -208,10 +208,6 @@ class System {
   // SetScreenMode(val)).
   void InvokeSyscom(RLMachine& machine, int syscom);
 
-  // Shows a screen with certain information about the current state of the
-  // interpreter.
-  void ShowSystemInfo(RLMachine& machine);
-
   // Resets the present values of the system; this doesn't clear user settings,
   // but clears things like the current graphics state and the status of all
   // the text windows. This method is called when the user loads a game or

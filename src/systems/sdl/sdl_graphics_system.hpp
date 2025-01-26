@@ -97,9 +97,7 @@ class SDLGraphicsSystem : public GraphicsSystem {
 
   void SetupVideo(Size window_size);
 
-  void Resize(Size display_size);
-
-  Size GetDisplaySize() const noexcept;
+  virtual void Resize(Size display_size) override;
 
  private:
   // Makes sure that a passed in dc number is valid.
@@ -127,8 +125,6 @@ class SDLGraphicsSystem : public GraphicsSystem {
 
   // Whether |screen_contents_texture_| is valid to use.
   bool screen_contents_texture_valid_;
-
-  Size display_size_;
 
   std::shared_ptr<AssetScanner> asset_scanner_;
 };

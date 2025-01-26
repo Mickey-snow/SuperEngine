@@ -59,7 +59,7 @@ struct LongopListenerAdapter;
 // The RealLive virtual machine implementation. This class is the main user
 // facing class which contains all state regarding integer/string memory, flow
 // control, and other execution issues.
-class RLMachine {
+class RLMachine{
  public:
   RLMachine(System& system,
             std::shared_ptr<IScriptor> scriptor,
@@ -265,6 +265,7 @@ class RLMachine {
   DLLMap loaded_dlls_;
 
   std::shared_ptr<EventListener> longop_listener_adapter_;
+  std::shared_ptr<EventListener> system_listener_;
 
  private:
   // boost::serialization support

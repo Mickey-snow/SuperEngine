@@ -138,19 +138,8 @@ void SDLEventSystem::ExecuteEventSystem(RLMachine& machine) {
         HandleMouseButtonEvent(machine, event);
         break;
       }
-      case SDL_QUIT:
-        machine.Halt();
-        break;
-      case SDL_ACTIVEEVENT:
-        HandleActiveEvent(machine, event);
-        break;
-      case SDL_VIDEOEXPOSE:
-        machine.GetSystem().graphics().ForceRefresh();
-        break;
-      case SDL_VIDEORESIZE:
-        Size new_size = Size(event.resize.w, event.resize.h);
-        dynamic_cast<SDLGraphicsSystem&>(machine.GetSystem().graphics())
-            .Resize(new_size);
+
+      default:
         break;
     }
 
@@ -201,10 +190,6 @@ void SDLEventSystem::HandleKeyUp(RLMachine& machine, SDL_Event& event) {
       ctrl_pressed_ = false;
       break;
     }
-    case SDLK_F1: {
-      machine.GetSystem().ShowSystemInfo(machine);
-      break;
-    }
     default:
       break;
   }
@@ -214,8 +199,7 @@ void SDLEventSystem::HandleMouseMotion(RLMachine& machine, SDL_Event& event) {
   if (mouse_inside_window_) {
     last_mouse_move_time_ = GetTicks();
 
-    const auto& graphics_sys =
-        dynamic_cast<SDLGraphicsSystem&>(machine.GetSystem().graphics());
+    const auto& graphics_sys = machine.GetSystem().graphics();
     const auto aspect_ratio_w = 1.0f * graphics_sys.GetDisplaySize().width() /
                                 graphics_sys.screen_size().width();
     const auto aspect_ratio_h = 1.0f * graphics_sys.GetDisplaySize().height() /

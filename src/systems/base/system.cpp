@@ -285,30 +285,6 @@ void System::InvokeSyscom(RLMachine& machine, int syscom) {
   }
 }
 
-void System::ShowSystemInfo(RLMachine& machine) {
-  if (platform_) {
-    RlvmInfo info;
-
-    std::string regname = gameexe()("REGNAME").ToString("");
-    size_t pos = regname.find('\\');
-    if (pos != string::npos) {
-      info.game_brand = regname.substr(0, pos);
-      info.game_name = regname.substr(pos + 1);
-    } else {
-      info.game_brand = "";
-      info.game_name = regname;
-    }
-
-    info.game_version = gameexe()("VERSION_STR").ToString("");
-    info.game_path = gameexe()("__GAMEPATH").ToString("");
-    info.rlvm_version = rlvm_version;
-    info.rlbabel_loaded = machine.DllLoaded("rlBabel");
-    info.text_transformation = machine.GetTextEncoding();
-
-    platform_->ShowSystemInfo(machine, info);
-  }
-}
-
 std::shared_ptr<AssetScanner> System::GetAssetScanner() {
   if (!rlvm_assets_)
     rlvm_assets_ = std::make_shared<AssetScanner>(gameexe());

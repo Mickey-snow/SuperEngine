@@ -55,18 +55,6 @@
 
 namespace fs = std::filesystem;
 
-// Adaptor class that fetches event and feed them to the topmost long operation,
-// if there is any.
-struct LongopListenerAdapter : public EventListener {
-  RLMachine& machine_;
-  LongopListenerAdapter(RLMachine& machine) : machine_(machine) {}
-
-  virtual void OnEvent(std::shared_ptr<Event> event) override {
-    if (auto sp = machine_.CurrentLongOperation())
-      sp->OnEvent(event);
-  }
-};
-
 // -----------------------------------------------------------------------
 // RLMachine
 // -----------------------------------------------------------------------
@@ -91,14 +79,68 @@ RLMachine::RLMachine(System& system,
   call_stack_.Push(StackFrame(starting_location, StackFrame::TYPE_ROOT));
 
   // Setup runtime environment
-  env_.InitFrom(system.gameexe());
+  env_.LoadFrom(system.gameexe());
 
   // Initial value of the savepoint
   MarkSavepoint();
 
+  // Event listener for long operations
+  struct LongopListenerAdapter
+      : public EventListener {  // Adaptor class that fetches event and feed
+                                // them to the topmost long
+                                // operation, if there is any.
+    RLMachine& machine_;
+    LongopListenerAdapter(RLMachine& machine) : machine_(machine) {}
+    void OnEvent(std::shared_ptr<Event> event) override {
+      if (auto sp = machine_.CurrentLongOperation())
+        sp->OnEvent(event);
+    }
+  };
   longop_listener_adapter_ = std::make_shared<LongopListenerAdapter>(*this);
   system_.event().AddListener(-20 /*we want the lowest priority*/,
                               longop_listener_adapter_);
+
+  // Event listener for system
+  struct SystemEventListener : public EventListener {
+    RLMachine& machine_;
+    SystemEventListener(RLMachine& machine) : machine_(machine) {}
+    void OnEvent(std::shared_ptr<Event> event) override {
+      if (std::visit(
+              [&](auto& event) -> bool {
+                using T = std::decay_t<decltype(event)>;
+                if constexpr (std::same_as<T, Quit>) {
+                  machine_.Halt();
+                  return true;
+                }
+                if constexpr (std::same_as<T, VideoExpose>) {
+                  machine_.GetSystem().graphics().ForceRefresh();
+                  return true;
+                }
+                if constexpr (std::same_as<T, VideoResize>) {
+                  machine_.GetSystem().graphics().Resize(event.size);
+                  return true;
+                }
+                if constexpr (std::same_as<T, MouseMotion>) {
+                  const auto& graphics_sys = machine_.GetSystem().graphics();
+                  const auto aspect_ratio_w =
+                      1.0f * graphics_sys.GetDisplaySize().width() /
+                      graphics_sys.screen_size().width();
+                  const auto aspect_ratio_h =
+                      1.0f * graphics_sys.GetDisplaySize().height() /
+                      graphics_sys.screen_size().height();
+                  event.pos.set_x(event.pos.x() / aspect_ratio_w);
+                  event.pos.set_y(event.pos.y() / aspect_ratio_h);
+                  return false;
+                }
+                return false;
+              },
+              *event))
+        *event = std::monostate();
+    }
+  };
+  system_listener_ = std::make_shared<SystemEventListener>(*this);
+  system_.event().AddListener(20 /*we want the highest priority*/,
+                              system_listener_);
 }
 
 RLMachine::~RLMachine() = default;
@@ -295,9 +337,9 @@ void RLMachine::PerformTextout(std::string cp932str) {
   try {
     name_parsed_text = parseNames(GetMemory(), cp932str);
   } catch (rlvm::Exception& e) {
-    // WEIRD: Sometimes rldev (and the official compiler?) will generate strings
-    // that aren't valid shift_jis. Fall back while I figure out how to handle
-    // this.
+    // WEIRD: Sometimes rldev (and the official compiler?) will generate
+    // strings that aren't valid shift_jis. Fall back while I figure out how
+    // to handle this.
     name_parsed_text = cp932str;
   }
 
