@@ -27,13 +27,13 @@
 
 #include "modules/module_sys_syscom.hpp"
 
+#include "core/rlevent_listener.hpp"
 #include "machine/general_operations.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/rlmodule.hpp"
 #include "machine/rloperation.hpp"
 #include "machine/rloperation/reference_types.hpp"
 #include "machine/rloperation/rlop_store.hpp"
-#include "systems/base/event_system.hpp"
 #include "systems/base/system.hpp"
 
 // -----------------------------------------------------------------------
@@ -44,7 +44,7 @@ struct ContextMenu : public RLOpcode<> {
   void operator()(RLMachine& machine) {
     // Based off of ALMA, it appears that we also are responsible for flushing
     // clicks.
-    machine.GetSystem().event().FlushMouseClicks();
+    machine.GetSystem().rlEvent().FlushMouseClicks();
 
     machine.GetSystem().ShowSyscomMenu(machine);
   }

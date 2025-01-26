@@ -32,6 +32,7 @@
 #include <vector>
 
 #include "core/gameexe.hpp"
+#include "core/rlevent_listener.hpp"
 #include "libreallive/expression.hpp"
 #include "libreallive/parser.hpp"
 #include "machine/long_operation.hpp"
@@ -223,11 +224,9 @@ void NormalSelectLongOperation::OnMouseMotion(const Point& pos) {
 bool NormalSelectLongOperation::OnMouseButtonStateChanged(
     MouseButton mouseButton,
     bool pressed) {
-  EventSystem& es = machine_.GetSystem().event();
-
   switch (mouseButton) {
     case MouseButton::LEFT: {
-      Point pos = es.GetCursorPos();
+      Point pos = machine_.GetSystem().rlEvent().GetCursorPos();
       machine_.GetSystem().text().HandleMouseClick(machine_, pos, pressed);
       return true;
       break;
@@ -439,13 +438,11 @@ void ButtonSelectLongOperation::OnMouseMotion(const Point& p) {
 bool ButtonSelectLongOperation::OnMouseButtonStateChanged(
     MouseButton mouseButton,
     bool pressed) {
-  EventSystem& es = machine_.GetSystem().event();
-
   switch (mouseButton) {
     case MouseButton::LEFT: {
       mouse_down_ = pressed;
       if (!pressed) {
-        Point pos = es.GetCursorPos();
+        Point pos = machine_.GetSystem().rlEvent().GetCursorPos();
         for (size_t i = 0; i < buttons_.size(); i++) {
           if (buttons_[i].bounding_rect.Contains(pos) && options_[i].enabled) {
             SelectByIndex(buttons_[i].id);

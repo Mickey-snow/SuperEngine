@@ -48,6 +48,7 @@ class RLMachine;
 class Gameexe;
 class GameexeInterpretObject;
 class Platform;
+class RLEventListener;
 
 // Syscom Constants
 //
@@ -249,12 +250,15 @@ class System {
   virtual TextSystem& text() = 0;
   virtual SoundSystem& sound() = 0;
 
+  RLEventListener& rlEvent() { return *rlevent_handler_; }
+
   std::shared_ptr<AssetScanner> GetAssetScanner();
 
  protected:
   // Native widget drawer. Can be NULL. This field is protected instead of
   // private because we need to be destroy the Platform before we destroy SDL.
   std::shared_ptr<Platform> platform_;
+  std::shared_ptr<RLEventListener> rlevent_handler_;
 
  private:
   std::filesystem::path GetHomeDirectory();

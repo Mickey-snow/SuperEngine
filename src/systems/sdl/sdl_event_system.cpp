@@ -73,9 +73,15 @@ Event translateSDLToEvent(const SDL_Event& sdlEvent) {
       //   SDL_APPINPUTFOCUS  (0x01)
       //   SDL_APPACTIVE      (0x02)
       //   SDL_APPMOUSEFOCUS  (0x04)
-      bool inputFocus = (sdlEvent.active.state & SDL_APPINPUTFOCUS) != 0;
-      bool mouseFocus = (sdlEvent.active.state & SDL_APPMOUSEFOCUS) != 0;
-      return Active{inputFocus, mouseFocus};
+      if (sdlEvent.active.state & SDL_APPINPUTFOCUS) {
+        // Assume the mouse is inside the window. Actually checking the mouse
+        // state doesn't work in the case where we mouse click on another window
+        // that's partially covered by rlvm's window and then alt-tab back.
+        return Active{true};
+      } else if (sdlEvent.active.state & SDL_APPMOUSEFOCUS) {
+        return Active{sdlEvent.active.gain == 1};
+      }
+      return std::monostate();
     }
 
     case SDL_KEYDOWN: {
@@ -119,117 +125,7 @@ SDLEventSystem::SDLEventSystem() = default;
 void SDLEventSystem::ExecuteEventSystem(RLMachine& machine) {
   SDL_Event event;
   while (SDL_PollEvent(&event)) {
-    // TODO: consider move the following logic into individual event listeners
-    switch (event.type) {
-      case SDL_KEYDOWN: {
-        HandleKeyDown(machine, event);
-        break;
-      }
-      case SDL_KEYUP: {
-        HandleKeyUp(machine, event);
-        break;
-      }
-      case SDL_MOUSEMOTION: {
-        HandleMouseMotion(machine, event);
-        break;
-      }
-      case SDL_MOUSEBUTTONDOWN:
-      case SDL_MOUSEBUTTONUP: {
-        HandleMouseButtonEvent(machine, event);
-        break;
-      }
-
-      default:
-        break;
-    }
-
     auto event_ptr = std::make_shared<Event>(translateSDLToEvent(event));
     EventSystem::DispatchEvent(event_ptr);
-  }
-}
-
-void SDLEventSystem::HandleKeyDown(RLMachine& machine, SDL_Event& event) {
-  switch (event.key.keysym.sym) {
-    case SDLK_LSHIFT:
-    case SDLK_RSHIFT: {
-      shift_pressed_ = true;
-      break;
-    }
-    case SDLK_LCTRL:
-    case SDLK_RCTRL: {
-      ctrl_pressed_ = true;
-      break;
-    }
-    case SDLK_RETURN:
-    case SDLK_f: {
-      if ((event.key.keysym.mod & KMOD_ALT) ||
-          (event.key.keysym.mod & KMOD_META)) {
-        machine.GetSystem().graphics().ToggleFullscreen();
-
-        // Stop processing because we don't want to Dispatch this event, which
-        // might advance the text.
-        return;
-      }
-
-      break;
-    }
-    default:
-      break;
-  }
-}
-
-void SDLEventSystem::HandleKeyUp(RLMachine& machine, SDL_Event& event) {
-  switch (event.key.keysym.sym) {
-    case SDLK_LSHIFT:
-    case SDLK_RSHIFT: {
-      shift_pressed_ = false;
-      break;
-    }
-    case SDLK_LCTRL:
-    case SDLK_RCTRL: {
-      ctrl_pressed_ = false;
-      break;
-    }
-    default:
-      break;
-  }
-}
-
-void SDLEventSystem::HandleMouseMotion(RLMachine& machine, SDL_Event& event) {
-  if (mouse_inside_window_) {
-    last_mouse_move_time_ = GetTicks();
-
-    const auto& graphics_sys = machine.GetSystem().graphics();
-    const auto aspect_ratio_w = 1.0f * graphics_sys.GetDisplaySize().width() /
-                                graphics_sys.screen_size().width();
-    const auto aspect_ratio_h = 1.0f * graphics_sys.GetDisplaySize().height() /
-                                graphics_sys.screen_size().height();
-    mouse_pos_ =
-        Point(event.motion.x / aspect_ratio_w, event.motion.y / aspect_ratio_h);
-  }
-}
-
-void SDLEventSystem::HandleMouseButtonEvent(RLMachine& machine,
-                                            SDL_Event& event) {
-  if (mouse_inside_window_) {
-    bool pressed = event.type == SDL_MOUSEBUTTONDOWN;
-    int press_code = pressed ? 1 : 2;
-
-    if (event.button.button == SDL_BUTTON_LEFT)
-      button1_state_ = press_code;
-    else if (event.button.button == SDL_BUTTON_RIGHT)
-      button2_state_ = press_code;
-  }
-}
-
-void SDLEventSystem::HandleActiveEvent(RLMachine& machine, SDL_Event& event) {
-  if (event.active.state & SDL_APPINPUTFOCUS) {
-    // Assume the mouse is inside the window. Actually checking the mouse
-    // state doesn't work in the case where we mouse click on another window
-    // that's partially covered by rlvm's window and then alt-tab back.
-    mouse_inside_window_ = true;
-
-  } else if (event.active.state & SDL_APPMOUSEFOCUS) {
-    mouse_inside_window_ = event.active.gain == 1;
   }
 }

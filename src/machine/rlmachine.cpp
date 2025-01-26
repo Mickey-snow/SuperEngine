@@ -79,7 +79,7 @@ RLMachine::RLMachine(System& system,
   call_stack_.Push(StackFrame(starting_location, StackFrame::TYPE_ROOT));
 
   // Setup runtime environment
-  env_.LoadFrom(system.gameexe());
+  env_.InitFrom(system.gameexe());
 
   // Initial value of the savepoint
   MarkSavepoint();

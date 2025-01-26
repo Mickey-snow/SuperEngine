@@ -29,10 +29,7 @@
 #include "core/rect.hpp"
 #include "utilities/clock.hpp"
 
-#include <chrono>
-#include <functional>
 #include <memory>
-#include <queue>
 #include <set>
 
 class RLMachine;
@@ -69,60 +66,8 @@ class EventSystem {
   virtual std::chrono::time_point<std::chrono::steady_clock> GetTime() const;
   virtual std::shared_ptr<Clock> GetClock() const;
 
-  // Keyboard and Mouse Input (Reallive style)
-  //
-  // RealLive applications poll for input, with all the problems that sort of
-  // event handling has. We therefore provide an interface for polling.
-  //
-  // Don't use it. This interface is provided for RealLive
-  // bytecode. EventListeners should be used within rlvm code, instead.
-  bool mouse_inside_window() const { return mouse_inside_window_; }
-
-  // Returns whether shift is currently pressed.
-  bool ShiftPressed() const { return shift_pressed_; }
-
-  // Returns whether ctrl has been pressed since the last invocation of
-  // ctrlPresesd().
-  bool CtrlPressed() const { return ctrl_pressed_; }
-
-  // Returns the current cursor hotspot.
-  Point GetCursorPos() const { return mouse_pos_; }
-
-  // Gets the location of the mouse cursor and the button states.
-  //
-  // The following values are used to indicate a button's status:
-  // - 0 if unpressed
-  // - 1 if being pressed
-  // - 2 if pressed and released.
-  void GetCursorPos(Point& position, int& button1, int& button2) {
-    position = mouse_pos_;
-    button1 = button1_state_;
-    button2 = button2_state_;
-  }
-
-  // Resets the state of the mouse buttons.
-  void FlushMouseClicks() {
-    button1_state_ = 0;
-    button2_state_ = 0;
-  }
-
-  // Returns the time in ticks of the last mouse movement.
-  unsigned int TimeOfLastMouseMove() { return last_mouse_move_time_; }
-
  protected:
   void DispatchEvent(std::shared_ptr<Event> event);
-
-  bool shift_pressed_, ctrl_pressed_;
-
-  // Whether the mouse cursor is currently inside the window bounds.
-  bool mouse_inside_window_;
-
-  Point mouse_pos_;
-
-  int button1_state_, button2_state_;
-
-  // The last time we received a mouse move notification.
-  unsigned int last_mouse_move_time_;
 
  private:
   std::shared_ptr<Clock> clock_;

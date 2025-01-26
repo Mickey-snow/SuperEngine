@@ -32,6 +32,7 @@
 #include <sstream>
 
 #include "core/gameexe.hpp"
+#include "core/rlevent_listener.hpp"
 #include "libreallive/alldefs.hpp"
 #include "machine/rlmachine.hpp"
 #include "object/objdrawer.hpp"
@@ -69,6 +70,8 @@ SDLSystem::SDLSystem(Gameexe& gameexe) : System(), gameexe_(gameexe) {
 
   event_system_->AddListener(graphics_system_);
   event_system_->AddListener(text_system_);
+
+  event_system_->AddListener(19, rlevent_handler_);
 }
 
 // -----------------------------------------------------------------------

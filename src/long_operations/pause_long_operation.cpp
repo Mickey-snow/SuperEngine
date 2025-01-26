@@ -30,6 +30,7 @@
 #include <vector>
 
 #include "core/gameexe.hpp"
+#include "core/rlevent_listener.hpp"
 #include "machine/rlmachine.hpp"
 #include "systems/base/event_system.hpp"
 #include "systems/base/graphics_system.hpp"
@@ -94,13 +95,11 @@ void PauseLongOperation::OnMouseMotion(const Point& p) {
 bool PauseLongOperation::OnMouseButtonStateChanged(MouseButton mouseButton,
                                                    bool pressed) {
   GraphicsSystem& graphics = machine_.GetSystem().graphics();
-  EventSystem& es = machine_.GetSystem().event();
-
   TextSystem& text = machine_.GetSystem().text();
 
   switch (mouseButton) {
     case MouseButton::LEFT: {
-      Point pos = es.GetCursorPos();
+      Point pos = machine_.GetSystem().rlEvent().GetCursorPos();
       // Only unhide the interface on release of the left mouse button
       if (graphics.is_interface_hidden()) {
         if (!pressed) {
@@ -216,7 +215,7 @@ bool PauseLongOperation::AutomodeTimerFired() {
   int time_since_last_pass = current_time - time_at_last_pass_;
   time_at_last_pass_ = current_time;
 
-  if (machine_.GetSystem().event().TimeOfLastMouseMove() <
+  if (machine_.GetSystem().rlEvent().TimeOfLastMouseMove() <
       (current_time - 2000)) {
     // If the mouse has been moved within the last two seconds, don't advance
     // the timer so the user has a chance to click on buttons.

@@ -27,18 +27,8 @@
 
 #include "systems/base/system.hpp"
 
-#include <boost/algorithm/string.hpp>
-#include <filesystem>
-
-#include <algorithm>
-#include <fstream>
-#include <iomanip>
-#include <iostream>
-#include <string>
-#include <utility>
-#include <vector>
-
 #include "core/gameexe.hpp"
+#include "core/rlevent_listener.hpp"
 #include "effects/fade_effect.hpp"
 #include "machine/long_operation.hpp"
 #include "machine/rlmachine.hpp"
@@ -56,6 +46,16 @@
 #include "utilities/exception.hpp"
 #include "utilities/string_utilities.hpp"
 #include "version.h"
+
+#include <algorithm>
+#include <boost/algorithm/string.hpp>
+#include <filesystem>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <string>
+#include <utility>
+#include <vector>
 
 using boost::replace_all;
 using boost::to_lower;
@@ -101,6 +101,8 @@ System::System()
       use_western_font_(false) {
   std::fill(syscom_status_, syscom_status_ + NUM_SYSCOM_ENTRIES,
             SYSCOM_VISIBLE);
+
+  rlevent_handler_ = std::make_shared<RLEventListener>();
 }
 
 System::~System() {}
@@ -320,7 +322,7 @@ std::filesystem::path System::GameSaveDirectory() {
 }
 
 bool System::ShouldFastForward() {
-  return (event().CtrlPressed() && text().ctrl_key_skip()) ||
+  return (rlEvent().CtrlPressed() && text().ctrl_key_skip()) ||
          text().CurrentlySkipping() || force_fast_forward_;
 }
 

@@ -42,6 +42,7 @@
 #include "core/colour.hpp"
 #include "core/gameexe.hpp"
 #include "core/notification/source.hpp"
+#include "core/rlevent_listener.hpp"
 #include "core/tone_curve.hpp"
 #include "machine/rlmachine.hpp"
 #include "systems/base/event_system.hpp"
@@ -201,7 +202,7 @@ std::shared_ptr<Surface> SDLGraphicsSystem::RenderToSurface() {
 void SDLGraphicsSystem::DrawCursor() {
   if (ShouldUseCustomCursor()) {
     std::shared_ptr<MouseCursor> cursor;
-    if (system().event().mouse_inside_window())
+    if (system().rlEvent().mouse_inside_window())
       cursor = GetCurrentCursor();
     if (cursor) {
       Point hotspot = cursor_pos();

@@ -295,8 +295,7 @@ struct VideoResize {
 struct Quit {};
 
 struct Active {
-  bool AppInputFocus;
-  bool AppMouseFocus;
+  bool mouse_inside_window;
 };
 
 struct KeyDown {

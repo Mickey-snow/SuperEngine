@@ -38,16 +38,7 @@
 // -----------------------------------------------------------------------
 // EventSystem
 // -----------------------------------------------------------------------
-EventSystem::EventSystem()
-    : shift_pressed_(false),
-      ctrl_pressed_(false),
-      mouse_inside_window_(true),
-      mouse_pos_(),
-      button1_state_(0),
-      button2_state_(0),
-      last_mouse_move_time_(0),
-
-      clock_(std::make_shared<Clock>()) {}
+EventSystem::EventSystem() : clock_(std::make_shared<Clock>()) {}
 
 EventSystem::~EventSystem() = default;
 

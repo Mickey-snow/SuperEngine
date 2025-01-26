@@ -42,6 +42,7 @@
 
 #include "core/cgm_table.hpp"
 #include "core/gameexe.hpp"
+#include "core/rlevent_listener.hpp"
 #include "effects/fade_effect.hpp"
 #include "machine/general_operations.hpp"
 #include "machine/rloperation.hpp"
@@ -58,7 +59,6 @@
 #include "modules/module_sys_timer.hpp"
 #include "modules/module_sys_timetable2.hpp"
 #include "modules/module_sys_wait.hpp"
-#include "systems/base/event_system.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/sound_system.hpp"
 #include "systems/base/system.hpp"
@@ -95,7 +95,7 @@ struct GetCursorPos_gc1 : public RLOpcode<IntReference_T,
                   IntReferenceIterator button2It) {
     Point pos;
     int button1, button2;
-    machine.GetSystem().event().GetCursorPos(pos, button1, button2);
+    machine.GetSystem().rlEvent().GetCursorPos(pos, button1, button2);
     *xit = pos.x();
     *yit = pos.y();
     *button1It = button1;
@@ -107,7 +107,7 @@ struct GetCursorPos_gc2 : public RLOpcode<IntReference_T, IntReference_T> {
   void operator()(RLMachine& machine,
                   IntReferenceIterator xit,
                   IntReferenceIterator yit) {
-    Point pos = machine.GetSystem().event().GetCursorPos();
+    Point pos = machine.GetSystem().rlEvent().GetCursorPos();
     *xit = pos.x();
     *yit = pos.y();
   }
@@ -378,21 +378,41 @@ struct GetGeneric2 : public RLStoreOpcode<IntConstant_T> {
   }
 };
 
-struct Setter : public RLOpcode<StrConstant_T> {
+struct StrSetter : public RLOpcode<StrConstant_T> {
   std::string& ref;
 
-  Setter(std::string& ref_in) : ref(ref_in) {}
+  StrSetter(std::string& ref_in) : ref(ref_in) {}
 
   void operator()(RLMachine&, std::string value) override { ref = value; }
 };
 
-struct Getter : public RLOpcode<StrReference_T> {
+struct StrGetter : public RLOpcode<StrReference_T> {
   std::string& ref;
 
-  Getter(std::string& ref_in) : ref(ref_in) {}
+  StrGetter(std::string& ref_in) : ref(ref_in) {}
 
   void operator()(RLMachine&, StringReferenceIterator dst) override {
     (*dst) = ref;
+  }
+};
+
+struct CtrlPressed : public RLStoreOpcode<> {
+  int operator()(RLMachine& machine) override {
+    auto& el = machine.GetSystem().rlEvent();
+    return el.CtrlPressed() ? 1 : 0;
+  }
+};
+
+struct ShiftPressed : public RLStoreOpcode<> {
+  int operator()(RLMachine& machine) override {
+    auto& el = machine.GetSystem().rlEvent();
+    return el.ShiftPressed() ? 1 : 0;
+  }
+};
+
+struct FlushClick : public RLOpcode<> {
+  void operator()(RLMachine& machine) override {
+    machine.GetSystem().rlEvent().FlushMouseClicks();
   }
 };
 
@@ -428,7 +448,7 @@ SysModule::SysModule() : RLModule("Sys", 1, 004) {
   AddOpcode(0, 0, "title", new title);
   AddOpcode(2, 0, "GetTitle", new GetTitle);
 
-  AddOpcode(130, 0, "FlushClick", CallFunction(&EventSystem::FlushMouseClicks));
+  AddOpcode(130, 0, "FlushClick", new FlushClick);
   AddOpcode(133, 0, "GetCursorPos", new GetCursorPos_gc1);
 
   AddOpcode(202, 0, "GetCursorPos", new GetCursorPos_gc2);
@@ -463,8 +483,8 @@ SysModule::SysModule() : RLModule("Sys", 1, 004) {
             CallFunctionWith(&TextSystem::set_ctrl_key_skip, 1));
   AddOpcode(352, 0, "CtrlKeySkipOff",
             CallFunctionWith(&TextSystem::set_ctrl_key_skip, 0));
-  AddOpcode(353, 0, "CtrlPressed", ReturnIntValue(&EventSystem::CtrlPressed));
-  AddOpcode(354, 0, "ShiftPressed", ReturnIntValue(&EventSystem::ShiftPressed));
+  AddOpcode(353, 0, "CtrlPressed", new CtrlPressed);
+  AddOpcode(354, 0, "ShiftPressed", new ShiftPressed);
 
   AddOpcode(364, 0, "PauseCursor", new PauseCursor);
 
@@ -522,10 +542,10 @@ SysModule::SysModule() : RLModule("Sys", 1, 004) {
   AddOpcode(1204, 0, "ReturnPrevSelect", new ReturnPrevSelect);
   AddOpcode(1205, 0, "ReturnPrevSelect2", new ReturnPrevSelect);
 
-  AddOpcode(1130, 0, "DefaultGrp", new Getter(default_grp_name));
-  AddOpcode(1131, 0, "SetDefaultGrp", new Setter(default_grp_name));
-  AddOpcode(1132, 0, "DefaultBgr", new Getter(default_bgr_name));
-  AddOpcode(1133, 0, "SetDefaultBgr", new Setter(default_bgr_name));
+  AddOpcode(1130, 0, "DefaultGrp", new StrGetter(default_grp_name));
+  AddOpcode(1131, 0, "SetDefaultGrp", new StrSetter(default_grp_name));
+  AddOpcode(1132, 0, "DefaultBgr", new StrGetter(default_bgr_name));
+  AddOpcode(1133, 0, "SetDefaultBgr", new StrSetter(default_bgr_name));
 
   AddUnsupportedOpcode(1302, 0, "nwSingle");
   AddUnsupportedOpcode(1303, 0, "nwMulti");
