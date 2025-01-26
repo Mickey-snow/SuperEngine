@@ -4,7 +4,8 @@
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2006, 2007 Elliot Glaysher
+// Copyright (C) 2025 Serina Sakurai
+// Copyright (C) 2006 Elliot Glaysher
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,15 +23,10 @@
 //
 // -----------------------------------------------------------------------
 
-#include "systems/sdl/sdl_event_system.hpp"
+#include "systems/sdl/event_backend.hpp"
 
 #include <SDL/SDL.h>
 #include <SDL/SDL_events.h>
-
-#include "machine/rlmachine.hpp"
-#include "systems/base/graphics_system.hpp"
-#include "systems/sdl/sdl_graphics_system.hpp"
-#include "systems/sdl/sdl_system.hpp"
 
 namespace {
 
@@ -120,12 +116,11 @@ Event translateSDLToEvent(const SDL_Event& sdlEvent) {
 
 }  // namespace
 
-SDLEventSystem::SDLEventSystem() = default;
+SDLEventBackend::SDLEventBackend() = default;
 
-void SDLEventSystem::ExecuteEventSystem(RLMachine& machine) {
+std::shared_ptr<Event> SDLEventBackend::PollEvent() {
   SDL_Event event;
-  while (SDL_PollEvent(&event)) {
-    auto event_ptr = std::make_shared<Event>(translateSDLToEvent(event));
-    EventSystem::DispatchEvent(event_ptr);
-  }
+  if (SDL_PollEvent(&event))
+    return std::make_shared<Event>(translateSDLToEvent(event));
+  return std::make_shared<Event>(std::monostate());
 }

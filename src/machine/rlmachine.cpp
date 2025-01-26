@@ -36,12 +36,12 @@
 #include "machine/rloperation.hpp"
 #include "machine/serialization.hpp"
 #include "machine/stack_frame.hpp"
-#include "systems/base/event_system.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/system_error.hpp"
 #include "systems/base/text_page.hpp"
 #include "systems/base/text_system.hpp"
+#include "systems/event_system.hpp"
 #include "utilities/exception.hpp"
 #include "utilities/string_utilities.hpp"
 

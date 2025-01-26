@@ -37,13 +37,13 @@
 #include "libreallive/parser.hpp"
 #include "machine/long_operation.hpp"
 #include "machine/rlmachine.hpp"
-#include "systems/base/event_system.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/renderable.hpp"
 #include "systems/base/sound_system.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/text_system.hpp"
 #include "systems/base/text_window.hpp"
+#include "systems/event_system.hpp"
 #include "utilities/string_utilities.hpp"
 
 using libreallive::CommandElement;

@@ -32,13 +32,13 @@
 #include "core/gameexe.hpp"
 #include "core/rlevent_listener.hpp"
 #include "machine/rlmachine.hpp"
-#include "systems/base/event_system.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/sound_system.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/text_page.hpp"
 #include "systems/base/text_system.hpp"
 #include "systems/base/text_window.hpp"
+#include "systems/event_system.hpp"
 
 // -----------------------------------------------------------------------
 // PauseLongOperation

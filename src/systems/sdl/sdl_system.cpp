@@ -38,7 +38,8 @@
 #include "object/objdrawer.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/base/platform.hpp"
-#include "systems/sdl/sdl_event_system.hpp"
+#include "systems/event_system.hpp"
+#include "systems/sdl/event_backend.hpp"
 #include "systems/sdl/sdl_graphics_system.hpp"
 #include "systems/sdl/sdl_sound_system.hpp"
 #include "systems/sdl/sdl_text_system.hpp"
@@ -56,15 +57,14 @@ SDLSystem::SDLSystem(Gameexe& gameexe) : System(), gameexe_(gameexe) {
 
   // Initialize the various subsystems
   graphics_system_ = std::make_shared<SDLGraphicsSystem>(*this, gameexe);
-  event_system_ = std::make_shared<SDLEventSystem>();
+
+  auto event_impl = std::make_unique<SDLEventBackend>();
+  event_system_ = std::make_shared<EventSystem>(std::move(event_impl));
+
   text_system_ = std::make_shared<SDLTextSystem>(*this, gameexe);
 
   // The implementor for sound system
   auto sound_impl = std::make_unique<SDLSoundImpl>();
-  // Currently only sound system is refactored to use the bridge pattern, other
-  // subsystem's implementation are bound permanently with their abstraction,
-  // meaning all classes in systems/sdl needed to be reimplemented for a new
-  // system or different implementation.
   sound_system_ =
       std::make_shared<SDLSoundSystem>(*this, std::move(sound_impl));
 
@@ -96,7 +96,7 @@ SDLSystem::~SDLSystem() {
 
 void SDLSystem::Run(RLMachine& machine) {
   // Give the event handler a chance to run.
-  event_system_->ExecuteEventSystem(machine);
+  event_system_->ExecuteEventSystem();
   text_system_->ExecuteTextSystem();
   sound_system_->ExecuteSoundSystem();
   graphics_system_->ExecuteGraphicsSystem(machine);

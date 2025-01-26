@@ -36,12 +36,12 @@
 #include "machine/long_operation.hpp"
 #include "machine/rlmachine.hpp"
 #include "modules/jump.hpp"
-#include "systems/base/event_system.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/system_error.hpp"
 #include "systems/base/text_system.hpp"
 #include "systems/base/text_window.hpp"
+#include "systems/event_system.hpp"
 #include "systems/sdl_surface.hpp"
 
 // Describes the state of a Waku button

@@ -27,9 +27,9 @@
 
 #include "systems/base/mouse_cursor.hpp"
 
-#include "systems/base/event_system.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/system.hpp"
+#include "systems/event_system.hpp"
 #include "systems/sdl_surface.hpp"
 
 const int CURSOR_SIZE_INT = 32;

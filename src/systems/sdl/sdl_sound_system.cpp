@@ -29,9 +29,9 @@
 
 #include "core/avdec/audio_decoder.hpp"
 #include "core/avspec.hpp"
-#include "systems/base/event_system.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/system_error.hpp"
+#include "systems/event_system.hpp"
 #include "systems/sdl/sound_implementor.hpp"
 #include "utilities/exception.hpp"
 

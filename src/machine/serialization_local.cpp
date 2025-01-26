@@ -52,12 +52,12 @@
 #include "object/drawer/anm.hpp"
 #include "object/drawer/file.hpp"
 #include "object/drawer/gan.hpp"
-#include "systems/base/event_system.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/sound_system.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/text_system.hpp"
+#include "systems/event_system.hpp"
 #include "utilities/exception.hpp"
 #include "utilities/gettext.hpp"
 

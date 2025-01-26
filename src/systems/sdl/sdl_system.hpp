@@ -33,7 +33,6 @@
 #include "systems/sdl/sdl_text_system.hpp"
 
 class SDLGraphicsSystem;
-class SDLEventSystem;
 class SDLTextSystem;
 class SDLSoundSystem;
 
@@ -54,7 +53,7 @@ class SDLSystem : public System {
 
  private:
   std::shared_ptr<SDLGraphicsSystem> graphics_system_;
-  std::shared_ptr<SDLEventSystem> event_system_;
+  std::shared_ptr<EventSystem> event_system_;
   std::shared_ptr<SDLTextSystem> text_system_;
   std::shared_ptr<SDLSoundSystem> sound_system_;
   Gameexe& gameexe_;

@@ -26,23 +26,18 @@
 #pragma once
 
 #include "core/event.hpp"
-#include "core/rect.hpp"
-#include "utilities/clock.hpp"
 
+#include <chrono>
 #include <memory>
 #include <set>
 
-class RLMachine;
-class Gameexe;
-class FrameCounter;
+class IEventBackend;
 class EventListener;
+class Clock;
 
-// Generalization of an event system. Reallive's event model is a bit
-// weird; interpreted code will check the state of certain keyboard
-// modifiers, with functions such as CtrlPressed() or ShiftPressed().
 class EventSystem {
  public:
-  explicit EventSystem();
+  explicit EventSystem(std::unique_ptr<IEventBackend>);
   virtual ~EventSystem();
 
   // rlvm event handling works by registering objects that received input
@@ -58,19 +53,18 @@ class EventSystem {
   void RemoveListener(std::weak_ptr<EventListener> listener);
 
   // Run once per cycle through the game loop to process events.
-  virtual void ExecuteEventSystem(RLMachine& machine) = 0;
+  void ExecuteEventSystem();
 
   // Returns the number of milliseconds since the program
   // started. Used for timing things.
-  virtual unsigned int GetTicks() const;
-  virtual std::chrono::time_point<std::chrono::steady_clock> GetTime() const;
-  virtual std::shared_ptr<Clock> GetClock() const;
-
- protected:
-  void DispatchEvent(std::shared_ptr<Event> event);
+  unsigned int GetTicks() const;
+  std::chrono::time_point<std::chrono::steady_clock> GetTime() const;
+  std::shared_ptr<Clock> GetClock() const;
 
  private:
   std::shared_ptr<Clock> clock_;
+
+  std::unique_ptr<IEventBackend> event_backend_;
 
   // The container for event listeners.
   // This really should be a multi-index container, as we want to maintain it

@@ -32,12 +32,12 @@
 
 #include "long_operations/pause_long_operation.hpp"
 #include "machine/rlmachine.hpp"
-#include "systems/base/event_system.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/system_error.hpp"
 #include "systems/base/text_page.hpp"
 #include "systems/base/text_system.hpp"
+#include "systems/event_system.hpp"
 #include "utf8cpp/utf8.h"
 #include "utilities/exception.hpp"
 

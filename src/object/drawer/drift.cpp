@@ -34,10 +34,10 @@
 #include <vector>
 
 #include "core/rect.hpp"
-#include "systems/base/event_system.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/system.hpp"
+#include "systems/event_system.hpp"
 #include "systems/sdl_surface.hpp"
 #include "utilities/graphics.hpp"
 

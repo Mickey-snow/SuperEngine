@@ -4,7 +4,7 @@
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2006 Elliot Glaysher
+// Copyright (C) 2025 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,31 +18,18 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
+// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 //
 // -----------------------------------------------------------------------
 
 #pragma once
 
-#include "core/rect.hpp"
-#include "systems/base/event_system.hpp"
+#include "core/event.hpp"
 
-#include <SDL/SDL_events.h>
+#include <memory>
 
-class SDLSystem;
-
-class SDLEventSystem : public EventSystem {
+class IEventBackend {
  public:
-  SDLEventSystem();
-
-  virtual void ExecuteEventSystem(RLMachine& machine) override;
-
-
- private:
-  // RealLive event system commands
-  void HandleKeyDown(RLMachine& machine, SDL_Event& event);
-  void HandleKeyUp(RLMachine& machine, SDL_Event& event);
-  void HandleMouseMotion(RLMachine& machine, SDL_Event& event);
-  void HandleMouseButtonEvent(RLMachine& machine, SDL_Event& event);
-  void HandleActiveEvent(RLMachine& machine, SDL_Event& event);
+  virtual ~IEventBackend() = default;
+  virtual std::shared_ptr<Event> PollEvent() = 0;
 };

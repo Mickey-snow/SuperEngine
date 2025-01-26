@@ -1,13 +1,11 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2013 Elliot Glaysher
+// Copyright (C) 2025 Serina Sakurai
+// Copyright (C) 2006 Elliot Glaysher
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,19 +19,20 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+// Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
+//
 // -----------------------------------------------------------------------
 
-#include "object/mutator.hpp"
+#pragma once
 
-#include "machine/rlmachine.hpp"
-#include "object/drawer/parent.hpp"
-#include "object/objdrawer.hpp"
-#include "object/parameter_manager.hpp"
-#include "systems/base/graphics_object.hpp"
-#include "systems/base/graphics_system.hpp"
-#include "systems/base/system.hpp"
-#include "systems/event_system.hpp"
+#include "core/event.hpp"
+#include "systems/event_backend.hpp"
 
-#include <functional>
-#include <iostream>
+#include <memory>
+
+class SDLEventBackend : public IEventBackend {
+ public:
+  SDLEventBackend();
+
+  virtual std::shared_ptr<Event> PollEvent() override;
+};

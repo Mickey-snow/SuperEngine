@@ -25,20 +25,16 @@
 //
 // -----------------------------------------------------------------------
 
-#include "systems/base/event_system.hpp"
+#include "systems/event_system.hpp"
 
-#include "core/frame_counter.hpp"
-#include "core/gameexe.hpp"
-#include "machine/long_operation.hpp"
-#include "machine/rlmachine.hpp"
-#include "utilities/exception.hpp"
-
-#include <chrono>
+#include "core/event_listener.hpp"
+#include "systems/event_backend.hpp"
 
 // -----------------------------------------------------------------------
 // EventSystem
 // -----------------------------------------------------------------------
-EventSystem::EventSystem() : clock_(std::make_shared<Clock>()) {}
+EventSystem::EventSystem(std::unique_ptr<IEventBackend> backend)
+    : clock_(std::make_shared<Clock>()), event_backend_(std::move(backend)) {}
 
 EventSystem::~EventSystem() = default;
 
@@ -65,30 +61,33 @@ std::chrono::time_point<std::chrono::steady_clock> EventSystem::GetTime()
 
 std::shared_ptr<Clock> EventSystem::GetClock() const { return clock_; }
 
-void EventSystem::DispatchEvent(std::shared_ptr<Event> event) {
-  if (event == nullptr)
-    return;
-
-  for (auto it = event_listeners_.begin(); it != event_listeners_.end();) {
-    if (std::holds_alternative<std::monostate>(*event))
+void EventSystem::ExecuteEventSystem() {
+  while (true) {
+    std::shared_ptr<Event> event = event_backend_->PollEvent();
+    if (event == nullptr)
       return;
 
-    auto wp = it->second;
+    for (auto it = event_listeners_.begin(); it != event_listeners_.end();) {
+      if (std::holds_alternative<std::monostate>(*event))
+        return;
 
-    if (lazy_deleted_.contains(wp)) {
-      lazy_deleted_.erase(wp);
-      it = event_listeners_.erase(it);
-      continue;
+      auto wp = it->second;
+
+      if (lazy_deleted_.contains(wp)) {
+        lazy_deleted_.erase(wp);
+        it = event_listeners_.erase(it);
+        continue;
+      }
+
+      if (auto sp = wp.lock()) {
+        sp->OnEvent(event);
+        ++it;
+      } else {
+        it = event_listeners_.erase(it);
+      }
     }
 
-    if (auto sp = wp.lock()) {
-      sp->OnEvent(event);
-      ++it;
-    } else {
-      it = event_listeners_.erase(it);
-    }
+    // when we finished the whole loop
+    lazy_deleted_.clear();
   }
-
-  // when we finished the whole loop
-  lazy_deleted_.clear();
 }

@@ -26,10 +26,10 @@
 #include "machine/rlmachine.hpp"
 #include "object/drawer/parent.hpp"
 #include "object/objdrawer.hpp"
-#include "systems/base/event_system.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/system.hpp"
+#include "systems/event_system.hpp"
 
 RenderingService::RenderingService(RLMachine& imachine)
     : system_(imachine.GetSystem()) {}

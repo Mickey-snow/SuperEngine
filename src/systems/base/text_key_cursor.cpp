@@ -31,10 +31,10 @@
 #include <vector>
 
 #include "core/gameexe.hpp"
-#include "systems/base/event_system.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/text_window.hpp"
+#include "systems/event_system.hpp"
 #include "systems/sdl_surface.hpp"
 
 using std::endl;

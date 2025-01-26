@@ -29,10 +29,10 @@
 #include <iostream>
 
 #include "machine/rlmachine.hpp"
-#include "systems/base/event_system.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/hik_script.hpp"
 #include "systems/base/system.hpp"
+#include "systems/event_system.hpp"
 #include "systems/sdl_surface.hpp"
 #include "utilities/graphics.hpp"
 

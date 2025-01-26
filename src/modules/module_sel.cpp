@@ -38,12 +38,12 @@
 #include "machine/rlmachine.hpp"
 #include "machine/rloperation.hpp"
 #include "machine/rloperation/rlop_store.hpp"
-#include "systems/base/event_system.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/text_system.hpp"
 #include "systems/base/text_window.hpp"
+#include "systems/event_system.hpp"
 #include "utilities/string_utilities.hpp"
 
 using libreallive::CommandElement;
