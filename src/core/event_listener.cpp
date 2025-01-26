@@ -1,12 +1,10 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
 //
 // -----------------------------------------------------------------------
 //
+// Copyright (C) 2025 Serina Sakurai
 // Copyright (C) 2007 Elliot Glaysher
 //
 // This program is free software; you can redistribute it and/or modify
@@ -25,21 +23,6 @@
 //
 // -----------------------------------------------------------------------
 
-#include "systems/base/event_listener.hpp"
+#include "core/event_listener.hpp"
 
-// -----------------------------------------------------------------------
-// EventListener
-// -----------------------------------------------------------------------
-
-EventListener::~EventListener() {}
-
-void EventListener::MouseMotion(const Point& new_location) {}
-
-bool EventListener::MouseButtonStateChanged(MouseBtn mouse_button,
-                                            bool pressed) {
-  return false;
-}
-
-bool EventListener::KeyStateChanged(RLKEY key_code, bool pressed) {
-  return false;
-}
+void EventListener::OnEvent(std::shared_ptr<Event>) {}

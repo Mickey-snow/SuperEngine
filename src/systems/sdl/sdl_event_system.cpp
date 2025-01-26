@@ -28,21 +28,98 @@
 #include <SDL/SDL_events.h>
 
 #include "machine/rlmachine.hpp"
-#include "systems/base/event_listener.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/sdl/sdl_graphics_system.hpp"
 #include "systems/sdl/sdl_system.hpp"
 
-#include <functional>
+namespace {
 
-using std::bind;
-using std::placeholders::_1;
+inline MouseButton fromSDLButton(Uint8 sdlButton) {
+  switch (sdlButton) {
+    case SDL_BUTTON_LEFT:
+      return MouseButton::LEFT;
+    case SDL_BUTTON_RIGHT:
+      return MouseButton::RIGHT;
+    case SDL_BUTTON_MIDDLE:
+      return MouseButton::MIDDLE;
+    // case 4: return MouseButton::WHEELUP;
+    // case 5: return MouseButton::WHEELDOWN;
+    default:
+      return MouseButton::NONE;
+  }
+}
+
+inline KeyCode fromSDLKey(SDLKey sdlKey) {
+  // Because the current KeyCode enum "lines up" with the old SDL1.2 key sym
+  // values, a simple static_cast is  sufficient:
+  return static_cast<KeyCode>(sdlKey);
+}
+
+Event translateSDLToEvent(const SDL_Event& sdlEvent) {
+  switch (sdlEvent.type) {
+    case SDL_QUIT:
+      return Quit{};
+
+    // window re-exposed after being covered/minimized
+    case SDL_VIDEOEXPOSE:
+      return VideoExpose{};
+
+    case SDL_VIDEORESIZE:
+
+      return VideoResize{Size{sdlEvent.resize.w, sdlEvent.resize.h}};
+
+    // gain/lose focus, etc.
+    case SDL_ACTIVEEVENT: {
+      //   SDL_APPINPUTFOCUS  (0x01)
+      //   SDL_APPACTIVE      (0x02)
+      //   SDL_APPMOUSEFOCUS  (0x04)
+      bool inputFocus = (sdlEvent.active.state & SDL_APPINPUTFOCUS) != 0;
+      bool mouseFocus = (sdlEvent.active.state & SDL_APPMOUSEFOCUS) != 0;
+      return Active{inputFocus, mouseFocus};
+    }
+
+    case SDL_KEYDOWN: {
+      KeyDown kd;
+      kd.code = fromSDLKey(sdlEvent.key.keysym.sym);
+      return kd;
+    }
+    case SDL_KEYUP: {
+      KeyUp ku;
+      ku.code = fromSDLKey(sdlEvent.key.keysym.sym);
+      return ku;
+    }
+
+    case SDL_MOUSEBUTTONDOWN: {
+      MouseDown md;
+      md.button = fromSDLButton(sdlEvent.button.button);
+      return md;
+    }
+    case SDL_MOUSEBUTTONUP: {
+      MouseUp mu;
+      mu.button = fromSDLButton(sdlEvent.button.button);
+      return mu;
+    }
+
+    case SDL_MOUSEMOTION: {
+      MouseMotion mm;
+      mm.pos = {sdlEvent.motion.x, sdlEvent.motion.y};
+      return mm;
+    }
+
+    // Unhandled event type
+    default:
+      return std::monostate{};
+  }
+}
+
+}  // namespace
 
 SDLEventSystem::SDLEventSystem() = default;
 
 void SDLEventSystem::ExecuteEventSystem(RLMachine& machine) {
   SDL_Event event;
   while (SDL_PollEvent(&event)) {
+    // TODO: consider move the following logic into individual event listeners
     switch (event.type) {
       case SDL_KEYDOWN: {
         HandleKeyDown(machine, event);
@@ -76,6 +153,9 @@ void SDLEventSystem::ExecuteEventSystem(RLMachine& machine) {
             .Resize(new_size);
         break;
     }
+
+    auto event_ptr = std::make_shared<Event>(translateSDLToEvent(event));
+    EventSystem::DispatchEvent(event_ptr);
   }
 }
 
@@ -107,9 +187,6 @@ void SDLEventSystem::HandleKeyDown(RLMachine& machine, SDL_Event& event) {
     default:
       break;
   }
-
-  KeyCode code = KeyCode(event.key.keysym.sym);
-  DispatchEvent(bind(&EventListener::KeyStateChanged, _1, code, true));
 }
 
 void SDLEventSystem::HandleKeyUp(RLMachine& machine, SDL_Event& event) {
@@ -131,9 +208,6 @@ void SDLEventSystem::HandleKeyUp(RLMachine& machine, SDL_Event& event) {
     default:
       break;
   }
-
-  KeyCode code = KeyCode(event.key.keysym.sym);
-  DispatchEvent(bind(&EventListener::KeyStateChanged, _1, code, false));
 }
 
 void SDLEventSystem::HandleMouseMotion(RLMachine& machine, SDL_Event& event) {
@@ -148,9 +222,6 @@ void SDLEventSystem::HandleMouseMotion(RLMachine& machine, SDL_Event& event) {
                                 graphics_sys.screen_size().height();
     mouse_pos_ =
         Point(event.motion.x / aspect_ratio_w, event.motion.y / aspect_ratio_h);
-
-    // Handle this somehow.
-    BroadcastEvent(bind(&EventListener::MouseMotion, _1, mouse_pos_));
   }
 }
 
@@ -164,30 +235,6 @@ void SDLEventSystem::HandleMouseButtonEvent(RLMachine& machine,
       button1_state_ = press_code;
     else if (event.button.button == SDL_BUTTON_RIGHT)
       button2_state_ = press_code;
-
-    MouseButton button = MouseBtn::NONE;
-    switch (event.button.button) {
-      case SDL_BUTTON_LEFT:
-        button = MouseBtn::LEFT;
-        break;
-      case SDL_BUTTON_RIGHT:
-        button = MouseBtn::RIGHT;
-        break;
-      case SDL_BUTTON_MIDDLE:
-        button = MouseBtn::MIDDLE;
-        break;
-      case SDL_BUTTON_WHEELUP:
-        button = MouseBtn::WHEELUP;
-        break;
-      case SDL_BUTTON_WHEELDOWN:
-        button = MouseBtn::WHEELDOWN;
-        break;
-      default:
-        break;
-    }
-
-    DispatchEvent(
-        bind(&EventListener::MouseButtonStateChanged, _1, button, pressed));
   }
 }
 

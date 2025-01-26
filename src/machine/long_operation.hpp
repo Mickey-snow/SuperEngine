@@ -29,7 +29,7 @@
 
 #include <memory>
 
-#include "systems/base/event_listener.hpp"
+#include "core/event_listener.hpp"
 
 class RLMachine;
 
@@ -66,10 +66,7 @@ class PerformAfterLongOperationDecorator : public LongOperation {
 
   // Overridden from EventListener:
   // Forward all messages to our held operation
-  virtual void MouseMotion(const Point& new_location) override;
-  virtual bool MouseButtonStateChanged(MouseButton mouse_button,
-                                       bool pressed) override;
-  virtual bool KeyStateChanged(KeyCode key_code, bool pressed) override;
+  virtual void OnEvent(std::shared_ptr<Event> event) override;
 
   // Overridden from LongOperation:
   virtual bool operator()(RLMachine& machine) override;

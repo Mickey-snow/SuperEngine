@@ -74,7 +74,7 @@ class MenuReseter : public LongOperation {
  public:
   explicit MenuReseter(System& sys) : sys_(sys) {}
 
-  bool operator()(RLMachine& machine) {
+  bool operator()(RLMachine& machine) override {
     sys_.in_menu_ = false;
     return true;
   }

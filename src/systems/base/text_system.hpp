@@ -37,8 +37,8 @@
 #include <string>
 #include <vector>
 
+#include "core/event_listener.hpp"
 #include "machine/long_operation.hpp"
-#include "systems/base/event_listener.hpp"
 
 class Gameexe;
 class Memory;
@@ -261,9 +261,7 @@ class TextSystem : public EventListener {
   void set_in_selection_mode(const bool in) { in_selection_mode_ = in; }
 
   // Overridden from EventListener
-  virtual bool MouseButtonStateChanged(MouseButton mouse_button,
-                                       bool pressed) override;
-  virtual bool KeyStateChanged(KeyCode key_code, bool pressed) override;
+  virtual void OnEvent(std::shared_ptr<Event> event) override;
 
   System& system() { return system_; }
 
@@ -379,5 +377,5 @@ std::string parseNames(const Memory& memory, const std::string& input);
 // LongOperation which just calls text().set_system_visible(true) and removes
 // itself from the callstack.
 struct RestoreTextSystemVisibility : public LongOperation {
-  virtual bool operator()(RLMachine& machine);
+  virtual bool operator()(RLMachine& machine) override;
 };

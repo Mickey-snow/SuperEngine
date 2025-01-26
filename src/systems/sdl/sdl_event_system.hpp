@@ -37,6 +37,7 @@ class SDLEventSystem : public EventSystem {
 
   virtual void ExecuteEventSystem(RLMachine& machine) override;
 
+
  private:
   // RealLive event system commands
   void HandleKeyDown(RLMachine& machine, SDL_Event& event);

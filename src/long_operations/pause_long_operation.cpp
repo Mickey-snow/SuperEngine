@@ -63,20 +63,43 @@ PauseLongOperation::~PauseLongOperation() {
   machine_.GetSystem().text().set_in_pause_state(false);
 }
 
-void PauseLongOperation::MouseMotion(const Point& p) {
+void PauseLongOperation::OnEvent(std::shared_ptr<Event> event) {
+  const bool result = std::visit(
+      [&](const auto& event) -> bool {
+        using T = std::decay_t<decltype(event)>;
+
+        if constexpr (std::same_as<T, MouseMotion>)
+          this->OnMouseMotion(event.pos);
+
+        if constexpr (std::same_as<T, MouseDown> || std::same_as<T, MouseUp>)
+          return this->OnMouseButtonStateChanged(event.button,
+                                                 std::same_as<T, MouseDown>);
+
+        if constexpr (std::same_as<T, KeyDown> || std::same_as<T, KeyUp>)
+          return this->OnKeyStateChanged(event.code, std::same_as<T, KeyDown>);
+
+        return false;
+      },
+      *event);
+
+  if (result)
+    *event = std::monostate();
+}
+
+void PauseLongOperation::OnMouseMotion(const Point& p) {
   // Tell the text system about the move
   machine_.GetSystem().text().SetMousePosition(p);
 }
 
-bool PauseLongOperation::MouseButtonStateChanged(MouseButton mouseButton,
-                                                 bool pressed) {
+bool PauseLongOperation::OnMouseButtonStateChanged(MouseButton mouseButton,
+                                                   bool pressed) {
   GraphicsSystem& graphics = machine_.GetSystem().graphics();
   EventSystem& es = machine_.GetSystem().event();
 
   TextSystem& text = machine_.GetSystem().text();
 
   switch (mouseButton) {
-    case MouseBtn::LEFT: {
+    case MouseButton::LEFT: {
       Point pos = es.GetCursorPos();
       // Only unhide the interface on release of the left mouse button
       if (graphics.is_interface_hidden()) {
@@ -103,19 +126,19 @@ bool PauseLongOperation::MouseButtonStateChanged(MouseButton mouseButton,
       }
       break;
     }
-    case MouseBtn::RIGHT:
+    case MouseButton::RIGHT:
       if (!pressed) {
         machine_.GetSystem().ShowSyscomMenu(machine_);
         return true;
       }
       break;
-    case MouseBtn::WHEELUP:
+    case MouseButton::WHEELUP:
       if (pressed) {
         text.BackPage();
         return true;
       }
       break;
-    case MouseBtn::WHEELDOWN:
+    case MouseButton::WHEELDOWN:
       if (pressed) {
         text.ForwardPage();
         return true;
@@ -128,7 +151,7 @@ bool PauseLongOperation::MouseButtonStateChanged(MouseButton mouseButton,
   return false;
 }
 
-bool PauseLongOperation::KeyStateChanged(KeyCode keyCode, bool pressed) {
+bool PauseLongOperation::OnKeyStateChanged(KeyCode keyCode, bool pressed) {
   bool handled = false;
 
   if (pressed) {
@@ -142,19 +165,19 @@ bool PauseLongOperation::KeyStateChanged(KeyCode keyCode, bool pressed) {
       bool ctrl_key_skips = text.ctrl_key_skip();
 
       if (ctrl_key_skips &&
-          (keyCode == RLKEY::RCTRL || keyCode == RLKEY::LCTRL)) {
+          (keyCode == KeyCode::RCTRL || keyCode == KeyCode::LCTRL)) {
         is_done_ = true;
         handled = true;
-      } else if (keyCode == RLKEY::SPACE) {
+      } else if (keyCode == KeyCode::SPACE) {
         graphics.ToggleInterfaceHidden();
         handled = true;
-      } else if (keyCode == RLKEY::UP) {
+      } else if (keyCode == KeyCode::UP) {
         text.BackPage();
         handled = true;
-      } else if (keyCode == RLKEY::DOWN) {
+      } else if (keyCode == KeyCode::DOWN) {
         text.ForwardPage();
         handled = true;
-      } else if (keyCode == RLKEY::RETURN) {
+      } else if (keyCode == KeyCode::RETURN) {
         if (text.IsReadingBacklog())
           text.StopReadingBacklog();
         else

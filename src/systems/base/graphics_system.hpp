@@ -42,9 +42,9 @@
 #include <vector>
 
 #include "core/cgm_table.hpp"
+#include "core/event_listener.hpp"
 #include "core/rect.hpp"
 #include "core/tone_curve.hpp"
-#include "systems/base/event_listener.hpp"
 
 #include "lru_cache.hpp"
 #include "utilities/lazy_array.hpp"
@@ -382,8 +382,8 @@ class GraphicsSystem : public EventListener {
   // Sets DC0 to black and frees up DCs 1 through 16.
   void ClearAllDCs();
 
-  // Implementation of MouseMotionListener:
-  virtual void MouseMotion(const Point& new_location) override;
+  // Override from EventListener
+  virtual void OnEvent(std::shared_ptr<Event> event) override;
 
   // Reset the system. Should clear all state for when a user loads a game.
   virtual void Reset();

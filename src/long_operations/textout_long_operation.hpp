@@ -30,7 +30,6 @@
 #include <string>
 
 #include "machine/long_operation.hpp"
-#include "systems/base/event_listener.hpp"
 
 class RLMachine;
 
@@ -42,13 +41,15 @@ class TextoutLongOperation : public LongOperation {
   void set_no_wait() { no_wait_ = true; }
 
   // Overriden from EventListener:
-  virtual bool MouseButtonStateChanged(MouseButton mouseButton, bool pressed);
-  virtual bool KeyStateChanged(KeyCode keyCode, bool pressed);
+  void OnEvent(std::shared_ptr<Event> event) override;
 
   // Overriden from LongOperation:
-  virtual bool operator()(RLMachine& machine);
+  virtual bool operator()(RLMachine& machine) override;
 
  private:
+  bool OnMouseButtonStateChanged(MouseButton mouseButton, bool pressed);
+  bool OnKeyStateChanged(KeyCode keyCode, bool pressed);
+
   bool DisplayAsMuchAsWeCanThenPause(RLMachine& machine);
 
   // Extract a name and send it to the text system as an automic

@@ -267,23 +267,24 @@ void TextSystem::ExpireOldPages() {
     previous_page_sets_.pop_front();
 }
 
-// Quits skipping mode
-bool TextSystem::MouseButtonStateChanged(MouseBtn mouse_button, bool pressed) {
-  if (CurrentlySkipping() && !in_selection_mode_) {
+void TextSystem::OnEvent(std::shared_ptr<Event> event) {
+  if (!CurrentlySkipping() || in_selection_mode_)
+    return;
+
+  const bool result = std::visit(
+      [&](auto& event) -> bool {
+        using T = std::decay_t<decltype(event)>;
+        if constexpr (std::same_as<T, KeyDown> || std::same_as<T, MouseDown>)
+          return true;
+        else
+          return false;
+      },
+      *event);
+
+  if (result) {  // quit skipping mode, and discard the event
     SetSkipMode(false);
-    return true;
+    *event = std::monostate();
   }
-
-  return false;
-}
-
-bool TextSystem::KeyStateChanged(RLKEY key_code, bool pressed) {
-  if (CurrentlySkipping() && !in_selection_mode_) {
-    SetSkipMode(false);
-    return true;
-  }
-
-  return false;
 }
 
 vector<int> TextSystem::GetActiveWindows() {

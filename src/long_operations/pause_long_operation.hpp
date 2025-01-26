@@ -28,7 +28,6 @@
 #pragma once
 
 #include "machine/long_operation.hpp"
-#include "systems/base/event_listener.hpp"
 
 // Main pause function. Exported for TextoutLongOperation to abuse.
 class PauseLongOperation : public LongOperation {
@@ -37,15 +36,17 @@ class PauseLongOperation : public LongOperation {
   virtual ~PauseLongOperation();
 
   // Overridden from EventListener:
-  virtual void MouseMotion(const Point& new_location) override;
-  virtual bool MouseButtonStateChanged(MouseButton mouse_button,
-                                       bool pressed) override;
-  virtual bool KeyStateChanged(KeyCode key_code, bool pressed) override;
+  virtual void OnEvent(std::shared_ptr<Event> event) override;
 
   // Overridden from LongOperation:
-  virtual bool operator()(RLMachine& machine);
+  virtual bool operator()(RLMachine& machine) override;
 
  private:
+  // Internal implementation of event handling
+  void OnMouseMotion(const Point& new_location);
+  bool OnMouseButtonStateChanged(MouseButton mouse_button, bool pressed);
+  bool OnKeyStateChanged(KeyCode key_code, bool pressed);
+
   // Has this pause timed out?
   bool AutomodeTimerFired();
 

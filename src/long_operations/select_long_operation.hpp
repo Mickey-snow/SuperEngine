@@ -33,7 +33,6 @@
 #include "core/colour.hpp"
 #include "core/rect.hpp"
 #include "machine/long_operation.hpp"
-#include "systems/base/event_listener.hpp"
 #include "systems/base/renderable.hpp"
 #include "systems/sdl_surface.hpp"
 
@@ -102,11 +101,12 @@ class NormalSelectLongOperation : public SelectLongOperation {
   virtual ~NormalSelectLongOperation();
 
   // Overridden from EventListener:
-  virtual void MouseMotion(const Point&) override;
-  virtual bool MouseButtonStateChanged(MouseButton mouseButton,
-                                       bool pressed) override;
+  virtual void OnEvent(std::shared_ptr<Event> event) override;
 
  private:
+  void OnMouseMotion(const Point&);
+  bool OnMouseButtonStateChanged(MouseButton mouseButton, bool pressed);
+
   std::shared_ptr<TextWindow> text_window_;
 };
 
@@ -124,14 +124,15 @@ class ButtonSelectLongOperation : public SelectLongOperation,
   virtual ~ButtonSelectLongOperation();
 
   // Overridden from EventListener:
-  virtual void MouseMotion(const Point&) override;
-  virtual bool MouseButtonStateChanged(MouseButton mouseButton,
-                                       bool pressed) override;
+  virtual void OnEvent(std::shared_ptr<Event> event) override;
 
   // Overridden from Renderable:
   virtual void Render() override;
 
  private:
+  void OnMouseMotion(const Point&);
+  bool OnMouseButtonStateChanged(MouseButton mouseButton, bool pressed);
+
   struct ButtonOption {
     // The id to return when this button is clicked.
     int id;

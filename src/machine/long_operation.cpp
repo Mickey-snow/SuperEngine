@@ -49,20 +49,8 @@ PerformAfterLongOperationDecorator::PerformAfterLongOperationDecorator(
 
 PerformAfterLongOperationDecorator::~PerformAfterLongOperationDecorator() {}
 
-void PerformAfterLongOperationDecorator::MouseMotion(
-    const Point& new_location) {
-  operation_->MouseMotion(new_location);
-}
-
-bool PerformAfterLongOperationDecorator::MouseButtonStateChanged(
-    MouseButton mouse_button,
-    bool pressed) {
-  return operation_->MouseButtonStateChanged(mouse_button, pressed);
-}
-
-bool PerformAfterLongOperationDecorator::KeyStateChanged(KeyCode key_code,
-                                                         bool pressed) {
-  return operation_->KeyStateChanged(key_code, pressed);
+void PerformAfterLongOperationDecorator::OnEvent(std::shared_ptr<Event> event) {
+  operation_->OnEvent(event);
 }
 
 bool PerformAfterLongOperationDecorator::operator()(RLMachine& machine) {

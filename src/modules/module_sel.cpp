@@ -79,7 +79,7 @@ struct ClearAndRestoreWindow : public LongOperation {
   int to_restore_;
   explicit ClearAndRestoreWindow(int in) : to_restore_(in) {}
 
-  bool operator()(RLMachine& machine) {
+  bool operator()(RLMachine& machine) override {
     machine.GetSystem().text().HideAllTextWindows();
     machine.GetSystem().text().set_active_window(to_restore_);
     return true;

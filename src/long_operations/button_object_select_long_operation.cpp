@@ -75,62 +75,79 @@ ButtonObjectSelectLongOperation::~ButtonObjectSelectLongOperation() {
   }
 }
 
-void ButtonObjectSelectLongOperation::MouseMotion(const Point& point) {
-  GraphicsObject* hovering_button = NULL;
+void ButtonObjectSelectLongOperation::OnEvent(std::shared_ptr<Event> event) {
+  bool result = std::visit(
+      [&](const auto& event) -> bool {
+        using T = std::decay_t<decltype(event)>;
 
-  for (ButtonPair& button_pair : buttons_) {
-    if (button_pair.first->has_object_data()) {
-      GraphicsObjectData* data = &button_pair.first->GetObjectData();
-      Rect obj_rect = data->DstRect(*button_pair.first, button_pair.second);
+        if constexpr (std::same_as<T, MouseMotion>) {
+          const Point point = event.pos;
+          GraphicsObject* hovering_button = NULL;
 
-      if (obj_rect.Contains(point))
-        hovering_button = button_pair.first;
-    }
-  }
+          for (ButtonPair& button_pair : buttons_) {
+            if (button_pair.first->has_object_data()) {
+              GraphicsObjectData* data = &button_pair.first->GetObjectData();
+              Rect obj_rect =
+                  data->DstRect(*button_pair.first, button_pair.second);
 
-  if (currently_hovering_button_ != hovering_button) {
-    if (currently_hovering_button_) {
-      SetButtonOverride(currently_hovering_button_, "NORMAL");
+              if (obj_rect.Contains(point))
+                hovering_button = button_pair.first;
+            }
+          }
 
-      if (currently_hovering_button_ == currently_pressed_button_)
-        currently_pressed_button_ = NULL;
-    }
+          if (currently_hovering_button_ != hovering_button) {
+            if (currently_hovering_button_) {
+              SetButtonOverride(currently_hovering_button_, "NORMAL");
 
-    if (hovering_button)
-      SetButtonOverride(hovering_button, "HIT");
-  }
+              if (currently_hovering_button_ == currently_pressed_button_)
+                currently_pressed_button_ = NULL;
+            }
 
-  currently_hovering_button_ = hovering_button;
-}
+            if (hovering_button)
+              SetButtonOverride(hovering_button, "HIT");
+          }
 
-bool ButtonObjectSelectLongOperation::MouseButtonStateChanged(
-    MouseButton mouseButton,
-    bool pressed) {
-  if (mouseButton == MouseBtn::LEFT) {
-    if (pressed) {
-      currently_pressed_button_ = currently_hovering_button_;
-      if (currently_pressed_button_)
-        SetButtonOverride(currently_pressed_button_, "PUSH");
-    } else {
-      if (currently_hovering_button_ &&
-          currently_hovering_button_ == currently_pressed_button_) {
-        has_return_value_ = true;
-        return_value_ = currently_pressed_button_->Param().GetButtonNumber();
-        SetButtonOverride(currently_pressed_button_, "HIT");
-      }
-    }
+          currently_hovering_button_ = hovering_button;
+        }
 
-    // Changes override properties doesn't automatically refresh the screen the
-    // way mouse movement does.
-    machine_.GetSystem().graphics().ForceRefresh();
+        if constexpr (std::same_as<T, MouseDown> || std::same_as<T, MouseUp>) {
+          constexpr bool pressed = std::same_as<T, MouseDown>;
 
-    return true;
-  } else if (mouseButton == MouseBtn::RIGHT && !pressed && cancelable_) {
-    has_return_value_ = true;
-    return_value_ = -1;
-  }
+          if (event.button == MouseButton::LEFT) {
+            if (pressed) {
+              currently_pressed_button_ = currently_hovering_button_;
+              if (currently_pressed_button_)
+                SetButtonOverride(currently_pressed_button_, "PUSH");
+            } else {
+              if (currently_hovering_button_ &&
+                  currently_hovering_button_ == currently_pressed_button_) {
+                has_return_value_ = true;
+                return_value_ =
+                    currently_pressed_button_->Param().GetButtonNumber();
+                SetButtonOverride(currently_pressed_button_, "HIT");
+              }
+            }
 
-  return false;
+            // Changes override properties doesn't automatically refresh the
+            // screen the way mouse movement does.
+            machine_.GetSystem().graphics().ForceRefresh();
+
+            return true;
+          } else if (event.button == MouseButton::RIGHT && !pressed &&
+                     cancelable_) {
+            has_return_value_ = true;
+            return_value_ = -1;
+          }
+
+          return false;
+        }
+
+        return false;
+      },
+      *event);
+
+  if (result)
+    *event = std::monostate();
 }
 
 bool ButtonObjectSelectLongOperation::operator()(RLMachine& machine) {

@@ -1,12 +1,10 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
 //
 // -----------------------------------------------------------------------
 //
+// Copyright (C) 2025 Serina Sakurai
 // Copyright (C) 2007 Elliot Glaysher
 //
 // This program is free software; you can redistribute it and/or modify
@@ -27,36 +25,13 @@
 
 #pragma once
 
+#include "core/event.hpp"
+
 #include <memory>
 
-#include "core/rect.hpp"
-#include "machine/long_operation.hpp"
-
-class RLMachine;
-class SDLSurface;
-using Surface = SDLSurface;
-
-class ZoomLongOperation : public LongOperation {
+class EventListener {
  public:
-  ZoomLongOperation(RLMachine& machine,
-                    const std::shared_ptr<Surface>& orig_surface_,
-                    const std::shared_ptr<Surface>& src_surface_,
-                    const Rect& frect_,
-                    const Rect& trect_,
-                    const Rect& drect_,
-                    const int time);
-  virtual ~ZoomLongOperation();
+  virtual ~EventListener() = default;
 
-  virtual bool operator()(RLMachine& machine) override;
-
- private:
-  std::shared_ptr<Surface> orig_surface_;
-  std::shared_ptr<Surface> src_surface_;
-
-  const Rect frect_;
-  const Rect trect_;
-  const Rect drect_;
-  const unsigned int duration_;
-
-  unsigned int start_time_;
+  virtual void OnEvent(std::shared_ptr<Event> event);
 };

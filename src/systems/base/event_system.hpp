@@ -24,14 +24,15 @@
 
 #pragma once
 
+#include "core/event.hpp"
+#include "core/rect.hpp"
+#include "utilities/clock.hpp"
+
 #include <chrono>
 #include <functional>
 #include <memory>
 #include <queue>
 #include <set>
-
-#include "core/rect.hpp"
-#include "utilities/clock.hpp"
 
 class RLMachine;
 class Gameexe;
@@ -115,10 +116,7 @@ class EventSystem {
   unsigned int TimeOfLastMouseMove() { return last_mouse_move_time_; }
 
  protected:
-  // Calls a EventListener member function on all event listeners, and then
-  // event handlers, stopping when an object says they handled it.
-  void DispatchEvent(const std::function<bool(EventListener&)>& event);
-  void BroadcastEvent(const std::function<void(EventListener&)>& event);
+  void DispatchEvent(std::shared_ptr<Event> event);
 
   bool shift_pressed_, ctrl_pressed_;
 

@@ -28,7 +28,6 @@
 
 #include "core/rect.hpp"
 #include "machine/rlmachine.hpp"
-#include "systems/base/event_listener.hpp"
 #include "systems/base/event_system.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/system.hpp"
@@ -71,20 +70,43 @@ void WaitLongOperation::SaveClickLocation(IntReferenceIterator x,
   y_ = y;
 }
 
-void WaitLongOperation::MouseMotion(const Point&) { mouse_moved_ = true; }
+void WaitLongOperation::OnEvent(std::shared_ptr<Event> event) {
+  const bool result = std::visit(
+      [&](const auto& event) -> bool {
+        using T = std::decay_t<decltype(event)>;
 
-bool WaitLongOperation::MouseButtonStateChanged(MouseButton mouseButton,
-                                                bool pressed) {
+        if constexpr (std::same_as<T, MouseMotion>)
+          this->OnMouseMotion(event.pos);
+
+        if constexpr (std::same_as<T, MouseDown> || std::same_as<T, MouseUp>)
+          return this->OnMouseButtonStateChanged(event.button,
+                                                 std::same_as<T, MouseDown>);
+
+        if constexpr (std::same_as<T, KeyDown> || std::same_as<T, KeyUp>)
+          return this->OnKeyStateChanged(event.code, std::same_as<T, KeyDown>);
+
+        return false;
+      },
+      *event);
+
+  if (result)
+    *event = std::monostate();
+}
+
+void WaitLongOperation::OnMouseMotion(const Point&) { mouse_moved_ = true; }
+
+bool WaitLongOperation::OnMouseButtonStateChanged(MouseButton mouseButton,
+                                                  bool pressed) {
   if (pressed && break_on_clicks_) {
-    if (save_click_location_ &&
-        (mouseButton == MouseBtn::LEFT || mouseButton == MouseBtn::RIGHT)) {
+    if (save_click_location_ && (mouseButton == MouseButton::LEFT ||
+                                 mouseButton == MouseButton::RIGHT)) {
       RecordMouseCursorPosition();
     }
 
-    if (mouseButton == MouseBtn::LEFT) {
+    if (mouseButton == MouseButton::LEFT) {
       button_pressed_ = 1;
       return true;
-    } else if (mouseButton == MouseBtn::RIGHT) {
+    } else if (mouseButton == MouseButton::RIGHT) {
       button_pressed_ = -1;
       return true;
     }
@@ -93,9 +115,9 @@ bool WaitLongOperation::MouseButtonStateChanged(MouseButton mouseButton,
   return false;
 }
 
-bool WaitLongOperation::KeyStateChanged(KeyCode keyCode, bool pressed) {
+bool WaitLongOperation::OnKeyStateChanged(KeyCode keyCode, bool pressed) {
   if (pressed && break_on_ctrl_pressed_ &&
-      (keyCode == RLKEY::RCTRL || keyCode == RLKEY::LCTRL)) {
+      (keyCode == KeyCode::RCTRL || keyCode == KeyCode::LCTRL)) {
     ctrl_pressed_ = true;
     return true;
   }

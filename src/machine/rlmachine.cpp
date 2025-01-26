@@ -25,6 +25,7 @@
 
 #include "machine/rlmachine.hpp"
 
+#include "core/event_listener.hpp"
 #include "core/memory.hpp"
 #include "log/domain_logger.hpp"
 #include "long_operations/pause_long_operation.hpp"
@@ -57,25 +58,13 @@ namespace fs = std::filesystem;
 // Adaptor class that fetches event and feed them to the topmost long operation,
 // if there is any.
 struct LongopListenerAdapter : public EventListener {
+  RLMachine& machine_;
   LongopListenerAdapter(RLMachine& machine) : machine_(machine) {}
 
-  virtual void MouseMotion(const Point& new_location) override {
+  virtual void OnEvent(std::shared_ptr<Event> event) override {
     if (auto sp = machine_.CurrentLongOperation())
-      sp->MouseMotion(new_location);
+      sp->OnEvent(event);
   }
-  virtual bool MouseButtonStateChanged(MouseBtn mouse_button,
-                                       bool pressed) override {
-    if (auto sp = machine_.CurrentLongOperation())
-      return sp->MouseButtonStateChanged(mouse_button, pressed);
-    return false;
-  }
-  virtual bool KeyStateChanged(RLKEY key_code, bool pressed) override {
-    if (auto sp = machine_.CurrentLongOperation())
-      return sp->KeyStateChanged(key_code, pressed);
-    return false;
-  }
-
-  RLMachine& machine_;
 };
 
 // -----------------------------------------------------------------------

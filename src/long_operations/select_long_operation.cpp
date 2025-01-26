@@ -36,7 +36,6 @@
 #include "libreallive/parser.hpp"
 #include "machine/long_operation.hpp"
 #include "machine/rlmachine.hpp"
-#include "systems/base/event_listener.hpp"
 #include "systems/base/event_system.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/renderable.hpp"
@@ -196,23 +195,44 @@ NormalSelectLongOperation::~NormalSelectLongOperation() {
   machine_.GetSystem().text().set_in_selection_mode(false);
 }
 
-void NormalSelectLongOperation::MouseMotion(const Point& pos) {
+void NormalSelectLongOperation::OnEvent(std::shared_ptr<Event> event) {
+  const bool result = std::visit(
+      [&](const auto& event) -> bool {
+        using T = std::decay_t<decltype(event)>;
+
+        if constexpr (std::same_as<T, MouseMotion>)
+          this->OnMouseMotion(event.pos);
+
+        if constexpr (std::same_as<T, MouseDown> || std::same_as<T, MouseUp>)
+          return this->OnMouseButtonStateChanged(event.button,
+                                                 std::same_as<T, MouseDown>);
+
+        return false;
+      },
+      *event);
+
+  if (result)
+    *event = std::monostate();
+}
+
+void NormalSelectLongOperation::OnMouseMotion(const Point& pos) {
   // Tell the text system about the move
   machine_.GetSystem().text().SetMousePosition(pos);
 }
 
-bool NormalSelectLongOperation::MouseButtonStateChanged(MouseButton mouseButton,
-                                                        bool pressed) {
+bool NormalSelectLongOperation::OnMouseButtonStateChanged(
+    MouseButton mouseButton,
+    bool pressed) {
   EventSystem& es = machine_.GetSystem().event();
 
   switch (mouseButton) {
-    case MouseBtn::LEFT: {
+    case MouseButton::LEFT: {
       Point pos = es.GetCursorPos();
       machine_.GetSystem().text().HandleMouseClick(machine_, pos, pressed);
       return true;
       break;
     }
-    case MouseBtn::RIGHT: {
+    case MouseButton::RIGHT: {
       if (pressed) {
         machine_.GetSystem().ShowSyscomMenu(machine_);
         return true;
@@ -379,7 +399,27 @@ ButtonSelectLongOperation::~ButtonSelectLongOperation() {
   machine_.GetSystem().graphics().RemoveRenderable(this);
 }
 
-void ButtonSelectLongOperation::MouseMotion(const Point& p) {
+void ButtonSelectLongOperation::OnEvent(std::shared_ptr<Event> event) {
+  const bool result = std::visit(
+      [&](const auto& event) -> bool {
+        using T = std::decay_t<decltype(event)>;
+
+        if constexpr (std::same_as<T, MouseMotion>)
+          this->OnMouseMotion(event.pos);
+
+        if constexpr (std::same_as<T, MouseDown> || std::same_as<T, MouseUp>)
+          return this->OnMouseButtonStateChanged(event.button,
+                                                 std::same_as<T, MouseDown>);
+
+        return false;
+      },
+      *event);
+
+  if (result)
+    *event = std::monostate();
+}
+
+void ButtonSelectLongOperation::OnMouseMotion(const Point& p) {
   for (size_t i = 0; i < buttons_.size(); i++) {
     if (buttons_[i].bounding_rect.Contains(p)) {
       if (options_[i].enabled) {
@@ -396,12 +436,13 @@ void ButtonSelectLongOperation::MouseMotion(const Point& p) {
   highlighted_item_ = -1;
 }
 
-bool ButtonSelectLongOperation::MouseButtonStateChanged(MouseButton mouseButton,
-                                                        bool pressed) {
+bool ButtonSelectLongOperation::OnMouseButtonStateChanged(
+    MouseButton mouseButton,
+    bool pressed) {
   EventSystem& es = machine_.GetSystem().event();
 
   switch (mouseButton) {
-    case MouseBtn::LEFT: {
+    case MouseButton::LEFT: {
       mouse_down_ = pressed;
       if (!pressed) {
         Point pos = es.GetCursorPos();
@@ -416,7 +457,7 @@ bool ButtonSelectLongOperation::MouseButtonStateChanged(MouseButton mouseButton,
       }
       break;
     }
-    case MouseBtn::RIGHT: {
+    case MouseButton::RIGHT: {
       if (pressed) {
         machine_.GetSystem().ShowSyscomMenu(machine_);
         return true;

@@ -75,9 +75,29 @@ TextoutLongOperation::TextoutLongOperation(RLMachine& machine,
 
 TextoutLongOperation::~TextoutLongOperation() {}
 
-bool TextoutLongOperation::MouseButtonStateChanged(MouseButton mouseButton,
-                                                   bool pressed) {
-  if (!pressed && mouseButton == MouseBtn::LEFT) {
+void TextoutLongOperation::OnEvent(std::shared_ptr<Event> event) {
+  const bool result = std::visit(
+      [&](const auto& event) -> bool {
+        using T = std::decay_t<decltype(event)>;
+
+        if constexpr (std::same_as<T, MouseDown> || std::same_as<T, MouseUp>)
+          return this->OnMouseButtonStateChanged(event.button,
+                                                 std::same_as<T, MouseDown>);
+
+        if constexpr (std::same_as<T, KeyDown> || std::same_as<T, KeyUp>)
+          return this->OnKeyStateChanged(event.code, std::same_as<T, KeyDown>);
+
+        return false;
+      },
+      *event);
+
+  if (result)
+    *event = std::monostate();
+}
+
+bool TextoutLongOperation::OnMouseButtonStateChanged(MouseButton mouseButton,
+                                                     bool pressed) {
+  if (!pressed && mouseButton == MouseButton::LEFT) {
     no_wait_ = true;
     return true;
   }
@@ -85,8 +105,8 @@ bool TextoutLongOperation::MouseButtonStateChanged(MouseButton mouseButton,
   return false;
 }
 
-bool TextoutLongOperation::KeyStateChanged(KeyCode keyCode, bool pressed) {
-  if (pressed && (keyCode == RLKEY::LCTRL || keyCode == RLKEY::RCTRL)) {
+bool TextoutLongOperation::OnKeyStateChanged(KeyCode keyCode, bool pressed) {
+  if (pressed && (keyCode == KeyCode::LCTRL || keyCode == KeyCode::RCTRL)) {
     no_wait_ = true;
     return true;
   }

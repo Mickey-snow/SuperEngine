@@ -1,13 +1,11 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2007 Elliot Glaysher
+// Copyright (C) 2025 Serina Sakurai
+// Copyright (C) 2006, 2007 Elliot Glaysher
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,17 +25,17 @@
 
 #pragma once
 
-class RLMachine;
-class Point;
+#include "core/rect.hpp"
+#include "utilities/clock.hpp"
 
-enum class MouseBtn { NONE = 0, LEFT, RIGHT, MIDDLE, WHEELUP, WHEELDOWN };
-using MouseButton = MouseBtn;
+#include <variant>
 
-// Note that this looks suspiciously like the SDLKey definition with
-// s/SDLK_/RLKEY/;. This was done because I'm lazy and SDL was the
-// first backend I used, and they're right that lining up with ASCII
-// as much as possible is a really good idea.
-enum class RLKEY {
+enum class MouseButton { NONE = 0, LEFT, RIGHT, MIDDLE, WHEELUP, WHEELDOWN };
+
+// Note that this looks suspiciously like the SDLKey definition. This was done
+// because I'm lazy and SDL was the first backend I used, and they're right that
+// lining up with ASCII as much as possible is a really good idea.
+enum class KeyCode {
   // The keyboard syms have been cleverly chosen to map to ASCII
   UNKNOWN = 0,
   FIRST = 0,
@@ -287,24 +285,47 @@ enum class RLKEY {
   EURO = 321,   // Some European keyboards
   UNDO = 322,   // Atari keyboard has Undo
 };
-using KeyCode = RLKEY;
 
-// Interface to receive information from the Event system when the
-// mouse is moved.
-class EventListener {
- public:
-  virtual ~EventListener();
+struct VideoExpose {};
 
-  // Notifies of the new location of the mouse hotspot.
-  virtual void MouseMotion(const Point& new_location);
-
-  // A notification of a mouse or key press. Returns true if this EventListener
-  // handled the message (and this message shouldn't be Dispatched to other
-  // EventListeners).
-  virtual bool MouseButtonStateChanged(MouseBtn mouse_button, bool pressed);
-
-  // A notification that a key was pressed or unpressed. Returns true if this
-  // EventListener handled the message (and this message shouldn't be
-  // Dispatched to other EventListeners).
-  virtual bool KeyStateChanged(RLKEY key_code, bool pressed);
+struct VideoResize {
+  Size size;
 };
+
+struct Quit {};
+
+struct Active {
+  bool AppInputFocus;
+  bool AppMouseFocus;
+};
+
+struct KeyDown {
+  KeyCode code;
+};
+
+struct KeyUp {
+  KeyCode code;
+};
+
+struct MouseDown {
+  MouseButton button;
+};
+
+struct MouseUp {
+  MouseButton button;
+};
+
+struct MouseMotion {
+  Point pos;
+};
+
+using Event = std::variant<std::monostate,
+                           VideoExpose,
+                           VideoResize,
+                           Quit,
+                           Active,
+                           KeyDown,
+                           KeyUp,
+                           MouseDown,
+                           MouseUp,
+                           MouseMotion>;

@@ -53,7 +53,7 @@ std::shared_ptr<LongOperation> MakeBgmWait(RLMachine& machine) {
 }
 
 struct LongOp_bgmWait : public LongOperation {
-  bool operator()(RLMachine& machine) {
+  bool operator()(RLMachine& machine) override {
     return machine.GetSystem().sound().BgmStatus() == 0;
   }
 };

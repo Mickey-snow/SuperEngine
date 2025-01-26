@@ -804,8 +804,14 @@ void GraphicsSystem::SetScreenSize(const Size& size) {
 
 // -----------------------------------------------------------------------
 
-void GraphicsSystem::MouseMotion(const Point& new_location) {
-  cursor_pos_ = new_location;
+void GraphicsSystem::OnEvent(std::shared_ptr<Event> event) {
+  std::visit(
+      [&](const auto& event) {
+        using T = std::decay_t<decltype(event)>;
+        if constexpr (std::same_as<T, MouseMotion>)
+          cursor_pos_ = event.pos;
+      },
+      *event);
 }
 
 // -----------------------------------------------------------------------

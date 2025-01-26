@@ -29,6 +29,8 @@
 
 #include <boost/numeric/conversion/cast.hpp>
 
+#include "core/event_listener.hpp"
+#include "core/frame_counter.hpp"
 #include "log/domain_logger.hpp"
 #include "long_operations/wait_long_operation.hpp"
 #include "machine/long_operation.hpp"
@@ -37,9 +39,7 @@
 #include "machine/rloperation.hpp"
 #include "machine/rloperation/default_value_t.hpp"
 #include "machine/rloperation/rlop_store.hpp"
-#include "systems/base/event_listener.hpp"
 #include "systems/base/event_system.hpp"
-#include "core/frame_counter.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/system.hpp"
 

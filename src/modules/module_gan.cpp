@@ -80,7 +80,7 @@ struct WaitForGanToFinish : public LongOperation {
     system_.SetScreenUpdateMode(GraphicsSystem::SCREENUPDATEMODE_AUTOMATIC);
   }
 
-  bool operator()(RLMachine& machine) {
+  bool operator()(RLMachine& machine) override {
     GraphicsObject& obj = GetObject(machine);
     bool done = true;
 

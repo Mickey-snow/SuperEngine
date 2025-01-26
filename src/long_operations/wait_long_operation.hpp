@@ -53,18 +53,19 @@ class WaitLongOperation : public LongOperation {
   // breaking on mouse click.
   void SaveClickLocation(IntReferenceIterator x, IntReferenceIterator y);
 
-  void MouseMotion(const Point&);
-
   // Overridden from EventListener:
-  virtual bool MouseButtonStateChanged(MouseButton mouseButton, bool pressed);
-  virtual bool KeyStateChanged(KeyCode keyCode, bool pressed);
+  void OnEvent(std::shared_ptr<Event> event) override;
 
   void RecordMouseCursorPosition();
 
   // Overridden from LongOperation:
-  virtual bool operator()(RLMachine& machine);
+  virtual bool operator()(RLMachine& machine) override;
 
  private:
+  void OnMouseMotion(const Point&);
+  bool OnMouseButtonStateChanged(MouseButton mouseButton, bool pressed);
+  bool OnKeyStateChanged(KeyCode keyCode, bool pressed);
+
   RLMachine& machine_;
 
   bool wait_until_target_time_;

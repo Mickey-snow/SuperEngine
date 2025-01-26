@@ -31,7 +31,6 @@
 #include "core/gameexe.hpp"
 #include "machine/long_operation.hpp"
 #include "machine/rlmachine.hpp"
-#include "systems/base/event_listener.hpp"
 #include "utilities/exception.hpp"
 
 #include <chrono>
@@ -75,51 +74,30 @@ std::chrono::time_point<std::chrono::steady_clock> EventSystem::GetTime()
 
 std::shared_ptr<Clock> EventSystem::GetClock() const { return clock_; }
 
-void EventSystem::DispatchEvent(
-    const std::function<bool(EventListener&)>& event) {
-  // In addition to the handled variable, we need to add break statements to
-  // the loops since |event| can be any arbitrary code and may modify listeners
-  // or handlers. (i.e., System::showSyscomMenu)
-  bool handled = false;
+void EventSystem::DispatchEvent(std::shared_ptr<Event> event) {
+  if (event == nullptr)
+    return;
 
-  for (auto it = event_listeners_.begin();
-       it != event_listeners_.end() && !handled;) {
-    auto wp = it->second;
-    if (lazy_deleted_.contains(wp)) {
-      it = event_listeners_.erase(it);
-      continue;
-    }
-
-    if (auto sp = wp.lock()) {
-      if (event(*sp)) {
-        handled = true;
-        break;
-      }
-      ++it;
-    } else {
-      it = event_listeners_.erase(it);
-    }
-  }
-
-  lazy_deleted_.clear();
-}
-
-void EventSystem::BroadcastEvent(
-    const std::function<void(EventListener&)>& event) {
   for (auto it = event_listeners_.begin(); it != event_listeners_.end();) {
+    if (std::holds_alternative<std::monostate>(*event))
+      return;
+
     auto wp = it->second;
+
     if (lazy_deleted_.contains(wp)) {
+      lazy_deleted_.erase(wp);
       it = event_listeners_.erase(it);
       continue;
     }
 
     if (auto sp = wp.lock()) {
-      event(*sp);
+      sp->OnEvent(event);
       ++it;
     } else {
       it = event_listeners_.erase(it);
     }
   }
 
+  // when we finished the whole loop
   lazy_deleted_.clear();
 }
