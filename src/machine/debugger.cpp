@@ -44,12 +44,12 @@ the Free Software Foundation; either version 3 of the License, or
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-)";
+GNU General Public License for more details.)";
 
-void Debugger::NotifyBefore(std::shared_ptr<Instruction> instruction) {
+void Debugger::Execute() {
   if (!should_break_)
     return;
+  should_break_ = false;
 
   static bool should_display_info = true;
   if (should_display_info) {
@@ -58,21 +58,27 @@ void Debugger::NotifyBefore(std::shared_ptr<Instruction> instruction) {
   }
 
   while (true) {
-    std::cout << "rldbg>" << std::flush;
-    std::string input;
-    std::getline(std::cin, input);
-    trim(input);
+    try {
+      std::cout << "rldbg>" << std::flush;
+      std::string input;
+      std::getline(std::cin, input);
+      trim(input);
 
-    if (input == "q" || input == "quit") {
-      should_break_ = false;
-      break;
+      if (input == "c" || input == "continue")
+        break;
+
+      Tokenizer tokenizer(input);
+      auto expr = ParseExpression(std::span(tokenizer.parsed_tok_));
+      std::cout << expr->Apply(Evaluator()) << std::endl;
+    } catch (std::exception& e) {
+      std::cerr << e.what() << std::endl;
     }
+  }
+}
 
-    if (input == "c" || input == "continue")
-      break;
-
-    Tokenizer tokenizer(input);
-    auto expr = ParseExpression(std::span(tokenizer.parsed_tok_));
-    std::cout << expr->Apply(Evaluator()) << std::endl;
+void Debugger::OnEvent(std::shared_ptr<Event> event) {
+  if (auto ev = std::get_if<KeyDown>(event.get())) {
+    if (ev->code == KeyCode::F2)
+      should_break_ = true;
   }
 }

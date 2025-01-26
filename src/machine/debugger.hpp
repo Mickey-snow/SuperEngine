@@ -24,15 +24,19 @@
 
 #pragma once
 
+#include "core/event_listener.hpp"
 #include "machine/instruction.hpp"
 
 class RLMachine;
 
-class Debugger {
+class Debugger : public EventListener {
  public:
   Debugger(RLMachine& machine);
 
-  void NotifyBefore(std::shared_ptr<Instruction> instruction);
+  void Execute();
+
+  // Overridden from EventListener
+  void OnEvent(std::shared_ptr<Event> event) override;
 
  private:
   RLMachine& machine_;

@@ -134,10 +134,13 @@ void RLVMInstance::Bootload(const std::filesystem::path& gameroot) {
   default_config.enable_selcom_savepoint = savepoint_decide("SAVEPOINT_SELCOM");
   scriptor->SetDefaultScenarioConfig(std::move(default_config));
 
+  // instantiate virtual machine
   machine_ = std::make_shared<RLMachine>(
       *system_, scriptor, scriptor->Load(first_seen), std::move(memory));
 
+  // instantiate debugger
   debugger_ = std::make_shared<Debugger>(*machine_);
+  system_->event().AddListener(debugger_);
 
   // Load the "DLLs" required
   for (auto it : gameexe_->Filter("DLL.")) {
@@ -190,8 +193,7 @@ void RLVMInstance::Main(const std::filesystem::path& gameroot) {
         if (machine_->CurrentLongOperation() != nullptr)
           should_continue = false;
 
-        // todo: this is the place where i want the debugger to run
-        // debugger_->NotifyBefore(instruction);
+        debugger_->Execute();
         Step();
 
         end = clock.GetTime();
