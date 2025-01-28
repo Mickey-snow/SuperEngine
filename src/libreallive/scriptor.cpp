@@ -35,19 +35,7 @@
 #include <algorithm>
 #include <stdexcept>
 
-// -----------------------------------------------------------------------
-// struct ScriptLocation
-// -----------------------------------------------------------------------
-
-ScriptLocation::ScriptLocation() : scenario_number(0), location_offset(0) {}
-
-ScriptLocation::ScriptLocation(int scenario_id, std::size_t off)
-    : scenario_number(scenario_id), location_offset(off) {}
-
 namespace libreallive {
-// -----------------------------------------------------------------------
-// class libreallive::Scriptor
-// -----------------------------------------------------------------------
 
 static Scenario* FindScenario(Archive* archive, int scenario_number) {
   Scenario* sc = archive->GetScenario(scenario_number);

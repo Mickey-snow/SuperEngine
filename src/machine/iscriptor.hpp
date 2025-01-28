@@ -26,15 +26,24 @@
 
 #include "machine/instruction.hpp"
 
+#include <boost/serialization/access.hpp>
+
 #include <cstdint>
 
 struct ScriptLocation {
+ public:
   ScriptLocation();
   ScriptLocation(int id, std::size_t offset);
 
   int scenario_number;
   std::size_t location_offset;
+  int line_num;  // for debug
 
+  std::string DebugString() const;
+
+ private:
+  // boost serialization support
+  friend class boost::serialization::access;
   void serialize(auto& ar, unsigned int version) {
     ar & scenario_number & location_offset;
   }

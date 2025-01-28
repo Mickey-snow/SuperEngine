@@ -27,6 +27,7 @@
 #include "core/expr_ast.hpp"
 #include "interpreter/parser.hpp"
 #include "interpreter/tokenizer.hpp"
+#include "machine/rlmachine.hpp"
 #include "utilities/string_utilities.hpp"
 
 #include <iostream>
@@ -64,8 +65,27 @@ void Debugger::Execute() {
       std::getline(std::cin, input);
       trim(input);
 
+      if (input.empty())
+        continue;
+
+      // process interpreter command
       if (input == "c" || input == "continue")
         break;
+      if (input == "l" || input == "list") {
+        auto location = machine_.Location();
+        std::cout << location.DebugString() << ' ';
+        auto instruction = machine_.GetScriptor()->ResolveInstruction(location);
+        std::cout << std::visit(
+                         InstructionToString(&(machine_.module_manager_)),
+                         *instruction)
+                  << std::endl;
+
+        continue;
+      }
+      if (input == "n" || input == "next") {
+        should_break_ = true;
+        break;
+      }
 
       Tokenizer tokenizer(input);
       auto expr = ParseExpression(std::span(tokenizer.parsed_tok_));

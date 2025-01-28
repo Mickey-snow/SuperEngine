@@ -53,7 +53,7 @@ class RealLiveDLL;
 class System;
 struct StackFrame;
 class EventListener;
-
+class Debugger;
 struct LongopListenerAdapter;
 
 // The RealLive virtual machine implementation. This class is the main user
@@ -88,6 +88,10 @@ class RLMachine {
   // the call stack.
   int SceneNumber() const;
 
+  // Returns the current script location, including scenario number, line number
+  // and bytecode offset
+  ScriptLocation Location() const;
+
   void set_replaying_graphics_stack(bool in) { replaying_graphics_stack_ = in; }
   bool replaying_graphics_stack() { return replaying_graphics_stack_; }
 
@@ -106,32 +110,7 @@ class RLMachine {
 
   CallStack& GetStack();
 
-  // ------------------------------------- [ Implicit savepoint management ]
-  // RealLive will save the latest savepoint for the topmost stack
-  // frame. Savepoints can be manually set (with the "Savepoint" command), but
-  // are usually implicit.
-
-  // Mark a savepoint on the top of the stack. Used by both the
-  // explicit Savepoint command, and most actions that would trigger
-  // an implicit savepoint.
-  void MarkSavepoint();
-
-  // Whether the DisableAutoSavepoints override is on. This is
-  // triggered purely from bytecode.
-  void SetMarkSavepoints(const int in);
-
-  // Pushes a long operation onto the function stack. Control will be passed to
-  // this LongOperation instead of normal bytecode passing until the
-  // LongOperation gives control up.
-  virtual void PushLongOperation(std::shared_ptr<LongOperation> long_operation);
-
-  // Returns a pointer to the currently running LongOperation when the top of
-  // the call stack is a LongOperation. NULL otherwise.
-  std::shared_ptr<LongOperation> CurrentLongOperation() const;
-
   ScenarioConfig GetScenarioConfig() const;
-
-  // ------------------------------------------------ [ Execution interface ]
 
   // Where the current scenario was compiled with RLdev, returns the text
   // encoding used:
@@ -165,27 +144,14 @@ class RLMachine {
   // Calls a DLL through the RealLive provided interface.
   int CallDLL(int slot, int one, int two, int three, int four, int five);
 
-  // -----------------------------------------------------------------------
-
-  std::shared_ptr<Instruction> ReadInstruction() const;
-
-  bool ExecuteLongop(std::shared_ptr<LongOperation> long_op);
-
-  void ExecuteInstruction(std::shared_ptr<Instruction> instruction);
-
-  // Increments the stack pointer in the current frame. If we have run
-  // off the end of the current scenario, set the halted bit.
-  void AdvanceInstructionPointer();
-
-  // Pauses execution and notifies the System. Every call to
-  // executeNextInstruction() will return immediately and the System's internal
-  // timer will stop ticking.
-  void PauseExecution();
-
-  // Resume execution.
-  void UnpauseExecution();
+  // Adds a programmatic action triggered by a line marker in a specific SEEN
+  // file. This is used both by lua_rlvm to trigger actions specified in lua to
+  // drive rlvm's playing certain games, but is also used for game specific
+  // hacks.
+  void AddLineAction(const int seen, const int line, std::function<void(void)>);
 
   // ---------------------------------------------------------------------
+  // State control
 
   // Force the machine to halt. This should terminate the execution of
   // bytecode, and theoretically, the program.
@@ -199,17 +165,40 @@ class RLMachine {
   // stack, though it does clear the shadow save stack.
   void LocalReset();
 
-  // Adds a programmatic action triggered by a line marker in a specific SEEN
-  // file. This is used both by lua_rlvm to trigger actions specified in lua to
-  // drive rlvm's playing certain games, but is also used for game specific
-  // hacks.
-  void AddLineAction(const int seen, const int line, std::function<void(void)>);
+  // Pushes a long operation onto the function stack. Control will be passed to
+  // this LongOperation instead of normal bytecode passing until the
+  // LongOperation gives control up.
+  virtual void PushLongOperation(std::shared_ptr<LongOperation> long_operation);
 
-  RLEnvironment& GetEnvironment();
+  // Returns a pointer to the currently running LongOperation when the top of
+  // the call stack is a LongOperation. NULL otherwise.
+  std::shared_ptr<LongOperation> CurrentLongOperation() const;
 
- public:
+  // Increments the stack pointer in the current frame. If we have run
+  // off the end of the current scenario, set the halted bit.
+  void AdvanceInstructionPointer();
+
+  // RealLive will save the latest savepoint for the topmost stack
+  // frame. Savepoints can be manually set (with the "Savepoint" command), but
+  // are usually implicit.
+  // Mark a savepoint on the top of the stack. Used by both the
+  // explicit Savepoint command, and most actions that would trigger
+  // an implicit savepoint.
+  void MarkSavepoint();
+
+  // Whether the DisableAutoSavepoints override is on. This is
+  // triggered purely from bytecode.
+  void SetMarkSavepoints(const int in);
+
+  // -----------------------------------------------------------------------
+  // machine execution wrapper functions
+  std::shared_ptr<Instruction> ReadInstruction() const;
+  bool ExecuteLongop(std::shared_ptr<LongOperation> long_op);
+  void ExecuteInstruction(std::shared_ptr<Instruction> instruction);
+
+  // -----------------------------------------------------------------------
+  // Actual implementation for each type of byte code
   void PerformTextout(std::string text);
-
   void operator()(std::monostate);
   void operator()(Kidoku);
   void operator()(Line);
@@ -217,6 +206,12 @@ class RLMachine {
   void operator()(rlExpression);
   void operator()(Textout);
   void operator()(End);
+
+  // -----------------------------------------------------------------------
+  // Temporary 'environment' field, planned to remove this later
+  RLEnvironment& GetEnvironment();
+
+  friend class Debugger;
 
  private:
   // The Reallive VM's integer and string memory

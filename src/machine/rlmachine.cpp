@@ -242,6 +242,12 @@ CallStack& RLMachine::GetStack() { return call_stack_; }
 
 std::shared_ptr<IScriptor> RLMachine::GetScriptor() { return scriptor_; }
 
+ScriptLocation RLMachine::Location() const {
+  auto location = call_stack_.FindTopRealFrame()->pos;
+  location.line_num = LineNumber();
+  return location;
+}
+
 Gameexe& RLMachine::GetGameexe() { return system_.gameexe(); }
 
 void RLMachine::PushLongOperation(
