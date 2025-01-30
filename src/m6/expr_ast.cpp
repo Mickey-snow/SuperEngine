@@ -22,10 +22,12 @@
 //
 // -----------------------------------------------------------------------
 
-#include "core/expr_ast.hpp"
+#include "m6/expr_ast.hpp"
 
 #include <format>
 #include <unordered_map>
+
+namespace m6 {
 
 // -----------------------------------------------------------------------
 // enum Op helper methods
@@ -273,3 +275,5 @@ int Evaluator::operator()(const BinaryExpr& x) const {
                                "' found in binary expression.");
   }
 }
+
+}  // namespace m6

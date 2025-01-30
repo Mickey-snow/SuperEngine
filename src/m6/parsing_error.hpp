@@ -22,8 +22,19 @@
 //
 // -----------------------------------------------------------------------
 
-#include "interpreter/parsing_error.hpp"
+#include <stdexcept>
+#include <string>
 
-ParsingError::ParsingError(std::string msg) : message_(std::move(msg)) {}
+namespace m6 {
 
-const char* ParsingError::what() const noexcept { return message_.c_str(); }
+class ParsingError : public std::exception {
+ private:
+  std::string message_;
+
+ public:
+  explicit ParsingError(std::string msg);
+
+  const char* what() const noexcept override;
+};
+
+}  // namespace m6

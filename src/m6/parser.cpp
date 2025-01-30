@@ -22,10 +22,10 @@
 //
 // -----------------------------------------------------------------------
 
-#include "interpreter/parser.hpp"
+#include "m6/parser.hpp"
 
-#include "core/expr_ast.hpp"
-#include "interpreter/parsing_error.hpp"
+#include "m6/expr_ast.hpp"
+#include "m6/parsing_error.hpp"
 
 #include <boost/fusion/include/deque.hpp>
 #include <boost/spirit/home/x3.hpp>
@@ -35,6 +35,8 @@
 #include <unordered_set>
 
 namespace x3 = boost::spirit::x3;
+
+namespace m6 {
 
 // Helper function to skip over tok::WS
 template <std::forward_iterator Iterator>
@@ -394,3 +396,5 @@ std::shared_ptr<ExprAST> ParseExpression(std::span<Token> input) {
 
   return result;
 }
+
+}  // namespace m6

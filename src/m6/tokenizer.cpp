@@ -22,14 +22,16 @@
 //
 // -----------------------------------------------------------------------
 
-#include "interpreter/tokenizer.hpp"
+#include "m6/tokenizer.hpp"
 
-#include "interpreter/parsing_error.hpp"
+#include "m6/parsing_error.hpp"
 
 #include <boost/regex.hpp>
 #include <boost/spirit/include/lex_lexertl.hpp>
 
 #include <optional>
+
+namespace m6 {
 
 Tokenizer::Tokenizer(std::string_view input, bool should_parse)
     : input_(input) {
@@ -110,3 +112,5 @@ void Tokenizer::Parse() {
     throw ParsingError("Tokenizer: unable to parse " + std::string(input_));
   }
 }
+
+}  // namespace m6

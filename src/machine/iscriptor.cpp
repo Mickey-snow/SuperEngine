@@ -22,25 +22,17 @@
 //
 // -----------------------------------------------------------------------
 
-#pragma once
+#include "machine/iscriptor.hpp"
 
-#include "interpreter/token.hpp"
+#include <string>
 
-#include <memory>
-#include <span>
-#include <vector>
+ScriptLocation::ScriptLocation()
+    : scenario_number(0), location_offset(0), line_num(-1) {}
 
-class ExprAST;
+ScriptLocation::ScriptLocation(int scenario_id, std::size_t off)
+    : scenario_number(scenario_id), location_offset(off), line_num(-1) {}
 
-/*
-supported expression grammar
-identifiers: <str>
-memory references: <str>[<expr>]
-integer literals: <int>
-unary operators: + - ~
-binary operators: , + - * / % & | ^ << >> == != <= >= < > && ||
-assignments: = += -= *= /= %= &= |= ^= <<= >>=
-parenthesis: ( )
- */
-
-std::shared_ptr<ExprAST> ParseExpression(std::span<Token> input);
+std::string ScriptLocation::DebugString() const {
+  return '(' + std::to_string(scenario_number) + ':' +
+         (line_num > 0 ? std::to_string(line_num) : "???") + ')';
+}

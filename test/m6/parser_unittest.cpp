@@ -26,8 +26,10 @@
 
 #include "util.hpp"
 
-#include "core/expr_ast.hpp"
-#include "interpreter/parser.hpp"
+#include "m6/expr_ast.hpp"
+#include "m6/parser.hpp"
+
+using namespace m6;
 
 inline static GetPrefix get_prefix_visitor;
 

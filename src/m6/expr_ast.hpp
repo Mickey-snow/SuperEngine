@@ -29,6 +29,8 @@
 #include <variant>
 #include <vector>
 
+namespace m6 {
+
 class ExprAST;
 
 // -----------------------------------------------------------------------
@@ -178,3 +180,5 @@ struct Evaluator {
   int operator()(const UnaryExpr& x) const;
   int operator()(const BinaryExpr& x) const;
 };
+
+}  // namespace m6

@@ -24,13 +24,13 @@
 
 #pragma once
 
-#include "interpreter/token.hpp"
+#include "m6/token.hpp"
 
 #include <vector>
 
 template <typename... Ts>
-std::vector<Token> TokenArray(Ts&&... args) {
-  std::vector<Token> result;
+std::vector<m6::Token> TokenArray(Ts&&... args) {
+  std::vector<m6::Token> result;
   result.reserve(sizeof...(args));
   (result.emplace_back(std::forward<Ts>(args)), ...);
   return result;

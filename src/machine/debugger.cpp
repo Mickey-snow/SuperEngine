@@ -24,9 +24,9 @@
 
 #include "debugger.hpp"
 
-#include "core/expr_ast.hpp"
-#include "interpreter/parser.hpp"
-#include "interpreter/tokenizer.hpp"
+#include "m6/expr_ast.hpp"
+#include "m6/parser.hpp"
+#include "m6/tokenizer.hpp"
 #include "machine/rlmachine.hpp"
 #include "utilities/string_utilities.hpp"
 
@@ -87,9 +87,9 @@ void Debugger::Execute() {
         break;
       }
 
-      Tokenizer tokenizer(input);
-      auto expr = ParseExpression(std::span(tokenizer.parsed_tok_));
-      std::cout << expr->Apply(Evaluator()) << std::endl;
+      m6::Tokenizer tokenizer(input);
+      auto expr = m6::ParseExpression(std::span(tokenizer.parsed_tok_));
+      std::cout << expr->Apply(m6::Evaluator()) << std::endl;
     } catch (std::exception& e) {
       std::cerr << e.what() << std::endl;
     }

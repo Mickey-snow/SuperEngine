@@ -24,7 +24,7 @@
 
 #include <gtest/gtest.h>
 
-#include "interpreter/tokenizer.hpp"
+#include "m6/tokenizer.hpp"
 
 #include "util.hpp"
 
@@ -32,6 +32,8 @@
 #include <string>
 #include <string_view>
 #include <variant>
+
+using namespace m6;
 
 using std::string_view_literals::operator""sv;
 using std::string_literals::operator""s;

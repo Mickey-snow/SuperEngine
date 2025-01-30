@@ -22,15 +22,24 @@
 //
 // -----------------------------------------------------------------------
 
-#include <stdexcept>
-#include <string>
+#include <gtest/gtest.h>
 
-class ParsingError : public std::exception {
- private:
-  std::string message_;
+#include "m6/expr_ast.hpp"
 
- public:
-  explicit ParsingError(std::string msg);
+using namespace m6;
 
-  const char* what() const noexcept override;
+class ExprASTTest : public ::testing::Test {
+ protected:
+};
+
+TEST_F(ExprASTTest, DebugPrint) {
+  auto base = BinaryExpr(Op::Add, std::make_unique<ExprAST>(1),
+                         std::make_unique<ExprAST>(2));
+  auto lhs = std::make_unique<ExprAST>(
+      ParenExpr(std::make_unique<ExprAST>(std::move(base))));
+  auto rhs = std::make_unique<ExprAST>(
+      UnaryExpr(Op::Sub, std::make_unique<ExprAST>(3)));
+
+  auto ast = ExprAST(BinaryExpr(Op::Mul, std::move(lhs), std::move(rhs)));
+  EXPECT_EQ(ast.DebugString(), "(1+2)*-3");
 };

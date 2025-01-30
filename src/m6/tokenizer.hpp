@@ -24,12 +24,14 @@
 
 #pragma once
 
-#include "interpreter/token.hpp"
+#include "m6/token.hpp"
 
 #include <string>
 #include <string_view>
 #include <variant>
 #include <vector>
+
+namespace m6 {
 
 class Tokenizer {
  public:
@@ -42,3 +44,5 @@ class Tokenizer {
  private:
   std::string_view input_;
 };
+
+}  // namespace m6

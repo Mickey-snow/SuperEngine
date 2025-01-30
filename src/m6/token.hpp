@@ -24,10 +24,12 @@
 
 #pragma once
 
-#include "core/expr_ast.hpp"
+#include "m6/expr_ast.hpp"
 
 #include <string>
 #include <variant>
+
+namespace m6 {
 
 namespace tok {
 
@@ -107,3 +109,5 @@ struct DebugStringVisitor {
   std::string operator()(const tok::ParenthesisR&) const;
 };
 }  // namespace tok
+
+}  // namespace m6

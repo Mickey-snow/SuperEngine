@@ -24,20 +24,42 @@
 
 #include <gtest/gtest.h>
 
-#include "core/expr_ast.hpp"
+#include "m6/expr_ast.hpp"
+#include "m6/parser.hpp"
+#include "m6/tokenizer.hpp"
 
-class ExprASTTest : public ::testing::Test {
+using namespace m6;
+
+class ExpressionEvaluatorTest : public ::testing::Test {
  protected:
+  int Eval(const std::string_view input) {
+    Tokenizer tokenizer(input);
+    auto expr = ParseExpression(std::span(tokenizer.parsed_tok_));
+    static Evaluator evaluator;
+    return expr->Apply(evaluator);
+  }
 };
 
-TEST_F(ExprASTTest, DebugPrint) {
-  auto base = BinaryExpr(Op::Add, std::make_unique<ExprAST>(1),
-                         std::make_unique<ExprAST>(2));
-  auto lhs = std::make_unique<ExprAST>(
-      ParenExpr(std::make_unique<ExprAST>(std::move(base))));
-  auto rhs = std::make_unique<ExprAST>(
-      UnaryExpr(Op::Sub, std::make_unique<ExprAST>(3)));
+TEST_F(ExpressionEvaluatorTest, BasicArithmetic) {
+  {
+    constexpr std::string_view input =
+        "((3 + 5) * (2 - 8)) / ((4 % 3) + (7 << 2)) - ~(15 & 3) | (12 ^ 5) && "
+        "(9 "
+        "> 3)";
+    EXPECT_TRUE(Eval(input));
+  }
 
-  auto ast = ExprAST(BinaryExpr(Op::Mul, std::move(lhs), std::move(rhs)));
-  EXPECT_EQ(ast.DebugString(), "(1+2)*-3");
-};
+  {
+    constexpr std::string_view input =
+        "( ( (1 + 2) * (3 + 4) ) / (5 - (6 / (7 + 8))) ) + (9 << (2 + 3)) - "
+        "~(4 | 2)";
+    EXPECT_EQ(Eval(input), 299);
+  }
+
+  {
+    constexpr std::string_view input =
+        "(((1 + 2) * (3 - 4) / (5 % 2)) << (6 & 3)) | ((7 ^ 8) && (9 > 10)) - "
+        "~11";
+    EXPECT_EQ(Eval(input), -4);
+  }
+}

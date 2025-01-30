@@ -22,7 +22,9 @@
 //
 // -----------------------------------------------------------------------
 
-#include "interpreter/token.hpp"
+#include "m6/token.hpp"
+
+namespace m6 {
 
 std::string tok::DebugStringVisitor::operator()(const tok::ID& p) const {
   return "ID(\"" + p.id + "\")";
@@ -69,3 +71,5 @@ std::string tok::DebugStringVisitor::operator()(
     const tok::ParenthesisR&) const {
   return "<ParenthesisR>";
 }
+
+}  // namespace m6

@@ -24,11 +24,13 @@
 
 #include <gtest/gtest.h>
 
-#include "core/expr_ast.hpp"
-#include "interpreter/parser.hpp"
-#include "interpreter/tokenizer.hpp"
+#include "m6/expr_ast.hpp"
+#include "m6/parser.hpp"
+#include "m6/tokenizer.hpp"
 
 #include <algorithm>
+
+using namespace m6;
 
 TEST(FormulaParserTest, InfixToPrefix) {
   struct TestCase {
