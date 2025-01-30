@@ -23,6 +23,7 @@
 // -----------------------------------------------------------------------
 
 #include "m6/expr_ast.hpp"
+#include "m6/value.hpp"
 
 #include <format>
 #include <unordered_map>
@@ -192,88 +193,24 @@ std::string GetPrefix::operator()(const std::string& str) const { return str; }
 
 // -----------------------------------------------------------------------
 // struct Evaluator
-int Evaluator::operator()(std::monostate) const {
+Value Evaluator::operator()(std::monostate) const {
   throw std::runtime_error("Evaluator: <null> found in ast.");
 }
-int Evaluator::operator()(const std::string& str) const {
+Value Evaluator::operator()(const std::string& str) const {
   throw std::runtime_error("not supported yet.");
 }
-int Evaluator::operator()(int x) const { return x; }
-int Evaluator::operator()(const ReferenceExpr& x) const {
+Value Evaluator::operator()(int x) const { return make_value(x); }
+Value Evaluator::operator()(const ReferenceExpr& x) const {
   throw std::runtime_error("not supported yet.");
 }
-int Evaluator::operator()(const ParenExpr& x) const {
+Value Evaluator::operator()(const ParenExpr& x) const {
   return x.sub->Apply(*this);
 }
-int Evaluator::operator()(const UnaryExpr& x) const {
-  auto rhs = x.sub->Apply(*this);
-  switch (x.op) {
-    case Op::Add:
-      return rhs;
-    case Op::Sub:
-      return -rhs;
-    case Op::Tilde:
-      return ~rhs;
-    default:
-      throw std::runtime_error("Evaluator: unsupported operator '" +
-                               ToString(x.op) + "' found in unary expression.");
-  }
+Value Evaluator::operator()(const UnaryExpr& x) const {
+  return Value::Calculate(x.op, x.sub->Apply(*this));
 }
-int Evaluator::operator()(const BinaryExpr& x) const {
-  auto lhs = x.lhs->Apply(*this);
-  auto rhs = x.rhs->Apply(*this);
-
-  switch (x.op) {
-    case Comma:
-      return rhs;
-
-    case Add:
-      return lhs + rhs;
-    case Sub:
-      return lhs - rhs;
-    case Mul:
-      return lhs * rhs;
-    case Div: {
-      if (rhs == 0)
-        return 0;
-      return lhs / rhs;
-    }
-    case Mod:
-      return lhs % rhs;
-    case BitAnd:
-      return lhs & rhs;
-    case BitOr:
-      return lhs | rhs;
-    case BitXor:
-      return lhs ^ rhs;
-    case ShiftLeft:
-      return lhs << rhs;
-    case ShiftRight:
-      return lhs >> rhs;
-
-    case Equal:
-      return lhs == rhs ? 1 : 0;
-    case NotEqual:
-      return lhs != rhs ? 1 : 0;
-    case LessEqual:
-      return lhs <= rhs ? 1 : 0;
-    case Less:
-      return lhs < rhs ? 1 : 0;
-    case GreaterEqual:
-      return lhs >= rhs ? 1 : 0;
-    case Greater:
-      return lhs > rhs ? 1 : 0;
-
-    case LogicalAnd:
-      return lhs && rhs ? 1 : 0;
-    case LogicalOr:
-      return lhs || rhs ? 1 : 0;
-
-    default:
-      throw std::runtime_error("Evaluator: unsupported operator '" +
-                               ToString(x.op) +
-                               "' found in binary expression.");
-  }
+Value Evaluator::operator()(const BinaryExpr& x) const {
+  return Value::Calculate(x.lhs->Apply(*this), x.op, x.rhs->Apply(*this));
 }
 
 }  // namespace m6

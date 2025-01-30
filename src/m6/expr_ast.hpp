@@ -32,6 +32,7 @@
 namespace m6 {
 
 class ExprAST;
+class Value;
 
 // -----------------------------------------------------------------------
 // Expression operator
@@ -172,13 +173,13 @@ struct GetPrefix {
 };
 
 struct Evaluator {
-  int operator()(std::monostate) const;
-  int operator()(const std::string& str) const;
-  int operator()(int x) const;
-  int operator()(const ReferenceExpr& x) const;
-  int operator()(const ParenExpr& x) const;
-  int operator()(const UnaryExpr& x) const;
-  int operator()(const BinaryExpr& x) const;
+  Value operator()(std::monostate) const;
+  Value operator()(const std::string& str) const;
+  Value operator()(int x) const;
+  Value operator()(const ReferenceExpr& x) const;
+  Value operator()(const ParenExpr& x) const;
+  Value operator()(const UnaryExpr& x) const;
+  Value operator()(const BinaryExpr& x) const;
 };
 
 }  // namespace m6
