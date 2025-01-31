@@ -85,6 +85,13 @@ TEST(ExprastParserTest, BasicArithmetic) {
   }
 }
 
+TEST(ExprastParserTest, Skipper) {
+  std::vector<Token> input =
+      TokenArray(tok::WS(), tok::ID("a"), tok::Operator(Op::Add), tok::WS(),
+                 tok::ID("b"), tok::WS(), tok::WS());
+  EXPECT_EQ(ParseExpression(std::span(input))->DebugString(), "a+b");
+}
+
 TEST(ExprastParserTest, Precedence) {
   {
     std::shared_ptr<ExprAST> result = nullptr;
@@ -377,9 +384,9 @@ TEST(ExprastParserTest, MixedPrecedence) {
   }
 }
 
-TEST(ExprastParserTest, Skipper) {
+TEST(ExprastParserTest, StringLiterals) {
   std::vector<Token> input =
-      TokenArray(tok::WS(), tok::ID("a"), tok::Operator(Op::Add), tok::WS(),
-                 tok::ID("b"), tok::WS(), tok::WS());
-  EXPECT_EQ(ParseExpression(std::span(input))->DebugString(), "a+b");
+      TokenArray(tok::ID("foo"), tok::Operator(Op::Add), tok::Literal("bar"));
+  EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
+            "+ foo \"bar\"");
 }

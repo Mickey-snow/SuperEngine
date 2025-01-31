@@ -155,8 +155,10 @@ std::string ParenExpr::DebugString() const {
 }
 
 std::string ReferenceExpr::DebugString() const {
-  return id + idx->DebugString();
+  return id.id + idx->DebugString();
 }
+
+std::string IdExpr::DebugString() const { return id; }
 
 std::string ExprAST::DebugString() const {
   return this->Apply([](const auto& x) -> std::string {
@@ -185,21 +187,27 @@ std::string GetPrefix::operator()(const ParenExpr& x) const {
   return x.sub->Apply(*this);
 }
 std::string GetPrefix::operator()(const ReferenceExpr& x) const {
-  return x.id + '[' + x.idx->Apply(*this) + ']';
+  return x.id.id + '[' + x.idx->Apply(*this) + ']';
 }
 std::string GetPrefix::operator()(std::monostate) const { return "<null>"; }
 std::string GetPrefix::operator()(int x) const { return std::to_string(x); }
-std::string GetPrefix::operator()(const std::string& str) const { return str; }
+std::string GetPrefix::operator()(const std::string& str) const {
+  return '"' + str + '"';
+}
+std::string GetPrefix::operator()(const IdExpr& id) const { return id.id; }
 
 // -----------------------------------------------------------------------
 // struct Evaluator
 Value Evaluator::operator()(std::monostate) const {
-  throw std::runtime_error("Evaluator: <null> found in ast.");
+  return make_value(nullptr);
 }
-Value Evaluator::operator()(const std::string& str) const {
+Value Evaluator::operator()(const IdExpr& str) const {
   throw std::runtime_error("not supported yet.");
 }
 Value Evaluator::operator()(int x) const { return make_value(x); }
+Value Evaluator::operator()(const std::string& x) const {
+  return make_value(x);
+}
 Value Evaluator::operator()(const ReferenceExpr& x) const {
   throw std::runtime_error("not supported yet.");
 }

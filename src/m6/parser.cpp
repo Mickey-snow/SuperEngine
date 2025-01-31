@@ -39,8 +39,8 @@ namespace x3 = boost::spirit::x3;
 namespace m6 {
 
 // Helper function to skip over tok::WS
-template <std::forward_iterator Iterator>
-inline void skip_ws(Iterator& first, Iterator const& last) {
+inline void skip_ws(std::forward_iterator auto& first,
+                    std::forward_iterator auto const& last) {
   while (first != last && std::holds_alternative<tok::WS>(*first))
     ++first;
 }
@@ -48,9 +48,9 @@ inline void skip_ws(Iterator& first, Iterator const& last) {
 // -----------------------------------------------------------------------
 // primitive token parsers
 namespace {
-// Parser that matches a string token (tok::ID) and returns its value.
-struct str_token_parser : x3::parser<str_token_parser> {
-  using attribute_type = std::string;
+// Parser that matches a identifier token (tok::ID) and returns its value.
+struct id_token_parser : x3::parser<id_token_parser> {
+  using attribute_type = IdExpr;
 
   template <typename Iterator,
             typename Context,
@@ -66,7 +66,7 @@ struct str_token_parser : x3::parser<str_token_parser> {
       return false;
 
     if (auto p = std::get_if<tok::ID>(&*first)) {
-      attr = p->id;
+      attr = IdExpr(p->id);
       ++first;
       return true;
     }
@@ -93,6 +93,32 @@ struct int_token_parser : x3::parser<int_token_parser> {
 
     if (auto p = std::get_if<tok::Int>(&*first)) {
       attr = p->value;
+      ++first;
+      return true;
+    }
+    return false;
+  }
+};
+
+// Parser that matches a literal token (tok::Literal) and returns its value.
+struct str_token_parser : x3::parser<str_token_parser> {
+  using attribute_type = std::string;
+
+  template <typename Iterator,
+            typename Context,
+            typename RContext,
+            typename Attribute>
+  bool parse(Iterator& first,
+             Iterator const& last,
+             Context const& /*context*/,
+             RContext& /*rcontext*/,
+             Attribute& attr) const {
+    skip_ws(first, last);
+    if (first == last)
+      return false;
+
+    if (auto p = std::get_if<tok::Literal>(&*first)) {
+      attr = p->str;
       ++first;
       return true;
     }
@@ -321,10 +347,14 @@ struct construct_ast {
       x3::_val(ctx) = std::make_shared<ExprAST>(x3::_attr(ctx));
     })] |  // integer literal
 
-    (str_token_parser() >> -(token_parser<tok::SquareL>() >> expression_rule >>
-                             token_parser<tok::SquareR>()))[([](auto& ctx) {
+    str_token_parser()[([](auto& ctx) {
+      x3::_val(ctx) = std::make_shared<ExprAST>(x3::_attr(ctx));
+    })] |  // string literal
+
+    (id_token_parser() >> -(token_parser<tok::SquareL>() >> expression_rule >>
+                            token_parser<tok::SquareR>()))[([](auto& ctx) {
       const auto& attr = x3::_attr(ctx);
-      const std::string& id = boost::fusion::at_c<0>(attr);
+      const auto& id = boost::fusion::at_c<0>(attr);
       const auto& remain = boost::fusion::at_c<1>(
           attr);  // boost::optional<boost::fusion::deque<Op, ptr<ExprAST>, OP>>
       if (remain.has_value()) {

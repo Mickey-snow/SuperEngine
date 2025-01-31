@@ -36,7 +36,7 @@ class Value;
 
 // -----------------------------------------------------------------------
 // Expression operator
-enum Op : int {
+enum class Op : int {
   Unknown = -1,
 
   Comma,  // ","
@@ -89,6 +89,13 @@ Op CreateOp(std::string_view str);
 // -----------------------------------------------------------------------
 // AST Nodes
 
+// Identifier
+struct IdExpr {
+  std::string id;
+
+  std::string DebugString() const;
+};
+
 // Binary operation node
 struct BinaryExpr {
   Op op;
@@ -115,7 +122,7 @@ struct ParenExpr {
 
 // Memory reference expression node
 struct ReferenceExpr {
-  std::string id;
+  IdExpr id;
   std::shared_ptr<ExprAST> idx;
 
   std::string DebugString() const;
@@ -125,7 +132,8 @@ struct ReferenceExpr {
 // AST
 using expr_variant_t = std::variant<std::monostate,  // null
                                     int,             // integer literal
-                                    std::string,     // identifier
+                                    std::string,     // string literal
+                                    IdExpr,          // identifier
                                     ReferenceExpr,
                                     BinaryExpr,
                                     UnaryExpr,
@@ -170,12 +178,14 @@ struct GetPrefix {
   std::string operator()(std::monostate) const;
   std::string operator()(int x) const;
   std::string operator()(const std::string& str) const;
+  std::string operator()(const IdExpr& str) const;
 };
 
 struct Evaluator {
   Value operator()(std::monostate) const;
-  Value operator()(const std::string& str) const;
+  Value operator()(const IdExpr& str) const;
   Value operator()(int x) const;
+  Value operator()(const std::string& x) const;
   Value operator()(const ReferenceExpr& x) const;
   Value operator()(const ParenExpr& x) const;
   Value operator()(const UnaryExpr& x) const;

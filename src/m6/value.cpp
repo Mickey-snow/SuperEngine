@@ -94,56 +94,99 @@ Value Value::Calculate(Op op, const Value& self) {
   throw UndefinedOperator(op, {self.Desc()});
 }
 Value Value::Calculate(const Value& lhs, Op op, const Value& rhs) {
+  if (op == Op::Comma)
+    return rhs;
+
   const static Value True = make_value(1);
   const static Value False = make_value(0);
 
   try {
+    if (lhs.Type() == typeid(std::string) ||
+        rhs.Type() == typeid(std::string)) {
+      switch (op) {
+        case Op::Equal: {
+          const auto result = std::any_cast<std::string>(lhs.val_) ==
+                              std::any_cast<std::string>(rhs.val_);
+          return make_value(result ? 1 : 0);
+        }
+        case Op::NotEqual: {
+          const auto result = std::any_cast<std::string>(lhs.val_) !=
+                              std::any_cast<std::string>(rhs.val_);
+          return make_value(result ? 1 : 0);
+        }
+
+        case Op::Add:
+          return make_value(std::any_cast<std::string>(lhs.val_) +
+                            std::any_cast<std::string>(rhs.val_));
+
+        case Op::Mul: {
+          auto section = std::any_cast<std::string>(lhs.val_);
+          auto reps = std::any_cast<int>(rhs.val_);
+          if (reps < 0)
+            break;
+
+          std::string result;
+          result.reserve(reps * section.size());
+          while (reps) {
+            if (reps & 1)
+              result += section;
+            section = section + section;
+            reps >>= 1;
+          }
+
+          return make_value(std::move(result));
+        }
+        default:
+          break;
+      }
+    }
+
     const auto lhs_val = std::any_cast<int>(lhs.val_);
     const auto rhs_val = std::any_cast<int>(rhs.val_);
     switch (op) {
-      case Comma:
+      case Op::Comma:
         return rhs;
 
-      case Add:
+      case Op::Add:
         return make_value(lhs_val + rhs_val);
-      case Sub:
+      case Op::Sub:
         return make_value(lhs_val - rhs_val);
-      case Mul:
+      case Op::Mul:
         return make_value(lhs_val * rhs_val);
-      case Div: {
+      case Op::Div: {
         if (rhs_val == 0)
           return make_value(0);
         return make_value(lhs_val / rhs_val);
       }
-      case Mod:
+      case Op::Mod:
         return make_value(lhs_val % rhs_val);
-      case BitAnd:
+      case Op::BitAnd:
         return make_value(lhs_val & rhs_val);
-      case BitOr:
+      case Op::BitOr:
         return make_value(lhs_val | rhs_val);
-      case BitXor:
+      case Op::BitXor:
         return make_value(lhs_val ^ rhs_val);
-      case ShiftLeft:
+      case Op::ShiftLeft:
         return make_value(lhs_val << rhs_val);
-      case ShiftRight:
+      case Op::ShiftRight:
         return make_value(lhs_val >> rhs_val);
 
-      case Equal:
+      case Op::Equal:
         return lhs_val == rhs_val ? True : False;
-      case NotEqual:
+      case Op::NotEqual:
         return lhs_val != rhs_val ? True : False;
-      case LessEqual:
+      case Op::LessEqual:
         return lhs_val <= rhs_val ? True : False;
-      case Less:
+      case Op::Less:
         return lhs_val < rhs_val ? True : False;
-      case GreaterEqual:
+      case Op::GreaterEqual:
         return lhs_val >= rhs_val ? True : False;
-      case Greater:
+      case Op::Greater:
         return lhs_val > rhs_val ? True : False;
 
-      case LogicalAnd:
+      case Op::LogicalAnd:
         return lhs_val && rhs_val ? True : False;
-      case LogicalOr:
+      case Op::LogicalOr:
         return lhs_val || rhs_val ? True : False;
 
       default:

@@ -28,6 +28,7 @@
 #include "m6/parser.hpp"
 #include "m6/tokenizer.hpp"
 #include "m6/value.hpp"
+#include "m6/value_error.hpp"
 
 using namespace m6;
 
@@ -150,4 +151,19 @@ TEST_F(ExpressionEvaluatorTest, ComplexExpressions) {
   EXPECT_EQ(Eval("(((1 + 2) * (3 - 4) / (5 % 2)) << (6 & 3)) | ((7 ^ 8) && (9 "
                  "> 10)) - ~11"),
             -4);
+}
+
+TEST_F(ExpressionEvaluatorTest, StringArithmetic) {
+  EXPECT_EQ(Eval(R"("Hello, " + "World!")"), "Hello, World!");
+  EXPECT_EQ(Eval(R"(("Hi! " + "There! ") * 2)"), "Hi! There! Hi! There! ");
+  EXPECT_EQ(Eval(R"((("Hello" + ", ") * 2) + ("World" + "!") * 1)"),
+            "Hello, Hello, World!");
+  EXPECT_EQ(Eval(R"("" + "Non-empty" + "")"), "Non-empty");
+  EXPECT_EQ(Eval(R"("nothing" * (3-3))"), "");
+  EXPECT_EQ(Eval(R"(("Math" + ("+" * 2)) * (1 + 1) == "Math++Math++")"), 1);
+
+  EXPECT_THROW(Eval(R"("Error" * "3")"), m6::UndefinedOperator);
+  EXPECT_THROW(Eval(R"("Number: " + 100)"), m6::UndefinedOperator);
+  EXPECT_THROW(Eval(R"("Invalid" - "Operation")"), m6::UndefinedOperator);
+  EXPECT_THROW(Eval(R"("Negative" * -2)"), m6::UndefinedOperator);
 }
