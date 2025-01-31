@@ -227,7 +227,6 @@ x3::rule<struct expression_rule_class, std::shared_ptr<ExprAST>> const
 // -----------------------------------------------------------------------
 // Rule definitions
 // -----------------------------------------------------------------------
-
 namespace {
 struct construct_ast {
   std::shared_ptr<ExprAST> operator()(auto& ctx) {

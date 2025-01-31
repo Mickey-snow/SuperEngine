@@ -33,6 +33,8 @@ namespace m6 {
 // enum Op helper methods
 std::string ToString(Op op) {
   switch (op) {
+    case Op::Dot:
+      return ".";
     case Op::Comma:
       return ",";
     case Op::Add:
@@ -55,6 +57,8 @@ std::string ToString(Op op) {
       return "<<";
     case Op::ShiftRight:
       return ">>";
+    case Op::ShiftUnsignedRight:
+      return ">>>";
     case Op::Tilde:
       return "~";
     case Op::AddAssign:
@@ -77,6 +81,8 @@ std::string ToString(Op op) {
       return "<<=";
     case Op::ShiftRightAssign:
       return ">>=";
+    case Op::ShiftUnsignedRightAssign:
+      return ">>>=";
     case Op::Assign:
       return "=";
     case Op::Equal:
@@ -101,6 +107,7 @@ std::string ToString(Op op) {
 }
 Op CreateOp(std::string_view str) {
   static const std::unordered_map<std::string_view, Op> strop_table{
+      {".", Op::Dot},
       {",", Op::Comma},
       {"+", Op::Add},
       {"-", Op::Sub},
@@ -112,6 +119,7 @@ Op CreateOp(std::string_view str) {
       {"^", Op::BitXor},
       {"<<", Op::ShiftLeft},
       {">>", Op::ShiftRight},
+      {">>>", Op::ShiftUnsignedRight},
       {"~", Op::Tilde},
       {"+=", Op::AddAssign},
       {"-=", Op::SubAssign},
@@ -123,6 +131,7 @@ Op CreateOp(std::string_view str) {
       {"^=", Op::BitXorAssign},
       {"<<=", Op::ShiftLeftAssign},
       {">>=", Op::ShiftRightAssign},
+      {">>>=", Op::ShiftUnsignedRightAssign},
       {"=", Op::Assign},
       {"==", Op::Equal},
       {"!=", Op::NotEqual},

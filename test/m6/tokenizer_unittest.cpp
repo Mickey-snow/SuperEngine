@@ -75,9 +75,8 @@ TEST(TokenizerTest, Brackets) {
 
 TEST(TokenizerTest, Operators) {
   constexpr std::string_view input =
-      ", + - * / % & | ^ << >> ~ += -= *= /= %= &= |= ^= <<= >>= = == != <= < "
-      ">= "
-      "> && || ";
+      ". , + - * / % & | ^ << >> ~ += -= *= /= %= &= |= ^= <<= >>= = == != <= "
+      "< >= > && || >>> >>>=";
   Tokenizer tokenizer(input);
 
   std::vector<Token> result;
@@ -86,24 +85,27 @@ TEST(TokenizerTest, Operators) {
                  return !std::holds_alternative<tok::WS>(x);
                });
 
-  EXPECT_EQ(result,
-            TokenArray(
-                tok::Operator(Op::Comma), tok::Operator(Op::Add),
-                tok::Operator(Op::Sub), tok::Operator(Op::Mul),
-                tok::Operator(Op::Div), tok::Operator(Op::Mod),
-                tok::Operator(Op::BitAnd), tok::Operator(Op::BitOr),
-                tok::Operator(Op::BitXor), tok::Operator(Op::ShiftLeft),
-                tok::Operator(Op::ShiftRight), tok::Operator(Op::Tilde),
-                tok::Operator(Op::AddAssign), tok::Operator(Op::SubAssign),
-                tok::Operator(Op::MulAssign), tok::Operator(Op::DivAssign),
-                tok::Operator(Op::ModAssign), tok::Operator(Op::BitAndAssign),
-                tok::Operator(Op::BitOrAssign), tok::Operator(Op::BitXorAssign),
-                tok::Operator(Op::ShiftLeftAssign),
-                tok::Operator(Op::ShiftRightAssign), tok::Operator(Op::Assign),
-                tok::Operator(Op::Equal), tok::Operator(Op::NotEqual),
-                tok::Operator(Op::LessEqual), tok::Operator(Op::Less),
-                tok::Operator(Op::GreaterEqual), tok::Operator(Op::Greater),
-                tok::Operator(Op::LogicalAnd), tok::Operator(Op::LogicalOr)));
+  EXPECT_EQ(
+      result,
+      TokenArray(
+          tok::Operator(Op::Dot), tok::Operator(Op::Comma),
+          tok::Operator(Op::Add), tok::Operator(Op::Sub),
+          tok::Operator(Op::Mul), tok::Operator(Op::Div),
+          tok::Operator(Op::Mod), tok::Operator(Op::BitAnd),
+          tok::Operator(Op::BitOr), tok::Operator(Op::BitXor),
+          tok::Operator(Op::ShiftLeft), tok::Operator(Op::ShiftRight),
+          tok::Operator(Op::Tilde), tok::Operator(Op::AddAssign),
+          tok::Operator(Op::SubAssign), tok::Operator(Op::MulAssign),
+          tok::Operator(Op::DivAssign), tok::Operator(Op::ModAssign),
+          tok::Operator(Op::BitAndAssign), tok::Operator(Op::BitOrAssign),
+          tok::Operator(Op::BitXorAssign), tok::Operator(Op::ShiftLeftAssign),
+          tok::Operator(Op::ShiftRightAssign), tok::Operator(Op::Assign),
+          tok::Operator(Op::Equal), tok::Operator(Op::NotEqual),
+          tok::Operator(Op::LessEqual), tok::Operator(Op::Less),
+          tok::Operator(Op::GreaterEqual), tok::Operator(Op::Greater),
+          tok::Operator(Op::LogicalAnd), tok::Operator(Op::LogicalOr),
+          tok::Operator(Op::ShiftUnsignedRight),
+          tok::Operator(Op::ShiftUnsignedRightAssign)));
 }
 
 TEST(TokenizerTest, StrLiteral) {

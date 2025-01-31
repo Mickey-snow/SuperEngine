@@ -33,6 +33,7 @@ enum class Op : int {
   Unknown = -1,
 
   Comma,  // ","
+  Dot,    // "."
 
   // Arithmetic Operators
   Add,  // "+"
@@ -42,24 +43,26 @@ enum class Op : int {
   Mod,  // "%"
 
   // Bitwise Operators
-  BitAnd,      // "&"
-  BitOr,       // "|"
-  BitXor,      // "^"
-  ShiftLeft,   // "<<"
-  ShiftRight,  // ">>"
-  Tilde,       // "~"
+  BitAnd,              // "&"
+  BitOr,               // "|"
+  BitXor,              // "^"
+  ShiftLeft,           // "<<"
+  ShiftRight,          // ">>"
+  ShiftUnsignedRight,  // ">>>"
+  Tilde,               // "~"
 
   // Compound Assignment Operators
-  AddAssign,         // "+="
-  SubAssign,         // "-="
-  MulAssign,         // "*="
-  DivAssign,         // "/="
-  ModAssign,         // "%="
-  BitAndAssign,      // "&="
-  BitOrAssign,       // "|="
-  BitXorAssign,      // "^="
-  ShiftLeftAssign,   // "<<="
-  ShiftRightAssign,  // ">>="
+  AddAssign,                 // "+="
+  SubAssign,                 // "-="
+  MulAssign,                 // "*="
+  DivAssign,                 // "/="
+  ModAssign,                 // "%="
+  BitAndAssign,              // "&="
+  BitOrAssign,               // "|="
+  BitXorAssign,              // "^="
+  ShiftLeftAssign,           // "<<="
+  ShiftRightAssign,          // ">>="
+  ShiftUnsignedRightAssign,  // ">>>="
 
   // Assignment Operator
   Assign,  // "="

@@ -25,6 +25,8 @@
 #include <stdexcept>
 #include <string>
 
+#pragma once
+
 namespace m6 {
 
 class ParsingError : public std::exception {

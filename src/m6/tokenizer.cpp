@@ -64,7 +64,7 @@ void Tokenizer::Parse() {
           integer("[0-9]+"),
           ws("[ \t\n]+"),
           bracket(R"([\(\)\[\]\{\}])"),  // matches any of ()[]{}
-          op(R"(>>>=|>>>|>>=|>>|<<=|<<|\+=|\-=|\*=|\/=|%=|&=|\|=|\^=|==|!=|<=|>=|\|\||&&|=|\+|\-|\*|\/|%|~|&|\||\^|<|>|,)") {
+          op(R"(>>>=|>>>|>>=|>>|<<=|<<|\+=|\-=|\*=|\/=|%=|&=|\|=|\^=|==|!=|<=|>=|\|\||&&|=|\+|\-|\*|\/|%|~|&|\||\^|<|>|,|\.)") {
       this->self.add(identifier, ID_identifier)(ws, ID_ws)(integer, ID_int)(
           bracket, ID_bracket)(op, ID_op)(literal, ID_string);
     }
