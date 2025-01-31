@@ -26,6 +26,10 @@
 
 namespace m6 {
 
+std::string tok::DebugStringVisitor::operator()(const tok::Literal& p) const {
+  return "Str(" + p.str + ')';
+}
+
 std::string tok::DebugStringVisitor::operator()(const tok::ID& p) const {
   return "ID(\"" + p.id + "\")";
 }

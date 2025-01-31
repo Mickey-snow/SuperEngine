@@ -38,14 +38,14 @@ using namespace m6;
 using std::string_view_literals::operator""sv;
 using std::string_literals::operator""s;
 
-TEST(TokenizerTest, ParseID) {
+TEST(TokenizerTest, ID) {
   constexpr std::string_view input = "ObjFgInit";
 
   Tokenizer tokenizer(input);
   EXPECT_EQ(tokenizer.parsed_tok_, TokenArray(tok::ID(std::string(input))));
 }
 
-TEST(TokenizerTest, ParseMultiID) {
+TEST(TokenizerTest, MultiID) {
   constexpr std::string_view input = "print ObjFgInit";
 
   Tokenizer tokenizer(input);
@@ -53,7 +53,7 @@ TEST(TokenizerTest, ParseMultiID) {
             TokenArray(tok::ID("print"s), tok::WS(), tok::ID("ObjFgInit"s)));
 }
 
-TEST(TokenizerTest, ParseNumbers) {
+TEST(TokenizerTest, Numbers) {
   constexpr std::string_view input = "123 00321 -21";
 
   Tokenizer tokenizer(input);
@@ -62,7 +62,7 @@ TEST(TokenizerTest, ParseNumbers) {
                        tok::Operator(Op::Sub), tok::Int(21)));
 }
 
-TEST(TokenizerTest, ParseBrackets) {
+TEST(TokenizerTest, Brackets) {
   constexpr std::string_view input = "[]{}()";
 
   Tokenizer tokenizer(input);
@@ -72,7 +72,7 @@ TEST(TokenizerTest, ParseBrackets) {
                  tok::ParenthesisL(), tok::ParenthesisR()));
 }
 
-TEST(TokenizerTest, ParseOperators) {
+TEST(TokenizerTest, Operators) {
   constexpr std::string_view input =
       ", + - * / % & | ^ << >> ~ += -= *= /= %= &= |= ^= <<= >>= = == != <= < "
       ">= "
@@ -103,4 +103,41 @@ TEST(TokenizerTest, ParseOperators) {
                 tok::Operator(Op::LessEqual), tok::Operator(Op::Less),
                 tok::Operator(Op::GreaterEqual), tok::Operator(Op::Greater),
                 tok::Operator(Op::LogicalAnd), tok::Operator(Op::LogicalOr)));
+}
+
+TEST(TokenizerTest, StrLiteral) {
+  {
+    constexpr std::string_view input = R"("\"Hello\"")";
+    Tokenizer tokenizer(input);
+
+    auto result = tokenizer.parsed_tok_.front();
+    EXPECT_EQ(std::visit(tok::DebugStringVisitor(), result), R"(Str("Hello"))");
+  }
+
+  {
+    constexpr std::string_view input = R"("\"He said, \\\"Hello\\\"\"")";
+    Tokenizer tokenizer(input);
+
+    auto result = tokenizer.parsed_tok_.front();
+    EXPECT_EQ(std::visit(tok::DebugStringVisitor(), result),
+              R"(Str("He said, \"Hello\""))");
+  }
+
+  {
+    constexpr std::string_view input = R"("")";
+    Tokenizer tokenizer(input);
+
+    auto result = tokenizer.parsed_tok_.front();
+    EXPECT_EQ(std::visit(tok::DebugStringVisitor(), result), "Str()");
+  }
+
+  {
+    constexpr std::string_view input =
+        R"("\"Path: C:\\\\Users\\\\Name\\nNew Line\\tTab\"")";
+    Tokenizer tokenizer(input);
+
+    auto result = tokenizer.parsed_tok_.front();
+    EXPECT_EQ(std::visit(tok::DebugStringVisitor(), result),
+              R"(Str("Path: C:\\Users\\Name\nNew Line\tTab"))");
+  }
 }

@@ -41,9 +41,17 @@ Tokenizer::Tokenizer(std::string_view input, bool should_parse)
 
 void Tokenizer::Parse() {
   namespace lex = boost::spirit::lex;
-  enum token_ids { ID_identifier = 1000, ID_ws, ID_int, ID_bracket, ID_op };
+  enum token_ids {
+    ID_identifier = 1000,
+    ID_ws,
+    ID_int,
+    ID_bracket,
+    ID_op,
+    ID_string
+  };
   struct lexer : lex::lexer<lex::lexertl::lexer<>> {
     lex::token_def<std::string> identifier;
+    lex::token_def<std::string> literal;
     lex::token_def<> integer;
     lex::token_def<> ws;
     lex::token_def<> bracket;
@@ -51,12 +59,13 @@ void Tokenizer::Parse() {
 
     lexer()
         : identifier("[a-zA-Z_][a-zA-Z0-9_]*"),
+          literal(R"(\"([^\"\\]|\\.)*\")"),
           integer("[0-9]+"),
           ws("[ \t\n]+"),
           bracket(R"([\(\)\[\]\{\}])"),  // matches any of ()[]{}
           op(R"(>>>=|>>>|>>=|>>|<<=|<<|\+=|\-=|\*=|\/=|%=|&=|\|=|\^=|==|!=|<=|>=|\|\||&&|=|\+|\-|\*|\/|%|~|&|\||\^|<|>|,)") {
-      this->self.add(identifier, ID_identifier)(ws, ID_ws)(integer, ID_int)(
-          bracket, ID_bracket)(op, ID_op);
+      this->self.add(identifier, ID_identifier)(ws, ID_ws)(
+          integer, ID_int)(bracket, ID_bracket)(op, ID_op)(literal, ID_string);
     }
   };
 
@@ -96,6 +105,50 @@ void Tokenizer::Parse() {
           case ID_op:
             parsed_tok_.emplace_back(tok::Operator(CreateOp(value)));
             break;
+
+          case ID_string: {
+            std::string inner = value.substr(1, value.size() - 2);
+
+            // Now parse escapes inside `inner` so that "\n" becomes an actual
+            // newline,
+            // '\"' becomes '"', etc.  We'll do a simple pass here:
+            std::string result;
+            result.reserve(inner.size());
+
+            for (std::size_t i = 0; i < inner.size(); ++i) {
+              if (inner[i] == '\\' && i + 1 < inner.size()) {
+                // escaped character
+                char c = inner[++i];
+                switch (c) {
+                  case 'n':
+                    result.push_back('\n');
+                    break;
+                  case 't':
+                    result.push_back('\t');
+                    break;
+                  case 'r':
+                    result.push_back('\r');
+                    break;
+                  case '\\':
+                    result.push_back('\\');
+                    break;
+                  case '"':
+                    result.push_back('"');
+                    break;
+                    //...
+                  default:
+                    // just store the raw character, for now, e.g. '\x'
+                    result.push_back(c);
+                    break;
+                }
+              } else {
+                result.push_back(inner[i]);
+              }
+            }
+
+            parsed_tok_.emplace_back(tok::Literal(result));
+            break;
+          }
 
           default:
             error_token = value;
