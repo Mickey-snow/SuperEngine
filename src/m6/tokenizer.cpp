@@ -24,6 +24,7 @@
 
 #include "m6/tokenizer.hpp"
 
+#include "m6/op.hpp"
 #include "m6/parsing_error.hpp"
 
 #include <boost/regex.hpp>
@@ -64,8 +65,8 @@ void Tokenizer::Parse() {
           ws("[ \t\n]+"),
           bracket(R"([\(\)\[\]\{\}])"),  // matches any of ()[]{}
           op(R"(>>>=|>>>|>>=|>>|<<=|<<|\+=|\-=|\*=|\/=|%=|&=|\|=|\^=|==|!=|<=|>=|\|\||&&|=|\+|\-|\*|\/|%|~|&|\||\^|<|>|,)") {
-      this->self.add(identifier, ID_identifier)(ws, ID_ws)(
-          integer, ID_int)(bracket, ID_bracket)(op, ID_op)(literal, ID_string);
+      this->self.add(identifier, ID_identifier)(ws, ID_ws)(integer, ID_int)(
+          bracket, ID_bracket)(op, ID_op)(literal, ID_string);
     }
   };
 

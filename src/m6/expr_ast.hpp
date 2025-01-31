@@ -25,66 +25,13 @@
 #pragma once
 
 #include <memory>
-#include <string>
 #include <variant>
-#include <vector>
 
 namespace m6 {
 
 class ExprAST;
 class Value;
-
-// -----------------------------------------------------------------------
-// Expression operator
-enum class Op : int {
-  Unknown = -1,
-
-  Comma,  // ","
-
-  // Arithmetic Operators
-  Add,  // "+"
-  Sub,  // "-"
-  Mul,  // "*"
-  Div,  // "/"
-  Mod,  // "%"
-
-  // Bitwise Operators
-  BitAnd,      // "&"
-  BitOr,       // "|"
-  BitXor,      // "^"
-  ShiftLeft,   // "<<"
-  ShiftRight,  // ">>"
-  Tilde,       // "~"
-
-  // Compound Assignment Operators
-  AddAssign,         // "+="
-  SubAssign,         // "-="
-  MulAssign,         // "*="
-  DivAssign,         // "/="
-  ModAssign,         // "%="
-  BitAndAssign,      // "&="
-  BitOrAssign,       // "|="
-  BitXorAssign,      // "^="
-  ShiftLeftAssign,   // "<<="
-  ShiftRightAssign,  // ">>="
-
-  // Assignment Operator
-  Assign,  // "="
-
-  // Comparison Operators
-  Equal,         // "=="
-  NotEqual,      // "!="
-  LessEqual,     // "<="
-  Less,          // "<"
-  GreaterEqual,  // ">="
-  Greater,       // ">"
-
-  // Logical Operators
-  LogicalAnd,  // "&&"
-  LogicalOr    // "||"
-};
-std::string ToString(Op op);
-Op CreateOp(std::string_view str);
+enum class Op;
 
 // -----------------------------------------------------------------------
 // AST Nodes

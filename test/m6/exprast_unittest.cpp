@@ -25,6 +25,7 @@
 #include <gtest/gtest.h>
 
 #include "m6/expr_ast.hpp"
+#include "m6/op.hpp"
 
 using namespace m6;
 

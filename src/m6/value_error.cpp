@@ -23,6 +23,7 @@
 // -----------------------------------------------------------------------
 
 #include "m6/value_error.hpp"
+#include "m6/op.hpp"
 #include "utilities/string_utilities.hpp"
 
 namespace m6 {

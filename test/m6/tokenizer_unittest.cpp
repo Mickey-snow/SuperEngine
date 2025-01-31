@@ -24,6 +24,7 @@
 
 #include <gtest/gtest.h>
 
+#include "m6/op.hpp"
 #include "m6/tokenizer.hpp"
 
 #include "util.hpp"

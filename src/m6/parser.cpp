@@ -25,6 +25,7 @@
 #include "m6/parser.hpp"
 
 #include "m6/expr_ast.hpp"
+#include "m6/op.hpp"
 #include "m6/parsing_error.hpp"
 
 #include <boost/fusion/include/deque.hpp>
