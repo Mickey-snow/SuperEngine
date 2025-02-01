@@ -196,7 +196,8 @@ struct token_parser : x3::parser<token_parser<Tok>> {
 // -----------------------------------------------------------------------
 x3::rule<struct primary_expr_rule, std::shared_ptr<ExprAST>> const
     primary_expr = "primary_expr";
-
+x3::rule<struct postfix_expr_rule, std::shared_ptr<ExprAST>> const
+    postfix_expr = "postfix_expr";
 x3::rule<struct unary_expr_rule, std::shared_ptr<ExprAST>> const unary_expr =
     "unary_expr";
 x3::rule<struct multiplicative_expr_rule, std::shared_ptr<ExprAST>> const
@@ -330,7 +331,7 @@ struct construct_ast {
 
 [[maybe_unused]] auto const unary_expr_def =
     (*op_token_parser{Op::Tilde, Op::Sub, Op::Add} >>
-     primary_expr)[([](auto& ctx) {
+     postfix_expr)[([](auto& ctx) {
       const auto& attr = x3::_attr(ctx);
       std::shared_ptr<ExprAST> ast = boost::fusion::at_c<1>(attr);
 
@@ -339,6 +340,48 @@ struct construct_ast {
         UnaryExpr expr(*it, ast);
         ast = std::make_shared<ExprAST>(std::move(expr));
       }
+      x3::_val(ctx) = ast;
+    })];
+
+[[maybe_unused]] auto const postfix_expr_def =
+    (primary_expr >>
+     *(
+         // Function call: ( <arg list> )
+         (token_parser<tok::ParenthesisL>() >> -expression_rule >>
+          token_parser<tok::ParenthesisR>()) |
+         // Member access: .
+         (op_token_parser{Op::Dot} >> id_token_parser()) |
+         // Subscripting: [ <expr> ]
+         (token_parser<tok::SquareL>() >> expression_rule >>
+          token_parser<tok::SquareR>())))[([](auto& ctx) {
+      auto& attr = x3::_attr(ctx);
+      auto ast = boost::fusion::at_c<0>(attr);
+
+      // std::vector<boost::variant<
+      //   boost::optional<expr_ptr>,
+      //   fusion::deque<Op, idexpr>,
+      //   expr_ptr>>
+      for (auto const& it : boost::fusion::at_c<1>(attr)) {
+        ast = boost::apply_visitor(
+            [&](auto& x) {
+              using T = std::decay_t<decltype(x)>;
+
+              if constexpr (std::same_as<
+                                T, boost::optional<std::shared_ptr<ExprAST>>>)
+                return std::make_shared<ExprAST>(
+                    InvokeExpr(ast, x.value_or(nullptr)));
+
+              if constexpr (std::same_as<T, boost::fusion::deque<Op, IdExpr>>)
+                return std::make_shared<ExprAST>(
+                    MemberExpr(ast, std::make_shared<ExprAST>(
+                                        std::move(boost::fusion::at_c<1>(x)))));
+
+              if constexpr (std::same_as<T, std::shared_ptr<ExprAST>>)
+                return std::make_shared<ExprAST>(SubscriptExpr(ast, x));
+            },
+            it);
+      }
+
       x3::_val(ctx) = ast;
     })];
 
@@ -351,19 +394,9 @@ struct construct_ast {
       x3::_val(ctx) = std::make_shared<ExprAST>(x3::_attr(ctx));
     })] |  // string literal
 
-    (id_token_parser() >> -(token_parser<tok::SquareL>() >> expression_rule >>
-                            token_parser<tok::SquareR>()))[([](auto& ctx) {
-      const auto& attr = x3::_attr(ctx);
-      const auto& id = boost::fusion::at_c<0>(attr);
-      const auto& remain = boost::fusion::at_c<1>(
-          attr);  // boost::optional<boost::fusion::deque<Op, ptr<ExprAST>, OP>>
-      if (remain.has_value()) {
-        auto idx_ast = remain.value();
-        x3::_val(ctx) = std::make_shared<ExprAST>(ReferenceExpr(id, idx_ast));
-      } else {
-        x3::_val(ctx) = std::make_shared<ExprAST>(id);
-      }
-    })] |  // memory reference
+    id_token_parser()[([](auto& ctx) {
+      x3::_val(ctx) = std::make_shared<ExprAST>(x3::_attr(ctx));
+    })] |  // identifier
 
     (token_parser<tok::ParenthesisL>() >> expression_rule >>
      token_parser<tok::ParenthesisR>())[([](auto& ctx) {
@@ -373,6 +406,7 @@ struct construct_ast {
     })];  // ( <expr> )
 
 BOOST_SPIRIT_DEFINE(primary_expr,
+                    postfix_expr,
                     assignment_expr,
                     unary_expr,
                     shift_expr,

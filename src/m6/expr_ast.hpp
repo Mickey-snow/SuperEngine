@@ -26,6 +26,7 @@
 
 #include <memory>
 #include <variant>
+#include <vector>
 
 namespace m6 {
 
@@ -67,10 +68,28 @@ struct ParenExpr {
   std::string DebugString() const;
 };
 
-// Memory reference expression node
-struct ReferenceExpr {
-  IdExpr id;
-  std::shared_ptr<ExprAST> idx;
+// Function call node
+struct InvokeExpr {
+  InvokeExpr(std::shared_ptr<ExprAST> in_fn, std::shared_ptr<ExprAST> in_arg);
+  
+  std::shared_ptr<ExprAST> fn;
+  std::vector<std::shared_ptr<ExprAST>> args;
+
+  std::string DebugString() const;
+};
+
+// Array subscripting node
+struct SubscriptExpr {
+  std::shared_ptr<ExprAST> primary;
+  std::shared_ptr<ExprAST> index;
+
+  std::string DebugString() const;
+};
+
+// Member access node
+struct MemberExpr {
+  std::shared_ptr<ExprAST> primary;
+  std::shared_ptr<ExprAST> member;
 
   std::string DebugString() const;
 };
@@ -81,7 +100,9 @@ using expr_variant_t = std::variant<std::monostate,  // null
                                     int,             // integer literal
                                     std::string,     // string literal
                                     IdExpr,          // identifier
-                                    ReferenceExpr,
+                                    InvokeExpr,
+                                    SubscriptExpr,
+                                    MemberExpr,
                                     BinaryExpr,
                                     UnaryExpr,
                                     ParenExpr>;
@@ -121,7 +142,9 @@ struct GetPrefix {
   std::string operator()(const BinaryExpr& x) const;
   std::string operator()(const UnaryExpr& x) const;
   std::string operator()(const ParenExpr& x) const;
-  std::string operator()(const ReferenceExpr& x) const;
+  std::string operator()(const InvokeExpr& x) const;
+  std::string operator()(const SubscriptExpr& x) const;
+  std::string operator()(const MemberExpr& x) const;
   std::string operator()(std::monostate) const;
   std::string operator()(int x) const;
   std::string operator()(const std::string& str) const;
@@ -133,7 +156,9 @@ struct Evaluator {
   Value operator()(const IdExpr& str) const;
   Value operator()(int x) const;
   Value operator()(const std::string& x) const;
-  Value operator()(const ReferenceExpr& x) const;
+  Value operator()(const InvokeExpr& x) const;
+  Value operator()(const SubscriptExpr& x) const;
+  Value operator()(const MemberExpr& x) const;
   Value operator()(const ParenExpr& x) const;
   Value operator()(const UnaryExpr& x) const;
   Value operator()(const BinaryExpr& x) const;

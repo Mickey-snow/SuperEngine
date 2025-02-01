@@ -23,13 +23,44 @@
 // -----------------------------------------------------------------------
 
 #include "m6/expr_ast.hpp"
+
 #include "m6/op.hpp"
 #include "m6/value.hpp"
+#include "utilities/string_utilities.hpp"
 
 #include <format>
 #include <unordered_map>
 
 namespace m6 {
+
+namespace {
+struct ExpandArglistVisitor {
+  ExpandArglistVisitor(std::vector<std::shared_ptr<ExprAST>>& arglist)
+      : arglist_(arglist) {}
+  auto operator()(auto& x) {
+    using T = std::decay_t<decltype(x)>;
+    if constexpr (std::same_as<T, BinaryExpr>) {
+      if (x.op == Op::Comma) {
+        x.lhs->Apply(*this);
+        x.rhs->Apply(*this);
+        return;
+      }
+    }
+
+    arglist_.emplace_back(std::make_shared<ExprAST>(std::move(x)));
+  }
+  std::vector<std::shared_ptr<ExprAST>>& arglist_;
+};
+}  // namespace
+
+InvokeExpr::InvokeExpr(std::shared_ptr<ExprAST> in_fn,
+                       std::shared_ptr<ExprAST> in_arg)
+    : fn(in_fn) {
+  if (in_arg == nullptr)
+    return;
+
+  in_arg->Apply(ExpandArglistVisitor(args));
+}
 
 // -----------------------------------------------------------------------
 // method DebugString
@@ -45,8 +76,20 @@ std::string ParenExpr::DebugString() const {
   return '(' + sub->DebugString() + ')';
 }
 
-std::string ReferenceExpr::DebugString() const {
-  return id.id + idx->DebugString();
+std::string InvokeExpr::DebugString() const {
+  return fn->DebugString() + '(' +
+         Join(", ", args | std::views::transform([](const auto& x) {
+                      return x->DebugString();
+                    })) +
+         ')';
+}
+
+std::string SubscriptExpr::DebugString() const {
+  return primary->DebugString() + '[' + index->DebugString() + ']';
+}
+
+std::string MemberExpr::DebugString() const {
+  return primary->DebugString() + '.' + member->DebugString();
 }
 
 std::string IdExpr::DebugString() const { return id; }
@@ -77,8 +120,18 @@ std::string GetPrefix::operator()(const UnaryExpr& x) const {
 std::string GetPrefix::operator()(const ParenExpr& x) const {
   return x.sub->Apply(*this);
 }
-std::string GetPrefix::operator()(const ReferenceExpr& x) const {
-  return x.id.id + '[' + x.idx->Apply(*this) + ']';
+std::string GetPrefix::operator()(const InvokeExpr& x) const {
+  return x.fn->DebugString() + '(' +
+         Join(", ", x.args | std::views::transform([&](const auto& arg) {
+                      return arg->Apply(*this);
+                    })) +
+         ')';
+}
+std::string GetPrefix::operator()(const SubscriptExpr& x) const {
+  return x.primary->Apply(*this) + '[' + x.index->Apply(*this) + ']';
+}
+std::string GetPrefix::operator()(const MemberExpr& x) const {
+  return x.primary->Apply(*this) + '.' + x.member->Apply(*this);
 }
 std::string GetPrefix::operator()(std::monostate) const { return "<null>"; }
 std::string GetPrefix::operator()(int x) const { return std::to_string(x); }
@@ -99,7 +152,13 @@ Value Evaluator::operator()(int x) const { return make_value(x); }
 Value Evaluator::operator()(const std::string& x) const {
   return make_value(x);
 }
-Value Evaluator::operator()(const ReferenceExpr& x) const {
+Value Evaluator::operator()(const InvokeExpr& x) const {
+  throw std::runtime_error("not supported yet.");
+}
+Value Evaluator::operator()(const SubscriptExpr& x) const {
+  throw std::runtime_error("not supported yet.");
+}
+Value Evaluator::operator()(const MemberExpr& x) const {
   throw std::runtime_error("not supported yet.");
 }
 Value Evaluator::operator()(const ParenExpr& x) const {

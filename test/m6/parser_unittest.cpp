@@ -391,3 +391,23 @@ TEST(ExprastParserTest, StringLiterals) {
   EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
             "+ foo \"bar\"");
 }
+
+TEST(ExprParserTest, FunctionCall) {
+  {
+    std::vector<Token> input = TokenArray(tok::ID("foo"), tok::ParenthesisL(),
+                                          tok::Int(42), tok::ParenthesisR());
+
+    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
+              "foo(42)");
+  }
+
+  {
+    std::vector<Token> input =
+        TokenArray(tok::ID("sum"), tok::ParenthesisL(), tok::Int(1),
+                   tok::Operator(Op::Comma), tok::Int(2),
+                   tok::Operator(Op::Comma), tok::Int(3),
+                   tok::Operator(Op::Comma), tok::Int(4), tok::ParenthesisR());
+    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
+              "sum(1, 2, 3, 4)");
+  }
+}
