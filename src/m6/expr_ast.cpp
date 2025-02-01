@@ -121,7 +121,7 @@ std::string GetPrefix::operator()(const ParenExpr& x) const {
   return x.sub->Apply(*this);
 }
 std::string GetPrefix::operator()(const InvokeExpr& x) const {
-  return x.fn->DebugString() + '(' +
+  return x.fn->Apply(*this) + '(' +
          Join(", ", x.args | std::views::transform([&](const auto& arg) {
                       return arg->Apply(*this);
                     })) +

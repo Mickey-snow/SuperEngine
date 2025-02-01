@@ -392,7 +392,7 @@ TEST(ExprastParserTest, StringLiterals) {
             "+ foo \"bar\"");
 }
 
-TEST(ExprParserTest, FunctionCall) {
+TEST(ExprParserTest, Postfix) {
   {
     std::vector<Token> input = TokenArray(tok::ID("foo"), tok::ParenthesisL(),
                                           tok::Int(42), tok::ParenthesisR());
@@ -409,5 +409,34 @@ TEST(ExprParserTest, FunctionCall) {
                    tok::Operator(Op::Comma), tok::Int(4), tok::ParenthesisR());
     EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
               "sum(1, 2, 3, 4)");
+  }
+
+  {
+    std::vector<Token> input =
+        TokenArray(tok::ID("array"), tok::SquareL(), tok::Int(3),
+                   tok::SquareR(), tok::Operator(Op::Dot), tok::ID("field"));
+    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
+              "array[3].field");
+  }
+
+  {
+    std::vector<Token> input =
+        TokenArray(tok::ID("obj"), tok::Operator(Op::Dot), tok::ID("getArray"),
+                   tok::ParenthesisL(), tok::ParenthesisR(), tok::SquareL(),
+                   tok::ID("idx"), tok::Operator(Op::Add), tok::Int(1),
+                   tok::SquareR(), tok::Operator(Op::Dot), tok::ID("method"),
+                   tok::ParenthesisL(), tok::Int(10), tok::ParenthesisR());
+    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
+              "obj.getArray()[+ idx 1].method(10)");
+  }
+
+  {
+    std::vector<Token> input = TokenArray(
+        tok::ParenthesisL(), tok::ID("foo"), tok::ParenthesisL(),
+        tok::ID("bar"), tok::ParenthesisL(), tok::Int(1), tok::ParenthesisR(),
+        tok::ParenthesisR(), tok::Operator(Op::Dot), tok::ID("baz"),
+        tok::ParenthesisR(), tok::SquareL(), tok::Literal("3"), tok::SquareR());
+    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
+              "foo(bar(1)).baz[\"3\"]");
   }
 }
