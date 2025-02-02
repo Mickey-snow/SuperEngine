@@ -90,7 +90,7 @@ void Debugger::Execute() {
 
       m6::Tokenizer tokenizer(input);
       auto expr = m6::ParseExpression(std::span(tokenizer.parsed_tok_));
-      std::cout << expr->Apply(m6::Evaluator()).Str() << std::endl;
+      std::cout << expr->Apply(m6::Evaluator())->Str() << std::endl;
     } catch (std::exception& e) {
       std::cerr << e.what() << std::endl;
     }

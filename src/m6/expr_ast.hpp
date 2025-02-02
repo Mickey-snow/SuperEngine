@@ -31,7 +31,8 @@
 namespace m6 {
 
 class ExprAST;
-class Value;
+class IValue;
+using Value = std::shared_ptr<IValue>;
 enum class Op;
 
 // -----------------------------------------------------------------------
@@ -71,7 +72,7 @@ struct ParenExpr {
 // Function call node
 struct InvokeExpr {
   InvokeExpr(std::shared_ptr<ExprAST> in_fn, std::shared_ptr<ExprAST> in_arg);
-  
+
   std::shared_ptr<ExprAST> fn;
   std::vector<std::shared_ptr<ExprAST>> args;
 

@@ -32,9 +32,10 @@
 
 namespace m6 {
 
-class Value {
+using Value = std::shared_ptr<IValue>;
+class IValue {
  public:
-  Value(std::any val);
+  IValue(std::any val);
 
   std::string Str() const;
   std::string Desc() const;
@@ -44,9 +45,10 @@ class Value {
   // for testing
   bool operator==(int rhs) const noexcept;
   bool operator==(std::string_view rhs) const noexcept;
+  std::any Get() const noexcept { return val_; }
 
-  static Value Calculate(const Value& lhs, Op op, const Value& rhs);
-  static Value Calculate(Op op, const Value& self);
+  static Value Calculate(Value lhs, Op op, Value rhs);
+  static Value Calculate(Op op, Value self);
 
  private:
   std::any val_;
