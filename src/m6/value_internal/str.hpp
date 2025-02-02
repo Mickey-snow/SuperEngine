@@ -24,32 +24,26 @@
 
 #pragma once
 
-#include "m6/expr_ast.hpp"
-
-#include <any>
-#include <string>
-#include <typeindex>
+#include "m6/value.hpp"
 
 namespace m6 {
 
-using Value = std::shared_ptr<IValue>;
-class IValue {
+class String : public IValue {
  public:
-  IValue();
-  virtual ~IValue() = default;
+  String(std::string val);
 
-  virtual std::string Str() const;
-  virtual std::string Desc() const;
+  virtual std::string Str() const override;
+  virtual std::string Desc() const override;
 
-  virtual std::type_index Type() const noexcept = 0;
+  virtual std::type_index Type() const noexcept override;
 
-  virtual std::any Get() const;
+  virtual std::any Get() const override;
 
-  virtual Value Operator(Op op, Value rhs) const;
-  virtual Value Operator(Op op) const;
+  virtual Value Operator(Op op, Value rhs) const override;
+  virtual Value Operator(Op op) const override;
+
+ private:
+  std::string val_;
 };
-
-Value make_value(int value);
-Value make_value(std::string value);
 
 }  // namespace m6

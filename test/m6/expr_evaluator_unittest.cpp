@@ -44,7 +44,7 @@ class ExpressionEvaluatorTest : public ::testing::Test {
 };
 
 inline bool Compare(Value lhs, Value rhs) {
-  Value result = IValue::Calculate(lhs, Op::Equal, rhs);
+  Value result = lhs->Operator(Op::Equal, rhs);
   return std::any_cast<int>(result->Get()) != 0;
 }
 

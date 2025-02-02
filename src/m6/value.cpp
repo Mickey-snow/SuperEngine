@@ -25,181 +25,36 @@
 #include "m6/value.hpp"
 #include "m6/op.hpp"
 #include "m6/value_error.hpp"
+#include "m6/value_internal/int.hpp"
+#include "m6/value_internal/str.hpp"
 
 namespace m6 {
 // factory methods
-Value make_value(int value) {
-  return std::make_shared<IValue>(std::make_any<int>(value));
-}
+Value make_value(int value) { return std::make_shared<Int>(value); }
 Value make_value(std::string value) {
-  return std::make_shared<IValue>(std::make_any<std::string>(std::move(value)));
+  return std::make_shared<String>(std::move(value));
 }
 
 // -----------------------------------------------------------------------
 // class IValue
-IValue::IValue(std::any val) : val_(std::move(val)) {}
 
-std::type_index IValue::Type() const noexcept { return val_.type(); }
+IValue::IValue() = default;
 
-std::string IValue::Str() const {
-  if (Type() == std::type_index(typeid(int)))
-    return std::to_string(std::any_cast<int>(val_));
-  else if (Type() == std::type_index(typeid(std::string)))
-    return std::any_cast<std::string>(val_);
-  else
-    return "???";
-}
+std::string IValue::Str() const { return "???"; }
 
-std::string IValue::Desc() const {
-  if (Type() == std::type_index(typeid(int)))
-    return "Int";
-  else if (Type() == std::type_index(typeid(std::string)))
-    return "Str";
-  else
-    return "???";
-}
+std::string IValue::Desc() const { return "???"; }
 
-bool IValue::operator==(int rhs) const noexcept {
-  try {
-    return std::any_cast<int>(val_) == rhs;
-  } catch (std::exception& e) {
-    return false;
-  }
-}
+std::any IValue::Get() const { return std::any(); }  // nil
 
-bool IValue::operator==(std::string_view rhs) const noexcept {
-  try {
-    return std::any_cast<std::string>(val_) == rhs;
-  } catch (std::exception& e) {
-    return false;
-  }
-}
-
-// -----------------------------------------------------------------------
-// Calculate
-Value IValue::Calculate(Op op, Value self) {
-  try {
-    const auto rhs_val = std::any_cast<int>(self->val_);
-    switch (op) {
-      case Op::Add:
-        return make_value(rhs_val);
-      case Op::Sub:
-        return make_value(-rhs_val);
-      case Op::Tilde:
-        return make_value(~rhs_val);
-
-      default:
-        break;
-    }
-  } catch (std::bad_any_cast& e) {
-  }
-
-  throw UndefinedOperator(op, {self->Desc()});
-}
-
-Value IValue::Calculate(Value lhs, Op op, Value rhs) {
+Value IValue::Operator(Op op, Value rhs) const {
   if (op == Op::Comma)
     return rhs;
 
-  const static Value True = make_value(1);
-  const static Value False = make_value(0);
+  throw UndefinedOperator(op, {this->Desc(), rhs->Desc()});
+}
 
-  try {
-    if (lhs->Type() == typeid(std::string) ||
-        rhs->Type() == typeid(std::string)) {
-      switch (op) {
-        case Op::Equal: {
-          const auto result = std::any_cast<std::string>(lhs->val_) ==
-                              std::any_cast<std::string>(rhs->val_);
-          return make_value(result ? 1 : 0);
-        }
-        case Op::NotEqual: {
-          const auto result = std::any_cast<std::string>(lhs->val_) !=
-                              std::any_cast<std::string>(rhs->val_);
-          return make_value(result ? 1 : 0);
-        }
-
-        case Op::Add:
-          return make_value(std::any_cast<std::string>(lhs->val_) +
-                            std::any_cast<std::string>(rhs->val_));
-
-        case Op::Mul: {
-          auto section = std::any_cast<std::string>(lhs->val_);
-          auto reps = std::any_cast<int>(rhs->val_);
-          if (reps < 0)
-            break;
-
-          std::string result;
-          result.reserve(reps * section.size());
-          while (reps) {
-            if (reps & 1)
-              result += section;
-            section = section + section;
-            reps >>= 1;
-          }
-
-          return make_value(std::move(result));
-        }
-        default:
-          break;
-      }
-    }
-
-    const auto lhs_val = std::any_cast<int>(lhs->val_);
-    const auto rhs_val = std::any_cast<int>(rhs->val_);
-    switch (op) {
-      case Op::Comma:
-        return rhs;
-
-      case Op::Add:
-        return make_value(lhs_val + rhs_val);
-      case Op::Sub:
-        return make_value(lhs_val - rhs_val);
-      case Op::Mul:
-        return make_value(lhs_val * rhs_val);
-      case Op::Div: {
-        if (rhs_val == 0)
-          return make_value(0);
-        return make_value(lhs_val / rhs_val);
-      }
-      case Op::Mod:
-        return make_value(lhs_val % rhs_val);
-      case Op::BitAnd:
-        return make_value(lhs_val & rhs_val);
-      case Op::BitOr:
-        return make_value(lhs_val | rhs_val);
-      case Op::BitXor:
-        return make_value(lhs_val ^ rhs_val);
-      case Op::ShiftLeft:
-        return make_value(lhs_val << rhs_val);
-      case Op::ShiftRight:
-        return make_value(lhs_val >> rhs_val);
-
-      case Op::Equal:
-        return lhs_val == rhs_val ? True : False;
-      case Op::NotEqual:
-        return lhs_val != rhs_val ? True : False;
-      case Op::LessEqual:
-        return lhs_val <= rhs_val ? True : False;
-      case Op::Less:
-        return lhs_val < rhs_val ? True : False;
-      case Op::GreaterEqual:
-        return lhs_val >= rhs_val ? True : False;
-      case Op::Greater:
-        return lhs_val > rhs_val ? True : False;
-
-      case Op::LogicalAnd:
-        return lhs_val && rhs_val ? True : False;
-      case Op::LogicalOr:
-        return lhs_val || rhs_val ? True : False;
-
-      default:
-        break;
-    }
-  } catch (std::bad_any_cast& e) {
-  }
-
-  throw UndefinedOperator(op, {lhs->Desc(), rhs->Desc()});
+Value IValue::Operator(Op op) const {
+  throw UndefinedOperator(op, {this->Desc()});
 }
 
 }  // namespace m6

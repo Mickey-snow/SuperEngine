@@ -165,10 +165,13 @@ Value Evaluator::operator()(const ParenExpr& x) const {
   return x.sub->Apply(*this);
 }
 Value Evaluator::operator()(const UnaryExpr& x) const {
-  return IValue::Calculate(x.op, x.sub->Apply(*this));
+  Value rhs = x.sub->Apply(*this);
+  return rhs->Operator(x.op);
 }
 Value Evaluator::operator()(const BinaryExpr& x) const {
-  return IValue::Calculate(x.lhs->Apply(*this), x.op, x.rhs->Apply(*this));
+  Value rhs = x.rhs->Apply(*this);
+  Value lhs = x.lhs->Apply(*this);
+  return lhs->Operator(x.op, rhs);
 }
 
 }  // namespace m6
