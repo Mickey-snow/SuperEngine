@@ -24,7 +24,7 @@
 
 #include <gtest/gtest.h>
 
-#include "m6/expr_ast.hpp"
+#include "m6/evaluator.hpp"
 #include "m6/op.hpp"
 #include "m6/parser.hpp"
 #include "m6/tokenizer.hpp"

@@ -25,29 +25,21 @@
 #pragma once
 
 #include "m6/expr_ast.hpp"
-#include "m6/op.hpp"
-#include "m6/token.hpp"
-#include "utilities/string_utilities.hpp"
+#include "m6/value.hpp"
 
-#include <vector>
+namespace m6 {
 
-template <typename... Ts>
-std::vector<m6::Token> TokenArray(Ts&&... args) {
-  std::vector<m6::Token> result;
-  result.reserve(sizeof...(args));
-  (result.emplace_back(std::forward<Ts>(args)), ...);
-  return result;
-}
-
-struct GetPrefix {
-  std::string operator()(const m6::BinaryExpr& x) const;
-  std::string operator()(const m6::UnaryExpr& x) const;
-  std::string operator()(const m6::ParenExpr& x) const;
-  std::string operator()(const m6::InvokeExpr& x) const;
-  std::string operator()(const m6::SubscriptExpr& x) const;
-  std::string operator()(const m6::MemberExpr& x) const;
-  std::string operator()(std::monostate) const;
-  std::string operator()(int x) const;
-  std::string operator()(const std::string& str) const;
-  std::string operator()(const m6::IdExpr& str) const;
+struct Evaluator {
+  Value operator()(std::monostate) const;
+  Value operator()(const IdExpr& str) const;
+  Value operator()(int x) const;
+  Value operator()(const std::string& x) const;
+  Value operator()(const InvokeExpr& x) const;
+  Value operator()(const SubscriptExpr& x) const;
+  Value operator()(const MemberExpr& x) const;
+  Value operator()(const ParenExpr& x) const;
+  Value operator()(const UnaryExpr& x) const;
+  Value operator()(const BinaryExpr& x) const;
 };
+
+}  // namespace m6

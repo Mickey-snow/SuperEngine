@@ -136,33 +136,4 @@ class ExprAST {
   expr_variant_t var_;
 };
 
-// -----------------------------------------------------------------------
-// AST visitors
-
-struct GetPrefix {
-  std::string operator()(const BinaryExpr& x) const;
-  std::string operator()(const UnaryExpr& x) const;
-  std::string operator()(const ParenExpr& x) const;
-  std::string operator()(const InvokeExpr& x) const;
-  std::string operator()(const SubscriptExpr& x) const;
-  std::string operator()(const MemberExpr& x) const;
-  std::string operator()(std::monostate) const;
-  std::string operator()(int x) const;
-  std::string operator()(const std::string& str) const;
-  std::string operator()(const IdExpr& str) const;
-};
-
-struct Evaluator {
-  Value operator()(std::monostate) const;
-  Value operator()(const IdExpr& str) const;
-  Value operator()(int x) const;
-  Value operator()(const std::string& x) const;
-  Value operator()(const InvokeExpr& x) const;
-  Value operator()(const SubscriptExpr& x) const;
-  Value operator()(const MemberExpr& x) const;
-  Value operator()(const ParenExpr& x) const;
-  Value operator()(const UnaryExpr& x) const;
-  Value operator()(const BinaryExpr& x) const;
-};
-
 }  // namespace m6
