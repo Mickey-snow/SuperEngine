@@ -32,4 +32,6 @@ UndefinedOperator::UndefinedOperator(Op op, std::vector<std::string> operands)
     : std::logic_error("no match for 'operator " + ToString(op) +
                        "' (operand type '" + Join(",", operands)) {}
 
+ValueError::ValueError(std::string msg) : std::runtime_error(std::move(msg)) {}
+
 }  // namespace m6

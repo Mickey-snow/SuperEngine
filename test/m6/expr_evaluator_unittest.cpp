@@ -95,6 +95,9 @@ TEST_F(ExpressionEvaluatorTest, Binary) {
   EXPECT_VALUE_EQ(Eval("16 >> 2"), 4);
   EXPECT_VALUE_EQ(Eval("5 >>> 2"), 1);
   EXPECT_VALUE_EQ(Eval("-5 >>> 2"), 1073741822);
+  EXPECT_THROW(Eval("1 >> -1"), ValueError);
+  EXPECT_THROW(Eval("1 << -1"), ValueError);
+  EXPECT_THROW(Eval("1 >>> -1"), ValueError);
 
   // Comparison Operators
   EXPECT_VALUE_EQ(Eval("5 == 5"), 1);

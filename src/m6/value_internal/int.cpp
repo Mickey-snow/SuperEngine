@@ -71,14 +71,21 @@ Value Int::Operator(Op op, Value rhs) const {
         return make_value(val_ | rhs_val);
       case Op::BitXor:
         return make_value(val_ ^ rhs_val);
-      case Op::ShiftLeft:
+      case Op::ShiftLeft: {
+        if (rhs_val < 0)
+          throw ValueError("negative shift count: " + std::to_string(rhs_val));
         return make_value(val_ << rhs_val);
-      case Op::ShiftRight:
-	// TODO: throw an exception on negative shift count
+      }
+      case Op::ShiftRight: {
+        if (rhs_val < 0)
+          throw ValueError("negative shift count: " + std::to_string(rhs_val));
         return make_value(val_ >> rhs_val);
-      case Op::ShiftUnsignedRight:
+      }
+      case Op::ShiftUnsignedRight: {
+        if (rhs_val < 0)
+          throw ValueError("negative shift count: " + std::to_string(rhs_val));
         return make_value(std::bit_cast<uint32_t>(val_) >> rhs_val);
-
+      }
       case Op::Equal:
         return val_ == rhs_val ? True : False;
       case Op::NotEqual:

@@ -31,10 +31,17 @@
 #include <vector>
 
 namespace m6 {
+
 class UndefinedOperator : public std::logic_error {
  public:
   explicit UndefinedOperator(Op op, std::vector<std::string> operands);
-
   using std::logic_error::what;
 };
+
+class ValueError : public std::runtime_error {
+ public:
+  explicit ValueError(std::string msg);
+  using std::runtime_error::what;
+};
+
 }  // namespace m6
