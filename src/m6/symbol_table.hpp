@@ -69,7 +69,7 @@ class SymbolTable {
    * @param name The name of the symbol to check.
    * @return true if the symbol exists, false otherwise.
    */
-  bool Exists(const std::string& name) const;
+  virtual bool Exists(const std::string& name) const;
 
   /**
    * @brief Retrieves the value associated with a symbol.
@@ -77,26 +77,26 @@ class SymbolTable {
    * @return A shared pointer to the associated IValue.
    * @throws NameError if the symbol is not found.
    */
-  std::shared_ptr<IValue> Get(const std::string& name) const;
+  virtual std::shared_ptr<IValue> Get(const std::string& name) const;
 
   /**
    * @brief Inserts or updates a symbol with its associated value.
    * @param name The name of the symbol.
    * @param value The value to be associated with the symbol.
    */
-  void Set(const std::string& name, std::shared_ptr<IValue> value);
+  virtual void Set(const std::string& name, std::shared_ptr<IValue> value);
 
   /**
    * @brief Removes a symbol from the table.
    * @param name The name of the symbol to remove.
    * @return true if the symbol was successfully removed, false otherwise.
    */
-  bool Remove(const std::string& name);
+  virtual bool Remove(const std::string& name);
 
   /**
    * @brief Clears the entire symbol table.
    */
-  void Clear();
+  virtual void Clear();
 
  private:
   /// Internal storage mapping symbol names to their values.

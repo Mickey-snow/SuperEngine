@@ -27,6 +27,8 @@
 #include "m6/op.hpp"
 #include "m6/value_error.hpp"
 
+#include <bit>
+
 namespace m6 {
 
 Int::Int(int val) : val_(val) {}
@@ -72,7 +74,10 @@ Value Int::Operator(Op op, Value rhs) const {
       case Op::ShiftLeft:
         return make_value(val_ << rhs_val);
       case Op::ShiftRight:
+	// TODO: throw an exception on negative shift count
         return make_value(val_ >> rhs_val);
+      case Op::ShiftUnsignedRight:
+        return make_value(std::bit_cast<uint32_t>(val_) >> rhs_val);
 
       case Op::Equal:
         return val_ == rhs_val ? True : False;

@@ -41,7 +41,7 @@ class IValue {
   virtual std::string Str() const;
   virtual std::string Desc() const;
 
-  virtual std::type_index Type() const noexcept = 0;
+  virtual std::type_index Type() const = 0;
 
   virtual std::any Get() const;
 

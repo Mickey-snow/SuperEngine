@@ -27,6 +27,7 @@
 #include "m6/expr_ast.hpp"
 #include "m6/op.hpp"
 #include "m6/token.hpp"
+#include "m6/value.hpp"
 #include "utilities/string_utilities.hpp"
 
 #include <vector>
@@ -51,3 +52,15 @@ struct GetPrefix {
   std::string operator()(const std::string& str) const;
   std::string operator()(const m6::IdExpr& str) const;
 };
+
+using m6::Op;
+using m6::Value;
+
+inline bool Compare(Value lhs, Value rhs) {
+  Value result = lhs->Operator(Op::Equal, rhs);
+  return std::any_cast<int>(result->Get()) != 0;
+}
+#define EXPECT_VALUE_EQ(val, expected)                                      \
+  EXPECT_TRUE(Compare(val, make_value(expected)))                           \
+      << "Expected equality between: " << val->Str() << " and " << expected \
+      << '\n'

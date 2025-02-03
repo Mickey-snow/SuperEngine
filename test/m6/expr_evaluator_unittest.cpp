@@ -31,6 +31,8 @@
 #include "m6/value.hpp"
 #include "m6/value_error.hpp"
 
+#include "util.hpp"
+
 using namespace m6;
 
 class ExpressionEvaluatorTest : public ::testing::Test {
@@ -42,16 +44,6 @@ class ExpressionEvaluatorTest : public ::testing::Test {
     return expr->Apply(evaluator);
   }
 };
-
-inline bool Compare(Value lhs, Value rhs) {
-  Value result = lhs->Operator(Op::Equal, rhs);
-  return std::any_cast<int>(result->Get()) != 0;
-}
-
-#define EXPECT_VALUE_EQ(val, expected)                                      \
-  EXPECT_TRUE(Compare(val, make_value(expected)))                           \
-      << "Expected equality between: " << val->Str() << " and " << expected \
-      << '\n'
 
 TEST_F(ExpressionEvaluatorTest, Unary) {
   EXPECT_VALUE_EQ(Eval("+1"), 1);
