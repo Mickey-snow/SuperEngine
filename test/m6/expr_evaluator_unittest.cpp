@@ -93,6 +93,8 @@ TEST_F(ExpressionEvaluatorTest, Binary) {
   // Bitwise Shifts
   EXPECT_VALUE_EQ(Eval("1 << 3"), 8);
   EXPECT_VALUE_EQ(Eval("16 >> 2"), 4);
+  EXPECT_VALUE_EQ(Eval("5 >>> 2"), 1);
+  EXPECT_VALUE_EQ(Eval("-5 >>> 2"), 1073741822);
 
   // Comparison Operators
   EXPECT_VALUE_EQ(Eval("5 == 5"), 1);

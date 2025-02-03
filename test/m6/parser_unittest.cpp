@@ -383,6 +383,15 @@ TEST(ExprastParserTest, MixedPrecedence) {
     EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
               "&& a | b ^ c & d e");
   }
+
+  // a >>>= b >>> c
+  {
+    std::vector<Token> input = TokenArray(
+        tok::ID("a"), tok::Operator(Op::ShiftUnsignedRightAssign), tok::ID("b"),
+        tok::Operator(Op::ShiftUnsignedRight), tok::ID("c"));
+    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
+              ">>>= a >>> b c");
+  }
 }
 
 TEST(ExprastParserTest, StringLiterals) {

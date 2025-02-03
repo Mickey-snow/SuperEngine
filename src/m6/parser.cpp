@@ -259,7 +259,7 @@ struct construct_ast {
      *(op_token_parser{Op::Assign, Op::AddAssign, Op::SubAssign, Op::MulAssign,
                        Op::DivAssign, Op::ModAssign, Op::BitAndAssign,
                        Op::BitOrAssign, Op::BitXorAssign, Op::ShiftLeftAssign,
-                       Op::ShiftRightAssign} >>
+                       Op::ShiftRightAssign, Op::ShiftUnsignedRightAssign} >>
        logical_or_expr))[([](auto& ctx) {
       const auto& attr = x3::_attr(ctx);
       std::vector<std::shared_ptr<ExprAST>> terms{boost::fusion::at_c<0>(attr)};
@@ -318,8 +318,9 @@ struct construct_ast {
                      shift_expr))[construct_ast_fn];
 
 [[maybe_unused]] auto const shift_expr_def =
-    (additive_expr >> *(op_token_parser{Op::ShiftLeft, Op::ShiftRight} >>
-                        additive_expr))[construct_ast_fn];
+    (additive_expr >>
+     *(op_token_parser{Op::ShiftLeft, Op::ShiftRight, Op::ShiftUnsignedRight} >>
+       additive_expr))[construct_ast_fn];
 
 [[maybe_unused]] auto const additive_expr_def =
     (multiplicative_expr >> *(op_token_parser{Op::Add, Op::Sub} >>
