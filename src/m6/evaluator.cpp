@@ -25,6 +25,7 @@
 #include "m6/evaluator.hpp"
 
 #include "m6/symbol_table.hpp"
+#include "m6/value_internal/lvalue.hpp"
 
 namespace m6 {
 
@@ -34,8 +35,10 @@ Evaluator::Evaluator(std::shared_ptr<SymbolTable> sym_tab)
 Value Evaluator::operator()(std::monostate) const {
   return make_value(nullptr);
 }
-Value Evaluator::operator()(const IdExpr& str) const {
-  throw std::runtime_error("not supported yet.");
+Value Evaluator::operator()(const IdExpr& idexpr) const {
+  if (sym_tab_ == nullptr)
+    throw std::runtime_error("Evaluator: no symbol table avaliable.");
+  return std::make_shared<lValue>(sym_tab_, idexpr.id);
 }
 Value Evaluator::operator()(int x) const { return make_value(x); }
 Value Evaluator::operator()(const std::string& x) const {

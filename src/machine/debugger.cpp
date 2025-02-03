@@ -72,9 +72,11 @@ void Debugger::Execute() {
         continue;
 
       // process interpreter command
-      if (input == "c" || input == "continue")
+      else if (input == "kill")
+        std::terminate();
+      else if (input == "c" || input == "continue")
         break;
-      if (input == "l" || input == "list") {
+      else if (input == "l" || input == "list") {
         auto location = machine_.Location();
         std::cout << location.DebugString() << ' ';
         auto instruction = machine_.GetScriptor()->ResolveInstruction(location);
@@ -84,8 +86,7 @@ void Debugger::Execute() {
                   << std::endl;
 
         continue;
-      }
-      if (input == "n" || input == "next") {
+      } else if (input == "n" || input == "next") {
         should_break_ = true;
         break;
       }

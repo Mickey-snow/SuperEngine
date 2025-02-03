@@ -27,6 +27,7 @@
 #include "m6/evaluator.hpp"
 #include "m6/op.hpp"
 #include "m6/parser.hpp"
+#include "m6/symbol_table.hpp"
 #include "m6/tokenizer.hpp"
 #include "m6/value.hpp"
 #include "m6/value_error.hpp"
@@ -37,12 +38,16 @@ using namespace m6;
 
 class ExpressionEvaluatorTest : public ::testing::Test {
  protected:
+  void SetUp() override { symtab = std::make_shared<SymbolTable>(); }
+
   auto Eval(const std::string_view input) {
     Tokenizer tokenizer(input);
     auto expr = ParseExpression(std::span(tokenizer.parsed_tok_));
-    static Evaluator evaluator;
+    Evaluator evaluator(symtab);
     return expr->Apply(evaluator);
   }
+
+  std::shared_ptr<SymbolTable> symtab;
 };
 
 TEST_F(ExpressionEvaluatorTest, Unary) {
@@ -179,4 +184,12 @@ TEST_F(ExpressionEvaluatorTest, StringArithmetic) {
   EXPECT_THROW(Eval(R"("Number: " + 100)"), m6::UndefinedOperator);
   EXPECT_THROW(Eval(R"("Invalid" - "Operation")"), m6::UndefinedOperator);
   EXPECT_THROW(Eval(R"("Negative" * -2)"), m6::UndefinedOperator);
+}
+
+TEST_F(ExpressionEvaluatorTest, GlobalVariable) {
+  EXPECT_NO_THROW(Eval(R"( beverage = "espresso" )"));
+  EXPECT_VALUE_EQ(symtab->Get("beverage"), "espresso");
+
+  EXPECT_NO_THROW(Eval(R"( two = 1 + 1 )"));
+  EXPECT_VALUE_EQ(symtab->Get("two"), 2);
 }
