@@ -26,6 +26,7 @@
 
 #include "m6/evaluator.hpp"
 #include "m6/parser.hpp"
+#include "m6/symbol_table.hpp"
 #include "m6/tokenizer.hpp"
 #include "m6/value.hpp"
 #include "machine/rlmachine.hpp"
@@ -33,7 +34,8 @@
 
 #include <iostream>
 
-Debugger::Debugger(RLMachine& machine) : machine_(machine) {}
+Debugger::Debugger(RLMachine& machine)
+    : machine_(machine), symbol_tab_(std::make_shared<m6::SymbolTable>()) {}
 
 constexpr std::string_view copyright_info = R"(
 Copyright (C) 2025 Serina Sakurai
@@ -90,7 +92,7 @@ void Debugger::Execute() {
 
       m6::Tokenizer tokenizer(input);
       auto expr = m6::ParseExpression(std::span(tokenizer.parsed_tok_));
-      std::cout << expr->Apply(m6::Evaluator())->Str() << std::endl;
+      std::cout << expr->Apply(m6::Evaluator(symbol_tab_))->Str() << std::endl;
     } catch (std::exception& e) {
       std::cerr << e.what() << std::endl;
     }

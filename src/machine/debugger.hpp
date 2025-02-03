@@ -28,6 +28,9 @@
 #include "machine/instruction.hpp"
 
 class RLMachine;
+namespace m6 {
+class SymbolTable;
+}
 
 class Debugger : public EventListener {
  public:
@@ -40,6 +43,8 @@ class Debugger : public EventListener {
 
  private:
   RLMachine& machine_;
+
+  std::shared_ptr<m6::SymbolTable> symbol_tab_;
 
   bool should_break_ = false;
 };

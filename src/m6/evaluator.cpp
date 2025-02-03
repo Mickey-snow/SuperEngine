@@ -24,7 +24,12 @@
 
 #include "m6/evaluator.hpp"
 
+#include "m6/symbol_table.hpp"
+
 namespace m6 {
+
+Evaluator::Evaluator(std::shared_ptr<SymbolTable> sym_tab)
+    : sym_tab_(sym_tab) {}
 
 Value Evaluator::operator()(std::monostate) const {
   return make_value(nullptr);

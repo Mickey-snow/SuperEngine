@@ -29,7 +29,11 @@
 
 namespace m6 {
 
+class SymbolTable;
+
 struct Evaluator {
+  Evaluator(std::shared_ptr<SymbolTable> sym_tab = nullptr);
+
   Value operator()(std::monostate) const;
   Value operator()(const IdExpr& str) const;
   Value operator()(int x) const;
@@ -40,6 +44,8 @@ struct Evaluator {
   Value operator()(const ParenExpr& x) const;
   Value operator()(const UnaryExpr& x) const;
   Value operator()(const BinaryExpr& x) const;
+
+  std::shared_ptr<SymbolTable> sym_tab_;
 };
 
 }  // namespace m6
