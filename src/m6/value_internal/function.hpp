@@ -24,20 +24,13 @@
 
 #pragma once
 
-#include "m6/expr_ast.hpp"
-
-#include <any>
-#include <map>
-#include <string>
-#include <typeindex>
+#include "m6/value.hpp"
 
 namespace m6 {
 
-using Value = std::shared_ptr<IValue>;
-class IValue {
+class Function : public IValue {
  public:
-  IValue();
-  virtual ~IValue() = default;
+  Function(std::string name);
 
   virtual std::string Str() const;
   virtual std::string Desc() const;
@@ -51,9 +44,9 @@ class IValue {
 
   virtual Value Invoke(std::vector<Value> args,
                        std::map<std::string, Value> kwargs) const;
-};
 
-Value make_value(int value);
-Value make_value(std::string value);
+ private:
+  std::string name_;
+};
 
 }  // namespace m6

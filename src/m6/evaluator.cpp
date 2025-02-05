@@ -24,15 +24,21 @@
 
 #include "m6/evaluator.hpp"
 
+#include "log/domain_logger.hpp"
 #include "m6/symbol_table.hpp"
 #include "m6/value_internal/lvalue.hpp"
 
+#include <algorithm>
+
 namespace m6 {
+
+static DomainLogger logger("Evaluator");
 
 Evaluator::Evaluator(std::shared_ptr<SymbolTable> sym_tab)
     : sym_tab_(sym_tab) {}
 
 Value Evaluator::operator()(std::monostate) const {
+  logger(Severity::Warn) << "Evaluating nil";
   return make_value(nullptr);
 }
 Value Evaluator::operator()(const IdExpr& idexpr) const {
@@ -45,7 +51,13 @@ Value Evaluator::operator()(const std::string& x) const {
   return make_value(x);
 }
 Value Evaluator::operator()(const InvokeExpr& x) const {
-  throw std::runtime_error("not supported yet.");
+  Value fn = x.fn->Apply(*this);
+  std::vector<Value> args;
+  args.reserve(x.args.size());
+  std::transform(x.args.cbegin(), x.args.cend(), std::back_inserter(args),
+                 [&](const auto arg_ast) { return arg_ast->Apply(*this); });
+  std::map<std::string, Value> kwargs;
+  return fn->Invoke(args, kwargs);
 }
 Value Evaluator::operator()(const SubscriptExpr& x) const {
   throw std::runtime_error("not supported yet.");

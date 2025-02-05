@@ -44,4 +44,10 @@ class ValueError : public std::runtime_error {
   using std::runtime_error::what;
 };
 
+class TypeError : public std::runtime_error {
+ public:
+  explicit TypeError(std::string msg);
+  using std::runtime_error::what;
+};
+
 }  // namespace m6

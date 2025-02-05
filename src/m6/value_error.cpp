@@ -34,4 +34,6 @@ UndefinedOperator::UndefinedOperator(Op op, std::vector<std::string> operands)
 
 ValueError::ValueError(std::string msg) : std::runtime_error(std::move(msg)) {}
 
+TypeError::TypeError(std::string msg) : std::runtime_error(std::move(msg)) {}
+
 }  // namespace m6

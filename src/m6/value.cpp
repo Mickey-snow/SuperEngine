@@ -57,4 +57,9 @@ Value IValue::Operator(Op op) const {
   throw UndefinedOperator(op, {this->Desc()});
 }
 
+Value IValue::Invoke(std::vector<Value> args,
+                     std::map<std::string, Value> kwargs) const {
+  throw TypeError(Desc() + " object is not callable.");
+}
+
 }  // namespace m6
