@@ -22,32 +22,20 @@
 //
 // -----------------------------------------------------------------------
 
-#pragma once
-
-#include "m6/expr_ast.hpp"
-
-#include <stdexcept>
-#include <string>
-#include <vector>
+#include "m6/exception.hpp"
+#include "m6/op.hpp"
+#include "utilities/string_utilities.hpp"
 
 namespace m6 {
 
-class UndefinedOperator : public std::logic_error {
- public:
-  explicit UndefinedOperator(Op op, std::vector<std::string> operands);
-  using std::logic_error::what;
-};
+UndefinedOperator::UndefinedOperator(Op op, std::vector<std::string> operands)
+    : std::logic_error("no match for 'operator " + ToString(op) +
+                       "' (operand type '" + Join(",", operands)) {}
 
-class ValueError : public std::runtime_error {
- public:
-  explicit ValueError(std::string msg);
-  using std::runtime_error::what;
-};
+ValueError::ValueError(std::string msg) : std::runtime_error(std::move(msg)) {}
 
-class TypeError : public std::runtime_error {
- public:
-  explicit TypeError(std::string msg);
-  using std::runtime_error::what;
-};
+TypeError::TypeError(std::string msg) : std::runtime_error(std::move(msg)) {}
+
+SyntaxError::SyntaxError(std::string msg) : std::logic_error(std::move(msg)) {}
 
 }  // namespace m6

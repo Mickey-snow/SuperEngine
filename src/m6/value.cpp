@@ -24,7 +24,7 @@
 
 #include "m6/value.hpp"
 #include "m6/op.hpp"
-#include "m6/value_error.hpp"
+#include "m6/exception.hpp"
 #include "m6/value_internal/int.hpp"
 #include "m6/value_internal/str.hpp"
 

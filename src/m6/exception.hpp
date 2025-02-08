@@ -24,9 +24,31 @@
 
 #pragma once
 
+#include "m6/expr_ast.hpp"
+
 #include <stdexcept>
+#include <string>
+#include <vector>
 
 namespace m6 {
+
+class UndefinedOperator : public std::logic_error {
+ public:
+  explicit UndefinedOperator(Op op, std::vector<std::string> operands);
+  using std::logic_error::what;
+};
+
+class ValueError : public std::runtime_error {
+ public:
+  explicit ValueError(std::string msg);
+  using std::runtime_error::what;
+};
+
+class TypeError : public std::runtime_error {
+ public:
+  explicit TypeError(std::string msg);
+  using std::runtime_error::what;
+};
 
 class SyntaxError : public std::logic_error {
  public:

@@ -25,7 +25,7 @@
 #include "m6/value_internal/str.hpp"
 
 #include "m6/op.hpp"
-#include "m6/value_error.hpp"
+#include "m6/exception.hpp"
 
 namespace m6 {
 String::String(std::string val) : val_(std::move(val)) {}

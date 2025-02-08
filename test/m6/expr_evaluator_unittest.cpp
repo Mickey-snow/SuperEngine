@@ -25,12 +25,12 @@
 #include <gtest/gtest.h>
 
 #include "m6/evaluator.hpp"
+#include "m6/exception.hpp"
 #include "m6/op.hpp"
 #include "m6/parser.hpp"
 #include "m6/symbol_table.hpp"
 #include "m6/tokenizer.hpp"
 #include "m6/value.hpp"
-#include "m6/value_error.hpp"
 
 #include "util.hpp"
 
@@ -38,16 +38,19 @@ using namespace m6;
 
 class ExpressionEvaluatorTest : public ::testing::Test {
  protected:
-  void SetUp() override { symtab = std::make_shared<SymbolTable>(); }
+  void SetUp() override {
+    symtab = std::make_shared<SymbolTable>();
+    evaluator = std::make_shared<Evaluator>(symtab);
+  }
 
   auto Eval(const std::string_view input) {
     Tokenizer tokenizer(input);
     auto expr = ParseExpression(std::span(tokenizer.parsed_tok_));
-    Evaluator evaluator(symtab);
-    return expr->Apply(evaluator);
+    return expr->Apply(*evaluator);
   }
 
   std::shared_ptr<SymbolTable> symtab;
+  std::shared_ptr<Evaluator> evaluator;
 };
 
 TEST_F(ExpressionEvaluatorTest, Unary) {
@@ -192,4 +195,24 @@ TEST_F(ExpressionEvaluatorTest, GlobalVariable) {
 
   EXPECT_NO_THROW(Eval(R"( two = 1 + 1 )"));
   EXPECT_VALUE_EQ(symtab->Get("two"), 2);
+}
+
+TEST_F(ExpressionEvaluatorTest, Assignment) {
+  EXPECT_NO_THROW(Eval(R"( v2 = 89 )"));
+  EXPECT_NO_THROW({
+    EXPECT_TRUE(symtab->Exists("v2"));
+    EXPECT_VALUE_EQ(symtab->Get("v2"), 89);
+  });
+
+  EXPECT_NO_THROW(Eval(R"( v3 = "hello" )"));
+  EXPECT_NO_THROW({
+    EXPECT_TRUE(symtab->Exists("v3"));
+    EXPECT_VALUE_EQ(symtab->Get("v3"), "hello");
+  });
+
+  EXPECT_NO_THROW(Eval(R"( v3 = v3 + ", world" )"));
+  EXPECT_NO_THROW({
+    EXPECT_TRUE(symtab->Exists("v3"));
+    EXPECT_VALUE_EQ(symtab->Get("v3"), "hello, world");
+  });
 }

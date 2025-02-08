@@ -26,8 +26,7 @@
 
 #include "log/domain_logger.hpp"
 #include "m6/symbol_table.hpp"
-#include "m6/syntax_error.hpp"
-#include "m6/value_internal/lvalue.hpp"
+#include "m6/exception.hpp"
 
 #include <algorithm>
 
