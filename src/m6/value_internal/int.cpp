@@ -40,6 +40,7 @@ std::string Int::Desc() const { return "<int: " + Str() + '>'; }
 std::type_index Int::Type() const noexcept { return typeid(int); }
 
 std::any Int::Get() const { return std::make_any<int>(val_); }
+void* Int::Getptr() { return &val_; }
 
 Value Int::Duplicate() { return make_value(val_); }
 
@@ -56,37 +57,68 @@ Value Int::Operator(Op op, Value rhs) {
 
       case Op::Add:
         return make_value(val_ + rhs_val);
+      case Op::AddAssign:
+        return make_value(val_ += rhs_val);
       case Op::Sub:
         return make_value(val_ - rhs_val);
+      case Op::SubAssign:
+        return make_value(val_ -= rhs_val);
       case Op::Mul:
         return make_value(val_ * rhs_val);
+      case Op::MulAssign:
+        return make_value(val_ *= rhs_val);
       case Op::Div: {
         if (rhs_val == 0)
           return make_value(0);
         return make_value(val_ / rhs_val);
       }
+      case Op::DivAssign: {
+        if (rhs_val == 0)
+          return make_value(val_ = 0);
+        return make_value(val_ /= rhs_val);
+      }
       case Op::Mod:
         return make_value(val_ % rhs_val);
+      case Op::ModAssign:
+        return make_value(val_ %= rhs_val);
       case Op::BitAnd:
         return make_value(val_ & rhs_val);
+      case Op::BitAndAssign:
+        return make_value(val_ &= rhs_val);
       case Op::BitOr:
         return make_value(val_ | rhs_val);
+      case Op::BitOrAssign:
+        return make_value(val_ |= rhs_val);
       case Op::BitXor:
         return make_value(val_ ^ rhs_val);
-      case Op::ShiftLeft: {
+      case Op::BitXorAssign:
+        return make_value(val_ ^= rhs_val);
+      case Op::ShiftLeft:
+      case Op::ShiftLeftAssign: {
         if (rhs_val < 0)
           throw ValueError("negative shift count: " + std::to_string(rhs_val));
-        return make_value(val_ << rhs_val);
+        const auto result = val_ << rhs_val;
+        if (op == Op::ShiftLeftAssign)
+          val_ = result;
+        return make_value(result);
       }
-      case Op::ShiftRight: {
+      case Op::ShiftRight:
+      case Op::ShiftRightAssign: {
         if (rhs_val < 0)
           throw ValueError("negative shift count: " + std::to_string(rhs_val));
-        return make_value(val_ >> rhs_val);
+        const auto result = val_ >> rhs_val;
+        if (op == Op::ShiftRightAssign)
+          val_ = result;
+        return make_value(result);
       }
-      case Op::ShiftUnsignedRight: {
+      case Op::ShiftUnsignedRight:
+      case Op::ShiftUnsignedRightAssign: {
         if (rhs_val < 0)
           throw ValueError("negative shift count: " + std::to_string(rhs_val));
-        return make_value(std::bit_cast<uint32_t>(val_) >> rhs_val);
+        const auto result = std::bit_cast<uint32_t>(val_) >> rhs_val;
+        if (op == Op::ShiftUnsignedRightAssign)
+          val_ = result;
+        return make_value(result);
       }
       case Op::Equal:
         return val_ == rhs_val ? True : False;

@@ -40,6 +40,7 @@ class Int : public IValue {
   virtual Value Duplicate() override;
 
   virtual std::any Get() const override;
+  virtual void* Getptr() override;
 
   virtual Value Operator(Op op, Value rhs) override;
   virtual Value Operator(Op op) override;
