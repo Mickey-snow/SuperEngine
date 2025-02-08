@@ -87,3 +87,64 @@ TEST(ArgparseTest, Arglist) {
   EXPECT_EQ(first, "sum");
   EXPECT_EQ(remain, (std::vector<int>{1, 2, 3, 4}));
 }
+
+TEST(ArgparseTest, InsufficientArguments) {
+  EXPECT_THROW(
+      { [[maybe_unused]] auto [v] = ParseArgs<int>({}); }, SyntaxError)
+      << "Insufficient arguments for a non-optional parameter should throw "
+         "SyntaxError";
+}
+
+TEST(ArgparseTest, TooManyArguments) {
+  EXPECT_THROW(
+      {
+        [[maybe_unused]] auto [v] =
+            ParseArgs<int>({make_value(1), make_value(1)});
+      },
+      SyntaxError);
+}
+
+TEST(ArgparseTest, TypeMismatch) {
+  EXPECT_THROW(
+      {
+        [[maybe_unused]] auto [v] = ParseArgs<int>({make_value("not an int")});
+      },
+      TypeError)
+      << "Type mismatch for a non-optional int should throw TypeError";
+}
+
+TEST(ArgparseTest, OptionalMismatch) {
+  auto [optInt, v1] =
+      ParseArgs<std::optional<int>, std::string>({make_value("not an int")});
+  EXPECT_FALSE(optInt.has_value())
+      << "When an optional int parameter receives an argument of the wrong "
+         "type, it returns nullopt";
+}
+
+TEST(ArgparseTest, VectorTypeMismatch) {
+  EXPECT_THROW(
+      {
+        [[maybe_unused]] auto [vec] = ParseArgs<std::vector<int>>(
+            {make_value(1), make_value("bad"), make_value(3)});
+      },
+      TypeError)
+      << "A vector parameter should throw TypeError if any element fails to "
+         "convert";
+}
+
+TEST(ArgparseTest, EmptyVector) {
+  auto [cmd, vec] =
+      ParseArgs<std::string, std::vector<int>>({make_value("cmd")});
+  EXPECT_EQ(cmd, "cmd");
+  EXPECT_TRUE(vec.empty()) << "A vector parameter with no corresponding "
+                              "arguments should yield an empty vector";
+}
+
+TEST(ArgparseTest, PointerMismatch) {
+  EXPECT_THROW(
+      {
+        [[maybe_unused]] auto [ptr] =
+            ParseArgs<int*>({make_value("not an int")});
+      },
+      TypeError);
+}

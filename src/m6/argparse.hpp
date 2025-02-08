@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include "m6/exception.hpp"
 #include "m6/value.hpp"
 #include "utilities/mpl.hpp"
 
@@ -37,70 +38,107 @@ namespace m6 {
 namespace internal {
 
 template <typename T>
+concept is_optional = requires { typename T::value_type; } &&
+                      std::same_as<T, std::optional<typename T::value_type>>;
+
+template <typename T>
+concept is_vector = requires { typename T::value_type; } &&
+                    std::same_as<T, std::vector<typename T::value_type>>;
+
+template <typename T>
+concept is_parser = requires(T x, Value val) {
+  { x.Parsable(val) } -> std::convertible_to<bool>;
+  { x.Parse(val) };
+} && std::is_constructible_v<T>;
+
+class IntParser {
+ public:
+  IntParser() = default;
+  bool Parsable(Value val) { return val->Type() == typeid(int); }
+  void Parse(Value val) { value = static_cast<int*>(val->Getptr()); }
+  int* value;
+};
+static_assert(is_parser<IntParser>);
+
+class StrParser {
+ public:
+  StrParser() = default;
+  bool Parsable(Value val) { return val->Type() == typeid(std::string); }
+  void Parse(Value val) { value = static_cast<std::string*>(val->Getptr()); }
+  std::string* value;
+};
+static_assert(is_parser<StrParser>);
+
+template <typename T>
+auto CreateParser() {
+  if constexpr (false)
+    ;
+  else if constexpr (std::same_as<T, int>)
+    return IntParser();
+  else if constexpr (std::same_as<T, std::string>)
+    return StrParser();
+  else
+    static_assert(always_false<T>);
+}
+
+template <typename T>
 auto parse_impl(auto& begin, auto const& end) -> T {
   if constexpr (false)
     ;
 
-  else if constexpr (std::same_as<T, int>) {
+  else if constexpr (std::is_pointer_v<T>) {  // reference
+    auto parser = CreateParser<std::remove_pointer_t<T>>();
+    if (begin == end)
+      throw SyntaxError("Not enough arguments provided.");
+
     Value it = *begin++;
-    return std::any_cast<int>(it->Get());
+    if (!parser.Parsable(it))
+      throw TypeError("No viable convertion from " + it->Desc());
+
+    parser.Parse(it);
+    return parser.value;
   }
 
-  else if constexpr (std::same_as<T, int*>) {
-    Value it = *begin++;
-    return static_cast<int*>(it->Getptr());
-  }
-
-  else if constexpr (std::same_as<T, std::optional<int>>) {
+  else if constexpr (is_optional<T>) {  // optional value
     if (begin == end)
       return std::nullopt;
-    if ((*begin)->Type() != typeid(int))
-      return std::nullopt;
 
-    Value it = *begin++;
-    return std::any_cast<int>(it->Get());
+    auto parser = CreateParser<typename T::value_type>();
+    Value it = *begin;
+
+    if (parser.Parsable(it)) {
+      ++begin;
+      parser.Parse(it);
+      return std::make_optional(*parser.value);
+    } else
+      return std::nullopt;
   }
 
-  else if constexpr (std::same_as<T, std::vector<int>>) {
-    std::vector<int> result;
+  else if constexpr (is_vector<T>) {  // argument list
+    auto parser = CreateParser<typename T::value_type>();
+    T result;
+
     while (begin != end) {
       Value it = *begin++;
-      result.emplace_back(std::any_cast<int>(it->Get()));
-    }
-    return result;
-  }
-
-  else if constexpr (std::same_as<T, std::string>) {
-    Value it = *begin++;
-    return std::any_cast<std::string>(it->Get());
-  }
-
-  else if constexpr (std::same_as<T, std::string*>) {
-    Value it = *begin++;
-    return static_cast<std::string*>(it->Getptr());
-  }
-
-  else if constexpr (std::same_as<T, std::optional<std::string>>) {
-    if (begin == end)
-      return std::nullopt;
-    if ((*begin)->Type() != typeid(std::string))
-      return std::nullopt;
-
-    Value it = *begin++;
-    return std::any_cast<std::string>(it->Get());
-  }
-
-  else if constexpr (std::same_as<T, std::vector<std::string>>) {
-    std::vector<std::string> result;
-    while (begin != end) {
-      Value it = *begin++;
-      result.emplace_back(std::any_cast<std::string>(it->Get()));
+      if (!parser.Parsable(it))
+        throw TypeError("No viable convertion from " + it->Desc());
+      parser.Parse(it);
+      result.emplace_back(std::move(*parser.value));
     }
     return result;
   }
 
   else {
-    static_assert(false, "ParseArgs: no implementation found.");
+    auto parser = CreateParser<T>();
+    if (begin == end)
+      throw SyntaxError("Not enough arguments provided.");
+
+    Value it = *begin++;
+    if (!parser.Parsable(it))
+      throw TypeError("No viable convertion from " + it->Desc());
+
+    parser.Parse(it);
+    return *parser.value;
   }
 }
 
@@ -109,7 +147,10 @@ auto parse_impl(auto& begin, auto const& end) -> T {
 template <typename... Ts>
 auto ParseArgs(std::vector<Value> args) -> std::tuple<Ts...> {
   auto begin = args.begin(), end = args.end();
-  return std::tuple{internal::parse_impl<Ts>(begin, end)...};
+  auto result = std::tuple{internal::parse_impl<Ts>(begin, end)...};
+  if (begin != end)
+    throw SyntaxError("Too many arguments provided.");
+  return result;
 }
 
 }  // namespace m6
