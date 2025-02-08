@@ -136,3 +136,10 @@ TEST(TypelistTest, SizeWithNestedTypeLists) {
 
   EXPECT_EQ(SizeOfTypeList<OuterList>::value, 3);
 }
+
+TEST(TypelistTest, UnpackTypes) {
+  using types = TypeList<int, std::string, void*>;
+  using result = typename Unpack<std::tuple, types>::type;
+
+  EXPECT_TRUE((std::same_as<result, std::tuple<int, std::string, void*>>));
+}
