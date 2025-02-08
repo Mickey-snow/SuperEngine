@@ -68,6 +68,10 @@ std::string BinaryExpr::DebugString() const {
   return lhs->DebugString() + ToString(op) + rhs->DebugString();
 }
 
+std::string AssignExpr::DebugString() const {
+  return lhs->DebugString() + '=' + rhs->DebugString();
+}
+
 std::string UnaryExpr::DebugString() const {
   return ToString(op) + sub->DebugString();
 }

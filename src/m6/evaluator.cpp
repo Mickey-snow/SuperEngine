@@ -26,6 +26,7 @@
 
 #include "log/domain_logger.hpp"
 #include "m6/symbol_table.hpp"
+#include "m6/syntax_error.hpp"
 #include "m6/value_internal/lvalue.hpp"
 
 #include <algorithm>
@@ -44,7 +45,7 @@ Value Evaluator::operator()(std::monostate) const {
 Value Evaluator::operator()(const IdExpr& idexpr) const {
   if (sym_tab_ == nullptr)
     throw std::runtime_error("Evaluator: no symbol table avaliable.");
-  return std::make_shared<lValue>(sym_tab_, idexpr.id);
+  return sym_tab_->Get(idexpr.id);
 }
 Value Evaluator::operator()(int x) const { return make_value(x); }
 Value Evaluator::operator()(const std::string& x) const {
@@ -76,6 +77,23 @@ Value Evaluator::operator()(const BinaryExpr& x) const {
   Value rhs = x.rhs->Apply(*this);
   Value lhs = x.lhs->Apply(*this);
   return lhs->Operator(x.op, rhs);
+}
+Value Evaluator::operator()(const AssignExpr& x) const {
+  // resolve address
+  if (sym_tab_ == nullptr)
+    throw std::runtime_error("Evaluator: no symbol table avaliable.");
+  const std::string varname = x.lhs->Apply([](const auto& x) -> std::string {
+    using T = std::decay_t<decltype(x)>;
+
+    if constexpr (std::same_as<T, IdExpr>)
+      return x.id;
+
+    throw m6::SyntaxError("Cannot assign.");
+  });
+
+  Value value = x.rhs->Apply(*this);
+  sym_tab_->Set(varname, value);
+  return value;
 }
 
 }  // namespace m6

@@ -24,29 +24,14 @@
 
 #pragma once
 
-#include "m6/expr_ast.hpp"
-#include "m6/value.hpp"
+#include <stdexcept>
 
 namespace m6 {
 
-class SymbolTable;
-
-struct Evaluator {
-  Evaluator(std::shared_ptr<SymbolTable> sym_tab = nullptr);
-
-  Value operator()(std::monostate) const;
-  Value operator()(const IdExpr& str) const;
-  Value operator()(int x) const;
-  Value operator()(const std::string& x) const;
-  Value operator()(const InvokeExpr& x) const;
-  Value operator()(const SubscriptExpr& x) const;
-  Value operator()(const MemberExpr& x) const;
-  Value operator()(const ParenExpr& x) const;
-  Value operator()(const UnaryExpr& x) const;
-  Value operator()(const BinaryExpr& x) const;
-  Value operator()(const AssignExpr& x) const;
-
-  std::shared_ptr<SymbolTable> sym_tab_;
+class SyntaxError : public std::logic_error {
+ public:
+  explicit SyntaxError(std::string msg);
+  using std::logic_error::what;
 };
 
 }  // namespace m6

@@ -282,8 +282,12 @@ struct construct_ast {
         auto op = operators.back();
         operators.pop_back();
 
-        BinaryExpr expr(op, lhs, result);
-        result = std::make_shared<ExprAST>(std::move(expr));
+        if (op == Op::Assign) {  // simple assignment
+          result = std::make_shared<ExprAST>(AssignExpr(lhs, result));
+        } else {		// compound assignment
+          BinaryExpr expr(op, lhs, result);
+          result = std::make_shared<ExprAST>(std::move(expr));
+        }
       }
       x3::_val(ctx) = result;
     })];

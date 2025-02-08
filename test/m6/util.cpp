@@ -27,6 +27,9 @@
 std::string GetPrefix::operator()(const m6::BinaryExpr& x) const {
   return ToString(x.op) + ' ' + x.lhs->Apply(*this) + ' ' + x.rhs->Apply(*this);
 }
+std::string GetPrefix::operator()(const m6::AssignExpr& x) const {
+  return "= " + x.lhs->Apply(*this) + ' ' + x.rhs->Apply(*this);
+}
 std::string GetPrefix::operator()(const m6::UnaryExpr& x) const {
   return ToString(x.op) + ' ' + x.sub->Apply(*this);
 }

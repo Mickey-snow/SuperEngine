@@ -54,6 +54,14 @@ struct BinaryExpr {
   std::string DebugString() const;
 };
 
+// Simple Assignment '='
+struct AssignExpr {
+  std::shared_ptr<ExprAST> lhs;
+  std::shared_ptr<ExprAST> rhs;
+
+  std::string DebugString() const;
+};
+
 // Unary operation node
 struct UnaryExpr {
   Op op;
@@ -105,6 +113,7 @@ using expr_variant_t = std::variant<std::monostate,  // null
                                     SubscriptExpr,
                                     MemberExpr,
                                     BinaryExpr,
+                                    AssignExpr,
                                     UnaryExpr,
                                     ParenExpr>;
 
