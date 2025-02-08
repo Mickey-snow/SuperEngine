@@ -23,8 +23,8 @@
 // -----------------------------------------------------------------------
 
 #include "m6/value.hpp"
-#include "m6/op.hpp"
 #include "m6/exception.hpp"
+#include "m6/op.hpp"
 #include "m6/value_internal/int.hpp"
 #include "m6/value_internal/str.hpp"
 
@@ -46,19 +46,17 @@ std::string IValue::Desc() const { return "???"; }
 
 std::any IValue::Get() const { return std::any(); }  // nil
 
-Value IValue::Operator(Op op, Value rhs) const {
+Value IValue::Operator(Op op, Value rhs) {
   if (op == Op::Comma)
     return rhs;
 
   throw UndefinedOperator(op, {this->Desc(), rhs->Desc()});
 }
 
-Value IValue::Operator(Op op) const {
-  throw UndefinedOperator(op, {this->Desc()});
-}
+Value IValue::Operator(Op op) { throw UndefinedOperator(op, {this->Desc()}); }
 
 Value IValue::Invoke(std::vector<Value> args,
-                     std::map<std::string, Value> kwargs) const {
+                     std::map<std::string, Value> kwargs) {
   throw TypeError(Desc() + " object is not callable.");
 }
 

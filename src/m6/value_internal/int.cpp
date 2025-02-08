@@ -24,8 +24,8 @@
 
 #include "m6/value_internal/int.hpp"
 
-#include "m6/op.hpp"
 #include "m6/exception.hpp"
+#include "m6/op.hpp"
 
 #include <bit>
 
@@ -41,7 +41,9 @@ std::type_index Int::Type() const noexcept { return typeid(int); }
 
 std::any Int::Get() const { return std::make_any<int>(val_); }
 
-Value Int::Operator(Op op, Value rhs) const {
+Value Int::Duplicate() { return make_value(val_); }
+
+Value Int::Operator(Op op, Value rhs) {
   try {
     const int rhs_val = std::any_cast<int>(rhs->Get());
 
@@ -113,7 +115,7 @@ Value Int::Operator(Op op, Value rhs) const {
   throw UndefinedOperator(op, {this->Desc(), rhs->Desc()});
 }
 
-Value Int::Operator(Op op) const {
+Value Int::Operator(Op op) {
   switch (op) {
     case Op::Add:
       return make_value(val_);

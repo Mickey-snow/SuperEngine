@@ -25,8 +25,8 @@
 #include "m6/evaluator.hpp"
 
 #include "log/domain_logger.hpp"
-#include "m6/symbol_table.hpp"
 #include "m6/exception.hpp"
+#include "m6/symbol_table.hpp"
 
 #include <algorithm>
 
@@ -91,7 +91,7 @@ Value Evaluator::operator()(const AssignExpr& x) const {
   });
 
   Value value = x.rhs->Apply(*this);
-  sym_tab_->Set(varname, value);
+  sym_tab_->Set(varname, value.unique() ? value : value->Duplicate());
   return value;
 }
 

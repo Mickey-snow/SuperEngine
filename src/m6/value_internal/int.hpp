@@ -37,10 +37,12 @@ class Int : public IValue {
 
   virtual std::type_index Type() const noexcept override;
 
+  virtual Value Duplicate() override;
+
   virtual std::any Get() const override;
 
-  virtual Value Operator(Op op, Value rhs) const override;
-  virtual Value Operator(Op op) const override;
+  virtual Value Operator(Op op, Value rhs) override;
+  virtual Value Operator(Op op) override;
 
  private:
   int val_;

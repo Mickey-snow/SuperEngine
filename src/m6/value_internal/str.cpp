@@ -24,8 +24,8 @@
 
 #include "m6/value_internal/str.hpp"
 
-#include "m6/op.hpp"
 #include "m6/exception.hpp"
+#include "m6/op.hpp"
 
 namespace m6 {
 String::String(std::string val) : val_(std::move(val)) {}
@@ -37,10 +37,12 @@ std::type_index String::Type() const noexcept { return typeid(std::string); }
 
 std::any String::Get() const { return val_; }
 
-Value String::Operator(Op op, Value rhs) const {
+Value String::Duplicate() { return make_value(val_); }
+
+Value String::Operator(Op op, Value rhs) {
   if (rhs->Type() == typeid(int)) {
     auto rhs_value = std::any_cast<int>(rhs->Get());
-    if (rhs_value >= 0 && op == Op::Mul) {
+    if (rhs_value >= 0 && (op == Op::Mul || op == Op::MulAssign)) {
       std::string result, current = val_;
       result.reserve(val_.size() * rhs_value);
       while (rhs_value) {
@@ -49,7 +51,10 @@ Value String::Operator(Op op, Value rhs) const {
         current = current + current;
         rhs_value >>= 1;
       }
-      return make_value(result);
+
+      if (op == Op::MulAssign)
+        val_ = result;
+      return make_value(std::move(result));
     }
   }
 
@@ -65,6 +70,9 @@ Value String::Operator(Op op, Value rhs) const {
         return val_ != rhs_value ? True : False;
       case Op::Add:
         return make_value(val_ + rhs_value);
+      case Op::AddAssign:
+        val_ += rhs_value;
+        return make_value(val_);
       default:
         break;
     }
@@ -73,8 +81,6 @@ Value String::Operator(Op op, Value rhs) const {
   throw UndefinedOperator(op, {this->Desc(), rhs->Desc()});
 }
 
-Value String::Operator(Op op) const {
-  throw UndefinedOperator(op, {this->Desc()});
-}
+Value String::Operator(Op op) { throw UndefinedOperator(op, {this->Desc()}); }
 
 }  // namespace m6
