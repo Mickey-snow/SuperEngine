@@ -36,6 +36,7 @@ std::string String::Desc() const { return "<str: " + val_ + '>'; }
 std::type_index String::Type() const noexcept { return typeid(std::string); }
 
 std::any String::Get() const { return val_; }
+void* String::Getptr() { return &val_; }
 
 Value String::Duplicate() { return make_value(val_); }
 

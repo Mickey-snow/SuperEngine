@@ -28,6 +28,7 @@
 #include "util.hpp"
 
 #include "m6/evaluator.hpp"
+#include "m6/libs/libstr.hpp"
 #include "m6/parser.hpp"
 #include "m6/symbol_table.hpp"
 #include "m6/tokenizer.hpp"
@@ -40,6 +41,8 @@ class StrTest : public ::testing::Test {
   void SetUp() override {
     symtab = std::make_shared<SymbolTable>();
     evaluator = std::make_shared<Evaluator>(symtab);
+
+    LoadLibstr(symtab);
   }
 
   auto Eval(const std::string_view input) {
@@ -63,6 +66,7 @@ TEST_F(StrTest, CompoundAssignment) {
 }
 
 TEST_F(StrTest, strcpy) {
+  Eval(R"( s0 = "" )");
   Eval(R"( strcpy(s0, "valid", 2) )");
   EXPECT_VALUE_EQ(symtab->Get("s0"), "va");
 }

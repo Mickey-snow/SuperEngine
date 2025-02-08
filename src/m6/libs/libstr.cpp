@@ -22,23 +22,27 @@
 //
 // -----------------------------------------------------------------------
 
-#pragma once
+#include "m6/libs/libstr.hpp"
 
+#include "m6/symbol_table.hpp"
 #include "m6/value.hpp"
-
-#include <functional>
 
 namespace m6 {
 
-class Function : public IValue {
- public:
-  virtual std::type_index Type() const noexcept override {
-    return typeid(
-        std::function<Value(std::vector<Value>, std::map<std::string, Value>)>);
-  }
+void LoadLibstr(std::shared_ptr<SymbolTable> symtab) {
+  Value strcpy_fn =
+      make_value("strcpy",
+                 [](std::vector<Value> args,
+                    std::map<std::string, Value> kwargs) -> Value {
+                   auto src = static_cast<std::string*>(args[1]->Getptr());
+                   auto dst = static_cast<std::string*>(args[0]->Getptr());
+                   int cnt = std::any_cast<int>(args[2]->Get());
+                   *dst = src->substr(0, cnt);
 
-  virtual Value Invoke(std::vector<Value> args,
-                       std::map<std::string, Value> kwargs) override = 0;
-};
+                   return {};
+                 });
+
+  symtab->Set("strcpy", strcpy_fn);
+}
 
 }  // namespace m6

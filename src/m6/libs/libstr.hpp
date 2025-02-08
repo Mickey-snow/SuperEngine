@@ -24,21 +24,12 @@
 
 #pragma once
 
-#include "m6/value.hpp"
-
-#include <functional>
+#include <memory>
 
 namespace m6 {
 
-class Function : public IValue {
- public:
-  virtual std::type_index Type() const noexcept override {
-    return typeid(
-        std::function<Value(std::vector<Value>, std::map<std::string, Value>)>);
-  }
+class SymbolTable;
 
-  virtual Value Invoke(std::vector<Value> args,
-                       std::map<std::string, Value> kwargs) override = 0;
-};
+void LoadLibstr(std::shared_ptr<SymbolTable> symtab);
 
 }  // namespace m6
