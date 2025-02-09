@@ -46,6 +46,11 @@ concept is_vector = requires { typename T::value_type; } &&
                     std::same_as<T, std::vector<typename T::value_type>>;
 
 template <typename T>
+concept is_sharedptr = requires {
+  typename T::element_type;
+} && std::same_as<T, std::shared_ptr<typename T::element_type>>;
+
+template <typename T>
 concept is_parser = requires(T x, Value val) {
   { x.Parsable(val) } -> std::convertible_to<bool>;
   { x.Parse(val) };
@@ -85,6 +90,22 @@ template <typename T>
 auto parse_impl(auto& begin, auto const& end) -> T {
   if constexpr (false)
     ;
+
+  else if constexpr (is_sharedptr<T>) {  // raw value pointer
+    if (begin == end)
+      throw SyntaxError("Not enough arguments provided.");
+
+    if constexpr (std::same_as<T, Value>)
+      return *begin++;
+    else {
+      Value it = *begin;
+      T result = std::dynamic_pointer_cast<typename T::element_type>(it);
+      if (!result)
+        throw TypeError("No viable convertion from " + it->Desc());
+      ++begin;
+      return result;
+    }
+  }
 
   else if constexpr (std::is_pointer_v<T>) {  // reference
     auto parser = CreateParser<std::remove_pointer_t<T>>();
