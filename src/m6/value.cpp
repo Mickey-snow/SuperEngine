@@ -25,7 +25,6 @@
 #include "m6/value.hpp"
 #include "m6/exception.hpp"
 #include "m6/op.hpp"
-#include "m6/value_internal/function.hpp"
 #include "m6/value_internal/int.hpp"
 #include "m6/value_internal/str.hpp"
 
@@ -35,39 +34,8 @@ Value make_value(int value) { return std::make_shared<Int>(value); }
 Value make_value(std::string value) {
   return std::make_shared<String>(std::move(value));
 }
-
-Value make_value(
-    std::string name,
-    std::function<Value(std::vector<Value>, std::map<std::string, Value>)> fn) {
-  class BasicFunction : public Function {
-   public:
-    BasicFunction(std::string name,
-                  std::function<Value(std::vector<Value>,
-                                      std::map<std::string, Value>)> fn)
-        : name_(name), fn_(fn) {}
-
-    std::string Str() const override {
-      return "<built-in function " + name_ + '>';
-    }
-
-    std::string Desc() const override {
-      return "<wrapper 'basic function' of object " + name_ + '>';
-    }
-
-    Value Duplicate() override { return make_value(name_, fn_); }
-
-    Value Invoke(std::vector<Value> args,
-                 std::map<std::string, Value> kwargs) override {
-      return std::invoke(fn_, std::move(args), std::move(kwargs));
-    }
-
-   private:
-    std::string name_;
-    std::function<Value(std::vector<Value>, std::map<std::string, Value>)> fn_;
-  };
-
-  return std::make_shared<BasicFunction>(std::move(name), std::move(fn));
-}
+Value make_value(char const* value) { return make_value(std::string{value}); }
+Value make_value(bool value) { return make_value(value ? 1 : 0); }
 
 // -----------------------------------------------------------------------
 // class IValue

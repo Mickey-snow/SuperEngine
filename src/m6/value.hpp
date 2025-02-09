@@ -59,8 +59,7 @@ class IValue {
 
 Value make_value(int value);
 Value make_value(std::string value);
-Value make_value(
-    std::string name,
-    std::function<Value(std::vector<Value>, std::map<std::string, Value>)> fn);
+Value make_value(char const* value);
+Value make_value(bool value);
 
 }  // namespace m6

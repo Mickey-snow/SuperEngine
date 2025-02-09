@@ -115,7 +115,7 @@ Value Int::Operator(Op op, Value rhs) {
       case Op::ShiftUnsignedRightAssign: {
         if (rhs_val < 0)
           throw ValueError("negative shift count: " + std::to_string(rhs_val));
-        const auto result = std::bit_cast<uint32_t>(val_) >> rhs_val;
+        const int result = std::bit_cast<uint32_t>(val_) >> rhs_val;
         if (op == Op::ShiftUnsignedRightAssign)
           val_ = result;
         return make_value(result);

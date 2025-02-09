@@ -112,40 +112,27 @@ auto parse_impl(auto& begin, auto const& end) -> T {
     if (begin == end)
       throw SyntaxError("Not enough arguments provided.");
 
-    Value it = *begin++;
+    Value it = *begin;
     if (!parser.Parsable(it))
       throw TypeError("No viable convertion from " + it->Desc());
 
+    ++begin;
     parser.Parse(it);
     return parser.value;
   }
 
   else if constexpr (is_optional<T>) {  // optional value
-    if (begin == end)
+    try {
+      return parse_impl<typename T::value_type>(begin, end);
+    } catch (...) {
       return std::nullopt;
-
-    auto parser = CreateParser<typename T::value_type>();
-    Value it = *begin;
-
-    if (parser.Parsable(it)) {
-      ++begin;
-      parser.Parse(it);
-      return std::make_optional(*parser.value);
-    } else
-      return std::nullopt;
+    }
   }
 
   else if constexpr (is_vector<T>) {  // argument list
-    auto parser = CreateParser<typename T::value_type>();
     T result;
-
-    while (begin != end) {
-      Value it = *begin++;
-      if (!parser.Parsable(it))
-        throw TypeError("No viable convertion from " + it->Desc());
-      parser.Parse(it);
-      result.emplace_back(std::move(*parser.value));
-    }
+    while (begin != end)
+      result.emplace_back(parse_impl<typename T::value_type>(begin, end));
     return result;
   }
 
@@ -154,10 +141,11 @@ auto parse_impl(auto& begin, auto const& end) -> T {
     if (begin == end)
       throw SyntaxError("Not enough arguments provided.");
 
-    Value it = *begin++;
+    Value it = *begin;
     if (!parser.Parsable(it))
       throw TypeError("No viable convertion from " + it->Desc());
 
+    ++begin;
     parser.Parse(it);
     return *parser.value;
   }
@@ -172,6 +160,12 @@ auto ParseArgs(std::vector<Value> args) -> std::tuple<Ts...> {
   if (begin != end)
     throw SyntaxError("Too many arguments provided.");
   return result;
+}
+
+template <typename... Ts>
+auto ParseArgs(TypeList<Ts...> /*unused*/,
+               std::vector<Value> args) -> std::tuple<Ts...> {
+  return ParseArgs<Ts...>(std::move(args));
 }
 
 }  // namespace m6
