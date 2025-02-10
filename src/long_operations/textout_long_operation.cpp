@@ -27,9 +27,6 @@
 
 #include "long_operations/textout_long_operation.hpp"
 
-#include <algorithm>
-#include <string>
-
 #include "long_operations/pause_long_operation.hpp"
 #include "machine/rlmachine.hpp"
 #include "systems/base/graphics_system.hpp"
@@ -38,8 +35,12 @@
 #include "systems/base/text_page.hpp"
 #include "systems/base/text_system.hpp"
 #include "systems/event_system.hpp"
-#include "utf8cpp/utf8.h"
 #include "utilities/exception.hpp"
+
+#include <utf8.h>
+
+#include <algorithm>
+#include <string>
 
 // Timing information must stay the same between individual
 // TextoutLongOperations. rlBabel compiled games will always display one

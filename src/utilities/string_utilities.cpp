@@ -30,7 +30,7 @@
 #include <string>
 
 #include "encodings/codepage.hpp"
-#include "utf8cpp/utf8.h"
+#include "utf8.h"
 #include "utilities/exception.hpp"
 
 using std::string;

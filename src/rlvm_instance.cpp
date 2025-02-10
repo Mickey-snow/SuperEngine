@@ -38,7 +38,7 @@
 #include "systems/base/system_error.hpp"
 #include "systems/event_system.hpp"
 #include "systems/sdl/sdl_system.hpp"
-#include "utf8cpp/utf8.h"
+#include "utf8.h"
 #include "utilities/clock.hpp"
 #include "utilities/exception.hpp"
 #include "utilities/file.hpp"

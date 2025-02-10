@@ -19,6 +19,7 @@ set(RLVM_REQUIRED_LIBRARIES
     sdl_image
     sdl_ttf
     sdl_mixer
+    utf8cpp
 )
 
 # -------------------------------------------------------------------

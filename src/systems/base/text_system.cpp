@@ -49,7 +49,7 @@
 #include "systems/base/text_page.hpp"
 #include "systems/base/text_window.hpp"
 #include "systems/sdl_surface.hpp"
-#include "utf8cpp/utf8.h"
+#include "utf8.h"
 #include "utilities/exception.hpp"
 #include "utilities/string_utilities.hpp"
 

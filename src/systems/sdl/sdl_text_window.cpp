@@ -43,7 +43,7 @@
 #include "systems/sdl/sdl_text_system.hpp"
 #include "systems/sdl/sdl_utils.hpp"
 #include "systems/sdl_surface.hpp"
-#include "utf8cpp/utf8.h"
+#include "utf8.h"
 #include "utilities/exception.hpp"
 #include "utilities/string_utilities.hpp"
 
