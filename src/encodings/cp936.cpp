@@ -41,11 +41,7 @@
 #include <cstring>
 #include <string>
 
-Cp936::Cp936() {
-  //  DesirableCharset = GB2312_CHARSET;
-  NoTransforms = false;
-  //    UseUnicode = GetSystemDefaultLangID() & 0x1ff != 0x04; // I hope... :/
-}
+Cp936::Cp936() = default;
 
 // We use a GBK <-> JIS transformation function based on, but subtly different
 // from, the one that the Key Fans Club used to use.

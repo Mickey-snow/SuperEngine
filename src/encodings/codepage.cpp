@@ -36,14 +36,16 @@
 
 #include "encodings/codepage.hpp"
 
-#include <cstdint>
-#include <cstring>
-
 // Supported codepages
 #include "encodings/cp932.hpp"
 #include "encodings/cp936.hpp"
 #include "encodings/cp949.hpp"
 #include "encodings/western.hpp"
+
+#include <utf8.h>
+
+#include <cstdint>
+#include <cstring>
 
 // -----------------------------------------------------------------------
 // Codepage
@@ -84,6 +86,29 @@ uint16_t Codepage::Convert(uint16_t ch) const { return ch; }
 bool Codepage::DbcsDelim(char* str) const { return false; }
 
 bool Codepage::IsItalic(uint16_t ch) const { return false; }
+
+std::string Codepage::ConvertTo_utf8(const std::string& input) const {
+  auto wstr = ConvertString(input);
+  std::string result;
+  utf8::utf16to8(wstr.cbegin(), wstr.cend(), std::back_inserter(result));
+  return result;
+}
+
+std::shared_ptr<Codepage> Codepage::Create(Encoding encoding) {
+  switch (encoding) {
+    case Encoding::cp936:
+      return std::make_shared<Cp936>();
+    case Encoding::cp949:
+      return std::make_shared<Cp949>();
+    case Encoding::cp1252:
+      return std::make_shared<Cp1252>();
+    case Encoding::cp932:
+    default:
+      return std::make_shared<Cp932>();
+  }
+}
+
+//
 
 std::unique_ptr<Codepage> Cp::instance_;
 int Cp::codepage = -1;

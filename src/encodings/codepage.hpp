@@ -39,6 +39,17 @@
 #include <memory>
 #include <string>
 
+enum class Encoding : int {
+  Unknown = -1,
+  cp932 = 0,
+  cp936 = 1,
+  cp1252 = 2,
+  cp949 = 3,
+  utf8 = 10,
+  utf16 = 11,
+  utf32 = 12
+};
+
 class Codepage {
  public:
   virtual ~Codepage();
@@ -50,9 +61,11 @@ class Codepage {
   virtual bool DbcsDelim(char* str) const;
   virtual bool IsItalic(unsigned short ch) const;
 
-  int UseUnicode;
-  int DesirableCharset;
-  bool NoTransforms;
+  virtual std::string ConvertTo_utf8(const std::string& input) const;
+
+  // Factory method to create a codepage converter, supported encodings are:
+  // cp932, cp936, cp949, cp1252.
+  static std::shared_ptr<Codepage> Create(Encoding encoding);
 };
 
 class Cp {

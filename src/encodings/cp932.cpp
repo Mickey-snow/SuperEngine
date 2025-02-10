@@ -75,7 +75,7 @@
 
 #include "utilities/string_utilities.hpp"
 
-Cp932::Cp932() { NoTransforms = true; }
+Cp932::Cp932() = default;
 
 #ifndef NO_CP932_CONVERSION
 
