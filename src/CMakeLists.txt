@@ -1,7 +1,7 @@
 
 configure_file(
   "${CMAKE_CURRENT_SOURCE_DIR}/version.h.in"
-  "${CMAKE_CURRENT_SOURCE_DIR}/version.h"
+  "${CMAKE_CURRENT_BINARY_DIR}/version.h"
   @ONLY
 )
 
@@ -60,6 +60,7 @@ target_compile_options(rlvm_src PUBLIC
 )
 
 target_link_libraries(rlvm_src PUBLIC ${RLVM_REQUIRED_LIBRARIES})
+target_include_directories(rlvm_src PUBLIC "${CMAKE_CURRENT_BINARY_DIR}")
 
 # -------------------------------------------------------------------
 # Build RLVM
