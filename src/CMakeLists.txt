@@ -1,7 +1,7 @@
 
 configure_file(
   "${CMAKE_CURRENT_SOURCE_DIR}/version.h.in"
-  "${CMAKE_CURRENT_SOURCE_DIR}/version.h"
+  "${CMAKE_CURRENT_BINARY_DIR}/version.h"
   @ONLY
 )
 
@@ -19,6 +19,7 @@ set(RLVM_REQUIRED_LIBRARIES
     sdl_image
     sdl_ttf
     sdl_mixer
+    utf8cpp
 )
 
 # -------------------------------------------------------------------
@@ -37,7 +38,7 @@ file(GLOB_RECURSE RLVM_SRC_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/utilities/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/systems/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/log/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/interpreter/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/m6/*.cpp"
 )
 list(APPEND RLVM_SRC_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/platforms/platform_factory.cpp"
@@ -60,6 +61,7 @@ target_compile_options(rlvm_src PUBLIC
 )
 
 target_link_libraries(rlvm_src PUBLIC ${RLVM_REQUIRED_LIBRARIES})
+target_include_directories(rlvm_src PUBLIC "${CMAKE_CURRENT_BINARY_DIR}")
 
 # -------------------------------------------------------------------
 # Build RLVM

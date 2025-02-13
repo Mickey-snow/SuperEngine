@@ -22,29 +22,25 @@
 //
 // -----------------------------------------------------------------------
 
-#pragma once
+#include <gtest/gtest.h>
 
-#include "core/event_listener.hpp"
-#include "machine/instruction.hpp"
+#include "m6/expr_ast.hpp"
+#include "m6/op.hpp"
 
-class RLMachine;
-namespace m6 {
-class SymbolTable;
-}
+using namespace m6;
 
-class Debugger : public EventListener {
- public:
-  Debugger(RLMachine& machine);
+class ExprASTTest : public ::testing::Test {
+ protected:
+};
 
-  void Execute();
+TEST_F(ExprASTTest, DebugPrint) {
+  auto base = BinaryExpr(Op::Add, std::make_unique<ExprAST>(1),
+                         std::make_unique<ExprAST>(2));
+  auto lhs = std::make_unique<ExprAST>(
+      ParenExpr(std::make_unique<ExprAST>(std::move(base))));
+  auto rhs = std::make_unique<ExprAST>(
+      UnaryExpr(Op::Sub, std::make_unique<ExprAST>(3)));
 
-  // Overridden from EventListener
-  void OnEvent(std::shared_ptr<Event> event) override;
-
- private:
-  RLMachine& machine_;
-
-  std::shared_ptr<m6::SymbolTable> symbol_tab_;
-
-  bool should_break_ = false;
+  auto ast = ExprAST(BinaryExpr(Op::Mul, std::move(lhs), std::move(rhs)));
+  EXPECT_EQ(ast.DebugString(), "(1+2)*-3");
 };

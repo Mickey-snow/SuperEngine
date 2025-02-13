@@ -24,27 +24,29 @@
 
 #pragma once
 
-#include "core/event_listener.hpp"
-#include "machine/instruction.hpp"
+#include "m6/value.hpp"
 
-class RLMachine;
 namespace m6 {
-class SymbolTable;
-}
 
-class Debugger : public EventListener {
+class Int : public IValue {
  public:
-  Debugger(RLMachine& machine);
+  Int(int val);
 
-  void Execute();
+  virtual std::string Str() const override;
+  virtual std::string Desc() const override;
 
-  // Overridden from EventListener
-  void OnEvent(std::shared_ptr<Event> event) override;
+  virtual std::type_index Type() const noexcept override;
+
+  virtual Value Duplicate() override;
+
+  virtual std::any Get() const override;
+  virtual void* Getptr() override;
+
+  virtual Value Operator(Op op, Value rhs) override;
+  virtual Value Operator(Op op) override;
 
  private:
-  RLMachine& machine_;
-
-  std::shared_ptr<m6::SymbolTable> symbol_tab_;
-
-  bool should_break_ = false;
+  int val_;
 };
+
+}  // namespace m6

@@ -22,29 +22,20 @@
 //
 // -----------------------------------------------------------------------
 
-#pragma once
+#include "m6/exception.hpp"
+#include "m6/op.hpp"
+#include "utilities/string_utilities.hpp"
 
-#include "core/event_listener.hpp"
-#include "machine/instruction.hpp"
-
-class RLMachine;
 namespace m6 {
-class SymbolTable;
-}
 
-class Debugger : public EventListener {
- public:
-  Debugger(RLMachine& machine);
+UndefinedOperator::UndefinedOperator(Op op, std::vector<std::string> operands)
+    : std::logic_error("no match for 'operator " + ToString(op) +
+                       "' (operand type '" + Join(",", operands)) {}
 
-  void Execute();
+ValueError::ValueError(std::string msg) : std::runtime_error(std::move(msg)) {}
 
-  // Overridden from EventListener
-  void OnEvent(std::shared_ptr<Event> event) override;
+TypeError::TypeError(std::string msg) : std::runtime_error(std::move(msg)) {}
 
- private:
-  RLMachine& machine_;
+SyntaxError::SyntaxError(std::string msg) : std::logic_error(std::move(msg)) {}
 
-  std::shared_ptr<m6::SymbolTable> symbol_tab_;
-
-  bool should_break_ = false;
-};
+}  // namespace m6

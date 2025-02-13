@@ -17,34 +17,32 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
+// Along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 //
 // -----------------------------------------------------------------------
 
 #pragma once
 
-#include "core/event_listener.hpp"
-#include "machine/instruction.hpp"
+#include "m6/token.hpp"
 
-class RLMachine;
+#include <string>
+#include <string_view>
+#include <variant>
+#include <vector>
+
 namespace m6 {
-class SymbolTable;
-}
 
-class Debugger : public EventListener {
+class Tokenizer {
  public:
-  Debugger(RLMachine& machine);
+  Tokenizer(std::string_view input, bool should_parse = true);
 
-  void Execute();
+  void Parse();
 
-  // Overridden from EventListener
-  void OnEvent(std::shared_ptr<Event> event) override;
+  std::vector<Token> parsed_tok_;
 
  private:
-  RLMachine& machine_;
-
-  std::shared_ptr<m6::SymbolTable> symbol_tab_;
-
-  bool should_break_ = false;
+  std::string_view input_;
 };
+
+}  // namespace m6

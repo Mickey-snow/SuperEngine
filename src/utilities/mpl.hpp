@@ -25,6 +25,11 @@
 
 #include <cstddef>
 
+// Compile time constants
+template <typename>
+inline constexpr bool always_false = false;
+
+// TypeList
 struct NullType {};
 
 template <typename... Ts>
@@ -74,4 +79,12 @@ struct Append;
 template <typename... Ts, typename... Us>
 struct Append<TypeList<Ts...>, TypeList<Us...>> {
   using type = TypeList<Ts..., Us...>;
+};
+
+template <template <typename...> class Dest, typename List>
+struct Unpack;
+
+template <template <typename...> class Dest, typename... Ts>
+struct Unpack<Dest, TypeList<Ts...>> {
+  using type = Dest<Ts...>;
 };

@@ -58,15 +58,7 @@ uint16_t Italicise(uint16_t ch) {
   return ch + (ch >= 0x60 ? 0x8320 : 0x831f);
 }
 
-Cp1252::Cp1252() {
-  //  DesirableCharset = ANSI_CHARSET;
-  NoTransforms = false;
-  //  LANGID SysLang = GetSystemDefaultLangID();
-  // For now, just bless some common European languages. (Wait, shouldn't I be
-  // checking system charset instead?)
-  // UseUnicode = !(SysLang & 0x1ff == 0x07 ||
-  //   (SysLang & 0x1ff >= 0x09 && SysLang & 0x1ff <= 0x0c));
-}
+Cp1252::Cp1252() = default;
 
 bool Cp1252::DbcsDelim(char* str) const {
   return str[0] == 0x89 &&

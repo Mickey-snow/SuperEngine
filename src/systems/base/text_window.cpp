@@ -46,7 +46,7 @@
 #include "systems/base/text_system.hpp"
 #include "systems/base/text_waku.hpp"
 #include "systems/sdl_surface.hpp"
-#include "utf8cpp/utf8.h"
+#include "utf8.h"
 #include "utilities/exception.hpp"
 #include "utilities/graphics.hpp"
 #include "utilities/string_utilities.hpp"

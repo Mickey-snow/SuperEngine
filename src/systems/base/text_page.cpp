@@ -35,7 +35,7 @@
 #include "systems/base/system.hpp"
 #include "systems/base/text_system.hpp"
 #include "systems/base/text_window.hpp"
-#include "utf8cpp/utf8.h"
+#include "utf8.h"
 #include "utilities/exception.hpp"
 #include "utilities/string_utilities.hpp"
 

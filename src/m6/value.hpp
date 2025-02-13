@@ -24,27 +24,43 @@
 
 #pragma once
 
-#include "core/event_listener.hpp"
-#include "machine/instruction.hpp"
+#include "m6/expr_ast.hpp"
 
-class RLMachine;
+#include <any>
+#include <functional>
+#include <map>
+#include <string>
+#include <typeindex>
+
 namespace m6 {
-class SymbolTable;
-}
 
-class Debugger : public EventListener {
+using Value = std::shared_ptr<IValue>;
+class IValue {
  public:
-  Debugger(RLMachine& machine);
+  IValue();
+  virtual ~IValue() = default;
 
-  void Execute();
+  virtual std::string Str() const;
+  virtual std::string Desc() const;
 
-  // Overridden from EventListener
-  void OnEvent(std::shared_ptr<Event> event) override;
+  virtual std::type_index Type() const = 0;
 
- private:
-  RLMachine& machine_;
+  virtual Value Duplicate() = 0;
 
-  std::shared_ptr<m6::SymbolTable> symbol_tab_;
+  virtual std::any Get() const;
+  virtual void* Getptr();
 
-  bool should_break_ = false;
+  virtual Value Operator(Op op, Value rhs);
+  virtual Value Operator(Op op);
+
+  virtual Value Invoke(std::vector<Value> args,
+                       std::map<std::string, Value> kwargs);
 };
+
+Value make_value(int value);
+Value make_value(std::string value);
+Value make_value(
+    std::string name,
+    std::function<Value(std::vector<Value>, std::map<std::string, Value>)> fn);
+
+}  // namespace m6

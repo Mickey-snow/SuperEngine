@@ -43,11 +43,7 @@
 #include <cstring>
 #include <string>
 
-Cp949::Cp949() {
-  //  DesirableCharset = HANGUL_CHARSET;
-  NoTransforms = false;
-  //  UseUnicode = GetSystemDefaultLangID() & 0x1ff != 0x12;
-}
+Cp949::Cp949() = default;
 
 #ifndef NO_CP949_CONVERSION
 

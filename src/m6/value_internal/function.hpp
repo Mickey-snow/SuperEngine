@@ -24,27 +24,21 @@
 
 #pragma once
 
-#include "core/event_listener.hpp"
-#include "machine/instruction.hpp"
+#include "m6/value.hpp"
 
-class RLMachine;
+#include <functional>
+
 namespace m6 {
-class SymbolTable;
-}
 
-class Debugger : public EventListener {
+class Function : public IValue {
  public:
-  Debugger(RLMachine& machine);
+  virtual std::type_index Type() const noexcept override {
+    return typeid(
+        std::function<Value(std::vector<Value>, std::map<std::string, Value>)>);
+  }
 
-  void Execute();
-
-  // Overridden from EventListener
-  void OnEvent(std::shared_ptr<Event> event) override;
-
- private:
-  RLMachine& machine_;
-
-  std::shared_ptr<m6::SymbolTable> symbol_tab_;
-
-  bool should_break_ = false;
+  virtual Value Invoke(std::vector<Value> args,
+                       std::map<std::string, Value> kwargs) override = 0;
 };
+
+}  // namespace m6

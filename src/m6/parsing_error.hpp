@@ -22,29 +22,21 @@
 //
 // -----------------------------------------------------------------------
 
+#include <stdexcept>
+#include <string>
+
 #pragma once
 
-#include "core/event_listener.hpp"
-#include "machine/instruction.hpp"
-
-class RLMachine;
 namespace m6 {
-class SymbolTable;
-}
 
-class Debugger : public EventListener {
- public:
-  Debugger(RLMachine& machine);
-
-  void Execute();
-
-  // Overridden from EventListener
-  void OnEvent(std::shared_ptr<Event> event) override;
-
+class ParsingError : public std::exception {
  private:
-  RLMachine& machine_;
+  std::string message_;
 
-  std::shared_ptr<m6::SymbolTable> symbol_tab_;
+ public:
+  explicit ParsingError(std::string msg);
 
-  bool should_break_ = false;
+  const char* what() const noexcept override;
 };
+
+}  // namespace m6

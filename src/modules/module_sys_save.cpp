@@ -54,7 +54,7 @@
 #include "systems/base/system.hpp"
 #include "systems/sdl/sdl_graphics_system.hpp"
 #include "systems/sdl_surface.hpp"
-#include "utf8cpp/utf8.h"
+#include "utf8.h"
 
 using boost::ends_with;
 using boost::starts_with;

@@ -24,15 +24,18 @@
 
 #include "debugger.hpp"
 
-#include "core/expr_ast.hpp"
-#include "interpreter/parser.hpp"
-#include "interpreter/tokenizer.hpp"
+#include "m6/evaluator.hpp"
+#include "m6/parser.hpp"
+#include "m6/symbol_table.hpp"
+#include "m6/tokenizer.hpp"
+#include "m6/value.hpp"
 #include "machine/rlmachine.hpp"
 #include "utilities/string_utilities.hpp"
 
 #include <iostream>
 
-Debugger::Debugger(RLMachine& machine) : machine_(machine) {}
+Debugger::Debugger(RLMachine& machine)
+    : machine_(machine), symbol_tab_(std::make_shared<m6::SymbolTable>()) {}
 
 constexpr std::string_view copyright_info = R"(
 Copyright (C) 2025 Serina Sakurai
@@ -69,9 +72,11 @@ void Debugger::Execute() {
         continue;
 
       // process interpreter command
-      if (input == "c" || input == "continue")
+      else if (input == "kill")
+        std::terminate();
+      else if (input == "c" || input == "continue")
         break;
-      if (input == "l" || input == "list") {
+      else if (input == "l" || input == "list") {
         auto location = machine_.Location();
         std::cout << location.DebugString() << ' ';
         auto instruction = machine_.GetScriptor()->ResolveInstruction(location);
@@ -81,15 +86,14 @@ void Debugger::Execute() {
                   << std::endl;
 
         continue;
-      }
-      if (input == "n" || input == "next") {
+      } else if (input == "n" || input == "next") {
         should_break_ = true;
         break;
       }
 
-      Tokenizer tokenizer(input);
-      auto expr = ParseExpression(std::span(tokenizer.parsed_tok_));
-      std::cout << expr->Apply(Evaluator()) << std::endl;
+      m6::Tokenizer tokenizer(input);
+      auto expr = m6::ParseExpression(std::span(tokenizer.parsed_tok_));
+      std::cout << expr->Apply(m6::Evaluator(symbol_tab_))->Str() << std::endl;
     } catch (std::exception& e) {
       std::cerr << e.what() << std::endl;
     }

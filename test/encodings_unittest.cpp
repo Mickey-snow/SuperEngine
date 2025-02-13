@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "encodings/codepage.hpp"
 #include "encodings/utf16.hpp"
 
 #include <cstdint>
@@ -161,4 +162,61 @@ TEST(UTF16LEDecodeTest, Emoji) {
     std::string output = utf16le::Decode(input);
     EXPECT_EQ(output, expected);
   }
+}
+
+TEST(CodepageTest, Cp1252Conversion) {
+  // Create a cp1252 converter
+  auto converter = Codepage::Create(Encoding::cp1252);
+  ASSERT_NE(converter, nullptr) << "Failed to create cp1252 converter";
+
+  // In cp1252, the string "café" may be encoded as "caf\xe9"
+  std::string input = "caf\xe9";
+  // Expected UTF-8 conversion: "caf\xc3\xa9"
+  std::string expected = "caf\xc3\xa9";
+  EXPECT_EQ(converter->ConvertTo_utf8(input), expected);
+}
+
+TEST(CodepageTest, Cp932Conversion) {
+  auto converter = Codepage::Create(Encoding::cp932);
+  ASSERT_NE(converter, nullptr) << "Failed to create cp932 converter";
+
+  std::string input = "\x93\xfa\x96\x7b";
+  std::string expected = "\xE6\x97\xA5\xE6\x9C\xAC";
+  EXPECT_EQ(converter->ConvertTo_utf8(input), expected);
+}
+
+TEST(CodepageTest, Cp936Conversion) {
+  auto converter = Codepage::Create(Encoding::cp936);
+  ASSERT_NE(converter, nullptr) << "Failed to create cp936 converter";
+
+  std::string input = "\xC4\xE3\xBA\xC3";
+  std::string expected = "\xE4\xBD\xA0\xE5\xA5\xBD";
+  EXPECT_EQ(converter->ConvertTo_utf8(input), expected);
+}
+
+TEST(CodepageTest, Cp949Conversion) {
+  auto converter = Codepage::Create(Encoding::cp949);
+  ASSERT_NE(converter, nullptr) << "Failed to create cp949 converter";
+
+  std::string input = "\xc7\xd1\xb1\xdb";
+  std::string expected = "\xED\x95\x9C\xEA\xB8\x80";
+  EXPECT_EQ(converter->ConvertTo_utf8(input), expected);
+}
+
+TEST(CodepageTest, EmptyInput) {
+  auto converter = Codepage::Create(Encoding::cp1252);
+  ASSERT_NE(converter, nullptr);
+
+  std::string input = "";
+  std::string expected = "";
+  EXPECT_EQ(converter->ConvertTo_utf8(input), expected);
+}
+
+TEST(CodepageTest, AsciiInput) {
+  auto converter = Codepage::Create(Encoding::cp1252);
+  ASSERT_NE(converter, nullptr);
+
+  std::string input = "Hello, World!";
+  std::string expected = "Hello, World!";
+  EXPECT_EQ(converter->ConvertTo_utf8(input), expected);
 }

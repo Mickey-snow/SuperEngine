@@ -24,27 +24,36 @@
 
 #pragma once
 
-#include "core/event_listener.hpp"
-#include "machine/instruction.hpp"
+#include "m6/expr_ast.hpp"
 
-class RLMachine;
+#include <stdexcept>
+#include <string>
+#include <vector>
+
 namespace m6 {
-class SymbolTable;
-}
 
-class Debugger : public EventListener {
+class UndefinedOperator : public std::logic_error {
  public:
-  Debugger(RLMachine& machine);
-
-  void Execute();
-
-  // Overridden from EventListener
-  void OnEvent(std::shared_ptr<Event> event) override;
-
- private:
-  RLMachine& machine_;
-
-  std::shared_ptr<m6::SymbolTable> symbol_tab_;
-
-  bool should_break_ = false;
+  explicit UndefinedOperator(Op op, std::vector<std::string> operands);
+  using std::logic_error::what;
 };
+
+class ValueError : public std::runtime_error {
+ public:
+  explicit ValueError(std::string msg);
+  using std::runtime_error::what;
+};
+
+class TypeError : public std::runtime_error {
+ public:
+  explicit TypeError(std::string msg);
+  using std::runtime_error::what;
+};
+
+class SyntaxError : public std::logic_error {
+ public:
+  explicit SyntaxError(std::string msg);
+  using std::logic_error::what;
+};
+
+}  // namespace m6

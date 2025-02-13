@@ -22,29 +22,27 @@
 //
 // -----------------------------------------------------------------------
 
-#pragma once
+#include "m6/libs/libstr.hpp"
 
-#include "core/event_listener.hpp"
-#include "machine/instruction.hpp"
+#include "m6/symbol_table.hpp"
+#include "m6/value.hpp"
 
-class RLMachine;
 namespace m6 {
-class SymbolTable;
+
+void LoadLibstr(std::shared_ptr<SymbolTable> symtab) {
+  Value strcpy_fn =
+      make_value("strcpy",
+                 [](std::vector<Value> args,
+                    std::map<std::string, Value> kwargs) -> Value {
+                   auto src = static_cast<std::string*>(args[1]->Getptr());
+                   auto dst = static_cast<std::string*>(args[0]->Getptr());
+                   int cnt = std::any_cast<int>(args[2]->Get());
+                   *dst = src->substr(0, cnt);
+
+                   return {};
+                 });
+
+  symtab->Set("strcpy", strcpy_fn);
 }
 
-class Debugger : public EventListener {
- public:
-  Debugger(RLMachine& machine);
-
-  void Execute();
-
-  // Overridden from EventListener
-  void OnEvent(std::shared_ptr<Event> event) override;
-
- private:
-  RLMachine& machine_;
-
-  std::shared_ptr<m6::SymbolTable> symbol_tab_;
-
-  bool should_break_ = false;
-};
+}  // namespace m6

@@ -71,3 +71,11 @@ target_link_libraries(sdl_ttf PUBLIC ${SDL_LIBRARIES})
 target_compile_options(sdl_ttf PRIVATE
   $<$<CXX_COMPILER_ID:GNU,Clang>:-w>
 )
+
+# -------------------------------------------------------------------
+# utf8cpp
+# -------------------------------------------------------------------
+add_library(utf8cpp INTERFACE)
+target_include_directories(utf8cpp INTERFACE
+  ${CMAKE_CURRENT_SOURCE_DIR}/utf8cpp/source
+)

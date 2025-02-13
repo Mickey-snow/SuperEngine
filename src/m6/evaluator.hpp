@@ -24,27 +24,29 @@
 
 #pragma once
 
-#include "core/event_listener.hpp"
-#include "machine/instruction.hpp"
+#include "m6/expr_ast.hpp"
+#include "m6/value.hpp"
 
-class RLMachine;
 namespace m6 {
+
 class SymbolTable;
-}
 
-class Debugger : public EventListener {
- public:
-  Debugger(RLMachine& machine);
+struct Evaluator {
+  Evaluator(std::shared_ptr<SymbolTable> sym_tab = nullptr);
 
-  void Execute();
+  Value operator()(std::monostate) const;
+  Value operator()(const IdExpr& str) const;
+  Value operator()(int x) const;
+  Value operator()(const std::string& x) const;
+  Value operator()(const InvokeExpr& x) const;
+  Value operator()(const SubscriptExpr& x) const;
+  Value operator()(const MemberExpr& x) const;
+  Value operator()(const ParenExpr& x) const;
+  Value operator()(const UnaryExpr& x) const;
+  Value operator()(const BinaryExpr& x) const;
+  Value operator()(const AssignExpr& x) const;
 
-  // Overridden from EventListener
-  void OnEvent(std::shared_ptr<Event> event) override;
-
- private:
-  RLMachine& machine_;
-
-  std::shared_ptr<m6::SymbolTable> symbol_tab_;
-
-  bool should_break_ = false;
+  std::shared_ptr<SymbolTable> sym_tab_;
 };
+
+}  // namespace m6

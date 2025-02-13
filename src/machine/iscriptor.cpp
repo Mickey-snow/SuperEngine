@@ -22,29 +22,17 @@
 //
 // -----------------------------------------------------------------------
 
-#pragma once
+#include "machine/iscriptor.hpp"
 
-#include "core/event_listener.hpp"
-#include "machine/instruction.hpp"
+#include <string>
 
-class RLMachine;
-namespace m6 {
-class SymbolTable;
+ScriptLocation::ScriptLocation()
+    : scenario_number(0), location_offset(0), line_num(-1) {}
+
+ScriptLocation::ScriptLocation(int scenario_id, std::size_t off)
+    : scenario_number(scenario_id), location_offset(off), line_num(-1) {}
+
+std::string ScriptLocation::DebugString() const {
+  return '(' + std::to_string(scenario_number) + ':' +
+         (line_num > 0 ? std::to_string(line_num) : "???") + ')';
 }
-
-class Debugger : public EventListener {
- public:
-  Debugger(RLMachine& machine);
-
-  void Execute();
-
-  // Overridden from EventListener
-  void OnEvent(std::shared_ptr<Event> event) override;
-
- private:
-  RLMachine& machine_;
-
-  std::shared_ptr<m6::SymbolTable> symbol_tab_;
-
-  bool should_break_ = false;
-};
