@@ -220,3 +220,31 @@ TEST(CodepageTest, AsciiInput) {
   std::string expected = "Hello, World!";
   EXPECT_EQ(converter->ConvertTo_utf8(input), expected);
 }
+
+TEST(CodepageTest, RegnameRegression) {
+  auto converter = Codepage::Create(Encoding::cp932);
+  ASSERT_NE(converter, nullptr);
+
+  EXPECT_EQ(
+      converter->ConvertTo_utf8("\x4b\x45\x59\x5c\x83\x8a\x83\x67\x83\x8b\x83"
+                                "\x6f\x83\x58\x83\x5e\x81\x5b\x83\x59\x81\x49"),
+      "KEY\\リトルバスターズ！");
+  EXPECT_EQ(converter->ConvertTo_utf8(
+                "\x4b\x45\x59\x5c\x83\x8a\x83\x67\x83\x8b\x83\x6f\x83\x58\x83"
+                "\x5e\x81\x5b\x83\x59\x81\x49\x82\x64\x82\x77"),
+            "KEY\\リトルバスターズ！ＥＸ");
+  EXPECT_EQ(
+      converter->ConvertTo_utf8(
+          "\x4b\x45\x59\x5c\x83\x4e\x83\x68\x82\xed\x82\xd3\x82\xbd\x81\x5b"),
+      "KEY\\クドわふたー");
+
+  EXPECT_EQ(converter->ConvertTo_utf8(
+                "\x4b\x45\x59\x5c\x83\x4e\x83\x68\x82\xed\x82\xd3\x82"
+                "\xbd\x81\x5b\x81\x79\x91\x53\x94\x4e\x97\xee\x91\xce"
+                "\x8f\xdb\x94\xc5\x81\x7a"),
+            "KEY\\クドわふたー【全年齢対象版】");
+
+  EXPECT_EQ(converter->ConvertTo_utf8("KEY\\CLANNAD_FV"), "KEY\\CLANNAD_FV");
+  EXPECT_EQ(converter->ConvertTo_utf8("StudioMebius\\SNOWSE"),
+            "StudioMebius\\SNOWSE");
+}

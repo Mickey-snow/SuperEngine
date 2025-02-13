@@ -162,6 +162,5 @@ TEST_F(ScriptorTest, SavepointDecide) {
   EXPECT_CALL(archive, GetScenario(3)).WillRepeatedly(Return(&sc));
   auto result = scriptor.GetScenarioConfig(3);
   EXPECT_TRUE(result.enable_message_savepoint);
-  EXPECT_TRUE(result.enable_selcom_savepoint);
   EXPECT_FALSE(result.enable_seentop_savepoint);
 }

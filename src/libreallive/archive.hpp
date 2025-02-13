@@ -68,6 +68,8 @@ class Archive {
   // with non-default encoding. This short circuits when it finds one.
   int GetProbableEncodingType() const;
 
+  std::string regname_;
+
  private:
   typedef std::map<int, FilePos> toc_t;
 
@@ -86,10 +88,6 @@ class Archive {
   // Now that VisualArts is using per game xor keys, this is equivalent to the
   // game's second level xor key.
   const XorKey* second_level_xor_key_;
-
-  // The #REGNAME key from the Gameexe.ini file. Passed down to Scenario for
-  // prettier error messages.
-  std::string regname_;
 };
 
 }  // namespace libreallive

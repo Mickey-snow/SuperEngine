@@ -22,7 +22,6 @@
 // -----------------------------------------------------------------------
 
 #include "core/gameexe.hpp"
-#include "encodings/cp932.hpp"
 #include "libreallive/archive.hpp"
 #include "log/domain_logger.hpp"
 #include "machine/dumper.hpp"
@@ -104,7 +103,7 @@ int main(int argc, char* argv[]) {
   libreallive::Archive archive(seen_path, regname);
 
   fs::path output_path = output;
-  regname = UnicodeToUTF8(Cp932().ConvertString(regname));
+  regname = archive.regname_;
 
   std::atomic<bool> finished = false;
   std::mutex mtx;
