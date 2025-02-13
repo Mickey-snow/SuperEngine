@@ -374,5 +374,3 @@ void System::CheckSyscomIndex(int index, const char* function) {
     throw std::runtime_error(oss.str());
   }
 }
-
-std::string GetRlvmVersionString() { return "Version 0.14"; }

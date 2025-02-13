@@ -71,11 +71,6 @@ class RLVMInstance {
   std::filesystem::path FindGameFile(const std::filesystem::path& gamerootPath,
                                      const std::string& filename);
 
-  // Checks to see if the user ran the Japanese version and than installed a
-  // fan patch. In this case, we need to warn and let the user reset global
-  // data.
-  void DoUserNameCheck(RLMachine& machine, int encoding);
-
   // Checks for AVG32/Siglus engine games, which people may be confused about.
   void CheckBadEngine(const std::filesystem::path& gamerootPath,
                       const std::vector<std::string> filenames,

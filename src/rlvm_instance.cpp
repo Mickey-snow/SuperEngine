@@ -167,11 +167,6 @@ void RLVMInstance::Bootload(const std::filesystem::path& gameroot) {
   }
 
   Serialization::loadGlobalMemory(*machine_);
-
-  // Now to preform a quick integrity check. If the user opened the Japanese
-  // version of CLANNAD (or any other game), and then installed a patch, our
-  // user data is going to be screwed!
-  DoUserNameCheck(*machine_, archive_->GetProbableEncodingType());
 }
 
 void RLVMInstance::Main(const std::filesystem::path& gameroot) {
@@ -302,37 +297,6 @@ bool RLVMInstance::AskUserPrompt(const std::string& message_text,
     return true;
   return platform_implementor_->AskUserPrompt(message_text, informative_text,
                                               true_button, false_button);
-}
-
-void RLVMInstance::DoUserNameCheck(RLMachine& machine, int encoding) {
-  try {
-    // Iterate over all the names in both global and local memory banks.
-    GlobalMemory g = machine.GetMemory().GetGlobalMemory();
-    LocalMemory l = machine.GetMemory().GetLocalMemory();
-    std::string line;
-    for (int i = 0; i < SIZE_OF_NAME_BANK; ++i) {
-      line = g.global_names.Get(i);
-      cp932toUTF8(line, encoding);
-      g.global_names.Set(i, line);
-    }
-
-    for (int i = 0; i < SIZE_OF_NAME_BANK; ++i) {
-      line = l.local_names.Get(i);
-      cp932toUTF8(line, encoding);
-      l.local_names.Set(i, line);
-    }
-
-    machine.GetMemory().PartialReset(std::move(g));
-    machine.GetMemory().PartialReset(std::move(l));
-  } catch (...) {
-    // We've failed to interpret one of the name strings as a string in the
-    // text encoding of the current native encoding. We're going to fail to
-    // display any line that refers to the player's name.
-    //
-    // That's obviously bad and there's no real way to recover from this so
-    // just reset all of global memory.
-    std::cerr << "Corrupted global memory" << std::endl;
-  }
 }
 
 std::filesystem::path RLVMInstance::FindGameFile(
