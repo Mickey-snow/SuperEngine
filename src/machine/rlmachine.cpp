@@ -64,7 +64,7 @@ RLMachine::RLMachine(System& system,
                      ScriptLocation starting_location,
                      std::unique_ptr<Memory> memory)
     : memory_(std::move(memory)),
-      module_manager_(module_manager_prototype),
+      module_manager_(ModuleManager::CreatePrototype()),
       scriptor_(scriptor),
       system_(system) {
   // Setup stack memory

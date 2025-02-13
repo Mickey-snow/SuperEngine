@@ -36,6 +36,9 @@ class RLOperation;
 
 class ModuleManager {
  public:
+  static ModuleManager CreatePrototype();
+
+ public:
   ModuleManager() = default;
 
   void AttachModule(std::shared_ptr<RLModule> mod);
@@ -56,5 +59,3 @@ class ModuleManager {
       cmd2operation_;
   std::multimap<std::string, std::shared_ptr<RLOperation>> name2operation_;
 };
-
-extern const ModuleManager module_manager_prototype;

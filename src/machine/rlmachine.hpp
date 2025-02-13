@@ -223,7 +223,7 @@ class RLMachine {
   // The RealLive machine's single result register
   int store_register_ = 0;
 
-  ModuleManager const& module_manager_;
+  ModuleManager module_manager_;
 
   // States whether the RLMachine is in the halted state (and thus won't
   // execute more instructions)

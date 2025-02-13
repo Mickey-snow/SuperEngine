@@ -118,8 +118,7 @@ std::shared_ptr<RLOperation> ModuleManager::GetOperation(int module_type,
     return cmd2operation_.at(key);
 }
 
-// -----------------------------------------------------------------------
-const ModuleManager module_manager_prototype = []() {
+ModuleManager ModuleManager::CreatePrototype() {
   ModuleManager prototype;
 
   try {
@@ -176,4 +175,4 @@ const ModuleManager module_manager_prototype = []() {
   }
 
   return prototype;
-}();
+};

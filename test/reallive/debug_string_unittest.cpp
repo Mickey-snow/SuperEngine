@@ -54,6 +54,7 @@ TEST(DebugStringVisitorTest, Meta) {
 }
 
 TEST(DebugStringVisitorTest, Command) {
+  static auto prototype = ModuleManager::CreatePrototype();
   {
     FunctionElement fn(
         CommandInfo{.cmd = {1, 1, 82, 0xe8, 0x03, 0, 0, 0},
@@ -61,8 +62,7 @@ TEST(DebugStringVisitorTest, Command) {
                               ExpressionFactory::StrConstant("2")}});
     EXPECT_EQ(std::visit(DebugStringVisitor(), fn.DownCast()),
               "op<1:082:01000, 0>(1, \"2\")");
-    EXPECT_EQ(std::visit(DebugStringVisitor(&module_manager_prototype),
-                         fn.DownCast()),
+    EXPECT_EQ(std::visit(DebugStringVisitor(&prototype), fn.DownCast()),
               "objBgMove(1, \"2\")");
   }
 
@@ -71,8 +71,7 @@ TEST(DebugStringVisitorTest, Command) {
     GotoElement jump(repr, 0x123);
     EXPECT_EQ(std::visit(DebugStringVisitor(), jump.DownCast()),
               "op<0:001:00000, 0>() @291");
-    EXPECT_EQ(std::visit(DebugStringVisitor(&module_manager_prototype),
-                         jump.DownCast()),
+    EXPECT_EQ(std::visit(DebugStringVisitor(&prototype), jump.DownCast()),
               "goto() @291");
   }
 }
