@@ -39,8 +39,7 @@ class Function : public IValue {
         std::function<Value(std::vector<Value>, std::map<std::string, Value>)>);
   }
 
-  virtual Value Invoke(std::vector<Value> args,
-                       std::map<std::string, Value> kwargs) override = 0;
+  virtual Value Invoke(std::vector<Value> args) override = 0;
 };
 
 namespace internal {
@@ -94,8 +93,7 @@ Value make_fn_value(std::string name, auto&& fn) {
       return std::make_shared<BasicFunction>(*this);
     }
 
-    Value Invoke(std::vector<Value> args,
-                 std::map<std::string, Value> kwargs) override {
+    Value Invoke(std::vector<Value> args) override {
       auto arg = ParseArgs(Argt{}, std::move(args));
       if constexpr (std::same_as<R, void>) {
         std::apply(fn_, std::move(arg));

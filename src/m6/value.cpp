@@ -58,8 +58,7 @@ Value IValue::Operator(Op op, Value rhs) {
 
 Value IValue::Operator(Op op) { throw UndefinedOperator(op, {this->Desc()}); }
 
-Value IValue::Invoke(std::vector<Value> args,
-                     std::map<std::string, Value> kwargs) {
+Value IValue::Invoke(std::vector<Value> args) {
   throw TypeError(Desc() + " object is not callable.");
 }
 

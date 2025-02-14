@@ -460,6 +460,7 @@ std::shared_ptr<GotoIfElement> CommandParser::ParseGotoIf(const char* stream) {
   return std::make_shared<GotoIfElement>(std::move(cmd), id, stream - begin);
 }
 
+// <gotoon> -> opcode expr {id, ...}
 std::shared_ptr<GotoOnElement> CommandParser::ParseGotoOn(const char* stream) {
   auto begin = stream;
   auto cmd = GetCommandinfo(stream);
@@ -485,6 +486,7 @@ std::shared_ptr<GotoOnElement> CommandParser::ParseGotoOn(const char* stream) {
                                          stream - begin);
 }
 
+// gotocase -> opcode expr {(expr)id, ...}
 std::shared_ptr<GotoCaseElement> CommandParser::ParseGotoCase(
     const char* stream) {
   auto begin = stream;
@@ -520,6 +522,7 @@ std::shared_ptr<GotoCaseElement> CommandParser::ParseGotoCase(
                                            std::move(ids), parsed_cases);
 }
 
+  // gosubwith -> opcode (expr ...) id
 std::shared_ptr<GosubWithElement> CommandParser::ParseGosubWith(
     const char* stream) {
   auto begin = stream;

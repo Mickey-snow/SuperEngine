@@ -53,8 +53,7 @@ class IValue {
   virtual Value Operator(Op op, Value rhs);
   virtual Value Operator(Op op);
 
-  virtual Value Invoke(std::vector<Value> args,
-                       std::map<std::string, Value> kwargs);
+  virtual Value Invoke(std::vector<Value> args);
 };
 
 Value make_value(int value);

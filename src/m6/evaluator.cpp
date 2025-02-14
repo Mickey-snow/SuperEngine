@@ -57,7 +57,7 @@ Value Evaluator::operator()(const InvokeExpr& x) const {
   std::transform(x.args.cbegin(), x.args.cend(), std::back_inserter(args),
                  [&](const auto arg_ast) { return arg_ast->Apply(*this); });
   std::map<std::string, Value> kwargs;
-  return fn->Invoke(args, kwargs);
+  return fn->Invoke(args);
 }
 Value Evaluator::operator()(const SubscriptExpr& x) const {
   throw std::runtime_error("not supported yet.");
