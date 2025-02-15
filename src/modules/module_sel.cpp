@@ -59,7 +59,6 @@ struct Sel_select : public RLOp_SpecialCase {
     const SelectElement& element = dynamic_cast<const SelectElement&>(ce);
     machine.PushLongOperation(
         std::make_shared<NormalSelectLongOperation>(machine, element));
-    machine.AdvanceInstructionPointer();
   }
 };
 
@@ -71,7 +70,6 @@ struct Sel_select_s : public RLOp_SpecialCase {
     const SelectElement& element = dynamic_cast<const SelectElement&>(ce);
     machine.PushLongOperation(
         std::make_shared<ButtonSelectLongOperation>(machine, element, 0));
-    machine.AdvanceInstructionPointer();
   }
 };
 
@@ -110,7 +108,6 @@ struct Sel_select_w : public RLOp_SpecialCase {
 
     machine.PushLongOperation(
         std::make_shared<NormalSelectLongOperation>(machine, element));
-    machine.AdvanceInstructionPointer();
   }
 };
 

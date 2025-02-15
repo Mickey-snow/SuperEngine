@@ -41,7 +41,5 @@ class SysModule : public RLModule {
 // -----------------------------------------------------------------------
 
 struct Sys_MenuReturn : public RLOpcode<> {
-  // Don't advance the instruction pointer when this returns
-  virtual bool ShouldAdvanceIP() override;
   virtual void operator()(RLMachine& machine) override;
 };

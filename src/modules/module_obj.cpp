@@ -129,8 +129,6 @@ void ObjRangeAdapter::operator()(RLMachine& machine,
     parameters[0] = libreallive::ExpressionFactory::IntConstant(i);
     handler->Dispatch(machine, parameters);
   }
-
-  machine.AdvanceInstructionPointer();
 }
 
 RLOperation* RangeMappingFun(RLOperation* op) {
@@ -165,8 +163,6 @@ void ChildObjAdapter::operator()(RLMachine& machine,
 
   handler->SetProperty(P_PARENTOBJ, objset);
   handler->Dispatch(machine, currentInstantiation);
-
-  machine.AdvanceInstructionPointer();
 }
 
 RLOperation* ChildObjMappingFun(RLOperation* op) {
@@ -222,8 +218,6 @@ void ChildObjRangeAdapter::operator()(RLMachine& machine,
     handler->SetProperty(P_PARENTOBJ, objset);
     handler->Dispatch(machine, parameters);
   }
-
-  machine.AdvanceInstructionPointer();
 }
 
 RLOperation* ChildRangeMappingFun(RLOperation* op) {

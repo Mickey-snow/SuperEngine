@@ -112,7 +112,7 @@ void System::SetPlatform(const std::shared_ptr<Platform>& platform) {
 }
 
 void System::TakeSelectionSnapshot(RLMachine& machine) {
-  previous_selection_.reset(new std::stringstream);
+  previous_selection_ = std::make_shared<std::stringstream>();
   Serialization::saveGameTo(*previous_selection_, machine);
 }
 

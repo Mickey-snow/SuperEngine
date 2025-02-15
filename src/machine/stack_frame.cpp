@@ -50,7 +50,4 @@ StackFrame::StackFrame(ScriptLocation it, std::shared_ptr<LongOperation> op)
   strK.Resize(40);
 }
 
-StackFrame::StackFrame(ScriptLocation it, LongOperation* op)
-    : StackFrame(it, std::shared_ptr<LongOperation>(op)) {}
-
 StackFrame::~StackFrame() = default;

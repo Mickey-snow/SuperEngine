@@ -27,6 +27,7 @@
 
 #include "machine/rloperation.hpp"
 
+#include <iostream>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -85,8 +86,6 @@ RLOperation::PropertyList::iterator RLOperation::FindProperty(
                  [&](Property& p) { return p.first == property; });
 }
 
-bool RLOperation::ShouldAdvanceIP() { return true; }
-
 void RLOperation::DispatchFunction(RLMachine& machine,
                                    const libreallive::CommandElement& ff) {
   const libreallive::ExpressionPiecesVector& parameter_pieces =
@@ -94,12 +93,6 @@ void RLOperation::DispatchFunction(RLMachine& machine,
 
   // Now Dispatch based on these parameters.
   Dispatch(machine, parameter_pieces);
-
-  // By default, we advacne the instruction pointer on any instruction we
-  // perform. Weird special cases all derive from RLOp_SpecialCase, which
-  // redefines the Dispatcher, so this is ok.
-  if (ShouldAdvanceIP())
-    machine.AdvanceInstructionPointer();
 }
 
 void RLOp_SpecialCase::Dispatch(

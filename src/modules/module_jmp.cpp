@@ -145,8 +145,6 @@ struct goto_if : public RLOp_SpecialCase {
 
     if (conditions[0]->GetIntegerValue(machine)) {
       Goto(machine, goto_element.GetLocation(0));
-    } else {
-      machine.AdvanceInstructionPointer();
     }
   }
 };
@@ -159,8 +157,6 @@ struct goto_unless : public RLOp_SpecialCase {
 
     if (!conditions[0]->GetIntegerValue(machine)) {
       Goto(machine, goto_element.GetLocation(0));
-    } else {
-      machine.AdvanceInstructionPointer();
     }
   }
 };
@@ -179,9 +175,6 @@ struct goto_on : public RLOp_SpecialCase {
 
     if (value >= 0 && value < int(goto_element.GetLocationCount())) {
       Goto(machine, goto_element.GetLocation(value));
-    } else {
-      // If the value is not a valid pointer, simply increment.
-      machine.AdvanceInstructionPointer();
     }
   }
 };
@@ -218,11 +211,8 @@ struct gosub_if : public RLOp_SpecialCase {
     const ExpressionPiecesVector& conditions =
         goto_element.GetParsedParameters();
 
-    if (conditions[0]->GetIntegerValue(machine)) {
+    if (conditions[0]->GetIntegerValue(machine))
       Gosub(machine, goto_element.GetLocation(0));
-    } else {
-      machine.AdvanceInstructionPointer();
-    }
   }
 };
 
@@ -235,11 +225,8 @@ struct gosub_unless : public RLOp_SpecialCase {
     const ExpressionPiecesVector& conditions =
         goto_element.GetParsedParameters();
 
-    if (!conditions[0]->GetIntegerValue(machine)) {
+    if (!conditions[0]->GetIntegerValue(machine))
       Gosub(machine, goto_element.GetLocation(0));
-    } else {
-      machine.AdvanceInstructionPointer();
-    }
   }
 };
 
@@ -257,9 +244,6 @@ struct gosub_on : public RLOp_SpecialCase {
 
     if (value >= 0 && value < int(goto_element.GetLocationCount()))
       Gosub(machine, goto_element.GetLocation(value));
-    else
-      // If the value is not a valid pointer, simply increment.
-      machine.AdvanceInstructionPointer();
   }
 };
 
@@ -290,8 +274,6 @@ struct ret : public RLOpcode<> {
 //
 // Jumps the instruction pointer to the begining of the |scenario|.
 struct jump_0 : public RLOpcode<IntConstant_T> {
-  virtual bool ShouldAdvanceIP() override { return false; }
-
   void operator()(RLMachine& machine, int scenario) override {
     Jump(machine, scenario, 0);
   }
@@ -301,8 +283,6 @@ struct jump_0 : public RLOpcode<IntConstant_T> {
 //
 // Jumps the instruction pointer to |entrypoint| of |scenario|.
 struct jump_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
-  virtual bool ShouldAdvanceIP() override { return false; }
-
   void operator()(RLMachine& machine, int scenario, int entrypoint) override {
     Jump(machine, scenario, entrypoint);
   }
@@ -312,8 +292,6 @@ struct jump_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
 //
 // Farcalls the instruction pointer to the begining of the |scenario|.
 struct farcall_0 : public RLOpcode<IntConstant_T> {
-  virtual bool ShouldAdvanceIP() override { return false; }
-
   void operator()(RLMachine& machine, int scenario) override {
     Farcall(machine, scenario, 0);
   }
@@ -323,8 +301,6 @@ struct farcall_0 : public RLOpcode<IntConstant_T> {
 //
 // Farcalls the instruction pointer to |entrypoint| of |scenario|.
 struct farcall_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
-  virtual bool ShouldAdvanceIP() override { return false; }
-
   void operator()(RLMachine& machine, int scenario, int entrypoint) override {
     Farcall(machine, scenario, entrypoint);
   }
@@ -401,8 +377,6 @@ struct farcall_with
           IntConstant_T,
           Argc_T<
               Special_T<DefaultSpecialMapper, IntConstant_T, StrConstant_T>>> {
-  virtual bool ShouldAdvanceIP() override { return false; }
-
   void operator()(RLMachine& machine,
                   int scenario,
                   int entrypoint,

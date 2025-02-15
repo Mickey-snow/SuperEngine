@@ -68,7 +68,6 @@ struct StackFrame {
   StackFrame(ScriptLocation it, FrameType t);
 
   // Constructor for frames that are just LongOperations.
-  StackFrame(ScriptLocation it, LongOperation* op);
   StackFrame(ScriptLocation it, std::shared_ptr<LongOperation> op);
 
   ~StackFrame();

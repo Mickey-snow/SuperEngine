@@ -306,8 +306,6 @@ struct save : public RLOpcode<IntConstant_T> {
 // Implementation of fun load<1:Sys:03009, 0> ('slot'): Loads data
 // from a save game slot.
 struct Sys_load : public RLOpcode<IntConstant_T> {
-  virtual bool ShouldAdvanceIP() override { return false; }
-
   virtual void operator()(RLMachine& machine, int slot) override {
     std::shared_ptr<Surface> before =
         machine.GetSystem().graphics().RenderToSurface();

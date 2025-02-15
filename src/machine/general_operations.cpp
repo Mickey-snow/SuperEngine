@@ -95,8 +95,6 @@ void MultiDispatch::operator()(RLMachine& machine,
         parameter_pieces[i]->GetContainedPieces();
     handler_->Dispatch(machine, element);
   }
-
-  machine.AdvanceInstructionPointer();
 }
 
 // -----------------------------------------------------------------------

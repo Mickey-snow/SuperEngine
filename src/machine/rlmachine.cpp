@@ -192,17 +192,11 @@ void RLMachine::ExecuteInstruction(std::shared_ptr<Instruction> instruction) {
     // execute the instruction
     std::visit(*this, *instruction);
   } catch (rlvm::UnimplementedOpcode& e) {
-    AdvanceInstructionPointer();
-
     static DomainLogger logger("Unimplemented");
     logger(Severity::None) << std::format("({:0>4d}:{:d}) ", SceneNumber(),
                                           line_)
                            << e.FormatCommand() << e.FormatParameters();
   } catch (rlvm::Exception& e) {
-    // Advance the instruction pointer so as to prevent infinite
-    // loops where we throw an exception, and then try again.
-    AdvanceInstructionPointer();
-
     static DomainLogger logger;
     auto rec = logger(Severity::Error);
     rec << std::format("({:0>4d}:{:d}) ", SceneNumber(), line_);
@@ -215,17 +209,13 @@ void RLMachine::ExecuteInstruction(std::shared_ptr<Instruction> instruction) {
 
     rec << ":  " << e.what();
   } catch (std::exception& e) {
-    // Advance the instruction pointer so as to prevent infinite
-    // loops where we throw an exception, and then try again.
-    AdvanceInstructionPointer();
-
     auto rec = logger(Severity::Error);
     rec << std::format("({:0>4d}:{:d}) ", SceneNumber(), line_);
     rec << e.what();
   }
 }
 
-void RLMachine::AdvanceInstructionPointer() {
+void RLMachine::AdvanceIP() {
   if (replaying_graphics_stack())
     return;
 
@@ -367,7 +357,7 @@ RLEnvironment& RLMachine::GetEnvironment() { return env_; }
 
 // -----------------------------------------------------------------------
 
-void RLMachine::operator()(std::monostate) { AdvanceInstructionPointer(); }
+void RLMachine::operator()(std::monostate) {}
 
 void RLMachine::operator()(Kidoku k) {
   // Check to see if we mark savepoints on textout
@@ -381,8 +371,6 @@ void RLMachine::operator()(Kidoku k) {
 
   // Record the kidoku pair in global memory.
   kidoku_table_.RecordKidoku(SceneNumber(), k.num);
-
-  AdvanceInstructionPointer();
 }
 
 void RLMachine::operator()(Line l) {
@@ -395,8 +383,6 @@ void RLMachine::operator()(Line l) {
       it->second();
     }
   }
-
-  AdvanceInstructionPointer();
 }
 
 void RLMachine::operator()(rlCommand cmd) {
@@ -415,14 +401,8 @@ void RLMachine::operator()(rlCommand cmd) {
   }
 }
 
-void RLMachine::operator()(rlExpression e) {
-  e.Execute(*this);
-  AdvanceInstructionPointer();
-}
+void RLMachine::operator()(rlExpression e) { e.Execute(*this); }
 
-void RLMachine::operator()(Textout t) {
-  PerformTextout(std::move(t.text));
-  AdvanceInstructionPointer();
-}
+void RLMachine::operator()(Textout t) { PerformTextout(std::move(t.text)); }
 
 void RLMachine::operator()(End) { Halt(); }

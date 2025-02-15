@@ -240,20 +240,15 @@ void RLVMInstance::Step() {
 
     } else {
       std::shared_ptr<Instruction> instruction = machine_->ReadInstruction();
+      machine_->AdvanceIP();
       machine_->ExecuteInstruction(instruction);
     }
 
   } catch (rlvm::UnimplementedOpcode& e) {
-    machine_->AdvanceInstructionPointer();
-
     static DomainLogger logger("Unimplemented");
     logger(Severity::Info) << DescribeCurrentIP() << ' ' << e.FormatCommand()
                            << e.FormatParameters();
   } catch (rlvm::Exception& e) {
-    // Advance the instruction pointer so as to prevent infinite
-    // loops where we throw an exception, and then try again.
-    machine_->AdvanceInstructionPointer();
-
     auto rec = logger(Severity::Error);
     rec << DescribeCurrentIP() << ' ';
 
@@ -265,10 +260,6 @@ void RLVMInstance::Step() {
 
     rec << ":  " << e.what();
   } catch (std::exception& e) {
-    // Advance the instruction pointer so as to prevent infinite
-    // loops where we throw an exception, and then try again.
-    machine_->AdvanceInstructionPointer();
-
     auto rec = logger(Severity::Error);
     rec << DescribeCurrentIP() << ' ';
     rec << e.what();

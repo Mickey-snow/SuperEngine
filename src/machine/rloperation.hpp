@@ -100,14 +100,6 @@ class RLOperation {
   RLOperation* SetProperty(int property, int value);
   bool GetProperty(int property, int& value) const;
 
-  // Check made as to whether the instruction pointer should be
-  // incremented after the instruction is executed. Override this in
-  // the *rare* case where an instruction messes about with the
-  // instruction pointer and we don't want to mess with it afterwards.
-  // The default implmentation returns true; 99% of instructions want
-  // the instruction pointer to be advanced automatically.
-  virtual bool ShouldAdvanceIP();
-
   // The Dispatch function is implemented on a per type basis and is called by
   // the Module, after checking to make sure that the
   virtual void Dispatch(
