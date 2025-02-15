@@ -177,6 +177,7 @@ class RLMachine {
   // Increments the stack pointer in the current frame. If we have run
   // off the end of the current scenario, set the halted bit.
   void AdvanceIP();
+  void RevertIP();
 
   // RealLive will save the latest savepoint for the topmost stack
   // frame. Savepoints can be manually set (with the "Savepoint" command), but

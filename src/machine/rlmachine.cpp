@@ -228,6 +228,11 @@ void RLMachine::AdvanceIP() {
   }
 }
 
+void RLMachine::RevertIP() {
+  auto& pos = call_stack_.Top()->pos;
+  --pos.location_offset;
+}
+
 CallStack& RLMachine::GetStack() { return call_stack_; }
 
 std::shared_ptr<IScriptor> RLMachine::GetScriptor() { return scriptor_; }
@@ -243,7 +248,10 @@ Gameexe& RLMachine::GetGameexe() { return system_.gameexe(); }
 void RLMachine::PushLongOperation(
     std::shared_ptr<LongOperation> long_operation) {
   const auto top_frame = call_stack_.Top();
-  call_stack_.Push(StackFrame(top_frame->pos, long_operation));
+  auto pos = top_frame->pos;
+  pos.location_offset--;  // location associated with this longop is previous
+                          // location of the instruction pointer.
+  call_stack_.Push(StackFrame(pos, long_operation));
 }
 
 void RLMachine::Reset() {
