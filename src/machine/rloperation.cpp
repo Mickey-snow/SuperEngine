@@ -47,9 +47,9 @@ RLOperation::RLOperation() : name_() {}
 
 RLOperation::~RLOperation() {}
 
-RLOperation* RLOperation::SetProperty(int property, int value) {
+void RLOperation::SetProperty(int property, int value) {
   if (!property_list_) {
-    property_list_.reset(new std::vector<std::pair<int, int>>);
+    property_list_ = std::make_unique<std::vector<std::pair<int, int>>>();
   }
 
   // Modify the property if it already exists
@@ -59,8 +59,6 @@ RLOperation* RLOperation::SetProperty(int property, int value) {
   } else {
     property_list_->emplace_back(property, value);
   }
-
-  return this;
 }
 
 bool RLOperation::GetProperty(int property, int& value) const {
@@ -70,11 +68,6 @@ bool RLOperation::GetProperty(int property, int& value) const {
       value = it->second;
       return true;
     }
-  }
-
-  if (module_) {
-    // If we don't have a property, ask our module if it has one.
-    return module_->GetProperty(property, value);
   }
 
   return false;

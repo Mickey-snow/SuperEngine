@@ -58,7 +58,6 @@ void RLModule::AddOpcode(int opcode,
                          const std::string& name,
                          RLOperation* op) {
   op->SetName(name);
-  op->module_ = this;
 
   auto emplace_result = stored_operations_.try_emplace(
       std::make_pair(opcode, static_cast<int>(overload)),
@@ -80,18 +79,13 @@ void RLModule::AddUnsupportedOpcode(int opcode,
 }
 
 void RLModule::SetProperty(int property, int value) {
-  if (!property_list_) {
-    property_list_.reset(new std::vector<std::pair<int, int>>);
+  std::map<std::pair<int, int>, std::shared_ptr<RLOperation>> const&
+      operations = GetStoredOperations();
+  for (auto& it :
+       const_cast<std::map<std::pair<int, int>, std::shared_ptr<RLOperation>>&>(
+           operations)) {
+    it.second->SetProperty(property, value);
   }
-
-  // Modify the property if it already exists
-  PropertyList::iterator it = FindProperty(property);
-  if (it != property_list_->end()) {
-    it->second = value;
-    return;
-  }
-
-  property_list_->emplace_back(property, value);
 }
 
 bool RLModule::GetProperty(int property, int& value) const {
@@ -109,14 +103,6 @@ bool RLModule::GetProperty(int property, int& value) const {
 RLModule::PropertyList::iterator RLModule::FindProperty(int property) const {
   return find_if(property_list_->begin(), property_list_->end(),
                  [&](Property& p) { return p.first == property; });
-}
-
-std::shared_ptr<RLOperation> RLModule::Dispatch(
-    const libreallive::CommandElement& f) const {
-  auto it = stored_operations_.find(std::make_pair(f.opcode(), f.overload()));
-  if (it == stored_operations_.cend())
-    return nullptr;
-  return it->second;
 }
 
 std::map<std::pair<int, int>, std::shared_ptr<RLOperation>> const&

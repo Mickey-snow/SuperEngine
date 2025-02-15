@@ -97,7 +97,7 @@ class RLOperation {
   void SetName(const std::string& name) { name_ = name; }
   const std::string& Name() const { return name_; }
 
-  RLOperation* SetProperty(int property, int value);
+  void SetProperty(int property, int value);
   bool GetProperty(int property, int& value) const;
 
   // The Dispatch function is implemented on a per type basis and is called by
@@ -123,9 +123,6 @@ class RLOperation {
   // Our properties (for the number of properties O(n) is faster than O(log
   // n)...)
   std::unique_ptr<PropertyList> property_list_;
-
-  // The module that owns us (we ask it for properties).
-  RLModule* module_ = nullptr;
 
   // The human readable name for this operation
   std::string name_;

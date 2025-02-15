@@ -109,13 +109,8 @@ class RLModule {
   const std::string& module_name() const { return module_name_; }
 
   void SetProperty(int property, int value);
+  [[deprecated]]
   bool GetProperty(int property, int& value) const;
-
-  // Using the bytecode element CommandElement f, try to find an
-  // RLOperation implementation of the instruction in this module.
-  // Returns the pointer if found, returns nullptr if not found.
-  std::shared_ptr<RLOperation> Dispatch(
-      const libreallive::CommandElement& f) const;
 
   std::map<std::pair<int, int>, std::shared_ptr<RLOperation>> const&
   GetStoredOperations() const;
