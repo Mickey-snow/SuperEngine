@@ -67,6 +67,8 @@ RLMachine::RLMachine(std::shared_ptr<System> system,
       module_manager_(ModuleManager::CreatePrototype()),
       scriptor_(scriptor),
       system_(*system) {
+  if (!memory_)
+    memory_ = std::make_unique<Memory>();
   // Setup stack memory
   Memory::Stack stack_memory;
   stack_memory.K = MemoryBank<std::string>(
@@ -78,12 +80,13 @@ RLMachine::RLMachine(std::shared_ptr<System> system,
   // Setup call stack
   call_stack_.Push(StackFrame(starting_location, StackFrame::TYPE_ROOT));
 
-  // Setup runtime environment
-  if (system)
+  if (system) {
+    // Setup runtime environment
     env_.InitFrom(system->gameexe());
 
-  // Initial value of the savepoint
-  MarkSavepoint();
+    // Initial value of the savepoint
+    MarkSavepoint();
+  }
 }
 
 RLMachine::~RLMachine() = default;
