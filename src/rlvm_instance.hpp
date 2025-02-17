@@ -67,29 +67,12 @@ class RLVMInstance {
                              const std::string& false_button);
 
  private:
-  // Finds a game file, causing an error if not found.
-  std::filesystem::path FindGameFile(const std::filesystem::path& gamerootPath,
-                                     const std::string& filename);
-
-  // Checks for AVG32/Siglus engine games, which people may be confused about.
-  void CheckBadEngine(const std::filesystem::path& gamerootPath,
-                      const std::vector<std::string> filenames,
-                      const std::string& message_text);
-
-  // Read config files from the path and create archive, machine, system
-  // instances.
-  void Bootload(const std::filesystem::path& gamepath);
-
   // Control the machine to execute the next operation
   void Step();
 
   // Returns a formatted string to descirbe current location (scene number,
   // line)
   std::string DescribeCurrentIP() const;
-
-  std::shared_ptr<libreallive::Archive> archive_;
-
-  std::shared_ptr<Gameexe> gameexe_;
 
   std::shared_ptr<System> system_;
 
