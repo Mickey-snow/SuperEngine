@@ -26,6 +26,7 @@
 #include <filesystem>
 #include <memory>
 
+class EventListener;
 class System;
 class RLMachine;
 class Debugger;
@@ -49,7 +50,9 @@ class GameLoader {
 
   std::shared_ptr<Debugger> debugger_;
 
-private:
+  std::shared_ptr<EventListener> longop_listener_adapter_, system_listener_;
+
+ private:
   void Load();
 };
 

@@ -23,6 +23,7 @@
 
 #include "libreallive/game_loader.hpp"
 
+#include "core/event_listener.hpp"
 #include "core/gameexe.hpp"
 #include "libreallive/archive.hpp"
 #include "libreallive/scriptor.hpp"
@@ -31,6 +32,7 @@
 #include "machine/game_hacks.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/serialization.hpp"
+#include "systems/base/graphics_system.hpp"
 #include "systems/event_system.hpp"
 #include "systems/sdl/sdl_system.hpp"
 #include "utilities/file.hpp"
@@ -123,11 +125,69 @@ GameLoader::GameLoader(fs::path gameroot) {
 
   // instantiate virtual machine
   machine_ = std::make_shared<RLMachine>(
-      *system_, scriptor, scriptor->Load(first_seen), std::move(memory));
+      system_, scriptor, scriptor->Load(first_seen), std::move(memory));
 
   // instantiate debugger
   debugger_ = std::make_shared<Debugger>(*machine_);
   system_->event().AddListener(debugger_);
+
+  // Event listener for long operations
+  struct LongopListenerAdapter
+      : public EventListener {  // Adaptor class that fetches event and feed
+                                // them to the topmost long
+                                // operation, if there is any.
+    RLMachine& machine_;
+    LongopListenerAdapter(RLMachine& machine) : machine_(machine) {}
+    void OnEvent(std::shared_ptr<Event> event) override {
+      if (auto sp = machine_.CurrentLongOperation())
+        sp->OnEvent(event);
+    }
+  };
+  longop_listener_adapter_ = std::make_shared<LongopListenerAdapter>(*machine_);
+  system_->event().AddListener(-20 /*we want the lowest priority*/,
+                               longop_listener_adapter_);
+
+  // Event listener for system
+  struct SystemEventListener : public EventListener {
+    RLMachine& machine_;
+    SystemEventListener(RLMachine& machine) : machine_(machine) {}
+    void OnEvent(std::shared_ptr<Event> event) override {
+      if (std::visit(
+              [&](auto& event) -> bool {
+                using T = std::decay_t<decltype(event)>;
+                if constexpr (std::same_as<T, Quit>) {
+                  machine_.Halt();
+                  return true;
+                }
+                if constexpr (std::same_as<T, VideoExpose>) {
+                  machine_.GetSystem().graphics().ForceRefresh();
+                  return true;
+                }
+                if constexpr (std::same_as<T, VideoResize>) {
+                  machine_.GetSystem().graphics().Resize(event.size);
+                  return true;
+                }
+                if constexpr (std::same_as<T, MouseMotion>) {
+                  const auto& graphics_sys = machine_.GetSystem().graphics();
+                  const auto aspect_ratio_w =
+                      1.0f * graphics_sys.GetDisplaySize().width() /
+                      graphics_sys.screen_size().width();
+                  const auto aspect_ratio_h =
+                      1.0f * graphics_sys.GetDisplaySize().height() /
+                      graphics_sys.screen_size().height();
+                  event.pos.set_x(event.pos.x() / aspect_ratio_w);
+                  event.pos.set_y(event.pos.y() / aspect_ratio_h);
+                  return false;
+                }
+                return false;
+              },
+              *event))
+        *event = std::monostate();
+    }
+  };
+  system_listener_ = std::make_shared<SystemEventListener>(*machine_);
+  system_->event().AddListener(20 /*we want the highest priority*/,
+                               system_listener_);
 
   // Load the "DLLs" required
   for (auto it : gameexe_->Filter("DLL.")) {

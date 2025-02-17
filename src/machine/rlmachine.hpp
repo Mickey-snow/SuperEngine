@@ -61,7 +61,7 @@ struct LongopListenerAdapter;
 // control, and other execution issues.
 class RLMachine {
  public:
-  RLMachine(System& system,
+  RLMachine(std::shared_ptr<System> system,
             std::shared_ptr<IScriptor> scriptor,
             ScriptLocation starting_location,
             std::unique_ptr<Memory> memory = nullptr);
