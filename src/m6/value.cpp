@@ -30,20 +30,20 @@
 
 namespace m6 {
 // factory methods
-Value make_value(int value) { return std::make_shared<IValue>(value); }
-Value make_value(std::string value) {
-  return std::make_shared<IValue>(std::move(value));
+Value_ptr make_value(int value) { return std::make_shared<Value>(value); }
+Value_ptr make_value(std::string value) {
+  return std::make_shared<Value>(std::move(value));
 }
 
-Value make_value(char const* value) { return make_value(std::string{value}); }
-Value make_value(bool value) { return make_value(value ? 1 : 0); }
+Value_ptr make_value(char const* value) { return make_value(std::string{value}); }
+Value_ptr make_value(bool value) { return make_value(value ? 1 : 0); }
 
 // -----------------------------------------------------------------------
 // class IValue
 
-IValue::IValue(value_t x) : val_(std::move(x)) {}
+Value::Value(value_t x) : val_(std::move(x)) {}
 
-std::string IValue::Str() const {
+std::string Value::Str() const {
   return std::visit(
       [](const auto& x) -> std::string {
         using T = std::decay_t<decltype(x)>;
@@ -57,7 +57,7 @@ std::string IValue::Str() const {
       val_);
 }
 
-std::string IValue::Desc() const {
+std::string Value::Desc() const {
   return std::visit(
       [](const auto& x) -> std::string {
         using T = std::decay_t<decltype(x)>;
@@ -71,7 +71,7 @@ std::string IValue::Desc() const {
       val_);
 }
 
-std::type_index IValue::Type() const {
+std::type_index Value::Type() const {
   return std::visit(
       [](const auto& x) -> std::type_index {
         using T = std::decay_t<decltype(x)>;
@@ -80,22 +80,22 @@ std::type_index IValue::Type() const {
       val_);
 }
 
-Value IValue::Duplicate() { return std::make_shared<IValue>(val_); }
+Value_ptr Value::Duplicate() { return std::make_shared<Value>(val_); }
 
-std::any IValue::Get() const {
+std::any Value::Get() const {
   return std::visit([](const auto& x) -> std::any { return x; }, val_);
 }
 
-void* IValue::Getptr() {
+void* Value::Getptr() {
   return std::visit([](auto& x) -> void* { return &x; }, val_);
 }
 
-Value IValue::Operator(Op op, Value rhs) {
+Value_ptr Value::Operator(Op op, Value_ptr rhs) {
   if (op == Op::Comma)
     return rhs;
 
   return std::visit(
-      [op, this, &rhs](auto& x) -> Value {
+      [op, this, &rhs](auto& x) -> Value_ptr {
         using T = std::decay_t<decltype(x)>;
 
         if constexpr (false)
@@ -251,9 +251,9 @@ Value IValue::Operator(Op op, Value rhs) {
       val_);
 }
 
-Value IValue::Operator(Op op) {
+Value_ptr Value::Operator(Op op) {
   return std::visit(
-      [op, this](const auto& x) -> Value {
+      [op, this](const auto& x) -> Value_ptr {
         using T = std::decay_t<decltype(x)>;
         if constexpr (std::same_as<T, int>) {
           switch (op) {
@@ -273,7 +273,7 @@ Value IValue::Operator(Op op) {
       val_);
 }
 
-Value IValue::Invoke(std::vector<Value> args) {
+Value_ptr Value::Invoke(std::vector<Value_ptr> args) {
   throw TypeError(Desc() + " object is not callable.");
 }
 

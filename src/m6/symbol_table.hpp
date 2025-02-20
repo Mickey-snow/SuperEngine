@@ -34,7 +34,7 @@ namespace m6 {
 /**
  * @brief Forward declaration of the IValue interface.
  */
-class IValue;
+class Value;
 
 /**
  * @brief Exception thrown when a symbol is not found in the symbol table.
@@ -77,14 +77,14 @@ class SymbolTable {
    * @return A shared pointer to the associated IValue.
    * @throws NameError if the symbol is not found.
    */
-  virtual std::shared_ptr<IValue> Get(const std::string& name) const;
+  virtual std::shared_ptr<Value> Get(const std::string& name) const;
 
   /**
    * @brief Inserts or updates a symbol with its associated value.
    * @param name The name of the symbol.
    * @param value The value to be associated with the symbol.
    */
-  virtual void Set(const std::string& name, std::shared_ptr<IValue> value);
+  virtual void Set(const std::string& name, std::shared_ptr<Value> value);
 
   /**
    * @brief Removes a symbol from the table.
@@ -100,7 +100,7 @@ class SymbolTable {
 
  private:
   /// Internal storage mapping symbol names to their values.
-  std::unordered_map<std::string, std::shared_ptr<IValue>> table_;
+  std::unordered_map<std::string, std::shared_ptr<Value>> table_;
 };
 
 }  // namespace m6

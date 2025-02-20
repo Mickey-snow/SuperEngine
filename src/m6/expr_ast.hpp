@@ -31,8 +31,8 @@
 namespace m6 {
 
 class ExprAST;
-class IValue;
-using Value = std::shared_ptr<IValue>;
+class Value;
+using Value_ptr = std::shared_ptr<Value>;
 enum class Op;
 
 // -----------------------------------------------------------------------

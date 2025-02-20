@@ -42,9 +42,9 @@ std::type_index Int::Type() const noexcept { return typeid(int); }
 std::any Int::Get() const { return std::make_any<int>(val_); }
 void* Int::Getptr() { return &val_; }
 
-Value Int::Duplicate() { return make_value(val_); }
+Value_ptr Int::Duplicate() { return make_value(val_); }
 
-Value Int::Operator(Op op, Value rhs) {
+Value_ptr Int::Operator(Op op, Value_ptr rhs) {
   try {
     const int rhs_val = std::any_cast<int>(rhs->Get());
 
@@ -147,7 +147,7 @@ Value Int::Operator(Op op, Value rhs) {
   throw UndefinedOperator(op, {this->Desc(), rhs->Desc()});
 }
 
-Value Int::Operator(Op op) {
+Value_ptr Int::Operator(Op op) {
   switch (op) {
     case Op::Add:
       return make_value(val_);

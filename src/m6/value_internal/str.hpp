@@ -28,7 +28,7 @@
 
 namespace m6 {
 
-class String : public IValue {
+class String : public Value {
  public:
   String(std::string val);
 
@@ -37,13 +37,13 @@ class String : public IValue {
 
   virtual std::type_index Type() const noexcept override;
 
-  virtual Value Duplicate() override;
+  virtual Value_ptr Duplicate() override;
 
   virtual std::any Get() const override;
   virtual void* Getptr() override;
 
-  virtual Value Operator(Op op, Value rhs) override;
-  virtual Value Operator(Op op) override;
+  virtual Value_ptr Operator(Op op, Value_ptr rhs) override;
+  virtual Value_ptr Operator(Op op) override;
 
  private:
   std::string val_;

@@ -34,17 +34,17 @@ class SymbolTable;
 struct Evaluator {
   Evaluator(std::shared_ptr<SymbolTable> sym_tab = nullptr);
 
-  Value operator()(std::monostate) const;
-  Value operator()(const IdExpr& str) const;
-  Value operator()(int x) const;
-  Value operator()(const std::string& x) const;
-  Value operator()(const InvokeExpr& x) const;
-  Value operator()(const SubscriptExpr& x) const;
-  Value operator()(const MemberExpr& x) const;
-  Value operator()(const ParenExpr& x) const;
-  Value operator()(const UnaryExpr& x) const;
-  Value operator()(const BinaryExpr& x) const;
-  Value operator()(const AssignExpr& x) const;
+  Value_ptr operator()(std::monostate) const;
+  Value_ptr operator()(const IdExpr& str) const;
+  Value_ptr operator()(int x) const;
+  Value_ptr operator()(const std::string& x) const;
+  Value_ptr operator()(const InvokeExpr& x) const;
+  Value_ptr operator()(const SubscriptExpr& x) const;
+  Value_ptr operator()(const MemberExpr& x) const;
+  Value_ptr operator()(const ParenExpr& x) const;
+  Value_ptr operator()(const UnaryExpr& x) const;
+  Value_ptr operator()(const BinaryExpr& x) const;
+  Value_ptr operator()(const AssignExpr& x) const;
 
   std::shared_ptr<SymbolTable> sym_tab_;
 };

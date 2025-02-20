@@ -34,11 +34,11 @@ TEST(SymbolTableTest, InsertAndExistsTest) {
 
   EXPECT_FALSE(symtab.Exists("x"));
 
-  Value intValue = make_value(42);
+  Value_ptr intValue = make_value(42);
   symtab.Set("x", intValue);
   EXPECT_TRUE(symtab.Exists("x"));
 
-  Value retrieved = symtab.Get("x");
+  Value_ptr retrieved = symtab.Get("x");
   EXPECT_EQ(retrieved->Desc(), "<int: 42>");
 }
 
@@ -50,7 +50,7 @@ TEST(SymbolTableTest, GetNonExistingSymbolTest) {
 
 TEST(SymbolTableTest, RemoveSymbolTest) {
   SymbolTable symtab;
-  Value strValue = make_value(std::string("hello"));
+  Value_ptr strValue = make_value(std::string("hello"));
   symtab.Set("greeting", strValue);
 
   EXPECT_TRUE(symtab.Exists("greeting"));

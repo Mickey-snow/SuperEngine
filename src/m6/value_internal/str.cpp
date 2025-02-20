@@ -38,9 +38,9 @@ std::type_index String::Type() const noexcept { return typeid(std::string); }
 std::any String::Get() const { return val_; }
 void* String::Getptr() { return &val_; }
 
-Value String::Duplicate() { return make_value(val_); }
+Value_ptr String::Duplicate() { return make_value(val_); }
 
-Value String::Operator(Op op, Value rhs) {
+Value_ptr String::Operator(Op op, Value_ptr rhs) {
   if (rhs->Type() == typeid(int)) {
     auto rhs_value = std::any_cast<int>(rhs->Get());
     if (rhs_value >= 0 && (op == Op::Mul || op == Op::MulAssign)) {
@@ -82,6 +82,6 @@ Value String::Operator(Op op, Value rhs) {
   throw UndefinedOperator(op, {this->Desc(), rhs->Desc()});
 }
 
-Value String::Operator(Op op) { throw UndefinedOperator(op, {this->Desc()}); }
+Value_ptr String::Operator(Op op) { throw UndefinedOperator(op, {this->Desc()}); }
 
 }  // namespace m6

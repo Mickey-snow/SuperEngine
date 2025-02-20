@@ -43,7 +43,7 @@ bool SymbolTable::Exists(const std::string& name) const {
   return table_.find(name) != table_.end();
 }
 
-std::shared_ptr<IValue> SymbolTable::Get(const std::string& name) const {
+std::shared_ptr<Value> SymbolTable::Get(const std::string& name) const {
   auto it = table_.find(name);
   if (it != table_.end()) {
     return it->second;
@@ -51,7 +51,7 @@ std::shared_ptr<IValue> SymbolTable::Get(const std::string& name) const {
   throw NameError(name);
 }
 
-void SymbolTable::Set(const std::string& name, std::shared_ptr<IValue> value) {
+void SymbolTable::Set(const std::string& name, std::shared_ptr<Value> value) {
   table_[name] = value;
 }
 

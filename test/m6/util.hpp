@@ -55,11 +55,11 @@ struct GetPrefix {
 };
 
 using m6::Op;
-using m6::Value;
+using m6::Value_ptr;
 
-inline bool Compare(Value lhs, Value rhs) noexcept {
+inline bool Compare(Value_ptr lhs, Value_ptr rhs) noexcept {
   try {
-    Value result = lhs->Operator(Op::Equal, rhs);
+    Value_ptr result = lhs->Operator(Op::Equal, rhs);
     return std::any_cast<int>(result->Get()) != 0;
   } catch (...) {
     return false;

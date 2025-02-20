@@ -32,14 +32,14 @@
 
 namespace m6 {
 
-class Function : public IValue {
+class Function : public Value {
  public:
   virtual std::type_index Type() const noexcept override {
     return typeid(
-        std::function<Value(std::vector<Value>, std::map<std::string, Value>)>);
+        std::function<Value_ptr(std::vector<Value_ptr>, std::map<std::string, Value_ptr>)>);
   }
 
-  virtual Value Invoke(std::vector<Value> args) override = 0;
+  virtual Value_ptr Invoke(std::vector<Value_ptr> args) override = 0;
 };
 
 namespace internal {
@@ -72,7 +72,7 @@ struct function_traits
     : function_traits<decltype(&std::remove_reference_t<F>::operator())> {};
 }  // namespace internal
 
-Value make_fn_value(std::string name, auto&& fn) {
+Value_ptr make_fn_value(std::string name, auto&& fn) {
   using fn_type = std::decay_t<decltype(fn)>;
   using R = typename internal::function_traits<fn_type>::result_type;
   using Argt = typename internal::function_traits<fn_type>::argument_types;
@@ -89,11 +89,11 @@ Value make_fn_value(std::string name, auto&& fn) {
       return "<wrapper 'basic function' of object " + name_ + '>';
     }
 
-    Value Duplicate() override {
+    Value_ptr Duplicate() override {
       return std::make_shared<BasicFunction>(*this);
     }
 
-    Value Invoke(std::vector<Value> args) override {
+    Value_ptr Invoke(std::vector<Value_ptr> args) override {
       auto arg = ParseArgs(Argt{}, std::move(args));
       if constexpr (std::same_as<R, void>) {
         std::apply(fn_, std::move(arg));
@@ -101,7 +101,7 @@ Value make_fn_value(std::string name, auto&& fn) {
       } else {
         const auto result = std::apply(fn_, std::move(arg));
 
-        if constexpr (std::same_as<R, Value>)
+        if constexpr (std::same_as<R, Value_ptr>)
           return result;
         else
           return make_value(result);

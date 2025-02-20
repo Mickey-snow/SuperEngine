@@ -35,36 +35,36 @@
 
 namespace m6 {
 
-using Value = std::shared_ptr<IValue>;
-class IValue {
+using Value_ptr = std::shared_ptr<Value>;
+class Value {
  public:
   using value_t = std::variant<std::monostate, int, std::string>;
 
-  IValue(value_t = std::monostate());
-  virtual ~IValue() = default;
+  Value(value_t = std::monostate());
+  virtual ~Value() = default;
 
   virtual std::string Str() const;
   virtual std::string Desc() const;
 
   virtual std::type_index Type() const;
 
-  virtual Value Duplicate();
+  virtual Value_ptr Duplicate();
 
   virtual std::any Get() const;
   virtual void* Getptr();
 
-  virtual Value Operator(Op op, Value rhs);
-  virtual Value Operator(Op op);
+  virtual Value_ptr Operator(Op op, Value_ptr rhs);
+  virtual Value_ptr Operator(Op op);
 
-  virtual Value Invoke(std::vector<Value> args);
+  virtual Value_ptr Invoke(std::vector<Value_ptr> args);
 
  private:
   value_t val_;
 };
 
-Value make_value(int value);
-Value make_value(std::string value);
-Value make_value(char const* value);
-Value make_value(bool value);
+Value_ptr make_value(int value);
+Value_ptr make_value(std::string value);
+Value_ptr make_value(char const* value);
+Value_ptr make_value(bool value);
 
 }  // namespace m6
