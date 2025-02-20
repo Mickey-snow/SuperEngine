@@ -30,33 +30,248 @@
 
 namespace m6 {
 // factory methods
-Value make_value(int value) { return std::make_shared<Int>(value); }
+Value make_value(int value) { return std::make_shared<IValue>(value); }
 Value make_value(std::string value) {
-  return std::make_shared<String>(std::move(value));
+  return std::make_shared<IValue>(std::move(value));
 }
+
 Value make_value(char const* value) { return make_value(std::string{value}); }
 Value make_value(bool value) { return make_value(value ? 1 : 0); }
 
 // -----------------------------------------------------------------------
 // class IValue
 
-IValue::IValue() = default;
+IValue::IValue(value_t x) : val_(std::move(x)) {}
 
-std::string IValue::Str() const { return "???"; }
+std::string IValue::Str() const {
+  return std::visit(
+      [](const auto& x) -> std::string {
+        using T = std::decay_t<decltype(x)>;
+        if constexpr (std::same_as<T, std::monostate>)
+          return "nil";
+        else if constexpr (std::same_as<T, int>)
+          return std::to_string(x);
+        else if constexpr (std::same_as<T, std::string>)
+          return x;
+      },
+      val_);
+}
 
-std::string IValue::Desc() const { return "???"; }
+std::string IValue::Desc() const {
+  return std::visit(
+      [](const auto& x) -> std::string {
+        using T = std::decay_t<decltype(x)>;
+        if constexpr (std::same_as<T, std::monostate>)
+          return "<nil>";
+        else if constexpr (std::same_as<T, int>)
+          return "<int: " + std::to_string(x) + '>';
+        else if constexpr (std::same_as<T, std::string>)
+          return "<str: " + x + '>';
+      },
+      val_);
+}
 
-std::any IValue::Get() const { return std::any(); }  // nil
-void* IValue::Getptr() { return nullptr; }
+std::type_index IValue::Type() const {
+  return std::visit(
+      [](const auto& x) -> std::type_index {
+        using T = std::decay_t<decltype(x)>;
+        return typeid(T);
+      },
+      val_);
+}
+
+Value IValue::Duplicate() { return std::make_shared<IValue>(val_); }
+
+std::any IValue::Get() const {
+  return std::visit([](const auto& x) -> std::any { return x; }, val_);
+}
+
+void* IValue::Getptr() {
+  return std::visit([](auto& x) -> void* { return &x; }, val_);
+}
 
 Value IValue::Operator(Op op, Value rhs) {
   if (op == Op::Comma)
     return rhs;
 
-  throw UndefinedOperator(op, {this->Desc(), rhs->Desc()});
+  return std::visit(
+      [op, this, &rhs](auto& x) -> Value {
+        using T = std::decay_t<decltype(x)>;
+
+        if constexpr (false)
+          ;
+
+        else if constexpr (std::same_as<T, int>) {
+          if (!std::holds_alternative<int>(rhs->val_))
+            goto end;
+
+          const int rhs_val = std::get<int>(rhs->val_);
+          static const auto True = make_value(true);
+          static const auto False = make_value(false);
+
+          switch (op) {
+            case Op::Comma:
+              return rhs;
+
+            case Op::Add:
+              return make_value(x + rhs_val);
+            case Op::AddAssign:
+              return make_value(x += rhs_val);
+            case Op::Sub:
+              return make_value(x - rhs_val);
+            case Op::SubAssign:
+              return make_value(x -= rhs_val);
+            case Op::Mul:
+              return make_value(x * rhs_val);
+            case Op::MulAssign:
+              return make_value(x *= rhs_val);
+            case Op::Div: {
+              if (rhs_val == 0)
+                return make_value(0);
+              return make_value(x / rhs_val);
+            }
+            case Op::DivAssign: {
+              if (rhs_val == 0)
+                return make_value(x = 0);
+              return make_value(x /= rhs_val);
+            }
+            case Op::Mod:
+              return make_value(x % rhs_val);
+            case Op::ModAssign:
+              return make_value(x %= rhs_val);
+            case Op::BitAnd:
+              return make_value(x & rhs_val);
+            case Op::BitAndAssign:
+              return make_value(x &= rhs_val);
+            case Op::BitOr:
+              return make_value(x | rhs_val);
+            case Op::BitOrAssign:
+              return make_value(x |= rhs_val);
+            case Op::BitXor:
+              return make_value(x ^ rhs_val);
+            case Op::BitXorAssign:
+              return make_value(x ^= rhs_val);
+            case Op::ShiftLeft:
+            case Op::ShiftLeftAssign: {
+              if (rhs_val < 0)
+                throw ValueError("negative shift count: " +
+                                 std::to_string(rhs_val));
+              const auto result = x << rhs_val;
+              if (op == Op::ShiftLeftAssign)
+                x = result;
+              return make_value(result);
+            }
+            case Op::ShiftRight:
+            case Op::ShiftRightAssign: {
+              if (rhs_val < 0)
+                throw ValueError("negative shift count: " +
+                                 std::to_string(rhs_val));
+              const auto result = x >> rhs_val;
+              if (op == Op::ShiftRightAssign)
+                x = result;
+              return make_value(result);
+            }
+            case Op::ShiftUnsignedRight:
+            case Op::ShiftUnsignedRightAssign: {
+              if (rhs_val < 0)
+                throw ValueError("negative shift count: " +
+                                 std::to_string(rhs_val));
+              const int result = std::bit_cast<uint32_t>(x) >> rhs_val;
+              if (op == Op::ShiftUnsignedRightAssign)
+                x = result;
+              return make_value(result);
+            }
+            case Op::Equal:
+              return x == rhs_val ? True : False;
+            case Op::NotEqual:
+              return x != rhs_val ? True : False;
+            case Op::LessEqual:
+              return x <= rhs_val ? True : False;
+            case Op::Less:
+              return x < rhs_val ? True : False;
+            case Op::GreaterEqual:
+              return x >= rhs_val ? True : False;
+            case Op::Greater:
+              return x > rhs_val ? True : False;
+
+            case Op::LogicalAnd:
+              return x && rhs_val ? True : False;
+            case Op::LogicalOr:
+              return x || rhs_val ? True : False;
+
+            default:
+              break;
+          }
+        }
+
+        else if constexpr (std::same_as<T, std::string>) {
+          if (std::holds_alternative<int>(rhs->val_)) {
+            auto rhs_value = std::any_cast<int>(rhs->Get());
+            if (rhs_value >= 0 && (op == Op::Mul || op == Op::MulAssign)) {
+              std::string result, current = x;
+              result.reserve(x.size() * rhs_value);
+              while (rhs_value) {
+                if (rhs_value & 1)
+                  result += current;
+                current = current + current;
+                rhs_value >>= 1;
+              }
+
+              if (op == Op::MulAssign)
+                x = result;
+              return make_value(std::move(result));
+            }
+
+          }
+
+          else if (std::holds_alternative<std::string>(rhs->val_)) {
+            const auto rhs_value = std::any_cast<std::string>(rhs->Get());
+            static const auto True = make_value(1);
+            static const auto False = make_value(0);
+
+            switch (op) {
+              case Op::Equal:
+                return x == rhs_value ? True : False;
+              case Op::NotEqual:
+                return x != rhs_value ? True : False;
+              case Op::Add:
+                return make_value(x + rhs_value);
+              case Op::AddAssign:
+                x += rhs_value;
+                return make_value(x);
+              default:
+                break;
+            }
+          }
+        }
+
+      [[maybe_unused]] end:
+        throw UndefinedOperator(op, {this->Desc(), rhs->Desc()});
+      },
+      val_);
 }
 
-Value IValue::Operator(Op op) { throw UndefinedOperator(op, {this->Desc()}); }
+Value IValue::Operator(Op op) {
+  return std::visit(
+      [op, this](const auto& x) -> Value {
+        using T = std::decay_t<decltype(x)>;
+        if constexpr (std::same_as<T, int>) {
+          switch (op) {
+            case Op::Add:
+              return make_value(x);
+            case Op::Sub:
+              return make_value(-x);
+            case Op::Tilde:
+              return make_value(~x);
+            default:
+              break;
+          }
+        }
+
+        throw UndefinedOperator(op, {this->Desc()});
+      },
+      val_);
+}
 
 Value IValue::Invoke(std::vector<Value> args) {
   throw TypeError(Desc() + " object is not callable.");

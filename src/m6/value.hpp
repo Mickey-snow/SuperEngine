@@ -31,21 +31,24 @@
 #include <map>
 #include <string>
 #include <typeindex>
+#include <variant>
 
 namespace m6 {
 
 using Value = std::shared_ptr<IValue>;
 class IValue {
  public:
-  IValue();
+  using value_t = std::variant<std::monostate, int, std::string>;
+
+  IValue(value_t = std::monostate());
   virtual ~IValue() = default;
 
   virtual std::string Str() const;
   virtual std::string Desc() const;
 
-  virtual std::type_index Type() const = 0;
+  virtual std::type_index Type() const;
 
-  virtual Value Duplicate() = 0;
+  virtual Value Duplicate();
 
   virtual std::any Get() const;
   virtual void* Getptr();
@@ -54,6 +57,9 @@ class IValue {
   virtual Value Operator(Op op);
 
   virtual Value Invoke(std::vector<Value> args);
+
+ private:
+  value_t val_;
 };
 
 Value make_value(int value);

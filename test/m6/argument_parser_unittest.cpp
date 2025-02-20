@@ -33,16 +33,6 @@
 
 using namespace m6;
 
-TEST(ArgparseTest, DirectValues) {
-  auto [v1, v2, v3, v4] =
-      ParseArgs<int, std::shared_ptr<Int>, std::shared_ptr<String>, Value>(
-          {make_value(1), make_value(2), make_value("3"), make_value(false)});
-  EXPECT_EQ(v1, 1);
-  EXPECT_VALUE_EQ(v2, 2);
-  EXPECT_VALUE_EQ(v3, "3");
-  EXPECT_VALUE_EQ(v4, 0);
-}
-
 TEST(ArgparseTest, Ints) {
   auto [v1, v2, v3] =
       ParseArgs<int, int, int>({make_value(1), make_value(2), make_value(3)});
