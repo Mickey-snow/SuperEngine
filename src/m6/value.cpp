@@ -33,7 +33,9 @@ Value_ptr make_value(std::string value) {
   return std::make_shared<Value>(std::move(value));
 }
 
-Value_ptr make_value(char const* value) { return make_value(std::string{value}); }
+Value_ptr make_value(char const* value) {
+  return make_value(std::string{value});
+}
 Value_ptr make_value(bool value) { return make_value(value ? 1 : 0); }
 
 // -----------------------------------------------------------------------
@@ -51,6 +53,9 @@ std::string Value::Str() const {
           return std::to_string(x);
         else if constexpr (std::same_as<T, std::string>)
           return x;
+        else {  // object
+          return "???";
+        }
       },
       val_);
 }
@@ -65,6 +70,8 @@ std::string Value::Desc() const {
           return "<int: " + std::to_string(x) + '>';
         else if constexpr (std::same_as<T, std::string>)
           return "<str: " + x + '>';
+        else
+          return "???";
       },
       val_);
 }

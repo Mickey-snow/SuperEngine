@@ -26,6 +26,8 @@
 
 #include "m6/expr_ast.hpp"
 
+#include "utilities/mpl.hpp"
+
 #include <any>
 #include <functional>
 #include <map>
@@ -38,27 +40,36 @@ namespace m6 {
 class Value;
 using Value_ptr = std::shared_ptr<Value>;
 
+class IObject {
+ public:
+  virtual ~IObject() = default;
+  virtual std::type_index Type() const noexcept = 0;
+};
+
 class Value {
  public:
-  using value_t = std::variant<std::monostate, int, std::string>;
+  using value_t = std::variant<std::monostate,  // nil
+                               int,
+                               std::string,
+                               std::shared_ptr<IObject>  // object
+                               >;
 
   Value(value_t = std::monostate());
-  virtual ~Value() = default;
 
-  virtual std::string Str() const;
-  virtual std::string Desc() const;
+  std::string Str() const;
+  std::string Desc() const;
 
-  virtual std::type_index Type() const;
+  std::type_index Type() const;
 
-  virtual Value_ptr Duplicate();
+  Value_ptr Duplicate();
 
-  virtual std::any Get() const;
-  virtual void* Getptr();
+  std::any Get() const;
+  void* Getptr();
 
-  virtual Value_ptr Operator(Op op, Value_ptr rhs);
-  virtual Value_ptr Operator(Op op);
+  Value_ptr Operator(Op op, Value_ptr rhs);
+  Value_ptr Operator(Op op);
 
-  virtual Value_ptr Invoke(std::vector<Value_ptr> args);
+  Value_ptr Invoke(std::vector<Value_ptr> args);
 
  private:
   value_t val_;
