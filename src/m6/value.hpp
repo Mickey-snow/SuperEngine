@@ -35,7 +35,9 @@
 
 namespace m6 {
 
+class Value;
 using Value_ptr = std::shared_ptr<Value>;
+
 class Value {
  public:
   using value_t = std::variant<std::monostate, int, std::string>;

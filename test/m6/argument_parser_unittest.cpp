@@ -28,8 +28,6 @@
 
 #include "m6/argparse.hpp"
 #include "m6/value.hpp"
-#include "m6/value_internal/int.hpp"
-#include "m6/value_internal/str.hpp"
 
 using namespace m6;
 
