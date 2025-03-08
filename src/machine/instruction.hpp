@@ -28,7 +28,7 @@
 #include <string>
 #include <variant>
 
-#include "m6/op.hpp"
+#include "machine/op.hpp"
 #include "machine/value.hpp"
 
 namespace libreallive {
@@ -98,11 +98,11 @@ struct End {
 };
 
 struct BinaryOp {
-  m6::Op op;
+  Op op;
 };
 
 struct UnaryOp {
-  m6::Op op;
+  Op op;
 };
 
 using Instruction = std::variant<std::monostate,

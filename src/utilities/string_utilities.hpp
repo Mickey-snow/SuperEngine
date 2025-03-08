@@ -140,14 +140,6 @@ std::string RemoveQuotes(const std::string& quotedString);
  */
 int ConvertLetterIndexToInt(const std::string& value);
 
-template <typename... Ts>
-std::string ToString(Ts&&... params) {
-  std::string result = ((std::to_string(std::forward<Ts>(params)) + ' ') + ...);
-  if constexpr (sizeof...(Ts) > 0)
-    result.pop_back();
-  return result;
-}
-
 template <std::ranges::input_range R>
   requires std::convertible_to<std::ranges::range_value_t<R>, std::string_view>
 std::string Join(std::string_view sep, R&& range) {

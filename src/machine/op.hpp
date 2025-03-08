@@ -26,7 +26,6 @@
 
 #include <string>
 
-namespace m6 {
 // -----------------------------------------------------------------------
 // Operator
 enum class Op : int {
@@ -81,5 +80,3 @@ enum class Op : int {
 };
 std::string ToString(Op op);
 Op CreateOp(std::string_view str);
-
-}  // namespace m6

@@ -24,8 +24,8 @@
 
 #include "m6/tokenizer.hpp"
 
-#include "m6/op.hpp"
 #include "m6/parsing_error.hpp"
+#include "machine/op.hpp"
 
 #include <boost/regex.hpp>
 #include <boost/spirit/include/lex_lexertl.hpp>

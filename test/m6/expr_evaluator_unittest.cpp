@@ -27,10 +27,10 @@
 #include "m6/compiler.hpp"
 #include "m6/evaluator.hpp"
 #include "m6/exception.hpp"
-#include "m6/op.hpp"
 #include "m6/parser.hpp"
 #include "m6/symbol_table.hpp"
 #include "m6/tokenizer.hpp"
+#include "machine/op.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/value.hpp"
 

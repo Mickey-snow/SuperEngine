@@ -22,12 +22,10 @@
 //
 // -----------------------------------------------------------------------
 
-#include "m6/op.hpp"
+#include "machine/op.hpp"
 
 #include <format>
 #include <unordered_map>
-
-namespace m6 {
 
 // -----------------------------------------------------------------------
 // enum Op helper methods
@@ -147,5 +145,3 @@ Op CreateOp(std::string_view str) {
   else
     return Op::Unknown;
 }
-
-}  // namespace m6

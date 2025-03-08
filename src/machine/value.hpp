@@ -63,11 +63,11 @@ class Value {
   void* Getptr();
 
   // deprecated
-  Value_ptr __Operator(m6::Op op, Value_ptr rhs);
-  Value_ptr __Operator(m6::Op op);
+  Value_ptr __Operator(Op op, Value_ptr rhs);
+  Value_ptr __Operator(Op op);
 
-  Value Operator(m6::Op op, Value rhs);
-  Value Operator(m6::Op op);
+  Value Operator(Op op, Value rhs);
+  Value Operator(Op op);
 
   Value_ptr Invoke(std::vector<Value_ptr> args);
 

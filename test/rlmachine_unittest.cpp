@@ -24,8 +24,8 @@
 
 #include <gtest/gtest.h>
 
-#include "m6/op.hpp"
 #include "machine/instruction.hpp"
+#include "machine/op.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/value.hpp"
 #include "utilities/string_utilities.hpp"

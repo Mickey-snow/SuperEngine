@@ -23,7 +23,7 @@
 // -----------------------------------------------------------------------
 
 #include "m6/token.hpp"
-#include "m6/op.hpp"
+#include "machine/op.hpp"
 
 namespace m6 {
 

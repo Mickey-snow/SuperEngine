@@ -32,6 +32,16 @@
 #include <sstream>
 #include <string>
 
+namespace {
+template <typename... Ts>
+std::string ToString(Ts&&... params) {
+  std::string result = ((std::to_string(std::forward<Ts>(params)) + ' ') + ...);
+  if constexpr (sizeof...(Ts) > 0)
+    result.pop_back();
+  return result;
+}
+}  // namespace
+
 // -----------------------------------------------------------------------
 // Point
 // -----------------------------------------------------------------------

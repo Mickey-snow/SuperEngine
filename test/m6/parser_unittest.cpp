@@ -27,8 +27,8 @@
 #include "util.hpp"
 
 #include "m6/expr_ast.hpp"
-#include "m6/op.hpp"
 #include "m6/parser.hpp"
+#include "machine/op.hpp"
 
 using namespace m6;
 

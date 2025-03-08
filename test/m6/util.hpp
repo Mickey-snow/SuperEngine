@@ -25,8 +25,8 @@
 #pragma once
 
 #include "m6/expr_ast.hpp"
-#include "m6/op.hpp"
 #include "m6/token.hpp"
+#include "machine/op.hpp"
 #include "machine/value.hpp"
 #include "utilities/string_utilities.hpp"
 
@@ -53,8 +53,6 @@ struct GetPrefix {
   std::string operator()(const std::string& str) const;
   std::string operator()(const m6::IdExpr& str) const;
 };
-
-using m6::Op;
 
 inline bool Compare(Value_ptr lhs, Value_ptr rhs) noexcept {
   try {

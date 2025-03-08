@@ -24,7 +24,7 @@
 
 #include "machine/value.hpp"
 #include "m6/exception.hpp"
-#include "m6/op.hpp"
+#include "machine/op.hpp"
 
 using namespace m6;
 

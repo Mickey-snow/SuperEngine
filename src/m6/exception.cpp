@@ -23,7 +23,7 @@
 // -----------------------------------------------------------------------
 
 #include "m6/exception.hpp"
-#include "m6/op.hpp"
+#include "machine/op.hpp"
 #include "utilities/string_utilities.hpp"
 
 namespace m6 {
