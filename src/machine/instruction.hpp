@@ -28,6 +28,8 @@
 #include <string>
 #include <variant>
 
+#include "m6/value.hpp"
+
 namespace libreallive {
 class CommandElement;
 class ExpressionElement;
@@ -82,6 +84,14 @@ struct Textout {
   std::string text;
 };
 
+struct Push {
+  m6::Value value;
+};
+
+struct Pop {
+  size_t count = 1;
+};
+
 struct End {
   std::string extra_text;
 };
@@ -92,12 +102,14 @@ using Instruction = std::variant<std::monostate,
                                  rlCommand,
                                  rlExpression,
                                  Textout,
+                                 Push,
+                                 Pop,
                                  End>;
 
 class ModuleManager;
 class InstructionToString {
  public:
-  InstructionToString(ModuleManager const* manager);
+  InstructionToString(ModuleManager const* manager = nullptr);
 
   std::string operator()(std::monostate) const;
   std::string operator()(const Kidoku&) const;
@@ -105,6 +117,8 @@ class InstructionToString {
   std::string operator()(const rlCommand&) const;
   std::string operator()(const rlExpression&) const;
   std::string operator()(const Textout&) const;
+  std::string operator()(const Push&) const;
+  std::string operator()(const Pop&) const;
   std::string operator()(const End&) const;
 
  private:

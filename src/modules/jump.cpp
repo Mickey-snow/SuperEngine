@@ -31,7 +31,7 @@
 #include "machine/stack_frame.hpp"
 
 void Jump(RLMachine& machine, int scenario, int entrypoint) {
-  auto it = machine.GetStack().FindTopRealFrame();
+  auto it = machine.GetCallStack().FindTopRealFrame();
   if (it != nullptr)
     it->pos = machine.GetScriptor()->LoadEntry(scenario, entrypoint);
 }
@@ -41,23 +41,23 @@ void Farcall(RLMachine& machine, int scenario, int entrypoint) {
     machine.MarkSavepoint();
 
   auto ip = machine.GetScriptor()->LoadEntry(scenario, entrypoint);
-  machine.GetStack().Push(StackFrame(std::move(ip), StackFrame::TYPE_FARCALL));
+  machine.GetCallStack().Push(StackFrame(std::move(ip), StackFrame::TYPE_FARCALL));
 }
 
 void Goto(RLMachine& machine, unsigned long loc) {
-  auto top_frame = machine.GetStack().Top();
+  auto top_frame = machine.GetCallStack().Top();
   top_frame->pos = machine.GetScriptor()->Load(machine.SceneNumber(), loc);
 }
 
 void Gosub(RLMachine& machine, unsigned long loc) {
   auto ip = machine.GetScriptor()->Load(machine.SceneNumber(), loc);
-  machine.GetStack().Push(StackFrame(std::move(ip), StackFrame::TYPE_GOSUB));
+  machine.GetCallStack().Push(StackFrame(std::move(ip), StackFrame::TYPE_GOSUB));
 }
 
-void Return(RLMachine& machine) { machine.GetStack().Pop(); }
+void Return(RLMachine& machine) { machine.GetCallStack().Pop(); }
 
 void ClearLongOperationsOffBackOfStack(RLMachine& machine) {
-  auto& stack = machine.GetStack();
+  auto& stack = machine.GetCallStack();
   while (stack.Size() && stack.Top() != stack.FindTopRealFrame())
     stack.Pop();
 }

@@ -59,6 +59,8 @@ namespace fs = std::filesystem;
 // RLMachine
 // -----------------------------------------------------------------------
 static DomainLogger logger("RLMachine");
+using m6::Value;
+
 RLMachine::RLMachine(std::shared_ptr<System> system,
                      std::shared_ptr<IScriptor> scriptor,
                      ScriptLocation starting_location,
@@ -179,7 +181,9 @@ void RLMachine::RevertIP() {
   --pos.location_offset;
 }
 
-CallStack& RLMachine::GetStack() { return call_stack_; }
+CallStack& RLMachine::GetCallStack() { return call_stack_; }
+
+std::vector<Value> const& RLMachine::GetStack() const { return stack_; }
 
 std::shared_ptr<IScriptor> RLMachine::GetScriptor() { return scriptor_; }
 
@@ -360,3 +364,11 @@ void RLMachine::operator()(rlExpression e) { e.Execute(*this); }
 void RLMachine::operator()(Textout t) { PerformTextout(std::move(t.text)); }
 
 void RLMachine::operator()(End) { Halt(); }
+
+void RLMachine::operator()(Push p) { stack_.push_back(std::move(p.value)); }
+
+void RLMachine::operator()(Pop p) {
+  if (p.count > stack_.size())
+    throw std::runtime_error("VM: Stack underflow.");
+  stack_.resize(stack_.size() - p.count);
+}

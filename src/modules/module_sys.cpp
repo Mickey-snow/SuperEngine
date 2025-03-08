@@ -116,13 +116,13 @@ struct GetCursorPos_gc2 : public RLOpcode<IntReference_T, IntReference_T> {
 struct CallStackPop : RLOpcode<DefaultIntValue_T<1>> {
   void operator()(RLMachine& machine, int frames_to_pop) {
     for (int i = 0; i < frames_to_pop; ++i) {
-      machine.GetStack().Pop();
+      machine.GetCallStack().Pop();
     }
   }
 };
 
 struct CallStackSize : RLStoreOpcode<> {
-  int operator()(RLMachine& machine) { return machine.GetStack().Size(); }
+  int operator()(RLMachine& machine) { return machine.GetCallStack().Size(); }
 };
 
 struct PauseCursor : public RLOpcode<IntConstant_T> {

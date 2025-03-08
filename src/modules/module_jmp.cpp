@@ -426,7 +426,7 @@ struct push_string_value_up : public RLOpcode<IntConstant_T, StrConstant_T> {
                                   std::to_string(index));
 
     bool set = false;
-    auto& stack = machine.GetStack();
+    auto& stack = machine.GetCallStack();
     for (auto it = stack.begin(); it != stack.end(); ++it) {
       if (it->frame_type != StackFrame::TYPE_LONGOP) {
         if (!set)

@@ -134,7 +134,7 @@ void RLVMInstance::Step() {
       const bool finished = machine_->ExecuteLongop(long_op);
 
       if (finished)
-        machine_->GetStack().Pop();
+        machine_->GetCallStack().Pop();
 
     } else {
       std::shared_ptr<Instruction> instruction = machine_->ReadInstruction();

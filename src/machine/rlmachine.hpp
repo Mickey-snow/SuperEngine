@@ -36,6 +36,7 @@
 #include <vector>
 
 #include "core/kidoku_table.hpp"
+#include "m6/value.hpp"
 #include "machine/call_stack.hpp"
 #include "machine/debugger.hpp"
 #include "machine/instruction.hpp"
@@ -108,7 +109,9 @@ class RLMachine {
 
   KidokuTable& GetKidokus() { return kidoku_table_; }
 
-  CallStack& GetStack();
+  CallStack& GetCallStack();
+
+  std::vector<m6::Value> const& GetStack() const;
 
   ScenarioConfig GetScenarioConfig() const;
 
@@ -207,6 +210,8 @@ class RLMachine {
   void operator()(rlExpression);
   void operator()(Textout);
   void operator()(End);
+  void operator()(Push);
+  void operator()(Pop);
 
   // -----------------------------------------------------------------------
   // Temporary 'environment' field, planned to remove this later
@@ -249,7 +254,12 @@ class RLMachine {
   // stuff.
   bool replaying_graphics_stack_ = false;
 
+  // Call Stack, manages local variables, call metadata(long operation), return
+  // address.
   CallStack call_stack_, savepoint_call_stack_;
+
+  // Machine Stack, simple low-level LIFO structure.
+  std::vector<m6::Value> stack_;
 
   // An optional set of game specific hacks that run at certain SEEN/line
   // pairs. These run during setLineNumer().

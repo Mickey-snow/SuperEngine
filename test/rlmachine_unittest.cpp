@@ -24,17 +24,47 @@
 
 #include <gtest/gtest.h>
 
+#include "m6/value.hpp"
 #include "machine/instruction.hpp"
 #include "machine/rlmachine.hpp"
+#include "utilities/string_utilities.hpp"
 
-TEST(RLMachineTest, init) {
-  // For now, not crashing is enough
-  std::shared_ptr<RLMachine> machine = nullptr;
-  EXPECT_NO_THROW({
-    machine = std::make_shared<RLMachine>(nullptr, nullptr, ScriptLocation(),
-                                          nullptr);
-    machine->operator()(End());
-  });
-  EXPECT_NE(machine, nullptr);
+using namespace m6;
+
+class VMTest : public ::testing::Test {
+ protected:
+  void SetUp() override {
+    ASSERT_NO_THROW({
+      machine = std::make_shared<RLMachine>(nullptr, nullptr, ScriptLocation(),
+                                            nullptr);
+    });
+    ASSERT_NE(machine, nullptr);
+  }
+
+  std::shared_ptr<RLMachine> machine;
+
+  std::string DescribeStack() const {
+    return Join(", ", std::views::all(machine->GetStack()) |
+                          std::views::transform(
+                              [](m6::Value const& x) { return x.Desc(); }));
+  }
+
+  template <typename... Ts>
+    requires(std::convertible_to<Ts, Instruction> && ...)
+  void Execute(Ts&&... params) {
+    (machine->operator()(std::forward<Ts>(params)), ...);
+  }
+};
+
+TEST_F(VMTest, init) {
+  machine->operator()(End());
   EXPECT_TRUE(machine->IsHalted());
+  EXPECT_EQ(DescribeStack(), "");
+}
+
+TEST_F(VMTest, StackOperation) {
+  Execute(Push(Value(123)), Push(Value("hello")), Push(Value("world")));
+  EXPECT_EQ(DescribeStack(), "<int: 123>, <str: hello>, <str: world>");
+  Execute(Pop(2));
+  EXPECT_EQ(DescribeStack(), "<int: 123>");
 }

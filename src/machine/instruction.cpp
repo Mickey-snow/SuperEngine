@@ -75,6 +75,15 @@ std::string InstructionToString::operator()(const rlExpression& p) const {
 std::string InstructionToString::operator()(const Textout& p) const {
   return "text: " + p.text;
 }
+std::string InstructionToString::operator()(const Push& p) const {
+  return "push " + p.value.Desc();
+}
+std::string InstructionToString::operator()(const Pop& p) const {
+  if (p.count == 1)
+    return "pop";
+  else
+    return "pop " + std::to_string(p.count);
+}
 std::string InstructionToString::operator()(const End& p) const {
   return "<end>";
 }
