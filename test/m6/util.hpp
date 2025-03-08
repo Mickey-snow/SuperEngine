@@ -27,7 +27,7 @@
 #include "m6/expr_ast.hpp"
 #include "m6/op.hpp"
 #include "m6/token.hpp"
-#include "m6/value.hpp"
+#include "machine/value.hpp"
 #include "utilities/string_utilities.hpp"
 
 #include <vector>
@@ -55,7 +55,6 @@ struct GetPrefix {
 };
 
 using m6::Op;
-using m6::Value_ptr;
 
 inline bool Compare(Value_ptr lhs, Value_ptr rhs) noexcept {
   try {

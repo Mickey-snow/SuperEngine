@@ -36,13 +36,13 @@
 #include <vector>
 
 #include "core/kidoku_table.hpp"
-#include "m6/value.hpp"
 #include "machine/call_stack.hpp"
 #include "machine/debugger.hpp"
 #include "machine/instruction.hpp"
 #include "machine/iscriptor.hpp"
 #include "machine/module_manager.hpp"
 #include "machine/rlenvironment.hpp"
+#include "machine/value.hpp"
 
 namespace libreallive {
 class IntMemRef;
@@ -111,7 +111,7 @@ class RLMachine {
 
   CallStack& GetCallStack();
 
-  std::vector<m6::Value> const& GetStack() const;
+  std::vector<Value> const& GetStack() const;
 
   ScenarioConfig GetScenarioConfig() const;
 
@@ -261,7 +261,7 @@ class RLMachine {
   CallStack call_stack_, savepoint_call_stack_;
 
   // Machine Stack, simple low-level LIFO structure.
-  std::vector<m6::Value> stack_;
+  std::vector<Value> stack_;
 
   // An optional set of game specific hacks that run at certain SEEN/line
   // pairs. These run during setLineNumer().

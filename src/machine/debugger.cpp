@@ -28,8 +28,8 @@
 #include "m6/parser.hpp"
 #include "m6/symbol_table.hpp"
 #include "m6/tokenizer.hpp"
-#include "m6/value.hpp"
 #include "machine/rlmachine.hpp"
+#include "machine/value.hpp"
 #include "utilities/string_utilities.hpp"
 
 #include <iostream>

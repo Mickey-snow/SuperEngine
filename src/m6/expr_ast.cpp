@@ -25,7 +25,7 @@
 #include "m6/expr_ast.hpp"
 
 #include "m6/op.hpp"
-#include "m6/value.hpp"
+#include "machine/value.hpp"
 #include "utilities/string_utilities.hpp"
 
 #include <format>

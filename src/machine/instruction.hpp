@@ -29,7 +29,7 @@
 #include <variant>
 
 #include "m6/op.hpp"
-#include "m6/value.hpp"
+#include "machine/value.hpp"
 
 namespace libreallive {
 class CommandElement;
@@ -86,7 +86,7 @@ struct Textout {
 };
 
 struct Push {
-  m6::Value value;
+  Value value;
 };
 
 struct Pop {

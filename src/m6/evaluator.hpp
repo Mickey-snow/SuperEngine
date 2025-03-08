@@ -25,7 +25,7 @@
 #pragma once
 
 #include "m6/expr_ast.hpp"
-#include "m6/value.hpp"
+#include "machine/value.hpp"
 
 namespace m6 {
 

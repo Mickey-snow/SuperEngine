@@ -25,7 +25,7 @@
 #pragma once
 
 #include "m6/exception.hpp"
-#include "m6/value.hpp"
+#include "machine/value.hpp"
 #include "utilities/mpl.hpp"
 
 #include <map>
@@ -69,7 +69,9 @@ class StrParser {
  public:
   StrParser() = default;
   bool Parsable(Value_ptr val) { return val->Type() == typeid(std::string); }
-  void Parse(Value_ptr val) { value = static_cast<std::string*>(val->Getptr()); }
+  void Parse(Value_ptr val) {
+    value = static_cast<std::string*>(val->Getptr());
+  }
   std::string* value;
 };
 static_assert(is_parser<StrParser>);
@@ -163,8 +165,8 @@ auto ParseArgs(std::vector<Value_ptr> args) -> std::tuple<Ts...> {
 }
 
 template <typename... Ts>
-auto ParseArgs(TypeList<Ts...> /*unused*/,
-               std::vector<Value_ptr> args) -> std::tuple<Ts...> {
+auto ParseArgs(TypeList<Ts...> /*unused*/, std::vector<Value_ptr> args)
+    -> std::tuple<Ts...> {
   return ParseArgs<Ts...>(std::move(args));
 }
 

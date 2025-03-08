@@ -29,25 +29,16 @@
 #include <string>
 #include <unordered_map>
 
-namespace m6 {
-
-/**
- * @brief Forward declaration of the IValue interface.
- */
 class Value;
+
+namespace m6 {
 
 /**
  * @brief Exception thrown when a symbol is not found in the symbol table.
  */
 class NameError : public std::runtime_error {
  public:
-  /**
-   * @brief Constructs a new NameError exception.
-   * @param name The name of the symbol that was not found.
-   */
   explicit NameError(const std::string& name);
-
-  // Inherit the what() method from std::runtime_error.
   using std::runtime_error::what;
 };
 

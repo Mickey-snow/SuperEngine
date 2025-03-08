@@ -41,7 +41,8 @@ void Farcall(RLMachine& machine, int scenario, int entrypoint) {
     machine.MarkSavepoint();
 
   auto ip = machine.GetScriptor()->LoadEntry(scenario, entrypoint);
-  machine.GetCallStack().Push(StackFrame(std::move(ip), StackFrame::TYPE_FARCALL));
+  machine.GetCallStack().Push(
+      StackFrame(std::move(ip), StackFrame::TYPE_FARCALL));
 }
 
 void Goto(RLMachine& machine, unsigned long loc) {
@@ -51,7 +52,8 @@ void Goto(RLMachine& machine, unsigned long loc) {
 
 void Gosub(RLMachine& machine, unsigned long loc) {
   auto ip = machine.GetScriptor()->Load(machine.SceneNumber(), loc);
-  machine.GetCallStack().Push(StackFrame(std::move(ip), StackFrame::TYPE_GOSUB));
+  machine.GetCallStack().Push(
+      StackFrame(std::move(ip), StackFrame::TYPE_GOSUB));
 }
 
 void Return(RLMachine& machine) { machine.GetCallStack().Pop(); }

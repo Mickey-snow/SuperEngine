@@ -26,6 +26,7 @@
 
 #include "m6/expr_ast.hpp"
 #include "m6/op.hpp"
+#include "machine/value.hpp"
 
 namespace m6 {
 

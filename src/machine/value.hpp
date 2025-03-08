@@ -26,16 +26,12 @@
 
 #include "m6/expr_ast.hpp"
 
-#include "utilities/mpl.hpp"
-
 #include <any>
 #include <functional>
 #include <map>
 #include <string>
 #include <typeindex>
 #include <variant>
-
-namespace m6 {
 
 class Value;
 using Value_ptr = std::shared_ptr<Value>;
@@ -66,10 +62,12 @@ class Value {
   std::any Get() const;
   void* Getptr();
 
-  Value_ptr __Operator(Op op, Value_ptr rhs);
-  Value_ptr __Operator(Op op);
-  Value Operator(Op op, Value rhs);
-  Value Operator(Op op);
+  // deprecated
+  Value_ptr __Operator(m6::Op op, Value_ptr rhs);
+  Value_ptr __Operator(m6::Op op);
+
+  Value Operator(m6::Op op, Value rhs);
+  Value Operator(m6::Op op);
 
   Value_ptr Invoke(std::vector<Value_ptr> args);
 
@@ -82,9 +80,8 @@ class Value {
   value_t val_;
 };
 
+// should be deprecated soon
 Value_ptr make_value(int value);
 Value_ptr make_value(std::string value);
 Value_ptr make_value(char const* value);
 Value_ptr make_value(bool value);
-
-}  // namespace m6

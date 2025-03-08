@@ -25,7 +25,7 @@
 #include <gtest/gtest.h>
 
 #include "m6/symbol_table.hpp"
-#include "m6/value.hpp"
+#include "machine/value.hpp"
 
 using namespace m6;
 

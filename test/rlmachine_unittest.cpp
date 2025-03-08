@@ -25,9 +25,9 @@
 #include <gtest/gtest.h>
 
 #include "m6/op.hpp"
-#include "m6/value.hpp"
 #include "machine/instruction.hpp"
 #include "machine/rlmachine.hpp"
+#include "machine/value.hpp"
 #include "utilities/string_utilities.hpp"
 
 using namespace m6;
@@ -47,7 +47,7 @@ class VMTest : public ::testing::Test {
   std::string DescribeStack() const {
     return Join(", ", std::views::all(machine->GetStack()) |
                           std::views::transform(
-                              [](m6::Value const& x) { return x.Desc(); }));
+                              [](Value const& x) { return x.Desc(); }));
   }
 
   template <typename... Ts>

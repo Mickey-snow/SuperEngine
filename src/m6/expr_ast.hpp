@@ -28,11 +28,12 @@
 #include <variant>
 #include <vector>
 
+class Value;
+using Value_ptr = std::shared_ptr<Value>;
+
 namespace m6 {
 
 class ExprAST;
-class Value;
-using Value_ptr = std::shared_ptr<Value>;
 enum class Op;
 
 // -----------------------------------------------------------------------

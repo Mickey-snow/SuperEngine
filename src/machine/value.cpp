@@ -22,11 +22,12 @@
 //
 // -----------------------------------------------------------------------
 
-#include "m6/value.hpp"
+#include "machine/value.hpp"
 #include "m6/exception.hpp"
 #include "m6/op.hpp"
 
-namespace m6 {
+using namespace m6;
+
 // factory methods
 Value_ptr make_value(int value) { return std::make_shared<Value>(value); }
 Value_ptr make_value(std::string value) {
@@ -473,5 +474,3 @@ bool Value::operator==(const std::string& rhs) const {
   auto ptr = std::get_if<std::string>(&val_);
   return ptr && *ptr == rhs;
 }
-
-}  // namespace m6

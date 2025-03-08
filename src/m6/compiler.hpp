@@ -24,7 +24,6 @@
 
 #pragma once
 
-#include "m6/value.hpp"
 #include "machine/instruction.hpp"
 
 class ExprAST;

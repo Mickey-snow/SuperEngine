@@ -59,8 +59,6 @@ namespace fs = std::filesystem;
 // RLMachine
 // -----------------------------------------------------------------------
 static DomainLogger logger("RLMachine");
-using m6::Value;
-
 RLMachine::RLMachine(std::shared_ptr<System> system,
                      std::shared_ptr<IScriptor> scriptor,
                      ScriptLocation starting_location,

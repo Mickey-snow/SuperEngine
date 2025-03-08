@@ -27,7 +27,7 @@
 #include "util.hpp"
 
 #include "m6/argparse.hpp"
-#include "m6/value.hpp"
+#include "machine/value.hpp"
 
 using namespace m6;
 

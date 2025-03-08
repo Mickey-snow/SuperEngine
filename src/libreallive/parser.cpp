@@ -522,7 +522,7 @@ std::shared_ptr<GotoCaseElement> CommandParser::ParseGotoCase(
                                            std::move(ids), parsed_cases);
 }
 
-  // gosubwith -> opcode (expr ...) id
+// gosubwith -> opcode (expr ...) id
 std::shared_ptr<GosubWithElement> CommandParser::ParseGosubWith(
     const char* stream) {
   auto begin = stream;

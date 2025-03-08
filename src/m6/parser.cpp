@@ -284,7 +284,7 @@ struct construct_ast {
 
         if (op == Op::Assign) {  // simple assignment
           result = std::make_shared<ExprAST>(AssignExpr(lhs, result));
-        } else {		// compound assignment
+        } else {  // compound assignment
           BinaryExpr expr(op, lhs, result);
           result = std::make_shared<ExprAST>(std::move(expr));
         }
