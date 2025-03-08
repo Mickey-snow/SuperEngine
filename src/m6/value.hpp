@@ -66,10 +66,16 @@ class Value {
   std::any Get() const;
   void* Getptr();
 
-  Value_ptr Operator(Op op, Value_ptr rhs);
-  Value_ptr Operator(Op op);
+  Value_ptr __Operator(Op op, Value_ptr rhs);
+  Value_ptr __Operator(Op op);
+  Value Operator(Op op, Value rhs);
+  Value Operator(Op op);
 
   Value_ptr Invoke(std::vector<Value_ptr> args);
+
+  // for testing
+  bool operator==(int rhs) const;
+  bool operator==(const std::string& rhs) const;
 
  private:
   value_t val_;

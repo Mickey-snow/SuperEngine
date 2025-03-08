@@ -59,7 +59,7 @@ using m6::Value_ptr;
 
 inline bool Compare(Value_ptr lhs, Value_ptr rhs) noexcept {
   try {
-    Value_ptr result = lhs->Operator(Op::Equal, rhs);
+    Value_ptr result = lhs->__Operator(Op::Equal, rhs);
     return std::any_cast<int>(result->Get()) != 0;
   } catch (...) {
     return false;

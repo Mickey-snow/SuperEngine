@@ -84,6 +84,12 @@ std::string InstructionToString::operator()(const Pop& p) const {
   else
     return "pop " + std::to_string(p.count);
 }
+std::string InstructionToString::operator()(const BinaryOp& p) const {
+  return "op2 " + m6::ToString(p.op);
+}
+std::string InstructionToString::operator()(const UnaryOp& p) const {
+  return "op1 " + m6::ToString(p.op);
+}
 std::string InstructionToString::operator()(const End& p) const {
   return "<end>";
 }

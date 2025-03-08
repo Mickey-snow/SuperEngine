@@ -24,6 +24,7 @@
 
 #include <gtest/gtest.h>
 
+#include "m6/op.hpp"
 #include "m6/value.hpp"
 #include "machine/instruction.hpp"
 #include "machine/rlmachine.hpp"
@@ -62,9 +63,15 @@ TEST_F(VMTest, init) {
   EXPECT_EQ(DescribeStack(), "");
 }
 
-TEST_F(VMTest, StackOperation) {
+TEST_F(VMTest, StackManipulation) {
   Execute(Push(Value(123)), Push(Value("hello")), Push(Value("world")));
   EXPECT_EQ(DescribeStack(), "<int: 123>, <str: hello>, <str: world>");
   Execute(Pop(2));
   EXPECT_EQ(DescribeStack(), "<int: 123>");
+}
+
+TEST_F(VMTest, Operation) {
+  Execute(Push(Value(123)), Push(Value(3)), Push(Value(92)), BinaryOp(Op::Mul),
+          BinaryOp(Op::Add));
+  EXPECT_EQ(DescribeStack(), "<int: 399>");
 }

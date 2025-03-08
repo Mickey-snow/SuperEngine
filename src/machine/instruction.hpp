@@ -28,6 +28,7 @@
 #include <string>
 #include <variant>
 
+#include "m6/op.hpp"
 #include "m6/value.hpp"
 
 namespace libreallive {
@@ -96,6 +97,14 @@ struct End {
   std::string extra_text;
 };
 
+struct BinaryOp {
+  m6::Op op;
+};
+
+struct UnaryOp {
+  m6::Op op;
+};
+
 using Instruction = std::variant<std::monostate,
                                  Kidoku,
                                  Line,
@@ -104,6 +113,8 @@ using Instruction = std::variant<std::monostate,
                                  Textout,
                                  Push,
                                  Pop,
+                                 BinaryOp,
+                                 UnaryOp,
                                  End>;
 
 class ModuleManager;
@@ -119,6 +130,8 @@ class InstructionToString {
   std::string operator()(const Textout&) const;
   std::string operator()(const Push&) const;
   std::string operator()(const Pop&) const;
+  std::string operator()(const BinaryOp&) const;
+  std::string operator()(const UnaryOp&) const;
   std::string operator()(const End&) const;
 
  private:

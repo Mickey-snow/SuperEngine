@@ -95,7 +95,7 @@ void* Value::Getptr() {
   return std::visit([](auto& x) -> void* { return &x; }, val_);
 }
 
-Value_ptr Value::Operator(Op op, Value_ptr rhs) {
+Value_ptr Value::__Operator(Op op, Value_ptr rhs) {
   if (op == Op::Comma)
     return rhs;
 
@@ -256,7 +256,7 @@ Value_ptr Value::Operator(Op op, Value_ptr rhs) {
       val_);
 }
 
-Value_ptr Value::Operator(Op op) {
+Value_ptr Value::__Operator(Op op) {
   return std::visit(
       [op, this](const auto& x) -> Value_ptr {
         using T = std::decay_t<decltype(x)>;
@@ -278,8 +278,198 @@ Value_ptr Value::Operator(Op op) {
       val_);
 }
 
+Value Value::Operator(Op op, Value rhs) {
+  if (op == Op::Comma)
+    return rhs;
+
+  return std::visit(
+      [op, this, &rhs](auto& x) -> Value {
+        using T = std::decay_t<decltype(x)>;
+        static const auto True = Value(1);
+        static const auto False = Value(0);
+
+        if constexpr (false)
+          ;
+
+        else if constexpr (std::same_as<T, int>) {
+          if (!std::holds_alternative<int>(rhs.val_))
+            goto end;
+
+          const int rhs_val = std::get<int>(rhs.val_);
+          switch (op) {
+            case Op::Comma:
+              return rhs;
+
+            case Op::Add:
+              return Value(x + rhs_val);
+            case Op::AddAssign:
+              return Value(x += rhs_val);
+            case Op::Sub:
+              return Value(x - rhs_val);
+            case Op::SubAssign:
+              return Value(x -= rhs_val);
+            case Op::Mul:
+              return Value(x * rhs_val);
+            case Op::MulAssign:
+              return Value(x *= rhs_val);
+            case Op::Div: {
+              if (rhs_val == 0)
+                return Value(0);
+              return Value(x / rhs_val);
+            }
+            case Op::DivAssign: {
+              if (rhs_val == 0)
+                return Value(x = 0);
+              return Value(x /= rhs_val);
+            }
+            case Op::Mod:
+              return Value(x % rhs_val);
+            case Op::ModAssign:
+              return Value(x %= rhs_val);
+            case Op::BitAnd:
+              return Value(x & rhs_val);
+            case Op::BitAndAssign:
+              return Value(x &= rhs_val);
+            case Op::BitOr:
+              return Value(x | rhs_val);
+            case Op::BitOrAssign:
+              return Value(x |= rhs_val);
+            case Op::BitXor:
+              return Value(x ^ rhs_val);
+            case Op::BitXorAssign:
+              return Value(x ^= rhs_val);
+            case Op::ShiftLeft:
+            case Op::ShiftLeftAssign: {
+              if (rhs_val < 0)
+                throw ValueError("negative shift count: " +
+                                 std::to_string(rhs_val));
+              const auto result = x << rhs_val;
+              if (op == Op::ShiftLeftAssign)
+                x = result;
+              return Value(result);
+            }
+            case Op::ShiftRight:
+            case Op::ShiftRightAssign: {
+              if (rhs_val < 0)
+                throw ValueError("negative shift count: " +
+                                 std::to_string(rhs_val));
+              const auto result = x >> rhs_val;
+              if (op == Op::ShiftRightAssign)
+                x = result;
+              return Value(result);
+            }
+            case Op::ShiftUnsignedRight:
+            case Op::ShiftUnsignedRightAssign: {
+              if (rhs_val < 0)
+                throw ValueError("negative shift count: " +
+                                 std::to_string(rhs_val));
+              const int result = std::bit_cast<uint32_t>(x) >> rhs_val;
+              if (op == Op::ShiftUnsignedRightAssign)
+                x = result;
+              return Value(result);
+            }
+            case Op::Equal:
+              return x == rhs_val ? True : False;
+            case Op::NotEqual:
+              return x != rhs_val ? True : False;
+            case Op::LessEqual:
+              return x <= rhs_val ? True : False;
+            case Op::Less:
+              return x < rhs_val ? True : False;
+            case Op::GreaterEqual:
+              return x >= rhs_val ? True : False;
+            case Op::Greater:
+              return x > rhs_val ? True : False;
+
+            case Op::LogicalAnd:
+              return x && rhs_val ? True : False;
+            case Op::LogicalOr:
+              return x || rhs_val ? True : False;
+
+            default:
+              break;
+          }
+        }
+
+        else if constexpr (std::same_as<T, std::string>) {
+          if (std::holds_alternative<int>(rhs.val_)) {
+            auto rhs_value = std::any_cast<int>(rhs.Get());
+            if (rhs_value >= 0 && (op == Op::Mul || op == Op::MulAssign)) {
+              std::string result, current = x;
+              result.reserve(x.size() * rhs_value);
+              while (rhs_value) {
+                if (rhs_value & 1)
+                  result += current;
+                current = current + current;
+                rhs_value >>= 1;
+              }
+
+              if (op == Op::MulAssign)
+                x = result;
+              return Value(std::move(result));
+            }
+
+          }
+
+          else if (std::holds_alternative<std::string>(rhs.val_)) {
+            const auto rhs_value = std::any_cast<std::string>(rhs.Get());
+
+            switch (op) {
+              case Op::Equal:
+                return x == rhs_value ? True : False;
+              case Op::NotEqual:
+                return x != rhs_value ? True : False;
+              case Op::Add:
+                return Value(x + rhs_value);
+              case Op::AddAssign:
+                x += rhs_value;
+                return Value(x);
+              default:
+                break;
+            }
+          }
+        }
+
+      [[maybe_unused]] end:
+        throw UndefinedOperator(op, {this->Desc(), rhs.Desc()});
+      },
+      val_);
+}
+
+Value Value::Operator(Op op) {
+  return std::visit(
+      [op, this](const auto& x) -> Value {
+        using T = std::decay_t<decltype(x)>;
+        if constexpr (std::same_as<T, int>) {
+          switch (op) {
+            case Op::Add:
+              return Value(x);
+            case Op::Sub:
+              return Value(-x);
+            case Op::Tilde:
+              return Value(~x);
+            default:
+              break;
+          }
+        }
+
+        throw UndefinedOperator(op, {this->Desc()});
+      },
+      val_);
+}
+
 Value_ptr Value::Invoke(std::vector<Value_ptr> args) {
   throw TypeError(Desc() + " object is not callable.");
+}
+
+bool Value::operator==(int rhs) const {
+  auto ptr = std::get_if<int>(&val_);
+  return ptr && *ptr == rhs;
+}
+
+bool Value::operator==(const std::string& rhs) const {
+  auto ptr = std::get_if<std::string>(&val_);
+  return ptr && *ptr == rhs;
 }
 
 }  // namespace m6

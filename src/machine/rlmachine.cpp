@@ -372,3 +372,21 @@ void RLMachine::operator()(Pop p) {
     throw std::runtime_error("VM: Stack underflow.");
   stack_.resize(stack_.size() - p.count);
 }
+
+void RLMachine::operator()(BinaryOp p) {
+  if (stack_.size() < 2)
+    throw std::runtime_error("VM: Stack underflow.");
+  const auto n = stack_.size();
+  auto result = stack_[n - 2].Operator(p.op, stack_[n - 1]);
+  stack_.pop_back();
+  stack_.pop_back();
+  stack_.push_back(std::move(result));
+}
+
+void RLMachine::operator()(UnaryOp p) {
+  if (stack_.empty())
+    throw std::runtime_error("VM: Stack underflow.");
+  auto result = stack_.back().Operator(p.op);
+  stack_.pop_back();
+  stack_.push_back(std::move(result));
+}

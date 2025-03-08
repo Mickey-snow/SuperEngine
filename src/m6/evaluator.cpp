@@ -70,12 +70,12 @@ Value_ptr Evaluator::operator()(const ParenExpr& x) const {
 }
 Value_ptr Evaluator::operator()(const UnaryExpr& x) const {
   Value_ptr rhs = x.sub->Apply(*this);
-  return rhs->Operator(x.op);
+  return rhs->__Operator(x.op);
 }
 Value_ptr Evaluator::operator()(const BinaryExpr& x) const {
   Value_ptr rhs = x.rhs->Apply(*this);
   Value_ptr lhs = x.lhs->Apply(*this);
-  return lhs->Operator(x.op, rhs);
+  return lhs->__Operator(x.op, rhs);
 }
 Value_ptr Evaluator::operator()(const AssignExpr& x) const {
   // resolve address
