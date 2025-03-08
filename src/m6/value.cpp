@@ -462,6 +462,8 @@ Value_ptr Value::Invoke(std::vector<Value_ptr> args) {
   throw TypeError(Desc() + " object is not callable.");
 }
 
+Value::operator std::string() const { return this->Desc(); }
+
 bool Value::operator==(int rhs) const {
   auto ptr = std::get_if<int>(&val_);
   return ptr && *ptr == rhs;

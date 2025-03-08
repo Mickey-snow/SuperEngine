@@ -74,6 +74,7 @@ class Value {
   Value_ptr Invoke(std::vector<Value_ptr> args);
 
   // for testing
+  operator std::string() const;
   bool operator==(int rhs) const;
   bool operator==(const std::string& rhs) const;
 
