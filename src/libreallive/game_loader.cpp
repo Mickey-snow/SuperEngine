@@ -124,8 +124,9 @@ GameLoader::GameLoader(fs::path gameroot) {
   scriptor->SetDefaultScenarioConfig(std::move(default_config));
 
   // instantiate virtual machine
-  machine_ = std::make_shared<RLMachine>(
-      system_, scriptor, scriptor->Load(first_seen), std::move(memory));
+  machine_ = std::make_shared<RLMachine>(system_, scriptor, std::move(memory));
+  machine_->GetCallStack().Push(
+      StackFrame(scriptor->Load(first_seen), StackFrame::TYPE_ROOT));
 
   // instantiate debugger
   debugger_ = std::make_shared<Debugger>(*machine_);

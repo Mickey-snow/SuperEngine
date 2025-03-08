@@ -35,10 +35,8 @@ using namespace m6;
 class VMTest : public ::testing::Test {
  protected:
   void SetUp() override {
-    ASSERT_NO_THROW({
-      machine = std::make_shared<RLMachine>(nullptr, nullptr, ScriptLocation(),
-                                            nullptr);
-    });
+    ASSERT_NO_THROW(
+        { machine = std::make_shared<RLMachine>(nullptr, nullptr, nullptr); });
     ASSERT_NE(machine, nullptr);
   }
 

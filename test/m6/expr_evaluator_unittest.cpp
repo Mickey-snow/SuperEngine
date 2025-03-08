@@ -58,8 +58,7 @@ class ExpressionEvaluatorTest : public ::testing::Test {
 class ExpressionCompilerTest : public ::testing::Test {
  protected:
   void SetUp() override {
-    machine = std::make_shared<RLMachine>(nullptr, nullptr, ScriptLocation(),
-                                          nullptr);
+    machine = std::make_shared<RLMachine>(nullptr, nullptr, nullptr);
   }
 
   auto Eval(const std::string_view input) {

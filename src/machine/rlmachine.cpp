@@ -61,7 +61,6 @@ namespace fs = std::filesystem;
 static DomainLogger logger("RLMachine");
 RLMachine::RLMachine(std::shared_ptr<System> system,
                      std::shared_ptr<IScriptor> scriptor,
-                     ScriptLocation starting_location,
                      std::unique_ptr<Memory> memory)
     : memory_(std::move(memory)),
       module_manager_(ModuleManager::CreatePrototype()),
@@ -76,9 +75,6 @@ RLMachine::RLMachine(std::shared_ptr<System> system,
   stack_memory.L = MemoryBank<int>(
       std::make_shared<StackMemoryAdapter<StackBank::IntL>>(call_stack_));
   memory_->PartialReset(std::move(stack_memory));
-
-  // Setup call stack
-  call_stack_.Push(StackFrame(starting_location, StackFrame::TYPE_ROOT));
 
   if (system) {
     // Setup runtime environment
