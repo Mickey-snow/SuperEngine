@@ -105,6 +105,14 @@ struct UnaryOp {
   Op op;
 };
 
+struct Load {
+  size_t offset;
+};
+
+struct Store {
+  size_t offset;
+};
+
 using Instruction = std::variant<std::monostate,
                                  Kidoku,
                                  Line,
@@ -115,6 +123,8 @@ using Instruction = std::variant<std::monostate,
                                  Pop,
                                  BinaryOp,
                                  UnaryOp,
+                                 Load,
+                                 Store,
                                  End>;
 
 class ModuleManager;
@@ -132,6 +142,8 @@ class InstructionToString {
   std::string operator()(const Pop&) const;
   std::string operator()(const BinaryOp&) const;
   std::string operator()(const UnaryOp&) const;
+  std::string operator()(const Load&) const;
+  std::string operator()(const Store&) const;
   std::string operator()(const End&) const;
 
  private:

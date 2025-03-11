@@ -90,6 +90,12 @@ std::string InstructionToString::operator()(const BinaryOp& p) const {
 std::string InstructionToString::operator()(const UnaryOp& p) const {
   return "op1 " + ToString(p.op);
 }
+std::string InstructionToString::operator()(const Load& p) const {
+  return "ld " + std::to_string(p.offset);
+}
+std::string InstructionToString::operator()(const Store& p) const {
+  return "st " + std::to_string(p.offset);
+}
 std::string InstructionToString::operator()(const End& p) const {
   return "<end>";
 }

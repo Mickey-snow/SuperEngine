@@ -382,3 +382,19 @@ void RLMachine::operator()(UnaryOp p) {
   auto result = stack_.back().Operator(p.op);
   stack_.back() = std::move(result);
 }
+
+void RLMachine::operator()(Load p) {
+  if (stack_.size() < p.offset)
+    throw std::runtime_error("VM: Invalid load offset " +
+                             std::to_string(p.offset) + '.');
+
+  stack_.push_back(stack_[p.offset]);
+}
+
+void RLMachine::operator()(Store p) {
+  if (stack_.size() < p.offset)
+    throw std::runtime_error("VM: Invalid store offset " +
+                             std::to_string(p.offset) + '.');
+
+  stack_[p.offset] = stack_.back();
+}

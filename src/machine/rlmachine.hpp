@@ -213,6 +213,8 @@ class RLMachine {
   void operator()(Pop);
   void operator()(BinaryOp);
   void operator()(UnaryOp);
+  void operator()(Load);
+  void operator()(Store);
 
   // -----------------------------------------------------------------------
   // Temporary 'environment' field, planned to remove this later

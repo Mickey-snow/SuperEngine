@@ -73,3 +73,15 @@ TEST_F(VMTest, Operation) {
           BinaryOp(Op::Add));
   EXPECT_EQ(DescribeStack(), "<int: 399>");
 }
+
+TEST_F(VMTest, Load) {
+  Execute(Push(Value(123)), Push(Value("Hello")), Load(1));
+  EXPECT_EQ(DescribeStack(), "<int: 123>, <str: Hello>, <str: Hello>")
+      << "Should copy the second element to stack top";
+}
+
+TEST_F(VMTest, Store) {
+  Execute(Push(Value(123)), Push(Value("Hello")), Store(0));
+  EXPECT_EQ(DescribeStack(), "<str: Hello>, <str: Hello>")
+      << "Should copy the element at top of the stack to the first location";
+}
