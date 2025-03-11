@@ -24,6 +24,7 @@
 
 #include <gtest/gtest.h>
 
+#include "m6/exception.hpp"
 #include "m6/symbol_table.hpp"
 #include "machine/value.hpp"
 

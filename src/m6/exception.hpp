@@ -56,4 +56,10 @@ class SyntaxError : public std::logic_error {
   using std::logic_error::what;
 };
 
+class NameError : public std::runtime_error {
+ public:
+  explicit NameError(const std::string& name);
+  using std::runtime_error::what;
+};
+
 }  // namespace m6

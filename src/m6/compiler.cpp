@@ -24,17 +24,23 @@
 
 #include "m6/compiler.hpp"
 
+#include "m6/exception.hpp"
 #include "m6/expr_ast.hpp"
 #include "machine/op.hpp"
 #include "machine/value.hpp"
 
 namespace m6 {
 
-std::vector<Instruction> Compile(std::shared_ptr<ExprAST> expr) {
+std::vector<Instruction> Compiler::Compile(std::shared_ptr<ExprAST> expr) {
   struct Visitor {
     void operator()(std::monostate) { bk = Push(Value(std::monostate())); }
     void operator()(const IdExpr& idexpr) {
-      throw std::runtime_error("not supported yet.");
+      auto it = symbol_table.find(idexpr.id);
+      if (it == symbol_table.cend()) {
+        throw NameError("Name '" + idexpr.id + "' not defined.");
+      }
+
+      bk = Load(it->second);
     }
     void operator()(int x) { bk = Push(Value(x)); }
     void operator()(const std::string& x) { bk = Push(Value(x)); }
@@ -58,14 +64,37 @@ std::vector<Instruction> Compile(std::shared_ptr<ExprAST> expr) {
       bk = BinaryOp(x.op);
     }
     void operator()(const AssignExpr& x) {
-      throw std::runtime_error("not supported yet.");
+      // this is inside an expression
+      throw SyntaxError("Invalid syntax.");
     }
 
     std::back_insert_iterator<std::vector<Instruction>> bk;
+    std::map<std::string, size_t>& symbol_table;
   };
 
   std::vector<Instruction> result;
-  expr->Apply(Visitor(std::back_inserter(result)));
+
+  // special case: variable declaration, this should be a separate statement
+  // type.
+  // <id> = <expr>
+  if (auto assign = expr->Get_if<AssignExpr>()) {
+    auto id = assign->lhs->Get_if<IdExpr>();
+    if (!id)
+      throw SyntaxError("Cannot assign to expression here.");
+    assign->rhs->Apply(Visitor(std::back_inserter(result), local_variable_));
+
+    if (local_variable_.contains(id->id)) {
+      result.push_back(Store(local_variable_[id->id]));
+      result.push_back(Pop());
+    } else {
+      local_variable_[id->id] = local_variable_.size();
+    }
+
+  } else {
+    // regular expression
+    expr->Apply(Visitor(std::back_inserter(result), local_variable_));
+  }
+
   return result;
 }
 

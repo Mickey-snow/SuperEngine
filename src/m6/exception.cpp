@@ -38,4 +38,7 @@ TypeError::TypeError(std::string msg) : std::runtime_error(std::move(msg)) {}
 
 SyntaxError::SyntaxError(std::string msg) : std::logic_error(std::move(msg)) {}
 
+NameError::NameError(const std::string& name)
+    : std::runtime_error("name '" + name + "' is not defined.") {}
+
 }  // namespace m6

@@ -32,6 +32,8 @@
 
 using namespace m6;
 
+namespace m6test {
+
 inline static GetPrefix get_prefix_visitor;
 
 TEST(ExprastParserTest, BasicArithmetic) {
@@ -449,3 +451,5 @@ TEST(ExprParserTest, Postfix) {
               "foo(bar(1)).baz[\"3\"]");
   }
 }
+
+}  // namespace m6test

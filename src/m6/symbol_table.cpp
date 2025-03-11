@@ -23,15 +23,9 @@
 // -----------------------------------------------------------------------
 
 #include "m6/symbol_table.hpp"
+#include "m6/exception.hpp"
 
 namespace m6 {
-
-//============================================================================
-// NameError Implementation
-//============================================================================
-
-NameError::NameError(const std::string& name)
-    : std::runtime_error("name '" + name + "' is not defined.") {}
 
 //============================================================================
 // SymbolTable Implementation

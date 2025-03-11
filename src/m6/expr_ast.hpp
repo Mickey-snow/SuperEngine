@@ -142,6 +142,11 @@ class ExprAST {
     return std::visit<R>(std::forward<Visitor>(vis), var_);
   }
 
+  template <typename T>
+  auto Get_if() {
+    return std::get_if<T>(&var_);
+  }
+
  private:
   expr_variant_t var_;
 };

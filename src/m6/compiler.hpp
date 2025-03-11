@@ -26,10 +26,19 @@
 
 #include "machine/instruction.hpp"
 
+#include <map>
+#include <string>
+
 class ExprAST;
 
 namespace m6 {
 
-std::vector<Instruction> Compile(std::shared_ptr<ExprAST> expr);
+class Compiler {
+ public:
+  std::vector<Instruction> Compile(std::shared_ptr<ExprAST> expr);
 
-}
+ private:
+  std::map<std::string, size_t> local_variable_;
+};
+
+}  // namespace m6

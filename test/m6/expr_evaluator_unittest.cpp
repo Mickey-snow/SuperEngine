@@ -25,69 +25,43 @@
 #include <gtest/gtest.h>
 
 #include "m6/compiler.hpp"
-#include "m6/evaluator.hpp"
 #include "m6/exception.hpp"
 #include "m6/parser.hpp"
-#include "m6/symbol_table.hpp"
 #include "m6/tokenizer.hpp"
 #include "machine/op.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/value.hpp"
 
-#include "util.hpp"
 
+namespace m6test {
 using namespace m6;
 
-class ExpressionEvaluatorTest : public ::testing::Test {
+class ExpressionCompilerTest : public ::testing::Test {
  protected:
-  void SetUp() override {
-    symtab = std::make_shared<SymbolTable>();
-    evaluator = std::make_shared<Evaluator>(symtab);
-  }
+  ExpressionCompilerTest()
+      : machine(std::make_shared<RLMachine>(nullptr, nullptr, nullptr)),
+        stack(const_cast<std::vector<Value>&>(machine->GetStack())) {}
 
   auto Eval(const std::string_view input) {
     Tokenizer tokenizer(input);
     auto expr = ParseExpression(std::span(tokenizer.parsed_tok_));
-    return expr->Apply(*evaluator);
-  }
+    auto instructions = Compiler().Compile(expr);
+    for (const auto& it : instructions)
+      std::visit(*machine, it);
 
-  std::shared_ptr<SymbolTable> symtab;
-  std::shared_ptr<Evaluator> evaluator;
-};
-
-class ExpressionCompilerTest : public ::testing::Test {
- protected:
-  void SetUp() override {
-    machine = std::make_shared<RLMachine>(nullptr, nullptr, nullptr);
-  }
-
-  auto Eval(const std::string_view input) {
-    auto& stack = const_cast<std::vector<Value>&>(machine->GetStack());
-
-    try {
-      Tokenizer tokenizer(input);
-      auto expr = ParseExpression(std::span(tokenizer.parsed_tok_));
-      auto instructions = Compile(expr);
-      for (const auto& it : instructions)
-        std::visit(*machine, it);
-    } catch (...) {
-      stack.clear();
-      throw;
-    }
-
-    if (stack.size() != 1) {
-      ADD_FAILURE() << "expected stack size to be exactly 1, but got "
-                    << stack.size();
-      stack.clear();
+    if (stack.empty()) {
+      ADD_FAILURE() << "stack underflow.";
       return Value(std::monostate());
     } else {
-      Value ret = stack.front();
-      stack.clear();
+      Value ret = stack.back();
+      stack.pop_back();
       return ret;
     }
   }
 
+
   std::shared_ptr<RLMachine> machine;
+  std::vector<Value>& stack;
 };
 
 TEST_F(ExpressionCompilerTest, Unary) {
@@ -221,30 +195,4 @@ TEST_F(ExpressionCompilerTest, StringArithmetic) {
   EXPECT_THROW(Eval(R"("Negative" * -2)"), m6::UndefinedOperator);
 }
 
-TEST_F(ExpressionEvaluatorTest, GlobalVariable) {
-  EXPECT_NO_THROW(Eval(R"( beverage = "espresso" )"));
-  EXPECT_VALUE_EQ(symtab->Get("beverage"), "espresso");
-
-  EXPECT_NO_THROW(Eval(R"( two = 1 + 1 )"));
-  EXPECT_VALUE_EQ(symtab->Get("two"), 2);
-}
-
-TEST_F(ExpressionEvaluatorTest, Assignment) {
-  EXPECT_NO_THROW(Eval(R"( v2 = 89 )"));
-  EXPECT_NO_THROW({
-    EXPECT_TRUE(symtab->Exists("v2"));
-    EXPECT_VALUE_EQ(symtab->Get("v2"), 89);
-  });
-
-  EXPECT_NO_THROW(Eval(R"( v3 = "hello" )"));
-  EXPECT_NO_THROW({
-    EXPECT_TRUE(symtab->Exists("v3"));
-    EXPECT_VALUE_EQ(symtab->Get("v3"), "hello");
-  });
-
-  EXPECT_NO_THROW(Eval(R"( v3 = v3 + ", world" )"));
-  EXPECT_NO_THROW({
-    EXPECT_TRUE(symtab->Exists("v3"));
-    EXPECT_VALUE_EQ(symtab->Get("v3"), "hello, world");
-  });
-}
+}  // namespace m6test

@@ -34,15 +34,6 @@ class Value;
 namespace m6 {
 
 /**
- * @brief Exception thrown when a symbol is not found in the symbol table.
- */
-class NameError : public std::runtime_error {
- public:
-  explicit NameError(const std::string& name);
-  using std::runtime_error::what;
-};
-
-/**
  * @brief A symbol table that maps names to values.
  *
  * This class provides basic operations to store, retrieve, update,

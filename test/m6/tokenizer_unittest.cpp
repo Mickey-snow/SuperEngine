@@ -34,8 +34,9 @@
 #include <string_view>
 #include <variant>
 
-using namespace m6;
+namespace m6test {
 
+using namespace m6;
 using std::string_view_literals::operator""sv;
 using std::string_literals::operator""s;
 
@@ -144,3 +145,5 @@ TEST(TokenizerTest, StrLiteral) {
               R"(Str("Path: C:\\Users\\Name\nNew Line\tTab"))");
   }
 }
+
+}  // namespace m6test
