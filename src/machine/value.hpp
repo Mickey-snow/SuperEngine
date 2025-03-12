@@ -34,12 +34,19 @@
 #include <variant>
 
 class Value;
+class RLMachine;
+
 using Value_ptr = std::shared_ptr<Value>;
+
+enum class ObjType : uint8_t { Nil, Int, Str, Native };
 
 class IObject {
  public:
   virtual ~IObject() = default;
-  virtual std::type_index Type() const noexcept = 0;
+  virtual ObjType Type() const noexcept = 0;
+
+  virtual std::string Str() const;
+  virtual std::string Desc() const;
 };
 
 class Value {
@@ -55,21 +62,13 @@ class Value {
   std::string Str() const;
   std::string Desc() const;
 
-  std::type_index Type() const;
-
-  Value_ptr Duplicate();
+  ObjType Type() const;
 
   std::any Get() const;
   void* Getptr();
 
-  // deprecated
-  Value_ptr __Operator(Op op, Value_ptr rhs);
-  Value_ptr __Operator(Op op);
-
   Value Operator(Op op, Value rhs);
   Value Operator(Op op);
-
-  Value_ptr Invoke(std::vector<Value_ptr> args);
 
   // for testing
   operator std::string() const;

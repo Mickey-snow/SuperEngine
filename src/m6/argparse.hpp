@@ -59,7 +59,7 @@ concept is_parser = requires(T x, Value_ptr val) {
 class IntParser {
  public:
   IntParser() = default;
-  bool Parsable(Value_ptr val) { return val->Type() == typeid(int); }
+  bool Parsable(Value_ptr val) { return val->Type() == ObjType::Int; }
   void Parse(Value_ptr val) { value = static_cast<int*>(val->Getptr()); }
   int* value;
 };
@@ -68,7 +68,7 @@ static_assert(is_parser<IntParser>);
 class StrParser {
  public:
   StrParser() = default;
-  bool Parsable(Value_ptr val) { return val->Type() == typeid(std::string); }
+  bool Parsable(Value_ptr val) { return val->Type() == ObjType::Str; }
   void Parse(Value_ptr val) {
     value = static_cast<std::string*>(val->Getptr());
   }
