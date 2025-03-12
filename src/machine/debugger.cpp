@@ -34,8 +34,7 @@
 
 #include <iostream>
 
-Debugger::Debugger(RLMachine& machine)
-    : machine_(machine), symbol_tab_(std::make_shared<m6::SymbolTable>()) {}
+Debugger::Debugger(RLMachine& machine) : machine_(machine) {}
 
 constexpr std::string_view copyright_info = R"(
 Copyright (C) 2025 Serina Sakurai
@@ -93,7 +92,16 @@ void Debugger::Execute() {
 
       m6::Tokenizer tokenizer(input);
       auto expr = m6::ParseExpression(std::span(tokenizer.parsed_tok_));
-      std::cout << expr->Apply(m6::Evaluator(symbol_tab_))->Str() << std::endl;
+      auto instructions = compiler.Compile(expr);
+      for (auto& it : instructions)
+        std::visit(machine_, std::move(it));
+
+      if (expr->Get_if<m6::AssignExpr>() == nullptr) {
+        auto& stack = const_cast<std::vector<Value>&>(machine_.GetStack());
+        std::cout << stack.back().Str() << std::endl;
+        stack.pop_back();
+      }
+
     } catch (std::exception& e) {
       std::cerr << e.what() << std::endl;
     }
