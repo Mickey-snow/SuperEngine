@@ -30,9 +30,6 @@
 #include "m6/compiler.hpp"
 
 class RLMachine;
-namespace m6 {
-class SymbolTable;
-}
 
 class Debugger : public EventListener {
  public:
