@@ -71,6 +71,27 @@ class Value {
   Value Operator(Op op, Value rhs);
   Value Operator(Op op);
 
+  template <class Visitor>
+  decltype(auto) Apply(Visitor&& vis) {
+    return std::visit(std::forward<Visitor>(vis), val_);
+  }
+  template <class Visitor>
+  decltype(auto) Apply(Visitor&& vis) const {
+    return std::visit(std::forward<Visitor>(vis), val_);
+  }
+  template <class R, class Visitor>
+  R Apply(Visitor&& vis) {
+    return std::visit<R>(std::forward<Visitor>(vis), val_);
+  }
+  template <class R, class Visitor>
+  R Apply(Visitor&& vis) const {
+    return std::visit<R>(std::forward<Visitor>(vis), val_);
+  }
+  template <typename T>
+  auto Get_if() {
+    return std::get_if<T>(&val_);
+  }
+
   // for testing
   operator std::string() const;
   bool operator==(int rhs) const;
@@ -100,8 +121,8 @@ class NativeFunction : public IObject {
 
 Value make_fn_value(std::string name, auto&& fn) {
   using fn_type = std::decay_t<decltype(fn)>;
-  using R = typename function_traits<fn_type>::result_type;
-  using Argt = typename function_traits<fn_type>::argument_types;
+  // using R = typename function_traits<fn_type>::result_type;
+  // using Argt = typename function_traits<fn_type>::argument_types;
 
   class NativeImpl : public NativeFunction {
    public:
@@ -110,12 +131,16 @@ Value make_fn_value(std::string name, auto&& fn) {
 
     virtual Value Invoke(RLMachine* /*unused*/,
                          std::vector<Value> args) override {
-
+      return Value(std::monostate());
     }
 
    private:
     fn_type fn_;
   };
+
+  std::shared_ptr<IObject> fn_obj =
+      std::make_shared<NativeImpl>(std::move(name), std::forward<fn_type>(fn));
+  return Value(std::move(fn_obj));
 }
 
 // should be deprecated soon

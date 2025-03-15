@@ -31,9 +31,14 @@
 
 using namespace m6;
 
+template <typename... Ts>
+inline auto quick_parse(auto... args) {
+  std::vector<Value> arr{std::move(args)...};
+  return ParseArgs<Ts...>(arr.begin(), arr.end());
+}
+
 TEST(ArgparseTest, Ints) {
-  auto [v1, v2, v3] =
-      ParseArgs<int, int, int>({make_value(1), make_value(2), make_value(3)});
+  auto [v1, v2, v3] = quick_parse<int, int, int>(Value(1), Value(2), Value(3));
 
   EXPECT_EQ(v1, 1);
   EXPECT_EQ(v2, 2);
@@ -41,38 +46,37 @@ TEST(ArgparseTest, Ints) {
 }
 
 TEST(ArgparseTest, Strings) {
-  auto [s1, s2] = ParseArgs<std::string, std::string>(
-      {make_value("hello"), make_value("world")});
+  auto [s1, s2] =
+      quick_parse<std::string, std::string>(Value("hello"), Value("world"));
   EXPECT_EQ(s1, "hello");
   EXPECT_EQ(s2, "world");
 }
 
 TEST(ArgparseTest, Intrefs) {
-  auto value1 = make_value(123);
-  auto value2 = make_value(321);
-  auto [v1, v2] = ParseArgs<int*, int*>({value1, value2});
+  std::vector<Value> vals{Value(123), Value(321)};
+  auto [v1, v2] = ParseArgs<int*, int*>(vals.begin(), vals.end());
 
   *v1 = 1;
   *v2 = 2;
-  EXPECT_VALUE_EQ(value1, 1);
-  EXPECT_VALUE_EQ(value2, 2);
+  EXPECT_EQ(vals[0], 1) << vals[0].Desc();
+  EXPECT_EQ(vals[1], 2) << vals[1].Desc();
 }
 
 TEST(ArgparseTest, Strrefs) {
-  auto value1 = make_value("first");
-  auto value2 = make_value("second");
-  auto [s1, s2] = ParseArgs<std::string*, std::string*>({value1, value2});
+  std::vector<Value> vals{Value("first"), Value("second")};
+  auto [s1, s2] =
+      ParseArgs<std::string*, std::string*>(vals.begin(), vals.end());
 
   *s1 = "foo";
   *s2 = "boo";
-  EXPECT_VALUE_EQ(value1, "foo");
-  EXPECT_VALUE_EQ(value2, "boo");
+  EXPECT_EQ(vals[0], "foo")<< vals[0].Desc();
+  EXPECT_EQ(vals[1], "boo")<< vals[1].Desc();
 }
 
 TEST(ArgparseTest, Optional) {
   auto [s1, s2, s3, s4] =
-      ParseArgs<int, std::optional<int>, std::optional<std::string>,
-                std::optional<std::string>>({make_value(1), make_value("two")});
+      quick_parse<int, std::optional<int>, std::optional<std::string>,
+                  std::optional<std::string>>(Value(1), Value("two"));
 
   EXPECT_FALSE(s2.has_value());
   EXPECT_EQ(s3, "two");
@@ -80,9 +84,8 @@ TEST(ArgparseTest, Optional) {
 }
 
 TEST(ArgparseTest, Arglist) {
-  auto [first, remain] = ParseArgs<std::string, std::vector<int>>(
-      {make_value("sum"), make_value(1), make_value(2), make_value(3),
-       make_value(4)});
+  auto [first, remain] = quick_parse<std::string, std::vector<int>>(
+      Value("sum"), Value(1), Value(2), Value(3), Value(4));
 
   EXPECT_EQ(first, "sum");
   EXPECT_EQ(remain, (std::vector<int>{1, 2, 3, 4}));
@@ -90,32 +93,27 @@ TEST(ArgparseTest, Arglist) {
 
 TEST(ArgparseTest, InsufficientArguments) {
   EXPECT_THROW(
-      { [[maybe_unused]] auto [v] = ParseArgs<int>({}); }, SyntaxError)
+      { [[maybe_unused]] auto [v] = quick_parse<int>(); }, SyntaxError)
       << "Insufficient arguments for a non-optional parameter should throw "
          "SyntaxError";
 }
 
 TEST(ArgparseTest, TooManyArguments) {
   EXPECT_THROW(
-      {
-        [[maybe_unused]] auto [v] =
-            ParseArgs<int>({make_value(1), make_value(1)});
-      },
+      { [[maybe_unused]] auto [v] = quick_parse<int>(Value(1), Value(1)); },
       SyntaxError);
 }
 
 TEST(ArgparseTest, TypeMismatch) {
   EXPECT_THROW(
-      {
-        [[maybe_unused]] auto [v] = ParseArgs<int>({make_value("not an int")});
-      },
+      { [[maybe_unused]] auto [v] = quick_parse<int>(Value("not an int")); },
       TypeError)
       << "Type mismatch for a non-optional int should throw TypeError";
 }
 
 TEST(ArgparseTest, OptionalMismatch) {
   auto [optInt, v1] =
-      ParseArgs<std::optional<int>, std::string>({make_value("not an int")});
+      quick_parse<std::optional<int>, std::string>(Value("not an int"));
   EXPECT_FALSE(optInt.has_value())
       << "When an optional int parameter receives an argument of the wrong "
          "type, it returns nullopt";
@@ -124,8 +122,8 @@ TEST(ArgparseTest, OptionalMismatch) {
 TEST(ArgparseTest, VectorTypeMismatch) {
   EXPECT_THROW(
       {
-        [[maybe_unused]] auto [vec] = ParseArgs<std::vector<int>>(
-            {make_value(1), make_value("bad"), make_value(3)});
+        [[maybe_unused]] auto [vec] =
+            quick_parse<std::vector<int>>(Value(1), Value("bad"), Value(3));
       },
       TypeError)
       << "A vector parameter should throw TypeError if any element fails to "
@@ -133,8 +131,7 @@ TEST(ArgparseTest, VectorTypeMismatch) {
 }
 
 TEST(ArgparseTest, EmptyVector) {
-  auto [cmd, vec] =
-      ParseArgs<std::string, std::vector<int>>({make_value("cmd")});
+  auto [cmd, vec] = quick_parse<std::string, std::vector<int>>(Value("cmd"));
   EXPECT_EQ(cmd, "cmd");
   EXPECT_TRUE(vec.empty()) << "A vector parameter with no corresponding "
                               "arguments should yield an empty vector";
@@ -142,9 +139,6 @@ TEST(ArgparseTest, EmptyVector) {
 
 TEST(ArgparseTest, PointerMismatch) {
   EXPECT_THROW(
-      {
-        [[maybe_unused]] auto [ptr] =
-            ParseArgs<int*>({make_value("not an int")});
-      },
+      { [[maybe_unused]] auto [ptr] = quick_parse<int*>(Value("not an int")); },
       TypeError);
 }

@@ -51,16 +51,18 @@ concept is_sharedptr = requires {
 } && std::same_as<T, std::shared_ptr<typename T::element_type>>;
 
 template <typename T>
-concept is_parser = requires(T x, Value_ptr val) {
-  { x.Parsable(val) } -> std::convertible_to<bool>;
+concept is_parser = requires(T x, Value& val) {
+  { x.Parsable(const_cast<const Value&>(val)) } -> std::convertible_to<bool>;
   { x.Parse(val) };
 } && std::is_constructible_v<T>;
 
 class IntParser {
  public:
   IntParser() = default;
-  bool Parsable(Value_ptr val) { return val->Type() == ObjType::Int; }
-  void Parse(Value_ptr val) { value = static_cast<int*>(val->Getptr()); }
+  bool Parsable(const Value& val) noexcept {
+    return val.Type() == ObjType::Int;
+  }
+  void Parse(Value& val) { value = val.Get_if<int>(); }
   int* value;
 };
 static_assert(is_parser<IntParser>);
@@ -68,10 +70,10 @@ static_assert(is_parser<IntParser>);
 class StrParser {
  public:
   StrParser() = default;
-  bool Parsable(Value_ptr val) { return val->Type() == ObjType::Str; }
-  void Parse(Value_ptr val) {
-    value = static_cast<std::string*>(val->Getptr());
+  bool Parsable(const Value& val) noexcept {
+    return val.Type() == ObjType::Str;
   }
+  void Parse(Value& val) { value = val.Get_if<std::string>(); }
   std::string* value;
 };
 static_assert(is_parser<StrParser>);
@@ -93,30 +95,14 @@ auto parse_impl(auto& begin, auto const& end) -> T {
   if constexpr (false)
     ;
 
-  else if constexpr (is_sharedptr<T>) {  // raw value pointer
-    if (begin == end)
-      throw SyntaxError("Not enough arguments provided.");
-
-    if constexpr (std::same_as<T, Value_ptr>)
-      return *begin++;
-    else {
-      Value_ptr it = *begin;
-      T result = std::dynamic_pointer_cast<typename T::element_type>(it);
-      if (!result)
-        throw TypeError("No viable convertion from " + it->Desc());
-      ++begin;
-      return result;
-    }
-  }
-
   else if constexpr (std::is_pointer_v<T>) {  // reference
     auto parser = CreateParser<std::remove_pointer_t<T>>();
     if (begin == end)
       throw SyntaxError("Not enough arguments provided.");
 
-    Value_ptr it = *begin;
+    Value& it = *begin;
     if (!parser.Parsable(it))
-      throw TypeError("No viable convertion from " + it->Desc());
+      throw TypeError("No viable convertion from " + it.Desc());
 
     ++begin;
     parser.Parse(it);
@@ -143,9 +129,9 @@ auto parse_impl(auto& begin, auto const& end) -> T {
     if (begin == end)
       throw SyntaxError("Not enough arguments provided.");
 
-    Value_ptr it = *begin;
+    Value& it = *begin;
     if (!parser.Parsable(it))
-      throw TypeError("No viable convertion from " + it->Desc());
+      throw TypeError("No viable convertion from " + it.Desc());
 
     ++begin;
     parser.Parse(it);
@@ -156,8 +142,7 @@ auto parse_impl(auto& begin, auto const& end) -> T {
 }  // namespace internal
 
 template <typename... Ts>
-auto ParseArgs(std::vector<Value_ptr> args) -> std::tuple<Ts...> {
-  auto begin = args.begin(), end = args.end();
+auto ParseArgs(auto begin, const auto end) -> std::tuple<Ts...> {
   auto result = std::tuple{internal::parse_impl<Ts>(begin, end)...};
   if (begin != end)
     throw SyntaxError("Too many arguments provided.");
@@ -165,9 +150,9 @@ auto ParseArgs(std::vector<Value_ptr> args) -> std::tuple<Ts...> {
 }
 
 template <typename... Ts>
-auto ParseArgs(TypeList<Ts...> /*unused*/, std::vector<Value_ptr> args)
+auto ParseArgs(TypeList<Ts...> /*unused*/, auto begin, const auto end)
     -> std::tuple<Ts...> {
-  return ParseArgs<Ts...>(std::move(args));
+  return ParseArgs<Ts...>(begin, end);
 }
 
 }  // namespace m6
