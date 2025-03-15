@@ -25,6 +25,7 @@
 #pragma once
 
 #include "m6/expr_ast.hpp"
+#include "utilities/mpl.hpp"
 
 #include <any>
 #include <functional>
@@ -78,6 +79,44 @@ class Value {
  private:
   value_t val_;
 };
+
+class NativeFunction : public IObject {
+ public:
+  NativeFunction(std::string name) : name_(std::move(name)) {}
+
+  std::string Name() const { return name_; }
+  virtual ObjType Type() const noexcept override { return ObjType::Native; }
+
+  virtual std::string Str() const override { return "<fn " + name_ + '>'; }
+  virtual std::string Desc() const override {
+    return "<native function '" + name_ + "'>";
+  }
+
+  virtual Value Invoke(RLMachine* machine, std::vector<Value> args) = 0;
+
+ private:
+  std::string name_;
+};
+
+Value make_fn_value(std::string name, auto&& fn) {
+  using fn_type = std::decay_t<decltype(fn)>;
+  using R = typename function_traits<fn_type>::result_type;
+  using Argt = typename function_traits<fn_type>::argument_types;
+
+  class NativeImpl : public NativeFunction {
+   public:
+    NativeImpl(std::string name, fn_type fn)
+        : NativeFunction(std::move(name)), fn_(fn) {}
+
+    virtual Value Invoke(RLMachine* /*unused*/,
+                         std::vector<Value> args) override {
+
+    }
+
+   private:
+    fn_type fn_;
+  };
+}
 
 // should be deprecated soon
 Value_ptr make_value(int value);

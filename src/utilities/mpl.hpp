@@ -24,12 +24,18 @@
 #pragma once
 
 #include <cstddef>
+#include <functional>
+#include <type_traits>
 
+// -----------------------------------------------------------------------
 // Compile time constants
+// -----------------------------------------------------------------------
 template <typename>
 inline constexpr bool always_false = false;
 
+// -----------------------------------------------------------------------
 // TypeList
+// -----------------------------------------------------------------------
 struct NullType {};
 
 template <typename... Ts>
@@ -88,3 +94,107 @@ template <template <typename...> class Dest, typename... Ts>
 struct Unpack<Dest, TypeList<Ts...>> {
   using type = Dest<Ts...>;
 };
+
+// -----------------------------------------------------------------------
+// function_traits
+// -----------------------------------------------------------------------
+template <typename T>
+struct function_traits;
+
+// Primary specialization: plain function types.
+template <typename R, typename... Args>
+struct function_traits<R(Args...)> {
+  using result_type = R;
+  using argument_types = TypeList<Args...>;
+};
+
+// Specialization for noexcept functions.
+template <typename R, typename... Args>
+struct function_traits<R(Args...) noexcept> : function_traits<R(Args...)> {};
+
+// Function pointer.
+template <typename R, typename... Args>
+struct function_traits<R (*)(Args...)> : function_traits<R(Args...)> {};
+
+// Function pointer with noexcept.
+template <typename R, typename... Args>
+struct function_traits<R (*)(Args...) noexcept>
+    : function_traits<R(Args...) noexcept> {};
+
+// Member function pointers (non-const).
+template <typename C, typename R, typename... Args>
+struct function_traits<R (C::*)(Args...)> : function_traits<R(Args...)> {};
+
+// Member function pointers (non-const) noexcept.
+template <typename C, typename R, typename... Args>
+struct function_traits<R (C::*)(Args...) noexcept>
+    : function_traits<R(Args...) noexcept> {};
+
+// Member function pointers (const).
+template <typename C, typename R, typename... Args>
+struct function_traits<R (C::*)(Args...) const> : function_traits<R(Args...)> {
+};
+
+// Member function pointers (const) noexcept.
+template <typename C, typename R, typename... Args>
+struct function_traits<R (C::*)(Args...) const noexcept>
+    : function_traits<R(Args...) noexcept> {};
+
+// Member function pointers (volatile).
+template <typename C, typename R, typename... Args>
+struct function_traits<R (C::*)(Args...) volatile>
+    : function_traits<R(Args...)> {};
+
+template <typename C, typename R, typename... Args>
+struct function_traits<R (C::*)(Args...) volatile noexcept>
+    : function_traits<R(Args...) noexcept> {};
+
+// Member function pointers (const volatile).
+template <typename C, typename R, typename... Args>
+struct function_traits<R (C::*)(Args...) const volatile>
+    : function_traits<R(Args...)> {};
+
+template <typename C, typename R, typename... Args>
+struct function_traits<R (C::*)(Args...) const volatile noexcept>
+    : function_traits<R(Args...) noexcept> {};
+
+// Ref-qualified member functions (lvalue ref).
+template <typename C, typename R, typename... Args>
+struct function_traits<R (C::*)(Args...)&> : function_traits<R(Args...)> {};
+
+template <typename C, typename R, typename... Args>
+struct function_traits<R (C::*)(Args...) const&> : function_traits<R(Args...)> {
+};
+
+template <typename C, typename R, typename... Args>
+struct function_traits<R (C::*)(Args...) volatile&>
+    : function_traits<R(Args...)> {};
+
+template <typename C, typename R, typename... Args>
+struct function_traits<R (C::*)(Args...) const volatile&>
+    : function_traits<R(Args...)> {};
+
+// Ref-qualified member functions (rvalue ref).
+template <typename C, typename R, typename... Args>
+struct function_traits<R (C::*)(Args...) &&> : function_traits<R(Args...)> {};
+
+template <typename C, typename R, typename... Args>
+struct function_traits<R (C::*)(Args...) const&&>
+    : function_traits<R(Args...)> {};
+
+template <typename C, typename R, typename... Args>
+struct function_traits<R (C::*)(Args...) volatile&&>
+    : function_traits<R(Args...)> {};
+
+template <typename C, typename R, typename... Args>
+struct function_traits<R (C::*)(Args...) const volatile&&>
+    : function_traits<R(Args...)> {};
+
+// std::function specialization
+template <typename R, typename... Args>
+struct function_traits<std::function<R(Args...)>>
+    : function_traits<R(Args...)> {};
+
+template <typename F>
+struct function_traits
+    : function_traits<decltype(&std::remove_reference_t<F>::operator())> {};

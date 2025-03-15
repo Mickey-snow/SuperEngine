@@ -143,3 +143,112 @@ TEST(TypelistTest, UnpackTypes) {
 
   EXPECT_TRUE((std::same_as<result, std::tuple<int, std::string, void*>>));
 }
+
+int plainFunc(double, char) { return 42; }
+TEST(FunctionTraitsTest, PlainFunction) {
+  using traits = function_traits<decltype(plainFunc)>;
+  EXPECT_TRUE((std::is_same<typename traits::result_type, int>::value));
+  EXPECT_TRUE(
+      (std::same_as<typename traits::argument_types, TypeList<double, char>>));
+}
+
+int noexceptFunc(double, char) noexcept { return 42; }
+
+TEST(FunctionTraitsTest, NoexceptFunction) {
+  using traits = function_traits<decltype(noexceptFunc)>;
+  EXPECT_TRUE((std::is_same<typename traits::result_type, int>::value));
+  EXPECT_TRUE((std::is_same<typename traits::argument_types,
+                            TypeList<double, char>>::value));
+}
+
+using FuncPtr = int (*)(double, char);
+
+TEST(FunctionTraitsTest, FunctionPointer) {
+  using traits = function_traits<FuncPtr>;
+  EXPECT_TRUE((std::is_same<typename traits::result_type, int>::value));
+  EXPECT_TRUE((std::is_same<typename traits::argument_types,
+                            TypeList<double, char>>::value));
+}
+
+// Noexcept function pointer.
+using NoexceptFuncPtr = int (*)(double, char) noexcept;
+
+TEST(FunctionTraitsTest, NoexceptFunctionPointer) {
+  using traits = function_traits<NoexceptFuncPtr>;
+  EXPECT_TRUE((std::is_same<typename traits::result_type, int>::value));
+  EXPECT_TRUE((std::is_same<typename traits::argument_types,
+                            TypeList<double, char>>::value));
+}
+
+// Member functions.
+struct Foo {
+  int method(double, char) { return 0; }
+  int method_const(double, char) const { return 0; }
+};
+
+TEST(FunctionTraitsTest, MemberFunction) {
+  using traits = function_traits<decltype(&Foo::method)>;
+  EXPECT_TRUE((std::is_same<typename traits::result_type, int>::value));
+  EXPECT_TRUE((std::is_same<typename traits::argument_types,
+                            TypeList<double, char>>::value));
+}
+
+TEST(FunctionTraitsTest, ConstMemberFunction) {
+  using traits = function_traits<decltype(&Foo::method_const)>;
+  EXPECT_TRUE((std::is_same<typename traits::result_type, int>::value));
+  EXPECT_TRUE((std::is_same<typename traits::argument_types,
+                            TypeList<double, char>>::value));
+}
+
+// Ref-qualified member functions.
+struct Baz {
+  int func(double) & { return 0; }
+};
+
+TEST(FunctionTraitsTest, RefQualifiedMemberFunction) {
+  using traits = function_traits<decltype(&Baz::func)>;
+  EXPECT_TRUE((std::is_same<typename traits::result_type, int>::value));
+  EXPECT_TRUE(
+      (std::is_same<typename traits::argument_types, TypeList<double>>::value));
+}
+
+struct Qux {
+  int func(char, char) && { return 0; }
+};
+
+TEST(FunctionTraitsTest, RvalueRefQualifiedMemberFunction) {
+  using traits = function_traits<decltype(&Qux::func)>;
+  EXPECT_TRUE((std::is_same<typename traits::result_type, int>::value));
+  EXPECT_TRUE((std::is_same<typename traits::argument_types,
+                            TypeList<char, char>>::value));
+}
+
+// std::function.
+TEST(FunctionTraitsTest, StdFunction) {
+  using std_func = std::function<int(double, char)>;
+  using traits = function_traits<std_func>;
+  EXPECT_TRUE((std::is_same<typename traits::result_type, int>::value));
+  EXPECT_TRUE((std::is_same<typename traits::argument_types,
+                            TypeList<double, char>>::value));
+}
+
+// Lambda.
+TEST(FunctionTraitsTest, Lambda) {
+  auto lambda = [](float f) -> bool { return f > 0; };
+  using traits = function_traits<decltype(lambda)>;
+
+  EXPECT_TRUE((std::is_same<typename traits::result_type, bool>::value));
+  EXPECT_TRUE(
+      (std::is_same<typename traits::argument_types, TypeList<float>>::value));
+}
+
+TEST(FunctionTraitsTest, FunctorTraits) {
+  struct Functor {
+    double operator()(int, int) { return 3.14; }
+  };
+  using traits = function_traits<Functor>;
+
+  EXPECT_TRUE((std::is_same<typename traits::result_type, double>::value));
+  EXPECT_TRUE((std::is_same<typename traits::argument_types,
+                            TypeList<int, int>>::value));
+}
