@@ -80,9 +80,6 @@ class Value {
 
   ObjType Type() const;
 
-  std::any Get() const;
-  void* Getptr();
-
   Value Operator(Op op, Value rhs);
   Value Operator(Op op);
 
@@ -109,9 +106,3 @@ class Value {
  private:
   value_t val_;
 };
-
-// should be deprecated soon
-Value_ptr make_value(int value);
-Value_ptr make_value(std::string value);
-Value_ptr make_value(char const* value);
-Value_ptr make_value(bool value);

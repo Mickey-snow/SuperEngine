@@ -24,6 +24,9 @@
 
 #include "util.hpp"
 
+#include "machine/op.hpp"
+#include "utilities/string_utilities.hpp"
+
 std::string GetPrefix::operator()(const m6::BinaryExpr& x) const {
   return ToString(x.op) + ' ' + x.lhs->Apply(*this) + ' ' + x.rhs->Apply(*this);
 }
