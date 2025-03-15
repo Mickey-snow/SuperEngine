@@ -113,6 +113,10 @@ struct Store {
   size_t offset;
 };
 
+struct Invoke {
+  size_t arity;
+};
+
 using Instruction = std::variant<std::monostate,
                                  Kidoku,
                                  Line,
@@ -125,6 +129,7 @@ using Instruction = std::variant<std::monostate,
                                  UnaryOp,
                                  Load,
                                  Store,
+                                 Invoke,
                                  End>;
 
 class ModuleManager;
@@ -144,6 +149,7 @@ class InstructionToString {
   std::string operator()(const UnaryOp&) const;
   std::string operator()(const Load&) const;
   std::string operator()(const Store&) const;
+  std::string operator()(const Invoke&) const;
   std::string operator()(const End&) const;
 
  private:

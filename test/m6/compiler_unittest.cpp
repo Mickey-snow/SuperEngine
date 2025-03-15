@@ -26,6 +26,7 @@
 
 #include "m6/compiler.hpp"
 #include "m6/exception.hpp"
+#include "m6/native.hpp"
 #include "m6/parser.hpp"
 #include "m6/tokenizer.hpp"
 #include "machine/op.hpp"
@@ -72,6 +73,14 @@ TEST_F(CompilerTest, Assignment) {
   Execute(R"( v3 = "hello" )");
   Execute(R"( v3 = v3 + ", world" )");
   EXPECT_EQ(DescribeStack(), "<int: 89>, <str: hello, world>");
+}
+
+TEST_F(CompilerTest, NativeFn) {
+  compiler.AddNative(
+      make_fn_value("foo", [](int val) { return val == 89 ? 1 : -100; }));
+  Execute(R"( v2 = 89 )");
+  Execute(R"( foo(v2) )");
+  EXPECT_EQ(DescribeStack(), "<int: 89>, <int: 1>");
 }
 
 }  // namespace m6test

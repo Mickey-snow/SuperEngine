@@ -25,6 +25,7 @@
 #pragma once
 
 #include "machine/instruction.hpp"
+#include "machine/value.hpp"
 
 #include <map>
 #include <string>
@@ -35,10 +36,15 @@ namespace m6 {
 
 class Compiler {
  public:
+  Compiler() = default;
+
   std::vector<Instruction> Compile(std::shared_ptr<ExprAST> expr);
+
+  void AddNative(Value fn);
 
  private:
   std::map<std::string, size_t> local_variable_;
+  std::map<std::string, Value> native_fn_;
 };
 
 }  // namespace m6

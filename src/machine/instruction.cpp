@@ -96,6 +96,9 @@ std::string InstructionToString::operator()(const Load& p) const {
 std::string InstructionToString::operator()(const Store& p) const {
   return "st " + std::to_string(p.offset);
 }
+std::string InstructionToString::operator()(const Invoke& p) const {
+  return "Invoke " + std::to_string(p.arity);
+}
 std::string InstructionToString::operator()(const End& p) const {
   return "<end>";
 }

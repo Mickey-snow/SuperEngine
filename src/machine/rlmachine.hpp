@@ -215,6 +215,7 @@ class RLMachine {
   void operator()(UnaryOp);
   void operator()(Load);
   void operator()(Store);
+  void operator()(Invoke);
 
   // -----------------------------------------------------------------------
   // Temporary 'environment' field, planned to remove this later

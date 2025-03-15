@@ -398,3 +398,28 @@ void RLMachine::operator()(Store p) {
 
   stack_[p.offset] = stack_.back();
 }
+
+void RLMachine::operator()(Invoke p) {
+  if (stack_.size() < p.arity + 1)
+    throw std::runtime_error("VM: Stack underflow.");
+
+  Value fn = std::move(stack_.back());
+  stack_.pop_back();
+
+  if (auto native = fn.Get_if<NativeFunction>()) {
+    std::vector<Value> args;
+    args.reserve(p.arity);
+    for (auto it = stack_.end() - p.arity; it != stack_.end(); ++it)
+      args.emplace_back(std::move(*it));
+    stack_.resize(stack_.size() - p.arity);
+
+    try {
+      Value result = native->Invoke(this, std::move(args));
+      stack_.emplace_back(std::move(result));
+    } catch (...) {
+      stack_.push_back(Value(std::monostate()));
+      throw;
+    }
+  } else
+    throw std::runtime_error("Object '" + fn.Desc() + "' is not callable.");
+}

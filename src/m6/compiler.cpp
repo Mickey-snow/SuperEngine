@@ -31,12 +31,20 @@
 
 namespace m6 {
 
+void Compiler::AddNative(Value fn) {
+  auto ptr = fn.Get_if<NativeFunction>();
+  if (!ptr)
+    throw std::runtime_error("Compiler: " + fn.Desc() +
+                             " is not a native function.");
+  native_fn_[ptr->Name()] = std::move(fn);
+}
+
 std::vector<Instruction> Compiler::Compile(std::shared_ptr<ExprAST> expr) {
   struct Visitor {
     void operator()(std::monostate) { bk = Push(Value(std::monostate())); }
     void operator()(const IdExpr& idexpr) {
-      auto it = symbol_table.find(idexpr.id);
-      if (it == symbol_table.cend()) {
+      auto it = compiler.local_variable_.find(idexpr.id);
+      if (it == compiler.local_variable_.cend()) {
         throw NameError("Name '" + idexpr.id + "' not defined.");
       }
 
@@ -45,7 +53,18 @@ std::vector<Instruction> Compiler::Compile(std::shared_ptr<ExprAST> expr) {
     void operator()(int x) { bk = Push(Value(x)); }
     void operator()(const std::string& x) { bk = Push(Value(x)); }
     void operator()(const InvokeExpr& x) {
-      throw std::runtime_error("not supported yet.");
+      for (auto arg : x.args)
+        arg->Apply(*this);
+
+      if (auto idexpr = x.fn->Get_if<IdExpr>()) {
+        auto it = compiler.native_fn_.find(idexpr->id);
+        if (it == compiler.native_fn_.cend())
+          throw NameError("Name '" + idexpr->id + "' is not defined.");
+
+        bk = Push(it->second);
+        bk = Invoke(x.args.size());
+      } else
+        throw std::runtime_error("not supported yet.");
     }
     void operator()(const SubscriptExpr& x) {
       throw std::runtime_error("not supported yet.");
@@ -69,7 +88,7 @@ std::vector<Instruction> Compiler::Compile(std::shared_ptr<ExprAST> expr) {
     }
 
     std::back_insert_iterator<std::vector<Instruction>> bk;
-    std::map<std::string, size_t>& symbol_table;
+    Compiler& compiler;
   };
 
   std::vector<Instruction> result;
@@ -81,7 +100,7 @@ std::vector<Instruction> Compiler::Compile(std::shared_ptr<ExprAST> expr) {
     auto id = assign->lhs->Get_if<IdExpr>();
     if (!id)
       throw SyntaxError("Cannot assign to expression here.");
-    assign->rhs->Apply(Visitor(std::back_inserter(result), local_variable_));
+    assign->rhs->Apply(Visitor(std::back_inserter(result), *this));
 
     if (local_variable_.contains(id->id)) {
       result.push_back(Store(local_variable_[id->id]));
@@ -92,7 +111,7 @@ std::vector<Instruction> Compiler::Compile(std::shared_ptr<ExprAST> expr) {
 
   } else {
     // regular expression
-    expr->Apply(Visitor(std::back_inserter(result), local_variable_));
+    expr->Apply(Visitor(std::back_inserter(result), *this));
   }
 
   return result;
