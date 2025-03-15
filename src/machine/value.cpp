@@ -60,6 +60,8 @@ std::string Value::Str() const {
           return std::to_string(x);
         else if constexpr (std::same_as<T, std::string>)
           return x;
+        else if constexpr (std::same_as<T, std::shared_ptr<IObject>>)
+          return x->Str();
         else {  // object
           return "???";
         }
@@ -77,6 +79,8 @@ std::string Value::Desc() const {
           return "<int: " + std::to_string(x) + '>';
         else if constexpr (std::same_as<T, std::string>)
           return "<str: " + x + '>';
+        else if constexpr (std::same_as<T, std::shared_ptr<IObject>>)
+          return x->Desc();
         else
           return "???";
       },
