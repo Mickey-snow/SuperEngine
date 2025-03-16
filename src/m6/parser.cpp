@@ -23,443 +23,506 @@
 // -----------------------------------------------------------------------
 
 #include "m6/parser.hpp"
-
 #include "m6/expr_ast.hpp"
 #include "m6/parsing_error.hpp"
 #include "machine/op.hpp"
 
-#include <boost/fusion/include/deque.hpp>
-#include <boost/spirit/home/x3.hpp>
-
 #include <iterator>
+#include <optional>
 #include <sstream>
 #include <unordered_set>
 
-namespace x3 = boost::spirit::x3;
-
 namespace m6 {
 
-// Helper function to skip over tok::WS
-inline void skip_ws(std::forward_iterator auto& first,
-                    std::forward_iterator auto const& last) {
-  while (first != last && std::holds_alternative<tok::WS>(*first))
-    ++first;
+using iterator_t = std::span<Token>::iterator;
+
+// Helper to skip whitespace tokens in-place.
+static void skipWS(iterator_t& it, iterator_t end) {
+  while (it != end && std::holds_alternative<tok::WS>(*it)) {
+    ++it;
+  }
 }
 
-// -----------------------------------------------------------------------
-// primitive token parsers
-namespace {
-// Parser that matches a identifier token (tok::ID) and returns its value.
-struct id_token_parser : x3::parser<id_token_parser> {
-  using attribute_type = IdExpr;
+// Handy checker function for matching an operator from a specified set.
+static std::optional<Op> tryConsumeAny(iterator_t& it,
+                                       iterator_t end,
+                                       std::initializer_list<Op> ops) {
+  skipWS(it, end);
+  if (it == end) {
+    return std::nullopt;
+  }
 
-  template <typename Iterator,
-            typename Context,
-            typename RContext,
-            typename Attribute>
-  bool parse(Iterator& first,
-             Iterator const& last,
-             Context const& /*context*/,
-             RContext& /*rcontext*/,
-             Attribute& attr) const {
-    skip_ws(first, last);
-    if (first == last)
-      return false;
+  if (auto p = std::get_if<tok::Operator>(&*it)) {
+    for (auto candidate : ops)
+      if (candidate == p->op) {
+        ++it;
+        return p->op;
+      }
+  }
+  return std::nullopt;
+}
 
-    if (auto p = std::get_if<tok::ID>(&*first)) {
-      attr = IdExpr(p->id);
-      ++first;
-      return true;
-    }
+// Handy checker function for matching a single operator token.
+static bool tryConsumeOp(iterator_t& it, iterator_t end, Op op) {
+  skipWS(it, end);
+  if (it == end) {
     return false;
   }
-};
-
-// Parser that matches an integer token (tok::Int) and returns its value.
-struct int_token_parser : x3::parser<int_token_parser> {
-  using attribute_type = int;
-
-  template <typename Iterator,
-            typename Context,
-            typename RContext,
-            typename Attribute>
-  bool parse(Iterator& first,
-             Iterator const& last,
-             Context const& /*context*/,
-             RContext& /*rcontext*/,
-             Attribute& attr) const {
-    skip_ws(first, last);
-    if (first == last)
-      return false;
-
-    if (auto p = std::get_if<tok::Int>(&*first)) {
-      attr = p->value;
-      ++first;
+  if (auto p = std::get_if<tok::Operator>(&*it)) {
+    if (p->op == op) {
+      ++it;
       return true;
     }
+  }
+  return false;
+}
+
+// Handy checker function for matching a token type T.
+template <typename T>
+static bool tryConsumeToken(iterator_t& it, iterator_t end) {
+  skipWS(it, end);
+  if (it == end) {
     return false;
   }
-};
-
-// Parser that matches a literal token (tok::Literal) and returns its value.
-struct str_token_parser : x3::parser<str_token_parser> {
-  using attribute_type = std::string;
-
-  template <typename Iterator,
-            typename Context,
-            typename RContext,
-            typename Attribute>
-  bool parse(Iterator& first,
-             Iterator const& last,
-             Context const& /*context*/,
-             RContext& /*rcontext*/,
-             Attribute& attr) const {
-    skip_ws(first, last);
-    if (first == last)
-      return false;
-
-    if (auto p = std::get_if<tok::Literal>(&*first)) {
-      attr = p->str;
-      ++first;
-      return true;
-    }
-    return false;
+  if (std::holds_alternative<T>(*it)) {
+    ++it;
+    return true;
   }
-};
+  return false;
+}
 
-// Parser that matches an operator token (tok::Operator) and returns its
-// operator.
-struct op_token_parser : x3::parser<op_token_parser> {
-  using attribute_type = Op;
+// Forward declarations of recursive parsing functions.
+static std::shared_ptr<ExprAST> parseExpression(iterator_t& it, iterator_t end);
+static std::shared_ptr<ExprAST> parseAssignment(iterator_t& it, iterator_t end);
+static std::shared_ptr<ExprAST> parseLogicalOr(iterator_t& it, iterator_t end);
+static std::shared_ptr<ExprAST> parseLogicalAnd(iterator_t& it, iterator_t end);
+static std::shared_ptr<ExprAST> parseBitwiseOr(iterator_t& it, iterator_t end);
+static std::shared_ptr<ExprAST> parseBitwiseXor(iterator_t& it, iterator_t end);
+static std::shared_ptr<ExprAST> parseBitwiseAnd(iterator_t& it, iterator_t end);
+static std::shared_ptr<ExprAST> parseEquality(iterator_t& it, iterator_t end);
+static std::shared_ptr<ExprAST> parseRelational(iterator_t& it, iterator_t end);
+static std::shared_ptr<ExprAST> parseShift(iterator_t& it, iterator_t end);
+static std::shared_ptr<ExprAST> parseAdditive(iterator_t& it, iterator_t end);
+static std::shared_ptr<ExprAST> parseMultiplicative(iterator_t& it,
+                                                    iterator_t end);
+static std::shared_ptr<ExprAST> parseUnary(iterator_t& it, iterator_t end);
+static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end);
+static std::shared_ptr<ExprAST> parsePrimary(iterator_t& it, iterator_t end);
 
-  op_token_parser(std::initializer_list<Op> accepted_operators)
-      : op_table_(accepted_operators) {}
-  std::unordered_set<Op> op_table_;
-
-  template <typename Iterator,
-            typename Context,
-            typename RContext,
-            typename Attribute>
-  bool parse(Iterator& first,
-             Iterator const& last,
-             Context const& /*context*/,
-             RContext& /*rcontext*/,
-             Attribute& attr) const {
-    skip_ws(first, last);
-    attr = Op::Unknown;
-
-    if (first == last)
-      return false;
-
-    if (auto p = std::get_if<tok::Operator>(&*first)) {
-      if (!op_table_.empty() && !op_table_.contains(p->op))
-        return false;
-
-      attr = p->op;
-      ++first;
-      return true;
+//=================================================================================
+// parseExpression() - top-level parse for expressions, handling comma.
+//     expression -> assignment_expr (',' assignment_expr)*
+//=================================================================================
+static std::shared_ptr<ExprAST> parseExpression(iterator_t& it,
+                                                iterator_t end) {
+  auto lhs = parseAssignment(it, end);
+  // Now handle comma operators, left-associative.
+  while (true) {
+    skipWS(it, end);
+    if (!tryConsumeOp(it, end, Op::Comma)) {
+      break;
     }
-    return false;
+    auto rhs = parseAssignment(it, end);
+    BinaryExpr expr(Op::Comma, lhs, rhs);
+    lhs = std::make_shared<ExprAST>(std::move(expr));
   }
-};
+  return lhs;
+}
 
-// Parser that matches a specified type of token.
-template <typename Tok>
-struct token_parser : x3::parser<token_parser<Tok>> {
-  using attribute_type = x3::unused_type;
+//=================================================================================
+// parseAssignment() - right-associative assignment ops.
+//     assignment_expr -> logical_or_expr ( ASSIGN_OP assignment_expr )*
+//     where ASSIGN_OP is one of =, +=, -=, etc.
+//=================================================================================
+static std::shared_ptr<ExprAST> parseAssignment(iterator_t& it,
+                                                iterator_t end) {
+  auto lhs = parseLogicalOr(it, end);
 
-  template <typename Iterator,
-            typename Context,
-            typename RContext,
-            typename Attribute>
-  bool parse(Iterator& first,
-             Iterator const& last,
-             Context const& /*context*/,
-             RContext& /*rcontext*/,
-             Attribute& /*attr*/) const {
-    skip_ws(first, last);
-    if (first == last)
-      return false;
-    if (std::holds_alternative<Tok>(*first)) {
-      ++first;
-      return true;
-    }
-    return false;
-  }
-};
-
-}  // namespace
-// -----------------------------------------------------------------------
-
-// -----------------------------------------------------------------------
-// Expression rule declarations
-// -----------------------------------------------------------------------
-x3::rule<struct primary_expr_rule, std::shared_ptr<ExprAST>> const
-    primary_expr = "primary_expr";
-x3::rule<struct postfix_expr_rule, std::shared_ptr<ExprAST>> const
-    postfix_expr = "postfix_expr";
-x3::rule<struct unary_expr_rule, std::shared_ptr<ExprAST>> const unary_expr =
-    "unary_expr";
-x3::rule<struct multiplicative_expr_rule, std::shared_ptr<ExprAST>> const
-    multiplicative_expr = "multiplicative_expr";
-x3::rule<struct additive_expr_rule, std::shared_ptr<ExprAST>> const
-    additive_expr = "additive_expr";
-x3::rule<struct shift_expr_rule, std::shared_ptr<ExprAST>> const shift_expr =
-    "shift_expr";
-x3::rule<struct relational_expr_rule, std::shared_ptr<ExprAST>> const
-    relational_expr = "relational_expr";
-x3::rule<struct equality_expr_rule, std::shared_ptr<ExprAST>> const
-    equality_expr = "equality_expr";
-x3::rule<struct bitwise_and_expr_rule, std::shared_ptr<ExprAST>> const
-    bitwise_and_expr = "bitwise_and_expr";
-x3::rule<struct bitwise_xor_expr_rule, std::shared_ptr<ExprAST>> const
-    bitwise_xor_expr = "bitwise_xor_expr";
-x3::rule<struct bitwise_or_expr_rule, std::shared_ptr<ExprAST>> const
-    bitwise_or_expr = "bitwise_or_expr";
-x3::rule<struct logical_and_expr_rule, std::shared_ptr<ExprAST>> const
-    logical_and_expr = "logical_and_expr";
-x3::rule<struct logical_or_expr_rule, std::shared_ptr<ExprAST>> const
-    logical_or_expr = "logical_or_expr";
-x3::rule<struct assignment_expr_rule, std::shared_ptr<ExprAST>> const
-    assignment_expr = "assignment_expr";
-x3::rule<struct expression_rule_class, std::shared_ptr<ExprAST>> const
-    expression_rule = "expression_rule";
-
-// -----------------------------------------------------------------------
-// Rule definitions
-// -----------------------------------------------------------------------
-namespace {
-struct construct_ast {
-  std::shared_ptr<ExprAST> operator()(auto& ctx) {
-    const auto& attr = x3::_attr(ctx);
-    std::shared_ptr<ExprAST> result = boost::fusion::at_c<0>(attr);  // lhs
-
-    // an array of (op,ast)
-    for (const auto& it : boost::fusion::at_c<1>(attr)) {
-      Op op = boost::fusion::at_c<0>(it);
-      std::shared_ptr<ExprAST> rhs = boost::fusion::at_c<1>(it);
-
-      BinaryExpr expr(op, result, rhs);
-      result = std::make_shared<ExprAST>(std::move(expr));
-    }
-
-    x3::_val(ctx) = result;
-    return result;
-  }
-} construct_ast_fn;
-}  // namespace
-
-[[maybe_unused]] auto const expression_rule_def =
-    (assignment_expr >>
-     *(op_token_parser{Op::Comma} >> assignment_expr))[construct_ast_fn];
-
-// note: associativity should be right-to-left
-[[maybe_unused]] auto const assignment_expr_def =
-    (logical_or_expr >>
-     *(op_token_parser{Op::Assign, Op::AddAssign, Op::SubAssign, Op::MulAssign,
+  // We can do repeated assignment in a right-associative manner:
+  // We'll use a loop that rebinds 'lhs' from the right side.
+  while (true) {
+    skipWS(it, end);
+    auto matched =
+        tryConsumeAny(it, end,
+                      {Op::Assign, Op::AddAssign, Op::SubAssign, Op::MulAssign,
                        Op::DivAssign, Op::ModAssign, Op::BitAndAssign,
                        Op::BitOrAssign, Op::BitXorAssign, Op::ShiftLeftAssign,
-                       Op::ShiftRightAssign, Op::ShiftUnsignedRightAssign} >>
-       logical_or_expr))[([](auto& ctx) {
-      const auto& attr = x3::_attr(ctx);
-      std::vector<std::shared_ptr<ExprAST>> terms{boost::fusion::at_c<0>(attr)};
-      std::vector<Op> operators;
+                       Op::ShiftRightAssign, Op::ShiftUnsignedRightAssign});
+    if (!matched.has_value())
+      break;
+    auto assignmentOp = matched.value();
 
-      // an array of (op,ast)
-      for (const auto& it : boost::fusion::at_c<1>(attr)) {
-        Op op = boost::fusion::at_c<0>(it);
-        std::shared_ptr<ExprAST> term = boost::fusion::at_c<1>(it);
-
-        terms.push_back(term);
-        operators.push_back(op);
-      }
-
-      std::shared_ptr<ExprAST> result = terms.back();
-      terms.pop_back();
-      while (!terms.empty()) {
-        auto lhs = terms.back();
-        terms.pop_back();
-        auto op = operators.back();
-        operators.pop_back();
-
-        if (op == Op::Assign) {  // simple assignment
-          result = std::make_shared<ExprAST>(AssignExpr(lhs, result));
-        } else {  // compound assignment
-          BinaryExpr expr(op, lhs, result);
-          result = std::make_shared<ExprAST>(std::move(expr));
-        }
-      }
-      x3::_val(ctx) = result;
-    })];
-
-[[maybe_unused]] auto const logical_or_expr_def =
-    (logical_and_expr >>
-     *(op_token_parser{Op::LogicalOr} >> logical_and_expr))[construct_ast_fn];
-
-[[maybe_unused]] auto const logical_and_expr_def =
-    (bitwise_or_expr >>
-     *(op_token_parser{Op::LogicalAnd} >> bitwise_or_expr))[construct_ast_fn];
-
-[[maybe_unused]] auto const bitwise_or_expr_def =
-    (bitwise_xor_expr >>
-     *(op_token_parser{Op::BitOr} >> bitwise_xor_expr))[construct_ast_fn];
-
-[[maybe_unused]] auto const bitwise_xor_expr_def =
-    (bitwise_and_expr >>
-     *(op_token_parser{Op::BitXor} >> bitwise_and_expr))[construct_ast_fn];
-
-[[maybe_unused]] auto const bitwise_and_expr_def =
-    (equality_expr >>
-     *(op_token_parser{Op::BitAnd} >> equality_expr))[construct_ast_fn];
-
-[[maybe_unused]] auto const equality_expr_def =
-    (relational_expr >> *(op_token_parser{Op::Equal, Op::NotEqual} >>
-                          relational_expr))[construct_ast_fn];
-
-[[maybe_unused]] auto const relational_expr_def =
-    (shift_expr >> *(op_token_parser{Op::LessEqual, Op::Less, Op::GreaterEqual,
-                                     Op::Greater} >>
-                     shift_expr))[construct_ast_fn];
-
-[[maybe_unused]] auto const shift_expr_def =
-    (additive_expr >>
-     *(op_token_parser{Op::ShiftLeft, Op::ShiftRight, Op::ShiftUnsignedRight} >>
-       additive_expr))[construct_ast_fn];
-
-[[maybe_unused]] auto const additive_expr_def =
-    (multiplicative_expr >> *(op_token_parser{Op::Add, Op::Sub} >>
-                              multiplicative_expr))[construct_ast_fn];
-
-[[maybe_unused]] auto const multiplicative_expr_def =
-    (unary_expr >> *(op_token_parser{Op::Mul, Op::Div, Op::Mod} >>
-                     unary_expr))[construct_ast_fn];
-
-[[maybe_unused]] auto const unary_expr_def =
-    (*op_token_parser{Op::Tilde, Op::Sub, Op::Add} >>
-     postfix_expr)[([](auto& ctx) {
-      const auto& attr = x3::_attr(ctx);
-      std::shared_ptr<ExprAST> ast = boost::fusion::at_c<1>(attr);
-
-      const auto& op_arr = boost::fusion::at_c<0>(attr);  // type is vector<Op>
-      for (auto it = op_arr.crbegin(); it != op_arr.crend(); ++it) {
-        UnaryExpr expr(*it, ast);
-        ast = std::make_shared<ExprAST>(std::move(expr));
-      }
-      x3::_val(ctx) = ast;
-    })];
-
-[[maybe_unused]] auto const postfix_expr_def =
-    (primary_expr >>
-     *(
-         // Function call: ( <arg list> )
-         (token_parser<tok::ParenthesisL>() >> -expression_rule >>
-          token_parser<tok::ParenthesisR>()) |
-         // Member access: .
-         (op_token_parser{Op::Dot} >> id_token_parser()) |
-         // Subscripting: [ <expr> ]
-         (token_parser<tok::SquareL>() >> expression_rule >>
-          token_parser<tok::SquareR>())))[([](auto& ctx) {
-      auto& attr = x3::_attr(ctx);
-      auto ast = boost::fusion::at_c<0>(attr);
-
-      // std::vector<boost::variant<
-      //   boost::optional<expr_ptr>,
-      //   fusion::deque<Op, idexpr>,
-      //   expr_ptr>>
-      for (auto const& it : boost::fusion::at_c<1>(attr)) {
-        ast = boost::apply_visitor(
-            [&](auto& x) {
-              using T = std::decay_t<decltype(x)>;
-
-              if constexpr (std::same_as<
-                                T, boost::optional<std::shared_ptr<ExprAST>>>)
-                return std::make_shared<ExprAST>(
-                    InvokeExpr(ast, x.value_or(nullptr)));
-
-              if constexpr (std::same_as<T, boost::fusion::deque<Op, IdExpr>>)
-                return std::make_shared<ExprAST>(
-                    MemberExpr(ast, std::make_shared<ExprAST>(
-                                        std::move(boost::fusion::at_c<1>(x)))));
-
-              if constexpr (std::same_as<T, std::shared_ptr<ExprAST>>)
-                return std::make_shared<ExprAST>(SubscriptExpr(ast, x));
-            },
-            it);
-      }
-
-      x3::_val(ctx) = ast;
-    })];
-
-[[maybe_unused]] auto const primary_expr_def =
-    int_token_parser()[([](auto& ctx) {
-      x3::_val(ctx) = std::make_shared<ExprAST>(x3::_attr(ctx));
-    })] |  // integer literal
-
-    str_token_parser()[([](auto& ctx) {
-      x3::_val(ctx) = std::make_shared<ExprAST>(x3::_attr(ctx));
-    })] |  // string literal
-
-    id_token_parser()[([](auto& ctx) {
-      x3::_val(ctx) = std::make_shared<ExprAST>(x3::_attr(ctx));
-    })] |  // identifier
-
-    (token_parser<tok::ParenthesisL>() >> expression_rule >>
-     token_parser<tok::ParenthesisR>())[([](auto& ctx) {
-      std::shared_ptr<ExprAST> sub = x3::_attr(ctx);
-      ParenExpr expr(sub);
-      x3::_val(ctx) = std::make_shared<ExprAST>(std::move(expr));
-    })];  // ( <expr> )
-
-BOOST_SPIRIT_DEFINE(primary_expr,
-                    postfix_expr,
-                    assignment_expr,
-                    unary_expr,
-                    shift_expr,
-                    relational_expr,
-                    expression_rule,
-                    equality_expr,
-                    bitwise_and_expr,
-                    bitwise_xor_expr,
-                    bitwise_or_expr,
-                    logical_and_expr,
-                    logical_or_expr,
-                    multiplicative_expr,
-                    additive_expr);
-
-// -----------------------------------------------------------------------
-// Parse function
-// -----------------------------------------------------------------------
-std::shared_ptr<ExprAST> ParseExpression(std::span<Token> input) {
-  using iterator_t = std::span<Token>::iterator;
-  iterator_t begin = input.begin();
-  iterator_t end = input.end();
-
-  std::shared_ptr<ExprAST> result;
-  bool success = x3::parse(begin, end, expression_rule, result);
-
-  if (!success) {
-    // Parsing failed somewhere in the input.
-    std::ptrdiff_t index = std::distance(input.begin(), begin);
-    std::ostringstream oss;
-    oss << "Parsing failed at token index " << index;
-
-    if (begin != end) {
-      oss << " (near " << std::visit(tok::DebugStringVisitor(), *begin) << ")";
+    // Parse the right-hand side via the same parseAssignment for R->L
+    // associativity.
+    auto rhs = parseAssignment(it, end);
+    if (assignmentOp == Op::Assign) {
+      // simple assignment
+      lhs = std::make_shared<ExprAST>(AssignExpr(lhs, rhs));
     } else {
-      oss << " (reached end of input unexpectedly)";
+      // compound assignment
+      BinaryExpr expr(assignmentOp, lhs, rhs);
+      lhs = std::make_shared<ExprAST>(std::move(expr));
     }
-
-    throw ParsingError(oss.str());
   }
 
-  skip_ws(begin, end);  // consume leftover white spaces
-  if (begin != end) {
-    // Some tokens left unconsumed after a successful parse.
-    std::ptrdiff_t index = std::distance(input.begin(), begin);
+  return lhs;
+}
+
+//=================================================================================
+// parseLogicalOr() - left-associative '||'.
+//     logical_or_expr -> logical_and_expr ( '||' logical_and_expr )*
+//=================================================================================
+static std::shared_ptr<ExprAST> parseLogicalOr(iterator_t& it, iterator_t end) {
+  auto lhs = parseLogicalAnd(it, end);
+  while (true) {
+    skipWS(it, end);
+    if (!tryConsumeOp(it, end, Op::LogicalOr)) {
+      break;
+    }
+    auto rhs = parseLogicalAnd(it, end);
+    BinaryExpr expr(Op::LogicalOr, lhs, rhs);
+    lhs = std::make_shared<ExprAST>(std::move(expr));
+  }
+  return lhs;
+}
+
+//=================================================================================
+// parseLogicalAnd() - left-associative '&&'.
+//     logical_and_expr -> bitwise_or_expr ( '&&' bitwise_or_expr )*
+//=================================================================================
+static std::shared_ptr<ExprAST> parseLogicalAnd(iterator_t& it,
+                                                iterator_t end) {
+  auto lhs = parseBitwiseOr(it, end);
+  while (true) {
+    skipWS(it, end);
+    if (!tryConsumeOp(it, end, Op::LogicalAnd)) {
+      break;
+    }
+    auto rhs = parseBitwiseOr(it, end);
+    BinaryExpr expr(Op::LogicalAnd, lhs, rhs);
+    lhs = std::make_shared<ExprAST>(std::move(expr));
+  }
+  return lhs;
+}
+
+//=================================================================================
+// parseBitwiseOr() - left-associative '|'.
+//     bitwise_or_expr -> bitwise_xor_expr ( '|' bitwise_xor_expr )*
+//=================================================================================
+static std::shared_ptr<ExprAST> parseBitwiseOr(iterator_t& it, iterator_t end) {
+  auto lhs = parseBitwiseXor(it, end);
+  while (true) {
+    skipWS(it, end);
+    if (!tryConsumeOp(it, end, Op::BitOr)) {
+      break;
+    }
+    auto rhs = parseBitwiseXor(it, end);
+    BinaryExpr expr(Op::BitOr, lhs, rhs);
+    lhs = std::make_shared<ExprAST>(std::move(expr));
+  }
+  return lhs;
+}
+
+//=================================================================================
+// parseBitwiseXor() - left-associative '^'.
+//     bitwise_xor_expr -> bitwise_and_expr ( '^' bitwise_and_expr )*
+//=================================================================================
+static std::shared_ptr<ExprAST> parseBitwiseXor(iterator_t& it,
+                                                iterator_t end) {
+  auto lhs = parseBitwiseAnd(it, end);
+  while (true) {
+    skipWS(it, end);
+    if (!tryConsumeOp(it, end, Op::BitXor))
+      break;
+
+    auto rhs = parseBitwiseAnd(it, end);
+    BinaryExpr expr(Op::BitXor, lhs, rhs);
+    lhs = std::make_shared<ExprAST>(std::move(expr));
+  }
+  return lhs;
+}
+
+//=================================================================================
+// parseBitwiseAnd() - left-associative '&'.
+//     bitwise_and_expr -> equality_expr ( '&' equality_expr )*
+//=================================================================================
+static std::shared_ptr<ExprAST> parseBitwiseAnd(iterator_t& it,
+                                                iterator_t end) {
+  auto lhs = parseEquality(it, end);
+  while (true) {
+    skipWS(it, end);
+    if (!tryConsumeOp(it, end, Op::BitAnd))
+      break;
+
+    auto rhs = parseEquality(it, end);
+    BinaryExpr expr(Op::BitAnd, lhs, rhs);
+    lhs = std::make_shared<ExprAST>(std::move(expr));
+  }
+  return lhs;
+}
+
+//=================================================================================
+// parseEquality() - left-associative '==' and '!='.
+//     equality_expr -> relational_expr ( ('=='|'!=') relational_expr )*
+//=================================================================================
+static std::shared_ptr<ExprAST> parseEquality(iterator_t& it, iterator_t end) {
+  auto lhs = parseRelational(it, end);
+  while (true) {
+    skipWS(it, end);
+    auto match = tryConsumeAny(it, end, {Op::Equal, Op::NotEqual});
+    if (!match.has_value())
+      break;
+
+    auto op = match.value();
+    auto rhs = parseRelational(it, end);
+    BinaryExpr expr(op, lhs, rhs);
+    lhs = std::make_shared<ExprAST>(std::move(expr));
+  }
+  return lhs;
+}
+
+//=================================================================================
+// parseRelational() - left-associative '<', '<=', '>', '>='.
+//     relational_expr -> shift_expr ( ('<'|'<='|'>'|'>=') shift_expr )*
+//=================================================================================
+static std::shared_ptr<ExprAST> parseRelational(iterator_t& it,
+                                                iterator_t end) {
+  auto lhs = parseShift(it, end);
+  while (true) {
+    skipWS(it, end);
+    auto match = tryConsumeAny(
+        it, end, {Op::Less, Op::LessEqual, Op::Greater, Op::GreaterEqual});
+    if (!match.has_value())
+      break;
+
+    auto op = match.value();
+    auto rhs = parseShift(it, end);
+    BinaryExpr expr(op, lhs, rhs);
+    lhs = std::make_shared<ExprAST>(std::move(expr));
+  }
+  return lhs;
+}
+
+//=================================================================================
+// parseShift() - left-associative '<<', '>>', '>>>'.
+//     shift_expr -> additive_expr ( ('<<'|'>>'|'>>>') additive_expr )*
+//=================================================================================
+static std::shared_ptr<ExprAST> parseShift(iterator_t& it, iterator_t end) {
+  auto lhs = parseAdditive(it, end);
+  while (true) {
+    skipWS(it, end);
+    auto match = tryConsumeAny(
+        it, end, {Op::ShiftLeft, Op::ShiftRight, Op::ShiftUnsignedRight});
+    if (!match.has_value())
+      break;
+
+    auto op = match.value();
+    auto rhs = parseAdditive(it, end);
+    BinaryExpr expr(op, lhs, rhs);
+    lhs = std::make_shared<ExprAST>(std::move(expr));
+  }
+  return lhs;
+}
+
+//=================================================================================
+// parseAdditive() - left-associative '+' and '-'.
+//     additive_expr -> multiplicative_expr ( ('+'|'-') multiplicative_expr )*
+//=================================================================================
+static std::shared_ptr<ExprAST> parseAdditive(iterator_t& it, iterator_t end) {
+  auto lhs = parseMultiplicative(it, end);
+  while (true) {
+    skipWS(it, end);
+    auto match = tryConsumeAny(it, end, {Op::Add, Op::Sub});
+    if (!match.has_value())
+      break;
+
+    auto op = match.value();
+    auto rhs = parseMultiplicative(it, end);
+    BinaryExpr expr(op, lhs, rhs);
+    lhs = std::make_shared<ExprAST>(std::move(expr));
+  }
+  return lhs;
+}
+
+//=================================================================================
+// parseMultiplicative() - left-associative '*', '/', '%'.
+//     multiplicative_expr -> unary_expr ( ('*'|'/'|'%') unary_expr )*
+//=================================================================================
+static std::shared_ptr<ExprAST> parseMultiplicative(iterator_t& it,
+                                                    iterator_t end) {
+  auto lhs = parseUnary(it, end);
+  while (true) {
+    skipWS(it, end);
+    auto match = tryConsumeAny(it, end, {Op::Mul, Op::Div, Op::Mod});
+    if (!match.has_value())
+      break;
+
+    auto op = match.value();
+    auto rhs = parseUnary(it, end);
+    BinaryExpr expr(op, lhs, rhs);
+    lhs = std::make_shared<ExprAST>(std::move(expr));
+  }
+  return lhs;
+}
+
+//=================================================================================
+// parseUnary() - handles unary ops like '+', '-', '~' (prefix).
+//     unary_expr -> ( ('+'|'-'|'~') )* postfix_expr
+// We accumulate multiple unary ops and apply them in right-to-left order.
+//=================================================================================
+static std::shared_ptr<ExprAST> parseUnary(iterator_t& it, iterator_t end) {
+  // Collect all unary operators first.
+  std::vector<Op> ops;
+  while (true) {
+    skipWS(it, end);
+    auto match = tryConsumeAny(it, end, {Op::Add, Op::Sub, Op::Tilde});
+    if (!match.has_value())
+      break;
+
+    ops.push_back(match.value());
+  }
+
+  // Parse the postfix expression that these unary ops apply to.
+  auto node = parsePostfix(it, end);
+
+  // Apply unary ops in reverse order (right-to-left).
+  for (auto itOp = ops.rbegin(); itOp != ops.rend(); ++itOp) {
+    UnaryExpr expr(*itOp, node);
+    node = std::make_shared<ExprAST>(std::move(expr));
+  }
+
+  return node;
+}
+
+//=================================================================================
+// parsePostfix() - handles function calls, member access, array subscripts.
+//     postfix_expr -> primary_expr postfix_suffix*
+//     postfix_suffix ->
+//         '(' [expression] ')'        (function invocation)
+//       | '.' id_token                (member access)
+//       | '[' expression ']'          (subscript)
+//=================================================================================
+static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end) {
+  auto lhs = parsePrimary(it, end);
+
+  // Repeatedly parse postfix elements.
+  while (true) {
+    skipWS(it, end);
+
+    // 1) function call: '(' [expression] ')'
+    if (tryConsumeToken<tok::ParenthesisL>(it, end)) {
+      // parse optional expression
+      skipWS(it, end);
+      std::shared_ptr<ExprAST> argExpr = nullptr;
+      if (it != end && !std::holds_alternative<tok::ParenthesisR>(*it)) {
+        // there's something inside, parse expression
+        argExpr = parseExpression(it, end);
+      }
+      skipWS(it, end);
+      if (!tryConsumeToken<tok::ParenthesisR>(it, end)) {
+        throw ParsingError("Expected ')' after function call.");
+      }
+      lhs = std::make_shared<ExprAST>(InvokeExpr(lhs, argExpr));
+      continue;
+    }
+
+    // 2) member access: '.' <identifier>
+    if (tryConsumeOp(it, end, Op::Dot)) {
+      skipWS(it, end);
+      if (it == end || !std::holds_alternative<tok::ID>(*it)) {
+        throw ParsingError("Expected identifier after '.'");
+      }
+      auto p = std::get_if<tok::ID>(&*it);
+      IdExpr memberName(p->id);
+      ++it;  // consume the ID token
+      auto memberNode = std::make_shared<ExprAST>(std::move(memberName));
+      lhs = std::make_shared<ExprAST>(MemberExpr(lhs, memberNode));
+      continue;
+    }
+
+    // 3) subscript: '[' expression ']'
+    if (tryConsumeToken<tok::SquareL>(it, end)) {
+      auto indexExpr = parseExpression(it, end);
+      if (!tryConsumeToken<tok::SquareR>(it, end)) {
+        throw ParsingError("Expected ']' after subscript expression.");
+      }
+      lhs = std::make_shared<ExprAST>(SubscriptExpr(lhs, indexExpr));
+      continue;
+    }
+
+    // if none of the above matched, we're done with postfix.
+    break;
+  }
+
+  return lhs;
+}
+
+//=================================================================================
+// parsePrimary() - int, string, id, or parenthesized expression.
+//     primary_expr -> Int
+//                   | Literal
+//                   | ID
+//                   | '(' expression ')'
+//=================================================================================
+static std::shared_ptr<ExprAST> parsePrimary(iterator_t& it, iterator_t end) {
+  skipWS(it, end);
+  if (it == end)
+    throw ParsingError("Unexpected end of tokens in parsePrimary.");
+
+  // Try integer
+  if (auto p = std::get_if<tok::Int>(&*it)) {
+    auto val = p->value;
+    ++it;
+    return std::make_shared<ExprAST>(val);
+  }
+
+  // Try string
+  if (auto p = std::get_if<tok::Literal>(&*it)) {
+    auto strval = p->str;
+    ++it;
+    return std::make_shared<ExprAST>(strval);
+  }
+
+  // Try identifier
+  if (auto p = std::get_if<tok::ID>(&*it)) {
+    auto idval = p->id;
+    ++it;
+    return std::make_shared<ExprAST>(IdExpr(idval));
+  }
+
+  // Try '(' expression ')'
+  if (tryConsumeToken<tok::ParenthesisL>(it, end)) {
+    auto exprNode = parseExpression(it, end);
+    skipWS(it, end);
+    if (!tryConsumeToken<tok::ParenthesisR>(it, end))
+      throw ParsingError("Missing closing ')' in parenthesized expression.");
+
+    return std::make_shared<ExprAST>(ParenExpr(exprNode));
+  }
+
+  // If none matched, it's an error.
+  throw ParsingError("Unknown token type in parsePrimary.");
+}
+
+//=================================================================================
+// Public parse function entry point.
+//=================================================================================
+std::shared_ptr<ExprAST> ParseExpression(std::span<Token> input) {
+  auto it = input.begin();
+  auto end = input.end();
+
+  // parse the expression.
+  auto result = parseExpression(it, end);
+
+  // Skip any trailing whitespace.
+  skipWS(it, end);
+
+  if (it != end) {
+    std::ptrdiff_t index = std::distance(input.begin(), it);
     std::ostringstream oss;
     oss << "Parsing did not consume all tokens. Leftover begins at index "
         << index << " with token "
-        << std::visit(tok::DebugStringVisitor(), *begin);
+        << std::visit(tok::DebugStringVisitor(), *it);
     throw ParsingError(oss.str());
   }
 

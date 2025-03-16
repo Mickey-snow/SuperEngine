@@ -81,6 +81,9 @@ TEST_F(CompilerTest, NativeFn) {
   Execute(R"( v2 = 89 )");
   Execute(R"( foo(v2) )");
   EXPECT_EQ(DescribeStack(), "<int: 89>, <int: 1>");
+
+  EXPECT_THROW(Execute(R"( foo(v2, v2) )"), SyntaxError);
+  EXPECT_EQ(DescribeStack(), "<int: 89>, <int: 1>, <nil>");
 }
 
 }  // namespace m6test
