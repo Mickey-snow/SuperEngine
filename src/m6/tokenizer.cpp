@@ -95,7 +95,7 @@ void Tokenizer::Parse() {
             break;
 
           case ID_bracket: {
-            static const std::unordered_map<char, Token> symbol_table{
+            static const std::unordered_map<char, tok::Token_t> symbol_table{
                 {'[', tok::SquareL()},      {']', tok::SquareR()},
                 {'{', tok::CurlyL()},       {'}', tok::CurlyR()},
                 {'(', tok::ParenthesisL()}, {')', tok::ParenthesisR()}};

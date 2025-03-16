@@ -30,6 +30,7 @@
 #include "util.hpp"
 
 #include <algorithm>
+#include <numeric>
 #include <string>
 #include <string_view>
 #include <variant>
@@ -40,28 +41,35 @@ using namespace m6;
 using std::string_view_literals::operator""sv;
 using std::string_literals::operator""s;
 
+inline std::string Accumulate(const auto& container) {
+  return std::accumulate(container.cbegin(), container.cend(), std::string(),
+                         [](std::string&& s, Token const& t) {
+                           return (s.empty() ? s : (s + ' ')) +
+                                  t.GetDebugString();
+                         });
+}
+
 TEST(TokenizerTest, ID) {
   constexpr std::string_view input = "ObjFgInit";
 
   Tokenizer tokenizer(input);
-  EXPECT_EQ(tokenizer.parsed_tok_, TokenArray(tok::ID(std::string(input))));
+  EXPECT_EQ(Accumulate(tokenizer.parsed_tok_), "ID(\"ObjFgInit\")");
 }
 
 TEST(TokenizerTest, MultiID) {
   constexpr std::string_view input = "print ObjFgInit";
 
   Tokenizer tokenizer(input);
-  EXPECT_EQ(tokenizer.parsed_tok_,
-            TokenArray(tok::ID("print"s), tok::WS(), tok::ID("ObjFgInit"s)));
+  EXPECT_EQ(Accumulate(tokenizer.parsed_tok_),
+            "ID(\"print\") <ws> ID(\"ObjFgInit\")");
 }
 
 TEST(TokenizerTest, Numbers) {
   constexpr std::string_view input = "123 00321 -21";
 
   Tokenizer tokenizer(input);
-  EXPECT_EQ(tokenizer.parsed_tok_,
-            TokenArray(tok::Int(123), tok::WS(), tok::Int(321), tok::WS(),
-                       tok::Operator(Op::Sub), tok::Int(21)));
+  EXPECT_EQ(Accumulate(tokenizer.parsed_tok_),
+            "Int(123) <ws> Int(321) <ws> Operator(-) Int(21)");
 }
 
 TEST(TokenizerTest, Brackets) {
@@ -69,9 +77,8 @@ TEST(TokenizerTest, Brackets) {
 
   Tokenizer tokenizer(input);
   EXPECT_EQ(
-      tokenizer.parsed_tok_,
-      TokenArray(tok::SquareL(), tok::SquareR(), tok::CurlyL(), tok::CurlyR(),
-                 tok::ParenthesisL(), tok::ParenthesisR()));
+      Accumulate(tokenizer.parsed_tok_),
+      "<SquareL> <SquareR> <CurlyL> <CurlyR> <ParenthesisL> <ParenthesisR>");
 }
 
 TEST(TokenizerTest, Operators) {
@@ -80,33 +87,17 @@ TEST(TokenizerTest, Operators) {
       "< >= > && || >>> >>>=";
   Tokenizer tokenizer(input);
 
-  std::vector<Token> result;
-  std::copy_if(tokenizer.parsed_tok_.begin(), tokenizer.parsed_tok_.end(),
-               std::back_inserter(result), [](const Token& x) {
-                 return !std::holds_alternative<tok::WS>(x);
-               });
-
   EXPECT_EQ(
-      result,
-      TokenArray(
-          tok::Operator(Op::Dot), tok::Operator(Op::Comma),
-          tok::Operator(Op::Add), tok::Operator(Op::Sub),
-          tok::Operator(Op::Mul), tok::Operator(Op::Div),
-          tok::Operator(Op::Mod), tok::Operator(Op::BitAnd),
-          tok::Operator(Op::BitOr), tok::Operator(Op::BitXor),
-          tok::Operator(Op::ShiftLeft), tok::Operator(Op::ShiftRight),
-          tok::Operator(Op::Tilde), tok::Operator(Op::AddAssign),
-          tok::Operator(Op::SubAssign), tok::Operator(Op::MulAssign),
-          tok::Operator(Op::DivAssign), tok::Operator(Op::ModAssign),
-          tok::Operator(Op::BitAndAssign), tok::Operator(Op::BitOrAssign),
-          tok::Operator(Op::BitXorAssign), tok::Operator(Op::ShiftLeftAssign),
-          tok::Operator(Op::ShiftRightAssign), tok::Operator(Op::Assign),
-          tok::Operator(Op::Equal), tok::Operator(Op::NotEqual),
-          tok::Operator(Op::LessEqual), tok::Operator(Op::Less),
-          tok::Operator(Op::GreaterEqual), tok::Operator(Op::Greater),
-          tok::Operator(Op::LogicalAnd), tok::Operator(Op::LogicalOr),
-          tok::Operator(Op::ShiftUnsignedRight),
-          tok::Operator(Op::ShiftUnsignedRightAssign)));
+      Accumulate(tokenizer.parsed_tok_),
+      "Operator(.) <ws> Operator(,) <ws> Operator(+) <ws> Operator(-) <ws> "
+      "Operator(*) <ws> Operator(/) <ws> Operator(%) <ws> Operator(&) <ws> "
+      "Operator(|) <ws> Operator(^) <ws> Operator(<<) <ws> Operator(>>) <ws> "
+      "Operator(~) <ws> Operator(+=) <ws> Operator(-=) <ws> Operator(*=) <ws> "
+      "Operator(/=) <ws> Operator(%=) <ws> Operator(&=) <ws> Operator(|=) <ws> "
+      "Operator(^=) <ws> Operator(<<=) <ws> Operator(>>=) <ws> Operator(=) "
+      "<ws> Operator(==) <ws> Operator(!=) <ws> Operator(<=) <ws> Operator(<) "
+      "<ws> Operator(>=) <ws> Operator(>) <ws> Operator(&&) <ws> Operator(||) "
+      "<ws> Operator(>>>) <ws> Operator(>>>=)");
 }
 
 TEST(TokenizerTest, StrLiteral) {
@@ -115,7 +106,7 @@ TEST(TokenizerTest, StrLiteral) {
     Tokenizer tokenizer(input);
 
     auto result = tokenizer.parsed_tok_.front();
-    EXPECT_EQ(std::visit(tok::DebugStringVisitor(), result), R"(Str("Hello"))");
+    EXPECT_EQ(result.GetDebugString(), R"(Str("Hello"))");
   }
 
   {
@@ -123,8 +114,7 @@ TEST(TokenizerTest, StrLiteral) {
     Tokenizer tokenizer(input);
 
     auto result = tokenizer.parsed_tok_.front();
-    EXPECT_EQ(std::visit(tok::DebugStringVisitor(), result),
-              R"(Str("He said, \"Hello\""))");
+    EXPECT_EQ(result.GetDebugString(), R"(Str("He said, \"Hello\""))");
   }
 
   {
@@ -132,7 +122,7 @@ TEST(TokenizerTest, StrLiteral) {
     Tokenizer tokenizer(input);
 
     auto result = tokenizer.parsed_tok_.front();
-    EXPECT_EQ(std::visit(tok::DebugStringVisitor(), result), "Str()");
+    EXPECT_EQ(result.GetDebugString(), "Str()");
   }
 
   {
@@ -141,7 +131,7 @@ TEST(TokenizerTest, StrLiteral) {
     Tokenizer tokenizer(input);
 
     auto result = tokenizer.parsed_tok_.front();
-    EXPECT_EQ(std::visit(tok::DebugStringVisitor(), result),
+    EXPECT_EQ(result.GetDebugString(),
               R"(Str("Path: C:\\Users\\Name\nNew Line\tTab"))");
   }
 }

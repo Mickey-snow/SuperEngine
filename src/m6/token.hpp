@@ -85,20 +85,40 @@ struct ParenthesisR {
   auto operator<=>(const ParenthesisR& rhs) const = default;
 };
 
+using Token_t = std::variant<tok::Literal,
+                             tok::ID,
+                             tok::WS,
+                             tok::Int,
+                             tok::Operator,
+                             tok::Dollar,
+                             tok::SquareL,
+                             tok::SquareR,
+                             tok::CurlyL,
+                             tok::CurlyR,
+                             tok::ParenthesisL,
+                             tok::ParenthesisR>;
+
 }  // namespace tok
 
-using Token = std::variant<tok::Literal,
-                           tok::ID,
-                           tok::WS,
-                           tok::Int,
-                           tok::Operator,
-                           tok::Dollar,
-                           tok::SquareL,
-                           tok::SquareR,
-                           tok::CurlyL,
-                           tok::CurlyR,
-                           tok::ParenthesisL,
-                           tok::ParenthesisR>;
+struct Token {
+  tok::Token_t token_;
+  std::size_t offset;
+
+  bool operator==(const Token& rhs) const { return token_ == rhs.token_; }
+  bool operator!=(const Token& rhs) const { return token_ != rhs.token_; }
+
+  template <typename T>
+  auto holds_alternative() const {
+    return std::holds_alternative<T>(token_);
+  }
+
+  template <typename T>
+  auto GetIf() const {
+    return std::get_if<T>(&token_);
+  }
+
+  std::string GetDebugString() const;
+};
 
 namespace tok {
 struct DebugStringVisitor {

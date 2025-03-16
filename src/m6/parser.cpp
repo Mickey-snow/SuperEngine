@@ -38,7 +38,7 @@ using iterator_t = std::span<Token>::iterator;
 
 // Helper to skip whitespace tokens in-place.
 static void skipWS(iterator_t& it, iterator_t end) {
-  while (it != end && std::holds_alternative<tok::WS>(*it)) {
+  while (it != end && it->holds_alternative<tok::WS>()) {
     ++it;
   }
 }
@@ -52,7 +52,7 @@ static std::optional<Op> tryConsumeAny(iterator_t& it,
     return std::nullopt;
   }
 
-  if (auto p = std::get_if<tok::Operator>(&*it)) {
+  if (auto p = it->GetIf<tok::Operator>()) {
     for (auto candidate : ops)
       if (candidate == p->op) {
         ++it;
@@ -68,7 +68,7 @@ static bool tryConsumeOp(iterator_t& it, iterator_t end, Op op) {
   if (it == end) {
     return false;
   }
-  if (auto p = std::get_if<tok::Operator>(&*it)) {
+  if (auto p = it->GetIf<tok::Operator>()) {
     if (p->op == op) {
       ++it;
       return true;
@@ -84,7 +84,7 @@ static bool tryConsumeToken(iterator_t& it, iterator_t end) {
   if (it == end) {
     return false;
   }
-  if (std::holds_alternative<T>(*it)) {
+  if (it->holds_alternative<T>()) {
     ++it;
     return true;
   }
@@ -414,7 +414,7 @@ static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end) {
       // parse optional expression
       skipWS(it, end);
       std::shared_ptr<ExprAST> argExpr = nullptr;
-      if (it != end && !std::holds_alternative<tok::ParenthesisR>(*it)) {
+      if (it != end && !it->holds_alternative<tok::ParenthesisR>()) {
         // there's something inside, parse expression
         argExpr = parseExpression(it, end);
       }
@@ -429,10 +429,10 @@ static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end) {
     // 2) member access: '.' <identifier>
     if (tryConsumeOp(it, end, Op::Dot)) {
       skipWS(it, end);
-      if (it == end || !std::holds_alternative<tok::ID>(*it)) {
+      if (it == end || !it->holds_alternative<tok::ID>()) {
         throw ParsingError("Expected identifier after '.'");
       }
-      auto p = std::get_if<tok::ID>(&*it);
+      auto p = it->GetIf<tok::ID>();
       IdExpr memberName(p->id);
       ++it;  // consume the ID token
       auto memberNode = std::make_shared<ExprAST>(std::move(memberName));
@@ -470,21 +470,21 @@ static std::shared_ptr<ExprAST> parsePrimary(iterator_t& it, iterator_t end) {
     throw ParsingError("Unexpected end of tokens in parsePrimary.");
 
   // Try integer
-  if (auto p = std::get_if<tok::Int>(&*it)) {
+  if (auto p = it->GetIf<tok::Int>()) {
     auto val = p->value;
     ++it;
     return std::make_shared<ExprAST>(val);
   }
 
   // Try string
-  if (auto p = std::get_if<tok::Literal>(&*it)) {
+  if (auto p = it->GetIf<tok::Literal>()) {
     auto strval = p->str;
     ++it;
     return std::make_shared<ExprAST>(strval);
   }
 
   // Try identifier
-  if (auto p = std::get_if<tok::ID>(&*it)) {
+  if (auto p = it->GetIf<tok::ID>()) {
     auto idval = p->id;
     ++it;
     return std::make_shared<ExprAST>(IdExpr(idval));
@@ -521,8 +521,7 @@ std::shared_ptr<ExprAST> ParseExpression(std::span<Token> input) {
     std::ptrdiff_t index = std::distance(input.begin(), it);
     std::ostringstream oss;
     oss << "Parsing did not consume all tokens. Leftover begins at index "
-        << index << " with token "
-        << std::visit(tok::DebugStringVisitor(), *it);
+        << index << " with token " << it->GetDebugString();
     throw ParsingError(oss.str());
   }
 

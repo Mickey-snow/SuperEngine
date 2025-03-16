@@ -27,6 +27,10 @@
 
 namespace m6 {
 
+std::string Token::GetDebugString() const {
+  return std::visit(tok::DebugStringVisitor(), token_);
+}
+
 std::string tok::DebugStringVisitor::operator()(const tok::Literal& p) const {
   return "Str(" + p.str + ')';
 }
