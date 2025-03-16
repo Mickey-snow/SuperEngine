@@ -85,18 +85,28 @@ struct ParenthesisR {
   auto operator<=>(const ParenthesisR& rhs) const = default;
 };
 
-using Token_t = std::variant<tok::Literal,
-                             tok::ID,
-                             tok::WS,
-                             tok::Int,
-                             tok::Operator,
-                             tok::Dollar,
-                             tok::SquareL,
-                             tok::SquareR,
-                             tok::CurlyL,
-                             tok::CurlyR,
-                             tok::ParenthesisL,
-                             tok::ParenthesisR>;
+struct Error {
+  std::string msg;
+  auto operator<=>(const Error& rhs) const = default;
+};
+
+struct Eof {
+  auto operator<=>(const Eof& rhs) const = default;
+};
+
+using Token_t = std::variant<Literal,
+                             ID,
+                             WS,
+                             Int,
+                             Operator,
+                             Dollar,
+                             SquareL,
+                             SquareR,
+                             CurlyL,
+                             CurlyR,
+                             ParenthesisL,
+                             ParenthesisR,
+                             Error>;
 
 }  // namespace tok
 
@@ -104,8 +114,8 @@ struct Token {
   tok::Token_t token_;
   std::size_t offset;
 
-  bool operator==(const Token& rhs) const { return token_ == rhs.token_; }
-  bool operator!=(const Token& rhs) const { return token_ != rhs.token_; }
+  bool operator==(const tok::Token_t& rhs) const { return token_ == rhs; }
+  bool operator!=(const tok::Token_t& rhs) const { return token_ != rhs; }
 
   template <typename T>
   auto holds_alternative() const {
@@ -134,6 +144,7 @@ struct DebugStringVisitor {
   std::string operator()(const tok::CurlyR&) const;
   std::string operator()(const tok::ParenthesisL&) const;
   std::string operator()(const tok::ParenthesisR&) const;
+  std::string operator()(const tok::Error&) const;
 };
 }  // namespace tok
 

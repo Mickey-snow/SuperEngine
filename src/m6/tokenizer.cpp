@@ -27,10 +27,9 @@
 #include "m6/parsing_error.hpp"
 #include "machine/op.hpp"
 
-#include <boost/regex.hpp>
-#include <boost/spirit/include/lex_lexertl.hpp>
-
+#include <cctype>
 #include <optional>
+#include <unordered_map>
 
 namespace m6 {
 
@@ -40,130 +39,193 @@ Tokenizer::Tokenizer(std::string_view input, bool should_parse)
     Parse();
 }
 
-void Tokenizer::Parse() {
-  namespace lex = boost::spirit::lex;
-  enum token_ids {
-    ID_identifier = 1000,
-    ID_ws,
-    ID_int,
-    ID_bracket,
-    ID_op,
-    ID_string
-  };
-  struct lexer : lex::lexer<lex::lexertl::lexer<>> {
-    lex::token_def<std::string> identifier;
-    lex::token_def<std::string> literal;
-    lex::token_def<> integer;
-    lex::token_def<> ws;
-    lex::token_def<> bracket;
-    lex::token_def<> op;
+namespace {
+// A static lookup table for single-character brackets
+static const std::unordered_map<char, tok::Token_t> BRACKETS = {
+    {'[', tok::SquareL()},      {']', tok::SquareR()},
+    {'{', tok::CurlyL()},       {'}', tok::CurlyR()},
+    {'(', tok::ParenthesisL()}, {')', tok::ParenthesisR()}};
 
-    lexer()
-        : identifier("[a-zA-Z_][a-zA-Z0-9_]*"),
-          literal(R"(\"([^\"\\]|\\.)*\")"),
-          integer("[0-9]+"),
-          ws("[ \t\n]+"),
-          bracket(R"([\(\)\[\]\{\}])"),  // matches any of ()[]{}
-          op(R"(>>>=|>>>|>>=|>>|<<=|<<|\+=|\-=|\*=|\/=|%=|&=|\|=|\^=|==|!=|<=|>=|\|\||&&|=|\+|\-|\*|\/|%|~|&|\||\^|<|>|,|\.)") {
-      this->self.add(identifier, ID_identifier)(ws, ID_ws)(integer, ID_int)(
-          bracket, ID_bracket)(op, ID_op)(literal, ID_string);
+// Sorted by descending length, so we can match the longest possible operator
+// first.
+static const std::vector<std::string> OPERATORS = {
+    ">>>=", ">>>", ">>=", ">>", "<<=", "<<", "+=", "-=", "*=", "/=", "%=", "&=",
+    "|=",   "^=",  "==",  "!=", "<=",  ">=", "||", "&&", "=",  "+",  "-",  "*",
+    "/",    "%",   "~",   "&",  "|",   "^",  "<",  ">",  ",",  "."};
+
+// Attempt to match an operator from position `pos` in `input`.
+// Returns the matched operator string if successful, else an empty string.
+static std::string matchLongestOperator(std::string_view input, size_t pos) {
+  for (auto const& op : OPERATORS) {
+    if (pos + op.size() <= input.size()) {
+      if (input.compare(pos, op.size(), op) == 0) {
+        return op;
+      }
     }
-  };
+  }
+  return {};
+}
 
+// Unescape a string literal (removes surrounding quotes and handles backslash
+// escapes).
+static std::string unescapeString(std::string_view value) {
+  // e.g., if value = "\"some\\nstuff\"", we remove leading/trailing quotes,
+  // then parse escapes
+  if (value.size() < 2) {
+    // malformed, but we'll just return empty
+    return {};
+  }
+
+  // Remove leading and trailing quote (")
+  std::string_view inner = value.substr(1, value.size() - 2);
+
+  std::string result;
+  result.reserve(inner.size());
+
+  for (std::size_t i = 0; i < inner.size(); ++i) {
+    char c = inner[i];
+    if (c == '\\' && i + 1 < inner.size()) {
+      // escaped character
+      char next = inner[++i];
+      switch (next) {
+        case 'n':
+          result.push_back('\n');
+          break;
+        case 't':
+          result.push_back('\t');
+          break;
+        case 'r':
+          result.push_back('\r');
+          break;
+        case '\\':
+          result.push_back('\\');
+          break;
+        case '"':
+          result.push_back('"');
+          break;
+        // ...
+        default:
+          result.push_back(next);
+          break;
+      }
+    } else {
+      result.push_back(c);
+    }
+  }
+  return result;
+}
+
+}  // namespace
+
+void Tokenizer::Parse() {
   parsed_tok_.clear();
 
-  lexer mylexer;
-  auto begin = input_.cbegin();
-  auto end = input_.cend();
+  const std::string_view& input = input_;
+  size_t pos = 0;
+  const size_t len = input.size();
 
-  std::optional<std::string> error_token = std::nullopt;
-  bool success =
-      lex::tokenize(begin, end, mylexer, [&](const auto& tok) -> bool {
-        auto value = std::string(tok.value().begin(), tok.value().end());
+  while (pos < len) {
+    const size_t offset = pos;
+    char c = input[pos];
 
-        switch (tok.id()) {
-          case ID_identifier:
-            parsed_tok_.emplace_back(tok::ID(value));
-            break;
-
-          case ID_ws:
-            parsed_tok_.emplace_back(tok::WS());
-            break;
-
-          case ID_int:
-            parsed_tok_.emplace_back(tok::Int(std::stoi(value)));
-            break;
-
-          case ID_bracket: {
-            static const std::unordered_map<char, tok::Token_t> symbol_table{
-                {'[', tok::SquareL()},      {']', tok::SquareR()},
-                {'{', tok::CurlyL()},       {'}', tok::CurlyR()},
-                {'(', tok::ParenthesisL()}, {')', tok::ParenthesisR()}};
-            parsed_tok_.emplace_back(symbol_table.at(value.front()));
-            break;
-          }
-
-          case ID_op:
-            parsed_tok_.emplace_back(tok::Operator(CreateOp(value)));
-            break;
-
-          case ID_string: {
-            std::string inner = value.substr(1, value.size() - 2);
-
-            // Now parse escapes inside `inner` so that "\n" becomes an actual
-            // newline,
-            // '\"' becomes '"', etc.  We'll do a simple pass here:
-            std::string result;
-            result.reserve(inner.size());
-
-            for (std::size_t i = 0; i < inner.size(); ++i) {
-              if (inner[i] == '\\' && i + 1 < inner.size()) {
-                // escaped character
-                char c = inner[++i];
-                switch (c) {
-                  case 'n':
-                    result.push_back('\n');
-                    break;
-                  case 't':
-                    result.push_back('\t');
-                    break;
-                  case 'r':
-                    result.push_back('\r');
-                    break;
-                  case '\\':
-                    result.push_back('\\');
-                    break;
-                  case '"':
-                    result.push_back('"');
-                    break;
-                    //...
-                  default:
-                    // just store the raw character, for now, e.g. '\x'
-                    result.push_back(c);
-                    break;
-                }
-              } else {
-                result.push_back(inner[i]);
-              }
-            }
-
-            parsed_tok_.emplace_back(tok::Literal(result));
-            break;
-          }
-
-          default:
-            error_token = value;
-            return false;
-        }
-        return true;
-      });
-
-  if (!success) {
-    if (error_token) {
-      throw ParsingError("Tokenizer error: unexpected token '" +
-                         error_token.value() + "'.");
+    // 1) Check whitespace
+    if (std::isspace(static_cast<unsigned char>(c))) {
+      // Accumulate all consecutive whitespace into one token
+      size_t start = pos;
+      while (pos < len &&
+             std::isspace(static_cast<unsigned char>(input[pos]))) {
+        ++pos;
+      }
+      // We store a single WS token for this contiguous block
+      parsed_tok_.emplace_back(tok::WS(), start);
+      continue;
     }
-    throw ParsingError("Tokenizer: unable to parse " + std::string(input_));
+
+    // 2) Check bracket (single character)
+    if (BRACKETS.find(c) != BRACKETS.end()) {
+      parsed_tok_.emplace_back(BRACKETS.at(c), offset);
+      ++pos;
+      continue;
+    }
+
+    // 3) Check operator (longest match)
+    {
+      std::string opMatch = matchLongestOperator(input, pos);
+      if (!opMatch.empty()) {
+        // we matched an operator token
+        parsed_tok_.emplace_back(tok::Operator(CreateOp(opMatch)), offset);
+        pos += opMatch.size();
+        continue;
+      }
+    }
+
+    // 4) Check identifier: [a-zA-Z_][a-zA-Z0-9_]*
+    if (std::isalpha(static_cast<unsigned char>(c)) || c == '_') {
+      size_t start = pos;
+      ++pos;
+      while (pos < len &&
+             (std::isalnum(static_cast<unsigned char>(input[pos])) ||
+              input[pos] == '_')) {
+        ++pos;
+      }
+      std::string idVal = std::string(input.substr(start, pos - start));
+      parsed_tok_.emplace_back(tok::ID(std::move(idVal)), start);
+      continue;
+    }
+
+    // 5) Check integer: [0-9]+
+    if (std::isdigit(static_cast<unsigned char>(c))) {
+      size_t start = pos;
+      ++pos;
+      while (pos < len &&
+             std::isdigit(static_cast<unsigned char>(input[pos]))) {
+        ++pos;
+      }
+      std::string numVal = std::string(input.substr(start, pos - start));
+      parsed_tok_.emplace_back(tok::Int(std::stoi(numVal)), start);
+      continue;
+    }
+
+    // 6) Check string literal: \"([^\"\\\\]|\\\\.)*\"
+    // A naive approach: detect '\"', then parse until matching '\"' or end of
+    // input.
+    if (c == '\"') {
+      size_t start = pos;
+      ++pos;  // consume the opening quote
+      bool closed = false;
+      while (pos < len) {
+        if (input[pos] == '\\') {
+          // skip escaped character
+          pos += 2;
+        } else if (pos < len && input[pos] == '\"') {
+          // found closing quote
+          ++pos;
+          closed = true;
+          break;
+        } else {
+          ++pos;
+        }
+      }
+
+      if (!closed) {
+        parsed_tok_.emplace_back(tok::Literal(std::string(input.substr(start))),
+                                 start);
+        parsed_tok_.emplace_back(tok::Error("Expected '\"'"), pos);
+      } else {
+        // substring from start to pos is the entire literal (including quotes)
+        std::string fullString = std::string(input.substr(start, pos - start));
+        // unescape it
+        std::string unescaped = unescapeString(fullString);
+        parsed_tok_.emplace_back(tok::Literal(std::move(unescaped)), start);
+      }
+      continue;
+    }
+
+    // 7) If none matched, mark it as an error token. We consume one character.
+    static const tok::Token_t error_tok = tok::Error("Unknown token");
+    if (!parsed_tok_.empty() && parsed_tok_.back() != error_tok)
+      parsed_tok_.emplace_back(error_tok, offset);
+    ++pos;
   }
 }
 

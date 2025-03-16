@@ -28,7 +28,8 @@
 namespace m6 {
 
 std::string Token::GetDebugString() const {
-  return std::visit(tok::DebugStringVisitor(), token_);
+  return '<' + std::visit(tok::DebugStringVisitor(), token_) + ", " +
+         std::to_string(offset) + '>';
 }
 
 std::string tok::DebugStringVisitor::operator()(const tok::Literal& p) const {
@@ -40,7 +41,7 @@ std::string tok::DebugStringVisitor::operator()(const tok::ID& p) const {
 }
 
 std::string tok::DebugStringVisitor::operator()(const tok::WS&) const {
-  return "<ws>";
+  return "ws";
 }
 
 std::string tok::DebugStringVisitor::operator()(const tok::Int& p) const {
@@ -52,33 +53,37 @@ std::string tok::DebugStringVisitor::operator()(const tok::Operator& p) const {
 }
 
 std::string tok::DebugStringVisitor::operator()(const tok::Dollar&) const {
-  return "<dollar>";
+  return "dollar";
 }
 
 std::string tok::DebugStringVisitor::operator()(const tok::SquareL&) const {
-  return "<SquareL>";
+  return "SquareL";
 }
 
 std::string tok::DebugStringVisitor::operator()(const tok::SquareR&) const {
-  return "<SquareR>";
+  return "SquareR";
 }
 
 std::string tok::DebugStringVisitor::operator()(const tok::CurlyL&) const {
-  return "<CurlyL>";
+  return "CurlyL";
 }
 
 std::string tok::DebugStringVisitor::operator()(const tok::CurlyR&) const {
-  return "<CurlyR>";
+  return "CurlyR";
 }
 
 std::string tok::DebugStringVisitor::operator()(
     const tok::ParenthesisL&) const {
-  return "<ParenthesisL>";
+  return "ParenthesisL";
 }
 
 std::string tok::DebugStringVisitor::operator()(
     const tok::ParenthesisR&) const {
-  return "<ParenthesisR>";
+  return "ParenthesisR";
+}
+
+std::string tok::DebugStringVisitor::operator()(const tok::Error& t) const {
+  return "Error(" + t.msg + ')';
 }
 
 }  // namespace m6
