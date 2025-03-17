@@ -32,7 +32,6 @@
 #include "machine/rlmachine.hpp"
 #include "machine/value.hpp"
 
-
 namespace m6test {
 using namespace m6;
 
@@ -58,7 +57,6 @@ class ExpressionCompilerTest : public ::testing::Test {
       return ret;
     }
   }
-
 
   std::shared_ptr<RLMachine> machine;
   std::vector<Value>& stack;

@@ -106,7 +106,8 @@ using Token_t = std::variant<Literal,
                              CurlyR,
                              ParenthesisL,
                              ParenthesisR,
-                             Error>;
+                             Error,
+                             Eof>;
 
 }  // namespace tok
 
@@ -118,7 +119,7 @@ struct Token {
   bool operator!=(const tok::Token_t& rhs) const { return token_ != rhs; }
 
   template <typename T>
-  auto holds_alternative() const {
+  auto HoldsAlternative() const {
     return std::holds_alternative<T>(token_);
   }
 
@@ -145,6 +146,7 @@ struct DebugStringVisitor {
   std::string operator()(const tok::ParenthesisL&) const;
   std::string operator()(const tok::ParenthesisR&) const;
   std::string operator()(const tok::Error&) const;
+  std::string operator()(const tok::Eof&) const;
 };
 }  // namespace tok
 

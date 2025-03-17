@@ -227,6 +227,9 @@ void Tokenizer::Parse() {
       parsed_tok_.emplace_back(error_tok, offset);
     ++pos;
   }
+
+  // Finally, add an eof token
+  parsed_tok_.emplace_back(tok::Eof(), len);
 }
 
 }  // namespace m6

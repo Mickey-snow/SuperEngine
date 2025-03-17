@@ -53,7 +53,8 @@ TEST(TokenizerTest, ID) {
   constexpr std::string_view input = "ObjFgInit";
 
   Tokenizer tokenizer(input);
-  EXPECT_EQ(Accumulate(tokenizer.parsed_tok_), "<ID(\"ObjFgInit\"), 0>");
+  EXPECT_EQ(Accumulate(tokenizer.parsed_tok_),
+            "<ID(\"ObjFgInit\"), 0> <EOF, 9>");
 }
 
 TEST(TokenizerTest, MultiID) {
@@ -61,7 +62,7 @@ TEST(TokenizerTest, MultiID) {
 
   Tokenizer tokenizer(input);
   EXPECT_EQ(Accumulate(tokenizer.parsed_tok_),
-            "<ID(\"print\"), 0> <ws, 5> <ID(\"ObjFgInit\"), 6>");
+            "<ID(\"print\"), 0> <ws, 5> <ID(\"ObjFgInit\"), 6> <EOF, 15>");
 }
 
 TEST(TokenizerTest, Numbers) {
@@ -70,7 +71,7 @@ TEST(TokenizerTest, Numbers) {
   Tokenizer tokenizer(input);
   EXPECT_EQ(Accumulate(tokenizer.parsed_tok_),
             "<Int(123), 0> <ws, 3> <Int(321), 4> <ws, 9> <Operator(-), 10> "
-            "<Int(21), 11>");
+            "<Int(21), 11> <EOF, 13>");
 }
 
 TEST(TokenizerTest, Brackets) {
@@ -79,7 +80,7 @@ TEST(TokenizerTest, Brackets) {
   Tokenizer tokenizer(input);
   EXPECT_EQ(Accumulate(tokenizer.parsed_tok_),
             "<SquareL, 0> <SquareR, 1> <CurlyL, 2> <CurlyR, 3> <ParenthesisL, "
-            "4> <ParenthesisR, 5>");
+            "4> <ParenthesisR, 5> <EOF, 6>");
 }
 
 TEST(TokenizerTest, Operators) {
@@ -103,7 +104,7 @@ TEST(TokenizerTest, Operators) {
       "65> <ws, 67> <Operator(<=), 68> <ws, 70> <Operator(<), 71> <ws, 72> "
       "<Operator(>=), 73> <ws, 75> <Operator(>), 76> <ws, 77> <Operator(&&), "
       "78> <ws, 80> <Operator(||), 81> <ws, 83> <Operator(>>>), 84> <ws, 87> "
-      "<Operator(>>>=), 88>");
+      "<Operator(>>>=), 88> <EOF, 92>");
 }
 
 TEST(TokenizerTest, StrLiteral) {
@@ -111,7 +112,8 @@ TEST(TokenizerTest, StrLiteral) {
     constexpr std::string_view input = R"("\"Hello\"")";
     Tokenizer tokenizer(input);
 
-    EXPECT_EQ(Accumulate(tokenizer.parsed_tok_), "<Str(\"Hello\"), 0>");
+    EXPECT_EQ(Accumulate(tokenizer.parsed_tok_),
+              "<Str(\"Hello\"), 0> <EOF, 11>");
   }
 
   {
@@ -119,14 +121,14 @@ TEST(TokenizerTest, StrLiteral) {
     Tokenizer tokenizer(input);
 
     EXPECT_EQ(Accumulate(tokenizer.parsed_tok_),
-              "<Str(\"He said, \\\"Hello\\\"\"), 0>");
+              "<Str(\"He said, \\\"Hello\\\"\"), 0> <EOF, 28>");
   }
 
   {
     constexpr std::string_view input = R"("")";
     Tokenizer tokenizer(input);
 
-    EXPECT_EQ(Accumulate(tokenizer.parsed_tok_), "<Str(), 0>");
+    EXPECT_EQ(Accumulate(tokenizer.parsed_tok_), "<Str(), 0> <EOF, 2>");
   }
 
   {
@@ -134,8 +136,9 @@ TEST(TokenizerTest, StrLiteral) {
         R"("\"Path: C:\\\\Users\\\\Name\\nNew Line\\tTab\"")";
     Tokenizer tokenizer(input);
 
-    EXPECT_EQ(Accumulate(tokenizer.parsed_tok_),
-              "<Str(\"Path: C:\\\\Users\\\\Name\\nNew Line\\tTab\"), 0>");
+    EXPECT_EQ(
+        Accumulate(tokenizer.parsed_tok_),
+        "<Str(\"Path: C:\\\\Users\\\\Name\\nNew Line\\tTab\"), 0> <EOF, 48>");
   }
 }
 
@@ -144,7 +147,7 @@ TEST(TokenizerTest, UnclosedString) {
   Tokenizer tokenizer(input);
 
   EXPECT_EQ(Accumulate(tokenizer.parsed_tok_),
-            "<Str(\"hello), 0> <Error(Expected '\"'), 6>");
+            "<Str(\"hello), 0> <Error(Expected '\"'), 6> <EOF, 6>");
 }
 
 TEST(TokenizerTest, UnknownToken) {
@@ -153,7 +156,7 @@ TEST(TokenizerTest, UnknownToken) {
 
   EXPECT_EQ(Accumulate(tokenizer.parsed_tok_),
             "<ID(\"id\"), 0> <Error(Unknown token), 2> <Operator(+), 4> "
-            "<Int(32), 5>");
+            "<Int(32), 5> <EOF, 7>");
 }
 
 }  // namespace m6test

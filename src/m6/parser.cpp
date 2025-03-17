@@ -38,7 +38,8 @@ using iterator_t = std::span<Token>::iterator;
 
 // Helper to skip whitespace tokens in-place.
 static void skipWS(iterator_t& it, iterator_t end) {
-  while (it != end && it->holds_alternative<tok::WS>()) {
+  while (it != end && (it->HoldsAlternative<tok::WS>() ||
+                       it->HoldsAlternative<tok::Eof>())) {
     ++it;
   }
 }
@@ -84,7 +85,7 @@ static bool tryConsumeToken(iterator_t& it, iterator_t end) {
   if (it == end) {
     return false;
   }
-  if (it->holds_alternative<T>()) {
+  if (it->HoldsAlternative<T>()) {
     ++it;
     return true;
   }
@@ -414,7 +415,7 @@ static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end) {
       // parse optional expression
       skipWS(it, end);
       std::shared_ptr<ExprAST> argExpr = nullptr;
-      if (it != end && !it->holds_alternative<tok::ParenthesisR>()) {
+      if (it != end && !it->HoldsAlternative<tok::ParenthesisR>()) {
         // there's something inside, parse expression
         argExpr = parseExpression(it, end);
       }
@@ -429,7 +430,7 @@ static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end) {
     // 2) member access: '.' <identifier>
     if (tryConsumeOp(it, end, Op::Dot)) {
       skipWS(it, end);
-      if (it == end || !it->holds_alternative<tok::ID>()) {
+      if (it == end || !it->HoldsAlternative<tok::ID>()) {
         throw ParsingError("Expected identifier after '.'");
       }
       auto p = it->GetIf<tok::ID>();

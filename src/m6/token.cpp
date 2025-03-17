@@ -86,4 +86,8 @@ std::string tok::DebugStringVisitor::operator()(const tok::Error& t) const {
   return "Error(" + t.msg + ')';
 }
 
+std::string tok::DebugStringVisitor::operator()(const tok::Eof&) const {
+  return "EOF";
+}
+
 }  // namespace m6
