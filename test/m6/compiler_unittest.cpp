@@ -24,11 +24,12 @@
 
 #include <gtest/gtest.h>
 
+#include "util.hpp"
+
 #include "m6/compiler.hpp"
 #include "m6/exception.hpp"
 #include "m6/native.hpp"
 #include "m6/parser.hpp"
-#include "m6/tokenizer.hpp"
 #include "machine/op.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/value.hpp"
@@ -44,8 +45,8 @@ class CompilerTest : public ::testing::Test {
         stack(const_cast<std::vector<Value>&>(machine->GetStack())) {}
 
   void Execute(const std::string_view input) {
-    Tokenizer tokenizer(input);
-    auto expr = ParseExpression(std::span(tokenizer.parsed_tok_));
+    auto tok = TokenArray(input);
+    auto expr = ParseExpression(std::span(tok));
     auto instructions = compiler.Compile(expr);
     for (const auto& it : instructions)
       std::visit(*machine, it);

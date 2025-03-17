@@ -24,7 +24,6 @@
 
 #include "m6/tokenizer.hpp"
 
-#include "m6/parsing_error.hpp"
 #include "machine/op.hpp"
 
 #include <cctype>

@@ -24,8 +24,14 @@
 
 #include "util.hpp"
 
+#include "m6/tokenizer.hpp"
 #include "machine/op.hpp"
 #include "utilities/string_utilities.hpp"
+
+auto TokenArray(std::string_view sv) -> std::vector<m6::Token> {
+  m6::Tokenizer tokenizer(sv);
+  return tokenizer.parsed_tok_;
+}
 
 std::string GetPrefix::operator()(const m6::BinaryExpr& x) const {
   return ToString(x.op) + ' ' + x.lhs->Apply(*this) + ' ' + x.rhs->Apply(*this);

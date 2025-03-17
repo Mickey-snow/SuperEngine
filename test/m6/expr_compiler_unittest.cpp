@@ -24,6 +24,8 @@
 
 #include <gtest/gtest.h>
 
+#include "util.hpp"
+
 #include "m6/compiler.hpp"
 #include "m6/exception.hpp"
 #include "m6/parser.hpp"
@@ -42,8 +44,8 @@ class ExpressionCompilerTest : public ::testing::Test {
         stack(const_cast<std::vector<Value>&>(machine->GetStack())) {}
 
   auto Eval(const std::string_view input) {
-    Tokenizer tokenizer(input);
-    auto expr = ParseExpression(std::span(tokenizer.parsed_tok_));
+    auto tok = TokenArray(input);
+    auto expr = ParseExpression(std::span(tok));
     auto instructions = Compiler().Compile(expr);
     for (const auto& it : instructions)
       std::visit(*machine, it);

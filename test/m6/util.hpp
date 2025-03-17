@@ -28,6 +28,7 @@
 #include "m6/token.hpp"
 
 #include <vector>
+#include <string_view>
 
 template <typename... Ts>
 std::vector<m6::Token> TokenArray(Ts&&... args) {
@@ -36,6 +37,8 @@ std::vector<m6::Token> TokenArray(Ts&&... args) {
   (result.emplace_back(std::forward<Ts>(args)), ...);
   return result;
 }
+
+auto TokenArray(std::string_view sv) -> std::vector<m6::Token>;
 
 struct GetPrefix {
   std::string operator()(const m6::BinaryExpr& x) const;

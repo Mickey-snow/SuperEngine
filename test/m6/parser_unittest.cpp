@@ -26,6 +26,7 @@
 
 #include "util.hpp"
 
+#include "m6/exception.hpp"
 #include "m6/expr_ast.hpp"
 #include "m6/parser.hpp"
 #include "machine/op.hpp"
@@ -450,6 +451,35 @@ TEST(ExprParserTest, Postfix) {
     EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
               "foo(bar(1)).baz[\"3\"]");
   }
+}
+
+template <class E = m6::CompileError>
+inline int ThrowResult(std::string_view input) {
+  std::vector<Token> tok = TokenArray(input);
+
+  try {
+    ParseExpression(std::span(tok));
+  } catch (E& e) {
+    Token const* it = e.where();
+    return it->offset;
+  } catch (...) {
+    ADD_FAILURE() << "it throws a different type of exception.";
+    return -2;
+  }
+  ADD_FAILURE() << "it throws nothing.";
+  return -1;
+}
+
+TEST(ExprParserTest, ErrorHandling) {
+  EXPECT_EQ(ThrowResult("a+(b*c"), 6)
+      << "Missing closing parenthesis at the end";
+  EXPECT_EQ(ThrowResult("d / / e"), 4) << "Repeated operator at the second '/'";
+  EXPECT_EQ(ThrowResult("f* (g+)"), 6);
+  EXPECT_EQ(ThrowResult("j+*k"), 2);
+  EXPECT_EQ(ThrowResult(")a"), 0);
+  EXPECT_EQ(ThrowResult("a."), 2);
+  EXPECT_EQ(ThrowResult("a[123"), 5);
+  EXPECT_EQ(ThrowResult("a(b,c"), 5);
 }
 
 }  // namespace m6test

@@ -23,8 +23,8 @@
 // -----------------------------------------------------------------------
 
 #include "m6/parser.hpp"
+#include "m6/exception.hpp"
 #include "m6/expr_ast.hpp"
-#include "m6/parsing_error.hpp"
 #include "machine/op.hpp"
 
 #include <iterator>
@@ -34,12 +34,12 @@
 
 namespace m6 {
 
-using iterator_t = std::span<Token>::iterator;
+// using iterator_t = std::span<Token>::iterator;
+using iterator_t = Token*;
 
 // Helper to skip whitespace tokens in-place.
 static void skipWS(iterator_t& it, iterator_t end) {
-  while (it != end && (it->HoldsAlternative<tok::WS>() ||
-                       it->HoldsAlternative<tok::Eof>())) {
+  while (it != end && it->HoldsAlternative<tok::WS>()) {
     ++it;
   }
 }
@@ -93,7 +93,6 @@ static bool tryConsumeToken(iterator_t& it, iterator_t end) {
 }
 
 // Forward declarations of recursive parsing functions.
-static std::shared_ptr<ExprAST> parseExpression(iterator_t& it, iterator_t end);
 static std::shared_ptr<ExprAST> parseAssignment(iterator_t& it, iterator_t end);
 static std::shared_ptr<ExprAST> parseLogicalOr(iterator_t& it, iterator_t end);
 static std::shared_ptr<ExprAST> parseLogicalAnd(iterator_t& it, iterator_t end);
@@ -114,8 +113,7 @@ static std::shared_ptr<ExprAST> parsePrimary(iterator_t& it, iterator_t end);
 // parseExpression() - top-level parse for expressions, handling comma.
 //     expression -> assignment_expr (',' assignment_expr)*
 //=================================================================================
-static std::shared_ptr<ExprAST> parseExpression(iterator_t& it,
-                                                iterator_t end) {
+std::shared_ptr<ExprAST> parseExpression(iterator_t& it, iterator_t end) {
   auto lhs = parseAssignment(it, end);
   // Now handle comma operators, left-associative.
   while (true) {
@@ -421,7 +419,7 @@ static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end) {
       }
       skipWS(it, end);
       if (!tryConsumeToken<tok::ParenthesisR>(it, end)) {
-        throw ParsingError("Expected ')' after function call.");
+        throw SyntaxError("Expected ')' after function call.", it);
       }
       lhs = std::make_shared<ExprAST>(InvokeExpr(lhs, argExpr));
       continue;
@@ -431,7 +429,7 @@ static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end) {
     if (tryConsumeOp(it, end, Op::Dot)) {
       skipWS(it, end);
       if (it == end || !it->HoldsAlternative<tok::ID>()) {
-        throw ParsingError("Expected identifier after '.'");
+        throw SyntaxError("Expected identifier after '.'", it);
       }
       auto p = it->GetIf<tok::ID>();
       IdExpr memberName(p->id);
@@ -445,7 +443,7 @@ static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end) {
     if (tryConsumeToken<tok::SquareL>(it, end)) {
       auto indexExpr = parseExpression(it, end);
       if (!tryConsumeToken<tok::SquareR>(it, end)) {
-        throw ParsingError("Expected ']' after subscript expression.");
+        throw SyntaxError("Expected ']' after subscript expression.", it);
       }
       lhs = std::make_shared<ExprAST>(SubscriptExpr(lhs, indexExpr));
       continue;
@@ -468,7 +466,7 @@ static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end) {
 static std::shared_ptr<ExprAST> parsePrimary(iterator_t& it, iterator_t end) {
   skipWS(it, end);
   if (it == end)
-    throw ParsingError("Unexpected end of tokens in parsePrimary.");
+    throw SyntaxError("Expected primary expression.", it);
 
   // Try integer
   if (auto p = it->GetIf<tok::Int>()) {
@@ -496,37 +494,25 @@ static std::shared_ptr<ExprAST> parsePrimary(iterator_t& it, iterator_t end) {
     auto exprNode = parseExpression(it, end);
     skipWS(it, end);
     if (!tryConsumeToken<tok::ParenthesisR>(it, end))
-      throw ParsingError("Missing closing ')' in parenthesized expression.");
+      throw SyntaxError("Missing closing ')' in parenthesized expression.", it);
 
     return std::make_shared<ExprAST>(ParenExpr(exprNode));
   }
 
   // If none matched, it's an error.
-  throw ParsingError("Unknown token type in parsePrimary.");
+  throw SyntaxError("Expected primary expression.", it);
 }
 
 //=================================================================================
 // Public parse function entry point.
 //=================================================================================
+std::shared_ptr<ExprAST> ParseExpression(Token*& it, Token* end) {
+  return parseExpression(it, end);
+}
 std::shared_ptr<ExprAST> ParseExpression(std::span<Token> input) {
-  auto it = input.begin();
-  auto end = input.end();
-
-  // parse the expression.
-  auto result = parseExpression(it, end);
-
-  // Skip any trailing whitespace.
-  skipWS(it, end);
-
-  if (it != end) {
-    std::ptrdiff_t index = std::distance(input.begin(), it);
-    std::ostringstream oss;
-    oss << "Parsing did not consume all tokens. Leftover begins at index "
-        << index << " with token " << it->GetDebugString();
-    throw ParsingError(oss.str());
-  }
-
-  return result;
+  auto begin = input.data();
+  auto end = input.data() + input.size();
+  return ParseExpression(begin, end);
 }
 
 }  // namespace m6

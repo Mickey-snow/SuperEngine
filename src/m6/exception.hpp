@@ -32,34 +32,60 @@
 
 namespace m6 {
 
-class UndefinedOperator : public std::logic_error {
+class Token;
+
+class RuntimeError {
+ public:
+  explicit RuntimeError(std::string msg);
+
+  char const* what() const noexcept;
+
+ private:
+  std::string msg_;
+};
+
+class CompileError {
+ public:
+  explicit CompileError(std::string msg, Token* tok = nullptr);
+
+  char const* what() const noexcept;
+  Token const* where() const noexcept;
+
+ private:
+  std::string msg_;
+  Token* tok_;
+};
+
+class UndefinedOperator : public RuntimeError {
  public:
   explicit UndefinedOperator(Op op, std::vector<std::string> operands);
-  using std::logic_error::what;
+  using RuntimeError::what;
 };
 
-class ValueError : public std::runtime_error {
+class ValueError : public RuntimeError {
  public:
   explicit ValueError(std::string msg);
-  using std::runtime_error::what;
+  using RuntimeError::what;
 };
 
-class TypeError : public std::runtime_error {
+class TypeError : public RuntimeError {
  public:
   explicit TypeError(std::string msg);
-  using std::runtime_error::what;
+  using RuntimeError::what;
 };
 
-class SyntaxError : public std::logic_error {
+class SyntaxError : public CompileError {
  public:
-  explicit SyntaxError(std::string msg);
-  using std::logic_error::what;
+  explicit SyntaxError(std::string msg, Token* tok = nullptr);
+  using CompileError::what;
+  using CompileError::where;
 };
 
-class NameError : public std::runtime_error {
+class NameError : public CompileError {
  public:
-  explicit NameError(const std::string& name);
-  using std::runtime_error::what;
+  explicit NameError(const std::string& name, Token* tok = nullptr);
+  using CompileError::what;
+  using CompileError::where;
 };
 
 }  // namespace m6

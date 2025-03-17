@@ -28,17 +28,34 @@
 
 namespace m6 {
 
+// -----------------------------------------------------------------------
+// class RuntimeError
+// -----------------------------------------------------------------------
+RuntimeError::RuntimeError(std::string msg) : msg_(std::move(msg)) {}
+char const* RuntimeError::what() const noexcept { return msg_.c_str(); }
+
+// -----------------------------------------------------------------------
+// class CompileError
+// -----------------------------------------------------------------------
+CompileError::CompileError(std::string msg, Token* tok)
+    : msg_(std::move(msg)), tok_(tok) {}
+char const* CompileError::what() const noexcept { return msg_.c_str(); }
+Token const* CompileError::where() const noexcept { return tok_; }
+
+// -----------------------------------------------------------------------
+
 UndefinedOperator::UndefinedOperator(Op op, std::vector<std::string> operands)
-    : std::logic_error("no match for 'operator " + ToString(op) +
-                       "' (operand type '" + Join(",", operands)) {}
+    : RuntimeError("no match for 'operator " + ToString(op) +
+                   "' (operand type '" + Join(",", operands)) {}
 
-ValueError::ValueError(std::string msg) : std::runtime_error(std::move(msg)) {}
+ValueError::ValueError(std::string msg) : RuntimeError(std::move(msg)) {}
 
-TypeError::TypeError(std::string msg) : std::runtime_error(std::move(msg)) {}
+TypeError::TypeError(std::string msg) : RuntimeError(std::move(msg)) {}
 
-SyntaxError::SyntaxError(std::string msg) : std::logic_error(std::move(msg)) {}
+SyntaxError::SyntaxError(std::string msg, Token* tok)
+    : CompileError(std::move(msg), tok) {}
 
-NameError::NameError(const std::string& name)
-    : std::runtime_error("name '" + name + "' is not defined.") {}
+NameError::NameError(const std::string& name, Token* tok)
+    : CompileError("name '" + name + "' is not defined.", tok) {}
 
 }  // namespace m6

@@ -44,7 +44,7 @@ binary operators: , + - * / % & | ^ << >> == != <= >= < > && ||
 assignments: = += -= *= /= %= &= |= ^= <<= >>=
 parenthesis: ( )
  */
-
+std::shared_ptr<ExprAST> ParseExpression(Token*& begin, Token* end);
 std::shared_ptr<ExprAST> ParseExpression(std::span<Token> input);
 
 }  // namespace m6
