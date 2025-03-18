@@ -35,15 +35,16 @@ enum class Op;
 namespace m6 {
 
 class ExprAST;
+class Token;
 
 // -----------------------------------------------------------------------
 // AST Nodes
 
 // Identifier
 struct IdExpr {
-  std::string id;
-
+  Token* tok;
   std::string DebugString() const;
+  std::string const& GetID() const;
 };
 
 // Binary operation node

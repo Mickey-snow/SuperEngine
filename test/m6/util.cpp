@@ -63,4 +63,6 @@ std::string GetPrefix::operator()(int x) const { return std::to_string(x); }
 std::string GetPrefix::operator()(const std::string& str) const {
   return '"' + str + '"';
 }
-std::string GetPrefix::operator()(const m6::IdExpr& id) const { return id.id; }
+std::string GetPrefix::operator()(const m6::IdExpr& id) const {
+  return id.tok->GetIf<m6::tok::ID>()->id;
+}

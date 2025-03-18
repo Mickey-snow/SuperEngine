@@ -24,6 +24,7 @@
 
 #include "m6/expr_ast.hpp"
 
+#include "m6/token.hpp"
 #include "machine/op.hpp"
 #include "machine/value.hpp"
 #include "utilities/string_utilities.hpp"
@@ -63,7 +64,7 @@ InvokeExpr::InvokeExpr(std::shared_ptr<ExprAST> in_fn,
 }
 
 // -----------------------------------------------------------------------
-// method DebugString
+// AST node member functions
 std::string BinaryExpr::DebugString() const {
   return lhs->DebugString() + ToString(op) + rhs->DebugString();
 }
@@ -96,7 +97,12 @@ std::string MemberExpr::DebugString() const {
   return primary->DebugString() + '.' + member->DebugString();
 }
 
-std::string IdExpr::DebugString() const { return id; }
+std::string IdExpr::DebugString() const {
+  return tok->GetIf<tok::ID>()->id;
+  ;
+}
+
+std::string const& IdExpr::GetID() const { return tok->GetIf<tok::ID>()->id; }
 
 std::string ExprAST::DebugString() const {
   return this->Apply([](const auto& x) -> std::string {

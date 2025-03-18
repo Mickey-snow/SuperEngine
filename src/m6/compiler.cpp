@@ -26,6 +26,7 @@
 
 #include "m6/exception.hpp"
 #include "m6/expr_ast.hpp"
+#include "m6/token.hpp"
 #include "machine/op.hpp"
 #include "machine/value.hpp"
 
@@ -43,9 +44,10 @@ std::vector<Instruction> Compiler::Compile(std::shared_ptr<ExprAST> expr) {
   struct Visitor {
     void operator()(std::monostate) { bk = Push(Value(std::monostate())); }
     void operator()(const IdExpr& idexpr) {
-      auto it = compiler.local_variable_.find(idexpr.id);
+      std::string const& id = idexpr.GetID();
+      auto it = compiler.local_variable_.find(id);
       if (it == compiler.local_variable_.cend()) {
-        throw NameError("Name '" + idexpr.id + "' not defined.");
+        throw NameError("Name '" + id + "' not defined.", idexpr.tok);
       }
 
       bk = Load(it->second);
@@ -57,9 +59,10 @@ std::vector<Instruction> Compiler::Compile(std::shared_ptr<ExprAST> expr) {
         arg->Apply(*this);
 
       if (auto idexpr = x.fn->Get_if<IdExpr>()) {
-        auto it = compiler.native_fn_.find(idexpr->id);
+        std::string const& id = idexpr->GetID();
+        auto it = compiler.native_fn_.find(id);
         if (it == compiler.native_fn_.cend())
-          throw NameError("Name '" + idexpr->id + "' is not defined.");
+          throw NameError("Name '" + id + "' is not defined.", idexpr->tok);
 
         bk = Push(it->second);
         bk = Invoke(x.args.size());
@@ -97,16 +100,17 @@ std::vector<Instruction> Compiler::Compile(std::shared_ptr<ExprAST> expr) {
   // type.
   // <id> = <expr>
   if (auto assign = expr->Get_if<AssignExpr>()) {
-    auto id = assign->lhs->Get_if<IdExpr>();
-    if (!id)
+    auto idtok = assign->lhs->Get_if<IdExpr>();
+    if (!idtok)
       throw SyntaxError("Cannot assign to expression here.");
     assign->rhs->Apply(Visitor(std::back_inserter(result), *this));
 
-    if (local_variable_.contains(id->id)) {
-      result.push_back(Store(local_variable_[id->id]));
+    std::string const& id = idtok->GetID();
+    if (local_variable_.contains(id)) {
+      result.push_back(Store(local_variable_[id]));
       result.push_back(Pop());
     } else {
-      local_variable_[id->id] = local_variable_.size();
+      local_variable_[id] = local_variable_.size();
     }
 
   } else {
