@@ -40,6 +40,25 @@ class Token;
 // -----------------------------------------------------------------------
 // AST Nodes
 
+// Literal
+
+struct NilLiteral {
+  Token* tok;
+  std::string DebugString() const;
+};
+
+struct IntLiteral {
+  Token* tok;
+  std::string DebugString() const;
+  int GetValue() const;
+};
+
+struct StrLiteral {
+  Token* tok;
+  std::string DebugString() const;
+  std::string const& GetValue() const;
+};
+
 // Identifier
 struct IdExpr {
   Token* tok;
@@ -107,10 +126,9 @@ struct MemberExpr {
 
 // -----------------------------------------------------------------------
 // AST
-using expr_variant_t = std::variant<std::monostate,  // null
-                                    int,             // integer literal
-                                    std::string,     // string literal
-                                    IdExpr,          // identifier
+using expr_variant_t = std::variant<IntLiteral,  // integer literal
+                                    StrLiteral,  // string literal
+                                    IdExpr,      // identifier
                                     InvokeExpr,
                                     SubscriptExpr,
                                     MemberExpr,
@@ -121,10 +139,9 @@ using expr_variant_t = std::variant<std::monostate,  // null
 
 class ExprAST {
  public:
-  ExprAST() : var_(std::monostate()) {}
   ExprAST(expr_variant_t var) : var_(std::move(var)) {}
 
-  std::string DebugString() const;
+  std::string DumpAST() const;
 
   template <class Visitor>
   decltype(auto) Apply(Visitor&& vis) {

@@ -35,8 +35,6 @@ using namespace m6;
 
 namespace m6test {
 
-inline static GetPrefix get_prefix_visitor;
-
 TEST(ExprastParserTest, BasicArithmetic) {
   {
     std::shared_ptr<ExprAST> result = nullptr;
@@ -45,7 +43,11 @@ TEST(ExprastParserTest, BasicArithmetic) {
 
     ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
     ASSERT_NE(result, nullptr);
-    EXPECT_EQ(result->DebugString(), "1+2");
+    EXPECT_TXTEQ(result->DumpAST(), R"(
+Binaryop +
+   ├─IntLiteral 1
+   └─IntLiteral 2
+)");
   }
 
   {
@@ -55,7 +57,11 @@ TEST(ExprastParserTest, BasicArithmetic) {
 
     ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
     ASSERT_NE(result, nullptr);
-    EXPECT_EQ(result->DebugString(), "3-4");
+    EXPECT_TXTEQ(result->DumpAST(), R"(
+Binaryop -
+   ├─IntLiteral 3
+   └─IntLiteral 4
+)");
   }
 
   {
@@ -65,7 +71,11 @@ TEST(ExprastParserTest, BasicArithmetic) {
 
     ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
     ASSERT_NE(result, nullptr);
-    EXPECT_EQ(result->DebugString(), "5*6");
+    EXPECT_TXTEQ(result->DumpAST(), R"(
+Binaryop *
+   ├─IntLiteral 5
+   └─IntLiteral 6
+)");
   }
 
   {
@@ -75,7 +85,11 @@ TEST(ExprastParserTest, BasicArithmetic) {
 
     ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
     ASSERT_NE(result, nullptr);
-    EXPECT_EQ(result->DebugString(), "7/8");
+    EXPECT_TXTEQ(result->DumpAST(), R"(
+Binaryop /
+   ├─IntLiteral 7
+   └─IntLiteral 8
+)");
   }
 
   {
@@ -85,7 +99,11 @@ TEST(ExprastParserTest, BasicArithmetic) {
 
     ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
     ASSERT_NE(result, nullptr);
-    EXPECT_EQ(result->DebugString(), "9%10");
+    EXPECT_TXTEQ(result->DumpAST(), R"(
+Binaryop %
+   ├─IntLiteral 9
+   └─IntLiteral 10
+)");
   }
 }
 
@@ -93,7 +111,11 @@ TEST(ExprastParserTest, Skipper) {
   std::vector<Token> input =
       TokenArray(tok::WS(), tok::ID("a"), tok::Operator(Op::Add), tok::WS(),
                  tok::ID("b"), tok::WS(), tok::WS());
-  EXPECT_EQ(ParseExpression(std::span(input))->DebugString(), "a+b");
+  EXPECT_TXTEQ(ParseExpression(std::span(input))->DumpAST(), R"(
+Binaryop +
+   ├─ID a
+   └─ID b
+)");
 }
 
 TEST(ExprastParserTest, Precedence) {
@@ -105,7 +127,13 @@ TEST(ExprastParserTest, Precedence) {
 
     ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
     ASSERT_NE(result, nullptr);
-    EXPECT_EQ(result->Apply(get_prefix_visitor), "+ * 5 6 7");
+    EXPECT_TXTEQ(result->DumpAST(), R"(
+Binaryop +
+   ├─Binaryop *
+   │  ├─IntLiteral 5
+   │  └─IntLiteral 6
+   └─IntLiteral 7
+)");
   }
 
   {
@@ -116,7 +144,13 @@ TEST(ExprastParserTest, Precedence) {
 
     ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
     ASSERT_NE(result, nullptr);
-    EXPECT_EQ(result->Apply(get_prefix_visitor), "+ 5 / 6 7");
+    EXPECT_TXTEQ(result->DumpAST(), R"(
+Binaryop +
+   ├─IntLiteral 5
+   └─Binaryop /
+      ├─IntLiteral 6
+      └─IntLiteral 7
+)");
   }
 }
 
@@ -128,7 +162,14 @@ TEST(ExprastParserTest, Parenthesis) {
 
   ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
   ASSERT_NE(result, nullptr);
-  EXPECT_EQ(result->Apply(get_prefix_visitor), "/ + 5 6 7");
+  EXPECT_TXTEQ(result->DumpAST(), R"(
+Binaryop /
+   ├─Parenthesis
+   │  └─Binaryop +
+   │     ├─IntLiteral 5
+   │     └─IntLiteral 6
+   └─IntLiteral 7
+)");
 }
 
 TEST(ExprastParserTest, ExprList) {
@@ -140,7 +181,17 @@ TEST(ExprastParserTest, ExprList) {
 
   ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
   ASSERT_NE(result, nullptr);
-  EXPECT_EQ(result->Apply(get_prefix_visitor), ", , + 5 6 8 / 9 7");
+  EXPECT_TXTEQ(result->DumpAST(), R"(
+Binaryop ,
+   ├─Binaryop ,
+   │  ├─Binaryop +
+   │  │  ├─IntLiteral 5
+   │  │  └─IntLiteral 6
+   │  └─IntLiteral 8
+   └─Binaryop /
+      ├─IntLiteral 9
+      └─IntLiteral 7
+)");
 }
 
 TEST(ExprastParserTest, Identifier) {
@@ -152,7 +203,17 @@ TEST(ExprastParserTest, Identifier) {
 
   ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
   ASSERT_NE(result, nullptr);
-  EXPECT_EQ(result->Apply(get_prefix_visitor), "+ v1 / v2 v3[+ v4 v5]");
+  EXPECT_TXTEQ(result->DumpAST(), R"(
+Binaryop +
+   ├─ID v1
+   └─Binaryop /
+      ├─ID v2
+      └─Subscript
+         ├─ID v3
+         └─Binaryop +
+            ├─ID v4
+            └─ID v5
+)");
 }
 
 TEST(ExprastParserTest, Comparisons) {
@@ -166,8 +227,21 @@ TEST(ExprastParserTest, Comparisons) {
 
   ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
   ASSERT_NE(result, nullptr);
-  EXPECT_EQ(result->Apply(get_prefix_visitor),
-            "!= == v1 v2 >= <= < > v3 v4 v5 12 13");
+  EXPECT_TXTEQ(result->DumpAST(), R"(
+Binaryop !=
+   ├─Binaryop ==
+   │  ├─ID v1
+   │  └─ID v2
+   └─Binaryop >=
+      ├─Binaryop <=
+      │  ├─Binaryop <
+      │  │  ├─Binaryop >
+      │  │  │  ├─ID v3
+      │  │  │  └─ID v4
+      │  │  └─ID v5
+      │  └─IntLiteral 12
+      └─IntLiteral 13
+)");
 }
 
 TEST(ExprastParserTest, Shifts) {
@@ -181,8 +255,21 @@ TEST(ExprastParserTest, Shifts) {
 
   ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
   ASSERT_NE(result, nullptr);
-  EXPECT_EQ(result->Apply(get_prefix_visitor),
-            "< < << v1 v2 << >> v3 + v4 v5 12 13");
+  EXPECT_TXTEQ(result->DumpAST(), R"(
+Binaryop <
+   ├─Binaryop <
+   │  ├─Binaryop <<
+   │  │  ├─ID v1
+   │  │  └─ID v2
+   │  └─Binaryop <<
+   │     ├─Binaryop >>
+   │     │  ├─ID v3
+   │     │  └─Binaryop +
+   │     │     ├─ID v4
+   │     │     └─ID v5
+   │     └─IntLiteral 12
+   └─IntLiteral 13
+)");
 }
 
 TEST(ExprastParserTest, Logical) {
@@ -196,8 +283,19 @@ TEST(ExprastParserTest, Logical) {
 
   ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
   ASSERT_NE(result, nullptr);
-  EXPECT_EQ(result->Apply(get_prefix_visitor),
-            "|| || v1 && v2 >> v3 v4 && v5 12");
+  EXPECT_TXTEQ(result->DumpAST(), R"(
+Binaryop ||
+   ├─Binaryop ||
+   │  ├─ID v1
+   │  └─Binaryop &&
+   │     ├─ID v2
+   │     └─Binaryop >>
+   │        ├─ID v3
+   │        └─ID v4
+   └─Binaryop &&
+      ├─ID v5
+      └─IntLiteral 12
+)");
 }
 
 TEST(ExprastParserTest, Assignment) {
@@ -216,8 +314,28 @@ TEST(ExprastParserTest, Assignment) {
 
     ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
     ASSERT_NE(result, nullptr);
-    EXPECT_EQ(result->Apply(get_prefix_visitor),
-              "= v1 <<= v2 >>= >> v3 v4 += && v5 12 -= v2 *= v3 %= v4 v5");
+    EXPECT_TXTEQ(result->DumpAST(),
+                 R"(
+Assign
+   ├─ID v1
+   └─Binaryop <<=
+      ├─ID v2
+      └─Binaryop >>=
+         ├─Binaryop >>
+         │  ├─ID v3
+         │  └─ID v4
+         └─Binaryop +=
+            ├─Binaryop &&
+            │  ├─ID v5
+            │  └─IntLiteral 12
+            └─Binaryop -=
+               ├─ID v2
+               └─Binaryop *=
+                  ├─ID v3
+                  └─Binaryop %=
+                     ├─ID v4
+                     └─ID v5
+)");
   }
 
   {
@@ -232,8 +350,21 @@ TEST(ExprastParserTest, Assignment) {
 
     ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
     ASSERT_NE(result, nullptr);
-    EXPECT_EQ(result->Apply(get_prefix_visitor),
-              "|= v1 ^= >> << v2 v3 v4 &= && v5 12 v2");
+    EXPECT_TXTEQ(result->DumpAST(), R"(
+Binaryop |=
+   ├─ID v1
+   └─Binaryop ^=
+      ├─Binaryop >>
+      │  ├─Binaryop <<
+      │  │  ├─ID v2
+      │  │  └─ID v3
+      │  └─ID v4
+      └─Binaryop &=
+         ├─Binaryop &&
+         │  ├─ID v5
+         │  └─IntLiteral 12
+         └─ID v2
+)");
   }
 }
 
@@ -241,22 +372,31 @@ TEST(ExprastParserTest, BitwiseOperators) {
   {
     std::vector<Token> input =
         TokenArray(tok::ID("a"), tok::Operator(Op::BitAnd), tok::ID("b"));
-    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
-              "& a b");
+    EXPECT_TXTEQ(ParseExpression(std::span(input))->DumpAST(), R"(
+Binaryop &
+   ├─ID a
+   └─ID b
+)");
   }
 
   {
     std::vector<Token> input =
         TokenArray(tok::ID("a"), tok::Operator(Op::BitOr), tok::ID("b"));
-    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
-              "| a b");
+    EXPECT_TXTEQ(ParseExpression(std::span(input))->DumpAST(), R"(
+Binaryop |
+   ├─ID a
+   └─ID b
+)");
   }
 
   {
     std::vector<Token> input =
         TokenArray(tok::ID("a"), tok::Operator(Op::BitXor), tok::ID("b"));
-    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
-              "^ a b");
+    EXPECT_TXTEQ(ParseExpression(std::span(input))->DumpAST(), R"(
+Binaryop ^
+   ├─ID a
+   └─ID b
+)");
   }
 
   {
@@ -265,44 +405,65 @@ TEST(ExprastParserTest, BitwiseOperators) {
         TokenArray(tok::ID("a"), tok::Operator(Op::BitAnd), tok::ID("b"),
                    tok::Operator(Op::BitOr), tok::ID("c"),
                    tok::Operator(Op::BitXor), tok::ID("d"));
-    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
-              "| & a b ^ c d");
+    EXPECT_TXTEQ(ParseExpression(std::span(input))->DumpAST(), R"(
+Binaryop |
+   ├─Binaryop &
+   │  ├─ID a
+   │  └─ID b
+   └─Binaryop ^
+      ├─ID c
+      └─ID d
+)");
   }
 }
 
 TEST(ExprastParserTest, UnaryOperators) {
   {
     std::vector<Token> input = TokenArray(tok::Operator(Op::Sub), tok::ID("a"));
-    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
-              "- a");
+    EXPECT_TXTEQ(ParseExpression(std::span(input))->DumpAST(), R"(
+Unaryop -
+   └─ID a
+)");
   }
 
   {
     std::vector<Token> input = TokenArray(tok::Operator(Op::Add), tok::ID("a"));
-    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
-              "+ a");
+    EXPECT_TXTEQ(ParseExpression(std::span(input))->DumpAST(), R"(
+Unaryop +
+   └─ID a
+)");
   }
 
   {
     std::vector<Token> input =
         TokenArray(tok::Operator(Op::Tilde), tok::ID("a"));
-    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
-              "~ a");
+    EXPECT_TXTEQ(ParseExpression(std::span(input))->DumpAST(), R"(
+Unaryop ~
+   └─ID a
+)");
   }
 
   {
     std::vector<Token> input = TokenArray(
         tok::Operator(Op::Sub), tok::Operator(Op::Tilde), tok::ID("a"));
-    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
-              "- ~ a");
+    EXPECT_TXTEQ(ParseExpression(std::span(input))->DumpAST(), R"(
+Unaryop -
+   └─Unaryop ~
+      └─ID a
+)");
   }
 
   {
     std::vector<Token> input =
         TokenArray(tok::Operator(Op::Sub), tok::ParenthesisL(), tok::ID("a"),
                    tok::Operator(Op::Add), tok::ID("b"), tok::ParenthesisR());
-    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
-              "- + a b");
+    EXPECT_TXTEQ(ParseExpression(std::span(input))->DumpAST(), R"(
+Unaryop -
+   └─Parenthesis
+      └─Binaryop +
+         ├─ID a
+         └─ID b
+)");
   }
 }
 
@@ -312,8 +473,13 @@ TEST(ExprastParserTest, MixedPrecedence) {
     std::vector<Token> input =
         TokenArray(tok::ID("a"), tok::Operator(Op::Add), tok::ID("b"),
                    tok::Operator(Op::Mul), tok::ID("c"));
-    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
-              "+ a * b c");
+    EXPECT_TXTEQ(ParseExpression(std::span(input))->DumpAST(), R"(
+Binaryop +
+   ├─ID a
+   └─Binaryop *
+      ├─ID b
+      └─ID c
+)");
   }
 
   // a & b | c ^ d
@@ -322,8 +488,15 @@ TEST(ExprastParserTest, MixedPrecedence) {
         TokenArray(tok::ID("a"), tok::Operator(Op::BitAnd), tok::ID("b"),
                    tok::Operator(Op::BitOr), tok::ID("c"),
                    tok::Operator(Op::BitXor), tok::ID("d"));
-    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
-              "| & a b ^ c d");
+    EXPECT_TXTEQ(ParseExpression(std::span(input))->DumpAST(), R"(
+Binaryop |
+   ├─Binaryop &
+   │  ├─ID a
+   │  └─ID b
+   └─Binaryop ^
+      ├─ID c
+      └─ID d
+)");
   }
 
   // -a + b * ~c
@@ -332,8 +505,15 @@ TEST(ExprastParserTest, MixedPrecedence) {
         TokenArray(tok::Operator(Op::Sub), tok::ID("a"), tok::Operator(Op::Add),
                    tok::ID("b"), tok::Operator(Op::Mul),
                    tok::Operator(Op::Tilde), tok::ID("c"));
-    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
-              "+ - a * b ~ c");
+    EXPECT_TXTEQ(ParseExpression(std::span(input))->DumpAST(), R"(
+Binaryop +
+   ├─Unaryop -
+   │  └─ID a
+   └─Binaryop *
+      ├─ID b
+      └─Unaryop ~
+         └─ID c
+)");
   }
 
   // (a + b) * (c - d) / ~e
@@ -343,8 +523,20 @@ TEST(ExprastParserTest, MixedPrecedence) {
         tok::ParenthesisR(), tok::Operator(Op::Mul), tok::ParenthesisL(),
         tok::ID("c"), tok::Operator(Op::Sub), tok::ID("d"), tok::ParenthesisR(),
         tok::Operator(Op::Div), tok::Operator(Op::Tilde), tok::ID("e"));
-    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
-              "/ * + a b - c d ~ e");
+    EXPECT_TXTEQ(ParseExpression(std::span(input))->DumpAST(), R"(
+Binaryop /
+   ├─Binaryop *
+   │  ├─Parenthesis
+   │  │  └─Binaryop +
+   │  │     ├─ID a
+   │  │     └─ID b
+   │  └─Parenthesis
+   │     └─Binaryop -
+   │        ├─ID c
+   │        └─ID d
+   └─Unaryop ~
+      └─ID e
+)");
   }
 
   // a << b + c & d
@@ -353,8 +545,15 @@ TEST(ExprastParserTest, MixedPrecedence) {
         TokenArray(tok::ID("a"), tok::Operator(Op::ShiftLeft), tok::ID("b"),
                    tok::Operator(Op::Add), tok::ID("c"),
                    tok::Operator(Op::BitAnd), tok::ID("d"));
-    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
-              "& << a + b c d");
+    EXPECT_TXTEQ(ParseExpression(std::span(input))->DumpAST(), R"(
+Binaryop &
+   ├─Binaryop <<
+   │  ├─ID a
+   │  └─Binaryop +
+   │     ├─ID b
+   │     └─ID c
+   └─ID d
+)");
   }
 
   // ~a | b && c ^ d
@@ -363,8 +562,16 @@ TEST(ExprastParserTest, MixedPrecedence) {
         tok::Operator(Op::Tilde), tok::ID("a"), tok::Operator(Op::BitOr),
         tok::ID("b"), tok::Operator(Op::LogicalAnd), tok::ID("c"),
         tok::Operator(Op::BitXor), tok::ID("d"));
-    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
-              "&& | ~ a b ^ c d");
+    EXPECT_TXTEQ(ParseExpression(std::span(input))->DumpAST(), R"(
+Binaryop &&
+   ├─Binaryop |
+   │  ├─Unaryop ~
+   │  │  └─ID a
+   │  └─ID b
+   └─Binaryop ^
+      ├─ID c
+      └─ID d
+)");
   }
 
   // a + b << c - ~d
@@ -373,8 +580,16 @@ TEST(ExprastParserTest, MixedPrecedence) {
         tok::ID("a"), tok::Operator(Op::Add), tok::ID("b"),
         tok::Operator(Op::ShiftLeft), tok::ID("c"), tok::Operator(Op::Sub),
         tok::Operator(Op::Tilde), tok::ID("d"));
-    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
-              "<< + a b - c ~ d");
+    EXPECT_TXTEQ(ParseExpression(std::span(input))->DumpAST(), R"(
+Binaryop <<
+   ├─Binaryop +
+   │  ├─ID a
+   │  └─ID b
+   └─Binaryop -
+      ├─ID c
+      └─Unaryop ~
+         └─ID d
+)");
   }
 
   // a && b | c ^ d & e
@@ -383,8 +598,17 @@ TEST(ExprastParserTest, MixedPrecedence) {
         tok::ID("a"), tok::Operator(Op::LogicalAnd), tok::ID("b"),
         tok::Operator(Op::BitOr), tok::ID("c"), tok::Operator(Op::BitXor),
         tok::ID("d"), tok::Operator(Op::BitAnd), tok::ID("e"));
-    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
-              "&& a | b ^ c & d e");
+    EXPECT_TXTEQ(ParseExpression(std::span(input))->DumpAST(), R"(
+Binaryop &&
+   ├─ID a
+   └─Binaryop |
+      ├─ID b
+      └─Binaryop ^
+         ├─ID c
+         └─Binaryop &
+            ├─ID d
+            └─ID e
+)");
   }
 
   // a >>>= b >>> c
@@ -392,16 +616,24 @@ TEST(ExprastParserTest, MixedPrecedence) {
     std::vector<Token> input = TokenArray(
         tok::ID("a"), tok::Operator(Op::ShiftUnsignedRightAssign), tok::ID("b"),
         tok::Operator(Op::ShiftUnsignedRight), tok::ID("c"));
-    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
-              ">>>= a >>> b c");
+    EXPECT_TXTEQ(ParseExpression(std::span(input))->DumpAST(), R"(
+Binaryop >>>=
+   ├─ID a
+   └─Binaryop >>>
+      ├─ID b
+      └─ID c
+)");
   }
 }
 
 TEST(ExprastParserTest, StringLiterals) {
   std::vector<Token> input =
       TokenArray(tok::ID("foo"), tok::Operator(Op::Add), tok::Literal("bar"));
-  EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
-            "+ foo \"bar\"");
+  EXPECT_TXTEQ(ParseExpression(std::span(input))->DumpAST(), R"(
+Binaryop +
+   ├─ID foo
+   └─StrLiteral bar
+)");
 }
 
 TEST(ExprParserTest, Postfix) {
@@ -409,8 +641,11 @@ TEST(ExprParserTest, Postfix) {
     std::vector<Token> input = TokenArray(tok::ID("foo"), tok::ParenthesisL(),
                                           tok::Int(42), tok::ParenthesisR());
 
-    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
-              "foo(42)");
+    EXPECT_TXTEQ(ParseExpression(std::span(input))->DumpAST(), R"(
+Invoke
+   ├─ID foo
+   └─IntLiteral 42
+)");
   }
 
   {
@@ -419,16 +654,27 @@ TEST(ExprParserTest, Postfix) {
                    tok::Operator(Op::Comma), tok::Int(2),
                    tok::Operator(Op::Comma), tok::Int(3),
                    tok::Operator(Op::Comma), tok::Int(4), tok::ParenthesisR());
-    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
-              "sum(1, 2, 3, 4)");
+    EXPECT_TXTEQ(ParseExpression(std::span(input))->DumpAST(), R"(
+Invoke
+   ├─ID sum
+   ├─IntLiteral 1
+   ├─IntLiteral 2
+   ├─IntLiteral 3
+   └─IntLiteral 4
+)");
   }
 
   {
     std::vector<Token> input =
         TokenArray(tok::ID("array"), tok::SquareL(), tok::Int(3),
                    tok::SquareR(), tok::Operator(Op::Dot), tok::ID("field"));
-    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
-              "array[3].field");
+    EXPECT_TXTEQ(ParseExpression(std::span(input))->DumpAST(), R"(
+Member
+   ├─Subscript
+   │  ├─ID array
+   │  └─IntLiteral 3
+   └─ID field
+)");
   }
 
   {
@@ -438,8 +684,20 @@ TEST(ExprParserTest, Postfix) {
                    tok::ID("idx"), tok::Operator(Op::Add), tok::Int(1),
                    tok::SquareR(), tok::Operator(Op::Dot), tok::ID("method"),
                    tok::ParenthesisL(), tok::Int(10), tok::ParenthesisR());
-    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
-              "obj.getArray()[+ idx 1].method(10)");
+    EXPECT_TXTEQ(ParseExpression(std::span(input))->DumpAST(), R"(
+Invoke
+   ├─Member
+   │  ├─Subscript
+   │  │  ├─Invoke
+   │  │  │  ├─Member
+   │  │  │  │  ├─ID obj
+   │  │  │  │  └─ID getArray
+   │  │  └─Binaryop +
+   │  │     ├─ID idx
+   │  │     └─IntLiteral 1
+   │  └─ID method
+   └─IntLiteral 10
+)");
   }
 
   {
@@ -448,8 +706,18 @@ TEST(ExprParserTest, Postfix) {
         tok::ID("bar"), tok::ParenthesisL(), tok::Int(1), tok::ParenthesisR(),
         tok::ParenthesisR(), tok::Operator(Op::Dot), tok::ID("baz"),
         tok::ParenthesisR(), tok::SquareL(), tok::Literal("3"), tok::SquareR());
-    EXPECT_EQ(ParseExpression(std::span(input))->Apply(get_prefix_visitor),
-              "foo(bar(1)).baz[\"3\"]");
+    EXPECT_TXTEQ(ParseExpression(std::span(input))->DumpAST(), R"(
+Subscript
+   ├─Parenthesis
+   │  └─Member
+   │     ├─Invoke
+   │     │  ├─ID foo
+   │     │  └─Invoke
+   │     │     ├─ID bar
+   │     │     └─IntLiteral 1
+   │     └─ID baz
+   └─StrLiteral 3
+)");
   }
 }
 

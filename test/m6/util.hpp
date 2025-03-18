@@ -26,9 +26,10 @@
 
 #include "m6/expr_ast.hpp"
 #include "m6/token.hpp"
+#include "utilities/string_utilities.hpp"
 
-#include <vector>
 #include <string_view>
+#include <vector>
 
 template <typename... Ts>
 std::vector<m6::Token> TokenArray(Ts&&... args) {
@@ -40,16 +41,4 @@ std::vector<m6::Token> TokenArray(Ts&&... args) {
 
 auto TokenArray(std::string_view sv) -> std::vector<m6::Token>;
 
-struct GetPrefix {
-  std::string operator()(const m6::BinaryExpr& x) const;
-  std::string operator()(const m6::UnaryExpr& x) const;
-  std::string operator()(const m6::AssignExpr& x) const;
-  std::string operator()(const m6::ParenExpr& x) const;
-  std::string operator()(const m6::InvokeExpr& x) const;
-  std::string operator()(const m6::SubscriptExpr& x) const;
-  std::string operator()(const m6::MemberExpr& x) const;
-  std::string operator()(std::monostate) const;
-  std::string operator()(int x) const;
-  std::string operator()(const std::string& str) const;
-  std::string operator()(const m6::IdExpr& str) const;
-};
+#define EXPECT_TXTEQ(lhs, rhs) EXPECT_EQ(trim_cp(lhs), trim_cp(rhs));

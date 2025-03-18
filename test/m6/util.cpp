@@ -32,37 +32,3 @@ auto TokenArray(std::string_view sv) -> std::vector<m6::Token> {
   m6::Tokenizer tokenizer(sv);
   return tokenizer.parsed_tok_;
 }
-
-std::string GetPrefix::operator()(const m6::BinaryExpr& x) const {
-  return ToString(x.op) + ' ' + x.lhs->Apply(*this) + ' ' + x.rhs->Apply(*this);
-}
-std::string GetPrefix::operator()(const m6::AssignExpr& x) const {
-  return "= " + x.lhs->Apply(*this) + ' ' + x.rhs->Apply(*this);
-}
-std::string GetPrefix::operator()(const m6::UnaryExpr& x) const {
-  return ToString(x.op) + ' ' + x.sub->Apply(*this);
-}
-std::string GetPrefix::operator()(const m6::ParenExpr& x) const {
-  return x.sub->Apply(*this);
-}
-std::string GetPrefix::operator()(const m6::InvokeExpr& x) const {
-  return x.fn->Apply(*this) + '(' +
-         Join(", ", x.args | std::views::transform([&](const auto& arg) {
-                      return arg->Apply(*this);
-                    })) +
-         ')';
-}
-std::string GetPrefix::operator()(const m6::SubscriptExpr& x) const {
-  return x.primary->Apply(*this) + '[' + x.index->Apply(*this) + ']';
-}
-std::string GetPrefix::operator()(const m6::MemberExpr& x) const {
-  return x.primary->Apply(*this) + '.' + x.member->Apply(*this);
-}
-std::string GetPrefix::operator()(std::monostate) const { return "<null>"; }
-std::string GetPrefix::operator()(int x) const { return std::to_string(x); }
-std::string GetPrefix::operator()(const std::string& str) const {
-  return '"' + str + '"';
-}
-std::string GetPrefix::operator()(const m6::IdExpr& id) const {
-  return id.tok->GetIf<m6::tok::ID>()->id;
-}

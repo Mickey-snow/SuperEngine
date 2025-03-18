@@ -30,6 +30,7 @@
 #include "utilities/string_utilities.hpp"
 
 #include <format>
+#include <sstream>
 #include <unordered_map>
 
 namespace m6 {
@@ -65,58 +66,80 @@ InvokeExpr::InvokeExpr(std::shared_ptr<ExprAST> in_fn,
 
 // -----------------------------------------------------------------------
 // AST node member functions
+
+std::string IntLiteral::DebugString() const {
+  return "IntLiteral " + std::to_string(GetValue());
+}
+int IntLiteral::GetValue() const { return tok->GetIf<tok::Int>()->value; }
+
+std::string StrLiteral::DebugString() const {
+  return "StrLiteral " + GetValue();
+}
+std::string const& StrLiteral::GetValue() const {
+  return tok->GetIf<tok::Literal>()->str;
+}
+
 std::string BinaryExpr::DebugString() const {
-  return lhs->DebugString() + ToString(op) + rhs->DebugString();
+  return "Binaryop " + ToString(op);
 }
 
-std::string AssignExpr::DebugString() const {
-  return lhs->DebugString() + '=' + rhs->DebugString();
-}
+std::string AssignExpr::DebugString() const { return "Assign"; }
 
-std::string UnaryExpr::DebugString() const {
-  return ToString(op) + sub->DebugString();
-}
+std::string UnaryExpr::DebugString() const { return "Unaryop " + ToString(op); }
 
-std::string ParenExpr::DebugString() const {
-  return '(' + sub->DebugString() + ')';
-}
+std::string ParenExpr::DebugString() const { return "Parenthesis"; }
 
-std::string InvokeExpr::DebugString() const {
-  return fn->DebugString() + '(' +
-         Join(", ", args | std::views::transform([](const auto& x) {
-                      return x->DebugString();
-                    })) +
-         ')';
-}
+std::string InvokeExpr::DebugString() const { return "Invoke"; }
 
-std::string SubscriptExpr::DebugString() const {
-  return primary->DebugString() + '[' + index->DebugString() + ']';
-}
+std::string SubscriptExpr::DebugString() const { return "Subscript"; }
 
-std::string MemberExpr::DebugString() const {
-  return primary->DebugString() + '.' + member->DebugString();
-}
+std::string MemberExpr::DebugString() const { return "Member"; }
 
-std::string IdExpr::DebugString() const {
-  return tok->GetIf<tok::ID>()->id;
-  ;
-}
-
+std::string IdExpr::DebugString() const { return "ID " + GetID(); }
 std::string const& IdExpr::GetID() const { return tok->GetIf<tok::ID>()->id; }
 
-std::string ExprAST::DebugString() const {
-  return this->Apply([](const auto& x) -> std::string {
-    using T = std::decay_t<decltype(x)>;
+struct Dumper {
+  std::string pref;
+  bool isLast;
 
-    if constexpr (std::same_as<T, std::monostate>)
-      return "<null>";
-    else if constexpr (std::same_as<T, int>)
-      return std::to_string(x);
-    else if constexpr (std::same_as<T, std::string>)
-      return x;
-    else
-      return x.DebugString();
-  });
+  std::string operator()(const auto& x) const {
+    std::ostringstream oss;
+    if (!pref.empty()) {
+      oss << pref;
+      oss << (isLast ? "└─" : "├─");
+    }
+    oss << x.DebugString() << '\n';
+
+    std::string childPrefix = pref + (isLast ? "   " : "│  ");
+
+    using T = std::decay_t<decltype(x)>;
+    if constexpr (std::same_as<T, BinaryExpr> || std::same_as<T, AssignExpr>) {
+      oss << x.lhs->Apply(Dumper(childPrefix, false));
+      oss << x.rhs->Apply(Dumper(childPrefix, true));
+    }
+    if constexpr (std::same_as<T, UnaryExpr> || std::same_as<T, ParenExpr>) {
+      oss << x.sub->Apply(Dumper(childPrefix, true));
+    }
+    if constexpr (std::same_as<T, InvokeExpr>) {
+      oss << x.fn->Apply(Dumper(childPrefix, false));
+      for (size_t i = 0; i < x.args.size(); ++i)
+        oss << x.args[i]->Apply(
+            Dumper(childPrefix, (i == x.args.size() - 1 ? true : false)));
+    }
+    if constexpr (std::same_as<T, SubscriptExpr>) {
+      oss << x.primary->Apply(Dumper(childPrefix, false));
+      oss << x.index->Apply(Dumper(childPrefix, true));
+    }
+    if constexpr (std::same_as<T, MemberExpr>) {
+      oss << x.primary->Apply(Dumper(childPrefix, false));
+      oss << x.member->Apply(Dumper(childPrefix, true));
+    }
+
+    return oss.str();
+  }
+};
+std::string ExprAST::DumpAST() const {
+  return std::visit(Dumper("", true), var_);
 }
 
 }  // namespace m6

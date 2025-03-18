@@ -172,3 +172,7 @@ inline void trim(std::string& s) {
   rtrim(s);
   ltrim(s);
 }
+inline std::string trim_cp(std::string s) {
+  trim(s);
+  return s;
+}

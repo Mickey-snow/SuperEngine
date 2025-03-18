@@ -468,18 +468,12 @@ static std::shared_ptr<ExprAST> parsePrimary(iterator_t& it, iterator_t end) {
     throw SyntaxError("Expected primary expression.", it);
 
   // Try integer
-  if (auto p = it->GetIf<tok::Int>()) {
-    auto val = p->value;
-    ++it;
-    return std::make_shared<ExprAST>(val);
-  }
+  if (it->HoldsAlternative<tok::Int>())
+    return std::make_shared<ExprAST>(IntLiteral(it++));
 
   // Try string
-  if (auto p = it->GetIf<tok::Literal>()) {
-    auto strval = p->str;
-    ++it;
-    return std::make_shared<ExprAST>(strval);
-  }
+  if (it->HoldsAlternative<tok::Literal>())
+    return std::make_shared<ExprAST>(StrLiteral(it++));
 
   // Try identifier
   if (it->HoldsAlternative<tok::ID>())

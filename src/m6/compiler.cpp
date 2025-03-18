@@ -42,7 +42,6 @@ void Compiler::AddNative(Value fn) {
 
 std::vector<Instruction> Compiler::Compile(std::shared_ptr<ExprAST> expr) {
   struct Visitor {
-    void operator()(std::monostate) { bk = Push(Value(std::monostate())); }
     void operator()(const IdExpr& idexpr) {
       std::string const& id = idexpr.GetID();
       auto it = compiler.local_variable_.find(id);
@@ -52,8 +51,8 @@ std::vector<Instruction> Compiler::Compile(std::shared_ptr<ExprAST> expr) {
 
       bk = Load(it->second);
     }
-    void operator()(int x) { bk = Push(Value(x)); }
-    void operator()(const std::string& x) { bk = Push(Value(x)); }
+    void operator()(const IntLiteral& x) { bk = Push(Value(x.GetValue())); }
+    void operator()(const StrLiteral& x) { bk = Push(Value(x.GetValue())); }
     void operator()(const InvokeExpr& x) {
       for (auto arg : x.args)
         arg->Apply(*this);
