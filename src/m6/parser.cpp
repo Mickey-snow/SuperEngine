@@ -431,7 +431,7 @@ static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end) {
       if (it == end || !it->HoldsAlternative<tok::ID>()) {
         throw SyntaxError("Expected identifier after '.'", it);
       }
-      IdExpr memberName(it);
+      Identifier memberName(it);
       ++it;  // consume the ID token
       auto memberNode = std::make_shared<ExprAST>(std::move(memberName));
       lhs = std::make_shared<ExprAST>(MemberExpr(lhs, memberNode));
@@ -477,7 +477,7 @@ static std::shared_ptr<ExprAST> parsePrimary(iterator_t& it, iterator_t end) {
 
   // Try identifier
   if (it->HoldsAlternative<tok::ID>())
-    return std::make_shared<ExprAST>(IdExpr(it++));
+    return std::make_shared<ExprAST>(Identifier(it++));
 
   // Try '(' expression ')'
   if (tryConsumeToken<tok::ParenthesisL>(it, end)) {

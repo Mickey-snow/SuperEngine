@@ -35,6 +35,20 @@ using namespace m6;
 
 namespace m6test {
 
+template <class E = m6::CompileError>
+static inline std::string ThrowResult(std::string_view input) {
+  std::vector<Token> tok = TokenArray(input);
+
+  try {
+    ParseExpression(std::span(tok));
+  } catch (E& e) {
+    return e.FormatWith(input);
+  } catch (...) {
+    return "it throws a different type of exception.";
+  }
+  return "it throws nothing.";
+}
+
 TEST(ExprastParserTest, BasicArithmetic) {
   {
     std::shared_ptr<ExprAST> result = nullptr;
@@ -721,33 +735,48 @@ Subscript
   }
 }
 
-template <class E = m6::CompileError>
-inline int ThrowResult(std::string_view input) {
-  std::vector<Token> tok = TokenArray(input);
-
-  try {
-    ParseExpression(std::span(tok));
-  } catch (E& e) {
-    Token const* it = e.where();
-    return it->offset;
-  } catch (...) {
-    ADD_FAILURE() << "it throws a different type of exception.";
-    return -2;
-  }
-  ADD_FAILURE() << "it throws nothing.";
-  return -1;
-}
-
 TEST(ExprParserTest, ErrorHandling) {
-  EXPECT_EQ(ThrowResult("a+(b*c"), 6)
-      << "Missing closing parenthesis at the end";
-  EXPECT_EQ(ThrowResult("d / / e"), 4) << "Repeated operator at the second '/'";
-  EXPECT_EQ(ThrowResult("f* (g+)"), 6);
-  EXPECT_EQ(ThrowResult("j+*k"), 2);
-  EXPECT_EQ(ThrowResult(")a"), 0);
-  EXPECT_EQ(ThrowResult("a."), 2);
-  EXPECT_EQ(ThrowResult("a[123"), 5);
-  EXPECT_EQ(ThrowResult("a(b,c"), 5);
+  EXPECT_TXTEQ(ThrowResult("a+(b*c"),
+               R"(error: Missing closing ')' in parenthesized expression.
+a+(b*c
+      ^
+)");
+
+  EXPECT_TXTEQ(ThrowResult("d / / e"), R"(error: Expected primary expression.
+d / / e
+    ^
+)");
+
+  EXPECT_TXTEQ(ThrowResult("f* (g+)"), R"(error: Expected primary expression.
+f* (g+)
+      ^
+)");
+
+  EXPECT_TXTEQ(ThrowResult("j+*k"), R"(error: Expected primary expression.
+j+*k
+  ^
+)");
+
+  EXPECT_TXTEQ(ThrowResult(")a"), R"(error: Expected primary expression.
+)a
+^
+)");
+
+  EXPECT_TXTEQ(ThrowResult("a."), R"(error: Expected identifier after '.'
+a.
+  ^
+)");
+
+  EXPECT_TXTEQ(ThrowResult("a[123"),
+               R"(error: Expected ']' after subscript expression.
+a[123
+     ^
+)");
+
+  EXPECT_TXTEQ(ThrowResult("a(b,c"), R"(error: Expected ')' after function call.
+a(b,c
+     ^
+)");
 }
 
 }  // namespace m6test

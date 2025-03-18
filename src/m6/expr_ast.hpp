@@ -41,7 +41,6 @@ class Token;
 // AST Nodes
 
 // Literal
-
 struct NilLiteral {
   Token* tok;
   std::string DebugString() const;
@@ -60,7 +59,7 @@ struct StrLiteral {
 };
 
 // Identifier
-struct IdExpr {
+struct Identifier {
   Token* tok;
   std::string DebugString() const;
   std::string const& GetID() const;
@@ -126,9 +125,9 @@ struct MemberExpr {
 
 // -----------------------------------------------------------------------
 // AST
-using expr_variant_t = std::variant<IntLiteral,  // integer literal
-                                    StrLiteral,  // string literal
-                                    IdExpr,      // identifier
+using expr_variant_t = std::variant<IntLiteral,
+                                    StrLiteral,
+                                    Identifier,
                                     InvokeExpr,
                                     SubscriptExpr,
                                     MemberExpr,

@@ -23,8 +23,11 @@
 // -----------------------------------------------------------------------
 
 #include "m6/exception.hpp"
+#include "m6/token.hpp"
 #include "machine/op.hpp"
 #include "utilities/string_utilities.hpp"
+
+#include <sstream>
 
 namespace m6 {
 
@@ -41,6 +44,18 @@ CompileError::CompileError(std::string msg, Token* tok)
     : msg_(std::move(msg)), tok_(tok) {}
 char const* CompileError::what() const noexcept { return msg_.c_str(); }
 Token const* CompileError::where() const noexcept { return tok_; }
+std::string CompileError::FormatWith(std::string_view src) const {
+  std::ostringstream oss;
+
+  // Print error message
+  oss << "error: " << this->what() << '\n';
+  // Print source code
+  oss << src << '\n';
+  // Print a caret under the error position.
+  oss << std::string(this->where()->offset, ' ') << '^';
+
+  return oss.str();
+}
 
 // -----------------------------------------------------------------------
 

@@ -42,7 +42,7 @@ void Compiler::AddNative(Value fn) {
 
 std::vector<Instruction> Compiler::Compile(std::shared_ptr<ExprAST> expr) {
   struct Visitor {
-    void operator()(const IdExpr& idexpr) {
+    void operator()(const Identifier& idexpr) {
       std::string const& id = idexpr.GetID();
       auto it = compiler.local_variable_.find(id);
       if (it == compiler.local_variable_.cend()) {
@@ -57,7 +57,7 @@ std::vector<Instruction> Compiler::Compile(std::shared_ptr<ExprAST> expr) {
       for (auto arg : x.args)
         arg->Apply(*this);
 
-      if (auto idexpr = x.fn->Get_if<IdExpr>()) {
+      if (auto idexpr = x.fn->Get_if<Identifier>()) {
         std::string const& id = idexpr->GetID();
         auto it = compiler.native_fn_.find(id);
         if (it == compiler.native_fn_.cend())
@@ -99,7 +99,7 @@ std::vector<Instruction> Compiler::Compile(std::shared_ptr<ExprAST> expr) {
   // type.
   // <id> = <expr>
   if (auto assign = expr->Get_if<AssignExpr>()) {
-    auto idtok = assign->lhs->Get_if<IdExpr>();
+    auto idtok = assign->lhs->Get_if<Identifier>();
     if (!idtok)
       throw SyntaxError("Cannot assign to expression here.");
     assign->rhs->Apply(Visitor(std::back_inserter(result), *this));

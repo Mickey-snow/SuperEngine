@@ -95,8 +95,8 @@ std::string SubscriptExpr::DebugString() const { return "Subscript"; }
 
 std::string MemberExpr::DebugString() const { return "Member"; }
 
-std::string IdExpr::DebugString() const { return "ID " + GetID(); }
-std::string const& IdExpr::GetID() const { return tok->GetIf<tok::ID>()->id; }
+std::string Identifier::DebugString() const { return "ID " + GetID(); }
+std::string const& Identifier::GetID() const { return tok->GetIf<tok::ID>()->id; }
 
 struct Dumper {
   std::string pref;

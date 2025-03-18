@@ -51,6 +51,8 @@ class CompileError {
   char const* what() const noexcept;
   Token const* where() const noexcept;
 
+  std::string FormatWith(std::string_view src) const;
+
  private:
   std::string msg_;
   Token* tok_;
