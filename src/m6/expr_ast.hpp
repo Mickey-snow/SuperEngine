@@ -76,10 +76,11 @@ struct BinaryExpr {
 
 // Simple Assignment '='
 struct AssignExpr {
-  std::shared_ptr<ExprAST> lhs;
+  Identifier* lhs;
   std::shared_ptr<ExprAST> rhs;
 
   std::string DebugString() const;
+  std::string const& GetID() const;
 };
 
 // Compound Assignment

@@ -327,6 +327,14 @@ AugAssign +=
          └─ID x
 )");
   }
+
+  {  // error: assigning to expression
+    EXPECT_TXTEQ(ThrowResult("(v1+v2) = 1"), R"(
+error: Expected identifier.
+(v1+v2) = 1
+^^^^^^^^
+)");
+  }
 }
 
 TEST(ExprastParserTest, BitwiseOperators) {

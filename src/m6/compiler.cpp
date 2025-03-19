@@ -30,6 +30,8 @@
 #include "machine/op.hpp"
 #include "machine/value.hpp"
 
+#include <optional>
+
 namespace m6 {
 
 void Compiler::AddNative(Value fn) {
@@ -46,7 +48,7 @@ std::vector<Instruction> Compiler::Compile(std::shared_ptr<ExprAST> expr) {
       std::string const& id = idexpr.GetID();
       auto it = compiler.local_variable_.find(id);
       if (it == compiler.local_variable_.cend()) {
-        throw NameError("Name '" + id + "' not defined.", idexpr.tok);
+        throw NameError("Name '" + id + "' not defined.", *idexpr.tok);
       }
 
       bk = Load(it->second);
@@ -61,7 +63,7 @@ std::vector<Instruction> Compiler::Compile(std::shared_ptr<ExprAST> expr) {
         std::string const& id = idexpr->GetID();
         auto it = compiler.native_fn_.find(id);
         if (it == compiler.native_fn_.cend())
-          throw NameError("Name '" + id + "' is not defined.", idexpr->tok);
+          throw NameError("Name '" + id + "' is not defined.", *idexpr->tok);
 
         bk = Push(it->second);
         bk = Invoke(x.args.size());
@@ -102,12 +104,9 @@ std::vector<Instruction> Compiler::Compile(std::shared_ptr<ExprAST> expr) {
   // type.
   // <id> = <expr>
   if (auto assign = expr->Get_if<AssignExpr>()) {
-    auto idtok = assign->lhs->Get_if<Identifier>();
-    if (!idtok)
-      throw SyntaxError("Cannot assign to expression here.");
     assign->rhs->Apply(Visitor(std::back_inserter(result), *this));
 
-    std::string const& id = idtok->GetID();
+    std::string const& id = assign->GetID();
     if (local_variable_.contains(id)) {
       result.push_back(Store(local_variable_[id]));
       result.push_back(Pop());

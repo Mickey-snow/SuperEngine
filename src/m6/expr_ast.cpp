@@ -55,6 +55,7 @@ std::string BinaryExpr::DebugString() const {
 }
 
 std::string AssignExpr::DebugString() const { return "Assign"; }
+std::string const& AssignExpr::GetID() const { return lhs->GetID(); }
 
 std::string AugExpr::DebugString() const {
   return "AugAssign " + ToString(GetOp());
@@ -92,11 +93,11 @@ struct Dumper {
     std::string childPrefix = pref + (isLast ? "   " : "│  ");
 
     using T = std::decay_t<decltype(x)>;
-    if constexpr (std::same_as<T, BinaryExpr> || std::same_as<T, AssignExpr>) {
+    if constexpr (std::same_as<T, BinaryExpr>) {
       oss << x.lhs->Apply(Dumper(childPrefix, false));
       oss << x.rhs->Apply(Dumper(childPrefix, true));
     }
-    if constexpr (std::same_as<T, AugExpr>) {
+    if constexpr (std::same_as<T, AugExpr> || std::same_as<T, AssignExpr>) {
       oss << Dumper(childPrefix, false)(*x.lhs);
       oss << x.rhs->Apply(Dumper(childPrefix, true));
     }

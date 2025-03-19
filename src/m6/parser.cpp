@@ -116,7 +116,7 @@ static std::shared_ptr<ExprAST> parsePrimary(iterator_t& it, iterator_t end);
 //=================================================================================
 static std::shared_ptr<ExprAST> parseExpression(iterator_t& it,
                                                 iterator_t end) {
-  return parseAssignment(it, end);
+  return parseLogicalOr(it, end);
 }
 
 //=================================================================================
@@ -126,7 +126,10 @@ static std::shared_ptr<ExprAST> parseExpression(iterator_t& it,
 //=================================================================================
 static std::shared_ptr<ExprAST> parseAssignment(iterator_t& it,
                                                 iterator_t end) {
+  skipWS(it, end);
+  iterator_t lhs_begin = it;
   auto lhs = parseLogicalOr(it, end);
+  iterator_t lhs_end = it;
 
   skipWS(it, end);
   Token* op_tok = it;
@@ -146,13 +149,14 @@ static std::shared_ptr<ExprAST> parseAssignment(iterator_t& it,
     return nullptr;
   });
   if (id_node == nullptr) {
-    throw SyntaxError("Expected identifier.");
+    throw SyntaxError("Expected identifier.",
+                      std::make_optional<SourceLocation>(*lhs_begin, *lhs_end));
   }
 
   auto rhs = parseLogicalOr(it, end);
   if (assignmentOp == Op::Assign) {
     // simple assignment
-    lhs = std::make_shared<ExprAST>(AssignExpr(lhs, rhs));
+    lhs = std::make_shared<ExprAST>(AssignExpr(id_node, rhs));
   } else {
     // compound assignment
     lhs = std::make_shared<ExprAST>(AugExpr(id_node, op_tok, rhs));
@@ -416,7 +420,7 @@ static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end) {
       }
 
       if (!tryConsumeToken<tok::ParenthesisR>(it, end)) {
-        throw SyntaxError("Expected ')' after function call.", it);
+        throw SyntaxError("Expected ')' after function call.", *it);
       }
       lhs = std::make_shared<ExprAST>(InvokeExpr(lhs, std::move(arglist)));
       continue;
@@ -426,7 +430,7 @@ static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end) {
     if (tryConsumeOp(it, end, Op::Dot)) {
       skipWS(it, end);
       if (it == end || !it->HoldsAlternative<tok::ID>()) {
-        throw SyntaxError("Expected identifier after '.'", it);
+        throw SyntaxError("Expected identifier after '.'", *it);
       }
       Identifier memberName(it);
       ++it;  // consume the ID token
@@ -439,7 +443,7 @@ static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end) {
     if (tryConsumeToken<tok::SquareL>(it, end)) {
       auto indexExpr = parseExpression(it, end);
       if (!tryConsumeToken<tok::SquareR>(it, end)) {
-        throw SyntaxError("Expected ']' after subscript expression.", it);
+        throw SyntaxError("Expected ']' after subscript expression.", *it);
       }
       lhs = std::make_shared<ExprAST>(SubscriptExpr(lhs, indexExpr));
       continue;
@@ -462,7 +466,7 @@ static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end) {
 static std::shared_ptr<ExprAST> parsePrimary(iterator_t& it, iterator_t end) {
   skipWS(it, end);
   if (it == end)
-    throw SyntaxError("Expected primary expression.", it);
+    throw SyntaxError("Expected primary expression.", *it);
 
   // Try integer
   if (it->HoldsAlternative<tok::Int>())
@@ -481,25 +485,26 @@ static std::shared_ptr<ExprAST> parsePrimary(iterator_t& it, iterator_t end) {
     auto exprNode = parseExpression(it, end);
     skipWS(it, end);
     if (!tryConsumeToken<tok::ParenthesisR>(it, end))
-      throw SyntaxError("Missing closing ')' in parenthesized expression.", it);
+      throw SyntaxError("Missing closing ')' in parenthesized expression.",
+                        *it);
 
     return std::make_shared<ExprAST>(ParenExpr(exprNode));
   }
 
   // If none matched, it's an error.
-  throw SyntaxError("Expected primary expression.", it);
+  throw SyntaxError("Expected primary expression.", *it);
 }
 
 //=================================================================================
 // Public parse function entry point.
 //=================================================================================
 std::shared_ptr<ExprAST> ParseExpression(Token*& it, Token* end) {
-  return parseExpression(it, end);
+  return parseAssignment(it, end);
 }
 std::shared_ptr<ExprAST> ParseExpression(std::span<Token> input) {
   auto begin = input.data();
   auto end = input.data() + input.size();
-  return ParseExpression(begin, end);
+  return parseAssignment(begin, end);
 }
 
 }  // namespace m6

@@ -32,6 +32,14 @@
 namespace m6 {
 
 // -----------------------------------------------------------------------
+// class SourceLocation
+// -----------------------------------------------------------------------
+SourceLocation::SourceLocation(const Token& tok)
+    : begin_offset(tok.offset), end_offset(begin_offset + 1) {}
+SourceLocation::SourceLocation(const Token& begin, const Token& end)
+    : begin_offset(begin.offset), end_offset(end.offset) {}
+
+// -----------------------------------------------------------------------
 // class RuntimeError
 // -----------------------------------------------------------------------
 RuntimeError::RuntimeError(std::string msg) : msg_(std::move(msg)) {}
@@ -40,19 +48,26 @@ char const* RuntimeError::what() const noexcept { return msg_.c_str(); }
 // -----------------------------------------------------------------------
 // class CompileError
 // -----------------------------------------------------------------------
-CompileError::CompileError(std::string msg, Token* tok)
-    : msg_(std::move(msg)), tok_(tok) {}
+CompileError::CompileError(std::string msg, std::optional<SourceLocation> loc)
+    : msg_(std::move(msg)), loc_(loc) {}
 char const* CompileError::what() const noexcept { return msg_.c_str(); }
-Token const* CompileError::where() const noexcept { return tok_; }
+std::optional<SourceLocation> CompileError::where() const noexcept {
+  return loc_;
+}
 std::string CompileError::FormatWith(std::string_view src) const {
   std::ostringstream oss;
 
   // Print error message
   oss << "error: " << this->what() << '\n';
-  // Print source code
-  oss << src << '\n';
-  // Print a caret under the error position.
-  oss << std::string(this->where()->offset, ' ') << '^';
+  auto loc = this->where();
+
+  if (loc.has_value()) {
+    // Print source code
+    oss << src << '\n';
+    // Print a caret under the error position.
+    oss << std::string(loc->begin_offset, ' ')
+        << std::string(loc->end_offset - loc->begin_offset, '^');
+  }
 
   return oss.str();
 }
@@ -67,10 +82,10 @@ ValueError::ValueError(std::string msg) : RuntimeError(std::move(msg)) {}
 
 TypeError::TypeError(std::string msg) : RuntimeError(std::move(msg)) {}
 
-SyntaxError::SyntaxError(std::string msg, Token* tok)
-    : CompileError(std::move(msg), tok) {}
+SyntaxError::SyntaxError(std::string msg, std::optional<SourceLocation> loc)
+    : CompileError(std::move(msg), loc) {}
 
-NameError::NameError(const std::string& name, Token* tok)
-    : CompileError("name '" + name + "' is not defined.", tok) {}
+NameError::NameError(const std::string& name, std::optional<SourceLocation> loc)
+    : CompileError("name '" + name + "' is not defined.", loc) {}
 
 }  // namespace m6
