@@ -88,6 +88,9 @@ std::vector<Instruction> Compiler::Compile(std::shared_ptr<ExprAST> expr) {
       // this is inside an expression
       throw SyntaxError("Invalid syntax.");
     }
+    void operator()(const AugExpr& x) {
+      throw std::runtime_error("not supported yet.");
+    }
 
     std::back_insert_iterator<std::vector<Instruction>> bk;
     Compiler& compiler;

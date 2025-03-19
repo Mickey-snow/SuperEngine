@@ -82,6 +82,17 @@ struct AssignExpr {
   std::string DebugString() const;
 };
 
+// Compound Assignment
+struct AugExpr {
+  Identifier* lhs;
+  Token* op_tok;
+  std::shared_ptr<ExprAST> rhs;
+
+  std::string DebugString() const;
+  std::string const& GetID() const;
+  Op GetOp() const;
+};
+
 // Unary operation node
 struct UnaryExpr {
   Op op;
@@ -99,8 +110,6 @@ struct ParenExpr {
 
 // Function call node
 struct InvokeExpr {
-  InvokeExpr(std::shared_ptr<ExprAST> in_fn, std::shared_ptr<ExprAST> in_arg);
-
   std::shared_ptr<ExprAST> fn;
   std::vector<std::shared_ptr<ExprAST>> args;
 
@@ -133,6 +142,7 @@ using expr_variant_t = std::variant<IntLiteral,
                                     MemberExpr,
                                     BinaryExpr,
                                     AssignExpr,
+                                    AugExpr,
                                     UnaryExpr,
                                     ParenExpr>;
 

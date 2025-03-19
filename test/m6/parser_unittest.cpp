@@ -31,6 +31,9 @@
 #include "m6/parser.hpp"
 #include "machine/op.hpp"
 
+#include <string_view>
+
+using std::string_view_literals::operator""sv;
 using namespace m6;
 
 namespace m6test {
@@ -186,28 +189,6 @@ Binaryop /
 )");
 }
 
-TEST(ExprastParserTest, ExprList) {
-  std::shared_ptr<ExprAST> result = nullptr;
-  std::vector<Token> input = TokenArray(
-      tok::Int(5), tok::Operator(Op::Add), tok::Int(6),
-      tok::Operator(Op::Comma), tok::Int(8), tok::Operator(Op::Comma),
-      tok::Int(9), tok::Operator(Op::Div), tok::Int(7));
-
-  ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
-  ASSERT_NE(result, nullptr);
-  EXPECT_TXTEQ(result->DumpAST(), R"(
-Binaryop ,
-   ├─Binaryop ,
-   │  ├─Binaryop +
-   │  │  ├─IntLiteral 5
-   │  │  └─IntLiteral 6
-   │  └─IntLiteral 8
-   └─Binaryop /
-      ├─IntLiteral 9
-      └─IntLiteral 7
-)");
-}
-
 TEST(ExprastParserTest, Identifier) {
   std::shared_ptr<ExprAST> result = nullptr;
   std::vector<Token> input = TokenArray(
@@ -313,71 +294,37 @@ Binaryop ||
 }
 
 TEST(ExprastParserTest, Assignment) {
-  {
+  {  // Basic variable declaration
     std::shared_ptr<ExprAST> result = nullptr;
-    std::vector<Token> input =
-        TokenArray(tok::ID("v1"), tok::Operator(Op::Assign), tok::ID("v2"),
-                   tok::Operator(Op::ShiftLeftAssign), tok::ID("v3"),
-                   tok::Operator(Op::ShiftRight), tok::ID("v4"),
-                   tok::Operator(Op::ShiftRightAssign), tok::ID("v5"),
-                   tok::Operator(Op::LogicalAnd), tok::Int(12),
-                   tok::Operator(Op::AddAssign), tok::ID("v2"),
-                   tok::Operator(Op::SubAssign), tok::ID("v3"),
-                   tok::Operator(Op::MulAssign), tok::ID("v4"),
-                   tok::Operator(Op::ModAssign), tok::ID("v5"));
-
-    ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
-    ASSERT_NE(result, nullptr);
-    EXPECT_TXTEQ(result->DumpAST(),
-                 R"(
-Assign
-   ├─ID v1
-   └─Binaryop <<=
-      ├─ID v2
-      └─Binaryop >>=
-         ├─Binaryop >>
-         │  ├─ID v3
-         │  └─ID v4
-         └─Binaryop +=
-            ├─Binaryop &&
-            │  ├─ID v5
-            │  └─IntLiteral 12
-            └─Binaryop -=
-               ├─ID v2
-               └─Binaryop *=
-                  ├─ID v3
-                  └─Binaryop %=
-                     ├─ID v4
-                     └─ID v5
-)");
-  }
-
-  {
-    std::shared_ptr<ExprAST> result = nullptr;
-    std::vector<Token> input =
-        TokenArray(tok::ID("v1"), tok::Operator(Op::BitOrAssign), tok::ID("v2"),
-                   tok::Operator(Op::ShiftLeft), tok::ID("v3"),
-                   tok::Operator(Op::ShiftRight), tok::ID("v4"),
-                   tok::Operator(Op::BitXorAssign), tok::ID("v5"),
-                   tok::Operator(Op::LogicalAnd), tok::Int(12),
-                   tok::Operator(Op::BitAndAssign), tok::ID("v2"));
-
+    std::vector<Token> input = TokenArray("v1 = 1 + 2-3"sv);
     ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
     ASSERT_NE(result, nullptr);
     EXPECT_TXTEQ(result->DumpAST(), R"(
-Binaryop |=
+Assign
    ├─ID v1
-   └─Binaryop ^=
-      ├─Binaryop >>
-      │  ├─Binaryop <<
-      │  │  ├─ID v2
-      │  │  └─ID v3
-      │  └─ID v4
-      └─Binaryop &=
-         ├─Binaryop &&
-         │  ├─ID v5
-         │  └─IntLiteral 12
-         └─ID v2
+   └─Binaryop -
+      ├─Binaryop +
+      │  ├─IntLiteral 1
+      │  └─IntLiteral 2
+      └─IntLiteral 3
+)");
+  }
+
+  {  // Basic compound assignment
+    std::shared_ptr<ExprAST> result = nullptr;
+    std::vector<Token> input = TokenArray("v1+=x+y-y%x"sv);
+    ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
+    ASSERT_NE(result, nullptr);
+    EXPECT_TXTEQ(result->DumpAST(), R"(
+AugAssign +=
+   ├─ID v1
+   └─Binaryop -
+      ├─Binaryop +
+      │  ├─ID x
+      │  └─ID y
+      └─Binaryop %
+         ├─ID y
+         └─ID x
 )");
   }
 }
@@ -631,7 +578,7 @@ Binaryop &&
         tok::ID("a"), tok::Operator(Op::ShiftUnsignedRightAssign), tok::ID("b"),
         tok::Operator(Op::ShiftUnsignedRight), tok::ID("c"));
     EXPECT_TXTEQ(ParseExpression(std::span(input))->DumpAST(), R"(
-Binaryop >>>=
+AugAssign >>>=
    ├─ID a
    └─Binaryop >>>
       ├─ID b

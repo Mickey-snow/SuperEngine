@@ -93,6 +93,7 @@ static bool tryConsumeToken(iterator_t& it, iterator_t end) {
 }
 
 // Forward declarations of recursive parsing functions.
+static std::shared_ptr<ExprAST> parseExpression(iterator_t& it, iterator_t end);
 static std::shared_ptr<ExprAST> parseAssignment(iterator_t& it, iterator_t end);
 static std::shared_ptr<ExprAST> parseLogicalOr(iterator_t& it, iterator_t end);
 static std::shared_ptr<ExprAST> parseLogicalAnd(iterator_t& it, iterator_t end);
@@ -110,58 +111,51 @@ static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end);
 static std::shared_ptr<ExprAST> parsePrimary(iterator_t& it, iterator_t end);
 
 //=================================================================================
-// parseExpression() - top-level parse for expressions, handling comma.
-//     expression -> assignment_expr (',' assignment_expr)*
+// parseExpression() - top-level parse for expressions.
+//     expression -> assignment_expr
 //=================================================================================
-std::shared_ptr<ExprAST> parseExpression(iterator_t& it, iterator_t end) {
-  auto lhs = parseAssignment(it, end);
-  // Now handle comma operators, left-associative.
-  while (true) {
-    skipWS(it, end);
-    if (!tryConsumeOp(it, end, Op::Comma)) {
-      break;
-    }
-    auto rhs = parseAssignment(it, end);
-    BinaryExpr expr(Op::Comma, lhs, rhs);
-    lhs = std::make_shared<ExprAST>(std::move(expr));
-  }
-  return lhs;
+static std::shared_ptr<ExprAST> parseExpression(iterator_t& it,
+                                                iterator_t end) {
+  return parseAssignment(it, end);
 }
 
 //=================================================================================
 // parseAssignment() - right-associative assignment ops.
-//     assignment_expr -> logical_or_expr ( ASSIGN_OP assignment_expr )*
+//     assignment_expr -> logical_or_expr ( ASSIGN_OP assignment_expr )?
 //     where ASSIGN_OP is one of =, +=, -=, etc.
 //=================================================================================
 static std::shared_ptr<ExprAST> parseAssignment(iterator_t& it,
                                                 iterator_t end) {
   auto lhs = parseLogicalOr(it, end);
 
-  // We can do repeated assignment in a right-associative manner:
-  // We'll use a loop that rebinds 'lhs' from the right side.
-  while (true) {
-    skipWS(it, end);
-    auto matched =
-        tryConsumeAny(it, end,
-                      {Op::Assign, Op::AddAssign, Op::SubAssign, Op::MulAssign,
-                       Op::DivAssign, Op::ModAssign, Op::BitAndAssign,
-                       Op::BitOrAssign, Op::BitXorAssign, Op::ShiftLeftAssign,
-                       Op::ShiftRightAssign, Op::ShiftUnsignedRightAssign});
-    if (!matched.has_value())
-      break;
-    auto assignmentOp = matched.value();
+  skipWS(it, end);
+  Token* op_tok = it;
+  auto matched =
+      tryConsumeAny(it, end,
+                    {Op::Assign, Op::AddAssign, Op::SubAssign, Op::MulAssign,
+                     Op::DivAssign, Op::ModAssign, Op::BitAndAssign,
+                     Op::BitOrAssign, Op::BitXorAssign, Op::ShiftLeftAssign,
+                     Op::ShiftRightAssign, Op::ShiftUnsignedRightAssign});
+  if (!matched.has_value())
+    return lhs;
 
-    // Parse the right-hand side via the same parseAssignment for R->L
-    // associativity.
-    auto rhs = parseAssignment(it, end);
-    if (assignmentOp == Op::Assign) {
-      // simple assignment
-      lhs = std::make_shared<ExprAST>(AssignExpr(lhs, rhs));
-    } else {
-      // compound assignment
-      BinaryExpr expr(assignmentOp, lhs, rhs);
-      lhs = std::make_shared<ExprAST>(std::move(expr));
-    }
+  auto assignmentOp = matched.value();
+  auto* id_node = lhs->Apply([](auto& x) -> Identifier* {
+    if constexpr (std::same_as<std::decay_t<decltype(x)>, Identifier>)
+      return &x;  // for now, only support assign to identifier
+    return nullptr;
+  });
+  if (id_node == nullptr) {
+    throw SyntaxError("Expected identifier.");
+  }
+
+  auto rhs = parseLogicalOr(it, end);
+  if (assignmentOp == Op::Assign) {
+    // simple assignment
+    lhs = std::make_shared<ExprAST>(AssignExpr(lhs, rhs));
+  } else {
+    // compound assignment
+    lhs = std::make_shared<ExprAST>(AugExpr(id_node, op_tok, rhs));
   }
 
   return lhs;
@@ -397,9 +391,9 @@ static std::shared_ptr<ExprAST> parseUnary(iterator_t& it, iterator_t end) {
 // parsePostfix() - handles function calls, member access, array subscripts.
 //     postfix_expr -> primary_expr postfix_suffix*
 //     postfix_suffix ->
-//         '(' [expression] ')'        (function invocation)
-//       | '.' id_token                (member access)
-//       | '[' expression ']'          (subscript)
+//         '(' [expression (,expression)*] ')'        (function invocation)
+//       | '.' id_token                               (member access)
+//       | '[' expression ']'                         (subscript)
 //=================================================================================
 static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end) {
   auto lhs = parsePrimary(it, end);
@@ -408,20 +402,23 @@ static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end) {
   while (true) {
     skipWS(it, end);
 
-    // 1) function call: '(' [expression] ')'
+    // 1) function call
     if (tryConsumeToken<tok::ParenthesisL>(it, end)) {
       // parse optional expression
       skipWS(it, end);
-      std::shared_ptr<ExprAST> argExpr = nullptr;
+
+      std::vector<std::shared_ptr<ExprAST>> arglist;
       if (it != end && !it->HoldsAlternative<tok::ParenthesisR>()) {
-        // there's something inside, parse expression
-        argExpr = parseExpression(it, end);
+        arglist.emplace_back(parseExpression(it, end));
+
+        while (tryConsumeOp(it, end, Op::Comma))
+          arglist.emplace_back(parseExpression(it, end));
       }
-      skipWS(it, end);
+
       if (!tryConsumeToken<tok::ParenthesisR>(it, end)) {
         throw SyntaxError("Expected ')' after function call.", it);
       }
-      lhs = std::make_shared<ExprAST>(InvokeExpr(lhs, argExpr));
+      lhs = std::make_shared<ExprAST>(InvokeExpr(lhs, std::move(arglist)));
       continue;
     }
 

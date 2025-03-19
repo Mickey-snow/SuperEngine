@@ -35,35 +35,6 @@
 
 namespace m6 {
 
-namespace {
-struct ExpandArglistVisitor {
-  ExpandArglistVisitor(std::vector<std::shared_ptr<ExprAST>>& arglist)
-      : arglist_(arglist) {}
-  auto operator()(auto& x) {
-    using T = std::decay_t<decltype(x)>;
-    if constexpr (std::same_as<T, BinaryExpr>) {
-      if (x.op == Op::Comma) {
-        x.lhs->Apply(*this);
-        x.rhs->Apply(*this);
-        return;
-      }
-    }
-
-    arglist_.emplace_back(std::make_shared<ExprAST>(std::move(x)));
-  }
-  std::vector<std::shared_ptr<ExprAST>>& arglist_;
-};
-}  // namespace
-
-InvokeExpr::InvokeExpr(std::shared_ptr<ExprAST> in_fn,
-                       std::shared_ptr<ExprAST> in_arg)
-    : fn(in_fn) {
-  if (in_arg == nullptr)
-    return;
-
-  in_arg->Apply(ExpandArglistVisitor(args));
-}
-
 // -----------------------------------------------------------------------
 // AST node member functions
 
@@ -85,6 +56,12 @@ std::string BinaryExpr::DebugString() const {
 
 std::string AssignExpr::DebugString() const { return "Assign"; }
 
+std::string AugExpr::DebugString() const {
+  return "AugAssign " + ToString(GetOp());
+}
+std::string const& AugExpr::GetID() const { return lhs->GetID(); }
+Op AugExpr::GetOp() const { return op_tok->GetIf<tok::Operator>()->op; }
+
 std::string UnaryExpr::DebugString() const { return "Unaryop " + ToString(op); }
 
 std::string ParenExpr::DebugString() const { return "Parenthesis"; }
@@ -96,7 +73,9 @@ std::string SubscriptExpr::DebugString() const { return "Subscript"; }
 std::string MemberExpr::DebugString() const { return "Member"; }
 
 std::string Identifier::DebugString() const { return "ID " + GetID(); }
-std::string const& Identifier::GetID() const { return tok->GetIf<tok::ID>()->id; }
+std::string const& Identifier::GetID() const {
+  return tok->GetIf<tok::ID>()->id;
+}
 
 struct Dumper {
   std::string pref;
@@ -115,6 +94,10 @@ struct Dumper {
     using T = std::decay_t<decltype(x)>;
     if constexpr (std::same_as<T, BinaryExpr> || std::same_as<T, AssignExpr>) {
       oss << x.lhs->Apply(Dumper(childPrefix, false));
+      oss << x.rhs->Apply(Dumper(childPrefix, true));
+    }
+    if constexpr (std::same_as<T, AugExpr>) {
+      oss << Dumper(childPrefix, false)(*x.lhs);
       oss << x.rhs->Apply(Dumper(childPrefix, true));
     }
     if constexpr (std::same_as<T, UnaryExpr> || std::same_as<T, ParenExpr>) {
