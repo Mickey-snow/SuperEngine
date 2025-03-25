@@ -76,7 +76,7 @@ std::string CompileError::FormatWith(std::string_view src) const {
 
 UndefinedOperator::UndefinedOperator(Op op, std::vector<std::string> operands)
     : RuntimeError("no match for 'operator " + ToString(op) +
-                   "' (operand type '" + Join(",", operands)) {}
+                   "' (operand type " + Join(",", operands) + ')') {}
 
 ValueError::ValueError(std::string msg) : RuntimeError(std::move(msg)) {}
 
@@ -85,7 +85,7 @@ TypeError::TypeError(std::string msg) : RuntimeError(std::move(msg)) {}
 SyntaxError::SyntaxError(std::string msg, std::optional<SourceLocation> loc)
     : CompileError(std::move(msg), loc) {}
 
-NameError::NameError(const std::string& name, std::optional<SourceLocation> loc)
-    : CompileError("name '" + name + "' is not defined.", loc) {}
+NameError::NameError(const std::string& msg, std::optional<SourceLocation> loc)
+    : CompileError(msg, loc) {}
 
 }  // namespace m6

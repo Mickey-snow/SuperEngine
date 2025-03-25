@@ -95,7 +95,7 @@ class SyntaxError : public CompileError {
 
 class NameError : public CompileError {
  public:
-  explicit NameError(const std::string& name,
+  explicit NameError(const std::string& msg,
                      std::optional<SourceLocation> loc = std::nullopt);
   using CompileError::what;
   using CompileError::where;

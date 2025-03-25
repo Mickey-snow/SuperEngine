@@ -24,6 +24,7 @@
 
 #include "debugger.hpp"
 
+#include "m6/exception.hpp"
 #include "m6/parser.hpp"
 #include "m6/tokenizer.hpp"
 #include "machine/rlmachine.hpp"
@@ -60,7 +61,7 @@ void Debugger::Execute() {
 
   while (true) {
     try {
-      std::cout << "rldbg>" << std::flush;
+      std::cout << ">>> " << std::flush;
       std::string input;
       std::getline(std::cin, input);
       trim(input);
@@ -88,10 +89,33 @@ void Debugger::Execute() {
         break;
       }
 
-      m6::Tokenizer tokenizer(input);
-      auto ast = m6::ParseStmt(std::span(tokenizer.parsed_tok_));
-      auto instructions = compiler.Compile(ast);
+      std::shared_ptr<m6::AST> ast = nullptr;
+      std::vector<m6::Token> tokens;
+      while (true) {
+        try {
+          m6::Tokenizer tokenizer(input);
+          tokens = std::move(tokenizer.parsed_tok_);
+          ast = m6::ParseStmt(std::span(tokens));
+          break;
+        } catch (m6::CompileError& e) {
+          std::optional<m6::SourceLocation> loc = e.where();
 
+          if (loc.has_value() &&
+              loc->begin_offset == input.length()) {  // early eof
+            std::cout << "... " << std::flush;
+            std::string additional_input;
+            std::getline(std::cin, additional_input);
+            trim(additional_input);
+            input.append(std::move(additional_input));
+          } else {
+            throw;
+          }
+        } catch (...) {
+          throw;
+        }
+      }
+
+      auto instructions = compiler.Compile(ast);
       if (ast->Get_if<std::shared_ptr<m6::ExprAST>>() != nullptr) {
         if (auto p = std::get_if<Pop>(&instructions.back()))
           p->count--;
