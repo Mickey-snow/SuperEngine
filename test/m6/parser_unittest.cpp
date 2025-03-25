@@ -26,8 +26,8 @@
 
 #include "util.hpp"
 
+#include "m6/ast.hpp"
 #include "m6/exception.hpp"
-#include "m6/expr_ast.hpp"
 #include "m6/parser.hpp"
 #include "machine/op.hpp"
 
@@ -43,7 +43,7 @@ static inline std::string ThrowResult(std::string_view input) {
   std::vector<Token> tok = TokenArray(input);
 
   try {
-    ParseExpression(std::span(tok));
+    ParseStmt(std::span(tok));
   } catch (E& e) {
     return e.FormatWith(input);
   } catch (...) {
@@ -52,7 +52,7 @@ static inline std::string ThrowResult(std::string_view input) {
   return "it throws nothing.";
 }
 
-TEST(ExprastParserTest, BasicArithmetic) {
+TEST(ExprParserTest, BasicArithmetic) {
   {
     std::shared_ptr<ExprAST> result = nullptr;
     std::vector<Token> input =
@@ -124,7 +124,7 @@ Binaryop %
   }
 }
 
-TEST(ExprastParserTest, Skipper) {
+TEST(ExprParserTest, Skipper) {
   std::vector<Token> input =
       TokenArray(tok::WS(), tok::ID("a"), tok::Operator(Op::Add), tok::WS(),
                  tok::ID("b"), tok::WS(), tok::WS());
@@ -135,7 +135,7 @@ Binaryop +
 )");
 }
 
-TEST(ExprastParserTest, Precedence) {
+TEST(ExprParserTest, Precedence) {
   {
     std::shared_ptr<ExprAST> result = nullptr;
     std::vector<Token> input =
@@ -171,7 +171,7 @@ Binaryop +
   }
 }
 
-TEST(ExprastParserTest, Parenthesis) {
+TEST(ExprParserTest, Parenthesis) {
   std::shared_ptr<ExprAST> result = nullptr;
   std::vector<Token> input = TokenArray(
       tok::ParenthesisL(), tok::Int(5), tok::Operator(Op::Add), tok::Int(6),
@@ -189,7 +189,7 @@ Binaryop /
 )");
 }
 
-TEST(ExprastParserTest, Identifier) {
+TEST(ExprParserTest, Identifier) {
   std::shared_ptr<ExprAST> result = nullptr;
   std::vector<Token> input = TokenArray(
       tok::ID("v1"), tok::Operator(Op::Add), tok::ID("v2"),
@@ -211,7 +211,7 @@ Binaryop +
 )");
 }
 
-TEST(ExprastParserTest, Comparisons) {
+TEST(ExprParserTest, Comparisons) {
   std::shared_ptr<ExprAST> result = nullptr;
   std::vector<Token> input = TokenArray(
       tok::ID("v1"), tok::Operator(Op::Equal), tok::ID("v2"),
@@ -239,7 +239,7 @@ Binaryop !=
 )");
 }
 
-TEST(ExprastParserTest, Shifts) {
+TEST(ExprParserTest, Shifts) {
   std::shared_ptr<ExprAST> result = nullptr;
   std::vector<Token> input = TokenArray(
       tok::ID("v1"), tok::Operator(Op::ShiftLeft), tok::ID("v2"),
@@ -267,7 +267,7 @@ Binaryop <
 )");
 }
 
-TEST(ExprastParserTest, Logical) {
+TEST(ExprParserTest, Logical) {
   std::shared_ptr<ExprAST> result = nullptr;
   std::vector<Token> input =
       TokenArray(tok::ID("v1"), tok::Operator(Op::LogicalOr), tok::ID("v2"),
@@ -293,51 +293,7 @@ Binaryop ||
 )");
 }
 
-TEST(ExprastParserTest, Assignment) {
-  {  // Basic variable declaration
-    std::shared_ptr<ExprAST> result = nullptr;
-    std::vector<Token> input = TokenArray("v1 = 1 + 2-3"sv);
-    ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
-    ASSERT_NE(result, nullptr);
-    EXPECT_TXTEQ(result->DumpAST(), R"(
-Assign
-   ├─ID v1
-   └─Binaryop -
-      ├─Binaryop +
-      │  ├─IntLiteral 1
-      │  └─IntLiteral 2
-      └─IntLiteral 3
-)");
-  }
-
-  {  // Basic compound assignment
-    std::shared_ptr<ExprAST> result = nullptr;
-    std::vector<Token> input = TokenArray("v1+=x+y-y%x"sv);
-    ASSERT_NO_THROW(result = ParseExpression(std::span(input)));
-    ASSERT_NE(result, nullptr);
-    EXPECT_TXTEQ(result->DumpAST(), R"(
-AugAssign +=
-   ├─ID v1
-   └─Binaryop -
-      ├─Binaryop +
-      │  ├─ID x
-      │  └─ID y
-      └─Binaryop %
-         ├─ID y
-         └─ID x
-)");
-  }
-
-  {  // error: assigning to expression
-    EXPECT_TXTEQ(ThrowResult("(v1+v2) = 1"), R"(
-error: Expected identifier.
-(v1+v2) = 1
-^^^^^^^^
-)");
-  }
-}
-
-TEST(ExprastParserTest, BitwiseOperators) {
+TEST(ExprParserTest, BitwiseOperators) {
   {
     std::vector<Token> input =
         TokenArray(tok::ID("a"), tok::Operator(Op::BitAnd), tok::ID("b"));
@@ -386,7 +342,7 @@ Binaryop |
   }
 }
 
-TEST(ExprastParserTest, UnaryOperators) {
+TEST(ExprParserTest, UnaryOperators) {
   {
     std::vector<Token> input = TokenArray(tok::Operator(Op::Sub), tok::ID("a"));
     EXPECT_TXTEQ(ParseExpression(std::span(input))->DumpAST(), R"(
@@ -436,7 +392,7 @@ Unaryop -
   }
 }
 
-TEST(ExprastParserTest, MixedPrecedence) {
+TEST(ExprParserTest, MixedPrecedence) {
   // a + b * c
   {
     std::vector<Token> input =
@@ -584,8 +540,8 @@ Binaryop &&
   {
     std::vector<Token> input = TokenArray(
         tok::ID("a"), tok::Operator(Op::ShiftUnsignedRightAssign), tok::ID("b"),
-        tok::Operator(Op::ShiftUnsignedRight), tok::ID("c"));
-    EXPECT_TXTEQ(ParseExpression(std::span(input))->DumpAST(), R"(
+        tok::Operator(Op::ShiftUnsignedRight), tok::ID("c"), tok::Semicol());
+    EXPECT_TXTEQ(ParseStmt(std::span(input))->DumpAST(), R"(
 AugAssign >>>=
    ├─ID a
    └─Binaryop >>>
@@ -595,7 +551,7 @@ AugAssign >>>=
   }
 }
 
-TEST(ExprastParserTest, StringLiterals) {
+TEST(ExprParserTest, StringLiterals) {
   std::vector<Token> input =
       TokenArray(tok::ID("foo"), tok::Operator(Op::Add), tok::Literal("bar"));
   EXPECT_TXTEQ(ParseExpression(std::span(input))->DumpAST(), R"(
@@ -732,6 +688,55 @@ a[123
 a(b,c
      ^
 )");
+
+  EXPECT_TXTEQ(ThrowResult("a=1+1"), R"(error: Expected ';'.
+a=1+1
+     ^
+)");
+}
+
+TEST(StmtParserTest, Assignment) {
+  {  // Basic variable declaration
+    std::shared_ptr<AST> result = nullptr;
+    std::vector<Token> input = TokenArray("v1 = 1 + 2-3;"sv);
+    ASSERT_NO_THROW(result = ParseStmt(std::span(input)));
+    ASSERT_NE(result, nullptr);
+    EXPECT_TXTEQ(result->DumpAST(), R"(
+Assign
+   ├─ID v1
+   └─Binaryop -
+      ├─Binaryop +
+      │  ├─IntLiteral 1
+      │  └─IntLiteral 2
+      └─IntLiteral 3
+)");
+  }
+
+  {  // Basic compound assignment
+    std::shared_ptr<AST> result = nullptr;
+    std::vector<Token> input = TokenArray("v1+=x+y-y%x;"sv);
+    ASSERT_NO_THROW(result = ParseStmt(std::span(input)));
+    ASSERT_NE(result, nullptr);
+    EXPECT_TXTEQ(result->DumpAST(), R"(
+AugAssign +=
+   ├─ID v1
+   └─Binaryop -
+      ├─Binaryop +
+      │  ├─ID x
+      │  └─ID y
+      └─Binaryop %
+         ├─ID y
+         └─ID x
+)");
+  }
+
+  {  // error: assigning to expression
+    EXPECT_TXTEQ(ThrowResult("(v1+v2) = 1"), R"(
+error: Expected identifier.
+(v1+v2) = 1
+^^^^^^^^
+)");
+  }
 }
 
 }  // namespace m6test

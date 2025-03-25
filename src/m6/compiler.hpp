@@ -30,19 +30,24 @@
 #include <map>
 #include <string>
 
-class ExprAST;
-
 namespace m6 {
+
+class ExprAST;
+class AST;
 
 class Compiler {
  public:
   Compiler() = default;
 
   std::vector<Instruction> Compile(std::shared_ptr<ExprAST> expr);
+  std::vector<Instruction> Compile(std::shared_ptr<AST> stmt);
 
   void AddNative(Value fn);
 
  private:
+  void Compile(std::shared_ptr<ExprAST> expr, std::vector<Instruction>&);
+  void Compile(std::shared_ptr<AST> stmt, std::vector<Instruction>&);
+
   std::map<std::string, size_t> local_variable_;
   std::map<std::string, Value> native_fn_;
 };

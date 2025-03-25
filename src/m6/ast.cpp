@@ -22,7 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#include "m6/expr_ast.hpp"
+#include "m6/ast.hpp"
 
 #include "m6/token.hpp"
 #include "machine/op.hpp"
@@ -78,21 +78,29 @@ std::string const& Identifier::GetID() const {
   return tok->GetIf<tok::ID>()->id;
 }
 
+// -----------------------------------------------------------------------
+// Visitor to print debug string for an AST
 struct Dumper {
   std::string pref;
   bool isLast;
 
   std::string operator()(const auto& x) const {
+    using T = std::decay_t<decltype(x)>;
+
     std::ostringstream oss;
     if (!pref.empty()) {
       oss << pref;
       oss << (isLast ? "└─" : "├─");
     }
-    oss << x.DebugString() << '\n';
+    if constexpr (std::same_as<T, std::shared_ptr<ExprAST>>) {
+      oss << x->Apply(*this) << '\n';
+      return oss.str();
+    } else {
+      oss << x.DebugString() << '\n';
+    }
 
     std::string childPrefix = pref + (isLast ? "   " : "│  ");
 
-    using T = std::decay_t<decltype(x)>;
     if constexpr (std::same_as<T, BinaryExpr>) {
       oss << x.lhs->Apply(Dumper(childPrefix, false));
       oss << x.rhs->Apply(Dumper(childPrefix, true));
@@ -122,8 +130,15 @@ struct Dumper {
     return oss.str();
   }
 };
+
+// -----------------------------------------------------------------------
+// ExprAST
 std::string ExprAST::DumpAST() const {
   return std::visit(Dumper("", true), var_);
 }
+
+// -----------------------------------------------------------------------
+// AST
+std::string AST::DumpAST() const { return std::visit(Dumper("", true), var_); }
 
 }  // namespace m6

@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include "m6/expr_ast.hpp"
+#include "m6/ast.hpp"
 
 #include <string>
 #include <variant>
@@ -85,6 +85,10 @@ struct ParenthesisR {
   auto operator<=>(const ParenthesisR& rhs) const = default;
 };
 
+struct Semicol {
+  auto operator<=>(const Semicol& rhs) const = default;
+};
+
 struct Error {
   std::string msg;
   auto operator<=>(const Error& rhs) const = default;
@@ -106,6 +110,7 @@ using Token_t = std::variant<Literal,
                              CurlyR,
                              ParenthesisL,
                              ParenthesisR,
+                             Semicol,
                              Error,
                              Eof>;
 
@@ -145,6 +150,7 @@ struct DebugStringVisitor {
   std::string operator()(const tok::CurlyR&) const;
   std::string operator()(const tok::ParenthesisL&) const;
   std::string operator()(const tok::ParenthesisR&) const;
+  std::string operator()(const tok::Semicol&) const;
   std::string operator()(const tok::Error&) const;
   std::string operator()(const tok::Eof&) const;
 };

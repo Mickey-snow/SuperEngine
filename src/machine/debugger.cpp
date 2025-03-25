@@ -89,12 +89,18 @@ void Debugger::Execute() {
       }
 
       m6::Tokenizer tokenizer(input);
-      auto expr = m6::ParseExpression(std::span(tokenizer.parsed_tok_));
-      auto instructions = compiler.Compile(expr);
+      auto ast = m6::ParseStmt(std::span(tokenizer.parsed_tok_));
+      auto instructions = compiler.Compile(ast);
+
+      if (ast->Get_if<std::shared_ptr<m6::ExprAST>>() != nullptr) {
+        if (auto p = std::get_if<Pop>(&instructions.back()))
+          p->count--;
+      }
+
       for (auto& it : instructions)
         std::visit(machine_, std::move(it));
 
-      if (expr->Get_if<m6::AssignExpr>() == nullptr) {
+      if (ast->Get_if<std::shared_ptr<m6::ExprAST>>() != nullptr) {
         auto& stack = const_cast<std::vector<Value>&>(machine_.GetStack());
         std::cout << stack.back().Str() << std::endl;
         stack.pop_back();

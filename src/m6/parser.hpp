@@ -47,4 +47,7 @@ parenthesis: ( )
 std::shared_ptr<ExprAST> ParseExpression(Token*& begin, Token* end);
 std::shared_ptr<ExprAST> ParseExpression(std::span<Token> input);
 
+std::shared_ptr<AST> ParseStmt(Token*& begin, Token* end);
+std::shared_ptr<AST> ParseStmt(std::span<Token> input);
+
 }  // namespace m6

@@ -46,10 +46,14 @@ class CompilerTest : public ::testing::Test {
 
   void Execute(const std::string_view input) {
     auto tok = TokenArray(input);
-    auto expr = ParseExpression(std::span(tok));
-    auto instructions = compiler.Compile(expr);
-    for (const auto& it : instructions)
-      std::visit(*machine, it);
+    auto begin = tok.data(), end = tok.data() + tok.size();
+    while (begin != end && !begin->HoldsAlternative<tok::Eof>()) {
+      const auto instructions = compiler.Compile(ParseStmt(begin, end));
+      for (const auto& it : instructions)
+        std::visit(*machine, it);
+      while (begin != end && begin->HoldsAlternative<tok::WS>())
+        ++begin;
+    }
   }
 
   inline std::string DescribeStack() const {
@@ -64,26 +68,34 @@ class CompilerTest : public ::testing::Test {
 };
 
 TEST_F(CompilerTest, GlobalVariable) {
-  Execute(R"( beverage = "espresso" )");
-  Execute(R"( two = 1 + 1 )");
+  Execute(R"(
+beverage = "espresso";
+two = 1 + 1;
+)");
   EXPECT_EQ(DescribeStack(), "<str: espresso>, <int: 2>");
 }
 
 TEST_F(CompilerTest, Assignment) {
-  Execute(R"( v2 = 89 )");
-  Execute(R"( v3 = "hello" )");
-  Execute(R"( v3 = v3 + ", world" )");
+  Execute(R"(
+v2 = 89;
+v3 = "hello";
+v3 = v3 + ", world";
+)");
+
   EXPECT_EQ(DescribeStack(), "<int: 89>, <str: hello, world>");
 }
 
 TEST_F(CompilerTest, NativeFn) {
   compiler.AddNative(
       make_fn_value("foo", [](int val) { return val == 89 ? 1 : -100; }));
-  Execute(R"( v2 = 89 )");
-  Execute(R"( foo(v2) )");
+
+  Execute(R"(
+v2 = 89;
+foo(v2);
+)");
   EXPECT_EQ(DescribeStack(), "<int: 89>, <int: 1>");
 
-  EXPECT_THROW(Execute(R"( foo(v2, v2) )"), SyntaxError);
+  EXPECT_THROW(Execute(R"( foo(v2, v2); )"), SyntaxError);
   EXPECT_EQ(DescribeStack(), "<int: 89>, <int: 1>, <nil>");
 }
 

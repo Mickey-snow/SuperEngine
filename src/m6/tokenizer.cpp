@@ -39,11 +39,12 @@ Tokenizer::Tokenizer(std::string_view input, bool should_parse)
 }
 
 namespace {
-// A static lookup table for single-character brackets
-static const std::unordered_map<char, tok::Token_t> BRACKETS = {
+// A static lookup table for single-character tokens
+static const std::unordered_map<char, tok::Token_t> SINGLE_CHAR_TOKEN = {
     {'[', tok::SquareL()},      {']', tok::SquareR()},
     {'{', tok::CurlyL()},       {'}', tok::CurlyR()},
-    {'(', tok::ParenthesisL()}, {')', tok::ParenthesisR()}};
+    {'(', tok::ParenthesisL()}, {')', tok::ParenthesisR()},
+    {';', tok::Semicol()}};
 
 // Sorted by descending length, so we can match the longest possible operator
 // first.
@@ -140,9 +141,9 @@ void Tokenizer::Parse() {
       continue;
     }
 
-    // 2) Check bracket (single character)
-    if (BRACKETS.find(c) != BRACKETS.end()) {
-      parsed_tok_.emplace_back(BRACKETS.at(c), offset);
+    // 2) Check single character token
+    if (SINGLE_CHAR_TOKEN.find(c) != SINGLE_CHAR_TOKEN.end()) {
+      parsed_tok_.emplace_back(SINGLE_CHAR_TOKEN.at(c), offset);
       ++pos;
       continue;
     }

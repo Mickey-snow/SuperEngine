@@ -24,8 +24,8 @@
 
 #include "m6/compiler.hpp"
 
+#include "m6/ast.hpp"
 #include "m6/exception.hpp"
-#include "m6/expr_ast.hpp"
 #include "m6/token.hpp"
 #include "machine/op.hpp"
 #include "machine/value.hpp"
@@ -43,7 +43,18 @@ void Compiler::AddNative(Value fn) {
 }
 
 std::vector<Instruction> Compiler::Compile(std::shared_ptr<ExprAST> expr) {
+  std::vector<Instruction> result;
+  Compile(expr, result);
+  return result;
+}
+void Compiler::Compile(std::shared_ptr<ExprAST> expr,
+                       std::vector<Instruction>& result) {
   struct Visitor {
+    Compiler& compiler;
+    std::vector<Instruction>& result;
+
+    inline void Emit(Instruction i) { result.emplace_back(std::move(i)); }
+
     void operator()(const Identifier& idexpr) {
       std::string const& id = idexpr.GetID();
       auto it = compiler.local_variable_.find(id);
@@ -51,10 +62,10 @@ std::vector<Instruction> Compiler::Compile(std::shared_ptr<ExprAST> expr) {
         throw NameError("Name '" + id + "' not defined.", *idexpr.tok);
       }
 
-      bk = Load(it->second);
+      Emit(Load(it->second));
     }
-    void operator()(const IntLiteral& x) { bk = Push(Value(x.GetValue())); }
-    void operator()(const StrLiteral& x) { bk = Push(Value(x.GetValue())); }
+    void operator()(const IntLiteral& x) { Emit(Push(Value(x.GetValue()))); }
+    void operator()(const StrLiteral& x) { Emit(Push(Value(x.GetValue()))); }
     void operator()(const InvokeExpr& x) {
       for (auto arg : x.args)
         arg->Apply(*this);
@@ -65,8 +76,8 @@ std::vector<Instruction> Compiler::Compile(std::shared_ptr<ExprAST> expr) {
         if (it == compiler.native_fn_.cend())
           throw NameError("Name '" + id + "' is not defined.", *idexpr->tok);
 
-        bk = Push(it->second);
-        bk = Invoke(x.args.size());
+        Emit(Push(it->second));
+        Emit(Invoke(x.args.size()));
       } else
         throw std::runtime_error("not supported yet.");
     }
@@ -79,47 +90,99 @@ std::vector<Instruction> Compiler::Compile(std::shared_ptr<ExprAST> expr) {
     void operator()(const ParenExpr& x) { return x.sub->Apply(*this); }
     void operator()(const UnaryExpr& x) {
       x.sub->Apply(*this);
-      bk = UnaryOp(x.op);
+      Emit(UnaryOp(x.op));
     }
     void operator()(const BinaryExpr& x) {
       x.rhs->Apply(*this);
       x.lhs->Apply(*this);
-      bk = BinaryOp(x.op);
+      Emit(BinaryOp(x.op));
     }
-    void operator()(const AssignExpr& x) {
-      // this is inside an expression
-      throw SyntaxError("Invalid syntax.");
-    }
-    void operator()(const AugExpr& x) {
-      throw std::runtime_error("not supported yet.");
-    }
-
-    std::back_insert_iterator<std::vector<Instruction>> bk;
-    Compiler& compiler;
   };
 
+  expr->Apply(Visitor(*this, result));
+}
+
+std::vector<Instruction> Compiler::Compile(std::shared_ptr<AST> stmt) {
   std::vector<Instruction> result;
+  Compile(stmt, result);
+  return result;
+}
+void Compiler::Compile(std::shared_ptr<AST> stmt,
+                       std::vector<Instruction>& result) {
+  struct Visitor {
+    Compiler& compiler;
+    std::vector<Instruction>& result;
 
-  // special case: variable declaration, this should be a separate statement
-  // type.
-  // <id> = <expr>
-  if (auto assign = expr->Get_if<AssignExpr>()) {
-    assign->rhs->Apply(Visitor(std::back_inserter(result), *this));
-
-    std::string const& id = assign->GetID();
-    if (local_variable_.contains(id)) {
-      result.push_back(Store(local_variable_[id]));
-      result.push_back(Pop());
-    } else {
-      local_variable_[id] = local_variable_.size();
+    inline void Emit(Instruction instruction) {
+      result.emplace_back(std::move(instruction));
     }
 
-  } else {
-    // regular expression
-    expr->Apply(Visitor(std::back_inserter(result), *this));
-  }
+    void operator()(const AssignExpr& x) {
+      std::string const& id = x.GetID();
 
-  return result;
+      compiler.Compile(x.rhs, result);
+      if (compiler.local_variable_.contains(id)) {
+        Emit(Store(compiler.local_variable_.at(id)));
+        Emit(Pop());
+      } else {
+        compiler.local_variable_[id] = compiler.local_variable_.size();
+      }
+    }
+    void operator()(const AugExpr& x) {
+      auto it = compiler.local_variable_.find(x.GetID());
+      if (it == compiler.local_variable_.cend())
+        throw NameError("Name '" + x.GetID() + "' not defined.",
+                        std::make_optional<SourceLocation>(*(x.lhs->tok)));
+
+      Emit(Load(it->second));
+      compiler.Compile(x.rhs, result);
+      switch (x.GetOp()) {
+        case Op::AddAssign:
+          Emit(BinaryOp(Op::Add));
+          break;
+        case Op::SubAssign:
+          Emit(BinaryOp(Op::Sub));
+          break;
+        case Op::MulAssign:
+          Emit(BinaryOp(Op::Mul));
+          break;
+        case Op::DivAssign:
+          Emit(BinaryOp(Op::Div));
+          break;
+        case Op::Mod:
+          Emit(BinaryOp(Op::Mod));
+          break;
+        case Op::BitAnd:
+          Emit(BinaryOp(Op::BitAnd));
+          break;
+        case Op::BitOr:
+          Emit(BinaryOp(Op::BitOr));
+          break;
+        case Op::BitXor:
+          Emit(BinaryOp(Op::BitXor));
+          break;
+        case Op::ShiftLeft:
+          Emit(BinaryOp(Op::ShiftLeft));
+          break;
+        case Op::ShiftRight:
+          Emit(BinaryOp(Op::ShiftRight));
+          break;
+        case Op::ShiftUnsignedRight:
+          Emit(BinaryOp(Op::ShiftUnsignedRight));
+          break;
+        default:
+          throw std::runtime_error("Compiler: Unknown operator '" +
+                                   ToString(x.GetOp()) + "' in AugExpr.");
+      }
+      Emit(Store(it->second));
+      Emit(Pop());
+    }
+    void operator()(const std::shared_ptr<ExprAST>& x) {
+      compiler.Compile(x, result);
+    }
+  };
+
+  stmt->Apply(Visitor(*this, result));
 }
 
 }  // namespace m6

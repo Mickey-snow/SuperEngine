@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include "m6/expr_ast.hpp"
+#include "m6/ast.hpp"
 
 #include <optional>
 #include <stdexcept>

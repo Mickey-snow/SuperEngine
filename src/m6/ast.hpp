@@ -34,11 +34,12 @@ enum class Op;
 
 namespace m6 {
 
+class AST;
 class ExprAST;
 class Token;
 
 // -----------------------------------------------------------------------
-// AST Nodes
+// Expression AST Nodes
 
 // Literal
 struct NilLiteral {
@@ -134,7 +135,7 @@ struct MemberExpr {
 };
 
 // -----------------------------------------------------------------------
-// AST
+// ExprAST
 using expr_variant_t = std::variant<IntLiteral,
                                     StrLiteral,
                                     Identifier,
@@ -142,8 +143,6 @@ using expr_variant_t = std::variant<IntLiteral,
                                     SubscriptExpr,
                                     MemberExpr,
                                     BinaryExpr,
-                                    AssignExpr,
-                                    AugExpr,
                                     UnaryExpr,
                                     ParenExpr>;
 
@@ -177,6 +176,44 @@ class ExprAST {
 
  private:
   expr_variant_t var_;
+};
+
+// -----------------------------------------------------------------------
+// AST
+
+using stmt_variant_t =
+    std::variant<AssignExpr, AugExpr, std::shared_ptr<ExprAST>>;
+
+class AST {
+ public:
+  AST(stmt_variant_t var) : var_(std::move(var)) {}
+
+  std::string DumpAST() const;
+
+  template <class Visitor>
+  decltype(auto) Apply(Visitor&& vis) {
+    return std::visit(std::forward<Visitor>(vis), var_);
+  }
+  template <class Visitor>
+  decltype(auto) Apply(Visitor&& vis) const {
+    return std::visit(std::forward<Visitor>(vis), var_);
+  }
+  template <class R, class Visitor>
+  R Apply(Visitor&& vis) {
+    return std::visit<R>(std::forward<Visitor>(vis), var_);
+  }
+  template <class R, class Visitor>
+  R Apply(Visitor&& vis) const {
+    return std::visit<R>(std::forward<Visitor>(vis), var_);
+  }
+
+  template <typename T>
+  auto Get_if() {
+    return std::get_if<T>(&var_);
+  }
+
+ private:
+  stmt_variant_t var_;
 };
 
 }  // namespace m6

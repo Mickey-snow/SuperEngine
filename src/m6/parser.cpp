@@ -23,8 +23,8 @@
 // -----------------------------------------------------------------------
 
 #include "m6/parser.hpp"
+#include "m6/ast.hpp"
 #include "m6/exception.hpp"
-#include "m6/expr_ast.hpp"
 #include "machine/op.hpp"
 
 #include <iterator>
@@ -93,8 +93,8 @@ static bool tryConsumeToken(iterator_t& it, iterator_t end) {
 }
 
 // Forward declarations of recursive parsing functions.
+static std::shared_ptr<AST> parseAssignment(iterator_t& it, iterator_t end);
 static std::shared_ptr<ExprAST> parseExpression(iterator_t& it, iterator_t end);
-static std::shared_ptr<ExprAST> parseAssignment(iterator_t& it, iterator_t end);
 static std::shared_ptr<ExprAST> parseLogicalOr(iterator_t& it, iterator_t end);
 static std::shared_ptr<ExprAST> parseLogicalAnd(iterator_t& it, iterator_t end);
 static std::shared_ptr<ExprAST> parseBitwiseOr(iterator_t& it, iterator_t end);
@@ -124,8 +124,7 @@ static std::shared_ptr<ExprAST> parseExpression(iterator_t& it,
 //     assignment_expr -> logical_or_expr ( ASSIGN_OP assignment_expr )?
 //     where ASSIGN_OP is one of =, +=, -=, etc.
 //=================================================================================
-static std::shared_ptr<ExprAST> parseAssignment(iterator_t& it,
-                                                iterator_t end) {
+static std::shared_ptr<AST> parseAssignment(iterator_t& it, iterator_t end) {
   skipWS(it, end);
   iterator_t lhs_begin = it;
   auto lhs = parseLogicalOr(it, end);
@@ -140,7 +139,7 @@ static std::shared_ptr<ExprAST> parseAssignment(iterator_t& it,
                      Op::BitOrAssign, Op::BitXorAssign, Op::ShiftLeftAssign,
                      Op::ShiftRightAssign, Op::ShiftUnsignedRightAssign});
   if (!matched.has_value())
-    return lhs;
+    return std::make_shared<AST>(lhs);
 
   auto assignmentOp = matched.value();
   auto* id_node = lhs->Apply([](auto& x) -> Identifier* {
@@ -153,16 +152,12 @@ static std::shared_ptr<ExprAST> parseAssignment(iterator_t& it,
                       std::make_optional<SourceLocation>(*lhs_begin, *lhs_end));
   }
 
-  auto rhs = parseLogicalOr(it, end);
-  if (assignmentOp == Op::Assign) {
-    // simple assignment
-    lhs = std::make_shared<ExprAST>(AssignExpr(id_node, rhs));
-  } else {
-    // compound assignment
-    lhs = std::make_shared<ExprAST>(AugExpr(id_node, op_tok, rhs));
+  auto rhs = parseExpression(it, end);
+  if (assignmentOp == Op::Assign) {  // simple assignment
+    return std::make_shared<AST>(AssignExpr(id_node, rhs));
+  } else {  // compound assignment
+    return std::make_shared<AST>(AugExpr(id_node, op_tok, rhs));
   }
-
-  return lhs;
 }
 
 //=================================================================================
@@ -499,12 +494,23 @@ static std::shared_ptr<ExprAST> parsePrimary(iterator_t& it, iterator_t end) {
 // Public parse function entry point.
 //=================================================================================
 std::shared_ptr<ExprAST> ParseExpression(Token*& it, Token* end) {
-  return parseAssignment(it, end);
+  return parseLogicalOr(it, end);
 }
 std::shared_ptr<ExprAST> ParseExpression(std::span<Token> input) {
-  auto begin = input.data();
-  auto end = input.data() + input.size();
-  return parseAssignment(begin, end);
+  auto begin = input.data(), end = input.data() + input.size();
+  return ParseExpression(begin, end);
+}
+
+std::shared_ptr<AST> ParseStmt(Token*& begin, Token* end) {
+  auto stmt = parseAssignment(begin, end);
+  if (!tryConsumeToken<tok::Semicol>(begin, end))
+    throw SyntaxError("Expected ';'.",
+                      std::make_optional<SourceLocation>(*begin));
+  return stmt;
+}
+std::shared_ptr<AST> ParseStmt(std::span<Token> input) {
+  auto begin = input.data(), end = input.data() + input.size();
+  return ParseStmt(begin, end);
 }
 
 }  // namespace m6

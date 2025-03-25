@@ -82,6 +82,10 @@ std::string tok::DebugStringVisitor::operator()(
   return "ParenthesisR";
 }
 
+std::string tok::DebugStringVisitor::operator()(const tok::Semicol&) const {
+  return "Semicol";
+}
+
 std::string tok::DebugStringVisitor::operator()(const tok::Error& t) const {
   return "Error(" + t.msg + ')';
 }
