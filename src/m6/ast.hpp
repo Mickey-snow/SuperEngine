@@ -75,26 +75,6 @@ struct BinaryExpr {
   std::string DebugString() const;
 };
 
-// Simple Assignment '='
-struct AssignExpr {
-  Identifier* lhs;
-  std::shared_ptr<ExprAST> rhs;
-
-  std::string DebugString() const;
-  std::string const& GetID() const;
-};
-
-// Compound Assignment
-struct AugExpr {
-  Identifier* lhs;
-  Token* op_tok;
-  std::shared_ptr<ExprAST> rhs;
-
-  std::string DebugString() const;
-  std::string const& GetID() const;
-  Op GetOp() const;
-};
-
 // Unary operation node
 struct UnaryExpr {
   Op op;
@@ -150,7 +130,9 @@ class ExprAST {
  public:
   ExprAST(expr_variant_t var) : var_(std::move(var)) {}
 
-  std::string DumpAST() const;
+  std::string DumpAST(std::string txt = "",
+                      std::string prefix = "",
+                      bool is_last = true) const;
 
   template <class Visitor>
   decltype(auto) Apply(Visitor&& vis) {
@@ -181,14 +163,44 @@ class ExprAST {
 // -----------------------------------------------------------------------
 // AST
 
+// Simple Assignment '='
+struct AssignStmt {
+  std::shared_ptr<ExprAST> lhs;
+  std::shared_ptr<ExprAST> rhs;
+
+  std::string DebugString() const;
+  std::string const& GetID() const;
+};
+
+// Compound Assignment
+struct AugStmt {
+  std::shared_ptr<ExprAST> lhs;
+  Token* op_tok;
+  std::shared_ptr<ExprAST> rhs;
+
+  std::string DebugString() const;
+  std::string const& GetID() const;
+  Op GetOp() const;
+};
+
+struct IfStmt {
+  std::shared_ptr<ExprAST> cond;
+  std::shared_ptr<AST> then;
+  std::shared_ptr<AST> els;
+
+  std::string DebugString() const;
+};
+
 using stmt_variant_t =
-    std::variant<AssignExpr, AugExpr, std::shared_ptr<ExprAST>>;
+    std::variant<AssignStmt, AugStmt, IfStmt, std::shared_ptr<ExprAST>>;
 
 class AST {
  public:
   AST(stmt_variant_t var) : var_(std::move(var)) {}
 
-  std::string DumpAST() const;
+  std::string DumpAST(std::string txt = "",
+                      std::string prefix = "",
+                      bool is_last = true) const;
 
   template <class Visitor>
   decltype(auto) Apply(Visitor&& vis) {

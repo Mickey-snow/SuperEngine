@@ -29,6 +29,7 @@
 #include <cctype>
 #include <optional>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace m6 {
 
@@ -52,6 +53,8 @@ static const std::vector<std::string> OPERATORS = {
     ">>>=", ">>>", ">>=", ">>", "<<=", "<<", "+=", "-=", "*=", "/=", "%=", "&=",
     "|=",   "^=",  "==",  "!=", "<=",  ">=", "||", "&&", "=",  "+",  "-",  "*",
     "/",    "%",   "~",   "&",  "|",   "^",  "<",  ">",  ",",  "."};
+
+static const std::unordered_set<std::string> RESERVED_KEYWORDS = {"if", "else"};
 
 // Attempt to match an operator from position `pos` in `input`.
 // Returns the matched operator string if successful, else an empty string.
@@ -159,21 +162,33 @@ void Tokenizer::Parse() {
       }
     }
 
-    // 4) Check identifier: [a-zA-Z_][a-zA-Z0-9_]*
-    if (std::isalpha(static_cast<unsigned char>(c)) || c == '_') {
-      size_t start = pos;
+    size_t start = pos;
+    std::string idVal = [&]() -> std::string {
+      if (!std::isalpha(static_cast<unsigned char>(c)) && c != '_')
+        return "";
+
       ++pos;
       while (pos < len &&
              (std::isalnum(static_cast<unsigned char>(input[pos])) ||
               input[pos] == '_')) {
         ++pos;
       }
-      std::string idVal = std::string(input.substr(start, pos - start));
+      return std::string(input.substr(start, pos - start));
+    }();
+
+    // 4) Check reserved keywords
+    if (RESERVED_KEYWORDS.contains(idVal)) {
+      parsed_tok_.emplace_back(tok::Reserved(std::move(idVal)), start);
+      continue;
+    }
+
+    // 5) Check identifier: [a-zA-Z_][a-zA-Z0-9_]*
+    if (!idVal.empty()) {
       parsed_tok_.emplace_back(tok::ID(std::move(idVal)), start);
       continue;
     }
 
-    // 5) Check integer: [0-9]+
+    // 6) Check integer: [0-9]+
     if (std::isdigit(static_cast<unsigned char>(c))) {
       size_t start = pos;
       ++pos;
@@ -186,7 +201,7 @@ void Tokenizer::Parse() {
       continue;
     }
 
-    // 6) Check string literal: \"([^\"\\\\]|\\\\.)*\"
+    // 7) Check string literal: \"([^\"\\\\]|\\\\.)*\"
     // A naive approach: detect '\"', then parse until matching '\"' or end of
     // input.
     if (c == '\"') {
@@ -221,7 +236,7 @@ void Tokenizer::Parse() {
       continue;
     }
 
-    // 7) If none matched, mark it as an error token. We consume one character.
+    // 8) If none matched, mark it as an error token. We consume one character.
     static const tok::Token_t error_tok = tok::Error("Unknown token");
     if (!parsed_tok_.empty() && parsed_tok_.back() != error_tok)
       parsed_tok_.emplace_back(error_tok, offset);

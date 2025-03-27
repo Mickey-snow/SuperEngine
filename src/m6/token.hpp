@@ -33,6 +33,11 @@ namespace m6 {
 
 namespace tok {
 
+struct Reserved {
+  std::string id;
+  auto operator<=>(const Reserved& rhs) const = default;
+};
+
 struct Literal {
   std::string str;
   auto operator<=>(const Literal& rhs) const = default;
@@ -98,7 +103,8 @@ struct Eof {
   auto operator<=>(const Eof& rhs) const = default;
 };
 
-using Token_t = std::variant<Literal,
+using Token_t = std::variant<Reserved,
+                             Literal,
                              ID,
                              WS,
                              Int,
@@ -138,6 +144,7 @@ struct Token {
 
 namespace tok {
 struct DebugStringVisitor {
+  std::string operator()(const tok::Reserved&) const;
   std::string operator()(const tok::Literal&) const;
   std::string operator()(const tok::ID&) const;
   std::string operator()(const tok::WS&) const;

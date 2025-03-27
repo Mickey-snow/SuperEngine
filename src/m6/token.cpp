@@ -32,6 +32,10 @@ std::string Token::GetDebugString() const {
          std::to_string(offset) + '>';
 }
 
+std::string tok::DebugStringVisitor::operator()(const tok::Reserved& p) const {
+  return "Reserved(" + p.id + ')';
+}
+
 std::string tok::DebugStringVisitor::operator()(const tok::Literal& p) const {
   return "Str(" + p.str + ')';
 }

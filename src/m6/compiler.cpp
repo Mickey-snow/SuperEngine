@@ -34,6 +34,148 @@
 
 namespace m6 {
 
+// the visitor class that does the compiling
+struct Compiler::Visitor {
+  Compiler& compiler;
+  std::vector<Instruction>& result;
+
+  template <typename T>
+    requires std::constructible_from<Instruction, T>
+  inline auto Emit(T&& i) {
+    result.emplace_back(std::forward<T>(i));
+  }
+
+  void operator()(const Identifier& idexpr) {
+    std::string const& id = idexpr.GetID();
+    auto it = compiler.local_variable_.find(id);
+    if (it == compiler.local_variable_.cend()) {
+      throw NameError("Name '" + id + "' not defined.", *idexpr.tok);
+    }
+
+    Emit(Load(it->second));
+  }
+  void operator()(const IntLiteral& x) { Emit(Push(Value(x.GetValue()))); }
+  void operator()(const StrLiteral& x) { Emit(Push(Value(x.GetValue()))); }
+  void operator()(const InvokeExpr& x) {
+    for (auto arg : x.args)
+      arg->Apply(*this);
+
+    if (auto idexpr = x.fn->Get_if<Identifier>()) {
+      std::string const& id = idexpr->GetID();
+      auto it = compiler.native_fn_.find(id);
+      if (it == compiler.native_fn_.cend())
+        throw NameError("Name '" + id + "' is not defined.", *idexpr->tok);
+
+      Emit(Push(it->second));
+      Emit(Invoke(x.args.size()));
+    } else
+      throw std::runtime_error("not supported yet.");
+  }
+  void operator()(const SubscriptExpr& x) {
+    throw std::runtime_error("not supported yet.");
+  }
+  void operator()(const MemberExpr& x) {
+    throw std::runtime_error("not supported yet.");
+  }
+  void operator()(const ParenExpr& x) { return x.sub->Apply(*this); }
+  void operator()(const UnaryExpr& x) {
+    x.sub->Apply(*this);
+    Emit(UnaryOp(x.op));
+  }
+  void operator()(const BinaryExpr& x) {
+    x.lhs->Apply(*this);
+    x.rhs->Apply(*this);
+    Emit(BinaryOp(x.op));
+  }
+
+  void operator()(const AssignStmt& x) {
+    std::string const& id = x.GetID();
+
+    compiler.Compile(x.rhs, result);
+    if (compiler.local_variable_.contains(id)) {
+      Emit(Store(compiler.local_variable_.at(id)));
+      Emit(Pop());
+    } else {
+      compiler.local_variable_[id] = compiler.local_variable_.size();
+    }
+  }
+  void operator()(const AugStmt& x) {
+    auto it = compiler.local_variable_.find(x.GetID());
+    if (it == compiler.local_variable_.cend())
+      throw NameError("Name '" + x.GetID() + "' not defined.",
+                      std::make_optional<SourceLocation>(
+                          *(x.lhs->Get_if<Identifier>()->tok)));
+
+    Emit(Load(it->second));
+    compiler.Compile(x.rhs, result);
+    switch (x.GetOp()) {
+      case Op::AddAssign:
+        Emit(BinaryOp(Op::Add));
+        break;
+      case Op::SubAssign:
+        Emit(BinaryOp(Op::Sub));
+        break;
+      case Op::MulAssign:
+        Emit(BinaryOp(Op::Mul));
+        break;
+      case Op::DivAssign:
+        Emit(BinaryOp(Op::Div));
+        break;
+      case Op::Mod:
+        Emit(BinaryOp(Op::Mod));
+        break;
+      case Op::BitAnd:
+        Emit(BinaryOp(Op::BitAnd));
+        break;
+      case Op::BitOr:
+        Emit(BinaryOp(Op::BitOr));
+        break;
+      case Op::BitXor:
+        Emit(BinaryOp(Op::BitXor));
+        break;
+      case Op::ShiftLeft:
+        Emit(BinaryOp(Op::ShiftLeft));
+        break;
+      case Op::ShiftRight:
+        Emit(BinaryOp(Op::ShiftRight));
+        break;
+      case Op::ShiftUnsignedRight:
+        Emit(BinaryOp(Op::ShiftUnsignedRight));
+        break;
+      default:
+        throw std::runtime_error("Compiler: Unknown operator '" +
+                                 ToString(x.GetOp()) + "' in AugExpr.");
+    }
+    Emit(Store(it->second));
+    Emit(Pop());
+  }
+  void operator()(const IfStmt& x) {
+    compiler.Compile(x.cond, result);
+
+    auto j1 = Jf();
+    auto offset1 = result.size();
+    Emit(j1);  // dummy
+
+    compiler.Compile(x.then, result);
+    j1.offset = result.size() - offset1 - 1;
+
+    if (x.els) {
+      auto j2 = Jmp();
+      auto offset2 = result.size();
+      Emit(j2);  // dummy
+      j1.offset = result.size() - offset1 - 1;
+
+      compiler.Compile(x.els, result);
+      j2.offset = result.size() - offset2 - 1;
+      result[offset2] = j2;
+    }
+    result[offset1] = j1;
+  }
+  void operator()(const std::shared_ptr<ExprAST>& x) {
+    compiler.Compile(x, result);
+  }
+};
+
 void Compiler::AddNative(Value fn) {
   auto ptr = fn.Get_if<NativeFunction>();
   if (!ptr)
@@ -49,56 +191,6 @@ std::vector<Instruction> Compiler::Compile(std::shared_ptr<ExprAST> expr) {
 }
 void Compiler::Compile(std::shared_ptr<ExprAST> expr,
                        std::vector<Instruction>& result) {
-  struct Visitor {
-    Compiler& compiler;
-    std::vector<Instruction>& result;
-
-    inline void Emit(Instruction i) { result.emplace_back(std::move(i)); }
-
-    void operator()(const Identifier& idexpr) {
-      std::string const& id = idexpr.GetID();
-      auto it = compiler.local_variable_.find(id);
-      if (it == compiler.local_variable_.cend()) {
-        throw NameError("Name '" + id + "' not defined.", *idexpr.tok);
-      }
-
-      Emit(Load(it->second));
-    }
-    void operator()(const IntLiteral& x) { Emit(Push(Value(x.GetValue()))); }
-    void operator()(const StrLiteral& x) { Emit(Push(Value(x.GetValue()))); }
-    void operator()(const InvokeExpr& x) {
-      for (auto arg : x.args)
-        arg->Apply(*this);
-
-      if (auto idexpr = x.fn->Get_if<Identifier>()) {
-        std::string const& id = idexpr->GetID();
-        auto it = compiler.native_fn_.find(id);
-        if (it == compiler.native_fn_.cend())
-          throw NameError("Name '" + id + "' is not defined.", *idexpr->tok);
-
-        Emit(Push(it->second));
-        Emit(Invoke(x.args.size()));
-      } else
-        throw std::runtime_error("not supported yet.");
-    }
-    void operator()(const SubscriptExpr& x) {
-      throw std::runtime_error("not supported yet.");
-    }
-    void operator()(const MemberExpr& x) {
-      throw std::runtime_error("not supported yet.");
-    }
-    void operator()(const ParenExpr& x) { return x.sub->Apply(*this); }
-    void operator()(const UnaryExpr& x) {
-      x.sub->Apply(*this);
-      Emit(UnaryOp(x.op));
-    }
-    void operator()(const BinaryExpr& x) {
-      x.rhs->Apply(*this);
-      x.lhs->Apply(*this);
-      Emit(BinaryOp(x.op));
-    }
-  };
-
   expr->Apply(Visitor(*this, result));
 }
 
@@ -109,79 +201,6 @@ std::vector<Instruction> Compiler::Compile(std::shared_ptr<AST> stmt) {
 }
 void Compiler::Compile(std::shared_ptr<AST> stmt,
                        std::vector<Instruction>& result) {
-  struct Visitor {
-    Compiler& compiler;
-    std::vector<Instruction>& result;
-
-    inline void Emit(Instruction instruction) {
-      result.emplace_back(std::move(instruction));
-    }
-
-    void operator()(const AssignExpr& x) {
-      std::string const& id = x.GetID();
-
-      compiler.Compile(x.rhs, result);
-      if (compiler.local_variable_.contains(id)) {
-        Emit(Store(compiler.local_variable_.at(id)));
-        Emit(Pop());
-      } else {
-        compiler.local_variable_[id] = compiler.local_variable_.size();
-      }
-    }
-    void operator()(const AugExpr& x) {
-      auto it = compiler.local_variable_.find(x.GetID());
-      if (it == compiler.local_variable_.cend())
-        throw NameError("Name '" + x.GetID() + "' not defined.",
-                        std::make_optional<SourceLocation>(*(x.lhs->tok)));
-
-      Emit(Load(it->second));
-      compiler.Compile(x.rhs, result);
-      switch (x.GetOp()) {
-        case Op::AddAssign:
-          Emit(BinaryOp(Op::Add));
-          break;
-        case Op::SubAssign:
-          Emit(BinaryOp(Op::Sub));
-          break;
-        case Op::MulAssign:
-          Emit(BinaryOp(Op::Mul));
-          break;
-        case Op::DivAssign:
-          Emit(BinaryOp(Op::Div));
-          break;
-        case Op::Mod:
-          Emit(BinaryOp(Op::Mod));
-          break;
-        case Op::BitAnd:
-          Emit(BinaryOp(Op::BitAnd));
-          break;
-        case Op::BitOr:
-          Emit(BinaryOp(Op::BitOr));
-          break;
-        case Op::BitXor:
-          Emit(BinaryOp(Op::BitXor));
-          break;
-        case Op::ShiftLeft:
-          Emit(BinaryOp(Op::ShiftLeft));
-          break;
-        case Op::ShiftRight:
-          Emit(BinaryOp(Op::ShiftRight));
-          break;
-        case Op::ShiftUnsignedRight:
-          Emit(BinaryOp(Op::ShiftUnsignedRight));
-          break;
-        default:
-          throw std::runtime_error("Compiler: Unknown operator '" +
-                                   ToString(x.GetOp()) + "' in AugExpr.");
-      }
-      Emit(Store(it->second));
-      Emit(Pop());
-    }
-    void operator()(const std::shared_ptr<ExprAST>& x) {
-      compiler.Compile(x, result);
-    }
-  };
-
   stmt->Apply(Visitor(*this, result));
 }
 

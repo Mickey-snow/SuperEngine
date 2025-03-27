@@ -76,6 +76,11 @@ TEST_F(VMTest, Operation) {
   Execute(Push(Value(123)), Push(Value(3)), Push(Value(92)), BinaryOp(Op::Mul),
           BinaryOp(Op::Add));
   EXPECT_EQ(DescribeStack(), "<int: 399>");
+
+  machine->stack_.clear();
+  Execute(Push(Value("hello, ")), Push(Value("world")), BinaryOp(Op::Add),
+          Push(Value(3)), BinaryOp(Op::Mul));
+  EXPECT_EQ(DescribeStack(), "<str: hello, worldhello, worldhello, world>");
 }
 
 TEST_F(VMTest, Load) {

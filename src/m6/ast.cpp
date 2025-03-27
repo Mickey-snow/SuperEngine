@@ -42,41 +42,37 @@ std::string IntLiteral::DebugString() const {
   return "IntLiteral " + std::to_string(GetValue());
 }
 int IntLiteral::GetValue() const { return tok->GetIf<tok::Int>()->value; }
-
 std::string StrLiteral::DebugString() const {
   return "StrLiteral " + GetValue();
 }
 std::string const& StrLiteral::GetValue() const {
   return tok->GetIf<tok::Literal>()->str;
 }
-
 std::string BinaryExpr::DebugString() const {
   return "Binaryop " + ToString(op);
 }
-
-std::string AssignExpr::DebugString() const { return "Assign"; }
-std::string const& AssignExpr::GetID() const { return lhs->GetID(); }
-
-std::string AugExpr::DebugString() const {
-  return "AugAssign " + ToString(GetOp());
-}
-std::string const& AugExpr::GetID() const { return lhs->GetID(); }
-Op AugExpr::GetOp() const { return op_tok->GetIf<tok::Operator>()->op; }
-
 std::string UnaryExpr::DebugString() const { return "Unaryop " + ToString(op); }
-
 std::string ParenExpr::DebugString() const { return "Parenthesis"; }
-
 std::string InvokeExpr::DebugString() const { return "Invoke"; }
-
 std::string SubscriptExpr::DebugString() const { return "Subscript"; }
-
 std::string MemberExpr::DebugString() const { return "Member"; }
-
 std::string Identifier::DebugString() const { return "ID " + GetID(); }
 std::string const& Identifier::GetID() const {
   return tok->GetIf<tok::ID>()->id;
 }
+
+std::string AssignStmt::DebugString() const { return "Assign"; }
+std::string const& AssignStmt::GetID() const {
+  return lhs->Get_if<Identifier>()->GetID();
+}
+std::string AugStmt::DebugString() const {
+  return "AugAssign " + ToString(GetOp());
+}
+std::string const& AugStmt::GetID() const {
+  return lhs->Get_if<Identifier>()->GetID();
+}
+Op AugStmt::GetOp() const { return op_tok->GetIf<tok::Operator>()->op; }
+std::string IfStmt::DebugString() const { return "If"; }
 
 // -----------------------------------------------------------------------
 // Visitor to print debug string for an AST
@@ -92,12 +88,7 @@ struct Dumper {
       oss << pref;
       oss << (isLast ? "└─" : "├─");
     }
-    if constexpr (std::same_as<T, std::shared_ptr<ExprAST>>) {
-      oss << x->Apply(*this) << '\n';
-      return oss.str();
-    } else {
-      oss << x.DebugString() << '\n';
-    }
+    oss << x.DebugString() << '\n';
 
     std::string childPrefix = pref + (isLast ? "   " : "│  ");
 
@@ -105,8 +96,8 @@ struct Dumper {
       oss << x.lhs->Apply(Dumper(childPrefix, false));
       oss << x.rhs->Apply(Dumper(childPrefix, true));
     }
-    if constexpr (std::same_as<T, AugExpr> || std::same_as<T, AssignExpr>) {
-      oss << Dumper(childPrefix, false)(*x.lhs);
+    if constexpr (std::same_as<T, AugStmt> || std::same_as<T, AssignStmt>) {
+      oss << x.lhs->Apply(Dumper(childPrefix, false));
       oss << x.rhs->Apply(Dumper(childPrefix, true));
     }
     if constexpr (std::same_as<T, UnaryExpr> || std::same_as<T, ParenExpr>) {
@@ -126,6 +117,12 @@ struct Dumper {
       oss << x.primary->Apply(Dumper(childPrefix, false));
       oss << x.member->Apply(Dumper(childPrefix, true));
     }
+    if constexpr (std::same_as<T, IfStmt>) {
+      oss << x.cond->Apply(Dumper(childPrefix, false));
+      oss << x.then->DumpAST("then", childPrefix, x.els ? false : true);
+      if (x.els)
+        oss << x.els->DumpAST("else", childPrefix, true);
+    }
 
     return oss.str();
   }
@@ -133,12 +130,61 @@ struct Dumper {
 
 // -----------------------------------------------------------------------
 // ExprAST
-std::string ExprAST::DumpAST() const {
-  return std::visit(Dumper("", true), var_);
+std::string ExprAST::DumpAST(std::string txt,
+                             std::string pref,
+                             bool isLast) const {
+  std::ostringstream oss;
+
+  bool empty = true;
+  if (!pref.empty()) {
+    oss << pref;
+    oss << (isLast ? "└─" : "├─");
+    empty = false;
+  }
+  if (!txt.empty()) {
+    oss << std::move(txt);
+    empty = false;
+  }
+  if (!empty)
+    oss << '\n';
+
+  std::string childPrefix = empty ? "" : (pref + (isLast ? "   " : "│  "));
+
+  oss << std::visit(Dumper(childPrefix, true), var_);
+  return oss.str();
 }
 
 // -----------------------------------------------------------------------
 // AST
-std::string AST::DumpAST() const { return std::visit(Dumper("", true), var_); }
+std::string AST::DumpAST(std::string txt, std::string pref, bool isLast) const {
+  return std::visit(
+      [&](const auto& x) -> std::string {
+        using T = std::decay_t<decltype(x)>;
+        if constexpr (std::same_as<T, std::shared_ptr<ExprAST>>)
+          return x->DumpAST(std::move(txt), std::move(pref), isLast);
+        else {
+          std::ostringstream oss;
+          bool empty = true;
+          if (!pref.empty()) {
+            oss << pref;
+            oss << (isLast ? "└─" : "├─");
+            empty = false;
+          }
+          if (!txt.empty()) {
+            oss << std::move(txt);
+            empty = false;
+          }
+          if (!empty)
+            oss << '\n';
+
+          std::string childPrefix =
+              empty ? "" : (pref + (isLast ? "   " : "│  "));
+
+          oss << Dumper(childPrefix, true)(x);
+          return oss.str();
+        }
+      },
+      var_);
+}
 
 }  // namespace m6

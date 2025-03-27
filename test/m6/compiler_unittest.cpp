@@ -44,15 +44,28 @@ class CompilerTest : public ::testing::Test {
       : machine(std::make_shared<RLMachine>(nullptr, nullptr, nullptr)),
         stack(const_cast<std::vector<Value>&>(machine->GetStack())) {}
 
-  void Execute(const std::string_view input) {
-    auto tok = TokenArray(input);
-    auto begin = tok.data(), end = tok.data() + tok.size();
-    while (begin != end && !begin->HoldsAlternative<tok::Eof>()) {
-      const auto instructions = compiler.Compile(ParseStmt(begin, end));
-      for (const auto& it : instructions)
-        std::visit(*machine, it);
-      while (begin != end && begin->HoldsAlternative<tok::WS>())
-        ++begin;
+  void Execute(const std::string_view input, bool allow_error = false) {
+    try {
+      auto tok = TokenArray(input);
+      auto begin = tok.data(), end = tok.data() + tok.size();
+      while (begin != end && !begin->HoldsAlternative<tok::Eof>()) {
+        auto instructions = compiler.Compile(ParseStmt(begin, end));
+        machine->halted_ = false;
+        machine->ip_ = 0;
+        machine->script_ = std::span(instructions);
+        machine->Execute();
+
+        while (begin != end && begin->HoldsAlternative<tok::WS>())
+          ++begin;
+      }
+    } catch (CompileError& e) {
+      if (allow_error)
+        throw;
+      ADD_FAILURE() << e.FormatWith(input);
+    } catch (std::exception& e) {
+      if (allow_error)
+        throw;
+      ADD_FAILURE() << e.what();
     }
   }
 
@@ -95,8 +108,28 @@ foo(v2);
 )");
   EXPECT_EQ(DescribeStack(), "<int: 89>, <int: 1>");
 
-  EXPECT_THROW(Execute(R"( foo(v2, v2); )"), SyntaxError);
+  EXPECT_THROW(Execute(R"( foo(v2, v2); )", true), SyntaxError);
   EXPECT_EQ(DescribeStack(), "<int: 89>, <int: 1>, <nil>");
+}
+
+TEST_F(CompilerTest, IfStmt) {
+  Execute(R"(
+a = 10;
+b = 20;
+result = "";
+if (a < b)
+  if (a < 5) result += "a is less than 5";
+  else result += "a is less than b";
+else result += "a is not less than b";
+)");
+  EXPECT_EQ(DescribeStack(), "<int: 10>, <int: 20>, <str: a is less than b>");
+
+  Execute(R"(
+a = 10;
+if(a >= 10) a += 10;
+a += 10;
+)");
+  EXPECT_EQ(DescribeStack(), "<int: 30>, <int: 20>, <str: a is less than b>");
 }
 
 }  // namespace m6test

@@ -63,24 +63,9 @@ static std::optional<Op> tryConsumeAny(iterator_t& it,
   return std::nullopt;
 }
 
-// Handy checker function for matching a single operator token.
-static bool tryConsumeOp(iterator_t& it, iterator_t end, Op op) {
-  skipWS(it, end);
-  if (it == end) {
-    return false;
-  }
-  if (auto p = it->GetIf<tok::Operator>()) {
-    if (p->op == op) {
-      ++it;
-      return true;
-    }
-  }
-  return false;
-}
-
 // Handy checker function for matching a token type T.
 template <typename T>
-static bool tryConsumeToken(iterator_t& it, iterator_t end) {
+static bool tryConsume(iterator_t& it, iterator_t end) {
   skipWS(it, end);
   if (it == end) {
     return false;
@@ -88,6 +73,22 @@ static bool tryConsumeToken(iterator_t& it, iterator_t end) {
   if (it->HoldsAlternative<T>()) {
     ++it;
     return true;
+  }
+  return false;
+}
+
+// Handy checker function for maching a token with specified type and field
+template <typename T, typename... Ts>
+static bool tryConsume(iterator_t& it, iterator_t end, Ts&&... params) {
+  skipWS(it, end);
+  if (it == end)
+    return false;
+
+  if (auto t = it->GetIf<T>()) {
+    if (*t == T(std::forward<Ts>(params)...)) {
+      ++it;
+      return true;
+    }
   }
   return false;
 }
@@ -109,10 +110,11 @@ static std::shared_ptr<ExprAST> parseMultiplicative(iterator_t& it,
 static std::shared_ptr<ExprAST> parseUnary(iterator_t& it, iterator_t end);
 static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end);
 static std::shared_ptr<ExprAST> parsePrimary(iterator_t& it, iterator_t end);
+static std::shared_ptr<AST> parseStmt(iterator_t& it, iterator_t end);
 
 //=================================================================================
 // parseExpression() - top-level parse for expressions.
-//     expression -> assignment_expr
+//     expr -> logical_or_expr
 //=================================================================================
 static std::shared_ptr<ExprAST> parseExpression(iterator_t& it,
                                                 iterator_t end) {
@@ -154,9 +156,9 @@ static std::shared_ptr<AST> parseAssignment(iterator_t& it, iterator_t end) {
 
   auto rhs = parseExpression(it, end);
   if (assignmentOp == Op::Assign) {  // simple assignment
-    return std::make_shared<AST>(AssignExpr(id_node, rhs));
+    return std::make_shared<AST>(AssignStmt(lhs, rhs));
   } else {  // compound assignment
-    return std::make_shared<AST>(AugExpr(id_node, op_tok, rhs));
+    return std::make_shared<AST>(AugStmt(lhs, op_tok, rhs));
   }
 }
 
@@ -168,7 +170,7 @@ static std::shared_ptr<ExprAST> parseLogicalOr(iterator_t& it, iterator_t end) {
   auto lhs = parseLogicalAnd(it, end);
   while (true) {
     skipWS(it, end);
-    if (!tryConsumeOp(it, end, Op::LogicalOr)) {
+    if (!tryConsume<tok::Operator>(it, end, Op::LogicalOr)) {
       break;
     }
     auto rhs = parseLogicalAnd(it, end);
@@ -187,7 +189,7 @@ static std::shared_ptr<ExprAST> parseLogicalAnd(iterator_t& it,
   auto lhs = parseBitwiseOr(it, end);
   while (true) {
     skipWS(it, end);
-    if (!tryConsumeOp(it, end, Op::LogicalAnd)) {
+    if (!tryConsume<tok::Operator>(it, end, Op::LogicalAnd)) {
       break;
     }
     auto rhs = parseBitwiseOr(it, end);
@@ -205,7 +207,7 @@ static std::shared_ptr<ExprAST> parseBitwiseOr(iterator_t& it, iterator_t end) {
   auto lhs = parseBitwiseXor(it, end);
   while (true) {
     skipWS(it, end);
-    if (!tryConsumeOp(it, end, Op::BitOr)) {
+    if (!tryConsume<tok::Operator>(it, end, Op::BitOr)) {
       break;
     }
     auto rhs = parseBitwiseXor(it, end);
@@ -224,7 +226,7 @@ static std::shared_ptr<ExprAST> parseBitwiseXor(iterator_t& it,
   auto lhs = parseBitwiseAnd(it, end);
   while (true) {
     skipWS(it, end);
-    if (!tryConsumeOp(it, end, Op::BitXor))
+    if (!tryConsume<tok::Operator>(it, end, Op::BitXor))
       break;
 
     auto rhs = parseBitwiseAnd(it, end);
@@ -243,7 +245,7 @@ static std::shared_ptr<ExprAST> parseBitwiseAnd(iterator_t& it,
   auto lhs = parseEquality(it, end);
   while (true) {
     skipWS(it, end);
-    if (!tryConsumeOp(it, end, Op::BitAnd))
+    if (!tryConsume<tok::Operator>(it, end, Op::BitAnd))
       break;
 
     auto rhs = parseEquality(it, end);
@@ -392,7 +394,7 @@ static std::shared_ptr<ExprAST> parseUnary(iterator_t& it, iterator_t end) {
 //     postfix_suffix ->
 //         '(' [expression (,expression)*] ')'        (function invocation)
 //       | '.' id_token                               (member access)
-//       | '[' expression ']'                         (subscript)
+//       | '[' expr ']'                               (subscript)
 //=================================================================================
 static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end) {
   auto lhs = parsePrimary(it, end);
@@ -402,7 +404,7 @@ static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end) {
     skipWS(it, end);
 
     // 1) function call
-    if (tryConsumeToken<tok::ParenthesisL>(it, end)) {
+    if (tryConsume<tok::ParenthesisL>(it, end)) {
       // parse optional expression
       skipWS(it, end);
 
@@ -410,11 +412,11 @@ static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end) {
       if (it != end && !it->HoldsAlternative<tok::ParenthesisR>()) {
         arglist.emplace_back(parseExpression(it, end));
 
-        while (tryConsumeOp(it, end, Op::Comma))
+        while (tryConsume<tok::Operator>(it, end, Op::Comma))
           arglist.emplace_back(parseExpression(it, end));
       }
 
-      if (!tryConsumeToken<tok::ParenthesisR>(it, end)) {
+      if (!tryConsume<tok::ParenthesisR>(it, end)) {
         throw SyntaxError("Expected ')' after function call.", *it);
       }
       lhs = std::make_shared<ExprAST>(InvokeExpr(lhs, std::move(arglist)));
@@ -422,7 +424,7 @@ static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end) {
     }
 
     // 2) member access: '.' <identifier>
-    if (tryConsumeOp(it, end, Op::Dot)) {
+    if (tryConsume<tok::Operator>(it, end, Op::Dot)) {
       skipWS(it, end);
       if (it == end || !it->HoldsAlternative<tok::ID>()) {
         throw SyntaxError("Expected identifier after '.'", *it);
@@ -435,9 +437,9 @@ static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end) {
     }
 
     // 3) subscript: '[' expression ']'
-    if (tryConsumeToken<tok::SquareL>(it, end)) {
+    if (tryConsume<tok::SquareL>(it, end)) {
       auto indexExpr = parseExpression(it, end);
-      if (!tryConsumeToken<tok::SquareR>(it, end)) {
+      if (!tryConsume<tok::SquareR>(it, end)) {
         throw SyntaxError("Expected ']' after subscript expression.", *it);
       }
       lhs = std::make_shared<ExprAST>(SubscriptExpr(lhs, indexExpr));
@@ -456,7 +458,7 @@ static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end) {
 //     primary_expr -> Int
 //                   | Literal
 //                   | ID
-//                   | '(' expression ')'
+//                   | '(' expr ')'
 //=================================================================================
 static std::shared_ptr<ExprAST> parsePrimary(iterator_t& it, iterator_t end) {
   skipWS(it, end);
@@ -475,11 +477,11 @@ static std::shared_ptr<ExprAST> parsePrimary(iterator_t& it, iterator_t end) {
   if (it->HoldsAlternative<tok::ID>())
     return std::make_shared<ExprAST>(Identifier(it++));
 
-  // Try '(' expression ')'
-  if (tryConsumeToken<tok::ParenthesisL>(it, end)) {
+  // Try '(' expr ')'
+  if (tryConsume<tok::ParenthesisL>(it, end)) {
     auto exprNode = parseExpression(it, end);
     skipWS(it, end);
-    if (!tryConsumeToken<tok::ParenthesisR>(it, end))
+    if (!tryConsume<tok::ParenthesisR>(it, end))
       throw SyntaxError("Missing closing ')' in parenthesized expression.",
                         *it);
 
@@ -488,6 +490,38 @@ static std::shared_ptr<ExprAST> parsePrimary(iterator_t& it, iterator_t end) {
 
   // If none matched, it's an error.
   throw SyntaxError("Expected primary expression.", *it);
+}
+
+//=================================================================================
+// parseStmt() - statement
+//     stmt -> assignment_expr
+//           | "if" "(" expr; ")" stmt ("else" stmt)?
+//=================================================================================
+static std::shared_ptr<AST> parseStmt(iterator_t& it, iterator_t end) {
+  // if statement
+  if (tryConsume<tok::Reserved>(it, end, "if")) {
+    if (!tryConsume<tok::ParenthesisL>(it, end))
+      throw SyntaxError("Expected '('.",
+                        std::make_optional<SourceLocation>(*it));
+
+    auto cond = parseExpression(it, end);
+
+    if (!tryConsume<tok::ParenthesisR>(it, end))
+      throw SyntaxError("Expected ')'.",
+                        std::make_optional<SourceLocation>(*it));
+
+    std::shared_ptr<AST> then = parseStmt(it, end), els = nullptr;
+    if (tryConsume<tok::Reserved>(it, end, "else"))
+      els = parseStmt(it, end);
+
+    return std::make_shared<AST>(IfStmt(cond, then, els));
+  }
+
+  // assignment or expression statement
+  auto stmt = parseAssignment(it, end);
+  if (!tryConsume<tok::Semicol>(it, end))
+    throw SyntaxError("Expected ';'.", std::make_optional<SourceLocation>(*it));
+  return stmt;
 }
 
 //=================================================================================
@@ -502,11 +536,7 @@ std::shared_ptr<ExprAST> ParseExpression(std::span<Token> input) {
 }
 
 std::shared_ptr<AST> ParseStmt(Token*& begin, Token* end) {
-  auto stmt = parseAssignment(begin, end);
-  if (!tryConsumeToken<tok::Semicol>(begin, end))
-    throw SyntaxError("Expected ';'.",
-                      std::make_optional<SourceLocation>(*begin));
-  return stmt;
+  return parseStmt(begin, end);
 }
 std::shared_ptr<AST> ParseStmt(std::span<Token> input) {
   auto begin = input.data(), end = input.data() + input.size();

@@ -36,6 +36,9 @@ class ExprAST;
 class AST;
 
 class Compiler {
+ private:
+  struct Visitor;
+
  public:
   Compiler() = default;
 

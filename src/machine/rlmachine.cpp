@@ -379,7 +379,7 @@ void RLMachine::operator()(BinaryOp p) {
   if (stack_.size() < 2)
     throw std::runtime_error("VM: Stack underflow.");
   const auto n = stack_.size();
-  auto result = stack_[n - 1].Operator(p.op, stack_[n - 2]);
+  auto result = stack_[n - 2].Operator(p.op, stack_[n - 1]);
   stack_.pop_back();
   stack_.back() = std::move(result);
 }

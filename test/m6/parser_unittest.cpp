@@ -739,4 +739,21 @@ error: Expected identifier.
   }
 }
 
+TEST(StmtParserTest, If) {
+  {
+    std::shared_ptr<AST> result = nullptr;
+    std::vector<Token> input = TokenArray("if(a) b; else c;"sv);
+    ASSERT_NO_THROW(result = ParseStmt(std::span(input)));
+    ASSERT_NE(result, nullptr);
+    EXPECT_TXTEQ(result->DumpAST(), R"(
+If
+   ├─ID a
+   ├─then
+   │  └─ID b
+   └─else
+      └─ID c
+)");
+  }
+}
+
 }  // namespace m6test
