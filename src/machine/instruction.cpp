@@ -97,7 +97,16 @@ std::string InstructionToString::operator()(const Store& p) const {
   return "st " + std::to_string(p.offset);
 }
 std::string InstructionToString::operator()(const Invoke& p) const {
-  return "Invoke " + std::to_string(p.arity);
+  return "invoke " + std::to_string(p.arity);
+}
+std::string InstructionToString::operator()(const Jmp& p) const {
+  return "jmp " + std::to_string(p.offset);
+}
+std::string InstructionToString::operator()(const Jt& p) const {
+  return "jt " + std::to_string(p.offset);
+}
+std::string InstructionToString::operator()(const Jf& p) const {
+  return "jf " + std::to_string(p.offset);
 }
 std::string InstructionToString::operator()(const End& p) const {
   return "<end>";

@@ -76,6 +76,22 @@ std::string Value::Desc() const {
       val_);
 }
 
+bool Value::IsTruthy() const {
+  return std::visit(
+      [](const auto& x) -> bool {
+        using T = std::decay_t<decltype(x)>;
+        if constexpr (std::same_as<T, std::monostate>)
+          return false;
+        if constexpr (std::same_as<T, int>)
+          return x != 0;
+        if constexpr (std::same_as<T, std::string>)
+          return !x.empty();
+        if constexpr (std::same_as<T, std::shared_ptr<IObject>>)
+          return x != nullptr;
+      },
+      val_);
+}
+
 ObjType Value::Type() const {
   return std::visit(
       [](const auto& x) {

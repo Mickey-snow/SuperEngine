@@ -89,3 +89,20 @@ TEST_F(VMTest, Store) {
   EXPECT_EQ(DescribeStack(), "<str: Hello>, <str: Hello>")
       << "Should copy the element at top of the stack to the first location";
 }
+
+TEST_F(VMTest, Jump) {
+  // jump if true
+  Execute(Push(Value(-10)), Load(0), Push(Value(1)), BinaryOp(Op::Add),
+          Store(0), Jt(-5));
+  EXPECT_EQ(DescribeStack(), "<int: 0>");
+
+  // unconditional jump
+  machine->stack_.clear();
+  Execute(Jmp(1), Push(Value(0)), Push(Value(1)), Push(Value(2)));
+  EXPECT_EQ(DescribeStack(), "<int: 1>, <int: 2>");
+
+  // jump if false
+  machine->stack_.clear();
+  Execute(Push(Value("")), Jf(1), Push(Value(0)), Push(Value(1)));
+  EXPECT_EQ(DescribeStack(), "<int: 1>");
+}

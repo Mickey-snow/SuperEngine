@@ -117,6 +117,18 @@ struct Invoke {
   size_t arity;
 };
 
+struct Jmp {
+  int offset;
+};
+
+struct Jt {
+  int offset;
+};
+
+struct Jf {
+  int offset;
+};
+
 using Instruction = std::variant<std::monostate,
                                  Kidoku,
                                  Line,
@@ -130,6 +142,9 @@ using Instruction = std::variant<std::monostate,
                                  Load,
                                  Store,
                                  Invoke,
+                                 Jmp,
+                                 Jt,
+                                 Jf,
                                  End>;
 
 class ModuleManager;
@@ -150,6 +165,9 @@ class InstructionToString {
   std::string operator()(const Load&) const;
   std::string operator()(const Store&) const;
   std::string operator()(const Invoke&) const;
+  std::string operator()(const Jmp&) const;
+  std::string operator()(const Jt&) const;
+  std::string operator()(const Jf&) const;
   std::string operator()(const End&) const;
 
  private:

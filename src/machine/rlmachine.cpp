@@ -158,7 +158,7 @@ void RLMachine::ExecuteInstruction(std::shared_ptr<Instruction> instruction) {
 }
 
 void RLMachine::Execute() {
-  while (!halted_ && ip_ < script_.size()) {
+  while (!halted_ && ip_ < script_.size() && ip_ >= 0) {
     Instruction i = script_[ip_++];
     std::visit(*this, std::move(i));
   }
@@ -430,4 +430,18 @@ void RLMachine::operator()(Invoke p) {
     }
   } else
     throw std::runtime_error("Object '" + fn.Desc() + "' is not callable.");
+}
+
+void RLMachine::operator()(Jmp p) { ip_ += p.offset; }
+
+void RLMachine::operator()(Jt p) {
+  if (stack_.back().IsTruthy())
+    ip_ += p.offset;
+  stack_.pop_back();
+}
+
+void RLMachine::operator()(Jf p) {
+  if (!stack_.back().IsTruthy())
+    ip_ += p.offset;
+  stack_.pop_back();
 }

@@ -217,6 +217,9 @@ class RLMachine {
   void operator()(Load);
   void operator()(Store);
   void operator()(Invoke);
+  void operator()(Jmp);
+  void operator()(Jt);
+  void operator()(Jf);
 
   // -----------------------------------------------------------------------
   // Temporary 'environment' field, planned to remove this later
@@ -236,6 +239,9 @@ class RLMachine {
 
   // View to bytecode script
   std::span<Instruction> script_;
+
+  // Machine Stack, simple low-level LIFO structure.
+  std::vector<Value> stack_;
 
   // Reallive virtual machine related fields
  private:
@@ -272,9 +278,6 @@ class RLMachine {
   // Call Stack, manages local variables, call metadata(long operation), return
   // address.
   CallStack call_stack_, savepoint_call_stack_;
-
-  // Machine Stack, simple low-level LIFO structure.
-  std::vector<Value> stack_;
 
   // An optional set of game specific hacks that run at certain SEEN/line
   // pairs. These run during setLineNumer().

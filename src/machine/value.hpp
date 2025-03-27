@@ -78,6 +78,7 @@ class Value {
 
   std::string Str() const;
   std::string Desc() const;
+  bool IsTruthy() const;
 
   ObjType Type() const;
 
