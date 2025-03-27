@@ -51,7 +51,11 @@ class VMTest : public ::testing::Test {
   template <typename... Ts>
     requires(std::convertible_to<Ts, Instruction> && ...)
   void Execute(Ts&&... params) {
-    (machine->operator()(std::forward<Ts>(params)), ...);
+    std::vector<Instruction> instructions{std::forward<Ts>(params)...};
+    machine->halted_ = false;
+    machine->ip_ = 0;
+    machine->script_ = std::span(instructions);
+    machine->Execute();
   }
 };
 

@@ -157,6 +157,14 @@ void RLMachine::ExecuteInstruction(std::shared_ptr<Instruction> instruction) {
   }
 }
 
+void RLMachine::Execute() {
+  while (!halted_ && ip_ < script_.size()) {
+    Instruction i = script_[ip_++];
+    std::visit(*this, std::move(i));
+  }
+  halted_ = true;
+}
+
 void RLMachine::AdvanceIP() {
   if (replaying_graphics_stack())
     return;

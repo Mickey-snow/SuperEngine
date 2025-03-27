@@ -198,6 +198,7 @@ class RLMachine {
   std::shared_ptr<Instruction> ReadInstruction() const;
   bool ExecuteLongop(std::shared_ptr<LongOperation> long_op);
   void ExecuteInstruction(std::shared_ptr<Instruction> instruction);
+  void Execute();
 
   // -----------------------------------------------------------------------
   // Actual implementation for each type of byte code
@@ -223,6 +224,20 @@ class RLMachine {
 
   friend class Debugger;
 
+  // For now, this is another set of independent interface operates independent
+  // from reallive related data
+ public:
+  // States whether the RLMachine is in the halted state (and thus won't
+  // execute more instructions)
+  bool halted_ = false;
+
+  // Instruction pointer
+  int ip_ = 0;
+
+  // View to bytecode script
+  std::span<Instruction> script_;
+
+  // Reallive virtual machine related fields
  private:
   // The Reallive VM's integer and string memory
   std::unique_ptr<Memory> memory_;
@@ -234,10 +249,6 @@ class RLMachine {
   int store_register_ = 0;
 
   ModuleManager module_manager_;
-
-  // States whether the RLMachine is in the halted state (and thus won't
-  // execute more instructions)
-  bool halted_ = false;
 
   std::shared_ptr<IScriptor> scriptor_;
 

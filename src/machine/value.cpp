@@ -101,78 +101,42 @@ Value handleIntIntOp(Op op, int& lhs, int rhs) {
     // Arithmetic
     case Op::Add:
       return Value(lhs + rhs);
-    case Op::AddAssign:
-      lhs += rhs;
-      return Value(lhs);
     case Op::Sub:
       return Value(lhs - rhs);
-    case Op::SubAssign:
-      lhs -= rhs;
-      return Value(lhs);
     case Op::Mul:
       return Value(lhs * rhs);
-    case Op::MulAssign:
-      lhs *= rhs;
-      return Value(lhs);
     case Op::Div:
       return (rhs == 0) ? Value(0) : Value(lhs / rhs);
-    case Op::DivAssign:
-      lhs = (rhs == 0) ? 0 : lhs / rhs;
-      return Value(lhs);
     case Op::Mod:
       return Value(lhs % rhs);
-    case Op::ModAssign:
-      lhs %= rhs;
-      return Value(lhs);
 
     // Bitwise
     case Op::BitAnd:
       return Value(lhs & rhs);
-    case Op::BitAndAssign:
-      lhs &= rhs;
-      return Value(lhs);
     case Op::BitOr:
       return Value(lhs | rhs);
-    case Op::BitOrAssign:
-      lhs |= rhs;
-      return Value(lhs);
     case Op::BitXor:
       return Value(lhs ^ rhs);
-    case Op::BitXorAssign:
-      lhs ^= rhs;
-      return Value(lhs);
-    case Op::ShiftLeft:
-    case Op::ShiftLeftAssign: {
+    case Op::ShiftLeft: {
       if (rhs < 0) {
         throw ValueError("negative shift count: " + std::to_string(rhs));
       }
       int shifted = lhs << rhs;
-      if (op == Op::ShiftLeftAssign) {
-        lhs = shifted;
-      }
       return Value(shifted);
     }
-    case Op::ShiftRight:
-    case Op::ShiftRightAssign: {
+    case Op::ShiftRight: {
       if (rhs < 0) {
         throw ValueError("negative shift count: " + std::to_string(rhs));
       }
       int shifted = lhs >> rhs;
-      if (op == Op::ShiftRightAssign) {
-        lhs = shifted;
-      }
       return Value(shifted);
     }
-    case Op::ShiftUnsignedRight:
-    case Op::ShiftUnsignedRightAssign: {
+    case Op::ShiftUnsignedRight: {
       if (rhs < 0) {
         throw ValueError("negative shift count: " + std::to_string(rhs));
       }
       uint32_t uval = std::bit_cast<uint32_t>(lhs);
       uint32_t shifted = uval >> rhs;
-      if (op == Op::ShiftUnsignedRightAssign) {
-        lhs = static_cast<int>(shifted);
-      }
       return Value(static_cast<int>(shifted));
     }
 
