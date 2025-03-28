@@ -198,8 +198,21 @@ struct WhileStmt {
   std::string DebugString() const;
 };
 
-using stmt_variant_t = std::
-    variant<AssignStmt, AugStmt, IfStmt, WhileStmt, std::shared_ptr<ExprAST>>;
+struct ForStmt {
+  std::shared_ptr<AST> init;
+  std::shared_ptr<ExprAST> cond;
+  std::shared_ptr<AST> inc;
+  std::shared_ptr<AST> body;
+
+  std::string DebugString() const;
+};
+
+using stmt_variant_t = std::variant<AssignStmt,
+                                    AugStmt,
+                                    IfStmt,
+                                    WhileStmt,
+                                    ForStmt,
+                                    std::shared_ptr<ExprAST>>;
 
 class AST {
  public:

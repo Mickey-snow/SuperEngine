@@ -653,7 +653,8 @@ TEST_F(StmtParserTest, If) {
   expectStmtAST(TokenArray("if(a) b; else c;"sv),
                 R"(
 If
-   ├─ID a
+   ├─cond
+   │  └─ID a
    ├─then
    │  └─ID b
    └─else
@@ -665,13 +666,37 @@ TEST_F(StmtParserTest, While) {
   expectStmtAST(TokenArray("while(i<10) i+=1;"sv),
                 R"(
 While
-   ├─Binaryop <
-   │  ├─ID i
-   │  └─IntLiteral 10
+   ├─cond
+   │  └─Binaryop <
+   │     ├─ID i
+   │     └─IntLiteral 10
    └─body
       └─AugAssign +=
          ├─ID i
          └─IntLiteral 1
+)");
+}
+
+TEST_F(StmtParserTest, For) {
+  expectStmtAST(TokenArray("for(i=0;i<10;i+=1) sum += i;"sv),
+                R"(
+For
+   ├─init
+   │  └─Assign
+   │     ├─ID i
+   │     └─IntLiteral 0
+   ├─cond
+   │  └─Binaryop <
+   │     ├─ID i
+   │     └─IntLiteral 10
+   ├─inc
+   │  └─AugAssign +=
+   │     ├─ID i
+   │     └─IntLiteral 1
+   └─body
+      └─AugAssign +=
+         ├─ID sum
+         └─ID i
 )");
 }
 

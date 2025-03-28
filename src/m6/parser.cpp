@@ -110,7 +110,7 @@ static std::shared_ptr<ExprAST> parseMultiplicative(iterator_t& it,
 static std::shared_ptr<ExprAST> parseUnary(iterator_t& it, iterator_t end);
 static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end);
 static std::shared_ptr<ExprAST> parsePrimary(iterator_t& it, iterator_t end);
-static std::shared_ptr<AST> parseStmt(iterator_t& it, iterator_t end);
+static std::shared_ptr<AST> parseStmt(iterator_t& it, iterator_t end, bool);
 
 //=================================================================================
 // parseExpression() - top-level parse for expressions.
@@ -497,17 +497,21 @@ static std::shared_ptr<ExprAST> parsePrimary(iterator_t& it, iterator_t end) {
 //     stmt -> assignment_expr
 //           | "if" "(" expr ")" stmt ("else" stmt)?
 //           | "while" "(" expr ")" stmt
+//           | "for" "(" stmt ";" expr ";" stmt ")" stmt
 //=================================================================================
-static std::shared_ptr<AST> parseStmt(iterator_t& it, iterator_t end) {
+template <typename T>
+inline static void Require(iterator_t& it, iterator_t end, char const* msg) {
+  if (!tryConsume<T>(it, end))
+    throw SyntaxError(msg, std::make_optional<SourceLocation>(*it));
+}
+static std::shared_ptr<AST> parseStmt(iterator_t& it,
+                                      iterator_t end,
+                                      bool require_semicol = true) {
   // if statement
   if (tryConsume<tok::Reserved>(it, end, "if")) {
-    if (!tryConsume<tok::ParenthesisL>(it, end))
-      throw SyntaxError("Expected '('.",
-                        std::make_optional<SourceLocation>(*it));
+    Require<tok::ParenthesisL>(it, end, "Expected '('.");
     auto cond = parseExpression(it, end);
-    if (!tryConsume<tok::ParenthesisR>(it, end))
-      throw SyntaxError("Expected ')'.",
-                        std::make_optional<SourceLocation>(*it));
+    Require<tok::ParenthesisR>(it, end, "Expected ')'.");
 
     std::shared_ptr<AST> then = parseStmt(it, end), els = nullptr;
     if (tryConsume<tok::Reserved>(it, end, "else"))
@@ -518,22 +522,47 @@ static std::shared_ptr<AST> parseStmt(iterator_t& it, iterator_t end) {
 
   // while statement
   if (tryConsume<tok::Reserved>(it, end, "while")) {
-    if (!tryConsume<tok::ParenthesisL>(it, end))
-      throw SyntaxError("Expected '('.",
-                        std::make_optional<SourceLocation>(*it));
+    Require<tok::ParenthesisL>(it, end, "Expected '('.");
     auto cond = parseExpression(it, end);
-    if (!tryConsume<tok::ParenthesisR>(it, end))
-      throw SyntaxError("Expected ')'.",
-                        std::make_optional<SourceLocation>(*it));
+    Require<tok::ParenthesisR>(it, end, "Expected ')'.");
 
     auto body = parseStmt(it, end);
     return std::make_shared<AST>(WhileStmt(cond, body));
   }
 
+  // for statement
+  if (tryConsume<tok::Reserved>(it, end, "for")) {
+    std::shared_ptr<AST> init, inc;
+    std::shared_ptr<ExprAST> cond;
+
+    Require<tok::ParenthesisL>(it, end, "Expected '('.");
+    if (tryConsume<tok::Semicol>(it, end))
+      init = nullptr;
+    else {
+      init = parseStmt(it, end, false);
+      Require<tok::Semicol>(it, end, "Expected ';'.");
+    }
+    if (tryConsume<tok::Semicol>(it, end))
+      cond = nullptr;
+    else {
+      cond = parseExpression(it, end);
+      Require<tok::Semicol>(it, end, "Expected ';'.");
+    }
+    if (tryConsume<tok::ParenthesisR>(it, end))
+      inc = nullptr;
+    else {
+      inc = parseStmt(it, end, false);
+      Require<tok::ParenthesisR>(it, end, "Expected ')'.");
+    }
+
+    auto body = parseStmt(it, end);
+    return std::make_shared<AST>(ForStmt(init, cond, inc, body));
+  }
+
   // assignment or expression statement
   auto stmt = parseAssignment(it, end);
-  if (!tryConsume<tok::Semicol>(it, end))
-    throw SyntaxError("Expected ';'.", std::make_optional<SourceLocation>(*it));
+  if (require_semicol)
+    Require<tok::Semicol>(it, end, "Expected ';'.");
   return stmt;
 }
 

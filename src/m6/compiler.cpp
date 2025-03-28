@@ -185,6 +185,27 @@ struct Compiler::Visitor {
     j1.offset = result.size() - offset1 - 1;
     result[offset1] = j1;
   }
+  void operator()(const ForStmt& x) {
+    if (x.init)
+      compiler.Compile(x.init, result);
+    int lbegin = static_cast<int>(result.size());
+
+    if (x.cond)
+      compiler.Compile(x.cond, result);
+    else
+      Emit(Push(Value(1)));
+    auto j1 = Jf();
+    auto offset1 = result.size();
+    Emit(j1);  // dummy
+
+    compiler.Compile(x.body, result);
+    if (x.inc)
+      compiler.Compile(x.inc, result);
+    Emit(Jmp(lbegin - static_cast<int>(result.size()) - 1));
+
+    j1.offset = result.size() - lbegin - 1;
+    result[offset1] = j1;
+  }
   void operator()(const std::shared_ptr<ExprAST>& x) {
     compiler.Compile(x, result);
   }

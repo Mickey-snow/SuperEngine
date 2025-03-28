@@ -141,4 +141,18 @@ i += 1;
   EXPECT_EQ(DescribeStack(), "<int: 17>");
 }
 
+TEST_F(CompilerTest, ForStmt) {
+  Execute(R"(
+sum = 0;
+for(i=0;i<12;i+=1) sum -= i;
+sum=-sum;
+)");
+  EXPECT_EQ(DescribeStack(), "<int: 66>, <int: 12>");
+
+  Execute(R"(
+for(;i+sum>24;) sum -= 1;
+)");
+  EXPECT_EQ(DescribeStack(), "<int: 12>, <int: 12>");
+}
+
 }  // namespace m6test
