@@ -132,4 +132,13 @@ a += 10;
   EXPECT_EQ(DescribeStack(), "<int: 30>, <int: 20>, <str: a is less than b>");
 }
 
+TEST_F(CompilerTest, WhileStmt) {
+  Execute(R"(
+i = 1;
+while (i < 10) i += i;
+i += 1;
+)");
+  EXPECT_EQ(DescribeStack(), "<int: 17>");
+}
+
 }  // namespace m6test

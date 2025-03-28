@@ -73,6 +73,7 @@ std::string const& AugStmt::GetID() const {
 }
 Op AugStmt::GetOp() const { return op_tok->GetIf<tok::Operator>()->op; }
 std::string IfStmt::DebugString() const { return "If"; }
+std::string WhileStmt::DebugString() const { return "While"; }
 
 // -----------------------------------------------------------------------
 // Visitor to print debug string for an AST
@@ -122,6 +123,10 @@ struct Dumper {
       oss << x.then->DumpAST("then", childPrefix, x.els ? false : true);
       if (x.els)
         oss << x.els->DumpAST("else", childPrefix, true);
+    }
+    if constexpr (std::same_as<T, WhileStmt>) {
+      oss << x.cond->Apply(Dumper(childPrefix, false));
+      oss << x.body->DumpAST("body", childPrefix, true);
     }
 
     return oss.str();

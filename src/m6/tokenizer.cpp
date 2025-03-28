@@ -54,7 +54,8 @@ static const std::vector<std::string> OPERATORS = {
     "|=",   "^=",  "==",  "!=", "<=",  ">=", "||", "&&", "=",  "+",  "-",  "*",
     "/",    "%",   "~",   "&",  "|",   "^",  "<",  ">",  ",",  "."};
 
-static const std::unordered_set<std::string> RESERVED_KEYWORDS = {"if", "else"};
+static const std::unordered_set<std::string> RESERVED_KEYWORDS = {"if", "else",
+                                                                  "while"};
 
 // Attempt to match an operator from position `pos` in `input`.
 // Returns the matched operator string if successful, else an empty string.

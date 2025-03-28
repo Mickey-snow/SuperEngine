@@ -495,7 +495,8 @@ static std::shared_ptr<ExprAST> parsePrimary(iterator_t& it, iterator_t end) {
 //=================================================================================
 // parseStmt() - statement
 //     stmt -> assignment_expr
-//           | "if" "(" expr; ")" stmt ("else" stmt)?
+//           | "if" "(" expr ")" stmt ("else" stmt)?
+//           | "while" "(" expr ")" stmt
 //=================================================================================
 static std::shared_ptr<AST> parseStmt(iterator_t& it, iterator_t end) {
   // if statement
@@ -503,9 +504,7 @@ static std::shared_ptr<AST> parseStmt(iterator_t& it, iterator_t end) {
     if (!tryConsume<tok::ParenthesisL>(it, end))
       throw SyntaxError("Expected '('.",
                         std::make_optional<SourceLocation>(*it));
-
     auto cond = parseExpression(it, end);
-
     if (!tryConsume<tok::ParenthesisR>(it, end))
       throw SyntaxError("Expected ')'.",
                         std::make_optional<SourceLocation>(*it));
@@ -515,6 +514,20 @@ static std::shared_ptr<AST> parseStmt(iterator_t& it, iterator_t end) {
       els = parseStmt(it, end);
 
     return std::make_shared<AST>(IfStmt(cond, then, els));
+  }
+
+  // while statement
+  if (tryConsume<tok::Reserved>(it, end, "while")) {
+    if (!tryConsume<tok::ParenthesisL>(it, end))
+      throw SyntaxError("Expected '('.",
+                        std::make_optional<SourceLocation>(*it));
+    auto cond = parseExpression(it, end);
+    if (!tryConsume<tok::ParenthesisR>(it, end))
+      throw SyntaxError("Expected ')'.",
+                        std::make_optional<SourceLocation>(*it));
+
+    auto body = parseStmt(it, end);
+    return std::make_shared<AST>(WhileStmt(cond, body));
   }
 
   // assignment or expression statement

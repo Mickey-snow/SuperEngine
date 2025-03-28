@@ -171,6 +171,20 @@ struct Compiler::Visitor {
     }
     result[offset1] = j1;
   }
+  void operator()(const WhileStmt& x) {
+    int lbegin = static_cast<int>(result.size());
+    compiler.Compile(x.cond, result);
+
+    auto j1 = Jf();
+    auto offset1 = result.size();
+    Emit(j1);  // dummy
+
+    compiler.Compile(x.body, result);
+
+    Emit(Jmp(lbegin - static_cast<int>(result.size()) - 1));
+    j1.offset = result.size() - offset1 - 1;
+    result[offset1] = j1;
+  }
   void operator()(const std::shared_ptr<ExprAST>& x) {
     compiler.Compile(x, result);
   }
