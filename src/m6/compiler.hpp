@@ -27,8 +27,10 @@
 #include "machine/instruction.hpp"
 #include "machine/value.hpp"
 
-#include <map>
+#include <optional>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace m6 {
 
@@ -40,7 +42,8 @@ class Compiler {
   struct Visitor;
 
  public:
-  Compiler() = default;
+  Compiler();
+  ~Compiler() = default;
 
   std::vector<Instruction> Compile(std::shared_ptr<ExprAST> expr);
   std::vector<Instruction> Compile(std::shared_ptr<AST> stmt);
@@ -51,7 +54,14 @@ class Compiler {
   void Compile(std::shared_ptr<ExprAST> expr, std::vector<Instruction>&);
   void Compile(std::shared_ptr<AST> stmt, std::vector<Instruction>&);
 
-  std::map<std::string, size_t> local_variable_;
+  void PushScope();
+  size_t PopScope();
+  std::optional<size_t> FindLocal(const std::string& id) const;
+  size_t AddLocal(const std::string& id);
+
+  std::vector<std::unordered_map<std::string, size_t>> local_variable_;
+  size_t local_cnt_;
+
   std::map<std::string, Value> native_fn_;
 };
 

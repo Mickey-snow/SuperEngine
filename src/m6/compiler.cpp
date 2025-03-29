@@ -47,12 +47,12 @@ struct Compiler::Visitor {
 
   void operator()(const Identifier& idexpr) {
     std::string const& id = idexpr.GetID();
-    auto it = compiler.local_variable_.find(id);
-    if (it == compiler.local_variable_.cend()) {
+    std::optional<size_t> loc = compiler.FindLocal(id);
+    if (!loc.has_value()) {
       throw NameError("Name '" + id + "' not defined.", *idexpr.tok);
     }
 
-    Emit(Load(it->second));
+    Emit(Load(*loc));
   }
   void operator()(const IntLiteral& x) { Emit(Push(Value(x.GetValue()))); }
   void operator()(const StrLiteral& x) { Emit(Push(Value(x.GetValue()))); }
@@ -92,21 +92,23 @@ struct Compiler::Visitor {
     std::string const& id = x.GetID();
 
     compiler.Compile(x.rhs, result);
-    if (compiler.local_variable_.contains(id)) {
-      Emit(Store(compiler.local_variable_.at(id)));
+    std::optional<size_t> loc = compiler.FindLocal(id);
+    if (loc.has_value()) {
+      Emit(Store(*loc));
       Emit(Pop());
     } else {
-      compiler.local_variable_[id] = compiler.local_variable_.size();
+      compiler.AddLocal(id);
     }
   }
   void operator()(const AugStmt& x) {
-    auto it = compiler.local_variable_.find(x.GetID());
-    if (it == compiler.local_variable_.cend())
-      throw NameError("Name '" + x.GetID() + "' not defined.",
+    std::string const& id = x.GetID();
+    std::optional<size_t> loc = compiler.FindLocal(id);
+    if (!loc.has_value())
+      throw NameError("Name '" + id + "' not defined.",
                       std::make_optional<SourceLocation>(
                           *(x.lhs->Get_if<Identifier>()->tok)));
 
-    Emit(Load(it->second));
+    Emit(Load(*loc));
     compiler.Compile(x.rhs, result);
     switch (x.GetOp()) {
       case Op::AddAssign:
@@ -146,7 +148,7 @@ struct Compiler::Visitor {
         throw std::runtime_error("Compiler: Unknown operator '" +
                                  ToString(x.GetOp()) + "' in AugExpr.");
     }
-    Emit(Store(it->second));
+    Emit(Store(*loc));
     Emit(Pop());
   }
   void operator()(const IfStmt& x) {
@@ -186,6 +188,8 @@ struct Compiler::Visitor {
     result[offset1] = j1;
   }
   void operator()(const ForStmt& x) {
+    compiler.PushScope();
+
     if (x.init)
       compiler.Compile(x.init, result);
     int lbegin = static_cast<int>(result.size());
@@ -205,15 +209,27 @@ struct Compiler::Visitor {
 
     j1.offset = result.size() - offset1 - 1;
     result[offset1] = j1;
+
+    Emit(Pop(compiler.PopScope()));
   }
   void operator()(const BlockStmt& x) {
+    compiler.PushScope();
     for (const auto& it : x.body)
       compiler.Compile(it, result);
+    Emit(Pop(compiler.PopScope()));
   }
   void operator()(const std::shared_ptr<ExprAST>& x) {
     compiler.Compile(x, result);
+    Emit(Pop());
   }
 };
+
+// -----------------------------------------------------------------------
+
+Compiler::Compiler()
+    : local_variable_{std::unordered_map<std::string, size_t>{}},
+      local_cnt_(0),
+      native_fn_() {}
 
 void Compiler::AddNative(Value fn) {
   auto ptr = fn.Get_if<NativeFunction>();
@@ -222,6 +238,8 @@ void Compiler::AddNative(Value fn) {
                              " is not a native function.");
   native_fn_[ptr->Name()] = std::move(fn);
 }
+
+// -----------------------------------------------------------------------
 
 std::vector<Instruction> Compiler::Compile(std::shared_ptr<ExprAST> expr) {
   std::vector<Instruction> result;
@@ -241,6 +259,31 @@ std::vector<Instruction> Compiler::Compile(std::shared_ptr<AST> stmt) {
 void Compiler::Compile(std::shared_ptr<AST> stmt,
                        std::vector<Instruction>& result) {
   stmt->Apply(Visitor(*this, result));
+}
+
+// -----------------------------------------------------------------------
+
+void Compiler::PushScope() { local_variable_.emplace_back(); }
+
+size_t Compiler::PopScope() {
+  const size_t scope_size = local_variable_.back().size();
+  local_cnt_ -= scope_size;
+  local_variable_.pop_back();
+  return scope_size;
+}
+
+std::optional<size_t> Compiler::FindLocal(const std::string& id) const {
+  for (auto scope = local_variable_.crbegin(); scope != local_variable_.crend();
+       ++scope) {
+    if (scope->contains(id))
+      return scope->at(id);
+  }
+  return std::nullopt;
+}
+
+size_t Compiler::AddLocal(const std::string& id) {
+  local_variable_.back().emplace(id, local_cnt_);
+  return local_cnt_++;
 }
 
 }  // namespace m6

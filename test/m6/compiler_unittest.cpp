@@ -86,6 +86,11 @@ class CompilerTest : public ::testing::Test {
   Compiler compiler;
 };
 
+TEST_F(CompilerTest, Expression) {
+  auto ins = Execute(R"(1+1;)");
+  EXPECT_EQ(DescribeStack(), "") << Disassemble(ins);
+}
+
 TEST_F(CompilerTest, GlobalVariable) {
   Execute(R"(
 beverage = "espresso";
@@ -110,7 +115,7 @@ TEST_F(CompilerTest, NativeFn) {
 
   Execute(R"(
 v2 = 89;
-foo(v2);
+v3 = foo(v2);
 )");
   EXPECT_EQ(DescribeStack(), "<int: 89>, <int: 1>");
 
@@ -149,17 +154,27 @@ while (i < 10){ sum += i; i += 1; }
 }
 
 TEST_F(CompilerTest, ForStmt1) {
-  Execute(R"(
+  auto ins = Execute(R"(
 sum = 0;
 for(i=0;i<12;i+=1) sum -= i;
 sum=-sum;
 )");
-  EXPECT_EQ(DescribeStack(), "<int: 66>, <int: 12>");
+  EXPECT_EQ(DescribeStack(), "<int: 66>") << Disassemble(ins);
+}
 
-  Execute(R"(
-for(;i+sum>24;) sum -= 1;
+TEST_F(CompilerTest, ForStmt2) {
+  auto ins = Execute(R"(
+rows = 5;
+result = "";
+for(i=1;i<=rows;i+=1){
+  for(j=1;j<=i;j+=1)
+    result += "*";
+  result += "\n";
+}
 )");
-  EXPECT_EQ(DescribeStack(), "<int: 12>, <int: 12>");
+
+  EXPECT_EQ(DescribeStack(), "<int: 5>, <str: *\n**\n***\n****\n*****\n>")
+      << Disassemble(ins);
 }
 
 }  // namespace m6test
