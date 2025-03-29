@@ -207,11 +207,18 @@ struct ForStmt {
   std::string DebugString() const;
 };
 
+struct BlockStmt {
+  std::vector<std::shared_ptr<AST>> body;
+
+  std::string DebugString() const;
+};
+
 using stmt_variant_t = std::variant<AssignStmt,
                                     AugStmt,
                                     IfStmt,
                                     WhileStmt,
                                     ForStmt,
+				    BlockStmt,
                                     std::shared_ptr<ExprAST>>;
 
 class AST {

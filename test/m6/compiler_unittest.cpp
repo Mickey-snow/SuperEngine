@@ -27,6 +27,7 @@
 #include "util.hpp"
 
 #include "m6/compiler.hpp"
+#include "m6/disassembler.hpp"
 #include "m6/exception.hpp"
 #include "m6/native.hpp"
 #include "m6/parser.hpp"
@@ -44,12 +45,15 @@ class CompilerTest : public ::testing::Test {
       : machine(std::make_shared<RLMachine>(nullptr, nullptr, nullptr)),
         stack(const_cast<std::vector<Value>&>(machine->GetStack())) {}
 
-  void Execute(const std::string_view input, bool allow_error = false) {
+  auto Execute(const std::string_view input, bool allow_error = false) {
+    std::vector<Instruction> exectued_instructions;
     try {
       auto tok = TokenArray(input);
       auto begin = tok.data(), end = tok.data() + tok.size();
       while (begin != end && !begin->HoldsAlternative<tok::Eof>()) {
         auto instructions = compiler.Compile(ParseStmt(begin, end));
+        exectued_instructions.insert(exectued_instructions.end(),
+                                     instructions.begin(), instructions.end());
         machine->halted_ = false;
         machine->ip_ = 0;
         machine->script_ = std::span(instructions);
@@ -67,6 +71,8 @@ class CompilerTest : public ::testing::Test {
         throw;
       ADD_FAILURE() << e.what();
     }
+
+    return exectued_instructions;
   }
 
   inline std::string DescribeStack() const {
@@ -117,16 +123,17 @@ TEST_F(CompilerTest, IfStmt) {
 a = 10;
 b = 20;
 result = "";
-if (a < b)
+if (a < b) {
   if (a < 5) result += "a is less than 5";
   else result += "a is less than b";
+}
 else result += "a is not less than b";
 )");
   EXPECT_EQ(DescribeStack(), "<int: 10>, <int: 20>, <str: a is less than b>");
 
   Execute(R"(
 a = 10;
-if(a >= 10) a += 10;
+if(a >= 10){ a += 10; }
 a += 10;
 )");
   EXPECT_EQ(DescribeStack(), "<int: 30>, <int: 20>, <str: a is less than b>");
@@ -135,13 +142,13 @@ a += 10;
 TEST_F(CompilerTest, WhileStmt) {
   Execute(R"(
 i = 1;
-while (i < 10) i += i;
-i += 1;
+sum = 0;
+while (i < 10){ sum += i; i += 1; }
 )");
-  EXPECT_EQ(DescribeStack(), "<int: 17>");
+  EXPECT_EQ(DescribeStack(), "<int: 10>, <int: 45>");
 }
 
-TEST_F(CompilerTest, ForStmt) {
+TEST_F(CompilerTest, ForStmt1) {
   Execute(R"(
 sum = 0;
 for(i=0;i<12;i+=1) sum -= i;

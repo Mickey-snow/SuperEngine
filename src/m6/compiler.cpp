@@ -203,8 +203,12 @@ struct Compiler::Visitor {
       compiler.Compile(x.inc, result);
     Emit(Jmp(lbegin - static_cast<int>(result.size()) - 1));
 
-    j1.offset = result.size() - lbegin - 1;
+    j1.offset = result.size() - offset1 - 1;
     result[offset1] = j1;
+  }
+  void operator()(const BlockStmt& x) {
+    for (const auto& it : x.body)
+      compiler.Compile(it, result);
   }
   void operator()(const std::shared_ptr<ExprAST>& x) {
     compiler.Compile(x, result);

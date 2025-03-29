@@ -700,4 +700,23 @@ For
 )");
 }
 
+TEST_F(StmtParserTest, Block) {
+  expectStmtAST(TokenArray("{i=1;j=2;k=3;l=4; {}}"sv), R"(
+Compound
+   ├─Assign
+   │  ├─ID i
+   │  └─IntLiteral 1
+   ├─Assign
+   │  ├─ID j
+   │  └─IntLiteral 2
+   ├─Assign
+   │  ├─ID k
+   │  └─IntLiteral 3
+   ├─Assign
+   │  ├─ID l
+   │  └─IntLiteral 4
+   └─Compound
+)");
+}
+
 }  // namespace m6test

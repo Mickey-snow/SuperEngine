@@ -498,6 +498,7 @@ static std::shared_ptr<ExprAST> parsePrimary(iterator_t& it, iterator_t end) {
 //           | "if" "(" expr ")" stmt ("else" stmt)?
 //           | "while" "(" expr ")" stmt
 //           | "for" "(" stmt ";" expr ";" stmt ")" stmt
+//           | "{" stmt* "}"
 //=================================================================================
 template <typename T>
 inline static void Require(iterator_t& it, iterator_t end, char const* msg) {
@@ -557,6 +558,14 @@ static std::shared_ptr<AST> parseStmt(iterator_t& it,
 
     auto body = parseStmt(it, end);
     return std::make_shared<AST>(ForStmt(init, cond, inc, body));
+  }
+
+  // block
+  if (tryConsume<tok::CurlyL>(it, end)) {
+    std::vector<std::shared_ptr<AST>> body;
+    while (!tryConsume<tok::CurlyR>(it, end))
+      body.emplace_back(parseStmt(it, end));
+    return std::make_shared<AST>(BlockStmt(std::move(body)));
   }
 
   // assignment or expression statement

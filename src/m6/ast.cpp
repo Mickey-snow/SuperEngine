@@ -75,6 +75,7 @@ Op AugStmt::GetOp() const { return op_tok->GetIf<tok::Operator>()->op; }
 std::string IfStmt::DebugString() const { return "If"; }
 std::string WhileStmt::DebugString() const { return "While"; }
 std::string ForStmt::DebugString() const { return "For"; }
+std::string BlockStmt::DebugString() const { return "Compound"; }
 
 // -----------------------------------------------------------------------
 // Visitor to print debug string for an AST
@@ -135,6 +136,10 @@ struct Dumper {
       oss << x.inc->DumpAST("inc", childPrefix, false);
       oss << x.body->DumpAST("body", childPrefix, true);
     }
+    if constexpr (std::same_as<T, BlockStmt>) {
+      for (size_t i = 0; i < x.body.size(); ++i)
+        oss << x.body[i]->DumpAST("", childPrefix, i + 1 >= x.body.size());
+    }
 
     return oss.str();
   }
@@ -145,23 +150,19 @@ struct Dumper {
 std::string ExprAST::DumpAST(std::string txt,
                              std::string pref,
                              bool isLast) const {
+  if (txt.empty())
+    return std::visit(Dumper(pref, isLast), var_);
+
   std::ostringstream oss;
 
-  bool empty = true;
   if (!pref.empty()) {
     oss << pref;
     oss << (isLast ? "└─" : "├─");
-    empty = false;
   }
-  if (!txt.empty()) {
-    oss << std::move(txt);
-    empty = false;
-  }
-  if (!empty)
-    oss << '\n';
+  if (!txt.empty())
+    oss << txt << '\n';
 
-  std::string childPrefix = empty ? "" : (pref + (isLast ? "   " : "│  "));
-
+  std::string childPrefix = pref + (isLast ? "   " : "│  ");
   oss << std::visit(Dumper(childPrefix, true), var_);
   return oss.str();
 }
@@ -175,22 +176,17 @@ std::string AST::DumpAST(std::string txt, std::string pref, bool isLast) const {
         if constexpr (std::same_as<T, std::shared_ptr<ExprAST>>)
           return x->DumpAST(std::move(txt), std::move(pref), isLast);
         else {
+          if (txt.empty())
+            return Dumper(pref, isLast)(x);
+
           std::ostringstream oss;
-          bool empty = true;
           if (!pref.empty()) {
             oss << pref;
             oss << (isLast ? "└─" : "├─");
-            empty = false;
           }
-          if (!txt.empty()) {
-            oss << std::move(txt);
-            empty = false;
-          }
-          if (!empty)
-            oss << '\n';
+          oss << txt << '\n';
 
-          std::string childPrefix =
-              empty ? "" : (pref + (isLast ? "   " : "│  "));
+          std::string childPrefix = pref + (isLast ? "   " : "│  ");
 
           oss << Dumper(childPrefix, true)(x);
           return oss.str();
