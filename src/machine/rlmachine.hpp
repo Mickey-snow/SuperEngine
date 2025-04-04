@@ -216,6 +216,8 @@ class RLMachine {
   void operator()(UnaryOp);
   void operator()(Load);
   void operator()(Store);
+  void operator()(LoadGlobal);
+  void operator()(StoreGlobal);
   void operator()(Invoke);
   void operator()(Jmp);
   void operator()(Jt);
@@ -242,6 +244,9 @@ class RLMachine {
 
   // Machine Stack, simple low-level LIFO structure.
   std::vector<Value> stack_;
+
+  // Global variables, nullopt means not defined
+  std::vector<std::optional<Value>> globals_;
 
   // Reallive virtual machine related fields
  private:

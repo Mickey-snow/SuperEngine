@@ -407,6 +407,23 @@ void RLMachine::operator()(Store p) {
   stack_[p.offset] = stack_.back();
 }
 
+void RLMachine::operator()(LoadGlobal p) {
+  if (globals_.size() < p.offset)
+    throw std::runtime_error("VM: Invalid load_global offset " +
+                             std::to_string(p.offset) + '.');
+  if (!globals_.at(p.offset).has_value())
+    throw std::runtime_error("VM: Global variable (" +
+                             std::to_string(p.offset) + ") not defined.");
+
+  stack_.push_back(*globals_.at(p.offset));
+}
+
+void RLMachine::operator()(StoreGlobal p) {
+  if (globals_.size() <= p.offset)
+    globals_.resize(p.offset + 1);
+  globals_[p.offset] = stack_.back();
+}
+
 void RLMachine::operator()(Invoke p) {
   if (stack_.size() < p.arity + 1)
     throw std::runtime_error("VM: Stack underflow.");

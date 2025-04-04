@@ -56,9 +56,12 @@ class Compiler {
 
   void PushScope();
   size_t PopScope();
+
+  size_t AddGlobal(const std::string& id);
   std::optional<size_t> FindLocal(const std::string& id) const;
   size_t AddLocal(const std::string& id);
 
+  std::unordered_map<std::string, size_t> global_variable_;
   std::vector<std::unordered_map<std::string, size_t>> local_variable_;
   size_t local_cnt_;
 

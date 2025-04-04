@@ -89,10 +89,24 @@ TEST_F(VMTest, Load) {
       << "Should copy the second element to stack top";
 }
 
+TEST_F(VMTest, LoadGlobal) {
+  machine->globals_ = {Value(1), Value("two")};
+  Execute(LoadGlobal(0), LoadGlobal(1), LoadGlobal(1));
+  EXPECT_EQ(DescribeStack(), "<int: 1>, <str: two>, <str: two>");
+}
+
 TEST_F(VMTest, Store) {
   Execute(Push(Value(123)), Push(Value("Hello")), Store(0));
   EXPECT_EQ(DescribeStack(), "<str: Hello>, <str: Hello>")
       << "Should copy the element at top of the stack to the first location";
+}
+
+TEST_F(VMTest, StoreGlobal) {
+  Execute(Push(Value(1)), StoreGlobal(0), Push(Value("two")), StoreGlobal(1),
+          StoreGlobal(2));
+  EXPECT_EQ(machine->globals_[0]->Desc(), "<int: 1>");
+  EXPECT_EQ(machine->globals_[1]->Desc(), "<str: two>");
+  EXPECT_EQ(machine->globals_[2]->Desc(), "<str: two>");
 }
 
 TEST_F(VMTest, Jump) {

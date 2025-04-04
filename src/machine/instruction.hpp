@@ -109,7 +109,15 @@ struct Load {
   size_t offset;
 };
 
+struct LoadGlobal {
+  size_t offset;
+};
+
 struct Store {
+  size_t offset;
+};
+
+struct StoreGlobal {
   size_t offset;
 };
 
@@ -140,7 +148,9 @@ using Instruction = std::variant<std::monostate,
                                  BinaryOp,
                                  UnaryOp,
                                  Load,
+                                 LoadGlobal,
                                  Store,
+                                 StoreGlobal,
                                  Invoke,
                                  Jmp,
                                  Jt,
@@ -164,6 +174,8 @@ class InstructionToString {
   std::string operator()(const UnaryOp&) const;
   std::string operator()(const Load&) const;
   std::string operator()(const Store&) const;
+  std::string operator()(const LoadGlobal&) const;
+  std::string operator()(const StoreGlobal&) const;
   std::string operator()(const Invoke&) const;
   std::string operator()(const Jmp&) const;
   std::string operator()(const Jt&) const;

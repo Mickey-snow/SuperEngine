@@ -67,6 +67,7 @@ void RLVMInstance::Main(const std::filesystem::path& gameroot) {
   } catch (std::exception& e) {
     static DomainLogger logger("Main");
     logger(Severity::Error) << "Failed to load game:\n" << e.what();
+    std::terminate();
   }
 
   try {

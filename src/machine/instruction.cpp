@@ -93,8 +93,14 @@ std::string InstructionToString::operator()(const UnaryOp& p) const {
 std::string InstructionToString::operator()(const Load& p) const {
   return "ld " + std::to_string(p.offset);
 }
+std::string InstructionToString::operator()(const LoadGlobal& p) const {
+  return "ld_global " + std::to_string(p.offset);
+}
 std::string InstructionToString::operator()(const Store& p) const {
   return "st " + std::to_string(p.offset);
+}
+std::string InstructionToString::operator()(const StoreGlobal& p) const {
+  return "st_global " + std::to_string(p.offset);
 }
 std::string InstructionToString::operator()(const Invoke& p) const {
   return "invoke " + std::to_string(p.arity);

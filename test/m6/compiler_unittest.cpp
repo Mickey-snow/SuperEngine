@@ -81,6 +81,14 @@ class CompilerTest : public ::testing::Test {
                               [](Value const& x) { return x.Desc(); }));
   }
 
+  inline std::string DescribeGlobals() const {
+    return Join(", ",
+                std::views::all(machine->globals_) |
+                    std::views::transform([](std::optional<Value> const& x) {
+                      return x.has_value() ? x->Desc() : "<null>";
+                    }));
+  }
+
   std::shared_ptr<RLMachine> machine;
   std::vector<Value>& stack;
   Compiler compiler;
@@ -88,7 +96,8 @@ class CompilerTest : public ::testing::Test {
 
 TEST_F(CompilerTest, Expression) {
   auto ins = Execute(R"(1+1;)");
-  EXPECT_EQ(DescribeStack(), "") << Disassemble(ins);
+  EXPECT_TRUE(machine->stack_.empty()) << Disassemble(ins);
+  EXPECT_TRUE(machine->globals_.empty()) << Disassemble(ins);
 }
 
 TEST_F(CompilerTest, GlobalVariable) {
@@ -96,7 +105,7 @@ TEST_F(CompilerTest, GlobalVariable) {
 beverage = "espresso";
 two = 1 + 1;
 )");
-  EXPECT_EQ(DescribeStack(), "<str: espresso>, <int: 2>");
+  EXPECT_EQ(DescribeGlobals(), "<str: espresso>, <int: 2>");
 }
 
 TEST_F(CompilerTest, Assignment) {
@@ -106,7 +115,7 @@ v3 = "hello";
 v3 = v3 + ", world";
 )");
 
-  EXPECT_EQ(DescribeStack(), "<int: 89>, <str: hello, world>");
+  EXPECT_EQ(DescribeGlobals(), "<int: 89>, <str: hello, world>");
 }
 
 TEST_F(CompilerTest, NativeFn) {
@@ -117,10 +126,10 @@ TEST_F(CompilerTest, NativeFn) {
 v2 = 89;
 v3 = foo(v2);
 )");
-  EXPECT_EQ(DescribeStack(), "<int: 89>, <int: 1>");
+  EXPECT_EQ(DescribeGlobals(), "<int: 89>, <int: 1>");
 
-  EXPECT_THROW(Execute(R"( foo(v2, v2); )", true), SyntaxError);
-  EXPECT_EQ(DescribeStack(), "<int: 89>, <int: 1>, <nil>");
+  EXPECT_THROW(Execute(R"( v4 = foo(v2, v2); )", true), SyntaxError);
+  EXPECT_EQ(DescribeGlobals(), "<int: 89>, <int: 1>");
 }
 
 TEST_F(CompilerTest, IfStmt) {
@@ -134,14 +143,14 @@ if (a < b) {
 }
 else result += "a is not less than b";
 )");
-  EXPECT_EQ(DescribeStack(), "<int: 10>, <int: 20>, <str: a is less than b>");
+  EXPECT_EQ(DescribeGlobals(), "<int: 10>, <int: 20>, <str: a is less than b>");
 
   Execute(R"(
 a = 10;
 if(a >= 10){ a += 10; }
 a += 10;
 )");
-  EXPECT_EQ(DescribeStack(), "<int: 30>, <int: 20>, <str: a is less than b>");
+  EXPECT_EQ(DescribeGlobals(), "<int: 30>, <int: 20>, <str: a is less than b>");
 }
 
 TEST_F(CompilerTest, WhileStmt) {
@@ -150,7 +159,7 @@ i = 1;
 sum = 0;
 while (i < 10){ sum += i; i += 1; }
 )");
-  EXPECT_EQ(DescribeStack(), "<int: 10>, <int: 45>");
+  EXPECT_EQ(DescribeGlobals(), "<int: 10>, <int: 45>");
 }
 
 TEST_F(CompilerTest, ForStmt1) {
@@ -159,7 +168,7 @@ sum = 0;
 for(i=0;i<12;i+=1) sum -= i;
 sum=-sum;
 )");
-  EXPECT_EQ(DescribeStack(), "<int: 66>") << Disassemble(ins);
+  EXPECT_EQ(DescribeGlobals(), "<int: 66>") << Disassemble(ins);
 }
 
 TEST_F(CompilerTest, ForStmt2) {
@@ -173,7 +182,7 @@ for(i=1;i<=rows;i+=1){
 }
 )");
 
-  EXPECT_EQ(DescribeStack(), "<int: 5>, <str: *\n**\n***\n****\n*****\n>")
+  EXPECT_EQ(DescribeGlobals(), "<int: 5>, <str: *\n**\n***\n****\n*****\n>")
       << Disassemble(ins);
 }
 

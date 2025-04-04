@@ -48,11 +48,10 @@ struct Compiler::Visitor {
   void operator()(const Identifier& idexpr) {
     std::string const& id = idexpr.GetID();
     std::optional<size_t> loc = compiler.FindLocal(id);
-    if (!loc.has_value()) {
-      throw NameError("Name '" + id + "' not defined.", *idexpr.tok);
-    }
-
-    Emit(Load(*loc));
+    if (!loc.has_value())
+      Emit(LoadGlobal(compiler.AddGlobal(id)));
+    else
+      Emit(Load(*loc));
   }
   void operator()(const IntLiteral& x) { Emit(Push(Value(x.GetValue()))); }
   void operator()(const StrLiteral& x) { Emit(Push(Value(x.GetValue()))); }
@@ -97,18 +96,27 @@ struct Compiler::Visitor {
       Emit(Store(*loc));
       Emit(Pop());
     } else {
-      compiler.AddLocal(id);
+      if (compiler.local_variable_.empty()) {  // at global scope
+        Emit(StoreGlobal(compiler.AddGlobal(id)));
+        Emit(Pop());
+      } else
+        compiler.AddLocal(id);
     }
   }
   void operator()(const AugStmt& x) {
     std::string const& id = x.GetID();
     std::optional<size_t> loc = compiler.FindLocal(id);
-    if (!loc.has_value())
+    auto gloc = compiler.global_variable_.find(id);
+    if (!loc.has_value() && gloc == compiler.global_variable_.cend())
       throw NameError("Name '" + id + "' not defined.",
                       std::make_optional<SourceLocation>(
                           *(x.lhs->Get_if<Identifier>()->tok)));
 
-    Emit(Load(*loc));
+    if (loc.has_value())
+      Emit(Load(*loc));
+    else
+      Emit(LoadGlobal(gloc->second));
+
     compiler.Compile(x.rhs, result);
     switch (x.GetOp()) {
       case Op::AddAssign:
@@ -148,7 +156,12 @@ struct Compiler::Visitor {
         throw std::runtime_error("Compiler: Unknown operator '" +
                                  ToString(x.GetOp()) + "' in AugExpr.");
     }
-    Emit(Store(*loc));
+
+    if (loc.has_value())
+      Emit(Store(*loc));
+    else
+      Emit(StoreGlobal(gloc->second));
+
     Emit(Pop());
   }
   void operator()(const IfStmt& x) {
@@ -227,9 +240,7 @@ struct Compiler::Visitor {
 // -----------------------------------------------------------------------
 
 Compiler::Compiler()
-    : local_variable_{std::unordered_map<std::string, size_t>{}},
-      local_cnt_(0),
-      native_fn_() {}
+    : global_variable_(), local_variable_(), local_cnt_(0), native_fn_() {}
 
 void Compiler::AddNative(Value fn) {
   auto ptr = fn.Get_if<NativeFunction>();
@@ -279,6 +290,11 @@ std::optional<size_t> Compiler::FindLocal(const std::string& id) const {
       return scope->at(id);
   }
   return std::nullopt;
+}
+
+size_t Compiler::AddGlobal(const std::string& id) {
+  auto it = global_variable_.try_emplace(id, global_variable_.size());
+  return it.first->second;
 }
 
 size_t Compiler::AddLocal(const std::string& id) {
