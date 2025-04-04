@@ -25,22 +25,13 @@
 #pragma once
 
 #include "m6/ast.hpp"
+#include "m6/source_location.hpp"
 
 #include <optional>
 #include <stdexcept>
 #include <string>
 
 namespace m6 {
-
-class Token;
-
-class SourceLocation {
- public:
-  size_t begin_offset, end_offset;
-
-  SourceLocation(const Token& tok);
-  SourceLocation(const Token& begin, const Token& end);
-};
 
 class RuntimeError : public std::exception {
  public:

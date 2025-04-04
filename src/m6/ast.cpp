@@ -39,14 +39,10 @@ namespace m6 {
 // AST node member functions
 
 std::string IntLiteral::DebugString() const {
-  return "IntLiteral " + std::to_string(GetValue());
+  return "IntLiteral " + std::to_string(value);
 }
-int IntLiteral::GetValue() const { return tok->GetIf<tok::Int>()->value; }
 std::string StrLiteral::DebugString() const {
-  return "StrLiteral " + GetValue();
-}
-std::string const& StrLiteral::GetValue() const {
-  return tok->GetIf<tok::Literal>()->str;
+  return "StrLiteral " + std::string(value);
 }
 std::string BinaryExpr::DebugString() const {
   return "Binaryop " + ToString(op);
@@ -56,22 +52,12 @@ std::string ParenExpr::DebugString() const { return "Parenthesis"; }
 std::string InvokeExpr::DebugString() const { return "Invoke"; }
 std::string SubscriptExpr::DebugString() const { return "Subscript"; }
 std::string MemberExpr::DebugString() const { return "Member"; }
-std::string Identifier::DebugString() const { return "ID " + GetID(); }
-std::string const& Identifier::GetID() const {
-  return tok->GetIf<tok::ID>()->id;
+std::string Identifier::DebugString() const {
+  return "ID " + std::string(value);
 }
 
 std::string AssignStmt::DebugString() const { return "Assign"; }
-std::string const& AssignStmt::GetID() const {
-  return lhs->Get_if<Identifier>()->GetID();
-}
-std::string AugStmt::DebugString() const {
-  return "AugAssign " + ToString(GetOp());
-}
-std::string const& AugStmt::GetID() const {
-  return lhs->Get_if<Identifier>()->GetID();
-}
-Op AugStmt::GetOp() const { return op_tok->GetIf<tok::Operator>()->op; }
+std::string AugStmt::DebugString() const { return "AugAssign " + ToString(op); }
 std::string IfStmt::DebugString() const { return "If"; }
 std::string WhileStmt::DebugString() const { return "While"; }
 std::string ForStmt::DebugString() const { return "For"; }

@@ -32,14 +32,6 @@
 namespace m6 {
 
 // -----------------------------------------------------------------------
-// class SourceLocation
-// -----------------------------------------------------------------------
-SourceLocation::SourceLocation(const Token& tok)
-    : begin_offset(tok.offset), end_offset(begin_offset + 1) {}
-SourceLocation::SourceLocation(const Token& begin, const Token& end)
-    : begin_offset(begin.offset), end_offset(end.offset) {}
-
-// -----------------------------------------------------------------------
 // class RuntimeError
 // -----------------------------------------------------------------------
 RuntimeError::RuntimeError(std::string msg) : msg_(std::move(msg)) {}

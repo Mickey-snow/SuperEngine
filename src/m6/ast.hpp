@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include "m6/source_location.hpp"
+
 #include <memory>
 #include <variant>
 #include <vector>
@@ -43,27 +45,27 @@ class Token;
 
 // Literal
 struct NilLiteral {
-  Token* tok;
+  SourceLocation loc;
   std::string DebugString() const;
 };
 
 struct IntLiteral {
-  Token* tok;
+  int value;
+  SourceLocation loc;
   std::string DebugString() const;
-  int GetValue() const;
 };
 
 struct StrLiteral {
-  Token* tok;
+  std::string_view value;
+  SourceLocation loc;
   std::string DebugString() const;
-  std::string const& GetValue() const;
 };
 
 // Identifier
 struct Identifier {
-  Token* tok;
+  std::string_view value;
+  SourceLocation loc;
   std::string DebugString() const;
-  std::string const& GetID() const;
 };
 
 // Binary operation node
@@ -71,6 +73,7 @@ struct BinaryExpr {
   Op op;
   std::shared_ptr<ExprAST> lhs;
   std::shared_ptr<ExprAST> rhs;
+  SourceLocation op_loc, lhs_loc, rhs_loc;
 
   std::string DebugString() const;
 };
@@ -79,6 +82,7 @@ struct BinaryExpr {
 struct UnaryExpr {
   Op op;
   std::shared_ptr<ExprAST> sub;
+  SourceLocation op_loc, sub_loc;
 
   std::string DebugString() const;
 };
@@ -86,6 +90,7 @@ struct UnaryExpr {
 // Parenthesized expression node
 struct ParenExpr {
   std::shared_ptr<ExprAST> sub;
+  SourceLocation loc;
 
   std::string DebugString() const;
 };
@@ -94,6 +99,8 @@ struct ParenExpr {
 struct InvokeExpr {
   std::shared_ptr<ExprAST> fn;
   std::vector<std::shared_ptr<ExprAST>> args;
+  SourceLocation fn_loc;
+  std::vector<SourceLocation> args_loc;
 
   std::string DebugString() const;
 };
@@ -103,6 +110,8 @@ struct SubscriptExpr {
   std::shared_ptr<ExprAST> primary;
   std::shared_ptr<ExprAST> index;
 
+  SourceLocation primary_loc, idx_loc;
+
   std::string DebugString() const;
 };
 
@@ -110,6 +119,8 @@ struct SubscriptExpr {
 struct MemberExpr {
   std::shared_ptr<ExprAST> primary;
   std::shared_ptr<ExprAST> member;
+
+  SourceLocation primary_loc, mem_loc;
 
   std::string DebugString() const;
 };
@@ -167,20 +178,19 @@ class ExprAST {
 struct AssignStmt {
   std::shared_ptr<ExprAST> lhs;
   std::shared_ptr<ExprAST> rhs;
+  SourceLocation lhs_loc, op_loc, rhs_loc;
 
   std::string DebugString() const;
-  std::string const& GetID() const;
 };
 
 // Compound Assignment
 struct AugStmt {
   std::shared_ptr<ExprAST> lhs;
-  Token* op_tok;
+  Op op;
   std::shared_ptr<ExprAST> rhs;
+  SourceLocation lhs_loc, op_loc, rhs_loc;
 
   std::string DebugString() const;
-  std::string const& GetID() const;
-  Op GetOp() const;
 };
 
 struct IfStmt {
@@ -218,7 +228,7 @@ using stmt_variant_t = std::variant<AssignStmt,
                                     IfStmt,
                                     WhileStmt,
                                     ForStmt,
-				    BlockStmt,
+                                    BlockStmt,
                                     std::shared_ptr<ExprAST>>;
 
 class AST {

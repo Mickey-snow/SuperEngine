@@ -128,12 +128,12 @@ static std::shared_ptr<ExprAST> parseExpression(iterator_t& it,
 //=================================================================================
 static std::shared_ptr<AST> parseAssignment(iterator_t& it, iterator_t end) {
   skipWS(it, end);
-  iterator_t lhs_begin = it;
+  iterator_t lhs_begin_it = it;
   auto lhs = parseLogicalOr(it, end);
-  iterator_t lhs_end = it;
+  iterator_t lhs_end_it = it;
 
   skipWS(it, end);
-  Token* op_tok = it;
+  Token* op_it = it;
   auto matched =
       tryConsumeAny(it, end,
                     {Op::Assign, Op::AddAssign, Op::SubAssign, Op::MulAssign,
@@ -151,14 +151,21 @@ static std::shared_ptr<AST> parseAssignment(iterator_t& it, iterator_t end) {
   });
   if (id_node == nullptr) {
     throw SyntaxError("Expected identifier.",
-                      std::make_optional<SourceLocation>(*lhs_begin, *lhs_end));
+                      SourceLocation(lhs_begin_it, lhs_end_it));
   }
 
+  iterator_t rhs_begin_it = it;
   auto rhs = parseExpression(it, end);
+  iterator_t rhs_end_it = it;
   if (assignmentOp == Op::Assign) {  // simple assignment
-    return std::make_shared<AST>(AssignStmt(lhs, rhs));
+    return std::make_shared<AST>(AssignStmt(
+        lhs, rhs, SourceLocation(lhs_begin_it, lhs_end_it),
+        SourceLocation(op_it), SourceLocation(rhs_begin_it, rhs_end_it)));
   } else {  // compound assignment
-    return std::make_shared<AST>(AugStmt(lhs, op_tok, rhs));
+    return std::make_shared<AST>(AugStmt(
+        lhs, assignmentOp, rhs, SourceLocation(lhs_begin_it, lhs_end_it),
+        SourceLocation(op_it, op_it + 1),
+        SourceLocation(rhs_begin_it, rhs_end_it)));
   }
 }
 
@@ -167,14 +174,26 @@ static std::shared_ptr<AST> parseAssignment(iterator_t& it, iterator_t end) {
 //     logical_or_expr -> logical_and_expr ( '||' logical_and_expr )*
 //=================================================================================
 static std::shared_ptr<ExprAST> parseLogicalOr(iterator_t& it, iterator_t end) {
+  iterator_t lhs_begin_it = it;
   auto lhs = parseLogicalAnd(it, end);
+  iterator_t lhs_end_it = it;
+
   while (true) {
     skipWS(it, end);
+    iterator_t op_it = it;
     if (!tryConsume<tok::Operator>(it, end, Op::LogicalOr)) {
       break;
     }
+
+    iterator_t rhs_begin_it = it;
     auto rhs = parseLogicalAnd(it, end);
-    BinaryExpr expr(Op::LogicalOr, lhs, rhs);
+    iterator_t rhs_end_it = it;
+
+    // Note how we construct the BinaryExpr with SourceLocations:
+    BinaryExpr expr(Op::LogicalOr, lhs, rhs, SourceLocation(op_it, op_it + 1),
+                    SourceLocation(lhs_begin_it, lhs_end_it),
+                    SourceLocation(rhs_begin_it, rhs_end_it));
+
     lhs = std::make_shared<ExprAST>(std::move(expr));
   }
   return lhs;
@@ -186,14 +205,25 @@ static std::shared_ptr<ExprAST> parseLogicalOr(iterator_t& it, iterator_t end) {
 //=================================================================================
 static std::shared_ptr<ExprAST> parseLogicalAnd(iterator_t& it,
                                                 iterator_t end) {
+  iterator_t lhs_begin_it = it;
   auto lhs = parseBitwiseOr(it, end);
+  iterator_t lhs_end_it = it;
+
   while (true) {
     skipWS(it, end);
+    iterator_t op_it = it;
     if (!tryConsume<tok::Operator>(it, end, Op::LogicalAnd)) {
       break;
     }
+
+    iterator_t rhs_begin_it = it;
     auto rhs = parseBitwiseOr(it, end);
-    BinaryExpr expr(Op::LogicalAnd, lhs, rhs);
+    iterator_t rhs_end_it = it;
+
+    BinaryExpr expr(Op::LogicalAnd, lhs, rhs, SourceLocation(op_it, op_it + 1),
+                    SourceLocation(lhs_begin_it, lhs_end_it),
+                    SourceLocation(rhs_begin_it, rhs_end_it));
+
     lhs = std::make_shared<ExprAST>(std::move(expr));
   }
   return lhs;
@@ -204,14 +234,25 @@ static std::shared_ptr<ExprAST> parseLogicalAnd(iterator_t& it,
 //     bitwise_or_expr -> bitwise_xor_expr ( '|' bitwise_xor_expr )*
 //=================================================================================
 static std::shared_ptr<ExprAST> parseBitwiseOr(iterator_t& it, iterator_t end) {
+  iterator_t lhs_begin_it = it;
   auto lhs = parseBitwiseXor(it, end);
+  iterator_t lhs_end_it = it;
+
   while (true) {
     skipWS(it, end);
+    iterator_t op_it = it;
     if (!tryConsume<tok::Operator>(it, end, Op::BitOr)) {
       break;
     }
+
+    iterator_t rhs_begin_it = it;
     auto rhs = parseBitwiseXor(it, end);
-    BinaryExpr expr(Op::BitOr, lhs, rhs);
+    iterator_t rhs_end_it = it;
+
+    BinaryExpr expr(Op::BitOr, lhs, rhs, SourceLocation(op_it, op_it + 1),
+                    SourceLocation(lhs_begin_it, lhs_end_it),
+                    SourceLocation(rhs_begin_it, rhs_end_it));
+
     lhs = std::make_shared<ExprAST>(std::move(expr));
   }
   return lhs;
@@ -223,14 +264,25 @@ static std::shared_ptr<ExprAST> parseBitwiseOr(iterator_t& it, iterator_t end) {
 //=================================================================================
 static std::shared_ptr<ExprAST> parseBitwiseXor(iterator_t& it,
                                                 iterator_t end) {
+  iterator_t lhs_begin_it = it;
   auto lhs = parseBitwiseAnd(it, end);
+  iterator_t lhs_end_it = it;
+
   while (true) {
     skipWS(it, end);
-    if (!tryConsume<tok::Operator>(it, end, Op::BitXor))
+    iterator_t op_it = it;
+    if (!tryConsume<tok::Operator>(it, end, Op::BitXor)) {
       break;
+    }
 
+    iterator_t rhs_begin_it = it;
     auto rhs = parseBitwiseAnd(it, end);
-    BinaryExpr expr(Op::BitXor, lhs, rhs);
+    iterator_t rhs_end_it = it;
+
+    BinaryExpr expr(Op::BitXor, lhs, rhs, SourceLocation(op_it, op_it + 1),
+                    SourceLocation(lhs_begin_it, lhs_end_it),
+                    SourceLocation(rhs_begin_it, rhs_end_it));
+
     lhs = std::make_shared<ExprAST>(std::move(expr));
   }
   return lhs;
@@ -242,14 +294,25 @@ static std::shared_ptr<ExprAST> parseBitwiseXor(iterator_t& it,
 //=================================================================================
 static std::shared_ptr<ExprAST> parseBitwiseAnd(iterator_t& it,
                                                 iterator_t end) {
+  iterator_t lhs_begin_it = it;
   auto lhs = parseEquality(it, end);
+  iterator_t lhs_end_it = it;
+
   while (true) {
     skipWS(it, end);
-    if (!tryConsume<tok::Operator>(it, end, Op::BitAnd))
+    iterator_t op_it = it;
+    if (!tryConsume<tok::Operator>(it, end, Op::BitAnd)) {
       break;
+    }
 
+    iterator_t rhs_begin_it = it;
     auto rhs = parseEquality(it, end);
-    BinaryExpr expr(Op::BitAnd, lhs, rhs);
+    iterator_t rhs_end_it = it;
+
+    BinaryExpr expr(Op::BitAnd, lhs, rhs, SourceLocation(op_it, op_it + 1),
+                    SourceLocation(lhs_begin_it, lhs_end_it),
+                    SourceLocation(rhs_begin_it, rhs_end_it));
+
     lhs = std::make_shared<ExprAST>(std::move(expr));
   }
   return lhs;
@@ -260,16 +323,27 @@ static std::shared_ptr<ExprAST> parseBitwiseAnd(iterator_t& it,
 //     equality_expr -> relational_expr ( ('=='|'!=') relational_expr )*
 //=================================================================================
 static std::shared_ptr<ExprAST> parseEquality(iterator_t& it, iterator_t end) {
+  iterator_t lhs_begin_it = it;
   auto lhs = parseRelational(it, end);
+  iterator_t lhs_end_it = it;
+
   while (true) {
     skipWS(it, end);
+    iterator_t op_it = it;
     auto match = tryConsumeAny(it, end, {Op::Equal, Op::NotEqual});
     if (!match.has_value())
       break;
 
     auto op = match.value();
+
+    iterator_t rhs_begin_it = it;
     auto rhs = parseRelational(it, end);
-    BinaryExpr expr(op, lhs, rhs);
+    iterator_t rhs_end_it = it;
+
+    BinaryExpr expr(op, lhs, rhs, SourceLocation(op_it, op_it + 1),
+                    SourceLocation(lhs_begin_it, lhs_end_it),
+                    SourceLocation(rhs_begin_it, rhs_end_it));
+
     lhs = std::make_shared<ExprAST>(std::move(expr));
   }
   return lhs;
@@ -281,17 +355,28 @@ static std::shared_ptr<ExprAST> parseEquality(iterator_t& it, iterator_t end) {
 //=================================================================================
 static std::shared_ptr<ExprAST> parseRelational(iterator_t& it,
                                                 iterator_t end) {
+  iterator_t lhs_begin_it = it;
   auto lhs = parseShift(it, end);
+  iterator_t lhs_end_it = it;
+
   while (true) {
     skipWS(it, end);
+    iterator_t op_it = it;
     auto match = tryConsumeAny(
         it, end, {Op::Less, Op::LessEqual, Op::Greater, Op::GreaterEqual});
     if (!match.has_value())
       break;
 
     auto op = match.value();
+
+    iterator_t rhs_begin_it = it;
     auto rhs = parseShift(it, end);
-    BinaryExpr expr(op, lhs, rhs);
+    iterator_t rhs_end_it = it;
+
+    BinaryExpr expr(op, lhs, rhs, SourceLocation(op_it, op_it + 1),
+                    SourceLocation(lhs_begin_it, lhs_end_it),
+                    SourceLocation(rhs_begin_it, rhs_end_it));
+
     lhs = std::make_shared<ExprAST>(std::move(expr));
   }
   return lhs;
@@ -302,17 +387,28 @@ static std::shared_ptr<ExprAST> parseRelational(iterator_t& it,
 //     shift_expr -> additive_expr ( ('<<'|'>>'|'>>>') additive_expr )*
 //=================================================================================
 static std::shared_ptr<ExprAST> parseShift(iterator_t& it, iterator_t end) {
+  iterator_t lhs_begin_it = it;
   auto lhs = parseAdditive(it, end);
+  iterator_t lhs_end_it = it;
+
   while (true) {
     skipWS(it, end);
+    iterator_t op_it = it;
     auto match = tryConsumeAny(
         it, end, {Op::ShiftLeft, Op::ShiftRight, Op::ShiftUnsignedRight});
     if (!match.has_value())
       break;
 
     auto op = match.value();
+
+    iterator_t rhs_begin_it = it;
     auto rhs = parseAdditive(it, end);
-    BinaryExpr expr(op, lhs, rhs);
+    iterator_t rhs_end_it = it;
+
+    BinaryExpr expr(op, lhs, rhs, SourceLocation(op_it, op_it + 1),
+                    SourceLocation(lhs_begin_it, lhs_end_it),
+                    SourceLocation(rhs_begin_it, rhs_end_it));
+
     lhs = std::make_shared<ExprAST>(std::move(expr));
   }
   return lhs;
@@ -323,16 +419,27 @@ static std::shared_ptr<ExprAST> parseShift(iterator_t& it, iterator_t end) {
 //     additive_expr -> multiplicative_expr ( ('+'|'-') multiplicative_expr )*
 //=================================================================================
 static std::shared_ptr<ExprAST> parseAdditive(iterator_t& it, iterator_t end) {
+  iterator_t lhs_begin_it = it;
   auto lhs = parseMultiplicative(it, end);
+  iterator_t lhs_end_it = it;
+
   while (true) {
     skipWS(it, end);
+    iterator_t op_it = it;
     auto match = tryConsumeAny(it, end, {Op::Add, Op::Sub});
     if (!match.has_value())
       break;
 
     auto op = match.value();
+
+    iterator_t rhs_begin_it = it;
     auto rhs = parseMultiplicative(it, end);
-    BinaryExpr expr(op, lhs, rhs);
+    iterator_t rhs_end_it = it;
+
+    BinaryExpr expr(op, lhs, rhs, SourceLocation(op_it, op_it + 1),
+                    SourceLocation(lhs_begin_it, lhs_end_it),
+                    SourceLocation(rhs_begin_it, rhs_end_it));
+
     lhs = std::make_shared<ExprAST>(std::move(expr));
   }
   return lhs;
@@ -344,16 +451,27 @@ static std::shared_ptr<ExprAST> parseAdditive(iterator_t& it, iterator_t end) {
 //=================================================================================
 static std::shared_ptr<ExprAST> parseMultiplicative(iterator_t& it,
                                                     iterator_t end) {
+  iterator_t lhs_begin_it = it;
   auto lhs = parseUnary(it, end);
+  iterator_t lhs_end_it = it;
+
   while (true) {
     skipWS(it, end);
+    iterator_t op_it = it;
     auto match = tryConsumeAny(it, end, {Op::Mul, Op::Div, Op::Mod});
     if (!match.has_value())
       break;
 
     auto op = match.value();
+
+    iterator_t rhs_begin_it = it;
     auto rhs = parseUnary(it, end);
-    BinaryExpr expr(op, lhs, rhs);
+    iterator_t rhs_end_it = it;
+
+    BinaryExpr expr(op, lhs, rhs, SourceLocation(op_it, op_it + 1),
+                    SourceLocation(lhs_begin_it, lhs_end_it),
+                    SourceLocation(rhs_begin_it, rhs_end_it));
+
     lhs = std::make_shared<ExprAST>(std::move(expr));
   }
   return lhs;
@@ -367,22 +485,29 @@ static std::shared_ptr<ExprAST> parseMultiplicative(iterator_t& it,
 static std::shared_ptr<ExprAST> parseUnary(iterator_t& it, iterator_t end) {
   // Collect all unary operators first.
   std::vector<Op> ops;
+  std::vector<iterator_t> op_locs;
   while (true) {
     skipWS(it, end);
+    iterator_t op_loc = it;
     auto match = tryConsumeAny(it, end, {Op::Add, Op::Sub, Op::Tilde});
     if (!match.has_value())
       break;
 
     ops.push_back(match.value());
+    op_locs.push_back(op_loc);
   }
 
   // Parse the postfix expression that these unary ops apply to.
+  iterator_t sub_begin_it = it;
   auto node = parsePostfix(it, end);
+  iterator_t sub_end_it = it;
 
   // Apply unary ops in reverse order (right-to-left).
-  for (auto itOp = ops.rbegin(); itOp != ops.rend(); ++itOp) {
-    UnaryExpr expr(*itOp, node);
+  for (size_t i = ops.size(); i-- > 0;) {
+    UnaryExpr expr(ops[i], node, SourceLocation(op_locs[i]),
+                   SourceLocation(sub_begin_it, sub_end_it));
     node = std::make_shared<ExprAST>(std::move(expr));
+    sub_begin_it = op_locs[i];
   }
 
   return node;
@@ -397,7 +522,9 @@ static std::shared_ptr<ExprAST> parseUnary(iterator_t& it, iterator_t end) {
 //       | '[' expr ']'                               (subscript)
 //=================================================================================
 static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end) {
+  iterator_t primary_begin_it = it;
   auto lhs = parsePrimary(it, end);
+  iterator_t primary_end_it = it;
 
   // Repeatedly parse postfix elements.
   while (true) {
@@ -408,18 +535,27 @@ static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end) {
       // parse optional expression
       skipWS(it, end);
 
-      std::vector<std::shared_ptr<ExprAST>> arglist;
+      std::vector<std::shared_ptr<ExprAST>> arg_list;
+      std::vector<SourceLocation> arg_locs;
       if (it != end && !it->HoldsAlternative<tok::ParenthesisR>()) {
-        arglist.emplace_back(parseExpression(it, end));
+        iterator_t begin_it = it;
+        arg_list.emplace_back(parseExpression(it, end));
+        arg_locs.emplace_back(begin_it, it);
 
-        while (tryConsume<tok::Operator>(it, end, Op::Comma))
-          arglist.emplace_back(parseExpression(it, end));
+        while (tryConsume<tok::Operator>(it, end, Op::Comma)) {
+          begin_it = it;
+          arg_list.emplace_back(parseExpression(it, end));
+          arg_locs.emplace_back(begin_it, it);
+        }
       }
 
       if (!tryConsume<tok::ParenthesisR>(it, end)) {
         throw SyntaxError("Expected ')' after function call.", *it);
       }
-      lhs = std::make_shared<ExprAST>(InvokeExpr(lhs, std::move(arglist)));
+      lhs = std::make_shared<ExprAST>(
+          InvokeExpr(lhs, std::move(arg_list),
+                     SourceLocation(primary_begin_it, primary_end_it),
+                     std::move(arg_locs)));
       continue;
     }
 
@@ -429,20 +565,28 @@ static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end) {
       if (it == end || !it->HoldsAlternative<tok::ID>()) {
         throw SyntaxError("Expected identifier after '.'", *it);
       }
-      Identifier memberName(it);
+      auto memberLoc = SourceLocation(it);
+      Identifier memberName(it->GetIf<tok::ID>()->id, memberLoc);
       ++it;  // consume the ID token
       auto memberNode = std::make_shared<ExprAST>(std::move(memberName));
-      lhs = std::make_shared<ExprAST>(MemberExpr(lhs, memberNode));
+      lhs = std::make_shared<ExprAST>(MemberExpr(
+          lhs, memberNode, SourceLocation(primary_begin_it, primary_end_it),
+          memberLoc));
       continue;
     }
 
     // 3) subscript: '[' expression ']'
     if (tryConsume<tok::SquareL>(it, end)) {
+      iterator_t idx_begin_it = it;
       auto indexExpr = parseExpression(it, end);
+      iterator_t idx_end_it = it;
+
       if (!tryConsume<tok::SquareR>(it, end)) {
         throw SyntaxError("Expected ']' after subscript expression.", *it);
       }
-      lhs = std::make_shared<ExprAST>(SubscriptExpr(lhs, indexExpr));
+      lhs = std::make_shared<ExprAST>(SubscriptExpr(
+          lhs, indexExpr, SourceLocation(primary_begin_it, primary_end_it),
+          SourceLocation(idx_begin_it, idx_end_it)));
       continue;
     }
 
@@ -466,26 +610,39 @@ static std::shared_ptr<ExprAST> parsePrimary(iterator_t& it, iterator_t end) {
     throw SyntaxError("Expected primary expression.", *it);
 
   // Try integer
-  if (it->HoldsAlternative<tok::Int>())
-    return std::make_shared<ExprAST>(IntLiteral(it++));
+  if (auto s = it->GetIf<tok::Int>()) {
+    auto node = IntLiteral(s->value, SourceLocation(it, it + 1));
+    ++it;
+    return std::make_shared<ExprAST>(std::move(node));
+  }
 
   // Try string
-  if (it->HoldsAlternative<tok::Literal>())
-    return std::make_shared<ExprAST>(StrLiteral(it++));
+  if (auto s = it->GetIf<tok::Literal>()) {
+    auto node = StrLiteral(s->str, SourceLocation(it, it + 1));
+    ++it;
+    return std::make_shared<ExprAST>(std::move(node));
+  }
 
   // Try identifier
-  if (it->HoldsAlternative<tok::ID>())
-    return std::make_shared<ExprAST>(Identifier(it++));
+  if (auto s = it->GetIf<tok::ID>()) {
+    auto node = Identifier(s->id, SourceLocation(it, it + 1));
+    ++it;
+    return std::make_shared<ExprAST>(std::move(node));
+  }
 
   // Try '(' expr ')'
   if (tryConsume<tok::ParenthesisL>(it, end)) {
+    iterator_t sub_begin_it = it;
     auto exprNode = parseExpression(it, end);
+    iterator_t sub_end_it = it;
+
     skipWS(it, end);
     if (!tryConsume<tok::ParenthesisR>(it, end))
       throw SyntaxError("Missing closing ')' in parenthesized expression.",
                         *it);
 
-    return std::make_shared<ExprAST>(ParenExpr(exprNode));
+    return std::make_shared<ExprAST>(
+        ParenExpr(exprNode, SourceLocation(sub_begin_it, sub_end_it)));
   }
 
   // If none matched, it's an error.

@@ -46,24 +46,26 @@ struct Compiler::Visitor {
   }
 
   void operator()(const Identifier& idexpr) {
-    std::string const& id = idexpr.GetID();
+    auto id = std::string(idexpr.value);
     std::optional<size_t> loc = compiler.FindLocal(id);
     if (!loc.has_value())
       Emit(LoadGlobal(compiler.AddGlobal(id)));
     else
       Emit(Load(*loc));
   }
-  void operator()(const IntLiteral& x) { Emit(Push(Value(x.GetValue()))); }
-  void operator()(const StrLiteral& x) { Emit(Push(Value(x.GetValue()))); }
+  void operator()(const IntLiteral& x) { Emit(Push(Value(x.value))); }
+  void operator()(const StrLiteral& x) {
+    Emit(Push(Value(std::string(x.value))));
+  }
   void operator()(const InvokeExpr& x) {
     for (auto arg : x.args)
       arg->Apply(*this);
 
     if (auto idexpr = x.fn->Get_if<Identifier>()) {
-      std::string const& id = idexpr->GetID();
+      auto id = std::string(idexpr->value);
       auto it = compiler.native_fn_.find(id);
       if (it == compiler.native_fn_.cend())
-        throw NameError("Name '" + id + "' is not defined.", *idexpr->tok);
+        throw NameError("Name '" + id + "' is not defined.");
 
       Emit(Push(it->second));
       Emit(Invoke(x.args.size()));
@@ -88,7 +90,7 @@ struct Compiler::Visitor {
   }
 
   void operator()(const AssignStmt& x) {
-    std::string const& id = x.GetID();
+    std::string id = std::string(x.lhs->Get_if<Identifier>()->value);
 
     compiler.Compile(x.rhs, result);
     std::optional<size_t> loc = compiler.FindLocal(id);
@@ -104,13 +106,11 @@ struct Compiler::Visitor {
     }
   }
   void operator()(const AugStmt& x) {
-    std::string const& id = x.GetID();
+    std::string id = std::string(x.lhs->Get_if<Identifier>()->value);
     std::optional<size_t> loc = compiler.FindLocal(id);
     auto gloc = compiler.global_variable_.find(id);
     if (!loc.has_value() && gloc == compiler.global_variable_.cend())
-      throw NameError("Name '" + id + "' not defined.",
-                      std::make_optional<SourceLocation>(
-                          *(x.lhs->Get_if<Identifier>()->tok)));
+      throw NameError("Name '" + id + "' not defined.");
 
     if (loc.has_value())
       Emit(Load(*loc));
@@ -118,7 +118,7 @@ struct Compiler::Visitor {
       Emit(LoadGlobal(gloc->second));
 
     compiler.Compile(x.rhs, result);
-    switch (x.GetOp()) {
+    switch (x.op) {
       case Op::AddAssign:
         Emit(BinaryOp(Op::Add));
         break;
@@ -154,7 +154,7 @@ struct Compiler::Visitor {
         break;
       default:
         throw std::runtime_error("Compiler: Unknown operator '" +
-                                 ToString(x.GetOp()) + "' in AugExpr.");
+                                 ToString(x.op) + "' in AugExpr.");
     }
 
     if (loc.has_value())
