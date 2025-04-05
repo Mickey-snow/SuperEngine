@@ -48,12 +48,12 @@ class Compiler {
   std::vector<Instruction> Compile(std::shared_ptr<ExprAST> expr);
   std::vector<Instruction> Compile(std::shared_ptr<AST> stmt);
 
-  void AddNative(Value fn);
-
- private:
   void Compile(std::shared_ptr<ExprAST> expr, std::vector<Instruction>&);
   void Compile(std::shared_ptr<AST> stmt, std::vector<Instruction>&);
 
+  void AddNative(Value fn);
+
+ private:
   void PushScope();
   size_t PopScope();
 

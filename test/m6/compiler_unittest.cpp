@@ -24,16 +24,11 @@
 
 #include <gtest/gtest.h>
 
-#include "util.hpp"
-
-#include "m6/compiler.hpp"
 #include "m6/disassembler.hpp"
 #include "m6/exception.hpp"
 #include "m6/native.hpp"
-#include "m6/parser.hpp"
-#include "machine/op.hpp"
+#include "m6/script_engine.hpp"
 #include "machine/rlmachine.hpp"
-#include "machine/value.hpp"
 #include "utilities/string_utilities.hpp"
 
 namespace m6test {
@@ -43,40 +38,26 @@ class CompilerTest : public ::testing::Test {
  protected:
   CompilerTest()
       : machine(std::make_shared<RLMachine>(nullptr, nullptr, nullptr)),
-        stack(const_cast<std::vector<Value>&>(machine->GetStack())) {}
+        compiler(std::make_shared<Compiler>()),
+        interpreter(compiler, machine) {}
 
-  auto Execute(const std::string_view input, bool allow_error = false) {
-    std::vector<Instruction> exectued_instructions;
-    try {
-      auto tok = TokenArray(input);
-      auto begin = tok.data(), end = tok.data() + tok.size();
-      while (begin != end && !begin->HoldsAlternative<tok::Eof>()) {
-        auto instructions = compiler.Compile(ParseStmt(begin, end));
-        exectued_instructions.insert(exectued_instructions.end(),
-                                     instructions.begin(), instructions.end());
-        machine->halted_ = false;
-        machine->ip_ = 0;
-        machine->script_ = std::span(instructions);
-        machine->Execute();
+  std::vector<Instruction> Execute(std::string input,
+                                   bool allow_error = false) {
+    auto result = interpreter.Execute(std::move(input));
 
-        while (begin != end && begin->HoldsAlternative<tok::WS>())
-          ++begin;
-      }
-    } catch (CompileError& e) {
+    if (result.errors.empty()) {
+      return result.instructions;
+    } else {
       if (allow_error)
-        throw;
-      ADD_FAILURE() << e.FormatWith(input);
-    } catch (std::exception& e) {
-      if (allow_error)
-        throw;
-      ADD_FAILURE() << e.what();
+        throw result.errors.front();
+      else
+        ADD_FAILURE() << interpreter.FlushErrors();
     }
-
-    return exectued_instructions;
+    return {};
   }
 
   inline std::string DescribeStack() const {
-    return Join(", ", std::views::all(machine->GetStack()) |
+    return Join(", ", std::views::all(machine->stack_) |
                           std::views::transform(
                               [](Value const& x) { return x.Desc(); }));
   }
@@ -90,8 +71,8 @@ class CompilerTest : public ::testing::Test {
   }
 
   std::shared_ptr<RLMachine> machine;
-  std::vector<Value>& stack;
-  Compiler compiler;
+  std::shared_ptr<Compiler> compiler;
+  ScriptEngine interpreter;
 };
 
 TEST_F(CompilerTest, Expression) {
@@ -119,7 +100,7 @@ v3 = v3 + ", world";
 }
 
 TEST_F(CompilerTest, NativeFn) {
-  compiler.AddNative(
+  compiler->AddNative(
       make_fn_value("foo", [](int val) { return val == 89 ? 1 : -100; }));
 
   Execute(R"(
@@ -128,7 +109,7 @@ v3 = foo(v2);
 )");
   EXPECT_EQ(DescribeGlobals(), "<int: 89>, <int: 1>");
 
-  EXPECT_THROW(Execute(R"( v4 = foo(v2, v2); )", true), SyntaxError);
+  EXPECT_THROW(Execute(R"( v4 = foo(v2, v2); )", true), CompileError);
   EXPECT_EQ(DescribeGlobals(), "<int: 89>, <int: 1>");
 }
 

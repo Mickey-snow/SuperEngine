@@ -25,6 +25,7 @@
 #include "m6/parser.hpp"
 #include "m6/ast.hpp"
 #include "m6/exception.hpp"
+#include "m6/tokenizer.hpp"
 #include "machine/op.hpp"
 
 #include <iterator>
@@ -749,6 +750,52 @@ std::shared_ptr<AST> ParseStmt(Token*& begin, Token* end) {
 std::shared_ptr<AST> ParseStmt(std::span<Token> input) {
   auto begin = input.data(), end = input.data() + input.size();
   return ParseStmt(begin, end);
+}
+
+//=================================================================================
+// class Parser
+//=================================================================================
+Parser::Parser() = default;
+
+std::span<std::shared_ptr<AST>> Parser::Parse(std::string input) {
+  error_.clear();
+  const size_t src_n = src_.length(), token_n = tokens_.size(),
+               program_n = program_.size();
+
+  src_ += std::move(input);
+  std::string_view src = src_;
+  src = src.substr(src_n);
+
+  Tokenizer tokenizer(tokens_);
+  tokenizer.Parse(src);
+
+  for (auto begin = tokens_.data(), end = tokens_.data() + tokens_.size();
+       begin < end;) {
+    try {
+      auto stmt = parseStmt(begin, end);
+      program_.emplace_back(std::move(stmt));
+    } catch (const SyntaxError& err) {
+      error_.push_back(err);
+
+      while (begin < end) {
+        if (begin->HoldsAlternative<tok::Semicol>() ||
+            begin->HoldsAlternative<tok::CurlyR>()) {
+          ++begin;
+          break;
+        }
+        ++begin;
+      }
+    }
+  }
+
+  if (error_.empty()) {
+    return std::span(program_.begin() + program_n, program_.end());
+  } else {
+    src_.resize(src_n);
+    tokens_.resize(token_n);
+    program_.resize(program_n);
+    return {};
+  }
 }
 
 }  // namespace m6

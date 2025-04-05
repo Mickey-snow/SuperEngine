@@ -33,12 +33,6 @@
 
 namespace m6 {
 
-Tokenizer::Tokenizer(std::string_view input, bool should_parse)
-    : input_(input) {
-  if (should_parse)
-    Parse();
-}
-
 namespace {
 // A static lookup table for single-character tokens
 static const std::unordered_map<char, tok::Token_t> SINGLE_CHAR_TOKEN = {
@@ -121,10 +115,7 @@ static std::string unescapeString(std::string_view value) {
 
 }  // namespace
 
-void Tokenizer::Parse() {
-  parsed_tok_.clear();
-
-  const std::string_view& input = input_;
+void Tokenizer::Parse(std::string_view input) {
   size_t pos = 0;
   const size_t len = input.size();
 
@@ -247,5 +238,12 @@ void Tokenizer::Parse() {
   // Finally, add an eof token
   parsed_tok_.emplace_back(tok::Eof(), len);
 }
+
+Tokenizer::Tokenizer(std::string_view input)
+    : storage_(), parsed_tok_(storage_) {
+  Parse(input);
+}
+
+Tokenizer::Tokenizer(std::vector<Token>& s) : storage_(), parsed_tok_(s) {}
 
 }  // namespace m6

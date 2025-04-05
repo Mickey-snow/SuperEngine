@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include "m6/exception.hpp"
 #include "m6/token.hpp"
 
 #include <memory>
@@ -49,5 +50,17 @@ std::shared_ptr<ExprAST> ParseExpression(std::span<Token> input);
 
 std::shared_ptr<AST> ParseStmt(Token*& begin, Token* end);
 std::shared_ptr<AST> ParseStmt(std::span<Token> input);
+
+class Parser {
+ public:
+  Parser();
+
+  std::span<std::shared_ptr<AST>> Parse(std::string src);
+
+  std::string src_;
+  std::vector<Token> tokens_;
+  std::vector<std::shared_ptr<AST>> program_;
+  std::vector<SyntaxError> error_;
+};
 
 }  // namespace m6

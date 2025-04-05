@@ -233,7 +233,9 @@ struct Compiler::Visitor {
   }
   void operator()(const std::shared_ptr<ExprAST>& x) {
     compiler.Compile(x, result);
-    Emit(Pop());
+    // This is an expression statement. Normally there should be a Pop
+    // instruction inserted here, but in REPL we want to show it to the user
+    // first.
   }
 };
 

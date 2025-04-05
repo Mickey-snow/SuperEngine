@@ -35,14 +35,16 @@ namespace m6 {
 
 class Tokenizer {
  public:
-  Tokenizer(std::string_view input, bool should_parse = true);
+  Tokenizer(std::string_view input);
+  Tokenizer(std::vector<Token>&);
 
-  void Parse();
-
-  std::vector<Token> parsed_tok_;
+  void Parse(std::string_view input);
 
  private:
-  std::string_view input_;
+  std::vector<Token> storage_;
+
+ public:
+  std::vector<Token>& parsed_tok_;
 };
 
 }  // namespace m6

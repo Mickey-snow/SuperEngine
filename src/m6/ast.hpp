@@ -261,6 +261,11 @@ class AST {
     return std::get_if<T>(&var_);
   }
 
+  template <typename T>
+  bool HoldsAlternative() const {
+    return std::holds_alternative<T>(var_);
+  }
+
  private:
   stmt_variant_t var_;
 };
