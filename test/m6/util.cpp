@@ -29,6 +29,8 @@
 #include "utilities/string_utilities.hpp"
 
 auto TokenArray(std::string_view sv) -> std::vector<m6::Token> {
-  m6::Tokenizer tokenizer(sv);
-  return tokenizer.parsed_tok_;
+  std::vector<m6::Token> result;
+  m6::Tokenizer tokenizer(result);
+  tokenizer.Parse(sv);
+  return result;
 }

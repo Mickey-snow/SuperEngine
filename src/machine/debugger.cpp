@@ -33,7 +33,8 @@
 
 #include <iostream>
 
-Debugger::Debugger(RLMachine& machine) : machine_(machine) {}
+Debugger::Debugger(std::shared_ptr<RLMachine> machine)
+    : machine_(machine), engine_(nullptr, machine_) {}
 
 constexpr std::string_view copyright_info = R"(
 Copyright (C) 2025 Serina Sakurai
@@ -75,11 +76,12 @@ void Debugger::Execute() {
       else if (input == "c" || input == "continue")
         break;
       else if (input == "l" || input == "list") {
-        auto location = machine_.Location();
+        auto location = machine_->Location();
         std::cout << location.DebugString() << ' ';
-        auto instruction = machine_.GetScriptor()->ResolveInstruction(location);
+        auto instruction =
+            machine_->GetScriptor()->ResolveInstruction(location);
         std::cout << std::visit(
-                         InstructionToString(&(machine_.module_manager_)),
+                         InstructionToString(&(machine_->module_manager_)),
                          *instruction)
                   << std::endl;
 
@@ -89,45 +91,13 @@ void Debugger::Execute() {
         break;
       }
 
-      std::shared_ptr<m6::AST> ast = nullptr;
-      std::vector<m6::Token> tokens;
-      while (true) {
-        try {
-          m6::Tokenizer tokenizer(input);
-          tokens = std::move(tokenizer.parsed_tok_);
-          ast = m6::ParseStmt(std::span(tokens));
-          break;
-        } catch (m6::CompileError& e) {
-          std::optional<m6::SourceLocation> loc = e.where();
-
-          if (loc.has_value() &&
-              loc->begin_offset == input.length()) {  // early eof
-            std::cout << "... " << std::flush;
-            std::string additional_input;
-            std::getline(std::cin, additional_input);
-            trim(additional_input);
-            input.append(std::move(additional_input));
-          } else {
-            throw;
-          }
-        } catch (...) {
-          throw;
-        }
-      }
-
-      auto instructions = compiler.Compile(ast);
-      if (ast->Get_if<std::shared_ptr<m6::ExprAST>>() != nullptr) {
-        if (auto p = std::get_if<Pop>(&instructions.back()))
-          p->count--;
-      }
-
-      for (auto& it : instructions)
-        std::visit(machine_, std::move(it));
-
-      if (ast->Get_if<std::shared_ptr<m6::ExprAST>>() != nullptr) {
-        auto& stack = const_cast<std::vector<Value>&>(machine_.GetStack());
-        std::cout << stack.back().Str() << std::endl;
-        stack.pop_back();
+      auto result = engine_.Execute(std::move(input));
+      if (result.errors.empty()) {
+        for (const auto& it : result.intermediateValues)
+          std::cout << it.Str() << '\n';
+        std::cout << std::flush;
+      } else {
+        std::cout << engine_.FlushErrors() << std::endl;
       }
 
     } catch (std::exception& e) {

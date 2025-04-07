@@ -24,6 +24,7 @@
 
 #include <gtest/gtest.h>
 
+#include "m6/compiler.hpp"
 #include "m6/disassembler.hpp"
 #include "m6/exception.hpp"
 #include "m6/native.hpp"

@@ -27,13 +27,13 @@
 #include "core/event_listener.hpp"
 #include "machine/instruction.hpp"
 
-#include "m6/compiler.hpp"
+#include "m6/script_engine.hpp"
 
 class RLMachine;
 
 class Debugger : public EventListener {
  public:
-  Debugger(RLMachine& machine);
+  Debugger(std::shared_ptr<RLMachine> machine);
 
   void Execute();
 
@@ -41,9 +41,9 @@ class Debugger : public EventListener {
   void OnEvent(std::shared_ptr<Event> event) override;
 
  private:
-  RLMachine& machine_;
+  std::shared_ptr<RLMachine> machine_;
 
-  m6::Compiler compiler;
+  m6::ScriptEngine engine_;
 
   bool should_break_ = false;
 };

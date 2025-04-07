@@ -129,7 +129,7 @@ GameLoader::GameLoader(fs::path gameroot) {
       StackFrame(scriptor->Load(first_seen), StackFrame::TYPE_ROOT));
 
   // instantiate debugger
-  debugger_ = std::make_shared<Debugger>(*machine_);
+  debugger_ = std::make_shared<Debugger>(machine_);
   system_->event().AddListener(debugger_);
 
   // Event listener for long operations
