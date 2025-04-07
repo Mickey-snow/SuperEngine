@@ -27,8 +27,8 @@
 #include "util.hpp"
 
 #include "m6/ast.hpp"
-#include "m6/exception.hpp"
 #include "m6/parser.hpp"
+#include "m6/script_engine.hpp"
 #include "machine/op.hpp"
 
 #include <string_view>
@@ -38,18 +38,14 @@ using namespace m6;
 
 namespace m6test {
 
-template <class E = m6::CompileError>
-static inline std::string ThrowResult(std::string_view input) {
-  std::vector<Token> tok = TokenArray(input);
+static inline std::string ThrowResult(std::string input) {
+  ScriptEngine engine;
+  auto result = engine.Execute(std::move(input));
 
-  try {
-    ParseStmt(std::span(tok));
-  } catch (E& e) {
-    return e.FormatWith(input);
-  } catch (...) {
-    return "it throws a different type of exception.";
-  }
-  return "it throws nothing.";
+  if (result.errors.empty())
+    return "it throws nothing.";
+  else
+    return engine.FlushErrors();
 }
 
 class ExprParserTest : public ::testing::Test {
