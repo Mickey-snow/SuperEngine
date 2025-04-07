@@ -24,6 +24,7 @@
 
 #include "m6/tokenizer.hpp"
 
+#include "log/domain_logger.hpp"
 #include "machine/op.hpp"
 
 #include <cctype>
@@ -116,6 +117,11 @@ static std::string unescapeString(std::string_view value) {
 }  // namespace
 
 void Tokenizer::Parse(std::string_view input) {
+  if (!errors_.empty()) {
+    DomainLogger logger("Tokenizer");
+    logger(Severity::Warn) << "Unhandled errors.";
+  }
+
   size_t pos = 0;
   const size_t len = input.size();
 
@@ -221,7 +227,7 @@ void Tokenizer::Parse(std::string_view input) {
       if (!closed) {
         storage_.emplace_back(tok::Literal(std::string(input.substr(start))),
                               SourceLocation(start, pos));
-        storage_.emplace_back(tok::Error("Expected '\"'"), SourceLocation(pos));
+	errors_.emplace_back("Expected '\"'", SourceLocation(pos));
       } else {
         // substring from start to pos is the entire literal (including quotes)
         std::string fullString = std::string(input.substr(start, pos - start));
@@ -233,14 +239,8 @@ void Tokenizer::Parse(std::string_view input) {
       continue;
     }
 
-    // 8) If none matched, mark it as an error token. We consume one character.
-    tok::Token_t error_tok = tok::Error("Unknown token");
-    SourceLocation loc(start, ++pos);
-    if (!storage_.empty() && storage_.back().HoldsAlternative<tok::Error>()) {
-      loc.begin_offset = storage_.back().loc_.begin_offset;
-      storage_.pop_back();
-    }
-    storage_.emplace_back(std::move(error_tok), loc);
+    // 8) If none matched, mark it as an error. We consume one character.
+    errors_.emplace_back("Unknown token", start); ++pos;
   }
 }
 

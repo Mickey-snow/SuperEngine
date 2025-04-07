@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include "m6/exception.hpp"
 #include "m6/token.hpp"
 
 #include <string>
@@ -38,6 +39,9 @@ class Tokenizer {
   Tokenizer(std::vector<Token>& storage, bool skip_ws = false);
 
   void Parse(std::string_view input);
+
+ public:
+  std::vector<SyntaxError> errors_;
 
  private:
   std::vector<Token>& storage_;

@@ -152,8 +152,7 @@ TEST_F(TokenizerTest, UnclosedString) {
   constexpr std::string_view input = "\"hello";
   tokenizer.Parse(input);
 
-  EXPECT_EQ(Accumulate(tokens),
-            "<Str(\"hello), 0,6> <Error(Expected '\"'), 6,7>");
+  EXPECT_EQ(Accumulate(tokens), "<Str(\"hello), 0,6>");
 }
 
 TEST_F(TokenizerTest, UnknownToken) {
@@ -161,8 +160,7 @@ TEST_F(TokenizerTest, UnknownToken) {
   tokenizer.Parse(input);
 
   EXPECT_EQ(Accumulate(tokens),
-            "<ID(\"id\"), 0,2> <Error(Unknown token), 2,4> <Operator(+), 4,5> "
-            "<Int(32), 5,7>");
+            "<ID(\"id\"), 0,2> <Operator(+), 4,5> <Int(32), 5,7>");
 }
 
 }  // namespace m6test
