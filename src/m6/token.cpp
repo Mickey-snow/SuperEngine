@@ -29,7 +29,8 @@ namespace m6 {
 
 std::string Token::GetDebugString() const {
   return '<' + std::visit(tok::DebugStringVisitor(), token_) + ", " +
-         std::to_string(offset) + '>';
+         std::to_string(loc_.begin_offset) + ',' +
+         std::to_string(loc_.end_offset) + '>';
 }
 
 std::string tok::DebugStringVisitor::operator()(const tok::Reserved& p) const {

@@ -124,7 +124,7 @@ using Token_t = std::variant<Reserved,
 
 struct Token {
   tok::Token_t token_;
-  std::size_t offset;
+  SourceLocation loc_;
 
   bool operator==(const tok::Token_t& rhs) const { return token_ == rhs; }
   bool operator!=(const tok::Token_t& rhs) const { return token_ != rhs; }

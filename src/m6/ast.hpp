@@ -38,7 +38,7 @@ namespace m6 {
 
 class AST;
 class ExprAST;
-class Token;
+struct Token;
 
 // -----------------------------------------------------------------------
 // Expression AST Nodes

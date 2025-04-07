@@ -120,26 +120,27 @@ void Tokenizer::Parse(std::string_view input) {
   const size_t len = input.size();
 
   while (pos < len) {
-    const size_t offset = pos;
+    const size_t start = pos;
     char c = input[pos];
 
     // 1) Check whitespace
     if (std::isspace(static_cast<unsigned char>(c))) {
       // Accumulate all consecutive whitespace into one token
-      size_t start = pos;
       while (pos < len &&
              std::isspace(static_cast<unsigned char>(input[pos]))) {
         ++pos;
       }
-      // We store a single WS token for this contiguous block
-      storage_.emplace_back(tok::WS(), start);
+
+      if (!skip_ws_) {
+        storage_.emplace_back(tok::WS(), SourceLocation(start, pos));
+      }
       continue;
     }
 
     // 2) Check single character token
     if (SINGLE_CHAR_TOKEN.find(c) != SINGLE_CHAR_TOKEN.end()) {
-      storage_.emplace_back(SINGLE_CHAR_TOKEN.at(c), offset);
-      ++pos;
+      storage_.emplace_back(SINGLE_CHAR_TOKEN.at(c),
+                            SourceLocation(start, ++pos));
       continue;
     }
 
@@ -148,13 +149,14 @@ void Tokenizer::Parse(std::string_view input) {
       std::string opMatch = matchLongestOperator(input, pos);
       if (!opMatch.empty()) {
         // we matched an operator token
-        storage_.emplace_back(tok::Operator(CreateOp(opMatch)), offset);
         pos += opMatch.size();
+        storage_.emplace_back(tok::Operator(CreateOp(opMatch)),
+                              SourceLocation(start, pos));
+
         continue;
       }
     }
 
-    size_t start = pos;
     std::string idVal = [&]() -> std::string {
       if (!std::isalpha(static_cast<unsigned char>(c)) && c != '_')
         return "";
@@ -170,26 +172,28 @@ void Tokenizer::Parse(std::string_view input) {
 
     // 4) Check reserved keywords
     if (RESERVED_KEYWORDS.contains(idVal)) {
-      storage_.emplace_back(tok::Reserved(std::move(idVal)), start);
+      storage_.emplace_back(tok::Reserved(std::move(idVal)),
+                            SourceLocation(start, pos));
       continue;
     }
 
     // 5) Check identifier: [a-zA-Z_][a-zA-Z0-9_]*
     if (!idVal.empty()) {
-      storage_.emplace_back(tok::ID(std::move(idVal)), start);
+      storage_.emplace_back(tok::ID(std::move(idVal)),
+                            SourceLocation(start, pos));
       continue;
     }
 
     // 6) Check integer: [0-9]+
     if (std::isdigit(static_cast<unsigned char>(c))) {
-      size_t start = pos;
       ++pos;
       while (pos < len &&
              std::isdigit(static_cast<unsigned char>(input[pos]))) {
         ++pos;
       }
       std::string numVal = std::string(input.substr(start, pos - start));
-      storage_.emplace_back(tok::Int(std::stoi(numVal)), start);
+      storage_.emplace_back(tok::Int(std::stoi(numVal)),
+                            SourceLocation(start, pos));
       continue;
     }
 
@@ -197,17 +201,17 @@ void Tokenizer::Parse(std::string_view input) {
     // A naive approach: detect '\"', then parse until matching '\"' or end of
     // input.
     if (c == '\"') {
-      size_t start = pos;
       ++pos;  // consume the opening quote
       bool closed = false;
       while (pos < len) {
-        if (input[pos] == '\\') {
-          // skip escaped character
+        if (input[pos] == '\\') {  // skip escaped character
           pos += 2;
-        } else if (pos < len && input[pos] == '\"') {
-          // found closing quote
+        } else if (input[pos] == '\"') {  // found closing quote
           ++pos;
           closed = true;
+          break;
+        } else if (input[pos] == '\n') {  // disallow multi-line string literal
+          closed = false;
           break;
         } else {
           ++pos;
@@ -216,27 +220,28 @@ void Tokenizer::Parse(std::string_view input) {
 
       if (!closed) {
         storage_.emplace_back(tok::Literal(std::string(input.substr(start))),
-                              start);
-        storage_.emplace_back(tok::Error("Expected '\"'"), pos);
+                              SourceLocation(start, pos));
+        storage_.emplace_back(tok::Error("Expected '\"'"), SourceLocation(pos));
       } else {
         // substring from start to pos is the entire literal (including quotes)
         std::string fullString = std::string(input.substr(start, pos - start));
         // unescape it
         std::string unescaped = unescapeString(fullString);
-        storage_.emplace_back(tok::Literal(std::move(unescaped)), start);
+        storage_.emplace_back(tok::Literal(std::move(unescaped)),
+                              SourceLocation(start, pos));
       }
       continue;
     }
 
     // 8) If none matched, mark it as an error token. We consume one character.
-    static const tok::Token_t error_tok = tok::Error("Unknown token");
-    if (!storage_.empty() && storage_.back() != error_tok)
-      storage_.emplace_back(error_tok, offset);
-    ++pos;
+    tok::Token_t error_tok = tok::Error("Unknown token");
+    SourceLocation loc(start, ++pos);
+    if (!storage_.empty() && storage_.back().HoldsAlternative<tok::Error>()) {
+      loc.begin_offset = storage_.back().loc_.begin_offset;
+      storage_.pop_back();
+    }
+    storage_.emplace_back(std::move(error_tok), loc);
   }
-
-  // Finally, add an eof token
-  storage_.emplace_back(tok::Eof(), len);
 }
 
 Tokenizer::Tokenizer(std::vector<Token>& s, bool skip_ws)

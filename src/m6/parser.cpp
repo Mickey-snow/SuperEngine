@@ -551,7 +551,7 @@ static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end) {
       }
 
       if (!tryConsume<tok::ParenthesisR>(it, end)) {
-        throw SyntaxError("Expected ')' after function call.", *it);
+        throw SyntaxError("Expected ')' after function call.", it);
       }
       lhs = std::make_shared<ExprAST>(
           InvokeExpr(lhs, std::move(arg_list),
@@ -564,7 +564,7 @@ static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end) {
     if (tryConsume<tok::Operator>(it, end, Op::Dot)) {
       skipWS(it, end);
       if (it == end || !it->HoldsAlternative<tok::ID>()) {
-        throw SyntaxError("Expected identifier after '.'", *it);
+        throw SyntaxError("Expected identifier after '.'", it);
       }
       auto memberLoc = SourceLocation(it);
       Identifier memberName(it->GetIf<tok::ID>()->id, memberLoc);
@@ -583,7 +583,7 @@ static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end) {
       iterator_t idx_end_it = it;
 
       if (!tryConsume<tok::SquareR>(it, end)) {
-        throw SyntaxError("Expected ']' after subscript expression.", *it);
+        throw SyntaxError("Expected ']' after subscript expression.", it);
       }
       lhs = std::make_shared<ExprAST>(SubscriptExpr(
           lhs, indexExpr, SourceLocation(primary_begin_it, primary_end_it),
@@ -608,7 +608,7 @@ static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end) {
 static std::shared_ptr<ExprAST> parsePrimary(iterator_t& it, iterator_t end) {
   skipWS(it, end);
   if (it == end)
-    throw SyntaxError("Expected primary expression.", *it);
+    throw SyntaxError("Expected primary expression.", it);
 
   // Try integer
   if (auto s = it->GetIf<tok::Int>()) {
@@ -639,15 +639,14 @@ static std::shared_ptr<ExprAST> parsePrimary(iterator_t& it, iterator_t end) {
 
     skipWS(it, end);
     if (!tryConsume<tok::ParenthesisR>(it, end))
-      throw SyntaxError("Missing closing ')' in parenthesized expression.",
-                        *it);
+      throw SyntaxError("Missing closing ')' in parenthesized expression.", it);
 
     return std::make_shared<ExprAST>(
         ParenExpr(exprNode, SourceLocation(sub_begin_it, sub_end_it)));
   }
 
   // If none matched, it's an error.
-  throw SyntaxError("Expected primary expression.", *it);
+  throw SyntaxError("Expected primary expression.", it);
 }
 
 //=================================================================================
@@ -661,7 +660,7 @@ static std::shared_ptr<ExprAST> parsePrimary(iterator_t& it, iterator_t end) {
 template <typename T>
 inline static void Require(iterator_t& it, iterator_t end, char const* msg) {
   if (!tryConsume<T>(it, end))
-    throw SyntaxError(msg, std::make_optional<SourceLocation>(*it));
+    throw SyntaxError(msg, it);
 }
 static std::shared_ptr<AST> parseStmt(iterator_t& it,
                                       iterator_t end,

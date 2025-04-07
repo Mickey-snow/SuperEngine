@@ -61,7 +61,7 @@ TEST_F(TokenizerTest, ID) {
   constexpr std::string_view input = "ObjFgInit";
 
   tokenizer.Parse(input);
-  EXPECT_EQ(Accumulate(tokens), "<ID(\"ObjFgInit\"), 0> <EOF, 9>");
+  EXPECT_EQ(Accumulate(tokens), "<ID(\"ObjFgInit\"), 0,9>");
 }
 
 TEST_F(TokenizerTest, MultiID) {
@@ -69,16 +69,16 @@ TEST_F(TokenizerTest, MultiID) {
 
   tokenizer.Parse(input);
   EXPECT_EQ(Accumulate(tokens),
-            "<ID(\"print\"), 0> <ws, 5> <ID(\"ObjFgInit\"), 6> <EOF, 15>");
+            "<ID(\"print\"), 0,5> <ID(\"ObjFgInit\"), 6,15>");
 }
 
 TEST_F(TokenizerTest, Numbers) {
   constexpr std::string_view input = "123 00321 -21";
 
   tokenizer.Parse(input);
-  EXPECT_EQ(Accumulate(tokens),
-            "<Int(123), 0> <ws, 3> <Int(321), 4> <ws, 9> <Operator(-), 10> "
-            "<Int(21), 11> <EOF, 13>");
+  EXPECT_EQ(
+      Accumulate(tokens),
+      "<Int(123), 0,3> <Int(321), 4,9> <Operator(-), 10,11> <Int(21), 11,13>");
 }
 
 TEST_F(TokenizerTest, Brackets) {
@@ -86,32 +86,30 @@ TEST_F(TokenizerTest, Brackets) {
 
   tokenizer.Parse(input);
   EXPECT_EQ(Accumulate(tokens),
-            "<SquareL, 0> <SquareR, 1> <CurlyL, 2> <CurlyR, 3> <ParenthesisL, "
-            "4> <ParenthesisR, 5> <EOF, 6>");
+            "<SquareL, 0,1> <SquareR, 1,2> <CurlyL, 2,3> <CurlyR, 3,4> "
+            "<ParenthesisL, 4,5> <ParenthesisR, 5,6>");
 }
 
 TEST_F(TokenizerTest, Operators) {
   constexpr std::string_view input =
-      ". , + - * / % & | ^ << >> ~ += -= *= /= %= &= |= ^= <<= >>= = == != <= "
+      ". , + - * / % & | ^ << >> ~ += -= *= /= %= &= |= ^= <<= >>= = == != "
+      "<= "
       "< >= > && || >>> >>>=";
   tokenizer.Parse(input);
 
   EXPECT_EQ(
       Accumulate(tokens),
-      "<Operator(.), 0> <ws, 1> <Operator(,), 2> <ws, 3> <Operator(+), 4> <ws, "
-      "5> <Operator(-), 6> <ws, 7> <Operator(*), 8> <ws, 9> <Operator(/), 10> "
-      "<ws, 11> <Operator(%), 12> <ws, 13> <Operator(&), 14> <ws, 15> "
-      "<Operator(|), 16> <ws, 17> <Operator(^), 18> <ws, 19> <Operator(<<), "
-      "20> <ws, 22> <Operator(>>), 23> <ws, 25> <Operator(~), 26> <ws, 27> "
-      "<Operator(+=), 28> <ws, 30> <Operator(-=), 31> <ws, 33> <Operator(*=), "
-      "34> <ws, 36> <Operator(/=), 37> <ws, 39> <Operator(%=), 40> <ws, 42> "
-      "<Operator(&=), 43> <ws, 45> <Operator(|=), 46> <ws, 48> <Operator(^=), "
-      "49> <ws, 51> <Operator(<<=), 52> <ws, 55> <Operator(>>=), 56> <ws, 59> "
-      "<Operator(=), 60> <ws, 61> <Operator(==), 62> <ws, 64> <Operator(!=), "
-      "65> <ws, 67> <Operator(<=), 68> <ws, 70> <Operator(<), 71> <ws, 72> "
-      "<Operator(>=), 73> <ws, 75> <Operator(>), 76> <ws, 77> <Operator(&&), "
-      "78> <ws, 80> <Operator(||), 81> <ws, 83> <Operator(>>>), 84> <ws, 87> "
-      "<Operator(>>>=), 88> <EOF, 92>");
+      "<Operator(.), 0,1> <Operator(,), 2,3> <Operator(+), 4,5> <Operator(-), "
+      "6,7> <Operator(*), 8,9> <Operator(/), 10,11> <Operator(%), 12,13> "
+      "<Operator(&), 14,15> <Operator(|), 16,17> <Operator(^), 18,19> "
+      "<Operator(<<), 20,22> <Operator(>>), 23,25> <Operator(~), 26,27> "
+      "<Operator(+=), 28,30> <Operator(-=), 31,33> <Operator(*=), 34,36> "
+      "<Operator(/=), 37,39> <Operator(%=), 40,42> <Operator(&=), 43,45> "
+      "<Operator(|=), 46,48> <Operator(^=), 49,51> <Operator(<<=), 52,55> "
+      "<Operator(>>=), 56,59> <Operator(=), 60,61> <Operator(==), 62,64> "
+      "<Operator(!=), 65,67> <Operator(<=), 68,70> <Operator(<), 71,72> "
+      "<Operator(>=), 73,75> <Operator(>), 76,77> <Operator(&&), 78,80> "
+      "<Operator(||), 81,83> <Operator(>>>), 84,87> <Operator(>>>=), 88,92>");
 }
 
 TEST_F(TokenizerTest, StrLiteral) {
@@ -120,7 +118,7 @@ TEST_F(TokenizerTest, StrLiteral) {
     tokens.clear();
     tokenizer.Parse(input);
 
-    EXPECT_EQ(Accumulate(tokens), "<Str(\"Hello\"), 0> <EOF, 11>");
+    EXPECT_EQ(Accumulate(tokens), "<Str(\"Hello\"), 0,11>");
   }
 
   {
@@ -128,8 +126,7 @@ TEST_F(TokenizerTest, StrLiteral) {
     tokens.clear();
     tokenizer.Parse(input);
 
-    EXPECT_EQ(Accumulate(tokens),
-              "<Str(\"He said, \\\"Hello\\\"\"), 0> <EOF, 28>");
+    EXPECT_EQ(Accumulate(tokens), "<Str(\"He said, \\\"Hello\\\"\"), 0,28>");
   }
 
   {
@@ -137,7 +134,7 @@ TEST_F(TokenizerTest, StrLiteral) {
     tokens.clear();
     tokenizer.Parse(input);
 
-    EXPECT_EQ(Accumulate(tokens), "<Str(), 0> <EOF, 2>");
+    EXPECT_EQ(Accumulate(tokens), "<Str(), 0,2>");
   }
 
   {
@@ -146,9 +143,8 @@ TEST_F(TokenizerTest, StrLiteral) {
     tokens.clear();
     tokenizer.Parse(input);
 
-    EXPECT_EQ(
-        Accumulate(tokens),
-        "<Str(\"Path: C:\\\\Users\\\\Name\\nNew Line\\tTab\"), 0> <EOF, 48>");
+    EXPECT_EQ(Accumulate(tokens),
+              "<Str(\"Path: C:\\\\Users\\\\Name\\nNew Line\\tTab\"), 0,48>");
   }
 }
 
@@ -157,7 +153,7 @@ TEST_F(TokenizerTest, UnclosedString) {
   tokenizer.Parse(input);
 
   EXPECT_EQ(Accumulate(tokens),
-            "<Str(\"hello), 0> <Error(Expected '\"'), 6> <EOF, 6>");
+            "<Str(\"hello), 0,6> <Error(Expected '\"'), 6,7>");
 }
 
 TEST_F(TokenizerTest, UnknownToken) {
@@ -165,8 +161,8 @@ TEST_F(TokenizerTest, UnknownToken) {
   tokenizer.Parse(input);
 
   EXPECT_EQ(Accumulate(tokens),
-            "<ID(\"id\"), 0> <Error(Unknown token), 2> <Operator(+), 4> "
-            "<Int(32), 5> <EOF, 7>");
+            "<ID(\"id\"), 0,2> <Error(Unknown token), 2,4> <Operator(+), 4,5> "
+            "<Int(32), 5,7>");
 }
 
 }  // namespace m6test

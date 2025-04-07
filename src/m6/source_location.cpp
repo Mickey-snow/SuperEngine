@@ -27,20 +27,12 @@
 
 namespace m6 {
 
-SourceLocation::SourceLocation(const Token& tok)
-    : begin_offset(tok.offset), end_offset(begin_offset + 1) {}
-SourceLocation::SourceLocation(const Token& begin, const Token& end)
-    : begin_offset(begin.offset), end_offset(end.offset) {}
-
-SourceLocation::SourceLocation(Token* tok)
-    : begin_offset(tok->offset), end_offset(begin_offset + 1) {}
-SourceLocation::SourceLocation(Token* begin, Token* end) {
-  while (begin < end && end->HoldsAlternative<tok::WS>())
-    --end;
-  while (begin < end && begin->HoldsAlternative<tok::WS>())
-    ++begin;
-  begin_offset = begin->offset;
-  end_offset = end->offset;
-}
+SourceLocation::SourceLocation(size_t begin, size_t end)
+    : begin_offset(begin), end_offset(end) {}
+SourceLocation::SourceLocation(size_t pos) : SourceLocation(pos, pos + 1) {}
+SourceLocation::SourceLocation(Token* tok) { *this = tok->loc_; }
+SourceLocation::SourceLocation(Token* begin, Token* end)
+    : begin_offset(begin->loc_.begin_offset),
+      end_offset(end->loc_.end_offset) {}
 
 }  // namespace m6

@@ -28,14 +28,16 @@
 
 namespace m6 {
 
-class Token;
+struct Token;
 
 class SourceLocation {
  public:
   size_t begin_offset, end_offset;
 
-  SourceLocation(const Token& tok);
-  SourceLocation(const Token& begin, const Token& end);
+  SourceLocation() = default;
+
+  SourceLocation(size_t begin, size_t end);
+  SourceLocation(size_t pos);
   SourceLocation(Token* tok);
   SourceLocation(Token* begin, Token* end);
 };
