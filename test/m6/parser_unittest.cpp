@@ -30,6 +30,7 @@
 #include "m6/parser.hpp"
 #include "m6/script_engine.hpp"
 #include "machine/op.hpp"
+#include "utilities/string_utilities.hpp"
 
 #include <string_view>
 
@@ -38,14 +39,21 @@ using namespace m6;
 
 namespace m6test {
 
-static inline std::string ThrowResult(std::string input) {
+static inline std::string GetErrors(std::string input) {
   ScriptEngine engine;
   auto result = engine.Execute(std::move(input));
 
-  if (result.errors.empty())
-    return "it throws nothing.";
-  else
-    return engine.FlushErrors();
+  return Join("\n", std::views::all(result.errors) |
+                        std::views::transform([](const auto& e) {
+                          std::string loc = "(?)";
+                          if (e.loc.has_value())
+                            loc = static_cast<std::string>(*e.loc);
+                          return e.msg + ' ' + loc;
+                        }));
+  // if (result.errors.empty())
+  //   return "it throws nothing.";
+  // else
+  //   return engine.FlushErrors();
 }
 
 class ExprParserTest : public ::testing::Test {
@@ -97,16 +105,6 @@ Binaryop /
 Binaryop %
    ├─IntLiteral 9
    └─IntLiteral 10
-)");
-}
-
-TEST_F(ExprParserTest, Skipper) {
-  expectAST(TokenArray(tok::WS(), tok::ID("a"), tok::Operator(Op::Add),
-                       tok::WS(), tok::ID("b"), tok::WS(), tok::WS()),
-            R"(
-Binaryop +
-   ├─ID a
-   └─ID b
 )");
 }
 
@@ -541,54 +539,25 @@ Subscript
 }
 
 TEST_F(ExprParserTest, ErrorHandling) {
-  GTEST_SKIP();
+  EXPECT_EQ(GetErrors("a+(b*c"),
+            "Missing closing ')' in parenthesized expression. (6,6)");
 
-  EXPECT_TXTEQ(ThrowResult("a+(b*c"),
-               R"(error: Missing closing ')' in parenthesized expression.
-a+(b*c
-      ^
-)");
+  EXPECT_EQ(GetErrors("d / / e"), "Expected primary expression. (4,5)");
 
-  EXPECT_TXTEQ(ThrowResult("d / / e"), R"(error: Expected primary expression.
-d / / e
-    ^
-)");
+  EXPECT_EQ(GetErrors("f* (g+)"), "Expected primary expression. (6,7)");
 
-  EXPECT_TXTEQ(ThrowResult("f* (g+)"), R"(error: Expected primary expression.
-f* (g+)
-      ^
-)");
+  EXPECT_EQ(GetErrors("j+*k"), "Expected primary expression. (2,3)");
 
-  EXPECT_TXTEQ(ThrowResult("j+*k"), R"(error: Expected primary expression.
-j+*k
-  ^
-)");
+  EXPECT_EQ(GetErrors(")a"), "Expected primary expression. (0,1)");
 
-  EXPECT_TXTEQ(ThrowResult(")a"), R"(error: Expected primary expression.
-)a
-^
-)");
+  EXPECT_EQ(GetErrors("a."), "Expected identifier after '.' (2,3)");
 
-  EXPECT_TXTEQ(ThrowResult("a."), R"(error: Expected identifier after '.'
-a.
-  ^
-)");
+  EXPECT_EQ(GetErrors("a[123"),
+            "Expected ']' after subscript expression. (5,6)");
 
-  EXPECT_TXTEQ(ThrowResult("a[123"),
-               R"(error: Expected ']' after subscript expression.
-a[123
-     ^
-)");
+  EXPECT_EQ(GetErrors("a(b,c"), "Expected ')' after function call. (5,5)");
 
-  EXPECT_TXTEQ(ThrowResult("a(b,c"), R"(error: Expected ')' after function call.
-a(b,c
-     ^
-)");
-
-  EXPECT_TXTEQ(ThrowResult("a=1+1"), R"(error: Expected ';'.
-a=1+1
-     ^
-)");
+  EXPECT_EQ(GetErrors("a=1+1"), "Expected ';'. (5,5)");
 }
 
 // -----------------------------------------------------------------------
@@ -639,12 +608,7 @@ AugAssign +=
   }
 
   {  // error: assigning to expression
-    GTEST_SKIP();
-    EXPECT_TXTEQ(ThrowResult("(v1+v2) = 1"), R"(
-error: Expected identifier.
-(v1+v2) = 1
-^^^^^^^^
-)");
+    EXPECT_TXTEQ(GetErrors("(v1+v2) = 1"), "Expected identifier. (0,7)");
   }
 }
 

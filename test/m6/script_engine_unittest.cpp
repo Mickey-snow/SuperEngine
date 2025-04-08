@@ -24,6 +24,8 @@
 
 #include <gtest/gtest.h>
 
+#include "util.hpp"
+
 #include "m6/compiler.hpp"
 #include "m6/script_engine.hpp"
 #include "machine/rlmachine.hpp"
@@ -57,6 +59,35 @@ a=1; 1+1; a+2;
 )");
   EXPECT_EQ(Describe(result.intermediateValues), "<int: 2>, <int: 3>");
   EXPECT_TRUE(machine->stack_.empty()) << Describe(machine->stack_);
+}
+
+TEST_F(ScriptEngineTest, ErrorFormatting) {
+  auto result = interpreter.Execute(R"(
+  x = 10
+  if (x > 5) {
+      return x +
+  }
+  )");
+  ASSERT_FALSE(result.errors.empty());
+  EXPECT_TXTEQ(interpreter.FlushErrors(), R"(
+Expected ';'.
+2│   x = 10
+           ^
+)");
+
+  result = interpreter.Execute(R"(
+a = 1234;
+if (a > 10) {
+    print("Hello"
+else
+    print("World");
+)");
+  ASSERT_FALSE(result.errors.empty());
+  EXPECT_TXTEQ(interpreter.FlushErrors(), R"(
+Expected ')' after function call.
+4│     print("Hello"
+                    ^
+)");
 }
 
 }  // namespace m6test

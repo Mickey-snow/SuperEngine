@@ -51,7 +51,10 @@ inline std::string Accumulate(const auto& container) {
 
 class TokenizerTest : public ::testing::Test {
  protected:
-  TokenizerTest() : tokens(), tokenizer(tokens, true) {}
+  TokenizerTest() : tokens(), tokenizer(tokens) {
+    tokenizer.add_eof_ = false;
+    tokenizer.skip_ws_ = true;
+  }
 
   std::vector<Token> tokens;
   Tokenizer tokenizer;

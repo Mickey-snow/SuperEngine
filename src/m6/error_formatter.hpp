@@ -45,7 +45,7 @@ class ErrorFormatter {
   ErrorFormatter& Highlight(size_t begin, size_t end, const std::string& msg);
 
   // Returns the formatted error and resets the internal buffer.
-  std::string Flush();
+  std::string Str();
 
  private:
   std::string_view src_;

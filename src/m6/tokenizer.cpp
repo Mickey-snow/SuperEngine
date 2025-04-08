@@ -227,7 +227,7 @@ void Tokenizer::Parse(std::string_view input) {
       if (!closed) {
         storage_.emplace_back(tok::Literal(std::string(input.substr(start))),
                               SourceLocation(start, pos));
-	errors_.emplace_back("Expected '\"'", SourceLocation(pos));
+        errors_.emplace_back("Expected '\"'", SourceLocation::At(pos));
       } else {
         // substring from start to pos is the entire literal (including quotes)
         std::string fullString = std::string(input.substr(start, pos - start));
@@ -240,11 +240,15 @@ void Tokenizer::Parse(std::string_view input) {
     }
 
     // 8) If none matched, mark it as an error. We consume one character.
-    errors_.emplace_back("Unknown token", start); ++pos;
+    errors_.emplace_back("Unknown token", SourceLocation(start, start + 1));
+    ++pos;
   }
+
+  if (add_eof_)
+    storage_.emplace_back(tok::Eof(), SourceLocation(len, len + 1));
 }
 
-Tokenizer::Tokenizer(std::vector<Token>& s, bool skip_ws)
-    : storage_(s), skip_ws_(skip_ws) {}
+Tokenizer::Tokenizer(std::vector<Token>& s)
+    : errors_(), skip_ws_(true), add_eof_(true), storage_(s) {}
 
 }  // namespace m6

@@ -51,8 +51,6 @@ class CompileError : public std::exception {
   virtual char const* what() const noexcept override;
   std::optional<SourceLocation> where() const noexcept;
 
-  std::string FormatWith(std::string_view src) const;
-
  private:
   std::string msg_;
   std::optional<SourceLocation> loc_;

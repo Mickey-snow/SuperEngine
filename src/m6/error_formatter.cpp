@@ -47,47 +47,60 @@ ErrorFormatter& ErrorFormatter::Highlight(size_t begin,
   if (end > src_.size())
     end = src_.size();
 
+  // Are we highlighting an insertion point rather than a range?
+  const bool isInsertion = (begin == end);
+
   auto [lineBegin, colBegin] = index_.Find(begin);
   auto [lineEnd, colEnd] = index_.Find(end);
 
-  oss << msg << '\n';
-  const auto digitLen = std::to_string(std::max(lineEnd, lineBegin)).length();
+  if (!msg.empty())
+    oss << msg << '\n';
+  const auto digitLen =
+      std::to_string(std::max(lineBegin, lineEnd) + 1).length();
+  const size_t prefLen = digitLen + 2;  // "NN│ "
 
-  // For each line from lineBegin to lineEnd, print the line plus caret(s)
+  // Only one line in the insertion case, but loop covers both single- and
+  // multi-line
   for (size_t lineIdx = lineBegin; lineIdx <= lineEnd; ++lineIdx) {
     auto lineText = index_.LineText(lineIdx);
 
-    oss << std::setw(digitLen) << std::left << lineIdx << "│ ";
-    oss << lineText << "\n";
+    // 1) print the source line
+    oss << std::setw(digitLen) << std::left << (lineIdx + 1) << "│ " << lineText
+        << '\n';
 
-    // Determine which portion of this line to highlight.
+    // 2) compute where on this line we’d normally highlight
     size_t highlightBeginCol = 0;
     size_t highlightEndCol = lineText.size();
-
-    if (lineIdx == lineBegin) {
-      highlightBeginCol = colBegin;
+    if (!isInsertion) {
+      if (lineIdx == lineBegin)
+        highlightBeginCol = colBegin;
+      if (lineIdx == lineEnd)
+        highlightEndCol = colEnd;
+      highlightBeginCol = std::min(highlightBeginCol, lineText.size());
+      highlightEndCol = std::min(highlightEndCol, lineText.size());
     }
-    if (lineIdx == lineEnd) {
-      highlightEndCol = colEnd;
-    }
 
-    // Clamp the highlight range to the line length.
-    highlightBeginCol = std::min(highlightBeginCol, lineText.size());
-    highlightEndCol = std::min(highlightEndCol, lineText.size());
-
-    // Only print a caret line if there is a positive highlight length.
-    if (highlightBeginCol < highlightEndCol) {
-      std::string caretLine(lineText.size(), ' ');
-      std::fill(caretLine.begin() + highlightBeginCol,
-                caretLine.begin() + highlightEndCol, '^');
-      oss << caretLine << "\n";
+    // 3) print the caret line
+    if (isInsertion) {
+      // single caret at insertion point
+      size_t pos = std::min(colBegin, lineText.size());
+      // pad up to the caret position + 1 so we can place '^'
+      std::string caretLine(prefLen + pos + 1, ' ');
+      caretLine[prefLen + pos] = '^';
+      oss << caretLine << '\n';
+    } else if (highlightBeginCol < highlightEndCol) {
+      // a continuous span of carets over [beginCol, endCol)
+      std::string caretLine(prefLen + lineText.size(), ' ');
+      std::fill(caretLine.begin() + prefLen + highlightBeginCol,
+                caretLine.begin() + prefLen + highlightEndCol, '^');
+      oss << caretLine << '\n';
     }
   }
 
   return *this;
 }
 
-std::string ErrorFormatter::Flush() {
+std::string ErrorFormatter::Str() {
   std::string result = oss.str();
   oss.str("");
   oss.clear();

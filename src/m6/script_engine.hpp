@@ -82,6 +82,14 @@ class ScriptEngine {
                         std::shared_ptr<RLMachine> machine);
 
   /**
+   * @brief Holds the details of one error.
+   */
+  struct ErrorInfo {
+    std::optional<SourceLocation> loc;
+    std::string msg;
+  };
+
+  /**
    * @brief Holds the result of running a script through the pipeline.
    */
   struct ExecutionResult {
@@ -91,8 +99,7 @@ class ScriptEngine {
         instructions;  ///< Bytecode/instructions (empty if no compiler).
     std::vector<Value>
         intermediateValues;  ///< Values from evaluated expression statements.
-    std::span<CompileError>
-        errors;  ///< Compilation or runtime errors (if any).
+    std::span<ErrorInfo> errors;  ///< Compilation or runtime errors (if any).
   };
 
   /**
@@ -121,8 +128,9 @@ class ScriptEngine {
  private:
   std::string src_;   ///< Raw source buffer.
   size_t valid_len_;  ///< Length up to which `src_` was successfully processed.
-  std::vector<CompileError>
-      errors_;  ///< Collected errors during compile/execute.
+
+  std::vector<ErrorInfo> errors_;  ///< Collected errors during compile/execute.
+
   std::shared_ptr<Compiler>
       compiler_;  ///< Optional compiler (nullptr = disabled).
   std::shared_ptr<RLMachine>

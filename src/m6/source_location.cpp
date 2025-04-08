@@ -29,10 +29,24 @@ namespace m6 {
 
 SourceLocation::SourceLocation(size_t begin, size_t end)
     : begin_offset(begin), end_offset(end) {}
-SourceLocation::SourceLocation(size_t pos) : SourceLocation(pos, pos + 1) {}
 SourceLocation::SourceLocation(Token* tok) { *this = tok->loc_; }
-SourceLocation::SourceLocation(Token* begin, Token* end)
-    : begin_offset(begin->loc_.begin_offset),
-      end_offset(end->loc_.end_offset) {}
+
+SourceLocation SourceLocation ::At(size_t pos) {
+  return SourceLocation(pos, pos);
+}
+SourceLocation SourceLocation ::After(Token* tok) {
+  return SourceLocation::At(tok->loc_.end_offset);
+}
+SourceLocation SourceLocation ::Range(Token* begin, Token* end) {
+  if (begin >= end)
+    return SourceLocation(begin);
+  --end;
+  return SourceLocation(begin->loc_.begin_offset, end->loc_.end_offset);
+}
+
+SourceLocation::operator std::string() const {
+  return '(' + std::to_string(begin_offset) + ',' + std::to_string(end_offset) +
+         ')';
+}
 
 }  // namespace m6

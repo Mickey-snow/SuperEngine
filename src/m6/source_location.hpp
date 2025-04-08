@@ -25,6 +25,7 @@
 #pragma once
 
 #include <cstddef>
+#include <string>
 
 namespace m6 {
 
@@ -37,9 +38,13 @@ class SourceLocation {
   SourceLocation() = default;
 
   SourceLocation(size_t begin, size_t end);
-  SourceLocation(size_t pos);
   SourceLocation(Token* tok);
-  SourceLocation(Token* begin, Token* end);
+
+  static SourceLocation At(size_t pos);
+  static SourceLocation After(Token* tok);
+  static SourceLocation Range(Token* begin, Token* end);
+
+  explicit operator std::string() const;
 };
 
 }  // namespace m6

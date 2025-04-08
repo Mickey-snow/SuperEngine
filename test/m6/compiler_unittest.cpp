@@ -24,6 +24,8 @@
 
 #include <gtest/gtest.h>
 
+#include "util.hpp"
+
 #include "m6/compiler.hpp"
 #include "m6/disassembler.hpp"
 #include "m6/exception.hpp"
@@ -41,21 +43,6 @@ class CompilerTest : public ::testing::Test {
       : machine(std::make_shared<RLMachine>(nullptr, nullptr, nullptr)),
         compiler(std::make_shared<Compiler>()),
         interpreter(compiler, machine) {}
-
-  std::vector<Instruction> Execute(std::string input,
-                                   bool allow_error = false) {
-    auto result = interpreter.Execute(std::move(input));
-
-    if (result.errors.empty()) {
-      return result.instructions;
-    } else {
-      if (allow_error)
-        throw result.errors.front();
-      else
-        ADD_FAILURE() << interpreter.FlushErrors();
-    }
-    return {};
-  }
 
   inline std::string DescribeStack() const {
     return Join(", ", std::views::all(machine->stack_) |
@@ -77,13 +64,13 @@ class CompilerTest : public ::testing::Test {
 };
 
 TEST_F(CompilerTest, Expression) {
-  auto ins = Execute(R"(1+1;)");
+  auto ins = interpreter.Execute(R"(1+1;)").instructions;
   EXPECT_TRUE(machine->stack_.empty()) << Disassemble(ins);
   EXPECT_TRUE(machine->globals_.empty()) << Disassemble(ins);
 }
 
 TEST_F(CompilerTest, GlobalVariable) {
-  Execute(R"(
+  interpreter.Execute(R"(
 beverage = "espresso";
 two = 1 + 1;
 )");
@@ -91,7 +78,7 @@ two = 1 + 1;
 }
 
 TEST_F(CompilerTest, Assignment) {
-  Execute(R"(
+  interpreter.Execute(R"(
 v2 = 89;
 v3 = "hello";
 v3 = v3 + ", world";
@@ -104,18 +91,20 @@ TEST_F(CompilerTest, NativeFn) {
   compiler->AddNative(
       make_fn_value("foo", [](int val) { return val == 89 ? 1 : -100; }));
 
-  Execute(R"(
+  interpreter.Execute(R"(
 v2 = 89;
 v3 = foo(v2);
 )");
   EXPECT_EQ(DescribeGlobals(), "<int: 89>, <int: 1>");
 
-  EXPECT_THROW(Execute(R"( v4 = foo(v2, v2); )", true), CompileError);
+  auto result = interpreter.Execute(R"( v4 = foo(v2, v2); )");
+  EXPECT_TXTEQ(interpreter.FlushErrors(), "Too many arguments provided.");
+
   EXPECT_EQ(DescribeGlobals(), "<int: 89>, <int: 1>");
 }
 
 TEST_F(CompilerTest, IfStmt) {
-  Execute(R"(
+  interpreter.Execute(R"(
 a = 10;
 b = 20;
 result = "";
@@ -127,7 +116,7 @@ else result += "a is not less than b";
 )");
   EXPECT_EQ(DescribeGlobals(), "<int: 10>, <int: 20>, <str: a is less than b>");
 
-  Execute(R"(
+  interpreter.Execute(R"(
 a = 10;
 if(a >= 10){ a += 10; }
 a += 10;
@@ -136,7 +125,7 @@ a += 10;
 }
 
 TEST_F(CompilerTest, WhileStmt) {
-  Execute(R"(
+  interpreter.Execute(R"(
 i = 1;
 sum = 0;
 while (i < 10){ sum += i; i += 1; }
@@ -145,16 +134,19 @@ while (i < 10){ sum += i; i += 1; }
 }
 
 TEST_F(CompilerTest, ForStmt1) {
-  auto ins = Execute(R"(
+  auto ins = interpreter
+                 .Execute(R"(
 sum = 0;
 for(i=0;i<12;i+=1) sum -= i;
 sum=-sum;
-)");
+)")
+                 .instructions;
   EXPECT_EQ(DescribeGlobals(), "<int: 66>") << Disassemble(ins);
 }
 
 TEST_F(CompilerTest, ForStmt2) {
-  auto ins = Execute(R"(
+  auto ins = interpreter
+                 .Execute(R"(
 rows = 5;
 result = "";
 for(i=1;i<=rows;i+=1){
@@ -162,7 +154,8 @@ for(i=1;i<=rows;i+=1){
     result += "*";
   result += "\n";
 }
-)");
+)")
+                 .instructions;
 
   EXPECT_EQ(DescribeGlobals(), "<int: 5>, <str: *\n**\n***\n****\n*****\n>")
       << Disassemble(ins);

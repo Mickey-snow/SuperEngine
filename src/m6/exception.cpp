@@ -46,23 +46,6 @@ char const* CompileError::what() const noexcept { return msg_.c_str(); }
 std::optional<SourceLocation> CompileError::where() const noexcept {
   return loc_;
 }
-std::string CompileError::FormatWith(std::string_view src) const {
-  std::ostringstream oss;
-
-  // Print error message
-  oss << "error: " << this->what() << '\n';
-  auto loc = this->where();
-
-  if (loc.has_value()) {
-    // Print source code
-    oss << src << '\n';
-    // Print a caret under the error position.
-    oss << std::string(loc->begin_offset, ' ')
-        << std::string(loc->end_offset - loc->begin_offset, '^');
-  }
-
-  return oss.str();
-}
 
 // -----------------------------------------------------------------------
 

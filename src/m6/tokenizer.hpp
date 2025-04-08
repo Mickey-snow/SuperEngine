@@ -36,16 +36,17 @@ namespace m6 {
 
 class Tokenizer {
  public:
-  Tokenizer(std::vector<Token>& storage, bool skip_ws = false);
+  Tokenizer(std::vector<Token>& storage);
 
   void Parse(std::string_view input);
 
  public:
   std::vector<SyntaxError> errors_;
+  bool skip_ws_;
+  bool add_eof_;
 
  private:
   std::vector<Token>& storage_;
-  bool skip_ws_;
 };
 
 }  // namespace m6
