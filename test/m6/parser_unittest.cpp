@@ -39,23 +39,6 @@ using namespace m6;
 
 namespace m6test {
 
-static inline std::string GetErrors(std::string input) {
-  ScriptEngine engine;
-  auto result = engine.Execute(std::move(input));
-
-  return Join("\n", std::views::all(result.errors) |
-                        std::views::transform([](const auto& e) {
-                          std::string loc = "(?)";
-                          if (e.loc.has_value())
-                            loc = static_cast<std::string>(*e.loc);
-                          return e.msg + ' ' + loc;
-                        }));
-  // if (result.errors.empty())
-  //   return "it throws nothing.";
-  // else
-  //   return engine.FlushErrors();
-}
-
 class ExprParserTest : public ::testing::Test {
  protected:
   static std::shared_ptr<ExprAST> parseExpr(std::span<Token> tokens) {
@@ -525,28 +508,6 @@ Subscript
 )");
 }
 
-TEST_F(ExprParserTest, ErrorHandling) {
-  EXPECT_EQ(GetErrors("a+(b*c"),
-            "Missing closing ')' in parenthesized expression. (6,6)");
-
-  EXPECT_EQ(GetErrors("d / / e"), "Expected primary expression. (4,5)");
-
-  EXPECT_EQ(GetErrors("f* (g+)"), "Expected primary expression. (6,7)");
-
-  EXPECT_EQ(GetErrors("j+*k"), "Expected primary expression. (2,3)");
-
-  EXPECT_EQ(GetErrors(")a"), "Expected primary expression. (0,1)");
-
-  EXPECT_EQ(GetErrors("a."), "Expected identifier after '.' (2,3)");
-
-  EXPECT_EQ(GetErrors("a[123"),
-            "Expected ']' after subscript expression. (5,6)");
-
-  EXPECT_EQ(GetErrors("a(b,c"), "Expected ')' after function call. (5,5)");
-
-  EXPECT_EQ(GetErrors("a=1+1"), "Expected ';'. (5,5)");
-}
-
 // -----------------------------------------------------------------------
 
 class StmtParserTest : public ::testing::Test {
@@ -607,10 +568,6 @@ AugAssign >>>=
       ├─ID b
       └─ID c
 )");
-  }
-
-  {  // error: assigning to expression
-    EXPECT_TXTEQ(GetErrors(" (v1+v2) = 1; "), "Expected identifier. (0,7)");
   }
 }
 

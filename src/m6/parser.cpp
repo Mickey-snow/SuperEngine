@@ -117,7 +117,9 @@ std::vector<std::shared_ptr<AST>> Parser::ParseAll() {
 
 bool Parser::Ok() const { return errors_.empty(); }
 
-std::span<const Parser::ParseError> Parser::GetErrors() const { return errors_; }
+std::span<const Parser::ParseError> Parser::GetErrors() const {
+  return errors_;
+}
 
 void Parser::ClearErrors() { errors_.clear(); }
 
@@ -133,7 +135,6 @@ void Parser::Synchronize() {
   while (it_ != end_) {
     if (it_->template HoldsAlternative<tok::Semicol>() ||
         it_->template HoldsAlternative<tok::CurlyR>()) {
-      ++it_;
       return;
     }
     ++it_;
@@ -154,7 +155,7 @@ std::shared_ptr<AST> Parser::parseAssignment() {
                      Op::DivAssign, Op::ModAssign, Op::BitAndAssign,
                      Op::BitOrAssign, Op::BitXorAssign, Op::ShiftLeftAssign,
                      Op::ShiftRightAssign, Op::ShiftUnsignedRightAssign});
-  if (!match.has_value())
+  if (!match.has_value())  // expression statement
     return std::make_shared<AST>(lhs);
 
   Op assignmentOp = match.value();
@@ -166,16 +167,15 @@ std::shared_ptr<AST> Parser::parseAssignment() {
   if (id_node == nullptr) {
     AddError("left‑hand side of assignment must be an identifier",
              SourceLocation::Range(lhs_begin, lhs_end));
-    return nullptr;
   }
 
   auto rhs_begin = it_;
   auto rhs = ParseExpression();
-  if (!rhs)
-    return nullptr;
   auto rhs_end = it_;
 
-  if (assignmentOp == Op::Assign) {
+  if (id_node == nullptr || rhs == nullptr)
+    return nullptr;
+  else if (assignmentOp == Op::Assign) {
     return std::make_shared<AST>(AssignStmt(
         lhs, rhs, SourceLocation::Range(lhs_begin, lhs_end),
         SourceLocation(op_it), SourceLocation::Range(rhs_begin, rhs_end)));
@@ -569,7 +569,7 @@ std::shared_ptr<ExprAST> Parser::parsePrimary() {
         ParenExpr(expr, SourceLocation::Range(subBegin, subEnd)));
   }
   AddError("expected primary expression", it_);
-  ++it_;  // make progress
+  Synchronize();
   return nullptr;
 }
 

@@ -105,19 +105,21 @@ class Parser {
   }
 
   template <class Tok>
-  void require(const char* msg) {
+  bool require(const char* msg) {
     if (!tryConsume<Tok>()) {
       AddError(msg, SourceLocation::After(it_ - 1));
-      Synchronize();
+      return false;
     }
+    return true;
   }
 
   template <class Tok, class... Args>
-  void require(const char* msg, Args&&... params) {
+  bool require(const char* msg, Args&&... params) {
     if (!tryConsume<Tok>(std::forward<Args>(params)...)) {
       AddError(msg, SourceLocation::After(it_ - 1));
-      Synchronize();
+      return false;
     }
+    return true;
   }
 
   //------------------------------------------------------------------

@@ -28,6 +28,7 @@
 #include "machine/op.hpp"
 
 #include <cctype>
+#include <charconv>
 #include <optional>
 #include <unordered_map>
 #include <unordered_set>
@@ -190,16 +191,72 @@ void Tokenizer::Parse(std::string_view input) {
       continue;
     }
 
-    // 6) Check integer: [0-9]+
+    // 6) Check integer literal: hex (0x), octal (0o), binary (0b), or decimal
     if (std::isdigit(static_cast<unsigned char>(c))) {
-      ++pos;
+      // determine base
+      int base = 10;
+      size_t prefix_len = 0;
+      const char first_char = input[start];
+
+      // only consider prefixes if the literal begins with '0'
+      if (first_char == '0' && start + 1 < len) {
+        char peek = input[start + 1];
+        if (peek == 'x' || peek == 'X') {
+          base = 16;
+          prefix_len = 2;
+        } else if (peek == 'b' || peek == 'B') {
+          base = 2;
+          prefix_len = 2;
+        } else if (peek == 'o' || peek == 'O') {
+          base = 8;
+          prefix_len = 2;
+        }
+      }
+
+      // advance past prefix (if any)
+      pos = start + prefix_len;
+      // now scan valid digits for this base
+      auto validate = [&](char ch) -> bool {
+        unsigned char uch = static_cast<unsigned char>(ch);
+        switch (base) {
+          case 16:
+            return std::isxdigit(uch);
+          case 10:
+            return std::isdigit(uch);
+          case 8:
+            return (ch >= '0' && ch <= '7');
+          case 2:
+            return (ch == '0' || ch == '1');
+          default:
+            return false;
+        }
+      };
+
+      size_t digits_start = pos;
       while (pos < len &&
-             std::isdigit(static_cast<unsigned char>(input[pos]))) {
+             std::isxdigit(static_cast<unsigned char>(input[pos]))) {
+        if (!validate(input[pos]))
+          errors_.emplace_back("Invalid digit.", SourceLocation(pos, pos + 1));
         ++pos;
       }
-      std::string numVal = std::string(input.substr(start, pos - start));
-      storage_.emplace_back(tok::Int(std::stoi(numVal)),
-                            SourceLocation(start, pos));
+      const SourceLocation location(start, pos);
+
+      // must have at least one digit after any prefix
+      if (pos == digits_start) {
+        errors_.emplace_back("Invalid integer literal", location);
+        continue;
+      }
+
+      int numValue = 0;
+      auto [ptr, ec] =
+          std::from_chars(input.data() + start, input.data() + pos, numValue);
+      if (ec == std::errc::result_out_of_range)
+        errors_.emplace_back("Integer literal is too large.", location);
+      else if (ec != std::errc{})
+        errors_.emplace_back("Invalid integer literal.", location);
+      else
+        storage_.emplace_back(tok::Int(numValue), location);
+
       continue;
     }
 

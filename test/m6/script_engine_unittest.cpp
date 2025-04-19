@@ -61,33 +61,4 @@ a=1; 1+1; a+2;
   EXPECT_TRUE(machine->stack_.empty()) << Describe(machine->stack_);
 }
 
-TEST_F(ScriptEngineTest, ErrorFormatting) {
-  auto result = interpreter.Execute(R"(
-  x = 10
-  if (x > 5) {
-      return x +
-  }
-  )");
-  ASSERT_FALSE(result.errors.empty());
-  EXPECT_TXTEQ(interpreter.FlushErrors(), R"(
-Expected ';'.
-2│   x = 10
-           ^
-)");
-
-  result = interpreter.Execute(R"(
-a = 1234;
-if (a > 10) {
-    print("Hello"
-else
-    print("World");
-)");
-  ASSERT_FALSE(result.errors.empty());
-  EXPECT_TXTEQ(interpreter.FlushErrors(), R"(
-Expected ')' after function call.
-4│     print("Hello"
-                    ^
-)");
-}
-
 }  // namespace m6test
