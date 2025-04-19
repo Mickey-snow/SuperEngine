@@ -35,691 +35,542 @@
 
 namespace m6 {
 
-using iterator_t = Token*;
+//--------------------------------------------------------------------
+//  Parser class
+//--------------------------------------------------------------------
 
-// Handy checker function for matching an operator from a specified set.
-static std::optional<Op> tryConsumeAny(iterator_t& it,
-                                       iterator_t end,
-                                       std::initializer_list<Op> ops) {
-  if (it == end)
-    return std::nullopt;
+// ── PUBLIC ENTRY POINTS ─────────────────────────────────────────────────────
+std::shared_ptr<ExprAST> Parser::ParseExpression() { return parseLogicalOr(); }
 
-  if (auto p = it->GetIf<tok::Operator>()) {
-    for (auto candidate : ops)
-      if (candidate == p->op) {
-        ++it;
-        return p->op;
-      }
+std::shared_ptr<AST> Parser::ParseStatement(bool requireSemi) {
+  // if
+  if (tryConsume<tok::Reserved>("if")) {
+    require<tok::ParenthesisL>("expected '(' after if");
+    auto cond = ParseExpression();
+    require<tok::ParenthesisR>("expected ')'");
+    auto thenStmt = ParseStatement();
+    std::shared_ptr<AST> elseStmt = nullptr;
+    if (tryConsume<tok::Reserved>("else"))
+      elseStmt = ParseStatement();
+    return std::make_shared<AST>(IfStmt(cond, thenStmt, elseStmt));
   }
-  return std::nullopt;
-}
-
-// Handy checker function for matching a token type T.
-template <typename T>
-static bool tryConsume(iterator_t& it, iterator_t end) {
-  if (it == end) {
-    return false;
-  }
-  if (it->HoldsAlternative<T>()) {
-    ++it;
-    return true;
-  }
-  return false;
-}
-
-// Handy checker function for maching a token with specified type and field
-template <typename T, typename... Ts>
-static bool tryConsume(iterator_t& it, iterator_t end, Ts&&... params) {
-  if (it == end)
-    return false;
-
-  if (auto t = it->GetIf<T>()) {
-    if (*t == T(std::forward<Ts>(params)...)) {
-      ++it;
-      return true;
-    }
-  }
-  return false;
-}
-
-template <typename T>
-inline static void Require(iterator_t& it, iterator_t end, char const* msg) {
-  if (!tryConsume<T>(it, end))
-    throw SyntaxError(msg, SourceLocation::After(it - 1));
-}
-
-// Forward declarations of recursive parsing functions.
-static std::shared_ptr<AST> parseAssignment(iterator_t& it, iterator_t end);
-static std::shared_ptr<ExprAST> parseExpression(iterator_t& it, iterator_t end);
-static std::shared_ptr<ExprAST> parseLogicalOr(iterator_t& it, iterator_t end);
-static std::shared_ptr<ExprAST> parseLogicalAnd(iterator_t& it, iterator_t end);
-static std::shared_ptr<ExprAST> parseBitwiseOr(iterator_t& it, iterator_t end);
-static std::shared_ptr<ExprAST> parseBitwiseXor(iterator_t& it, iterator_t end);
-static std::shared_ptr<ExprAST> parseBitwiseAnd(iterator_t& it, iterator_t end);
-static std::shared_ptr<ExprAST> parseEquality(iterator_t& it, iterator_t end);
-static std::shared_ptr<ExprAST> parseRelational(iterator_t& it, iterator_t end);
-static std::shared_ptr<ExprAST> parseShift(iterator_t& it, iterator_t end);
-static std::shared_ptr<ExprAST> parseAdditive(iterator_t& it, iterator_t end);
-static std::shared_ptr<ExprAST> parseMultiplicative(iterator_t& it,
-                                                    iterator_t end);
-static std::shared_ptr<ExprAST> parseUnary(iterator_t& it, iterator_t end);
-static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end);
-static std::shared_ptr<ExprAST> parsePrimary(iterator_t& it, iterator_t end);
-static std::shared_ptr<AST> parseStmt(iterator_t& it, iterator_t end, bool);
-
-//=================================================================================
-// parseExpression() - top-level parse for expressions.
-//     expr -> logical_or_expr
-//=================================================================================
-static std::shared_ptr<ExprAST> parseExpression(iterator_t& it,
-                                                iterator_t end) {
-  return parseLogicalOr(it, end);
-}
-
-//=================================================================================
-// parseAssignment() - right-associative assignment ops.
-//     assignment_expr -> logical_or_expr ( ASSIGN_OP assignment_expr )?
-//     where ASSIGN_OP is one of =, +=, -=, etc.
-//=================================================================================
-static std::shared_ptr<AST> parseAssignment(iterator_t& it, iterator_t end) {
-  iterator_t lhs_begin_it = it;
-  auto lhs = parseLogicalOr(it, end);
-  iterator_t lhs_end_it = it;
-
-  Token* op_it = it;
-  auto matched =
-      tryConsumeAny(it, end,
-                    {Op::Assign, Op::AddAssign, Op::SubAssign, Op::MulAssign,
-                     Op::DivAssign, Op::ModAssign, Op::BitAndAssign,
-                     Op::BitOrAssign, Op::BitXorAssign, Op::ShiftLeftAssign,
-                     Op::ShiftRightAssign, Op::ShiftUnsignedRightAssign});
-  if (!matched.has_value())
-    return std::make_shared<AST>(lhs);
-
-  auto assignmentOp = matched.value();
-  auto* id_node = lhs->Apply([](auto& x) -> Identifier* {
-    if constexpr (std::same_as<std::decay_t<decltype(x)>, Identifier>)
-      return &x;  // for now, only support assign to identifier
-    return nullptr;
-  });
-  if (id_node == nullptr) {
-    throw SyntaxError("Expected identifier.",
-                      SourceLocation::Range(lhs_begin_it, lhs_end_it));
-  }
-
-  iterator_t rhs_begin_it = it;
-  auto rhs = parseExpression(it, end);
-  iterator_t rhs_end_it = it;
-  if (assignmentOp == Op::Assign) {  // simple assignment
-    return std::make_shared<AST>(
-        AssignStmt(lhs, rhs, SourceLocation::Range(lhs_begin_it, lhs_end_it),
-                   SourceLocation(op_it),
-                   SourceLocation::Range(rhs_begin_it, rhs_end_it)));
-  } else {  // compound assignment
-    return std::make_shared<AST>(AugStmt(
-        lhs, assignmentOp, rhs, SourceLocation::Range(lhs_begin_it, lhs_end_it),
-        SourceLocation(op_it),
-        SourceLocation::Range(rhs_begin_it, rhs_end_it)));
-  }
-}
-
-//=================================================================================
-// parseLogicalOr() - left-associative '||'.
-//     logical_or_expr -> logical_and_expr ( '||' logical_and_expr )*
-//=================================================================================
-static std::shared_ptr<ExprAST> parseLogicalOr(iterator_t& it, iterator_t end) {
-  iterator_t lhs_begin_it = it;
-  auto lhs = parseLogicalAnd(it, end);
-  iterator_t lhs_end_it = it;
-
-  while (true) {
-    iterator_t op_it = it;
-    if (!tryConsume<tok::Operator>(it, end, Op::LogicalOr)) {
-      break;
-    }
-
-    iterator_t rhs_begin_it = it;
-    auto rhs = parseLogicalAnd(it, end);
-    iterator_t rhs_end_it = it;
-
-    // Note how we construct the BinaryExpr with SourceLocations:
-    BinaryExpr expr(Op::LogicalOr, lhs, rhs, SourceLocation(op_it),
-                    SourceLocation::Range(lhs_begin_it, lhs_end_it),
-                    SourceLocation::Range(rhs_begin_it, rhs_end_it));
-
-    lhs = std::make_shared<ExprAST>(std::move(expr));
-  }
-  return lhs;
-}
-
-//=================================================================================
-// parseLogicalAnd() - left-associative '&&'.
-//     logical_and_expr -> bitwise_or_expr ( '&&' bitwise_or_expr )*
-//=================================================================================
-static std::shared_ptr<ExprAST> parseLogicalAnd(iterator_t& it,
-                                                iterator_t end) {
-  iterator_t lhs_begin_it = it;
-  auto lhs = parseBitwiseOr(it, end);
-  iterator_t lhs_end_it = it;
-
-  while (true) {
-    iterator_t op_it = it;
-    if (!tryConsume<tok::Operator>(it, end, Op::LogicalAnd)) {
-      break;
-    }
-
-    iterator_t rhs_begin_it = it;
-    auto rhs = parseBitwiseOr(it, end);
-    iterator_t rhs_end_it = it;
-
-    BinaryExpr expr(Op::LogicalAnd, lhs, rhs, SourceLocation(op_it),
-                    SourceLocation::Range(lhs_begin_it, lhs_end_it),
-                    SourceLocation::Range(rhs_begin_it, rhs_end_it));
-
-    lhs = std::make_shared<ExprAST>(std::move(expr));
-  }
-  return lhs;
-}
-
-//=================================================================================
-// parseBitwiseOr() - left-associative '|'.
-//     bitwise_or_expr -> bitwise_xor_expr ( '|' bitwise_xor_expr )*
-//=================================================================================
-static std::shared_ptr<ExprAST> parseBitwiseOr(iterator_t& it, iterator_t end) {
-  iterator_t lhs_begin_it = it;
-  auto lhs = parseBitwiseXor(it, end);
-  iterator_t lhs_end_it = it;
-
-  while (true) {
-    iterator_t op_it = it;
-    if (!tryConsume<tok::Operator>(it, end, Op::BitOr)) {
-      break;
-    }
-
-    iterator_t rhs_begin_it = it;
-    auto rhs = parseBitwiseXor(it, end);
-    iterator_t rhs_end_it = it;
-
-    BinaryExpr expr(Op::BitOr, lhs, rhs, SourceLocation(op_it),
-                    SourceLocation::Range(lhs_begin_it, lhs_end_it),
-                    SourceLocation::Range(rhs_begin_it, rhs_end_it));
-
-    lhs = std::make_shared<ExprAST>(std::move(expr));
-  }
-  return lhs;
-}
-
-//=================================================================================
-// parseBitwiseXor() - left-associative '^'.
-//     bitwise_xor_expr -> bitwise_and_expr ( '^' bitwise_and_expr )*
-//=================================================================================
-static std::shared_ptr<ExprAST> parseBitwiseXor(iterator_t& it,
-                                                iterator_t end) {
-  iterator_t lhs_begin_it = it;
-  auto lhs = parseBitwiseAnd(it, end);
-  iterator_t lhs_end_it = it;
-
-  while (true) {
-    iterator_t op_it = it;
-    if (!tryConsume<tok::Operator>(it, end, Op::BitXor)) {
-      break;
-    }
-
-    iterator_t rhs_begin_it = it;
-    auto rhs = parseBitwiseAnd(it, end);
-    iterator_t rhs_end_it = it;
-
-    BinaryExpr expr(Op::BitXor, lhs, rhs, SourceLocation(op_it),
-                    SourceLocation::Range(lhs_begin_it, lhs_end_it),
-                    SourceLocation::Range(rhs_begin_it, rhs_end_it));
-
-    lhs = std::make_shared<ExprAST>(std::move(expr));
-  }
-  return lhs;
-}
-
-//=================================================================================
-// parseBitwiseAnd() - left-associative '&'.
-//     bitwise_and_expr -> equality_expr ( '&' equality_expr )*
-//=================================================================================
-static std::shared_ptr<ExprAST> parseBitwiseAnd(iterator_t& it,
-                                                iterator_t end) {
-  iterator_t lhs_begin_it = it;
-  auto lhs = parseEquality(it, end);
-  iterator_t lhs_end_it = it;
-
-  while (true) {
-    iterator_t op_it = it;
-    if (!tryConsume<tok::Operator>(it, end, Op::BitAnd)) {
-      break;
-    }
-
-    iterator_t rhs_begin_it = it;
-    auto rhs = parseEquality(it, end);
-    iterator_t rhs_end_it = it;
-
-    BinaryExpr expr(Op::BitAnd, lhs, rhs, SourceLocation(op_it),
-                    SourceLocation::Range(lhs_begin_it, lhs_end_it),
-                    SourceLocation::Range(rhs_begin_it, rhs_end_it));
-
-    lhs = std::make_shared<ExprAST>(std::move(expr));
-  }
-  return lhs;
-}
-
-//=================================================================================
-// parseEquality() - left-associative '==' and '!='.
-//     equality_expr -> relational_expr ( ('=='|'!=') relational_expr )*
-//=================================================================================
-static std::shared_ptr<ExprAST> parseEquality(iterator_t& it, iterator_t end) {
-  iterator_t lhs_begin_it = it;
-  auto lhs = parseRelational(it, end);
-  iterator_t lhs_end_it = it;
-
-  while (true) {
-    iterator_t op_it = it;
-    auto match = tryConsumeAny(it, end, {Op::Equal, Op::NotEqual});
-    if (!match.has_value())
-      break;
-
-    auto op = match.value();
-
-    iterator_t rhs_begin_it = it;
-    auto rhs = parseRelational(it, end);
-    iterator_t rhs_end_it = it;
-
-    BinaryExpr expr(op, lhs, rhs, SourceLocation(op_it),
-                    SourceLocation::Range(lhs_begin_it, lhs_end_it),
-                    SourceLocation::Range(rhs_begin_it, rhs_end_it));
-
-    lhs = std::make_shared<ExprAST>(std::move(expr));
-  }
-  return lhs;
-}
-
-//=================================================================================
-// parseRelational() - left-associative '<', '<=', '>', '>='.
-//     relational_expr -> shift_expr ( ('<'|'<='|'>'|'>=') shift_expr )*
-//=================================================================================
-static std::shared_ptr<ExprAST> parseRelational(iterator_t& it,
-                                                iterator_t end) {
-  iterator_t lhs_begin_it = it;
-  auto lhs = parseShift(it, end);
-  iterator_t lhs_end_it = it;
-
-  while (true) {
-    iterator_t op_it = it;
-    auto match = tryConsumeAny(
-        it, end, {Op::Less, Op::LessEqual, Op::Greater, Op::GreaterEqual});
-    if (!match.has_value())
-      break;
-
-    auto op = match.value();
-
-    iterator_t rhs_begin_it = it;
-    auto rhs = parseShift(it, end);
-    iterator_t rhs_end_it = it;
-
-    BinaryExpr expr(op, lhs, rhs, SourceLocation(op_it),
-                    SourceLocation::Range(lhs_begin_it, lhs_end_it),
-                    SourceLocation::Range(rhs_begin_it, rhs_end_it));
-
-    lhs = std::make_shared<ExprAST>(std::move(expr));
-  }
-  return lhs;
-}
-
-//=================================================================================
-// parseShift() - left-associative '<<', '>>', '>>>'.
-//     shift_expr -> additive_expr ( ('<<'|'>>'|'>>>') additive_expr )*
-//=================================================================================
-static std::shared_ptr<ExprAST> parseShift(iterator_t& it, iterator_t end) {
-  iterator_t lhs_begin_it = it;
-  auto lhs = parseAdditive(it, end);
-  iterator_t lhs_end_it = it;
-
-  while (true) {
-    iterator_t op_it = it;
-    auto match = tryConsumeAny(
-        it, end, {Op::ShiftLeft, Op::ShiftRight, Op::ShiftUnsignedRight});
-    if (!match.has_value())
-      break;
-
-    auto op = match.value();
-
-    iterator_t rhs_begin_it = it;
-    auto rhs = parseAdditive(it, end);
-    iterator_t rhs_end_it = it;
-
-    BinaryExpr expr(op, lhs, rhs, SourceLocation(op_it),
-                    SourceLocation::Range(lhs_begin_it, lhs_end_it),
-                    SourceLocation::Range(rhs_begin_it, rhs_end_it));
-
-    lhs = std::make_shared<ExprAST>(std::move(expr));
-  }
-  return lhs;
-}
-
-//=================================================================================
-// parseAdditive() - left-associative '+' and '-'.
-//     additive_expr -> multiplicative_expr ( ('+'|'-') multiplicative_expr )*
-//=================================================================================
-static std::shared_ptr<ExprAST> parseAdditive(iterator_t& it, iterator_t end) {
-  iterator_t lhs_begin_it = it;
-  auto lhs = parseMultiplicative(it, end);
-  iterator_t lhs_end_it = it;
-
-  while (true) {
-    iterator_t op_it = it;
-    auto match = tryConsumeAny(it, end, {Op::Add, Op::Sub});
-    if (!match.has_value())
-      break;
-
-    auto op = match.value();
-
-    iterator_t rhs_begin_it = it;
-    auto rhs = parseMultiplicative(it, end);
-    iterator_t rhs_end_it = it;
-
-    BinaryExpr expr(op, lhs, rhs, SourceLocation(op_it),
-                    SourceLocation::Range(lhs_begin_it, lhs_end_it),
-                    SourceLocation::Range(rhs_begin_it, rhs_end_it));
-
-    lhs = std::make_shared<ExprAST>(std::move(expr));
-  }
-  return lhs;
-}
-
-//=================================================================================
-// parseMultiplicative() - left-associative '*', '/', '%'.
-//     multiplicative_expr -> unary_expr ( ('*'|'/'|'%') unary_expr )*
-//=================================================================================
-static std::shared_ptr<ExprAST> parseMultiplicative(iterator_t& it,
-                                                    iterator_t end) {
-  iterator_t lhs_begin_it = it;
-  auto lhs = parseUnary(it, end);
-  iterator_t lhs_end_it = it;
-
-  while (true) {
-    iterator_t op_it = it;
-    auto match = tryConsumeAny(it, end, {Op::Mul, Op::Div, Op::Mod});
-    if (!match.has_value())
-      break;
-
-    auto op = match.value();
-
-    iterator_t rhs_begin_it = it;
-    auto rhs = parseUnary(it, end);
-    iterator_t rhs_end_it = it;
-
-    BinaryExpr expr(op, lhs, rhs, SourceLocation(op_it),
-                    SourceLocation::Range(lhs_begin_it, lhs_end_it),
-                    SourceLocation::Range(rhs_begin_it, rhs_end_it));
-
-    lhs = std::make_shared<ExprAST>(std::move(expr));
-  }
-  return lhs;
-}
-
-//=================================================================================
-// parseUnary() - handles unary ops like '+', '-', '~' (prefix).
-//     unary_expr -> ( ('+'|'-'|'~') )* postfix_expr
-// We accumulate multiple unary ops and apply them in right-to-left order.
-//=================================================================================
-static std::shared_ptr<ExprAST> parseUnary(iterator_t& it, iterator_t end) {
-  // Collect all unary operators first.
-  std::vector<Op> ops;
-  std::vector<iterator_t> op_locs;
-  while (true) {
-    iterator_t op_loc = it;
-    auto match = tryConsumeAny(it, end, {Op::Add, Op::Sub, Op::Tilde});
-    if (!match.has_value())
-      break;
-
-    ops.push_back(match.value());
-    op_locs.push_back(op_loc);
-  }
-
-  // Parse the postfix expression that these unary ops apply to.
-  iterator_t sub_begin_it = it;
-  auto node = parsePostfix(it, end);
-  iterator_t sub_end_it = it;
-
-  // Apply unary ops in reverse order (right-to-left).
-  for (size_t i = ops.size(); i-- > 0;) {
-    UnaryExpr expr(ops[i], node, SourceLocation(op_locs[i]),
-                   SourceLocation::Range(sub_begin_it, sub_end_it));
-    node = std::make_shared<ExprAST>(std::move(expr));
-    sub_begin_it = op_locs[i];
-  }
-
-  return node;
-}
-
-//=================================================================================
-// parsePostfix() - handles function calls, member access, array subscripts.
-//     postfix_expr -> primary_expr postfix_suffix*
-//     postfix_suffix ->
-//         '(' [expression (,expression)*] ')'        (function invocation)
-//       | '.' id_token                               (member access)
-//       | '[' expr ']'                               (subscript)
-//=================================================================================
-static std::shared_ptr<ExprAST> parsePostfix(iterator_t& it, iterator_t end) {
-  iterator_t primary_begin_it = it;
-  auto lhs = parsePrimary(it, end);
-  iterator_t primary_end_it = it;
-
-  // Repeatedly parse postfix elements.
-  while (true) {
-    // 1) function call
-    if (tryConsume<tok::ParenthesisL>(it, end)) {
-      // parse optional expression
-      std::vector<std::shared_ptr<ExprAST>> arg_list;
-      std::vector<SourceLocation> arg_locs;
-      if (it != end && !it->HoldsAlternative<tok::ParenthesisR>()) {
-        iterator_t begin_it = it;
-        arg_list.emplace_back(parseExpression(it, end));
-        arg_locs.emplace_back(SourceLocation::Range(begin_it, it));
-
-        while (tryConsume<tok::Operator>(it, end, Op::Comma)) {
-          begin_it = it;
-          arg_list.emplace_back(parseExpression(it, end));
-          arg_locs.emplace_back(SourceLocation::Range(begin_it, it));
-        }
-      }
-
-      Require<tok::ParenthesisR>(it, end, "Expected ')' after function call.");
-
-      lhs = std::make_shared<ExprAST>(
-          InvokeExpr(lhs, std::move(arg_list),
-                     SourceLocation::Range(primary_begin_it, primary_end_it),
-                     std::move(arg_locs)));
-      continue;
-    }
-
-    // 2) member access: '.' <identifier>
-    if (tryConsume<tok::Operator>(it, end, Op::Dot)) {
-      if (it == end || !it->HoldsAlternative<tok::ID>()) {
-        throw SyntaxError("Expected identifier after '.'", it);
-      }
-      auto memberLoc = SourceLocation(it);
-      Identifier memberName(it->GetIf<tok::ID>()->id, memberLoc);
-      ++it;  // consume the ID token
-      auto memberNode = std::make_shared<ExprAST>(std::move(memberName));
-      lhs = std::make_shared<ExprAST>(MemberExpr(
-          lhs, memberNode,
-          SourceLocation::Range(primary_begin_it, primary_end_it), memberLoc));
-      continue;
-    }
-
-    // 3) subscript: '[' expression ']'
-    if (tryConsume<tok::SquareL>(it, end)) {
-      iterator_t idx_begin_it = it;
-      auto indexExpr = parseExpression(it, end);
-      iterator_t idx_end_it = it;
-
-      if (!tryConsume<tok::SquareR>(it, end)) {
-        throw SyntaxError("Expected ']' after subscript expression.", it);
-      }
-      lhs = std::make_shared<ExprAST>(
-          SubscriptExpr(lhs, indexExpr,
-                        SourceLocation::Range(primary_begin_it, primary_end_it),
-                        SourceLocation::Range(idx_begin_it, idx_end_it)));
-      continue;
-    }
-
-    // if none of the above matched, we're done with postfix.
-    break;
-  }
-
-  return lhs;
-}
-
-//=================================================================================
-// parsePrimary() - int, string, id, or parenthesized expression.
-//     primary_expr -> Int
-//                   | Literal
-//                   | ID
-//                   | '(' expr ')'
-//=================================================================================
-static std::shared_ptr<ExprAST> parsePrimary(iterator_t& it, iterator_t end) {
-  if (it == end)
-    throw SyntaxError("Expected primary expression.", it);
-
-  // Try integer
-  if (auto s = it->GetIf<tok::Int>()) {
-    auto node = IntLiteral(s->value, SourceLocation(it));
-    ++it;
-    return std::make_shared<ExprAST>(std::move(node));
-  }
-
-  // Try string
-  if (auto s = it->GetIf<tok::Literal>()) {
-    auto node = StrLiteral(s->str, SourceLocation(it));
-    ++it;
-    return std::make_shared<ExprAST>(std::move(node));
-  }
-
-  // Try identifier
-  if (auto s = it->GetIf<tok::ID>()) {
-    auto node = Identifier(s->id, SourceLocation(it));
-    ++it;
-    return std::make_shared<ExprAST>(std::move(node));
-  }
-
-  // Try '(' expr ')'
-  if (tryConsume<tok::ParenthesisL>(it, end)) {
-    iterator_t sub_begin_it = it;
-    auto exprNode = parseExpression(it, end);
-    iterator_t sub_end_it = it;
-
-    if (!tryConsume<tok::ParenthesisR>(it, end))
-      throw SyntaxError("Missing closing ')' in parenthesized expression.",
-                        SourceLocation::After(it - 1));
-
-    return std::make_shared<ExprAST>(
-        ParenExpr(exprNode, SourceLocation::Range(sub_begin_it, sub_end_it)));
-  }
-
-  // If none matched, it's an error.
-  throw SyntaxError("Expected primary expression.", it->loc_);
-}
-
-//=================================================================================
-// parseStmt() - statement
-//     stmt -> assignment_expr
-//           | "if" "(" expr ")" stmt ("else" stmt)?
-//           | "while" "(" expr ")" stmt
-//           | "for" "(" stmt ";" expr ";" stmt ")" stmt
-//           | "{" stmt* "}"
-//=================================================================================
-static std::shared_ptr<AST> parseStmt(iterator_t& it,
-                                      iterator_t end,
-                                      bool require_semicol = true) {
-  // if statement
-  if (tryConsume<tok::Reserved>(it, end, "if")) {
-    Require<tok::ParenthesisL>(it, end, "Expected '('.");
-    auto cond = parseExpression(it, end);
-    Require<tok::ParenthesisR>(it, end, "Expected ')'.");
-
-    std::shared_ptr<AST> then = parseStmt(it, end), els = nullptr;
-    if (tryConsume<tok::Reserved>(it, end, "else"))
-      els = parseStmt(it, end);
-
-    return std::make_shared<AST>(IfStmt(cond, then, els));
-  }
-
-  // while statement
-  if (tryConsume<tok::Reserved>(it, end, "while")) {
-    Require<tok::ParenthesisL>(it, end, "Expected '('.");
-    auto cond = parseExpression(it, end);
-    Require<tok::ParenthesisR>(it, end, "Expected ')'.");
-
-    auto body = parseStmt(it, end);
+  // while
+  if (tryConsume<tok::Reserved>("while")) {
+    require<tok::ParenthesisL>("expected '(' after while");
+    auto cond = ParseExpression();
+    require<tok::ParenthesisR>("expected ')'");
+    auto body = ParseStatement();
     return std::make_shared<AST>(WhileStmt(cond, body));
   }
+  // for
+  if (tryConsume<tok::Reserved>("for")) {
+    require<tok::ParenthesisL>("expected '(' after for");
 
-  // for statement
-  if (tryConsume<tok::Reserved>(it, end, "for")) {
-    std::shared_ptr<AST> init, inc;
-    std::shared_ptr<ExprAST> cond;
+    std::shared_ptr<AST> init = nullptr, inc = nullptr;
+    std::shared_ptr<ExprAST> cond = nullptr;
 
-    Require<tok::ParenthesisL>(it, end, "Expected '('.");
-    if (tryConsume<tok::Semicol>(it, end))
-      init = nullptr;
-    else {
-      init = parseStmt(it, end, false);
-      Require<tok::Semicol>(it, end, "Expected ';'.");
+    if (!tryConsume<tok::Semicol>()) {
+      init = ParseStatement(false);
+      require<tok::Semicol>("expected ';' after for‑init");
     }
-    if (tryConsume<tok::Semicol>(it, end))
-      cond = nullptr;
-    else {
-      cond = parseExpression(it, end);
-      Require<tok::Semicol>(it, end, "Expected ';'.");
+    if (!tryConsume<tok::Semicol>()) {
+      cond = ParseExpression();
+      require<tok::Semicol>("Expected ';' after for‑cond.");
     }
-    if (tryConsume<tok::ParenthesisR>(it, end))
-      inc = nullptr;
-    else {
-      inc = parseStmt(it, end, false);
-      Require<tok::ParenthesisR>(it, end, "Expected ')'.");
+    if (!tryConsume<tok::ParenthesisR>()) {
+      inc = ParseStatement(false);
+      require<tok::ParenthesisR>("Expected ')' after for‑inc.");
     }
-
-    auto body = parseStmt(it, end);
+    auto body = ParseStatement();
     return std::make_shared<AST>(ForStmt(init, cond, inc, body));
   }
-
   // block
-  if (tryConsume<tok::CurlyL>(it, end)) {
+  if (tryConsume<tok::CurlyL>()) {
     std::vector<std::shared_ptr<AST>> body;
-    while (!tryConsume<tok::CurlyR>(it, end))
-      body.emplace_back(parseStmt(it, end));
+    while (!tryConsume<tok::CurlyR>() && it_ != end_) {
+      body.emplace_back(ParseStatement());
+    }
     return std::make_shared<AST>(BlockStmt(std::move(body)));
   }
 
-  // assignment or expression statement
-  auto stmt = parseAssignment(it, end);
-  if (require_semicol)
-    Require<tok::Semicol>(it, end, "Expected ';'.");
+  // expression / assignment statement
+  auto stmt = parseAssignment();
+  if (requireSemi)
+    require<tok::Semicol>("Expected ';'.");
   return stmt;
 }
 
-//=================================================================================
-// Public parse function entry point.
-//=================================================================================
-std::shared_ptr<ExprAST> ParseExpression(Token*& it, Token* end) {
-  return parseLogicalOr(it, end);
-}
-std::shared_ptr<ExprAST> ParseExpression(std::span<Token> input) {
-  auto begin = input.data(), end = input.data() + input.size();
-  return ParseExpression(begin, end);
+std::vector<std::shared_ptr<AST>> Parser::ParseAll() {
+  std::vector<std::shared_ptr<AST>> out;
+  while (it_ != end_ && errors_.empty()) {
+    if (it_->HoldsAlternative<tok::Eof>())
+      break;
+
+    auto stmt = ParseStatement();
+    if (stmt)
+      out.emplace_back(stmt);
+    else if (it_ == end_)
+      break;  // fatal: could not advance
+  }
+  return out;
 }
 
-std::shared_ptr<AST> ParseStmt(Token*& begin, Token* end) {
-  return parseStmt(begin, end);
+bool Parser::Ok() const { return errors_.empty(); }
+
+std::span<const Parser::ParseError> Parser::GetErrors() const { return errors_; }
+
+void Parser::ClearErrors() { errors_.clear(); }
+
+void Parser::AddError(std::string_view m, iterator_t loc) {
+  errors_.emplace_back(m, SourceLocation(loc));
 }
-std::shared_ptr<AST> ParseStmt(std::span<Token> input) {
-  auto begin = input.data(), end = input.data() + input.size();
-  return ParseStmt(begin, end);
+void Parser::AddError(std::string_view m, SourceLocation loc) {
+  errors_.emplace_back(m, std::move(loc));
+}
+
+// Panic‑mode: skip to next ; or } or EOF -------------------------------------
+void Parser::Synchronize() {
+  while (it_ != end_) {
+    if (it_->template HoldsAlternative<tok::Semicol>() ||
+        it_->template HoldsAlternative<tok::CurlyR>()) {
+      ++it_;
+      return;
+    }
+    ++it_;
+  }
+}
+
+// --- RECURSIVE‑DESCENT PRODUCTIONS  -----------------------------------------
+std::shared_ptr<AST> Parser::parseAssignment() {
+  auto lhs_begin = it_;
+  auto lhs = parseLogicalOr();
+  if (!lhs)
+    return nullptr;
+  auto lhs_end = it_;
+
+  auto op_it = it_;
+  auto match =
+      tryConsumeAny({Op::Assign, Op::AddAssign, Op::SubAssign, Op::MulAssign,
+                     Op::DivAssign, Op::ModAssign, Op::BitAndAssign,
+                     Op::BitOrAssign, Op::BitXorAssign, Op::ShiftLeftAssign,
+                     Op::ShiftRightAssign, Op::ShiftUnsignedRightAssign});
+  if (!match.has_value())
+    return std::make_shared<AST>(lhs);
+
+  Op assignmentOp = match.value();
+  auto* id_node = lhs->Apply([](auto& x) -> Identifier* {
+    if constexpr (std::is_same_v<std::decay_t<decltype(x)>, Identifier>)
+      return &x;
+    return nullptr;
+  });
+  if (id_node == nullptr) {
+    AddError("left‑hand side of assignment must be an identifier",
+             SourceLocation::Range(lhs_begin, lhs_end));
+    return nullptr;
+  }
+
+  auto rhs_begin = it_;
+  auto rhs = ParseExpression();
+  if (!rhs)
+    return nullptr;
+  auto rhs_end = it_;
+
+  if (assignmentOp == Op::Assign) {
+    return std::make_shared<AST>(AssignStmt(
+        lhs, rhs, SourceLocation::Range(lhs_begin, lhs_end),
+        SourceLocation(op_it), SourceLocation::Range(rhs_begin, rhs_end)));
+  } else {
+    return std::make_shared<AST>(AugStmt(
+        lhs, assignmentOp, rhs, SourceLocation::Range(lhs_begin, lhs_end),
+        SourceLocation(op_it), SourceLocation::Range(rhs_begin, rhs_end)));
+  }
+}
+
+std::shared_ptr<ExprAST> Parser::parseLogicalOr() {
+  auto lhs_begin = it_;
+  auto lhs = parseLogicalAnd();
+  if (!lhs)
+    return nullptr;
+  auto lhs_end = it_;
+
+  while (true) {
+    auto op_it = it_;
+    if (!tryConsume<tok::Operator>(Op::LogicalOr))
+      break;
+    auto rhs_begin = it_;
+    auto rhs = parseLogicalAnd();
+    if (!rhs)
+      return lhs;  // give up chaining on error
+    auto rhs_end = it_;
+
+    BinaryExpr be(Op::LogicalOr, lhs, rhs, SourceLocation(op_it),
+                  SourceLocation::Range(lhs_begin, lhs_end),
+                  SourceLocation::Range(rhs_begin, rhs_end));
+    lhs = std::make_shared<ExprAST>(std::move(be));
+  }
+  return lhs;
+}
+
+std::shared_ptr<ExprAST> Parser::parseLogicalAnd() {
+  auto lhs_begin = it_;
+  auto lhs = parseBitwiseOr();
+  if (!lhs)
+    return nullptr;
+  auto lhs_end = it_;
+
+  while (true) {
+    auto op_it = it_;
+    if (!tryConsume<tok::Operator>(Op::LogicalAnd))
+      break;
+    auto rhs_begin = it_;
+    auto rhs = parseBitwiseOr();
+    if (!rhs)
+      return lhs;
+    auto rhs_end = it_;
+
+    BinaryExpr be(Op::LogicalAnd, lhs, rhs, SourceLocation(op_it),
+                  SourceLocation::Range(lhs_begin, lhs_end),
+                  SourceLocation::Range(rhs_begin, rhs_end));
+    lhs = std::make_shared<ExprAST>(std::move(be));
+  }
+  return lhs;
+}
+
+std::shared_ptr<ExprAST> Parser::parseBitwiseOr() {
+  auto lhs_begin = it_;
+  auto lhs = parseBitwiseXor();
+  if (!lhs)
+    return nullptr;
+  auto lhs_end = it_;
+
+  while (true) {
+    auto op_it = it_;
+    if (!tryConsume<tok::Operator>(Op::BitOr))
+      break;
+    auto rhs_begin = it_;
+    auto rhs = parseBitwiseXor();
+    if (!rhs)
+      return lhs;
+    auto rhs_end = it_;
+
+    BinaryExpr be(Op::BitOr, lhs, rhs, SourceLocation(op_it),
+                  SourceLocation::Range(lhs_begin, lhs_end),
+                  SourceLocation::Range(rhs_begin, rhs_end));
+    lhs = std::make_shared<ExprAST>(std::move(be));
+  }
+  return lhs;
+}
+
+std::shared_ptr<ExprAST> Parser::parseBitwiseXor() {
+  auto lhs_begin = it_;
+  auto lhs = parseBitwiseAnd();
+  if (!lhs)
+    return nullptr;
+  auto lhs_end = it_;
+
+  while (true) {
+    auto op_it = it_;
+    if (!tryConsume<tok::Operator>(Op::BitXor))
+      break;
+    auto rhs_begin = it_;
+    auto rhs = parseBitwiseAnd();
+    if (!rhs)
+      return lhs;
+    auto rhs_end = it_;
+
+    BinaryExpr be(Op::BitXor, lhs, rhs, SourceLocation(op_it),
+                  SourceLocation::Range(lhs_begin, lhs_end),
+                  SourceLocation::Range(rhs_begin, rhs_end));
+    lhs = std::make_shared<ExprAST>(std::move(be));
+  }
+  return lhs;
+}
+
+std::shared_ptr<ExprAST> Parser::parseBitwiseAnd() {
+  auto lhs_begin = it_;
+  auto lhs = parseEquality();
+  if (!lhs)
+    return nullptr;
+  auto lhs_end = it_;
+
+  while (true) {
+    auto op_it = it_;
+    if (!tryConsume<tok::Operator>(Op::BitAnd))
+      break;
+    auto rhs_begin = it_;
+    auto rhs = parseEquality();
+    if (!rhs)
+      return lhs;
+    auto rhs_end = it_;
+
+    BinaryExpr be(Op::BitAnd, lhs, rhs, SourceLocation(op_it),
+                  SourceLocation::Range(lhs_begin, lhs_end),
+                  SourceLocation::Range(rhs_begin, rhs_end));
+    lhs = std::make_shared<ExprAST>(std::move(be));
+  }
+  return lhs;
+}
+
+std::shared_ptr<ExprAST> Parser::parseEquality() {
+  auto lhs_begin = it_;
+  auto lhs = parseRelational();
+  if (!lhs)
+    return nullptr;
+  auto lhs_end = it_;
+
+  while (true) {
+    auto op_it = it_;
+    auto op = tryConsumeAny({Op::Equal, Op::NotEqual});
+    if (!op.has_value())
+      break;
+    auto rhs_begin = it_;
+    auto rhs = parseRelational();
+    if (!rhs)
+      return lhs;
+    auto rhs_end = it_;
+
+    BinaryExpr be(op.value(), lhs, rhs, SourceLocation(op_it),
+                  SourceLocation::Range(lhs_begin, lhs_end),
+                  SourceLocation::Range(rhs_begin, rhs_end));
+    lhs = std::make_shared<ExprAST>(std::move(be));
+  }
+  return lhs;
+}
+
+std::shared_ptr<ExprAST> Parser::parseRelational() {
+  auto lhs_begin = it_;
+  auto lhs = parseShift();
+  if (!lhs)
+    return nullptr;
+  auto lhs_end = it_;
+
+  while (true) {
+    auto op_it = it_;
+    auto op =
+        tryConsumeAny({Op::Less, Op::LessEqual, Op::Greater, Op::GreaterEqual});
+    if (!op.has_value())
+      break;
+    auto rhs_begin = it_;
+    auto rhs = parseShift();
+    if (!rhs)
+      return lhs;
+    auto rhs_end = it_;
+
+    BinaryExpr be(op.value(), lhs, rhs, SourceLocation(op_it),
+                  SourceLocation::Range(lhs_begin, lhs_end),
+                  SourceLocation::Range(rhs_begin, rhs_end));
+    lhs = std::make_shared<ExprAST>(std::move(be));
+  }
+  return lhs;
+}
+
+std::shared_ptr<ExprAST> Parser::parseShift() {
+  auto lhs_begin = it_;
+  auto lhs = parseAdditive();
+  if (!lhs)
+    return nullptr;
+  auto lhs_end = it_;
+
+  while (true) {
+    auto op_it = it_;
+    auto op =
+        tryConsumeAny({Op::ShiftLeft, Op::ShiftRight, Op::ShiftUnsignedRight});
+    if (!op.has_value())
+      break;
+    auto rhs_begin = it_;
+    auto rhs = parseAdditive();
+    if (!rhs)
+      return lhs;
+    auto rhs_end = it_;
+
+    BinaryExpr be(op.value(), lhs, rhs, SourceLocation(op_it),
+                  SourceLocation::Range(lhs_begin, lhs_end),
+                  SourceLocation::Range(rhs_begin, rhs_end));
+    lhs = std::make_shared<ExprAST>(std::move(be));
+  }
+  return lhs;
+}
+
+std::shared_ptr<ExprAST> Parser::parseAdditive() {
+  auto lhs_begin = it_;
+  auto lhs = parseMultiplicative();
+  if (!lhs)
+    return nullptr;
+  auto lhs_end = it_;
+
+  while (true) {
+    auto op_it = it_;
+    auto op = tryConsumeAny({Op::Add, Op::Sub});
+    if (!op.has_value())
+      break;
+    auto rhs_begin = it_;
+    auto rhs = parseMultiplicative();
+    if (!rhs)
+      return lhs;
+    auto rhs_end = it_;
+
+    BinaryExpr be(op.value(), lhs, rhs, SourceLocation(op_it),
+                  SourceLocation::Range(lhs_begin, lhs_end),
+                  SourceLocation::Range(rhs_begin, rhs_end));
+    lhs = std::make_shared<ExprAST>(std::move(be));
+  }
+  return lhs;
+}
+
+std::shared_ptr<ExprAST> Parser::parseMultiplicative() {
+  auto lhs_begin = it_;
+  auto lhs = parseUnary();
+  if (!lhs)
+    return nullptr;
+  auto lhs_end = it_;
+
+  while (true) {
+    auto op_it = it_;
+    auto op = tryConsumeAny({Op::Mul, Op::Div, Op::Mod});
+    if (!op.has_value())
+      break;
+    auto rhs_begin = it_;
+    auto rhs = parseUnary();
+    if (!rhs)
+      return lhs;
+    auto rhs_end = it_;
+
+    BinaryExpr be(op.value(), lhs, rhs, SourceLocation(op_it),
+                  SourceLocation::Range(lhs_begin, lhs_end),
+                  SourceLocation::Range(rhs_begin, rhs_end));
+    lhs = std::make_shared<ExprAST>(std::move(be));
+  }
+  return lhs;
+}
+
+std::shared_ptr<ExprAST> Parser::parseUnary() {
+  std::vector<Op> ops;
+  std::vector<iterator_t> opLocs;
+  while (true) {
+    auto loc = it_;
+    auto op = tryConsumeAny({Op::Add, Op::Sub, Op::Tilde});
+    if (!op.has_value())
+      break;
+    ops.push_back(op.value());
+    opLocs.push_back(loc);
+  }
+  auto sub_begin = it_;
+  auto node = parsePostfix();
+  if (!node)
+    return nullptr;
+  auto sub_end = it_;
+
+  for (size_t i = ops.size(); i-- > 0;) {
+    UnaryExpr ue(ops[i], node, SourceLocation(opLocs[i]),
+                 SourceLocation::Range(sub_begin, sub_end));
+    node = std::make_shared<ExprAST>(std::move(ue));
+    sub_begin = opLocs[i];
+  }
+  return node;
+}
+
+std::shared_ptr<ExprAST> Parser::parsePostfix() {
+  auto primary_begin = it_;
+  auto lhs = parsePrimary();
+  if (!lhs)
+    return nullptr;
+  auto primary_end = it_;
+
+  while (true) {
+    // function call -----------------------------------------------------------
+    if (tryConsume<tok::ParenthesisL>()) {
+      std::vector<std::shared_ptr<ExprAST>> args;
+      std::vector<SourceLocation> argLocs;
+      if (it_ != end_ && !it_->template HoldsAlternative<tok::ParenthesisR>()) {
+        auto argBegin = it_;
+        auto expr = ParseExpression();
+        if (expr)
+          args.emplace_back(expr);
+        argLocs.emplace_back(SourceLocation::Range(argBegin, it_));
+        while (tryConsume<tok::Operator>(Op::Comma)) {
+          argBegin = it_;
+          expr = ParseExpression();
+          if (expr)
+            args.emplace_back(expr);
+          argLocs.emplace_back(SourceLocation::Range(argBegin, it_));
+        }
+      }
+      require<tok::ParenthesisR>("Expected ')' after function call.");
+      lhs = std::make_shared<ExprAST>(
+          InvokeExpr(lhs, std::move(args),
+                     SourceLocation::Range(primary_begin, primary_end),
+                     std::move(argLocs)));
+      continue;
+    }
+
+    // member access -----------------------------------------------------------
+    if (tryConsume<tok::Operator>(Op::Dot)) {
+      if (it_ == end_ || !it_->template HoldsAlternative<tok::ID>()) {
+        AddError("expected identifier after '.'", it_);
+        Synchronize();
+        return lhs;
+      }
+      auto memberLoc = SourceLocation(it_);
+      Identifier member(it_->GetIf<tok::ID>()->id, memberLoc);
+      ++it_;
+      auto memberNode = std::make_shared<ExprAST>(std::move(member));
+      lhs = std::make_shared<ExprAST>(MemberExpr(
+          lhs, memberNode, SourceLocation::Range(primary_begin, primary_end),
+          memberLoc));
+      continue;
+    }
+
+    // subscript ---------------------------------------------------------------
+    if (tryConsume<tok::SquareL>()) {
+      auto idx_begin = it_;
+      auto idxExpr = ParseExpression();
+      require<tok::SquareR>("Expected ']' after subscript.");
+      auto idx_end = it_;
+      lhs = std::make_shared<ExprAST>(SubscriptExpr(
+          lhs, idxExpr, SourceLocation::Range(primary_begin, primary_end),
+          SourceLocation::Range(idx_begin, idx_end)));
+      continue;
+    }
+    break;  // no postfix matched
+  }
+  return lhs;
+}
+
+std::shared_ptr<ExprAST> Parser::parsePrimary() {
+  if (it_ == end_) {
+    AddError("expected primary expression", it_);
+    return nullptr;
+  }
+  // int literal --------------------------------------------------------------
+  if (auto s = it_->template GetIf<tok::Int>()) {
+    auto node = IntLiteral(s->value, SourceLocation(it_));
+    ++it_;
+    return std::make_shared<ExprAST>(std::move(node));
+  }
+  // string literal -----------------------------------------------------------
+  if (auto s = it_->template GetIf<tok::Literal>()) {
+    auto node = StrLiteral(s->str, SourceLocation(it_));
+    ++it_;
+    return std::make_shared<ExprAST>(std::move(node));
+  }
+  // identifier ---------------------------------------------------------------
+  if (auto s = it_->template GetIf<tok::ID>()) {
+    auto node = Identifier(s->id, SourceLocation(it_));
+    ++it_;
+    return std::make_shared<ExprAST>(std::move(node));
+  }
+  // parenthesised expression --------------------------------------------------
+  if (tryConsume<tok::ParenthesisL>()) {
+    auto subBegin = it_;
+    auto expr = ParseExpression();
+    require<tok::ParenthesisR>("missing ')' in expression");
+    auto subEnd = it_;
+    return std::make_shared<ExprAST>(
+        ParenExpr(expr, SourceLocation::Range(subBegin, subEnd)));
+  }
+  AddError("expected primary expression", it_);
+  ++it_;  // make progress
+  return nullptr;
 }
 
 }  // namespace m6

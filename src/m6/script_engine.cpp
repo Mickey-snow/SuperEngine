@@ -68,14 +68,27 @@ ScriptEngine::ExecutionResult ScriptEngine::Execute(std::string input_) {
   tokenizer.skip_ws_ = true;
   tokenizer.Parse(input);
 
-  for (auto begin = ret.tokens.data(),
-            end = ret.tokens.data() + ret.tokens.size() -
-                  1;  // the last token is EOF
-       begin < end;) {
-    try {
-      auto stmt = ParseStmt(begin, end);
-      ret.asts.push_back(stmt);
+  for (auto& it : tokenizer.errors_)
+    errors_.emplace_back(it.where(), it.what());
+  if (!errors_.empty()) {
+    ret.errors = errors_;
+    return ret;
+  }
 
+  Parser parser(ret.tokens);
+  ret.asts = parser.ParseAll();
+  if (!parser.Ok()) {
+    for (const auto& it : parser.GetErrors())
+      errors_.emplace_back(it.loc, std::string(it.msg));
+    ret.errors = errors_;
+    return ret;
+  }
+
+  for (const auto& stmt : ret.asts) {
+    if (!stmt)
+      continue;
+
+    try {
       auto ins_begin = ret.instructions.size();
       if (!compiler_)
         continue;
@@ -94,17 +107,8 @@ ScriptEngine::ExecutionResult ScriptEngine::Execute(std::string input_) {
         ret.intermediateValues.emplace_back(std::move(machine_->stack_.back()));
         machine_->stack_.pop_back();
       }
-    } catch (const CompileError& err) {
-      errors_.emplace_back(err.where(), err.what());
-
-      while (begin < end) {  // perform error recovery
-        if (begin->HoldsAlternative<tok::Semicol>() ||
-            begin->HoldsAlternative<tok::CurlyR>()) {
-          ++begin;
-          break;
-        }
-        ++begin;
-      }
+    } catch (CompileError& e) {
+      errors_.emplace_back(e.where(), e.what());
     }
   }
 

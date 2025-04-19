@@ -35,20 +35,117 @@ namespace m6 {
 
 class ExprAST;
 
-/*
-supported expression grammar
-identifiers: <str>
-memory references: <str>[<expr>]
-integer literals: <int>
-unary operators: + - ~
-binary operators: , + - * / % & | ^ << >> == != <= >= < > && ||
-assignments: = += -= *= /= %= &= |= ^= <<= >>=
-parenthesis: ( )
- */
-std::shared_ptr<ExprAST> ParseExpression(Token*& begin, Token* end);
-std::shared_ptr<ExprAST> ParseExpression(std::span<Token> input);
+class Parser {
+  using iterator_t = Token*;
 
-std::shared_ptr<AST> ParseStmt(Token*& begin, Token* end);
-std::shared_ptr<AST> ParseStmt(std::span<Token> input);
+ public:
+  struct ParseError {
+    std::string_view msg;
+    SourceLocation loc;
+  };
+
+ public:
+  explicit Parser(std::span<Token> input)
+      : it_(input.data()),
+        begin_(input.data()),
+        end_(input.data() + input.size()) {}
+
+  // Public entry points (never throw). They may return nullptr on fatal error.
+  std::shared_ptr<ExprAST> ParseExpression();                    // one expr
+  std::shared_ptr<AST> ParseStatement(bool requireSemi = true);  // one stmt
+  std::vector<std::shared_ptr<AST>> ParseAll();                  // whole TU
+
+  bool Ok() const;
+  std::span<const ParseError> GetErrors() const;
+  void ClearErrors();
+
+ private:
+  void AddError(std::string_view m, iterator_t loc);
+  void AddError(std::string_view m, SourceLocation loc);
+  void Synchronize();  // panic‑mode error recovery
+
+  //------------------------------------------------------------------
+  // helper functions
+  //------------------------------------------------------------------
+  template <class Tok>
+  bool tryConsume() {
+    if (it_ == end_)
+      return false;
+    if (!it_->template HoldsAlternative<Tok>())
+      return false;
+    ++it_;
+    return true;
+  }
+
+  template <class Tok, class... Args>
+  bool tryConsume(Args&&... params) {
+    if (it_ == end_)
+      return false;
+    if (!it_->HoldsAlternative<Tok>())
+      return false;
+    if (auto p = it_->template GetIf<Tok>();
+        *p == Tok{std::forward<Args>(params)...}) {
+      ++it_;
+      return true;
+    }
+    return false;
+  }
+
+  std::optional<Op> tryConsumeAny(std::initializer_list<Op> ops) {
+    if (it_ == end_)
+      return std::nullopt;
+    if (auto p = it_->GetIf<tok::Operator>()) {
+      for (auto cand : ops)
+        if (cand == p->op) {
+          ++it_;
+          return cand;
+        }
+    }
+    return std::nullopt;
+  }
+
+  template <class Tok>
+  void require(const char* msg) {
+    if (!tryConsume<Tok>()) {
+      AddError(msg, SourceLocation::After(it_ - 1));
+      Synchronize();
+    }
+  }
+
+  template <class Tok, class... Args>
+  void require(const char* msg, Args&&... params) {
+    if (!tryConsume<Tok>(std::forward<Args>(params)...)) {
+      AddError(msg, SourceLocation::After(it_ - 1));
+      Synchronize();
+    }
+  }
+
+  //------------------------------------------------------------------
+  //  Recursive‑descent productions (all member functions)
+  //------------------------------------------------------------------
+  std::shared_ptr<AST> parseAssignment();
+
+  std::shared_ptr<ExprAST> parseLogicalOr();
+  std::shared_ptr<ExprAST> parseLogicalAnd();
+  std::shared_ptr<ExprAST> parseBitwiseOr();
+  std::shared_ptr<ExprAST> parseBitwiseXor();
+  std::shared_ptr<ExprAST> parseBitwiseAnd();
+  std::shared_ptr<ExprAST> parseEquality();
+  std::shared_ptr<ExprAST> parseRelational();
+  std::shared_ptr<ExprAST> parseShift();
+  std::shared_ptr<ExprAST> parseAdditive();
+  std::shared_ptr<ExprAST> parseMultiplicative();
+  std::shared_ptr<ExprAST> parseUnary();
+  std::shared_ptr<ExprAST> parsePostfix();
+  std::shared_ptr<ExprAST> parsePrimary();
+
+  //------------------------------------------------------------------
+  //  Data members
+  //------------------------------------------------------------------
+  iterator_t it_;     // current cursor
+  iterator_t begin_;  // start of the buffer
+  iterator_t end_;    // sentinel
+  std::vector<ParseError> errors_;
+};
 
 }  // namespace m6

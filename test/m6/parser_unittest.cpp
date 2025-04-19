@@ -59,8 +59,14 @@ static inline std::string GetErrors(std::string input) {
 class ExprParserTest : public ::testing::Test {
  protected:
   static std::shared_ptr<ExprAST> parseExpr(std::span<Token> tokens) {
-    std::shared_ptr<ExprAST> result = nullptr;
-    EXPECT_NO_THROW(result = ParseExpression(tokens));
+    Parser parser(tokens);
+    std::shared_ptr<ExprAST> result = parser.ParseExpression();
+    EXPECT_TRUE(parser.Ok()) << Join(
+        "; ", std::views::all(parser.GetErrors()) |
+                  std::views::transform([](const Parser::ParseError& e) {
+                    return std::string(e.msg) + ',' +
+                           static_cast<std::string>(e.loc);
+                  }));
     EXPECT_NE(result, nullptr);
     return result;
   }
@@ -432,25 +438,6 @@ Binaryop &&
             ├─ID d
             └─ID e
 )");
-
-  // a >>>= b >>> c;
-  {
-    // This one uses ParseStmt, so keep as a minimal inline check of ThrowResult
-    // or parseStmt.
-    std::vector<Token> input = TokenArray(
-        tok::ID("a"), tok::Operator(Op::ShiftUnsignedRightAssign), tok::ID("b"),
-        tok::Operator(Op::ShiftUnsignedRight), tok::ID("c"), tok::Semicol());
-    std::shared_ptr<AST> result = nullptr;
-    ASSERT_NO_THROW(result = ParseStmt(std::span(input)));
-    ASSERT_NE(result, nullptr);
-    EXPECT_TXTEQ(result->DumpAST(), R"(
-AugAssign >>>=
-   ├─ID a
-   └─Binaryop >>>
-      ├─ID b
-      └─ID c
-)");
-  }
 }
 
 TEST_F(ExprParserTest, StringLiterals) {
@@ -565,8 +552,9 @@ TEST_F(ExprParserTest, ErrorHandling) {
 class StmtParserTest : public ::testing::Test {
  protected:
   static std::shared_ptr<AST> parseStmt(std::span<Token> tokens) {
-    std::shared_ptr<AST> result = nullptr;
-    EXPECT_NO_THROW(result = ParseStmt(std::span(tokens)));
+    Parser parser(tokens);
+    std::shared_ptr<AST> result = parser.ParseStatement();
+    EXPECT_TRUE(parser.Ok());
     EXPECT_NE(result, nullptr);
     return result;
   }
@@ -607,8 +595,22 @@ AugAssign +=
 )");
   }
 
+  {  // a >>>= b >>> c;
+    expectStmtAST(
+        TokenArray(tok::ID("a"), tok::Operator(Op::ShiftUnsignedRightAssign),
+                   tok::ID("b"), tok::Operator(Op::ShiftUnsignedRight),
+                   tok::ID("c"), tok::Semicol()),
+        R"(
+AugAssign >>>=
+   ├─ID a
+   └─Binaryop >>>
+      ├─ID b
+      └─ID c
+)");
+  }
+
   {  // error: assigning to expression
-    EXPECT_TXTEQ(GetErrors("(v1+v2) = 1"), "Expected identifier. (0,7)");
+    EXPECT_TXTEQ(GetErrors(" (v1+v2) = 1; "), "Expected identifier. (0,7)");
   }
 }
 
