@@ -62,6 +62,12 @@ std::string IfStmt::DebugString() const { return "If"; }
 std::string WhileStmt::DebugString() const { return "While"; }
 std::string ForStmt::DebugString() const { return "For"; }
 std::string BlockStmt::DebugString() const { return "Compound"; }
+std::string FuncDecl::DebugString() const {
+  return std::format("fn {}({})", name, Join(",", params));
+}
+std::string ClassDecl::DebugString() const {
+  return "class " + std::string(name);
+}
 
 // -----------------------------------------------------------------------
 // Visitor to print debug string for an AST
@@ -125,6 +131,15 @@ struct Dumper {
     if constexpr (std::same_as<T, BlockStmt>) {
       for (size_t i = 0; i < x.body.size(); ++i)
         oss << x.body[i]->DumpAST("", childPrefix, i + 1 >= x.body.size());
+    }
+    if constexpr (std::same_as<T, FuncDecl>) {
+      oss << x.body->DumpAST("body", childPrefix, true);
+    }
+    if constexpr (std::same_as<T, ClassDecl>) {
+      for (size_t i = 0; i < x.members.size(); ++i) {
+        Dumper dumper(childPrefix, i + 1 >= x.members.size());
+        oss << dumper(x.members[i]);
+      }
     }
 
     return oss.str();

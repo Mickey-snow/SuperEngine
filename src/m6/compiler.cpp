@@ -70,7 +70,7 @@ struct Compiler::Visitor {
       Emit(Push(it->second));
       Emit(Invoke(x.args.size()));
     } else
-      throw std::runtime_error("not supported yet.");
+      throw std::runtime_error("not supported yet.");  // user defined function
   }
   void operator()(const SubscriptExpr& x) {
     throw std::runtime_error("not supported yet.");
@@ -230,6 +230,12 @@ struct Compiler::Visitor {
     for (const auto& it : x.body)
       compiler.Compile(it, result);
     Emit(Pop(compiler.PopScope()));
+  }
+  void operator()(const FuncDecl& x) {
+    throw std::runtime_error("not supported yet");
+  }
+  void operator()(const ClassDecl& x) {
+    throw std::runtime_error("not supported yet");
   }
   void operator()(const std::shared_ptr<ExprAST>& x) {
     compiler.Compile(x, result);

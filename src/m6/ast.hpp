@@ -223,12 +223,34 @@ struct BlockStmt {
   std::string DebugString() const;
 };
 
+struct FuncDecl {
+  std::string name;
+  std::vector<std::string> params;
+  std::shared_ptr<AST> body;  // guaranteed BlockStmt
+
+  SourceLocation name_loc;
+  std::vector<SourceLocation> param_locs;
+
+  std::string DebugString() const;
+};
+
+struct ClassDecl {
+  std::string name;
+  std::vector<FuncDecl> members;
+
+  SourceLocation name_loc;
+
+  std::string DebugString() const;
+};
+
 using stmt_variant_t = std::variant<AssignStmt,
                                     AugStmt,
                                     IfStmt,
                                     WhileStmt,
                                     ForStmt,
                                     BlockStmt,
+                                    FuncDecl,
+                                    ClassDecl,
                                     std::shared_ptr<ExprAST>>;
 
 class AST {

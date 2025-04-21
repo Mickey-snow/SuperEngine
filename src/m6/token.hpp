@@ -34,7 +34,8 @@ namespace m6 {
 namespace tok {
 
 struct Reserved {
-  std::string id;
+  enum Type { _if, _else, _while, _for, _class, _fn };
+  Type type;
   auto operator<=>(const Reserved& rhs) const = default;
 };
 

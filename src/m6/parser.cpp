@@ -43,47 +43,96 @@ namespace m6 {
 std::shared_ptr<ExprAST> Parser::ParseExpression() { return parseLogicalOr(); }
 
 std::shared_ptr<AST> Parser::ParseStatement(bool requireSemi) {
-  // if
-  if (tryConsume<tok::Reserved>("if")) {
-    require<tok::ParenthesisL>("expected '(' after if");
-    auto cond = ParseExpression();
-    require<tok::ParenthesisR>("expected ')'");
-    auto thenStmt = ParseStatement();
-    std::shared_ptr<AST> elseStmt = nullptr;
-    if (tryConsume<tok::Reserved>("else"))
-      elseStmt = ParseStatement();
-    return std::make_shared<AST>(IfStmt(cond, thenStmt, elseStmt));
-  }
-  // while
-  if (tryConsume<tok::Reserved>("while")) {
-    require<tok::ParenthesisL>("expected '(' after while");
-    auto cond = ParseExpression();
-    require<tok::ParenthesisR>("expected ')'");
-    auto body = ParseStatement();
-    return std::make_shared<AST>(WhileStmt(cond, body));
-  }
-  // for
-  if (tryConsume<tok::Reserved>("for")) {
-    require<tok::ParenthesisL>("expected '(' after for");
+  if (auto reserved = it_->GetIf<tok::Reserved>()) {
+    ++it_;
 
-    std::shared_ptr<AST> init = nullptr, inc = nullptr;
-    std::shared_ptr<ExprAST> cond = nullptr;
+    switch (reserved->type) {
+      case tok::Reserved::_if: {
+        require<tok::ParenthesisL>("expected '(' after if");
+        auto cond = ParseExpression();
+        require<tok::ParenthesisR>("expected ')'");
+        auto thenStmt = ParseStatement();
+        std::shared_ptr<AST> elseStmt = nullptr;
+        if (tryConsume<tok::Reserved>(tok::Reserved::_else))
+          elseStmt = ParseStatement();
+        return std::make_shared<AST>(IfStmt(cond, thenStmt, elseStmt));
+      }
 
-    if (!tryConsume<tok::Semicol>()) {
-      init = ParseStatement(false);
-      require<tok::Semicol>("expected ';' after for‑init");
+      case tok::Reserved::_while: {
+        require<tok::ParenthesisL>("expected '(' after while");
+        auto cond = ParseExpression();
+        require<tok::ParenthesisR>("expected ')'");
+        auto body = ParseStatement();
+        return std::make_shared<AST>(WhileStmt(cond, body));
+      }
+
+      case tok::Reserved::_for: {
+        require<tok::ParenthesisL>("expected '(' after for");
+
+        std::shared_ptr<AST> init = nullptr, inc = nullptr;
+        std::shared_ptr<ExprAST> cond = nullptr;
+
+        if (!tryConsume<tok::Semicol>()) {
+          init = ParseStatement(false);
+          require<tok::Semicol>("expected ';' after for‑init");
+        }
+        if (!tryConsume<tok::Semicol>()) {
+          cond = ParseExpression();
+          require<tok::Semicol>("Expected ';' after for‑cond.");
+        }
+        if (!tryConsume<tok::ParenthesisR>()) {
+          inc = ParseStatement(false);
+          require<tok::ParenthesisR>("Expected ')' after for‑inc.");
+        }
+        auto body = ParseStatement();
+        return std::make_shared<AST>(ForStmt(init, cond, inc, body));
+      }
+
+      case tok::Reserved::_class: {
+        auto clsNameTok = *it_;
+        auto clsNameLoc = SourceLocation(it_);
+        if (!require<tok::ID>("expected identifier")) {
+          Synchronize();
+          return nullptr;
+        }
+
+        std::string id = clsNameTok.GetIf<tok::ID>()->id;
+        std::vector<FuncDecl> members;
+
+        require<tok::CurlyL>("expected '{' after class name");
+        while (it_ != end_ && !tryConsume<tok::CurlyR>()) {
+          // fn
+          if (tryConsume<tok::Reserved>(tok::Reserved::_fn)) {
+            auto fn = parseFuncDecl(/*alreadyConsumedFn=*/true);
+            if (fn && fn->HoldsAlternative<FuncDecl>()) {
+              members.emplace_back(std::move(*fn->Get_if<FuncDecl>()));
+              continue;
+            } else {
+              Synchronize();
+              return nullptr;
+            }
+          }
+
+          AddError("only function declarations allowed in class body", it_);
+          Synchronize();
+          return nullptr;
+        }
+
+        ClassDecl cd{std::move(id), std::move(members), clsNameLoc};
+        return std::make_shared<AST>(std::move(cd));
+      }
+
+      case tok::Reserved::_fn:
+        return parseFuncDecl(true);
+
+      default:
+        --it_;
+        AddError("unexpected reserved keyword", it_);
+        Synchronize();
+        return nullptr;
     }
-    if (!tryConsume<tok::Semicol>()) {
-      cond = ParseExpression();
-      require<tok::Semicol>("Expected ';' after for‑cond.");
-    }
-    if (!tryConsume<tok::ParenthesisR>()) {
-      inc = ParseStatement(false);
-      require<tok::ParenthesisR>("Expected ')' after for‑inc.");
-    }
-    auto body = ParseStatement();
-    return std::make_shared<AST>(ForStmt(init, cond, inc, body));
   }
+
   // block
   if (tryConsume<tok::CurlyL>()) {
     std::vector<std::shared_ptr<AST>> body;
@@ -130,7 +179,8 @@ void Parser::AddError(std::string_view m, SourceLocation loc) {
   errors_.emplace_back(m, std::move(loc));
 }
 
-// Panic‑mode: skip to next ; or } or EOF -------------------------------------
+// Panic‑mode: skip to next ; or } or EOF
+// -------------------------------------
 void Parser::Synchronize() {
   while (it_ != end_) {
     if (it_->template HoldsAlternative<tok::Semicol>() ||
@@ -141,7 +191,7 @@ void Parser::Synchronize() {
   }
 }
 
-// --- RECURSIVE‑DESCENT PRODUCTIONS  -----------------------------------------
+// --- RECURSIVE‑DESCENT PRODUCTIONS -----------------------------------------
 std::shared_ptr<AST> Parser::parseAssignment() {
   auto lhs_begin = it_;
   auto lhs = parseLogicalOr();
@@ -184,6 +234,49 @@ std::shared_ptr<AST> Parser::parseAssignment() {
         lhs, assignmentOp, rhs, SourceLocation::Range(lhs_begin, lhs_end),
         SourceLocation(op_it), SourceLocation::Range(rhs_begin, rhs_end)));
   }
+}
+
+std::shared_ptr<AST> Parser::parseFuncDecl(bool consumedfn) {
+  if (!consumedfn)
+    require<tok::Reserved>("expected fn", tok::Reserved::_fn);
+
+  auto id_tok = it_;
+  require<tok::ID>("expected identifier");
+
+  // ( param_list )
+  require<tok::ParenthesisL>("expected '(' after function name");
+  std::vector<std::string> params;
+  std::vector<SourceLocation> paramLocs;
+
+  if (!tryConsume<tok::ParenthesisR>()) {  // non‑empty parameter list
+    do {
+      if (it_ == end_ || !it_->HoldsAlternative<tok::ID>()) {
+        AddError("expected parameter name", it_);
+        Synchronize();
+        return nullptr;
+      }
+      auto pTok = *it_;
+      auto pLoc = SourceLocation(it_);
+      params.emplace_back(pTok.GetIf<tok::ID>()->id);
+      paramLocs.emplace_back(pLoc);
+      ++it_;
+    } while (tryConsume<tok::Operator>(Op::Comma));
+
+    require<tok::ParenthesisR>("expected ')' after parameter list");
+  }
+
+  if (!tryConsume<tok::CurlyL>()) {
+    AddError("function body must be a block", it_);
+    Synchronize();
+    return nullptr;
+  }
+  // hand the '{' back to statement parser
+  --it_;
+
+  auto body = ParseStatement(false);
+  return std::make_shared<AST>(
+      FuncDecl(id_tok->GetIf<tok::ID>()->id, std::move(params), body,
+               SourceLocation(id_tok), std::move(paramLocs)));
 }
 
 std::shared_ptr<ExprAST> Parser::parseLogicalOr() {
@@ -477,7 +570,8 @@ std::shared_ptr<ExprAST> Parser::parsePostfix() {
   auto primary_end = it_;
 
   while (true) {
-    // function call -----------------------------------------------------------
+    // function call
+    // -----------------------------------------------------------
     if (tryConsume<tok::ParenthesisL>()) {
       std::vector<std::shared_ptr<ExprAST>> args;
       std::vector<SourceLocation> argLocs;
@@ -503,7 +597,8 @@ std::shared_ptr<ExprAST> Parser::parsePostfix() {
       continue;
     }
 
-    // member access -----------------------------------------------------------
+    // member access
+    // -----------------------------------------------------------
     if (tryConsume<tok::Operator>(Op::Dot)) {
       if (it_ == end_ || !it_->template HoldsAlternative<tok::ID>()) {
         AddError("expected identifier after '.'", it_);
@@ -520,7 +615,8 @@ std::shared_ptr<ExprAST> Parser::parsePostfix() {
       continue;
     }
 
-    // subscript ---------------------------------------------------------------
+    // subscript
+    // ---------------------------------------------------------------
     if (tryConsume<tok::SquareL>()) {
       auto idx_begin = it_;
       auto idxExpr = ParseExpression();
@@ -541,25 +637,29 @@ std::shared_ptr<ExprAST> Parser::parsePrimary() {
     AddError("expected primary expression", it_);
     return nullptr;
   }
-  // int literal --------------------------------------------------------------
+  // int literal
+  // --------------------------------------------------------------
   if (auto s = it_->template GetIf<tok::Int>()) {
     auto node = IntLiteral(s->value, SourceLocation(it_));
     ++it_;
     return std::make_shared<ExprAST>(std::move(node));
   }
-  // string literal -----------------------------------------------------------
+  // string literal
+  // -----------------------------------------------------------
   if (auto s = it_->template GetIf<tok::Literal>()) {
     auto node = StrLiteral(s->str, SourceLocation(it_));
     ++it_;
     return std::make_shared<ExprAST>(std::move(node));
   }
-  // identifier ---------------------------------------------------------------
+  // identifier
+  // ---------------------------------------------------------------
   if (auto s = it_->template GetIf<tok::ID>()) {
     auto node = Identifier(s->id, SourceLocation(it_));
     ++it_;
     return std::make_shared<ExprAST>(std::move(node));
   }
-  // parenthesised expression --------------------------------------------------
+  // parenthesised expression
+  // --------------------------------------------------
   if (tryConsume<tok::ParenthesisL>()) {
     auto subBegin = it_;
     auto expr = ParseExpression();

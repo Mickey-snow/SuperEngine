@@ -221,12 +221,28 @@ Expected ']' after subscript.
 1│ a[123+456;
             ^
 )"},
+                                   // missing '}'
+                                   {"{ a;", R"(
+expected primary expression
+1│ { a;
+       ^
+Expected ';'.
+1│ { a;
+       ^
+)"},
 
                                    // missing identifier after '.'
                                    {"a. ;", R"(
 expected identifier after '.'
 1│ a. ;
       ^
+)"},
+
+                                   // missing 'if'
+                                   {"else run();", R"(
+unexpected reserved keyword
+1│ else run();
+   ^^^^
 )"}};
 
   for (const auto& c : kCases) {

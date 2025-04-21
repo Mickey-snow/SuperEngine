@@ -1,3 +1,4 @@
+
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -60,13 +61,14 @@ class Parser {
   void ClearErrors();
 
  private:
+  //------------------------------------------------------------------
+  // helper functions
+  //------------------------------------------------------------------
+
   void AddError(std::string_view m, iterator_t loc);
   void AddError(std::string_view m, SourceLocation loc);
   void Synchronize();  // panic‑mode error recovery
 
-  //------------------------------------------------------------------
-  // helper functions
-  //------------------------------------------------------------------
   template <class Tok>
   bool tryConsume() {
     if (it_ == end_)
@@ -122,10 +124,13 @@ class Parser {
     return true;
   }
 
+ private:
   //------------------------------------------------------------------
   //  Recursive‑descent productions (all member functions)
   //------------------------------------------------------------------
   std::shared_ptr<AST> parseAssignment();
+  std::shared_ptr<AST> parseFuncDecl(bool alreadyConsumedFn = false);
+  std::shared_ptr<AST> parseClassDecl();
 
   std::shared_ptr<ExprAST> parseLogicalOr();
   std::shared_ptr<ExprAST> parseLogicalAnd();
@@ -141,6 +146,7 @@ class Parser {
   std::shared_ptr<ExprAST> parsePostfix();
   std::shared_ptr<ExprAST> parsePrimary();
 
+ private:
   //------------------------------------------------------------------
   //  Data members
   //------------------------------------------------------------------

@@ -34,7 +34,28 @@ std::string Token::GetDebugString() const {
 }
 
 std::string tok::DebugStringVisitor::operator()(const tok::Reserved& p) const {
-  return "Reserved(" + p.id + ')';
+  std::string s;
+  switch (p.type) {
+    case Reserved::Type::_if:
+      s = "if";
+      break;
+    case Reserved::Type::_else:
+      s = "else";
+      break;
+    case Reserved::Type::_for:
+      s = "for";
+      break;
+    case Reserved::Type::_while:
+      s = "while";
+      break;
+    case Reserved::Type::_fn:
+      s = "fn";
+      break;
+    case Reserved::Type::_class:
+      s = "class";
+      break;
+  }
+  return "Reserved(" + s + ')';
 }
 
 std::string tok::DebugStringVisitor::operator()(const tok::Literal& p) const {

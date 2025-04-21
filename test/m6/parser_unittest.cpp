@@ -521,9 +521,14 @@ class StmtParserTest : public ::testing::Test {
   }
 
   static void expectStmtAST(std::vector<Token> tokens,
-                            const char* expectedAST) {
-    auto result = parseStmt(tokens);
-    EXPECT_TXTEQ(result->DumpAST(), expectedAST);
+                            std::string expectedAST) {
+    auto stmt = parseStmt(tokens);
+    auto result = trim_cp(stmt->DumpAST());
+    trim(expectedAST);
+    EXPECT_EQ(result, expectedAST) << "expected:\n"
+                                   << expectedAST << '\n'
+                                   << "actual:\n"
+                                   << result;
   }
 };
 
@@ -638,6 +643,36 @@ Compound
    │  ├─ID l
    │  └─IntLiteral 4
    └─Compound
+)");
+}
+
+TEST_F(StmtParserTest, FunctionDecl) {
+  expectStmtAST(TokenArray("fn main(){ a=1; b=2; a+=b; }"sv), R"(
+fn main()
+   └─body
+      └─Compound
+         ├─Assign
+         │  ├─ID a
+         │  └─IntLiteral 1
+         ├─Assign
+         │  ├─ID b
+         │  └─IntLiteral 2
+         └─AugAssign +=
+            ├─ID a
+            └─ID b
+)");
+}
+
+TEST_F(StmtParserTest, ClassDecl) {
+  expectStmtAST(TokenArray("class Klass{ fn foo(){} fn boo(a,b,c){} }"sv),
+                R"(
+class Klass
+   ├─fn foo()
+   │  └─body
+   │     └─Compound
+   └─fn boo(a,b,c)
+      └─body
+         └─Compound
 )");
 }
 

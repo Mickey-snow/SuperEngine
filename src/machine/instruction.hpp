@@ -137,25 +137,28 @@ struct Jf {
   int offset;
 };
 
-using Instruction = std::variant<std::monostate,
-                                 Kidoku,
-                                 Line,
-                                 rlCommand,
-                                 rlExpression,
-                                 Textout,
-                                 Push,
-                                 Pop,
-                                 BinaryOp,
-                                 UnaryOp,
-                                 Load,
-                                 LoadGlobal,
-                                 Store,
-                                 StoreGlobal,
-                                 Invoke,
-                                 Jmp,
-                                 Jt,
-                                 Jf,
-                                 End>;
+using Instruction = std::variant<
+    // for legacy support --------------------
+    std::monostate,
+    Kidoku,
+    Line,
+    rlCommand,
+    rlExpression,
+    Textout,
+    // ----------------------------------------
+    Push,
+    Pop,
+    BinaryOp,
+    UnaryOp,
+    Load,
+    LoadGlobal,
+    Store,
+    StoreGlobal,
+    Invoke,
+    Jmp,
+    Jt,
+    Jf,
+    End>;
 
 class ModuleManager;
 class InstructionToString {
