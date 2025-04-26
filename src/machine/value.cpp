@@ -26,6 +26,8 @@
 #include "m6/exception.hpp"
 #include "machine/op.hpp"
 
+#include <cmath>
+
 using namespace m6;
 
 // -----------------------------------------------------------------------
@@ -45,15 +47,18 @@ std::string Value::Str() const {
         using T = std::decay_t<decltype(x)>;
         if constexpr (std::same_as<T, std::monostate>)
           return "nil";
+        else if constexpr (std::same_as<T, bool>)
+          return x ? "true" : "false";
         else if constexpr (std::same_as<T, int>)
+          return std::to_string(x);
+        else if constexpr (std::same_as<T, double>)
           return std::to_string(x);
         else if constexpr (std::same_as<T, std::string>)
           return x;
         else if constexpr (std::same_as<T, std::shared_ptr<IObject>>)
           return x->Str();
-        else {  // object
+        else
           return "???";
-        }
       },
       val_);
 }
@@ -64,8 +69,12 @@ std::string Value::Desc() const {
         using T = std::decay_t<decltype(x)>;
         if constexpr (std::same_as<T, std::monostate>)
           return "<nil>";
+        else if constexpr (std::same_as<T, bool>)
+          return x ? "<bool: true>" : "<bool: false>";
         else if constexpr (std::same_as<T, int>)
           return "<int: " + std::to_string(x) + '>';
+        else if constexpr (std::same_as<T, double>)
+          return "<double: " + std::to_string(x) + '>';
         else if constexpr (std::same_as<T, std::string>)
           return "<str: " + x + '>';
         else if constexpr (std::same_as<T, std::shared_ptr<IObject>>)
@@ -82,11 +91,15 @@ bool Value::IsTruthy() const {
         using T = std::decay_t<decltype(x)>;
         if constexpr (std::same_as<T, std::monostate>)
           return false;
-        if constexpr (std::same_as<T, int>)
+        else if constexpr (std::same_as<T, bool>)
+          return x;
+        else if constexpr (std::same_as<T, int>)
           return x != 0;
-        if constexpr (std::same_as<T, std::string>)
+        else if constexpr (std::same_as<T, double>)
+          return x != 0.0;
+        else if constexpr (std::same_as<T, std::string>)
           return !x.empty();
-        if constexpr (std::same_as<T, std::shared_ptr<IObject>>)
+        else if constexpr (std::same_as<T, std::shared_ptr<IObject>>)
           return x != nullptr;
       },
       val_);
@@ -96,8 +109,12 @@ ObjType Value::Type() const {
   return std::visit(
       [](const auto& x) {
         using T = std::decay_t<decltype(x)>;
-        if constexpr (std::same_as<T, int>)
+        if constexpr (std::same_as<T, bool>)
+          return ObjType::Bool;
+        else if constexpr (std::same_as<T, int>)
           return ObjType::Int;
+        else if constexpr (std::same_as<T, double>)
+          return ObjType::Double;
         else if constexpr (std::same_as<T, std::string>)
           return ObjType::Str;
         else if constexpr (std::same_as<T, std::shared_ptr<IObject>>)
@@ -109,10 +126,10 @@ ObjType Value::Type() const {
 }
 
 namespace {
-static const Value True(1);
-static const Value False(0);
+static const Value True(true);
+static const Value False(false);
 
-Value handleIntIntOp(Op op, int& lhs, int rhs) {
+Value handleIntIntOp(Op op, int lhs, int rhs) {
   switch (op) {
     // Arithmetic
     case Op::Add:
@@ -181,20 +198,17 @@ Value handleIntIntOp(Op op, int& lhs, int rhs) {
   }
 }
 
-Value handleStringIntOp(Op op, std::string& lhs, int rhs) {
-  if ((op == Op::Mul || op == Op::MulAssign) && rhs >= 0) {
-    std::string result, current = lhs;
+Value handleStringIntOp(Op op, std::string lhs, int rhs) {
+  if (op == Op::Mul && rhs >= 0) {
+    std::string result;
     result.reserve(lhs.size() * rhs);
-    int count = rhs;
-    while (count > 0) {
-      if (count & 1) {
-        result += current;
+    lhs.reserve(lhs.size() * rhs);
+    while (rhs > 0) {
+      if (rhs & 1) {
+        result += lhs;
       }
-      current += current;
-      count >>= 1;
-    }
-    if (op == Op::MulAssign) {
-      lhs = result;
+      lhs += lhs;
+      rhs >>= 1;
     }
     return Value(std::move(result));
   }
@@ -202,21 +216,73 @@ Value handleStringIntOp(Op op, std::string& lhs, int rhs) {
   throw UndefinedOperator(op, {"<str>", std::to_string(rhs)});
 }
 
-Value handleStringStringOp(Op op, std::string& lhs, const std::string& rhs) {
+Value handleStringStringOp(Op op,
+                           const std::string& lhs,
+                           const std::string& rhs) {
   switch (op) {
     case Op::Equal:
       return (lhs == rhs) ? True : False;
     case Op::NotEqual:
       return (lhs != rhs) ? True : False;
-    case Op::Add: {
+    case Op::Add:
       return Value(lhs + rhs);
-    }
-    case Op::AddAssign: {
-      lhs += rhs;
-      return Value(lhs);
-    }
     default:
       throw UndefinedOperator(op, {lhs, rhs});
+  }
+}
+
+Value handleDoubleDoubleOp(Op op, double lhs, double rhs) {
+  switch (op) {
+    // Arithmetic
+    case Op::Add:
+      return Value(lhs + rhs);
+    case Op::Sub:
+      return Value(lhs - rhs);
+    case Op::Mul:
+      return Value(lhs * rhs);
+    case Op::Div:
+      return (rhs == 0.0) ? Value(0.0) : Value(lhs / rhs);
+    case Op::Mod:
+      return Value(std::fmod(lhs, rhs));
+
+    // Comparisons
+    case Op::Equal:
+      return (lhs == rhs) ? True : False;
+    case Op::NotEqual:
+      return (lhs != rhs) ? True : False;
+    case Op::LessEqual:
+      return (lhs <= rhs) ? True : False;
+    case Op::Less:
+      return (lhs < rhs) ? True : False;
+    case Op::GreaterEqual:
+      return (lhs >= rhs) ? True : False;
+    case Op::Greater:
+      return (lhs > rhs) ? True : False;
+
+    // Logical
+    case Op::LogicalAnd:
+      return (lhs && rhs) ? True : False;
+    case Op::LogicalOr:
+      return (lhs || rhs) ? True : False;
+
+    default:
+      throw UndefinedOperator(op, {std::to_string(lhs), std::to_string(rhs)});
+  }
+}
+
+Value handleBoolBoolOp(Op op, bool lhs, bool rhs) {
+  switch (op) {
+    case Op::LogicalAnd:
+      return (lhs && rhs) ? True : False;
+    case Op::LogicalOr:
+      return (lhs || rhs) ? True : False;
+    case Op::Equal:
+      return (lhs == rhs) ? True : False;
+    case Op::NotEqual:
+      return (lhs != rhs) ? True : False;
+    default:
+      throw UndefinedOperator(op,
+                              {lhs ? "true" : "false", rhs ? "true" : "false"});
   }
 }
 
@@ -230,18 +296,49 @@ Value Value::Operator(Op op, Value rhs) {
         if constexpr (false)
           ;
 
-        if constexpr (std::same_as<LHS, int>) {
-          if (auto rhsIntPtr = std::get_if<int>(&rhs.val_)) {
-            return handleIntIntOp(op, lhsVal, *rhsIntPtr);
+        // ---------- int ----------
+        else if constexpr (std::same_as<LHS, int>) {
+          if (auto rhsInt = std::get_if<int>(&rhs.val_))
+            return handleIntIntOp(op, lhsVal, *rhsInt);
+          if (auto rhsDouble = std::get_if<double>(&rhs.val_)) {
+            double lhsd = static_cast<double>(lhsVal);
+            return handleDoubleDoubleOp(op, lhsd, *rhsDouble);
+          }
+          if (auto rhsBool = std::get_if<bool>(&rhs.val_)) {
+            int rhsi = *rhsBool ? 1 : 0;
+            return handleIntIntOp(op, lhsVal, rhsi);
           }
         }
 
-        else if constexpr (std::same_as<LHS, std::string>) {
-          if (auto rhsIntPtr = std::get_if<int>(&rhs.val_)) {
-            return handleStringIntOp(op, lhsVal, *rhsIntPtr);
-          } else if (auto rhsStrPtr = std::get_if<std::string>(&rhs.val_)) {
-            return handleStringStringOp(op, lhsVal, *rhsStrPtr);
+        // -------- double ---------
+        else if constexpr (std::same_as<LHS, double>) {
+          if (auto rhsDouble = std::get_if<double>(&rhs.val_))
+            return handleDoubleDoubleOp(op, lhsVal, *rhsDouble);
+          if (auto rhsInt = std::get_if<int>(&rhs.val_))
+            return handleDoubleDoubleOp(op, lhsVal,
+                                        static_cast<double>(*rhsInt));
+          if (auto rhsBool = std::get_if<bool>(&rhs.val_)) {
+            double rhsd = rhsBool ? 1.0 : 0.0;
+            return handleDoubleDoubleOp(op, lhsVal, rhsd);
           }
+        }
+
+        // ---------- bool ----------
+        else if constexpr (std::same_as<LHS, bool>) {
+          if (auto rhsBool = std::get_if<bool>(&rhs.val_))
+            return handleBoolBoolOp(op, lhsVal, *rhsBool);
+          if (auto rhsInt = std::get_if<int>(&rhs.val_))
+            return handleIntIntOp(op, (lhsVal ? 1 : 0), *rhsInt);
+          if (auto rhsDouble = std::get_if<double>(&rhs.val_))
+            return handleDoubleDoubleOp(op, (lhsVal ? 1.0 : 0.0), *rhsDouble);
+        }
+
+        // -------- string ---------
+        else if constexpr (std::same_as<LHS, std::string>) {
+          if (auto rhsInt = std::get_if<int>(&rhs.val_))
+            return handleStringIntOp(op, lhsVal, *rhsInt);
+          if (auto rhsStr = std::get_if<std::string>(&rhs.val_))
+            return handleStringStringOp(op, lhsVal, *rhsStr);
         }
 
         throw UndefinedOperator(op, {this->Desc(), rhs.Desc()});
@@ -253,7 +350,12 @@ Value Value::Operator(Op op) {
   return std::visit(
       [op, this](const auto& x) -> Value {
         using T = std::decay_t<decltype(x)>;
-        if constexpr (std::same_as<T, int>) {
+
+        if constexpr (false)
+          ;
+
+        // ---------- int ----------
+        else if constexpr (std::same_as<T, int>) {
           switch (op) {
             case Op::Add:
               return Value(x);
@@ -261,6 +363,28 @@ Value Value::Operator(Op op) {
               return Value(-x);
             case Op::Tilde:
               return Value(~x);
+            default:
+              break;
+          }
+        }
+
+        // -------- double ---------
+        else if constexpr (std::same_as<T, double>) {
+          switch (op) {
+            case Op::Add:
+              return Value(x);
+            case Op::Sub:
+              return Value(-x);
+            default:
+              break;
+          }
+        }
+
+        // ---------- bool ----------
+        else if constexpr (std::same_as<T, bool>) {
+          switch (op) {
+            case Op::Tilde:  // use ~ as logical NOT
+              return Value(!x);
             default:
               break;
           }
@@ -275,6 +399,16 @@ Value::operator std::string() const { return this->Desc(); }
 
 bool Value::operator==(int rhs) const {
   auto ptr = std::get_if<int>(&val_);
+  return ptr && *ptr == rhs;
+}
+
+bool Value::operator==(double rhs) const {
+  auto ptr = std::get_if<double>(&val_);
+  return ptr && *ptr == rhs;
+}
+
+bool Value::operator==(bool rhs) const {
+  auto ptr = std::get_if<bool>(&val_);
   return ptr && *ptr == rhs;
 }
 

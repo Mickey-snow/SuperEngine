@@ -34,7 +34,11 @@
 #include "machine/rlmachine.hpp"
 #include "machine/value.hpp"
 
+#include <string>
+
 namespace m6test {
+using std::string_literals::operator""s;
+
 using namespace m6;
 
 class ExpressionCompilerTest : public ::testing::Test {
@@ -122,22 +126,22 @@ TEST_F(ExpressionCompilerTest, Binary) {
   EXPECT_THROW(Eval("1 >>> -1;"), ValueError);
 
   // Comparison Operators
-  EXPECT_EQ(Eval("5 == 5;"), 1);
-  EXPECT_EQ(Eval("5 != 3;"), 1);
-  EXPECT_EQ(Eval("5 < 10;"), 1);
-  EXPECT_EQ(Eval("10 <= 10;"), 1);
-  EXPECT_EQ(Eval("15 > 10;"), 1);
-  EXPECT_EQ(Eval("10 >= 15;"), 0);
+  EXPECT_EQ(Eval("5 == 5;"), true);
+  EXPECT_EQ(Eval("5 != 3;"), true);
+  EXPECT_EQ(Eval("5 < 10;"), true);
+  EXPECT_EQ(Eval("10 <= 10;"), true);
+  EXPECT_EQ(Eval("15 > 10;"), true);
+  EXPECT_EQ(Eval("10 >= 15;"), false);
 
   // Logical AND
-  EXPECT_EQ(Eval("1 && 1;"), 1);
-  EXPECT_EQ(Eval("1 && 0;"), 0);
-  EXPECT_EQ(Eval("0 && 0;"), 0);
+  EXPECT_EQ(Eval("1 && 1;"), true);
+  EXPECT_EQ(Eval("1 && 0;"), false);
+  EXPECT_EQ(Eval("0 && 0;"), false);
 
   // Logical OR
-  EXPECT_EQ(Eval("1 || 0;"), 1);
-  EXPECT_EQ(Eval("0 || 0;"), 0);
-  EXPECT_EQ(Eval("0 || 1;"), 1);
+  EXPECT_EQ(Eval("1 || 0;"), true);
+  EXPECT_EQ(Eval("0 || 0;"), false);
+  EXPECT_EQ(Eval("0 || 1;"), true);
 }
 
 TEST_F(ExpressionCompilerTest, Parentheses) {
@@ -161,7 +165,7 @@ TEST_F(ExpressionCompilerTest, ComplexExpressions) {
   EXPECT_EQ(Eval("4 + 5 * 6 / 3 - 2;"), 12);  // 5*6=30 /3=10 +4=14 -2=12
 
   // Logical and bitwise combinations
-  EXPECT_EQ(Eval("1 + 2 && 3 | 4;"), 1);  // 1+2=3; 3|4=7; 3&7=1
+  EXPECT_EQ(Eval("1 + 2 & 3 | 4;"), 7);
   EXPECT_EQ(Eval("~(1 << 2);"), -5);
   EXPECT_EQ(Eval("3 + ~2 * 2;"), -3);  // 3 -6 = -3
 
@@ -172,7 +176,7 @@ TEST_F(ExpressionCompilerTest, ComplexExpressions) {
   // Complex Arithmetic
   EXPECT_EQ(Eval("((3 + 5) * (2 - 8)) / ((4 % 3) + (7 << 2)) - ~(15 & 3) | (12 "
                  "^ 5) && (9 > 3);"),
-            1);
+            true);
 
   EXPECT_EQ(Eval("( ( (1 + 2) * (3 + 4) ) / (5 - (6 / (7 + 8))) ) + (9 << (2 + "
                  "3)) - ~(4 | 2);"),
@@ -184,13 +188,14 @@ TEST_F(ExpressionCompilerTest, ComplexExpressions) {
 }
 
 TEST_F(ExpressionCompilerTest, StringArithmetic) {
-  EXPECT_EQ(Eval(R"( "Hello, " + "World!"; )"), "Hello, World!");
-  EXPECT_EQ(Eval(R"( ("Hi! " + "There! ") * 2; )"), "Hi! There! Hi! There! ");
+  EXPECT_EQ(Eval(R"( "Hello, " + "World!"; )"), "Hello, World!"s);
+  EXPECT_EQ(Eval(R"( ("Hi! " + "There! ") * 2; )"), "Hi! There! Hi! There! "s);
   EXPECT_EQ(Eval(R"((("Hello" + ", ") * 2) + ("World" + "!") * 1;)"),
-            "Hello, Hello, World!");
-  EXPECT_EQ(Eval(R"( "" + "Non-empty" + ""; )"), "Non-empty");
-  EXPECT_EQ(Eval(R"( "nothing" * (3-3); )"), "");
-  EXPECT_EQ(Eval(R"( ("Math" + ("+" * 2)) * (1 + 1) == "Math++Math++"; )"), 1);
+            "Hello, Hello, World!"s);
+  EXPECT_EQ(Eval(R"( "" + "Non-empty" + ""; )"), "Non-empty"s);
+  EXPECT_EQ(Eval(R"( "nothing" * (3-3); )"), ""s);
+  EXPECT_EQ(Eval(R"( ("Math" + ("+" * 2)) * (1 + 1) == "Math++Math++"; )"),
+            true);
 
   EXPECT_THROW(Eval(R"("Error" * "3"; )"), m6::UndefinedOperator);
   EXPECT_THROW(Eval(R"("Number: " + 100; )"), m6::UndefinedOperator);

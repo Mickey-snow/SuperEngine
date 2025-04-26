@@ -24,20 +24,20 @@
 
 #pragma once
 
-#include "m6/ast.hpp"
+#include "machine/op.hpp"
 
 #include <any>
 #include <map>
+#include <memory>
 #include <span>
 #include <string>
 #include <variant>
+#include <vector>
 
 class Value;
 class RLMachine;
 
-using Value_ptr = std::shared_ptr<Value>;
-
-enum class ObjType : uint8_t { Nil, Int, Str, Native };
+enum class ObjType : uint8_t { Nil, Bool, Int, Double, Str, Native };
 
 class IObject {
  public:
@@ -69,7 +69,9 @@ class NativeFunction : public IObject {
 class Value {
  public:
   using value_t = std::variant<std::monostate,  // nil
+                               bool,
                                int,
+                               double,
                                std::string,
                                std::shared_ptr<IObject>  // object
                                >;
@@ -103,6 +105,8 @@ class Value {
   // for testing
   operator std::string() const;
   bool operator==(int rhs) const;
+  bool operator==(double rhs) const;
+  bool operator==(bool rhs) const;
   bool operator==(const std::string& rhs) const;
 
  private:

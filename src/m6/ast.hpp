@@ -31,7 +31,6 @@
 #include <vector>
 
 class Value;
-using Value_ptr = std::shared_ptr<Value>;
 enum class Op;
 
 namespace m6 {

@@ -29,6 +29,10 @@
 #include "m6/argparse.hpp"
 #include "machine/value.hpp"
 
+#include <string>
+
+using std::string_literals::operator""s;
+
 using namespace m6;
 
 template <typename... Ts>
@@ -69,8 +73,8 @@ TEST(ArgparseTest, Strrefs) {
 
   *s1 = "foo";
   *s2 = "boo";
-  EXPECT_EQ(vals[0], "foo")<< vals[0].Desc();
-  EXPECT_EQ(vals[1], "boo")<< vals[1].Desc();
+  EXPECT_EQ(vals[0], "foo"s) << vals[0].Desc();
+  EXPECT_EQ(vals[1], "boo"s) << vals[1].Desc();
 }
 
 TEST(ArgparseTest, Optional) {
