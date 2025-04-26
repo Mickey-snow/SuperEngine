@@ -65,7 +65,7 @@ class Compiler {
   std::vector<std::unordered_map<std::string, size_t>> local_variable_;
   size_t local_cnt_;
 
-  std::map<std::string, Value> native_fn_;
+  std::unordered_map<std::string, Value> native_fn_;
 };
 
 }  // namespace m6

@@ -25,20 +25,125 @@
 #pragma once
 
 #include "machine/op.hpp"
+#include "vm/instruction.hpp"
 
-#include <any>
-#include <map>
+#include <algorithm>
 #include <memory>
-#include <span>
 #include <string>
+#include <unordered_map>
 #include <variant>
 #include <vector>
 
 class Value;
 class RLMachine;
 
-enum class ObjType : uint8_t { Nil, Bool, Int, Double, Str, Native };
+enum class ObjType : uint8_t {
+  Nil,
+  Bool,
+  Int,
+  Double,
+  Str,
+  Native,
+  Closure,
+  Fiber,
+  Class,
+  Instance
+};
 
+class IObject;
+
+namespace {
+// Trait to detect std::shared_ptr<T>
+template <typename>
+struct is_shared_ptr : std::false_type {};
+template <typename U>
+struct is_shared_ptr<std::shared_ptr<U>> : std::true_type {};
+}  // namespace
+
+// -----------------------------------------------------------------------
+// Value system
+class Value {
+ public:
+  using value_t = std::variant<std::monostate,  // nil
+                               bool,
+                               int,
+                               double,
+                               std::string,
+                               std::shared_ptr<IObject>  // object
+                               >;
+
+  Value(value_t = std::monostate());
+
+  std::string Str() const;
+  std::string Desc() const;
+  bool IsTruthy() const;
+
+  ObjType Type() const;
+
+  Value Operator(Op op, Value rhs);
+  Value Operator(Op op);
+
+  // Get_if for raw types and IObject-derived pointers
+  template <typename T>
+  auto Get_if() {
+    if constexpr (std::derived_from<T, IObject>) {
+      auto basePtr = std::get_if<std::shared_ptr<IObject>>(&val_);
+      if (!basePtr || !*basePtr)
+        return static_cast<T*>(nullptr);
+      auto casted = std::dynamic_pointer_cast<T>(*basePtr);
+      return casted ? casted.get() : static_cast<T*>(nullptr);
+    } else if constexpr (is_shared_ptr<T>::value) {
+      using U = typename T::element_type;
+      auto basePtr = std::get_if<std::shared_ptr<IObject>>(&val_);
+      if (!basePtr || !*basePtr)
+        return T{};
+      auto casted = std::dynamic_pointer_cast<U>(*basePtr);
+      return casted;
+    } else {
+      return std::get_if<T>(&val_);
+    }
+  }
+
+  // Get copies the value out (or copies the shared_ptr)
+  template <typename T>
+  T Get() {
+    if constexpr (is_shared_ptr<T>::value) {
+      T sp = Get_if<T>();
+      if (!sp)
+        throw std::bad_variant_access();
+      return sp;
+    } else {
+      auto ptr = Get_if<T>();
+      if (!ptr)
+        throw std::bad_variant_access();
+      return *ptr;
+    }
+  }
+
+  // Move retrieves the value by moving out of the variant to avoid copies
+  template <typename T>
+  T Extract() {
+    if constexpr (is_shared_ptr<T>::value) {
+      using U = typename T::element_type;
+      auto basePtr = std::get<std::shared_ptr<IObject>>(std::move(val_));
+      return std::dynamic_pointer_cast<U>(std::move(basePtr));
+    } else {
+      return std::get<T>(std::move(val_));
+    }
+  }
+
+  // for testing
+  operator std::string() const;
+  bool operator==(int rhs) const;
+  bool operator==(double rhs) const;
+  bool operator==(bool rhs) const;
+  bool operator==(const std::string& rhs) const;
+
+ private:
+  value_t val_;
+};
+
+// -----------------------------------------------------------------------
 class IObject {
  public:
   virtual ~IObject() = default;
@@ -64,51 +169,4 @@ class NativeFunction : public IObject {
 
  private:
   std::string name_;
-};
-
-class Value {
- public:
-  using value_t = std::variant<std::monostate,  // nil
-                               bool,
-                               int,
-                               double,
-                               std::string,
-                               std::shared_ptr<IObject>  // object
-                               >;
-
-  Value(value_t = std::monostate());
-
-  std::string Str() const;
-  std::string Desc() const;
-  bool IsTruthy() const;
-
-  ObjType Type() const;
-
-  Value Operator(Op op, Value rhs);
-  Value Operator(Op op);
-
-  template <typename T>
-  auto Get_if() -> std::add_pointer_t<T> {
-    if constexpr (std::derived_from<T, IObject>) {
-      auto ptr = std::get_if<std::shared_ptr<IObject>>(&val_);
-      if (!ptr || !(*ptr))
-        return nullptr;
-      else {
-        auto obj = std::dynamic_pointer_cast<T>(*ptr);
-        return obj ? obj.get() : nullptr;
-      }
-    } else {
-      return std::get_if<T>(&val_);
-    }
-  }
-
-  // for testing
-  operator std::string() const;
-  bool operator==(int rhs) const;
-  bool operator==(double rhs) const;
-  bool operator==(bool rhs) const;
-  bool operator==(const std::string& rhs) const;
-
- private:
-  value_t val_;
 };

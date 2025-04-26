@@ -32,7 +32,7 @@
 
 using namespace m6;
 
-class VMTest : public ::testing::Test {
+class RLMachineTest : public ::testing::Test {
  protected:
   void SetUp() override {
     ASSERT_NO_THROW(
@@ -59,20 +59,20 @@ class VMTest : public ::testing::Test {
   }
 };
 
-TEST_F(VMTest, init) {
+TEST_F(RLMachineTest, init) {
   machine->operator()(End());
   EXPECT_TRUE(machine->IsHalted());
   EXPECT_EQ(DescribeStack(), "");
 }
 
-TEST_F(VMTest, StackManipulation) {
+TEST_F(RLMachineTest, StackManipulation) {
   Execute(Push(Value(123)), Push(Value("hello")), Push(Value("world")));
   EXPECT_EQ(DescribeStack(), "<int: 123>, <str: hello>, <str: world>");
   Execute(Pop(2));
   EXPECT_EQ(DescribeStack(), "<int: 123>");
 }
 
-TEST_F(VMTest, Operation) {
+TEST_F(RLMachineTest, Operation) {
   Execute(Push(Value(123)), Push(Value(3)), Push(Value(92)), BinaryOp(Op::Mul),
           BinaryOp(Op::Add));
   EXPECT_EQ(DescribeStack(), "<int: 399>");
@@ -83,25 +83,25 @@ TEST_F(VMTest, Operation) {
   EXPECT_EQ(DescribeStack(), "<str: hello, worldhello, worldhello, world>");
 }
 
-TEST_F(VMTest, Load) {
+TEST_F(RLMachineTest, Load) {
   Execute(Push(Value(123)), Push(Value("Hello")), Load(1));
   EXPECT_EQ(DescribeStack(), "<int: 123>, <str: Hello>, <str: Hello>")
       << "Should copy the second element to stack top";
 }
 
-TEST_F(VMTest, LoadGlobal) {
+TEST_F(RLMachineTest, LoadGlobal) {
   machine->globals_ = {Value(1), Value("two")};
   Execute(LoadGlobal(0), LoadGlobal(1), LoadGlobal(1));
   EXPECT_EQ(DescribeStack(), "<int: 1>, <str: two>, <str: two>");
 }
 
-TEST_F(VMTest, Store) {
+TEST_F(RLMachineTest, Store) {
   Execute(Push(Value(123)), Push(Value("Hello")), Store(0));
   EXPECT_EQ(DescribeStack(), "<str: Hello>, <str: Hello>")
       << "Should copy the element at top of the stack to the first location";
 }
 
-TEST_F(VMTest, StoreGlobal) {
+TEST_F(RLMachineTest, StoreGlobal) {
   Execute(Push(Value(1)), StoreGlobal(0), Push(Value("two")), StoreGlobal(1),
           StoreGlobal(2));
   EXPECT_EQ(machine->globals_[0]->Desc(), "<int: 1>");
@@ -109,7 +109,7 @@ TEST_F(VMTest, StoreGlobal) {
   EXPECT_EQ(machine->globals_[2]->Desc(), "<str: two>");
 }
 
-TEST_F(VMTest, Jump) {
+TEST_F(RLMachineTest, Jump) {
   // jump if true
   Execute(Push(Value(-10)), Load(0), Push(Value(1)), BinaryOp(Op::Add),
           Store(0), Jt(-5));
