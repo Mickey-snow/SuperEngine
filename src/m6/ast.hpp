@@ -190,6 +190,7 @@ struct AugStmt {
   SourceLocation lhs_loc, op_loc, rhs_loc;
 
   std::string DebugString() const;
+  Op GetRmAssignmentOp() const;
 };
 
 struct IfStmt {

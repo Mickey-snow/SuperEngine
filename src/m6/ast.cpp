@@ -58,6 +58,34 @@ std::string Identifier::DebugString() const {
 
 std::string AssignStmt::DebugString() const { return "Assign"; }
 std::string AugStmt::DebugString() const { return "AugAssign " + ToString(op); }
+Op AugStmt::GetRmAssignmentOp() const {
+  switch (op) {
+    case Op::AddAssign:
+      return Op::Add;
+    case Op::SubAssign:
+      return Op::Sub;
+    case Op::MulAssign:
+      return Op::Mul;
+    case Op::DivAssign:
+      return Op::Div;
+    case Op::Mod:
+      return Op::Mod;
+    case Op::BitAnd:
+      return Op::BitAnd;
+    case Op::BitOr:
+      return Op::BitOr;
+    case Op::BitXor:
+      return Op::BitXor;
+    case Op::ShiftLeft:
+      return Op::ShiftLeft;
+    case Op::ShiftRight:
+      return Op::ShiftRight;
+    case Op::ShiftUnsignedRight:
+      return Op::ShiftUnsignedRight;
+    default:
+      return op;
+  }
+}
 std::string IfStmt::DebugString() const { return "If"; }
 std::string WhileStmt::DebugString() const { return "While"; }
 std::string ForStmt::DebugString() const { return "For"; }

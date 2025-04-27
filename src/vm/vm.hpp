@@ -284,7 +284,7 @@ class VM {
               fib->last = y;
               return;
               //------------------------------------------------------------------
-              // 8. Exceptions (very small)
+              // 8. Exceptions
               //------------------------------------------------------------------
             } else if constexpr (std::is_same_v<T, Throw>) {
               runtime_error("throw not implemented");
