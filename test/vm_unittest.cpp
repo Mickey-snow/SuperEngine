@@ -37,18 +37,14 @@ inline static std::vector<Value> value_vector(Ts&&... param) {
   return std::vector<Value>{Value(std::forward<Ts>(param))...};
 }
 
-
 // Small helper: run a chunk, return the final value that the *main*
 /// fiber reported via `last`.
 static Value run_and_get(const std::shared_ptr<Chunk>& chunk) {
   VM vm(chunk);
-  vm.run();
+  vm.Run();
   return vm.main_fiber->last;
 }
 
-// ───────────────────────────────────────────────────────────────────
-//  1.  Simple arithmetic: 1 + 2  →  3
-// ───────────────────────────────────────────────────────────────────
 TEST(VMTest, BinaryAdd) {
   auto chunk = std::make_shared<Chunk>();
   chunk->const_pool = value_vector(1.0, 2.0);
@@ -58,9 +54,6 @@ TEST(VMTest, BinaryAdd) {
   EXPECT_EQ(out, 3.0);
 }
 
-// ───────────────────────────────────────────────────────────────────
-//  2.  Unary operator:  −5  →  −5
-// ───────────────────────────────────────────────────────────────────
 TEST(VMTest, UnaryNeg) {
   auto chunk = std::make_shared<Chunk>();
   chunk->const_pool = value_vector(5.0);
@@ -70,9 +63,6 @@ TEST(VMTest, UnaryNeg) {
   EXPECT_EQ(out, -5.0);
 }
 
-// ───────────────────────────────────────────────────────────────────
-//  3.  Stack shuffling:  Swap  & Dup
-// ───────────────────────────────────────────────────────────────────
 TEST(VMTest, DupAndSwap) {
   // Program:   (1 2) swap ⇒ (2 1) dup ⇒ (2 1 1) add,add ⇒ 2+1+1 = 4
   auto chunk = std::make_shared<Chunk>();
@@ -89,9 +79,6 @@ TEST(VMTest, DupAndSwap) {
   EXPECT_EQ(out, 4.0);
 }
 
-// ───────────────────────────────────────────────────────────────────
-//  4.  Locals: store & load slot‑0
-// ───────────────────────────────────────────────────────────────────
 TEST(VMTest, StoreLoadLocal) {
   auto chunk = std::make_shared<Chunk>();
   chunk->const_pool = value_vector(42.0);
@@ -104,15 +91,12 @@ TEST(VMTest, StoreLoadLocal) {
   VM vm(chunk);
   vm.main_fiber->stack.resize(1);
   vm.main_fiber->frames[0].closure->nlocals = 1;
-  vm.run();
+  vm.Run();
 
   Value out = vm.main_fiber->last;
   EXPECT_EQ(out, 42.0);
 }
 
-// ───────────────────────────────────────────────────────────────────
-//  5.  Function call + Return
-// ───────────────────────────────────────────────────────────────────
 TEST(VMTest, FunctionCall) {
   // Layout:
   //   0: MakeClosure(entry=5)   ; push fn
@@ -126,13 +110,10 @@ TEST(VMTest, FunctionCall) {
   chunk->code = {MakeClosure{3, 0, 0, 0}, Call{0}, Return{}, Push{0}, Return{}};
 
   VM vm(chunk);
-  vm.run();
+  vm.Run();
   EXPECT_EQ(vm.main_fiber->last, 7.0);
 }
 
-// ───────────────────────────────────────────────────────────────────
-//  6.  Tail‑call collapses frame
-// ───────────────────────────────────────────────────────────────────
 TEST(VMTest, TailCall) {
   //   inner(): return 99
   //   outer(): return inner()   (via TailCall)
@@ -153,14 +134,11 @@ TEST(VMTest, TailCall) {
                  Push{0}, Return{}};
 
   VM vm(chunk);
-  vm.run();
+  vm.Run();
   EXPECT_EQ(vm.main_fiber->last, 99.0);
 }
 
-// ───────────────────────────────────────────────────────────────────
-//  7.  Control‑flow: JumpIfTrue / JumpIfFalse
 //      if (1 < 2) push 222 else push 111
-// ───────────────────────────────────────────────────────────────────
 TEST(VMTest, ConditionalJump) {
   auto chunk = std::make_shared<Chunk>();
   chunk->const_pool = value_vector(1.0, 2.0, 111.0, 222.0);
@@ -177,6 +155,17 @@ TEST(VMTest, ConditionalJump) {
 
   Value out = run_and_get(chunk);
   EXPECT_EQ(out, 222.0);
+}
+
+TEST(VMTest, ReturnNil) {
+  auto chunk = std::make_shared<Chunk>();
+
+  // return
+  chunk->code = {Return{}};
+
+  VM vm(chunk);
+  vm.Run();
+  EXPECT_EQ(vm.main_fiber->last, std::monostate());
 }
 
 }  // namespace serilang_test

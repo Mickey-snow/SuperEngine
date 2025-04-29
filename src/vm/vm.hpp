@@ -44,19 +44,19 @@ class VM {
     main_cl->nparams = 0;
     main_fiber = std::make_shared<Fiber>();
     push(main_fiber->stack, Value(main_cl));  // fn
-    call_closure(*main_fiber, main_cl, 0);    // run main()
+    CallClosure(*main_fiber, main_cl, 0);     // run main()
     fibers.push_front(main_fiber);
   }
 
   // single‑step the interpreter until all fibers dead / error
-  void run() {
+  void Run() {
     while (!fibers.empty()) {
       auto f = fibers.front();
       if (f->state == FiberState::Dead) {
         fibers.pop_front();
         continue;
       }
-      execute_fiber(f);  // may yield
+      ExecuteFiber(f);  // may yield
     }
   }
 
@@ -64,7 +64,7 @@ class VM {
   // host API helpers
   //----------------------------------------------------------------
   // push a constant into the global table for easy tests
-  void add_global(std::string name, Value v) {
+  void AddGlobal(std::string name, Value v) {
     globals.emplace(std::move(name), v);
   }
 
@@ -88,22 +88,22 @@ class VM {
     return v;
   }
 
-  void runtime_error(const std::string& msg) { throw std::runtime_error(msg); }
+  void RuntimeError(const std::string& msg) { throw std::runtime_error(msg); }
 
   // call helpers ---------------------------------------------------
-  void call_closure(Fiber& f, std::shared_ptr<Closure> cl, uint8_t arity) {
+  void CallClosure(Fiber& f, std::shared_ptr<Closure> cl, uint8_t arity) {
     if (arity != cl->nparams)
-      runtime_error("arity mismatch");
+      RuntimeError("arity mismatch");
     const auto base = f.stack.size() - arity - 1;  // fn slot
     f.frames.push_back({cl, cl->entry, base});
     f.stack.resize(base + cl->nlocals);  // allocate locals
   }
   // tail‑call collapses frame
-  void tail_call(Fiber& f, std::shared_ptr<Closure> cl, uint8_t arity) {
+  void TailCall(Fiber& f, std::shared_ptr<Closure> cl, uint8_t arity) {
     auto& frame = f.frames.back();
     const auto base = frame.bp;
     if (arity != cl->nparams)
-      runtime_error("arity mismatch");
+      RuntimeError("arity mismatch");
     // shift arguments over previous locals
     size_t arg_start = f.stack.size() - arity;
     for (uint8_t i = 0; i < arity; ++i)
@@ -112,8 +112,8 @@ class VM {
     frame = {cl, cl->entry, base};  // replace frame
   }
 
-  //----------------------------------------------------------------
-  void execute_fiber(const std::shared_ptr<Fiber>& fib) {
+  //----------------------------------------------------------------  
+  void ExecuteFiber(const std::shared_ptr<Fiber>& fib) {
     fib->state = FiberState::Running;
     while (!fib->frames.empty()) {
       auto& frame = fib->frames.back();
@@ -129,23 +129,23 @@ class VM {
             //------------------------------------------------------------------
             // 1. Stack ops
             //------------------------------------------------------------------
-            if constexpr (std::is_same_v<T, Push>) {
+            if constexpr (std::is_same_v<T, serilang::Push>) {
               push(fib->stack, chunk.const_pool[ins.const_index]);
-            } else if constexpr (std::is_same_v<T, Dup>) {
+            } else if constexpr (std::is_same_v<T, serilang::Dup>) {
               push(fib->stack, fib->stack.back());
-            } else if constexpr (std::is_same_v<T, Swap>) {
+            } else if constexpr (std::is_same_v<T, serilang::Swap>) {
               std::swap(fib->stack.end()[-1], fib->stack.end()[-2]);
-            } else if constexpr (std::is_same_v<T, Pop>) {
+            } else if constexpr (std::is_same_v<T, serilang::Pop>) {
               for (uint8_t i = 0; i < ins.count; ++i)
                 fib->stack.pop_back();
               //------------------------------------------------------------------
               // 2. Unary / Binary
               //------------------------------------------------------------------
-            } else if constexpr (std::is_same_v<T, UnaryOp>) {
+            } else if constexpr (std::is_same_v<T, serilang::UnaryOp>) {
               auto v = pop(fib->stack);
               Value r = v.Operator(ins.op);
               push(fib->stack, r);
-            } else if constexpr (std::is_same_v<T, BinaryOp>) {
+            } else if constexpr (std::is_same_v<T, serilang::BinaryOp>) {
               auto rhs = pop(fib->stack);
               auto lhs = pop(fib->stack);
               Value out = lhs.Operator(ins.op, std::move(rhs));
@@ -153,41 +153,41 @@ class VM {
               //------------------------------------------------------------------
               // 3. Locals / globals / upvals
               //------------------------------------------------------------------
-            } else if constexpr (std::is_same_v<T, LoadLocal>) {
+            } else if constexpr (std::is_same_v<T, serilang::LoadLocal>) {
               push(fib->stack,
                    *fib->local_slot(fib->frames.size() - 1, ins.slot));
-            } else if constexpr (std::is_same_v<T, StoreLocal>) {
+            } else if constexpr (std::is_same_v<T, serilang::StoreLocal>) {
               *fib->local_slot(fib->frames.size() - 1, ins.slot) =
                   pop(fib->stack);
-            } else if constexpr (std::is_same_v<T, LoadGlobal>) {
+            } else if constexpr (std::is_same_v<T, serilang::LoadGlobal>) {
               auto name =
                   chunk.const_pool[ins.name_index].template Get<std::string>();
               push(fib->stack, globals[name]);
-            } else if constexpr (std::is_same_v<T, StoreGlobal>) {
+            } else if constexpr (std::is_same_v<T, serilang::StoreGlobal>) {
               auto name =
                   chunk.const_pool[ins.name_index].template Get<std::string>();
               globals[name] = pop(fib->stack);
-            } else if constexpr (std::is_same_v<T, LoadUpvalue>) {
+            } else if constexpr (std::is_same_v<T, serilang::LoadUpvalue>) {
               push(fib->stack, frame.closure->up[ins.slot]->get());
-            } else if constexpr (std::is_same_v<T, StoreUpvalue>) {
+            } else if constexpr (std::is_same_v<T, serilang::StoreUpvalue>) {
               frame.closure->up[ins.slot]->set(pop(fib->stack));
-            } else if constexpr (std::is_same_v<T, CloseUpvalues>) {
+            } else if constexpr (std::is_same_v<T, serilang::CloseUpvalues>) {
               auto* base =
                   fib->local_slot(fib->frames.size() - 1, ins.from_slot);
               fib->close_upvalues_from(base);
               //------------------------------------------------------------------
               // 4. Control flow
               //------------------------------------------------------------------
-            } else if constexpr (std::is_same_v<T, Jump>) {
+            } else if constexpr (std::is_same_v<T, serilang::Jump>) {
               frame.ip += ins.offset;
-            } else if constexpr (std::is_same_v<T, JumpIfTrue>) {
+            } else if constexpr (std::is_same_v<T, serilang::JumpIfTrue>) {
               if (fib->stack.back().IsTruthy())
                 frame.ip += ins.offset;
-            } else if constexpr (std::is_same_v<T, JumpIfFalse>) {
+            } else if constexpr (std::is_same_v<T, serilang::JumpIfFalse>) {
               if (!fib->stack.back().IsTruthy())
                 frame.ip += ins.offset;
-            } else if constexpr (std::is_same_v<T, Return>) {
-              Value ret = fib->stack.back();
+            } else if constexpr (std::is_same_v<T, serilang::Return>) {
+              Value ret = fib->stack.empty() ? Value() : fib->stack.back();
               fib->stack.resize(frame.bp);
               fib->frames.pop_back();
               if (fib->frames.empty()) {  // fiber finished
@@ -200,7 +200,7 @@ class VM {
               //------------------------------------------------------------------
               // 5. Function calls
               //------------------------------------------------------------------
-            } else if constexpr (std::is_same_v<T, MakeClosure>) {
+            } else if constexpr (std::is_same_v<T, serilang::MakeClosure>) {
               auto cl = std::make_shared<Closure>(frame.closure->chunk);
               cl->entry = ins.entry;
               cl->nparams = ins.nparams;
@@ -213,24 +213,24 @@ class VM {
                     fib->local_slot(fib->frames.size() - 1, uv_slot));
               }
               push(fib->stack, Value(cl));
-            } else if constexpr (std::is_same_v<T, Call>) {
+            } else if constexpr (std::is_same_v<T, serilang::Call>) {
               auto arity = ins.arity;
               auto fnVal = fib->stack.end()[-arity - 1];
               auto cl = fnVal.template Get_if<std::shared_ptr<Closure>>();
               if (!cl)
-                runtime_error("call non‑closure");
-              call_closure(*fib, cl, arity);
-            } else if constexpr (std::is_same_v<T, TailCall>) {
+                RuntimeError("call non‑closure");
+              CallClosure(*fib, cl, arity);
+            } else if constexpr (std::is_same_v<T, serilang::TailCall>) {
               auto arity = ins.arity;
               auto fnVal = fib->stack.end()[-arity - 1];
               auto cl = fnVal.template Get_if<std::shared_ptr<Closure>>();
               if (!cl)
-                runtime_error("tailcall non‑closure");
-              tail_call(*fib, cl, arity);
+                RuntimeError("tailcall non‑closure");
+              TailCall(*fib, cl, arity);
               //------------------------------------------------------------------
               // 6. Object ops  (very naive)
               //------------------------------------------------------------------
-            } else if constexpr (std::is_same_v<T, MakeClass>) {
+            } else if constexpr (std::is_same_v<T, serilang::MakeClass>) {
               auto klass = std::make_shared<Class>();
               klass->name =
                   chunk.const_pool[ins.name_index].template Get<std::string>();
@@ -240,15 +240,15 @@ class VM {
                 klass->methods[std::move(name)] = std::move(method);
               }
               push(fib->stack, Value(klass));
-            } else if constexpr (std::is_same_v<T, New>) {
+            } else if constexpr (std::is_same_v<T, serilang::New>) {
               auto klass = pop(fib->stack).Extract<std::shared_ptr<Class>>();
               push(fib->stack, Value(std::make_shared<Instance>(klass)));
-            } else if constexpr (std::is_same_v<T, GetField>) {
+            } else if constexpr (std::is_same_v<T, serilang::GetField>) {
               auto inst = pop(fib->stack).Extract<std::shared_ptr<Instance>>();
               auto name =
                   chunk.const_pool[ins.name_index].template Get<std::string>();
               push(fib->stack, inst->fields[name]);
-            } else if constexpr (std::is_same_v<T, SetField>) {
+            } else if constexpr (std::is_same_v<T, serilang::SetField>) {
               auto val = pop(fib->stack);
               auto inst = pop(fib->stack).Extract<std::shared_ptr<Instance>>();
               auto name =
@@ -258,7 +258,7 @@ class VM {
               //------------------------------------------------------------------
               // 7. Coroutines
               //------------------------------------------------------------------
-            } else if constexpr (std::is_same_v<T, MakeFiber>) {
+            } else if constexpr (std::is_same_v<T, serilang::MakeFiber>) {
               auto f = std::make_shared<Fiber>();
               auto cl = std::make_shared<Closure>(frame.closure->chunk);
               cl->entry = ins.entry;
@@ -267,7 +267,7 @@ class VM {
               cl->up.resize(ins.nupvals);  // TODO: capture
               f->stack.reserve(64);
               push(fib->stack, Value(f));
-            } else if constexpr (std::is_same_v<T, Resume>) {
+            } else if constexpr (std::is_same_v<T, serilang::Resume>) {
               auto arity = ins.arity;
               auto fVal = fib->stack.end()[-arity - 1];
               auto f2 = fVal.template Get<std::shared_ptr<Fiber>>();
@@ -278,7 +278,7 @@ class VM {
               fib->stack.pop_back();  // pop fiber
               fibers.push_front(f2);
               return;  // switch
-            } else if constexpr (std::is_same_v<T, Yield>) {
+            } else if constexpr (std::is_same_v<T, serilang::Yield>) {
               Value y = pop(fib->stack);
               fib->state = FiberState::Suspended;
               fib->last = y;
@@ -286,10 +286,10 @@ class VM {
               //------------------------------------------------------------------
               // 8. Exceptions
               //------------------------------------------------------------------
-            } else if constexpr (std::is_same_v<T, Throw>) {
-              runtime_error("throw not implemented");
-            } else if constexpr (std::is_same_v<T, TryBegin> ||
-                                 std::is_same_v<T, TryEnd>) {
+            } else if constexpr (std::is_same_v<T, serilang::Throw>) {
+              RuntimeError("throw not implemented");
+            } else if constexpr (std::is_same_v<T, serilang::TryBegin> ||
+                                 std::is_same_v<T, serilang::TryEnd>) {
             } else {
               throw std::runtime_error("Unimplemented instruction");
             }

@@ -397,6 +397,10 @@ Value Value::Operator(Op op) {
 
 Value::operator std::string() const { return this->Desc(); }
 
+bool Value::operator==(std::monostate) const {
+  return std::holds_alternative<std::monostate>(val_);
+}
+
 bool Value::operator==(int rhs) const {
   auto ptr = std::get_if<int>(&val_);
   return ptr && *ptr == rhs;

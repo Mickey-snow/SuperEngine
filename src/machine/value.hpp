@@ -134,6 +134,7 @@ class Value {
 
   // for testing
   operator std::string() const;
+  bool operator==(std::monostate) const;
   bool operator==(int rhs) const;
   bool operator==(double rhs) const;
   bool operator==(bool rhs) const;
