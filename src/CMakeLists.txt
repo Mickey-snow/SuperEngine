@@ -6,7 +6,7 @@ configure_file(
 )
 
 set(RLVM_REQUIRED_LIBRARIES
-    ${SDL_LIBRARIES}
+    ${SDL1_LIBRARIES}
     ${ZLIB_LIBRARIES}
     ${OPENGL_LIBRARIES}
     ${Boost_LIBRARIES}

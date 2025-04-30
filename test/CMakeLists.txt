@@ -43,7 +43,7 @@ target_link_libraries(unittest PRIVATE
   rlvm_src
   ${GTEST_LIBRARIES}
 
-  ${SDL_LIBRARIES}
+  ${SDL1_LIBRARIES}
   ${OPENGL_LIBRARIES}
   ${GLEW_LIBRARIES}
 )

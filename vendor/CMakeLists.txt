@@ -67,7 +67,7 @@ target_include_directories(sdl_ttf PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/SDL_ttf/include
 )
 target_link_libraries(sdl_ttf PUBLIC ${FREETYPE_LIBRARIES})
-target_link_libraries(sdl_ttf PUBLIC ${SDL_LIBRARIES})
+target_link_libraries(sdl_ttf PUBLIC ${SDL1_LIBRARIES})
 target_compile_options(sdl_ttf PRIVATE
   $<$<CXX_COMPILER_ID:GNU,Clang>:-w>
 )
