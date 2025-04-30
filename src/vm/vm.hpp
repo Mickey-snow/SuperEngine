@@ -112,7 +112,7 @@ class VM {
     frame = {cl, cl->entry, base};  // replace frame
   }
 
-  //----------------------------------------------------------------  
+  //----------------------------------------------------------------
   void ExecuteFiber(const std::shared_ptr<Fiber>& fib) {
     fib->state = FiberState::Running;
     while (!fib->frames.empty()) {
@@ -120,11 +120,16 @@ class VM {
       auto& chunk = *frame.closure->chunk;
       auto& code = chunk.code;
 
-      auto fetch = [&]() -> const Instruction& { return code[frame.ip++]; };
+      auto fetch = [&]() -> Instruction {
+        if (frame.ip < code.size())
+          return code[frame.ip++];
+        else
+          return serilang::Return();
+      };
 
       // main dispatch loop
       std::visit(
-          [&](auto&& ins) {
+          [&](auto ins) {
             using T = std::decay_t<decltype(ins)>;
             //------------------------------------------------------------------
             // 1. Stack ops

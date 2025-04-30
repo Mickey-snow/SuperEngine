@@ -42,25 +42,26 @@ class CodeGenerator {
   using Scope = std::unordered_map<std::string, std::size_t>;  // name->slot
 
  public:
-  static std::shared_ptr<serilang::Chunk> Gen(std::shared_ptr<AST> ast) {
-    CodeGenerator gen;
-    gen.emit_stmt(ast);
-    gen.emit(serilang::Return{});
-    return gen.chunk_;
-  }
-
-  CodeGenerator()
-      : chunk_(std::make_shared<serilang::Chunk>()),
+  CodeGenerator(bool repl = false)
+      : repl_mode_(repl),
+        chunk_(std::make_shared<serilang::Chunk>()),
         locals_{},
         local_depth_(0),
         patch_sites_() {}
   ~CodeGenerator() = default;
 
  private:  // data members
+  bool repl_mode_;
   std::shared_ptr<serilang::Chunk> chunk_;
   std::vector<Scope> locals_;  // one per lexical block
   std::size_t local_depth_;    // current stack depth
   std::unordered_map<std::string, int32_t> patch_sites_;  // for break/continue
+
+ public:
+  std::shared_ptr<serilang::Chunk> GetChunk() const { return chunk_; }
+  void SetChunk(std::shared_ptr<serilang::Chunk> c) { chunk_ = c; }
+
+  void Gen(std::shared_ptr<AST> ast) { emit_stmt(ast); }
 
  private:  // constant-pool helpers
   uint32_t constant(Value v) {
@@ -276,7 +277,10 @@ class CodeGenerator {
   }
   void emit_stmt_node(const std::shared_ptr<ExprAST>& s) {
     emit_expr(s);
-    emit(serilang::Pop{});
+    if(repl_mode_){
+      // TODO: emit a print
+    }
+    // emit(serilang::Pop{});
   }
 
  private:  // helper functions
