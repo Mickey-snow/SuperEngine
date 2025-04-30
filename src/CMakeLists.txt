@@ -88,3 +88,9 @@ set(RLKP_FILES
 add_executable(rlkp ${RLKP_FILES})
 
 target_link_libraries(rlkp PRIVATE rlvm_src)
+
+set(SL_FILES
+  "${CMAKE_CURRENT_SOURCE_DIR}/repl.cpp"
+)
+add_executable(sl ${SL_FILES})
+target_link_libraries(sl PRIVATE rlvm_src)

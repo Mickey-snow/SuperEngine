@@ -60,13 +60,7 @@ class VM {
     }
   }
 
-  //----------------------------------------------------------------
-  // host API helpers
-  //----------------------------------------------------------------
-  // push a constant into the global table for easy tests
-  void AddGlobal(std::string name, Value v) {
-    globals.emplace(std::move(name), v);
-  }
+  void PushFiber(std::shared_ptr<Fiber> fiber) { fibers.push_front(fiber); }
 
  public:
   //----------------------------------------------------------------
