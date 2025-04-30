@@ -85,80 +85,17 @@ struct Textout {
   std::string text;
 };
 
-struct Push {
-  Value value;
-};
-
-struct Pop {
-  size_t count = 1;
-};
-
 struct End {
   std::string extra_text;
 };
 
-struct BinaryOp {
-  Op op;
-};
-
-struct UnaryOp {
-  Op op;
-};
-
-struct Load {
-  size_t offset;
-};
-
-struct LoadGlobal {
-  size_t offset;
-};
-
-struct Store {
-  size_t offset;
-};
-
-struct StoreGlobal {
-  size_t offset;
-};
-
-struct Invoke {
-  size_t arity;
-};
-
-struct Jmp {
-  int offset;
-};
-
-struct Jt {
-  int offset;
-};
-
-struct Jf {
-  int offset;
-};
-
-using Instruction = std::variant<
-    // for legacy support --------------------
-    std::monostate,
-    Kidoku,
-    Line,
-    rlCommand,
-    rlExpression,
-    Textout,
-    // ----------------------------------------
-    Push,
-    Pop,
-    BinaryOp,
-    UnaryOp,
-    Load,
-    LoadGlobal,
-    Store,
-    StoreGlobal,
-    Invoke,
-    Jmp,
-    Jt,
-    Jf,
-    End>;
+using Instruction = std::variant<std::monostate,
+                                 Kidoku,
+                                 Line,
+                                 rlCommand,
+                                 rlExpression,
+                                 Textout,
+                                 End>;
 
 class ModuleManager;
 class InstructionToString {
@@ -171,18 +108,6 @@ class InstructionToString {
   std::string operator()(const rlCommand&) const;
   std::string operator()(const rlExpression&) const;
   std::string operator()(const Textout&) const;
-  std::string operator()(const Push&) const;
-  std::string operator()(const Pop&) const;
-  std::string operator()(const BinaryOp&) const;
-  std::string operator()(const UnaryOp&) const;
-  std::string operator()(const Load&) const;
-  std::string operator()(const Store&) const;
-  std::string operator()(const LoadGlobal&) const;
-  std::string operator()(const StoreGlobal&) const;
-  std::string operator()(const Invoke&) const;
-  std::string operator()(const Jmp&) const;
-  std::string operator()(const Jt&) const;
-  std::string operator()(const Jf&) const;
   std::string operator()(const End&) const;
 
  private:

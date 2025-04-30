@@ -28,7 +28,6 @@
 #include "libreallive/archive.hpp"
 #include "libreallive/scriptor.hpp"
 #include "log/domain_logger.hpp"
-#include "machine/debugger.hpp"
 #include "machine/game_hacks.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/serialization.hpp"
@@ -127,10 +126,6 @@ GameLoader::GameLoader(fs::path gameroot) {
   machine_ = std::make_shared<RLMachine>(system_, scriptor, std::move(memory));
   machine_->GetCallStack().Push(
       StackFrame(scriptor->Load(first_seen), StackFrame::TYPE_ROOT));
-
-  // instantiate debugger
-  debugger_ = std::make_shared<Debugger>(machine_);
-  system_->event().AddListener(debugger_);
 
   // Event listener for long operations
   struct LongopListenerAdapter

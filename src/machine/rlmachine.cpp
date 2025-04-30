@@ -157,14 +157,6 @@ void RLMachine::ExecuteInstruction(std::shared_ptr<Instruction> instruction) {
   }
 }
 
-void RLMachine::Execute() {
-  while (!halted_ && ip_ < script_.size() && ip_ >= 0) {
-    Instruction i = script_[ip_++];
-    std::visit(*this, std::move(i));
-  }
-  halted_ = true;
-}
-
 void RLMachine::AdvanceIP() {
   if (replaying_graphics_stack())
     return;
@@ -184,8 +176,6 @@ void RLMachine::RevertIP() {
 }
 
 CallStack& RLMachine::GetCallStack() { return call_stack_; }
-
-std::vector<Value> const& RLMachine::GetStack() const { return stack_; }
 
 std::shared_ptr<IScriptor> RLMachine::GetScriptor() { return scriptor_; }
 
@@ -366,99 +356,3 @@ void RLMachine::operator()(rlExpression e) { e.Execute(*this); }
 void RLMachine::operator()(Textout t) { PerformTextout(std::move(t.text)); }
 
 void RLMachine::operator()(End) { Halt(); }
-
-void RLMachine::operator()(Push p) { stack_.push_back(std::move(p.value)); }
-
-void RLMachine::operator()(Pop p) {
-  if (p.count > stack_.size())
-    throw std::runtime_error("VM: Stack underflow.");
-  stack_.resize(stack_.size() - p.count);
-}
-
-void RLMachine::operator()(BinaryOp p) {
-  if (stack_.size() < 2)
-    throw std::runtime_error("VM: Stack underflow.");
-  const auto n = stack_.size();
-  auto result = stack_[n - 2].Operator(p.op, stack_[n - 1]);
-  stack_.pop_back();
-  stack_.back() = std::move(result);
-}
-
-void RLMachine::operator()(UnaryOp p) {
-  if (stack_.empty())
-    throw std::runtime_error("VM: Stack underflow.");
-  auto result = stack_.back().Operator(p.op);
-  stack_.back() = std::move(result);
-}
-
-void RLMachine::operator()(Load p) {
-  if (stack_.size() < p.offset)
-    throw std::runtime_error("VM: Invalid load offset " +
-                             std::to_string(p.offset) + '.');
-
-  stack_.push_back(stack_[p.offset]);
-}
-
-void RLMachine::operator()(Store p) {
-  if (stack_.size() < p.offset)
-    throw std::runtime_error("VM: Invalid store offset " +
-                             std::to_string(p.offset) + '.');
-
-  stack_[p.offset] = stack_.back();
-}
-
-void RLMachine::operator()(LoadGlobal p) {
-  if (globals_.size() < p.offset)
-    throw std::runtime_error("VM: Invalid load_global offset " +
-                             std::to_string(p.offset) + '.');
-  if (!globals_.at(p.offset).has_value())
-    throw std::runtime_error("VM: Global variable (" +
-                             std::to_string(p.offset) + ") not defined.");
-
-  stack_.push_back(*globals_.at(p.offset));
-}
-
-void RLMachine::operator()(StoreGlobal p) {
-  if (globals_.size() <= p.offset)
-    globals_.resize(p.offset + 1);
-  globals_[p.offset] = stack_.back();
-}
-
-void RLMachine::operator()(Invoke p) {
-  if (stack_.size() < p.arity + 1)
-    throw std::runtime_error("VM: Stack underflow.");
-
-  Value fn = std::move(stack_.back());
-  stack_.pop_back();
-
-  if (auto native = fn.Get_if<NativeFunction>()) {
-    std::vector<Value> args;
-    args.reserve(p.arity);
-    for (auto it = stack_.end() - p.arity; it != stack_.end(); ++it)
-      args.emplace_back(std::move(*it));
-    stack_.resize(stack_.size() - p.arity);
-
-    try {
-      Value result = native->Invoke(this, std::move(args));
-      stack_.emplace_back(std::move(result));
-    } catch (...) {
-      stack_.push_back(Value(std::monostate()));
-      throw;
-    }
-  } else
-    throw std::runtime_error("Object '" + fn.Desc() + "' is not callable.");
-}
-
-void RLMachine::operator()(Jmp p) { ip_ += p.offset; }
-
-void RLMachine::operator()(Jt p) {
-  if (stack_.back().IsTruthy())
-    ip_ += p.offset;
-  stack_.pop_back();
-}
-
-void RLMachine::operator()(Jf p) {
-  if (!stack_.back().IsTruthy())
-    ip_ += p.offset;
-  stack_.pop_back();
-}

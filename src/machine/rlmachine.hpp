@@ -37,7 +37,6 @@
 
 #include "core/kidoku_table.hpp"
 #include "machine/call_stack.hpp"
-#include "machine/debugger.hpp"
 #include "machine/instruction.hpp"
 #include "machine/iscriptor.hpp"
 #include "machine/module_manager.hpp"
@@ -198,7 +197,6 @@ class RLMachine {
   std::shared_ptr<Instruction> ReadInstruction() const;
   bool ExecuteLongop(std::shared_ptr<LongOperation> long_op);
   void ExecuteInstruction(std::shared_ptr<Instruction> instruction);
-  void Execute();
 
   // -----------------------------------------------------------------------
   // Actual implementation for each type of byte code
@@ -210,46 +208,16 @@ class RLMachine {
   void operator()(rlExpression);
   void operator()(Textout);
   void operator()(End);
-  void operator()(Push);
-  void operator()(Pop);
-  void operator()(BinaryOp);
-  void operator()(UnaryOp);
-  void operator()(Load);
-  void operator()(Store);
-  void operator()(LoadGlobal);
-  void operator()(StoreGlobal);
-  void operator()(Invoke);
-  void operator()(Jmp);
-  void operator()(Jt);
-  void operator()(Jf);
 
   // -----------------------------------------------------------------------
   // Temporary 'environment' field, planned to remove this later
   RLEnvironment& GetEnvironment();
 
-  friend class Debugger;
-
-  // For now, this is another set of independent interface operates independent
-  // from reallive related data
- public:
+ private:
   // States whether the RLMachine is in the halted state (and thus won't
   // execute more instructions)
   bool halted_ = false;
 
-  // Instruction pointer
-  int ip_ = 0;
-
-  // View to bytecode script
-  std::span<Instruction> script_;
-
-  // Machine Stack, simple low-level LIFO structure.
-  std::vector<Value> stack_;
-
-  // Global variables, nullopt means not defined
-  std::vector<std::optional<Value>> globals_;
-
-  // Reallive virtual machine related fields
- private:
   // The Reallive VM's integer and string memory
   std::unique_ptr<Memory> memory_;
   Memory savepoint_memory_;

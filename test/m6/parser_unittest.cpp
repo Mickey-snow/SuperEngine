@@ -28,7 +28,6 @@
 
 #include "m6/ast.hpp"
 #include "m6/parser.hpp"
-#include "m6/script_engine.hpp"
 #include "machine/op.hpp"
 #include "utilities/string_utilities.hpp"
 

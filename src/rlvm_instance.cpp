@@ -27,7 +27,6 @@
 #include "core/memory.hpp"
 #include "libreallive/game_loader.hpp"
 #include "log/domain_logger.hpp"
-#include "machine/debugger.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/rloperation.hpp"
 #include "machine/serialization.hpp"
@@ -62,7 +61,6 @@ void RLVMInstance::Main(const std::filesystem::path& gameroot) {
   try {
     loader = std::make_unique<libreallive::GameLoader>(gameroot);
     machine_ = loader->machine_;
-    debugger_ = loader->debugger_;
     system_ = loader->system_;
   } catch (std::exception& e) {
     static DomainLogger logger("Main");
@@ -87,7 +85,6 @@ void RLVMInstance::Main(const std::filesystem::path& gameroot) {
         if (machine_->CurrentLongOperation() != nullptr)
           should_continue = false;
 
-        debugger_->Execute();
         Step();
 
         end = clock.GetTime();

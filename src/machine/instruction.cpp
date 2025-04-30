@@ -75,45 +75,6 @@ std::string InstructionToString::operator()(const rlExpression& p) const {
 std::string InstructionToString::operator()(const Textout& p) const {
   return "text: " + p.text;
 }
-std::string InstructionToString::operator()(const Push& p) const {
-  return "push " + p.value.Desc();
-}
-std::string InstructionToString::operator()(const Pop& p) const {
-  if (p.count == 1)
-    return "pop";
-  else
-    return "pop " + std::to_string(p.count);
-}
-std::string InstructionToString::operator()(const BinaryOp& p) const {
-  return "op2 " + ToString(p.op);
-}
-std::string InstructionToString::operator()(const UnaryOp& p) const {
-  return "op1 " + ToString(p.op);
-}
-std::string InstructionToString::operator()(const Load& p) const {
-  return "ld " + std::to_string(p.offset);
-}
-std::string InstructionToString::operator()(const LoadGlobal& p) const {
-  return "ld_global " + std::to_string(p.offset);
-}
-std::string InstructionToString::operator()(const Store& p) const {
-  return "st " + std::to_string(p.offset);
-}
-std::string InstructionToString::operator()(const StoreGlobal& p) const {
-  return "st_global " + std::to_string(p.offset);
-}
-std::string InstructionToString::operator()(const Invoke& p) const {
-  return "invoke " + std::to_string(p.arity);
-}
-std::string InstructionToString::operator()(const Jmp& p) const {
-  return "jmp " + std::to_string(p.offset);
-}
-std::string InstructionToString::operator()(const Jt& p) const {
-  return "jt " + std::to_string(p.offset);
-}
-std::string InstructionToString::operator()(const Jf& p) const {
-  return "jf " + std::to_string(p.offset);
-}
 std::string InstructionToString::operator()(const End& p) const {
   return "<end>";
 }

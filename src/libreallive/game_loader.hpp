@@ -29,7 +29,6 @@
 class EventListener;
 class System;
 class RLMachine;
-class Debugger;
 
 class Gameexe;
 namespace libreallive {
@@ -47,8 +46,6 @@ class GameLoader {
   std::shared_ptr<System> system_;
 
   std::shared_ptr<RLMachine> machine_;
-
-  std::shared_ptr<Debugger> debugger_;
 
   std::shared_ptr<EventListener> longop_listener_adapter_, system_listener_;
 
