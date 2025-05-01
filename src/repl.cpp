@@ -65,8 +65,7 @@ static void run_repl() {
 
     try {
       // run just this snippet on the existing VM, preserving globals, etc.
-      auto result = vm.Evaluate(chunk);
-      std::cout << result.Str() << '\n';
+      std::ignore = vm.Evaluate(chunk);
     } catch (const std::exception& ex) {
       std::cerr << "runtime: " << ex.what() << '\n';
     }
@@ -75,7 +74,7 @@ static void run_repl() {
 
 // ──────────────────────────────────────────────────────────────────────────────
 int main() {
-  std::cout << copyright_info << '\n' << help_info << std::endl;
+  std::cout << copyright_info << "\n\n" << help_info << std::endl;
 
   try {
     run_repl();

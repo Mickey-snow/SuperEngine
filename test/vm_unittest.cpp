@@ -28,6 +28,7 @@
 #include "vm/vm.hpp"
 
 namespace serilang_test {
+
 using namespace serilang;
 
 // Small helper: wrapper to create Value array
@@ -163,9 +164,29 @@ TEST(VMTest, ReturnNil) {
   // return
   chunk->code = {Return{}};
 
-  VM vm(chunk);
-  vm.Run();
-  EXPECT_EQ(vm.main_fiber->last, std::monostate());
+  Value out = run_and_get(chunk);
+  EXPECT_EQ(out, std::monostate());
+}
+
+TEST(VMTest, CallNative) {
+  auto chunk = std::make_shared<Chunk>();
+
+  int call_count = 0;
+  auto fn = std::make_shared<NativeFunction>(
+      "my_function", [&](VM& vm, std::vector<Value> args) {
+	++call_count;
+        EXPECT_EQ(args.size(), 2);
+        EXPECT_EQ(args[0], 1);
+        EXPECT_EQ(args[1], "foo");
+        return Value();
+      });
+
+  chunk->const_pool = value_vector(fn, 1, "foo");
+  chunk->code = {Push{0}, Push{1}, Push{2}, Call{2}, Return{}};
+
+  Value out = run_and_get(chunk);
+  EXPECT_EQ(call_count, 1);
+  EXPECT_EQ(out, std::monostate());
 }
 
 }  // namespace serilang_test

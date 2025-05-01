@@ -424,4 +424,9 @@ bool Value::operator==(const std::string& rhs) const {
   return ptr && *ptr == rhs;
 }
 
+bool Value::operator==(char const* s) const {
+  auto ptr = std::get_if<std::string>(&val_);
+  return ptr && *ptr == s;
+}
+
 }  // namespace serilang

@@ -33,8 +33,11 @@
 #include "vm/value_internal/class.hpp"
 #include "vm/value_internal/closure.hpp"
 #include "vm/value_internal/fiber.hpp"
+#include "vm/value_internal/native_function.hpp"
 
+#include <chrono>
 #include <deque>
+#include <iostream>
 #include <memory>
 #include <stdexcept>
 
@@ -52,6 +55,27 @@ class VM {
     push(main_fiber->stack, Value(main_cl));  // fn
     CallClosure(*main_fiber, main_cl, 0);     // run main()
     fibers.push_front(main_fiber);
+
+    // register native functions
+    globals["time"] = Value(std::make_shared<NativeFunction>(
+        "time", [](VM& vm, std::vector<Value> args) {
+          if (!args.empty())
+            vm.RuntimeError("time() takes no arguments");
+          using namespace std::chrono;
+          auto now = system_clock::now().time_since_epoch();
+          auto secs = duration_cast<seconds>(now).count();
+          return Value(static_cast<int>(secs));
+        }));
+    globals["print"] = Value(std::make_shared<NativeFunction>(
+        "print", [](VM& vm, std::vector<Value> args) {
+          if (!args.empty()) {
+            std::cout << args.front().Str();
+            for (size_t i = 1; i < args.size(); ++i)
+              std::cout << ',' << args[i].Str();
+            std::cout << std::endl;
+          }
+          return Value();
+        }));
   }
 
   // single‑step the interpreter until all fibers dead / error
@@ -123,6 +147,14 @@ class VM {
     const auto base = f.stack.size() - arity - 1;  // fn slot
     f.frames.push_back({cl, cl->entry, base});
     f.stack.resize(base + cl->nlocals);  // allocate locals
+  }
+  void CallNative(Fiber& f, std::shared_ptr<NativeFunction> fn, uint8_t arity) {
+    std::vector<Value> args;
+    args.reserve(arity);
+    for (size_t i = f.stack.size() - arity; i < f.stack.size(); ++i)
+      args.emplace_back(std::move(f.stack[i]));
+    f.stack.resize(f.stack.size() - arity);
+    f.stack.emplace_back(fn->Call(*this, std::move(args)));
   }
   // tail‑call collapses frame
   void TailCall(Fiber& f, std::shared_ptr<Closure> cl, uint8_t arity) {
@@ -249,10 +281,18 @@ class VM {
             } else if constexpr (std::is_same_v<T, serilang::Call>) {
               auto arity = ins.arity;
               auto fnVal = fib->stack.end()[-arity - 1];
-              auto cl = fnVal.template Get_if<std::shared_ptr<Closure>>();
-              if (!cl)
-                RuntimeError("call non‑closure");
-              CallClosure(*fib, cl, arity);
+
+              if (fnVal.Type() == ObjType::Closure)
+                CallClosure(*fib,
+                            fnVal.template Get<std::shared_ptr<Closure>>(),
+                            arity);
+              else if (fnVal.Type() == ObjType::Native)
+                CallNative(
+                    *fib, fnVal.template Get<std::shared_ptr<NativeFunction>>(),
+                    arity);
+              else
+                RuntimeError("object is not callable");
+
             } else if constexpr (std::is_same_v<T, serilang::TailCall>) {
               auto arity = ins.arity;
               auto fnVal = fib->stack.end()[-arity - 1];

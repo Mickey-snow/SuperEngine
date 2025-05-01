@@ -286,11 +286,14 @@ class CodeGenerator {
     emit(serilang::StoreGlobal{intern_name(cd.name)});
   }
   void emit_stmt_node(const std::shared_ptr<ExprAST>& s) {
-    emit_expr(s);
     if (repl_mode_) {
-      // TODO: emit a print
+      emit(serilang::LoadGlobal{intern_name("print")});
+      emit_expr(s);
+      emit(serilang::Call{1});
+    } else {
+      emit_expr(s);
+      emit(serilang::Pop{1});
     }
-    // emit(serilang::Pop{});
   }
 
  private:  // helper functions

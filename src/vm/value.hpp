@@ -137,6 +137,7 @@ class Value {
   bool operator==(double rhs) const;
   bool operator==(bool rhs) const;
   bool operator==(const std::string& rhs) const;
+  bool operator==(char const* s) const;
 
  private:
   value_t val_;
