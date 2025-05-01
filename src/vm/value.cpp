@@ -22,11 +22,14 @@
 //
 // -----------------------------------------------------------------------
 
-#include "machine/value.hpp"
+#include "vm/value.hpp"
+
+// TODO: Reconsider exception thrown here
 #include "m6/exception.hpp"
-#include "machine/op.hpp"
 
 #include <cmath>
+
+namespace serilang {
 
 using namespace m6;
 
@@ -420,3 +423,5 @@ bool Value::operator==(const std::string& rhs) const {
   auto ptr = std::get_if<std::string>(&val_);
   return ptr && *ptr == rhs;
 }
+
+}  // namespace serilang

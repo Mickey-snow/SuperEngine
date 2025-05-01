@@ -25,8 +25,14 @@
 #pragma once
 
 #include "machine/op.hpp"
+#include "vm/call_frame.hpp"
+#include "vm/chunk.hpp"
 #include "vm/instruction.hpp"
+#include "vm/upvalue.hpp"
 #include "vm/value.hpp"
+#include "vm/value_internal/class.hpp"
+#include "vm/value_internal/closure.hpp"
+#include "vm/value_internal/fiber.hpp"
 
 #include <deque>
 #include <memory>
@@ -60,7 +66,33 @@ class VM {
     }
   }
 
-  void PushFiber(std::shared_ptr<Fiber> fiber) { fibers.push_front(fiber); }
+  // REPL support: execute a single chunk, preserving VM state (globals, etc.)
+  Value Evaluate(std::shared_ptr<Chunk> chunk) {
+    // wrap chunk in a zero-arg closure
+    auto cl = std::make_shared<Closure>(chunk);
+    cl->entry = 0;
+    cl->nparams = 0;
+    cl->nlocals = 0;
+
+    // create a new fiber for this snippet
+    auto replFiber = std::make_shared<Fiber>();
+    push(replFiber->stack, Value(cl));
+    CallClosure(*replFiber, cl, /*arity=*/0);
+    fibers.push_front(replFiber);
+
+    // run until this fiber finishes
+    while (replFiber->state != FiberState::Dead) {
+      ExecuteFiber(replFiber);
+    }
+
+    // clean up from the scheduler queue
+    if (!fibers.empty() && fibers.front() == replFiber) {
+      fibers.pop_front();
+    }
+
+    // return the last yielded/returned value
+    return replFiber->last;
+  }
 
  public:
   //----------------------------------------------------------------

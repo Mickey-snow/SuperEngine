@@ -48,7 +48,10 @@ static constexpr std::string_view help_info =
     R"(Reallive REPL – enter code, Ctrl-D or \"exit\" to quit)";
 
 static void run_repl() {
-  CompilerPipeline pipeline(true);
+  CompilerPipeline pipeline(/*repl_mode=*/true);
+  auto dummy = std::make_shared<serilang::Chunk>();
+  serilang::VM vm(dummy);
+
   for (std::string line; std::cout << ">> " && std::getline(std::cin, line);) {
     if (line == "exit")
       break;
@@ -61,11 +64,10 @@ static void run_repl() {
       continue;
 
     try {
-      serilang::VM vm(chunk);  // compile-and-go VM
-      vm.Run();
-
-      std::cout << vm.main_fiber->last.Str() << '\n';
-    } catch (std::exception const& ex) {
+      // run just this snippet on the existing VM, preserving globals, etc.
+      auto result = vm.Evaluate(chunk);
+      std::cout << result.Str() << '\n';
+    } catch (const std::exception& ex) {
       std::cerr << "runtime: " << ex.what() << '\n';
     }
   }

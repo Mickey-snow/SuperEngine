@@ -22,17 +22,18 @@
 //
 // -----------------------------------------------------------------------
 
-#include <gtest/gtest.h>
+#pragma once
 
-#include "m6/native.hpp"
-#include "machine/value.hpp"
+#include <cstdint>
+#include <memory>
 
-using namespace m6;
+namespace serilang {
 
-TEST(NativeFunctionTest, Lambda) {
-  Value len = make_fn_value(
-      "len", [](std::vector<int> args) -> int { return args.size(); });
-  EXPECT_EQ(len.Desc(), "<native function 'len'>");
-  auto ptr = len.Get_if<NativeFunction>();
-  EXPECT_EQ(ptr->Invoke(nullptr, {Value(1), Value(2), Value(3)}), 3);
-}
+class Closure;
+struct CallFrame {
+  std::shared_ptr<Closure> closure;
+  uint32_t ip;  // index into chunk->code
+  size_t bp;    // base pointer into fiber stack
+};
+
+}  // namespace serilang

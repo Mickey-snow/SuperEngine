@@ -27,13 +27,14 @@
 #include "util.hpp"
 
 #include "m6/argparse.hpp"
-#include "machine/value.hpp"
+#include "vm/value.hpp"
 
 #include <string>
 
 using std::string_literals::operator""s;
 
 using namespace m6;
+using serilang::Value;
 
 template <typename... Ts>
 inline auto quick_parse(auto... args) {

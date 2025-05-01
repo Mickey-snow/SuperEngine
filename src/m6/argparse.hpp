@@ -25,8 +25,8 @@
 #pragma once
 
 #include "m6/exception.hpp"
-#include "machine/value.hpp"
 #include "utilities/mpl.hpp"
+#include "vm/value.hpp"
 
 #include <map>
 #include <optional>
@@ -36,6 +36,9 @@
 namespace m6 {
 
 namespace internal {
+
+using serilang::ObjType;
+using serilang::Value;
 
 template <typename T>
 concept is_optional = requires { typename T::value_type; } &&

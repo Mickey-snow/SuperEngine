@@ -24,7 +24,10 @@
 
 #include <gtest/gtest.h>
 
-#include "machine/value.hpp"
+#include "vm/value.hpp"
+
+using serilang::Value;
+using serilang::ObjType;
 
 TEST(ValueBasic, TruthinessAndType) {
   Value nil;

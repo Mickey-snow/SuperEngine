@@ -26,8 +26,10 @@
 
 #include "m6/ast.hpp"
 #include "m6/exception.hpp"
+#include "vm/chunk.hpp"
 #include "vm/instruction.hpp"
 #include "vm/value.hpp"
+#include "vm/value_internal/closure.hpp"
 
 #include <concepts>
 #include <memory>
@@ -39,6 +41,7 @@
 namespace m6 {
 
 class CodeGenerator {
+  using Value = serilang::Value;
   using ChunkPtr = std::shared_ptr<serilang::Chunk>;
   using Scope = std::unordered_map<std::string, std::size_t>;  // name->slot
 

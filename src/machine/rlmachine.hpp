@@ -41,7 +41,6 @@
 #include "machine/iscriptor.hpp"
 #include "machine/module_manager.hpp"
 #include "machine/rlenvironment.hpp"
-#include "machine/value.hpp"
 
 namespace libreallive {
 class IntMemRef;
@@ -108,8 +107,6 @@ class RLMachine {
   KidokuTable& GetKidokus() { return kidoku_table_; }
 
   CallStack& GetCallStack();
-
-  std::vector<Value> const& GetStack() const;
 
   ScenarioConfig GetScenarioConfig() const;
 

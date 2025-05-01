@@ -24,109 +24,132 @@
 
 #pragma once
 
-#include "machine/value.hpp"
 #include "vm/instruction.hpp"
+
+#include <algorithm>
+#include <memory>
+#include <unordered_map>
+#include <vector>
 
 namespace serilang {
 
-struct Chunk {
-  std::vector<Instruction> code;
-  std::vector<Value> const_pool;
-  [[nodiscard]] const Instruction& operator[](size_t i) const {
-    return code[i];
-  }
+class Value;
+
+enum class ObjType : uint8_t {
+  Nil,
+  Bool,
+  Int,
+  Double,
+  Str,
+  Native,
+  Closure,
+  Fiber,
+  Class,
+  Instance
 };
 
-struct Upvalue {
-  Value* location;  // points into a Fiber stack slot while open
-  Value closed;     // heap copy once closed
-  bool is_closed{false};
-  Value get() const { return is_closed ? closed : *location; }
-  void set(Value v) {
-    if (is_closed)
-      closed = v;
-    else
-      *location = v;
-  }
-};
+class IObject;
 
-struct Closure : public IObject {
-  std::shared_ptr<Chunk> chunk;
-  uint32_t entry{};
-  uint32_t nparams{}, nlocals{};
-  std::vector<std::shared_ptr<Upvalue>> up;  // fixed size nupvals
-  explicit Closure(std::shared_ptr<Chunk> c) : chunk(std::move(c)) {}
+namespace {
+// Trait to detect std::shared_ptr<T>
+template <typename>
+struct is_shared_ptr : std::false_type {};
+template <typename U>
+struct is_shared_ptr<std::shared_ptr<U>> : std::true_type {};
+}  // namespace
 
-  ObjType Type() const noexcept override { return ObjType::Closure; }
-  std::string Str() const override { return "closure"; }
-  std::string Desc() const override { return "<closure>"; }
-};
+// -----------------------------------------------------------------------
+// Value system
+class Value {
+ public:
+  using value_t = std::variant<std::monostate,  // nil
+                               bool,
+                               int,
+                               double,
+                               std::string,
+                               std::shared_ptr<IObject>  // object
+                               >;
 
-struct Class : public IObject {
-  std::string name;
-  std::unordered_map<std::string, Value> methods;
+  Value(value_t = std::monostate());
 
-  ObjType Type() const noexcept override { return ObjType::Class; }
-  std::string Str() const override { return "class"; }
-  std::string Desc() const override { return "<class>"; }
-};
-struct Instance : public IObject {
-  std::shared_ptr<Class> klass;
-  std::unordered_map<std::string, Value> fields;
+  std::string Str() const;
+  std::string Desc() const;
+  bool IsTruthy() const;
 
-  Instance(std::shared_ptr<Class> klass_) : klass(klass_) {}
+  ObjType Type() const;
 
-  ObjType Type() const noexcept override { return ObjType::Instance; }
-  std::string Str() const override { return "instance"; }
-  std::string Desc() const override { return "<instance>"; }
-};
+  Value Operator(Op op, Value rhs);
+  Value Operator(Op op);
 
-struct CallFrame {
-  std::shared_ptr<Closure> closure;
-  uint32_t ip;  // index into chunk->code
-  size_t bp;    // base pointer into fiber stack
-};
-enum class FiberState { New, Running, Suspended, Dead };
-
-struct Fiber : public IObject {
-  std::vector<Value> stack;
-  std::vector<CallFrame> frames;
-  FiberState state = FiberState::New;
-  Value last;  // return / yielded / thrown
-  std::vector<std::shared_ptr<Upvalue>> open_upvalues;
-
-  explicit Fiber(size_t reserve = 64) { stack.reserve(reserve); }
-
-  Value* local_slot(size_t frame_index, uint8_t slot) {
-    auto bp = frames[frame_index].bp;
-    return &stack[bp + slot];
-  }
-  std::shared_ptr<Upvalue> capture_upvalue(Value* slot) {
-    for (auto& uv : open_upvalues)
-      if (uv->location == slot)
-        return uv;
-    auto uv = std::make_shared<Upvalue>();
-    uv->location = slot;
-    open_upvalues.push_back(uv);
-    return uv;
-  }
-  void close_upvalues_from(Value* from) {
-    for (auto& uv : open_upvalues) {
-      if (uv->location >= from) {
-        uv->closed = *uv->location;
-        uv->location = &uv->closed;
-        uv->is_closed = true;
-      }
+  // Get_if for raw types and IObject-derived pointers
+  template <typename T>
+  auto Get_if() {
+    if constexpr (std::derived_from<T, IObject>) {
+      auto basePtr = std::get_if<std::shared_ptr<IObject>>(&val_);
+      if (!basePtr || !*basePtr)
+        return static_cast<T*>(nullptr);
+      auto casted = std::dynamic_pointer_cast<T>(*basePtr);
+      return casted ? casted.get() : static_cast<T*>(nullptr);
+    } else if constexpr (is_shared_ptr<T>::value) {
+      using U = typename T::element_type;
+      auto basePtr = std::get_if<std::shared_ptr<IObject>>(&val_);
+      if (!basePtr || !*basePtr)
+        return T{};
+      auto casted = std::dynamic_pointer_cast<U>(*basePtr);
+      return casted;
+    } else {
+      return std::get_if<T>(&val_);
     }
-    open_upvalues.erase(
-        std::remove_if(open_upvalues.begin(), open_upvalues.end(),
-                       [&](auto& u) { return u->is_closed; }),
-        open_upvalues.end());
   }
 
-  ObjType Type() const noexcept override { return ObjType::Fiber; }
-  std::string Str() const override { return "fiber"; }
-  std::string Desc() const override { return "<fiber>"; }
+  // Get copies the value out (or copies the shared_ptr)
+  template <typename T>
+  T Get() {
+    if constexpr (is_shared_ptr<T>::value) {
+      T sp = Get_if<T>();
+      if (!sp)
+        throw std::bad_variant_access();
+      return sp;
+    } else {
+      auto ptr = Get_if<T>();
+      if (!ptr)
+        throw std::bad_variant_access();
+      return *ptr;
+    }
+  }
+
+  // Move retrieves the value by moving out of the variant to avoid copies
+  template <typename T>
+  T Extract() {
+    if constexpr (is_shared_ptr<T>::value) {
+      using U = typename T::element_type;
+      auto basePtr = std::get<std::shared_ptr<IObject>>(std::move(val_));
+      return std::dynamic_pointer_cast<U>(std::move(basePtr));
+    } else {
+      return std::get<T>(std::move(val_));
+    }
+  }
+
+  // for testing
+  operator std::string() const;
+  bool operator==(std::monostate) const;
+  bool operator==(int rhs) const;
+  bool operator==(double rhs) const;
+  bool operator==(bool rhs) const;
+  bool operator==(const std::string& rhs) const;
+
+ private:
+  value_t val_;
+};
+
+// -----------------------------------------------------------------------
+class IObject {
+ public:
+  virtual ~IObject() = default;
+  virtual ObjType Type() const noexcept = 0;
+
+  virtual std::string Str() const;
+  virtual std::string Desc() const;
 };
 
 }  // namespace serilang

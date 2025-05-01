@@ -30,7 +30,6 @@
 #include <variant>
 #include <vector>
 
-class Value;
 enum class Op;
 
 namespace m6 {
