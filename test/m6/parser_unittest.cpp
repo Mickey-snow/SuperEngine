@@ -43,12 +43,14 @@ class ExprParserTest : public ::testing::Test {
   static std::shared_ptr<ExprAST> parseExpr(std::span<Token> tokens) {
     Parser parser(tokens);
     std::shared_ptr<ExprAST> result = parser.ParseExpression();
-    EXPECT_TRUE(parser.Ok()) << Join(
-        "; ", std::views::all(parser.GetErrors()) |
-                  std::views::transform([](const Parser::ParseError& e) {
-                    return std::string(e.msg) + ',' +
-                           static_cast<std::string>(e.loc);
-                  }));
+    EXPECT_TRUE(parser.Ok())
+        << Join("; ", std::views::all(parser.GetErrors()) |
+                          std::views::transform([](const Error& e) {
+                            std::string result = e.msg;
+                            if (e.loc)
+                              result += static_cast<std::string>(*e.loc);
+                            return result;
+                          }));
     EXPECT_NE(result, nullptr);
     return result;
   }

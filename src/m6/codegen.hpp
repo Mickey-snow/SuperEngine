@@ -32,6 +32,7 @@
 #include <concepts>
 #include <memory>
 #include <optional>
+#include <span>
 #include <unordered_map>
 #include <vector>
 
@@ -56,6 +57,18 @@ class CodeGenerator {
   std::vector<Scope> locals_;  // one per lexical block
   std::size_t local_depth_;    // current stack depth
   std::unordered_map<std::string, int32_t> patch_sites_;  // for break/continue
+
+ private:
+  std::vector<Error> errors_;
+  void AddError(std::string msg,
+                std::optional<SourceLocation> loc = std::nullopt) {
+    errors_.emplace_back(std::move(msg), std::move(loc));
+  }
+
+ public:
+  bool Ok() const { return errors_.empty(); }
+  std::span<const Error> GetErrors() const { return errors_; }
+  void ClearErrors() { errors_.clear(); }
 
  public:
   std::shared_ptr<serilang::Chunk> GetChunk() const { return chunk_; }
@@ -149,7 +162,7 @@ class CodeGenerator {
     emit_expr(m.primary);
     auto id = m.member->Get_if<Identifier>();
     if (!id)
-      throw SyntaxError("member must be identifier", m.mem_loc);
+      AddError("member must be identifier", m.mem_loc);
   }
 
  private:  // statement code-gen
@@ -189,7 +202,6 @@ class CodeGenerator {
 
     emit(serilang::JumpIfFalse{0});
     auto jfalse = code_size() - 1;
-    emit(serilang::Pop{});
 
     emit_stmt(s.then);
     if (s.els) {
@@ -197,12 +209,10 @@ class CodeGenerator {
       auto jend = code_size() - 1;
 
       patch(jfalse, code_size());
-      // emit(Instr{ Pop{} });
       emit_stmt(s.els);
       patch(jend, code_size());
     } else {
       patch(jfalse, code_size());
-      // emit(Instr{ Pop{} });
     }
   }
   void emit_stmt_node(const WhileStmt& s) {
@@ -211,12 +221,10 @@ class CodeGenerator {
     emit_expr(s.cond);
     emit(serilang::JumpIfFalse{0});
     auto exitj = code_size() - 1;
-    emit(serilang::Pop{});
 
     emit_stmt(s.body);
     emit(serilang::Jump{rel<int32_t>(code_size(), loop_top) - 1});
     patch(exitj, code_size());
-    // emit(Pop{});
   }
   void emit_stmt_node(const ForStmt& f) {
     push_scope();
@@ -230,7 +238,6 @@ class CodeGenerator {
       emit(serilang::Push{constant(Value(true))});
     emit(serilang::JumpIfFalse{0});
     auto exitj = code_size();
-    emit(serilang::Pop{});
 
     emit_stmt(f.body);
     if (f.inc)
@@ -277,7 +284,7 @@ class CodeGenerator {
   }
   void emit_stmt_node(const std::shared_ptr<ExprAST>& s) {
     emit_expr(s);
-    if(repl_mode_){
+    if (repl_mode_) {
       // TODO: emit a print
     }
     // emit(serilang::Pop{});

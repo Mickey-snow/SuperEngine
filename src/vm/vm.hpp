@@ -180,10 +180,12 @@ class VM {
             } else if constexpr (std::is_same_v<T, serilang::Jump>) {
               frame.ip += ins.offset;
             } else if constexpr (std::is_same_v<T, serilang::JumpIfTrue>) {
-              if (fib->stack.back().IsTruthy())
+              auto cond = pop(fib->stack);
+              if (cond.IsTruthy())
                 frame.ip += ins.offset;
             } else if constexpr (std::is_same_v<T, serilang::JumpIfFalse>) {
-              if (!fib->stack.back().IsTruthy())
+              auto cond = pop(fib->stack);
+              if (!cond.IsTruthy())
                 frame.ip += ins.offset;
             } else if constexpr (std::is_same_v<T, serilang::Return>) {
               Value ret = fib->stack.empty() ? Value() : fib->stack.back();

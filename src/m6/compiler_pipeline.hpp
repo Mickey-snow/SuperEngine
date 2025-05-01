@@ -55,9 +55,9 @@ class CompilerPipeline {
         }(std::move(input_));
 
     tz.Parse(input);
-    if (!tz.errors_.empty()) {
-      for (auto const& e : tz.errors_)
-        errors.emplace_back(e.where(), e.what());
+    if (!tz.Ok()) {
+      for (auto const& e : tz.GetErrors())
+        errors.emplace_back(e);
       return;
     }
 
@@ -66,7 +66,7 @@ class CompilerPipeline {
 
     if (!parser.Ok()) {
       for (auto const& e : parser.GetErrors())
-        errors.emplace_back(e.loc, std::string(e.msg));
+        errors.emplace_back(e);
       return;
     }
 
@@ -74,7 +74,7 @@ class CompilerPipeline {
       for (const auto& it : asts)
         gen_.Gen(it);
     } catch (std::exception const& ex) {
-      errors.emplace_back(std::nullopt, ex.what());
+      errors.emplace_back(ex.what(), std::nullopt);
     }
   }
 
@@ -85,17 +85,9 @@ class CompilerPipeline {
   }
 
  public:
-  /**
-   * @brief Holds the details of one error.
-   */
-  struct ErrorInfo {
-    std::optional<SourceLocation> loc;
-    std::string msg;
-  };
-
   std::vector<Token> tokens;
   std::vector<std::shared_ptr<AST>> asts;
-  std::vector<ErrorInfo> errors;
+  std::vector<Error> errors;
 
  public:
   bool Ok() const { return errors.empty(); }

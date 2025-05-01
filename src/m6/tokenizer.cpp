@@ -313,4 +313,10 @@ void Tokenizer::Parse(std::string_view input) {
 Tokenizer::Tokenizer(std::vector<Token>& s)
     : errors_(), skip_ws_(true), add_eof_(true), storage_(s) {}
 
+bool Tokenizer::Ok() const { return errors_.empty(); }
+
+std::span<const Error> Tokenizer::GetErrors() const { return errors_; }
+
+void Tokenizer::ClearErrors() { errors_.clear(); }
+
 }  // namespace m6

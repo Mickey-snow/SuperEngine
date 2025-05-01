@@ -166,17 +166,15 @@ std::vector<std::shared_ptr<AST>> Parser::ParseAll() {
 
 bool Parser::Ok() const { return errors_.empty(); }
 
-std::span<const Parser::ParseError> Parser::GetErrors() const {
-  return errors_;
-}
+std::span<const Error> Parser::GetErrors() const { return errors_; }
 
 void Parser::ClearErrors() { errors_.clear(); }
 
-void Parser::AddError(std::string_view m, iterator_t loc) {
-  errors_.emplace_back(m, SourceLocation(loc));
+void Parser::AddError(std::string m, iterator_t loc) {
+  errors_.emplace_back(std::move(m), SourceLocation(loc));
 }
-void Parser::AddError(std::string_view m, SourceLocation loc) {
-  errors_.emplace_back(m, std::move(loc));
+void Parser::AddError(std::string m, SourceLocation loc) {
+  errors_.emplace_back(std::move(m), std::move(loc));
 }
 
 // Panic‑mode: skip to next ; or } or EOF

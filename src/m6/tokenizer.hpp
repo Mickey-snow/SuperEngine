@@ -29,8 +29,8 @@
 
 #include <string>
 #include <string_view>
-#include <variant>
 #include <vector>
+#include <span>
 
 namespace m6 {
 
@@ -40,8 +40,12 @@ class Tokenizer {
 
   void Parse(std::string_view input);
 
+  bool Ok() const;
+  std::span<const Error> GetErrors() const;
+  void ClearErrors();
+  
  public:
-  std::vector<SyntaxError> errors_;
+  std::vector<Error> errors_;
   bool skip_ws_;
   bool add_eof_;
 

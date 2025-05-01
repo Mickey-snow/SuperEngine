@@ -90,4 +90,9 @@ class NameError : public CompileError {
   using CompileError::where;
 };
 
+struct Error {
+  std::string msg;
+  std::optional<SourceLocation> loc;
+};
+
 }  // namespace m6

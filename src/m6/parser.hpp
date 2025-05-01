@@ -40,12 +40,6 @@ class Parser {
   using iterator_t = Token*;
 
  public:
-  struct ParseError {
-    std::string_view msg;
-    SourceLocation loc;
-  };
-
- public:
   explicit Parser(std::span<Token> input)
       : it_(input.data()),
         begin_(input.data()),
@@ -57,16 +51,15 @@ class Parser {
   std::vector<std::shared_ptr<AST>> ParseAll();                  // whole TU
 
   bool Ok() const;
-  std::span<const ParseError> GetErrors() const;
+  std::span<const Error> GetErrors() const;
   void ClearErrors();
 
  private:
   //------------------------------------------------------------------
   // helper functions
   //------------------------------------------------------------------
-
-  void AddError(std::string_view m, iterator_t loc);
-  void AddError(std::string_view m, SourceLocation loc);
+  void AddError(std::string m, iterator_t loc);
+  void AddError(std::string m, SourceLocation loc);
   void Synchronize();  // panic‑mode error recovery
 
   template <class Tok>
@@ -153,7 +146,7 @@ class Parser {
   iterator_t it_;     // current cursor
   iterator_t begin_;  // start of the buffer
   iterator_t end_;    // sentinel
-  std::vector<ParseError> errors_;
+  std::vector<Error> errors_;
 };
 
 }  // namespace m6
