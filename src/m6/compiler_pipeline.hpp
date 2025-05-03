@@ -25,6 +25,7 @@
 #pragma once
 
 #include "m6/codegen.hpp"
+#include "m6/error_formatter.hpp"
 #include "m6/parser.hpp"
 #include "m6/token.hpp"
 #include "m6/tokenizer.hpp"
@@ -36,14 +37,10 @@ namespace m6 {
 
 class CompilerPipeline {
  public:
-  CompilerPipeline(bool repl = false) : tz(tokens), gen_(repl) {}
+  CompilerPipeline(bool repl = false) : tz(tokens_), gen_(repl) {}
 
   void compile(std::string input_) {
-    if (errors.empty()) {
-      value_len_ = src_.length();
-      tokens.clear();
-      asts.clear();
-    }
+    Clear();
 
     std::string_view input =
         [&](std::string input_) {  // append input to source, then convert to a
@@ -56,25 +53,26 @@ class CompilerPipeline {
 
     tz.Parse(input);
     if (!tz.Ok()) {
-      for (auto const& e : tz.GetErrors())
-        errors.emplace_back(e);
+      AddErrors(tz.GetErrors());
+      tz.ClearErrors();
       return;
     }
 
-    Parser parser(tokens);
-    asts = parser.ParseAll();
+    Parser parser(tokens_);
+    asts_ = parser.ParseAll();
 
     if (!parser.Ok()) {
-      for (auto const& e : parser.GetErrors())
-        errors.emplace_back(e);
+      AddErrors(parser.GetErrors());
+      parser.ClearErrors();
       return;
     }
 
-    try {
-      for (const auto& it : asts)
-        gen_.Gen(it);
-    } catch (std::exception const& ex) {
-      errors.emplace_back(ex.what(), std::nullopt);
+    for (const auto& it : asts_)
+      gen_.Gen(it);
+    if (!gen_.Ok()) {
+      AddErrors(gen_.GetErrors());
+      gen_.ClearErrors();
+      return;
     }
   }
 
@@ -84,19 +82,43 @@ class CompilerPipeline {
     return result;
   }
 
- public:
-  std::vector<Token> tokens;
-  std::vector<std::shared_ptr<AST>> asts;
-  std::vector<Error> errors;
+  void Clear() {
+    tokens_.clear();
+    asts_.clear();
+    src_.clear();
+    errors_.clear();
+  }
+
+ private:
+  std::vector<Token> tokens_;
+  std::vector<std::shared_ptr<AST>> asts_;
+
+  std::vector<Error> errors_;
+  void AddErrors(std::span<const Error> errors_in) {
+    for (const auto& e : errors_in)
+      errors_.emplace_back(e);
+  }
 
  public:
-  bool Ok() const { return errors.empty(); }
+  bool Ok() const { return errors_.empty(); }
+  std::string FormatErrors() {
+    if (errors_.empty())
+      return {};
+    ErrorFormatter formatter(src_);
+    for (const auto& it : errors_) {
+      if (!it.loc.has_value())
+        formatter.Pushline(it.msg);
+      else
+        formatter.Highlight(it.loc->begin_offset, it.loc->end_offset, it.msg);
+    }
+    return formatter.Str();
+  }
 
  private:
   Tokenizer tz;
   CodeGenerator gen_;
+
   std::string src_;
-  size_t value_len_;
 };
 
 }  // namespace m6

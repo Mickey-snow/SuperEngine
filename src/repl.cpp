@@ -59,6 +59,11 @@ static void run_repl() {
       continue;
 
     pipeline.compile(std::move(line));
+    if (!pipeline.Ok()) {
+      std::cerr << pipeline.FormatErrors() << std::flush;
+      continue;
+    }
+
     auto chunk = pipeline.Get();
     if (!chunk)
       continue;
