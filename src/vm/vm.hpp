@@ -44,8 +44,12 @@
 namespace serilang {
 
 class VM {
+ private:
+  std::ostream& os_;
+
  public:
-  explicit VM(std::shared_ptr<Chunk> entry) : main_chunk(entry) {
+  explicit VM(std::shared_ptr<Chunk> entry, std::ostream& os = std::cout)
+      : os_(os), main_chunk(entry) {
     // bootstrap: main() as a closure pushed to main fiber
     auto main_cl = std::make_shared<Closure>(entry);
     main_cl->entry = 0;
@@ -69,10 +73,10 @@ class VM {
     globals["print"] = Value(std::make_shared<NativeFunction>(
         "print", [](VM& vm, std::vector<Value> args) {
           if (!args.empty()) {
-            std::cout << args.front().Str();
+            vm.os_ << args.front().Str();
             for (size_t i = 1; i < args.size(); ++i)
-              std::cout << ',' << args[i].Str();
-            std::cout << std::endl;
+              vm.os_ << ',' << args[i].Str();
+            vm.os_ << std::endl;
           }
           return Value();
         }));
