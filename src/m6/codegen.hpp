@@ -290,6 +290,11 @@ class CodeGenerator {
                              static_cast<uint16_t>(cd.members.size())});
     emit(serilang::StoreGlobal{intern_name(cd.name)});
   }
+  void emit_stmt_node(const ReturnStmt& r){
+    if(r.value) emit_expr(r.value);
+    else emit(serilang::Push{constant(Value(std::monostate()))});
+    emit(serilang::Return{});
+  }
   void emit_stmt_node(const std::shared_ptr<ExprAST>& s) {
     if (repl_mode_) {
       emit(serilang::LoadGlobal{intern_name("print")});

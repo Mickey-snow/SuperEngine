@@ -125,11 +125,22 @@ std::shared_ptr<AST> Parser::ParseStatement(bool requireSemi) {
       case tok::Reserved::_fn:
         return parseFuncDecl(true);
 
-      default:
+      case tok::Reserved::_return: {
+        auto kwLoc = SourceLocation(it_ - 1);
+        std::shared_ptr<ExprAST> val = nullptr;
+        if (!tryConsume<tok::Semicol>())
+          val = ParseExpression();
+
+        require<tok::Semicol>("expected ';' after return");
+        return std::make_shared<AST>(ReturnStmt(val, kwLoc));
+      }
+
+      default: {
         --it_;
         AddError("unexpected reserved keyword", it_);
         Synchronize();
         return nullptr;
+      }
     }
   }
 
@@ -142,11 +153,13 @@ std::shared_ptr<AST> Parser::ParseStatement(bool requireSemi) {
     return std::make_shared<AST>(BlockStmt(std::move(body)));
   }
 
-  // expression / assignment statement
-  auto stmt = parseAssignment();
-  if (requireSemi)
-    require<tok::Semicol>("Expected ';'.");
-  return stmt;
+  {
+    // expression / assignment statement
+    auto stmt = parseAssignment();
+    if (requireSemi)
+      require<tok::Semicol>("Expected ';'.");
+    return stmt;
+  }
 }
 
 std::vector<std::shared_ptr<AST>> Parser::ParseAll() {

@@ -95,6 +95,7 @@ std::string FuncDecl::DebugString() const {
 std::string ClassDecl::DebugString() const {
   return "class " + std::string(name);
 }
+std::string ReturnStmt::DebugString() const { return "return"; }
 
 // -----------------------------------------------------------------------
 // Visitor to print debug string for an AST
@@ -167,6 +168,10 @@ struct Dumper {
         Dumper dumper(childPrefix, i + 1 >= x.members.size());
         oss << dumper(x.members[i]);
       }
+    }
+    if constexpr (std::same_as<T, ReturnStmt>) {
+      if (x.value)
+        oss << x.value->Apply(Dumper(childPrefix, true));
     }
 
     return oss.str();

@@ -139,7 +139,8 @@ print(fact);
 }
 
 TEST_F(CompilerTest, Function) {
-  auto res = Run(R"(
+  {
+    auto res = Run(R"(
 fn print_twice(msg) {
   print(msg);
   print(msg);
@@ -147,8 +148,19 @@ fn print_twice(msg) {
 print_twice("hello");
 )");
 
-  ASSERT_TRUE(res.stderrStr.empty()) << res.stderrStr;
-  EXPECT_EQ(res.stdoutStr, "hello\nhello\n");
+    ASSERT_TRUE(res.stderrStr.empty()) << res.stderrStr;
+    EXPECT_EQ(res.stdoutStr, "hello\nhello\n");
+  }
+
+  {
+    auto res = Run(R"(
+fn return_plus_1(x) { return x+1; }
+print(return_plus_1(123));
+)");
+
+    ASSERT_TRUE(res.stderrStr.empty()) << res.stderrStr;
+    EXPECT_EQ(res.stdoutStr, "124\n");
+  }
 }
 }
 

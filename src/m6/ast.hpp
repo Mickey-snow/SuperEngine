@@ -242,6 +242,13 @@ struct ClassDecl {
   std::string DebugString() const;
 };
 
+struct ReturnStmt {
+  std::shared_ptr<ExprAST> value;  // nullptr means `return;`
+  SourceLocation kw_loc;
+
+  std::string DebugString() const;
+};
+
 using stmt_variant_t = std::variant<AssignStmt,
                                     AugStmt,
                                     IfStmt,
@@ -250,6 +257,7 @@ using stmt_variant_t = std::variant<AssignStmt,
                                     BlockStmt,
                                     FuncDecl,
                                     ClassDecl,
+				    ReturnStmt,
                                     std::shared_ptr<ExprAST>>;
 
 class AST {
