@@ -192,7 +192,7 @@ class CodeGenerator {
       emit(serilang::LoadGlobal{intern_name(id)});
 
     emit_expr(s.rhs);
-    emit(serilang::BinaryOp{s.op});
+    emit(serilang::BinaryOp{s.GetRmAssignmentOp()});
 
     // store back
     if (slot.has_value())
@@ -222,8 +222,8 @@ class CodeGenerator {
     auto loop_top = code_size();
 
     emit_expr(s.cond);
+    auto exitj = code_size();
     emit(serilang::JumpIfFalse{0});
-    auto exitj = code_size() - 1;
 
     emit_stmt(s.body);
     emit(serilang::Jump{rel<int32_t>(code_size(), loop_top) - 1});
@@ -239,8 +239,9 @@ class CodeGenerator {
       emit_expr(f.cond);
     else
       emit(serilang::Push{constant(Value(true))});
-    emit(serilang::JumpIfFalse{0});
+
     auto exitj = code_size();
+    emit(serilang::JumpIfFalse{0});
 
     emit_stmt(f.body);
     if (f.inc)
@@ -261,19 +262,23 @@ class CodeGenerator {
     // compile body with a fresh compiler
     CodeGenerator nested;
     nested.push_scope();
-    // parameters become locals 0…N-1
-    for (auto& p : fn.params)
+
+    nested.add_local(fn.name);  // local slot 0 is this function
+    for (auto& p : fn.params)   // parameters become locals 1...N
       nested.add_local(p);
+
     nested.emit_stmt(fn.body);
     nested.emit(serilang::Return{});
-    auto fnChunk = nested.chunk_;
+
+    auto closure = std::make_shared<serilang::Closure>(nested.GetChunk());
+    closure->entry = 0;
+    closure->nparams = fn.params.size();
+    closure->nlocals = static_cast<uint32_t>(nested.locals_.front().size());
+
     // push as constant
-    uint32_t constSlot =
-        constant(Value{std::make_shared<serilang::Closure>(fnChunk)});
+    uint32_t constSlot = constant(Value{std::move(closure)});
     emit(serilang::Push{constSlot});
-    emit(serilang::MakeClosure{0, static_cast<uint32_t>(fn.params.size()),
-                               static_cast<uint32_t>(nested.local_depth_),
-                               0 /*nupvals*/});
+
     // store to global (function hoisting)
     emit(serilang::StoreGlobal{intern_name(fn.name)});
   }

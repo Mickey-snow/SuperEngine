@@ -84,19 +84,72 @@ class CompilerTest : public ::testing::Test {
 TEST_F(CompilerTest, ConstantArithmetic) {
   auto res = Run("print(1 + 2);");
   ASSERT_TRUE(res.stderrStr.empty()) << res.stderrStr;
-  EXPECT_EQ(trim_cp(res.stdoutStr), "3");
+  EXPECT_EQ(res.stdoutStr, "3\n");
 }
 
 TEST_F(CompilerTest, GlobalVariable) {
   auto res = Run("a = 10;\n print(a + 5);");
   ASSERT_TRUE(res.stderrStr.empty()) << res.stderrStr;
-  EXPECT_EQ(trim_cp(res.stdoutStr), "15");
+  EXPECT_EQ(res.stdoutStr, "15\n");
 }
 
 TEST_F(CompilerTest, MultipleStatements) {
   auto res = Run("x = 4;\n y = 6;\n print(x * y);");
   ASSERT_TRUE(res.stderrStr.empty()) << res.stderrStr;
-  EXPECT_EQ(trim_cp(res.stdoutStr), "24");
+  EXPECT_EQ(res.stdoutStr, "24\n");
+}
+
+TEST_F(CompilerTest, If) {
+  auto res = Run(R"(
+result = "none";
+one = 1;
+two = 2;
+if(one < two){
+  if(one+1 < two) result = "first";
+  else { result = one + two; }
+} else result = "els";
+print(result);
+)");
+
+  ASSERT_TRUE(res.stderrStr.empty()) << res.stderrStr;
+  EXPECT_EQ(res.stdoutStr, "3\n");
+}
+
+TEST_F(CompilerTest, While) {
+  auto res = Run(R"(
+sum = 0;
+i = 1;
+while(i <= 10){ sum+=i; i+=1; }
+print(sum);
+)");
+
+  ASSERT_TRUE(res.stderrStr.empty()) << res.stderrStr;
+  EXPECT_EQ(res.stdoutStr, "55\n");
+}
+
+TEST_F(CompilerTest, For) {
+  auto res = Run(R"(
+fact = 1;
+for(i=1; i<10; i+=1) fact *= i;
+print(fact);
+)");
+
+  ASSERT_TRUE(res.stderrStr.empty()) << res.stderrStr;
+  EXPECT_EQ(res.stdoutStr, "362880\n");
+}
+
+TEST_F(CompilerTest, Function) {
+  auto res = Run(R"(
+fn print_twice(msg) {
+  print(msg);
+  print(msg);
+}
+print_twice("hello");
+)");
+
+  ASSERT_TRUE(res.stderrStr.empty()) << res.stderrStr;
+  EXPECT_EQ(res.stdoutStr, "hello\nhello\n");
+}
 }
 
 }  // namespace m6test
