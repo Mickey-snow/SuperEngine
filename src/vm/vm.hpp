@@ -257,14 +257,15 @@ class VM {
                 frame.ip += ins.offset;
             } else if constexpr (std::is_same_v<T, serilang::Return>) {
               Value ret = fib->stack.empty() ? Value() : fib->stack.back();
-              fib->stack.resize(frame.bp);
+              fib->stack.resize(frame.bp + 1 /* for return value */);
+
               fib->frames.pop_back();
               if (fib->frames.empty()) {  // fiber finished
                 fib->state = FiberState::Dead;
-                fib->last = ret;
-                return;
+                fib->last = std::move(ret);
+              } else {  // push return value back on stack
+                fib->stack.back() = std::move(ret);
               }
-              push(fib->stack, ret);
               return;  // let scheduler switch
               //------------------------------------------------------------------
               // 5. Function calls
@@ -367,8 +368,9 @@ class VM {
               RuntimeError("throw not implemented");
             } else if constexpr (std::is_same_v<T, serilang::TryBegin> ||
                                  std::is_same_v<T, serilang::TryEnd>) {
+              RuntimeError("Not implemented yet");
             } else {
-              throw std::runtime_error("Unimplemented instruction");
+              RuntimeError("Unimplemented instruction");
             }
             //------------------------------------------------------------------
           },

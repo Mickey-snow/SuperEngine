@@ -26,6 +26,7 @@
 
 #include "m6/compiler_pipeline.hpp"
 #include "utilities/string_utilities.hpp"
+#include "vm/disassembler.hpp"
 #include "vm/value.hpp"
 #include "vm/vm.hpp"
 
@@ -39,9 +40,10 @@ using namespace serilang;
 
 // Holds everything we care about after one script run
 struct ExecutionResult {
-  serilang::Value last;   ///< value left on the VM stack (result)
-  std::string stdoutStr;  ///< text produced on std::cout
-  std::string stderrStr;  ///< text produced on std::cerr
+  serilang::Value last;  ///< value left on the VM stack (result)
+  std::string stdout;    ///< text produced on std::cout
+  std::string stderr;    ///< text produced on std::cerr
+  std::string disasm;    ///< human readable disassembly
 };
 
 class CompilerTest : public ::testing::Test {
@@ -57,15 +59,16 @@ class CompilerTest : public ::testing::Test {
 
     // any compile-time diagnostics?
     if (!pipe.Ok()) {
-      r.stderrStr += pipe.FormatErrors();
+      r.stderr += pipe.FormatErrors();
       return r;
     }
 
     auto chunk = pipe.Get();
     if (!chunk) {
-      r.stderrStr += "internal: pipeline returned null chunk\n";
+      r.stderr += "internal: pipeline returned null chunk\n";
       return r;
     }
+    r.disasm = Disassembler().Dump(*chunk);
 
     // ── run ────────────────────────────────────────────────────────
     try {
@@ -73,30 +76,30 @@ class CompilerTest : public ::testing::Test {
       vm.Run();
       r.last = vm.main_fiber->last;
     } catch (std::exception const& ex) {
-      r.stderrStr += ex.what();
+      r.stderr += ex.what();
     }
 
-    r.stdoutStr += outBuf.str();
+    r.stdout += outBuf.str();
     return r;
   }
 };
 
 TEST_F(CompilerTest, ConstantArithmetic) {
   auto res = Run("print(1 + 2);");
-  ASSERT_TRUE(res.stderrStr.empty()) << res.stderrStr;
-  EXPECT_EQ(res.stdoutStr, "3\n");
+  ASSERT_TRUE(res.stderr.empty()) << res.stderr;
+  EXPECT_EQ(res.stdout, "3\n") << "\nDisassembly:\n" << res.disasm;
 }
 
 TEST_F(CompilerTest, GlobalVariable) {
   auto res = Run("a = 10;\n print(a + 5);");
-  ASSERT_TRUE(res.stderrStr.empty()) << res.stderrStr;
-  EXPECT_EQ(res.stdoutStr, "15\n");
+  ASSERT_TRUE(res.stderr.empty()) << res.stderr;
+  EXPECT_EQ(res.stdout, "15\n") << "\nDisassembly:\n" << res.disasm;
 }
 
 TEST_F(CompilerTest, MultipleStatements) {
   auto res = Run("x = 4;\n y = 6;\n print(x * y);");
-  ASSERT_TRUE(res.stderrStr.empty()) << res.stderrStr;
-  EXPECT_EQ(res.stdoutStr, "24\n");
+  ASSERT_TRUE(res.stderr.empty()) << res.stderr;
+  EXPECT_EQ(res.stdout, "24\n") << "\nDisassembly:\n" << res.disasm;
 }
 
 TEST_F(CompilerTest, If) {
@@ -111,8 +114,8 @@ if(one < two){
 print(result);
 )");
 
-  ASSERT_TRUE(res.stderrStr.empty()) << res.stderrStr;
-  EXPECT_EQ(res.stdoutStr, "3\n");
+  ASSERT_TRUE(res.stderr.empty()) << res.stderr;
+  EXPECT_EQ(res.stdout, "3\n") << "\nDisassembly:\n" << res.disasm;
 }
 
 TEST_F(CompilerTest, While) {
@@ -123,8 +126,8 @@ while(i <= 10){ sum+=i; i+=1; }
 print(sum);
 )");
 
-  ASSERT_TRUE(res.stderrStr.empty()) << res.stderrStr;
-  EXPECT_EQ(res.stdoutStr, "55\n");
+  ASSERT_TRUE(res.stderr.empty()) << res.stderr;
+  EXPECT_EQ(res.stdout, "55\n") << "\nDisassembly:\n" << res.disasm;
 }
 
 TEST_F(CompilerTest, For) {
@@ -134,8 +137,8 @@ for(i=1; i<10; i+=1) fact *= i;
 print(fact);
 )");
 
-  ASSERT_TRUE(res.stderrStr.empty()) << res.stderrStr;
-  EXPECT_EQ(res.stdoutStr, "362880\n");
+  ASSERT_TRUE(res.stderr.empty()) << res.stderr;
+  EXPECT_EQ(res.stdout, "362880\n") << "\nDisassembly:\n" << res.disasm;
 }
 
 TEST_F(CompilerTest, Function) {
@@ -148,8 +151,8 @@ fn print_twice(msg) {
 print_twice("hello");
 )");
 
-    ASSERT_TRUE(res.stderrStr.empty()) << res.stderrStr;
-    EXPECT_EQ(res.stdoutStr, "hello\nhello\n");
+    ASSERT_TRUE(res.stderr.empty()) << res.stderr;
+    EXPECT_EQ(res.stdout, "hello\nhello\n") << "\nDisassembly:\n" << res.disasm;
   }
 
   {
@@ -158,10 +161,22 @@ fn return_plus_1(x) { return x+1; }
 print(return_plus_1(123));
 )");
 
-    ASSERT_TRUE(res.stderrStr.empty()) << res.stderrStr;
-    EXPECT_EQ(res.stdoutStr, "124\n");
+    ASSERT_TRUE(res.stderr.empty()) << res.stderr;
+    EXPECT_EQ(res.stdout, "124\n") << "\nDisassembly:\n" << res.disasm;
   }
 }
+
+TEST_F(CompilerTest, RecursiveFunction) {
+  auto res = Run(R"(
+fn fib(n) {
+  if (n < 2) return 1;
+  return fib(n-1) + fib(n-2);
+}
+print(fib(10));
+)");
+
+  ASSERT_TRUE(res.stderr.empty()) << res.stderr;
+  EXPECT_EQ(res.stdout, "89\n") << "\nDisassembly:\n" << res.disasm;
 }
 
 }  // namespace m6test

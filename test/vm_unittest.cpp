@@ -110,9 +110,8 @@ TEST(VMTest, FunctionCall) {
   chunk->const_pool = value_vector(7.0);
   chunk->code = {MakeClosure{3, 0, 0, 0}, Call{0}, Return{}, Push{0}, Return{}};
 
-  VM vm(chunk);
-  vm.Run();
-  EXPECT_EQ(vm.main_fiber->last, 7.0);
+  Value out = run_and_get(chunk);
+  EXPECT_EQ(out, 7.0);
 }
 
 TEST(VMTest, TailCall) {
@@ -134,9 +133,8 @@ TEST(VMTest, TailCall) {
                  // inner()
                  Push{0}, Return{}};
 
-  VM vm(chunk);
-  vm.Run();
-  EXPECT_EQ(vm.main_fiber->last, 99.0);
+  Value out = run_and_get(chunk);
+  EXPECT_EQ(out, 99.0);
 }
 
 //      if (1 < 2) push 222 else push 111
@@ -174,7 +172,7 @@ TEST(VMTest, CallNative) {
   int call_count = 0;
   auto fn = std::make_shared<NativeFunction>(
       "my_function", [&](VM& vm, std::vector<Value> args) {
-	++call_count;
+        ++call_count;
         EXPECT_EQ(args.size(), 2);
         EXPECT_EQ(args[0], 1);
         EXPECT_EQ(args[1], "foo");
