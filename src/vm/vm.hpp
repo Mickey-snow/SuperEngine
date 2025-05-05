@@ -57,7 +57,7 @@ class VM {
     main_cl->nparams = 0;
     main_fiber = std::make_shared<Fiber>();
     push(main_fiber->stack, Value(main_cl));  // fn
-    CallClosure(*main_fiber, main_cl, 0);     // run main()
+    Call(*main_fiber, main_cl, 0);            // run main()
     fibers.push_front(main_fiber);
 
     // register native functions
@@ -105,7 +105,7 @@ class VM {
     // create a new fiber for this snippet
     auto replFiber = std::make_shared<Fiber>();
     push(replFiber->stack, Value(cl));
-    CallClosure(*replFiber, cl, /*arity=*/0);
+    Call(*replFiber, cl, /*arity=*/0);
     fibers.push_front(replFiber);
 
     // run until this fiber finishes
@@ -145,20 +145,43 @@ class VM {
   void RuntimeError(const std::string& msg) { throw std::runtime_error(msg); }
 
   // call helpers ---------------------------------------------------
-  void CallClosure(Fiber& f, std::shared_ptr<Closure> cl, uint8_t arity) {
+  void Call(Fiber& f, std::shared_ptr<Closure> cl, uint8_t arity) {
     if (arity != cl->nparams)
       RuntimeError("arity mismatch");
     const auto base = f.stack.size() - arity - 1;  // fn slot
     f.frames.push_back({cl, cl->entry, base});
     f.stack.resize(base + cl->nlocals);  // allocate locals
   }
-  void CallNative(Fiber& f, std::shared_ptr<NativeFunction> fn, uint8_t arity) {
+  void Call(Fiber& f, std::shared_ptr<NativeFunction> fn, uint8_t arity) {
     std::vector<Value> args;
     args.reserve(arity);
     for (size_t i = f.stack.size() - arity; i < f.stack.size(); ++i)
       args.emplace_back(std::move(f.stack[i]));
+
     f.stack.resize(f.stack.size() - arity);
-    f.stack.emplace_back(fn->Call(*this, std::move(args)));
+    f.stack.back() = fn->Call(*this, std::move(args));
+  }
+  void Call(Fiber& f, std::shared_ptr<Class> cl, uint8_t arity) {
+    f.stack.resize(f.stack.size() - arity);
+    auto inst = std::make_shared<Instance>(cl);
+    inst->fields = cl->methods;
+    f.stack.back() = Value(std::move(inst));
+  }
+  void DispatchCall(Fiber& f, Value& v, uint8_t arity) {
+    switch (v.Type()) {
+      case ObjType::Native:  // native function
+        Call(f, v.template Get<std::shared_ptr<NativeFunction>>(), arity);
+        break;
+      case ObjType::Closure:  // function
+        Call(f, v.template Get<std::shared_ptr<Closure>>(), arity);
+        break;
+      case ObjType::Class:  // instantiate class
+        Call(f, v.template Get<std::shared_ptr<Class>>(), arity);
+        break;
+
+      default:
+        RuntimeError(v.Desc() + " not callable");
+    }
   }
   // tail‑call collapses frame
   void TailCall(Fiber& f, std::shared_ptr<Closure> cl, uint8_t arity) {
@@ -284,23 +307,10 @@ class VM {
               }
               push(fib->stack, Value(cl));
             } else if constexpr (std::is_same_v<T, serilang::Call>) {
-              auto arity = ins.arity;
-              auto fnVal = fib->stack.end()[-arity - 1];
-
-              if (fnVal.Type() == ObjType::Closure)
-                CallClosure(*fib,
-                            fnVal.template Get<std::shared_ptr<Closure>>(),
-                            arity);
-              else if (fnVal.Type() == ObjType::Native)
-                CallNative(
-                    *fib, fnVal.template Get<std::shared_ptr<NativeFunction>>(),
-                    arity);
-              else
-                RuntimeError("object is not callable");
-
+              DispatchCall(*fib, fib->stack.end()[-ins.arity - 1], ins.arity);
             } else if constexpr (std::is_same_v<T, serilang::TailCall>) {
               auto arity = ins.arity;
-              auto fnVal = fib->stack.end()[-arity - 1];
+              Value& fnVal = fib->stack.end()[-arity - 1];
               auto cl = fnVal.template Get_if<std::shared_ptr<Closure>>();
               if (!cl)
                 RuntimeError("tailcall non‑closure");
@@ -318,9 +328,6 @@ class VM {
                 klass->methods[std::move(name)] = std::move(method);
               }
               push(fib->stack, Value(klass));
-            } else if constexpr (std::is_same_v<T, serilang::New>) {
-              auto klass = pop(fib->stack).Extract<std::shared_ptr<Class>>();
-              push(fib->stack, Value(std::make_shared<Instance>(klass)));
             } else if constexpr (std::is_same_v<T, serilang::GetField>) {
               auto inst = pop(fib->stack).Extract<std::shared_ptr<Instance>>();
               auto name =

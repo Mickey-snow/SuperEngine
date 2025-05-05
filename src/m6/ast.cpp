@@ -138,7 +138,7 @@ struct Dumper {
     }
     if constexpr (std::same_as<T, MemberExpr>) {
       oss << x.primary->Apply(Dumper(childPrefix, false));
-      oss << x.member->Apply(Dumper(childPrefix, true));
+      oss << childPrefix << "└─ID " << x.member << '\n';
     }
     if constexpr (std::same_as<T, IfStmt>) {
       oss << x.cond->DumpAST("cond", childPrefix, false);

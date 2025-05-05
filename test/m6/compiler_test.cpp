@@ -22,7 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#include <gtest/gtest.h>
+#include <gmock/gmock.h>
 
 #include "m6/compiler_pipeline.hpp"
 #include "utilities/string_utilities.hpp"
@@ -31,6 +31,7 @@
 #include "vm/vm.hpp"
 
 #include <iostream>
+#include <regex>
 #include <sstream>
 
 namespace m6test {
@@ -157,6 +158,23 @@ print_twice("hello");
 
   {
     auto res = Run(R"(
+fn print_time(){ t = time(); print(t); }
+print_time();
+)");
+
+    auto isNumber = [](std::string s) {
+      if (!s.empty() && s.back() == '\n')
+        s.pop_back();
+      static const std::regex re{R"(^[+-]?\d+(\.\d+)?$)"};
+      return std::regex_match(s, re);
+    };
+    ASSERT_TRUE(res.stderr.empty()) << res.stderr;
+    EXPECT_TRUE(isNumber(res.stdout)) << res.stdout << "\nDisassembly:\n"
+                                      << res.disasm;
+  }
+
+  {
+    auto res = Run(R"(
 fn return_plus_1(x) { return x+1; }
 print(return_plus_1(123));
 )");
@@ -167,7 +185,8 @@ print(return_plus_1(123));
 }
 
 TEST_F(CompilerTest, RecursiveFunction) {
-  auto res = Run(R"(
+  {
+    auto res = Run(R"(
 fn fib(n) {
   if (n < 2) return 1;
   return fib(n-1) + fib(n-2);
@@ -175,8 +194,9 @@ fn fib(n) {
 print(fib(10));
 )");
 
-  ASSERT_TRUE(res.stderr.empty()) << res.stderr;
-  EXPECT_EQ(res.stdout, "89\n") << "\nDisassembly:\n" << res.disasm;
+    ASSERT_TRUE(res.stderr.empty()) << res.stderr;
+    EXPECT_EQ(res.stdout, "89\n") << "\nDisassembly:\n" << res.disasm;
+  }
 }
 
 TEST_F(CompilerTest, Class) {
@@ -187,10 +207,14 @@ class Klass{
 }
 
 print(Klass);
+klass = Klass();
+print(klass, klass.foo(), klass.boo(2,3));
 )");
 
   ASSERT_TRUE(res.stderr.empty()) << res.stderr;
-  EXPECT_EQ(res.stdout, "<class Klass>\n") << "\nDisassembly:\n" << res.disasm;
+  EXPECT_EQ(res.stdout, "<class Klass>\n<Klass object>,1,5\n")
+      << "\nDisassembly:\n"
+      << res.disasm;
 }
 
 }  // namespace m6test

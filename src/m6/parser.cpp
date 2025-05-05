@@ -616,12 +616,12 @@ std::shared_ptr<ExprAST> Parser::parsePostfix() {
         Synchronize();
         return lhs;
       }
+      tok::ID const* id_tok = it_->GetIf<tok::ID>();
       auto memberLoc = SourceLocation(it_);
-      Identifier member(it_->GetIf<tok::ID>()->id, memberLoc);
       ++it_;
-      auto memberNode = std::make_shared<ExprAST>(std::move(member));
+
       lhs = std::make_shared<ExprAST>(MemberExpr(
-          lhs, memberNode, SourceLocation::Range(primary_begin, primary_end),
+          lhs, id_tok->id, SourceLocation::Range(primary_begin, primary_end),
           memberLoc));
       continue;
     }

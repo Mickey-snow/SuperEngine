@@ -116,7 +116,7 @@ struct SubscriptExpr {
 // Member access node
 struct MemberExpr {
   std::shared_ptr<ExprAST> primary;
-  std::shared_ptr<ExprAST> member;
+  std::string_view member;
 
   SourceLocation primary_loc, mem_loc;
 
@@ -257,7 +257,7 @@ using stmt_variant_t = std::variant<AssignStmt,
                                     BlockStmt,
                                     FuncDecl,
                                     ClassDecl,
-				    ReturnStmt,
+                                    ReturnStmt,
                                     std::shared_ptr<ExprAST>>;
 
 class AST {

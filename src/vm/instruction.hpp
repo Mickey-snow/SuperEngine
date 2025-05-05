@@ -101,7 +101,6 @@ struct MakeClass {
   uint32_t name_index;
   uint16_t nmethods;
 };  // (method_fn*) → (class)
-struct New {};  // (class) → (instance)
 struct GetField {
   uint32_t name_index;
 };  // (inst) → (value)
@@ -150,7 +149,6 @@ using Instruction = std::variant<Push,
                                  Call,
                                  TailCall,
                                  MakeClass,
-                                 New,
                                  GetField,
                                  SetField,
                                  GetItem,

@@ -27,6 +27,7 @@
 #include "vm/instruction.hpp"
 #include "vm/value_internal/closure.hpp"
 
+#include <format>
 #include <iomanip>
 
 namespace serilang {
@@ -52,6 +53,11 @@ void Disassembler::PrintIns(Chunk& chunk,
   const auto emit_operand = [&](auto v) {
     static constexpr int COL_OPERND = 10;
     out_ << right << setw(COL_OPERND) << v;
+  };
+  const auto string_at = [&](size_t index) {
+    return index < chunk.const_pool.size()
+               ? chunk.const_pool[index].template Get<std::string>()
+               : "???";
   };
 
   // header (address column) --------------------------------------
@@ -100,18 +106,12 @@ void Disassembler::PrintIns(Chunk& chunk,
         } else if constexpr (std::is_same_v<T, LoadGlobal>) {
           emit_mnemonic("LD_GLOBAL");
           emit_operand(ins.name_index);
-          if (ins.name_index < chunk.const_pool.size())
-            out_
-                << "  ; "
-                << chunk.const_pool[ins.name_index].template Get<std::string>();
+          out_ << "  ; " << string_at(ins.name_index);
 
         } else if constexpr (std::is_same_v<T, StoreGlobal>) {
           emit_mnemonic("ST_GLOBAL");
           emit_operand(ins.name_index);
-          if (ins.name_index < chunk.const_pool.size())
-            out_
-                << "  ; "
-                << chunk.const_pool[ins.name_index].template Get<std::string>();
+          out_ << "  ; " << string_at(ins.name_index);
 
         } else if constexpr (std::is_same_v<T, LoadUpvalue>) {
           emit_mnemonic("LD_UPVAL");
@@ -168,19 +168,19 @@ void Disassembler::PrintIns(Chunk& chunk,
           // ── 6. objects / classes ───────────────────────────────
         } else if constexpr (std::is_same_v<T, MakeClass>) {
           emit_mnemonic("MAKE_CLASS");
-          emit_operand("");  // keep spacing
-          out_ << "name=" << ins.name_index << "  nmethods=" << ins.nmethods;
-
-        } else if constexpr (std::is_same_v<T, New>) {
-          emit_mnemonic("NEW");
+          emit_operand("");
+          out_ << std::format("name={}({})  nmethods={}", ins.name_index,
+                              string_at(ins.name_index), ins.nmethods);
 
         } else if constexpr (std::is_same_v<T, GetField>) {
           emit_mnemonic("GET_FIELD");
           emit_operand(ins.name_index);
+          out_ << "  ; " << string_at(ins.name_index);
 
         } else if constexpr (std::is_same_v<T, SetField>) {
           emit_mnemonic("SET_FIELD");
           emit_operand(ins.name_index);
+          out_ << "  ; " << string_at(ins.name_index);
 
         } else if constexpr (std::is_same_v<T, GetItem>) {
           emit_mnemonic("GET_ITEM");

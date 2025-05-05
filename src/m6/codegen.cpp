@@ -73,7 +73,7 @@ uint32_t CodeGenerator::constant(Value v) {
   return static_cast<uint32_t>(chunk_->const_pool.size() - 1);
 }
 
-uint32_t CodeGenerator::intern_name(const std::string& s) {
+uint32_t CodeGenerator::intern_name(std::string_view s) {
   for (uint32_t i = 0; i < chunk_->const_pool.size(); ++i) {
     if (auto p = chunk_->const_pool[i].Get_if<std::string>(); p && *p == s) {
       return i;
@@ -162,10 +162,7 @@ void CodeGenerator::emit_expr_node(const SubscriptExpr& s) {
 
 void CodeGenerator::emit_expr_node(const MemberExpr& m) {
   emit_expr(m.primary);
-  auto id = m.member->Get_if<Identifier>();
-  if (!id) {
-    AddError("member must be identifier", m.mem_loc);
-  }
+  emit(sr::GetField{intern_name(m.member)});
 }
 
 // Statement codegen

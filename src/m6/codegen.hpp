@@ -73,7 +73,7 @@ class CodeGenerator {
 
   // -- Constant-pool helpers ------------------------------------------
   uint32_t constant(Value v);
-  uint32_t intern_name(const std::string& s);
+  uint32_t intern_name(std::string_view s);
 
   // -- Emit helpers ---------------------------------------------------
   template <class T>
