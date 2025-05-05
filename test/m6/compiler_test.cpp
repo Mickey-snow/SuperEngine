@@ -179,4 +179,18 @@ print(fib(10));
   EXPECT_EQ(res.stdout, "89\n") << "\nDisassembly:\n" << res.disasm;
 }
 
+TEST_F(CompilerTest, Class) {
+  auto res = Run(R"(
+class Klass{
+  fn foo(){ return 1; }
+  fn boo(x,y){ return x+y; }
+}
+
+print(Klass);
+)");
+
+  ASSERT_TRUE(res.stderr.empty()) << res.stderr;
+  EXPECT_EQ(res.stdout, "<class Klass>\n") << "\nDisassembly:\n" << res.disasm;
+}
+
 }  // namespace m6test

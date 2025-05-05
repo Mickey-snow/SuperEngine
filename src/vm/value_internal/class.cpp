@@ -28,16 +28,16 @@ namespace serilang {
 
 ObjType Class::Type() const noexcept { return ObjType::Class; }
 
-std::string Class::Str() const { return "class"; }
+std::string Class::Str() const { return Desc(); }
 
-std::string Class::Desc() const { return "<class>"; }
+std::string Class::Desc() const { return "<class " + name + '>'; }
 
 Instance::Instance(std::shared_ptr<Class> klass_) : klass(std::move(klass_)) {}
 
 ObjType Instance::Type() const noexcept { return ObjType::Instance; }
 
-std::string Instance::Str() const { return "instance"; }
+std::string Instance::Str() const { return Desc(); }
 
-std::string Instance::Desc() const { return "<instance>"; }
+std::string Instance::Desc() const { return '<' + klass->name + " object>"; }
 
 }  // namespace serilang

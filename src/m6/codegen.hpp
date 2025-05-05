@@ -29,305 +29,103 @@
 #include "vm/chunk.hpp"
 #include "vm/instruction.hpp"
 #include "vm/value.hpp"
-#include "vm/value_internal/closure.hpp"
 
 #include <concepts>
 #include <memory>
-#include <optional>
 #include <span>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
 namespace m6 {
 
 class CodeGenerator {
-  using Value = serilang::Value;
-  using ChunkPtr = std::shared_ptr<serilang::Chunk>;
-  using Scope = std::unordered_map<std::string, std::size_t>;  // name->slot
-
  public:
-  CodeGenerator(bool repl = false)
-      : repl_mode_(repl),
-        chunk_(std::make_shared<serilang::Chunk>()),
-        locals_{},
-        local_depth_(0),
-        patch_sites_() {}
-  ~CodeGenerator() = default;
+  explicit CodeGenerator(bool repl = false);
+  ~CodeGenerator();
 
- private:  // data members
-  bool repl_mode_;
-  std::shared_ptr<serilang::Chunk> chunk_;
-  std::vector<Scope> locals_;  // one per lexical block
-  std::size_t local_depth_;    // current stack depth
-  std::unordered_map<std::string, int32_t> patch_sites_;  // for break/continue
+  bool Ok() const;
+  std::span<const Error> GetErrors() const;
+  void ClearErrors();
+
+  std::shared_ptr<serilang::Chunk> GetChunk() const;
+  void SetChunk(std::shared_ptr<serilang::Chunk> c);
+
+  void Gen(std::shared_ptr<AST> ast);
 
  private:
+  // -- Type aliases ----------------------------------------------------
+  using Value = serilang::Value;
+  using ChunkPtr = std::shared_ptr<serilang::Chunk>;
+  using Scope = std::unordered_map<std::string, std::size_t>;
+
+  // -- Data members ---------------------------------------------------
+  bool repl_mode_;
+  ChunkPtr chunk_;
+  std::vector<Scope> locals_;
+  std::size_t local_depth_;
+  std::unordered_map<std::string, int32_t> patch_sites_;
   std::vector<Error> errors_;
+
+  // -- Error handling -------------------------------------------------
   void AddError(std::string msg,
-                std::optional<SourceLocation> loc = std::nullopt) {
-    errors_.emplace_back(std::move(msg), std::move(loc));
-  }
+                std::optional<SourceLocation> loc = std::nullopt);
 
- public:
-  bool Ok() const { return errors_.empty(); }
-  std::span<const Error> GetErrors() const { return errors_; }
-  void ClearErrors() { errors_.clear(); }
+  // -- Constant-pool helpers ------------------------------------------
+  uint32_t constant(Value v);
+  uint32_t intern_name(const std::string& s);
 
- public:
-  std::shared_ptr<serilang::Chunk> GetChunk() const { return chunk_; }
-  void SetChunk(std::shared_ptr<serilang::Chunk> c) { chunk_ = c; }
-
-  void Gen(std::shared_ptr<AST> ast) { emit_stmt(ast); }
-
- private:  // constant-pool helpers
-  uint32_t constant(Value v) {
-    chunk_->const_pool.emplace_back(std::move(v));
-    return static_cast<uint32_t>(chunk_->const_pool.size() - 1);
-  }
-
-  uint32_t intern_name(const std::string& s) {
-    // keep identical strings unified – optional optimisation
-    for (uint32_t i = 0; i < chunk_->const_pool.size(); ++i)
-      if (auto p = chunk_->const_pool[i].Get_if<std::string>(); p && *p == s)
-        return i;
-    return constant(Value{std::string{s}});
-  }
-
- private:  // emit helpers
+  // -- Emit helpers ---------------------------------------------------
   template <class T>
     requires std::constructible_from<serilang::Instruction, T>
   void emit(T&& ins) {
     chunk_->code.emplace_back(std::forward<T>(ins));
   }
-  std::size_t code_size() const { return chunk_->code.size(); }
 
-  void push_scope() { locals_.emplace_back(); }
-  void pop_scope() { locals_.pop_back(); }
+  std::size_t code_size() const;
+  void push_scope();
+  void pop_scope();
 
- private:  // identifier resolution
-  std::optional<std::size_t> resolve_local(const std::string& name) const {
-    for (std::size_t i = locals_.size(); i-- > 0;) {
-      auto it = locals_[i].find(name);
-      if (it != locals_[i].end())
-        return it->second;
-    }
-    return std::nullopt;
-  }
-  std::size_t add_local(const std::string& name) {
-    locals_.back()[name] = local_depth_;
-    return local_depth_++;
-  }
+  // -- Identifier resolution ------------------------------------------
+  std::optional<std::size_t> resolve_local(const std::string& name) const;
+  std::size_t add_local(const std::string& name);
 
- private:  // expression codegen
-  void emit_expr(std::shared_ptr<ExprAST> n) {
-    n->Apply([&](auto&& x) { emit_expr_node(x); });
-  }
-  void emit_expr_node(const IntLiteral& n) {
-    const auto slot = constant(Value(n.value));
-    emit(serilang::Push{slot});
-  }
-  void emit_expr_node(const StrLiteral& n) {
-    const auto slot = constant(Value(std::string(n.value)));
-    emit(serilang::Push{slot});
-  }
-  void emit_expr_node(const NilLiteral&) {
-    emit(serilang::Push{constant(Value())});
-  }
-  void emit_expr_node(const Identifier& n) {
-    std::string id = std::string(n.value);
-    if (auto slot = resolve_local(id); slot.has_value())
-      emit(serilang::LoadLocal{static_cast<uint8_t>(*slot)});
-    else
-      emit(serilang::LoadGlobal{intern_name(id)});
-  }
-  void emit_expr_node(const UnaryExpr& u) {
-    emit_expr(u.sub);
-    emit(serilang::UnaryOp{u.op});
-  }
-  void emit_expr_node(const BinaryExpr& b) {
-    emit_expr(b.lhs);
-    emit_expr(b.rhs);
-    emit(serilang::BinaryOp{b.op});
-  }
-  void emit_expr_node(const ParenExpr& p) { emit_expr(p.sub); }
-  void emit_expr_node(const InvokeExpr& call) {
-    emit_expr(call.fn);
-    for (const auto& arg : call.args)
-      emit_expr(arg);
-    emit(serilang::Call{static_cast<uint8_t>(call.args.size())});
-  }
-  void emit_expr_node(const SubscriptExpr& s) {  // experimental
-    emit_expr(s.primary);
-    emit_expr(s.index);
-    emit(serilang::GetItem{});
-  }
-  void emit_expr_node(const MemberExpr& m) {  // experimental
-    emit_expr(m.primary);
-    auto id = m.member->Get_if<Identifier>();
-    if (!id)
-      AddError("member must be identifier", m.mem_loc);
-  }
+  // -- Expression codegen ---------------------------------------------
+  void emit_expr(std::shared_ptr<ExprAST> n);
+  void emit_expr_node(const IntLiteral& n);
+  void emit_expr_node(const StrLiteral& n);
+  void emit_expr_node(const NilLiteral&);
+  void emit_expr_node(const Identifier& n);
+  void emit_expr_node(const UnaryExpr& u);
+  void emit_expr_node(const BinaryExpr& b);
+  void emit_expr_node(const ParenExpr& p);
+  void emit_expr_node(const InvokeExpr& call);
+  void emit_expr_node(const SubscriptExpr& s);
+  void emit_expr_node(const MemberExpr& m);
 
- private:  // statement code-gen
-  void emit_stmt(std::shared_ptr<AST> s) {
-    s->Apply([&](auto&& n) { emit_stmt_node(n); });
-  }
+  // -- Statement codegen ----------------------------------------------
+  void emit_stmt(std::shared_ptr<AST> s);
+  void emit_stmt_node(const AssignStmt& s);
+  void emit_stmt_node(const AugStmt& s);
+  void emit_stmt_node(const IfStmt& s);
+  void emit_stmt_node(const WhileStmt& s);
+  void emit_stmt_node(const ForStmt& f);
+  void emit_stmt_node(const BlockStmt& s);
+  void emit_stmt_node(const FuncDecl& fn);
+  void emit_stmt_node(const ClassDecl& cd);
+  void emit_stmt_node(const ReturnStmt& r);
+  void emit_stmt_node(const std::shared_ptr<ExprAST>& s);
 
-  void emit_stmt_node(const AssignStmt& s) {
-    emit_expr(s.rhs);
-    std::string id = std::string(s.lhs->Get_if<Identifier>()->value);
+  void emit_function(const FuncDecl& fn);
 
-    if (auto slot = resolve_local(id); slot.has_value())
-      emit(serilang::StoreLocal{static_cast<uint8_t>(slot.value())});
-    else
-      emit(serilang::StoreGlobal{intern_name(id)});
-  }
-  void emit_stmt_node(const AugStmt& s) {
-    std::string id = std::string(s.lhs->Get_if<Identifier>()->value);
-
-    auto slot = resolve_local(id);
-    if (slot.has_value())
-      emit(serilang::LoadLocal{static_cast<uint8_t>(slot.value())});
-    else
-      emit(serilang::LoadGlobal{intern_name(id)});
-
-    emit_expr(s.rhs);
-    emit(serilang::BinaryOp{s.GetRmAssignmentOp()});
-
-    // store back
-    if (slot.has_value())
-      emit(serilang::StoreLocal{static_cast<uint8_t>(slot.value())});
-    else
-      emit(serilang::StoreGlobal{intern_name(id)});
-  }
-  void emit_stmt_node(const IfStmt& s) {
-    emit_expr(s.cond);
-
-    emit(serilang::JumpIfFalse{0});
-    auto jfalse = code_size() - 1;
-
-    emit_stmt(s.then);
-    if (s.els) {
-      emit(serilang::Jump{0});
-      auto jend = code_size() - 1;
-
-      patch(jfalse, code_size());
-      emit_stmt(s.els);
-      patch(jend, code_size());
-    } else {
-      patch(jfalse, code_size());
-    }
-  }
-  void emit_stmt_node(const WhileStmt& s) {
-    auto loop_top = code_size();
-
-    emit_expr(s.cond);
-    auto exitj = code_size();
-    emit(serilang::JumpIfFalse{0});
-
-    emit_stmt(s.body);
-    emit(serilang::Jump{rel<int32_t>(code_size(), loop_top) - 1});
-    patch(exitj, code_size());
-  }
-  void emit_stmt_node(const ForStmt& f) {
-    push_scope();
-    if (f.init)
-      emit_stmt(f.init);
-
-    auto condpos = code_size();
-    if (f.cond)
-      emit_expr(f.cond);
-    else
-      emit(serilang::Push{constant(Value(true))});
-
-    auto exitj = code_size();
-    emit(serilang::JumpIfFalse{0});
-
-    emit_stmt(f.body);
-    if (f.inc)
-      emit_stmt(f.inc);
-
-    emit(serilang::Jump{rel<int32_t>(code_size(), condpos) - 1});
-
-    patch(exitj, code_size());
-    pop_scope();
-  }
-  void emit_stmt_node(const BlockStmt& s) {
-    push_scope();
-    for (const auto& stmt : s.body)
-      emit_stmt(stmt);
-    pop_scope();
-  }
-  void emit_stmt_node(const FuncDecl& fn) {  // experimental
-    // compile body with a fresh compiler
-    CodeGenerator nested;
-    nested.push_scope();
-
-    nested.add_local(fn.name);  // local slot 0 is this function
-    for (auto& p : fn.params)   // parameters become locals 1...N
-      nested.add_local(p);
-
-    nested.emit_stmt(fn.body);
-    nested.emit(serilang::Return{});
-
-    auto closure = std::make_shared<serilang::Closure>(nested.GetChunk());
-    closure->entry = 0;
-    closure->nparams = fn.params.size();
-    closure->nlocals = static_cast<uint32_t>(nested.locals_.front().size());
-
-    // push as constant
-    uint32_t constSlot = constant(Value{std::move(closure)});
-    emit(serilang::Push{constSlot});
-
-    // store to global (function hoisting)
-    emit(serilang::StoreGlobal{intern_name(fn.name)});
-  }
-  void emit_stmt_node(const ClassDecl& cd) {  // experimental
-    // compile each method as closures, left on stack
-    for (auto& m : cd.members)
-      emit_stmt_node(m);
-    emit(serilang::MakeClass{intern_name(cd.name),
-                             static_cast<uint16_t>(cd.members.size())});
-    emit(serilang::StoreGlobal{intern_name(cd.name)});
-  }
-  void emit_stmt_node(const ReturnStmt& r){
-    if(r.value) emit_expr(r.value);
-    else emit(serilang::Push{constant(Value(std::monostate()))});
-    emit(serilang::Return{});
-  }
-  void emit_stmt_node(const std::shared_ptr<ExprAST>& s) {
-    if (repl_mode_) {
-      emit(serilang::LoadGlobal{intern_name("print")});
-      emit_expr(s);
-      emit(serilang::Call{1});
-    } else {
-      emit_expr(s);
-      emit(serilang::Pop{1});
-    }
-  }
-
- private:  // helper functions
+  // -- Offset helper --------------------------------------------------
   template <typename offset_t>
-  static inline auto rel(offset_t from, offset_t to) -> offset_t {
+  static inline constexpr auto rel(offset_t from, offset_t to) -> offset_t {
     return to - from;
   }
-  void patch(std::size_t site, std::size_t target) {
-    auto& var = chunk_->code[site];
-    auto offset = rel<int32_t>(site + 1, target);
-    std::visit(
-        [&](auto& ins) {
-          using T = std::decay_t<decltype(ins)>;
-          if constexpr (std::is_same_v<T, serilang::JumpIfFalse>)
-            ins.offset = offset;
-          else if constexpr (std::is_same_v<T, serilang::JumpIfTrue>)
-            ins.offset = offset;
-          else if constexpr (std::is_same_v<T, serilang::Jump>)
-            ins.offset = offset;
-          else
-            throw std::runtime_error("Codegen: invalid patch site");
-        },
-        var);
-  }
+
+  // -- Jump-patching --------------------------------------------------
+  void patch(std::size_t site, std::size_t target);
 };
 
 }  // namespace m6
