@@ -171,30 +171,67 @@ void CodeGenerator::emit_stmt(std::shared_ptr<AST> s) {
 }
 
 void CodeGenerator::emit_stmt_node(const AssignStmt& s) {
-  emit_expr(s.rhs);
-  std::string id{s.lhs->Get_if<Identifier>()->value};
-  if (auto slot = resolve_local(id); slot.has_value()) {
-    emit(sr::StoreLocal{static_cast<uint8_t>(*slot)});
-  } else {
-    emit(sr::StoreGlobal{intern_name(id)});
+  if (auto id = s.lhs->Get_if<Identifier>()) {
+    // simple variable
+    emit_expr(s.rhs);
+    std::string name{id->value};
+    if (auto slot = resolve_local(name); slot.has_value()) {
+      emit(sr::StoreLocal{static_cast<uint8_t>(*slot)});
+    } else {
+      emit(sr::StoreGlobal{intern_name(name)});
+    }
+  } else if (auto mem = s.lhs->Get_if<MemberExpr>()) {
+    // object field
+    emit_expr(mem->primary);                       // (obj)
+    emit_expr(s.rhs);                              // (obj,val)
+    emit(sr::SetField{intern_name(mem->member)});  // ->
+  } else if (auto sub = s.lhs->Get_if<SubscriptExpr>()) {
+    // subscription
+    emit_expr(sub->primary);  // (cont)
+    emit_expr(sub->index);    // (cont,idx)
+    emit_expr(s.rhs);         // (cont,idx,val)
+    emit(sr::SetItem{});      // ->
   }
 }
 
 void CodeGenerator::emit_stmt_node(const AugStmt& s) {
-  std::string id{s.lhs->Get_if<Identifier>()->value};
-  auto slot = resolve_local(id);
-  if (slot.has_value())
-    emit(sr::LoadLocal{static_cast<uint8_t>(*slot)});
-  else
-    emit(sr::LoadGlobal{intern_name(id)});
+  if (auto id = s.lhs->Get_if<Identifier>()) {
+    // simple variable
+    std::string name{id->value};
+    auto slot = resolve_local(name);
 
-  emit_expr(s.rhs);
-  emit(sr::BinaryOp{s.GetRmAssignmentOp()});
+    if (slot.has_value())
+      emit(sr::LoadLocal{static_cast<uint8_t>(*slot)});
+    else
+      emit(sr::LoadGlobal{intern_name(name)});
 
-  if (slot.has_value())
-    emit(sr::StoreLocal{static_cast<uint8_t>(*slot)});
-  else
-    emit(sr::StoreGlobal{intern_name(id)});
+    emit_expr(s.rhs);
+    emit(sr::BinaryOp{s.GetRmAssignmentOp()});
+
+    if (slot.has_value())
+      emit(sr::StoreLocal{static_cast<uint8_t>(*slot)});
+    else
+      emit(sr::StoreGlobal{intern_name(name)});
+
+  } else if (auto mem = s.lhs->Get_if<MemberExpr>()) {
+    // object field
+    emit_expr(mem->primary);                       // (obj)
+    emit(sr::Dup{});                               // (obj,obj)
+    emit(sr::GetField{intern_name(mem->member)});  // (obj,val)
+    emit_expr(s.rhs);                              // (obj,val,rhs)
+    emit(sr::BinaryOp{s.GetRmAssignmentOp()});     // (obj,result)
+    emit(sr::SetField{intern_name(mem->member)});  // ->
+  } else if (auto sub = s.lhs->Get_if<SubscriptExpr>()) {
+    // subscription
+    emit_expr(sub->primary);                    // (cont)
+    emit_expr(sub->index);                      // (cont,idx)
+    emit(sr::Dup{.top_ofs = 1});                // (cont,idx,cont)
+    emit(sr::Dup{.top_ofs = 1});                // (cont,idx,cont,idx)
+    emit(sr::GetItem{});                        // (cont,idx,val)
+    emit_expr(s.rhs);                           // (cont,idx,val,rhs)
+    emit(sr::BinaryOp{s.GetRmAssignmentOp()});  // (cont,idx,result)
+    emit(sr::SetItem{});                        // ->
+  }
 }
 
 void CodeGenerator::emit_stmt_node(const IfStmt& s) {

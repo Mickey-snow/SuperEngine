@@ -200,7 +200,8 @@ print(fib(10));
 }
 
 TEST_F(CompilerTest, Class) {
-  auto res = Run(R"(
+  {
+    auto res = Run(R"(
 class Klass{
   fn foo(){ return 1; }
   fn boo(x,y){ return x+y; }
@@ -211,10 +212,32 @@ klass = Klass();
 print(klass, klass.foo(), klass.boo(2,3));
 )");
 
-  ASSERT_TRUE(res.stderr.empty()) << res.stderr;
-  EXPECT_EQ(res.stdout, "<class Klass>\n<Klass object>,1,5\n")
-      << "\nDisassembly:\n"
-      << res.disasm;
+    ASSERT_TRUE(res.stderr.empty()) << res.stderr;
+    EXPECT_EQ(res.stdout, "<class Klass>\n<Klass object>,1,5\n")
+        << "\nDisassembly:\n"
+        << res.disasm;
+  }
+
+  {
+    auto res = Run(R"(
+class Klass{}
+fn foo(self, x){
+  self.result += "*" * x + "0";
+  if(x > 1) foo(self, x-1);
+}
+
+inst = Klass();
+inst.result = "";
+inst.method = foo;
+inst.method(inst, 5);
+
+print(inst.result);
+)");
+
+    ASSERT_TRUE(res.stderr.empty()) << res.stderr;
+    EXPECT_EQ(res.stdout, "*****0****0***0**0*0\n") << "\nDisassembly:\n"
+                                                    << res.disasm;
+  }
 }
 
 }  // namespace m6test

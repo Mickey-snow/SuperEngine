@@ -612,6 +612,28 @@ AugAssign >>>=
       └─ID c
 )");
   }
+
+  {
+    expectStmtAST(TokenArray("foo[boo] = x;"sv),
+                  R"(
+Assign
+   ├─Subscript
+   │  ├─ID foo
+   │  └─ID boo
+   └─ID x
+)");
+  }
+
+  {
+    expectStmtAST(TokenArray("foo.boo = x;"sv),
+                  R"(
+Assign
+   ├─Member
+   │  ├─ID foo
+   │  └─ID boo
+   └─ID x
+)");
+  }
 }
 
 TEST_F(StmtParserTest, If) {

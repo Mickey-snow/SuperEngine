@@ -218,25 +218,15 @@ std::shared_ptr<AST> Parser::parseAssignment() {
                      Op::ShiftRightAssign, Op::ShiftUnsignedRightAssign});
   if (!match.has_value())  // expression statement
     return std::make_shared<AST>(lhs);
-
   Op assignmentOp = match.value();
-  auto* id_node = lhs->Apply([](auto& x) -> Identifier* {
-    if constexpr (std::is_same_v<std::decay_t<decltype(x)>, Identifier>)
-      return &x;
-    return nullptr;
-  });
-  if (id_node == nullptr) {
-    AddError("left‑hand side of assignment must be an identifier",
-             SourceLocation::Range(lhs_begin, lhs_end));
-  }
 
   auto rhs_begin = it_;
   auto rhs = ParseExpression();
   auto rhs_end = it_;
-
-  if (id_node == nullptr || rhs == nullptr)
+  if (rhs == nullptr)
     return nullptr;
-  else if (assignmentOp == Op::Assign) {
+
+  if (assignmentOp == Op::Assign) {
     return std::make_shared<AST>(AssignStmt(
         lhs, rhs, SourceLocation::Range(lhs_begin, lhs_end),
         SourceLocation(op_it), SourceLocation::Range(rhs_begin, rhs_end)));

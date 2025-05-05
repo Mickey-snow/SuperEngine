@@ -222,7 +222,7 @@ class VM {
             if constexpr (std::is_same_v<T, serilang::Push>) {
               push(fib->stack, chunk.const_pool[ins.const_index]);
             } else if constexpr (std::is_same_v<T, serilang::Dup>) {
-              push(fib->stack, fib->stack.back());
+              push(fib->stack, fib->stack.end()[-ins.top_ofs - 1]);
             } else if constexpr (std::is_same_v<T, serilang::Swap>) {
               std::swap(fib->stack.end()[-1], fib->stack.end()[-2]);
             } else if constexpr (std::is_same_v<T, serilang::Pop>) {

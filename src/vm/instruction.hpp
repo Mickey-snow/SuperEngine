@@ -35,11 +35,13 @@ namespace serilang {
 struct Push {
   uint32_t const_index;
 };  // () → (value)
-struct Dup {};   // (x)   → (x,x)
+struct Dup {
+  uint8_t top_ofs = 0;
+};  // (x...)   → (x,...,x)
 struct Swap {};  // (a,b) → (b,a)
 struct Pop {
   uint8_t count = 1;
-};  // (… n values …) →
+};  // (...n values...) →
 
 // ––– 2. Arithmetic / logic ––––––––––––––––––––––––––––––––––––––––
 struct BinaryOp {

@@ -77,6 +77,7 @@ void Disassembler::PrintIns(Chunk& chunk,
 
         } else if constexpr (std::is_same_v<T, Dup>) {
           emit_mnemonic("DUP");
+          emit_operand(ins.top_ofs);
 
         } else if constexpr (std::is_same_v<T, Swap>) {
           emit_mnemonic("SWAP");
