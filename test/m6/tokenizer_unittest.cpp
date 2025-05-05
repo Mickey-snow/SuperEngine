@@ -27,8 +27,6 @@
 #include "m6/tokenizer.hpp"
 #include "machine/op.hpp"
 
-#include "util.hpp"
-
 #include <algorithm>
 #include <numeric>
 #include <string>

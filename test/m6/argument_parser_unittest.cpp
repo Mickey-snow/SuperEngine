@@ -24,8 +24,6 @@
 
 #include <gtest/gtest.h>
 
-#include "util.hpp"
-
 #include "m6/argparse.hpp"
 #include "vm/value.hpp"
 

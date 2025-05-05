@@ -25,10 +25,12 @@
 #include <gtest/gtest.h>
 
 #include "m6/error_formatter.hpp"
-#include "util.hpp"
+#include "utilities/string_utilities.hpp"
 
 #include <string>
 #include <string_view>
+
+#define EXPECT_TXTEQ(lhs, rhs) EXPECT_EQ(trim_cp(lhs), trim_cp(rhs));
 
 namespace m6test {
 

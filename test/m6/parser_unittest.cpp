@@ -24,19 +24,38 @@
 
 #include <gtest/gtest.h>
 
-#include "util.hpp"
-
 #include "m6/ast.hpp"
 #include "m6/parser.hpp"
+#include "m6/tokenizer.hpp"
 #include "machine/op.hpp"
 #include "utilities/string_utilities.hpp"
 
+#include <string>
 #include <string_view>
+#include <vector>
 
 using std::string_view_literals::operator""sv;
 using namespace m6;
 
 namespace m6test {
+
+// helpers
+namespace {
+template <typename... Ts>
+std::vector<m6::Token> TokenArray(Ts&&... args) {
+  std::vector<m6::Token> result;
+  result.reserve(sizeof...(args));
+  (result.emplace_back(std::forward<Ts>(args)), ...);
+  return result;
+}
+
+auto TokenArray(std::string_view sv) -> std::vector<m6::Token> {
+  std::vector<m6::Token> result;
+  m6::Tokenizer tokenizer(result);
+  tokenizer.Parse(sv);
+  return result;
+}
+}  // namespace
 
 class ExprParserTest : public ::testing::Test {
  protected:
@@ -55,9 +74,14 @@ class ExprParserTest : public ::testing::Test {
     return result;
   }
 
-  static void expectAST(std::vector<Token> tokens, const char* expectedAST) {
-    auto result = parseExpr(tokens);
-    EXPECT_TXTEQ(result->DumpAST(), expectedAST);
+  static void expectAST(std::vector<Token> tokens, std::string expectedAST) {
+    auto expr = parseExpr(tokens);
+    std::string result = trim_cp(expr->DumpAST());
+    trim(expectedAST);
+    EXPECT_EQ(result, expectedAST) << "expected:\n"
+                                   << expectedAST << '\n'
+                                   << "actual:\n"
+                                   << result;
   }
 };
 
@@ -435,6 +459,15 @@ Binaryop +
 }
 
 TEST_F(ExprParserTest, Postfix) {
+  // boo()
+  expectAST(
+      TokenArray(tok::ID("boo"), tok::ParenthesisL(), tok::ParenthesisR()),
+      R"(
+Invoke
+   └─ID boo
+)");
+
+  // foo(42)
   expectAST(TokenArray(tok::ID("foo"), tok::ParenthesisL(), tok::Int(42),
                        tok::ParenthesisR()),
             R"(
@@ -443,6 +476,7 @@ Invoke
    └─IntLiteral 42
 )");
 
+  // sum(1,2,3,4)
   expectAST(
       TokenArray(tok::ID("sum"), tok::ParenthesisL(), tok::Int(1),
                  tok::Operator(Op::Comma), tok::Int(2),
@@ -457,6 +491,7 @@ Invoke
    └─IntLiteral 4
 )");
 
+  // array(3).field
   expectAST(
       TokenArray(tok::ID("array"), tok::SquareL(), tok::Int(3), tok::SquareR(),
                  tok::Operator(Op::Dot), tok::ID("field")),
@@ -468,6 +503,7 @@ Member
    └─ID field
 )");
 
+  // obj.getArray()[idx+1].method(10)
   expectAST(
       TokenArray(tok::ID("obj"), tok::Operator(Op::Dot), tok::ID("getArray"),
                  tok::ParenthesisL(), tok::ParenthesisR(), tok::SquareL(),
@@ -479,9 +515,9 @@ Invoke
    ├─Member
    │  ├─Subscript
    │  │  ├─Invoke
-   │  │  │  ├─Member
-   │  │  │  │  ├─ID obj
-   │  │  │  │  └─ID getArray
+   │  │  │  └─Member
+   │  │  │     ├─ID obj
+   │  │  │     └─ID getArray
    │  │  └─Binaryop +
    │  │     ├─ID idx
    │  │     └─IntLiteral 1
@@ -489,6 +525,7 @@ Invoke
    └─IntLiteral 10
 )");
 
+  // (foo(bar(1)).baz)[3]
   expectAST(
       TokenArray(tok::ParenthesisL(), tok::ID("foo"), tok::ParenthesisL(),
                  tok::ID("bar"), tok::ParenthesisL(), tok::Int(1),

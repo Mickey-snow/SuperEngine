@@ -127,7 +127,7 @@ struct Dumper {
       oss << x.sub->Apply(Dumper(childPrefix, true));
     }
     if constexpr (std::same_as<T, InvokeExpr>) {
-      oss << x.fn->Apply(Dumper(childPrefix, false));
+      oss << x.fn->Apply(Dumper(childPrefix, x.args.empty()));
       for (size_t i = 0; i < x.args.size(); ++i)
         oss << x.args[i]->Apply(
             Dumper(childPrefix, (i == x.args.size() - 1 ? true : false)));
