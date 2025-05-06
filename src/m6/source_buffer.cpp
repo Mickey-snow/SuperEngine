@@ -22,33 +22,36 @@
 //
 // -----------------------------------------------------------------------
 
-#pragma once
-
-#include "m6/source_location.hpp"
-
-#include <iomanip>
-#include <sstream>
-#include <string>
-#include <vector>
+#include "m6/source_buffer.hpp"
+#include "m6/token.hpp"
 
 namespace m6 {
 
-class ErrorFormatter {
- public:
-  // Constructor
-  explicit ErrorFormatter();
+std::shared_ptr<SourceBuffer> SourceBuffer::Create(std::string src,
+                                                   std::string file) {
+  SourceBuffer* sb = new SourceBuffer(std::move(src), std::move(file));
+  return std::shared_ptr<SourceBuffer>(sb);
+}
 
-  // Appends a message with a newline.
-  ErrorFormatter& Pushline(const std::string& msg);
+SourceBuffer::SourceBuffer(std::string src, std::string file)
+    : file_(std::move(file)), src_(std::move(src)), line_table_(src_) {}
 
-  // Highlights the source between positions [begin, end) with a message.
-  ErrorFormatter& Highlight(const SourceLocation& loc, const std::string& msg);
+std::tuple<size_t, size_t> SourceBuffer::GetLineColumn(size_t offset) const {
+  return line_table_.Find(offset);
+}
+std::string_view SourceBuffer::GetLine(size_t idx) const {
+  return line_table_.LineText(idx);
+}
 
-  // Returns the formatted error and resets the internal buffer.
-  std::string Str();
+std::string SourceBuffer::GetStr() const { return src_; }
+std::string SourceBuffer::GetFile() const { return file_; }
+std::string_view SourceBuffer::GetView() const { return src_; }
 
- private:
-  std::ostringstream oss;
-};
+SourceLocation SourceBuffer::GetReference(size_t begin, size_t end) {
+  return SourceLocation(begin, end, shared_from_this());
+}
+SourceLocation SourceBuffer::GetReferenceAt(size_t pos) {
+  return SourceLocation(pos, pos, shared_from_this());
+}
 
 }  // namespace m6

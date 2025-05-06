@@ -25,6 +25,8 @@
 #include "m6/tokenizer.hpp"
 
 #include "log/domain_logger.hpp"
+#include "m6/source_buffer.hpp"
+#include "m6/source_location.hpp"
 #include "machine/op.hpp"
 
 #include <cctype>
@@ -124,11 +126,13 @@ static std::string unescapeString(std::string_view value) {
 
 }  // namespace
 
-void Tokenizer::Parse(std::string_view input) {
+void Tokenizer::Parse(std::shared_ptr<SourceBuffer> src) {
   if (!errors_.empty()) {
     DomainLogger logger("Tokenizer");
     logger(Severity::Warn) << "Unhandled errors.";
   }
+
+  std::string_view input = src->GetView();
 
   size_t pos = 0;
   const size_t len = input.size();
@@ -146,7 +150,7 @@ void Tokenizer::Parse(std::string_view input) {
       }
 
       if (!skip_ws_) {
-        storage_.emplace_back(tok::WS(), SourceLocation(start, pos));
+        storage_.emplace_back(tok::WS(), src->GetReference(start, pos));
       }
       continue;
     }
@@ -154,7 +158,7 @@ void Tokenizer::Parse(std::string_view input) {
     // 2) Check single character token
     if (SINGLE_CHAR_TOKEN.find(c) != SINGLE_CHAR_TOKEN.end()) {
       storage_.emplace_back(SINGLE_CHAR_TOKEN.at(c),
-                            SourceLocation(start, ++pos));
+                            src->GetReference(start, ++pos));
       continue;
     }
 
@@ -165,7 +169,7 @@ void Tokenizer::Parse(std::string_view input) {
         // we matched an operator token
         pos += opMatch.size();
         storage_.emplace_back(tok::Operator(CreateOp(opMatch)),
-                              SourceLocation(start, pos));
+                              src->GetReference(start, pos));
 
         continue;
       }
@@ -187,14 +191,14 @@ void Tokenizer::Parse(std::string_view input) {
     // 4) Check reserved keywords
     if (RESERVED_KEYWORD_TOKEN.contains(idVal)) {
       storage_.emplace_back(RESERVED_KEYWORD_TOKEN.at(idVal),
-                            SourceLocation(start, pos));
+                            src->GetReference(start, pos));
       continue;
     }
 
     // 5) Check identifier: [a-zA-Z_][a-zA-Z0-9_]*
     if (!idVal.empty()) {
       storage_.emplace_back(tok::ID(std::move(idVal)),
-                            SourceLocation(start, pos));
+                            src->GetReference(start, pos));
       continue;
     }
 
@@ -243,10 +247,11 @@ void Tokenizer::Parse(std::string_view input) {
       while (pos < len &&
              std::isxdigit(static_cast<unsigned char>(input[pos]))) {
         if (!validate(input[pos]))
-          errors_.emplace_back("Invalid digit.", SourceLocation(pos, pos + 1));
+          errors_.emplace_back("Invalid digit.",
+                               src->GetReference(pos, pos + 1));
         ++pos;
       }
-      const SourceLocation location(start, pos);
+      const auto location = src->GetReference(start, pos);
 
       // must have at least one digit after any prefix
       if (pos == digits_start) {
@@ -290,26 +295,26 @@ void Tokenizer::Parse(std::string_view input) {
 
       if (!closed) {
         storage_.emplace_back(tok::Literal(std::string(input.substr(start))),
-                              SourceLocation(start, pos));
-        errors_.emplace_back("Expected '\"'", SourceLocation::At(pos));
+                              src->GetReference(start, pos));
+        errors_.emplace_back("Expected '\"'", src->GetReference(pos, pos));
       } else {
         // substring from start to pos is the entire literal (including quotes)
         std::string fullString = std::string(input.substr(start, pos - start));
         // unescape it
         std::string unescaped = unescapeString(fullString);
         storage_.emplace_back(tok::Literal(std::move(unescaped)),
-                              SourceLocation(start, pos));
+                              src->GetReference(start, pos));
       }
       continue;
     }
 
     // 8) If none matched, mark it as an error. We consume one character.
-    errors_.emplace_back("Unknown token", SourceLocation(start, start + 1));
+    errors_.emplace_back("Unknown token", src->GetReference(start, start + 1));
     ++pos;
   }
 
   if (add_eof_)
-    storage_.emplace_back(tok::Eof(), SourceLocation(len, len + 1));
+    storage_.emplace_back(tok::Eof(), src->GetReference(len, len + 1));
 }
 
 Tokenizer::Tokenizer(std::vector<Token>& s)

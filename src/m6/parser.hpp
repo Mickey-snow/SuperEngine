@@ -26,6 +26,7 @@
 #pragma once
 
 #include "m6/exception.hpp"
+#include "m6/source_location.hpp"
 #include "m6/token.hpp"
 
 #include <memory>
@@ -58,6 +59,10 @@ class Parser {
   //------------------------------------------------------------------
   // helper functions
   //------------------------------------------------------------------
+  inline SourceLocation LocPrevEnd(iterator_t it) {
+    return (it - 1)->loc_.After();
+  }
+
   void AddError(std::string m, iterator_t loc);
   void AddError(std::string m, SourceLocation loc);
   void Synchronize();  // panic‑mode error recovery
@@ -102,7 +107,7 @@ class Parser {
   template <class Tok>
   bool require(const char* msg) {
     if (!tryConsume<Tok>()) {
-      AddError(msg, SourceLocation::After(it_ - 1));
+      AddError(msg, LocPrevEnd(it_));
       return false;
     }
     return true;
@@ -111,7 +116,7 @@ class Parser {
   template <class Tok, class... Args>
   bool require(const char* msg, Args&&... params) {
     if (!tryConsume<Tok>(std::forward<Args>(params)...)) {
-      AddError(msg, SourceLocation::After(it_ - 1));
+      AddError(msg, LocPrevEnd(it_));
       return false;
     }
     return true;

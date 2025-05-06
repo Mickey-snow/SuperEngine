@@ -35,6 +35,13 @@
 
 namespace m6 {
 
+namespace {
+// helper
+inline static SourceLocation LocRange(Token* begin, Token* end) {
+  return begin->loc_.Combine(end->loc_);
+}
+}  // namespace
+
 //--------------------------------------------------------------------
 //  Parser class
 //--------------------------------------------------------------------
@@ -90,7 +97,7 @@ std::shared_ptr<AST> Parser::ParseStatement(bool requireSemi) {
 
       case tok::Reserved::_class: {
         auto clsNameTok = *it_;
-        auto clsNameLoc = SourceLocation(it_);
+        auto clsNameLoc = it_->loc_;
         if (!require<tok::ID>("expected identifier")) {
           Synchronize();
           return nullptr;
@@ -126,7 +133,7 @@ std::shared_ptr<AST> Parser::ParseStatement(bool requireSemi) {
         return parseFuncDecl(true);
 
       case tok::Reserved::_return: {
-        auto kwLoc = SourceLocation(it_ - 1);
+        auto kwLoc = (it_ - 1)->loc_;
         std::shared_ptr<ExprAST> val = nullptr;
         if (!tryConsume<tok::Semicol>())
           val = ParseExpression();
@@ -184,7 +191,7 @@ std::span<const Error> Parser::GetErrors() const { return errors_; }
 void Parser::ClearErrors() { errors_.clear(); }
 
 void Parser::AddError(std::string m, iterator_t loc) {
-  errors_.emplace_back(std::move(m), SourceLocation(loc));
+  errors_.emplace_back(std::move(m), loc->loc_);
 }
 void Parser::AddError(std::string m, SourceLocation loc) {
   errors_.emplace_back(std::move(m), std::move(loc));
@@ -227,13 +234,13 @@ std::shared_ptr<AST> Parser::parseAssignment() {
     return nullptr;
 
   if (assignmentOp == Op::Assign) {
-    return std::make_shared<AST>(AssignStmt(
-        lhs, rhs, SourceLocation::Range(lhs_begin, lhs_end),
-        SourceLocation(op_it), SourceLocation::Range(rhs_begin, rhs_end)));
+    return std::make_shared<AST>(
+        AssignStmt(lhs, rhs, LocRange(lhs_begin, lhs_end), op_it->loc_,
+                   LocRange(rhs_begin, rhs_end)));
   } else {
-    return std::make_shared<AST>(AugStmt(
-        lhs, assignmentOp, rhs, SourceLocation::Range(lhs_begin, lhs_end),
-        SourceLocation(op_it), SourceLocation::Range(rhs_begin, rhs_end)));
+    return std::make_shared<AST>(
+        AugStmt(lhs, assignmentOp, rhs, LocRange(lhs_begin, lhs_end),
+                op_it->loc_, LocRange(rhs_begin, rhs_end)));
   }
 }
 
@@ -257,7 +264,7 @@ std::shared_ptr<AST> Parser::parseFuncDecl(bool consumedfn) {
         return nullptr;
       }
       auto pTok = *it_;
-      auto pLoc = SourceLocation(it_);
+      auto pLoc = it_->loc_;
       params.emplace_back(pTok.GetIf<tok::ID>()->id);
       paramLocs.emplace_back(pLoc);
       ++it_;
@@ -275,9 +282,9 @@ std::shared_ptr<AST> Parser::parseFuncDecl(bool consumedfn) {
   --it_;
 
   auto body = ParseStatement(false);
-  return std::make_shared<AST>(
-      FuncDecl(id_tok->GetIf<tok::ID>()->id, std::move(params), body,
-               SourceLocation(id_tok), std::move(paramLocs)));
+  return std::make_shared<AST>(FuncDecl(id_tok->GetIf<tok::ID>()->id,
+                                        std::move(params), body, id_tok->loc_,
+                                        std::move(paramLocs)));
 }
 
 std::shared_ptr<ExprAST> Parser::parseLogicalOr() {
@@ -297,9 +304,8 @@ std::shared_ptr<ExprAST> Parser::parseLogicalOr() {
       return lhs;  // give up chaining on error
     auto rhs_end = it_;
 
-    BinaryExpr be(Op::LogicalOr, lhs, rhs, SourceLocation(op_it),
-                  SourceLocation::Range(lhs_begin, lhs_end),
-                  SourceLocation::Range(rhs_begin, rhs_end));
+    BinaryExpr be(Op::LogicalOr, lhs, rhs, op_it->loc_,
+                  LocRange(lhs_begin, lhs_end), LocRange(rhs_begin, rhs_end));
     lhs = std::make_shared<ExprAST>(std::move(be));
   }
   return lhs;
@@ -322,9 +328,8 @@ std::shared_ptr<ExprAST> Parser::parseLogicalAnd() {
       return lhs;
     auto rhs_end = it_;
 
-    BinaryExpr be(Op::LogicalAnd, lhs, rhs, SourceLocation(op_it),
-                  SourceLocation::Range(lhs_begin, lhs_end),
-                  SourceLocation::Range(rhs_begin, rhs_end));
+    BinaryExpr be(Op::LogicalAnd, lhs, rhs, op_it->loc_,
+                  LocRange(lhs_begin, lhs_end), LocRange(rhs_begin, rhs_end));
     lhs = std::make_shared<ExprAST>(std::move(be));
   }
   return lhs;
@@ -347,9 +352,8 @@ std::shared_ptr<ExprAST> Parser::parseBitwiseOr() {
       return lhs;
     auto rhs_end = it_;
 
-    BinaryExpr be(Op::BitOr, lhs, rhs, SourceLocation(op_it),
-                  SourceLocation::Range(lhs_begin, lhs_end),
-                  SourceLocation::Range(rhs_begin, rhs_end));
+    BinaryExpr be(Op::BitOr, lhs, rhs, op_it->loc_,
+                  LocRange(lhs_begin, lhs_end), LocRange(rhs_begin, rhs_end));
     lhs = std::make_shared<ExprAST>(std::move(be));
   }
   return lhs;
@@ -372,9 +376,8 @@ std::shared_ptr<ExprAST> Parser::parseBitwiseXor() {
       return lhs;
     auto rhs_end = it_;
 
-    BinaryExpr be(Op::BitXor, lhs, rhs, SourceLocation(op_it),
-                  SourceLocation::Range(lhs_begin, lhs_end),
-                  SourceLocation::Range(rhs_begin, rhs_end));
+    BinaryExpr be(Op::BitXor, lhs, rhs, op_it->loc_,
+                  LocRange(lhs_begin, lhs_end), LocRange(rhs_begin, rhs_end));
     lhs = std::make_shared<ExprAST>(std::move(be));
   }
   return lhs;
@@ -397,9 +400,8 @@ std::shared_ptr<ExprAST> Parser::parseBitwiseAnd() {
       return lhs;
     auto rhs_end = it_;
 
-    BinaryExpr be(Op::BitAnd, lhs, rhs, SourceLocation(op_it),
-                  SourceLocation::Range(lhs_begin, lhs_end),
-                  SourceLocation::Range(rhs_begin, rhs_end));
+    BinaryExpr be(Op::BitAnd, lhs, rhs, op_it->loc_,
+                  LocRange(lhs_begin, lhs_end), LocRange(rhs_begin, rhs_end));
     lhs = std::make_shared<ExprAST>(std::move(be));
   }
   return lhs;
@@ -423,9 +425,8 @@ std::shared_ptr<ExprAST> Parser::parseEquality() {
       return lhs;
     auto rhs_end = it_;
 
-    BinaryExpr be(op.value(), lhs, rhs, SourceLocation(op_it),
-                  SourceLocation::Range(lhs_begin, lhs_end),
-                  SourceLocation::Range(rhs_begin, rhs_end));
+    BinaryExpr be(op.value(), lhs, rhs, op_it->loc_,
+                  LocRange(lhs_begin, lhs_end), LocRange(rhs_begin, rhs_end));
     lhs = std::make_shared<ExprAST>(std::move(be));
   }
   return lhs;
@@ -450,9 +451,8 @@ std::shared_ptr<ExprAST> Parser::parseRelational() {
       return lhs;
     auto rhs_end = it_;
 
-    BinaryExpr be(op.value(), lhs, rhs, SourceLocation(op_it),
-                  SourceLocation::Range(lhs_begin, lhs_end),
-                  SourceLocation::Range(rhs_begin, rhs_end));
+    BinaryExpr be(op.value(), lhs, rhs, op_it->loc_,
+                  LocRange(lhs_begin, lhs_end), LocRange(rhs_begin, rhs_end));
     lhs = std::make_shared<ExprAST>(std::move(be));
   }
   return lhs;
@@ -477,9 +477,8 @@ std::shared_ptr<ExprAST> Parser::parseShift() {
       return lhs;
     auto rhs_end = it_;
 
-    BinaryExpr be(op.value(), lhs, rhs, SourceLocation(op_it),
-                  SourceLocation::Range(lhs_begin, lhs_end),
-                  SourceLocation::Range(rhs_begin, rhs_end));
+    BinaryExpr be(op.value(), lhs, rhs, op_it->loc_,
+                  LocRange(lhs_begin, lhs_end), LocRange(rhs_begin, rhs_end));
     lhs = std::make_shared<ExprAST>(std::move(be));
   }
   return lhs;
@@ -503,9 +502,8 @@ std::shared_ptr<ExprAST> Parser::parseAdditive() {
       return lhs;
     auto rhs_end = it_;
 
-    BinaryExpr be(op.value(), lhs, rhs, SourceLocation(op_it),
-                  SourceLocation::Range(lhs_begin, lhs_end),
-                  SourceLocation::Range(rhs_begin, rhs_end));
+    BinaryExpr be(op.value(), lhs, rhs, op_it->loc_,
+                  LocRange(lhs_begin, lhs_end), LocRange(rhs_begin, rhs_end));
     lhs = std::make_shared<ExprAST>(std::move(be));
   }
   return lhs;
@@ -529,9 +527,8 @@ std::shared_ptr<ExprAST> Parser::parseMultiplicative() {
       return lhs;
     auto rhs_end = it_;
 
-    BinaryExpr be(op.value(), lhs, rhs, SourceLocation(op_it),
-                  SourceLocation::Range(lhs_begin, lhs_end),
-                  SourceLocation::Range(rhs_begin, rhs_end));
+    BinaryExpr be(op.value(), lhs, rhs, op_it->loc_,
+                  LocRange(lhs_begin, lhs_end), LocRange(rhs_begin, rhs_end));
     lhs = std::make_shared<ExprAST>(std::move(be));
   }
   return lhs;
@@ -555,8 +552,7 @@ std::shared_ptr<ExprAST> Parser::parseUnary() {
   auto sub_end = it_;
 
   for (size_t i = ops.size(); i-- > 0;) {
-    UnaryExpr ue(ops[i], node, SourceLocation(opLocs[i]),
-                 SourceLocation::Range(sub_begin, sub_end));
+    UnaryExpr ue(ops[i], node, opLocs[i]->loc_, LocRange(sub_begin, sub_end));
     node = std::make_shared<ExprAST>(std::move(ue));
     sub_begin = opLocs[i];
   }
@@ -581,19 +577,18 @@ std::shared_ptr<ExprAST> Parser::parsePostfix() {
         auto expr = ParseExpression();
         if (expr)
           args.emplace_back(expr);
-        argLocs.emplace_back(SourceLocation::Range(argBegin, it_));
+        argLocs.emplace_back(LocRange(argBegin, it_));
         while (tryConsume<tok::Operator>(Op::Comma)) {
           argBegin = it_;
           expr = ParseExpression();
           if (expr)
             args.emplace_back(expr);
-          argLocs.emplace_back(SourceLocation::Range(argBegin, it_));
+          argLocs.emplace_back(LocRange(argBegin, it_));
         }
       }
       require<tok::ParenthesisR>("Expected ')' after function call.");
       lhs = std::make_shared<ExprAST>(
-          InvokeExpr(lhs, std::move(args),
-                     SourceLocation::Range(primary_begin, primary_end),
+          InvokeExpr(lhs, std::move(args), LocRange(primary_begin, primary_end),
                      std::move(argLocs)));
       continue;
     }
@@ -607,12 +602,11 @@ std::shared_ptr<ExprAST> Parser::parsePostfix() {
         return lhs;
       }
       tok::ID const* id_tok = it_->GetIf<tok::ID>();
-      auto memberLoc = SourceLocation(it_);
+      auto memberLoc = it_->loc_;
       ++it_;
 
       lhs = std::make_shared<ExprAST>(MemberExpr(
-          lhs, id_tok->id, SourceLocation::Range(primary_begin, primary_end),
-          memberLoc));
+          lhs, id_tok->id, LocRange(primary_begin, primary_end), memberLoc));
       continue;
     }
 
@@ -623,9 +617,9 @@ std::shared_ptr<ExprAST> Parser::parsePostfix() {
       auto idxExpr = ParseExpression();
       require<tok::SquareR>("Expected ']' after subscript.");
       auto idx_end = it_;
-      lhs = std::make_shared<ExprAST>(SubscriptExpr(
-          lhs, idxExpr, SourceLocation::Range(primary_begin, primary_end),
-          SourceLocation::Range(idx_begin, idx_end)));
+      lhs = std::make_shared<ExprAST>(
+          SubscriptExpr(lhs, idxExpr, LocRange(primary_begin, primary_end),
+                        LocRange(idx_begin, idx_end)));
       continue;
     }
     break;  // no postfix matched
@@ -641,21 +635,21 @@ std::shared_ptr<ExprAST> Parser::parsePrimary() {
   // int literal
   // --------------------------------------------------------------
   if (auto s = it_->template GetIf<tok::Int>()) {
-    auto node = IntLiteral(s->value, SourceLocation(it_));
+    auto node = IntLiteral(s->value, it_->loc_);
     ++it_;
     return std::make_shared<ExprAST>(std::move(node));
   }
   // string literal
   // -----------------------------------------------------------
   if (auto s = it_->template GetIf<tok::Literal>()) {
-    auto node = StrLiteral(s->str, SourceLocation(it_));
+    auto node = StrLiteral(s->str, it_->loc_);
     ++it_;
     return std::make_shared<ExprAST>(std::move(node));
   }
   // identifier
   // ---------------------------------------------------------------
   if (auto s = it_->template GetIf<tok::ID>()) {
-    auto node = Identifier(s->id, SourceLocation(it_));
+    auto node = Identifier(s->id, it_->loc_);
     ++it_;
     return std::make_shared<ExprAST>(std::move(node));
   }
@@ -667,7 +661,7 @@ std::shared_ptr<ExprAST> Parser::parsePrimary() {
     require<tok::ParenthesisR>("missing ')' in expression");
     auto subEnd = it_;
     return std::make_shared<ExprAST>(
-        ParenExpr(expr, SourceLocation::Range(subBegin, subEnd)));
+        ParenExpr(expr, LocRange(subBegin, subEnd)));
   }
   AddError("expected primary expression", it_);
   Synchronize();

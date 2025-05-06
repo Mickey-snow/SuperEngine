@@ -25,6 +25,7 @@
 #include <gtest/gtest.h>
 
 #include "m6/error_formatter.hpp"
+#include "m6/source_buffer.hpp"
 #include "utilities/string_utilities.hpp"
 
 #include <string>
@@ -37,24 +38,26 @@ namespace m6test {
 using namespace m6;
 
 TEST(ErrorFormatterTest, HighlightRegion) {
-  constexpr std::string_view src = "a+b-c";
-  ErrorFormatter formatter(src);
-  formatter.Highlight(2, 5, "msg1");
+  auto src = SourceBuffer::Create("a+b-c", "<ErrorFormatterTest>");
+  ErrorFormatter formatter;
+  formatter.Highlight(src->GetReference(2, 5), "msg1");
   EXPECT_TXTEQ(formatter.Str(), R"(
-msg1
+At file '<ErrorFormatterTest>' msg1
 1│ a+b-c
      ^^^
 )");
 }
 
 TEST(ErrorFormatterTest, HighlightMultiline) {
-  std::string src;
+  std::string src_str;
   for (int i = 0; i < 10; ++i)
-    src += "a+" + std::to_string(i) + '\n';
-  ErrorFormatter formatter(src);
-  formatter.Highlight(34, 38, "msg2");
+    src_str += "a+" + std::to_string(i) + '\n';
+  auto src = SourceBuffer::Create(src_str, "<ErrorFormatterTest>");
+
+  ErrorFormatter formatter;
+  formatter.Highlight(src->GetReference(34, 38), "msg2");
   EXPECT_TXTEQ(formatter.Str(), R"(
-msg2
+At file '<ErrorFormatterTest>' msg2
 9 │ a+8
       ^
 10│ a+9
@@ -63,31 +66,31 @@ msg2
 }
 
 TEST(ErrorFormatterTest, HighlightEndOfLine) {
-  constexpr std::string_view src = "a+b\na+c";
-  ErrorFormatter formatter(src);
-  formatter.Highlight(3, 3, "Missing ; here");
-  formatter.Highlight(7, 7, "Missing ; here");
+  auto src = SourceBuffer::Create("a+b\na+c", "<ErrorFormatterTest>");
+  ErrorFormatter formatter;
+  formatter.Highlight(src->GetReference(3, 3), "Missing ; here");
+  formatter.Highlight(src->GetReference(7, 7), "Missing ; here");
   EXPECT_TXTEQ(formatter.Str(), R"(
-Missing ; here
+At file '<ErrorFormatterTest>' Missing ; here
 1│ a+b
       ^
-Missing ; here
+At file '<ErrorFormatterTest>' Missing ; here
 2│ a+c
       ^
 )");
 }
 
 TEST(ErrorFormatterTest, HighlightAt) {
-  constexpr std::string_view src = "a+b\na+c";
-  ErrorFormatter formatter(src);
-  formatter.Highlight(1, 1, "at +");
-  formatter.Highlight(4, 4, "at a");
+  auto src = SourceBuffer::Create("a+b\na+c", "<ErrorFormatterTest>");
+  ErrorFormatter formatter;
+  formatter.Highlight(src->GetReference(1, 1), "at +");
+  formatter.Highlight(src->GetReference(4, 4), "at a");
 
   EXPECT_TXTEQ(formatter.Str(), R"(
-at +
+At file '<ErrorFormatterTest>' at +
 1│ a+b
     ^
-at a
+At file '<ErrorFormatterTest>' at a
 2│ a+c
    ^
 )");

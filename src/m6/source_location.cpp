@@ -23,25 +23,40 @@
 // -----------------------------------------------------------------------
 
 #include "m6/source_location.hpp"
+
+#include "log/domain_logger.hpp"
 #include "m6/token.hpp"
 
 namespace m6 {
 
-SourceLocation::SourceLocation(size_t begin, size_t end)
-    : begin_offset(begin), end_offset(end) {}
-SourceLocation::SourceLocation(Token* tok) { *this = tok->loc_; }
+SourceLocation::SourceLocation(size_t begin,
+                               size_t end,
+                               std::shared_ptr<SourceBuffer> src_in)
+    : begin_offset(begin), end_offset(end), src(src_in) {}
 
-SourceLocation SourceLocation ::At(size_t pos) {
-  return SourceLocation(pos, pos);
-}
 SourceLocation SourceLocation ::After(Token* tok) {
-  return SourceLocation::At(tok->loc_.end_offset);
+  return SourceLocation(tok->loc_.end_offset, tok->loc_.end_offset,
+                        tok->loc_.src);
 }
 SourceLocation SourceLocation ::Range(Token* begin, Token* end) {
   if (begin >= end)
-    return SourceLocation(begin);
+    return begin->loc_;
   --end;
-  return SourceLocation(begin->loc_.begin_offset, end->loc_.end_offset);
+  return SourceLocation(begin->loc_.begin_offset, end->loc_.end_offset,
+                        begin->loc_.src);
+}
+
+SourceLocation SourceLocation::After() const {
+  return SourceLocation(end_offset, end_offset, src);
+}
+
+SourceLocation SourceLocation::Combine(const SourceLocation& end) const {
+  if (src != end.src) {
+    static DomainLogger logger("SourceLocation::Combine");
+    logger(Severity::Warn) << "different reference differs";
+  }
+
+  return SourceLocation(begin_offset, end.end_offset, src);
 }
 
 SourceLocation::operator std::string() const {

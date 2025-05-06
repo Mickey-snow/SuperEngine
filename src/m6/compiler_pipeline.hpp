@@ -27,6 +27,7 @@
 #include "m6/codegen.hpp"
 #include "m6/error_formatter.hpp"
 #include "m6/parser.hpp"
+#include "m6/source_buffer.hpp"
 #include "m6/token.hpp"
 #include "m6/tokenizer.hpp"
 
@@ -39,19 +40,10 @@ class CompilerPipeline {
  public:
   CompilerPipeline(bool repl = false) : tz(tokens_), gen_(repl) {}
 
-  void compile(std::string input_) {
+  void compile(std::shared_ptr<SourceBuffer> src) {
     Clear();
 
-    std::string_view input =
-        [&](std::string input_) {  // append input to source, then convert to a
-                                   // string_view
-          auto n = src_.length();
-          src_ += std::move(input_);
-          std::string_view src = src_;
-          return src.substr(n);
-        }(std::move(input_));
-
-    tz.Parse(input);
+    tz.Parse(src);
     if (!tz.Ok()) {
       AddErrors(tz.GetErrors());
       tz.ClearErrors();
@@ -85,7 +77,6 @@ class CompilerPipeline {
   void Clear() {
     tokens_.clear();
     asts_.clear();
-    src_.clear();
     errors_.clear();
   }
 
@@ -104,12 +95,12 @@ class CompilerPipeline {
   std::string FormatErrors() {
     if (errors_.empty())
       return {};
-    ErrorFormatter formatter(src_);
+    ErrorFormatter formatter;
     for (const auto& it : errors_) {
       if (!it.loc.has_value())
         formatter.Pushline(it.msg);
       else
-        formatter.Highlight(it.loc->begin_offset, it.loc->end_offset, it.msg);
+        formatter.Highlight(it.loc.value(), it.msg);
     }
     return formatter.Str();
   }
@@ -117,8 +108,6 @@ class CompilerPipeline {
  private:
   Tokenizer tz;
   CodeGenerator gen_;
-
-  std::string src_;
 };
 
 }  // namespace m6

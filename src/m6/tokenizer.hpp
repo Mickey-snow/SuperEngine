@@ -27,23 +27,25 @@
 #include "m6/exception.hpp"
 #include "m6/token.hpp"
 
+#include <memory>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
-#include <span>
 
 namespace m6 {
+class SourceBuffer;
 
 class Tokenizer {
  public:
   Tokenizer(std::vector<Token>& storage);
 
-  void Parse(std::string_view input);
+  void Parse(std::shared_ptr<SourceBuffer> input);
 
   bool Ok() const;
   std::span<const Error> GetErrors() const;
   void ClearErrors();
-  
+
  public:
   std::vector<Error> errors_;
   bool skip_ws_;

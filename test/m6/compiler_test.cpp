@@ -29,6 +29,7 @@
 #include "vm/disassembler.hpp"
 #include "vm/value.hpp"
 #include "vm/vm.hpp"
+#include "m6/source_buffer.hpp"
 
 #include <iostream>
 #include <regex>
@@ -56,7 +57,8 @@ class CompilerTest : public ::testing::Test {
 
     // ── compile ────────────────────────────────────────────────────
     m6::CompilerPipeline pipe(false);
-    pipe.compile(std::move(source));
+    auto sb = SourceBuffer::Create(std::move(source), "<CompilerTest>");
+    pipe.compile(sb);
 
     // any compile-time diagnostics?
     if (!pipe.Ok()) {

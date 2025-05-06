@@ -23,6 +23,7 @@
 // -----------------------------------------------------------------------
 
 #include "m6/error_formatter.hpp"
+#include "m6/source_buffer.hpp"
 
 #include <algorithm>
 #include <iomanip>
@@ -32,29 +33,34 @@
 
 namespace m6 {
 
-ErrorFormatter::ErrorFormatter(std::string_view src) : src_(src), index_(src) {}
+ErrorFormatter::ErrorFormatter() = default;
 
 ErrorFormatter& ErrorFormatter::Pushline(const std::string& msg) {
   oss << msg << '\n';
   return *this;
 }
 
-ErrorFormatter& ErrorFormatter::Highlight(size_t begin,
-                                          size_t end,
+ErrorFormatter& ErrorFormatter::Highlight(const SourceLocation& loc,
                                           const std::string& msg) {
-  if (begin > src_.size())
-    begin = src_.size();
-  if (end > src_.size())
-    end = src_.size();
+  const auto sb = loc.src;
+  const std::string_view src_view = sb->GetView();
+
+  auto begin = loc.begin_offset;
+  auto end = loc.end_offset;
+
+  if (begin > src_view.size())
+    begin = src_view.size();
+  if (end > src_view.size())
+    end = src_view.size();
 
   // Are we highlighting an insertion point rather than a range?
   const bool isInsertion = (begin == end);
 
-  auto [lineBegin, colBegin] = index_.Find(begin);
-  auto [lineEnd, colEnd] = index_.Find(end);
+  auto [lineBegin, colBegin] = sb->GetLineColumn(begin);
+  auto [lineEnd, colEnd] = sb->GetLineColumn(end);
 
   if (!msg.empty())
-    oss << msg << '\n';
+    oss << "At file '" << sb->GetFile() << "' " << msg << '\n';
   const auto digitLen =
       std::to_string(std::max(lineBegin, lineEnd) + 1).length();
   const size_t prefLen = digitLen + 2;  // "NN│ "
@@ -62,7 +68,7 @@ ErrorFormatter& ErrorFormatter::Highlight(size_t begin,
   // Only one line in the insertion case, but loop covers both single- and
   // multi-line
   for (size_t lineIdx = lineBegin; lineIdx <= lineEnd; ++lineIdx) {
-    auto lineText = index_.LineText(lineIdx);
+    auto lineText = sb->GetLine(lineIdx);
 
     // 1) print the source line
     oss << std::setw(digitLen) << std::left << (lineIdx + 1) << "│ " << lineText

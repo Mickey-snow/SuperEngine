@@ -26,15 +26,14 @@
 
 #include "m6/ast.hpp"
 #include "m6/parser.hpp"
+#include "m6/source_buffer.hpp"
 #include "m6/tokenizer.hpp"
 #include "machine/op.hpp"
 #include "utilities/string_utilities.hpp"
 
 #include <string>
-#include <string_view>
 #include <vector>
 
-using std::string_view_literals::operator""sv;
 using namespace m6;
 
 namespace m6test {
@@ -42,18 +41,23 @@ namespace m6test {
 // helpers
 namespace {
 template <typename... Ts>
-std::vector<m6::Token> TokenArray(Ts&&... args) {
+static std::vector<m6::Token> TokenArray(Ts&&... args) {
   std::vector<m6::Token> result;
   result.reserve(sizeof...(args));
   (result.emplace_back(std::forward<Ts>(args)), ...);
   return result;
 }
 
-auto TokenArray(std::string_view sv) -> std::vector<m6::Token> {
+static auto TokenArray(std::string input) -> std::vector<m6::Token> {
+  auto sb = SourceBuffer::Create(std::move(input), "<test>");
   std::vector<m6::Token> result;
   m6::Tokenizer tokenizer(result);
-  tokenizer.Parse(sv);
+  tokenizer.Parse(sb);
   return result;
+}
+
+static inline auto TokenArray(char const* s) {
+  return TokenArray(std::string(s));
 }
 }  // namespace
 
@@ -572,7 +576,7 @@ class StmtParserTest : public ::testing::Test {
 
 TEST_F(StmtParserTest, Assignment) {
   {  // Basic variable assignment
-    expectStmtAST(TokenArray("v1 = 1 + 2 - 3;"sv),
+    expectStmtAST(TokenArray("v1 = 1 + 2 - 3;"),
                   R"(
 Assign
    ├─ID v1
@@ -585,7 +589,7 @@ Assign
   }
 
   {  // Basic compound assignment
-    expectStmtAST(TokenArray("v1+=x+y-y%x;"sv),
+    expectStmtAST(TokenArray("v1+=x+y-y%x;"),
                   R"(
 AugAssign +=
    ├─ID v1
@@ -614,7 +618,7 @@ AugAssign >>>=
   }
 
   {
-    expectStmtAST(TokenArray("foo[boo] = x;"sv),
+    expectStmtAST(TokenArray("foo[boo] = x;"),
                   R"(
 Assign
    ├─Subscript
@@ -625,7 +629,7 @@ Assign
   }
 
   {
-    expectStmtAST(TokenArray("foo.boo = x;"sv),
+    expectStmtAST(TokenArray("foo.boo = x;"),
                   R"(
 Assign
    ├─Member
@@ -637,7 +641,7 @@ Assign
 }
 
 TEST_F(StmtParserTest, If) {
-  expectStmtAST(TokenArray("if(a) b; else c;"sv),
+  expectStmtAST(TokenArray("if(a) b; else c;"),
                 R"(
 If
    ├─cond
@@ -650,7 +654,7 @@ If
 }
 
 TEST_F(StmtParserTest, While) {
-  expectStmtAST(TokenArray("while(i<10) i+=1;"sv),
+  expectStmtAST(TokenArray("while(i<10) i+=1;"),
                 R"(
 While
    ├─cond
@@ -665,7 +669,7 @@ While
 }
 
 TEST_F(StmtParserTest, For) {
-  expectStmtAST(TokenArray("for(i=0;i<10;i+=1) sum += i;"sv),
+  expectStmtAST(TokenArray("for(i=0;i<10;i+=1) sum += i;"),
                 R"(
 For
    ├─init
@@ -688,7 +692,7 @@ For
 }
 
 TEST_F(StmtParserTest, Block) {
-  expectStmtAST(TokenArray("{i=1;j=2;k=3;l=4; {}}"sv), R"(
+  expectStmtAST(TokenArray("{i=1;j=2;k=3;l=4; {}}"), R"(
 Compound
    ├─Assign
    │  ├─ID i
@@ -707,7 +711,7 @@ Compound
 }
 
 TEST_F(StmtParserTest, FunctionDecl) {
-  expectStmtAST(TokenArray("fn main(){ a=1; b=2; a+=b; }"sv), R"(
+  expectStmtAST(TokenArray("fn main(){ a=1; b=2; a+=b; }"), R"(
 fn main()
    └─body
       └─Compound
@@ -724,7 +728,7 @@ fn main()
 }
 
 TEST_F(StmtParserTest, ClassDecl) {
-  expectStmtAST(TokenArray("class Klass{ fn foo(){} fn boo(a,b,c){} }"sv),
+  expectStmtAST(TokenArray("class Klass{ fn foo(){} fn boo(a,b,c){} }"),
                 R"(
 class Klass
    ├─fn foo()

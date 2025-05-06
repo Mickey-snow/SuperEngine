@@ -25,24 +25,31 @@
 #pragma once
 
 #include <cstddef>
+#include <memory>
 #include <string>
 
 namespace m6 {
 
 struct Token;
+class SourceBuffer;
 
 class SourceLocation {
  public:
   size_t begin_offset, end_offset;
+  std::shared_ptr<SourceBuffer> src;
 
   SourceLocation() = default;
 
-  SourceLocation(size_t begin, size_t end);
-  SourceLocation(Token* tok);
+  explicit SourceLocation(size_t begin,
+                          size_t end,
+                          std::shared_ptr<SourceBuffer> src = nullptr);
 
-  static SourceLocation At(size_t pos);
+  [[deprecated]]
   static SourceLocation After(Token* tok);
+  SourceLocation After() const;
+  [[deprecated]]
   static SourceLocation Range(Token* begin, Token* end);
+  SourceLocation Combine(const SourceLocation& end) const;
 
   explicit operator std::string() const;
 };

@@ -50,13 +50,16 @@ static void run_repl() {
   auto dummy = std::make_shared<serilang::Chunk>();
   serilang::VM vm(dummy);
 
-  for (std::string line; std::cout << ">> " && std::getline(std::cin, line);) {
+  std::string line;
+  for (size_t lineno = 1; std::cout << ">> " && std::getline(std::cin, line);
+       ++lineno) {
     if (line == "exit")
       break;
     if (line.empty())
       continue;
 
-    pipeline.compile(std::move(line));
+    pipeline.compile(SourceBuffer::Create(
+        std::move(line), "<input-" + std::to_string(lineno) + '>'));
     if (!pipeline.Ok()) {
       std::cerr << pipeline.FormatErrors() << std::flush;
       continue;

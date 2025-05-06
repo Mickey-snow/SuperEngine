@@ -24,31 +24,39 @@
 
 #pragma once
 
+#include "m6/line_table.hpp"
 #include "m6/source_location.hpp"
 
-#include <iomanip>
-#include <sstream>
+#include <memory>
 #include <string>
-#include <vector>
+#include <utility>
 
 namespace m6 {
 
-class ErrorFormatter {
+struct Token;
+
+class SourceBuffer : public std::enable_shared_from_this<SourceBuffer> {
  public:
-  // Constructor
-  explicit ErrorFormatter();
+  static std::shared_ptr<SourceBuffer> Create(std::string src,
+                                              std::string file);
 
-  // Appends a message with a newline.
-  ErrorFormatter& Pushline(const std::string& msg);
+  std::tuple<size_t, size_t> GetLineColumn(size_t offset) const;
+  std::string_view GetLine(size_t idx) const;
 
-  // Highlights the source between positions [begin, end) with a message.
-  ErrorFormatter& Highlight(const SourceLocation& loc, const std::string& msg);
+  std::string GetStr() const;
+  std::string GetFile() const;
+  std::string_view GetView() const;
 
-  // Returns the formatted error and resets the internal buffer.
-  std::string Str();
+  SourceLocation GetReference(size_t begin, size_t end);
+  SourceLocation GetReferenceAt(size_t pos);
 
  private:
-  std::ostringstream oss;
+  explicit SourceBuffer(std::string src,
+                        std::string file);  // please use `Create` instead
+
+  std::string file_;
+  std::string src_;
+  LineTable line_table_;
 };
 
 }  // namespace m6
