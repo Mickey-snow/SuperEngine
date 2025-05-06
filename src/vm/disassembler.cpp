@@ -35,7 +35,7 @@ namespace serilang {
 Disassembler::Disassembler(size_t indent) : indent_size_(indent) {}
 
 void Disassembler::PrintIns(Chunk& chunk,
-                            size_t ip,
+                            size_t& ip,
                             const std::string& indent) {
   using std::left;
   using std::right;
@@ -64,164 +64,281 @@ void Disassembler::PrintIns(Chunk& chunk,
   emit_addr(ip);
 
   // body ----------------------------------------------------------
-  std::visit(
-      [&](const auto& ins) {
-        using T = std::decay_t<decltype(ins)>;
+  switch (static_cast<OpCode>(chunk[ip++])) {
+    // ── 1. stack manipulation ───────────────────────────────
+    case OpCode::Push: {
+      const auto ins = chunk.Read<Push>(ip);
+      ip += sizeof(ins);
+      emit_mnemonic("PUSH");
+      emit_operand(ins.const_index);
+      if (ins.const_index < chunk.const_pool.size())
+        out_ << "  ; " << chunk.const_pool[ins.const_index].Desc();
 
-        // ── 1. stack manipulation ───────────────────────────────
-        if constexpr (std::is_same_v<T, Push>) {
-          emit_mnemonic("PUSH");
-          emit_operand(ins.const_index);
-          if (ins.const_index < chunk.const_pool.size())
-            out_ << "  ; " << chunk.const_pool[ins.const_index].Desc();
+      break;
+    }
+    case OpCode::Dup: {
+      const auto ins = chunk.Read<Dup>(ip);
+      ip += sizeof(ins);
+      emit_mnemonic("DUP");
+      emit_operand(static_cast<uint32_t>(ins.top_ofs));
 
-        } else if constexpr (std::is_same_v<T, Dup>) {
-          emit_mnemonic("DUP");
-          emit_operand(ins.top_ofs);
+      break;
+    }
+    case OpCode::Swap: {
+      const auto ins = chunk.Read<Swap>(ip);
+      ip += sizeof(ins);
+      emit_mnemonic("SWAP");
 
-        } else if constexpr (std::is_same_v<T, Swap>) {
-          emit_mnemonic("SWAP");
+      break;
+    }
+    case OpCode::Pop: {
+      const auto ins = chunk.Read<Pop>(ip);
+      ip += sizeof(ins);
+      emit_mnemonic("POP");
+      emit_operand(+ins.count);
 
-        } else if constexpr (std::is_same_v<T, Pop>) {
-          emit_mnemonic("POP");
-          emit_operand(+ins.count);
+      // ── 2. arithmetic / logic ───────────────────────────────
+      break;
+    }
+    case OpCode::UnaryOp: {
+      const auto ins = chunk.Read<UnaryOp>(ip);
+      ip += sizeof(ins);
+      emit_mnemonic("UNARY");
+      emit_operand(ToString(ins.op));
 
-          // ── 2. arithmetic / logic ───────────────────────────────
-        } else if constexpr (std::is_same_v<T, UnaryOp>) {
-          emit_mnemonic("UNARY");
-          emit_operand(ToString(ins.op));
+      break;
+    }
+    case OpCode::BinaryOp: {
+      const auto ins = chunk.Read<BinaryOp>(ip);
+      ip += sizeof(ins);
+      emit_mnemonic("BINARY");
+      emit_operand(ToString(ins.op));
 
-        } else if constexpr (std::is_same_v<T, BinaryOp>) {
-          emit_mnemonic("BINARY");
-          emit_operand(ToString(ins.op));
+      // ── 3. locals / globals / up-values ─────────────────────
+      break;
+    }
+    case OpCode::LoadLocal: {
+      const auto ins = chunk.Read<LoadLocal>(ip);
+      ip += sizeof(ins);
+      emit_mnemonic("LD_LOCAL");
+      emit_operand(+ins.slot);
 
-          // ── 3. locals / globals / up-values ─────────────────────
-        } else if constexpr (std::is_same_v<T, LoadLocal>) {
-          emit_mnemonic("LD_LOCAL");
-          emit_operand(+ins.slot);
+      break;
+    }
+    case OpCode::StoreLocal: {
+      const auto ins = chunk.Read<StoreLocal>(ip);
+      ip += sizeof(ins);
+      emit_mnemonic("ST_LOCAL");
+      emit_operand(+ins.slot);
 
-        } else if constexpr (std::is_same_v<T, StoreLocal>) {
-          emit_mnemonic("ST_LOCAL");
-          emit_operand(+ins.slot);
+      break;
+    }
+    case OpCode::LoadGlobal: {
+      const auto ins = chunk.Read<LoadGlobal>(ip);
+      ip += sizeof(ins);
+      emit_mnemonic("LD_GLOBAL");
+      emit_operand(ins.name_index);
+      out_ << "  ; " << string_at(ins.name_index);
 
-        } else if constexpr (std::is_same_v<T, LoadGlobal>) {
-          emit_mnemonic("LD_GLOBAL");
-          emit_operand(ins.name_index);
-          out_ << "  ; " << string_at(ins.name_index);
+      break;
+    }
+    case OpCode::StoreGlobal: {
+      const auto ins = chunk.Read<StoreGlobal>(ip);
+      ip += sizeof(ins);
+      emit_mnemonic("ST_GLOBAL");
+      emit_operand(ins.name_index);
+      out_ << "  ; " << string_at(ins.name_index);
 
-        } else if constexpr (std::is_same_v<T, StoreGlobal>) {
-          emit_mnemonic("ST_GLOBAL");
-          emit_operand(ins.name_index);
-          out_ << "  ; " << string_at(ins.name_index);
+      break;
+    }
+    case OpCode::LoadUpvalue: {
+      const auto ins = chunk.Read<LoadUpvalue>(ip);
+      ip += sizeof(ins);
+      emit_mnemonic("LD_UPVAL");
+      emit_operand(+ins.slot);
 
-        } else if constexpr (std::is_same_v<T, LoadUpvalue>) {
-          emit_mnemonic("LD_UPVAL");
-          emit_operand(+ins.slot);
+      break;
+    }
+    case OpCode::StoreUpvalue: {
+      const auto ins = chunk.Read<StoreUpvalue>(ip);
+      ip += sizeof(ins);
+      emit_mnemonic("ST_UPVAL");
+      emit_operand(+ins.slot);
 
-        } else if constexpr (std::is_same_v<T, StoreUpvalue>) {
-          emit_mnemonic("ST_UPVAL");
-          emit_operand(+ins.slot);
+      break;
+    }
+    case OpCode::CloseUpvalues: {
+      const auto ins = chunk.Read<CloseUpvalues>(ip);
+      ip += sizeof(ins);
+      emit_mnemonic("CLOSE_UPS");
+      emit_operand(+ins.from_slot);
 
-        } else if constexpr (std::is_same_v<T, CloseUpvalues>) {
-          emit_mnemonic("CLOSE_UPS");
-          emit_operand(+ins.from_slot);
+      // ── 4. control-flow ─────────────────────────────────────
+      break;
+    }
+    case OpCode::Jump: {
+      const auto ins = chunk.Read<Jump>(ip);
+      ip += sizeof(ins);
+      long tgt = static_cast<long>(ip) + ins.offset;
+      emit_mnemonic("JUMP");
+      emit_operand((ins.offset >= 0 ? "+" : "") + std::to_string(ins.offset));
+      out_ << " -> " << tgt;
 
-          // ── 4. control-flow ─────────────────────────────────────
-        } else if constexpr (std::is_same_v<T, Jump>) {
-          long tgt = static_cast<long>(ip) + 1 + ins.offset;
-          emit_mnemonic("JUMP");
-          emit_operand((ins.offset >= 0 ? "+" : "") +
-                       std::to_string(ins.offset));
-          out_ << " -> " << tgt;
+      break;
+    }
+    case OpCode::JumpIfTrue: {
+      const auto ins = chunk.Read<JumpIfTrue>(ip);
+      ip += sizeof(ins);
+      long tgt = static_cast<long>(ip) + ins.offset;
+      emit_mnemonic("JIF_TRUE");
+      emit_operand((ins.offset >= 0 ? "+" : "") + std::to_string(ins.offset));
+      out_ << " -> " << tgt;
 
-        } else if constexpr (std::is_same_v<T, JumpIfTrue>) {
-          long tgt = static_cast<long>(ip) + 1 + ins.offset;
-          emit_mnemonic("JIF_TRUE");
-          emit_operand((ins.offset >= 0 ? "+" : "") +
-                       std::to_string(ins.offset));
-          out_ << " -> " << tgt;
+      break;
+    }
+    case OpCode::JumpIfFalse: {
+      const auto ins = chunk.Read<JumpIfFalse>(ip);
+      ip += sizeof(ins);
+      long tgt = static_cast<long>(ip) + ins.offset;
+      emit_mnemonic("JIF_FALSE");
+      emit_operand((ins.offset >= 0 ? "+" : "") + std::to_string(ins.offset));
+      out_ << " -> " << tgt;
 
-        } else if constexpr (std::is_same_v<T, JumpIfFalse>) {
-          long tgt = static_cast<long>(ip) + 1 + ins.offset;
-          emit_mnemonic("JIF_FALSE");
-          emit_operand((ins.offset >= 0 ? "+" : "") +
-                       std::to_string(ins.offset));
-          out_ << " -> " << tgt;
+      break;
+    }
+    case OpCode::Return: {
+      const auto ins = chunk.Read<Return>(ip);
+      ip += sizeof(ins);
+      emit_mnemonic("RETURN");
 
-        } else if constexpr (std::is_same_v<T, Return>) {
-          emit_mnemonic("RETURN");
+      // ── 5. functions & calls ────────────────────────────────
+      break;
+    }
+    case OpCode::MakeClosure: {
+      const auto ins = chunk.Read<MakeClosure>(ip);
+      ip += sizeof(ins);
+      emit_mnemonic("MAKE_CLOS");
+      emit_operand("");  // keep column spacing
+      out_ << "entry=" << ins.entry << "  nargs=" << ins.nparams
+           << "  nlocals=" << ins.nlocals << "  nup=" << ins.nupvals;
 
-          // ── 5. functions & calls ────────────────────────────────
-        } else if constexpr (std::is_same_v<T, MakeClosure>) {
-          emit_mnemonic("MAKE_CLOS");
-          emit_operand("");  // keep column spacing
-          out_ << "entry=" << ins.entry << "  nargs=" << ins.nparams
-               << "  nlocals=" << ins.nlocals << "  nup=" << ins.nupvals;
+      break;
+    }
+    case OpCode::Call: {
+      const auto ins = chunk.Read<Call>(ip);
+      ip += sizeof(ins);
+      emit_mnemonic("CALL");
+      emit_operand(+ins.arity);
 
-        } else if constexpr (std::is_same_v<T, Call>) {
-          emit_mnemonic("CALL");
-          emit_operand(+ins.arity);
+      break;
+    }
+    case OpCode::TailCall: {
+      const auto ins = chunk.Read<TailCall>(ip);
+      ip += sizeof(ins);
+      emit_mnemonic("TAIL_CALL");
+      emit_operand(+ins.arity);
 
-        } else if constexpr (std::is_same_v<T, TailCall>) {
-          emit_mnemonic("TAIL_CALL");
-          emit_operand(+ins.arity);
+      // ── 6. objects / classes ───────────────────────────────
+      break;
+    }
+    case OpCode::MakeClass: {
+      const auto ins = chunk.Read<MakeClass>(ip);
+      ip += sizeof(ins);
+      emit_mnemonic("MAKE_CLASS");
+      emit_operand("");
+      out_ << std::format("name={}({})  nmethods={}", ins.name_index,
+                          string_at(ins.name_index), ins.nmethods);
 
-          // ── 6. objects / classes ───────────────────────────────
-        } else if constexpr (std::is_same_v<T, MakeClass>) {
-          emit_mnemonic("MAKE_CLASS");
-          emit_operand("");
-          out_ << std::format("name={}({})  nmethods={}", ins.name_index,
-                              string_at(ins.name_index), ins.nmethods);
+      break;
+    }
+    case OpCode::GetField: {
+      const auto ins = chunk.Read<GetField>(ip);
+      ip += sizeof(ins);
+      emit_mnemonic("GET_FIELD");
+      emit_operand(ins.name_index);
+      out_ << "  ; " << string_at(ins.name_index);
 
-        } else if constexpr (std::is_same_v<T, GetField>) {
-          emit_mnemonic("GET_FIELD");
-          emit_operand(ins.name_index);
-          out_ << "  ; " << string_at(ins.name_index);
+      break;
+    }
+    case OpCode::SetField: {
+      const auto ins = chunk.Read<SetField>(ip);
+      ip += sizeof(ins);
+      emit_mnemonic("SET_FIELD");
+      emit_operand(ins.name_index);
+      out_ << "  ; " << string_at(ins.name_index);
 
-        } else if constexpr (std::is_same_v<T, SetField>) {
-          emit_mnemonic("SET_FIELD");
-          emit_operand(ins.name_index);
-          out_ << "  ; " << string_at(ins.name_index);
+      break;
+    }
+    case OpCode::GetItem: {
+      const auto ins = chunk.Read<GetItem>(ip);
+      ip += sizeof(ins);
+      emit_mnemonic("GET_ITEM");
 
-        } else if constexpr (std::is_same_v<T, GetItem>) {
-          emit_mnemonic("GET_ITEM");
+      break;
+    }
+    case OpCode::SetItem: {
+      const auto ins = chunk.Read<SetItem>(ip);
+      ip += sizeof(ins);
+      emit_mnemonic("SET_ITEM");
 
-        } else if constexpr (std::is_same_v<T, SetItem>) {
-          emit_mnemonic("SET_ITEM");
+      // ── 7. coroutines / fibers ──────────────────────────────
+      break;
+    }
+    case OpCode::MakeFiber: {
+      const auto ins = chunk.Read<MakeFiber>(ip);
+      ip += sizeof(ins);
+      emit_mnemonic("MAKE_FIBER");
+      emit_operand("");
+      out_ << "entry=" << ins.entry << "  nargs=" << ins.nparams
+           << "  nlocals=" << ins.nlocals << "  nup=" << ins.nupvals;
 
-          // ── 7. coroutines / fibers ──────────────────────────────
-        } else if constexpr (std::is_same_v<T, MakeFiber>) {
-          emit_mnemonic("MAKE_FIBER");
-          emit_operand("");
-          out_ << "entry=" << ins.entry << "  nargs=" << ins.nparams
-               << "  nlocals=" << ins.nlocals << "  nup=" << ins.nupvals;
+      break;
+    }
+    case OpCode::Resume: {
+      const auto ins = chunk.Read<Resume>(ip);
+      ip += sizeof(ins);
+      emit_mnemonic("RESUME");
+      emit_operand(+ins.arity);
 
-        } else if constexpr (std::is_same_v<T, Resume>) {
-          emit_mnemonic("RESUME");
-          emit_operand(+ins.arity);
+      break;
+    }
+    case OpCode::Yield: {
+      const auto ins = chunk.Read<Yield>(ip);
+      ip += sizeof(ins);
+      emit_mnemonic("YIELD");
 
-        } else if constexpr (std::is_same_v<T, Yield>) {
-          emit_mnemonic("YIELD");
+      // ── 8. exceptions ──────────────────────────────────────
+      break;
+    }
+    case OpCode::Throw: {
+      const auto ins = chunk.Read<Throw>(ip);
+      ip += sizeof(ins);
+      emit_mnemonic("THROW");
 
-          // ── 8. exceptions ──────────────────────────────────────
-        } else if constexpr (std::is_same_v<T, Throw>) {
-          emit_mnemonic("THROW");
+      break;
+    }
+    case OpCode::TryBegin: {
+      const auto ins = chunk.Read<TryBegin>(ip);
+      ip += sizeof(ins);
+      long tgt = static_cast<long>(ip) + 1 + ins.handler_rel_ofs;
+      emit_mnemonic("TRY_BEGIN");
+      emit_operand("+" + std::to_string(ins.handler_rel_ofs));
+      out_ << " -> " << tgt;
 
-        } else if constexpr (std::is_same_v<T, TryBegin>) {
-          long tgt = static_cast<long>(ip) + 1 + ins.handler_rel_ofs;
-          emit_mnemonic("TRY_BEGIN");
-          emit_operand("+" + std::to_string(ins.handler_rel_ofs));
-          out_ << " -> " << tgt;
+      break;
+    }
+    case OpCode::TryEnd: {
+      const auto ins = chunk.Read<TryEnd>(ip);
+      ip += sizeof(ins);
+      emit_mnemonic("TRY_END");
 
-        } else if constexpr (std::is_same_v<T, TryEnd>) {
-          emit_mnemonic("TRY_END");
-
-          // ── unknown op ─────────────────────────────────────────
-        } else {
-          emit_mnemonic("<unknown op>");
-        }
-      },
-      chunk.code[ip]);
+      // ── unknown op ─────────────────────────────────────────
+      break;
+    }
+    default:
+      emit_mnemonic("<unknown op>");
+      break;
+  }
 
   out_ << '\n';
 }
@@ -232,7 +349,7 @@ void Disassembler::DumpImpl(Chunk& chunk, const std::string& indent) {
   seen_.insert(&chunk);
 
   // --- top-level disassembly of this chunk -----------------------------
-  for (std::size_t ip = 0; ip < chunk.code.size(); ++ip)
+  for (std::size_t ip = 0; ip < chunk.code.size();)
     PrintIns(chunk, ip, indent);
 
   // --- dive into nested chunks found in the constant-pool --------------

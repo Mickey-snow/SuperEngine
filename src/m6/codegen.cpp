@@ -24,6 +24,7 @@
 
 #include "m6/codegen.hpp"
 
+#include "utilities/mpl.hpp"
 #include "vm/value_internal/closure.hpp"
 
 #include <stdexcept>
@@ -82,7 +83,6 @@ uint32_t CodeGenerator::intern_name(std::string_view s) {
   return constant(Value{std::string{s}});
 }
 
-// Emit helpers
 std::size_t CodeGenerator::code_size() const { return chunk_->code.size(); }
 
 void CodeGenerator::push_scope() { locals_.emplace_back(); }
@@ -236,13 +236,14 @@ void CodeGenerator::emit_stmt_node(const AugStmt& s) {
 
 void CodeGenerator::emit_stmt_node(const IfStmt& s) {
   emit_expr(s.cond);
+  auto jfalse = code_size();
   emit(sr::JumpIfFalse{0});
-  auto jfalse = code_size() - 1;
 
   emit_stmt(s.then);
   if (s.els) {
+    auto jend = code_size();
     emit(sr::Jump{0});
-    auto jend = code_size() - 1;
+
     patch(jfalse, code_size());
     emit_stmt(s.els);
     patch(jend, code_size());
@@ -257,7 +258,10 @@ void CodeGenerator::emit_stmt_node(const WhileStmt& s) {
   auto exitj = code_size();
   emit(sr::JumpIfFalse{0});
   emit_stmt(s.body);
-  emit(sr::Jump{rel<int32_t>(code_size(), loop_top) - 1});
+
+  auto jmp = code_size();
+  emit(sr::Jump{0});
+  patch(jmp, loop_top);
   patch(exitj, code_size());
 }
 
@@ -278,7 +282,10 @@ void CodeGenerator::emit_stmt_node(const ForStmt& f) {
   if (f.inc)
     emit_stmt(f.inc);
 
-  emit(sr::Jump{rel<int32_t>(code_size(), condpos) - 1});
+  auto jmp = code_size();
+  emit(sr::Jump{0});
+  patch(jmp, condpos);
+
   patch(exitj, code_size());
   pop_scope();
 }
@@ -347,23 +354,30 @@ void CodeGenerator::emit_stmt_node(const std::shared_ptr<ExprAST>& s) {
   }
 }
 
-// Patch jumps
-void CodeGenerator::patch(std::size_t site, std::size_t target) {
-  auto& var = chunk_->code[site];
-  auto offset = rel<int32_t>(site + 1, target);
-  std::visit(
-      [&](auto& ins) {
-        using T = std::decay_t<decltype(ins)>;
-        if constexpr (std::is_same_v<T, sr::JumpIfFalse>)
-          ins.offset = offset;
-        else if constexpr (std::is_same_v<T, sr::JumpIfTrue>)
-          ins.offset = offset;
-        else if constexpr (std::is_same_v<T, sr::Jump>)
-          ins.offset = offset;
-        else
-          throw std::runtime_error("Codegen: invalid patch site");
-      },
-      var);
+namespace {
+// -- Offset helper --------------------------------------------------
+template <typename offset_t>
+static inline constexpr auto rel(offset_t from, offset_t to) -> offset_t {
+  return to - from;
+}
+}  // namespace
+
+void CodeGenerator::patch(std::size_t site,
+                          std::size_t target) {  // Patch jumps
+  const auto offset =
+      rel<int32_t>(site + sizeof(std::byte) + sizeof(int32_t), target);
+
+  switch (static_cast<sr::OpCode>((*chunk_)[site])) {
+    case sr::OpCode::Jump:
+    case sr::OpCode::JumpIfFalse:
+    case sr::OpCode::JumpIfTrue:
+      chunk_->Write(site + 1, offset);
+      break;
+    default:
+      throw std::runtime_error(
+          "Codegen: invalid patch site (type" +
+          std::to_string(static_cast<uint8_t>((*chunk_)[site])) + ')');
+  }
 }
 
 }  // namespace m6

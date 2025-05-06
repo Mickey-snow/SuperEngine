@@ -23,8 +23,6 @@
 // -----------------------------------------------------------------------
 
 #include "m6/compiler_pipeline.hpp"
-#include "vm/instruction.hpp"
-#include "vm/value.hpp"
 #include "vm/vm.hpp"
 
 #include <iostream>

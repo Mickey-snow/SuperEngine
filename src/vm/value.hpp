@@ -24,11 +24,12 @@
 
 #pragma once
 
-#include "vm/instruction.hpp"
+#include "machine/op.hpp"
 
 #include <algorithm>
 #include <memory>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 namespace serilang {

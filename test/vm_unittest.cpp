@@ -24,6 +24,7 @@
 
 #include <gtest/gtest.h>
 
+#include "vm/disassembler.hpp"
 #include "vm/instruction.hpp"
 #include "vm/vm.hpp"
 
@@ -38,8 +39,12 @@ inline static std::vector<Value> value_vector(Ts&&... param) {
   return std::vector<Value>{Value(std::forward<Ts>(param))...};
 }
 
-// Small helper: run a chunk, return the final value that the *main*
-/// fiber reported via `last`.
+inline static void append_ins(std::shared_ptr<Chunk> chunk,
+                              std::vector<Instruction> ins) {
+  for (const auto& it : ins)
+    chunk->Append(it);
+}
+
 static Value run_and_get(const std::shared_ptr<Chunk>& chunk) {
   VM vm(chunk);
   vm.Run();
@@ -49,7 +54,7 @@ static Value run_and_get(const std::shared_ptr<Chunk>& chunk) {
 TEST(VMTest, BinaryAdd) {
   auto chunk = std::make_shared<Chunk>();
   chunk->const_pool = value_vector(1.0, 2.0);
-  chunk->code = {Push{0}, Push{1}, BinaryOp{Op::Add}, Return{}};
+  append_ins(chunk, {Push{0}, Push{1}, BinaryOp{Op::Add}, Return{}});
 
   Value out = run_and_get(chunk);
   EXPECT_EQ(out, 3.0);
@@ -58,7 +63,7 @@ TEST(VMTest, BinaryAdd) {
 TEST(VMTest, UnaryNeg) {
   auto chunk = std::make_shared<Chunk>();
   chunk->const_pool = value_vector(5.0);
-  chunk->code = {Push{0}, UnaryOp{Op::Sub}, Return{}};
+  append_ins(chunk, {Push{0}, UnaryOp{Op::Sub}, Return{}});
 
   Value out = run_and_get(chunk);
   EXPECT_EQ(out, -5.0);
@@ -68,13 +73,11 @@ TEST(VMTest, DupAndSwap) {
   // Program:   (1 2) swap ⇒ (2 1) dup ⇒ (2 1 1) add,add ⇒ 2+1+1 = 4
   auto chunk = std::make_shared<Chunk>();
   chunk->const_pool = value_vector(1.0, 2.0);
-  chunk->code = {Push{0},  // 1
-                 Push{1},  // 2
-                 Swap{},   // 2 1
-                 Dup{},    // 2 1 1
-                 BinaryOp{Op::Add},
-                 BinaryOp{Op::Add},
-                 Return{}};
+  append_ins(chunk, {Push{0},  // 1
+                     Push{1},  // 2
+                     Swap{},   // 2 1
+                     Dup{},    // 2 1 1
+                     BinaryOp{Op::Add}, BinaryOp{Op::Add}, Return{}});
 
   Value out = run_and_get(chunk);
   EXPECT_EQ(out, 4.0);
@@ -86,7 +89,7 @@ TEST(VMTest, StoreLoadLocal) {
 
   // bootstrap main‑closure: we need one local slot
   //   local0 = 42;  return local0;
-  chunk->code = {Push{0}, StoreLocal{0}, LoadLocal{0}, Return{}};
+  append_ins(chunk, {Push{0}, StoreLocal{0}, LoadLocal{0}, Return{}});
 
   // Trick: tell the VM that “main” closure has 1 local
   VM vm(chunk);
@@ -100,15 +103,16 @@ TEST(VMTest, StoreLoadLocal) {
 
 TEST(VMTest, FunctionCall) {
   // Layout:
-  //   0: MakeClosure(entry=5)   ; push fn
-  //   3: Call0
-  //   4: Return
+  //   0 : MakeClosure(entry=21)   ; push fn
+  //   17: Call0
+  //   19: Return
   //
-  //   5: Push 7
-  //   7: Return
+  //   21: Push 7
+  //   26: Return
   auto chunk = std::make_shared<Chunk>();
   chunk->const_pool = value_vector(7.0);
-  chunk->code = {MakeClosure{3, 0, 0, 0}, Call{0}, Return{}, Push{0}, Return{}};
+  append_ins(chunk,
+             {MakeClosure{21, 0, 0, 0}, Call{0}, Return{}, Push{0}, Return{}});
 
   Value out = run_and_get(chunk);
   EXPECT_EQ(out, 7.0);
@@ -121,17 +125,17 @@ TEST(VMTest, TailCall) {
   chunk->const_pool = value_vector(99.0);
 
   // indices
-  constexpr uint32_t kInner = 5;
-  constexpr uint32_t kOuter = 3;
+  constexpr uint32_t kInner = 38;
+  constexpr uint32_t kOuter = 40;
 
-  chunk->code = {// main → call outer()
-                 MakeClosure{kOuter, 0, 0, 0}, Call{0}, Return{},
+  append_ins(chunk, {// main → call outer()
+                     MakeClosure{kOuter, 0, 0, 0}, Call{0}, Return{},
 
-                 // outer()
-                 MakeClosure{kInner, 0, 0, 0}, TailCall{0},
+                     // outer()
+                     MakeClosure{kInner, 0, 0, 0}, TailCall{0},
 
-                 // inner()
-                 Push{0}, Return{}};
+                     // inner()
+                     Push{0}, Return{}});
 
   Value out = run_and_get(chunk);
   EXPECT_EQ(out, 99.0);
@@ -148,9 +152,8 @@ TEST(VMTest, ConditionalJump) {
   //  jump +1 (skip then‑push)
   //  push 111
   //  return
-  chunk->code = {Push{0},        Push{1}, BinaryOp{Op::Less},
-                 JumpIfFalse{2}, Push{3}, Jump{1},
-                 Push{2},        Return{}};
+  append_ins(chunk, {Push{0}, Push{1}, BinaryOp{Op::Less}, JumpIfFalse{10},
+                     Push{3}, Jump{5}, Push{2}, Return{}});
 
   Value out = run_and_get(chunk);
   EXPECT_EQ(out, 222.0);
@@ -160,7 +163,7 @@ TEST(VMTest, ReturnNil) {
   auto chunk = std::make_shared<Chunk>();
 
   // return
-  chunk->code = {Return{}};
+  append_ins(chunk, {Return{}});
 
   Value out = run_and_get(chunk);
   EXPECT_EQ(out, std::monostate());
@@ -180,7 +183,7 @@ TEST(VMTest, CallNative) {
       });
 
   chunk->const_pool = value_vector(fn, 1, "foo");
-  chunk->code = {Push{0}, Push{1}, Push{2}, Call{2}, Return{}};
+  append_ins(chunk, {Push{0}, Push{1}, Push{2}, Call{2}, Return{}});
 
   Value out = run_and_get(chunk);
   EXPECT_EQ(call_count, 1);

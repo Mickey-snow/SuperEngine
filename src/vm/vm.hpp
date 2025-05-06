@@ -25,6 +25,7 @@
 #pragma once
 
 #include "machine/op.hpp"
+#include "utilities/string_utilities.hpp"
 #include "vm/call_frame.hpp"
 #include "vm/chunk.hpp"
 #include "vm/instruction.hpp"
@@ -72,12 +73,16 @@ class VM {
         }));
     globals["print"] = Value(std::make_shared<NativeFunction>(
         "print", [](VM& vm, std::vector<Value> args) {
-          if (!args.empty()) {
-            vm.os_ << args.front().Str();
-            for (size_t i = 1; i < args.size(); ++i)
-              vm.os_ << ',' << args[i].Str();
-            vm.os_ << std::endl;
-          }
+          bool nl = false;
+          vm.os_ << Join(
+              ",",
+              std::views::all(args) | std::views::filter([&nl](const Value& v) {
+                return v == std::monostate() ? false : (nl = true);
+              }) | std::views::transform([](const Value& v) {
+                return v.Str();
+              }));
+          if (nl)
+            vm.os_ << '\n';
           return Value();
         }));
   }
@@ -196,6 +201,19 @@ class VM {
     f.stack.resize(base + cl->nlocals);
     frame = {cl, cl->entry, base};  // replace frame
   }
+  void Return(Fiber& f) {
+    auto& frame = f.frames.back();
+    Value ret = f.stack.empty() ? Value() : f.stack.back();
+    f.stack.resize(frame.bp + 1 /* for return value */);
+
+    f.frames.pop_back();
+    if (f.frames.empty()) {  // fiber finished
+      f.state = FiberState::Dead;
+      f.last = std::move(ret);
+    } else {  // push return value back on stack
+      f.stack.back() = std::move(ret);
+    }
+  }
 
   //----------------------------------------------------------------
   void ExecuteFiber(const std::shared_ptr<Fiber>& fib) {
@@ -203,185 +221,272 @@ class VM {
     while (!fib->frames.empty()) {
       auto& frame = fib->frames.back();
       auto& chunk = *frame.closure->chunk;
-      auto& code = chunk.code;
+      auto& ip = frame.ip;
 
-      auto fetch = [&]() -> Instruction {
-        if (frame.ip < code.size())
-          return code[frame.ip++];
-        else
-          return serilang::Return();
-      };
+      if (ip >= chunk.code.size()) {
+        Return(*fib);
+        return;
+      }
 
-      // main dispatch loop
-      std::visit(
-          [&](auto ins) {
-            using T = std::decay_t<decltype(ins)>;
-            //------------------------------------------------------------------
-            // 1. Stack ops
-            //------------------------------------------------------------------
-            if constexpr (std::is_same_v<T, serilang::Push>) {
-              push(fib->stack, chunk.const_pool[ins.const_index]);
-            } else if constexpr (std::is_same_v<T, serilang::Dup>) {
-              push(fib->stack, fib->stack.end()[-ins.top_ofs - 1]);
-            } else if constexpr (std::is_same_v<T, serilang::Swap>) {
-              std::swap(fib->stack.end()[-1], fib->stack.end()[-2]);
-            } else if constexpr (std::is_same_v<T, serilang::Pop>) {
-              for (uint8_t i = 0; i < ins.count; ++i)
-                fib->stack.pop_back();
-              //------------------------------------------------------------------
-              // 2. Unary / Binary
-              //------------------------------------------------------------------
-            } else if constexpr (std::is_same_v<T, serilang::UnaryOp>) {
-              auto v = pop(fib->stack);
-              Value r = v.Operator(ins.op);
-              push(fib->stack, r);
-            } else if constexpr (std::is_same_v<T, serilang::BinaryOp>) {
-              auto rhs = pop(fib->stack);
-              auto lhs = pop(fib->stack);
-              Value out = lhs.Operator(ins.op, std::move(rhs));
-              push(fib->stack, out);
-              //------------------------------------------------------------------
-              // 3. Locals / globals / upvals
-              //------------------------------------------------------------------
-            } else if constexpr (std::is_same_v<T, serilang::LoadLocal>) {
-              push(fib->stack,
-                   *fib->local_slot(fib->frames.size() - 1, ins.slot));
-            } else if constexpr (std::is_same_v<T, serilang::StoreLocal>) {
-              *fib->local_slot(fib->frames.size() - 1, ins.slot) =
-                  pop(fib->stack);
-            } else if constexpr (std::is_same_v<T, serilang::LoadGlobal>) {
-              auto name =
-                  chunk.const_pool[ins.name_index].template Get<std::string>();
-              push(fib->stack, globals[name]);
-            } else if constexpr (std::is_same_v<T, serilang::StoreGlobal>) {
-              auto name =
-                  chunk.const_pool[ins.name_index].template Get<std::string>();
-              globals[name] = pop(fib->stack);
-            } else if constexpr (std::is_same_v<T, serilang::LoadUpvalue>) {
-              push(fib->stack, frame.closure->up[ins.slot]->get());
-            } else if constexpr (std::is_same_v<T, serilang::StoreUpvalue>) {
-              frame.closure->up[ins.slot]->set(pop(fib->stack));
-            } else if constexpr (std::is_same_v<T, serilang::CloseUpvalues>) {
-              auto* base =
-                  fib->local_slot(fib->frames.size() - 1, ins.from_slot);
-              fib->close_upvalues_from(base);
-              //------------------------------------------------------------------
-              // 4. Control flow
-              //------------------------------------------------------------------
-            } else if constexpr (std::is_same_v<T, serilang::Jump>) {
-              frame.ip += ins.offset;
-            } else if constexpr (std::is_same_v<T, serilang::JumpIfTrue>) {
-              auto cond = pop(fib->stack);
-              if (cond.IsTruthy())
-                frame.ip += ins.offset;
-            } else if constexpr (std::is_same_v<T, serilang::JumpIfFalse>) {
-              auto cond = pop(fib->stack);
-              if (!cond.IsTruthy())
-                frame.ip += ins.offset;
-            } else if constexpr (std::is_same_v<T, serilang::Return>) {
-              Value ret = fib->stack.empty() ? Value() : fib->stack.back();
-              fib->stack.resize(frame.bp + 1 /* for return value */);
+      // main dispatch switch
+      switch (static_cast<OpCode>(chunk[ip++])) {
+        case OpCode::Nop:
+          break;
 
-              fib->frames.pop_back();
-              if (fib->frames.empty()) {  // fiber finished
-                fib->state = FiberState::Dead;
-                fib->last = std::move(ret);
-              } else {  // push return value back on stack
-                fib->stack.back() = std::move(ret);
-              }
-              return;  // let scheduler switch
-              //------------------------------------------------------------------
-              // 5. Function calls
-              //------------------------------------------------------------------
-            } else if constexpr (std::is_same_v<T, serilang::MakeClosure>) {
-              auto cl = std::make_shared<Closure>(frame.closure->chunk);
-              cl->entry = ins.entry;
-              cl->nparams = ins.nparams;
-              cl->nlocals = ins.nlocals;
-              cl->up.resize(ins.nupvals);
-              // capture upvalues descriptors (already on stack as ints)
-              for (int i = ins.nupvals - 1; i >= 0; --i) {
-                auto uv_slot = static_cast<uint8_t>(pop(fib->stack).Get<int>());
-                cl->up[i] = fib->capture_upvalue(
-                    fib->local_slot(fib->frames.size() - 1, uv_slot));
-              }
-              push(fib->stack, Value(cl));
-            } else if constexpr (std::is_same_v<T, serilang::Call>) {
-              DispatchCall(*fib, fib->stack.end()[-ins.arity - 1], ins.arity);
-            } else if constexpr (std::is_same_v<T, serilang::TailCall>) {
-              auto arity = ins.arity;
-              Value& fnVal = fib->stack.end()[-arity - 1];
-              auto cl = fnVal.template Get_if<std::shared_ptr<Closure>>();
-              if (!cl)
-                RuntimeError("tailcall non‑closure");
-              TailCall(*fib, cl, arity);
-              //------------------------------------------------------------------
-              // 6. Object ops  (very naive)
-              //------------------------------------------------------------------
-            } else if constexpr (std::is_same_v<T, serilang::MakeClass>) {
-              auto klass = std::make_shared<Class>();
-              klass->name =
-                  chunk.const_pool[ins.name_index].template Get<std::string>();
-              for (int i = 0; i < ins.nmethods; i++) {
-                auto method = pop(fib->stack);
-                auto name = pop(fib->stack).template Extract<std::string>();
-                klass->methods[std::move(name)] = std::move(method);
-              }
-              push(fib->stack, Value(klass));
-            } else if constexpr (std::is_same_v<T, serilang::GetField>) {
-              auto inst = pop(fib->stack).Extract<std::shared_ptr<Instance>>();
-              auto name =
-                  chunk.const_pool[ins.name_index].template Get<std::string>();
-              push(fib->stack, inst->fields[name]);
-            } else if constexpr (std::is_same_v<T, serilang::SetField>) {
-              auto val = pop(fib->stack);
-              auto inst = pop(fib->stack).Extract<std::shared_ptr<Instance>>();
-              auto name =
-                  chunk.const_pool[ins.name_index].template Get<std::string>();
-              inst->fields[name] = val;
-              push(fib->stack, val);
-              //------------------------------------------------------------------
-              // 7. Coroutines
-              //------------------------------------------------------------------
-            } else if constexpr (std::is_same_v<T, serilang::MakeFiber>) {
-              auto f = std::make_shared<Fiber>();
-              auto cl = std::make_shared<Closure>(frame.closure->chunk);
-              cl->entry = ins.entry;
-              cl->nparams = ins.nparams;
-              cl->nlocals = ins.nlocals;
-              cl->up.resize(ins.nupvals);  // TODO: capture
-              f->stack.reserve(64);
-              push(fib->stack, Value(f));
-            } else if constexpr (std::is_same_v<T, serilang::Resume>) {
-              auto arity = ins.arity;
-              auto fVal = fib->stack.end()[-arity - 1];
-              auto f2 = fVal.template Get<std::shared_ptr<Fiber>>();
-              // move args
-              for (int i = arity - 1; i >= 0; --i) {
-                push(f2->stack, pop(fib->stack));
-              }
-              fib->stack.pop_back();  // pop fiber
-              fibers.push_front(f2);
-              return;  // switch
-            } else if constexpr (std::is_same_v<T, serilang::Yield>) {
-              Value y = pop(fib->stack);
-              fib->state = FiberState::Suspended;
-              fib->last = y;
-              return;
-              //------------------------------------------------------------------
-              // 8. Exceptions
-              //------------------------------------------------------------------
-            } else if constexpr (std::is_same_v<T, serilang::Throw>) {
-              RuntimeError("throw not implemented");
-            } else if constexpr (std::is_same_v<T, serilang::TryBegin> ||
-                                 std::is_same_v<T, serilang::TryEnd>) {
-              RuntimeError("Not implemented yet");
-            } else {
-              RuntimeError("Unimplemented instruction");
-            }
-            //------------------------------------------------------------------
-          },
-          fetch());  // end visit
+        case OpCode::Push: {
+          const auto ins = chunk.Read<serilang::Push>(ip);
+          ip += sizeof(ins);
+          push(fib->stack, chunk.const_pool[ins.const_index]);
+          break;
+        }
+        case OpCode::Dup: {
+          const auto ins = chunk.Read<serilang::Dup>(ip);
+          ip += sizeof(ins);
+          push(fib->stack, fib->stack.end()[-ins.top_ofs - 1]);
+          break;
+        }
+        case OpCode::Swap: {
+          const auto ins = chunk.Read<serilang::Swap>(ip);
+          ip += sizeof(ins);
+          std::swap(fib->stack.end()[-1], fib->stack.end()[-2]);
+          break;
+        }
+        case OpCode::Pop: {
+          const auto ins = chunk.Read<serilang::Pop>(ip);
+          ip += sizeof(ins);
+          for (uint8_t i = 0; i < ins.count; ++i)
+            fib->stack.pop_back();
+          break;
+
+          //------------------------------------------------------------------
+          // 2. Unary / Binary
+          //------------------------------------------------------------------
+        }
+        case OpCode::UnaryOp: {
+          const auto ins = chunk.Read<serilang::UnaryOp>(ip);
+          ip += sizeof(ins);
+          auto v = pop(fib->stack);
+          Value r = v.Operator(ins.op);
+          push(fib->stack, r);
+          break;
+        }
+        case OpCode::BinaryOp: {
+          const auto ins = chunk.Read<serilang::BinaryOp>(ip);
+          ip += sizeof(ins);
+          auto rhs = pop(fib->stack);
+          auto lhs = pop(fib->stack);
+          Value out = lhs.Operator(ins.op, std::move(rhs));
+          push(fib->stack, out);
+          break;
+
+          //------------------------------------------------------------------
+          // 3. Locals / globals / upvals
+          //------------------------------------------------------------------
+        }
+        case OpCode::LoadLocal: {
+          const auto ins = chunk.Read<serilang::LoadLocal>(ip);
+          ip += sizeof(ins);
+          push(fib->stack, *fib->local_slot(fib->frames.size() - 1, ins.slot));
+          break;
+        }
+        case OpCode::StoreLocal: {
+          const auto ins = chunk.Read<serilang::StoreLocal>(ip);
+          ip += sizeof(ins);
+          *fib->local_slot(fib->frames.size() - 1, ins.slot) = pop(fib->stack);
+          break;
+        }
+        case OpCode::LoadGlobal: {
+          const auto ins = chunk.Read<serilang::LoadGlobal>(ip);
+          ip += sizeof(ins);
+          auto name =
+              chunk.const_pool[ins.name_index].template Get<std::string>();
+          push(fib->stack, globals[name]);
+          break;
+        }
+        case OpCode::StoreGlobal: {
+          const auto ins = chunk.Read<serilang::StoreGlobal>(ip);
+          ip += sizeof(ins);
+          auto name =
+              chunk.const_pool[ins.name_index].template Get<std::string>();
+          globals[name] = pop(fib->stack);
+          break;
+        }
+        case OpCode::LoadUpvalue: {
+          const auto ins = chunk.Read<serilang::LoadUpvalue>(ip);
+          ip += sizeof(ins);
+          push(fib->stack, frame.closure->up[ins.slot]->get());
+          break;
+        }
+        case OpCode::StoreUpvalue: {
+          const auto ins = chunk.Read<serilang::StoreUpvalue>(ip);
+          ip += sizeof(ins);
+          frame.closure->up[ins.slot]->set(pop(fib->stack));
+          break;
+        }
+        case OpCode::CloseUpvalues: {
+          const auto ins = chunk.Read<serilang::CloseUpvalues>(ip);
+          ip += sizeof(ins);
+          auto* base = fib->local_slot(fib->frames.size() - 1, ins.from_slot);
+          fib->close_upvalues_from(base);
+          break;
+
+          //------------------------------------------------------------------
+          // 4. Control flow
+          //------------------------------------------------------------------
+        }
+        case OpCode::Jump: {
+          const auto ins = chunk.Read<serilang::Jump>(ip);
+          ip += sizeof(ins);
+          frame.ip += ins.offset;
+          break;
+        }
+        case OpCode::JumpIfTrue: {
+          const auto ins = chunk.Read<serilang::JumpIfTrue>(ip);
+          ip += sizeof(ins);
+          auto cond = pop(fib->stack);
+          if (cond.IsTruthy())
+            frame.ip += ins.offset;
+          break;
+        }
+        case OpCode::JumpIfFalse: {
+          const auto ins = chunk.Read<serilang::JumpIfFalse>(ip);
+          ip += sizeof(ins);
+          auto cond = pop(fib->stack);
+          if (!cond.IsTruthy())
+            frame.ip += ins.offset;
+          break;
+        }
+        case OpCode::Return: {
+          const auto ins = chunk.Read<serilang::Return>(ip);
+          ip += sizeof(ins);
+          Return(*fib);
+          return;  //  switch
+
+          //------------------------------------------------------------------
+          // 5. Function calls
+          //------------------------------------------------------------------
+        }
+        case OpCode::MakeClosure: {
+          const auto ins = chunk.Read<serilang::MakeClosure>(ip);
+          ip += sizeof(ins);
+          auto cl = std::make_shared<Closure>(frame.closure->chunk);
+          cl->entry = ins.entry;
+          cl->nparams = ins.nparams;
+          cl->nlocals = ins.nlocals;
+          cl->up.resize(ins.nupvals);
+          // capture upvalues descriptors (already on stack as ints)
+          for (int i = ins.nupvals - 1; i >= 0; --i) {
+            auto uv_slot = static_cast<uint8_t>(pop(fib->stack).Get<int>());
+            cl->up[i] = fib->capture_upvalue(
+                fib->local_slot(fib->frames.size() - 1, uv_slot));
+          }
+          push(fib->stack, Value(cl));
+
+          break;
+        }
+        case OpCode::Call: {
+          const auto ins = chunk.Read<serilang::Call>(ip);
+          ip += sizeof(ins);
+          DispatchCall(*fib, fib->stack.end()[-ins.arity - 1], ins.arity);
+          break;
+        }
+        case OpCode::TailCall: {
+          const auto ins = chunk.Read<serilang::TailCall>(ip);
+          ip += sizeof(ins);
+          auto arity = ins.arity;
+          Value& fnVal = fib->stack.end()[-arity - 1];
+          auto cl = fnVal.template Get_if<std::shared_ptr<Closure>>();
+          if (!cl)
+            RuntimeError("tailcall non‑closure");
+          TailCall(*fib, cl, arity);
+          break;
+
+          //------------------------------------------------------------------
+          // 6. Object ops  (very naive)
+          //------------------------------------------------------------------
+        }
+        case OpCode::MakeClass: {
+          const auto ins = chunk.Read<serilang::MakeClass>(ip);
+          ip += sizeof(ins);
+          auto klass = std::make_shared<Class>();
+          klass->name =
+              chunk.const_pool[ins.name_index].template Get<std::string>();
+          for (int i = 0; i < ins.nmethods; i++) {
+            auto method = pop(fib->stack);
+            auto name = pop(fib->stack).template Extract<std::string>();
+            klass->methods[std::move(name)] = std::move(method);
+          }
+          push(fib->stack, Value(klass));
+          break;
+        }
+        case OpCode::GetField: {
+          const auto ins = chunk.Read<serilang::GetField>(ip);
+          ip += sizeof(ins);
+          auto inst = pop(fib->stack).Extract<std::shared_ptr<Instance>>();
+          auto name =
+              chunk.const_pool[ins.name_index].template Get<std::string>();
+          push(fib->stack, inst->fields[name]);
+          break;
+        }
+        case OpCode::SetField: {
+          const auto ins = chunk.Read<serilang::SetField>(ip);
+          ip += sizeof(ins);
+          auto val = pop(fib->stack);
+          auto inst = pop(fib->stack).Extract<std::shared_ptr<Instance>>();
+          auto name =
+              chunk.const_pool[ins.name_index].template Get<std::string>();
+          inst->fields[name] = val;
+          push(fib->stack, val);
+          break;
+
+          //------------------------------------------------------------------
+          // 7. Coroutines
+          //------------------------------------------------------------------
+        }
+        case OpCode::MakeFiber: {
+          const auto ins = chunk.Read<serilang::MakeFiber>(ip);
+          ip += sizeof(ins);
+          auto f = std::make_shared<Fiber>();
+          auto cl = std::make_shared<Closure>(frame.closure->chunk);
+          cl->entry = ins.entry;
+          cl->nparams = ins.nparams;
+          cl->nlocals = ins.nlocals;
+          cl->up.resize(ins.nupvals);  // TODO: capture
+          f->stack.reserve(64);
+          push(fib->stack, Value(f));
+          break;
+        }
+        case OpCode::Resume: {
+          const auto ins = chunk.Read<serilang::Resume>(ip);
+          ip += sizeof(ins);
+          auto arity = ins.arity;
+          auto fVal = fib->stack.end()[-arity - 1];
+          auto f2 = fVal.template Get<std::shared_ptr<Fiber>>();
+          // move args
+          for (int i = arity - 1; i >= 0; --i) {
+            push(f2->stack, pop(fib->stack));
+          }
+          fib->stack.pop_back();  // pop fiber
+          fibers.push_front(f2);
+          return;  // switch
+        }
+        case OpCode::Yield: {
+          const auto ins = chunk.Read<serilang::Yield>(ip);
+          ip += sizeof(ins);
+          Value y = pop(fib->stack);
+          fib->state = FiberState::Suspended;
+          fib->last = y;
+          return;  // switch
+
+          //------------------------------------------------------------------
+          // 8. Exceptions (not implemented yet)
+          //------------------------------------------------------------------
+        }
+        default:
+          RuntimeError("Unimplemented instruction at " +
+                       std::to_string(ip - 1));
+          break;
+      }
 
       if (fib->state != FiberState::Running)
         break;

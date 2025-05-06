@@ -76,13 +76,12 @@ class CodeGenerator {
   uint32_t intern_name(std::string_view s);
 
   // -- Emit helpers ---------------------------------------------------
-  template <class T>
-    requires std::constructible_from<serilang::Instruction, T>
-  void emit(T&& ins) {
-    chunk_->code.emplace_back(std::forward<T>(ins));
+  template <typename T>
+  inline void emit(T ins) {
+    chunk_->Append(std::move(ins));
   }
-
   std::size_t code_size() const;
+
   void push_scope();
   void pop_scope();
 
@@ -117,12 +116,6 @@ class CodeGenerator {
   void emit_stmt_node(const std::shared_ptr<ExprAST>& s);
 
   void emit_function(const FuncDecl& fn);
-
-  // -- Offset helper --------------------------------------------------
-  template <typename offset_t>
-  static inline constexpr auto rel(offset_t from, offset_t to) -> offset_t {
-    return to - from;
-  }
 
   // -- Jump-patching --------------------------------------------------
   void patch(std::size_t site, std::size_t target);

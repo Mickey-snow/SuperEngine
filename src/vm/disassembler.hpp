@@ -41,7 +41,7 @@ class Disassembler {
 
  private:
   // print a single instruction in one row
-  void PrintIns(Chunk& chunk, size_t ip, const std::string& indent);
+  void PrintIns(Chunk& chunk, size_t& ip, const std::string& indent);
   // recursively disassemble a chunk
   void DumpImpl(Chunk& chunk, const std::string& indent);
 

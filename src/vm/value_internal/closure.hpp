@@ -24,10 +24,11 @@
 
 #pragma once
 
+#include "vm/value.hpp"
+
 #include <cstdint>
 #include <memory>
 #include <vector>
-#include "vm/value.hpp"
 
 namespace serilang {
 
