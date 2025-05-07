@@ -184,7 +184,7 @@ Expression SelectElement::GetWindowExpression() const {
     const char* location = repr.c_str() + 9;
     return ExpressionParser::GetExpression(location);
   }
-  return ExpressionFactory::IntConstant(-1);
+  return std::make_shared<IntConstantEx>(-1);
 }
 
 size_t SelectElement::GetParamCount() const { return params.size(); }

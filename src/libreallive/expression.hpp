@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of libreallive, a dependency of RLVM.
@@ -35,16 +32,39 @@
 
 #pragma once
 
+#include "core/memory.hpp"
+#include "libreallive/alldefs.hpp"
+#include "libreallive/intmemref.hpp"
+#include "machine/reference.hpp"
+#include "machine/rlmachine.hpp"
+
+#include <format>
 #include <memory>
 #include <string>
 #include <vector>
 
-#include "libreallive/alldefs.hpp"
-#include "machine/reference.hpp"
-
 class RLMachine;
 
 namespace libreallive {
+
+// helper
+namespace {
+static inline std::string IntToBytecode(int val) {
+  std::string prefix("$\xFF");
+  libreallive::append_i32(prefix, val);
+  return prefix;
+}
+static std::string GetBankName(int type) {
+  using namespace libreallive;
+  if (is_string_location(type)) {
+    StrMemoryLocation dummy(type, 0);
+    return ToString(dummy.Bank());
+  } else {
+    IntMemoryLocation dummy(IntMemRef(type, 0));
+    return ToString(dummy.Bank(), dummy.Bitwidth());
+  }
+}
+}  // namespace
 
 // Size of expression functions
 size_t NextToken(const char* src);
@@ -55,6 +75,7 @@ size_t NextData(const char* src);
 class IExpression;
 class ExpressionPiece;
 using Expression = std::shared_ptr<IExpression>;
+using ExpressionPiecesVector = std::vector<libreallive::Expression>;
 
 std::string EvaluatePRINT(RLMachine& machine, const std::string& in);
 
@@ -187,20 +208,475 @@ enum Op : char {
 };
 std::string ToString(Op op);
 
-class ExpressionFactory {
+// -----------------------------------------------------------------------
+// Expression subclasses
+
+// ----------------------------------------------------------------------
+// Store Register
+// ----------------------------------------------------------------------
+class StoreRegisterEx : public IExpression {
  public:
-  static Expression StoreRegister();
-  static Expression IntConstant(const int& constant);
-  static Expression StrConstant(const std::string& constant);
-  static Expression MemoryReference(const int& type, Expression location);
-  static Expression UnaryExpression(const char operation, Expression operand);
-  static Expression BinaryExpression(const char operation,
-                                     Expression lhs,
-                                     Expression rhs);
-  static Expression ComplexExpression();
-  static Expression SpecialExpression(const int tag);
+  StoreRegisterEx() = default;
+
+  bool is_valid() const override { return true; }
+
+  bool IsMemoryReference() const override { return true; }
+
+  void SetIntegerValue(RLMachine& machine, int rvalue) override {
+    machine.set_store_register(rvalue);
+  }
+
+  int GetIntegerValue(RLMachine& machine) const override {
+    return machine.store_register();
+  }
+
+  std::string GetDebugString() const override { return "<store>"; }
+
+  IntReferenceIterator GetIntegerReferenceIterator(
+      RLMachine& machine) const override {
+    return IntReferenceIterator(machine.store_register_address());
+  }
+
+  std::string GetSerializedExpression(RLMachine& machine) const override {
+    return IntToBytecode(machine.store_register());
+  }
 };
 
-typedef std::vector<libreallive::Expression> ExpressionPiecesVector;
+// ----------------------------------------------------------------------
+// Int Constant
+// ----------------------------------------------------------------------
+class IntConstantEx : public IExpression {
+ public:
+  IntConstantEx(int value) : value_(value) {}
+
+  bool is_valid() const override { return true; }
+
+  int GetIntegerValue(RLMachine& machine) const override { return value_; }
+  int GetIntegerValue() const { return value_; }
+
+  std::string GetSerializedExpression(RLMachine& machine) const override {
+    return IntToBytecode(value_);
+  }
+
+  std::string GetDebugString() const override { return std::to_string(value_); }
+
+ private:
+  int value_;
+};
+
+// ----------------------------------------------------------------------
+// String Constant
+// ----------------------------------------------------------------------
+class StringConstantEx : public IExpression {
+ public:
+  StringConstantEx(const std::string& value) : value_(value) {}
+
+  bool is_valid() const override { return true; }
+
+  ExpressionValueType GetExpressionValueType() const override {
+    return ExpressionValueType::String;
+  }
+
+  std::string GetStringValue(RLMachine& machine) const override {
+    return value_;
+  }
+
+  std::string GetSerializedExpression(RLMachine& machine) const override {
+    return "\"" + value_ + "\"";
+  }
+
+  std::string GetDebugString() const override { return "\"" + value_ + "\""; }
+
+ private:
+  std::string value_;
+};
+
+// ----------------------------------------------------------------------
+// Memory Reference
+// ----------------------------------------------------------------------
+// factory helper
+Expression CreateMemoryReference(const int& type, Expression loc);
+class MemoryReferenceEx : public IExpression {
+ public:
+  MemoryReferenceEx(int type, Expression location)
+      : type_(type), location_(location) {}
+
+  bool is_valid() const override { return true; }
+
+  bool IsMemoryReference() const override { return true; }
+
+  ExpressionValueType GetExpressionValueType() const override {
+    return is_string_location(type_) ? ExpressionValueType::String
+                                     : ExpressionValueType::Integer;
+  }
+
+  void SetIntegerValue(RLMachine& machine, int rvalue) override {
+    machine.GetMemory().Write(
+        IntMemRef(type_, location_->GetIntegerValue(machine)), rvalue);
+  }
+
+  int GetIntegerValue(RLMachine& machine) const override {
+    return machine.GetMemory().Read(
+        IntMemRef(type_, location_->GetIntegerValue(machine)));
+  }
+
+  void SetStringValue(RLMachine& machine, const std::string& rval) override {
+    machine.GetMemory().Write(
+        StrMemoryLocation(type_, location_->GetIntegerValue(machine)), rval);
+  }
+
+  std::string GetStringValue(RLMachine& machine) const override {
+    return machine.GetMemory().Read(
+        StrMemoryLocation(type_, location_->GetIntegerValue(machine)));
+  }
+
+  std::string GetDebugString() const override {
+    return std::format("{}[{}]", GetBankName(type_),
+                       location_->GetDebugString());
+  }
+
+  IntReferenceIterator GetIntegerReferenceIterator(
+      RLMachine& machine) const override {
+    if (is_string_location(type_))
+      throw Error(
+          "Request to GetIntegerReferenceIterator() on a string reference!");
+
+    return IntReferenceIterator(&machine.GetMemory(), type_,
+                                location_->GetIntegerValue(machine));
+  }
+
+  StringReferenceIterator GetStringReferenceIterator(
+      RLMachine& machine) const override {
+    if (!is_string_location(type_))
+      throw Error(
+          "Request to GetStringReferenceIterator() on a string reference!");
+
+    return StringReferenceIterator(&machine.GetMemory(), type_,
+                                   location_->GetIntegerValue(machine));
+  }
+
+  std::string GetSerializedExpression(RLMachine& machine) const override {
+    if (is_string_location(type_))
+      return "\"" + GetStringValue(machine) + "\"";
+    else
+      return IntToBytecode(GetIntegerValue(machine));
+  }
+
+ private:
+  int type_;
+  Expression location_;
+};
+
+// ----------------------------------------------------------------------
+// Simple Memory Reference
+// ----------------------------------------------------------------------
+class SimpleMemRefEx : public IExpression {
+  friend class BinaryExpressionEx;
+
+ public:
+  SimpleMemRefEx(const int& type, const int& value)
+      : type_(type), location_(value) {}
+
+  bool is_valid() const override { return true; }
+
+  bool IsMemoryReference() const override { return true; }
+
+  ExpressionValueType GetExpressionValueType() const override {
+    return is_string_location(type_) ? ExpressionValueType::String
+                                     : ExpressionValueType::Integer;
+  }
+
+  void SetIntegerValue(RLMachine& machine, int rvalue) override {
+    machine.GetMemory().Write(IntMemRef(type_, location_), rvalue);
+  }
+
+  int GetIntegerValue(RLMachine& machine) const override {
+    return machine.GetMemory().Read(IntMemRef(type_, location_));
+  }
+
+  void SetStringValue(RLMachine& machine, const std::string& rval) override {
+    machine.GetMemory().Write(StrMemoryLocation(type_, location_), rval);
+  }
+
+  std::string GetStringValue(RLMachine& machine) const override {
+    return machine.GetMemory().Read(StrMemoryLocation(type_, location_));
+  }
+
+  IntReferenceIterator GetIntegerReferenceIterator(
+      RLMachine& machine) const override {
+    if (is_string_location(type_))
+      throw Error(
+          "Request to GetIntegerReferenceIterator() on a string reference!");
+
+    return IntReferenceIterator(&machine.GetMemory(), type_, location_);
+  }
+
+  StringReferenceIterator GetStringReferenceIterator(
+      RLMachine& machine) const override {
+    if (!is_string_location(type_))
+      throw Error(
+          "Request to GetStringReferenceIterator() on a string reference!");
+
+    return StringReferenceIterator(&machine.GetMemory(), type_, location_);
+  }
+
+  std::string GetSerializedExpression(RLMachine& machine) const override {
+    if (is_string_location(type_))
+      return "\"" + GetStringValue(machine) + "\"";
+    else
+      return IntToBytecode(GetIntegerValue(machine));
+  }
+
+  std::string GetDebugString() const override {
+    return std::format("{}[{}]", GetBankName(type_), location_);
+  }
+
+ private:
+  int type_;
+  int location_;
+};
+
+// ----------------------------------------------------------------------
+// Binary Expression
+// ----------------------------------------------------------------------
+// helper
+int PerformBinaryOperationOn(char operation, int lhs, int rhs);
+class BinaryExpressionEx : public IExpression {
+ public:
+  // factory
+  static Expression Create(const char operation, Expression l, Expression r);
+
+  BinaryExpressionEx(char operation, Expression left, Expression right)
+      : operation_(operation), left_(left), right_(right) {}
+
+  bool is_valid() const override { return true; }
+
+  int GetIntegerValue(RLMachine& machine) const override {
+    if (operation_ >= 20 && operation_ < 30) {
+      int value =
+          PerformBinaryOperationOn(operation_, left_->GetIntegerValue(machine),
+                                   right_->GetIntegerValue(machine));
+      left_->SetIntegerValue(machine, value);
+      return value;
+    } else if (operation_ == 30) {
+      int value = right_->GetIntegerValue(machine);
+      left_->SetIntegerValue(machine, value);
+      return value;
+    } else {
+      return PerformBinaryOperationOn(operation_,
+                                      left_->GetIntegerValue(machine),
+                                      right_->GetIntegerValue(machine));
+    }
+  }
+
+  std::string GetSerializedExpression(RLMachine& machine) const override {
+    return IntToBytecode(GetIntegerValue(machine));
+  }
+
+  std::string GetDebugString() const override {
+    return std::format("{} {} {}", left_->GetDebugString(),
+                       ToString(static_cast<Op>(operation_)),
+                       right_->GetDebugString());
+  }
+
+ private:
+  char operation_;
+  Expression left_;
+  Expression right_;
+};
+
+// ----------------------------------------------------------------------
+// Unary Expression
+// ----------------------------------------------------------------------
+class UnaryEx : public IExpression {
+ public:
+  UnaryEx(const char& op, const Expression ex) : operation_(op), operand_(ex) {}
+
+  bool is_valid() const override { return true; }
+
+  int GetIntegerValue(RLMachine& machine) const override {
+    return PerformUnaryOperationOn(operand_->GetIntegerValue(machine));
+  }
+
+  std::string GetSerializedExpression(RLMachine& machine) const override {
+    return IntToBytecode(GetIntegerValue(machine));
+  }
+
+  std::string GetDebugString() const override {
+    std::ostringstream str;
+    if (operation_ == 0x01) {
+      str << "-";
+    }
+    str << operand_->GetDebugString();
+
+    return str.str();
+  }
+
+ private:
+  char operation_;
+  Expression operand_;
+
+  int PerformUnaryOperationOn(int int_operand) const {
+    int result = int_operand;
+    switch (operation_) {
+      case 0x01:
+        result = -int_operand;
+        break;
+      default:
+        break;
+    }
+    return result;
+  }
+};
+
+// ----------------------------------------------------------------------
+// Simple Assignment
+// ----------------------------------------------------------------------
+class SimpleAssignEx : public IExpression {
+ public:
+  SimpleAssignEx(const int& type, const int& loc, const int& val)
+      : type_(type), location_(loc), value_(val) {}
+  bool is_valid() const override { return true; }
+
+  int GetIntegerValue(RLMachine& machine) const override {
+    machine.GetMemory().Write(IntMemRef(type_, location_), value_);
+    return value_;
+  }
+
+  std::string GetSerializedExpression(RLMachine& machine) const override {
+    return IntToBytecode(GetIntegerValue(machine));
+  }
+
+  std::string GetDebugString() const override {
+    return std::format("{}[{}] = {}", GetBankName(type_), location_, value_);
+  }
+
+ private:
+  int type_;
+  int location_;
+  int value_;
+};
+
+// ----------------------------------------------------------------------
+// Complex Expression
+// ----------------------------------------------------------------------
+class ComplexEx : public IExpression {
+ public:
+  ComplexEx() {}
+
+  bool is_valid() const override { return true; }
+
+  bool IsComplexParameter() const override { return true; }
+
+  std::string GetSerializedExpression(RLMachine& machine) const override {
+    std::string s = "(";
+    for (const auto& it : expression_)
+      s += '(' + it->GetSerializedExpression(machine) + ')';
+    s += ')';
+    return s;
+  }
+
+  std::string GetDebugString() const override {
+    string s = "(";
+    for (auto const& piece : expression_) {
+      s += piece->GetDebugString();
+      if (piece != expression_.back())
+        s += ", ";
+    }
+    s += ")";
+    return s;
+  }
+
+  void AddContainedPiece(Expression piece) override {
+    expression_.push_back(piece);
+  }
+
+  const std::vector<Expression>& GetContainedPieces() const override {
+    return expression_;
+  }
+
+  virtual std::string GetStringValue(RLMachine& machine) const override {
+    if (expression_.size() == 1) {
+      try {
+        return expression_.front()->GetStringValue(machine);
+      } catch (...) {
+      }
+    }
+    throw Error("ComplexEX::GetStringValue() invalid on this object");
+  }
+
+  virtual int GetIntegerValue(RLMachine& machine) const override {
+    if (expression_.size() == 1) {
+      try {
+        return expression_.front()->GetIntegerValue(machine);
+      } catch (...) {
+      }
+    }
+    throw Error("ComplexEX::GetIntegerValue() invalid on this object");
+  }
+
+ private:
+  std::vector<Expression> expression_;
+};
+
+// ----------------------------------------------------------------------
+// Special Expression
+// ----------------------------------------------------------------------
+class SpecialEx : public IExpression {
+ public:
+  SpecialEx(const int& tag) : overload_tag_(tag) {}
+
+  bool is_valid() const override { return true; }
+
+  bool IsSpecialParameter() const override { return true; }
+
+  std::string GetSerializedExpression(RLMachine& machine) const override {
+    std::string s = "a";
+    s += char(overload_tag_);
+
+    if (expression_.size() > 1)
+      s.append("(");
+    for (auto const& piece : expression_) {
+      s += piece->GetSerializedExpression(machine);
+    }
+    if (expression_.size() > 1)
+      s.append(")");
+    return s;
+  }
+
+  std::string GetDebugString() const override {
+    std::ostringstream oss;
+
+    oss << int(overload_tag_) << ":{";
+
+    bool first = true;
+    for (auto const& piece : expression_) {
+      if (!first) {
+        oss << ", ";
+      } else {
+        first = false;
+      }
+
+      oss << piece->GetDebugString();
+    }
+    oss << "}";
+
+    return oss.str();
+  }
+
+  void AddContainedPiece(Expression piece) override {
+    expression_.push_back(piece);
+  }
+
+  const std::vector<Expression>& GetContainedPieces() const override {
+    return expression_;
+  }
+
+  int GetOverloadTag() const override { return overload_tag_; }
+
+ private:
+  int overload_tag_;
+  std::vector<Expression> expression_;
+};
 
 }  // namespace libreallive

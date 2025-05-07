@@ -304,7 +304,7 @@ class LRUCache {
 
   /** @brief Interal remove function
    *  @param miter Map_Iter that points to the key to remove
-   *  @warning miter is now longer usable after being passed to this function.
+   *  @warning miter is no longer usable after being passed to this function.
    */
   void _remove(const Map_Iter& miter) {
     _list.erase(miter->second);

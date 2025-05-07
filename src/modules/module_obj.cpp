@@ -116,7 +116,7 @@ void ObjRangeAdapter::operator()(RLMachine& machine,
   libreallive::ExpressionPiecesVector parameters;
   parameters.reserve(allParameters.size() - 1);
   parameters.emplace_back(
-      libreallive::ExpressionFactory::IntConstant(lowerRange));
+      std::make_shared<libreallive::IntConstantEx>(lowerRange));
 
   // Copy everything after the first two items
   libreallive::ExpressionPiecesVector::const_iterator it =
@@ -126,7 +126,7 @@ void ObjRangeAdapter::operator()(RLMachine& machine,
     parameters.emplace_back(*it);
 
   for (int i = lowerRange; i <= upperRange; ++i) {
-    parameters[0] = libreallive::ExpressionFactory::IntConstant(i);
+    parameters[0] = std::make_shared<libreallive::IntConstantEx>(i);
     handler->Dispatch(machine, parameters);
   }
 }
@@ -202,7 +202,7 @@ void ChildObjRangeAdapter::operator()(RLMachine& machine,
   libreallive::ExpressionPiecesVector parameters;
   parameters.reserve(allParameters.size() - 2);
   parameters.emplace_back(
-      libreallive::ExpressionFactory::IntConstant(lowerRange));
+      std::make_shared<libreallive::IntConstantEx>(lowerRange));
 
   // Copy everything after the first three items
   libreallive::ExpressionPiecesVector::const_iterator it =
@@ -212,7 +212,7 @@ void ChildObjRangeAdapter::operator()(RLMachine& machine,
     parameters.emplace_back(*it);
 
   for (int i = lowerRange; i <= upperRange; ++i) {
-    parameters[0] = libreallive::ExpressionFactory::IntConstant(i);
+    parameters[0] = std::make_shared<libreallive::IntConstantEx>(i);
 
     // Now Dispatch based on these parameters.
     handler->SetProperty(P_PARENTOBJ, objset);

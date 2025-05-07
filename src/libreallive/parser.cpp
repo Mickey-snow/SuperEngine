@@ -143,10 +143,10 @@ Expression ExpressionParser::GetExpressionToken(const char*& src) {
     src++;
     int value = read_i32(src);
     src += 4;
-    return ExpressionFactory::IntConstant(value);
+    return std::make_shared<IntConstantEx>(value);
   } else if (src[0] == 0xc8) {
     src++;
-    return ExpressionFactory::StoreRegister();
+    return std::make_shared<StoreRegisterEx>();
   } else if ((src[0] != 0xc8 && src[0] != 0xff) && src[1] == '[') {
     int type = src[0];
     src += 2;
@@ -160,7 +160,7 @@ Expression ExpressionParser::GetExpressionToken(const char*& src) {
     }
     src++;
 
-    return ExpressionFactory::MemoryReference(type, location);
+    return CreateMemoryReference(type, location);
   } else if (src[0] == 0) {
     throw Error("Unexpected end of buffer in GetExpressionToken");
   } else {
@@ -181,7 +181,7 @@ Expression ExpressionParser::GetExpressionTerm(const char*& src) {
   } else if (src[0] == '\\' && src[1] == 0x01) {
     // Unary -
     src += 2;
-    return ExpressionFactory::UnaryExpression(0x01, GetExpressionTerm(src));
+    return std::make_shared<UnaryEx>(0x01, GetExpressionTerm(src));
   } else if (src[0] == '(') {
     src++;
     Expression p = GetExpressionBoolean(src);
@@ -209,7 +209,7 @@ Expression ExpressionParser::GetExpressionArithmaticLoopHiPrec(const char*& src,
     char op = src[1];
     // Advance past this operator
     src += 2;
-    Expression new_piece = ExpressionFactory::BinaryExpression(
+    Expression new_piece = BinaryExpressionEx::Create(
         op, tok, ExpressionParser::GetExpressionTerm(src));
     return GetExpressionArithmaticLoopHiPrec(src, new_piece);
   } else {
@@ -225,7 +225,7 @@ Expression ExpressionParser::GetExpressionArithmaticLoop(const char*& src,
     src += 2;
     Expression other = GetExpressionTerm(src);
     Expression rhs = GetExpressionArithmaticLoopHiPrec(src, other);
-    Expression new_piece = ExpressionFactory::BinaryExpression(op, tok, rhs);
+    Expression new_piece = BinaryExpressionEx::Create(op, tok, rhs);
     return GetExpressionArithmaticLoop(src, new_piece);
   } else {
     return tok;
@@ -243,7 +243,7 @@ Expression ExpressionParser::GetExpressionConditionLoop(const char*& src,
     char op = src[1];
     src += 2;
     Expression rhs = GetExpressionArithmatic(src);
-    Expression new_piece = ExpressionFactory::BinaryExpression(op, tok, rhs);
+    Expression new_piece = BinaryExpressionEx::Create(op, tok, rhs);
     return GetExpressionConditionLoop(src, new_piece);
   } else {
     return tok;
@@ -260,7 +260,7 @@ Expression ExpressionParser::GetExpressionBooleanLoopAnd(const char*& src,
     src += 2;
     Expression rhs = GetExpressionCondition(src);
     return GetExpressionBooleanLoopAnd(
-        src, ExpressionFactory::BinaryExpression(0x3c, tok, rhs));
+        src, BinaryExpressionEx::Create(0x3c, tok, rhs));
   } else {
     return tok;
   }
@@ -273,7 +273,7 @@ Expression ExpressionParser::GetExpressionBooleanLoopOr(const char*& src,
     Expression innerTerm = GetExpressionCondition(src);
     Expression rhs = GetExpressionBooleanLoopAnd(src, innerTerm);
     return GetExpressionBooleanLoopOr(
-        src, ExpressionFactory::BinaryExpression(0x3d, tok, rhs));
+        src, BinaryExpressionEx::Create(0x3d, tok, rhs));
   } else {
     return tok;
   }
@@ -295,7 +295,7 @@ Expression ExpressionParser::GetAssignment(const char*& src) {
   src += 2;
   Expression etok(GetExpression(src));
   if (op >= 0x14 && op <= 0x24) {
-    return ExpressionFactory::BinaryExpression(op, itok, etok);
+    return BinaryExpressionEx::Create(op, itok, etok);
   } else {
     throw Error("Undefined assignment in GetAssignment");
   }
@@ -319,7 +319,7 @@ Expression ExpressionParser::GetString(const char*& src) {
   // Unquote the internal quotations.
   boost::replace_all(s, "\\\"", "\"");
 
-  return ExpressionFactory::StrConstant(s);
+  return std::make_shared<StringConstantEx>(s);
 }
 
 // Parses a parameter in the parameter list. This is the only method
@@ -342,7 +342,7 @@ Expression ExpressionParser::GetData(const char*& src) {
     // TODO(erg): Cleanup below.
     const char* src_backup = src;
 
-    Expression cep = ExpressionFactory::ComplexExpression();
+    Expression cep = std::make_shared<ComplexEx>();
 
     if (*src++ == 'a') {
       int tag = *src++;
@@ -354,7 +354,7 @@ Expression ExpressionParser::GetData(const char*& src) {
         tag = (second << 16) | tag;
       }
 
-      cep = ExpressionFactory::SpecialExpression(tag);
+      cep = std::make_shared<SpecialEx>(tag);
 
       if (*src != '(') {
         // We have a single parameter in this special expression;
@@ -364,7 +364,7 @@ Expression ExpressionParser::GetData(const char*& src) {
         src++;
       }
     } else {
-      cep = ExpressionFactory::ComplexExpression();
+      cep = std::make_shared<ComplexEx>();
     }
 
     while (*src != ')') {
@@ -387,7 +387,7 @@ Expression ExpressionParser::GetComplexParam(const char*& src) {
     return GetData(src);
   } else if (*src == '(') {
     ++src;
-    Expression cep = ExpressionFactory::ComplexExpression();
+    Expression cep = std::make_shared<ComplexEx>();
 
     while (*src != ')')
       cep->AddContainedPiece(GetData(src));

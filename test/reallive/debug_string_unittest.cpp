@@ -58,8 +58,8 @@ TEST(DebugStringVisitorTest, Command) {
   {
     FunctionElement fn(
         CommandInfo{.cmd = {1, 1, 82, 0xe8, 0x03, 0, 0, 0},
-                    .param = {ExpressionFactory::IntConstant(1),
-                              ExpressionFactory::StrConstant("2")}});
+                    .param = {std::make_shared<IntConstantEx>(1),
+                              std::make_shared<StringConstantEx>("2")}});
     EXPECT_EQ(std::visit(DebugStringVisitor(), fn.DownCast()),
               "op<1:082:01000, 0>(1, \"2\")");
     EXPECT_EQ(std::visit(DebugStringVisitor(&prototype), fn.DownCast()),
@@ -78,12 +78,10 @@ TEST(DebugStringVisitorTest, Command) {
 
 TEST(DebugStringVisitorTest, Expression) {
   {
-    ExpressionElement expr(ExpressionFactory::BinaryExpression(
+    ExpressionElement expr(BinaryExpressionEx::Create(
         Op::BitOr,
-        ExpressionFactory::MemoryReference(27,
-                                           ExpressionFactory::IntConstant(123)),
-        ExpressionFactory::MemoryReference(
-            107, ExpressionFactory::IntConstant(456))));
+        CreateMemoryReference(27, std::make_shared<IntConstantEx>(123)),
+        CreateMemoryReference(107, std::make_shared<IntConstantEx>(456))));
     EXPECT_EQ(std::visit(DebugStringVisitor(), expr.DownCast()),
               "intB1b[123] | intD8b[456]");
   }
@@ -91,20 +89,17 @@ TEST(DebugStringVisitorTest, Expression) {
   {
     Expression num[8];
     for (int i = 0; i < 8; ++i)
-      num[i] = ExpressionFactory::MemoryReference(
-          1, ExpressionFactory::IntConstant(i));
-    ExpressionElement expr(ExpressionFactory::BinaryExpression(
+      num[i] = CreateMemoryReference(1, std::make_shared<IntConstantEx>(i));
+    ExpressionElement expr(BinaryExpressionEx::Create(
         Op::Add,
-        ExpressionFactory::BinaryExpression(
-            Op::BitOr,
-            ExpressionFactory::BinaryExpression(Op::BitAnd, num[0], num[1]),
-            ExpressionFactory::BinaryExpression(Op::BitXor, num[2], num[3])),
-        ExpressionFactory::BinaryExpression(
+        BinaryExpressionEx::Create(
+            Op::BitOr, BinaryExpressionEx::Create(Op::BitAnd, num[0], num[1]),
+            BinaryExpressionEx::Create(Op::BitXor, num[2], num[3])),
+        BinaryExpressionEx::Create(
             Op::Div,
-            ExpressionFactory::UnaryExpression(
-                Op::Sub,
-                ExpressionFactory::BinaryExpression(Op::BitOr, num[4], num[5])),
-            ExpressionFactory::BinaryExpression(Op::BitAnd, num[6], num[7]))));
+            std::make_shared<UnaryEx>(
+                Op::Sub, BinaryExpressionEx::Create(Op::BitOr, num[4], num[5])),
+            BinaryExpressionEx::Create(Op::BitAnd, num[6], num[7]))));
 
     EXPECT_EQ(std::visit(DebugStringVisitor(), expr.DownCast()),
               "intB[0] & intB[1] | intB[2] ^ intB[3] + -intB[4] | intB[5] / "

@@ -22,14 +22,14 @@
 //
 // -----------------------------------------------------------------------
 
-#include <gmock/gmock.h>
+#include <gtest/gtest.h>
 
 #include "m6/compiler_pipeline.hpp"
+#include "m6/source_buffer.hpp"
 #include "utilities/string_utilities.hpp"
 #include "vm/disassembler.hpp"
 #include "vm/value.hpp"
 #include "vm/vm.hpp"
-#include "m6/source_buffer.hpp"
 
 #include <iostream>
 #include <regex>
