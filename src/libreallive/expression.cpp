@@ -32,6 +32,7 @@
 
 #include "libreallive/expression.hpp"
 
+#include "libreallive/expression_visitor.hpp"
 #include "libreallive/parser.hpp"
 
 #include <boost/algorithm/string.hpp>
@@ -47,6 +48,16 @@ bool IsUnescapedQuotationMark(const char* src, const char* current) {
     return *current == '"' && *(current - 1) != '\\';
 }
 }  // namespace
+
+std::string GetBankName(int type) {
+  if (is_string_location(type)) {
+    StrMemoryLocation dummy(type, 0);
+    return ToString(dummy.Bank());
+  } else {
+    IntMemoryLocation dummy(IntMemRef(type, 0));
+    return ToString(dummy.Bank(), dummy.Bitwidth());
+  }
+}
 
 // -----------------------------------------------------------------------
 // enum class Op
@@ -263,12 +274,12 @@ std::string EvaluatePRINT(RLMachine& machine, const std::string& in) {
   }
 }
 
-// ----------------------------------------------------------------------
-// IExpression
-// ----------------------------------------------------------------------
-
 void IExpression::AddContainedPiece(Expression piece) {
   throw Error("Request to AddContainedPiece() invalid!");
+}
+
+std::string IExpression::GetDebugString() {
+  return std::visit(DebugVisitor(), AsVariant());
 }
 
 // ----------------------------------------------------------------------

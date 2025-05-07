@@ -34,6 +34,7 @@
 
 #include "core/memory.hpp"
 #include "libreallive/alldefs.hpp"
+#include "libreallive/expression_fwd.hpp"
 #include "libreallive/intmemref.hpp"
 #include "machine/reference.hpp"
 #include "machine/rlmachine.hpp"
@@ -47,24 +48,14 @@ class RLMachine;
 
 namespace libreallive {
 
-// helper
-namespace {
-static inline std::string IntToBytecode(int val) {
+// helpers
+inline std::string IntToBytecode(int val) {
   std::string prefix("$\xFF");
   libreallive::append_i32(prefix, val);
   return prefix;
 }
-static std::string GetBankName(int type) {
-  using namespace libreallive;
-  if (is_string_location(type)) {
-    StrMemoryLocation dummy(type, 0);
-    return ToString(dummy.Bank());
-  } else {
-    IntMemoryLocation dummy(IntMemRef(type, 0));
-    return ToString(dummy.Bank(), dummy.Bitwidth());
-  }
-}
-}  // namespace
+
+std::string GetBankName(int type);
 
 // Size of expression functions
 size_t NextToken(const char* src);
@@ -149,7 +140,7 @@ class IExpression {
 
   // A printable representation of the expression itself. Used to dump our
   // parsing of the bytecode to the console.
-  virtual std::string GetDebugString() const { return "<invalid>"; }
+  std::string GetDebugString();
 
   // In the case of Complex and Special types, adds an expression piece to the
   // list.
@@ -162,6 +153,9 @@ class IExpression {
   virtual int GetOverloadTag() const {
     throw Error("Request to GetOverloadTag() invalid!");
   }
+
+  // downcast hook: grab a raw‐pointer variant to the real subclass
+  virtual ExpressionVariant AsVariant() = 0;
 };
 
 enum Op : char {
@@ -230,8 +224,6 @@ class StoreRegisterEx : public IExpression {
     return machine.store_register();
   }
 
-  std::string GetDebugString() const override { return "<store>"; }
-
   IntReferenceIterator GetIntegerReferenceIterator(
       RLMachine& machine) const override {
     return IntReferenceIterator(machine.store_register_address());
@@ -240,6 +232,8 @@ class StoreRegisterEx : public IExpression {
   std::string GetSerializedExpression(RLMachine& machine) const override {
     return IntToBytecode(machine.store_register());
   }
+
+  ExpressionVariant AsVariant() final { return this; }
 };
 
 // ----------------------------------------------------------------------
@@ -258,9 +252,9 @@ class IntConstantEx : public IExpression {
     return IntToBytecode(value_);
   }
 
-  std::string GetDebugString() const override { return std::to_string(value_); }
+  ExpressionVariant AsVariant() final { return this; }
 
- private:
+  // data members -------------------
   int value_;
 };
 
@@ -285,9 +279,9 @@ class StringConstantEx : public IExpression {
     return "\"" + value_ + "\"";
   }
 
-  std::string GetDebugString() const override { return "\"" + value_ + "\""; }
+  ExpressionVariant AsVariant() final { return this; }
 
- private:
+  // data members -------------------
   std::string value_;
 };
 
@@ -330,11 +324,6 @@ class MemoryReferenceEx : public IExpression {
         StrMemoryLocation(type_, location_->GetIntegerValue(machine)));
   }
 
-  std::string GetDebugString() const override {
-    return std::format("{}[{}]", GetBankName(type_),
-                       location_->GetDebugString());
-  }
-
   IntReferenceIterator GetIntegerReferenceIterator(
       RLMachine& machine) const override {
     if (is_string_location(type_))
@@ -362,7 +351,9 @@ class MemoryReferenceEx : public IExpression {
       return IntToBytecode(GetIntegerValue(machine));
   }
 
- private:
+  ExpressionVariant AsVariant() final { return this; }
+
+  // data members -------------------
   int type_;
   Expression location_;
 };
@@ -427,11 +418,9 @@ class SimpleMemRefEx : public IExpression {
       return IntToBytecode(GetIntegerValue(machine));
   }
 
-  std::string GetDebugString() const override {
-    return std::format("{}[{}]", GetBankName(type_), location_);
-  }
+  ExpressionVariant AsVariant() final { return this; }
 
- private:
+  // data members -------------------
   int type_;
   int location_;
 };
@@ -473,13 +462,9 @@ class BinaryExpressionEx : public IExpression {
     return IntToBytecode(GetIntegerValue(machine));
   }
 
-  std::string GetDebugString() const override {
-    return std::format("{} {} {}", left_->GetDebugString(),
-                       ToString(static_cast<Op>(operation_)),
-                       right_->GetDebugString());
-  }
+  ExpressionVariant AsVariant() final { return this; }
 
- private:
+  // data members -------------------
   char operation_;
   Expression left_;
   Expression right_;
@@ -502,17 +487,9 @@ class UnaryEx : public IExpression {
     return IntToBytecode(GetIntegerValue(machine));
   }
 
-  std::string GetDebugString() const override {
-    std::ostringstream str;
-    if (operation_ == 0x01) {
-      str << "-";
-    }
-    str << operand_->GetDebugString();
+  ExpressionVariant AsVariant() final { return this; }
 
-    return str.str();
-  }
-
- private:
+  // data members -------------------
   char operation_;
   Expression operand_;
 
@@ -547,11 +524,9 @@ class SimpleAssignEx : public IExpression {
     return IntToBytecode(GetIntegerValue(machine));
   }
 
-  std::string GetDebugString() const override {
-    return std::format("{}[{}] = {}", GetBankName(type_), location_, value_);
-  }
+  ExpressionVariant AsVariant() final { return this; }
 
- private:
+  // data members -------------------
   int type_;
   int location_;
   int value_;
@@ -573,17 +548,6 @@ class ComplexEx : public IExpression {
     for (const auto& it : expression_)
       s += '(' + it->GetSerializedExpression(machine) + ')';
     s += ')';
-    return s;
-  }
-
-  std::string GetDebugString() const override {
-    string s = "(";
-    for (auto const& piece : expression_) {
-      s += piece->GetDebugString();
-      if (piece != expression_.back())
-        s += ", ";
-    }
-    s += ")";
     return s;
   }
 
@@ -615,7 +579,9 @@ class ComplexEx : public IExpression {
     throw Error("ComplexEX::GetIntegerValue() invalid on this object");
   }
 
- private:
+  ExpressionVariant AsVariant() final { return this; }
+
+  // data members -------------------
   std::vector<Expression> expression_;
 };
 
@@ -644,26 +610,6 @@ class SpecialEx : public IExpression {
     return s;
   }
 
-  std::string GetDebugString() const override {
-    std::ostringstream oss;
-
-    oss << int(overload_tag_) << ":{";
-
-    bool first = true;
-    for (auto const& piece : expression_) {
-      if (!first) {
-        oss << ", ";
-      } else {
-        first = false;
-      }
-
-      oss << piece->GetDebugString();
-    }
-    oss << "}";
-
-    return oss.str();
-  }
-
   void AddContainedPiece(Expression piece) override {
     expression_.push_back(piece);
   }
@@ -674,7 +620,9 @@ class SpecialEx : public IExpression {
 
   int GetOverloadTag() const override { return overload_tag_; }
 
- private:
+  ExpressionVariant AsVariant() final { return this; }
+
+  // data members -------------------
   int overload_tag_;
   std::vector<Expression> expression_;
 };
