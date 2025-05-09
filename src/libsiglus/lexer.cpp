@@ -35,34 +35,6 @@
 
 namespace libsiglus {
 
-enum class CommandCode : uint8_t {
-  None = 0x00,
-
-  Newline = 0x01,
-  Push = 0x02,
-  Pop = 0x03,
-  Copy = 0x04,
-  Property = 0x05,
-  CopyElm = 0x06,
-  Marker = 0x08,
-
-  Goto = 0x10,
-  Goto_true = 0x11,
-  Goto_false = 0x12,
-  Gosub_int = 0x13,
-  Gosub_str = 0x14,
-  Return = 0x15,
-  End = 0x16,
-
-  Assign = 0x20,
-  Op1 = 0x21,
-  Op2 = 0x22,
-
-  Cmd = 0x30,
-  Text = 0x31,
-  Namae = 0x32,
-};
-
 using namespace libsiglus::lex;
 
 std::vector<Type> ParseArglist(ByteReader& reader) {
@@ -75,47 +47,54 @@ std::vector<Type> ParseArglist(ByteReader& reader) {
 
 Lexeme Lexer::Parse(std::string_view data) const {
   ByteReader reader(data);
-  switch (static_cast<CommandCode>(reader.PopAs<uint8_t>(1))) {
-    case CommandCode::Newline: {
+  return Parse(reader);
+}
+
+Lexeme Lexer::Parse(ByteReader& reader) const {
+  switch (static_cast<ByteCode>(reader.PopAs<uint8_t>(1))) {
+    case ByteCode::None:
+      return None{};
+
+    case ByteCode::Newline: {
       const int linenum = reader.PopAs<int>(4);
       return Line(linenum);
     }
 
-    case CommandCode::Push: {
+    case ByteCode::Push: {
       auto type = static_cast<Type>(reader.PopAs<int32_t>(4));
       return Push(type, reader.PopAs<int32_t>(4));
     }
 
-    case CommandCode::Pop: {
+    case ByteCode::Pop: {
       auto type = static_cast<Type>(reader.PopAs<int32_t>(4));
       return Pop(type);
     }
 
-    case CommandCode::Property:
+    case ByteCode::Property:
       return Property();
 
-    case CommandCode::Marker:
+    case ByteCode::Marker:
       return Marker();
 
-    case CommandCode::Copy:
+    case ByteCode::Copy:
       return Copy(static_cast<Type>(reader.PopAs<int32_t>(4)));
 
-    case CommandCode::CopyElm:
+    case ByteCode::CopyElm:
       return CopyElm();
 
-    case CommandCode::Op1: {
+    case ByteCode::Op1: {
       auto type = static_cast<Type>(reader.PopAs<int32_t>(4));
       auto op = static_cast<OperatorCode>(reader.PopAs<uint8_t>(1));
       return Operate1(type, op);
     }
-    case CommandCode::Op2: {
+    case ByteCode::Op2: {
       auto ltype = static_cast<Type>(reader.PopAs<int32_t>(4));
       auto rtype = static_cast<Type>(reader.PopAs<int32_t>(4));
       auto op = static_cast<OperatorCode>(reader.PopAs<uint8_t>(1));
       return Operate2(ltype, rtype, op);
     }
 
-    case CommandCode::Cmd: {
+    case ByteCode::Cmd: {
       int arglist_id = reader.PopAs<int32_t>(4);
       std::vector<Type> stackarg = ParseArglist(reader);
 
@@ -129,41 +108,41 @@ Lexeme Lexer::Parse(std::string_view data) const {
                      return_type);
     }
 
-    case CommandCode::Goto:
+    case ByteCode::Goto:
       return Goto(Goto::Condition::Unconditional, reader.PopAs<int32_t>(4));
-    case CommandCode::Goto_true:
+    case ByteCode::Goto_true:
       return Goto(Goto::Condition::True, reader.PopAs<int32_t>(4));
-    case CommandCode::Goto_false:
+    case ByteCode::Goto_false:
       return Goto(Goto::Condition::False, reader.PopAs<int32_t>(4));
 
-    case CommandCode::Gosub_int: {
+    case ByteCode::Gosub_int: {
       int label = reader.PopAs<int32_t>(4);
       auto arglist = ParseArglist(reader);
       return Gosub(Type::Int, label, std::move(arglist));
     }
-    case CommandCode::Gosub_str: {
+    case ByteCode::Gosub_str: {
       int label = reader.PopAs<int32_t>(4);
       auto arglist = ParseArglist(reader);
       return Gosub(Type::String, label, std::move(arglist));
     }
 
-    case CommandCode::Assign: {
+    case ByteCode::Assign: {
       auto ltype = static_cast<Type>(reader.PopAs<int32_t>(4));
       auto rtype = static_cast<Type>(reader.PopAs<int32_t>(4));
       auto v1 = reader.PopAs<int32_t>(4);
       return Assign(ltype, rtype, v1);
     }
 
-    case CommandCode::Namae:
+    case ByteCode::Namae:
       return Namae();
 
-    case CommandCode::End:
+    case ByteCode::End:
       return EndOfScene();
 
-    case CommandCode::Text:
+    case ByteCode::Text:
       return Textout(reader.PopAs<int32_t>(4));
 
-    case CommandCode::Return:
+    case ByteCode::Return:
       return Return(ParseArglist(reader));
 
     default: {
@@ -171,13 +150,12 @@ Lexeme Lexer::Parse(std::string_view data) const {
       ss << "Lexer: Unable to parse " << '[';
       static constexpr size_t debug_length = 128;
       for (size_t i = 0; i < debug_length; ++i) {
-        if (data.empty())
+        if (reader.Position() >= reader.Size())
           break;
         ss << std::setfill('0') << std::setw(2) << std::hex
-           << static_cast<int>(data[0]) << ' ';
-        data = data.substr(1);
+           << reader.PopAs<int>(1) << ' ';
       }
-      if (!data.empty())
+      if (reader.Position() < reader.Size())
         ss << "...";
       ss << ']';
       throw std::runtime_error(ss.str());

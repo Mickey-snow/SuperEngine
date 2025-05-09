@@ -31,6 +31,8 @@ const char* StackUnderflow::what() const noexcept {
   return "Stack underflow: Attempted to access an element from an empty stack.";
 }
 
+// -----------------------------------------------------------------------
+// class libsiglus::Stack
 Stack::Stack() = default;
 Stack::~Stack() = default;
 
@@ -121,9 +123,10 @@ Value Stack::Pop(Type type) {
     return Popint();
   else if (type == Type::String)
     return Popstr();
-  else
+  else {
     throw std::invalid_argument("Stack: unknown type " +
                                 std::to_string(static_cast<int>(type)));
+  }
 }
 
 ElementCode Stack::Backelm() const {

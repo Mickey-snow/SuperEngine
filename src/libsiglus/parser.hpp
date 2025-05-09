@@ -23,16 +23,21 @@
 
 #pragma once
 
-#include "libsiglus/lexfwd.hpp"
+#include "libsiglus/lexeme.hpp"
+#include "libsiglus/lexer.hpp"
+#include "libsiglus/scene.hpp"
 #include "libsiglus/stack.hpp"
 #include "libsiglus/value.hpp"
 #include "utilities/string_utilities.hpp"
 
 #include <format>
+#include <iostream>
 #include <string>
 #include <variant>
 
 namespace libsiglus {
+
+namespace ast {
 
 struct Command {
   int overload_id;
@@ -41,28 +46,7 @@ struct Command {
   std::vector<std::pair<int, Value>> named_arg;
   Type return_type;
 
-  std::string ToDebugString() const {
-    const std::string cmd_repr = std::format(
-        "cmd<{}:{}>", Join(",", elm | std::views::transform([](const auto& x) {
-                                  return std::to_string(x);
-                                })),
-        overload_id);
-
-    std::vector<std::string> args_repr;
-    args_repr.reserve(arg.size() + named_arg.size());
-
-    std::transform(
-        arg.cbegin(), arg.cend(), std::back_inserter(args_repr),
-        [](const Value& value) { return std::visit(DebugStringOf(), value); });
-    std::transform(named_arg.cbegin(), named_arg.cend(),
-                   std::back_inserter(args_repr), [](const auto& it) {
-                     return std::format("_{}={}", it.first,
-                                        std::visit(DebugStringOf(), it.second));
-                   });
-
-    return std::format("{}({}) -> {}", cmd_repr, Join(",", args_repr),
-                       ToString(return_type));
-  }
+  std::string ToDebugString() const;
 };
 
 struct Name {
@@ -80,39 +64,59 @@ struct Textout {
   }
 };
 
-using Instruction = std::variant<std::monostate, Command, Name, Textout>;
+using Stmt = std::variant<Command, Name, Textout>;
+inline std::string ToDebugString(const Stmt& stmt) {
+  return std::visit(
+      [](const auto& v) -> std::string { return v.ToDebugString(); }, stmt);
+}
+}  // namespace ast
 
-// this class takes the low-level `Lexeme` and constructs `Instruction` objects
-// that are ready for execution.
-class Assembler {
+class Parser {
  public:
-  Assembler() = default;
+  Parser(Scene& scene);
 
-  Instruction Assemble(Lexeme);
+  ast::Stmt Next();
+  void ParseAll();
 
- public:
+ private:
   // dispatch functions
-  Instruction operator()(lex::Push);
-  Instruction operator()(lex::Line);
-  Instruction operator()(lex::Marker);
-  Instruction operator()(lex::Operate1);
-  Instruction operator()(lex::Operate2);
-  Instruction operator()(lex::Copy);
-  Instruction operator()(lex::CopyElm);
+  void Add(lex::Push);
+  void Add(lex::Pop);
+  void Add(lex::Line);
+  void Add(lex::Marker);
+  void Add(lex::Operate1);
+  void Add(lex::Operate2);
+  void Add(lex::Copy);
+  void Add(lex::CopyElm);
 
-  Instruction operator()(lex::Command);
-  Instruction operator()(lex::Namae);
-  Instruction operator()(lex::Textout);
+  void Add(lex::Command);
+  void Add(lex::Namae);
+  void Add(lex::Textout);
 
   template <typename T>
-  Instruction operator()(T) {
-    throw -1;  // not implemented yet
+  void Add(T t) {
+    token_append(std::move(t));
   }
 
  public:
+  Scene& scene_;
+
+  ByteReader reader_;
+  Lexer lexer_;
+
+  using token_t = std::variant<Lexeme, ast::Stmt>;
+  std::vector<token_t> token_;
+  // helpers
+  template <typename T>
+  inline void token_append(T&& t) {
+    token_.emplace_back(std::forward<T>(t));
+  }
+
+  // debug
+  std::string DumpTokens() const;
+
   int lineno_;
   Stack stack_;
-  std::vector<std::string>* str_table_;
 };
 
 }  // namespace libsiglus

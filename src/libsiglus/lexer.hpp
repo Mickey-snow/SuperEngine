@@ -28,6 +28,8 @@
 #include <memory>
 #include <string_view>
 
+class ByteReader;
+
 namespace libsiglus {
 
 class Lexer {
@@ -35,6 +37,7 @@ class Lexer {
   Lexer() = default;
 
   Lexeme Parse(std::string_view) const;
+  Lexeme Parse(ByteReader& reader) const;
 };
 
 }  // namespace libsiglus

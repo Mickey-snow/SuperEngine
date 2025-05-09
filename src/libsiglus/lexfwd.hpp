@@ -32,6 +32,7 @@
 namespace libsiglus {
 
 namespace lex {
+struct None;
 class Line;
 class Push;
 class Pop;
@@ -51,7 +52,8 @@ class EndOfScene;
 class Textout;
 }  // namespace lex
 
-using Lexeme = std::variant<lex::Line,
+using Lexeme = std::variant<lex::None,
+                            lex::Line,
                             lex::Push,
                             lex::Pop,
                             lex::Marker,

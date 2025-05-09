@@ -30,7 +30,45 @@
 #include <vector>
 
 namespace libsiglus {
+
+enum class ByteCode : uint8_t {
+  None = 0x00,
+
+  Newline = 0x01,
+  Push = 0x02,
+  Pop = 0x03,
+  Copy = 0x04,
+  Property = 0x05,
+  CopyElm = 0x06,
+  Declare = 0x07,
+  Marker = 0x08,
+  Arg = 0x09,
+
+  Goto = 0x10,
+  Goto_true = 0x11,
+  Goto_false = 0x12,
+  Gosub_int = 0x13,
+  Gosub_str = 0x14,
+  Return = 0x15,
+  End = 0x16,
+
+  Assign = 0x20,
+  Op1 = 0x21,
+  Op2 = 0x22,
+
+  Cmd = 0x30,
+  Text = 0x31,
+  Namae = 0x32,
+  SelBegin = 0x33,
+  SelEnd = 0x34
+};
+
 namespace lex {
+
+struct None {
+  std::string ToDebugString() const { return "none"; }
+  size_t ByteLength() const { return 1; }
+};
 
 class Line {
  public:
@@ -67,7 +105,6 @@ class Pop {
 
   size_t ByteLength() const { return 5; }
 
- private:
   Type type_;
 };
 
@@ -273,5 +310,10 @@ struct ByteLengthOf {
     return it.ByteLength();
   }
 };
+
+// helper
+inline std::string ToDebugString(const Lexeme& l) {
+  return std::visit([](const auto& l) { return l.ToDebugString(); }, l);
+}
 
 }  // namespace libsiglus

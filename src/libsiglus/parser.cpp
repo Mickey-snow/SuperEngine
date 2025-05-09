@@ -21,7 +21,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#include "libsiglus/assembler.hpp"
+#include "libsiglus/parser.hpp"
 
 #include "libsiglus/lexeme.hpp"
 
@@ -32,39 +32,74 @@
 #include <unordered_map>
 
 namespace libsiglus {
+namespace ast {
+std::string Command::ToDebugString() const {
+  const std::string cmd_repr = std::format(
+      "cmd<{}:{}>", Join(",", elm | std::views::transform([](const auto& x) {
+                                return std::to_string(x);
+                              })),
+      overload_id);
 
-Instruction Assembler::Assemble(Lexeme lex) { return std::visit(*this, lex); }
+  std::vector<std::string> args_repr;
+  args_repr.reserve(arg.size() + named_arg.size());
 
-Instruction Assembler::operator()(lex::Push push) {
+  std::transform(
+      arg.cbegin(), arg.cend(), std::back_inserter(args_repr),
+      [](const Value& value) { return std::visit(DebugStringOf(), value); });
+  std::transform(named_arg.cbegin(), named_arg.cend(),
+                 std::back_inserter(args_repr), [](const auto& it) {
+                   return std::format("_{}={}", it.first,
+                                      std::visit(DebugStringOf(), it.second));
+                 });
+
+  return std::format("{}({}) -> {}", cmd_repr, Join(",", args_repr),
+                     ToString(return_type));
+}
+}  // namespace ast
+using namespace ast;
+
+Parser::Parser(Scene& scene) : scene_(scene), reader_(scene_.scene_) {}
+
+void Parser::ParseAll() {
+  while (reader_.Position() < reader_.Size())
+    std::visit([&](auto&& x) { this->Add(std::forward<decltype(x)>(x)); },
+               lexer_.Parse(reader_));
+}
+
+void Parser::Add(lex::Push push) {
   switch (push.type_) {
     case Type::Int:
       stack_.Push(push.value_);
       break;
     case Type::String: {
-      const auto str_val = (*str_table_)[push.value_];
+      const auto str_val = scene_.str_[push.value_];
       stack_.Push(str_val);
       break;
     }
 
-    default:
-      throw std::runtime_error(
-          "Assembler: Unknow type id " +
-          std::to_string(static_cast<uint32_t>(push.type_)));
+    default:  // ignore
+      break;
   }
-  return std::monostate();
 }
 
-Instruction Assembler::operator()(lex::Line line) {
-  lineno_ = line.linenum_;
-  return std::monostate();
+void Parser::Add(lex::Pop pop) {
+  switch (pop.type_) {
+    case Type::Int:
+      stack_.Popint();
+      break;
+    case Type::String:
+      stack_.Popstr();
+      break;
+    default:  // ignore
+      break;
+  }
 }
 
-Instruction Assembler::operator()(lex::Marker marker) {
-  stack_.PushMarker();
-  return std::monostate();
-}
+void Parser::Add(lex::Line line) { lineno_ = line.linenum_; }
 
-Instruction Assembler::operator()(lex::Command command) {
+void Parser::Add(lex::Marker marker) { stack_.PushMarker(); }
+
+void Parser::Add(lex::Command command) {
   Command result;
   result.return_type = command.rettype_;
   result.overload_id = command.override_;
@@ -84,11 +119,19 @@ Instruction Assembler::operator()(lex::Command command) {
   }
 
   result.elm = stack_.Popelm();
+  token_append(ast::Stmt{std::move(result)});
 
-  return result;
+  auto peek = lexer_.Parse(reader_);
+  if (auto p = std::get_if<lex::Pop>(&peek); p->type_ == result.return_type) {
+    // return value ignored
+  } else {
+    // not implemented yet
+    throw std::runtime_error("Parser: ret val needed for command " +
+                             result.ToDebugString());
+  }
 }
 
-Instruction Assembler::operator()(lex::Operate1 op) {
+void Parser::Add(lex::Operate1 op) {
   int rhs = stack_.Popint();
   switch (op.op_) {
     case OperatorCode::Plus:
@@ -103,18 +146,17 @@ Instruction Assembler::operator()(lex::Operate1 op) {
     default:
       break;
   }
-  return std::monostate();
 }
 
-Instruction Assembler::operator()(lex::Operate2 op) {
+void Parser::Add(lex::Operate2 op) {
   if (op.ltype_ == Type::Int && op.rtype_ == Type::Int) {
     int rhs = stack_.Popint();
     int lhs = stack_.Popint();
     if ((op.op_ == OperatorCode::Div || op.op_ == OperatorCode::Mod) &&
         rhs == 0) {
-      // attempt to divide by 0
+      // attempt to divide by 0, result should be 0
       stack_.Push(0);
-      return std::monostate();
+      return;
     }
 
     static const std::unordered_map<OperatorCode, std::function<int(int, int)>>
@@ -191,11 +233,9 @@ Instruction Assembler::operator()(lex::Operate2 op) {
       stack_.Push(std::invoke(opfun.at(op.op_), lhs <=> rhs));
     }
   }
-
-  return std::monostate();
 }
 
-Instruction Assembler::operator()(lex::Copy cp) {
+void Parser::Add(lex::Copy cp) {
   switch (cp.type_) {
     case Type::Int:
       stack_.Push(stack_.Backint());
@@ -207,18 +247,22 @@ Instruction Assembler::operator()(lex::Copy cp) {
     default:
       break;
   }
-  return std::monostate();
 }
 
-Instruction Assembler::operator()(lex::CopyElm) {
-  stack_.Push(stack_.Backelm());
-  return std::monostate();
+void Parser::Add(lex::CopyElm) { stack_.Push(stack_.Backelm()); }
+
+void Parser::Add(lex::Namae) { token_append(Name{stack_.Popstr()}); }
+
+void Parser::Add(lex::Textout t) {
+  token_append(Textout{.kidoku = t.kidoku_, .str = stack_.Popstr()});
 }
 
-Instruction Assembler::operator()(lex::Namae) { return Name(stack_.Popstr()); }
-
-Instruction Assembler::operator()(lex::Textout t) {
-  return Textout{.kidoku = t.kidoku_, .str = stack_.Popstr()};
+std::string Parser::DumpTokens() const {
+  std::string result;
+  for (const auto& it : token_)
+    result +=
+        std::visit([](const auto& v) { return ToDebugString(v); }, it) + "\n";
+  return result;
 }
 
 }  // namespace libsiglus
