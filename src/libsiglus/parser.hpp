@@ -28,9 +28,7 @@
 #include "libsiglus/scene.hpp"
 #include "libsiglus/stack.hpp"
 #include "libsiglus/value.hpp"
-#include "utilities/string_utilities.hpp"
 
-#include <format>
 #include <iostream>
 #include <string>
 #include <variant>
@@ -59,12 +57,25 @@ struct Textout {
   int kidoku;
   std::string str;
 
-  std::string ToDebugString() const {
-    return std::format("Textout@{} ({})", kidoku, str);
-  }
+  std::string ToDebugString() const;
 };
 
-using Stmt = std::variant<Command, Name, Textout>;
+struct GetProperty {
+  ElementCode elm;
+  std::string ToDebugString() const;
+};
+
+struct Goto {
+  int label;
+  std::string ToDebugString() const;
+};
+
+struct Label {
+  int id;
+  std::string ToDebugString() const;
+};
+
+using Stmt = std::variant<Command, Name, Textout, GetProperty>;
 inline std::string ToDebugString(const Stmt& stmt) {
   return std::visit(
       [](const auto& v) -> std::string { return v.ToDebugString(); }, stmt);
@@ -89,6 +100,7 @@ class Parser {
   void Add(lex::Copy);
   void Add(lex::CopyElm);
 
+  void Add(lex::Property);
   void Add(lex::Command);
   void Add(lex::Namae);
   void Add(lex::Textout);

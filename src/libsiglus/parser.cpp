@@ -24,10 +24,14 @@
 #include "libsiglus/parser.hpp"
 
 #include "libsiglus/lexeme.hpp"
+#include "log/domain_logger.hpp"
+#include "utilities/string_utilities.hpp"
 
 #include <boost/algorithm/string/case_conv.hpp>
 #include <compare>
+#include <format>
 #include <functional>
+#include <iomanip>
 #include <stdexcept>
 #include <unordered_map>
 
@@ -55,8 +59,25 @@ std::string Command::ToDebugString() const {
   return std::format("{}({}) -> {}", cmd_repr, Join(",", args_repr),
                      ToString(return_type));
 }
+std::string Textout::ToDebugString() const {
+  return std::format("Textout@{} ({})", kidoku, str);
+}
+std::string GetProperty::ToDebugString() const {
+  return std::format("get({})", Join(",", std::views::all(elm) |
+                                              std::views::transform([](int x) {
+                                                return std::to_string(x);
+                                              })));
+}
+std::string Goto::ToDebugString() const {
+  return "goto .L" + std::to_string(label);
+}
+std::string Label::ToDebugString() const { return ".L" + std::to_string(id); }
 }  // namespace ast
 using namespace ast;
+
+// -----------------------------------------------------------------------
+// class Parser
+static DomainLogger logger("Parser");
 
 Parser::Parser(Scene& scene) : scene_(scene), reader_(scene_.scene_) {}
 
@@ -99,6 +120,20 @@ void Parser::Add(lex::Line line) { lineno_ = line.linenum_; }
 
 void Parser::Add(lex::Marker marker) { stack_.PushMarker(); }
 
+void Parser::Add(lex::Property) {
+  auto elm = stack_.Popelm();
+
+  const int user_prop_flag = (elm.front() >> 24) & 0xFF;
+  if (user_prop_flag != 0x7F) {
+    logger(Severity::Error)
+        << "Expected user property to have flag 0x7F, but got " << std::hex
+        << user_prop_flag;
+  }
+  elm.front() &= 0x00FFFFFF;
+
+  token_.emplace_back(GetProperty{std::move(elm)});
+}
+
 void Parser::Add(lex::Command command) {
   Command result;
   result.return_type = command.rettype_;
@@ -119,7 +154,6 @@ void Parser::Add(lex::Command command) {
   }
 
   result.elm = stack_.Popelm();
-  token_append(ast::Stmt{std::move(result)});
 
   auto peek = lexer_.Parse(reader_);
   if (auto p = std::get_if<lex::Pop>(&peek); p->type_ == result.return_type) {
@@ -129,6 +163,8 @@ void Parser::Add(lex::Command command) {
     throw std::runtime_error("Parser: ret val needed for command " +
                              result.ToDebugString());
   }
+
+  token_append(std::move(result));
 }
 
 void Parser::Add(lex::Operate1 op) {
