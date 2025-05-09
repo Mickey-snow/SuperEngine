@@ -23,6 +23,9 @@
 
 #include "libsiglus/stack.hpp"
 
+#include "utilities/string_utilities.hpp"
+
+#include <format>
 #include <stdexcept>
 
 namespace libsiglus {
@@ -35,6 +38,10 @@ const char* StackUnderflow::what() const noexcept {
 // class libsiglus::Stack
 Stack::Stack() = default;
 Stack::~Stack() = default;
+
+bool Stack::Empty() const {
+  return intstk_.empty() && strstk_.empty() && elm_point_.empty();
+}
 
 void Stack::Clearint() {
   intstk_.clear();
@@ -59,7 +66,7 @@ Stack& Stack::Push(std::string value) {
 }
 
 Stack& Stack::PushMarker() {
-  elm_point_.push(intstk_.size());
+  elm_point_.push_back(intstk_.size());
   return *this;
 }
 
@@ -90,8 +97,8 @@ int Stack::Popint() {
   }
   int result = intstk_.back();
   intstk_.pop_back();
-  if (!elm_point_.empty() && elm_point_.top() >= intstk_.size())
-    elm_point_.pop();
+  if (!elm_point_.empty() && elm_point_.back() >= intstk_.size())
+    elm_point_.pop_back();
   return result;
 }
 
@@ -132,14 +139,22 @@ Value Stack::Pop(Type type) {
 ElementCode Stack::Backelm() const {
   if (elm_point_.empty())
     throw StackUnderflow();
-  ElementCode result(intstk_.cbegin() + elm_point_.top(), intstk_.cend());
+  ElementCode result(intstk_.cbegin() + elm_point_.back(), intstk_.cend());
   return result;
 }
 
 ElementCode Stack::Popelm() {
   auto result = Backelm();
-  intstk_.resize(elm_point_.top());
-  elm_point_.pop();
+  intstk_.resize(elm_point_.back());
+  elm_point_.pop_back();
+  return result;
+}
+
+std::string Stack::ToDebugString() const {
+  std::string result;
+  result += std::format("int: {}\n", Join(",", view_to_string(intstk_)));
+  result += std::format("str: {}\n", Join(",", strstk_));
+  result += std::format("elm: {}\n", Join(",", view_to_string(elm_point_)));
   return result;
 }
 

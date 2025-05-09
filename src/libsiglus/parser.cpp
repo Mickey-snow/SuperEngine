@@ -23,7 +23,9 @@
 
 #include "libsiglus/parser.hpp"
 
+#include "libsiglus/archive.hpp"
 #include "libsiglus/lexeme.hpp"
+#include "libsiglus/scene.hpp"
 #include "log/domain_logger.hpp"
 #include "utilities/string_utilities.hpp"
 
@@ -63,10 +65,7 @@ std::string Textout::ToDebugString() const {
   return std::format("Textout@{} ({})", kidoku, str);
 }
 std::string GetProperty::ToDebugString() const {
-  return std::format("get({})", Join(",", std::views::all(elm) |
-                                              std::views::transform([](int x) {
-                                                return std::to_string(x);
-                                              })));
+  return std::format("get({}) -> {}", prop.name, ToString(prop.form));
 }
 std::string Goto::ToDebugString() const {
   return "goto .L" + std::to_string(label);
@@ -79,7 +78,8 @@ using namespace ast;
 // class Parser
 static DomainLogger logger("Parser");
 
-Parser::Parser(Scene& scene) : scene_(scene), reader_(scene_.scene_) {}
+Parser::Parser(Archive& archive, Scene& scene)
+    : archive_(archive), scene_(scene), reader_(scene_.scene_) {}
 
 void Parser::ParseAll() {
   while (reader_.Position() < reader_.Size())
@@ -116,7 +116,16 @@ void Parser::Add(lex::Pop pop) {
   }
 }
 
-void Parser::Add(lex::Line line) { lineno_ = line.linenum_; }
+void Parser::Add(lex::Line line) {
+  lineno_ = line.linenum_;
+  // is it safe to assume the stack is empty here?
+  if (!stack_.Empty()) {
+    logger(Severity::Info) << "at line " << lineno_ << '#' << token_.size()
+                           << ", expected stack to be empty.\n"
+                           << stack_.ToDebugString();
+    stack_.Clear();
+  }
+}
 
 void Parser::Add(lex::Marker marker) { stack_.PushMarker(); }
 
@@ -131,7 +140,20 @@ void Parser::Add(lex::Property) {
   }
   elm.front() &= 0x00FFFFFF;
 
-  token_.emplace_back(GetProperty{std::move(elm)});
+  Property* prop = nullptr;
+  int idx = elm.front();
+  if (idx < archive_.prop_.size()) {
+    // global "incprop"
+    prop = archive_.prop_.data() + idx;
+  } else {
+    // scene property
+    idx -= archive_.prop_.size();
+    prop = scene_.property.data() + idx;
+  }
+
+  token_.emplace_back(GetProperty{*prop});
+
+  Add(lex::Push(prop->form, -2));  // TODO: this should be a temporary variable
 }
 
 void Parser::Add(lex::Command command) {

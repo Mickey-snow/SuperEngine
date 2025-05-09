@@ -25,6 +25,7 @@
 
 #include "core/compression.hpp"
 #include "encodings/utf16.hpp"
+#include "libsiglus/property.hpp"
 #include "libsiglus/scene.hpp"
 #include "libsiglus/xorkey.hpp"
 #include "utilities/byte_reader.hpp"
@@ -118,10 +119,10 @@ class Archive {
 
   void ParseIncprop() {
     ByteReader reader(data_.substr(hdr_->inc_prop_list_ofs,
-                                   sizeof(Incprop) * hdr_->inc_prop_cnt));
+                                   sizeof(Property) * hdr_->inc_prop_cnt));
     for (int i = 0; i < hdr_->inc_prop_cnt; ++i) {
-      Incprop incprop;
-      incprop.form = reader.PopAs<int32_t>(4);
+      Property incprop;
+      incprop.form = static_cast<Type>(reader.PopAs<int32_t>(4));
       incprop.size = reader.PopAs<int32_t>(4);
       prop_.emplace_back(std::move(incprop));
     }
@@ -176,12 +177,7 @@ class Archive {
 
   std::map<std::string, int> scn_map_;
 
-  struct Incprop {
-    int32_t form;
-    int32_t size;
-    std::string name;
-  };
-  std::vector<Incprop> prop_;
+  std::vector<Property> prop_;
   std::map<std::string, int> prop_map_;
 
   struct Inccmd {

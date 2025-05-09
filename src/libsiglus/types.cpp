@@ -27,6 +27,8 @@ namespace libsiglus {
 
 std::string ToString(Type type) {
   switch (type) {
+    case Type::None:
+      return "null_t";
     case Type::Int:
       return "int";
     case Type::String:

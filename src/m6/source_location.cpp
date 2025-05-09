@@ -51,11 +51,6 @@ SourceLocation SourceLocation::After() const {
 }
 
 SourceLocation SourceLocation::Combine(const SourceLocation& end) const {
-  if (src != end.src) {
-    static DomainLogger logger("SourceLocation::Combine");
-    logger(Severity::Warn) << "different reference differs";
-  }
-
   return SourceLocation(begin_offset, end.end_offset, src);
 }
 

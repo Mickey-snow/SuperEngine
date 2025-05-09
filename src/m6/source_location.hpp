@@ -38,10 +38,8 @@ class SourceLocation {
   size_t begin_offset, end_offset;
   std::shared_ptr<SourceBuffer> src;
 
-  SourceLocation() = default;
-
-  explicit SourceLocation(size_t begin,
-                          size_t end,
+  explicit SourceLocation(size_t begin = 0,
+                          size_t end = 0,
                           std::shared_ptr<SourceBuffer> src = nullptr);
 
   [[deprecated]]

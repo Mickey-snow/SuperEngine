@@ -25,9 +25,10 @@
 
 #include "libsiglus/lexeme.hpp"
 #include "libsiglus/lexer.hpp"
-#include "libsiglus/scene.hpp"
+#include "libsiglus/property.hpp"
 #include "libsiglus/stack.hpp"
 #include "libsiglus/value.hpp"
+#include "utilities/byte_reader.hpp"
 
 #include <iostream>
 #include <string>
@@ -61,7 +62,7 @@ struct Textout {
 };
 
 struct GetProperty {
-  ElementCode elm;
+  Property prop;
   std::string ToDebugString() const;
 };
 
@@ -82,9 +83,11 @@ inline std::string ToDebugString(const Stmt& stmt) {
 }
 }  // namespace ast
 
+class Archive;
+class Scene;
 class Parser {
  public:
-  Parser(Scene& scene);
+  Parser(Archive& archive, Scene& scene);
 
   ast::Stmt Next();
   void ParseAll();
@@ -107,10 +110,11 @@ class Parser {
 
   template <typename T>
   void Add(T t) {
-    token_append(std::move(t));
+    token_append(Lexeme{std::move(t)});
   }
 
  public:
+  Archive& archive_;
   Scene& scene_;
 
   ByteReader reader_;

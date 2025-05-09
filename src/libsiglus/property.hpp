@@ -4,7 +4,7 @@
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2024 Serina Sakurai
+// Copyright (C) 2025 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,57 +24,18 @@
 #pragma once
 
 #include "libsiglus/types.hpp"
-#include "libsiglus/value.hpp"
 
-#include <exception>
-#include <stack>
+#include <cstdint>
 #include <string>
-#include <vector>
 
 namespace libsiglus {
 
-using ElementCode = std::vector<int>;
+[[maybe_unused]] constexpr int32_t PROPERTY_FLAG = 0x7F;
 
-class StackUnderflow : public std::exception {
- public:
-  const char* what() const noexcept override;
-};
-
-class Stack {
- public:
-  Stack();
-  ~Stack();
-
-  bool Empty() const;
-
-  void Clearint();
-  void Clearstr();
-  void Clear();
-
-  Stack& Push(int value);
-  Stack& Push(std::string value);
-  Stack& PushMarker();
-  Stack& Push(const ElementCode& elm);
-
-  int Backint() const;
-  int& Backint();
-  int Popint();
-
-  const std::string& Backstr() const;
-  std::string& Backstr();
-  std::string Popstr();
-
-  Value Pop(Type type);
-
-  ElementCode Backelm() const;
-  ElementCode Popelm();
-
-  std::string ToDebugString() const;
-
- private:
-  std::vector<int> intstk_;
-  std::vector<std::string> strstk_;
-  std::vector<size_t> elm_point_;
+struct Property {
+  Type form;
+  int32_t size;
+  std::string name;
 };
 
 }  // namespace libsiglus

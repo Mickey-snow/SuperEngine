@@ -60,13 +60,12 @@ std::ostream& operator<<(std::ostream& os, Severity severity) {
   return os;
 }
 
-bool logging_enabled = false;
+bool logging_enabled = []() {
+  SetupLogging(Severity::None);
+  return true;
+}();
 
 void SetupLogging(Severity minSeverity) {
-  if (logging_enabled)
-    return;
-  logging_enabled = true;
-
   namespace logging = boost::log;
   namespace expr = boost::log::expressions;
   namespace sinks = boost::log::sinks;

@@ -157,6 +157,12 @@ std::string Join(std::string_view sep, R&& range) {
   return result;
 }
 
+template <typename R>
+inline auto view_to_string(R const& cont) {
+  return std::views::all(cont) |
+         std::views::transform([](const auto& x) { return std::to_string(x); });
+}
+
 inline void ltrim(std::string& s) {
   s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
             return !std::isspace(ch);

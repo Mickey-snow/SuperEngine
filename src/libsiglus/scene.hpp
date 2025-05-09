@@ -25,6 +25,7 @@
 
 #include "core/compression.hpp"
 #include "encodings/utf16.hpp"
+#include "libsiglus/property.hpp"
 #include "libsiglus/xorkey.hpp"
 #include "utilities/byte_reader.hpp"
 
@@ -137,8 +138,10 @@ class Scene {
       property.reserve(hdr_->prop_cnt);
       for (int i = 0; i < hdr_->prop_cnt; ++i) {
         Property prop;
-        prop.form = reader.PopAs<int32_t>(4);
+        prop.form = static_cast<Type>(reader.PopAs<int32_t>(4));
         prop.size = reader.PopAs<int32_t>(4);
+        prop.name = "???";
+
         property.emplace_back(std::move(prop));
       }
 
@@ -149,7 +152,10 @@ class Scene {
       for (int i = 0; i < hdr_->prop_nameidx_cnt; ++i) {
         auto offset = reader.PopAs<int32_t>(4);
         auto size = reader.PopAs<int32_t>(4);
-        property_map.emplace(utf16le::Decode(names.substr(offset, size)), i);
+        const std::string name = utf16le::Decode(names.substr(offset, size));
+
+        property_map[name] = i;
+        property[i].name = std::move(name);
       }
     }
 
@@ -207,10 +213,6 @@ class Scene {
   };
   std::vector<CmdLabel> cmdlabel;
 
-  struct Property {
-    int32_t form;
-    int32_t size;
-  };
   std::vector<Property> property;
   std::map<std::string, int> property_map;
 
