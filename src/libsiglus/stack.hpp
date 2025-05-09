@@ -46,23 +46,19 @@ class Stack {
   ~Stack();
 
   bool Empty() const;
-
-  void Clearint();
-  void Clearstr();
   void Clear();
 
-  Stack& Push(int value);
-  Stack& Push(std::string value);
+  Stack& Push(Value v);
   Stack& PushMarker();
   Stack& Push(const ElementCode& elm);
 
-  int Backint() const;
-  int& Backint();
-  int Popint();
+  Value Backint() const;
+  Value& Backint();
+  Value Popint();
 
-  const std::string& Backstr() const;
-  std::string& Backstr();
-  std::string Popstr();
+  const Value& Backstr() const;
+  Value& Backstr();
+  Value Popstr();
 
   Value Pop(Type type);
 
@@ -72,8 +68,8 @@ class Stack {
   std::string ToDebugString() const;
 
  private:
-  std::vector<int> intstk_;
-  std::vector<std::string> strstk_;
+  std::vector<Value> intstk_;
+  std::vector<Value> strstk_;
   std::vector<size_t> elm_point_;
 };
 

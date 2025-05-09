@@ -25,14 +25,25 @@
 
 #include "libsiglus/value.hpp"
 
-using libsiglus::Value;
+namespace siglus_test {
+using namespace libsiglus;
 
-TEST(PropertyTest, Int) {
-  Value it = 12;
-  EXPECT_EQ(std::visit(libsiglus::DebugStringOf(), it), "int:12");
+TEST(ValueTest, Int) {
+  Value it = Integer(12);
+  EXPECT_EQ(ToString(it), "int:12");
+  EXPECT_EQ(Typeof(it), Type::Int);
 }
 
-TEST(PropertyTest, String) {
-  Value it = std::string("Hello, World!");
-  EXPECT_EQ(std::visit(libsiglus::DebugStringOf(), it), "str:Hello, World!");
+TEST(ValueTest, String) {
+  Value it = String("Hello, World!");
+  EXPECT_EQ(ToString(it), "str:Hello, World!");
+  EXPECT_EQ(Typeof(it), Type::String);
 }
+
+TEST(ValueTest, Variable) {
+  Value it = Variable(Type::Int, 123);
+  EXPECT_EQ(ToString(it), "v123");
+  EXPECT_EQ(Typeof(it), Type::Int);
+}
+
+}  // namespace siglus_test

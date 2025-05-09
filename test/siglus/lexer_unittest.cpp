@@ -52,7 +52,7 @@ TEST_F(LexerTest, Newline) {
   };
 
   auto result = lex.Parse(vec_to_sv(raw_nl));
-  EXPECT_EQ(std::visit(DebugStringOf(), result), "#line 10");
+  EXPECT_EQ(ToString(result), "#line 10");
 }
 
 TEST_F(LexerTest, Pushstk) {
@@ -67,7 +67,7 @@ TEST_F(LexerTest, Pushstk) {
     };
 
     auto result = lex.Parse(vec_to_sv(raw));
-    EXPECT_EQ(std::visit(DebugStringOf(), result), "push(int:63)");
+    EXPECT_EQ(ToString(result), "push(int:63)");
   }
 }
 
@@ -79,7 +79,7 @@ TEST_F(LexerTest, Popstk) {
     };
 
     auto result = lex.Parse(vec_to_sv(raw));
-    EXPECT_EQ(std::visit(DebugStringOf(), result), "pop<int>()");
+    EXPECT_EQ(ToString(result), "pop<int>()");
   }
 }
 
@@ -87,7 +87,7 @@ TEST_F(LexerTest, ElmMarker) {
   std::vector<uint8_t> raw{0x08};
 
   auto result = lex.Parse(vec_to_sv(raw));
-  EXPECT_EQ(std::visit(DebugStringOf(), result), "<elm>");
+  EXPECT_EQ(ToString(result), "<elm>");
 }
 
 TEST_F(LexerTest, Command) {
@@ -106,8 +106,7 @@ TEST_F(LexerTest, Command) {
   };  // note: pop stack from right to left
 
   auto result = lex.Parse(vec_to_sv(raw));
-  EXPECT_EQ(std::visit(DebugStringOf(), result),
-            "cmd[1](str,_4=int,_3=int) -> int");
+  EXPECT_EQ(ToString(result), "cmd[1](str,_4=int,_3=int) -> int");
   EXPECT_EQ(std::visit(ByteLengthOf(), result), 37);
 }
 
@@ -118,7 +117,7 @@ TEST_F(LexerTest, PropertyExpand) {
   };
 
   auto result = lex.Parse(vec_to_sv(raw));
-  EXPECT_EQ(std::visit(DebugStringOf(), result), "<prop>");
+  EXPECT_EQ(ToString(result), "<prop>");
 }
 
 TEST_F(LexerTest, Operator2) {
@@ -131,7 +130,7 @@ TEST_F(LexerTest, Operator2) {
     };
 
     auto result = lex.Parse(vec_to_sv(raw));
-    EXPECT_EQ(std::visit(DebugStringOf(), result), "int == int");
+    EXPECT_EQ(ToString(result), "int == int");
   }
 }
 
@@ -143,7 +142,7 @@ TEST_F(LexerTest, Operator1) {
   };
 
   auto result = lex.Parse(vec_to_sv(raw));
-  EXPECT_EQ(std::visit(DebugStringOf(), result), "- int");
+  EXPECT_EQ(ToString(result), "- int");
 }
 
 TEST_F(LexerTest, Goto) {
@@ -154,7 +153,7 @@ TEST_F(LexerTest, Goto) {
     };
 
     auto result = lex.Parse(vec_to_sv(raw));
-    EXPECT_EQ(std::visit(DebugStringOf(), result), "goto_false(207)");
+    EXPECT_EQ(ToString(result), "goto_false(207)");
   }
 
   {
@@ -164,7 +163,7 @@ TEST_F(LexerTest, Goto) {
     };
 
     auto result = lex.Parse(vec_to_sv(raw));
-    EXPECT_EQ(std::visit(DebugStringOf(), result), "goto_true(4)");
+    EXPECT_EQ(ToString(result), "goto_true(4)");
   }
 
   {
@@ -174,7 +173,7 @@ TEST_F(LexerTest, Goto) {
     };
 
     auto result = lex.Parse(vec_to_sv(raw));
-    EXPECT_EQ(std::visit(DebugStringOf(), result), "goto(16)");
+    EXPECT_EQ(ToString(result), "goto(16)");
   }
 }
 
@@ -187,7 +186,7 @@ TEST_F(LexerTest, Assign) {
   };
 
   auto result = lex.Parse(vec_to_sv(raw));
-  EXPECT_EQ(std::visit(DebugStringOf(), result), "let[1] typeid:13 := int");
+  EXPECT_EQ(ToString(result), "let[1] typeid:13 := int");
 }
 
 TEST_F(LexerTest, PushCopy) {
@@ -197,7 +196,7 @@ TEST_F(LexerTest, PushCopy) {
   };
 
   auto result = lex.Parse(vec_to_sv(raw));
-  EXPECT_EQ(std::visit(DebugStringOf(), result), "push(<int>)");
+  EXPECT_EQ(ToString(result), "push(<int>)");
 }
 
 TEST_F(LexerTest, PushElm) {
@@ -207,7 +206,7 @@ TEST_F(LexerTest, PushElm) {
   };
 
   auto result = lex.Parse(vec_to_sv(raw));
-  EXPECT_EQ(std::visit(DebugStringOf(), result), "push(<elm>)");
+  EXPECT_EQ(ToString(result), "push(<elm>)");
 }
 
 TEST_F(LexerTest, GosubInt) {
@@ -218,7 +217,7 @@ TEST_F(LexerTest, GosubInt) {
         0x00, 0x00, 0x00, 0x00   // no argument
     };
     auto result = lex.Parse(vec_to_sv(raw));
-    EXPECT_EQ(std::visit(DebugStringOf(), result), "gosub@11 () -> int");
+    EXPECT_EQ(ToString(result), "gosub@11 () -> int");
     EXPECT_EQ(std::visit(ByteLengthOf(), result), 9);
   }
 }
@@ -231,7 +230,7 @@ TEST_F(LexerTest, GosubStr) {
         0x00, 0x00, 0x00, 0x00   // no argument
     };
     auto result = lex.Parse(vec_to_sv(raw));
-    EXPECT_EQ(std::visit(DebugStringOf(), result), "gosub@13 () -> str");
+    EXPECT_EQ(ToString(result), "gosub@13 () -> str");
     EXPECT_EQ(std::visit(ByteLengthOf(), result), 9);
   }
 }
@@ -239,7 +238,7 @@ TEST_F(LexerTest, GosubStr) {
 TEST_F(LexerTest, Namae) {
   std::vector<uint8_t> raw{0x32};
   auto result = lex.Parse(vec_to_sv(raw));
-  EXPECT_EQ(std::visit(DebugStringOf(), result), "namae(<str>)");
+  EXPECT_EQ(ToString(result), "namae(<str>)");
   EXPECT_EQ(std::visit(ByteLengthOf(), result), 1);
 }
 
@@ -249,7 +248,7 @@ TEST_F(LexerTest, Text) {
       0x05, 0x00, 0x00, 0x00  // kidoku 5
   };
   auto result = lex.Parse(vec_to_sv(raw));
-  EXPECT_EQ(std::visit(DebugStringOf(), result), "text@5(<str>)");
+  EXPECT_EQ(ToString(result), "text@5(<str>)");
   EXPECT_EQ(std::visit(ByteLengthOf(), result), 5);
 }
 
@@ -260,7 +259,7 @@ TEST_F(LexerTest, Return) {
         0x00, 0x00, 0x00, 0x00  // no arg
     };
     auto result = lex.Parse(vec_to_sv(raw));
-    EXPECT_EQ(std::visit(DebugStringOf(), result), "ret()");
+    EXPECT_EQ(ToString(result), "ret()");
     EXPECT_EQ(std::visit(ByteLengthOf(), result), 5);
   }
 
@@ -272,7 +271,7 @@ TEST_F(LexerTest, Return) {
         0x0a, 0x00, 0x00, 0x00   // int
     };
     auto result = lex.Parse(vec_to_sv(raw));
-    EXPECT_EQ(std::visit(DebugStringOf(), result), "ret(int,str)");
+    EXPECT_EQ(ToString(result), "ret(int,str)");
     EXPECT_EQ(std::visit(ByteLengthOf(), result), 13);
   }
 }

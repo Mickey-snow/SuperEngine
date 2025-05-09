@@ -76,6 +76,18 @@ struct Label {
   std::string ToDebugString() const;
 };
 
+struct Operate1 {
+  OperatorCode op;
+  Value rhs, dst;
+  std::string ToDebugString() const;
+};
+
+struct Operate2 {
+  OperatorCode op;
+  Value lhs, rhs, dst;
+  std::string ToDebugString() const;
+};
+
 using Stmt = std::variant<Command, Name, Textout, GetProperty>;
 inline std::string ToDebugString(const Stmt& stmt) {
   return std::visit(
@@ -98,15 +110,15 @@ class Parser {
   void Add(lex::Pop);
   void Add(lex::Line);
   void Add(lex::Marker);
-  void Add(lex::Operate1);
-  void Add(lex::Operate2);
+  // void Add(lex::Operate1);
+  // void Add(lex::Operate2);
   void Add(lex::Copy);
   void Add(lex::CopyElm);
 
   void Add(lex::Property);
   void Add(lex::Command);
-  void Add(lex::Namae);
-  void Add(lex::Textout);
+  // void Add(lex::Namae);
+  // void Add(lex::Textout);
 
   template <typename T>
   void Add(T t) {

@@ -30,38 +30,50 @@
 
 namespace libsiglus {
 
-class Integer {
- public:
-  Integer(int value = 0) : val_(value) {}
-
-  operator int() const { return val_; }
-
+struct Integer {
   std::string ToDebugString() const { return "int:" + std::to_string(val_); }
+  auto operator<=>(const Integer&) const = default;
 
   int val_;
 };
 
-class String {
- public:
-  String(std::string value = "") : val_(std::move(value)) {}
-
-  operator std::string() const { return val_; }
-
+struct String {
   std::string ToDebugString() const { return "str:" + val_; }
+  auto operator<=>(const String&) const = default;
 
   std::string val_;
 };
 
-// represents a siglus property
-using Value = std::variant<Integer, String>;
+struct Variable {
+  std::string ToDebugString() const { return 'v' + std::to_string(id); }
+  auto operator<=>(const Variable&) const = default;
 
-struct DebugStringOf {
-  std::string operator()(std::monostate) { return ""; }
-
-  template <typename T>
-  auto operator()(const T& it) {
-    return it.ToDebugString();
-  }
+  Type type;
+  int id;
 };
 
+// represents a siglus property
+using Value = std::variant<Integer,  // constant
+                           String,   // constant
+                           Variable>;
+
+inline std::string ToString(const auto& v) {
+  return std::visit([](const auto& x) { return x.ToDebugString(); }, v);
+}
+
+inline Type Typeof(const Value& v) {
+  return std::visit(
+      [](const auto& x) {
+        using T = std::decay_t<decltype(x)>;
+        if constexpr (std::same_as<T, Integer>)
+          return Type::Int;
+        else if constexpr (std::same_as<T, String>)
+          return Type::String;
+        else if constexpr (std::same_as<T, Variable>)
+          return x.type;
+        else
+          return Type::None;
+      },
+      v);
+}
 }  // namespace libsiglus

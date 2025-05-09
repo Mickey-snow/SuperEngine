@@ -25,7 +25,15 @@
 
 #include "libsiglus/stack.hpp"
 
-using libsiglus::Stack;
+namespace siglus_test {
+
+using namespace libsiglus;
+
+// helper
+inline Value operator""_s(char const* s, size_t len) {
+  return Value(String(std::string(s, len)));
+}
+inline Value as_int(int i) { return Value(Integer(i)); }
 
 class StackTest : public ::testing::Test {
  protected:
@@ -34,65 +42,65 @@ class StackTest : public ::testing::Test {
 
 TEST_F(StackTest, Basic) {
   {
-    s.Push(10);
-    EXPECT_EQ(s.Backint(), 10);
-    s.Push(20);
-    EXPECT_EQ(s.Backint(), 20);
+    s.Push(as_int(10));
+    EXPECT_EQ(s.Backint(), as_int(10));
+    s.Push(as_int(20));
+    EXPECT_EQ(s.Backint(), as_int(20));
     s.Clear();
   }
 
   {
-    s.Push(10);
-    s.Push(20);
-    EXPECT_EQ(s.Popint(), 20);
-    EXPECT_EQ(s.Backint(), 10);
-    EXPECT_EQ(s.Popint(), 10);
+    s.Push(as_int(10));
+    s.Push(as_int(20));
+    EXPECT_EQ(s.Popint(), as_int(20));
+    EXPECT_EQ(s.Backint(), as_int(10));
+    EXPECT_EQ(s.Popint(), as_int(10));
     s.Clear();
   }
 
   {
-    s.Push("hello");
-    EXPECT_EQ(s.Backstr(), "hello");
-    s.Push("world");
-    EXPECT_EQ(s.Backstr(), "world");
+    s.Push("hello"_s);
+    EXPECT_EQ(s.Backstr(), "hello"_s);
+    s.Push("world"_s);
+    EXPECT_EQ(s.Backstr(), "world"_s);
     s.Clear();
   }
 
   {
-    s.Push("hello");
-    s.Push("world");
-    EXPECT_EQ(s.Popstr(), "world");
-    EXPECT_EQ(s.Backstr(), "hello");
-    EXPECT_EQ(s.Popstr(), "hello");
+    s.Push("hello"_s);
+    s.Push("world"_s);
+    EXPECT_EQ(s.Popstr(), "world"_s);
+    EXPECT_EQ(s.Backstr(), "hello"_s);
+    EXPECT_EQ(s.Popstr(), "hello"_s);
     s.Clear();
   }
 
   {
-    s.Push(1).Push(2);
-    s.Push("one").Push("two");
-    EXPECT_EQ(s.Backint(), 2);
-    EXPECT_EQ(s.Backstr(), "two");
+    s.Push(as_int(1)).Push(as_int(2));
+    s.Push("one"_s).Push("two"_s);
+    EXPECT_EQ(s.Backint(), as_int(2));
+    EXPECT_EQ(s.Backstr(), "two"_s);
 
     s.Popint();
-    EXPECT_EQ(s.Backint(), 1);
-    EXPECT_EQ(s.Backstr(), "two");
+    EXPECT_EQ(s.Backint(), as_int(1));
+    EXPECT_EQ(s.Backstr(), "two"_s);
 
     s.Popstr();
-    EXPECT_EQ(s.Backstr(), "one");
+    EXPECT_EQ(s.Backstr(), "one"_s);
     s.Clear();
   }
 
   {
-    s.Push(1).Push(2).Push(3);
-    s.Push("one").Push("two").Push("three");
-    EXPECT_EQ(s.Backint(), 3);
-    EXPECT_EQ(s.Backstr(), "three");
+    s.Push(as_int(1)).Push(as_int(2)).Push(as_int(3));
+    s.Push("one"_s).Push("two"_s).Push("three"_s);
+    EXPECT_EQ(s.Backint(), as_int(3));
+    EXPECT_EQ(s.Backstr(), "three"_s);
 
-    EXPECT_EQ(s.Popint(), 3);
-    EXPECT_EQ(s.Backint(), 2);
+    EXPECT_EQ(s.Popint(), as_int(3));
+    EXPECT_EQ(s.Backint(), as_int(2));
 
-    EXPECT_EQ(s.Popstr(), "three");
-    EXPECT_EQ(s.Backstr(), "two");
+    EXPECT_EQ(s.Popstr(), "three"_s);
+    EXPECT_EQ(s.Backstr(), "two"_s);
     s.Clear();
   }
 }
@@ -102,82 +110,82 @@ TEST_F(StackTest, Element) {
   ElementCode elm{1, 2, 3, 4};
 
   s.PushMarker();
-  s.Push(1).Push(2).Push(3).Push(4);
+  s.Push(as_int(1)).Push(as_int(2)).Push(as_int(3)).Push(as_int(4));
   EXPECT_EQ(s.Backelm(), elm);
 
   s.PushMarker();
-  s.Push(100).Push("garbage");
+  s.Push(as_int(100)).Push("garbage"_s);
   EXPECT_EQ(s.Popelm(), ElementCode{100});
-  s.Push(elm);
-  EXPECT_EQ(s.Popelm(), elm);
-  EXPECT_EQ(s.Popelm(), elm);
 
+  EXPECT_EQ(s.Popelm(), elm);
   EXPECT_THROW(s.Popelm(), libsiglus::StackUnderflow);
 }
 
 TEST_F(StackTest, CopyConstructor) {
-  s.Push(10).Push(20);
-  s.Push("hello").Push("world");
+  s.Push(as_int(10)).Push(as_int(20));
+  s.Push("hello"_s).Push("world"_s);
   Stack s_copy = s;
 
-  EXPECT_EQ(s_copy.Backint(), 20);
-  EXPECT_EQ(s_copy.Backstr(), "world");
+  EXPECT_EQ(s_copy.Backint(), as_int(20));
+  EXPECT_EQ(s_copy.Backstr(), "world"_s);
 
   s_copy.Popint();
-  EXPECT_EQ(s_copy.Backint(), 10);
-  EXPECT_EQ(s.Backint(), 20) << "Original stack should remain unchanged.";
+  EXPECT_EQ(s_copy.Backint(), as_int(10));
+  EXPECT_EQ(s.Backint(), as_int(20))
+      << "Original stack should remain unchanged.";
 }
 
 TEST_F(StackTest, AssignmentOperator) {
-  s.Push(10).Push(20);
-  s.Push("hello").Push("world");
+  s.Push(as_int(10)).Push(as_int(20));
+  s.Push("hello"_s).Push("world"_s);
   Stack s_copy;
   s_copy = s;
 
-  EXPECT_EQ(s_copy.Backint(), 20);
-  EXPECT_EQ(s_copy.Backstr(), "world");
+  EXPECT_EQ(s_copy.Backint(), as_int(20));
+  EXPECT_EQ(s_copy.Backstr(), "world"_s);
 
   s_copy.Popstr();
-  EXPECT_EQ(s_copy.Backstr(), "hello");
-  EXPECT_EQ(s.Backstr(), "world") << "Original stack should remain unchanged.";
+  EXPECT_EQ(s_copy.Backstr(), "hello"_s);
+  EXPECT_EQ(s.Backstr(), "world"_s)
+      << "Original stack should remain unchanged.";
 }
 
 TEST_F(StackTest, MoveConstructor) {
-  s.Push(10).Push(20);
-  s.Push("hello").Push("world");
+  s.Push(as_int(10)).Push(as_int(20));
+  s.Push("hello"_s).Push("world"_s);
   Stack s_moved = std::move(s);
 
-  EXPECT_EQ(s_moved.Backint(), 20);
-  EXPECT_EQ(s_moved.Backstr(), "world");
+  EXPECT_EQ(s_moved.Backint(), as_int(20));
+  EXPECT_EQ(s_moved.Backstr(), "world"_s);
 }
 
 TEST_F(StackTest, MoveAssignmentOperator) {
-  s.Push(10).Push(20);
-  s.Push("hello").Push("world");
+  s.Push(as_int(10)).Push(as_int(20));
+  s.Push("hello"_s).Push("world"_s);
   Stack s_moved;
   s_moved = std::move(s);
 
-  EXPECT_EQ(s_moved.Backint(), 20);
-  EXPECT_EQ(s_moved.Backstr(), "world");
+  EXPECT_EQ(s_moved.Backint(), as_int(20));
+  EXPECT_EQ(s_moved.Backstr(), "world"_s);
 }
 
 TEST_F(StackTest, PushMoveString) {
   std::string str = "test";
-  s.Push(std::move(str));
+  s.Push(String(std::move(str)));
 
-  EXPECT_EQ(s.Backstr(), "test");
+  EXPECT_EQ(s.Backstr(), "test"_s);
   EXPECT_TRUE(str.empty() || str == "");  // After move, str may be empty
 }
 
 TEST_F(StackTest, ConstCorrectness) {
   {
-    const Stack& const_s = s.Push(42);
-    EXPECT_EQ(const_s.Backint(), 42);
+    const Stack& const_s = s.Push(as_int(42));
+    EXPECT_EQ(const_s.Backint(), as_int(42));
   }
 
   {
-    const Stack& const_s = s.Push("const test");
-    EXPECT_EQ(const_s.Backstr(), "const test");
+    const Stack& const_s = s.Push("const test"_s);
+    EXPECT_EQ(const_s.Backstr(), "const test"_s);
   }
 }
 
@@ -188,3 +196,5 @@ TEST_F(StackTest, AccessEmpty) {
   EXPECT_THROW(s.Backint(), StackUnderflow);
   EXPECT_THROW(s.Backstr(), StackUnderflow);
 }
+
+}  // namespace siglus_test

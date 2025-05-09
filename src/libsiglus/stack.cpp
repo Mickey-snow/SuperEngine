@@ -43,25 +43,24 @@ bool Stack::Empty() const {
   return intstk_.empty() && strstk_.empty() && elm_point_.empty();
 }
 
-void Stack::Clearint() {
-  intstk_.clear();
-  elm_point_ = decltype(elm_point_){};
-}
-
-void Stack::Clearstr() { strstk_.clear(); }
-
 void Stack::Clear() {
-  Clearint();
-  Clearstr();
+  intstk_.clear();
+  strstk_.clear();
+  elm_point_.clear();
 }
 
-Stack& Stack::Push(int value) {
-  intstk_.push_back(value);
-  return *this;
-}
-
-Stack& Stack::Push(std::string value) {
-  strstk_.emplace_back(std::move(value));
+Stack& Stack::Push(Value v) {
+  switch (Typeof(v)) {
+    case Type::Int:
+      intstk_.emplace_back(std::move(v));
+      break;
+    case Type::String:
+      strstk_.emplace_back(std::move(v));
+      break;
+    default:
+      // ignore
+      break;
+  }
   return *this;
 }
 
@@ -73,54 +72,54 @@ Stack& Stack::PushMarker() {
 Stack& Stack::Push(const ElementCode& elm) {
   PushMarker();
   for (const auto& it : elm)
-    intstk_.push_back(it);
+    intstk_.push_back(Integer(it));
   return *this;
 }
 
-int Stack::Backint() const {
+Value Stack::Backint() const {
   if (intstk_.empty()) {
     throw StackUnderflow();
   }
   return intstk_.back();
 }
 
-int& Stack::Backint() {
+Value& Stack::Backint() {
   if (intstk_.empty()) {
     throw StackUnderflow();
   }
   return intstk_.back();
 }
 
-int Stack::Popint() {
+Value Stack::Popint() {
   if (intstk_.empty()) {
     throw StackUnderflow();
   }
-  int result = intstk_.back();
+  auto result = intstk_.back();
   intstk_.pop_back();
   if (!elm_point_.empty() && elm_point_.back() >= intstk_.size())
     elm_point_.pop_back();
   return result;
 }
 
-const std::string& Stack::Backstr() const {
+const Value& Stack::Backstr() const {
   if (strstk_.empty()) {
     throw StackUnderflow();
   }
   return strstk_.back();
 }
 
-std::string& Stack::Backstr() {
+Value& Stack::Backstr() {
   if (strstk_.empty()) {
     throw StackUnderflow();
   }
   return strstk_.back();
 }
 
-std::string Stack::Popstr() {
+Value Stack::Popstr() {
   if (strstk_.empty()) {
     throw StackUnderflow();
   }
-  std::string result = std::move(strstk_.back());
+  auto result = std::move(strstk_.back());
   strstk_.pop_back();
   return result;
 }
@@ -139,7 +138,18 @@ Value Stack::Pop(Type type) {
 ElementCode Stack::Backelm() const {
   if (elm_point_.empty())
     throw StackUnderflow();
-  ElementCode result(intstk_.cbegin() + elm_point_.back(), intstk_.cend());
+  ElementCode result  // (intstk_.cbegin() + elm_point_.back(), intstk_.cend())
+      ;
+
+  result.reserve(intstk_.size() - elm_point_.back());
+  std::transform(intstk_.cbegin() + elm_point_.back(), intstk_.cend(),
+                 std::back_inserter(result), [](const Value& v) -> int {
+                   if (auto i = std::get_if<Integer>(&v))
+                     return i->val_;
+                   else
+                     throw std::runtime_error("Stack: cannot convert " +
+                                              ToString(v) + " to integer.");
+                 });
   return result;
 }
 
@@ -151,9 +161,14 @@ ElementCode Stack::Popelm() {
 }
 
 std::string Stack::ToDebugString() const {
+  auto to_string = [](const std::vector<Value>& vec) {
+    return std::views::all(vec) |
+           std::views::transform([](const Value& v) { return ToString(v); });
+  };
+
   std::string result;
-  result += std::format("int: {}\n", Join(",", view_to_string(intstk_)));
-  result += std::format("str: {}\n", Join(",", strstk_));
+  result += std::format("int: {}\n", Join(",", to_string(intstk_)));
+  result += std::format("str: {}\n", Join(",", to_string(strstk_)));
   result += std::format("elm: {}\n", Join(",", view_to_string(elm_point_)));
   return result;
 }

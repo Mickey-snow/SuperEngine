@@ -49,13 +49,11 @@ std::string Command::ToDebugString() const {
   std::vector<std::string> args_repr;
   args_repr.reserve(arg.size() + named_arg.size());
 
-  std::transform(
-      arg.cbegin(), arg.cend(), std::back_inserter(args_repr),
-      [](const Value& value) { return std::visit(DebugStringOf(), value); });
+  std::transform(arg.cbegin(), arg.cend(), std::back_inserter(args_repr),
+                 [](const Value& value) { return ToString(value); });
   std::transform(named_arg.cbegin(), named_arg.cend(),
                  std::back_inserter(args_repr), [](const auto& it) {
-                   return std::format("_{}={}", it.first,
-                                      std::visit(DebugStringOf(), it.second));
+                   return std::format("_{}={}", it.first, ToString(it.second));
                  });
 
   return std::format("{}({}) -> {}", cmd_repr, Join(",", args_repr),
@@ -71,6 +69,13 @@ std::string Goto::ToDebugString() const {
   return "goto .L" + std::to_string(label);
 }
 std::string Label::ToDebugString() const { return ".L" + std::to_string(id); }
+std::string Operate1::ToDebugString() const {
+  return std::format("{} = {}{}", ToString(dst), ToString(op), ToString(rhs));
+}
+std::string Operate2::ToDebugString() const {
+  return std::format("{} = {}{}{}", ToString(dst), ToString(lhs), ToString(op),
+                     ToString(rhs));
+}
 }  // namespace ast
 using namespace ast;
 
@@ -90,11 +95,11 @@ void Parser::ParseAll() {
 void Parser::Add(lex::Push push) {
   switch (push.type_) {
     case Type::Int:
-      stack_.Push(push.value_);
+      stack_.Push(Integer(push.value_));
       break;
     case Type::String: {
       const auto str_val = scene_.str_[push.value_];
-      stack_.Push(str_val);
+      stack_.Push(String(str_val));
       break;
     }
 
@@ -189,109 +194,110 @@ void Parser::Add(lex::Command command) {
   token_append(std::move(result));
 }
 
-void Parser::Add(lex::Operate1 op) {
-  int rhs = stack_.Popint();
-  switch (op.op_) {
-    case OperatorCode::Plus:
-      stack_.Push(+rhs);
-      break;
-    case OperatorCode::Minus:
-      stack_.Push(-rhs);
-      break;
-    case OperatorCode::Inv:
-      stack_.Push(~rhs);
-      break;
-    default:
-      break;
-  }
-}
+// void Parser::Add(lex::Operate1 op) {
+//   int rhs = stack_.Popint();
+//   switch (op.op_) {
+//     case OperatorCode::Plus:
+//       stack_.Push(+rhs);
+//       break;
+//     case OperatorCode::Minus:
+//       stack_.Push(-rhs);
+//       break;
+//     case OperatorCode::Inv:
+//       stack_.Push(~rhs);
+//       break;
+//     default:
+//       break;
+//   }
+// }
 
-void Parser::Add(lex::Operate2 op) {
-  if (op.ltype_ == Type::Int && op.rtype_ == Type::Int) {
-    int rhs = stack_.Popint();
-    int lhs = stack_.Popint();
-    if ((op.op_ == OperatorCode::Div || op.op_ == OperatorCode::Mod) &&
-        rhs == 0) {
-      // attempt to divide by 0, result should be 0
-      stack_.Push(0);
-      return;
-    }
+// void Parser::Add(lex::Operate2 op) {
+//   if (op.ltype_ == Type::Int && op.rtype_ == Type::Int) {
+//     int rhs = stack_.Popint();
+//     int lhs = stack_.Popint();
+//     if ((op.op_ == OperatorCode::Div || op.op_ == OperatorCode::Mod) &&
+//         rhs == 0) {
+//       // attempt to divide by 0, result should be 0
+//       stack_.Push(0);
+//       return;
+//     }
 
-    static const std::unordered_map<OperatorCode, std::function<int(int, int)>>
-        opfun{
-            {OperatorCode::Plus, std::plus<>()},
-            {OperatorCode::Minus, std::minus<>()},
-            {OperatorCode::Mult, std::multiplies<>()},
-            {OperatorCode::Div, std::divides<>()},
-            {OperatorCode::Mod, std::modulus<>()},
+//     static const std::unordered_map<OperatorCode, std::function<int(int,
+//     int)>>
+//         opfun{
+//             {OperatorCode::Plus, std::plus<>()},
+//             {OperatorCode::Minus, std::minus<>()},
+//             {OperatorCode::Mult, std::multiplies<>()},
+//             {OperatorCode::Div, std::divides<>()},
+//             {OperatorCode::Mod, std::modulus<>()},
 
-            {OperatorCode::And, std::bit_and<>()},
-            {OperatorCode::Or, std::bit_or<>()},
-            {OperatorCode::Xor, std::bit_xor<>()},
-            {OperatorCode::Sr, [](int lhs, int rhs) { return lhs >> rhs; }},
-            {OperatorCode::Sl, [](int lhs, int rhs) { return lhs << rhs; }},
-            {OperatorCode::Sru,
-             [](int lhs, int rhs) -> int {
-               return static_cast<unsigned int>(lhs) >> rhs;
-             }},
+//             {OperatorCode::And, std::bit_and<>()},
+//             {OperatorCode::Or, std::bit_or<>()},
+//             {OperatorCode::Xor, std::bit_xor<>()},
+//             {OperatorCode::Sr, [](int lhs, int rhs) { return lhs >> rhs; }},
+//             {OperatorCode::Sl, [](int lhs, int rhs) { return lhs << rhs; }},
+//             {OperatorCode::Sru,
+//              [](int lhs, int rhs) -> int {
+//                return static_cast<unsigned int>(lhs) >> rhs;
+//              }},
 
-            {OperatorCode::Equal,
-             [](int lhs, int rhs) { return lhs == rhs ? 1 : 0; }},
-            {OperatorCode::Ne,
-             [](int lhs, int rhs) { return lhs != rhs ? 1 : 0; }},
-            {OperatorCode::Le,
-             [](int lhs, int rhs) { return lhs <= rhs ? 1 : 0; }},
-            {OperatorCode::Ge,
-             [](int lhs, int rhs) { return lhs >= rhs ? 1 : 0; }},
-            {OperatorCode::Lt,
-             [](int lhs, int rhs) { return lhs < rhs ? 1 : 0; }},
-            {OperatorCode::Gt,
-             [](int lhs, int rhs) { return lhs > rhs ? 1 : 0; }},
-            {OperatorCode::LogicalAnd,
-             [](int lhs, int rhs) { return (lhs && rhs) ? 1 : 0; }},
-            {OperatorCode::LogicalOr,
-             [](int lhs, int rhs) { return (lhs || rhs) ? 1 : 0; }},
-        };
-    stack_.Push(std::invoke(opfun.at(op.op_), lhs, rhs));
-  } else if (op.ltype_ == Type::String && op.rtype_ == Type::Int) {
-    int rhs = stack_.Popint();
-    std::string lhs = stack_.Popstr();
-    if (op.op_ == OperatorCode::Mult) {
-      std::string result;
-      result.reserve(lhs.size() * rhs);
-      for (int i = 0; i < rhs; ++i)
-        result += lhs;
-      stack_.Push(std::move(result));
-    }
-  } else if (op.ltype_ == Type::String && op.rtype_ == Type::String) {
-    std::string rhs = stack_.Popstr();
-    std::string lhs = stack_.Popstr();
+//             {OperatorCode::Equal,
+//              [](int lhs, int rhs) { return lhs == rhs ? 1 : 0; }},
+//             {OperatorCode::Ne,
+//              [](int lhs, int rhs) { return lhs != rhs ? 1 : 0; }},
+//             {OperatorCode::Le,
+//              [](int lhs, int rhs) { return lhs <= rhs ? 1 : 0; }},
+//             {OperatorCode::Ge,
+//              [](int lhs, int rhs) { return lhs >= rhs ? 1 : 0; }},
+//             {OperatorCode::Lt,
+//              [](int lhs, int rhs) { return lhs < rhs ? 1 : 0; }},
+//             {OperatorCode::Gt,
+//              [](int lhs, int rhs) { return lhs > rhs ? 1 : 0; }},
+//             {OperatorCode::LogicalAnd,
+//              [](int lhs, int rhs) { return (lhs && rhs) ? 1 : 0; }},
+//             {OperatorCode::LogicalOr,
+//              [](int lhs, int rhs) { return (lhs || rhs) ? 1 : 0; }},
+//         };
+//     stack_.Push(std::invoke(opfun.at(op.op_), lhs, rhs));
+//   } else if (op.ltype_ == Type::String && op.rtype_ == Type::Int) {
+//     int rhs = stack_.Popint();
+//     std::string lhs = stack_.Popstr();
+//     if (op.op_ == OperatorCode::Mult) {
+//       std::string result;
+//       result.reserve(lhs.size() * rhs);
+//       for (int i = 0; i < rhs; ++i)
+//         result += lhs;
+//       stack_.Push(std::move(result));
+//     }
+//   } else if (op.ltype_ == Type::String && op.rtype_ == Type::String) {
+//     std::string rhs = stack_.Popstr();
+//     std::string lhs = stack_.Popstr();
 
-    if (op.op_ == OperatorCode::Plus)
-      stack_.Push(lhs + rhs);
-    else {
-      boost::to_lower(lhs);
-      boost::to_lower(rhs);
+//     if (op.op_ == OperatorCode::Plus)
+//       stack_.Push(lhs + rhs);
+//     else {
+//       boost::to_lower(lhs);
+//       boost::to_lower(rhs);
 
-      static const std::unordered_map<OperatorCode,
-                                      std::function<int(std::strong_ordering)>>
-          opfun{{OperatorCode::Equal,
-                 [](std::strong_ordering ord) { return ord == 0 ? 1 : 0; }},
-                {OperatorCode::Ne,
-                 [](std::strong_ordering ord) { return ord != 0 ? 1 : 0; }},
-                {OperatorCode::Le,
-                 [](std::strong_ordering ord) { return ord <= 0 ? 1 : 0; }},
-                {OperatorCode::Ge,
-                 [](std::strong_ordering ord) { return ord >= 0 ? 1 : 0; }},
-                {OperatorCode::Lt,
-                 [](std::strong_ordering ord) { return ord < 0 ? 1 : 0; }},
-                {OperatorCode::Gt,
-                 [](std::strong_ordering ord) { return ord > 0 ? 1 : 0; }}};
+//       static const std::unordered_map<OperatorCode,
+//                                       std::function<int(std::strong_ordering)>>
+//           opfun{{OperatorCode::Equal,
+//                  [](std::strong_ordering ord) { return ord == 0 ? 1 : 0; }},
+//                 {OperatorCode::Ne,
+//                  [](std::strong_ordering ord) { return ord != 0 ? 1 : 0; }},
+//                 {OperatorCode::Le,
+//                  [](std::strong_ordering ord) { return ord <= 0 ? 1 : 0; }},
+//                 {OperatorCode::Ge,
+//                  [](std::strong_ordering ord) { return ord >= 0 ? 1 : 0; }},
+//                 {OperatorCode::Lt,
+//                  [](std::strong_ordering ord) { return ord < 0 ? 1 : 0; }},
+//                 {OperatorCode::Gt,
+//                  [](std::strong_ordering ord) { return ord > 0 ? 1 : 0; }}};
 
-      stack_.Push(std::invoke(opfun.at(op.op_), lhs <=> rhs));
-    }
-  }
-}
+//       stack_.Push(std::invoke(opfun.at(op.op_), lhs <=> rhs));
+//     }
+//   }
+// }
 
 void Parser::Add(lex::Copy cp) {
   switch (cp.type_) {
@@ -309,11 +315,11 @@ void Parser::Add(lex::Copy cp) {
 
 void Parser::Add(lex::CopyElm) { stack_.Push(stack_.Backelm()); }
 
-void Parser::Add(lex::Namae) { token_append(Name{stack_.Popstr()}); }
+// void Parser::Add(lex::Namae) { token_append(Name{stack_.Popstr()}); }
 
-void Parser::Add(lex::Textout t) {
-  token_append(Textout{.kidoku = t.kidoku_, .str = stack_.Popstr()});
-}
+// void Parser::Add(lex::Textout t) {
+//   token_append(Textout{.kidoku = t.kidoku_, .str = stack_.Popstr()});
+// }
 
 std::string Parser::DumpTokens() const {
   std::string result;
