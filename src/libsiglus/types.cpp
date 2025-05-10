@@ -31,8 +31,22 @@ std::string ToString(Type type) {
       return "null_t";
     case Type::Int:
       return "int";
+    case Type::IntList:
+      return "int[]";
+    case Type::IntRef:
+      return "int&";
+    case Type::IntListRef:
+      return "int[]&";
+
     case Type::String:
       return "str";
+    case Type::StrList:
+      return "str[]";
+    case Type::StrRef:
+      return "str&";
+    case Type::StrListRef:
+      return "str[]&";
+
     case Type::Label:
       return "lebel";
     case Type::List:

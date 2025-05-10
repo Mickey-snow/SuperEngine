@@ -33,23 +33,23 @@ namespace libsiglus {
 
 namespace lex {
 struct None;
-class Line;
-class Push;
-class Pop;
-class Marker;
-class Command;
-class Property;
-class Operate1;
-class Operate2;
-class Goto;
-class Assign;
-class Copy;
-class CopyElm;
-class Gosub;
-class Return;
-class Namae;
-class EndOfScene;
-class Textout;
+struct Line;
+struct Push;
+struct Pop;
+struct Marker;
+struct Command;
+struct Property;
+struct Operate1;
+struct Operate2;
+struct Goto;
+struct Assign;
+struct Copy;
+struct CopyElm;
+struct Gosub;
+struct Return;
+struct Namae;
+struct EndOfScene;
+struct Textout;
 }  // namespace lex
 
 using Lexeme = std::variant<lex::None,

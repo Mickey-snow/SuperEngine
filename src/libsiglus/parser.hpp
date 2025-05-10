@@ -31,19 +31,21 @@
 #include "utilities/byte_reader.hpp"
 
 #include <iostream>
+#include <map>
 #include <string>
 #include <variant>
 
 namespace libsiglus {
 
-namespace ast {
-
+namespace token {
 struct Command {
   int overload_id;
   std::vector<int> elm;
   std::vector<Value> arg;
   std::vector<std::pair<int, Value>> named_arg;
   Type return_type;
+
+  Value dst;
 
   std::string ToDebugString() const;
 };
@@ -63,11 +65,20 @@ struct Textout {
 
 struct GetProperty {
   Property prop;
+  Value dst;
   std::string ToDebugString() const;
 };
 
 struct Goto {
   int label;
+  std::string ToDebugString() const;
+};
+
+struct GotoIf {
+  int label;
+  bool cond;
+  Value src;
+
   std::string ToDebugString() const;
 };
 
@@ -88,12 +99,27 @@ struct Operate2 {
   std::string ToDebugString() const;
 };
 
-using Stmt = std::variant<Command, Name, Textout, GetProperty>;
-inline std::string ToDebugString(const Stmt& stmt) {
+struct Assign {
+  ElementCode dst;
+  Value src;
+  std::string ToDebugString() const;
+};
+
+using Token_t = std::variant<Command,
+                             Name,
+                             Textout,
+                             GetProperty,
+                             Operate1,
+                             Operate2,
+                             Label,
+                             Goto,
+                             GotoIf,
+                             Assign>;
+inline std::string ToDebugString(const Token_t& stmt) {
   return std::visit(
       [](const auto& v) -> std::string { return v.ToDebugString(); }, stmt);
 }
-}  // namespace ast
+}  // namespace token
 
 class Archive;
 class Scene;
@@ -101,22 +127,30 @@ class Parser {
  public:
   Parser(Archive& archive, Scene& scene);
 
-  ast::Stmt Next();
+  token::Token_t Next();
   void ParseAll();
 
+  // debug
+  std::string DumpTokens() const;
+
  private:
+  Value add_var(Type type);
+  Value pop(Type type);
+  void add_label(int id);
+
   // dispatch functions
   void Add(lex::Push);
   void Add(lex::Pop);
   void Add(lex::Line);
   void Add(lex::Marker);
-  // void Add(lex::Operate1);
-  // void Add(lex::Operate2);
+  void Add(lex::Operate1);
+  void Add(lex::Operate2);
   void Add(lex::Copy);
   void Add(lex::CopyElm);
-
+  void Add(lex::Goto);
   void Add(lex::Property);
   void Add(lex::Command);
+  void Add(lex::Assign);
   // void Add(lex::Namae);
   // void Add(lex::Textout);
 
@@ -132,7 +166,7 @@ class Parser {
   ByteReader reader_;
   Lexer lexer_;
 
-  using token_t = std::variant<Lexeme, ast::Stmt>;
+  using token_t = std::variant<Lexeme, token::Token_t>;
   std::vector<token_t> token_;
   // helpers
   template <typename T>
@@ -140,11 +174,11 @@ class Parser {
     token_.emplace_back(std::forward<T>(t));
   }
 
-  // debug
-  std::string DumpTokens() const;
-
   int lineno_;
   Stack stack_;
+
+  int var_cnt_;
+  std::multimap<int, int> label_at_;
 };
 
 }  // namespace libsiglus

@@ -70,55 +70,38 @@ struct None {
   size_t ByteLength() const { return 1; }
 };
 
-class Line {
- public:
-  Line(int linenum) : linenum_(linenum) {}
-
+struct Line {
   std::string ToDebugString() const {
     return "#line " + std::to_string(linenum_);
   }
-
   size_t ByteLength() const { return 5; }
 
   int linenum_;
 };
 
-class Push {
- public:
-  Push(Type type, int value) : type_(type), value_(value) {}
-
+struct Push {
   std::string ToDebugString() const {
     return "push(" + ToString(type_) + ':' + std::to_string(value_) + ')';
   }
-
   size_t ByteLength() const { return 9; }
 
   Type type_;
   int value_;
 };
 
-class Pop {
- public:
-  Pop(Type type) : type_(type) {}
-
+struct Pop {
   std::string ToDebugString() const { return "pop<" + ToString(type_) + ">()"; }
-
   size_t ByteLength() const { return 5; }
 
   Type type_;
 };
 
-class Marker {
- public:
-  Marker() = default;
-
+struct Marker {
   std::string ToDebugString() const { return "<elm>"; }
-
   size_t ByteLength() const { return 1; }
 };
 
-class Command {
- public:
+struct Command {
   Command(int al_id,
           std::vector<Type> stackarg,
           std::vector<int> argtags,
@@ -129,7 +112,6 @@ class Command {
         rettype_(returntype) {}
 
   std::string ToDebugString() const;
-
   size_t ByteLength() const {
     return 17 + arg_.size() * 4 + arg_tag_.size() * 4;
   }
@@ -140,49 +122,33 @@ class Command {
   Type rettype_;
 };
 
-class Property {
- public:
-  Property() = default;
-
+struct Property {
   std::string ToDebugString() const { return "<prop>"; }
-
   size_t ByteLength() const { return 1; }
 };
 
-class Operate1 {
- public:
-  Operate1(Type t, OperatorCode op) : type_(t), op_(op) {}
-
+struct Operate1 {
   std::string ToDebugString() const {
     return ToString(op_) + ' ' + ToString(type_);
   }
-
   size_t ByteLength() const { return 6; }
 
   Type type_;
   OperatorCode op_;
 };
 
-class Operate2 {
- public:
-  Operate2(Type lt, Type rt, OperatorCode op)
-      : ltype_(lt), rtype_(rt), op_(op) {}
-
+struct Operate2 {
   std::string ToDebugString() const {
     return ToString(ltype_) + ' ' + ToString(op_) + ' ' + ToString(rtype_);
   }
-
   size_t ByteLength() const { return 10; }
 
   Type ltype_, rtype_;
   OperatorCode op_;
 };
 
-class Goto {
- public:
+struct Goto {
   enum class Condition { True, False, Unconditional };
-
-  Goto(Condition cond, int label) : cond_(cond), label_(label) {}
 
   std::string ToDebugString() const {
     std::string str = '(' + std::to_string(label_) + ')';
@@ -197,19 +163,13 @@ class Goto {
         return "goto?" + str;
     }
   }
-
   size_t ByteLength() const { return 10; }
 
- private:
   Condition cond_;
   int label_;
 };
 
-class Assign {
- public:
-  Assign(Type ltype, Type rtype, int v1)
-      : ltype_(ltype), rtype_(rtype), v1_(v1) {}
-
+struct Assign {
   std::string ToDebugString() const {
     return "let[" + std::to_string(v1_) + "] " + ToString(ltype_) +
            " := " + ToString(rtype_);
@@ -217,88 +177,56 @@ class Assign {
 
   size_t ByteLength() const { return 13; }
 
- private:
   Type ltype_, rtype_;
-  int v1_;
+  int v1_;  // maybe always =1
 };
 
-class Copy {
- public:
-  Copy(Type type) : type_(type) {}
-
+struct Copy {
   std::string ToDebugString() const {
     return "push(<" + ToString(type_) + ">)";
   }
-
   size_t ByteLength() const { return 5; }
 
   Type type_;
 };
 
-class CopyElm {
- public:
-  CopyElm() = default;
-
+struct CopyElm {
   std::string ToDebugString() const { return "push(<elm>)"; }
-
   size_t ByteLength() const { return 1; }
 };
 
-class Gosub {
- public:
-  Gosub(Type rettype, int label, std::vector<Type> argt)
-      : return_type_(rettype), label_(label), argt_(argt) {}
-
+struct Gosub {
   std::string ToDebugString() const;
-
   size_t ByteLength() const { return 9 + 4 * argt_.size(); }
 
- private:
   Type return_type_;
   int label_;
   std::vector<Type> argt_;
 };
 
-class Namae {
- public:
-  Namae() = default;
-
+struct Namae {
   std::string ToDebugString() const { return "namae(<str>)"; }
-
   size_t ByteLength() const { return 1; }
 };
 
-class EndOfScene {
- public:
-  EndOfScene() = default;
-
+struct EndOfScene {
   std::string ToDebugString() const { return "#EOF"; }
-
   size_t ByteLength() const { return 1; }
 };
 
-class Textout {
- public:
-  Textout(int kidoku) : kidoku_(kidoku) {}
-
+struct Textout {
   std::string ToDebugString() const {
     return "text@" + std::to_string(kidoku_) + "(<str>)";
   }
-
   size_t ByteLength() const { return 5; }
 
   int kidoku_;
 };
 
-class Return {
- public:
-  Return(std::vector<Type> rettypes) : ret_types_(std::move(rettypes)) {}
-
+struct Return {
   std::string ToDebugString() const;
-
   size_t ByteLength() const { return 5 + 4 * ret_types_.size(); }
 
- private:
   std::vector<Type> ret_types_;
 };
 

@@ -180,13 +180,13 @@ TEST_F(LexerTest, Goto) {
 TEST_F(LexerTest, Assign) {
   std::vector<uint8_t> raw{
       0x20,                    // assign
-      0x0d, 0x00, 0x00, 0x00,  // (?)
-      0x0a, 0x00, 0x00, 0x00,  // int
+      0x0d, 0x00, 0x00, 0x00,  // lhs_type : intref
+      0x0a, 0x00, 0x00, 0x00,  // rhs_type : int
       0x01, 0x00, 0x00, 0x00   // 1
   };
 
   auto result = lex.Parse(vec_to_sv(raw));
-  EXPECT_EQ(ToString(result), "let[1] typeid:13 := int");
+  EXPECT_EQ(ToString(result), "let[1] int& := int");
 }
 
 TEST_F(LexerTest, PushCopy) {

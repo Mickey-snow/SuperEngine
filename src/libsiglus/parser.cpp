@@ -38,7 +38,7 @@
 #include <unordered_map>
 
 namespace libsiglus {
-namespace ast {
+namespace token {
 std::string Command::ToDebugString() const {
   const std::string cmd_repr = std::format(
       "cmd<{}:{}>", Join(",", elm | std::views::transform([](const auto& x) {
@@ -56,40 +56,81 @@ std::string Command::ToDebugString() const {
                    return std::format("_{}={}", it.first, ToString(it.second));
                  });
 
-  return std::format("{}({}) -> {}", cmd_repr, Join(",", args_repr),
-                     ToString(return_type));
+  return std::format("{} {} = {}({})", ToString(return_type), ToString(dst),
+                     cmd_repr, Join(",", args_repr));
 }
 std::string Textout::ToDebugString() const {
   return std::format("Textout@{} ({})", kidoku, str);
 }
 std::string GetProperty::ToDebugString() const {
-  return std::format("get({}) -> {}", prop.name, ToString(prop.form));
+  return std::format("{} {} = {}", ToString(prop.form), ToString(dst),
+                     prop.name);
 }
 std::string Goto::ToDebugString() const {
   return "goto .L" + std::to_string(label);
 }
+std::string GotoIf::ToDebugString() const {
+  return std::format("{}({}) goto .L{}", cond ? "if" : "ifnot", ToString(src),
+                     label);
+}
 std::string Label::ToDebugString() const { return ".L" + std::to_string(id); }
 std::string Operate1::ToDebugString() const {
-  return std::format("{} = {}{}", ToString(dst), ToString(op), ToString(rhs));
+  return std::format("{} {} = {} {}", ToString(Typeof(dst)), ToString(dst),
+                     ToString(op), ToString(rhs));
 }
 std::string Operate2::ToDebugString() const {
-  return std::format("{} = {}{}{}", ToString(dst), ToString(lhs), ToString(op),
-                     ToString(rhs));
+  return std::format("{} {} = {} {} {}", ToString(Typeof(dst)), ToString(dst),
+                     ToString(lhs), ToString(op), ToString(rhs));
 }
-}  // namespace ast
-using namespace ast;
+std::string Assign::ToDebugString() const {
+  return std::format("<{}> = {}", Join(",", view_to_string(dst)),
+                     ToString(src));
+}
+}  // namespace token
+using namespace token;
 
 // -----------------------------------------------------------------------
 // class Parser
 static DomainLogger logger("Parser");
 
 Parser::Parser(Archive& archive, Scene& scene)
-    : archive_(archive), scene_(scene), reader_(scene_.scene_) {}
+    : archive_(archive), scene_(scene), reader_(scene_.scene_) {
+  for (size_t i = 0; i < scene.label.size(); ++i) {
+    // offset start at 1?
+    label_at_.emplace(scene.label[i], i + 1);  // (location, lid)
+  }
+}
+
+Value Parser::add_var(Type type) {
+  Variable var(type, var_cnt_++);
+  return var;
+}
+
+Value Parser::pop(Type type) {
+  switch (type) {
+    case Type::Int:
+      return stack_.Popint();
+    case Type::String:
+      return stack_.Popstr();
+    default:
+      throw std::runtime_error("Parser: unknown pop type " + ToString(type));
+  }
+}
+
+void Parser::add_label(int id) { token_append(Label{id}); }
 
 void Parser::ParseAll() {
-  while (reader_.Position() < reader_.Size())
+  while (reader_.Position() < reader_.Size()) {
+    // Add labels
+    for (auto [begin, end] = label_at_.equal_range(reader_.Position());
+         begin != end; ++begin) {
+      add_label(begin->second);
+    }
+
+    // parse
     std::visit([&](auto&& x) { this->Add(std::forward<decltype(x)>(x)); },
                lexer_.Parse(reader_));
+  }
 }
 
 void Parser::Add(lex::Push push) {
@@ -140,6 +181,7 @@ void Parser::Add(lex::Property) {
   const int user_prop_flag = (elm.front() >> 24) & 0xFF;
   if (user_prop_flag != 0x7F) {
     logger(Severity::Error)
+        << "at " << token_.size() << ':'
         << "Expected user property to have flag 0x7F, but got " << std::hex
         << user_prop_flag;
   }
@@ -156,9 +198,10 @@ void Parser::Add(lex::Property) {
     prop = scene_.property.data() + idx;
   }
 
-  token_.emplace_back(GetProperty{*prop});
+  Value dst = add_var(prop->form);
+  token_.emplace_back(GetProperty{*prop, dst});
 
-  Add(lex::Push(prop->form, -2));  // TODO: this should be a temporary variable
+  stack_.Push(dst);
 }
 
 void Parser::Add(lex::Command command) {
@@ -181,123 +224,43 @@ void Parser::Add(lex::Command command) {
   }
 
   result.elm = stack_.Popelm();
-
-  auto peek = lexer_.Parse(reader_);
-  if (auto p = std::get_if<lex::Pop>(&peek); p->type_ == result.return_type) {
-    // return value ignored
-  } else {
-    // not implemented yet
-    throw std::runtime_error("Parser: ret val needed for command " +
-                             result.ToDebugString());
-  }
+  result.dst = add_var(result.return_type);
+  stack_.Push(result.dst);
 
   token_append(std::move(result));
 }
 
-// void Parser::Add(lex::Operate1 op) {
-//   int rhs = stack_.Popint();
-//   switch (op.op_) {
-//     case OperatorCode::Plus:
-//       stack_.Push(+rhs);
-//       break;
-//     case OperatorCode::Minus:
-//       stack_.Push(-rhs);
-//       break;
-//     case OperatorCode::Inv:
-//       stack_.Push(~rhs);
-//       break;
-//     default:
-//       break;
-//   }
-// }
+void Parser::Add(lex::Operate1 op) {  // + - ~ <int>
+  token::Operate1 stmt;
+  stmt.rhs = stack_.Popint();
+  stmt.dst = add_var(Type::Int);
+  stmt.op = op.op_;
 
-// void Parser::Add(lex::Operate2 op) {
-//   if (op.ltype_ == Type::Int && op.rtype_ == Type::Int) {
-//     int rhs = stack_.Popint();
-//     int lhs = stack_.Popint();
-//     if ((op.op_ == OperatorCode::Div || op.op_ == OperatorCode::Mod) &&
-//         rhs == 0) {
-//       // attempt to divide by 0, result should be 0
-//       stack_.Push(0);
-//       return;
-//     }
+  stack_.Push(stmt.dst);
+  token_append(std::move(stmt));
+}
 
-//     static const std::unordered_map<OperatorCode, std::function<int(int,
-//     int)>>
-//         opfun{
-//             {OperatorCode::Plus, std::plus<>()},
-//             {OperatorCode::Minus, std::minus<>()},
-//             {OperatorCode::Mult, std::multiplies<>()},
-//             {OperatorCode::Div, std::divides<>()},
-//             {OperatorCode::Mod, std::modulus<>()},
+void Parser::Add(lex::Operate2 op) {
+  Type result_type = Type::None;
 
-//             {OperatorCode::And, std::bit_and<>()},
-//             {OperatorCode::Or, std::bit_or<>()},
-//             {OperatorCode::Xor, std::bit_xor<>()},
-//             {OperatorCode::Sr, [](int lhs, int rhs) { return lhs >> rhs; }},
-//             {OperatorCode::Sl, [](int lhs, int rhs) { return lhs << rhs; }},
-//             {OperatorCode::Sru,
-//              [](int lhs, int rhs) -> int {
-//                return static_cast<unsigned int>(lhs) >> rhs;
-//              }},
+  if (op.ltype_ == Type::Int && op.rtype_ == Type::Int)
+    result_type = Type::Int;
+  else if (op.ltype_ == Type::String && op.rtype_ == Type::Int)
+    result_type = Type::String;  // str * int
+  else if (op.ltype_ == Type::String && op.rtype_ == Type::String) {
+    result_type = op.op_ == OperatorCode::Plus ? Type::String /* str+str */
+                                               : Type::Int /* str <comp> str */;
+  }
 
-//             {OperatorCode::Equal,
-//              [](int lhs, int rhs) { return lhs == rhs ? 1 : 0; }},
-//             {OperatorCode::Ne,
-//              [](int lhs, int rhs) { return lhs != rhs ? 1 : 0; }},
-//             {OperatorCode::Le,
-//              [](int lhs, int rhs) { return lhs <= rhs ? 1 : 0; }},
-//             {OperatorCode::Ge,
-//              [](int lhs, int rhs) { return lhs >= rhs ? 1 : 0; }},
-//             {OperatorCode::Lt,
-//              [](int lhs, int rhs) { return lhs < rhs ? 1 : 0; }},
-//             {OperatorCode::Gt,
-//              [](int lhs, int rhs) { return lhs > rhs ? 1 : 0; }},
-//             {OperatorCode::LogicalAnd,
-//              [](int lhs, int rhs) { return (lhs && rhs) ? 1 : 0; }},
-//             {OperatorCode::LogicalOr,
-//              [](int lhs, int rhs) { return (lhs || rhs) ? 1 : 0; }},
-//         };
-//     stack_.Push(std::invoke(opfun.at(op.op_), lhs, rhs));
-//   } else if (op.ltype_ == Type::String && op.rtype_ == Type::Int) {
-//     int rhs = stack_.Popint();
-//     std::string lhs = stack_.Popstr();
-//     if (op.op_ == OperatorCode::Mult) {
-//       std::string result;
-//       result.reserve(lhs.size() * rhs);
-//       for (int i = 0; i < rhs; ++i)
-//         result += lhs;
-//       stack_.Push(std::move(result));
-//     }
-//   } else if (op.ltype_ == Type::String && op.rtype_ == Type::String) {
-//     std::string rhs = stack_.Popstr();
-//     std::string lhs = stack_.Popstr();
+  token::Operate2 stmt;
+  stmt.dst = add_var(result_type);
+  stmt.op = op.op_;
+  stmt.rhs = pop(op.rtype_);
+  stmt.lhs = pop(op.ltype_);
 
-//     if (op.op_ == OperatorCode::Plus)
-//       stack_.Push(lhs + rhs);
-//     else {
-//       boost::to_lower(lhs);
-//       boost::to_lower(rhs);
-
-//       static const std::unordered_map<OperatorCode,
-//                                       std::function<int(std::strong_ordering)>>
-//           opfun{{OperatorCode::Equal,
-//                  [](std::strong_ordering ord) { return ord == 0 ? 1 : 0; }},
-//                 {OperatorCode::Ne,
-//                  [](std::strong_ordering ord) { return ord != 0 ? 1 : 0; }},
-//                 {OperatorCode::Le,
-//                  [](std::strong_ordering ord) { return ord <= 0 ? 1 : 0; }},
-//                 {OperatorCode::Ge,
-//                  [](std::strong_ordering ord) { return ord >= 0 ? 1 : 0; }},
-//                 {OperatorCode::Lt,
-//                  [](std::strong_ordering ord) { return ord < 0 ? 1 : 0; }},
-//                 {OperatorCode::Gt,
-//                  [](std::strong_ordering ord) { return ord > 0 ? 1 : 0; }}};
-
-//       stack_.Push(std::invoke(opfun.at(op.op_), lhs <=> rhs));
-//     }
-//   }
-// }
+  stack_.Push(stmt.dst);
+  token_append(std::move(stmt));
+}
 
 void Parser::Add(lex::Copy cp) {
   switch (cp.type_) {
@@ -315,6 +278,26 @@ void Parser::Add(lex::Copy cp) {
 
 void Parser::Add(lex::CopyElm) { stack_.Push(stack_.Backelm()); }
 
+void Parser::Add(lex::Goto g) {
+  if (g.cond_ == lex::Goto::Condition::Unconditional)
+    token_append(Goto{g.label_});
+  else {
+    GotoIf stmt;
+    stmt.cond = g.cond_ == lex::Goto::Condition::True;
+    stmt.label = g.label_;
+    stmt.src = pop(Type::Int);
+
+    token_append(std::move(stmt));
+  }
+}
+
+void Parser::Add(lex::Assign a) {
+  token::Assign stmt;
+  stmt.src = pop(a.rtype_);
+  stmt.dst = stack_.Popelm();
+  token_append(std::move(stmt));
+}
+
 // void Parser::Add(lex::Namae) { token_append(Name{stack_.Popstr()}); }
 
 // void Parser::Add(lex::Textout t) {
@@ -323,9 +306,11 @@ void Parser::Add(lex::CopyElm) { stack_.Push(stack_.Backelm()); }
 
 std::string Parser::DumpTokens() const {
   std::string result;
-  for (const auto& it : token_)
+  for (size_t i = 0; i < token_.size(); ++i)
     result +=
-        std::visit([](const auto& v) { return ToDebugString(v); }, it) + "\n";
+        std::to_string(i) + ": " +
+        std::visit([](const auto& v) { return ToDebugString(v); }, token_[i]) +
+        "\n";
   return result;
 }
 
