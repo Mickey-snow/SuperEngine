@@ -33,13 +33,13 @@ namespace lex {
 
 std::string Command::ToDebugString() const {
   std::vector<std::string> args_repr;
-  args_repr.reserve(arg_.size());
+  args_repr.reserve(argt_.size());
 
-  std::transform(arg_.cbegin(), arg_.cend(), std::back_inserter(args_repr),
+  std::transform(argt_.cbegin(), argt_.cend(), std::back_inserter(args_repr),
                  [](const auto& x) { return ToString(x); });
-  for (size_t i = arg_.size() - arg_tag_.size(); i < arg_.size(); ++i) {
+  for (size_t i = argt_.size() - arg_tag_.size(); i < argt_.size(); ++i) {
     args_repr[i] = std::format(
-        "_{}={}", arg_tag_[i - (arg_.size() - arg_tag_.size())], args_repr[i]);
+        "_{}={}", arg_tag_[i - (argt_.size() - arg_tag_.size())], args_repr[i]);
   }
 
   return std::format("cmd[{}]({}) -> {}", override_,

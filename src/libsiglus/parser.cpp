@@ -87,6 +87,10 @@ std::string Assign::ToDebugString() const {
   return std::format("<{}> = {}", Join(",", view_to_string(dst)),
                      ToString(src));
 }
+std::string Duplicate::ToDebugString() const {
+  return std::format("{} {} = {}", ToString(Typeof(dst)), ToString(dst),
+                     ToString(src));
+}
 }  // namespace token
 using namespace token;
 
@@ -95,10 +99,13 @@ using namespace token;
 static DomainLogger logger("Parser");
 
 Parser::Parser(Archive& archive, Scene& scene)
-    : archive_(archive), scene_(scene), reader_(scene_.scene_) {
+    : archive_(archive),
+      scene_(scene),
+      reader_(scene_.scene_),
+      lineno_(0),
+      var_cnt_(0) {
   for (size_t i = 0; i < scene.label.size(); ++i) {
-    // offset start at 1?
-    label_at_.emplace(scene.label[i], i + 1);  // (location, lid)
+    offset2labels_.emplace(scene.label[i], i);  // (location, lid)
   }
 }
 
@@ -108,6 +115,9 @@ Value Parser::add_var(Type type) {
 }
 
 Value Parser::pop(Type type) {
+  if (stack_.Empty())
+    return {};
+
   switch (type) {
     case Type::Int:
       return stack_.Popint();
@@ -118,19 +128,27 @@ Value Parser::pop(Type type) {
   }
 }
 
-void Parser::add_label(int id) { token_append(Label{id}); }
+void Parser::add_label(int id) {
+  label2offset_[id] = token_.size();
+  emit_token(Label{id});
+}
 
 void Parser::ParseAll() {
   while (reader_.Position() < reader_.Size()) {
     // Add labels
-    for (auto [begin, end] = label_at_.equal_range(reader_.Position());
+    for (auto [begin, end] = offset2labels_.equal_range(reader_.Position());
          begin != end; ++begin) {
       add_label(begin->second);
     }
 
+    // is it safe to assume the stack is empty here?
+    if (offset2labels_.contains(reader_.Position()) && !stack_.Empty())
+      logger(Severity::Warn) << stack_.ToDebugString();
+
     // parse
+    static Lexer lexer;
     std::visit([&](auto&& x) { this->Add(std::forward<decltype(x)>(x)); },
-               lexer_.Parse(reader_));
+               lexer.Parse(reader_));
   }
 }
 
@@ -150,18 +168,7 @@ void Parser::Add(lex::Push push) {
   }
 }
 
-void Parser::Add(lex::Pop pop) {
-  switch (pop.type_) {
-    case Type::Int:
-      stack_.Popint();
-      break;
-    case Type::String:
-      stack_.Popstr();
-      break;
-    default:  // ignore
-      break;
-  }
-}
+void Parser::Add(lex::Pop p) { pop(p.type_); }
 
 void Parser::Add(lex::Line line) {
   lineno_ = line.linenum_;
@@ -212,17 +219,17 @@ void Parser::Add(lex::Command command) {
   result.overload_id = command.override_;
 
   result.named_arg.resize(command.arg_tag_.size());
-  result.arg.resize(command.arg_.size() - command.arg_tag_.size());
+  result.arg.resize(command.argt_.size() - command.arg_tag_.size());
   for (auto it = result.named_arg.rbegin(); it != result.named_arg.rend();
        ++it) {
     it->first = command.arg_tag_.back();
-    it->second = stack_.Pop(command.arg_.back());
+    it->second = pop(command.argt_.back());
     command.arg_tag_.pop_back();
-    command.arg_.pop_back();
+    command.argt_.pop_back();
   }
   for (auto it = result.arg.rbegin(); it != result.arg.rend(); ++it) {
-    *it = stack_.Pop(command.arg_.back());
-    command.arg_.pop_back();
+    *it = pop(command.argt_.back());
+    command.argt_.pop_back();
   }
 
   result.elm = stack_.Popelm();
@@ -231,7 +238,7 @@ void Parser::Add(lex::Command command) {
   result.dst = add_var(result.return_type);
   stack_.Push(result.dst);
 
-  token_append(std::move(result));
+  emit_token(std::move(result));
 }
 
 void Parser::Add(lex::Operate1 op) {  // + - ~ <int>
@@ -241,7 +248,7 @@ void Parser::Add(lex::Operate1 op) {  // + - ~ <int>
   stmt.op = op.op_;
 
   stack_.Push(stmt.dst);
-  token_append(std::move(stmt));
+  emit_token(std::move(stmt));
 }
 
 void Parser::Add(lex::Operate2 op) {
@@ -263,35 +270,40 @@ void Parser::Add(lex::Operate2 op) {
   stmt.lhs = pop(op.ltype_);
 
   stack_.Push(stmt.dst);
-  token_append(std::move(stmt));
+  emit_token(std::move(stmt));
 }
 
 void Parser::Add(lex::Copy cp) {
+  Value src, dst = add_var(cp.type_);
+
   switch (cp.type_) {
     case Type::Int:
-      stack_.Push(stack_.Backint());
+      src = stack_.Backint();
       break;
     case Type::String:
-      stack_.Push(stack_.Backstr());
+      src = stack_.Backstr();
       break;
 
     default:
       break;
   }
+
+  stack_.Push(dst);
+  emit_token(Duplicate{std::move(src), std::move(dst)});
 }
 
 void Parser::Add(lex::CopyElm) { stack_.Push(stack_.Backelm()); }
 
 void Parser::Add(lex::Goto g) {
   if (g.cond_ == lex::Goto::Condition::Unconditional)
-    token_append(Goto{g.label_});
+    emit_token(Goto{g.label_});
   else {
     GotoIf stmt;
     stmt.cond = g.cond_ == lex::Goto::Condition::True;
     stmt.label = g.label_;
     stmt.src = pop(Type::Int);
 
-    token_append(std::move(stmt));
+    emit_token(std::move(stmt));
   }
 }
 
@@ -299,7 +311,7 @@ void Parser::Add(lex::Assign a) {
   token::Assign stmt;
   stmt.src = pop(a.rtype_);
   stmt.dst = stack_.Popelm();
-  token_append(std::move(stmt));
+  emit_token(std::move(stmt));
 }
 
 // void Parser::Add(lex::Namae) { token_append(Name{stack_.Popstr()}); }

@@ -107,17 +107,17 @@ struct Command {
           std::vector<int> argtags,
           Type returntype)
       : override_(al_id),
-        arg_(std::move(stackarg)),
+        argt_(std::move(stackarg)),
         arg_tag_(std::move(argtags)),
         rettype_(returntype) {}
 
   std::string ToDebugString() const;
   size_t ByteLength() const {
-    return 17 + arg_.size() * 4 + arg_tag_.size() * 4;
+    return 17 + argt_.size() * 4 + arg_tag_.size() * 4;
   }
 
   int override_;
-  std::vector<Type> arg_;
+  std::vector<Type> argt_;
   std::vector<int> arg_tag_;
   Type rettype_;
 };

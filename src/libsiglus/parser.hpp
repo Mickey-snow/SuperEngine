@@ -33,6 +33,7 @@
 #include <iostream>
 #include <map>
 #include <string>
+#include <unordered_map>
 #include <variant>
 
 namespace libsiglus {
@@ -107,6 +108,11 @@ struct Assign {
   std::string ToDebugString() const;
 };
 
+struct Duplicate {
+  Value src, dst;
+  std::string ToDebugString() const;
+};
+
 using Token_t = std::variant<Command,
                              Name,
                              Textout,
@@ -116,7 +122,8 @@ using Token_t = std::variant<Command,
                              Label,
                              Goto,
                              GotoIf,
-                             Assign>;
+                             Assign,
+                             Duplicate>;
 inline std::string ToDebugString(const Token_t& stmt) {
   return std::visit(
       [](const auto& v) -> std::string { return v.ToDebugString(); }, stmt);
@@ -158,7 +165,7 @@ class Parser {
 
   template <typename T>
   void Add(T t) {
-    token_append(Lexeme{std::move(t)});
+    emit_token(Lexeme{std::move(t)});
   }
 
  public:
@@ -166,13 +173,12 @@ class Parser {
   Scene& scene_;
 
   ByteReader reader_;
-  Lexer lexer_;
 
   using token_t = std::variant<Lexeme, token::Token_t>;
   std::vector<token_t> token_;
   // helpers
   template <typename T>
-  inline void token_append(T&& t) {
+  inline void emit_token(T&& t) {
     token_.emplace_back(std::forward<T>(t));
   }
 
@@ -180,7 +186,8 @@ class Parser {
   Stack stack_;
 
   int var_cnt_;
-  std::multimap<int, int> label_at_;
+  std::multimap<int, int> offset2labels_;
+  std::unordered_map<int, int> label2offset_;
 };
 
 }  // namespace libsiglus
