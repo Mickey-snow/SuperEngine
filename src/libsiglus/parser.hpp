@@ -41,6 +41,7 @@ namespace token {
 struct Command {
   int overload_id;
   std::vector<int> elm;
+  std::string name;
   std::vector<Value> arg;
   std::vector<std::pair<int, Value>> named_arg;
   Type return_type;
@@ -64,7 +65,8 @@ struct Textout {
 };
 
 struct GetProperty {
-  Property prop;
+  ElementCode elm;
+  std::string name;
   Value dst;
   std::string ToDebugString() const;
 };

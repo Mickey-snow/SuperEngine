@@ -24,6 +24,7 @@
 #include "libsiglus/parser.hpp"
 
 #include "libsiglus/archive.hpp"
+#include "libsiglus/cmd.hpp"
 #include "libsiglus/lexeme.hpp"
 #include "libsiglus/scene.hpp"
 #include "log/domain_logger.hpp"
@@ -40,11 +41,8 @@
 namespace libsiglus {
 namespace token {
 std::string Command::ToDebugString() const {
-  const std::string cmd_repr = std::format(
-      "cmd<{}:{}>", Join(",", elm | std::views::transform([](const auto& x) {
-                                return std::to_string(x);
-                              })),
-      overload_id);
+  const std::string cmd_repr =
+      std::format("cmd<{}:{}>", Join(",", view_to_string(elm)), overload_id);
 
   std::vector<std::string> args_repr;
   args_repr.reserve(arg.size() + named_arg.size());
@@ -56,15 +54,18 @@ std::string Command::ToDebugString() const {
                    return std::format("_{}={}", it.first, ToString(it.second));
                  });
 
-  return std::format("{} {} = {}({})", ToString(return_type), ToString(dst),
-                     cmd_repr, Join(",", args_repr));
+  auto repr = std::format("{} {} = {}({})", ToString(return_type),
+                          ToString(dst), name, Join(",", args_repr));
+  return std::format("{:<30} ;{}", std::move(repr), cmd_repr);
 }
 std::string Textout::ToDebugString() const {
   return std::format("Textout@{} ({})", kidoku, str);
 }
 std::string GetProperty::ToDebugString() const {
-  return std::format("{} {} = {}", ToString(prop.form), ToString(dst),
-                     prop.name);
+  auto repr =
+      std::format("{} {} = {}", ToString(Typeof(dst)), ToString(dst), name);
+  return std::format("{:<30} ;<{}>", std::move(repr),
+                     Join(",", view_to_string(elm)));
 }
 std::string Goto::ToDebugString() const {
   return "goto .L" + std::to_string(label);
@@ -176,32 +177,33 @@ void Parser::Add(lex::Line line) {
 void Parser::Add(lex::Marker marker) { stack_.PushMarker(); }
 
 void Parser::Add(lex::Property) {
-  auto elm = stack_.Popelm();
+  token::GetProperty tok;
+  tok.elm = stack_.Popelm();
 
-  const int user_prop_flag = (elm.front() >> 24) & 0xFF;
-  if (user_prop_flag != 0x7F) {
-    logger(Severity::Error)
-        << "at " << token_.size() << ':'
-        << "Expected user property to have flag 0x7F, but got " << std::hex
-        << user_prop_flag;
-  }
-  elm.front() &= 0x00FFFFFF;
+  const int owner_flag = (tok.elm.front() >> 24) & 0xFF;
+  if (owner_flag == USER_PROPERTY_FLAG) {
+    // user property
 
-  Property* prop = nullptr;
-  int idx = elm.front();
-  if (idx < archive_.prop_.size()) {
-    // global "incprop"
-    prop = archive_.prop_.data() + idx;
+    Property* prop = nullptr;
+    int idx = tok.elm.front() & 0x00FFFFFF;
+    if (idx < archive_.prop_.size()) {
+      // global "incprop"
+      prop = archive_.prop_.data() + idx;
+    } else {
+      // scene property
+      idx -= archive_.prop_.size();
+      prop = scene_.property.data() + idx;
+    }
+
+    tok.dst = add_var(prop->form);
+    tok.name = prop->name;
   } else {
-    // scene property
-    idx -= archive_.prop_.size();
-    prop = scene_.property.data() + idx;
+    tok.dst = add_var(Type::Int);  // TODO: fix type lookup
+    tok.name = cmd::Resolve(tok.elm);
   }
 
-  Value dst = add_var(prop->form);
-  token_.emplace_back(GetProperty{*prop, dst});
-
-  stack_.Push(dst);
+  stack_.Push(tok.dst);
+  token_.emplace_back(std::move(tok));
 }
 
 void Parser::Add(lex::Command command) {
@@ -224,6 +226,8 @@ void Parser::Add(lex::Command command) {
   }
 
   result.elm = stack_.Popelm();
+  result.name = cmd::Resolve(result.elm);
+
   result.dst = add_var(result.return_type);
   stack_.Push(result.dst);
 

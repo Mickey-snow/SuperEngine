@@ -23,19 +23,14 @@
 
 #pragma once
 
-#include "libsiglus/types.hpp"
-
 #include <cstdint>
 #include <string>
+#include <vector>
 
-namespace libsiglus {
+namespace libsiglus::cmd {
 
-[[maybe_unused]] constexpr int32_t USER_PROPERTY_FLAG = 0x7F;
+[[maybe_unused]] constexpr int32_t USER_COMMAND_FLAG = 0x7E;
 
-struct Property {
-  Type form;
-  int32_t size;
-  std::string name;
-};
+std::string Resolve(const std::vector<int>& elm);
 
-}  // namespace libsiglus
+}  // namespace libsiglus::cmd

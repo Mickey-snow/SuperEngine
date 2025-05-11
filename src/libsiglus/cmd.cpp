@@ -21,21 +21,14 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#pragma once
+#include "libsiglus/cmd.hpp"
 
-#include "libsiglus/types.hpp"
+#include "libsiglus/cmd_internal/global.hpp"
 
-#include <cstdint>
-#include <string>
+namespace libsiglus::cmd {
 
-namespace libsiglus {
+std::string Resolve(const std::vector<int>& elm) {
+  return ToString(static_cast<ElmGlobalFlag>(elm.front()));
+}
 
-[[maybe_unused]] constexpr int32_t USER_PROPERTY_FLAG = 0x7F;
-
-struct Property {
-  Type form;
-  int32_t size;
-  std::string name;
-};
-
-}  // namespace libsiglus
+}  // namespace libsiglus::cmd

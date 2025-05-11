@@ -1,0 +1,356 @@
+// -----------------------------------------------------------------------
+//
+// This file is part of RLVM
+//
+// -----------------------------------------------------------------------
+//
+// Copyright (C) 2025 Serina Sakurai
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
+// -----------------------------------------------------------------------
+
+#include "libsiglus/cmd_internal/global.hpp"
+
+namespace libsiglus::cmd {
+
+std::string ToString(ElmGlobalFlag f) {
+  switch (f) {
+    case ElmGlobalFlag::A:
+      return "A";
+    case ElmGlobalFlag::B:
+      return "B";
+    case ElmGlobalFlag::C:
+      return "C";
+    case ElmGlobalFlag::D:
+      return "D";
+    case ElmGlobalFlag::E:
+      return "E";
+    case ElmGlobalFlag::F:
+      return "F";
+    case ElmGlobalFlag::X:
+      return "X";
+    case ElmGlobalFlag::G:
+      return "G";
+    case ElmGlobalFlag::Z:
+      return "Z";
+    case ElmGlobalFlag::S:
+      return "S";
+    case ElmGlobalFlag::M:
+      return "M";
+    case ElmGlobalFlag::NAMAE_GLOBAL:
+      return "NAMAE_GLOBAL";
+    case ElmGlobalFlag::NAMAE_LOCAL:
+      return "NAMAE_LOCAL";
+    case ElmGlobalFlag::NAMAE:
+      return "NAMAE";
+    case ElmGlobalFlag::STAGE:
+      return "STAGE";
+    case ElmGlobalFlag::BACK:
+      return "BACK";
+    case ElmGlobalFlag::FRONT:
+      return "FRONT";
+    case ElmGlobalFlag::NEXT:
+      return "NEXT";
+    case ElmGlobalFlag::MSGBK:
+      return "MSGBK";
+    case ElmGlobalFlag::SCREEN:
+      return "SCREEN";
+    case ElmGlobalFlag::COUNTER:
+      return "COUNTER";
+    case ElmGlobalFlag::FRAME_ACTION:
+      return "FRAME_ACTION";
+    case ElmGlobalFlag::FRAME_ACTION_CH:
+      return "FRAME_ACTION_CH";
+    case ElmGlobalFlag::TIMEWAIT:
+      return "TIMEWAIT";
+    case ElmGlobalFlag::TIMEWAIT_KEY:
+      return "TIMEWAIT_KEY";
+    case ElmGlobalFlag::MATH:
+      return "MATH";
+    case ElmGlobalFlag::DATABASE:
+      return "DATABASE";
+    case ElmGlobalFlag::CGTABLE:
+      return "CGTABLE";
+    case ElmGlobalFlag::BGMTABLE:
+      return "BGMTABLE";
+    case ElmGlobalFlag::G00BUF:
+      return "G00BUF";
+    case ElmGlobalFlag::MASK:
+      return "MASK";
+    case ElmGlobalFlag::EDITBOX:
+      return "EDITBOX";
+    case ElmGlobalFlag::FILE:
+      return "FILE";
+    case ElmGlobalFlag::BGM:
+      return "BGM";
+    case ElmGlobalFlag::KOE_ST:
+      return "KOE_ST";
+    case ElmGlobalFlag::PCM:
+      return "PCM";
+    case ElmGlobalFlag::PCMCH:
+      return "PCMCH";
+    case ElmGlobalFlag::PCMEVENT:
+      return "PCMEVENT";
+    case ElmGlobalFlag::SE:
+      return "SE";
+    case ElmGlobalFlag::MOV:
+      return "MOV";
+    case ElmGlobalFlag::INPUT:
+      return "INPUT";
+    case ElmGlobalFlag::MOUSE:
+      return "MOUSE";
+    case ElmGlobalFlag::KEY:
+      return "KEY";
+    case ElmGlobalFlag::SCRIPT:
+      return "SCRIPT";
+    case ElmGlobalFlag::SYSCOM:
+      return "SYSCOM";
+    case ElmGlobalFlag::SYSTEM:
+      return "SYSTEM";
+    case ElmGlobalFlag::CALL:
+      return "CALL";
+    case ElmGlobalFlag::CUR_CALL:
+      return "CUR_CALL";
+    case ElmGlobalFlag::EXCALL:
+      return "EXCALL";
+    case ElmGlobalFlag::STEAM:
+      return "STEAM";
+    case ElmGlobalFlag::EXKOE:
+      return "EXKOE";
+    case ElmGlobalFlag::EXKOE_PLAY_WAIT:
+      return "EXKOE_PLAY_WAIT";
+    case ElmGlobalFlag::EXKOE_PLAY_WAIT_KEY:
+      return "EXKOE_PLAY_WAIT_KEY";
+    case ElmGlobalFlag::NOP:
+      return "NOP";
+    case ElmGlobalFlag::OWARI:
+      return "OWARI";
+    case ElmGlobalFlag::RETURNMENU:
+      return "RETURNMENU";
+    case ElmGlobalFlag::JUMP:
+      return "JUMP";
+    case ElmGlobalFlag::FARCALL:
+      return "FARCALL";
+    case ElmGlobalFlag::GET_SCENE_NAME:
+      return "GET_SCENE_NAME";
+    case ElmGlobalFlag::GET_LINE_NO:
+      return "GET_LINE_NO";
+    case ElmGlobalFlag::SET_TITLE:
+      return "SET_TITLE";
+    case ElmGlobalFlag::GET_TITLE:
+      return "GET_TITLE";
+    case ElmGlobalFlag::SAVEPOINT:
+      return "SAVEPOINT";
+    case ElmGlobalFlag::CLEAR_SAVEPOINT:
+      return "CLEAR_SAVEPOINT";
+    case ElmGlobalFlag::CHECK_SAVEPOINT:
+      return "CHECK_SAVEPOINT";
+    case ElmGlobalFlag::SELPOINT:
+      return "SELPOINT";
+    case ElmGlobalFlag::CLEAR_SELPOINT:
+      return "CLEAR_SELPOINT";
+    case ElmGlobalFlag::CHECK_SELPOINT:
+      return "CHECK_SELPOINT";
+    case ElmGlobalFlag::STACK_SELPOINT:
+      return "STACK_SELPOINT";
+    case ElmGlobalFlag::DROP_SELPOINT:
+      return "DROP_SELPOINT";
+    case ElmGlobalFlag::DISP:
+      return "DISP";
+    case ElmGlobalFlag::FRAME:
+      return "FRAME";
+    case ElmGlobalFlag::CAPTURE:
+      return "CAPTURE";
+    case ElmGlobalFlag::CAPTURE_FROM_FILE:
+      return "CAPTURE_FROM_FILE";
+    case ElmGlobalFlag::CAPTURE_FREE:
+      return "CAPTURE_FREE";
+    case ElmGlobalFlag::CAPTURE_FOR_OBJECT:
+      return "CAPTURE_FOR_OBJECT";
+    case ElmGlobalFlag::CAPTURE_FOR_OBJECT_FREE:
+      return "CAPTURE_FOR_OBJECT_FREE";
+    case ElmGlobalFlag::CAPTURE_FOR_TWEET:
+      return "CAPTURE_FOR_TWEET";
+    case ElmGlobalFlag::CAPTURE_FREE_FOR_TWEET:
+      return "CAPTURE_FREE_FOR_TWEET";
+    case ElmGlobalFlag::CAPTURE_FOR_LOCAL_SAVE:
+      return "CAPTURE_FOR_LOCAL_SAVE";
+    case ElmGlobalFlag::WIPE:
+      return "WIPE";
+    case ElmGlobalFlag::WIPE_ALL:
+      return "WIPE_ALL";
+    case ElmGlobalFlag::MASK_WIPE:
+      return "MASK_WIPE";
+    case ElmGlobalFlag::MASK_WIPE_ALL:
+      return "MASK_WIPE_ALL";
+    case ElmGlobalFlag::WIPE_END:
+      return "WIPE_END";
+    case ElmGlobalFlag::WAIT_WIPE:
+      return "WAIT_WIPE";
+    case ElmGlobalFlag::CHECK_WIPE:
+      return "CHECK_WIPE";
+    case ElmGlobalFlag::MESSAGE_BOX:
+      return "MESSAGE_BOX";
+    case ElmGlobalFlag::SET_MWND:
+      return "SET_MWND";
+    case ElmGlobalFlag::GET_MWND:
+      return "GET_MWND";
+    case ElmGlobalFlag::SET_SEL_MWND:
+      return "SET_SEL_MWND";
+    case ElmGlobalFlag::GET_SEL_MWND:
+      return "GET_SEL_MWND";
+    case ElmGlobalFlag::SET_WAKU:
+      return "SET_WAKU";
+    case ElmGlobalFlag::OPEN:
+      return "OPEN";
+    case ElmGlobalFlag::OPEN_WAIT:
+      return "OPEN_WAIT";
+    case ElmGlobalFlag::OPEN_NOWAIT:
+      return "OPEN_NOWAIT";
+    case ElmGlobalFlag::CLOSE:
+      return "CLOSE";
+    case ElmGlobalFlag::CLOSE_WAIT:
+      return "CLOSE_WAIT";
+    case ElmGlobalFlag::CLOSE_NOWAIT:
+      return "CLOSE_NOWAIT";
+    case ElmGlobalFlag::END_CLOSE:
+      return "END_CLOSE";
+    case ElmGlobalFlag::MSG_BLOCK:
+      return "MSG_BLOCK";
+    case ElmGlobalFlag::MSG_PP_BLOCK:
+      return "MSG_PP_BLOCK";
+    case ElmGlobalFlag::CLEAR:
+      return "CLEAR";
+    case ElmGlobalFlag::SET_NAMAE:
+      return "SET_NAMAE";
+    case ElmGlobalFlag::PRINT:
+      return "PRINT";
+    case ElmGlobalFlag::RUBY:
+      return "RUBY";
+    case ElmGlobalFlag::MSGBTN:
+      return "MSGBTN";
+    case ElmGlobalFlag::NL:
+      return "NL";
+    case ElmGlobalFlag::NLI:
+      return "NLI";
+    case ElmGlobalFlag::INDENT:
+      return "INDENT";
+    case ElmGlobalFlag::CLEAR_INDENT:
+      return "CLEAR_INDENT";
+    case ElmGlobalFlag::WAIT_MSG:
+      return "WAIT_MSG";
+    case ElmGlobalFlag::PP:
+      return "PP";
+    case ElmGlobalFlag::R:
+      return "R";
+    case ElmGlobalFlag::PAGE:
+      return "PAGE";
+    case ElmGlobalFlag::REP_POS:
+      return "REP_POS";
+    case ElmGlobalFlag::SIZE:
+      return "SIZE";
+    case ElmGlobalFlag::COLOR:
+      return "COLOR";
+    case ElmGlobalFlag::MULTI_MSG:
+      return "MULTI_MSG";
+    case ElmGlobalFlag::NEXT_MSG:
+      return "NEXT_MSG";
+    case ElmGlobalFlag::START_SLIDE_MSG:
+      return "START_SLIDE_MSG";
+    case ElmGlobalFlag::END_SLIDE_MSG:
+      return "END_SLIDE_MSG";
+    case ElmGlobalFlag::KOE:
+      return "KOE";
+    case ElmGlobalFlag::KOE_PLAY_WAIT:
+      return "KOE_PLAY_WAIT";
+    case ElmGlobalFlag::KOE_PLAY_WAIT_KEY:
+      return "KOE_PLAY_WAIT_KEY";
+    case ElmGlobalFlag::KOE_SET_VOLUME:
+      return "KOE_SET_VOLUME";
+    case ElmGlobalFlag::KOE_SET_VOLUME_MAX:
+      return "KOE_SET_VOLUME_MAX";
+    case ElmGlobalFlag::KOE_SET_VOLUME_MIN:
+      return "KOE_SET_VOLUME_MIN";
+    case ElmGlobalFlag::KOE_GET_VOLUME:
+      return "KOE_GET_VOLUME";
+    case ElmGlobalFlag::KOE_STOP:
+      return "KOE_STOP";
+    case ElmGlobalFlag::KOE_WAIT:
+      return "KOE_WAIT";
+    case ElmGlobalFlag::KOE_WAIT_KEY:
+      return "KOE_WAIT_KEY";
+    case ElmGlobalFlag::KOE_CHECK:
+      return "KOE_CHECK";
+    case ElmGlobalFlag::KOE_CHECK_GET_KOE_NO:
+      return "KOE_CHECK_GET_KOE_NO";
+    case ElmGlobalFlag::KOE_CHECK_GET_CHARA_NO:
+      return "KOE_CHECK_GET_CHARA_NO";
+    case ElmGlobalFlag::KOE_CHECK_IS_EX_KOE:
+      return "KOE_CHECK_IS_EX_KOE";
+    case ElmGlobalFlag::CLEAR_FACE:
+      return "CLEAR_FACE";
+    case ElmGlobalFlag::SET_FACE:
+      return "SET_FACE";
+    case ElmGlobalFlag::CLEAR_MSGBK:
+      return "CLEAR_MSGBK";
+    case ElmGlobalFlag::INSERT_MSGBK_IMG:
+      return "INSERT_MSGBK_IMG";
+    case ElmGlobalFlag::SEL:
+      return "SEL";
+    case ElmGlobalFlag::SEL_CANCEL:
+      return "SEL_CANCEL";
+    case ElmGlobalFlag::SELMSG:
+      return "SELMSG";
+    case ElmGlobalFlag::SELMSG_CANCEL:
+      return "SELMSG_CANCEL";
+    case ElmGlobalFlag::SELBTN:
+      return "SELBTN";
+    case ElmGlobalFlag::SELBTN_READY:
+      return "SELBTN_READY";
+    case ElmGlobalFlag::SELBTN_CANCEL:
+      return "SELBTN_CANCEL";
+    case ElmGlobalFlag::SELBTN_CANCEL_READY:
+      return "SELBTN_CANCEL_READY";
+    case ElmGlobalFlag::SELBTN_START:
+      return "SELBTN_START";
+    case ElmGlobalFlag::GET_LAST_SEL_MSG:
+      return "GET_LAST_SEL_MSG";
+    case ElmGlobalFlag::INIT_CALL_STACK:
+      return "INIT_CALL_STACK";
+    case ElmGlobalFlag::DEL_CALL_STACK:
+      return "DEL_CALL_STACK";
+    case ElmGlobalFlag::SET_CALL_STACK_CNT:
+      return "SET_CALL_STACK_CNT";
+    case ElmGlobalFlag::GET_CALL_STACK_CNT:
+      return "GET_CALL_STACK_CNT";
+    case ElmGlobalFlag::__FOG_NAME:
+      return "__FOG_NAME";
+    case ElmGlobalFlag::__FOG_X:
+      return "__FOG_X";
+    case ElmGlobalFlag::__FOG_X_EVE:
+      return "__FOG_X_EVE";
+    case ElmGlobalFlag::__FOG_NEAR:
+      return "__FOG_NEAR";
+    case ElmGlobalFlag::__FOG_FAR:
+      return "__FOG_FAR";
+    case ElmGlobalFlag::__TEST:
+      return "__TEST";
+
+    default:
+      return "???";
+  }
+}
+
+}  // namespace libsiglus::cmd
