@@ -89,7 +89,7 @@ class Archive {
           data_.substr(offset + hdr_->scn_data_list_ofs, size));
       Decrypt(scene_data);
       scene_data = Decompress_lzss(scene_data);
-      scndata.emplace_back(std::move(scene_data));
+      scndata.emplace_back(std::move(scene_data), i);
     }
   }
 
@@ -113,7 +113,10 @@ class Archive {
     for (int i = 0; i < hdr_->scn_name_cnt; ++i) {
       auto offset = reader.PopAs<uint32_t>(4);
       auto size = reader.PopAs<uint32_t>(4);
-      scn_map_.emplace(utf16le::Decode(names.substr(offset, size)), i);
+      const auto scnname = utf16le::Decode(names.substr(offset, size));
+
+      scn_map_.emplace(scnname, i);
+      scndata[i].scnname_ = std::move(scnname);
     }
   }
 
@@ -145,9 +148,9 @@ class Archive {
 
   void ParseIncCmd() {
     ByteReader reader(data_.substr(hdr_->inc_cmd_list_ofs,
-                                   sizeof(Inccmd) * hdr_->inc_cmd_cnt));
+                                   sizeof(Command) * hdr_->inc_cmd_cnt));
     for (int i = 0; i < hdr_->inc_cmd_cnt; ++i) {
-      Inccmd inccmd;
+      Command inccmd;
       inccmd.scene_id = reader.PopAs<int32_t>(4);
       inccmd.offset = reader.PopAs<int32_t>(4);
       cmd_.emplace_back(std::move(inccmd));
@@ -180,12 +183,7 @@ class Archive {
   std::vector<Property> prop_;
   std::map<std::string, int> prop_map_;
 
-  struct Inccmd {
-    int32_t scene_id;
-    int32_t offset;
-    std::string name;
-  };
-  std::vector<Inccmd> cmd_;
+  std::vector<Command> cmd_;
   std::map<std::string, int> cmd_map_;
 };
 

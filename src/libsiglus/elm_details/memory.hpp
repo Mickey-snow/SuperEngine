@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------
 //
-// This file is part of RLVM
+// This file is part of RLVM, a RealLive virtual machine clone.
 //
 // -----------------------------------------------------------------------
 //
@@ -19,18 +19,57 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
+//
 // -----------------------------------------------------------------------
 
 #pragma once
 
-#include <cstdint>
-#include <string>
-#include <vector>
+#include "libsiglus/element.hpp"
 
-namespace libsiglus::cmd {
+#include <variant>
 
-[[maybe_unused]] constexpr int32_t USER_COMMAND_FLAG = 0x7E;
+namespace libsiglus::elm {
 
-std::string Resolve(const std::vector<int>& elm);
+class Memory final : public IElement {
+ public:
+  enum class Bank {
+    A = 25,
+    B = 26,
+    C = 27,
+    D = 28,
+    E = 29,
+    F = 30,
+    X = 137,
+    G = 31,
+    Z = 32,
+    S = 34,
+    M = 35,
+    H,
+    I,
+    J,
+    L,
+    K,
+    local_name = 106,
+    global_name = 107
+  };
 
-}  // namespace libsiglus::cmd
+  struct Access {
+    int idx = -1;
+  };
+  struct Init {};
+  struct Resize {};
+  struct Fill {};		
+  struct Size{};
+  struct Set{};
+
+  Bank bank;
+  int bits = 32;
+  std::variant<Access, Init, Resize, Fill,Size,Set> var;
+
+  Element Parse(std::span<int> path) const override;
+
+  elm::Kind Kind() const noexcept override;
+  std::string ToDebugString() const override;
+};
+
+}  // namespace libsiglus::elm

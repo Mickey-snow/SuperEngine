@@ -27,8 +27,11 @@
 
 #include <string>
 #include <variant>
+#include <vector>
 
 namespace libsiglus {
+
+using ElementCode = std::vector<int>;
 
 struct Integer {
   std::string ToDebugString() const { return "int:" + std::to_string(val_); }

@@ -31,10 +31,17 @@
 namespace libsiglus {
 
 [[maybe_unused]] constexpr int32_t USER_PROPERTY_FLAG = 0x7F;
+[[maybe_unused]] constexpr int32_t USER_COMMAND_FLAG = 0x7E;
 
 struct Property {
   Type form;
   int32_t size;
+  std::string name;
+};
+
+struct Command {
+  int32_t scene_id;
+  int32_t offset;
   std::string name;
 };
 

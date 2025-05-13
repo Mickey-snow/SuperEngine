@@ -23,10 +23,12 @@
 
 #pragma once
 
+#include "libsiglus/element.hpp"
 #include "libsiglus/lexeme.hpp"
 #include "libsiglus/lexer.hpp"
 #include "libsiglus/property.hpp"
 #include "libsiglus/stack.hpp"
+#include "libsiglus/token.hpp"
 #include "libsiglus/value.hpp"
 #include "utilities/byte_reader.hpp"
 
@@ -37,98 +39,6 @@
 #include <variant>
 
 namespace libsiglus {
-
-namespace token {
-struct Command {
-  int overload_id;
-  std::vector<int> elm;
-  std::string name;
-  std::vector<Value> arg;
-  std::vector<std::pair<int, Value>> named_arg;
-  Type return_type;
-
-  Value dst;
-
-  std::string ToDebugString() const;
-};
-
-struct Name {
-  std::string str;
-
-  std::string ToDebugString() const { return "Name(" + str + ')'; }
-};
-
-struct Textout {
-  int kidoku;
-  std::string str;
-
-  std::string ToDebugString() const;
-};
-
-struct GetProperty {
-  ElementCode elm;
-  std::string name;
-  Value dst;
-  std::string ToDebugString() const;
-};
-
-struct Goto {
-  int label;
-  std::string ToDebugString() const;
-};
-
-struct GotoIf {
-  int label;
-  bool cond;
-  Value src;
-
-  std::string ToDebugString() const;
-};
-
-struct Label {
-  int id;
-  std::string ToDebugString() const;
-};
-
-struct Operate1 {
-  OperatorCode op;
-  Value rhs, dst;
-  std::string ToDebugString() const;
-};
-
-struct Operate2 {
-  OperatorCode op;
-  Value lhs, rhs, dst;
-  std::string ToDebugString() const;
-};
-
-struct Assign {
-  ElementCode dst;
-  Value src;
-  std::string ToDebugString() const;
-};
-
-struct Duplicate {
-  Value src, dst;
-  std::string ToDebugString() const;
-};
-
-using Token_t = std::variant<Command,
-                             Name,
-                             Textout,
-                             GetProperty,
-                             Operate1,
-                             Operate2,
-                             Label,
-                             Goto,
-                             GotoIf,
-                             Assign,
-                             Duplicate>;
-inline std::string ToDebugString(const Token_t& stmt) {
-  return std::visit(
-      [](const auto& v) -> std::string { return v.ToDebugString(); }, stmt);
-}
-}  // namespace token
 
 class Archive;
 class Scene;
@@ -143,9 +53,16 @@ class Parser {
   std::string DumpTokens() const;
 
  private:
+  // helpers
+  template <typename T>
+  inline void emit_token(T&& t) {
+    token_.emplace_back(std::forward<T>(t));
+  }
+
   Value add_var(Type type);
   Value pop(Type type);
   void add_label(int id);
+  Element resolve_element(std::span<int> elm) const;
 
   // dispatch functions
   void Add(lex::Push);
@@ -165,7 +82,7 @@ class Parser {
 
   template <typename T>
   void Add(T t) {
-    emit_token(Lexeme{std::move(t)});
+    throw std::runtime_error("Parser: Unsupported lexeme " + t.ToDebugString());
   }
 
  public:
@@ -174,13 +91,7 @@ class Parser {
 
   ByteReader reader_;
 
-  using token_t = std::variant<Lexeme, token::Token_t>;
-  std::vector<token_t> token_;
-  // helpers
-  template <typename T>
-  inline void emit_token(T&& t) {
-    token_.emplace_back(std::forward<T>(t));
-  }
+  std::vector<token::Token_t> token_;
 
   int lineno_;
   Stack stack_;

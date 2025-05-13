@@ -30,6 +30,9 @@ namespace libsiglus {
 
 enum class Type : uint32_t {
   None = 0x00,
+  Invalid,
+  Other,
+
   Int = 0x0a,
   IntList = 0x0b,
   IntRef = 0x0d,
@@ -43,6 +46,7 @@ enum class Type : uint32_t {
   StageElem = 0x514,
   Label = 0x1e,
   List = 0xFFFFFFFF
+
 };
 
 std::string ToString(Type type);

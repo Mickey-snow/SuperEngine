@@ -24,74 +24,11 @@
 #include "libsiglus/parser.hpp"
 
 #include "libsiglus/archive.hpp"
-#include "libsiglus/cmd.hpp"
 #include "libsiglus/lexeme.hpp"
 #include "libsiglus/scene.hpp"
 #include "log/domain_logger.hpp"
-#include "utilities/string_utilities.hpp"
-
-#include <boost/algorithm/string/case_conv.hpp>
-#include <compare>
-#include <format>
-#include <functional>
-#include <iomanip>
-#include <stdexcept>
-#include <unordered_map>
 
 namespace libsiglus {
-namespace token {
-std::string Command::ToDebugString() const {
-  const std::string cmd_repr =
-      std::format("cmd<{}:{}>", Join(",", view_to_string(elm)), overload_id);
-
-  std::vector<std::string> args_repr;
-  args_repr.reserve(arg.size() + named_arg.size());
-
-  std::transform(arg.cbegin(), arg.cend(), std::back_inserter(args_repr),
-                 [](const Value& value) { return ToString(value); });
-  std::transform(named_arg.cbegin(), named_arg.cend(),
-                 std::back_inserter(args_repr), [](const auto& it) {
-                   return std::format("_{}={}", it.first, ToString(it.second));
-                 });
-
-  auto repr = std::format("{} {} = {}({})", ToString(return_type),
-                          ToString(dst), name, Join(",", args_repr));
-  return std::format("{:<30} ;{}", std::move(repr), cmd_repr);
-}
-std::string Textout::ToDebugString() const {
-  return std::format("Textout@{} ({})", kidoku, str);
-}
-std::string GetProperty::ToDebugString() const {
-  auto repr =
-      std::format("{} {} = {}", ToString(Typeof(dst)), ToString(dst), name);
-  return std::format("{:<30} ;<{}>", std::move(repr),
-                     Join(",", view_to_string(elm)));
-}
-std::string Goto::ToDebugString() const {
-  return "goto .L" + std::to_string(label);
-}
-std::string GotoIf::ToDebugString() const {
-  return std::format("{}({}) goto .L{}", cond ? "if" : "ifnot", ToString(src),
-                     label);
-}
-std::string Label::ToDebugString() const { return ".L" + std::to_string(id); }
-std::string Operate1::ToDebugString() const {
-  return std::format("{} {} = {} {}", ToString(Typeof(dst)), ToString(dst),
-                     ToString(op), ToString(rhs));
-}
-std::string Operate2::ToDebugString() const {
-  return std::format("{} {} = {} {} {}", ToString(Typeof(dst)), ToString(dst),
-                     ToString(lhs), ToString(op), ToString(rhs));
-}
-std::string Assign::ToDebugString() const {
-  return std::format("<{}> = {}", Join(",", view_to_string(dst)),
-                     ToString(src));
-}
-std::string Duplicate::ToDebugString() const {
-  return std::format("{} {} = {}", ToString(Typeof(dst)), ToString(dst),
-                     ToString(src));
-}
-}  // namespace token
 using namespace token;
 
 // -----------------------------------------------------------------------
@@ -123,14 +60,62 @@ Value Parser::pop(Type type) {
       return stack_.Popint();
     case Type::String:
       return stack_.Popstr();
-    default:
-      throw std::runtime_error("Parser: unknown pop type " + ToString(type));
+    default:  // ignore
+      return {};
   }
 }
 
 void Parser::add_label(int id) {
   label2offset_[id] = token_.size();
   emit_token(Label{id});
+}
+
+Element Parser::resolve_element(std::span<int> elm) const {
+  const auto flag = (elm.front() >> 24) & 0xFF;
+  size_t idx = elm.front() ^ (flag << 24);
+
+  if (flag == USER_COMMAND_FLAG) {
+    auto result = std::make_unique<UserCommand>();
+
+    result->root_id = elm.front();
+    result->type = Type::Other;
+
+    libsiglus::Command* cmd = nullptr;
+    if (idx < archive_.cmd_.size())
+      cmd = archive_.cmd_.data() + idx;
+    else
+      cmd = scene_.cmd.data() + (idx - archive_.cmd_.size());
+
+    result->name = cmd->name;
+    result->scene = cmd->scene_id;
+    result->entry = cmd->offset;
+    return result;
+
+  } else if (flag == USER_PROPERTY_FLAG) {
+    auto result = std::make_unique<UserProperty>();
+    result->root_id = elm.front();
+
+    if (idx < archive_.prop_.size()) {
+      const auto& incprop = archive_.prop_[idx];
+      result->name = incprop.name;
+      result->type = incprop.form;
+      result->scene = -1;
+      result->idx = idx;
+    } else {
+      idx -= archive_.prop_.size();
+      const auto& usrprop = scene_.property[idx];
+      result->name = usrprop.name;
+      result->type = usrprop.form;
+      result->scene = scene_.id_;
+      result->idx = idx;
+    }
+    return result;
+
+  } else {  // built-in element
+    int root = elm.front();
+    std::span<int> path = elm.subspan(1);
+    return MakeElement(root, path);
+  }
 }
 
 void Parser::ParseAll() {
@@ -157,11 +142,9 @@ void Parser::Add(lex::Push push) {
     case Type::Int:
       stack_.Push(Integer(push.value_));
       break;
-    case Type::String: {
-      const auto str_val = scene_.str_[push.value_];
-      stack_.Push(String(str_val));
+    case Type::String:
+      stack_.Push(String(scene_.str_[push.value_]));
       break;
-    }
 
     default:  // ignore
       break;
@@ -185,70 +168,49 @@ void Parser::Add(lex::Marker marker) { stack_.PushMarker(); }
 
 void Parser::Add(lex::Property) {
   token::GetProperty tok;
-  tok.elm = stack_.Popelm();
-
-  const int owner_flag = (tok.elm.front() >> 24) & 0xFF;
-  if (owner_flag == USER_PROPERTY_FLAG) {
-    // user property
-
-    Property* prop = nullptr;
-    int idx = tok.elm.front() & 0x00FFFFFF;
-    if (idx < archive_.prop_.size()) {
-      // global "incprop"
-      prop = archive_.prop_.data() + idx;
-    } else {
-      // scene property
-      idx -= archive_.prop_.size();
-      prop = scene_.property.data() + idx;
-    }
-
-    tok.dst = add_var(prop->form);
-    tok.name = prop->name;
-  } else {
-    tok.dst = add_var(Type::Int);  // TODO: fix type lookup
-    tok.name = cmd::Resolve(tok.elm);
-  }
+  tok.elmcode = stack_.Popelm();
+  tok.elm = resolve_element(tok.elmcode);
+  tok.dst = add_var(tok.elm->type);
 
   stack_.Push(tok.dst);
   token_.emplace_back(std::move(tok));
 }
 
 void Parser::Add(lex::Command command) {
-  Command result;
-  result.return_type = command.rettype_;
-  result.overload_id = command.override_;
+  token::Command tok;
+  tok.return_type = command.rettype_;
+  tok.overload_id = command.override_;
 
-  result.named_arg.resize(command.arg_tag_.size());
-  result.arg.resize(command.argt_.size() - command.arg_tag_.size());
-  for (auto it = result.named_arg.rbegin(); it != result.named_arg.rend();
-       ++it) {
+  tok.named_arg.resize(command.arg_tag_.size());
+  tok.arg.resize(command.argt_.size() - command.arg_tag_.size());
+  for (auto it = tok.named_arg.rbegin(); it != tok.named_arg.rend(); ++it) {
     it->first = command.arg_tag_.back();
     it->second = pop(command.argt_.back());
     command.arg_tag_.pop_back();
     command.argt_.pop_back();
   }
-  for (auto it = result.arg.rbegin(); it != result.arg.rend(); ++it) {
+  for (auto it = tok.arg.rbegin(); it != tok.arg.rend(); ++it) {
     *it = pop(command.argt_.back());
     command.argt_.pop_back();
   }
 
-  result.elm = stack_.Popelm();
-  result.name = cmd::Resolve(result.elm);
+  tok.elmcode = stack_.Popelm();
+  tok.elm = resolve_element(tok.elmcode);
 
-  result.dst = add_var(result.return_type);
-  stack_.Push(result.dst);
+  tok.dst = add_var(tok.return_type);
+  stack_.Push(tok.dst);
 
-  emit_token(std::move(result));
+  emit_token(std::move(tok));
 }
 
 void Parser::Add(lex::Operate1 op) {  // + - ~ <int>
-  token::Operate1 stmt;
-  stmt.rhs = stack_.Popint();
-  stmt.dst = add_var(Type::Int);
-  stmt.op = op.op_;
+  token::Operate1 tok;
+  tok.rhs = stack_.Popint();
+  tok.dst = add_var(Type::Int);
+  tok.op = op.op_;
 
-  stack_.Push(stmt.dst);
-  emit_token(std::move(stmt));
+  stack_.Push(tok.dst);
+  emit_token(std::move(tok));
 }
 
 void Parser::Add(lex::Operate2 op) {
@@ -298,20 +260,21 @@ void Parser::Add(lex::Goto g) {
   if (g.cond_ == lex::Goto::Condition::Unconditional)
     emit_token(Goto{g.label_});
   else {
-    GotoIf stmt;
-    stmt.cond = g.cond_ == lex::Goto::Condition::True;
-    stmt.label = g.label_;
-    stmt.src = pop(Type::Int);
+    GotoIf tok;
+    tok.cond = g.cond_ == lex::Goto::Condition::True;
+    tok.label = g.label_;
+    tok.src = pop(Type::Int);
 
-    emit_token(std::move(stmt));
+    emit_token(std::move(tok));
   }
 }
 
 void Parser::Add(lex::Assign a) {
-  token::Assign stmt;
-  stmt.src = pop(a.rtype_);
-  stmt.dst = stack_.Popelm();
-  emit_token(std::move(stmt));
+  token::Assign tok;
+  tok.src = pop(a.rtype_);
+  tok.dst_elmcode = stack_.Popelm();
+  tok.dst = resolve_element(tok.dst_elmcode);
+  emit_token(std::move(tok));
 }
 
 // void Parser::Add(lex::Namae) { token_append(Name{stack_.Popstr()}); }
@@ -323,10 +286,7 @@ void Parser::Add(lex::Assign a) {
 std::string Parser::DumpTokens() const {
   std::string result;
   for (size_t i = 0; i < token_.size(); ++i)
-    result +=
-        std::to_string(i) + ": " +
-        std::visit([](const auto& v) { return ToDebugString(v); }, token_[i]) +
-        "\n";
+    result += std::to_string(i) + ": " + ToDebugString(token_[i]) + '\n';
   return result;
 }
 

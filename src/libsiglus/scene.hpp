@@ -81,7 +81,8 @@ struct Scene_hdr {
 
 class Scene {
  public:
-  Scene(std::string data) : data_(std::move(data)) {
+  Scene(std::string data, int id = -1, std::string name = "???")
+      : id_(id), scnname_(std::move(name)), data_(std::move(data)) {
     hdr_ = reinterpret_cast<Scene_hdr const*>(data_.data());
     std::string_view sv = data_;
 
@@ -161,8 +162,12 @@ class Scene {
 
     {
       ByteReader reader(sv.substr(hdr_->cmdlist_offset, 4 * hdr_->cmd_cnt));
-      for (int i = 0; i < hdr_->cmd_cnt; ++i)
-        cmd.push_back(reader.PopAs<int32_t>(4));
+      for (int i = 0; i < hdr_->cmd_cnt; ++i) {
+        Command usrcmd;
+        usrcmd.scene_id = id_;
+        usrcmd.offset = reader.PopAs<int32_t>(4);
+        cmd.push_back(std::move(usrcmd));
+      }
 
       std::u16string_view names = sv_to_u16sv(sv.substr(hdr_->cmd_name_offset));
       reader = ByteReader(
@@ -170,7 +175,10 @@ class Scene {
       for (int i = 0; i < hdr_->cmd_nameidx_cnt; ++i) {
         auto offset = reader.PopAs<int32_t>(4);
         auto size = reader.PopAs<int32_t>(4);
-        cmd_map.emplace(utf16le::Decode(names.substr(offset, size)), i);
+
+        const auto name = utf16le::Decode(names.substr(offset, size));
+        cmd_map.emplace(name, i);
+        cmd[i].name = std::move(name);
       }
     }
 
@@ -216,7 +224,7 @@ class Scene {
   std::vector<Property> property;
   std::map<std::string, int> property_map;
 
-  std::vector<int> cmd;  // to offset
+  std::vector<Command> cmd;
   std::map<std::string, int> cmd_map;
 
   std::vector<std::string> callproperty;

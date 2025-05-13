@@ -33,8 +33,6 @@
 
 namespace libsiglus {
 
-using ElementCode = std::vector<int>;
-
 class StackUnderflow : public std::exception {
  public:
   const char* what() const noexcept override;

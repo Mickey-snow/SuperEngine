@@ -51,6 +51,16 @@ std::string ToString(Type type) {
       return "lebel";
     case Type::List:
       return "list";
+
+    case Type::Object:
+      return "object";
+    case Type::ObjList:
+      return "object[]";
+
+    case Type::Invalid:
+      return "invalid";
+    case Type::Other:
+      return "other";
     default:
       return "typeid:" + std::to_string(static_cast<uint32_t>(type));
   }
