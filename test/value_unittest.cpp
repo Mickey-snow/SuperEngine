@@ -25,9 +25,11 @@
 #include <gtest/gtest.h>
 
 #include "vm/value.hpp"
+#include "vm/value_internal/dict.hpp"
+#include "vm/value_internal/list.hpp"
 
-using serilang::Value;
-using serilang::ObjType;
+namespace value_test {
+using namespace serilang;
 
 TEST(ValueBasic, TruthinessAndType) {
   Value nil;
@@ -132,3 +134,41 @@ TEST(ValueEdge, DivisionByZero) {
   // double / 0.0 returns 0.0 per implementation
   EXPECT_TRUE(Value(4.2).Operator(Op::Div, Value(0.0)) == 0.0);
 }
+
+TEST(ValueContainer, ListAndDict) {
+  // empty & filled lists
+  Value lstEmpty(std::make_shared<List>());
+  Value lstFilled(
+      std::make_shared<List>(std::vector<Value>{Value(1), Value(2), Value(3)}));
+
+  // empty & filled dicts
+  Value dictEmpty(std::make_shared<Dict>());
+  Value dictFilled(std::make_shared<Dict>(
+      std::unordered_map<std::string, Value>{{"a", Value(1)}}));
+
+  // All container objects are truthy
+  EXPECT_TRUE(lstEmpty.IsTruthy());
+  EXPECT_TRUE(lstFilled.IsTruthy());
+  EXPECT_TRUE(dictEmpty.IsTruthy());
+  EXPECT_TRUE(dictFilled.IsTruthy());
+
+  // Correct dynamic type
+  EXPECT_EQ(lstEmpty.Type(), ObjType::List);
+  EXPECT_EQ(lstFilled.Type(), ObjType::List);
+  EXPECT_EQ(dictEmpty.Type(), ObjType::Dict);
+  EXPECT_EQ(dictFilled.Type(), ObjType::Dict);
+
+  // Simple Desc() sanity checks
+  EXPECT_EQ(lstEmpty.Desc(), "<list[0]>");
+  EXPECT_EQ(lstFilled.Desc(), "<list[3]>");
+  EXPECT_EQ(dictEmpty.Desc(), "<dict{0}>");
+  EXPECT_EQ(dictFilled.Desc(), "<dict{1}>");
+
+  // Str() formatting smoke test
+  EXPECT_EQ(lstFilled.Str(), "[1,2,3]");
+  EXPECT_EQ(lstEmpty.Str(), "[]");
+  EXPECT_EQ(dictFilled.Str(), "{a:1}");
+  EXPECT_EQ(dictEmpty.Str(), "{}");
+}
+
+}  // namespace value_test

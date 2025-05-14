@@ -26,31 +26,23 @@
 
 #include "vm/value.hpp"
 
-#include <memory>
-#include <string>
 #include <unordered_map>
 
 namespace serilang {
 
-struct Class : public IObject {
-  std::string name;
-  std::unordered_map<std::string, Value> methods;
+struct Dict : public IObject {
+  std::unordered_map<std::string, Value> map;
 
-  ObjType Type() const noexcept override;
-  std::string Str() const override;
-  std::string Desc() const override;
+  explicit Dict(std::unordered_map<std::string, Value> m = {})
+      : map(std::move(m)) {}
+  ObjType Type() const noexcept override { return ObjType::Dict; }
+
+  std::string Str() const override;   // “{a: 1, b: 2}”
+  std::string Desc() const override;  // “<dict{2}>”
 };
 
-struct Instance : public IObject {
-  std::shared_ptr<Class> klass;
-  std::unordered_map<std::string, Value> fields;
-
-  explicit Instance(std::shared_ptr<Class> klass_);
-  ObjType Type() const noexcept override;
-  std::string Str() const override;
-  std::string Desc() const override;
-};
-
-struct BoundMethod {};
+inline Value make_dict(std::unordered_map<std::string, Value> m = {}) {
+  return Value(std::make_shared<Dict>(std::move(m)));
+}
 
 }  // namespace serilang

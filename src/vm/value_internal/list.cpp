@@ -22,35 +22,21 @@
 //
 // -----------------------------------------------------------------------
 
-#pragma once
+#include "vm/value_internal/list.hpp"
 
-#include "vm/value.hpp"
-
-#include <memory>
-#include <string>
-#include <unordered_map>
+#include "utilities/string_utilities.hpp"
 
 namespace serilang {
 
-struct Class : public IObject {
-  std::string name;
-  std::unordered_map<std::string, Value> methods;
-
-  ObjType Type() const noexcept override;
-  std::string Str() const override;
-  std::string Desc() const override;
-};
-
-struct Instance : public IObject {
-  std::shared_ptr<Class> klass;
-  std::unordered_map<std::string, Value> fields;
-
-  explicit Instance(std::shared_ptr<Class> klass_);
-  ObjType Type() const noexcept override;
-  std::string Str() const override;
-  std::string Desc() const override;
-};
-
-struct BoundMethod {};
+std::string List::Str() const {
+  return '[' +
+         Join(",", std::views::all(items) |
+                       std::views::transform(
+                           [](const Value& v) { return v.Str(); })) +
+         ']';
+}
+std::string List::Desc() const {
+  return "<list[" + std::to_string(items.size()) + "]>";
+}
 
 }  // namespace serilang

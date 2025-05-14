@@ -22,35 +22,25 @@
 //
 // -----------------------------------------------------------------------
 
-#pragma once
+#include "vm/value_internal/dict.hpp"
 
-#include "vm/value.hpp"
-
-#include <memory>
-#include <string>
-#include <unordered_map>
+#include "utilities/string_utilities.hpp"
 
 namespace serilang {
 
-struct Class : public IObject {
-  std::string name;
-  std::unordered_map<std::string, Value> methods;
+std::string Dict::Str() const {
+  std::string repr;
 
-  ObjType Type() const noexcept override;
-  std::string Str() const override;
-  std::string Desc() const override;
-};
+  for (const auto& [k, v] : map) {
+    if (!repr.empty())
+      repr += ',';
+    repr += k + ':' + v.Str();
+  }
 
-struct Instance : public IObject {
-  std::shared_ptr<Class> klass;
-  std::unordered_map<std::string, Value> fields;
-
-  explicit Instance(std::shared_ptr<Class> klass_);
-  ObjType Type() const noexcept override;
-  std::string Str() const override;
-  std::string Desc() const override;
-};
-
-struct BoundMethod {};
+  return '{' + repr + '}';
+}
+std::string Dict::Desc() const {
+  return "<dict{" + std::to_string(map.size()) + "}>";
+}
 
 }  // namespace serilang

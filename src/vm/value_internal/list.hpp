@@ -26,31 +26,22 @@
 
 #include "vm/value.hpp"
 
-#include <memory>
-#include <string>
-#include <unordered_map>
+#include <vector>
 
 namespace serilang {
 
-struct Class : public IObject {
-  std::string name;
-  std::unordered_map<std::string, Value> methods;
+struct List : public IObject {
+  std::vector<Value> items;
 
-  ObjType Type() const noexcept override;
-  std::string Str() const override;
-  std::string Desc() const override;
+  explicit List(std::vector<Value> xs = {}) : items(std::move(xs)) {}
+  ObjType Type() const noexcept override { return ObjType::List; }
+
+  std::string Str() const override;   // “[1, 2, 3]”
+  std::string Desc() const override;  // “<list[3]>”
 };
 
-struct Instance : public IObject {
-  std::shared_ptr<Class> klass;
-  std::unordered_map<std::string, Value> fields;
-
-  explicit Instance(std::shared_ptr<Class> klass_);
-  ObjType Type() const noexcept override;
-  std::string Str() const override;
-  std::string Desc() const override;
-};
-
-struct BoundMethod {};
+inline Value make_list(std::vector<Value> xs = {}) {
+  return Value(std::make_shared<List>(std::move(xs)));
+}
 
 }  // namespace serilang

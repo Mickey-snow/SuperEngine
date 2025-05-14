@@ -42,6 +42,8 @@ enum class ObjType : uint8_t {
   Int,
   Double,
   Str,
+  List,
+  Dict,
   Native,
   Closure,
   Fiber,
