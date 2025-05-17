@@ -37,12 +37,15 @@ namespace m6 {
 // -----------------------------------------------------------------------
 // AST node member functions
 
+std::string NilLiteral::DebugString() const { return "NilLiteral"; }
 std::string IntLiteral::DebugString() const {
   return "IntLiteral " + std::to_string(value);
 }
 std::string StrLiteral::DebugString() const {
   return "StrLiteral " + std::string(value);
 }
+std::string ListLiteral::DebugString() const { return "ListLiteral"; }
+std::string DictLiteral::DebugString() const { return "DictLiteral"; }
 std::string BinaryExpr::DebugString() const {
   return "Binaryop " + ToString(op);
 }
@@ -115,6 +118,18 @@ struct Dumper {
 
     std::string childPrefix = pref + (isLast ? "   " : "│  ");
 
+    if constexpr (std::same_as<T, ListLiteral>) {
+      for (size_t i = 0; i < x.elements.size(); ++i)
+        oss << x.elements[i]->Apply(
+            Dumper(childPrefix, i == x.elements.size() - 1));
+    }
+    if constexpr (std::same_as<T, DictLiteral>) {
+      for (size_t i = 0; i < x.elements.size(); ++i) {
+        oss << x.elements[i].first->Apply(Dumper(childPrefix, false));
+        oss << x.elements[i].second->Apply(
+            Dumper(childPrefix, i == x.elements.size() - 1));
+      }
+    }
     if constexpr (std::same_as<T, BinaryExpr>) {
       oss << x.lhs->Apply(Dumper(childPrefix, false));
       oss << x.rhs->Apply(Dumper(childPrefix, true));

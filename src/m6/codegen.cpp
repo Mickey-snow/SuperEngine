@@ -110,18 +110,29 @@ void CodeGenerator::emit_expr(std::shared_ptr<ExprAST> n) {
   n->Apply([&](auto&& x) { emit_expr_node(x); });
 }
 
+void CodeGenerator::emit_expr_node(const NilLiteral& m) {
+  const auto slot = constant(Value(std::monostate()));
+  emit(sr::Push{slot});
+}
+
 void CodeGenerator::emit_expr_node(const IntLiteral& n) {
-  auto slot = constant(Value(n.value));
+  const auto slot = constant(Value(n.value));
   emit(sr::Push{slot});
 }
 
 void CodeGenerator::emit_expr_node(const StrLiteral& n) {
-  auto slot = constant(Value(std::string(n.value)));
+  const auto slot = constant(Value(std::string(n.value)));
   emit(sr::Push{slot});
 }
 
-void CodeGenerator::emit_expr_node(const NilLiteral&) {
-  emit(sr::Push{constant(Value())});
+void CodeGenerator::emit_expr_node(const ListLiteral& n) {
+  for (const auto& it : n.elements)
+    emit_expr(it);
+  emit(sr::MakeList{static_cast<uint8_t>(n.elements.size())});
+}
+
+void CodeGenerator::emit_expr_node(const DictLiteral& n) {
+  throw std::runtime_error("not implemented yet.");
 }
 
 void CodeGenerator::emit_expr_node(const Identifier& n) {

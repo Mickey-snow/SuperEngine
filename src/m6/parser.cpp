@@ -628,6 +628,8 @@ std::shared_ptr<ExprAST> Parser::parsePostfix() {
 }
 
 std::shared_ptr<ExprAST> Parser::parsePrimary() {
+  auto startLoc = it_;
+
   if (it_ == end_) {
     AddError("expected primary expression", it_);
     return nullptr;
@@ -663,6 +665,26 @@ std::shared_ptr<ExprAST> Parser::parsePrimary() {
     return std::make_shared<ExprAST>(
         ParenExpr(expr, LocRange(subBegin, subEnd)));
   }
+  // ListLiteral
+  // --------------------------------------------------
+  if (tryConsume<tok::SquareL>()) {
+    std::vector<std::shared_ptr<ExprAST>> elems;
+
+    if (!tryConsume<tok::SquareR>()) {
+      // parse first sub-expression
+      auto first = ParseExpression();
+      // TODO: comprehension?
+
+      elems = {first};
+      while (tryConsume<tok::Operator>(Op::Comma))
+        elems.emplace_back(ParseExpression());
+
+      require<tok::SquareR>("expected ']'");
+    }
+    return std::make_shared<ExprAST>(
+        ListLiteral{std::move(elems), LocRange(startLoc, it_)});
+  }
+
   AddError("expected primary expression", it_);
   Synchronize();
   return nullptr;

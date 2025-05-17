@@ -73,109 +73,86 @@ void Disassembler::PrintIns(Chunk& chunk,
       emit_operand(ins.const_index);
       if (ins.const_index < chunk.const_pool.size())
         out_ << "  ; " << chunk.const_pool[ins.const_index].Desc();
-
-      break;
-    }
+    } break;
     case OpCode::Dup: {
       const auto ins = chunk.Read<Dup>(ip);
       ip += sizeof(ins);
       emit_mnemonic("DUP");
       emit_operand(static_cast<uint32_t>(ins.top_ofs));
-
-      break;
-    }
+    } break;
     case OpCode::Swap: {
       const auto ins = chunk.Read<Swap>(ip);
       ip += sizeof(ins);
       emit_mnemonic("SWAP");
-
-      break;
-    }
+    } break;
     case OpCode::Pop: {
       const auto ins = chunk.Read<Pop>(ip);
       ip += sizeof(ins);
       emit_mnemonic("POP");
       emit_operand(+ins.count);
+    } break;
 
       // ── 2. arithmetic / logic ───────────────────────────────
-      break;
-    }
     case OpCode::UnaryOp: {
       const auto ins = chunk.Read<UnaryOp>(ip);
       ip += sizeof(ins);
       emit_mnemonic("UNARY");
       emit_operand(ToString(ins.op));
-
-      break;
-    }
+    } break;
     case OpCode::BinaryOp: {
       const auto ins = chunk.Read<BinaryOp>(ip);
       ip += sizeof(ins);
       emit_mnemonic("BINARY");
       emit_operand(ToString(ins.op));
+    } break;
 
       // ── 3. locals / globals / up-values ─────────────────────
-      break;
-    }
     case OpCode::LoadLocal: {
       const auto ins = chunk.Read<LoadLocal>(ip);
       ip += sizeof(ins);
       emit_mnemonic("LD_LOCAL");
       emit_operand(+ins.slot);
-
-      break;
-    }
+    } break;
     case OpCode::StoreLocal: {
       const auto ins = chunk.Read<StoreLocal>(ip);
       ip += sizeof(ins);
       emit_mnemonic("ST_LOCAL");
       emit_operand(+ins.slot);
-
-      break;
-    }
+    } break;
     case OpCode::LoadGlobal: {
       const auto ins = chunk.Read<LoadGlobal>(ip);
       ip += sizeof(ins);
       emit_mnemonic("LD_GLOBAL");
       emit_operand(ins.name_index);
       out_ << "  ; " << string_at(ins.name_index);
-
-      break;
-    }
+    } break;
     case OpCode::StoreGlobal: {
       const auto ins = chunk.Read<StoreGlobal>(ip);
       ip += sizeof(ins);
       emit_mnemonic("ST_GLOBAL");
       emit_operand(ins.name_index);
       out_ << "  ; " << string_at(ins.name_index);
-
-      break;
-    }
+    } break;
     case OpCode::LoadUpvalue: {
       const auto ins = chunk.Read<LoadUpvalue>(ip);
       ip += sizeof(ins);
       emit_mnemonic("LD_UPVAL");
       emit_operand(+ins.slot);
-
-      break;
-    }
+    } break;
     case OpCode::StoreUpvalue: {
       const auto ins = chunk.Read<StoreUpvalue>(ip);
       ip += sizeof(ins);
       emit_mnemonic("ST_UPVAL");
       emit_operand(+ins.slot);
-
-      break;
-    }
+    } break;
     case OpCode::CloseUpvalues: {
       const auto ins = chunk.Read<CloseUpvalues>(ip);
       ip += sizeof(ins);
       emit_mnemonic("CLOSE_UPS");
       emit_operand(+ins.from_slot);
+    } break;
 
       // ── 4. control-flow ─────────────────────────────────────
-      break;
-    }
     case OpCode::Jump: {
       const auto ins = chunk.Read<Jump>(ip);
       ip += sizeof(ins);
@@ -183,9 +160,7 @@ void Disassembler::PrintIns(Chunk& chunk,
       emit_mnemonic("JUMP");
       emit_operand((ins.offset >= 0 ? "+" : "") + std::to_string(ins.offset));
       out_ << " -> " << tgt;
-
-      break;
-    }
+    } break;
     case OpCode::JumpIfTrue: {
       const auto ins = chunk.Read<JumpIfTrue>(ip);
       ip += sizeof(ins);
@@ -193,9 +168,7 @@ void Disassembler::PrintIns(Chunk& chunk,
       emit_mnemonic("JIF_TRUE");
       emit_operand((ins.offset >= 0 ? "+" : "") + std::to_string(ins.offset));
       out_ << " -> " << tgt;
-
-      break;
-    }
+    } break;
     case OpCode::JumpIfFalse: {
       const auto ins = chunk.Read<JumpIfFalse>(ip);
       ip += sizeof(ins);
@@ -203,17 +176,14 @@ void Disassembler::PrintIns(Chunk& chunk,
       emit_mnemonic("JIF_FALSE");
       emit_operand((ins.offset >= 0 ? "+" : "") + std::to_string(ins.offset));
       out_ << " -> " << tgt;
-
-      break;
-    }
+    } break;
     case OpCode::Return: {
       const auto ins = chunk.Read<Return>(ip);
       ip += sizeof(ins);
       emit_mnemonic("RETURN");
+    } break;
 
       // ── 5. functions & calls ────────────────────────────────
-      break;
-    }
     case OpCode::MakeClosure: {
       const auto ins = chunk.Read<MakeClosure>(ip);
       ip += sizeof(ins);
@@ -221,26 +191,28 @@ void Disassembler::PrintIns(Chunk& chunk,
       emit_operand("");  // keep column spacing
       out_ << "entry=" << ins.entry << "  nargs=" << ins.nparams
            << "  nlocals=" << ins.nlocals << "  nup=" << ins.nupvals;
-
-      break;
-    }
+    } break;
     case OpCode::Call: {
       const auto ins = chunk.Read<Call>(ip);
       ip += sizeof(ins);
       emit_mnemonic("CALL");
       emit_operand(+ins.arity);
-
-      break;
-    }
+    } break;
     case OpCode::TailCall: {
       const auto ins = chunk.Read<TailCall>(ip);
       ip += sizeof(ins);
       emit_mnemonic("TAIL_CALL");
       emit_operand(+ins.arity);
+    } break;
 
       // ── 6. objects / classes ───────────────────────────────
-      break;
-    }
+    case OpCode::MakeList: {
+      const auto ins = chunk.Read<MakeList>(ip);
+      ip += sizeof(ins);
+      emit_mnemonic("MAKE_LIST");
+      emit_operand("");
+      out_ << "nelms=" << ins.nelms;
+    } break;
     case OpCode::MakeClass: {
       const auto ins = chunk.Read<MakeClass>(ip);
       ip += sizeof(ins);
@@ -248,18 +220,14 @@ void Disassembler::PrintIns(Chunk& chunk,
       emit_operand("");
       out_ << std::format("name={}({})  nmethods={}", ins.name_index,
                           string_at(ins.name_index), ins.nmethods);
-
-      break;
-    }
+    } break;
     case OpCode::GetField: {
       const auto ins = chunk.Read<GetField>(ip);
       ip += sizeof(ins);
       emit_mnemonic("GET_FIELD");
       emit_operand(ins.name_index);
       out_ << "  ; " << string_at(ins.name_index);
-
-      break;
-    }
+    } break;
     case OpCode::SetField: {
       const auto ins = chunk.Read<SetField>(ip);
       ip += sizeof(ins);
@@ -267,23 +235,19 @@ void Disassembler::PrintIns(Chunk& chunk,
       emit_operand(ins.name_index);
       out_ << "  ; " << string_at(ins.name_index);
 
-      break;
-    }
+    } break;
     case OpCode::GetItem: {
       const auto ins = chunk.Read<GetItem>(ip);
       ip += sizeof(ins);
       emit_mnemonic("GET_ITEM");
-
-      break;
-    }
+    } break;
     case OpCode::SetItem: {
       const auto ins = chunk.Read<SetItem>(ip);
       ip += sizeof(ins);
       emit_mnemonic("SET_ITEM");
+    } break;
 
       // ── 7. coroutines / fibers ──────────────────────────────
-      break;
-    }
     case OpCode::MakeFiber: {
       const auto ins = chunk.Read<MakeFiber>(ip);
       ip += sizeof(ins);
@@ -291,32 +255,25 @@ void Disassembler::PrintIns(Chunk& chunk,
       emit_operand("");
       out_ << "entry=" << ins.entry << "  nargs=" << ins.nparams
            << "  nlocals=" << ins.nlocals << "  nup=" << ins.nupvals;
-
-      break;
-    }
+    } break;
     case OpCode::Resume: {
       const auto ins = chunk.Read<Resume>(ip);
       ip += sizeof(ins);
       emit_mnemonic("RESUME");
       emit_operand(+ins.arity);
-
-      break;
-    }
+    } break;
     case OpCode::Yield: {
       const auto ins = chunk.Read<Yield>(ip);
       ip += sizeof(ins);
       emit_mnemonic("YIELD");
+    } break;
 
       // ── 8. exceptions ──────────────────────────────────────
-      break;
-    }
     case OpCode::Throw: {
       const auto ins = chunk.Read<Throw>(ip);
       ip += sizeof(ins);
       emit_mnemonic("THROW");
-
-      break;
-    }
+    } break;
     case OpCode::TryBegin: {
       const auto ins = chunk.Read<TryBegin>(ip);
       ip += sizeof(ins);
@@ -324,17 +281,14 @@ void Disassembler::PrintIns(Chunk& chunk,
       emit_mnemonic("TRY_BEGIN");
       emit_operand("+" + std::to_string(ins.handler_rel_ofs));
       out_ << " -> " << tgt;
-
-      break;
-    }
+    } break;
     case OpCode::TryEnd: {
       const auto ins = chunk.Read<TryEnd>(ip);
       ip += sizeof(ins);
       emit_mnemonic("TRY_END");
+    } break;
 
       // ── unknown op ─────────────────────────────────────────
-      break;
-    }
     default:
       emit_mnemonic("<unknown op>");
       break;

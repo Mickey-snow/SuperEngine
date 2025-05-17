@@ -34,6 +34,7 @@
 #include "vm/value_internal/class.hpp"
 #include "vm/value_internal/closure.hpp"
 #include "vm/value_internal/fiber.hpp"
+#include "vm/value_internal/list.hpp"
 #include "vm/value_internal/native_function.hpp"
 
 #include <chrono>
@@ -233,43 +234,41 @@ class VM {
         case OpCode::Nop:
           break;
 
+          //------------------------------------------------------------------
+          // 1. Stack Manipulation
+          //------------------------------------------------------------------
         case OpCode::Push: {
           const auto ins = chunk.Read<serilang::Push>(ip);
           ip += sizeof(ins);
           push(fib->stack, chunk.const_pool[ins.const_index]);
-          break;
-        }
+        } break;
         case OpCode::Dup: {
           const auto ins = chunk.Read<serilang::Dup>(ip);
           ip += sizeof(ins);
           push(fib->stack, fib->stack.end()[-ins.top_ofs - 1]);
-          break;
-        }
+        } break;
         case OpCode::Swap: {
           const auto ins = chunk.Read<serilang::Swap>(ip);
           ip += sizeof(ins);
           std::swap(fib->stack.end()[-1], fib->stack.end()[-2]);
-          break;
-        }
+        } break;
         case OpCode::Pop: {
           const auto ins = chunk.Read<serilang::Pop>(ip);
           ip += sizeof(ins);
           for (uint8_t i = 0; i < ins.count; ++i)
             fib->stack.pop_back();
-          break;
+        } break;
 
           //------------------------------------------------------------------
           // 2. Unary / Binary
           //------------------------------------------------------------------
-        }
         case OpCode::UnaryOp: {
           const auto ins = chunk.Read<serilang::UnaryOp>(ip);
           ip += sizeof(ins);
           auto v = pop(fib->stack);
           Value r = v.Operator(ins.op);
           push(fib->stack, r);
-          break;
-        }
+        } break;
         case OpCode::BinaryOp: {
           const auto ins = chunk.Read<serilang::BinaryOp>(ip);
           ip += sizeof(ins);
@@ -277,95 +276,85 @@ class VM {
           auto lhs = pop(fib->stack);
           Value out = lhs.Operator(ins.op, std::move(rhs));
           push(fib->stack, out);
-          break;
+        } break;
 
           //------------------------------------------------------------------
           // 3. Locals / globals / upvals
           //------------------------------------------------------------------
-        }
         case OpCode::LoadLocal: {
           const auto ins = chunk.Read<serilang::LoadLocal>(ip);
           ip += sizeof(ins);
           push(fib->stack, *fib->local_slot(fib->frames.size() - 1, ins.slot));
-          break;
-        }
+        } break;
         case OpCode::StoreLocal: {
           const auto ins = chunk.Read<serilang::StoreLocal>(ip);
           ip += sizeof(ins);
           *fib->local_slot(fib->frames.size() - 1, ins.slot) = pop(fib->stack);
-          break;
-        }
+        } break;
         case OpCode::LoadGlobal: {
           const auto ins = chunk.Read<serilang::LoadGlobal>(ip);
           ip += sizeof(ins);
           auto name =
               chunk.const_pool[ins.name_index].template Get<std::string>();
           push(fib->stack, globals[name]);
-          break;
-        }
+        } break;
         case OpCode::StoreGlobal: {
           const auto ins = chunk.Read<serilang::StoreGlobal>(ip);
           ip += sizeof(ins);
           auto name =
               chunk.const_pool[ins.name_index].template Get<std::string>();
           globals[name] = pop(fib->stack);
-          break;
-        }
+        } break;
         case OpCode::LoadUpvalue: {
           const auto ins = chunk.Read<serilang::LoadUpvalue>(ip);
           ip += sizeof(ins);
           push(fib->stack, frame.closure->up[ins.slot]->get());
-          break;
-        }
+        } break;
         case OpCode::StoreUpvalue: {
           const auto ins = chunk.Read<serilang::StoreUpvalue>(ip);
           ip += sizeof(ins);
           frame.closure->up[ins.slot]->set(pop(fib->stack));
-          break;
-        }
+        } break;
         case OpCode::CloseUpvalues: {
           const auto ins = chunk.Read<serilang::CloseUpvalues>(ip);
           ip += sizeof(ins);
           auto* base = fib->local_slot(fib->frames.size() - 1, ins.from_slot);
           fib->close_upvalues_from(base);
-          break;
+        } break;
 
           //------------------------------------------------------------------
           // 4. Control flow
           //------------------------------------------------------------------
-        }
         case OpCode::Jump: {
           const auto ins = chunk.Read<serilang::Jump>(ip);
           ip += sizeof(ins);
           frame.ip += ins.offset;
-          break;
-        }
+
+        } break;
         case OpCode::JumpIfTrue: {
           const auto ins = chunk.Read<serilang::JumpIfTrue>(ip);
           ip += sizeof(ins);
           auto cond = pop(fib->stack);
           if (cond.IsTruthy())
             frame.ip += ins.offset;
-          break;
-        }
+        } break;
         case OpCode::JumpIfFalse: {
           const auto ins = chunk.Read<serilang::JumpIfFalse>(ip);
           ip += sizeof(ins);
           auto cond = pop(fib->stack);
           if (!cond.IsTruthy())
             frame.ip += ins.offset;
-          break;
-        }
+        } break;
         case OpCode::Return: {
           const auto ins = chunk.Read<serilang::Return>(ip);
           ip += sizeof(ins);
           Return(*fib);
+        }
           return;  //  switch
 
           //------------------------------------------------------------------
           // 5. Function calls
           //------------------------------------------------------------------
-        }
         case OpCode::MakeClosure: {
           const auto ins = chunk.Read<serilang::MakeClosure>(ip);
           ip += sizeof(ins);
@@ -381,15 +370,12 @@ class VM {
                 fib->local_slot(fib->frames.size() - 1, uv_slot));
           }
           push(fib->stack, Value(cl));
-
-          break;
-        }
+        } break;
         case OpCode::Call: {
           const auto ins = chunk.Read<serilang::Call>(ip);
           ip += sizeof(ins);
           DispatchCall(*fib, fib->stack.end()[-ins.arity - 1], ins.arity);
-          break;
-        }
+        } break;
         case OpCode::TailCall: {
           const auto ins = chunk.Read<serilang::TailCall>(ip);
           ip += sizeof(ins);
@@ -399,12 +385,23 @@ class VM {
           if (!cl)
             RuntimeError("tailcall non‑closure");
           TailCall(*fib, cl, arity);
-          break;
+        } break;
 
           //------------------------------------------------------------------
-          // 6. Object ops  (very naive)
+          // 6. Object ops
           //------------------------------------------------------------------
-        }
+        case OpCode::MakeList: {
+          const auto ins = chunk.Read<serilang::MakeList>(ip);
+          ip += sizeof(ins);
+          std::vector<Value> elms;
+          elms.reserve(ins.nelms);
+          for (size_t i = fib->stack.size() - ins.nelms; i < fib->stack.size();
+               ++i)
+            elms.emplace_back(std::move(fib->stack[i]));
+          fib->stack.resize(fib->stack.size() - ins.nelms);
+          fib->stack.emplace_back(make_list(std::move(elms)));
+        } break;
+
         case OpCode::MakeClass: {
           const auto ins = chunk.Read<serilang::MakeClass>(ip);
           ip += sizeof(ins);
@@ -417,8 +414,8 @@ class VM {
             klass->methods[std::move(name)] = std::move(method);
           }
           push(fib->stack, Value(klass));
-          break;
-        }
+        } break;
+
         case OpCode::GetField: {
           const auto ins = chunk.Read<serilang::GetField>(ip);
           ip += sizeof(ins);
@@ -426,8 +423,8 @@ class VM {
           auto name =
               chunk.const_pool[ins.name_index].template Get<std::string>();
           push(fib->stack, inst->fields[name]);
-          break;
-        }
+        } break;
+
         case OpCode::SetField: {
           const auto ins = chunk.Read<serilang::SetField>(ip);
           ip += sizeof(ins);
@@ -437,12 +434,11 @@ class VM {
               chunk.const_pool[ins.name_index].template Get<std::string>();
           inst->fields[name] = val;
           push(fib->stack, val);
-          break;
+        } break;
 
           //------------------------------------------------------------------
           // 7. Coroutines
           //------------------------------------------------------------------
-        }
         case OpCode::MakeFiber: {
           const auto ins = chunk.Read<serilang::MakeFiber>(ip);
           ip += sizeof(ins);
@@ -454,8 +450,7 @@ class VM {
           cl->up.resize(ins.nupvals);  // TODO: capture
           f->stack.reserve(64);
           push(fib->stack, Value(f));
-          break;
-        }
+        } break;
         case OpCode::Resume: {
           const auto ins = chunk.Read<serilang::Resume>(ip);
           ip += sizeof(ins);
@@ -468,20 +463,20 @@ class VM {
           }
           fib->stack.pop_back();  // pop fiber
           fibers.push_front(f2);
-          return;  // switch
         }
+          return;  // switch
         case OpCode::Yield: {
           const auto ins = chunk.Read<serilang::Yield>(ip);
           ip += sizeof(ins);
           Value y = pop(fib->stack);
           fib->state = FiberState::Suspended;
           fib->last = y;
+        }
           return;  // switch
 
           //------------------------------------------------------------------
           // 8. Exceptions (not implemented yet)
           //------------------------------------------------------------------
-        }
         default:
           RuntimeError("Unimplemented instruction at " +
                        std::to_string(ip - 1));

@@ -59,6 +59,19 @@ struct StrLiteral {
   std::string DebugString() const;
 };
 
+struct ListLiteral {
+  std::vector<std::shared_ptr<ExprAST>> elements;
+  SourceLocation loc;
+  std::string DebugString() const;
+};
+
+struct DictLiteral {
+  std::vector<std::pair<std::shared_ptr<ExprAST>, std::shared_ptr<ExprAST>>>
+      elements;
+  SourceLocation loc;
+  std::string DebugString() const;
+};
+
 // Identifier
 struct Identifier {
   std::string_view value;
@@ -125,8 +138,11 @@ struct MemberExpr {
 
 // -----------------------------------------------------------------------
 // ExprAST
-using expr_variant_t = std::variant<IntLiteral,
+using expr_variant_t = std::variant<NilLiteral,
+                                    IntLiteral,
                                     StrLiteral,
+                                    ListLiteral,
+                                    DictLiteral,
                                     Identifier,
                                     InvokeExpr,
                                     SubscriptExpr,

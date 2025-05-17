@@ -91,9 +91,11 @@ class CodeGenerator {
 
   // -- Expression codegen ---------------------------------------------
   void emit_expr(std::shared_ptr<ExprAST> n);
+  void emit_expr_node(const NilLiteral&);
   void emit_expr_node(const IntLiteral& n);
   void emit_expr_node(const StrLiteral& n);
-  void emit_expr_node(const NilLiteral&);
+  void emit_expr_node(const ListLiteral&);
+  void emit_expr_node(const DictLiteral&);
   void emit_expr_node(const Identifier& n);
   void emit_expr_node(const UnaryExpr& u);
   void emit_expr_node(const BinaryExpr& b);

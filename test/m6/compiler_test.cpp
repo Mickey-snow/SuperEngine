@@ -105,6 +105,12 @@ TEST_F(CompilerTest, MultipleStatements) {
   EXPECT_EQ(res.stdout, "24\n") << "\nDisassembly:\n" << res.disasm;
 }
 
+TEST_F(CompilerTest, List) {
+  auto res = Run("x=1; a=[x,x+1,x*3]; print(a);");
+  ASSERT_TRUE(res.stderr.empty()) << res.stderr;
+  EXPECT_EQ(res.stdout, "[1,2,3]\n") << "\nDisassembly:\n" << res.disasm;
+}
+
 TEST_F(CompilerTest, If) {
   auto res = Run(R"(
 result = "none";

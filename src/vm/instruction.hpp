@@ -100,6 +100,9 @@ struct TailCall {
 };  // (fn,arg*) → (ret)  (TCO)
 
 // ––– 6. Object / container ops ––––––––––––––––––––––––––––––––––––
+struct MakeList {
+  uint8_t nelms;
+};  // (elm,...) -> (list)
 struct MakeClass {
   uint32_t name_index;
   uint16_t nmethods;
@@ -151,6 +154,7 @@ using Instruction = std::variant<Push,
                                  MakeClosure,
                                  Call,
                                  TailCall,
+                                 MakeList,
                                  MakeClass,
                                  GetField,
                                  SetField,
@@ -185,6 +189,7 @@ enum class OpCode : uint8_t {
   MakeClosure,
   Call,
   TailCall,
+  MakeList,
   MakeClass,
   GetField,
   SetField,
@@ -243,6 +248,8 @@ constexpr inline OpCode GetOpcode() {
     return OpCode::Call;
   else if constexpr (std::same_as<T, TailCall>)
     return OpCode::TailCall;
+  else if constexpr (std::same_as<T, MakeList>)
+    return OpCode::MakeList;
   else if constexpr (std::same_as<T, MakeClass>)
     return OpCode::MakeClass;
   else if constexpr (std::same_as<T, GetField>)

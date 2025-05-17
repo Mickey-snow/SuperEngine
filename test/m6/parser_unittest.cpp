@@ -462,6 +462,28 @@ Binaryop +
 )");
 }
 
+TEST_F(ExprParserTest, ListLiterals) {
+  expectAST(TokenArray("[]"), "ListLiteral");
+  expectAST(TokenArray(R"( [1,2,"3"] )"), R"(
+ListLiteral
+   ├─IntLiteral 1
+   ├─IntLiteral 2
+   └─StrLiteral 3
+)");
+  expectAST(TokenArray(R"( [1+1,2,foo()+boo()] )"), R"(
+ListLiteral
+   ├─Binaryop +
+   │  ├─IntLiteral 1
+   │  └─IntLiteral 1
+   ├─IntLiteral 2
+   └─Binaryop +
+      ├─Invoke
+      │  └─ID foo
+      └─Invoke
+         └─ID boo
+)");
+}
+
 TEST_F(ExprParserTest, Postfix) {
   // boo()
   expectAST(
