@@ -47,7 +47,7 @@ namespace serilang {
 
 class VM {
  private:
-  std::ostream& os_;
+  [[maybe_unused]] std::ostream& os_;
 
  public:
   explicit VM(std::shared_ptr<Chunk> entry, std::ostream& os = std::cout)
@@ -59,23 +59,25 @@ class VM {
     main_cl->nparams = 0;
     main_fiber = std::make_shared<Fiber>();
     push(main_fiber->stack, Value(main_cl));  // fn
-    Call(*main_fiber, main_cl, 0);            // run main()
+    main_cl->Call(*main_fiber, 0, 0);         // set up base stack frame
     fibers.push_front(main_fiber);
 
     // register native functions
     globals["time"] = Value(std::make_shared<NativeFunction>(
-        "time", [](VM& vm, std::vector<Value> args) {
+        "time", [](Fiber& f, std::vector<Value> args,
+                   std::unordered_map<std::string, Value> kwargs) {
           if (!args.empty())
-            vm.RuntimeError("time() takes no arguments");
+            throw std::runtime_error("time() takes no arguments");
           using namespace std::chrono;
           auto now = system_clock::now().time_since_epoch();
           auto secs = duration_cast<seconds>(now).count();
           return Value(static_cast<int>(secs));
         }));
     globals["print"] = Value(std::make_shared<NativeFunction>(
-        "print", [](VM& vm, std::vector<Value> args) {
+        "print", [&os](Fiber& f, std::vector<Value> args,
+                       std::unordered_map<std::string, Value> kwargs) {
           bool nl = false;
-          vm.os_ << Join(
+          os << Join(
               ",",
               std::views::all(args) | std::views::filter([&nl](const Value& v) {
                 return v == std::monostate() ? false : (nl = true);
@@ -83,7 +85,7 @@ class VM {
                 return v.Str();
               }));
           if (nl)
-            vm.os_ << '\n';
+            os << '\n';
           return Value();
         }));
   }
@@ -111,7 +113,7 @@ class VM {
     // create a new fiber for this snippet
     auto replFiber = std::make_shared<Fiber>();
     push(replFiber->stack, Value(cl));
-    Call(*replFiber, cl, /*arity=*/0);
+    cl->Call(*replFiber, 0, 0);
     fibers.push_front(replFiber);
 
     // run until this fiber finishes
@@ -150,58 +152,6 @@ class VM {
 
   void RuntimeError(const std::string& msg) { throw std::runtime_error(msg); }
 
-  // call helpers ---------------------------------------------------
-  void Call(Fiber& f, std::shared_ptr<Closure> cl, uint8_t arity) {
-    if (arity != cl->nparams)
-      RuntimeError("arity mismatch");
-    const auto base = f.stack.size() - arity - 1;  // fn slot
-    f.frames.push_back({cl, cl->entry, base});
-    f.stack.resize(base + cl->nlocals);  // allocate locals
-  }
-  void Call(Fiber& f, std::shared_ptr<NativeFunction> fn, uint8_t arity) {
-    std::vector<Value> args;
-    args.reserve(arity);
-    for (size_t i = f.stack.size() - arity; i < f.stack.size(); ++i)
-      args.emplace_back(std::move(f.stack[i]));
-
-    f.stack.resize(f.stack.size() - arity);
-    f.stack.back() = fn->Call(*this, std::move(args));
-  }
-  void Call(Fiber& f, std::shared_ptr<Class> cl, uint8_t arity) {
-    f.stack.resize(f.stack.size() - arity);
-    auto inst = std::make_shared<Instance>(cl);
-    inst->fields = cl->methods;
-    f.stack.back() = Value(std::move(inst));
-  }
-  void DispatchCall(Fiber& f, Value& v, uint8_t arity) {
-    switch (v.Type()) {
-      case ObjType::Native:  // native function
-        Call(f, v.template Get<std::shared_ptr<NativeFunction>>(), arity);
-        break;
-      case ObjType::Closure:  // function
-        Call(f, v.template Get<std::shared_ptr<Closure>>(), arity);
-        break;
-      case ObjType::Class:  // instantiate class
-        Call(f, v.template Get<std::shared_ptr<Class>>(), arity);
-        break;
-
-      default:
-        RuntimeError(v.Desc() + " not callable");
-    }
-  }
-  // tail‑call collapses frame
-  void TailCall(Fiber& f, std::shared_ptr<Closure> cl, uint8_t arity) {
-    auto& frame = f.frames.back();
-    const auto base = frame.bp;
-    if (arity != cl->nparams)
-      RuntimeError("arity mismatch");
-    // shift arguments over previous locals
-    size_t arg_start = f.stack.size() - arity;
-    for (uint8_t i = 0; i < arity; ++i)
-      f.stack[base + i] = std::move(f.stack[arg_start + i]);
-    f.stack.resize(base + cl->nlocals);
-    frame = {cl, cl->entry, base};  // replace frame
-  }
   void Return(Fiber& f) {
     auto& frame = f.frames.back();
     Value ret = f.stack.empty() ? Value() : f.stack.back();
@@ -374,17 +324,8 @@ class VM {
         case OpCode::Call: {
           const auto ins = chunk.Read<serilang::Call>(ip);
           ip += sizeof(ins);
-          DispatchCall(*fib, fib->stack.end()[-ins.arity - 1], ins.arity);
-        } break;
-        case OpCode::TailCall: {
-          const auto ins = chunk.Read<serilang::TailCall>(ip);
-          ip += sizeof(ins);
-          auto arity = ins.arity;
-          Value& fnVal = fib->stack.end()[-arity - 1];
-          auto cl = fnVal.template Get_if<std::shared_ptr<Closure>>();
-          if (!cl)
-            RuntimeError("tailcall non‑closure");
-          TailCall(*fib, cl, arity);
+          Value& callee = fib->stack.end()[-ins.arity - 1];
+          callee.Call(*fib, ins.arity, 0);
         } break;
 
           //------------------------------------------------------------------

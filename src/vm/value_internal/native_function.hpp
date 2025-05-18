@@ -28,16 +28,20 @@
 
 #include <functional>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
 namespace serilang {
 
-class VM;
+class Fiber;
 
 class NativeFunction : public IObject {
  public:
-  using function_t = std::function<Value(VM&, std::vector<Value>)>;
+  using function_t =
+      std::function<Value(Fiber&,
+                          std::vector<Value>,
+                          std::unordered_map<std::string, Value>)>;
 
   NativeFunction(std::string name, function_t fn);
 
@@ -45,7 +49,8 @@ class NativeFunction : public IObject {
   ObjType Type() const noexcept override;
   std::string Str() const override;
   std::string Desc() const override;
-  Value Call(VM& vm, std::vector<Value> args);
+
+  void Call(Fiber& f, uint8_t nargs, uint8_t nkwargs) final;
 
  private:
   std::string name_;

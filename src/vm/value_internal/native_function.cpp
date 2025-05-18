@@ -24,6 +24,8 @@
 
 #include "vm/value_internal/native_function.hpp"
 
+#include "vm/value_internal/fiber.hpp"
+
 #include <functional>
 #include <utility>
 
@@ -42,8 +44,18 @@ std::string NativeFunction::Desc() const {
   return "<native function '" + name_ + "'>";
 }
 
-Value NativeFunction::Call(VM& vm, std::vector<Value> args) {
-  return std::invoke(fn_, vm, std::move(args));
+void NativeFunction::Call(Fiber& f, uint8_t nargs, uint8_t nkwargs) {
+  std::vector<Value> args;
+  std::unordered_map<std::string, Value> kwargs;
+
+  args.reserve(nargs);
+  for (size_t i = f.stack.size() - nargs; i < f.stack.size(); ++i)
+    args.emplace_back(std::move(f.stack[i]));
+
+  auto retval = std::invoke(fn_, f, std::move(args), std::move(kwargs));
+
+  f.stack.resize(f.stack.size() - nargs);
+  f.stack.back() = std::move(retval);
 }
 
 }  // namespace serilang

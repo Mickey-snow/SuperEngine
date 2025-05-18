@@ -24,7 +24,11 @@
 
 #include "vm/value_internal/closure.hpp"
 
+#include "vm/value_internal/fiber.hpp"
+
+#include <unordered_map>
 #include <utility>
+#include <vector>
 
 namespace serilang {
 
@@ -35,5 +39,14 @@ ObjType Closure::Type() const noexcept { return ObjType::Closure; }
 std::string Closure::Str() const { return "closure"; }
 
 std::string Closure::Desc() const { return "<closure>"; }
+
+void Closure::Call(Fiber& f, uint8_t nargs, uint8_t nkwargs) {
+  if (nargs != this->nparams)
+    throw std::runtime_error(Desc() + ": arity mismatch");
+
+  const auto base = f.stack.size() - nparams - 1 /*fn slot*/;
+  f.frames.push_back({shared_from_this(), entry, base});
+  // TODO: Remove shared_from_this after adding GC?
+}
 
 }  // namespace serilang

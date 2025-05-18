@@ -24,6 +24,8 @@
 
 #include "vm/value_internal/class.hpp"
 
+#include "vm/value_internal/fiber.hpp"
+
 namespace serilang {
 
 ObjType Class::Type() const noexcept { return ObjType::Class; }
@@ -31,6 +33,13 @@ ObjType Class::Type() const noexcept { return ObjType::Class; }
 std::string Class::Str() const { return Desc(); }
 
 std::string Class::Desc() const { return "<class " + name + '>'; }
+
+void Class::Call(Fiber& f, uint8_t nargs, uint8_t nkwargs) {
+  f.stack.resize(f.stack.size() - nargs);
+  auto inst = std::make_shared<Instance>(shared_from_this());
+  inst->fields = this->methods;
+  f.stack.back() = Value(std::move(inst));
+}
 
 Instance::Instance(std::shared_ptr<Class> klass_) : klass(std::move(klass_)) {}
 

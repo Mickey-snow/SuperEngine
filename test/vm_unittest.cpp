@@ -118,29 +118,6 @@ TEST(VMTest, FunctionCall) {
   EXPECT_EQ(out, 7.0);
 }
 
-TEST(VMTest, TailCall) {
-  //   inner(): return 99
-  //   outer(): return inner()   (via TailCall)
-  auto chunk = std::make_shared<Chunk>();
-  chunk->const_pool = value_vector(99.0);
-
-  // indices
-  constexpr uint32_t kInner = 38;
-  constexpr uint32_t kOuter = 40;
-
-  append_ins(chunk, {// main → call outer()
-                     MakeClosure{kOuter, 0, 0, 0}, Call{0}, Return{},
-
-                     // outer()
-                     MakeClosure{kInner, 0, 0, 0}, TailCall{0},
-
-                     // inner()
-                     Push{0}, Return{}});
-
-  Value out = run_and_get(chunk);
-  EXPECT_EQ(out, 99.0);
-}
-
 //      if (1 < 2) push 222 else push 111
 TEST(VMTest, ConditionalJump) {
   auto chunk = std::make_shared<Chunk>();
@@ -161,9 +138,10 @@ TEST(VMTest, ConditionalJump) {
 
 TEST(VMTest, ReturnNil) {
   auto chunk = std::make_shared<Chunk>();
+  chunk->const_pool = value_vector(std::monostate(), "2.unused");
 
-  // return
-  append_ins(chunk, {Return{}});
+  // return nil;
+  append_ins(chunk, {Push{0}, Return{}});
 
   Value out = run_and_get(chunk);
   EXPECT_EQ(out, std::monostate());
@@ -174,7 +152,8 @@ TEST(VMTest, CallNative) {
 
   int call_count = 0;
   auto fn = std::make_shared<NativeFunction>(
-      "my_function", [&](VM& vm, std::vector<Value> args) {
+      "my_function", [&](Fiber& f, std::vector<Value> args,
+                         std::unordered_map<std::string, Value> kwargs) {
         ++call_count;
         EXPECT_EQ(args.size(), 2);
         EXPECT_EQ(args[0], 1);

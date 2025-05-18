@@ -26,13 +26,12 @@
 
 #include "machine/op.hpp"
 
-#include <algorithm>
 #include <memory>
-#include <unordered_map>
 #include <variant>
-#include <vector>
 
 namespace serilang {
+
+class Fiber;
 
 class Value;
 
@@ -83,6 +82,12 @@ class Value {
 
   Value Operator(Op op, Value rhs);
   Value Operator(Op op);
+
+  void Call(Fiber& f, uint8_t nargs, uint8_t nkwargs);
+  Value Item(const Value& idx);
+  Value SetItem(const Value& idx, Value value);
+  Value Member(std::string_view mem);
+  Value SetMember(std::string_view mem, Value value);
 
   // Get_if for raw types and IObject-derived pointers
   template <typename T>
@@ -142,6 +147,11 @@ class Value {
   bool operator==(const std::string& rhs) const;
   bool operator==(char const* s) const;
 
+  friend std::ostream& operator<<(std::ostream& os, const Value& v) {
+    os << v.Desc();
+    return os;
+  }
+
  private:
   value_t val_;
 };
@@ -154,6 +164,12 @@ class IObject {
 
   virtual std::string Str() const;
   virtual std::string Desc() const;
+
+  virtual void Call(Fiber& f, uint8_t nargs, uint8_t nkwargs);
+  virtual Value Item(const Value& idx);
+  virtual Value SetItem(const Value& idx, Value value);
+  virtual Value Member(std::string_view mem);
+  virtual Value SetMember(std::string_view mem, Value value);
 };
 
 }  // namespace serilang

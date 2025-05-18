@@ -26,18 +26,13 @@
 
 // TODO: Reconsider exception thrown here
 #include "m6/exception.hpp"
+#include "vm/value_internal/native_function.hpp"
 
 #include <cmath>
 
 namespace serilang {
 
 using namespace m6;
-
-// -----------------------------------------------------------------------
-// class IObject
-
-std::string IObject::Str() const { return "<str: ?>"; }
-std::string IObject::Desc() const { return "<desc: ?>"; }
 
 // -----------------------------------------------------------------------
 // class Value
@@ -398,6 +393,74 @@ Value Value::Operator(Op op) {
       val_);
 }
 
+void Value::Call(Fiber& f, uint8_t nargs, uint8_t nkwargs) {
+  std::visit(
+      [&](auto& x) {
+        using T = std::decay_t<decltype(x)>;
+
+        if constexpr (false)
+          ;
+
+        else if constexpr (std::same_as<T, std::shared_ptr<IObject>>)
+          x->Call(f, nargs, nkwargs);
+
+        else
+          throw std::runtime_error('\'' + Desc() + "' object is not callable.");
+      },
+      val_);
+}
+
+Value Value::Item(const Value& idx) {
+  return std::visit(
+      [&](auto& x) -> Value {
+        using T = std::decay_t<decltype(x)>;
+
+        if constexpr (false)
+          ;
+
+        else if constexpr (std::same_as<T, std::shared_ptr<IObject>>)
+          return x->Item(idx);
+
+        throw std::runtime_error('\'' + Desc() +
+                                 "' object does not support item assignment.");
+      },
+      val_);
+}
+
+Value Value::Member(std::string_view mem) {
+  return std::visit(
+      [&](auto& x) -> Value {
+        using T = std::decay_t<decltype(x)>;
+
+        if constexpr (false)
+          ;
+
+        else if constexpr (std::same_as<T, std::shared_ptr<IObject>>)
+          return x->Member(mem);
+
+        throw std::runtime_error('\'' + Desc() + "' object has no member '" +
+                                 std::string(mem) + '\'');
+      },
+      val_);
+}
+
+Value Value::SetMember(std::string_view mem, Value value) {
+  return std::visit(
+      [&](auto& x) -> Value {
+        using T = std::decay_t<decltype(x)>;
+
+        if constexpr (false)
+          ;
+
+        else if constexpr (std::same_as<T, std::shared_ptr<IObject>>)
+          return x->SetMember(mem, std::move(value));
+
+        throw std::runtime_error(
+            '\'' + Desc() + "' object does not support member assignment.");
+      },
+      val_);
+}
+
 Value::operator std::string() const { return this->Desc(); }
 
 bool Value::operator==(std::monostate) const {
@@ -427,6 +490,35 @@ bool Value::operator==(const std::string& rhs) const {
 bool Value::operator==(char const* s) const {
   auto ptr = std::get_if<std::string>(&val_);
   return ptr && *ptr == s;
+}
+
+// -----------------------------------------------------------------------
+// class IObject
+
+std::string IObject::Str() const { return "<str: ?>"; }
+std::string IObject::Desc() const { return "<desc: ?>"; }
+
+void IObject::Call(Fiber& f, uint8_t nargs, uint8_t nkwargs) {
+  throw std::runtime_error('\'' + Desc() + "' object is not callable.");
+}
+
+Value IObject::Item(const Value& idx) {
+  throw std::runtime_error('\'' + Desc() + "' object is not subscriptable.");
+}
+
+Value IObject::SetItem(const Value& idx, Value value) {
+  throw std::runtime_error('\'' + Desc() +
+                           "' object does not support item assignment.");
+}
+
+Value IObject::Member(std::string_view mem) {
+  throw std::runtime_error('\'' + Desc() + "' object has no member '" +
+                           std::string(mem) + '\'');
+}
+
+Value IObject::SetMember(std::string_view mem, Value value) {
+  throw std::runtime_error('\'' + Desc() +
+                           "' object does not support member assignment.");
 }
 
 }  // namespace serilang

@@ -35,7 +35,7 @@ namespace serilang {
 struct Chunk;
 struct Upvalue;
 
-struct Closure : public IObject {
+struct Closure : public IObject, public std::enable_shared_from_this<Closure> {
   std::shared_ptr<Chunk> chunk;
   uint32_t entry{};
   uint32_t nparams{};
@@ -47,6 +47,8 @@ struct Closure : public IObject {
   ObjType Type() const noexcept override;
   std::string Str() const override;
   std::string Desc() const override;
+
+  void Call(Fiber& f, uint8_t nargs, uint8_t nkwargs) final;
 };
 
 }  // namespace serilang
