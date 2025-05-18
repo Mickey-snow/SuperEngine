@@ -103,6 +103,9 @@ struct TailCall {
 struct MakeList {
   uint8_t nelms;
 };  // (elm,...) -> (list)
+struct MakeDict {
+  uint8_t nelms;
+};  // (key,val,...) -> (dict)
 struct MakeClass {
   uint32_t name_index;
   uint16_t nmethods;
@@ -155,6 +158,7 @@ using Instruction = std::variant<Push,
                                  Call,
                                  TailCall,
                                  MakeList,
+                                 MakeDict,
                                  MakeClass,
                                  GetField,
                                  SetField,
@@ -190,6 +194,7 @@ enum class OpCode : uint8_t {
   Call,
   TailCall,
   MakeList,
+  MakeDict,
   MakeClass,
   GetField,
   SetField,
@@ -250,6 +255,8 @@ constexpr inline OpCode GetOpcode() {
     return OpCode::TailCall;
   else if constexpr (std::same_as<T, MakeList>)
     return OpCode::MakeList;
+  else if constexpr (std::same_as<T, MakeDict>)
+    return OpCode::MakeDict;
   else if constexpr (std::same_as<T, MakeClass>)
     return OpCode::MakeClass;
   else if constexpr (std::same_as<T, GetField>)

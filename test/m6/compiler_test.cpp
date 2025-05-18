@@ -111,6 +111,12 @@ TEST_F(CompilerTest, List) {
   EXPECT_EQ(res.stdout, "[1,2,3]\n") << "\nDisassembly:\n" << res.disasm;
 }
 
+TEST_F(CompilerTest, Dict) {
+  auto res = Run(R"( x=1; a={"1":x,"2":x+1,"3":1+x*2}; print(a); )");
+  ASSERT_TRUE(res.stderr.empty()) << res.stderr;
+  EXPECT_EQ(res.stdout, "{2:2,3:3,1:1}\n") << "\nDisassembly:\n" << res.disasm;
+}
+
 TEST_F(CompilerTest, If) {
   auto res = Run(R"(
 result = "none";

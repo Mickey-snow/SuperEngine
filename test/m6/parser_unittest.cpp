@@ -484,6 +484,29 @@ ListLiteral
 )");
 }
 
+TEST_F(ExprParserTest, DictLiterals) {
+  expectAST(TokenArray("{}"), "DictLiteral");
+  expectAST(TokenArray(R"( {1:1,2:2,"3":3} )"), R"(
+ DictLiteral
+   ├─IntLiteral 1
+   ├─IntLiteral 1
+   ├─IntLiteral 2
+   ├─IntLiteral 2
+   ├─StrLiteral 3
+   └─IntLiteral 3
+ )");
+  expectAST(TokenArray(R"( {foo:boo(), [1]:[1]} )"), R"(
+DictLiteral
+   ├─ID foo
+   ├─Invoke
+   │  └─ID boo
+   ├─ListLiteral
+   │  └─IntLiteral 1
+   └─ListLiteral
+      └─IntLiteral 1
+  )");
+}
+
 TEST_F(ExprParserTest, Postfix) {
   // boo()
   expectAST(

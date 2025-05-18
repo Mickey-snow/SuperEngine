@@ -95,6 +95,10 @@ struct Semicol {
   auto operator<=>(const Semicol& rhs) const = default;
 };
 
+struct Colon {
+  auto operator<=>(const Colon& rhs) const = default;
+};
+
 struct Eof {
   auto operator<=>(const Eof& rhs) const = default;
 };
@@ -113,6 +117,7 @@ using Token_t = std::variant<Reserved,
                              ParenthesisL,
                              ParenthesisR,
                              Semicol,
+                             Colon,
                              Eof>;
 
 }  // namespace tok
@@ -153,6 +158,7 @@ struct DebugStringVisitor {
   std::string operator()(const tok::ParenthesisL&) const;
   std::string operator()(const tok::ParenthesisR&) const;
   std::string operator()(const tok::Semicol&) const;
+  std::string operator()(const tok::Colon&) const;
   std::string operator()(const tok::Eof&) const;
 };
 }  // namespace tok

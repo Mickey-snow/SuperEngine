@@ -684,6 +684,30 @@ std::shared_ptr<ExprAST> Parser::parsePrimary() {
     return std::make_shared<ExprAST>(
         ListLiteral{std::move(elems), LocRange(startLoc, it_)});
   }
+  // DictLiteral
+  // --------------------------------------------------
+  if (tryConsume<tok::CurlyL>()) {
+    std::vector<std::pair<std::shared_ptr<ExprAST>, std::shared_ptr<ExprAST>>>
+        elms;
+
+    if (!tryConsume<tok::CurlyR>()) {
+      auto key = ParseExpression();
+      require<tok::Colon>("expected ':'");
+      auto val = ParseExpression();
+
+      elms = {std::make_pair(key, val)};
+      while (tryConsume<tok::Operator>(Op::Comma)) {
+        key = ParseExpression();
+        require<tok::Colon>("expected ':'");
+        val = ParseExpression();
+        elms.emplace_back(std::make_pair(key, val));
+      }
+      require<tok::CurlyR>("expected '}'");
+    }
+
+    return std::make_shared<ExprAST>(
+        DictLiteral{std::move(elms), LocRange(startLoc, it_)});
+  }
 
   AddError("expected primary expression", it_);
   Synchronize();

@@ -33,6 +33,7 @@
 #include "vm/value.hpp"
 #include "vm/value_internal/class.hpp"
 #include "vm/value_internal/closure.hpp"
+#include "vm/value_internal/dict.hpp"
 #include "vm/value_internal/fiber.hpp"
 #include "vm/value_internal/list.hpp"
 #include "vm/value_internal/native_function.hpp"
@@ -341,6 +342,20 @@ class VM {
             elms.emplace_back(std::move(fib->stack[i]));
           fib->stack.resize(fib->stack.size() - ins.nelms);
           fib->stack.emplace_back(make_list(std::move(elms)));
+        } break;
+
+        case OpCode::MakeDict: {
+          const auto ins = chunk.Read<serilang::MakeDict>(ip);
+          ip += sizeof(ins);
+          std::unordered_map<std::string, Value> elms;
+          for (size_t i = fib->stack.size() - 2 * ins.nelms;
+               i < fib->stack.size(); i += 2) {
+            std::string key = fib->stack[i].Extract<std::string>();
+            Value val = std::move(fib->stack[i + 1]);
+            elms.try_emplace(std::move(key), std::move(val));
+          }
+          fib->stack.resize(fib->stack.size() - 2 * ins.nelms);
+          fib->stack.emplace_back(make_dict(std::move(elms)));
         } break;
 
         case OpCode::MakeClass: {

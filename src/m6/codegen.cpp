@@ -132,7 +132,11 @@ void CodeGenerator::emit_expr_node(const ListLiteral& n) {
 }
 
 void CodeGenerator::emit_expr_node(const DictLiteral& n) {
-  throw std::runtime_error("not implemented yet.");
+  for (const auto& [key, val] : n.elements) {
+    emit_expr(key);
+    emit_expr(val);
+  }
+  emit(sr::MakeDict{static_cast<uint8_t>(n.elements.size())});
 }
 
 void CodeGenerator::emit_expr_node(const Identifier& n) {

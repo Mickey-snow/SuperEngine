@@ -213,6 +213,13 @@ void Disassembler::PrintIns(Chunk& chunk,
       emit_operand("");
       out_ << "nelms=" << ins.nelms;
     } break;
+    case OpCode::MakeDict: {
+      const auto ins = chunk.Read<MakeDict>(ip);
+      ip += sizeof(ins);
+      emit_mnemonic("MAKE_DICT");
+      emit_operand("");
+      out_ << "nelms=" << ins.nelms;
+    } break;
     case OpCode::MakeClass: {
       const auto ins = chunk.Read<MakeClass>(ip);
       ip += sizeof(ins);

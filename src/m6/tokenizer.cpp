@@ -43,7 +43,7 @@ static const std::unordered_map<char, tok::Token_t> SINGLE_CHAR_TOKEN = {
     {'[', tok::SquareL()},      {']', tok::SquareR()},
     {'{', tok::CurlyL()},       {'}', tok::CurlyR()},
     {'(', tok::ParenthesisL()}, {')', tok::ParenthesisR()},
-    {';', tok::Semicol()}};
+    {';', tok::Semicol()},      {':', tok::Colon()}};
 
 // Sorted by descending length, so we can match the longest possible operator
 // first.

@@ -115,6 +115,10 @@ std::string tok::DebugStringVisitor::operator()(const tok::Semicol&) const {
   return "Semicol";
 }
 
+std::string tok::DebugStringVisitor::operator()(const tok::Colon&) const {
+  return "Colon";
+}
+
 std::string tok::DebugStringVisitor::operator()(const tok::Eof&) const {
   return "EOF";
 }
