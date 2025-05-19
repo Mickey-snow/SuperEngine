@@ -31,7 +31,7 @@
 
 namespace serilang {
 
-class Fiber;
+struct Fiber;
 
 class Value;
 
@@ -160,7 +160,7 @@ class Value {
 class IObject {
  public:
   virtual ~IObject() = default;
-  virtual ObjType Type() const noexcept = 0;
+  constexpr virtual ObjType Type() const noexcept = 0;
 
   virtual std::string Str() const;
   virtual std::string Desc() const;

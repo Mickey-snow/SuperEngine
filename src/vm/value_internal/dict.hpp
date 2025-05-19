@@ -31,11 +31,13 @@
 namespace serilang {
 
 struct Dict : public IObject {
+  static constexpr inline ObjType objtype = ObjType::Dict;
+
   std::unordered_map<std::string, Value> map;
 
   explicit Dict(std::unordered_map<std::string, Value> m = {})
       : map(std::move(m)) {}
-  ObjType Type() const noexcept override { return ObjType::Dict; }
+  constexpr ObjType Type() const noexcept final { return objtype; }
 
   std::string Str() const override;   // “{a: 1, b: 2}”
   std::string Desc() const override;  // “<dict{2}>”

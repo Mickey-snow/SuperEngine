@@ -36,6 +36,8 @@ struct Chunk;
 struct Upvalue;
 
 struct Closure : public IObject, public std::enable_shared_from_this<Closure> {
+  static constexpr inline ObjType objtype = ObjType::Closure;
+
   std::shared_ptr<Chunk> chunk;
   uint32_t entry{};
   uint32_t nparams{};
@@ -44,7 +46,7 @@ struct Closure : public IObject, public std::enable_shared_from_this<Closure> {
 
   explicit Closure(std::shared_ptr<Chunk> c);
 
-  ObjType Type() const noexcept override;
+  constexpr ObjType Type() const noexcept final { return objtype; }
   std::string Str() const override;
   std::string Desc() const override;
 

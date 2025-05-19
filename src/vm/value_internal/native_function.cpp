@@ -36,8 +36,6 @@ NativeFunction::NativeFunction(std::string name, function_t fn)
 
 std::string NativeFunction::Name() const { return name_; }
 
-ObjType NativeFunction::Type() const noexcept { return ObjType::Native; }
-
 std::string NativeFunction::Str() const { return "<fn " + name_ + '>'; }
 
 std::string NativeFunction::Desc() const {

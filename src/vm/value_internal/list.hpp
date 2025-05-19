@@ -31,10 +31,13 @@
 namespace serilang {
 
 struct List : public IObject {
+  static constexpr inline ObjType objtype = ObjType::List;
+
   std::vector<Value> items;
 
   explicit List(std::vector<Value> xs = {}) : items(std::move(xs)) {}
-  ObjType Type() const noexcept override { return ObjType::List; }
+
+  constexpr ObjType Type() const noexcept final { return objtype; }
 
   std::string Str() const override;   // “[1, 2, 3]”
   std::string Desc() const override;  // “<list[3]>”

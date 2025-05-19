@@ -34,10 +34,12 @@
 
 namespace serilang {
 
-class Fiber;
+struct Fiber;
 
 class NativeFunction : public IObject {
  public:
+  static constexpr inline ObjType objtype = ObjType::Native;
+
   using function_t =
       std::function<Value(Fiber&,
                           std::vector<Value>,
@@ -46,7 +48,8 @@ class NativeFunction : public IObject {
   NativeFunction(std::string name, function_t fn);
 
   std::string Name() const;
-  ObjType Type() const noexcept override;
+  constexpr ObjType Type() const noexcept final { return objtype; }
+
   std::string Str() const override;
   std::string Desc() const override;
 

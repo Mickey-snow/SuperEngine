@@ -33,10 +33,12 @@
 namespace serilang {
 
 struct Class : public IObject, public std::enable_shared_from_this<Class> {
+  static constexpr inline ObjType objtype = ObjType::Class;
+
   std::string name;
   std::unordered_map<std::string, Value> methods;
 
-  ObjType Type() const noexcept override;
+  constexpr ObjType Type() const noexcept final { return objtype; }
   std::string Str() const override;
   std::string Desc() const override;
 
@@ -44,11 +46,13 @@ struct Class : public IObject, public std::enable_shared_from_this<Class> {
 };
 
 struct Instance : public IObject {
+  static constexpr inline ObjType objtype = ObjType::Instance;
+
   std::shared_ptr<Class> klass;
   std::unordered_map<std::string, Value> fields;
 
   explicit Instance(std::shared_ptr<Class> klass_);
-  ObjType Type() const noexcept override;
+  constexpr ObjType Type() const noexcept final { return objtype; }
   std::string Str() const override;
   std::string Desc() const override;
 };

@@ -38,6 +38,8 @@ enum class FiberState { New, Running, Suspended, Dead };
 struct Upvalue;
 
 struct Fiber : public IObject {
+  static constexpr inline ObjType objtype = ObjType::Fiber;
+
   std::vector<Value> stack;
   std::vector<CallFrame> frames;
   FiberState state;
@@ -50,7 +52,7 @@ struct Fiber : public IObject {
   std::shared_ptr<Upvalue> capture_upvalue(Value* slot);
   void close_upvalues_from(Value* from);
 
-  ObjType Type() const noexcept override;
+  constexpr ObjType Type() const noexcept final { return objtype; }
   std::string Str() const override;
   std::string Desc() const override;
 };

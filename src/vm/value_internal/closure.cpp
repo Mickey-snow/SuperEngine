@@ -34,8 +34,6 @@ namespace serilang {
 
 Closure::Closure(std::shared_ptr<Chunk> c) : chunk(std::move(c)) {}
 
-ObjType Closure::Type() const noexcept { return ObjType::Closure; }
-
 std::string Closure::Str() const { return "closure"; }
 
 std::string Closure::Desc() const { return "<closure>"; }

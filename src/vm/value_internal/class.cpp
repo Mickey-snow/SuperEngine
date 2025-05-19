@@ -28,8 +28,6 @@
 
 namespace serilang {
 
-ObjType Class::Type() const noexcept { return ObjType::Class; }
-
 std::string Class::Str() const { return Desc(); }
 
 std::string Class::Desc() const { return "<class " + name + '>'; }
@@ -42,8 +40,6 @@ void Class::Call(Fiber& f, uint8_t nargs, uint8_t nkwargs) {
 }
 
 Instance::Instance(std::shared_ptr<Class> klass_) : klass(std::move(klass_)) {}
-
-ObjType Instance::Type() const noexcept { return ObjType::Instance; }
 
 std::string Instance::Str() const { return Desc(); }
 

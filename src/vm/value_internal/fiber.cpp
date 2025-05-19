@@ -63,8 +63,6 @@ void Fiber::close_upvalues_from(Value* from) {
                       open_upvalues.end());
 }
 
-ObjType Fiber::Type() const noexcept { return ObjType::Fiber; }
-
 std::string Fiber::Str() const { return "fiber"; }
 
 std::string Fiber::Desc() const { return "<fiber>"; }
