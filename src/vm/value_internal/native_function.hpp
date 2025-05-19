@@ -53,7 +53,7 @@ class NativeFunction : public IObject {
   std::string Str() const override;
   std::string Desc() const override;
 
-  void Call(Fiber& f, uint8_t nargs, uint8_t nkwargs) final;
+  void Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) final;
 
  private:
   std::string name_;

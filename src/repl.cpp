@@ -47,8 +47,7 @@ static constexpr std::string_view help_info =
 
 static void run_repl() {
   CompilerPipeline pipeline(/*repl_mode=*/true);
-  auto dummy = std::make_shared<serilang::Chunk>();
-  serilang::VM vm(dummy);
+  serilang::VM vm;
 
   std::string line;
   for (size_t lineno = 1; std::cout << ">> " && std::getline(std::cin, line);

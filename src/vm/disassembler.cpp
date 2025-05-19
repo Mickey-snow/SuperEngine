@@ -317,7 +317,7 @@ void Disassembler::DumpImpl(Chunk& chunk, const std::string& indent) {
   for (std::size_t idx = 0; idx < chunk.const_pool.size(); ++idx) {
     const std::string sub_indent = indent + std::string(indent_size_, ' ');
     Value& v = chunk.const_pool[idx];
-    if (auto clos = v.Get_if<std::shared_ptr<Closure>>(); clos) {
+    if (auto clos = v.Get_if<Closure>(); clos) {
       std::shared_ptr<Chunk> subChunk = clos->chunk;
       if (!subChunk)
         continue;

@@ -22,38 +22,45 @@
 //
 // -----------------------------------------------------------------------
 
-#include "vm/value_internal/native_function.hpp"
+#pragma once
 
-#include "vm/value_internal/fiber.hpp"
-
-#include <functional>
+#include <concepts>
+#include <cstddef>
 #include <utility>
 
 namespace serilang {
 
-NativeFunction::NativeFunction(std::string name, function_t fn)
-    : name_(std::move(name)), fn_(std::move(fn)) {}
+class IObject;
+template <typename T>
+concept is_object = std::derived_from<T, IObject>;
 
-std::string NativeFunction::Name() const { return name_; }
+struct GCHeader {
+  IObject* next;
+  bool marked;
+};
 
-std::string NativeFunction::Str() const { return "<fn " + name_ + '>'; }
+class GarbageCollector {
+ public:
+  GarbageCollector() = default;
+  ~GarbageCollector();
 
-std::string NativeFunction::Desc() const {
-  return "<native function '" + name_ + "'>";
-}
+  template <typename T, typename... Args>
+  auto Allocate(Args&&... args) -> std::add_pointer_t<T>
+    requires is_object<T>
+  {
+    auto obj = static_cast<T*>(::operator new(sizeof(T)));
+    allocated_bytes_ += sizeof(T);
 
-void NativeFunction::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
-  std::vector<Value> args;
-  std::unordered_map<std::string, Value> kwargs;
+    new (obj) T(std::forward<Args>(args)...);
+    obj->hdr_.next = gc_list_;
+    gc_list_ = obj;
 
-  args.reserve(nargs);
-  for (size_t i = f.stack.size() - nargs; i < f.stack.size(); ++i)
-    args.emplace_back(std::move(f.stack[i]));
+    return obj;
+  }
 
-  auto retval = std::invoke(fn_, f, std::move(args), std::move(kwargs));
-
-  f.stack.resize(f.stack.size() - nargs);
-  f.stack.back() = std::move(retval);
-}
+ private:
+  IObject* gc_list_ = nullptr;
+  size_t allocated_bytes_ = 0;
+};
 
 }  // namespace serilang

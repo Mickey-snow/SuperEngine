@@ -53,10 +53,8 @@ std::string Value::Str() const {
           return std::to_string(x);
         else if constexpr (std::same_as<T, std::string>)
           return x;
-        else if constexpr (std::same_as<T, std::shared_ptr<IObject>>)
+        else if constexpr (std::same_as<T, IObject*>)
           return x->Str();
-        else
-          return "???";
       },
       val_);
 }
@@ -75,10 +73,8 @@ std::string Value::Desc() const {
           return "<double: " + std::to_string(x) + '>';
         else if constexpr (std::same_as<T, std::string>)
           return "<str: " + x + '>';
-        else if constexpr (std::same_as<T, std::shared_ptr<IObject>>)
+        else if constexpr (std::same_as<T, IObject*>)
           return x->Desc();
-        else
-          return "???";
       },
       val_);
 }
@@ -97,7 +93,7 @@ bool Value::IsTruthy() const {
           return x != 0.0;
         else if constexpr (std::same_as<T, std::string>)
           return !x.empty();
-        else if constexpr (std::same_as<T, std::shared_ptr<IObject>>)
+        else if constexpr (std::same_as<T, IObject*>)
           return x != nullptr;
       },
       val_);
@@ -115,7 +111,7 @@ ObjType Value::Type() const {
           return ObjType::Double;
         else if constexpr (std::same_as<T, std::string>)
           return ObjType::Str;
-        else if constexpr (std::same_as<T, std::shared_ptr<IObject>>)
+        else if constexpr (std::same_as<T, IObject*>)
           return x->Type();
         else
           return ObjType::Nil;
@@ -393,7 +389,7 @@ Value Value::Operator(Op op) {
       val_);
 }
 
-void Value::Call(Fiber& f, uint8_t nargs, uint8_t nkwargs) {
+void Value::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
   std::visit(
       [&](auto& x) {
         using T = std::decay_t<decltype(x)>;
@@ -401,8 +397,8 @@ void Value::Call(Fiber& f, uint8_t nargs, uint8_t nkwargs) {
         if constexpr (false)
           ;
 
-        else if constexpr (std::same_as<T, std::shared_ptr<IObject>>)
-          x->Call(f, nargs, nkwargs);
+        else if constexpr (std::same_as<T, IObject*>)
+          x->Call(vm, f, nargs, nkwargs);
 
         else
           throw std::runtime_error('\'' + Desc() + "' object is not callable.");
@@ -418,7 +414,7 @@ Value Value::Item(const Value& idx) {
         if constexpr (false)
           ;
 
-        else if constexpr (std::same_as<T, std::shared_ptr<IObject>>)
+        else if constexpr (std::same_as<T, IObject*>)
           return x->Item(idx);
 
         throw std::runtime_error('\'' + Desc() +
@@ -498,7 +494,7 @@ bool Value::operator==(char const* s) const {
 std::string IObject::Str() const { return "<str: ?>"; }
 std::string IObject::Desc() const { return "<desc: ?>"; }
 
-void IObject::Call(Fiber& f, uint8_t nargs, uint8_t nkwargs) {
+void IObject::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
   throw std::runtime_error('\'' + Desc() + "' object is not callable.");
 }
 

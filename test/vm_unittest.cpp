@@ -148,10 +148,12 @@ TEST(VMTest, ReturnNil) {
 }
 
 TEST(VMTest, CallNative) {
+  GarbageCollector gc;
+
   auto chunk = std::make_shared<Chunk>();
 
   int call_count = 0;
-  auto fn = std::make_shared<NativeFunction>(
+  auto fn = gc.Allocate<NativeFunction>(
       "my_function", [&](Fiber& f, std::vector<Value> args,
                          std::unordered_map<std::string, Value> kwargs) {
         ++call_count;

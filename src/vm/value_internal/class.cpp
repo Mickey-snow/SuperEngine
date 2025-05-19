@@ -25,6 +25,7 @@
 #include "vm/value_internal/class.hpp"
 
 #include "vm/value_internal/fiber.hpp"
+#include "vm/vm.hpp"
 
 namespace serilang {
 
@@ -32,14 +33,14 @@ std::string Class::Str() const { return Desc(); }
 
 std::string Class::Desc() const { return "<class " + name + '>'; }
 
-void Class::Call(Fiber& f, uint8_t nargs, uint8_t nkwargs) {
+void Class::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
   f.stack.resize(f.stack.size() - nargs);
-  auto inst = std::make_shared<Instance>(shared_from_this());
+  auto inst = vm.gc_.Allocate<Instance>(this);
   inst->fields = this->methods;
   f.stack.back() = Value(std::move(inst));
 }
 
-Instance::Instance(std::shared_ptr<Class> klass_) : klass(std::move(klass_)) {}
+Instance::Instance(Class* klass_) : klass(klass_) {}
 
 std::string Instance::Str() const { return Desc(); }
 

@@ -24,14 +24,14 @@
 
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
-#include <memory>
 
 namespace serilang {
 
 class Closure;
 struct CallFrame {
-  std::shared_ptr<Closure> closure;
+  Closure* closure;
   uint32_t ip;  // index into chunk->code
   size_t bp;    // base pointer into fiber stack
 };

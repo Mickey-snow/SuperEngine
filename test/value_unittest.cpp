@@ -24,6 +24,7 @@
 
 #include <gtest/gtest.h>
 
+#include "vm/gc.hpp"
 #include "vm/value.hpp"
 #include "vm/value_internal/dict.hpp"
 #include "vm/value_internal/list.hpp"
@@ -136,14 +137,16 @@ TEST(ValueEdge, DivisionByZero) {
 }
 
 TEST(ValueContainer, ListAndDict) {
+  GarbageCollector gc;
+
   // empty & filled lists
-  Value lstEmpty(std::make_shared<List>());
+  Value lstEmpty(gc.Allocate<List>());
   Value lstFilled(
-      std::make_shared<List>(std::vector<Value>{Value(1), Value(2), Value(3)}));
+      gc.Allocate<List>(std::vector<Value>{Value(1), Value(2), Value(3)}));
 
   // empty & filled dicts
-  Value dictEmpty(std::make_shared<Dict>());
-  Value dictFilled(std::make_shared<Dict>(
+  Value dictEmpty(gc.Allocate<Dict>());
+  Value dictFilled(gc.Allocate<Dict>(
       std::unordered_map<std::string, Value>{{"a", Value(1)}}));
 
   // All container objects are truthy

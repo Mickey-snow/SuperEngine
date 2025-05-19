@@ -32,7 +32,7 @@
 
 namespace serilang {
 
-struct Class : public IObject, public std::enable_shared_from_this<Class> {
+struct Class : public IObject {
   static constexpr inline ObjType objtype = ObjType::Class;
 
   std::string name;
@@ -42,16 +42,16 @@ struct Class : public IObject, public std::enable_shared_from_this<Class> {
   std::string Str() const override;
   std::string Desc() const override;
 
-  void Call(Fiber& f, uint8_t nargs, uint8_t nkwargs) override;
+  void Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) override;
 };
 
 struct Instance : public IObject {
   static constexpr inline ObjType objtype = ObjType::Instance;
 
-  std::shared_ptr<Class> klass;
+  Class* klass;
   std::unordered_map<std::string, Value> fields;
 
-  explicit Instance(std::shared_ptr<Class> klass_);
+  explicit Instance(Class* klass_);
   constexpr ObjType Type() const noexcept final { return objtype; }
   std::string Str() const override;
   std::string Desc() const override;

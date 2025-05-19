@@ -35,14 +35,13 @@ namespace serilang {
 struct Chunk;
 struct Upvalue;
 
-struct Closure : public IObject, public std::enable_shared_from_this<Closure> {
+struct Closure : public IObject {
   static constexpr inline ObjType objtype = ObjType::Closure;
 
   std::shared_ptr<Chunk> chunk;
   uint32_t entry{};
   uint32_t nparams{};
   uint32_t nlocals{};
-  std::vector<std::shared_ptr<Upvalue>> up;
 
   explicit Closure(std::shared_ptr<Chunk> c);
 
@@ -50,7 +49,7 @@ struct Closure : public IObject, public std::enable_shared_from_this<Closure> {
   std::string Str() const override;
   std::string Desc() const override;
 
-  void Call(Fiber& f, uint8_t nargs, uint8_t nkwargs) final;
+  void Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) final;
 };
 
 }  // namespace serilang

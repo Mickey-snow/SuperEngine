@@ -22,38 +22,18 @@
 //
 // -----------------------------------------------------------------------
 
-#include "vm/value_internal/native_function.hpp"
+#include "vm/gc.hpp"
 
-#include "vm/value_internal/fiber.hpp"
-
-#include <functional>
-#include <utility>
+#include "vm/value.hpp"
 
 namespace serilang {
 
-NativeFunction::NativeFunction(std::string name, function_t fn)
-    : name_(std::move(name)), fn_(std::move(fn)) {}
-
-std::string NativeFunction::Name() const { return name_; }
-
-std::string NativeFunction::Str() const { return "<fn " + name_ + '>'; }
-
-std::string NativeFunction::Desc() const {
-  return "<native function '" + name_ + "'>";
-}
-
-void NativeFunction::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
-  std::vector<Value> args;
-  std::unordered_map<std::string, Value> kwargs;
-
-  args.reserve(nargs);
-  for (size_t i = f.stack.size() - nargs; i < f.stack.size(); ++i)
-    args.emplace_back(std::move(f.stack[i]));
-
-  auto retval = std::invoke(fn_, f, std::move(args), std::move(kwargs));
-
-  f.stack.resize(f.stack.size() - nargs);
-  f.stack.back() = std::move(retval);
+GarbageCollector::~GarbageCollector() {
+  while (gc_list_) {
+    IObject* head = gc_list_;
+    gc_list_ = gc_list_->hdr_.next;
+    delete head;
+  }
 }
 
 }  // namespace serilang

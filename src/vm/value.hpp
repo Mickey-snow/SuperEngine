@@ -25,12 +25,14 @@
 #pragma once
 
 #include "machine/op.hpp"
+#include "vm/gc.hpp"
 
-#include <memory>
+#include <cstdint>
 #include <variant>
 
 namespace serilang {
 
+class VM;
 struct Fiber;
 
 class Value;
@@ -52,14 +54,6 @@ enum class ObjType : uint8_t {
 
 class IObject;
 
-namespace {
-// Trait to detect std::shared_ptr<T>
-template <typename>
-struct is_shared_ptr : std::false_type {};
-template <typename U>
-struct is_shared_ptr<std::shared_ptr<U>> : std::true_type {};
-}  // namespace
-
 // -----------------------------------------------------------------------
 // Value system
 class Value {
@@ -69,7 +63,7 @@ class Value {
                                int,
                                double,
                                std::string,
-                               std::shared_ptr<IObject>  // object
+                               IObject*  // object
                                >;
 
   Value(value_t = std::monostate());
@@ -83,58 +77,40 @@ class Value {
   Value Operator(Op op, Value rhs);
   Value Operator(Op op);
 
-  void Call(Fiber& f, uint8_t nargs, uint8_t nkwargs);
+  void Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs);
   Value Item(const Value& idx);
   Value SetItem(const Value& idx, Value value);
   Value Member(std::string_view mem);
   Value SetMember(std::string_view mem, Value value);
 
-  // Get_if for raw types and IObject-derived pointers
   template <typename T>
-  auto Get_if() {
+  auto Get_if() -> std::add_pointer_t<T> {
     if constexpr (std::derived_from<T, IObject>) {
-      auto basePtr = std::get_if<std::shared_ptr<IObject>>(&val_);
-      if (!basePtr || !*basePtr)
-        return static_cast<T*>(nullptr);
-      auto casted = std::dynamic_pointer_cast<T>(*basePtr);
-      return casted ? casted.get() : static_cast<T*>(nullptr);
-    } else if constexpr (is_shared_ptr<T>::value) {
-      using U = typename T::element_type;
-      auto basePtr = std::get_if<std::shared_ptr<IObject>>(&val_);
-      if (!basePtr || !*basePtr)
-        return T{};
-      auto casted = std::dynamic_pointer_cast<U>(*basePtr);
+      using TPTR = std::add_pointer_t<T>;
+
+      auto baseptr = std::get_if<IObject*>(&val_);
+      if (!baseptr)
+        return static_cast<TPTR>(nullptr);
+      auto casted = dynamic_cast<TPTR>(*baseptr);
       return casted;
     } else {
       return std::get_if<T>(&val_);
     }
   }
 
-  // Get copies the value out (or copies the shared_ptr)
   template <typename T>
-  T Get() {
-    if constexpr (is_shared_ptr<T>::value) {
-      T sp = Get_if<T>();
-      if (!sp)
+  auto Get() -> T {
+    if constexpr (std::is_pointer_v<T> &&
+                  std::derived_from<std::remove_pointer_t<T>, IObject>) {
+      auto ptr = Get_if<std::remove_pointer_t<T>>();
+      if (!ptr)
         throw std::bad_variant_access();
-      return sp;
+      return ptr;
     } else {
       auto ptr = Get_if<T>();
       if (!ptr)
         throw std::bad_variant_access();
       return *ptr;
-    }
-  }
-
-  // Move retrieves the value by moving out of the variant to avoid copies
-  template <typename T>
-  T Extract() {
-    if constexpr (is_shared_ptr<T>::value) {
-      using U = typename T::element_type;
-      auto basePtr = std::get<std::shared_ptr<IObject>>(std::move(val_));
-      return std::dynamic_pointer_cast<U>(std::move(basePtr));
-    } else {
-      return std::get<T>(std::move(val_));
     }
   }
 
@@ -159,13 +135,15 @@ class Value {
 // -----------------------------------------------------------------------
 class IObject {
  public:
+  GCHeader hdr_;
+
   virtual ~IObject() = default;
   constexpr virtual ObjType Type() const noexcept = 0;
 
   virtual std::string Str() const;
   virtual std::string Desc() const;
 
-  virtual void Call(Fiber& f, uint8_t nargs, uint8_t nkwargs);
+  virtual void Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs);
   virtual Value Item(const Value& idx);
   virtual Value SetItem(const Value& idx, Value value);
   virtual Value Member(std::string_view mem);

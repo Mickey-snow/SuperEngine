@@ -43,8 +43,4 @@ struct List : public IObject {
   std::string Desc() const override;  // “<list[3]>”
 };
 
-inline Value make_list(std::vector<Value> xs = {}) {
-  return Value(std::make_shared<List>(std::move(xs)));
-}
-
 }  // namespace serilang

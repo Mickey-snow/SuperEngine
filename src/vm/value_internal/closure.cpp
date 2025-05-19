@@ -32,19 +32,18 @@
 
 namespace serilang {
 
-Closure::Closure(std::shared_ptr<Chunk> c) : chunk(std::move(c)) {}
+Closure::Closure(std::shared_ptr<Chunk> c) : chunk(c) {}
 
 std::string Closure::Str() const { return "closure"; }
 
 std::string Closure::Desc() const { return "<closure>"; }
 
-void Closure::Call(Fiber& f, uint8_t nargs, uint8_t nkwargs) {
+void Closure::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
   if (nargs != this->nparams)
     throw std::runtime_error(Desc() + ": arity mismatch");
 
   const auto base = f.stack.size() - nparams - 1 /*fn slot*/;
-  f.frames.push_back({shared_from_this(), entry, base});
-  // TODO: Remove shared_from_this after adding GC?
+  f.frames.push_back({this, entry, base});
 }
 
 }  // namespace serilang

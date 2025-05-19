@@ -43,8 +43,4 @@ struct Dict : public IObject {
   std::string Desc() const override;  // “<dict{2}>”
 };
 
-inline Value make_dict(std::unordered_map<std::string, Value> m = {}) {
-  return Value(std::make_shared<Dict>(std::move(m)));
-}
-
 }  // namespace serilang

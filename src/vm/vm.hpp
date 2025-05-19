@@ -28,6 +28,7 @@
 #include "utilities/string_utilities.hpp"
 #include "vm/call_frame.hpp"
 #include "vm/chunk.hpp"
+#include "vm/gc.hpp"
 #include "vm/instruction.hpp"
 #include "vm/upvalue.hpp"
 #include "vm/value.hpp"
@@ -51,20 +52,22 @@ class VM {
   [[maybe_unused]] std::ostream& os_;
 
  public:
-  explicit VM(std::shared_ptr<Chunk> entry, std::ostream& os = std::cout)
+  explicit VM(std::shared_ptr<Chunk> entry = nullptr, std::ostream& os = std::cout)
       : os_(os), main_chunk(entry) {
-    // bootstrap: main() as a closure pushed to main fiber
-    auto main_cl = std::make_shared<Closure>(entry);
-    main_cl->entry = 0;
-    main_cl->nlocals = 0;
-    main_cl->nparams = 0;
-    main_fiber = std::make_shared<Fiber>();
-    push(main_fiber->stack, Value(main_cl));  // fn
-    main_cl->Call(*main_fiber, 0, 0);         // set up base stack frame
-    fibers.push_front(main_fiber);
+    if (entry) {
+      // bootstrap: main() as a closure pushed to main fiber
+      auto main_cl = gc_.Allocate<Closure>(entry);
+      main_cl->entry = 0;
+      main_cl->nlocals = 0;
+      main_cl->nparams = 0;
+      main_fiber = gc_.Allocate<Fiber>();
+      push(main_fiber->stack, Value(main_cl));  // fn
+      main_cl->Call(*this, *main_fiber, 0, 0);  // set up base stack frame
+      fibers.push_front(main_fiber);
+    }
 
     // register native functions
-    globals["time"] = Value(std::make_shared<NativeFunction>(
+    globals["time"] = Value(gc_.Allocate<NativeFunction>(
         "time", [](Fiber& f, std::vector<Value> args,
                    std::unordered_map<std::string, Value> kwargs) {
           if (!args.empty())
@@ -74,7 +77,7 @@ class VM {
           auto secs = duration_cast<seconds>(now).count();
           return Value(static_cast<int>(secs));
         }));
-    globals["print"] = Value(std::make_shared<NativeFunction>(
+    globals["print"] = Value(gc_.Allocate<NativeFunction>(
         "print", [&os](Fiber& f, std::vector<Value> args,
                        std::unordered_map<std::string, Value> kwargs) {
           bool nl = false;
@@ -106,15 +109,15 @@ class VM {
   // REPL support: execute a single chunk, preserving VM state (globals, etc.)
   Value Evaluate(std::shared_ptr<Chunk> chunk) {
     // wrap chunk in a zero-arg closure
-    auto cl = std::make_shared<Closure>(chunk);
+    auto cl = gc_.Allocate<Closure>(chunk);
     cl->entry = 0;
     cl->nparams = 0;
     cl->nlocals = 0;
 
     // create a new fiber for this snippet
-    auto replFiber = std::make_shared<Fiber>();
+    auto replFiber = gc_.Allocate<Fiber>();
     push(replFiber->stack, Value(cl));
-    cl->Call(*replFiber, 0, 0);
+    cl->Call(*this, *replFiber, 0, 0);
     fibers.push_front(replFiber);
 
     // run until this fiber finishes
@@ -133,9 +136,11 @@ class VM {
 
  public:
   //----------------------------------------------------------------
+  GarbageCollector gc_;
+
   std::shared_ptr<Chunk> main_chunk;
-  std::shared_ptr<Fiber> main_fiber;
-  std::deque<std::shared_ptr<Fiber>> fibers{};
+  Fiber* main_fiber;
+  std::deque<Fiber*> fibers{};
 
   std::unordered_map<std::string, Value> globals;
 
@@ -168,7 +173,7 @@ class VM {
   }
 
   //----------------------------------------------------------------
-  void ExecuteFiber(const std::shared_ptr<Fiber>& fib) {
+  void ExecuteFiber(Fiber* fib) {
     fib->state = FiberState::Running;
     while (!fib->frames.empty()) {
       auto& frame = fib->frames.back();
@@ -259,12 +264,12 @@ class VM {
         case OpCode::LoadUpvalue: {
           const auto ins = chunk.Read<serilang::LoadUpvalue>(ip);
           ip += sizeof(ins);
-          push(fib->stack, frame.closure->up[ins.slot]->get());
+
         } break;
         case OpCode::StoreUpvalue: {
           const auto ins = chunk.Read<serilang::StoreUpvalue>(ip);
           ip += sizeof(ins);
-          frame.closure->up[ins.slot]->set(pop(fib->stack));
+
         } break;
         case OpCode::CloseUpvalues: {
           const auto ins = chunk.Read<serilang::CloseUpvalues>(ip);
@@ -309,24 +314,18 @@ class VM {
         case OpCode::MakeClosure: {
           const auto ins = chunk.Read<serilang::MakeClosure>(ip);
           ip += sizeof(ins);
-          auto cl = std::make_shared<Closure>(frame.closure->chunk);
+          auto cl = gc_.Allocate<Closure>(frame.closure->chunk);
           cl->entry = ins.entry;
           cl->nparams = ins.nparams;
           cl->nlocals = ins.nlocals;
-          cl->up.resize(ins.nupvals);
-          // capture upvalues descriptors (already on stack as ints)
-          for (int i = ins.nupvals - 1; i >= 0; --i) {
-            auto uv_slot = static_cast<uint8_t>(pop(fib->stack).Get<int>());
-            cl->up[i] = fib->capture_upvalue(
-                fib->local_slot(fib->frames.size() - 1, uv_slot));
-          }
+
           push(fib->stack, Value(cl));
         } break;
         case OpCode::Call: {
           const auto ins = chunk.Read<serilang::Call>(ip);
           ip += sizeof(ins);
           Value& callee = fib->stack.end()[-ins.arity - 1];
-          callee.Call(*fib, ins.arity, 0);
+          callee.Call(*this, *fib, ins.arity, 0);
         } break;
 
           //------------------------------------------------------------------
@@ -341,7 +340,7 @@ class VM {
                ++i)
             elms.emplace_back(std::move(fib->stack[i]));
           fib->stack.resize(fib->stack.size() - ins.nelms);
-          fib->stack.emplace_back(make_list(std::move(elms)));
+          fib->stack.emplace_back(gc_.Allocate<List>(std::move(elms)));
         } break;
 
         case OpCode::MakeDict: {
@@ -350,23 +349,23 @@ class VM {
           std::unordered_map<std::string, Value> elms;
           for (size_t i = fib->stack.size() - 2 * ins.nelms;
                i < fib->stack.size(); i += 2) {
-            std::string key = fib->stack[i].Extract<std::string>();
+            std::string key = fib->stack[i].Get<std::string>();
             Value val = std::move(fib->stack[i + 1]);
             elms.try_emplace(std::move(key), std::move(val));
           }
           fib->stack.resize(fib->stack.size() - 2 * ins.nelms);
-          fib->stack.emplace_back(make_dict(std::move(elms)));
+          fib->stack.emplace_back(gc_.Allocate<Dict>(std::move(elms)));
         } break;
 
         case OpCode::MakeClass: {
           const auto ins = chunk.Read<serilang::MakeClass>(ip);
           ip += sizeof(ins);
-          auto klass = std::make_shared<Class>();
+          auto klass = gc_.Allocate<Class>();
           klass->name =
               chunk.const_pool[ins.name_index].template Get<std::string>();
           for (int i = 0; i < ins.nmethods; i++) {
             auto method = pop(fib->stack);
-            auto name = pop(fib->stack).template Extract<std::string>();
+            auto name = pop(fib->stack).template Get<std::string>();
             klass->methods[std::move(name)] = std::move(method);
           }
           push(fib->stack, Value(klass));
@@ -375,7 +374,7 @@ class VM {
         case OpCode::GetField: {
           const auto ins = chunk.Read<serilang::GetField>(ip);
           ip += sizeof(ins);
-          auto inst = pop(fib->stack).Extract<std::shared_ptr<Instance>>();
+          auto inst = pop(fib->stack).Get<Instance*>();
           auto name =
               chunk.const_pool[ins.name_index].template Get<std::string>();
           push(fib->stack, inst->fields[name]);
@@ -385,7 +384,7 @@ class VM {
           const auto ins = chunk.Read<serilang::SetField>(ip);
           ip += sizeof(ins);
           auto val = pop(fib->stack);
-          auto inst = pop(fib->stack).Extract<std::shared_ptr<Instance>>();
+          auto inst = pop(fib->stack).Get<Instance*>();
           auto name =
               chunk.const_pool[ins.name_index].template Get<std::string>();
           inst->fields[name] = val;
@@ -398,12 +397,12 @@ class VM {
         case OpCode::MakeFiber: {
           const auto ins = chunk.Read<serilang::MakeFiber>(ip);
           ip += sizeof(ins);
-          auto f = std::make_shared<Fiber>();
-          auto cl = std::make_shared<Closure>(frame.closure->chunk);
+          auto f = gc_.Allocate<Fiber>();
+          auto cl = gc_.Allocate<Closure>(frame.closure->chunk);
           cl->entry = ins.entry;
           cl->nparams = ins.nparams;
           cl->nlocals = ins.nlocals;
-          cl->up.resize(ins.nupvals);  // TODO: capture
+
           f->stack.reserve(64);
           push(fib->stack, Value(f));
         } break;
@@ -412,7 +411,7 @@ class VM {
           ip += sizeof(ins);
           auto arity = ins.arity;
           auto fVal = fib->stack.end()[-arity - 1];
-          auto f2 = fVal.template Get<std::shared_ptr<Fiber>>();
+          auto f2 = fVal.template Get<Fiber*>();
           // move args
           for (int i = arity - 1; i >= 0; --i) {
             push(f2->stack, pop(fib->stack));
