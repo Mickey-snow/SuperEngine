@@ -27,16 +27,20 @@
 #include <concepts>
 #include <cstddef>
 #include <utility>
+#include <vector>
 
 namespace serilang {
 
+class Value;
 class IObject;
+class VM;
 template <typename T>
 concept is_object = std::derived_from<T, IObject>;
 
 struct GCHeader {
-  IObject* next;
-  bool marked;
+  IObject* next = nullptr;
+  bool marked = false;
+  size_t size = 0;
 };
 
 class GarbageCollector {
@@ -53,10 +57,19 @@ class GarbageCollector {
 
     new (obj) T(std::forward<Args>(args)...);
     obj->hdr_.next = gc_list_;
+    obj->hdr_.size = sizeof(T);
     gc_list_ = obj;
 
     return obj;
   }
+
+  size_t AllocatedBytes() const;
+
+  void UnmarkAll() const;
+  void MarkRoot(VM& vm);
+  void MarkRoot(Value& v);
+  void MarkRoot(IObject* obj);
+  void Sweep();
 
  private:
   IObject* gc_list_ = nullptr;

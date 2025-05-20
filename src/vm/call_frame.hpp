@@ -31,9 +31,9 @@ namespace serilang {
 
 class Closure;
 struct CallFrame {
-  Closure* closure;
-  uint32_t ip;  // index into chunk->code
-  size_t bp;    // base pointer into fiber stack
+  Closure* closure = nullptr;
+  uint32_t ip = 0;  // index into chunk->code
+  size_t bp = 0;    // base pointer into fiber stack
 };
 
 }  // namespace serilang

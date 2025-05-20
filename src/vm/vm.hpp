@@ -52,22 +52,23 @@ class VM {
   [[maybe_unused]] std::ostream& os_;
 
  public:
-  explicit VM(std::shared_ptr<Chunk> entry = nullptr, std::ostream& os = std::cout)
-      : os_(os), main_chunk(entry) {
+  explicit VM(std::shared_ptr<Chunk> entry = nullptr,
+              std::ostream& os = std::cout)
+      : os_(os), main_chunk_(entry) {
     if (entry) {
       // bootstrap: main() as a closure pushed to main fiber
       auto main_cl = gc_.Allocate<Closure>(entry);
       main_cl->entry = 0;
       main_cl->nlocals = 0;
       main_cl->nparams = 0;
-      main_fiber = gc_.Allocate<Fiber>();
-      push(main_fiber->stack, Value(main_cl));  // fn
-      main_cl->Call(*this, *main_fiber, 0, 0);  // set up base stack frame
-      fibers.push_front(main_fiber);
+      main_fiber_ = gc_.Allocate<Fiber>();
+      push(main_fiber_->stack, Value(main_cl));  // fn
+      main_cl->Call(*this, *main_fiber_, 0, 0);  // set up base stack frame
+      fibres_.push_front(main_fiber_);
     }
 
     // register native functions
-    globals["time"] = Value(gc_.Allocate<NativeFunction>(
+    globals_["time"] = Value(gc_.Allocate<NativeFunction>(
         "time", [](Fiber& f, std::vector<Value> args,
                    std::unordered_map<std::string, Value> kwargs) {
           if (!args.empty())
@@ -77,7 +78,7 @@ class VM {
           auto secs = duration_cast<seconds>(now).count();
           return Value(static_cast<int>(secs));
         }));
-    globals["print"] = Value(gc_.Allocate<NativeFunction>(
+    globals_["print"] = Value(gc_.Allocate<NativeFunction>(
         "print", [&os](Fiber& f, std::vector<Value> args,
                        std::unordered_map<std::string, Value> kwargs) {
           bool nl = false;
@@ -94,16 +95,28 @@ class VM {
         }));
   }
 
+  // Trigger garbage collection: mark-root and sweep unreachable objects
+  void CollectGarbage() {
+    gc_.MarkRoot(*this);
+    gc_.Sweep();
+  }
+
   // single‑step the interpreter until all fibers dead / error
-  void Run() {
-    while (!fibers.empty()) {
-      auto f = fibers.front();
+  Value Run() {
+    while (!fibres_.empty()) {
+      auto f = fibres_.front();
       if (f->state == FiberState::Dead) {
-        fibers.pop_front();
-        continue;
+        last_ = fibres_.front()->last;
+        fibres_.pop_front();
+      } else
+        ExecuteFiber(f);  // may yield
+
+      if (gc_.AllocatedBytes() >= gc_threshold_) {
+        CollectGarbage();
+        gc_threshold_ *= 2;
       }
-      ExecuteFiber(f);  // may yield
     }
+    return last_;
   }
 
   // REPL support: execute a single chunk, preserving VM state (globals, etc.)
@@ -115,34 +128,25 @@ class VM {
     cl->nlocals = 0;
 
     // create a new fiber for this snippet
-    auto replFiber = gc_.Allocate<Fiber>();
+    auto* replFiber = gc_.Allocate<Fiber>();
     push(replFiber->stack, Value(cl));
     cl->Call(*this, *replFiber, 0, 0);
-    fibers.push_front(replFiber);
+    fibres_.push_front(replFiber);
 
-    // run until this fiber finishes
-    while (replFiber->state != FiberState::Dead) {
-      ExecuteFiber(replFiber);
-    }
-
-    // clean up from the scheduler queue
-    if (!fibers.empty() && fibers.front() == replFiber) {
-      fibers.pop_front();
-    }
-
-    // return the last yielded/returned value
-    return replFiber->last;
+    return Run();
   }
 
  public:
   //----------------------------------------------------------------
   GarbageCollector gc_;
+  size_t gc_threshold_ = 1024 * 1024;
 
-  std::shared_ptr<Chunk> main_chunk;
-  Fiber* main_fiber;
-  std::deque<Fiber*> fibers{};
+  std::shared_ptr<Chunk> main_chunk_;
+  Fiber* main_fiber_ = nullptr;
+  std::deque<Fiber*> fibres_;
+  Value last_;  // for storing the return value from the last fiber
 
-  std::unordered_map<std::string, Value> globals;
+  std::unordered_map<std::string, Value> globals_;
 
  private:
   //----------------------------------------------------------------
@@ -252,14 +256,14 @@ class VM {
           ip += sizeof(ins);
           auto name =
               chunk.const_pool[ins.name_index].template Get<std::string>();
-          push(fib->stack, globals[name]);
+          push(fib->stack, globals_[name]);
         } break;
         case OpCode::StoreGlobal: {
           const auto ins = chunk.Read<serilang::StoreGlobal>(ip);
           ip += sizeof(ins);
           auto name =
               chunk.const_pool[ins.name_index].template Get<std::string>();
-          globals[name] = pop(fib->stack);
+          globals_[name] = pop(fib->stack);
         } break;
         case OpCode::LoadUpvalue: {
           const auto ins = chunk.Read<serilang::LoadUpvalue>(ip);
@@ -417,7 +421,7 @@ class VM {
             push(f2->stack, pop(fib->stack));
           }
           fib->stack.pop_back();  // pop fiber
-          fibers.push_front(f2);
+          fibres_.push_front(f2);
         }
           return;  // switch
         case OpCode::Yield: {

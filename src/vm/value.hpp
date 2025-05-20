@@ -38,6 +38,7 @@ struct Fiber;
 class Value;
 
 enum class ObjType : uint8_t {
+  Dummy,  // for testing
   Nil,
   Bool,
   Int,
@@ -66,7 +67,7 @@ class Value {
                                IObject*  // object
                                >;
 
-  Value(value_t = std::monostate());
+  Value(value_t x = std::monostate());
 
   std::string Str() const;
   std::string Desc() const;
@@ -85,9 +86,14 @@ class Value {
 
   template <typename T>
   auto Get_if() -> std::add_pointer_t<T> {
-    if constexpr (std::derived_from<T, IObject>) {
-      using TPTR = std::add_pointer_t<T>;
+    using TPTR = std::add_pointer_t<T>;
 
+    if constexpr (std::same_as<T, IObject>) {
+      auto objptr = std::get_if<IObject*>(&val_);
+      if (!objptr)
+        return static_cast<TPTR>(nullptr);
+      return *objptr;
+    } else if constexpr (std::derived_from<T, IObject>) {
       auto baseptr = std::get_if<IObject*>(&val_);
       if (!baseptr)
         return static_cast<TPTR>(nullptr);

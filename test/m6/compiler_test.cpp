@@ -77,7 +77,7 @@ class CompilerTest : public ::testing::Test {
     try {
       serilang::VM vm(chunk, outBuf);
       vm.Run();
-      r.last = vm.main_fiber->last;
+      r.last = vm.main_fiber_->last;
     } catch (std::exception const& ex) {
       r.stderr += ex.what();
     }
