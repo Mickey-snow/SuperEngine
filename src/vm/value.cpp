@@ -26,7 +26,8 @@
 
 // TODO: Reconsider exception thrown here
 #include "m6/exception.hpp"
-#include "vm/value_internal/native_function.hpp"
+#include "vm/iobject.hpp"
+#include "vm/object.hpp"
 
 #include <cmath>
 
@@ -486,35 +487,6 @@ bool Value::operator==(const std::string& rhs) const {
 bool Value::operator==(char const* s) const {
   auto ptr = std::get_if<std::string>(&val_);
   return ptr && *ptr == s;
-}
-
-// -----------------------------------------------------------------------
-// class IObject
-
-std::string IObject::Str() const { return "<str: ?>"; }
-std::string IObject::Desc() const { return "<desc: ?>"; }
-
-void IObject::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
-  throw std::runtime_error('\'' + Desc() + "' object is not callable.");
-}
-
-Value IObject::Item(const Value& idx) {
-  throw std::runtime_error('\'' + Desc() + "' object is not subscriptable.");
-}
-
-Value IObject::SetItem(const Value& idx, Value value) {
-  throw std::runtime_error('\'' + Desc() +
-                           "' object does not support item assignment.");
-}
-
-Value IObject::Member(std::string_view mem) {
-  throw std::runtime_error('\'' + Desc() + "' object has no member '" +
-                           std::string(mem) + '\'');
-}
-
-Value IObject::SetMember(std::string_view mem, Value value) {
-  throw std::runtime_error('\'' + Desc() +
-                           "' object does not support member assignment.");
 }
 
 }  // namespace serilang

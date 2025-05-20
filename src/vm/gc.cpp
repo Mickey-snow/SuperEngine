@@ -25,12 +25,10 @@
 #include "vm/gc.hpp"
 
 #include "log/domain_logger.hpp"
+#include "vm/chunk.hpp"
+#include "vm/object.hpp"
+#include "vm/upvalue.hpp"
 #include "vm/value.hpp"
-#include "vm/value_internal/class.hpp"
-#include "vm/value_internal/closure.hpp"
-#include "vm/value_internal/dict.hpp"
-#include "vm/value_internal/fiber.hpp"
-#include "vm/value_internal/list.hpp"
 #include "vm/vm.hpp"
 
 #include <memory>

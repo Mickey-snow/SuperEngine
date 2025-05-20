@@ -25,9 +25,8 @@
 #include <gtest/gtest.h>
 
 #include "vm/gc.hpp"
+#include "vm/object.hpp"
 #include "vm/value.hpp"
-#include "vm/value_internal/dict.hpp"
-#include "vm/value_internal/list.hpp"
 
 namespace value_test {
 using namespace serilang;

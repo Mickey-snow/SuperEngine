@@ -25,34 +25,15 @@
 #pragma once
 
 #include "machine/op.hpp"
-#include "vm/gc.hpp"
+#include "vm/objtype.hpp"
 
-#include <cstdint>
 #include <variant>
 
 namespace serilang {
 
 class VM;
 struct Fiber;
-
 class Value;
-
-enum class ObjType : uint8_t {
-  Dummy,  // for testing
-  Nil,
-  Bool,
-  Int,
-  Double,
-  Str,
-  List,
-  Dict,
-  Native,
-  Closure,
-  Fiber,
-  Class,
-  Instance
-};
-
 class IObject;
 
 // -----------------------------------------------------------------------
@@ -137,23 +118,4 @@ class Value {
  private:
   value_t val_;
 };
-
-// -----------------------------------------------------------------------
-class IObject {
- public:
-  GCHeader hdr_;
-
-  virtual ~IObject() = default;
-  constexpr virtual ObjType Type() const noexcept = 0;
-
-  virtual std::string Str() const;
-  virtual std::string Desc() const;
-
-  virtual void Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs);
-  virtual Value Item(const Value& idx);
-  virtual Value SetItem(const Value& idx, Value value);
-  virtual Value Member(std::string_view mem);
-  virtual Value SetMember(std::string_view mem, Value value);
-};
-
 }  // namespace serilang

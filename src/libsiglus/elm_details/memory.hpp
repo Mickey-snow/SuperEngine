@@ -58,13 +58,13 @@ class Memory final : public IElement {
   };
   struct Init {};
   struct Resize {};
-  struct Fill {};		
-  struct Size{};
-  struct Set{};
+  struct Fill {};
+  struct Size {};
+  struct Set {};
 
   Bank bank;
   int bits = 32;
-  std::variant<Access, Init, Resize, Fill,Size,Set> var;
+  std::variant<Access, Init, Resize, Fill, Size, Set> var;
 
   Element Parse(std::span<int> path) const override;
 

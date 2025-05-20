@@ -25,7 +25,7 @@
 #include "m6/codegen.hpp"
 
 #include "utilities/mpl.hpp"
-#include "vm/value_internal/closure.hpp"
+#include "vm/object.hpp"
 
 #include <stdexcept>
 #include <utility>

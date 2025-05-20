@@ -22,28 +22,31 @@
 //
 // -----------------------------------------------------------------------
 
-#include "vm/value_internal/class.hpp"
+#pragma once
 
-#include "vm/value_internal/fiber.hpp"
-#include "vm/vm.hpp"
+#include "vm/gc.hpp"
+#include "vm/objtype.hpp"
+
+#include <string>
 
 namespace serilang {
+class Fiber;
 
-std::string Class::Str() const { return Desc(); }
+class IObject {
+ public:
+  GCHeader hdr_;
 
-std::string Class::Desc() const { return "<class " + name + '>'; }
+  virtual ~IObject() = default;
+  constexpr virtual ObjType Type() const noexcept = 0;
 
-void Class::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
-  f.stack.resize(f.stack.size() - nargs);
-  auto inst = vm.gc_.Allocate<Instance>(this);
-  inst->fields = this->methods;
-  f.stack.back() = Value(std::move(inst));
-}
+  virtual std::string Str() const;
+  virtual std::string Desc() const;
 
-Instance::Instance(Class* klass_) : klass(klass_) {}
-
-std::string Instance::Str() const { return Desc(); }
-
-std::string Instance::Desc() const { return '<' + klass->name + " object>"; }
+  virtual void Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs);
+  virtual Value Item(const Value& idx);
+  virtual Value SetItem(const Value& idx, Value value);
+  virtual Value Member(std::string_view mem);
+  virtual Value SetMember(std::string_view mem, Value value);
+};
 
 }  // namespace serilang

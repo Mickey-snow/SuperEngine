@@ -25,7 +25,7 @@
 #include "vm/disassembler.hpp"
 
 #include "vm/instruction.hpp"
-#include "vm/value_internal/closure.hpp"
+#include "vm/object.hpp"
 
 #include <format>
 #include <iomanip>

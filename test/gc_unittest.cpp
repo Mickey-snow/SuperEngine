@@ -27,10 +27,7 @@
 #include "vm/call_frame.hpp"
 #include "vm/chunk.hpp"
 #include "vm/gc.hpp"
-#include "vm/value_internal/closure.hpp"
-#include "vm/value_internal/dict.hpp"
-#include "vm/value_internal/fiber.hpp"
-#include "vm/value_internal/list.hpp"
+#include "vm/object.hpp"
 #include "vm/vm.hpp"
 
 namespace serilang_test {

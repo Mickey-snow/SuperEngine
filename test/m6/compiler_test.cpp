@@ -27,7 +27,9 @@
 #include "m6/compiler_pipeline.hpp"
 #include "m6/source_buffer.hpp"
 #include "utilities/string_utilities.hpp"
+#include "vm/chunk.hpp"
 #include "vm/disassembler.hpp"
+#include "vm/object.hpp"
 #include "vm/value.hpp"
 #include "vm/vm.hpp"
 

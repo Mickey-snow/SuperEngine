@@ -26,6 +26,7 @@
 
 #include "vm/disassembler.hpp"
 #include "vm/instruction.hpp"
+#include "vm/object.hpp"
 #include "vm/vm.hpp"
 
 namespace serilang_test {

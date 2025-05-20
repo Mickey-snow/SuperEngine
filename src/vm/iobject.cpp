@@ -22,28 +22,37 @@
 //
 // -----------------------------------------------------------------------
 
-#include "vm/value_internal/closure.hpp"
+#include "vm/iobject.hpp"
+#include "vm/value.hpp"
 
-#include "vm/value_internal/fiber.hpp"
-
-#include <unordered_map>
-#include <utility>
-#include <vector>
+#include <stdexcept>
 
 namespace serilang {
 
-Closure::Closure(std::shared_ptr<Chunk> c) : chunk(c) {}
+std::string IObject::Str() const { return "<str: ?>"; }
+std::string IObject::Desc() const { return "<desc: ?>"; }
 
-std::string Closure::Str() const { return "closure"; }
+void IObject::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
+  throw std::runtime_error('\'' + Desc() + "' object is not callable.");
+}
 
-std::string Closure::Desc() const { return "<closure>"; }
+Value IObject::Item(const Value& idx) {
+  throw std::runtime_error('\'' + Desc() + "' object is not subscriptable.");
+}
 
-void Closure::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
-  if (nargs != this->nparams)
-    throw std::runtime_error(Desc() + ": arity mismatch");
+Value IObject::SetItem(const Value& idx, Value value) {
+  throw std::runtime_error('\'' + Desc() +
+                           "' object does not support item assignment.");
+}
 
-  const auto base = f.stack.size() - nparams - 1 /*fn slot*/;
-  f.frames.push_back({this, entry, base});
+Value IObject::Member(std::string_view mem) {
+  throw std::runtime_error('\'' + Desc() + "' object has no member '" +
+                           std::string(mem) + '\'');
+}
+
+Value IObject::SetMember(std::string_view mem, Value value) {
+  throw std::runtime_error('\'' + Desc() +
+                           "' object does not support member assignment.");
 }
 
 }  // namespace serilang
