@@ -45,6 +45,8 @@ struct Class : public IObject {
   std::unordered_map<std::string, Value> methods;
 
   constexpr ObjType Type() const noexcept final { return objtype; }
+  constexpr size_t Size() const noexcept final { return sizeof(*this); }
+
   std::string Str() const override;
   std::string Desc() const override;
 
@@ -59,6 +61,8 @@ struct Instance : public IObject {
 
   explicit Instance(Class* klass_);
   constexpr ObjType Type() const noexcept final { return objtype; }
+  constexpr size_t Size() const noexcept final { return sizeof(*this); }
+
   std::string Str() const override;
   std::string Desc() const override;
 };
@@ -83,6 +87,8 @@ struct Fiber : public IObject {
   void close_upvalues_from(Value* from);
 
   constexpr ObjType Type() const noexcept final { return objtype; }
+  constexpr size_t Size() const noexcept final { return sizeof(*this); }
+
   std::string Str() const override;
   std::string Desc() const override;
 };
@@ -95,6 +101,7 @@ struct List : public IObject {
   explicit List(std::vector<Value> xs = {}) : items(std::move(xs)) {}
 
   constexpr ObjType Type() const noexcept final { return objtype; }
+  constexpr size_t Size() const noexcept final { return sizeof(*this); }
 
   std::string Str() const override;   // “[1, 2, 3]”
   std::string Desc() const override;  // “<list[3]>”
@@ -108,6 +115,7 @@ struct Dict : public IObject {
   explicit Dict(std::unordered_map<std::string, Value> m = {})
       : map(std::move(m)) {}
   constexpr ObjType Type() const noexcept final { return objtype; }
+  constexpr size_t Size() const noexcept final { return sizeof(*this); }
 
   std::string Str() const override;   // “{a: 1, b: 2}”
   std::string Desc() const override;  // “<dict{2}>”
@@ -126,6 +134,7 @@ class NativeFunction : public IObject {
 
   std::string Name() const;
   constexpr ObjType Type() const noexcept final { return objtype; }
+  constexpr size_t Size() const noexcept final { return sizeof(*this); }
 
   std::string Str() const override;
   std::string Desc() const override;
@@ -148,6 +157,8 @@ struct Closure : public IObject {
   explicit Closure(std::shared_ptr<Chunk> c);
 
   constexpr ObjType Type() const noexcept final { return objtype; }
+  constexpr size_t Size() const noexcept final { return sizeof(*this); }
+
   std::string Str() const override;
   std::string Desc() const override;
 

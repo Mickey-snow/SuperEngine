@@ -29,7 +29,8 @@
 
 namespace serilang {
 
-class Closure;
+struct Closure;
+
 struct CallFrame {
   Closure* closure = nullptr;
   uint32_t ip = 0;  // index into chunk->code

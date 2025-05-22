@@ -45,6 +45,13 @@ GarbageCollector::~GarbageCollector() {
 
 size_t GarbageCollector::AllocatedBytes() const { return allocated_bytes_; }
 
+void GarbageCollector::TrackObject(IObject* obj) {
+  GCHeader& hdr = obj->hdr_;
+  hdr.next = gc_list_;
+  hdr.marked = false;
+  gc_list_ = obj;
+}
+
 void GarbageCollector::UnmarkAll() const {
   for (IObject* obj = gc_list_; obj; obj = obj->hdr_.next)
     obj->hdr_.marked = false;
@@ -143,7 +150,7 @@ void GarbageCollector::Sweep() {
     IObject* obj = *cur;
     if (!obj->hdr_.marked) {
       *cur = obj->hdr_.next;
-      allocated_bytes_ -= obj->hdr_.size;
+      allocated_bytes_ -= obj->Size();
       delete obj;
     } else {
       obj->hdr_.marked = false;

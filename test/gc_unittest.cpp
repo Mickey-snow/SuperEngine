@@ -46,6 +46,7 @@ class DummyObject : public IObject {
 
   static constexpr inline ObjType objtype = ObjType::Dummy;
   constexpr ObjType Type() const noexcept override { return objtype; }
+  constexpr size_t Size() const noexcept final { return sizeof(*this); }
 };
 
 class GCTest : public ::testing::Test {

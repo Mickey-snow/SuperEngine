@@ -40,7 +40,6 @@ concept is_object = std::derived_from<T, IObject>;
 struct GCHeader {
   IObject* next = nullptr;
   bool marked = false;
-  size_t size = 0;
 };
 
 class GarbageCollector {
@@ -54,14 +53,13 @@ class GarbageCollector {
   {
     auto obj = static_cast<T*>(::operator new(sizeof(T)));
     allocated_bytes_ += sizeof(T);
-
     new (obj) T(std::forward<Args>(args)...);
-    obj->hdr_.next = gc_list_;
-    obj->hdr_.size = sizeof(T);
-    gc_list_ = obj;
 
+    TrackObject(obj);
     return obj;
   }
+
+  void TrackObject(IObject* obj);
 
   size_t AllocatedBytes() const;
 

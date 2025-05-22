@@ -30,7 +30,7 @@
 #include <string>
 
 namespace serilang {
-class Fiber;
+struct Fiber;
 
 class IObject {
  public:
@@ -38,6 +38,7 @@ class IObject {
 
   virtual ~IObject() = default;
   constexpr virtual ObjType Type() const noexcept = 0;
+  constexpr virtual size_t Size() const noexcept = 0;
 
   virtual std::string Str() const;
   virtual std::string Desc() const;
