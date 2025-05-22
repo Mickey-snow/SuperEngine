@@ -26,15 +26,14 @@
 
 #include "machine/op.hpp"
 #include "vm/objtype.hpp"
+#include "vm/value_fwd.hpp"
 
+#include <memory>
 #include <variant>
 
 namespace serilang {
 
 class VM;
-struct Fiber;
-class Value;
-class IObject;
 
 // -----------------------------------------------------------------------
 // Value system
@@ -56,14 +55,14 @@ class Value {
 
   ObjType Type() const;
 
-  Value Operator(Op op, Value rhs);
-  Value Operator(Op op);
+  TempValue Operator(Op op, Value rhs);
+  TempValue Operator(Op op);
 
   void Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs);
-  Value Item(const Value& idx);
-  Value SetItem(const Value& idx, Value value);
-  Value Member(std::string_view mem);
-  Value SetMember(std::string_view mem, Value value);
+  TempValue Item(const Value& idx);
+  TempValue SetItem(const Value& idx, Value value);
+  TempValue Member(std::string_view mem);
+  TempValue SetMember(std::string_view mem, Value value);
 
   template <typename T>
   auto Get_if() -> std::add_pointer_t<T> {

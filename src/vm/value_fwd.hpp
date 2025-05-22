@@ -22,37 +22,25 @@
 //
 // -----------------------------------------------------------------------
 
-#include "vm/iobject.hpp"
-#include "vm/value.hpp"
+#pragma once
 
-#include <stdexcept>
+#include <memory>
+#include <variant>
 
 namespace serilang {
 
-std::string IObject::Str() const { return "<str: ?>"; }
-std::string IObject::Desc() const { return "<desc: ?>"; }
+struct Class;
+struct Instance;
+struct Upvalue;
+struct Fiber;
+struct List;
+struct Dict;
+struct Closure;
+class NativeFunction;
 
-void IObject::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
-  throw std::runtime_error('\'' + Desc() + "' object is not callable.");
-}
+class Value;
+class IObject;
 
-TempValue IObject::Item(const Value& idx) {
-  throw std::runtime_error('\'' + Desc() + "' object is not subscriptable.");
-}
-
-TempValue IObject::SetItem(const Value& idx, Value value) {
-  throw std::runtime_error('\'' + Desc() +
-                           "' object does not support item assignment.");
-}
-
-TempValue IObject::Member(std::string_view mem) {
-  throw std::runtime_error('\'' + Desc() + "' object has no member '" +
-                           std::string(mem) + '\'');
-}
-
-TempValue IObject::SetMember(std::string_view mem, Value value) {
-  throw std::runtime_error('\'' + Desc() +
-                           "' object does not support member assignment.");
-}
+using TempValue = std::variant<Value, std::unique_ptr<IObject>>;
 
 }  // namespace serilang

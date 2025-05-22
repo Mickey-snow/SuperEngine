@@ -283,8 +283,8 @@ Value handleBoolBoolOp(Op op, bool lhs, bool rhs) {
 
 }  // namespace
 
-Value Value::Operator(Op op, Value rhs) {
-  return std::visit(
+TempValue Value::Operator(Op op, Value rhs) {
+  Value result = std::visit(
       [op, &rhs, this](auto& lhsVal) -> Value {
         using LHS = std::decay_t<decltype(lhsVal)>;
 
@@ -339,10 +339,12 @@ Value Value::Operator(Op op, Value rhs) {
         throw UndefinedOperator(op, {this->Desc(), rhs.Desc()});
       },
       val_);
+
+  return TempValue(std::move(result));
 }
 
-Value Value::Operator(Op op) {
-  return std::visit(
+TempValue Value::Operator(Op op) {
+  Value result = std::visit(
       [op, this](const auto& x) -> Value {
         using T = std::decay_t<decltype(x)>;
 
@@ -388,6 +390,8 @@ Value Value::Operator(Op op) {
         throw UndefinedOperator(op, {this->Desc()});
       },
       val_);
+
+  return TempValue(std::move(result));
 }
 
 void Value::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
@@ -407,9 +411,9 @@ void Value::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
       val_);
 }
 
-Value Value::Item(const Value& idx) {
+TempValue Value::Item(const Value& idx) {
   return std::visit(
-      [&](auto& x) -> Value {
+      [&](auto& x) -> TempValue {
         using T = std::decay_t<decltype(x)>;
 
         if constexpr (false)
@@ -424,9 +428,9 @@ Value Value::Item(const Value& idx) {
       val_);
 }
 
-Value Value::Member(std::string_view mem) {
+TempValue Value::Member(std::string_view mem) {
   return std::visit(
-      [&](auto& x) -> Value {
+      [&](auto& x) -> TempValue {
         using T = std::decay_t<decltype(x)>;
 
         if constexpr (false)
@@ -441,7 +445,7 @@ Value Value::Member(std::string_view mem) {
       val_);
 }
 
-Value Value::SetMember(std::string_view mem, Value value) {
+TempValue Value::SetMember(std::string_view mem, Value value) {
   return std::visit(
       [&](auto& x) -> Value {
         using T = std::decay_t<decltype(x)>;

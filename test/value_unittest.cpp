@@ -31,7 +31,37 @@
 namespace value_test {
 using namespace serilang;
 
-TEST(ValueBasic, TruthinessAndType) {
+class ValueTest : public ::testing::Test {
+ protected:
+  Value remove_tmp(TempValue&& tval) {
+    return std::visit(
+        [&](auto&& t) -> Value {
+          using T = std::decay_t<decltype(t)>;
+
+          if constexpr (std::same_as<T, Value>)
+            return t;
+          else if constexpr (std::same_as<T, std::unique_ptr<IObject>>) {
+            IObject* ptr = t.get();
+            garbage.emplace_back(std::move(t));
+            return Value(ptr);
+          }
+        },
+        std::move(tval));
+  }
+
+  std::vector<std::unique_ptr<IObject>> garbage;
+
+  Value eval(Value lhs, Op op, Value rhs) {
+    TempValue out = lhs.Operator(op, rhs);
+    return remove_tmp(std::move(out));
+  }
+  Value eval(Op op, Value rhs) {
+    TempValue out = rhs.Operator(op);
+    return remove_tmp(std::move(out));
+  }
+};
+
+TEST_F(ValueTest, TruthinessAndType) {
   Value nil;
   Value bTrue(true);
   Value bFalse(false);
@@ -59,83 +89,83 @@ TEST(ValueBasic, TruthinessAndType) {
   EXPECT_EQ(strNonEmpty.Type(), ObjType::Str);
 }
 
-TEST(ValueNumeric, IntAndDoubleArithmetic) {
+TEST_F(ValueTest, IntAndDoubleArithmetic) {
   Value a(6), b(3), c(2.5), d(1.5);
 
-  EXPECT_TRUE(a.Operator(Op::Add, b) == 9);
-  EXPECT_TRUE(a.Operator(Op::Sub, b) == 3);
-  EXPECT_TRUE(a.Operator(Op::Mul, b) == 18);
-  EXPECT_TRUE(a.Operator(Op::Div, b) == 2);
+  EXPECT_EQ(eval(a, Op::Add, b), 9);
+  EXPECT_EQ(eval(a, Op::Sub, b), 3);
+  EXPECT_EQ(eval(a, Op::Mul, b), 18);
+  EXPECT_EQ(eval(a, Op::Div, b), 2);
 
-  EXPECT_TRUE(c.Operator(Op::Add, d) == 4.0);
-  EXPECT_TRUE(c.Operator(Op::Sub, d) == 1.0);
-  EXPECT_TRUE(c.Operator(Op::Mul, d) == 3.75);
-  EXPECT_TRUE(c.Operator(Op::Div, d) == (2.5 / 1.5));
+  EXPECT_EQ(eval(c, Op::Add, d), 4.0);
+  EXPECT_EQ(eval(c, Op::Sub, d), 1.0);
+  EXPECT_EQ(eval(c, Op::Mul, d), 3.75);
+  EXPECT_EQ(eval(c, Op::Div, d), (2.5 / 1.5));
 
   // mixed int / double
-  EXPECT_TRUE(a.Operator(Op::Add, d) == 7.5);
-  EXPECT_TRUE(c.Operator(Op::Mul, b) == 7.5);
+  EXPECT_EQ(eval(a, Op::Add, d), 7.5);
+  EXPECT_EQ(eval(c, Op::Mul, b), 7.5);
 }
 
-TEST(ValueNumeric, Comparisons) {
+TEST_F(ValueTest, NumericComparisons) {
   Value one(1), two(2), oneD(1.0), twoD(2.0);
 
-  EXPECT_TRUE(one.Operator(Op::Less, two) == true);
-  EXPECT_TRUE(one.Operator(Op::GreaterEqual, one) == true);
-  EXPECT_TRUE(twoD.Operator(Op::Equal, two) == true);
-  EXPECT_TRUE(oneD.Operator(Op::NotEqual, twoD) == true);
+  EXPECT_EQ(eval(one, Op::Less, two), true);
+  EXPECT_EQ(eval(one, Op::GreaterEqual, one), true);
+  EXPECT_EQ(eval(twoD, Op::Equal, two), true);
+  EXPECT_EQ(eval(oneD, Op::NotEqual, twoD), true);
 }
 
-TEST(ValueNumeric, UnaryOperators) {
+TEST_F(ValueTest, NumericUnaryOperators) {
   Value five(5), minusFive(-5), pi(3.14);
 
-  EXPECT_TRUE(five.Operator(Op::Sub) == -5);
-  EXPECT_TRUE(minusFive.Operator(Op::Sub) == 5);
-  EXPECT_TRUE(pi.Operator(Op::Sub) == -3.14);
+  EXPECT_EQ(eval(Op::Sub, five), -5);
+  EXPECT_EQ(eval(Op::Sub, minusFive), 5);
+  EXPECT_EQ(eval(Op::Sub, pi), -3.14);
 }
 
-TEST(ValueInt, BitwiseShift) {
+TEST_F(ValueTest, IntBitwiseShift) {
   Value v1(1), shift3(3);
 
-  EXPECT_TRUE(v1.Operator(Op::ShiftLeft, shift3) == 8);
-  EXPECT_TRUE(Value(15).Operator(Op::BitAnd, Value(9)) == 9);
-  EXPECT_TRUE(Value(12).Operator(Op::BitOr, Value(3)) == 15);
-  EXPECT_TRUE(Value(5).Operator(Op::BitXor, Value(1)) == 4);
+  EXPECT_EQ(eval(v1, Op::ShiftLeft, shift3), 8);
+  EXPECT_EQ(eval(Value(15), Op::BitAnd, Value(9)), 9);
+  EXPECT_EQ(eval(Value(12), Op::BitOr, Value(3)), 15);
+  EXPECT_EQ(eval(Value(5), Op::BitXor, Value(1)), 4);
 }
 
-TEST(ValueBool, LogicalOps) {
+TEST_F(ValueTest, BoolLogicalOps) {
   Value t(true), f(false);
 
-  EXPECT_TRUE(t.Operator(Op::LogicalAnd, f) == false);
-  EXPECT_TRUE(t.Operator(Op::LogicalOr, f) == true);
-  EXPECT_TRUE(f.Operator(Op::LogicalOr, f) == false);
+  EXPECT_EQ(eval(t, Op::LogicalAnd, f), false);
+  EXPECT_EQ(eval(t, Op::LogicalOr, f), true);
+  EXPECT_EQ(eval(f, Op::LogicalOr, f), false);
 
   // unary logical NOT (mapped to Op::Tilde)
-  EXPECT_TRUE(t.Operator(Op::Tilde) == false);
-  EXPECT_TRUE(f.Operator(Op::Tilde) == true);
+  EXPECT_EQ(eval(Op::Tilde, t), false);
+  EXPECT_EQ(eval(Op::Tilde, f), true);
 }
 
-TEST(ValueString, ConcatenateAndRepeat) {
+TEST_F(ValueTest, StringConcatenateAndRepeat) {
   Value hello(std::string{"hello"});
   Value world(std::string{"world"});
   Value three(3);
 
-  EXPECT_TRUE(hello.Operator(Op::Add, world) == std::string("helloworld"));
-  EXPECT_TRUE(Value(std::string{"ab"}).Operator(Op::Mul, three) ==
-              std::string("ababab"));
+  EXPECT_EQ(eval(hello, Op::Add, world), std::string("helloworld"));
+  EXPECT_EQ(eval(Value(std::string{"ab"}), Op::Mul, three),
+            std::string("ababab"));
 }
 
-TEST(ValueEdge, DivisionByZero) {
+TEST_F(ValueTest, DivisionByZero) {
   Value six(6), zero(0);
 
   // int / 0 returns 0 per implementation
-  EXPECT_TRUE(six.Operator(Op::Div, zero) == 0);
+  EXPECT_EQ(eval(six, Op::Div, zero), 0);
 
   // double / 0.0 returns 0.0 per implementation
-  EXPECT_TRUE(Value(4.2).Operator(Op::Div, Value(0.0)) == 0.0);
+  EXPECT_EQ(eval(Value(4.2), Op::Div, Value(0.0)), 0.0);
 }
 
-TEST(ValueContainer, ListAndDict) {
+TEST_F(ValueTest, ContainerListAndDict) {
   GarbageCollector gc;
 
   // empty & filled lists

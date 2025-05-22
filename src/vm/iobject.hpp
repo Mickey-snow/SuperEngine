@@ -26,6 +26,7 @@
 
 #include "vm/gc.hpp"
 #include "vm/objtype.hpp"
+#include "vm/value_fwd.hpp"
 
 #include <string>
 
@@ -44,10 +45,10 @@ class IObject {
   virtual std::string Desc() const;
 
   virtual void Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs);
-  virtual Value Item(const Value& idx);
-  virtual Value SetItem(const Value& idx, Value value);
-  virtual Value Member(std::string_view mem);
-  virtual Value SetMember(std::string_view mem, Value value);
+  virtual TempValue Item(const Value& idx);
+  virtual TempValue SetItem(const Value& idx, Value value);
+  virtual TempValue Member(std::string_view mem);
+  virtual TempValue SetMember(std::string_view mem, Value value);
 };
 
 }  // namespace serilang

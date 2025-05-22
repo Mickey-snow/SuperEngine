@@ -28,19 +28,19 @@
 namespace siglus_test {
 using namespace libsiglus;
 
-TEST(ValueTest, Int) {
+TEST(sgValueTest, Int) {
   Value it = Integer(12);
   EXPECT_EQ(ToString(it), "int:12");
   EXPECT_EQ(Typeof(it), Type::Int);
 }
 
-TEST(ValueTest, String) {
+TEST(sgValueTest, String) {
   Value it = String("Hello, World!");
   EXPECT_EQ(ToString(it), "str:Hello, World!");
   EXPECT_EQ(Typeof(it), Type::String);
 }
 
-TEST(ValueTest, Variable) {
+TEST(sgValueTest, Variable) {
   Value it = Variable(Type::Int, 123);
   EXPECT_EQ(ToString(it), "v123");
   EXPECT_EQ(Typeof(it), Type::Int);

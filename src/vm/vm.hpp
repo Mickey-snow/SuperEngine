@@ -52,6 +52,8 @@ class VM {
 
   // Trigger garbage collection: mark-root and sweep unreachable objects
   void CollectGarbage();
+  // Let the garbage collector track a Value allocated elsewhere
+  Value AddTrack(TempValue&& t);
 
   // Run until all fibers die or error; returns last fiber's result
   Value Run();

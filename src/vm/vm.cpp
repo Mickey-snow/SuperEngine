@@ -86,6 +86,22 @@ void VM::CollectGarbage() {
   gc_.Sweep();
 }
 
+Value VM::AddTrack(TempValue&& t) {
+  return std::visit(
+      [&](auto&& t) -> Value {
+        using T = std::decay_t<decltype(t)>;
+
+        if constexpr (std::same_as<T, Value>)
+          return t;
+        else if constexpr (std::same_as<T, std::unique_ptr<IObject>>) {
+          IObject* ptr = t.release();
+          gc_.TrackObject(ptr);
+          return Value(ptr);
+        }
+      },
+      std::move(t));
+}
+
 Value VM::Run() {
   while (!fibres_.empty()) {
     auto f = fibres_.front();
@@ -212,7 +228,7 @@ void VM::ExecuteFiber(Fiber* fib) {
         const auto ins = chunk.Read<serilang::UnaryOp>(ip);
         ip += sizeof(ins);
         auto v = pop(fib->stack);
-        Value r = v.Operator(ins.op);
+        Value r = AddTrack(v.Operator(ins.op));
         push(fib->stack, r);
       } break;
 
@@ -221,7 +237,7 @@ void VM::ExecuteFiber(Fiber* fib) {
         ip += sizeof(ins);
         auto rhs = pop(fib->stack);
         auto lhs = pop(fib->stack);
-        Value out = lhs.Operator(ins.op, std::move(rhs));
+        Value out = AddTrack(lhs.Operator(ins.op, std::move(rhs)));
         push(fib->stack, out);
       } break;
 
