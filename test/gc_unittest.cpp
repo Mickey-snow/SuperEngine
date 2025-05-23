@@ -47,6 +47,7 @@ class DummyObject : public IObject {
   static constexpr inline ObjType objtype = ObjType::Dummy;
   constexpr ObjType Type() const noexcept override { return objtype; }
   constexpr size_t Size() const noexcept final { return sizeof(*this); }
+  void MarkRoots(GCVisitor&) override {}
 };
 
 class GCTest : public ::testing::Test {
@@ -185,4 +186,72 @@ TEST_F(GCTest, MarkFibresAndClosures) {
   vm.CollectGarbage();
   EXPECT_EQ(DummyObject::aliveCount(), 0);
 }
+
+TEST_F(GCTest, CircularReferences) {
+  DummyObject::aliveCount() = 0;
+  // Create two DummyObjects
+  auto* d1 = Alloc<DummyObject>();
+  auto* d2 = Alloc<DummyObject>();
+  EXPECT_EQ(DummyObject::aliveCount(), 2);
+
+  // Create two lists that reference each other and also hold the DummyObjects
+  auto* list1 = Alloc<List>(std::vector<Value>{Value(d1)});
+  auto* list2 = Alloc<List>(std::vector<Value>{Value(d2)});
+  // circular link
+  list1->items.emplace_back(list2);
+  list2->items.emplace_back(list1);
+
+  // Root only list1
+  vm.last_ = Value(list1);
+  vm.CollectGarbage();
+  // Both DummyObjects survive because they are reachable through the cycle
+  EXPECT_EQ(DummyObject::aliveCount(), 2);
+
+  // Clear root and collect again: the cycle is now unreachable
+  vm.last_ = Value();
+  vm.CollectGarbage();
+  EXPECT_EQ(DummyObject::aliveCount(), 0);
+}
+
+TEST_F(GCTest, MixedValueGraph) {
+  DummyObject::aliveCount() = 0;
+  // Create three DummyObjects
+  auto* d1 = Alloc<DummyObject>();
+  auto* d2 = Alloc<DummyObject>();
+  auto* d3 = Alloc<DummyObject>();
+  EXPECT_EQ(DummyObject::aliveCount(), 3);
+
+  // Closure holding d3 in its constant pool
+  auto chunk = std::make_shared<Chunk>();
+  chunk->const_pool.emplace_back(d3);
+  auto* cl = Alloc<Closure>(chunk);
+
+  // List holding d2
+  auto* list = Alloc<List>(std::vector<Value>{Value(d2)});
+
+  // Dict holding d1 and the list
+  std::unordered_map<std::string, Value> mp;
+  mp["one"] = Value(d1);
+  mp["lst"] = Value(list);
+  auto* dict = Alloc<Dict>(mp);
+
+  // Class+Instance: instance.field → dict, class.method → closure
+  auto* klass = Alloc<Class>();
+  klass->name = "Mixed";
+  klass->methods["fn"] = Value(cl);
+  auto* inst = Alloc<Instance>(klass);
+  inst->fields["data"] = Value(dict);
+
+  // Root only the instance
+  vm.last_ = Value(inst);
+  vm.CollectGarbage();
+  // All three DummyObjects survive via the mixed graph
+  EXPECT_EQ(DummyObject::aliveCount(), 3);
+
+  // Drop the root and collect: everything should be freed
+  vm.last_ = Value();
+  vm.CollectGarbage();
+  EXPECT_EQ(DummyObject::aliveCount(), 0);
+}
+
 }  // namespace serilang_test

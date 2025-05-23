@@ -40,8 +40,7 @@
 
 namespace serilang {
 
-VM::VM(std::shared_ptr<Chunk> entry, std::ostream& os)
-    : os_(os), main_chunk_(entry) {
+VM::VM(std::shared_ptr<Chunk> entry, std::ostream& os) : os_(os) {
   if (entry) {
     // bootstrap: main() as a closure pushed to main fiber
     auto main_cl = gc_.Allocate<Closure>(entry);
@@ -82,7 +81,13 @@ VM::VM(std::shared_ptr<Chunk> entry, std::ostream& os)
 }
 
 void VM::CollectGarbage() {
-  gc_.MarkRoot(*this);
+  GCVisitor collector(gc_);
+  collector.MarkSub(last_);
+  collector.MarkSub(main_fiber_);
+  for (auto& it : fibres_)
+    collector.MarkSub(it);
+  for (auto& [k, it] : globals_)
+    collector.MarkSub(it);
   gc_.Sweep();
 }
 

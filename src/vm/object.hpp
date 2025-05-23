@@ -47,6 +47,8 @@ struct Class : public IObject {
   constexpr ObjType Type() const noexcept final { return objtype; }
   constexpr size_t Size() const noexcept final { return sizeof(*this); }
 
+  void MarkRoots(GCVisitor& visitor) override;
+
   std::string Str() const override;
   std::string Desc() const override;
 
@@ -62,6 +64,8 @@ struct Instance : public IObject {
   explicit Instance(Class* klass_);
   constexpr ObjType Type() const noexcept final { return objtype; }
   constexpr size_t Size() const noexcept final { return sizeof(*this); }
+
+  void MarkRoots(GCVisitor& visitor) override;
 
   std::string Str() const override;
   std::string Desc() const override;
@@ -89,6 +93,8 @@ struct Fiber : public IObject {
   constexpr ObjType Type() const noexcept final { return objtype; }
   constexpr size_t Size() const noexcept final { return sizeof(*this); }
 
+  void MarkRoots(GCVisitor& visitor) override;
+
   std::string Str() const override;
   std::string Desc() const override;
 };
@@ -103,6 +109,8 @@ struct List : public IObject {
   constexpr ObjType Type() const noexcept final { return objtype; }
   constexpr size_t Size() const noexcept final { return sizeof(*this); }
 
+  void MarkRoots(GCVisitor& visitor) override;
+
   std::string Str() const override;   // “[1, 2, 3]”
   std::string Desc() const override;  // “<list[3]>”
 };
@@ -116,6 +124,8 @@ struct Dict : public IObject {
       : map(std::move(m)) {}
   constexpr ObjType Type() const noexcept final { return objtype; }
   constexpr size_t Size() const noexcept final { return sizeof(*this); }
+
+  void MarkRoots(GCVisitor& visitor) override;
 
   std::string Str() const override;   // “{a: 1, b: 2}”
   std::string Desc() const override;  // “<dict{2}>”
@@ -135,6 +145,8 @@ class NativeFunction : public IObject {
   std::string Name() const;
   constexpr ObjType Type() const noexcept final { return objtype; }
   constexpr size_t Size() const noexcept final { return sizeof(*this); }
+
+  void MarkRoots(GCVisitor& visitor) override;
 
   std::string Str() const override;
   std::string Desc() const override;
@@ -158,6 +170,8 @@ struct Closure : public IObject {
 
   constexpr ObjType Type() const noexcept final { return objtype; }
   constexpr size_t Size() const noexcept final { return sizeof(*this); }
+
+  void MarkRoots(GCVisitor& visitor) override;
 
   std::string Str() const override;
   std::string Desc() const override;

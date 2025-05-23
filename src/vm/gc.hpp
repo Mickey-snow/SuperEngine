@@ -37,6 +37,14 @@ class VM;
 template <typename T>
 concept is_object = std::derived_from<T, IObject>;
 
+class GarbageCollector;
+
+struct GCVisitor {
+  GarbageCollector& gc;
+  void MarkSub(IObject* obj);
+  void MarkSub(Value& val);
+};
+
 struct GCHeader {
   IObject* next = nullptr;
   bool marked = false;
@@ -64,9 +72,6 @@ class GarbageCollector {
   size_t AllocatedBytes() const;
 
   void UnmarkAll() const;
-  void MarkRoot(VM& vm);
-  void MarkRoot(Value& v);
-  void MarkRoot(IObject* obj);
   void Sweep();
 
  private:

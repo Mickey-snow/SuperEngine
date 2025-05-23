@@ -67,7 +67,6 @@ class VM {
   GarbageCollector gc_;
   size_t gc_threshold_ = 1024 * 1024;
 
-  std::shared_ptr<Chunk> main_chunk_;
   Fiber* main_fiber_ = nullptr;
   std::deque<Fiber*> fibres_;
   Value last_;  // last fiber's return value

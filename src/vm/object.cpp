@@ -31,6 +31,11 @@
 namespace serilang {
 
 // -----------------------------------------------------------------------
+void Class::MarkRoots(GCVisitor& visitor) {
+  for (auto& [k, it] : methods)
+    visitor.MarkSub(it);
+}
+
 std::string Class::Str() const { return Desc(); }
 
 std::string Class::Desc() const { return "<class " + name + '>'; }
@@ -45,6 +50,12 @@ void Class::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
 // -----------------------------------------------------------------------
 Instance::Instance(Class* klass_) : klass(klass_) {}
 
+void Instance::MarkRoots(GCVisitor& visitor) {
+  klass->MarkRoots(visitor);
+  for (auto& [k, it] : fields)
+    visitor.MarkSub(it);
+}
+
 std::string Instance::Str() const { return Desc(); }
 
 std::string Instance::Desc() const { return '<' + klass->name + " object>"; }
@@ -52,6 +63,17 @@ std::string Instance::Desc() const { return '<' + klass->name + " object>"; }
 // -----------------------------------------------------------------------
 Fiber::Fiber(size_t reserve) : state(FiberState::New) {
   stack.reserve(reserve);
+}
+
+void Fiber::MarkRoots(GCVisitor& visitor) {
+  visitor.MarkSub(last);
+  for (auto& it : stack)
+    visitor.MarkSub(it);
+  for (auto& it : frames)
+    visitor.MarkSub(it.closure);
+  for (auto& it : open_upvalues)
+    if (it->location)
+      visitor.MarkSub(*it->location);
 }
 
 Value* Fiber::local_slot(size_t frame_index, uint8_t slot) {
@@ -71,7 +93,6 @@ std::shared_ptr<Upvalue> Fiber::capture_upvalue(Value* slot) {
   return uv;
 }
 
-// -----------------------------------------------------------------------
 void Fiber::close_upvalues_from(Value* from) {
   for (auto& uv : open_upvalues) {
     if (uv->location >= from) {
@@ -101,6 +122,11 @@ std::string List::Desc() const {
   return "<list[" + std::to_string(items.size()) + "]>";
 }
 
+void List::MarkRoots(GCVisitor& visitor) {
+  for (auto& it : items)
+    visitor.MarkSub(it);
+}
+
 // -----------------------------------------------------------------------
 std::string Dict::Str() const {
   std::string repr;
@@ -115,6 +141,11 @@ std::string Dict::Str() const {
 }
 std::string Dict::Desc() const {
   return "<dict{" + std::to_string(map.size()) + "}>";
+}
+
+void Dict::MarkRoots(GCVisitor& visitor) {
+  for (auto& [k, it] : map)
+    visitor.MarkSub(it);
 }
 
 // -----------------------------------------------------------------------
@@ -132,6 +163,13 @@ void Closure::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
   f.frames.push_back({this, entry, base});
 }
 
+void Closure::MarkRoots(GCVisitor& visitor) {
+  if (!chunk)
+    return;
+  for (auto& it : chunk->const_pool)
+    visitor.MarkSub(it);
+}
+
 // -----------------------------------------------------------------------
 NativeFunction::NativeFunction(std::string name, function_t fn)
     : name_(std::move(name)), fn_(std::move(fn)) {}
@@ -143,6 +181,8 @@ std::string NativeFunction::Str() const { return "<fn " + name_ + '>'; }
 std::string NativeFunction::Desc() const {
   return "<native function '" + name_ + "'>";
 }
+
+void NativeFunction::MarkRoots(GCVisitor& visitor) {}
 
 void NativeFunction::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
   std::vector<Value> args;

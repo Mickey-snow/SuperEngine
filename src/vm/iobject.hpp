@@ -33,6 +33,8 @@
 namespace serilang {
 struct Fiber;
 
+struct GCVisitor;
+
 class IObject {
  public:
   GCHeader hdr_;
@@ -40,6 +42,8 @@ class IObject {
   virtual ~IObject() = default;
   constexpr virtual ObjType Type() const noexcept = 0;
   constexpr virtual size_t Size() const noexcept = 0;
+
+  virtual void MarkRoots(GCVisitor& visitor) = 0;
 
   virtual std::string Str() const;
   virtual std::string Desc() const;
