@@ -6,12 +6,6 @@ set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS 1 CACHE INTERNAL
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/utf8cpp/include)
 
 # -------------------------------------------------------------------
-# xclannad
-# -------------------------------------------------------------------
-file(GLOB XCLANNAD_SRC_FILES "xclannad/*.cc" "xclannad/*.cpp")
-add_library(xclannad STATIC ${XCLANNAD_SRC_FILES})
-
-# -------------------------------------------------------------------
 # pygame
 # -------------------------------------------------------------------
 add_library(pygame STATIC "pygame/alphablit.cc")
@@ -79,3 +73,10 @@ add_library(utf8cpp INTERFACE)
 target_include_directories(utf8cpp INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/utf8cpp/source
 )
+
+# -------------------------------------------------------------------
+# xclannad
+# -------------------------------------------------------------------
+file(GLOB XCLANNAD_SRC_FILES "xclannad/*.cc" "xclannad/*.cpp")
+add_library(xclannad STATIC ${XCLANNAD_SRC_FILES})
+target_link_libraries(xclannad PUBLIC sdl_mixer)
