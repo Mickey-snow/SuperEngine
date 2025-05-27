@@ -207,6 +207,10 @@ class Scene {
     }
   }
 
+
+  int id_;
+  std::string scnname_;
+
   std::string data_;
   Scene_hdr const* hdr_;
 
