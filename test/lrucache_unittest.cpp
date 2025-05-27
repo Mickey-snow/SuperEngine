@@ -299,8 +299,7 @@ TEST_F(LRUCacheThreadSafetyTest, ConcurrentMixedOperations) {
   EXPECT_LE(cache.size(), cache_size);
 }
 
-TEST_F(LRUCacheThreadSafetyTest, HighContention) {
-  GTEST_SKIP();
+TEST_F(LRUCacheThreadSafetyTest, DISABLED_HighContention) {
   const int cache_size = 10;
   ThreadSafeLRUCache cache(cache_size);
 

@@ -51,7 +51,7 @@ std::string_view LineTable::LineText(size_t lineIndex) const {
 
   size_t start = lineStarts_[lineIndex];
   size_t end = lineStarts_[lineIndex + 1];  // next line start
-  if (end > 0 && src_[end - 1] == '\n')
+  if (end >= src_.length() || (end > 0 && src_[end - 1] == '\n'))
     --end;  // remove trailing newline if it exists
   return src_.substr(start, end - start);
 }

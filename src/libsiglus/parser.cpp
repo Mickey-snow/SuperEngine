@@ -286,7 +286,7 @@ void Parser::Add(lex::Assign a) {
 std::string Parser::DumpTokens() const {
   std::string result;
   for (size_t i = 0; i < token_.size(); ++i)
-    result += std::to_string(i) + ": " + ToDebugString(token_[i]) + '\n';
+    result += std::to_string(i) + ": " + ToString(token_[i]) + '\n';
   return result;
 }
 

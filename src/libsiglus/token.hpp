@@ -34,11 +34,11 @@ namespace libsiglus::token {
 struct Command {
   int overload_id;
   ElementCode elmcode;
-  Element elm;
   std::vector<Value> arg;
   std::vector<std::pair<int, Value>> named_arg;
   Type return_type;
 
+  Element elm;
   Value dst;
 
   std::string ToDebugString() const;
@@ -59,8 +59,8 @@ struct Textout {
 
 struct GetProperty {
   ElementCode elmcode;
-  Element elm;
 
+  Element elm;
   Value dst;
   std::string ToDebugString() const;
 };
@@ -73,6 +73,7 @@ struct Goto {
 struct GotoIf {
   int label;
   bool cond;
+
   Value src;
 
   std::string ToDebugString() const;
@@ -118,8 +119,9 @@ using Token_t = std::variant<Command,
                              GotoIf,
                              Assign,
                              Duplicate>;
-inline std::string ToDebugString(const Token_t& stmt) {
+inline std::string ToString(const Token_t& stmt) {
   return std::visit(
       [](const auto& v) -> std::string { return v.ToDebugString(); }, stmt);
 }
+
 }  // namespace libsiglus::token
