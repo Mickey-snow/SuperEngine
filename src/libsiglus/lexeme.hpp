@@ -230,6 +230,18 @@ struct Return {
   std::vector<Type> ret_types_;
 };
 
+struct Arg {
+  std::string ToDebugString() const { return "arg"; }
+  size_t ByteLength() const { return 1; }
+};
+
+struct Declare {
+  Type type;
+  size_t size;
+  std::string ToDebugString() const;
+  size_t ByteLength() const { return 1 + 4 + 4; }
+};
+
 }  // namespace lex
 
 struct ByteLengthOf {

@@ -108,6 +108,28 @@ struct Duplicate {
   std::string ToDebugString() const;
 };
 
+struct Gosub {
+  int entry_id;
+  std::vector<Value> args;
+  Value dst;
+  std::string ToDebugString() const;
+};
+
+struct Subroutine {
+  std::string ToDebugString() const;
+};
+
+struct Return {
+  std::vector<Value> ret_vals;
+  std::string ToDebugString() const;
+};
+
+struct Precall {
+  Type type;
+  size_t size;
+  std::string ToDebugString() const;
+};
+
 using Token_t = std::variant<Command,
                              Name,
                              Textout,
@@ -117,8 +139,13 @@ using Token_t = std::variant<Command,
                              Label,
                              Goto,
                              GotoIf,
+                             Gosub,
                              Assign,
-                             Duplicate>;
+                             Duplicate,
+                             Subroutine,
+                             Precall,
+                             Return>;
+
 inline std::string ToString(const Token_t& stmt) {
   return std::visit(
       [](const auto& v) -> std::string { return v.ToDebugString(); }, stmt);

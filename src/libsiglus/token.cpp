@@ -27,6 +27,12 @@
 #include <format>
 
 namespace libsiglus::token {
+// helper to convert a range of Value to string
+static inline auto vals_to_string(std::vector<Value> const& vals) {
+  return std::views::all(vals) |
+         std::views::transform([](const Value& v) { return ToString(v); });
+}
+
 std::string Command::ToDebugString() const {
   const std::string cmd_repr = std::format(
       "cmd<{}:{}>", Join(",", view_to_string(elmcode)), overload_id);
@@ -62,6 +68,10 @@ std::string GotoIf::ToDebugString() const {
   return std::format("{}({}) goto .L{}", cond ? "if" : "ifnot", ToString(src),
                      label);
 }
+std::string Gosub::ToDebugString() const {
+  return std::format("gosub@.L{}({})", entry_id,
+                     Join(",", vals_to_string(args)));
+}
 std::string Label::ToDebugString() const { return ".L" + std::to_string(id); }
 std::string Operate1::ToDebugString() const {
   return std::format("{} {} = {} {}", ToString(Typeof(dst)), ToString(dst),
@@ -79,5 +89,14 @@ std::string Assign::ToDebugString() const {
 std::string Duplicate::ToDebugString() const {
   return std::format("{} {} = {}", ToString(Typeof(dst)), ToString(dst),
                      ToString(src));
+}
+std::string Subroutine::ToDebugString() const {
+  return "====== SUBROUTINE ======";
+}
+std::string Return::ToDebugString() const {
+  return std::format("ret ({})", Join(",", vals_to_string(ret_vals)));
+}
+std::string Precall::ToDebugString() const {
+  return std::format("precall {} {}", ToString(type), size);
 }
 }  // namespace libsiglus::token

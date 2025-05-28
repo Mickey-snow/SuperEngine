@@ -134,14 +134,14 @@ void Parser::ParseAll() {
       add_label(begin->second);
     }
 
-    // is it safe to assume the stack is empty here?
-    if (offset2labels_.contains(reader_.Position()) && !stack_.Empty())
-      logger(Severity::Warn) << stack_.ToDebugString();
-
-    // parse
-    static Lexer lexer;
-    std::visit([&](auto&& x) { this->Add(std::forward<decltype(x)>(x)); },
-               lexer.Parse(reader_));
+    try {  // parse
+      static Lexer lexer;
+      std::visit([&](auto&& x) { this->Add(std::forward<decltype(x)>(x)); },
+                 lexer.Parse(reader_));
+    } catch (std::runtime_error& e) {
+      std::string stack_dbgstr = "\nstack:\n" + stack_.ToDebugString();
+      throw std::runtime_error(e.what() + std::move(stack_dbgstr));
+    }
   }
 }
 
@@ -283,6 +283,39 @@ void Parser::Add(lex::Assign a) {
   tok.dst_elmcode = stack_.Popelm();
   tok.dst = resolve_element(tok.dst_elmcode);
   emit_token(std::move(tok));
+}
+
+void Parser::Add(lex::Gosub s) {
+  token::Gosub tok;
+
+  tok.dst = add_var(s.return_type_);
+
+  std::vector<Value> args;
+  args.reserve(s.argt_.size());
+  std::transform(s.argt_.rbegin(), s.argt_.rend(), std::back_inserter(args),
+                 [&](const Type& t) { return pop(t); });
+  tok.args = std::move(args);
+  tok.entry_id = s.label_;
+
+  emit_token(std::move(tok));
+}
+
+void Parser::Add(lex::Arg a) { emit_token(Subroutine()); }
+
+void Parser::Add(lex::Return r) {
+  token::Return ret;
+  ret.ret_vals.reserve(r.ret_types_.size());
+  std::transform(r.ret_types_.rbegin(), r.ret_types_.rend(),
+                 std::back_inserter(ret.ret_vals),
+                 [&](const Type& t) { return pop(t); });
+  emit_token(std::move(ret));
+}
+
+void Parser::Add(lex::Declare d) {
+  token::Precall pre;
+  pre.type = d.type;
+  pre.size = d.size;
+  emit_token(std::move(pre));
 }
 
 // void Parser::Add(lex::Namae) { token_append(Name{stack_.Popstr()}); }

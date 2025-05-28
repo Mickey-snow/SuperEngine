@@ -56,7 +56,6 @@ class Parser {
          Scene& scene,
          std::shared_ptr<OutputBuffer> out = nullptr);
 
-  token::Token_t Next();
   void ParseAll();
 
  private:
@@ -84,6 +83,10 @@ class Parser {
   void Add(lex::Property);
   void Add(lex::Command);
   void Add(lex::Assign);
+  void Add(lex::Gosub);
+  void Add(lex::Arg);
+  void Add(lex::Return);
+  void Add(lex::Declare);
   // void Add(lex::Namae);
   // void Add(lex::Textout);
 

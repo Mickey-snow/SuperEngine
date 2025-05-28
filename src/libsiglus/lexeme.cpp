@@ -61,6 +61,8 @@ std::string Return::ToDebugString() const {
       Join(",", ret_types_ | std::views::transform(
                                  [](const auto& it) { return ToString(it); })));
 }
-
+std::string Declare::ToDebugString() const {
+  return std::format("declare {} {}", ToString(type), size);
+}
 }  // namespace lex
 }  // namespace libsiglus

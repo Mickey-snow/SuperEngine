@@ -145,9 +145,21 @@ Lexeme Lexer::Parse(ByteReader& reader) const {
     case ByteCode::Return:
       return Return(ParseArglist(reader));
 
+    case ByteCode::Arg:
+      return Arg();
+
+    case ByteCode::Declare: {
+      auto type = static_cast<Type>(reader.PopAs<int32_t>(4));
+      auto size = static_cast<size_t>(reader.PopAs<uint32_t>(4));
+      return Declare(type, size);
+    }
+
     default: {
+      reader.Proceed(-1);
+
       std::stringstream ss;
-      ss << "Lexer: Unable to parse " << '[';
+      ss << "Lexer: At position " << reader.Position() << ", unable to parse [";
+
       static constexpr size_t debug_length = 128;
       for (size_t i = 0; i < debug_length; ++i) {
         if (reader.Position() >= reader.Size())

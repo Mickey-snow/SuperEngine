@@ -50,6 +50,8 @@ struct Return;
 struct Namae;
 struct EndOfScene;
 struct Textout;
+struct Arg;
+struct Declare;
 }  // namespace lex
 
 using Lexeme = std::variant<lex::None,
@@ -69,6 +71,8 @@ using Lexeme = std::variant<lex::None,
                             lex::Return,
                             lex::Namae,
                             lex::EndOfScene,
-                            lex::Textout>;
+                            lex::Textout,
+                            lex::Arg,
+                            lex::Declare>;
 
 }  // namespace libsiglus
