@@ -23,8 +23,8 @@ jobs:
 
       - name: Install system deps
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtest-dev \
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libgtest-dev \
             libsdl1.2-dev \
             libboost-all-dev \
             libgl1-mesa-dev libglu1-mesa-dev \

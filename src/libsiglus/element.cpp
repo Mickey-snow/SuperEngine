@@ -24,7 +24,10 @@
 
 #include "libsiglus/element.hpp"
 
+#include "libsiglus/elm_details/farcall.hpp"
 #include "libsiglus/elm_details/memory.hpp"
+#include "libsiglus/elm_details/title.hpp"
+
 #include "utilities/string_utilities.hpp"
 
 #include <format>
@@ -246,6 +249,14 @@ Element MakeElement(int elm, std::span<int> path) {
       memory.root_id = elm;
       return memory.Parse(path);
     }
+
+    case FARCALL:
+      return std::make_unique<elm::Farcall>();
+
+    case SET_TITLE:
+      return std::make_unique<elm::SetTitle>();
+    case GET_TITLE:
+      return std::make_unique<elm::GetTitle>();
   }
 
   auto uke = std::make_unique<UnknownElement>();

@@ -33,7 +33,17 @@
 
 namespace libsiglus {
 namespace elm {
-enum class Kind { Invalid, Usrcmd, Usrprop, Memory };
+enum class Kind {
+  Invalid,
+
+  Usrcmd,
+  Usrprop,
+
+  Memory,
+  Farcall,
+  GetTitle,
+  SetTitle
+};
 }
 
 class IElement;
