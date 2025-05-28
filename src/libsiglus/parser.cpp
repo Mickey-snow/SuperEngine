@@ -55,6 +55,10 @@ Parser::Parser(Archive& archive,
   for (size_t i = 0; i < scene.label.size(); ++i) {
     offset2labels_.emplace(scene.label[i], i);  // (location, lid)
   }
+
+  for (size_t i = 0; i < scene.cmd.size(); ++i) {
+    offset2cmd_.emplace(scene.cmd[i].offset, i);
+  }
 }
 
 Value Parser::add_var(Type type) {
@@ -118,6 +122,18 @@ Element Parser::resolve_element(std::span<int> elm) const {
       result->idx = idx;
     }
     return result;
+
+  } else if (elm.front() == 83 && elm[1] == 2097152000) {
+    // hack
+    struct CallArg : public IElement {
+      CallArg() : IElement(83, Type::Int) {}
+      int id = 0;
+      elm::Kind Kind() const noexcept override { return elm::Kind::Callprop; }
+      std::string ToDebugString() const override {
+        return "arg_" + std::to_string(id);
+      }
+    };
+    return std::make_unique<CallArg>();
 
   } else {  // built-in element
     int root = elm.front();
@@ -216,13 +232,14 @@ void Parser::Add(lex::Operate1 op) {  // + - ~ <int>
   tok.rhs = stack_.Popint();
   tok.dst = add_var(Type::Int);
   tok.op = op.op_;
+  tok.val = TryEval(tok.op, tok.rhs);
 
-  stack_.Push(tok.dst);
+  stack_.Push(tok.val.value_or(tok.dst));
   emit_token(std::move(tok));
 }
 
 void Parser::Add(lex::Operate2 op) {
-  Type result_type = Type::None;
+  Type result_type = Type::Invalid;
 
   if (op.ltype_ == Type::Int && op.rtype_ == Type::Int)
     result_type = Type::Int;
@@ -233,14 +250,15 @@ void Parser::Add(lex::Operate2 op) {
                                                : Type::Int /* str <comp> str */;
   }
 
-  token::Operate2 stmt;
-  stmt.dst = add_var(result_type);
-  stmt.op = op.op_;
-  stmt.rhs = pop(op.rtype_);
-  stmt.lhs = pop(op.ltype_);
+  token::Operate2 tok;
+  tok.dst = add_var(result_type);
+  tok.op = op.op_;
+  tok.rhs = pop(op.rtype_);
+  tok.lhs = pop(op.ltype_);
+  tok.val = TryEval(tok.lhs, tok.op, tok.rhs);
 
-  stack_.Push(stmt.dst);
-  emit_token(std::move(stmt));
+  stack_.Push(tok.val.value_or(tok.dst));
+  emit_token(std::move(tok));
 }
 
 void Parser::Add(lex::Copy cp) {
@@ -300,7 +318,12 @@ void Parser::Add(lex::Gosub s) {
   emit_token(std::move(tok));
 }
 
-void Parser::Add(lex::Arg a) { emit_token(Subroutine()); }
+void Parser::Add(lex::Arg a) {
+  int cmd_id = offset2cmd_.lower_bound(reader_.Position())->second;
+  token ::Subroutine tok;
+  tok.name = scene_.cmd[cmd_id].name;
+  emit_token(std::move(tok));
+}
 
 void Parser::Add(lex::Return r) {
   token::Return ret;

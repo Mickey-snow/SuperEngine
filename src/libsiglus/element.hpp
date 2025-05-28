@@ -39,6 +39,7 @@ enum class Kind {
   Usrcmd,
   Usrprop,
 
+  Callprop,
   Memory,
   Farcall,
   GetTitle,
@@ -51,10 +52,11 @@ using Element = std::unique_ptr<IElement>;
 
 class IElement {
  public:
+  IElement(int root_id_ = 0, Type type_ = Type::Invalid);
   virtual ~IElement() = default;
 
   int root_id;
-  Type type = Type::Invalid;
+  Type type;
 
   // if this is an object handler
   virtual Element Parse(std::span<int> path) const;

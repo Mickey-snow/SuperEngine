@@ -87,12 +87,14 @@ struct Label {
 struct Operate1 {
   OperatorCode op;
   Value rhs, dst;
+  std::optional<Value> val;  // if can be eval at compile time
   std::string ToDebugString() const;
 };
 
 struct Operate2 {
   OperatorCode op;
   Value lhs, rhs, dst;
+  std::optional<Value> val;  // if can be eval at compile time
   std::string ToDebugString() const;
 };
 
@@ -116,6 +118,7 @@ struct Gosub {
 };
 
 struct Subroutine {
+  std::string name;
   std::string ToDebugString() const;
 };
 

@@ -74,12 +74,19 @@ std::string Gosub::ToDebugString() const {
 }
 std::string Label::ToDebugString() const { return ".L" + std::to_string(id); }
 std::string Operate1::ToDebugString() const {
-  return std::format("{} {} = {} {}", ToString(Typeof(dst)), ToString(dst),
-                     ToString(op), ToString(rhs));
+  auto expr = std::format("{} {} = {} {}", ToString(Typeof(dst)), ToString(dst),
+                          ToString(op), ToString(rhs));
+  return val.has_value()
+             ? std::format("{:<30} ;{}", std::move(expr), ToString(*val))
+             : expr;
 }
 std::string Operate2::ToDebugString() const {
-  return std::format("{} {} = {} {} {}", ToString(Typeof(dst)), ToString(dst),
-                     ToString(lhs), ToString(op), ToString(rhs));
+  auto expr =
+      std::format("{} {} = {} {} {}", ToString(Typeof(dst)), ToString(dst),
+                  ToString(lhs), ToString(op), ToString(rhs));
+  return val.has_value()
+             ? std::format("{:<30} ;{}", std::move(expr), ToString(*val))
+             : expr;
 }
 std::string Assign::ToDebugString() const {
   std::string repr = dst->ToDebugString() + " = " + ToString(src);
@@ -91,7 +98,7 @@ std::string Duplicate::ToDebugString() const {
                      ToString(src));
 }
 std::string Subroutine::ToDebugString() const {
-  return "====== SUBROUTINE ======";
+  return std::format("====== SUBROUTINE {} ======", name);
 }
 std::string Return::ToDebugString() const {
   return std::format("ret ({})", Join(",", vals_to_string(ret_vals)));

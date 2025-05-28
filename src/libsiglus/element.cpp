@@ -36,6 +36,8 @@ namespace libsiglus {
 
 // -----------------------------------------------------------------------
 // class IElement
+IElement::IElement(int root_id_, Type type_) : root_id(root_id_), type(type_) {}
+
 std::string IElement::ToDebugString() const {
   return std::format("({}:{})", ToString(type), root_id);
 }

@@ -25,6 +25,7 @@
 
 #include "types.hpp"
 
+#include <optional>
 #include <string>
 #include <variant>
 #include <vector>
@@ -59,6 +60,12 @@ struct Variable {
 using Value = std::variant<Integer,  // constant
                            String,   // constant
                            Variable>;
+inline int AsInt(const Value& val) { return std::get<Integer>(val).val_; }
+inline std::string AsStr(const Value& val) {
+  return std::get_if<String>(&val)->val_;
+}
+std::optional<Value> TryEval(OperatorCode op, Value rhs);
+std::optional<Value> TryEval(Value lhs, OperatorCode op, Value rhs);
 
 inline std::string ToString(const auto& v) {
   return std::visit([](const auto& x) { return x.ToDebugString(); }, v);

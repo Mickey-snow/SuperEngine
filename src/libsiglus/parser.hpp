@@ -107,6 +107,7 @@ class Parser {
 
   int var_cnt_;
   std::multimap<int, int> offset2labels_;
+  std::map<int, int> offset2cmd_;
 };
 
 }  // namespace libsiglus
