@@ -28,15 +28,13 @@ else()
   set(GTEST_LIBRARIES gtest_main gmock_main)
 endif()
 
-enable_testing()
+include(GoogleTest)
+include(CTest)
 
 # -------------------------------------------------------------------
 # Build Unittest
 # -------------------------------------------------------------------
-file(GLOB_RECURSE TEST_SRC_FILES
-  "*.cpp"
-  "*.cc"
-)
+file(GLOB_RECURSE TEST_SRC_FILES "*.cpp")
 add_executable(unittest ${TEST_SRC_FILES})
 target_include_directories(unittest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(unittest PRIVATE
@@ -47,6 +45,24 @@ target_link_libraries(unittest PRIVATE
   ${OPENGL_LIBRARIES}
   ${GLEW_LIBRARIES}
 )
+
+add_test(
+  NAME RLVM_UnitTests
+  COMMAND ${CMAKE_BINARY_DIR}/unittest --gtest_also_run_disabled_tests --gtest_output=xml:${CMAKE_BINARY_DIR}/test_results.xml
+)
+
+set_tests_properties(RLVM_UnitTests PROPERTIES
+  PASS_REGULAR_EXPRESSION ".*"
+  FAIL_REGULAR_EXPRESSION "FAILED"
+  TIMEOUT 30
+)
+
+add_custom_target(run_tests
+  COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
+  DEPENDS unittest
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+)
+
 
 # -------------------------------------------------------------------
 # Prepare test files

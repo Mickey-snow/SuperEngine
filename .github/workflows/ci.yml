@@ -23,8 +23,9 @@ jobs:
 
       - name: Install system deps
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq libgtest-dev \
+          sudo apt-get -qq update
+          sudo apt-get -qq install -y --fix-missing \
+            libgtest-dev libgmock-dev \
             libsdl1.2-dev \
             libboost-all-dev \
             libgl1-mesa-dev libglu1-mesa-dev \
@@ -36,11 +37,8 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake -S . -B build
+          cmake -S . -B build -DRLVM_BUILD_TESTS=ON
 
-      - name: Build
+      - name: Build & Run tests
         run: |
-          cmake --build build -- -j
-
-      - name: Run tests
-        run: build/unittests
+          cmake --build build --target run_tests -- -j$(nproc)
