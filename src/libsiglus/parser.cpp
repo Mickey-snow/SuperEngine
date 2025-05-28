@@ -35,12 +35,23 @@ using namespace token;
 // class Parser
 static DomainLogger logger("Parser");
 
-Parser::Parser(Archive& archive, Scene& scene)
+Parser::Parser(Archive& archive,
+               Scene& scene,
+               std::shared_ptr<OutputBuffer> out)
     : archive_(archive),
       scene_(scene),
+      out_(out),
       reader_(scene_.scene_),
       lineno_(0),
       var_cnt_(0) {
+  if (out_ == nullptr) {
+    class Dummy : public OutputBuffer {
+     public:
+      void operator=(token::Token_t) override {}
+    };
+    out_ = std::make_shared<Dummy>();
+  }
+
   for (size_t i = 0; i < scene.label.size(); ++i) {
     offset2labels_.emplace(scene.label[i], i);  // (location, lid)
   }
@@ -65,10 +76,7 @@ Value Parser::pop(Type type) {
   }
 }
 
-void Parser::add_label(int id) {
-  label2offset_[id] = token_.size();
-  emit_token(Label{id});
-}
+void Parser::add_label(int id) { emit_token(Label{id}); }
 
 Element Parser::resolve_element(std::span<int> elm) const {
   const auto flag = (elm.front() >> 24) & 0xFF;
@@ -157,8 +165,8 @@ void Parser::Add(lex::Line line) {
   lineno_ = line.linenum_;
   // is it safe to assume the stack is empty here?
   if (!stack_.Empty()) {
-    logger(Severity::Info) << "at line " << lineno_ << '#' << token_.size()
-                           << ", expected stack to be empty.\n"
+    logger(Severity::Info) << "at line " << lineno_
+                           << "expected stack to be empty. but got:\n"
                            << stack_.ToDebugString();
     stack_.Clear();
   }
@@ -173,7 +181,7 @@ void Parser::Add(lex::Property) {
   tok.dst = add_var(tok.elm->type);
 
   stack_.Push(tok.dst);
-  token_.emplace_back(std::move(tok));
+  emit_token(std::move(tok));
 }
 
 void Parser::Add(lex::Command command) {
@@ -282,12 +290,5 @@ void Parser::Add(lex::Assign a) {
 // void Parser::Add(lex::Textout t) {
 //   token_append(Textout{.kidoku = t.kidoku_, .str = stack_.Popstr()});
 // }
-
-std::string Parser::DumpTokens() const {
-  std::string result;
-  for (size_t i = 0; i < token_.size(); ++i)
-    result += std::to_string(i) + ": " + ToString(token_[i]) + '\n';
-  return result;
-}
 
 }  // namespace libsiglus

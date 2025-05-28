@@ -64,7 +64,7 @@ class Memory final : public IElement {
 
   Bank bank;
   int bits = 32;
-  std::variant<Access, Init, Resize, Fill, Size, Set> var;
+  std::variant<std::monostate, Access, Init, Resize, Fill, Size, Set> var;
 
   Element Parse(std::span<int> path) const override;
 

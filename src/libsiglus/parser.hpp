@@ -27,6 +27,7 @@
 #include "libsiglus/lexeme.hpp"
 #include "libsiglus/lexer.hpp"
 #include "libsiglus/property.hpp"
+#include "libsiglus/scene.hpp"
 #include "libsiglus/stack.hpp"
 #include "libsiglus/token.hpp"
 #include "libsiglus/value.hpp"
@@ -42,21 +43,27 @@ namespace libsiglus {
 
 class Archive;
 class Scene;
+
 class Parser {
  public:
-  Parser(Archive& archive, Scene& scene);
+  class OutputBuffer {
+   public:
+    virtual ~OutputBuffer() = default;
+    virtual void operator=(token::Token_t) = 0;
+  };
+
+  Parser(Archive& archive,
+         Scene& scene,
+         std::shared_ptr<OutputBuffer> out = nullptr);
 
   token::Token_t Next();
   void ParseAll();
-
-  // debug
-  std::string DumpTokens() const;
 
  private:
   // helpers
   template <typename T>
   inline void emit_token(T&& t) {
-    token_.emplace_back(std::forward<T>(t));
+    (*out_) = std::forward<T>(t);
   }
 
   Value add_var(Type type);
@@ -88,17 +95,15 @@ class Parser {
  public:
   Archive& archive_;
   Scene& scene_;
+  std::shared_ptr<OutputBuffer> out_;
 
   ByteReader reader_;
-
-  std::vector<token::Token_t> token_;
 
   int lineno_;
   Stack stack_;
 
   int var_cnt_;
   std::multimap<int, int> offset2labels_;
-  std::unordered_map<int, int> label2offset_;
 };
 
 }  // namespace libsiglus
