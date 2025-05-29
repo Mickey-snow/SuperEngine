@@ -34,8 +34,9 @@
 #include "libsiglus/value.hpp"
 #include "utilities/byte_reader.hpp"
 
-#include <iostream>
+#include <iomanip>
 #include <map>
+#include <sstream>
 #include <string>
 #include <unordered_map>
 #include <variant>
@@ -69,7 +70,8 @@ class Parser {
   Value add_var(Type type);
   Value pop(Type type);
   void add_label(int id);
-  Element resolve_element(const ElementCode& elm) const;
+  Element resolve_element(const ElementCode& elm);
+  Element make_element(const ElementCode& elm);
 
   // dispatch functions
   void Add(lex::Push);
@@ -88,12 +90,24 @@ class Parser {
   void Add(lex::Arg);
   void Add(lex::Return);
   void Add(lex::Declare);
-  // void Add(lex::Namae);
-  // void Add(lex::Textout);
+  void Add(lex::Namae);
+  void Add(lex::Textout);
 
   template <typename T>
   void Add(T t) {
-    throw std::runtime_error("Parser: Unsupported lexeme " + t.ToDebugString());
+    reader_.Proceed(-t.ByteLength());
+
+    std::stringstream ss;
+    ss << "Parser: Unsupported lexeme " + t.ToDebugString();
+    ss << " [";
+    for (size_t i = 0; i < 128; ++i) {
+      if (reader_.Position() >= reader_.Size())
+        break;
+      ss << std::setfill('0') << std::setw(2) << std::hex
+         << reader_.PopAs<int>(1) << ' ';
+    }
+    ss << "]";
+    throw std::runtime_error(ss.str());
   }
 
  public:

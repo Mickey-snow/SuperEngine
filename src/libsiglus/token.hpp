@@ -46,14 +46,14 @@ struct Command {
 };
 
 struct Name {
-  std::string str;
+  Value str;
 
-  std::string ToDebugString() const { return "Name(" + str + ')'; }
+  std::string ToDebugString() const;
 };
 
 struct Textout {
   int kidoku;
-  std::string str;
+  Value str;
 
   std::string ToDebugString() const;
 };

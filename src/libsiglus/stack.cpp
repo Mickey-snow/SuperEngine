@@ -77,23 +77,20 @@ Stack& Stack::Push(const ElementCode& elm) {
 }
 
 Value Stack::Backint() const {
-  if (intstk_.empty()) {
-    throw StackUnderflow();
-  }
+  if (intstk_.empty())
+    report_underflow();
   return intstk_.back();
 }
 
 Value& Stack::Backint() {
-  if (intstk_.empty()) {
-    throw StackUnderflow();
-  }
+  if (intstk_.empty())
+    report_underflow();
   return intstk_.back();
 }
 
 Value Stack::Popint() {
-  if (intstk_.empty()) {
-    throw StackUnderflow();
-  }
+  if (intstk_.empty())
+    report_underflow();
   auto result = intstk_.back();
   intstk_.pop_back();
   if (!elm_point_.empty() && elm_point_.back() >= intstk_.size())
@@ -102,23 +99,20 @@ Value Stack::Popint() {
 }
 
 const Value& Stack::Backstr() const {
-  if (strstk_.empty()) {
-    throw StackUnderflow();
-  }
+  if (strstk_.empty())
+    report_underflow();
   return strstk_.back();
 }
 
 Value& Stack::Backstr() {
-  if (strstk_.empty()) {
-    throw StackUnderflow();
-  }
+  if (strstk_.empty())
+    report_underflow();
   return strstk_.back();
 }
 
 Value Stack::Popstr() {
-  if (strstk_.empty()) {
-    throw StackUnderflow();
-  }
+  if (strstk_.empty())
+    report_underflow();
   auto result = std::move(strstk_.back());
   strstk_.pop_back();
   return result;
@@ -137,7 +131,7 @@ Value Stack::Pop(Type type) {
 
 ElementCode Stack::Backelm() const {
   if (elm_point_.empty())
-    throw StackUnderflow();
+    report_underflow();
   return ElementCode(intstk_.begin() + elm_point_.back(), intstk_.end());
 }
 
@@ -160,5 +154,7 @@ std::string Stack::ToDebugString() const {
   result += std::format("elm: {}\n", Join(",", view_to_string(elm_point_)));
   return result;
 }
+
+void Stack::report_underflow() const { throw StackUnderflow(); }
 
 }  // namespace libsiglus

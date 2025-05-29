@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "libsiglus/value.hpp"
 #include "libsiglus/element_code.hpp"
+#include "libsiglus/value.hpp"
 
 #include <memory>
 #include <span>
@@ -44,7 +44,10 @@ enum class Kind {
   Memory,
   Farcall,
   GetTitle,
-  SetTitle
+  SetTitle,
+  Koe,
+  Curcall,
+  Selbtn
 };
 }
 

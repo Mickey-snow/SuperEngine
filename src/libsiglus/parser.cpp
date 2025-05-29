@@ -28,6 +28,13 @@
 #include "libsiglus/scene.hpp"
 #include "log/domain_logger.hpp"
 
+#include "libsiglus/elm_details/curcall.hpp"
+#include "libsiglus/elm_details/farcall.hpp"
+#include "libsiglus/elm_details/koe.hpp"
+#include "libsiglus/elm_details/memory.hpp"
+#include "libsiglus/elm_details/selbtn.hpp"
+#include "libsiglus/elm_details/title.hpp"
+
 namespace libsiglus {
 using namespace token;
 
@@ -81,63 +88,6 @@ Value Parser::pop(Type type) {
 }
 
 void Parser::add_label(int id) { emit_token(Label{id}); }
-
-Element Parser::resolve_element(const ElementCode& elmcode) const {
-  auto elm = elmcode.IntegerView();
-
-  const auto flag = (elm.front() >> 24) & 0xFF;
-  size_t idx = elm.front() ^ (flag << 24);
-
-  if (flag == USER_COMMAND_FLAG) {
-    auto result = std::make_unique<UserCommand>();
-    result->type = Type::Other;
-
-    libsiglus::Command* cmd = nullptr;
-    if (idx < archive_.cmd_.size())
-      cmd = archive_.cmd_.data() + idx;
-    else
-      cmd = scene_.cmd.data() + (idx - archive_.cmd_.size());
-
-    result->name = cmd->name;
-    result->scene = cmd->scene_id;
-    result->entry = cmd->offset;
-    return result;
-
-  } else if (flag == USER_PROPERTY_FLAG) {
-    auto result = std::make_unique<UserProperty>();
-
-    if (idx < archive_.prop_.size()) {
-      const auto& incprop = archive_.prop_[idx];
-      result->name = incprop.name;
-      result->type = incprop.form;
-      result->scene = -1;
-      result->idx = idx;
-    } else {
-      idx -= archive_.prop_.size();
-      const auto& usrprop = scene_.property[idx];
-      result->name = usrprop.name;
-      result->type = usrprop.form;
-      result->scene = scene_.id_;
-      result->idx = idx;
-    }
-    return result;
-
-  } else if (elm[0] == 83 && elm[1] == 2097152000) {
-    // hack
-    struct CallArg : public IElement {
-      CallArg() : IElement(Type::Int) {}
-      int id = 0;
-      elm::Kind Kind() const noexcept override { return elm::Kind::Callprop; }
-      std::string ToDebugString() const override {
-        return "arg_" + std::to_string(id);
-      }
-    };
-    return std::make_unique<CallArg>();
-
-  } else {  // built-in element
-    return MakeElement(elmcode);
-  }
-}
 
 void Parser::ParseAll() {
   while (reader_.Position() < reader_.Size()) {
@@ -338,10 +288,294 @@ void Parser::Add(lex::Declare d) {
   emit_token(std::move(pre));
 }
 
-// void Parser::Add(lex::Namae) { token_append(Name{stack_.Popstr()}); }
+void Parser::Add(lex::Namae) { emit_token(Name{pop(Type::String)}); }
 
-// void Parser::Add(lex::Textout t) {
-//   token_append(Textout{.kidoku = t.kidoku_, .str = stack_.Popstr()});
-// }
+void Parser::Add(lex::Textout t) {
+  emit_token(Textout{.kidoku = t.kidoku_, .str = pop(Type::String)});
+}
+
+// element related
+Element Parser::resolve_element(const ElementCode& elmcode) {
+  auto elm = elmcode.IntegerView();
+
+  const auto flag = (elm.front() >> 24) & 0xFF;
+  size_t idx = elm.front() ^ (flag << 24);
+
+  if (flag == USER_COMMAND_FLAG) {
+    auto result = std::make_unique<UserCommand>();
+    result->type = Type::Other;
+
+    libsiglus::Command* cmd = nullptr;
+    if (idx < archive_.cmd_.size())
+      cmd = archive_.cmd_.data() + idx;
+    else
+      cmd = scene_.cmd.data() + (idx - archive_.cmd_.size());
+
+    result->name = cmd->name;
+    result->scene = cmd->scene_id;
+    result->entry = cmd->offset;
+    return result;
+
+  } else if (flag == USER_PROPERTY_FLAG) {
+    auto result = std::make_unique<UserProperty>();
+
+    if (idx < archive_.prop_.size()) {
+      const auto& incprop = archive_.prop_[idx];
+      result->name = incprop.name;
+      result->type = incprop.form;
+      result->scene = -1;
+      result->idx = idx;
+    } else {
+      idx -= archive_.prop_.size();
+      const auto& usrprop = scene_.property[idx];
+      result->name = usrprop.name;
+      result->type = usrprop.form;
+      result->scene = scene_.id_;
+      result->idx = idx;
+    }
+    return result;
+
+  } else if (elm[0] == 83 && elm[1] == 2097152000) {
+    // hack
+    struct CallArg : public IElement {
+      CallArg() : IElement(Type::Int) {}
+      int id = 0;
+      elm::Kind Kind() const noexcept override { return elm::Kind::Callprop; }
+      std::string ToDebugString() const override {
+        return "arg_" + std::to_string(id);
+      }
+    };
+    return std::make_unique<CallArg>();
+
+  } else {  // built-in element
+    return make_element(elmcode);
+  }
+}
+
+Element Parser::make_element(const ElementCode& elmcode) {
+  auto elm = elmcode.IntegerView();
+
+  enum Global {
+    A = 25,
+    B = 26,
+    C = 27,
+    D = 28,
+    E = 29,
+    F = 30,
+    X = 137,
+    G = 31,
+    Z = 32,
+    S = 34,
+    M = 35,
+    NAMAE_GLOBAL = 107,
+    NAMAE_LOCAL = 106,
+    NAMAE = 108,
+    STAGE = 49,
+    BACK = 37,
+    FRONT = 38,
+    NEXT = 73,
+    MSGBK = 145,
+    SCREEN = 70,
+    COUNTER = 40,
+    FRAME_ACTION = 79,
+    FRAME_ACTION_CH = 53,
+    TIMEWAIT = 54,
+    TIMEWAIT_KEY = 55,
+    MATH = 39,
+    DATABASE = 105,
+    CGTABLE = 78,
+    BGMTABLE = 123,
+    G00BUF = 124,
+    MASK = 135,
+    EDITBOX = 97,
+    FILE = 48,
+    BGM = 42,
+    KOE_ST = 82,
+    PCM = 43,
+    PCMCH = 44,
+    PCMEVENT = 52,
+    SE = 45,
+    MOV = 20,
+    INPUT = 86,
+    MOUSE = 46,
+    KEY = 24,
+    SCRIPT = 64,
+    SYSCOM = 63,
+    SYSTEM = 92,
+    CALL = 98,
+    CUR_CALL = 83,
+    EXCALL = 65,
+    STEAM = 166,
+    EXKOE = 87,
+    EXKOE_PLAY_WAIT = 88,
+    EXKOE_PLAY_WAIT_KEY = 89,
+    NOP = 60,
+    OWARI = 2,
+    RETURNMENU = 3,
+    JUMP = 4,
+    FARCALL = 5,
+    GET_SCENE_NAME = 131,
+    GET_LINE_NO = 158,
+    SET_TITLE = 74,
+    GET_TITLE = 75,
+    SAVEPOINT = 36,
+    CLEAR_SAVEPOINT = 113,
+    CHECK_SAVEPOINT = 112,
+    SELPOINT = 1,
+    CLEAR_SELPOINT = 111,
+    CHECK_SELPOINT = 110,
+    STACK_SELPOINT = 149,
+    DROP_SELPOINT = 150,
+    DISP = 96,
+    FRAME = 6,
+    CAPTURE = 80,
+    CAPTURE_FROM_FILE = 163,
+    CAPTURE_FREE = 81,
+    CAPTURE_FOR_OBJECT = 130,
+    CAPTURE_FOR_OBJECT_FREE = 136,
+    CAPTURE_FOR_TWEET = 164,
+    CAPTURE_FREE_FOR_TWEET = 165,
+    CAPTURE_FOR_LOCAL_SAVE = 144,
+    WIPE = 7,
+    WIPE_ALL = 23,
+    MASK_WIPE = 50,
+    MASK_WIPE_ALL = 51,
+    WIPE_END = 33,
+    WAIT_WIPE = 103,
+    CHECK_WIPE = 109,
+    MESSAGE_BOX = 0,
+    SET_MWND = 8,
+    GET_MWND = 116,
+    SET_SEL_MWND = 71,
+    GET_SEL_MWND = 117,
+    SET_WAKU = 22,
+    OPEN = 9,
+    OPEN_WAIT = 58,
+    OPEN_NOWAIT = 59,
+    CLOSE = 10,
+    CLOSE_WAIT = 56,
+    CLOSE_NOWAIT = 57,
+    END_CLOSE = 125,
+    MSG_BLOCK = 84,
+    MSG_PP_BLOCK = 121,
+    CLEAR = 11,
+    SET_NAMAE = 156,
+    PRINT = 12,
+    RUBY = 61,
+    MSGBTN = 47,
+    NL = 15,
+    NLI = 62,
+    INDENT = 119,
+    CLEAR_INDENT = 94,
+    WAIT_MSG = 21,
+    PP = 13,
+    R = 14,
+    PAGE = 115,
+    REP_POS = 151,
+    SIZE = 16,
+    COLOR = 17,
+    MULTI_MSG = 95,
+    NEXT_MSG = 93,
+    START_SLIDE_MSG = 120,
+    END_SLIDE_MSG = 122,
+    KOE = 18,
+    KOE_PLAY_WAIT = 90,
+    KOE_PLAY_WAIT_KEY = 91,
+    KOE_SET_VOLUME = 152,
+    KOE_SET_VOLUME_MAX = 153,
+    KOE_SET_VOLUME_MIN = 154,
+    KOE_GET_VOLUME = 155,
+    KOE_STOP = 68,
+    KOE_WAIT = 85,
+    KOE_WAIT_KEY = 99,
+    KOE_CHECK = 69,
+    KOE_CHECK_GET_KOE_NO = 159,
+    KOE_CHECK_GET_CHARA_NO = 160,
+    KOE_CHECK_IS_EX_KOE = 161,
+    CLEAR_FACE = 72,
+    SET_FACE = 41,
+    CLEAR_MSGBK = 118,
+    INSERT_MSGBK_IMG = 114,
+    SEL = 19,
+    SEL_CANCEL = 101,
+    SELMSG = 100,
+    SELMSG_CANCEL = 102,
+    SELBTN = 76,
+    SELBTN_READY = 77,
+    SELBTN_CANCEL = 126,
+    SELBTN_CANCEL_READY = 128,
+    SELBTN_START = 127,
+    GET_LAST_SEL_MSG = 162,
+    INIT_CALL_STACK = 141,
+    DEL_CALL_STACK = 138,
+    SET_CALL_STACK_CNT = 140,
+    GET_CALL_STACK_CNT = 139,
+    __FOG_NAME = 132,
+    __FOG_X = 142,
+    __FOG_X_EVE = 143,
+    __FOG_NEAR = 133,
+    __FOG_FAR = 134,
+    __TEST = 104
+  };
+
+  int root = elm.front();
+  switch (root) {
+    case A:
+    case B:
+    case C:
+    case D:
+    case E:
+    case F:
+    case X:
+    case G:
+    case Z:
+    case S:
+    case M:
+    case NAMAE_LOCAL:
+    case NAMAE_GLOBAL:
+      return elm::Memory::Parse(elmcode);
+
+    case FARCALL:
+      return std::make_unique<elm::Farcall>();
+
+    case SET_TITLE:
+      return std::make_unique<elm::SetTitle>();
+    case GET_TITLE:
+      return std::make_unique<elm::GetTitle>();
+
+    case CUR_CALL: {
+      auto result = std::make_unique<elm::Curcall>();
+      if ((elm[1] >> 24) == 0x7d) {  // hack
+        result->type = Type::Int;
+        result->id = elm[1] ^ (0x7d << 24);
+      }
+      return result;
+    }
+
+    case KOE: {
+      auto result = std::make_unique<elm::Koe>();
+      result->kidoku = reader_.PopAs<int>(4);
+      return result;
+    }
+
+    case SELBTN:
+    case SELBTN_READY:
+    case SELBTN_CANCEL:
+    case SELBTN_CANCEL_READY:
+    case SELBTN_START: {
+      auto result = std::make_unique<elm::Selbtn>();
+      if (root == SELBTN || root == SELBTN_CANCEL || root == SELBTN_START)
+        result->kidoku = reader_.PopAs<int>(4);
+      return result;
+    }
+
+    default:
+      break;
+  }
+
+  auto uke = std::make_unique<UnknownElement>();
+  uke->elmcode = elmcode;
+  return uke;
+}
 
 }  // namespace libsiglus

@@ -52,8 +52,11 @@ std::string Command::ToDebugString() const {
                   elm->ToDebugString(), Join(",", args_repr));
   return std::format("{:<30} ;{}", std::move(repr), cmd_repr);
 }
+std::string Name::ToDebugString() const {
+  return "Name(" + ToString(str) + ')';
+}
 std::string Textout::ToDebugString() const {
-  return std::format("Textout@{} ({})", kidoku, str);
+  return std::format("Textout@{} ({})", kidoku, ToString(str));
 }
 std::string GetProperty::ToDebugString() const {
   auto repr = std::format("{} {} = {}", ToString(Typeof(dst)), ToString(dst),
