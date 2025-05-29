@@ -4,7 +4,7 @@
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2024 Serina Sakurai
+// Copyright (C) 2025 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,55 +21,12 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#pragma once
-
 #include "libsiglus/element_code.hpp"
-#include "libsiglus/types.hpp"
-#include "libsiglus/value.hpp"
-
-#include <exception>
-#include <stack>
-#include <string>
-#include <vector>
 
 namespace libsiglus {
 
-class StackUnderflow : public std::exception {
- public:
-  const char* what() const noexcept override;
-};
-
-class Stack {
- public:
-  Stack();
-  ~Stack();
-
-  bool Empty() const;
-  void Clear();
-
-  Stack& Push(Value v);
-  Stack& PushMarker();
-  Stack& Push(const ElementCode& elm);
-
-  Value Backint() const;
-  Value& Backint();
-  Value Popint();
-
-  const Value& Backstr() const;
-  Value& Backstr();
-  Value Popstr();
-
-  Value Pop(Type type);
-
-  ElementCode Backelm() const;
-  ElementCode Popelm();
-
-  std::string ToDebugString() const;
-
- private:
-  std::vector<Value> intstk_;
-  std::vector<Value> strstk_;
-  std::vector<size_t> elm_point_;
-};
+bool ElementCode::operator==(const ElementCode& rhs) const {
+  return code == rhs.code;
+}
 
 }  // namespace libsiglus

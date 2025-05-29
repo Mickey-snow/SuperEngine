@@ -24,6 +24,7 @@
 #pragma once
 
 #include "libsiglus/element.hpp"
+#include "libsiglus/element_code.hpp"
 #include "libsiglus/lexeme.hpp"
 #include "libsiglus/lexer.hpp"
 #include "libsiglus/property.hpp"
@@ -68,7 +69,7 @@ class Parser {
   Value add_var(Type type);
   Value pop(Type type);
   void add_label(int id);
-  Element resolve_element(std::span<int> elm) const;
+  Element resolve_element(const ElementCode& elm) const;
 
   // dispatch functions
   void Add(lex::Push);

@@ -36,13 +36,10 @@ namespace libsiglus {
 
 // -----------------------------------------------------------------------
 // class IElement
-IElement::IElement(int root_id_, Type type_) : root_id(root_id_), type(type_) {}
+IElement::IElement(Type type_) : type(type_) {}
 
 std::string IElement::ToDebugString() const {
-  return std::format("({}:{})", ToString(type), root_id);
-}
-Element IElement::Parse(std::span<int>) const {
-  throw std::runtime_error("IElement::Parse: no implementation found.");
+  return std::format("elm<{}>", ToString(type));
 }
 
 // -----------------------------------------------------------------------
@@ -63,13 +60,19 @@ elm::Kind UserProperty::Kind() const noexcept { return elm::Kind::Usrprop; }
 // class UnknownElement
 std::string UnknownElement::ToDebugString() const {
   return "???" +
-         std::format("<{},{}>", root_id, Join(",", view_to_string(path)));
+         std::format("<{}>",
+                     Join(",", std::views::all(elmcode.code) |
+                                   std::views::transform([](const Value& v) {
+                                     return ToString(v);
+                                   })));
 }
 elm::Kind UnknownElement::Kind() const noexcept { return elm::Kind::Invalid; }
 
 // -----------------------------------------------------------------------
 // MakeElement
-Element MakeElement(int elm, std::span<int> path) {
+Element MakeElement(const ElementCode& elmcode) {
+  auto elm = elmcode.IntegerView();
+
   enum Global {
     A = 25,
     B = 26,
@@ -233,7 +236,7 @@ Element MakeElement(int elm, std::span<int> path) {
     __TEST = 104
   };
 
-  switch (elm) {
+  switch (elm.front()) {
     case A:
     case B:
     case C:
@@ -246,11 +249,8 @@ Element MakeElement(int elm, std::span<int> path) {
     case S:
     case M:
     case NAMAE_LOCAL:
-    case NAMAE_GLOBAL: {
-      static elm::Memory memory;
-      memory.root_id = elm;
-      return memory.Parse(path);
-    }
+    case NAMAE_GLOBAL:
+      return elm::Memory::Parse(elmcode);
 
     case FARCALL:
       return std::make_unique<elm::Farcall>();
@@ -262,9 +262,7 @@ Element MakeElement(int elm, std::span<int> path) {
   }
 
   auto uke = std::make_unique<UnknownElement>();
-  uke->root_id = elm;
-  uke->path = std::vector(path.begin(), path.end());
-
+  uke->elmcode = elmcode;
   return uke;
 }
 

@@ -54,7 +54,7 @@ class Memory final : public IElement {
   };
 
   struct Access {
-    int idx = -1;
+    Value idx;
   };
   struct Init {};
   struct Resize {};
@@ -66,7 +66,7 @@ class Memory final : public IElement {
   int bits = 32;
   std::variant<std::monostate, Access, Init, Resize, Fill, Size, Set> var;
 
-  Element Parse(std::span<int> path) const override;
+  static Element Parse(const ElementCode& elmcode);
 
   elm::Kind Kind() const noexcept override;
   std::string ToDebugString() const override;

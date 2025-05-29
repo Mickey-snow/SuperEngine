@@ -71,8 +71,8 @@ Stack& Stack::PushMarker() {
 
 Stack& Stack::Push(const ElementCode& elm) {
   PushMarker();
-  for (const auto& it : elm)
-    intstk_.push_back(Integer(it));
+  for (const auto& it : elm.code)
+    intstk_.push_back(it);
   return *this;
 }
 
@@ -138,19 +138,7 @@ Value Stack::Pop(Type type) {
 ElementCode Stack::Backelm() const {
   if (elm_point_.empty())
     throw StackUnderflow();
-  ElementCode result  // (intstk_.cbegin() + elm_point_.back(), intstk_.cend())
-      ;
-
-  result.reserve(intstk_.size() - elm_point_.back());
-  std::transform(intstk_.cbegin() + elm_point_.back(), intstk_.cend(),
-                 std::back_inserter(result), [](const Value& v) -> int {
-                   if (auto i = std::get_if<Integer>(&v))
-                     return i->val_;
-                   else
-                     throw std::runtime_error("Stack: cannot convert " +
-                                              ToString(v) + " to integer.");
-                 });
-  return result;
+  return ElementCode(intstk_.begin() + elm_point_.back(), intstk_.end());
 }
 
 ElementCode Stack::Popelm() {

@@ -82,14 +82,14 @@ Value Parser::pop(Type type) {
 
 void Parser::add_label(int id) { emit_token(Label{id}); }
 
-Element Parser::resolve_element(std::span<int> elm) const {
+Element Parser::resolve_element(const ElementCode& elmcode) const {
+  auto elm = elmcode.IntegerView();
+
   const auto flag = (elm.front() >> 24) & 0xFF;
   size_t idx = elm.front() ^ (flag << 24);
 
   if (flag == USER_COMMAND_FLAG) {
     auto result = std::make_unique<UserCommand>();
-
-    result->root_id = elm.front();
     result->type = Type::Other;
 
     libsiglus::Command* cmd = nullptr;
@@ -105,7 +105,6 @@ Element Parser::resolve_element(std::span<int> elm) const {
 
   } else if (flag == USER_PROPERTY_FLAG) {
     auto result = std::make_unique<UserProperty>();
-    result->root_id = elm.front();
 
     if (idx < archive_.prop_.size()) {
       const auto& incprop = archive_.prop_[idx];
@@ -123,10 +122,10 @@ Element Parser::resolve_element(std::span<int> elm) const {
     }
     return result;
 
-  } else if (elm.front() == 83 && elm[1] == 2097152000) {
+  } else if (elm[0] == 83 && elm[1] == 2097152000) {
     // hack
     struct CallArg : public IElement {
-      CallArg() : IElement(83, Type::Int) {}
+      CallArg() : IElement(Type::Int) {}
       int id = 0;
       elm::Kind Kind() const noexcept override { return elm::Kind::Callprop; }
       std::string ToDebugString() const override {
@@ -136,9 +135,7 @@ Element Parser::resolve_element(std::span<int> elm) const {
     return std::make_unique<CallArg>();
 
   } else {  // built-in element
-    int root = elm.front();
-    std::span<int> path = elm.subspan(1);
-    return MakeElement(root, path);
+    return MakeElement(elmcode);
   }
 }
 

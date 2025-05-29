@@ -24,6 +24,7 @@
 #pragma once
 
 #include "libsiglus/value.hpp"
+#include "libsiglus/element_code.hpp"
 
 #include <memory>
 #include <span>
@@ -52,14 +53,10 @@ using Element = std::unique_ptr<IElement>;
 
 class IElement {
  public:
-  IElement(int root_id_ = 0, Type type_ = Type::Invalid);
+  IElement(Type type_ = Type::Invalid);
   virtual ~IElement() = default;
 
-  int root_id;
   Type type;
-
-  // if this is an object handler
-  virtual Element Parse(std::span<int> path) const;
 
   virtual elm::Kind Kind() const noexcept = 0;
   virtual std::string ToDebugString() const;
@@ -85,12 +82,12 @@ class UserProperty final : public IElement {
 
 class UnknownElement final : public IElement {
  public:
-  std::vector<int> path;
+  ElementCode elmcode;
   elm::Kind Kind() const noexcept override;
   std::string ToDebugString() const override;
 };
 
 // factory method
-Element MakeElement(int elm, std::span<int> path);
+Element MakeElement(const ElementCode& elmcode);
 
 }  // namespace libsiglus

@@ -24,6 +24,7 @@
 #pragma once
 
 #include "libsiglus/element.hpp"
+#include "libsiglus/element_code.hpp"
 #include "libsiglus/value.hpp"
 
 #include <string>

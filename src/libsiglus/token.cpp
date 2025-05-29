@@ -35,7 +35,7 @@ static inline auto vals_to_string(std::vector<Value> const& vals) {
 
 std::string Command::ToDebugString() const {
   const std::string cmd_repr = std::format(
-      "cmd<{}:{}>", Join(",", view_to_string(elmcode)), overload_id);
+      "cmd<{}:{}>", Join(",", vals_to_string(elmcode.code)), overload_id);
 
   std::vector<std::string> args_repr;
   args_repr.reserve(arg.size() + named_arg.size());
@@ -59,7 +59,7 @@ std::string GetProperty::ToDebugString() const {
   auto repr = std::format("{} {} = {}", ToString(Typeof(dst)), ToString(dst),
                           elm->ToDebugString());
   return std::format("{:<30} ;<{}>", std::move(repr),
-                     Join(",", view_to_string(elmcode)));
+                     Join(",", vals_to_string(elmcode.code)));
 }
 std::string Goto::ToDebugString() const {
   return "goto .L" + std::to_string(label);
@@ -91,7 +91,7 @@ std::string Operate2::ToDebugString() const {
 std::string Assign::ToDebugString() const {
   std::string repr = dst->ToDebugString() + " = " + ToString(src);
   return std::format("{:<30} ;<{}>", std::move(repr),
-                     Join(",", view_to_string(dst_elmcode)));
+                     Join(",", vals_to_string(dst_elmcode.code)));
 }
 std::string Duplicate::ToDebugString() const {
   return std::format("{} {} = {}", ToString(Typeof(dst)), ToString(dst),

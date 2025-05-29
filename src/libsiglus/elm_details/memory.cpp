@@ -30,9 +30,9 @@
 
 namespace libsiglus::elm {
 
-Element Memory::Parse(std::span<int> path) const {
+Element Memory::Parse(const ElementCode& elmcode) {
   auto result = std::make_unique<Memory>();
-  result->bank = static_cast<Bank>(root_id);
+  result->bank = static_cast<Bank>(elmcode.At<int>(0));
   switch (result->bank) {
     case Bank::A:
     case Bank::B:
@@ -54,14 +54,13 @@ Element Memory::Parse(std::span<int> path) const {
       break;
   }
 
-  while (!path.empty()) {
-    int it = path.front();
-    path = path.subspan(1);
+  auto path = elmcode.IntegerView();
+  for (size_t i = 1; i < path.size();) {
+    int it = path[i++];
 
     switch (it) {
       case -1: {
-        int idx = path.front();
-        result->var = Access(idx);
+        result->var = Access(elmcode.code[i]);
         return result;
       }
 
@@ -174,7 +173,7 @@ std::string Memory::ToDebugString() const {
         using T = std::decay_t<decltype(v)>;
 
         if constexpr (std::same_as<T, Access>)
-          return '[' + std::to_string(v.idx) + ']';
+          return '[' + ToString(v.idx) + ']';
         else if constexpr (std::same_as<T, Init>)
           return ".init";
         else if constexpr (std::same_as<T, Resize>)
@@ -186,7 +185,7 @@ std::string Memory::ToDebugString() const {
         else if constexpr (std::same_as<T, Set>)
           return ".set";
 
-	return "???";
+        return "???";
       },
       var);
 
