@@ -25,15 +25,15 @@
 
 #include "libsiglus/element_code.hpp"
 #include "libsiglus/value.hpp"
+#include "utilities/flat_map.hpp"
 
-#include <memory>
 #include <span>
 #include <utility>
 #include <variant>
 #include <vector>
 
-namespace libsiglus {
-namespace elm {
+namespace libsiglus::elm {
+
 enum class Kind {
   Invalid,
 
@@ -49,48 +49,97 @@ enum class Kind {
   Curcall,
   Selbtn
 };
-}
 
-class IElement;
-using Element = std::unique_ptr<IElement>;
+struct Usrcmd {
+  int scene, entry;
+  std::string_view name;
+  std::string ToDebugString() const;
+};
 
-class IElement {
- public:
-  IElement(Type type_ = Type::Invalid);
-  virtual ~IElement() = default;
+struct Usrprop {
+  int scene, idx;
+  std::string_view name;
+  std::string ToDebugString() const;
+};
 
+struct Mem {
+  int bank;
+  int bits;
+  std::string ToDebugString() const;
+};
+
+struct Sym {
+  std::string name;
+  std::optional<int> kidoku;
+  std::string ToDebugString() const;
+};
+
+struct Arg {
+  int id;
+  std::string ToDebugString() const;
+};
+
+struct Root {
+  using var_t = std::variant<Usrcmd, Usrprop, Mem, Sym, Arg>;
+  var_t var;
   Type type;
 
-  virtual elm::Kind Kind() const noexcept = 0;
-  virtual std::string ToDebugString() const;
+  template <typename... Ts>
+    requires std::constructible_from<var_t, Ts...>
+  Root(Type type, Ts&&... params)
+      : var(std::forward<Ts>(params)...), type(type) {}
+  template <typename... Ts>
+    requires std::constructible_from<var_t, Ts...>
+  Root(Ts&&... params)
+      : var(std::forward<Ts>(params)...), type(Type::Invalid) {}
+
+  inline std::string ToDebugString() const {
+    return std::visit([](const auto& x) { return x.ToDebugString(); }, var);
+  }
 };
 
-class UserCommand final : public IElement {
- public:
-  std::string_view name;  // owned by Scene or Archive
-  int scene, entry;
-
-  elm::Kind Kind() const noexcept override;
-  std::string ToDebugString() const override;
+struct Member {
+  std::string_view name;
+  std::string ToDebugString() const;
 };
 
-class UserProperty final : public IElement {
- public:
-  std::string_view name;  // owned by Scene or Archive
-  int scene, idx;
-
-  elm::Kind Kind() const noexcept override;
-  std::string ToDebugString() const override;
+struct Subscript {
+  std::optional<Value> idx;
+  std::string ToDebugString() const;
 };
 
-class UnknownElement final : public IElement {
- public:
-  ElementCode elmcode;
-  elm::Kind Kind() const noexcept override;
-  std::string ToDebugString() const override;
+struct Val {
+  Value value;
+  std::string ToDebugString() const;
 };
 
-// factory method
-Element MakeElement(const ElementCode& elmcode);
+struct Node {
+  using var_t = std::variant<Member, Subscript, Val>;
+  var_t var;
+  Type type;
 
-}  // namespace libsiglus
+  template <typename... Ts>
+    requires std::constructible_from<var_t, Ts...>
+  Node(Type type, Ts&&... params)
+      : var(std::forward<Ts>(params)...), type(type) {}
+  template <typename... Ts>
+    requires std::constructible_from<var_t, Ts...>
+  Node(Ts&&... params)
+      : var(std::forward<Ts>(params)...), type(Type::Invalid) {}
+
+  inline std::string ToDebugString() const {
+    return std::visit([](const auto& x) { return x.ToDebugString(); }, var);
+  }
+};
+
+struct AccessChain {
+  Root root;
+  std::vector<Node> nodes;
+  Type type = Type::Invalid;
+
+  std::string ToDebugString() const;
+};
+
+flat_map<Node> const* GetMethodMap(Type type);
+
+}  // namespace libsiglus::elm

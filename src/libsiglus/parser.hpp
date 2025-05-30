@@ -70,8 +70,10 @@ class Parser {
   Value add_var(Type type);
   Value pop(Type type);
   void add_label(int id);
-  Element resolve_element(const ElementCode& elm);
-  Element make_element(const ElementCode& elm);
+  elm::AccessChain resolve_element(const ElementCode& elm);
+  elm::AccessChain resolve_usrcmd(const ElementCode& elm, size_t idx);
+  elm::AccessChain resolve_usrprop(const ElementCode& elm, size_t idx);
+  elm::AccessChain make_element(const ElementCode& elm);
 
   // dispatch functions
   void Add(lex::Push);

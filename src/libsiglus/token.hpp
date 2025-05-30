@@ -39,7 +39,7 @@ struct Command {
   std::vector<std::pair<int, Value>> named_arg;
   Type return_type;
 
-  Element elm;
+  elm::AccessChain chain;
   Value dst;
 
   std::string ToDebugString() const;
@@ -61,7 +61,7 @@ struct Textout {
 struct GetProperty {
   ElementCode elmcode;
 
-  Element elm;
+  elm::AccessChain chain;
   Value dst;
   std::string ToDebugString() const;
 };
@@ -101,7 +101,7 @@ struct Operate2 {
 
 struct Assign {
   ElementCode dst_elmcode;
-  Element dst;
+  elm::AccessChain dst;
   Value src;
   std::string ToDebugString() const;
 };

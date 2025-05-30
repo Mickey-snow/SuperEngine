@@ -28,40 +28,46 @@
 
 #include <format>
 
-namespace libsiglus {
+namespace libsiglus ::elm {
 
-// -----------------------------------------------------------------------
-// class IElement
-IElement::IElement(Type type_) : type(type_) {}
-
-std::string IElement::ToDebugString() const {
-  return std::format("elm<{}>", ToString(type));
+std::string Usrcmd::ToDebugString() const {
+  return std::format("@{}.{}:{}", scene, entry, name);
+}
+std::string Usrprop::ToDebugString() const {
+  return std::format("@{}.{}:{}", scene, idx, name);
+}
+std::string Mem::ToDebugString() const { return "mem"; }
+std::string Sym::ToDebugString() const {
+  std::string repr = name;
+  if (kidoku.has_value())
+    repr += '#' + std::to_string(*kidoku);
+  return repr;
+}
+std::string Arg::ToDebugString() const { return "arg_" + std::to_string(id); }
+std::string Member::ToDebugString() const { return std::string(name); }
+std::string Subscript::ToDebugString() const {
+  return std::format("[{}]", idx.has_value() ? ToString(*idx) : std::string());
+}
+std::string Val::ToDebugString() const { return ToString(value); }
+std::string AccessChain::ToDebugString() const {
+  std::string repr = root.ToDebugString();
+  for (const auto& it : nodes)
+    repr += ',' + it.ToDebugString();
+  return repr;
 }
 
 // -----------------------------------------------------------------------
-// class UserCommand
-std::string UserCommand::ToDebugString() const {
-  return std::format("{}<{}:{}>", name, scene, entry);
-}
-elm::Kind UserCommand::Kind() const noexcept { return elm::Kind::Usrcmd; }
+flat_map<Node> const* GetMethodMap(Type type) {
+  switch (type) {
+    case Type::IntList: {
+      static const auto mp =
+          make_flatmap<Node>({{-1, Node(Type::Int, Subscript())}});
+      return &mp;
+    }
 
-// -----------------------------------------------------------------------
-// class UserProperty
-std::string UserProperty::ToDebugString() const {
-  return std::format("{}<{}:{}>", name, scene, idx);
+    default:
+      return nullptr;
+  }
 }
-elm::Kind UserProperty::Kind() const noexcept { return elm::Kind::Usrprop; }
 
-// -----------------------------------------------------------------------
-// class UnknownElement
-std::string UnknownElement::ToDebugString() const {
-  return "???" +
-         std::format("<{}>",
-                     Join(",", std::views::all(elmcode.code) |
-                                   std::views::transform([](const Value& v) {
-                                     return ToString(v);
-                                   })));
-}
-elm::Kind UnknownElement::Kind() const noexcept { return elm::Kind::Invalid; }
-
-}  // namespace libsiglus
+}  // namespace libsiglus::elm

@@ -48,7 +48,6 @@ enum class Type : uint32_t {
   Label = 0x1e,
   List = 0xFFFFFFFF
 };
-
 std::string ToString(Type type);
 
 enum class OperatorCode : uint8_t {

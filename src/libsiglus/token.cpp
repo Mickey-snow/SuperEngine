@@ -49,7 +49,7 @@ std::string Command::ToDebugString() const {
 
   auto repr =
       std::format("{} {} = {}({})", ToString(return_type), ToString(dst),
-                  elm->ToDebugString(), Join(",", args_repr));
+                  chain.ToDebugString(), Join(",", args_repr));
   return std::format("{:<30} ;{}", std::move(repr), cmd_repr);
 }
 std::string Name::ToDebugString() const {
@@ -60,7 +60,7 @@ std::string Textout::ToDebugString() const {
 }
 std::string GetProperty::ToDebugString() const {
   auto repr = std::format("{} {} = {}", ToString(Typeof(dst)), ToString(dst),
-                          elm->ToDebugString());
+                          chain.ToDebugString());
   return std::format("{:<30} ;<{}>", std::move(repr),
                      Join(",", vals_to_string(elmcode.code)));
 }
@@ -92,7 +92,7 @@ std::string Operate2::ToDebugString() const {
              : expr;
 }
 std::string Assign::ToDebugString() const {
-  std::string repr = dst->ToDebugString() + " = " + ToString(src);
+  std::string repr = dst.ToDebugString() + " = " + ToString(src);
   return std::format("{:<30} ;<{}>", std::move(repr),
                      Join(",", vals_to_string(dst_elmcode.code)));
 }

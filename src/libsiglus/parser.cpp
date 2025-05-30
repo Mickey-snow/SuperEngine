@@ -27,13 +27,7 @@
 #include "libsiglus/lexeme.hpp"
 #include "libsiglus/scene.hpp"
 #include "log/domain_logger.hpp"
-
-#include "libsiglus/elm_details/curcall.hpp"
-#include "libsiglus/elm_details/farcall.hpp"
-#include "libsiglus/elm_details/koe.hpp"
-#include "libsiglus/elm_details/memory.hpp"
-#include "libsiglus/elm_details/selbtn.hpp"
-#include "libsiglus/elm_details/title.hpp"
+#include "utilities/flat_map.hpp"
 
 namespace libsiglus {
 using namespace token;
@@ -140,8 +134,8 @@ void Parser::Add(lex::Marker marker) { stack_.PushMarker(); }
 void Parser::Add(lex::Property) {
   token::GetProperty tok;
   tok.elmcode = stack_.Popelm();
-  tok.elm = resolve_element(tok.elmcode);
-  tok.dst = add_var(tok.elm->type);
+  tok.chain = resolve_element(tok.elmcode);
+  tok.dst = add_var(tok.chain.type);
 
   stack_.Push(tok.dst);
   emit_token(std::move(tok));
@@ -166,7 +160,7 @@ void Parser::Add(lex::Command command) {
   }
 
   tok.elmcode = stack_.Popelm();
-  tok.elm = resolve_element(tok.elmcode);
+  tok.chain = resolve_element(tok.elmcode);
 
   tok.dst = add_var(tok.return_type);
   stack_.Push(tok.dst);
@@ -294,67 +288,101 @@ void Parser::Add(lex::Textout t) {
   emit_token(Textout{.kidoku = t.kidoku_, .str = pop(Type::String)});
 }
 
+// -----------------------------------------------------------------------
 // element related
-Element Parser::resolve_element(const ElementCode& elmcode) {
+namespace {
+template <class T>
+class map_wrapper {
+  class IMap {
+   public:
+    virtual ~IMap() = default;
+    virtual T at(int idx) const = 0;
+    virtual void insert(int key, T val) = 0;
+  };
+
+ public:
+  template <typename U>
+  map_wrapper(U& m_in) {
+    class Map : public IMap {
+     public:
+      U& m;
+      T at(int idx) const override { return m.at(idx); }
+      void insert(int key, T val) override { m.insert(key, std::move(val)); }
+    };
+    m = std::make_unique<Map>(m_in);
+  }
+  map_wrapper() : m(nullptr) {}
+  operator bool() { return m; }
+  T at(int idx) const { return m->at(idx); }
+  void insert(int key, T val) { m->insert(key, std::move(val)); }
+  std::unique_ptr<IMap> m;
+};
+
+}  // namespace
+
+elm::AccessChain Parser::resolve_element(const ElementCode& elmcode) {
   auto elm = elmcode.IntegerView();
 
   const auto flag = (elm.front() >> 24) & 0xFF;
   size_t idx = elm.front() ^ (flag << 24);
+  if (flag == USER_COMMAND_FLAG)
+    return resolve_usrcmd(elmcode, idx);
+  else if (flag == USER_PROPERTY_FLAG)
+    return resolve_usrprop(elmcode, idx);
 
-  if (flag == USER_COMMAND_FLAG) {
-    auto result = std::make_unique<UserCommand>();
-    result->type = Type::Other;
+  else if (elm[0] == 83 && elm[1] == 2097152000)
+    return elm::AccessChain{.root = elm::Arg(elm[1] ^ (0x7d << 24)),
+                            .nodes = {},
+                            .type = Type::Int};
+  // hack
 
-    libsiglus::Command* cmd = nullptr;
-    if (idx < archive_.cmd_.size())
-      cmd = archive_.cmd_.data() + idx;
-    else
-      cmd = scene_.cmd.data() + (idx - archive_.cmd_.size());
-
-    result->name = cmd->name;
-    result->scene = cmd->scene_id;
-    result->entry = cmd->offset;
-    return result;
-
-  } else if (flag == USER_PROPERTY_FLAG) {
-    auto result = std::make_unique<UserProperty>();
-
-    if (idx < archive_.prop_.size()) {
-      const auto& incprop = archive_.prop_[idx];
-      result->name = incprop.name;
-      result->type = incprop.form;
-      result->scene = -1;
-      result->idx = idx;
-    } else {
-      idx -= archive_.prop_.size();
-      const auto& usrprop = scene_.property[idx];
-      result->name = usrprop.name;
-      result->type = usrprop.form;
-      result->scene = scene_.id_;
-      result->idx = idx;
-    }
-    return result;
-
-  } else if (elm[0] == 83 && elm[1] == 2097152000) {
-    // hack
-    struct CallArg : public IElement {
-      CallArg() : IElement(Type::Int) {}
-      int id = 0;
-      elm::Kind Kind() const noexcept override { return elm::Kind::Callprop; }
-      std::string ToDebugString() const override {
-        return "arg_" + std::to_string(id);
-      }
-    };
-    return std::make_unique<CallArg>();
-
-  } else {  // built-in element
+  else  // built-in element
     return make_element(elmcode);
-  }
 }
 
-Element Parser::make_element(const ElementCode& elmcode) {
-  auto elm = elmcode.IntegerView();
+elm::AccessChain Parser::resolve_usrcmd(const ElementCode& elmcode,
+                                        size_t idx) {
+  auto chain = elm::AccessChain();
+  chain.type = Type::Other;
 
+  libsiglus::Command* cmd = nullptr;
+  if (idx < archive_.cmd_.size())
+    cmd = archive_.cmd_.data() + idx;
+  else
+    cmd = scene_.cmd.data() + (idx - archive_.cmd_.size());
+
+  chain.root = elm::Usrcmd{
+      .scene = cmd->scene_id, .entry = cmd->offset, .name = cmd->name};
+  return chain;
+}
+
+elm::AccessChain Parser::resolve_usrprop(const ElementCode& elmcode,
+                                         size_t idx) {
+  auto chain = elm::AccessChain();
+  elm::Usrprop root;
+  Type root_type;
+
+  if (idx < archive_.prop_.size()) {
+    const auto& incprop = archive_.prop_[idx];
+    root.name = incprop.name;
+    root_type = incprop.form;
+    root.scene = -1;  // global
+    root.idx = idx;
+  } else {
+    idx -= archive_.prop_.size();
+    const auto& usrprop = scene_.property[idx];
+    root.name = usrprop.name;
+    root_type = usrprop.form;
+    root.scene = scene_.id_;
+    root.idx = idx;
+  }
+
+  chain.root = std::move(root);
+  chain.type = root_type;
+  return chain;
+}
+
+elm::AccessChain Parser::make_element(const ElementCode& elmcode) {
   enum Global {
     A = 25,
     B = 26,
@@ -518,6 +546,7 @@ Element Parser::make_element(const ElementCode& elmcode) {
     __TEST = 104
   };
 
+  auto elm = elmcode.IntegerView();
   int root = elm.front();
   switch (root) {
     case A:
@@ -533,29 +562,26 @@ Element Parser::make_element(const ElementCode& elmcode) {
     case M:
     case NAMAE_LOCAL:
     case NAMAE_GLOBAL:
-      return elm::Memory::Parse(elmcode);
+      break;
 
     case FARCALL:
-      return std::make_unique<elm::Farcall>();
+      break;
 
     case SET_TITLE:
-      return std::make_unique<elm::SetTitle>();
+      break;
     case GET_TITLE:
-      return std::make_unique<elm::GetTitle>();
+      break;
 
-    case CUR_CALL: {
-      auto result = std::make_unique<elm::Curcall>();
-      if ((elm[1] >> 24) == 0x7d) {  // hack
-        result->type = Type::Int;
-        result->id = elm[1] ^ (0x7d << 24);
-      }
-      return result;
-    }
+    case CUR_CALL:
+      break;
+      //   if ((elm[1] >> 24) == 0x7d) {  // hack
+      //     result->type = Type::Int;
+      //     result->id = elm[1] ^ (0x7d << 24);
+      //   }
+      // }
 
     case KOE: {
-      auto result = std::make_unique<elm::Koe>();
-      result->kidoku = reader_.PopAs<int>(4);
-      return result;
+      auto kidoku = reader_.PopAs<int>(4);
     }
 
     case SELBTN:
@@ -563,18 +589,20 @@ Element Parser::make_element(const ElementCode& elmcode) {
     case SELBTN_CANCEL:
     case SELBTN_CANCEL_READY:
     case SELBTN_START: {
-      auto result = std::make_unique<elm::Selbtn>();
+      int kidoku;
       if (root == SELBTN || root == SELBTN_CANCEL || root == SELBTN_START)
-        result->kidoku = reader_.PopAs<int>(4);
-      return result;
+        kidoku = reader_.PopAs<int>(4);
     }
 
     default:
       break;
   }
 
-  auto uke = std::make_unique<UnknownElement>();
-  uke->elmcode = elmcode;
+  elm::AccessChain uke;
+  uke.root = elm::Sym(ToString(elmcode.code.front()));
+  uke.nodes.reserve(elmcode.code.size() - 1);
+  for (size_t i = 1; i < elmcode.code.size(); ++i)
+    uke.nodes.emplace_back(elm::Val(elmcode.code[i]));
   return uke;
 }
 

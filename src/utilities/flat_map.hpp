@@ -113,6 +113,6 @@ flat_map<T> make_flatmap(std::initializer_list<std::pair<int, T>> init) {
            })->first;
   flat_map<T> fm(lo, hi);
   for (auto& p : init)
-    fm.insert(p.first, p.second);
+    fm.insert(p.first, std::move(p.second));
   return fm;
 }
