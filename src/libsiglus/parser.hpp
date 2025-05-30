@@ -94,6 +94,7 @@ class Parser {
   void Add(lex::Declare);
   void Add(lex::Namae);
   void Add(lex::Textout);
+  void Add(lex::EndOfScene);
 
   template <typename T>
   void Add(T t) {

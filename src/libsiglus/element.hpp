@@ -135,9 +135,9 @@ struct Node {
 struct AccessChain {
   Root root;
   std::vector<Node> nodes;
-  Type type = Type::Invalid;
 
   std::string ToDebugString() const;
+  Type GetType() const;
 };
 
 flat_map<Node> const* GetMethodMap(Type type);

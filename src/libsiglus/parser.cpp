@@ -93,8 +93,10 @@ void Parser::ParseAll() {
 
     try {  // parse
       static Lexer lexer;
+      auto lex = lexer.Parse(reader_);
+
       std::visit([&](auto&& x) { this->Add(std::forward<decltype(x)>(x)); },
-                 lexer.Parse(reader_));
+                 std::move(lex));
     } catch (std::runtime_error& e) {
       std::string stack_dbgstr = "\nstack:\n" + stack_.ToDebugString();
       throw std::runtime_error(e.what() + std::move(stack_dbgstr));
@@ -135,7 +137,7 @@ void Parser::Add(lex::Property) {
   token::GetProperty tok;
   tok.elmcode = stack_.Popelm();
   tok.chain = resolve_element(tok.elmcode);
-  tok.dst = add_var(tok.chain.type);
+  tok.dst = add_var(tok.chain.GetType());
 
   stack_.Push(tok.dst);
   emit_token(std::move(tok));
@@ -288,6 +290,11 @@ void Parser::Add(lex::Textout t) {
   emit_token(Textout{.kidoku = t.kidoku_, .str = pop(Type::String)});
 }
 
+void Parser::Add(lex::EndOfScene) {
+  // force parser loop to quit
+  reader_.Seek(reader_.Size());
+}
+
 // -----------------------------------------------------------------------
 // element related
 namespace {
@@ -331,9 +338,8 @@ elm::AccessChain Parser::resolve_element(const ElementCode& elmcode) {
     return resolve_usrprop(elmcode, idx);
 
   else if (elm[0] == 83 && elm[1] == 2097152000)
-    return elm::AccessChain{.root = elm::Arg(elm[1] ^ (0x7d << 24)),
-                            .nodes = {},
-                            .type = Type::Int};
+    return elm::AccessChain{
+        .root = {Type::Int, elm::Arg(elm[1] ^ (0x7d << 24))}, .nodes = {}};
   // hack
 
   else  // built-in element
@@ -343,7 +349,6 @@ elm::AccessChain Parser::resolve_element(const ElementCode& elmcode) {
 elm::AccessChain Parser::resolve_usrcmd(const ElementCode& elmcode,
                                         size_t idx) {
   auto chain = elm::AccessChain();
-  chain.type = Type::Other;
 
   libsiglus::Command* cmd = nullptr;
   if (idx < archive_.cmd_.size())
@@ -360,25 +365,37 @@ elm::AccessChain Parser::resolve_usrprop(const ElementCode& elmcode,
                                          size_t idx) {
   auto chain = elm::AccessChain();
   elm::Usrprop root;
-  Type root_type;
+  Type cur_type;
 
   if (idx < archive_.prop_.size()) {
     const auto& incprop = archive_.prop_[idx];
     root.name = incprop.name;
-    root_type = incprop.form;
+    cur_type = incprop.form;
     root.scene = -1;  // global
     root.idx = idx;
   } else {
     idx -= archive_.prop_.size();
     const auto& usrprop = scene_.property[idx];
     root.name = usrprop.name;
-    root_type = usrprop.form;
+    cur_type = usrprop.form;
     root.scene = scene_.id_;
     root.idx = idx;
   }
-
   chain.root = std::move(root);
-  chain.type = root_type;
+  chain.root.type = cur_type;
+
+  idx = 1;
+  chain.nodes.reserve(elmcode.code.size());
+  for (auto* mp = elm::GetMethodMap(cur_type); mp;) {
+    elm::Node next = mp->at(elmcode.At<int>(idx++));
+    cur_type = next.type;
+    mp = elm::GetMethodMap(cur_type);
+    chain.nodes.emplace_back(std::move(next));
+  }
+
+  for (; idx < elmcode.code.size(); ++idx)
+    chain.nodes.emplace_back(elm::Node(cur_type, elm::Val(elmcode.code[idx])));
+
   return chain;
 }
 
@@ -581,7 +598,7 @@ elm::AccessChain Parser::make_element(const ElementCode& elmcode) {
       // }
 
     case KOE: {
-      auto kidoku = reader_.PopAs<int>(4);
+      [[maybe_unused]] auto kidoku = reader_.PopAs<int>(4);
     }
 
     case SELBTN:
@@ -589,7 +606,7 @@ elm::AccessChain Parser::make_element(const ElementCode& elmcode) {
     case SELBTN_CANCEL:
     case SELBTN_CANCEL_READY:
     case SELBTN_START: {
-      int kidoku;
+      [[maybe_unused]] int kidoku;
       if (root == SELBTN || root == SELBTN_CANCEL || root == SELBTN_START)
         kidoku = reader_.PopAs<int>(4);
     }

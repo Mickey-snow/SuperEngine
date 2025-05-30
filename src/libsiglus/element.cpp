@@ -56,6 +56,13 @@ std::string AccessChain::ToDebugString() const {
   return repr;
 }
 
+Type AccessChain::GetType() const {
+  if (nodes.empty())
+    return root.type;
+  else
+    return nodes.back().type;
+}
+
 // -----------------------------------------------------------------------
 flat_map<Node> const* GetMethodMap(Type type) {
   switch (type) {
