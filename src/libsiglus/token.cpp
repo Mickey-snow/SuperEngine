@@ -28,12 +28,6 @@
 #include <sstream>
 
 namespace libsiglus::token {
-// helper to convert a range of Value to string
-static inline auto vals_to_string(std::vector<Value> const& vals) {
-  return std::views::all(vals) |
-         std::views::transform([](const Value& v) { return ToString(v); });
-}
-
 std::string Command::ToDebugString() const {
   const std::string cmd_repr = std::format(
       "cmd<{}:{}>", Join(",", vals_to_string(elmcode.code)), overload_id);

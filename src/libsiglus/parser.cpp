@@ -57,9 +57,11 @@ Parser::Parser(Archive& archive,
     offset2labels_.emplace(scene.label[i], i);  // (location, lid)
   }
 
-  for (size_t i = 0; i < scene.cmd.size(); ++i) {
-    offset2cmd_.emplace(scene.cmd[i].offset, i);
-  }
+  for (size_t i = 0; i < scene.cmd.size(); ++i)
+    offset2cmd_.emplace(scene.cmd[i].offset, scene.cmd.data() + i);
+  for (size_t i = 0; i < archive.cmd_.size(); ++i)
+    if (archive.cmd_[i].scene_id == scene.id_)
+      offset2cmd_.emplace(archive.cmd_[i].offset, archive.cmd_.data() + i);
 }
 
 Value Parser::add_var(Type type) {
@@ -120,7 +122,7 @@ void Parser::ParseAll() {
     // update curcall
     const auto it = offset2cmd_.find(reader_.Position());
     if (it != offset2cmd_.cend()) {
-      curcall_cmd_ = scene_.cmd.data() + it->second;
+      curcall_cmd_ = it->second;
       curcall_args_.clear();
       debug_assert_stack_empty();
     }
@@ -559,35 +561,44 @@ elm::AccessChain Parser::make_element(const ElementCode& elmcode) {
   int root = elm.front();
   elm::AccessChain chain;
 
-  auto make_memint = [&](char bank, int subidx) {
-    chain.root = {Type::IntList, elm::Mem(bank)};
+  const auto make_memint = [&](std::string bank, int subidx) {
+    chain.root = {Type::IntList, elm::Sym("int" + bank)};
+    chain.Append(std::span{elmcode.code}.subspan(subidx));
+    return chain;
+  };
+  const auto make_memstr = [&](std::string bank, int subidx) {
+    chain.root = {Type::StrList, elm::Sym("str" + bank)};
     chain.Append(std::span{elmcode.code}.subspan(subidx));
     return chain;
   };
   switch (root) {
     case A:
-      return make_memint('A', 1);
+      return make_memint("A", 1);
     case B:
-      return make_memint('B', 1);
+      return make_memint("B", 1);
     case C:
-      return make_memint('C', 1);
+      return make_memint("C", 1);
     case D:
-      return make_memint('D', 1);
+      return make_memint("D", 1);
     case E:
-      return make_memint('E', 1);
+      return make_memint("E", 1);
     case F:
-      return make_memint('F', 1);
+      return make_memint("F", 1);
     case X:
-      return make_memint('X', 1);
+      return make_memint("X", 1);
     case G:
-      return make_memint('G', 1);
+      return make_memint("G", 1);
     case Z:
-      return make_memint('Z', 1);
+      return make_memint("Z", 1);
 
     case S:
+      return make_memstr("S", 1);
     case M:
+      return make_memstr("M", 1);
     case NAMAE_LOCAL:
+      return make_memstr("LN", 1);
     case NAMAE_GLOBAL:
+      return make_memstr("GN", 1);
       break;
 
     case FARCALL:
@@ -610,10 +621,10 @@ elm::AccessChain Parser::make_element(const ElementCode& elmcode) {
       }
 
       else if (elmcall == 0)
-        return make_memint('L', 2);
+        return make_memint("L", 2);
 
-      else if (elmcall == 1) {  // strK
-      }
+      else if (elmcall == 1)
+        return make_memstr("K", 2);
     } break;
 
     case KOE: {

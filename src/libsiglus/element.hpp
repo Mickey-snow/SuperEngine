@@ -27,6 +27,7 @@
 #include "libsiglus/value.hpp"
 #include "utilities/flat_map.hpp"
 
+#include <functional>
 #include <span>
 #include <utility>
 #include <variant>
@@ -86,6 +87,12 @@ struct Member {
   std::string ToDebugString() const;
 };
 
+struct Call {
+  std::string_view name;
+  std::vector<Value> args;
+  std::string ToDebugString() const;
+};
+
 struct Subscript {
   std::optional<Value> idx;
   std::string ToDebugString() const;
@@ -97,7 +104,7 @@ struct Val {
 };
 
 struct Node {
-  using var_t = std::variant<Member, Subscript, Val>;
+  using var_t = std::variant<Member, Call, Subscript, Val>;
   var_t var;
   Type type;
 
@@ -125,6 +132,22 @@ struct AccessChain {
   AccessChain& Append(std::span<const Value> elmcode);
 };
 
-flat_map<Node> const* GetMethodMap(Type type);
+class Builder {
+ public:
+  struct Ctx {
+    std::span<const Value>& elmcode;
+    AccessChain& chain;
+  };
+
+  Builder(std::function<void(Ctx&)>);
+  Builder(Node product);
+
+  void Build(Ctx& ctx) const;
+
+ private:
+  std::function<void(Ctx&)> action_;
+};
+
+flat_map<Builder> const* GetMethodMap(Type type);
 
 }  // namespace libsiglus::elm

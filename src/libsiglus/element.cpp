@@ -27,6 +27,7 @@
 #include "utilities/string_utilities.hpp"
 
 #include <format>
+#include <numeric>
 
 namespace libsiglus ::elm {
 
@@ -44,16 +45,31 @@ std::string Sym::ToDebugString() const {
   return repr;
 }
 std::string Arg::ToDebugString() const { return "arg_" + std::to_string(id); }
-std::string Member::ToDebugString() const { return std::string(name); }
-std::string Subscript::ToDebugString() const {
-  return std::format("[{}]", idx.has_value() ? ToString(*idx) : std::string());
+std::string Member::ToDebugString() const { return '.' + std::string(name); }
+std::string Call::ToDebugString() const {
+  return '(' + Join(",", vals_to_string(args)) + ')';
 }
-std::string Val::ToDebugString() const { return ToString(value); }
+std::string Subscript::ToDebugString() const {
+  return '[' + (idx.has_value() ? ToString(*idx) : std::string()) + ']';
+}
+std::string Val::ToDebugString() const { return ".<" + ToString(value) + '>'; }
+
+// -----------------------------------------------------------------------
+// class Builder
+Builder::Builder(std::function<void(Ctx&)> a) : action_(std::move(a)) {}
+Builder::Builder(Node product)
+    : action_{[p = std::move(product)](Ctx& ctx) {
+        ctx.chain.nodes.push_back(p);
+        ctx.elmcode = ctx.elmcode.subspan(1);
+      }} {}
+void Builder::Build(Ctx& ctx) const { std::invoke(action_, ctx); }
+
+// -----------------------------------------------------------------------
+// AccessChain
 std::string AccessChain::ToDebugString() const {
-  std::string repr = root.ToDebugString();
-  for (const auto& it : nodes)
-    repr += ',' + it.ToDebugString();
-  return repr;
+  return std::accumulate(
+      nodes.cbegin(), nodes.cend(), root.ToDebugString(),
+      [](std::string&& s, auto const& v) { return s + v.ToDebugString(); });
 }
 
 Type AccessChain::GetType() const {
@@ -66,19 +82,21 @@ Type AccessChain::GetType() const {
 AccessChain& AccessChain::Append(std::span<const Value> elmcode) {
   nodes.reserve(nodes.size() + elmcode.size());
 
-  Type cur_type = GetType();
-  for (auto* mp = elm::GetMethodMap(cur_type); mp && !elmcode.empty();) {
+  flat_map<Builder> const* mp;
+  while ((mp = elm::GetMethodMap(GetType())) != nullptr) {
+    if (!mp || elmcode.empty())
+      break;
     if (!std::holds_alternative<Integer>(elmcode.front()))
       break;
-    elm::Node next = mp->at(AsInt(elmcode.front()));
+    const int key = AsInt(elmcode.front());
+    if (!mp->contains(key))
+      break;
 
-    cur_type = next.type;
-    elmcode = elmcode.subspan(1);
-
-    mp = elm::GetMethodMap(cur_type);
-    nodes.emplace_back(std::move(next));
+    Builder::Ctx ctx{.elmcode = elmcode, .chain = *this};
+    mp->at(key).Build(ctx);
   }
 
+  const auto cur_type = GetType();
   for (const auto& it : elmcode)
     nodes.emplace_back(elm::Node(cur_type, elm::Val(it)));
 
@@ -86,21 +104,38 @@ AccessChain& AccessChain::Append(std::span<const Value> elmcode) {
 }
 
 // -----------------------------------------------------------------------
-flat_map<Node> const* GetMethodMap(Type type) {
+inline static auto b(Node node) { return Builder(std::move(node)); }
+flat_map<Builder> const* GetMethodMap(Type type) {
   switch (type) {
     case Type::IntList: {
-      static const auto mp =
-          make_flatmap<Node>(id[-1] | Node{Type::Int, Subscript()},
-                             id[3] | Node{Type::IntList, Member("b1")},
-                             id[4] | Node{Type::IntList, Member("b2")},
-                             id[5] | Node{Type::IntList, Member("b4")},
-                             id[7] | Node{Type::IntList, Member("b8")},
-                             id[6] | Node{Type::IntList, Member("b16")},
-                             id[10] | Node{Type::None, Member("Init")},
-                             id[2] | Node{Type::None, Member("Resize")},
-                             id[9] | Node{Type::Int, Member("Size")},
-                             id[8] | Node{Type::Int, Member("Fill")},
-                             id[1] | Node{Type::Int, Member("Set")});
+      static const auto mp = make_flatmap<Builder>(
+          id[-1] | Builder([](Builder::Ctx& ctx) {
+            ctx.chain.nodes.emplace_back(Type::Int, Subscript{ctx.elmcode[1]});
+            ctx.elmcode = ctx.elmcode.subspan(2);
+          }),
+          id[3] | b({Type::IntList, Member("b1")}),
+          id[4] | b({Type::IntList, Member("b2")}),
+          id[5] | b({Type::IntList, Member("b4")}),
+          id[7] | b({Type::IntList, Member("b8")}),
+          id[6] | b({Type::IntList, Member("b16")}),
+          id[10] | b({Type::Callable, Member("Init")}),
+          id[2] | b({Type::Callable, Member("Resize")}),
+          id[9] | b({Type::Callable, Member("Size")}),
+          id[8] | b({Type::Callable, Member("Fill")}),
+          id[1] | b({Type::Callable, Member("Set")}));
+      return &mp;
+    }
+
+    case Type::StrList: {
+      static const auto mp = make_flatmap<Builder>(
+          id[-1] | Builder([](Builder::Ctx& ctx) {
+            ctx.chain.nodes.emplace_back(Type::String,
+                                         Call("substr", {ctx.elmcode[1]}));
+            ctx.elmcode = ctx.elmcode.subspan(2);
+          }),
+          id[3] | b({Type::Callable, Member("Init")}),
+          id[2] | b({Type::Callable, Member("Resize")}),
+          id[4] | b({Type::Callable, Member("Size")}));
       return &mp;
     }
 

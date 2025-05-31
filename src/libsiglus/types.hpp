@@ -32,6 +32,7 @@ enum class Type : uint32_t {
   // reserved
   Invalid = 0x7FFFFFFF,
   Other = 0x5FFFFFFF,
+  Callable,
 
   None = 0x00,
   Int = 0x0a,

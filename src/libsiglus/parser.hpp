@@ -131,7 +131,7 @@ class Parser {
 
   int var_cnt_;
   std::multimap<int, int> offset2labels_;
-  std::unordered_map<int, int> offset2cmd_;
+  std::unordered_map<int, Command*> offset2cmd_;
 
   Command* curcall_cmd_ = nullptr;
   std::vector<Type> curcall_args_;

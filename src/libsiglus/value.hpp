@@ -26,6 +26,7 @@
 #include "types.hpp"
 
 #include <optional>
+#include <ranges>
 #include <string>
 #include <variant>
 #include <vector>
@@ -68,6 +69,14 @@ std::optional<Value> TryEval(Value lhs, OperatorCode op, Value rhs);
 inline std::string ToString(auto&& v) {
   return std::visit([](auto&& x) { return x.ToDebugString(); },
                     std::forward<decltype(v)>(v));
+}
+inline std::string ToString(const auto& v) {
+  return std::visit([](const auto& x) { return x.ToDebugString(); }, v);
+}
+// helper to convert a range of Value to string
+inline auto vals_to_string(std::vector<Value> const& vals) {
+  return std::views::all(vals) |
+         std::views::transform([](const Value& v) { return ToString(v); });
 }
 
 inline Type Typeof(const Value& v) {
