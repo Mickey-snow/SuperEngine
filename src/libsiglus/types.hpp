@@ -33,6 +33,12 @@ enum class Type : uint32_t {
   Invalid = 0x7FFFFFFF,
   Other = 0x5FFFFFFF,
   Callable,
+  System,
+  FrameActionList,
+  FrameAction,
+  CounterList,
+  Counter,
+  Syscom,
 
   None = 0x00,
   Int = 0x0a,

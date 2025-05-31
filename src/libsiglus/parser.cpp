@@ -394,259 +394,101 @@ elm::AccessChain Parser::resolve_usrprop(const ElementCode& elmcode,
 }
 
 elm::AccessChain Parser::make_element(const ElementCode& elmcode) {
-  enum Global {
-    A = 25,
-    B = 26,
-    C = 27,
-    D = 28,
-    E = 29,
-    F = 30,
-    X = 137,
-    G = 31,
-    Z = 32,
-    S = 34,
-    M = 35,
-    NAMAE_GLOBAL = 107,
-    NAMAE_LOCAL = 106,
-    NAMAE = 108,
-    STAGE = 49,
-    BACK = 37,
-    FRONT = 38,
-    NEXT = 73,
-    MSGBK = 145,
-    SCREEN = 70,
-    COUNTER = 40,
-    FRAME_ACTION = 79,
-    FRAME_ACTION_CH = 53,
-    TIMEWAIT = 54,
-    TIMEWAIT_KEY = 55,
-    MATH = 39,
-    DATABASE = 105,
-    CGTABLE = 78,
-    BGMTABLE = 123,
-    G00BUF = 124,
-    MASK = 135,
-    EDITBOX = 97,
-    FILE = 48,
-    BGM = 42,
-    KOE_ST = 82,
-    PCM = 43,
-    PCMCH = 44,
-    PCMEVENT = 52,
-    SE = 45,
-    MOV = 20,
-    INPUT = 86,
-    MOUSE = 46,
-    KEY = 24,
-    SCRIPT = 64,
-    SYSCOM = 63,
-    SYSTEM = 92,
-    CALL = 98,
-    CUR_CALL = 83,
-    EXCALL = 65,
-    STEAM = 166,
-    EXKOE = 87,
-    EXKOE_PLAY_WAIT = 88,
-    EXKOE_PLAY_WAIT_KEY = 89,
-    NOP = 60,
-    OWARI = 2,
-    RETURNMENU = 3,
-    JUMP = 4,
-    FARCALL = 5,
-    GET_SCENE_NAME = 131,
-    GET_LINE_NO = 158,
-    SET_TITLE = 74,
-    GET_TITLE = 75,
-    SAVEPOINT = 36,
-    CLEAR_SAVEPOINT = 113,
-    CHECK_SAVEPOINT = 112,
-    SELPOINT = 1,
-    CLEAR_SELPOINT = 111,
-    CHECK_SELPOINT = 110,
-    STACK_SELPOINT = 149,
-    DROP_SELPOINT = 150,
-    DISP = 96,
-    FRAME = 6,
-    CAPTURE = 80,
-    CAPTURE_FROM_FILE = 163,
-    CAPTURE_FREE = 81,
-    CAPTURE_FOR_OBJECT = 130,
-    CAPTURE_FOR_OBJECT_FREE = 136,
-    CAPTURE_FOR_TWEET = 164,
-    CAPTURE_FREE_FOR_TWEET = 165,
-    CAPTURE_FOR_LOCAL_SAVE = 144,
-    WIPE = 7,
-    WIPE_ALL = 23,
-    MASK_WIPE = 50,
-    MASK_WIPE_ALL = 51,
-    WIPE_END = 33,
-    WAIT_WIPE = 103,
-    CHECK_WIPE = 109,
-    MESSAGE_BOX = 0,
-    SET_MWND = 8,
-    GET_MWND = 116,
-    SET_SEL_MWND = 71,
-    GET_SEL_MWND = 117,
-    SET_WAKU = 22,
-    OPEN = 9,
-    OPEN_WAIT = 58,
-    OPEN_NOWAIT = 59,
-    CLOSE = 10,
-    CLOSE_WAIT = 56,
-    CLOSE_NOWAIT = 57,
-    END_CLOSE = 125,
-    MSG_BLOCK = 84,
-    MSG_PP_BLOCK = 121,
-    CLEAR = 11,
-    SET_NAMAE = 156,
-    PRINT = 12,
-    RUBY = 61,
-    MSGBTN = 47,
-    NL = 15,
-    NLI = 62,
-    INDENT = 119,
-    CLEAR_INDENT = 94,
-    WAIT_MSG = 21,
-    PP = 13,
-    R = 14,
-    PAGE = 115,
-    REP_POS = 151,
-    SIZE = 16,
-    COLOR = 17,
-    MULTI_MSG = 95,
-    NEXT_MSG = 93,
-    START_SLIDE_MSG = 120,
-    END_SLIDE_MSG = 122,
-    KOE = 18,
-    KOE_PLAY_WAIT = 90,
-    KOE_PLAY_WAIT_KEY = 91,
-    KOE_SET_VOLUME = 152,
-    KOE_SET_VOLUME_MAX = 153,
-    KOE_SET_VOLUME_MIN = 154,
-    KOE_GET_VOLUME = 155,
-    KOE_STOP = 68,
-    KOE_WAIT = 85,
-    KOE_WAIT_KEY = 99,
-    KOE_CHECK = 69,
-    KOE_CHECK_GET_KOE_NO = 159,
-    KOE_CHECK_GET_CHARA_NO = 160,
-    KOE_CHECK_IS_EX_KOE = 161,
-    CLEAR_FACE = 72,
-    SET_FACE = 41,
-    CLEAR_MSGBK = 118,
-    INSERT_MSGBK_IMG = 114,
-    SEL = 19,
-    SEL_CANCEL = 101,
-    SELMSG = 100,
-    SELMSG_CANCEL = 102,
-    SELBTN = 76,
-    SELBTN_READY = 77,
-    SELBTN_CANCEL = 126,
-    SELBTN_CANCEL_READY = 128,
-    SELBTN_START = 127,
-    GET_LAST_SEL_MSG = 162,
-    INIT_CALL_STACK = 141,
-    DEL_CALL_STACK = 138,
-    SET_CALL_STACK_CNT = 140,
-    GET_CALL_STACK_CNT = 139,
-    __FOG_NAME = 132,
-    __FOG_X = 142,
-    __FOG_X_EVE = 143,
-    __FOG_NEAR = 133,
-    __FOG_FAR = 134,
-    __TEST = 104
-  };
-
   auto elm = elmcode.IntegerView();
   int root = elm.front();
-  elm::AccessChain chain;
 
-  const auto make_memint = [&](std::string bank, int subidx) {
-    chain.root = {Type::IntList, elm::Sym("int" + bank)};
-    chain.Append(std::span{elmcode.code}.subspan(subidx));
+  const auto make_chain = [&elmcode](elm::Root root, int subidx) {
+    elm::AccessChain chain;
+    chain.root = std::move(root);
+    if (elmcode.code.size() > subidx)
+      chain.Append(std::span{elmcode.code}.subspan(subidx));
     return chain;
   };
-  const auto make_memstr = [&](std::string bank, int subidx) {
-    chain.root = {Type::StrList, elm::Sym("str" + bank)};
-    chain.Append(std::span{elmcode.code}.subspan(subidx));
-    return chain;
-  };
+
   switch (root) {
-    case A:
-      return make_memint("A", 1);
-    case B:
-      return make_memint("B", 1);
-    case C:
-      return make_memint("C", 1);
-    case D:
-      return make_memint("D", 1);
-    case E:
-      return make_memint("E", 1);
-    case F:
-      return make_memint("F", 1);
-    case X:
-      return make_memint("X", 1);
-    case G:
-      return make_memint("G", 1);
-    case Z:
-      return make_memint("Z", 1);
+    case 25:  // A
+      return make_chain({Type::IntList, elm::Sym("A")}, 1);
+    case 26:  // B
+      return make_chain({Type::IntList, elm::Sym("B")}, 1);
+    case 27:  // C
+      return make_chain({Type::IntList, elm::Sym("C")}, 1);
+    case 28:  // D
+      return make_chain({Type::IntList, elm::Sym("D")}, 1);
+    case 29:  // E
+      return make_chain({Type::IntList, elm::Sym("E")}, 1);
+    case 30:  // F
+      return make_chain({Type::IntList, elm::Sym("F")}, 1);
+    case 137:  // X
+      return make_chain({Type::IntList, elm::Sym("X")}, 1);
+    case 31:  // G
+      return make_chain({Type::IntList, elm::Sym("G")}, 1);
+    case 32:  // Z
+      return make_chain({Type::IntList, elm::Sym("Z")}, 1);
 
-    case S:
-      return make_memstr("S", 1);
-    case M:
-      return make_memstr("M", 1);
-    case NAMAE_LOCAL:
-      return make_memstr("LN", 1);
-    case NAMAE_GLOBAL:
-      return make_memstr("GN", 1);
-      break;
+    case 34:  // S
+      return make_chain({Type::StrList, elm::Sym("S")}, 1);
+    case 35:  // M
+      return make_chain({Type::StrList, elm::Sym("M")}, 1);
+    case 106:  // NAMAE_LOCAL
+      return make_chain({Type::StrList, elm::Sym("LN")}, 1);
+    case 107:  // NAMAE_GLOBAL
+      return make_chain({Type::StrList, elm::Sym("GN")}, 1);
 
-    case FARCALL:
-      break;
+    case 5:  // FARCALL
+      return make_chain({Type::Callable, elm::Sym("farcall")}, 1);
 
-    case SET_TITLE:
-      break;
-    case GET_TITLE:
-      break;
+    case 74:  // SET_TITLE
+      return make_chain({Type::Callable, elm::Sym("set_title")}, 1);
 
-    case CUR_CALL: {
+    case 75:  // GET_TITLE
+      return make_chain({Type::Callable, elm::Sym("get_title")}, 1);
+
+    case 83: {  // CUR_CALL
       const int elmcall = elm[1];
       if ((elmcall >> 24) == 0x7d) {
         auto id = (elmcall ^ (0x7d << 24));
-        elm::AccessChain curcall_arg;
-        curcall_arg.root = elm::Root(curcall_args_[id], elm::Arg(id));
-        if (elmcode.code.size() > 2)
-          curcall_arg.Append(std::span{elmcode.code}.subspan(2));
-        return curcall_arg;
+        return make_chain({curcall_args_[id], elm::Arg(id)}, 2);
       }
 
       else if (elmcall == 0)
-        return make_memint("L", 2);
+        return make_chain({Type::IntList, elm::Sym("L")}, 2);
 
       else if (elmcall == 1)
-        return make_memstr("K", 2);
+        return make_chain({Type::StrList, elm::Sym("K")}, 2);
     } break;
 
-    case KOE: {
+    case 18: {  // KOE
       [[maybe_unused]] auto kidoku = reader_.PopAs<int>(4);
     }
 
-    case SELBTN:
-    case SELBTN_READY:
-    case SELBTN_CANCEL:
-    case SELBTN_CANCEL_READY:
-    case SELBTN_START: {
+    case 76:   // SELBTN
+    case 77:   // SELBTN_READY
+    case 126:  // SELBTN_CANCEL
+    case 128:  // SELBTN_CANCEL_READY
+    case 127:  // SELBTN_START
+    {
       [[maybe_unused]] int kidoku;
-      if (root == SELBTN || root == SELBTN_CANCEL || root == SELBTN_START)
+      if (root == 76 || root == 126 || root == 127)
         kidoku = reader_.PopAs<int>(4);
     }
 
+    case 92:  // SYSTEM
+      return make_chain({Type::System, elm::Sym("os")}, 1);
+
+    case 40:  // COUNTER
+      return make_chain({Type::CounterList, elm::Sym("counter")}, 1);
+
+    case 79:  // FRAME_ACTION
+      return make_chain({Type::FrameAction, elm::Sym("frame_action")}, 1);
+    case 53:  // FRAME_ACTION_CH
+      return make_chain({Type::FrameActionList, elm::Sym("frame_action_ch")},
+                        1);
     default:
       break;
   }
 
   elm::AccessChain uke;
-  uke.root = elm::Sym(ToString(elmcode.code.front()));
+  uke.root = elm::Sym('<' + ToString(elmcode.code.front()) + '>');
   uke.nodes.reserve(elmcode.code.size() - 1);
   for (size_t i = 1; i < elmcode.code.size(); ++i)
     uke.nodes.emplace_back(elm::Val(elmcode.code[i]));

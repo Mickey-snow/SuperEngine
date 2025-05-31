@@ -28,9 +28,9 @@
 
 namespace libsiglus {
 struct XorKey {
-  std::array<uint8_t, 256> easykey;
   std::array<uint8_t, 16> exekey;
 };
 
 extern const XorKey sprb_key;
+extern const XorKey stella_key;
 }  // namespace libsiglus
