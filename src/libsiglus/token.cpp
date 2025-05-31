@@ -25,6 +25,7 @@
 #include "utilities/string_utilities.hpp"
 
 #include <format>
+#include <sstream>
 
 namespace libsiglus::token {
 // helper to convert a range of Value to string
@@ -101,12 +102,15 @@ std::string Duplicate::ToDebugString() const {
                      ToString(src));
 }
 std::string Subroutine::ToDebugString() const {
-  return std::format("====== SUBROUTINE {} ======", name);
+  std::stringstream ss;
+  ss << "====== SUBROUTINE " << name << " ======";
+  for (size_t i = 0; i < args.size(); ++i) {
+    ss << '\n' << "  arg_" << i << ": " << ToString(args[i]);
+  }
+  return ss.str();
 }
 std::string Return::ToDebugString() const {
   return std::format("ret ({})", Join(",", vals_to_string(ret_vals)));
 }
-std::string Precall::ToDebugString() const {
-  return std::format("precall {} {}", ToString(type), size);
-}
+std::string Eof::ToDebugString() const { return "<EOF>"; }
 }  // namespace libsiglus::token

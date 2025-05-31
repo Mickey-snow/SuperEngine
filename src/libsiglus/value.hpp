@@ -65,8 +65,9 @@ inline std::string AsStr(const Value& val) {
 std::optional<Value> TryEval(OperatorCode op, Value rhs);
 std::optional<Value> TryEval(Value lhs, OperatorCode op, Value rhs);
 
-inline std::string ToString(const auto& v) {
-  return std::visit([](const auto& x) { return x.ToDebugString(); }, v);
+inline std::string ToString(auto&& v) {
+  return std::visit([](auto&& x) { return x.ToDebugString(); },
+                    std::forward<decltype(v)>(v));
 }
 
 inline Type Typeof(const Value& v) {

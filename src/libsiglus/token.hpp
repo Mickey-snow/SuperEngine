@@ -120,6 +120,7 @@ struct Gosub {
 
 struct Subroutine {
   std::string name;
+  std::vector<Type> args;
   std::string ToDebugString() const;
 };
 
@@ -128,9 +129,7 @@ struct Return {
   std::string ToDebugString() const;
 };
 
-struct Precall {
-  Type type;
-  size_t size;
+struct Eof {
   std::string ToDebugString() const;
 };
 
@@ -147,8 +146,8 @@ using Token_t = std::variant<Command,
                              Assign,
                              Duplicate,
                              Subroutine,
-                             Precall,
-                             Return>;
+                             Return,
+                             Eof>;
 
 inline std::string ToString(const Token_t& stmt) {
   return std::visit(

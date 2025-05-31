@@ -138,6 +138,8 @@ struct AccessChain {
 
   std::string ToDebugString() const;
   Type GetType() const;
+
+  AccessChain& Append(std::span<const Value> elmcode);
 };
 
 flat_map<Node> const* GetMethodMap(Type type);

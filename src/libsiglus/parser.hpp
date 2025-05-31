@@ -67,9 +67,14 @@ class Parser {
     (*out_) = std::forward<T>(t);
   }
 
-  Value add_var(Type type);
   Value pop(Type type);
+  inline void push(Value val) { stack_.Push(std::move(val)); }
+  inline void push(ElementCode elm) { stack_.Push(std::move(elm)); }
+  void push(const token::GetProperty& prop);
+
+  Value add_var(Type type);
   void add_label(int id);
+
   elm::AccessChain resolve_element(const ElementCode& elm);
   elm::AccessChain resolve_usrcmd(const ElementCode& elm, size_t idx);
   elm::AccessChain resolve_usrprop(const ElementCode& elm, size_t idx);
@@ -125,7 +130,10 @@ class Parser {
 
   int var_cnt_;
   std::multimap<int, int> offset2labels_;
-  std::map<int, int> offset2cmd_;
+  std::unordered_map<int, int> offset2cmd_;
+
+  Command* curcall_cmd_ = nullptr;
+  std::vector<Type> curcall_args_;
 };
 
 }  // namespace libsiglus

@@ -81,6 +81,24 @@ Value Parser::pop(Type type) {
   }
 }
 
+void Parser::push(const token::GetProperty& prop) {
+  Type type = Typeof(prop.dst);
+  switch (type) {
+    case Type::Int:
+    case Type::String:
+      push(prop.dst);
+      break;
+
+    case Type::Object:
+      push(prop.elmcode);
+      break;
+
+    default:
+      logger(Severity::Warn) << "property ignored: " << prop.ToDebugString();
+      break;
+  }
+}
+
 void Parser::add_label(int id) { emit_token(Label{id}); }
 
 void Parser::ParseAll() {
@@ -89,6 +107,13 @@ void Parser::ParseAll() {
     for (auto [begin, end] = offset2labels_.equal_range(reader_.Position());
          begin != end; ++begin) {
       add_label(begin->second);
+    }
+
+    // update curcall
+    const auto it = offset2cmd_.find(reader_.Position());
+    if (it != offset2cmd_.cend()) {
+      curcall_cmd_ = scene_.cmd.data() + it->second;
+      curcall_args_.clear();
     }
 
     try {  // parse
@@ -104,13 +129,13 @@ void Parser::ParseAll() {
   }
 }
 
-void Parser::Add(lex::Push push) {
-  switch (push.type_) {
+void Parser::Add(lex::Push p) {
+  switch (p.type_) {
     case Type::Int:
-      stack_.Push(Integer(push.value_));
+      push(Integer(p.value_));
       break;
     case Type::String:
-      stack_.Push(String(scene_.str_[push.value_]));
+      push(String(scene_.str_[p.value_]));
       break;
 
     default:  // ignore
@@ -139,7 +164,7 @@ void Parser::Add(lex::Property) {
   tok.chain = resolve_element(tok.elmcode);
   tok.dst = add_var(tok.chain.GetType());
 
-  stack_.Push(tok.dst);
+  push(tok);
   emit_token(std::move(tok));
 }
 
@@ -165,7 +190,7 @@ void Parser::Add(lex::Command command) {
   tok.chain = resolve_element(tok.elmcode);
 
   tok.dst = add_var(tok.return_type);
-  stack_.Push(tok.dst);
+  push(tok.dst);
 
   emit_token(std::move(tok));
 }
@@ -177,7 +202,7 @@ void Parser::Add(lex::Operate1 op) {  // + - ~ <int>
   tok.op = op.op_;
   tok.val = TryEval(tok.op, tok.rhs);
 
-  stack_.Push(tok.val.value_or(tok.dst));
+  push(tok.val.value_or(tok.dst));
   emit_token(std::move(tok));
 }
 
@@ -200,7 +225,7 @@ void Parser::Add(lex::Operate2 op) {
   tok.lhs = pop(op.ltype_);
   tok.val = TryEval(tok.lhs, tok.op, tok.rhs);
 
-  stack_.Push(tok.val.value_or(tok.dst));
+  push(tok.val.value_or(tok.dst));
   emit_token(std::move(tok));
 }
 
@@ -219,11 +244,11 @@ void Parser::Add(lex::Copy cp) {
       break;
   }
 
-  stack_.Push(dst);
+  push(dst);
   emit_token(Duplicate{std::move(src), std::move(dst)});
 }
 
-void Parser::Add(lex::CopyElm) { stack_.Push(stack_.Backelm()); }
+void Parser::Add(lex::CopyElm) { push(stack_.Backelm()); }
 
 void Parser::Add(lex::Goto g) {
   if (g.cond_ == lex::Goto::Condition::Unconditional)
@@ -262,9 +287,9 @@ void Parser::Add(lex::Gosub s) {
 }
 
 void Parser::Add(lex::Arg a) {
-  int cmd_id = offset2cmd_.lower_bound(reader_.Position())->second;
-  token ::Subroutine tok;
-  tok.name = scene_.cmd[cmd_id].name;
+  token::Subroutine tok;
+  tok.name = curcall_cmd_->name;
+  tok.args = curcall_args_;
   emit_token(std::move(tok));
 }
 
@@ -278,10 +303,8 @@ void Parser::Add(lex::Return r) {
 }
 
 void Parser::Add(lex::Declare d) {
-  token::Precall pre;
-  pre.type = d.type;
-  pre.size = d.size;
-  emit_token(std::move(pre));
+  std::ignore = d.size;
+  curcall_args_.push_back(d.type);
 }
 
 void Parser::Add(lex::Namae) { emit_token(Name{pop(Type::String)}); }
@@ -293,40 +316,12 @@ void Parser::Add(lex::Textout t) {
 void Parser::Add(lex::EndOfScene) {
   // force parser loop to quit
   reader_.Seek(reader_.Size());
+
+  emit_token(Eof{});
 }
 
 // -----------------------------------------------------------------------
 // element related
-namespace {
-template <class T>
-class map_wrapper {
-  class IMap {
-   public:
-    virtual ~IMap() = default;
-    virtual T at(int idx) const = 0;
-    virtual void insert(int key, T val) = 0;
-  };
-
- public:
-  template <typename U>
-  map_wrapper(U& m_in) {
-    class Map : public IMap {
-     public:
-      U& m;
-      T at(int idx) const override { return m.at(idx); }
-      void insert(int key, T val) override { m.insert(key, std::move(val)); }
-    };
-    m = std::make_unique<Map>(m_in);
-  }
-  map_wrapper() : m(nullptr) {}
-  operator bool() { return m; }
-  T at(int idx) const { return m->at(idx); }
-  void insert(int key, T val) { m->insert(key, std::move(val)); }
-  std::unique_ptr<IMap> m;
-};
-
-}  // namespace
-
 elm::AccessChain Parser::resolve_element(const ElementCode& elmcode) {
   auto elm = elmcode.IntegerView();
 
@@ -336,11 +331,6 @@ elm::AccessChain Parser::resolve_element(const ElementCode& elmcode) {
     return resolve_usrcmd(elmcode, idx);
   else if (flag == USER_PROPERTY_FLAG)
     return resolve_usrprop(elmcode, idx);
-
-  else if (elm[0] == 83 && elm[1] == 2097152000)
-    return elm::AccessChain{
-        .root = {Type::Int, elm::Arg(elm[1] ^ (0x7d << 24))}, .nodes = {}};
-  // hack
 
   else  // built-in element
     return make_element(elmcode);
@@ -365,37 +355,26 @@ elm::AccessChain Parser::resolve_usrprop(const ElementCode& elmcode,
                                          size_t idx) {
   auto chain = elm::AccessChain();
   elm::Usrprop root;
-  Type cur_type;
+  Type root_type;
 
   if (idx < archive_.prop_.size()) {
     const auto& incprop = archive_.prop_[idx];
     root.name = incprop.name;
-    cur_type = incprop.form;
+    root_type = incprop.form;
     root.scene = -1;  // global
     root.idx = idx;
   } else {
     idx -= archive_.prop_.size();
     const auto& usrprop = scene_.property[idx];
     root.name = usrprop.name;
-    cur_type = usrprop.form;
+    root_type = usrprop.form;
     root.scene = scene_.id_;
     root.idx = idx;
   }
   chain.root = std::move(root);
-  chain.root.type = cur_type;
+  chain.root.type = root_type;
 
-  idx = 1;
-  chain.nodes.reserve(elmcode.code.size());
-  for (auto* mp = elm::GetMethodMap(cur_type); mp;) {
-    elm::Node next = mp->at(elmcode.At<int>(idx++));
-    cur_type = next.type;
-    mp = elm::GetMethodMap(cur_type);
-    chain.nodes.emplace_back(std::move(next));
-  }
-
-  for (; idx < elmcode.code.size(); ++idx)
-    chain.nodes.emplace_back(elm::Node(cur_type, elm::Val(elmcode.code[idx])));
-
+  chain.Append(std::span{elmcode.code}.subspan(1));
   return chain;
 }
 
@@ -589,13 +568,16 @@ elm::AccessChain Parser::make_element(const ElementCode& elmcode) {
     case GET_TITLE:
       break;
 
-    case CUR_CALL:
-      break;
-      //   if ((elm[1] >> 24) == 0x7d) {  // hack
-      //     result->type = Type::Int;
-      //     result->id = elm[1] ^ (0x7d << 24);
-      //   }
-      // }
+    case CUR_CALL: {
+      if ((elm[1] >> 24) == 0x7d) {
+        auto id = (elm[1] ^ (0x7d << 24));
+        elm::AccessChain curcall_arg;
+        curcall_arg.root = elm::Root(curcall_args_[id], elm::Arg(id));
+        if (elmcode.code.size() > 2)
+          curcall_arg.Append(std::span{elmcode.code}.subspan(2));
+        return curcall_arg;
+      }
+    } break;
 
     case KOE: {
       [[maybe_unused]] auto kidoku = reader_.PopAs<int>(4);

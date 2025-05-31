@@ -63,6 +63,28 @@ Type AccessChain::GetType() const {
     return nodes.back().type;
 }
 
+AccessChain& AccessChain::Append(std::span<const Value> elmcode) {
+  nodes.reserve(nodes.size() + elmcode.size());
+
+  Type cur_type = GetType();
+  for (auto* mp = elm::GetMethodMap(cur_type); mp && !elmcode.empty();) {
+    if (!std::holds_alternative<Integer>(elmcode.front()))
+      break;
+    elm::Node next = mp->at(AsInt(elmcode.front()));
+
+    cur_type = next.type;
+    elmcode = elmcode.subspan(1);
+
+    mp = elm::GetMethodMap(cur_type);
+    nodes.emplace_back(std::move(next));
+  }
+
+  for (const auto& it : elmcode)
+    nodes.emplace_back(elm::Node(cur_type, elm::Val(it)));
+
+  return *this;
+}
+
 // -----------------------------------------------------------------------
 flat_map<Node> const* GetMethodMap(Type type) {
   switch (type) {
