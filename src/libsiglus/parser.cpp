@@ -76,6 +76,13 @@ Value Parser::pop(Type type) {
       return stack_.Popint();
     case Type::String:
       return stack_.Popstr();
+    case Type::Object: {
+      ElementCode elmcode = stack_.Popelm();
+      Value dst = add_var(Type::Object);
+      emit_token(GetProperty{
+          .elmcode = elmcode, .chain = resolve_element(elmcode), .dst = dst});
+      return dst;
+    }
     default:  // ignore
       return {};
   }
@@ -107,6 +114,7 @@ void Parser::ParseAll() {
     for (auto [begin, end] = offset2labels_.equal_range(reader_.Position());
          begin != end; ++begin) {
       add_label(begin->second);
+      debug_assert_stack_empty();
     }
 
     // update curcall
@@ -114,6 +122,7 @@ void Parser::ParseAll() {
     if (it != offset2cmd_.cend()) {
       curcall_cmd_ = scene_.cmd.data() + it->second;
       curcall_args_.clear();
+      debug_assert_stack_empty();
     }
 
     try {  // parse
@@ -148,12 +157,7 @@ void Parser::Add(lex::Pop p) { pop(p.type_); }
 void Parser::Add(lex::Line line) {
   lineno_ = line.linenum_;
   // is it safe to assume the stack is empty here?
-  if (!stack_.Empty()) {
-    logger(Severity::Info) << "at line " << lineno_
-                           << "expected stack to be empty. but got:\n"
-                           << stack_.ToDebugString();
-    stack_.Clear();
-  }
+  debug_assert_stack_empty();
 }
 
 void Parser::Add(lex::Marker marker) { stack_.PushMarker(); }
@@ -318,6 +322,15 @@ void Parser::Add(lex::EndOfScene) {
   reader_.Seek(reader_.Size());
 
   emit_token(Eof{});
+}
+
+void Parser::debug_assert_stack_empty() {
+  if (!stack_.Empty()) {
+    logger(Severity::Info) << "at line " << lineno_
+                           << ", expected stack to be empty. but got:\n"
+                           << stack_.ToDebugString();
+    stack_.Clear();
+  }
 }
 
 // -----------------------------------------------------------------------
@@ -544,16 +557,33 @@ elm::AccessChain Parser::make_element(const ElementCode& elmcode) {
 
   auto elm = elmcode.IntegerView();
   int root = elm.front();
+  elm::AccessChain chain;
+
+  auto make_memint = [&](char bank, int subidx) {
+    chain.root = {Type::IntList, elm::Mem(bank)};
+    chain.Append(std::span{elmcode.code}.subspan(subidx));
+    return chain;
+  };
   switch (root) {
     case A:
+      return make_memint('A', 1);
     case B:
+      return make_memint('B', 1);
     case C:
+      return make_memint('C', 1);
     case D:
+      return make_memint('D', 1);
     case E:
+      return make_memint('E', 1);
     case F:
+      return make_memint('F', 1);
     case X:
+      return make_memint('X', 1);
     case G:
+      return make_memint('G', 1);
     case Z:
+      return make_memint('Z', 1);
+
     case S:
     case M:
     case NAMAE_LOCAL:
@@ -569,13 +599,20 @@ elm::AccessChain Parser::make_element(const ElementCode& elmcode) {
       break;
 
     case CUR_CALL: {
-      if ((elm[1] >> 24) == 0x7d) {
-        auto id = (elm[1] ^ (0x7d << 24));
+      const int elmcall = elm[1];
+      if ((elmcall >> 24) == 0x7d) {
+        auto id = (elmcall ^ (0x7d << 24));
         elm::AccessChain curcall_arg;
         curcall_arg.root = elm::Root(curcall_args_[id], elm::Arg(id));
         if (elmcode.code.size() > 2)
           curcall_arg.Append(std::span{elmcode.code}.subspan(2));
         return curcall_arg;
+      }
+
+      else if (elmcall == 0)
+        return make_memint('L', 2);
+
+      else if (elmcall == 1) {  // strK
       }
     } break;
 

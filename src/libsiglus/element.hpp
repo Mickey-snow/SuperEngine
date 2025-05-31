@@ -34,22 +34,6 @@
 
 namespace libsiglus::elm {
 
-enum class Kind {
-  Invalid,
-
-  Usrcmd,
-  Usrprop,
-
-  Callprop,
-  Memory,
-  Farcall,
-  GetTitle,
-  SetTitle,
-  Koe,
-  Curcall,
-  Selbtn
-};
-
 struct Usrcmd {
   int scene, entry;
   std::string_view name;
@@ -63,8 +47,7 @@ struct Usrprop {
 };
 
 struct Mem {
-  int bank;
-  int bits;
+  char bank;
   std::string ToDebugString() const;
 };
 

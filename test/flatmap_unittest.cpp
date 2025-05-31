@@ -90,3 +90,38 @@ TEST(FlatMapTest, MakeMap) {
   EXPECT_EQ(fmap.at(11), 'b');
   EXPECT_EQ(fmap.at(12), 'c');
 }
+
+TEST(FlatMapTest, MakeCombineMap) {
+  flat_map<int> fm1(-2, 0);
+  fm1.insert(-2, 10);
+  fm1.insert(0, 20);
+
+  flat_map<int> fm2(1, 3);
+  fm2.insert(2, 200);
+  fm2.insert(3, 300);
+
+  auto combined = make_flatmap<int>(fm1,
+                                    id[0] | 999,  // overwrite key=0
+                                    fm2,
+                                    id[2] | 555  // overwrite key=2
+  );
+
+  EXPECT_EQ(combined.min_key(), -2);
+  EXPECT_EQ(combined.max_key(), 3);
+
+  EXPECT_TRUE(combined.contains(-2));
+  EXPECT_EQ(combined.at(-2), 10);
+
+  EXPECT_FALSE(combined.contains(-1));
+
+  EXPECT_TRUE(combined.contains(0));
+  EXPECT_EQ(combined.at(0), 999);
+
+  EXPECT_FALSE(combined.contains(1));
+
+  EXPECT_TRUE(combined.contains(2));
+  EXPECT_EQ(combined.at(2), 555);
+
+  EXPECT_TRUE(combined.contains(3));
+  EXPECT_EQ(combined.at(3), 300);
+}

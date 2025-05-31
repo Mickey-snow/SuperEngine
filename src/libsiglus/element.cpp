@@ -36,7 +36,7 @@ std::string Usrcmd::ToDebugString() const {
 std::string Usrprop::ToDebugString() const {
   return std::format("@{}.{}:{}", scene, idx, name);
 }
-std::string Mem::ToDebugString() const { return "mem"; }
+std::string Mem::ToDebugString() const { return std::string{bank}; }
 std::string Sym::ToDebugString() const {
   std::string repr = name;
   if (kidoku.has_value())
@@ -90,7 +90,17 @@ flat_map<Node> const* GetMethodMap(Type type) {
   switch (type) {
     case Type::IntList: {
       static const auto mp =
-          make_flatmap<Node>({{-1, Node(Type::Int, Subscript())}});
+          make_flatmap<Node>(id[-1] | Node{Type::Int, Subscript()},
+                             id[3] | Node{Type::IntList, Member("b1")},
+                             id[4] | Node{Type::IntList, Member("b2")},
+                             id[5] | Node{Type::IntList, Member("b4")},
+                             id[7] | Node{Type::IntList, Member("b8")},
+                             id[6] | Node{Type::IntList, Member("b16")},
+                             id[10] | Node{Type::None, Member("Init")},
+                             id[2] | Node{Type::None, Member("Resize")},
+                             id[9] | Node{Type::Int, Member("Size")},
+                             id[8] | Node{Type::Int, Member("Fill")},
+                             id[1] | Node{Type::Int, Member("Set")});
       return &mp;
     }
 
@@ -98,5 +108,4 @@ flat_map<Node> const* GetMethodMap(Type type) {
       return nullptr;
   }
 }
-
 }  // namespace libsiglus::elm
