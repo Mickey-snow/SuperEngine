@@ -128,26 +128,6 @@ struct AccessChain {
 
   std::string ToDebugString() const;
   Type GetType() const;
-
-  AccessChain& Append(std::span<const Value> elmcode);
 };
-
-class Builder {
- public:
-  struct Ctx {
-    std::span<const Value>& elmcode;
-    AccessChain& chain;
-  };
-
-  Builder(std::function<void(Ctx&)>);
-  Builder(Node product);
-
-  void Build(Ctx& ctx) const;
-
- private:
-  std::function<void(Ctx&)> action_;
-};
-
-flat_map<Builder> const* GetMethodMap(Type type);
 
 }  // namespace libsiglus::elm

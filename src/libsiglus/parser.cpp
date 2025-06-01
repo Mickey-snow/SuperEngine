@@ -363,12 +363,12 @@ elm::AccessChain Parser::resolve_usrcmd(const ElementCode& elmcode,
 
   chain.root = elm::Usrcmd{
       .scene = cmd->scene_id, .entry = cmd->offset, .name = cmd->name};
+  // return type?
   return chain;
 }
 
 elm::AccessChain Parser::resolve_usrprop(const ElementCode& elmcode,
                                          size_t idx) {
-  auto chain = elm::AccessChain();
   elm::Usrprop root;
   Type root_type;
 
@@ -386,75 +386,64 @@ elm::AccessChain Parser::resolve_usrprop(const ElementCode& elmcode,
     root.scene = scene_.id_;
     root.idx = idx;
   }
-  chain.root = std::move(root);
-  chain.root.type = root_type;
 
-  chain.Append(std::span{elmcode.code}.subspan(1));
-  return chain;
+  return elm::make_chain(root_type, std::move(root), elmcode, 1);
 }
 
 elm::AccessChain Parser::make_element(const ElementCode& elmcode) {
   auto elm = elmcode.IntegerView();
   int root = elm.front();
 
-  const auto make_chain = [&elmcode](elm::Root root, int subidx) {
-    elm::AccessChain chain;
-    chain.root = std::move(root);
-    if (elmcode.code.size() > subidx)
-      chain.Append(std::span{elmcode.code}.subspan(subidx));
-    return chain;
-  };
-
   switch (root) {
     case 25:  // A
-      return make_chain({Type::IntList, elm::Sym("A")}, 1);
+      return elm::make_chain(Type::IntList, elm::Sym("A"), elmcode, 1);
     case 26:  // B
-      return make_chain({Type::IntList, elm::Sym("B")}, 1);
+      return elm::make_chain(Type::IntList, elm::Sym("B"), elmcode, 1);
     case 27:  // C
-      return make_chain({Type::IntList, elm::Sym("C")}, 1);
+      return elm::make_chain(Type::IntList, elm::Sym("C"), elmcode, 1);
     case 28:  // D
-      return make_chain({Type::IntList, elm::Sym("D")}, 1);
+      return elm::make_chain(Type::IntList, elm::Sym("D"), elmcode, 1);
     case 29:  // E
-      return make_chain({Type::IntList, elm::Sym("E")}, 1);
+      return elm::make_chain(Type::IntList, elm::Sym("E"), elmcode, 1);
     case 30:  // F
-      return make_chain({Type::IntList, elm::Sym("F")}, 1);
+      return elm::make_chain(Type::IntList, elm::Sym("F"), elmcode, 1);
     case 137:  // X
-      return make_chain({Type::IntList, elm::Sym("X")}, 1);
+      return elm::make_chain(Type::IntList, elm::Sym("X"), elmcode, 1);
     case 31:  // G
-      return make_chain({Type::IntList, elm::Sym("G")}, 1);
+      return elm::make_chain(Type::IntList, elm::Sym("G"), elmcode, 1);
     case 32:  // Z
-      return make_chain({Type::IntList, elm::Sym("Z")}, 1);
+      return elm::make_chain(Type::IntList, elm::Sym("Z"), elmcode, 1);
 
     case 34:  // S
-      return make_chain({Type::StrList, elm::Sym("S")}, 1);
+      return elm::make_chain(Type::StrList, elm::Sym("S"), elmcode, 1);
     case 35:  // M
-      return make_chain({Type::StrList, elm::Sym("M")}, 1);
+      return elm::make_chain(Type::StrList, elm::Sym("M"), elmcode, 1);
     case 106:  // NAMAE_LOCAL
-      return make_chain({Type::StrList, elm::Sym("LN")}, 1);
+      return elm::make_chain(Type::StrList, elm::Sym("LN"), elmcode, 1);
     case 107:  // NAMAE_GLOBAL
-      return make_chain({Type::StrList, elm::Sym("GN")}, 1);
+      return elm::make_chain(Type::StrList, elm::Sym("GN"), elmcode, 1);
 
     case 5:  // FARCALL
-      return make_chain({Type::Callable, elm::Sym("farcall")}, 1);
+      return elm::make_chain(Type::Callable, elm::Sym("farcall"), elmcode, 1);
 
     case 74:  // SET_TITLE
-      return make_chain({Type::Callable, elm::Sym("set_title")}, 1);
+      return elm::make_chain(Type::Callable, elm::Sym("set_title"), elmcode, 1);
 
     case 75:  // GET_TITLE
-      return make_chain({Type::Callable, elm::Sym("get_title")}, 1);
+      return elm::make_chain(Type::Callable, elm::Sym("get_title"), elmcode, 1);
 
     case 83: {  // CUR_CALL
       const int elmcall = elm[1];
       if ((elmcall >> 24) == 0x7d) {
         auto id = (elmcall ^ (0x7d << 24));
-        return make_chain({curcall_args_[id], elm::Arg(id)}, 2);
+        return elm::make_chain(curcall_args_[id], elm::Arg(id), elmcode, 2);
       }
 
       else if (elmcall == 0)
-        return make_chain({Type::IntList, elm::Sym("L")}, 2);
+        return elm::make_chain(Type::IntList, elm::Sym("L"), elmcode, 2);
 
       else if (elmcall == 1)
-        return make_chain({Type::StrList, elm::Sym("K")}, 2);
+        return elm::make_chain(Type::StrList, elm::Sym("K"), elmcode, 2);
     } break;
 
     case 18: {  // KOE
@@ -473,16 +462,18 @@ elm::AccessChain Parser::make_element(const ElementCode& elmcode) {
     }
 
     case 92:  // SYSTEM
-      return make_chain({Type::System, elm::Sym("os")}, 1);
+      return elm::make_chain(Type::System, elm::Sym("os"), elmcode, 1);
 
     case 40:  // COUNTER
-      return make_chain({Type::CounterList, elm::Sym("counter")}, 1);
+      return elm::make_chain(Type::CounterList, elm::Sym("counter"), elmcode,
+                             1);
 
     case 79:  // FRAME_ACTION
-      return make_chain({Type::FrameAction, elm::Sym("frame_action")}, 1);
+      return elm::make_chain(Type::FrameAction, elm::Sym("frame_action"),
+                             elmcode, 1);
     case 53:  // FRAME_ACTION_CH
-      return make_chain({Type::FrameActionList, elm::Sym("frame_action_ch")},
-                        1);
+      return elm::make_chain(Type::FrameActionList, elm::Sym("frame_action_ch"),
+                             elmcode, 1);
     default:
       break;
   }
