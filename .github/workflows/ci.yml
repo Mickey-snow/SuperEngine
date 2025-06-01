@@ -33,7 +33,8 @@ jobs:
             libvorbis-dev \
             zlib1g-dev \
             libfreetype6-dev \
-            gettext
+            gettext \
+            libtbb-dev
 
       - name: Configure CMake
         run: |

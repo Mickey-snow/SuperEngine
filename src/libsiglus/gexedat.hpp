@@ -29,7 +29,6 @@ class Gameexe;
 
 namespace libsiglus {
 
-struct XorKey;
-Gameexe CreateGexe(std::string_view sv, const XorKey& key);
+Gameexe CreateGexe(std::string_view sv);
 
 }  // namespace libsiglus

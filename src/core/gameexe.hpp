@@ -158,6 +158,8 @@ class GameexeInterpretObject {
   // Finds a vector of ints, throwing if non-existant.
   std::vector<int> ToIntVector() const;
 
+  std::vector<std::string> ToStrVector() const;
+
   operator std::vector<int>() const { return ToIntVector(); }
 
   // Checks to see if the key exists.

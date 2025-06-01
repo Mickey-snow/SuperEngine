@@ -21,33 +21,27 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#include "core/gameexe.hpp"
-#include "libreallive/archive.hpp"
+#include "idumper.hpp"
+#include "libsiglus/dumper.hpp"
 #include "log/domain_logger.hpp"
 #include "machine/dumper.hpp"
 #include "utilities/file.hpp"
 #include "utilities/string_utilities.hpp"
 
-#include <atomic>
 #include <boost/program_options.hpp>
+#include <execution>
 #include <filesystem>
 #include <format>
 #include <fstream>
 #include <future>
 #include <iostream>
-#include <mutex>
-#include <queue>
-#include <string>
 
 namespace fs = std::filesystem;
 namespace po = boost::program_options;
 
 int main(int argc, char* argv[]) {
-  SetupLogging(Severity::Info);
-
   std::string output;
   std::string input;
-  int jobs = 0;
 
   try {
     // Define options
@@ -55,8 +49,7 @@ int main(int argc, char* argv[]) {
     desc.add_options()("help,h", "Produce help message")(
         "output,o", po::value<std::string>(&output)->required(),
         "Specify output directory")(
-        "input", po::value<std::string>(&input)->required(), "Input directory")(
-        "jobs,j", po::value<int>(&jobs), "Jobs");
+        "input", po::value<std::string>(&input)->required(), "Input directory");
 
     // Positional arguments
     po::positional_options_description pos_desc;
@@ -93,63 +86,34 @@ int main(int argc, char* argv[]) {
     return -1;
   }
 
-  if (jobs <= 0)
-    jobs = 1;
-
+  // reallive game
+  std::unique_ptr<IDumper> dumper = nullptr;
   fs::path gameexe_path = CorrectPathCase(game_root / "Gameexe.ini");
   fs::path seen_path = CorrectPathCase(game_root / "Seen.txt");
-  Gameexe gexe(gameexe_path);
-  std::string regname = gexe("REGNAME");
-  libreallive::Archive archive(seen_path, regname);
-
   fs::path output_path = output;
-  regname = archive.regname_;
+  if (fs::exists(gameexe_path) && fs::exists(seen_path))
+    dumper = std::make_unique<Dumper>(gameexe_path, seen_path);
 
-  std::atomic<bool> finished = false;
-  std::mutex mtx;
-  std::vector<std::future<void>> futures;
-  std::queue<libreallive::Scenario*> que;
-
-  futures.reserve(jobs);
-  for (int i = 0; i < jobs; ++i)
-    futures.emplace_back(std::async(std::launch::async, [&]() {
-      while (true) {
-        if (finished && que.empty())
-          return;
-
-        libreallive::Scenario* sc = nullptr;
-        if (!que.empty()) {
-          std::lock_guard<std::mutex> lock(mtx);
-          if (que.empty())
-            continue;
-          sc = que.front();
-          que.pop();
-        }
-
-        try {
-          if (sc) {
-            std::ofstream ofs(output_path / std::format("{}.{:04}.txt", regname,
-                                                        sc->scene_number()));
-            ofs << Dumper(sc).Doit() << std::endl;
-          }
-        } catch (std::exception& e) {
-          static DomainLogger logger;
-          logger(Severity::Error) << e.what();
-        }
-      }
-    }));
-
-  for (int i = 0; i < 10000; ++i) {
-    libreallive::Scenario* scenario = archive.GetScenario(i);
-    if (!scenario)
-      continue;
-    std::lock_guard<std::mutex> lock(mtx);
-    que.push(scenario);
+  else {
+    gameexe_path = CorrectPathCase(game_root / "Gameexe.dat");
+    seen_path = CorrectPathCase(game_root / "Scene.pck");
+    dumper = std::make_unique<libsiglus::Dumper>(gameexe_path, seen_path);
   }
 
-  finished = true;
-  for (auto& it : futures)
-    it.get();
+  auto tasks = dumper->GetTasks();
+  std::for_each(std::execution::par_unseq, tasks.begin(), tasks.end(),
+                [&](Dumper::Task& t) {
+                  try {
+                    std::ofstream ofs(output_path / t.name);
+                    std::future<std::string> result = t.task.get_future();
+                    t.task();
+                    ofs << result.get() << std::endl;
+                  } catch (std::exception& e) {
+                    static DomainLogger logger("main");
+                    logger(Severity::Error) << e.what();
+                  } catch (...) {
+                  }
+                });
 
   return 0;
 }

@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //
-// This file is part of RLVM
+// This file is part of RLVM, a RealLive virtual machine clone.
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2024 Serina Sakurai
+// Copyright (C) 2025 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,22 +18,37 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
+// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#include "libsiglus/xorkey.hpp"
+#pragma once
 
-#include <array>
+#include "core/gameexe.hpp"
+#include "idumper.hpp"
+#include "libsiglus/archive.hpp"
+#include "utilities/mapped_file.hpp"
+
+#include <filesystem>
+#include <string>
+#include <vector>
 
 namespace libsiglus {
 
-const std::vector<XorKey const*> keyring{&stella_key, &sprb_key};
+class Dumper : public IDumper {
+ public:
+  Dumper(const std::filesystem::path& gexe_path,
+         const std::filesystem::path& scene_path);
 
-const XorKey sprb_key = {.exekey = {0x08, 0x63, 0x80, 0x0b, 0x79, 0xe9, 0x51,
-                                    0xf1, 0xe7, 0x2a, 0xe7, 0x60, 0xaf, 0x38,
-                                    0xdb, 0x4e}};
+  std::vector<IDumper::Task> GetTasks() final;
 
-const XorKey stella_key = {.exekey = {0x4E, 0x2A, 0xB3, 0x14, 0x4C, 0x8C, 0x7D,
-                                      0xED, 0x9C, 0x3F, 0x88, 0x0D, 0xC0, 0x0D,
-                                      0x98, 0x2B}};
+ private:
+  std::string DumpGexe();
+  std::string DumpArchive();
+  std::string DumpScene(size_t id);
+
+  MappedFile gexe_data_, archive_data_;
+  Gameexe gexe_;
+  Archive archive_;
+};
+
 }  // namespace libsiglus

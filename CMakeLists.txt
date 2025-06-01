@@ -31,6 +31,17 @@ endif()
 enable_testing()
 
 # -------------------------------------------------------------------
+# Find TBB Library
+# -------------------------------------------------------------------
+find_package(TBB REQUIRED)
+if(TBB_FOUND)
+  message(STATUS "TBB found: ${TBB_VERSION}")
+  include_directories(${TBB_INCLUDE_DIRS})
+else()
+  message(ERROR "TBB not found.")
+endif()
+
+# -------------------------------------------------------------------
 # Find OpenGL Library
 # -------------------------------------------------------------------
 find_package(OpenGL REQUIRED)

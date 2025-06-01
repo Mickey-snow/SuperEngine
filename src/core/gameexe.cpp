@@ -335,6 +335,13 @@ std::vector<int> GameexeInterpretObject::ToIntVector() const {
   return ints;
 }
 
+std::vector<std::string> GameexeInterpretObject::ToStrVector() const {
+  std::vector<std::string> strs;
+  for (const auto& it : iterator_->second)
+    strs.emplace_back(it->ToString());
+  return strs;
+}
+
 // -----------------------------------------------------------------------
 
 bool GameexeInterpretObject::Exists() const {

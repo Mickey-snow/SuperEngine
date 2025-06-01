@@ -20,6 +20,7 @@ set(RLVM_REQUIRED_LIBRARIES
     sdl_ttf
     sdl_mixer
     utf8cpp
+    TBB::tbb
 )
 
 # -------------------------------------------------------------------

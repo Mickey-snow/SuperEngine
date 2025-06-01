@@ -25,12 +25,17 @@
 
 #include <array>
 #include <cstdint>
+#include <vector>
 
 namespace libsiglus {
+
 struct XorKey {
   std::array<uint8_t, 16> exekey;
 };
 
+extern const std::vector<XorKey const*> keyring;
+
 extern const XorKey sprb_key;
 extern const XorKey stella_key;
+
 }  // namespace libsiglus

@@ -23,56 +23,28 @@
 
 #pragma once
 
-#include "libreallive/elements/bytecode.hpp"
-#include "libreallive/elements/command.hpp"
-#include "libreallive/scenario.hpp"
-#include "libreallive/visitors.hpp"
-#include "machine/module_manager.hpp"
+#include "core/gameexe.hpp"
+#include "idumper.hpp"
+#include "libreallive/archive.hpp"
 
-#include <format>
-#include <map>
+#include <filesystem>
 #include <string>
+#include <vector>
 
 namespace libreallive {
 class Scenario;
 }
 
-// A really cheap disassembler
-class Dumper {
+class Dumper : public IDumper {
  public:
-  Dumper(libreallive::Scenario* scenario) : scenario_(scenario) {}
+  Dumper(std::filesystem::path gexe_path, std::filesystem::path seen_path);
 
-  std::string Doit() {
-    const auto& script = scenario_->script;
-    std::map<unsigned long, int> in_degree;
-    std::map<unsigned long, std::string> output;
-
-    for (auto [loc, bytecode] : script.elements_)
-      in_degree.emplace(loc, 0);
-    for (auto [loc, bytecode] : script.elements_) {
-      static auto prototype = ModuleManager::CreatePrototype();
-      libreallive::DebugStringVisitor visitor(&prototype);
-
-      auto ptr = bytecode->DownCast();
-
-      output.emplace(loc, std::visit(visitor, ptr));
-      if (std::holds_alternative<libreallive::CommandElement const*>(ptr)) {
-        auto cmd = std::get<libreallive::CommandElement const*>(ptr);
-        for (size_t i = 0; i < cmd->GetLocationCount(); ++i)
-          in_degree[cmd->GetLocation(i)]++;
-      }
-    }
-
-    std::string result;
-    for (const auto& [loc, str] : output) {
-      if (in_degree[loc])
-        result += ".L" + std::to_string(loc) + '\n';
-      result += str + '\n';
-    }
-
-    return result;
-  }
+  std::vector<IDumper::Task> GetTasks() final;
 
  private:
-  libreallive::Scenario* scenario_;
+  std::filesystem::path gexe_path_;
+  std::filesystem::path seen_path_;
+  Gameexe gexe_;
+  std::string regname_;
+  libreallive::Archive archive_;
 };

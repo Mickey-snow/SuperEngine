@@ -35,7 +35,7 @@
 
 namespace libsiglus {
 
-Gameexe CreateGexe(std::string_view sv, const XorKey& key) {
+static Gameexe CreateGexeImpl(std::string_view sv, const XorKey& key) {
   std::string data(sv.substr(8));
   [[maybe_unused]] int version = -1;
   int encryption = 0;
@@ -91,6 +91,17 @@ Gameexe CreateGexe(std::string_view sv, const XorKey& key) {
   }
 
   return gexe;
+}
+
+Gameexe CreateGexe(std::string_view sv) {
+  for (const auto& it : keyring) {
+    try {
+      return CreateGexeImpl(sv, *it);
+    } catch (...) {
+    }
+  }
+
+  throw std::runtime_error("CreateGexe: no valid key found.");
 }
 
 }  // namespace libsiglus
