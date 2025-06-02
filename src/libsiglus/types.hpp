@@ -31,14 +31,29 @@ namespace libsiglus {
 enum class Type : uint32_t {
   // reserved
   Invalid = 0x7FFFFFFF,
-  Other = 0x5FFFFFFF,
-  Callable,
+  Other = 0x6FFFFFFF,
+  Callable = 0x0FFFFFFF,
+
   System,
   FrameActionList,
   FrameAction,
   CounterList,
   Counter,
   Syscom,
+  StageList,
+  MwndList,
+  GroupList,
+  BtnselItemList,
+  WorldList,
+  EffectList,
+  QuakeList,
+  Excall,
+  ScriptExcall,
+  MaskList,
+  Mask,
+  IntEventList,
+  IntEvent,
+  ObjList,
 
   None = 0x00,
   Int = 0x0a,
@@ -50,8 +65,7 @@ enum class Type : uint32_t {
   StrRef = 0x17,
   StrListRef = 0x18,
   Object = 0x51e,
-  ObjList,
-  StageElem = 0x514,
+  Stage = 1300,
   Label = 0x1e,
   List = 0xFFFFFFFF
 };

@@ -26,6 +26,7 @@
 
 #include "libsiglus/property.hpp"
 #include "libsiglus/scene.hpp"
+#include "libsiglus/xorkey.hpp"
 
 #include <cstdint>
 #include <filesystem>

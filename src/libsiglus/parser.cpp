@@ -348,9 +348,10 @@ void Parser::Add(lex::EndOfScene) {
 
 void Parser::debug_assert_stack_empty() {
   if (!stack_.Empty()) {
-    logger(Severity::Info) << "at line " << lineno_
-                           << ", expected stack to be empty. but got:\n"
-                           << stack_.ToDebugString();
+    auto rec = logger(Severity::Info);
+    rec << "at " << scene_.GetDebugTitle() << '\n';
+    rec << "at line " << lineno_ << ", expected stack to be empty. but got:\n";
+    rec << stack_.ToDebugString();
     stack_.Clear();
   }
 }
@@ -504,6 +505,21 @@ elm::AccessChain Parser::make_element(const ElementCode& elmcode) {
     case 12:  // MWND_PRINT
       return elm::AccessChain{
           .root = {Type::Callable, elm::Print(read_kidoku())}, .nodes = {}};
+
+    case 49:  // STAGE
+      return elm::make_chain(Type::StageList, elm::Sym("stage"), elmcode, 1);
+    case 37:  // BACK
+      return elm::make_chain(Type::Stage, elm::Sym("stage_back"), elmcode, 1);
+    case 38:  // FRONT
+      return elm::make_chain(Type::Stage, elm::Sym("stage_front"), elmcode, 1);
+    case 73:  // NEXT
+      return elm::make_chain(Type::Stage, elm::Sym("stage_next"), elmcode, 1);
+
+    case 65:  // EXCALL
+      return elm::make_chain(Type::Excall, elm::Sym("excall"), elmcode, 1);
+
+    case 135:  // MASK
+      return elm::make_chain(Type::MaskList, elm::Sym("mask"), elmcode, 1);
 
     default:
       break;
