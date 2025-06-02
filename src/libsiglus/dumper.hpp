@@ -39,7 +39,7 @@ class Dumper : public IDumper {
   Dumper(const std::filesystem::path& gexe_path,
          const std::filesystem::path& scene_path);
 
-  std::vector<IDumper::Task> GetTasks() final;
+  std::vector<IDumper::Task> GetTasks(std::vector<int> scenarios) final;
 
  private:
   void DumpGexe(std::ostream& out);

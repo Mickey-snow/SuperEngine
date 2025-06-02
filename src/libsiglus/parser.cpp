@@ -90,6 +90,23 @@ Value Parser::pop(Type type) {
   }
 }
 
+Value Parser::pop_arg(const ArgumentList::node_t& node) {
+  return std::visit(
+      [&](const auto& x) -> Value {
+        using T = std::decay_t<decltype(x)>;
+        if constexpr (std::same_as<T, Type>)
+          return pop(x);
+        else {  // type is list
+          std::vector<Value> vals;
+          vals.reserve(x.args.size());
+          for (auto it = x.args.crbegin(); it != x.args.crend(); ++it)
+            vals.emplace_back(pop_arg(*it));
+          return List(std::move(vals));
+        }
+      },
+      node);
+}
+
 void Parser::push(const token::GetProperty& prop) {
   Type type = Typeof(prop.dst);
   switch (type) {
@@ -175,21 +192,23 @@ void Parser::Add(lex::Property) {
 }
 
 void Parser::Add(lex::Command command) {
-  token::Command tok;
-  tok.return_type = command.rettype_;
-  tok.overload_id = command.override_;
+  auto& sig = command.sig;
 
-  tok.named_arg.resize(command.arg_tag_.size());
-  tok.arg.resize(command.argt_.size() - command.arg_tag_.size());
+  token::Command tok;
+  tok.return_type = sig.rettype;
+  tok.overload_id = sig.overload_id;
+
+  tok.named_arg.resize(sig.argtags.size());
+  tok.arg.resize(sig.arglist.size() - sig.argtags.size());
   for (auto it = tok.named_arg.rbegin(); it != tok.named_arg.rend(); ++it) {
-    it->first = command.arg_tag_.back();
-    it->second = pop(command.argt_.back());
-    command.arg_tag_.pop_back();
-    command.argt_.pop_back();
+    it->first = sig.argtags.back();
+    it->second = pop_arg(sig.arglist.args.back());
+    sig.argtags.pop_back();
+    sig.arglist.args.pop_back();
   }
   for (auto it = tok.arg.rbegin(); it != tok.arg.rend(); ++it) {
-    *it = pop(command.argt_.back());
-    command.argt_.pop_back();
+    *it = pop_arg(sig.arglist.args.back());
+    sig.arglist.args.pop_back();
   }
 
   tok.elmcode = stack_.Popelm();
@@ -284,8 +303,9 @@ void Parser::Add(lex::Gosub s) {
 
   std::vector<Value> args;
   args.reserve(s.argt_.size());
-  std::transform(s.argt_.rbegin(), s.argt_.rend(), std::back_inserter(args),
-                 [&](const Type& t) { return pop(t); });
+  std::transform(s.argt_.args.rbegin(), s.argt_.args.rend(),
+                 std::back_inserter(args),
+                 [&](const auto& t) { return pop_arg(t); });
   tok.args = std::move(args);
   tok.entry_id = s.label_;
 
@@ -302,9 +322,9 @@ void Parser::Add(lex::Arg a) {
 void Parser::Add(lex::Return r) {
   token::Return ret;
   ret.ret_vals.reserve(r.ret_types_.size());
-  std::transform(r.ret_types_.rbegin(), r.ret_types_.rend(),
+  std::transform(r.ret_types_.args.rbegin(), r.ret_types_.args.rend(),
                  std::back_inserter(ret.ret_vals),
-                 [&](const Type& t) { return pop(t); });
+                 [&](const auto& t) { return pop_arg(t); });
   emit_token(std::move(ret));
 }
 
@@ -361,6 +381,11 @@ elm::AccessChain Parser::resolve_usrcmd(const ElementCode& elmcode,
   else
     cmd = scene_.cmd.data() + (idx - archive_.cmd_.size());
 
+  if (cmd->name.starts_with("$$pos_convert")) {
+    [[maybe_unused]]
+
+    volatile int dummy = -1;
+  }
   chain.root = elm::Usrcmd{
       .scene = cmd->scene_id, .entry = cmd->offset, .name = cmd->name};
   // return type?
@@ -447,7 +472,7 @@ elm::AccessChain Parser::make_element(const ElementCode& elmcode) {
     } break;
 
     case 18: {  // KOE
-      [[maybe_unused]] auto kidoku = reader_.PopAs<int>(4);
+      read_kidoku();
       break;
     }
 
@@ -457,9 +482,8 @@ elm::AccessChain Parser::make_element(const ElementCode& elmcode) {
     case 128:  // SELBTN_CANCEL_READY
     case 127:  // SELBTN_START
     {
-      [[maybe_unused]] int kidoku;
       if (root == 76 || root == 126 || root == 127)
-        kidoku = reader_.PopAs<int>(4);
+        read_kidoku();
       break;
     }
 
@@ -476,6 +500,11 @@ elm::AccessChain Parser::make_element(const ElementCode& elmcode) {
     case 53:  // FRAME_ACTION_CH
       return elm::make_chain(Type::FrameActionList, elm::Sym("frame_action_ch"),
                              elmcode, 1);
+
+    case 12:  // MWND_PRINT
+      return elm::AccessChain{
+          .root = {Type::Callable, elm::Print(read_kidoku())}, .nodes = {}};
+
     default:
       break;
   }

@@ -31,36 +31,36 @@
 namespace libsiglus {
 namespace lex {
 
+// helper to count the length of bytes of a `ArgumentList`
+static size_t count_arglist(const ArgumentList& al) {
+  size_t len = 4 + al.size() * 4;
+  for (const auto& it : al.args)
+    if (std::holds_alternative<ArgumentList>(it))
+      len += count_arglist(std::get<ArgumentList>(it));
+  return len;
+}
+size_t Command::ByteLength() const {
+  size_t len = 13;
+  len += sig.argtags.size() * 4;
+  len += count_arglist(sig.arglist);
+  return len;
+}
+
 std::string Command::ToDebugString() const {
-  std::vector<std::string> args_repr;
-  args_repr.reserve(argt_.size());
-
-  std::transform(argt_.cbegin(), argt_.cend(), std::back_inserter(args_repr),
-                 [](const auto& x) { return ToString(x); });
-  for (size_t i = argt_.size() - arg_tag_.size(); i < argt_.size(); ++i) {
-    args_repr[i] = std::format(
-        "_{}={}", arg_tag_[i - (argt_.size() - arg_tag_.size())], args_repr[i]);
-  }
-
-  return std::format("cmd[{}]({}) -> {}", override_,
-                     Join(",", std::move(args_repr)), ToString(rettype_));
+  return "cmd" + sig.ToDebugString();
 }
 
 std::string Gosub::ToDebugString() const {
-  return std::format(
-      "gosub@{} ({}) -> {}",
-      label_,  // NOLINT
-      Join(",", argt_ | std::views::transform(
-                            [](const auto& it) { return ToString(it); })),
-      ToString(return_type_));
+  return std::format("gosub@{} ({}) -> {}", label_, argt_.ToDebugString(),
+                     ToString(return_type_));
 }
+size_t Gosub::ByteLength() const { return 5 + count_arglist(argt_); }
 
 std::string Return::ToDebugString() const {
-  return std::format(
-      "ret({})",
-      Join(",", ret_types_ | std::views::transform(
-                                 [](const auto& it) { return ToString(it); })));
+  return std::format("ret({})", ret_types_.ToDebugString());
 }
+size_t Return::ByteLength() const { return 1 + count_arglist(ret_types_); }
+
 std::string Declare::ToDebugString() const {
   return std::format("declare {} {}", ToString(type), size);
 }

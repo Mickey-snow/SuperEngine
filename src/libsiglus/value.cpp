@@ -23,12 +23,17 @@
 
 #include "libsiglus/value.hpp"
 
-#include <boost/algorithm/string/case_conv.hpp>
+#include "utilities/string_utilities.hpp"
 
+#include <boost/algorithm/string/case_conv.hpp>
 #include <functional>
 #include <unordered_map>
 
 namespace libsiglus {
+
+std::string List::ToDebugString() const {
+  return '[' + Join(",", vals_to_string(vals)) + ']';
+}
 
 std::optional<Value> TryEval(OperatorCode op, Value rhs_val) {
   if (!std::holds_alternative<Integer>(rhs_val))

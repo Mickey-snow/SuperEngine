@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "libsiglus/argument_list.hpp"
 #include "libsiglus/lexfwd.hpp"
 #include "libsiglus/types.hpp"
 
@@ -102,24 +103,12 @@ struct Marker {
 };
 
 struct Command {
-  Command(int al_id,
-          std::vector<Type> stackarg,
-          std::vector<int> argtags,
-          Type returntype)
-      : override_(al_id),
-        argt_(std::move(stackarg)),
-        arg_tag_(std::move(argtags)),
-        rettype_(returntype) {}
+  Command(Signature s) : sig(s) {}
 
   std::string ToDebugString() const;
-  size_t ByteLength() const {
-    return 17 + argt_.size() * 4 + arg_tag_.size() * 4;
-  }
+  size_t ByteLength() const;
 
-  int override_;
-  std::vector<Type> argt_;
-  std::vector<int> arg_tag_;
-  Type rettype_;
+  Signature sig;
 };
 
 struct Property {
@@ -197,11 +186,11 @@ struct CopyElm {
 
 struct Gosub {
   std::string ToDebugString() const;
-  size_t ByteLength() const { return 9 + 4 * argt_.size(); }
+  size_t ByteLength() const;
 
   Type return_type_;
   int label_;
-  std::vector<Type> argt_;
+  ArgumentList argt_;
 };
 
 struct Namae {
@@ -225,9 +214,9 @@ struct Textout {
 
 struct Return {
   std::string ToDebugString() const;
-  size_t ByteLength() const { return 5 + 4 * ret_types_.size(); }
+  size_t ByteLength() const;
 
-  std::vector<Type> ret_types_;
+  ArgumentList ret_types_;
 };
 
 struct Arg {

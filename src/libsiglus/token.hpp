@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "libsiglus/argument_list.hpp"
 #include "libsiglus/element.hpp"
 #include "libsiglus/element_code.hpp"
 #include "libsiglus/value.hpp"
@@ -33,8 +34,8 @@
 
 namespace libsiglus::token {
 struct Command {
-  int overload_id;
   ElementCode elmcode;
+  int overload_id;
   std::vector<Value> arg;
   std::vector<std::pair<int, Value>> named_arg;
   Type return_type;

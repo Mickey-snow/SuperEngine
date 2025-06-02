@@ -66,7 +66,10 @@ class Parser {
     (*out_) = std::forward<T>(t);
   }
 
+  inline auto read_kidoku() { return reader_.PopAs<int>(4); }
+
   Value pop(Type type);
+  Value pop_arg(const ArgumentList::node_t& node);
   inline void push(Value val) { stack_.Push(std::move(val)); }
   inline void push(ElementCode elm) { stack_.Push(std::move(elm)); }
   void push(const token::GetProperty& prop);

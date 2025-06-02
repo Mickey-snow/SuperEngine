@@ -33,6 +33,16 @@
 
 namespace libsiglus {
 
+struct Integer;
+struct String;
+struct List;
+struct Variable;
+// represents a siglus property
+using Value = std::variant<Integer,  // constant
+                           String,   // constant
+                           List,
+                           Variable>;
+
 struct Integer {
   std::string ToDebugString() const { return "int:" + std::to_string(val_); }
   auto operator<=>(const Integer&) const = default;
@@ -55,10 +65,14 @@ struct Variable {
   int id;
 };
 
-// represents a siglus property
-using Value = std::variant<Integer,  // constant
-                           String,   // constant
-                           Variable>;
+struct List {
+  std::string ToDebugString() const;
+  bool operator==(const List&) const = default;
+  bool operator!=(const List&) const = default;
+
+  std::vector<Value> vals;
+};
+
 inline int AsInt(const Value& val) { return std::get<Integer>(val).val_; }
 inline std::string AsStr(const Value& val) {
   return std::get_if<String>(&val)->val_;
@@ -87,6 +101,8 @@ inline Type Typeof(const Value& v) {
           return Type::Int;
         else if constexpr (std::same_as<T, String>)
           return Type::String;
+        else if constexpr (std::same_as<T, List>)
+          return Type::List;
         else if constexpr (std::same_as<T, Variable>)
           return x.type;
         else

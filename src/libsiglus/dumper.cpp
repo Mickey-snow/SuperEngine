@@ -32,6 +32,7 @@
 
 #include <filesystem>
 #include <format>
+#include <numeric>
 
 namespace fs = std::filesystem;
 using namespace std::placeholders;
@@ -45,18 +46,29 @@ Dumper::Dumper(const std::filesystem::path& gexe_path,
       gexe_(CreateGexe(gexe_data_.Read())),
       archive_(Archive::Create(archive_data_.Read())) {}
 
-std::vector<IDumper::Task> Dumper::GetTasks() {
+std::vector<IDumper::Task> Dumper::GetTasks(std::vector<int> scenarios) {
+  bool dump_metadata = false;
+  if (scenarios.empty()) {
+    dump_metadata = true;
+    scenarios.resize(archive_.scndata_.size());
+    std::iota(scenarios.begin(), scenarios.end(), 0);
+  }
+
   std::vector<IDumper::Task> result;
   result.reserve(archive_.scndata_.size() + 2);
   using tsk_t = typename IDumper::task_t;
 
-  result.emplace_back("gameexe.txt",
-                      tsk_t(std::bind(&Dumper::DumpGexe, this, _1)));
-  result.emplace_back("archive.txt",
-                      tsk_t(std::bind(&Dumper::DumpArchive, this, _1)));
-  for (size_t i = 0; i < archive_.scndata_.size(); ++i)
+  if (dump_metadata) {
+    result.emplace_back("gameexe.txt",
+                        tsk_t(std::bind(&Dumper::DumpGexe, this, _1)));
+    result.emplace_back("archive.txt",
+                        tsk_t(std::bind(&Dumper::DumpArchive, this, _1)));
+  }
+
+  for (const auto& i : scenarios) {
     result.emplace_back(std::format("s{:04}.txt", i),
                         tsk_t(std::bind(&Dumper::DumpScene, this, i, _1)));
+  }
   return result;
 }
 
@@ -78,6 +90,8 @@ void Dumper::DumpArchive(std::ostream& out) {
 
 void Dumper::DumpScene(size_t id, std::ostream& out) {
   Scene& scn = archive_.scndata_[id];
+  out << id << ' ' << scn.scnname_ << std::endl;
+
   struct TokenDumper : public Parser::OutputBuffer {
     size_t idx;
     std::ostream& out;

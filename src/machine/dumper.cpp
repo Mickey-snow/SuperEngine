@@ -77,7 +77,7 @@ Dumper::Dumper(fs::path gexe_path, fs::path seen_path)
   regname_ = archive_.regname_;  // ensure canonical name
 }
 
-std::vector<IDumper::Task> Dumper::GetTasks() {
+std::vector<IDumper::Task> Dumper::GetTasks(std::vector<int> scenarios) {
   std::vector<IDumper::Task> tasks;
 
   using packaged = std::packaged_task<void(std::ostream&)>;

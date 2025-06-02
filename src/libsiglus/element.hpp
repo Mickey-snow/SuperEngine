@@ -57,13 +57,18 @@ struct Sym {
   std::string ToDebugString() const;
 };
 
+struct Print {  // callable (str)->void
+  int kidoku;
+  std::string ToDebugString() const;
+};
+
 struct Arg {
   int id;
   std::string ToDebugString() const;
 };
 
 struct Root {
-  using var_t = std::variant<Usrcmd, Usrprop, Mem, Sym, Arg>;
+  using var_t = std::variant<Usrcmd, Usrprop, Mem, Sym, Arg, Print>;
   var_t var;
   Type type;
 

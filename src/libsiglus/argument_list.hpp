@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //
-// This file is part of RLVM, a RealLive virtual machine clone.
+// This file is part of RLVM
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2024 Serina Sakurai
+// Copyright (C) 2025 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,33 +18,35 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+// Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
 #pragma once
 
-#include "core/gameexe.hpp"
-#include "idumper.hpp"
-#include "libreallive/archive.hpp"
+#include "libsiglus/types.hpp"
+#include "libsiglus/value.hpp"
 
-#include <filesystem>
-#include <string>
+#include <variant>
 #include <vector>
 
-namespace libreallive {
-class Scenario;
-}
+namespace libsiglus {
 
-class Dumper : public IDumper {
- public:
-  Dumper(std::filesystem::path gexe_path, std::filesystem::path seen_path);
+struct ArgumentList {
+  using node_t = std::variant<Type, ArgumentList>;
+  std::vector<node_t> args;
 
-  std::vector<IDumper::Task> GetTasks(std::vector<int> scenarios) final;
-
- private:
-  std::filesystem::path gexe_path_;
-  std::filesystem::path seen_path_;
-  Gameexe gexe_;
-  std::string regname_;
-  libreallive::Archive archive_;
+  inline auto size() const { return args.size(); }
+  std::string ToDebugString() const;
+  std::vector<std::string> ToStringVec() const;
 };
+
+struct Signature {
+  int overload_id;
+  ArgumentList arglist;
+  std::vector<int> argtags;
+  Type rettype;
+
+  std::string ToDebugString() const;
+};
+
+}  // namespace libsiglus

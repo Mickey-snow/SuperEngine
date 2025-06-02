@@ -37,12 +37,17 @@ namespace libsiglus {
 
 using namespace libsiglus::lex;
 
-std::vector<Type> ParseArglist(ByteReader& reader) {
+ArgumentList ParseArglist(ByteReader& reader) {
   int cnt = reader.PopAs<int32_t>(4);
-  std::vector<Type> arglist(cnt);
-  while (--cnt >= 0)
-    arglist[cnt] = static_cast<Type>(reader.PopAs<uint32_t>(4));
-  return arglist;
+  std::vector<ArgumentList::node_t> arglist(cnt);
+  while (--cnt >= 0) {
+    Type type = static_cast<Type>(reader.PopAs<uint32_t>(4));
+    if (type == Type::List)
+      arglist[cnt] = ParseArglist(reader);
+    else
+      arglist[cnt] = type;
+  }
+  return ArgumentList(std::move(arglist));
 }
 
 Lexeme Lexer::Parse(std::string_view data) const {
@@ -96,7 +101,7 @@ Lexeme Lexer::Parse(ByteReader& reader) const {
 
     case ByteCode::Cmd: {
       int arglist_id = reader.PopAs<int32_t>(4);
-      std::vector<Type> stackarg = ParseArglist(reader);
+      auto stackarg = ParseArglist(reader);
 
       int named_arg_cnt = reader.PopAs<int32_t>(4);
       std::vector<int> argtags(named_arg_cnt);
@@ -104,8 +109,8 @@ Lexeme Lexer::Parse(ByteReader& reader) const {
         argtags[named_arg_cnt] = reader.PopAs<int32_t>(4);
 
       Type return_type = static_cast<Type>(reader.PopAs<uint32_t>(4));
-      return Command(arglist_id, std::move(stackarg), std::move(argtags),
-                     return_type);
+      return Command(Signature(arglist_id, std::move(stackarg),
+                               std::move(argtags), return_type));
     }
 
     case ByteCode::Goto:

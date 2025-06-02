@@ -42,6 +42,7 @@ namespace po = boost::program_options;
 int main(int argc, char* argv[]) {
   std::string output;
   std::string input;
+  int scenario;
 
   try {
     // Define options
@@ -49,7 +50,8 @@ int main(int argc, char* argv[]) {
     desc.add_options()("help,h", "Produce help message")(
         "output,o", po::value<std::string>(&output)->default_value("stdout"),
         "Specify output directory")(
-        "input", po::value<std::string>(&input)->required(), "Input directory");
+        "input", po::value<std::string>(&input)->required(), "Input directory")(
+        "scenario", po::value<int>(&scenario)->default_value(-1));
 
     // Positional arguments
     po::positional_options_description pos_desc;
@@ -94,12 +96,16 @@ int main(int argc, char* argv[]) {
   if (fs::exists(gameexe_path) && fs::exists(seen_path))
     dumper = std::make_unique<Dumper>(gameexe_path, seen_path);
   else {
+    // siglus game
     gameexe_path = CorrectPathCase(game_root / "Gameexe.dat");
     seen_path = CorrectPathCase(game_root / "Scene.pck");
     dumper = std::make_unique<libsiglus::Dumper>(gameexe_path, seen_path);
   }
 
-  auto tasks = dumper->GetTasks();
+  std::vector<int> scenarios;
+  if (scenario >= 0)
+    scenarios.push_back(scenario);
+  auto tasks = dumper->GetTasks(std::move(scenarios));
   auto run = [](std::ostream& os, typename IDumper::task_t& t) {
     try {
       t(os);

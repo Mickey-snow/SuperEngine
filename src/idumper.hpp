@@ -36,5 +36,5 @@ class IDumper {
   };
 
   virtual ~IDumper() = default;
-  virtual std::vector<Task> GetTasks() = 0;
+  virtual std::vector<Task> GetTasks(std::vector<int> scenarios) = 0;
 };
