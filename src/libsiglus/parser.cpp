@@ -448,6 +448,7 @@ elm::AccessChain Parser::make_element(const ElementCode& elmcode) {
 
     case 18: {  // KOE
       [[maybe_unused]] auto kidoku = reader_.PopAs<int>(4);
+      break;
     }
 
     case 76:   // SELBTN
@@ -459,6 +460,7 @@ elm::AccessChain Parser::make_element(const ElementCode& elmcode) {
       [[maybe_unused]] int kidoku;
       if (root == 76 || root == 126 || root == 127)
         kidoku = reader_.PopAs<int>(4);
+      break;
     }
 
     case 92:  // SYSTEM

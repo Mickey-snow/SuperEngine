@@ -47,7 +47,7 @@ int main(int argc, char* argv[]) {
     // Define options
     po::options_description desc("Allowed options");
     desc.add_options()("help,h", "Produce help message")(
-        "output,o", po::value<std::string>(&output)->required(),
+        "output,o", po::value<std::string>(&output)->default_value("stdout"),
         "Specify output directory")(
         "input", po::value<std::string>(&input)->required(), "Input directory");
 
@@ -90,10 +90,9 @@ int main(int argc, char* argv[]) {
   std::unique_ptr<IDumper> dumper = nullptr;
   fs::path gameexe_path = CorrectPathCase(game_root / "Gameexe.ini");
   fs::path seen_path = CorrectPathCase(game_root / "Seen.txt");
-  fs::path output_path = output;
+
   if (fs::exists(gameexe_path) && fs::exists(seen_path))
     dumper = std::make_unique<Dumper>(gameexe_path, seen_path);
-
   else {
     gameexe_path = CorrectPathCase(game_root / "Gameexe.dat");
     seen_path = CorrectPathCase(game_root / "Scene.pck");
@@ -101,19 +100,33 @@ int main(int argc, char* argv[]) {
   }
 
   auto tasks = dumper->GetTasks();
-  std::for_each(std::execution::par_unseq, tasks.begin(), tasks.end(),
-                [&](Dumper::Task& t) {
-                  try {
+  auto run = [](std::ostream& os, typename IDumper::task_t& t) {
+    try {
+      t(os);
+    } catch (std::exception& e) {
+      static DomainLogger logger("main");
+      logger(Severity::Error) << e.what();
+    } catch (...) {
+    }
+  };
+
+  if (output == "stdout") {
+    std::for_each(std::execution::seq, tasks.begin(), tasks.end(),
+                  [&run](Dumper::Task& t) {
+                    std::cout << '\n'
+                              << std::string(6, '=') << t.name
+                              << std::string(6, '=') << '\n';
+                    run(std::cout, t.task);
+                  });
+
+  } else {
+    fs::path output_path = output;
+    std::for_each(std::execution::par_unseq, tasks.begin(), tasks.end(),
+                  [&output_path, &run](Dumper::Task& t) {
                     std::ofstream ofs(output_path / t.name);
-                    std::future<std::string> result = t.task.get_future();
-                    t.task();
-                    ofs << result.get() << std::endl;
-                  } catch (std::exception& e) {
-                    static DomainLogger logger("main");
-                    logger(Severity::Error) << e.what();
-                  } catch (...) {
-                  }
-                });
+                    run(ofs, t.task);
+                  });
+  }
 
   return 0;
 }

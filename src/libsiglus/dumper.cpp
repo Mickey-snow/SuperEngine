@@ -31,8 +31,10 @@
 #include "utilities/string_utilities.hpp"
 
 #include <filesystem>
+#include <format>
 
 namespace fs = std::filesystem;
+using namespace std::placeholders;
 
 namespace libsiglus {
 
@@ -46,62 +48,52 @@ Dumper::Dumper(const std::filesystem::path& gexe_path,
 std::vector<IDumper::Task> Dumper::GetTasks() {
   std::vector<IDumper::Task> result;
   result.reserve(archive_.scndata_.size() + 2);
-  using tsk_t = std::packaged_task<std::string()>;
+  using tsk_t = typename IDumper::task_t;
 
-  result.emplace_back("gameexe.txt", tsk_t(std::bind(&Dumper::DumpGexe, this)));
+  result.emplace_back("gameexe.txt",
+                      tsk_t(std::bind(&Dumper::DumpGexe, this, _1)));
   result.emplace_back("archive.txt",
-                      tsk_t(std::bind(&Dumper::DumpArchive, this)));
+                      tsk_t(std::bind(&Dumper::DumpArchive, this, _1)));
   for (size_t i = 0; i < archive_.scndata_.size(); ++i)
     result.emplace_back(std::format("s{:04}.txt", i),
-                        tsk_t(std::bind(&Dumper::DumpScene, this, i)));
+                        tsk_t(std::bind(&Dumper::DumpScene, this, i, _1)));
   return result;
 }
 
-std::string Dumper::DumpGexe() {
-  std::string result;
+void Dumper::DumpGexe(std::ostream& out) {
   for (const auto& it : gexe_.Filter(""))
-    result += it.key() + " = " + Join(",", it.ToStrVector()) + '\n';
-  return result;
+    out << it.key() << " = " << Join(",", it.ToStrVector()) << std::endl;
 }
 
-std::string Dumper::DumpArchive() {
+void Dumper::DumpArchive(std::ostream& out) {
   std::string result;
-  for (const auto& p : archive_.prop_) {
-    result += "prop " + p.name + " {" + ToString(p.form) + ',' +
-              std::to_string(p.size) + "}\n";
-  }
-  for (const auto& c : archive_.cmd_) {
-    result += std::format("cmd {} @{}-{}\n", c.name, c.scene_id, c.offset);
-  }
-
-  return result;
+  for (const auto& p : archive_.prop_)
+    out << "prop " << p.name << " {" << ToString(p.form) << ',' << p.size << '}'
+        << std::endl;
+  for (const auto& c : archive_.cmd_)
+    out << std::format("cmd {} @{}-{}", c.name, c.scene_id, c.offset)
+        << std::endl;
+  ;
 }
 
-std::string Dumper::DumpScene(size_t id) {
+void Dumper::DumpScene(size_t id, std::ostream& out) {
   Scene& scn = archive_.scndata_[id];
-  std::string result;
-  result += std::to_string(id) + ' ' + scn.scnname_ + '\n';
-
   struct TokenDumper : public Parser::OutputBuffer {
     size_t idx;
-    std::string& result;
-    TokenDumper(std::string& r) : idx(1), result(r) {}
+    std::ostream& out;
+    TokenDumper(std::ostream& o) : idx(1), out(o) {}
     void operator=(token::Token_t tok) final {
-      this->result += std::to_string(idx++) + ": " + ToString(tok) + '\n';
+      out << idx++ << ": " << ToString(tok) << std::endl;
     }
   };
 
-  Parser parser(archive_, scn, std::make_shared<TokenDumper>(result));
+  Parser parser(archive_, scn, std::make_shared<TokenDumper>(out));
 
   try {
     parser.ParseAll();
   } catch (std::exception& e) {
-    result += '\n';
-    result += e.what();
-    result += '\n';
+    out << '\n' << e.what() << std::endl;
   }
-
-  return result;
 }
 
 }  // namespace libsiglus

@@ -54,7 +54,6 @@ struct Mem {
 
 struct Sym {
   std::string name;
-  std::optional<int> kidoku;
   std::string ToDebugString() const;
 };
 

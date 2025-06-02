@@ -34,41 +34,38 @@
 #include <future>
 
 namespace fs = std::filesystem;
+using namespace std::placeholders;
 
-static std::string DumpImpl(libreallive::Scenario* scenario) {
+static void DumpImpl(libreallive::Scenario* scenario, std::ostream& out) {
   const auto& script = scenario->script;
   std::map<unsigned long, int> in_degree;
-  std::map<unsigned long, std::string> output;
+  std::map<unsigned long, std::string> lines;
 
-  for (auto const& [loc, bytecode_ptr] : script.elements_) {
+  /* first pass – collect vertices and initialise in-degree */
+  for (auto const& [loc, bytecode_ptr] : script.elements_)
     in_degree.emplace(loc, 0);
-  }
 
+  /* second pass – produce textual representation & graph edges */
   for (auto const& [loc, bytecode_ptr] : script.elements_) {
     static auto prototype = ModuleManager::CreatePrototype();
     libreallive::DebugStringVisitor visitor(&prototype);
 
     auto ptr = bytecode_ptr->DownCast();
-
-    output.emplace(loc, std::visit(visitor, ptr));
+    lines.emplace(loc, std::visit(visitor, ptr));
 
     if (std::holds_alternative<libreallive::CommandElement const*>(ptr)) {
       auto cmd = std::get<libreallive::CommandElement const*>(ptr);
-      for (size_t i = 0; i < cmd->GetLocationCount(); ++i) {
-        in_degree[cmd->GetLocation(i)]++;
-      }
+      for (size_t i = 0; i < cmd->GetLocationCount(); ++i)
+        ++in_degree[cmd->GetLocation(i)];
     }
   }
 
-  std::string result;
-  for (auto const& [loc, str] : output) {
-    if (in_degree[loc] != 0) {
-      result += ".L" + std::to_string(loc) + '\n';
-    }
-    result += str + '\n';
+  /* final pass – emit */
+  for (auto const& [loc, txt] : lines) {
+    if (in_degree[loc] != 0)
+      out << ".L" << loc << '\n';
+    out << txt << '\n';
   }
-
-  return result;
 }
 
 Dumper::Dumper(fs::path gexe_path, fs::path seen_path)
@@ -77,23 +74,25 @@ Dumper::Dumper(fs::path gexe_path, fs::path seen_path)
       gexe_(gexe_path_),
       regname_(gexe_("REGNAME")),
       archive_(seen_path_, regname_) {
-  regname_ = archive_.regname_;
+  regname_ = archive_.regname_;  // ensure canonical name
 }
 
 std::vector<IDumper::Task> Dumper::GetTasks() {
-  std::vector<IDumper::Task> result;
+  std::vector<IDumper::Task> tasks;
 
-  for (int i = 0; i < 10000; ++i) {
+  using packaged = std::packaged_task<void(std::ostream&)>;
+
+  for (int i = 0; i < 10'000; ++i) {
     libreallive::Scenario* sc = archive_.GetScenario(i);
     if (!sc)
       continue;
 
-    std::packaged_task<std::string()> task(std::bind(DumpImpl, sc));
+    packaged job(std::bind(DumpImpl, sc, _1));
 
-    result.emplace_back(IDumper::Task{
+    tasks.push_back(IDumper::Task{
         .name = std::format("{}.{:04}.txt", regname_, sc->scene_number()),
-        .task = std::move(task)});
+        .task = std::move(job)});
   }
 
-  return result;
+  return tasks;
 }

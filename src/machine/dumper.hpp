@@ -44,7 +44,7 @@ class Dumper : public IDumper {
  private:
   std::filesystem::path gexe_path_;
   std::filesystem::path seen_path_;
-  Gameexe gexe_;
-  std::string regname_;
+  Gameexe            gexe_;
+  std::string        regname_;
   libreallive::Archive archive_;
 };

@@ -38,16 +38,11 @@ std::string Usrprop::ToDebugString() const {
   return std::format("@{}.{}:{}", scene, idx, name);
 }
 std::string Mem::ToDebugString() const { return std::string{bank}; }
-std::string Sym::ToDebugString() const {
-  std::string repr = name;
-  if (kidoku.has_value())
-    repr += '#' + std::to_string(*kidoku);
-  return repr;
-}
+std::string Sym::ToDebugString() const { return name; }
 std::string Arg::ToDebugString() const { return "arg_" + std::to_string(id); }
 std::string Member::ToDebugString() const { return '.' + std::string(name); }
 std::string Call::ToDebugString() const {
-  return '(' + Join(",", vals_to_string(args)) + ')';
+  return std::format(".{}({})", name, Join(",", vals_to_string(args)));
 }
 std::string Subscript::ToDebugString() const {
   return '[' + (idx.has_value() ? ToString(*idx) : std::string()) + ']';

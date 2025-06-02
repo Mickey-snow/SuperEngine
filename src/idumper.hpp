@@ -29,9 +29,10 @@
 
 class IDumper {
  public:
+  using task_t = std::packaged_task<void(std::ostream&)>;
   struct Task {
     std::string name;
-    std::packaged_task<std::string()> task;
+    task_t task;
   };
 
   virtual ~IDumper() = default;

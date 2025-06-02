@@ -42,9 +42,9 @@ class Dumper : public IDumper {
   std::vector<IDumper::Task> GetTasks() final;
 
  private:
-  std::string DumpGexe();
-  std::string DumpArchive();
-  std::string DumpScene(size_t id);
+  void DumpGexe(std::ostream& out);
+  void DumpArchive(std::ostream& out);
+  void DumpScene(size_t id, std::ostream& out);
 
   MappedFile gexe_data_, archive_data_;
   Gameexe gexe_;
