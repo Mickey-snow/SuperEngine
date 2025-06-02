@@ -30,7 +30,6 @@
 #include <deque>
 #include <iostream>
 #include <memory>
-#include <ostream>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -41,14 +40,14 @@ struct Fiber;
 struct Chunk;
 
 class VM {
- private:
-  // Where to print native output (e.g. print)
-  std::ostream& os_;
-
  public:
   // Construct a VM, optionally bootstrapping with an entry chunk.
-  explicit VM(std::shared_ptr<Chunk> entry = nullptr,
-              std::ostream& os = std::cout);
+  static VM Create(std::shared_ptr<Chunk> bootstrap = nullptr,
+                   std::ostream& stdout = std::cout,
+                   std::istream& stdin = std::cin,
+                   std::ostream& stderr = std::cerr);
+
+  explicit VM(std::shared_ptr<Chunk> entry);
 
   // Trigger garbage collection: mark-root and sweep unreachable objects
   void CollectGarbage();
@@ -60,6 +59,9 @@ class VM {
 
   // REPL support: execute a single chunk, preserving VM state (globals, etc.)
   Value Evaluate(std::shared_ptr<Chunk> chunk);
+
+  // For adding built-in as global
+  void AddGlobal(std::string key, TempValue&& v);
 
  public:
   //----------------------------------------------------------------

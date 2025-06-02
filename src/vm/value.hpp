@@ -119,4 +119,7 @@ class Value {
  private:
   value_t val_;
 };
+
+inline const auto nil = Value(std::monostate());
+
 }  // namespace serilang

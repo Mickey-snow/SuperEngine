@@ -189,12 +189,20 @@ void NativeFunction::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
   std::unordered_map<std::string, Value> kwargs;
 
   args.reserve(nargs);
-  for (size_t i = f.stack.size() - nargs; i < f.stack.size(); ++i)
-    args.emplace_back(std::move(f.stack[i]));
+  kwargs.reserve(nkwargs);
+
+  size_t idx = f.stack.size() - nkwargs * 2 - nargs;
+  for (uint8_t i = 0; i < nargs; ++i)
+    args.emplace_back(std::move(f.stack[idx++]));
+  for (uint8_t i = 0; i < nkwargs; ++i) {
+    std::string* k = f.stack[idx++].Get_if<std::string>();
+    Value v = std::move(f.stack[idx++]);
+    kwargs.emplace(std::move(*k), std::move(v));
+  }
 
   auto retval = std::invoke(fn_, f, std::move(args), std::move(kwargs));
 
-  f.stack.resize(f.stack.size() - nargs);
+  f.stack.resize(f.stack.size() - nkwargs * 2 - nargs);
   f.stack.back() = std::move(retval);
 }
 

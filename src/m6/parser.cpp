@@ -572,24 +572,41 @@ std::shared_ptr<ExprAST> Parser::parsePostfix() {
     if (tryConsume<tok::ParenthesisL>()) {
       std::vector<std::shared_ptr<ExprAST>> args;
       std::vector<SourceLocation> argLocs;
+      std::vector<std::pair<std::string_view, std::shared_ptr<ExprAST>>> kwargs;
+      std::vector<SourceLocation> kwargsLocs;
+
       if (it_ != end_ && !it_->template HoldsAlternative<tok::ParenthesisR>()) {
-        auto argBegin = it_;
-        auto expr = ParseExpression();
-        if (expr)
-          args.emplace_back(expr);
-        argLocs.emplace_back(LocRange(argBegin, it_));
-        while (tryConsume<tok::Operator>(Op::Comma)) {
-          argBegin = it_;
-          expr = ParseExpression();
-          if (expr)
-            args.emplace_back(expr);
-          argLocs.emplace_back(LocRange(argBegin, it_));
-        }
+        do {
+          // Peek for keyword: <ID> '=' <Expression>
+          if (it_->HoldsAlternative<tok::ID>() &&
+              (std::next(it_) != end_ &&
+               std::next(it_)->HoldsAlternative<tok::Operator>() &&
+               std::next(it_)->GetIf<tok::Operator>()->op == Op::Assign)) {
+            // keyword name
+            std::string_view nameTok = it_->GetIf<tok::ID>()->id;
+            auto nameLoc = it_->loc_;
+            ++it_;  // consume ID
+            require<tok::Operator>("expected '=' after keyword", Op::Assign);
+            // parse value expression
+            auto val = ParseExpression();
+            if (val)
+              kwargs.emplace_back(nameTok, val);
+            kwargsLocs.emplace_back(nameLoc);
+          } else {
+            // positional argument
+            auto argBegin = it_;
+            auto expr = ParseExpression();
+            if (expr)
+              args.emplace_back(expr);
+            argLocs.emplace_back(LocRange(argBegin, it_));
+          }
+        } while (tryConsume<tok::Operator>(Op::Comma));
       }
       require<tok::ParenthesisR>("Expected ')' after function call.");
       lhs = std::make_shared<ExprAST>(
-          InvokeExpr(lhs, std::move(args), LocRange(primary_begin, primary_end),
-                     std::move(argLocs)));
+          InvokeExpr{lhs, std::move(args), std::move(kwargs),
+                     LocRange(primary_begin, primary_end), std::move(argLocs),
+                     std::move(kwargsLocs)});
       continue;
     }
 

@@ -93,11 +93,9 @@ struct MakeClosure {
   uint32_t entry, nparams, nlocals, nupvals;
 };  // (…) → (fn)
 struct Call {
-  uint8_t arity;
-};  // (fn,arg*) → (ret)
-struct TailCall {
-  uint8_t arity;
-};  // (fn,arg*) → (ret)  (TCO)
+  uint8_t argcnt;
+  uint8_t kwargcnt;
+};  // (fn,arg*,kwargs*) → (ret)
 
 // ––– 6. Object / container ops ––––––––––––––––––––––––––––––––––––
 struct MakeList {
@@ -156,7 +154,6 @@ using Instruction = std::variant<Push,
                                  Return,
                                  MakeClosure,
                                  Call,
-                                 TailCall,
                                  MakeList,
                                  MakeDict,
                                  MakeClass,
@@ -251,8 +248,6 @@ constexpr inline OpCode GetOpcode() {
     return OpCode::MakeClosure;
   else if constexpr (std::same_as<T, Call>)
     return OpCode::Call;
-  else if constexpr (std::same_as<T, TailCall>)
-    return OpCode::TailCall;
   else if constexpr (std::same_as<T, MakeList>)
     return OpCode::MakeList;
   else if constexpr (std::same_as<T, MakeDict>)

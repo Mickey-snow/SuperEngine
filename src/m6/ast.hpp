@@ -110,8 +110,10 @@ struct ParenExpr {
 struct InvokeExpr {
   std::shared_ptr<ExprAST> fn;
   std::vector<std::shared_ptr<ExprAST>> args;
+  std::vector<std::pair<std::string_view, std::shared_ptr<ExprAST>>> kwargs;
   SourceLocation fn_loc;
   std::vector<SourceLocation> args_loc;
+  std::vector<SourceLocation> kwargs_loc;
 
   std::string DebugString() const;
 };

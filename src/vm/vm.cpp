@@ -36,11 +36,83 @@
 
 #include <algorithm>
 #include <chrono>
+#include <memory>
 #include <stdexcept>
 
 namespace serilang {
 
-VM::VM(std::shared_ptr<Chunk> entry, std::ostream& os) : os_(os) {
+// static, factory method
+VM VM::Create(std::shared_ptr<Chunk> bootstrap,
+              std::ostream& stdout,
+              std::istream& stdin,
+              std::ostream& stderr) {
+  VM vm(bootstrap);
+
+  // add builtins
+  vm.AddGlobal(
+      "time",
+      std::make_unique<NativeFunction>(
+          "time", [](Fiber& f, std::vector<Value> args,
+                     std::unordered_map<std::string, Value> /*kwargs*/) {
+            if (!args.empty())
+              throw std::runtime_error("time() takes no arguments");
+            using namespace std::chrono;
+            auto now = system_clock::now().time_since_epoch();
+            auto secs = duration_cast<seconds>(now).count();
+            return Value(static_cast<int>(secs));
+          }));
+
+  vm.AddGlobal(
+      "print",
+      std::make_unique<NativeFunction>(
+          "print", [&stdout](Fiber& f, std::vector<Value> args,
+                             std::unordered_map<std::string, Value> kwargs) {
+            std::string sep = " ";
+            if (auto it = kwargs.find("sep"); it != kwargs.end())
+              sep = it->second.Str();
+
+            std::string end = "\n";
+            if (auto it = kwargs.find("end"); it != kwargs.end())
+              end = it->second.Str();
+
+            bool do_flush = false;
+            if (auto it = kwargs.find("flush"); it != kwargs.end())
+              do_flush = it->second.IsTruthy();
+
+            bool firstPrinted = false;
+            for (auto const& v : args) {
+              if (firstPrinted) {
+                stdout << sep;
+              }
+              stdout << v.Str();
+              firstPrinted = true;
+            }
+
+            stdout << end;
+
+            if (do_flush)
+              stdout.flush();
+
+            return nil;
+          }));
+
+  vm.AddGlobal(
+      "input",
+      std::make_unique<NativeFunction>(
+          "input", [&stdin](Fiber& f, std::vector<Value> args,
+                            std::unordered_map<std::string, Value> kwargs) {
+            std::string inp;
+            stdin >> inp;
+            return Value(std::move(inp));
+          }));
+
+  return vm;
+}
+
+// -----------------------------------------------------------------------
+// class VM
+
+VM::VM(std::shared_ptr<Chunk> entry) {
   if (entry) {
     // bootstrap: main() as a closure pushed to main fiber
     auto main_cl = gc_.Allocate<Closure>(entry);
@@ -52,32 +124,6 @@ VM::VM(std::shared_ptr<Chunk> entry, std::ostream& os) : os_(os) {
     main_cl->Call(*this, *main_fiber_, 0, 0);  // set up base stack frame
     fibres_.push_front(main_fiber_);
   }
-
-  // register native functions
-  globals_["time"] = Value(gc_.Allocate<NativeFunction>(
-      "time", [](Fiber& f, std::vector<Value> args,
-                 std::unordered_map<std::string, Value> /*kwargs*/) {
-        if (!args.empty())
-          throw std::runtime_error("time() takes no arguments");
-        using namespace std::chrono;
-        auto now = system_clock::now().time_since_epoch();
-        auto secs = duration_cast<seconds>(now).count();
-        return Value(static_cast<int>(secs));
-      }));
-
-  globals_["print"] = Value(gc_.Allocate<NativeFunction>(
-      "print", [&os](Fiber& f, std::vector<Value> args,
-                     std::unordered_map<std::string, Value> /*kwargs*/) {
-        bool nl = false;
-        os << Join(
-            ",",
-            std::views::all(args) | std::views::filter([&nl](auto const& v) {
-              return v == std::monostate() ? false : (nl = true);
-            }) | std::views::transform([](auto const& v) { return v.Str(); }));
-        if (nl)
-          os << '\n';
-        return Value();
-      }));
 }
 
 void VM::CollectGarbage() {
@@ -105,6 +151,10 @@ Value VM::AddTrack(TempValue&& t) {
         }
       },
       std::move(t));
+}
+
+void VM::AddGlobal(std::string key, TempValue&& v) {
+  globals_.emplace(std::move(key), AddTrack(std::move(v)));
 }
 
 Value VM::Run() {
@@ -344,8 +394,10 @@ void VM::ExecuteFiber(Fiber* fib) {
       case OpCode::Call: {
         const auto ins = chunk.Read<serilang::Call>(ip);
         ip += sizeof(ins);
-        Value& callee = fib->stack.end()[-ins.arity - 1];
-        callee.Call(*this, *fib, ins.arity, 0);
+        Value& callee =
+            fib->stack.end()[-static_cast<size_t>(ins.argcnt) -
+                             2 * static_cast<size_t>(ins.kwargcnt) - 1];
+        callee.Call(*this, *fib, ins.argcnt, ins.kwargcnt);
       } break;
 
       //------------------------------------------------------------------

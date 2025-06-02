@@ -540,6 +540,17 @@ Invoke
    └─IntLiteral 4
 )");
 
+  expectAST(TokenArray(R"( count(a,b,c=1+1) )"), R"(
+Invoke
+   ├─ID count
+   ├─ID a
+   ├─ID b
+   └─kwarg c
+      └─Binaryop +
+         ├─IntLiteral 1
+         └─IntLiteral 1
+)");
+
   // array(3).field
   expectAST(
       TokenArray(tok::ID("array"), tok::SquareL(), tok::Int(3), tok::SquareR(),

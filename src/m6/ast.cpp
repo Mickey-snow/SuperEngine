@@ -143,9 +143,15 @@ struct Dumper {
     }
     if constexpr (std::same_as<T, InvokeExpr>) {
       oss << x.fn->Apply(Dumper(childPrefix, x.args.empty()));
-      for (size_t i = 0; i < x.args.size(); ++i)
+      for (size_t i = 0; i < x.args.size(); ++i) {
         oss << x.args[i]->Apply(
-            Dumper(childPrefix, (i == x.args.size() - 1 ? true : false)));
+            Dumper(childPrefix, (i == x.args.size() - 1 && x.kwargs.empty())));
+      }
+      for (size_t i = 0; i < x.kwargs.size(); ++i) {
+        oss << x.kwargs[i].second->DumpAST(
+            "kwarg " + std::string(x.kwargs[i].first), childPrefix,
+            i == x.kwargs.size() - 1);
+      }
     }
     if constexpr (std::same_as<T, SubscriptExpr>) {
       oss << x.primary->Apply(Dumper(childPrefix, false));

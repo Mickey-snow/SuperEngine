@@ -25,9 +25,11 @@
 #include "m6/compiler_pipeline.hpp"
 #include "vm/vm.hpp"
 
+#include <chrono>
 #include <iostream>
 
 using namespace m6;
+using namespace serilang;
 
 static constexpr std::string_view copyright_info = R"(
 Copyright (C) 2025 Serina Sakurai
@@ -45,9 +47,8 @@ GNU General Public License for more details.)";
 static constexpr std::string_view help_info =
     R"(Reallive REPL – enter code, Ctrl-D or \"exit\" to quit)";
 
-static void run_repl() {
+static void run_repl(VM vm) {
   CompilerPipeline pipeline(/*repl_mode=*/true);
-  serilang::VM vm;
 
   std::string line;
   for (size_t lineno = 1; std::cout << ">> " && std::getline(std::cin, line);
@@ -77,12 +78,11 @@ static void run_repl() {
   }
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
 int main() {
   std::cout << copyright_info << "\n\n" << help_info << std::endl;
 
   try {
-    run_repl();
+    run_repl(VM::Create());
   } catch (std::exception const& ex) {
     std::cerr << "fatal: " << ex.what() << '\n';
     return 1;

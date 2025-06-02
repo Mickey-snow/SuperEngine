@@ -54,7 +54,7 @@ class CompilerTest : public ::testing::Test {
  public:
   // Compile + run `source`.
   [[nodiscard]] ExecutionResult Run(std::string source) {
-    std::stringstream outBuf;
+    std::stringstream inBuf /*empty*/, outBuf, errBuf;
     ExecutionResult r;
 
     // ── compile ────────────────────────────────────────────────────
@@ -77,14 +77,15 @@ class CompilerTest : public ::testing::Test {
 
     // ── run ────────────────────────────────────────────────────────
     try {
-      serilang::VM vm(chunk, outBuf);
+      auto vm = serilang::VM::Create(chunk, outBuf, inBuf, errBuf);
       vm.Run();
       r.last = vm.main_fiber_->last;
     } catch (std::exception const& ex) {
-      r.stderr += ex.what();
+      errBuf << ex.what();
     }
 
     r.stdout += outBuf.str();
+    r.stderr += errBuf.str();
     return r;
   }
 };
@@ -225,11 +226,11 @@ class Klass{
 
 print(Klass);
 klass = Klass();
-print(klass, klass.foo(), klass.boo(2,3));
+print(klass, klass.foo(), klass.boo(2,3), end="", sep=",");
 )");
 
     ASSERT_TRUE(res.stderr.empty()) << res.stderr;
-    EXPECT_EQ(res.stdout, "<class Klass>\n<Klass object>,1,5\n")
+    EXPECT_EQ(res.stdout, "<class Klass>\n<Klass object>,1,5")
         << "\nDisassembly:\n"
         << res.disasm;
   }

@@ -58,8 +58,8 @@ struct Chunk {
   }
 
   // Variant-aware overload – forwards to the typed version above.
-  void Append(const Instruction& ins) {
-    std::visit([this](auto&& op) { Append(op); }, ins);
+  void Append(Instruction ins) {
+    std::visit([this](auto&& op) { Append(std::move(op)); }, std::move(ins));
   }
 
   template <typename T>

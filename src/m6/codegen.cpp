@@ -83,6 +83,16 @@ uint32_t CodeGenerator::intern_name(std::string_view s) {
   return constant(Value{std::string{s}});
 }
 
+void CodeGenerator::emit_const(Value v) {
+  const auto slot = constant(std::move(v));
+  emit(sr::Push{slot});
+}
+
+void CodeGenerator::emit_const(std::string_view s) {
+  const auto slot = intern_name(s);
+  emit(sr::Push{slot});
+}
+
 std::size_t CodeGenerator::code_size() const { return chunk_->code.size(); }
 
 void CodeGenerator::push_scope() { locals_.emplace_back(); }
@@ -111,18 +121,13 @@ void CodeGenerator::emit_expr(std::shared_ptr<ExprAST> n) {
 }
 
 void CodeGenerator::emit_expr_node(const NilLiteral& m) {
-  const auto slot = constant(Value(std::monostate()));
-  emit(sr::Push{slot});
+  emit_const(std::monostate());
 }
 
-void CodeGenerator::emit_expr_node(const IntLiteral& n) {
-  const auto slot = constant(Value(n.value));
-  emit(sr::Push{slot});
-}
+void CodeGenerator::emit_expr_node(const IntLiteral& n) { emit_const(n.value); }
 
 void CodeGenerator::emit_expr_node(const StrLiteral& n) {
-  const auto slot = constant(Value(std::string(n.value)));
-  emit(sr::Push{slot});
+  emit_const(std::string(n.value));
 }
 
 void CodeGenerator::emit_expr_node(const ListLiteral& n) {
@@ -163,10 +168,14 @@ void CodeGenerator::emit_expr_node(const ParenExpr& p) { emit_expr(p.sub); }
 
 void CodeGenerator::emit_expr_node(const InvokeExpr& call) {
   emit_expr(call.fn);
-  for (auto& arg : call.args) {
+  for (auto& arg : call.args)
+    emit_expr(arg);
+  for (auto& [k, arg] : call.kwargs) {
+    emit_const(std::string(k));
     emit_expr(arg);
   }
-  emit(sr::Call{static_cast<uint8_t>(call.args.size())});
+  emit(sr::Call{static_cast<uint8_t>(call.args.size()),
+                static_cast<uint8_t>(call.kwargs.size())});
 }
 
 void CodeGenerator::emit_expr_node(const SubscriptExpr& s) {
