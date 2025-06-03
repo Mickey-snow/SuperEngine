@@ -184,10 +184,12 @@ void PrintTextToFunction(
 
 string RemoveQuotes(const string& quotedString) {
   string output = quotedString;
-  if (output.size() && output[0] == '\"')
-    output = output.substr(1);
-  if (output.size() && output[output.size() - 1] == '\"')
-    output = output.substr(0, output.size() - 2);
+
+  if (!output.empty() && output.front() == '"')
+    output.erase(0, 1);
+
+  if (!output.empty() && output.back() == '"')
+    output.pop_back();
 
   return output;
 }
