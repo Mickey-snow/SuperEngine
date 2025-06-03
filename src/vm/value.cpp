@@ -436,28 +436,30 @@ TempValue Value::Member(std::string_view mem) {
         if constexpr (false)
           ;
 
-        else if constexpr (std::same_as<T, std::shared_ptr<IObject>>)
+        else if constexpr (std::same_as<T, IObject*>)
           return x->Member(mem);
 
-        throw std::runtime_error('\'' + Desc() + "' object has no member '" +
-                                 std::string(mem) + '\'');
+        else
+          throw std::runtime_error('\'' + Desc() + "' object has no member '" +
+                                   std::string(mem) + '\'');
       },
       val_);
 }
 
-TempValue Value::SetMember(std::string_view mem, Value value) {
-  return std::visit(
-      [&](auto& x) -> Value {
+void Value::SetMember(std::string_view mem, Value value) {
+  std::visit(
+      [&](auto& x) {
         using T = std::decay_t<decltype(x)>;
 
         if constexpr (false)
           ;
 
-        else if constexpr (std::same_as<T, std::shared_ptr<IObject>>)
-          return x->SetMember(mem, std::move(value));
+        else if constexpr (std::same_as<T, IObject*>)
+          x->SetMember(mem, std::move(value));
 
-        throw std::runtime_error(
-            '\'' + Desc() + "' object does not support member assignment.");
+        else
+          throw std::runtime_error(
+              '\'' + Desc() + "' object does not support member assignment.");
       },
       val_);
 }

@@ -62,9 +62,9 @@ class Value {
 
   void Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs);
   TempValue Item(const Value& idx);
-  TempValue SetItem(const Value& idx, Value value);
+  void SetItem(const Value& idx, Value value);
   TempValue Member(std::string_view mem);
-  TempValue SetMember(std::string_view mem, Value value);
+  void SetMember(std::string_view mem, Value value);
 
   template <typename T>
   auto Get_if() -> std::add_pointer_t<T> {

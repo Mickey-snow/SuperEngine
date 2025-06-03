@@ -60,8 +60,8 @@ struct Instance : public IObject {
 
   Class* klass;
   std::unordered_map<std::string, Value> fields;
-
   explicit Instance(Class* klass_);
+  
   constexpr ObjType Type() const noexcept final { return objtype; }
   constexpr size_t Size() const noexcept final { return sizeof(*this); }
 
@@ -69,6 +69,9 @@ struct Instance : public IObject {
 
   std::string Str() const override;
   std::string Desc() const override;
+
+  TempValue Member(std::string_view mem) override;
+  void SetMember(std::string_view mem, Value val) override;
 };
 
 enum class FiberState { New, Running, Suspended, Dead };

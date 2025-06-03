@@ -50,9 +50,9 @@ class IObject {
 
   virtual void Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs);
   virtual TempValue Item(const Value& idx);
-  virtual TempValue SetItem(const Value& idx, Value value);
+  virtual void SetItem(const Value& idx, Value value);
   virtual TempValue Member(std::string_view mem);
-  virtual TempValue SetMember(std::string_view mem, Value value);
+  virtual void SetMember(std::string_view mem, Value value);
 };
 
 }  // namespace serilang

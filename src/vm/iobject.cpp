@@ -40,7 +40,7 @@ TempValue IObject::Item(const Value& idx) {
   throw std::runtime_error('\'' + Desc() + "' object is not subscriptable.");
 }
 
-TempValue IObject::SetItem(const Value& idx, Value value) {
+void IObject::SetItem(const Value& idx, Value value) {
   throw std::runtime_error('\'' + Desc() +
                            "' object does not support item assignment.");
 }
@@ -50,7 +50,7 @@ TempValue IObject::Member(std::string_view mem) {
                            std::string(mem) + '\'');
 }
 
-TempValue IObject::SetMember(std::string_view mem, Value value) {
+void IObject::SetMember(std::string_view mem, Value value) {
   throw std::runtime_error('\'' + Desc() +
                            "' object does not support member assignment.");
 }

@@ -60,6 +60,17 @@ std::string Instance::Str() const { return Desc(); }
 
 std::string Instance::Desc() const { return '<' + klass->name + " object>"; }
 
+TempValue Instance::Member(std::string_view mem) {
+  auto it = fields.find(std::string(mem));
+  if (it == fields.cend())
+    throw std::runtime_error('\'' + Desc() + "' object has no member '" +
+                             std::string(mem) + '\'');
+  return it->second;
+}
+void Instance::SetMember(std::string_view mem, Value val) {
+  fields[std::string(mem)] = val;
+}
+
 // -----------------------------------------------------------------------
 Fiber::Fiber(size_t reserve) : state(FiberState::New) {
   stack.reserve(reserve);

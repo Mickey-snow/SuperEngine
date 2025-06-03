@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include "vm/value_fwd.hpp"
+
 #include <concepts>
 #include <cstddef>
 #include <utility>
@@ -31,11 +33,7 @@
 
 namespace serilang {
 
-class Value;
-class IObject;
 class VM;
-template <typename T>
-concept is_object = std::derived_from<T, IObject>;
 
 class GarbageCollector;
 
@@ -67,6 +65,7 @@ class GarbageCollector {
     return obj;
   }
 
+  Value TrackValue(TempValue&& t);
   void TrackObject(IObject* obj);
 
   size_t AllocatedBytes() const;

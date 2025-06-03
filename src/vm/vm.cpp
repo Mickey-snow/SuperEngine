@@ -137,21 +137,7 @@ void VM::CollectGarbage() {
   gc_.Sweep();
 }
 
-Value VM::AddTrack(TempValue&& t) {
-  return std::visit(
-      [&](auto&& t) -> Value {
-        using T = std::decay_t<decltype(t)>;
-
-        if constexpr (std::same_as<T, Value>)
-          return t;
-        else if constexpr (std::same_as<T, std::unique_ptr<IObject>>) {
-          IObject* ptr = t.release();
-          gc_.TrackObject(ptr);
-          return Value(ptr);
-        }
-      },
-      std::move(t));
-}
+Value VM::AddTrack(TempValue&& t) { return gc_.TrackValue(std::move(t)); }
 
 void VM::AddGlobal(std::string key, TempValue&& v) {
   globals_.emplace(std::move(key), AddTrack(std::move(v)));
@@ -446,21 +432,21 @@ void VM::ExecuteFiber(Fiber* fib) {
       case OpCode::GetField: {
         const auto ins = chunk.Read<serilang::GetField>(ip);
         ip += sizeof(ins);
-        auto inst = pop(fib->stack).Get<Instance*>();
+        Value receiver = pop(fib->stack);
         auto name =
             chunk.const_pool[ins.name_index].template Get<std::string>();
-        push(fib->stack, inst->fields[name]);
+        TempValue result = receiver.Member(name);
+        push(fib->stack, gc_.TrackValue(std::move(result)));
       } break;
 
       case OpCode::SetField: {
         const auto ins = chunk.Read<serilang::SetField>(ip);
         ip += sizeof(ins);
         auto val = pop(fib->stack);
-        auto inst = pop(fib->stack).Get<Instance*>();
+        auto receiver = pop(fib->stack);
         auto name =
             chunk.const_pool[ins.name_index].template Get<std::string>();
-        inst->fields[name] = val;
-        push(fib->stack, val);
+        receiver.SetMember(name, std::move(val));
       } break;
 
       //------------------------------------------------------------------

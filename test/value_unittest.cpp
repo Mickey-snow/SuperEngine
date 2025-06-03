@@ -33,31 +33,20 @@ using namespace serilang;
 
 class ValueTest : public ::testing::Test {
  protected:
-  Value remove_tmp(TempValue&& tval) {
-    return std::visit(
-        [&](auto&& t) -> Value {
-          using T = std::decay_t<decltype(t)>;
+  GarbageCollector gc;
 
-          if constexpr (std::same_as<T, Value>)
-            return t;
-          else if constexpr (std::same_as<T, std::unique_ptr<IObject>>) {
-            IObject* ptr = t.get();
-            garbage.emplace_back(std::move(t));
-            return Value(ptr);
-          }
-        },
-        std::move(tval));
+  template <typename T, typename... Ts>
+  inline auto Alloc(Ts&&... params) {
+    return gc.Allocate<T>(std::forward<Ts>(params)...);
   }
-
-  std::vector<std::unique_ptr<IObject>> garbage;
 
   Value eval(Value lhs, Op op, Value rhs) {
     TempValue out = lhs.Operator(op, rhs);
-    return remove_tmp(std::move(out));
+    return gc.TrackValue(std::move(out));
   }
   Value eval(Op op, Value rhs) {
     TempValue out = rhs.Operator(op);
-    return remove_tmp(std::move(out));
+    return gc.TrackValue(std::move(out));
   }
 };
 
@@ -166,17 +155,15 @@ TEST_F(ValueTest, DivisionByZero) {
 }
 
 TEST_F(ValueTest, ContainerListAndDict) {
-  GarbageCollector gc;
-
   // empty & filled lists
-  Value lstEmpty(gc.Allocate<List>());
+  Value lstEmpty(Alloc<List>());
   Value lstFilled(
-      gc.Allocate<List>(std::vector<Value>{Value(1), Value(2), Value(3)}));
+      Alloc<List>(std::vector<Value>{Value(1), Value(2), Value(3)}));
 
   // empty & filled dicts
-  Value dictEmpty(gc.Allocate<Dict>());
-  Value dictFilled(gc.Allocate<Dict>(
-      std::unordered_map<std::string, Value>{{"a", Value(1)}}));
+  Value dictEmpty(Alloc<Dict>());
+  Value dictFilled(
+      Alloc<Dict>(std::unordered_map<std::string, Value>{{"a", Value(1)}}));
 
   // All container objects are truthy
   EXPECT_TRUE(lstEmpty.IsTruthy());
@@ -201,6 +188,14 @@ TEST_F(ValueTest, ContainerListAndDict) {
   EXPECT_EQ(lstEmpty.Str(), "[]");
   EXPECT_EQ(dictFilled.Str(), "{a:1}");
   EXPECT_EQ(dictEmpty.Str(), "{}");
+}
+
+TEST_F(ValueTest, ClassAndInstance) {
+  Value base(Alloc<Class>());
+  Value inst(Alloc<Instance>(base.Get_if<Class>()));
+
+  EXPECT_NO_THROW(inst.SetMember("mem", Value(123)));
+  EXPECT_EQ(gc.TrackValue(inst.Member("mem")), 123);
 }
 
 }  // namespace value_test

@@ -43,4 +43,7 @@ class IObject;
 
 using TempValue = std::variant<Value, std::unique_ptr<IObject>>;
 
+template <typename T>
+concept is_object = std::derived_from<T, IObject>;
+
 }  // namespace serilang
