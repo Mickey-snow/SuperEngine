@@ -333,13 +333,21 @@ void CodeGenerator::emit_function(const FuncDecl& fn) {
   nested.add_local(fn.name);
   for (auto& p : fn.params)
     nested.add_local(p);
+  for (auto& p : fn.default_params)
+    nested.add_local(p.first);
+  if (!fn.var_arg.empty())
+    nested.add_local(fn.var_arg);
+  if (!fn.kw_arg.empty())
+    nested.add_local(fn.kw_arg);
   nested.emit_stmt(fn.body);
   nested.emit(sr::Return{});
   patch(jFnEnd, code_size());
 
   emit(sr::MakeClosure{
       .entry = static_cast<uint32_t>(entryIp),
-      .nparams = static_cast<uint32_t>(fn.params.size()),
+      .nparams = static_cast<uint32_t>(
+          fn.params.size() + fn.default_params.size() +
+          (fn.var_arg.empty() ? 0 : 1) + (fn.kw_arg.empty() ? 0 : 1)),
       .nlocals = static_cast<uint32_t>(nested.locals_.front().size()),
       .nupvals = 0});
 }

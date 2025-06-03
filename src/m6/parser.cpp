@@ -254,20 +254,47 @@ std::shared_ptr<AST> Parser::parseFuncDecl(bool consumedfn) {
   // ( param_list )
   require<tok::ParenthesisL>("expected '(' after function name");
   std::vector<std::string> params;
-  std::vector<SourceLocation> paramLocs;
+  std::vector<std::pair<std::string, std::shared_ptr<ExprAST>>> def_params;
+  std::string var_arg, kw_arg;
+  std::vector<SourceLocation> paramLocs, defParamLocs;
+  SourceLocation varArgLoc, kwArgLoc;
 
-  if (!tryConsume<tok::ParenthesisR>()) {  // non‑empty parameter list
+  if (!tryConsume<tok::ParenthesisR>()) {  // non-empty parameter list
     do {
-      if (it_ == end_ || !it_->HoldsAlternative<tok::ID>()) {
-        AddError("expected parameter name", it_);
-        Synchronize();
-        return nullptr;
+      if (tryConsume<tok::Operator>(Op::Mul)) {
+        if (tryConsume<tok::Operator>(Op::Mul)) {
+          auto kwTok = it_;
+          require<tok::ID>("expected identifier after '**'");
+          kw_arg = kwTok->GetIf<tok::ID>()->id;
+          kwArgLoc = kwTok->loc_;
+          ++it_;
+        } else {
+          auto varTok = it_;
+          require<tok::ID>("expected identifier after '*'");
+          var_arg = varTok->GetIf<tok::ID>()->id;
+          varArgLoc = varTok->loc_;
+          ++it_;
+        }
+      } else {
+        if (it_ == end_ || !it_->HoldsAlternative<tok::ID>()) {
+          AddError("expected parameter name", it_);
+          Synchronize();
+          return nullptr;
+        }
+        auto pTok = *it_;
+        auto pLoc = it_->loc_;
+        std::string name = pTok.GetIf<tok::ID>()->id;
+        ++it_;
+        if (tryConsume<tok::Operator>(Op::Assign)) {
+          auto expr = ParseExpression();
+          if (expr)
+            def_params.emplace_back(name, expr);
+          defParamLocs.emplace_back(pLoc);
+        } else {
+          params.emplace_back(name);
+          paramLocs.emplace_back(pLoc);
+        }
       }
-      auto pTok = *it_;
-      auto pLoc = it_->loc_;
-      params.emplace_back(pTok.GetIf<tok::ID>()->id);
-      paramLocs.emplace_back(pLoc);
-      ++it_;
     } while (tryConsume<tok::Operator>(Op::Comma));
 
     require<tok::ParenthesisR>("expected ')' after parameter list");
@@ -282,9 +309,10 @@ std::shared_ptr<AST> Parser::parseFuncDecl(bool consumedfn) {
   --it_;
 
   auto body = ParseStatement(false);
-  return std::make_shared<AST>(FuncDecl(id_tok->GetIf<tok::ID>()->id,
-                                        std::move(params), body, id_tok->loc_,
-                                        std::move(paramLocs)));
+  return std::make_shared<AST>(FuncDecl{
+      std::string(id_tok->GetIf<tok::ID>()->id), std::move(params),
+      std::move(def_params), var_arg, kw_arg, body, id_tok->loc_,
+      std::move(paramLocs), std::move(defParamLocs), varArgLoc, kwArgLoc});
 }
 
 std::shared_ptr<ExprAST> Parser::parseLogicalOr() {

@@ -242,11 +242,21 @@ struct BlockStmt {
 
 struct FuncDecl {
   std::string name;
-  std::vector<std::string> params;
+  std::vector<std::string>
+      params;  // Ordered list of required (no-default) parameters
+  std::vector<std::pair<std::string, std::shared_ptr<ExprAST>>>
+      default_params;  // Ordered list of parameters that have defaults, plus
+                       // their default Value
+  std::string
+      var_arg;  // Name for a varargs ("*args") parameter, or empty if none
+  std::string kw_arg;  // Name for a varkeywords ("**kwargs") parameter, or
+                       // empty if none
+
   std::shared_ptr<AST> body;  // guaranteed BlockStmt
 
   SourceLocation name_loc;
-  std::vector<SourceLocation> param_locs;
+  std::vector<SourceLocation> param_locs, def_params_loc;
+  SourceLocation var_arg_loc, kw_arg_loc;
 
   std::string DebugString() const;
 };

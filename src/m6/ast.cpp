@@ -93,7 +93,17 @@ std::string WhileStmt::DebugString() const { return "While"; }
 std::string ForStmt::DebugString() const { return "For"; }
 std::string BlockStmt::DebugString() const { return "Compound"; }
 std::string FuncDecl::DebugString() const {
-  return std::format("fn {}({})", name, Join(",", params));
+  std::vector<std::string> parts;
+  parts.reserve(params.size() + default_params.size() + 2);
+  for (auto const& p : params)
+    parts.push_back(p);
+  for (auto const& [n, _] : default_params)
+    parts.push_back(n);
+  if (!var_arg.empty())
+    parts.push_back("*" + var_arg);
+  if (!kw_arg.empty())
+    parts.push_back("**" + kw_arg);
+  return std::format("fn {}({})", name, Join(",", parts));
 }
 std::string ClassDecl::DebugString() const {
   return "class " + std::string(name);
@@ -182,6 +192,10 @@ struct Dumper {
         oss << x.body[i]->DumpAST("", childPrefix, i + 1 >= x.body.size());
     }
     if constexpr (std::same_as<T, FuncDecl>) {
+      for (size_t i = 0; i < x.default_params.size(); ++i) {
+        oss << x.default_params[i].second->DumpAST(
+            "default " + x.default_params[i].first, childPrefix, false);
+      }
       oss << x.body->DumpAST("body", childPrefix, true);
     }
     if constexpr (std::same_as<T, ClassDecl>) {
