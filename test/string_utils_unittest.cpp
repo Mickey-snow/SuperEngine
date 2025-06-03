@@ -39,5 +39,5 @@ TEST(StringUtilTest, RemoveQuotes) {
   EXPECT_EQ(RemoveQuotes("\"hello\""), "hello");
   EXPECT_EQ(RemoveQuotes("hello"), "hello");
   EXPECT_EQ(RemoveQuotes(""), "");
-  EXPECT_EQ(RemoveQuotes("\"a\"b\""), "a\"b\"");
+  EXPECT_EQ(RemoveQuotes("\"a\"b\""), "a\"b");
 }
