@@ -34,3 +34,10 @@ TEST(StringUtilTest, Join) {
                                  [](int x) { return std::to_string(x); })),
             "1, 2, 3");
 }
+
+TEST(StringUtilTest, RemoveQuotes) {
+  EXPECT_EQ(RemoveQuotes("\"hello\""), "hello");
+  EXPECT_EQ(RemoveQuotes("hello"), "hello");
+  EXPECT_EQ(RemoveQuotes(""), "");
+  EXPECT_EQ(RemoveQuotes("\"a\"b\""), "a\"b");
+}
