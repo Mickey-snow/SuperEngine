@@ -62,11 +62,11 @@ std::string tok::DebugStringVisitor::operator()(const tok::Reserved& p) const {
 }
 
 std::string tok::DebugStringVisitor::operator()(const tok::Literal& p) const {
-  return "Str(" + p.str + ')';
+  return "Str(" + std::string(p.str) + ')';
 }
 
 std::string tok::DebugStringVisitor::operator()(const tok::ID& p) const {
-  return "ID(\"" + p.id + "\")";
+  return "ID(\"" + std::string(p.id) + "\")";
 }
 
 std::string tok::DebugStringVisitor::operator()(const tok::WS&) const {

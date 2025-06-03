@@ -103,7 +103,7 @@ std::shared_ptr<AST> Parser::ParseStatement(bool requireSemi) {
           return nullptr;
         }
 
-        std::string id = clsNameTok.GetIf<tok::ID>()->id;
+        std::string_view id = clsNameTok.GetIf<tok::ID>()->id;
         std::vector<FuncDecl> members;
 
         require<tok::CurlyL>("expected '{' after class name");
@@ -253,7 +253,7 @@ std::shared_ptr<AST> Parser::parseFuncDecl(bool consumedfn) {
 
   // ( param_list )
   require<tok::ParenthesisL>("expected '(' after function name");
-  std::vector<std::string> params;
+  std::vector<std::string_view> params;
   std::vector<SourceLocation> paramLocs;
 
   if (!tryConsume<tok::ParenthesisR>()) {  // non‑empty parameter list

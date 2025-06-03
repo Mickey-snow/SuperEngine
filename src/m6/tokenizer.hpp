@@ -26,6 +26,7 @@
 
 #include "m6/exception.hpp"
 #include "m6/token.hpp"
+#include "utilities/string_pool.hpp"
 
 #include <memory>
 #include <span>
@@ -38,7 +39,8 @@ class SourceBuffer;
 
 class Tokenizer {
  public:
-  Tokenizer(std::vector<Token>& storage);
+  explicit Tokenizer(std::vector<Token>& storage,
+                     util::StringPool& pool = util::GlobalStringPool());
 
   void Parse(std::shared_ptr<SourceBuffer> input);
 
@@ -53,6 +55,7 @@ class Tokenizer {
 
  private:
   std::vector<Token>& storage_;
+  util::StringPool& pool_;
 };
 
 }  // namespace m6

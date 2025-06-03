@@ -34,6 +34,7 @@
 #include <memory>
 #include <span>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -57,7 +58,10 @@ class CodeGenerator {
   // -- Type aliases ----------------------------------------------------
   using Value = serilang::Value;
   using ChunkPtr = std::shared_ptr<serilang::Chunk>;
-  using Scope = std::unordered_map<std::string, std::size_t>;
+  using Scope = std::unordered_map<std::string_view,
+                                   std::size_t,
+                                   std::hash<std::string_view>,
+                                   std::equal_to<>>;
 
   // -- Data members ---------------------------------------------------
   bool repl_mode_;
@@ -97,8 +101,8 @@ class CodeGenerator {
   void pop_scope();
 
   // -- Identifier resolution ------------------------------------------
-  std::optional<std::size_t> resolve_local(const std::string& name) const;
-  std::size_t add_local(const std::string& name);
+  std::optional<std::size_t> resolve_local(std::string_view name) const;
+  std::size_t add_local(std::string_view name);
 
   // -- Expression codegen ---------------------------------------------
   void emit_expr(std::shared_ptr<ExprAST> n);

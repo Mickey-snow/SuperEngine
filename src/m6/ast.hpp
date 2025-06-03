@@ -241,8 +241,8 @@ struct BlockStmt {
 };
 
 struct FuncDecl {
-  std::string name;
-  std::vector<std::string> params;
+  std::string_view name;
+  std::vector<std::string_view> params;
   std::shared_ptr<AST> body;  // guaranteed BlockStmt
 
   SourceLocation name_loc;
@@ -252,7 +252,7 @@ struct FuncDecl {
 };
 
 struct ClassDecl {
-  std::string name;
+  std::string_view name;
   std::vector<FuncDecl> members;
 
   SourceLocation name_loc;

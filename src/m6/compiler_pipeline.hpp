@@ -30,6 +30,7 @@
 #include "m6/source_buffer.hpp"
 #include "m6/token.hpp"
 #include "m6/tokenizer.hpp"
+#include "utilities/string_pool.hpp"
 
 #include <optional>
 #include <vector>
@@ -38,7 +39,8 @@ namespace m6 {
 
 class CompilerPipeline {
  public:
-  CompilerPipeline(bool repl = false) : tz(tokens_), gen_(repl) {}
+  CompilerPipeline(bool repl = false)
+      : tz(tokens_, util::GlobalStringPool()), gen_(repl) {}
 
   void compile(std::shared_ptr<SourceBuffer> src) {
     Clear();

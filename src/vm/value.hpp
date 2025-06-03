@@ -29,6 +29,8 @@
 #include "vm/value_fwd.hpp"
 
 #include <memory>
+#include <string>
+#include <string_view>
 #include <variant>
 
 namespace serilang {

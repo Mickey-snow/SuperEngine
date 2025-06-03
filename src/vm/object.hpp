@@ -32,6 +32,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -42,7 +43,11 @@ struct Class : public IObject {
   static constexpr inline ObjType objtype = ObjType::Class;
 
   std::string name;
-  std::unordered_map<std::string, Value> methods;
+  std::unordered_map<std::string_view,
+                     Value,
+                     std::hash<std::string_view>,
+                     std::equal_to<>>
+      methods;
 
   constexpr ObjType Type() const noexcept final { return objtype; }
   constexpr size_t Size() const noexcept final { return sizeof(*this); }
@@ -59,9 +64,13 @@ struct Instance : public IObject {
   static constexpr inline ObjType objtype = ObjType::Instance;
 
   Class* klass;
-  std::unordered_map<std::string, Value> fields;
+  std::unordered_map<std::string_view,
+                     Value,
+                     std::hash<std::string_view>,
+                     std::equal_to<>>
+      fields;
   explicit Instance(Class* klass_);
-  
+
   constexpr ObjType Type() const noexcept final { return objtype; }
   constexpr size_t Size() const noexcept final { return sizeof(*this); }
 

@@ -101,7 +101,7 @@ void CodeGenerator::pop_scope() { locals_.pop_back(); }
 
 // Identifier resolution
 std::optional<std::size_t> CodeGenerator::resolve_local(
-    const std::string& name) const {
+    std::string_view name) const {
   for (std::size_t i = locals_.size(); i-- > 0;) {
     auto it = locals_[i].find(name);
     if (it != locals_[i].end())
@@ -110,7 +110,7 @@ std::optional<std::size_t> CodeGenerator::resolve_local(
   return std::nullopt;
 }
 
-std::size_t CodeGenerator::add_local(const std::string& name) {
+std::size_t CodeGenerator::add_local(std::string_view name) {
   locals_.back()[name] = local_depth_;
   return local_depth_++;
 }
@@ -145,11 +145,10 @@ void CodeGenerator::emit_expr_node(const DictLiteral& n) {
 }
 
 void CodeGenerator::emit_expr_node(const Identifier& n) {
-  std::string id{n.value};
-  if (auto slot = resolve_local(id); slot.has_value()) {
+  if (auto slot = resolve_local(n.value); slot.has_value()) {
     emit(sr::LoadLocal{static_cast<uint8_t>(*slot)});
   } else {
-    emit(sr::LoadGlobal{intern_name(id)});
+    emit(sr::LoadGlobal{intern_name(n.value)});
   }
 }
 
@@ -171,7 +170,7 @@ void CodeGenerator::emit_expr_node(const InvokeExpr& call) {
   for (auto& arg : call.args)
     emit_expr(arg);
   for (auto& [k, arg] : call.kwargs) {
-    emit_const(std::string(k));
+    emit_const(k);
     emit_expr(arg);
   }
   emit(sr::Call{static_cast<uint8_t>(call.args.size()),
@@ -198,11 +197,10 @@ void CodeGenerator::emit_stmt_node(const AssignStmt& s) {
   if (auto id = s.lhs->Get_if<Identifier>()) {
     // simple variable
     emit_expr(s.rhs);
-    std::string name{id->value};
-    if (auto slot = resolve_local(name); slot.has_value()) {
+    if (auto slot = resolve_local(id->value); slot.has_value()) {
       emit(sr::StoreLocal{static_cast<uint8_t>(*slot)});
     } else {
-      emit(sr::StoreGlobal{intern_name(name)});
+      emit(sr::StoreGlobal{intern_name(id->value)});
     }
   } else if (auto mem = s.lhs->Get_if<MemberExpr>()) {
     // object field
@@ -221,13 +219,12 @@ void CodeGenerator::emit_stmt_node(const AssignStmt& s) {
 void CodeGenerator::emit_stmt_node(const AugStmt& s) {
   if (auto id = s.lhs->Get_if<Identifier>()) {
     // simple variable
-    std::string name{id->value};
-    auto slot = resolve_local(name);
+    auto slot = resolve_local(id->value);
 
     if (slot.has_value())
       emit(sr::LoadLocal{static_cast<uint8_t>(*slot)});
     else
-      emit(sr::LoadGlobal{intern_name(name)});
+      emit(sr::LoadGlobal{intern_name(id->value)});
 
     emit_expr(s.rhs);
     emit(sr::BinaryOp{s.GetRmAssignmentOp()});
@@ -235,7 +232,7 @@ void CodeGenerator::emit_stmt_node(const AugStmt& s) {
     if (slot.has_value())
       emit(sr::StoreLocal{static_cast<uint8_t>(*slot)});
     else
-      emit(sr::StoreGlobal{intern_name(name)});
+      emit(sr::StoreGlobal{intern_name(id->value)});
 
   } else if (auto mem = s.lhs->Get_if<MemberExpr>()) {
     // object field
@@ -351,7 +348,7 @@ void CodeGenerator::emit_stmt_node(const FuncDecl& fn) {
 
 void CodeGenerator::emit_stmt_node(const ClassDecl& cd) {
   for (auto& m : cd.members) {
-    emit(sr::Push{constant(Value(m.name))});
+    emit(sr::Push{constant(Value(std::string(m.name)))});
     emit_function(m);
   }
   emit(sr::MakeClass{intern_name(cd.name),

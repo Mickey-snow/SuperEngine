@@ -31,6 +31,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -73,7 +74,11 @@ class VM {
   std::deque<Fiber*> fibres_;
   Value last_;  // last fiber's return value
 
-  std::unordered_map<std::string, Value> globals_;
+  std::unordered_map<std::string_view,
+                     Value,
+                     std::hash<std::string_view>,
+                     std::equal_to<>>
+      globals_;
 
  private:
   //----------------------------------------------------------------

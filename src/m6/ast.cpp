@@ -93,7 +93,7 @@ std::string WhileStmt::DebugString() const { return "While"; }
 std::string ForStmt::DebugString() const { return "For"; }
 std::string BlockStmt::DebugString() const { return "Compound"; }
 std::string FuncDecl::DebugString() const {
-  return std::format("fn {}({})", name, Join(",", params));
+  return std::format("fn {}({})", std::string(name), Join(",", params));
 }
 std::string ClassDecl::DebugString() const {
   return "class " + std::string(name);

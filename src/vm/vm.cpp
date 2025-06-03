@@ -25,6 +25,7 @@
 #include "vm/vm.hpp"
 
 #include "machine/op.hpp"
+#include "utilities/string_pool.hpp"
 #include "utilities/string_utilities.hpp"
 #include "vm/call_frame.hpp"
 #include "vm/chunk.hpp"
@@ -140,7 +141,8 @@ void VM::CollectGarbage() {
 Value VM::AddTrack(TempValue&& t) { return gc_.TrackValue(std::move(t)); }
 
 void VM::AddGlobal(std::string key, TempValue&& v) {
-  globals_.emplace(std::move(key), AddTrack(std::move(v)));
+  globals_.emplace(util::GlobalStringPool().Intern(key),
+                   AddTrack(std::move(v)));
 }
 
 Value VM::Run() {
@@ -300,16 +302,16 @@ void VM::ExecuteFiber(Fiber* fib) {
       case OpCode::LoadGlobal: {
         const auto ins = chunk.Read<serilang::LoadGlobal>(ip);
         ip += sizeof(ins);
-        auto name =
-            chunk.const_pool[ins.name_index].template Get<std::string>();
+        auto name = util::GlobalStringPool().Intern(
+            chunk.const_pool[ins.name_index].template Get<std::string>());
         push(fib->stack, globals_[name]);
       } break;
 
       case OpCode::StoreGlobal: {
         const auto ins = chunk.Read<serilang::StoreGlobal>(ip);
         ip += sizeof(ins);
-        auto name =
-            chunk.const_pool[ins.name_index].template Get<std::string>();
+        auto name = util::GlobalStringPool().Intern(
+            chunk.const_pool[ins.name_index].template Get<std::string>());
         globals_[name] = pop(fib->stack);
       } break;
 

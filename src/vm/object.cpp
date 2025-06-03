@@ -24,6 +24,7 @@
 
 #include "vm/object.hpp"
 
+#include "utilities/string_pool.hpp"
 #include "utilities/string_utilities.hpp"
 #include "vm/upvalue.hpp"
 #include "vm/vm.hpp"
@@ -61,14 +62,14 @@ std::string Instance::Str() const { return Desc(); }
 std::string Instance::Desc() const { return '<' + klass->name + " object>"; }
 
 TempValue Instance::Member(std::string_view mem) {
-  auto it = fields.find(std::string(mem));
+  auto it = fields.find(mem);
   if (it == fields.cend())
     throw std::runtime_error('\'' + Desc() + "' object has no member '" +
                              std::string(mem) + '\'');
   return it->second;
 }
 void Instance::SetMember(std::string_view mem, Value val) {
-  fields[std::string(mem)] = val;
+  fields[util::GlobalStringPool().Intern(mem)] = val;
 }
 
 // -----------------------------------------------------------------------
@@ -145,7 +146,7 @@ std::string Dict::Str() const {
   for (const auto& [k, v] : map) {
     if (!repr.empty())
       repr += ',';
-    repr += k + ':' + v.Str();
+    repr += std::string(k) + ':' + v.Str();
   }
 
   return '{' + repr + '}';

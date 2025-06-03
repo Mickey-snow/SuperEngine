@@ -197,8 +197,8 @@ void Tokenizer::Parse(std::shared_ptr<SourceBuffer> src) {
 
     // 5) Check identifier: [a-zA-Z_][a-zA-Z0-9_]*
     if (!idVal.empty()) {
-      storage_.emplace_back(tok::ID(std::move(idVal)),
-                            src->GetReference(start, pos));
+      auto view = pool_.Intern(idVal);
+      storage_.emplace_back(tok::ID(view), src->GetReference(start, pos));
       continue;
     }
 
@@ -294,7 +294,8 @@ void Tokenizer::Parse(std::shared_ptr<SourceBuffer> src) {
       }
 
       if (!closed) {
-        storage_.emplace_back(tok::Literal(std::string(input.substr(start))),
+        auto view = pool_.Intern(std::string(input.substr(start)));
+        storage_.emplace_back(tok::Literal(view),
                               src->GetReference(start, pos));
         errors_.emplace_back("Expected '\"'", src->GetReference(pos, pos));
       } else {
@@ -302,7 +303,8 @@ void Tokenizer::Parse(std::shared_ptr<SourceBuffer> src) {
         std::string fullString = std::string(input.substr(start, pos - start));
         // unescape it
         std::string unescaped = unescapeString(fullString);
-        storage_.emplace_back(tok::Literal(std::move(unescaped)),
+        auto view = pool_.Intern(unescaped);
+        storage_.emplace_back(tok::Literal(view),
                               src->GetReference(start, pos));
       }
       continue;
@@ -317,8 +319,8 @@ void Tokenizer::Parse(std::shared_ptr<SourceBuffer> src) {
     storage_.emplace_back(tok::Eof(), src->GetReference(len, len + 1));
 }
 
-Tokenizer::Tokenizer(std::vector<Token>& s)
-    : errors_(), skip_ws_(true), add_eof_(true), storage_(s) {}
+Tokenizer::Tokenizer(std::vector<Token>& s, util::StringPool& pool)
+    : errors_(), skip_ws_(true), add_eof_(true), storage_(s), pool_(pool) {}
 
 bool Tokenizer::Ok() const { return errors_.empty(); }
 

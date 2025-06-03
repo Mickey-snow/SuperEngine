@@ -26,7 +26,7 @@
 
 #include "m6/ast.hpp"
 
-#include <string>
+#include <string_view>
 #include <variant>
 
 namespace m6 {
@@ -40,12 +40,12 @@ struct Reserved {
 };
 
 struct Literal {
-  std::string str;
+  std::string_view str;
   auto operator<=>(const Literal& rhs) const = default;
 };
 
 struct ID {
-  std::string id;
+  std::string_view id;
   auto operator<=>(const ID& rhs) const = default;
 };
 
