@@ -188,9 +188,8 @@ void Disassembler::PrintIns(Chunk& chunk,
       const auto ins = chunk.Read<MakeClosure>(ip);
       ip += sizeof(ins);
       emit_mnemonic("MAKE_CLOS");
-      emit_operand("");  // keep column spacing
-      out_ << "entry=" << ins.entry << "  nargs=" << ins.nparams
-           << "  nlocals=" << ins.nlocals << "  nup=" << ins.nupvals;
+      emit_operand(ins.func_index);
+      out_ << "  nup=" << ins.nupvals;
     } break;
     case OpCode::Call: {
       const auto ins = chunk.Read<Call>(ip);
@@ -254,9 +253,8 @@ void Disassembler::PrintIns(Chunk& chunk,
       const auto ins = chunk.Read<MakeFiber>(ip);
       ip += sizeof(ins);
       emit_mnemonic("MAKE_FIBER");
-      emit_operand("");
-      out_ << "entry=" << ins.entry << "  nargs=" << ins.nparams
-           << "  nlocals=" << ins.nlocals << "  nup=" << ins.nupvals;
+      emit_operand(ins.func_index);
+      out_ << "  nup=" << ins.nupvals;
     } break;
     case OpCode::Resume: {
       const auto ins = chunk.Read<Resume>(ip);
@@ -313,7 +311,8 @@ void Disassembler::DumpImpl(Chunk& chunk, const std::string& indent) {
     const std::string sub_indent = indent + std::string(indent_size_, ' ');
     Value& v = chunk.const_pool[idx];
     if (auto clos = v.Get_if<Closure>(); clos) {
-      std::shared_ptr<Chunk> subChunk = clos->chunk;
+      std::shared_ptr<Chunk> subChunk =
+          clos->function ? clos->function->chunk : nullptr;
       if (!subChunk)
         continue;
 

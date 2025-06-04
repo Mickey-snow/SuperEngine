@@ -95,7 +95,7 @@ TEST(VMTest, StoreLoadLocal) {
   // Trick: tell the VM that “main” closure has 1 local
   VM vm(chunk);
   vm.main_fiber_->stack.resize(1);
-  vm.main_fiber_->frames[0].closure->nlocals = 1;
+  vm.main_fiber_->frames[0].closure->function->nlocals = 1;
   vm.Run();
 
   Value out = vm.main_fiber_->last;
@@ -104,16 +104,24 @@ TEST(VMTest, StoreLoadLocal) {
 
 TEST(VMTest, FunctionCall) {
   // Layout:
-  //   0 : MakeClosure(entry=21)   ; push fn
-  //   17: Call0
-  //   19: Return
+  //   0 : MakeClosure(entry=13)   ; push fn
+  //   9 : Call0
+  //  12 : Return
   //
-  //   21: Push 7
-  //   26: Return
+  //  13 : Push 7
+  //  18 : Return
+  GarbageCollector gc;
   auto chunk = std::make_shared<Chunk>();
-  chunk->const_pool = value_vector(7.0);
+  auto fn = gc.Allocate<Function>(chunk);
+  fn->entry = 13;
+  fn->nlocals = 0;
+  fn->nrequired = 0;
+  fn->ndefault = 0;
+  fn->has_vararg = false;
+  fn->has_kwarg = false;
+  chunk->const_pool = value_vector(7.0, Value(fn));
   append_ins(chunk,
-             {MakeClosure{21, 0, 0, 0}, Call{0}, Return{}, Push{0}, Return{}});
+             {MakeClosure{1, 0}, Call{0, 0}, Return{}, Push{0}, Return{}});
 
   Value out = run_and_get(chunk);
   EXPECT_EQ(out, 7.0);
@@ -165,7 +173,7 @@ TEST(VMTest, CallNative) {
       });
 
   chunk->const_pool = value_vector(fn, 1, "foo");
-  append_ins(chunk, {Push{0}, Push{1}, Push{2}, Call{2}, Return{}});
+  append_ins(chunk, {Push{0}, Push{1}, Push{2}, Call{2, 0}, Return{}});
 
   Value out = run_and_get(chunk);
   EXPECT_EQ(call_count, 1);

@@ -163,7 +163,8 @@ TEST_F(GCTest, MarkFibresAndClosures) {
   DummyObject::aliveCount() = 0;
   // Create a one-shot closure and fiber
   auto chunk = std::make_shared<Chunk>();
-  auto* cl = Alloc<Closure>(chunk);
+  auto* fn = Alloc<Function>(chunk);
+  auto* cl = Alloc<Closure>(fn);
   auto* f = Alloc<Fiber>();
   f->frames.emplace_back(CallFrame(cl));
 
@@ -172,7 +173,7 @@ TEST_F(GCTest, MarkFibresAndClosures) {
   auto* d3 = Alloc<DummyObject>();
   f->stack.emplace_back(d1);
   f->last = Value(d2);
-  cl->chunk->const_pool.emplace_back(d3);
+  cl->function->chunk->const_pool.emplace_back(d3);
 
   // Register fiber in VM
   vm.fibres_.clear();
@@ -224,7 +225,8 @@ TEST_F(GCTest, MixedValueGraph) {
   // Closure holding d3 in its constant pool
   auto chunk = std::make_shared<Chunk>();
   chunk->const_pool.emplace_back(d3);
-  auto* cl = Alloc<Closure>(chunk);
+  auto* fn = Alloc<Function>(chunk);
+  auto* cl = Alloc<Closure>(fn);
 
   // List holding d2
   auto* list = Alloc<List>(std::vector<Value>{Value(d2)});

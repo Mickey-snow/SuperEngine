@@ -90,7 +90,8 @@ struct Return {};  // (retval) → pops frame
 
 // ––– 5. Function & call –––––––––––––––––––––––––––––––––––––––––––
 struct MakeClosure {
-  uint32_t entry, nparams, nlocals, nupvals;
+  uint32_t func_index;
+  uint32_t nupvals;
 };  // (…) → (fn)
 struct Call {
   uint8_t argcnt;
@@ -119,7 +120,8 @@ struct SetItem {};  // (container,idx,val) →
 
 // ––– 7. Coroutine / fiber support ––––––––––––––––––––––––––––––––
 struct MakeFiber {
-  uint32_t entry, nparams, nlocals, nupvals;
+  uint32_t func_index;
+  uint32_t nupvals;
 };  // (…) → (fiber)
 struct Resume {
   uint8_t arity;

@@ -26,6 +26,7 @@
 
 #include "utilities/string_utilities.hpp"
 #include "vm/upvalue.hpp"
+#include "vm/value.hpp"
 #include "vm/vm.hpp"
 
 namespace serilang {
@@ -160,26 +161,79 @@ void Dict::MarkRoots(GCVisitor& visitor) {
 }
 
 // -----------------------------------------------------------------------
-Closure::Closure(std::shared_ptr<Chunk> c) : chunk(c) {}
+Function::Function(std::shared_ptr<Chunk> c) : chunk(std::move(c)) {}
+
+std::string Function::Str() const { return "function"; }
+
+std::string Function::Desc() const { return "<function>"; }
+
+void Function::MarkRoots(GCVisitor& visitor) {
+  if (!chunk)
+    return;
+  for (auto& it : chunk->const_pool)
+    visitor.MarkSub(it);
+}
+
+// -----------------------------------------------------------------------
+Closure::Closure(Function* fn) : function(fn) {}
 
 std::string Closure::Str() const { return "closure"; }
 
 std::string Closure::Desc() const { return "<closure>"; }
 
 void Closure::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
-  if (nargs != this->nparams)
-    throw std::runtime_error(Desc() + ": arity mismatch");
+  const auto base = f.stack.size() - nargs - 2 * nkwargs - 1;
 
-  const auto base = f.stack.size() - nparams - 1 /*fn slot*/;
-  f.frames.push_back({this, entry, base});
+  // pull arguments & kwargs off the stack
+  std::vector<Value> args;
+  args.reserve(nargs);
+  for (uint8_t i = 0; i < nargs; ++i)
+    args.emplace_back(std::move(f.stack[base + 1 + i]));
+
+  std::unordered_map<std::string, Value> kwargs;
+  kwargs.reserve(nkwargs);
+  size_t idx = base + 1 + nargs;
+  for (uint8_t i = 0; i < nkwargs; ++i) {
+    std::string* k = f.stack[idx++].Get_if<std::string>();
+    Value v = std::move(f.stack[idx++]);
+    kwargs.emplace(std::move(*k), std::move(v));
+  }
+
+  f.stack.resize(base + 1);  // leave the callee on stack
+
+  if (args.size() < function->nrequired)
+    throw std::runtime_error(Desc() + ": missing arguments");
+
+  size_t arg_i = 0;
+  for (uint8_t i = 0; i < function->nrequired; ++i)
+    f.stack.emplace_back(std::move(args[arg_i++]));
+
+  for (uint8_t i = 0; i < function->ndefault; ++i) {
+    if (arg_i < args.size())
+      f.stack.emplace_back(std::move(args[arg_i++]));
+    else
+      f.stack.emplace_back(nil);  // will be filled in prologue
+  }
+
+  if (function->has_vararg) {
+    std::vector<Value> rest;
+    while (arg_i < args.size())
+      rest.emplace_back(std::move(args[arg_i++]));
+    f.stack.emplace_back(vm.gc_.Allocate<List>(std::move(rest)));
+  } else if (arg_i < args.size()) {
+    throw std::runtime_error(Desc() + ": too many arguments");
+  }
+
+  if (function->has_kwarg) {
+    f.stack.emplace_back(vm.gc_.Allocate<Dict>(std::move(kwargs)));
+  } else if (!kwargs.empty()) {
+    throw std::runtime_error(Desc() + ": unexpected keyword argument");
+  }
+
+  f.frames.push_back({this, function->entry, base});
 }
 
-void Closure::MarkRoots(GCVisitor& visitor) {
-  if (!chunk)
-    return;
-  for (auto& it : chunk->const_pool)
-    visitor.MarkSub(it);
-}
+void Closure::MarkRoots(GCVisitor& visitor) { visitor.MarkSub(function); }
 
 // -----------------------------------------------------------------------
 NativeFunction::NativeFunction(std::string name, function_t fn)

@@ -115,10 +115,14 @@ VM VM::Create(std::shared_ptr<Chunk> bootstrap,
 VM::VM(std::shared_ptr<Chunk> entry) {
   if (entry) {
     // bootstrap: main() as a closure pushed to main fiber
-    auto main_cl = gc_.Allocate<Closure>(entry);
-    main_cl->entry = 0;
-    main_cl->nlocals = 0;
-    main_cl->nparams = 0;
+    auto fn = gc_.Allocate<Function>(entry);
+    fn->entry = 0;
+    fn->nlocals = 0;
+    fn->nrequired = 0;
+    fn->ndefault = 0;
+    fn->has_vararg = false;
+    fn->has_kwarg = false;
+    auto main_cl = gc_.Allocate<Closure>(fn);
     main_fiber_ = gc_.Allocate<Fiber>();
     push(main_fiber_->stack, Value(main_cl));  // fn
     main_cl->Call(*this, *main_fiber_, 0, 0);  // set up base stack frame
@@ -163,10 +167,14 @@ Value VM::Run() {
 
 Value VM::Evaluate(std::shared_ptr<Chunk> chunk) {
   // wrap chunk in a zero-arg closure
-  auto cl = gc_.Allocate<Closure>(chunk);
-  cl->entry = 0;
-  cl->nparams = 0;
-  cl->nlocals = 0;
+  auto fn = gc_.Allocate<Function>(chunk);
+  fn->entry = 0;
+  fn->nlocals = 0;
+  fn->nrequired = 0;
+  fn->ndefault = 0;
+  fn->has_vararg = false;
+  fn->has_kwarg = false;
+  auto cl = gc_.Allocate<Closure>(fn);
 
   // create a new fiber for this snippet
   auto* replFiber = gc_.Allocate<Fiber>();
@@ -219,7 +227,7 @@ void VM::ExecuteFiber(Fiber* fib) {
   fib->state = FiberState::Running;
   while (!fib->frames.empty()) {
     auto& frame = fib->frames.back();
-    auto& chunk = *frame.closure->chunk;
+    auto& chunk = *frame.closure->function->chunk;
     auto& ip = frame.ip;
 
     if (ip >= chunk.code.size()) {
@@ -370,10 +378,8 @@ void VM::ExecuteFiber(Fiber* fib) {
       case OpCode::MakeClosure: {
         const auto ins = chunk.Read<serilang::MakeClosure>(ip);
         ip += sizeof(ins);
-        auto cl = gc_.Allocate<Closure>(frame.closure->chunk);
-        cl->entry = ins.entry;
-        cl->nparams = ins.nparams;
-        cl->nlocals = ins.nlocals;
+        auto fn = chunk.const_pool[ins.func_index].template Get<Function*>();
+        auto cl = gc_.Allocate<Closure>(fn);
         push(fib->stack, Value(cl));
       } break;
 
@@ -456,10 +462,8 @@ void VM::ExecuteFiber(Fiber* fib) {
         const auto ins = chunk.Read<serilang::MakeFiber>(ip);
         ip += sizeof(ins);
         auto f = gc_.Allocate<Fiber>();
-        auto cl = gc_.Allocate<Closure>(frame.closure->chunk);
-        cl->entry = ins.entry;
-        cl->nparams = ins.nparams;
-        cl->nlocals = ins.nlocals;
+        auto fn = chunk.const_pool[ins.func_index].template Get<Function*>();
+        auto cl = gc_.Allocate<Closure>(fn);
         f->stack.reserve(64);
         push(fib->stack, Value(f));
       } break;

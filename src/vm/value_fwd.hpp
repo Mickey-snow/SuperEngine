@@ -35,6 +35,7 @@ struct Upvalue;
 struct Fiber;
 struct List;
 struct Dict;
+struct Function;
 struct Closure;
 class NativeFunction;
 

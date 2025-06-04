@@ -61,7 +61,7 @@ struct Instance : public IObject {
   Class* klass;
   std::unordered_map<std::string, Value> fields;
   explicit Instance(Class* klass_);
-  
+
   constexpr ObjType Type() const noexcept final { return objtype; }
   constexpr size_t Size() const noexcept final { return sizeof(*this); }
 
@@ -134,6 +134,28 @@ struct Dict : public IObject {
   std::string Desc() const override;  // “<dict{2}>”
 };
 
+struct Function : public IObject {
+  static constexpr inline ObjType objtype = ObjType::Function;
+
+  std::shared_ptr<Chunk> chunk;
+  uint32_t entry{};
+  uint32_t nlocals{};
+  uint8_t nrequired{};
+  uint8_t ndefault{};
+  bool has_vararg{};
+  bool has_kwarg{};
+
+  explicit Function(std::shared_ptr<Chunk> c);
+
+  constexpr ObjType Type() const noexcept final { return objtype; }
+  constexpr size_t Size() const noexcept final { return sizeof(*this); }
+
+  void MarkRoots(GCVisitor& visitor) override;
+
+  std::string Str() const override;
+  std::string Desc() const override;
+};
+
 class NativeFunction : public IObject {
  public:
   static constexpr inline ObjType objtype = ObjType::Native;
@@ -164,12 +186,9 @@ class NativeFunction : public IObject {
 struct Closure : public IObject {
   static constexpr inline ObjType objtype = ObjType::Closure;
 
-  std::shared_ptr<Chunk> chunk;
-  uint32_t entry{};
-  uint32_t nparams{};
-  uint32_t nlocals{};
+  Function* function;
 
-  explicit Closure(std::shared_ptr<Chunk> c);
+  explicit Closure(Function* fn);
 
   constexpr ObjType Type() const noexcept final { return objtype; }
   constexpr size_t Size() const noexcept final { return sizeof(*this); }
