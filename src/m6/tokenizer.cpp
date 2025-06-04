@@ -48,9 +48,10 @@ static const std::unordered_map<char, tok::Token_t> SINGLE_CHAR_TOKEN = {
 // Sorted by descending length, so we can match the longest possible operator
 // first.
 static const std::vector<std::string> OPERATORS = {
-    ">>>=", ">>>", ">>=", ">>", "<<=", "<<", "+=", "-=", "*=", "/=", "%=", "&=",
-    "|=",   "^=",  "==",  "!=", "<=",  ">=", "||", "&&", "=",  "+",  "-",  "*",
-    "/",    "%",   "~",   "&",  "|",   "^",  "<",  ">",  ",",  "."};
+    ">>>=", ">>>", ">>=", ">>", "<<=", "**=", "**", "<<", "+=",
+    "-=",   "*=",  "/=",  "%=", "&=",  "|=",  "^=", "==", "!=",
+    "<=",   ">=",  "||",  "&&", "=",   "+",   "-",  "*",  "/",
+    "%",    "~",   "&",   "|",  "^",   "<",   ">",  ",",  "."};
 
 static const std::unordered_map<std::string, tok::Token_t>
     RESERVED_KEYWORD_TOKEN = {

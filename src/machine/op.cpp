@@ -45,6 +45,8 @@ std::string ToString(Op op) {
       return "/";
     case Op::Mod:
       return "%";
+    case Op::Pow:
+      return "**";
     case Op::BitAnd:
       return "&";
     case Op::BitOr:
@@ -81,6 +83,8 @@ std::string ToString(Op op) {
       return ">>=";
     case Op::ShiftUnsignedRightAssign:
       return ">>>=";
+    case Op::PowAssign:
+      return "**=";
     case Op::Assign:
       return "=";
     case Op::Equal:
@@ -112,6 +116,7 @@ Op CreateOp(std::string_view str) {
       {"*", Op::Mul},
       {"/", Op::Div},
       {"%", Op::Mod},
+      {"**", Op::Pow},
       {"&", Op::BitAnd},
       {"|", Op::BitOr},
       {"^", Op::BitXor},
@@ -130,6 +135,7 @@ Op CreateOp(std::string_view str) {
       {"<<=", Op::ShiftLeftAssign},
       {">>=", Op::ShiftRightAssign},
       {">>>=", Op::ShiftUnsignedRightAssign},
+      {"**=", Op::PowAssign},
       {"=", Op::Assign},
       {"==", Op::Equal},
       {"!=", Op::NotEqual},

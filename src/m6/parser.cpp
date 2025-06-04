@@ -271,8 +271,7 @@ bool Parser::ScanParameterList(
       // ------------------------------------------------------------
       //  1.  **kw-only
       // ------------------------------------------------------------
-      // if (tryConsume<tok::Operator>(Op::Pow)) {
-      if (false) {
+      if (tryConsume<tok::Operator>(Op::Pow)) {
         if (!kwArg.empty()) {
           AddError("duplicate **kwargs parameter", it_);
           return false;
@@ -313,8 +312,10 @@ bool Parser::ScanParameterList(
       //  3.  normal parameter  (might have default)
       // ------------------------------------------------------------
       auto* idTok = it_->GetIf<tok::ID>();
-      if (!idTok)
+      if (!idTok) {
         AddError("expected parameter name", it_);
+        return false;
+      }
       std::string paramName = std::string(idTok->id);
       SourceLocation paramLoc = it_->loc_;
       ++it_;
@@ -635,7 +636,7 @@ std::shared_ptr<ExprAST> Parser::parseUnary() {
     opLocs.push_back(loc);
   }
   auto sub_begin = it_;
-  auto node = parsePostfix();
+  auto node = parseExponentiation();
   if (!node)
     return nullptr;
   auto sub_end = it_;
@@ -646,6 +647,31 @@ std::shared_ptr<ExprAST> Parser::parseUnary() {
     sub_begin = opLocs[i];
   }
   return node;
+}
+
+std::shared_ptr<ExprAST> Parser::parseExponentiation() {
+  auto lhs_begin = it_;
+  auto lhs = parsePostfix();
+  if (!lhs)
+    return nullptr;
+  auto lhs_end = it_;
+
+  while (true) {
+    auto op_it = it_;
+    auto op = tryConsumeAny({Op::Pow});
+    if (!op.has_value())
+      break;
+    auto rhs_begin = it_;
+    auto rhs = parsePostfix();
+    if (!rhs)
+      return lhs;
+    auto rhs_end = it_;
+
+    BinaryExpr be(op.value(), lhs, rhs, op_it->loc_,
+                  LocRange(lhs_begin, lhs_end), LocRange(rhs_begin, rhs_end));
+    lhs = std::make_shared<ExprAST>(std::move(be));
+  }
+  return lhs;
 }
 
 std::shared_ptr<ExprAST> Parser::parsePostfix() {

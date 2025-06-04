@@ -40,6 +40,7 @@ enum class Op : int {
   Mul,  // "*"
   Div,  // "/"
   Mod,  // "%"
+  Pow,  // "**"
 
   // Bitwise Operators
   BitAnd,              // "&"
@@ -62,6 +63,7 @@ enum class Op : int {
   ShiftLeftAssign,           // "<<="
   ShiftRightAssign,          // ">>="
   ShiftUnsignedRightAssign,  // ">>>="
+  PowAssign,		     // "**="
 
   // Assignment Operator
   Assign,  // "="

@@ -91,9 +91,9 @@ class CompilerTest : public ::testing::Test {
 };
 
 TEST_F(CompilerTest, ConstantArithmetic) {
-  auto res = Run("print(1 + 2);");
+  auto res = Run(R"( print([1+2, 2**3, 1-3], end=""); )");
   ASSERT_TRUE(res.stderr.empty()) << res.stderr;
-  EXPECT_EQ(res.stdout, "3\n") << "\nDisassembly:\n" << res.disasm;
+  EXPECT_EQ(res.stdout, "[3,8,-2]") << "\nDisassembly:\n" << res.disasm;
 }
 
 TEST_F(CompilerTest, GlobalVariable) {

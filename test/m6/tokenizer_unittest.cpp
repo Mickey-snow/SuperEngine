@@ -94,7 +94,7 @@ TEST_F(TokenizerTest, Operators) {
   const std::string input =
       ". , + - * / % & | ^ << >> ~ += -= *= /= %= &= |= ^= <<= >>= = == != "
       "<= "
-      "< >= > && || >>> >>>=";
+      "< >= > && || >>> >>>= ** **=";
   tokenizer.Parse(SourceBuffer::Create(input, "<test>"));
 
   EXPECT_EQ(
@@ -109,7 +109,8 @@ TEST_F(TokenizerTest, Operators) {
       "<Operator(>>=), 56,59> <Operator(=), 60,61> <Operator(==), 62,64> "
       "<Operator(!=), 65,67> <Operator(<=), 68,70> <Operator(<), 71,72> "
       "<Operator(>=), 73,75> <Operator(>), 76,77> <Operator(&&), 78,80> "
-      "<Operator(||), 81,83> <Operator(>>>), 84,87> <Operator(>>>=), 88,92>");
+      "<Operator(||), 81,83> <Operator(>>>), 84,87> <Operator(>>>=), 88,92> "
+      "<Operator(**), 93,95> <Operator(**=), 96,99>");
 }
 
 TEST_F(TokenizerTest, StrLiteral) {

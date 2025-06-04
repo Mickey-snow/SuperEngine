@@ -137,6 +137,16 @@ Value handleIntIntOp(Op op, int lhs, int rhs) {
       return (rhs == 0) ? Value(0) : Value(lhs / rhs);
     case Op::Mod:
       return Value(lhs % rhs);
+    case Op::Pow: {
+      int result = 1;
+      while (rhs) {
+        if (rhs & 1)
+          result *= lhs;
+        lhs *= lhs;
+        rhs >>= 1;
+      }
+      return Value(result);
+    }
 
     // Bitwise
     case Op::BitAnd:

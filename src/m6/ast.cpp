@@ -84,6 +84,8 @@ Op AugStmt::GetRmAssignmentOp() const {
       return Op::ShiftRight;
     case Op::ShiftUnsignedRight:
       return Op::ShiftUnsignedRight;
+    case Op::PowAssign:
+      return Op::Pow;
     default:
       return op;
   }
