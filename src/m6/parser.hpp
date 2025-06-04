@@ -144,6 +144,16 @@ class Parser {
   std::shared_ptr<ExprAST> parsePostfix();
   std::shared_ptr<ExprAST> parsePrimary();
 
+  bool ScanParameterList(
+      std::vector<std::string>& required,
+      std::vector<SourceLocation>& requiredLocs,
+      std::vector<std::pair<std::string, std::shared_ptr<ExprAST>>>& defaulted,
+      std::vector<SourceLocation>& defaultedLocs,
+      std::string& varArg,
+      SourceLocation& varArgLoc,
+      std::string& kwArg,
+      SourceLocation& kwArgLoc);
+
  private:
   //------------------------------------------------------------------
   //  Data members

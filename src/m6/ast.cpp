@@ -193,8 +193,14 @@ struct Dumper {
     }
     if constexpr (std::same_as<T, FuncDecl>) {
       for (size_t i = 0; i < x.default_params.size(); ++i) {
-        oss << x.default_params[i].second->DumpAST(
-            "default " + x.default_params[i].first, childPrefix, false);
+        const auto& [default_name, default_expr_ast] = x.default_params[i];
+
+        if (!default_expr_ast)
+          oss << childPrefix << "├─"
+              << "default " + default_name << '\n';
+        else
+          oss << x.default_params[i].second->DumpAST("default " + default_name,
+                                                     childPrefix, false);
       }
       oss << x.body->DumpAST("body", childPrefix, true);
     }

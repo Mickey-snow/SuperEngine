@@ -38,6 +38,17 @@ using namespace m6;
 
 namespace m6test {
 
+template <typename T>
+inline static auto format_errors(T&& errors) {
+  return Join("; ", std::views::all(std::forward<T>(errors)) |
+                        std::views::transform([](const Error& e) {
+                          std::string result = e.msg;
+                          if (e.loc)
+                            result += static_cast<std::string>(*e.loc);
+                          return result;
+                        }));
+}
+
 // helpers
 namespace {
 template <typename... Ts>
@@ -66,14 +77,7 @@ class ExprParserTest : public ::testing::Test {
   static std::shared_ptr<ExprAST> parseExpr(std::span<Token> tokens) {
     Parser parser(tokens);
     std::shared_ptr<ExprAST> result = parser.ParseExpression();
-    EXPECT_TRUE(parser.Ok())
-        << Join("; ", std::views::all(parser.GetErrors()) |
-                          std::views::transform([](const Error& e) {
-                            std::string result = e.msg;
-                            if (e.loc)
-                              result += static_cast<std::string>(*e.loc);
-                            return result;
-                          }));
+    EXPECT_TRUE(parser.Ok()) << format_errors(parser.GetErrors());
     EXPECT_NE(result, nullptr);
     return result;
   }
@@ -613,7 +617,7 @@ class StmtParserTest : public ::testing::Test {
   static std::shared_ptr<AST> parseStmt(std::span<Token> tokens) {
     Parser parser(tokens);
     std::shared_ptr<AST> result = parser.ParseStatement();
-    EXPECT_TRUE(parser.Ok());
+    EXPECT_TRUE(parser.Ok()) << format_errors(parser.GetErrors());
     EXPECT_NE(result, nullptr);
     return result;
   }
@@ -780,6 +784,42 @@ fn main()
          └─AugAssign +=
             ├─ID a
             └─ID b
+)");
+
+  // TODO: add Op::Pow "**"
+  // expectStmtAST(TokenArray("fn bar(a, b=2, *args, **kwargs){}"), R"()");
+
+  expectStmtAST(TokenArray(R"( fn foo(a, b="def", c=1, d=[1,2]) {} )"), R"(
+fn foo(a,b,c,d)
+   ├─default b
+   │  └─StrLiteral def
+   ├─default c
+   │  └─IntLiteral 1
+   ├─default d
+   │  └─ListLiteral
+   │     ├─IntLiteral 1
+   │     └─IntLiteral 2
+   └─body
+      └─Compound
+)");
+
+  expectStmtAST(TokenArray("fn kw_only(a, *, b, c=3) {}"), R"(
+fn kw_only(a,b,c)
+   ├─default b
+   ├─default c
+   │  └─IntLiteral 3
+   └─body
+      └─Compound
+)");
+
+  expectStmtAST(TokenArray("fn kw_only(a, *args, b=1, c=3) {}"), R"(
+fn kw_only(a,b,c,*args)
+   ├─default b
+   │  └─IntLiteral 1
+   ├─default c
+   │  └─IntLiteral 3
+   └─body
+      └─Compound
 )");
 }
 
