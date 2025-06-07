@@ -31,6 +31,14 @@
 
 namespace serilang {
 
+std::string Code::Str() const { return "<code>"; }
+std::string Code::Desc() const { return "<code>"; }
+
+void Code::MarkRoots(GCVisitor& visitor) {
+  for (auto it : const_pool)
+    visitor.MarkSub(it);
+}
+
 // -----------------------------------------------------------------------
 void Class::MarkRoots(GCVisitor& visitor) {
   for (auto& [k, it] : methods)
@@ -161,18 +169,13 @@ void Dict::MarkRoots(GCVisitor& visitor) {
 }
 
 // -----------------------------------------------------------------------
-Function::Function(std::shared_ptr<Chunk> c) : chunk(std::move(c)) {}
+Function::Function(Code* c) : chunk(c) {}
 
 std::string Function::Str() const { return "function"; }
 
 std::string Function::Desc() const { return "<function>"; }
 
-void Function::MarkRoots(GCVisitor& visitor) {
-  if (!chunk)
-    return;
-  for (auto& it : chunk->const_pool)
-    visitor.MarkSub(it);
-}
+void Function::MarkRoots(GCVisitor& visitor) { visitor.MarkSub(chunk); }
 
 // -----------------------------------------------------------------------
 Closure::Closure(Function* fn) : function(fn) {}

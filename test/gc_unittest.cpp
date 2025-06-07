@@ -25,7 +25,6 @@
 #include <gtest/gtest.h>
 
 #include "vm/call_frame.hpp"
-#include "vm/chunk.hpp"
 #include "vm/gc.hpp"
 #include "vm/object.hpp"
 #include "vm/vm.hpp"
@@ -162,7 +161,7 @@ TEST_F(GCTest, MarkGlobalsRoot) {
 TEST_F(GCTest, MarkFibresAndClosures) {
   DummyObject::aliveCount() = 0;
   // Create a one-shot closure and fiber
-  auto chunk = std::make_shared<Chunk>();
+  auto* chunk = gc.Allocate<Code>();
   auto* fn = Alloc<Function>(chunk);
   auto* cl = Alloc<Closure>(fn);
   auto* f = Alloc<Fiber>();
@@ -223,7 +222,7 @@ TEST_F(GCTest, MixedValueGraph) {
   EXPECT_EQ(DummyObject::aliveCount(), 3);
 
   // Closure holding d3 in its constant pool
-  auto chunk = std::make_shared<Chunk>();
+  auto* chunk = gc.Allocate<Code>();
   chunk->const_pool.emplace_back(d3);
   auto* fn = Alloc<Function>(chunk);
   auto* cl = Alloc<Closure>(fn);

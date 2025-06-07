@@ -26,9 +26,9 @@
 
 #include "m6/ast.hpp"
 #include "m6/exception.hpp"
-#include "vm/chunk.hpp"
 #include "vm/gc.hpp"
 #include "vm/instruction.hpp"
+#include "vm/object.hpp"
 #include "vm/value.hpp"
 
 #include <concepts>
@@ -49,22 +49,21 @@ class CodeGenerator {
   std::span<const Error> GetErrors() const;
   void ClearErrors();
 
-  std::shared_ptr<serilang::Chunk> GetChunk() const;
-  void SetChunk(std::shared_ptr<serilang::Chunk> c);
+  serilang::Code* GetChunk() const;
+  void SetChunk(serilang::Code* c);
 
   void Gen(std::shared_ptr<AST> ast);
 
  private:
   // -- Type aliases ----------------------------------------------------
   using Value = serilang::Value;
-  using ChunkPtr = std::shared_ptr<serilang::Chunk>;
   using Scope = std::unordered_map<std::string, std::size_t>;
 
   // -- Data members ---------------------------------------------------
   serilang::GarbageCollector& gc_;
   bool repl_mode_;
 
-  ChunkPtr chunk_;
+  serilang::Code* chunk_;
   std::vector<Scope> locals_;
   std::size_t local_depth_;
   std::unordered_map<std::string, int32_t> patch_sites_;

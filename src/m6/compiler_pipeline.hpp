@@ -70,9 +70,9 @@ class CompilerPipeline {
     }
   }
 
-  std::shared_ptr<serilang::Chunk> Get() {
+  serilang::Code* Get() {
     auto result = gen_.GetChunk();
-    gen_.SetChunk(std::make_shared<serilang::Chunk>());
+    gen_.SetChunk(gc_.Allocate<serilang::Code>());
     return result;
   }
 

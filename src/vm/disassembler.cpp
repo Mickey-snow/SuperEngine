@@ -34,7 +34,7 @@ namespace serilang {
 
 Disassembler::Disassembler(size_t indent) : indent_size_(indent) {}
 
-void Disassembler::PrintIns(Chunk& chunk,
+void Disassembler::PrintIns(Code& chunk,
                             size_t& ip,
                             const std::string& indent) {
   using std::left;
@@ -297,7 +297,7 @@ void Disassembler::PrintIns(Chunk& chunk,
   out_ << '\n';
 }
 
-void Disassembler::DumpImpl(Chunk& chunk, const std::string& indent) {
+void Disassembler::DumpImpl(Code& chunk, const std::string& indent) {
   if (seen_.contains(&chunk))
     return;
   seen_.insert(&chunk);
@@ -311,8 +311,7 @@ void Disassembler::DumpImpl(Chunk& chunk, const std::string& indent) {
     const std::string sub_indent = indent + std::string(indent_size_, ' ');
     Value& v = chunk.const_pool[idx];
     if (auto clos = v.Get_if<Closure>(); clos) {
-      std::shared_ptr<Chunk> subChunk =
-          clos->function ? clos->function->chunk : nullptr;
+      Code* subChunk = clos->function ? clos->function->chunk : nullptr;
       if (!subChunk)
         continue;
 
@@ -323,7 +322,7 @@ void Disassembler::DumpImpl(Chunk& chunk, const std::string& indent) {
   }
 }
 
-std::string Disassembler::Dump(Chunk& chunk) {
+std::string Disassembler::Dump(Code& chunk) {
   DumpImpl(chunk, "");
   std::string result = out_.str();
 

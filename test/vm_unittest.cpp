@@ -33,25 +33,28 @@ namespace serilang_test {
 
 using namespace serilang;
 
-// Small helper: wrapper to create Value array
-template <typename... Ts>
-  requires(std::constructible_from<Value, Ts> && ...)
-inline static std::vector<Value> value_vector(Ts&&... param) {
-  return std::vector<Value>{Value(std::forward<Ts>(param))...};
-}
+class VMTest : public ::testing::Test {
+ protected:
+  VM vm = VM::Create();
+  GarbageCollector& gc = vm.gc_;
 
-inline static void append_ins(std::shared_ptr<Chunk> chunk,
-                              std::vector<Instruction> ins) {
-  for (const auto& it : ins)
-    chunk->Append(it);
-}
+  // Small helper: wrapper to create Value array
+  template <typename... Ts>
+    requires(std::constructible_from<Value, Ts> && ...)
+  inline std::vector<Value> value_vector(Ts&&... param) {
+    return std::vector<Value>{Value(std::forward<Ts>(param))...};
+  }
 
-static Value run_and_get(const std::shared_ptr<Chunk>& chunk) {
-  return VM::Create().Evaluate(chunk);
-}
+  inline void append_ins(Code* chunk, std::vector<Instruction> ins) {
+    for (const auto& it : ins)
+      chunk->Append(it);
+  }
 
-TEST(VMTest, BinaryAdd) {
-  auto chunk = std::make_shared<Chunk>();
+  Value run_and_get(Code* chunk) { return vm.Evaluate(chunk); }
+};
+
+TEST_F(VMTest, BinaryAdd) {
+  auto* chunk = gc.Allocate<Code>();
   chunk->const_pool = value_vector(1.0, 2.0);
   append_ins(chunk, {Push{0}, Push{1}, BinaryOp{Op::Add}, Return{}});
 
@@ -59,8 +62,8 @@ TEST(VMTest, BinaryAdd) {
   EXPECT_EQ(out, 3.0);
 }
 
-TEST(VMTest, UnaryNeg) {
-  auto chunk = std::make_shared<Chunk>();
+TEST_F(VMTest, UnaryNeg) {
+  auto* chunk = gc.Allocate<Code>();
   chunk->const_pool = value_vector(5.0);
   append_ins(chunk, {Push{0}, UnaryOp{Op::Sub}, Return{}});
 
@@ -68,9 +71,9 @@ TEST(VMTest, UnaryNeg) {
   EXPECT_EQ(out, -5.0);
 }
 
-TEST(VMTest, DupAndSwap) {
+TEST_F(VMTest, DupAndSwap) {
   // Program:   (1 2) swap ⇒ (2 1) dup ⇒ (2 1 1) add,add ⇒ 2+1+1 = 4
-  auto chunk = std::make_shared<Chunk>();
+  auto* chunk = gc.Allocate<Code>();
   chunk->const_pool = value_vector(1.0, 2.0);
   append_ins(chunk, {Push{0},  // 1
                      Push{1},  // 2
@@ -82,8 +85,8 @@ TEST(VMTest, DupAndSwap) {
   EXPECT_EQ(out, 4.0);
 }
 
-TEST(VMTest, StoreLoadLocal) {
-  auto chunk = std::make_shared<Chunk>();
+TEST_F(VMTest, StoreLoadLocal) {
+  auto* chunk = gc.Allocate<Code>();
   chunk->const_pool = value_vector(42.0);
 
   // bootstrap main‑closure: we need one local slot
@@ -101,7 +104,7 @@ TEST(VMTest, StoreLoadLocal) {
   EXPECT_EQ(out, 42.0);
 }
 
-TEST(VMTest, FunctionCall) {
+TEST_F(VMTest, FunctionCall) {
   // Layout:
   //   0 : MakeClosure(entry=13)   ; push fn
   //   9 : Call0
@@ -110,7 +113,7 @@ TEST(VMTest, FunctionCall) {
   //  13 : Push 7
   //  18 : Return
   GarbageCollector gc;
-  auto chunk = std::make_shared<Chunk>();
+  auto* chunk = gc.Allocate<Code>();
   auto fn = gc.Allocate<Function>(chunk);
   fn->entry = 13;
   fn->nlocals = 0;
@@ -127,8 +130,8 @@ TEST(VMTest, FunctionCall) {
 }
 
 //      if (1 < 2) push 222 else push 111
-TEST(VMTest, ConditionalJump) {
-  auto chunk = std::make_shared<Chunk>();
+TEST_F(VMTest, ConditionalJump) {
+  auto* chunk = gc.Allocate<Code>();
   chunk->const_pool = value_vector(1.0, 2.0, 111.0, 222.0);
 
   //  0 1 < 2 ?
@@ -144,8 +147,8 @@ TEST(VMTest, ConditionalJump) {
   EXPECT_EQ(out, 222.0);
 }
 
-TEST(VMTest, ReturnNil) {
-  auto chunk = std::make_shared<Chunk>();
+TEST_F(VMTest, ReturnNil) {
+  auto* chunk = gc.Allocate<Code>();
   chunk->const_pool = value_vector(std::monostate(), "2.unused");
 
   // return nil;
@@ -155,10 +158,8 @@ TEST(VMTest, ReturnNil) {
   EXPECT_EQ(out, std::monostate());
 }
 
-TEST(VMTest, CallNative) {
-  GarbageCollector gc;
-
-  auto chunk = std::make_shared<Chunk>();
+TEST_F(VMTest, CallNative) {
+  auto* chunk = gc.Allocate<Code>();
 
   int call_count = 0;
   auto fn = gc.Allocate<NativeFunction>(

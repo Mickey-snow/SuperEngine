@@ -27,7 +27,6 @@
 #include "machine/op.hpp"
 #include "utilities/string_utilities.hpp"
 #include "vm/call_frame.hpp"
-#include "vm/chunk.hpp"
 #include "vm/gc.hpp"
 #include "vm/instruction.hpp"
 #include "vm/object.hpp"
@@ -109,12 +108,12 @@ VM VM::Create(std::ostream& stdout, std::istream& stdin, std::ostream& stderr) {
 // -----------------------------------------------------------------------
 // class VM
 
-Value VM::Evaluate(std::shared_ptr<Chunk> chunk) {
+Value VM::Evaluate(Code* chunk) {
   AddFiber(chunk);
   return Run();
 }
 
-VM& VM::AddFiber(std::shared_ptr<Chunk> chunk) {
+VM& VM::AddFiber(Code* chunk) {
   auto fn = gc_.Allocate<Function>(chunk);
   fn->entry = 0;
   fn->nlocals = 0;

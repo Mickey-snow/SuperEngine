@@ -39,7 +39,7 @@ namespace sr = serilang;
 CodeGenerator::CodeGenerator(sr::GarbageCollector& gc, bool repl)
     : gc_(gc),
       repl_mode_(repl),
-      chunk_(std::make_shared<sr::Chunk>()),
+      chunk_(gc.Allocate<sr::Code>()),
       locals_(),
       local_depth_(0),
       patch_sites_(),
@@ -54,12 +54,9 @@ std::span<const Error> CodeGenerator::GetErrors() const { return errors_; }
 
 void CodeGenerator::ClearErrors() { errors_.clear(); }
 
-// Chunk accessors
-std::shared_ptr<sr::Chunk> CodeGenerator::GetChunk() const { return chunk_; }
-
-void CodeGenerator::SetChunk(std::shared_ptr<sr::Chunk> c) {
-  chunk_ = std::move(c);
-}
+// Code accessors
+sr::Code* CodeGenerator::GetChunk() const { return chunk_; }
+void CodeGenerator::SetChunk(sr::Code* c) { chunk_ = c; }
 
 // Entry point
 void CodeGenerator::Gen(std::shared_ptr<AST> ast) { emit_stmt(std::move(ast)); }

@@ -50,13 +50,13 @@ class VM {
   explicit VM() = default;
 
  public:
-  VM& AddFiber(std::shared_ptr<Chunk> entry);
+  VM& AddFiber(Code* entry);
 
   // Run until all fibers die or error; returns last fiber's result
   Value Run();
 
   // REPL support: execute a single chunk, preserving VM state (globals, etc.)
-  Value Evaluate(std::shared_ptr<Chunk> chunk);
+  Value Evaluate(Code* chunk);
 
   // Trigger garbage collection: mark-root and sweep unreachable objects
   void CollectGarbage();

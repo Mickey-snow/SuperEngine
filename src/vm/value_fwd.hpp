@@ -29,6 +29,7 @@
 
 namespace serilang {
 
+struct Code;
 struct Class;
 struct Instance;
 struct Upvalue;

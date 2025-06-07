@@ -25,7 +25,7 @@
 #pragma once
 
 #include "vm/call_frame.hpp"
-#include "vm/chunk.hpp"
+#include "vm/instruction.hpp"
 #include "vm/iobject.hpp"
 #include "vm/value.hpp"
 
@@ -37,6 +37,58 @@
 #include <vector>
 
 namespace serilang {
+
+struct Code final : public IObject {
+  static constexpr inline ObjType objtype = ObjType::Class;
+  constexpr ObjType Type() const noexcept final { return objtype; }
+  constexpr size_t Size() const noexcept final { return sizeof(*this); }
+  std::string Str() const override;
+  std::string Desc() const override;
+
+  std::vector<std::byte> code;
+  std::vector<Value> const_pool;
+
+  void MarkRoots(GCVisitor& visitor) final;
+
+  [[nodiscard]] inline std::byte operator[](const std::size_t idx) const {
+    return code[idx];
+  }
+
+  // helpers ------------------------------------------------------
+  // Encode *one* concrete instruction type and push its bytes.
+  template <typename T>
+    requires(std::constructible_from<Instruction, T> &&
+             std::is_trivially_copyable_v<T>)
+  void Append(T v) {
+    // opcode byte
+    code.emplace_back(std::bit_cast<std::byte>(GetOpcode<T>()));
+
+    // payload
+    if constexpr (sizeof(T) > 0) {
+      auto* p = reinterpret_cast<const std::byte*>(&v);
+      code.insert(code.end(), p, p + sizeof(T));
+    }
+  }
+
+  // Variant-aware overload – forwards to the typed version above.
+  inline void Append(Instruction ins) {
+    std::visit([this](auto&& op) { Append(std::move(op)); }, std::move(ins));
+  }
+
+  template <typename T>
+    requires std::is_trivially_copyable_v<T>
+  void Write(const std::size_t idx, T v) {
+    auto* p = reinterpret_cast<std::byte*>(&v);
+    std::copy(p, p + sizeof(T), code.begin() + idx);
+  }
+
+  template <typename T>
+  [[nodiscard]] inline T Read(std::size_t ip) const {
+    using ptr_t = std::add_pointer_t<std::add_const_t<T>>;
+    auto* p = reinterpret_cast<ptr_t>(code.data() + ip);
+    return *p;
+  }
+};
 
 struct Class : public IObject {
   static constexpr inline ObjType objtype = ObjType::Class;
@@ -137,15 +189,16 @@ struct Dict : public IObject {
 struct Function : public IObject {
   static constexpr inline ObjType objtype = ObjType::Function;
 
-  std::shared_ptr<Chunk> chunk;
+  Code* chunk;
   uint32_t entry{};
+
   uint32_t nlocals{};
   uint8_t nrequired{};
   uint8_t ndefault{};
   bool has_vararg{};
   bool has_kwarg{};
 
-  explicit Function(std::shared_ptr<Chunk> c);
+  explicit Function(Code* c);
 
   constexpr ObjType Type() const noexcept final { return objtype; }
   constexpr size_t Size() const noexcept final { return sizeof(*this); }

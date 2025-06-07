@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include "vm/chunk.hpp"
+#include "vm/value_fwd.hpp"
 
 #include <sstream>
 #include <string>
@@ -36,19 +36,19 @@ class Disassembler {
  public:
   Disassembler(size_t indent = 2);
 
-  // pretty–prints a Chunk’s byte-code
-  std::string Dump(Chunk& chunk);
+  // pretty–prints a Code’s byte-code
+  std::string Dump(Code& chunk);
 
  private:
   // print a single instruction in one row
-  void PrintIns(Chunk& chunk, size_t& ip, const std::string& indent);
+  void PrintIns(Code& chunk, size_t& ip, const std::string& indent);
   // recursively disassemble a chunk
-  void DumpImpl(Chunk& chunk, const std::string& indent);
+  void DumpImpl(Code& chunk, const std::string& indent);
 
   size_t indent_size_;
 
   std::ostringstream out_;
-  std::unordered_set<const Chunk*> seen_;
+  std::unordered_set<const Code*> seen_;
 };
 
 }  // namespace serilang
