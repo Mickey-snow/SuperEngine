@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------
 //
-// This file is part of RLVM
+// This file is part of RLVM, a RealLive virtual machine clone.
 //
 // -----------------------------------------------------------------------
 //
@@ -19,41 +19,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
+//
 // -----------------------------------------------------------------------
 
 #pragma once
 
-#include "libsiglus/types.hpp"
-#include "libsiglus/value.hpp"
-
-#include <variant>
-#include <vector>
-
-namespace libsiglus {
-
-struct ArgumentList {
-  using node_t = std::variant<Type, ArgumentList>;
-  std::vector<node_t> args;
-
-  inline auto size() const { return args.size(); }
-  std::string ToDebugString() const;
-  std::vector<std::string> ToStringVec() const;
+template <typename... Ts>
+struct overload : Ts... {
+  using Ts::operator()...;
 };
-
-struct Signature {
-  int overload_id;
-  ArgumentList arglist;
-  std::vector<int> argtags;
-  Type rettype;
-
-  std::string ToDebugString() const;
-};
-
-struct Invoke {
-  int overload_id;
-  std::vector<Value> arg;
-  std::vector<std::pair<int, Value>> named_arg;
-  Type return_type;
-};
-
-}  // namespace libsiglus

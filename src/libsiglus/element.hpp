@@ -23,17 +23,23 @@
 
 #pragma once
 
+#include "libsiglus/argument_list.hpp"
 #include "libsiglus/element_code.hpp"
 #include "libsiglus/value.hpp"
 #include "utilities/flat_map.hpp"
 
 #include <functional>
+#include <memory>
 #include <span>
 #include <utility>
 #include <variant>
 #include <vector>
+#include "boost/container/flat_map.hpp"
 
 namespace libsiglus::elm {
+
+struct Root;
+struct Node;
 
 struct Usrcmd {
   int scene, entry;
@@ -107,8 +113,19 @@ struct Val {
   std::string ToDebugString() const;
 };
 
+struct Function {
+  std::string_view name;
+  std::vector<Type> arg_t;
+  Type return_t;
+  std::string ToDebugString() const;
+};
+struct Callable {
+  boost::container::flat_map<int, Function> overloads;
+  std::string ToDebugString() const;
+};
+
 struct Node {
-  using var_t = std::variant<Member, Call, Subscript, Val>;
+  using var_t = std::variant<Member, Call, Subscript, Val, Callable>;
   var_t var;
   Type type;
 

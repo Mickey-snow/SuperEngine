@@ -28,6 +28,7 @@
 
 #include <format>
 #include <numeric>
+#include <sstream>
 
 namespace libsiglus::elm {
 
@@ -49,6 +50,22 @@ std::string Subscript::ToDebugString() const {
   return '[' + (idx.has_value() ? ToString(*idx) : std::string()) + ']';
 }
 std::string Val::ToDebugString() const { return ".<" + ToString(value) + '>'; }
+
+std::string Function::ToDebugString() const {
+  return std::format(
+      "{}({})->{}", name,
+      Join(",", std::views::all(arg_t) |
+                    std::views::transform([](Type t) { return ToString(t); })),
+      ToString(return_t));
+}
+std::string Callable::ToDebugString() const {
+  std::ostringstream repr;
+  repr << ".<callable ";
+  for (const auto& it : overloads)
+    repr << '[' << it.first << ']' << it.second.ToDebugString() << "  ";
+  repr << '>';
+  return repr.str();
+}
 
 // -----------------------------------------------------------------------
 // AccessChain

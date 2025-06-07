@@ -129,7 +129,7 @@ struct key_holder {
 } id{};
 
 template <typename T, typename... Args>
-flat_map<T> make_flatmap(Args&&... args) {
+constexpr flat_map<T> make_flatmap(Args&&... args) {
   static_assert(sizeof...(Args) > 0,
                 "make_flatmap<T>(...) requires at least one argument");
 

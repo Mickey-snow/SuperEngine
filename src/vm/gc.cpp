@@ -25,6 +25,7 @@
 #include "vm/gc.hpp"
 
 #include "log/domain_logger.hpp"
+#include "utilities/overload.hpp"
 #include "vm/iobject.hpp"
 #include "vm/value.hpp"
 
@@ -55,10 +56,6 @@ GarbageCollector::~GarbageCollector() {
 
 size_t GarbageCollector::AllocatedBytes() const { return allocated_bytes_; }
 
-template <typename... Ts>
-struct overload : Ts... {
-  using Ts::operator()...;
-};
 Value GarbageCollector::TrackValue(TempValue&& t) {
   return std::visit(overload{[&](std::unique_ptr<IObject> t) {
                                IObject* ptr = t.release();

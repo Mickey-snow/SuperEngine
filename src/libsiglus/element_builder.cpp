@@ -58,6 +58,8 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
   switch (type) {
     case Type::IntList: {
       static const auto mp =
+	// "[0]->Get(), [1]->Set(int)"
+	// make_callable(fn("Get")[0]()->Type::None, fn("Set")[1]()->Type::Int)
           make_flatmap<Builder>(id[-1] | b_index_array(Type::Int),
                                 id[3] | b(Type::IntList, Member("b1")),
                                 id[4] | b(Type::IntList, Member("b2")),
