@@ -95,26 +95,22 @@ TEST_F(VMTest, StoreLoadLocal) {
 
   // Trick: tell the VM that “main” closure has 1 local
   VM vm = VM::Create();
-  vm.AddFiber(chunk);
-  vm.main_fiber_->stack.resize(1);
-  vm.Run();
-
-  Value out = vm.main_fiber_->last;
+  Value out = vm.Evaluate(chunk);
   EXPECT_EQ(out, 42.0);
 }
 
 TEST_F(VMTest, FunctionCall) {
   // Layout:
-  //   0 : MakeClosure(entry=13)   ; push fn
-  //   9 : Call0
-  //  12 : Return
-  //
-  //  13 : Push 7
-  //  18 : Return
+  //  0  PUSH                 1  ; <code>
+  //  5  MAKE_FUNCION          entry=13  nargs=0
+  // 22  CALL                  nargs=0  nkwargs=0
+  // 31  RETURN
+  // 33  PUSH                 0  ; <double: 7.000000>
+  // 38  RETURN
   GarbageCollector gc;
   auto* chunk = gc.Allocate<Code>();
   chunk->const_pool = value_vector(7.0, Value(chunk));
-  append_ins(chunk, {Push(1), MakeFunction{.entry = 13}, Call{0, 0}, Return{},
+  append_ins(chunk, {Push(1), MakeFunction{.entry = 33}, Call{0, 0}, Return{},
                      Push{0}, Return{}});
 
   Value out = run_and_get(chunk);

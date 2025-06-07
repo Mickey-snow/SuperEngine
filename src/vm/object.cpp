@@ -240,43 +240,8 @@ void Function::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
   }
 
   // (fn, pos_arg1, ..., [var_arg], [kw_arg])
-  f.frames.emplace_back(this, /* entry= */ 0, base);
+  f.frames.emplace_back(this, entry, base);
 }
-
-// -----------------------------------------------------------------------
-//   if (args.size() < function->nrequired)
-//     throw std::runtime_error(Desc() + ": missing arguments");
-
-//   size_t arg_i = 0;
-//   for (uint8_t i = 0; i < function->nrequired; ++i)
-//     f.stack.emplace_back(std::move(args[arg_i++]));
-
-//   for (uint8_t i = 0; i < function->ndefault; ++i) {
-//     if (arg_i < args.size())
-//       f.stack.emplace_back(std::move(args[arg_i++]));
-//     else
-//       f.stack.emplace_back(nil);  // will be filled in prologue
-//   }
-
-//   if (function->has_vararg) {
-//     std::vector<Value> rest;
-//     while (arg_i < args.size())
-//       rest.emplace_back(std::move(args[arg_i++]));
-//     f.stack.emplace_back(vm.gc_.Allocate<List>(std::move(rest)));
-//   } else if (arg_i < args.size()) {
-//     throw std::runtime_error(Desc() + ": too many arguments");
-//   }
-
-//   if (function->has_kwarg) {
-//     f.stack.emplace_back(vm.gc_.Allocate<Dict>(std::move(kwargs)));
-//   } else if (!kwargs.empty()) {
-//     throw std::runtime_error(Desc() + ": unexpected keyword argument");
-//   }
-
-//   f.frames.push_back({this, function->entry, base});
-// }
-
-// void Closure::MarkRoots(GCVisitor& visitor) { visitor.MarkSub(function); }
 
 // -----------------------------------------------------------------------
 NativeFunction::NativeFunction(std::string name, function_t fn)

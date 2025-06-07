@@ -132,7 +132,7 @@ void CodeGenerator::emit_expr_node(const StrLiteral& n) {
 void CodeGenerator::emit_expr_node(const ListLiteral& n) {
   for (const auto& it : n.elements)
     emit_expr(it);
-  emit(sr::MakeList{static_cast<uint8_t>(n.elements.size())});
+  emit(sr::MakeList{static_cast<uint32_t>(n.elements.size())});
 }
 
 void CodeGenerator::emit_expr_node(const DictLiteral& n) {
@@ -140,7 +140,7 @@ void CodeGenerator::emit_expr_node(const DictLiteral& n) {
     emit_expr(key);
     emit_expr(val);
   }
-  emit(sr::MakeDict{static_cast<uint8_t>(n.elements.size())});
+  emit(sr::MakeDict{static_cast<uint32_t>(n.elements.size())});
 }
 
 void CodeGenerator::emit_expr_node(const Identifier& n) {
@@ -173,8 +173,8 @@ void CodeGenerator::emit_expr_node(const InvokeExpr& call) {
     emit_const(std::string(k));
     emit_expr(arg);
   }
-  emit(sr::Call{static_cast<uint8_t>(call.args.size()),
-                static_cast<uint8_t>(call.kwargs.size())});
+  emit(sr::Call{static_cast<uint32_t>(call.args.size()),
+                static_cast<uint32_t>(call.kwargs.size())});
 }
 
 void CodeGenerator::emit_expr_node(const SubscriptExpr& s) {

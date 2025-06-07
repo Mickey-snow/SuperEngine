@@ -97,16 +97,16 @@ struct MakeFunction {
   bool has_kwarg = false;
 };  // (code, pos_def1, ...) -> (fn)
 struct Call {
-  uint8_t argcnt;
-  uint8_t kwargcnt;
+  uint32_t argcnt;
+  uint32_t kwargcnt;
 };  // (fn,arg*,kwargs*) -> (ret)
 
 // ––– 6. Object / container ops ––––––––––––––––––––––––––––––––––––
 struct MakeList {
-  uint8_t nelms;
+  uint32_t nelms;
 };  // (elm,...) -> (list)
 struct MakeDict {
-  uint8_t nelms;
+  uint32_t nelms;
 };  // (key,val,...) -> (dict)
 struct MakeClass {
   uint32_t name_index;
