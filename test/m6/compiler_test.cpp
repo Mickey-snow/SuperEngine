@@ -47,6 +47,18 @@ struct ExecutionResult {
   std::string stdout;    ///< text produced on std::cout
   std::string stderr;    ///< text produced on std::cerr
   std::string disasm;    ///< human readable disassembly
+
+  bool operator==(std::string_view rhs) const {
+    return stderr.empty() && stdout == rhs;
+  }
+
+  friend std::ostream& operator<<(std::ostream& os,
+                                  const ExecutionResult& res) {
+    if (!res.stderr.empty())
+      os << res.stderr;
+    os << "\nDisassembly:\n" << res.disasm;
+    return os;
+  }
 };
 
 class CompilerTest : public ::testing::Test {
@@ -196,6 +208,23 @@ print(return_plus_1(123));
 
     ASSERT_TRUE(res.stderr.empty()) << res.stderr;
     EXPECT_EQ(res.stdout, "124\n") << "\nDisassembly:\n" << res.disasm;
+  }
+
+  {
+    auto res = Run(R"(
+fn complex_func(a, b, c=3, *args, d=10, e=5, **kwargs){
+  print(a,b,c,d,e,args,kwargs);
+}
+complex_func(1, 2, 10, 20, 30, 40, 50, extra="foo");
+complex_func(10 ,20);
+)");
+
+    ASSERT_TRUE(res.stderr.empty()) << res.stderr << "\nDisassembly:\n"
+                                    << res.disasm;
+    EXPECT_EQ(res.stdout,
+              "1 2 10 20 30 [40,50] {extra:foo}\n10 20 3 10 5 [] {}\n")
+        << "\nDisassembly:\n"
+        << res.disasm;
   }
 }
 

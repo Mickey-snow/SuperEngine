@@ -321,13 +321,9 @@ void CodeGenerator::emit_stmt_node(const BlockStmt& s) {
 }
 
 void CodeGenerator::emit_function(const FuncDecl& fn) {
-  auto jFnEnd = code_size();
-  emit(sr::Jump{0});
-  auto entryIp = code_size();
-
   // compile body with a fresh compiler
   CodeGenerator nested(gc_, repl_mode_);
-  nested.SetChunk(chunk_);
+  nested.SetChunk(gc_.Allocate<serilang::Code>());
   nested.push_scope();
   nested.add_local(fn.name);
   for (auto& p : fn.params)
@@ -339,36 +335,18 @@ void CodeGenerator::emit_function(const FuncDecl& fn) {
   if (!fn.kw_arg.empty())
     nested.add_local(fn.kw_arg);
 
-  // initialize defaults
-  uint8_t slot = static_cast<uint8_t>(1 + fn.params.size());
-  for (auto const& [name, expr] : fn.default_params) {
-    nested.emit(sr::LoadLocal{slot});
-    nested.emit_const(sr::nil);
-    nested.emit(sr::BinaryOp{Op::Equal});
-    auto jskip = nested.code_size();
-    nested.emit(sr::JumpIfFalse{0});
-    if (expr)
-      nested.emit_expr(expr);
-    else
-      nested.emit_const(sr::nil);
-    nested.emit(sr::StoreLocal{slot});
-    nested.patch(jskip, nested.code_size());
-    ++slot;
-  }
   nested.emit_stmt(fn.body);
   nested.emit(sr::Return{});
-  patch(jFnEnd, code_size());
 
-  auto* fnobj = gc_.Allocate<sr::Function>(chunk_);
-  fnobj->entry = static_cast<uint32_t>(entryIp);
-  fnobj->nlocals = static_cast<uint32_t>(nested.locals_.front().size());
-  fnobj->nrequired = static_cast<uint8_t>(fn.params.size());
-  fnobj->ndefault = static_cast<uint8_t>(fn.default_params.size());
-  fnobj->has_vararg = !fn.var_arg.empty();
-  fnobj->has_kwarg = !fn.kw_arg.empty();
-  auto idx = constant(Value(fnobj));
+  emit_const(nested.GetChunk());
+  for (auto& p : fn.default_params)
+    emit_expr(p.second);
 
-  emit(sr::MakeClosure{idx, 0});
+  emit(sr::MakeFunction{.entry = 0,
+                        .nposarg = fn.params.size() + fn.default_params.size(),
+                        .nposdef = fn.default_params.size(),
+                        .has_vararg = !fn.var_arg.empty(),
+                        .has_kwarg = !fn.kw_arg.empty()});
 }
 
 void CodeGenerator::emit_stmt_node(const FuncDecl& fn) {

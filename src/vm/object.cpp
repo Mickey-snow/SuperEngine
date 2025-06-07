@@ -90,7 +90,7 @@ void Fiber::MarkRoots(GCVisitor& visitor) {
   for (auto& it : stack)
     visitor.MarkSub(it);
   for (auto& it : frames)
-    visitor.MarkSub(it.closure);
+    visitor.MarkSub(it.fn);
   for (auto& it : open_upvalues)
     if (it->location)
       visitor.MarkSub(*it->location);
@@ -169,7 +169,13 @@ void Dict::MarkRoots(GCVisitor& visitor) {
 }
 
 // -----------------------------------------------------------------------
-Function::Function(Code* c) : chunk(c) {}
+Function::Function(Code* c)
+    : chunk(c),
+      entry(0),
+      nposarg(0),
+      pos_defs(nullptr),
+      has_vararg(false),
+      has_kwarg(false) {}
 
 std::string Function::Str() const { return "function"; }
 
@@ -177,66 +183,100 @@ std::string Function::Desc() const { return "<function>"; }
 
 void Function::MarkRoots(GCVisitor& visitor) { visitor.MarkSub(chunk); }
 
-// -----------------------------------------------------------------------
-Closure::Closure(Function* fn) : function(fn) {}
+void Function::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
+  static const std::vector<Value> empty;
 
-std::string Closure::Str() const { return "closure"; }
+  std::vector<Value>& stack = f.stack;
+  std::vector<Value> const& positional_default =
+      pos_defs ? pos_defs->items : empty;
 
-std::string Closure::Desc() const { return "<closure>"; }
+  if (nargs < nposarg) {
+    const auto need = nposarg - nargs;
+    if (positional_default.size() < need)
+      vm.RuntimeError(Desc() + ": missing arguments");
+  } else if (nargs > nposarg && !has_vararg) {
+    vm.RuntimeError(Desc() + ": too many arguments");
+  }
 
-void Closure::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
-  const auto base = f.stack.size() - nargs - 2 * nkwargs - 1;
+  if (nkwargs && !has_kwarg)
+    vm.RuntimeError(Desc() + ": unexpected keyword argument");
+
+  // Set up call stack:
+  // (fn, pos_arg1, (nargs)..., kw1, kw_arg1, (nkwargs)...)
+  const auto base = stack.size() - nargs - 2 * nkwargs - 1;
 
   // pull arguments & kwargs off the stack
-  std::vector<Value> args;
-  args.reserve(nargs);
-  for (uint8_t i = 0; i < nargs; ++i)
-    args.emplace_back(std::move(f.stack[base + 1 + i]));
-
+  std::vector<Value> posargs(
+      std::make_move_iterator(stack.begin() + base + 1),
+      std::make_move_iterator(stack.begin() + base + 1 + nargs));
+  posargs.reserve(std::max<size_t>(nposarg, nargs));
   std::unordered_map<std::string, Value> kwargs;
   kwargs.reserve(nkwargs);
   size_t idx = base + 1 + nargs;
   for (uint8_t i = 0; i < nkwargs; ++i) {
-    std::string* k = f.stack[idx++].Get_if<std::string>();
-    Value v = std::move(f.stack[idx++]);
+    std::string* k = stack[idx++].Get_if<std::string>();
+    Value v = std::move(stack[idx++]);
     kwargs.emplace(std::move(*k), std::move(v));
   }
+  stack.resize(base + 1);  // leave the callee on stack
 
-  f.stack.resize(base + 1);  // leave the callee on stack
-
-  if (args.size() < function->nrequired)
-    throw std::runtime_error(Desc() + ": missing arguments");
-
-  size_t arg_i = 0;
-  for (uint8_t i = 0; i < function->nrequired; ++i)
-    f.stack.emplace_back(std::move(args[arg_i++]));
-
-  for (uint8_t i = 0; i < function->ndefault; ++i) {
-    if (arg_i < args.size())
-      f.stack.emplace_back(std::move(args[arg_i++]));
-    else
-      f.stack.emplace_back(nil);  // will be filled in prologue
+  if (posargs.size() < nposarg) {
+    std::copy(positional_default.end() - (nposarg - posargs.size()),
+              positional_default.end(), std::back_inserter(posargs));
   }
 
-  if (function->has_vararg) {
-    std::vector<Value> rest;
-    while (arg_i < args.size())
-      rest.emplace_back(std::move(args[arg_i++]));
-    f.stack.emplace_back(vm.gc_.Allocate<List>(std::move(rest)));
-  } else if (arg_i < args.size()) {
-    throw std::runtime_error(Desc() + ": too many arguments");
+  std::copy(std::make_move_iterator(posargs.begin()),
+            std::make_move_iterator(posargs.begin() + nposarg),
+            std::back_inserter(stack));
+
+  if (has_vararg) {
+    std::vector<Value> rest(std::make_move_iterator(posargs.begin() + nposarg),
+                            std::make_move_iterator(posargs.end()));
+    stack.emplace_back(vm.gc_.Allocate<List>(std::move(rest)));
   }
 
-  if (function->has_kwarg) {
-    f.stack.emplace_back(vm.gc_.Allocate<Dict>(std::move(kwargs)));
-  } else if (!kwargs.empty()) {
-    throw std::runtime_error(Desc() + ": unexpected keyword argument");
+  if (has_kwarg) {
+    stack.emplace_back(vm.gc_.Allocate<Dict>(std::move(kwargs)));
   }
 
-  f.frames.push_back({this, function->entry, base});
+  // (fn, pos_arg1, ..., [var_arg], [kw_arg])
+  f.frames.emplace_back(this, /* entry= */ 0, base);
 }
 
-void Closure::MarkRoots(GCVisitor& visitor) { visitor.MarkSub(function); }
+// -----------------------------------------------------------------------
+//   if (args.size() < function->nrequired)
+//     throw std::runtime_error(Desc() + ": missing arguments");
+
+//   size_t arg_i = 0;
+//   for (uint8_t i = 0; i < function->nrequired; ++i)
+//     f.stack.emplace_back(std::move(args[arg_i++]));
+
+//   for (uint8_t i = 0; i < function->ndefault; ++i) {
+//     if (arg_i < args.size())
+//       f.stack.emplace_back(std::move(args[arg_i++]));
+//     else
+//       f.stack.emplace_back(nil);  // will be filled in prologue
+//   }
+
+//   if (function->has_vararg) {
+//     std::vector<Value> rest;
+//     while (arg_i < args.size())
+//       rest.emplace_back(std::move(args[arg_i++]));
+//     f.stack.emplace_back(vm.gc_.Allocate<List>(std::move(rest)));
+//   } else if (arg_i < args.size()) {
+//     throw std::runtime_error(Desc() + ": too many arguments");
+//   }
+
+//   if (function->has_kwarg) {
+//     f.stack.emplace_back(vm.gc_.Allocate<Dict>(std::move(kwargs)));
+//   } else if (!kwargs.empty()) {
+//     throw std::runtime_error(Desc() + ": unexpected keyword argument");
+//   }
+
+//   f.frames.push_back({this, function->entry, base});
+// }
+
+// void Closure::MarkRoots(GCVisitor& visitor) { visitor.MarkSub(function); }
 
 // -----------------------------------------------------------------------
 NativeFunction::NativeFunction(std::string name, function_t fn)

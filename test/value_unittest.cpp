@@ -198,4 +198,12 @@ TEST_F(ValueTest, ClassAndInstance) {
   EXPECT_EQ(gc.TrackValue(inst.Member("mem")), 123);
 }
 
+TEST_F(ValueTest, Code) {
+  Code* code = Alloc<Code>();
+  Value v(code);
+
+  EXPECT_EQ(v.Type(), ObjType::Code);
+  EXPECT_EQ(v.Get<Code*>(), code);
+}
+
 }  // namespace value_test

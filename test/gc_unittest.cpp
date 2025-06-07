@@ -163,16 +163,15 @@ TEST_F(GCTest, MarkFibresAndClosures) {
   // Create a one-shot closure and fiber
   auto* chunk = gc.Allocate<Code>();
   auto* fn = Alloc<Function>(chunk);
-  auto* cl = Alloc<Closure>(fn);
   auto* f = Alloc<Fiber>();
-  f->frames.emplace_back(CallFrame(cl));
+  f->frames.emplace_back(CallFrame(fn));
 
   auto* d1 = Alloc<DummyObject>();
   auto* d2 = Alloc<DummyObject>();
   auto* d3 = Alloc<DummyObject>();
   f->stack.emplace_back(d1);
   f->last = Value(d2);
-  cl->function->chunk->const_pool.emplace_back(d3);
+  fn->chunk->const_pool.emplace_back(d3);
 
   // Register fiber in VM
   vm.fibres_.clear();
@@ -225,7 +224,6 @@ TEST_F(GCTest, MixedValueGraph) {
   auto* chunk = gc.Allocate<Code>();
   chunk->const_pool.emplace_back(d3);
   auto* fn = Alloc<Function>(chunk);
-  auto* cl = Alloc<Closure>(fn);
 
   // List holding d2
   auto* list = Alloc<List>(std::vector<Value>{Value(d2)});
@@ -239,7 +237,7 @@ TEST_F(GCTest, MixedValueGraph) {
   // Class+Instance: instance.field → dict, class.method → closure
   auto* klass = Alloc<Class>();
   klass->name = "Mixed";
-  klass->methods["fn"] = Value(cl);
+  klass->methods["fn"] = Value(fn);
   auto* inst = Alloc<Instance>(klass);
   inst->fields["data"] = Value(dict);
 

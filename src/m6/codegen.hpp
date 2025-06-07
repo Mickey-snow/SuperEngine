@@ -76,7 +76,7 @@ class CodeGenerator {
   // -- Constant-pool helpers ------------------------------------------
   uint32_t constant(Value v);
   uint32_t intern_name(std::string_view s);
-  void emit_const(const Value v);
+  void emit_const(Value v);
   void emit_const(std::string_view s);
   template <typename T>
     requires std::constructible_from<Value::value_t, T>

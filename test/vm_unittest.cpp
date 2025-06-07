@@ -97,7 +97,6 @@ TEST_F(VMTest, StoreLoadLocal) {
   VM vm = VM::Create();
   vm.AddFiber(chunk);
   vm.main_fiber_->stack.resize(1);
-  vm.main_fiber_->frames[0].closure->function->nlocals = 1;
   vm.Run();
 
   Value out = vm.main_fiber_->last;
@@ -114,16 +113,9 @@ TEST_F(VMTest, FunctionCall) {
   //  18 : Return
   GarbageCollector gc;
   auto* chunk = gc.Allocate<Code>();
-  auto fn = gc.Allocate<Function>(chunk);
-  fn->entry = 13;
-  fn->nlocals = 0;
-  fn->nrequired = 0;
-  fn->ndefault = 0;
-  fn->has_vararg = false;
-  fn->has_kwarg = false;
-  chunk->const_pool = value_vector(7.0, Value(fn));
-  append_ins(chunk,
-             {MakeClosure{1, 0}, Call{0, 0}, Return{}, Push{0}, Return{}});
+  chunk->const_pool = value_vector(7.0, Value(chunk));
+  append_ins(chunk, {Push(1), MakeFunction{.entry = 13}, Call{0, 0}, Return{},
+                     Push{0}, Return{}});
 
   Value out = run_and_get(chunk);
   EXPECT_EQ(out, 7.0);

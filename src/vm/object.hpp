@@ -39,7 +39,7 @@
 namespace serilang {
 
 struct Code final : public IObject {
-  static constexpr inline ObjType objtype = ObjType::Class;
+  static constexpr inline ObjType objtype = ObjType::Code;
   constexpr ObjType Type() const noexcept final { return objtype; }
   constexpr size_t Size() const noexcept final { return sizeof(*this); }
   std::string Str() const override;
@@ -190,13 +190,13 @@ struct Function : public IObject {
   static constexpr inline ObjType objtype = ObjType::Function;
 
   Code* chunk;
-  uint32_t entry{};
+  uint32_t entry;
 
-  uint32_t nlocals{};
-  uint8_t nrequired{};
-  uint8_t ndefault{};
-  bool has_vararg{};
-  bool has_kwarg{};
+  uint32_t nposarg;
+  List* pos_defs;
+
+  bool has_vararg;
+  bool has_kwarg;
 
   explicit Function(Code* c);
 
@@ -207,6 +207,8 @@ struct Function : public IObject {
 
   std::string Str() const override;
   std::string Desc() const override;
+
+  void Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) override;
 };
 
 class NativeFunction : public IObject {
@@ -234,24 +236,6 @@ class NativeFunction : public IObject {
  private:
   std::string name_;
   function_t fn_;
-};
-
-struct Closure : public IObject {
-  static constexpr inline ObjType objtype = ObjType::Closure;
-
-  Function* function;
-
-  explicit Closure(Function* fn);
-
-  constexpr ObjType Type() const noexcept final { return objtype; }
-  constexpr size_t Size() const noexcept final { return sizeof(*this); }
-
-  void MarkRoots(GCVisitor& visitor) override;
-
-  std::string Str() const override;
-  std::string Desc() const override;
-
-  void Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) final;
 };
 
 }  // namespace serilang

@@ -35,43 +35,43 @@ namespace serilang {
 // ––– 1. Stack manipulation ––––––––––––––––––––––––––––––––––––––––
 struct Push {
   uint32_t const_index;
-};  // () → (value)
+};  // () -> (value)
 struct Dup {
   uint8_t top_ofs = 0;
-};  // (x...)   → (x,...,x)
-struct Swap {};  // (a,b) → (b,a)
+};  // (x...)   -> (x,...,x)
+struct Swap {};  // (a,b) -> (b,a)
 struct Pop {
   uint8_t count = 1;
-};  // (...n values...) →
+};  // (...n values...) ->
 
 // ––– 2. Arithmetic / logic ––––––––––––––––––––––––––––––––––––––––
 struct BinaryOp {
   Op op;
-};  // (lhs,rhs) → (result)
+};  // (lhs,rhs) -> (result)
 
 struct UnaryOp {
   Op op;
-};  // (x) → (result)
+};  // (x) -> (result)
 
 // ––– 3. Local / global / up‑value access ––––––––––––––––––––––––––
 struct LoadLocal {
   uint8_t slot;
-};  // () → (value)
+};  // () -> (value)
 struct StoreLocal {
   uint8_t slot;
-};  // (value) →
+};  // (value) ->
 struct LoadGlobal {
   uint32_t name_index;
-};  // () → (value)
+};  // () -> (value)
 struct StoreGlobal {
   uint32_t name_index;
-};  // (value) →
+};  // (value) ->
 struct LoadUpvalue {
   uint8_t slot;
-};  // () → (value)
+};  // () -> (value)
 struct StoreUpvalue {
   uint8_t slot;
-};  // (value) →
+};  // (value) ->
 struct CloseUpvalues {
   uint8_t from_slot;
 };  // close ≥slot up‑vals
@@ -79,24 +79,27 @@ struct CloseUpvalues {
 // ––– 4. Control flow ––––––––––––––––––––––––––––––––––––––––––––––
 struct Jump {
   int32_t offset;
-};  // →
+};  // ->
 struct JumpIfTrue {
   int32_t offset;
-};  // (cond) →
+};  // (cond) ->
 struct JumpIfFalse {
   int32_t offset;
-};  // (cond) →
-struct Return {};  // (retval) → pops frame
+};  // (cond) ->
+struct Return {};  // (retval) -> pops frame
 
 // ––– 5. Function & call –––––––––––––––––––––––––––––––––––––––––––
-struct MakeClosure {
-  uint32_t func_index;
-  uint32_t nupvals;
-};  // (…) → (fn)
+struct MakeFunction {
+  uint32_t entry = 0;
+  uint32_t nposarg = 0;
+  uint32_t nposdef = 0;
+  bool has_vararg = false;
+  bool has_kwarg = false;
+};  // (code, pos_def1, ...) -> (fn)
 struct Call {
   uint8_t argcnt;
   uint8_t kwargcnt;
-};  // (fn,arg*,kwargs*) → (ret)
+};  // (fn,arg*,kwargs*) -> (ret)
 
 // ––– 6. Object / container ops ––––––––––––––––––––––––––––––––––––
 struct MakeList {
@@ -108,30 +111,30 @@ struct MakeDict {
 struct MakeClass {
   uint32_t name_index;
   uint16_t nmethods;
-};  // (method_fn*) → (class)
+};  // (method_fn*) -> (class)
 struct GetField {
   uint32_t name_index;
-};  // (inst) → (value)
+};  // (inst) -> (value)
 struct SetField {
   uint32_t name_index;
-};  // (inst,val) →
-struct GetItem {};  // (container,idx) → (val)
-struct SetItem {};  // (container,idx,val) →
+};  // (inst,val) ->
+struct GetItem {};  // (container,idx) -> (val)
+struct SetItem {};  // (container,idx,val) ->
 
 // ––– 7. Coroutine / fiber support ––––––––––––––––––––––––––––––––
 struct MakeFiber {
   uint32_t func_index;
   uint32_t nupvals;
-};  // (…) → (fiber)
+};  // (…) -> (fiber)
 struct Resume {
   uint8_t arity;
-};  // (fiber,args…) → (result|exc)
-struct Yield {};  // (value) → (yielded)
+};  // (fiber,args…) -> (result|exc)
+struct Yield {};  // (value) -> (yielded)
 //  ‣ `Yield` suspends the *current* fiber and returns control to its resumer
 //  ‣ `Resume` runs the fiber until next `Yield` or `Return`
 
 // ––– 8. Exception handling -------------––––––––––––––––––---------
-struct Throw {};  // (exc) → never
+struct Throw {};  // (exc) -> never
 struct TryBegin {
   int32_t handler_rel_ofs;
 };  // mark try scope
@@ -154,7 +157,7 @@ using Instruction = std::variant<Push,
                                  JumpIfTrue,
                                  JumpIfFalse,
                                  Return,
-                                 MakeClosure,
+                                 MakeFunction,
                                  Call,
                                  MakeList,
                                  MakeDict,
@@ -189,7 +192,7 @@ enum class OpCode : uint8_t {
   JumpIfTrue,
   JumpIfFalse,
   Return,
-  MakeClosure,
+  MakeFunction,
   Call,
   TailCall,
   MakeList,
@@ -246,8 +249,8 @@ constexpr inline OpCode GetOpcode() {
     return OpCode::JumpIfFalse;
   else if constexpr (std::same_as<T, Return>)
     return OpCode::Return;
-  else if constexpr (std::same_as<T, MakeClosure>)
-    return OpCode::MakeClosure;
+  else if constexpr (std::same_as<T, MakeFunction>)
+    return OpCode::MakeFunction;
   else if constexpr (std::same_as<T, Call>)
     return OpCode::Call;
   else if constexpr (std::same_as<T, MakeList>)

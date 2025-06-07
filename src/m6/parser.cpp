@@ -326,20 +326,19 @@ bool Parser::ScanParameterList(
         defaultedLocs.emplace_back(paramLoc);
         seenDefaultEarlier = true;
       } else {
-        if (seenDefaultEarlier && !passedStar) {
+        if (passedStar) {
+          AddError("keyword argument after var_args must have default",
+                   paramLoc);
+          return false;
+        }
+        if (seenDefaultEarlier) {
           AddError("non-default positional argument follows default argument",
                    paramLoc);
           return false;
         }
 
-        if (passedStar) {
-          // keyword-only without default (store as default=nullptr)
-          defaulted.emplace_back(paramName, nullptr);
-          defaultedLocs.emplace_back(paramLoc);
-        } else {
-          required.emplace_back(paramName);
-          requiredLocs.emplace_back(paramLoc);
-        }
+        required.emplace_back(paramName);
+        requiredLocs.emplace_back(paramLoc);
       }
     } while (tryConsume<tok::Operator>(Op::Comma));
   }

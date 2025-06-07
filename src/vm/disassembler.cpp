@@ -184,12 +184,12 @@ void Disassembler::PrintIns(Code& chunk,
     } break;
 
       // ── 5. functions & calls ────────────────────────────────
-    case OpCode::MakeClosure: {
-      const auto ins = chunk.Read<MakeClosure>(ip);
+    case OpCode::MakeFunction: {
+      const auto ins = chunk.Read<MakeFunction>(ip);
       ip += sizeof(ins);
-      emit_mnemonic("MAKE_CLOS");
-      emit_operand(ins.func_index);
-      out_ << "  nup=" << ins.nupvals;
+      emit_mnemonic("MAKE_FUNCION");
+      emit_operand("");
+      out_ << "entry=" << ins.entry << "  nargs=" << ins.nposarg;
     } break;
     case OpCode::Call: {
       const auto ins = chunk.Read<Call>(ip);
@@ -310,8 +310,8 @@ void Disassembler::DumpImpl(Code& chunk, const std::string& indent) {
   for (std::size_t idx = 0; idx < chunk.const_pool.size(); ++idx) {
     const std::string sub_indent = indent + std::string(indent_size_, ' ');
     Value& v = chunk.const_pool[idx];
-    if (auto clos = v.Get_if<Closure>(); clos) {
-      Code* subChunk = clos->function ? clos->function->chunk : nullptr;
+    if (auto fn = v.Get_if<Function>(); fn) {
+      Code* subChunk = fn->chunk;
       if (!subChunk)
         continue;
 

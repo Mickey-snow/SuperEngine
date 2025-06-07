@@ -55,6 +55,8 @@ class VM {
   // Run until all fibers die or error; returns last fiber's result
   Value Run();
 
+  void RuntimeError(const std::string& msg);
+
   // REPL support: execute a single chunk, preserving VM state (globals, etc.)
   Value Evaluate(Code* chunk);
 
@@ -83,8 +85,6 @@ class VM {
   // Execution helpers
   static void push(std::vector<Value>& stack, Value v);
   static Value pop(std::vector<Value>& stack);
-
-  void RuntimeError(const std::string& msg);
   void Return(Fiber& f);
 
   //----------------------------------------------------------------

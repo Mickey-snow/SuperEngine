@@ -786,8 +786,13 @@ fn main()
             └─ID b
 )");
 
-  // TODO: add Op::Pow "**"
-  // expectStmtAST(TokenArray("fn bar(a, b=2, *args, **kwargs){}"), R"()");
+  expectStmtAST(TokenArray("fn bar(a, b=2, *args, **kwargs){}"), R"(
+fn bar(a,b,*args,**kwargs)
+   ├─default b
+   │  └─IntLiteral 2
+   └─body
+      └─Compound
+)");
 
   expectStmtAST(TokenArray(R"( fn foo(a, b="def", c=1, d=[1,2]) {} )"), R"(
 fn foo(a,b,c,d)
@@ -799,15 +804,6 @@ fn foo(a,b,c,d)
    │  └─ListLiteral
    │     ├─IntLiteral 1
    │     └─IntLiteral 2
-   └─body
-      └─Compound
-)");
-
-  expectStmtAST(TokenArray("fn kw_only(a, *, b, c=3) {}"), R"(
-fn kw_only(a,b,c)
-   ├─default b
-   ├─default c
-   │  └─IntLiteral 3
    └─body
       └─Compound
 )");

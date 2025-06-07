@@ -29,10 +29,10 @@
 
 namespace serilang {
 
-struct Closure;
+struct Function;
 
 struct CallFrame {
-  Closure* closure = nullptr;
+  Function* fn = nullptr;
   uint32_t ip = 0;  // index into chunk->code
   size_t bp = 0;    // base pointer into fiber stack
 };
