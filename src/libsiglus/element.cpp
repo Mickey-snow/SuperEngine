@@ -24,11 +24,10 @@
 
 #include "libsiglus/element.hpp"
 
+#include "utilities/overload.hpp"
 #include "utilities/string_utilities.hpp"
 
 #include <format>
-#include <numeric>
-#include <sstream>
 
 namespace libsiglus::elm {
 
@@ -51,28 +50,38 @@ std::string Subscript::ToDebugString() const {
 }
 std::string Val::ToDebugString() const { return ".<" + ToString(value) + '>'; }
 
+std::string Function::Arg::ToDebugString() const {
+  return std::visit(
+      ::overload([](const va_arg& x) { return ToString(x.type) + "..."; },
+                 [](const Type& x) { return ToString(x); }),
+      arg);
+}
 std::string Function::ToDebugString() const {
   return std::format(
-      "{}({})->{}", name,
-      Join(",", std::views::all(arg_t) |
-                    std::views::transform([](Type t) { return ToString(t); })),
+      "{}[{}]({})->{}", name,
+      overload.has_value() ? std::to_string(*overload) : std::string(),
+      Join(",",
+           std::views::all(arg_t) | std::views::transform([](auto const& t) {
+             return t.ToDebugString();
+           })),
       ToString(return_t));
 }
 std::string Callable::ToDebugString() const {
-  std::ostringstream repr;
-  repr << ".<callable ";
-  for (const auto& it : overloads)
-    repr << '[' << it.first << ']' << it.second.ToDebugString() << "  ";
-  repr << '>';
-  return repr.str();
+  return ".<callable " +
+         Join("  ", std::views::all(overloads) |
+                        std::views::transform([](const auto& it) {
+                          return it.ToDebugString();
+                        })) +
+         '>';
 }
 
 // -----------------------------------------------------------------------
 // AccessChain
 std::string AccessChain::ToDebugString() const {
-  return std::accumulate(
-      nodes.cbegin(), nodes.cend(), root.ToDebugString(),
-      [](std::string&& s, auto const& v) { return s + v.ToDebugString(); });
+  std::string repr = root.ToDebugString();
+  for (const auto& n : nodes)
+    repr += n.ToDebugString();
+  return repr;
 }
 
 Type AccessChain::GetType() const {

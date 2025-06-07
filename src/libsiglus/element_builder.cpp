@@ -23,9 +23,11 @@
 
 #include "libsiglus/element_builder.hpp"
 
+#include "libsiglus/callable_builder.hpp"
 #include "utilities/flat_map.hpp"
 
 namespace libsiglus::elm {
+using namespace libsiglus::elm::callable_builder;
 
 class Builder {
  public:
@@ -48,29 +50,37 @@ inline static auto b(Type type, Node::var_t node) {
     ctx.elmcode = ctx.elmcode.subspan(1);
   });
 }
-inline static Builder b_index_array(Type next_type) {
-  return Builder([t = next_type](Builder::Ctx& ctx) {
-    ctx.chain.nodes.emplace_back(t, Subscript{ctx.elmcode[1]});
-    ctx.elmcode = ctx.elmcode.subspan(2);
+inline static Builder b_index_array(Type value_type) {
+  return Builder([t = value_type](Builder::Ctx& ctx) {
+    ctx.chain.nodes.emplace_back(Type::Invalid, Subscript{ctx.elmcode[1]});
+    ctx.chain.nodes.emplace_back(
+        Type::Callable, make_callable(fn("__get__")[0]().ret(t),
+                                      fn("__set__")[1](t).ret(Type::None)));
+    ctx.elmcode = ctx.elmcode.subspan(ctx.elmcode.size());
   });
+}
+template <typename... Ts>
+inline static Builder callable(Ts&&... params) {
+  return b(Type::Callable, make_callable(std::forward<Ts>(params)...));
 }
 static flat_map<Builder> const* GetMethodMap(Type type) {
   switch (type) {
     case Type::IntList: {
-      static const auto mp =
-	// "[0]->Get(), [1]->Set(int)"
-	// make_callable(fn("Get")[0]()->Type::None, fn("Set")[1]()->Type::Int)
-          make_flatmap<Builder>(id[-1] | b_index_array(Type::Int),
-                                id[3] | b(Type::IntList, Member("b1")),
-                                id[4] | b(Type::IntList, Member("b2")),
-                                id[5] | b(Type::IntList, Member("b4")),
-                                id[7] | b(Type::IntList, Member("b8")),
-                                id[6] | b(Type::IntList, Member("b16")),
-                                id[10] | b(Type::Callable, Member("init")),
-                                id[2] | b(Type::Callable, Member("resize")),
-                                id[9] | b(Type::Callable, Member("size")),
-                                id[8] | b(Type::Callable, Member("fill")),
-                                id[1] | b(Type::Callable, Member("Set")));
+      static const auto mp = make_flatmap<Builder>(
+          id[-1] | b_index_array(Type::Int),
+          id[3] | b(Type::IntList, Member("b1")),
+          id[4] | b(Type::IntList, Member("b2")),
+          id[5] | b(Type::IntList, Member("b4")),
+          id[7] | b(Type::IntList, Member("b8")),
+          id[6] | b(Type::IntList, Member("b16")),
+          id[10] | callable(fn("init")[any]().ret(Type::None)),
+          id[2] | callable(fn("resize")[any](Type::Int).ret(Type::None)),
+          id[9] | callable(fn("size")[any]().ret(Type::Int)),
+          id[8] | callable(fn("fill")[0](Type::Int, Type::Int).ret(Type::None),
+                           fn("fill")[any](Type::Int, Type::Int, Type::Int)
+                               .ret(Type::None)),
+          id[1] | callable(fn("Set")[any](Type::Int, va_arg(Type::Int))
+                               .ret(Type::None)));
       return &mp;
     }
 

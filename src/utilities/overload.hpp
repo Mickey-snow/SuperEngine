@@ -24,7 +24,13 @@
 
 #pragma once
 
+#include <utility>
+
 template <typename... Ts>
 struct overload : Ts... {
+  overload(Ts... ts) : Ts(std::move(ts))... {}
   using Ts::operator()...;
 };
+
+template <typename... Ts>
+overload(Ts...) -> overload<Ts...>;

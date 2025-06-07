@@ -23,8 +23,11 @@
 
 #include <gtest/gtest.h>
 
+#include <boost/container/small_vector.hpp>
+
 #include "libsiglus/callable_builder.hpp"
 
+using namespace libsiglus::elm::callable_builder;
 using namespace libsiglus::elm;
 using libsiglus::Type;
 
@@ -66,17 +69,26 @@ TEST(CallableDsl, Basic) {
   }
 }
 
-TEST(CallableDsl, OverloadLookup) {
-  auto callable = make_callable(fn("Inc")[0](Type::Int).ret(Type::Int));
-  EXPECT_TRUE(callable.overloads.contains(0));
-  EXPECT_FALSE(callable.overloads.contains(42));
-}
-
 TEST(CallableDsl, DebugString) {
   auto echo = fn("Echo")[7](Type::Int).ret(Type::Int);
   auto cat = fn("Cat")[1]().ret(Type::None);
   auto callable = make_callable(echo, cat);
 
   EXPECT_EQ(callable.ToDebugString(),
-            ".<callable [1]Cat()->null_t  [7]Echo(int)->int  >");
+            ".<callable Echo[7](int)->int  Cat[1]()->null_t>");
+}
+
+TEST(CallableDsl, AnyOverload) {
+  // fn foo(int, int=1) => overload[1](int), overload[any](int,int)
+  auto foo = make_callable(fn("foo")[1](Type::Int).ret(Type::Int),
+                           fn("foo")[any](Type::Int, Type::Int).ret(Type::Int));
+  EXPECT_EQ(foo.ToDebugString(),
+            ".<callable foo[1](int)->int  foo[](int,int)->int>");
+}
+
+TEST(CallableDsl, Vararg) {
+  // fn foo(int, string...)
+  auto foo = make_callable(
+      fn("foo")[any](Type::Int, va_arg(Type::String)).ret(Type::None));
+  EXPECT_EQ(foo.ToDebugString(), ".<callable foo[](int,str...)->null_t>");
 }

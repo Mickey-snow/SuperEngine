@@ -114,13 +114,33 @@ struct Val {
 };
 
 struct Function {
+  struct Arg {
+    struct va_arg {
+      Type type;
+    };
+    using arg_t = std::variant<Type, va_arg>;
+    arg_t arg;
+
+    constexpr Arg(Type type) : arg(type) {}
+    explicit constexpr Arg(std::convertible_to<arg_t> auto x)
+        : arg(std::move(x)) {}
+
+    std::string ToDebugString() const;
+
+    inline bool operator==(const Type rhs) const {
+      const auto* ptr = std::get_if<Type>(&arg);
+      return ptr && *ptr == rhs;
+    }
+  };
+
   std::string_view name;
-  std::vector<Type> arg_t;
+  std::optional<int> overload;
+  std::vector<Arg> arg_t;
   Type return_t;
   std::string ToDebugString() const;
 };
 struct Callable {
-  boost::container::flat_map<int, Function> overloads;
+  std::vector<Function> overloads;
   std::string ToDebugString() const;
 };
 

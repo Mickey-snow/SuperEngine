@@ -27,12 +27,14 @@
 #include "libsiglus/types.hpp"
 
 #include <array>
+#include <optional>
 #include <string_view>
 #include <tuple>
 #include <unordered_map>
 #include <utility>
 
 namespace libsiglus::elm {
+namespace callable_builder {
 
 // fn("foo")                       ->  name_builder
 // fn("foo")[1]                    ->  overload_builder
@@ -44,53 +46,64 @@ struct function_builder;
 template <class S>
 concept string_like = requires(S s) { std::string_view(s); };
 
+struct overload {
+  std::optional<int> index;
+  constexpr overload(int idx) : index(idx) {}
+  explicit constexpr overload() : index(std::nullopt) {}
+};
+[[maybe_unused]] inline static constexpr overload any;
+
+inline constexpr Function::Arg va_arg(Type t) {
+  return Function::Arg(Function::Arg::va_arg(t));
+}
+
 struct name_builder {
   std::string_view name;
   constexpr explicit name_builder(string_like auto&& n) : name(n) {}
 
-  constexpr auto operator[](int index) const;  // -> overload_builder
+  constexpr auto operator[](overload index) const;  // -> overload_builder
 };
 
 template <size_t N>
 struct signature_builder {
   std::string_view name;
-  int index;
-  std::array<Type, N> args;
+  std::optional<int> index;
+  std::array<Function::Arg, N> args;
 
   constexpr function_builder ret(Type r) const;
 };
 
 struct overload_builder {
   std::string_view name;
-  int index;
+  std::optional<int> index;
 
   constexpr auto operator()() const {
-    return signature_builder{name, index, std::array<Type, 0>{}};
+    return signature_builder{name, index, std::array<Function::Arg, 0>{}};
   }
   template <typename... Ts>
   constexpr auto operator()(Ts... ts) const {
-    return signature_builder{name, index, std::array{ts...}};
+    return signature_builder{name, index, std::array{Function::Arg(ts)...}};
   }
 };
 
 struct function_builder {
   std::string_view name;
-  int index;
-  std::vector<Type> arg_vec;  // materialised once at runtime
+  std::optional<int> index;
+  std::vector<Function::Arg> arg_vec;  // materialised once at runtime
   Type ret;
 
   constexpr Function build() const {
-    return Function{name, std::move(arg_vec), ret};
+    return Function{name, std::move(index), std::move(arg_vec), ret};
   }
 };
 
-inline constexpr auto name_builder::operator[](int index) const {
-  return overload_builder{name, index};
+inline constexpr auto name_builder::operator[](overload o) const {
+  return overload_builder{name, std::move(o.index)};
 }
 template <size_t N>
 constexpr function_builder signature_builder<N>::ret(Type r) const {
-  return function_builder{name, index,
-                          std::vector<Type>(args.begin(), args.end()), r};
+  return function_builder{
+      name, index, std::vector<Function::Arg>(args.begin(), args.end()), r};
 }
 
 [[nodiscard]] constexpr name_builder fn(string_like auto&& s) {
@@ -100,8 +113,9 @@ constexpr function_builder signature_builder<N>::ret(Type r) const {
 template <class... FB>
 [[nodiscard]] Callable make_callable(FB&&... fb) {
   Callable c;
-  (c.overloads.emplace(fb.index, fb.build()), ...);
+  c.overloads = std::vector<Function>{fb.build()...};
   return c;
 }
 
+}  // namespace callable_builder
 }  // namespace libsiglus::elm
