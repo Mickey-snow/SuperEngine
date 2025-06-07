@@ -351,17 +351,33 @@ void VM::ExecuteFiber(Fiber* fib) {
       case OpCode::MakeFunction: {
         const auto ins = chunk->Read<serilang::MakeFunction>(ip);
         ip += sizeof(ins);
+        std::unordered_map<std::string, size_t> param_index;
+        param_index.reserve(ins.nparam);
+        size_t name_idx = fib->stack.size() - ins.nparam;
+        for (uint32_t i = 0; i < ins.nparam; ++i) {
+          param_index.emplace(
+              std::move(*fib->stack[name_idx + i].Get_if<std::string>()), i);
+        }
+        fib->stack.resize(name_idx);
 
-        Code* chunk = fib->stack.end()[-1 - static_cast<size_t>(ins.nposdef)]
-                          .Get<Code*>();
-        std::vector<Value> posdefs(
-            std::make_move_iterator(fib->stack.end() - ins.nposdef),
-            std::make_move_iterator(fib->stack.end()));
-        fib->stack.resize(fib->stack.size() - ins.nposdef);
+        Code* chunk =
+            fib->stack.end()[-1 - static_cast<size_t>(ins.ndefault) * 2]
+                .Get<Code*>();
+        std::unordered_map<size_t, Value> defaults;
+        defaults.reserve(ins.ndefault);
+        for (size_t i = fib->stack.size() - ins.ndefault * 2;
+             i < fib->stack.size(); i += 2) {
+          std::string* k = fib->stack[i].Get_if<std::string>();
+          Value v = std::move(fib->stack[i + 1]);
+          defaults.emplace(param_index.at(*k), std::move(v));
+        }
+        fib->stack.resize(fib->stack.size() - ins.ndefault * 2);
+
         Function* fn = gc_.Allocate<Function>(chunk);
         fn->entry = ins.entry;
-        fn->pos_defs = gc_.Allocate<List>(std::move(posdefs));
-        fn->nposarg = ins.nposarg;
+        fn->defaults = std::move(defaults);
+        fn->nparam = ins.nparam;
+        fn->param_index = std::move(param_index);
         fn->has_vararg = ins.has_vararg;
         fn->has_kwarg = ins.has_kwarg;
 

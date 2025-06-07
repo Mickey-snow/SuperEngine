@@ -339,12 +339,18 @@ void CodeGenerator::emit_function(const FuncDecl& fn) {
   nested.emit(sr::Return{});
 
   emit_const(nested.GetChunk());
-  for (auto& p : fn.default_params)
+  for (auto& p : fn.default_params) {
+    emit_const(p.first);
     emit_expr(p.second);
+  }
+  for (auto& p : fn.params)
+    emit_const(p);
+  for (auto& p : fn.default_params)
+    emit_const(p.first);
 
   emit(sr::MakeFunction{.entry = 0,
-                        .nposarg = fn.params.size() + fn.default_params.size(),
-                        .nposdef = fn.default_params.size(),
+                        .nparam = fn.params.size() + fn.default_params.size(),
+                        .ndefault = fn.default_params.size(),
                         .has_vararg = !fn.var_arg.empty(),
                         .has_kwarg = !fn.kw_arg.empty()});
 }

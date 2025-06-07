@@ -189,7 +189,8 @@ void Disassembler::PrintIns(Code& chunk,
       ip += sizeof(ins);
       emit_mnemonic("MAKE_FUNCION");
       emit_operand("");
-      out_ << "entry=" << ins.entry << "  nargs=" << ins.nposarg;
+      out_ << "entry=" << ins.entry << "  nargs=" << ins.nparam
+           << "  nparam=" << ins.nparam;
     } break;
     case OpCode::Call: {
       const auto ins = chunk.Read<Call>(ip);

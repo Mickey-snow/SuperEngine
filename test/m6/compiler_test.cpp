@@ -219,12 +219,23 @@ complex_func(1, 2, 10, 20, 30, 40, 50, extra="foo");
 complex_func(10 ,20);
 )");
 
+    EXPECT_EQ(res, "1 2 10 20 30 [40,50] {extra:foo}\n10 20 3 10 5 [] {}\n");
+  }
+
+  {
+    auto res = Run(R"(
+fn foo(a=1, b=2, **kwargs){
+  print("a =", a);
+  print("b =", b);
+  print("extra =", kwargs);
+}
+foo(b=10, a=20);
+)");
+
     ASSERT_TRUE(res.stderr.empty()) << res.stderr << "\nDisassembly:\n"
                                     << res.disasm;
-    EXPECT_EQ(res.stdout,
-              "1 2 10 20 30 [40,50] {extra:foo}\n10 20 3 10 5 [] {}\n")
-        << "\nDisassembly:\n"
-        << res.disasm;
+    EXPECT_EQ(res.stdout, "a = 20\nb = 10\nextra = {}\n") << "\nDisassembly:\n"
+                                                          << res.disasm;
   }
 }
 

@@ -192,8 +192,9 @@ struct Function : public IObject {
   Code* chunk;
   uint32_t entry;
 
-  uint32_t nposarg;
-  List* pos_defs;
+  uint32_t nparam;
+  std::unordered_map<std::string, size_t> param_index;
+  std::unordered_map<size_t, Value> defaults;
 
   bool has_vararg;
   bool has_kwarg;

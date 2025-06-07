@@ -172,8 +172,9 @@ void Dict::MarkRoots(GCVisitor& visitor) {
 Function::Function(Code* c)
     : chunk(c),
       entry(0),
-      nposarg(0),
-      pos_defs(nullptr),
+      nparam(0),
+      param_index(),
+      defaults(),
       has_vararg(false),
       has_kwarg(false) {}
 
@@ -181,25 +182,17 @@ std::string Function::Str() const { return "function"; }
 
 std::string Function::Desc() const { return "<function>"; }
 
-void Function::MarkRoots(GCVisitor& visitor) { visitor.MarkSub(chunk); }
+void Function::MarkRoots(GCVisitor& visitor) {
+  visitor.MarkSub(chunk);
+  for (auto& [k, v] : defaults)
+    visitor.MarkSub(v);
+}
 
 void Function::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
-  static const std::vector<Value> empty;
-
   std::vector<Value>& stack = f.stack;
-  std::vector<Value> const& positional_default =
-      pos_defs ? pos_defs->items : empty;
 
-  if (nargs < nposarg) {
-    const auto need = nposarg - nargs;
-    if (positional_default.size() < need)
-      vm.RuntimeError(Desc() + ": missing arguments");
-  } else if (nargs > nposarg && !has_vararg) {
+  if (nargs > nparam && !has_vararg)
     vm.RuntimeError(Desc() + ": too many arguments");
-  }
-
-  if (nkwargs && !has_kwarg)
-    vm.RuntimeError(Desc() + ": unexpected keyword argument");
 
   // Set up call stack:
   // (fn, pos_arg1, (nargs)..., kw1, kw_arg1, (nkwargs)...)
@@ -209,7 +202,7 @@ void Function::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
   std::vector<Value> posargs(
       std::make_move_iterator(stack.begin() + base + 1),
       std::make_move_iterator(stack.begin() + base + 1 + nargs));
-  posargs.reserve(std::max<size_t>(nposarg, nargs));
+  posargs.reserve(std::max<size_t>(nparam, nargs));
   std::unordered_map<std::string, Value> kwargs;
   kwargs.reserve(nkwargs);
   size_t idx = base + 1 + nargs;
@@ -220,23 +213,52 @@ void Function::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
   }
   stack.resize(base + 1);  // leave the callee on stack
 
-  if (posargs.size() < nposarg) {
-    std::copy(positional_default.end() - (nposarg - posargs.size()),
-              positional_default.end(), std::back_inserter(posargs));
+  std::vector<Value> finalargs(nparam);
+  std::vector<bool> assigned(nparam, false);
+
+  for (size_t i = 0; i < posargs.size() && i < nparam; ++i) {
+    finalargs[i] = std::move(posargs[i]);
+    assigned[i] = true;
   }
 
-  std::copy(std::make_move_iterator(posargs.begin()),
-            std::make_move_iterator(posargs.begin() + nposarg),
-            std::back_inserter(stack));
+  std::vector<Value> rest;
+  if (posargs.size() > nparam)
+    rest.assign(std::make_move_iterator(posargs.begin() + nparam),
+                std::make_move_iterator(posargs.end()));
+
+  std::unordered_map<std::string, Value> extra_kwargs;
+  for (auto& [k, v] : kwargs) {
+    auto it = param_index.find(k);
+    if (it != param_index.end()) {
+      auto idx = it->second;
+      if (assigned[idx])
+        vm.RuntimeError(Desc() + ": multiple values for argument '" + k + "'");
+      finalargs[idx] = std::move(v);
+      assigned[idx] = true;
+    } else {
+      extra_kwargs.emplace(k, std::move(v));
+    }
+  }
+
+  for (size_t i = 0; i < nparam; ++i) {
+    if (!assigned[i]) {
+      const auto it = defaults.find(i);
+      if (it == defaults.cend())
+        vm.RuntimeError(Desc() + ": missing arguments");
+      finalargs[i] = it->second;
+    }
+  }
+
+  std::move(finalargs.begin(), finalargs.end(), std::back_inserter(stack));
 
   if (has_vararg) {
-    std::vector<Value> rest(std::make_move_iterator(posargs.begin() + nposarg),
-                            std::make_move_iterator(posargs.end()));
     stack.emplace_back(vm.gc_.Allocate<List>(std::move(rest)));
   }
 
   if (has_kwarg) {
-    stack.emplace_back(vm.gc_.Allocate<Dict>(std::move(kwargs)));
+    stack.emplace_back(vm.gc_.Allocate<Dict>(std::move(extra_kwargs)));
+  } else if (!extra_kwargs.empty()) {
+    vm.RuntimeError(Desc() + ": unexpected keyword argument");
   }
 
   // (fn, pos_arg1, ..., [var_arg], [kw_arg])

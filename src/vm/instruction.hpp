@@ -91,11 +91,11 @@ struct Return {};  // (retval) -> pops frame
 // ––– 5. Function & call –––––––––––––––––––––––––––––––––––––––––––
 struct MakeFunction {
   uint32_t entry = 0;
-  uint32_t nposarg = 0;
-  uint32_t nposdef = 0;
+  uint32_t nparam = 0;
+  uint32_t ndefault = 0;
   bool has_vararg = false;
   bool has_kwarg = false;
-};  // (code, pos_def1, ...) -> (fn)
+};  // (code, def_name1, def_val1, ..., name1, ...) -> (fn)
 struct Call {
   uint32_t argcnt;
   uint32_t kwargcnt;
