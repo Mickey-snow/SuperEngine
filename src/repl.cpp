@@ -48,7 +48,7 @@ static constexpr std::string_view help_info =
     R"(Reallive REPL – enter code, Ctrl-D or \"exit\" to quit)";
 
 static void run_repl(VM vm) {
-  CompilerPipeline pipeline(/*repl_mode=*/true);
+  CompilerPipeline pipeline(vm.gc_, /*repl_mode=*/true);
 
   std::string line;
   for (size_t lineno = 1; std::cout << ">> " && std::getline(std::cin, line);

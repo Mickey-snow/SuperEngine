@@ -27,6 +27,7 @@
 #include "m6/ast.hpp"
 #include "m6/exception.hpp"
 #include "vm/chunk.hpp"
+#include "vm/gc.hpp"
 #include "vm/instruction.hpp"
 #include "vm/value.hpp"
 
@@ -41,7 +42,7 @@ namespace m6 {
 
 class CodeGenerator {
  public:
-  explicit CodeGenerator(bool repl = false);
+  explicit CodeGenerator(serilang::GarbageCollector& gc, bool repl = false);
   ~CodeGenerator();
 
   bool Ok() const;
@@ -60,7 +61,9 @@ class CodeGenerator {
   using Scope = std::unordered_map<std::string, std::size_t>;
 
   // -- Data members ---------------------------------------------------
+  serilang::GarbageCollector& gc_;
   bool repl_mode_;
+
   ChunkPtr chunk_;
   std::vector<Scope> locals_;
   std::size_t local_depth_;

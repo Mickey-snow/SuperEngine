@@ -52,7 +52,7 @@ class DummyObject : public IObject {
 
 class GCTest : public ::testing::Test {
  protected:
-  VM vm{nullptr};
+  VM vm = VM::Create();
   GarbageCollector& gc = vm.gc_;
 
   template <typename T, typename... Args>

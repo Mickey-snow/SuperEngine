@@ -47,9 +47,7 @@ inline static void append_ins(std::shared_ptr<Chunk> chunk,
 }
 
 static Value run_and_get(const std::shared_ptr<Chunk>& chunk) {
-  VM vm(chunk);
-  vm.Run();
-  return vm.main_fiber_->last;
+  return VM::Create().Evaluate(chunk);
 }
 
 TEST(VMTest, BinaryAdd) {
@@ -93,7 +91,8 @@ TEST(VMTest, StoreLoadLocal) {
   append_ins(chunk, {Push{0}, StoreLocal{0}, LoadLocal{0}, Return{}});
 
   // Trick: tell the VM that “main” closure has 1 local
-  VM vm(chunk);
+  VM vm = VM::Create();
+  vm.AddFiber(chunk);
   vm.main_fiber_->stack.resize(1);
   vm.main_fiber_->frames[0].closure->function->nlocals = 1;
   vm.Run();

@@ -42,23 +42,26 @@ struct Chunk;
 class VM {
  public:
   // Construct a VM, optionally bootstrapping with an entry chunk.
-  static VM Create(std::shared_ptr<Chunk> bootstrap = nullptr,
-                   std::ostream& stdout = std::cout,
+  static VM Create(std::ostream& stdout = std::cout,
                    std::istream& stdin = std::cin,
                    std::ostream& stderr = std::cerr);
 
-  explicit VM(std::shared_ptr<Chunk> entry);
+ private:
+  explicit VM() = default;
 
-  // Trigger garbage collection: mark-root and sweep unreachable objects
-  void CollectGarbage();
-  // Let the garbage collector track a Value allocated elsewhere
-  Value AddTrack(TempValue&& t);
+ public:
+  VM& AddFiber(std::shared_ptr<Chunk> entry);
 
   // Run until all fibers die or error; returns last fiber's result
   Value Run();
 
   // REPL support: execute a single chunk, preserving VM state (globals, etc.)
   Value Evaluate(std::shared_ptr<Chunk> chunk);
+
+  // Trigger garbage collection: mark-root and sweep unreachable objects
+  void CollectGarbage();
+  // Let the garbage collector track a Value allocated elsewhere
+  Value AddTrack(TempValue&& t);
 
   // For adding built-in as global
   void AddGlobal(std::string key, TempValue&& v);

@@ -30,6 +30,7 @@
 #include "m6/source_buffer.hpp"
 #include "m6/token.hpp"
 #include "m6/tokenizer.hpp"
+#include "vm/gc.hpp"
 
 #include <optional>
 #include <vector>
@@ -38,7 +39,8 @@ namespace m6 {
 
 class CompilerPipeline {
  public:
-  CompilerPipeline(bool repl = false) : tz(tokens_), gen_(repl) {}
+  CompilerPipeline(serilang::GarbageCollector& gc, bool repl = false)
+      : gc_(gc), tz(tokens_), gen_(gc_, repl) {}
 
   void compile(std::shared_ptr<SourceBuffer> src) {
     Clear();
@@ -106,6 +108,7 @@ class CompilerPipeline {
   }
 
  private:
+  serilang::GarbageCollector& gc_;
   Tokenizer tz;
   CodeGenerator gen_;
 };

@@ -42,11 +42,8 @@
 namespace serilang {
 
 // static, factory method
-VM VM::Create(std::shared_ptr<Chunk> bootstrap,
-              std::ostream& stdout,
-              std::istream& stdin,
-              std::ostream& stderr) {
-  VM vm(bootstrap);
+VM VM::Create(std::ostream& stdout, std::istream& stdin, std::ostream& stderr) {
+  VM vm;
 
   // add builtins
   vm.AddGlobal(
@@ -112,22 +109,27 @@ VM VM::Create(std::shared_ptr<Chunk> bootstrap,
 // -----------------------------------------------------------------------
 // class VM
 
-VM::VM(std::shared_ptr<Chunk> entry) {
-  if (entry) {
-    // bootstrap: main() as a closure pushed to main fiber
-    auto fn = gc_.Allocate<Function>(entry);
-    fn->entry = 0;
-    fn->nlocals = 0;
-    fn->nrequired = 0;
-    fn->ndefault = 0;
-    fn->has_vararg = false;
-    fn->has_kwarg = false;
-    auto main_cl = gc_.Allocate<Closure>(fn);
-    main_fiber_ = gc_.Allocate<Fiber>();
-    push(main_fiber_->stack, Value(main_cl));  // fn
-    main_cl->Call(*this, *main_fiber_, 0, 0);  // set up base stack frame
-    fibres_.push_front(main_fiber_);
-  }
+Value VM::Evaluate(std::shared_ptr<Chunk> chunk) {
+  AddFiber(chunk);
+  return Run();
+}
+
+VM& VM::AddFiber(std::shared_ptr<Chunk> chunk) {
+  auto fn = gc_.Allocate<Function>(chunk);
+  fn->entry = 0;
+  fn->nlocals = 0;
+  fn->nrequired = 0;
+  fn->ndefault = 0;
+  fn->has_vararg = false;
+  fn->has_kwarg = false;
+
+  auto cl = gc_.Allocate<Closure>(fn);
+  auto* fiber = gc_.Allocate<Fiber>();
+  push(fiber->stack, Value(cl));
+  cl->Call(*this, *fiber, 0, 0);
+  fibres_.push_front(fiber);
+
+  return *this;
 }
 
 void VM::CollectGarbage() {
@@ -163,26 +165,6 @@ Value VM::Run() {
     }
   }
   return last_;
-}
-
-Value VM::Evaluate(std::shared_ptr<Chunk> chunk) {
-  // wrap chunk in a zero-arg closure
-  auto fn = gc_.Allocate<Function>(chunk);
-  fn->entry = 0;
-  fn->nlocals = 0;
-  fn->nrequired = 0;
-  fn->ndefault = 0;
-  fn->has_vararg = false;
-  fn->has_kwarg = false;
-  auto cl = gc_.Allocate<Closure>(fn);
-
-  // create a new fiber for this snippet
-  auto* replFiber = gc_.Allocate<Fiber>();
-  push(replFiber->stack, Value(cl));
-  cl->Call(*this, *replFiber, 0, 0);
-  fibres_.push_front(replFiber);
-
-  return Run();
 }
 
 //------------------------------------------------------------------------------
@@ -464,7 +446,11 @@ void VM::ExecuteFiber(Fiber* fib) {
         auto f = gc_.Allocate<Fiber>();
         auto fn = chunk.const_pool[ins.func_index].template Get<Function*>();
         auto cl = gc_.Allocate<Closure>(fn);
+
         f->stack.reserve(64);
+        push(f->stack, Value(cl));
+        cl->Call(*this, *f, 0, 0);
+
         push(fib->stack, Value(f));
       } break;
 

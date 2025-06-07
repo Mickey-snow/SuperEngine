@@ -58,7 +58,8 @@ class CompilerTest : public ::testing::Test {
     ExecutionResult r;
 
     // ── compile ────────────────────────────────────────────────────
-    m6::CompilerPipeline pipe(false);
+    auto vm = serilang::VM::Create(outBuf, inBuf, errBuf);
+    m6::CompilerPipeline pipe(vm.gc_, false);
     auto sb = SourceBuffer::Create(std::move(source), "<CompilerTest>");
     pipe.compile(sb);
 
@@ -77,9 +78,7 @@ class CompilerTest : public ::testing::Test {
 
     // ── run ────────────────────────────────────────────────────────
     try {
-      auto vm = serilang::VM::Create(chunk, outBuf, inBuf, errBuf);
-      vm.Run();
-      r.last = vm.main_fiber_->last;
+      r.last = vm.Evaluate(chunk);
     } catch (std::exception const& ex) {
       errBuf << ex.what();
     }

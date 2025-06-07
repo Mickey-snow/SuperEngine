@@ -36,8 +36,9 @@ namespace m6 {
 namespace sr = serilang;
 
 // Constructor / Destructor
-CodeGenerator::CodeGenerator(bool repl)
-    : repl_mode_(repl),
+CodeGenerator::CodeGenerator(sr::GarbageCollector& gc, bool repl)
+    : gc_(gc),
+      repl_mode_(repl),
       chunk_(std::make_shared<sr::Chunk>()),
       locals_(),
       local_depth_(0),
@@ -328,7 +329,7 @@ void CodeGenerator::emit_function(const FuncDecl& fn) {
   auto entryIp = code_size();
 
   // compile body with a fresh compiler
-  CodeGenerator nested;
+  CodeGenerator nested(gc_, repl_mode_);
   nested.SetChunk(chunk_);
   nested.push_scope();
   nested.add_local(fn.name);
@@ -361,7 +362,7 @@ void CodeGenerator::emit_function(const FuncDecl& fn) {
   nested.emit(sr::Return{});
   patch(jFnEnd, code_size());
 
-  auto fnobj = new sr::Function(chunk_);
+  auto* fnobj = gc_.Allocate<sr::Function>(chunk_);
   fnobj->entry = static_cast<uint32_t>(entryIp);
   fnobj->nlocals = static_cast<uint32_t>(nested.locals_.front().size());
   fnobj->nrequired = static_cast<uint8_t>(fn.params.size());
