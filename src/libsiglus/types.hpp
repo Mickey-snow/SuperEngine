@@ -35,6 +35,7 @@ enum class Type : uint32_t {
   Callable = 0x0FFFFFFF,
 
   System,
+  Math,
   FrameActionList,
   FrameAction,
   CounterList,

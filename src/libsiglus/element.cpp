@@ -53,6 +53,9 @@ std::string Val::ToDebugString() const { return ".<" + ToString(value) + '>'; }
 std::string Function::Arg::ToDebugString() const {
   return std::visit(
       ::overload([](const va_arg& x) { return ToString(x.type) + "..."; },
+                 [](const kw_arg& x) {
+                   return '_' + std::to_string(x.kw) + ':' + ToString(x.type);
+                 },
                  [](const Type& x) { return ToString(x); }),
       arg);
 }

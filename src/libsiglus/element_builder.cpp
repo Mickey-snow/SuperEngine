@@ -52,11 +52,8 @@ inline static auto b(Type type, Node::var_t node) {
 }
 inline static Builder b_index_array(Type value_type) {
   return Builder([t = value_type](Builder::Ctx& ctx) {
-    ctx.chain.nodes.emplace_back(Type::Invalid, Subscript{ctx.elmcode[1]});
-    ctx.chain.nodes.emplace_back(
-        Type::Callable, make_callable(fn("__get__")[0]().ret(t),
-                                      fn("__set__")[1](t).ret(Type::None)));
-    ctx.elmcode = ctx.elmcode.subspan(ctx.elmcode.size());
+    ctx.chain.nodes.emplace_back(t, Subscript{ctx.elmcode[1]});
+    ctx.elmcode = ctx.elmcode.subspan(2);
   });
 }
 template <typename... Ts>
@@ -84,6 +81,40 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
       return &mp;
     }
 
+    case Type::IntEventList: {
+      static const auto mp = make_flatmap<Builder>(
+          id[-1] | b_index_array(Type::IntEvent),
+          id[1] | callable(fn("resize")[any](Type::Int).ret(Type::None)));
+      return &mp;
+    }
+    case Type::IntEvent: {
+      static const auto mp = make_flatmap<Builder>(
+          id[0] | callable(fn("set")[any](Type::Int, Type::Int, Type::Int,
+                                          Type::Int, kw_arg(0, Type::Int))
+                               .ret(Type::None)),
+          id[7] | callable(fn("set_real")[any](Type::Int, Type::Int, Type::Int,
+                                               Type::Int, kw_arg(0, Type::Int))
+                               .ret(Type::None)),
+          id[1] | callable(fn("loop")[any](Type::Int, Type::Int, Type::Int,
+                                           Type::Int, Type::Int)
+                               .ret(Type::None)),
+          id[8] | callable(fn("loop_real")[any](Type::Int, Type::Int, Type::Int,
+                                                Type::Int, Type::Int)
+                               .ret(Type::None)),
+          id[2] | callable(fn("turn")[any](Type::Int, Type::Int, Type::Int,
+                                           Type::Int, Type::Int)
+                               .ret(Type::None)),
+          id[9] | callable(fn("turn_real")[any](Type::Int, Type::Int, Type::Int,
+                                                Type::Int, Type::Int)
+                               .ret(Type::None)),
+          id[3] | b(Type::None, Call("end")),
+          id[4] | b(Type::None, Call("wait")),
+          id[10] | b(Type::None, Call("wait_key")),
+          id[5] | b(Type::Int, Call("check")));
+
+      return &mp;
+    }
+
     case Type::StrList: {
       static const auto mp = make_flatmap<Builder>(
           id[-1] | Builder([](Builder::Ctx& ctx) {
@@ -91,9 +122,84 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
                 Type::String, Call("substr", {ctx.elmcode[1]}));  // really?
             ctx.elmcode = ctx.elmcode.subspan(2);
           }),
-          id[3] | b(Type::Callable, Member("init")),
-          id[2] | b(Type::Callable, Member("resize")),
-          id[4] | b(Type::Callable, Member("size")));
+          id[3] | b(Type::None, Call("init")),
+          id[2] | callable(fn("resize")[any](Type::Int).ret(Type::None)),
+          id[4] | b(Type::Int, Call("size")));
+      return &mp;
+    }
+    case Type::String: {
+      static const auto mp = make_flatmap<Builder>(
+          id[0] | b(Type::String, Call("upper")),
+          id[1] | b(Type::String, Call("lower")),
+          id[6] | b(Type::Int, Call("cnt")), id[5] | b(Type::Int, Call("len")),
+          id[2] | callable(fn("left")[any](Type::Int).ret(Type::String)),
+          id[7] | callable(fn("left_len")[any](Type::Int).ret(Type::String)),
+          id[4] | callable(fn("right")[any](Type::Int).ret(Type::String)),
+          id[9] | callable(fn("right_len")[any](Type::Int).ret(Type::String)),
+          id[3] |
+              callable(fn("mid")[0](Type::Int).ret(Type::String),
+                       fn("mid")[any](Type::Int, Type::Int).ret(Type::String)),
+          id[8] |
+              callable(
+                  fn("mid_len")[any](Type::Int, Type::Int).ret(Type::String)),
+          id[10] | callable(fn("find")[any](Type::String).ret(Type::Int)),
+          id[11] | callable(fn("rfind")[any](Type::String).ret(Type::Int)),
+          id[13] | callable(fn("charat")[any](Type::Int).ret(Type::Int)),
+          id[13] | b(Type::Int, Call("tonum")));
+      return &mp;
+    }
+
+    case Type::Math: {
+      static const auto mp = make_flatmap<Builder>(
+          id[3] | callable(fn("max")[any](Type::Int, Type::Int).ret(Type::Int)),
+          id[4] | callable(fn("min")[any](Type::Int, Type::Int).ret(Type::Int)),
+          id[10] | callable(fn("limit")[any](Type::Int, Type::Int, Type::Int)
+                                .ret(Type::Int)),
+          id[5] | callable(fn("abs")[any](Type::Int).ret(Type::Int)),
+          id[0] |
+              callable(fn("rand")[any](Type::Int, Type::Int).ret(Type::Int)),
+          id[14] |
+              callable(fn("sqrt")[any](Type::Int, Type::Int).ret(Type::Int)),
+          id[19] |
+              callable(fn("log")[any](Type::Int, Type::Int).ret(Type::Int)),
+          id[20] |
+              callable(fn("log2")[any](Type::Int, Type::Int).ret(Type::Int)),
+          id[21] |
+              callable(fn("log10")[any](Type::Int, Type::Int).ret(Type::Int)),
+          id[6] | callable(fn("sin")[any](Type::Int, Type::Int).ret(Type::Int)),
+          id[7] | callable(fn("cos")[any](Type::Int, Type::Int).ret(Type::Int)),
+          id[8] | callable(fn("tan")[any](Type::Int, Type::Int).ret(Type::Int)),
+          id[16] |
+              callable(fn("asin")[any](Type::Int, Type::Int).ret(Type::Int)),
+          id[17] |
+              callable(fn("acos")[any](Type::Int, Type::Int).ret(Type::Int)),
+          id[18] |
+              callable(fn("atan")[any](Type::Int, Type::Int).ret(Type::Int)),
+          id[15] | callable(fn("distance")[any](Type::Int, Type::Int, Type::Int,
+                                                Type::Int)
+                                .ret(Type::Int)),
+          id[22] | callable(fn("angle")[any](Type::Int, Type::Int, Type::Int,
+                                             Type::Int)
+                                .ret(Type::Int)),
+          id[9] | callable(fn("linear")[any](Type::Int, Type::Int, Type::Int,
+                                             Type::Int, Type::Int)
+                               .ret(Type::Int)),
+          id[2] | callable(fn("timetable")[any](Type::Int, Type::Int, Type::Int,
+                                                va_arg(Type::List))
+                               .ret(Type::Int)),
+          id[1] |
+              callable(fn("tostr")[1](Type::Int, Type::Int).ret(Type::String),
+                       fn("tostr")[0](Type::Int).ret(Type::String)),
+          id[11] | callable(fn("tostr_zero")[any](Type::Int, Type::Int)
+                                .ret(Type::String)),
+          id[12] |
+              callable(
+                  fn("tostr_zen")[0](Type::Int).ret(Type::String),
+                  fn("tostr_zen")[1](Type::Int, Type::Int).ret(Type::String)),
+          id[13] | callable(fn("tostr_zen_zero")[any](Type::Int, Type::Int)
+                                .ret(Type::String)),
+          id[23] |
+              callable(fn("tostr_code")[any](Type::Int).ret(Type::String)));
       return &mp;
     }
 

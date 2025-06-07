@@ -118,7 +118,11 @@ struct Function {
     struct va_arg {
       Type type;
     };
-    using arg_t = std::variant<Type, va_arg>;
+    struct kw_arg {
+      int kw;
+      Type type;
+    };
+    using arg_t = std::variant<Type, va_arg, kw_arg>;
     arg_t arg;
 
     constexpr Arg(Type type) : arg(type) {}

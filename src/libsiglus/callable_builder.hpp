@@ -56,6 +56,9 @@ struct overload {
 inline constexpr Function::Arg va_arg(Type t) {
   return Function::Arg(Function::Arg::va_arg(t));
 }
+inline constexpr Function::Arg kw_arg(int tag, Type t) {
+  return Function::Arg(Function::Arg::kw_arg(tag, t));
+}
 
 struct name_builder {
   std::string_view name;
