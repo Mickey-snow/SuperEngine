@@ -25,7 +25,7 @@
 
 #pragma once
 
-#include "m6/exception.hpp"
+#include "m6/error.hpp"
 #include "m6/source_location.hpp"
 #include "m6/token.hpp"
 

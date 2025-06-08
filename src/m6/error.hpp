@@ -17,42 +17,23 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// Along with this program; if not, write to the Free Software
+// along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 //
 // -----------------------------------------------------------------------
 
 #pragma once
 
-#include "m6/error.hpp"
-#include "m6/token.hpp"
+#include "m6/source_location.hpp"
 
-#include <memory>
-#include <span>
+#include <optional>
 #include <string>
-#include <string_view>
-#include <vector>
 
 namespace m6 {
-class SourceBuffer;
 
-class Tokenizer {
- public:
-  Tokenizer(std::vector<Token>& storage);
-
-  void Parse(std::shared_ptr<SourceBuffer> input);
-
-  bool Ok() const;
-  std::span<const Error> GetErrors() const;
-  void ClearErrors();
-
- public:
-  std::vector<Error> errors_;
-  bool skip_ws_;
-  bool add_eof_;
-
- private:
-  std::vector<Token>& storage_;
+struct Error {
+  std::string msg;
+  std::optional<SourceLocation> loc;
 };
 
 }  // namespace m6

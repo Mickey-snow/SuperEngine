@@ -25,7 +25,7 @@
 #pragma once
 
 #include "m6/ast.hpp"
-#include "m6/exception.hpp"
+#include "m6/error.hpp"
 #include "vm/gc.hpp"
 #include "vm/instruction.hpp"
 #include "vm/object.hpp"

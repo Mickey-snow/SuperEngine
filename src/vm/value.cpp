@@ -24,8 +24,7 @@
 
 #include "vm/value.hpp"
 
-// TODO: Reconsider exception thrown here
-#include "m6/exception.hpp"
+#include "utilities/string_utilities.hpp"
 #include "vm/iobject.hpp"
 #include "vm/object.hpp"
 
@@ -33,7 +32,10 @@
 
 namespace serilang {
 
-using namespace m6;
+ValueError::ValueError(std::string msg) : std::runtime_error(std::move(msg)) {}
+UndefinedOperator::UndefinedOperator(Op op, std::vector<std::string> operands)
+    : std::runtime_error("no match for 'operator " + ToString(op) +
+                         "' (operand type " + Join(",", operands) + ')') {}
 
 // -----------------------------------------------------------------------
 // class Value

@@ -29,13 +29,25 @@
 #include "vm/value_fwd.hpp"
 
 #include <memory>
+#include <stdexcept>
 #include <variant>
+#include <vector>
 
 namespace serilang {
 
 struct GCVisitor;
-
 class VM;
+
+class ValueError : public std::runtime_error {
+ public:
+  explicit ValueError(std::string msg);
+  using std::runtime_error::what;
+};
+class UndefinedOperator : public std::runtime_error {
+ public:
+  explicit UndefinedOperator(Op op, std::vector<std::string> operands);
+  using std::runtime_error::what;
+};
 
 // -----------------------------------------------------------------------
 // Value system

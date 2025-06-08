@@ -24,7 +24,7 @@
 
 #include "m6/parser.hpp"
 #include "m6/ast.hpp"
-#include "m6/exception.hpp"
+#include "m6/error.hpp"
 #include "m6/tokenizer.hpp"
 #include "machine/op.hpp"
 
