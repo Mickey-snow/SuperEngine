@@ -133,9 +133,7 @@ void Parser::ParseAll() {
     try {  // parse
       static Lexer lexer;
       auto lex = lexer.Parse(reader_);
-
-      std::visit([&](auto&& x) { this->Add(std::forward<decltype(x)>(x)); },
-                 std::move(lex));
+      Add(std::move(lex));
     } catch (std::runtime_error& e) {
       std::string stack_dbgstr = "\nstack:\n" + stack_.ToDebugString();
       throw std::runtime_error(e.what() + std::move(stack_dbgstr));

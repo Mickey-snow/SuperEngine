@@ -66,6 +66,10 @@ class Parser {
   Parser(Context& ctx);
 
   void ParseAll();
+  inline void Add(Lexeme lex) {
+    std::visit([&](auto&& x) { this->Add(std::forward<decltype(x)>(x)); },
+               std::move(lex));
+  }
 
  private:
   // helpers
