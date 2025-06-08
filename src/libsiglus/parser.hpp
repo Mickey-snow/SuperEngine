@@ -27,7 +27,6 @@
 #include "libsiglus/lexeme.hpp"
 #include "libsiglus/lexer.hpp"
 #include "libsiglus/property.hpp"
-#include "libsiglus/scene.hpp"
 #include "libsiglus/stack.hpp"
 #include "libsiglus/token.hpp"
 #include "libsiglus/value.hpp"
@@ -39,11 +38,9 @@
 #include <string>
 #include <unordered_map>
 #include <variant>
+#include <vector>
 
 namespace libsiglus {
-
-class Archive;
-class Scene;
 
 class Parser {
  public:
@@ -53,9 +50,24 @@ class Parser {
     virtual void operator=(token::Token_t) = 0;
   };
 
-  Parser(Archive& archive,
-         Scene& scene,
-         std::shared_ptr<OutputBuffer> out = nullptr);
+  class Context {
+   public:
+    virtual ~Context() = default;
+
+    virtual std::string_view SceneData() const = 0;
+    virtual const std::vector<std::string>& Strings() const = 0;
+    virtual const std::vector<int>& Labels() const = 0;
+
+    virtual const std::vector<Property>& SceneProperties() const = 0;
+    virtual const std::vector<Property>& GlobalProperties() const = 0;
+    virtual const std::vector<Command>& SceneCommands() const = 0;
+    virtual const std::vector<Command>& GlobalCommands() const = 0;
+
+    virtual int SceneId() const = 0;
+    virtual std::string GetDebugTitle() const = 0;
+  };
+
+  Parser(Context& ctx, std::shared_ptr<OutputBuffer> out = nullptr);
 
   void ParseAll();
 
@@ -122,8 +134,7 @@ class Parser {
   }
 
  public:
-  Archive& archive_;
-  Scene& scene_;
+  Context& ctx_;
   std::shared_ptr<OutputBuffer> out_;
 
   ByteReader reader_;
@@ -133,9 +144,9 @@ class Parser {
 
   int var_cnt_;
   std::multimap<int, int> offset2labels_;
-  std::unordered_map<int, Command*> offset2cmd_;
+  std::unordered_map<int, const Command*> offset2cmd_;
 
-  Command* curcall_cmd_ = nullptr;
+  const Command* curcall_cmd_ = nullptr;
   std::vector<Type> curcall_args_;
 };
 
