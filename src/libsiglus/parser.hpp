@@ -137,9 +137,9 @@ class Parser {
   Context& ctx_;
 
   ByteReader reader_;
-  int lineno_;
+  int lineno_ = 0;
   Stack stack_;
-  int var_cnt_;
+  int var_cnt_ = 0;
   std::multimap<int, int> offset2labels_;
   std::unordered_map<int, const Command*> offset2cmd_;
 

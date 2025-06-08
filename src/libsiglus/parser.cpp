@@ -36,19 +36,7 @@ using namespace token;
 // class Parser
 static DomainLogger logger("Parser");
 
-Parser::Parser(Context& ctx)
-    : ctx_(ctx), reader_(ctx.SceneData()), lineno_(0), var_cnt_(0) {
-  for (size_t i = 0; i < ctx.Labels().size(); ++i) {
-    offset2labels_.emplace(ctx.Labels()[i], i);  // (location, lid)
-  }
-
-  for (size_t i = 0; i < ctx.SceneCommands().size(); ++i)
-    offset2cmd_.emplace(ctx.SceneCommands()[i].offset, &ctx.SceneCommands()[i]);
-  for (size_t i = 0; i < ctx.GlobalCommands().size(); ++i)
-    if (ctx.GlobalCommands()[i].scene_id == ctx.SceneId())
-      offset2cmd_.emplace(ctx.GlobalCommands()[i].offset,
-                          &ctx.GlobalCommands()[i]);
-}
+Parser::Parser(Context& ctx) : ctx_(ctx), reader_("") {}
 
 Value Parser::add_var(Type type) {
   Variable var(type, var_cnt_++);
@@ -95,18 +83,15 @@ Value Parser::pop_arg(const ArgumentList::node_t& node) {
 
 void Parser::push(const token::GetProperty& prop) {
   Type type = Typeof(prop.dst);
+
   switch (type) {
     case Type::Int:
     case Type::String:
       push(prop.dst);
       break;
 
-    case Type::Object:
-      push(prop.elmcode);
-      break;
-
     default:
-      logger(Severity::Warn) << "property ignored: " << prop.ToDebugString();
+      push(prop.elmcode);
       break;
   }
 }
@@ -114,6 +99,22 @@ void Parser::push(const token::GetProperty& prop) {
 void Parser::add_label(int id) { emit_token(Label{id}); }
 
 void Parser::ParseAll() {
+  reader_ = ByteReader(ctx_.SceneData());
+  var_cnt_ = lineno_ = 0;
+  offset2cmd_.clear();
+  offset2labels_.clear();
+  stack_.Clear();
+
+  for (size_t i = 0; i < ctx_.Labels().size(); ++i)
+    offset2labels_.emplace(ctx_.Labels()[i], i);  // (location, lid)
+  for (size_t i = 0; i < ctx_.SceneCommands().size(); ++i)
+    offset2cmd_.emplace(ctx_.SceneCommands()[i].offset,
+                        &ctx_.SceneCommands()[i]);
+  for (size_t i = 0; i < ctx_.GlobalCommands().size(); ++i)
+    if (ctx_.GlobalCommands()[i].scene_id == ctx_.SceneId())
+      offset2cmd_.emplace(ctx_.GlobalCommands()[i].offset,
+                          &ctx_.GlobalCommands()[i]);
+
   while (reader_.Position() < reader_.Size()) {
     // Add labels
     for (auto [begin, end] = offset2labels_.equal_range(reader_.Position());
@@ -293,6 +294,7 @@ void Parser::Add(lex::Gosub s) {
   tok.args = std::move(args);
   tok.entry_id = s.label_;
 
+  push(tok.dst);
   emit_token(std::move(tok));
 }
 

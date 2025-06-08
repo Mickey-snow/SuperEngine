@@ -23,9 +23,9 @@
 
 #include <gtest/gtest.h>
 
-#include <boost/container/small_vector.hpp>
-
 #include "libsiglus/callable_builder.hpp"
+
+namespace siglus_test {
 
 using namespace libsiglus::elm::callable_builder;
 using namespace libsiglus::elm;
@@ -92,3 +92,5 @@ TEST(CallableDsl, Vararg) {
       fn("foo")[any](Type::Int, va_arg(Type::String)).ret(Type::None));
   EXPECT_EQ(foo.ToDebugString(), ".<callable foo[](int,str...)->null_t>");
 }
+
+}  // namespace siglus_test

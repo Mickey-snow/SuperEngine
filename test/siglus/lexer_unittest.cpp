@@ -31,6 +31,7 @@
 #include <string_view>
 #include <vector>
 
+namespace siglus_test {
 using namespace libsiglus;
 
 template <typename T>
@@ -275,3 +276,5 @@ TEST_F(LexerTest, Return) {
     EXPECT_EQ(std::visit(ByteLengthOf(), result), 13);
   }
 }
+
+}  // namespace siglus_test

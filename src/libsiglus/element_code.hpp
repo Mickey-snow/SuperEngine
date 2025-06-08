@@ -80,12 +80,13 @@ class ElementCode {
     os << "elm<";
     bool first = true;
     for (auto const& it : elm.code) {
-      os << ToString(it);
       if (!first)
         os << ',';
-      else
-        first = false;
+      first = false;
+
+      os << ToString(it);
     }
+    os << '>';
     return os;
   }
 };
