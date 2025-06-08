@@ -44,12 +44,6 @@ namespace libsiglus {
 
 class Parser {
  public:
-  class OutputBuffer {
-   public:
-    virtual ~OutputBuffer() = default;
-    virtual void operator=(token::Token_t) = 0;
-  };
-
   class Context {
    public:
     virtual ~Context() = default;
@@ -65,9 +59,11 @@ class Parser {
 
     virtual int SceneId() const = 0;
     virtual std::string GetDebugTitle() const = 0;
+
+    virtual void Emit(token::Token_t) = 0;
   };
 
-  Parser(Context& ctx, std::shared_ptr<OutputBuffer> out = nullptr);
+  Parser(Context& ctx);
 
   void ParseAll();
 
@@ -75,7 +71,7 @@ class Parser {
   // helpers
   template <typename T>
   inline void emit_token(T&& t) {
-    (*out_) = std::forward<T>(t);
+    ctx_.Emit(std::forward<T>(t));
   }
 
   inline auto read_kidoku() { return reader_.PopAs<int>(4); }
@@ -135,13 +131,10 @@ class Parser {
 
  public:
   Context& ctx_;
-  std::shared_ptr<OutputBuffer> out_;
 
   ByteReader reader_;
-
   int lineno_;
   Stack stack_;
-
   int var_cnt_;
   std::multimap<int, int> offset2labels_;
   std::unordered_map<int, const Command*> offset2cmd_;

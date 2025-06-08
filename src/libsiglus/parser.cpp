@@ -36,16 +36,8 @@ using namespace token;
 // class Parser
 static DomainLogger logger("Parser");
 
-Parser::Parser(Context& ctx, std::shared_ptr<OutputBuffer> out)
-    : ctx_(ctx), out_(out), reader_(ctx.SceneData()), lineno_(0), var_cnt_(0) {
-  if (out_ == nullptr) {
-    class Dummy : public OutputBuffer {
-     public:
-      void operator=(token::Token_t) override {}
-    };
-    out_ = std::make_shared<Dummy>();
-  }
-
+Parser::Parser(Context& ctx)
+    : ctx_(ctx), reader_(ctx.SceneData()), lineno_(0), var_cnt_(0) {
   for (size_t i = 0; i < ctx.Labels().size(); ++i) {
     offset2labels_.emplace(ctx.Labels()[i], i);  // (location, lid)
   }
