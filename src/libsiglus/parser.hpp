@@ -27,7 +27,6 @@
 #include "libsiglus/lexeme.hpp"
 #include "libsiglus/lexer.hpp"
 #include "libsiglus/property.hpp"
-#include "libsiglus/scene.hpp"
 #include "libsiglus/stack.hpp"
 #include "libsiglus/token.hpp"
 #include "libsiglus/value.hpp"
@@ -39,31 +38,44 @@
 #include <string>
 #include <unordered_map>
 #include <variant>
+#include <vector>
 
 namespace libsiglus {
 
-class Archive;
-class Scene;
-
 class Parser {
  public:
-  class OutputBuffer {
+  class Context {
    public:
-    virtual ~OutputBuffer() = default;
-    virtual void operator=(token::Token_t) = 0;
+    virtual ~Context() = default;
+
+    virtual std::string_view SceneData() const = 0;
+    virtual const std::vector<std::string>& Strings() const = 0;
+    virtual const std::vector<int>& Labels() const = 0;
+
+    virtual const std::vector<Property>& SceneProperties() const = 0;
+    virtual const std::vector<Property>& GlobalProperties() const = 0;
+    virtual const std::vector<Command>& SceneCommands() const = 0;
+    virtual const std::vector<Command>& GlobalCommands() const = 0;
+
+    virtual int SceneId() const = 0;
+    virtual std::string GetDebugTitle() const = 0;
+
+    virtual void Emit(token::Token_t) = 0;
   };
 
-  Parser(Archive& archive,
-         Scene& scene,
-         std::shared_ptr<OutputBuffer> out = nullptr);
+  Parser(Context& ctx);
 
   void ParseAll();
+  inline void Add(Lexeme lex) {
+    std::visit([&](auto&& x) { this->Add(std::forward<decltype(x)>(x)); },
+               std::move(lex));
+  }
 
  private:
   // helpers
   template <typename T>
   inline void emit_token(T&& t) {
-    (*out_) = std::forward<T>(t);
+    ctx_.Emit(std::forward<T>(t));
   }
 
   inline auto read_kidoku() { return reader_.PopAs<int>(4); }
@@ -122,20 +134,16 @@ class Parser {
   }
 
  public:
-  Archive& archive_;
-  Scene& scene_;
-  std::shared_ptr<OutputBuffer> out_;
+  Context& ctx_;
 
   ByteReader reader_;
-
   int lineno_;
   Stack stack_;
-
   int var_cnt_;
   std::multimap<int, int> offset2labels_;
-  std::unordered_map<int, Command*> offset2cmd_;
+  std::unordered_map<int, const Command*> offset2cmd_;
 
-  Command* curcall_cmd_ = nullptr;
+  const Command* curcall_cmd_ = nullptr;
   std::vector<Type> curcall_args_;
 };
 

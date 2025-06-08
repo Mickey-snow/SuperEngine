@@ -28,6 +28,7 @@
 #include "libsiglus/gexedat.hpp"
 #include "libsiglus/parser.hpp"
 #include "libsiglus/xorkey.hpp"
+#include "parser_context.hpp"
 #include "utilities/string_utilities.hpp"
 
 #include <filesystem>
@@ -92,16 +93,19 @@ void Dumper::DumpScene(size_t id, std::ostream& out) {
   Scene& scn = archive_.scndata_[id];
   out << id << ' ' << scn.scnname_ << std::endl;
 
-  struct TokenDumper : public Parser::OutputBuffer {
+  struct Context : public ParserContext {
+    Context(Archive& ar, Scene& sc, std::ostream& o)
+        : ParserContext(ar, sc), idx(1), out(o) {}
     size_t idx;
     std::ostream& out;
-    TokenDumper(std::ostream& o) : idx(1), out(o) {}
-    void operator=(token::Token_t tok) final {
+
+    void Emit(token::Token_t tok) final {
       out << idx++ << ": " << ToString(tok) << std::endl;
     }
   };
 
-  Parser parser(archive_, scn, std::make_shared<TokenDumper>(out));
+  Context ctx(archive_, scn, out);
+  Parser parser(ctx);
 
   try {
     parser.ParseAll();

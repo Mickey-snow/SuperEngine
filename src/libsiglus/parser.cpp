@@ -36,32 +36,18 @@ using namespace token;
 // class Parser
 static DomainLogger logger("Parser");
 
-Parser::Parser(Archive& archive,
-               Scene& scene,
-               std::shared_ptr<OutputBuffer> out)
-    : archive_(archive),
-      scene_(scene),
-      out_(out),
-      reader_(scene_.scene_),
-      lineno_(0),
-      var_cnt_(0) {
-  if (out_ == nullptr) {
-    class Dummy : public OutputBuffer {
-     public:
-      void operator=(token::Token_t) override {}
-    };
-    out_ = std::make_shared<Dummy>();
+Parser::Parser(Context& ctx)
+    : ctx_(ctx), reader_(ctx.SceneData()), lineno_(0), var_cnt_(0) {
+  for (size_t i = 0; i < ctx.Labels().size(); ++i) {
+    offset2labels_.emplace(ctx.Labels()[i], i);  // (location, lid)
   }
 
-  for (size_t i = 0; i < scene.label.size(); ++i) {
-    offset2labels_.emplace(scene.label[i], i);  // (location, lid)
-  }
-
-  for (size_t i = 0; i < scene.cmd.size(); ++i)
-    offset2cmd_.emplace(scene.cmd[i].offset, scene.cmd.data() + i);
-  for (size_t i = 0; i < archive.cmd_.size(); ++i)
-    if (archive.cmd_[i].scene_id == scene.id_)
-      offset2cmd_.emplace(archive.cmd_[i].offset, archive.cmd_.data() + i);
+  for (size_t i = 0; i < ctx.SceneCommands().size(); ++i)
+    offset2cmd_.emplace(ctx.SceneCommands()[i].offset, &ctx.SceneCommands()[i]);
+  for (size_t i = 0; i < ctx.GlobalCommands().size(); ++i)
+    if (ctx.GlobalCommands()[i].scene_id == ctx.SceneId())
+      offset2cmd_.emplace(ctx.GlobalCommands()[i].offset,
+                          &ctx.GlobalCommands()[i]);
 }
 
 Value Parser::add_var(Type type) {
@@ -147,9 +133,7 @@ void Parser::ParseAll() {
     try {  // parse
       static Lexer lexer;
       auto lex = lexer.Parse(reader_);
-
-      std::visit([&](auto&& x) { this->Add(std::forward<decltype(x)>(x)); },
-                 std::move(lex));
+      Add(std::move(lex));
     } catch (std::runtime_error& e) {
       std::string stack_dbgstr = "\nstack:\n" + stack_.ToDebugString();
       throw std::runtime_error(e.what() + std::move(stack_dbgstr));
@@ -163,7 +147,7 @@ void Parser::Add(lex::Push p) {
       push(Integer(p.value_));
       break;
     case Type::String:
-      push(String(scene_.str_[p.value_]));
+      push(String(ctx_.Strings()[p.value_]));
       break;
 
     default:  // ignore
@@ -349,7 +333,7 @@ void Parser::Add(lex::EndOfScene) {
 void Parser::debug_assert_stack_empty() {
   if (!stack_.Empty()) {
     auto rec = logger(Severity::Info);
-    rec << "at " << scene_.GetDebugTitle() << '\n';
+    rec << "at " << ctx_.GetDebugTitle() << '\n';
     rec << "at line " << lineno_ << ", expected stack to be empty. but got:\n";
     rec << stack_.ToDebugString();
     stack_.Clear();
@@ -376,11 +360,11 @@ elm::AccessChain Parser::resolve_usrcmd(const ElementCode& elmcode,
                                         size_t idx) {
   auto chain = elm::AccessChain();
 
-  libsiglus::Command* cmd = nullptr;
-  if (idx < archive_.cmd_.size())
-    cmd = archive_.cmd_.data() + idx;
+  const libsiglus::Command* cmd = nullptr;
+  if (idx < ctx_.GlobalCommands().size())
+    cmd = &ctx_.GlobalCommands()[idx];
   else
-    cmd = scene_.cmd.data() + (idx - archive_.cmd_.size());
+    cmd = &ctx_.SceneCommands()[idx - ctx_.GlobalCommands().size()];
 
   if (cmd->name.starts_with("$$pos_convert")) {
     [[maybe_unused]]
@@ -398,18 +382,18 @@ elm::AccessChain Parser::resolve_usrprop(const ElementCode& elmcode,
   elm::Usrprop root;
   Type root_type;
 
-  if (idx < archive_.prop_.size()) {
-    const auto& incprop = archive_.prop_[idx];
+  if (idx < ctx_.GlobalProperties().size()) {
+    const auto& incprop = ctx_.GlobalProperties()[idx];
     root.name = incprop.name;
     root_type = incprop.form;
     root.scene = -1;  // global
     root.idx = idx;
   } else {
-    idx -= archive_.prop_.size();
-    const auto& usrprop = scene_.property[idx];
+    idx -= ctx_.GlobalProperties().size();
+    const auto& usrprop = ctx_.SceneProperties()[idx];
     root.name = usrprop.name;
     root_type = usrprop.form;
-    root.scene = scene_.id_;
+    root.scene = ctx_.SceneId();
     root.idx = idx;
   }
 
