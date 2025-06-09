@@ -24,6 +24,7 @@
 #include "libsiglus/parser.hpp"
 
 #include "libsiglus/archive.hpp"
+#include "libsiglus/callable_builder.hpp"
 #include "libsiglus/lexeme.hpp"
 #include "libsiglus/scene.hpp"
 #include "log/domain_logger.hpp"
@@ -52,14 +53,15 @@ Value Parser::pop(Type type) {
       return stack_.Popint();
     case Type::String:
       return stack_.Popstr();
-    case Type::Object: {
-      ElementCode elmcode = stack_.Popelm();
-      Value dst = add_var(Type::Object);
-      emit_token(GetProperty{
-          .elmcode = elmcode, .chain = resolve_element(elmcode), .dst = dst});
-      return dst;
-    }
-    default:  // ignore
+
+    case Type::Other:  // ignore
+    case Type::Invalid:
+    case Type::Callable:
+    case Type::None:
+      return {};
+
+    default:
+      stack_.Popelm();
       return {};
   }
 }
@@ -335,7 +337,7 @@ void Parser::Add(lex::EndOfScene) {
 void Parser::debug_assert_stack_empty() {
   if (!stack_.Empty()) {
     auto rec = logger(Severity::Info);
-    rec << "at " << ctx_.GetDebugTitle() << '\n';
+    rec << "at " << ctx_.SceneId() << ':' << ctx_.GetDebugTitle() << '\n';
     rec << "at line " << lineno_ << ", expected stack to be empty. but got:\n";
     rec << stack_.ToDebugString();
     stack_.Clear();
@@ -368,11 +370,6 @@ elm::AccessChain Parser::resolve_usrcmd(const ElementCode& elmcode,
   else
     cmd = &ctx_.SceneCommands()[idx - ctx_.GlobalCommands().size()];
 
-  if (cmd->name.starts_with("$$pos_convert")) {
-    [[maybe_unused]]
-
-    volatile int dummy = -1;
-  }
   chain.root = elm::Usrcmd{
       .scene = cmd->scene_id, .entry = cmd->offset, .name = cmd->name};
   // return type?
@@ -403,6 +400,8 @@ elm::AccessChain Parser::resolve_usrprop(const ElementCode& elmcode,
 }
 
 elm::AccessChain Parser::make_element(const ElementCode& elmcode) {
+  using namespace libsiglus::elm::callable_builder;
+
   auto elm = elmcode.IntegerView();
   int root = elm.front();
 
@@ -458,10 +457,21 @@ elm::AccessChain Parser::make_element(const ElementCode& elmcode) {
         return elm::make_chain(Type::StrList, elm::Sym("K"), elmcode, 2);
     } break;
 
-    case 18: {  // KOE
+    case 18:  // KOE
+    case 90:  // KOE_PLAY_WAIT
+    case 91:  // KOE_PLAY_WAIT_KEY
       read_kidoku();
       break;
-    }
+
+    case 19:   // SEL
+    case 101:  // SEL_CANCEL
+      read_kidoku();
+      break;
+
+    case 100:  // SELMSG
+    case 102:  // SELMSG_CANCEL
+      read_kidoku();
+      break;
 
     case 76:   // SELBTN
     case 77:   // SELBTN_READY
@@ -489,8 +499,8 @@ elm::AccessChain Parser::make_element(const ElementCode& elmcode) {
                              elmcode, 1);
 
     case 12:  // MWND_PRINT
-      return elm::AccessChain{
-          .root = {Type::Callable, elm::Print(read_kidoku())}, .nodes = {}};
+      read_kidoku();
+      break;
 
     case 49:  // STAGE
       return elm::make_chain(Type::StageList, elm::Sym("stage"), elmcode, 1);

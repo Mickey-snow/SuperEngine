@@ -39,7 +39,6 @@ std::string Usrprop::ToDebugString() const {
 }
 std::string Mem::ToDebugString() const { return std::string{bank}; }
 std::string Sym::ToDebugString() const { return name; }
-std::string Print::ToDebugString() const { return "print"; }
 std::string Arg::ToDebugString() const { return "arg_" + std::to_string(id); }
 std::string Member::ToDebugString() const { return '.' + std::string(name); }
 std::string Call::ToDebugString() const {

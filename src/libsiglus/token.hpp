@@ -44,12 +44,14 @@ struct Command {
   Value dst;
 
   std::string ToDebugString() const;
+  bool operator==(const Command&) const = default;
 };
 
 struct Name {
   Value str;
 
   std::string ToDebugString() const;
+  bool operator==(const Name&) const = default;
 };
 
 struct Textout {
@@ -57,6 +59,7 @@ struct Textout {
   Value str;
 
   std::string ToDebugString() const;
+  bool operator==(const Textout&) const = default;
 };
 
 struct GetProperty {
@@ -65,11 +68,13 @@ struct GetProperty {
   elm::AccessChain chain;
   Value dst;
   std::string ToDebugString() const;
+  bool operator==(const GetProperty&) const = default;
 };
 
 struct Goto {
   int label;
   std::string ToDebugString() const;
+  bool operator==(const Goto&) const = default;
 };
 
 struct GotoIf {
@@ -79,11 +84,13 @@ struct GotoIf {
   Value src;
 
   std::string ToDebugString() const;
+  bool operator==(const GotoIf&) const = default;
 };
 
 struct Label {
   int id;
   std::string ToDebugString() const;
+  bool operator==(const Label&) const = default;
 };
 
 struct Operate1 {
@@ -91,6 +98,7 @@ struct Operate1 {
   Value rhs, dst;
   std::optional<Value> val;  // if can be eval at compile time
   std::string ToDebugString() const;
+  bool operator==(const Operate1&) const = default;
 };
 
 struct Operate2 {
@@ -98,6 +106,7 @@ struct Operate2 {
   Value lhs, rhs, dst;
   std::optional<Value> val;  // if can be eval at compile time
   std::string ToDebugString() const;
+  bool operator==(const Operate2&) const = default;
 };
 
 struct Assign {
@@ -105,11 +114,13 @@ struct Assign {
   elm::AccessChain dst;
   Value src;
   std::string ToDebugString() const;
+  bool operator==(const Assign&) const = default;
 };
 
 struct Duplicate {
   Value src, dst;
   std::string ToDebugString() const;
+  bool operator==(const Duplicate&) const = default;
 };
 
 struct Gosub {
@@ -117,21 +128,25 @@ struct Gosub {
   std::vector<Value> args;
   Value dst;
   std::string ToDebugString() const;
+  bool operator==(const Gosub&) const = default;
 };
 
 struct Subroutine {
   std::string name;
   std::vector<Type> args;
   std::string ToDebugString() const;
+  bool operator==(const Subroutine&) const = default;
 };
 
 struct Return {
   std::vector<Value> ret_vals;
   std::string ToDebugString() const;
+  bool operator==(const Return&) const = default;
 };
 
 struct Eof {
   std::string ToDebugString() const;
+  bool operator<=>(const Eof&) const = default;
 };
 
 using Token_t = std::variant<Command,

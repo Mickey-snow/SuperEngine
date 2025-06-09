@@ -133,7 +133,7 @@ class Parser {
     throw std::runtime_error(ss.str());
   }
 
- public:
+ private:
   Context& ctx_;
 
   ByteReader reader_;

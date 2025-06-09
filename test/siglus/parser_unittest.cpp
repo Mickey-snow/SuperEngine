@@ -36,7 +36,6 @@ class MockParserContext : public Parser::Context {
  public:
   MockParserContext(std::vector<token::Token_t>& out_buf) : output(out_buf) {}
 
-  // Mock all the virtual methods:
   MOCK_METHOD(std::string_view, SceneData, (), (const, override));
   MOCK_METHOD(const std::vector<std::string>&, Strings, (), (const, override));
   MOCK_METHOD(const std::vector<int>&, Labels, (), (const, override));
@@ -76,6 +75,19 @@ class SiglusParserTest : public ::testing::Test {
   inline void Parse(auto&&... params) {
     (parser.Add(Lexeme(std::forward<decltype(params)>(params))), ...);
   }
+
+  struct TokenArray {
+    std::vector<token::Token_t> tokens;
+    bool operator==(const TokenArray& other) const {
+      return tokens == other.tokens;
+    }
+    friend std::ostream& operator<<(std::ostream& os, const TokenArray& t) {
+      for (const auto& it : t.tokens)
+        os << ToString(it) << '\n';
+      return os;
+    }
+  };
+  inline TokenArray Tokens() const { return TokenArray(tokens); }
 };
 
 TEST_F(SiglusParserTest, Gosub) {
@@ -84,6 +96,52 @@ TEST_F(SiglusParserTest, Gosub) {
             Push{Type::Int, -1}, Push{Type::Int, 0},
             Gosub{.return_type_ = Type::Int, .label_ = 5, .argt_ = {}},
             Assign{.ltype_ = Type::Int, .rtype_ = Type::Int, .v1_ = 1}));
+}
+
+TEST_F(SiglusParserTest, Operate1) {
+  Parse(Push{Type::Int, 5}, Operate1{Type::Int, OperatorCode::Minus});
+
+  ASSERT_EQ(tokens.size(), 1u);
+  const auto& tok = std::get<token::Operate1>(tokens[0]);
+  EXPECT_EQ(tok.op, OperatorCode::Minus);
+  EXPECT_EQ(AsInt(tok.rhs), 5);
+  ASSERT_TRUE(tok.val.has_value());
+  EXPECT_EQ(AsInt(*tok.val), -5);
+  EXPECT_EQ(std::get<Variable>(tok.dst).id, 0);
+}
+
+TEST_F(SiglusParserTest, Operate2) {
+  Parse(Push{Type::Int, 10}, Push{Type::Int, 20},
+        Operate2{Type::Int, Type::Int, OperatorCode::Plus});
+
+  ASSERT_EQ(tokens.size(), 1u);
+  const auto& tok = std::get<token::Operate2>(tokens[0]);
+  EXPECT_EQ(tok.op, OperatorCode::Plus);
+  EXPECT_EQ(AsInt(tok.lhs), 10);
+  EXPECT_EQ(AsInt(tok.rhs), 20);
+  ASSERT_TRUE(tok.val.has_value());
+  EXPECT_EQ(AsInt(*tok.val), 30);
+  EXPECT_EQ(std::get<Variable>(tok.dst).id, 0);
+}
+
+TEST_F(SiglusParserTest, ConditionalGoto) {
+  Parse(Push{Type::Int, 1}, Goto{lex::Goto::Condition::True, 42});
+
+  ASSERT_EQ(tokens.size(), 1u);
+  const auto& tok = std::get<token::GotoIf>(tokens[0]);
+  EXPECT_TRUE(tok.cond);
+  EXPECT_EQ(tok.label, 42);
+  EXPECT_EQ(AsInt(tok.src), 1);
+}
+
+TEST_F(SiglusParserTest, AssignElement) {
+  Parse(Marker{}, Push{Type::Int, 25}, Push{Type::Int, 7},
+        Assign{Type::IntRef, Type::Int, 1});
+
+  ASSERT_EQ(tokens.size(), 1u);
+  const auto& tok = std::get<token::Assign>(tokens[0]);
+  EXPECT_EQ(tok.dst_elmcode, ElementCode{25});
+  EXPECT_EQ(AsInt(tok.src), 7);
 }
 
 }  // namespace siglus_test
