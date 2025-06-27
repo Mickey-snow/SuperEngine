@@ -441,7 +441,11 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
                 ctx.chain.nodes.emplace_back(Type::Invalid, Member("???"));
                 return;
             }
-          }));
+          }),
+          id[93] | b(Type::ObjList, Member("child")),
+          id[35] | b(Type::None, Call("init")),
+          id[36] | b(Type::None, Call("free")),
+          id[37] | b(Type::None, Call("init_param")));
       return &mp;
     }
 
@@ -462,12 +466,116 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
       return &mp;
     }
 
+    case Type::util: {
+      static const auto mp = make_flatmap<Builder>(
+          id[54] | callable(fn("wait")[any](Type::Int).ret(Type::None)),
+          id[55] | callable(fn("wait_key")[any](Type::Int).ret(Type::None)));
+      return &mp;
+    }
+
     default:
       return nullptr;
   }
 }
 
 // -----------------------------------------------------------------------
+AccessChain make_chain(ElementCode const& elmcode) {
+  using namespace libsiglus::elm::callable_builder;
+
+  auto elm = elmcode.IntegerView();
+  int root = elm.front();
+
+  switch (root) {
+    // ====== Memory Banks ======
+    case 25:  // A
+      return elm::make_chain(Type::IntList, elm::Sym("A"), elmcode, 1);
+    case 26:  // B
+      return elm::make_chain(Type::IntList, elm::Sym("B"), elmcode, 1);
+    case 27:  // C
+      return elm::make_chain(Type::IntList, elm::Sym("C"), elmcode, 1);
+    case 28:  // D
+      return elm::make_chain(Type::IntList, elm::Sym("D"), elmcode, 1);
+    case 29:  // E
+      return elm::make_chain(Type::IntList, elm::Sym("E"), elmcode, 1);
+    case 30:  // F
+      return elm::make_chain(Type::IntList, elm::Sym("F"), elmcode, 1);
+    case 137:  // X
+      return elm::make_chain(Type::IntList, elm::Sym("X"), elmcode, 1);
+    case 31:  // G
+      return elm::make_chain(Type::IntList, elm::Sym("G"), elmcode, 1);
+    case 32:  // Z
+      return elm::make_chain(Type::IntList, elm::Sym("Z"), elmcode, 1);
+
+    case 34:  // S
+      return elm::make_chain(Type::StrList, elm::Sym("S"), elmcode, 1);
+    case 35:  // M
+      return elm::make_chain(Type::StrList, elm::Sym("M"), elmcode, 1);
+    case 106:  // NAMAE_LOCAL
+      return elm::make_chain(Type::StrList, elm::Sym("LN"), elmcode, 1);
+    case 107:  // NAMAE_GLOBAL
+      return elm::make_chain(Type::StrList, elm::Sym("GN"), elmcode, 1);
+
+      // ====== Title ======
+    case 74:  // SET_TITLE
+      return elm::make_chain(Type::Callable, elm::Sym("set_title"), elmcode, 1);
+
+    case 75:  // GET_TITLE
+      return elm::make_chain(Type::Callable, elm::Sym("get_title"), elmcode, 1);
+
+      // ====== Uncategorized ======
+    case 5:  // FARCALL
+      return elm::make_chain(Type::Callable, elm::Sym("farcall"), elmcode, 1);
+
+    case 49:  // STAGE
+      return elm::make_chain(Type::StageList, elm::Sym("stage"), elmcode, 1);
+    case 37:  // BACK
+      return elm::make_chain(Type::Stage, elm::Sym("stage_back"), elmcode, 1);
+    case 38:  // FRONT
+      return elm::make_chain(Type::Stage, elm::Sym("stage_front"), elmcode, 1);
+    case 73:  // NEXT
+      return elm::make_chain(Type::Stage, elm::Sym("stage_next"), elmcode, 1);
+
+    case 65:  // EXCALL
+      return elm::make_chain(Type::Excall, elm::Sym("excall"), elmcode, 1);
+
+    case 135:  // MASK
+      return elm::make_chain(Type::MaskList, elm::Sym("mask"), elmcode, 1);
+
+    case 63:  // SYSCOM
+      return elm::make_chain(Type::Syscom, elm::Sym("syscom"), elmcode, 1);
+    case 64:  // SYSTEM
+      return elm::make_chain(Type::System, elm::Sym("system"), elmcode, 1);
+
+    case 54:
+      return elm::make_chain(Type::util, elm::Sym("__util"), elmcode, 0);
+    case 55:  // TIMEWAIT_KEY
+      return elm::make_chain(Type::util, elm::Sym("__util"), elmcode, 0);
+
+    case 92:  // SYSTEM
+      return elm::make_chain(Type::System, elm::Sym("os"), elmcode, 1);
+
+    case 40:  // COUNTER
+      return elm::make_chain(Type::CounterList, elm::Sym("counter"), elmcode,
+                             1);
+
+    case 79:  // FRAME_ACTION
+      return elm::make_chain(Type::FrameAction, elm::Sym("frame_action"),
+                             elmcode, 1);
+    case 53:  // FRAME_ACTION_CH
+      return elm::make_chain(Type::FrameActionList, elm::Sym("frame_action_ch"),
+                             elmcode, 1);
+
+    default: {
+      elm::AccessChain uke;
+      uke.root = elm::Sym('<' + ToString(elmcode.code.front()) + '>');
+      uke.nodes.reserve(elmcode.code.size() - 1);
+      for (size_t i = 1; i < elmcode.code.size(); ++i)
+        uke.nodes.emplace_back(elm::Val(elmcode.code[i]));
+      return uke;
+    }
+  }
+}
+
 AccessChain make_chain(Root root, std::span<const Value> elmcode) {
   AccessChain result{.root = std::move(root), .nodes = {}};
   result.nodes.reserve(elmcode.size());
@@ -492,6 +600,7 @@ AccessChain make_chain(Root root, std::span<const Value> elmcode) {
 
   return result;
 }
+
 AccessChain make_chain(Type root_type,
                        Root::var_t root_node,
                        ElementCode const& elmcode,

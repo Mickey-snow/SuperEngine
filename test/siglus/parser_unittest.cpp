@@ -139,6 +139,7 @@ TEST_F(SiglusParserTest, AssignElement) {
         Assign{Type::IntRef, Type::Int, 1});
 
   ASSERT_EQ(tokens.size(), 1u);
+  ASSERT_TRUE(std::holds_alternative<token::Assign>(tokens[0]));
   const auto& tok = std::get<token::Assign>(tokens[0]);
   EXPECT_EQ(tok.dst_elmcode, ElementCode{25});
   EXPECT_EQ(AsInt(tok.src), 7);

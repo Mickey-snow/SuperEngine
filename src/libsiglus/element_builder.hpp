@@ -31,6 +31,7 @@
 
 namespace libsiglus::elm {
 
+AccessChain make_chain(ElementCode const& elmcode);
 AccessChain make_chain(elm::Root root, std::span<const Value> elmcode);
 AccessChain make_chain(Type root_type,
                        Root::var_t root_node,

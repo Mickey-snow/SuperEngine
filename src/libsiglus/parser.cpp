@@ -399,6 +399,8 @@ elm::AccessChain Parser::resolve_usrprop(const ElementCode& elmcode,
   return elm::make_chain(root_type, std::move(root), elmcode, 1);
 }
 
+// Filter out scenario-dependent special cases, forward common cases to
+// elm::make_chain
 elm::AccessChain Parser::make_element(const ElementCode& elmcode) {
   using namespace libsiglus::elm::callable_builder;
 
@@ -406,43 +408,6 @@ elm::AccessChain Parser::make_element(const ElementCode& elmcode) {
   int root = elm.front();
 
   switch (root) {
-    case 25:  // A
-      return elm::make_chain(Type::IntList, elm::Sym("A"), elmcode, 1);
-    case 26:  // B
-      return elm::make_chain(Type::IntList, elm::Sym("B"), elmcode, 1);
-    case 27:  // C
-      return elm::make_chain(Type::IntList, elm::Sym("C"), elmcode, 1);
-    case 28:  // D
-      return elm::make_chain(Type::IntList, elm::Sym("D"), elmcode, 1);
-    case 29:  // E
-      return elm::make_chain(Type::IntList, elm::Sym("E"), elmcode, 1);
-    case 30:  // F
-      return elm::make_chain(Type::IntList, elm::Sym("F"), elmcode, 1);
-    case 137:  // X
-      return elm::make_chain(Type::IntList, elm::Sym("X"), elmcode, 1);
-    case 31:  // G
-      return elm::make_chain(Type::IntList, elm::Sym("G"), elmcode, 1);
-    case 32:  // Z
-      return elm::make_chain(Type::IntList, elm::Sym("Z"), elmcode, 1);
-
-    case 34:  // S
-      return elm::make_chain(Type::StrList, elm::Sym("S"), elmcode, 1);
-    case 35:  // M
-      return elm::make_chain(Type::StrList, elm::Sym("M"), elmcode, 1);
-    case 106:  // NAMAE_LOCAL
-      return elm::make_chain(Type::StrList, elm::Sym("LN"), elmcode, 1);
-    case 107:  // NAMAE_GLOBAL
-      return elm::make_chain(Type::StrList, elm::Sym("GN"), elmcode, 1);
-
-    case 5:  // FARCALL
-      return elm::make_chain(Type::Callable, elm::Sym("farcall"), elmcode, 1);
-
-    case 74:  // SET_TITLE
-      return elm::make_chain(Type::Callable, elm::Sym("set_title"), elmcode, 1);
-
-    case 75:  // GET_TITLE
-      return elm::make_chain(Type::Callable, elm::Sym("get_title"), elmcode, 1);
-
     case 83: {  // CUR_CALL
       const int elmcall = elm[1];
       if ((elmcall >> 24) == 0x7d) {
@@ -457,11 +422,16 @@ elm::AccessChain Parser::make_element(const ElementCode& elmcode) {
         return elm::make_chain(Type::StrList, elm::Sym("K"), elmcode, 2);
     } break;
 
+      // ====== KOE(Sound) ======
+      // needs kidoku flag
     case 18:  // KOE
     case 90:  // KOE_PLAY_WAIT
     case 91:  // KOE_PLAY_WAIT_KEY
       read_kidoku();
       break;
+
+      // ====== SEL ======
+      // some needs kidoku flag
 
     case 19:   // SEL
     case 101:  // SEL_CANCEL
@@ -484,49 +454,16 @@ elm::AccessChain Parser::make_element(const ElementCode& elmcode) {
       break;
     }
 
-    case 92:  // SYSTEM
-      return elm::make_chain(Type::System, elm::Sym("os"), elmcode, 1);
-
-    case 40:  // COUNTER
-      return elm::make_chain(Type::CounterList, elm::Sym("counter"), elmcode,
-                             1);
-
-    case 79:  // FRAME_ACTION
-      return elm::make_chain(Type::FrameAction, elm::Sym("frame_action"),
-                             elmcode, 1);
-    case 53:  // FRAME_ACTION_CH
-      return elm::make_chain(Type::FrameActionList, elm::Sym("frame_action_ch"),
-                             elmcode, 1);
-
     case 12:  // MWND_PRINT
       read_kidoku();
       break;
 
-    case 49:  // STAGE
-      return elm::make_chain(Type::StageList, elm::Sym("stage"), elmcode, 1);
-    case 37:  // BACK
-      return elm::make_chain(Type::Stage, elm::Sym("stage_back"), elmcode, 1);
-    case 38:  // FRONT
-      return elm::make_chain(Type::Stage, elm::Sym("stage_front"), elmcode, 1);
-    case 73:  // NEXT
-      return elm::make_chain(Type::Stage, elm::Sym("stage_next"), elmcode, 1);
-
-    case 65:  // EXCALL
-      return elm::make_chain(Type::Excall, elm::Sym("excall"), elmcode, 1);
-
-    case 135:  // MASK
-      return elm::make_chain(Type::MaskList, elm::Sym("mask"), elmcode, 1);
-
+    [[likely]]
     default:
       break;
   }
 
-  elm::AccessChain uke;
-  uke.root = elm::Sym('<' + ToString(elmcode.code.front()) + '>');
-  uke.nodes.reserve(elmcode.code.size() - 1);
-  for (size_t i = 1; i < elmcode.code.size(); ++i)
-    uke.nodes.emplace_back(elm::Val(elmcode.code[i]));
-  return uke;
+  return elm::make_chain(elmcode);
 }
 
 }  // namespace libsiglus
