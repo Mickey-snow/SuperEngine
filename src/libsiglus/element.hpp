@@ -73,8 +73,33 @@ struct Arg {
   bool operator==(const Arg&) const = default;
 };
 
+struct Farcall {
+  std::string scn_name;
+  int zlabel = 0;
+  std::vector<Value> intargs;
+  std::vector<Value> strargs;
+
+  std::string ToDebugString() const;
+  bool operator==(const Farcall&) const = default;
+};
+
+struct Wait {
+  bool interruptable;
+  int time_ms;
+
+  std::string ToDebugString() const;
+  bool operator==(const Wait&) const = default;
+};
+
 struct Root {
-  using var_t = std::variant<Usrcmd, Usrprop, Mem, Sym, Arg>;
+  using var_t = std::variant<std::monostate,
+                             Usrcmd,
+                             Usrprop,
+                             Mem,
+                             Sym,  // <-- consider push down to node
+                             Arg,
+                             Farcall,
+                             Wait>;
   var_t var;
   Type type;
 
@@ -88,7 +113,14 @@ struct Root {
       : var(std::forward<Ts>(params)...), type(Type::Invalid) {}
 
   inline std::string ToDebugString() const {
-    return std::visit([](const auto& x) { return x.ToDebugString(); }, var);
+    return std::visit(
+        [](const auto& x) -> std::string {
+          if constexpr (std::same_as<std::decay_t<decltype(x)>, std::monostate>)
+            return "";
+          else
+            return x.ToDebugString();
+        },
+        var);
   }
   bool operator==(const Root&) const = default;
 };

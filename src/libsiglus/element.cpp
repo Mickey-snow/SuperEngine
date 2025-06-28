@@ -40,6 +40,17 @@ std::string Usrprop::ToDebugString() const {
 std::string Mem::ToDebugString() const { return std::string{bank}; }
 std::string Sym::ToDebugString() const { return name; }
 std::string Arg::ToDebugString() const { return "arg_" + std::to_string(id); }
+std::string Farcall::ToDebugString() const {
+  std::string repr = std::format("farcall@{}.z{}", scn_name, zlabel);
+  repr += '(' + Join(",", vals_to_string(intargs)) + ')';
+  repr += '(' + Join(",", vals_to_string(strargs)) + ')';
+  return repr;
+}
+std::string Wait::ToDebugString() const {
+  std::string repr = interruptable ? "wait_key" : "wait";
+  repr += '(' + std::to_string(time_ms) + ')';
+  return repr;
+}
 std::string Member::ToDebugString() const { return '.' + std::string(name); }
 std::string Call::ToDebugString() const {
   return std::format(".{}({})", name, Join(",", vals_to_string(args)));

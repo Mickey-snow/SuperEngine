@@ -396,7 +396,7 @@ elm::AccessChain Parser::resolve_usrprop(const ElementCode& elmcode,
     root.idx = idx;
   }
 
-  return elm::make_chain(root_type, std::move(root), elmcode, 1);
+  return elm::MakeChain(root_type, std::move(root), elmcode, 1);
 }
 
 // Filter out scenario-dependent special cases, forward common cases to
@@ -412,14 +412,14 @@ elm::AccessChain Parser::make_element(const ElementCode& elmcode) {
       const int elmcall = elm[1];
       if ((elmcall >> 24) == 0x7d) {
         auto id = (elmcall ^ (0x7d << 24));
-        return elm::make_chain(curcall_args_[id], elm::Arg(id), elmcode, 2);
+        return elm::MakeChain(curcall_args_[id], elm::Arg(id), elmcode, 2);
       }
 
       else if (elmcall == 0)
-        return elm::make_chain(Type::IntList, elm::Sym("L"), elmcode, 2);
+        return elm::MakeChain(Type::IntList, elm::Sym("L"), elmcode, 2);
 
       else if (elmcall == 1)
-        return elm::make_chain(Type::StrList, elm::Sym("K"), elmcode, 2);
+        return elm::MakeChain(Type::StrList, elm::Sym("K"), elmcode, 2);
     } break;
 
       // ====== KOE(Sound) ======
@@ -463,7 +463,7 @@ elm::AccessChain Parser::make_element(const ElementCode& elmcode) {
       break;
   }
 
-  return elm::make_chain(elmcode);
+  return elm::MakeChain(elmcode);
 }
 
 }  // namespace libsiglus

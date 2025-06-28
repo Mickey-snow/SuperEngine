@@ -27,15 +27,26 @@
 #include "libsiglus/element_code.hpp"
 #include "libsiglus/types.hpp"
 
+#include <optional>
 #include <span>
 
 namespace libsiglus::elm {
 
-AccessChain make_chain(ElementCode const& elmcode);
-AccessChain make_chain(elm::Root root, std::span<const Value> elmcode);
-AccessChain make_chain(Type root_type,
-                       Root::var_t root_node,
-                       ElementCode const& elmcode,
-                       size_t subidx = 0);
+struct BindCtx {
+  int overload = 0;
+  std::vector<Value> arglist = {};
+  std::vector<std::pair<int, Value>> named_arglist = {};
+  std::optional<Type> ret_type = std::nullopt;
+};
+
+AccessChain MakeChain(ElementCode const& elmcode, BindCtx bind = {});
+AccessChain MakeChain(elm::Root root,
+                      std::span<const Value> elmcode,
+                      BindCtx bind = {});
+AccessChain MakeChain(Type root_type,
+                      Root::var_t root_node,
+                      ElementCode const& elmcode,
+                      size_t subidx = 0,
+                      BindCtx bind = {});
 
 }  // namespace libsiglus::elm

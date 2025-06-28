@@ -33,7 +33,6 @@ enum class Type : uint32_t {
   Invalid = 0x7FFFFFFF,
   Other = 0x6FFFFFFF,
   Callable = 0x0FFFFFFF,
-  util,
 
   System,
   Math,

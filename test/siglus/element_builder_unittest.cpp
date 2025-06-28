@@ -24,6 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "libsiglus/element_builder.hpp"
+#include "utilities/mpl.hpp"
 
 namespace siglus_test {
 using namespace libsiglus::elm;
@@ -47,7 +48,24 @@ class AccessChainBuilderTest : public ::testing::Test {
     requires(std::same_as<Ts, int> && ...)
   ChainCtx chain(Ts&&... elms) {
     ElementCode elmcode{std::forward<Ts>(elms)...};
-    return ChainCtx{.chain = libsiglus::elm::make_chain(elmcode)};
+    return ChainCtx{.chain = elm::MakeChain(elmcode)};
+  }
+
+  template <typename... Ts>
+    requires(std::same_as<Ts, int> && ...)
+  ChainCtx chain(BindCtx bind, Ts&&... elms) {
+    ElementCode elmcode{std::forward<Ts>(elms)...};
+    return ChainCtx{.chain = elm::MakeChain(elmcode, std::move(bind))};
+  }
+
+  template <typename T>
+  inline static Value v(T param) {
+    if constexpr (std::same_as<T, int>)
+      return Value(Integer(param));
+    else if constexpr (std::constructible_from<std::string, T>)
+      return Value(String(std::move(param)));
+    else
+      static_assert(always_false<T>);
   }
 };
 
@@ -60,6 +78,17 @@ TEST_F(AccessChainBuilderTest, MemoryBank) {
   EXPECT_EQ(chain(30, 6, -1, 5), "F.b16[int:5]");
   EXPECT_EQ(chain(31, -1, 250), "G[int:250]");
   EXPECT_EQ(chain(32, -1, 251), "Z[int:251]");
+}
+
+TEST_F(AccessChainBuilderTest, Farcall) {
+  EXPECT_EQ(chain(BindCtx(0, {v("scnname")}), 5), "farcall@scnname.z0()()");
+  EXPECT_EQ(chain(BindCtx(1, {v("name"), v(1), v(2), v("3"), v(4)}), 5),
+            "farcall@name.z1(int:2,int:4)(str:3)");
+}
+
+TEST_F(AccessChainBuilderTest, TimeWait) {
+  EXPECT_EQ(chain(BindCtx(0, {v(123)}), 54), "wait(123)");
+  EXPECT_EQ(chain(BindCtx(0, {v(456)}), 55), "wait_key(456)");
 }
 
 }  // namespace siglus_test

@@ -24,6 +24,7 @@
 #include "libsiglus/element_builder.hpp"
 
 #include "libsiglus/callable_builder.hpp"
+#include "log/domain_logger.hpp"
 #include "utilities/flat_map.hpp"
 
 namespace libsiglus::elm {
@@ -466,20 +467,13 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
       return &mp;
     }
 
-    case Type::util: {
-      static const auto mp = make_flatmap<Builder>(
-          id[54] | callable(fn("wait")[any](Type::Int).ret(Type::None)),
-          id[55] | callable(fn("wait_key")[any](Type::Int).ret(Type::None)));
-      return &mp;
-    }
-
     default:
       return nullptr;
   }
 }
 
 // -----------------------------------------------------------------------
-AccessChain make_chain(ElementCode const& elmcode) {
+AccessChain MakeChain(ElementCode const& elmcode, BindCtx bind) {
   using namespace libsiglus::elm::callable_builder;
 
   auto elm = elmcode.IntegerView();
@@ -488,82 +482,110 @@ AccessChain make_chain(ElementCode const& elmcode) {
   switch (root) {
     // ====== Memory Banks ======
     case 25:  // A
-      return elm::make_chain(Type::IntList, elm::Sym("A"), elmcode, 1);
+      return elm::MakeChain(Type::IntList, elm::Sym("A"), elmcode, 1);
     case 26:  // B
-      return elm::make_chain(Type::IntList, elm::Sym("B"), elmcode, 1);
+      return elm::MakeChain(Type::IntList, elm::Sym("B"), elmcode, 1);
     case 27:  // C
-      return elm::make_chain(Type::IntList, elm::Sym("C"), elmcode, 1);
+      return elm::MakeChain(Type::IntList, elm::Sym("C"), elmcode, 1);
     case 28:  // D
-      return elm::make_chain(Type::IntList, elm::Sym("D"), elmcode, 1);
+      return elm::MakeChain(Type::IntList, elm::Sym("D"), elmcode, 1);
     case 29:  // E
-      return elm::make_chain(Type::IntList, elm::Sym("E"), elmcode, 1);
+      return elm::MakeChain(Type::IntList, elm::Sym("E"), elmcode, 1);
     case 30:  // F
-      return elm::make_chain(Type::IntList, elm::Sym("F"), elmcode, 1);
+      return elm::MakeChain(Type::IntList, elm::Sym("F"), elmcode, 1);
     case 137:  // X
-      return elm::make_chain(Type::IntList, elm::Sym("X"), elmcode, 1);
+      return elm::MakeChain(Type::IntList, elm::Sym("X"), elmcode, 1);
     case 31:  // G
-      return elm::make_chain(Type::IntList, elm::Sym("G"), elmcode, 1);
+      return elm::MakeChain(Type::IntList, elm::Sym("G"), elmcode, 1);
     case 32:  // Z
-      return elm::make_chain(Type::IntList, elm::Sym("Z"), elmcode, 1);
+      return elm::MakeChain(Type::IntList, elm::Sym("Z"), elmcode, 1);
 
     case 34:  // S
-      return elm::make_chain(Type::StrList, elm::Sym("S"), elmcode, 1);
+      return elm::MakeChain(Type::StrList, elm::Sym("S"), elmcode, 1);
     case 35:  // M
-      return elm::make_chain(Type::StrList, elm::Sym("M"), elmcode, 1);
+      return elm::MakeChain(Type::StrList, elm::Sym("M"), elmcode, 1);
     case 106:  // NAMAE_LOCAL
-      return elm::make_chain(Type::StrList, elm::Sym("LN"), elmcode, 1);
+      return elm::MakeChain(Type::StrList, elm::Sym("LN"), elmcode, 1);
     case 107:  // NAMAE_GLOBAL
-      return elm::make_chain(Type::StrList, elm::Sym("GN"), elmcode, 1);
+      return elm::MakeChain(Type::StrList, elm::Sym("GN"), elmcode, 1);
 
       // ====== Title ======
-    case 74:  // SET_TITLE
-      return elm::make_chain(Type::Callable, elm::Sym("set_title"), elmcode, 1);
+    case 74: {  // SET_TITLE
+      Call set_title;
+      set_title.name = "set_title";
+      set_title.args = {bind.arglist[0]};
+      return AccessChain{.root = std::monostate(),
+                         .nodes = {std::move(set_title)}};
+    }
 
     case 75:  // GET_TITLE
-      return elm::make_chain(Type::Callable, elm::Sym("get_title"), elmcode, 1);
+      return elm::MakeChain(Type::String, elm::Sym("get_title"), elmcode, 1);
 
       // ====== Uncategorized ======
-    case 5:  // FARCALL
-      return elm::make_chain(Type::Callable, elm::Sym("farcall"), elmcode, 1);
+    case 5: {  // FARCALL
+      Farcall farcall;
+      farcall.scn_name = AsStr(bind.arglist[0]);
+
+      if (bind.overload == 1) {  // additionally has zlabel and arguments
+        farcall.zlabel = AsInt(bind.arglist[1]);
+        for (auto& arg : std::views::drop(bind.arglist, 2)) {
+          switch (Typeof(arg)) {
+            case Type::Int:
+              farcall.intargs.emplace_back(std::move(arg));
+              break;
+            case Type::String:
+              farcall.strargs.emplace_back(std::move(arg));
+              break;
+            default:
+              throw std::runtime_error(
+                  "Farcall: Expected int or str, but got " + ToString(arg));
+          }
+        }
+      }
+
+      return AccessChain{.root = std::move(farcall)};
+    }
 
     case 49:  // STAGE
-      return elm::make_chain(Type::StageList, elm::Sym("stage"), elmcode, 1);
+      return elm::MakeChain(Type::StageList, elm::Sym("stage"), elmcode, 1);
     case 37:  // BACK
-      return elm::make_chain(Type::Stage, elm::Sym("stage_back"), elmcode, 1);
+      return elm::MakeChain(Type::Stage, elm::Sym("stage_back"), elmcode, 1);
     case 38:  // FRONT
-      return elm::make_chain(Type::Stage, elm::Sym("stage_front"), elmcode, 1);
+      return elm::MakeChain(Type::Stage, elm::Sym("stage_front"), elmcode, 1);
     case 73:  // NEXT
-      return elm::make_chain(Type::Stage, elm::Sym("stage_next"), elmcode, 1);
+      return elm::MakeChain(Type::Stage, elm::Sym("stage_next"), elmcode, 1);
 
     case 65:  // EXCALL
-      return elm::make_chain(Type::Excall, elm::Sym("excall"), elmcode, 1);
+      return elm::MakeChain(Type::Excall, elm::Sym("excall"), elmcode, 1);
 
     case 135:  // MASK
-      return elm::make_chain(Type::MaskList, elm::Sym("mask"), elmcode, 1);
+      return elm::MakeChain(Type::MaskList, elm::Sym("mask"), elmcode, 1);
 
     case 63:  // SYSCOM
-      return elm::make_chain(Type::Syscom, elm::Sym("syscom"), elmcode, 1);
+      return elm::MakeChain(Type::Syscom, elm::Sym("syscom"), elmcode, 1);
     case 64:  // SYSTEM
-      return elm::make_chain(Type::System, elm::Sym("system"), elmcode, 1);
+      return elm::MakeChain(Type::System, elm::Sym("system"), elmcode, 1);
 
-    case 54:
-      return elm::make_chain(Type::util, elm::Sym("__util"), elmcode, 0);
-    case 55:  // TIMEWAIT_KEY
-      return elm::make_chain(Type::util, elm::Sym("__util"), elmcode, 0);
+    case 54:    // WAIT
+    case 55: {  // WAIT_KEY
+      Wait wait;
+      wait.interruptable = root == 55;
+      wait.time_ms = AsInt(bind.arglist[0]);
+      return AccessChain{.root = std::move(wait)};
+    }
 
     case 92:  // SYSTEM
-      return elm::make_chain(Type::System, elm::Sym("os"), elmcode, 1);
+      return elm::MakeChain(Type::System, elm::Sym("os"), elmcode, 1);
 
     case 40:  // COUNTER
-      return elm::make_chain(Type::CounterList, elm::Sym("counter"), elmcode,
-                             1);
+      return elm::MakeChain(Type::CounterList, elm::Sym("counter"), elmcode, 1);
 
     case 79:  // FRAME_ACTION
-      return elm::make_chain(Type::FrameAction, elm::Sym("frame_action"),
-                             elmcode, 1);
+      return elm::MakeChain(Type::FrameAction, elm::Sym("frame_action"),
+                            elmcode, 1);
     case 53:  // FRAME_ACTION_CH
-      return elm::make_chain(Type::FrameActionList, elm::Sym("frame_action_ch"),
-                             elmcode, 1);
+      return elm::MakeChain(Type::FrameActionList, elm::Sym("frame_action_ch"),
+                            elmcode, 1);
 
     default: {
       elm::AccessChain uke;
@@ -576,7 +598,7 @@ AccessChain make_chain(ElementCode const& elmcode) {
   }
 }
 
-AccessChain make_chain(Root root, std::span<const Value> elmcode) {
+AccessChain MakeChain(Root root, std::span<const Value> elmcode, BindCtx bind) {
   AccessChain result{.root = std::move(root), .nodes = {}};
   result.nodes.reserve(elmcode.size());
 
@@ -601,12 +623,45 @@ AccessChain make_chain(Root root, std::span<const Value> elmcode) {
   return result;
 }
 
-AccessChain make_chain(Type root_type,
-                       Root::var_t root_node,
-                       ElementCode const& elmcode,
-                       size_t subidx) {
-  return make_chain(Root(root_type, std::move(root_node)),
-                    std::span{elmcode.code}.subspan(subidx));
+AccessChain MakeChain(Type root_type,
+                      Root::var_t root_node,
+                      ElementCode const& elmcode,
+                      size_t subidx,
+                      BindCtx bind) {
+  return MakeChain(Root(root_type, std::move(root_node)),
+                   std::span{elmcode.code}.subspan(subidx), std::move(bind));
+}
+
+AccessChain Bind(AccessChain chain,
+                 int overload,
+                 std::vector<Value> arg,
+                 std::vector<std::pair<int, Value>> named_arg,
+                 std::optional<Type> ret_type) {
+  Callable* callable = std::get_if<Callable>(&chain.nodes.back().var);
+  if (callable == nullptr)
+    throw std::runtime_error("Bind: Expected callable, but got " +
+                             chain.ToDebugString());
+
+  auto candidate = std::find_if(
+      callable->overloads.begin(), callable->overloads.end(),
+      [overload](const Function& fn) {
+        return !fn.overload.has_value() || *fn.overload == overload;
+      });
+  if (candidate == callable->overloads.end())
+    throw std::runtime_error("Bind: Overload " + std::to_string(overload) +
+                             " not found in " + chain.ToDebugString());
+
+  // TODO: Implement binding logic
+
+  if (ret_type.has_value() && *ret_type != chain.GetType()) {
+    static DomainLogger logger("Bind");
+    auto rec = logger(Severity::Warn);
+    rec << "return type mismatch: " << ToString(*ret_type) << " vs "
+        << ToString(chain.GetType()) << '\n';
+    rec << chain.ToDebugString();
+  }
+
+  return chain;
 }
 
 }  // namespace libsiglus::elm
