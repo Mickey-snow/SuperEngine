@@ -44,18 +44,14 @@ class AccessChainBuilderTest : public ::testing::Test {
     }
   };
 
+  ChainCtx chain(ElementCode elm) {
+    return ChainCtx{.chain = elm::MakeChain(std::move(elm))};
+  }
   template <typename... Ts>
     requires(std::same_as<Ts, int> && ...)
   ChainCtx chain(Ts&&... elms) {
     ElementCode elmcode{std::forward<Ts>(elms)...};
     return ChainCtx{.chain = elm::MakeChain(elmcode)};
-  }
-
-  template <typename... Ts>
-    requires(std::same_as<Ts, int> && ...)
-  ChainCtx chain(BindCtx bind, Ts&&... elms) {
-    ElementCode elmcode{std::forward<Ts>(elms)...};
-    return ChainCtx{.chain = elm::MakeChain(elmcode, std::move(bind))};
   }
 
   template <typename T>
@@ -81,14 +77,33 @@ TEST_F(AccessChainBuilderTest, MemoryBank) {
 }
 
 TEST_F(AccessChainBuilderTest, Farcall) {
-  EXPECT_EQ(chain(BindCtx(0, {v("scnname")}), 5), "farcall@scnname.z0()()");
-  EXPECT_EQ(chain(BindCtx(1, {v("name"), v(1), v(2), v("3"), v(4)}), 5),
-            "farcall@name.z1(int:2,int:4)(str:3)");
+  {
+    ElementCode elm{5};
+    elm.overload = 0;
+    elm.arglist = {v("scnname")};
+    EXPECT_EQ(chain(elm), "farcall@scnname.z0()()");
+  }
+  {
+    ElementCode elm{5};
+    elm.overload = 1;
+    elm.arglist = {v("name"), v(1), v(2), v("3"), v(4)};
+    EXPECT_EQ(chain(elm), "farcall@name.z1(int:2,int:4)(str:3)");
+  }
 }
 
 TEST_F(AccessChainBuilderTest, TimeWait) {
-  EXPECT_EQ(chain(BindCtx(0, {v(123)}), 54), "wait(123)");
-  EXPECT_EQ(chain(BindCtx(0, {v(456)}), 55), "wait_key(456)");
+  {
+    ElementCode elm{54};
+    elm.overload = 0;
+    elm.arglist = {v(123)};
+    EXPECT_EQ(chain(elm), "wait(123)");
+  }
+  {
+    ElementCode elm{55};
+    elm.overload = 0;
+    elm.arglist = {v(456)};
+    EXPECT_EQ(chain(elm), "wait_key(456)");
+  }
 }
 
 }  // namespace siglus_test

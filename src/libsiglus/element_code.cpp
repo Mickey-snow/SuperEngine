@@ -25,6 +25,9 @@
 
 namespace libsiglus {
 
+ElementCode::ElementCode()
+    : code{}, overload(0), arglist{}, named_arglist{}, ret_type(std::nullopt) {}
+
 bool ElementCode::operator==(const ElementCode& rhs) const {
   return code == rhs.code;
 }

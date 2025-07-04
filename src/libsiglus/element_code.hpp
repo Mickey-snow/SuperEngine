@@ -37,8 +37,14 @@ class ElementCode {
  public:
   std::vector<Value> code;
 
-  ElementCode() = default;
-  ElementCode(std::initializer_list<int> it) {
+  // bind context
+  int overload;
+  std::vector<Value> arglist;
+  std::vector<std::pair<int, Value>> named_arglist;
+  std::optional<Type> ret_type;
+
+  ElementCode();
+  ElementCode(std::initializer_list<int> it) : ElementCode() {
     code.reserve(it.size());
     std::transform(it.begin(), it.end(), std::back_inserter(code),
                    [](int x) { return Value(Integer(x)); });

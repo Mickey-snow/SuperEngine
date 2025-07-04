@@ -32,21 +32,13 @@
 
 namespace libsiglus::elm {
 
-struct BindCtx {
-  int overload = 0;
-  std::vector<Value> arglist = {};
-  std::vector<std::pair<int, Value>> named_arglist = {};
-  std::optional<Type> ret_type = std::nullopt;
-};
-
-AccessChain MakeChain(ElementCode const& elmcode, BindCtx bind = {});
+AccessChain MakeChain(ElementCode const& elm);
 AccessChain MakeChain(elm::Root root,
-                      std::span<const Value> elmcode,
-                      BindCtx bind = {});
+                      ElementCode const& elm,
+                      std::span<const Value> elmcode);
 AccessChain MakeChain(Type root_type,
                       Root::var_t root_node,
-                      ElementCode const& elmcode,
-                      size_t subidx = 0,
-                      BindCtx bind = {});
+                      ElementCode const& elm,
+                      size_t subidx = 0);
 
 }  // namespace libsiglus::elm
