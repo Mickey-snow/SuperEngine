@@ -35,10 +35,6 @@
 namespace libsiglus::token {
 struct Command {
   ElementCode elmcode;
-  int overload_id;
-  std::vector<Value> arg;
-  std::vector<std::pair<int, Value>> named_arg;
-  Type return_type;
 
   elm::AccessChain chain;
   Value dst;

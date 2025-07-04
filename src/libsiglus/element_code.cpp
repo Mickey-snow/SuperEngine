@@ -25,11 +25,15 @@
 
 namespace libsiglus {
 
-ElementCode::ElementCode()
-    : code{}, overload(0), arglist{}, named_arglist{}, ret_type(std::nullopt) {}
+ElementCode::ElementCode() : code{}, force_bind(false), bind_ctx() {}
 
 bool ElementCode::operator==(const ElementCode& rhs) const {
   return code == rhs.code;
+}
+
+void ElementCode::ForceBind(Invoke ctx) {
+  force_bind = true;
+  bind_ctx = std::move(ctx);
 }
 
 }  // namespace libsiglus

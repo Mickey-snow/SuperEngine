@@ -182,26 +182,29 @@ void Parser::Add(lex::Command command) {
   auto& sig = command.sig;
 
   token::Command tok;
-  tok.return_type = sig.rettype;
-  tok.overload_id = sig.overload_id;
+  Invoke call;
 
-  tok.named_arg.resize(sig.argtags.size());
-  tok.arg.resize(sig.arglist.size() - sig.argtags.size());
-  for (auto it = tok.named_arg.rbegin(); it != tok.named_arg.rend(); ++it) {
+  call.return_type = sig.rettype;
+  call.overload_id = sig.overload_id;
+
+  call.named_arg.resize(sig.argtags.size());
+  call.arg.resize(sig.arglist.size() - sig.argtags.size());
+  for (auto it = call.named_arg.rbegin(); it != call.named_arg.rend(); ++it) {
     it->first = sig.argtags.back();
     it->second = pop_arg(sig.arglist.args.back());
     sig.argtags.pop_back();
     sig.arglist.args.pop_back();
   }
-  for (auto it = tok.arg.rbegin(); it != tok.arg.rend(); ++it) {
+  for (auto it = call.arg.rbegin(); it != call.arg.rend(); ++it) {
     *it = pop_arg(sig.arglist.args.back());
     sig.arglist.args.pop_back();
   }
 
   tok.elmcode = stack_.Popelm();
+  tok.dst = add_var(call.return_type);
+  tok.elmcode.ForceBind(std::move(call));
   tok.chain = resolve_element(tok.elmcode);
 
-  tok.dst = add_var(tok.return_type);
   push(tok.dst);
 
   emit_token(std::move(tok));

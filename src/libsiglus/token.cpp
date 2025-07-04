@@ -29,23 +29,10 @@
 
 namespace libsiglus::token {
 std::string Command::ToDebugString() const {
-  const std::string cmd_repr = std::format(
-      "cmd<{}:{}>", Join(",", vals_to_string(elmcode.code)), overload_id);
+  const std::string cmd_repr =
+      std::format("cmd<{}>", Join(",", vals_to_string(elmcode.code)));
 
-  std::vector<std::string> args_repr;
-  args_repr.reserve(arg.size() + named_arg.size());
-
-  std::transform(arg.cbegin(), arg.cend(), std::back_inserter(args_repr),
-                 [](const Value& value) { return ToString(value); });
-  std::transform(named_arg.cbegin(), named_arg.cend(),
-                 std::back_inserter(args_repr), [](const auto& it) {
-                   return std::format("_{}={}", it.first, ToString(it.second));
-                 });
-
-  auto repr =
-      std::format("{} {} = {}({})", ToString(return_type), ToString(dst),
-                  chain.ToDebugString(), Join(",", args_repr));
-  return std::format("{:<30} ;{}", std::move(repr), cmd_repr);
+  return std::format("{:<30} ;{}", chain.ToDebugString(), cmd_repr);
 }
 std::string Name::ToDebugString() const {
   return "Name(" + ToString(str) + ')';

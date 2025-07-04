@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "libsiglus/argument_list.hpp"
 #include "libsiglus/value.hpp"
 
 #include <algorithm>
@@ -38,10 +39,8 @@ class ElementCode {
   std::vector<Value> code;
 
   // bind context
-  int overload;
-  std::vector<Value> arglist;
-  std::vector<std::pair<int, Value>> named_arglist;
-  std::optional<Type> ret_type;
+  bool force_bind;
+  Invoke bind_ctx;
 
   ElementCode();
   ElementCode(std::initializer_list<int> it) : ElementCode() {
@@ -52,6 +51,8 @@ class ElementCode {
   template <typename T, typename U>
   ElementCode(T&& begin, U&& end)
       : code(std::forward<T>(begin), std::forward<U>(end)) {}
+
+  void ForceBind(Invoke ctx);
 
   Value& operator[](size_t idx) { return code[idx]; }
   template <typename T>

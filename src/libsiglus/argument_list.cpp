@@ -62,4 +62,7 @@ std::string Signature::ToDebugString() const {
                      Join(",", std::move(args_repr)), ToString(rettype));
 }
 
+Invoke::Invoke(int ol, std::vector<Value> arglist, Type rettype)
+    : overload_id(ol), arg(std::move(arglist)), return_type(rettype) {}
+
 }  // namespace libsiglus

@@ -54,6 +54,9 @@ struct Invoke {
   std::vector<Value> arg;
   std::vector<std::pair<int, Value>> named_arg;
   Type return_type;
+
+  Invoke() = default;
+  Invoke(int ol, std::vector<Value> arg, Type ret = Type::None);
 };
 
 }  // namespace libsiglus

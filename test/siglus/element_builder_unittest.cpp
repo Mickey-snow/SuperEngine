@@ -79,14 +79,12 @@ TEST_F(AccessChainBuilderTest, MemoryBank) {
 TEST_F(AccessChainBuilderTest, Farcall) {
   {
     ElementCode elm{5};
-    elm.overload = 0;
-    elm.arglist = {v("scnname")};
+    elm.ForceBind({0, {v("scnname")}});
     EXPECT_EQ(chain(elm), "farcall@scnname.z0()()");
   }
   {
     ElementCode elm{5};
-    elm.overload = 1;
-    elm.arglist = {v("name"), v(1), v(2), v("3"), v(4)};
+    elm.ForceBind({1, {v("name"), v(1), v(2), v("3"), v(4)}});
     EXPECT_EQ(chain(elm), "farcall@name.z1(int:2,int:4)(str:3)");
   }
 }
@@ -94,14 +92,12 @@ TEST_F(AccessChainBuilderTest, Farcall) {
 TEST_F(AccessChainBuilderTest, TimeWait) {
   {
     ElementCode elm{54};
-    elm.overload = 0;
-    elm.arglist = {v(123)};
+    elm.ForceBind({0, {v(123)}});
     EXPECT_EQ(chain(elm), "wait(123)");
   }
   {
     ElementCode elm{55};
-    elm.overload = 0;
-    elm.arglist = {v(456)};
+    elm.ForceBind({0, {v(456)}});
     EXPECT_EQ(chain(elm), "wait_key(456)");
   }
 }

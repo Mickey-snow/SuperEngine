@@ -62,28 +62,28 @@ template <typename... Ts>
 inline static Builder callable(Ts&&... params) {
   auto builder = Builder([callable = make_callable(
                               std::forward<Ts>(params)...)](Builder::Ctx& ctx) {
-    auto& elm = ctx.elm;
+    auto& bind = ctx.elm.bind_ctx;
     auto& chain = ctx.chain;
 
     // resolve overload
     auto candidate = std::find_if(
         callable.overloads.begin(), callable.overloads.end(),
-        [overload = elm.overload](const Function& fn) {
+        [overload = bind.overload_id](const Function& fn) {
           return !fn.overload.has_value() || *fn.overload == overload;
         });
     if (candidate == callable.overloads.end())
       throw std::runtime_error("callable: Overload " +
-                               std::to_string(elm.overload) + " not found in " +
-                               callable.ToDebugString() +
+                               std::to_string(bind.overload_id) +
+                               " not found in " + callable.ToDebugString() +
                                "\naccess chain:" + chain.ToDebugString());
 
     // TODO: Implement binding logic
 
     // check return type
-    if (elm.ret_type.has_value() && *elm.ret_type != chain.GetType()) {
+    if (bind.return_type != chain.GetType()) {
       static DomainLogger logger("callable");
       auto rec = logger(Severity::Warn);
-      rec << "return type mismatch: " << ToString(*elm.ret_type) << " vs "
+      rec << "return type mismatch: " << ToString(bind.return_type) << " vs "
           << ToString(chain.GetType()) << '\n';
       rec << chain.ToDebugString();
     }
@@ -543,7 +543,7 @@ AccessChain MakeChain(ElementCode const& elm) {
     case 74: {  // SET_TITLE
       Call set_title;
       set_title.name = "set_title";
-      set_title.args = {elm.arglist[0]};
+      set_title.args = {elm.bind_ctx.arg[0]};
       return AccessChain{.root = std::monostate(),
                          .nodes = {std::move(set_title)}};
     }
@@ -553,12 +553,14 @@ AccessChain MakeChain(ElementCode const& elm) {
 
       // ====== Uncategorized ======
     case 5: {  // FARCALL
-      Farcall farcall;
-      farcall.scn_name = AsStr(elm.arglist[0]);
+      auto& bind = elm.bind_ctx;
 
-      if (elm.overload == 1) {  // additionally has zlabel and arguments
-        farcall.zlabel = AsInt(elm.arglist[1]);
-        for (auto& arg : std::views::drop(elm.arglist, 2)) {
+      Farcall farcall;
+      farcall.scn_name = AsStr(bind.arg[0]);
+
+      if (bind.overload_id == 1) {  // additionally has zlabel and arguments
+        farcall.zlabel = AsInt(bind.arg[1]);
+        for (auto& arg : std::views::drop(bind.arg, 2)) {
           switch (Typeof(arg)) {
             case Type::Int:
               farcall.intargs.emplace_back(std::move(arg));
@@ -600,7 +602,7 @@ AccessChain MakeChain(ElementCode const& elm) {
     case 55: {  // WAIT_KEY
       Wait wait;
       wait.interruptable = root == 55;
-      wait.time_ms = AsInt(elm.arglist[0]);
+      wait.time_ms = AsInt(elm.bind_ctx.arg[0]);
       return AccessChain{.root = std::move(wait)};
     }
 
