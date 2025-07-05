@@ -26,6 +26,7 @@
 #include "libsiglus/callable_builder.hpp"
 #include "log/domain_logger.hpp"
 #include "utilities/flat_map.hpp"
+#include "utilities/string_utilities.hpp"
 
 namespace libsiglus::elm {
 using namespace libsiglus::elm::callable_builder;
@@ -33,7 +34,7 @@ using namespace libsiglus::elm::callable_builder;
 class Builder {
  public:
   struct Ctx {
-    ElementCode const& elm;
+    ElementCode& elm;
     std::span<const Value>& elmcode;
     AccessChain& chain;
   };
@@ -64,6 +65,7 @@ inline static Builder callable(Ts&&... params) {
                               std::forward<Ts>(params)...)](Builder::Ctx& ctx) {
     auto& bind = ctx.elm.bind_ctx;
     auto& chain = ctx.chain;
+    static DomainLogger logger("callable");
 
     // resolve overload
     auto candidate = std::find_if(
@@ -71,17 +73,23 @@ inline static Builder callable(Ts&&... params) {
         [overload = bind.overload_id](const Function& fn) {
           return !fn.overload.has_value() || *fn.overload == overload;
         });
-    if (candidate == callable.overloads.end())
-      throw std::runtime_error("callable: Overload " +
-                               std::to_string(bind.overload_id) +
-                               " not found in " + callable.ToDebugString() +
-                               "\naccess chain:" + chain.ToDebugString());
+    if (candidate == callable.overloads.end()) {
+      auto rec = logger(Severity::Warn);
+      rec << "Overload " << std::to_string(bind.overload_id) << " not found in "
+          << callable.ToDebugString() << '\n';
+      rec << "access chain: " << chain.ToDebugString();
+    }
 
-    // TODO: Implement binding logic
+    Call call;
+    call.args = std::move(bind.arg);
+    call.kwargs = std::move(bind.named_arg);
+    call.name = candidate->name;
+
+    ctx.elm.force_bind = false;
+    chain.nodes.emplace_back(candidate->return_t, std::move(call));
 
     // check return type
     if (bind.return_type != chain.GetType()) {
-      static DomainLogger logger("callable");
       auto rec = logger(Severity::Warn);
       rec << "return type mismatch: " << ToString(bind.return_type) << " vs "
           << ToString(chain.GetType()) << '\n';
@@ -503,7 +511,7 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
 }
 
 // -----------------------------------------------------------------------
-AccessChain MakeChain(ElementCode const& elm) {
+AccessChain MakeChain(ElementCode& elm) {
   using namespace libsiglus::elm::callable_builder;
 
   auto elm_iv = elm.IntegerView();
@@ -631,7 +639,7 @@ AccessChain MakeChain(ElementCode const& elm) {
 }
 
 AccessChain MakeChain(Root root,
-                      ElementCode const& elm,
+                      ElementCode& elm,
                       std::span<const Value> elmcode) {
   AccessChain result{.root = std::move(root), .nodes = {}};
   result.nodes.reserve(elmcode.size());
@@ -650,16 +658,25 @@ AccessChain MakeChain(Root root,
     mp->at(key).Build(ctx);
   }
 
-  const auto cur_type = result.GetType();
-  for (const auto& it : elmcode)
-    result.nodes.emplace_back(elm::Node(cur_type, elm::Val(it)));
+  static DomainLogger logger("MakeChain");
+  if (!elmcode.empty()) {
+    logger(Severity::Warn) << "leftovers: "
+                           << Join(",", std::views::all(elmcode) |
+                                            std::views::transform(
+                                                [](const Value& v) {
+                                                  return ToString(v);
+                                                }));
+  }
+  if (elm.force_bind) {
+    logger(Severity::Warn) << "bind ignored: " << elm.bind_ctx.ToDebugString();
+  }
 
   return result;
 }
 
 AccessChain MakeChain(Type root_type,
                       Root::var_t root_node,
-                      ElementCode const& elm,
+                      ElementCode& elm,
                       size_t subidx) {
   return MakeChain(Root(root_type, std::move(root_node)), elm,
                    std::span{elm.code}.subspan(subidx));

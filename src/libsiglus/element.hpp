@@ -134,6 +134,7 @@ struct Member {
 struct Call {
   std::string_view name;
   std::vector<Value> args;
+  std::vector<std::pair<int, Value>> kwargs;
   std::string ToDebugString() const;
   bool operator==(const Call&) const = default;
 };

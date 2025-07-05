@@ -50,13 +50,15 @@ struct Signature {
 };
 
 struct Invoke {
-  int overload_id;
+  int overload_id = 0;
   std::vector<Value> arg;
   std::vector<std::pair<int, Value>> named_arg;
-  Type return_type;
+  Type return_type = Type::None;
 
   Invoke() = default;
   Invoke(int ol, std::vector<Value> arg, Type ret = Type::None);
+
+  std::string ToDebugString() const;
 };
 
 }  // namespace libsiglus

@@ -32,13 +32,13 @@
 
 namespace libsiglus::elm {
 
-AccessChain MakeChain(ElementCode const& elm);
+AccessChain MakeChain(ElementCode& elm);
 AccessChain MakeChain(elm::Root root,
-                      ElementCode const& elm,
+                      ElementCode& elm,
                       std::span<const Value> elmcode);
 AccessChain MakeChain(Type root_type,
                       Root::var_t root_node,
-                      ElementCode const& elm,
+                      ElementCode& elm,
                       size_t subidx = 0);
 
 }  // namespace libsiglus::elm

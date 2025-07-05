@@ -53,7 +53,12 @@ std::string Wait::ToDebugString() const {
 }
 std::string Member::ToDebugString() const { return '.' + std::string(name); }
 std::string Call::ToDebugString() const {
-  return std::format(".{}({})", name, Join(",", vals_to_string(args)));
+  std::vector<std::string> repr;
+  for (const auto& it : args)
+    repr.emplace_back(ToString(it));
+  for (const auto& [key, val] : kwargs)
+    repr.emplace_back(std::format("{}={}", key, ToString(val)));
+  return std::format(".{}({})", name, Join(",", repr));
 }
 std::string Subscript::ToDebugString() const {
   return '[' + (idx.has_value() ? ToString(*idx) : std::string()) + ']';

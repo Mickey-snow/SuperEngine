@@ -45,7 +45,7 @@ class AccessChainBuilderTest : public ::testing::Test {
   };
 
   ChainCtx chain(ElementCode elm) {
-    return ChainCtx{.chain = elm::MakeChain(std::move(elm))};
+    return ChainCtx{.chain = elm::MakeChain(elm)};
   }
   template <typename... Ts>
     requires(std::same_as<Ts, int> && ...)

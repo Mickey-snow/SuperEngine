@@ -50,7 +50,9 @@ class ElementCode {
   }
   template <typename T, typename U>
   ElementCode(T&& begin, U&& end)
-      : code(std::forward<T>(begin), std::forward<U>(end)) {}
+      : code(std::forward<T>(begin), std::forward<U>(end)),
+        force_bind(false),
+        bind_ctx() {}
 
   void ForceBind(Invoke ctx);
 

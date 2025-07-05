@@ -349,7 +349,7 @@ void Parser::debug_assert_stack_empty() {
 
 // -----------------------------------------------------------------------
 // element related
-elm::AccessChain Parser::resolve_element(const ElementCode& elmcode) {
+elm::AccessChain Parser::resolve_element(ElementCode& elmcode) {
   auto elm = elmcode.IntegerView();
 
   const auto flag = (elm.front() >> 24) & 0xFF;
@@ -363,8 +363,7 @@ elm::AccessChain Parser::resolve_element(const ElementCode& elmcode) {
     return make_element(elmcode);
 }
 
-elm::AccessChain Parser::resolve_usrcmd(const ElementCode& elmcode,
-                                        size_t idx) {
+elm::AccessChain Parser::resolve_usrcmd(ElementCode& elmcode, size_t idx) {
   auto chain = elm::AccessChain();
 
   const libsiglus::Command* cmd = nullptr;
@@ -379,8 +378,7 @@ elm::AccessChain Parser::resolve_usrcmd(const ElementCode& elmcode,
   return chain;
 }
 
-elm::AccessChain Parser::resolve_usrprop(const ElementCode& elmcode,
-                                         size_t idx) {
+elm::AccessChain Parser::resolve_usrprop(ElementCode& elmcode, size_t idx) {
   elm::Usrprop root;
   Type root_type;
 
@@ -404,7 +402,7 @@ elm::AccessChain Parser::resolve_usrprop(const ElementCode& elmcode,
 
 // Filter out scenario-dependent special cases, forward common cases to
 // elm::make_chain
-elm::AccessChain Parser::make_element(const ElementCode& elmcode) {
+elm::AccessChain Parser::make_element(ElementCode& elmcode) {
   using namespace libsiglus::elm::callable_builder;
 
   auto elm = elmcode.IntegerView();
