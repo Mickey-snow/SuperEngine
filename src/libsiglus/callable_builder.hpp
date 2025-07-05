@@ -24,6 +24,7 @@
 #pragma once
 
 #include "libsiglus/element.hpp"
+#include "libsiglus/function.hpp"
 #include "libsiglus/types.hpp"
 
 #include <array>

@@ -49,7 +49,7 @@ class Stack {
 
   Stack& Push(Value v);
   Stack& PushMarker();
-  Stack& Push(const ElementCode& elm);
+  Stack& Push(const elm::ElementCode& elm);
 
   Value Backint() const;
   Value& Backint();
@@ -61,8 +61,8 @@ class Stack {
 
   Value Pop(Type type);
 
-  ElementCode Backelm() const;
-  ElementCode Popelm();
+  elm::ElementCode Backelm() const;
+  elm::ElementCode Popelm();
 
   std::string ToDebugString() const;
 

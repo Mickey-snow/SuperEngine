@@ -28,15 +28,14 @@
 #include <algorithm>
 #include <format>
 
-namespace libsiglus {
-namespace lex {
+namespace libsiglus::lex {
 
 // helper to count the length of bytes of a `ArgumentList`
-static size_t count_arglist(const ArgumentList& al) {
+static size_t count_arglist(const elm::ArgumentList& al) {
   size_t len = 4 + al.size() * 4;
   for (const auto& it : al.args)
-    if (std::holds_alternative<ArgumentList>(it))
-      len += count_arglist(std::get<ArgumentList>(it));
+    if (std::holds_alternative<elm::ArgumentList>(it))
+      len += count_arglist(std::get<elm::ArgumentList>(it));
   return len;
 }
 size_t Command::ByteLength() const {
@@ -64,5 +63,5 @@ size_t Return::ByteLength() const { return 1 + count_arglist(ret_types_); }
 std::string Declare::ToDebugString() const {
   return std::format("declare {} {}", ToString(type), size);
 }
-}  // namespace lex
-}  // namespace libsiglus
+
+}  // namespace libsiglus::lex

@@ -37,9 +37,9 @@ namespace libsiglus {
 
 using namespace libsiglus::lex;
 
-ArgumentList ParseArglist(ByteReader& reader) {
+elm::ArgumentList ParseArglist(ByteReader& reader) {
   int cnt = reader.PopAs<int32_t>(4);
-  std::vector<ArgumentList::node_t> arglist(cnt);
+  std::vector<elm::ArgumentList::node_t> arglist(cnt);
   while (--cnt >= 0) {
     Type type = static_cast<Type>(reader.PopAs<uint32_t>(4));
     if (type == Type::List)
@@ -47,7 +47,7 @@ ArgumentList ParseArglist(ByteReader& reader) {
     else
       arglist[cnt] = type;
   }
-  return ArgumentList(std::move(arglist));
+  return elm::ArgumentList(std::move(arglist));
 }
 
 Lexeme Lexer::Parse(std::string_view data) const {
@@ -109,8 +109,8 @@ Lexeme Lexer::Parse(ByteReader& reader) const {
         argtags[named_arg_cnt] = reader.PopAs<int32_t>(4);
 
       Type return_type = static_cast<Type>(reader.PopAs<uint32_t>(4));
-      return Command(Signature(arglist_id, std::move(stackarg),
-                               std::move(argtags), return_type));
+      return Command(elm::Signature(arglist_id, std::move(stackarg),
+                                    std::move(argtags), return_type));
     }
 
     case ByteCode::Goto:

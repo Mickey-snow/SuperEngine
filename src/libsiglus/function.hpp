@@ -29,7 +29,7 @@
 #include <variant>
 #include <vector>
 
-namespace libsiglus {
+namespace libsiglus::elm {
 
 struct ArgumentList {
   using node_t = std::variant<Type, ArgumentList>;
@@ -61,4 +61,43 @@ struct Invoke {
   std::string ToDebugString() const;
 };
 
-}  // namespace libsiglus
+struct Function {
+  struct Arg {
+    struct va_arg {
+      Type type;
+      bool operator==(const va_arg&) const = default;
+    };
+    struct kw_arg {
+      int kw;
+      Type type;
+      bool operator==(const kw_arg&) const = default;
+    };
+    using arg_t = std::variant<Type, va_arg, kw_arg>;
+    arg_t arg;
+
+    constexpr Arg(Type type) : arg(type) {}
+    explicit constexpr Arg(std::convertible_to<arg_t> auto x)
+        : arg(std::move(x)) {}
+
+    std::string ToDebugString() const;
+
+    inline bool operator==(const Type rhs) const {
+      const auto* ptr = std::get_if<Type>(&arg);
+      return ptr && *ptr == rhs;
+    }
+    bool operator==(const Arg&) const = default;
+  };
+
+  std::string_view name;
+  std::optional<int> overload;
+  std::vector<Arg> arg_t;
+  Type return_t;
+  std::string ToDebugString() const;
+};
+
+struct Callable {
+  std::vector<Function> overloads;
+  std::string ToDebugString() const;
+};
+
+}  // namespace libsiglus::elm

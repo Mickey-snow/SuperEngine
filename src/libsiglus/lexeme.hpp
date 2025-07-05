@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "libsiglus/argument_list.hpp"
+#include "libsiglus/function.hpp"
 #include "libsiglus/lexfwd.hpp"
 #include "libsiglus/types.hpp"
 
@@ -103,12 +103,12 @@ struct Marker {
 };
 
 struct Command {
-  Command(Signature s) : sig(s) {}
+  Command(elm::Signature s) : sig(s) {}
 
   std::string ToDebugString() const;
   size_t ByteLength() const;
 
-  Signature sig;
+  elm::Signature sig;
 };
 
 struct Property {
@@ -190,7 +190,7 @@ struct Gosub {
 
   Type return_type_;
   int label_;
-  ArgumentList argt_;
+  elm::ArgumentList argt_;
 };
 
 struct Namae {
@@ -216,7 +216,7 @@ struct Return {
   std::string ToDebugString() const;
   size_t ByteLength() const;
 
-  ArgumentList ret_types_;
+  elm::ArgumentList ret_types_;
 };
 
 struct Arg {

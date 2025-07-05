@@ -96,8 +96,7 @@ inline static Builder callable(Ts&&... params) {
       rec << chain.ToDebugString();
     }
   });
-
-  return b(Type::Callable, make_callable(std::forward<Ts>(params)...));
+  return builder;
 }
 static flat_map<Builder> const* GetMethodMap(Type type) {
   switch (type) {

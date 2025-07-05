@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "libsiglus/argument_list.hpp"
 #include "libsiglus/element_code.hpp"
+#include "libsiglus/function.hpp"
 #include "libsiglus/value.hpp"
 #include "utilities/flat_map.hpp"
 
@@ -151,48 +151,8 @@ struct Val {
   bool operator==(const Val&) const = default;
 };
 
-struct Function {
-  struct Arg {
-    struct va_arg {
-      Type type;
-      bool operator==(const va_arg&) const = default;
-    };
-    struct kw_arg {
-      int kw;
-      Type type;
-      bool operator==(const kw_arg&) const = default;
-    };
-    using arg_t = std::variant<Type, va_arg, kw_arg>;
-    arg_t arg;
-
-    constexpr Arg(Type type) : arg(type) {}
-    explicit constexpr Arg(std::convertible_to<arg_t> auto x)
-        : arg(std::move(x)) {}
-
-    std::string ToDebugString() const;
-
-    inline bool operator==(const Type rhs) const {
-      const auto* ptr = std::get_if<Type>(&arg);
-      return ptr && *ptr == rhs;
-    }
-    bool operator==(const Arg&) const = default;
-  };
-
-  std::string_view name;
-  std::optional<int> overload;
-  std::vector<Arg> arg_t;
-  Type return_t;
-  std::string ToDebugString() const;
-  bool operator==(const Function&) const = default;
-};
-struct Callable {
-  std::vector<Function> overloads;
-  std::string ToDebugString() const;
-  bool operator==(const Callable&) const = default;
-};
-
 struct Node {
-  using var_t = std::variant<Member, Call, Subscript, Val, Callable>;
+  using var_t = std::variant<Member, Call, Subscript, Val>;
   var_t var;
   Type type;
 

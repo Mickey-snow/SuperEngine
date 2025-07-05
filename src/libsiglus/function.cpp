@@ -21,14 +21,15 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#include "libsiglus/argument_list.hpp"
+#include "libsiglus/function.hpp"
 
+#include "utilities/overload.hpp"
 #include "utilities/string_utilities.hpp"
 
 #include <algorithm>
 #include <format>
 
-namespace libsiglus {
+namespace libsiglus::elm {
 
 std::vector<std::string> ArgumentList::ToStringVec() const {
   std::vector<std::string> repr;
@@ -80,4 +81,32 @@ std::string Invoke::ToDebugString() const {
                      ToString(return_type));
 }
 
-}  // namespace libsiglus
+std::string Function::Arg::ToDebugString() const {
+  return std::visit(
+      ::overload([](const va_arg& x) { return ToString(x.type) + "..."; },
+                 [](const kw_arg& x) {
+                   return '_' + std::to_string(x.kw) + ':' + ToString(x.type);
+                 },
+                 [](const Type& x) { return ToString(x); }),
+      arg);
+}
+std::string Function::ToDebugString() const {
+  return std::format(
+      "{}[{}]({})->{}", name,
+      overload.has_value() ? std::to_string(*overload) : std::string(),
+      Join(",",
+           std::views::all(arg_t) | std::views::transform([](auto const& t) {
+             return t.ToDebugString();
+           })),
+      ToString(return_t));
+}
+std::string Callable::ToDebugString() const {
+  return ".<callable " +
+         Join("  ", std::views::all(overloads) |
+                        std::views::transform([](const auto& it) {
+                          return it.ToDebugString();
+                        })) +
+         '>';
+}
+
+}  // namespace libsiglus::elm

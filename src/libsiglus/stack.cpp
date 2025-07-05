@@ -29,6 +29,7 @@
 #include <stdexcept>
 
 namespace libsiglus {
+using namespace libsiglus::elm;
 
 const char* StackUnderflow::what() const noexcept {
   return "Stack underflow: Attempted to access an element from an empty stack.";

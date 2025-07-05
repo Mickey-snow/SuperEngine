@@ -66,7 +66,7 @@ Value Parser::pop(Type type) {
   }
 }
 
-Value Parser::pop_arg(const ArgumentList::node_t& node) {
+Value Parser::pop_arg(const elm::ArgumentList::node_t& node) {
   return std::visit(
       [&](const auto& x) -> Value {
         using T = std::decay_t<decltype(x)>;
@@ -182,7 +182,7 @@ void Parser::Add(lex::Command command) {
   auto& sig = command.sig;
 
   token::Command tok;
-  Invoke call;
+  elm::Invoke call;
 
   call.return_type = sig.rettype;
   call.overload_id = sig.overload_id;
@@ -349,7 +349,7 @@ void Parser::debug_assert_stack_empty() {
 
 // -----------------------------------------------------------------------
 // element related
-elm::AccessChain Parser::resolve_element(ElementCode& elmcode) {
+elm::AccessChain Parser::resolve_element(elm::ElementCode& elmcode) {
   auto elm = elmcode.IntegerView();
 
   const auto flag = (elm.front() >> 24) & 0xFF;
@@ -363,7 +363,7 @@ elm::AccessChain Parser::resolve_element(ElementCode& elmcode) {
     return make_element(elmcode);
 }
 
-elm::AccessChain Parser::resolve_usrcmd(ElementCode& elmcode, size_t idx) {
+elm::AccessChain Parser::resolve_usrcmd(elm::ElementCode& elmcode, size_t idx) {
   auto chain = elm::AccessChain();
 
   const libsiglus::Command* cmd = nullptr;
@@ -378,7 +378,8 @@ elm::AccessChain Parser::resolve_usrcmd(ElementCode& elmcode, size_t idx) {
   return chain;
 }
 
-elm::AccessChain Parser::resolve_usrprop(ElementCode& elmcode, size_t idx) {
+elm::AccessChain Parser::resolve_usrprop(elm::ElementCode& elmcode,
+                                         size_t idx) {
   elm::Usrprop root;
   Type root_type;
 
@@ -402,7 +403,7 @@ elm::AccessChain Parser::resolve_usrprop(ElementCode& elmcode, size_t idx) {
 
 // Filter out scenario-dependent special cases, forward common cases to
 // elm::make_chain
-elm::AccessChain Parser::make_element(ElementCode& elmcode) {
+elm::AccessChain Parser::make_element(elm::ElementCode& elmcode) {
   using namespace libsiglus::elm::callable_builder;
 
   auto elm = elmcode.IntegerView();

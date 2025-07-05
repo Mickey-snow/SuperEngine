@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "libsiglus/argument_list.hpp"
 #include "libsiglus/element.hpp"
 #include "libsiglus/element_code.hpp"
+#include "libsiglus/function.hpp"
 #include "libsiglus/value.hpp"
 
 #include <string>
@@ -34,7 +34,7 @@
 
 namespace libsiglus::token {
 struct Command {
-  ElementCode elmcode;
+  elm::ElementCode elmcode;
 
   elm::AccessChain chain;
   Value dst;
@@ -59,7 +59,7 @@ struct Textout {
 };
 
 struct GetProperty {
-  ElementCode elmcode;
+  elm::ElementCode elmcode;
 
   elm::AccessChain chain;
   Value dst;
@@ -106,7 +106,7 @@ struct Operate2 {
 };
 
 struct Assign {
-  ElementCode dst_elmcode;
+  elm::ElementCode dst_elmcode;
   elm::AccessChain dst;
   Value src;
   std::string ToDebugString() const;

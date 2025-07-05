@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "libsiglus/argument_list.hpp"
+#include "libsiglus/function.hpp"
 #include "libsiglus/value.hpp"
 
 #include <algorithm>
@@ -32,7 +32,7 @@
 #include <stdexcept>
 #include <vector>
 
-namespace libsiglus {
+namespace libsiglus::elm {
 
 class ElementCode {
  public:
@@ -100,4 +100,4 @@ class ElementCode {
   }
 };
 
-}  // namespace libsiglus
+}  // namespace libsiglus::elm

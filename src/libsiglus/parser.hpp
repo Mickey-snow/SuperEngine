@@ -81,19 +81,19 @@ class Parser {
   inline auto read_kidoku() { return reader_.PopAs<int>(4); }
 
   Value pop(Type type);
-  Value pop_arg(const ArgumentList::node_t& node);
+  Value pop_arg(const elm::ArgumentList::node_t& node);
   inline void push(Value val) { stack_.Push(std::move(val)); }
-  inline void push(ElementCode elm) { stack_.Push(std::move(elm)); }
+  inline void push(elm::ElementCode elm) { stack_.Push(std::move(elm)); }
   void push(const token::GetProperty& prop);
   void debug_assert_stack_empty();
 
   Value add_var(Type type);
   void add_label(int id);
 
-  elm::AccessChain resolve_element(ElementCode& elm);
-  elm::AccessChain resolve_usrcmd(ElementCode& elm, size_t idx);
-  elm::AccessChain resolve_usrprop(ElementCode& elm, size_t idx);
-  elm::AccessChain make_element(ElementCode& elm);
+  elm::AccessChain resolve_element(elm::ElementCode& elm);
+  elm::AccessChain resolve_usrcmd(elm::ElementCode& elm, size_t idx);
+  elm::AccessChain resolve_usrprop(elm::ElementCode& elm, size_t idx);
+  elm::AccessChain make_element(elm::ElementCode& elm);
 
   // dispatch functions
   void Add(lex::Push);

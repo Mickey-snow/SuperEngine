@@ -23,7 +23,7 @@
 
 #include "libsiglus/element_code.hpp"
 
-namespace libsiglus {
+namespace libsiglus::elm {
 
 ElementCode::ElementCode() : code{}, force_bind(false), bind_ctx() {}
 
@@ -36,4 +36,4 @@ void ElementCode::ForceBind(Invoke ctx) {
   bind_ctx = std::move(ctx);
 }
 
-}  // namespace libsiglus
+}  // namespace libsiglus::elm

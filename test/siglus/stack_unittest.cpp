@@ -106,7 +106,7 @@ TEST_F(StackTest, Basic) {
 }
 
 TEST_F(StackTest, Element) {
-  using libsiglus::ElementCode;
+  using libsiglus::elm::ElementCode;
   ElementCode elm{1, 2, 3, 4};
 
   s.PushMarker();
