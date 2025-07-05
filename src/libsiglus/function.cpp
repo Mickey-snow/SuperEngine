@@ -81,6 +81,8 @@ std::string Invoke::ToDebugString() const {
                      ToString(return_type));
 }
 
+bool Invoke::Empty() const { return arg.empty() && named_arg.empty(); }
+
 std::string Function::Arg::ToDebugString() const {
   return std::visit(
       ::overload([](const va_arg& x) { return ToString(x.type) + "..."; },

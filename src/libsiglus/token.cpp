@@ -32,7 +32,8 @@ std::string Command::ToDebugString() const {
   const std::string cmd_repr =
       std::format("cmd<{}>", Join(",", vals_to_string(elmcode.code)));
 
-  return std::format("{:<30} ;{}", chain.ToDebugString(), cmd_repr);
+  return std::format("{} {} = {:<30} ;{}", ToString(Typeof(dst)), ToString(dst),
+                     chain.ToDebugString(), cmd_repr);
 }
 std::string Name::ToDebugString() const {
   return "Name(" + ToString(str) + ')';

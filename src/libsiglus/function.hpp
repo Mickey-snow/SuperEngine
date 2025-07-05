@@ -59,6 +59,7 @@ struct Invoke {
   Invoke(int ol, std::vector<Value> arg, Type ret = Type::None);
 
   std::string ToDebugString() const;
+  bool Empty() const;
 };
 
 struct Function {

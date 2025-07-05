@@ -666,6 +666,9 @@ AccessChain MakeChain(Root root,
                                                   return ToString(v);
                                                 }));
   }
+
+  if (elm.bind_ctx.Empty())  // implicit
+    elm.force_bind = false;
   if (elm.force_bind) {
     logger(Severity::Warn) << "bind ignored: " << elm.bind_ctx.ToDebugString();
   }
