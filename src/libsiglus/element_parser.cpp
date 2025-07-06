@@ -59,7 +59,16 @@ inline static auto b(Type type, Node::var_t node) {
 }
 inline static Builder b_index_array(Type value_type) {
   return Builder([t = value_type](Builder::Ctx& ctx) {
-    ctx.chain.nodes.emplace_back(t, Subscript{ctx.elmcode[1]});
+    Subscript subscript{Integer(-1)};
+    if (ctx.elmcode.size() < 2) {
+      ctx.Warn("[IndexArray] expected index");
+      ctx.chain.nodes.emplace_back(t, std::move(subscript));
+      ctx.elmcode = ctx.elmcode.subspan(ctx.elmcode.size());
+      return;
+    }
+
+    subscript.idx = ctx.elmcode[1];
+    ctx.chain.nodes.emplace_back(t, std::move(subscript));
     ctx.elmcode = ctx.elmcode.subspan(2);
   });
 }
@@ -69,6 +78,9 @@ inline static Builder callable(Ts&&... params) {
                               std::forward<Ts>(params)...)](Builder::Ctx& ctx) {
     auto& bind = ctx.elm.bind_ctx;
     auto& chain = ctx.chain;
+
+    // consume the callable element
+    ctx.elmcode = ctx.elmcode.subspan(1);
 
     // resolve overload
     auto candidate = std::find_if(
@@ -85,6 +97,7 @@ inline static Builder callable(Ts&&... params) {
       ctx.Warn(oss.str());
     }
 
+    // TODO: Check signature mismatch
     Call call;
     call.args = std::move(bind.arg);
     call.kwargs = std::move(bind.named_arg);
@@ -94,7 +107,7 @@ inline static Builder callable(Ts&&... params) {
     chain.nodes.emplace_back(candidate->return_t, std::move(call));
 
     // check return type
-    if (bind.return_type != chain.GetType()) {
+    if (ctx.elm.force_bind && bind.return_type != chain.GetType()) {
       std::ostringstream oss;
       oss << "[Callable] ";
       oss << "return type mismatch: " << ToString(bind.return_type) << " vs "
@@ -666,8 +679,14 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
       return AccessChain{.root = std::monostate(),
                          .nodes = {std::move(set_title)}};
     }
-    case 75:  // GET_TITLE
-      return make_chain(Type::String, elm::Sym("get_title"), elm, 1);
+    case 75: {  // GET_TITLE
+      Call get_title;
+      get_title.name = "get_title";
+      AccessChain chain{.root = std::monostate(),
+                        .nodes = {Node(Type::String, std::move(get_title))}};
+      return make_chain(std::move(chain), elm,
+                        std::span(elm.code.begin() + 1, elm.code.end()));
+    }
 
       // ====== Uncategorized ======
     case 5: {  // FARCALL
@@ -748,10 +767,9 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
   return AccessChain();
 }
 
-AccessChain ElementParser::make_chain(Root root,
+AccessChain ElementParser::make_chain(AccessChain result,
                                       ElementCode& elm,
                                       std::span<const Value> elmcode) {
-  AccessChain result{.root = std::move(root), .nodes = {}};
   result.nodes.reserve(elmcode.size());
 
   flat_map<Builder> const* mp;
@@ -793,7 +811,9 @@ AccessChain ElementParser::make_chain(Type root_type,
                                       Root::var_t root_node,
                                       ElementCode& elm,
                                       size_t subidx) {
-  return make_chain(Root(root_type, std::move(root_node)), elm,
+  Root root(root_type, std::move(root_node));
+  AccessChain result{.root = std::move(root), .nodes = {}};
+  return make_chain(std::move(result), elm,
                     std::span{elm.code}.subspan(subidx));
 }
 

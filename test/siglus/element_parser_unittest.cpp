@@ -32,6 +32,8 @@ namespace siglus_test {
 using namespace libsiglus::elm;
 using namespace libsiglus;
 
+using ::testing::ReturnRef;
+
 class ElementParserTest : public ::testing::Test {
  protected:
   class MockContext : public ElementParser::Context {
@@ -135,6 +137,28 @@ TEST_F(ElementParserTest, TimeWait) {
     elm.ForceBind({0, {v(456)}});
     EXPECT_EQ(chain(elm), "wait_key(456)");
   }
+}
+
+TEST_F(ElementParserTest, Title) {
+  {
+    ElementCode elm{74};
+    elm.ForceBind({0, {v("title")}});
+    EXPECT_EQ(chain(elm), ".set_title(str:title)");
+  }
+  {
+    ElementCode elm{75};
+    EXPECT_EQ(chain(elm), ".get_title()");
+  }
+}
+
+TEST_F(ElementParserTest, CurcallArgStr) {
+  std::vector<Type> curcall_args{Type::None, Type::String};
+  EXPECT_CALL(*ctx, CurcallArgs()).WillOnce(ReturnRef(curcall_args));
+
+  int flag = 0x7d << 24;
+  int idx = 1;
+  ElementCode elm{83, (flag | idx), 2};
+  EXPECT_EQ(chain(elm), "arg_1.left()");
 }
 
 }  // namespace siglus_test

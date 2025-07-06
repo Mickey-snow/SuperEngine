@@ -62,7 +62,7 @@ class ElementParser {
   AccessChain resolve_usrprop(ElementCode& elm, size_t idx);
   AccessChain resolve_element(ElementCode& elm);
 
-  AccessChain make_chain(Root root,
+  AccessChain make_chain(AccessChain result,
                          ElementCode& elm,
                          std::span<const Value> elmcode);
   AccessChain make_chain(Type root_type,
