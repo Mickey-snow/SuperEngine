@@ -24,9 +24,10 @@
 #include "libsiglus/element_parser.hpp"
 
 #include "libsiglus/callable_builder.hpp"
-#include "log/domain_logger.hpp"
 #include "utilities/flat_map.hpp"
 #include "utilities/string_utilities.hpp"
+
+#include <sstream>
 
 namespace libsiglus::elm {
 using namespace libsiglus::elm::callable_builder;
@@ -39,6 +40,7 @@ class Builder {
     ElementCode& elm;
     std::span<const Value>& elmcode;
     AccessChain& chain;
+    std::function<void(std::string)> Warn;
   };
 
   Builder(std::function<void(Ctx&)> a) : action_(std::move(a)) {}
@@ -67,7 +69,6 @@ inline static Builder callable(Ts&&... params) {
                               std::forward<Ts>(params)...)](Builder::Ctx& ctx) {
     auto& bind = ctx.elm.bind_ctx;
     auto& chain = ctx.chain;
-    static DomainLogger logger("callable");
 
     // resolve overload
     auto candidate = std::find_if(
@@ -76,10 +77,12 @@ inline static Builder callable(Ts&&... params) {
           return !fn.overload.has_value() || *fn.overload == overload;
         });
     if (candidate == callable.overloads.end()) {
-      auto rec = logger(Severity::Warn);
-      rec << "Overload " << std::to_string(bind.overload_id) << " not found in "
+      std::ostringstream oss;
+      oss << "[Callable] ";
+      oss << "Overload " << std::to_string(bind.overload_id) << " not found in "
           << callable.ToDebugString() << '\n';
-      rec << "access chain: " << chain.ToDebugString();
+      oss << "access chain: " << chain.ToDebugString();
+      ctx.Warn(oss.str());
     }
 
     Call call;
@@ -92,10 +95,12 @@ inline static Builder callable(Ts&&... params) {
 
     // check return type
     if (bind.return_type != chain.GetType()) {
-      auto rec = logger(Severity::Warn);
-      rec << "return type mismatch: " << ToString(bind.return_type) << " vs "
+      std::ostringstream oss;
+      oss << "[Callable] ";
+      oss << "return type mismatch: " << ToString(bind.return_type) << " vs "
           << ToString(chain.GetType()) << '\n';
-      rec << chain.ToDebugString();
+      oss << chain.ToDebugString();
+      ctx.Warn(oss.str());
     }
   });
   return builder;
@@ -750,6 +755,11 @@ AccessChain ElementParser::make_chain(Root root,
   result.nodes.reserve(elmcode.size());
 
   flat_map<Builder> const* mp;
+  Builder::Ctx ctx{
+      .elm = elm,
+      .elmcode = elmcode,
+      .chain = result,
+      .Warn = [&](std::string msg) { this->ctx_->Warn(std::move(msg)); }};
   while ((mp = elm::GetMethodMap(result.GetType())) != nullptr) {
     if (!mp || elmcode.empty())
       break;
@@ -759,24 +769,21 @@ AccessChain ElementParser::make_chain(Root root,
     if (!mp->contains(key))
       break;
 
-    Builder::Ctx ctx{.elm = elm, .elmcode = elmcode, .chain = result};
     mp->at(key).Build(ctx);
   }
 
-  static DomainLogger logger("MakeChain");
   if (!elmcode.empty()) {
-    logger(Severity::Warn) << "leftovers: "
-                           << Join(",", std::views::all(elmcode) |
-                                            std::views::transform(
-                                                [](const Value& v) {
-                                                  return ToString(v);
-                                                }));
+    std::string msg = "[ElementParser] leftovers: ";
+    msg += Join(",", std::views::all(elmcode) |
+                         std::views::transform(
+                             [](const Value& v) { return ToString(v); }));
+    ctx_->Warn(std::move(msg));
   }
 
   if (elm.bind_ctx.Empty())  // implicit
     elm.force_bind = false;
   if (elm.force_bind) {
-    logger(Severity::Warn) << "bind ignored: " << elm.bind_ctx.ToDebugString();
+    ctx_->Warn("[ElementParser] bind ignored: " + elm.bind_ctx.ToDebugString());
   }
 
   return result;

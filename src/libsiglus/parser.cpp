@@ -27,16 +27,15 @@
 #include "libsiglus/callable_builder.hpp"
 #include "libsiglus/lexeme.hpp"
 #include "libsiglus/scene.hpp"
-#include "log/domain_logger.hpp"
 #include "utilities/flat_map.hpp"
+
+#include <sstream>
 
 namespace libsiglus {
 using namespace token;
 
 // -----------------------------------------------------------------------
 // class Parser
-static DomainLogger logger("Parser");
-
 Parser::Parser(Context& ctx) : ctx_(ctx), reader_("") {
   struct ElmParserCtx : public elm::ElementParser::Context {
     libsiglus::Parser& self;
@@ -367,10 +366,13 @@ void Parser::Add(lex::EndOfScene) {
 
 void Parser::debug_assert_stack_empty() {
   if (!stack_.Empty()) {
-    auto rec = logger(Severity::Info);
-    rec << "at " << ctx_.SceneId() << ':' << ctx_.GetDebugTitle() << '\n';
-    rec << "at line " << lineno_ << ", expected stack to be empty. but got:\n";
-    rec << stack_.ToDebugString();
+    std::ostringstream oss;
+    oss << "[Parser] ";
+    oss << "at " << ctx_.SceneId() << ':' << ctx_.GetDebugTitle() << '\n';
+    oss << "at line " << lineno_ << ", expected stack to be empty. but got:\n";
+    oss << stack_.ToDebugString();
+    ctx_.Warn(oss.str());
+
     stack_.Clear();
   }
 }
