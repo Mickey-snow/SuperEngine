@@ -21,17 +21,52 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "libsiglus/element_builder.hpp"
+#include "libsiglus/element.hpp"
+#include "libsiglus/element_parser.hpp"
 #include "utilities/mpl.hpp"
 
 namespace siglus_test {
 using namespace libsiglus::elm;
 using namespace libsiglus;
 
-class AccessChainBuilderTest : public ::testing::Test {
+class ElementParserTest : public ::testing::Test {
  protected:
+  class MockContext : public ElementParser::Context {
+   public:
+    MOCK_METHOD(const std::vector<Property>&,
+                SceneProperties,
+                (),
+                (const, override));
+    MOCK_METHOD(const std::vector<Property>&,
+                GlobalProperties,
+                (),
+                (const, override));
+    MOCK_METHOD(const std::vector<Command>&,
+                SceneCommands,
+                (),
+                (const, override));
+    MOCK_METHOD(const std::vector<Command>&,
+                GlobalCommands,
+                (),
+                (const, override));
+    MOCK_METHOD(const std::vector<Type>&, CurcallArgs, (), (const, override));
+    MOCK_METHOD(int, ReadKidoku, (), (override));
+    MOCK_METHOD(int, SceneId, (), (const, override));
+    MOCK_METHOD(void, Warn, (std::string message), (override));
+  };
+  ElementParserTest() {
+    std::unique_ptr<MockContext> c = std::make_unique<MockContext>();
+    ctx = c.get();
+    parser = std::make_unique<ElementParser>(std::move(c));
+  }
+  MockContext* ctx;
+  std::unique_ptr<ElementParser> parser;
+
+  // ==============================================================================
+  // Test helpers
   struct ChainCtx {
     AccessChain chain;
 
@@ -45,13 +80,13 @@ class AccessChainBuilderTest : public ::testing::Test {
   };
 
   ChainCtx chain(ElementCode elm) {
-    return ChainCtx{.chain = elm::MakeChain(elm)};
+    return ChainCtx{.chain = parser->Parse(elm)};
   }
   template <typename... Ts>
     requires(std::same_as<Ts, int> && ...)
   ChainCtx chain(Ts&&... elms) {
     ElementCode elmcode{std::forward<Ts>(elms)...};
-    return ChainCtx{.chain = elm::MakeChain(elmcode)};
+    return ChainCtx{.chain = parser->Parse(elmcode)};
   }
 
   template <typename T>
@@ -65,7 +100,7 @@ class AccessChainBuilderTest : public ::testing::Test {
   }
 };
 
-TEST_F(AccessChainBuilderTest, MemoryBank) {
+TEST_F(ElementParserTest, MemoryBank) {
   EXPECT_EQ(chain(25, -1, 0), "A[int:0]");
   EXPECT_EQ(chain(26, 3, -1, 1), "B.b1[int:1]");
   EXPECT_EQ(chain(27, 4, -1, 2), "C.b2[int:2]");
@@ -76,7 +111,7 @@ TEST_F(AccessChainBuilderTest, MemoryBank) {
   EXPECT_EQ(chain(32, -1, 251), "Z[int:251]");
 }
 
-TEST_F(AccessChainBuilderTest, Farcall) {
+TEST_F(ElementParserTest, Farcall) {
   {
     ElementCode elm{5};
     elm.ForceBind({0, {v("scnname")}});
@@ -89,7 +124,7 @@ TEST_F(AccessChainBuilderTest, Farcall) {
   }
 }
 
-TEST_F(AccessChainBuilderTest, TimeWait) {
+TEST_F(ElementParserTest, TimeWait) {
   {
     ElementCode elm{54};
     elm.ForceBind({0, {v(123)}});

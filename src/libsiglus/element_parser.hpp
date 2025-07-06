@@ -25,8 +25,10 @@
 
 #include "libsiglus/element.hpp"
 #include "libsiglus/property.hpp"
+#include "libsiglus/value.hpp"
 
 #include <memory>
+#include <span>
 
 namespace libsiglus::elm {
 
@@ -59,6 +61,14 @@ class ElementParser {
   AccessChain resolve_usrcmd(ElementCode& elm, size_t idx);
   AccessChain resolve_usrprop(ElementCode& elm, size_t idx);
   AccessChain resolve_element(ElementCode& elm);
+
+  AccessChain make_chain(Root root,
+                         ElementCode& elm,
+                         std::span<const Value> elmcode);
+  AccessChain make_chain(Type root_type,
+                         Root::var_t root_node,
+                         ElementCode& elm,
+                         size_t subidx);
 
  private:
   std::unique_ptr<Context> ctx_;
