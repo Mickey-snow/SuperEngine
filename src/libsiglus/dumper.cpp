@@ -94,17 +94,19 @@ void Dumper::DumpScene(size_t id, std::ostream& out) {
   out << id << ' ' << scn.scnname_ << std::endl;
 
   struct Context : public ParserContext {
-    Context(Archive& ar, Scene& sc, std::ostream& o)
-        : ParserContext(ar, sc), idx(1), out(o) {}
+    Context(Archive& ar, Scene& sc, std::ostream& o, std::ostream& e)
+        : ParserContext(ar, sc), idx(1), out(o), err(e) {}
     size_t idx;
     std::ostream& out;
+    std::ostream& err;
 
     void Emit(token::Token_t tok) final {
       out << idx++ << ": " << ToString(tok) << std::endl;
     }
+    void Warn(std::string msg) final { err << msg << std::endl; }
   };
 
-  Context ctx(archive_, scn, out);
+  Context ctx(archive_, scn, out, out);
   Parser parser(ctx);
 
   try {

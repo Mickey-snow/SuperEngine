@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "libsiglus/element_builder.hpp"
+#include "libsiglus/element_parser.hpp"
 #include "libsiglus/lexeme.hpp"
 #include "libsiglus/lexer.hpp"
 #include "libsiglus/property.hpp"
@@ -61,11 +61,13 @@ class Parser {
     virtual std::string GetDebugTitle() const = 0;
 
     virtual void Emit(token::Token_t) = 0;
+    virtual void Warn(std::string message) = 0;
   };
 
   Parser(Context& ctx);
 
   void ParseAll();
+
   inline void Add(Lexeme lex) {
     std::visit([&](auto&& x) { this->Add(std::forward<decltype(x)>(x)); },
                std::move(lex));
@@ -89,11 +91,6 @@ class Parser {
 
   Value add_var(Type type);
   void add_label(int id);
-
-  elm::AccessChain resolve_element(elm::ElementCode& elm);
-  elm::AccessChain resolve_usrcmd(elm::ElementCode& elm, size_t idx);
-  elm::AccessChain resolve_usrprop(elm::ElementCode& elm, size_t idx);
-  elm::AccessChain make_element(elm::ElementCode& elm);
 
   // dispatch functions
   void Add(lex::Push);
@@ -145,6 +142,8 @@ class Parser {
 
   const Command* curcall_cmd_ = nullptr;
   std::vector<Type> curcall_args_;
+
+  std::unique_ptr<elm::ElementParser> elm_parser_;
 };
 
 }  // namespace libsiglus

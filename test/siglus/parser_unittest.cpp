@@ -62,6 +62,8 @@ class MockParserContext : public Parser::Context {
 
   void Emit(token::Token_t t) final { output.emplace_back(std::move(t)); }
   std::vector<token::Token_t>& output;
+
+  void Warn(std::string msg) final { ADD_FAILURE() << msg; }
 };
 
 class SiglusParserTest : public ::testing::Test {

@@ -37,7 +37,35 @@ using namespace token;
 // class Parser
 static DomainLogger logger("Parser");
 
-Parser::Parser(Context& ctx) : ctx_(ctx), reader_("") {}
+Parser::Parser(Context& ctx) : ctx_(ctx), reader_("") {
+  struct ElmParserCtx : public elm::ElementParser::Context {
+    libsiglus::Parser& self;
+    ElmParserCtx(libsiglus::Parser& s) : self(s) {}
+
+    const std::vector<libsiglus::Property>& SceneProperties() const final {
+      return self.ctx_.SceneProperties();
+    }
+    const std::vector<libsiglus::Property>& GlobalProperties() const final {
+      return self.ctx_.GlobalProperties();
+    }
+    const std::vector<libsiglus::Command>& SceneCommands() const final {
+      return self.ctx_.SceneCommands();
+    }
+    const std::vector<libsiglus::Command>& GlobalCommands() const final {
+      return self.ctx_.GlobalCommands();
+    }
+    const std::vector<Type>& CurcallArgs() const final {
+      return self.curcall_args_;
+    }
+
+    int ReadKidoku() final { return self.read_kidoku(); }
+    int SceneId() const final { return self.ctx_.SceneId(); }
+    void Warn(std::string message) final { self.ctx_.Warn(std::move(message)); }
+  };
+
+  auto elmctx = std::make_unique<ElmParserCtx>(*this);
+  elm_parser_ = std::make_unique<elm::ElementParser>(std::move(elmctx));
+}
 
 Value Parser::add_var(Type type) {
   Variable var(type, var_cnt_++);
@@ -171,7 +199,7 @@ void Parser::Add(lex::Marker marker) { stack_.PushMarker(); }
 void Parser::Add(lex::Property) {
   token::GetProperty tok;
   tok.elmcode = stack_.Popelm();
-  tok.chain = resolve_element(tok.elmcode);
+  tok.chain = elm_parser_->Parse(tok.elmcode);
   tok.dst = add_var(tok.chain.GetType());
 
   push(tok);
@@ -203,7 +231,7 @@ void Parser::Add(lex::Command command) {
   tok.elmcode = stack_.Popelm();
   tok.dst = add_var(call.return_type);
   tok.elmcode.ForceBind(std::move(call));
-  tok.chain = resolve_element(tok.elmcode);
+  tok.chain = elm_parser_->Parse(tok.elmcode);
 
   push(tok.dst);
 
@@ -282,7 +310,7 @@ void Parser::Add(lex::Assign a) {
   token::Assign tok;
   tok.src = pop(a.rtype_);
   tok.dst_elmcode = stack_.Popelm();
-  tok.dst = resolve_element(tok.dst_elmcode);
+  tok.dst = elm_parser_->Parse(tok.dst_elmcode);
   emit_token(std::move(tok));
 }
 
@@ -345,127 +373,6 @@ void Parser::debug_assert_stack_empty() {
     rec << stack_.ToDebugString();
     stack_.Clear();
   }
-}
-
-// -----------------------------------------------------------------------
-// element related
-elm::AccessChain Parser::resolve_element(elm::ElementCode& elmcode) {
-  auto elm = elmcode.IntegerView();
-
-  const auto flag = (elm.front() >> 24) & 0xFF;
-  size_t idx = elm.front() ^ (flag << 24);
-  if (flag == USER_COMMAND_FLAG)
-    return resolve_usrcmd(elmcode, idx);
-  else if (flag == USER_PROPERTY_FLAG)
-    return resolve_usrprop(elmcode, idx);
-
-  else  // built-in element
-    return make_element(elmcode);
-}
-
-elm::AccessChain Parser::resolve_usrcmd(elm::ElementCode& elmcode, size_t idx) {
-  auto chain = elm::AccessChain();
-
-  const libsiglus::Command* cmd = nullptr;
-  if (idx < ctx_.GlobalCommands().size())
-    cmd = &ctx_.GlobalCommands()[idx];
-  else
-    cmd = &ctx_.SceneCommands()[idx - ctx_.GlobalCommands().size()];
-
-  chain.root = elm::Usrcmd{
-      .scene = cmd->scene_id, .entry = cmd->offset, .name = cmd->name};
-  // return type?
-  return chain;
-}
-
-elm::AccessChain Parser::resolve_usrprop(elm::ElementCode& elmcode,
-                                         size_t idx) {
-  elm::Usrprop root;
-  Type root_type;
-
-  if (idx < ctx_.GlobalProperties().size()) {
-    const auto& incprop = ctx_.GlobalProperties()[idx];
-    root.name = incprop.name;
-    root_type = incprop.form;
-    root.scene = -1;  // global
-    root.idx = idx;
-  } else {
-    idx -= ctx_.GlobalProperties().size();
-    const auto& usrprop = ctx_.SceneProperties()[idx];
-    root.name = usrprop.name;
-    root_type = usrprop.form;
-    root.scene = ctx_.SceneId();
-    root.idx = idx;
-  }
-
-  return elm::MakeChain(root_type, std::move(root), elmcode, 1);
-}
-
-// Filter out scenario-dependent special cases, forward common cases to
-// elm::make_chain
-elm::AccessChain Parser::make_element(elm::ElementCode& elmcode) {
-  using namespace libsiglus::elm::callable_builder;
-
-  auto elm = elmcode.IntegerView();
-  int root = elm.front();
-
-  switch (root) {
-    case 83: {  // CUR_CALL
-      const int elmcall = elm[1];
-      if ((elmcall >> 24) == 0x7d) {
-        auto id = (elmcall ^ (0x7d << 24));
-        return elm::MakeChain(curcall_args_[id], elm::Arg(id), elmcode, 2);
-      }
-
-      else if (elmcall == 0)
-        return elm::MakeChain(Type::IntList, elm::Sym("L"), elmcode, 2);
-
-      else if (elmcall == 1)
-        return elm::MakeChain(Type::StrList, elm::Sym("K"), elmcode, 2);
-    } break;
-
-      // ====== KOE(Sound) ======
-      // needs kidoku flag
-    case 18:  // KOE
-    case 90:  // KOE_PLAY_WAIT
-    case 91:  // KOE_PLAY_WAIT_KEY
-      read_kidoku();
-      break;
-
-      // ====== SEL ======
-      // some needs kidoku flag
-
-    case 19:   // SEL
-    case 101:  // SEL_CANCEL
-      read_kidoku();
-      break;
-
-    case 100:  // SELMSG
-    case 102:  // SELMSG_CANCEL
-      read_kidoku();
-      break;
-
-    case 76:   // SELBTN
-    case 77:   // SELBTN_READY
-    case 126:  // SELBTN_CANCEL
-    case 128:  // SELBTN_CANCEL_READY
-    case 127:  // SELBTN_START
-    {
-      if (root == 76 || root == 126 || root == 127)
-        read_kidoku();
-      break;
-    }
-
-    case 12:  // MWND_PRINT
-      read_kidoku();
-      break;
-
-    [[likely]]
-    default:
-      break;
-  }
-
-  return elm::MakeChain(elmcode);
 }
 
 }  // namespace libsiglus
