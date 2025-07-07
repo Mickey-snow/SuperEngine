@@ -539,8 +539,9 @@ ElementParser::ElementParser(std::unique_ptr<Context> ctx)
 ElementParser::~ElementParser() = default;
 
 AccessChain ElementParser::Parse(ElementCode& elm) {
-  const int flag = elm.At<int>(0);
-  const size_t idx = flag ^ (flag << 24);
+  const int first = elm.At<int>(0);
+  const int flag = first >> 24;
+  const size_t idx = first ^ (flag << 24);
 
   if (flag == USER_COMMAND_FLAG)
     return resolve_usrcmd(elm, idx);
