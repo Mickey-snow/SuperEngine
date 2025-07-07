@@ -294,12 +294,15 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
     }
 
     case Type::FrameAction: {
-      static const auto mp =
-          make_flatmap<Builder>(id[1] | b(Type::None, Member("start")),
-                                id[3] | b(Type::None, Member("start_real")),
-                                id[2] | b(Type::None, Member("end")),
-                                id[0] | b(Type::Counter, Member("counter")),
-                                id[4] | b(Type::Int, Member("is_end_action")));
+      static const auto mp = make_flatmap<Builder>(
+          id[1] |
+              callable(
+                  fn("start")[any](Type::Int, Type::String).ret(Type::None)),
+          id[3] | callable(fn("start_real")[any](Type::Int, Type::String)
+                               .ret(Type::None)),
+          id[2] | b(Type::None, Call("end")),
+          id[0] | b(Type::Counter, Member("counter")),
+          id[4] | b(Type::Int, Member("is_end_action")));
       return &mp;
     }
 

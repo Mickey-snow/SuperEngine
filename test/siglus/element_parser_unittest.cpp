@@ -151,6 +151,15 @@ TEST_F(ElementParserTest, Title) {
   }
 }
 
+TEST_F(ElementParserTest, FrameAction) {
+  {
+    ElementCode elm{53, -1, 8, 1};
+    elm.ForceBind({0, {v(-1), v("$$command_name")}});
+    EXPECT_EQ(chain(elm),
+              "frame_action_ch[int:8].start(int:-1,str:$$command_name)");
+  }
+}
+
 TEST_F(ElementParserTest, CurcallArgStr) {
   std::vector<Type> curcall_args{Type::None, Type::String};
   EXPECT_CALL(*ctx, CurcallArgs()).WillOnce(ReturnRef(curcall_args));
