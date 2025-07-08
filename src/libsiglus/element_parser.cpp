@@ -334,7 +334,574 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
     }
 
     case Type::Syscom: {
-      return nullptr;
+      static const auto mp = make_flatmap<Builder>(
+          // TODO: 236 -> Syscom_call_ex ?
+          id[0] | b(Type::None, Call("menu")),
+          id[6] | b(Type::None, Call("menu_enable")),
+          id[7] | b(Type::None, Call("menu_disable")),
+          id[11] | callable(fn("btn_enable_all")[0]().ret(Type::None),
+                            fn("btn_enable")[1](Type::Int).ret(Type::None)),
+          id[12] | callable(fn("btn_disable_all")[0]().ret(Type::None),
+                            fn("btn_disable")[1](Type::Int).ret(Type::None)),
+          id[133] | b(Type::None, Call("touch_enable")),
+          id[134] | b(Type::None, Call("touch_disable")),
+          id[5] | b(Type::None, Call("init_flags")),
+          // readskip
+          id[200] |
+              callable(fn("set_readskip")[any](Type::Int).ret(Type::None)),
+          id[201] | b(Type::Int, Call("get_readskip")),
+          id[202] | callable(fn("set_enable_readskip")[any](Type::Int).ret(
+                        Type::None)),
+          id[203] | b(Type::Int, Call("get_enable_readskip")),
+          id[204] | callable(fn("set_exist_readskip")[any](Type::Int).ret(
+                        Type::None)),
+          id[205] | b(Type::Int, Call("get_exist_readskip")),
+          id[206] | b(Type::Int, Call("is_readskip_enable")),
+          // autoskip
+          id[207] |
+              callable(fn("set_autoskip")[any](Type::Int).ret(Type::None)),
+          id[208] | b(Type::Int, Call("get_autoskip")),
+          id[209] | callable(fn("set_enable_autoskip")[any](Type::Int).ret(
+                        Type::None)),
+          id[210] | b(Type::Int, Call("get_enable_autoskip")),
+          id[211] | callable(fn("set_exist_autoskip")[any](Type::Int).ret(
+                        Type::None)),
+          id[212] | b(Type::Int, Call("get_exist_autoskip")),
+          id[213] | b(Type::Int, Call("is_autoskip_enable")),
+          // automode
+          id[214] |
+              callable(fn("set_automode")[any](Type::Int).ret(Type::None)),
+          id[215] | b(Type::Int, Call("get_automode")),
+          id[216] | callable(fn("set_enable_automode")[any](Type::Int).ret(
+                        Type::None)),
+          id[217] | b(Type::Int, Call("get_enable_automode")),
+          id[218] | callable(fn("set_exist_automode")[any](Type::Int).ret(
+                        Type::None)),
+          id[219] | b(Type::Int, Call("get_exist_automode")),
+          id[220] | b(Type::Int, Call("is_automode_enable")),
+          // hide mwnd
+          id[221] |
+              callable(fn("set_hidemwnd")[any](Type::Int).ret(Type::None)),
+          id[222] | b(Type::Int, Call("get_hidemwnd")),
+          id[223] | callable(fn("set_enable_hidemwnd")[any](Type::Int).ret(
+                        Type::None)),
+          id[224] | b(Type::Int, Call("get_enable_hidemwnd")),
+          id[225] | callable(fn("set_exist_hidemwnd")[any](Type::Int).ret(
+                        Type::None)),
+          id[226] | b(Type::Int, Call("get_exist_hidemwnd")),
+          id[227] | b(Type::Int, Call("is_hidemwnd_enable")),
+          // extra local switch
+          id[300] | callable(fn("set_extraswitch")[any](Type::Int, Type::Int)
+                                 .ret(Type::None)),
+          id[301] |
+              callable(fn("get_extraswitch")[any](Type::Int).ret(Type::Int)),
+          id[302] |
+              callable(fn("set_enable_extraswitch")[any](Type::Int, Type::Int)
+                           .ret(Type::None)),
+          id[303] | callable(fn("get_enable_extraswitch")[any](Type::Int).ret(
+                        Type::Int)),
+          id[304] |
+              callable(fn("set_exist_extraswitch")[any](Type::Int, Type::Int)
+                           .ret(Type::None)),
+          id[305] | callable(fn("get_exist_extraswitch")[any](Type::Int).ret(
+                        Type::Int)),
+          id[306] | callable(fn("is_extraswitch_enable")[any](Type::Int).ret(
+                        Type::Int)),
+          // local mode
+          id[23] |
+              callable(fn("set_localmode")[any](Type::Int).ret(Type::None)),
+          id[57] | b(Type::Int, Call("get_localmode")),
+          id[58] | callable(fn("set_enable_localmode")[any](Type::Int).ret(
+                       Type::None)),
+          id[59] | b(Type::Int, Call("get_enable_localmode")),
+          id[62] | callable(fn("set_exist_localmode")[any](Type::Int).ret(
+                       Type::None)),
+          id[63] | b(Type::Int, Call("get_exist_localmode")),
+          id[64] | b(Type::Int, Call("is_localmode_enable")),
+          // msgback
+          id[192] | b(Type::None, Call("open_msgback")),
+          id[193] | b(Type::None, Call("close_msgback")),
+          id[194] | callable(fn("set_enable_msgback")[any](Type::Int).ret(
+                        Type::None)),
+          id[195] | b(Type::Int, Call("get_enable_msgback")),
+          id[196] |
+              callable(fn("set_exist_msgback")[any](Type::Int).ret(Type::None)),
+          id[197] | b(Type::Int, Call("get_exist_msgback")),
+          id[198] | b(Type::Int, Call("is_msgback_enable")),
+          id[329] | b(Type::Int, Call("is_msgback_open")),
+          // return to sel
+          id[228] |
+              callable(fn("return_to_sel")[any](Type::Int, Type::Int, Type::Int)
+                           .ret(Type::None)),
+          id[230] |
+              callable(fn("set_enable_retsel")[any](Type::Int).ret(Type::None)),
+          id[231] | b(Type::Int, Call("get_enable_retsel")),
+          id[232] |
+              callable(fn("set_exist_retsel")[any](Type::Int).ret(Type::None)),
+          id[233] | b(Type::Int, Call("get_exist_retsel")),
+          id[234] | b(Type::Int, Call("is_retsel_enable")),
+          // return to menu
+          id[235] | callable(fn("return_to_menu")[any](Type::Int, Type::Int,
+                                                       Type::Int,
+                                                       kw_arg(0, Type::Int))
+                                 .ret(Type::None)),
+          id[237] | callable(fn("set_enable_retmenu")[any](Type::Int).ret(
+                        Type::None)),
+          id[238] | b(Type::Int, Call("get_enable_retmenu")),
+          id[239] |
+              callable(fn("set_exist_retmenu")[any](Type::Int).ret(Type::None)),
+          id[240] | b(Type::Int, Call("get_exist_retmenu")),
+          id[241] | b(Type::Int, Call("is_retmenu_enable")),
+          // end game
+          id[242] | callable(fn("end_game")[1](Type::Int, Type::Int, Type::Int)
+                                 .ret(Type::None),
+                             fn("end_game")[any](Type::Int).ret(Type::None)),
+          id[244] | callable(fn("set_enable_endgame")[any](Type::Int).ret(
+                        Type::None)),
+          id[245] | b(Type::Int, Call("get_enable_endgame")),
+          id[246] |
+              callable(fn("set_exist_endgame")[any](Type::Int).ret(Type::None)),
+          id[247] | b(Type::Int, Call("get_exist_endgame")),
+          id[248] | b(Type::Int, Call("is_endgame_enable")),
+          // replay koe
+          id[288] | b(Type::None, Call("replay_koe")),
+          id[292] | b(Type::Int, Call("check_koe")),
+          id[289] | b(Type::Int, Call("get_cur_koe")),
+          id[291] | b(Type::Int, Call("get_cur_chr")),
+          id[293] | b(Type::None, Call("clear_koe_chr")),
+          id[294] | b(Type::String, Call("get_scene_title")),
+          id[295] | b(Type::String, Call("get_save_message")),
+
+          id[199] | b(Type::None, Call("get_total_playtime(fixme)")),
+          id[229] | callable(fn("set_total_playtime")[any](Type::Int, Type::Int,
+                                                           Type::Int, Type::Int,
+                                                           Type::Int)
+                                 .ret(Type::None)),
+
+          // save
+          id[1] | b(Type::None, Call("open_save")),
+          id[251] |
+              callable(fn("set_enable_save")[any](Type::Int).ret(Type::None)),
+          id[252] | b(Type::Int, Call("get_enable_save")),
+          id[253] |
+              callable(fn("set_exist_save")[any](Type::Int).ret(Type::None)),
+          id[254] | b(Type::Int, Call("get_exist_save")),
+          id[255] | b(Type::Int, Call("is_save_enable")),
+          // load
+          id[2] | b(Type::None, Call("open_load")),
+          id[258] |
+              callable(fn("set_enable_load")[any](Type::Int).ret(Type::None)),
+          id[259] | b(Type::Int, Call("get_enable_load")),
+          id[260] |
+              callable(fn("set_exist_load")[any](Type::Int).ret(Type::None)),
+          id[261] | b(Type::Int, Call("get_exist_load")),
+          id[262] | b(Type::Int, Call("is_load_enable")),
+
+          // save / load
+          id[249] | callable(fn("save")[any](Type::Int, Type::Int, Type::Int)
+                                 .ret(Type::Int)),
+          id[256] | callable(fn("load")[any](Type::Int, Type::Int, Type::Int,
+                                             Type::Int)
+                                 .ret(Type::None)),
+          id[18] | callable(fn("qsave")[any](Type::Int, Type::Int, Type::Int)
+                                .ret(Type::Int)),
+          id[20] | callable(fn("qload")[any](Type::Int, Type::Int, Type::Int,
+                                             Type::Int)
+                                .ret(Type::None)),
+          id[271] |
+              callable(fn("endsave")[any](Type::Int, Type::Int).ret(Type::Int)),
+          id[269] | callable(fn("endload")[any](Type::Int, Type::Int, Type::Int)
+                                 .ret(Type::None)),
+          // inner save / load
+          id[272] | callable(fn("inner_save")[any](Type::Int).ret(Type::Int)),
+          id[273] | callable(fn("inner_load")[any](Type::Int, Type::Int,
+                                                   Type::Int, Type::Int)
+                                 .ret(Type::Int)),
+          id[276] |
+              callable(fn("clear_inner_save")[any](Type::Int).ret(Type::Int)),
+          id[274] |
+              callable(fn("check_inner_save")[any](Type::Int).ret(Type::Int)),
+          // message back save / load
+          id[310] |
+              callable(fn("msgbk_load")[any](Type::Int, Type::Int, Type::Int)
+                           .ret(Type::None)),
+          // save data
+          id[68] | b(Type::Int, Call("get_save_count")),
+          id[168] | b(Type::Int, Call("get_qsave_count")),
+          id[79] | callable(fn("get_new_save_no")[0]().ret(Type::Int),
+                            fn("get_new_save_no")[1](Type::Int, Type::Int)
+                                .ret(Type::Int)),
+          id[170] | callable(fn("get_new_qsave_no")[0]().ret(Type::Int),
+                             fn("get_new_qsave_no")[1](Type::Int, Type::Int)
+                                 .ret(Type::Int)),
+          id[69] | callable(fn("is_save_exist")[any](Type::Int).ret(Type::Int)),
+          id[70] | callable(fn("get_save_year")[any](Type::Int).ret(Type::Int)),
+          id[71] |
+              callable(fn("get_save_month")[any](Type::Int).ret(Type::Int)),
+          id[72] | callable(fn("get_save_day")[any](Type::Int).ret(Type::Int)),
+          id[73] |
+              callable(fn("get_save_weekday")[any](Type::Int).ret(Type::Int)),
+          id[74] | callable(fn("get_save_hour")[any](Type::Int).ret(Type::Int)),
+          id[75] |
+              callable(fn("get_save_minute")[any](Type::Int).ret(Type::Int)),
+          id[76] |
+              callable(fn("get_save_second")[any](Type::Int).ret(Type::Int)),
+          id[77] | callable(fn("get_save_millisecond")[any](Type::Int).ret(
+                       Type::Int)),
+          id[78] |
+              callable(fn("get_save_title")[any](Type::Int).ret(Type::String)),
+          id[129] | callable(fn("get_save_message")[any](Type::Int).ret(
+                        Type::String)),
+          id[324] | callable(fn("get_save_full_message")[any](Type::Int).ret(
+                        Type::String)),
+          id[131] | callable(fn("get_save_comment")[any](Type::Int).ret(
+                        Type::String)),
+          id[180] |
+              callable(fn("set_save_comment")[any](Type::Int, Type::String)
+                           .ret(Type::None)),
+          // TODO: 183 -> get_save_value
+          // TODO: 182 -> set_save_value
+          id[320] | callable(fn("get_save_append_dir")[any](Type::Int).ret(
+                        Type::String)),
+          id[321] | callable(fn("get_save_append_name")[any](Type::Int).ret(
+                        Type::String)),
+
+          id[169] |
+              callable(fn("is_qsave_exist")[any](Type::Int).ret(Type::Int)),
+          id[171] |
+              callable(fn("get_qsave_year")[any](Type::Int).ret(Type::Int)),
+          id[172] |
+              callable(fn("get_qsave_month")[any](Type::Int).ret(Type::Int)),
+          id[173] |
+              callable(fn("get_qsave_day")[any](Type::Int).ret(Type::Int)),
+          id[174] |
+              callable(fn("get_qsave_weekday")[any](Type::Int).ret(Type::Int)),
+          id[175] |
+              callable(fn("get_qsave_hour")[any](Type::Int).ret(Type::Int)),
+          id[176] |
+              callable(fn("get_qsave_minute")[any](Type::Int).ret(Type::Int)),
+          id[177] |
+              callable(fn("get_qsave_second")[any](Type::Int).ret(Type::Int)),
+          id[178] | callable(fn("get_qsave_millisecond")[any](Type::Int).ret(
+                        Type::Int)),
+          id[179] |
+              callable(fn("get_qsave_title")[any](Type::Int).ret(Type::String)),
+          id[130] | callable(fn("get_qsave_message")[any](Type::Int).ret(
+                        Type::String)),
+          id[325] | callable(fn("get_qsave_full_message")[any](Type::Int).ret(
+                        Type::String)),
+          id[132] | callable(fn("get_qsave_comment")[any](Type::Int).ret(
+                        Type::String)),
+          id[181] |
+              callable(fn("set_qsave_comment")[any](Type::Int, Type::String)
+                           .ret(Type::None)),
+          // TODO: 184 -> get_qsave_value
+          // TODO: 185 -> set_qsave_value
+          id[322] | callable(fn("get_qsave_append_dir")[any](Type::Int).ret(
+                        Type::String)),
+          id[323] | callable(fn("get_qsave_append_name")[any](Type::Int).ret(
+                        Type::String)),
+
+          id[270] |
+              callable(fn("is_endsave_exist")[any](Type::Int).ret(Type::Int)),
+          id[67] |
+              callable(
+                  fn("copy_save")[any](Type::Int, Type::Int).ret(Type::Int)),
+          id[22] |
+              callable(
+                  fn("change_save")[any](Type::Int, Type::Int).ret(Type::Int)),
+          id[19] | callable(fn("delete_save")[any](Type::Int).ret(Type::Int)),
+          id[128] |
+              callable(
+                  fn("copy_qsave")[any](Type::Int, Type::Int).ret(Type::Int)),
+          id[66] |
+              callable(
+                  fn("change_qsave")[any](Type::Int, Type::Int).ret(Type::Int)),
+          id[65] | callable(fn("delete_qsave")[any](Type::Int).ret(Type::Int)),
+
+          // environment settings
+          id[3] | b(Type::None, Call("open_config_menu")),
+          id[138] | b(Type::None, Call("open_config_windowmode_menu")),
+          id[139] | b(Type::None, Call("open_config_volume_menu")),
+          id[137] | b(Type::None, Call("open_config_bgmfade_menu")),
+          id[147] | b(Type::None, Call("open_config_koemode_menu")),
+          id[146] | b(Type::None, Call("open_config_charakoe_menu")),
+          id[151] | b(Type::None, Call("open_config_jitan_menu")),
+          id[135] | b(Type::None, Call("open_config_message_speed_menu")),
+          id[136] | b(Type::None, Call("open_config_filter_color_menu")),
+          id[140] | b(Type::None, Call("open_config_auto_mode_menu")),
+          id[142] | b(Type::None, Call("open_config_font_menu")),
+          id[141] | b(Type::None, Call("open_config_system_menu")),
+          id[167] | b(Type::None, Call("open_config_movie_menu")),
+          // window mode
+          id[4] |
+              callable(fn("set_window_mode")[any](Type::Int).ret(Type::None)),
+          id[99] | b(Type::None, Call("set_window_mode_default")),
+          id[9] | b(Type::Int, Call("get_window_mode")),
+          id[13] |
+              callable(fn("set_window_mode_size")[any](Type::Int, Type::Int)
+                           .ret(Type::None)),
+          id[100] | b(Type::None, Call("set_window_mode_default")),
+          id[16] | b(Type::Int, Call("get_window_mode_size")),
+          id[309] |
+              callable(fn("check_window_mode_size_enable")[any](Type::Int).ret(
+                  Type::Int)),
+          // volume
+          id[39] |
+              callable(fn("set_all_volume")[any](Type::Int).ret(Type::None)),
+          id[21] |
+              callable(fn("set_bgm_volume")[any](Type::Int).ret(Type::None)),
+          id[26] |
+              callable(fn("set_koe_volume")[any](Type::Int).ret(Type::None)),
+          id[29] |
+              callable(fn("set_pcm_volume")[any](Type::Int).ret(Type::None)),
+          id[32] |
+              callable(fn("set_se_volume")[any](Type::Int).ret(Type::None)),
+          id[263] |
+              callable(fn("set_mov_volume")[any](Type::Int).ret(Type::None)),
+          id[277] | callable(fn("set_sound_volume")[any](Type::Int, Type::Int)
+                                 .ret(Type::None)),
+          id[60] |
+              callable(fn("set_all_onoff")[any](Type::Int).ret(Type::None)),
+          id[35] |
+              callable(fn("set_bgm_onoff")[any](Type::Int).ret(Type::None)),
+          id[36] |
+              callable(fn("set_koe_onoff")[any](Type::Int).ret(Type::None)),
+          id[37] |
+              callable(fn("set_pcm_onoff")[any](Type::Int).ret(Type::None)),
+          id[38] | callable(fn("set_se_onoff")[any](Type::Int).ret(Type::None)),
+          id[266] |
+              callable(fn("set_mov_onoff")[any](Type::Int).ret(Type::None)),
+          id[280] | callable(fn("set_sound_onoff")[any](Type::Int, Type::Int)
+                                 .ret(Type::None)),
+          id[40] | b(Type::None, Call("set_all_volume_default")),
+          id[24] | b(Type::None, Call("set_bgm_volume_default")),
+          id[27] | b(Type::None, Call("set_koe_volume_default")),
+          id[30] | b(Type::None, Call("set_pcm_volume_default")),
+          id[33] | b(Type::None, Call("set_se_volume_default")),
+          id[264] | b(Type::None, Call("set_mov_volume_default")),
+          id[278] | callable(fn("set_sound_volume_default")[any](Type::Int).ret(
+                        Type::None)),
+          id[101] | b(Type::None, Call("set_all_onoff_default")),
+          id[102] | b(Type::None, Call("set_bgm_onoff_default")),
+          id[103] | b(Type::None, Call("set_koe_onoff_default")),
+          id[104] | b(Type::None, Call("set_pcm_onoff_default")),
+          id[105] | b(Type::None, Call("set_se_onoff_default")),
+          id[267] | b(Type::None, Call("set_mov_onoff_default")),
+          id[281] | callable(fn("set_sound_onoff_default")[any](Type::Int).ret(
+                        Type::None)),
+          id[41] | b(Type::Int, Call("get_all_volume")),
+          id[25] | b(Type::Int, Call("get_bgm_volume")),
+          id[28] | b(Type::Int, Call("get_koe_volume")),
+          id[31] | b(Type::Int, Call("get_pcm_volume")),
+          id[34] | b(Type::Int, Call("get_se_volume")),
+          id[265] | b(Type::Int, Call("get_mov_volume")),
+          id[279] |
+              callable(fn("get_sound_volume")[any](Type::Int).ret(Type::Int)),
+          id[61] | b(Type::Int, Call("get_all_onoff")),
+          id[42] | b(Type::Int, Call("get_bgm_onoff")),
+          id[43] | b(Type::Int, Call("get_koe_onoff")),
+          id[44] | b(Type::Int, Call("get_pcm_onoff")),
+          id[45] | b(Type::Int, Call("get_se_onoff")),
+          id[268] | b(Type::Int, Call("get_mov_onoff")),
+          id[282] |
+              callable(fn("get_sound_onoff")[any](Type::Int).ret(Type::Int)),
+          // bgm fade
+          id[94] | callable(fn("set_bgmfade_volume")[any](Type::Int).ret(
+                       Type::None)),
+          id[97] |
+              callable(fn("set_bgmfade_onoff")[any](Type::Int).ret(Type::None)),
+          id[95] | b(Type::None, Call("set_bgmfade_volume_default")),
+          id[106] | b(Type::None, Call("set_bgmfade_onoff_default")),
+          id[96] | b(Type::Int, Call("get_bgmfade_volume")),
+          id[98] | b(Type::Int, Call("get_bgmfade_onoff")),
+          // koemode
+          id[148] | callable(fn("set_koemode")[any](Type::Int).ret(Type::None)),
+          id[149] | b(Type::None, Call("set_koemode_default")),
+          id[150] | b(Type::Int, Call("get_koemode")),
+          // character koe
+          id[143] | callable(fn("set_charakoe_onoff")[any](Type::Int, Type::Int)
+                                 .ret(Type::None)),
+          id[144] |
+              callable(fn("set_charakoe_onoff_default")[any](Type::Int).ret(
+                  Type::None)),
+          id[145] |
+              callable(fn("get_charakoe_onoff")[any](Type::Int).ret(Type::Int)),
+          id[186] |
+              callable(fn("set_charakoe_volume")[any](Type::Int, Type::Int)
+                           .ret(Type::None)),
+          id[187] |
+              callable(fn("set_charakoe_volume_default")[any](Type::Int).ret(
+                  Type::None)),
+          id[188] | callable(fn("get_charakoe_volume")[any](Type::Int).ret(
+                        Type::Int)),
+          // jitan
+          id[153] | callable(fn("set_jitan_normal_onoff")[any](Type::Int).ret(
+                        Type::None)),
+          id[154] | b(Type::None, Call("set_jitan_normal_onoff_default")),
+          id[155] | b(Type::Int, Call("get_jitan_normal_onoff")),
+          id[156] |
+              callable(fn("set_jitan_auto_mode_onoff")[any](Type::Int).ret(
+                  Type::None)),
+          id[157] | b(Type::None, Call("set_jitan_auto_mode_onoff_default")),
+          id[158] | b(Type::Int, Call("get_jitan_auto_mode_onoff")),
+          id[159] |
+              callable(fn("set_jitan_koe_replay_onoff")[any](Type::Int).ret(
+                  Type::None)),
+          id[160] | b(Type::None, Call("set_jitan_koe_replay_onoff_default")),
+          id[161] | b(Type::Int, Call("get_jitan_koe_replay_onoff")),
+          id[152] |
+              callable(fn("set_jitan_speed")[any](Type::Int).ret(Type::None)),
+          id[162] | b(Type::None, Call("set_jitan_speed_default")),
+          id[163] | b(Type::Int, Call("get_jitan_speed")),
+          // message speed
+          id[46] |
+              callable(fn("set_message_speed")[any](Type::Int).ret(Type::None)),
+          id[47] | b(Type::None, Call("set_message_speed_default")),
+          id[48] | b(Type::Int, Call("get_message_speed")),
+          id[49] | callable(fn("set_message_nowait")[any](Type::Int).ret(
+                       Type::None)),
+          id[107] | b(Type::None, Call("set_message_nowait_default")),
+          id[50] | b(Type::Int, Call("get_message_nowait")),
+          // auto mode
+          id[51] | callable(fn("set_auto_mode_moji_wait")[any](Type::Int).ret(
+                       Type::None)),
+          id[52] | b(Type::None, Call("set_auto_mode_moji_wait_default")),
+          id[53] | b(Type::Int, Call("get_auto_mode_moji_wait")),
+          id[54] | callable(fn("set_auto_mode_min_wait")[any](Type::Int).ret(
+                       Type::None)),
+          id[55] | b(Type::None, Call("set_auto_mode_min_wait_default")),
+          id[56] | b(Type::Int, Call("get_auto_mode_min_wait")),
+          // auto hide mouse cursor
+          id[311] |
+              callable(fn("set_mouse_cursor_hide_onoff")[any](Type::Int).ret(
+                  Type::None)),
+          id[312] | b(Type::None, Call("set_mouse_cursor_hide_onoff_default")),
+          id[313] | b(Type::Int, Call("get_mouse_cursor_hide_onoff")),
+          id[317] |
+              callable(fn("set_mouse_cursor_hide_time")[any](Type::Int).ret(
+                  Type::None)),
+          id[318] | b(Type::None, Call("set_mouse_cursor_hide_time_default")),
+          id[319] | b(Type::Int, Call("get_mouse_cursor_hide_time")),
+          // window background color
+          id[82] | callable(fn("set_filter_color_r")[any](Type::Int).ret(
+                       Type::None)),
+          id[85] | callable(fn("set_filter_color_g")[any](Type::Int).ret(
+                       Type::None)),
+          id[86] | callable(fn("set_filter_color_b")[any](Type::Int).ret(
+                       Type::None)),
+          id[87] | callable(fn("set_filter_color_a")[any](Type::Int).ret(
+                       Type::None)),
+          id[83] | b(Type::None, Call("set_filter_color_r_default")),
+          id[88] | b(Type::None, Call("set_filter_color_g_default")),
+          id[89] | b(Type::None, Call("set_filter_color_b_default")),
+          id[90] | b(Type::None, Call("set_filter_color_a_default")),
+          id[84] | b(Type::Int, Call("get_filter_color_r")),
+          id[91] | b(Type::Int, Call("get_filter_color_g")),
+          id[92] | b(Type::Int, Call("get_filter_color_b")),
+          id[93] | b(Type::Int, Call("get_filter_color_a")),
+          // display object
+          id[189] | callable(fn("set_obj_disp_onoff")[any](Type::Int, Type::Int)
+                                 .ret(Type::None)),
+          id[190] |
+              callable(fn("set_obj_disp_onoff_default")[any](Type::Int).ret(
+                  Type::None)),
+          id[191] |
+              callable(fn("get_obj_disp_onoff")[any](Type::Int).ret(Type::Int)),
+          // global extra switch
+          id[14] | callable(fn("set_global_extraswitch_onoff")[any](Type::Int,
+                                                                    Type::Int)),
+          id[15] | callable(fn("set_global_extraswitch_onoff_default")[any](
+                       Type::Int)),
+          id[17] |
+              callable(fn("get_global_extraswitch_onoff")[any](Type::Int).ret(
+                  Type::Int)),
+          // global extra mode
+          id[164] |
+              callable(fn("set_global_extramode")[any](Type::Int, Type::Int)),
+          id[165] |
+              callable(fn("set_global_extramode_default")[any](Type::Int)),
+          id[166] |
+              callable(fn("get_global_extramode_default")[any](Type::Int).ret(
+                  Type::Int)),
+
+          // system settings
+          id[80] | callable(fn("set_saveload_alert_onoff")[any](Type::Int)),
+          id[108] | b(Type::None, Call("set_saveload_alert_onoff_default")),
+          id[10] | b(Type::Int, Call("get_saveload_alert_onoff")),
+          id[110] | callable(fn("set_sleep_onoff")[any](Type::Int)),
+          id[111] | b(Type::None, Call("set_sleep_onoff_default")),
+          id[112] | b(Type::Int, Call("get_sleep_onoff")),
+          id[113] | callable(fn("set_no_wipe_anime_onoff")[any](Type::Int)),
+          id[114] | b(Type::None, Call("set_no_wipe_anime_onoff_default")),
+          id[115] | b(Type::Int, Call("get_no_wipe_anime_onoff")),
+          id[116] | callable(fn("set_skip_wipe_anime_onoff")[any](Type::Int)),
+          id[117] | b(Type::None, Call("set_skip_wipe_anime_onoff_default")),
+          id[118] | b(Type::Int, Call("get_skip_wipe_anime_onoff")),
+          id[8] | callable(fn("set_no_mwnd_anime_onoff")[any](Type::Int)),
+          id[109] | b(Type::None, Call("set_no_mwnd_anime_onoff_default")),
+          id[81] | b(Type::Int, Call("get_no_mwnd_anime_onoff")),
+          id[119] |
+              callable(fn("set_wheel_next_message_onoff")[any](Type::Int)),
+          id[120] | b(Type::None, Call("set_wheel_next_message_onoff_default")),
+          id[121] | b(Type::Int, Call("get_wheel_next_message_onoff")),
+          id[122] | callable(fn("set_koe_dont_stop_onoff")[any](Type::Int)),
+          id[123] | b(Type::None, Call("set_koe_dont_stop_onoff_default")),
+          id[124] | b(Type::Int, Call("get_koe_dont_stop_onoff")),
+          id[125] |
+              callable(fn("set_skip_unread_message_onoff")[any](Type::Int)),
+          id[126] |
+              b(Type::None, Call("set_skip_unread_message_onoff_default")),
+          id[127] | b(Type::Int, Call("get_skip_unread_message_onoff")),
+          id[250] | callable(fn("set_play_silent_sound_onoff")[any](Type::Int)),
+          id[247] | b(Type::None, Call("set_play_silent_sound_onoff_default")),
+          id[243] | b(Type::Int, Call("get_play_silent_sound_onoff")),
+
+          // font
+          id[283] | callable(fn("set_font_name")[any](Type::String)),
+          id[326] | b(Type::None, Call("set_font_name_default")),
+          id[284] | b(Type::String, Call("get_font_name")),
+          id[285] |
+              callable(fn("is_font_exist")[any](Type::String).ret(Type::Int)),
+          id[296] | callable(fn("set_font_bold")[any](Type::Int)),
+          id[298] | b(Type::None, Call("set_font_bold_default")),
+          id[307] | b(Type::Int, Call("get_font_bold")),
+          id[297] | callable(fn("set_font_decoration")[any](Type::Int)),
+          id[299] | b(Type::None, Call("set_font_decoration_default")),
+          id[308] | b(Type::Int, Call("get_font_decoration")),
+
+          // capture
+          id[286] |
+              callable(fn("create_capture_buffer")[any](Type::Int, Type::Int)),
+          id[287] | b(Type::None, Call("destroy_capture_buffer")),
+          id[316] | callable(fn("capture_to_capture_buffer")[any](Type::Int,
+                                                                  Type::Int)),
+          id[314] | callable(fn("save_capture_buffer_to_file")[any](
+                                 Type::String, Type::String,
+                                 kw_arg(0, Type::Int), kw_arg(1, Type::String),
+                                 kw_arg(2, Type::Other), kw_arg(3, Type::Int),
+                                 kw_arg(4, Type::Int), kw_arg(5, Type::Other),
+                                 kw_arg(6, Type::Int), kw_arg(7, Type::Int))
+                                 .ret(Type::Int)),
+          id[315] | callable(fn("load_flag_from_capture_file")[any](
+                                 Type::String, Type::String,
+                                 kw_arg(0, Type::Int), kw_arg(1, Type::String),
+                                 kw_arg(2, Type::Other), kw_arg(3, Type::Int),
+                                 kw_arg(4, Type::Int), kw_arg(5, Type::Other),
+                                 kw_arg(6, Type::Int), kw_arg(7, Type::Int))
+                                 .ret(Type::Int)),
+          id[290] | callable(fn("capture_to_png")[any](Type::Int, Type::Int,
+                                                       Type::String)),
+          id[327] | b(Type::None, Call("twitter")),
+          id[328] |
+              callable(fn("set_ret_scene_once")[0](Type::String),
+                       fn("set_ret_scene_once")[any](Type::String, Type::Int)),
+
+          id[330] |
+              callable(fn("get_sys_extra_int")[any](Type::Int).ret(Type::Int)),
+          id[331] | callable(fn("get_sys_extra_str")[any](Type::Int).ret(
+                        Type::String)));
+      return &mp;
     }
 
     case Type::Excall: {
