@@ -32,7 +32,8 @@
 namespace libsiglus::elm {
 
 std::string Usrcmd::ToDebugString() const {
-  return std::format("@{}.{}:{}", scene, entry, name);
+  return std::format("@{}.{}:{}{}", scene, entry, name,
+                     arguments.ToDebugString(false, false));
 }
 std::string Usrprop::ToDebugString() const {
   return std::format("@{}.{}:{}", scene, idx, name);

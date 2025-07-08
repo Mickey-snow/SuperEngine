@@ -197,4 +197,22 @@ TEST_F(ElementParserTest, Movie) {
   }
 }
 
+TEST_F(ElementParserTest, BgmTable) {
+  {
+    ElementCode elm{123, 2};
+    elm.ForceBind({0, {v("song01"), v(1)}});
+    EXPECT_EQ(chain(elm), "bgm_table.set_listen(str:song01,int:1)");
+  }
+}
+
+TEST_F(ElementParserTest, UsrcmdGlobal) {
+  std::vector<Command> globalcmd = {
+      Command{.scene_id = 1, .offset = 2, .name = "$$cmd"}};
+  EXPECT_CALL(*ctx, GlobalCommands()).WillRepeatedly(ReturnRef(globalcmd));
+
+  ElementCode elm{2113929216};
+  elm.ForceBind({0, {v(20)}});
+  EXPECT_EQ(chain(elm), "@1.2:$$cmd(int:20)");
+}
+
 }  // namespace siglus_test

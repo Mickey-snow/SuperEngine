@@ -66,7 +66,7 @@ std::string Signature::ToDebugString() const {
 Invoke::Invoke(int ol, std::vector<Value> arglist, Type rettype)
     : overload_id(ol), arg(std::move(arglist)), return_type(rettype) {}
 
-std::string Invoke::ToDebugString() const {
+std::string Invoke::ToDebugString(bool show_overload, bool show_rettype) const {
   std::vector<std::string> args_repr;
   args_repr.reserve(arg.size() + named_arg.size());
 
@@ -77,8 +77,12 @@ std::string Invoke::ToDebugString() const {
                    return std::format("_{}={}", it.first, ToString(it.second));
                  });
 
-  return std::format("[{}]({})->{}", overload_id, Join(",", args_repr),
-                     ToString(return_type));
+  std::string result = '(' + Join(",", args_repr) + ')';
+  if (show_overload)
+    result = '[' + std::to_string(overload_id) + ']';
+  if (show_rettype)
+    result += "->" + ToString(return_type);
+  return result;
 }
 
 bool Invoke::Empty() const { return arg.empty() && named_arg.empty(); }

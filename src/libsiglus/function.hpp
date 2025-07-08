@@ -58,8 +58,11 @@ struct Invoke {
   Invoke() = default;
   Invoke(int ol, std::vector<Value> arg, Type ret = Type::None);
 
-  std::string ToDebugString() const;
+  std::string ToDebugString(bool show_overload = true,
+                            bool show_rettype = true) const;
   bool Empty() const;
+
+  bool operator==(const Invoke&) const = default;
 };
 
 struct Function {

@@ -1054,6 +1054,15 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
       return &mp;
     }
 
+    case Type::BgmTable: {
+      static const auto mp = make_flatmap<Builder>(
+          id[0] | b(Type::Int, Member("cnt")),
+          id[2] | callable(fn("set_listen")[any](Type::String, Type::Int)),
+          id[4] | callable(fn("set_listen_all")[any](Type::Int)),
+          id[1] | callable(fn("get_listen")[any](Type::String).ret(Type::Int)));
+      return &mp;
+    }
+
     [[unlikely]]
     default:
       return nullptr;
@@ -1072,16 +1081,25 @@ AccessChain ElementParser::Parse(ElementCode& elm) {
   const int flag = first >> 24;
   const size_t idx = first ^ (flag << 24);
 
+  AccessChain result;
   if (flag == USER_COMMAND_FLAG)
-    return resolve_usrcmd(elm, idx);
+    result = resolve_usrcmd(elm, idx);
   else if (flag == USER_PROPERTY_FLAG)
-    return resolve_usrprop(elm, idx);
+    result = resolve_usrprop(elm, idx);
+  else
+    result = resolve_element(elm);
 
-  return resolve_element(elm);
+  if (elm.bind_ctx.Empty())  // implicit
+    elm.force_bind = false;
+  if (elm.force_bind) {
+    ctx_->Warn("[ElementParser] bind ignored: " + elm.bind_ctx.ToDebugString());
+  }
+
+  return result;
 }
 
 AccessChain ElementParser::resolve_usrcmd(ElementCode& elm, size_t idx) {
-  AccessChain chain;
+  Usrcmd usrcmd;
 
   const libsiglus::Command* cmd = nullptr;
   if (idx < ctx_->GlobalCommands().size())
@@ -1089,10 +1107,13 @@ AccessChain ElementParser::resolve_usrcmd(ElementCode& elm, size_t idx) {
   else
     cmd = &ctx_->SceneCommands()[idx - ctx_->GlobalCommands().size()];
 
-  chain.root = elm::Usrcmd{
-      .scene = cmd->scene_id, .entry = cmd->offset, .name = cmd->name};
-  // return type?
-  return chain;
+  usrcmd.scene = cmd->scene_id;
+  usrcmd.entry = cmd->offset;
+  usrcmd.name = cmd->name;
+  usrcmd.arguments = std::move(elm.bind_ctx);
+
+  elm.force_bind = false;
+  return AccessChain{.root = std::move(usrcmd), .nodes = {}};
 }
 
 AccessChain ElementParser::resolve_usrprop(ElementCode& elm, size_t idx) {
@@ -1206,6 +1227,7 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
       Call set_title;
       set_title.name = "set_title";
       set_title.args = {elm.bind_ctx.arg[0]};
+      elm.force_bind = false;
       return AccessChain{.root = std::monostate(),
                          .nodes = {std::move(set_title)}};
     }
@@ -1249,6 +1271,7 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
         }
       }
 
+      elm.force_bind = false;
       return AccessChain{.root = std::move(farcall)};
     }
 
@@ -1280,6 +1303,7 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
         ctx_->Warn("[Wait] expected int, but got: " +
                    ToString(elm.bind_ctx.arg[0]));
       wait.time_ms = elm.bind_ctx.arg[0];
+      elm.force_bind = false;
       return AccessChain{.root = std::move(wait)};
     }
 
@@ -1297,6 +1321,9 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
 
     case 20:  // MOVIE
       return make_chain(Type::Movie, elm::Sym("mov"), elm, 1);
+
+    case 123:  // BGMTABLE
+      return make_chain(Type::BgmTable, elm::Sym("bgm_table"), elm, 1);
 
     [[unlikely]]
     default: {
@@ -1339,12 +1366,6 @@ AccessChain ElementParser::make_chain(AccessChain result,
                          std::views::transform(
                              [](const Value& v) { return ToString(v); }));
     ctx_->Warn(std::move(msg));
-  }
-
-  if (elm.bind_ctx.Empty())  // implicit
-    elm.force_bind = false;
-  if (elm.force_bind) {
-    ctx_->Warn("[ElementParser] bind ignored: " + elm.bind_ctx.ToDebugString());
   }
 
   return result;

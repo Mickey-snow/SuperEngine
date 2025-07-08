@@ -44,6 +44,8 @@ struct Node;
 struct Usrcmd {
   int scene, entry;
   std::string_view name;
+  Invoke arguments;
+
   std::string ToDebugString() const;
   bool operator==(const Usrcmd&) const = default;
 };
