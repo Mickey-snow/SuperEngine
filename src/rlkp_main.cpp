@@ -127,6 +127,8 @@ int main(int argc, char* argv[]) {
 
   } else {
     fs::path output_path = output;
+    fs::create_directories(output_path);
+
     std::for_each(std::execution::par_unseq, tasks.begin(), tasks.end(),
                   [&output_path, &run](Dumper::Task& t) {
                     std::ofstream ofs(output_path / t.name);

@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include "utilities/mpl.hpp"
+
 #include <algorithm>
 #include <optional>
 #include <stdexcept>
@@ -133,14 +135,6 @@ constexpr flat_map<T> make_flatmap(Args&&... args) {
   static_assert(sizeof...(Args) > 0,
                 "make_flatmap<T>(...) requires at least one argument");
 
-  static_assert(
-      (... && (std::is_same_v<std::remove_cv_t<std::remove_reference_t<Args>>,
-                              flat_map<T>> ||
-               std::is_same_v<std::remove_cv_t<std::remove_reference_t<Args>>,
-                              std::pair<int, T>>)),
-      "make_flatmap<T>(...): each argument must be either flat_map<T> or "
-      "std::pair<int,T>");
-
   std::vector<int> all_keys;
   all_keys.reserve((sizeof...(Args) * 2) + 2);
 
@@ -149,8 +143,13 @@ constexpr flat_map<T> make_flatmap(Args&&... args) {
     if constexpr (std::is_same_v<U, flat_map<T>>) {
       all_keys.push_back(item.min_key());
       all_keys.push_back(item.max_key());
-    } else {
+    } else if constexpr (std::is_same_v<U, std::pair<int, T>>) {
       all_keys.push_back(item.first);
+    } else {
+      static_assert(
+          always_false<U>,
+          "make_flatmap<T>(...): each argument must be either flat_map<T> or "
+          "std::pair<int,T>");
     }
   };
 
