@@ -1037,6 +1037,24 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
       return &mp;
     }
 
+    case Type::Movie: {
+      static const auto mp = make_flatmap<Builder>(
+          id[0] | callable(fn("play")[any](Type::String),
+                           fn("play")[any](Type::String, Type::Int, Type::Int,
+                                           Type::Int, Type::Int)),
+          id[2] |
+              callable(fn("play_wait")[any](Type::String),
+                       fn("play_wait")[any](Type::String, Type::Int, Type::Int,
+                                            Type::Int, Type::Int)),
+          id[3] | callable(
+                      fn("play_waitkey")[any](Type::String),
+                      fn("play_waitkey")[any](Type::String, Type::Int,
+                                              Type::Int, Type::Int, Type::Int)),
+          id[1] | b(Type::None, Call("stop")));
+      return &mp;
+    }
+
+    [[unlikely]]
     default:
       return nullptr;
   }
@@ -1276,6 +1294,9 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
     case 53:  // FRAME_ACTION_CH
       return make_chain(Type::FrameActionList, elm::Sym("frame_action_ch"), elm,
                         1);
+
+    case 20:  // MOVIE
+      return make_chain(Type::Movie, elm::Sym("mov"), elm, 1);
 
     [[unlikely]]
     default: {

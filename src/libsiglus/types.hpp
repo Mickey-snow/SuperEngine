@@ -56,6 +56,7 @@ enum class Type : uint32_t {
   IntEvent,
   ObjList,
   Script,
+  Movie,
 
   None = 0x00,
   Int = 0x0a,

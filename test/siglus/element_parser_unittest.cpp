@@ -183,4 +183,18 @@ TEST_F(ElementParserTest, CurcallArgStr) {
   EXPECT_EQ(chain(elm), "arg_1.left()");
 }
 
+TEST_F(ElementParserTest, Movie) {
+  {
+    ElementCode elm{20, 2};
+    elm.ForceBind({0, {v("mov1")}});
+    EXPECT_EQ(chain(elm), "mov.play_wait(str:mov1)");
+  }
+  {
+    ElementCode elm{20, 3};
+    elm.ForceBind({1, {v("mov2"), v(0), v(0), v(420), v(420)}});
+    EXPECT_EQ(chain(elm),
+              "mov.play_waitkey(str:mov2,int:0,int:0,int:420,int:420)");
+  }
+}
+
 }  // namespace siglus_test
