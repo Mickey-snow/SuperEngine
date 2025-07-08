@@ -74,8 +74,8 @@ struct Arg {
 };
 
 struct Farcall {
-  std::string scn_name;
-  int zlabel = 0;
+  Value scn_name;             // type is string
+  Value zlabel = Integer(0);  // type is int
   std::vector<Value> intargs;
   std::vector<Value> strargs;
 

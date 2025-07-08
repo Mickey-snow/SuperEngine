@@ -117,12 +117,20 @@ TEST_F(ElementParserTest, Farcall) {
   {
     ElementCode elm{5};
     elm.ForceBind({0, {v("scnname")}});
-    EXPECT_EQ(chain(elm), "farcall@scnname.z0()()");
+    EXPECT_EQ(chain(elm), "farcall@[str:scnname].z[int:0]()()");
   }
   {
     ElementCode elm{5};
     elm.ForceBind({1, {v("name"), v(1), v(2), v("3"), v(4)}});
-    EXPECT_EQ(chain(elm), "farcall@name.z1(int:2,int:4)(str:3)");
+    EXPECT_EQ(chain(elm), "farcall@[str:name].z[int:1](int:2,int:4)(str:3)");
+  }
+  {
+    // dynamic farcall
+    ElementCode elm{5};
+    elm.ForceBind({1,
+                   {Value(Variable(Type::String, 123)),
+                    Value(Variable(Type::Int, 456))}});
+    EXPECT_EQ(chain(elm), "farcall@[v123].z[v456]()()");
   }
 }
 

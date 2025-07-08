@@ -41,7 +41,8 @@ std::string Mem::ToDebugString() const { return std::string{bank}; }
 std::string Sym::ToDebugString() const { return name; }
 std::string Arg::ToDebugString() const { return "arg_" + std::to_string(id); }
 std::string Farcall::ToDebugString() const {
-  std::string repr = std::format("farcall@{}.z{}", scn_name, zlabel);
+  std::string repr =
+      std::format("farcall@[{}].z[{}]", ToString(scn_name), ToString(zlabel));
   repr += '(' + Join(",", vals_to_string(intargs)) + ')';
   repr += '(' + Join(",", vals_to_string(strargs)) + ')';
   return repr;

@@ -1205,10 +1205,17 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
       auto& bind = elm.bind_ctx;
 
       Farcall farcall;
-      farcall.scn_name = AsStr(bind.arg[0]);
+      if (Typeof(bind.arg[0]) != Type::String)
+        ctx_->Warn("[Farcall] expected string, but got: " +
+                   ToString(bind.arg[0]));
+      farcall.scn_name = bind.arg[0];
 
       if (bind.overload_id == 1) {  // additionally has zlabel and arguments
-        farcall.zlabel = AsInt(bind.arg[1]);
+        if (Typeof(bind.arg[1]) != Type::Int)
+          ctx_->Warn("[Farcall] expected int, but got: " +
+                     ToString(bind.arg[1]));
+
+        farcall.zlabel = bind.arg[1];
         for (auto& arg : std::views::drop(bind.arg, 2)) {
           switch (Typeof(arg)) {
             case Type::Int:
