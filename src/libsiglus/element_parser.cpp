@@ -585,7 +585,7 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
           id[3] | b(Type::None, Call("open_config_menu")),
           id[138] | b(Type::None, Call("open_config_windowmode_menu")),
           id[139] | b(Type::None, Call("open_config_volume_menu")),
-          id[137] | b(Type::None, Call("open_config_bgmfade_menu")),
+          id[137] | b(Type::None, Call("open_config_bgm_fade_menu")),
           id[147] | b(Type::None, Call("open_config_koemode_menu")),
           id[146] | b(Type::None, Call("open_config_charakoe_menu")),
           id[151] | b(Type::None, Call("open_config_jitan_menu")),
@@ -1063,6 +1063,53 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
       return &mp;
     }
 
+    case Type::Bgm: {
+      static const auto mp = make_flatmap<Builder>(
+          // TODO: handle overload with default argument
+          id[0] | callable(fn("play")[any](
+                      Type::String, Type::Int, Type::Int,
+                      kw_arg(0, Type::String), kw_arg(1, Type::Int),
+                      kw_arg(2, Type::Int), kw_arg(3, Type::Int),
+                      kw_arg(4, Type::Int), kw_arg(5, Type::Int))),
+          id[1] | callable(fn("play_oneshot")[0](Type::String),
+                           fn("play_oneshot")[1](Type::String, Type::Int),
+                           fn("play_oneshot")[2](Type::String, Type::Int,
+                                                 Type::Int)),
+          id[2] |
+              callable(fn("play_wait")[0](Type::String),
+                       fn("play_wait")[1](Type::String, Type::Int),
+                       fn("play_wait")[2](Type::String, Type::Int, Type::Int)),
+          id[16] |
+              callable(
+                  fn("ready")[0](Type::String, kw_arg(0, Type::String),
+                                 kw_arg(1, Type::Int), kw_arg(3, Type::Int),
+                                 kw_arg(5, Type::Int)),
+                  fn("ready")[2](Type::String, Type::Int,
+                                 kw_arg(0, Type::String), kw_arg(1, Type::Int),
+                                 kw_arg(3, Type::Int), kw_arg(5, Type::Int))),
+          id[4] | callable(fn("stop")[0](), fn("stop")[1](Type::Int)),
+          id[10] | callable(fn("pause")[0](), fn("pause")[1](Type::Int)),
+          id[11] | callable(fn("resume")[0](kw_arg(0, Type::Int)),
+                            fn("resume")[1](Type::Int, kw_arg(0, Type::Int))),
+          id[12] |
+              callable(fn("resume_wait")[0](), fn("resume_wait")[1](Type::Int)),
+          id[3] | b(Type::None, Call("wait")),
+          id[14] | b(Type::None, Call("wait_key")),
+          id[5] | b(Type::None, Call("wait_fade")),
+          id[15] | b(Type::None, Call("wait_fade_key")),
+          id[18] | b(Type::Int, Call("check")),
+          id[6] | callable(fn("set_volume")[0](Type::Int),
+                           fn("set_volume")[1](Type::Int, Type::Int)),
+          id[7] | callable(fn("set_volume_max")[0](Type::Int),
+                           fn("set_volume_max")[1](Type::Int, Type::Int)),
+          id[8] | callable(fn("set_volume_min")[0](Type::Int),
+                           fn("set_volume_min")[1](Type::Int, Type::Int)),
+          id[9] | b(Type::Int, Call("get_volume")),
+          id[19] | b(Type::String, Call("get_regist_name")),
+          id[13] | b(Type::Int, Call("get_play_pos")));
+      return &mp;
+    }
+
     [[unlikely]]
     default:
       return nullptr;
@@ -1194,6 +1241,9 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
     case 91:  // KOE_PLAY_WAIT_KEY
       ctx_->ReadKidoku();
       break;
+
+    case 42:  // BGM
+      return make_chain(Type::Bgm, elm::Sym("bgm"), elm, 1);
 
       // ====== SEL ======
       // some needs kidoku flag

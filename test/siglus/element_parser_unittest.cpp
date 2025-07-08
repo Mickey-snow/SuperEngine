@@ -205,6 +205,19 @@ TEST_F(ElementParserTest, BgmTable) {
   }
 }
 
+TEST_F(ElementParserTest, Bgm) {
+  {
+    ElementCode elm{42, 0};
+    elm.ForceBind({0, {v("song02"), v(1), v(2)}});
+    EXPECT_EQ(chain(elm), "bgm.play(str:song02,int:1,int:2)");
+  }
+  {
+    ElementCode elm{42, 4};
+    elm.ForceBind({1, {v(4000)}});
+    EXPECT_EQ(chain(elm), "bgm.stop(int:4000)");
+  }
+}
+
 TEST_F(ElementParserTest, UsrcmdGlobal) {
   std::vector<Command> globalcmd = {
       Command{.scene_id = 1, .offset = 2, .name = "$$cmd"}};

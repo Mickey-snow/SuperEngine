@@ -58,6 +58,7 @@ enum class Type : uint32_t {
   Script,
   Movie,
   BgmTable,
+  Bgm,
 
   None = 0x00,
   Int = 0x0a,
