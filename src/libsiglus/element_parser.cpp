@@ -130,43 +130,36 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
           id[5] | b(Type::IntList, Member("b4")),
           id[7] | b(Type::IntList, Member("b8")),
           id[6] | b(Type::IntList, Member("b16")),
-          id[10] | callable(fn("init")[any]().ret(Type::None)),
-          id[2] | callable(fn("resize")[any](Type::Int).ret(Type::None)),
+          id[10] | b(Type::None, Call("init")),
+          id[2] | callable(fn("resize")[any](Type::Int)),
           id[9] | callable(fn("size")[any]().ret(Type::Int)),
-          id[8] | callable(fn("fill")[0](Type::Int, Type::Int).ret(Type::None),
-                           fn("fill")[any](Type::Int, Type::Int, Type::Int)
-                               .ret(Type::None)),
-          id[1] | callable(fn("Set")[any](Type::Int, va_arg(Type::Int))
-                               .ret(Type::None)));
+          id[8] | callable(fn("fill")[0](Type::Int, Type::Int),
+                           fn("fill")[any](Type::Int, Type::Int, Type::Int)),
+          id[1] | callable(fn("Set")[any](Type::Int, va_arg(Type::Int))));
       return &mp;
     }
 
     case Type::IntEventList: {
-      static const auto mp = make_flatmap<Builder>(
-          id[-1] | b_index_array(Type::IntEvent),
-          id[1] | callable(fn("resize")[any](Type::Int).ret(Type::None)));
+      static const auto mp =
+          make_flatmap<Builder>(id[-1] | b_index_array(Type::IntEvent),
+                                id[1] | callable(fn("resize")[any](Type::Int)));
       return &mp;
     }
     case Type::IntEvent: {
       static const auto mp = make_flatmap<Builder>(
           id[0] | callable(fn("set")[any](Type::Int, Type::Int, Type::Int,
-                                          Type::Int, kw_arg(0, Type::Int))
-                               .ret(Type::None)),
-          id[7] | callable(fn("set_real")[any](Type::Int, Type::Int, Type::Int,
-                                               Type::Int, kw_arg(0, Type::Int))
-                               .ret(Type::None)),
+                                          Type::Int, kw_arg(0, Type::Int))),
+          id[7] |
+              callable(fn("set_real")[any](Type::Int, Type::Int, Type::Int,
+                                           Type::Int, kw_arg(0, Type::Int))),
           id[1] | callable(fn("loop")[any](Type::Int, Type::Int, Type::Int,
-                                           Type::Int, Type::Int)
-                               .ret(Type::None)),
+                                           Type::Int, Type::Int)),
           id[8] | callable(fn("loop_real")[any](Type::Int, Type::Int, Type::Int,
-                                                Type::Int, Type::Int)
-                               .ret(Type::None)),
+                                                Type::Int, Type::Int)),
           id[2] | callable(fn("turn")[any](Type::Int, Type::Int, Type::Int,
-                                           Type::Int, Type::Int)
-                               .ret(Type::None)),
+                                           Type::Int, Type::Int)),
           id[9] | callable(fn("turn_real")[any](Type::Int, Type::Int, Type::Int,
-                                                Type::Int, Type::Int)
-                               .ret(Type::None)),
+                                                Type::Int, Type::Int)),
           id[3] | b(Type::None, Call("end")),
           id[4] | b(Type::None, Call("wait")),
           id[10] | b(Type::None, Call("wait_key")),
@@ -183,7 +176,7 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
             ctx.elmcode = ctx.elmcode.subspan(2);
           }),
           id[3] | b(Type::None, Call("init")),
-          id[2] | callable(fn("resize")[any](Type::Int).ret(Type::None)),
+          id[2] | callable(fn("resize")[any](Type::Int)),
           id[4] | b(Type::Int, Call("size")));
       return &mp;
     }
@@ -295,11 +288,8 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
 
     case Type::FrameAction: {
       static const auto mp = make_flatmap<Builder>(
-          id[1] |
-              callable(
-                  fn("start")[any](Type::Int, Type::String).ret(Type::None)),
-          id[3] | callable(fn("start_real")[any](Type::Int, Type::String)
-                               .ret(Type::None)),
+          id[1] | callable(fn("start")[any](Type::Int, Type::String)),
+          id[3] | callable(fn("start_real")[any](Type::Int, Type::String)),
           id[2] | b(Type::None, Call("end")),
           id[0] | b(Type::Counter, Member("counter")),
           id[4] | b(Type::Int, Member("is_end_action")));
@@ -339,16 +329,15 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
           id[0] | b(Type::None, Call("menu")),
           id[6] | b(Type::None, Call("menu_enable")),
           id[7] | b(Type::None, Call("menu_disable")),
-          id[11] | callable(fn("btn_enable_all")[0]().ret(Type::None),
-                            fn("btn_enable")[1](Type::Int).ret(Type::None)),
-          id[12] | callable(fn("btn_disable_all")[0]().ret(Type::None),
-                            fn("btn_disable")[1](Type::Int).ret(Type::None)),
+          id[11] | callable(fn("btn_enable_all")[0](),
+                            fn("btn_enable")[1](Type::Int)),
+          id[12] | callable(fn("btn_disable_all")[0](),
+                            fn("btn_disable")[1](Type::Int)),
           id[133] | b(Type::None, Call("touch_enable")),
           id[134] | b(Type::None, Call("touch_disable")),
           id[5] | b(Type::None, Call("init_flags")),
           // readskip
-          id[200] |
-              callable(fn("set_readskip")[any](Type::Int).ret(Type::None)),
+          id[200] | callable(fn("set_readskip")[any](Type::Int)),
           id[201] | b(Type::Int, Call("get_readskip")),
           id[202] | callable(fn("set_enable_readskip")[any](Type::Int).ret(
                         Type::None)),
@@ -358,8 +347,7 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
           id[205] | b(Type::Int, Call("get_exist_readskip")),
           id[206] | b(Type::Int, Call("is_readskip_enable")),
           // autoskip
-          id[207] |
-              callable(fn("set_autoskip")[any](Type::Int).ret(Type::None)),
+          id[207] | callable(fn("set_autoskip")[any](Type::Int)),
           id[208] | b(Type::Int, Call("get_autoskip")),
           id[209] | callable(fn("set_enable_autoskip")[any](Type::Int).ret(
                         Type::None)),
@@ -369,8 +357,7 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
           id[212] | b(Type::Int, Call("get_exist_autoskip")),
           id[213] | b(Type::Int, Call("is_autoskip_enable")),
           // automode
-          id[214] |
-              callable(fn("set_automode")[any](Type::Int).ret(Type::None)),
+          id[214] | callable(fn("set_automode")[any](Type::Int)),
           id[215] | b(Type::Int, Call("get_automode")),
           id[216] | callable(fn("set_enable_automode")[any](Type::Int).ret(
                         Type::None)),
@@ -380,8 +367,7 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
           id[219] | b(Type::Int, Call("get_exist_automode")),
           id[220] | b(Type::Int, Call("is_automode_enable")),
           // hide mwnd
-          id[221] |
-              callable(fn("set_hidemwnd")[any](Type::Int).ret(Type::None)),
+          id[221] | callable(fn("set_hidemwnd")[any](Type::Int)),
           id[222] | b(Type::Int, Call("get_hidemwnd")),
           id[223] | callable(fn("set_enable_hidemwnd")[any](Type::Int).ret(
                         Type::None)),
@@ -391,25 +377,21 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
           id[226] | b(Type::Int, Call("get_exist_hidemwnd")),
           id[227] | b(Type::Int, Call("is_hidemwnd_enable")),
           // extra local switch
-          id[300] | callable(fn("set_extraswitch")[any](Type::Int, Type::Int)
-                                 .ret(Type::None)),
+          id[300] | callable(fn("set_extraswitch")[any](Type::Int, Type::Int)),
           id[301] |
               callable(fn("get_extraswitch")[any](Type::Int).ret(Type::Int)),
           id[302] |
-              callable(fn("set_enable_extraswitch")[any](Type::Int, Type::Int)
-                           .ret(Type::None)),
+              callable(fn("set_enable_extraswitch")[any](Type::Int, Type::Int)),
           id[303] | callable(fn("get_enable_extraswitch")[any](Type::Int).ret(
                         Type::Int)),
           id[304] |
-              callable(fn("set_exist_extraswitch")[any](Type::Int, Type::Int)
-                           .ret(Type::None)),
+              callable(fn("set_exist_extraswitch")[any](Type::Int, Type::Int)),
           id[305] | callable(fn("get_exist_extraswitch")[any](Type::Int).ret(
                         Type::Int)),
           id[306] | callable(fn("is_extraswitch_enable")[any](Type::Int).ret(
                         Type::Int)),
           // local mode
-          id[23] |
-              callable(fn("set_localmode")[any](Type::Int).ret(Type::None)),
+          id[23] | callable(fn("set_localmode")[any](Type::Int)),
           id[57] | b(Type::Int, Call("get_localmode")),
           id[58] | callable(fn("set_enable_localmode")[any](Type::Int).ret(
                        Type::None)),
@@ -424,43 +406,34 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
           id[194] | callable(fn("set_enable_msgback")[any](Type::Int).ret(
                         Type::None)),
           id[195] | b(Type::Int, Call("get_enable_msgback")),
-          id[196] |
-              callable(fn("set_exist_msgback")[any](Type::Int).ret(Type::None)),
+          id[196] | callable(fn("set_exist_msgback")[any](Type::Int)),
           id[197] | b(Type::Int, Call("get_exist_msgback")),
           id[198] | b(Type::Int, Call("is_msgback_enable")),
           id[329] | b(Type::Int, Call("is_msgback_open")),
           // return to sel
-          id[228] |
-              callable(fn("return_to_sel")[any](Type::Int, Type::Int, Type::Int)
-                           .ret(Type::None)),
-          id[230] |
-              callable(fn("set_enable_retsel")[any](Type::Int).ret(Type::None)),
+          id[228] | callable(fn("return_to_sel")[any](Type::Int, Type::Int,
+                                                      Type::Int)),
+          id[230] | callable(fn("set_enable_retsel")[any](Type::Int)),
           id[231] | b(Type::Int, Call("get_enable_retsel")),
-          id[232] |
-              callable(fn("set_exist_retsel")[any](Type::Int).ret(Type::None)),
+          id[232] | callable(fn("set_exist_retsel")[any](Type::Int)),
           id[233] | b(Type::Int, Call("get_exist_retsel")),
           id[234] | b(Type::Int, Call("is_retsel_enable")),
           // return to menu
-          id[235] | callable(fn("return_to_menu")[any](Type::Int, Type::Int,
-                                                       Type::Int,
-                                                       kw_arg(0, Type::Int))
-                                 .ret(Type::None)),
+          id[235] | callable(fn("return_to_menu")[any](
+                        Type::Int, Type::Int, Type::Int, kw_arg(0, Type::Int))),
           id[237] | callable(fn("set_enable_retmenu")[any](Type::Int).ret(
                         Type::None)),
           id[238] | b(Type::Int, Call("get_enable_retmenu")),
-          id[239] |
-              callable(fn("set_exist_retmenu")[any](Type::Int).ret(Type::None)),
+          id[239] | callable(fn("set_exist_retmenu")[any](Type::Int)),
           id[240] | b(Type::Int, Call("get_exist_retmenu")),
           id[241] | b(Type::Int, Call("is_retmenu_enable")),
           // end game
-          id[242] | callable(fn("end_game")[1](Type::Int, Type::Int, Type::Int)
-                                 .ret(Type::None),
-                             fn("end_game")[any](Type::Int).ret(Type::None)),
+          id[242] | callable(fn("end_game")[1](Type::Int, Type::Int, Type::Int),
+                             fn("end_game")[any](Type::Int)),
           id[244] | callable(fn("set_enable_endgame")[any](Type::Int).ret(
                         Type::None)),
           id[245] | b(Type::Int, Call("get_enable_endgame")),
-          id[246] |
-              callable(fn("set_exist_endgame")[any](Type::Int).ret(Type::None)),
+          id[246] | callable(fn("set_exist_endgame")[any](Type::Int)),
           id[247] | b(Type::Int, Call("get_exist_endgame")),
           id[248] | b(Type::Int, Call("is_endgame_enable")),
           // replay koe
@@ -473,27 +446,21 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
           id[295] | b(Type::String, Call("get_save_message")),
 
           id[199] | b(Type::None, Call("get_total_playtime(fixme)")),
-          id[229] | callable(fn("set_total_playtime")[any](Type::Int, Type::Int,
-                                                           Type::Int, Type::Int,
-                                                           Type::Int)
-                                 .ret(Type::None)),
+          id[229] | callable(fn("set_total_playtime")[any](
+                        Type::Int, Type::Int, Type::Int, Type::Int, Type::Int)),
 
           // save
           id[1] | b(Type::None, Call("open_save")),
-          id[251] |
-              callable(fn("set_enable_save")[any](Type::Int).ret(Type::None)),
+          id[251] | callable(fn("set_enable_save")[any](Type::Int)),
           id[252] | b(Type::Int, Call("get_enable_save")),
-          id[253] |
-              callable(fn("set_exist_save")[any](Type::Int).ret(Type::None)),
+          id[253] | callable(fn("set_exist_save")[any](Type::Int)),
           id[254] | b(Type::Int, Call("get_exist_save")),
           id[255] | b(Type::Int, Call("is_save_enable")),
           // load
           id[2] | b(Type::None, Call("open_load")),
-          id[258] |
-              callable(fn("set_enable_load")[any](Type::Int).ret(Type::None)),
+          id[258] | callable(fn("set_enable_load")[any](Type::Int)),
           id[259] | b(Type::Int, Call("get_enable_load")),
-          id[260] |
-              callable(fn("set_exist_load")[any](Type::Int).ret(Type::None)),
+          id[260] | callable(fn("set_exist_load")[any](Type::Int)),
           id[261] | b(Type::Int, Call("get_exist_load")),
           id[262] | b(Type::Int, Call("is_load_enable")),
 
@@ -501,17 +468,15 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
           id[249] | callable(fn("save")[any](Type::Int, Type::Int, Type::Int)
                                  .ret(Type::Int)),
           id[256] | callable(fn("load")[any](Type::Int, Type::Int, Type::Int,
-                                             Type::Int)
-                                 .ret(Type::None)),
+                                             Type::Int)),
           id[18] | callable(fn("qsave")[any](Type::Int, Type::Int, Type::Int)
                                 .ret(Type::Int)),
           id[20] | callable(fn("qload")[any](Type::Int, Type::Int, Type::Int,
-                                             Type::Int)
-                                .ret(Type::None)),
+                                             Type::Int)),
           id[271] |
               callable(fn("endsave")[any](Type::Int, Type::Int).ret(Type::Int)),
-          id[269] | callable(fn("endload")[any](Type::Int, Type::Int, Type::Int)
-                                 .ret(Type::None)),
+          id[269] |
+              callable(fn("endload")[any](Type::Int, Type::Int, Type::Int)),
           // inner save / load
           id[272] | callable(fn("inner_save")[any](Type::Int).ret(Type::Int)),
           id[273] | callable(fn("inner_load")[any](Type::Int, Type::Int,
@@ -523,8 +488,7 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
               callable(fn("check_inner_save")[any](Type::Int).ret(Type::Int)),
           // message back save / load
           id[310] |
-              callable(fn("msgbk_load")[any](Type::Int, Type::Int, Type::Int)
-                           .ret(Type::None)),
+              callable(fn("msgbk_load")[any](Type::Int, Type::Int, Type::Int)),
           // save data
           id[68] | b(Type::Int, Call("get_save_count")),
           id[168] | b(Type::Int, Call("get_qsave_count")),
@@ -557,8 +521,7 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
           id[131] | callable(fn("get_save_comment")[any](Type::Int).ret(
                         Type::String)),
           id[180] |
-              callable(fn("set_save_comment")[any](Type::Int, Type::String)
-                           .ret(Type::None)),
+              callable(fn("set_save_comment")[any](Type::Int, Type::String)),
           // TODO: 183 -> get_save_value
           // TODO: 182 -> set_save_value
           id[320] | callable(fn("get_save_append_dir")[any](Type::Int).ret(
@@ -593,8 +556,7 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
           id[132] | callable(fn("get_qsave_comment")[any](Type::Int).ret(
                         Type::String)),
           id[181] |
-              callable(fn("set_qsave_comment")[any](Type::Int, Type::String)
-                           .ret(Type::None)),
+              callable(fn("set_qsave_comment")[any](Type::Int, Type::String)),
           // TODO: 184 -> get_qsave_value
           // TODO: 185 -> set_qsave_value
           id[322] | callable(fn("get_qsave_append_dir")[any](Type::Int).ret(
@@ -634,46 +596,31 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
           id[141] | b(Type::None, Call("open_config_system_menu")),
           id[167] | b(Type::None, Call("open_config_movie_menu")),
           // window mode
-          id[4] |
-              callable(fn("set_window_mode")[any](Type::Int).ret(Type::None)),
+          id[4] | callable(fn("set_window_mode")[any](Type::Int)),
           id[99] | b(Type::None, Call("set_window_mode_default")),
           id[9] | b(Type::Int, Call("get_window_mode")),
           id[13] |
-              callable(fn("set_window_mode_size")[any](Type::Int, Type::Int)
-                           .ret(Type::None)),
+              callable(fn("set_window_mode_size")[any](Type::Int, Type::Int)),
           id[100] | b(Type::None, Call("set_window_mode_default")),
           id[16] | b(Type::Int, Call("get_window_mode_size")),
           id[309] |
               callable(fn("check_window_mode_size_enable")[any](Type::Int).ret(
                   Type::Int)),
           // volume
-          id[39] |
-              callable(fn("set_all_volume")[any](Type::Int).ret(Type::None)),
-          id[21] |
-              callable(fn("set_bgm_volume")[any](Type::Int).ret(Type::None)),
-          id[26] |
-              callable(fn("set_koe_volume")[any](Type::Int).ret(Type::None)),
-          id[29] |
-              callable(fn("set_pcm_volume")[any](Type::Int).ret(Type::None)),
-          id[32] |
-              callable(fn("set_se_volume")[any](Type::Int).ret(Type::None)),
-          id[263] |
-              callable(fn("set_mov_volume")[any](Type::Int).ret(Type::None)),
-          id[277] | callable(fn("set_sound_volume")[any](Type::Int, Type::Int)
-                                 .ret(Type::None)),
-          id[60] |
-              callable(fn("set_all_onoff")[any](Type::Int).ret(Type::None)),
-          id[35] |
-              callable(fn("set_bgm_onoff")[any](Type::Int).ret(Type::None)),
-          id[36] |
-              callable(fn("set_koe_onoff")[any](Type::Int).ret(Type::None)),
-          id[37] |
-              callable(fn("set_pcm_onoff")[any](Type::Int).ret(Type::None)),
-          id[38] | callable(fn("set_se_onoff")[any](Type::Int).ret(Type::None)),
-          id[266] |
-              callable(fn("set_mov_onoff")[any](Type::Int).ret(Type::None)),
-          id[280] | callable(fn("set_sound_onoff")[any](Type::Int, Type::Int)
-                                 .ret(Type::None)),
+          id[39] | callable(fn("set_all_volume")[any](Type::Int)),
+          id[21] | callable(fn("set_bgm_volume")[any](Type::Int)),
+          id[26] | callable(fn("set_koe_volume")[any](Type::Int)),
+          id[29] | callable(fn("set_pcm_volume")[any](Type::Int)),
+          id[32] | callable(fn("set_se_volume")[any](Type::Int)),
+          id[263] | callable(fn("set_mov_volume")[any](Type::Int)),
+          id[277] | callable(fn("set_sound_volume")[any](Type::Int, Type::Int)),
+          id[60] | callable(fn("set_all_onoff")[any](Type::Int)),
+          id[35] | callable(fn("set_bgm_onoff")[any](Type::Int)),
+          id[36] | callable(fn("set_koe_onoff")[any](Type::Int)),
+          id[37] | callable(fn("set_pcm_onoff")[any](Type::Int)),
+          id[38] | callable(fn("set_se_onoff")[any](Type::Int)),
+          id[266] | callable(fn("set_mov_onoff")[any](Type::Int)),
+          id[280] | callable(fn("set_sound_onoff")[any](Type::Int, Type::Int)),
           id[40] | b(Type::None, Call("set_all_volume_default")),
           id[24] | b(Type::None, Call("set_bgm_volume_default")),
           id[27] | b(Type::None, Call("set_koe_volume_default")),
@@ -709,27 +656,25 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
           // bgm fade
           id[94] | callable(fn("set_bgmfade_volume")[any](Type::Int).ret(
                        Type::None)),
-          id[97] |
-              callable(fn("set_bgmfade_onoff")[any](Type::Int).ret(Type::None)),
+          id[97] | callable(fn("set_bgmfade_onoff")[any](Type::Int)),
           id[95] | b(Type::None, Call("set_bgmfade_volume_default")),
           id[106] | b(Type::None, Call("set_bgmfade_onoff_default")),
           id[96] | b(Type::Int, Call("get_bgmfade_volume")),
           id[98] | b(Type::Int, Call("get_bgmfade_onoff")),
           // koemode
-          id[148] | callable(fn("set_koemode")[any](Type::Int).ret(Type::None)),
+          id[148] | callable(fn("set_koemode")[any](Type::Int)),
           id[149] | b(Type::None, Call("set_koemode_default")),
           id[150] | b(Type::Int, Call("get_koemode")),
           // character koe
-          id[143] | callable(fn("set_charakoe_onoff")[any](Type::Int, Type::Int)
-                                 .ret(Type::None)),
+          id[143] |
+              callable(fn("set_charakoe_onoff")[any](Type::Int, Type::Int)),
           id[144] |
               callable(fn("set_charakoe_onoff_default")[any](Type::Int).ret(
                   Type::None)),
           id[145] |
               callable(fn("get_charakoe_onoff")[any](Type::Int).ret(Type::Int)),
           id[186] |
-              callable(fn("set_charakoe_volume")[any](Type::Int, Type::Int)
-                           .ret(Type::None)),
+              callable(fn("set_charakoe_volume")[any](Type::Int, Type::Int)),
           id[187] |
               callable(fn("set_charakoe_volume_default")[any](Type::Int).ret(
                   Type::None)),
@@ -750,13 +695,11 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
                   Type::None)),
           id[160] | b(Type::None, Call("set_jitan_koe_replay_onoff_default")),
           id[161] | b(Type::Int, Call("get_jitan_koe_replay_onoff")),
-          id[152] |
-              callable(fn("set_jitan_speed")[any](Type::Int).ret(Type::None)),
+          id[152] | callable(fn("set_jitan_speed")[any](Type::Int)),
           id[162] | b(Type::None, Call("set_jitan_speed_default")),
           id[163] | b(Type::Int, Call("get_jitan_speed")),
           // message speed
-          id[46] |
-              callable(fn("set_message_speed")[any](Type::Int).ret(Type::None)),
+          id[46] | callable(fn("set_message_speed")[any](Type::Int)),
           id[47] | b(Type::None, Call("set_message_speed_default")),
           id[48] | b(Type::Int, Call("get_message_speed")),
           id[49] | callable(fn("set_message_nowait")[any](Type::Int).ret(
@@ -801,11 +744,9 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
           id[92] | b(Type::Int, Call("get_filter_color_b")),
           id[93] | b(Type::Int, Call("get_filter_color_a")),
           // display object
-          id[189] | callable(fn("set_obj_disp_onoff")[any](Type::Int, Type::Int)
-                                 .ret(Type::None)),
-          id[190] |
-              callable(fn("set_obj_disp_onoff_default")[any](Type::Int).ret(
-                  Type::None)),
+          id[189] |
+              callable(fn("set_obj_disp_onoff")[any](Type::Int, Type::Int)),
+          id[190] | callable(fn("set_obj_disp_onoff_default")[any](Type::Int)),
           id[191] |
               callable(fn("get_obj_disp_onoff")[any](Type::Int).ret(Type::Int)),
           // global extra switch

@@ -75,6 +75,7 @@ struct signature_builder {
   std::array<Function::Arg, N> args;
 
   constexpr function_builder ret(Type r) const;
+  constexpr operator function_builder() const;
 };
 
 struct overload_builder {
@@ -104,20 +105,28 @@ struct function_builder {
 inline constexpr auto name_builder::operator[](overload o) const {
   return overload_builder{name, std::move(o.index)};
 }
+
 template <size_t N>
 constexpr function_builder signature_builder<N>::ret(Type r) const {
   return function_builder{
       name, index, std::vector<Function::Arg>(args.begin(), args.end()), r};
+}
+template <size_t N>
+constexpr signature_builder<N>::operator function_builder() const {
+  return function_builder{name, index,
+                          std::vector<Function::Arg>(args.begin(), args.end()),
+                          Type::None};
 }
 
 [[nodiscard]] constexpr name_builder fn(string_like auto&& s) {
   return name_builder{std::forward<decltype(s)>(s)};
 }
 
-template <class... FB>
+template <std::convertible_to<function_builder>... FB>
 [[nodiscard]] Callable make_callable(FB&&... fb) {
   Callable c;
-  c.overloads = std::vector<Function>{fb.build()...};
+  c.overloads =
+      std::vector<Function>{static_cast<function_builder>(fb).build()...};
   return c;
 }
 
