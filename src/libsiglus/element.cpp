@@ -49,7 +49,7 @@ std::string Farcall::ToDebugString() const {
 }
 std::string Wait::ToDebugString() const {
   std::string repr = interruptable ? "wait_key" : "wait";
-  repr += '(' + std::to_string(time_ms) + ')';
+  repr += '(' + ToString(time_ms) + ')';
   return repr;
 }
 std::string Member::ToDebugString() const { return '.' + std::string(name); }

@@ -85,7 +85,7 @@ struct Farcall {
 
 struct Wait {
   bool interruptable;
-  int time_ms;
+  Value time_ms;  // type is int
 
   std::string ToDebugString() const;
   bool operator==(const Wait&) const = default;

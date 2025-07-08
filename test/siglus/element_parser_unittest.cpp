@@ -138,12 +138,17 @@ TEST_F(ElementParserTest, TimeWait) {
   {
     ElementCode elm{54};
     elm.ForceBind({0, {v(123)}});
-    EXPECT_EQ(chain(elm), "wait(123)");
+    EXPECT_EQ(chain(elm), "wait(int:123)");
   }
   {
     ElementCode elm{55};
     elm.ForceBind({0, {v(456)}});
-    EXPECT_EQ(chain(elm), "wait_key(456)");
+    EXPECT_EQ(chain(elm), "wait_key(int:456)");
+  }
+  {
+    ElementCode elm{55};
+    elm.ForceBind({0, {Value(Variable(Type::Int, 456))}});
+    EXPECT_EQ(chain(elm), "wait_key(v456)");
   }
 }
 

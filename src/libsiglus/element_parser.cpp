@@ -1258,7 +1258,10 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
     case 55: {  // WAIT_KEY
       Wait wait;
       wait.interruptable = root == 55;
-      wait.time_ms = AsInt(elm.bind_ctx.arg[0]);
+      if (Typeof(elm.bind_ctx.arg[0]) != Type::Int)
+        ctx_->Warn("[Wait] expected int, but got: " +
+                   ToString(elm.bind_ctx.arg[0]));
+      wait.time_ms = elm.bind_ctx.arg[0];
       return AccessChain{.root = std::move(wait)};
     }
 
