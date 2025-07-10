@@ -181,10 +181,36 @@ TEST_F(VMTest, MultipleFibres) {
 
   Fiber* f1 = vm.AddFiber(chunk1);
   Fiber* f2 = vm.AddFiber(chunk2);
+  f1->state = FiberState::Running;
+  f2->state = FiberState::Running;
   std::ignore = vm.Run();
 
+  EXPECT_EQ(f1->state, FiberState::Dead);
+  EXPECT_EQ(f2->state, FiberState::Dead);
   EXPECT_EQ(f1->last, 1);
   EXPECT_EQ(f2->last, 9);
+}
+
+TEST_F(VMTest, YieldFiber) {
+  auto chunk = gc.Allocate<Code>();
+  chunk->const_pool = value_vector(1, 2, 3);
+  append_ins(chunk, {Push(0), Yield{}, Push(1), Yield{}, Push(2), Return{}});
+  Fiber* f = vm.AddFiber(chunk);
+
+  f->state = FiberState::Running;
+  std::ignore = vm.Run();
+  EXPECT_EQ(f->state, FiberState::Suspended);
+  EXPECT_EQ(f->last, 1);
+
+  f->state = FiberState::Running;
+  std::ignore = vm.Run();
+  EXPECT_EQ(f->state, FiberState::Suspended);
+  EXPECT_EQ(f->last, 2);
+
+  f->state = FiberState::Running;
+  std::ignore = vm.Run();
+  EXPECT_EQ(f->state, FiberState::Dead);
+  EXPECT_EQ(f->last, 3);
 }
 
 }  // namespace serilang_test

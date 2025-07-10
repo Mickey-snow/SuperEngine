@@ -27,7 +27,6 @@
 #include "vm/gc.hpp"
 #include "vm/value.hpp"
 
-#include <deque>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -75,7 +74,7 @@ class VM {
   size_t gc_threshold_ = 1024 * 1024;
 
   Fiber* main_fiber_ = nullptr;
-  std::deque<Fiber*> fibres_;
+  std::vector<Fiber*> fibres_;
   Value last_;  // last fiber's return value
 
   std::unordered_map<std::string, Value> globals_;

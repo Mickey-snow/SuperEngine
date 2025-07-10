@@ -194,7 +194,6 @@ enum class OpCode : uint8_t {
   Return,
   MakeFunction,
   Call,
-  TailCall,
   MakeList,
   MakeDict,
   MakeClass,

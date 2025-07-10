@@ -109,7 +109,8 @@ VM VM::Create(std::ostream& stdout, std::istream& stdin, std::ostream& stderr) {
 // class VM
 
 Value VM::Evaluate(Code* chunk) {
-  AddFiber(chunk);
+  Fiber* f = AddFiber(chunk);
+  f->state = FiberState::Running;
   return Run();
 }
 
@@ -118,7 +119,7 @@ Fiber* VM::AddFiber(Code* chunk) {
   Fiber* fiber = gc_.Allocate<Fiber>();
   push(fiber->stack, Value(fn));
   fn->Call(*this, *fiber, 0, 0);
-  fibres_.push_front(fiber);
+  fibres_.push_back(fiber);
 
   return fiber;
 }
@@ -141,20 +142,30 @@ void VM::AddGlobal(std::string key, TempValue&& v) {
 }
 
 Value VM::Run() {
-  while (!fibres_.empty()) {
-    auto f = fibres_.front();
-    if (f->state == FiberState::Dead) {
-      last_ = f->last;
-      fibres_.pop_front();
-    } else {
-      ExecuteFiber(f);  // may yield
-    }
+  bool active = true;
+  while (active) {
+    active = false;
 
+    std::erase_if(fibres_, [&](Fiber* f) {
+      if (f->state == FiberState::Dead) {
+        last_ = f->last;
+        return true;
+      }
+      if (f->state == FiberState::Running) {
+        ExecuteFiber(f);
+        active = true;
+        return false;
+      }
+      return false;  // keep Suspended
+    });
+
+    // run garbage collector
     if (gc_.AllocatedBytes() >= gc_threshold_) {
       CollectGarbage();
       gc_threshold_ *= 2;
     }
   }
+
   return last_;
 }
 
@@ -482,7 +493,7 @@ void VM::ExecuteFiber(Fiber* fib) {
         for (int i = arity - 1; i >= 0; --i)
           push(f2->stack, pop(fib->stack));
         fib->stack.pop_back();  // pop fiber
-        fibres_.push_front(f2);
+        fibres_.push_back(f2);
       }
         return;  // switch → resume
 
