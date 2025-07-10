@@ -60,6 +60,9 @@ std::string tok::DebugStringVisitor::operator()(const tok::Reserved& p) const {
     case Reserved::Type::_yield:
       s = "yield";
       break;
+    case Reserved::Type::_spawn:
+      s = "spawn";
+      break;
   }
   return "Reserved(" + s + ')';
 }

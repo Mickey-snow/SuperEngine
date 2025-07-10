@@ -860,4 +860,17 @@ yield
 )");
 }
 
+TEST_F(StmtParserTest, Spawn) {
+  expectStmtAST(TokenArray("spawn(function);"),
+                R"(
+spawn function
+)");
+  expectStmtAST(TokenArray("spawn(function, a, b);"),
+                R"(
+spawn function
+   ├─ID a
+   └─ID b
+)");
+}
+
 }  // namespace m6test

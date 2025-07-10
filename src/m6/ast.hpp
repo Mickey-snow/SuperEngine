@@ -284,6 +284,14 @@ struct YieldStmt {
   std::string DebugString() const;
 };
 
+struct SpawnStmt {
+  std::string fn_name;
+  std::vector<std::shared_ptr<ExprAST>> args;
+  SourceLocation kw_loc;
+
+  std::string DebugString() const;
+};
+
 using stmt_variant_t = std::variant<AssignStmt,
                                     AugStmt,
                                     IfStmt,
@@ -294,6 +302,7 @@ using stmt_variant_t = std::variant<AssignStmt,
                                     ClassDecl,
                                     ReturnStmt,
                                     YieldStmt,
+                                    SpawnStmt,
                                     std::shared_ptr<ExprAST>>;
 
 class AST {

@@ -112,6 +112,7 @@ std::string ClassDecl::DebugString() const {
 }
 std::string ReturnStmt::DebugString() const { return "return"; }
 std::string YieldStmt::DebugString() const { return "yield"; }
+std::string SpawnStmt::DebugString() const { return "spawn " + fn_name; }
 
 // -----------------------------------------------------------------------
 // Visitor to print debug string for an AST
@@ -220,6 +221,10 @@ struct Dumper {
     if constexpr (std::same_as<T, YieldStmt>) {
       if (x.value)
         oss << x.value->Apply(Dumper(childPrefix, true));
+    }
+    if constexpr (std::same_as<T, SpawnStmt>) {
+      for (size_t i = 0; i < x.args.size(); ++i)
+        oss << x.args[i]->DumpAST("", childPrefix, i + 1 >= x.args.size());
     }
 
     return oss.str();

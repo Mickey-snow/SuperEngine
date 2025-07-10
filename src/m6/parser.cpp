@@ -153,6 +153,29 @@ std::shared_ptr<AST> Parser::ParseStatement(bool requireSemi) {
         return std::make_shared<AST>(YieldStmt(expr, kwLoc));
       }
 
+      case tok::Reserved::_spawn: {
+        auto kwLoc = (it_ - 1)->loc_;
+        require<tok::ParenthesisL>("expected '(' after spawn");
+
+        auto fnNameTok = *it_;
+        auto fnNameLoc = it_->loc_;
+        if (!require<tok::ID>("expected identifier")) {
+          Synchronize();
+          return nullptr;
+        }
+        std::string fn = fnNameTok.GetIf<tok::ID>()->id;
+
+        std::vector<std::shared_ptr<ExprAST>> args;
+        while (it_ != end_ && tryConsume<tok::Operator>(Op::Comma))
+          args.emplace_back(ParseExpression());
+
+        require<tok::ParenthesisR>("expected ')'");
+        require<tok::Semicol>("expected ';'");
+
+        return std::make_shared<AST>(
+            SpawnStmt(std::move(fn), std::move(args), kwLoc));
+      }
+
       default: {
         --it_;
         AddError("unexpected reserved keyword", it_);

@@ -386,6 +386,10 @@ void CodeGenerator::emit_stmt_node(const YieldStmt& y) {
   emit(sr::Yield{});
 }
 
+void CodeGenerator::emit_stmt_node(const SpawnStmt& s) {
+  throw std::runtime_error("not implemented yet");
+}
+
 void CodeGenerator::emit_stmt_node(const std::shared_ptr<ExprAST>& s) {
   if (repl_mode_) {
     emit(sr::LoadGlobal{intern_name("print")});
