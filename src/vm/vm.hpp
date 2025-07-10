@@ -50,7 +50,7 @@ class VM {
   explicit VM() = default;
 
  public:
-  VM& AddFiber(Code* entry);
+  Fiber* AddFiber(Code* entry);
 
   // Run until all fibers die or error; returns last fiber's result
   Value Run();

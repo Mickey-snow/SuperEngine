@@ -45,7 +45,7 @@ class VMTest : public ::testing::Test {
     return std::vector<Value>{Value(std::forward<Ts>(param))...};
   }
 
-  inline void append_ins(Code* chunk, std::vector<Instruction> ins) {
+  inline void append_ins(Code* chunk, std::initializer_list<Instruction> ins) {
     for (const auto& it : ins)
       chunk->Append(it);
   }
@@ -166,6 +166,25 @@ TEST_F(VMTest, CallNative) {
   Value out = run_and_get(chunk);
   EXPECT_EQ(call_count, 1);
   EXPECT_EQ(out, std::monostate());
+}
+
+TEST_F(VMTest, MultipleFibres) {
+  auto* chunk1 = gc.Allocate<Code>();
+  chunk1->const_pool = value_vector(1);
+  append_ins(chunk1, {Push{0}, Return{}});
+  // fiber1: return 1;
+  auto* chunk2 = gc.Allocate<Code>();
+  chunk2->const_pool = value_vector(3, 2, 1);
+  append_ins(chunk2, {Push{0}, Push{1}, Push{2}, BinaryOp(Op::Add),
+                      BinaryOp(Op::Mul), Return{}});
+  // fiber2: return 3*(2+1);
+
+  Fiber* f1 = vm.AddFiber(chunk1);
+  Fiber* f2 = vm.AddFiber(chunk2);
+  std::ignore = vm.Run();
+
+  EXPECT_EQ(f1->last, 1);
+  EXPECT_EQ(f2->last, 9);
 }
 
 }  // namespace serilang_test

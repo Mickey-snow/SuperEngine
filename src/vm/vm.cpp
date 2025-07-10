@@ -113,14 +113,14 @@ Value VM::Evaluate(Code* chunk) {
   return Run();
 }
 
-VM& VM::AddFiber(Code* chunk) {
-  auto fn = gc_.Allocate<Function>(chunk);
-  auto* fiber = gc_.Allocate<Fiber>();
+Fiber* VM::AddFiber(Code* chunk) {
+  Function* fn = gc_.Allocate<Function>(chunk);
+  Fiber* fiber = gc_.Allocate<Fiber>();
   push(fiber->stack, Value(fn));
   fn->Call(*this, *fiber, 0, 0);
   fibres_.push_front(fiber);
 
-  return *this;
+  return fiber;
 }
 
 void VM::CollectGarbage() {
