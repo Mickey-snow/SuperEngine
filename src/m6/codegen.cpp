@@ -378,6 +378,14 @@ void CodeGenerator::emit_stmt_node(const ReturnStmt& r) {
   emit(sr::Return{});
 }
 
+void CodeGenerator::emit_stmt_node(const YieldStmt& y) {
+  if (y.value)
+    emit_expr(y.value);
+  else
+    emit(sr::Push{constant(Value(std::monostate()))});
+  emit(sr::Yield{});
+}
+
 void CodeGenerator::emit_stmt_node(const std::shared_ptr<ExprAST>& s) {
   if (repl_mode_) {
     emit(sr::LoadGlobal{intern_name("print")});

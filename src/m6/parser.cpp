@@ -135,11 +135,22 @@ std::shared_ptr<AST> Parser::ParseStatement(bool requireSemi) {
       case tok::Reserved::_return: {
         auto kwLoc = (it_ - 1)->loc_;
         std::shared_ptr<ExprAST> val = nullptr;
-        if (!tryConsume<tok::Semicol>())
+        if (!tryConsume<tok::Semicol>()) {
           val = ParseExpression();
-
-        require<tok::Semicol>("expected ';' after return");
+          require<tok::Semicol>("expected ';' after return");
+        }
         return std::make_shared<AST>(ReturnStmt(val, kwLoc));
+      }
+
+      case tok::Reserved::_yield: {
+        auto kwLoc = (it_ - 1)->loc_;
+        std::shared_ptr<ExprAST> expr = nullptr;
+        if (!tryConsume<tok::Semicol>()) {
+          expr = ParseExpression();
+          require<tok::Semicol>("expected ';' after yield");
+        }
+
+        return std::make_shared<AST>(YieldStmt(expr, kwLoc));
       }
 
       default: {

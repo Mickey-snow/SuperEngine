@@ -832,4 +832,32 @@ class Klass
 )");
 }
 
+TEST_F(StmtParserTest, Return) {
+  expectStmtAST(TokenArray("return;"),
+                R"(
+return
+)");
+  expectStmtAST(TokenArray("return a+b;"),
+                R"(
+return
+   └─Binaryop +
+      ├─ID a
+      └─ID b
+)");
+}
+
+TEST_F(StmtParserTest, Yield) {
+  expectStmtAST(TokenArray("yield;"),
+                R"(
+yield
+)");
+  expectStmtAST(TokenArray("yield a+b;"),
+                R"(
+yield
+   └─Binaryop +
+      ├─ID a
+      └─ID b
+)");
+}
+
 }  // namespace m6test
