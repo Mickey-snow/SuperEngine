@@ -147,16 +147,20 @@ Value VM::Run() {
     active = false;
 
     std::erase_if(fibres_, [&](Fiber* f) {
-      if (f->state == FiberState::Dead) {
-        last_ = f->last;
-        return true;
+      switch (f->state) {
+        case FiberState::Dead:
+          last_ = f->last;
+          return true;
+        case FiberState::New:
+          f->state = FiberState::Running;
+        case FiberState::Running:
+          ExecuteFiber(f);
+          active = true;
+          return false;
+        case FiberState::Suspended:
+          return false;
       }
-      if (f->state == FiberState::Running) {
-        ExecuteFiber(f);
-        active = true;
-        return false;
-      }
-      return false;  // keep Suspended
+      return false;
     });
 
     // run garbage collector
@@ -473,12 +477,16 @@ void VM::ExecuteFiber(Fiber* fib) {
       case OpCode::MakeFiber: {
         const auto ins = chunk->Read<serilang::MakeFiber>(ip);
         ip += sizeof(ins);
-        Fiber* f = gc_.Allocate<Fiber>();
-        Value fn = chunk->const_pool[ins.func_index];
+        size_t base = fib->stack.size() - ins.argcnt - 2 * ins.kwargcnt - 1;
+        Value fn = fib->stack[base];
 
-        f->stack.reserve(64);
-        push(f->stack, fn);
-        fn.Call(*this, *f, 0, 0);
+        Fiber* f = gc_.Allocate<Fiber>();
+        f->stack.reserve(16 + ins.argcnt + 2 * ins.kwargcnt);
+        std::move(fib->stack.begin() + base, fib->stack.end(),
+                  std::back_inserter(f->stack));
+        fib->stack.resize(base);
+
+        fn.Call(*this, *f, ins.argcnt, ins.kwargcnt);
 
         push(fib->stack, Value(f));
       } break;

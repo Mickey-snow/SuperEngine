@@ -57,6 +57,7 @@ std::string MemberExpr::DebugString() const { return "Member"; }
 std::string Identifier::DebugString() const {
   return "ID " + std::string(value);
 }
+std::string SpawnExpr::DebugString() const { return "spawn"; }
 
 std::string AssignStmt::DebugString() const { return "Assign"; }
 std::string AugStmt::DebugString() const { return "AugAssign " + ToString(op); }
@@ -112,7 +113,6 @@ std::string ClassDecl::DebugString() const {
 }
 std::string ReturnStmt::DebugString() const { return "return"; }
 std::string YieldStmt::DebugString() const { return "yield"; }
-std::string SpawnStmt::DebugString() const { return "spawn " + fn_name; }
 
 // -----------------------------------------------------------------------
 // Visitor to print debug string for an AST
@@ -222,9 +222,8 @@ struct Dumper {
       if (x.value)
         oss << x.value->Apply(Dumper(childPrefix, true));
     }
-    if constexpr (std::same_as<T, SpawnStmt>) {
-      for (size_t i = 0; i < x.args.size(); ++i)
-        oss << x.args[i]->DumpAST("", childPrefix, i + 1 >= x.args.size());
+    if constexpr (std::same_as<T, SpawnExpr>) {
+      oss << x.invoke->DumpAST("", childPrefix, true);
     }
 
     return oss.str();

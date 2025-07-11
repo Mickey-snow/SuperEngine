@@ -254,8 +254,8 @@ void Disassembler::PrintIns(Code& chunk,
       const auto ins = chunk.Read<MakeFiber>(ip);
       ip += sizeof(ins);
       emit_mnemonic("MAKE_FIBER");
-      emit_operand(ins.func_index);
-      out_ << "  nup=" << ins.nupvals;
+      emit_operand("");
+      out_ << "  narg=" << ins.argcnt << ",nkwarg=" << ins.kwargcnt;
     } break;
     case OpCode::Resume: {
       const auto ins = chunk.Read<Resume>(ip);

@@ -123,8 +123,8 @@ struct SetItem {};  // (container,idx,val) ->
 
 // ––– 7. Coroutine / fiber support ––––––––––––––––––––––––––––––––
 struct MakeFiber {
-  uint32_t func_index;
-  uint32_t nupvals;
+  uint32_t argcnt;
+  uint32_t kwargcnt;
 };  // (…) -> (fiber)
 struct Resume {
   uint8_t arity;

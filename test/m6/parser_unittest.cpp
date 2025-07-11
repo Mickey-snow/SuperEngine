@@ -610,6 +610,23 @@ Subscript
 )");
 }
 
+TEST_F(ExprParserTest, Spawn) {
+  expectAST(TokenArray("spawn function();"),
+            R"(
+spawn
+   └─Invoke
+      └─ID function
+)");
+  expectAST(TokenArray("spawn function(a, b);"),
+            R"(
+spawn
+   └─Invoke
+      ├─ID function
+      ├─ID a
+      └─ID b
+)");
+}
+
 // -----------------------------------------------------------------------
 
 class StmtParserTest : public ::testing::Test {
@@ -857,19 +874,6 @@ yield
    └─Binaryop +
       ├─ID a
       └─ID b
-)");
-}
-
-TEST_F(StmtParserTest, Spawn) {
-  expectStmtAST(TokenArray("spawn(function);"),
-                R"(
-spawn function
-)");
-  expectStmtAST(TokenArray("spawn(function, a, b);"),
-                R"(
-spawn function
-   ├─ID a
-   └─ID b
 )");
 }
 

@@ -138,6 +138,12 @@ struct MemberExpr {
   std::string DebugString() const;
 };
 
+struct SpawnExpr {
+  std::shared_ptr<ExprAST> invoke;
+  SourceLocation kwLoc;
+  std::string DebugString() const;
+};
+
 // -----------------------------------------------------------------------
 // ExprAST
 using expr_variant_t = std::variant<NilLiteral,
@@ -151,6 +157,7 @@ using expr_variant_t = std::variant<NilLiteral,
                                     MemberExpr,
                                     BinaryExpr,
                                     UnaryExpr,
+                                    SpawnExpr,
                                     ParenExpr>;
 
 class ExprAST {
@@ -181,6 +188,11 @@ class ExprAST {
   template <typename T>
   auto Get_if() {
     return std::get_if<T>(&var_);
+  }
+
+  template <typename T>
+  bool HoldsAlternative() const {
+    return std::holds_alternative<T>(var_);
   }
 
  private:
@@ -284,14 +296,6 @@ struct YieldStmt {
   std::string DebugString() const;
 };
 
-struct SpawnStmt {
-  std::string fn_name;
-  std::vector<std::shared_ptr<ExprAST>> args;
-  SourceLocation kw_loc;
-
-  std::string DebugString() const;
-};
-
 using stmt_variant_t = std::variant<AssignStmt,
                                     AugStmt,
                                     IfStmt,
@@ -302,7 +306,6 @@ using stmt_variant_t = std::variant<AssignStmt,
                                     ClassDecl,
                                     ReturnStmt,
                                     YieldStmt,
-                                    SpawnStmt,
                                     std::shared_ptr<ExprAST>>;
 
 class AST {

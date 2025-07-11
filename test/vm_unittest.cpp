@@ -107,7 +107,6 @@ TEST_F(VMTest, FunctionCall) {
   // 31  RETURN
   // 33  PUSH                 0  ; <double: 7.000000>
   // 38  RETURN
-  GarbageCollector gc;
   auto* chunk = gc.Allocate<Code>();
   chunk->const_pool = value_vector(7.0, Value(chunk));
   append_ins(chunk, {Push(1), MakeFunction{.entry = 33}, Call{0, 0}, Return{},
@@ -211,6 +210,33 @@ TEST_F(VMTest, YieldFiber) {
   std::ignore = vm.Run();
   EXPECT_EQ(f->state, FiberState::Dead);
   EXPECT_EQ(f->last, 3);
+}
+
+TEST_F(VMTest, SpawnFiber) {
+  int call_count = 0;
+  std::vector<Value> arg;
+  std::unordered_map<std::string, Value> kwarg;
+  auto* fn = gc.Allocate<NativeFunction>(
+      "my_function", [&](Fiber& f, std::vector<Value> args,
+                         std::unordered_map<std::string, Value> kwargs) {
+        ++call_count;
+        arg = std::move(args);
+        kwarg = std::move(kwargs);
+        return Value();
+      });
+
+  auto* chunk = gc.Allocate<Code>();
+  chunk->const_pool = value_vector(fn, 1, "foo", "boo");
+  append_ins(chunk, {Push{0}, Push{1}, Push{2}, Push{3},
+                     // fn, 1, "foo", "boo"
+                     MakeFiber{1, 1}, Push{1}, Return{}});
+  std::ignore = run_and_get(chunk);
+  EXPECT_EQ(call_count, 1);
+  ASSERT_EQ(arg.size(), 1);
+  EXPECT_EQ(arg.front(), 1);
+  ASSERT_EQ(kwarg.size(), 1);
+  ASSERT_TRUE(kwarg.contains("foo"));
+  EXPECT_EQ(kwarg["foo"], "boo");
 }
 
 }  // namespace serilang_test

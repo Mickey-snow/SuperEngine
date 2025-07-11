@@ -153,29 +153,6 @@ std::shared_ptr<AST> Parser::ParseStatement(bool requireSemi) {
         return std::make_shared<AST>(YieldStmt(expr, kwLoc));
       }
 
-      case tok::Reserved::_spawn: {
-        auto kwLoc = (it_ - 1)->loc_;
-        require<tok::ParenthesisL>("expected '(' after spawn");
-
-        auto fnNameTok = *it_;
-        auto fnNameLoc = it_->loc_;
-        if (!require<tok::ID>("expected identifier")) {
-          Synchronize();
-          return nullptr;
-        }
-        std::string fn = fnNameTok.GetIf<tok::ID>()->id;
-
-        std::vector<std::shared_ptr<ExprAST>> args;
-        while (it_ != end_ && tryConsume<tok::Operator>(Op::Comma))
-          args.emplace_back(ParseExpression());
-
-        require<tok::ParenthesisR>("expected ')'");
-        require<tok::Semicol>("expected ';'");
-
-        return std::make_shared<AST>(
-            SpawnStmt(std::move(fn), std::move(args), kwLoc));
-      }
-
       default: {
         --it_;
         AddError("unexpected reserved keyword", it_);
@@ -684,7 +661,7 @@ std::shared_ptr<ExprAST> Parser::parseUnary() {
 
 std::shared_ptr<ExprAST> Parser::parseExponentiation() {
   auto lhs_begin = it_;
-  auto lhs = parsePostfix();
+  auto lhs = parseAwait();
   if (!lhs)
     return nullptr;
   auto lhs_end = it_;
@@ -695,7 +672,7 @@ std::shared_ptr<ExprAST> Parser::parseExponentiation() {
     if (!op.has_value())
       break;
     auto rhs_begin = it_;
-    auto rhs = parsePostfix();
+    auto rhs = parseAwait();
     if (!rhs)
       return lhs;
     auto rhs_end = it_;
@@ -705,6 +682,24 @@ std::shared_ptr<ExprAST> Parser::parseExponentiation() {
     lhs = std::make_shared<ExprAST>(std::move(be));
   }
   return lhs;
+}
+
+std::shared_ptr<ExprAST> Parser::parseAwait() {
+  auto kwLoc = it_->loc_;
+  if (tryConsume<tok::Reserved>(tok::Reserved::_spawn)) {
+    auto spawn_begin = it_;
+    auto invoke = parsePostfix();
+    auto spawn_end = it_;
+
+    if (!invoke || !invoke->HoldsAlternative<InvokeExpr>()) {
+      AddError("expected invoke expression", LocRange(spawn_begin, spawn_end));
+      return nullptr;
+    }
+
+    return std::make_shared<ExprAST>(SpawnExpr(invoke, kwLoc));
+  } else {
+    return parsePostfix();
+  }
 }
 
 std::shared_ptr<ExprAST> Parser::parsePostfix() {

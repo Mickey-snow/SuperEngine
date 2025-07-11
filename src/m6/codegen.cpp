@@ -188,6 +188,10 @@ void CodeGenerator::emit_expr_node(const MemberExpr& m) {
   emit(sr::GetField{intern_name(m.member)});
 }
 
+void CodeGenerator::emit_expr_node(const SpawnExpr& s) {
+  throw std::runtime_error("not implemented yet");
+}
+
 // Statement codegen
 void CodeGenerator::emit_stmt(std::shared_ptr<AST> s) {
   s->Apply([&](auto&& n) { emit_stmt_node(n); });
@@ -384,10 +388,6 @@ void CodeGenerator::emit_stmt_node(const YieldStmt& y) {
   else
     emit(sr::Push{constant(Value(std::monostate()))});
   emit(sr::Yield{});
-}
-
-void CodeGenerator::emit_stmt_node(const SpawnStmt& s) {
-  throw std::runtime_error("not implemented yet");
 }
 
 void CodeGenerator::emit_stmt_node(const std::shared_ptr<ExprAST>& s) {
