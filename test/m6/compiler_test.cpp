@@ -295,4 +295,16 @@ print(inst.result);
   }
 }
 
+TEST_F(CompilerTest, Coroutine) {
+  {
+    auto res = Run(R"(
+fn foo(){ print(123); }
+spawn foo();
+)");
+
+    ASSERT_TRUE(res.stderr.empty()) << res.stderr;
+    EXPECT_EQ(res.stdout, "123\n") << "\nDisassembly:\n" << res.disasm;
+  }
+}
+
 }  // namespace m6test

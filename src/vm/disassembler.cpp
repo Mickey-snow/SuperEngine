@@ -261,7 +261,6 @@ void Disassembler::PrintIns(Code& chunk,
       const auto ins = chunk.Read<Resume>(ip);
       ip += sizeof(ins);
       emit_mnemonic("RESUME");
-      emit_operand(+ins.arity);
     } break;
     case OpCode::Yield: {
       const auto ins = chunk.Read<Yield>(ip);

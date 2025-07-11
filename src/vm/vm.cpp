@@ -480,8 +480,8 @@ void VM::ExecuteFiber(Fiber* fib) {
         size_t base = fib->stack.size() - ins.argcnt - 2 * ins.kwargcnt - 1;
         Value fn = fib->stack[base];
 
-        Fiber* f = gc_.Allocate<Fiber>();
-        f->stack.reserve(16 + ins.argcnt + 2 * ins.kwargcnt);
+        Fiber* f =
+            gc_.Allocate<Fiber>(/*reserve=*/16 + ins.argcnt + 2 * ins.kwargcnt);
         std::move(fib->stack.begin() + base, fib->stack.end(),
                   std::back_inserter(f->stack));
         fib->stack.resize(base);
@@ -489,19 +489,16 @@ void VM::ExecuteFiber(Fiber* fib) {
         fn.Call(*this, *f, ins.argcnt, ins.kwargcnt);
 
         push(fib->stack, Value(f));
+        fibres_.push_back(f);
       } break;
 
       case OpCode::Resume: {
         const auto ins = chunk->Read<serilang::Resume>(ip);
         ip += sizeof(ins);
-        auto arity = ins.arity;
-        auto fVal = fib->stack.end()[-arity - 1];
-        auto f2 = fVal.template Get<Fiber*>();
-        // move args
-        for (int i = arity - 1; i >= 0; --i)
-          push(f2->stack, pop(fib->stack));
-        fib->stack.pop_back();  // pop fiber
-        fibres_.push_back(f2);
+        Value arg = pop(fib->stack);
+        Fiber* f = pop(fib->stack).template Get<Fiber*>();
+        push(f->stack, std::move(arg));
+        fibres_.push_back(f);
       }
         return;  // switch → resume
 
@@ -525,6 +522,9 @@ void VM::ExecuteFiber(Fiber* fib) {
     if (fib->state != FiberState::Running)
       break;
   }
+
+  if (fib->frames.empty())
+    fib->state = FiberState::Dead;
 }
 
 }  // namespace serilang

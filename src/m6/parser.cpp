@@ -153,12 +153,9 @@ std::shared_ptr<AST> Parser::ParseStatement(bool requireSemi) {
         return std::make_shared<AST>(YieldStmt(expr, kwLoc));
       }
 
-      default: {
+      default:
         --it_;
-        AddError("unexpected reserved keyword", it_);
-        Synchronize();
-        return nullptr;
-      }
+        break;
     }
   }
 
@@ -171,8 +168,8 @@ std::shared_ptr<AST> Parser::ParseStatement(bool requireSemi) {
     return std::make_shared<AST>(BlockStmt(std::move(body)));
   }
 
+  // expression / assignment statement
   {
-    // expression / assignment statement
     auto stmt = parseAssignment();
     if (requireSemi)
       require<tok::Semicol>("Expected ';'.");

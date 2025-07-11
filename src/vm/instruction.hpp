@@ -126,10 +126,8 @@ struct MakeFiber {
   uint32_t argcnt;
   uint32_t kwargcnt;
 };  // (…) -> (fiber)
-struct Resume {
-  uint8_t arity;
-};  // (fiber,args…) -> (result|exc)
-struct Yield {};  // (value) -> (yielded)
+struct Resume {};  // (fiber,arg) -> (result|exc)
+struct Yield {};   // (value) -> (yielded)
 //  ‣ `Yield` suspends the *current* fiber and returns control to its resumer
 //  ‣ `Resume` runs the fiber until next `Yield` or `Return`
 

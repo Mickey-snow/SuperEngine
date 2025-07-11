@@ -189,7 +189,20 @@ void CodeGenerator::emit_expr_node(const MemberExpr& m) {
 }
 
 void CodeGenerator::emit_expr_node(const SpawnExpr& s) {
-  throw std::runtime_error("not implemented yet");
+  InvokeExpr* invoke = s.invoke->Get_if<InvokeExpr>();
+  emit_expr(invoke->fn);  // (fn)
+  for (auto& arg : invoke->args)
+    emit_expr(arg);
+  // (fn, arg...)
+  for (auto& [k, arg] : invoke->kwargs) {
+    emit_const(std::string(k));
+    emit_expr(arg);
+  }
+  // (fn, arg..., kwarg...)
+
+  emit(sr::MakeFiber{.argcnt = static_cast<uint32_t>(invoke->args.size()),
+                     .kwargcnt = static_cast<uint32_t>(invoke->kwargs.size())});
+  // -> (fiber)
 }
 
 // Statement codegen
