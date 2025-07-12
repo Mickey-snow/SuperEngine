@@ -222,10 +222,11 @@ void CodeGenerator::emit_stmt_node(const AssignStmt& s) {
   if (auto id = s.lhs->Get_if<Identifier>()) {
     // simple variable
     emit_expr(s.rhs);
-    std::string name{id->value};
+    const std::string name{id->value};
     if (auto slot = resolve_local(name); slot.has_value()) {
       emit(sr::StoreLocal{static_cast<uint8_t>(*slot)});
     } else {
+      // TODO:  Add scope intent
       emit(sr::StoreGlobal{intern_name(name)});
     }
   } else if (auto mem = s.lhs->Get_if<MemberExpr>()) {

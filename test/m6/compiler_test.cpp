@@ -298,12 +298,29 @@ print(inst.result);
 TEST_F(CompilerTest, Coroutine) {
   {
     auto res = Run(R"(
-fn foo(){ print(123); }
-spawn foo();
+fn foo(){for(i=0;;i+=1) yield i;}
+f = spawn foo();
+for(i=0;i<5;++i)
+  print(await f);
 )");
 
     ASSERT_TRUE(res.stderr.empty()) << res.stderr;
-    EXPECT_EQ(res.stdout, "123\n") << "\nDisassembly:\n" << res.disasm;
+    EXPECT_EQ(res.stdout, "0\n1\n2\n3\n4\n5\n") << "\nDisassembly:\n"
+                                                << res.disasm;
+  }
+
+  {
+    auto res = Run(R"(
+fn deep(n){
+  if(n<=0) return 0;
+  return n + await spawn deep(n-1);
+}
+
+print(await spawn deep(1000));
+)");
+
+    ASSERT_TRUE(res.stderr.empty()) << res.stderr;
+    EXPECT_EQ(res.stdout, "500500\n") << "\nDisassembly:\n" << res.disasm;
   }
 }
 

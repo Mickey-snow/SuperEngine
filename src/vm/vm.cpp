@@ -201,7 +201,11 @@ void VM::Return(Fiber& f) {
   if (f.frames.empty()) {
     // fiber finished
     f.state = FiberState::Dead;
-    f.pending_result = std::move(ret);
+    if (f.waiter) {
+      push(f.waiter->stack, std::move(ret));
+      f.waiter->state = FiberState::Running;
+    } else
+      f.pending_result = std::move(ret);
   } else {
     // push return value back on stack
     f.stack.back() = std::move(ret);

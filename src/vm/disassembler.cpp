@@ -310,11 +310,14 @@ void Disassembler::DumpImpl(Code& chunk, const std::string& indent) {
   for (std::size_t idx = 0; idx < chunk.const_pool.size(); ++idx) {
     const std::string sub_indent = indent + std::string(indent_size_, ' ');
     Value& v = chunk.const_pool[idx];
-    if (auto fn = v.Get_if<Function>(); fn) {
-      Code* subChunk = fn->chunk;
-      if (!subChunk)
-        continue;
+    Code* subChunk = nullptr;
 
+    if (auto fn = v.Get_if<Function>())
+      subChunk = fn->chunk;
+    if (auto c = v.Get_if<Code>())
+      subChunk = c;
+
+    if (subChunk) {
       out_ << '\n'
            << indent << "; ── nested chunk @const[" << idx << "] ───────────\n";
       DumpImpl(*subChunk, sub_indent);
