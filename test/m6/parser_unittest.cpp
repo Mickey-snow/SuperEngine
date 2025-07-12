@@ -627,6 +627,20 @@ spawn
 )");
 }
 
+TEST_F(ExprParserTest, Await) {
+  expectAST(TokenArray("await function();"),
+            R"(
+await
+   └─Invoke
+      └─ID function
+)");
+  expectAST(TokenArray("await f;"),
+            R"(
+await
+   └─ID f
+)");
+}
+
 // -----------------------------------------------------------------------
 
 class StmtParserTest : public ::testing::Test {

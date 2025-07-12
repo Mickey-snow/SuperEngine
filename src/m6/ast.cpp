@@ -58,6 +58,7 @@ std::string Identifier::DebugString() const {
   return "ID " + std::string(value);
 }
 std::string SpawnExpr::DebugString() const { return "spawn"; }
+std::string AwaitExpr::DebugString() const { return "await"; }
 
 std::string AssignStmt::DebugString() const { return "Assign"; }
 std::string AugStmt::DebugString() const { return "AugAssign " + ToString(op); }
@@ -224,6 +225,9 @@ struct Dumper {
     }
     if constexpr (std::same_as<T, SpawnExpr>) {
       oss << x.invoke->DumpAST("", childPrefix, true);
+    }
+    if constexpr (std::same_as<T, AwaitExpr>) {
+      oss << x.corout->DumpAST("", childPrefix, true);
     }
 
     return oss.str();

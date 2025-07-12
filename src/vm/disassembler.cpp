@@ -257,10 +257,10 @@ void Disassembler::PrintIns(Code& chunk,
       emit_operand("");
       out_ << "  narg=" << ins.argcnt << ",nkwarg=" << ins.kwargcnt;
     } break;
-    case OpCode::Resume: {
-      const auto ins = chunk.Read<Resume>(ip);
+    case OpCode::Await: {
+      const auto ins = chunk.Read<Await>(ip);
       ip += sizeof(ins);
-      emit_mnemonic("RESUME");
+      emit_mnemonic("AWAIT");
     } break;
     case OpCode::Yield: {
       const auto ins = chunk.Read<Yield>(ip);

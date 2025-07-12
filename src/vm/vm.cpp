@@ -492,12 +492,12 @@ void VM::ExecuteFiber(Fiber* fib) {
         fibres_.push_back(f);
       } break;
 
-      case OpCode::Resume: {
-        const auto ins = chunk->Read<serilang::Resume>(ip);
+      case OpCode::Await: {
+        const auto ins = chunk->Read<serilang::Await>(ip);
         ip += sizeof(ins);
-        Value arg = pop(fib->stack);
+        // TODO: support passing argument
         Fiber* f = pop(fib->stack).template Get<Fiber*>();
-        push(f->stack, std::move(arg));
+
         fibres_.push_back(f);
       }
         return;  // switch → resume

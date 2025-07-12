@@ -144,6 +144,12 @@ struct SpawnExpr {
   std::string DebugString() const;
 };
 
+struct AwaitExpr {
+  std::shared_ptr<ExprAST> corout;
+  SourceLocation kwLoc;
+  std::string DebugString() const;
+};
+
 // -----------------------------------------------------------------------
 // ExprAST
 using expr_variant_t = std::variant<NilLiteral,
@@ -158,6 +164,7 @@ using expr_variant_t = std::variant<NilLiteral,
                                     BinaryExpr,
                                     UnaryExpr,
                                     SpawnExpr,
+                                    AwaitExpr,
                                     ParenExpr>;
 
 class ExprAST {

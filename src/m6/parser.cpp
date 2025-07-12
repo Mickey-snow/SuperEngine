@@ -694,6 +694,9 @@ std::shared_ptr<ExprAST> Parser::parseAwait() {
     }
 
     return std::make_shared<ExprAST>(SpawnExpr(invoke, kwLoc));
+  } else if (tryConsume<tok::Reserved>(tok::Reserved::_await)) {
+    auto corout = ParseExpression();
+    return std::make_shared<ExprAST>(AwaitExpr(corout, kwLoc));
   } else {
     return parsePostfix();
   }

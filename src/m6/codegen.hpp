@@ -117,6 +117,7 @@ class CodeGenerator {
   void emit_expr_node(const SubscriptExpr& s);
   void emit_expr_node(const MemberExpr& m);
   void emit_expr_node(const SpawnExpr& s);
+  void emit_expr_node(const AwaitExpr& a);
 
   // -- Statement codegen ----------------------------------------------
   void emit_stmt(std::shared_ptr<AST> s);

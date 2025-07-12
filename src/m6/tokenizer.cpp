@@ -62,7 +62,8 @@ static const std::unordered_map<std::string, tok::Token_t>
                               {"class", tok::Reserved(tok::Reserved::_class)},
                               {"return", tok::Reserved(tok::Reserved::_return)},
                               {"yield", tok::Reserved(tok::Reserved::_yield)},
-                              {"spawn", tok::Reserved(tok::Reserved::_spawn)}};
+                              {"spawn", tok::Reserved(tok::Reserved::_spawn)},
+                              {"await", tok::Reserved(tok::Reserved::_await)}};
 
 // Attempt to match an operator from position `pos` in `input`.
 // Returns the matched operator string if successful, else an empty string.

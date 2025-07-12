@@ -205,6 +205,14 @@ void CodeGenerator::emit_expr_node(const SpawnExpr& s) {
   // -> (fiber)
 }
 
+void CodeGenerator::emit_expr_node(const AwaitExpr& s) {
+  emit_expr(s.corout);
+  // (corout)
+  // TODO: support passing argument
+
+  emit(sr::Await{});
+}
+
 // Statement codegen
 void CodeGenerator::emit_stmt(std::shared_ptr<AST> s) {
   s->Apply([&](auto&& n) { emit_stmt_node(n); });
