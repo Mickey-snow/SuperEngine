@@ -86,7 +86,10 @@ Fiber::Fiber(size_t reserve) : state(FiberState::New) {
 }
 
 void Fiber::MarkRoots(GCVisitor& visitor) {
-  visitor.MarkSub(last);
+  if (pending_result.has_value())
+    visitor.MarkSub(*pending_result);
+  visitor.MarkSub(waiter);
+
   for (auto& it : stack)
     visitor.MarkSub(it);
   for (auto& it : frames)
@@ -169,10 +172,10 @@ void Dict::MarkRoots(GCVisitor& visitor) {
 }
 
 // -----------------------------------------------------------------------
-Function::Function(Code* c)
-    : chunk(c),
-      entry(0),
-      nparam(0),
+Function::Function(Code* in_chunk, uint32_t in_entry, uint32_t in_nparam)
+    : chunk(in_chunk),
+      entry(in_entry),
+      nparam(in_nparam),
       param_index(),
       defaults(),
       has_vararg(false),

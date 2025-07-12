@@ -149,7 +149,8 @@ Value VM::Run() {
     std::erase_if(fibres_, [&](Fiber* f) {
       switch (f->state) {
         case FiberState::Dead:
-          last_ = f->last;
+          if (f->pending_result.has_value())
+            last_ = f->pending_result.value();
           return true;
         case FiberState::New:
           f->state = FiberState::Running;
@@ -200,7 +201,7 @@ void VM::Return(Fiber& f) {
   if (f.frames.empty()) {
     // fiber finished
     f.state = FiberState::Dead;
-    f.last = std::move(ret);
+    f.pending_result = std::move(ret);
   } else {
     // push return value back on stack
     f.stack.back() = std::move(ret);
@@ -497,19 +498,34 @@ void VM::ExecuteFiber(Fiber* fib) {
         ip += sizeof(ins);
         // TODO: support passing argument
         Fiber* f = pop(fib->stack).template Get<Fiber*>();
-
-        fibres_.push_back(f);
+        if (f->pending_result.has_value()) {
+          push(fib->stack, f->pending_result.value());
+          f->pending_result.reset();
+          if (f->state != FiberState::Dead)
+            f->state = FiberState::Running;
+        } else {
+          if (f->state == FiberState::Dead)
+            RuntimeError("cannot await a dead fiber: " + f->Desc());
+          f->state = FiberState::Running;
+          f->waiter = fib;
+          fib->state = FiberState::Suspended;
+        }
       }
-        return;  // switch → resume
+        return;  // switch -> await
 
       case OpCode::Yield: {
         const auto ins = chunk->Read<serilang::Yield>(ip);
         ip += sizeof(ins);
-        Value y = pop(fib->stack);
         fib->state = FiberState::Suspended;
-        fib->last = y;
+
+        if (fib->waiter) {
+          push(fib->waiter->stack, pop(fib->stack));
+          fib->waiter->state = FiberState::Running;
+          fib->waiter = nullptr;
+        } else
+          fib->pending_result = pop(fib->stack);
       }
-        return;  // switch → yield
+        return;  // switch -> yield
 
       //------------------------------------------------------------------
       // 8. Exceptions (not implemented yet)

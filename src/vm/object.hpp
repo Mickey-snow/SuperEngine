@@ -31,6 +31,7 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -136,7 +137,8 @@ struct Fiber : public IObject {
   std::vector<Value> stack;
   std::vector<CallFrame> frames;
   FiberState state;
-  Value last;
+  std::optional<Value> pending_result = std::nullopt;
+  Fiber* waiter = nullptr;
   std::vector<std::shared_ptr<Upvalue>> open_upvalues;
 
   explicit Fiber(size_t reserve = 64);
@@ -199,7 +201,9 @@ struct Function : public IObject {
   bool has_vararg;
   bool has_kwarg;
 
-  explicit Function(Code* c);
+  explicit Function(Code* in_chunk,
+                    uint32_t in_entry = 0,
+                    uint32_t in_nparam = 0);
 
   constexpr ObjType Type() const noexcept final { return objtype; }
   constexpr size_t Size() const noexcept final { return sizeof(*this); }

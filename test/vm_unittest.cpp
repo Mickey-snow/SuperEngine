@@ -186,8 +186,8 @@ TEST_F(VMTest, MultipleFibres) {
 
   EXPECT_EQ(f1->state, FiberState::Dead);
   EXPECT_EQ(f2->state, FiberState::Dead);
-  EXPECT_EQ(f1->last, 1);
-  EXPECT_EQ(f2->last, 9);
+  EXPECT_EQ(f1->pending_result, 1);
+  EXPECT_EQ(f2->pending_result, 9);
 }
 
 TEST_F(VMTest, YieldFiber) {
@@ -199,17 +199,17 @@ TEST_F(VMTest, YieldFiber) {
   f->state = FiberState::Running;
   std::ignore = vm.Run();
   EXPECT_EQ(f->state, FiberState::Suspended);
-  EXPECT_EQ(f->last, 1);
+  EXPECT_EQ(f->pending_result, 1);
 
   f->state = FiberState::Running;
   std::ignore = vm.Run();
   EXPECT_EQ(f->state, FiberState::Suspended);
-  EXPECT_EQ(f->last, 2);
+  EXPECT_EQ(f->pending_result, 2);
 
   f->state = FiberState::Running;
   std::ignore = vm.Run();
   EXPECT_EQ(f->state, FiberState::Dead);
-  EXPECT_EQ(f->last, 3);
+  EXPECT_EQ(f->pending_result, 3);
 }
 
 TEST_F(VMTest, SpawnFiber) {
@@ -237,6 +237,29 @@ TEST_F(VMTest, SpawnFiber) {
   ASSERT_EQ(kwarg.size(), 1);
   ASSERT_TRUE(kwarg.contains("foo"));
   EXPECT_EQ(kwarg["foo"], "boo");
+}
+
+TEST_F(VMTest, AwaitFiber) {
+  Code* print_code = gc.Allocate<Code>();
+  print_code->const_pool = value_vector("print", std::monostate());
+  append_ins(print_code, {Push{1}, Yield{}, LoadLocal{1},
+                          Return{}});  // yield nil; return arg0;
+  Function* print_fn = gc.Allocate<Function>(print_code, 0, 1);
+
+  Code* chunk = gc.Allocate<Code>();
+  chunk->const_pool = value_vector(print_fn, "foo", "boo", std::monostate());
+  append_ins(chunk, {
+                        Push{0}, Push{1}, MakeFiber{.argcnt = 1, .kwargcnt = 0},
+                        // handle1 = print_corout("foo");
+                        Push{0}, Push{2}, MakeFiber{.argcnt = 1, .kwargcnt = 0},
+                        // handle2 = print_corout("boo");
+                        Await{}, Pop{},  // await handle2;
+                        Dup{}, Await{}, Pop{}, Await{},
+                        Return{}  // await handle1; return await handle1;
+                    });
+
+  Value result = run_and_get(chunk);
+  EXPECT_EQ(result, "foo");
 }
 
 }  // namespace serilang_test
