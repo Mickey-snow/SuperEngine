@@ -242,6 +242,28 @@ TEST_F(ElementParserTest, Mwnd) {
   }
 }
 
+TEST_F(ElementParserTest, System) {
+  {
+    ElementCode elm{92, 13};
+    EXPECT_EQ(chain(elm), "system.is_debug()");
+  }
+  {
+    ElementCode elm{92, 7};
+    elm.ForceBind({1, {v("msg")}});
+    EXPECT_EQ(chain(elm), "system.debug_msgbox_ok(str:msg)");
+  }
+  {
+    ElementCode elm{92, 6};
+    elm.ForceBind({0, {v("file")}});
+    EXPECT_EQ(chain(elm), "system.check_file_exist(str:file)");
+  }
+  {
+    ElementCode elm{92, 2};
+    elm.ForceBind({0, {v("dummy"), v(123), v("key")}});
+    EXPECT_EQ(chain(elm), "system.check_dummy(str:dummy,int:123,str:key)");
+  }
+}
+
 TEST_F(ElementParserTest, UsrcmdGlobal) {
   std::vector<Command> globalcmd = {
       Command{.scene_id = 1, .offset = 2, .name = "$$cmd"}};

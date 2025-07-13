@@ -258,23 +258,51 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
 
     case Type::System: {
       static const auto mp = make_flatmap<Builder>(
-          id[14] | b(Type::Invalid, Member("calendar")),
+          id[14] | b(Type::None, Member("calendar")),
           id[15] | b(Type::Int, Member("time")),
-          id[0] | b(Type::Int, Member("window_active")),
-          id[13] | b(Type::Int, Member("is_debug")),
-          id[1] | b(Type::None, Member("shell_openfile")),
-          id[5] | b(Type::None, Member("openurl")),
-          id[6] | b(Type::Int, Member("check_file_exist")),
-          id[12] | b(Type::Int, Member("check_file_exist")),
-          id[2] | b(Type::None, Member("check_dummy")),
-          id[21] | b(Type::None, Member("clear_dummy")),
-          id[17] | b(Type::Int, Member("msgbox_ok")),
-          id[18] | b(Type::Int, Member("msgbox_okcancel")),
-          id[19] | b(Type::Int, Member("msgbox_yn")),
-          id[20] | b(Type::Int, Member("msgbox_yncancel")),
-          id[4] | b(Type::String, Member("get_chihayabench")),
-          id[3] | b(Type::None, Member("open_chihayabench")),
-          id[16] | b(Type::None, Member("get_lang")));
+          id[0] | b(Type::Int, Call("window_active")),
+          id[13] | b(Type::Int, Call("is_debug")),
+          id[1] | callable(fn("shell_openfile")[any](Type::String)),
+          id[5] | callable(fn("openurl")[any](Type::String)),
+          id[6] | callable(
+                      fn("check_file_exist")[any](Type::String).ret(Type::Int)),
+          id[12] |
+              callable(
+                  fn("check_file_exist")[any](Type::String).ret(Type::Int)),
+          id[2] | callable(fn("check_dummy")[any](Type::String, Type::Int,
+                                                  Type::String)),
+          id[21] | b(Type::None, Call("clear_dummy")),
+          id[17] | callable(fn("msgbox_ok")[0](Type::Int).ret(Type::Int),
+                            fn("msgbox_ok")[1](Type::String).ret(Type::Int)),
+          id[18] |
+              callable(fn("msgbox_okcancel")[0](Type::Int).ret(Type::Int),
+                       fn("msgbox_okcancel")[1](Type::String).ret(Type::Int)),
+          id[19] | callable(fn("msgbox_yn")[0](Type::Int).ret(Type::Int),
+                            fn("msgbox_yn")[1](Type::String).ret(Type::Int)),
+          id[20] |
+              callable(fn("msgbox_yncancel")[0](Type::Int).ret(Type::Int),
+                       fn("msgbox_yncancel")[1](Type::String).ret(Type::Int)),
+          id[7] |
+              callable(fn("debug_msgbox_ok")[0](Type::Int).ret(Type::Int),
+                       fn("debug_msgbox_ok")[1](Type::String).ret(Type::Int)),
+          id[8] |
+              callable(
+                  fn("debug_msgbox_okcancel")[0](Type::Int).ret(Type::Int),
+                  fn("debug_msgbox_okcancel")[1](Type::String).ret(Type::Int)),
+          id[9] |
+              callable(fn("debug_msgbox_yn")[0](Type::Int).ret(Type::Int),
+                       fn("debug_msgbox_yn")[1](Type::String).ret(Type::Int)),
+          id[10] |
+              callable(
+                  fn("debug_msgbox_yncancel")[0](Type::Int).ret(Type::Int),
+                  fn("debug_msgbox_yncancel")[1](Type::String).ret(Type::Int)),
+
+          id[11] | callable(fn("debug_write_log")[0](Type::Int),
+                            fn("debug_write_log")[1](Type::String)),
+
+          id[4] | b(Type::String, Call("get_chihayabench")),
+          id[3] | callable(fn("open_chihayabench")[any](Type::String)),
+          id[16] | b(Type::None, Call("get_lang")));
       return &mp;
     }
 
@@ -1600,8 +1628,8 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
 
     case 63:  // SYSCOM
       return make_chain(Type::Syscom, elm::Sym("syscom"), elm, 1);
-    case 64:  // SYSTEM
-      return make_chain(Type::System, elm::Sym("system"), elm, 1);
+    case 64:  // SCRIPT
+      return make_chain(Type::Script, elm::Sym("script"), elm, 1);
 
     case 54:    // WAIT
     case 55: {  // WAIT_KEY
@@ -1616,7 +1644,7 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
     }
 
     case 92:  // SYSTEM
-      return make_chain(Type::System, elm::Sym("os"), elm, 1);
+      return make_chain(Type::System, elm::Sym("system"), elm, 1);
 
     case 40:  // COUNTER
       return make_chain(Type::CounterList, elm::Sym("counter"), elm, 1);
