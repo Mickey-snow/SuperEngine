@@ -218,6 +218,8 @@ void CodeGenerator::emit_stmt(std::shared_ptr<AST> s) {
   s->Apply([&](auto&& n) { emit_stmt_node(n); });
 }
 
+void CodeGenerator::emit_stmt_node(const ScopeStmt& s) {}
+
 void CodeGenerator::emit_stmt_node(const AssignStmt& s) {
   if (auto id = s.lhs->Get_if<Identifier>()) {
     // simple variable

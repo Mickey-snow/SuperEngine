@@ -303,6 +303,13 @@ struct YieldStmt {
   std::string DebugString() const;
 };
 
+struct ScopeStmt {
+  std::vector<std::string> vars;
+  std::vector<SourceLocation> locs;
+
+  std::string DebugString() const;
+};
+
 using stmt_variant_t = std::variant<AssignStmt,
                                     AugStmt,
                                     IfStmt,
@@ -313,6 +320,7 @@ using stmt_variant_t = std::variant<AssignStmt,
                                     ClassDecl,
                                     ReturnStmt,
                                     YieldStmt,
+                                    ScopeStmt,
                                     std::shared_ptr<ExprAST>>;
 
 class AST {

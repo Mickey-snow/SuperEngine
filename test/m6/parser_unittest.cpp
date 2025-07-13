@@ -891,4 +891,11 @@ yield
 )");
 }
 
+TEST_F(StmtParserTest, Scope) {
+  expectStmtAST(TokenArray("global a, b;"),
+                R"(
+scope a,b
+)");
+}
+
 }  // namespace m6test

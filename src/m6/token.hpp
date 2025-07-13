@@ -34,7 +34,19 @@ namespace m6 {
 namespace tok {
 
 struct Reserved {
-  enum Type { _if, _else, _while, _for, _class, _fn, _return, _yield, _spawn, _await };
+  enum Type {
+    _if,
+    _else,
+    _while,
+    _for,
+    _class,
+    _fn,
+    _return,
+    _yield,
+    _spawn,
+    _await,
+    _global
+  };
   Type type;
   auto operator<=>(const Reserved& rhs) const = default;
 };

@@ -114,6 +114,9 @@ std::string ClassDecl::DebugString() const {
 }
 std::string ReturnStmt::DebugString() const { return "return"; }
 std::string YieldStmt::DebugString() const { return "yield"; }
+std::string ScopeStmt::DebugString() const {
+  return "scope " + Join(",", vars);
+}
 
 // -----------------------------------------------------------------------
 // Visitor to print debug string for an AST

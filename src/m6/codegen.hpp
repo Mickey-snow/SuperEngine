@@ -121,6 +121,7 @@ class CodeGenerator {
 
   // -- Statement codegen ----------------------------------------------
   void emit_stmt(std::shared_ptr<AST> s);
+  void emit_stmt_node(const ScopeStmt& s);
   void emit_stmt_node(const AssignStmt& s);
   void emit_stmt_node(const AugStmt& s);
   void emit_stmt_node(const IfStmt& s);

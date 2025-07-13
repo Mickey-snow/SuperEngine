@@ -61,6 +61,7 @@ static const std::unordered_map<std::string, tok::Token_t>
                               {"fn", tok::Reserved(tok::Reserved::_fn)},
                               {"class", tok::Reserved(tok::Reserved::_class)},
                               {"return", tok::Reserved(tok::Reserved::_return)},
+                              {"global", tok::Reserved(tok::Reserved::_global)},
                               {"yield", tok::Reserved(tok::Reserved::_yield)},
                               {"spawn", tok::Reserved(tok::Reserved::_spawn)},
                               {"await", tok::Reserved(tok::Reserved::_await)}};

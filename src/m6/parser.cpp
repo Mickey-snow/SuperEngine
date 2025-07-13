@@ -153,6 +153,25 @@ std::shared_ptr<AST> Parser::ParseStatement(bool requireSemi) {
         return std::make_shared<AST>(YieldStmt(expr, kwLoc));
       }
 
+      case tok::Reserved::_global: {
+        std::vector<std::string> vars;
+        std::vector<SourceLocation> locs;
+        auto id = it_;
+        require<tok::ID>("expected identifier");
+        vars.emplace_back(id->GetIf<tok::ID>()->id);
+        locs.emplace_back(id->loc_);
+        while (tryConsume<tok::Operator>(Op::Comma)) {
+          id = it_;
+          require<tok::ID>("expected identifier");
+          vars.emplace_back(id->GetIf<tok::ID>()->id);
+          locs.emplace_back(id->loc_);
+        }
+
+        require<tok::Semicol>("expected ';'");
+        return std::make_shared<AST>(
+            ScopeStmt(std::move(vars), std::move(locs)));
+      }
+
       default:
         --it_;
         break;
