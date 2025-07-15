@@ -54,14 +54,17 @@ static const std::vector<std::string> OPERATORS = {
     "%",    "~",   "&",   "|",  "^",   "<",   ">",  ",",  "."};
 
 static const std::unordered_map<std::string, tok::Token_t>
-    RESERVED_KEYWORD_TOKEN = {
-        {"if", tok::Reserved(tok::Reserved::_if)},
-        {"else", tok::Reserved(tok::Reserved::_else)},
-        {"while", tok::Reserved(tok::Reserved::_while)},
-        {"for", tok::Reserved(tok::Reserved::_for)},
-        {"fn", tok::Reserved(tok::Reserved::_fn)},
-        {"class", tok::Reserved(tok::Reserved::_class)},
-        {"return", tok::Reserved(tok::Reserved::_return)}};
+    RESERVED_KEYWORD_TOKEN = {{"if", tok::Reserved(tok::Reserved::_if)},
+                              {"else", tok::Reserved(tok::Reserved::_else)},
+                              {"while", tok::Reserved(tok::Reserved::_while)},
+                              {"for", tok::Reserved(tok::Reserved::_for)},
+                              {"fn", tok::Reserved(tok::Reserved::_fn)},
+                              {"class", tok::Reserved(tok::Reserved::_class)},
+                              {"return", tok::Reserved(tok::Reserved::_return)},
+                              {"global", tok::Reserved(tok::Reserved::_global)},
+                              {"yield", tok::Reserved(tok::Reserved::_yield)},
+                              {"spawn", tok::Reserved(tok::Reserved::_spawn)},
+                              {"await", tok::Reserved(tok::Reserved::_await)}};
 
 // Attempt to match an operator from position `pos` in `input`.
 // Returns the matched operator string if successful, else an empty string.

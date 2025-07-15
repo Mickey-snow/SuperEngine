@@ -142,6 +142,7 @@ class Parser {
   std::shared_ptr<ExprAST> parseMultiplicative();
   std::shared_ptr<ExprAST> parseUnary();
   std::shared_ptr<ExprAST> parseExponentiation();
+  std::shared_ptr<ExprAST> parseAwait();
   std::shared_ptr<ExprAST> parsePostfix();
   std::shared_ptr<ExprAST> parsePrimary();
 

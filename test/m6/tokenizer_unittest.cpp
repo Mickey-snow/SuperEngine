@@ -149,6 +149,16 @@ TEST_F(TokenizerTest, StrLiteral) {
   }
 }
 
+TEST_F(TokenizerTest, Coroutine) {
+  const std::string input = "yield spawn await";
+  tokens.clear();
+  tokenizer.Parse(SourceBuffer::Create(input, "<test>"));
+
+  EXPECT_EQ(Accumulate(tokens),
+            "<Reserved(yield), 0,5> <Reserved(spawn), 6,11> <Reserved(await), "
+            "12,17>");
+}
+
 TEST_F(TokenizerTest, UnclosedString) {
   const std::string input = "\"hello";
   tokenizer.Parse(SourceBuffer::Create(input, "<test>"));

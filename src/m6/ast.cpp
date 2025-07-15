@@ -57,6 +57,8 @@ std::string MemberExpr::DebugString() const { return "Member"; }
 std::string Identifier::DebugString() const {
   return "ID " + std::string(value);
 }
+std::string SpawnExpr::DebugString() const { return "spawn"; }
+std::string AwaitExpr::DebugString() const { return "await"; }
 
 std::string AssignStmt::DebugString() const { return "Assign"; }
 std::string AugStmt::DebugString() const { return "AugAssign " + ToString(op); }
@@ -111,6 +113,10 @@ std::string ClassDecl::DebugString() const {
   return "class " + std::string(name);
 }
 std::string ReturnStmt::DebugString() const { return "return"; }
+std::string YieldStmt::DebugString() const { return "yield"; }
+std::string ScopeStmt::DebugString() const {
+  return "scope " + Join(",", vars);
+}
 
 // -----------------------------------------------------------------------
 // Visitor to print debug string for an AST
@@ -215,6 +221,16 @@ struct Dumper {
     if constexpr (std::same_as<T, ReturnStmt>) {
       if (x.value)
         oss << x.value->Apply(Dumper(childPrefix, true));
+    }
+    if constexpr (std::same_as<T, YieldStmt>) {
+      if (x.value)
+        oss << x.value->Apply(Dumper(childPrefix, true));
+    }
+    if constexpr (std::same_as<T, SpawnExpr>) {
+      oss << x.invoke->DumpAST("", childPrefix, true);
+    }
+    if constexpr (std::same_as<T, AwaitExpr>) {
+      oss << x.corout->DumpAST("", childPrefix, true);
     }
 
     return oss.str();

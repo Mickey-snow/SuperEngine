@@ -254,14 +254,13 @@ void Disassembler::PrintIns(Code& chunk,
       const auto ins = chunk.Read<MakeFiber>(ip);
       ip += sizeof(ins);
       emit_mnemonic("MAKE_FIBER");
-      emit_operand(ins.func_index);
-      out_ << "  nup=" << ins.nupvals;
+      emit_operand("");
+      out_ << "  narg=" << ins.argcnt << ",nkwarg=" << ins.kwargcnt;
     } break;
-    case OpCode::Resume: {
-      const auto ins = chunk.Read<Resume>(ip);
+    case OpCode::Await: {
+      const auto ins = chunk.Read<Await>(ip);
       ip += sizeof(ins);
-      emit_mnemonic("RESUME");
-      emit_operand(+ins.arity);
+      emit_mnemonic("AWAIT");
     } break;
     case OpCode::Yield: {
       const auto ins = chunk.Read<Yield>(ip);
@@ -311,11 +310,14 @@ void Disassembler::DumpImpl(Code& chunk, const std::string& indent) {
   for (std::size_t idx = 0; idx < chunk.const_pool.size(); ++idx) {
     const std::string sub_indent = indent + std::string(indent_size_, ' ');
     Value& v = chunk.const_pool[idx];
-    if (auto fn = v.Get_if<Function>(); fn) {
-      Code* subChunk = fn->chunk;
-      if (!subChunk)
-        continue;
+    Code* subChunk = nullptr;
 
+    if (auto fn = v.Get_if<Function>())
+      subChunk = fn->chunk;
+    if (auto c = v.Get_if<Code>())
+      subChunk = c;
+
+    if (subChunk) {
       out_ << '\n'
            << indent << "; ── nested chunk @const[" << idx << "] ───────────\n";
       DumpImpl(*subChunk, sub_indent);

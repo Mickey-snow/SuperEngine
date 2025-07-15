@@ -45,7 +45,7 @@ class VMTest : public ::testing::Test {
     return std::vector<Value>{Value(std::forward<Ts>(param))...};
   }
 
-  inline void append_ins(Code* chunk, std::vector<Instruction> ins) {
+  inline void append_ins(Code* chunk, std::initializer_list<Instruction> ins) {
     for (const auto& it : ins)
       chunk->Append(it);
   }
@@ -107,7 +107,6 @@ TEST_F(VMTest, FunctionCall) {
   // 31  RETURN
   // 33  PUSH                 0  ; <double: 7.000000>
   // 38  RETURN
-  GarbageCollector gc;
   auto* chunk = gc.Allocate<Code>();
   chunk->const_pool = value_vector(7.0, Value(chunk));
   append_ins(chunk, {Push(1), MakeFunction{.entry = 33}, Call{0, 0}, Return{},
@@ -166,6 +165,101 @@ TEST_F(VMTest, CallNative) {
   Value out = run_and_get(chunk);
   EXPECT_EQ(call_count, 1);
   EXPECT_EQ(out, std::monostate());
+}
+
+TEST_F(VMTest, MultipleFibres) {
+  auto* chunk1 = gc.Allocate<Code>();
+  chunk1->const_pool = value_vector(1);
+  append_ins(chunk1, {Push{0}, Return{}});
+  // fiber1: return 1;
+  auto* chunk2 = gc.Allocate<Code>();
+  chunk2->const_pool = value_vector(3, 2, 1);
+  append_ins(chunk2, {Push{0}, Push{1}, Push{2}, BinaryOp(Op::Add),
+                      BinaryOp(Op::Mul), Return{}});
+  // fiber2: return 3*(2+1);
+
+  Fiber* f1 = vm.AddFiber(chunk1);
+  Fiber* f2 = vm.AddFiber(chunk2);
+  f1->state = FiberState::Running;
+  f2->state = FiberState::Running;
+  std::ignore = vm.Run();
+
+  EXPECT_EQ(f1->state, FiberState::Dead);
+  EXPECT_EQ(f2->state, FiberState::Dead);
+  EXPECT_EQ(f1->pending_result, 1);
+  EXPECT_EQ(f2->pending_result, 9);
+}
+
+TEST_F(VMTest, YieldFiber) {
+  auto chunk = gc.Allocate<Code>();
+  chunk->const_pool = value_vector(1, 2, 3);
+  append_ins(chunk, {Push(0), Yield{}, Push(1), Yield{}, Push(2), Return{}});
+  Fiber* f = vm.AddFiber(chunk);
+
+  f->state = FiberState::Running;
+  std::ignore = vm.Run();
+  EXPECT_EQ(f->state, FiberState::Suspended);
+  EXPECT_EQ(f->pending_result, 1);
+
+  f->state = FiberState::Running;
+  std::ignore = vm.Run();
+  EXPECT_EQ(f->state, FiberState::Suspended);
+  EXPECT_EQ(f->pending_result, 2);
+
+  f->state = FiberState::Running;
+  std::ignore = vm.Run();
+  EXPECT_EQ(f->state, FiberState::Dead);
+  EXPECT_EQ(f->pending_result, 3);
+}
+
+TEST_F(VMTest, SpawnFiber) {
+  int call_count = 0;
+  std::vector<Value> arg;
+  std::unordered_map<std::string, Value> kwarg;
+  auto* fn = gc.Allocate<NativeFunction>(
+      "my_function", [&](Fiber& f, std::vector<Value> args,
+                         std::unordered_map<std::string, Value> kwargs) {
+        ++call_count;
+        arg = std::move(args);
+        kwarg = std::move(kwargs);
+        return Value();
+      });
+
+  auto* chunk = gc.Allocate<Code>();
+  chunk->const_pool = value_vector(fn, 1, "foo", "boo");
+  append_ins(chunk, {Push{0}, Push{1}, Push{2}, Push{3},
+                     // fn, 1, "foo", "boo"
+                     MakeFiber{1, 1}, Push{1}, Return{}});
+  std::ignore = run_and_get(chunk);
+  EXPECT_EQ(call_count, 1);
+  ASSERT_EQ(arg.size(), 1);
+  EXPECT_EQ(arg.front(), 1);
+  ASSERT_EQ(kwarg.size(), 1);
+  ASSERT_TRUE(kwarg.contains("foo"));
+  EXPECT_EQ(kwarg["foo"], "boo");
+}
+
+TEST_F(VMTest, AwaitFiber) {
+  Code* print_code = gc.Allocate<Code>();
+  print_code->const_pool = value_vector("print", std::monostate());
+  append_ins(print_code, {Push{1}, Yield{}, LoadLocal{1},
+                          Return{}});  // yield nil; return arg0;
+  Function* print_fn = gc.Allocate<Function>(print_code, 0, 1);
+
+  Code* chunk = gc.Allocate<Code>();
+  chunk->const_pool = value_vector(print_fn, "foo", "boo", std::monostate());
+  append_ins(chunk, {
+                        Push{0}, Push{1}, MakeFiber{.argcnt = 1, .kwargcnt = 0},
+                        // handle1 = print_corout("foo");
+                        Push{0}, Push{2}, MakeFiber{.argcnt = 1, .kwargcnt = 0},
+                        // handle2 = print_corout("boo");
+                        Await{}, Pop{},  // await handle2;
+                        Dup{}, Await{}, Pop{}, Await{},
+                        Return{}  // await handle1; return await handle1;
+                    });
+
+  Value result = run_and_get(chunk);
+  EXPECT_EQ(result, "foo");
 }
 
 }  // namespace serilang_test

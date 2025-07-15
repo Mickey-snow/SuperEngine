@@ -123,13 +123,11 @@ struct SetItem {};  // (container,idx,val) ->
 
 // ––– 7. Coroutine / fiber support ––––––––––––––––––––––––––––––––
 struct MakeFiber {
-  uint32_t func_index;
-  uint32_t nupvals;
+  uint32_t argcnt;
+  uint32_t kwargcnt;
 };  // (…) -> (fiber)
-struct Resume {
-  uint8_t arity;
-};  // (fiber,args…) -> (result|exc)
-struct Yield {};  // (value) -> (yielded)
+struct Await {};  // (fiber,arg) -> (result|exc)
+struct Yield {};   // (value) -> (yielded)
 //  ‣ `Yield` suspends the *current* fiber and returns control to its resumer
 //  ‣ `Resume` runs the fiber until next `Yield` or `Return`
 
@@ -167,7 +165,7 @@ using Instruction = std::variant<Push,
                                  GetItem,
                                  SetItem,
                                  MakeFiber,
-                                 Resume,
+                                 Await,
                                  Yield,
                                  Throw,
                                  TryBegin,
@@ -194,7 +192,6 @@ enum class OpCode : uint8_t {
   Return,
   MakeFunction,
   Call,
-  TailCall,
   MakeList,
   MakeDict,
   MakeClass,
@@ -203,7 +200,7 @@ enum class OpCode : uint8_t {
   GetItem,
   SetItem,
   MakeFiber,
-  Resume,
+  Await,
   Yield,
   Throw,
   TryBegin,
@@ -269,8 +266,8 @@ constexpr inline OpCode GetOpcode() {
     return OpCode::SetItem;
   else if constexpr (std::same_as<T, MakeFiber>)
     return OpCode::MakeFiber;
-  else if constexpr (std::same_as<T, Resume>)
-    return OpCode::Resume;
+  else if constexpr (std::same_as<T, Await>)
+    return OpCode::Await;
   else if constexpr (std::same_as<T, Yield>)
     return OpCode::Yield;
   else if constexpr (std::same_as<T, Throw>)

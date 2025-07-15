@@ -55,6 +55,8 @@ class CodeGenerator {
   void Gen(std::shared_ptr<AST> ast);
 
  private:
+  enum class SCOPE { NONE = 1, GLOBAL, LOCAL };
+
   // -- Type aliases ----------------------------------------------------
   using Value = serilang::Value;
   using Scope = std::unordered_map<std::string, std::size_t>;
@@ -64,9 +66,9 @@ class CodeGenerator {
   bool repl_mode_;
 
   serilang::Code* chunk_;
+  std::unordered_map<std::string, SCOPE> scope_heuristic_;
   std::vector<Scope> locals_;
   std::size_t local_depth_;
-  std::unordered_map<std::string, int32_t> patch_sites_;
   std::vector<Error> errors_;
 
   // -- Error handling -------------------------------------------------
@@ -101,6 +103,7 @@ class CodeGenerator {
   // -- Identifier resolution ------------------------------------------
   std::optional<std::size_t> resolve_local(const std::string& name) const;
   std::size_t add_local(const std::string& name);
+  SCOPE get_scope(const std::string& name);
 
   // -- Expression codegen ---------------------------------------------
   void emit_expr(std::shared_ptr<ExprAST> n);
@@ -116,9 +119,12 @@ class CodeGenerator {
   void emit_expr_node(const InvokeExpr& call);
   void emit_expr_node(const SubscriptExpr& s);
   void emit_expr_node(const MemberExpr& m);
+  void emit_expr_node(const SpawnExpr& s);
+  void emit_expr_node(const AwaitExpr& a);
 
   // -- Statement codegen ----------------------------------------------
   void emit_stmt(std::shared_ptr<AST> s);
+  void emit_stmt_node(const ScopeStmt& s);
   void emit_stmt_node(const AssignStmt& s);
   void emit_stmt_node(const AugStmt& s);
   void emit_stmt_node(const IfStmt& s);
@@ -128,6 +134,7 @@ class CodeGenerator {
   void emit_stmt_node(const FuncDecl& fn);
   void emit_stmt_node(const ClassDecl& cd);
   void emit_stmt_node(const ReturnStmt& r);
+  void emit_stmt_node(const YieldStmt& y);
   void emit_stmt_node(const std::shared_ptr<ExprAST>& s);
 
   void emit_function(const FuncDecl& fn);

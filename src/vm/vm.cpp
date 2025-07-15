@@ -109,18 +109,19 @@ VM VM::Create(std::ostream& stdout, std::istream& stdin, std::ostream& stderr) {
 // class VM
 
 Value VM::Evaluate(Code* chunk) {
-  AddFiber(chunk);
+  Fiber* f = AddFiber(chunk);
+  f->state = FiberState::Running;
   return Run();
 }
 
-VM& VM::AddFiber(Code* chunk) {
-  auto fn = gc_.Allocate<Function>(chunk);
-  auto* fiber = gc_.Allocate<Fiber>();
+Fiber* VM::AddFiber(Code* chunk) {
+  Function* fn = gc_.Allocate<Function>(chunk);
+  Fiber* fiber = gc_.Allocate<Fiber>();
   push(fiber->stack, Value(fn));
   fn->Call(*this, *fiber, 0, 0);
-  fibres_.push_front(fiber);
+  fibres_.push_back(fiber);
 
-  return *this;
+  return fiber;
 }
 
 void VM::CollectGarbage() {
@@ -141,20 +142,35 @@ void VM::AddGlobal(std::string key, TempValue&& v) {
 }
 
 Value VM::Run() {
-  while (!fibres_.empty()) {
-    auto f = fibres_.front();
-    if (f->state == FiberState::Dead) {
-      last_ = f->last;
-      fibres_.pop_front();
-    } else {
-      ExecuteFiber(f);  // may yield
-    }
+  bool active = true;
+  while (active) {
+    active = false;
 
+    std::erase_if(fibres_, [&](Fiber* f) {
+      switch (f->state) {
+        case FiberState::Dead:
+          if (f->pending_result.has_value())
+            last_ = f->pending_result.value();
+          return true;
+        case FiberState::New:
+          f->state = FiberState::Running;
+        case FiberState::Running:
+          ExecuteFiber(f);
+          active = true;
+          return false;
+        case FiberState::Suspended:
+          return false;
+      }
+      return false;
+    });
+
+    // run garbage collector
     if (gc_.AllocatedBytes() >= gc_threshold_) {
       CollectGarbage();
       gc_threshold_ *= 2;
     }
   }
+
   return last_;
 }
 
@@ -185,7 +201,11 @@ void VM::Return(Fiber& f) {
   if (f.frames.empty()) {
     // fiber finished
     f.state = FiberState::Dead;
-    f.last = std::move(ret);
+    if (f.waiter) {
+      push(f.waiter->stack, std::move(ret));
+      f.waiter->state = FiberState::Running;
+    } else
+      f.pending_result = std::move(ret);
   } else {
     // push return value back on stack
     f.stack.back() = std::move(ret);
@@ -462,38 +482,54 @@ void VM::ExecuteFiber(Fiber* fib) {
       case OpCode::MakeFiber: {
         const auto ins = chunk->Read<serilang::MakeFiber>(ip);
         ip += sizeof(ins);
-        Fiber* f = gc_.Allocate<Fiber>();
-        Value fn = chunk->const_pool[ins.func_index];
+        size_t base = fib->stack.size() - ins.argcnt - 2 * ins.kwargcnt - 1;
+        Value fn = fib->stack[base];
 
-        f->stack.reserve(64);
-        push(f->stack, fn);
-        fn.Call(*this, *f, 0, 0);
+        Fiber* f =
+            gc_.Allocate<Fiber>(/*reserve=*/16 + ins.argcnt + 2 * ins.kwargcnt);
+        std::move(fib->stack.begin() + base, fib->stack.end(),
+                  std::back_inserter(f->stack));
+        fib->stack.resize(base);
+
+        fn.Call(*this, *f, ins.argcnt, ins.kwargcnt);
 
         push(fib->stack, Value(f));
+        fibres_.push_back(f);
       } break;
 
-      case OpCode::Resume: {
-        const auto ins = chunk->Read<serilang::Resume>(ip);
+      case OpCode::Await: {
+        const auto ins = chunk->Read<serilang::Await>(ip);
         ip += sizeof(ins);
-        auto arity = ins.arity;
-        auto fVal = fib->stack.end()[-arity - 1];
-        auto f2 = fVal.template Get<Fiber*>();
-        // move args
-        for (int i = arity - 1; i >= 0; --i)
-          push(f2->stack, pop(fib->stack));
-        fib->stack.pop_back();  // pop fiber
-        fibres_.push_front(f2);
+        // TODO: support passing argument
+        Fiber* f = pop(fib->stack).template Get<Fiber*>();
+        if (f->pending_result.has_value()) {
+          push(fib->stack, f->pending_result.value());
+          f->pending_result.reset();
+          if (f->state != FiberState::Dead)
+            f->state = FiberState::Running;
+        } else {
+          if (f->state == FiberState::Dead)
+            RuntimeError("cannot await a dead fiber: " + f->Desc());
+          f->state = FiberState::Running;
+          f->waiter = fib;
+          fib->state = FiberState::Suspended;
+        }
       }
-        return;  // switch → resume
+        return;  // switch -> await
 
       case OpCode::Yield: {
         const auto ins = chunk->Read<serilang::Yield>(ip);
         ip += sizeof(ins);
-        Value y = pop(fib->stack);
         fib->state = FiberState::Suspended;
-        fib->last = y;
+
+        if (fib->waiter) {
+          push(fib->waiter->stack, pop(fib->stack));
+          fib->waiter->state = FiberState::Running;
+          fib->waiter = nullptr;
+        } else
+          fib->pending_result = pop(fib->stack);
       }
-        return;  // switch → yield
+        return;  // switch -> yield
 
       //------------------------------------------------------------------
       // 8. Exceptions (not implemented yet)
@@ -506,6 +542,9 @@ void VM::ExecuteFiber(Fiber* fib) {
     if (fib->state != FiberState::Running)
       break;
   }
+
+  if (fib->frames.empty())
+    fib->state = FiberState::Dead;
 }
 
 }  // namespace serilang

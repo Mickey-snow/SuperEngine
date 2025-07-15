@@ -170,7 +170,7 @@ TEST_F(GCTest, MarkFibresAndClosures) {
   auto* d2 = Alloc<DummyObject>();
   auto* d3 = Alloc<DummyObject>();
   f->stack.emplace_back(d1);
-  f->last = Value(d2);
+  f->pending_result = Value(d2);
   fn->chunk->const_pool.emplace_back(d3);
 
   // Register fiber in VM

@@ -610,6 +610,37 @@ Subscript
 )");
 }
 
+TEST_F(ExprParserTest, Spawn) {
+  expectAST(TokenArray("spawn function();"),
+            R"(
+spawn
+   └─Invoke
+      └─ID function
+)");
+  expectAST(TokenArray("spawn function(a, b);"),
+            R"(
+spawn
+   └─Invoke
+      ├─ID function
+      ├─ID a
+      └─ID b
+)");
+}
+
+TEST_F(ExprParserTest, Await) {
+  expectAST(TokenArray("await function();"),
+            R"(
+await
+   └─Invoke
+      └─ID function
+)");
+  expectAST(TokenArray("await f;"),
+            R"(
+await
+   └─ID f
+)");
+}
+
 // -----------------------------------------------------------------------
 
 class StmtParserTest : public ::testing::Test {
@@ -829,6 +860,41 @@ class Klass
    └─fn boo(a,b,c)
       └─body
          └─Compound
+)");
+}
+
+TEST_F(StmtParserTest, Return) {
+  expectStmtAST(TokenArray("return;"),
+                R"(
+return
+)");
+  expectStmtAST(TokenArray("return a+b;"),
+                R"(
+return
+   └─Binaryop +
+      ├─ID a
+      └─ID b
+)");
+}
+
+TEST_F(StmtParserTest, Yield) {
+  expectStmtAST(TokenArray("yield;"),
+                R"(
+yield
+)");
+  expectStmtAST(TokenArray("yield a+b;"),
+                R"(
+yield
+   └─Binaryop +
+      ├─ID a
+      └─ID b
+)");
+}
+
+TEST_F(StmtParserTest, Scope) {
+  expectStmtAST(TokenArray("global a, b;"),
+                R"(
+scope a,b
 )");
 }
 

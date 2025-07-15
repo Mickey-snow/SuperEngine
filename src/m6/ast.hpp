@@ -138,6 +138,18 @@ struct MemberExpr {
   std::string DebugString() const;
 };
 
+struct SpawnExpr {
+  std::shared_ptr<ExprAST> invoke;
+  SourceLocation kwLoc;
+  std::string DebugString() const;
+};
+
+struct AwaitExpr {
+  std::shared_ptr<ExprAST> corout;
+  SourceLocation kwLoc;
+  std::string DebugString() const;
+};
+
 // -----------------------------------------------------------------------
 // ExprAST
 using expr_variant_t = std::variant<NilLiteral,
@@ -151,6 +163,8 @@ using expr_variant_t = std::variant<NilLiteral,
                                     MemberExpr,
                                     BinaryExpr,
                                     UnaryExpr,
+                                    SpawnExpr,
+                                    AwaitExpr,
                                     ParenExpr>;
 
 class ExprAST {
@@ -181,6 +195,11 @@ class ExprAST {
   template <typename T>
   auto Get_if() {
     return std::get_if<T>(&var_);
+  }
+
+  template <typename T>
+  bool HoldsAlternative() const {
+    return std::holds_alternative<T>(var_);
   }
 
  private:
@@ -277,6 +296,20 @@ struct ReturnStmt {
   std::string DebugString() const;
 };
 
+struct YieldStmt {
+  std::shared_ptr<ExprAST> value;
+  SourceLocation kw_loc;
+
+  std::string DebugString() const;
+};
+
+struct ScopeStmt {
+  std::vector<std::string> vars;
+  std::vector<SourceLocation> locs;
+
+  std::string DebugString() const;
+};
+
 using stmt_variant_t = std::variant<AssignStmt,
                                     AugStmt,
                                     IfStmt,
@@ -286,6 +319,8 @@ using stmt_variant_t = std::variant<AssignStmt,
                                     FuncDecl,
                                     ClassDecl,
                                     ReturnStmt,
+                                    YieldStmt,
+                                    ScopeStmt,
                                     std::shared_ptr<ExprAST>>;
 
 class AST {

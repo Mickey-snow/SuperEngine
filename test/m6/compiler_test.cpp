@@ -146,6 +146,24 @@ print(result);
   EXPECT_EQ(res.stdout, "3\n") << "\nDisassembly:\n" << res.disasm;
 }
 
+TEST_F(CompilerTest, VariableScope) {
+  auto res = Run(R"(
+fn foo(){
+  a = 1;
+  b = a + a;
+  global a;
+  result = a + b;
+  a = b;
+  return result;
+}
+a = 12;
+print(foo(), a);
+)");
+
+  ASSERT_TRUE(res.stderr.empty()) << res.stderr;
+  EXPECT_EQ(res.stdout, "14 2\n") << "\nDisassembly:\n" << res.disasm;
+}
+
 TEST_F(CompilerTest, While) {
   auto res = Run(R"(
 sum = 0;
@@ -292,6 +310,35 @@ print(inst.result);
     ASSERT_TRUE(res.stderr.empty()) << res.stderr;
     EXPECT_EQ(res.stdout, "*****0****0***0**0*0\n") << "\nDisassembly:\n"
                                                     << res.disasm;
+  }
+}
+
+TEST_F(CompilerTest, Coroutine) {
+  {
+    auto res = Run(R"(
+fn foo(){for(i=0;;i+=1) yield i;}
+f = spawn foo();
+for(i=0;i<5;i+=1)
+  print(await f);
+)");
+
+    ASSERT_TRUE(res.stderr.empty()) << res.stderr;
+    EXPECT_EQ(res.stdout, "0\n1\n2\n3\n4\n") << "\nDisassembly:\n"
+                                             << res.disasm;
+  }
+
+  {
+    auto res = Run(R"(
+fn deep(n){
+  if(n<=0) return 0;
+  return n + await spawn deep(n-1);
+}
+
+print(await spawn deep(1000));
+)");
+
+    ASSERT_TRUE(res.stderr.empty()) << res.stderr;
+    EXPECT_EQ(res.stdout, "500500\n") << "\nDisassembly:\n" << res.disasm;
   }
 }
 

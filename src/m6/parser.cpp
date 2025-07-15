@@ -135,19 +135,46 @@ std::shared_ptr<AST> Parser::ParseStatement(bool requireSemi) {
       case tok::Reserved::_return: {
         auto kwLoc = (it_ - 1)->loc_;
         std::shared_ptr<ExprAST> val = nullptr;
-        if (!tryConsume<tok::Semicol>())
+        if (!tryConsume<tok::Semicol>()) {
           val = ParseExpression();
-
-        require<tok::Semicol>("expected ';' after return");
+          require<tok::Semicol>("expected ';' after return");
+        }
         return std::make_shared<AST>(ReturnStmt(val, kwLoc));
       }
 
-      default: {
-        --it_;
-        AddError("unexpected reserved keyword", it_);
-        Synchronize();
-        return nullptr;
+      case tok::Reserved::_yield: {
+        auto kwLoc = (it_ - 1)->loc_;
+        std::shared_ptr<ExprAST> expr = nullptr;
+        if (!tryConsume<tok::Semicol>()) {
+          expr = ParseExpression();
+          require<tok::Semicol>("expected ';' after yield");
+        }
+
+        return std::make_shared<AST>(YieldStmt(expr, kwLoc));
       }
+
+      case tok::Reserved::_global: {
+        std::vector<std::string> vars;
+        std::vector<SourceLocation> locs;
+        auto id = it_;
+        require<tok::ID>("expected identifier");
+        vars.emplace_back(id->GetIf<tok::ID>()->id);
+        locs.emplace_back(id->loc_);
+        while (tryConsume<tok::Operator>(Op::Comma)) {
+          id = it_;
+          require<tok::ID>("expected identifier");
+          vars.emplace_back(id->GetIf<tok::ID>()->id);
+          locs.emplace_back(id->loc_);
+        }
+
+        require<tok::Semicol>("expected ';'");
+        return std::make_shared<AST>(
+            ScopeStmt(std::move(vars), std::move(locs)));
+      }
+
+      default:
+        --it_;
+        break;
     }
   }
 
@@ -160,8 +187,8 @@ std::shared_ptr<AST> Parser::ParseStatement(bool requireSemi) {
     return std::make_shared<AST>(BlockStmt(std::move(body)));
   }
 
+  // expression / assignment statement
   {
-    // expression / assignment statement
     auto stmt = parseAssignment();
     if (requireSemi)
       require<tok::Semicol>("Expected ';'.");
@@ -650,7 +677,7 @@ std::shared_ptr<ExprAST> Parser::parseUnary() {
 
 std::shared_ptr<ExprAST> Parser::parseExponentiation() {
   auto lhs_begin = it_;
-  auto lhs = parsePostfix();
+  auto lhs = parseAwait();
   if (!lhs)
     return nullptr;
   auto lhs_end = it_;
@@ -661,7 +688,7 @@ std::shared_ptr<ExprAST> Parser::parseExponentiation() {
     if (!op.has_value())
       break;
     auto rhs_begin = it_;
-    auto rhs = parsePostfix();
+    auto rhs = parseAwait();
     if (!rhs)
       return lhs;
     auto rhs_end = it_;
@@ -671,6 +698,27 @@ std::shared_ptr<ExprAST> Parser::parseExponentiation() {
     lhs = std::make_shared<ExprAST>(std::move(be));
   }
   return lhs;
+}
+
+std::shared_ptr<ExprAST> Parser::parseAwait() {
+  auto kwLoc = it_->loc_;
+  if (tryConsume<tok::Reserved>(tok::Reserved::_spawn)) {
+    auto spawn_begin = it_;
+    auto invoke = parsePostfix();
+    auto spawn_end = it_;
+
+    if (!invoke || !invoke->HoldsAlternative<InvokeExpr>()) {
+      AddError("expected invoke expression", LocRange(spawn_begin, spawn_end));
+      return nullptr;
+    }
+
+    return std::make_shared<ExprAST>(SpawnExpr(invoke, kwLoc));
+  } else if (tryConsume<tok::Reserved>(tok::Reserved::_await)) {
+    auto corout = ParseExpression();
+    return std::make_shared<ExprAST>(AwaitExpr(corout, kwLoc));
+  } else {
+    return parsePostfix();
+  }
 }
 
 std::shared_ptr<ExprAST> Parser::parsePostfix() {
