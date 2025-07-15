@@ -277,4 +277,19 @@ TEST_F(LexerTest, Return) {
   }
 }
 
+TEST_F(LexerTest, SELBLOCK) {
+  {
+    std::vector<uint8_t> raw{0x33};
+    auto result = lex.Parse(vec_to_sv(raw));
+    EXPECT_EQ(ToString(result), "sel_begin");
+    EXPECT_EQ(std::visit(ByteLengthOf(), result), 1);
+  }
+  {
+    std::vector<uint8_t> raw{0x34};
+    auto result = lex.Parse(vec_to_sv(raw));
+    EXPECT_EQ(ToString(result), "sel_end");
+    EXPECT_EQ(std::visit(ByteLengthOf(), result), 1);
+  }
+}
+
 }  // namespace siglus_test

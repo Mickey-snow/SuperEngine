@@ -231,6 +231,16 @@ struct Declare {
   size_t ByteLength() const { return 1 + 4 + 4; }
 };
 
+struct SelBegin {
+  std::string ToDebugString() const { return "sel_begin"; }
+  size_t ByteLength() const { return 1; }
+};
+
+struct SelEnd {
+  std::string ToDebugString() const { return "sel_end"; }
+  size_t ByteLength() const { return 1; }
+};
+
 }  // namespace lex
 
 struct ByteLengthOf {

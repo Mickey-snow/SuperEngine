@@ -159,6 +159,11 @@ Lexeme Lexer::Parse(ByteReader& reader) const {
       return Declare(type, size);
     }
 
+    case ByteCode::SelBegin:
+      return SelBegin();
+    case ByteCode::SelEnd:
+      return SelEnd();
+
     default: {
       reader.Proceed(-1);
 

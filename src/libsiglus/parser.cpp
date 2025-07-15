@@ -364,6 +364,10 @@ void Parser::Add(lex::EndOfScene) {
   emit_token(Eof{});
 }
 
+void Parser::Add(lex::SelBegin) { ctx_.Warn("selbegin not implemented yet"); }
+
+void Parser::Add(lex::SelEnd) { ctx_.Warn("selend not implemented yet"); }
+
 void Parser::debug_assert_stack_empty() {
   if (!stack_.Empty()) {
     std::ostringstream oss;
