@@ -57,7 +57,8 @@ class ElementParserTest : public ::testing::Test {
     MOCK_METHOD(const std::vector<Type>&, CurcallArgs, (), (const, override));
     MOCK_METHOD(int, ReadKidoku, (), (override));
     MOCK_METHOD(int, SceneId, (), (const, override));
-    MOCK_METHOD(void, Warn, (std::string message), (override));
+
+    void Warn(std::string message) override { ADD_FAILURE() << message; }
   };
   ElementParserTest() {
     std::unique_ptr<MockContext> c = std::make_unique<MockContext>();
@@ -215,6 +216,29 @@ TEST_F(ElementParserTest, Bgm) {
     ElementCode elm{42, 4};
     elm.ForceBind({1, {v(4000)}});
     EXPECT_EQ(chain(elm), "bgm.stop(int:4000)");
+  }
+}
+
+TEST_F(ElementParserTest, Mwnd) {
+  {
+    ElementCode elm{10};
+    EXPECT_EQ(chain(elm), "mwnd.close()");
+  }
+  {
+    ElementCode elm{115};
+    EXPECT_EQ(chain(elm), "mwnd.page()");
+  }
+  {
+    ElementCode elm{84};
+    EXPECT_EQ(chain(elm), "mwnd.msg_block()");
+  }
+  {
+    ElementCode elm{14};
+    EXPECT_EQ(chain(elm), "mwnd.r()");
+  }
+  {
+    ElementCode elm{119};
+    EXPECT_EQ(chain(elm), "mwnd.indent()");
   }
 }
 

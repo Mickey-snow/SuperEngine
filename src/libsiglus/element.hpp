@@ -30,11 +30,11 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 #include <span>
 #include <utility>
 #include <variant>
 #include <vector>
-#include "boost/container/flat_map.hpp"
 
 namespace libsiglus::elm {
 
@@ -176,6 +176,7 @@ struct Node {
 struct AccessChain {
   Root root;
   std::vector<Node> nodes;
+  std::optional<int> kidoku = std::nullopt;
 
   std::string ToDebugString() const;
   Type GetType() const;

@@ -43,6 +43,7 @@ enum class Type : uint32_t {
   Syscom,
   StageList,
   MwndList,
+  Mwnd,
   GroupList,
   BtnselItemList,
   WorldList,

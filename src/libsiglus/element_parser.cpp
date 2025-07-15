@@ -1110,6 +1110,135 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
       return &mp;
     }
 
+    case Type::MwndList: {
+      static const auto mp = make_flatmap<Builder>(
+          // TODO: Handle ELM_UP = -5
+          id[-1] | b_index_array(Type::Mwnd),
+          id[1] | b(Type::None, Call("close")),
+          id[2] | b(Type::None, Call("close_wait")),
+          id[3] | b(Type::None, Call("close_nowait")));
+      return &mp;
+    }
+
+    case Type::Mwnd: {
+      static const auto mp = make_flatmap<Builder>(
+          // TODO: Handle ELM_UP = -5
+          id[0] | callable(fn("set_waku")[2](Type::Int, Type::Int),
+                           fn("set_waku")[1](Type::Int), fn("set_waku")[any]()),
+          id[79] | b(Type::None, Call("init_waku_file")),
+          id[78] | callable(fn("set_waku_file")[any](Type::String)),
+          id[80] | b(Type::String, Call("get_waku_file")),
+          id[82] | b(Type::None, Call("init_filter_file")),
+          id[81] | callable(fn("set_filter_file")[any](Type::String)),
+          id[83] | b(Type::String, Call("get_filter_file")),
+          id[1] | b(Type::None, Call("open")),
+          id[15] | b(Type::None, Call("open_wait")),
+          id[16] | b(Type::None, Call("open_nowait")),
+          id[65] | b(Type::Int, Call("check_open")),
+          id[2] | b(Type::None, Call("close")),
+          id[13] | b(Type::None, Call("close_wait")),
+          id[14] | b(Type::None, Call("close_nowait")),
+          id[64] | b(Type::None, Call("end_close")),
+          id[49] | b(Type::None, Call("msg_block")),
+          id[59] | b(Type::None, Call("msg_pp_block")),
+          id[3] | b(Type::None, Call("clear")),
+          id[55] | b(Type::None, Call("novel_clear")),
+          id[4] |
+              callable(fn("print")[0](Type::Int), fn("print")[1](Type::String)),
+          id[57] |
+              callable(fn("overflow_print")[0](Type::Int, Type::Int, Type::Int),
+                       fn("print")[1](Type::String, Type::Int, Type::Int)),
+          id[63] | callable(fn("overflow_name")[0](Type::Int),
+                            fn("overflow_name")[1](Type::String)),
+          id[12] | callable(fn("ruby_end")[0](),
+                            fn("ruby_start")[any](Type::String)),
+          id[18] | b(Type::None, Call("msg_wait")),
+          id[19] | b(Type::None, Call("pp")), id[20] | b(Type::None, Call("r")),
+          id[54] | b(Type::None, Call("page")),
+          id[6] | b(Type::None, Call("nl")),
+          id[17] | b(Type::None, Call("nil")),
+          id[56] | b(Type::None, Call("indent")),
+          id[28] | b(Type::None, Call("clear_indent")),
+          id[31] | b(Type::None, Call("enable_multi_msg")),
+          id[29] | b(Type::None, Call("next_msg")),
+          id[58] | callable(fn("set_slide_msg")[any](Type::Int)),
+          id[60] | b(Type::None, Call("set_slide_msg")),
+          id[61] | b(Type::None, Call("slide_msg")),
+
+          // SEL
+          id[5] | callable(fn("sel")[any]()),
+          id[51] | callable(fn("sel_cancel")[any]()),
+          id[50] | callable(fn("selmsg")[any]()),
+          id[52] | callable(fn("selmsg_cancel")[any]()),
+          id[84] | callable(fn("rep_pos_default")[0](),
+                            fn("rep_pos")[1](Type::Int, Type::Int)),
+          id[7] | callable(fn("size_default")[0](),
+                           fn("size")[1](Type::Int, Type::Int)),
+          id[8] | callable(fn("color_default")[0](),
+                           fn("color")[1](Type::Int, Type::Int)),
+          id[86] | callable(fn("msgbtn")[0](), fn("msgbtn")[1](Type::Int),
+                            fn("msgbtn")[2](Type::Int, Type::Int),
+                            fn("msgbtn")[3](Type::Int, Type::Int, Type::Int,
+                                            Type::Int)),
+          id[85] | callable(fn("set_namae")[any](Type::String)),
+          id[9] |
+              callable(fn("koe")[1](Type::Int, Type::Int, kw_arg(0, Type::Int)),
+                       fn("koe")[0](Type::Int, kw_arg(0, Type::Int)),
+                       fn("koe")[any](kw_arg(0, Type::Int))),
+          id[26] |
+              callable(fn("koe_play_wait")[1](Type::Int, Type::Int,
+                                              kw_arg(0, Type::Int)),
+                       fn("koe_play_wait")[0](Type::Int, kw_arg(0, Type::Int)),
+                       fn("koe_play_wait")[any](kw_arg(0, Type::Int))),
+          id[27] | callable(fn("koe_play_wait_key")[1](Type::Int, Type::Int,
+                                                       kw_arg(0, Type::Int)),
+                            fn("koe_play_wait_key")[0](Type::Int,
+                                                       kw_arg(0, Type::Int)),
+                            fn("koe_play_wait_key")[any](kw_arg(0, Type::Int))),
+          id[22] | b(Type::None, Call("clear_face")),
+          id[21] | callable(fn("set_face")[0](Type::String),
+                            fn("set_face")[1](Type::Int, Type::String)),
+          id[10] |
+              callable(fn("get_layer")[0](), fn("set_layer")[1](Type::Int)),
+          id[11] |
+              callable(fn("get_world")[0](), fn("set_world")[1](Type::Int)),
+          id[32] | b(Type::ObjList, Member("button")),
+          id[53] | b(Type::ObjList, Member("face")),
+          id[30] | b(Type::ObjList, Member("object")),
+
+          // parameter
+          id[66] | b(Type::None, Call("init_window_pos")),
+          id[67] | b(Type::None, Call("init_window_size")),
+          id[74] | b(Type::None, Call("init_window_moji_cnt")),
+          id[68] | callable(fn("set_window_pos")[any](Type::Int, Type::Int)),
+          id[69] | callable(fn("set_window_size")[any](Type::Int, Type::Int)),
+          id[75] |
+              callable(fn("set_window_moji_cnt")[any](Type::Int, Type::Int)),
+          id[70] | b(Type::Int, Call("get_window_pos_x")),
+          id[71] | b(Type::Int, Call("get_window_pos_y")),
+          id[72] | b(Type::Int, Call("get_window_size_x")),
+          id[73] | b(Type::Int, Call("get_window_size_y")),
+          id[77] | b(Type::Int, Call("get_window_moji_cnt_x")),
+          id[76] | b(Type::Int, Call("get_window_moji_cnt_y")),
+          id[41] | b(Type::None, Call("init_open_anime_type")),
+          id[42] | b(Type::None, Call("init_open_anime_time")),
+          id[43] | b(Type::None, Call("init_close_anime_type")),
+          id[44] | b(Type::None, Call("init_close_anime_time")),
+          id[37] | callable(fn("set_open_anime_type")[any](Type::Int)),
+          id[34] | callable(fn("set_open_anime_time")[any](Type::Int)),
+          id[45] | callable(fn("set_close_anime_type")[any](Type::Int)),
+          id[35] | callable(fn("set_close_anime_time")[any](Type::Int)),
+          id[48] | b(Type::Int, Call("get_open_anime_type")),
+          id[47] | b(Type::Int, Call("get_open_anime_time")),
+          id[38] | b(Type::Int, Call("get_close_anime_type")),
+          id[46] | b(Type::Int, Call("get_close_anime_time")),
+          id[36] | b(Type::Int, Call("get_default_open_anime_type")),
+          id[33] | b(Type::Int, Call("get_default_open_anime_time")),
+          id[40] | b(Type::Int, Call("get_default_close_anime_type")),
+          id[39] | b(Type::Int, Call("get_default_close_anime_time")));
+      return &mp;
+    }
+
     [[unlikely]]
     default:
       return nullptr;
@@ -1235,13 +1364,6 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
     } break;
 
       // ====== KOE(Sound) ======
-      // needs kidoku flag
-    case 18:  // KOE
-    case 90:  // KOE_PLAY_WAIT
-    case 91:  // KOE_PLAY_WAIT_KEY
-      ctx_->ReadKidoku();
-      break;
-
     case 42:  // BGM
       return make_chain(Type::Bgm, elm::Sym("bgm"), elm, 1);
 
@@ -1268,10 +1390,6 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
       break;
     }
 
-    case 12:  // MWND_PRINT
-      ctx_->ReadKidoku();
-      break;
-
       // ====== Title ======
     case 74: {  // SET_TITLE
       Call set_title;
@@ -1288,6 +1406,146 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
                         .nodes = {Node(Type::String, std::move(get_title))}};
       return make_chain(std::move(chain), elm,
                         std::span(elm.code.begin() + 1, elm.code.end()));
+    }
+
+      // ====== MWND ======
+    case 22: {  // SET_WAKU
+      elm.code.front() = Value(Integer(0));
+      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+    }
+    case 9: {  // OPEN
+      elm.code.front() = Value(Integer(1));
+      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+    }
+    case 58: {  // OPEN_WAIT
+      elm.code.front() = Value(Integer(15));
+      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+    }
+    case 59: {  // OPEN_NOWAIT
+      elm.code.front() = Value(Integer(16));
+      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+    }
+    case 10: {  // CLOSE
+      elm.code.front() = Value(Integer(2));
+      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+    }
+    case 56: {  // CLOSE_WAIT
+      elm.code.front() = Value(Integer(13));
+      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+    }
+    case 57: {  // CLOSE_NOWAIT
+      elm.code.front() = Value(Integer(14));
+      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+    }
+    case 125: {  // END_CLOSE
+      elm.code.front() = Value(Integer(64));
+      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+    }
+    case 84: {  // MSG_BLOCK
+      elm.code.front() = Value(Integer(49));
+      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+    }
+    case 121: {  // MSG_PP_BLOCK
+      elm.code.front() = Value(Integer(59));
+      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+    }
+    case 11: {  // CLEAR
+      elm.code.front() = Value(Integer(3));
+      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+    }
+    case 156: {  // SET_NAMAE
+      elm.code.front() = Value(Integer(85));
+      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+    }
+    case 12: {  // PRINT
+      elm.code.front() = Value(Integer(4));
+      auto result = make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+      result.kidoku = ctx_->ReadKidoku();
+      return result;
+    }
+    case 61: {  // RUBY
+      elm.code.front() = Value(Integer(12));
+      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+    }
+    case 47: {  // MSGBTN
+      elm.code.front() = Value(Integer(86));
+      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+    }
+    case 15: {  // NL
+      elm.code.front() = Value(Integer(6));
+      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+    }
+    case 62: {  // NLI
+      elm.code.front() = Value(Integer(17));
+      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+    }
+    case 119: {  // INDENT
+      elm.code.front() = Value(Integer(56));
+      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+    }
+    case 94: {  // CLEAR_INDENT
+      elm.code.front() = Value(Integer(28));
+      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+    }
+    case 21: {  // WAIT_MSG
+      elm.code.front() = Value(Integer(18));
+      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+    }
+    case 13: {  // PP
+      elm.code.front() = Value(Integer(19));
+      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+    }
+    case 14: {  // R
+      elm.code.front() = Value(Integer(20));
+      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+    }
+    case 115: {  // PAGE
+      elm.code.front() = Value(Integer(54));
+      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+    }
+    case 151: {  // REP_POS
+      elm.code.front() = Value(Integer(84));
+      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+    }
+    case 16: {  // SIZE
+      elm.code.front() = Value(Integer(7));
+      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+    }
+    case 17: {  // COLOR
+      elm.code.front() = Value(Integer(8));
+      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+    }
+    case 95: {  // MULTI_MSG
+      elm.code.front() = Value(Integer(31));
+      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+    }
+    case 93: {  // NEXT_MSG
+      elm.code.front() = Value(Integer(29));
+      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+    }
+    case 120: {  // START_SLIDE_MSG
+      elm.code.front() = Value(Integer(58));
+      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+    }
+    case 122: {  // END_SLIDE_MSG
+      elm.code.front() = Value(Integer(60));
+      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+    }
+    case 18:  // KOE
+      elm.code.front() = Value(Integer(9));
+      goto KOE;
+
+    case 90:  // KOE_PLAY_WAIT
+      elm.code.front() = Value(Integer(26));
+      goto KOE;
+
+    case 91:  // KOE_PLAY_WAIT_KEY
+      elm.code.front() = Value(Integer(27));
+      goto KOE;
+    KOE: {
+      auto result = make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+      result.kidoku = ctx_->ReadKidoku();
+      return result;
     }
 
       // ====== Uncategorized ======
