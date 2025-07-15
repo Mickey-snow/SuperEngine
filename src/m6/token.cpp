@@ -66,6 +66,9 @@ std::string tok::DebugStringVisitor::operator()(const tok::Reserved& p) const {
     case Reserved::Type::_await:
       s = "await";
       break;
+    case Reserved::Type::_global:
+      s = "global";
+      break;
   }
   return "Reserved(" + s + ')';
 }

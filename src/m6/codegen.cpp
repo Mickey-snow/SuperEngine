@@ -42,7 +42,6 @@ CodeGenerator::CodeGenerator(sr::GarbageCollector& gc, bool repl)
       chunk_(gc.Allocate<sr::Code>()),
       locals_(),
       local_depth_(0),
-      patch_sites_(),
       errors_() {}
 
 CodeGenerator::~CodeGenerator() = default;
@@ -114,6 +113,14 @@ std::size_t CodeGenerator::add_local(const std::string& name) {
   return local_depth_++;
 }
 
+CodeGenerator::SCOPE CodeGenerator::get_scope(const std::string& name) {
+  auto it = scope_heuristic_.find(name);
+  if (it == scope_heuristic_.cend())
+    return SCOPE::NONE;
+  else
+    return it->second;
+}
+
 // Expression codegen
 void CodeGenerator::emit_expr(std::shared_ptr<ExprAST> n) {
   n->Apply([&](auto&& x) { emit_expr_node(x); });
@@ -145,7 +152,12 @@ void CodeGenerator::emit_expr_node(const DictLiteral& n) {
 
 void CodeGenerator::emit_expr_node(const Identifier& n) {
   std::string id{n.value};
-  if (auto slot = resolve_local(id); slot.has_value()) {
+  if (get_scope(id) == SCOPE::GLOBAL) {
+    emit(sr::LoadGlobal{intern_name(id)});
+    return;
+  }
+
+  if (auto slot = resolve_local(id)) {
     emit(sr::LoadLocal{static_cast<uint8_t>(*slot)});
   } else {
     emit(sr::LoadGlobal{intern_name(id)});
@@ -218,18 +230,26 @@ void CodeGenerator::emit_stmt(std::shared_ptr<AST> s) {
   s->Apply([&](auto&& n) { emit_stmt_node(n); });
 }
 
-void CodeGenerator::emit_stmt_node(const ScopeStmt& s) {}
+void CodeGenerator::emit_stmt_node(const ScopeStmt& s) {
+  for (const auto& it : s.vars)
+    scope_heuristic_[it] = SCOPE::GLOBAL;
+}
 
 void CodeGenerator::emit_stmt_node(const AssignStmt& s) {
   if (auto id = s.lhs->Get_if<Identifier>()) {
     // simple variable
     emit_expr(s.rhs);
     const std::string name{id->value};
+
+    if (locals_.empty() || get_scope(name) == SCOPE::GLOBAL) {
+      emit(sr::StoreGlobal{intern_name(name)});
+      return;
+    }
+
     if (auto slot = resolve_local(name); slot.has_value()) {
       emit(sr::StoreLocal{static_cast<uint8_t>(*slot)});
     } else {
-      // TODO:  Add scope intent
-      emit(sr::StoreGlobal{intern_name(name)});
+      slot = add_local(name);
     }
   } else if (auto mem = s.lhs->Get_if<MemberExpr>()) {
     // object field
@@ -317,7 +337,6 @@ void CodeGenerator::emit_stmt_node(const WhileStmt& s) {
 }
 
 void CodeGenerator::emit_stmt_node(const ForStmt& f) {
-  push_scope();
   if (f.init)
     emit_stmt(f.init);
 
@@ -338,20 +357,18 @@ void CodeGenerator::emit_stmt_node(const ForStmt& f) {
   patch(jmp, condpos);
 
   patch(exitj, code_size());
-  pop_scope();
 }
 
 void CodeGenerator::emit_stmt_node(const BlockStmt& s) {
-  push_scope();
   for (auto& stmt : s.body)
     emit_stmt(stmt);
-  pop_scope();
 }
 
 void CodeGenerator::emit_function(const FuncDecl& fn) {
   // compile body with a fresh compiler
   CodeGenerator nested(gc_, repl_mode_);
   nested.SetChunk(gc_.Allocate<serilang::Code>());
+  nested.scope_heuristic_ = scope_heuristic_;
   nested.push_scope();
   nested.add_local(fn.name);
   for (auto& p : fn.params)
