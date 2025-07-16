@@ -60,6 +60,10 @@ enum class Type : uint32_t {
   Movie,
   BgmTable,
   Bgm,
+  Pcm,
+  Pcmch,
+  PcmchList,
+  PcmEventList,
 
   None = 0x00,
   Int = 0x0a,

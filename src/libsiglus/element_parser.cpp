@@ -1477,6 +1477,85 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
       return &mp;
     }
 
+    case Type::Pcm: {
+      static const auto mp =
+          make_flatmap<Builder>(id[0] | callable(fn("play")[any](Type::String)),
+                                id[1] | b(Type::None, Call("stop")));
+      return &mp;
+    }
+
+    case Type::PcmchList: {
+      static const auto mp =
+          make_flatmap<Builder>(id[-1] | b_index_array(Type::Pcmch));
+      return &mp;
+    }
+
+    case Type::Pcmch: {
+      static const auto mp = make_flatmap<Builder>(
+          id[0] |
+              callable(
+                  fn("play")[1](Type::String, Type::Int, kw_arg(0, Type::Int),
+                                kw_arg(1, Type::Int), kw_arg(2, Type::Int),
+                                kw_arg(3, Type::Int), kw_arg(4, Type::Int),
+                                kw_arg(5, Type::Int), kw_arg(6, Type::Int),
+                                kw_arg(7, Type::String), kw_arg(8, Type::Int),
+                                kw_arg(9, Type::Int), kw_arg(10, Type::String),
+                                kw_arg(11, Type::Int)),
+                  fn("play")[0](Type::String, kw_arg(0, Type::Int),
+                                kw_arg(1, Type::Int), kw_arg(2, Type::Int),
+                                kw_arg(3, Type::Int), kw_arg(4, Type::Int),
+                                kw_arg(5, Type::Int), kw_arg(6, Type::Int),
+                                kw_arg(7, Type::String), kw_arg(8, Type::Int),
+                                kw_arg(9, Type::Int), kw_arg(10, Type::String),
+                                kw_arg(11, Type::Int)),
+                  fn("play")[2](kw_arg(0, Type::Int), kw_arg(1, Type::Int),
+                                kw_arg(2, Type::Int), kw_arg(3, Type::Int),
+                                kw_arg(4, Type::Int), kw_arg(5, Type::Int),
+                                kw_arg(6, Type::Int), kw_arg(7, Type::String),
+                                kw_arg(8, Type::Int), kw_arg(9, Type::Int),
+                                kw_arg(10, Type::String),
+                                kw_arg(11, Type::Int))),
+          id[2] | callable(fn("play_loop")[0](Type::String),
+                           fn("play_loop")[1](Type::String, Type::Int)),
+          id[1] | callable(fn("play_wait")[0](Type::String),
+                           fn("play_wait")[1](Type::String, Type::Int)),
+          id[11] |
+              callable(
+                  fn("ready")[0](Type::String, kw_arg(0, Type::Int),
+                                 kw_arg(3, Type::Int), kw_arg(4, Type::Int),
+                                 kw_arg(5, Type::Int), kw_arg(6, Type::Int),
+                                 kw_arg(7, Type::String), kw_arg(8, Type::Int),
+                                 kw_arg(9, Type::Int), kw_arg(10, Type::String),
+                                 kw_arg(11, Type::Int)),
+                  fn("ready")[any](
+                      kw_arg(0, Type::Int), kw_arg(3, Type::Int),
+                      kw_arg(4, Type::Int), kw_arg(5, Type::Int),
+                      kw_arg(6, Type::Int), kw_arg(7, Type::String),
+                      kw_arg(8, Type::Int), kw_arg(9, Type::Int),
+                      kw_arg(10, Type::String), kw_arg(11, Type::Int))),
+          id[16] | callable(fn("ready_loop")[0](Type::String),
+                            fn("ready_loop")[1](Type::String, Type::Int)),
+          id[5] | callable(fn("stop")[0](), fn("stop")[1](Type::Int)),
+          id[10] | callable(fn("pause")[0](), fn("pause")[1](Type::Int)),
+          id[9] | callable(fn("resume")[1](Type::Int, kw_arg(0, Type::Int)),
+                           fn("resume")[0](kw_arg(0, Type::Int))),
+          id[17] |
+              callable(fn("resume_wait")[0](), fn("resume_wait")[1](Type::Int)),
+          id[3] | b(Type::None, Call("wait")),
+          id[6] | b(Type::Int, Call("wait_key")),
+          id[8] | b(Type::None, Call("wait_fade")),
+          id[7] | b(Type::Int, Call("wait_fade_key")),
+          id[4] | b(Type::Int, Call("check")),
+          id[13] | callable(fn("set_volume")[0](Type::Int),
+                            fn("set_volume")[1](Type::Int, Type::Int)),
+          id[14] |
+              callable(fn("set_vol_max")[0](), fn("set_vol_max")[1](Type::Int)),
+          id[15] |
+              callable(fn("set_vol_min")[0](), fn("set_vol_min")[1](Type::Int)),
+          id[12] | b(Type::Int, Call("get_volume")));
+      return &mp;
+    }
+
     [[unlikely]]
     default:
       return nullptr;
@@ -1601,9 +1680,15 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
         return make_chain(Type::StrList, elm::Sym("K"), elm, 2);
     } break;
 
-      // ====== KOE(Sound) ======
+      // ====== Sound ======
     case 42:  // BGM
       return make_chain(Type::Bgm, elm::Sym("bgm"), elm, 1);
+    case 123:  // BGMTABLE
+      return make_chain(Type::BgmTable, elm::Sym("bgm_table"), elm, 1);
+    case 43:
+      return make_chain(Type::Pcm, elm::Sym("pcm"), elm, 1);
+    case 44:
+      return make_chain(Type::PcmchList, elm::Sym("pcmch_list"), elm, 1);
 
       // ====== SEL ======
       // some needs kidoku flag
@@ -1867,9 +1952,6 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
 
     case 20:  // MOVIE
       return make_chain(Type::Movie, elm::Sym("mov"), elm, 1);
-
-    case 123:  // BGMTABLE
-      return make_chain(Type::BgmTable, elm::Sym("bgm_table"), elm, 1);
 
     [[unlikely]]
     default: {

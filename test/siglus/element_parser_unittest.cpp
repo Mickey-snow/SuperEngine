@@ -264,6 +264,14 @@ TEST_F(ElementParserTest, System) {
   }
 }
 
+TEST_F(ElementParserTest, Pcmch) {
+  {
+    ElementCode elm{44, -1, 0, 0};
+    elm.ForceBind({0, {}});
+    EXPECT_EQ(chain(elm), "pcmch_list[int:0].play()");
+  }
+}
+
 TEST_F(ElementParserTest, UsrcmdGlobal) {
   std::vector<Command> globalcmd = {
       Command{.scene_id = 1, .offset = 2, .name = "$$cmd"}};
