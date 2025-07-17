@@ -129,7 +129,8 @@ int main(int argc, char* argv[]) {
   } else {
     fs::path output_path = output;
     fs::create_directories(output_path);
-    fs::create_directories(output_path / "audio");
+    fs::create_directory(output_path / "audio");
+    fs::create_directory(output_path / "image");
 
     std::for_each(std::execution::par_unseq, tasks.begin(), tasks.end(),
                   [&output_path, &run](Dumper::Task& t) {

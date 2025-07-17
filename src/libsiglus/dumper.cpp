@@ -24,6 +24,7 @@
 #include "libsiglus/dumper.hpp"
 
 #include "core/avdec/audio_decoder.hpp"
+#include "core/avdec/image_decoder.hpp"
 #include "core/avdec/wav.hpp"
 #include "core/gameexe.hpp"
 #include "libsiglus/archive.hpp"
@@ -31,6 +32,7 @@
 #include "libsiglus/parser.hpp"
 #include "libsiglus/xorkey.hpp"
 #include "parser_context.hpp"
+#include "utilities/mapped_file.hpp"
 #include "utilities/string_utilities.hpp"
 
 #include <filesystem>
@@ -79,12 +81,16 @@ std::vector<IDumper::Task> Dumper::GetTasks(std::vector<int> scenarios) {
   for (const auto& it : scanner_.filesystem_cache_) {
     static const std::set<std::string> audio_ext{"nwa", "wav", "ogg", "mp3",
                                                  "ovk", "koe", "nwk"};
+    static const std::set<std::string> image_ext{"g00", "pdt"};
     auto name = it.first;
     auto [ext, path] = it.second;
 
     if (audio_ext.contains(ext)) {
       result.emplace_back(std::filesystem::path("audio") / (name + '.' + ext),
                           tsk_t(std::bind(&Dumper::DumpAudio, this, path, _1)));
+    } else if (image_ext.contains(ext)) {
+      result.emplace_back(std::filesystem::path("image") / (name + '.' + ext),
+                          tsk_t(std::bind(&Dumper::DumpImage, this, path, _1)));
     }
   }
 
@@ -140,6 +146,12 @@ void Dumper::DumpAudio(std::filesystem::path path, std::ostream& s) {
   std::vector<uint8_t> wav = EncodeWav(std::move(data));
   s.write(reinterpret_cast<const char*>(wav.data()),
           static_cast<std::streamsize>(wav.size()));
+}
+
+void Dumper::DumpImage(std::filesystem::path path, std::ostream& s) {
+  MappedFile mfile(path);
+  ImageDecoder decoder(mfile.Read());
+  saveRGBAasPPM(s, decoder.width, decoder.height, decoder.mem);
 }
 
 }  // namespace libsiglus

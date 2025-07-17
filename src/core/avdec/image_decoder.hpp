@@ -26,8 +26,20 @@
 
 #include "core/grprect.hpp"
 
+#include <ostream>
 #include <string_view>
 #include <vector>
+
+/// Encodes an RGBA buffer into a binary PPM (P6) file.
+/// @param os        Output stream.
+/// @param width     Image width in pixels.
+/// @param height    Image height in pixels.
+/// @param rgba      Flat vector of size width*height*4, in R,G,B,A order.
+/// @throws runtime_error on I/O error or invalid buffer size.
+void saveRGBAasPPM(std::ostream& os,
+                   int width,
+                   int height,
+                   const std::vector<char>& rgba);
 
 class ImageDecoder {
  public:

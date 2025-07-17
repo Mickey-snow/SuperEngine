@@ -27,8 +27,44 @@
 #include "xclannad/file.h"
 
 #include <algorithm>
+#include <fstream>
 #include <memory>
 #include <stdexcept>
+
+void saveRGBAasPPM(std::ostream& os,
+                   int width,
+                   int height,
+                   const std::vector<char>& rgba) {
+  // Check that we have exactly width*height*4 bytes
+  if (rgba.size() != static_cast<size_t>(width) * height * 4) {
+    throw std::runtime_error("RGBA buffer has wrong size");
+  }
+
+  if (!os) {
+    throw std::runtime_error("Failed to open output file");
+  }
+
+  // PPM header for binary P6 format
+  os << "P6\n"
+     << width << " " << height << "\n"
+     << "255\n";
+
+  // Write pixel data: for each pixel, output R, G, B (skip A)
+  for (int y = 0; y < height; ++y) {
+    for (int x = 0; x < width; ++x) {
+      const size_t idx = (static_cast<size_t>(y) * width + x) * 4;
+      os.put(rgba[idx + 0]);
+      os.put(rgba[idx + 1]);
+      os.put(rgba[idx + 2]);
+    }
+  }
+
+  if (!os) {
+    throw std::runtime_error("Error occurred while writing pixel data");
+  }
+}
+
+// ------------------------------------------------------------------------------
 
 ImageDecoder::ImageDecoder(std::string_view sv) {
   std::unique_ptr<GRPCONV> conv(
