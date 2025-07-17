@@ -99,7 +99,8 @@ int main(int argc, char* argv[]) {
     // siglus game
     gameexe_path = CorrectPathCase(game_root / "Gameexe.dat");
     seen_path = CorrectPathCase(game_root / "Scene.pck");
-    dumper = std::make_unique<libsiglus::Dumper>(gameexe_path, seen_path);
+    dumper =
+        std::make_unique<libsiglus::Dumper>(gameexe_path, seen_path, game_root);
   }
 
   std::vector<int> scenarios;
@@ -120,7 +121,7 @@ int main(int argc, char* argv[]) {
     std::for_each(std::execution::seq, tasks.begin(), tasks.end(),
                   [&run](Dumper::Task& t) {
                     std::cout << '\n'
-                              << std::string(6, '=') << t.name
+                              << std::string(6, '=') << t.path.string()
                               << std::string(6, '=') << '\n';
                     run(std::cout, t.task);
                   });
@@ -128,10 +129,11 @@ int main(int argc, char* argv[]) {
   } else {
     fs::path output_path = output;
     fs::create_directories(output_path);
+    fs::create_directories(output_path / "audio");
 
     std::for_each(std::execution::par_unseq, tasks.begin(), tasks.end(),
                   [&output_path, &run](Dumper::Task& t) {
-                    std::ofstream ofs(output_path / t.name);
+                    std::ofstream ofs(output_path / t.path);
                     run(ofs, t.task);
                   });
   }

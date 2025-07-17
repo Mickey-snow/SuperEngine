@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <filesystem>
 #include <future>
 #include <ostream>
 #include <vector>
@@ -31,7 +32,7 @@ class IDumper {
  public:
   using task_t = std::packaged_task<void(std::ostream&)>;
   struct Task {
-    std::string name;
+    std::filesystem::path path;
     task_t task;
   };
 

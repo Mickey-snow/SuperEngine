@@ -90,7 +90,7 @@ std::vector<IDumper::Task> Dumper::GetTasks(std::vector<int> scenarios) {
     packaged job(std::bind(DumpImpl, sc, _1));
 
     tasks.push_back(IDumper::Task{
-        .name = std::format("{}.{:04}.txt", regname_, sc->scene_number()),
+        .path = std::format("{}.{:04}.txt", regname_, sc->scene_number()),
         .task = std::move(job)});
   }
 

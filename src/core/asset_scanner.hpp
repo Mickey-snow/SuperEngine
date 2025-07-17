@@ -42,11 +42,10 @@ class IAssetScanner {
 class AssetScanner : public IAssetScanner {
  public:
   AssetScanner() = default;
-  AssetScanner(Gameexe& gexe);
-  ~AssetScanner() = default;
 
-  /* read and scan all the directories defined in the #FOLDNAME section. */
-  void BuildFromGameexe(Gameexe& gexe);
+  /* Factory: read and scan all the directories defined in the #FOLDNAME
+   * section. */
+  static AssetScanner BuildFromGameexe(Gameexe& gexe);
 
   /* recursively scan directory, index all recongnized files */
   void IndexDirectory(const std::filesystem::path& dir,

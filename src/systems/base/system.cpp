@@ -289,7 +289,8 @@ void System::InvokeSyscom(RLMachine& machine, int syscom) {
 
 std::shared_ptr<AssetScanner> System::GetAssetScanner() {
   if (!rlvm_assets_)
-    rlvm_assets_ = std::make_shared<AssetScanner>(gameexe());
+    rlvm_assets_ = std::make_shared<AssetScanner>(
+        AssetScanner::BuildFromGameexe(gameexe()));
   return rlvm_assets_;
 }
 

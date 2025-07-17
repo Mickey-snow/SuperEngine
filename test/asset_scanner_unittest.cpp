@@ -76,7 +76,7 @@ TEST_F(rlfsTest, BuildFromGexe) {
   Gameexe gexe(PathToTestCase("Gameexe_data/rl_filesystem.ini"));
   gexe("__GAMEPATH") = LocateTestDirectory("Gameroot");
 
-  game_assets = AssetScanner(gexe);
+  game_assets = AssetScanner::BuildFromGameexe(gexe);
 
   EXPECT_EQ(game_assets.FindFile("bgm01"),
             PathToTestCase("Gameroot/BGM/BGM01.nwa"));
@@ -120,5 +120,5 @@ TEST_F(rlfsTest, InvalidInput) {
   // Pass an invalid Gameexe configuration
   Gameexe invalidGexe;
   invalidGexe("__GAMEPATH") = "";
-  EXPECT_THROW(game_assets.BuildFromGameexe(invalidGexe), std::runtime_error);
+  EXPECT_THROW(AssetScanner::BuildFromGameexe(invalidGexe), std::runtime_error);
 }

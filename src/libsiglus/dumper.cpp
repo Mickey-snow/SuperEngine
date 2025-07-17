@@ -23,6 +23,8 @@
 
 #include "libsiglus/dumper.hpp"
 
+#include "core/avdec/audio_decoder.hpp"
+#include "core/avdec/wav.hpp"
 #include "core/gameexe.hpp"
 #include "libsiglus/archive.hpp"
 #include "libsiglus/gexedat.hpp"
@@ -41,11 +43,14 @@ using namespace std::placeholders;
 namespace libsiglus {
 
 Dumper::Dumper(const std::filesystem::path& gexe_path,
-               const std::filesystem::path& scene_path)
+               const std::filesystem::path& scene_path,
+               const std::filesystem::path& root_path)
     : gexe_data_(gexe_path),
       archive_data_(scene_path),
       gexe_(CreateGexe(gexe_data_.Read())),
-      archive_(Archive::Create(archive_data_.Read())) {}
+      archive_(Archive::Create(archive_data_.Read())) {
+  scanner_.IndexDirectory(root_path);
+}
 
 std::vector<IDumper::Task> Dumper::GetTasks(std::vector<int> scenarios) {
   bool dump_metadata = false;
@@ -70,6 +75,19 @@ std::vector<IDumper::Task> Dumper::GetTasks(std::vector<int> scenarios) {
     result.emplace_back(std::format("s{:04}.txt", i),
                         tsk_t(std::bind(&Dumper::DumpScene, this, i, _1)));
   }
+
+  for (const auto& it : scanner_.filesystem_cache_) {
+    static const std::set<std::string> audio_ext{"nwa", "wav", "ogg", "mp3",
+                                                 "ovk", "koe", "nwk"};
+    auto name = it.first;
+    auto [ext, path] = it.second;
+
+    if (audio_ext.contains(ext)) {
+      result.emplace_back(std::filesystem::path("audio") / (name + '.' + ext),
+                          tsk_t(std::bind(&Dumper::DumpAudio, this, path, _1)));
+    }
+  }
+
   return result;
 }
 
@@ -114,6 +132,14 @@ void Dumper::DumpScene(size_t id, std::ostream& out) {
   } catch (std::exception& e) {
     out << '\n' << e.what() << std::endl;
   }
+}
+
+void Dumper::DumpAudio(std::filesystem::path path, std::ostream& s) {
+  AudioDecoder decoder(path);
+  AudioData data = decoder.DecodeAll();
+  std::vector<uint8_t> wav = EncodeWav(std::move(data));
+  s.write(reinterpret_cast<const char*>(wav.data()),
+          static_cast<std::streamsize>(wav.size()));
 }
 
 }  // namespace libsiglus

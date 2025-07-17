@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "core/asset_scanner.hpp"
 #include "core/gameexe.hpp"
 #include "idumper.hpp"
 #include "libsiglus/archive.hpp"
@@ -37,7 +38,8 @@ namespace libsiglus {
 class Dumper : public IDumper {
  public:
   Dumper(const std::filesystem::path& gexe_path,
-         const std::filesystem::path& scene_path);
+         const std::filesystem::path& scene_path,
+         const std::filesystem::path& root_path);
 
   std::vector<IDumper::Task> GetTasks(std::vector<int> scenarios) final;
 
@@ -45,10 +47,12 @@ class Dumper : public IDumper {
   void DumpGexe(std::ostream& out);
   void DumpArchive(std::ostream& out);
   void DumpScene(size_t id, std::ostream& out);
+  void DumpAudio(std::filesystem::path path, std::ostream& out);
 
   MappedFile gexe_data_, archive_data_;
   Gameexe gexe_;
   Archive archive_;
+  AssetScanner scanner_;
 };
 
 }  // namespace libsiglus

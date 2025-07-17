@@ -37,10 +37,8 @@ void to_lower(std::string& input) {
                  [](unsigned char c) { return std::tolower(c); });
 }
 
-AssetScanner::AssetScanner(Gameexe& gexe) { BuildFromGameexe(gexe); }
-
 // Builds file system from Gameexe object
-void AssetScanner::BuildFromGameexe(Gameexe& gexe) {
+AssetScanner AssetScanner::BuildFromGameexe(Gameexe& gexe) {
   namespace fs = std::filesystem;
 
   std::set<std::string> valid_directories;
@@ -62,14 +60,17 @@ void AssetScanner::BuildFromGameexe(Gameexe& gexe) {
 
   gamepath = gexe("__GAMEPATH").ToString();
 
+  AssetScanner scanner;
   for (const auto& dir : fs::directory_iterator(gamepath)) {
     if (fs::is_directory(dir.status())) {
       std::string lowername = dir.path().filename().string();
       to_lower(lowername);
       if (valid_directories.count(lowername))
-        IndexDirectory(dir, rlvm_file_types);
+        scanner.IndexDirectory(dir, rlvm_file_types);
     }
   }
+
+  return scanner;
 }
 
 void AssetScanner::IndexDirectory(
