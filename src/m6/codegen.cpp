@@ -431,6 +431,23 @@ void CodeGenerator::emit_stmt_node(const YieldStmt& y) {
   emit(sr::Yield{});
 }
 
+void CodeGenerator::emit_stmt_node(const ImportStmt& is) {
+  emit(sr::LoadGlobal{intern_name("import")});
+  emit_const(is.module);
+  emit(sr::Call{1, 0});
+  if (is.names.empty()) {
+    auto name = is.alias.empty() ? is.module : is.alias;
+    emit(sr::StoreGlobal{intern_name(name)});
+  } else {
+    for (auto const& [sym, alias] : is.names) {
+      emit(sr::Dup{});
+      emit(sr::GetField{intern_name(sym)});
+      emit(sr::StoreGlobal{intern_name(alias.empty() ? sym : alias)});
+    }
+    emit(sr::Pop{1});
+  }
+}
+
 void CodeGenerator::emit_stmt_node(const std::shared_ptr<ExprAST>& s) {
   if (repl_mode_) {
     emit(sr::LoadGlobal{intern_name("print")});

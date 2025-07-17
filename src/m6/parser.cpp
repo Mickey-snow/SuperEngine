@@ -172,6 +172,14 @@ std::shared_ptr<AST> Parser::ParseStatement(bool requireSemi) {
             ScopeStmt(std::move(vars), std::move(locs)));
       }
 
+      case tok::Reserved::_import: {
+        return parseImportStmt(false);
+      }
+
+      case tok::Reserved::_from: {
+        return parseImportStmt(true);
+      }
+
       default:
         --it_;
         break;
@@ -269,6 +277,66 @@ std::shared_ptr<AST> Parser::parseAssignment() {
         AugStmt(lhs, assignmentOp, rhs, LocRange(lhs_begin, lhs_end),
                 op_it->loc_, LocRange(rhs_begin, rhs_end)));
   }
+}
+
+std::shared_ptr<AST> Parser::parseImportStmt(bool from) {
+  auto kwLoc = (it_ - 1)->loc_;
+
+  std::string module;
+  std::string alias;
+  std::vector<std::pair<std::string, std::string>> names;
+
+  if (from) {
+    auto modTok = it_;
+    require<tok::ID>("expected module name");
+    module = modTok->GetIf<tok::ID>()->id;
+    require<tok::Reserved>("expected import", tok::Reserved::_import);
+
+    auto idTok = it_;
+    require<tok::ID>("expected identifier");
+    std::string name = idTok->GetIf<tok::ID>()->id;
+    std::string aliasName;
+    if (it_ != end_ && it_->HoldsAlternative<tok::ID>() &&
+        it_->GetIf<tok::ID>()->id == "as") {
+      ++it_;
+      auto aliasTok = it_;
+      require<tok::ID>("expected alias identifier");
+      aliasName = aliasTok->GetIf<tok::ID>()->id;
+    }
+    names.emplace_back(name, aliasName);
+    while (tryConsume<tok::Operator>(Op::Comma)) {
+      idTok = it_;
+      require<tok::ID>("expected identifier");
+      name = idTok->GetIf<tok::ID>()->id;
+      aliasName.clear();
+      if (it_ != end_ && it_->HoldsAlternative<tok::ID>() &&
+          it_->GetIf<tok::ID>()->id == "as") {
+        ++it_;
+        auto aliasTok = it_;
+        require<tok::ID>("expected alias identifier");
+        aliasName = aliasTok->GetIf<tok::ID>()->id;
+      }
+      names.emplace_back(name, aliasName);
+    }
+  } else {
+    auto modTok = it_;
+    require<tok::ID>("expected module name");
+    module = modTok->GetIf<tok::ID>()->id;
+    if (it_ != end_ && it_->HoldsAlternative<tok::ID>() &&
+        it_->GetIf<tok::ID>()->id == "as") {
+      ++it_;
+      auto aliasTok = it_;
+      require<tok::ID>("expected alias identifier");
+      alias = aliasTok->GetIf<tok::ID>()->id;
+    }
+  }
+  require<tok::Semicol>("expected ';'");
+  ImportStmt is;
+  is.module = module;
+  is.alias = alias;
+  is.names = std::move(names);
+  is.kw_loc = kwLoc;
+  return std::make_shared<AST>(std::move(is));
 }
 
 // -----------------------------------------------------------------------------
