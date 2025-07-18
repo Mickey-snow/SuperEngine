@@ -154,9 +154,6 @@ struct Fiber : public IObject {
 
   std::string Str() const override;
   std::string Desc() const override;
-
-  TempValue Member(std::string_view mem) override;
-  void SetMember(std::string_view mem, Value value) override;
 };
 
 struct List : public IObject {
@@ -204,6 +201,9 @@ struct Module : public IObject {
 
   std::string Str() const override;
   std::string Desc() const override;
+
+  TempValue Member(std::string_view mem) override;
+  void SetMember(std::string_view mem, Value value) override;
 };
 
 struct Function : public IObject {
