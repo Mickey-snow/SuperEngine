@@ -120,8 +120,8 @@ std::string ScopeStmt::DebugString() const {
 std::string ImportStmt::DebugString() const {
   if (names.empty()) {
     if (alias.empty())
-      return "import " + module;
-    return "import " + module + " as " + alias;
+      return "import " + mod;
+    return "import " + mod + " as " + alias;
   }
   std::vector<std::string> parts;
   for (auto const& [n, a] : names) {
@@ -130,7 +130,7 @@ std::string ImportStmt::DebugString() const {
     else
       parts.push_back(n);
   }
-  return "from " + module + " import " + Join(",", parts);
+  return "from " + mod + " import " + Join(",", parts);
 }
 
 // -----------------------------------------------------------------------

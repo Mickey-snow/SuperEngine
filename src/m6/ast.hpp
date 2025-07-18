@@ -304,7 +304,7 @@ struct YieldStmt {
 };
 
 struct ImportStmt {
-  std::string module;
+  std::string mod;
   std::string alias;
   std::vector<std::pair<std::string, std::string>> names;  // name, alias
   SourceLocation kw_loc;

@@ -433,10 +433,10 @@ void CodeGenerator::emit_stmt_node(const YieldStmt& y) {
 
 void CodeGenerator::emit_stmt_node(const ImportStmt& is) {
   emit(sr::LoadGlobal{intern_name("import")});
-  emit_const(is.module);
+  emit_const(is.mod);
   emit(sr::Call{1, 0});
   if (is.names.empty()) {
-    auto name = is.alias.empty() ? is.module : is.alias;
+    auto name = is.alias.empty() ? is.mod : is.alias;
     emit(sr::StoreGlobal{intern_name(name)});
   } else {
     for (auto const& [sym, alias] : is.names) {

@@ -47,7 +47,8 @@ struct Reserved {
     _await,
     _global,
     _import,
-    _from
+    _from,
+    _as
   };
   Type type;
   auto operator<=>(const Reserved& rhs) const = default;
