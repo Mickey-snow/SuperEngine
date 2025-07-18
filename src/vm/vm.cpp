@@ -24,6 +24,7 @@
 
 #include "vm/vm.hpp"
 
+#include "m6/compiler_pipeline.hpp"
 #include "machine/op.hpp"
 #include "utilities/string_utilities.hpp"
 #include "vm/call_frame.hpp"
@@ -35,6 +36,8 @@
 
 #include <algorithm>
 #include <chrono>
+#include <fstream>
+#include <iterator>
 #include <memory>
 #include <stdexcept>
 
@@ -100,6 +103,41 @@ VM VM::Create(std::ostream& stdout, std::istream& stdin, std::ostream& stderr) {
             std::string inp;
             stdin >> inp;
             return Value(std::move(inp));
+          }));
+
+  vm.AddGlobal(
+      "import",
+      std::make_unique<NativeFunction>(
+          "import", [&vm](Fiber& f, std::vector<Value> args,
+                          std::unordered_map<std::string, Value> /*kwargs*/) {
+            if (args.size() != 1)
+              throw std::runtime_error("import() expects module name");
+            std::string modstr = args[0].Str();
+            if (auto it = vm.module_cache_.find(modstr);
+                it != vm.module_cache_.end())
+              return Value(it->second);
+
+            m6::CompilerPipeline pipe(vm.gc_, false);
+            std::ifstream file(modstr + ".seri");
+            if (!file.is_open())
+              throw std::runtime_error("module not found: " + modstr);
+            std::string src((std::istreambuf_iterator<char>(file)),
+                            std::istreambuf_iterator<char>());
+            auto sb = m6::SourceBuffer::Create(std::move(src), modstr);
+            pipe.compile(sb);
+            if (!pipe.Ok())
+              throw std::runtime_error(pipe.FormatErrors());
+            serilang::Code* chunk = pipe.Get();
+
+            Module* mod = vm.gc_.Allocate<Module>();
+            mod->name = modstr;
+            VM mvm = VM::Create();
+            mvm.module_cache_ = vm.module_cache_;
+            mvm.globals_ = mod->globals;
+            mvm.Evaluate(chunk);
+            mod->globals = mvm.globals_;
+            vm.module_cache_[modstr] = mod;
+            return Value(mod);
           }));
 
   return vm;

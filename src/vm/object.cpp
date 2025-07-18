@@ -172,6 +172,28 @@ void Dict::MarkRoots(GCVisitor& visitor) {
 }
 
 // -----------------------------------------------------------------------
+void Module::MarkRoots(GCVisitor& visitor) {
+  for (auto& [k, v] : globals)
+    visitor.MarkSub(v);
+}
+
+std::string Module::Str() const { return "<module " + name + ">"; }
+
+std::string Module::Desc() const { return "<module " + name + ">"; }
+
+TempValue Module::Member(std::string_view mem) {
+  auto it = globals.find(std::string(mem));
+  if (it == globals.end())
+    throw std::runtime_error("module '" + name + "' has no member '" +
+                             std::string(mem) + "'");
+  return it->second;
+}
+
+void Module::SetMember(std::string_view mem, Value value) {
+  globals[std::string(mem)] = value;
+}
+
+// -----------------------------------------------------------------------
 Function::Function(Code* in_chunk, uint32_t in_entry, uint32_t in_nparam)
     : chunk(in_chunk),
       entry(in_entry),

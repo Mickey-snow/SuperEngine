@@ -159,6 +159,16 @@ TEST_F(TokenizerTest, Coroutine) {
             "12,17>");
 }
 
+TEST_F(TokenizerTest, Import) {
+  const std::string input = "from import as";
+  tokens.clear();
+  tokenizer.Parse(SourceBuffer::Create(input, "<import test>"));
+
+  EXPECT_EQ(
+      Accumulate(tokens),
+      "<Reserved(from), 0,4> <Reserved(import), 5,11> <Reserved(as), 12,14>");
+}
+
 TEST_F(TokenizerTest, UnclosedString) {
   const std::string input = "\"hello";
   tokenizer.Parse(SourceBuffer::Create(input, "<test>"));

@@ -25,6 +25,7 @@
 #pragma once
 
 #include "vm/gc.hpp"
+#include "vm/object.hpp"
 #include "vm/value.hpp"
 
 #include <iostream>
@@ -78,6 +79,7 @@ class VM {
   Value last_;  // last fiber's return value
 
   std::unordered_map<std::string, Value> globals_;
+  std::unordered_map<std::string, Module*> module_cache_;
 
  private:
   //----------------------------------------------------------------

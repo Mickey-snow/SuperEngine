@@ -188,6 +188,24 @@ struct Dict : public IObject {
   std::string Desc() const override;  // “<dict{2}>”
 };
 
+struct Module : public IObject {
+  static constexpr inline ObjType objtype = ObjType::Module;
+
+  std::string name;
+  std::unordered_map<std::string, Value> globals;
+
+  constexpr ObjType Type() const noexcept final { return objtype; }
+  constexpr size_t Size() const noexcept final { return sizeof(*this); }
+
+  void MarkRoots(GCVisitor& visitor) override;
+
+  std::string Str() const override;
+  std::string Desc() const override;
+
+  TempValue Member(std::string_view mem) override;
+  void SetMember(std::string_view mem, Value value) override;
+};
+
 struct Function : public IObject {
   static constexpr inline ObjType objtype = ObjType::Function;
 

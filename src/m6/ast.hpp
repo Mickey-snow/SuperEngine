@@ -303,6 +303,15 @@ struct YieldStmt {
   std::string DebugString() const;
 };
 
+struct ImportStmt {
+  std::string mod;
+  std::string alias;
+  std::vector<std::pair<std::string, std::string>> names;  // name, alias
+  SourceLocation kw_loc;
+
+  std::string DebugString() const;
+};
+
 struct ScopeStmt {
   std::vector<std::string> vars;
   std::vector<SourceLocation> locs;
@@ -320,6 +329,7 @@ using stmt_variant_t = std::variant<AssignStmt,
                                     ClassDecl,
                                     ReturnStmt,
                                     YieldStmt,
+                                    ImportStmt,
                                     ScopeStmt,
                                     std::shared_ptr<ExprAST>>;
 

@@ -135,6 +135,7 @@ class CodeGenerator {
   void emit_stmt_node(const ClassDecl& cd);
   void emit_stmt_node(const ReturnStmt& r);
   void emit_stmt_node(const YieldStmt& y);
+  void emit_stmt_node(const ImportStmt& is);
   void emit_stmt_node(const std::shared_ptr<ExprAST>& s);
 
   void emit_function(const FuncDecl& fn);

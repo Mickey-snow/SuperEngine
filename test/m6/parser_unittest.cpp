@@ -898,4 +898,19 @@ scope a,b
 )");
 }
 
+  TEST_F(StmtParserTest, Import){
+  expectStmtAST(TokenArray("import a;"),
+                R"(
+import a
+)");
+  expectStmtAST(TokenArray("import a as b;"),
+                R"(
+import a as b
+)");
+  expectStmtAST(TokenArray("from a import b as c, d as e, f as g;"),
+                R"(
+from a import b as c,d as e,f as g
+)");
+  }
+
 }  // namespace m6test

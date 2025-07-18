@@ -127,6 +127,8 @@ class Parser {
   //  Recursive‑descent productions (all member functions)
   //------------------------------------------------------------------
   std::shared_ptr<AST> parseAssignment();
+  std::shared_ptr<AST> parseImportStmt();
+  std::shared_ptr<AST> parseFromImportStmt();
   std::shared_ptr<AST> parseFuncDecl(bool alreadyConsumedFn = false);
   std::shared_ptr<AST> parseClassDecl();
 
