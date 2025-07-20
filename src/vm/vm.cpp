@@ -125,8 +125,9 @@ VM VM::Create(std::shared_ptr<GarbageCollector> gc,
                      it != vm.module_cache_.end())
                    return Value(it->second);
 
-                 VM mvm = VM::Create(nullptr, stdout, stdin, stderr);
-                 mvm.globals_ = vm.gc_->Allocate<Dict>();
+                 VM mvm = VM::Create(vm.gc_, stdout, stdin, stderr);
+                 // mvm.globals_ = vm.gc_->Allocate<Dict>();
+                 mvm.gc_threshold_ = 0;
 
                  m6::CompilerPipeline pipe(mvm.gc_, false);
                  std::ifstream file(modstr + ".sr");
@@ -134,6 +135,7 @@ VM VM::Create(std::shared_ptr<GarbageCollector> gc,
                    throw std::runtime_error("module not found: " + modstr);
                  std::string src((std::istreambuf_iterator<char>(file)),
                                  std::istreambuf_iterator<char>());
+                 file.close();
                  auto sb = m6::SourceBuffer::Create(std::move(src), modstr);
                  pipe.compile(sb);
                  if (!pipe.Ok())
@@ -141,7 +143,7 @@ VM VM::Create(std::shared_ptr<GarbageCollector> gc,
                  serilang::Code* chunk = pipe.Get();
 
                  Module* mod =
-                     vm.gc_->Allocate<Module>(std::move(modstr), mvm.globals_);
+                     vm.gc_->Allocate<Module>(modstr, mvm.globals_);
                  vm.module_cache_[modstr] = mod;
                  mvm.module_cache_ = vm.module_cache_;
                  mvm.Evaluate(chunk);

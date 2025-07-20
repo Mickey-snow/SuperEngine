@@ -213,10 +213,17 @@ std::string Module::Str() const { return "<module " + name + ">"; }
 
 std::string Module::Desc() const { return "<module " + name + ">"; }
 
-TempValue Module::Member(std::string_view mem) { return globals->Member(mem); }
+TempValue Module::Member(std::string_view mem) {
+  std::string mem_str(mem);
+  auto it = globals->map.find(mem_str);
+  if (it == globals->map.cend())
+    throw std::runtime_error("module '" + name + "' has no attribute '" +
+                             mem_str);
+  return it->second;
+}
 
 void Module::SetMember(std::string_view mem, Value value) {
-  globals->SetMember(mem, std::move(value));
+  globals->map[std::string(mem)] = std::move(value);
 }
 
 // -----------------------------------------------------------------------

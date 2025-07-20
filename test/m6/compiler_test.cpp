@@ -374,24 +374,26 @@ TEST_F(CompilerTest, Import) {
     ~Source() { fs::remove(path); }
   };
 
-  GTEST_SKIP() << "fixme!";
-
   // basic imports
   {
     Source srcx("modulex", R"(
 val = 123;
+fn func(){ return val; }
 )");
 
     auto res = Run(std::format(R"(
 import {0};
 from {0} import val as v;
 
+val = 999;
+
 print({0}.val);
+print({0}.func());
 print(v);
 )",
                                srcx.modname));
 
-    EXPECT_EQ(res, "123\n123\n");
+    EXPECT_EQ(res, "123\n123\n123\n");
   }
 
   // name collisions
@@ -415,27 +417,27 @@ print({0});
   }
 
   // circular import
-  //   {
-  //     Source srca("circ_a", R"(
-  // import circ_b;
-  // fn func_a(){ return "A"; }
-  // fn call_b(){ return circ_b.func_b(); }
-  // )");
-  //     Source srcb("circ_b", R"(
-  // import circ_a;
-  // fn func_b(){ return "B"; }
-  // fn call_a(){ return circ_a.func_a(); }
-  // )");
+  {
+    Source srca("circ_a", R"(
+import circ_b;
+fn func_a(){ return "A"; }
+fn call_b(){ return circ_b.func_b(); }
+)");
+    Source srcb("circ_b", R"(
+import circ_a;
+fn func_b(){ return "B"; }
+fn call_a(){ return circ_a.func_a(); }
+)");
 
-  //     auto res = Run(R"(
-  // import circ_a as a;
-  // import circ_b as b;
-  // print(a.call_b());
-  // print(b.call_a());
-  // )");
+    auto res = Run(R"(
+import circ_a as a;
+import circ_b as b;
+print(a.call_b());
+print(b.call_a());
+)");
 
-  //     EXPECT_EQ(res, "456\n");
-  //   }
+    EXPECT_EQ(res, "B\nA\n");
+  }
 }
 
 }  // namespace m6test
