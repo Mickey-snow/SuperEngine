@@ -283,8 +283,12 @@ std::shared_ptr<AST> Parser::parseImportStmt() {
   std::string alias;
 
   auto modTok = it_;
-  require<tok::ID>("expected module name");
+  if (!require<tok::ID>("expected module name")) {
+    Synchronize();
+    return nullptr;
+  }
   mod = modTok->GetIf<tok::ID>()->id;
+
   if (tryConsume<tok::Reserved>(tok::Reserved::_as)) {
     auto aliasTok = it_;
     require<tok::ID>("expected alias identifier");
@@ -304,12 +308,18 @@ std::shared_ptr<AST> Parser::parseFromImportStmt() {
   std::vector<std::pair<std::string, std::string>> names;
 
   auto modTok = it_;
-  require<tok::ID>("expected module name");
+  if (!require<tok::ID>("expected module name")) {
+    Synchronize();
+    return nullptr;
+  }
   mod = modTok->GetIf<tok::ID>()->id;
   require<tok::Reserved>("expected import", tok::Reserved::_import);
 
   auto idTok = it_;
-  require<tok::ID>("expected identifier");
+  if (!require<tok::ID>("expected identifier")) {
+    Synchronize();
+    return nullptr;
+  }
   std::string name = idTok->GetIf<tok::ID>()->id;
   std::string aliasName;
   if (tryConsume<tok::Reserved>(tok::Reserved::_as)) {

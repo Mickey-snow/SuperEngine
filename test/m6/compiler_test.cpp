@@ -32,6 +32,9 @@
 #include "vm/value.hpp"
 #include "vm/vm.hpp"
 
+#include <filesystem>
+#include <format>
+#include <fstream>
 #include <iostream>
 #include <regex>
 #include <sstream>
@@ -40,32 +43,33 @@ namespace m6test {
 
 using namespace m6;
 using namespace serilang;
-
-// Holds everything we care about after one script run
-struct ExecutionResult {
-  serilang::Value last;  ///< value left on the VM stack (result)
-  std::string stdout;    ///< text produced on std::cout
-  std::string stderr;    ///< text produced on std::cerr
-  std::string disasm;    ///< human readable disassembly
-
-  bool operator==(std::string_view rhs) const {
-    return stderr.empty() && stdout == rhs;
-  }
-
-  friend std::ostream& operator<<(std::ostream& os,
-                                  const ExecutionResult& res) {
-    if (!res.stderr.empty())
-      os << res.stderr;
-    os << "\nDisassembly:\n" << res.disasm;
-    return os;
-  }
-};
+namespace fs = std::filesystem;
 
 class CompilerTest : public ::testing::Test {
  public:
+  // Holds everything we care about after one script run
+  struct ExecutionResult {
+    serilang::Value last;  ///< value left on the VM stack (result)
+    std::string stdout;    ///< text produced on std::cout
+    std::string stderr;    ///< text produced on std::cerr
+    std::string disasm;    ///< human readable disassembly
+
+    bool operator==(std::string_view rhs) const {
+      return stderr.empty() && stdout == rhs;
+    }
+
+    friend std::ostream& operator<<(std::ostream& os,
+                                    const ExecutionResult& res) {
+      if (!res.stderr.empty())
+        os << "\nErrors:\n" << res.stderr;
+      os << "\nDisassembly:\n" << res.disasm;
+      return os;
+    }
+  };
+
   // Compile + run `source`.
   [[nodiscard]] ExecutionResult Run(std::string source) {
-    std::stringstream inBuf /*empty*/, outBuf, errBuf;
+    std::stringstream outBuf, errBuf;
     ExecutionResult r;
 
     // ── compile ────────────────────────────────────────────────────
@@ -98,6 +102,8 @@ class CompilerTest : public ::testing::Test {
     r.stderr += errBuf.str();
     return r;
   }
+
+  std::stringstream inBuf;
 };
 
 TEST_F(CompilerTest, ConstantArithmetic) {
@@ -340,6 +346,60 @@ print(await spawn deep(1000));
     ASSERT_TRUE(res.stderr.empty()) << res.stderr;
     EXPECT_EQ(res.stdout, "500500\n") << "\nDisassembly:\n" << res.disasm;
   }
+}
+
+TEST_F(CompilerTest, Import) {
+  struct Source {
+    fs::path path;
+    std::string modname;
+    Source(fs::path p, std::string src) : path(p), modname(p.string()) {
+      if (path.extension() != ".sr")
+        path.replace_filename(path.string() + ".sr");
+
+      std::ofstream ofs(path.string());
+      ofs << std::move(src);
+    }
+    ~Source() { fs::remove(path); }
+  };
+
+  // basic imports
+  {
+    Source srcx("modulex", R"(
+val = 123;
+)");
+
+    auto res = Run(std::format(R"(
+import {0};
+from {0} import val as v;
+
+print({0}.val);
+print(v);
+)",
+                               srcx.modname));
+
+    EXPECT_EQ(res, "123\n123\n");
+  }
+
+  // name collisions
+  {
+    Source srcx("modulex", R"(
+val = 123;
+)");
+    Source srcy("moduley", R"(
+modulex = "456";
+)");
+
+    auto res = Run(std::format(R"(
+import {0};
+from {1} import {0};
+
+print({0});
+)",
+                               srcx.modname, srcy.modname));
+
+    EXPECT_EQ(res, "456\n");
+  }
+
 }
 
 }  // namespace m6test

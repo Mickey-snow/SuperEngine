@@ -118,7 +118,7 @@ VM VM::Create(std::ostream& stdout, std::istream& stdin, std::ostream& stderr) {
               return Value(it->second);
 
             m6::CompilerPipeline pipe(vm.gc_, false);
-            std::ifstream file(modstr + ".seri");
+            std::ifstream file(modstr + ".sr");
             if (!file.is_open())
               throw std::runtime_error("module not found: " + modstr);
             std::string src((std::istreambuf_iterator<char>(file)),
