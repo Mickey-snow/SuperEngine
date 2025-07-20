@@ -53,97 +53,103 @@ VM VM::Create(std::shared_ptr<GarbageCollector> gc,
     gc = std::make_shared<GarbageCollector>();
   VM vm(gc);
 
-  // add builtins
-  vm.AddGlobal(
-      "time",
-      std::make_unique<NativeFunction>(
-          "time", [](Fiber& f, std::vector<Value> args,
-                     std::unordered_map<std::string, Value> /*kwargs*/) {
-            if (!args.empty())
-              throw std::runtime_error("time() takes no arguments");
-            using namespace std::chrono;
-            auto now = system_clock::now().time_since_epoch();
-            auto secs = duration_cast<seconds>(now).count();
-            return Value(static_cast<int>(secs));
-          }));
+  Dict* builtins =
+      gc->Allocate<Dict>(std::unordered_map<std::string, Value>{
+          {"time", Value(gc->Allocate<NativeFunction>(
+                       "time",
+                       [](Fiber& f, std::vector<Value> args,
+                          std::unordered_map<std::string, Value> /*kwargs*/) {
+                         if (!args.empty())
+                           throw std::runtime_error(
+                               "time() takes no arguments");
+                         using namespace std::chrono;
+                         auto now = system_clock::now().time_since_epoch();
+                         auto secs = duration_cast<seconds>(now).count();
+                         return Value(static_cast<int>(secs));
+                       }))},
 
-  vm.AddGlobal(
-      "print",
-      std::make_unique<NativeFunction>(
-          "print", [&stdout](Fiber& f, std::vector<Value> args,
-                             std::unordered_map<std::string, Value> kwargs) {
-            std::string sep = " ";
-            if (auto it = kwargs.find("sep"); it != kwargs.end())
-              sep = it->second.Str();
+          {"print",
+           Value(gc->Allocate<NativeFunction>(
+               "print",
+               [&stdout](Fiber& f, std::vector<Value> args,
+                         std::unordered_map<std::string, Value> kwargs) {
+                 std::string sep = " ";
+                 if (auto it = kwargs.find("sep"); it != kwargs.end())
+                   sep = it->second.Str();
 
-            std::string end = "\n";
-            if (auto it = kwargs.find("end"); it != kwargs.end())
-              end = it->second.Str();
+                 std::string end = "\n";
+                 if (auto it = kwargs.find("end"); it != kwargs.end())
+                   end = it->second.Str();
 
-            bool do_flush = false;
-            if (auto it = kwargs.find("flush"); it != kwargs.end())
-              do_flush = it->second.IsTruthy();
+                 bool do_flush = false;
+                 if (auto it = kwargs.find("flush"); it != kwargs.end())
+                   do_flush = it->second.IsTruthy();
 
-            bool firstPrinted = false;
-            for (auto const& v : args) {
-              if (firstPrinted) {
-                stdout << sep;
-              }
-              stdout << v.Str();
-              firstPrinted = true;
-            }
+                 bool firstPrinted = false;
+                 for (auto const& v : args) {
+                   if (firstPrinted) {
+                     stdout << sep;
+                   }
+                   stdout << v.Str();
+                   firstPrinted = true;
+                 }
 
-            stdout << end;
+                 stdout << end;
 
-            if (do_flush)
-              stdout.flush();
+                 if (do_flush)
+                   stdout.flush();
 
-            return nil;
-          }));
+                 return nil;
+               }))},
 
-  vm.AddGlobal(
-      "input",
-      std::make_unique<NativeFunction>(
-          "input", [&stdin](Fiber& f, std::vector<Value> args,
-                            std::unordered_map<std::string, Value> kwargs) {
-            std::string inp;
-            stdin >> inp;
-            return Value(std::move(inp));
-          }));
+          {"input",
+           Value(gc->Allocate<NativeFunction>(
+               "input",
+               [&stdin](Fiber& f, std::vector<Value> args,
+                        std::unordered_map<std::string, Value> kwargs) {
+                 std::string inp;
+                 stdin >> inp;
+                 return Value(std::move(inp));
+               }))},
 
-  vm.AddGlobal(
-      "import",
-      std::make_unique<NativeFunction>(
-          "import", [&](Fiber& f, std::vector<Value> args,
-                        std::unordered_map<std::string, Value> /*kwargs*/) {
-            if (args.size() != 1)
-              throw std::runtime_error("import() expects module name");
-            std::string modstr = args[0].Str();
-            if (auto it = vm.module_cache_.find(modstr);
-                it != vm.module_cache_.end())
-              return Value(it->second);
+          {"import",
+           Value(gc->Allocate<NativeFunction>(
+               "import",
+               [&vm, &stdin, &stdout, &stderr](
+                   Fiber& f, std::vector<Value> args,
+                   std::unordered_map<std::string, Value> /*kwargs*/) {
+                 if (args.size() != 1)
+                   throw std::runtime_error("import() expects module name");
+                 std::string modstr = args[0].Str();
+                 if (auto it = vm.module_cache_.find(modstr);
+                     it != vm.module_cache_.end())
+                   return Value(it->second);
 
-            m6::CompilerPipeline pipe(gc, false);
-            std::ifstream file(modstr + ".sr");
-            if (!file.is_open())
-              throw std::runtime_error("module not found: " + modstr);
-            std::string src((std::istreambuf_iterator<char>(file)),
-                            std::istreambuf_iterator<char>());
-            auto sb = m6::SourceBuffer::Create(std::move(src), modstr);
-            pipe.compile(sb);
-            if (!pipe.Ok())
-              throw std::runtime_error(pipe.FormatErrors());
-            serilang::Code* chunk = pipe.Get();
+                 VM mvm = VM::Create(nullptr, stdout, stdin, stderr);
+                 mvm.globals_ = vm.gc_->Allocate<Dict>();
 
-            VM mvm = VM::Create(gc, stdout, stdin, stderr);
-            Module* mod =
-                vm.gc_->Allocate<Module>(std::move(modstr), mvm.globals_);
-            vm.module_cache_[modstr] = mod;
-            mvm.module_cache_ = vm.module_cache_;
-            mvm.Evaluate(chunk);
+                 m6::CompilerPipeline pipe(mvm.gc_, false);
+                 std::ifstream file(modstr + ".sr");
+                 if (!file.is_open())
+                   throw std::runtime_error("module not found: " + modstr);
+                 std::string src((std::istreambuf_iterator<char>(file)),
+                                 std::istreambuf_iterator<char>());
+                 auto sb = m6::SourceBuffer::Create(std::move(src), modstr);
+                 pipe.compile(sb);
+                 if (!pipe.Ok())
+                   throw std::runtime_error(pipe.FormatErrors());
+                 serilang::Code* chunk = pipe.Get();
 
-            return Value(mod);
-          }));
+                 Module* mod =
+                     vm.gc_->Allocate<Module>(std::move(modstr), mvm.globals_);
+                 vm.module_cache_[modstr] = mod;
+                 mvm.module_cache_ = vm.module_cache_;
+                 mvm.Evaluate(chunk);
+
+                 return Value(mod);
+               }))}});
+
+  vm.builtins_ = builtins;
 
   return vm;
 }
@@ -170,10 +176,12 @@ Fiber* VM::AddFiber(Code* chunk) {
 }
 
 void VM::CollectGarbage() {
+  gc_->UnmarkAll();
   GCVisitor collector(*gc_);
   collector.MarkSub(last_);
   collector.MarkSub(main_fiber_);
   collector.MarkSub(globals_);
+  collector.MarkSub(builtins_);
   for (auto& it : fibres_)
     collector.MarkSub(it);
   for (auto& [name, mod] : module_cache_)
@@ -182,10 +190,6 @@ void VM::CollectGarbage() {
 }
 
 Value VM::AddTrack(TempValue&& t) { return gc_->TrackValue(std::move(t)); }
-
-void VM::AddGlobal(std::string key, TempValue&& v) {
-  globals_->map.emplace(std::move(key), AddTrack(std::move(v)));
-}
 
 Value VM::Run() {
   bool active = true;
@@ -211,7 +215,7 @@ Value VM::Run() {
     });
 
     // run garbage collector
-    if (gc_->AllocatedBytes() >= gc_threshold_) {
+    if (gc_threshold_ > 0 && gc_->AllocatedBytes() >= gc_threshold_) {
       CollectGarbage();
       gc_threshold_ *= 2;
     }
@@ -362,6 +366,8 @@ void VM::ExecuteFiber(Fiber* fib) {
         Dict* d = GetNamespace(*fib);
         if (d == nullptr || !d->map.contains(name))
           d = globals_;
+        if (d == nullptr || !d->map.contains(name))
+          d = builtins_;
         auto it = d->map.find(name);
         if (it == d->map.cend())
           RuntimeError("NameError: '" + name + "' is not defined");
@@ -542,6 +548,25 @@ void VM::ExecuteFiber(Fiber* fib) {
         auto name =
             chunk->const_pool[ins.name_index].template Get<std::string>();
         receiver.SetMember(name, std::move(val));
+      } break;
+
+      case OpCode::GetItem: {
+        const auto ins = chunk->Read<serilang::GetItem>(ip);
+        ip += sizeof(ins);
+
+        Value index = pop(fib->stack);
+        Value receiver = pop(fib->stack);
+        TempValue result = receiver.Item(index);
+        push(fib->stack, gc_->TrackValue(std::move(result)));
+      } break;
+      case OpCode::SetItem: {
+        const auto ins = chunk->Read<serilang::SetItem>(ip);
+        ip += sizeof(ins);
+
+        Value val = pop(fib->stack);
+        Value index = pop(fib->stack);
+        Value receiver = pop(fib->stack);
+        receiver.SetItem(index, std::move(val));
       } break;
 
       //------------------------------------------------------------------

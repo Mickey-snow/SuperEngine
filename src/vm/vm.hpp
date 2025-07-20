@@ -65,9 +65,6 @@ class VM {
   // Let the garbage collector track a Value allocated elsewhere
   Value AddTrack(TempValue&& t);
 
-  // For adding built-in as global
-  void AddGlobal(std::string key, TempValue&& v);
-
  public:
   //----------------------------------------------------------------
   // Public VM state
@@ -78,7 +75,7 @@ class VM {
   std::vector<Fiber*> fibres_;
   Value last_;  // last fiber's return value
 
-  Dict* globals_;
+  Dict *globals_, *builtins_;
   std::unordered_map<std::string, Module*> module_cache_;
 
  private:

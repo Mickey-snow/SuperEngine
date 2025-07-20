@@ -423,23 +423,6 @@ void Value::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
       val_);
 }
 
-TempValue Value::Item(const Value& idx) {
-  return std::visit(
-      [&](auto& x) -> TempValue {
-        using T = std::decay_t<decltype(x)>;
-
-        if constexpr (false)
-          ;
-
-        else if constexpr (std::same_as<T, IObject*>)
-          return x->Item(idx);
-
-        throw std::runtime_error('\'' + Desc() +
-                                 "' object does not support item assignment.");
-      },
-      val_);
-}
-
 TempValue Value::Member(std::string_view mem) {
   return std::visit(
       [&](auto& x) -> TempValue {
@@ -472,6 +455,42 @@ void Value::SetMember(std::string_view mem, Value value) {
         else
           throw std::runtime_error(
               '\'' + Desc() + "' object does not support member assignment.");
+      },
+      val_);
+}
+
+TempValue Value::Item(Value& idx) {
+  return std::visit(
+      [&](auto& x) -> TempValue {
+        using T = std::decay_t<decltype(x)>;
+
+        if constexpr (false)
+          ;
+
+        else if constexpr (std::same_as<T, IObject*>)
+          return x->Item(idx);
+
+        else
+          throw std::runtime_error('\'' + Desc() + "' object has no item '" +
+                                   idx.Str() + '\'');
+      },
+      val_);
+}
+
+void Value::SetItem(Value& idx, Value value) {
+  std::visit(
+      [&](auto& x) {
+        using T = std::decay_t<decltype(x)>;
+
+        if constexpr (false)
+          ;
+
+        else if constexpr (std::same_as<T, IObject*>)
+          x->SetItem(idx, std::move(value));
+
+        else
+          throw std::runtime_error(
+              '\'' + Desc() + "' object does not support item assignment.");
       },
       val_);
 }

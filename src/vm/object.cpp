@@ -150,6 +150,22 @@ void List::MarkRoots(GCVisitor& visitor) {
     visitor.MarkSub(it);
 }
 
+TempValue List::Item(Value& idx) {
+  auto* index = idx.Get_if<int>();
+  if (!index)
+    throw std::runtime_error("list index must be integer, but got: " +
+                             idx.Desc());
+  return items[*index];
+}
+
+void List::SetItem(Value& idx, Value val) {
+  auto* index = idx.Get_if<int>();
+  if (!index)
+    throw std::runtime_error("list index must be integer, but got: " +
+                             idx.Desc());
+  items[*index] = std::move(val);
+}
+
 // -----------------------------------------------------------------------
 std::string Dict::Str() const {
   std::string repr;
@@ -169,6 +185,22 @@ std::string Dict::Desc() const {
 void Dict::MarkRoots(GCVisitor& visitor) {
   for (auto& [k, it] : map)
     visitor.MarkSub(it);
+}
+
+TempValue Dict ::Item(Value& idx) {
+  auto* index = idx.Get_if<std::string>();
+  if (!index)
+    throw std::runtime_error("dictionary index must be string, but got: " +
+                             idx.Desc());
+  return map[*index];
+}
+
+void Dict ::SetItem(Value& idx, Value val) {
+  auto* index = idx.Get_if<std::string>();
+  if (!index)
+    throw std::runtime_error("dictionary index must be string, but got: " +
+                             idx.Desc());
+  map[*index] = std::move(val);
 }
 
 // -----------------------------------------------------------------------

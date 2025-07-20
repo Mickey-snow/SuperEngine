@@ -170,6 +170,9 @@ struct List : public IObject {
 
   std::string Str() const override;   // “[1, 2, 3]”
   std::string Desc() const override;  // “<list[3]>”
+
+  TempValue Item(Value& idx) override;
+  void SetItem(Value& idx, Value val) override;
 };
 
 struct Dict : public IObject {
@@ -186,6 +189,9 @@ struct Dict : public IObject {
 
   std::string Str() const override;   // “{a: 1, b: 2}”
   std::string Desc() const override;  // “<dict{2}>”
+
+  TempValue Item(Value& idx) override;
+  void SetItem(Value& idx, Value val) override;
 };
 
 struct Module : public IObject {

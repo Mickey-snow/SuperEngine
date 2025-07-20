@@ -62,6 +62,7 @@ class CompilerTest : public ::testing::Test {
                                     const ExecutionResult& res) {
       if (!res.stderr.empty())
         os << "\nErrors:\n" << res.stderr;
+      os << "\nOutput:\n" << res.stdout;
       os << "\nDisassembly:\n" << res.disasm;
       return os;
     }
@@ -126,15 +127,25 @@ TEST_F(CompilerTest, MultipleStatements) {
 }
 
 TEST_F(CompilerTest, List) {
-  auto res = Run("x=1; a=[x,x+1,x*3]; print(a);");
-  ASSERT_TRUE(res.stderr.empty()) << res.stderr;
-  EXPECT_EQ(res.stdout, "[1,2,3]\n") << "\nDisassembly:\n" << res.disasm;
+  {
+    auto res = Run("x=1; a=[x,x+1,x*3]; print(a);");
+    EXPECT_EQ(res, "[1,2,3]\n");
+  }
+  {
+    auto res = Run("a=[1,2]; a[0]=2; a[1]=3; print(a);");
+    EXPECT_EQ(res, "[2,3]\n");
+  }
 }
 
 TEST_F(CompilerTest, Dict) {
-  auto res = Run(R"( x=1; a={"1":x,"2":x+1,"3":1+x*2}; print(a); )");
-  ASSERT_TRUE(res.stderr.empty()) << res.stderr;
-  EXPECT_EQ(res.stdout, "{2:2,3:3,1:1}\n") << "\nDisassembly:\n" << res.disasm;
+  {
+    auto res = Run(R"( x=1; a={"1":x,"2":x+1,"3":1+x*2}; print(a); )");
+    EXPECT_EQ(res, "{2:2,3:3,1:1}\n");
+  }
+  {
+    auto res = Run(R"( a={"1":1}; a["1"]+=1; print(a); )");
+    EXPECT_EQ(res, "{1:2}\n");
+  }
 }
 
 TEST_F(CompilerTest, If) {
