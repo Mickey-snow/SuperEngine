@@ -25,6 +25,7 @@
 #include "vm/vm.hpp"
 
 #include "m6/compiler_pipeline.hpp"
+
 #include "machine/op.hpp"
 #include "utilities/string_utilities.hpp"
 #include "vm/call_frame.hpp"
@@ -44,8 +45,13 @@
 namespace serilang {
 
 // static, factory method
-VM VM::Create(std::ostream& stdout, std::istream& stdin, std::ostream& stderr) {
-  VM vm;
+VM VM::Create(std::shared_ptr<GarbageCollector> gc,
+              std::ostream& stdout,
+              std::istream& stdin,
+              std::ostream& stderr) {
+  if (!gc)
+    gc = std::make_shared<GarbageCollector>();
+  VM vm(gc);
 
   // add builtins
   vm.AddGlobal(
@@ -108,8 +114,8 @@ VM VM::Create(std::ostream& stdout, std::istream& stdin, std::ostream& stderr) {
   vm.AddGlobal(
       "import",
       std::make_unique<NativeFunction>(
-          "import", [&vm](Fiber& f, std::vector<Value> args,
-                          std::unordered_map<std::string, Value> /*kwargs*/) {
+          "import", [&](Fiber& f, std::vector<Value> args,
+                        std::unordered_map<std::string, Value> /*kwargs*/) {
             if (args.size() != 1)
               throw std::runtime_error("import() expects module name");
             std::string modstr = args[0].Str();
@@ -117,7 +123,7 @@ VM VM::Create(std::ostream& stdout, std::istream& stdin, std::ostream& stderr) {
                 it != vm.module_cache_.end())
               return Value(it->second);
 
-            m6::CompilerPipeline pipe(vm.gc_, false);
+            m6::CompilerPipeline pipe(gc, false);
             std::ifstream file(modstr + ".sr");
             if (!file.is_open())
               throw std::runtime_error("module not found: " + modstr);
@@ -129,14 +135,13 @@ VM VM::Create(std::ostream& stdout, std::istream& stdin, std::ostream& stderr) {
               throw std::runtime_error(pipe.FormatErrors());
             serilang::Code* chunk = pipe.Get();
 
-            Module* mod = vm.gc_.Allocate<Module>();
-            mod->name = modstr;
-            VM mvm = VM::Create();
-            mvm.module_cache_ = vm.module_cache_;
-            mvm.globals_ = mod->globals;
-            mvm.Evaluate(chunk);
-            mod->globals = mvm.globals_;
+            VM mvm = VM::Create(gc, stdout, stdin, stderr);
+            Module* mod =
+                vm.gc_->Allocate<Module>(std::move(modstr), mvm.globals_);
             vm.module_cache_[modstr] = mod;
+            mvm.module_cache_ = vm.module_cache_;
+            mvm.Evaluate(chunk);
+
             return Value(mod);
           }));
 
@@ -145,6 +150,8 @@ VM VM::Create(std::ostream& stdout, std::istream& stdin, std::ostream& stderr) {
 
 // -----------------------------------------------------------------------
 // class VM
+VM::VM(std::shared_ptr<GarbageCollector> gc)
+    : gc_(gc), globals_(gc_->Allocate<Dict>()) {}
 
 Value VM::Evaluate(Code* chunk) {
   Fiber* f = AddFiber(chunk);
@@ -153,8 +160,8 @@ Value VM::Evaluate(Code* chunk) {
 }
 
 Fiber* VM::AddFiber(Code* chunk) {
-  Function* fn = gc_.Allocate<Function>(chunk);
-  Fiber* fiber = gc_.Allocate<Fiber>();
+  Function* fn = gc_->Allocate<Function>(chunk);
+  Fiber* fiber = gc_->Allocate<Fiber>();
   push(fiber->stack, Value(fn));
   fn->Call(*this, *fiber, 0, 0);
   fibres_.push_back(fiber);
@@ -163,20 +170,21 @@ Fiber* VM::AddFiber(Code* chunk) {
 }
 
 void VM::CollectGarbage() {
-  GCVisitor collector(gc_);
+  GCVisitor collector(*gc_);
   collector.MarkSub(last_);
   collector.MarkSub(main_fiber_);
+  collector.MarkSub(globals_);
   for (auto& it : fibres_)
     collector.MarkSub(it);
-  for (auto& [k, it] : globals_)
-    collector.MarkSub(it);
-  gc_.Sweep();
+  for (auto& [name, mod] : module_cache_)
+    collector.MarkSub(mod);
+  gc_->Sweep();
 }
 
-Value VM::AddTrack(TempValue&& t) { return gc_.TrackValue(std::move(t)); }
+Value VM::AddTrack(TempValue&& t) { return gc_->TrackValue(std::move(t)); }
 
 void VM::AddGlobal(std::string key, TempValue&& v) {
-  globals_.emplace(std::move(key), AddTrack(std::move(v)));
+  globals_->map.emplace(std::move(key), AddTrack(std::move(v)));
 }
 
 Value VM::Run() {
@@ -203,7 +211,7 @@ Value VM::Run() {
     });
 
     // run garbage collector
-    if (gc_.AllocatedBytes() >= gc_threshold_) {
+    if (gc_->AllocatedBytes() >= gc_threshold_) {
       CollectGarbage();
       gc_threshold_ *= 2;
     }
@@ -224,6 +232,15 @@ Value VM::pop(std::vector<Value>& stack) {
   auto v = std::move(stack.back());
   stack.pop_back();
   return v;
+}
+
+Dict* VM::GetNamespace(Fiber& f) {
+  if (f.frames.empty())
+    return nullptr;
+  Function* fn = f.frames.back().fn;
+  if (fn == nullptr)
+    return nullptr;
+  return fn->globals;
 }
 
 void VM::RuntimeError(const std::string& msg) { throw std::runtime_error(msg); }
@@ -339,17 +356,29 @@ void VM::ExecuteFiber(Fiber* fib) {
       case OpCode::LoadGlobal: {
         const auto ins = chunk->Read<serilang::LoadGlobal>(ip);
         ip += sizeof(ins);
-        auto name =
+        const auto name =
             chunk->const_pool[ins.name_index].template Get<std::string>();
-        push(fib->stack, globals_[name]);
+
+        Dict* d = GetNamespace(*fib);
+        if (d == nullptr || !d->map.contains(name))
+          d = globals_;
+        auto it = d->map.find(name);
+        if (it == d->map.cend())
+          RuntimeError("NameError: '" + name + "' is not defined");
+        push(fib->stack, it->second);
       } break;
 
       case OpCode::StoreGlobal: {
         const auto ins = chunk->Read<serilang::StoreGlobal>(ip);
         ip += sizeof(ins);
-        auto name =
+        const auto name =
             chunk->const_pool[ins.name_index].template Get<std::string>();
-        globals_[name] = pop(fib->stack);
+        Value val = pop(fib->stack);
+
+        Dict* dst = GetNamespace(*fib);
+        if (dst == nullptr)
+          dst = globals_;
+        dst->map[name] = std::move(val);
       } break;
 
       case OpCode::LoadUpvalue: {
@@ -431,7 +460,8 @@ void VM::ExecuteFiber(Fiber* fib) {
         }
         fib->stack.resize(fib->stack.size() - ins.ndefault * 2);
 
-        Function* fn = gc_.Allocate<Function>(chunk);
+        Function* fn = gc_->Allocate<Function>(chunk);
+        fn->globals = globals_;
         fn->entry = ins.entry;
         fn->defaults = std::move(defaults);
         fn->nparam = ins.nparam;
@@ -463,7 +493,7 @@ void VM::ExecuteFiber(Fiber* fib) {
              ++i)
           elms.emplace_back(std::move(fib->stack[i]));
         fib->stack.resize(fib->stack.size() - ins.nelms);
-        fib->stack.emplace_back(gc_.Allocate<List>(std::move(elms)));
+        fib->stack.emplace_back(gc_->Allocate<List>(std::move(elms)));
       } break;
 
       case OpCode::MakeDict: {
@@ -477,13 +507,13 @@ void VM::ExecuteFiber(Fiber* fib) {
           elms.try_emplace(std::move(key), std::move(val));
         }
         fib->stack.resize(fib->stack.size() - 2 * ins.nelms);
-        fib->stack.emplace_back(gc_.Allocate<Dict>(std::move(elms)));
+        fib->stack.emplace_back(gc_->Allocate<Dict>(std::move(elms)));
       } break;
 
       case OpCode::MakeClass: {
         const auto ins = chunk->Read<serilang::MakeClass>(ip);
         ip += sizeof(ins);
-        auto klass = gc_.Allocate<Class>();
+        auto klass = gc_->Allocate<Class>();
         klass->name =
             chunk->const_pool[ins.name_index].template Get<std::string>();
         for (int i = 0; i < ins.nmethods; i++) {
@@ -501,7 +531,7 @@ void VM::ExecuteFiber(Fiber* fib) {
         auto name =
             chunk->const_pool[ins.name_index].template Get<std::string>();
         TempValue result = receiver.Member(name);
-        push(fib->stack, gc_.TrackValue(std::move(result)));
+        push(fib->stack, gc_->TrackValue(std::move(result)));
       } break;
 
       case OpCode::SetField: {
@@ -523,8 +553,8 @@ void VM::ExecuteFiber(Fiber* fib) {
         size_t base = fib->stack.size() - ins.argcnt - 2 * ins.kwargcnt - 1;
         Value fn = fib->stack[base];
 
-        Fiber* f =
-            gc_.Allocate<Fiber>(/*reserve=*/16 + ins.argcnt + 2 * ins.kwargcnt);
+        Fiber* f = gc_->Allocate<Fiber>(/*reserve=*/16 + ins.argcnt +
+                                        2 * ins.kwargcnt);
         std::move(fib->stack.begin() + base, fib->stack.end(),
                   std::back_inserter(f->stack));
         fib->stack.resize(base);

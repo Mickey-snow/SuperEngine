@@ -36,7 +36,7 @@ using namespace serilang;
 class VMTest : public ::testing::Test {
  protected:
   VM vm = VM::Create();
-  GarbageCollector& gc = vm.gc_;
+  GarbageCollector& gc = *vm.gc_;
 
   // Small helper: wrapper to create Value array
   template <typename... Ts>
@@ -260,6 +260,32 @@ TEST_F(VMTest, AwaitFiber) {
 
   Value result = run_and_get(chunk);
   EXPECT_EQ(result, "foo");
+}
+
+TEST_F(VMTest, FunctionGlobal) {
+  Code* code = gc.Allocate<Code>();
+  code->const_pool = value_vector("one");
+  append_ins(code, {LoadLocal{1}, LoadGlobal{0}, BinaryOp(Op::Add), Return{}});
+  Function* fn = gc.Allocate<Function>(code, 0, 1);
+  fn->globals = gc.Allocate<Dict>(
+      std::unordered_map<std::string, Value>{{"one", Value("one")}});
+
+  Code* chunk = gc.Allocate<Code>();
+  chunk->const_pool =
+      value_vector(fn, code, "one", 1, "arg1", "first", "second");
+  append_ins(chunk,
+             {Push{3}, StoreGlobal{2},  // global: one = 1
+              Push{5}, Push{0}, Push{2}, Call{.argcnt = 1, .kwargcnt = 0},
+              // first: fn("one") -> "one" + "one";
+              // function global: one = "one"
+              Push{6}, Push{1}, Push{4}, MakeFunction{0, 1, 0, false, false},
+              Push{3}, Call{1, 0},
+              // second: fn(1) -> 1 + 1;
+              // function global is current namespace
+              MakeDict{.nelms = 2}, Return{}});
+
+  Value result = run_and_get(chunk);
+  EXPECT_EQ(result.Str(), "{second:2,first:oneone}");
 }
 
 }  // namespace serilang_test

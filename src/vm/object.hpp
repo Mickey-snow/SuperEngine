@@ -192,7 +192,9 @@ struct Module : public IObject {
   static constexpr inline ObjType objtype = ObjType::Module;
 
   std::string name;
-  std::unordered_map<std::string, Value> globals;
+  Dict* globals;
+
+  explicit Module(std::string in_name, Dict* in_globals);
 
   constexpr ObjType Type() const noexcept final { return objtype; }
   constexpr size_t Size() const noexcept final { return sizeof(*this); }
@@ -209,6 +211,7 @@ struct Module : public IObject {
 struct Function : public IObject {
   static constexpr inline ObjType objtype = ObjType::Function;
 
+  Dict* globals = nullptr;
   Code* chunk;
   uint32_t entry;
 

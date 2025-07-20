@@ -51,7 +51,7 @@ std::string Class::Desc() const { return "<class " + name + '>'; }
 
 void Class::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
   f.stack.resize(f.stack.size() - nargs);
-  auto inst = vm.gc_.Allocate<Instance>(this);
+  auto inst = vm.gc_->Allocate<Instance>(this);
   inst->fields = this->methods;
   f.stack.back() = Value(std::move(inst));
 }
@@ -172,25 +172,19 @@ void Dict::MarkRoots(GCVisitor& visitor) {
 }
 
 // -----------------------------------------------------------------------
-void Module::MarkRoots(GCVisitor& visitor) {
-  for (auto& [k, v] : globals)
-    visitor.MarkSub(v);
-}
+Module::Module(std::string in_name, Dict* in_globals)
+    : name(std::move(in_name)), globals(in_globals) {}
+
+void Module::MarkRoots(GCVisitor& visitor) { visitor.MarkSub(globals); }
 
 std::string Module::Str() const { return "<module " + name + ">"; }
 
 std::string Module::Desc() const { return "<module " + name + ">"; }
 
-TempValue Module::Member(std::string_view mem) {
-  auto it = globals.find(std::string(mem));
-  if (it == globals.end())
-    throw std::runtime_error("module '" + name + "' has no member '" +
-                             std::string(mem) + "'");
-  return it->second;
-}
+TempValue Module::Member(std::string_view mem) { return globals->Member(mem); }
 
 void Module::SetMember(std::string_view mem, Value value) {
-  globals[std::string(mem)] = value;
+  globals->SetMember(mem, std::move(value));
 }
 
 // -----------------------------------------------------------------------
@@ -208,6 +202,7 @@ std::string Function::Str() const { return "function"; }
 std::string Function::Desc() const { return "<function>"; }
 
 void Function::MarkRoots(GCVisitor& visitor) {
+  visitor.MarkSub(globals);
   visitor.MarkSub(chunk);
   for (auto& [k, v] : defaults)
     visitor.MarkSub(v);
@@ -277,11 +272,11 @@ void Function::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
   std::move(finalargs.begin(), finalargs.end(), std::back_inserter(stack));
 
   if (has_vararg) {
-    stack.emplace_back(vm.gc_.Allocate<List>(std::move(rest)));
+    stack.emplace_back(vm.gc_->Allocate<List>(std::move(rest)));
   }
 
   if (has_kwarg) {
-    stack.emplace_back(vm.gc_.Allocate<Dict>(std::move(extra_kwargs)));
+    stack.emplace_back(vm.gc_->Allocate<Dict>(std::move(extra_kwargs)));
   } else if (!extra_kwargs.empty()) {
     vm.RuntimeError(Desc() + ": unexpected keyword argument");
   }

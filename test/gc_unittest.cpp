@@ -52,7 +52,7 @@ class DummyObject : public IObject {
 class GCTest : public ::testing::Test {
  protected:
   VM vm = VM::Create();
-  GarbageCollector& gc = vm.gc_;
+  GarbageCollector& gc = *vm.gc_;
 
   template <typename T, typename... Args>
   T* Alloc(Args... args) {
@@ -62,13 +62,13 @@ class GCTest : public ::testing::Test {
 };
 
 TEST_F(GCTest, AllocatedBytes) {
-  size_t before = vm.gc_.AllocatedBytes();
+  size_t before = gc.AllocatedBytes();
   Alloc<DummyObject>();
   Alloc<DummyObject>();
 
-  EXPECT_EQ(vm.gc_.AllocatedBytes(), before + 2 * sizeof(DummyObject));
+  EXPECT_EQ(gc.AllocatedBytes(), before + 2 * sizeof(DummyObject));
   vm.CollectGarbage();
-  EXPECT_EQ(vm.gc_.AllocatedBytes(), before);
+  EXPECT_EQ(gc.AllocatedBytes(), before);
 }
 
 TEST_F(GCTest, Sweep) {
@@ -147,13 +147,13 @@ TEST_F(GCTest, MarkGlobalsRoot) {
   EXPECT_EQ(DummyObject::aliveCount(), 1);
 
   // Place into VM globals
-  vm.globals_["foo"] = Value(d);
+  vm.globals_->map["foo"] = Value(d);
   vm.CollectGarbage();
   // Still alive
   EXPECT_EQ(DummyObject::aliveCount(), 1);
 
   // Remove global and recollect
-  vm.globals_.clear();
+  vm.globals_->map.clear();
   vm.CollectGarbage();
   EXPECT_EQ(DummyObject::aliveCount(), 0);
 }

@@ -42,7 +42,8 @@ namespace m6 {
 
 class CodeGenerator {
  public:
-  explicit CodeGenerator(serilang::GarbageCollector& gc, bool repl = false);
+  explicit CodeGenerator(std::shared_ptr<serilang::GarbageCollector> gc,
+                         bool repl = false);
   ~CodeGenerator();
 
   bool Ok() const;
@@ -62,7 +63,7 @@ class CodeGenerator {
   using Scope = std::unordered_map<std::string, std::size_t>;
 
   // -- Data members ---------------------------------------------------
-  serilang::GarbageCollector& gc_;
+  std::shared_ptr<serilang::GarbageCollector> gc_;
   bool repl_mode_;
 
   serilang::Code* chunk_;

@@ -39,7 +39,8 @@ namespace m6 {
 
 class CompilerPipeline {
  public:
-  CompilerPipeline(serilang::GarbageCollector& gc, bool repl = false)
+  CompilerPipeline(std::shared_ptr<serilang::GarbageCollector> gc,
+                   bool repl = false)
       : gc_(gc), tz(tokens_), gen_(gc_, repl) {}
 
   void compile(std::shared_ptr<SourceBuffer> src) {
@@ -72,7 +73,7 @@ class CompilerPipeline {
 
   serilang::Code* Get() {
     auto result = gen_.GetChunk();
-    gen_.SetChunk(gc_.Allocate<serilang::Code>());
+    gen_.SetChunk(gc_->Allocate<serilang::Code>());
     return result;
   }
 
@@ -108,7 +109,7 @@ class CompilerPipeline {
   }
 
  private:
-  serilang::GarbageCollector& gc_;
+  std::shared_ptr<serilang::GarbageCollector> gc_;
   Tokenizer tz;
   CodeGenerator gen_;
 };

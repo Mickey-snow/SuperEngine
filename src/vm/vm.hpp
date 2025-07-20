@@ -41,13 +41,13 @@ struct Chunk;
 
 class VM {
  public:
-  // Construct a VM, optionally bootstrapping with an entry chunk.
-  static VM Create(std::ostream& stdout = std::cout,
+  static VM Create(std::shared_ptr<GarbageCollector> gc = nullptr,
+                   std::ostream& stdout = std::cout,
                    std::istream& stdin = std::cin,
                    std::ostream& stderr = std::cerr);
 
  private:
-  explicit VM() = default;
+  explicit VM(std::shared_ptr<GarbageCollector> gc);
 
  public:
   Fiber* AddFiber(Code* entry);
@@ -71,14 +71,14 @@ class VM {
  public:
   //----------------------------------------------------------------
   // Public VM state
-  GarbageCollector gc_;
+  std::shared_ptr<GarbageCollector> gc_;
   size_t gc_threshold_ = 1024 * 1024;
 
   Fiber* main_fiber_ = nullptr;
   std::vector<Fiber*> fibres_;
   Value last_;  // last fiber's return value
 
-  std::unordered_map<std::string, Value> globals_;
+  Dict* globals_;
   std::unordered_map<std::string, Module*> module_cache_;
 
  private:
@@ -87,6 +87,7 @@ class VM {
   static void push(std::vector<Value>& stack, Value v);
   static Value pop(std::vector<Value>& stack);
   void Return(Fiber& f);
+  Dict* GetNamespace(Fiber& f);
 
   //----------------------------------------------------------------
   // Core interpreter loop for one fiber

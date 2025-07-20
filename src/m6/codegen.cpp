@@ -36,10 +36,11 @@ namespace m6 {
 namespace sr = serilang;
 
 // Constructor / Destructor
-CodeGenerator::CodeGenerator(sr::GarbageCollector& gc, bool repl)
+CodeGenerator::CodeGenerator(std::shared_ptr<serilang::GarbageCollector> gc,
+                             bool repl)
     : gc_(gc),
       repl_mode_(repl),
-      chunk_(gc.Allocate<sr::Code>()),
+      chunk_(gc->Allocate<sr::Code>()),
       locals_(),
       local_depth_(0),
       errors_() {}
@@ -367,7 +368,7 @@ void CodeGenerator::emit_stmt_node(const BlockStmt& s) {
 void CodeGenerator::emit_function(const FuncDecl& fn) {
   // compile body with a fresh compiler
   CodeGenerator nested(gc_, repl_mode_);
-  nested.SetChunk(gc_.Allocate<serilang::Code>());
+  nested.SetChunk(gc_->Allocate<serilang::Code>());
   nested.scope_heuristic_ = scope_heuristic_;
   nested.push_scope();
   nested.add_local(fn.name);
