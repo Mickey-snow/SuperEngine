@@ -51,24 +51,25 @@ class DummyObject : public IObject {
 
 class GCTest : public ::testing::Test {
  protected:
-  VM vm = VM(std::make_shared<GarbageCollector>());
-  GarbageCollector& gc = *vm.gc_;
+  std::shared_ptr<GarbageCollector> gc;
+  VM vm;
+  GCTest() : gc(std::make_shared<GarbageCollector>()), vm(gc) {}
 
   template <typename T, typename... Args>
   T* Alloc(Args... args) {
-    auto* ptr = gc.Allocate<T>(std::forward<Args>(args)...);
+    auto* ptr = gc->Allocate<T>(std::forward<Args>(args)...);
     return ptr;
   }
 };
 
 TEST_F(GCTest, AllocatedBytes) {
-  size_t before = gc.AllocatedBytes();
+  size_t before = gc->AllocatedBytes();
   Alloc<DummyObject>();
   Alloc<DummyObject>();
 
-  EXPECT_EQ(gc.AllocatedBytes(), before + 2 * sizeof(DummyObject));
+  EXPECT_EQ(gc->AllocatedBytes(), before + 2 * sizeof(DummyObject));
   vm.CollectGarbage();
-  EXPECT_EQ(gc.AllocatedBytes(), before);
+  EXPECT_EQ(gc->AllocatedBytes(), before);
 }
 
 TEST_F(GCTest, Sweep) {
@@ -161,7 +162,7 @@ TEST_F(GCTest, MarkGlobalsRoot) {
 TEST_F(GCTest, MarkFibresAndClosures) {
   DummyObject::aliveCount() = 0;
   // Create a one-shot closure and fiber
-  auto* chunk = gc.Allocate<Code>();
+  auto* chunk = gc->Allocate<Code>();
   auto* fn = Alloc<Function>(chunk);
   auto* f = Alloc<Fiber>();
   f->frames.emplace_back(CallFrame(fn));
@@ -221,7 +222,7 @@ TEST_F(GCTest, MixedValueGraph) {
   EXPECT_EQ(DummyObject::aliveCount(), 3);
 
   // Closure holding d3 in its constant pool
-  auto* chunk = gc.Allocate<Code>();
+  auto* chunk = gc->Allocate<Code>();
   chunk->const_pool.emplace_back(d3);
   auto* fn = Alloc<Function>(chunk);
 

@@ -42,6 +42,9 @@ struct Chunk;
 class VM {
  public:
   explicit VM(std::shared_ptr<GarbageCollector> gc);
+  explicit VM(std::shared_ptr<GarbageCollector> gc,
+              Dict* globals,
+              Dict* builtins);
 
   Fiber* AddFiber(Code* entry);
 

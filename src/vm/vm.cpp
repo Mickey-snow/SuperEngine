@@ -47,7 +47,12 @@ namespace serilang {
 // -----------------------------------------------------------------------
 // class VM
 VM::VM(std::shared_ptr<GarbageCollector> gc)
-    : gc_(gc), globals_(gc_->Allocate<Dict>()) {}
+    : gc_(gc),
+      globals_(gc_->Allocate<Dict>()),
+      builtins_(gc->Allocate<Dict>()) {}
+
+VM::VM(std::shared_ptr<GarbageCollector> gc, Dict* globals, Dict* builtins)
+    : gc_(gc), globals_(globals), builtins_(builtins) {}
 
 Value VM::Evaluate(Code* chunk) {
   Fiber* f = AddFiber(chunk);
