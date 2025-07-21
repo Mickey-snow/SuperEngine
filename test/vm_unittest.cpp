@@ -35,7 +35,7 @@ using namespace serilang;
 
 class VMTest : public ::testing::Test {
  protected:
-  VM vm = VM::Create();
+  VM vm = VM(std::make_shared<GarbageCollector>());
   GarbageCollector& gc = *vm.gc_;
 
   // Small helper: wrapper to create Value array
@@ -89,13 +89,11 @@ TEST_F(VMTest, StoreLoadLocal) {
   auto* chunk = gc.Allocate<Code>();
   chunk->const_pool = value_vector(42.0);
 
-  // bootstrap main‑closure: we need one local slot
+  // bootstrap main-closure: we need one local slot
   //   local0 = 42;  return local0;
   append_ins(chunk, {Push{0}, StoreLocal{0}, LoadLocal{0}, Return{}});
 
-  // Trick: tell the VM that “main” closure has 1 local
-  VM vm = VM::Create();
-  Value out = vm.Evaluate(chunk);
+  Value out = run_and_get(chunk);
   EXPECT_EQ(out, 42.0);
 }
 

@@ -51,7 +51,7 @@ class DummyObject : public IObject {
 
 class GCTest : public ::testing::Test {
  protected:
-  VM vm = VM::Create();
+  VM vm = VM(std::make_shared<GarbageCollector>());
   GarbageCollector& gc = *vm.gc_;
 
   template <typename T, typename... Args>

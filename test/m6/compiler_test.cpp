@@ -26,11 +26,11 @@
 
 #include "m6/compiler_pipeline.hpp"
 #include "m6/source_buffer.hpp"
+#include "m6/vm_factory.hpp"
 #include "utilities/string_utilities.hpp"
 #include "vm/disassembler.hpp"
 #include "vm/object.hpp"
 #include "vm/value.hpp"
-#include "vm/vm.hpp"
 
 #include <filesystem>
 #include <format>
@@ -77,7 +77,7 @@ class CompilerTest : public ::testing::Test {
     ExecutionResult r;
 
     // ── compile ────────────────────────────────────────────────────
-    auto vm = serilang::VM::Create(gc, outBuf, inBuf, errBuf);
+    auto vm = m6::VMFactory::Create(gc, outBuf, inBuf, errBuf);
     m6::CompilerPipeline pipe(gc, false);
     auto sb = SourceBuffer::Create(std::move(source), "<CompilerTest>");
     pipe.compile(sb);

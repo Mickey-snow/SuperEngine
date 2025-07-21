@@ -41,15 +41,8 @@ struct Chunk;
 
 class VM {
  public:
-  static VM Create(std::shared_ptr<GarbageCollector> gc = nullptr,
-                   std::ostream& stdout = std::cout,
-                   std::istream& stdin = std::cin,
-                   std::ostream& stderr = std::cerr);
-
- private:
   explicit VM(std::shared_ptr<GarbageCollector> gc);
 
- public:
   Fiber* AddFiber(Code* entry);
 
   // Run until all fibers die or error; returns last fiber's result
