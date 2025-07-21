@@ -249,7 +249,7 @@ class LRUCache {
     if (miter == _index.end()) {
       Data default_value = std::invoke(default_factory);
       if (should_insert)
-        insert(key, default_value);
+        _insert_nolock(key, default_value);
       return default_value;
     }
     Data tmp = miter->second->second;
@@ -267,21 +267,26 @@ class LRUCache {
    */
   void insert(const Key& key, const Data& data) {
     Lock lock = _locker.GetLock();
-    auto miter = _index.find(key);
-    if (miter != _index.end()) {
-      _remove(miter);
-    }
+    _insert_nolock(key, data);
+  }
 
-    _list.push_front(std::make_pair(key, data));
+ private:
+  /// Helper – caller *must* already hold the cache lock.
+  void _insert_nolock(const Key& key, const Data& data) {
+    auto miter = _index.find(key);
+    if (miter != _index.end())
+      _remove(miter);
+
+    _list.emplace_front(key, data);
     _index[key] = _list.begin();
 
     if (_list.size() > _max_size) {
-      auto last = _list.end();
-      --last;
+      auto last = std::prev(_list.end());
       _remove(last->first);
     }
   }
 
+ public:
   /** @brief Get a list of keys.
                   @return list of the current keys.
   */

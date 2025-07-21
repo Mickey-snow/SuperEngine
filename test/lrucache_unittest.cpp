@@ -171,13 +171,13 @@ class LRUCacheThreadSafetyTest : public ::testing::Test {
 };
 
 TEST_F(LRUCacheThreadSafetyTest, ConcurrentInsertions) {
-  const int cache_size = 100;
+  constexpr int cache_size = 100;
   ThreadSafeLRUCache cache(cache_size);
 
-  const int num_threads = 10;
-  const int operations_per_thread = 1000;
+  constexpr int num_threads = 10;
+  constexpr int operations_per_thread = 1000;
 
-  auto insert_task = [&cache, operations_per_thread](int thread_id) {
+  auto insert_task = [&cache](int thread_id) {
     for (int i = 0; i < operations_per_thread; ++i) {
       int key = thread_id * operations_per_thread + i;
       cache.insert(key, key);
@@ -201,17 +201,17 @@ TEST_F(LRUCacheThreadSafetyTest, ConcurrentInsertions) {
 }
 
 TEST_F(LRUCacheThreadSafetyTest, ConcurrentFetchAndInsert) {
-  const int cache_size = 100;
+  constexpr int cache_size = 100;
   ThreadSafeLRUCache cache(cache_size);
 
-  const int num_threads = 10;
-  const int operations_per_thread = 1000;
+  constexpr int num_threads = 10;
+  constexpr int operations_per_thread = 1000;
 
   for (int i = 0; i < cache_size; ++i) {
     cache.insert(i, i * 10);
   }
 
-  auto fetch_and_insert_task = [&cache, operations_per_thread](int thread_id) {
+  auto fetch_and_insert_task = [&cache](int thread_id) {
     for (int i = 0; i < operations_per_thread; ++i) {
       int key = i % cache_size;
       cache.fetch(key);
@@ -233,20 +233,20 @@ TEST_F(LRUCacheThreadSafetyTest, ConcurrentFetchAndInsert) {
 }
 
 TEST_F(LRUCacheThreadSafetyTest, ConcurrentInsertAndRemove) {
-  const int cache_size = 100;
+  constexpr int cache_size = 100;
   ThreadSafeLRUCache cache(cache_size);
 
-  const int num_threads = 10;
-  const int operations_per_thread = 1000;
+  constexpr int num_threads = 10;
+  constexpr int operations_per_thread = 1000;
 
-  auto insert_task = [&cache, operations_per_thread](int thread_id) {
+  auto insert_task = [&cache](int thread_id) {
     for (int i = 0; i < operations_per_thread; ++i) {
       int key = thread_id * operations_per_thread + i;
       cache.insert(key, key);
     }
   };
 
-  auto remove_task = [&cache, operations_per_thread](int thread_id) {
+  auto remove_task = [&cache](int thread_id) {
     for (int i = 0; i < operations_per_thread; ++i) {
       int key = thread_id * operations_per_thread + i;
       cache.remove(key);
@@ -267,13 +267,13 @@ TEST_F(LRUCacheThreadSafetyTest, ConcurrentInsertAndRemove) {
 }
 
 TEST_F(LRUCacheThreadSafetyTest, ConcurrentMixedOperations) {
-  const int cache_size = 1000;
+  constexpr int cache_size = 1000;
   ThreadSafeLRUCache cache(cache_size);
 
-  const int num_threads = 10;
-  const int operations_per_thread = 1000;
+  constexpr int num_threads = 10;
+  constexpr int operations_per_thread = 1000;
 
-  auto mixed_task = [&cache, operations_per_thread](int thread_id) {
+  auto mixed_task = [&cache](int thread_id) {
     for (int i = 0; i < operations_per_thread; ++i) {
       int key = (thread_id + i) % (cache_size * 2);
       cache.insert(key, key);
@@ -299,14 +299,48 @@ TEST_F(LRUCacheThreadSafetyTest, ConcurrentMixedOperations) {
   EXPECT_LE(cache.size(), cache_size);
 }
 
-TEST_F(LRUCacheThreadSafetyTest, DISABLED_HighContention) {
-  const int cache_size = 10;
+TEST_F(LRUCacheThreadSafetyTest, ConcurrentFetchOrElse) {
+  constexpr int cache_size = 1000;
   ThreadSafeLRUCache cache(cache_size);
 
-  const int num_threads = 50;
-  const int operations_per_thread = 10000;
+  constexpr int num_threads = 10;
+  constexpr int operations_per_thread = 1000;
 
-  auto contention_task = [&cache, operations_per_thread](int thread_id) {
+  auto mixed_task = [&cache](int thread_id) {
+    for (int i = 0; i < operations_per_thread; ++i) {
+      int key = (thread_id + i) % (cache_size * 2);
+      auto factory = [key]() { return key * key; };
+
+      cache.insert(key, factory());
+      auto data = cache.fetch_or(key, factory());
+      EXPECT_EQ(data, factory());
+
+      cache.remove(key);
+      data = cache.fetch_or_else(key, factory);
+      EXPECT_EQ(data, factory());
+    }
+  };
+
+  std::vector<std::thread> threads;
+  for (int t = 0; t < num_threads; ++t) {
+    threads.emplace_back(mixed_task, t);
+  }
+
+  for (auto& thread : threads) {
+    thread.join();
+  }
+
+  EXPECT_LE(cache.size(), cache_size);
+}
+
+TEST_F(LRUCacheThreadSafetyTest, DISABLED_HighContention) {
+  constexpr int cache_size = 10;
+  ThreadSafeLRUCache cache(cache_size);
+
+  constexpr int num_threads = 50;
+  constexpr int operations_per_thread = 10000;
+
+  auto contention_task = [&cache](int thread_id) {
     for (int i = 0; i < operations_per_thread; ++i) {
       int key = i % cache_size;
       cache.insert(key, thread_id);
