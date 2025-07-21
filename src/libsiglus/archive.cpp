@@ -46,7 +46,7 @@ Archive Archive::Create(std::string_view raw_data) {
 }
 
 Archive::Archive(std::string_view data, const XorKey& key)
-    : data_(data), key_(key) {
+    : data_(data), key_(key), cache(/*max_size=*/64) {
   hdr_ = reinterpret_cast<Pack_hdr const*>(data_.data());
   ParseScndata();
   CreateScnMap();
@@ -58,8 +58,14 @@ Archive::Archive(std::string_view data, const XorKey& key)
   CreateIncCmdMap();
 }
 
+Scene Archive::ParseScene(int id) const {
+  return cache.fetch_or_else(
+      id, [&, id]() { return Scene(raw_scene_data_[id], id, scene_names_[id]); });
+}
+
 void Archive::ParseScndata() {
-  scndata_.clear();
+  raw_scene_data_.clear();
+  raw_scene_data_.reserve(hdr_->scn_data_cnt);
   ByteReader reader(data_.substr(hdr_->scn_data_index_list_ofs,
                                  8 * hdr_->scn_data_index_cnt));
 
@@ -71,7 +77,8 @@ void Archive::ParseScndata() {
         data_.substr(offset + hdr_->scn_data_list_ofs, size));
     Decrypt(scene_data);
     scene_data = Decompress_lzss(scene_data);
-    scndata_.emplace_back(std::move(scene_data), i);
+
+    raw_scene_data_.emplace_back(std::move(scene_data));
   }
 }
 
@@ -118,13 +125,14 @@ void Archive::CreateScnMap() {
                                  8 * hdr_->scn_name_index_cnt));
 
   // map from scene name to scene id
+  scene_names_.reserve(hdr_->scn_name_cnt);
   for (int i = 0; i < hdr_->scn_name_cnt; ++i) {
     auto offset = reader.PopAs<uint32_t>(4);
     auto size = reader.PopAs<uint32_t>(4);
     const auto scnname = utf16le::Decode(names.substr(offset, size));
 
     scn_map_.emplace(scnname, i);
-    scndata_[i].scnname_ = std::move(scnname);
+    scene_names_.emplace_back(std::move(scnname));
   }
 }
 

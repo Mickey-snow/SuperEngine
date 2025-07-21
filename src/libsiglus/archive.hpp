@@ -24,12 +24,13 @@
 // Archive.hpp
 #pragma once
 
+#include "lru_cache.hpp"
+
 #include "libsiglus/property.hpp"
 #include "libsiglus/scene.hpp"
 #include "libsiglus/xorkey.hpp"
 
 #include <cstdint>
-#include <filesystem>
 #include <map>
 #include <string>
 #include <string_view>
@@ -69,6 +70,11 @@ class Archive {
 
   Archive(std::string_view data, const XorKey& key);
 
+  Scene ParseScene(int id) const;
+
+  inline size_t GetScenarioCount() const noexcept { return raw_scene_data_.size(); }
+
+ private:
   void ParseScndata();
   void Decrypt(std::string& scene_data);
   void CreateScnMap();
@@ -84,7 +90,8 @@ class Archive {
   const XorKey& key_;
 
   Pack_hdr const* hdr_;
-  std::vector<Scene> scndata_;
+  std::vector<std::string> raw_scene_data_;
+  std::vector<std::string> scene_names_;
   std::map<std::string, int> scn_map_;
 
   std::vector<Property> prop_;
@@ -92,6 +99,9 @@ class Archive {
 
   std::vector<Command> cmd_;
   std::map<std::string, int> cmd_map_;
+
+ private:
+  mutable LRUCache<int, Scene, ThreadingModel::MultiThreaded> cache;
 };
 
 }  // namespace libsiglus
