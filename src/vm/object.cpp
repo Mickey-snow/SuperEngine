@@ -51,7 +51,7 @@ std::string Class::Desc() const { return "<class " + name + '>'; }
 
 void Class::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
   f.stack.resize(f.stack.size() - nargs);
-  auto inst = vm.gc_.Allocate<Instance>(this);
+  auto inst = vm.gc_->Allocate<Instance>(this);
   inst->fields = this->methods;
   f.stack.back() = Value(std::move(inst));
 }
@@ -150,6 +150,22 @@ void List::MarkRoots(GCVisitor& visitor) {
     visitor.MarkSub(it);
 }
 
+TempValue List::Item(Value& idx) {
+  auto* index = idx.Get_if<int>();
+  if (!index)
+    throw std::runtime_error("list index must be integer, but got: " +
+                             idx.Desc());
+  return items[*index];
+}
+
+void List::SetItem(Value& idx, Value val) {
+  auto* index = idx.Get_if<int>();
+  if (!index)
+    throw std::runtime_error("list index must be integer, but got: " +
+                             idx.Desc());
+  items[*index] = std::move(val);
+}
+
 // -----------------------------------------------------------------------
 std::string Dict::Str() const {
   std::string repr;
@@ -171,6 +187,45 @@ void Dict::MarkRoots(GCVisitor& visitor) {
     visitor.MarkSub(it);
 }
 
+TempValue Dict ::Item(Value& idx) {
+  auto* index = idx.Get_if<std::string>();
+  if (!index)
+    throw std::runtime_error("dictionary index must be string, but got: " +
+                             idx.Desc());
+  return map[*index];
+}
+
+void Dict ::SetItem(Value& idx, Value val) {
+  auto* index = idx.Get_if<std::string>();
+  if (!index)
+    throw std::runtime_error("dictionary index must be string, but got: " +
+                             idx.Desc());
+  map[*index] = std::move(val);
+}
+
+// -----------------------------------------------------------------------
+Module::Module(std::string in_name, Dict* in_globals)
+    : name(std::move(in_name)), globals(in_globals) {}
+
+void Module::MarkRoots(GCVisitor& visitor) { visitor.MarkSub(globals); }
+
+std::string Module::Str() const { return "<module " + name + ">"; }
+
+std::string Module::Desc() const { return "<module " + name + ">"; }
+
+TempValue Module::Member(std::string_view mem) {
+  std::string mem_str(mem);
+  auto it = globals->map.find(mem_str);
+  if (it == globals->map.cend())
+    throw std::runtime_error("module '" + name + "' has no attribute '" +
+                             mem_str);
+  return it->second;
+}
+
+void Module::SetMember(std::string_view mem, Value value) {
+  globals->map[std::string(mem)] = std::move(value);
+}
+
 // -----------------------------------------------------------------------
 Function::Function(Code* in_chunk, uint32_t in_entry, uint32_t in_nparam)
     : chunk(in_chunk),
@@ -186,6 +241,7 @@ std::string Function::Str() const { return "function"; }
 std::string Function::Desc() const { return "<function>"; }
 
 void Function::MarkRoots(GCVisitor& visitor) {
+  visitor.MarkSub(globals);
   visitor.MarkSub(chunk);
   for (auto& [k, v] : defaults)
     visitor.MarkSub(v);
@@ -255,11 +311,11 @@ void Function::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
   std::move(finalargs.begin(), finalargs.end(), std::back_inserter(stack));
 
   if (has_vararg) {
-    stack.emplace_back(vm.gc_.Allocate<List>(std::move(rest)));
+    stack.emplace_back(vm.gc_->Allocate<List>(std::move(rest)));
   }
 
   if (has_kwarg) {
-    stack.emplace_back(vm.gc_.Allocate<Dict>(std::move(extra_kwargs)));
+    stack.emplace_back(vm.gc_->Allocate<Dict>(std::move(extra_kwargs)));
   } else if (!extra_kwargs.empty()) {
     vm.RuntimeError(Desc() + ": unexpected keyword argument");
   }

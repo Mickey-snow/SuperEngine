@@ -36,11 +36,11 @@ void IObject::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
   throw std::runtime_error('\'' + Desc() + "' object is not callable.");
 }
 
-TempValue IObject::Item(const Value& idx) {
+TempValue IObject::Item(Value& idx) {
   throw std::runtime_error('\'' + Desc() + "' object is not subscriptable.");
 }
 
-void IObject::SetItem(const Value& idx, Value value) {
+void IObject::SetItem(Value& idx, Value value) {
   throw std::runtime_error('\'' + Desc() +
                            "' object does not support item assignment.");
 }

@@ -23,7 +23,7 @@
 // -----------------------------------------------------------------------
 
 #include "m6/compiler_pipeline.hpp"
-#include "vm/vm.hpp"
+#include "m6/vm_factory.hpp"
 
 #include <chrono>
 #include <iostream>
@@ -82,7 +82,7 @@ int main() {
   std::cout << copyright_info << "\n\n" << help_info << std::endl;
 
   try {
-    run_repl(VM::Create());
+    run_repl(m6::VMFactory::Create());
   } catch (std::exception const& ex) {
     std::cerr << "fatal: " << ex.what() << '\n';
     return 1;

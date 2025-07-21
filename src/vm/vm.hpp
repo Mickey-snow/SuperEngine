@@ -25,6 +25,7 @@
 #pragma once
 
 #include "vm/gc.hpp"
+#include "vm/object.hpp"
 #include "vm/value.hpp"
 
 #include <iostream>
@@ -40,14 +41,11 @@ struct Chunk;
 
 class VM {
  public:
-  // Construct a VM, optionally bootstrapping with an entry chunk.
-  static VM Create(std::ostream& stdout = std::cout,
-                   std::istream& stdin = std::cin,
-                   std::ostream& stderr = std::cerr);
+  explicit VM(std::shared_ptr<GarbageCollector> gc);
+  explicit VM(std::shared_ptr<GarbageCollector> gc,
+              Dict* globals,
+              Dict* builtins);
 
-  explicit VM() = default;
-
- public:
   Fiber* AddFiber(Code* entry);
 
   // Run until all fibers die or error; returns last fiber's result
@@ -63,20 +61,18 @@ class VM {
   // Let the garbage collector track a Value allocated elsewhere
   Value AddTrack(TempValue&& t);
 
-  // For adding built-in as global
-  void AddGlobal(std::string key, TempValue&& v);
-
  public:
   //----------------------------------------------------------------
   // Public VM state
-  GarbageCollector gc_;
+  std::shared_ptr<GarbageCollector> gc_;
   size_t gc_threshold_ = 1024 * 1024;
 
   Fiber* main_fiber_ = nullptr;
   std::vector<Fiber*> fibres_;
   Value last_;  // last fiber's return value
 
-  std::unordered_map<std::string, Value> globals_;
+  Dict *globals_, *builtins_;
+  std::unordered_map<std::string, Module*> module_cache_;
 
  private:
   //----------------------------------------------------------------
@@ -84,6 +80,7 @@ class VM {
   static void push(std::vector<Value>& stack, Value v);
   static Value pop(std::vector<Value>& stack);
   void Return(Fiber& f);
+  Dict* GetNamespace(Fiber& f);
 
   //----------------------------------------------------------------
   // Core interpreter loop for one fiber

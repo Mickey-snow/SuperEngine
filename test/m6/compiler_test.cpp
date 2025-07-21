@@ -26,12 +26,15 @@
 
 #include "m6/compiler_pipeline.hpp"
 #include "m6/source_buffer.hpp"
+#include "m6/vm_factory.hpp"
 #include "utilities/string_utilities.hpp"
 #include "vm/disassembler.hpp"
 #include "vm/object.hpp"
 #include "vm/value.hpp"
-#include "vm/vm.hpp"
 
+#include <filesystem>
+#include <format>
+#include <fstream>
 #include <iostream>
 #include <regex>
 #include <sstream>
@@ -40,37 +43,42 @@ namespace m6test {
 
 using namespace m6;
 using namespace serilang;
-
-// Holds everything we care about after one script run
-struct ExecutionResult {
-  serilang::Value last;  ///< value left on the VM stack (result)
-  std::string stdout;    ///< text produced on std::cout
-  std::string stderr;    ///< text produced on std::cerr
-  std::string disasm;    ///< human readable disassembly
-
-  bool operator==(std::string_view rhs) const {
-    return stderr.empty() && stdout == rhs;
-  }
-
-  friend std::ostream& operator<<(std::ostream& os,
-                                  const ExecutionResult& res) {
-    if (!res.stderr.empty())
-      os << res.stderr;
-    os << "\nDisassembly:\n" << res.disasm;
-    return os;
-  }
-};
+namespace fs = std::filesystem;
 
 class CompilerTest : public ::testing::Test {
  public:
+  // Holds everything we care about after one script run
+  struct ExecutionResult {
+    serilang::Value last;  ///< value left on the VM stack (result)
+    std::string stdout;    ///< text produced on std::cout
+    std::string stderr;    ///< text produced on std::cerr
+    std::string disasm;    ///< human readable disassembly
+
+    bool operator==(std::string_view rhs) const {
+      return stderr.empty() && stdout == rhs;
+    }
+
+    friend std::ostream& operator<<(std::ostream& os,
+                                    const ExecutionResult& res) {
+      if (!res.stderr.empty())
+        os << "\nErrors:\n" << res.stderr;
+      os << "\nOutput:\n" << res.stdout;
+      os << "\nDisassembly:\n" << res.disasm;
+      return os;
+    }
+  };
+
+  std::stringstream inBuf;
+  std::shared_ptr<GarbageCollector> gc = std::make_shared<GarbageCollector>();
+
   // Compile + run `source`.
   [[nodiscard]] ExecutionResult Run(std::string source) {
-    std::stringstream inBuf /*empty*/, outBuf, errBuf;
+    std::stringstream outBuf, errBuf;
     ExecutionResult r;
 
     // ── compile ────────────────────────────────────────────────────
-    auto vm = serilang::VM::Create(outBuf, inBuf, errBuf);
-    m6::CompilerPipeline pipe(vm.gc_, false);
+    auto vm = m6::VMFactory::Create(gc, outBuf, inBuf, errBuf);
+    m6::CompilerPipeline pipe(gc, false);
     auto sb = SourceBuffer::Create(std::move(source), "<CompilerTest>");
     pipe.compile(sb);
 
@@ -119,15 +127,25 @@ TEST_F(CompilerTest, MultipleStatements) {
 }
 
 TEST_F(CompilerTest, List) {
-  auto res = Run("x=1; a=[x,x+1,x*3]; print(a);");
-  ASSERT_TRUE(res.stderr.empty()) << res.stderr;
-  EXPECT_EQ(res.stdout, "[1,2,3]\n") << "\nDisassembly:\n" << res.disasm;
+  {
+    auto res = Run("x=1; a=[x,x+1,x*3]; print(a);");
+    EXPECT_EQ(res, "[1,2,3]\n");
+  }
+  {
+    auto res = Run("a=[1,2]; a[0]=2; a[1]=3; print(a);");
+    EXPECT_EQ(res, "[2,3]\n");
+  }
 }
 
 TEST_F(CompilerTest, Dict) {
-  auto res = Run(R"( x=1; a={"1":x,"2":x+1,"3":1+x*2}; print(a); )");
-  ASSERT_TRUE(res.stderr.empty()) << res.stderr;
-  EXPECT_EQ(res.stdout, "{2:2,3:3,1:1}\n") << "\nDisassembly:\n" << res.disasm;
+  {
+    auto res = Run(R"( x=1; a={"1":x,"2":x+1,"3":1+x*2}; print(a); )");
+    EXPECT_EQ(res, "{2:2,3:3,1:1}\n");
+  }
+  {
+    auto res = Run(R"( a={"1":1}; a["1"]+=1; print(a); )");
+    EXPECT_EQ(res, "{1:2}\n");
+  }
 }
 
 TEST_F(CompilerTest, If) {
@@ -339,6 +357,86 @@ print(await spawn deep(1000));
 
     ASSERT_TRUE(res.stderr.empty()) << res.stderr;
     EXPECT_EQ(res.stdout, "500500\n") << "\nDisassembly:\n" << res.disasm;
+  }
+}
+
+TEST_F(CompilerTest, Import) {
+  struct Source {
+    fs::path path;
+    std::string modname;
+    Source(fs::path p, std::string src) : path(p), modname(p.string()) {
+      if (path.extension() != ".sr")
+        path.replace_filename(path.string() + ".sr");
+
+      std::ofstream ofs(path.string());
+      ofs << std::move(src);
+    }
+    ~Source() { fs::remove(path); }
+  };
+
+  // basic imports
+  {
+    Source srcx("modulex", R"(
+val = 123;
+fn func(){ return val; }
+)");
+
+    auto res = Run(std::format(R"(
+import {0};
+from {0} import val as v;
+
+val = 999;
+
+print({0}.val);
+print({0}.func());
+print(v);
+)",
+                               srcx.modname));
+
+    EXPECT_EQ(res, "123\n123\n123\n");
+  }
+
+  // name collisions
+  {
+    Source srcx("modulex", R"(
+val = 123;
+)");
+    Source srcy("moduley", R"(
+modulex = "456";
+)");
+
+    auto res = Run(std::format(R"(
+import {0};
+from {1} import {0};
+
+print({0});
+)",
+                               srcx.modname, srcy.modname));
+
+    EXPECT_EQ(res, "456\n");
+  }
+
+  // circular import
+  {
+    Source srca("circ_a", R"(
+import circ_b;
+fn func_a(){ return "A"; }
+fn call_b(){ return circ_b.func_b(); }
+)");
+    Source srcb("circ_b", R"(
+import circ_a;
+fn func_b(){ return "B"; }
+fn call_a(){ return circ_a.func_a(); }
+)");
+
+    auto res = Run(R"(
+import circ_a as a;
+import circ_b as b;
+print(a.call_b());
+print(b.call_a());
+)");
+
+    EXPECT_EQ(res, "B\nA\n");
   }
 }
 

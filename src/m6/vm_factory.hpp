@@ -25,34 +25,20 @@
 #pragma once
 
 #include "vm/gc.hpp"
-#include "vm/objtype.hpp"
-#include "vm/value_fwd.hpp"
+#include "vm/vm.hpp"
 
-#include <string>
+#include <istream>
+#include <ostream>
 
-namespace serilang {
-struct Fiber;
+namespace m6 {
 
-struct GCVisitor;
-
-class IObject {
+class VMFactory {
  public:
-  GCHeader hdr_;
-
-  virtual ~IObject() = default;
-  constexpr virtual ObjType Type() const noexcept = 0;
-  constexpr virtual size_t Size() const noexcept = 0;
-
-  virtual void MarkRoots(GCVisitor& visitor) = 0;
-
-  virtual std::string Str() const;
-  virtual std::string Desc() const;
-
-  virtual void Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs);
-  virtual TempValue Item(Value& idx);
-  virtual void SetItem(Value& idx, Value value);
-  virtual TempValue Member(std::string_view mem);
-  virtual void SetMember(std::string_view mem, Value value);
+  static serilang::VM Create(
+      std::shared_ptr<serilang::GarbageCollector> gc = nullptr,
+      std::ostream& stdout = std::cout,
+      std::istream& stdin = std::cin,
+      std::ostream& stderr = std::cerr);
 };
 
-}  // namespace serilang
+}  // namespace m6

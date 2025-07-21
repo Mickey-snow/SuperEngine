@@ -170,6 +170,9 @@ struct List : public IObject {
 
   std::string Str() const override;   // “[1, 2, 3]”
   std::string Desc() const override;  // “<list[3]>”
+
+  TempValue Item(Value& idx) override;
+  void SetItem(Value& idx, Value val) override;
 };
 
 struct Dict : public IObject {
@@ -186,11 +189,35 @@ struct Dict : public IObject {
 
   std::string Str() const override;   // “{a: 1, b: 2}”
   std::string Desc() const override;  // “<dict{2}>”
+
+  TempValue Item(Value& idx) override;
+  void SetItem(Value& idx, Value val) override;
+};
+
+struct Module : public IObject {
+  static constexpr inline ObjType objtype = ObjType::Module;
+
+  std::string name;
+  Dict* globals;
+
+  explicit Module(std::string in_name, Dict* in_globals);
+
+  constexpr ObjType Type() const noexcept final { return objtype; }
+  constexpr size_t Size() const noexcept final { return sizeof(*this); }
+
+  void MarkRoots(GCVisitor& visitor) override;
+
+  std::string Str() const override;
+  std::string Desc() const override;
+
+  TempValue Member(std::string_view mem) override;
+  void SetMember(std::string_view mem, Value value) override;
 };
 
 struct Function : public IObject {
   static constexpr inline ObjType objtype = ObjType::Function;
 
+  Dict* globals = nullptr;
   Code* chunk;
   uint32_t entry;
 

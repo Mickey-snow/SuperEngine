@@ -172,6 +172,12 @@ std::shared_ptr<AST> Parser::ParseStatement(bool requireSemi) {
             ScopeStmt(std::move(vars), std::move(locs)));
       }
 
+      case tok::Reserved::_import:
+        return parseImportStmt();
+
+      case tok::Reserved::_from:
+        return parseFromImportStmt();
+
       default:
         --it_;
         break;
@@ -269,6 +275,77 @@ std::shared_ptr<AST> Parser::parseAssignment() {
         AugStmt(lhs, assignmentOp, rhs, LocRange(lhs_begin, lhs_end),
                 op_it->loc_, LocRange(rhs_begin, rhs_end)));
   }
+}
+
+std::shared_ptr<AST> Parser::parseImportStmt() {
+  auto kwLoc = (it_ - 1)->loc_;
+  std::string mod;
+  std::string alias;
+
+  auto modTok = it_;
+  if (!require<tok::ID>("expected module name")) {
+    Synchronize();
+    return nullptr;
+  }
+  mod = modTok->GetIf<tok::ID>()->id;
+
+  if (tryConsume<tok::Reserved>(tok::Reserved::_as)) {
+    auto aliasTok = it_;
+    require<tok::ID>("expected alias identifier");
+    alias = aliasTok->GetIf<tok::ID>()->id;
+  }
+
+  require<tok::Semicol>("expected ';'");
+  return std::make_shared<AST>(ImportStmt{.mod = std::move(mod),
+                                          .alias = std::move(alias),
+                                          .names = {},
+                                          .kw_loc = kwLoc});
+}
+
+std::shared_ptr<AST> Parser::parseFromImportStmt() {
+  auto kwLoc = (it_ - 1)->loc_;
+  std::string mod;
+  std::vector<std::pair<std::string, std::string>> names;
+
+  auto modTok = it_;
+  if (!require<tok::ID>("expected module name")) {
+    Synchronize();
+    return nullptr;
+  }
+  mod = modTok->GetIf<tok::ID>()->id;
+  require<tok::Reserved>("expected import", tok::Reserved::_import);
+
+  auto idTok = it_;
+  if (!require<tok::ID>("expected identifier")) {
+    Synchronize();
+    return nullptr;
+  }
+  std::string name = idTok->GetIf<tok::ID>()->id;
+  std::string aliasName;
+  if (tryConsume<tok::Reserved>(tok::Reserved::_as)) {
+    auto aliasTok = it_;
+    require<tok::ID>("expected alias identifier");
+    aliasName = aliasTok->GetIf<tok::ID>()->id;
+  }
+  names.emplace_back(name, aliasName);
+  while (tryConsume<tok::Operator>(Op::Comma)) {
+    idTok = it_;
+    require<tok::ID>("expected identifier");
+    name = idTok->GetIf<tok::ID>()->id;
+    aliasName.clear();
+    if (tryConsume<tok::Reserved>(tok::Reserved::_as)) {
+      auto aliasTok = it_;
+      require<tok::ID>("expected alias identifier");
+      aliasName = aliasTok->GetIf<tok::ID>()->id;
+    }
+    names.emplace_back(name, aliasName);
+  }
+
+  require<tok::Semicol>("expected ';'");
+  return std::make_shared<AST>(ImportStmt{.mod = std::move(mod),
+                                          .alias = {},
+                                          .names = std::move(names),
+                                          .kw_loc = kwLoc});
 }
 
 // -----------------------------------------------------------------------------

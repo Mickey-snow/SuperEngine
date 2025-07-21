@@ -117,6 +117,21 @@ std::string YieldStmt::DebugString() const { return "yield"; }
 std::string ScopeStmt::DebugString() const {
   return "scope " + Join(",", vars);
 }
+std::string ImportStmt::DebugString() const {
+  if (names.empty()) {
+    if (alias.empty())
+      return "import " + mod;
+    return "import " + mod + " as " + alias;
+  }
+  std::vector<std::string> parts;
+  for (auto const& [n, a] : names) {
+    if (!a.empty())
+      parts.push_back(n + " as " + a);
+    else
+      parts.push_back(n);
+  }
+  return "from " + mod + " import " + Join(",", parts);
+}
 
 // -----------------------------------------------------------------------
 // Visitor to print debug string for an AST
@@ -225,6 +240,9 @@ struct Dumper {
     if constexpr (std::same_as<T, YieldStmt>) {
       if (x.value)
         oss << x.value->Apply(Dumper(childPrefix, true));
+    }
+    if constexpr (std::same_as<T, ImportStmt>) {
+      // no subnodes to dump
     }
     if constexpr (std::same_as<T, SpawnExpr>) {
       oss << x.invoke->DumpAST("", childPrefix, true);

@@ -36,10 +36,11 @@ namespace m6 {
 namespace sr = serilang;
 
 // Constructor / Destructor
-CodeGenerator::CodeGenerator(sr::GarbageCollector& gc, bool repl)
+CodeGenerator::CodeGenerator(std::shared_ptr<serilang::GarbageCollector> gc,
+                             bool repl)
     : gc_(gc),
       repl_mode_(repl),
-      chunk_(gc.Allocate<sr::Code>()),
+      chunk_(gc->Allocate<sr::Code>()),
       locals_(),
       local_depth_(0),
       errors_() {}
@@ -367,7 +368,7 @@ void CodeGenerator::emit_stmt_node(const BlockStmt& s) {
 void CodeGenerator::emit_function(const FuncDecl& fn) {
   // compile body with a fresh compiler
   CodeGenerator nested(gc_, repl_mode_);
-  nested.SetChunk(gc_.Allocate<serilang::Code>());
+  nested.SetChunk(gc_->Allocate<serilang::Code>());
   nested.scope_heuristic_ = scope_heuristic_;
   nested.push_scope();
   nested.add_local(fn.name);
@@ -429,6 +430,23 @@ void CodeGenerator::emit_stmt_node(const YieldStmt& y) {
   else
     emit(sr::Push{constant(Value(std::monostate()))});
   emit(sr::Yield{});
+}
+
+void CodeGenerator::emit_stmt_node(const ImportStmt& is) {
+  emit(sr::LoadGlobal{intern_name("import")});
+  emit_const(is.mod);
+  emit(sr::Call{1, 0});
+  if (is.names.empty()) {
+    auto name = is.alias.empty() ? is.mod : is.alias;
+    emit(sr::StoreGlobal{intern_name(name)});
+  } else {
+    for (auto const& [sym, alias] : is.names) {
+      emit(sr::Dup{});
+      emit(sr::GetField{intern_name(sym)});
+      emit(sr::StoreGlobal{intern_name(alias.empty() ? sym : alias)});
+    }
+    emit(sr::Pop{1});
+  }
 }
 
 void CodeGenerator::emit_stmt_node(const std::shared_ptr<ExprAST>& s) {

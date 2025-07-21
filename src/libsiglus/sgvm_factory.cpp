@@ -31,9 +31,8 @@ namespace sr = serilang;
 sr::VM SGVMFactory::Create() {
   auto gc = std::make_shared<sr::GarbageCollector>();
 
-  // add bindings
-
-  sr::VM vm;
+  // add bindings here
+  sr::VM vm(gc);
 
   return vm;
 }

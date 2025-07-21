@@ -38,6 +38,7 @@ enum class ObjType : uint8_t {
   Str,
   List,
   Dict,
+  Module,
   Native,
   Code,
   Function,

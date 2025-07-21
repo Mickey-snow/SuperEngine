@@ -24,6 +24,8 @@
 
 #include "vm/vm.hpp"
 
+#include "m6/compiler_pipeline.hpp"
+
 #include "machine/op.hpp"
 #include "utilities/string_utilities.hpp"
 #include "vm/call_frame.hpp"
@@ -35,78 +37,22 @@
 
 #include <algorithm>
 #include <chrono>
+#include <fstream>
+#include <iterator>
 #include <memory>
 #include <stdexcept>
 
 namespace serilang {
 
-// static, factory method
-VM VM::Create(std::ostream& stdout, std::istream& stdin, std::ostream& stderr) {
-  VM vm;
-
-  // add builtins
-  vm.AddGlobal(
-      "time",
-      std::make_unique<NativeFunction>(
-          "time", [](Fiber& f, std::vector<Value> args,
-                     std::unordered_map<std::string, Value> /*kwargs*/) {
-            if (!args.empty())
-              throw std::runtime_error("time() takes no arguments");
-            using namespace std::chrono;
-            auto now = system_clock::now().time_since_epoch();
-            auto secs = duration_cast<seconds>(now).count();
-            return Value(static_cast<int>(secs));
-          }));
-
-  vm.AddGlobal(
-      "print",
-      std::make_unique<NativeFunction>(
-          "print", [&stdout](Fiber& f, std::vector<Value> args,
-                             std::unordered_map<std::string, Value> kwargs) {
-            std::string sep = " ";
-            if (auto it = kwargs.find("sep"); it != kwargs.end())
-              sep = it->second.Str();
-
-            std::string end = "\n";
-            if (auto it = kwargs.find("end"); it != kwargs.end())
-              end = it->second.Str();
-
-            bool do_flush = false;
-            if (auto it = kwargs.find("flush"); it != kwargs.end())
-              do_flush = it->second.IsTruthy();
-
-            bool firstPrinted = false;
-            for (auto const& v : args) {
-              if (firstPrinted) {
-                stdout << sep;
-              }
-              stdout << v.Str();
-              firstPrinted = true;
-            }
-
-            stdout << end;
-
-            if (do_flush)
-              stdout.flush();
-
-            return nil;
-          }));
-
-  vm.AddGlobal(
-      "input",
-      std::make_unique<NativeFunction>(
-          "input", [&stdin](Fiber& f, std::vector<Value> args,
-                            std::unordered_map<std::string, Value> kwargs) {
-            std::string inp;
-            stdin >> inp;
-            return Value(std::move(inp));
-          }));
-
-  return vm;
-}
-
 // -----------------------------------------------------------------------
 // class VM
+VM::VM(std::shared_ptr<GarbageCollector> gc)
+    : gc_(gc),
+      globals_(gc_->Allocate<Dict>()),
+      builtins_(gc->Allocate<Dict>()) {}
+
+VM::VM(std::shared_ptr<GarbageCollector> gc, Dict* globals, Dict* builtins)
+    : gc_(gc), globals_(globals), builtins_(builtins) {}
 
 Value VM::Evaluate(Code* chunk) {
   Fiber* f = AddFiber(chunk);
@@ -115,8 +61,8 @@ Value VM::Evaluate(Code* chunk) {
 }
 
 Fiber* VM::AddFiber(Code* chunk) {
-  Function* fn = gc_.Allocate<Function>(chunk);
-  Fiber* fiber = gc_.Allocate<Fiber>();
+  Function* fn = gc_->Allocate<Function>(chunk);
+  Fiber* fiber = gc_->Allocate<Fiber>();
   push(fiber->stack, Value(fn));
   fn->Call(*this, *fiber, 0, 0);
   fibres_.push_back(fiber);
@@ -125,21 +71,20 @@ Fiber* VM::AddFiber(Code* chunk) {
 }
 
 void VM::CollectGarbage() {
-  GCVisitor collector(gc_);
+  gc_->UnmarkAll();
+  GCVisitor collector(*gc_);
   collector.MarkSub(last_);
   collector.MarkSub(main_fiber_);
+  collector.MarkSub(globals_);
+  collector.MarkSub(builtins_);
   for (auto& it : fibres_)
     collector.MarkSub(it);
-  for (auto& [k, it] : globals_)
-    collector.MarkSub(it);
-  gc_.Sweep();
+  for (auto& [name, mod] : module_cache_)
+    collector.MarkSub(mod);
+  gc_->Sweep();
 }
 
-Value VM::AddTrack(TempValue&& t) { return gc_.TrackValue(std::move(t)); }
-
-void VM::AddGlobal(std::string key, TempValue&& v) {
-  globals_.emplace(std::move(key), AddTrack(std::move(v)));
-}
+Value VM::AddTrack(TempValue&& t) { return gc_->TrackValue(std::move(t)); }
 
 Value VM::Run() {
   bool active = true;
@@ -165,7 +110,7 @@ Value VM::Run() {
     });
 
     // run garbage collector
-    if (gc_.AllocatedBytes() >= gc_threshold_) {
+    if (gc_threshold_ > 0 && gc_->AllocatedBytes() >= gc_threshold_) {
       CollectGarbage();
       gc_threshold_ *= 2;
     }
@@ -186,6 +131,15 @@ Value VM::pop(std::vector<Value>& stack) {
   auto v = std::move(stack.back());
   stack.pop_back();
   return v;
+}
+
+Dict* VM::GetNamespace(Fiber& f) {
+  if (f.frames.empty())
+    return nullptr;
+  Function* fn = f.frames.back().fn;
+  if (fn == nullptr)
+    return nullptr;
+  return fn->globals;
 }
 
 void VM::RuntimeError(const std::string& msg) { throw std::runtime_error(msg); }
@@ -301,17 +255,31 @@ void VM::ExecuteFiber(Fiber* fib) {
       case OpCode::LoadGlobal: {
         const auto ins = chunk->Read<serilang::LoadGlobal>(ip);
         ip += sizeof(ins);
-        auto name =
+        const auto name =
             chunk->const_pool[ins.name_index].template Get<std::string>();
-        push(fib->stack, globals_[name]);
+
+        Dict* d = GetNamespace(*fib);
+        if (d == nullptr || !d->map.contains(name))
+          d = globals_;
+        if (d == nullptr || !d->map.contains(name))
+          d = builtins_;
+        auto it = d->map.find(name);
+        if (it == d->map.cend())
+          RuntimeError("NameError: '" + name + "' is not defined");
+        push(fib->stack, it->second);
       } break;
 
       case OpCode::StoreGlobal: {
         const auto ins = chunk->Read<serilang::StoreGlobal>(ip);
         ip += sizeof(ins);
-        auto name =
+        const auto name =
             chunk->const_pool[ins.name_index].template Get<std::string>();
-        globals_[name] = pop(fib->stack);
+        Value val = pop(fib->stack);
+
+        Dict* dst = GetNamespace(*fib);
+        if (dst == nullptr)
+          dst = globals_;
+        dst->map[name] = std::move(val);
       } break;
 
       case OpCode::LoadUpvalue: {
@@ -393,7 +361,8 @@ void VM::ExecuteFiber(Fiber* fib) {
         }
         fib->stack.resize(fib->stack.size() - ins.ndefault * 2);
 
-        Function* fn = gc_.Allocate<Function>(chunk);
+        Function* fn = gc_->Allocate<Function>(chunk);
+        fn->globals = globals_;
         fn->entry = ins.entry;
         fn->defaults = std::move(defaults);
         fn->nparam = ins.nparam;
@@ -425,7 +394,7 @@ void VM::ExecuteFiber(Fiber* fib) {
              ++i)
           elms.emplace_back(std::move(fib->stack[i]));
         fib->stack.resize(fib->stack.size() - ins.nelms);
-        fib->stack.emplace_back(gc_.Allocate<List>(std::move(elms)));
+        fib->stack.emplace_back(gc_->Allocate<List>(std::move(elms)));
       } break;
 
       case OpCode::MakeDict: {
@@ -439,13 +408,13 @@ void VM::ExecuteFiber(Fiber* fib) {
           elms.try_emplace(std::move(key), std::move(val));
         }
         fib->stack.resize(fib->stack.size() - 2 * ins.nelms);
-        fib->stack.emplace_back(gc_.Allocate<Dict>(std::move(elms)));
+        fib->stack.emplace_back(gc_->Allocate<Dict>(std::move(elms)));
       } break;
 
       case OpCode::MakeClass: {
         const auto ins = chunk->Read<serilang::MakeClass>(ip);
         ip += sizeof(ins);
-        auto klass = gc_.Allocate<Class>();
+        auto klass = gc_->Allocate<Class>();
         klass->name =
             chunk->const_pool[ins.name_index].template Get<std::string>();
         for (int i = 0; i < ins.nmethods; i++) {
@@ -463,7 +432,7 @@ void VM::ExecuteFiber(Fiber* fib) {
         auto name =
             chunk->const_pool[ins.name_index].template Get<std::string>();
         TempValue result = receiver.Member(name);
-        push(fib->stack, gc_.TrackValue(std::move(result)));
+        push(fib->stack, gc_->TrackValue(std::move(result)));
       } break;
 
       case OpCode::SetField: {
@@ -476,6 +445,25 @@ void VM::ExecuteFiber(Fiber* fib) {
         receiver.SetMember(name, std::move(val));
       } break;
 
+      case OpCode::GetItem: {
+        const auto ins = chunk->Read<serilang::GetItem>(ip);
+        ip += sizeof(ins);
+
+        Value index = pop(fib->stack);
+        Value receiver = pop(fib->stack);
+        TempValue result = receiver.Item(index);
+        push(fib->stack, gc_->TrackValue(std::move(result)));
+      } break;
+      case OpCode::SetItem: {
+        const auto ins = chunk->Read<serilang::SetItem>(ip);
+        ip += sizeof(ins);
+
+        Value val = pop(fib->stack);
+        Value index = pop(fib->stack);
+        Value receiver = pop(fib->stack);
+        receiver.SetItem(index, std::move(val));
+      } break;
+
       //------------------------------------------------------------------
       // 7. Coroutines
       //------------------------------------------------------------------
@@ -485,8 +473,8 @@ void VM::ExecuteFiber(Fiber* fib) {
         size_t base = fib->stack.size() - ins.argcnt - 2 * ins.kwargcnt - 1;
         Value fn = fib->stack[base];
 
-        Fiber* f =
-            gc_.Allocate<Fiber>(/*reserve=*/16 + ins.argcnt + 2 * ins.kwargcnt);
+        Fiber* f = gc_->Allocate<Fiber>(/*reserve=*/16 + ins.argcnt +
+                                        2 * ins.kwargcnt);
         std::move(fib->stack.begin() + base, fib->stack.end(),
                   std::back_inserter(f->stack));
         fib->stack.resize(base);
