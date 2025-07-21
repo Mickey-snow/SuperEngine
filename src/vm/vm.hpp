@@ -45,7 +45,6 @@ class VM {
                    std::istream& stdin = std::cin,
                    std::ostream& stderr = std::cerr);
 
- private:
   explicit VM() = default;
 
  public:
