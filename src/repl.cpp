@@ -22,11 +22,15 @@
 //
 // -----------------------------------------------------------------------
 
+#include "libsiglus/sgvm_factory.hpp"
 #include "m6/compiler_pipeline.hpp"
 #include "m6/vm_factory.hpp"
 
+#include <boost/program_options.hpp>
 #include <chrono>
 #include <iostream>
+
+namespace po = boost::program_options;
 
 using namespace m6;
 using namespace serilang;
@@ -78,11 +82,38 @@ static void run_repl(VM vm) {
   }
 }
 
-int main() {
+int main(int argc, char* argv[]) {
+  bool use_siglus;
   std::cout << copyright_info << "\n\n" << help_info << std::endl;
+  try {
+    // Define options
+    po::options_description desc("Allowed options");
+    desc.add_options()("help,h", "Produce help message")(
+        "siglus", po::value<bool>(&use_siglus)->default_value(true));
+
+    // Parse arguments
+    po::variables_map vm;
+    po::store(po::command_line_parser(argc, argv).options(desc).run(), vm);
+
+    // Handle --help
+    if (vm.count("help")) {
+      std::cout << "rlkp" << '\n';
+      std::cout << desc << '\n';
+      return 0;
+    }
+
+    po::notify(vm);
+  } catch (const po::error& e) {
+    std::cerr << "Error: " << e.what() << "\n";
+    return 1;
+  } catch (const std::exception& e) {
+    std::cerr << "Exception: " << e.what() << "\n";
+    return 1;
+  }
 
   try {
-    run_repl(m6::VMFactory::Create());
+    run_repl(use_siglus ? libsiglus::SGVMFactory().Create()
+                        : m6::VMFactory::Create());
   } catch (std::exception const& ex) {
     std::cerr << "fatal: " << ex.what() << '\n';
     return 1;

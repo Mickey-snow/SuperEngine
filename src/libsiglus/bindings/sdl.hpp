@@ -21,24 +21,17 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#include "libsiglus/sgvm_factory.hpp"
+#pragma once
 
-#include "libsiglus/bindings/sdl.hpp"
-#include "m6/vm_factory.hpp"
-#include "vm/gc.hpp"
-
-namespace libsiglus {
-namespace sr = serilang;
-
-sr::VM SGVMFactory::Create() {
-  auto gc = std::make_shared<sr::GarbageCollector>();
-
-  sr::VM vm = m6::VMFactory::Create();
-
-  // add bindings here
-  binding::SDL().Bind(vm);
-
-  return vm;
+namespace serilang {
+class VM;
 }
 
-}  // namespace libsiglus
+namespace libsiglus::binding {
+
+class SDL {
+ public:
+  void Bind(serilang::VM& vm);
+};
+
+}  // namespace libsiglus::binding
