@@ -25,17 +25,26 @@
 
 #include "libsiglus/bindings/sdl.hpp"
 
+#include "core/asset_scanner.hpp"
+#include "systems/sdl/sound_implementor.hpp"
 #include "vm/vm.hpp"
 
 #include <SDL/SDL.h>
 
+#include <filesystem>
 #include <sstream>
 
 namespace libsiglus::binding {
 namespace sr = serilang;
+namespace fs = std::filesystem;
 
 void SDL::Bind(sr::VM& vm) {
   std::shared_ptr<sr::GarbageCollector> gc = vm.gc_;
+
+  // TODO: this needs to be added as a field, but the current object system
+  // cannot hold native instances yet.
+  static SDLSoundImpl* sound_impl = nullptr;
+  static AssetScanner* scanner = nullptr;
 
   sr::Class* sdl = gc->Allocate<sr::Class>();
   sdl->name = "sdl";
@@ -86,7 +95,38 @@ void SDL::Bind(sr::VM& vm) {
               throw std::runtime_error(oss.str());
             }
 
-            return sr::Value();
+            sound_impl = new SDLSoundImpl();
+            sound_impl->InitSystem();
+            sound_impl->OpenAudio(AVSpec{.sample_rate = 48000,
+                                         .sample_format = AV_SAMPLE_FMT::S16,
+                                         .channel_count = 2},
+                                  4096);
+            sound_impl->AllocateChannels(32);
+
+            scanner = new AssetScanner();
+            scanner->IndexDirectory(fs::path("/") / "tmp" / "audio");
+
+            return sr::Value(true);
+          }));
+  sdl->methods.try_emplace(
+      "play",
+      gc->Allocate<sr::NativeFunction>(
+          "play",
+          [](sr::Fiber&, std::vector<sr::Value> args,
+             std::unordered_map<std::string, sr::Value>) -> sr::Value {
+            std::string* name;
+            if (args.size() < 1 ||
+                ((name = args.front().Get_if<std::string>()) == nullptr))
+              throw std::runtime_error(
+                  "Play: first argument 'file_name' must be string");
+
+            fs::path path = scanner->FindFile(*name);
+            player_t player = CreateAudioPlayer(path);
+
+            sound_impl->SetVolume(2, 127);
+            sound_impl->PlayChannel(2, player);
+
+            return sr::Value(true);
           }));
 
   vm.globals_->map["sdl"] = sr::Value(sdl);
