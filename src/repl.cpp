@@ -25,9 +25,11 @@
 #include "libsiglus/sgvm_factory.hpp"
 #include "m6/compiler_pipeline.hpp"
 #include "m6/vm_factory.hpp"
+#include "utilities/string_utilities.hpp"
 
 #include <boost/program_options.hpp>
 #include <chrono>
+#include <fstream>
 #include <iostream>
 
 namespace po = boost::program_options;
@@ -57,10 +59,26 @@ static void run_repl(VM vm) {
   std::string line;
   for (size_t lineno = 1; std::cout << ">> " && std::getline(std::cin, line);
        ++lineno) {
-    if (line == "exit")
-      break;
     if (line.empty())
       continue;
+
+    if (line == "exit")
+      break;
+    else if (line.starts_with("run")) {  // helper to paste and run a file
+      std::string file_name = trim_cp(line.substr(3));
+      if (!file_name.ends_with(".sr"))
+        file_name += ".sr";
+      try {
+        std::ifstream ifs(file_name);
+        if (!ifs.is_open())
+          throw std::runtime_error("file not found: " + file_name);
+        line = std::string(std::istreambuf_iterator<char>(ifs),
+                           std::istreambuf_iterator<char>());
+      } catch (std::exception& e) {
+        std::cerr << e.what() << std::endl;
+        continue;
+      }
+    }
 
     pipeline.compile(SourceBuffer::Create(
         std::move(line), "<input-" + std::to_string(lineno) + '>'));

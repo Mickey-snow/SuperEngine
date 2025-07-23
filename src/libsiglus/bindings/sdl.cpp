@@ -128,6 +128,27 @@ void SDL::Bind(sr::VM& vm) {
 
             return sr::Value(true);
           }));
+    sdl->methods.try_emplace(
+      "bgm",
+      gc->Allocate<sr::NativeFunction>(
+          "bgm",
+          [](sr::Fiber&, std::vector<sr::Value> args,
+             std::unordered_map<std::string, sr::Value>) -> sr::Value {
+            std::string* name;
+            if (args.size() < 1 ||
+                ((name = args.front().Get_if<std::string>()) == nullptr))
+              throw std::runtime_error(
+                  "Bgm: first argument 'file_name' must be string");
+
+            fs::path path = scanner->FindFile(*name);
+            player_t player = CreateAudioPlayer(path);
+
+	    sound_impl->EnableBgm();
+	    sound_impl->PlayBgm(player);
+
+            return sr::Value(true);
+          }));
+
 
   vm.globals_->map["sdl"] = sr::Value(sdl);
 }

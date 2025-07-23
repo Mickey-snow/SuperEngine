@@ -1,0 +1,3 @@
+s = sdl();
+s.__init__();
+s.play("bgm01");
