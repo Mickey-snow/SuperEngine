@@ -159,6 +159,16 @@ TEST_F(TokenizerTest, Coroutine) {
             "12,17>");
 }
 
+TEST_F(TokenizerTest, Exceptions) {
+  const std::string input = "try catch throw";
+  tokens.clear();
+  tokenizer.Parse(SourceBuffer::Create(input, "<exc test>"));
+
+  EXPECT_EQ(
+      Accumulate(tokens),
+      "<Reserved(try), 0,3> <Reserved(catch), 4,9> <Reserved(throw), 10,15>");
+}
+
 TEST_F(TokenizerTest, Import) {
   const std::string input = "from import as";
   tokens.clear();

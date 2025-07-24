@@ -321,7 +321,11 @@ void Function::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
   }
 
   // (fn, pos_arg1, ..., [var_arg], [kw_arg])
-  f.frames.emplace_back(this, entry, base);
+  f.frames.push_back({});
+  auto& frame = f.frames.back();
+  frame.fn = this;
+  frame.ip = entry;
+  frame.bp = base;
 }
 
 // -----------------------------------------------------------------------

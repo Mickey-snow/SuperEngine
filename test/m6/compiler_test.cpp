@@ -440,4 +440,21 @@ print(b.call_a());
   }
 }
 
+TEST_F(CompilerTest, TryCatchThrow) {
+  auto res = Run(R"(
+try{
+  throw 5;
+} catch(e){
+  print(e);
+}
+)");
+  ASSERT_TRUE(res.stderr.empty()) << res.stderr;
+  EXPECT_EQ(res.stdout, "5\n") << "\nDisassembly:\n" << res.disasm;
+}
+
+TEST_F(CompilerTest, UnhandledThrow) {
+  auto res = Run("throw \"oops\";");
+  EXPECT_FALSE(res.stderr.empty());
+}
+
 }  // namespace m6test

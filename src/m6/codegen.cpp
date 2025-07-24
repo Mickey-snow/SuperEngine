@@ -432,6 +432,37 @@ void CodeGenerator::emit_stmt_node(const YieldStmt& y) {
   emit(sr::Yield{});
 }
 
+void CodeGenerator::emit_stmt_node(const ThrowStmt& t) {
+  if (t.value)
+    emit_expr(t.value);
+  else
+    emit(sr::Push{constant(Value(std::monostate()))});
+  emit(sr::Throw{});
+}
+
+void CodeGenerator::emit_stmt_node(const TryStmt& t) {
+  auto try_begin = code_size();
+  emit(sr::TryBegin{0});
+  emit_stmt(t.body);
+  auto jmp = code_size();
+  emit(sr::Jump{0});
+
+  auto catch_start = code_size();
+  auto offset = rel<int32_t>(try_begin + sizeof(std::byte) + sizeof(int32_t),
+                             catch_start);
+  chunk_->Write(try_begin + 1, offset);
+
+  push_scope();
+  auto slot = add_local(t.catch_var);
+  emit(sr::StoreLocal{static_cast<uint8_t>(slot)});
+  emit_stmt(t.handler);
+  pop_scope();
+
+  auto end_pos = code_size();
+  emit(sr::TryEnd{});
+  patch(jmp, end_pos);
+}
+
 void CodeGenerator::emit_stmt_node(const ImportStmt& is) {
   emit(sr::LoadGlobal{intern_name("import")});
   emit_const(is.mod);

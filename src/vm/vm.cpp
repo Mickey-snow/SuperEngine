@@ -520,7 +520,49 @@ void VM::ExecuteFiber(Fiber* fib) {
         return;  // switch -> yield
 
       //------------------------------------------------------------------
-      // 8. Exceptions (not implemented yet)
+      // 8. Exceptions
+      //------------------------------------------------------------------
+      case OpCode::Throw: {
+        const auto ins = chunk->Read<serilang::Throw>(ip);
+        ip += sizeof(ins);
+        Value exc = pop(fib->stack);
+        while (true) {
+          if (fib->frames.empty()) {
+            RuntimeError(exc.Str());
+            return;
+          }
+          auto& fr = fib->frames.back();
+          if (!fr.handlers.empty()) {
+            auto h = fr.handlers.back();
+            fr.handlers.pop_back();
+            fib->stack.resize(h.stack_top);
+            push(fib->stack, std::move(exc));
+            fr.ip = h.handler_ip;
+            break;
+          } else {
+            fib->stack.resize(fr.bp);
+            fib->frames.pop_back();
+          }
+        }
+      } break;
+
+      case OpCode::TryBegin: {
+        const auto ins = chunk->Read<serilang::TryBegin>(ip);
+        ip += sizeof(ins);
+        frame.handlers.push_back(
+            {static_cast<uint32_t>(ip + ins.handler_rel_ofs),
+             fib->stack.size()});
+      } break;
+
+      case OpCode::TryEnd: {
+        const auto ins = chunk->Read<serilang::TryEnd>(ip);
+        ip += sizeof(ins);
+        if (!frame.handlers.empty())
+          frame.handlers.pop_back();
+      } break;
+
+      //------------------------------------------------------------------
+      // 9. Unimplemented
       //------------------------------------------------------------------
       default:
         RuntimeError("Unimplemented instruction at " + std::to_string(ip - 1));
