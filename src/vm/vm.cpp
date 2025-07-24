@@ -531,9 +531,9 @@ void VM::ExecuteFiber(Fiber* fib) {
             RuntimeError(exc.Str());
             return;
           }
-          auto& fr = fib->frames.back();
+          CallFrame& fr = fib->frames.back();
           if (!fr.handlers.empty()) {
-            auto h = fr.handlers.back();
+            ExceptionHandler h = std::move(fr.handlers.back());
             fr.handlers.pop_back();
             fib->stack.resize(h.stack_top);
             push(fib->stack, std::move(exc));
