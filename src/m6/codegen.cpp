@@ -448,9 +448,7 @@ void CodeGenerator::emit_stmt_node(const TryStmt& t) {
   emit(sr::Jump{0});
 
   auto catch_start = code_size();
-  auto offset = rel<int32_t>(try_begin + sizeof(std::byte) + sizeof(int32_t),
-                             catch_start);
-  chunk_->Write(try_begin + 1, offset);
+  patch(try_begin, catch_start);
 
   push_scope();
   auto slot = add_local(t.catch_var);
@@ -508,8 +506,10 @@ void CodeGenerator::patch(std::size_t site,
     case sr::OpCode::Jump:
     case sr::OpCode::JumpIfFalse:
     case sr::OpCode::JumpIfTrue:
+    case sr::OpCode::TryBegin:
       chunk_->Write(site + 1, offset);
       break;
+
     default:
       throw std::runtime_error(
           "Codegen: invalid patch site (type" +
