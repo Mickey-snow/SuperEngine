@@ -40,6 +40,7 @@ CodeGenerator::CodeGenerator(std::shared_ptr<serilang::GarbageCollector> gc,
                              bool repl)
     : gc_(gc),
       repl_mode_(repl),
+      in_function_(false),
       chunk_(gc->Allocate<sr::Code>()),
       locals_(),
       local_depth_(0),
@@ -96,7 +97,7 @@ void CodeGenerator::emit_const(std::string_view s) {
 std::size_t CodeGenerator::code_size() const { return chunk_->code.size(); }
 
 void CodeGenerator::emit_store_var(const std::string& id) {
-  if (locals_.empty() || get_scope(id) == SCOPE::GLOBAL) {
+  if (!in_function_ || get_scope(id) == SCOPE::GLOBAL) {
     emit(sr::StoreGlobal{intern_name(id)});
     return;
   }
@@ -122,23 +123,19 @@ void CodeGenerator::emit_load_var(const std::string& id) {
   }
 }
 
-void CodeGenerator::push_scope() { locals_.emplace_back(); }
-
-void CodeGenerator::pop_scope() { locals_.pop_back(); }
-
 // Identifier resolution
 std::optional<std::size_t> CodeGenerator::resolve_local(
     const std::string& name) const {
-  for (std::size_t i = locals_.size(); i-- > 0;) {
-    auto it = locals_[i].find(name);
-    if (it != locals_[i].end())
-      return it->second;
-  }
+  if (!in_function_)
+    return std::nullopt;
+  auto it = locals_.find(name);
+  if (it != locals_.cend())
+    return it->second;
   return std::nullopt;
 }
 
 std::size_t CodeGenerator::add_local(const std::string& name) {
-  locals_.back()[name] = local_depth_;
+  locals_[name] = local_depth_;
   return local_depth_++;
 }
 
@@ -368,7 +365,7 @@ void CodeGenerator::emit_function(const FuncDecl& fn) {
   CodeGenerator nested(gc_, repl_mode_);
   nested.SetChunk(gc_->Allocate<serilang::Code>());
   nested.scope_heuristic_ = scope_heuristic_;
-  nested.push_scope();
+  nested.in_function_ = true;
   nested.add_local(fn.name);
   for (auto& p : fn.params)
     nested.add_local(p);

@@ -56,19 +56,23 @@ class CodeGenerator {
   void Gen(std::shared_ptr<AST> ast);
 
  private:
-  enum class SCOPE { NONE = 1, GLOBAL, LOCAL };
-
   // -- Type aliases ----------------------------------------------------
   using Value = serilang::Value;
-  using Scope = std::unordered_map<std::string, std::size_t>;
+  enum class SCOPE { NONE = 1, GLOBAL, LOCAL };
+  template <typename T>
+  using Map_t = std::unordered_map<std::string,
+                                   T,
+                                   std::hash<std::string_view>,
+                                   std::equal_to<>>;
 
   // -- Data members ---------------------------------------------------
   std::shared_ptr<serilang::GarbageCollector> gc_;
   bool repl_mode_;
+  bool in_function_;
 
   serilang::Code* chunk_;
-  std::unordered_map<std::string, SCOPE> scope_heuristic_;
-  std::vector<Scope> locals_;
+  Map_t<SCOPE> scope_heuristic_;
+  Map_t<std::size_t> locals_;
   std::size_t local_depth_;
   std::vector<Error> errors_;
 
@@ -90,10 +94,6 @@ class CodeGenerator {
     else
       emit_const(Value(std::move(t)));
   }
-
-  // deprecated
-  void push_scope();
-  void pop_scope();
 
   // -- Identifier resolution ------------------------------------------
   std::optional<std::size_t> resolve_local(const std::string& id) const;
