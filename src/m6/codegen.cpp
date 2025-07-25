@@ -44,7 +44,26 @@ CodeGenerator::CodeGenerator(std::shared_ptr<serilang::GarbageCollector> gc,
       chunk_(gc->Allocate<sr::Code>()),
       locals_(),
       local_depth_(0),
-      errors_() {}
+      errors_() {
+  if (repl_mode_) {  // emit an implicit handler for uncaught exceptions
+    auto jmp = code_size();
+    emit(sr::Jump{0});
+
+    auto catch_start = code_size();
+    emit(sr::LoadGlobal{intern_name("print")});
+    emit(sr::Swap{});
+    emit(sr::Call{1, 0});
+    emit(sr::Return{});
+
+    // patch the unconditional jump to skip over the catch block
+    patch(jmp, code_size());
+
+    auto try_begin = code_size();
+    emit(sr::TryBegin{0});
+    patch(try_begin, catch_start);
+    // ignore tryend
+  }
+}
 
 CodeGenerator::~CodeGenerator() = default;
 

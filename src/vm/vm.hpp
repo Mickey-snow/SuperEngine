@@ -51,7 +51,10 @@ class VM {
   // Run until all fibers die or error; returns last fiber's result
   Value Run();
 
-  void RuntimeError(const std::string& msg);
+  /// Pop an exception from f.stack and unwind to the nearest handler.
+  void Error(Fiber& f);
+  /// Push exc onto f.stack, then unwind to the nearest handler.
+  void Error(Fiber& f, std::string exc);
 
   // REPL support: execute a single chunk, preserving VM state (globals, etc.)
   Value Evaluate(Code* chunk);

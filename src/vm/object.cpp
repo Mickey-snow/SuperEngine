@@ -250,8 +250,10 @@ void Function::MarkRoots(GCVisitor& visitor) {
 void Function::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
   std::vector<Value>& stack = f.stack;
 
-  if (nargs > nparam && !has_vararg)
-    vm.RuntimeError(Desc() + ": too many arguments");
+  if (nargs > nparam && !has_vararg) {
+    vm.Error(f, Desc() + ": too many arguments");
+    return;
+  }
 
   // Set up call stack:
   // (fn, pos_arg1, (nargs)..., kw1, kw_arg1, (nkwargs)...)
@@ -290,8 +292,10 @@ void Function::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
     auto it = param_index.find(k);
     if (it != param_index.end()) {
       auto idx = it->second;
-      if (assigned[idx])
-        vm.RuntimeError(Desc() + ": multiple values for argument '" + k + "'");
+      if (assigned[idx]) {
+        vm.Error(f, Desc() + ": multiple values for argument '" + k + "'");
+        return;
+      }
       finalargs[idx] = std::move(v);
       assigned[idx] = true;
     } else {
@@ -302,8 +306,10 @@ void Function::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
   for (size_t i = 0; i < nparam; ++i) {
     if (!assigned[i]) {
       const auto it = defaults.find(i);
-      if (it == defaults.cend())
-        vm.RuntimeError(Desc() + ": missing arguments");
+      if (it == defaults.cend()) {
+        vm.Error(f, Desc() + ": missing arguments");
+        return;
+      }
       finalargs[i] = it->second;
     }
   }
@@ -317,7 +323,8 @@ void Function::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
   if (has_kwarg) {
     stack.emplace_back(vm.gc_->Allocate<Dict>(std::move(extra_kwargs)));
   } else if (!extra_kwargs.empty()) {
-    vm.RuntimeError(Desc() + ": unexpected keyword argument");
+    vm.Error(f, Desc() + ": unexpected keyword argument");
+    return;
   }
 
   // (fn, pos_arg1, ..., [var_arg], [kw_arg])
