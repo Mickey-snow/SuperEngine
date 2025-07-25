@@ -110,7 +110,7 @@ void CodeGenerator::emit_store_var(const std::string& id) {
   }
 }
 
-void CodeGenerator::emit_load_var(const std::string& id) {
+void CodeGenerator::emit_load_var(std::string_view id) {
   if (get_scope(id) == SCOPE::GLOBAL) {
     emit(sr::LoadGlobal{intern_name(id)});
     return;
@@ -125,22 +125,22 @@ void CodeGenerator::emit_load_var(const std::string& id) {
 
 // Identifier resolution
 std::optional<std::size_t> CodeGenerator::resolve_local(
-    const std::string& name) const {
+    std::string_view id) const {
   if (!in_function_)
     return std::nullopt;
-  auto it = locals_.find(name);
+  auto it = locals_.find(id);
   if (it != locals_.cend())
     return it->second;
   return std::nullopt;
 }
 
-std::size_t CodeGenerator::add_local(const std::string& name) {
-  locals_[name] = local_depth_;
+std::size_t CodeGenerator::add_local(const std::string& id) {
+  locals_[id] = local_depth_;
   return local_depth_++;
 }
 
-CodeGenerator::SCOPE CodeGenerator::get_scope(const std::string& name) {
-  auto it = scope_heuristic_.find(name);
+CodeGenerator::SCOPE CodeGenerator::get_scope(std::string_view id) {
+  auto it = scope_heuristic_.find(id);
   if (it == scope_heuristic_.cend())
     return SCOPE::NONE;
   else
@@ -177,8 +177,7 @@ void CodeGenerator::emit_expr_node(const DictLiteral& n) {
 }
 
 void CodeGenerator::emit_expr_node(const Identifier& n) {
-  std::string id{n.value};
-  emit_load_var(id);
+  emit_load_var(n.value);
 }
 
 void CodeGenerator::emit_expr_node(const UnaryExpr& u) {

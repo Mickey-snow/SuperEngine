@@ -26,6 +26,7 @@
 
 #include "m6/ast.hpp"
 #include "m6/error.hpp"
+#include "utilities/transparent_hash.hpp"
 #include "vm/gc.hpp"
 #include "vm/instruction.hpp"
 #include "vm/object.hpp"
@@ -60,10 +61,8 @@ class CodeGenerator {
   using Value = serilang::Value;
   enum class SCOPE { NONE = 1, GLOBAL, LOCAL };
   template <typename T>
-  using Map_t = std::unordered_map<std::string,
-                                   T,
-                                   std::hash<std::string_view>,
-                                   std::equal_to<>>;
+  using Map_t =
+      std::unordered_map<std::string, T, TransparentHash, TransparentEq>;
 
   // -- Data members ---------------------------------------------------
   std::shared_ptr<serilang::GarbageCollector> gc_;
@@ -96,9 +95,9 @@ class CodeGenerator {
   }
 
   // -- Identifier resolution ------------------------------------------
-  std::optional<std::size_t> resolve_local(const std::string& id) const;
+  std::optional<std::size_t> resolve_local(std::string_view id) const;
   std::size_t add_local(const std::string& id);
-  SCOPE get_scope(const std::string& id);
+  SCOPE get_scope(std::string_view id);
 
   // -- Emit helpers ---------------------------------------------------
   template <typename T>
@@ -107,7 +106,7 @@ class CodeGenerator {
   }
   std::size_t code_size() const;
   void emit_store_var(const std::string& id);
-  void emit_load_var(const std::string& id);
+  void emit_load_var(std::string_view id);
 
   // -- Expression codegen ---------------------------------------------
   void emit_expr(std::shared_ptr<ExprAST> n);
