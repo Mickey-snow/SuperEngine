@@ -82,6 +82,7 @@ uint32_t CodeGenerator::intern_name(std::string_view s) {
   return constant(Value{std::string{s}});
 }
 
+// emit helpers
 void CodeGenerator::emit_const(Value v) {
   const auto slot = constant(std::move(v));
   emit(sr::Push{slot});
@@ -93,6 +94,33 @@ void CodeGenerator::emit_const(std::string_view s) {
 }
 
 std::size_t CodeGenerator::code_size() const { return chunk_->code.size(); }
+
+void CodeGenerator::emit_store_var(const std::string& id) {
+  if (locals_.empty() || get_scope(id) == SCOPE::GLOBAL) {
+    emit(sr::StoreGlobal{intern_name(id)});
+    return;
+  }
+
+  if (auto slot = resolve_local(id); slot.has_value()) {
+    emit(sr::StoreLocal{static_cast<uint8_t>(*slot)});
+  } else {
+    slot = add_local(id);
+    // No StoreLocal here because stack top is current slot
+  }
+}
+
+void CodeGenerator::emit_load_var(const std::string& id) {
+  if (get_scope(id) == SCOPE::GLOBAL) {
+    emit(sr::LoadGlobal{intern_name(id)});
+    return;
+  }
+
+  if (auto slot = resolve_local(id)) {
+    emit(sr::LoadLocal{static_cast<uint8_t>(*slot)});
+  } else {
+    emit(sr::LoadGlobal{intern_name(id)});
+  }
+}
 
 void CodeGenerator::push_scope() { locals_.emplace_back(); }
 
@@ -153,16 +181,7 @@ void CodeGenerator::emit_expr_node(const DictLiteral& n) {
 
 void CodeGenerator::emit_expr_node(const Identifier& n) {
   std::string id{n.value};
-  if (get_scope(id) == SCOPE::GLOBAL) {
-    emit(sr::LoadGlobal{intern_name(id)});
-    return;
-  }
-
-  if (auto slot = resolve_local(id)) {
-    emit(sr::LoadLocal{static_cast<uint8_t>(*slot)});
-  } else {
-    emit(sr::LoadGlobal{intern_name(id)});
-  }
+  emit_load_var(id);
 }
 
 void CodeGenerator::emit_expr_node(const UnaryExpr& u) {
@@ -241,17 +260,7 @@ void CodeGenerator::emit_stmt_node(const AssignStmt& s) {
     // simple variable
     emit_expr(s.rhs);
     const std::string name{id->value};
-
-    if (locals_.empty() || get_scope(name) == SCOPE::GLOBAL) {
-      emit(sr::StoreGlobal{intern_name(name)});
-      return;
-    }
-
-    if (auto slot = resolve_local(name); slot.has_value()) {
-      emit(sr::StoreLocal{static_cast<uint8_t>(*slot)});
-    } else {
-      slot = add_local(name);
-    }
+    emit_store_var(name);
   } else if (auto mem = s.lhs->Get_if<MemberExpr>()) {
     // object field
     emit_expr(mem->primary);                       // (obj)
@@ -270,21 +279,10 @@ void CodeGenerator::emit_stmt_node(const AugStmt& s) {
   if (auto id = s.lhs->Get_if<Identifier>()) {
     // simple variable
     std::string name{id->value};
-    auto slot = resolve_local(name);
-
-    if (slot.has_value())
-      emit(sr::LoadLocal{static_cast<uint8_t>(*slot)});
-    else
-      emit(sr::LoadGlobal{intern_name(name)});
-
-    emit_expr(s.rhs);
-    emit(sr::BinaryOp{s.GetRmAssignmentOp()});
-
-    if (slot.has_value())
-      emit(sr::StoreLocal{static_cast<uint8_t>(*slot)});
-    else
-      emit(sr::StoreGlobal{intern_name(name)});
-
+    emit_load_var(name);                        // (lhs)
+    emit_expr(s.rhs);                           // (lhs,rhs)
+    emit(sr::BinaryOp{s.GetRmAssignmentOp()});  // (result)
+    emit_store_var(name);                       // ->
   } else if (auto mem = s.lhs->Get_if<MemberExpr>()) {
     // object field
     emit_expr(mem->primary);                       // (obj)
@@ -444,20 +442,18 @@ void CodeGenerator::emit_stmt_node(const TryStmt& t) {
   auto try_begin = code_size();
   emit(sr::TryBegin{0});
   emit_stmt(t.body);
+  emit(sr::TryEnd{});
+
   auto jmp = code_size();
   emit(sr::Jump{0});
 
   auto catch_start = code_size();
   patch(try_begin, catch_start);
 
-  push_scope();
-  auto slot = add_local(t.catch_var);
-  emit(sr::StoreLocal{static_cast<uint8_t>(slot)});
+  emit_store_var(t.catch_var);
   emit_stmt(t.handler);
-  pop_scope();
 
   auto end_pos = code_size();
-  emit(sr::TryEnd{});
   patch(jmp, end_pos);
 }
 

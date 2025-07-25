@@ -91,20 +91,23 @@ class CodeGenerator {
       emit_const(Value(std::move(t)));
   }
 
+  // deprecated
+  void push_scope();
+  void pop_scope();
+
+  // -- Identifier resolution ------------------------------------------
+  std::optional<std::size_t> resolve_local(const std::string& id) const;
+  std::size_t add_local(const std::string& id);
+  SCOPE get_scope(const std::string& id);
+
   // -- Emit helpers ---------------------------------------------------
   template <typename T>
   inline void emit(T ins) {
     chunk_->Append(std::move(ins));
   }
   std::size_t code_size() const;
-
-  void push_scope();
-  void pop_scope();
-
-  // -- Identifier resolution ------------------------------------------
-  std::optional<std::size_t> resolve_local(const std::string& name) const;
-  std::size_t add_local(const std::string& name);
-  SCOPE get_scope(const std::string& name);
+  void emit_store_var(const std::string& id);
+  void emit_load_var(const std::string& id);
 
   // -- Expression codegen ---------------------------------------------
   void emit_expr(std::shared_ptr<ExprAST> n);

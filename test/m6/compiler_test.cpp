@@ -441,15 +441,32 @@ print(b.call_a());
 }
 
 TEST_F(CompilerTest, TryCatchThrow) {
-  auto res = Run(R"(
+  {
+    auto res = Run(R"(
 try{
   throw 5;
 } catch(e){
   print(e);
 }
 )");
-  ASSERT_TRUE(res.stderr.empty()) << res.stderr;
-  EXPECT_EQ(res.stdout, "5\n") << "\nDisassembly:\n" << res.disasm;
+    EXPECT_EQ(res, "5\n");
+  }
+
+  {
+    auto res = Run(R"(
+result = 0;
+try{
+  result = 1;
+  try{ throw 2; }
+  catch(e){ result = e; }
+} catch(e) {
+  result = 3;
+}
+
+print(result);
+)");
+    EXPECT_EQ(res, "2\n");
+  }
 }
 
 TEST_F(CompilerTest, UnhandledThrow) {
