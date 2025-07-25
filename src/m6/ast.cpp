@@ -114,6 +114,8 @@ std::string ClassDecl::DebugString() const {
 }
 std::string ReturnStmt::DebugString() const { return "return"; }
 std::string YieldStmt::DebugString() const { return "yield"; }
+std::string ThrowStmt::DebugString() const { return "throw"; }
+std::string TryStmt::DebugString() const { return "try"; }
 std::string ScopeStmt::DebugString() const {
   return "scope " + Join(",", vars);
 }
@@ -240,6 +242,14 @@ struct Dumper {
     if constexpr (std::same_as<T, YieldStmt>) {
       if (x.value)
         oss << x.value->Apply(Dumper(childPrefix, true));
+    }
+    if constexpr (std::same_as<T, ThrowStmt>) {
+      if (x.value)
+        oss << x.value->Apply(Dumper(childPrefix, true));
+    }
+    if constexpr (std::same_as<T, TryStmt>) {
+      oss << x.body->DumpAST("try", childPrefix, false);
+      oss << x.handler->DumpAST("catch " + x.catch_var, childPrefix, true);
     }
     if constexpr (std::same_as<T, ImportStmt>) {
       // no subnodes to dump

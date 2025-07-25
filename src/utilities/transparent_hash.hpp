@@ -24,24 +24,23 @@
 
 #pragma once
 
-#include <cstddef>
-#include <cstdint>
-#include <vector>
+#include <string>
+#include <string_view>
 
-namespace serilang {
-
-struct Function;
-
-struct ExceptionHandler {
-  uint32_t handler_ip;
-  size_t stack_top;
+struct TransparentHash {
+  using is_transparent = void;
+  inline size_t operator()(std::string_view v) const noexcept {
+    return std::hash<std::string_view>{}(v);
+  }
+  inline size_t operator()(std::string const& s) const noexcept {
+    return std::hash<std::string_view>{}(s);
+  }
 };
 
-struct CallFrame {
-  Function* fn = nullptr;
-  uint32_t ip = 0;  // index into chunk->code
-  size_t bp = 0;    // base pointer into fiber stack
-  std::vector<ExceptionHandler> handlers;
+struct TransparentEq {
+  using is_transparent = void;
+  inline bool operator()(std::string_view a,
+                         std::string_view b) const noexcept {
+    return a == b;
+  }
 };
-
-}  // namespace serilang

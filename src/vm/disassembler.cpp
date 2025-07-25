@@ -277,7 +277,7 @@ void Disassembler::PrintIns(Code& chunk,
     case OpCode::TryBegin: {
       const auto ins = chunk.Read<TryBegin>(ip);
       ip += sizeof(ins);
-      long tgt = static_cast<long>(ip) + 1 + ins.handler_rel_ofs;
+      long tgt = static_cast<long>(ip) + ins.handler_rel_ofs;
       emit_mnemonic("TRY_BEGIN");
       emit_operand("+" + std::to_string(ins.handler_rel_ofs));
       out_ << " -> " << tgt;

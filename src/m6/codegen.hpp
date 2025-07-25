@@ -26,6 +26,7 @@
 
 #include "m6/ast.hpp"
 #include "m6/error.hpp"
+#include "utilities/transparent_hash.hpp"
 #include "vm/gc.hpp"
 #include "vm/instruction.hpp"
 #include "vm/object.hpp"
@@ -56,19 +57,21 @@ class CodeGenerator {
   void Gen(std::shared_ptr<AST> ast);
 
  private:
-  enum class SCOPE { NONE = 1, GLOBAL, LOCAL };
-
   // -- Type aliases ----------------------------------------------------
   using Value = serilang::Value;
-  using Scope = std::unordered_map<std::string, std::size_t>;
+  enum class SCOPE { NONE = 1, GLOBAL, LOCAL };
+  template <typename T>
+  using Map_t =
+      std::unordered_map<std::string, T, TransparentHash, TransparentEq>;
 
   // -- Data members ---------------------------------------------------
   std::shared_ptr<serilang::GarbageCollector> gc_;
   bool repl_mode_;
+  bool in_function_;
 
   serilang::Code* chunk_;
-  std::unordered_map<std::string, SCOPE> scope_heuristic_;
-  std::vector<Scope> locals_;
+  Map_t<SCOPE> scope_heuristic_;
+  Map_t<std::size_t> locals_;
   std::size_t local_depth_;
   std::vector<Error> errors_;
 
@@ -91,20 +94,19 @@ class CodeGenerator {
       emit_const(Value(std::move(t)));
   }
 
+  // -- Identifier resolution ------------------------------------------
+  std::optional<std::size_t> resolve_local(std::string_view id) const;
+  std::size_t add_local(const std::string& id);
+  SCOPE get_scope(std::string_view id);
+
   // -- Emit helpers ---------------------------------------------------
   template <typename T>
   inline void emit(T ins) {
     chunk_->Append(std::move(ins));
   }
   std::size_t code_size() const;
-
-  void push_scope();
-  void pop_scope();
-
-  // -- Identifier resolution ------------------------------------------
-  std::optional<std::size_t> resolve_local(const std::string& name) const;
-  std::size_t add_local(const std::string& name);
-  SCOPE get_scope(const std::string& name);
+  void emit_store_var(const std::string& id);
+  void emit_load_var(std::string_view id);
 
   // -- Expression codegen ---------------------------------------------
   void emit_expr(std::shared_ptr<ExprAST> n);
@@ -136,6 +138,8 @@ class CodeGenerator {
   void emit_stmt_node(const ClassDecl& cd);
   void emit_stmt_node(const ReturnStmt& r);
   void emit_stmt_node(const YieldStmt& y);
+  void emit_stmt_node(const ThrowStmt& t);
+  void emit_stmt_node(const TryStmt& t);
   void emit_stmt_node(const ImportStmt& is);
   void emit_stmt_node(const std::shared_ptr<ExprAST>& s);
 

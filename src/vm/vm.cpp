@@ -142,7 +142,31 @@ Dict* VM::GetNamespace(Fiber& f) {
   return fn->globals;
 }
 
-void VM::RuntimeError(const std::string& msg) { throw std::runtime_error(msg); }
+void VM::Error(Fiber& f) {
+  Value exc = pop(f.stack);
+  while (true) {
+    if (f.frames.empty())
+      throw std::runtime_error(exc.Str());
+
+    CallFrame& fr = f.frames.back();
+    if (!fr.handlers.empty()) {
+      ExceptionHandler h = std::move(fr.handlers.back());
+      fr.handlers.pop_back();
+      f.stack.resize(h.stack_top);
+      push(f.stack, std::move(exc));
+      fr.ip = h.handler_ip;
+      break;
+    } else {
+      f.stack.resize(fr.bp);
+      f.frames.pop_back();
+    }
+  }
+}
+
+void VM::Error(Fiber& f, std::string exc) {
+  push(f.stack, Value(std::move(exc)));
+  Error(f);
+}
 
 void VM::Return(Fiber& f) {
   auto& frame = f.frames.back();
@@ -264,8 +288,10 @@ void VM::ExecuteFiber(Fiber* fib) {
         if (d == nullptr || !d->map.contains(name))
           d = builtins_;
         auto it = d->map.find(name);
-        if (it == d->map.cend())
-          RuntimeError("NameError: '" + name + "' is not defined");
+        if (it == d->map.cend()) {
+          Error(*fib, "NameError: '" + name + "' is not defined");
+          return;
+        }
         push(fib->stack, it->second);
       } break;
 
@@ -496,8 +522,10 @@ void VM::ExecuteFiber(Fiber* fib) {
           if (f->state != FiberState::Dead)
             f->state = FiberState::Running;
         } else {
-          if (f->state == FiberState::Dead)
-            RuntimeError("cannot await a dead fiber: " + f->Desc());
+          if (f->state == FiberState::Dead) {
+            Error(*fib, "cannot await a dead fiber: " + f->Desc());
+            return;
+          }
           f->state = FiberState::Running;
           f->waiter = fib;
           fib->state = FiberState::Suspended;
@@ -520,10 +548,35 @@ void VM::ExecuteFiber(Fiber* fib) {
         return;  // switch -> yield
 
       //------------------------------------------------------------------
-      // 8. Exceptions (not implemented yet)
+      // 8. Exceptions
+      //------------------------------------------------------------------
+      case OpCode::Throw: {
+        const auto ins = chunk->Read<serilang::Throw>(ip);
+        ip += sizeof(ins);
+        Error(*fib);
+      } break;
+
+      case OpCode::TryBegin: {
+        const auto ins = chunk->Read<serilang::TryBegin>(ip);
+        ip += sizeof(ins);
+        frame.handlers.push_back(
+            {static_cast<uint32_t>(ip + ins.handler_rel_ofs),
+             fib->stack.size()});
+      } break;
+
+      case OpCode::TryEnd: {
+        const auto ins = chunk->Read<serilang::TryEnd>(ip);
+        ip += sizeof(ins);
+        if (!frame.handlers.empty())
+          frame.handlers.pop_back();
+      } break;
+
+      //------------------------------------------------------------------
+      // 9. Unimplemented
       //------------------------------------------------------------------
       default:
-        RuntimeError("Unimplemented instruction at " + std::to_string(ip - 1));
+        throw std::runtime_error("Unimplemented instruction at " +
+                                 std::to_string(ip - 1));
         break;
     }
 

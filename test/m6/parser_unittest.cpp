@@ -891,6 +891,29 @@ yield
 )");
 }
 
+TEST_F(StmtParserTest, Throw) {
+  expectStmtAST(TokenArray("throw;"),
+                R"(
+throw
+)");
+  expectStmtAST(TokenArray("throw err;"),
+                R"(
+throw
+   └─ID err
+)");
+}
+
+TEST_F(StmtParserTest, TryCatch) {
+  expectStmtAST(TokenArray("try{} catch(e){}"),
+                R"(
+try
+   ├─try
+   │  └─Compound
+   └─catch e
+      └─Compound
+)");
+}
+
 TEST_F(StmtParserTest, Scope) {
   expectStmtAST(TokenArray("global a, b;"),
                 R"(
@@ -898,7 +921,7 @@ scope a,b
 )");
 }
 
-  TEST_F(StmtParserTest, Import){
+TEST_F(StmtParserTest, Import) {
   expectStmtAST(TokenArray("import a;"),
                 R"(
 import a
@@ -911,6 +934,6 @@ import a as b
                 R"(
 from a import b as c,d as e,f as g
 )");
-  }
+}
 
 }  // namespace m6test

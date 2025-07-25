@@ -303,6 +303,22 @@ struct YieldStmt {
   std::string DebugString() const;
 };
 
+struct ThrowStmt {
+  std::shared_ptr<ExprAST> value;
+  SourceLocation kw_loc;
+
+  std::string DebugString() const;
+};
+
+struct TryStmt {
+  std::shared_ptr<AST> body;
+  std::string catch_var;
+  SourceLocation catch_loc;
+  std::shared_ptr<AST> handler;
+
+  std::string DebugString() const;
+};
+
 struct ImportStmt {
   std::string mod;
   std::string alias;
@@ -329,6 +345,8 @@ using stmt_variant_t = std::variant<AssignStmt,
                                     ClassDecl,
                                     ReturnStmt,
                                     YieldStmt,
+                                    ThrowStmt,
+                                    TryStmt,
                                     ImportStmt,
                                     ScopeStmt,
                                     std::shared_ptr<ExprAST>>;

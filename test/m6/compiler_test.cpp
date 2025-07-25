@@ -106,6 +106,38 @@ class CompilerTest : public ::testing::Test {
     r.stderr += errBuf.str();
     return r;
   }
+  [[nodiscard]] ExecutionResult Interpret(
+      std::initializer_list<std::string> src) {
+    std::stringstream outBuf, errBuf;
+    ExecutionResult r;
+    auto vm = m6::VMFactory::Create(gc, outBuf, inBuf, errBuf);
+
+    for (const auto& line : src) {
+      m6::CompilerPipeline pipe(gc, /*repl=*/true);
+      auto sb = SourceBuffer::Create(line, "<Compiler Test>");
+      pipe.compile(sb);
+
+      if (!pipe.Ok()) {
+        r.stderr += pipe.FormatErrors();
+        continue;
+      }
+
+      auto chunk = pipe.Get();
+      if (!chunk) {
+        r.stderr +=
+            "internal: pipeline returned null chunk, when compiling " + line;
+        continue;
+      }
+
+      r.disasm += Disassembler().Dump(*chunk);
+
+      EXPECT_NO_THROW(r.last = vm.Evaluate(chunk));
+    }
+
+    r.stdout += outBuf.str();
+    r.stderr += errBuf.str();
+    return r;
+  }
 };
 
 TEST_F(CompilerTest, ConstantArithmetic) {
@@ -437,6 +469,42 @@ print(b.call_a());
 )");
 
     EXPECT_EQ(res, "B\nA\n");
+  }
+}
+
+TEST_F(CompilerTest, TryCatchThrow) {
+  {
+    auto res = Run(R"(
+try{
+  throw 5;
+} catch(e){
+  print(e);
+}
+)");
+    EXPECT_EQ(res, "5\n");
+  }
+
+  {
+    auto res = Run(R"(
+result = 0;
+try{
+  result = 1;
+  try{ throw 2; }
+  catch(e){ result = e; }
+} catch(e) {
+  result = 3;
+}
+
+print(result);
+)");
+    EXPECT_EQ(res, "2\n");
+  }
+}
+
+TEST_F(CompilerTest, UnhandledThrow) {
+  {
+    auto res = Interpret({"a=non_exist;", "\"still alive\";"});
+    EXPECT_EQ(res, "NameError: 'non_exist' is not defined\nstill alive\n");
   }
 }
 
