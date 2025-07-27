@@ -55,7 +55,7 @@ class CompilerTest : public ::testing::Test {
     std::string disasm;    ///< human readable disassembly
 
     bool operator==(std::string_view rhs) const {
-      return stderr.empty() && stdout == rhs;
+      return stderr.empty() && trim_cp(stdout) == trim_sv(rhs);
     }
 
     friend std::ostream& operator<<(std::ostream& os,
@@ -247,8 +247,7 @@ fn print_twice(msg) {
 print_twice("hello");
 )");
 
-    ASSERT_TRUE(res.stderr.empty()) << res.stderr;
-    EXPECT_EQ(res.stdout, "hello\nhello\n") << "\nDisassembly:\n" << res.disasm;
+    EXPECT_EQ(res, "hello\nhello\n");
   }
 
   {
@@ -263,9 +262,7 @@ print_time();
       static const std::regex re{R"(^[+-]?\d+(\.\d+)?$)"};
       return std::regex_match(s, re);
     };
-    ASSERT_TRUE(res.stderr.empty()) << res.stderr;
-    EXPECT_TRUE(isNumber(res.stdout)) << res.stdout << "\nDisassembly:\n"
-                                      << res.disasm;
+    EXPECT_TRUE(isNumber(res.stdout)) << res;
   }
 
   {
@@ -274,8 +271,7 @@ fn return_plus_1(x) { return x+1; }
 print(return_plus_1(123));
 )");
 
-    ASSERT_TRUE(res.stderr.empty()) << res.stderr;
-    EXPECT_EQ(res.stdout, "124\n") << "\nDisassembly:\n" << res.disasm;
+    EXPECT_EQ(res, "124\n");
   }
 
   {
@@ -300,10 +296,16 @@ fn foo(a=1, b=2, **kwargs){
 foo(b=10, a=20);
 )");
 
-    ASSERT_TRUE(res.stderr.empty()) << res.stderr << "\nDisassembly:\n"
-                                    << res.disasm;
-    EXPECT_EQ(res.stdout, "a = 20\nb = 10\nextra = {}\n") << "\nDisassembly:\n"
-                                                          << res.disasm;
+    EXPECT_EQ(res, "a = 20\nb = 10\nextra = {}\n");
+  }
+
+  {
+    auto res = Run(R"(
+try{ a = 1; a(); }
+catch(e){ print(e); }
+)");
+
+    EXPECT_EQ(res, "'<int: 1>' object is not callable.");
   }
 }
 
@@ -317,8 +319,7 @@ fn fib(n) {
 print(fib(10));
 )");
 
-    ASSERT_TRUE(res.stderr.empty()) << res.stderr;
-    EXPECT_EQ(res.stdout, "89\n") << "\nDisassembly:\n" << res.disasm;
+    EXPECT_EQ(res, "89\n");
   }
 }
 
@@ -335,10 +336,7 @@ klass = Klass();
 print(klass, klass.foo(), klass.boo(2,3), end="", sep=",");
 )");
 
-    ASSERT_TRUE(res.stderr.empty()) << res.stderr;
-    EXPECT_EQ(res.stdout, "<class Klass>\n<Klass object>,1,5")
-        << "\nDisassembly:\n"
-        << res.disasm;
+    EXPECT_EQ(res, "<class Klass>\n<Klass object>,1,5");
   }
 
   {
@@ -357,9 +355,27 @@ inst.method(inst, 5);
 print(inst.result);
 )");
 
-    ASSERT_TRUE(res.stderr.empty()) << res.stderr;
-    EXPECT_EQ(res.stdout, "*****0****0***0**0*0\n") << "\nDisassembly:\n"
-                                                    << res.disasm;
+    EXPECT_EQ(res, "*****0****0***0**0*0\n");
+  }
+
+  {
+    auto res = Run(R"(
+class A{}
+class B{}
+try{ A() + B(); }
+catch(e){ print(e); }
+)");
+    EXPECT_EQ(res,
+              "no match for 'operator +' (operand type <A object>,<B object>)");
+  }
+
+  {
+    auto res = Run(R"(
+class A{}
+try{ a = A(); b = a.missing; print(b); }
+catch(e){ print(e); }
+)");
+    EXPECT_EQ(res, "'<A object>' object has no member 'missing'");
   }
 }
 
@@ -470,6 +486,27 @@ print(b.call_a());
 
     EXPECT_EQ(res, "B\nA\n");
   }
+
+  {  // import missing name
+    Source mod("repl_mod_missing_attr", R"(val = 1;)");
+    auto res = Run(std::format(R"(
+try{{ from {} import missing;}}
+catch(e){{ print(e); }}
+)",
+                               mod.modname));
+    EXPECT_EQ(res, "module 'repl_mod_missing_attr' has no attribute 'missing'");
+  }
+
+  {  // module missing attribute
+    Source mod("repl_mod_no_attr", R"(val = 1;)");
+    auto res = Run(std::format(R"(
+import {} as m;
+try{{ a = m.missing; }}
+catch(e){{ print(e); }}
+)",
+                               mod.modname));
+    EXPECT_EQ(res, "module 'repl_mod_no_attr' has no attribute 'missing'");
+  }
 }
 
 TEST_F(CompilerTest, TryCatchThrow) {
@@ -501,11 +538,70 @@ print(result);
   }
 }
 
+// ==============================================================================
+// Unhandled errors in repl mode
 TEST_F(CompilerTest, UnhandledThrow) {
   {
     auto res = Interpret({"a=non_exist;", "\"still alive\";"});
     EXPECT_EQ(res, "NameError: 'non_exist' is not defined\nstill alive\n");
   }
+}
+
+TEST_F(CompilerTest, ListIndexType) {
+  auto res = Interpret({
+      R"(a = [1,2,3];)",
+      R"(a["0"];)",
+      R"("ok";)",
+  });
+  EXPECT_EQ(res, "list index must be integer, but got: <str: 0>\nok");
+}
+
+TEST_F(CompilerTest, DictIndexType) {
+  auto res = Interpret({
+      R"(a = {"x":1};)",
+      R"(a[0];)",
+      R"("ok";)",
+  });
+  EXPECT_EQ(res, "dictionary index must be string, but got: <int: 0>\nok");
+}
+
+TEST_F(CompilerTest, NegativeShiftRHS) {
+  auto res = Interpret({
+      R"(1 << -1;)",
+      R"(1 >> -2;)",
+      R"(1 >>> -3;)",
+      R"("ok";)",
+  });
+  EXPECT_EQ(res, R"(
+negative shift count: -1
+negative shift count: -2
+negative shift count: -3
+ok
+)");
+}
+
+TEST_F(CompilerTest, ItemAccessNonExist) {
+  auto res = Interpret({
+      R"(a = [1,2]; a[5];)",      // out of range
+      R"(d = {"x":1}; d["y"];)",  // missing key
+      R"("ok";)",
+  });
+  EXPECT_EQ(res, R"(
+list index '5' out of range
+dictionary has no key: y
+ok
+)");
+}
+
+TEST_F(CompilerTest, AssignmentNotSupported) {
+  auto res = Interpret({
+      R"(s = "abc"; s[0] = "x";)",
+      R"("ok";)",
+  });
+  EXPECT_EQ(res, R"(
+'<str: abc>' object does not support item assignment.
+ok
+)");
 }
 
 }  // namespace m6test

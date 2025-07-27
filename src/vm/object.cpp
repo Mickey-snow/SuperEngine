@@ -73,7 +73,7 @@ TempValue Instance::Member(std::string_view mem) {
   auto it = fields.find(std::string(mem));
   if (it == fields.cend())
     throw RuntimeError('\'' + Desc() + "' object has no member '" +
-                             std::string(mem) + '\'');
+                       std::string(mem) + '\'');
   return it->second;
 }
 void Instance::SetMember(std::string_view mem, Value val) {
@@ -151,19 +151,26 @@ void List::MarkRoots(GCVisitor& visitor) {
 }
 
 TempValue List::Item(Value& idx) {
-  auto* index = idx.Get_if<int>();
-  if (!index)
-    throw RuntimeError("list index must be integer, but got: " +
-                             idx.Desc());
-  return items[*index];
+  auto* index_ptr = idx.Get_if<int>();
+  if (!index_ptr)
+    throw RuntimeError("list index must be integer, but got: " + idx.Desc());
+
+  int index = *index_ptr < 0 ? items.size() + *index_ptr : *index_ptr;
+  if (index < 0 || index >= items.size())
+    throw RuntimeError("list index '" + idx.Str() + "' out of range");
+  return items[index];
 }
 
 void List::SetItem(Value& idx, Value val) {
-  auto* index = idx.Get_if<int>();
-  if (!index)
-    throw RuntimeError("list index must be integer, but got: " +
-                             idx.Desc());
-  items[*index] = std::move(val);
+  auto* index_ptr = idx.Get_if<int>();
+  if (!index_ptr)
+    throw RuntimeError("list index must be integer, but got: " + idx.Desc());
+
+  int index = *index_ptr < 0 ? items.size() + *index_ptr : *index_ptr;
+  if (index < 0 || index >= items.size())
+    throw RuntimeError("list index '" + idx.Str() + "' out of range");
+
+  items[index] = std::move(val);
 }
 
 // -----------------------------------------------------------------------
@@ -187,19 +194,22 @@ void Dict::MarkRoots(GCVisitor& visitor) {
     visitor.MarkSub(it);
 }
 
-TempValue Dict ::Item(Value& idx) {
+TempValue Dict::Item(Value& idx) {
   auto* index = idx.Get_if<std::string>();
   if (!index)
     throw RuntimeError("dictionary index must be string, but got: " +
-                             idx.Desc());
-  return map[*index];
+                       idx.Desc());
+  auto it = map.find(*index);
+  if (it == map.cend())
+    throw RuntimeError("dictionary has no key: " + idx.Str());
+  return it->second;
 }
 
-void Dict ::SetItem(Value& idx, Value val) {
+void Dict::SetItem(Value& idx, Value val) {
   auto* index = idx.Get_if<std::string>();
   if (!index)
     throw RuntimeError("dictionary index must be string, but got: " +
-                             idx.Desc());
+                       idx.Desc());
   map[*index] = std::move(val);
 }
 
@@ -217,8 +227,8 @@ TempValue Module::Member(std::string_view mem) {
   std::string mem_str(mem);
   auto it = globals->map.find(mem_str);
   if (it == globals->map.cend())
-    throw RuntimeError("module '" + name + "' has no attribute '" +
-                             mem_str);
+    throw RuntimeError("module '" + name + "' has no attribute '" + mem_str +
+                       '\'');
   return it->second;
 }
 

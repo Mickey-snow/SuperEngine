@@ -248,8 +248,16 @@ void VM::ExecuteFiber(Fiber* fib) {
         const auto ins = chunk->Read<serilang::UnaryOp>(ip);
         ip += sizeof(ins);
         auto v = pop(fib->stack);
-        Value r = AddTrack(v.Operator(ins.op));
-        push(fib->stack, r);
+        TempValue result = nil;
+        try {
+          result = v.Operator(ins.op);
+        } catch (RuntimeError& e) {
+          push(fib->stack, nil);
+          Error(*fib, e.message());
+          return;
+        }
+
+        push(fib->stack, AddTrack(std::move(result)));
       } break;
 
       case OpCode::BinaryOp: {
@@ -257,8 +265,16 @@ void VM::ExecuteFiber(Fiber* fib) {
         ip += sizeof(ins);
         auto rhs = pop(fib->stack);
         auto lhs = pop(fib->stack);
-        Value out = AddTrack(lhs.Operator(ins.op, std::move(rhs)));
-        push(fib->stack, out);
+        TempValue result = nil;
+        try {
+          result = lhs.Operator(ins.op, std::move(rhs));
+        } catch (RuntimeError& e) {
+          push(fib->stack, nil);
+          Error(*fib, e.message());
+          return;
+        }
+
+        push(fib->stack, AddTrack(std::move(result)));
       } break;
 
       //------------------------------------------------------------------
@@ -306,25 +322,6 @@ void VM::ExecuteFiber(Fiber* fib) {
         if (dst == nullptr)
           dst = globals_;
         dst->map[name] = std::move(val);
-      } break;
-
-      case OpCode::LoadUpvalue: {
-        const auto ins = chunk->Read<serilang::LoadUpvalue>(ip);
-        ip += sizeof(ins);
-        // (not implemented here)
-      } break;
-
-      case OpCode::StoreUpvalue: {
-        const auto ins = chunk->Read<serilang::StoreUpvalue>(ip);
-        ip += sizeof(ins);
-        // (not implemented here)
-      } break;
-
-      case OpCode::CloseUpvalues: {
-        const auto ins = chunk->Read<serilang::CloseUpvalues>(ip);
-        ip += sizeof(ins);
-        auto* base = fib->local_slot(fib->frames.size() - 1, ins.from_slot);
-        fib->close_upvalues_from(base);
       } break;
 
       //------------------------------------------------------------------
@@ -405,7 +402,12 @@ void VM::ExecuteFiber(Fiber* fib) {
         Value& callee =
             fib->stack.end()[-static_cast<size_t>(ins.argcnt) -
                              2 * static_cast<size_t>(ins.kwargcnt) - 1];
-        callee.Call(*this, *fib, ins.argcnt, ins.kwargcnt);
+        try {
+          callee.Call(*this, *fib, ins.argcnt, ins.kwargcnt);
+        } catch (RuntimeError& e) {
+          Error(*fib, e.message());
+          return;
+        }
       } break;
 
       //------------------------------------------------------------------
@@ -457,8 +459,16 @@ void VM::ExecuteFiber(Fiber* fib) {
         Value receiver = pop(fib->stack);
         auto name =
             chunk->const_pool[ins.name_index].template Get<std::string>();
-        TempValue result = receiver.Member(name);
-        push(fib->stack, gc_->TrackValue(std::move(result)));
+        TempValue result = nil;
+        try {
+          result = receiver.Member(name);
+        } catch (RuntimeError& e) {
+          push(fib->stack, nil);
+          Error(*fib, e.message());
+          return;
+        }
+
+        push(fib->stack, AddTrack(std::move(result)));
       } break;
 
       case OpCode::SetField: {
@@ -468,7 +478,12 @@ void VM::ExecuteFiber(Fiber* fib) {
         auto receiver = pop(fib->stack);
         auto name =
             chunk->const_pool[ins.name_index].template Get<std::string>();
-        receiver.SetMember(name, std::move(val));
+        try {
+          receiver.SetMember(name, std::move(val));
+        } catch (RuntimeError& e) {
+          Error(*fib, e.message());
+          return;
+        }
       } break;
 
       case OpCode::GetItem: {
@@ -477,7 +492,15 @@ void VM::ExecuteFiber(Fiber* fib) {
 
         Value index = pop(fib->stack);
         Value receiver = pop(fib->stack);
-        TempValue result = receiver.Item(index);
+        TempValue result = nil;
+        try {
+          result = receiver.Item(index);
+        } catch (RuntimeError& e) {
+          push(fib->stack, nil);
+          Error(*fib, e.message());
+          return;
+        }
+
         push(fib->stack, gc_->TrackValue(std::move(result)));
       } break;
       case OpCode::SetItem: {
@@ -487,7 +510,12 @@ void VM::ExecuteFiber(Fiber* fib) {
         Value val = pop(fib->stack);
         Value index = pop(fib->stack);
         Value receiver = pop(fib->stack);
-        receiver.SetItem(index, std::move(val));
+        try {
+          receiver.SetItem(index, std::move(val));
+        } catch (RuntimeError& e) {
+          Error(*fib, e.message());
+          return;
+        }
       } break;
 
       //------------------------------------------------------------------
@@ -554,6 +582,7 @@ void VM::ExecuteFiber(Fiber* fib) {
         const auto ins = chunk->Read<serilang::Throw>(ip);
         ip += sizeof(ins);
         Error(*fib);
+        return;
       } break;
 
       case OpCode::TryBegin: {
