@@ -22,37 +22,18 @@
 //
 // -----------------------------------------------------------------------
 
-#include "vm/iobject.hpp"
-#include "vm/value.hpp"
+#include "vm/exception.hpp"
 
-#include <stdexcept>
+#include "utilities/string_utilities.hpp"
 
 namespace serilang {
 
-std::string IObject::Str() const { return "<str: ?>"; }
-std::string IObject::Desc() const { return "<desc: ?>"; }
+RuntimeError::RuntimeError(std::string msg) : msg_(std::move(msg)) {}
 
-void IObject::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
-  throw RuntimeError('\'' + Desc() + "' object is not callable.");
-}
+ValueError::ValueError(std::string msg) : RuntimeError(std::move(msg)) {}
 
-TempValue IObject::Item(Value& idx) {
-  throw RuntimeError('\'' + Desc() + "' object is not subscriptable.");
-}
-
-void IObject::SetItem(Value& idx, Value value) {
-  throw RuntimeError('\'' + Desc() +
-                           "' object does not support item assignment.");
-}
-
-TempValue IObject::Member(std::string_view mem) {
-  throw RuntimeError('\'' + Desc() + "' object has no member '" +
-                           std::string(mem) + '\'');
-}
-
-void IObject::SetMember(std::string_view mem, Value value) {
-  throw RuntimeError('\'' + Desc() +
-                           "' object does not support member assignment.");
-}
+UndefinedOperator::UndefinedOperator(Op op, std::vector<std::string> operands)
+    : RuntimeError("no match for 'operator " + ToString(op) +
+                   "' (operand type " + Join(",", operands) + ')') {}
 
 }  // namespace serilang

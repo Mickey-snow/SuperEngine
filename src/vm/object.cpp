@@ -72,7 +72,7 @@ std::string Instance::Desc() const { return '<' + klass->name + " object>"; }
 TempValue Instance::Member(std::string_view mem) {
   auto it = fields.find(std::string(mem));
   if (it == fields.cend())
-    throw std::runtime_error('\'' + Desc() + "' object has no member '" +
+    throw RuntimeError('\'' + Desc() + "' object has no member '" +
                              std::string(mem) + '\'');
   return it->second;
 }
@@ -153,7 +153,7 @@ void List::MarkRoots(GCVisitor& visitor) {
 TempValue List::Item(Value& idx) {
   auto* index = idx.Get_if<int>();
   if (!index)
-    throw std::runtime_error("list index must be integer, but got: " +
+    throw RuntimeError("list index must be integer, but got: " +
                              idx.Desc());
   return items[*index];
 }
@@ -161,7 +161,7 @@ TempValue List::Item(Value& idx) {
 void List::SetItem(Value& idx, Value val) {
   auto* index = idx.Get_if<int>();
   if (!index)
-    throw std::runtime_error("list index must be integer, but got: " +
+    throw RuntimeError("list index must be integer, but got: " +
                              idx.Desc());
   items[*index] = std::move(val);
 }
@@ -190,7 +190,7 @@ void Dict::MarkRoots(GCVisitor& visitor) {
 TempValue Dict ::Item(Value& idx) {
   auto* index = idx.Get_if<std::string>();
   if (!index)
-    throw std::runtime_error("dictionary index must be string, but got: " +
+    throw RuntimeError("dictionary index must be string, but got: " +
                              idx.Desc());
   return map[*index];
 }
@@ -198,7 +198,7 @@ TempValue Dict ::Item(Value& idx) {
 void Dict ::SetItem(Value& idx, Value val) {
   auto* index = idx.Get_if<std::string>();
   if (!index)
-    throw std::runtime_error("dictionary index must be string, but got: " +
+    throw RuntimeError("dictionary index must be string, but got: " +
                              idx.Desc());
   map[*index] = std::move(val);
 }
@@ -217,7 +217,7 @@ TempValue Module::Member(std::string_view mem) {
   std::string mem_str(mem);
   auto it = globals->map.find(mem_str);
   if (it == globals->map.cend())
-    throw std::runtime_error("module '" + name + "' has no attribute '" +
+    throw RuntimeError("module '" + name + "' has no attribute '" +
                              mem_str);
   return it->second;
 }

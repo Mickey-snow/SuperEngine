@@ -32,11 +32,6 @@
 
 namespace serilang {
 
-ValueError::ValueError(std::string msg) : std::runtime_error(std::move(msg)) {}
-UndefinedOperator::UndefinedOperator(Op op, std::vector<std::string> operands)
-    : std::runtime_error("no match for 'operator " + ToString(op) +
-                         "' (operand type " + Join(",", operands) + ')') {}
-
 // -----------------------------------------------------------------------
 // class Value
 
@@ -418,7 +413,7 @@ void Value::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
           x->Call(vm, f, nargs, nkwargs);
 
         else
-          throw std::runtime_error('\'' + Desc() + "' object is not callable.");
+          throw RuntimeError('\'' + Desc() + "' object is not callable.");
       },
       val_);
 }
@@ -435,8 +430,8 @@ TempValue Value::Member(std::string_view mem) {
           return x->Member(mem);
 
         else
-          throw std::runtime_error('\'' + Desc() + "' object has no member '" +
-                                   std::string(mem) + '\'');
+          throw RuntimeError('\'' + Desc() + "' object has no member '" +
+                             std::string(mem) + '\'');
       },
       val_);
 }
@@ -453,8 +448,8 @@ void Value::SetMember(std::string_view mem, Value value) {
           x->SetMember(mem, std::move(value));
 
         else
-          throw std::runtime_error(
-              '\'' + Desc() + "' object does not support member assignment.");
+          throw RuntimeError('\'' + Desc() +
+                             "' object does not support member assignment.");
       },
       val_);
 }
@@ -471,8 +466,8 @@ TempValue Value::Item(Value& idx) {
           return x->Item(idx);
 
         else
-          throw std::runtime_error('\'' + Desc() + "' object has no item '" +
-                                   idx.Str() + '\'');
+          throw RuntimeError('\'' + Desc() + "' object has no item '" +
+                             idx.Str() + '\'');
       },
       val_);
 }
@@ -489,8 +484,8 @@ void Value::SetItem(Value& idx, Value value) {
           x->SetItem(idx, std::move(value));
 
         else
-          throw std::runtime_error(
-              '\'' + Desc() + "' object does not support item assignment.");
+          throw RuntimeError('\'' + Desc() +
+                             "' object does not support item assignment.");
       },
       val_);
 }
