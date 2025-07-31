@@ -72,8 +72,8 @@ std::string Instance::Desc() const { return '<' + klass->name + " object>"; }
 TempValue Instance::Member(std::string_view mem) {
   auto it = fields.find(std::string(mem));
   if (it == fields.cend())
-    throw std::runtime_error('\'' + Desc() + "' object has no member '" +
-                             std::string(mem) + '\'');
+    throw RuntimeError('\'' + Desc() + "' object has no member '" +
+                       std::string(mem) + '\'');
   return it->second;
 }
 void Instance::SetMember(std::string_view mem, Value val) {
@@ -151,19 +151,26 @@ void List::MarkRoots(GCVisitor& visitor) {
 }
 
 TempValue List::Item(Value& idx) {
-  auto* index = idx.Get_if<int>();
-  if (!index)
-    throw std::runtime_error("list index must be integer, but got: " +
-                             idx.Desc());
-  return items[*index];
+  auto* index_ptr = idx.Get_if<int>();
+  if (!index_ptr)
+    throw RuntimeError("list index must be integer, but got: " + idx.Desc());
+
+  int index = *index_ptr < 0 ? items.size() + *index_ptr : *index_ptr;
+  if (index < 0 || index >= items.size())
+    throw RuntimeError("list index '" + idx.Str() + "' out of range");
+  return items[index];
 }
 
 void List::SetItem(Value& idx, Value val) {
-  auto* index = idx.Get_if<int>();
-  if (!index)
-    throw std::runtime_error("list index must be integer, but got: " +
-                             idx.Desc());
-  items[*index] = std::move(val);
+  auto* index_ptr = idx.Get_if<int>();
+  if (!index_ptr)
+    throw RuntimeError("list index must be integer, but got: " + idx.Desc());
+
+  int index = *index_ptr < 0 ? items.size() + *index_ptr : *index_ptr;
+  if (index < 0 || index >= items.size())
+    throw RuntimeError("list index '" + idx.Str() + "' out of range");
+
+  items[index] = std::move(val);
 }
 
 // -----------------------------------------------------------------------
@@ -187,19 +194,22 @@ void Dict::MarkRoots(GCVisitor& visitor) {
     visitor.MarkSub(it);
 }
 
-TempValue Dict ::Item(Value& idx) {
+TempValue Dict::Item(Value& idx) {
   auto* index = idx.Get_if<std::string>();
   if (!index)
-    throw std::runtime_error("dictionary index must be string, but got: " +
-                             idx.Desc());
-  return map[*index];
+    throw RuntimeError("dictionary index must be string, but got: " +
+                       idx.Desc());
+  auto it = map.find(*index);
+  if (it == map.cend())
+    throw RuntimeError("dictionary has no key: " + idx.Str());
+  return it->second;
 }
 
-void Dict ::SetItem(Value& idx, Value val) {
+void Dict::SetItem(Value& idx, Value val) {
   auto* index = idx.Get_if<std::string>();
   if (!index)
-    throw std::runtime_error("dictionary index must be string, but got: " +
-                             idx.Desc());
+    throw RuntimeError("dictionary index must be string, but got: " +
+                       idx.Desc());
   map[*index] = std::move(val);
 }
 
@@ -217,8 +227,8 @@ TempValue Module::Member(std::string_view mem) {
   std::string mem_str(mem);
   auto it = globals->map.find(mem_str);
   if (it == globals->map.cend())
-    throw std::runtime_error("module '" + name + "' has no attribute '" +
-                             mem_str);
+    throw RuntimeError("module '" + name + "' has no attribute '" + mem_str +
+                       '\'');
   return it->second;
 }
 
@@ -250,8 +260,10 @@ void Function::MarkRoots(GCVisitor& visitor) {
 void Function::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
   std::vector<Value>& stack = f.stack;
 
-  if (nargs > nparam && !has_vararg)
-    vm.RuntimeError(Desc() + ": too many arguments");
+  if (nargs > nparam && !has_vararg) {
+    vm.Error(f, Desc() + ": too many arguments");
+    return;
+  }
 
   // Set up call stack:
   // (fn, pos_arg1, (nargs)..., kw1, kw_arg1, (nkwargs)...)
@@ -290,8 +302,10 @@ void Function::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
     auto it = param_index.find(k);
     if (it != param_index.end()) {
       auto idx = it->second;
-      if (assigned[idx])
-        vm.RuntimeError(Desc() + ": multiple values for argument '" + k + "'");
+      if (assigned[idx]) {
+        vm.Error(f, Desc() + ": multiple values for argument '" + k + "'");
+        return;
+      }
       finalargs[idx] = std::move(v);
       assigned[idx] = true;
     } else {
@@ -302,8 +316,10 @@ void Function::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
   for (size_t i = 0; i < nparam; ++i) {
     if (!assigned[i]) {
       const auto it = defaults.find(i);
-      if (it == defaults.cend())
-        vm.RuntimeError(Desc() + ": missing arguments");
+      if (it == defaults.cend()) {
+        vm.Error(f, Desc() + ": missing arguments");
+        return;
+      }
       finalargs[i] = it->second;
     }
   }
@@ -317,11 +333,16 @@ void Function::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
   if (has_kwarg) {
     stack.emplace_back(vm.gc_->Allocate<Dict>(std::move(extra_kwargs)));
   } else if (!extra_kwargs.empty()) {
-    vm.RuntimeError(Desc() + ": unexpected keyword argument");
+    vm.Error(f, Desc() + ": unexpected keyword argument");
+    return;
   }
 
   // (fn, pos_arg1, ..., [var_arg], [kw_arg])
-  f.frames.emplace_back(this, entry, base);
+  f.frames.push_back({});
+  auto& frame = f.frames.back();
+  frame.fn = this;
+  frame.ip = entry;
+  frame.bp = base;
 }
 
 // -----------------------------------------------------------------------

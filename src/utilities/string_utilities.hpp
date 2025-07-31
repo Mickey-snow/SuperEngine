@@ -182,3 +182,21 @@ inline std::string trim_cp(std::string s) {
   trim(s);
   return s;
 }
+
+inline std::string_view ltrim_sv(std::string_view s) {
+  auto it = std::find_if(s.begin(), s.end(),
+                         [](unsigned char ch) { return !std::isspace(ch); });
+  return s.substr(std::distance(s.begin(), it));
+}
+
+inline std::string_view rtrim_sv(std::string_view s) {
+  auto it = std::find_if(s.rbegin(), s.rend(),
+                         [](unsigned char ch) { return !std::isspace(ch); });
+  // base() is the first non-space from the end; distance to begin gives new
+  // length
+  return s.substr(0, std::distance(s.begin(), it.base()));
+}
+
+inline std::string_view trim_sv(std::string_view s) {
+  return ltrim_sv(rtrim_sv(s));
+}

@@ -22,37 +22,35 @@
 //
 // -----------------------------------------------------------------------
 
-#include "vm/iobject.hpp"
-#include "vm/value.hpp"
+#pragma once
+
+#include "machine/op.hpp"
 
 #include <stdexcept>
+#include <string>
+#include <vector>
 
 namespace serilang {
 
-std::string IObject::Str() const { return "<str: ?>"; }
-std::string IObject::Desc() const { return "<desc: ?>"; }
+class RuntimeError : public std::exception {
+  std::string msg_;
 
-void IObject::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
-  throw RuntimeError('\'' + Desc() + "' object is not callable.");
-}
+ public:
+  explicit RuntimeError(std::string msg);
+  virtual const char* what() const noexcept { return msg_.data(); }
+  std::string const& message() const { return msg_; }
+};
 
-TempValue IObject::Item(Value& idx) {
-  throw RuntimeError('\'' + Desc() + "' object is not subscriptable.");
-}
+class ValueError : public RuntimeError {
+ public:
+  explicit ValueError(std::string msg);
+  using RuntimeError::what;
+};
 
-void IObject::SetItem(Value& idx, Value value) {
-  throw RuntimeError('\'' + Desc() +
-                           "' object does not support item assignment.");
-}
-
-TempValue IObject::Member(std::string_view mem) {
-  throw RuntimeError('\'' + Desc() + "' object has no member '" +
-                           std::string(mem) + '\'');
-}
-
-void IObject::SetMember(std::string_view mem, Value value) {
-  throw RuntimeError('\'' + Desc() +
-                           "' object does not support member assignment.");
-}
+class UndefinedOperator : public RuntimeError {
+ public:
+  explicit UndefinedOperator(Op op, std::vector<std::string> operands);
+  using RuntimeError::what;
+};
 
 }  // namespace serilang

@@ -40,10 +40,30 @@ CodeGenerator::CodeGenerator(std::shared_ptr<serilang::GarbageCollector> gc,
                              bool repl)
     : gc_(gc),
       repl_mode_(repl),
+      in_function_(false),
       chunk_(gc->Allocate<sr::Code>()),
       locals_(),
       local_depth_(0),
-      errors_() {}
+      errors_() {
+  if (repl_mode_) {  // emit an implicit handler for uncaught exceptions
+    auto jmp = code_size();
+    emit(sr::Jump{0});
+
+    auto catch_start = code_size();
+    emit(sr::LoadGlobal{intern_name("print")});
+    emit(sr::Swap{});
+    emit(sr::Call{1, 0});
+    emit(sr::Return{});
+
+    // patch the unconditional jump to skip over the catch block
+    patch(jmp, code_size());
+
+    auto try_begin = code_size();
+    emit(sr::TryBegin{0});
+    patch(try_begin, catch_start);
+    // ignore tryend
+  }
+}
 
 CodeGenerator::~CodeGenerator() = default;
 
@@ -82,6 +102,7 @@ uint32_t CodeGenerator::intern_name(std::string_view s) {
   return constant(Value{std::string{s}});
 }
 
+// emit helpers
 void CodeGenerator::emit_const(Value v) {
   const auto slot = constant(std::move(v));
   emit(sr::Push{slot});
@@ -94,28 +115,51 @@ void CodeGenerator::emit_const(std::string_view s) {
 
 std::size_t CodeGenerator::code_size() const { return chunk_->code.size(); }
 
-void CodeGenerator::push_scope() { locals_.emplace_back(); }
+void CodeGenerator::emit_store_var(const std::string& id) {
+  if (!in_function_ || get_scope(id) == SCOPE::GLOBAL) {
+    emit(sr::StoreGlobal{intern_name(id)});
+    return;
+  }
 
-void CodeGenerator::pop_scope() { locals_.pop_back(); }
+  if (auto slot = resolve_local(id); slot.has_value()) {
+    emit(sr::StoreLocal{static_cast<uint8_t>(*slot)});
+  } else {
+    slot = add_local(id);
+    // No StoreLocal here because stack top is current slot
+  }
+}
+
+void CodeGenerator::emit_load_var(std::string_view id) {
+  if (get_scope(id) == SCOPE::GLOBAL) {
+    emit(sr::LoadGlobal{intern_name(id)});
+    return;
+  }
+
+  if (auto slot = resolve_local(id)) {
+    emit(sr::LoadLocal{static_cast<uint8_t>(*slot)});
+  } else {
+    emit(sr::LoadGlobal{intern_name(id)});
+  }
+}
 
 // Identifier resolution
 std::optional<std::size_t> CodeGenerator::resolve_local(
-    const std::string& name) const {
-  for (std::size_t i = locals_.size(); i-- > 0;) {
-    auto it = locals_[i].find(name);
-    if (it != locals_[i].end())
-      return it->second;
-  }
+    std::string_view id) const {
+  if (!in_function_)
+    return std::nullopt;
+  auto it = locals_.find(id);
+  if (it != locals_.cend())
+    return it->second;
   return std::nullopt;
 }
 
-std::size_t CodeGenerator::add_local(const std::string& name) {
-  locals_.back()[name] = local_depth_;
+std::size_t CodeGenerator::add_local(const std::string& id) {
+  locals_[id] = local_depth_;
   return local_depth_++;
 }
 
-CodeGenerator::SCOPE CodeGenerator::get_scope(const std::string& name) {
-  auto it = scope_heuristic_.find(name);
+CodeGenerator::SCOPE CodeGenerator::get_scope(std::string_view id) {
+  auto it = scope_heuristic_.find(id);
   if (it == scope_heuristic_.cend())
     return SCOPE::NONE;
   else
@@ -152,17 +196,7 @@ void CodeGenerator::emit_expr_node(const DictLiteral& n) {
 }
 
 void CodeGenerator::emit_expr_node(const Identifier& n) {
-  std::string id{n.value};
-  if (get_scope(id) == SCOPE::GLOBAL) {
-    emit(sr::LoadGlobal{intern_name(id)});
-    return;
-  }
-
-  if (auto slot = resolve_local(id)) {
-    emit(sr::LoadLocal{static_cast<uint8_t>(*slot)});
-  } else {
-    emit(sr::LoadGlobal{intern_name(id)});
-  }
+  emit_load_var(n.value);
 }
 
 void CodeGenerator::emit_expr_node(const UnaryExpr& u) {
@@ -241,17 +275,7 @@ void CodeGenerator::emit_stmt_node(const AssignStmt& s) {
     // simple variable
     emit_expr(s.rhs);
     const std::string name{id->value};
-
-    if (locals_.empty() || get_scope(name) == SCOPE::GLOBAL) {
-      emit(sr::StoreGlobal{intern_name(name)});
-      return;
-    }
-
-    if (auto slot = resolve_local(name); slot.has_value()) {
-      emit(sr::StoreLocal{static_cast<uint8_t>(*slot)});
-    } else {
-      slot = add_local(name);
-    }
+    emit_store_var(name);
   } else if (auto mem = s.lhs->Get_if<MemberExpr>()) {
     // object field
     emit_expr(mem->primary);                       // (obj)
@@ -270,21 +294,10 @@ void CodeGenerator::emit_stmt_node(const AugStmt& s) {
   if (auto id = s.lhs->Get_if<Identifier>()) {
     // simple variable
     std::string name{id->value};
-    auto slot = resolve_local(name);
-
-    if (slot.has_value())
-      emit(sr::LoadLocal{static_cast<uint8_t>(*slot)});
-    else
-      emit(sr::LoadGlobal{intern_name(name)});
-
-    emit_expr(s.rhs);
-    emit(sr::BinaryOp{s.GetRmAssignmentOp()});
-
-    if (slot.has_value())
-      emit(sr::StoreLocal{static_cast<uint8_t>(*slot)});
-    else
-      emit(sr::StoreGlobal{intern_name(name)});
-
+    emit_load_var(name);                        // (lhs)
+    emit_expr(s.rhs);                           // (lhs,rhs)
+    emit(sr::BinaryOp{s.GetRmAssignmentOp()});  // (result)
+    emit_store_var(name);                       // ->
   } else if (auto mem = s.lhs->Get_if<MemberExpr>()) {
     // object field
     emit_expr(mem->primary);                       // (obj)
@@ -370,7 +383,7 @@ void CodeGenerator::emit_function(const FuncDecl& fn) {
   CodeGenerator nested(gc_, repl_mode_);
   nested.SetChunk(gc_->Allocate<serilang::Code>());
   nested.scope_heuristic_ = scope_heuristic_;
-  nested.push_scope();
+  nested.in_function_ = true;
   nested.add_local(fn.name);
   for (auto& p : fn.params)
     nested.add_local(p);
@@ -432,6 +445,33 @@ void CodeGenerator::emit_stmt_node(const YieldStmt& y) {
   emit(sr::Yield{});
 }
 
+void CodeGenerator::emit_stmt_node(const ThrowStmt& t) {
+  if (t.value)
+    emit_expr(t.value);
+  else
+    emit(sr::Push{constant(Value(std::monostate()))});
+  emit(sr::Throw{});
+}
+
+void CodeGenerator::emit_stmt_node(const TryStmt& t) {
+  auto try_begin = code_size();
+  emit(sr::TryBegin{0});
+  emit_stmt(t.body);
+  emit(sr::TryEnd{});
+
+  auto jmp = code_size();
+  emit(sr::Jump{0});
+
+  auto catch_start = code_size();
+  patch(try_begin, catch_start);
+
+  emit_store_var(t.catch_var);
+  emit_stmt(t.handler);
+
+  auto end_pos = code_size();
+  patch(jmp, end_pos);
+}
+
 void CodeGenerator::emit_stmt_node(const ImportStmt& is) {
   emit(sr::LoadGlobal{intern_name("import")});
   emit_const(is.mod);
@@ -477,8 +517,10 @@ void CodeGenerator::patch(std::size_t site,
     case sr::OpCode::Jump:
     case sr::OpCode::JumpIfFalse:
     case sr::OpCode::JumpIfTrue:
+    case sr::OpCode::TryBegin:
       chunk_->Write(site + 1, offset);
       break;
+
     default:
       throw std::runtime_error(
           "Codegen: invalid patch site (type" +

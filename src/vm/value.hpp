@@ -25,6 +25,7 @@
 #pragma once
 
 #include "machine/op.hpp"
+#include "vm/exception.hpp"
 #include "vm/objtype.hpp"
 #include "vm/value_fwd.hpp"
 
@@ -37,17 +38,6 @@ namespace serilang {
 
 struct GCVisitor;
 class VM;
-
-class ValueError : public std::runtime_error {
- public:
-  explicit ValueError(std::string msg);
-  using std::runtime_error::what;
-};
-class UndefinedOperator : public std::runtime_error {
- public:
-  explicit UndefinedOperator(Op op, std::vector<std::string> operands);
-  using std::runtime_error::what;
-};
 
 // -----------------------------------------------------------------------
 // Value system

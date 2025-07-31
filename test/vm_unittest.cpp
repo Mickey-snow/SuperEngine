@@ -287,4 +287,19 @@ TEST_F(VMTest, FunctionGlobal) {
   EXPECT_EQ(result.Str(), "{second:2,first:oneone}");
 }
 
+TEST_F(VMTest, Exception) {
+  Code* code = gc->Allocate<Code>();
+  code->const_pool = value_vector(1, 2);
+  append_ins(code, {Push(1),
+                    // 5: try
+                    TryBegin(19), Push(1), Push(0), Throw(), TryEnd(), Jump(2),
+                    // 29: handle
+                    StoreLocal(1),
+                    // 31: return local #1
+                    LoadLocal(1), Return()});
+
+  Value result = run_and_get(code);
+  EXPECT_EQ(result.Desc(), "<int: 1>");
+}
+
 }  // namespace serilang_test

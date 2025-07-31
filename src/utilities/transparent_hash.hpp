@@ -22,37 +22,25 @@
 //
 // -----------------------------------------------------------------------
 
-#include "vm/iobject.hpp"
-#include "vm/value.hpp"
+#pragma once
 
-#include <stdexcept>
+#include <string>
+#include <string_view>
 
-namespace serilang {
+struct TransparentHash {
+  using is_transparent = void;
+  inline size_t operator()(std::string_view v) const noexcept {
+    return std::hash<std::string_view>{}(v);
+  }
+  inline size_t operator()(std::string const& s) const noexcept {
+    return std::hash<std::string_view>{}(s);
+  }
+};
 
-std::string IObject::Str() const { return "<str: ?>"; }
-std::string IObject::Desc() const { return "<desc: ?>"; }
-
-void IObject::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
-  throw RuntimeError('\'' + Desc() + "' object is not callable.");
-}
-
-TempValue IObject::Item(Value& idx) {
-  throw RuntimeError('\'' + Desc() + "' object is not subscriptable.");
-}
-
-void IObject::SetItem(Value& idx, Value value) {
-  throw RuntimeError('\'' + Desc() +
-                           "' object does not support item assignment.");
-}
-
-TempValue IObject::Member(std::string_view mem) {
-  throw RuntimeError('\'' + Desc() + "' object has no member '" +
-                           std::string(mem) + '\'');
-}
-
-void IObject::SetMember(std::string_view mem, Value value) {
-  throw RuntimeError('\'' + Desc() +
-                           "' object does not support member assignment.");
-}
-
-}  // namespace serilang
+struct TransparentEq {
+  using is_transparent = void;
+  inline bool operator()(std::string_view a,
+                         std::string_view b) const noexcept {
+    return a == b;
+  }
+};

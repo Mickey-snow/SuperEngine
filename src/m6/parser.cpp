@@ -153,6 +153,29 @@ std::shared_ptr<AST> Parser::ParseStatement(bool requireSemi) {
         return std::make_shared<AST>(YieldStmt(expr, kwLoc));
       }
 
+      case tok::Reserved::_throw: {
+        auto kwLoc = (it_ - 1)->loc_;
+        std::shared_ptr<ExprAST> expr = nullptr;
+        if (!tryConsume<tok::Semicol>()) {
+          expr = ParseExpression();
+          require<tok::Semicol>("expected ';' after throw");
+        }
+        return std::make_shared<AST>(ThrowStmt(expr, kwLoc));
+      }
+
+      case tok::Reserved::_try: {
+        auto body = ParseStatement();
+        require<tok::Reserved>("expected catch", tok::Reserved::_catch);
+        require<tok::ParenthesisL>("expected '(' after catch");
+        auto idTok = it_;
+        require<tok::ID>("expected identifier");
+        std::string name = idTok->GetIf<tok::ID>()->id;
+        auto idLoc = idTok->loc_;
+        require<tok::ParenthesisR>("expected ')'");
+        auto handler = ParseStatement();
+        return std::make_shared<AST>(TryStmt(body, name, idLoc, handler));
+      }
+
       case tok::Reserved::_global: {
         std::vector<std::string> vars;
         std::vector<SourceLocation> locs;

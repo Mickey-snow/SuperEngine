@@ -26,15 +26,22 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 namespace serilang {
 
 struct Function;
 
+struct ExceptionHandler {
+  uint32_t handler_ip;
+  size_t stack_top;
+};
+
 struct CallFrame {
   Function* fn = nullptr;
   uint32_t ip = 0;  // index into chunk->code
   size_t bp = 0;    // base pointer into fiber stack
+  std::vector<ExceptionHandler> handlers;
 };
 
 }  // namespace serilang

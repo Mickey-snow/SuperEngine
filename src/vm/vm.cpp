@@ -142,7 +142,31 @@ Dict* VM::GetNamespace(Fiber& f) {
   return fn->globals;
 }
 
-void VM::RuntimeError(const std::string& msg) { throw std::runtime_error(msg); }
+void VM::Error(Fiber& f) {
+  Value exc = pop(f.stack);
+  while (true) {
+    if (f.frames.empty())
+      throw std::runtime_error(exc.Str());
+
+    CallFrame& fr = f.frames.back();
+    if (!fr.handlers.empty()) {
+      ExceptionHandler h = std::move(fr.handlers.back());
+      fr.handlers.pop_back();
+      f.stack.resize(h.stack_top);
+      push(f.stack, std::move(exc));
+      fr.ip = h.handler_ip;
+      break;
+    } else {
+      f.stack.resize(fr.bp);
+      f.frames.pop_back();
+    }
+  }
+}
+
+void VM::Error(Fiber& f, std::string exc) {
+  push(f.stack, Value(std::move(exc)));
+  Error(f);
+}
 
 void VM::Return(Fiber& f) {
   auto& frame = f.frames.back();
@@ -224,8 +248,16 @@ void VM::ExecuteFiber(Fiber* fib) {
         const auto ins = chunk->Read<serilang::UnaryOp>(ip);
         ip += sizeof(ins);
         auto v = pop(fib->stack);
-        Value r = AddTrack(v.Operator(ins.op));
-        push(fib->stack, r);
+        TempValue result = nil;
+        try {
+          result = v.Operator(ins.op);
+        } catch (RuntimeError& e) {
+          push(fib->stack, nil);
+          Error(*fib, e.message());
+          return;
+        }
+
+        push(fib->stack, AddTrack(std::move(result)));
       } break;
 
       case OpCode::BinaryOp: {
@@ -233,8 +265,16 @@ void VM::ExecuteFiber(Fiber* fib) {
         ip += sizeof(ins);
         auto rhs = pop(fib->stack);
         auto lhs = pop(fib->stack);
-        Value out = AddTrack(lhs.Operator(ins.op, std::move(rhs)));
-        push(fib->stack, out);
+        TempValue result = nil;
+        try {
+          result = lhs.Operator(ins.op, std::move(rhs));
+        } catch (RuntimeError& e) {
+          push(fib->stack, nil);
+          Error(*fib, e.message());
+          return;
+        }
+
+        push(fib->stack, AddTrack(std::move(result)));
       } break;
 
       //------------------------------------------------------------------
@@ -264,8 +304,10 @@ void VM::ExecuteFiber(Fiber* fib) {
         if (d == nullptr || !d->map.contains(name))
           d = builtins_;
         auto it = d->map.find(name);
-        if (it == d->map.cend())
-          RuntimeError("NameError: '" + name + "' is not defined");
+        if (it == d->map.cend()) {
+          Error(*fib, "NameError: '" + name + "' is not defined");
+          return;
+        }
         push(fib->stack, it->second);
       } break;
 
@@ -280,25 +322,6 @@ void VM::ExecuteFiber(Fiber* fib) {
         if (dst == nullptr)
           dst = globals_;
         dst->map[name] = std::move(val);
-      } break;
-
-      case OpCode::LoadUpvalue: {
-        const auto ins = chunk->Read<serilang::LoadUpvalue>(ip);
-        ip += sizeof(ins);
-        // (not implemented here)
-      } break;
-
-      case OpCode::StoreUpvalue: {
-        const auto ins = chunk->Read<serilang::StoreUpvalue>(ip);
-        ip += sizeof(ins);
-        // (not implemented here)
-      } break;
-
-      case OpCode::CloseUpvalues: {
-        const auto ins = chunk->Read<serilang::CloseUpvalues>(ip);
-        ip += sizeof(ins);
-        auto* base = fib->local_slot(fib->frames.size() - 1, ins.from_slot);
-        fib->close_upvalues_from(base);
       } break;
 
       //------------------------------------------------------------------
@@ -379,7 +402,12 @@ void VM::ExecuteFiber(Fiber* fib) {
         Value& callee =
             fib->stack.end()[-static_cast<size_t>(ins.argcnt) -
                              2 * static_cast<size_t>(ins.kwargcnt) - 1];
-        callee.Call(*this, *fib, ins.argcnt, ins.kwargcnt);
+        try {
+          callee.Call(*this, *fib, ins.argcnt, ins.kwargcnt);
+        } catch (RuntimeError& e) {
+          Error(*fib, e.message());
+          return;
+        }
       } break;
 
       //------------------------------------------------------------------
@@ -431,8 +459,16 @@ void VM::ExecuteFiber(Fiber* fib) {
         Value receiver = pop(fib->stack);
         auto name =
             chunk->const_pool[ins.name_index].template Get<std::string>();
-        TempValue result = receiver.Member(name);
-        push(fib->stack, gc_->TrackValue(std::move(result)));
+        TempValue result = nil;
+        try {
+          result = receiver.Member(name);
+        } catch (RuntimeError& e) {
+          push(fib->stack, nil);
+          Error(*fib, e.message());
+          return;
+        }
+
+        push(fib->stack, AddTrack(std::move(result)));
       } break;
 
       case OpCode::SetField: {
@@ -442,7 +478,12 @@ void VM::ExecuteFiber(Fiber* fib) {
         auto receiver = pop(fib->stack);
         auto name =
             chunk->const_pool[ins.name_index].template Get<std::string>();
-        receiver.SetMember(name, std::move(val));
+        try {
+          receiver.SetMember(name, std::move(val));
+        } catch (RuntimeError& e) {
+          Error(*fib, e.message());
+          return;
+        }
       } break;
 
       case OpCode::GetItem: {
@@ -451,7 +492,15 @@ void VM::ExecuteFiber(Fiber* fib) {
 
         Value index = pop(fib->stack);
         Value receiver = pop(fib->stack);
-        TempValue result = receiver.Item(index);
+        TempValue result = nil;
+        try {
+          result = receiver.Item(index);
+        } catch (RuntimeError& e) {
+          push(fib->stack, nil);
+          Error(*fib, e.message());
+          return;
+        }
+
         push(fib->stack, gc_->TrackValue(std::move(result)));
       } break;
       case OpCode::SetItem: {
@@ -461,7 +510,12 @@ void VM::ExecuteFiber(Fiber* fib) {
         Value val = pop(fib->stack);
         Value index = pop(fib->stack);
         Value receiver = pop(fib->stack);
-        receiver.SetItem(index, std::move(val));
+        try {
+          receiver.SetItem(index, std::move(val));
+        } catch (RuntimeError& e) {
+          Error(*fib, e.message());
+          return;
+        }
       } break;
 
       //------------------------------------------------------------------
@@ -496,8 +550,10 @@ void VM::ExecuteFiber(Fiber* fib) {
           if (f->state != FiberState::Dead)
             f->state = FiberState::Running;
         } else {
-          if (f->state == FiberState::Dead)
-            RuntimeError("cannot await a dead fiber: " + f->Desc());
+          if (f->state == FiberState::Dead) {
+            Error(*fib, "cannot await a dead fiber: " + f->Desc());
+            return;
+          }
           f->state = FiberState::Running;
           f->waiter = fib;
           fib->state = FiberState::Suspended;
@@ -520,10 +576,36 @@ void VM::ExecuteFiber(Fiber* fib) {
         return;  // switch -> yield
 
       //------------------------------------------------------------------
-      // 8. Exceptions (not implemented yet)
+      // 8. Exceptions
+      //------------------------------------------------------------------
+      case OpCode::Throw: {
+        const auto ins = chunk->Read<serilang::Throw>(ip);
+        ip += sizeof(ins);
+        Error(*fib);
+        return;
+      } break;
+
+      case OpCode::TryBegin: {
+        const auto ins = chunk->Read<serilang::TryBegin>(ip);
+        ip += sizeof(ins);
+        frame.handlers.push_back(
+            {static_cast<uint32_t>(ip + ins.handler_rel_ofs),
+             fib->stack.size()});
+      } break;
+
+      case OpCode::TryEnd: {
+        const auto ins = chunk->Read<serilang::TryEnd>(ip);
+        ip += sizeof(ins);
+        if (!frame.handlers.empty())
+          frame.handlers.pop_back();
+      } break;
+
+      //------------------------------------------------------------------
+      // 9. Unimplemented
       //------------------------------------------------------------------
       default:
-        RuntimeError("Unimplemented instruction at " + std::to_string(ip - 1));
+        throw std::runtime_error("Unimplemented instruction at " +
+                                 std::to_string(ip - 1));
         break;
     }
 
