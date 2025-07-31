@@ -1,3 +1,4 @@
 s = sdl();
 s.__init__();
-s.play("bgm01");
+s.bgm("bgm01");
+s.play("se032");
