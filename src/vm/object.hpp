@@ -96,6 +96,10 @@ struct Class : public IObject {
 
   std::string name;
   std::unordered_map<std::string, Value> methods;
+  using finalize_fn = void (*)(void*);
+  using trace_fn = void (*)(GCVisitor&, void*);
+  finalize_fn finalize = nullptr;
+  trace_fn trace = nullptr;
 
   constexpr ObjType Type() const noexcept final { return objtype; }
   constexpr size_t Size() const noexcept final { return sizeof(*this); }
@@ -113,7 +117,18 @@ struct Instance : public IObject {
 
   Class* klass;
   std::unordered_map<std::string, Value> fields;
+  void* foreign = nullptr;
   explicit Instance(Class* klass_);
+  ~Instance();
+
+  template <typename T>
+  void SetForeign(T* ptr) {
+    foreign = ptr;
+  }
+  template <typename T>
+  T* GetForeign() const {
+    return static_cast<T*>(foreign);
+  }
 
   constexpr ObjType Type() const noexcept final { return objtype; }
   constexpr size_t Size() const noexcept final { return sizeof(*this); }
@@ -248,11 +263,15 @@ class NativeFunction : public IObject {
   static constexpr inline ObjType objtype = ObjType::Native;
 
   using function_t =
-      std::function<Value(Fiber&,
+      std::function<Value(VM&,
+                          Fiber&,
+                          Value,
                           std::vector<Value>,
                           std::unordered_map<std::string, Value>)>;
 
-  NativeFunction(std::string name, function_t fn);
+  NativeFunction(std::string name,
+                 function_t fn,
+                 std::vector<Value> captures = {});
 
   std::string Name() const;
   constexpr ObjType Type() const noexcept final { return objtype; }
@@ -265,9 +284,35 @@ class NativeFunction : public IObject {
 
   void Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) final;
 
+  Value Invoke(VM& vm,
+               Fiber& f,
+               Value self,
+               std::vector<Value> args,
+               std::unordered_map<std::string, Value> kwargs);
+
  private:
   std::string name_;
   function_t fn_;
+  std::vector<Value> captures_;
+};
+
+struct BoundMethod : public IObject {
+  static constexpr inline ObjType objtype = ObjType::BoundMethod;
+
+  Value receiver;
+  Value method;
+
+  BoundMethod(Value recv, Value fn);
+
+  constexpr ObjType Type() const noexcept final { return objtype; }
+  constexpr size_t Size() const noexcept final { return sizeof(*this); }
+
+  void MarkRoots(GCVisitor& visitor) override;
+
+  std::string Str() const override;
+  std::string Desc() const override;
+
+  void Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) override;
 };
 
 }  // namespace serilang

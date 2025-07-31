@@ -149,7 +149,7 @@ TEST_F(VMTest, CallNative) {
 
   int call_count = 0;
   auto fn = gc->Allocate<NativeFunction>(
-      "my_function", [&](Fiber& f, std::vector<Value> args,
+      "my_function", [&](VM& vm, Fiber& f, Value self, std::vector<Value> args,
                          std::unordered_map<std::string, Value> kwargs) {
         ++call_count;
         EXPECT_EQ(args.size(), 2);
@@ -216,7 +216,7 @@ TEST_F(VMTest, SpawnFiber) {
   std::vector<Value> arg;
   std::unordered_map<std::string, Value> kwarg;
   auto* fn = gc->Allocate<NativeFunction>(
-      "my_function", [&](Fiber& f, std::vector<Value> args,
+      "my_function", [&](VM& vm, Fiber& f, Value self, std::vector<Value> args,
                          std::unordered_map<std::string, Value> kwargs) {
         ++call_count;
         arg = std::move(args);

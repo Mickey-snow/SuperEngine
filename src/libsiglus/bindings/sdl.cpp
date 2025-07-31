@@ -52,7 +52,7 @@ void SDL::Bind(sr::VM& vm) {
       "__init__",
       gc->Allocate<sr::NativeFunction>(
           "__init__",
-          [](sr::Fiber&, std::vector<sr::Value>,
+          [](sr::VM& vm, sr::Fiber&, sr::Value self, std::vector<sr::Value>,
              std::unordered_map<std::string, sr::Value>) -> sr::Value {
             if (SDL_Init(SDL_INIT_VIDEO) < 0) {
               throw std::runtime_error(
@@ -112,7 +112,8 @@ void SDL::Bind(sr::VM& vm) {
       "play",
       gc->Allocate<sr::NativeFunction>(
           "play",
-          [](sr::Fiber&, std::vector<sr::Value> args,
+          [](sr::VM& vm, sr::Fiber&, sr::Value self,
+             std::vector<sr::Value> args,
              std::unordered_map<std::string, sr::Value>) -> sr::Value {
             std::string* name;
             if (args.size() < 1 ||
@@ -128,27 +129,26 @@ void SDL::Bind(sr::VM& vm) {
 
             return sr::Value(true);
           }));
-    sdl->methods.try_emplace(
-      "bgm",
-      gc->Allocate<sr::NativeFunction>(
-          "bgm",
-          [](sr::Fiber&, std::vector<sr::Value> args,
-             std::unordered_map<std::string, sr::Value>) -> sr::Value {
-            std::string* name;
-            if (args.size() < 1 ||
-                ((name = args.front().Get_if<std::string>()) == nullptr))
-              throw std::runtime_error(
-                  "Bgm: first argument 'file_name' must be string");
+  sdl->methods.try_emplace(
+      "bgm", gc->Allocate<sr::NativeFunction>(
+                 "bgm",
+                 [](sr::VM& vm, sr::Fiber&, sr::Value self,
+                    std::vector<sr::Value> args,
+                    std::unordered_map<std::string, sr::Value>) -> sr::Value {
+                   std::string* name;
+                   if (args.size() < 1 ||
+                       ((name = args.front().Get_if<std::string>()) == nullptr))
+                     throw std::runtime_error(
+                         "Bgm: first argument 'file_name' must be string");
 
-            fs::path path = scanner->FindFile(*name);
-            player_t player = CreateAudioPlayer(path);
+                   fs::path path = scanner->FindFile(*name);
+                   player_t player = CreateAudioPlayer(path);
 
-	    sound_impl->EnableBgm();
-	    sound_impl->PlayBgm(player);
+                   sound_impl->EnableBgm();
+                   sound_impl->PlayBgm(player);
 
-            return sr::Value(true);
-          }));
-
+                   return sr::Value(true);
+                 }));
 
   vm.globals_->map["sdl"] = sr::Value(sdl);
 }

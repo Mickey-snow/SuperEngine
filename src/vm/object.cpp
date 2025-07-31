@@ -59,10 +59,17 @@ void Class::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
 // -----------------------------------------------------------------------
 Instance::Instance(Class* klass_) : klass(klass_) {}
 
+Instance::~Instance() {
+  if (klass->finalize && foreign)
+    klass->finalize(foreign);
+}
+
 void Instance::MarkRoots(GCVisitor& visitor) {
   klass->MarkRoots(visitor);
   for (auto& [k, it] : fields)
     visitor.MarkSub(it);
+  if (klass->trace && foreign)
+    klass->trace(visitor, foreign);
 }
 
 std::string Instance::Str() const { return Desc(); }
@@ -74,7 +81,13 @@ TempValue Instance::Member(std::string_view mem) {
   if (it == fields.cend())
     throw RuntimeError('\'' + Desc() + "' object has no member '" +
                        std::string(mem) + '\'');
-  return it->second;
+  Value val = it->second;
+  if (IObject* obj = val.Get_if<IObject>()) {
+    auto t = obj->Type();
+    if (t == ObjType::Function || t == ObjType::Native)
+      return std::make_unique<BoundMethod>(Value(this), val);
+  }
+  return val;
 }
 void Instance::SetMember(std::string_view mem, Value val) {
   fields[std::string(mem)] = val;
@@ -346,8 +359,10 @@ void Function::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
 }
 
 // -----------------------------------------------------------------------
-NativeFunction::NativeFunction(std::string name, function_t fn)
-    : name_(std::move(name)), fn_(std::move(fn)) {}
+NativeFunction::NativeFunction(std::string name,
+                               function_t fn,
+                               std::vector<Value> caps)
+    : name_(std::move(name)), fn_(std::move(fn)), captures_(std::move(caps)) {}
 
 std::string NativeFunction::Name() const { return name_; }
 
@@ -357,7 +372,19 @@ std::string NativeFunction::Desc() const {
   return "<native function '" + name_ + "'>";
 }
 
-void NativeFunction::MarkRoots(GCVisitor& visitor) {}
+void NativeFunction::MarkRoots(GCVisitor& visitor) {
+  for (auto& v : captures_)
+    visitor.MarkSub(v);
+}
+
+Value NativeFunction::Invoke(VM& vm,
+                             Fiber& f,
+                             Value self,
+                             std::vector<Value> args,
+                             std::unordered_map<std::string, Value> kwargs) {
+  return std::invoke(fn_, vm, f, std::move(self), std::move(args),
+                     std::move(kwargs));
+}
 
 void NativeFunction::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
   std::vector<Value> args;
@@ -375,10 +402,31 @@ void NativeFunction::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
     kwargs.emplace(std::move(*k), std::move(v));
   }
 
-  auto retval = std::invoke(fn_, f, std::move(args), std::move(kwargs));
+  auto self = nil;
+  auto retval = Invoke(vm, f, self, std::move(args), std::move(kwargs));
 
   f.stack.resize(f.stack.size() - nkwargs * 2 - nargs);
   f.stack.back() = std::move(retval);
+}
+
+// -----------------------------------------------------------------------
+BoundMethod::BoundMethod(Value recv, Value fn)
+    : receiver(std::move(recv)), method(std::move(fn)) {}
+
+void BoundMethod::MarkRoots(GCVisitor& visitor) {
+  visitor.MarkSub(receiver);
+  visitor.MarkSub(method);
+}
+
+std::string BoundMethod::Str() const { return Desc(); }
+
+std::string BoundMethod::Desc() const { return "<bound method>"; }
+
+void BoundMethod::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
+  size_t base = f.stack.size() - nargs - 2 * nkwargs - 1;
+  f.stack[base] = method;
+  f.stack.insert(f.stack.begin() + base + 1, receiver);
+  method.Call(vm, f, nargs + 1, nkwargs);
 }
 
 }  // namespace serilang

@@ -38,6 +38,7 @@ struct List;
 struct Dict;
 struct Function;
 class NativeFunction;
+struct BoundMethod;
 
 class Value;
 class IObject;
