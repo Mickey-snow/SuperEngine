@@ -59,17 +59,10 @@ void Class::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
 // -----------------------------------------------------------------------
 Instance::Instance(Class* klass_) : klass(klass_) {}
 
-Instance::~Instance() {
-  if (klass->finalize && foreign)
-    klass->finalize(foreign);
-}
-
 void Instance::MarkRoots(GCVisitor& visitor) {
   klass->MarkRoots(visitor);
   for (auto& [k, it] : fields)
     visitor.MarkSub(it);
-  if (klass->trace && foreign)
-    klass->trace(visitor, foreign);
 }
 
 std::string Instance::Str() const { return Desc(); }
@@ -90,6 +83,63 @@ TempValue Instance::Member(std::string_view mem) {
   return val;
 }
 void Instance::SetMember(std::string_view mem, Value val) {
+  fields[std::string(mem)] = val;
+}
+
+// -----------------------------------------------------------------------
+void NativeClass::MarkRoots(GCVisitor& visitor) {
+  for (auto& [k, it] : methods)
+    visitor.MarkSub(it);
+}
+
+std::string NativeClass::Str() const { return Desc(); }
+
+std::string NativeClass::Desc() const { return "<native class " + name + '>'; }
+
+void NativeClass::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
+  f.stack.resize(f.stack.size() - nargs);
+  auto inst = vm.gc_->Allocate<NativeInstance>(this);
+  inst->fields = this->methods;
+  f.stack.back() = Value(std::move(inst));
+}
+
+// -----------------------------------------------------------------------
+NativeInstance::NativeInstance(NativeClass* klass_) : klass(klass_) {}
+
+NativeInstance::~NativeInstance() {
+  if (klass->finalize && foreign)
+    klass->finalize(foreign);
+}
+
+void NativeInstance::MarkRoots(GCVisitor& visitor) {
+  klass->MarkRoots(visitor);
+  for (auto& [k, it] : fields)
+    visitor.MarkSub(it);
+  if (klass->trace && foreign)
+    klass->trace(visitor, foreign);
+}
+
+std::string NativeInstance::Str() const { return Desc(); }
+
+std::string NativeInstance::Desc() const {
+  return "<" + klass->name + " object>";
+}
+
+TempValue NativeInstance::Member(std::string_view mem) {
+  auto it = fields.find(std::string(mem));
+  if (it == fields.cend())
+    throw RuntimeError('\'' + Desc() + "' object has no member '" +
+                       std::string(mem) + '\'');
+  Value val = it->second;
+  if (IObject* obj = val.Get_if<IObject>()) {
+    auto t = obj->Type();
+    if (t == ObjType::Function || t == ObjType::Native)
+      return std::make_unique<BoundMethod>(Value(this), val);
+  }
+  return val;
+}
+
+void NativeInstance::SetMember(std::string_view mem, Value val) {
   fields[std::string(mem)] = val;
 }
 

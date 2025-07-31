@@ -32,6 +32,8 @@ namespace serilang {
 struct Code;
 struct Class;
 struct Instance;
+struct NativeClass;
+struct NativeInstance;
 struct Upvalue;
 struct Fiber;
 struct List;

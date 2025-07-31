@@ -96,10 +96,6 @@ struct Class : public IObject {
 
   std::string name;
   std::unordered_map<std::string, Value> methods;
-  using finalize_fn = void (*)(void*);
-  using trace_fn = void (*)(GCVisitor&, void*);
-  finalize_fn finalize = nullptr;
-  trace_fn trace = nullptr;
 
   constexpr ObjType Type() const noexcept final { return objtype; }
   constexpr size_t Size() const noexcept final { return sizeof(*this); }
@@ -117,9 +113,51 @@ struct Instance : public IObject {
 
   Class* klass;
   std::unordered_map<std::string, Value> fields;
-  void* foreign = nullptr;
   explicit Instance(Class* klass_);
-  ~Instance();
+
+  constexpr ObjType Type() const noexcept final { return objtype; }
+  constexpr size_t Size() const noexcept final { return sizeof(*this); }
+
+  void MarkRoots(GCVisitor& visitor) override;
+
+  std::string Str() const override;
+  std::string Desc() const override;
+
+  TempValue Member(std::string_view mem) override;
+  void SetMember(std::string_view mem, Value val) override;
+};
+
+struct NativeClass : public IObject {
+  static constexpr inline ObjType objtype = ObjType::NativeClass;
+
+  using finalize_fn = void (*)(void*);
+  using trace_fn = void (*)(GCVisitor&, void*);
+
+  std::string name;
+  std::unordered_map<std::string, Value> methods;
+  finalize_fn finalize = nullptr;
+  trace_fn trace = nullptr;
+
+  constexpr ObjType Type() const noexcept final { return objtype; }
+  constexpr size_t Size() const noexcept final { return sizeof(*this); }
+
+  void MarkRoots(GCVisitor& visitor) override;
+
+  std::string Str() const override;
+  std::string Desc() const override;
+
+  void Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) override;
+};
+
+struct NativeInstance : public IObject {
+  static constexpr inline ObjType objtype = ObjType::NativeInstance;
+
+  NativeClass* klass;
+  std::unordered_map<std::string, Value> fields;
+  void* foreign = nullptr;
+
+  explicit NativeInstance(NativeClass* klass_);
+  ~NativeInstance() override;
 
   template <typename T>
   void SetForeign(T* ptr) {

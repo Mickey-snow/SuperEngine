@@ -41,6 +41,8 @@ enum class ObjType : uint8_t {
   Module,
   Native,
   BoundMethod,
+  NativeClass,
+  NativeInstance,
   Code,
   Function,
   Closure,
