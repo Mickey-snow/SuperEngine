@@ -24,6 +24,11 @@
 
 #pragma once
 
+#include "vm/gc.hpp"
+#include "vm/object.hpp"
+#include "vm/value.hpp"
+#include "vm/vm.hpp"
+
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -31,21 +36,10 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
-#include "vm/gc.hpp"
-#include "vm/object.hpp"
-#include "vm/value.hpp"
-#include "vm/vm.hpp"
 
 namespace srbind {
 
-using serilang::Dict;
-using serilang::Fiber;
-using serilang::List;
-using serilang::NativeClass;
-using serilang::NativeFunction;
-using serilang::NativeInstance;
 using serilang::Value;
-using serilang::VM;
 
 struct type_error : std::runtime_error {
   using std::runtime_error::runtime_error;
@@ -108,7 +102,7 @@ struct type_caster<Value> {
 template <class T>
 struct type_caster<T*, std::enable_if_t<!std::is_void_v<T>>> {
   static T* load(Value& v) {
-    if (auto ni = v.Get_if<NativeInstance>()) {
+    if (auto ni = v.Get_if<serilang::NativeInstance>()) {
       T* p = ni->GetForeign<T>();
       if (!p)
         throw type_error("null native instance for requested type");
@@ -123,26 +117,176 @@ struct type_caster<T*, std::enable_if_t<!std::is_void_v<T>>> {
 };
 
 // -------------------------------------------------------------
+// named argument descriptor
+// -------------------------------------------------------------
+struct arg_t {
+  std::string name;
+  bool has_default = false;
+  std::function<serilang::TempValue()> make_default;
+
+  explicit arg_t(const char* n) : name(n) {}
+
+  // allow: arg("x") = 42  (captures by value)
+  template <class T>
+  arg_t operator=(T&& v) && {
+    arg_t r = *this;
+    r.has_default = true;
+    auto held = std::make_shared<std::decay_t<T>>(std::forward<T>(v));
+    r.make_default = [held]() -> serilang::TempValue {
+      return type_caster<std::decay_t<T>>::cast(*held);
+    };
+    return r;
+  }
+};
+
+inline arg_t arg(const char* name) { return arg_t{name}; }
+
+// -------------------------------------------------------------
 // detail helpers: arg fetch & invocation
 // -------------------------------------------------------------
 namespace detail {
 
-inline size_t arg_base(Fiber& f, size_t nargs, size_t nkwargs) {
+inline size_t arg_base(serilang::Fiber& f, size_t nargs, size_t nkwargs) {
   // Same layout as your deprecated NativeFunction adaptor used.
   return f.stack.size() - nkwargs * 2 - nargs;
 }
 
-inline Value& arg_at(Fiber& f, size_t nargs, size_t nkwargs, size_t i) {
+inline Value& arg_at(serilang::Fiber& f,
+                     size_t nargs,
+                     size_t nkwargs,
+                     size_t i) {
   size_t base = arg_base(f, nargs, nkwargs);
   return f.stack[base + i];
 }
 
 // Pop all args (positional-only) and shrink the stack; leave callee slot in
 // place.
-inline void drop_args(Fiber& f, size_t nargs, size_t nkwargs) {
+inline void drop_args(serilang::Fiber& f, size_t nargs, size_t nkwargs) {
   (void)nkwargs;  // this version ignores kwargs
   f.stack.resize(f.stack.size() - (nkwargs * 2 + nargs));
 }
+
+// read kwargs into a map<name, Value*>
+inline auto read_kwargs(serilang::Fiber& f, size_t nargs, size_t nkwargs)
+    -> std::unordered_map<std::string, Value*> {
+  std::unordered_map<std::string, Value*> m;
+  m.reserve(nkwargs);
+  size_t base = arg_base(f, nargs, nkwargs);
+  size_t idx = base + nargs;
+  for (size_t i = 0; i < nkwargs; ++i) {
+    std::string* k = f.stack[idx++].Get_if<std::string>();
+    if (!k)
+      throw type_error("keyword name must be string");
+    Value& v = f.stack[idx++];
+    m.emplace(*k, &v);
+  }
+  return m;
+}
+
+// load tuple<Args...> using optional spec (names/defaults) and an offset:
+// offset=0 for free functions, offset=1 for methods (skip 'self').
+template <class... Args, size_t... I>
+std::tuple<Args...> load_mapped_impl(serilang::VM& vm,
+                                     serilang::Fiber& f,
+                                     size_t nargs,
+                                     size_t nkwargs,
+                                     const std::vector<arg_t>* spec,
+                                     size_t offset,
+                                     std::index_sequence<I...>) {
+  constexpr size_t N = sizeof...(Args);
+  if (spec && !spec->empty() && spec->size() != N)
+    throw type_error("binder: number of names/defaults doesn't match arity");
+
+  size_t base = arg_base(f, nargs, nkwargs);
+  if (nargs < offset)
+    throw type_error("binder: missing 'self'");
+
+  // kwargs map
+  auto kw = read_kwargs(f, nargs, nkwargs);
+  // track used kw to report unexpected leftovers
+  std::unordered_set<std::string> used;
+
+  // storage for defaults so Value& stays valid during cast
+  std::vector<Value> default_vals;
+  default_vals.reserve(N);
+
+  // resolve a Value* source for param i
+  [[maybe_unused]] auto pick_src = [&](size_t i) -> Value* {
+    Value* src = nullptr;
+    const bool have_pos = (offset + i) < nargs;
+    const bool have_spec = spec && i < spec->size();
+    const std::string name = (have_spec ? (*spec)[i].name : "");
+
+    if (have_pos) {
+      src = &f.stack[base + offset + i];
+      // duplicated by kw?
+      if (!name.empty()) {
+        auto it = kw.find(name);
+        if (it != kw.end())
+          throw type_error("multiple values for argument '" + name + "'");
+      }
+      return src;
+    }
+
+    // try keyword by name
+    if (!name.empty()) {
+      auto it = kw.find(name);
+      if (it != kw.end()) {
+        used.insert(name);
+        return it->second;
+      }
+    }
+
+    // default
+    if (have_spec && (*spec)[i].has_default) {
+      serilang::TempValue tv = (*spec)[i].make_default();
+      default_vals.push_back(vm.gc_->TrackValue(std::move(tv)));
+      return &default_vals.back();
+    }
+
+    // missing
+    std::string label =
+        name.empty() ? ("#" + std::to_string(i)) : ("'" + name + "'");
+    throw type_error("missing required argument " + label);
+  };
+
+  // collect sources
+  [[maybe_unused]] std::array<Value*, N> srcs{(pick_src(I))...};
+
+  // any unexpected keywords left?
+  if (spec && !spec->empty()) {
+    for (auto& [k, v] : kw) {
+      if (!used.count(k)) {
+        // not matched to any named parameter
+        throw type_error("unexpected keyword argument '" + k + "'");
+      }
+    }
+  } else {
+    if (!kw.empty())
+      throw type_error("function takes no keyword arguments");
+  }
+
+  // convert to tuple<Args...>
+  return std::tuple<Args...>{type_caster<Args>::load(*srcs[I])...};
+}
+
+template <class... Args>
+std::tuple<Args...> load_mapped(serilang::VM& vm,
+                                serilang::Fiber& f,
+                                size_t nargs,
+                                size_t nkwargs,
+                                const std::vector<arg_t>* spec,
+                                size_t offset) {
+  // too many positional?
+  constexpr size_t N = sizeof...(Args);
+  if (nargs > offset + N)
+    throw type_error("expected at most " + std::to_string(N) +
+                     " positional arguments");
+  return load_mapped_impl<Args...>(vm, f, nargs, nkwargs, spec, offset,
+                                   std::index_sequence_for<Args...>{});
+}
+
+// -------------------------------------------------------------
 
 template <class T>
 T from_value(Value& v) {
@@ -150,7 +294,7 @@ T from_value(Value& v) {
 }
 
 template <class... Args, size_t... I>
-std::tuple<Args...> load_positional(Fiber& f,
+std::tuple<Args...> load_positional(serilang::Fiber& f,
                                     size_t nargs,
                                     size_t nkwargs,
                                     std::index_sequence<I...>) {
@@ -178,17 +322,19 @@ auto apply(F&& f, Tuple&& t, std::index_sequence<I...>) {
 // wrap free function: def("name", callable)
 // positional-only for now
 // -------------------------------------------------------------
-template <class F>
-NativeFunction* make_function(serilang::GarbageCollector* gc,
-                              std::string name,
-                              F&& f) {
-  // Instead of signature detection gymnastics, specialize with helper below:
-  return gc->Allocate<NativeFunction>(
+template <class F, class... A>
+serilang::NativeFunction* make_function(serilang::GarbageCollector* gc,
+                                        std::string name,
+                                        F&& f,
+                                        A&&... a) {
+  std::vector<arg_t> spec{std::forward<A>(a)...};
+  return gc->Allocate<serilang::NativeFunction>(
       std::move(name),
-      [fn = std::forward<F>(f)](VM& vm, Fiber& f, uint8_t nargs,
-                                uint8_t nkwargs) -> Value {
+      [fn = std::forward<F>(f), spec = std::move(spec)](
+          serilang::VM& vm, serilang::Fiber& fib, uint8_t nargs,
+          uint8_t nkwargs) -> Value {
         try {
-          return invoke_free(vm, f, nargs, nkwargs, fn);
+          return invoke_free(vm, fib, nargs, nkwargs, fn, &spec);
         } catch (const type_error& e) {
           throw serilang::RuntimeError(e.what());
         } catch (const std::exception& e) {
@@ -197,94 +343,106 @@ NativeFunction* make_function(serilang::GarbageCollector* gc,
       });
 }
 
+template <class F>
+serilang::NativeFunction* make_function(serilang::GarbageCollector* gc,
+                                        std::string name,
+                                        F&& f) {
+  return make_function(gc, std::move(name), std::forward<F>(f),
+                       std::vector<arg_t>{});
+}
+
 // SFINAE-friendly invoke for free functions
 template <class F, class R, class... Args>
-auto invoke_free_impl(VM& vm,
-                      Fiber& f,
+auto invoke_free_impl(serilang::VM& vm,
+                      serilang::Fiber& f,
                       size_t nargs,
                       size_t nkwargs,
                       F&& fn,
-                      R (*)(Args...)) -> Value {
-  (void)vm;
-  auto tup = detail::load_positional<Args...>(
-      f, nargs, nkwargs, std::index_sequence_for<Args...>{});
+                      R (*)(Args...),
+                      const std::vector<arg_t>* spec) -> Value {
+  auto tup =
+      detail::load_mapped<Args...>(vm, f, nargs, nkwargs, spec, /*offset=*/0);
   detail::drop_args(f, nargs, nkwargs);
   if constexpr (std::is_void_v<R>) {
-    detail::apply(std::forward<F>(fn), tup, std::index_sequence_for<Args...>{});
+    std::apply(std::forward<F>(fn), tup);
     return serilang::nil;
   } else {
-    R r = detail::apply(std::forward<F>(fn), tup,
-                        std::index_sequence_for<Args...>{});
-    serilang::TempValue val = detail::to_value(std::move(r));
-    return vm.gc_->TrackValue(std::move(val));
+    R r = std::apply(std::forward<F>(fn), tup);
+    serilang::TempValue tv = detail::to_value(std::move(r));
+    return vm.gc_->TrackValue(std::move(tv));
   }
 }
 
 // helper to deduce F’s type
 template <class F>
-auto invoke_free(VM& vm, Fiber& f, size_t nargs, size_t nkwargs, F&& fn)
-    -> Value {
+auto invoke_free(serilang::VM& vm,
+                 serilang::Fiber& f,
+                 size_t nargs,
+                 size_t nkwargs,
+                 F&& fn,
+                 const std::vector<arg_t>* spec) -> Value {
   using Fn = std::decay_t<F>;
   if constexpr (std::is_function_v<Fn>) {
     using R = std::invoke_result_t<Fn>;
     return invoke_free_impl(vm, f, nargs, nkwargs, std::forward<F>(fn),
-                            (R (*)(void)) nullptr);
+                            (R (*)(void)) nullptr, spec);
   } else if constexpr (std::is_pointer_v<Fn> &&
                        std::is_function_v<std::remove_pointer_t<Fn>>) {
     using R = std::invoke_result_t<Fn>;
     return invoke_free_impl(vm, f, nargs, nkwargs, std::forward<F>(fn),
-                            (R (*)(void)) nullptr);
+                            (R (*)(void)) nullptr, spec);
   } else {
-    // Functor or lambda
     using Sig = decltype(&Fn::operator());
-    return invoke_free_sig(vm, f, nargs, nkwargs, std::forward<F>(fn), Sig{});
+    return invoke_free_sig(vm, f, nargs, nkwargs, std::forward<F>(fn), Sig{},
+                           spec);
   }
 }
 
 // operator() matcher
 template <class F, class C, class R, class... Args>
-auto invoke_free_sig(VM& vm,
-                     Fiber& f,
+auto invoke_free_sig(serilang::VM& vm,
+                     serilang::Fiber& f,
                      size_t nargs,
                      size_t nkwargs,
                      F&& fn,
-                     R (C::*)(Args...) const) -> Value {
+                     R (C::*)(Args...) const,
+                     const std::vector<arg_t>* spec) -> Value {
   return invoke_free_impl(vm, f, nargs, nkwargs, std::forward<F>(fn),
-                          (R (*)(Args...)) nullptr);
+                          (R (*)(Args...)) nullptr, spec);
 }
-
 template <class F, class C, class R, class... Args>
-auto invoke_free_sig(VM& vm,
-                     Fiber& f,
+auto invoke_free_sig(serilang::VM& vm,
+                     serilang::Fiber& f,
                      size_t nargs,
                      size_t nkwargs,
                      F&& fn,
-                     R (C::*)(Args...)) -> Value {
+                     R (C::*)(Args...),
+                     const std::vector<arg_t>* spec) -> Value {
   return invoke_free_impl(vm, f, nargs, nkwargs, std::forward<F>(fn),
-                          (R (*)(Args...)) nullptr);
+                          (R (*)(Args...)) nullptr, spec);
 }
 
 // -------------------------------------------------------------
 // wrap member function: def("name", &T::method)
 // BoundMethod inserts receiver as arg0; we convert it to T*
 // -------------------------------------------------------------
-template <class T, class M>
-NativeFunction* make_method(serilang::GarbageCollector* gc,
-                            std::string name,
-                            M method) {
-  return gc->Allocate<NativeFunction>(
+template <class T, class M, class... A>
+serilang::NativeFunction* make_method(serilang::GarbageCollector* gc,
+                                      std::string name,
+                                      M method,
+                                      A&&... a) {
+  std::vector<arg_t> spec{std::forward<A>(a)...};
+  return gc->Allocate<serilang::NativeFunction>(
       std::move(name),
-      [method](VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) -> Value {
+      [method, spec = std::move(spec)](serilang::VM& vm, serilang::Fiber& f,
+                                       uint8_t nargs,
+                                       uint8_t nkwargs) -> Value {
         try {
-          // Expect at least self
           if (nargs == 0)
             throw type_error("missing 'self'");
-          // load self (arg0)
           Value& selfv = detail::arg_at(f, nargs, nkwargs, 0);
           T* self = type_caster<T*>::load(selfv);
-
-          // remaining args
-          return invoke_method(vm, f, nargs, nkwargs, self, method);
+          return invoke_method(vm, f, nargs, nkwargs, self, method, &spec);
         } catch (const type_error& e) {
           throw serilang::RuntimeError(e.what());
         } catch (const std::exception& e) {
@@ -294,51 +452,51 @@ NativeFunction* make_method(serilang::GarbageCollector* gc,
 }
 
 template <class T, class R, class... Args>
-Value do_invoke_method(VM& vm,
-                       Fiber& f,
+Value do_invoke_method(serilang::VM& vm,
+                       serilang::Fiber& f,
                        size_t nargs,
                        size_t nkwargs,
                        T* self,
-                       R (T::*pmf)(Args...)) {
-  // args after self
-  if (nargs != sizeof...(Args) + 1)
-    throw type_error("expected " + std::to_string(sizeof...(Args)) +
-                     " args after self");
-  auto tup = detail::load_positional<Args...>(
-      f, nargs - 1, nkwargs, std::index_sequence_for<Args...>{});
+                       R (T::*pmf)(Args...),
+                       const std::vector<arg_t>* spec) {
+  auto tup =
+      detail::load_mapped<Args...>(vm, f, nargs, nkwargs, spec, /*offset=*/1);
   detail::drop_args(f, nargs, nkwargs);
   if constexpr (std::is_void_v<R>) {
-    std::apply([&](Args&&... a) { (self->*pmf)(std::forward<Args>(a)...); },
-               tup);
+    std::apply(
+        [&](auto&&... a) { (self->*pmf)(std::forward<decltype(a)>(a)...); },
+        tup);
     return serilang::nil;
   } else {
     R r = std::apply(
-        [&](Args&&... a) { return (self->*pmf)(std::forward<Args>(a)...); },
+        [&](auto&&... a) {
+          return (self->*pmf)(std::forward<decltype(a)>(a)...);
+        },
         tup);
-    serilang::TempValue val = detail::to_value(std::move(r));
-    return vm.gc_->TrackValue(std::move(val));
+    serilang::TempValue tv = detail::to_value(std::move(r));
+    return vm.gc_->TrackValue(std::move(tv));
   }
 }
-
 template <class T, class R, class... Args>
-Value do_invoke_method(VM& vm,
-                       Fiber& f,
+Value do_invoke_method(serilang::VM& vm,
+                       serilang::Fiber& f,
                        size_t nargs,
                        size_t nkwargs,
                        T* self,
-                       R (T::*pmf)(Args...) const) {
-  return do_invoke_method(vm, f, nargs, nkwargs, self, (R (T::*)(Args...))pmf);
+                       R (T::*pmf)(Args...) const,
+                       const std::vector<arg_t>* spec) {
+  return do_invoke_method(vm, f, nargs, nkwargs, self, (R (T::*)(Args...))pmf,
+                          spec);
 }
-
-// overload selector
 template <class T, class M>
-Value invoke_method(VM& vm,
-                    Fiber& f,
+Value invoke_method(serilang::VM& vm,
+                    serilang::Fiber& f,
                     size_t nargs,
                     size_t nkwargs,
                     T* self,
-                    M pmf) {
-  return do_invoke_method(vm, f, nargs, nkwargs, self, pmf);
+                    M pmf,
+                    const std::vector<arg_t>* spec) {
+  return do_invoke_method(vm, f, nargs, nkwargs, self, pmf, spec);
 }
 
 // -------------------------------------------------------------
@@ -363,23 +521,12 @@ class module_ {
   module_(serilang::GarbageCollector* gc, serilang::Dict* dict)
       : gc_(gc), dict_(dict) {}
 
-  template <class F>
-  module_& def(const char* name, F&& f) {
-    dict_->map[name] = Value(gc_->Allocate<NativeFunction>(
-        name,
-        [fn = std::forward<F>(f)](VM& vm, Fiber& f, uint8_t nargs,
-                                  uint8_t nkwargs) -> Value {
-          try {
-            return invoke_free(vm, f, nargs, nkwargs, fn);
-          } catch (const type_error& e) {
-            throw serilang::RuntimeError(e.what());
-          } catch (const std::exception& e) {
-            throw serilang::RuntimeError(e.what());
-          }
-        }));
+  template <class F, class... A>
+  module_& def(const char* name, F&& f, A&&... a) {
+    dict_->map[name] = Value(
+        make_function(gc_, name, std::forward<F>(f), std::forward<A>(a)...));
     return *this;
   }
-
   serilang::Dict* dict() const { return dict_; }
   serilang::GarbageCollector* gc() const { return gc_; }
 };
@@ -391,55 +538,41 @@ template <class T>
 class class_ {
   serilang::GarbageCollector* gc_;
   serilang::NativeClass* cls_;
-  bool has_finalizer_ = false;
-
-  // finalizer for T
   static void finalize_T(void* p) { delete static_cast<T*>(p); }
 
  public:
   class_(module_& m, const char* name) : gc_(m.gc()) {
-    cls_ = gc_->Allocate<NativeClass>();
+    cls_ = gc_->Allocate<serilang::NativeClass>();
     cls_->name = name;
-    // default finalizer (opt-out if user calls .no_delete())
     cls_->finalize = &finalize_T;
-    has_finalizer_ = true;
-
-    // expose the class constructor (allocates instance only; user calls
-    // __init__)
     m.dict()->map[name] = Value(cls_);
   }
 
-  // disable automatic deletion (user manages lifetime)
   class_& no_delete() {
     cls_->finalize = nullptr;
-    has_finalizer_ = false;
     return *this;
   }
 
-  // __init__ binding: constructs T and stores into NativeInstance::foreign
-  template <class... Args>
-  class_& def(init_t<Args...>) {
-    auto* nf = gc_->Allocate<NativeFunction>(
+  // __init__(self, ...) with names/defaults
+  template <class... Args, class... A>
+  class_& def(init_t<Args...>, A&&... a) {
+    std::vector<arg_t> spec{std::forward<A>(a)...};  // names for ctor args
+    auto* nf = gc_->Allocate<serilang::NativeFunction>(
         "__init__",
-        [](VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) -> Value {
+        [spec = std::move(spec)](serilang::VM& vm, serilang::Fiber& f,
+                                 uint8_t nargs, uint8_t nkwargs) -> Value {
           try {
             if (nargs < 1)
               throw type_error("missing 'self'");
-            // self at arg0
             Value& selfv = detail::arg_at(f, nargs, nkwargs, 0);
-            auto* self = selfv.Get_if<NativeInstance>();
+            auto* self = selfv.Get_if<serilang::NativeInstance>();
             if (!self)
               throw type_error("self is not a native instance");
-            // load C++ args (after self)
-            auto tup = detail::load_positional<Args...>(
-                f, nargs - 1, nkwargs, std::index_sequence_for<Args...>{});
+            auto tup = detail::load_mapped<Args...>(vm, f, nargs, nkwargs,
+                                                    &spec, /*offset=*/1);
             detail::drop_args(f, nargs, nkwargs);
-
-            // guard: if already has foreign, prevent double init
             if (self->foreign)
               throw type_error("__init__ called twice");
-
-            // construct T
             T* obj = std::apply(
                 [](auto&&... a) {
                   return new T(std::forward<decltype(a)>(a)...);
@@ -457,32 +590,19 @@ class class_ {
     return *this;
   }
 
-  // bind a member function
-  template <class M>
-  class_& def(const char* name, M pmf) {
-    cls_->methods[name] = Value(make_method<T>(gc_, name, pmf));
+  template <class M, class... A>
+  class_& def(const char* name, M pmf, A&&... a) {
+    cls_->methods[name] =
+        Value(make_method<T>(gc_, name, pmf, std::forward<A>(a)...));
     return *this;
   }
 
-  // bind a const free-function as static method (no self)
-  template <class F>
-  class_& def_static(const char* name, F&& f) {
-    cls_->methods[name] = Value(make_function(gc_, name, std::forward<F>(f)));
+  template <class F, class... A>
+  class_& def_static(const char* name, F&& f, A&&... a) {
+    cls_->methods[name] = Value(
+        make_function(gc_, name, std::forward<F>(f), std::forward<A>(a)...));
     return *this;
   }
-
-  // simple read/write field via getter/setter lambdas (syntactic sugar)
-  template <class Getter, class Setter>
-  class_& def_property(const char* name, Getter get, Setter set) {
-    // generate name() and set_name(v)
-    std::string gname = name;
-    std::string sname = std::string("set_") + name;
-    def(gname.c_str(), get);
-    def(sname.c_str(), set);
-    return *this;
-  }
-
-  NativeClass* get() const { return cls_; }
 };
 
 }  // namespace srbind

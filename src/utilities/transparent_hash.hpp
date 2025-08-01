@@ -37,6 +37,9 @@ struct TransparentHash {
   inline size_t operator()(std::string const& s) const noexcept {
     return std::hash<std::string_view>{}(s);
   }
+  inline size_t operator()(char const* s) const noexcept {
+    return std::hash<std::string_view>{}(s);
+  }
 };
 
 struct TransparentEq {
