@@ -24,9 +24,39 @@
 
 #pragma once
 
-#include "srbind/args.hpp"
 #include "srbind/caster.hpp"
-#include "srbind/detail.hpp"
-#include "srbind/function.hpp"
-#include "srbind/method.hpp"
-#include "srbind/module.hpp"
+
+#include <functional>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
+namespace srbind {
+
+// -------------------------------------------------------------
+// named argument descriptor
+// -------------------------------------------------------------
+struct arg_t {
+  std::string name;
+  bool has_default = false;
+  std::function<serilang::TempValue()> make_default;
+
+  explicit arg_t(const char* n) : name(n) {}
+
+  // allow: arg("x") = 42  (captures by value)
+  template <class T>
+  arg_t operator=(T&& v) && {
+    arg_t r = *this;
+    r.has_default = true;
+    auto held = std::make_shared<std::decay_t<T>>(std::forward<T>(v));
+    r.make_default = [held]() -> serilang::TempValue {
+      return type_caster<std::decay_t<T>>::cast(*held);
+    };
+    return r;
+  }
+};
+
+inline arg_t arg(const char* name) { return arg_t{name}; }
+
+}  // namespace srbind

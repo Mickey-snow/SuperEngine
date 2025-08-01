@@ -24,9 +24,12 @@
 
 #pragma once
 
-#include "srbind/args.hpp"
-#include "srbind/caster.hpp"
-#include "srbind/detail.hpp"
-#include "srbind/function.hpp"
-#include "srbind/method.hpp"
-#include "srbind/module.hpp"
+#include <stdexcept>
+
+namespace srbind {
+
+struct type_error : std::runtime_error {
+  using std::runtime_error::runtime_error;
+};
+
+}  // namespace srbind
