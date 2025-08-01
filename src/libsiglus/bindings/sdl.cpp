@@ -48,7 +48,7 @@ void SDL::Bind(sr::VM& vm) {
 
   sr::Class* sdl = gc->Allocate<sr::Class>();
   sdl->name = "sdl";
-  sdl->methods.try_emplace(
+  sdl->memfns.try_emplace(
       "__init__",
       gc->Allocate<sr::NativeFunction>(
           "__init__",
@@ -108,7 +108,7 @@ void SDL::Bind(sr::VM& vm) {
 
             return sr::Value(true);
           }));
-  sdl->methods.try_emplace(
+  sdl->memfns.try_emplace(
       "play",
       gc->Allocate<sr::NativeFunction>(
           "play",
@@ -129,7 +129,7 @@ void SDL::Bind(sr::VM& vm) {
 
             return sr::Value(true);
           }));
-  sdl->methods.try_emplace(
+  sdl->memfns.try_emplace(
       "bgm", gc->Allocate<sr::NativeFunction>(
                  "bgm",
                  [](sr::VM& vm, sr::Fiber&, sr::Value self,

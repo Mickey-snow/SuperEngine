@@ -238,7 +238,7 @@ TEST_F(GCTest, MixedValueGraph) {
   // Class+Instance: instance.field → dict, class.method → closure
   auto* klass = Alloc<Class>();
   klass->name = "Mixed";
-  klass->methods["fn"] = Value(fn);
+  klass->memfns["fn"] = Value(fn);
   auto* inst = Alloc<Instance>(klass);
   inst->fields["data"] = Value(dict);
 

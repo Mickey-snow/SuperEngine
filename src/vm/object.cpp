@@ -29,6 +29,8 @@
 #include "vm/value.hpp"
 #include "vm/vm.hpp"
 
+#include <format>
+
 namespace serilang {
 
 std::string Code::Str() const { return "<code>"; }
@@ -41,7 +43,9 @@ void Code::MarkRoots(GCVisitor& visitor) {
 
 // -----------------------------------------------------------------------
 void Class::MarkRoots(GCVisitor& visitor) {
-  for (auto& [k, it] : methods)
+  for (auto& [k, it] : memfns)
+    visitor.MarkSub(it);
+  for (auto& [k, it] : fields)
     visitor.MarkSub(it);
 }
 
@@ -52,7 +56,6 @@ std::string Class::Desc() const { return "<class " + name + '>'; }
 void Class::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
   f.stack.resize(f.stack.size() - nargs);
   auto inst = vm.gc_->Allocate<Instance>(this);
-  inst->fields = this->methods;
   f.stack.back() = Value(std::move(inst));
 }
 
@@ -70,18 +73,33 @@ std::string Instance::Str() const { return Desc(); }
 std::string Instance::Desc() const { return '<' + klass->name + " object>"; }
 
 TempValue Instance::Member(std::string_view mem) {
-  auto it = fields.find(std::string(mem));
-  if (it == fields.cend())
-    throw RuntimeError('\'' + Desc() + "' object has no member '" +
-                       std::string(mem) + '\'');
-  Value val = it->second;
-  if (IObject* obj = val.Get_if<IObject>()) {
-    auto t = obj->Type();
-    if (t == ObjType::Function || t == ObjType::Native)
-      return std::make_unique<BoundMethod>(Value(this), val);
+  {
+    auto it = fields.find(mem);
+    if (it != fields.cend())
+      return it->second;
   }
-  return val;
+  {
+    auto it = klass->memfns.find(mem);
+    if (it != klass->memfns.cend()) {
+      Value val = it->second;
+      if (IObject* obj = val.Get_if<IObject>()) {
+        auto t = obj->Type();
+        if (t == ObjType::Function || t == ObjType::Native)
+          return std::make_unique<BoundMethod>(Value(this), val);
+      }
+      return val;
+    }
+  }
+  {
+    auto it = klass->fields.find(mem);
+    if (it != klass->fields.cend())
+      return it->second;
+  }
+
+  throw RuntimeError(
+      std::format("'{}' object has no member '{}'", Desc(), mem));
 }
+
 void Instance::SetMember(std::string_view mem, Value val) {
   fields[std::string(mem)] = val;
 }

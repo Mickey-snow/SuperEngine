@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include "utilities/transparent_hash.hpp"
 #include "vm/call_frame.hpp"
 #include "vm/instruction.hpp"
 #include "vm/iobject.hpp"
@@ -95,7 +96,8 @@ struct Class : public IObject {
   static constexpr inline ObjType objtype = ObjType::Class;
 
   std::string name;
-  std::unordered_map<std::string, Value> methods;
+  transparent_hashmap<Value> memfns;
+  transparent_hashmap<Value> fields;
 
   constexpr ObjType Type() const noexcept final { return objtype; }
   constexpr size_t Size() const noexcept final { return sizeof(*this); }
@@ -112,7 +114,7 @@ struct Instance : public IObject {
   static constexpr inline ObjType objtype = ObjType::Instance;
 
   Class* klass;
-  std::unordered_map<std::string, Value> fields;
+  transparent_hashmap<Value> fields;
   explicit Instance(Class* klass_);
 
   constexpr ObjType Type() const noexcept final { return objtype; }
@@ -134,7 +136,7 @@ struct NativeClass : public IObject {
   using trace_fn = void (*)(GCVisitor&, void*);
 
   std::string name;
-  std::unordered_map<std::string, Value> methods;
+  transparent_hashmap<Value> methods;
   finalize_fn finalize = nullptr;
   trace_fn trace = nullptr;
 
@@ -153,7 +155,7 @@ struct NativeInstance : public IObject {
   static constexpr inline ObjType objtype = ObjType::NativeInstance;
 
   NativeClass* klass;
-  std::unordered_map<std::string, Value> fields;
+  transparent_hashmap<Value> fields;
   void* foreign = nullptr;
 
   explicit NativeInstance(NativeClass* klass_);

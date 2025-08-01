@@ -230,9 +230,14 @@ struct Dumper {
       oss << x.body->DumpAST("body", childPrefix, true);
     }
     if constexpr (std::same_as<T, ClassDecl>) {
-      for (size_t i = 0; i < x.members.size(); ++i) {
-        Dumper dumper(childPrefix, i + 1 >= x.members.size());
-        oss << dumper(x.members[i]);
+      for (size_t i = 0; i < x.memfn.size(); ++i) {
+        Dumper dumper(childPrefix,
+                      (i + 1 >= x.memfn.size()) && x.staticfn.empty());
+        oss << dumper(x.memfn[i]);
+      }
+      for (size_t i = 0; i < x.staticfn.size(); ++i) {
+        Dumper dumper(childPrefix, i + 1 >= x.staticfn.size());
+        oss << dumper(x.staticfn[i]);
       }
     }
     if constexpr (std::same_as<T, ReturnStmt>) {

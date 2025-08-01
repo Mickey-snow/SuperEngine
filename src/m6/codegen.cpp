@@ -420,12 +420,17 @@ void CodeGenerator::emit_stmt_node(const FuncDecl& fn) {
 }
 
 void CodeGenerator::emit_stmt_node(const ClassDecl& cd) {
-  for (auto& m : cd.members) {
+  for (auto& m : cd.memfn) {
+    emit(sr::Push{constant(Value(m.name))});
+    emit_function(m);
+  }
+  for (auto& m : cd.staticfn) {
     emit(sr::Push{constant(Value(m.name))});
     emit_function(m);
   }
   emit(sr::MakeClass{intern_name(cd.name),
-                     static_cast<uint16_t>(cd.members.size())});
+                     static_cast<uint16_t>(cd.memfn.size()),
+                     static_cast<uint16_t>(cd.staticfn.size())});
   emit(sr::StoreGlobal{intern_name(cd.name)});
 }
 

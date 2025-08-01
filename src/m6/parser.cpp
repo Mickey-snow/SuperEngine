@@ -104,7 +104,7 @@ std::shared_ptr<AST> Parser::ParseStatement(bool requireSemi) {
         }
 
         std::string id = clsNameTok.GetIf<tok::ID>()->id;
-        std::vector<FuncDecl> members;
+        std::vector<FuncDecl> memfn, staticfn;
 
         require<tok::CurlyL>("expected '{' after class name");
         while (it_ != end_ && !tryConsume<tok::CurlyR>()) {
@@ -112,7 +112,13 @@ std::shared_ptr<AST> Parser::ParseStatement(bool requireSemi) {
           if (tryConsume<tok::Reserved>(tok::Reserved::_fn)) {
             auto fn = parseFuncDecl(/*alreadyConsumedFn=*/true);
             if (fn && fn->HoldsAlternative<FuncDecl>()) {
-              members.emplace_back(std::move(*fn->Get_if<FuncDecl>()));
+              FuncDecl decl = std::move(*fn->Get_if<FuncDecl>());
+              if (decl.params.size() >= 1 && decl.params.front() == "self") {
+                memfn.emplace_back(std::move(decl));
+              } else {
+                staticfn.emplace_back(std::move(decl));
+              }
+
               continue;
             } else {
               Synchronize();
@@ -125,7 +131,8 @@ std::shared_ptr<AST> Parser::ParseStatement(bool requireSemi) {
           return nullptr;
         }
 
-        ClassDecl cd{std::move(id), std::move(members), clsNameLoc};
+        ClassDecl cd{std::move(id), std::move(memfn), std::move(staticfn),
+                     clsNameLoc};
         return std::make_shared<AST>(std::move(cd));
       }
 
