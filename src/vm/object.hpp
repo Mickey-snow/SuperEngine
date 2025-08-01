@@ -33,8 +33,8 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -302,16 +302,20 @@ class NativeFunction : public IObject {
  public:
   static constexpr inline ObjType objtype = ObjType::Native;
 
-  using function_t =
-      std::function<Value(VM&,
-                          Fiber&,
-                          Value,
-                          std::vector<Value>,
-                          std::unordered_map<std::string, Value>)>;
+  using function_t = std::function<Value(VM&,
+                                         Fiber&,
+                                         uint8_t,
+                                         uint8_t  // nargs, nkwargs
+                                         )>;
 
+  [[deprecated]]
   NativeFunction(std::string name,
-                 function_t fn,
-                 std::vector<Value> captures = {});
+                 std::function<Value(VM&,
+                                     Fiber&,
+                                     std::vector<Value>,
+                                     std::unordered_map<std::string, Value>)>);
+
+  NativeFunction(std::string name, function_t fn);
 
   std::string Name() const;
   constexpr ObjType Type() const noexcept final { return objtype; }
@@ -324,16 +328,9 @@ class NativeFunction : public IObject {
 
   void Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) final;
 
-  Value Invoke(VM& vm,
-               Fiber& f,
-               Value self,
-               std::vector<Value> args,
-               std::unordered_map<std::string, Value> kwargs);
-
  private:
   std::string name_;
   function_t fn_;
-  std::vector<Value> captures_;
 };
 
 struct BoundMethod : public IObject {

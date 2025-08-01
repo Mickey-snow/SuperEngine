@@ -149,10 +149,13 @@ TEST_F(VMTest, CallNative) {
 
   int call_count = 0;
   auto fn = gc->Allocate<NativeFunction>(
-      "my_function", [&](VM& vm, Fiber& f, Value self, std::vector<Value> args,
-                         std::unordered_map<std::string, Value> kwargs) {
+      "my_function",
+      [&call_count](VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) -> Value {
         ++call_count;
-        EXPECT_EQ(args.size(), 2);
+        EXPECT_EQ(nargs, 2);
+        EXPECT_EQ(nkwargs, 0);
+        std::vector<Value> args(f.stack.end() - 2, f.stack.end());
+        f.stack.resize(f.stack.size() - 2);
         EXPECT_EQ(args[0], 1);
         EXPECT_EQ(args[1], "foo");
         return Value();
@@ -216,12 +219,18 @@ TEST_F(VMTest, SpawnFiber) {
   std::vector<Value> arg;
   std::unordered_map<std::string, Value> kwarg;
   auto* fn = gc->Allocate<NativeFunction>(
-      "my_function", [&](VM& vm, Fiber& f, Value self, std::vector<Value> args,
-                         std::unordered_map<std::string, Value> kwargs) {
+      "my_function",
+      [&call_count](VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) -> Value {
         ++call_count;
-        arg = std::move(args);
-        kwarg = std::move(kwargs);
-        return Value();
+        EXPECT_EQ(nargs, 1);
+        EXPECT_EQ(nkwargs, 1);
+        std::span<Value> stk(f.stack.end() - nargs - 2 * nkwargs,
+                             f.stack.end());
+        EXPECT_EQ(stk[0], 1);
+        EXPECT_EQ(stk[1], "foo");
+        EXPECT_EQ(stk[2], "boo");
+        f.stack.resize(f.stack.size() - nargs - 2 * nkwargs);
+        return nil;
       });
 
   auto* chunk = gc->Allocate<Code>();
@@ -231,11 +240,6 @@ TEST_F(VMTest, SpawnFiber) {
                      MakeFiber{1, 1}, Push{1}, Return{}});
   std::ignore = run_and_get(chunk);
   EXPECT_EQ(call_count, 1);
-  ASSERT_EQ(arg.size(), 1);
-  EXPECT_EQ(arg.front(), 1);
-  ASSERT_EQ(kwarg.size(), 1);
-  ASSERT_TRUE(kwarg.contains("foo"));
-  EXPECT_EQ(kwarg["foo"], "boo");
 }
 
 TEST_F(VMTest, AwaitFiber) {

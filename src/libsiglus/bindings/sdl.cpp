@@ -52,7 +52,7 @@ void SDL::Bind(sr::VM& vm) {
       "__init__",
       gc->Allocate<sr::NativeFunction>(
           "__init__",
-          [](sr::VM& vm, sr::Fiber&, sr::Value self, std::vector<sr::Value>,
+          [](sr::VM& vm, sr::Fiber&, std::vector<sr::Value>,
              std::unordered_map<std::string, sr::Value>) -> sr::Value {
             if (SDL_Init(SDL_INIT_VIDEO) < 0) {
               throw std::runtime_error(
@@ -112,8 +112,7 @@ void SDL::Bind(sr::VM& vm) {
       "play",
       gc->Allocate<sr::NativeFunction>(
           "play",
-          [](sr::VM& vm, sr::Fiber&, sr::Value self,
-             std::vector<sr::Value> args,
+          [](sr::VM& vm, sr::Fiber&, std::vector<sr::Value> args,
              std::unordered_map<std::string, sr::Value>) -> sr::Value {
             std::string* name;
             if (args.size() < 1 ||
@@ -132,8 +131,7 @@ void SDL::Bind(sr::VM& vm) {
   sdl->memfns.try_emplace(
       "bgm", gc->Allocate<sr::NativeFunction>(
                  "bgm",
-                 [](sr::VM& vm, sr::Fiber&, sr::Value self,
-                    std::vector<sr::Value> args,
+                 [](sr::VM& vm, sr::Fiber&, std::vector<sr::Value> args,
                     std::unordered_map<std::string, sr::Value>) -> sr::Value {
                    std::string* name;
                    if (args.size() < 1 ||

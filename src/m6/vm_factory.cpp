@@ -45,8 +45,7 @@ sr::VM VMFactory::Create(std::shared_ptr<sr::GarbageCollector> gc,
           {"time",
            sr::Value(gc->Allocate<sr::NativeFunction>(
                "time",
-               [](sr::VM& vm, sr::Fiber& f, sr::Value self,
-                  std::vector<sr::Value> args,
+               [](sr::VM& vm, sr::Fiber& f, std::vector<sr::Value> args,
                   std::unordered_map<std::string, sr::Value> /*kwargs*/) {
                  if (!args.empty())
                    throw std::runtime_error("time() takes no arguments");
@@ -59,8 +58,7 @@ sr::VM VMFactory::Create(std::shared_ptr<sr::GarbageCollector> gc,
           {"print",
            sr::Value(gc->Allocate<sr::NativeFunction>(
                "print",
-               [&stdout](sr::VM& vm, sr::Fiber& f, sr::Value self,
-                         std::vector<sr::Value> args,
+               [&stdout](sr::VM& vm, sr::Fiber& f, std::vector<sr::Value> args,
                          std::unordered_map<std::string, sr::Value> kwargs) {
                  std::string sep = " ";
                  if (auto it = kwargs.find("sep"); it != kwargs.end())
@@ -94,8 +92,7 @@ sr::VM VMFactory::Create(std::shared_ptr<sr::GarbageCollector> gc,
           {"input",
            sr::Value(gc->Allocate<sr::NativeFunction>(
                "input",
-               [&stdin](sr::VM& vm, sr::Fiber& f, sr::Value self,
-                        std::vector<sr::Value> args,
+               [&stdin](sr::VM& vm, sr::Fiber& f, std::vector<sr::Value> args,
                         std::unordered_map<std::string, sr::Value> kwargs) {
                  std::string inp;
                  stdin >> inp;
@@ -106,8 +103,7 @@ sr::VM VMFactory::Create(std::shared_ptr<sr::GarbageCollector> gc,
            sr::Value(gc->Allocate<sr::NativeFunction>(
                "import",
                [&vm, &stdin, &stdout, &stderr](
-                   sr::VM& vm2, sr::Fiber& f, sr::Value self,
-                   std::vector<sr::Value> args,
+                   sr::VM& vm2, sr::Fiber& f, std::vector<sr::Value> args,
                    std::unordered_map<std::string, sr::Value> /*kwargs*/) {
                  if (args.size() != 1)
                    throw std::runtime_error("import() expects module name");

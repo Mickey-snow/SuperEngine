@@ -82,7 +82,8 @@ TempValue Instance::Member(std::string_view mem) {
     auto it = klass->memfns.find(mem);
     if (it != klass->memfns.cend()) {
       Value val = it->second;
-      if (IObject* obj = val.Get_if<IObject>()) {
+      if (IObject* obj = val.Get_if<IObject>();
+          obj && obj->Type() == ObjType::Function) {
         auto t = obj->Type();
         if (t == ObjType::Function || t == ObjType::Native)
           return std::make_unique<BoundMethod>(Value(this), val);
@@ -427,10 +428,36 @@ void Function::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
 }
 
 // -----------------------------------------------------------------------
-NativeFunction::NativeFunction(std::string name,
-                               function_t fn,
-                               std::vector<Value> caps)
-    : name_(std::move(name)), fn_(std::move(fn)), captures_(std::move(caps)) {}
+NativeFunction::NativeFunction(std::string name, function_t fn)
+    : name_(std::move(name)), fn_(std::move(fn)) {}
+
+NativeFunction::NativeFunction(
+    std::string name,
+    std::function<Value(VM&,
+                        Fiber&,
+                        std::vector<Value>,
+                        std::unordered_map<std::string, Value>)> fn)
+    : name_(std::move(name)),
+      fn_([fn = std::move(
+               fn)](VM& vm, Fiber& f, size_t nargs, size_t nkwargs) -> Value {
+        std::vector<Value> args;
+        std::unordered_map<std::string, Value> kwargs;
+
+        args.reserve(nargs);
+        kwargs.reserve(nkwargs);
+
+        size_t idx = f.stack.size() - nkwargs * 2 - nargs;
+        for (uint8_t i = 0; i < nargs; ++i)
+          args.emplace_back(std::move(f.stack[idx++]));
+        for (uint8_t i = 0; i < nkwargs; ++i) {
+          std::string* k = f.stack[idx++].Get_if<std::string>();
+          Value v = std::move(f.stack[idx++]);
+          kwargs.emplace(std::move(*k), std::move(v));
+        }
+        f.stack.resize(f.stack.size() - nkwargs * 2 - nargs);
+
+        return std::invoke(fn, vm, f, std::move(args), std::move(kwargs));
+      }) {}
 
 std::string NativeFunction::Name() const { return name_; }
 
@@ -440,41 +467,12 @@ std::string NativeFunction::Desc() const {
   return "<native function '" + name_ + "'>";
 }
 
-void NativeFunction::MarkRoots(GCVisitor& visitor) {
-  for (auto& v : captures_)
-    visitor.MarkSub(v);
-}
-
-Value NativeFunction::Invoke(VM& vm,
-                             Fiber& f,
-                             Value self,
-                             std::vector<Value> args,
-                             std::unordered_map<std::string, Value> kwargs) {
-  return std::invoke(fn_, vm, f, std::move(self), std::move(args),
-                     std::move(kwargs));
-}
+void NativeFunction::MarkRoots(GCVisitor& visitor) {}
 
 void NativeFunction::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
-  std::vector<Value> args;
-  std::unordered_map<std::string, Value> kwargs;
+  Value retval = std::invoke(fn_, vm, f, nargs, nkwargs);
 
-  args.reserve(nargs);
-  kwargs.reserve(nkwargs);
-
-  size_t idx = f.stack.size() - nkwargs * 2 - nargs;
-  for (uint8_t i = 0; i < nargs; ++i)
-    args.emplace_back(std::move(f.stack[idx++]));
-  for (uint8_t i = 0; i < nkwargs; ++i) {
-    std::string* k = f.stack[idx++].Get_if<std::string>();
-    Value v = std::move(f.stack[idx++]);
-    kwargs.emplace(std::move(*k), std::move(v));
-  }
-
-  auto self = nil;
-  auto retval = Invoke(vm, f, self, std::move(args), std::move(kwargs));
-
-  f.stack.resize(f.stack.size() - nkwargs * 2 - nargs);
-  f.stack.back() = std::move(retval);
+  f.stack.back() = std::move(retval);  // (fn) <- (retval)
 }
 
 // -----------------------------------------------------------------------
