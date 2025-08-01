@@ -60,9 +60,6 @@ class CodeGenerator {
   // -- Type aliases ----------------------------------------------------
   using Value = serilang::Value;
   enum class SCOPE { NONE = 1, GLOBAL, LOCAL };
-  template <typename T>
-  using Map_t =
-      std::unordered_map<std::string, T, TransparentHash, TransparentEq>;
 
   // -- Data members ---------------------------------------------------
   std::shared_ptr<serilang::GarbageCollector> gc_;
@@ -70,8 +67,8 @@ class CodeGenerator {
   bool in_function_;
 
   serilang::Code* chunk_;
-  Map_t<SCOPE> scope_heuristic_;
-  Map_t<std::size_t> locals_;
+  transparent_hashmap<SCOPE> scope_heuristic_;
+  transparent_hashmap<std::size_t> locals_;
   std::size_t local_depth_;
   std::vector<Error> errors_;
 

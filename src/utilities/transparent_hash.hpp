@@ -26,6 +26,8 @@
 
 #include <string>
 #include <string_view>
+#include <unordered_map>
+#include <unordered_set>
 
 struct TransparentHash {
   using is_transparent = void;
@@ -44,3 +46,11 @@ struct TransparentEq {
     return a == b;
   }
 };
+
+template <typename T>
+using transparent_hashmap =
+    std::unordered_map<std::string, T, TransparentHash, TransparentEq>;
+
+template <typename T>
+using transparent_hashset =
+    std::unordered_set<std::string, T, TransparentHash, TransparentEq>;

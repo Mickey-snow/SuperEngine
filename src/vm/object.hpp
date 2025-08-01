@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include "utilities/transparent_hash.hpp"
 #include "vm/call_frame.hpp"
 #include "vm/instruction.hpp"
 #include "vm/iobject.hpp"
@@ -32,8 +33,8 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -95,7 +96,8 @@ struct Class : public IObject {
   static constexpr inline ObjType objtype = ObjType::Class;
 
   std::string name;
-  std::unordered_map<std::string, Value> methods;
+  transparent_hashmap<Value> memfns;
+  transparent_hashmap<Value> fields;
 
   constexpr ObjType Type() const noexcept final { return objtype; }
   constexpr size_t Size() const noexcept final { return sizeof(*this); }
@@ -112,8 +114,61 @@ struct Instance : public IObject {
   static constexpr inline ObjType objtype = ObjType::Instance;
 
   Class* klass;
-  std::unordered_map<std::string, Value> fields;
+  transparent_hashmap<Value> fields;
   explicit Instance(Class* klass_);
+
+  constexpr ObjType Type() const noexcept final { return objtype; }
+  constexpr size_t Size() const noexcept final { return sizeof(*this); }
+
+  void MarkRoots(GCVisitor& visitor) override;
+
+  std::string Str() const override;
+  std::string Desc() const override;
+
+  TempValue Member(std::string_view mem) override;
+  void SetMember(std::string_view mem, Value val) override;
+};
+
+struct NativeClass : public IObject {
+  static constexpr inline ObjType objtype = ObjType::NativeClass;
+
+  using finalize_fn = void (*)(void*);
+  using trace_fn = void (*)(GCVisitor&, void*);
+
+  std::string name;
+  transparent_hashmap<Value> methods;
+  finalize_fn finalize = nullptr;
+  trace_fn trace = nullptr;
+
+  constexpr ObjType Type() const noexcept final { return objtype; }
+  constexpr size_t Size() const noexcept final { return sizeof(*this); }
+
+  void MarkRoots(GCVisitor& visitor) override;
+
+  std::string Str() const override;
+  std::string Desc() const override;
+
+  void Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) override;
+};
+
+struct NativeInstance : public IObject {
+  static constexpr inline ObjType objtype = ObjType::NativeInstance;
+
+  NativeClass* klass;
+  transparent_hashmap<Value> fields;
+  void* foreign = nullptr;
+
+  explicit NativeInstance(NativeClass* klass_);
+  ~NativeInstance() override;
+
+  template <typename T>
+  void SetForeign(T* ptr) {
+    foreign = ptr;
+  }
+  template <typename T>
+  T* GetForeign() const {
+    return static_cast<T*>(foreign);
+  }
 
   constexpr ObjType Type() const noexcept final { return objtype; }
   constexpr size_t Size() const noexcept final { return sizeof(*this); }
@@ -247,10 +302,18 @@ class NativeFunction : public IObject {
  public:
   static constexpr inline ObjType objtype = ObjType::Native;
 
-  using function_t =
-      std::function<Value(Fiber&,
-                          std::vector<Value>,
-                          std::unordered_map<std::string, Value>)>;
+  using function_t = std::function<Value(VM&,
+                                         Fiber&,
+                                         uint8_t,
+                                         uint8_t  // nargs, nkwargs
+                                         )>;
+
+  [[deprecated]]
+  NativeFunction(std::string name,
+                 std::function<Value(VM&,
+                                     Fiber&,
+                                     std::vector<Value>,
+                                     std::unordered_map<std::string, Value>)>);
 
   NativeFunction(std::string name, function_t fn);
 
@@ -268,6 +331,25 @@ class NativeFunction : public IObject {
  private:
   std::string name_;
   function_t fn_;
+};
+
+struct BoundMethod : public IObject {
+  static constexpr inline ObjType objtype = ObjType::BoundMethod;
+
+  Value receiver;
+  Value method;
+
+  BoundMethod(Value recv, Value fn);
+
+  constexpr ObjType Type() const noexcept final { return objtype; }
+  constexpr size_t Size() const noexcept final { return sizeof(*this); }
+
+  void MarkRoots(GCVisitor& visitor) override;
+
+  std::string Str() const override;
+  std::string Desc() const override;
+
+  void Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) override;
 };
 
 }  // namespace serilang

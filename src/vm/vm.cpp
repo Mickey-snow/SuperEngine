@@ -445,11 +445,17 @@ void VM::ExecuteFiber(Fiber* fib) {
         auto klass = gc_->Allocate<Class>();
         klass->name =
             chunk->const_pool[ins.name_index].template Get<std::string>();
-        for (int i = 0; i < ins.nmethods; i++) {
+        for (int i = 0; i < ins.nstaticfn; i++) {
           auto method = pop(fib->stack);
           auto name = pop(fib->stack).template Get<std::string>();
-          klass->methods[std::move(name)] = std::move(method);
+          klass->fields.try_emplace(std::move(name), std::move(method));
         }
+        for (int i = 0; i < ins.nmemfn; i++) {
+          auto method = pop(fib->stack);
+          auto name = pop(fib->stack).template Get<std::string>();
+          klass->memfns.try_emplace(std::move(name), std::move(method));
+        }
+
         push(fib->stack, Value(klass));
       } break;
 

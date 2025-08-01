@@ -851,9 +851,12 @@ fn kw_only(a,b,c,*args)
 }
 
 TEST_F(StmtParserTest, ClassDecl) {
-  expectStmtAST(TokenArray("class Klass{ fn foo(){} fn boo(a,b,c){} }"),
+  expectStmtAST(TokenArray("class Klass{ fn foo(){} fn boo(a,b,c){} fn moo(self,a){} }"),
                 R"(
 class Klass
+   ├─fn moo(self,a)
+   │  └─body
+   │     └─Compound
    ├─fn foo()
    │  └─body
    │     └─Compound

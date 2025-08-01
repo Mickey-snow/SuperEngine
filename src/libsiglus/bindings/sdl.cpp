@@ -124,20 +124,20 @@ void SDL::Bind(sr::VM& vm) {
   auto* bind = gc->Allocate<Combined>();
   vm.globals_->map["sdl"] = sr::Value(bind);
   bind->name = "sdl";
-  bind->methods.try_emplace(
+  bind->fields.try_emplace(
       "__init__",
       gc->Allocate<sr::NativeFunction>(
           "__init__",
-          [bind](sr::Fiber&, std::vector<sr::Value>,
+          [bind](sr::VM&, sr::Fiber&, std::vector<sr::Value>,
                  std::unordered_map<std::string, sr::Value>) -> sr::Value {
             bind->init();
             return sr::nil;
           }));
-  bind->methods.try_emplace(
+  bind->fields.try_emplace(
       "play",
       gc->Allocate<sr::NativeFunction>(
           "play",
-          [bind](sr::Fiber&, std::vector<sr::Value> args,
+          [bind](sr::VM&, sr::Fiber&, std::vector<sr::Value> args,
                  std::unordered_map<std::string, sr::Value>) -> sr::Value {
             std::string* name;
             if (args.size() < 1 ||
@@ -148,11 +148,11 @@ void SDL::Bind(sr::VM& vm) {
             bind->play(*name);
             return sr::Value(true);
           }));
-  bind->methods.try_emplace(
+  bind->fields.try_emplace(
       "bgm",
       gc->Allocate<sr::NativeFunction>(
           "bgm",
-          [bind](sr::Fiber&, std::vector<sr::Value> args,
+          [bind](sr::VM&, sr::Fiber&, std::vector<sr::Value> args,
                  std::unordered_map<std::string, sr::Value>) -> sr::Value {
             std::string* name;
             if (args.size() < 1 ||

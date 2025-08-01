@@ -110,8 +110,8 @@ struct MakeDict {
 };  // (key,val,...) -> (dict)
 struct MakeClass {
   uint32_t name_index;
-  uint16_t nmethods;
-};  // (method_fn*) -> (class)
+  uint16_t nmemfn, nstaticfn;
+};  // (mem_fn*, static_fn*) -> (class)
 struct GetField {
   uint32_t name_index;
 };  // (inst) -> (value)
@@ -127,7 +127,7 @@ struct MakeFiber {
   uint32_t kwargcnt;
 };  // (…) -> (fiber)
 struct Await {};  // (fiber,arg) -> (result|exc)
-struct Yield {};   // (value) -> (yielded)
+struct Yield {};  // (value) -> (yielded)
 //  ‣ `Yield` suspends the *current* fiber and returns control to its resumer
 //  ‣ `Resume` runs the fiber until next `Yield` or `Return`
 

@@ -32,12 +32,15 @@ namespace serilang {
 struct Code;
 struct Class;
 struct Instance;
+struct NativeClass;
+struct NativeInstance;
 struct Upvalue;
 struct Fiber;
 struct List;
 struct Dict;
 struct Function;
 class NativeFunction;
+struct BoundMethod;
 
 class Value;
 class IObject;

@@ -282,7 +282,7 @@ struct FuncDecl {
 
 struct ClassDecl {
   std::string name;
-  std::vector<FuncDecl> members;
+  std::vector<FuncDecl> memfn, staticfn;
 
   SourceLocation name_loc;
 

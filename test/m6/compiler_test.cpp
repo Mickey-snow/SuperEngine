@@ -341,16 +341,18 @@ print(klass, klass.foo(), klass.boo(2,3), end="", sep=",");
 
   {
     auto res = Run(R"(
-class Klass{}
-fn foo(self, x){
-  self.result += "*" * x + "0";
-  if(x > 1) foo(self, x-1);
+class Klass{
+  fn foo(self, x){
+    self.result += "*" * x + "0";
+    if(x > 1) foo(self, x-1);
+  }
 }
 
 inst = Klass();
 inst.result = "";
-inst.method = foo;
-inst.method(inst, 5);
+
+foo = inst.foo;
+foo(5);
 
 print(inst.result);
 )");
