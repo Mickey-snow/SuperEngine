@@ -25,12 +25,21 @@
 #include "m6/vm_factory.hpp"
 
 #include "m6/compiler_pipeline.hpp"
+#include "srbind/srbind.hpp"
 
 #include <chrono>
 #include <fstream>
 
 namespace m6 {
 namespace sr = serilang;
+namespace sb = srbind;
+
+static double Time() {
+  using namespace std::chrono;
+  auto now = system_clock::now().time_since_epoch();
+  auto secs = duration_cast<seconds>(now).count();
+  return secs;
+}
 
 sr::VM VMFactory::Create(std::shared_ptr<sr::GarbageCollector> gc,
                          std::ostream& stdout,
@@ -42,19 +51,6 @@ sr::VM VMFactory::Create(std::shared_ptr<sr::GarbageCollector> gc,
 
   sr::Dict* builtins =
       gc->Allocate<sr::Dict>(std::unordered_map<std::string, sr::Value>{
-          {"time",
-           sr::Value(gc->Allocate<sr::NativeFunction>(
-               "time",
-               [](sr::VM& vm, sr::Fiber& f, std::vector<sr::Value> args,
-                  std::unordered_map<std::string, sr::Value> /*kwargs*/) {
-                 if (!args.empty())
-                   throw std::runtime_error("time() takes no arguments");
-                 using namespace std::chrono;
-                 auto now = system_clock::now().time_since_epoch();
-                 auto secs = duration_cast<seconds>(now).count();
-                 return sr::Value(static_cast<int>(secs));
-               }))},
-
           {"print",
            sr::Value(gc->Allocate<sr::NativeFunction>(
                "print",
@@ -138,6 +134,9 @@ sr::VM VMFactory::Create(std::shared_ptr<sr::GarbageCollector> gc,
                }))}});
 
   vm.builtins_ = builtins;
+
+  sb::module_ m(vm.gc_.get(), vm.builtins_);
+  m.def("time", &Time);
 
   return vm;
 }
