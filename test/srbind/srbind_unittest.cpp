@@ -25,6 +25,7 @@
 #include <gtest/gtest.h>
 
 #include "srbind/srbind.hpp"
+
 #include "vm/exception.hpp"
 #include "vm/gc.hpp"
 #include "vm/object.hpp"
@@ -89,14 +90,30 @@ class SrbindTest : public ::testing::Test {
   template <typename T>
   auto get_as(Dict* dict, const char* item) -> std::add_pointer_t<T> {
     auto it = dict->map.find(item);
+    if (it == dict->map.cend()) {
+      ADD_FAILURE() << "item not found: " << item;
+      return nullptr;
+    }
     auto r = it->second.Get_if<T>();
+    if (!r) {
+      ADD_FAILURE() << "unexpected nullptr: " << item;
+      return nullptr;
+    }
     return r;
   }
   template <typename T, typename U>
   auto get_as(transparent_hashmap<U>& map, std::string_view item)
       -> std::add_pointer_t<T> {
     auto it = map.find(item);
+    if (it == map.cend()) {
+      ADD_FAILURE() << "item not found: " << item;
+      return nullptr;
+    }
     auto* r = it->second.template Get_if<T>();
+    if (!r) {
+      ADD_FAILURE() << "unexpected nullptr: " << item;
+      return nullptr;
+    }
     return r;
   }
 };

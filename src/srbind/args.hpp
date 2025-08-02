@@ -30,7 +30,7 @@
 #include <memory>
 #include <string>
 #include <utility>
-#include <vector>
+#include <variant>
 
 namespace srbind {
 
@@ -58,5 +58,18 @@ struct arg_t {
 };
 
 inline arg_t arg(const char* name) { return arg_t{name}; }
+
+struct vararg_t {};
+inline constexpr vararg_t vararg;
+
+struct kwargs_t {};
+inline constexpr kwargs_t kwarg;
+
+using argument = std::variant<arg_t, vararg_t, kwargs_t>;
+
+template <class T>
+concept argument_like = std::same_as<std::remove_cvref_t<T>, arg_t> ||
+                        std::same_as<std::remove_cvref_t<T>, vararg_t> ||
+                        std::same_as<std::remove_cvref_t<T>, kwargs_t>;
 
 }  // namespace srbind

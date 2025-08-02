@@ -49,11 +49,9 @@ inline Value& arg_at(serilang::Fiber& f,
   return f.stack[base + i];
 }
 
-// Pop all args (positional-only) and shrink the stack; leave callee slot
-// in place.
+// Pop all args and shrink the stack; leave callee slot in place.
 inline void drop_args(serilang::Fiber& f, size_t nargs, size_t nkwargs) {
-  (void)nkwargs;  // this version ignores kwargs
-  f.stack.resize(f.stack.size() - (nkwargs * 2 + nargs));
+  f.stack.resize(arg_base(f, nargs, nkwargs));
 }
 
 // read kwargs into a map<name, Value*>

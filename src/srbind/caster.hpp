@@ -111,6 +111,27 @@ struct type_caster<T*, std::enable_if_t<!std::is_void_v<T>>> {
   // Value/void/primitives.
 };
 
+// vararg and kwarg types to avoid compile errors
+template <>
+struct type_caster<std::vector<Value>> {
+  static std::vector<Value> load(Value& v) {
+    throw type_error("cannot convert to vector");
+  }
+  static serilang::TempValue cast(const std::vector<Value>&) {
+    throw type_error("cannot cast to vector");
+  }
+};
+template <>
+struct type_caster<std::unordered_map<std::string, Value>> {
+  static std::unordered_map<std::string, Value> load(Value& v) {
+    throw type_error("cannot convert to map");
+  }
+  static serilang::TempValue cast(
+      const std::unordered_map<std::string, Value>&) {
+    throw type_error("cannot cast to map");
+  }
+};
+
 // -------------------------------------------------------------
 
 template <class T>

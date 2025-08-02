@@ -82,8 +82,7 @@ TempValue Instance::Member(std::string_view mem) {
     auto it = klass->memfns.find(mem);
     if (it != klass->memfns.cend()) {
       Value val = it->second;
-      if (IObject* obj = val.Get_if<IObject>();
-          obj && obj->Type() == ObjType::Function) {
+      if (IObject* obj = val.Get_if<IObject>()) {
         auto t = obj->Type();
         if (t == ObjType::Function || t == ObjType::Native)
           return std::make_unique<BoundMethod>(Value(this), val);
