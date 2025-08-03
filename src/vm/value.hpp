@@ -104,6 +104,23 @@ class Value {
     }
   }
 
+  template <class Visitor>
+  decltype(auto) Apply(Visitor&& vis) {
+    return std::visit(std::forward<Visitor>(vis), val_);
+  }
+  template <class Visitor>
+  decltype(auto) Apply(Visitor&& vis) const {
+    return std::visit(std::forward<Visitor>(vis), val_);
+  }
+  template <class R, class Visitor>
+  R Apply(Visitor&& vis) {
+    return std::visit<R>(std::forward<Visitor>(vis), val_);
+  }
+  template <class R, class Visitor>
+  R Apply(Visitor&& vis) const {
+    return std::visit<R>(std::forward<Visitor>(vis), val_);
+  }
+
   // for testing
   operator std::string() const;
   bool operator==(std::monostate) const;

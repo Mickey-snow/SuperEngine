@@ -68,21 +68,13 @@ struct type_caster<double> {
 
 template <>
 struct type_caster<bool> {
-  static bool load(Value& v) {
-    if (auto p = v.Get_if<bool>())
-      return *p;
-    throw type_error("expected bool, got " + v.Desc());
-  }
+  static bool load(Value& v) { return v.IsTruthy(); }
   static serilang::TempValue cast(bool x) { return Value(x); }
 };
 
 template <>
 struct type_caster<std::string> {
-  static std::string load(Value& v) {
-    if (auto p = v.Get_if<std::string>())
-      return *p;
-    throw type_error("expected str, got " + v.Desc());
-  }
+  static std::string load(Value& v) { return v.Str(); }
   static serilang::TempValue cast(std::string s) { return Value(std::move(s)); }
 };
 

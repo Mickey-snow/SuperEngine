@@ -38,15 +38,7 @@ namespace sb = srbind;
 static void nop() {}
 
 void System::Bind(serilang::VM& vm) {
-  serilang::GarbageCollector* gc = vm.gc_.get();
-  serilang::Dict* dict;
-
-  auto [it, ok] = vm.globals_->map.try_emplace(
-      "system", dict = gc->Allocate<serilang::Dict>());
-  if (!ok)
-    throw binding_error("cannot add 'system' dictionary");
-
-  sb::module_ m(gc, dict);
+  sb::module_ m(vm, "system");
   m.def("is_debug", +[]() { return false; });
   m.def("time", +[]() { return static_cast<int>(std::time(nullptr)); });
   m.def("check_file_exist", [root = ctx.base_pth](std::string filename) {

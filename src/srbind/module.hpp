@@ -52,6 +52,11 @@ class module_ {
  public:
   module_(serilang::GarbageCollector* gc, serilang::Dict* dict)
       : gc_(gc), dict_(dict) {}
+  module_(serilang::VM& vm, char const* name) : gc_(vm.gc_.get()) {
+    dict_ = gc_->Allocate<serilang::Dict>();
+    serilang::Module* mod = gc_->Allocate<serilang::Module>(name, dict_);
+    vm.builtins_->map[name] = Value(mod);
+  }
 
   template <class F, class... A>
   module_& def(const char* name, F&& f, A&&... a) {
