@@ -92,7 +92,7 @@ class class_ {
         "__init__",
         [spec = parse_spec(std::forward<A>(a)...)](
             serilang::VM& vm, serilang::Fiber& f, uint8_t nargs,
-            uint8_t nkwargs) -> Value {
+            uint8_t nkwargs) -> serilang::TempValue {
           try {
             if (nargs < 1)
               throw type_error("missing 'self'");

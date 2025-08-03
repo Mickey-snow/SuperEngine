@@ -54,6 +54,5 @@ template <typename T>
 using transparent_hashmap =
     std::unordered_map<std::string, T, TransparentHash, TransparentEq>;
 
-template <typename T>
 using transparent_hashset =
-    std::unordered_set<std::string, T, TransparentHash, TransparentEq>;
+    std::unordered_set<std::string, TransparentHash, TransparentEq>;
