@@ -88,28 +88,28 @@ class class_ {
   // __init__(self, ...) with names/defaults
   template <class... Args, class... A>
   class_& def(init_t<Args...>, A&&... a) {
-    std::vector<arg_t> spec{std::forward<A>(a)...};  // names for ctor args
     auto* nf = gc_->Allocate<serilang::NativeFunction>(
         "__init__",
-        [spec = std::move(spec)](serilang::VM& vm, serilang::Fiber& f,
-                                 uint8_t nargs, uint8_t nkwargs) -> Value {
+        [spec = parse_spec(std::forward<A>(a)...)](
+            serilang::VM& vm, serilang::Fiber& f, uint8_t nargs,
+            uint8_t nkwargs) -> Value {
           try {
             if (nargs < 1)
               throw type_error("missing 'self'");
-            Value& selfv = detail::arg_at(f, nargs, nkwargs, 0);
+            Value selfv = std::move(f.stack.end()[-nargs - 2 * nkwargs]);
             auto* self = selfv.Get_if<serilang::NativeInstance>();
             if (!self)
               throw type_error("self is not a native instance");
-            auto tup = detail::load_mapped<Args...>(vm, f, nargs, nkwargs,
-                                                    &spec, /*offset=*/1);
-            detail::drop_args(f, nargs, nkwargs);
+            auto tup = load_args<Args...>(f.stack, nargs - 1, nkwargs, spec);
+            f.stack.pop_back();  // self
+
             if (self->foreign)
               throw type_error("__init__ called twice");
             T* obj = std::apply(
                 [](auto&&... a) {
                   return new T(std::forward<decltype(a)>(a)...);
                 },
-                tup);
+                std::move(tup));
             self->SetForeign<T>(obj);
             return serilang::nil;
           } catch (const type_error& e) {
