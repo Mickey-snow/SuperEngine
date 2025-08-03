@@ -26,10 +26,10 @@
 
 #include "srbind/arglist_spec.hpp"
 #include "srbind/argloader.hpp"
-#include "srbind/detail.hpp"
 #include "vm/gc.hpp"
 #include "vm/object.hpp"
 #include "vm/value.hpp"
+#include "vm/vm.hpp"
 
 #include <type_traits>
 #include <utility>
@@ -54,7 +54,7 @@ auto invoke_free_impl(serilang::VM& vm,
     return serilang::nil;
   } else {
     R r = std::apply(std::forward<F>(fn), tup);
-    serilang::TempValue tv = detail::to_value(std::move(r));
+    serilang::TempValue tv = type_caster<std::decay_t<R>>::cast(std::move(r));
     return vm.gc_->TrackValue(std::move(tv));
   }
 }

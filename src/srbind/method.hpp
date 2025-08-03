@@ -51,7 +51,7 @@ Value do_invoke_method(serilang::VM& vm,
           return (self->*pmf)(std::forward<decltype(a)>(a)...);
         },
         std::move(tup));
-    serilang::TempValue tv = detail::to_value(std::move(r));
+    serilang::TempValue tv = type_caster<std::decay_t<R>>::cast(std::move(r));
     return vm.gc_->TrackValue(std::move(tv));
   }
 }

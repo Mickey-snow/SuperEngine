@@ -26,7 +26,6 @@
 
 #include "srbind/arglist_spec.hpp"
 #include "srbind/args.hpp"
-#include "srbind/detail.hpp"
 #include "vm/value.hpp"
 
 #include <format>
