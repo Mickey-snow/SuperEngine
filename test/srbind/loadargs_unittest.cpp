@@ -27,6 +27,7 @@
 #include "srbind/argloader.hpp"
 #include "vm/value.hpp"
 
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -34,6 +35,7 @@ namespace srbind_test {
 
 using namespace srbind;
 using namespace serilang;
+using std::string_literals::operator""s;
 
 template <typename T>
 concept value_type =
@@ -53,7 +55,7 @@ class LoadArgsTest : public ::testing::Test {
                                        bool has_vararg = false,
                                        bool has_kwarg = false) {
     arglist_spec s;
-    s.nparam = nparam;
+    s.npos = s.nparam = nparam;
     s.has_vararg = has_vararg;
     s.has_kwarg = has_kwarg;
     return s;
@@ -67,7 +69,7 @@ class LoadArgsTest : public ::testing::Test {
 
 TEST_F(LoadArgsTest, Positional) {
   auto spec = make_spec(3);  // 3 positional, no vararg/kwarg
-  std::vector<serilang::Value> stack = Stack(1, 2.5, std::string("hello"));
+  auto stack = Stack(1, 2.5, "hello"s);
   auto [i, d, s] = load_args<int, double, std::string>(stack, 3, 0, spec);
   EXPECT_EQ(i, 1);
   EXPECT_DOUBLE_EQ(d, 2.5);
@@ -78,7 +80,7 @@ TEST_F(LoadArgsTest, Positional) {
 TEST_F(LoadArgsTest, KeywordPairs) {
   auto spec = make_spec(2, /*vararg=*/false, /*kwarg=*/true);
   // Positional: 10, 20. Keyword: ("kw", 42)
-  std::vector<serilang::Value> stack = Stack(10, 20, std::string("kw"), 42);
+  auto stack = Stack(10, 20, "kw"s, 42);
   auto [a, b, kw] = load_args<int, int, KW>(stack, 2, 1, spec);
   EXPECT_EQ(a, 10);
   EXPECT_EQ(b, 20);
@@ -89,7 +91,7 @@ TEST_F(LoadArgsTest, KeywordPairs) {
 TEST_F(LoadArgsTest, Vararg) {
   auto spec = make_spec(1, /*vararg=*/true, /*kwarg=*/false);
   // Fixed positional: 8. Varargs (leftover) 9, 7
-  std::vector<serilang::Value> stack = Stack(8, 9, 7);
+  auto stack = Stack(8, 9, 7);
   // Here we simulate varargs being deeper in stack; only fixed positional is
   // last
   auto [x, v] = load_args<int, V>(stack, 3, 0, spec);
@@ -102,7 +104,7 @@ TEST_F(LoadArgsTest, Vararg) {
 TEST_F(LoadArgsTest, VarargAndKwarg) {
   auto spec = make_spec(1, /*vararg=*/true, /*kwarg=*/true);
   // Layout: fixed positional 42, [vararg items 100,200], keyword ("k", 5)
-  std::vector<serilang::Value> stack = Stack(42, 100, 200, std::string("k"), 5);
+  auto stack = Stack(42, 100, 200, "k"s, 5);
   auto [fixed, v, kw] = load_args<double, V, KW>(stack, 3, 1, spec);
   EXPECT_DOUBLE_EQ(fixed, 42.0);
   ASSERT_EQ(v.size(), 2);
@@ -117,23 +119,37 @@ TEST_F(LoadArgsTest, DefaultArg) {
   spec.param_index["k"] = 0;
   spec.defaults[0] = []() { return TempValue(Value("default")); };
 
-  std::vector<serilang::Value> stack = Stack(std::string("m"), 1);
+  auto stack = Stack("m"s, 1);
   auto [k, kw] = load_args<std::string, KW>(stack, 0, 1, spec);
   EXPECT_EQ(k, "default");
   ASSERT_TRUE(kw.contains("m"));
   EXPECT_EQ(kw.at("m"), 1);
 }
 
+TEST_F(LoadArgsTest, KwonlyArg) {
+  auto spec = parse_spec(arg("a"), kw_arg("b"), vararg, kwargs);
+  auto stack = Stack(1, 2, 3, "x"s, 4, "y"s, 5, "b"s, 6);
+  auto [a, b, v, kw] = load_args<int, int, V, KW>(stack, 3, 3, spec);
+  EXPECT_EQ(a, 1);
+  EXPECT_EQ(b, 6);
+  ASSERT_EQ(v.size(), 2);
+  EXPECT_EQ(v.at(0), 2);
+  EXPECT_EQ(v.at(1), 3);
+  ASSERT_TRUE(kw.contains("x") && kw.contains("y"));
+  EXPECT_EQ(kw.at("x"), 4);
+  EXPECT_EQ(kw.at("y"), 5);
+}
+
 TEST_F(LoadArgsTest, MissingArguments) {
   {
     auto spec = make_spec(2);
-    std::vector<serilang::Value> stack = Stack(1);
+    auto stack = Stack(1);
     EXPECT_THROW((load_args<int, int>(stack, 1, 0, spec)), error_type);
   }
 
   {
     auto spec = make_spec(3);  // expects 3 positional
-    std::vector<serilang::Value> stack = Stack(1, 2);
+    auto stack = Stack(1, 2);
     EXPECT_THROW((load_args<int, int>(stack, 2, 0, spec)), error_type);
   }
 }
@@ -141,40 +157,39 @@ TEST_F(LoadArgsTest, MissingArguments) {
 TEST_F(LoadArgsTest, TooManyArguments) {
   {
     auto spec = make_spec(2);
-    std::vector<serilang::Value> stack = Stack(1, 2, 3);
+    auto stack = Stack(1, 2, 3);
     EXPECT_THROW((load_args<int, int>(stack, 3, 0, spec)), error_type);
   }
 
   {
     auto spec = make_spec(3);
-    std::vector<serilang::Value> stack = Stack(1, 2, std::string("k"), 3);
-    EXPECT_THROW((load_args<int, int>(stack, 2, 1, spec)), error_type);
+    auto stack = Stack(1, 2, 3, "k"s, 3);
+    EXPECT_THROW((load_args<int, int, int>(stack, 3, 1, spec)), error_type);
   }
 }
 
 TEST_F(LoadArgsTest, StackUnderflow) {
   auto spec = make_spec(1);
-  std::vector<serilang::Value> stack = Stack();
+  auto stack = Stack();
   EXPECT_THROW((load_args<int>(stack, 0, 0, spec)), error_type);
 }
 
 TEST_F(LoadArgsTest, MultipleAssign) {
   auto spec = make_spec(1);
   spec.param_index["k"] = 0;
-  std::vector<serilang::Value> stack = Stack(1, std::string("k"), 1);
+  auto stack = Stack(1, "k"s, 1);
   EXPECT_THROW((load_args<int>(stack, 1, 1, spec)), error_type);
 }
 
 TEST_F(LoadArgsTest, DuplicatedKW) {
   auto spec = make_spec(0, /*vararg=*/false, /*kwarg=*/true);
-  std::vector<serilang::Value> stack =
-      Stack(std::string("k"), 1, std::string("k"), 2);
+  auto stack = Stack("k"s, 1, "k"s, 2);
   EXPECT_THROW((load_args<KW>(stack, 0, 2, spec)), error_type);
 }
 
 TEST_F(LoadArgsTest, SinkMissing) {
   auto spec = make_spec(0, true, true);
-  std::vector<serilang::Value> stack = Stack(1, std::string("k"), 1);
+  auto stack = Stack(1, "k"s, 1);
   EXPECT_THROW((load_args<KW>(stack, 1, 1, spec)), error_type);
   EXPECT_THROW((load_args<V>(stack, 1, 1, spec)), error_type);
   EXPECT_THROW((load_args<>(stack, 1, 1, spec)), error_type);

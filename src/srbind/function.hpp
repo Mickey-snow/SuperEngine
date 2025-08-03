@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include "srbind/arglist_spec.hpp"
+#include "srbind/argloader.hpp"
 #include "srbind/detail.hpp"
 #include "vm/gc.hpp"
 #include "vm/object.hpp"
@@ -35,37 +37,7 @@
 
 namespace srbind {
 
-// -------------------------------------------------------------
-// wrap free function: def("name", callable)
-// -------------------------------------------------------------
-template <class F, class... A>
-serilang::NativeFunction* make_function(serilang::GarbageCollector* gc,
-                                        std::string name,
-                                        F&& f,
-                                        A&&... a) {
-  std::vector<arg_t> spec{std::forward<A>(a)...};
-  return gc->Allocate<serilang::NativeFunction>(
-      std::move(name),
-      [fn = std::forward<F>(f), spec = std::move(spec)](
-          serilang::VM& vm, serilang::Fiber& fib, uint8_t nargs,
-          uint8_t nkwargs) -> Value {
-        try {
-          return invoke_free(vm, fib, nargs, nkwargs, fn, &spec);
-        } catch (const type_error& e) {
-          throw serilang::RuntimeError(e.what());
-        } catch (const std::exception& e) {
-          throw serilang::RuntimeError(e.what());
-        }
-      });
-}
-
-template <class F>
-serilang::NativeFunction* make_function(serilang::GarbageCollector* gc,
-                                        std::string name,
-                                        F&& f) {
-  return make_function(gc, std::move(name), std::forward<F>(f),
-                       std::vector<arg_t>{});
-}
+namespace detail {
 
 // SFINAE-friendly invoke for free functions
 template <class F, class R, class... Args>
@@ -75,10 +47,8 @@ auto invoke_free_impl(serilang::VM& vm,
                       size_t nkwargs,
                       F&& fn,
                       R (*)(Args...),
-                      const std::vector<arg_t>* spec) -> Value {
-  auto tup =
-      detail::load_mapped<Args...>(vm, f, nargs, nkwargs, spec, /*offset=*/0);
-  detail::drop_args(f, nargs, nkwargs);
+                      const arglist_spec& spec) -> Value {
+  auto tup = load_args<Args...>(f.stack, nargs, nkwargs, spec);
   if constexpr (std::is_void_v<R>) {
     std::apply(std::forward<F>(fn), tup);
     return serilang::nil;
@@ -89,6 +59,30 @@ auto invoke_free_impl(serilang::VM& vm,
   }
 }
 
+template <class F, class C, class R, class... Args>
+auto invoke_free_sig(serilang::VM& vm,
+                     serilang::Fiber& f,
+                     size_t nargs,
+                     size_t nkwargs,
+                     F&& fn,
+                     R (C::*)(Args...) const,
+                     const arglist_spec& spec) -> Value {
+  return invoke_free_impl(vm, f, nargs, nkwargs, std::forward<F>(fn),
+                          (R (*)(Args...)) nullptr, spec);
+}
+
+template <class F, class C, class R, class... Args>
+auto invoke_free_sig(serilang::VM& vm,
+                     serilang::Fiber& f,
+                     size_t nargs,
+                     size_t nkwargs,
+                     F&& fn,
+                     R (C::*)(Args...),
+                     const arglist_spec& spec) -> Value {
+  return invoke_free_impl(vm, f, nargs, nkwargs, std::forward<F>(fn),
+                          (R (*)(Args...)) nullptr, spec);
+}
+
 // helper to deduce F’s type
 template <class F>
 auto invoke_free(serilang::VM& vm,
@@ -96,7 +90,7 @@ auto invoke_free(serilang::VM& vm,
                  size_t nargs,
                  size_t nkwargs,
                  F&& fn,
-                 const std::vector<arg_t>* spec) -> Value {
+                 const arglist_spec& spec) -> Value {
   using Fn = std::decay_t<F>;
   if constexpr (std::is_function_v<Fn>) {
     using R = std::invoke_result_t<Fn>;
@@ -114,28 +108,46 @@ auto invoke_free(serilang::VM& vm,
   }
 }
 
-template <class F, class C, class R, class... Args>
-auto invoke_free_sig(serilang::VM& vm,
-                     serilang::Fiber& f,
-                     size_t nargs,
-                     size_t nkwargs,
-                     F&& fn,
-                     R (C::*)(Args...) const,
-                     const std::vector<arg_t>* spec) -> Value {
-  return invoke_free_impl(vm, f, nargs, nkwargs, std::forward<F>(fn),
-                          (R (*)(Args...)) nullptr, spec);
+template <class F>
+serilang::NativeFunction* make_function(serilang::GarbageCollector* gc,
+                                        std::string name,
+                                        F&& f,
+                                        arglist_spec spec) {
+  return gc->Allocate<serilang::NativeFunction>(
+      std::move(name),
+      [fn = std::forward<F>(f), spec = std::move(spec)](
+          serilang::VM& vm, serilang::Fiber& fib, uint8_t nargs,
+          uint8_t nkwargs) -> Value {
+        try {
+          return invoke_free(vm, fib, nargs, nkwargs, fn, spec);
+        } catch (const type_error& e) {
+          throw serilang::RuntimeError(e.what());
+        } catch (const std::exception& e) {
+          throw serilang::RuntimeError(e.what());
+        }
+      });
 }
 
-template <class F, class C, class R, class... Args>
-auto invoke_free_sig(serilang::VM& vm,
-                     serilang::Fiber& f,
-                     size_t nargs,
-                     size_t nkwargs,
-                     F&& fn,
-                     R (C::*)(Args...),
-                     const std::vector<arg_t>* spec) -> Value {
-  return invoke_free_impl(vm, f, nargs, nkwargs, std::forward<F>(fn),
-                          (R (*)(Args...)) nullptr, spec);
+}  // namespace detail
+
+// -------------------------------------------------------------
+// wrap free function: def("name", callable)
+// -------------------------------------------------------------
+template <class F, class... A>
+serilang::NativeFunction* make_function(serilang::GarbageCollector* gc,
+                                        std::string name,
+                                        F&& f,
+                                        A&&... a) {
+  return detail::make_function(gc, std::move(name), std::forward<F>(f),
+                               parse_spec(std::forward<A>(a)...));
+}
+
+template <class F>
+serilang::NativeFunction* make_function(serilang::GarbageCollector* gc,
+                                        std::string name,
+                                        F&& f) {
+  return detail::make_function(gc, std::move(name), std::forward<F>(f),
+                               parse_spec<F>());
 }
 
 }  // namespace srbind

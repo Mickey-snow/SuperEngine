@@ -39,6 +39,7 @@ namespace srbind {
 // -------------------------------------------------------------
 struct arg_t {
   std::string name;
+  bool kw_only = false;
   bool has_default = false;
   std::function<serilang::TempValue()> make_default;
 
@@ -58,12 +59,17 @@ struct arg_t {
 };
 
 inline arg_t arg(const char* name) { return arg_t{name}; }
+inline arg_t kw_arg(const char* name) {
+  auto arg = arg_t{name};
+  arg.kw_only = true;
+  return arg;
+}
 
 struct vararg_t {};
 inline constexpr vararg_t vararg;
 
 struct kwargs_t {};
-inline constexpr kwargs_t kwarg;
+inline constexpr kwargs_t kwargs;
 
 using argument = std::variant<arg_t, vararg_t, kwargs_t>;
 

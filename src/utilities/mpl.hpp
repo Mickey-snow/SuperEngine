@@ -233,6 +233,21 @@ template <typename R, typename... Args>
 struct function_traits<std::function<R(Args...)>>
     : function_traits<R(Args...)> {};
 
+// cv/ref passthroughs
+template <typename T>
+struct function_traits<T&> : function_traits<T> {};
+template <typename T>
+struct function_traits<T&&> : function_traits<T> {};
+template <typename T>
+struct function_traits<const T> : function_traits<T> {};
+template <typename T>
+struct function_traits<volatile T> : function_traits<T> {};
+template <typename T>
+struct function_traits<const volatile T> : function_traits<T> {};
+
 template <typename F>
-struct function_traits
+concept functor_like = requires { &std::remove_reference_t<F>::operator(); };
+
+template <functor_like F>
+struct function_traits<F>
     : function_traits<decltype(&std::remove_reference_t<F>::operator())> {};

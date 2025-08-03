@@ -42,7 +42,7 @@ class ParseSpecTest : public ::testing::Test {
 
 TEST_F(ParseSpecTest, Parsespec) {
   arglist_spec spec =
-      parse_spec(arg("first"), arg("second") = 1, vararg, kwarg);
+      parse_spec(arg("first"), arg("second") = 1, vararg, kwargs);
   EXPECT_EQ(spec.nparam, 2u);
   EXPECT_EQ(spec.param_index.at("first"), 0);
   EXPECT_EQ(spec.param_index.at("second"), 1);
@@ -68,7 +68,7 @@ TEST_F(ParseSpecTest, NamedAfterVarargThrows) {
 }
 
 TEST_F(ParseSpecTest, VarargAfterKwargThrows) {
-  EXPECT_THROW(parse_spec(kwarg, vararg), error_type);
+  EXPECT_THROW(parse_spec(kwargs, vararg), error_type);
 }
 
 TEST_F(ParseSpecTest, DuplicateVarargThrows) {
@@ -76,7 +76,11 @@ TEST_F(ParseSpecTest, DuplicateVarargThrows) {
 }
 
 TEST_F(ParseSpecTest, DuplicateKwargThrows) {
-  EXPECT_THROW(parse_spec(kwarg, kwarg), error_type);
+  EXPECT_THROW(parse_spec(kwargs, kwargs), error_type);
+}
+
+TEST_F(ParseSpecTest, PosAfterKwonlyThrows) {
+  EXPECT_THROW(parse_spec(kw_arg("x"), arg("y")), error_type);
 }
 
 TEST_F(ParseSpecTest, TraitParse_NoVarNoKw) {

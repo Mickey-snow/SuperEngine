@@ -86,6 +86,18 @@ struct type_caster<std::string> {
   static serilang::TempValue cast(std::string s) { return Value(std::move(s)); }
 };
 
+template <>
+struct type_caster<char const*> {
+  static char const* load(Value& v) {
+    if (auto p = v.Get_if<std::string>())
+      return p->c_str();
+    throw type_error("expected str, got " + v.Desc());
+  }
+  static serilang::TempValue cast(char const* s) {
+    return Value(std::string(s));
+  }
+};
+
 // pass-through Value
 template <>
 struct type_caster<Value> {

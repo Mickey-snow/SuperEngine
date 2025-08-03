@@ -94,14 +94,13 @@ auto load_args_impl(std::vector<Value>& stack,
   std::unordered_map<std::string, Value> extra_kwargs;
 
   std::move(posargs.begin(),
-            posargs.begin() + std::min<size_t>(posargs.size(), spec.nparam),
+            posargs.begin() + std::min<size_t>(posargs.size(), spec.npos),
             finalargs.begin());
   std::fill(assigned.begin(),
-            assigned.begin() + std::min<size_t>(posargs.size(), spec.nparam),
+            assigned.begin() + std::min<size_t>(posargs.size(), spec.npos),
             true);
-
-  if (posargs.size() > spec.nparam) {
-    rest.assign(std::make_move_iterator(posargs.begin() + spec.nparam),
+  if (posargs.size() > spec.npos) {
+    rest.assign(std::make_move_iterator(posargs.begin() + spec.npos),
                 std::make_move_iterator(posargs.end()));
   }
 
@@ -128,6 +127,11 @@ auto load_args_impl(std::vector<Value>& stack,
       finalargs[i] = std::get<Value>(std::invoke(it->second));
     }
   }
+
+  if (!spec.has_vararg && !rest.empty())
+    throw argloader_error("too many arguments");
+  if (!spec.has_kwarg && !extra_kwargs.empty())
+    throw argloader_error("too many arguments");
 
   return std::make_tuple(
       cast_args_impl<typelist>(std::move(finalargs),
