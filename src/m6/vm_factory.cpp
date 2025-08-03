@@ -89,13 +89,16 @@ sr::VM VMFactory::Create(std::shared_ptr<sr::GarbageCollector> gc,
   vm.builtins_->map.try_emplace(
       "import",
       sr::Value(gc->Allocate<sr::NativeFunction>(
-          "import", [&vm, &stdin, &stdout, &stderr](
-                        sr::VM& vm2, sr::Fiber& f, std::vector<sr::Value> args,
-                        std::unordered_map<std::string, sr::Value> /*kwargs*/) {
-            if (args.size() != 1)
+          "import",
+          [&vm, &stdin, &stdout, &stderr](sr::VM& vm2, sr::Fiber& f,
+                                          uint8_t nargs,
+                                          uint8_t nkwargs) -> sr::TempValue {
+            if (!(nargs == 1 && nkwargs == 0))
               throw std::runtime_error("import() expects module name");
-            std::string modstr = args[0].Str();
-            if (auto it = vm.module_cache_.find(modstr);
+            sr::Value argv = f.stack.back();
+            f.stack.pop_back();
+            std::string* modstr = argv.Get_if<std::string>();
+            if (auto it = vm.module_cache_.find(*modstr);
                 it != vm.module_cache_.end())
               return sr::Value(it->second);
 
@@ -103,25 +106,24 @@ sr::VM VMFactory::Create(std::shared_ptr<sr::GarbageCollector> gc,
             mvm.gc_threshold_ = 0;  // disable garbage collector
 
             CompilerPipeline pipe(mvm.gc_, false);
-            std::ifstream file(modstr + ".sr");
+            std::ifstream file(*modstr + ".sr");
             if (!file.is_open())
-              throw std::runtime_error("module not found: " + modstr);
+              throw std::runtime_error("module not found: " + *modstr);
             std::string src((std::istreambuf_iterator<char>(file)),
                             std::istreambuf_iterator<char>());
             file.close();
-            auto sb = m6::SourceBuffer::Create(std::move(src), modstr);
+            auto sb = m6::SourceBuffer::Create(std::move(src), *modstr);
             pipe.compile(sb);
             if (!pipe.Ok())
               throw std::runtime_error(pipe.FormatErrors());
             sr::Code* chunk = pipe.Get();
 
-            sr::Module* mod =
-                vm.gc_->Allocate<sr::Module>(modstr, mvm.globals_);
-            vm.module_cache_[modstr] = mod;
+            auto mod = std::make_unique<sr::Module>(*modstr, mvm.globals_);
+            vm.module_cache_[*modstr] = mod.get();
             mvm.module_cache_ = vm.module_cache_;
             mvm.Evaluate(chunk);
 
-            return sr::Value(mod);
+            return std::move(mod);
           })));
 
   return vm;

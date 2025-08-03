@@ -41,13 +41,12 @@ namespace detail {
 
 // SFINAE-friendly invoke for free functions
 template <class F, class R, class... Args>
-auto invoke_free_impl(serilang::VM& vm,
-                      serilang::Fiber& f,
+auto invoke_free_impl(serilang::Fiber& f,
                       size_t nargs,
                       size_t nkwargs,
                       F&& fn,
                       R (*)(Args...),
-                      const arglist_spec& spec) -> Value {
+                      const arglist_spec& spec) -> serilang::TempValue {
   auto tup = load_args<Args...>(f.stack, nargs, nkwargs, spec);
   if constexpr (std::is_void_v<R>) {
     std::apply(std::forward<F>(fn), tup);
@@ -55,56 +54,52 @@ auto invoke_free_impl(serilang::VM& vm,
   } else {
     R r = std::apply(std::forward<F>(fn), tup);
     serilang::TempValue tv = type_caster<std::decay_t<R>>::cast(std::move(r));
-    return vm.gc_->TrackValue(std::move(tv));
+    return tv;
   }
 }
 
 template <class F, class C, class R, class... Args>
-auto invoke_free_sig(serilang::VM& vm,
-                     serilang::Fiber& f,
+auto invoke_free_sig(serilang::Fiber& f,
                      size_t nargs,
                      size_t nkwargs,
                      F&& fn,
                      R (C::*)(Args...) const,
-                     const arglist_spec& spec) -> Value {
-  return invoke_free_impl(vm, f, nargs, nkwargs, std::forward<F>(fn),
+                     const arglist_spec& spec) -> serilang::TempValue {
+  return invoke_free_impl(f, nargs, nkwargs, std::forward<F>(fn),
                           (R (*)(Args...)) nullptr, spec);
 }
 
 template <class F, class C, class R, class... Args>
-auto invoke_free_sig(serilang::VM& vm,
-                     serilang::Fiber& f,
+auto invoke_free_sig(serilang::Fiber& f,
                      size_t nargs,
                      size_t nkwargs,
                      F&& fn,
                      R (C::*)(Args...),
-                     const arglist_spec& spec) -> Value {
-  return invoke_free_impl(vm, f, nargs, nkwargs, std::forward<F>(fn),
+                     const arglist_spec& spec) -> serilang::TempValue {
+  return invoke_free_impl(f, nargs, nkwargs, std::forward<F>(fn),
                           (R (*)(Args...)) nullptr, spec);
 }
 
 // helper to deduce F’s type
 template <class F>
-auto invoke_free(serilang::VM& vm,
-                 serilang::Fiber& f,
+auto invoke_free(serilang::Fiber& f,
                  size_t nargs,
                  size_t nkwargs,
                  F&& fn,
-                 const arglist_spec& spec) -> Value {
+                 const arglist_spec& spec) -> serilang::TempValue {
   using Fn = std::decay_t<F>;
   if constexpr (std::is_function_v<Fn>) {
     using R = std::invoke_result_t<Fn>;
-    return invoke_free_impl(vm, f, nargs, nkwargs, std::forward<F>(fn),
+    return invoke_free_impl(f, nargs, nkwargs, std::forward<F>(fn),
                             (R (*)(void)) nullptr, spec);
   } else if constexpr (std::is_pointer_v<Fn> &&
                        std::is_function_v<std::remove_pointer_t<Fn>>) {
     using R = std::invoke_result_t<Fn>;
-    return invoke_free_impl(vm, f, nargs, nkwargs, std::forward<F>(fn),
+    return invoke_free_impl(f, nargs, nkwargs, std::forward<F>(fn),
                             (R (*)(void)) nullptr, spec);
   } else {
     using Sig = decltype(&Fn::operator());
-    return invoke_free_sig(vm, f, nargs, nkwargs, std::forward<F>(fn), Sig{},
-                           spec);
+    return invoke_free_sig(f, nargs, nkwargs, std::forward<F>(fn), Sig{}, spec);
   }
 }
 
@@ -117,9 +112,9 @@ serilang::NativeFunction* make_function(serilang::GarbageCollector* gc,
       std::move(name),
       [fn = std::forward<F>(f), spec = std::move(spec)](
           serilang::VM& vm, serilang::Fiber& fib, uint8_t nargs,
-          uint8_t nkwargs) -> Value {
+          uint8_t nkwargs) -> serilang::TempValue {
         try {
-          return invoke_free(vm, fib, nargs, nkwargs, fn, spec);
+          return invoke_free(fib, nargs, nkwargs, fn, spec);
         } catch (const type_error& e) {
           throw serilang::RuntimeError(e.what());
         } catch (const std::exception& e) {
