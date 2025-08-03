@@ -28,6 +28,10 @@
 #include <sstream>
 
 namespace libsiglus::token {
+std::string MakeVariable::ToDebugString() const {
+  return std::format("{} {} = <{}>", ToString(Typeof(dst)), ToString(dst),
+                     Join(",", vals_to_string(elmcode.code)));
+}
 std::string Command::ToDebugString() const {
   const std::string cmd_repr =
       std::format("cmd<{}>", Join(",", vals_to_string(elmcode.code)));

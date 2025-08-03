@@ -25,12 +25,16 @@
 #include <gtest/gtest.h>
 
 #include "libsiglus/parser.hpp"
+#include "utilities/string_utilities.hpp"
 
 #include <sstream>
 
 namespace siglus_test {
 using namespace libsiglus;
 using namespace libsiglus::lex;
+
+using ::testing::Return;
+using ::testing::ReturnRef;
 
 class MockParserContext : public Parser::Context {
  public:
@@ -80,13 +84,19 @@ class SiglusParserTest : public ::testing::Test {
 
   struct TokenArray {
     std::vector<token::Token_t> tokens;
-    bool operator==(const TokenArray& other) const {
-      return tokens == other.tokens;
-    }
     friend std::ostream& operator<<(std::ostream& os, const TokenArray& t) {
       for (const auto& it : t.tokens)
         os << ToString(it) << '\n';
       return os;
+    }
+    bool operator==(const TokenArray& other) const {
+      return tokens == other.tokens;
+    }
+    bool operator==(char const* str) const {
+      std::ostringstream oss;
+      oss << *this;
+      std::string_view sv(str);
+      return trim_cp(oss.str()) == trim_sv(sv);
     }
   };
   inline TokenArray Tokens() const { return TokenArray(tokens); }
@@ -145,6 +155,28 @@ TEST_F(SiglusParserTest, AssignElement) {
   const auto& tok = std::get<token::Assign>(tokens[0]);
   EXPECT_EQ(tok.dst_elmcode, elm::ElementCode{25});
   EXPECT_EQ(AsInt(tok.src), 7);
+}
+
+TEST_F(SiglusParserTest, ObjectElmArg) {
+  std::vector<std::string> strs{"bg47"};
+  EXPECT_CALL(ctx, Strings).WillRepeatedly(ReturnRef(strs));
+  std::vector<libsiglus::Command> g_cmd{
+      libsiglus::Command{.scene_id = 78, .offset = 913, .name = "$$usr_cmd"}};
+  EXPECT_CALL(ctx, GlobalCommands).WillRepeatedly(ReturnRef(g_cmd));
+
+  Parse(Marker{}, Push{Type::Int, 0x7e000000}, Marker{}, Push{Type::Int, 37},
+        Push{Type::Int, 2}, Push{Type::Int, -1}, Push{Type::Int, 0},
+        Push{Type::String, 0},
+        lex::Command(elm::Signature{
+            .overload_id = 0,
+            .arglist = elm::ArgumentList({Type::Object, Type::String}),
+            .argtags = {},
+            .rettype = Type::Int}));
+
+  EXPECT_EQ(Tokens(), R"(
+object v0 = <int:37,int:2,int:-1,int:0>
+int v1 = @78.913:$$usr_cmd(v0,str:bg47) ;cmd<int:2113929216>
+)");
 }
 
 }  // namespace siglus_test

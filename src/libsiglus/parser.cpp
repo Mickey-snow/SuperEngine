@@ -87,9 +87,14 @@ Value Parser::pop(Type type) {
     case Type::None:
       return {};
 
-    default:
-      stack_.Popelm();
-      return {};
+    default: {
+      token::MakeVariable var_tok;
+      var_tok.elmcode = stack_.Popelm();
+      auto var = add_var(type);
+      var_tok.dst = var;
+      emit_token(std::move(var_tok));
+      return var;  // TODO: return element?
+    }
   }
 }
 
@@ -134,15 +139,17 @@ void Parser::ParseAll() {
   offset2labels_.clear();
   stack_.Clear();
 
-  for (size_t i = 0; i < ctx_.Labels().size(); ++i)
-    offset2labels_.emplace(ctx_.Labels()[i], i);  // (location, lid)
-  for (size_t i = 0; i < ctx_.SceneCommands().size(); ++i)
-    offset2cmd_.emplace(ctx_.SceneCommands()[i].offset,
-                        &ctx_.SceneCommands()[i]);
-  for (size_t i = 0; i < ctx_.GlobalCommands().size(); ++i)
-    if (ctx_.GlobalCommands()[i].scene_id == ctx_.SceneId())
-      offset2cmd_.emplace(ctx_.GlobalCommands()[i].offset,
-                          &ctx_.GlobalCommands()[i]);
+  const int this_scene_id = ctx_.SceneId();
+  std::vector<int> const& labels = ctx_.Labels();
+  std::vector<libsiglus::Command> const& scene_cmd = ctx_.SceneCommands();
+  std::vector<libsiglus::Command> const& global_cmd = ctx_.GlobalCommands();
+  for (size_t i = 0; i < labels.size(); ++i)
+    offset2labels_.emplace(labels[i], i);  // (location, lid)
+  for (size_t i = 0; i < scene_cmd.size(); ++i)
+    offset2cmd_.emplace(scene_cmd[i].offset, &scene_cmd[i]);
+  for (size_t i = 0; i < global_cmd.size(); ++i)
+    if (global_cmd[i].scene_id == this_scene_id)
+      offset2cmd_.emplace(global_cmd[i].offset, &global_cmd[i]);
 
   while (reader_.Position() < reader_.Size()) {
     // Add labels

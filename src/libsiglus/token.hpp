@@ -33,6 +33,14 @@
 #include <vector>
 
 namespace libsiglus::token {
+struct MakeVariable {
+  elm::ElementCode elmcode;
+  Value dst;
+
+  std::string ToDebugString() const;
+  bool operator==(const MakeVariable&) const = default;
+};
+
 struct Command {
   elm::ElementCode elmcode;
 
@@ -145,7 +153,8 @@ struct Eof {
   bool operator<=>(const Eof&) const = default;
 };
 
-using Token_t = std::variant<Command,
+using Token_t = std::variant<MakeVariable,
+                             Command,
                              Name,
                              Textout,
                              GetProperty,
