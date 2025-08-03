@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------
 //
-// This file is part of RLVM, a RealLive virtual machine clone.
+// This file is part of RLVM
 //
 // -----------------------------------------------------------------------
 //
@@ -19,35 +19,16 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
-//
 // -----------------------------------------------------------------------
 
-#include "log/domain_logger.hpp"
+#pragma once
 
-#include "log/logger.hpp"
+#include <stdexcept>
 
-#include <format>
-#include <iostream>
+namespace libsiglus::binding {
 
-DomainLogger::DomainLogger(std::string domain_name) : domain_(domain_name) {}
+struct binding_error : std::runtime_error {
+  using std::runtime_error::runtime_error;
+};
 
-DomainLogger::~DomainLogger() = default;
-
-DomainLogger::LoggingContent DomainLogger::operator()(Severity severity) const {
-  if (!logging_enabled)
-    return LoggingContent(nullptr);
-
-  auto logger = std::make_unique<Logger>();
-  if (!domain_.empty())
-    logger->AddScope(domain_);
-  logger->AddSeverity(severity);
-  return LoggingContent(std::move(logger));
-}
-
-DomainLogger::LoggingContent::LoggingContent(std::unique_ptr<Logger> logger)
-    : logger_(std::move(logger)) {}
-
-DomainLogger::LoggingContent::~LoggingContent() {
-  if (logger_)
-    logger_->Log(msg_.str());
-}
+}  // namespace libsiglus::binding

@@ -1,0 +1,19 @@
+os = system;
+
+if(os.is_debug()){ print("debug mode on"); }
+else{ print("debug mode off"); }
+
+print("unix time: ", os.time());
+
+os.debug_write_log(123);
+os.debug_write_log("debug log");
+
+print("language: ", os.get_lang());
+
+fn exists(filename, check_fn = os.check_file_exist){
+  if(check_fn(filename)) print("file '", filename, "' exists", sep="");
+  else print("file '", filename, "' doesn't exist", sep="");
+}
+
+fn exists_base(filename){ exists(filename, os.check_file_exist); }
+fn exists_save(filename){ exists(filename, os.check_save_file_exist); }

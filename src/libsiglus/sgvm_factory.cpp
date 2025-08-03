@@ -23,20 +23,29 @@
 
 #include "libsiglus/sgvm_factory.hpp"
 
+#include "libsiglus/bindings/common.hpp"
 #include "libsiglus/bindings/sdl.hpp"
+#include "libsiglus/bindings/system.hpp"
 #include "m6/vm_factory.hpp"
 #include "vm/gc.hpp"
 
+#include <filesystem>
+
 namespace libsiglus {
 namespace sr = serilang;
+namespace fs = std::filesystem;
 
 sr::VM SGVMFactory::Create() {
   auto gc = std::make_shared<sr::GarbageCollector>();
-
   sr::VM vm = m6::VMFactory::Create();
 
+  binding::Context ctx;
+  ctx.base_pth = fs::temp_directory_path() / "game";
+  ctx.save_pth = ctx.base_pth / "save";
+
   // add bindings here
-  binding::SDL().Bind(vm);
+  binding::SDL(ctx).Bind(vm);
+  binding::System(ctx).Bind(vm);
 
   return vm;
 }

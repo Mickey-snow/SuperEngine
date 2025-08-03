@@ -54,7 +54,7 @@ class DomainLogger {
     std::unique_ptr<Logger> logger_;
     std::stringstream msg_;
   };
-  LoggingContent operator()(Severity severity = Severity::None);
+  LoggingContent operator()(Severity severity = Severity::None) const;
 
  private:
   std::string domain_;

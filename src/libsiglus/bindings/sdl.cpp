@@ -34,6 +34,7 @@
 
 #include <filesystem>
 #include <sstream>
+#include <string>
 
 namespace libsiglus::binding {
 namespace sr = serilang;

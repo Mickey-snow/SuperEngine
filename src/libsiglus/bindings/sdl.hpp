@@ -23,14 +23,16 @@
 
 #pragma once
 
-namespace serilang {
-class VM;
-}
+#include "libsiglus/bindings/common.hpp"
 
 namespace libsiglus::binding {
 
 class SDL {
+  Context& ctx;
+
  public:
+  explicit SDL(Context& c) : ctx(c) {}
+
   void Bind(serilang::VM& vm);
 };
 

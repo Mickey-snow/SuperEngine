@@ -280,17 +280,16 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
 
     case Type::System: {
       static const auto mp = make_flatmap<Builder>(
-          id[14] | b(Type::None, Member("calendar")),
-          id[15] | b(Type::Int, Member("time")),
+          id[14] | b(Type::None, Call("calendar")),
+          id[15] | b(Type::Int, Call("time")),
           id[0] | b(Type::Int, Call("window_active")),
           id[13] | b(Type::Int, Call("is_debug")),
           id[1] | callable(fn("shell_openfile")[any](Type::String)),
           id[5] | callable(fn("openurl")[any](Type::String)),
           id[6] | callable(
                       fn("check_file_exist")[any](Type::String).ret(Type::Int)),
-          id[12] |
-              callable(
-                  fn("check_file_exist")[any](Type::String).ret(Type::Int)),
+          id[12] | callable(fn("check_save_file_exist")[any](Type::String)
+                                .ret(Type::Int)),
           id[2] | callable(fn("check_dummy")[any](Type::String, Type::Int,
                                                   Type::String)),
           id[21] | b(Type::None, Call("clear_dummy")),
@@ -324,7 +323,7 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
 
           id[4] | b(Type::String, Call("get_chihayabench")),
           id[3] | callable(fn("open_chihayabench")[any](Type::String)),
-          id[16] | b(Type::None, Call("get_lang")));
+          id[16] | b(Type::String, Call("get_lang")));
       return &mp;
     }
 
