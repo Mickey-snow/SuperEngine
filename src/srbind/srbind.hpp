@@ -24,35 +24,7 @@
 
 #pragma once
 
-#include <string>
-#include <string_view>
-#include <unordered_map>
-#include <unordered_set>
-
-struct TransparentHash {
-  using is_transparent = void;
-  inline size_t operator()(std::string_view v) const noexcept {
-    return std::hash<std::string_view>{}(v);
-  }
-  inline size_t operator()(std::string const& s) const noexcept {
-    return std::hash<std::string_view>{}(s);
-  }
-  inline size_t operator()(char const* s) const noexcept {
-    return std::hash<std::string_view>{}(s);
-  }
-};
-
-struct TransparentEq {
-  using is_transparent = void;
-  inline bool operator()(std::string_view a,
-                         std::string_view b) const noexcept {
-    return a == b;
-  }
-};
-
-template <typename T>
-using transparent_hashmap =
-    std::unordered_map<std::string, T, TransparentHash, TransparentEq>;
-
-using transparent_hashset =
-    std::unordered_set<std::string, TransparentHash, TransparentEq>;
+#include "srbind/args.hpp"
+#include "srbind/function.hpp"
+#include "srbind/method.hpp"
+#include "srbind/module.hpp"

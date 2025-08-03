@@ -302,18 +302,11 @@ class NativeFunction : public IObject {
  public:
   static constexpr inline ObjType objtype = ObjType::Native;
 
-  using function_t = std::function<Value(VM&,
-                                         Fiber&,
-                                         uint8_t,
-                                         uint8_t  // nargs, nkwargs
-                                         )>;
-
-  [[deprecated]]
-  NativeFunction(std::string name,
-                 std::function<Value(VM&,
-                                     Fiber&,
-                                     std::vector<Value>,
-                                     std::unordered_map<std::string, Value>)>);
+  using function_t = std::function<TempValue(VM&,
+                                             Fiber&,
+                                             uint8_t,
+                                             uint8_t  // nargs, nkwargs
+                                             )>;
 
   NativeFunction(std::string name, function_t fn);
 

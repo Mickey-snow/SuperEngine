@@ -146,10 +146,18 @@ TEST(TypelistTest, UnpackTypes) {
 
 int plainFunc(double, char) { return 42; }
 TEST(FunctionTraitsTest, PlainFunction) {
-  using traits = function_traits<decltype(plainFunc)>;
-  EXPECT_TRUE((std::is_same<typename traits::result_type, int>::value));
-  EXPECT_TRUE(
-      (std::same_as<typename traits::argument_types, TypeList<double, char>>));
+  {
+    using traits = function_traits<decltype(plainFunc)>;
+    EXPECT_TRUE((std::is_same<typename traits::result_type, int>::value));
+    EXPECT_TRUE((
+        std::same_as<typename traits::argument_types, TypeList<double, char>>));
+  }
+  {
+    using traits = function_traits<decltype(&plainFunc)>;
+    EXPECT_TRUE((std::is_same<typename traits::result_type, int>::value));
+    EXPECT_TRUE((
+        std::same_as<typename traits::argument_types, TypeList<double, char>>));
+  }
 }
 
 int noexceptFunc(double, char) noexcept { return 42; }

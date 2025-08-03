@@ -26,6 +26,7 @@
 #include "libsiglus/bindings/sdl.hpp"
 
 #include "core/asset_scanner.hpp"
+#include "srbind/srbind.hpp"
 #include "systems/sdl/sound_implementor.hpp"
 #include "vm/vm.hpp"
 
@@ -36,6 +37,7 @@
 
 namespace libsiglus::binding {
 namespace sr = serilang;
+namespace sb = srbind;
 namespace fs = std::filesystem;
 
 class SDL_siglus {
@@ -111,58 +113,16 @@ class SDL_siglus {
   }
 };
 
-class Combined : public sr::Class, public SDL_siglus {
- public:
-  template <typename... Ts>
-  Combined(Ts&&... params)
-      : sr::Class(), SDL_siglus(std::forward<Ts>(params)...) {}
-};
-
 void SDL::Bind(sr::VM& vm) {
   std::shared_ptr<sr::GarbageCollector> gc = vm.gc_;
 
-  auto* bind = gc->Allocate<Combined>();
-  vm.globals_->map["sdl"] = sr::Value(bind);
-  bind->name = "sdl";
-  bind->fields.try_emplace(
-      "__init__",
-      gc->Allocate<sr::NativeFunction>(
-          "__init__",
-          [bind](sr::VM&, sr::Fiber&, std::vector<sr::Value>,
-                 std::unordered_map<std::string, sr::Value>) -> sr::Value {
-            bind->init();
-            return sr::nil;
-          }));
-  bind->fields.try_emplace(
-      "play",
-      gc->Allocate<sr::NativeFunction>(
-          "play",
-          [bind](sr::VM&, sr::Fiber&, std::vector<sr::Value> args,
-                 std::unordered_map<std::string, sr::Value>) -> sr::Value {
-            std::string* name;
-            if (args.size() < 1 ||
-                ((name = args.front().Get_if<std::string>()) == nullptr))
-              throw std::runtime_error(
-                  "Play: first argument 'file_name' must be string");
+  sb::module_ m(gc.get(), vm.globals_);
+  sb::class_<SDL_siglus> sdl(m, "SDL");
 
-            bind->play(*name);
-            return sr::Value(true);
-          }));
-  bind->fields.try_emplace(
-      "bgm",
-      gc->Allocate<sr::NativeFunction>(
-          "bgm",
-          [bind](sr::VM&, sr::Fiber&, std::vector<sr::Value> args,
-                 std::unordered_map<std::string, sr::Value>) -> sr::Value {
-            std::string* name;
-            if (args.size() < 1 ||
-                ((name = args.front().Get_if<std::string>()) == nullptr))
-              throw std::runtime_error(
-                  "Bgm: first argument 'file_name' must be string");
-
-            bind->bgm(*name);
-            return sr::Value(true);
-          }));
+  sdl.def(sb::init<>());
+  sdl.def("init", &SDL_siglus::init);
+  sdl.def("play", &SDL_siglus::play, sb::arg("name"));
+  sdl.def("bgm", &SDL_siglus::bgm, sb::arg("name"));
 }
 
 }  // namespace libsiglus::binding

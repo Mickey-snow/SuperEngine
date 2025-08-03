@@ -82,8 +82,7 @@ TempValue Instance::Member(std::string_view mem) {
     auto it = klass->memfns.find(mem);
     if (it != klass->memfns.cend()) {
       Value val = it->second;
-      if (IObject* obj = val.Get_if<IObject>();
-          obj && obj->Type() == ObjType::Function) {
+      if (IObject* obj = val.Get_if<IObject>()) {
         auto t = obj->Type();
         if (t == ObjType::Function || t == ObjType::Native)
           return std::make_unique<BoundMethod>(Value(this), val);
@@ -431,34 +430,6 @@ void Function::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
 NativeFunction::NativeFunction(std::string name, function_t fn)
     : name_(std::move(name)), fn_(std::move(fn)) {}
 
-NativeFunction::NativeFunction(
-    std::string name,
-    std::function<Value(VM&,
-                        Fiber&,
-                        std::vector<Value>,
-                        std::unordered_map<std::string, Value>)> fn)
-    : name_(std::move(name)),
-      fn_([fn = std::move(
-               fn)](VM& vm, Fiber& f, size_t nargs, size_t nkwargs) -> Value {
-        std::vector<Value> args;
-        std::unordered_map<std::string, Value> kwargs;
-
-        args.reserve(nargs);
-        kwargs.reserve(nkwargs);
-
-        size_t idx = f.stack.size() - nkwargs * 2 - nargs;
-        for (uint8_t i = 0; i < nargs; ++i)
-          args.emplace_back(std::move(f.stack[idx++]));
-        for (uint8_t i = 0; i < nkwargs; ++i) {
-          std::string* k = f.stack[idx++].Get_if<std::string>();
-          Value v = std::move(f.stack[idx++]);
-          kwargs.emplace(std::move(*k), std::move(v));
-        }
-        f.stack.resize(f.stack.size() - nkwargs * 2 - nargs);
-
-        return std::invoke(fn, vm, f, std::move(args), std::move(kwargs));
-      }) {}
-
 std::string NativeFunction::Name() const { return name_; }
 
 std::string NativeFunction::Str() const { return "<fn " + name_ + '>'; }
@@ -470,9 +441,9 @@ std::string NativeFunction::Desc() const {
 void NativeFunction::MarkRoots(GCVisitor& visitor) {}
 
 void NativeFunction::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
-  Value retval = std::invoke(fn_, vm, f, nargs, nkwargs);
+  TempValue retval = std::invoke(fn_, vm, f, nargs, nkwargs);
 
-  f.stack.back() = std::move(retval);  // (fn) <- (retval)
+  f.stack.back() = vm.AddTrack(std::move(retval));  // (fn) <- (retval)
 }
 
 // -----------------------------------------------------------------------

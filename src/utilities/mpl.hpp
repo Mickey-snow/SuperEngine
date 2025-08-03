@@ -95,6 +95,44 @@ struct Unpack<Dest, TypeList<Ts...>> {
   using type = Dest<Ts...>;
 };
 
+template <typename T, typename List>
+struct Contains;
+
+template <typename T, typename... Ts>
+struct Contains<T, TypeList<Ts...>>
+    : std::bool_constant<(std::is_same_v<T, Ts> || ...)> {};
+
+template <std::size_t Begin, std::size_t Count, typename List>
+struct Slice;
+namespace detail {
+// Offset an index_sequence by a constant Begin.
+template <std::size_t Begin, typename Seq>
+struct offset_sequence;
+template <std::size_t Begin, std::size_t... Is>
+struct offset_sequence<Begin, std::index_sequence<Is...>> {
+  using type = std::index_sequence<(Begin + Is)...>;
+};
+// Gather types at given indices into a TypeList.
+template <typename List, typename Seq>
+struct gather;
+template <typename List, std::size_t... Is>
+struct gather<List, std::index_sequence<Is...>> {
+  using type = TypeList<typename GetNthType<Is, List>::type...>;
+};
+}  // namespace detail
+
+template <std::size_t Begin, std::size_t Count, typename... Ts>
+struct Slice<Begin, Count, TypeList<Ts...>> {
+  static_assert(Begin <= sizeof...(Ts), "Begin out of bounds");
+  static_assert(Begin + Count <= sizeof...(Ts), "Slice exceeds list size");
+
+  using indices_rel = std::make_index_sequence<Count>;
+  using indices_abs =
+      typename detail::offset_sequence<Begin, indices_rel>::type;
+
+  using type = typename detail::gather<TypeList<Ts...>, indices_abs>::type;
+};
+
 // -----------------------------------------------------------------------
 // function_traits
 // -----------------------------------------------------------------------
@@ -160,7 +198,7 @@ struct function_traits<R (C::*)(Args...) const volatile noexcept>
 
 // Ref-qualified member functions (lvalue ref).
 template <typename C, typename R, typename... Args>
-struct function_traits<R (C::*)(Args...)&> : function_traits<R(Args...)> {};
+struct function_traits<R (C::*)(Args...) &> : function_traits<R(Args...)> {};
 
 template <typename C, typename R, typename... Args>
 struct function_traits<R (C::*)(Args...) const&> : function_traits<R(Args...)> {
@@ -195,6 +233,21 @@ template <typename R, typename... Args>
 struct function_traits<std::function<R(Args...)>>
     : function_traits<R(Args...)> {};
 
+// cv/ref passthroughs
+template <typename T>
+struct function_traits<T&> : function_traits<T> {};
+template <typename T>
+struct function_traits<T&&> : function_traits<T> {};
+template <typename T>
+struct function_traits<const T> : function_traits<T> {};
+template <typename T>
+struct function_traits<volatile T> : function_traits<T> {};
+template <typename T>
+struct function_traits<const volatile T> : function_traits<T> {};
+
 template <typename F>
-struct function_traits
+concept functor_like = requires { &std::remove_reference_t<F>::operator(); };
+
+template <functor_like F>
+struct function_traits<F>
     : function_traits<decltype(&std::remove_reference_t<F>::operator())> {};

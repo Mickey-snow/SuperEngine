@@ -25,12 +25,21 @@
 #include "m6/vm_factory.hpp"
 
 #include "m6/compiler_pipeline.hpp"
+#include "srbind/srbind.hpp"
 
 #include <chrono>
 #include <fstream>
 
 namespace m6 {
 namespace sr = serilang;
+namespace sb = srbind;
+
+static double Time() {
+  using namespace std::chrono;
+  auto now = system_clock::now().time_since_epoch();
+  auto secs = duration_cast<seconds>(now).count();
+  return secs;
+}
 
 sr::VM VMFactory::Create(std::shared_ptr<sr::GarbageCollector> gc,
                          std::ostream& stdout,
@@ -40,104 +49,82 @@ sr::VM VMFactory::Create(std::shared_ptr<sr::GarbageCollector> gc,
     gc = std::make_shared<sr::GarbageCollector>();
   sr::VM vm(gc);
 
-  sr::Dict* builtins =
-      gc->Allocate<sr::Dict>(std::unordered_map<std::string, sr::Value>{
-          {"time",
-           sr::Value(gc->Allocate<sr::NativeFunction>(
-               "time",
-               [](sr::VM& vm, sr::Fiber& f, std::vector<sr::Value> args,
-                  std::unordered_map<std::string, sr::Value> /*kwargs*/) {
-                 if (!args.empty())
-                   throw std::runtime_error("time() takes no arguments");
-                 using namespace std::chrono;
-                 auto now = system_clock::now().time_since_epoch();
-                 auto secs = duration_cast<seconds>(now).count();
-                 return sr::Value(static_cast<int>(secs));
-               }))},
+  sb::module_ m(vm.gc_.get(), vm.builtins_);
+  m.def("time", &Time);
 
-          {"print",
-           sr::Value(gc->Allocate<sr::NativeFunction>(
-               "print",
-               [&stdout](sr::VM& vm, sr::Fiber& f, std::vector<sr::Value> args,
-                         std::unordered_map<std::string, sr::Value> kwargs) {
-                 std::string sep = " ";
-                 if (auto it = kwargs.find("sep"); it != kwargs.end())
-                   sep = it->second.Str();
+  m.def(
+      "print",
+      [&stdout](std::string sep, std::string end, bool do_flush,
+                std::vector<sr::Value> args) {
+        bool firstPrinted = false;
+        for (auto const& v : args) {
+          if (firstPrinted) {
+            stdout << sep;
+          }
+          stdout << v.Str();
+          firstPrinted = true;
+        }
 
-                 std::string end = "\n";
-                 if (auto it = kwargs.find("end"); it != kwargs.end())
-                   end = it->second.Str();
+        stdout << end;
 
-                 bool do_flush = false;
-                 if (auto it = kwargs.find("flush"); it != kwargs.end())
-                   do_flush = it->second.IsTruthy();
+        if (do_flush)
+          stdout.flush();
+      },
 
-                 bool firstPrinted = false;
-                 for (auto const& v : args) {
-                   if (firstPrinted) {
-                     stdout << sep;
-                   }
-                   stdout << v.Str();
-                   firstPrinted = true;
-                 }
+      sb::kw_arg("sep") = " ", sb::kw_arg("end") = "\n",
+      sb::kw_arg("flush") = false, sb::vararg);
 
-                 stdout << end;
+  m.def(
+      "input",
+      [&stdin, &stdout](std::string prompt) {
+        if (!prompt.empty())
+          stdout << std::move(prompt);
+        std::string line;
+        std::getline(stdin, line);
+        return line;
+      },
 
-                 if (do_flush)
-                   stdout.flush();
+      sb::kw_arg("prompt") = "");
 
-                 return sr::nil;
-               }))},
+  vm.builtins_->map.try_emplace(
+      "import",
+      sr::Value(gc->Allocate<sr::NativeFunction>(
+          "import",
+          [&vm, &stdin, &stdout, &stderr](sr::VM& vm2, sr::Fiber& f,
+                                          uint8_t nargs,
+                                          uint8_t nkwargs) -> sr::TempValue {
+            if (!(nargs == 1 && nkwargs == 0))
+              throw std::runtime_error("import() expects module name");
+            sr::Value argv = f.stack.back();
+            f.stack.pop_back();
+            std::string* modstr = argv.Get_if<std::string>();
+            if (auto it = vm.module_cache_.find(*modstr);
+                it != vm.module_cache_.end())
+              return sr::Value(it->second);
 
-          {"input",
-           sr::Value(gc->Allocate<sr::NativeFunction>(
-               "input",
-               [&stdin](sr::VM& vm, sr::Fiber& f, std::vector<sr::Value> args,
-                        std::unordered_map<std::string, sr::Value> kwargs) {
-                 std::string inp;
-                 stdin >> inp;
-                 return sr::Value(std::move(inp));
-               }))},
+            sr::VM mvm = Create(vm.gc_, stdout, stdin, stderr);
+            mvm.gc_threshold_ = 0;  // disable garbage collector
 
-          {"import",
-           sr::Value(gc->Allocate<sr::NativeFunction>(
-               "import",
-               [&vm, &stdin, &stdout, &stderr](
-                   sr::VM& vm2, sr::Fiber& f, std::vector<sr::Value> args,
-                   std::unordered_map<std::string, sr::Value> /*kwargs*/) {
-                 if (args.size() != 1)
-                   throw std::runtime_error("import() expects module name");
-                 std::string modstr = args[0].Str();
-                 if (auto it = vm.module_cache_.find(modstr);
-                     it != vm.module_cache_.end())
-                   return sr::Value(it->second);
+            CompilerPipeline pipe(mvm.gc_, false);
+            std::ifstream file(*modstr + ".sr");
+            if (!file.is_open())
+              throw std::runtime_error("module not found: " + *modstr);
+            std::string src((std::istreambuf_iterator<char>(file)),
+                            std::istreambuf_iterator<char>());
+            file.close();
+            auto sb = m6::SourceBuffer::Create(std::move(src), *modstr);
+            pipe.compile(sb);
+            if (!pipe.Ok())
+              throw std::runtime_error(pipe.FormatErrors());
+            sr::Code* chunk = pipe.Get();
 
-                 sr::VM mvm = Create(vm.gc_, stdout, stdin, stderr);
-                 mvm.gc_threshold_ = 0;  // disable garbage collector
+            auto mod = std::make_unique<sr::Module>(*modstr, mvm.globals_);
+            vm.module_cache_[*modstr] = mod.get();
+            mvm.module_cache_ = vm.module_cache_;
+            mvm.Evaluate(chunk);
 
-                 CompilerPipeline pipe(mvm.gc_, false);
-                 std::ifstream file(modstr + ".sr");
-                 if (!file.is_open())
-                   throw std::runtime_error("module not found: " + modstr);
-                 std::string src((std::istreambuf_iterator<char>(file)),
-                                 std::istreambuf_iterator<char>());
-                 file.close();
-                 auto sb = m6::SourceBuffer::Create(std::move(src), modstr);
-                 pipe.compile(sb);
-                 if (!pipe.Ok())
-                   throw std::runtime_error(pipe.FormatErrors());
-                 sr::Code* chunk = pipe.Get();
-
-                 sr::Module* mod =
-                     vm.gc_->Allocate<sr::Module>(modstr, mvm.globals_);
-                 vm.module_cache_[modstr] = mod;
-                 mvm.module_cache_ = vm.module_cache_;
-                 mvm.Evaluate(chunk);
-
-                 return sr::Value(mod);
-               }))}});
-
-  vm.builtins_ = builtins;
+            return std::move(mod);
+          })));
 
   return vm;
 }
