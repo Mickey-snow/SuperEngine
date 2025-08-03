@@ -96,7 +96,7 @@ struct Class : public IObject {
   static constexpr inline ObjType objtype = ObjType::Class;
 
   std::string name;
-  transparent_hashmap<Value> memfns;
+  transparent_hashmap<Function*> memfns;
   transparent_hashmap<Value> fields;
 
   constexpr ObjType Type() const noexcept final { return objtype; }

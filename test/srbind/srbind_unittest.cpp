@@ -64,14 +64,12 @@ class SrbindTest : public ::testing::Test {
 
   // Helper: push a callee and args on the fiber stack and invoke the callee.
   // Layout: [callee, pos0, pos1, ..., k1, v1, k2, v2, ...]
-  template <typename CalleePtr>
   Value CallCallee(
-      CalleePtr callee,
+      Value callee,
       const std::vector<Value>& pos = {},
       const std::vector<std::pair<std::string, Value>>& kwargs = {}) {
     f->stack.clear();
-    f->stack.emplace_back(
-        static_cast<serilang::IObject*>(callee));  // callee first
+    f->stack.emplace_back(std::move(callee));  // callee first
     for (auto const& v : pos)
       f->stack.emplace_back(v);
     for (auto const& kv : kwargs) {
@@ -81,24 +79,29 @@ class SrbindTest : public ::testing::Test {
     const uint8_t nargs = static_cast<uint8_t>(pos.size());
     const uint8_t nkwargs = static_cast<uint8_t>(kwargs.size());
 
-    callee->Call(vm, *f, nargs, nkwargs);
+    callee.Call(vm, *f, nargs, nkwargs);
     Value ret = f->stack.back();  // (callee) <- (retval)
     return ret;
   }
 
-  // Helper: get a value from a dictionary
+  // Helper: get a member value
+  Value GetMember(IObject* receiver, std::string_view item) {
+    TempValue tval = receiver->Member(item);
+    return gc->TrackValue(std::move(tval));
+  }
+  Value GetItem(IObject* receiver, char const* item) {
+    Value item_v(item);
+    TempValue tval = receiver->Item(item_v);
+    return gc->TrackValue(std::move(tval));
+  }
+
   template <typename T>
-  auto get_as(Dict* dict, const char* item) -> std::add_pointer_t<T> {
-    auto it = dict->map.find(item);
-    if (it == dict->map.cend()) {
+  auto get_as(NativeInstance* inst, const char* item) -> std::add_pointer_t<T> {
+    TempValue tval = inst->Member(item);
+    Value val = gc->TrackValue(std::move(tval));
+    auto* r = val.template Get_if<T>();
+    if (!r)
       ADD_FAILURE() << "item not found: " << item;
-      return nullptr;
-    }
-    auto r = it->second.Get_if<T>();
-    if (!r) {
-      ADD_FAILURE() << "unexpected nullptr: " << item;
-      return nullptr;
-    }
     return r;
   }
   template <typename T, typename U>
@@ -124,7 +127,7 @@ TEST_F(SrbindTest, VoidReturn_YieldsNil) {
 
   NativeFunction* nf = make_function(gc.get(), "touch", touch, arg("x"));
 
-  Value r = CallCallee(nf, {}, {{"x", Value(42)}});
+  Value r = CallCallee(Value(nf), {}, {{"x", Value(42)}});
   EXPECT_TRUE(touched);
   // nil is std::monostate in Value
   EXPECT_TRUE(r == std::monostate{});
@@ -133,11 +136,12 @@ TEST_F(SrbindTest, VoidReturn_YieldsNil) {
 TEST_F(SrbindTest, FreeFunction_PositionalOnly) {
   auto add = [](int a, int b) { return a + b; };
   NativeFunction* nf = make_function(gc.get(), "add", add);  // no arg spec
-  Value r = CallCallee(nf, {Value(2), Value(3)});
+  Value r = CallCallee(Value(nf), {Value(2), Value(3)});
   EXPECT_TRUE(r == 5);
 
-  EXPECT_THROW([&]() { std::ignore = CallCallee(nf, {}, {{"a", Value(1)}}); }(),
-               error_type)
+  EXPECT_THROW(
+      [&]() { std::ignore = CallCallee(Value(nf), {}, {{"a", Value(1)}}); }(),
+      error_type)
       << "Passing kwargs should error: function takes no keyword arguments";
 }
 
@@ -145,10 +149,11 @@ TEST_F(SrbindTest, FreeFunction_KeywordsAndDefaults) {
   // a + 10*b + 100*c
   auto mix = [](int a, int b, int c) { return a + 10 * b + 100 * c; };
 
-  NativeFunction* nf =
+  NativeFunction* nf_ptr =
       make_function(gc.get(), "mix", mix, arg("a") = 1, arg("b") = 2,
                     arg("c")  // required
       );
+  Value nf = Value(nf_ptr);
 
   // kwargs only (use defaults for a,b)
   Value r1 = CallCallee(nf, /*pos*/ {}, /*kw*/ {{"c", Value(7)}});
@@ -207,8 +212,7 @@ TEST_F(SrbindTest, Class_Methods) {
       .def("sum", &V::sum);
 
   // Fetch class object from dict
-  Value cls_v = dict->map.at("V");
-  auto* vclass = cls_v.Get<NativeClass*>();
+  Value vclass = GetItem(dict, "V");
 
   // Construct instance by calling the class (allocates NativeInstance and
   // copies methods)
@@ -216,29 +220,24 @@ TEST_F(SrbindTest, Class_Methods) {
   auto* inst = inst_v.Get_if<NativeInstance>();
   ASSERT_NE(inst, nullptr);
 
-  // Call __init__(self) - self must be first positional for methods in this
-  // binder
-  auto* init_fn = get_as<NativeFunction>(inst->fields, "__init__");
-  std::ignore = CallCallee(init_fn, {Value(inst)});
-
   // Call add using kwargs to set dx=3, dy=2
-  auto* add_fn = get_as<NativeFunction>(inst->fields, "add");
-  std::ignore =
-      CallCallee(add_fn, {Value(inst)}, {{"dy", Value(2)}, {"dx", Value(3)}});
+  Value add_fn = GetMember(inst, "add");
+  ASSERT_NO_THROW(std::ignore = CallCallee(
+                      add_fn, {}, {{"dy", Value(2)}, {"dx", Value(3)}}));
 
   // sum() -> 5
-  auto* sum_fn = get_as<NativeFunction>(inst->fields, "sum");
-  Value sum_ret = CallCallee(sum_fn, {Value(inst)});
-  EXPECT_EQ(sum_ret, 5);
+  Value sum_fn = GetMember(inst, "sum");
+  Value ret;
+  ASSERT_NO_THROW(ret = CallCallee(sum_fn));
+  EXPECT_EQ(ret, 5);
 
   // Now call add with only dx (dy default=0)
-  std::ignore = CallCallee(add_fn, {Value(inst), Value(4)});
-  sum_ret = CallCallee(sum_fn, {Value(inst)});
-  EXPECT_TRUE(sum_ret == 9);
+  ASSERT_NO_THROW(std::ignore = CallCallee(add_fn, {Value(4)}));
+  ASSERT_NO_THROW(ret = CallCallee(sum_fn));
+  EXPECT_TRUE(ret == 9);
 
   // Duplicate value for dx (positional + kw)
-  EXPECT_THROW(std::ignore = CallCallee(add_fn, {Value(inst), Value(1)},
-                                        {{"dx", Value(2)}}),
+  EXPECT_THROW(std::ignore = CallCallee(add_fn, {Value(1)}, {{"dx", Value(2)}}),
                error_type)
       << "Expected error duplicate 'dx'";
 }
@@ -253,26 +252,21 @@ TEST_F(SrbindTest, Class_Init) {
   class_<P> cp(mod, "P");
   cp.def(init<int, int>(), arg("x") = 10, arg("y")).def("sum", &P::sum);
 
-  auto* pclass = get_as<NativeClass>(dict, "P");
+  Value klass = GetItem(dict, "P");
 
   // Allocate instance by calling class
-  Value inst_v = CallCallee(pclass);
-  auto* inst = inst_v.Get_if<NativeInstance>();
-
   // Call __init__(self, y=5)  -> x=10 (default), y=5
-  auto* init_fn = get_as<NativeFunction>(inst->fields, "__init__");
-  std::ignore = CallCallee(init_fn, {Value(inst)}, {{"y", Value(5)}});
+  Value inst_v = CallCallee(klass, {}, {{"y", Value(5)}});
+  auto* inst = inst_v.Get_if<NativeInstance>();
+  ASSERT_NE(inst, nullptr);
 
-  auto* sum_fn = get_as<NativeFunction>(inst->fields, "sum");
-  Value sum_ret = CallCallee(sum_fn, {Value(inst)});
+  Value sum_fn = GetMember(inst, "sum");
+  Value sum_ret = CallCallee(sum_fn);
   EXPECT_TRUE(sum_ret == 15);
 
-  // Missing required y
-  Value inst_v2 = CallCallee(pclass);
-  auto* inst2 = inst_v2.Get_if<NativeInstance>();
-  auto* init2 = get_as<NativeFunction>(inst2->fields, "__init__");
-
-  EXPECT_THROW(std::ignore = CallCallee(init2, {Value(inst2)}), error_type)
+  // Missing required argument
+  EXPECT_THROW(std::ignore = CallCallee(klass, {}, {{"x", Value(5)}}),
+               error_type)
       << "Expected missing required argument 'y'";
 }
 

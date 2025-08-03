@@ -446,14 +446,14 @@ void VM::ExecuteFiber(Fiber* fib) {
         klass->name =
             chunk->const_pool[ins.name_index].template Get<std::string>();
         for (int i = 0; i < ins.nstaticfn; i++) {
-          auto method = pop(fib->stack);
-          auto name = pop(fib->stack).template Get<std::string>();
-          klass->fields.try_emplace(std::move(name), std::move(method));
+          Function* fn = pop(fib->stack).template Get<Function*>();
+          std::string name = pop(fib->stack).template Get<std::string>();
+          klass->fields.try_emplace(std::move(name), fn);
         }
         for (int i = 0; i < ins.nmemfn; i++) {
-          auto method = pop(fib->stack);
-          auto name = pop(fib->stack).template Get<std::string>();
-          klass->memfns.try_emplace(std::move(name), std::move(method));
+          Function* fn = pop(fib->stack).template Get<Function*>();
+          std::string name = pop(fib->stack).template Get<std::string>();
+          klass->memfns.try_emplace(std::move(name), fn);
         }
 
         push(fib->stack, Value(klass));
@@ -480,12 +480,12 @@ void VM::ExecuteFiber(Fiber* fib) {
       case OpCode::SetField: {
         const auto ins = chunk->Read<serilang::SetField>(ip);
         ip += sizeof(ins);
-        auto val = pop(fib->stack);
-        auto receiver = pop(fib->stack);
-        auto name =
-            chunk->const_pool[ins.name_index].template Get<std::string>();
+        Value val = pop(fib->stack);
+        Value receiver = pop(fib->stack);
+        std::string* name =
+            chunk->const_pool[ins.name_index].template Get_if<std::string>();
         try {
-          receiver.SetMember(name, std::move(val));
+          receiver.SetMember(*name, std::move(val));
         } catch (RuntimeError& e) {
           Error(*fib, e.message());
           return;

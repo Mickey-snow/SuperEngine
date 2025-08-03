@@ -54,9 +54,24 @@ std::string Class::Str() const { return Desc(); }
 std::string Class::Desc() const { return "<class " + name + '>'; }
 
 void Class::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
-  f.stack.resize(f.stack.size() - nargs);
-  auto inst = vm.gc_->Allocate<Instance>(this);
-  f.stack.back() = Value(std::move(inst));
+  Instance* inst = vm.gc_->Allocate<Instance>(this);
+  auto init_it = memfns.find("__init__");
+  if (init_it != memfns.cend()) {
+    Function* init_fn = init_it->second;
+
+    // (class, args..., kwargs...)
+    auto base = f.stack.end() - nargs - 2 * nkwargs - 1;
+    *base = Value(inst);
+    f.stack.insert(base, Value(init_fn));
+    // (init, inst, args..., kwargs...)
+    // here, we do a manual tail-call
+    init_fn->Call(vm, f, nargs + 1, nkwargs);
+    // ctors are guaranteed to return the instance
+  } else {
+    if (nargs != 0 || nkwargs != 0)
+      throw RuntimeError(Str() + " takes no arguments");
+    f.stack.back() = Value(inst);
+  }
 }
 
 // -----------------------------------------------------------------------
@@ -80,15 +95,8 @@ TempValue Instance::Member(std::string_view mem) {
   }
   {
     auto it = klass->memfns.find(mem);
-    if (it != klass->memfns.cend()) {
-      Value val = it->second;
-      if (IObject* obj = val.Get_if<IObject>()) {
-        auto t = obj->Type();
-        if (t == ObjType::Function || t == ObjType::Native)
-          return std::make_unique<BoundMethod>(Value(this), val);
-      }
-      return val;
-    }
+    if (it != klass->memfns.cend())
+      return std::make_unique<BoundMethod>(Value(this), Value(it->second));
   }
   {
     auto it = klass->fields.find(mem);
@@ -101,7 +109,7 @@ TempValue Instance::Member(std::string_view mem) {
 }
 
 void Instance::SetMember(std::string_view mem, Value val) {
-  fields[std::string(mem)] = val;
+  fields[std::string(mem)] = std::move(val);
 }
 
 // -----------------------------------------------------------------------
@@ -115,10 +123,24 @@ std::string NativeClass::Str() const { return Desc(); }
 std::string NativeClass::Desc() const { return "<native class " + name + '>'; }
 
 void NativeClass::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
-  f.stack.resize(f.stack.size() - nargs);
-  auto inst = vm.gc_->Allocate<NativeInstance>(this);
-  inst->fields = this->methods;
-  f.stack.back() = Value(std::move(inst));
+  NativeInstance* inst = vm.gc_->Allocate<NativeInstance>(this);
+
+  auto init_it = methods.find("__init__");
+  if (init_it != methods.cend()) {
+    Value init_fn = init_it->second;
+
+    auto base = f.stack.end() - nargs - 2 * nkwargs - 1;
+    *base = Value(inst);
+    f.stack.insert(base, init_fn);
+    // (__init__, inst, args, ...)
+    init_fn.Call(vm, f, nargs + 1, nkwargs);
+    // -> (nil)
+  } else {
+    if (nargs != 0 || nkwargs != 0)
+      throw RuntimeError(Str() + " takes no arguments");
+  }
+
+  f.stack.back() = Value(inst);  // -> (inst)
 }
 
 // -----------------------------------------------------------------------
@@ -144,21 +166,31 @@ std::string NativeInstance::Desc() const {
 }
 
 TempValue NativeInstance::Member(std::string_view mem) {
-  auto it = fields.find(std::string(mem));
-  if (it == fields.cend())
-    throw RuntimeError('\'' + Desc() + "' object has no member '" +
-                       std::string(mem) + '\'');
-  Value val = it->second;
-  if (IObject* obj = val.Get_if<IObject>()) {
-    auto t = obj->Type();
-    if (t == ObjType::Function || t == ObjType::Native)
-      return std::make_unique<BoundMethod>(Value(this), val);
+  {
+    auto it = fields.find(mem);
+    if (it != fields.cend())
+      return it->second;
   }
-  return val;
+
+  {
+    auto it = klass->methods.find(mem);
+    if (it != klass->methods.cend()) {
+      Value val = it->second;
+      if (IObject* obj = val.Get_if<IObject>()) {
+        auto t = obj->Type();
+        if (t == ObjType::Function || t == ObjType::Native)
+          return std::make_unique<BoundMethod>(Value(this), val);
+      }
+      return val;
+    }
+  }
+
+  throw RuntimeError('\'' + Desc() + "' object has no member '" +
+                     std::string(mem) + '\'');
 }
 
 void NativeInstance::SetMember(std::string_view mem, Value val) {
-  fields[std::string(mem)] = val;
+  fields[std::string(mem)] = std::move(val);
 }
 
 // -----------------------------------------------------------------------

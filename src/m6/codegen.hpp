@@ -60,11 +60,12 @@ class CodeGenerator {
   // -- Type aliases ----------------------------------------------------
   using Value = serilang::Value;
   enum class SCOPE { NONE = 1, GLOBAL, LOCAL };
+  enum class CompileMode { Global, Function, Ctor };
 
   // -- Data members ---------------------------------------------------
   std::shared_ptr<serilang::GarbageCollector> gc_;
   bool repl_mode_;
-  bool in_function_;
+  CompileMode mode_;
 
   serilang::Code* chunk_;
   transparent_hashmap<SCOPE> scope_heuristic_;
@@ -140,7 +141,9 @@ class CodeGenerator {
   void emit_stmt_node(const ImportStmt& is);
   void emit_stmt_node(const std::shared_ptr<ExprAST>& s);
 
-  void emit_function(const FuncDecl& fn);
+  void emit_function(const FuncDecl& fn,
+                     CompileMode nested_mode = CompileMode::Function);
+  void emit_return(std::shared_ptr<ExprAST> expr = nullptr);
 
   // -- Jump-patching --------------------------------------------------
   void patch(std::size_t site, std::size_t target);

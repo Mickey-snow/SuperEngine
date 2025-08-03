@@ -40,7 +40,7 @@ CodeGenerator::CodeGenerator(std::shared_ptr<serilang::GarbageCollector> gc,
                              bool repl)
     : gc_(gc),
       repl_mode_(repl),
-      in_function_(false),
+      mode_(CompileMode::Global),
       chunk_(gc->Allocate<sr::Code>()),
       locals_(),
       local_depth_(0),
@@ -116,7 +116,7 @@ void CodeGenerator::emit_const(std::string_view s) {
 std::size_t CodeGenerator::code_size() const { return chunk_->code.size(); }
 
 void CodeGenerator::emit_store_var(const std::string& id) {
-  if (!in_function_ || get_scope(id) == SCOPE::GLOBAL) {
+  if (mode_ == CompileMode::Global || get_scope(id) == SCOPE::GLOBAL) {
     emit(sr::StoreGlobal{intern_name(id)});
     return;
   }
@@ -145,7 +145,7 @@ void CodeGenerator::emit_load_var(std::string_view id) {
 // Identifier resolution
 std::optional<std::size_t> CodeGenerator::resolve_local(
     std::string_view id) const {
-  if (!in_function_)
+  if (mode_ == CompileMode::Global)
     return std::nullopt;
   auto it = locals_.find(id);
   if (it != locals_.cend())
@@ -378,12 +378,13 @@ void CodeGenerator::emit_stmt_node(const BlockStmt& s) {
     emit_stmt(stmt);
 }
 
-void CodeGenerator::emit_function(const FuncDecl& fn) {
+void CodeGenerator::emit_function(const FuncDecl& fn, CompileMode nested_mode) {
   // compile body with a fresh compiler
   CodeGenerator nested(gc_, repl_mode_);
   nested.SetChunk(gc_->Allocate<serilang::Code>());
   nested.scope_heuristic_ = scope_heuristic_;
-  nested.in_function_ = true;
+  nested.mode_ = nested_mode;
+
   nested.add_local(fn.name);
   for (auto& p : fn.params)
     nested.add_local(p);
@@ -395,7 +396,7 @@ void CodeGenerator::emit_function(const FuncDecl& fn) {
     nested.add_local(fn.kw_arg);
 
   nested.emit_stmt(fn.body);
-  nested.emit(sr::Return{});
+  nested.emit_return();
 
   emit_const(nested.GetChunk());
   for (auto& p : fn.default_params) {
@@ -414,6 +415,20 @@ void CodeGenerator::emit_function(const FuncDecl& fn) {
                         .has_kwarg = !fn.kw_arg.empty()});
 }
 
+void CodeGenerator::emit_return(std::shared_ptr<ExprAST> expr) {
+  if (mode_ == CompileMode::Ctor) {
+    if (expr)
+      AddError("Can't return a value from __init__");
+    emit(sr::LoadLocal{.slot = 1});  // 'self'
+  } else {
+    if (expr)
+      emit_expr(expr);
+    else
+      emit(sr::Push{constant(Value(std::monostate()))});
+  }
+  emit(sr::Return{});
+}
+
 void CodeGenerator::emit_stmt_node(const FuncDecl& fn) {
   emit_function(fn);
   emit(sr::StoreGlobal{intern_name(fn.name)});
@@ -421,8 +436,10 @@ void CodeGenerator::emit_stmt_node(const FuncDecl& fn) {
 
 void CodeGenerator::emit_stmt_node(const ClassDecl& cd) {
   for (auto& m : cd.memfn) {
-    emit(sr::Push{constant(Value(m.name))});
-    emit_function(m);
+    std::string const& name = m.name;
+    emit(sr::Push{constant(Value(name))});
+    emit_function(
+        m, name == "__init__" ? CompileMode::Ctor : CompileMode::Function);
   }
   for (auto& m : cd.staticfn) {
     emit(sr::Push{constant(Value(m.name))});
@@ -435,11 +452,7 @@ void CodeGenerator::emit_stmt_node(const ClassDecl& cd) {
 }
 
 void CodeGenerator::emit_stmt_node(const ReturnStmt& r) {
-  if (r.value)
-    emit_expr(r.value);
-  else
-    emit(sr::Push{constant(Value(std::monostate()))});
-  emit(sr::Return{});
+  emit_return(r.value);
 }
 
 void CodeGenerator::emit_stmt_node(const YieldStmt& y) {
