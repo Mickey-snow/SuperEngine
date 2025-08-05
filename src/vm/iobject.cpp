@@ -42,17 +42,17 @@ TempValue IObject::Item(Value& idx) {
 
 void IObject::SetItem(Value& idx, Value value) {
   throw RuntimeError('\'' + Desc() +
-                           "' object does not support item assignment.");
+                     "' object does not support item assignment.");
 }
 
 TempValue IObject::Member(std::string_view mem) {
   throw RuntimeError('\'' + Desc() + "' object has no member '" +
-                           std::string(mem) + '\'');
+                     std::string(mem) + '\'');
 }
 
 void IObject::SetMember(std::string_view mem, Value value) {
   throw RuntimeError('\'' + Desc() +
-                           "' object does not support member assignment.");
+                     "' object does not support member assignment.");
 }
 
 }  // namespace serilang

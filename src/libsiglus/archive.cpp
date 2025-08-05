@@ -59,8 +59,9 @@ Archive::Archive(std::string_view data, const XorKey& key)
 }
 
 Scene Archive::ParseScene(int id) const {
-  return cache.fetch_or_else(
-      id, [&, id]() { return Scene(raw_scene_data_[id], id, scene_names_[id]); });
+  return cache.fetch_or_else(id, [&, id]() {
+    return Scene(raw_scene_data_[id], id, scene_names_[id]);
+  });
 }
 
 void Archive::ParseScndata() {

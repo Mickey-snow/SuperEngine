@@ -361,7 +361,7 @@ print(inst.result);
   }
 
   {
-auto res = Run(R"(
+    auto res = Run(R"(
 class Point2{
   fn __init__(self, x=0, y=0){ self.x=x; self.y=y; }
   fn dist_sq(self){ return self.x*self.x + self.y*self.y; }
@@ -374,7 +374,7 @@ pt3 = Point2();
 print(pt1.dist_sq(), pt2.dist_sq(), pt3.dist_sq());
 )");
 
-  EXPECT_EQ(res, "41 100 0\n");
+    EXPECT_EQ(res, "41 100 0\n");
   }
 
   {

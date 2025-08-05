@@ -72,7 +72,9 @@ class Archive {
 
   Scene ParseScene(int id) const;
 
-  inline size_t GetScenarioCount() const noexcept { return raw_scene_data_.size(); }
+  inline size_t GetScenarioCount() const noexcept {
+    return raw_scene_data_.size();
+  }
 
  private:
   void ParseScndata();

@@ -63,7 +63,7 @@ enum class Op : int {
   ShiftLeftAssign,           // "<<="
   ShiftRightAssign,          // ">>="
   ShiftUnsignedRightAssign,  // ">>>="
-  PowAssign,		     // "**="
+  PowAssign,                 // "**="
 
   // Assignment Operator
   Assign,  // "="
