@@ -2,3 +2,5 @@ libgtest-dev libgmock-dev libsdl1.2-dev libboost-all-dev
 libgl1-mesa-dev libglu1-mesa-dev libglew-dev
 libvorbis-dev zlib1g-dev libfreetype6-dev gettext libtbb-dev
 clang-tidy clang-format
+ninja-build ccache
+
