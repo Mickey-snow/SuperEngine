@@ -74,7 +74,7 @@ struct DictLiteral {
 
 // Identifier
 struct Identifier {
-  std::string_view value;
+  std::string value;
   SourceLocation loc;
   std::string DebugString() const;
 };

@@ -38,6 +38,8 @@ using namespace m6;
 
 namespace m6test {
 
+// helpers
+namespace {
 template <typename T>
 inline static auto format_errors(T&& errors) {
   return Join("; ", std::views::all(std::forward<T>(errors)) |
@@ -49,8 +51,6 @@ inline static auto format_errors(T&& errors) {
                         }));
 }
 
-// helpers
-namespace {
 template <typename... Ts>
 static std::vector<m6::Token> TokenArray(Ts&&... args) {
   std::vector<m6::Token> result;
@@ -59,104 +59,152 @@ static std::vector<m6::Token> TokenArray(Ts&&... args) {
   return result;
 }
 
-static auto TokenArray(std::string input) -> std::vector<m6::Token> {
-  auto sb = SourceBuffer::Create(std::move(input), "<test>");
-  std::vector<m6::Token> result;
-  m6::Tokenizer tokenizer(result);
-  tokenizer.Parse(sb);
-  return result;
-}
+template <typename T>
+struct ParserResultBase {
+  std::shared_ptr<SourceBuffer> src = nullptr;
+  std::shared_ptr<T> ast = nullptr;
+  std::string errors;
 
-static inline auto TokenArray(char const* s) {
-  return TokenArray(std::string(s));
-}
+  std::string DumpAST() const {
+    if (ast == nullptr)
+      return "NULL";
+    else
+      return ast->DumpAST();
+  }
+
+  bool operator==(std::string_view expected) const {
+    if (!errors.empty())
+      return false;
+    std::string str = trim_cp(DumpAST());
+    expected = trim_sv(expected);
+    return str == expected;
+  }
+
+  friend std::ostream& operator<<(std::ostream& os,
+                                  ParserResultBase<T> const& result) {
+    if (!result.errors.empty())
+      os << "\nerrors:\n" << result.errors;
+    os << "\nast:\n" << result.DumpAST();
+    return os;
+  }
+};
+
 }  // namespace
 
 class ExprParserTest : public ::testing::Test {
  protected:
-  static std::shared_ptr<ExprAST> parseExpr(std::span<Token> tokens) {
+  using ParserResult = ParserResultBase<ExprAST>;
+
+  static ParserResult parse(std::vector<Token> tokens) {
     Parser parser(tokens);
-    std::shared_ptr<ExprAST> result = parser.ParseExpression();
-    EXPECT_TRUE(parser.Ok()) << format_errors(parser.GetErrors());
-    EXPECT_NE(result, nullptr);
-    return result;
+    std::shared_ptr<ExprAST> ast = parser.ParseExpression();
+
+    ParserResult r;
+    r.ast = ast;
+    if (!parser.Ok())
+      r.errors = format_errors(parser.GetErrors());
+    return r;
   }
 
-  static void expectAST(std::vector<Token> tokens, std::string expectedAST) {
-    auto expr = parseExpr(tokens);
-    std::string result = trim_cp(expr->DumpAST());
-    trim(expectedAST);
-    EXPECT_EQ(result, expectedAST) << "expected:\n"
-                                   << expectedAST << '\n'
-                                   << "actual:\n"
-                                   << result;
+  static ParserResult parse(char const* s) {
+    auto sb = SourceBuffer::Create(std::string(s), "<test>");
+    std::vector<m6::Token> tokens;
+    m6::Tokenizer tokenizer(tokens);
+    tokenizer.Parse(sb);
+    if (tokenizer.Ok()) {
+      auto r = parse(tokens);
+      r.src = sb;
+      return r;
+    } else {
+      return ParserResult{.src = sb,
+                          .ast = nullptr,
+                          .errors = format_errors(tokenizer.GetErrors())};
+    }
   }
 };
 
 TEST_F(ExprParserTest, BasicArithmetic) {
-  expectAST(TokenArray(tok::Int(1), tok::Operator(Op::Add), tok::Int(2)),
-            R"(
+  {
+    auto result =
+        parse(TokenArray(tok::Int(1), tok::Operator(Op::Add), tok::Int(2)));
+    EXPECT_EQ(result, R"(
 Binaryop +
    ├─IntLiteral 1
    └─IntLiteral 2
 )");
-
-  expectAST(TokenArray(tok::Int(3), tok::Operator(Op::Sub), tok::Int(4)),
-            R"(
+  }
+  {
+    auto result =
+        parse(TokenArray(tok::Int(3), tok::Operator(Op::Sub), tok::Int(4)));
+    EXPECT_EQ(result, R"(
 Binaryop -
    ├─IntLiteral 3
    └─IntLiteral 4
 )");
-
-  expectAST(TokenArray(tok::Int(5), tok::Operator(Op::Mul), tok::Int(6)),
-            R"(
+  }
+  {
+    auto result =
+        parse(TokenArray(tok::Int(5), tok::Operator(Op::Mul), tok::Int(6)));
+    EXPECT_EQ(result, R"(
 Binaryop *
    ├─IntLiteral 5
    └─IntLiteral 6
 )");
-
-  expectAST(TokenArray(tok::Int(7), tok::Operator(Op::Div), tok::Int(8)),
-            R"(
+  }
+  {
+    auto result =
+        parse(TokenArray(tok::Int(7), tok::Operator(Op::Div), tok::Int(8)));
+    EXPECT_EQ(result, R"(
 Binaryop /
    ├─IntLiteral 7
    └─IntLiteral 8
 )");
-
-  expectAST(TokenArray(tok::Int(9), tok::Operator(Op::Mod), tok::Int(10)),
-            R"(
+  }
+  {
+    auto result =
+        parse(TokenArray(tok::Int(9), tok::Operator(Op::Mod), tok::Int(10)));
+    EXPECT_EQ(result, R"(
 Binaryop %
    ├─IntLiteral 9
    └─IntLiteral 10
 )");
+  }
 }
 
 TEST_F(ExprParserTest, Precedence) {
-  expectAST(TokenArray(tok::Int(5), tok::Operator(Op::Mul), tok::Int(6),
-                       tok::Operator(Op::Add), tok::Int(7)),
-            R"(
+  {
+    auto result =
+        parse(TokenArray(tok::Int(5), tok::Operator(Op::Mul), tok::Int(6),
+                         tok::Operator(Op::Add), tok::Int(7)));
+    EXPECT_EQ(result, R"(
 Binaryop +
    ├─Binaryop *
    │  ├─IntLiteral 5
    │  └─IntLiteral 6
    └─IntLiteral 7
 )");
+  }
 
-  expectAST(TokenArray(tok::Int(5), tok::Operator(Op::Add), tok::Int(6),
-                       tok::Operator(Op::Div), tok::Int(7)),
-            R"(
+  {
+    auto result =
+        parse(TokenArray(tok::Int(5), tok::Operator(Op::Add), tok::Int(6),
+                         tok::Operator(Op::Div), tok::Int(7)));
+    EXPECT_EQ(result, R"(
 Binaryop +
    ├─IntLiteral 5
    └─Binaryop /
       ├─IntLiteral 6
       └─IntLiteral 7
 )");
+  }
 }
 
 TEST_F(ExprParserTest, Parenthesis) {
-  expectAST(TokenArray(tok::ParenthesisL(), tok::Int(5), tok::Operator(Op::Add),
-                       tok::Int(6), tok::ParenthesisR(), tok::Operator(Op::Div),
-                       tok::Int(7)),
-            R"(
+  {
+    auto result = parse(TokenArray(
+        tok::ParenthesisL(), tok::Int(5), tok::Operator(Op::Add), tok::Int(6),
+        tok::ParenthesisR(), tok::Operator(Op::Div), tok::Int(7)));
+    EXPECT_EQ(result, R"(
 Binaryop /
    ├─Parenthesis
    │  └─Binaryop +
@@ -164,14 +212,16 @@ Binaryop /
    │     └─IntLiteral 6
    └─IntLiteral 7
 )");
+  }
 }
 
 TEST_F(ExprParserTest, Identifier) {
-  expectAST(TokenArray(tok::ID("v1"), tok::Operator(Op::Add), tok::ID("v2"),
-                       tok::Operator(Op::Div), tok::ID("v3"), tok::SquareL(),
-                       tok::ID("v4"), tok::Operator(Op::Add), tok::ID("v5"),
-                       tok::SquareR()),
-            R"(
+  {
+    auto result = parse(TokenArray(
+        tok::ID("v1"), tok::Operator(Op::Add), tok::ID("v2"),
+        tok::Operator(Op::Div), tok::ID("v3"), tok::SquareL(), tok::ID("v4"),
+        tok::Operator(Op::Add), tok::ID("v5"), tok::SquareR()));
+    EXPECT_EQ(result, R"(
 Binaryop +
    ├─ID v1
    └─Binaryop /
@@ -182,16 +232,18 @@ Binaryop +
             ├─ID v4
             └─ID v5
 )");
+  }
 }
 
 TEST_F(ExprParserTest, Comparisons) {
-  expectAST(TokenArray(tok::ID("v1"), tok::Operator(Op::Equal), tok::ID("v2"),
-                       tok::Operator(Op::NotEqual), tok::ID("v3"),
-                       tok::Operator(Op::Greater), tok::ID("v4"),
-                       tok::Operator(Op::Less), tok::ID("v5"),
-                       tok::Operator(Op::LessEqual), tok::Int(12),
-                       tok::Operator(Op::GreaterEqual), tok::Int(13)),
-            R"(
+  {
+    auto result = parse(TokenArray(
+        tok::ID("v1"), tok::Operator(Op::Equal), tok::ID("v2"),
+        tok::Operator(Op::NotEqual), tok::ID("v3"), tok::Operator(Op::Greater),
+        tok::ID("v4"), tok::Operator(Op::Less), tok::ID("v5"),
+        tok::Operator(Op::LessEqual), tok::Int(12),
+        tok::Operator(Op::GreaterEqual), tok::Int(13)));
+    EXPECT_EQ(result, R"(
 Binaryop !=
    ├─Binaryop ==
    │  ├─ID v1
@@ -206,16 +258,18 @@ Binaryop !=
       │  └─IntLiteral 12
       └─IntLiteral 13
 )");
+  }
 }
 
 TEST_F(ExprParserTest, Shifts) {
-  expectAST(TokenArray(tok::ID("v1"), tok::Operator(Op::ShiftLeft),
-                       tok::ID("v2"), tok::Operator(Op::Less), tok::ID("v3"),
-                       tok::Operator(Op::ShiftRight), tok::ID("v4"),
-                       tok::Operator(Op::Add), tok::ID("v5"),
-                       tok::Operator(Op::ShiftLeft), tok::Int(12),
-                       tok::Operator(Op::Less), tok::Int(13)),
-            R"(
+  {
+    auto result = parse(TokenArray(
+        tok::ID("v1"), tok::Operator(Op::ShiftLeft), tok::ID("v2"),
+        tok::Operator(Op::Less), tok::ID("v3"), tok::Operator(Op::ShiftRight),
+        tok::ID("v4"), tok::Operator(Op::Add), tok::ID("v5"),
+        tok::Operator(Op::ShiftLeft), tok::Int(12), tok::Operator(Op::Less),
+        tok::Int(13)));
+    EXPECT_EQ(result, R"(
 Binaryop <
    ├─Binaryop <
    │  ├─Binaryop <<
@@ -230,16 +284,18 @@ Binaryop <
    │     └─IntLiteral 12
    └─IntLiteral 13
 )");
+  }
 }
 
 TEST_F(ExprParserTest, Logical) {
-  expectAST(
-      TokenArray(tok::ID("v1"), tok::Operator(Op::LogicalOr), tok::ID("v2"),
-                 tok::Operator(Op::LogicalAnd), tok::ID("v3"),
-                 tok::Operator(Op::ShiftRight), tok::ID("v4"),
-                 tok::Operator(Op::LogicalOr), tok::ID("v5"),
-                 tok::Operator(Op::LogicalAnd), tok::Int(12)),
-      R"(
+  {
+    auto result = parse(TokenArray(tok::ID("v1"), tok::Operator(Op::LogicalOr),
+                                   tok::ID("v2"), tok::Operator(Op::LogicalAnd),
+                                   tok::ID("v3"), tok::Operator(Op::ShiftRight),
+                                   tok::ID("v4"), tok::Operator(Op::LogicalOr),
+                                   tok::ID("v5"), tok::Operator(Op::LogicalAnd),
+                                   tok::Int(12)));
+    EXPECT_EQ(result, R"(
 Binaryop ||
    ├─Binaryop ||
    │  ├─ID v1
@@ -252,34 +308,43 @@ Binaryop ||
       ├─ID v5
       └─IntLiteral 12
 )");
+  }
 }
 
 TEST_F(ExprParserTest, BitwiseOperators) {
-  expectAST(TokenArray(tok::ID("a"), tok::Operator(Op::BitAnd), tok::ID("b")),
-            R"(
+  {
+    auto result = parse(
+        TokenArray(tok::ID("a"), tok::Operator(Op::BitAnd), tok::ID("b")));
+    EXPECT_EQ(result, R"(
 Binaryop &
    ├─ID a
    └─ID b
 )");
-
-  expectAST(TokenArray(tok::ID("a"), tok::Operator(Op::BitOr), tok::ID("b")),
-            R"(
+  }
+  {
+    auto result =
+        parse(TokenArray(tok::ID("a"), tok::Operator(Op::BitOr), tok::ID("b")));
+    EXPECT_EQ(result, R"(
 Binaryop |
    ├─ID a
    └─ID b
 )");
-
-  expectAST(TokenArray(tok::ID("a"), tok::Operator(Op::BitXor), tok::ID("b")),
-            R"(
+  }
+  {
+    auto result = parse(
+        TokenArray(tok::ID("a"), tok::Operator(Op::BitXor), tok::ID("b")));
+    EXPECT_EQ(result, R"(
 Binaryop ^
    ├─ID a
    └─ID b
 )");
-
-  expectAST(TokenArray(tok::ID("a"), tok::Operator(Op::BitAnd), tok::ID("b"),
-                       tok::Operator(Op::BitOr), tok::ID("c"),
-                       tok::Operator(Op::BitXor), tok::ID("d")),
-            R"(
+  }
+  {
+    auto result =
+        parse(TokenArray(tok::ID("a"), tok::Operator(Op::BitAnd), tok::ID("b"),
+                         tok::Operator(Op::BitOr), tok::ID("c"),
+                         tok::Operator(Op::BitXor), tok::ID("d")));
+    EXPECT_EQ(result, R"(
 Binaryop |
    ├─Binaryop &
    │  ├─ID a
@@ -288,52 +353,61 @@ Binaryop |
       ├─ID c
       └─ID d
 )");
+  }
 }
 
 TEST_F(ExprParserTest, UnaryOperators) {
-  expectAST(TokenArray(tok::Operator(Op::Sub), tok::ID("a")),
-            R"(
+  {
+    auto result = parse(TokenArray(tok::Operator(Op::Sub), tok::ID("a")));
+    EXPECT_EQ(result, R"(
 Unaryop -
    └─ID a
 )");
-
-  expectAST(TokenArray(tok::Operator(Op::Add), tok::ID("a")),
-            R"(
+  }
+  {
+    auto result = parse(TokenArray(tok::Operator(Op::Add), tok::ID("a")));
+    EXPECT_EQ(result, R"(
 Unaryop +
    └─ID a
 )");
-
-  expectAST(TokenArray(tok::Operator(Op::Tilde), tok::ID("a")),
-            R"(
+  }
+  {
+    auto result = parse(TokenArray(tok::Operator(Op::Tilde), tok::ID("a")));
+    EXPECT_EQ(result, R"(
 Unaryop ~
    └─ID a
 )");
-
-  expectAST(TokenArray(tok::Operator(Op::Sub), tok::Operator(Op::Tilde),
-                       tok::ID("a")),
-            R"(
+  }
+  {
+    auto result = parse(TokenArray(tok::Operator(Op::Sub),
+                                   tok::Operator(Op::Tilde), tok::ID("a")));
+    EXPECT_EQ(result, R"(
 Unaryop -
    └─Unaryop ~
       └─ID a
 )");
-
-  expectAST(
-      TokenArray(tok::Operator(Op::Sub), tok::ParenthesisL(), tok::ID("a"),
-                 tok::Operator(Op::Add), tok::ID("b"), tok::ParenthesisR()),
-      R"(
+  }
+  {
+    auto result = parse(TokenArray(tok::Operator(Op::Sub), tok::ParenthesisL(),
+                                   tok::ID("a"), tok::Operator(Op::Add),
+                                   tok::ID("b"), tok::ParenthesisR()));
+    EXPECT_EQ(result, R"(
 Unaryop -
    └─Parenthesis
       └─Binaryop +
          ├─ID a
          └─ID b
 )");
+  }
 }
 
 TEST_F(ExprParserTest, MixedPrecedence) {
   // a + b * c
-  expectAST(TokenArray(tok::ID("a"), tok::Operator(Op::Add), tok::ID("b"),
-                       tok::Operator(Op::Mul), tok::ID("c")),
-            R"(
+  {
+    auto result =
+        parse(TokenArray(tok::ID("a"), tok::Operator(Op::Add), tok::ID("b"),
+                         tok::Operator(Op::Mul), tok::ID("c")));
+    EXPECT_EQ(result, R"(
 Binaryop +
    ├─ID a
    └─Binaryop *
@@ -341,11 +415,14 @@ Binaryop +
       └─ID c
 )");
 
-  // a & b | c ^ d
-  expectAST(TokenArray(tok::ID("a"), tok::Operator(Op::BitAnd), tok::ID("b"),
-                       tok::Operator(Op::BitOr), tok::ID("c"),
-                       tok::Operator(Op::BitXor), tok::ID("d")),
-            R"(
+    // a & b | c ^ d
+  }
+  {
+    auto result =
+        parse(TokenArray(tok::ID("a"), tok::Operator(Op::BitAnd), tok::ID("b"),
+                         tok::Operator(Op::BitOr), tok::ID("c"),
+                         tok::Operator(Op::BitXor), tok::ID("d")));
+    EXPECT_EQ(result, R"(
 Binaryop |
    ├─Binaryop &
    │  ├─ID a
@@ -355,12 +432,14 @@ Binaryop |
       └─ID d
 )");
 
-  // -a + b * ~c
-  expectAST(
-      TokenArray(tok::Operator(Op::Sub), tok::ID("a"), tok::Operator(Op::Add),
-                 tok::ID("b"), tok::Operator(Op::Mul), tok::Operator(Op::Tilde),
-                 tok::ID("c")),
-      R"(
+    // -a + b * ~c
+  }
+  {
+    auto result = parse(TokenArray(tok::Operator(Op::Sub), tok::ID("a"),
+                                   tok::Operator(Op::Add), tok::ID("b"),
+                                   tok::Operator(Op::Mul),
+                                   tok::Operator(Op::Tilde), tok::ID("c")));
+    EXPECT_EQ(result, R"(
 Binaryop +
    ├─Unaryop -
    │  └─ID a
@@ -370,14 +449,15 @@ Binaryop +
          └─ID c
 )");
 
-  // (a + b) * (c - d) / ~e
-  expectAST(
-      TokenArray(tok::ParenthesisL(), tok::ID("a"), tok::Operator(Op::Add),
-                 tok::ID("b"), tok::ParenthesisR(), tok::Operator(Op::Mul),
-                 tok::ParenthesisL(), tok::ID("c"), tok::Operator(Op::Sub),
-                 tok::ID("d"), tok::ParenthesisR(), tok::Operator(Op::Div),
-                 tok::Operator(Op::Tilde), tok::ID("e")),
-      R"(
+    // (a + b) * (c - d) / ~e
+  }
+  {
+    auto result = parse(TokenArray(
+        tok::ParenthesisL(), tok::ID("a"), tok::Operator(Op::Add), tok::ID("b"),
+        tok::ParenthesisR(), tok::Operator(Op::Mul), tok::ParenthesisL(),
+        tok::ID("c"), tok::Operator(Op::Sub), tok::ID("d"), tok::ParenthesisR(),
+        tok::Operator(Op::Div), tok::Operator(Op::Tilde), tok::ID("e")));
+    EXPECT_EQ(result, R"(
 Binaryop /
    ├─Binaryop *
    │  ├─Parenthesis
@@ -392,11 +472,14 @@ Binaryop /
       └─ID e
 )");
 
-  // a << b + c & d
-  expectAST(TokenArray(tok::ID("a"), tok::Operator(Op::ShiftLeft), tok::ID("b"),
-                       tok::Operator(Op::Add), tok::ID("c"),
-                       tok::Operator(Op::BitAnd), tok::ID("d")),
-            R"(
+    // a << b + c & d
+  }
+  {
+    auto result =
+        parse(TokenArray(tok::ID("a"), tok::Operator(Op::ShiftLeft),
+                         tok::ID("b"), tok::Operator(Op::Add), tok::ID("c"),
+                         tok::Operator(Op::BitAnd), tok::ID("d")));
+    EXPECT_EQ(result, R"(
 Binaryop &
    ├─Binaryop <<
    │  ├─ID a
@@ -406,12 +489,14 @@ Binaryop &
    └─ID d
 )");
 
-  // ~a | b && c ^ d
-  expectAST(TokenArray(tok::Operator(Op::Tilde), tok::ID("a"),
-                       tok::Operator(Op::BitOr), tok::ID("b"),
-                       tok::Operator(Op::LogicalAnd), tok::ID("c"),
-                       tok::Operator(Op::BitXor), tok::ID("d")),
-            R"(
+    // ~a | b && c ^ d
+  }
+  {
+    auto result = parse(TokenArray(tok::Operator(Op::Tilde), tok::ID("a"),
+                                   tok::Operator(Op::BitOr), tok::ID("b"),
+                                   tok::Operator(Op::LogicalAnd), tok::ID("c"),
+                                   tok::Operator(Op::BitXor), tok::ID("d")));
+    EXPECT_EQ(result, R"(
 Binaryop &&
    ├─Binaryop |
    │  ├─Unaryop ~
@@ -422,12 +507,14 @@ Binaryop &&
       └─ID d
 )");
 
-  // a + b << c - ~d
-  expectAST(TokenArray(tok::ID("a"), tok::Operator(Op::Add), tok::ID("b"),
-                       tok::Operator(Op::ShiftLeft), tok::ID("c"),
-                       tok::Operator(Op::Sub), tok::Operator(Op::Tilde),
-                       tok::ID("d")),
-            R"(
+    // a + b << c - ~d
+  }
+  {
+    auto result = parse(TokenArray(tok::ID("a"), tok::Operator(Op::Add),
+                                   tok::ID("b"), tok::Operator(Op::ShiftLeft),
+                                   tok::ID("c"), tok::Operator(Op::Sub),
+                                   tok::Operator(Op::Tilde), tok::ID("d")));
+    EXPECT_EQ(result, R"(
 Binaryop <<
    ├─Binaryop +
    │  ├─ID a
@@ -438,12 +525,14 @@ Binaryop <<
          └─ID d
 )");
 
-  // a && b | c ^ d & e
-  expectAST(TokenArray(tok::ID("a"), tok::Operator(Op::LogicalAnd),
-                       tok::ID("b"), tok::Operator(Op::BitOr), tok::ID("c"),
-                       tok::Operator(Op::BitXor), tok::ID("d"),
-                       tok::Operator(Op::BitAnd), tok::ID("e")),
-            R"(
+    // a && b | c ^ d & e
+  }
+  {
+    auto result = parse(TokenArray(
+        tok::ID("a"), tok::Operator(Op::LogicalAnd), tok::ID("b"),
+        tok::Operator(Op::BitOr), tok::ID("c"), tok::Operator(Op::BitXor),
+        tok::ID("d"), tok::Operator(Op::BitAnd), tok::ID("e")));
+    EXPECT_EQ(result, R"(
 Binaryop &&
    ├─ID a
    └─Binaryop |
@@ -454,27 +543,38 @@ Binaryop &&
             ├─ID d
             └─ID e
 )");
+  }
 }
 
 TEST_F(ExprParserTest, StringLiterals) {
-  expectAST(
-      TokenArray(tok::ID("foo"), tok::Operator(Op::Add), tok::Literal("bar")),
-      R"(
+  {
+    auto result = parse(TokenArray(tok::ID("foo"), tok::Operator(Op::Add),
+                                   tok::Literal("bar")));
+    EXPECT_EQ(result, R"(
 Binaryop +
    ├─ID foo
    └─StrLiteral bar
 )");
+  }
 }
 
 TEST_F(ExprParserTest, ListLiterals) {
-  expectAST(TokenArray("[]"), "ListLiteral");
-  expectAST(TokenArray(R"( [1,2,"3"] )"), R"(
+  {
+    auto result = parse("[]");
+    EXPECT_EQ(result, "ListLiteral");
+  }
+  {
+    auto result = parse(R"( [1,2,"3"] )");
+    EXPECT_EQ(result, R"(
 ListLiteral
    ├─IntLiteral 1
    ├─IntLiteral 2
    └─StrLiteral 3
 )");
-  expectAST(TokenArray(R"( [1+1,2,foo()+boo()] )"), R"(
+  }
+  {
+    auto result = parse(R"( [1+1,2,foo()+boo()] )");
+    EXPECT_EQ(result, R"(
 ListLiteral
    ├─Binaryop +
    │  ├─IntLiteral 1
@@ -486,11 +586,17 @@ ListLiteral
       └─Invoke
          └─ID boo
 )");
+  }
 }
 
 TEST_F(ExprParserTest, DictLiterals) {
-  expectAST(TokenArray("{}"), "DictLiteral");
-  expectAST(TokenArray(R"( {1:1,2:2,"3":3} )"), R"(
+  {
+    auto result = parse("{}");
+    EXPECT_EQ(result, "DictLiteral");
+  }
+  {
+    auto result = parse(R"( {1:1,2:2,"3":3} )");
+    EXPECT_EQ(result, R"(
  DictLiteral
    ├─IntLiteral 1
    ├─IntLiteral 1
@@ -499,7 +605,10 @@ TEST_F(ExprParserTest, DictLiterals) {
    ├─StrLiteral 3
    └─IntLiteral 3
  )");
-  expectAST(TokenArray(R"( {foo:boo(), [1]:[1]} )"), R"(
+  }
+  {
+    auto result = parse(R"( {foo:boo(), [1]:[1]} )");
+    EXPECT_EQ(result, R"(
 DictLiteral
    ├─ID foo
    ├─Invoke
@@ -509,33 +618,39 @@ DictLiteral
    └─ListLiteral
       └─IntLiteral 1
   )");
+  }
 }
 
 TEST_F(ExprParserTest, Postfix) {
   // boo()
-  expectAST(
-      TokenArray(tok::ID("boo"), tok::ParenthesisL(), tok::ParenthesisR()),
-      R"(
+  {
+    auto result = parse(
+        TokenArray(tok::ID("boo"), tok::ParenthesisL(), tok::ParenthesisR()));
+    EXPECT_EQ(result, R"(
 Invoke
    └─ID boo
 )");
 
-  // foo(42)
-  expectAST(TokenArray(tok::ID("foo"), tok::ParenthesisL(), tok::Int(42),
-                       tok::ParenthesisR()),
-            R"(
+    // foo(42)
+  }
+  {
+    auto result = parse(TokenArray(tok::ID("foo"), tok::ParenthesisL(),
+                                   tok::Int(42), tok::ParenthesisR()));
+    EXPECT_EQ(result, R"(
 Invoke
    ├─ID foo
    └─IntLiteral 42
 )");
 
-  // sum(1,2,3,4)
-  expectAST(
-      TokenArray(tok::ID("sum"), tok::ParenthesisL(), tok::Int(1),
-                 tok::Operator(Op::Comma), tok::Int(2),
-                 tok::Operator(Op::Comma), tok::Int(3),
-                 tok::Operator(Op::Comma), tok::Int(4), tok::ParenthesisR()),
-      R"(
+    // sum(1,2,3,4)
+  }
+  {
+    auto result = parse(TokenArray(tok::ID("sum"), tok::ParenthesisL(),
+                                   tok::Int(1), tok::Operator(Op::Comma),
+                                   tok::Int(2), tok::Operator(Op::Comma),
+                                   tok::Int(3), tok::Operator(Op::Comma),
+                                   tok::Int(4), tok::ParenthesisR()));
+    EXPECT_EQ(result, R"(
 Invoke
    ├─ID sum
    ├─IntLiteral 1
@@ -543,8 +658,10 @@ Invoke
    ├─IntLiteral 3
    └─IntLiteral 4
 )");
-
-  expectAST(TokenArray(R"( count(a,b,c=1+1) )"), R"(
+  }
+  {
+    auto result = parse(R"( count(a,b,c=1+1) )");
+    EXPECT_EQ(result, R"(
 Invoke
    ├─ID count
    ├─ID a
@@ -555,26 +672,23 @@ Invoke
          └─IntLiteral 1
 )");
 
-  // array(3).field
-  expectAST(
-      TokenArray(tok::ID("array"), tok::SquareL(), tok::Int(3), tok::SquareR(),
-                 tok::Operator(Op::Dot), tok::ID("field")),
-      R"(
+    // array(3).field
+  }
+  {
+    auto result = parse(TokenArray(tok::ID("array"), tok::SquareL(),
+                                   tok::Int(3), tok::SquareR(),
+                                   tok::Operator(Op::Dot), tok::ID("field")));
+    EXPECT_EQ(result, R"(
 Member
    ├─Subscript
    │  ├─ID array
    │  └─IntLiteral 3
    └─ID field
 )");
-
-  // obj.getArray()[idx+1].method(10)
-  expectAST(
-      TokenArray(tok::ID("obj"), tok::Operator(Op::Dot), tok::ID("getArray"),
-                 tok::ParenthesisL(), tok::ParenthesisR(), tok::SquareL(),
-                 tok::ID("idx"), tok::Operator(Op::Add), tok::Int(1),
-                 tok::SquareR(), tok::Operator(Op::Dot), tok::ID("method"),
-                 tok::ParenthesisL(), tok::Int(10), tok::ParenthesisR()),
-      R"(
+  }
+  {
+    auto result = parse(R"( obj.getArray()[idx+1].method(10) )");
+    EXPECT_EQ(result, R"(
 Invoke
    ├─Member
    │  ├─Subscript
@@ -588,15 +702,10 @@ Invoke
    │  └─ID method
    └─IntLiteral 10
 )");
-
-  // (foo(bar(1)).baz)[3]
-  expectAST(
-      TokenArray(tok::ParenthesisL(), tok::ID("foo"), tok::ParenthesisL(),
-                 tok::ID("bar"), tok::ParenthesisL(), tok::Int(1),
-                 tok::ParenthesisR(), tok::ParenthesisR(),
-                 tok::Operator(Op::Dot), tok::ID("baz"), tok::ParenthesisR(),
-                 tok::SquareL(), tok::Literal("3"), tok::SquareR()),
-      R"(
+  }
+  {
+    auto result = parse(R"( (foo(bar(1)).baz)["3"] )");
+    EXPECT_EQ(result, R"(
 Subscript
    ├─Parenthesis
    │  └─Member
@@ -608,67 +717,79 @@ Subscript
    │     └─ID baz
    └─StrLiteral 3
 )");
+  }
 }
 
 TEST_F(ExprParserTest, Spawn) {
-  expectAST(TokenArray("spawn function();"),
-            R"(
+  {
+    auto result = parse("spawn function();");
+    EXPECT_EQ(result, R"(
 spawn
    └─Invoke
       └─ID function
 )");
-  expectAST(TokenArray("spawn function(a, b);"),
-            R"(
+  }
+  {
+    auto result = parse("spawn function(a, b);");
+    EXPECT_EQ(result, R"(
 spawn
    └─Invoke
       ├─ID function
       ├─ID a
       └─ID b
 )");
+  }
 }
 
 TEST_F(ExprParserTest, Await) {
-  expectAST(TokenArray("await function();"),
-            R"(
+  {
+    auto result = parse("await function();");
+    EXPECT_EQ(result, R"(
 await
    └─Invoke
       └─ID function
 )");
-  expectAST(TokenArray("await f;"),
-            R"(
+  }
+  {
+    auto result = parse("await f;");
+    EXPECT_EQ(result, R"(
 await
    └─ID f
 )");
+  }
 }
 
 // -----------------------------------------------------------------------
 
 class StmtParserTest : public ::testing::Test {
  protected:
-  static std::shared_ptr<AST> parseStmt(std::span<Token> tokens) {
-    Parser parser(tokens);
-    std::shared_ptr<AST> result = parser.ParseStatement();
-    EXPECT_TRUE(parser.Ok()) << format_errors(parser.GetErrors());
-    EXPECT_NE(result, nullptr);
-    return result;
-  }
+  using ParserResult = ParserResultBase<AST>;
 
-  static void expectStmtAST(std::vector<Token> tokens,
-                            std::string expectedAST) {
-    auto stmt = parseStmt(tokens);
-    auto result = trim_cp(stmt->DumpAST());
-    trim(expectedAST);
-    EXPECT_EQ(result, expectedAST) << "expected:\n"
-                                   << expectedAST << '\n'
-                                   << "actual:\n"
-                                   << result;
+  static ParserResult parse(char const* s) {
+    auto sb = SourceBuffer::Create(std::string(s), "<test>");
+    ParserResult r;
+    r.src = sb;
+
+    std::vector<Token> tokens;
+    Tokenizer tokenizer(tokens);
+    tokenizer.Parse(sb);
+    if (!tokenizer.Ok()) {
+      r.errors = format_errors(tokenizer.GetErrors());
+      return r;
+    }
+
+    Parser parser(tokens);
+    r.ast = parser.ParseStatement();
+    if (!parser.Ok())
+      r.errors = format_errors(parser.GetErrors());
+    return r;
   }
 };
 
 TEST_F(StmtParserTest, Assignment) {
   {  // Basic variable assignment
-    expectStmtAST(TokenArray("v1 = 1 + 2 - 3;"),
-                  R"(
+    auto result = parse("v1 = 1 + 2 - 3;");
+    EXPECT_EQ(result, R"(
 Assign
    ├─ID v1
    └─Binaryop -
@@ -680,8 +801,8 @@ Assign
   }
 
   {  // Basic compound assignment
-    expectStmtAST(TokenArray("v1+=x+y-y%x;"),
-                  R"(
+    auto result = parse("v1+=x+y-y%x;");
+    EXPECT_EQ(result, R"(
 AugAssign +=
    ├─ID v1
    └─Binaryop -
@@ -695,11 +816,8 @@ AugAssign +=
   }
 
   {  // a >>>= b >>> c;
-    expectStmtAST(
-        TokenArray(tok::ID("a"), tok::Operator(Op::ShiftUnsignedRightAssign),
-                   tok::ID("b"), tok::Operator(Op::ShiftUnsignedRight),
-                   tok::ID("c"), tok::Semicol()),
-        R"(
+    auto result = parse(" a>>>=b>>>c; ");
+    EXPECT_EQ(result, R"(
 AugAssign >>>=
    ├─ID a
    └─Binaryop >>>
@@ -709,8 +827,8 @@ AugAssign >>>=
   }
 
   {
-    expectStmtAST(TokenArray("foo[boo] = x;"),
-                  R"(
+    auto result = parse("foo[boo] = x;");
+    EXPECT_EQ(result, R"(
 Assign
    ├─Subscript
    │  ├─ID foo
@@ -720,8 +838,8 @@ Assign
   }
 
   {
-    expectStmtAST(TokenArray("foo.boo = x;"),
-                  R"(
+    auto result = parse("foo.boo = x;");
+    EXPECT_EQ(result, R"(
 Assign
    ├─Member
    │  ├─ID foo
@@ -732,8 +850,8 @@ Assign
 }
 
 TEST_F(StmtParserTest, If) {
-  expectStmtAST(TokenArray("if(a) b; else c;"),
-                R"(
+  auto result = parse("if(a) b; else c;");
+  EXPECT_EQ(result, R"(
 If
    ├─cond
    │  └─ID a
@@ -745,8 +863,8 @@ If
 }
 
 TEST_F(StmtParserTest, While) {
-  expectStmtAST(TokenArray("while(i<10) i+=1;"),
-                R"(
+  auto result = parse("while(i<10) i+=1;");
+  EXPECT_EQ(result, R"(
 While
    ├─cond
    │  └─Binaryop <
@@ -760,8 +878,8 @@ While
 }
 
 TEST_F(StmtParserTest, For) {
-  expectStmtAST(TokenArray("for(i=0;i<10;i+=1) sum += i;"),
-                R"(
+  auto result = parse("for(i=0;i<10;i+=1) sum += i;");
+  EXPECT_EQ(result, R"(
 For
    ├─init
    │  └─Assign
@@ -783,7 +901,8 @@ For
 }
 
 TEST_F(StmtParserTest, Block) {
-  expectStmtAST(TokenArray("{i=1;j=2;k=3;l=4; {}}"), R"(
+  auto result = parse("{i=1;j=2;k=3;l=4; {}}");
+  EXPECT_EQ(result, R"(
 Compound
    ├─Assign
    │  ├─ID i
@@ -802,7 +921,9 @@ Compound
 }
 
 TEST_F(StmtParserTest, FunctionDecl) {
-  expectStmtAST(TokenArray("fn main(){ a=1; b=2; a+=b; }"), R"(
+  {
+    auto result = parse("fn main(){ a=1; b=2; a+=b; }");
+    EXPECT_EQ(result, R"(
 fn main()
    └─body
       └─Compound
@@ -816,16 +937,23 @@ fn main()
             ├─ID a
             └─ID b
 )");
+  }
 
-  expectStmtAST(TokenArray("fn bar(a, b=2, *args, **kwargs){}"), R"(
+  {
+    auto result = parse("fn bar(a, b=2, *args, **kwargs){}");
+    EXPECT_EQ(result, R"(
 fn bar(a,b,*args,**kwargs)
    ├─default b
    │  └─IntLiteral 2
    └─body
       └─Compound
 )");
+  }
 
-  expectStmtAST(TokenArray(R"( fn foo(a, b="def", c=1, d=[1,2]) {} )"), R"(
+  {
+    auto result = parse(R"( fn foo(a, b="def", c=1, d=[1,2]) {} )");
+
+    EXPECT_EQ(result, R"(
 fn foo(a,b,c,d)
    ├─default b
    │  └─StrLiteral def
@@ -838,8 +966,11 @@ fn foo(a,b,c,d)
    └─body
       └─Compound
 )");
+  }
 
-  expectStmtAST(TokenArray("fn kw_only(a, *args, b=1, c=3) {}"), R"(
+  {
+    auto result = parse("fn kw_only(a, *args, b=1, c=3) {}");
+    EXPECT_EQ(result, R"(
 fn kw_only(a,b,c,*args)
    ├─default b
    │  └─IntLiteral 1
@@ -848,12 +979,14 @@ fn kw_only(a,b,c,*args)
    └─body
       └─Compound
 )");
+  }
 }
 
 TEST_F(StmtParserTest, ClassDecl) {
-  expectStmtAST(
-      TokenArray("class Klass{ fn foo(){} fn boo(a,b,c){} fn moo(self,a){} }"),
-      R"(
+  auto result =
+      parse(R"( class Klass{ fn foo(){} fn boo(a,b,c){} fn moo(self,a){} } )");
+
+  EXPECT_EQ(result, R"(
 class Klass
    ├─fn moo(self,a)
    │  └─body
@@ -868,48 +1001,60 @@ class Klass
 }
 
 TEST_F(StmtParserTest, Return) {
-  expectStmtAST(TokenArray("return;"),
-                R"(
+  {
+    auto result = parse("return;");
+    EXPECT_EQ(result, R"(
 return
 )");
-  expectStmtAST(TokenArray("return a+b;"),
-                R"(
+  }
+  {
+    auto result = parse("return a+b;");
+    EXPECT_EQ(result, R"(
 return
    └─Binaryop +
       ├─ID a
       └─ID b
 )");
+  }
 }
 
 TEST_F(StmtParserTest, Yield) {
-  expectStmtAST(TokenArray("yield;"),
-                R"(
+  {
+    auto result = parse("yield;");
+    EXPECT_EQ(result, R"(
 yield
 )");
-  expectStmtAST(TokenArray("yield a+b;"),
-                R"(
+  }
+  {
+    auto result = parse("yield a+b;");
+    EXPECT_EQ(result, R"(
 yield
    └─Binaryop +
       ├─ID a
       └─ID b
 )");
+  }
 }
 
 TEST_F(StmtParserTest, Throw) {
-  expectStmtAST(TokenArray("throw;"),
-                R"(
+  {
+    auto result = parse("throw;");
+    EXPECT_EQ(result, R"(
 throw
 )");
-  expectStmtAST(TokenArray("throw err;"),
-                R"(
+  }
+  {
+    auto result = parse("throw err;");
+    EXPECT_EQ(result, R"(
 throw
    └─ID err
 )");
+  }
 }
 
 TEST_F(StmtParserTest, TryCatch) {
-  expectStmtAST(TokenArray("try{} catch(e){}"),
-                R"(
+  auto result = parse("try{} catch(e){}");
+  EXPECT_EQ(result, R"(
 try
    ├─try
    │  └─Compound
@@ -919,25 +1064,31 @@ try
 }
 
 TEST_F(StmtParserTest, Scope) {
-  expectStmtAST(TokenArray("global a, b;"),
-                R"(
+  auto result = parse("global a, b;");
+  EXPECT_EQ(result, R"(
 scope a,b
 )");
 }
 
 TEST_F(StmtParserTest, Import) {
-  expectStmtAST(TokenArray("import a;"),
-                R"(
+  {
+    auto result = parse("import a;");
+    EXPECT_EQ(result, R"(
 import a
 )");
-  expectStmtAST(TokenArray("import a as b;"),
-                R"(
+  }
+  {
+    auto result = parse("import a as b;");
+    EXPECT_EQ(result, R"(
 import a as b
 )");
-  expectStmtAST(TokenArray("from a import b as c, d as e, f as g;"),
-                R"(
+  }
+  {
+    auto result = parse("from a import b as c, d as e, f as g;");
+    EXPECT_EQ(result, R"(
 from a import b as c,d as e,f as g
 )");
+  }
 }
 
 }  // namespace m6test
