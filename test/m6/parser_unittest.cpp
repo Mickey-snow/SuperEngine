@@ -44,7 +44,7 @@ inline static auto format_errors(T&& errors) {
                         std::views::transform([](const Error& e) {
                           std::string result = e.msg;
                           if (e.loc)
-                            result += static_cast<std::string>(*e.loc);
+                            result += e.loc->GetDebugString();
                           return result;
                         }));
 }
@@ -851,8 +851,9 @@ fn kw_only(a,b,c,*args)
 }
 
 TEST_F(StmtParserTest, ClassDecl) {
-  expectStmtAST(TokenArray("class Klass{ fn foo(){} fn boo(a,b,c){} fn moo(self,a){} }"),
-                R"(
+  expectStmtAST(
+      TokenArray("class Klass{ fn foo(){} fn boo(a,b,c){} fn moo(self,a){} }"),
+      R"(
 class Klass
    ├─fn moo(self,a)
    │  └─body

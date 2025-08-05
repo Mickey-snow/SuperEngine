@@ -40,12 +40,15 @@ class SourceBuffer : public std::enable_shared_from_this<SourceBuffer> {
   static std::shared_ptr<SourceBuffer> Create(std::string src,
                                               std::string file);
 
+  inline std::size_t Size() const { return src_.size(); }
+
   std::tuple<size_t, size_t> GetLineColumn(size_t offset) const;
   std::string_view GetLine(size_t idx) const;
 
-  std::string GetStr() const;
+  std::string GetStr(size_t begin = 0, size_t end = std::string::npos) const;
   std::string GetFile() const;
-  std::string_view GetView() const;
+  std::string_view GetView(size_t begin = 0,
+                           size_t end = std::string::npos) const;
 
   SourceLocation GetReference(size_t begin, size_t end);
   SourceLocation GetReferenceAt(size_t pos);

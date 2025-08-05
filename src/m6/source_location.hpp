@@ -42,14 +42,10 @@ class SourceLocation {
                           size_t end = 0,
                           std::shared_ptr<SourceBuffer> src = nullptr);
 
-  [[deprecated]]
-  static SourceLocation After(Token* tok);
   SourceLocation After() const;
-  [[deprecated]]
-  static SourceLocation Range(Token* begin, Token* end);
   SourceLocation Combine(const SourceLocation& end) const;
 
-  explicit operator std::string() const;
+  std::string GetDebugString() const;
 };
 
 }  // namespace m6

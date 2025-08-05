@@ -43,15 +43,15 @@ ErrorFormatter& ErrorFormatter::Pushline(const std::string& msg) {
 ErrorFormatter& ErrorFormatter::Highlight(const SourceLocation& loc,
                                           const std::string& msg) {
   const auto sb = loc.src;
-  const std::string_view src_view = sb->GetView();
+  const std::size_t size = sb->Size();
 
   auto begin = loc.begin_offset;
   auto end = loc.end_offset;
 
-  if (begin > src_view.size())
-    begin = src_view.size();
-  if (end > src_view.size())
-    end = src_view.size();
+  if (begin > size)
+    begin = size;
+  if (end > size)
+    end = size;
 
   // Are we highlighting an insertion point rather than a range?
   const bool isInsertion = (begin == end);
