@@ -52,6 +52,10 @@ sr::VM VMFactory::Create(std::shared_ptr<sr::GarbageCollector> gc,
   sb::module_ m(vm.gc_.get(), vm.builtins_);
   m.def("time", &Time);
 
+  m.def("__repl_print__", [&stdout](sr::Value result) {
+    if (result.Type() != sr::ObjType::Nil)
+      stdout << result.Str() << std::endl;
+  });
   m.def(
       "print",
       [&stdout](std::string sep, std::string end, bool do_flush,

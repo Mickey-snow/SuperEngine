@@ -35,6 +35,8 @@ namespace m6 {
 
 namespace sr = serilang;
 
+static constexpr std::string_view kReplPrintName = "__repl_print__";
+
 // Constructor / Destructor
 CodeGenerator::CodeGenerator(std::shared_ptr<serilang::GarbageCollector> gc,
                              bool repl)
@@ -50,7 +52,7 @@ CodeGenerator::CodeGenerator(std::shared_ptr<serilang::GarbageCollector> gc,
     emit(sr::Jump{0});
 
     auto catch_start = code_size();
-    emit(sr::LoadGlobal{intern_name("print")});
+    emit(sr::LoadGlobal{intern_name(kReplPrintName)});
     emit(sr::Swap{});
     emit(sr::Call{1, 0});
     emit(sr::Return{});
@@ -509,7 +511,7 @@ void CodeGenerator::emit_stmt_node(const ImportStmt& is) {
 
 void CodeGenerator::emit_stmt_node(const std::shared_ptr<ExprAST>& s) {
   if (repl_mode_) {
-    emit(sr::LoadGlobal{intern_name("print")});
+    emit(sr::LoadGlobal{intern_name(kReplPrintName)});
     emit_expr(s);
     emit(sr::Call{1, 0});
   } else {

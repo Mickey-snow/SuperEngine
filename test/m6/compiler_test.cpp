@@ -581,6 +581,19 @@ print(result);
   }
 }
 
+TEST_F(CompilerTest, InterpretPrint) {
+  {
+    auto res = Interpret({"fn foo(x){ if(x==1) return nil; }", "foo(0);",
+                          "print(foo(0));", "foo(1);", "print(foo(1));"});
+    EXPECT_EQ(res, "nil\nnil\n");
+  }
+
+  {
+    auto res = Interpret({"1;", "nil;"});
+    EXPECT_EQ(res, "1\n");
+  }
+}
+
 // ==============================================================================
 // Unhandled errors in repl mode
 TEST_F(CompilerTest, UnhandledThrow) {

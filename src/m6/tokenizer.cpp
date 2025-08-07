@@ -54,7 +54,8 @@ static const std::vector<std::string> OPERATORS = {
     "%",    "~",   "&",   "|",  "^",   "<",   ">",  ",",  "."};
 
 static const std::unordered_map<std::string, tok::Token_t>
-    RESERVED_KEYWORD_TOKEN = {{"if", tok::Reserved(tok::Reserved::_if)},
+    RESERVED_KEYWORD_TOKEN = {{"nil", tok::Reserved(tok::Reserved::_nil)},
+                              {"if", tok::Reserved(tok::Reserved::_if)},
                               {"else", tok::Reserved(tok::Reserved::_else)},
                               {"while", tok::Reserved(tok::Reserved::_while)},
                               {"for", tok::Reserved(tok::Reserved::_for)},

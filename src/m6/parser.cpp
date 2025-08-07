@@ -485,7 +485,10 @@ std::shared_ptr<AST> Parser::parseFuncDecl(bool consumedfn) {
   if (!consumedfn)
     require<tok::Reserved>("expected fn", tok::Reserved::_fn);
   auto nameTok = it_;
-  require<tok::ID>("expected identifier");
+  if (!require<tok::ID>("expected identifier")) {
+    Synchronize();
+    return nullptr;
+  }
 
   FuncDecl fn;
   fn.name = nameTok->GetIf<tok::ID>()->id;
@@ -919,6 +922,15 @@ std::shared_ptr<ExprAST> Parser::parsePrimary() {
   if (it_ == end_) {
     AddError("expected primary expression", it_);
     return nullptr;
+  }
+
+  // nil literal
+  // --------------------------------------------------------------
+  if (auto s = it_->template GetIf<tok::Reserved>();
+      s && s->type == tok::Reserved::Type::_nil) {
+    auto node = NilLiteral(it_->loc_);
+    ++it_;
+    return std::make_shared<ExprAST>(std::move(node));
   }
   // int literal
   // --------------------------------------------------------------
