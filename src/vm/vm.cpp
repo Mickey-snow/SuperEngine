@@ -496,32 +496,15 @@ void VM::ExecuteFiber(Fiber* fib) {
         const auto ins = chunk->Read<serilang::GetItem>(ip);
         ip += sizeof(ins);
 
-        Value index = pop(fib->stack);
-        Value receiver = pop(fib->stack);
-        TempValue result = nil;
-        try {
-          result = receiver.Item(index);
-        } catch (RuntimeError& e) {
-          push(fib->stack, nil);
-          Error(*fib, e.message());
-          return;
-        }
-
-        push(fib->stack, gc_->TrackValue(std::move(result)));
+        Value& receiver = fib->stack.end()[-2];
+        receiver.GetItem(*this, *fib);
       } break;
       case OpCode::SetItem: {
         const auto ins = chunk->Read<serilang::SetItem>(ip);
         ip += sizeof(ins);
 
-        Value val = pop(fib->stack);
-        Value index = pop(fib->stack);
-        Value receiver = pop(fib->stack);
-        try {
-          receiver.SetItem(index, std::move(val));
-        } catch (RuntimeError& e) {
-          Error(*fib, e.message());
-          return;
-        }
+        Value& receiver = fib->stack.end()[-3];
+        receiver.SetItem(*this, *fib);
       } break;
 
       //------------------------------------------------------------------

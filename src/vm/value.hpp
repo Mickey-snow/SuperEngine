@@ -63,8 +63,8 @@ class Value {
   TempValue Operator(Op op);
 
   void Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs);
-  TempValue Item(Value& idx);
-  void SetItem(Value& idx, Value value);
+  void GetItem(VM& vm, Fiber& f);
+  void SetItem(VM& vm, Fiber& f);
   TempValue Member(std::string_view mem);
   void SetMember(std::string_view mem, Value value);
 

@@ -112,6 +112,35 @@ void Instance::SetMember(std::string_view mem, Value val) {
   fields[std::string(mem)] = std::move(val);
 }
 
+void Instance::GetItem(VM& vm, Fiber& f) {
+  // (..., inst, idx)
+
+  Value& idx = f.stack.end()[-1];
+  auto it = klass->memfns.find("__getitem__");
+  if (it == klass->memfns.end()) {
+    vm.Error(f, std::format("'{}' object has no item '{}'", Desc(), idx.Str()));
+    return;
+  }
+
+  f.stack.insert(f.stack.end() - 2, Value(it->second));
+  it->second->Call(vm, f, 2, 0);
+  // (..., __getitem__, inst, idx) -> (..., result)
+}
+
+void Instance::SetItem(VM& vm, Fiber& f) {
+  // (..., inst, idx, val)
+  auto it = klass->memfns.find("__setitem__");
+  if (it == klass->memfns.end()) {
+    vm.Error(
+        f, std::format("'{}' object does not support item assignment", Desc()));
+    return;
+  }
+
+  f.stack.insert(f.stack.end() - 3, Value(it->second));
+  it->second->Call(vm, f, 3, 0);
+  // (..., __setitem__, inst, idx, val) -> (...)
+}
+
 // -----------------------------------------------------------------------
 void NativeClass::MarkRoots(GCVisitor& visitor) {
   for (auto& [k, it] : methods)
@@ -263,25 +292,40 @@ void List::MarkRoots(GCVisitor& visitor) {
     visitor.MarkSub(it);
 }
 
-TempValue List::Item(Value& idx) {
+void List::GetItem(VM& vm, Fiber& f) {
+  Value idx = std::move(f.stack.back());
+  f.stack.pop_back();
+
   auto* index_ptr = idx.Get_if<int>();
-  if (!index_ptr)
-    throw RuntimeError("list index must be integer, but got: " + idx.Desc());
+  if (!index_ptr) {
+    vm.Error(f, "list index must be integer, but got: " + idx.Desc());
+    return;
+  }
 
   int index = *index_ptr < 0 ? items.size() + *index_ptr : *index_ptr;
-  if (index < 0 || index >= items.size())
-    throw RuntimeError("list index '" + idx.Str() + "' out of range");
-  return items[index];
+  if (index < 0 || index >= items.size()) {
+    vm.Error(f, "list index '" + idx.Str() + "' out of range");
+    return;
+  }
+
+  f.stack.back() = items[index];
 }
 
-void List::SetItem(Value& idx, Value val) {
+void List::SetItem(VM& vm, Fiber& f) {
+  Value idx = std::move(f.stack.end()[-2]), val = std::move(f.stack.end()[-1]);
+  f.stack.resize(f.stack.size() - 3);  // (list, idx, val)
+
   auto* index_ptr = idx.Get_if<int>();
-  if (!index_ptr)
-    throw RuntimeError("list index must be integer, but got: " + idx.Desc());
+  if (!index_ptr) {
+    vm.Error(f, "list index must be integer, but got: " + idx.Desc());
+    return;
+  }
 
   int index = *index_ptr < 0 ? items.size() + *index_ptr : *index_ptr;
-  if (index < 0 || index >= items.size())
-    throw RuntimeError("list index '" + idx.Str() + "' out of range");
+  if (index < 0 || index >= items.size()) {
+    vm.Error(f, "list index '" + idx.Str() + "' out of range");
+    return;
+  }
 
   items[index] = std::move(val);
 }
@@ -307,22 +351,33 @@ void Dict::MarkRoots(GCVisitor& visitor) {
     visitor.MarkSub(it);
 }
 
-TempValue Dict::Item(Value& idx) {
+void Dict::GetItem(VM& vm, Fiber& f) {
+  Value idx = std::move(f.stack.back());
+  f.stack.pop_back();
   auto* index = idx.Get_if<std::string>();
-  if (!index)
-    throw RuntimeError("dictionary index must be string, but got: " +
-                       idx.Desc());
+  if (!index) {
+    vm.Error(f, "dictionary index must be string, but got: " + idx.Desc());
+    return;
+  }
+
   auto it = map.find(*index);
-  if (it == map.cend())
-    throw RuntimeError("dictionary has no key: " + idx.Str());
-  return it->second;
+  if (it == map.cend()) {
+    vm.Error(f, "dictionary has no key: " + idx.Str());
+    return;
+  }
+
+  f.stack.back() = it->second;
 }
 
-void Dict::SetItem(Value& idx, Value val) {
+void Dict::SetItem(VM& vm, Fiber& f) {
+  Value idx = std::move(f.stack.end()[-2]), val = std::move(f.stack.end()[-1]);
+  f.stack.resize(f.stack.size() - 3);  // (dict, idx, val)
   auto* index = idx.Get_if<std::string>();
-  if (!index)
-    throw RuntimeError("dictionary index must be string, but got: " +
-                       idx.Desc());
+  if (!index) {
+    vm.Error(f, "dictionary index must be string, but got: " + idx.Desc());
+    return;
+  }
+
   map[*index] = std::move(val);
 }
 
@@ -480,10 +535,14 @@ void NativeFunction::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
 
 // -----------------------------------------------------------------------
 BoundMethod::BoundMethod(Value recv, Value fn)
-    : receiver(std::move(recv)), method(std::move(fn)) {}
+    : BoundMethod(std::move(fn), std::vector<Value>{std::move(recv)}) {}
+
+BoundMethod::BoundMethod(Value fn, std::vector<Value> add_args)
+    : additional_args(std::move(add_args)), method(std::move(fn)) {}
 
 void BoundMethod::MarkRoots(GCVisitor& visitor) {
-  visitor.MarkSub(receiver);
+  for (Value& it : additional_args)
+    visitor.MarkSub(it);
   visitor.MarkSub(method);
 }
 
@@ -494,8 +553,9 @@ std::string BoundMethod::Desc() const { return "<bound method>"; }
 void BoundMethod::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
   size_t base = f.stack.size() - nargs - 2 * nkwargs - 1;
   f.stack[base] = method;
-  f.stack.insert(f.stack.begin() + base + 1, receiver);
-  method.Call(vm, f, nargs + 1, nkwargs);
+  f.stack.insert(f.stack.begin() + base + 1, additional_args.cbegin(),
+                 additional_args.cend());
+  method.Call(vm, f, nargs + additional_args.size(), nkwargs);
 }
 
 }  // namespace serilang

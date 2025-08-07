@@ -23,9 +23,9 @@
 // -----------------------------------------------------------------------
 
 #include "vm/iobject.hpp"
+#include "vm/exception.hpp"
 #include "vm/value.hpp"
-
-#include <stdexcept>
+#include "vm/vm.hpp"
 
 namespace serilang {
 
@@ -33,16 +33,15 @@ std::string IObject::Str() const { return "<str: ?>"; }
 std::string IObject::Desc() const { return "<desc: ?>"; }
 
 void IObject::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
-  throw RuntimeError('\'' + Desc() + "' object is not callable.");
+  vm.Error(f, '\'' + Desc() + "' object is not callable.");
 }
 
-TempValue IObject::Item(Value& idx) {
-  throw RuntimeError('\'' + Desc() + "' object is not subscriptable.");
+void IObject::GetItem(VM& vm, Fiber& f) {
+  vm.Error(f, '\'' + Desc() + "' object is not subscriptable.");
 }
 
-void IObject::SetItem(Value& idx, Value value) {
-  throw RuntimeError('\'' + Desc() +
-                     "' object does not support item assignment.");
+void IObject::SetItem(VM& vm, Fiber& f) {
+  vm.Error(f, '\'' + Desc() + "' object does not support item assignment.");
 }
 
 TempValue IObject::Member(std::string_view mem) {

@@ -49,8 +49,8 @@ class IObject {
   virtual std::string Desc() const;
 
   virtual void Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs);
-  virtual TempValue Item(Value& idx);
-  virtual void SetItem(Value& idx, Value value);
+  virtual void GetItem(VM& vm, Fiber& f);
+  virtual void SetItem(VM& vm, Fiber& f);
   virtual TempValue Member(std::string_view mem);
   virtual void SetMember(std::string_view mem, Value value);
 };

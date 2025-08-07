@@ -89,10 +89,13 @@ class SrbindTest : public ::testing::Test {
     TempValue tval = receiver->Member(item);
     return gc->TrackValue(std::move(tval));
   }
-  Value GetItem(IObject* receiver, char const* item) {
-    Value item_v(item);
-    TempValue tval = receiver->Item(item_v);
-    return gc->TrackValue(std::move(tval));
+  Value GetItem(serilang::Dict* dict, char const* item) {
+    auto it = dict->map.find(item);
+    if (it == dict->map.end()) {
+      ADD_FAILURE() << dict->Desc() << " has no item " << item;
+      return nil;
+    }
+    return it->second;
   }
 
   template <typename T>

@@ -398,6 +398,30 @@ catch(e){ print(e); }
   }
 }
 
+TEST_F(CompilerTest, ClassOperators) {
+  auto res = Run(R"(
+class A{
+  fn __init__(self){ self.x = 1; self.y = 2; }
+  fn __getitem__(self, key){
+    if(key == "x") return self.x;
+    else if(key == "y") return self.y;
+    else return nil;
+  }
+  fn __setitem__(self, key, val){
+    if(key == "x") self.x = val;
+    else if(key == "y") self.y = val;
+    else return nil;
+  }
+}
+
+a = A();
+a["x"] = 5; a["y"] = 6;
+print("x = ", a["x"], ", y = ", a["y"], sep="", end="");
+)");
+
+  EXPECT_EQ(res, "x = 5, y = 6");
+}
+
 TEST_F(CompilerTest, Coroutine) {
   {
     auto res = Run(R"(

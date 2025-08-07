@@ -127,6 +127,8 @@ struct Instance : public IObject {
 
   TempValue Member(std::string_view mem) override;
   void SetMember(std::string_view mem, Value val) override;
+  void GetItem(VM& vm, Fiber& f) override;
+  void SetItem(VM& vm, Fiber& f) override;
 };
 
 struct NativeClass : public IObject {
@@ -226,8 +228,8 @@ struct List : public IObject {
   std::string Str() const override;   // “[1, 2, 3]”
   std::string Desc() const override;  // “<list[3]>”
 
-  TempValue Item(Value& idx) override;
-  void SetItem(Value& idx, Value val) override;
+  void GetItem(VM& vm, Fiber& f) override;
+  void SetItem(VM& vm, Fiber& f) override;
 };
 
 struct Dict : public IObject {
@@ -245,8 +247,8 @@ struct Dict : public IObject {
   std::string Str() const override;   // “{a: 1, b: 2}”
   std::string Desc() const override;  // “<dict{2}>”
 
-  TempValue Item(Value& idx) override;
-  void SetItem(Value& idx, Value val) override;
+  void GetItem(VM& vm, Fiber& f) override;
+  void SetItem(VM& vm, Fiber& f) override;
 };
 
 struct Module : public IObject {
@@ -329,10 +331,11 @@ class NativeFunction : public IObject {
 struct BoundMethod : public IObject {
   static constexpr inline ObjType objtype = ObjType::BoundMethod;
 
-  Value receiver;
+  std::vector<Value> additional_args;
   Value method;
 
-  BoundMethod(Value recv, Value fn);
+  BoundMethod(Value receiver, Value fn);
+  BoundMethod(Value fn, std::vector<Value> add_args);
 
   constexpr ObjType Type() const noexcept final { return objtype; }
   constexpr size_t Size() const noexcept final { return sizeof(*this); }

@@ -27,8 +27,10 @@
 #include "utilities/string_utilities.hpp"
 #include "vm/iobject.hpp"
 #include "vm/object.hpp"
+#include "vm/vm.hpp"
 
 #include <cmath>
+#include <format>
 
 namespace serilang {
 
@@ -454,25 +456,7 @@ void Value::SetMember(std::string_view mem, Value value) {
       val_);
 }
 
-TempValue Value::Item(Value& idx) {
-  return std::visit(
-      [&](auto& x) -> TempValue {
-        using T = std::decay_t<decltype(x)>;
-
-        if constexpr (false)
-          ;
-
-        else if constexpr (std::same_as<T, IObject*>)
-          return x->Item(idx);
-
-        else
-          throw RuntimeError('\'' + Desc() + "' object has no item '" +
-                             idx.Str() + '\'');
-      },
-      val_);
-}
-
-void Value::SetItem(Value& idx, Value value) {
+void Value::GetItem(VM& vm, Fiber& f) {
   std::visit(
       [&](auto& x) {
         using T = std::decay_t<decltype(x)>;
@@ -481,11 +465,30 @@ void Value::SetItem(Value& idx, Value value) {
           ;
 
         else if constexpr (std::same_as<T, IObject*>)
-          x->SetItem(idx, std::move(value));
+          x->GetItem(vm, f);
 
         else
-          throw RuntimeError('\'' + Desc() +
-                             "' object does not support item assignment.");
+          vm.Error(f, std::format("'{}' object has no item '{}'", Desc(),
+                                  f.stack.back().Str()));
+      },
+      val_);
+}
+
+void Value::SetItem(VM& vm, Fiber& f) {
+  std::visit(
+      [&](auto& x) {
+        using T = std::decay_t<decltype(x)>;
+
+        if constexpr (false)
+          ;
+
+        else if constexpr (std::same_as<T, IObject*>)
+          x->SetItem(vm, f);
+
+        else
+          vm.Error(f,
+                   std::format("'{}' object does not support item assignment.",
+                               Desc()));
       },
       val_);
 }
