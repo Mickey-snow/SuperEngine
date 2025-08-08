@@ -156,10 +156,10 @@ using ObjectPropertyType = TypeList<bool,                // IsVisible
                                     int,                 // OriginY
                                     int,                 // RepetitionOriginX
                                     int,                 // RepetitionOriginY
-                                    int,                 // WidthPercent
-                                    int,                 // HeightPercent
-                                    int,  // HighQualityWidthPercent
-                                    int,  // HighQualityHeightPercent
+                                    int,                 // ScaleXPercent
+                                    int,                 // ScaleYPercent
+                                    int,  // HighQualityScaleXPercent
+                                    int,  // HighQualityScaleYPercent
                                     int,  // RotationDiv10
                                     int,  // PatternNumber
                                     int,  // AlphaSource
@@ -195,10 +195,10 @@ enum class ObjectProperty {
   OriginY,
   RepetitionOriginX,
   RepetitionOriginY,
-  WidthPercent,
-  HeightPercent,
-  HighQualityWidthPercent,
-  HighQualityHeightPercent,
+  ScaleXPercent,
+  ScaleYPercent,
+  HighQualityScaleXPercent,
+  HighQualityScaleYPercent,
   RotationDiv10,
   PatternNumber,
   AlphaSource,

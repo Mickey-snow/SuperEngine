@@ -41,10 +41,10 @@ TEST(ParameterManagerTest, DefaultInit) {
   EXPECT_EQ(default_param.origin_y(), 0);
   EXPECT_EQ(default_param.rep_origin_x(), 0);
   EXPECT_EQ(default_param.rep_origin_y(), 0);
-  EXPECT_EQ(default_param.width(), 100);
-  EXPECT_EQ(default_param.height(), 100);
-  EXPECT_EQ(default_param.hq_width(), 1000);
-  EXPECT_EQ(default_param.hq_height(), 1000);
+  EXPECT_EQ(default_param.ScaleX(), 100);
+  EXPECT_EQ(default_param.ScaleY(), 100);
+  EXPECT_EQ(default_param.HqScaleX(), 1000);
+  EXPECT_EQ(default_param.HqScaleY(), 1000);
   EXPECT_EQ(default_param.rotation(), 0);
   EXPECT_EQ(default_param.GetPattNo(), 0);
   EXPECT_EQ(default_param.mono(), 0);
@@ -102,17 +102,17 @@ TEST(ParamManagerTest, SetGetBasicProperties) {
   EXPECT_EQ(manager.Get<ObjectProperty::RepetitionOriginX>(), 15);
   EXPECT_EQ(manager.Get<ObjectProperty::RepetitionOriginY>(), 20);
 
-  // WidthPercent and HeightPercent
-  manager.Set(ObjectProperty::WidthPercent, 80);
-  manager.Set(ObjectProperty::HeightPercent, 90);
-  EXPECT_EQ(manager.Get<ObjectProperty::WidthPercent>(), 80);
-  EXPECT_EQ(manager.Get<ObjectProperty::HeightPercent>(), 90);
+  // ScaleXPercent and ScaleYPercent
+  manager.Set(ObjectProperty::ScaleXPercent, 80);
+  manager.Set(ObjectProperty::ScaleYPercent, 90);
+  EXPECT_EQ(manager.Get<ObjectProperty::ScaleXPercent>(), 80);
+  EXPECT_EQ(manager.Get<ObjectProperty::ScaleYPercent>(), 90);
 
-  // HighQualityWidthPercent and HighQualityHeightPercent
-  manager.Set(ObjectProperty::HighQualityWidthPercent, 800);
-  manager.Set(ObjectProperty::HighQualityHeightPercent, 900);
-  EXPECT_EQ(manager.Get<ObjectProperty::HighQualityWidthPercent>(), 800);
-  EXPECT_EQ(manager.Get<ObjectProperty::HighQualityHeightPercent>(), 900);
+  // HighQualityScaleXPercent and HighQualityScaleYPercent
+  manager.Set(ObjectProperty::HighQualityScaleXPercent, 800);
+  manager.Set(ObjectProperty::HighQualityScaleYPercent, 900);
+  EXPECT_EQ(manager.Get<ObjectProperty::HighQualityScaleXPercent>(), 800);
+  EXPECT_EQ(manager.Get<ObjectProperty::HighQualityScaleYPercent>(), 900);
 
   // RotationDiv10
   manager.Set(ObjectProperty::RotationDiv10, 45);

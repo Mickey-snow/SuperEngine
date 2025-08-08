@@ -69,7 +69,7 @@ class GraphicsObject;
  * - **Transformations:**
  *   - **Origin Points:** `OriginX`, `OriginY`
  *   - **Repetition Origins:** `RepetitionOriginX`, `RepetitionOriginY`
- *   - **Scaling:** `WidthPercent`, `HeightPercent`
+ *   - **Scaling:** `ScaleXPercent`, `ScaleYPercent`
  *   - **Rotation:** `RotationDiv10`
  * - **Others:** Display order (`ZOrder`, `ZLayer`, `ZDepth`), etc.
  */

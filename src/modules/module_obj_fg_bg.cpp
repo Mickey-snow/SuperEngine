@@ -547,16 +547,16 @@ void addUnifiedFunctions(ObjectModule& h) {
 
   // --
   h.AddDoubleObjectCommands(46, "Scale",
-                            CreateGetter<ObjectProperty::WidthPercent>(),
-                            CreateSetter<ObjectProperty::WidthPercent>(),
-                            CreateGetter<ObjectProperty::HeightPercent>(),
-                            CreateSetter<ObjectProperty::HeightPercent>());
+                            CreateGetter<ObjectProperty::ScaleXPercent>(),
+                            CreateSetter<ObjectProperty::ScaleXPercent>(),
+                            CreateGetter<ObjectProperty::ScaleYPercent>(),
+                            CreateSetter<ObjectProperty::ScaleYPercent>());
   h.AddSingleObjectCommands(47, "Width",
-                            CreateGetter<ObjectProperty::WidthPercent>(),
-                            CreateSetter<ObjectProperty::WidthPercent>());
+                            CreateGetter<ObjectProperty::ScaleXPercent>(),
+                            CreateSetter<ObjectProperty::ScaleXPercent>());
   h.AddSingleObjectCommands(48, "Height",
-                            CreateGetter<ObjectProperty::HeightPercent>(),
-                            CreateSetter<ObjectProperty::HeightPercent>());
+                            CreateGetter<ObjectProperty::ScaleYPercent>(),
+                            CreateSetter<ObjectProperty::ScaleYPercent>());
   h.AddSingleObjectCommands(49, "Rotate",
                             CreateGetter<ObjectProperty::RotationDiv10>(),
                             CreateSetter<ObjectProperty::RotationDiv10>());
@@ -586,16 +586,16 @@ void addUnifiedFunctions(ObjectModule& h) {
   // ---
 
   h.AddDoubleObjectCommands(
-      61, "HqScale", CreateGetter<ObjectProperty::HighQualityWidthPercent>(),
-      CreateSetter<ObjectProperty::HighQualityWidthPercent>(),
-      CreateGetter<ObjectProperty::HighQualityHeightPercent>(),
-      CreateSetter<ObjectProperty::HighQualityHeightPercent>());
+      61, "HqScale", CreateGetter<ObjectProperty::HighQualityScaleXPercent>(),
+      CreateSetter<ObjectProperty::HighQualityScaleXPercent>(),
+      CreateGetter<ObjectProperty::HighQualityScaleYPercent>(),
+      CreateSetter<ObjectProperty::HighQualityScaleYPercent>());
   h.AddSingleObjectCommands(
-      62, "HqWidth", CreateGetter<ObjectProperty::HighQualityWidthPercent>(),
-      CreateSetter<ObjectProperty::HighQualityWidthPercent>());
+      62, "HqWidth", CreateGetter<ObjectProperty::HighQualityScaleXPercent>(),
+      CreateSetter<ObjectProperty::HighQualityScaleXPercent>());
   h.AddSingleObjectCommands(
-      63, "HqHeight", CreateGetter<ObjectProperty::HighQualityHeightPercent>(),
-      CreateSetter<ObjectProperty::HighQualityHeightPercent>());
+      63, "HqHeight", CreateGetter<ObjectProperty::HighQualityScaleYPercent>(),
+      CreateSetter<ObjectProperty::HighQualityScaleYPercent>());
 }
 
 void addObjectFunctions(RLModule& m) {

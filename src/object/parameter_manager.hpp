@@ -126,33 +126,32 @@ class ParameterManager {
   int rep_origin_y() const { return Get<ObjectProperty::RepetitionOriginY>(); }
   void SetRepOriginY(int in) { Set(ObjectProperty::RepetitionOriginY, in); }
 
-  // Note: width/height are object scale percentages.
-  int width() const { return Get<ObjectProperty::WidthPercent>(); }
-  void SetWidth(const int in) { Set(ObjectProperty::WidthPercent, in); }
-  int height() const { return Get<ObjectProperty::HeightPercent>(); }
-  void SetHeight(const int in) { Set(ObjectProperty::HeightPercent, in); }
+  int ScaleX() const { return Get<ObjectProperty::ScaleXPercent>(); }
+  void SetScaleX(const int in) { Set(ObjectProperty::ScaleXPercent, in); }
+  int ScaleY() const { return Get<ObjectProperty::ScaleYPercent>(); }
+  void SetScaleY(const int in) { Set(ObjectProperty::ScaleYPercent, in); }
 
-  // Note: width/height are object scale factors out of 1000.
-  int hq_width() const {
-    return Get<ObjectProperty::HighQualityWidthPercent>();
+  // Note: hq scales are object scale factors out of 1000.
+  int HqScaleX() const {
+    return Get<ObjectProperty::HighQualityScaleXPercent>();
   }
-  void SetHqWidth(const int in) {
-    Set(ObjectProperty::HighQualityWidthPercent, in);
+  void SetHqScaleX(const int in) {
+    Set(ObjectProperty::HighQualityScaleXPercent, in);
   }
-  int hq_height() const {
-    return Get<ObjectProperty::HighQualityHeightPercent>();
+  int HqScaleY() const {
+    return Get<ObjectProperty::HighQualityScaleYPercent>();
   }
-  void SetHqHeight(const int in) {
-    Set(ObjectProperty::HighQualityHeightPercent, in);
+  void SetHqScaleY(const int in) {
+    Set(ObjectProperty::HighQualityScaleYPercent, in);
   }
 
   float GetWidthScaleFactor() const {
-    return (static_cast<float>(width()) / 100.0f) *
-           (static_cast<float>(hq_width()) / 1000.0f);
+    return (static_cast<float>(ScaleX()) / 100.0f) *
+           (static_cast<float>(HqScaleX()) / 1000.0f);
   }
   float GetHeightScaleFactor() const {
-    return (static_cast<float>(height()) / 100.0f) *
-           (static_cast<float>(hq_height()) / 1000.0f);
+    return (static_cast<float>(ScaleY()) / 100.0f) *
+           (static_cast<float>(HqScaleY()) / 1000.0f);
   }
 
   int rotation() const { return Get<ObjectProperty::RotationDiv10>(); }

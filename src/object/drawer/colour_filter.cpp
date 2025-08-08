@@ -50,7 +50,7 @@ ColourFilterObjectData::~ColourFilterObjectData() {}
 void ColourFilterObjectData::Render(const GraphicsObject& go,
                                     const GraphicsObject* parent) {
   auto& param = go.Param();
-  if (param.width() != 100 || param.height() != 100) {
+  if (param.ScaleX() != 100 || param.ScaleY() != 100) {
     static bool printed = false;
     if (!printed) {
       printed = true;

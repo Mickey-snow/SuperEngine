@@ -45,10 +45,10 @@ static const Scapegoat init_param = []() -> Scapegoat {
                            ObjectProperty::TOTAL_COUNT)>{});
 
   result.Set(static_cast<int>(ObjectProperty::AlphaSource), 255);
-  result.Set(static_cast<int>(ObjectProperty::HeightPercent), 100);
-  result.Set(static_cast<int>(ObjectProperty::WidthPercent), 100);
-  result.Set(static_cast<int>(ObjectProperty::HighQualityWidthPercent), 1000);
-  result.Set(static_cast<int>(ObjectProperty::HighQualityHeightPercent), 1000);
+  result.Set(static_cast<int>(ObjectProperty::ScaleYPercent), 100);
+  result.Set(static_cast<int>(ObjectProperty::ScaleXPercent), 100);
+  result.Set(static_cast<int>(ObjectProperty::HighQualityScaleXPercent), 1000);
+  result.Set(static_cast<int>(ObjectProperty::HighQualityScaleYPercent), 1000);
   result.Set(static_cast<int>(ObjectProperty::ClippingRegion), EMPTY_RECT);
   result.Set(static_cast<int>(ObjectProperty::OwnSpaceClippingRegion),
              EMPTY_RECT);
