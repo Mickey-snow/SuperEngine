@@ -25,6 +25,7 @@
 
 #include <cstddef>
 #include <functional>
+#include <memory>
 #include <type_traits>
 
 // -----------------------------------------------------------------------
@@ -32,6 +33,19 @@
 // -----------------------------------------------------------------------
 template <typename>
 inline constexpr bool always_false = false;
+
+// -----------------------------------------------------------------------
+// unique_ptr detection
+// -----------------------------------------------------------------------
+template <class T>
+struct is_unique_ptr : std::false_type {};
+template <class U, class D>
+struct is_unique_ptr<std::unique_ptr<U, D>> : std::true_type {
+  using element_type = U;
+  using deleter_type = D;
+};
+template <class T>
+inline constexpr bool is_unique_ptr_v = is_unique_ptr<T>::value;
 
 // -----------------------------------------------------------------------
 // TypeList

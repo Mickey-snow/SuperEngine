@@ -24,23 +24,13 @@
 
 #pragma once
 
+#include "srbind/function.hpp"
 #include "srbind/method.hpp"
 #include "vm/gc.hpp"
 #include "vm/object.hpp"
 #include "vm/value.hpp"
 
 namespace srbind {
-
-// -------------------------------------------------------------
-// init<T(Args...)>() -> binds __init__ to construct T inside NativeInstance
-// -------------------------------------------------------------
-template <class... Args>
-struct init_t {};
-
-template <class... Args>
-constexpr init_t<Args...> init() {
-  return {};
-}
 
 // -------------------------------------------------------------
 // module: where we register functions/classes
@@ -69,6 +59,58 @@ class module_ {
 };
 
 // -------------------------------------------------------------
+// init helpers -> binds __init__ to construct T inside NativeInstance
+// -------------------------------------------------------------
+template <class... Args>
+struct init_t {};
+
+// usage: class_<T>(...).def(init<Args...>(), arg("x")=..., ...)
+template <class... Args>
+constexpr init_t<Args...> init() {
+  return {};
+}
+
+template <class F>
+struct init_factory_t {
+  F factory;
+};
+
+// usage: class_<T>(...).def(init([](Args...){...}), arg("x")=..., ...)
+template <class F>
+constexpr init_factory_t<std::decay_t<F>> init(F&& f) {
+  return {std::forward<F>(f)};
+}
+
+namespace detail {
+// pointer conversion helper
+template <class T, class R>
+static T* convert_factory_return(R&& r) {
+  using RD = std::decay_t<R>;
+  if constexpr (std::is_pointer_v<RD>) {
+    using Pointee = std::remove_pointer_t<RD>;
+    static_assert(
+        std::is_base_of_v<T, Pointee>,
+        "Factory must return (derived) T* or std::unique_ptr<derived T>");
+    return r;
+  } else if constexpr (is_unique_ptr_v<RD>) {
+    using E = typename RD::element_type;
+    static_assert(std::is_base_of_v<T, E>,
+                  "unique_ptr element must be T or derived from T");
+    static_assert(std::is_same_v<typename is_unique_ptr<RD>::deleter_type,
+                                 std::default_delete<E>>,
+                  "unique_ptr deleter must be std::default_delete");
+
+    return r.release();  // transfer ownership to engine (deleted by finalize)
+  } else {
+    static_assert(
+        !sizeof(RD),
+        "Unsupported factory return type. Use T* or std::unique_ptr<T>.");
+    return nullptr;
+  }
+}
+}  // namespace detail
+
+// -------------------------------------------------------------
 // class_<T>: binds a NativeClass container + methods + __init__
 // -------------------------------------------------------------
 template <class T>
@@ -90,7 +132,7 @@ class class_ {
     return *this;
   }
 
-  // __init__(self, ...) with names/defaults
+  // __init__ via operator new
   template <class... Args, class... A>
   class_& def(init_t<Args...>, A&&... a) {
     auto* nf = gc_->Allocate<serilang::NativeFunction>(
@@ -116,6 +158,49 @@ class class_ {
                 },
                 std::move(tup));
             self->SetForeign<T>(obj);
+            return serilang::nil;
+          } catch (const type_error& e) {
+            throw serilang::RuntimeError(e.what());
+          } catch (const std::exception& e) {
+            throw serilang::RuntimeError(e.what());
+          }
+        });
+    cls_->methods["__init__"] = Value(nf);
+    return *this;
+  }
+
+  // __init__ via native factory
+  // Factory signature:  R(Args...) where R is T* or std::unique_ptr<T/Derived>
+  template <class F, class... A>
+  class_& def(init_factory_t<F> tag, A&&... a) {
+    arglist_spec spec;
+    if constexpr (sizeof...(A) == 0)
+      spec = parse_spec<F>();
+    else
+      spec = parse_spec(std::forward<A>(a)...);
+    auto* nf = gc_->Allocate<serilang::NativeFunction>(
+        "__init__",
+        [factory = std::move(tag.factory), spec = std::move(spec)](
+            serilang::VM& /*vm*/, serilang::Fiber& fib, uint8_t nargs,
+            uint8_t nkwargs) -> serilang::TempValue {
+          try {
+            if (nargs < 1)
+              throw type_error("missing 'self'");
+            Value selfv = std::move(fib.stack.end()[-nargs - 2 * nkwargs]);
+            auto* self = selfv.Get_if<serilang::NativeInstance>();
+            if (!self)
+              throw type_error("self is not a native instance");
+            if (self->foreign)
+              throw type_error("__init__ called twice");
+
+            auto r =
+                detail::invoke_free(fib, nargs - 1, nkwargs, factory, spec);
+            fib.stack.pop_back();  // self
+            T* raw = detail::convert_factory_return<T>(std::move(r));
+            if (!raw)
+              throw type_error("factory returned null");
+            self->SetForeign<T>(raw);
+
             return serilang::nil;
           } catch (const type_error& e) {
             throw serilang::RuntimeError(e.what());

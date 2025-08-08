@@ -273,4 +273,182 @@ TEST_F(SrbindTest, Class_Init) {
       << "Expected missing required argument 'y'";
 }
 
+static int mul_fn(int a, int b) { return a * b; }
+static const char* hi_fn() { return "hi"; }
+
+struct W {
+  int v{0};
+  explicit W(int vv) : v(vv) {}
+  int get() const { return v; }
+};
+
+struct B1 {
+  int x{0};
+  explicit B1(int xx) : x(xx) {}
+  virtual ~B1() = default;  // ensure safe delete via base*
+  int val() const { return x; }
+};
+struct D1 : B1 {
+  using B1::B1;
+};
+
+struct U {
+  int x{0};
+  explicit U(int xx) : x(xx) {}
+};
+
+TEST_F(SrbindTest, FreeFunction_PlainFunctionPointer) {
+  NativeFunction* nf =
+      make_function(gc.get(), "mul", &mul_fn);  // fn ptr, no spec
+  Value r = CallCallee(Value(nf), {Value(2), Value(3)});
+  EXPECT_EQ(r, 6);
+
+  EXPECT_THROW(std::ignore = CallCallee(Value(nf), {}, {{"a", Value(1)}}),
+               error_type)
+      << "kwargs not allowed without spec";
+}
+
+TEST_F(SrbindTest, FreeFunction_CastsCStringToString) {
+  NativeFunction* nf = make_function(gc.get(), "hi", &hi_fn);
+  Value r = CallCallee(Value(nf));
+  EXPECT_EQ(r, "hi");
+}
+
+TEST_F(SrbindTest, FreeFunction_InferredVarargAndKwargSpec) {
+  // return a + 10 * |varargs| + 100 * |kwargs|
+  auto f = [](int a, std::vector<Value> varargs,
+              std::unordered_map<std::string, Value> kwargs) {
+    return a + 10 * static_cast<int>(varargs.size()) +
+           100 * static_cast<int>(kwargs.size());
+  };
+  NativeFunction* nf = make_function(gc.get(), "count_all", f);  // infer spec
+  // a=1, rest=[2,3], kwargs={x:4, y:5}
+  Value r = CallCallee(Value(nf), {Value(1), Value(2), Value(3)},
+                       {{"x", Value(4)}, {"y", Value(5)}});
+  EXPECT_EQ(r, 1 + 10 * 2 + 100 * 2);
+
+  // Too many args only if no vararg slot — we have one; but unknown kwargs are
+  // fine only if kwarg slot present Drop kwarg slot by using a different
+  // callable would error; here ensure extra kwargs are accepted
+  Value r2 = CallCallee(Value(nf), {Value(7)},
+                        {{"k1", Value(1)}, {"k2", Value(2)}, {"k3", Value(3)}});
+  EXPECT_EQ(r2, 7 + 10 * 0 + 100 * 3);
+}
+
+TEST_F(SrbindTest, Class_InitFactory) {
+  class_<W> cw(mod, "W");
+  auto factory = [](int x) { return std::make_unique<W>(x); };
+  cw.def(init(factory))  // no arg spec -> positional only
+      .def("get", &W::get);
+
+  Value klass = GetItem(dict, "W");
+  Value inst_v = CallCallee(klass, {Value(42)});  // W(42)
+  auto* inst = inst_v.Get_if<NativeInstance>();
+  ASSERT_NE(inst, nullptr);
+
+  Value get_fn = GetMember(inst, "get");
+  Value r = CallCallee(get_fn);
+  EXPECT_EQ(r, 42);
+
+  EXPECT_THROW(std::ignore = CallCallee(klass), error_type)
+      << "Missing required arg because positional-only in inferred spec";
+}
+
+TEST_F(SrbindTest, Class_InitFactory_WithArgSpec) {
+  class_<W> cw(mod, "W");
+  auto factory = [](int x) { return std::make_unique<W>(x); };
+  // Allow kwargs and a default
+  cw.def(init(factory), arg("x") = 7).def("get", &W::get);
+
+  Value klass = GetItem(dict, "W");
+
+  // Use default (x=7)
+  Value inst1_v = CallCallee(klass);
+  auto* inst1 = inst1_v.Get_if<NativeInstance>();
+  ASSERT_NE(inst1, nullptr);
+  Value get1 = GetMember(inst1, "get");
+  EXPECT_EQ(CallCallee(get1), 7);
+
+  // Override via kw
+  Value inst2_v = CallCallee(klass, {}, {{"x", Value(123)}});
+  auto* inst2 = inst2_v.Get_if<NativeInstance>();
+  ASSERT_NE(inst2, nullptr);
+  Value get2 = GetMember(inst2, "get");
+  EXPECT_EQ(CallCallee(get2), 123);
+
+  
+  EXPECT_THROW(std::ignore = CallCallee(klass, {}, {{"y", Value(1)}}),
+               error_type) << "Unexpected kw should error";
+}
+
+TEST_F(SrbindTest, Class_InitFactory_ReturnsNull) {
+  class_<U> cu(mod, "U");
+  auto bad_factory_ptr = [](int x) -> U* {
+    (void)x;
+    return nullptr;
+  };
+  cu.def(init(bad_factory_ptr), arg("x"));
+
+  Value klass = GetItem(dict, "U");
+  EXPECT_THROW(std::ignore = CallCallee(klass, {Value(9)}), error_type);
+}
+
+TEST_F(SrbindTest, Class_InitFactory_MissingOrWrongSelf) {
+  class_<W> cw(mod, "W");
+  auto factory = [](int x) { return std::make_unique<W>(x); };
+  cw.def(init(factory), arg("x"));
+
+  Value klass = GetItem(dict, "W");
+  auto* cls = klass.Get_if<NativeClass>();
+  ASSERT_NE(cls, nullptr);
+  auto it = cls->methods.find("__init__");
+  ASSERT_TRUE(it != cls->methods.end());
+  auto* init_nf = it->second.Get_if<NativeFunction>();
+  ASSERT_NE(init_nf, nullptr);
+
+  // Missing self
+  EXPECT_THROW(std::ignore = CallCallee(Value(init_nf), {Value(1)}),
+               error_type);
+
+  // Wrong self type (int instead of NativeInstance)
+  EXPECT_THROW(std::ignore = CallCallee(Value(init_nf), {Value(0), Value(1)}),
+               error_type);
+}
+
+TEST_F(SrbindTest, Class_DoubleInit) {
+  class_<W> cw(mod, "W");
+  auto factory = [](int x) { return std::make_unique<W>(x); };
+  cw.def(init(factory), arg("x")).def("get", &W::get);
+
+  Value klass = GetItem(dict, "W");
+  Value inst_v = CallCallee(klass, {Value(5)});
+  auto* inst = inst_v.Get_if<NativeInstance>();
+  ASSERT_NE(inst, nullptr);
+
+  Value init_bound = GetMember(inst, "__init__");
+  EXPECT_THROW(std::ignore = CallCallee(init_bound, {Value(9)}), error_type)
+    <<"Calling __init__ twice on same instance should error";
+}
+
+TEST_F(SrbindTest, Class_InitDerived) {
+  class_<B1> cb(mod, "B1");
+  auto factory = [](int x) -> B1* { return new D1(x); };  // Derived*
+  cb.def(init(factory), arg("x")).def("val", &B1::val);
+
+  Value klass = GetItem(dict, "B1");
+  Value inst_v = CallCallee(klass, {Value(77)});
+  auto* inst = inst_v.Get_if<NativeInstance>();
+  ASSERT_NE(inst, nullptr);
+
+  Value val_fn = GetMember(inst, "val");
+  EXPECT_EQ(CallCallee(val_fn), 77);
+}
+
+TEST_F(SrbindTest, FreeFunction_PlainFunctionPointer_ArgSpecWithKw) {
+  NativeFunction* nf =
+      make_function(gc.get(), "mul_kw", &mul_fn, arg("a"), arg("b"));
+  Value r = CallCallee(Value(nf), {}, {{"b", Value(8)}, {"a", Value(7)}});
+  EXPECT_EQ(r, 56);
+}
+
 }  // namespace srbind_test

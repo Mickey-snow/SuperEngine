@@ -46,15 +46,13 @@ auto invoke_free_impl(serilang::Fiber& f,
                       size_t nkwargs,
                       F&& fn,
                       R (*)(Args...),
-                      const arglist_spec& spec) -> serilang::TempValue {
+                      const arglist_spec& spec) {
   auto tup = load_args<Args...>(f.stack, nargs, nkwargs, spec);
   if constexpr (std::is_void_v<R>) {
     std::apply(std::forward<F>(fn), tup);
     return serilang::nil;
   } else {
-    R r = std::apply(std::forward<F>(fn), tup);
-    serilang::TempValue tv = type_caster<std::decay_t<R>>::cast(std::move(r));
-    return tv;
+    return std::apply(std::forward<F>(fn), tup);
   }
 }
 
@@ -64,7 +62,7 @@ auto invoke_free_sig(serilang::Fiber& f,
                      size_t nkwargs,
                      F&& fn,
                      R (C::*)(Args...) const,
-                     const arglist_spec& spec) -> serilang::TempValue {
+                     const arglist_spec& spec) {
   return invoke_free_impl(f, nargs, nkwargs, std::forward<F>(fn),
                           (R (*)(Args...)) nullptr, spec);
 }
@@ -75,7 +73,7 @@ auto invoke_free_sig(serilang::Fiber& f,
                      size_t nkwargs,
                      F&& fn,
                      R (C::*)(Args...),
-                     const arglist_spec& spec) -> serilang::TempValue {
+                     const arglist_spec& spec) {
   return invoke_free_impl(f, nargs, nkwargs, std::forward<F>(fn),
                           (R (*)(Args...)) nullptr, spec);
 }
@@ -86,19 +84,22 @@ auto invoke_free(serilang::Fiber& f,
                  size_t nargs,
                  size_t nkwargs,
                  F&& fn,
-                 const arglist_spec& spec) -> serilang::TempValue {
+                 const arglist_spec& spec) {
   using Fn = std::decay_t<F>;
-  if constexpr (std::is_function_v<Fn>) {
-    using R = std::invoke_result_t<Fn>;
+
+  if constexpr (false)
+    ;
+  else if constexpr (std::is_function_v<Fn>) {
+    using Sig = Fn;  // R(Args...)
     return invoke_free_impl(f, nargs, nkwargs, std::forward<F>(fn),
-                            (R (*)(void)) nullptr, spec);
+                            static_cast<Sig*>(nullptr), spec);
   } else if constexpr (std::is_pointer_v<Fn> &&
                        std::is_function_v<std::remove_pointer_t<Fn>>) {
-    using R = std::invoke_result_t<Fn>;
+    using Sig = std::remove_pointer_t<Fn>;  // R(Args...)
     return invoke_free_impl(f, nargs, nkwargs, std::forward<F>(fn),
-                            (R (*)(void)) nullptr, spec);
+                            static_cast<Sig*>(nullptr), spec);
   } else {
-    using Sig = decltype(&Fn::operator());
+    using Sig = decltype(&Fn::operator());  // R(C::*)(Args...) [const]
     return invoke_free_sig(f, nargs, nkwargs, std::forward<F>(fn), Sig{}, spec);
   }
 }
@@ -114,7 +115,10 @@ serilang::NativeFunction* make_function(serilang::GarbageCollector* gc,
           serilang::VM& vm, serilang::Fiber& fib, uint8_t nargs,
           uint8_t nkwargs) -> serilang::TempValue {
         try {
-          return invoke_free(fib, nargs, nkwargs, fn, spec);
+          auto r = invoke_free(fib, nargs, nkwargs, fn, spec);
+          serilang::TempValue tv =
+              type_caster<std::decay_t<decltype(r)>>::cast(std::move(r));
+          return tv;
         } catch (const type_error& e) {
           throw serilang::RuntimeError(e.what());
         } catch (const std::exception& e) {
