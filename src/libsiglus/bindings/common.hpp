@@ -23,7 +23,11 @@
 
 #pragma once
 
+#include "core/asset_scanner.hpp"
+
 #include <filesystem>
+#include <memory>
+#include <string>
 
 namespace serilang {
 class VM;
@@ -34,6 +38,7 @@ namespace fs = std::filesystem;
 
 struct Context {
   fs::path base_pth, save_pth;
+  std::shared_ptr<AssetScanner> asset_scanner;
 };
 
 }  // namespace libsiglus::binding

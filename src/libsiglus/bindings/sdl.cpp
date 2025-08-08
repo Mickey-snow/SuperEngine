@@ -46,7 +46,8 @@ class SDL_siglus {
   std::shared_ptr<AssetScanner> scanner;
 
  public:
-  SDL_siglus() : sound_impl(nullptr), scanner(nullptr) {}
+  SDL_siglus(std::shared_ptr<AssetScanner> s)
+      : sound_impl(nullptr), scanner(s) {}
 
   void init() {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -92,9 +93,6 @@ class SDL_siglus {
                                  .channel_count = 2},
                           4096);
     sound_impl->AllocateChannels(32);
-
-    scanner = std::make_shared<AssetScanner>();
-    scanner->IndexDirectory(fs::path("/") / "tmp" / "audio");
   }
 
   void play(std::string name) {
@@ -120,7 +118,9 @@ void SDL::Bind(sr::VM& vm) {
   sb::module_ m(gc.get(), vm.globals_);
   sb::class_<SDL_siglus> sdl(m, "SDL");
 
-  sdl.def(sb::init<>());
+  sdl.def(sb::init([scanner = ctx.asset_scanner]() -> SDL_siglus* {
+    return new SDL_siglus(scanner);
+  }));
   sdl.def("init", &SDL_siglus::init);
   sdl.def("play", &SDL_siglus::play, sb::arg("name"));
   sdl.def("bgm", &SDL_siglus::bgm, sb::arg("name"));

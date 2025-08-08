@@ -1,5 +1,4 @@
 handle = SDL();
-handle.__init__();
 handle.init();
 handle.bgm("bgm01");
 handle.play("se032");
