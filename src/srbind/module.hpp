@@ -135,11 +135,14 @@ class class_ {
   // __init__ via operator new
   template <class... Args, class... A>
   class_& def(init_t<Args...>, A&&... a) {
+    arglist_spec spec = (sizeof...(A) == 0) ? parse_spec<T*(Args...)>()
+                                            : parse_spec(std::forward<A>(a)...);
+
     auto* nf = gc_->Allocate<serilang::NativeFunction>(
         "__init__",
-        [spec = parse_spec(std::forward<A>(a)...)](
-            serilang::VM& vm, serilang::Fiber& f, uint8_t nargs,
-            uint8_t nkwargs) -> serilang::TempValue {
+        [spec = std::move(spec)](serilang::VM& vm, serilang::Fiber& f,
+                                 uint8_t nargs,
+                                 uint8_t nkwargs) -> serilang::TempValue {
           try {
             if (nargs < 1)
               throw type_error("missing 'self'");
@@ -173,11 +176,8 @@ class class_ {
   // Factory signature:  R(Args...) where R is T* or std::unique_ptr<T/Derived>
   template <class F, class... A>
   class_& def(init_factory_t<F> tag, A&&... a) {
-    arglist_spec spec;
-    if constexpr (sizeof...(A) == 0)
-      spec = parse_spec<F>();
-    else
-      spec = parse_spec(std::forward<A>(a)...);
+    arglist_spec spec = (sizeof...(A) == 0) ? parse_spec<F>()
+                                            : parse_spec(std::forward<A>(a)...);
     auto* nf = gc_->Allocate<serilang::NativeFunction>(
         "__init__",
         [factory = std::move(tag.factory), spec = std::move(spec)](
@@ -214,8 +214,10 @@ class class_ {
 
   template <class M, class... A>
   class_& def(const char* name, M pmf, A&&... a) {
+    arglist_spec spec = (sizeof...(A) == 0) ? parse_spec<M>()
+                                            : parse_spec(std::forward<A>(a)...);
     cls_->methods[name] =
-        Value(make_method<T>(gc_, name, pmf, std::forward<A>(a)...));
+        Value(make_method<T>(gc_, name, pmf, std::move(spec)));
     return *this;
   }
 

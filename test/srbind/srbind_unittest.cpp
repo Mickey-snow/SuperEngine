@@ -287,6 +287,7 @@ struct B1 {
   explicit B1(int xx) : x(xx) {}
   virtual ~B1() = default;  // ensure safe delete via base*
   int val() const { return x; }
+  void set(int x_in) { x = x_in; }
 };
 struct D1 : B1 {
   using B1::B1;
@@ -376,9 +377,9 @@ TEST_F(SrbindTest, Class_InitFactory_WithArgSpec) {
   Value get2 = GetMember(inst2, "get");
   EXPECT_EQ(CallCallee(get2), 123);
 
-  
   EXPECT_THROW(std::ignore = CallCallee(klass, {}, {{"y", Value(1)}}),
-               error_type) << "Unexpected kw should error";
+               error_type)
+      << "Unexpected kw should error";
 }
 
 TEST_F(SrbindTest, Class_InitFactory_ReturnsNull) {
@@ -427,7 +428,7 @@ TEST_F(SrbindTest, Class_DoubleInit) {
 
   Value init_bound = GetMember(inst, "__init__");
   EXPECT_THROW(std::ignore = CallCallee(init_bound, {Value(9)}), error_type)
-    <<"Calling __init__ twice on same instance should error";
+      << "Calling __init__ twice on same instance should error";
 }
 
 TEST_F(SrbindTest, Class_InitDerived) {
@@ -449,6 +450,22 @@ TEST_F(SrbindTest, FreeFunction_PlainFunctionPointer_ArgSpecWithKw) {
       make_function(gc.get(), "mul_kw", &mul_fn, arg("a"), arg("b"));
   Value r = CallCallee(Value(nf), {}, {{"b", Value(8)}, {"a", Value(7)}});
   EXPECT_EQ(r, 56);
+}
+
+TEST_F(SrbindTest, Class_DeduceMemberSpec) {
+  class_<B1> cb(mod, "B1");
+  cb.def(init<int>()).def("get", &B1::val).def("set", &B1::set);
+
+  Value klass = GetItem(dict, "B1");
+  Value inst_v = CallCallee(klass, {Value(77)});
+  auto* inst = inst_v.Get_if<NativeInstance>();
+  ASSERT_NE(inst, nullptr);
+  EXPECT_THROW(std::ignore = CallCallee(klass, {}, {{"x", Value(1)}}),
+               error_type)
+      << "should reject unexpected kwargs when no names were provided";
+
+  EXPECT_NO_THROW(CallCallee(GetMember(inst, "set"), {Value(88)}));
+  EXPECT_EQ(CallCallee(GetMember(inst, "get")), 88);
 }
 
 }  // namespace srbind_test

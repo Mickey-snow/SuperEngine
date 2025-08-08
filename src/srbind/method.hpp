@@ -78,19 +78,19 @@ auto invoke_method(serilang::Fiber& f,
 }  // namespace detail
 
 // -------------------------------------------------------------
-// wrap member function: def("name", &T::method)
+// wrap member function: def("name", &T::method, arg("x")=0, ...)
 // BoundMethod inserts receiver as arg0; we convert it to T*
 // -------------------------------------------------------------
-template <class T, class M, class... A>
+template <class T, class M>
 serilang::NativeFunction* make_method(serilang::GarbageCollector* gc,
                                       std::string name,
                                       M method,
-                                      A&&... a) {
+                                      arglist_spec spec) {
   return gc->Allocate<serilang::NativeFunction>(
       std::move(name),
-      [method, spec = parse_spec(std::forward<A>(a)...)](
-          serilang::VM&, serilang::Fiber& f, uint8_t nargs,
-          uint8_t nkwargs) -> serilang::TempValue {
+      [method, spec = std::move(spec)](serilang::VM&, serilang::Fiber& f,
+                                       uint8_t nargs,
+                                       uint8_t nkwargs) -> serilang::TempValue {
         try {
           if (nargs == 0)
             throw type_error("missing 'self'");
