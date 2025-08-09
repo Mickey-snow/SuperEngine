@@ -21,38 +21,19 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#include "libsiglus/sgvm_factory.hpp"
+#pragma once
 
 #include "libsiglus/bindings/common.hpp"
-#include "libsiglus/bindings/obj.hpp"
-#include "libsiglus/bindings/sdl.hpp"
-#include "libsiglus/bindings/system.hpp"
 
-#include "m6/vm_factory.hpp"
-#include "vm/gc.hpp"
+namespace libsiglus::binding {
 
-#include <filesystem>
+class Obj {
+  Context& ctx;
 
-namespace libsiglus {
-namespace sr = serilang;
-namespace fs = std::filesystem;
+ public:
+  explicit Obj(Context& c) : ctx(c) {}
 
-sr::VM SGVMFactory::Create() {
-  auto gc = std::make_shared<sr::GarbageCollector>();
-  sr::VM vm = m6::VMFactory::Create();
+  void Bind(serilang::VM& vm);
+};
 
-  binding::Context ctx;
-  ctx.base_pth = fs::temp_directory_path() / "game";
-  ctx.save_pth = ctx.base_pth / "save";
-  ctx.asset_scanner = std::make_shared<AssetScanner>();
-  ctx.asset_scanner->IndexDirectory(ctx.base_pth);
-
-  // add bindings here
-  binding::SDL(ctx).Bind(vm);
-  binding::System(ctx).Bind(vm);
-  binding::Obj(ctx).Bind(vm);
-
-  return vm;
-}
-
-}  // namespace libsiglus
+}  // namespace libsiglus::binding

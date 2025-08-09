@@ -27,7 +27,9 @@
 
 #include "core/asset_scanner.hpp"
 #include "srbind/srbind.hpp"
+#include "systems/screen_canvas.hpp"
 #include "systems/sdl/sound_implementor.hpp"
+#include "systems/sdl_surface.hpp"
 #include "vm/vm.hpp"
 
 #include <SDL/SDL.h>
@@ -86,6 +88,8 @@ class SDL_siglus {
       throw std::runtime_error(oss.str());
     }
 
+    SDLSurface::screen_ = std::make_shared<ScreenCanvas>(Size(1920, 1080));
+
     sound_impl = std::make_shared<SDLSoundImpl>();
     sound_impl->InitSystem();
     sound_impl->OpenAudio(AVSpec{.sample_rate = 48000,
@@ -113,9 +117,7 @@ class SDL_siglus {
 };
 
 void SDL::Bind(sr::VM& vm) {
-  std::shared_ptr<sr::GarbageCollector> gc = vm.gc_;
-
-  sb::module_ m(gc.get(), vm.globals_);
+  sb::module_ m(vm.gc_.get(), vm.globals_);
   sb::class_<SDL_siglus> sdl(m, "SDL");
 
   sdl.def(sb::init([scanner = ctx.asset_scanner]() -> SDL_siglus* {

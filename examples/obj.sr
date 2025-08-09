@@ -1,0 +1,21 @@
+
+sdl = SDL();
+sdl.init();
+
+file = "cg_ts01_05_ex";
+fn create_effects_obj(file){
+  obj = Object();
+  obj.init();
+  obj.create(file, 1);
+
+  x = obj.get_size_x();
+  y = obj.get_size_y();
+  obj.set_center_rep(x/2, y/2);
+
+  obj.set_scale(1500,1500);
+
+  return obj;
+}
+
+bg = create_effects_obj(file);
+bg.render();
