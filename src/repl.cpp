@@ -26,6 +26,7 @@
 #include "m6/compiler_pipeline.hpp"
 #include "m6/vm_factory.hpp"
 #include "utilities/string_utilities.hpp"
+#include "vm/disassembler.hpp"
 
 #include <boost/program_options.hpp>
 #include <chrono>
@@ -56,16 +57,20 @@ static constexpr std::string_view help_info =
 static void run_repl(VM vm) {
   CompilerPipeline pipeline(vm.gc_, /*repl_mode=*/true);
 
-  std::string line;
+  std::string line, line_trimmed;
   for (size_t lineno = 1; std::cout << ">> " && std::getline(std::cin, line);
        ++lineno) {
     if (line.empty())
       continue;
 
-    if (line == "exit")
+    line_trimmed = trim_cp(line);
+
+    if (line_trimmed == "exit")
       break;
-    else if (line.starts_with("run")) {  // helper to paste and run a file
-      std::string file_name = trim_cp(line.substr(3));
+    else if (line_trimmed.starts_with("run")) {
+      // helper to paste and run a file
+      std::string file_name = line_trimmed.substr(3);
+      trim(file_name);
       if (!file_name.ends_with(".sr"))
         file_name += ".sr";
       try {
@@ -78,6 +83,36 @@ static void run_repl(VM vm) {
         std::cerr << e.what() << std::endl;
         continue;
       }
+    } else if (line_trimmed.starts_with("dis")) {
+      // helper to compile and dump a file
+      std::string file_name = trim_cp(line).substr(3);
+      trim(file_name);
+      if (!file_name.ends_with(".sr"))
+        file_name += ".sr";
+      try {
+        std::ifstream ifs(file_name);
+        if (!ifs.is_open())
+          throw std::runtime_error("file not found: " + file_name);
+        line = std::string(std::istreambuf_iterator<char>(ifs),
+                           std::istreambuf_iterator<char>());
+      } catch (std::exception& e) {
+        std::cerr << e.what() << std::endl;
+        continue;
+      }
+
+      pipeline.compile(SourceBuffer::Create(
+          std::move(line), "<input-" + std::to_string(lineno) + '>'));
+      if (!pipeline.Ok()) {
+        std::cerr << pipeline.FormatErrors() << std::flush;
+        continue;
+      }
+
+      auto chunk = pipeline.Get();
+      if (!chunk)
+        continue;
+
+      std::cout << Disassembler().Dump(*chunk) << std::endl;
+      continue;
     }
 
     pipeline.compile(SourceBuffer::Create(

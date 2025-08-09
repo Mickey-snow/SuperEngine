@@ -26,6 +26,7 @@
 
 #include "srbind/srbind.hpp"
 
+#include "utilities/string_utilities.hpp"
 #include "vm/exception.hpp"
 #include "vm/gc.hpp"
 #include "vm/object.hpp"
@@ -41,6 +42,8 @@ namespace srbind_test {
 
 using namespace serilang;
 using namespace srbind;
+using serilang::helper::pop;
+using serilang::helper::push;
 
 class SrbindTest : public ::testing::Test {
  protected:
@@ -80,7 +83,14 @@ class SrbindTest : public ::testing::Test {
     const uint8_t nkwargs = static_cast<uint8_t>(kwargs.size());
 
     callee.Call(vm, *f, nargs, nkwargs);
-    Value ret = f->stack.back();  // (callee) <- (retval)
+    Value ret = pop(f->stack);  // (callee) <- (retval)
+    if (!f->stack.empty()) {
+      ADD_FAILURE() << "stack not empty after function call, leftovers are: "
+                    << Join(",", std::views::all(f->stack) |
+                                     std::views::transform(
+                                         [](Value& v) { return v.Desc(); }));
+      f->stack.clear();
+    }
     return ret;
   }
 
@@ -434,7 +444,9 @@ TEST_F(SrbindTest, Class_DoubleInit) {
 TEST_F(SrbindTest, Class_InitDerived) {
   class_<B1> cb(mod, "B1");
   auto factory = [](int x) -> B1* { return new D1(x); };  // Derived*
-  cb.def(init(factory), arg("x")).def("val", &B1::val);
+  cb.def(init(factory), arg("x"))
+      .def("val", &B1::val)
+      .def("set", &B1::set, arg("val") = 0);
 
   Value klass = GetItem(dict, "B1");
   Value inst_v = CallCallee(klass, {Value(77)});
@@ -443,6 +455,10 @@ TEST_F(SrbindTest, Class_InitDerived) {
 
   Value val_fn = GetMember(inst, "val");
   EXPECT_EQ(CallCallee(val_fn), 77);
+
+  Value set_fn = GetMember(inst, "set");
+  EXPECT_EQ(CallCallee(set_fn), std::monostate());
+  EXPECT_EQ(CallCallee(val_fn), 0);
 }
 
 TEST_F(SrbindTest, FreeFunction_PlainFunctionPointer_ArgSpecWithKw) {

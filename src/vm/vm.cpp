@@ -44,6 +44,9 @@
 
 namespace serilang {
 
+using helper::pop;
+using helper::push;
+
 // -----------------------------------------------------------------------
 // class VM
 VM::VM(std::shared_ptr<GarbageCollector> gc)
@@ -122,17 +125,6 @@ Value VM::Run() {
 //------------------------------------------------------------------------------
 // Exec helpers
 //------------------------------------------------------------------------------
-
-void VM::push(std::vector<Value>& stack, Value v) {
-  stack.emplace_back(std::move(v));
-}
-
-Value VM::pop(std::vector<Value>& stack) {
-  auto v = std::move(stack.back());
-  stack.pop_back();
-  return v;
-}
-
 Dict* VM::GetNamespace(Fiber& f) {
   if (f.frames.empty())
     return nullptr;

@@ -39,6 +39,17 @@ namespace serilang {
 struct Fiber;
 struct Chunk;
 
+namespace helper {
+inline Value pop(std::vector<Value>& stack) {
+  Value val = std::move(stack.back());
+  stack.pop_back();
+  return val;
+}
+inline void push(std::vector<Value>& stack, Value v) {
+  stack.emplace_back(std::move(v));
+}
+}  // namespace helper
+
 class VM {
  public:
   explicit VM(std::shared_ptr<GarbageCollector> gc);
@@ -80,8 +91,6 @@ class VM {
  private:
   //----------------------------------------------------------------
   // Execution helpers
-  static void push(std::vector<Value>& stack, Value v);
-  static Value pop(std::vector<Value>& stack);
   void Return(Fiber& f);
   Dict* GetNamespace(Fiber& f);
 

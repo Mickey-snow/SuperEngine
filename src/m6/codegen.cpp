@@ -510,7 +510,7 @@ void CodeGenerator::emit_stmt_node(const ImportStmt& is) {
 }
 
 void CodeGenerator::emit_stmt_node(const std::shared_ptr<ExprAST>& s) {
-  if (repl_mode_) {
+  if (repl_mode_ && mode_ == CompileMode::Global) {
     emit(sr::LoadGlobal{intern_name(kReplPrintName)});
     emit_expr(s);
     emit(sr::Call{1, 0});

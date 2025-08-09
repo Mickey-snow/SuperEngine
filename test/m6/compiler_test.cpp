@@ -592,6 +592,12 @@ TEST_F(CompilerTest, InterpretPrint) {
     auto res = Interpret({"1;", "nil;"});
     EXPECT_EQ(res, "1\n");
   }
+
+  {
+    auto res = Interpret(
+        {"fn boo(){}", "fn foo(){ boo(); x=0; return x+1;}", "foo();"});
+    EXPECT_EQ(res, "1\n");
+  }
 }
 
 // ==============================================================================
