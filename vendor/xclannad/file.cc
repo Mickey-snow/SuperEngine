@@ -68,20 +68,10 @@ int g_isBigEndian = IsBigEndian();
 #include<sys/mman.h>
 #endif /* HAVE_MMAP */
 
-#ifdef WIN32
-# include <direct.h>
-# include "dirent_impl.h"
-# ifdef MAX_PATH
-#  define PATH_MAX MAX_PATH
-# else
-#  define PATH_MAX 260
-# endif
-#else
 # include <dirent.h>
 # ifndef PATH_MAX
 #   define PATH_MAX 1024
 # endif
-#endif
 
 # define NAMLEN(dirent) strlen((dirent)->d_name)
 
