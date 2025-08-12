@@ -19,3 +19,6 @@ fn create_effects_obj(file){
 
 bg = create_effects_obj(file);
 bg.render();
+
+testfile = "bg24";
+bg = create_effects_obj(testfile);

@@ -46,13 +46,17 @@ int g_isBigEndian = IsBigEndian();
 
 #include <algorithm>
 #include <array>
+#include <csetjmp>
 #include <cstdint>
 #include <cstring>
-#include <fstream>
 #include <set>
+#include <sstream>
 #include <string>
 #include <tuple>
 #include <vector>
+
+#include "jerror.h"
+#include "jpeglib.h"
 
 // -----------------------------------------------------------------------
 
@@ -108,6 +112,7 @@ std::unique_ptr<IConverter> IConverter::CreateConverter(const char* inbuf,
   std::unique_ptr<IConverter> conv = 0;
   if (inlen < 10)
     return 0; /* invalid file */
+
   if (strncmp(inbuf, "PDT10", 5) == 0 ||
       strncmp(inbuf, "PDT11", 5) == 0) { /* PDT10 or PDT11 */
     conv = std::make_unique<PdtConverter>(inbuf, inlen);
@@ -116,7 +121,7 @@ std::unique_ptr<IConverter> IConverter::CreateConverter(const char* inbuf,
     return conv;
   }
 
-  if (conv == 0 && inbuf[0] == 'B' && inbuf[1] == 'M' &&
+  if (inbuf[0] == 'B' && inbuf[1] == 'M' &&
       read_little_endian_int(inbuf + 10) == 0x36 &&
       read_little_endian_int(inbuf + 14) == 0x28) {  // Windows BMP
     conv = std::make_unique<BmpConverter>(inbuf, inlen);
@@ -125,7 +130,7 @@ std::unique_ptr<IConverter> IConverter::CreateConverter(const char* inbuf,
     return conv;
   }
 
-  if (conv == 0 && (0 <= inbuf[0] && inbuf[0] <= 3)) {  // G00
+  if (0 <= inbuf[0] && inbuf[0] <= 3) {  // G00
     conv = std::make_unique<G00Converter>(inbuf, inlen);
     if (conv->data == 0)
       return nullptr;
@@ -694,7 +699,7 @@ bool G00Converter::Read_Type2(char* image) {
   return true;
 }
 
-bool G00Converter::Read_Type3(char* image) {
+bool G00Converter::Read_Type3(char* dst) {
   static constexpr std::array<uint8_t, 256> angou{
       0x45, 0x0c, 0x85, 0xc0, 0x75, 0x14, 0xe5, 0x5d, 0x8b, 0x55, 0xec, 0xc0,
       0x5b, 0x8b, 0xc3, 0x8b, 0x81, 0xff, 0x00, 0x00, 0x04, 0x00, 0x85, 0xff,
@@ -720,14 +725,152 @@ bool G00Converter::Read_Type3(char* image) {
       0xa1, 0xe0, 0x00, 0x83,
   };
 
-  size_t size = height * width;
-  for (size_t i = 0x05, c = 0; c < size; ++i, ++c)
-    image[c] = data[i] ^ angou[c & 0xff];
+  if (!dst)
+    throw std::invalid_argument("Read_Type3: dst is null");
 
-  std::ofstream fs("/tmp/out.jpeg");
-  fs.write(image, size);
+  if (width <= 0 || height <= 0)
+    throw std::invalid_argument(
+        "Read_Type3: invalid dimensions: width=" + std::to_string(width) +
+        ", height=" + std::to_string(height));
 
-  return false;
+  constexpr size_t kHeaderOffset = 0x05;
+  size_t jpeg_len = datalen - kHeaderOffset;
+  std::vector<uint8_t> jpeg(jpeg_len);
+  for (size_t c = 0, i = kHeaderOffset; c < jpeg_len; ++c, ++i)
+    jpeg[c] = static_cast<uint8_t>(data[i]) ^ angou[c & 0xff];
+
+  // Optionally trim to EOI if present early.
+  for (size_t i = 1; i < jpeg.size(); ++i) {
+    if (jpeg[i - 1] == 0xFF && jpeg[i] == 0xD9) {
+      jpeg.resize(i + 1);
+      break;
+    }
+  }
+
+  if (jpeg.size() < 2 || jpeg[0] != 0xFF || jpeg[1] != 0xD8) {
+    std::ostringstream oss;
+    oss << "Read_Type3: not a JPEG after deobfuscation (missing SOI 0xFFD8). "
+        << "offset=0x" << std::hex << kHeaderOffset << std::dec
+        << ", payload=" << jpeg.size() << " bytes, dims=" << width << "x"
+        << height;
+    throw std::runtime_error(oss.str());
+  }
+
+  struct JpegErr {
+    jpeg_error_mgr pub;
+    jmp_buf jb;
+    char msg[JMSG_LENGTH_MAX]{};
+  } jerr;
+
+  jpeg_decompress_struct cinfo{};
+  cinfo.err = jpeg_std_error(&jerr.pub);
+  jerr.pub.error_exit = [](j_common_ptr c) {
+    auto* e = reinterpret_cast<JpegErr*>(c->err);
+    // Format the human-readable message into our buffer.
+    (*c->err->format_message)(c, e->msg);
+    longjmp(e->jb, 1);
+  };
+  // (Optional) silence default stderr printing:
+  jerr.pub.output_message = [](j_common_ptr) {};
+
+  if (setjmp(jerr.jb)) {
+    jpeg_destroy_decompress(&cinfo);
+    std::ostringstream oss;
+    oss << "Read_Type3: libjpeg error while decoding. "
+        << "dims=" << width << "x" << height << ", payload=" << jpeg.size()
+        << " bytes. "
+        << "libjpeg: " << jerr.msg;
+    throw std::runtime_error(oss.str());
+  }
+
+  jpeg_create_decompress(&cinfo);
+  jpeg_mem_src(&cinfo, jpeg.data(), jpeg.size());
+
+  const int hdr = jpeg_read_header(&cinfo, TRUE);
+  if (hdr != JPEG_HEADER_OK) {
+    jpeg_destroy_decompress(&cinfo);
+    std::ostringstream oss;
+    oss << "Read_Type3: jpeg_read_header failed (ret=" << hdr
+        << "), dims=" << width << "x" << height << ", payload=" << jpeg.size()
+        << " bytes";
+    throw std::runtime_error(oss.str());
+  }
+
+  cinfo.out_color_space = JCS_RGB;  // normalize to 3 components (RGB)
+  jpeg_start_decompress(&cinfo);
+
+  const JDIMENSION out_w = cinfo.output_width;
+  const JDIMENSION out_h = cinfo.output_height;
+  const JDIMENSION copy_w =
+      std::min<JDIMENSION>(out_w, static_cast<JDIMENSION>(width));
+  const JDIMENSION copy_h =
+      std::min<JDIMENSION>(out_h, static_cast<JDIMENSION>(height));
+
+  if (cinfo.output_components != 3) {
+    jpeg_destroy_decompress(&cinfo);
+    std::ostringstream oss;
+    oss << "Read_Type3: unexpected output_components="
+        << cinfo.output_components << " (expected 3/RGB). JPEG dims=" << out_w
+        << "x" << out_h << ", requested=" << width << "x" << height;
+    throw std::runtime_error(oss.str());
+  }
+
+  std::vector<uint8_t> row(static_cast<size_t>(out_w) *
+                           static_cast<size_t>(cinfo.output_components));
+  auto* out_base = reinterpret_cast<uint8_t*>(dst);
+  const size_t out_stride = static_cast<size_t>(width) * 4;
+
+  while (cinfo.output_scanline < out_h) {
+    JSAMPROW rp = row.data();
+    const JDIMENSION got = jpeg_read_scanlines(&cinfo, &rp, 1);
+    if (got != 1) {
+      jpeg_destroy_decompress(&cinfo);
+      std::ostringstream oss;
+      oss << "Read_Type3: jpeg_read_scanlines returned " << got
+          << " at scanline " << cinfo.output_scanline << " / " << out_h;
+      throw std::runtime_error(oss.str());
+    }
+
+    const JDIMENSION y = cinfo.output_scanline - 1;  // line just read
+    if (y < copy_h) {
+      uint8_t* d = out_base + static_cast<size_t>(y) * out_stride;
+      const uint8_t* s = row.data();
+      for (JDIMENSION x = 0; x < copy_w; ++x) {
+        d[0] = s[2];
+        d[1] = s[1];
+        d[2] = s[0];
+        d[3] = 255;  // BGRA
+        d += 4;
+        s += 3;
+      }
+      // pad to full requested width
+      for (JDIMENSION x = copy_w; x < static_cast<JDIMENSION>(width); ++x) {
+        d[0] = 0;
+        d[1] = 0;
+        d[2] = 0;
+        d[3] = 255;
+        d += 4;
+      }
+    }
+  }
+
+  jpeg_finish_decompress(&cinfo);
+  jpeg_destroy_decompress(&cinfo);
+
+  // pad rows if decoded height < requested height
+  for (JDIMENSION y = copy_h; y < static_cast<JDIMENSION>(height); ++y) {
+    uint8_t* d =
+        reinterpret_cast<uint8_t*>(dst) + static_cast<size_t>(y) * out_stride;
+    for (JDIMENSION x = 0; x < static_cast<JDIMENSION>(width); ++x) {
+      d[0] = 0;
+      d[1] = 0;
+      d[2] = 0;
+      d[3] = 255;
+      d += 4;
+    }
+  }
+
+  return true;  // success
 }
 
 void G00Converter::Copy_32bpp(char* image,
