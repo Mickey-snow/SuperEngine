@@ -41,51 +41,22 @@ int g_isBigEndian = IsBigEndian();
  *
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#ifdef HAVE_MMAP
-#ifdef MACOSX
-#undef HAVE_MMAP
-#endif /* MACOSX */
-#endif /* HAVE_MMAP */
-
-#include <ctype.h>
-#include <fcntl.h>
-#ifdef WIN32
-#include <io.h>
-#else
-#include <unistd.h>
-#endif
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <algorithm>
-#include <vector>
-#if HAVE_MMAP
-#include <sys/mman.h>
-#endif /* HAVE_MMAP */
-
-#include <dirent.h>
-#ifndef PATH_MAX
-#define PATH_MAX 1024
-#endif
-
-#define NAMLEN(dirent) strlen((dirent)->d_name)
-
-#include "endian.hpp"
 #include "file.h"
+#include "endian.hpp"
 
+#include <algorithm>
+#include <array>
+#include <cstdint>
+#include <cstring>
+#include <fstream>
 #include <set>
+#include <string>
 #include <tuple>
-
-using namespace std;
+#include <vector>
 
 // -----------------------------------------------------------------------
 
-bool GRPCONV::REGION::operator<(const REGION& rhs) const {
+bool IConverter::Region::operator<(const Region& rhs) const {
   return std::tie(x1, y1, x2, y2, origin_x, origin_y) <
          std::tie(rhs.x1, rhs.y1, rhs.x2, rhs.y2, rhs.origin_x, rhs.origin_y);
 }
@@ -96,104 +67,75 @@ bool GRPCONV::REGION::operator<(const REGION& rhs) const {
 **
 ***********************************************
 */
-GRPCONV::GRPCONV(void) {
-  filename = 0;
-  data = 0;
-}
-GRPCONV::~GRPCONV() {
-  if (filename)
-    delete[] filename;
-}
-void GRPCONV::Init(const char* f,
-                   const char* d,
-                   int dlen,
-                   int w,
-                   int h,
-                   bool is_m) {
-  if (filename)
-    delete[] filename;
-  if (f == 0) {
-    char* fn = new char[1];
-    fn[0] = 0;
-    filename = fn;
-  } else {
-    char* fn = new char[strlen(f) + 1];
-    strcpy(fn, f);
-    filename = fn;
-  }
+IConverter::IConverter() { data = nullptr; }
 
+void IConverter::Init(const char* d, int dlen, int w, int h, bool is_m) {
   data = d;
   datalen = dlen;
   width = w;
   height = h;
   is_mask = is_m;
 }
-class PDTCONV : public GRPCONV {
+class PdtConverter : public IConverter {
   bool Read_PDT10(char* image);
   bool Read_PDT11(char* image);
 
  public:
-  PDTCONV(const char* _inbuf, int inlen, const char* fname);
-  ~PDTCONV() {}
+  PdtConverter(const char* _inbuf, int inlen);
   bool Read(char* image);
 };
-class G00CONV : public GRPCONV {
+class G00Converter : public IConverter {
   void Copy_16bpp(char* image, int x, int y, const char* src, int bpl, int h);
   void Copy_32bpp(char* image, int x, int y, const char* src, int bpl, int h);
   bool Read_Type0(char* image);
   bool Read_Type1(char* image);
   bool Read_Type2(char* image);
+  bool Read_Type3(char* image);
 
  public:
-  G00CONV(const char* _inbuf, int _inlen, const char* fname);
-  ~G00CONV() {}
+  G00Converter(const char* _inbuf, int _inlen);
+  bool Read(char* image);
+};
+class BmpConverter : public IConverter {
+ public:
+  BmpConverter(const char* _inbuf, int _inlen);
   bool Read(char* image);
 };
 
-class BMPCONV : public GRPCONV {
- public:
-  BMPCONV(const char* _inbuf, int _inlen, const char* fname);
-  ~BMPCONV() {};
-  bool Read(char* image);
-};
-
-GRPCONV* GRPCONV::AssignConverter(const char* inbuf,
-                                  int inlen,
-                                  const char* fname) {
+std::unique_ptr<IConverter> IConverter::CreateConverter(const char* inbuf,
+                                                        int inlen) {
   /* ファイルの内容に応じたコンバーターを割り当てる */
-  GRPCONV* conv = 0;
+  std::unique_ptr<IConverter> conv = 0;
   if (inlen < 10)
     return 0; /* invalid file */
   if (strncmp(inbuf, "PDT10", 5) == 0 ||
       strncmp(inbuf, "PDT11", 5) == 0) { /* PDT10 or PDT11 */
-    conv = new PDTCONV(inbuf, inlen, fname);
-    if (conv->data == 0) {
-      delete conv;
-      conv = 0;
-    }
+    conv = std::make_unique<PdtConverter>(inbuf, inlen);
+    if (conv->data == 0)
+      return nullptr;
+    return conv;
   }
+
   if (conv == 0 && inbuf[0] == 'B' && inbuf[1] == 'M' &&
       read_little_endian_int(inbuf + 10) == 0x36 &&
       read_little_endian_int(inbuf + 14) == 0x28) {  // Windows BMP
-    conv = new BMPCONV(inbuf, inlen, fname);
-    if (conv->data == 0) {
-      delete conv;
-      conv = 0;
-    }
+    conv = std::make_unique<BmpConverter>(inbuf, inlen);
+    if (conv->data == 0)
+      return nullptr;
+    return conv;
   }
-  if (conv == 0 &&
-      (inbuf[0] == 0 || inbuf[0] == 1 || inbuf[0] == 2)) { /* G00 */
-    // TODO: unsupported g00 - タイプ３：Jpeg データ
-    conv = new G00CONV(inbuf, inlen, fname);
-    if (conv->data == 0) {
-      delete conv;
-      conv = 0;
-    }
+
+  if (conv == 0 && (0 <= inbuf[0] && inbuf[0] <= 3)) {  // G00
+    conv = std::make_unique<G00Converter>(inbuf, inlen);
+    if (conv->data == 0)
+      return nullptr;
+    return conv;
   }
-  return conv;
+
+  return nullptr;
 }
 
-PDTCONV::PDTCONV(const char* _inbuf, int _inlen, const char* filename) {
+PdtConverter::PdtConverter(const char* _inbuf, int _inlen) {
   //	PDT FILE のヘッダ
   //	+00 'PDT10'	(PDT11 は未対応)
   //	+08 ファイルサイズ (無視)
@@ -204,30 +146,22 @@ PDTCONV::PDTCONV(const char* _inbuf, int _inlen, const char* filename) {
   //	+20 mask が存在すれば、mask へのポインタ
 
   /* ヘッダチェック */
-  if (_inlen < 0x20) {
-    fprintf(stderr, "Invalid PDT file %s : size is too small\n", filename);
-    return;
-  }
-  if (strncmp(_inbuf, "PDT10", 5) != 0 && strncmp(_inbuf, "PDT11", 5) != 0) {
-    fprintf(stderr, "Invalid PDT file %s : not 'PDT10 / PDT11' file.\n",
-            filename);
-    return;
-  }
-  if (size_t(_inlen) != size_t(read_little_endian_int(_inbuf + 0x08))) {
-    fprintf(stderr, "Invalid archive file %s : invalid header.(size)\n",
-            filename);
-    return;
-  }
+  if (_inlen < 0x20)
+    throw std::runtime_error("Invalid PDT file: size is too small");
+  if (strncmp(_inbuf, "PDT10", 5) != 0 && strncmp(_inbuf, "PDT11", 5) != 0)
+    throw std::runtime_error("Invalid PDT file: not 'PDT10 / PDT11' file.");
+  if (size_t(_inlen) != size_t(read_little_endian_int(_inbuf + 0x08)))
+    throw std::runtime_error("Invalid archive file: invalid header.(size)");
 
   int w = read_little_endian_int(_inbuf + 0x0c);
   int h = read_little_endian_int(_inbuf + 0x10);
   int mask_pt = read_little_endian_int(_inbuf + 0x1c);
-  Init(filename, _inbuf, _inlen, w, h, mask_pt ? true : false);
+  Init(_inbuf, _inlen, w, h, mask_pt ? true : false);
 
   return;
 }
 
-G00CONV::G00CONV(const char* _inbuf, int _inlen, const char* filename) {
+G00Converter::G00Converter(const char* _inbuf, int _inlen) {
   //	G00 FILE のヘッダ
   //	+00 type (1, 2)
   //	+01: width(word)
@@ -253,91 +187,91 @@ G00CONV::G00CONV(const char* _inbuf, int _inlen, const char* filename) {
   if (w < 0 || h < 0)
     return;
 
-  if (type == 0 || type == 1) {  // color table 付き圧縮
-    if (_inlen < 13) {
-      fprintf(stderr, "Invalid G00 file %s : size is too small\n", filename);
-      return;
-    }
-    int data_sz = read_little_endian_int(_inbuf + 5);
+  switch (type) {
+    case 0:
+    case 1: {  // color table 付き圧縮
+      if (_inlen < 13)
+        throw std::runtime_error("Invalid G00 file: size is too small");
+      int data_sz = read_little_endian_int(_inbuf + 5);
 
-    if (_inlen != data_sz + 5) {
-      fprintf(stderr, "Invalid archive file %s : invalid header.(size)\n",
-              filename);
-      return;
-    }
-    Init(filename, _inbuf, _inlen, w, h, false);
-  } else if (type == 2) {  // color table なし、マスク付き可の圧縮
+      if (_inlen != data_sz + 5)
+        throw std::runtime_error("Invalid archive file: invalid header.(size)");
+      Init(_inbuf, _inlen, w, h, false);
+    } break;
 
-    int head_size = read_little_endian_short(_inbuf + 5);
-    if (head_size < 0 || head_size * 24 > _inlen)
-      return;
+    case 2: {  // color table なし、マスク付き可の圧縮
+      int head_size = read_little_endian_short(_inbuf + 5);
+      if (head_size < 0 || head_size * 24 > _inlen)
+        return;
 
-    region_table = vector<REGION>(head_size);
+      region_table = std::vector<Region>(head_size);
 
-    int real_region_count = 0;
-    std::set<REGION> unique_regions;
-    const char* head = _inbuf + 9;
-    bool overlaid_image = head_size > 1;
-    for (int i = 0; i < head_size; i++) {
-      region_table[i].x1 = read_little_endian_int(head + 0);
-      region_table[i].y1 = read_little_endian_int(head + 4);
-      region_table[i].x2 = read_little_endian_int(head + 8);
-      region_table[i].y2 = read_little_endian_int(head + 12);
-      region_table[i].origin_x = read_little_endian_int(head + 16);
-      region_table[i].origin_y = read_little_endian_int(head + 20);
-      region_table[i].Fix(w, h);
-      if (region_table[i].Width() && region_table[i].Height()) {
-        unique_regions.insert(region_table[i]);
-        real_region_count++;
+      int real_region_count = 0;
+      std::set<Region> unique_regions;
+      const char* head = _inbuf + 9;
+      bool overlaid_image = head_size > 1;
+      for (int i = 0; i < head_size; i++) {
+        region_table[i].x1 = read_little_endian_int(head + 0);
+        region_table[i].y1 = read_little_endian_int(head + 4);
+        region_table[i].x2 = read_little_endian_int(head + 8);
+        region_table[i].y2 = read_little_endian_int(head + 12);
+        region_table[i].origin_x = read_little_endian_int(head + 16);
+        region_table[i].origin_y = read_little_endian_int(head + 20);
+        region_table[i].Fix(w, h);
+        if (region_table[i].Width() && region_table[i].Height()) {
+          unique_regions.insert(region_table[i]);
+          real_region_count++;
+        }
+
+        head += 24;
       }
 
-      head += 24;
-    }
-
-    if (real_region_count > 1 && unique_regions.size() == 1) {
-      // This is one of those newer images where each region is the size of
-      // width/height and is stacked on top of each other. We therefore have to
-      // munge the height and the region table so each region gets its own
-      // space on the canvas.
-      for (int i = 0; i < head_size; ++i) {
-        region_table[i].y1 += i * h;
-        region_table[i].y2 += i * h;
+      if (real_region_count > 1 && unique_regions.size() == 1) {
+        // This is one of those newer images where each region is the size of
+        // width/height and is stacked on top of each other. We therefore have
+        // to munge the height and the region table so each region gets its
+        // own space on the canvas.
+        for (int i = 0; i < head_size; ++i) {
+          region_table[i].y1 += i * h;
+          region_table[i].y2 += i * h;
+        }
+        h = h * head_size;
       }
-      h = h * head_size;
-    }
 
-    const char* data_top = _inbuf + 9 + head_size * 24;
-    int data_sz = read_little_endian_int(data_top);
-    if (_inbuf + _inlen != data_top + data_sz) {
-      fprintf(stderr, "Invalid archive file %s : invalid header.(size)\n",
-              filename);
-      return;
-    }
-    Init(filename, _inbuf, _inlen, w, h, true);
+      const char* data_top = _inbuf + 9 + head_size * 24;
+      int data_sz = read_little_endian_int(data_top);
+      if (_inbuf + _inlen != data_top + data_sz)
+        throw std::runtime_error("Invalid archive file: invalid header.(size)");
+      Init(_inbuf, _inlen, w, h, true);
+    } break;
+    default:
+      break;
   }
   return;
 }
 
-bool G00CONV::Read(char* image) {
+bool G00Converter::Read(char* image) {
   if (data == 0)
     return false;
   /* header 識別 */
   int type = *data;
-
-  if (type == 0)
-    return Read_Type0(image);
-  else if (type == 1)
-    return Read_Type1(image);
-  else if (type == 2)
-    return Read_Type2(image);
-
-  return false;
+  switch (type) {
+    case 0:
+      return Read_Type0(image);
+    case 1:
+      return Read_Type1(image);
+    case 2:
+      return Read_Type2(image);
+    default:
+      return false;
+  }
 }
 
 /* 一般的な LZ 圧縮の展開ルーチン */
 /* datasize はデータの大きさ、char / short / int を想定 */
-/* datatype は Copy1Pixel (1データのコピー)及び ExtractData(LZ 圧縮の情報を得る
-** というメソッドを実装したクラス */
+/* datatype は Copy1Pixel (1データのコピー)及び ExtractData(LZ
+ *圧縮の情報を得る
+ ** というメソッドを実装したクラス */
 static int bitrev_table[256] = {
     0x00, 0x80, 0x40, 0xc0, 0x20, 0xa0, 0x60, 0xe0, 0x10, 0x90, 0x50, 0xd0,
     0x30, 0xb0, 0x70, 0xf0, 0x08, 0x88, 0x48, 0xc8, 0x28, 0xa8, 0x68, 0xe8,
@@ -543,7 +477,7 @@ class Extract_DataType_G00Type0 {
   static int IsRev(void) { return 1; }
 };
 
-bool PDTCONV::Read(char* image) {
+bool PdtConverter::Read(char* image) {
   if (data == 0)
     return false;
 
@@ -578,7 +512,7 @@ bool PDTCONV::Read(char* image) {
   return true;
 }
 
-bool PDTCONV::Read_PDT10(char* image) {
+bool PdtConverter::Read_PDT10(char* image) {
   int mask_pt = read_little_endian_int(data + 0x1c);
 
   const char* src = data + 0x20;
@@ -597,7 +531,7 @@ bool PDTCONV::Read_PDT10(char* image) {
   return true;
 }
 
-bool PDTCONV::Read_PDT11(char* image) {
+bool PdtConverter::Read_PDT11(char* image) {
   int index_table[16];
   int color_table[256];
   int i;
@@ -635,10 +569,10 @@ bool PDTCONV::Read_PDT11(char* image) {
 /* dest は dest_end よりも 256 byte 以上先まで
 ** 書き込み可能であること。
 */
-void ARCINFO::Extract2k(char*& dest_start,
-                        char*& src_start,
-                        char* dest_end,
-                        char* src_end) {
+void ArchiveInfo::Extract2k(char*& dest_start,
+                            char*& src_start,
+                            char* dest_end,
+                            char* src_end) {
   const char* src = src_start;
   while (lzExtract(Extract_DataType_SCN2k(), char(), src, dest_start, src_end,
                    dest_end))
@@ -648,7 +582,7 @@ void ARCINFO::Extract2k(char*& dest_start,
 }
 
 // タイプ０：ベタデータ
-bool G00CONV::Read_Type0(char* image) {
+bool G00Converter::Read_Type0(char* image) {
   int uncompress_size = read_little_endian_int(data + 9);
   char* uncompress_data = new char[uncompress_size + 1024];
 
@@ -667,7 +601,7 @@ bool G00CONV::Read_Type0(char* image) {
 }
 
 // タイプ１：インデックスカラー
-bool G00CONV::Read_Type1(char* image) {
+bool G00Converter::Read_Type1(char* image) {
   int i;
   int uncompress_size = read_little_endian_int(data + 9) + 1;
   char* uncompress_data = new char[uncompress_size + 1024];
@@ -706,9 +640,7 @@ bool G00CONV::Read_Type1(char* image) {
 }
 
 // タイプ２：カットデータ
-bool G00CONV::Read_Type2(char* image) {
-  memset(image, 0, width * height * 4);
-
+bool G00Converter::Read_Type2(char* image) {
   int region_deal = read_little_endian_int(data + 5);
   const char* head = data + 9 + (region_deal * 24);
 
@@ -755,12 +687,12 @@ bool G00CONV::Read_Type2(char* image) {
   return true;
 }
 
-void G00CONV::Copy_32bpp(char* image,
-                         int x,
-                         int y,
-                         const char* src,
-                         int bpl,
-                         int h) {
+void G00Converter::Copy_32bpp(char* image,
+                              int x,
+                              int y,
+                              const char* src,
+                              int bpl,
+                              int h) {
   int i;
   int* dest = (int*)(image + x * 4 + y * 4 * width);
   int w = bpl / 4;
@@ -777,7 +709,7 @@ void G00CONV::Copy_32bpp(char* image,
   }
 }
 
-void GRPCONV::CopyRGBA_rev(char* image, const char* buf) {
+void IConverter::CopyRGBA_rev(char* image, const char* buf) {
   int mask = is_mask ? 0 : 0xff000000;
   /* 色変換を行う */
   int len = width * height;
@@ -793,7 +725,7 @@ void GRPCONV::CopyRGBA_rev(char* image, const char* buf) {
   return;
 }
 
-void GRPCONV::CopyRGBA(char* image, const char* buf) {
+void IConverter::CopyRGBA(char* image, const char* buf) {
   if (!is_mask) {
     CopyRGB(image, buf);
     return;
@@ -809,7 +741,7 @@ void GRPCONV::CopyRGBA(char* image, const char* buf) {
   return;
 }
 
-void GRPCONV::CopyRGB(char* image, const char* buf) {
+void IConverter::CopyRGB(char* image, const char* buf) {
   /* 色変換を行う */
   int len = width * height;
   int i;
@@ -823,7 +755,7 @@ void GRPCONV::CopyRGB(char* image, const char* buf) {
   return;
 }
 
-BMPCONV::BMPCONV(const char* _inbuf, int _inlen, const char* _filename) {
+BmpConverter::BmpConverter(const char* _inbuf, int _inlen) {
   /* データから情報読み込み */
   int w = read_little_endian_int(_inbuf + 0x12);
   int h = read_little_endian_int(_inbuf + 0x16);
@@ -831,11 +763,11 @@ BMPCONV::BMPCONV(const char* _inbuf, int _inlen, const char* _filename) {
     h = -h;
   int bpp = read_little_endian_short(_inbuf + 0x1c);
   //	int comp = read_little_endian_int(_inbuf + 0x1e);
-  Init(filename, _inbuf, _inlen, w, h, bpp == 32 ? true : false);
+  Init(_inbuf, _inlen, w, h, bpp == 32 ? true : false);
   return;
 }
 
-bool BMPCONV::Read(char* image) {
+bool BmpConverter::Read(char* image) {
   if (data == 0)
     return false;
 

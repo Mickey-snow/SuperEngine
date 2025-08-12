@@ -67,8 +67,8 @@ void saveRGBAasPPM(std::ostream& os,
 // ------------------------------------------------------------------------------
 
 ImageDecoder::ImageDecoder(std::string_view sv) {
-  std::unique_ptr<GRPCONV> conv(
-      GRPCONV::AssignConverter(sv.data(), sv.size(), "???"));
+  std::unique_ptr<IConverter> conv =
+      IConverter::CreateConverter(sv.data(), sv.size());
   if (!conv)
     throw std::runtime_error("Failure at creating GRPCONV.");
 
@@ -78,7 +78,7 @@ ImageDecoder::ImageDecoder(std::string_view sv) {
 
   if (!conv->region_table.empty()) {
     region_table.reserve(conv->region_table.size());
-    auto xclannadRegionConverter = [](const GRPCONV::REGION& region) {
+    auto xclannadRegionConverter = [](const IConverter::Region& region) {
       return GrpRect{.rect = Rect(Point(region.x1, region.y1),
                                   Point(region.x2 + 1, region.y2 + 1)),
                      .originX = region.origin_x,

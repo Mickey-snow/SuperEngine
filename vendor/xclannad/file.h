@@ -18,27 +18,20 @@
  *
  */
 
-#ifndef __KANON_FILE_H__
-#define __KANON_FILE_H__
+#pragma once
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-
+#include <memory>
 #include <vector>
 
-#define INT_SIZE 4
-
-class ARCINFO {
+class ArchiveInfo {
  public:
   /* dest は256byte 程度の余裕があること */
   static void Extract2k(char*& dest, char*& src, char* destend, char* srcend);
 };
 
-class GRPCONV {
+class IConverter {
  public:
-  struct REGION {
+  struct Region {
     int x1, y1, x2, y2;
     int origin_x, origin_y;
     int Width() { return x2 - x1; }
@@ -62,41 +55,32 @@ class GRPCONV {
         y2 = y1;
     }
 
-    bool operator<(const REGION& rhs) const;
+    bool operator<(const Region& rhs) const;
   };
 
-  std::vector<REGION> region_table;
+  std::vector<Region> region_table;
 
   int width;
   int height;
   bool is_mask;
 
-  const char* filename;
-  const char* data;
+  const char* data = nullptr;
   int datalen;
 
-  int Width(void) { return width; }
-  int Height(void) { return height; }
-  bool IsMask(void) { return is_mask; }
+  int Width() { return width; }
+  int Height() { return height; }
+  bool IsMask() { return is_mask; }
 
-  GRPCONV(void);
-  virtual ~GRPCONV();
-  void Init(const char* fname,
-            const char* data,
-            int dlen,
-            int width,
-            int height,
-            bool is_mask);
+  IConverter();
+  virtual ~IConverter() = default;
+  void Init(const char* data, int dlen, int width, int height, bool is_mask);
 
   virtual bool Read(char* image) = 0;
-  static GRPCONV* AssignConverter(const char* inbuf,
-                                  int inlen,
-                                  const char* fname);
+  static std::unique_ptr<IConverter> CreateConverter(const char* inbuf,
+                                                     int inlen);
 
   void CopyRGBA(char* image, const char* from);
   void CopyRGB(char* image, const char* from);
   void CopyRGBA_rev(char* image, const char* from);
   void CopyRGB_rev(char* image, const char* from);
 };
-
-#endif  // !defined(__KANON_FILE_H__)
