@@ -80,3 +80,4 @@ target_include_directories(utf8cpp INTERFACE
 file(GLOB XCLANNAD_SRC_FILES "xclannad/*.cc" "xclannad/*.cpp")
 add_library(xclannad STATIC ${XCLANNAD_SRC_FILES})
 target_link_libraries(xclannad PUBLIC sdl_mixer)
+target_link_libraries(xclannad PRIVATE JPEG::JPEG)

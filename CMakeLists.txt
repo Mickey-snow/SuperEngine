@@ -109,6 +109,18 @@ else()
 endif()
 
 # -------------------------------------------------------------------
+# Find JPEG Library
+# -------------------------------------------------------------------
+find_package(JPEG REQUIRED)
+
+if (JPEG_FOUND)
+  message(STATUS "libjpeg found")
+  include_directories(${JPEG_INCLUDE_DIR})
+else()
+  message(FATAL_ERROR "libjpeg not found. Please install libjpeg (or libjpeg-turbo) development libraries.")
+endif()
+
+# -------------------------------------------------------------------
 # Find Vorbis Library
 # -------------------------------------------------------------------
 find_package(VorbisFile REQUIRED)
