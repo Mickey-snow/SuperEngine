@@ -42,9 +42,9 @@ class RLMachine;
 class ParameterManager;
 
 // Pure abstract interface for object mutators.
-class ObjectMutator {
+class IObjectMutator {
  public:
-  virtual ~ObjectMutator() = default;
+  virtual ~IObjectMutator() = default;
 
   virtual int repr() const = 0;
   virtual const std::string& name() const = 0;
@@ -60,13 +60,13 @@ class ObjectMutator {
   virtual void SetToEnd(ParameterManager& param) = 0;
 
   // Builds a copy of the ObjectMutator. Used during object promotion.
-  virtual std::unique_ptr<ObjectMutator> Clone() const = 0;
+  virtual std::unique_ptr<IObjectMutator> Clone() const = 0;
 };
 
 // -----------------------------------------------------------------------
 
 // An object mutator that takes a single integer.
-class OneIntObjectMutator : public ObjectMutator {
+class OneIntObjectMutator : public IObjectMutator {
  public:
   using Setter = std::function<void(ParameterManager&, int)>;
 
@@ -115,7 +115,7 @@ class OneIntObjectMutator : public ObjectMutator {
     std::invoke(setter_, param, endval_);
   }
 
-  virtual std::unique_ptr<ObjectMutator> Clone() const override {
+  virtual std::unique_ptr<IObjectMutator> Clone() const override {
     return std::make_unique<OneIntObjectMutator>(*this);
   }
 
@@ -155,7 +155,7 @@ class OneIntObjectMutator : public ObjectMutator {
 // -----------------------------------------------------------------------
 
 // An object mutator that takes a repno and an integer.
-class RepnoIntObjectMutator : public ObjectMutator {
+class RepnoIntObjectMutator : public IObjectMutator {
  public:
   using Setter = std::function<void(ParameterManager&, int, int)>;
 
@@ -206,7 +206,7 @@ class RepnoIntObjectMutator : public ObjectMutator {
     std::invoke(setter_, param, repno_, endval_);
   }
 
-  virtual std::unique_ptr<ObjectMutator> Clone() const override {
+  virtual std::unique_ptr<IObjectMutator> Clone() const override {
     return std::make_unique<RepnoIntObjectMutator>(*this);
   }
 
@@ -247,7 +247,7 @@ class RepnoIntObjectMutator : public ObjectMutator {
 // -----------------------------------------------------------------------
 
 // An object mutator that varies two integers.
-class TwoIntObjectMutator : public ObjectMutator {
+class TwoIntObjectMutator : public IObjectMutator {
  public:
   using Setter = std::function<void(ParameterManager&, int)>;
 
@@ -303,7 +303,7 @@ class TwoIntObjectMutator : public ObjectMutator {
     std::invoke(setter_two_, param, endval_two_);
   }
 
-  virtual std::unique_ptr<ObjectMutator> Clone() const override {
+  virtual std::unique_ptr<IObjectMutator> Clone() const override {
     return std::make_unique<TwoIntObjectMutator>(*this);
   }
 
@@ -349,7 +349,7 @@ class TwoIntObjectMutator : public ObjectMutator {
 
 // -----------------------------------------------------------------------
 
-class AdjustMutator : public ObjectMutator {
+class AdjustMutator : public IObjectMutator {
  public:
   AdjustMutator(RLMachine& machine,
                 int repno,
@@ -402,7 +402,7 @@ class AdjustMutator : public ObjectMutator {
     param.SetYAdjustment(repno_, end_y_);
   }
 
-  virtual std::unique_ptr<ObjectMutator> Clone() const override {
+  virtual std::unique_ptr<IObjectMutator> Clone() const override {
     return std::make_unique<AdjustMutator>(*this);
   }
 
@@ -446,7 +446,7 @@ class AdjustMutator : public ObjectMutator {
 
 // -----------------------------------------------------------------------
 
-class DisplayMutator : public ObjectMutator {
+class DisplayMutator : public IObjectMutator {
  public:
   DisplayMutator(ParameterManager& param,
                  int creation_time,
@@ -573,7 +573,7 @@ class DisplayMutator : public ObjectMutator {
     }
   }
 
-  virtual std::unique_ptr<ObjectMutator> Clone() const override {
+  virtual std::unique_ptr<IObjectMutator> Clone() const override {
     return std::make_unique<DisplayMutator>(*this);
   }
 

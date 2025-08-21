@@ -77,9 +77,9 @@ void Op_ObjectMutatorInt::operator()(RLMachine& machine,
   GraphicsObject& obj = GetGraphicsObject(machine, this, object);
 
   int startval = std::invoke(getter_, obj.Param());
-  obj.AddObjectMutator(std::unique_ptr<ObjectMutator>(
-      new OneIntObjectMutator(name_, creation_time, duration_time, delay, type,
-                              startval, endval, setter_)));
+  obj.AddObjectMutator(std::make_unique<OneIntObjectMutator>(
+      name_, creation_time, duration_time, delay, type, startval, endval,
+      setter_));
 }
 
 // -----------------------------------------------------------------------
@@ -102,9 +102,9 @@ void Op_ObjectMutatorRepnoInt::operator()(RLMachine& machine,
   GraphicsObject& obj = GetGraphicsObject(machine, this, object);
 
   int startval = std::invoke(getter_, obj.Param(), repno);
-  obj.AddObjectMutator(std::unique_ptr<ObjectMutator>(
-      new RepnoIntObjectMutator(name_, creation_time, duration_time, delay,
-                                type, repno, startval, endval, setter_)));
+  obj.AddObjectMutator(std::make_unique<RepnoIntObjectMutator>(
+      name_, creation_time, duration_time, delay, type, repno, startval, endval,
+      setter_));
 }
 
 // -----------------------------------------------------------------------
@@ -134,9 +134,9 @@ void Op_ObjectMutatorIntInt::operator()(RLMachine& machine,
   int startval_one = std::invoke(getter_one_, obj.Param());
   int startval_two = std::invoke(getter_two_, obj.Param());
 
-  obj.AddObjectMutator(std::unique_ptr<ObjectMutator>(new TwoIntObjectMutator(
+  obj.AddObjectMutator(std::make_unique<TwoIntObjectMutator>(
       name_, creation_time, duration_time, delay, type, startval_one,
-      endval_one, setter_one_, startval_two, endval_two, setter_two_)));
+      endval_one, setter_one_, startval_two, endval_two, setter_two_));
 }
 
 // -----------------------------------------------------------------------

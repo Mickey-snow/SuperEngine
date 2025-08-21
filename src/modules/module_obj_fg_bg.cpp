@@ -309,7 +309,7 @@ class objEveAdjust : public RLOpcode<IntConstant_T,
     int start_x = object.Param().x_adjustment(repno);
     int start_y = object.Param().y_adjustment(repno);
 
-    object.AddObjectMutator(std::unique_ptr<ObjectMutator>(
+    object.AddObjectMutator(std::unique_ptr<IObjectMutator>(
         new AdjustMutator(machine, repno, creation_time, duration_time, delay,
                           type, start_x, x, start_y, y)));
   }

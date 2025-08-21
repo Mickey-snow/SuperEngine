@@ -122,10 +122,10 @@ GraphicsObjectData& GraphicsObject::GetObjectData() {
     throw rlvm::Exception("null object data");
   }
 }
-void GraphicsObject::AddObjectMutator(std::unique_ptr<ObjectMutator> mutator) {
+void GraphicsObject::AddObjectMutator(std::unique_ptr<IObjectMutator> mutator) {
   // If there's a currently running mutator that matches the incoming mutator,
   // we ignore the incoming mutator. Kud Wafter's ED relies on this behavior.
-  for (std::unique_ptr<ObjectMutator>& mutator_ptr : object_mutators_) {
+  for (std::unique_ptr<IObjectMutator>& mutator_ptr : object_mutators_) {
     if (mutator_ptr->OperationMatches(mutator->repr(), mutator->name())) {
       return;
     }
@@ -149,7 +149,7 @@ void GraphicsObject::EndObjectMutatorMatching(RLMachine& machine,
                                               const std::string& name,
                                               int speedup) {
   if (speedup == 0) {
-    std::vector<std::unique_ptr<ObjectMutator>>::iterator it =
+    std::vector<std::unique_ptr<IObjectMutator>>::iterator it =
         object_mutators_.begin();
     while (it != object_mutators_.end()) {
       if ((*it)->OperationMatches(repno, name)) {
@@ -220,7 +220,7 @@ void GraphicsObject::Execute(RLMachine& machine) {
   }
 
   // Run each mutator. If it returns true, remove it.
-  std::vector<std::unique_ptr<ObjectMutator>>::iterator it =
+  std::vector<std::unique_ptr<IObjectMutator>>::iterator it =
       object_mutators_.begin();
   while (it != object_mutators_.end()) {
     if ((**it)(machine, *this)) {

@@ -42,7 +42,7 @@
 class RLMachine;
 class GraphicsObjectSlot;
 class GraphicsObjectData;
-class ObjectMutator;
+class IObjectMutator;
 
 // Describes an graphical object on the screen.
 class GraphicsObject {
@@ -92,7 +92,7 @@ class GraphicsObject {
 
   // Adds a mutator to the list of active mutators. GraphicsSystem takes
   // ownership of the passed in object.
-  void AddObjectMutator(std::unique_ptr<ObjectMutator> mutator);
+  void AddObjectMutator(std::unique_ptr<IObjectMutator> mutator);
 
   // Returns true if a mutator matching the following parameters is currently
   // running.
@@ -116,7 +116,7 @@ class GraphicsObject {
   //
   // I think R23 mentioned that these were called "Parameter Events" in the
   // RLMAX SDK.
-  std::vector<std::unique_ptr<ObjectMutator>> object_mutators_;
+  std::vector<std::unique_ptr<IObjectMutator>> object_mutators_;
 
   // boost::serialization support
   friend class boost::serialization::access;
