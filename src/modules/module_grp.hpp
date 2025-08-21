@@ -39,7 +39,8 @@ class GrpModule : public MappedRLModule {
 
 // An adapter for MappedRLModules that records the incoming command into the
 // graphics stack.
-RLOperation* GraphicsStackMappingFun(RLOperation* op);
+std::shared_ptr<RLOperation> GraphicsStackMappingFun(
+    std::unique_ptr<RLOperation> op);
 
 // -----------------------------------------------------------------------
 

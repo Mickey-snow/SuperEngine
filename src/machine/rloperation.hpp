@@ -94,7 +94,7 @@ class RLOperation {
   RLOperation();
   virtual ~RLOperation();
 
-  void SetName(const std::string& name) { name_ = name; }
+  void SetName(std::string name) { name_.swap(name); }
   const std::string& Name() const { return name_; }
 
   void SetProperty(int property, int value);

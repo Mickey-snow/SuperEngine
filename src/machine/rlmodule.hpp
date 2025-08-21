@@ -91,22 +91,28 @@ class RLModule {
   // operations the module handles. Takes ownership |op|.
   virtual void AddOpcode(int opcode,
                          unsigned char overload,
-                         const std::string& name,
+                         const char* name,
                          RLOperation* op);
+  void AddOpcode(int opcode,
+                 unsigned char overload,
+                 std::string name,
+                 std::shared_ptr<RLOperation> op);
 
   // Adds an UndefinedFunction object to this module.
   void AddUnsupportedOpcode(int opcode,
                             unsigned char overload,
-                            const std::string& name);
+                            char const* name);
 
   // Accessor that returns this module's type number
-  int module_type() const { return module_type_; }
+  inline int module_type() const { return module_type_; }
 
   // Accessor that returns this module's identification number
-  int module_number() const { return module_number_; }
+  inline int module_number() const { return module_number_; }
 
   // Accessor that returns this module's mnemonic name
-  const std::string& module_name() const { return module_name_; }
+  inline std::string module_name() const { return module_name_; }
+
+  std::string GetDebugString() const;
 
   void SetProperty(int property, int value);
   [[deprecated]]

@@ -42,14 +42,15 @@ void ObjectModule::AddSingleObjectCommands(int base_id,
                                            NormalSetter setter) {
   string base_name = prefix_ + name;
   module_->AddOpcode(1000 + base_id, 0, base_name,
-                     new Obj_SetOneIntOnObj(setter));
+                     std::make_shared<Obj_SetOneIntOnObj>(setter));
 
   string eve_name = prefix_ + "Eve" + name;
   string base_eve_name = "objEve" + name;
   module_->AddOpcode(2000 + base_id, 0, eve_name,
-                     new Obj_SetOneIntOnObj(setter));
-  module_->AddOpcode(2000 + base_id, 1, eve_name,
-                     new Op_ObjectMutatorInt(getter, setter, base_eve_name));
+                     std::make_shared<Obj_SetOneIntOnObj>(setter));
+  module_->AddOpcode(
+      2000 + base_id, 1, eve_name,
+      std::make_shared<Op_ObjectMutatorInt>(getter, setter, base_eve_name));
 
   AddCheck(eve_name, base_eve_name, base_id);
   AddNormalFinale(eve_name, base_eve_name, base_id);
@@ -62,17 +63,19 @@ void ObjectModule::AddDoubleObjectCommands(int base_id,
                                            NormalGetter getter_two,
                                            NormalSetter setter_two) {
   string base_name = prefix_ + name;
-  module_->AddOpcode(1000 + base_id, 0, base_name,
-                     new Obj_SetTwoIntOnObj(setter_one, setter_two));
+  module_->AddOpcode(
+      1000 + base_id, 0, base_name,
+      std::make_shared<Obj_SetTwoIntOnObj>(setter_one, setter_two));
 
   string eve_name = prefix_ + "Eve" + name;
   string base_eve_name = "objEve" + name;
-  module_->AddOpcode(2000 + base_id, 0, eve_name,
-                     new Obj_SetTwoIntOnObj(setter_one, setter_two));
+  module_->AddOpcode(
+      2000 + base_id, 0, eve_name,
+      std::make_shared<Obj_SetTwoIntOnObj>(setter_one, setter_two));
   module_->AddOpcode(
       2000 + base_id, 1, eve_name,
-      new Op_ObjectMutatorIntInt(getter_one, setter_one, getter_two, setter_two,
-                                 base_eve_name));
+      std::make_shared<Op_ObjectMutatorIntInt>(
+          getter_one, setter_one, getter_two, setter_two, base_eve_name));
 
   AddCheck(eve_name, base_eve_name, base_id);
   AddNormalFinale(eve_name, base_eve_name, base_id);
@@ -84,15 +87,15 @@ void ObjectModule::AddRepnoObjectCommands(int base_id,
                                           RepnoSetter setter) {
   string base_name = prefix_ + name;
   module_->AddOpcode(1000 + base_id, 0, base_name,
-                     new Obj_SetRepnoIntOnObj(setter));
+                     std::make_shared<Obj_SetRepnoIntOnObj>(setter));
 
   string eve_name = prefix_ + "Eve" + name;
   string base_eve_name = "objEve" + name;
   module_->AddOpcode(2000 + base_id, 0, eve_name,
-                     new Obj_SetRepnoIntOnObj(setter));
-  module_->AddOpcode(
-      2000 + base_id, 1, eve_name,
-      new Op_ObjectMutatorRepnoInt(getter, setter, base_eve_name));
+                     std::make_shared<Obj_SetRepnoIntOnObj>(setter));
+  module_->AddOpcode(2000 + base_id, 1, eve_name,
+                     std::make_shared<Op_ObjectMutatorRepnoInt>(getter, setter,
+                                                                base_eve_name));
 
   AddCheck(eve_name, base_eve_name, base_id);
   AddRepnoFinale(eve_name, base_eve_name, base_id);
@@ -103,7 +106,7 @@ void ObjectModule::AddCheck(const std::string& eve_name,
                             int base_id) {
   string check_name = eve_name + "Check";
   module_->AddOpcode(3000 + base_id, 0, check_name,
-                     new Op_MutatorCheck(base_eve_name));
+                     std::make_shared<Op_MutatorCheck>(base_eve_name));
 }
 
 void ObjectModule::AddNormalFinale(const std::string& eve_name,
@@ -111,15 +114,16 @@ void ObjectModule::AddNormalFinale(const std::string& eve_name,
                                    int base_id) {
   string wait_name = eve_name + "Wait";
   module_->AddOpcode(4000 + base_id, 0, wait_name,
-                     new Op_MutatorWaitNormal(base_eve_name));
+                     std::make_shared<Op_MutatorWaitNormal>(base_eve_name));
 
   string waitc_name = eve_name + "WaitC";
   module_->AddOpcode(5000 + base_id, 0, waitc_name,
-                     new Op_MutatorWaitCNormal(base_eve_name));
+                     std::make_shared<Op_MutatorWaitCNormal>(base_eve_name));
 
   string end_name = eve_name + "End";
-  module_->AddOpcode(6000 + base_id, 0, end_name,
-                     new Op_EndObjectMutation_Normal(base_eve_name));
+  module_->AddOpcode(
+      6000 + base_id, 0, end_name,
+      std::make_shared<Op_EndObjectMutation_Normal>(base_eve_name));
 }
 
 void ObjectModule::AddRepnoFinale(const std::string& eve_name,
@@ -127,13 +131,14 @@ void ObjectModule::AddRepnoFinale(const std::string& eve_name,
                                   int base_id) {
   string wait_name = eve_name + "Wait";
   module_->AddOpcode(4000 + base_id, 0, wait_name,
-                     new Op_MutatorWaitRepNo(base_eve_name));
+                     std::make_shared<Op_MutatorWaitRepNo>(base_eve_name));
 
   string waitc_name = eve_name + "WaitC";
   module_->AddOpcode(5000 + base_id, 0, waitc_name,
-                     new Op_MutatorWaitCRepNo(base_eve_name));
+                     std::make_shared<Op_MutatorWaitCRepNo>(base_eve_name));
 
   string end_name = eve_name + "End";
-  module_->AddOpcode(6000 + base_id, 0, end_name,
-                     new Op_EndObjectMutation_RepNo(base_eve_name));
+  module_->AddOpcode(
+      6000 + base_id, 0, end_name,
+      std::make_shared<Op_EndObjectMutation_RepNo>(base_eve_name));
 }

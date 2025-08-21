@@ -87,12 +87,12 @@ class ObjectModule {
 template <typename first, typename second>
 void ObjectModule::AddCustomRepno(int base_id, const std::string& name) {
   std::string base_name = prefix_ + name;
-  module_->AddOpcode(1000 + base_id, 0, base_name, new first);
+  module_->AddOpcode(1000 + base_id, 0, base_name, std::make_shared<first>());
 
   std::string eve_name = prefix_ + "Eve" + name;
   std::string base_eve_name = "objEve" + name;
-  module_->AddOpcode(2000 + base_id, 0, eve_name, new first);
-  module_->AddOpcode(2000 + base_id, 1, eve_name, new second);
+  module_->AddOpcode(2000 + base_id, 0, eve_name, std::make_shared<first>());
+  module_->AddOpcode(2000 + base_id, 1, eve_name, std::make_shared<second>());
 
   AddCheck(eve_name, base_eve_name, base_id);
   AddRepnoFinale(eve_name, base_eve_name, base_id);

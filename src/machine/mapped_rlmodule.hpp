@@ -36,10 +36,11 @@
 // mapping function.
 class MappedRLModule : public RLModule {
  public:
-  typedef std::function<RLOperation*(RLOperation* op)> MappingFunction;
+  using MappingFunction =
+      std::function<std::shared_ptr<RLOperation>(std::unique_ptr<RLOperation>)>;
 
  protected:
-  MappedRLModule(const MappingFunction& fun,
+  MappedRLModule(MappingFunction fun,
                  const std::string& in_module_name,
                  int in_module_type,
                  int in_module_number);
@@ -49,7 +50,7 @@ class MappedRLModule : public RLModule {
   // of |op|.
   virtual void AddOpcode(int opcode,
                          unsigned char overload,
-                         const std::string& name,
+                         char const* name,
                          RLOperation* op) override;
 
  private:

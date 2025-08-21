@@ -60,8 +60,7 @@ LazyArray<GraphicsObject>& GetGraphicsObjects(RLMachine& machine,
 // defined operations.
 class ObjRangeAdapter : public RLOp_SpecialCase {
  public:
-  explicit ObjRangeAdapter(RLOperation* in);
-  virtual ~ObjRangeAdapter();
+  explicit ObjRangeAdapter(std::unique_ptr<RLOperation> in);
 
   virtual void operator()(RLMachine& machine,
                           const libreallive::CommandElement& ff) final;
@@ -75,7 +74,7 @@ class ObjRangeAdapter : public RLOp_SpecialCase {
 //
 // The wrapper takes ownership of the incoming op pointer, and the
 // caller takes ownership of the resultant RLOperation.
-RLOperation* RangeMappingFun(RLOperation* op);
+std::shared_ptr<RLOperation> RangeMappingFun(std::unique_ptr<RLOperation> op);
 
 // -----------------------------------------------------------------------
 
@@ -83,7 +82,7 @@ RLOperation* RangeMappingFun(RLOperation* op);
 // an object's child objects.
 class ChildObjAdapter : public RLOp_SpecialCase {
  public:
-  explicit ChildObjAdapter(RLOperation* in);
+  explicit ChildObjAdapter(std::unique_ptr<RLOperation> in);
   virtual ~ChildObjAdapter();
 
   virtual void operator()(RLMachine& machine,
@@ -93,14 +92,15 @@ class ChildObjAdapter : public RLOp_SpecialCase {
   std::unique_ptr<RLOperation> handler;
 };
 
-RLOperation* ChildObjMappingFun(RLOperation* op);
+std::shared_ptr<RLOperation> ChildObjMappingFun(
+    std::unique_ptr<RLOperation> op);
 
 // -----------------------------------------------------------------------
 
 // An adapter that ranges over children of a certain parent object.
 class ChildObjRangeAdapter : public RLOp_SpecialCase {
  public:
-  explicit ChildObjRangeAdapter(RLOperation* in);
+  explicit ChildObjRangeAdapter(std::unique_ptr<RLOperation> in);
   virtual ~ChildObjRangeAdapter();
 
   virtual void operator()(RLMachine& machine,
@@ -113,7 +113,8 @@ class ChildObjRangeAdapter : public RLOp_SpecialCase {
 // The combo form of rangeMappingFun and childObjMappingFun. Used for
 // operations that start with (parent object num, first child num, last child
 // num).
-RLOperation* ChildRangeMappingFun(RLOperation* op);
+std::shared_ptr<RLOperation> ChildRangeMappingFun(
+    std::unique_ptr<RLOperation> op);
 
 // -----------------------------------------------------------------------
 

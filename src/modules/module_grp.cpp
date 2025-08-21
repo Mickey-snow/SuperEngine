@@ -1134,7 +1134,8 @@ struct multi_dc_0
 // stack"
 class GrpStackAdapter : public RLOp_SpecialCase {
  public:
-  explicit GrpStackAdapter(RLOperation* in) : operation(in) {}
+  explicit GrpStackAdapter(std::unique_ptr<RLOperation> in)
+      : operation(std::move(in)) {}
 
   void operator()(RLMachine& machine, const libreallive::CommandElement& ff) {
     operation->DispatchFunction(machine, ff);
@@ -1150,8 +1151,9 @@ class GrpStackAdapter : public RLOp_SpecialCase {
 
 }  // namespace
 
-RLOperation* GraphicsStackMappingFun(RLOperation* op) {
-  return new GrpStackAdapter(op);
+std::shared_ptr<RLOperation> GraphicsStackMappingFun(
+    std::unique_ptr<RLOperation> op) {
+  return std::make_shared<GrpStackAdapter>(std::move(op));
 }
 
 GrpModule::GrpModule() : MappedRLModule(GraphicsStackMappingFun, "Grp", 1, 33) {

@@ -27,17 +27,16 @@
 
 #include "machine/rlmodule.hpp"
 
-#include <iomanip>
-#include <iostream>
-#include <sstream>
-#include <string>
-#include <utility>
-#include <vector>
-
 #include "libreallive/parser.hpp"
 #include "machine/general_operations.hpp"
 #include "machine/rloperation.hpp"
 #include "utilities/exception.hpp"
+
+#include <format>
+#include <ostream>
+#include <string>
+#include <utility>
+#include <vector>
 
 // -----------------------------------------------------------------------
 // RLMoudle
@@ -55,27 +54,32 @@ RLModule::~RLModule() {}
 
 void RLModule::AddOpcode(int opcode,
                          unsigned char overload,
-                         const std::string& name,
-                         RLOperation* op) {
+                         std::string name,
+                         std::shared_ptr<RLOperation> op) {
   op->SetName(name);
 
   auto emplace_result = stored_operations_.try_emplace(
-      std::make_pair(opcode, static_cast<int>(overload)),
-      std::shared_ptr<RLOperation>(op));
+      std::make_pair(opcode, static_cast<int>(overload)), op);
   if (!emplace_result.second) {
-    std::ostringstream oss;
-    oss << "Duplicate opcode in " << *this << ": opcode " << opcode << ", "
-        << int(overload);
-    throw std::invalid_argument(oss.str());
+    throw std::invalid_argument(
+        std::format("Duplicate opcode in {}: opcode {},{}", GetDebugString(),
+                    opcode, overload));
   }
+}
+void RLModule::AddOpcode(int opcode,
+                         unsigned char overload,
+                         char const* name,
+                         RLOperation* op) {
+  AddOpcode(opcode, overload, std::string(name),
+            std::shared_ptr<RLOperation>(op));
 }
 
 void RLModule::AddUnsupportedOpcode(int opcode,
                                     unsigned char overload,
-                                    const std::string& name) {
+                                    char const* name) {
   AddOpcode(opcode, overload, name,
-            new UndefinedFunction(module_type_, module_number_, opcode,
-                                  (int)overload));
+            std::make_shared<UndefinedFunction>(module_type_, module_number_,
+                                                opcode, (int)overload));
 }
 
 void RLModule::SetProperty(int property, int value) {
@@ -110,8 +114,11 @@ RLModule::GetStoredOperations() const {
   return stored_operations_;
 }
 
-std::ostream& operator<<(std::ostream& os, const RLModule& module) {
-  os << "mod<" << module.module_name() << "," << module.module_type() << ":"
-     << module.module_number() << ">";
-  return os;
+std::string RLModule::GetDebugString() const {
+  return std::format("mod<{},{}:{}>", module_name(), module_type(),
+                     module_number());
+}
+
+std::ostream& operator<<(std::ostream& os, const RLModule& mod) {
+  return os << mod.GetDebugString();
 }

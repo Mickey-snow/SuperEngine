@@ -34,18 +34,19 @@
 // -----------------------------------------------------------------------
 // MappedRLModule
 // -----------------------------------------------------------------------
-MappedRLModule::MappedRLModule(const MappingFunction& fun,
+MappedRLModule::MappedRLModule(MappingFunction fun,
                                const std::string& in_module_name,
                                int in_module_type,
                                int in_module_number)
     : RLModule(in_module_name, in_module_type, in_module_number),
-      map_function_(fun) {}
+      map_function_(std::move(fun)) {}
 
 MappedRLModule::~MappedRLModule() {}
 
 void MappedRLModule::AddOpcode(int opcode,
                                unsigned char overload,
-                               const std::string& name,
+                               char const* name,
                                RLOperation* op) {
-  RLModule::AddOpcode(opcode, overload, name, map_function_(op));
+  RLModule::AddOpcode(opcode, overload, name,
+                      map_function_(std::unique_ptr<RLOperation>(op)));
 }

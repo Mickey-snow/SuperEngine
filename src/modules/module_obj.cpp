@@ -91,9 +91,8 @@ LazyArray<GraphicsObject>& GetGraphicsObjects(RLMachine& machine,
 
 // -----------------------------------------------------------------------
 
-ObjRangeAdapter::ObjRangeAdapter(RLOperation* in) : handler(in) {}
-
-ObjRangeAdapter::~ObjRangeAdapter() {}
+ObjRangeAdapter::ObjRangeAdapter(std::unique_ptr<RLOperation> in)
+    : handler(std::move(in)) {}
 
 void ObjRangeAdapter::operator()(RLMachine& machine,
                                  const libreallive::CommandElement& ff) {
@@ -131,15 +130,16 @@ void ObjRangeAdapter::operator()(RLMachine& machine,
   }
 }
 
-RLOperation* RangeMappingFun(RLOperation* op) {
-  return new ObjRangeAdapter(op);
+std::shared_ptr<RLOperation> RangeMappingFun(std::unique_ptr<RLOperation> op) {
+  return std::make_shared<ObjRangeAdapter>(std::move(op));
 }
 
 // -----------------------------------------------------------------------
 // ChildObjAdapter
 // -----------------------------------------------------------------------
 
-ChildObjAdapter::ChildObjAdapter(RLOperation* in) : handler(in) {}
+ChildObjAdapter::ChildObjAdapter(std::unique_ptr<RLOperation> in)
+    : handler(std::move(in)) {}
 
 ChildObjAdapter::~ChildObjAdapter() {}
 
@@ -165,15 +165,17 @@ void ChildObjAdapter::operator()(RLMachine& machine,
   handler->Dispatch(machine, currentInstantiation);
 }
 
-RLOperation* ChildObjMappingFun(RLOperation* op) {
-  return new ChildObjAdapter(op);
+std::shared_ptr<RLOperation> ChildObjMappingFun(
+    std::unique_ptr<RLOperation> op) {
+  return std::make_shared<ChildObjAdapter>(std::move(op));
 }
 
 // -----------------------------------------------------------------------
 // ChildObjRangeAdapter
 // -----------------------------------------------------------------------
 
-ChildObjRangeAdapter::ChildObjRangeAdapter(RLOperation* in) : handler(in) {}
+ChildObjRangeAdapter::ChildObjRangeAdapter(std::unique_ptr<RLOperation> in)
+    : handler(std::move(in)) {}
 
 ChildObjRangeAdapter::~ChildObjRangeAdapter() {}
 
@@ -220,8 +222,9 @@ void ChildObjRangeAdapter::operator()(RLMachine& machine,
   }
 }
 
-RLOperation* ChildRangeMappingFun(RLOperation* op) {
-  return new ChildObjRangeAdapter(op);
+std::shared_ptr<RLOperation> ChildRangeMappingFun(
+    std::unique_ptr<RLOperation> op) {
+  return std::make_shared<ChildObjRangeAdapter>(std::move(op));
 }
 
 // -----------------------------------------------------------------------
