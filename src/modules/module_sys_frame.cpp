@@ -67,7 +67,7 @@ struct ReadFrame : public RLStoreOpcode<IntConstant_T> {
     if (!fc)
       return 0;
 
-    return fc->ReadFrame();
+    return static_cast<int>(fc->ReadFrame());
   }
 };
 
@@ -156,7 +156,7 @@ struct ReadFrames : public RLStoreOpcode<Argc_T<FrameDataInReadFrames>> {
       int counter = get<0>(frame);
 
       if (auto fc = machine.GetEnvironment().GetFrameCounter(layer_, counter)) {
-        int val = fc->ReadFrame();
+        auto val = static_cast<int>(fc->ReadFrame());
         *(get<1>(frame)) = val;
 
         if (fc->IsActive())

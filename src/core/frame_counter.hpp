@@ -47,21 +47,22 @@ class FrameCounter {
 
   virtual ~FrameCounter();
 
-  // Returns the current (integer) frame value
-  virtual int ReadFrame() = 0;
+  // Returns the current frame value
+  virtual float ReadFrame() = 0;
 
-  void SetFrame(int value) { value_ = static_cast<float>(value); }
+  inline void SetFrame(int value) { value_ = static_cast<float>(value); }
 
   // Start or stop the timer
-  void BeginTimer();
+  void BeginTimer(
+      std::chrono::milliseconds delay = std::chrono::milliseconds(0));
   void EndTimer();
 
-  bool IsActive() {
+  inline bool IsActive() {
     // Sometimes we call ReadFrame() internally to see if we've ended
     // but it's up to derived classes to end themselves or not.
     return is_active_;
   }
-  void SetActive(bool active) { is_active_ = active; }
+  inline void SetActive(bool active) { is_active_ = active; }
 
  protected:
   // Computes an un-clamped fraction of how far along we are, i.e.
@@ -77,7 +78,7 @@ class FrameCounter {
   // Data members
   std::shared_ptr<Clock> clock_;
 
-  float value_;  // current float value, cast to int on return
+  float value_;
   int min_value_;
   int max_value_;
   bool is_active_;
@@ -94,7 +95,7 @@ class SimpleFrameCounter : public FrameCounter {
                      int milliseconds)
       : FrameCounter(clock, frame_min, frame_max, milliseconds) {}
 
-  virtual int ReadFrame() override;
+  virtual float ReadFrame() override;
 };
 
 class LoopFrameCounter : public FrameCounter {
@@ -105,7 +106,7 @@ class LoopFrameCounter : public FrameCounter {
                    int milliseconds)
       : FrameCounter(clock, frame_min, frame_max, milliseconds) {}
 
-  virtual int ReadFrame() override;
+  virtual float ReadFrame() override;
 };
 
 class TurnFrameCounter : public FrameCounter {
@@ -116,7 +117,7 @@ class TurnFrameCounter : public FrameCounter {
                    int milliseconds)
       : FrameCounter(clock, frame_min, frame_max, milliseconds) {}
 
-  virtual int ReadFrame() override;
+  virtual float ReadFrame() override;
 };
 
 class AcceleratingFrameCounter : public FrameCounter {
@@ -127,7 +128,7 @@ class AcceleratingFrameCounter : public FrameCounter {
                            int milliseconds)
       : FrameCounter(clock, frame_min, frame_max, milliseconds) {}
 
-  virtual int ReadFrame() override;
+  virtual float ReadFrame() override;
 };
 
 class DeceleratingFrameCounter : public FrameCounter {
@@ -138,5 +139,5 @@ class DeceleratingFrameCounter : public FrameCounter {
                            int milliseconds)
       : FrameCounter(clock, frame_min, frame_max, milliseconds) {}
 
-  virtual int ReadFrame() override;
+  virtual float ReadFrame() override;
 };

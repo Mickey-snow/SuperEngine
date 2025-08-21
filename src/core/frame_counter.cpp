@@ -43,9 +43,7 @@ FrameCounter::FrameCounter(std::shared_ptr<Clock> clock,
       max_value_(frame_max),
       is_active_(true),
       start_time_(clock_->GetTicks()),
-      total_time_(std::chrono::milliseconds(milliseconds)) {
-  BeginTimer();
-
+      total_time_(std::chrono::milliseconds(std::max(0, milliseconds))) {
   if (milliseconds == 0 || frame_min == frame_max) {
     value_ = static_cast<float>(frame_max);
     is_active_ = false;
@@ -58,8 +56,8 @@ FrameCounter::~FrameCounter() {
   }
 }
 
-void FrameCounter::BeginTimer() {
-  start_time_ = clock_->GetTicks();
+void FrameCounter::BeginTimer(std::chrono::milliseconds delay) {
+  start_time_ = clock_->GetTicks() + delay;
   is_active_ = true;
 }
 
@@ -96,7 +94,7 @@ double FrameCounter::ClampFractionToOneShot(double fraction) {
 
 // -----------------------------------------------------------------------
 // class SimpleFrameCounter
-int SimpleFrameCounter::ReadFrame() {
+float SimpleFrameCounter::ReadFrame() {
   double fraction = ComputeNormalizedTime();
 
   fraction = ClampFractionToOneShot(fraction);
@@ -104,18 +102,15 @@ int SimpleFrameCounter::ReadFrame() {
   double range = double(max_value_ - min_value_);
   double current = double(min_value_) + (fraction * range);
 
-  value_ = static_cast<float>(current);
-  return static_cast<int>(value_);
+  return value_ = static_cast<float>(current);
 }
 
 // -----------------------------------------------------------------------
 // class LoopFrameCounter
-int LoopFrameCounter::ReadFrame() {
-  if (!IsActive()) {
-    return static_cast<int>(value_);
-  }
-
+float LoopFrameCounter::ReadFrame() {
   double fraction = ComputeNormalizedTime();
+  if (!IsActive() || fraction <= 0.0)
+    return value_;
 
   double integralPart = std::floor(fraction);
   double fracPart = fraction - integralPart;
@@ -123,18 +118,15 @@ int LoopFrameCounter::ReadFrame() {
   double range = static_cast<double>(max_value_ - min_value_);
   double current = static_cast<double>(min_value_) + (fracPart * range);
 
-  value_ = static_cast<float>(current);
-  return static_cast<int>(value_);
+  return value_ = static_cast<float>(current);
 }
 
 // -----------------------------------------------------------------------
 // class TurnFrameCounter
-int TurnFrameCounter::ReadFrame() {
-  if (!IsActive()) {
-    return static_cast<int>(value_);
-  }
-
+float TurnFrameCounter::ReadFrame() {
   double fraction = ComputeNormalizedTime();
+  if (!IsActive() || fraction <= 0.0)
+    return value_;
 
   double range = static_cast<double>(max_value_ - min_value_);
   if (range == 0.0) {
@@ -150,14 +142,12 @@ int TurnFrameCounter::ReadFrame() {
 
   // wave now in [0..1], 0.0 at extremes of the cycle, 1.0 at mid.
   double current = double(min_value_) + range * wave;
-  value_ = static_cast<float>(current);
-
-  return static_cast<int>(value_);
+  return value_ = static_cast<float>(current);
 }
 
 // -----------------------------------------------------------------------
 // class AcceleratingFrameCounter
-int AcceleratingFrameCounter::ReadFrame() {
+float AcceleratingFrameCounter::ReadFrame() {
   double fraction = ComputeNormalizedTime();
   fraction = ClampFractionToOneShot(fraction);
 
@@ -166,21 +156,20 @@ int AcceleratingFrameCounter::ReadFrame() {
   double range = double(max_value_ - min_value_);
   double current = double(min_value_) + (range * accelerated);
 
-  value_ = static_cast<float>(current);
-  return static_cast<int>(value_);
+  return value_ = static_cast<float>(current);
 }
 
 // -----------------------------------------------------------------------
 // class DeceleratingFrameCounter
-int DeceleratingFrameCounter::ReadFrame() {
+float DeceleratingFrameCounter::ReadFrame() {
   double fraction = ComputeNormalizedTime();
   fraction = ClampFractionToOneShot(fraction);
 
-  double decelerated = std::sqrt(fraction);
+  fraction = 1 - fraction;
+  double decelerated = 1 - fraction * fraction;
 
   double range = double(max_value_ - min_value_);
   double current = double(min_value_) + (range * decelerated);
 
-  value_ = static_cast<float>(current);
-  return static_cast<int>(value_);
+  return value_ = static_cast<float>(current);
 }

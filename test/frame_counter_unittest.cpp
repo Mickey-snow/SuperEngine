@@ -46,20 +46,26 @@ TEST_F(FrameCounterTest, LinearProgression) {
   SimpleFrameCounter counter(clock_, /*frame_min=*/0, /*frame_max=*/10,
                              /*milliseconds=*/1000);
 
-  EXPECT_EQ(counter.ReadFrame(), 0)
+  auto delay = 100ms;
+  counter.BeginTimer(delay);
+  EXPECT_FLOAT_EQ(counter.ReadFrame(), 0)
+      << "At time=-100ms, the frame should be 0 (initial value)";
+
+  clock_->AdvanceTime(100ms);
+  EXPECT_FLOAT_EQ(counter.ReadFrame(), 0)
       << "At time=0, the frame should be 0 (initial value)";
 
   clock_->AdvanceTime(100ms);
-
-  EXPECT_EQ(counter.ReadFrame(), 1) << "after 100 ms, we expect the value to "
-                                       "be about 1.0 => integer cast is 1";
+  EXPECT_FLOAT_EQ(counter.ReadFrame(), 1)
+      << "after 100 ms, we expect the value to "
+         "be about 1.0 => integer cast is 1";
 
   clock_->AdvanceTime(400ms);
-  EXPECT_EQ(counter.ReadFrame(), 5)
+  EXPECT_FLOAT_EQ(counter.ReadFrame(), 5)
       << "total of 500 ms => half the time => ~5.0";
 
   clock_->AdvanceTime(500ms);
-  EXPECT_EQ(counter.ReadFrame(), 10);
+  EXPECT_FLOAT_EQ(counter.ReadFrame(), 10);
 
   EXPECT_FALSE(counter.IsActive());
 }
@@ -68,26 +74,31 @@ TEST_F(FrameCounterTest, LinearZeroDuration) {
   SimpleFrameCounter counter(clock_, /*frame_min=*/5, /*frame_max=*/10,
                              /*milliseconds=*/0);
 
-  EXPECT_EQ(counter.ReadFrame(), 10);
+  EXPECT_FLOAT_EQ(counter.ReadFrame(), 10);
   EXPECT_FALSE(counter.IsActive());
 }
 
 TEST_F(FrameCounterTest, SimpleFrameCounter_MinEqualsMax) {
   SimpleFrameCounter counter(clock_, 5, 5, 1000);
 
-  EXPECT_EQ(counter.ReadFrame(), 5);
+  EXPECT_FLOAT_EQ(counter.ReadFrame(), 5);
   clock_->AdvanceTime(500ms);
-  EXPECT_EQ(counter.ReadFrame(), 5);
+  EXPECT_FLOAT_EQ(counter.ReadFrame(), 5);
 }
 
 TEST_F(FrameCounterTest, BasicLoop) {
   LoopFrameCounter counter(clock_, 0, 3, 300);
 
-  EXPECT_EQ(counter.ReadFrame(), 0);
+  auto delay = 100ms;
+  counter.BeginTimer(delay);
+  EXPECT_FLOAT_EQ(counter.ReadFrame(), 0);
+
+  clock_->AdvanceTime(delay);
+  EXPECT_FLOAT_EQ(counter.ReadFrame(), 0);
   clock_->AdvanceTime(100ms);
-  EXPECT_EQ(counter.ReadFrame(), 1);
+  EXPECT_FLOAT_EQ(counter.ReadFrame(), 1);
   clock_->AdvanceTime(200ms);
-  EXPECT_EQ(counter.ReadFrame(), 0);  // should this be 3?
+  EXPECT_FLOAT_EQ(counter.ReadFrame(), 0);
 
   EXPECT_TRUE(counter.IsActive())
       << "Because it's a loop, we do not end the timer; it resets to min.";
@@ -102,43 +113,58 @@ TEST_F(FrameCounterTest, BasicLoop) {
 TEST_F(FrameCounterTest, BasicTurn) {
   TurnFrameCounter counter(clock_, 2, 5, 300);
 
-  EXPECT_EQ(counter.ReadFrame(), 2);
+  auto delay = 100ms;
+  counter.BeginTimer(delay);
+  EXPECT_FLOAT_EQ(counter.ReadFrame(), 2);
+
+  clock_->AdvanceTime(delay);
+  EXPECT_FLOAT_EQ(counter.ReadFrame(), 2);
 
   clock_->AdvanceTime(100ms);
-  EXPECT_EQ(counter.ReadFrame(), 3);
+  EXPECT_FLOAT_EQ(counter.ReadFrame(), 3);
 
   clock_->AdvanceTime(100ms);
-  EXPECT_EQ(counter.ReadFrame(), 4);
+  EXPECT_FLOAT_EQ(counter.ReadFrame(), 4);
 
   clock_->AdvanceTime(100ms);
-  EXPECT_EQ(counter.ReadFrame(), 5);
+  EXPECT_FLOAT_EQ(counter.ReadFrame(), 5);
 
   clock_->AdvanceTime(100ms);
-  EXPECT_EQ(counter.ReadFrame(), 4);
+  EXPECT_FLOAT_EQ(counter.ReadFrame(), 4);
 }
 
 TEST_F(FrameCounterTest, AcceleratingFrameCounter) {
   AcceleratingFrameCounter counter(clock_, 0, 10, 1000);
 
-  EXPECT_EQ(counter.ReadFrame(), 0);
+  auto delay = 100ms;
+  counter.BeginTimer(delay);
+  EXPECT_FLOAT_EQ(counter.ReadFrame(), 0);
+
+  clock_->AdvanceTime(delay);
+  EXPECT_FLOAT_EQ(counter.ReadFrame(), 0);
 
   clock_->AdvanceTime(500ms);
-  EXPECT_EQ(counter.ReadFrame(), 2);
+  EXPECT_FLOAT_EQ(counter.ReadFrame(), 2.5);
 
   clock_->AdvanceTime(500ms);
-  EXPECT_EQ(counter.ReadFrame(), 10);
+  EXPECT_FLOAT_EQ(counter.ReadFrame(), 10);
   EXPECT_FALSE(counter.IsActive());
 }
 
 TEST_F(FrameCounterTest, DeceleratingFrameCounter) {
   DeceleratingFrameCounter counter(clock_, 0, 10, 1000);
 
-  EXPECT_EQ(counter.ReadFrame(), 0);
+  auto delay = 100ms;
+  counter.BeginTimer(delay);
+  EXPECT_FLOAT_EQ(counter.ReadFrame(), 0);
+
+  clock_->AdvanceTime(delay);
+  EXPECT_FLOAT_EQ(counter.ReadFrame(), 0);
 
   clock_->AdvanceTime(100ms);
   EXPECT_GE(counter.ReadFrame(), 1);
 
   clock_->AdvanceTime(900ms);
-  EXPECT_EQ(counter.ReadFrame(), 10);
+  EXPECT_FLOAT_EQ(counter.ReadFrame(), 10);
   EXPECT_FALSE(counter.IsActive());
 }
