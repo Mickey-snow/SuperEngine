@@ -63,6 +63,7 @@
 #include "utilities/string_utilities.hpp"
 
 namespace {
+using namespace std::placeholders;
 
 struct dispArea_0 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int buf) {
@@ -286,7 +287,6 @@ struct objButtonOpts : public RLOpcode<IntConstant_T,
 };
 
 // -----------------------------------------------------------------------
-
 class objEveAdjust : public RLOpcode<IntConstant_T,
                                      IntConstant_T,
                                      IntConstant_T,
@@ -303,17 +303,71 @@ class objEveAdjust : public RLOpcode<IntConstant_T,
                           int duration_time,
                           int delay,
                           int type) {
-    unsigned int creation_time = machine.GetSystem().event().GetTicks();
+    std::shared_ptr<Clock> clock = machine.GetSystem().event().GetClock();
 
     GraphicsObject& object = GetGraphicsObject(machine, this, obj);
     int start_x = object.Param().x_adjustment(repno);
     int start_y = object.Param().y_adjustment(repno);
 
-    object.AddObjectMutator(std::unique_ptr<IObjectMutator>(
-        new AdjustMutator(machine, repno, creation_time, duration_time, delay,
-                          type, start_x, x, start_y, y)));
+    Mutator mutator_x{
+        .setter_ = std::bind(CreateSetter<ObjectProperty::AdjustmentOffsetsX>(),
+                             _1, repno, _2),
+        .fc_ = MakeFrameCounter(duration_time, delay, start_x, x, type, clock)};
+    Mutator mutator_y{
+        .setter_ = std::bind(CreateSetter<ObjectProperty::AdjustmentOffsetsY>(),
+                             _1, repno, _2),
+        .fc_ = MakeFrameCounter(duration_time, delay, start_y, y, type, clock)};
+    object.AddObjectMutator(std::make_unique<ObjectMutator>(ObjectMutator(
+        {std::move(mutator_x), std::move(mutator_y)}, repno, "objEveAdjust")));
   }
 };
+
+static void objEveDisplay_impl(GraphicsObject& object,
+                               std::shared_ptr<Clock> clock,
+                               int display,
+                               int duration_time,
+                               int delay,
+                               int tr_mod,
+                               int move_mod,
+                               int move_len_x,
+                               int move_len_y) {
+  ParameterManager& pm = object.Param();
+
+  int tr_start = display ? 0 : 255, tr_end = display ? 255 : 0;
+  int move_start_x = pm.x(), move_end_x = pm.x(), move_start_y = pm.y(),
+      move_end_y = pm.y();
+
+  if (display) {
+    move_start_x -= move_len_x;
+    move_start_y -= move_len_y;
+  } else {
+    move_end_x += move_len_x;
+    move_end_y += move_len_y;
+  }
+
+  pm.SetVisible(true);
+  std::vector<Mutator> mutators;
+  if (tr_mod) {
+    mutators.emplace_back(
+        Mutator{.setter_ = CreateSetter<ObjectProperty::AlphaSource>(),
+                .fc_ = MakeFrameCounter(duration_time, delay, tr_start, tr_end,
+                                        0, clock)});
+  }
+
+  if (move_mod) {
+    mutators.emplace_back(
+        Mutator{.setter_ = CreateSetter<ObjectProperty::PositionX>(),
+                .fc_ = MakeFrameCounter(duration_time, delay, move_start_x,
+                                        move_end_x, 0, clock)});
+    mutators.emplace_back(
+        Mutator{.setter_ = CreateSetter<ObjectProperty::PositionY>(),
+                .fc_ = MakeFrameCounter(duration_time, delay, move_start_y,
+                                        move_end_y, 0, clock)});
+  }
+
+  object.AddObjectMutator(std::make_unique<ObjectMutator>(
+      ObjectMutator(std::move(mutators), -1, "objEveDisplay")));
+}
 
 struct objEveDisplay_1 : public RLOpcode<IntConstant_T,
                                          IntConstant_T,
@@ -325,17 +379,18 @@ struct objEveDisplay_1 : public RLOpcode<IntConstant_T,
                   int display,
                   int duration_time,
                   int delay,
-                  int param) {
+                  int objdisp_idx) {
     Gameexe& gameexe = machine.GetSystem().gameexe();
-    const std::vector<int> disp = gameexe("OBJDISP", param).ToIntVector();
+    const std::vector<int> disp = gameexe("OBJDISP", objdisp_idx).ToIntVector();
 
     GraphicsObject& object = GetGraphicsObject(machine, this, obj);
-    unsigned int creation_time = machine.GetSystem().event().GetTicks();
-    object.AddObjectMutator(std::make_unique<DisplayMutator>(
-        object.Param(), creation_time, duration_time, delay, display,
-        disp.at(0), disp.at(1), disp.at(2), disp.at(3), disp.at(4), disp.at(5),
-        disp.at(6), disp.at(7), disp.at(8), disp.at(9), disp.at(10),
-        disp.at(11), disp.at(12), disp.at(13)));
+    std::shared_ptr<Clock> clock = machine.GetSystem().event().GetClock();
+
+    int tr_mod = disp.at(1);
+    int move_mod = disp.at(2), move_len_x = disp.at(3), move_len_y = disp.at(4);
+
+    objEveDisplay_impl(object, clock, display, duration_time, delay, tr_mod,
+                       move_mod, move_len_x, move_len_y);
   }
 };
 
@@ -359,11 +414,10 @@ struct objEveDisplay_2 : public RLOpcode<IntConstant_T,
                   int move_len_x,
                   int move_len_y) {
     GraphicsObject& object = GetGraphicsObject(machine, this, obj);
-    unsigned int creation_time = machine.GetSystem().event().GetTicks();
-    object.AddObjectMutator(std::make_unique<DisplayMutator>(
-        object.Param(), creation_time, duration_time, delay, display,
-        disp_event_mod, tr_mod, move_mod, move_len_x, move_len_y, 0, 0, 0, 0, 0,
-        0, 0, 0, 0));
+    std::shared_ptr<Clock> clock = machine.GetSystem().event().GetClock();
+
+    objEveDisplay_impl(object, clock, display, duration_time, delay, tr_mod,
+                       move_mod, move_len_x, move_len_y);
   }
 };
 
@@ -405,12 +459,10 @@ struct objEveDisplay_3 : public RLOpcode<IntConstant_T,
                   int sin_len,
                   int sin_count) {
     GraphicsObject& object = GetGraphicsObject(machine, this, obj);
-    unsigned int creation_time = machine.GetSystem().event().GetTicks();
-    object.AddObjectMutator(std::make_unique<DisplayMutator>(
-        object.Param(), creation_time, duration_time, delay, display,
-        disp_event_mod, tr_mod, move_mod, move_len_x, move_len_y, rotate_mod,
-        rotate_count, scale_x_mod, scale_x_percent, scale_y_mod,
-        scale_y_percent, sin_mod, sin_len, sin_count));
+    std::shared_ptr<Clock> clock = machine.GetSystem().event().GetClock();
+
+    objEveDisplay_impl(object, clock, display, duration_time, delay, tr_mod,
+                       move_mod, move_len_x, move_len_y);
   }
 };
 

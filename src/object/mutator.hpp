@@ -77,12 +77,14 @@ struct Mutator {
 };
 class ObjectMutator : public IObjectMutator {
   std::vector<Mutator> mutators_;
-  int repr_ = 0;
-  std::string name_ = "unknown";
+  int repr_;
+  std::string name_;
 
  public:
-  ObjectMutator(std::initializer_list<Mutator> mut = {})
-      : mutators_(std::move(mut)) {}
+  ObjectMutator(std::vector<Mutator> mut,
+                int repr = 0,
+                std::string name = "unknown")
+      : mutators_(std::move(mut)), repr_(repr), name_(std::move(name)) {}
 
   inline void SetRepr(int in) { repr_ = in; }
   inline void SetName(std::string in) { name_.swap(in); }
@@ -124,7 +126,6 @@ class ObjectMutator : public IObjectMutator {
 
 // -----------------------------------------------------------------------
 
-// An object mutator that takes a single integer.
 class OneIntObjectMutator : public IObjectMutator {
  public:
   using Setter = std::function<void(ParameterManager&, int)>;
@@ -211,9 +212,6 @@ class OneIntObjectMutator : public IObjectMutator {
   Setter setter_;
 };
 
-// -----------------------------------------------------------------------
-
-// An object mutator that takes a repno and an integer.
 class RepnoIntObjectMutator : public IObjectMutator {
  public:
   using Setter = std::function<void(ParameterManager&, int, int)>;
@@ -303,9 +301,6 @@ class RepnoIntObjectMutator : public IObjectMutator {
   Setter setter_;
 };
 
-// -----------------------------------------------------------------------
-
-// An object mutator that varies two integers.
 class TwoIntObjectMutator : public IObjectMutator {
  public:
   using Setter = std::function<void(ParameterManager&, int)>;
@@ -406,8 +401,6 @@ class TwoIntObjectMutator : public IObjectMutator {
   Setter setter_two_;
 };
 
-// -----------------------------------------------------------------------
-
 class AdjustMutator : public IObjectMutator {
  public:
   AdjustMutator(RLMachine& machine,
@@ -503,8 +496,6 @@ class AdjustMutator : public IObjectMutator {
   int end_y_;
 };
 
-// -----------------------------------------------------------------------
-
 class DisplayMutator : public IObjectMutator {
  public:
   DisplayMutator(ParameterManager& param,
@@ -512,20 +503,20 @@ class DisplayMutator : public IObjectMutator {
                  int duration_time,
                  int delay,
                  int display,
-                 int dip_event_mod,  // ignored
-                 int tr_mod,
-                 int move_mod,
-                 int move_len_x,
-                 int move_len_y,
-                 int rotate_mod,
-                 int rotate_count,
-                 int scale_x_mod,
-                 int scale_x_percent,
-                 int scale_y_mod,
-                 int scale_y_percent,
-                 int sin_mod,
-                 int sin_len,
-                 int sin_count)
+                 int dip_event_mod,    // 0, ignored
+                 int tr_mod,           // 1
+                 int move_mod,         // 2
+                 int move_len_x,       // 3
+                 int move_len_y,       // 4
+                 int rotate_mod,       // 5
+                 int rotate_count,     // 6
+                 int scale_x_mod,      // 7
+                 int scale_x_percent,  // 8
+                 int scale_y_mod,      // 9
+                 int scale_y_percent,  // 10
+                 int sin_mod,          // 11
+                 int sin_len,          // 12
+                 int sin_count)        // 13
       : repr_(-1),
         name_("objEveDisplay"),
         creation_time_(creation_time),

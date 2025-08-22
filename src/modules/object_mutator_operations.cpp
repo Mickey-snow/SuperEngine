@@ -31,12 +31,43 @@
 #include "machine/rlmachine.hpp"
 #include "modules/module_obj.hpp"
 #include "object/mutator.hpp"
+#include "object/parameter_manager.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/system.hpp"
 #include "systems/event_system.hpp"
+#include "utilities/clock.hpp"
 
+std::shared_ptr<FrameCounter> MakeFrameCounter(int duration,
+                                               int delay,
+                                               int start_val,
+                                               int end_val,
+                                               int type,
+                                               std::shared_ptr<Clock> clock) {
+  std::shared_ptr<FrameCounter> fc = nullptr;
+  switch (type) {
+    case 1:
+      fc = std::make_shared<DeceleratingFrameCounter>(clock, start_val, end_val,
+                                                      duration);
+      break;
+    case 2:
+      fc = std::make_shared<AcceleratingFrameCounter>(clock, start_val, end_val,
+                                                      duration);
+      break;
+
+    case 0:
+    default:
+      fc = std::make_shared<SimpleFrameCounter>(clock, start_val, end_val,
+                                                duration);
+      break;
+  }
+  fc->BeginTimer(std::chrono::milliseconds(delay));
+  return fc;
+}
+
+// ------------------------------------------------------------------------------
 namespace {
+using namespace std::placeholders;
 
 bool MutatorIsDone(RLMachine& machine,
                    RLOperation* op,
@@ -73,13 +104,17 @@ void Op_ObjectMutatorInt::operator()(RLMachine& machine,
                                      int duration_time,
                                      int delay,
                                      int type) {
-  unsigned int creation_time = machine.GetSystem().event().GetTicks();
+  std::shared_ptr<Clock> clock = machine.GetSystem().event().GetClock();
   GraphicsObject& obj = GetGraphicsObject(machine, this, object);
 
   int startval = std::invoke(getter_, obj.Param());
-  obj.AddObjectMutator(std::make_unique<OneIntObjectMutator>(
-      name_, creation_time, duration_time, delay, type, startval, endval,
-      setter_));
+
+  ObjectMutator mutator(
+      {Mutator{.setter_ = setter_,
+               .fc_ = MakeFrameCounter(duration_time, delay, startval, endval,
+                                       type, clock)}},
+      -1, name_);
+  obj.AddObjectMutator(std::make_unique<ObjectMutator>(std::move(mutator)));
 }
 
 // -----------------------------------------------------------------------
@@ -98,13 +133,17 @@ void Op_ObjectMutatorRepnoInt::operator()(RLMachine& machine,
                                           int duration_time,
                                           int delay,
                                           int type) {
-  unsigned int creation_time = machine.GetSystem().event().GetTicks();
+  std::shared_ptr<Clock> clock = machine.GetSystem().event().GetClock();
   GraphicsObject& obj = GetGraphicsObject(machine, this, object);
 
   int startval = std::invoke(getter_, obj.Param(), repno);
-  obj.AddObjectMutator(std::make_unique<RepnoIntObjectMutator>(
-      name_, creation_time, duration_time, delay, type, repno, startval, endval,
-      setter_));
+  ObjectMutator mutator(
+      {Mutator{.setter_ = std::bind(setter_, _1, repno, _2),
+               .fc_ = MakeFrameCounter(duration_time, delay, startval, endval,
+                                       type, clock)}},
+      repno, name_);
+
+  obj.AddObjectMutator(std::make_unique<ObjectMutator>(std::move(mutator)));
 }
 
 // -----------------------------------------------------------------------
@@ -129,14 +168,23 @@ void Op_ObjectMutatorIntInt::operator()(RLMachine& machine,
                                         int duration_time,
                                         int delay,
                                         int type) {
-  unsigned int creation_time = machine.GetSystem().event().GetTicks();
+  std::shared_ptr<Clock> clock = machine.GetSystem().event().GetClock();
   GraphicsObject& obj = GetGraphicsObject(machine, this, object);
-  int startval_one = std::invoke(getter_one_, obj.Param());
-  int startval_two = std::invoke(getter_two_, obj.Param());
+  ParameterManager& pm = obj.Param();
 
-  obj.AddObjectMutator(std::make_unique<TwoIntObjectMutator>(
-      name_, creation_time, duration_time, delay, type, startval_one,
-      endval_one, setter_one_, startval_two, endval_two, setter_two_));
+  int startval_one = std::invoke(getter_one_, pm);
+  int startval_two = std::invoke(getter_two_, pm);
+
+  std::vector<Mutator> mutators{
+      Mutator{.setter_ = setter_one_,
+              .fc_ = MakeFrameCounter(duration_time, delay, startval_one,
+                                      endval_one, type, clock)},
+      Mutator{.setter_ = setter_two_,
+              .fc_ = MakeFrameCounter(duration_time, delay, startval_two,
+                                      endval_two, type, clock)}};
+
+  obj.AddObjectMutator(
+      std::make_unique<ObjectMutator>(std::move(mutators), -1, name_));
 }
 
 // -----------------------------------------------------------------------

@@ -26,13 +26,23 @@
 
 #pragma once
 
+#include "core/frame_counter.hpp"
 #include "machine/rloperation.hpp"
 #include "machine/rloperation/rlop_store.hpp"
-#include "object/parameter_manager.hpp"
 
 #include <functional>
+#include <memory>
 
 class GraphicsObject;
+class ParameterManager;
+class Clock;
+
+std::shared_ptr<FrameCounter> MakeFrameCounter(int duration,
+                                               int delay,
+                                               int start_val,
+                                               int end_val,
+                                               int type,
+                                               std::shared_ptr<Clock> clock);
 
 class Op_ObjectMutatorInt : public RLOpcode<IntConstant_T,
                                             IntConstant_T,
