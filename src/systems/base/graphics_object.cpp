@@ -28,8 +28,8 @@
 #include "graphics_object.hpp"
 
 #include "object/animator.hpp"
-#include "object/object_mutator.hpp"
 #include "object/objdrawer.hpp"
+#include "object/object_mutator.hpp"
 #include "utilities/exception.hpp"
 
 #include <boost/archive/text_iarchive.hpp>
@@ -62,7 +62,9 @@ GraphicsObject GraphicsObject::Clone() const {
     result.object_data_ = object_data_->Clone();
   }
 
-  result.object_mutators_ = object_mutators_;
+  result.object_mutators_.reserve(object_mutators_.size());
+  for (const auto& it : object_mutators_)
+    result.object_mutators_.emplace_back(it.DeepCopy());
 
   return result;
 }

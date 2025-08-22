@@ -44,12 +44,22 @@ ObjectMutator::ObjectMutator(std::vector<Mutator> mut,
                              std::string name)
     : mutators_(std::move(mut)), repr_(repr), name_(std::move(name)) {}
 
+ObjectMutator ObjectMutator::DeepCopy() const {
+  std::vector<Mutator> mutators;
+  mutators.reserve(mutators_.size());
+  for (const auto& it : mutators_)
+    mutators.emplace_back(Mutator{
+        .setter_ = it.setter_,
+        .fc_ = std::shared_ptr<FrameCounter>(it.fc_->Clone().release())});
+  return ObjectMutator(std::move(mutators), repr_, name_);
+}
+
+void ObjectMutator::OnComplete(DoneFn fn) { on_complete_ = std::move(fn); }
+
 bool ObjectMutator::operator()(RLMachine& machine, GraphicsObject& go) {
   RenderingService locator(machine);
   return this->operator()(locator, go.Param());
 }
-
-void ObjectMutator::OnComplete(DoneFn fn) { on_complete_ = std::move(fn); }
 
 bool ObjectMutator::operator()(RenderingService& locator,
                                ParameterManager& pm) {

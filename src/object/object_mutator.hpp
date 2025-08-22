@@ -55,6 +55,14 @@ class ObjectMutator {
                 int repr = 0,
                 std::string name = "unknown");
 
+  // Please use DeepCopy instead
+  ObjectMutator(const ObjectMutator&) = delete;
+  ObjectMutator& operator=(const ObjectMutator&) = delete;
+  ObjectMutator(ObjectMutator&&) noexcept = default;
+  ObjectMutator& operator=(ObjectMutator&&) noexcept = default;
+
+  ObjectMutator DeepCopy() const;
+
   inline void SetRepr(int in) { repr_ = in; }
   inline void SetName(std::string in) { name_.swap(in); }
   inline int repr() const { return repr_; }
