@@ -61,6 +61,7 @@ class FrameCounter {
   // freeze the current value
   void EndTimer();
 
+  inline bool IsFinished() const { return !is_active_; }
   inline bool IsActive() const {
     // Sometimes we call ReadFrame() internally to see if we've ended
     // but it's up to derived classes to end themselves or not.

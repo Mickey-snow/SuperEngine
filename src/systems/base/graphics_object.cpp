@@ -28,7 +28,7 @@
 #include "graphics_object.hpp"
 
 #include "object/animator.hpp"
-#include "object/mutator.hpp"
+#include "object/object_mutator.hpp"
 #include "object/objdrawer.hpp"
 #include "utilities/exception.hpp"
 
@@ -84,6 +84,7 @@ GraphicsObject& GraphicsObject::operator=(GraphicsObject&& rhs) {
   } else {
     object_data_ = nullptr;
   }
+
   object_mutators_ = std::move(rhs.object_mutators_);
 
   rhs.param_ = ParameterManager();

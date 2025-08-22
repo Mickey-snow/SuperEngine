@@ -30,7 +30,7 @@
 #include "machine/properties.hpp"
 #include "machine/rlmachine.hpp"
 #include "modules/module_obj.hpp"
-#include "object/mutator.hpp"
+#include "object/object_mutator.hpp"
 #include "object/parameter_manager.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/base/graphics_system.hpp"

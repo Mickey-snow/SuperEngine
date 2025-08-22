@@ -118,6 +118,7 @@ class GraphicsObject {
   // RLMAX SDK.
   std::vector<ObjectMutator> object_mutators_;
 
+ private:
   // boost::serialization support
   friend class boost::serialization::access;
 
