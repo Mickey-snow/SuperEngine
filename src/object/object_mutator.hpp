@@ -44,9 +44,11 @@ struct Mutator {
 };
 
 class ObjectMutator {
+  using DoneFn = std::function<void(ParameterManager&)>;
   std::vector<Mutator> mutators_;
   int repr_;
   std::string name_;
+  DoneFn on_complete_;
 
  public:
   ObjectMutator(std::vector<Mutator> mut,

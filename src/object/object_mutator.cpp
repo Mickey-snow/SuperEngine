@@ -49,6 +49,8 @@ bool ObjectMutator::operator()(RLMachine& machine, GraphicsObject& go) {
   return this->operator()(locator, go.Param());
 }
 
+void ObjectMutator::OnComplete(DoneFn fn) { on_complete_ = std::move(fn); }
+
 bool ObjectMutator::operator()(RenderingService& locator,
                                ParameterManager& pm) {
   locator.MarkObjStateDirty();
@@ -59,7 +61,10 @@ bool ObjectMutator::Update(ParameterManager& pm) {
   auto it = std::remove_if(mutators_.begin(), mutators_.end(),
                            [&pm](const auto& it) { return it.Update(pm); });
   mutators_.erase(it, mutators_.end());
-  return mutators_.empty();
+  const bool done = mutators_.empty();
+  if (done && on_complete_)
+    std::invoke(on_complete_, pm);
+  return done;
 }
 
 void ObjectMutator::SetToEnd(ParameterManager& pm) {
@@ -67,4 +72,7 @@ void ObjectMutator::SetToEnd(ParameterManager& pm) {
     it.fc_->EndTimer();
     it.Update(pm);
   }
+
+  if (on_complete_)
+    std::invoke(on_complete_, pm);
 }

@@ -52,8 +52,8 @@
 #include "modules/object_mutator_operations.hpp"
 #include "object/drawer/colour_filter.hpp"
 #include "object/drawer/text.hpp"
-#include "object/object_mutator.hpp"
 #include "object/objdrawer.hpp"
+#include "object/object_mutator.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/system.hpp"
@@ -365,8 +365,11 @@ static void objEveDisplay_impl(GraphicsObject& object,
                                         move_end_y, 0, clock)});
   }
 
-  object.AddObjectMutator(
-      ObjectMutator(std::move(mutators), -1, "objEveDisplay"));
+  ObjectMutator om(std::move(mutators), -1, "objEveDisplay");
+  if (display == 0) {
+    om.OnComplete([](ParameterManager& pm) { pm.SetVisible(false); });
+  }
+  object.AddObjectMutator(std::move(om));
 }
 
 struct objEveDisplay_1 : public RLOpcode<IntConstant_T,
