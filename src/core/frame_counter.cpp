@@ -101,6 +101,10 @@ float SimpleFrameCounter::ReadFrame() {
   return value_ = static_cast<float>(current);
 }
 
+std::unique_ptr<FrameCounter> SimpleFrameCounter::Clone() const {
+  return std::make_unique<SimpleFrameCounter>(*this);
+}
+
 // -----------------------------------------------------------------------
 // class LoopFrameCounter
 float LoopFrameCounter::ReadFrame() {
@@ -115,6 +119,10 @@ float LoopFrameCounter::ReadFrame() {
   double current = static_cast<double>(min_value_) + (fracPart * range);
 
   return value_ = static_cast<float>(current);
+}
+
+std::unique_ptr<FrameCounter> LoopFrameCounter::Clone() const {
+  return std::make_unique<LoopFrameCounter>(*this);
 }
 
 // -----------------------------------------------------------------------
@@ -141,6 +149,10 @@ float TurnFrameCounter::ReadFrame() {
   return value_ = static_cast<float>(current);
 }
 
+std::unique_ptr<FrameCounter> TurnFrameCounter::Clone() const {
+  return std::make_unique<TurnFrameCounter>(*this);
+}
+
 // -----------------------------------------------------------------------
 // class AcceleratingFrameCounter
 float AcceleratingFrameCounter::ReadFrame() {
@@ -156,6 +168,10 @@ float AcceleratingFrameCounter::ReadFrame() {
   double current = double(min_value_) + (range * accelerated);
 
   return value_ = static_cast<float>(current);
+}
+
+std::unique_ptr<FrameCounter> AcceleratingFrameCounter::Clone() const {
+  return std::make_unique<AcceleratingFrameCounter>(*this);
 }
 
 // -----------------------------------------------------------------------
@@ -174,4 +190,8 @@ float DeceleratingFrameCounter::ReadFrame() {
   double current = double(min_value_) + (range * decelerated);
 
   return value_ = static_cast<float>(current);
+}
+
+std::unique_ptr<FrameCounter> DeceleratingFrameCounter::Clone() const {
+  return std::make_unique<DeceleratingFrameCounter>(*this);
 }

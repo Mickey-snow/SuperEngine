@@ -44,8 +44,9 @@ class FrameCounter {
                int frame_min,
                int frame_max,
                int milliseconds);
-
   virtual ~FrameCounter();
+
+  virtual std::unique_ptr<FrameCounter> Clone() const = 0;
 
   // Returns the current frame value
   virtual float ReadFrame() = 0;
@@ -61,6 +62,7 @@ class FrameCounter {
   // freeze the current value
   void EndTimer();
 
+  inline bool IsFinished() const { return !is_active_; }
   inline bool IsActive() const {
     // Sometimes we call ReadFrame() internally to see if we've ended
     // but it's up to derived classes to end themselves or not.
@@ -100,6 +102,7 @@ class SimpleFrameCounter : public FrameCounter {
       : FrameCounter(clock, frame_min, frame_max, milliseconds) {}
 
   virtual float ReadFrame() override;
+  std::unique_ptr<FrameCounter> Clone() const override;
 };
 
 class LoopFrameCounter : public FrameCounter {
@@ -111,6 +114,7 @@ class LoopFrameCounter : public FrameCounter {
       : FrameCounter(clock, frame_min, frame_max, milliseconds) {}
 
   virtual float ReadFrame() override;
+  std::unique_ptr<FrameCounter> Clone() const override;
 };
 
 class TurnFrameCounter : public FrameCounter {
@@ -122,6 +126,7 @@ class TurnFrameCounter : public FrameCounter {
       : FrameCounter(clock, frame_min, frame_max, milliseconds) {}
 
   virtual float ReadFrame() override;
+  std::unique_ptr<FrameCounter> Clone() const override;
 };
 
 class AcceleratingFrameCounter : public FrameCounter {
@@ -133,6 +138,7 @@ class AcceleratingFrameCounter : public FrameCounter {
       : FrameCounter(clock, frame_min, frame_max, milliseconds) {}
 
   virtual float ReadFrame() override;
+  std::unique_ptr<FrameCounter> Clone() const override;
 };
 
 class DeceleratingFrameCounter : public FrameCounter {
@@ -144,4 +150,5 @@ class DeceleratingFrameCounter : public FrameCounter {
       : FrameCounter(clock, frame_min, frame_max, milliseconds) {}
 
   virtual float ReadFrame() override;
+  std::unique_ptr<FrameCounter> Clone() const override;
 };

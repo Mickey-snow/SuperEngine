@@ -28,8 +28,8 @@
 #include "graphics_object.hpp"
 
 #include "object/animator.hpp"
-#include "object/mutator.hpp"
 #include "object/objdrawer.hpp"
+#include "object/object_mutator.hpp"
 #include "utilities/exception.hpp"
 
 #include <boost/archive/text_iarchive.hpp>
@@ -62,8 +62,9 @@ GraphicsObject GraphicsObject::Clone() const {
     result.object_data_ = object_data_->Clone();
   }
 
-  for (const auto& mutator : object_mutators_)
-    result.object_mutators_.emplace_back(mutator->Clone());
+  result.object_mutators_.reserve(object_mutators_.size());
+  for (const auto& it : object_mutators_)
+    result.object_mutators_.emplace_back(it.DeepCopy());
 
   return result;
 }
@@ -85,6 +86,7 @@ GraphicsObject& GraphicsObject::operator=(GraphicsObject&& rhs) {
   } else {
     object_data_ = nullptr;
   }
+
   object_mutators_ = std::move(rhs.object_mutators_);
 
   rhs.param_ = ParameterManager();
@@ -122,26 +124,18 @@ GraphicsObjectData& GraphicsObject::GetObjectData() {
     throw rlvm::Exception("null object data");
   }
 }
-void GraphicsObject::AddObjectMutator(std::unique_ptr<IObjectMutator> mutator) {
+void GraphicsObject::AddObjectMutator(ObjectMutator mutator) {
   // If there's a currently running mutator that matches the incoming mutator,
   // we ignore the incoming mutator. Kud Wafter's ED relies on this behavior.
-  for (std::unique_ptr<IObjectMutator>& mutator_ptr : object_mutators_) {
-    if (mutator_ptr->OperationMatches(mutator->repr(), mutator->name())) {
-      return;
-    }
-  }
-
-  object_mutators_.emplace_back(std::move(mutator));
+  if (!IsMutatorRunningMatching(mutator.repr(), mutator.name()))
+    object_mutators_.emplace_back(std::move(mutator));
 }
 
 bool GraphicsObject::IsMutatorRunningMatching(int repno,
                                               const std::string& name) {
-  for (auto const& mutator : object_mutators_) {
-    if (mutator->OperationMatches(repno, name))
-      return true;
-  }
-
-  return false;
+  return std::any_of(
+      object_mutators_.cbegin(), object_mutators_.cend(),
+      [&](const auto& it) { return it.OperationMatches(repno, name); });
 }
 
 void GraphicsObject::EndObjectMutatorMatching(RLMachine& machine,
@@ -149,16 +143,15 @@ void GraphicsObject::EndObjectMutatorMatching(RLMachine& machine,
                                               const std::string& name,
                                               int speedup) {
   if (speedup == 0) {
-    std::vector<std::unique_ptr<IObjectMutator>>::iterator it =
-        object_mutators_.begin();
-    while (it != object_mutators_.end()) {
-      if ((*it)->OperationMatches(repno, name)) {
-        (*it)->SetToEnd(this->Param());
-        it = object_mutators_.erase(it);
-      } else {
-        ++it;
-      }
-    }
+    auto it = std::remove_if(object_mutators_.begin(), object_mutators_.end(),
+                             [&](auto& it) {
+                               if (!it.OperationMatches(repno, name))
+                                 return false;
+                               it.SetToEnd(this->Param());
+                               return true;
+                             });
+    object_mutators_.erase(it, object_mutators_.end());
+
   } else if (speedup == 1) {
     // This is explicitly a noop.
   } else {
@@ -220,13 +213,7 @@ void GraphicsObject::Execute(RLMachine& machine) {
   }
 
   // Run each mutator. If it returns true, remove it.
-  std::vector<std::unique_ptr<IObjectMutator>>::iterator it =
-      object_mutators_.begin();
-  while (it != object_mutators_.end()) {
-    if ((**it)(machine, *this)) {
-      it = object_mutators_.erase(it);
-    } else {
-      ++it;
-    }
-  }
+  auto it = std::remove_if(object_mutators_.begin(), object_mutators_.end(),
+                           [&](auto& it) { return it(machine, *this); });
+  object_mutators_.erase(it, object_mutators_.end());
 }

@@ -56,7 +56,7 @@
 #include "modules/module_grp.hpp"
 #include "object/drawer/anm.hpp"
 #include "object/drawer/file.hpp"
-#include "object/mutator.hpp"
+#include "object/object_mutator.hpp"
 #include "object/objdrawer.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/base/hik_renderer.hpp"
