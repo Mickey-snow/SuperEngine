@@ -28,6 +28,7 @@
 
 #include "utilities/interpolation.hpp"
 
+#include "core/frame_counter.hpp"
 #include "object/parameter_manager.hpp"
 #include "object/service_locator.hpp"
 #include "systems/base/graphics_object.hpp"
@@ -61,6 +62,64 @@ class IObjectMutator {
 
   // Builds a copy of the ObjectMutator. Used during object promotion.
   virtual std::unique_ptr<IObjectMutator> Clone() const = 0;
+};
+
+// -----------------------------------------------------------------------
+struct Mutator {
+  using SetFn = std::function<void(ParameterManager&, int)>;
+  SetFn setter_;
+  std::shared_ptr<FrameCounter> fc_;
+  bool Update(ParameterManager& pm) const {
+    float value = fc_->ReadFrame();
+    std::invoke(setter_, pm, static_cast<int>(value));
+    return fc_->IsActive();
+  }
+};
+class ObjectMutator : public IObjectMutator {
+  std::vector<Mutator> mutators_;
+  int repr_ = 0;
+  std::string name_ = "unknown";
+
+ public:
+  ObjectMutator(std::initializer_list<Mutator> mut = {})
+      : mutators_(std::move(mut)) {}
+
+  inline void SetRepr(int in) { repr_ = in; }
+  inline void SetName(std::string in) { name_.swap(in); }
+  inline int repr() const override { return repr_; }
+  inline const std::string& name() const override { return name_; }
+  inline bool OperationMatches(int repr,
+                               const std::string& name) const override {
+    return repr_ == repr && name_ == name;
+  }
+
+  virtual bool operator()(RLMachine& machine, GraphicsObject& go) override {
+    RenderingService locator(machine);
+    return this->operator()(locator, go.Param());
+  }
+  virtual bool operator()(RenderingService& locator,
+                          ParameterManager& pm) override {
+    locator.MarkObjStateDirty();
+    return Update(pm);
+  }
+
+  bool Update(ParameterManager& pm) {
+    auto it = std::remove_if(mutators_.begin(), mutators_.end(),
+                             [&pm](const auto& it) { return it.Update(pm); });
+    mutators_.erase(it, mutators_.end());
+    return mutators_.empty();
+  }
+
+  void SetToEnd(ParameterManager& pm) override {
+    for (auto& it : mutators_) {
+      it.fc_->EndTimer();
+      it.Update(pm);
+    }
+  }
+
+  std::unique_ptr<IObjectMutator> Clone() const override {
+    return std::make_unique<ObjectMutator>(*this);
+  }
 };
 
 // -----------------------------------------------------------------------
