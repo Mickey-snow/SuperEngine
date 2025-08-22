@@ -28,6 +28,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <tuple>  // std::ignore
 
 #include "utilities/clock.hpp"
 
@@ -50,18 +51,18 @@ FrameCounter::FrameCounter(std::shared_ptr<Clock> clock,
   }
 }
 
-FrameCounter::~FrameCounter() {
-  if (is_active_) {
-    EndTimer();
-  }
-}
+FrameCounter::~FrameCounter() = default;
 
 void FrameCounter::BeginTimer(std::chrono::milliseconds delay) {
   start_time_ = clock_->GetTicks() + delay;
   is_active_ = true;
 }
 
-void FrameCounter::EndTimer() { is_active_ = false; }
+void FrameCounter::EndTimer() {
+  // Keep current value_ updated
+  std::ignore = ReadFrame();
+  is_active_ = false;
+}
 
 double FrameCounter::ComputeNormalizedTime() const {
   if (!is_active_) {
@@ -82,20 +83,15 @@ double FrameCounter::ComputeNormalizedTime() const {
 }
 
 double FrameCounter::ClampFractionToOneShot(double fraction) {
-  if (fraction >= 1.0) {
-    fraction = 1.0;
-    EndTimer();
-  }
-  if (fraction < 0.0) {
-    fraction = 0.0;
-  }
-  return fraction;
+  return std::clamp(fraction, 0.0, 1.0);
 }
 
 // -----------------------------------------------------------------------
 // class SimpleFrameCounter
 float SimpleFrameCounter::ReadFrame() {
   double fraction = ComputeNormalizedTime();
+  if (fraction >= 1.0)
+    is_active_ = false;
 
   fraction = ClampFractionToOneShot(fraction);
 
@@ -149,6 +145,9 @@ float TurnFrameCounter::ReadFrame() {
 // class AcceleratingFrameCounter
 float AcceleratingFrameCounter::ReadFrame() {
   double fraction = ComputeNormalizedTime();
+  if (fraction >= 1.0)
+    is_active_ = false;
+
   fraction = ClampFractionToOneShot(fraction);
 
   double accelerated = fraction * fraction;
@@ -163,6 +162,9 @@ float AcceleratingFrameCounter::ReadFrame() {
 // class DeceleratingFrameCounter
 float DeceleratingFrameCounter::ReadFrame() {
   double fraction = ComputeNormalizedTime();
+  if (fraction >= 1.0)
+    is_active_ = false;
+
   fraction = ClampFractionToOneShot(fraction);
 
   fraction = 1 - fraction;

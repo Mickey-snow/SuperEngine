@@ -55,9 +55,13 @@ class FrameCounter {
   // Start or stop the timer
   void BeginTimer(
       std::chrono::milliseconds delay = std::chrono::milliseconds(0));
+
+  // Terminate the frame counter
+  // One-shot counters should yield the final value; Looping counters should
+  // freeze the current value
   void EndTimer();
 
-  inline bool IsActive() {
+  inline bool IsActive() const {
     // Sometimes we call ReadFrame() internally to see if we've ended
     // but it's up to derived classes to end themselves or not.
     return is_active_;
