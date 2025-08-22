@@ -114,7 +114,7 @@ void Op_ObjectMutatorInt::operator()(RLMachine& machine,
                .fc_ = MakeFrameCounter(duration_time, delay, startval, endval,
                                        type, clock)}},
       -1, name_);
-  obj.AddObjectMutator(std::make_unique<ObjectMutator>(std::move(mutator)));
+  obj.AddObjectMutator(std::move(mutator));
 }
 
 // -----------------------------------------------------------------------
@@ -143,7 +143,7 @@ void Op_ObjectMutatorRepnoInt::operator()(RLMachine& machine,
                                        type, clock)}},
       repno, name_);
 
-  obj.AddObjectMutator(std::make_unique<ObjectMutator>(std::move(mutator)));
+  obj.AddObjectMutator(std::move(mutator));
 }
 
 // -----------------------------------------------------------------------
@@ -183,8 +183,7 @@ void Op_ObjectMutatorIntInt::operator()(RLMachine& machine,
               .fc_ = MakeFrameCounter(duration_time, delay, startval_two,
                                       endval_two, type, clock)}};
 
-  obj.AddObjectMutator(
-      std::make_unique<ObjectMutator>(std::move(mutators), -1, name_));
+  obj.AddObjectMutator(ObjectMutator(std::move(mutators), -1, name_));
 }
 
 // -----------------------------------------------------------------------

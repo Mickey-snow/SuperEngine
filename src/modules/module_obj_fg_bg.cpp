@@ -317,8 +317,8 @@ class objEveAdjust : public RLOpcode<IntConstant_T,
         .setter_ = std::bind(CreateSetter<ObjectProperty::AdjustmentOffsetsY>(),
                              _1, repno, _2),
         .fc_ = MakeFrameCounter(duration_time, delay, start_y, y, type, clock)};
-    object.AddObjectMutator(std::make_unique<ObjectMutator>(ObjectMutator(
-        {std::move(mutator_x), std::move(mutator_y)}, repno, "objEveAdjust")));
+    object.AddObjectMutator(ObjectMutator(
+        {std::move(mutator_x), std::move(mutator_y)}, repno, "objEveAdjust"));
   }
 };
 
@@ -365,8 +365,8 @@ static void objEveDisplay_impl(GraphicsObject& object,
                                         move_end_y, 0, clock)});
   }
 
-  object.AddObjectMutator(std::make_unique<ObjectMutator>(
-      ObjectMutator(std::move(mutators), -1, "objEveDisplay")));
+  object.AddObjectMutator(
+      ObjectMutator(std::move(mutators), -1, "objEveDisplay"));
 }
 
 struct objEveDisplay_1 : public RLOpcode<IntConstant_T,
