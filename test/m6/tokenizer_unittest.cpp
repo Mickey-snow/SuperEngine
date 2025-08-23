@@ -113,6 +113,14 @@ TEST_F(TokenizerTest, Operators) {
       "<Operator(**), 93,95> <Operator(**=), 96,99>");
 }
 
+TEST_F(TokenizerTest, BoolLiteral) {
+  const std::string input = "true false";
+  tokens.clear();
+  tokenizer.Parse(SourceBuffer::Create(input, "<test>"));
+  EXPECT_EQ(Accumulate(tokens),
+            "<Reserved(true), 0,4> <Reserved(false), 5,10>");
+}
+
 TEST_F(TokenizerTest, StrLiteral) {
   {
     const std::string input = R"("\"Hello\"")";

@@ -47,6 +47,16 @@ struct NilLiteral {
   std::string DebugString() const;
 };
 
+struct TrueLiteral {
+  SourceLocation loc;
+  std::string DebugString() const;
+};
+
+struct FalseLiteral {
+  SourceLocation loc;
+  std::string DebugString() const;
+};
+
 struct IntLiteral {
   int value;
   SourceLocation loc;
@@ -153,6 +163,8 @@ struct AwaitExpr {
 // -----------------------------------------------------------------------
 // ExprAST
 using expr_variant_t = std::variant<NilLiteral,
+                                    TrueLiteral,
+                                    FalseLiteral,
                                     IntLiteral,
                                     StrLiteral,
                                     ListLiteral,

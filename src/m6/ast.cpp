@@ -38,6 +38,8 @@ namespace m6 {
 // AST node member functions
 
 std::string NilLiteral::DebugString() const { return "NilLiteral"; }
+std::string TrueLiteral::DebugString() const { return "TrueLiteral"; }
+std::string FalseLiteral::DebugString() const { return "FalseLiteral"; }
 std::string IntLiteral::DebugString() const {
   return "IntLiteral " + std::to_string(value);
 }

@@ -36,6 +36,8 @@ namespace tok {
 struct Reserved {
   enum Type {
     _nil,
+    _true,
+    _false,
     _if,
     _else,
     _while,

@@ -54,18 +54,18 @@ std::shared_ptr<AST> Parser::ParseStatement(bool requireSemi) {
     ++it_;
 
     switch (reserved->type) {
-      case tok::Reserved::_if: {
+      case tok::Reserved::Type::_if: {
         require<tok::ParenthesisL>("expected '(' after if");
         auto cond = ParseExpression();
         require<tok::ParenthesisR>("expected ')'");
         auto thenStmt = ParseStatement();
         std::shared_ptr<AST> elseStmt = nullptr;
-        if (tryConsume<tok::Reserved>(tok::Reserved::_else))
+        if (tryConsume<tok::Reserved>(tok::Reserved::Type::_else))
           elseStmt = ParseStatement();
         return std::make_shared<AST>(IfStmt(cond, thenStmt, elseStmt));
       }
 
-      case tok::Reserved::_while: {
+      case tok::Reserved::Type::_while: {
         require<tok::ParenthesisL>("expected '(' after while");
         auto cond = ParseExpression();
         require<tok::ParenthesisR>("expected ')'");
@@ -73,7 +73,7 @@ std::shared_ptr<AST> Parser::ParseStatement(bool requireSemi) {
         return std::make_shared<AST>(WhileStmt(cond, body));
       }
 
-      case tok::Reserved::_for: {
+      case tok::Reserved::Type::_for: {
         require<tok::ParenthesisL>("expected '(' after for");
 
         std::shared_ptr<AST> init = nullptr, inc = nullptr;
@@ -95,7 +95,7 @@ std::shared_ptr<AST> Parser::ParseStatement(bool requireSemi) {
         return std::make_shared<AST>(ForStmt(init, cond, inc, body));
       }
 
-      case tok::Reserved::_class: {
+      case tok::Reserved::Type::_class: {
         auto clsNameTok = *it_;
         auto clsNameLoc = it_->loc_;
         if (!require<tok::ID>("expected identifier")) {
@@ -109,7 +109,7 @@ std::shared_ptr<AST> Parser::ParseStatement(bool requireSemi) {
         require<tok::CurlyL>("expected '{' after class name");
         while (it_ != end_ && !tryConsume<tok::CurlyR>()) {
           // fn
-          if (tryConsume<tok::Reserved>(tok::Reserved::_fn)) {
+          if (tryConsume<tok::Reserved>(tok::Reserved::Type::_fn)) {
             auto fn = parseFuncDecl(/*alreadyConsumedFn=*/true);
             if (fn && fn->HoldsAlternative<FuncDecl>()) {
               FuncDecl decl = std::move(*fn->Get_if<FuncDecl>());
@@ -136,10 +136,10 @@ std::shared_ptr<AST> Parser::ParseStatement(bool requireSemi) {
         return std::make_shared<AST>(std::move(cd));
       }
 
-      case tok::Reserved::_fn:
+      case tok::Reserved::Type::_fn:
         return parseFuncDecl(true);
 
-      case tok::Reserved::_return: {
+      case tok::Reserved::Type::_return: {
         auto kwLoc = (it_ - 1)->loc_;
         std::shared_ptr<ExprAST> val = nullptr;
         if (!tryConsume<tok::Semicol>()) {
@@ -149,7 +149,7 @@ std::shared_ptr<AST> Parser::ParseStatement(bool requireSemi) {
         return std::make_shared<AST>(ReturnStmt(val, kwLoc));
       }
 
-      case tok::Reserved::_yield: {
+      case tok::Reserved::Type::_yield: {
         auto kwLoc = (it_ - 1)->loc_;
         std::shared_ptr<ExprAST> expr = nullptr;
         if (!tryConsume<tok::Semicol>()) {
@@ -160,7 +160,7 @@ std::shared_ptr<AST> Parser::ParseStatement(bool requireSemi) {
         return std::make_shared<AST>(YieldStmt(expr, kwLoc));
       }
 
-      case tok::Reserved::_throw: {
+      case tok::Reserved::Type::_throw: {
         auto kwLoc = (it_ - 1)->loc_;
         std::shared_ptr<ExprAST> expr = nullptr;
         if (!tryConsume<tok::Semicol>()) {
@@ -170,9 +170,9 @@ std::shared_ptr<AST> Parser::ParseStatement(bool requireSemi) {
         return std::make_shared<AST>(ThrowStmt(expr, kwLoc));
       }
 
-      case tok::Reserved::_try: {
+      case tok::Reserved::Type::_try: {
         auto body = ParseStatement();
-        require<tok::Reserved>("expected catch", tok::Reserved::_catch);
+        require<tok::Reserved>("expected catch", tok::Reserved::Type::_catch);
         require<tok::ParenthesisL>("expected '(' after catch");
         auto idTok = it_;
         require<tok::ID>("expected identifier");
@@ -183,7 +183,7 @@ std::shared_ptr<AST> Parser::ParseStatement(bool requireSemi) {
         return std::make_shared<AST>(TryStmt(body, name, idLoc, handler));
       }
 
-      case tok::Reserved::_global: {
+      case tok::Reserved::Type::_global: {
         std::vector<std::string> vars;
         std::vector<SourceLocation> locs;
         auto id = it_;
@@ -202,10 +202,10 @@ std::shared_ptr<AST> Parser::ParseStatement(bool requireSemi) {
             ScopeStmt(std::move(vars), std::move(locs)));
       }
 
-      case tok::Reserved::_import:
+      case tok::Reserved::Type::_import:
         return parseImportStmt();
 
-      case tok::Reserved::_from:
+      case tok::Reserved::Type::_from:
         return parseFromImportStmt();
 
       default:
@@ -319,7 +319,7 @@ std::shared_ptr<AST> Parser::parseImportStmt() {
   }
   mod = modTok->GetIf<tok::ID>()->id;
 
-  if (tryConsume<tok::Reserved>(tok::Reserved::_as)) {
+  if (tryConsume<tok::Reserved>(tok::Reserved::Type::_as)) {
     auto aliasTok = it_;
     require<tok::ID>("expected alias identifier");
     alias = aliasTok->GetIf<tok::ID>()->id;
@@ -343,7 +343,7 @@ std::shared_ptr<AST> Parser::parseFromImportStmt() {
     return nullptr;
   }
   mod = modTok->GetIf<tok::ID>()->id;
-  require<tok::Reserved>("expected import", tok::Reserved::_import);
+  require<tok::Reserved>("expected import", tok::Reserved::Type::_import);
 
   auto idTok = it_;
   if (!require<tok::ID>("expected identifier")) {
@@ -352,7 +352,7 @@ std::shared_ptr<AST> Parser::parseFromImportStmt() {
   }
   std::string name = idTok->GetIf<tok::ID>()->id;
   std::string aliasName;
-  if (tryConsume<tok::Reserved>(tok::Reserved::_as)) {
+  if (tryConsume<tok::Reserved>(tok::Reserved::Type::_as)) {
     auto aliasTok = it_;
     require<tok::ID>("expected alias identifier");
     aliasName = aliasTok->GetIf<tok::ID>()->id;
@@ -363,7 +363,7 @@ std::shared_ptr<AST> Parser::parseFromImportStmt() {
     require<tok::ID>("expected identifier");
     name = idTok->GetIf<tok::ID>()->id;
     aliasName.clear();
-    if (tryConsume<tok::Reserved>(tok::Reserved::_as)) {
+    if (tryConsume<tok::Reserved>(tok::Reserved::Type::_as)) {
       auto aliasTok = it_;
       require<tok::ID>("expected alias identifier");
       aliasName = aliasTok->GetIf<tok::ID>()->id;
@@ -483,7 +483,7 @@ bool Parser::ScanParameterList(
 
 std::shared_ptr<AST> Parser::parseFuncDecl(bool consumedfn) {
   if (!consumedfn)
-    require<tok::Reserved>("expected fn", tok::Reserved::_fn);
+    require<tok::Reserved>("expected fn", tok::Reserved::Type::_fn);
   auto nameTok = it_;
   if (!require<tok::ID>("expected identifier")) {
     Synchronize();
@@ -812,7 +812,7 @@ std::shared_ptr<ExprAST> Parser::parseExponentiation() {
 
 std::shared_ptr<ExprAST> Parser::parseAwait() {
   auto kwLoc = it_->loc_;
-  if (tryConsume<tok::Reserved>(tok::Reserved::_spawn)) {
+  if (tryConsume<tok::Reserved>(tok::Reserved::Type::_spawn)) {
     auto spawn_begin = it_;
     auto invoke = parsePostfix();
     auto spawn_end = it_;
@@ -823,7 +823,7 @@ std::shared_ptr<ExprAST> Parser::parseAwait() {
     }
 
     return std::make_shared<ExprAST>(SpawnExpr(invoke, kwLoc));
-  } else if (tryConsume<tok::Reserved>(tok::Reserved::_await)) {
+  } else if (tryConsume<tok::Reserved>(tok::Reserved::Type::_await)) {
     auto corout = ParseExpression();
     return std::make_shared<ExprAST>(AwaitExpr(corout, kwLoc));
   } else {
@@ -917,7 +917,7 @@ std::shared_ptr<ExprAST> Parser::parsePostfix() {
 }
 
 std::shared_ptr<ExprAST> Parser::parsePrimary() {
-  auto startLoc = it_;
+  auto start_it = it_;
 
   if (it_ == end_) {
     AddError("expected primary expression", it_);
@@ -926,11 +926,16 @@ std::shared_ptr<ExprAST> Parser::parsePrimary() {
 
   // nil literal
   // --------------------------------------------------------------
-  if (auto s = it_->template GetIf<tok::Reserved>();
-      s && s->type == tok::Reserved::Type::_nil) {
-    auto node = NilLiteral(it_->loc_);
-    ++it_;
-    return std::make_shared<ExprAST>(std::move(node));
+  if (tryConsume<tok::Reserved>(tok::Reserved::Type::_nil)) {
+    return std::make_shared<ExprAST>(NilLiteral(start_it->loc_));
+  }
+  // bool literal
+  // --------------------------------------------------------------
+  if (tryConsume<tok::Reserved>(tok::Reserved::Type::_true)) {
+    return std::make_shared<ExprAST>(TrueLiteral(start_it->loc_));
+  }
+  if (tryConsume<tok::Reserved>(tok::Reserved::Type::_false)) {
+    return std::make_shared<ExprAST>(FalseLiteral(start_it->loc_));
   }
   // int literal
   // --------------------------------------------------------------
@@ -980,7 +985,7 @@ std::shared_ptr<ExprAST> Parser::parsePrimary() {
       require<tok::SquareR>("expected ']'");
     }
     return std::make_shared<ExprAST>(
-        ListLiteral{std::move(elems), LocRange(startLoc, it_)});
+        ListLiteral{std::move(elems), LocRange(start_it, it_)});
   }
   // DictLiteral
   // --------------------------------------------------
@@ -1004,7 +1009,7 @@ std::shared_ptr<ExprAST> Parser::parsePrimary() {
     }
 
     return std::make_shared<ExprAST>(
-        DictLiteral{std::move(elms), LocRange(startLoc, it_)});
+        DictLiteral{std::move(elms), LocRange(start_it, it_)});
   }
 
   AddError("expected primary expression", it_);

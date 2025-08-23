@@ -177,11 +177,13 @@ void CodeGenerator::emit_expr_node(const NilLiteral& m) {
   emit_const(std::monostate());
 }
 
+void CodeGenerator::emit_expr_node(const TrueLiteral&) { emit_const(true); }
+
+void CodeGenerator::emit_expr_node(const FalseLiteral&) { emit_const(false); }
+
 void CodeGenerator::emit_expr_node(const IntLiteral& n) { emit_const(n.value); }
 
-void CodeGenerator::emit_expr_node(const StrLiteral& n) {
-  emit_const(std::string(n.value));
-}
+void CodeGenerator::emit_expr_node(const StrLiteral& n) { emit_const(n.value); }
 
 void CodeGenerator::emit_expr_node(const ListLiteral& n) {
   for (const auto& it : n.elements)

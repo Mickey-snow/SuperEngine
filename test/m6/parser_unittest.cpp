@@ -169,6 +169,22 @@ Binaryop %
    └─IntLiteral 10
 )");
   }
+  {
+    auto result = parse("true && false");
+    EXPECT_EQ(result, R"(
+Binaryop &&
+   ├─TrueLiteral
+   └─FalseLiteral
+)");
+  }
+  {
+    auto result = parse("true || false");
+    EXPECT_EQ(result, R"(
+Binaryop ||
+   ├─TrueLiteral
+   └─FalseLiteral
+)");
+  }
 }
 
 TEST_F(ExprParserTest, Precedence) {

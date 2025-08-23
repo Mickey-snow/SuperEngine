@@ -141,21 +141,34 @@ class CompilerTest : public ::testing::Test {
 };
 
 TEST_F(CompilerTest, ConstantArithmetic) {
-  auto res = Run(R"( print([1+2, 2**3, 1-3], end=""); )");
-  ASSERT_TRUE(res.stderr.empty()) << res.stderr;
-  EXPECT_EQ(res.stdout, "[3,8,-2]") << "\nDisassembly:\n" << res.disasm;
+  {
+    auto res = Run(R"( print([1+2, 2**3, 1-3], end=""); )");
+    EXPECT_EQ(res, "[3,8,-2]");
+  }
+  {
+    auto res = Run(R"(
+print(true&&false,
+false||true,
+true && true||false,
+true&&(true&&false));
+ )");
+    EXPECT_EQ(res, "false true true false\n");
+  }
+  {  // Negative division/modulo rules
+    auto res = Run(
+        R"( print(((-7 / 3) * 10) + (-7 % 3) + ((7 / -3) * 10) + (7 % -3)); )");
+    EXPECT_EQ(res, "-40\n");
+  }
 }
 
 TEST_F(CompilerTest, GlobalVariable) {
   auto res = Run("a = 10;\n print(a + 5);");
-  ASSERT_TRUE(res.stderr.empty()) << res.stderr;
-  EXPECT_EQ(res.stdout, "15\n") << "\nDisassembly:\n" << res.disasm;
+  EXPECT_EQ(res, "15\n");
 }
 
 TEST_F(CompilerTest, MultipleStatements) {
   auto res = Run("x = 4;\n y = 6;\n print(x * y);");
-  ASSERT_TRUE(res.stderr.empty()) << res.stderr;
-  EXPECT_EQ(res.stdout, "24\n") << "\nDisassembly:\n" << res.disasm;
+  EXPECT_EQ(res, "24\n");
 }
 
 TEST_F(CompilerTest, List) {

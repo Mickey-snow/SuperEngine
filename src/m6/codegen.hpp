@@ -109,6 +109,8 @@ class CodeGenerator {
   // -- Expression codegen ---------------------------------------------
   void emit_expr(std::shared_ptr<ExprAST> n);
   void emit_expr_node(const NilLiteral&);
+  void emit_expr_node(const TrueLiteral&);
+  void emit_expr_node(const FalseLiteral&);
   void emit_expr_node(const IntLiteral& n);
   void emit_expr_node(const StrLiteral& n);
   void emit_expr_node(const ListLiteral&);

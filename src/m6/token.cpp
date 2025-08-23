@@ -39,6 +39,12 @@ std::string tok::DebugStringVisitor::operator()(const tok::Reserved& p) const {
     case Reserved::Type::_nil:
       s = "nil";
       break;
+    case Reserved::Type::_true:
+      s = "true";
+      break;
+    case Reserved::Type::_false:
+      s = "false";
+      break;
     case Reserved::Type::_if:
       s = "if";
       break;
