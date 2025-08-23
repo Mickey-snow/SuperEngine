@@ -2,7 +2,7 @@
 sdl = SDL();
 sdl.init();
 
-file = "cg_ts01_05_ex";
+file = "bg47";
 fn create_effects_obj(file){
   obj = Object();
   obj.init();
@@ -20,5 +20,13 @@ fn create_effects_obj(file){
 bg = create_effects_obj(file);
 bg.render();
 
-testfile = "bg24";
-bg = create_effects_obj(testfile);
+delay = 100;
+
+bg.set_pos(-480, -270);
+bg.set_xeve(480, 35000, delay, 0);
+bg.set_yeve(-270, 35000, delay, 0);
+
+fn Render(reps = 100){
+  for(i=0; i<reps; i+=1)
+    bg.render();
+}

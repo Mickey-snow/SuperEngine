@@ -89,6 +89,7 @@ class GraphicsObject {
   // Called each pass through the gameloop to see if this object needs
   // to force a redraw, or something.
   void Execute(RLMachine& machine);
+  void ExecuteMutators();
 
   // Adds a mutator to the list of active mutators. GraphicsSystem takes
   // ownership of the passed in object.

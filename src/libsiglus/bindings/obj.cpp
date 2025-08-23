@@ -28,8 +28,10 @@
 
 #include "core/avdec/anm.hpp"
 #include "core/avdec/image_decoder.hpp"
+#include "core/frame_counter.hpp"
 #include "core/rect.hpp"
 #include "object/drawer/file.hpp"
+#include "object/object_mutator.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/screen_canvas.hpp"
 #include "systems/sdl/shaders.hpp"
@@ -63,6 +65,8 @@ class Object {
   }
 
   void Render() {
+    obj.ExecuteMutators();
+
     glRenderer renderer;
     renderer.SetUp();
     renderer.ClearBuffer(std::make_shared<ScreenCanvas>(Size(1920, 1080)),
@@ -92,8 +96,31 @@ class Object {
   }
 
   void SetScale(int x, int y) {
-    obj.Param().SetScaleX(x);
-    obj.Param().SetScaleY(y);
+    obj.Param().SetScaleX(x / 10);
+    obj.Param().SetScaleY(y / 10);
+  }
+
+  void SetPos(int x, int y) {
+    obj.Param().SetX(x);
+    obj.Param().SetY(y);
+  }
+
+  void SetXEve(int value, int total_time, int delay_time, int speed_type) {
+    int x = obj.Param().Get<ObjectProperty::PositionX>();
+    auto fc = std::make_shared<SimpleFrameCounter>(clock, x, value, total_time);
+    fc->BeginTimer(std::chrono::milliseconds(delay_time));
+    Mutator mutator{.setter_ = CreateSetter<ObjectProperty::PositionX>(),
+                    .fc_ = fc};
+    obj.AddObjectMutator(ObjectMutator({std::move(mutator)}, -1, "x_eve"));
+  }
+
+  void SetYEve(int value, int total_time, int delay_time, int speed_type) {
+    int y = obj.Param().Get<ObjectProperty::PositionY>();
+    auto fc = std::make_shared<SimpleFrameCounter>(clock, y, value, total_time);
+    fc->BeginTimer(std::chrono::milliseconds(delay_time));
+    Mutator mutator{.setter_ = CreateSetter<ObjectProperty::PositionY>(),
+                    .fc_ = fc};
+    obj.AddObjectMutator(ObjectMutator({std::move(mutator)}, -1, "y_eve"));
   }
 
  private:
@@ -159,6 +186,7 @@ class Object {
 
   std::shared_ptr<AssetScanner> scanner;
   GraphicsObject obj;
+  std::shared_ptr<Clock> clock = std::make_shared<Clock>();
 };
 
 void Obj::Bind(serilang::VM& vm) {
@@ -173,6 +201,9 @@ void Obj::Bind(serilang::VM& vm) {
       .def("get_size_y", &Object::GetSizeY, sb::arg("cut_no") = 0);
   o.def("set_center_rep", &Object::SetCenterRep);
   o.def("set_scale", &Object::SetScale);
+  o.def("set_pos", &Object::SetPos);
+  o.def("set_xeve", &Object::SetXEve);
+  o.def("set_yeve", &Object::SetYEve);
 
   o.def("render", &Object::Render);
 }

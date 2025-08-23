@@ -211,9 +211,10 @@ void GraphicsObject::Execute(RLMachine& machine) {
     if (should_delete(object_data_.get()))
       object_data_ = nullptr;
   }
+}
 
-  // Run each mutator. If it returns true, remove it.
+void GraphicsObject::ExecuteMutators() {
   auto it = std::remove_if(object_mutators_.begin(), object_mutators_.end(),
-                           [&](auto& it) { return it(machine, *this); });
+                           [&](auto& it) { return it.Update(this->Param()); });
   object_mutators_.erase(it, object_mutators_.end());
 }
