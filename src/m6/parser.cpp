@@ -792,15 +792,14 @@ std::shared_ptr<ExprAST> Parser::parseExponentiation() {
     return nullptr;
   auto lhs_end = it_;
 
-  while (true) {
-    auto op_it = it_;
-    auto op = tryConsumeAny({Op::Pow});
-    if (!op.has_value())
-      break;
+  auto op_it = it_;
+  if (auto op = tryConsumeAny({Op::Pow})) {
     auto rhs_begin = it_;
-    auto rhs = parseAwait();
-    if (!rhs)
-      return lhs;
+    auto rhs = parseExponentiation();
+    if (!rhs) {
+      AddError("expected await", rhs_begin);
+      return nullptr;
+    }
     auto rhs_end = it_;
 
     BinaryExpr be(op.value(), lhs, rhs, op_it->loc_,

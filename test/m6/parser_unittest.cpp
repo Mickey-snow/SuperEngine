@@ -213,6 +213,19 @@ Binaryop +
       └─IntLiteral 7
 )");
   }
+
+  {
+    auto result = parse("2**3**4**5");
+    EXPECT_EQ(result, R"(
+Binaryop **
+   ├─IntLiteral 2
+   └─Binaryop **
+      ├─IntLiteral 3
+      └─Binaryop **
+         ├─IntLiteral 4
+         └─IntLiteral 5
+)");
+  }
 }
 
 TEST_F(ExprParserTest, Parenthesis) {

@@ -159,6 +159,10 @@ true&&(true&&false));
         R"( print(((-7 / 3) * 10) + (-7 % 3) + ((7 / -3) * 10) + (7 % -3)); )");
     EXPECT_EQ(res, "-40\n");
   }
+  {  // Power associativity
+    auto res = Run(R"( print((2 ** 3 ** 2) + (7) + (9)); )");
+    EXPECT_EQ(res, "528\n");
+  }
 }
 
 TEST_F(CompilerTest, GlobalVariable) {
