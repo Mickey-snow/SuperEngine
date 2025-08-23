@@ -72,13 +72,38 @@ TEST_F(TokenizerTest, MultiID) {
             "<ID(\"print\"), 0,5> <ID(\"ObjFgInit\"), 6,15>");
 }
 
-TEST_F(TokenizerTest, Numbers) {
-  const std::string input = "123 00321 -21";
+TEST_F(TokenizerTest, IntLiteral) {
+  {  // decimal-literal
+    const std::string input = "123 00321 -21";
+    tokens.clear();
+    tokenizer.Parse(SourceBuffer::Create(input, "<test>"));
+    EXPECT_EQ(Accumulate(tokens),
+              "<Int(123), 0,3> <Int(321), 4,9> <Operator(-), 10,11> <Int(21), "
+              "11,13>");
+  }
 
-  tokenizer.Parse(SourceBuffer::Create(input, "<test>"));
-  EXPECT_EQ(
-      Accumulate(tokens),
-      "<Int(123), 0,3> <Int(321), 4,9> <Operator(-), 10,11> <Int(21), 11,13>");
+  {  // hex-literal
+    const std::string input = "0x112 0xfF 0xFFFF 0X2a";
+    tokens.clear();
+    tokenizer.Parse(SourceBuffer::Create(input, "<test>"));
+    EXPECT_EQ(Accumulate(tokens),
+              "<Int(274), 0,5> <Int(255), 6,10> <Int(65535), 11,17> <Int(42), "
+              "18,22>");
+  }
+
+  {  // binary-literal
+    const std::string input = "0b101010";
+    tokens.clear();
+    tokenizer.Parse(SourceBuffer::Create(input, "<test>"));
+    EXPECT_EQ(Accumulate(tokens), "<Int(42), 0,8>");
+  }
+
+  {  // octal-literal
+    const std::string input = "0o10276";
+    tokens.clear();
+    tokenizer.Parse(SourceBuffer::Create(input, "<test>"));
+    EXPECT_EQ(Accumulate(tokens), "<Int(4286), 0,7>");
+  }
 }
 
 TEST_F(TokenizerTest, Brackets) {

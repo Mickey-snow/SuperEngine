@@ -163,6 +163,11 @@ true&&(true&&false));
     auto res = Run(R"( print((2 ** 3 ** 2) + (7) + (9)); )");
     EXPECT_EQ(res, "528\n");
   }
+  {  // Bitwise edge cases with negatives
+    auto res = Run(
+        R"( print((~0)+((-1)>>1)+((-2)>>1)+((-3)&0xFF)+(0x1234^0xFFFF)); )");
+    EXPECT_EQ(res, "61125\n");
+  }
 }
 
 TEST_F(CompilerTest, GlobalVariable) {

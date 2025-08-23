@@ -239,46 +239,61 @@ void Tokenizer::Parse(std::shared_ptr<SourceBuffer> src) {
 
       // advance past prefix (if any)
       pos = start + prefix_len;
-      // now scan valid digits for this base
-      auto validate = [&](char ch) -> bool {
-        unsigned char uch = static_cast<unsigned char>(ch);
-        switch (base) {
-          case 16:
-            return std::isxdigit(uch);
-          case 10:
-            return std::isdigit(uch);
-          case 8:
-            return (ch >= '0' && ch <= '7');
-          case 2:
-            return (ch == '0' || ch == '1');
-          default:
-            return false;
-        }
-      };
-
       size_t digits_start = pos;
-      while (pos < len &&
-             std::isxdigit(static_cast<unsigned char>(input[pos]))) {
-        if (!validate(input[pos]))
-          errors_.emplace_back("Invalid digit.",
-                               src->GetReference(pos, pos + 1));
-        ++pos;
+      auto digits_begin_it = input.cbegin() + digits_start;
+
+      // now scan valid digits for this base
+      auto [digits_end_it, first_invalid] = std::mismatch(
+          digits_begin_it, input.cend(), digits_begin_it,
+          [base](char ch, char) {
+            const unsigned char uch = static_cast<unsigned char>(ch);
+            bool isCandidate = std::isalnum(uch);
+            bool isValid;
+            switch (base) {
+              case 16:
+                isValid = std::isxdigit(uch);
+                break;
+              case 10:
+                isValid = std::isdigit(uch);
+                break;
+              case 8:
+                isValid = ('0' <= ch && ch <= '7');
+                break;
+              case 2:
+                isValid = (ch == '0' || ch == '1');
+                break;
+              [[unlikely]] default:
+                isValid = false;
+            }
+
+            return isCandidate && isValid;
+          });
+      if (first_invalid != digits_end_it) {
+        pos = std::distance(input.cbegin(), first_invalid);
+        errors_.emplace_back("Invalid digit in integer literal.",
+                             src->GetReferenceAt(pos));
+      } else {
+        pos = std::distance(input.cbegin(), digits_end_it);
       }
+
       const auto location = src->GetReference(start, pos);
 
       // must have at least one digit after any prefix
-      if (pos == digits_start) {
+      if (digits_begin_it == digits_end_it) {
         errors_.emplace_back("Invalid integer literal", location);
         continue;
       }
 
       int numValue = 0;
       auto [ptr, ec] =
-          std::from_chars(input.data() + start, input.data() + pos, numValue);
+          std::from_chars(digits_begin_it, digits_end_it, numValue, base);
       if (ec == std::errc::result_out_of_range)
         errors_.emplace_back("Integer literal is too large.", location);
       else if (ec != std::errc{})
         errors_.emplace_back("Invalid integer literal.", location);
+      else if (ptr != digits_end_it)
+        errors_.emplace_back("Invalid digit in integer literal.",
+                             src->GetReferenceAt(ptr - input.data()));
       else
         storage_.emplace_back(tok::Int(numValue), location);
 
