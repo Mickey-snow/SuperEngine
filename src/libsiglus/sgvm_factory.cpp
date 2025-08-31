@@ -29,6 +29,7 @@
 #include "libsiglus/bindings/system.hpp"
 
 #include "m6/vm_factory.hpp"
+#include "systems/sdl/sdl_system.hpp"
 
 #include <filesystem>
 
@@ -37,13 +38,23 @@ namespace sr = serilang;
 namespace fs = std::filesystem;
 
 SiglusRuntime SGVMFactory::Create() {
-  SiglusRuntime runtime{.vm = std::make_unique<sr::VM>(m6::VMFactory::Create()),
-                        .asset_scanner = std::make_shared<AssetScanner>()};
+  SiglusRuntime runtime;
+  runtime.vm = std::make_unique<sr::VM>(m6::VMFactory::Create());
+
+  Gameexe& gexe = runtime.gameexe;
+  gexe.SetStringAt("CAPTION", "SiglusTest");
+  gexe.SetStringAt("REGNAME", "sjis: SIGLUS\\TEST");
+  gexe.SetIntAt("NAME_ENC", 0);
+  gexe.SetIntAt("SUBTITLE", 0);
+  gexe.SetIntAt("MOUSE_CURSOR", 0);
+  gexe.SetStringAt("__GAMEPATH", (fs::temp_directory_path() / "game").string());
+  gexe.parseLine("#SCREENSIZE_MOD=999.1920.1080");
+  runtime.system = std::make_unique<SDLSystem>(gexe);
 
   binding::Context ctx;
   ctx.base_pth = fs::temp_directory_path() / "game";
   ctx.save_pth = ctx.base_pth / "save";
-  ctx.asset_scanner = runtime.asset_scanner;
+  ctx.asset_scanner = runtime.asset_scanner = runtime.system->GetAssetScanner();
 
   runtime.asset_scanner->IndexDirectory(ctx.base_pth);
 

@@ -146,8 +146,8 @@ class StringToken : public Token {
   inline static int stridn = 0;
 
  public:
-  StringToken(const std::string& val) : val_(val), id_(stridn++) {}
-  StringToken(const int& val) : val_(std::to_string(val)), id_(stridn++) {}
+  StringToken(std::string val) : val_(std::move(val)), id_(stridn++) {}
+  StringToken(int val) : val_(std::to_string(val)), id_(stridn++) {}
 
   int ToInt() const override { return id_; }
 
@@ -227,15 +227,15 @@ bool Gameexe::Exists(const std::string& key) {
 
 // -----------------------------------------------------------------------
 
-void Gameexe::SetStringAt(const std::string& key, const std::string& value) {
-  Gameexe_vec_type toStore{std::make_shared<StringToken>(value)};
+void Gameexe::SetStringAt(const std::string& key, std::string value) {
+  Gameexe_vec_type toStore{std::make_shared<StringToken>(std::move(value))};
   data_.erase(key);
   data_.emplace(key, toStore);
 }
 
 // -----------------------------------------------------------------------
 
-void Gameexe::SetIntAt(const std::string& key, const int value) {
+void Gameexe::SetIntAt(const std::string& key, int value) {
   Gameexe_vec_type toStore{std::make_shared<IntToken>(value)};
   data_.erase(key);
   data_.emplace(key, toStore);

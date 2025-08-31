@@ -255,8 +255,8 @@ class Gameexe {
   size_t Size() const { return data_.size(); }
 
   // Exposed for testing.
-  void SetStringAt(const std::string& key, const std::string& value);
-  void SetIntAt(const std::string& key, const int value);
+  void SetStringAt(const std::string& key, std::string value);
+  void SetIntAt(const std::string& key, int value);
 
  private:
   GameexeData_t data_;

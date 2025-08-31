@@ -30,6 +30,7 @@
 #include "systems/screen_canvas.hpp"
 #include "systems/sdl/sound_implementor.hpp"
 #include "systems/sdl_surface.hpp"
+#include "systems/sdl/sdl_system.hpp"
 #include "vm/vm.hpp"
 
 #include <SDL/SDL.h>

@@ -22,37 +22,13 @@
 //
 // -----------------------------------------------------------------------
 
-#pragma once
+#include "libsiglus/siglus_runtime.hpp"
 
-#include "core/gameexe.hpp"
-
-#include <memory>
-
-class AssetScanner;
-class SDLSystem;
-
-namespace serilang {
-class VM;
-};
+#include "systems/sdl/sdl_system.hpp"
+#include "vm/vm.hpp"
 
 namespace libsiglus {
-namespace binding {
-class SiglusMwnd;
+
+SiglusRuntime::~SiglusRuntime() = default;
+
 }
-
-struct SiglusRuntime {
-  Gameexe gameexe;
-  std::unique_ptr<serilang::VM> vm;
-  std::shared_ptr<AssetScanner> asset_scanner;
-  std::shared_ptr<binding::SiglusMwnd> mwnd;
-  std::unique_ptr<SDLSystem> system;
-
-  SiglusRuntime() = default;
-  ~SiglusRuntime();
-  SiglusRuntime(const SiglusRuntime&) = delete;
-  SiglusRuntime& operator=(const SiglusRuntime&) = delete;
-  SiglusRuntime(SiglusRuntime&&) noexcept = default;
-  SiglusRuntime& operator=(SiglusRuntime&&) noexcept = default;
-};
-
-}  // namespace libsiglus

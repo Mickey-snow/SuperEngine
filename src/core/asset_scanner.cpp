@@ -65,7 +65,7 @@ AssetScanner AssetScanner::BuildFromGameexe(Gameexe& gexe) {
     if (fs::is_directory(dir.status())) {
       std::string lowername = dir.path().filename().string();
       to_lower(lowername);
-      if (valid_directories.count(lowername))
+      if (valid_directories.empty() || valid_directories.count(lowername))
         scanner.IndexDirectory(dir, rlvm_file_types);
     }
   }
