@@ -23,13 +23,13 @@
 
 #pragma once
 
-#include "vm/vm.hpp"
+#include "libsiglus/siglus_runtime.hpp"
 
 namespace libsiglus {
 
 class SGVMFactory {
  public:
-  serilang::VM Create();
+  SiglusRuntime Create();
 };
 
 }  // namespace libsiglus

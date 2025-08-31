@@ -24,6 +24,7 @@
 #pragma once
 
 #include "libsiglus/bindings/common.hpp"
+#include "libsiglus/siglus_runtime.hpp"
 
 namespace libsiglus::binding {
 
@@ -33,7 +34,7 @@ class Obj {
  public:
   explicit Obj(Context& c) : ctx(c) {}
 
-  void Bind(serilang::VM& vm);
+  void Bind(SiglusRuntime& runtime);
 };
 
 }  // namespace libsiglus::binding

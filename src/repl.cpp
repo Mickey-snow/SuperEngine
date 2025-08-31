@@ -54,54 +54,49 @@ GNU General Public License for more details.)";
 static constexpr std::string_view help_info =
     R"(Reallive REPL – enter code, Ctrl-D or \"exit\" to quit)";
 
-static void run_repl(VM vm) {
+static std::shared_ptr<SourceBuffer> LoadSource(std::string file_name) {
+  trim(file_name);
+  if (!file_name.ends_with(".sr"))
+    file_name += ".sr";
+
+  try {
+    std::ifstream ifs(file_name);
+    if (!ifs.is_open())
+      throw std::runtime_error("file not found: " + file_name);
+    return SourceBuffer::Create(std::string(std::istreambuf_iterator<char>(ifs),
+                                            std::istreambuf_iterator<char>()),
+                                file_name);
+  } catch (std::exception& e) {
+    std::cerr << e.what() << std::endl;
+  }
+  return nullptr;
+}
+
+static void run_repl(VM& vm) {
   CompilerPipeline pipeline(vm.gc_, /*repl_mode=*/true);
 
   std::string line, line_trimmed;
+  std::shared_ptr<SourceBuffer> src;
   for (size_t lineno = 1; std::cout << ">> " && std::getline(std::cin, line);
        ++lineno) {
     if (line.empty())
       continue;
 
     line_trimmed = trim_cp(line);
+    src = nullptr;
 
     if (line_trimmed == "exit")
       break;
-    else if (line_trimmed.starts_with("run")) {
+    else if (line_trimmed.starts_with("run ")) {
       // helper to paste and run a file
-      std::string file_name = line_trimmed.substr(3);
-      trim(file_name);
-      if (!file_name.ends_with(".sr"))
-        file_name += ".sr";
-      try {
-        std::ifstream ifs(file_name);
-        if (!ifs.is_open())
-          throw std::runtime_error("file not found: " + file_name);
-        line = std::string(std::istreambuf_iterator<char>(ifs),
-                           std::istreambuf_iterator<char>());
-      } catch (std::exception& e) {
-        std::cerr << e.what() << std::endl;
-        continue;
-      }
-    } else if (line_trimmed.starts_with("dis")) {
+      src = LoadSource(line_trimmed.substr(4));
+    } else if (line_trimmed.starts_with("dis ")) {
       // helper to compile and dump a file
-      std::string file_name = trim_cp(line).substr(3);
-      trim(file_name);
-      if (!file_name.ends_with(".sr"))
-        file_name += ".sr";
-      try {
-        std::ifstream ifs(file_name);
-        if (!ifs.is_open())
-          throw std::runtime_error("file not found: " + file_name);
-        line = std::string(std::istreambuf_iterator<char>(ifs),
-                           std::istreambuf_iterator<char>());
-      } catch (std::exception& e) {
-        std::cerr << e.what() << std::endl;
+      src = LoadSource(trim_cp(line).substr(4));
+      if (!src)
         continue;
-      }
 
-      pipeline.compile(SourceBuffer::Create(
-          std::move(line), "<input-" + std::to_string(lineno) + '>'));
+      pipeline.compile(src);
       if (!pipeline.Ok()) {
         std::cerr << pipeline.FormatErrors() << std::flush;
         continue;
@@ -113,10 +108,15 @@ static void run_repl(VM vm) {
 
       std::cout << Disassembler().Dump(*chunk) << std::endl;
       continue;
+    } else {
+      src = SourceBuffer::Create(std::move(line),
+                                 "<input-" + std::to_string(lineno) + '>');
     }
 
-    pipeline.compile(SourceBuffer::Create(
-        std::move(line), "<input-" + std::to_string(lineno) + '>'));
+    if (!src)
+      continue;
+
+    pipeline.compile(src);
     if (!pipeline.Ok()) {
       std::cerr << pipeline.FormatErrors() << std::flush;
       continue;
@@ -165,8 +165,13 @@ int main(int argc, char* argv[]) {
   }
 
   try {
-    run_repl(use_siglus ? libsiglus::SGVMFactory().Create()
-                        : m6::VMFactory::Create());
+    if (use_siglus) {
+      auto env = libsiglus::SGVMFactory().Create();
+      run_repl(*env.vm);
+    } else {
+      auto vm = m6::VMFactory::Create();
+      run_repl(vm);
+    }
   } catch (std::exception const& ex) {
     std::cerr << "fatal: " << ex.what() << '\n';
     return 1;

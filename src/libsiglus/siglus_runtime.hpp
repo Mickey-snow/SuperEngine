@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------
 //
-// This file is part of RLVM
+// This file is part of RLVM, a RealLive virtual machine clone.
 //
 // -----------------------------------------------------------------------
 //
@@ -19,40 +19,22 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
+//
 // -----------------------------------------------------------------------
 
-#include "libsiglus/sgvm_factory.hpp"
+#pragma once
 
-#include "libsiglus/bindings/common.hpp"
-#include "libsiglus/bindings/obj.hpp"
-#include "libsiglus/bindings/sdl.hpp"
-#include "libsiglus/bindings/system.hpp"
+#include "vm/vm.hpp"
 
-#include "m6/vm_factory.hpp"
+#include <memory>
 
-#include <filesystem>
+class AssetScanner;
 
 namespace libsiglus {
-namespace sr = serilang;
-namespace fs = std::filesystem;
 
-SiglusRuntime SGVMFactory::Create() {
-  SiglusRuntime runtime{.vm = std::make_unique<sr::VM>(m6::VMFactory::Create()),
-                        .asset_scanner = std::make_shared<AssetScanner>()};
-
-  binding::Context ctx;
-  ctx.base_pth = fs::temp_directory_path() / "game";
-  ctx.save_pth = ctx.base_pth / "save";
-  ctx.asset_scanner = runtime.asset_scanner;
-
-  runtime.asset_scanner->IndexDirectory(ctx.base_pth);
-
-  // add bindings here
-  binding::SDL(ctx).Bind(runtime);
-  binding::System(ctx).Bind(runtime);
-  binding::Obj(ctx).Bind(runtime);
-
-  return runtime;
-}
+struct SiglusRuntime {
+  std::unique_ptr<serilang::VM> vm;
+  std::shared_ptr<AssetScanner> asset_scanner;
+};
 
 }  // namespace libsiglus

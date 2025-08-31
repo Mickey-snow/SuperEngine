@@ -37,7 +37,9 @@ namespace sb = srbind;
 
 static void nop() {}
 
-void System::Bind(serilang::VM& vm) {
+void System::Bind(SiglusRuntime& runtime) {
+  serilang::VM& vm = *runtime.vm;
+
   sb::module_ m(vm, "system");
   m.def("is_debug", +[]() { return false; });
   m.def("time", +[]() { return static_cast<int>(std::time(nullptr)); });

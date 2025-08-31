@@ -116,7 +116,9 @@ class SDL_siglus {
   }
 };
 
-void SDL::Bind(sr::VM& vm) {
+void SDL::Bind(SiglusRuntime& runtime) {
+  sr::VM& vm = *runtime.vm;
+
   sb::module_ m(vm.gc_.get(), vm.globals_);
   sb::class_<SDL_siglus> sdl(m, "SDL");
 

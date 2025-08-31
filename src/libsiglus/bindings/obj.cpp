@@ -189,7 +189,9 @@ class Object {
   std::shared_ptr<Clock> clock = std::make_shared<Clock>();
 };
 
-void Obj::Bind(serilang::VM& vm) {
+void Obj::Bind(SiglusRuntime& runtime) {
+  sr::VM& vm = *runtime.vm;
+
   sb::module_ m(vm.gc_.get(), vm.globals_);
   sb::class_<Object> o(m, "Object");
 
