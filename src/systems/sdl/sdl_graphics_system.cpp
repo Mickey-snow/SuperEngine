@@ -167,7 +167,7 @@ void SDLGraphicsSystem::RedrawLastFrame() {
   }
 }
 
-std::shared_ptr<Surface> SDLGraphicsSystem::RenderToSurface() {
+std::shared_ptr<SDLSurface> SDLGraphicsSystem::RenderToSurface() {
   auto canvas = CreateCanvas();
   canvas->Use();
 
@@ -485,25 +485,15 @@ static SDL_Surface* newSurfaceFromRGBAData(int w,
   return surf;
 }
 
-std::shared_ptr<SDLSurface> GetSDLSurface(std::shared_ptr<Surface> surface) {
+std::shared_ptr<SDLSurface> GetSDLSurface(std::shared_ptr<SDLSurface> surface) {
   if (auto sdl_surface = std::dynamic_pointer_cast<SDLSurface>(surface))
     return sdl_surface;
   throw std::runtime_error("SDLGraphicsSystem: expected sdl surface.");
 }
 
-std::shared_ptr<Surface> SDLGraphicsSystem::LoadSurfaceFromFile(
-    const std::string& short_filename) {
-  static const std::set<std::string> IMAGE_FILETYPES = {"g00", "pdt"};
-  std::filesystem::path filename =
-      asset_scanner_->FindFile(short_filename, IMAGE_FILETYPES);
-
-  if (filename.empty()) {
-    std::ostringstream oss;
-    oss << "Could not find image file \"" << short_filename << "\".";
-    throw rlvm::Exception(oss.str());
-  }
-
-  MappedFile file(filename);
+std::shared_ptr<SDLSurface> SDLGraphicsSystem::LoadSurface(
+    const std::filesystem::path& pth) {
+  MappedFile file(pth);
   ImageDecoder dec(file.Read());
 
   const auto width = dec.width;
@@ -540,14 +530,31 @@ std::shared_ptr<Surface> SDLGraphicsSystem::LoadSurfaceFromFile(
     region_table.push_back(rect);
   }
 
-  std::shared_ptr<Surface> surface_to_ret =
-      std::make_shared<SDLSurface>(s, region_table);
+  return std::make_shared<SDLSurface>(s, region_table);
+}
+
+std::shared_ptr<SDLSurface> SDLGraphicsSystem::LoadSurfaceFromFile(
+    const std::string& short_filename) {
+  static const std::set<std::string> IMAGE_FILETYPES = {"g00", "pdt"};
+  std::filesystem::path pth =
+      asset_scanner_->FindFile(short_filename, IMAGE_FILETYPES);
+
+  if (pth.empty()) {
+    std::ostringstream oss;
+    oss << "Could not find image file \"" << short_filename << "\".";
+    throw rlvm::Exception(oss.str());
+  }
+
+  std::shared_ptr<SDLSurface> result = LoadSurface(pth);
+  const auto size = result->GetSize();
 
   // handle tone curve effect loading
-  if (short_filename.find("?") != short_filename.npos) {
-    std::string effect_no_str =
-        short_filename.substr(short_filename.find("?") + 1);
-    int effect_no = std::stoi(effect_no_str);
+  if (auto pos = short_filename.find("?"); pos != short_filename.npos) {
+    auto effect_str = std::string_view(short_filename).substr(pos + 1);
+    int effect_no = 0;
+    std::ignore = std::from_chars(effect_str.cbegin(), effect_str.cend(),
+                                  effect_no);
+
     // the effect number is an index that goes from 10 to GetEffectCount() * 10,
     // so keep that in mind here
     if ((effect_no / 10) > globals().tone_curves.GetEffectCount() ||
@@ -556,15 +563,14 @@ std::shared_ptr<Surface> SDLGraphicsSystem::LoadSurfaceFromFile(
       oss << "Tone curve index " << effect_no << " is invalid.";
       throw rlvm::Exception(oss.str());
     }
-    surface_to_ret.get()->ToneCurve(
-        globals().tone_curves.GetEffect(effect_no / 10 - 1),
-        Rect(Point(0, 0), Size(width, height)));
+    result.get()->ToneCurve(globals().tone_curves.GetEffect(effect_no / 10 - 1),
+                            Rect(Point(0, 0), size));
   }
 
-  return surface_to_ret;
+  return result;
 }
 
-std::shared_ptr<Surface> SDLGraphicsSystem::GetHaikei() {
+std::shared_ptr<SDLSurface> SDLGraphicsSystem::GetHaikei() {
   if (haikei_->rawSurface() == NULL) {
     haikei_->allocate(screen_size());
   }
@@ -572,7 +578,7 @@ std::shared_ptr<Surface> SDLGraphicsSystem::GetHaikei() {
   return haikei_;
 }
 
-std::shared_ptr<Surface> SDLGraphicsSystem::GetDC(int dc) {
+std::shared_ptr<SDLSurface> SDLGraphicsSystem::GetDC(int dc) {
   VerifySurfaceExists(dc, "SDLGraphicsSystem::get_dc");
 
   // If requesting a DC that doesn't exist, allocate it first.

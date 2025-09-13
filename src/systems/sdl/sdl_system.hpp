@@ -51,7 +51,6 @@ class SDLSystem : public System {
   virtual SDLTextSystem& text() override;
   virtual SoundSystem& sound() override;
 
- private:
   std::shared_ptr<SDLGraphicsSystem> graphics_system_;
   std::shared_ptr<EventSystem> event_system_;
   std::shared_ptr<SDLTextSystem> text_system_;

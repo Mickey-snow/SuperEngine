@@ -59,9 +59,6 @@ class SDLGraphicsSystem : public GraphicsSystem {
   SDLGraphicsSystem(System& system, Gameexe& gameexe);
   ~SDLGraphicsSystem();
 
-  virtual std::shared_ptr<Surface> LoadSurfaceFromFile(
-      const std::string& short_filename) override;
-
  public:
   // When the cursor is changed, also make sure that it exists so that we can
   // switch on/off the operating system cursor when the cursor index is invalid.
@@ -70,7 +67,7 @@ class SDLGraphicsSystem : public GraphicsSystem {
   std::shared_ptr<glCanvas> CreateCanvas() const;
   virtual void BeginFrame() override;
   virtual void EndFrame() override;
-  virtual std::shared_ptr<Surface> RenderToSurface() override;
+  virtual std::shared_ptr<SDLSurface> RenderToSurface() override;
 
   void RedrawLastFrame();
   void DrawCursor();
@@ -81,8 +78,8 @@ class SDLGraphicsSystem : public GraphicsSystem {
   virtual void SetMinimumSizeForDC(int dc, Size size) override;
   virtual void FreeDC(int dc) override;
 
-  virtual std::shared_ptr<Surface> GetHaikei() override;
-  virtual std::shared_ptr<Surface> GetDC(int dc) override;
+  virtual std::shared_ptr<SDLSurface> GetHaikei() override;
+  virtual std::shared_ptr<SDLSurface> GetDC(int dc) override;
 
   // -----------------------------------------------------------------------
   virtual void SetWindowTitle(std::string new_caption);
@@ -98,6 +95,13 @@ class SDLGraphicsSystem : public GraphicsSystem {
   void SetupVideo(Size window_size);
 
   virtual void Resize(Size display_size) override;
+
+ protected:
+  virtual std::shared_ptr<SDLSurface> LoadSurfaceFromFile(
+      const std::string& short_filename) override;
+
+ public:
+  std::shared_ptr<SDLSurface> LoadSurface(const std::filesystem::path& path);
 
  private:
   // Makes sure that a passed in dc number is valid.

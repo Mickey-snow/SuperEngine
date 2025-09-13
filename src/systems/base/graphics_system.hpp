@@ -60,7 +60,6 @@ class RGBAColour;
 class RLMachine;
 class Size;
 class SDLSurface;
-using Surface = SDLSurface;
 class System;
 struct ObjectSettings;
 
@@ -310,7 +309,7 @@ class GraphicsSystem : public EventListener {
 
   // Draws the screen (as if refresh() was called), but draw to the returned
   // surface instead of the screen.
-  virtual std::shared_ptr<Surface> RenderToSurface() = 0;
+  virtual std::shared_ptr<SDLSurface> RenderToSurface() = 0;
 
   // Called from the game loop; Does everything that's needed to keep
   // things up.
@@ -330,17 +329,18 @@ class GraphicsSystem : public EventListener {
 
   // Loads an image, optionally marking that this image has been loaded (if it
   // is in the game's CGM table).
-  std::shared_ptr<Surface> GetSurfaceNamedAndMarkViewed(
+  std::shared_ptr<SDLSurface> GetSurfaceNamedAndMarkViewed(
       RLMachine& machine,
       const std::string& short_filename);
 
   // Just loads an image. This shouldn't be used for images that are destined
   // for one of the DCs, since those can be CGs.
-  std::shared_ptr<Surface> GetSurfaceNamed(const std::string& short_filename);
+  std::shared_ptr<SDLSurface> GetSurfaceNamed(
+      const std::string& short_filename);
 
-  virtual std::shared_ptr<Surface> GetHaikei() = 0;
+  virtual std::shared_ptr<SDLSurface> GetHaikei() = 0;
 
-  virtual std::shared_ptr<Surface> GetDC(int dc) = 0;
+  virtual std::shared_ptr<SDLSurface> GetDC(int dc) = 0;
 
   // A process where the front and back buffers swap, updating the display to
   // show objects prepared in the back buffer. Documented as "Wipe operation".
@@ -399,7 +399,7 @@ class GraphicsSystem : public EventListener {
   ToneCurve& tone_curve() { return globals_.tone_curves; }
 
   // Gets the emoji surface, if any.
-  std::shared_ptr<Surface> GetEmojiSurface();
+  std::shared_ptr<SDLSurface> GetEmojiSurface();
 
   // We have a cache of HIK scripts. This is done so we can load HIKScripts
   // outside of loops.
@@ -417,7 +417,7 @@ class GraphicsSystem : public EventListener {
   void PreloadG00(int slot, const std::string& name);
   void ClearPreloadedG00(int slot);
   void ClearAllPreloadedG00();
-  std::shared_ptr<Surface> GetPreloadedG00(const std::string& name);
+  std::shared_ptr<SDLSurface> GetPreloadedG00(const std::string& name);
 
  protected:
   typedef std::set<Renderable*> FinalRenderers;
@@ -434,7 +434,7 @@ class GraphicsSystem : public EventListener {
   void DrawFrame();
 
   // Gets a platform appropriate surface loaded.
-  virtual std::shared_ptr<Surface> LoadSurfaceFromFile(
+  virtual std::shared_ptr<SDLSurface> LoadSurfaceFromFile(
       const std::string& short_filename) = 0;
 
   // Current screen update mode
@@ -521,14 +521,14 @@ class GraphicsSystem : public EventListener {
   HIKScriptList preloaded_hik_scripts_;
 
   // Preloaded G00 images.
-  typedef std::pair<std::string, std::shared_ptr<Surface>> G00ArrayItem;
+  typedef std::pair<std::string, std::shared_ptr<SDLSurface>> G00ArrayItem;
   typedef LazyArray<G00ArrayItem> G00ScriptList;
   G00ScriptList preloaded_g00_;
 
   // LRU cache filled with the last fifteen accessed images.
   //
   // This cache's contents are assumed to be immutable.
-  LRUCache<std::string, std::shared_ptr<Surface>> image_cache_;
+  LRUCache<std::string, std::shared_ptr<SDLSurface>> image_cache_;
 
   // Possible background script which drives graphics to the screen.
   std::unique_ptr<HIKRenderer> hik_renderer_;
