@@ -72,6 +72,8 @@ class SDLGraphicsSystem : public GraphicsSystem {
   void RedrawLastFrame();
   void DrawCursor();
 
+  void RenderFrame(bool should_refresh = true);
+  void UpdateWindowTitle();
   virtual void ExecuteGraphicsSystem(RLMachine& machine) override;
 
   virtual void AllocateDC(int dc, Size screen_size) override;
@@ -121,6 +123,12 @@ class SDLGraphicsSystem : public GraphicsSystem {
   std::string caption_title_;
   // utf8 encoded subtitle
   std::string subtitle_;
+  inline std::string GetTitle() const {
+    std::string ret = caption_title_;
+    if (should_display_subtitle() && !subtitle_.empty())
+      ret += ": " + subtitle_;
+    return ret;
+  }
 
   // Texture used to store the contents of the screen while in DrawManual()
   // mode. The stored image is then used if we need to redraw in the

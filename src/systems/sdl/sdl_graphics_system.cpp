@@ -308,6 +308,29 @@ void SDLGraphicsSystem::SetupVideo(Size window_size) {
 
 SDLGraphicsSystem::~SDLGraphicsSystem() {}
 
+void SDLGraphicsSystem::RenderFrame(bool should_refresh) {
+  if (!should_refresh) {
+    RedrawLastFrame();
+  } else {
+    BeginFrame();
+    DrawFrame();
+    EndFrame();
+  }
+}
+
+void SDLGraphicsSystem::UpdateWindowTitle() {
+  static auto clock = Clock();
+  static auto time_of_last_titlebar_update = clock.GetTime();
+  static auto update_duration = std::chrono::milliseconds(60);
+
+  auto current_time = clock.GetTime();
+  if ((current_time - time_of_last_titlebar_update) <= update_duration)
+    return;
+
+  time_of_last_titlebar_update = current_time;
+  SetWindowTitle(GetTitle());
+}
+
 void SDLGraphicsSystem::ExecuteGraphicsSystem(RLMachine& machine) {
   if (is_responsible_for_update()) {
     switch (screen_update_mode()) {
@@ -322,30 +345,11 @@ void SDLGraphicsSystem::ExecuteGraphicsSystem(RLMachine& machine) {
                                  std::to_string(screen_update_mode()));
     }
 
-    if (screen_needs_refresh_) {
-      BeginFrame();
-      DrawFrame();
-      EndFrame();
-      screen_needs_refresh_ = false;
-    } else {
-      RedrawLastFrame();
-    }
+    RenderFrame(screen_needs_refresh_);
+    screen_needs_refresh_ = false;
   }
 
-  // Update the seen.
-  static auto clock = Clock();
-  static auto time_of_last_titlebar_update = clock.GetTime();
-  auto current_time = clock.GetTime();
-  if ((current_time - time_of_last_titlebar_update) >
-      std::chrono::milliseconds(60)) {
-    time_of_last_titlebar_update = current_time;
-    std::string new_caption = caption_title_;
-    if (should_display_subtitle() && subtitle_ != "") {
-      new_caption += ": " + subtitle_;
-    }
-
-    SetWindowTitle(std::move(new_caption));
-  }
+  UpdateWindowTitle();
 
   GraphicsSystem::ExecuteGraphicsSystem(machine);
 }
