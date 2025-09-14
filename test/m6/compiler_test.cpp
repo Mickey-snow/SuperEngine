@@ -478,6 +478,23 @@ print(await spawn deep(1000));
     ASSERT_TRUE(res.stderr.empty()) << res.stderr;
     EXPECT_EQ(res.stdout, "500500\n") << "\nDisassembly:\n" << res.disasm;
   }
+
+  {
+    auto res = Run(R"(
+fn wait_for(n){
+  for(i=0;i<n;i+=1) yield;
+  return n;
+}
+
+for(i=1;i<=5;i+=1){
+  result = await spawn wait_for(i);
+  print(result);
+}
+)");
+
+    // FIXME: this should be "1\n2\n3\n4\n5\n"
+    EXPECT_EQ(res, "nil\nnil\nnil\nnil\nnil\n");
+  }
 }
 
 TEST_F(CompilerTest, Import) {

@@ -94,20 +94,29 @@ Value VM::Run() {
   while (active) {
     active = false;
 
-    std::erase_if(fibres_, [&](Fiber* f) {
+    for (size_t i = 0, n = fibres_.size(); i < n; ++i) {
+      // Note: new fibres might be added to the array during iteration
+      Fiber* f = fibres_[i];
       switch (f->state) {
-        case FiberState::Dead:
-          if (f->pending_result.has_value())
-            last_ = f->pending_result.value();
-          return true;
         case FiberState::New:
           f->state = FiberState::Running;
+          [[fallthrough]];
         case FiberState::Running:
           ExecuteFiber(f);
           active = true;
-          return false;
+          break;
         case FiberState::Suspended:
-          return false;
+          break;
+        case FiberState::Dead:
+          break;
+      }
+    }
+
+    std::erase_if(fibres_, [&](Fiber* f) {
+      if (f->state == FiberState::Dead) {
+        if (f->pending_result.has_value())
+          last_ = f->pending_result.value();
+        return true;
       }
       return false;
     });
