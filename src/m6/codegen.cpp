@@ -43,6 +43,7 @@ CodeGenerator::CodeGenerator(std::shared_ptr<serilang::GarbageCollector> gc,
     : gc_(gc),
       repl_mode_(repl),
       mode_(CompileMode::Global),
+      scope_depth_(0),
       chunk_(gc->Allocate<sr::Code>()),
       locals_(),
       local_depth_(0),
@@ -170,7 +171,10 @@ CodeGenerator::SCOPE CodeGenerator::get_scope(std::string_view id) {
 
 // Expression codegen
 void CodeGenerator::emit_expr(std::shared_ptr<ExprAST> n) {
-  n->Apply([&](auto&& x) { emit_expr_node(x); });
+  if (!n)
+    emit_expr_node(NilLiteral());
+  else
+    n->Apply([&](auto&& x) { emit_expr_node(x); });
 }
 
 void CodeGenerator::emit_expr_node(const NilLiteral& m) {
@@ -324,6 +328,8 @@ void CodeGenerator::emit_stmt_node(const AugStmt& s) {
 }
 
 void CodeGenerator::emit_stmt_node(const IfStmt& s) {
+  ++scope_depth_;
+
   emit_expr(s.cond);
   auto jfalse = code_size();
   emit(sr::JumpIfFalse{0});
@@ -339,9 +345,13 @@ void CodeGenerator::emit_stmt_node(const IfStmt& s) {
   } else {
     patch(jfalse, code_size());
   }
+
+  --scope_depth_;
 }
 
 void CodeGenerator::emit_stmt_node(const WhileStmt& s) {
+  ++scope_depth_;
+
   auto loop_top = code_size();
   emit_expr(s.cond);
   auto exitj = code_size();
@@ -352,9 +362,13 @@ void CodeGenerator::emit_stmt_node(const WhileStmt& s) {
   emit(sr::Jump{0});
   patch(jmp, loop_top);
   patch(exitj, code_size());
+
+  --scope_depth_;
 }
 
 void CodeGenerator::emit_stmt_node(const ForStmt& f) {
+  ++scope_depth_;
+
   if (f.init)
     emit_stmt(f.init);
 
@@ -375,11 +389,15 @@ void CodeGenerator::emit_stmt_node(const ForStmt& f) {
   patch(jmp, condpos);
 
   patch(exitj, code_size());
+
+  --scope_depth_;
 }
 
 void CodeGenerator::emit_stmt_node(const BlockStmt& s) {
+  ++scope_depth_;
   for (auto& stmt : s.body)
     emit_stmt(stmt);
+  --scope_depth_;
 }
 
 void CodeGenerator::emit_function(const FuncDecl& fn, CompileMode nested_mode) {
@@ -424,18 +442,21 @@ void CodeGenerator::emit_return(std::shared_ptr<ExprAST> expr) {
     if (expr)
       AddError("Can't return a value from __init__");
     emit(sr::LoadLocal{.slot = 1});  // 'self'
+    emit(sr::Return{});
+  } else if (mode_ != CompileMode::Function) {
+    AddError("'return' outside function");
+    emit(sr::Push{constant(Value(std::monostate()))});
   } else {
-    if (expr)
-      emit_expr(expr);
-    else
-      emit(sr::Push{constant(Value(std::monostate()))});
+    emit_expr(expr);
+    emit(sr::Return{});
   }
-  emit(sr::Return{});
 }
 
 void CodeGenerator::emit_stmt_node(const FuncDecl& fn) {
+  ++scope_depth_;
   emit_function(fn);
   emit(sr::StoreGlobal{intern_name(fn.name)});
+  --scope_depth_;
 }
 
 void CodeGenerator::emit_stmt_node(const ClassDecl& cd) {
@@ -460,22 +481,23 @@ void CodeGenerator::emit_stmt_node(const ReturnStmt& r) {
 }
 
 void CodeGenerator::emit_stmt_node(const YieldStmt& y) {
-  if (y.value)
-    emit_expr(y.value);
-  else
-    emit(sr::Push{constant(Value(std::monostate()))});
+  emit_expr(y.value);
+
+  if (mode_ != CompileMode::Function) {
+    AddError("'yield' outside function");
+    return;
+  }
+
   emit(sr::Yield{});
 }
 
 void CodeGenerator::emit_stmt_node(const ThrowStmt& t) {
-  if (t.value)
-    emit_expr(t.value);
-  else
-    emit(sr::Push{constant(Value(std::monostate()))});
+  emit_expr(t.value);
   emit(sr::Throw{});
 }
 
 void CodeGenerator::emit_stmt_node(const TryStmt& t) {
+  ++scope_depth_;
   auto try_begin = code_size();
   emit(sr::TryBegin{0});
   emit_stmt(t.body);
@@ -492,6 +514,7 @@ void CodeGenerator::emit_stmt_node(const TryStmt& t) {
 
   auto end_pos = code_size();
   patch(jmp, end_pos);
+  --scope_depth_;
 }
 
 void CodeGenerator::emit_stmt_node(const ImportStmt& is) {
@@ -512,7 +535,7 @@ void CodeGenerator::emit_stmt_node(const ImportStmt& is) {
 }
 
 void CodeGenerator::emit_stmt_node(const std::shared_ptr<ExprAST>& s) {
-  if (repl_mode_ && mode_ == CompileMode::Global) {
+  if (repl_mode_ && scope_depth_ == 0 && mode_ == CompileMode::Global) {
     emit(sr::LoadGlobal{intern_name(kReplPrintName)});
     emit_expr(s);
     emit(sr::Call{1, 0});

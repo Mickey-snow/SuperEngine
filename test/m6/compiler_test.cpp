@@ -47,6 +47,10 @@ namespace fs = std::filesystem;
 
 class CompilerTest : public ::testing::Test {
  public:
+  struct error {
+    std::string_view diagnose;
+  };
+
   // Holds everything we care about after one script run
   struct ExecutionResult {
     serilang::Value last;  ///< value left on the VM stack (result)
@@ -56,6 +60,9 @@ class CompilerTest : public ::testing::Test {
 
     bool operator==(std::string_view rhs) const {
       return stderr.empty() && trim_cp(stdout) == trim_sv(rhs);
+    }
+    bool operator==(error rhs) const {
+      return stdout.empty() && trim_cp(stderr) == trim_sv(rhs.diagnose);
     }
 
     friend std::ostream& operator<<(std::ostream& os,
@@ -620,6 +627,22 @@ TEST_F(CompilerTest, InterpretPrint) {
         {"fn boo(){}", "fn foo(){ boo(); x=0; return x+1;}", "foo();"});
     EXPECT_EQ(res, "1\n");
   }
+
+  {
+    auto res = Interpret({
+        R"(
+for(i=0;i<3;i+=1){
+  i;
+  print(i);
+}
+)"});
+    EXPECT_EQ(res, "0\n1\n2\n");
+  }
+
+  {
+    auto res = Interpret({R"( if (true) 42; else print("43"); )"});
+    EXPECT_EQ(res, "");
+  }
 }
 
 // ==============================================================================
@@ -686,6 +709,16 @@ TEST_F(CompilerTest, AssignmentNotSupported) {
 '<str: abc>' object does not support item assignment.
 ok
 )");
+}
+
+TEST_F(CompilerTest, ReturnOutside) {
+  auto res = Interpret({R"( return print("abc"); )"});
+  EXPECT_EQ(res, error("'return' outside function"));
+}
+
+TEST_F(CompilerTest, YieldOutside) {
+  auto res = Interpret({R"( yield 1; )"});
+  EXPECT_EQ(res, error("'yield' outside function"));
 }
 
 }  // namespace m6test

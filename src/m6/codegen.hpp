@@ -66,6 +66,7 @@ class CodeGenerator {
   std::shared_ptr<serilang::GarbageCollector> gc_;
   bool repl_mode_;
   CompileMode mode_;
+  std::size_t scope_depth_;
 
   serilang::Code* chunk_;
   transparent_hashmap<SCOPE> scope_heuristic_;
@@ -107,7 +108,7 @@ class CodeGenerator {
   void emit_load_var(std::string_view id);
 
   // -- Expression codegen ---------------------------------------------
-  void emit_expr(std::shared_ptr<ExprAST> n);
+  void emit_expr(std::shared_ptr<ExprAST> n = nullptr);
   void emit_expr_node(const NilLiteral&);
   void emit_expr_node(const TrueLiteral&);
   void emit_expr_node(const FalseLiteral&);
