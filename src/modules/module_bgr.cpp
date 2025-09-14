@@ -93,7 +93,13 @@ struct bgrLoadHaikei_main : RLOpcode<StrConstant_T, IntConstant_T> {
     // bgrLoadHaikei clears the stack.
     graphics.ClearStack();
 
-    fs::path path = system.GetAssetScanner()->FindFile(filename, HIK_FILETYPES);
+    fs::path path;
+    if (auto f = system.GetAssetScanner()->FindFile(filename, HIK_FILETYPES);
+        f.has_value())
+      path = f.value();
+    else
+      throw f.error();
+
     if (path.string().ends_with("hik")) {
       if (!machine.replaying_graphics_stack())
         graphics.ClearAndPromoteObjects();
@@ -271,7 +277,12 @@ struct bgrSetYOffset : public RLOpcode<IntConstant_T> {
 struct bgrPreloadScript : public RLOpcode<IntConstant_T, StrConstant_T> {
   void operator()(RLMachine& machine, int slot, string name) {
     System& system = machine.GetSystem();
-    fs::path path = system.GetAssetScanner()->FindFile(name, HIK_FILETYPES);
+    fs::path path;
+    if (auto f = system.GetAssetScanner()->FindFile(name, HIK_FILETYPES);
+        f.has_value())
+      path = f.value();
+    else
+      throw f.error();
     if (path.string().ends_with("hik")) {
       system.graphics().PreloadHIKScript(system, slot, name, path);
     }

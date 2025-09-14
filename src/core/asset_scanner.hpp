@@ -25,6 +25,7 @@
 #pragma once
 
 #include "core/gameexe.hpp"
+#include "utilities/expected.hpp"
 
 #include <filesystem>
 #include <map>
@@ -34,7 +35,7 @@ class IAssetScanner {
  public:
   virtual ~IAssetScanner() = default;
 
-  virtual std::filesystem::path FindFile(
+  virtual expected<std::filesystem::path, std::runtime_error> FindFile(
       std::string filename,
       const std::set<std::string>& extension_filter = {}) = 0;
 };
@@ -51,7 +52,7 @@ class AssetScanner : public IAssetScanner {
   void IndexDirectory(const std::filesystem::path& dir,
                       const std::set<std::string>& extension_filter = {});
 
-  std::filesystem::path FindFile(
+  [[nodiscard]] expected<std::filesystem::path, std::runtime_error> FindFile(
       std::string filename,
       const std::set<std::string>& extension_filter = {}) override;
 

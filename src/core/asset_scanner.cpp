@@ -108,7 +108,7 @@ void AssetScanner::IndexDirectory(
   }
 }
 
-std::filesystem::path AssetScanner::FindFile(
+expected<std::filesystem::path, std::runtime_error> AssetScanner::FindFile(
     std::string filename,
     const std::set<std::string>& extension_filter) {
   // Hack to get around fileNames like "REALNAME?010", where we only
@@ -124,6 +124,6 @@ std::filesystem::path AssetScanner::FindFile(
       return path;
   }
 
-  throw std::runtime_error("AssetScanner::FindFile: file " + filename +
-                           " not found.");
+  return unexpected(std::runtime_error("AssetScanner::FindFile: file " +
+                                       filename + " not found."));
 }

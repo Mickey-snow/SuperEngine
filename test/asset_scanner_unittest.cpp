@@ -57,19 +57,25 @@ class rlfsTest : public ::testing::Test {
   AssetScanner game_assets;
   std::set<std::string> rlvm_extension, nonrlvm_extension;
   fs::path emptydir, extradir;  // tmp directories under Gameroot for testing
+
+  inline fs::path FindFile(std::string filename,
+                           const std::set<std::string>& ext = {}) {
+    if (auto f = game_assets.FindFile(filename, ext); f.has_value())
+      return f.value();
+    else
+      throw f.error();
+  }
 };
 
 TEST_F(rlfsTest, IndexDirectory) {
   game_assets.IndexDirectory(PathToTestDirectory("Gameroot"));
 
-  EXPECT_EQ(game_assets.FindFile("bgm01"),
-            PathToTestCase("Gameroot/BGM/BGM01.nwa"));
-  EXPECT_EQ(game_assets.FindFile("doesntmatter", rlvm_extension),
+  EXPECT_EQ(FindFile("bgm01"), PathToTestCase("Gameroot/BGM/BGM01.nwa"));
+  EXPECT_EQ(FindFile("doesntmatter", rlvm_extension),
             PathToTestCase("Gameroot/g00/doesntmatter.g00"));
-  EXPECT_THROW(game_assets.FindFile("BGM01", nonrlvm_extension),
-               std::runtime_error);
+  EXPECT_THROW(FindFile("BGM01", nonrlvm_extension), std::runtime_error);
 
-  EXPECT_THROW(game_assets.FindFile("nosuchfile"), std::runtime_error);
+  EXPECT_THROW(FindFile("nosuchfile"), std::runtime_error);
 }
 
 TEST_F(rlfsTest, BuildFromGexe) {
@@ -78,20 +84,18 @@ TEST_F(rlfsTest, BuildFromGexe) {
 
   game_assets = AssetScanner::BuildFromGameexe(gexe);
 
-  EXPECT_EQ(game_assets.FindFile("bgm01"),
-            PathToTestCase("Gameroot/BGM/BGM01.nwa"));
-  EXPECT_EQ(game_assets.FindFile("doesntmatter", rlvm_extension),
+  EXPECT_EQ(FindFile("bgm01"), PathToTestCase("Gameroot/BGM/BGM01.nwa"));
+  EXPECT_EQ(FindFile("doesntmatter", rlvm_extension),
             PathToTestCase("Gameroot/g00/doesntmatter.g00"));
-  EXPECT_THROW(game_assets.FindFile("BGM01", nonrlvm_extension),
-               std::runtime_error);
+  EXPECT_THROW(FindFile("BGM01", nonrlvm_extension), std::runtime_error);
 
-  EXPECT_THROW(game_assets.FindFile("nosuchfile"), std::runtime_error);
+  EXPECT_THROW(FindFile("nosuchfile"), std::runtime_error);
 }
 
 TEST_F(rlfsTest, EmptyDir) {
   EXPECT_NO_THROW(game_assets.IndexDirectory(emptydir));
   EXPECT_NO_THROW(game_assets.IndexDirectory(emptydir, rlvm_extension));
-  EXPECT_THROW(game_assets.FindFile("nonexistentfile"), std::runtime_error);
+  EXPECT_THROW(FindFile("nonexistentfile"), std::runtime_error);
 }
 
 TEST_F(rlfsTest, SpecialFiles) {
@@ -106,10 +110,10 @@ TEST_F(rlfsTest, SpecialFiles) {
   }
 
   game_assets.IndexDirectory(extradir, rlvm_extension);
-  EXPECT_EQ(game_assets.FindFile("@special!"), specialnwa);
-  EXPECT_EQ(game_assets.FindFile(".hidden"), hiddeng00);
-  EXPECT_THROW(game_assets.FindFile("abc"), std::runtime_error);
-  EXPECT_THROW(game_assets.FindFile("noextension!!!"), std::runtime_error);
+  EXPECT_EQ(FindFile("@special!"), specialnwa);
+  EXPECT_EQ(FindFile(".hidden"), hiddeng00);
+  EXPECT_THROW(FindFile("abc"), std::runtime_error);
+  EXPECT_THROW(FindFile("noextension!!!"), std::runtime_error);
 }
 
 TEST_F(rlfsTest, InvalidInput) {

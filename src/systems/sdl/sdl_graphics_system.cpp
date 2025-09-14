@@ -537,7 +537,7 @@ std::shared_ptr<SDLSurface> SDLGraphicsSystem::LoadSurfaceFromFile(
     const std::string& short_filename) {
   static const std::set<std::string> IMAGE_FILETYPES = {"g00", "pdt"};
   std::filesystem::path pth =
-      asset_scanner_->FindFile(short_filename, IMAGE_FILETYPES);
+      asset_scanner_->FindFile(short_filename, IMAGE_FILETYPES).value();
 
   if (pth.empty()) {
     std::ostringstream oss;
@@ -552,8 +552,8 @@ std::shared_ptr<SDLSurface> SDLGraphicsSystem::LoadSurfaceFromFile(
   if (auto pos = short_filename.find("?"); pos != short_filename.npos) {
     auto effect_str = std::string_view(short_filename).substr(pos + 1);
     int effect_no = 0;
-    std::ignore = std::from_chars(effect_str.cbegin(), effect_str.cend(),
-                                  effect_no);
+    std::ignore =
+        std::from_chars(effect_str.cbegin(), effect_str.cend(), effect_no);
 
     // the effect number is an index that goes from 10 to GetEffectCount() * 10,
     // so keep that in mind here

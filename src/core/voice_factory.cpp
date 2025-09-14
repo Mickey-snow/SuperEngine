@@ -66,13 +66,8 @@ fs::path VoiceFactory::LocateArchive(int file_no) const {
   oss << "z" << std::setw(4) << std::setfill('0') << file_no;
 
   static const std::set<std::string> koe_archive_filetypes{"ovk", "koe", "nwk"};
-  fs::path file;
-  try {
-    file = assets_->FindFile(oss.str(), koe_archive_filetypes);
-  } catch (...) {
-    return {};
-  }
-  return file;
+  return assets_->FindFile(oss.str(), koe_archive_filetypes)
+      .value_or(fs::path{});
 }
 
 fs::path VoiceFactory::LocateUnpackedSample(int file_no, int index) const {
@@ -83,13 +78,7 @@ fs::path VoiceFactory::LocateUnpackedSample(int file_no, int index) const {
       << std::setfill('0') << index;
 
   static const std::set<std::string> koe_loose_filetypes{"ogg"};
-  fs::path file;
-  try {
-    file = assets_->FindFile(oss.str(), koe_loose_filetypes);
-  } catch (...) {
-    return {};
-  }
-  return file;
+  return assets_->FindFile(oss.str(), koe_loose_filetypes).value_or(fs::path{});
 }
 
 std::shared_ptr<IVoiceArchive> VoiceFactory::FindArchive(int file_no) const {

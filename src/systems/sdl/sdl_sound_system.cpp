@@ -363,18 +363,22 @@ void SDLSoundSystem::WavPlay(const std::string& wav_file,
   WavPlayImpl(wav_file, channel, loop);
 }
 
-void SDLSoundSystem::WavPlay(const std::string& wav_file,
+void SDLSoundSystem::WavPlay(const std::string& filename,
                              bool loop,
                              const int channel,
                              const int fadein_ms) {
-  if (settings_.pcm_enabled) {
-    auto wav_file_path = voice_assets_->FindFile(wav_file, SOUNDFILETYPES);
-    player_t player = CreateAudioPlayer(wav_file_path);
+  if (!settings_.pcm_enabled)
+    return;
+
+  if (auto wav_file = voice_assets_->FindFile(filename, SOUNDFILETYPES);
+      wav_file.has_value()) {
+    player_t player = CreateAudioPlayer(wav_file.value());
     player->SetLoopTimes(loop ? -1 : 0);
     player->FadeIn(fadein_ms);
     SetChannelVolumeImpl(channel);
     sound_impl_->PlayChannel(channel, player);
-  }
+  } else
+    throw wav_file.error();
 }
 
 bool SDLSoundSystem::WavPlaying(const int channel) {
@@ -424,7 +428,7 @@ void SDLSoundSystem::PlaySe(const int se_num) {
   }
 
   auto file_path = voice_assets_->FindFile(file_name, SOUNDFILETYPES);
-  player_t player = CreateAudioPlayer(file_path);
+  player_t player = CreateAudioPlayer(file_path.value());
   player->SetLoopTimes(0);
 
   // SE chunks have no volume other than the modifier.
@@ -510,7 +514,7 @@ void SDLSoundSystem::SetChannelVolumeImpl(int channel) {
 
 player_t SDLSoundSystem::LoadMusic(const std::string& bgm_name) {
   auto track = audio_table_.FindBgm(bgm_name);
-  auto file_path = voice_assets_->FindFile(track.file, SOUNDFILETYPES);
+  auto file_path = voice_assets_->FindFile(track.file, SOUNDFILETYPES).value();
 
   player_t player = CreateAudioPlayer(file_path);
   player->SetName(track.name);
@@ -518,16 +522,20 @@ player_t SDLSoundSystem::LoadMusic(const std::string& bgm_name) {
   return player;
 }
 
-void SDLSoundSystem::WavPlayImpl(const std::string& wav_file,
+void SDLSoundSystem::WavPlayImpl(const std::string& filename,
                                  const int channel,
                                  bool loop) {
-  if (settings_.pcm_enabled) {
-    fs::path wav_file_path = voice_assets_->FindFile(wav_file, SOUNDFILETYPES);
-    player_t player = CreateAudioPlayer(wav_file_path);
+  if (!settings_.pcm_enabled)
+    return;
+
+  if (auto wav_file = voice_assets_->FindFile(filename, SOUNDFILETYPES);
+      wav_file.has_value()) {
+    player_t player = CreateAudioPlayer(wav_file.value());
     player->SetLoopTimes(loop ? -1 : 0);
     SetChannelVolumeImpl(channel);
     sound_impl_->PlayChannel(channel, player);
-  }
+  } else
+    throw wav_file.error();
 }
 
 template <class Archive>

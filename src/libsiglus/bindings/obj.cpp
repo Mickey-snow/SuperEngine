@@ -34,6 +34,7 @@
 #include "object/object_mutator.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/screen_canvas.hpp"
+#include "systems/sdl/sdl_system.hpp"
 #include "systems/sdl/shaders.hpp"
 #include "systems/sdl_surface.hpp"
 #include "utilities/mapped_file.hpp"
@@ -126,7 +127,10 @@ class Object {
  private:
   fs::path ResolvePath(std::string const& filename) {
     static const std::set<std::string> OBJ_FILETYPES = {"anm", "g00", "pdt"};
-    return scanner->FindFile(filename, OBJ_FILETYPES);
+    if (auto f = scanner->FindFile(filename, OBJ_FILETYPES); f.has_value())
+      return f.value();
+    else
+      throw f.error();
   }
 
   std::unique_ptr<GraphicsObjectOfFile> LoadObjData(fs::path const& pth) {

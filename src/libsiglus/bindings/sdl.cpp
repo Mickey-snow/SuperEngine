@@ -28,9 +28,9 @@
 #include "core/asset_scanner.hpp"
 #include "srbind/srbind.hpp"
 #include "systems/screen_canvas.hpp"
+#include "systems/sdl/sdl_system.hpp"
 #include "systems/sdl/sound_implementor.hpp"
 #include "systems/sdl_surface.hpp"
-#include "systems/sdl/sdl_system.hpp"
 #include "vm/vm.hpp"
 
 #include <SDL/SDL.h>
@@ -101,19 +101,23 @@ class SDL_siglus {
   }
 
   void play(std::string name) {
-    fs::path path = scanner->FindFile(name);
-    player_t player = CreateAudioPlayer(path);
+    if (auto path = scanner->FindFile(name); path.has_value()) {
+      player_t player = CreateAudioPlayer(path.value());
 
-    sound_impl->SetVolume(2, 127);
-    sound_impl->PlayChannel(2, player);
+      sound_impl->SetVolume(2, 127);
+      sound_impl->PlayChannel(2, player);
+    } else
+      throw path.error();
   }
 
   void bgm(std::string name) {
-    fs::path path = scanner->FindFile(name);
-    player_t player = CreateAudioPlayer(path);
+    if (auto path = scanner->FindFile(name); path.has_value()) {
+      player_t player = CreateAudioPlayer(path.value());
 
-    sound_impl->EnableBgm();
-    sound_impl->PlayBgm(player);
+      sound_impl->EnableBgm();
+      sound_impl->PlayBgm(player);
+    } else
+      throw path.error();
   }
 };
 

@@ -494,12 +494,13 @@ class expected {
   }
 
   // ------------------ comparisons ------------------
-  friend constexpr bool operator==(const expected& a, const expected& b) {
+  template <class U, class V>
+    requires std::equality_comparable<U> && std::equality_comparable<V>
+  friend constexpr bool operator==(expected<T, E> const& a,
+                                   expected<U, V> const& b) {
     if (a.has_ != b.has_)
       return false;
-    if (a.has_)
-      return a.value() == b.value();
-    return a.error() == b.error();
+    return a.has_ ? (a.value() == b.value()) : (a.error() == b.error());
   }
 
  private:

@@ -80,7 +80,7 @@ void SetObjectDataToGan(RLMachine& machine,
   // decode the gan file
   static const std::set<std::string> GAN_FILETYPES = {"gan"};
   fs::path gan_file_path =
-      system_.GetAssetScanner()->FindFile(ganFilename, GAN_FILETYPES);
+      system_.GetAssetScanner()->FindFile(ganFilename, GAN_FILETYPES).value();
   if (gan_file_path.empty())
     throw std::runtime_error("Could not locate GAN file " + ganFilename);
 
@@ -112,7 +112,7 @@ void objOfFileLoader(RLMachine& machine,
 
   // Get the path to get the file type (which won't be in filename)
   fs::path full_path =
-      system.GetAssetScanner()->FindFile(filename, OBJ_FILETYPES);
+      system.GetAssetScanner()->FindFile(filename, OBJ_FILETYPES).value();
   if (full_path.empty()) {
     std::stringstream oss;
     oss << "Could not find Object compatible file \"" << filename << "\".";
