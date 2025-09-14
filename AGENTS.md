@@ -7,33 +7,13 @@ Purpose: Provide coding guidelines and instructions for working on this reposito
 - Developer notes and format documentation are in `doc/`.
 
 # Running Unit Tests
-1. Run:
-```bash
-git submodule update --init --recursive
-```
-2. Install system dependencies:
-```bash
-sudo apt-get -qq update
-sudo apt-get -qq install -y --fix-missing \
-  libgtest-dev libgmock-dev \
-  libsdl1.2-dev \
-  libboost-all-dev \
-  libgl1-mesa-dev libglu1-mesa-dev \
-  libglew-dev \
-  libvorbis-dev \
-  zlib1g-dev \
-  libfreetype6-dev \
-  gettext \
-  libtbb-dev
-```
-
-3. Configure with tests enabled and build:
+1. Configure with tests enabled and build:
 ```bash
 cmake -S . -B build -DRLVM_BUILD_TESTS=ON
-cmake --build build
+cmake --build build -j
 ```
 
-4. Execute tests with:
+2. Execute tests with:
 ```bash
 ./build/unittest
 ```
