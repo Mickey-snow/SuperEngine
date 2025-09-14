@@ -31,9 +31,8 @@
 #include <iosfwd>
 
 #include "object/objdrawer.hpp"
+#include "systems/base/graphics_object.hpp"
 #include "utilities/lazy_array.hpp"
-
-class GraphicsObject;
 
 /**
  * @brief Parent Parameter Influence on Children

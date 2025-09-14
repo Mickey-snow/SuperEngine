@@ -56,8 +56,8 @@
 #include "modules/module_grp.hpp"
 #include "object/drawer/anm.hpp"
 #include "object/drawer/file.hpp"
-#include "object/object_mutator.hpp"
 #include "object/objdrawer.hpp"
+#include "object/object_mutator.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/base/hik_renderer.hpp"
 #include "systems/base/hik_script.hpp"
@@ -618,6 +618,18 @@ GraphicsObject& GraphicsSystem::GetObject(int layer, int obj_number) {
   else
     return graphics_object_impl_->foreground_objects[obj_number];
 }
+size_t GraphicsSystem::GetFreeObjectId(int layer) {
+  if (layer < 0 || layer > 1)
+    throw rlvm::Exception("Invalid layer number");
+
+  LazyArray<GraphicsObject>& objs =
+      layer == OBJ_BG ? graphics_object_impl_->background_objects
+                      : graphics_object_impl_->foreground_objects;
+
+  for (size_t i = 0;; ++i)
+    if (!objs.Exists(i))
+      return i;
+}
 
 // -----------------------------------------------------------------------
 
@@ -631,6 +643,18 @@ void GraphicsSystem::SetObject(int layer,
     graphics_object_impl_->background_objects[obj_number] = std::move(obj);
   else
     graphics_object_impl_->foreground_objects[obj_number] = std::move(obj);
+}
+
+// -----------------------------------------------------------------------
+
+void GraphicsSystem::RemoveObject(int layer, size_t obj_number) {
+  if (layer < 0 || layer > 1)
+    throw rlvm::Exception("Invalid layer number");
+
+  if (layer == OBJ_BG)
+    graphics_object_impl_->background_objects.DeleteAt(obj_number);
+  else
+    graphics_object_impl_->foreground_objects.DeleteAt(obj_number);
 }
 
 // -----------------------------------------------------------------------

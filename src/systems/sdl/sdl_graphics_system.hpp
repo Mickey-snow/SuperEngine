@@ -98,11 +98,8 @@ class SDLGraphicsSystem : public GraphicsSystem {
 
   virtual void Resize(Size display_size) override;
 
- protected:
   virtual std::shared_ptr<SDLSurface> LoadSurfaceFromFile(
       const std::string& short_filename) override;
-
- public:
   std::shared_ptr<SDLSurface> LoadSurface(const std::filesystem::path& path);
 
  private:

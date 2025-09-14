@@ -353,7 +353,11 @@ class GraphicsSystem : public EventListener {
   // Object getters
   // layer == 0 for fg, layer == 1 for bg.
   GraphicsObject& GetObject(int layer, int obj_number);
+  size_t GetFreeObjectId(int layer);
   void SetObject(int layer, int obj_number, GraphicsObject&& object);
+
+  // Remove the entire graphics object
+  void RemoveObject(int layer, size_t obj_number);
 
   // Frees the object data (but not the parameters).
   void FreeObjectData(int obj_number);

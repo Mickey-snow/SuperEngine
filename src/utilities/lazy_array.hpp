@@ -26,8 +26,10 @@
 #include <boost/iterator/iterator_facade.hpp>
 #include <boost/serialization/split_member.hpp>
 
+#include <concepts>
 #include <optional>
 #include <stdexcept>
+#include <type_traits>
 #include <vector>
 
 /**
@@ -132,8 +134,37 @@ class LazyArray {
 
  public:
   LazyArray(size_t size) : arr_(size) {};
+
   LazyArray() = default;
   ~LazyArray() = default;
+
+  LazyArray(const LazyArray&)
+    requires std::is_copy_constructible_v<std::optional<T>>
+  = default;
+  LazyArray(const LazyArray&)
+    requires(!std::is_copy_constructible_v<std::optional<T>>)
+  = delete;
+
+  LazyArray& operator=(const LazyArray&)
+    requires std::is_copy_constructible_v<std::optional<T>>
+  = default;
+  LazyArray& operator=(const LazyArray&)
+    requires(!std::is_copy_constructible_v<std::optional<T>>)
+  = delete;
+
+  LazyArray(LazyArray&&) noexcept
+    requires std::movable<std::optional<T>>
+  = default;
+  LazyArray(LazyArray&&)
+    requires(!std::movable<std::optional<T>>)
+  = delete;
+
+  LazyArray& operator=(LazyArray&&) noexcept
+    requires std::movable<std::optional<T>>
+  = default;
+  LazyArray& operator=(LazyArray&&)
+    requires(!std::movable<std::optional<T>>)
+  = delete;
 
   /**
    * @brief Access or lazy-initializes an element at the specified position.
