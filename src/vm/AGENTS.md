@@ -35,8 +35,37 @@ functions, method lookup and GC marking.
 Defines the polymorphic `Value` type. `Value` holds primitive types or pointers
 to `IObject` instances. Most VM operations interact through this class.
 
+- Operator dispatch is centralized. Primitive semantics are table‑driven via
+  `primops.cpp`. `Value::Operator(VM&, Fiber&, Op, Value)` first tries the
+  primitive tables, then optional `IObject` fast hooks, then (future) script
+  magic methods.
+  - Legacy overloads `Value::Operator(Op, Value)` and `Value::Operator(Op)`
+    remain for tests; they use only the primitive fast path.
+
+## primops.hpp / primops.cpp
+Table‑driven primitive operator implementations. Provides `EvaluateUnary` and
+`EvaluateBinary` which return `false` if a given type combination is not
+handled. Covers `int`, `double`, `bool`, and `str` (including `str * int`).
+
+## operator_protocol.hpp
+Maps `Op` values to Python‑like magic method names (e.g. `__add__`, `__radd__`,
+`__iadd__`, `__neg__`, `__invert__`) for future script‑level overloading.
+
+## magic.hpp / magic.cpp
+Helper to resolve a magic member on an object. Execution of the resolved
+callable is left to the VM; this will be wired up when script magic methods are
+enabled.
+
+## iobject.hpp
+Base class for all heap allocated objects that participate in GC.
+
+- Optional virtual hooks `UnaryOp` and `BinaryOp` allow native objects to
+  fast‑path operators without string lookups. Default implementations return
+  `std::nullopt`.
+- Optional `Bool()` hook allows custom truthiness for native objects; default
+  is `std::nullopt` (non‑null objects are truthy).
+
 ## vm.hpp / vm.cpp
 Implementation of the virtual machine. `VM` manages fibers, executes bytecode,
 handles built‑ins and provides garbage collection utilities.  `ExecuteFiber` in
 `vm.cpp` forms the main interpreter loop.
-

@@ -54,4 +54,21 @@ void IObject::SetMember(std::string_view mem, Value value) {
                      "' object does not support member assignment.");
 }
 
+std::optional<TempValue> IObject::UnaryOp(VM& vm, Fiber& f, Op op) {
+  (void)vm;
+  (void)f;
+  (void)op;
+  return std::nullopt;
+}
+
+std::optional<TempValue> IObject::BinaryOp(VM& vm, Fiber& f, Op op, Value rhs) {
+  (void)vm;
+  (void)f;
+  (void)op;
+  (void)rhs;
+  return std::nullopt;
+}
+
+std::optional<bool> IObject::Bool() const { return std::nullopt; }
+
 }  // namespace serilang

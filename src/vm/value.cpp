@@ -28,6 +28,7 @@
 #include "vm/iobject.hpp"
 #include "vm/object.hpp"
 #include "vm/vm.hpp"
+#include "vm/primops.hpp"
 
 #include <cmath>
 #include <format>
@@ -93,8 +94,11 @@ bool Value::IsTruthy() const {
           return x != 0.0;
         else if constexpr (std::same_as<T, std::string>)
           return !x.empty();
-        else if constexpr (std::same_as<T, IObject*>)
-          return x != nullptr;
+        else if constexpr (std::same_as<T, IObject*>) {
+          if (!x) return false;
+          if (auto b = x->Bool(); b.has_value()) return *b;
+          return true;
+        }
       },
       val_);
 }
@@ -293,114 +297,59 @@ Value handleBoolBoolOp(Op op, bool lhs, bool rhs) {
 }  // namespace
 
 TempValue Value::Operator(Op op, Value rhs) {
-  Value result = std::visit(
-      [op, &rhs, this](auto& lhsVal) -> Value {
-        using LHS = std::decay_t<decltype(lhsVal)>;
-
-        if constexpr (false)
-          ;
-
-        // ---------- int ----------
-        else if constexpr (std::same_as<LHS, int>) {
-          if (auto rhsInt = std::get_if<int>(&rhs.val_))
-            return handleIntIntOp(op, lhsVal, *rhsInt);
-          if (auto rhsDouble = std::get_if<double>(&rhs.val_)) {
-            double lhsd = static_cast<double>(lhsVal);
-            return handleDoubleDoubleOp(op, lhsd, *rhsDouble);
-          }
-          if (auto rhsBool = std::get_if<bool>(&rhs.val_)) {
-            int rhsi = *rhsBool ? 1 : 0;
-            return handleIntIntOp(op, lhsVal, rhsi);
-          }
-        }
-
-        // -------- double ---------
-        else if constexpr (std::same_as<LHS, double>) {
-          if (auto rhsDouble = std::get_if<double>(&rhs.val_))
-            return handleDoubleDoubleOp(op, lhsVal, *rhsDouble);
-          if (auto rhsInt = std::get_if<int>(&rhs.val_))
-            return handleDoubleDoubleOp(op, lhsVal,
-                                        static_cast<double>(*rhsInt));
-          if (auto rhsBool = std::get_if<bool>(&rhs.val_)) {
-            double rhsd = rhsBool ? 1.0 : 0.0;
-            return handleDoubleDoubleOp(op, lhsVal, rhsd);
-          }
-        }
-
-        // ---------- bool ----------
-        else if constexpr (std::same_as<LHS, bool>) {
-          if (auto rhsBool = std::get_if<bool>(&rhs.val_))
-            return handleBoolBoolOp(op, lhsVal, *rhsBool);
-          if (auto rhsInt = std::get_if<int>(&rhs.val_))
-            return handleIntIntOp(op, (lhsVal ? 1 : 0), *rhsInt);
-          if (auto rhsDouble = std::get_if<double>(&rhs.val_))
-            return handleDoubleDoubleOp(op, (lhsVal ? 1.0 : 0.0), *rhsDouble);
-        }
-
-        // -------- string ---------
-        else if constexpr (std::same_as<LHS, std::string>) {
-          if (auto rhsInt = std::get_if<int>(&rhs.val_))
-            return handleStringIntOp(op, lhsVal, *rhsInt);
-          if (auto rhsStr = std::get_if<std::string>(&rhs.val_))
-            return handleStringStringOp(op, lhsVal, *rhsStr);
-        }
-
-        throw UndefinedOperator(op, {this->Desc(), rhs.Desc()});
-      },
-      val_);
-
-  return TempValue(std::move(result));
+  Value out(nil);
+  if (primops::EvaluateBinary(op, *this, rhs, out))
+    return TempValue(std::move(out));
+  throw UndefinedOperator(op, {this->Desc(), rhs.Desc()});
 }
 
 TempValue Value::Operator(Op op) {
-  Value result = std::visit(
-      [op, this](const auto& x) -> Value {
-        using T = std::decay_t<decltype(x)>;
+  Value out(nil);
+  if (primops::EvaluateUnary(op, *this, out))
+    return TempValue(std::move(out));
+  throw UndefinedOperator(op, {this->Desc()});
+}
 
-        if constexpr (false)
-          ;
+TempValue Value::Operator(VM& vm, Fiber& f, Op op, Value rhs) {
+  // 1) Primitive fast path
+  {
+    Value out(nil);
+    if (primops::EvaluateBinary(op, *this, rhs, out))
+      return TempValue(std::move(out));
+  }
 
-        // ---------- int ----------
-        else if constexpr (std::same_as<T, int>) {
-          switch (op) {
-            case Op::Add:
-              return Value(x);
-            case Op::Sub:
-              return Value(-x);
-            case Op::Tilde:
-              return Value(~x);
-            default:
-              break;
-          }
-        }
+  // 2) Native fast hooks
+  if (IObject* lhs_obj = this->Get_if<IObject>()) {
+    if (auto r = lhs_obj->BinaryOp(vm, f, op, rhs))
+      return *std::move(r);
+  }
+  if (IObject* rhs_obj = rhs.Get_if<IObject>()) {
+    if (auto r = rhs_obj->BinaryOp(vm, f, op, *this))
+      return *std::move(r);
+  }
 
-        // -------- double ---------
-        else if constexpr (std::same_as<T, double>) {
-          switch (op) {
-            case Op::Add:
-              return Value(x);
-            case Op::Sub:
-              return Value(-x);
-            default:
-              break;
-          }
-        }
+  // 3) TODO: Script magic methods (__op__ and __rop__)
 
-        // ---------- bool ----------
-        else if constexpr (std::same_as<T, bool>) {
-          switch (op) {
-            case Op::Tilde:  // use ~ as logical NOT
-              return Value(!x);
-            default:
-              break;
-          }
-        }
+  throw UndefinedOperator(op, {this->Desc(), rhs.Desc()});
+}
 
-        throw UndefinedOperator(op, {this->Desc()});
-      },
-      val_);
+TempValue Value::Operator(VM& vm, Fiber& f, Op op) {
+  // 1) Primitive fast path
+  {
+    Value out(nil);
+    if (primops::EvaluateUnary(op, *this, out))
+      return TempValue(std::move(out));
+  }
 
-  return TempValue(std::move(result));
+  // 2) Native fast hooks
+  if (IObject* obj = this->Get_if<IObject>()) {
+    if (auto r = obj->UnaryOp(vm, f, op))
+      return *std::move(r);
+  }
+
+  // 3) TODO: Script magic methods (__neg__/__pos__/__invert__)
+
+  throw UndefinedOperator(op, {this->Desc()});
 }
 
 void Value::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {

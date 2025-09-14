@@ -251,7 +251,7 @@ void VM::ExecuteFiber(Fiber* fib) {
         auto v = pop(fib->stack);
         TempValue result = nil;
         try {
-          result = v.Operator(ins.op);
+          result = v.Operator(*this, *fib, ins.op);
         } catch (RuntimeError& e) {
           push(fib->stack, nil);
           Error(*fib, e.message());
@@ -268,7 +268,7 @@ void VM::ExecuteFiber(Fiber* fib) {
         auto lhs = pop(fib->stack);
         TempValue result = nil;
         try {
-          result = lhs.Operator(ins.op, std::move(rhs));
+          result = lhs.Operator(*this, *fib, ins.op, std::move(rhs));
         } catch (RuntimeError& e) {
           push(fib->stack, nil);
           Error(*fib, e.message());

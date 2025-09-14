@@ -59,6 +59,11 @@ class Value {
 
   ObjType Type() const;
 
+  // Full dispatchers (can use hooks and magic with VM context)
+  TempValue Operator(VM& vm, Fiber& f, Op op, Value rhs);
+  TempValue Operator(VM& vm, Fiber& f, Op op);
+
+  // Legacy dispatchers (primitive fast-path only; for tests and helpers)
   TempValue Operator(Op op, Value rhs);
   TempValue Operator(Op op);
 
@@ -89,6 +94,26 @@ class Value {
   }
 
   template <typename T>
+  auto Get_if() const -> std::add_pointer_t<std::add_const_t<T>> {
+    using TPTR = std::add_pointer_t<std::add_const_t<T>>;
+
+    if constexpr (std::same_as<T, IObject>) {
+      auto objptr = std::get_if<IObject*>(&val_);
+      if (!objptr)
+        return static_cast<TPTR>(nullptr);
+      return *objptr;
+    } else if constexpr (std::derived_from<T, IObject>) {
+      auto baseptr = std::get_if<IObject*>(&val_);
+      if (!baseptr)
+        return static_cast<TPTR>(nullptr);
+      auto casted = dynamic_cast<TPTR>(*baseptr);
+      return casted;
+    } else {
+      return std::get_if<T>(&val_);
+    }
+  }
+
+  template <typename T>
   auto Get() -> T {
     if constexpr (std::is_pointer_v<T> &&
                   std::derived_from<std::remove_pointer_t<T>, IObject>) {
@@ -96,6 +121,22 @@ class Value {
       if (!ptr)
         throw std::bad_variant_access();
       return ptr;
+    } else {
+      auto ptr = Get_if<T>();
+      if (!ptr)
+        throw std::bad_variant_access();
+      return *ptr;
+    }
+  }
+
+  template <typename T>
+  auto Get() const -> T {
+    if constexpr (std::is_pointer_v<T> &&
+                  std::derived_from<std::remove_pointer_t<T>, IObject>) {
+      auto ptr = Get_if<std::remove_pointer_t<T>>();
+      if (!ptr)
+        throw std::bad_variant_access();
+      return const_cast<T>(ptr);
     } else {
       auto ptr = Get_if<T>();
       if (!ptr)
