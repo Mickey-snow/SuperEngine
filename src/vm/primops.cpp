@@ -51,8 +51,8 @@ inline static Kind kind_of(const Value& v) {
   }
 }
 
-static const Value True(true);
-static const Value False(false);
+static const Value kTrue(true);
+static const Value kFalse(false);
 
 static Value handleIntIntOp(Op op, int lhs, int rhs) {
   switch (op) {
@@ -102,23 +102,23 @@ static Value handleIntIntOp(Op op, int lhs, int rhs) {
 
     // Comparisons
     case Op::Equal:
-      return (lhs == rhs) ? True : False;
+      return (lhs == rhs) ? kTrue : kFalse;
     case Op::NotEqual:
-      return (lhs != rhs) ? True : False;
+      return (lhs != rhs) ? kTrue : kFalse;
     case Op::LessEqual:
-      return (lhs <= rhs) ? True : False;
+      return (lhs <= rhs) ? kTrue : kFalse;
     case Op::Less:
-      return (lhs < rhs) ? True : False;
+      return (lhs < rhs) ? kTrue : kFalse;
     case Op::GreaterEqual:
-      return (lhs >= rhs) ? True : False;
+      return (lhs >= rhs) ? kTrue : kFalse;
     case Op::Greater:
-      return (lhs > rhs) ? True : False;
+      return (lhs > rhs) ? kTrue : kFalse;
 
     // Logical (non short-circuit)
     case Op::LogicalAnd:
-      return (lhs && rhs) ? True : False;
+      return (lhs && rhs) ? kTrue : kFalse;
     case Op::LogicalOr:
-      return (lhs || rhs) ? True : False;
+      return (lhs || rhs) ? kTrue : kFalse;
 
     default:
       throw UndefinedOperator(op, {std::to_string(lhs), std::to_string(rhs)});
@@ -143,23 +143,23 @@ static Value handleDoubleDoubleOp(Op op, double lhs, double rhs) {
 
     // Comparisons
     case Op::Equal:
-      return (lhs == rhs) ? True : False;
+      return (lhs == rhs) ? kTrue : kFalse;
     case Op::NotEqual:
-      return (lhs != rhs) ? True : False;
+      return (lhs != rhs) ? kTrue : kFalse;
     case Op::LessEqual:
-      return (lhs <= rhs) ? True : False;
+      return (lhs <= rhs) ? kTrue : kFalse;
     case Op::Less:
-      return (lhs < rhs) ? True : False;
+      return (lhs < rhs) ? kTrue : kFalse;
     case Op::GreaterEqual:
-      return (lhs >= rhs) ? True : False;
+      return (lhs >= rhs) ? kTrue : kFalse;
     case Op::Greater:
-      return (lhs > rhs) ? True : False;
+      return (lhs > rhs) ? kTrue : kFalse;
 
     // Logical
     case Op::LogicalAnd:
-      return (lhs && rhs) ? True : False;
+      return (lhs && rhs) ? kTrue : kFalse;
     case Op::LogicalOr:
-      return (lhs || rhs) ? True : False;
+      return (lhs || rhs) ? kTrue : kFalse;
 
     default:
       throw UndefinedOperator(op, {std::to_string(lhs), std::to_string(rhs)});
@@ -169,13 +169,13 @@ static Value handleDoubleDoubleOp(Op op, double lhs, double rhs) {
 static Value handleBoolBoolOp(Op op, bool lhs, bool rhs) {
   switch (op) {
     case Op::LogicalAnd:
-      return (lhs && rhs) ? True : False;
+      return (lhs && rhs) ? kTrue : kFalse;
     case Op::LogicalOr:
-      return (lhs || rhs) ? True : False;
+      return (lhs || rhs) ? kTrue : kFalse;
     case Op::Equal:
-      return (lhs == rhs) ? True : False;
+      return (lhs == rhs) ? kTrue : kFalse;
     case Op::NotEqual:
-      return (lhs != rhs) ? True : False;
+      return (lhs != rhs) ? kTrue : kFalse;
     default:
       throw UndefinedOperator(op,
                               {lhs ? "true" : "false", rhs ? "true" : "false"});
@@ -187,9 +187,9 @@ static Value handleStringStringOp(Op op,
                                   const std::string& rhs) {
   switch (op) {
     case Op::Equal:
-      return (lhs == rhs) ? True : False;
+      return (lhs == rhs) ? kTrue : kFalse;
     case Op::NotEqual:
-      return (lhs != rhs) ? True : False;
+      return (lhs != rhs) ? kTrue : kFalse;
     case Op::Add:
       return Value(lhs + rhs);
     default:
@@ -213,6 +213,44 @@ static Value handleStringIntOp(Op op, std::string lhs, int rhs) {
   }
 
   throw UndefinedOperator(op, {"<str>", std::to_string(rhs)});
+}
+
+static Value handleNilOp(Op op, Kind other_kind) {
+  switch (op) {
+    case Op::Equal:
+      return other_kind == Kind::Nil ? kTrue : kFalse;
+    case Op::NotEqual:
+      return other_kind != Kind::Nil ? kTrue : kFalse;
+    default:
+      break;
+  }
+
+  // error formatting
+  char const* kind_name;
+  switch (other_kind) {
+    case Kind::Nil:
+      kind_name = "nil";
+      break;
+    case Kind::Int:
+      kind_name = "<int>";
+      break;
+    case Kind::Double:
+      kind_name = "<double>";
+      break;
+    case Kind::Str:
+      kind_name = "<str>";
+      break;
+    case Kind::Bool:
+      kind_name = "<bool>";
+      break;
+    case Kind::Object:
+      kind_name = "<object>";
+      break;
+    default:
+      kind_name = "<unknown>";
+      break;
+  }
+  throw UndefinedOperator(op, {"nil", kind_name});
 }
 
 // ---- unary helpers ----
@@ -247,6 +285,12 @@ static Value unaryBool(Op op, bool b) {
     default:
       throw UndefinedOperator(op, {b ? "true" : "false"});
   }
+}
+
+static Value unaryNil(Op op) {
+  if (op == Op::Tilde)
+    return kTrue;
+  throw UndefinedOperator(op, {"nil"});
 }
 
 // dispatch table
@@ -309,6 +353,35 @@ static void ensure_init() {
           return handleStringStringOp(op, l.Get<std::string>(),
                                       r.Get<std::string>());
         };
+    BIN[static_cast<size_t>(Kind::Nil)][static_cast<size_t>(Kind::Nil)] =
+        +[](Op op, const Value& l, const Value& r) {
+          return handleNilOp(op, Kind::Nil);
+        };
+    BIN[static_cast<size_t>(Kind::Nil)][static_cast<size_t>(Kind::Int)] =
+        BIN[static_cast<size_t>(Kind::Int)][static_cast<size_t>(Kind::Nil)] =
+            +[](Op op, const Value& l, const Value& r) {
+              return handleNilOp(op, Kind::Int);
+            };
+    BIN[static_cast<size_t>(Kind::Nil)][static_cast<size_t>(Kind::Double)] =
+        BIN[static_cast<size_t>(Kind::Double)][static_cast<size_t>(Kind::Nil)] =
+            +[](Op op, const Value& l, const Value& r) {
+              return handleNilOp(op, Kind::Double);
+            };
+    BIN[static_cast<size_t>(Kind::Nil)][static_cast<size_t>(Kind::Str)] =
+        BIN[static_cast<size_t>(Kind::Str)][static_cast<size_t>(Kind::Nil)] =
+            +[](Op op, const Value& l, const Value& r) {
+              return handleNilOp(op, Kind::Str);
+            };
+    BIN[static_cast<size_t>(Kind::Nil)][static_cast<size_t>(Kind::Bool)] =
+        BIN[static_cast<size_t>(Kind::Bool)][static_cast<size_t>(Kind::Nil)] =
+            +[](Op op, const Value& l, const Value& r) {
+              return handleNilOp(op, Kind::Bool);
+            };
+    BIN[static_cast<size_t>(Kind::Nil)][static_cast<size_t>(Kind::Object)] =
+        BIN[static_cast<size_t>(Kind::Object)][static_cast<size_t>(Kind::Nil)] =
+            +[](Op op, const Value& l, const Value& r) {
+              return handleNilOp(op, Kind::Object);
+            };
 
     // Unary table
     UN[static_cast<size_t>(Kind::Int)] =
@@ -317,6 +390,8 @@ static void ensure_init() {
         +[](Op op, const Value& v) { return unaryDouble(op, v.Get<double>()); };
     UN[static_cast<size_t>(Kind::Bool)] =
         +[](Op op, const Value& v) { return unaryBool(op, v.Get<bool>()); };
+    UN[static_cast<size_t>(Kind::Nil)] =
+        +[](Op op, const Value& v) { return unaryNil(op); };
   });
 }
 

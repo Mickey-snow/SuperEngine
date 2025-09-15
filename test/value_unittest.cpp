@@ -32,7 +32,7 @@
 namespace value_test {
 using namespace serilang;
 
-class ValueTest : public ::testing::Test {
+class ValueArithmeticTest : public ::testing::Test {
  protected:
   GarbageCollector gc;
 
@@ -49,7 +49,7 @@ class ValueTest : public ::testing::Test {
   }
 };
 
-TEST_F(ValueTest, TruthinessAndType) {
+TEST_F(ValueArithmeticTest, TruthinessAndType) {
   Value nil;
   Value bTrue(true);
   Value bFalse(false);
@@ -77,7 +77,7 @@ TEST_F(ValueTest, TruthinessAndType) {
   EXPECT_EQ(strNonEmpty.Type(), ObjType::Str);
 }
 
-TEST_F(ValueTest, IntAndDoubleArithmetic) {
+TEST_F(ValueArithmeticTest, IntAndDoubleArithmetic) {
   Value a(6), b(3), c(2.5), d(1.5);
 
   EXPECT_EQ(eval(a, Op::Add, b), 9);
@@ -95,7 +95,7 @@ TEST_F(ValueTest, IntAndDoubleArithmetic) {
   EXPECT_EQ(eval(c, Op::Mul, b), 7.5);
 }
 
-TEST_F(ValueTest, NumericComparisons) {
+TEST_F(ValueArithmeticTest, NumericComparisons) {
   Value one(1), two(2), oneD(1.0), twoD(2.0);
 
   EXPECT_EQ(eval(one, Op::Less, two), true);
@@ -104,7 +104,7 @@ TEST_F(ValueTest, NumericComparisons) {
   EXPECT_EQ(eval(oneD, Op::NotEqual, twoD), true);
 }
 
-TEST_F(ValueTest, NumericUnaryOperators) {
+TEST_F(ValueArithmeticTest, NumericUnaryOperators) {
   Value five(5), minusFive(-5), pi(3.14);
 
   EXPECT_EQ(eval(Op::Sub, five), -5);
@@ -112,7 +112,7 @@ TEST_F(ValueTest, NumericUnaryOperators) {
   EXPECT_EQ(eval(Op::Sub, pi), -3.14);
 }
 
-TEST_F(ValueTest, IntBitwiseShift) {
+TEST_F(ValueArithmeticTest, IntBitwiseShift) {
   Value v1(1), shift3(3);
 
   EXPECT_EQ(eval(v1, Op::ShiftLeft, shift3), 8);
@@ -121,7 +121,7 @@ TEST_F(ValueTest, IntBitwiseShift) {
   EXPECT_EQ(eval(Value(5), Op::BitXor, Value(1)), 4);
 }
 
-TEST_F(ValueTest, BoolLogicalOps) {
+TEST_F(ValueArithmeticTest, BoolLogicalOps) {
   Value t(true), f(false);
 
   EXPECT_EQ(eval(t, Op::LogicalAnd, f), false);
@@ -133,7 +133,7 @@ TEST_F(ValueTest, BoolLogicalOps) {
   EXPECT_EQ(eval(Op::Tilde, f), true);
 }
 
-TEST_F(ValueTest, StringConcatenateAndRepeat) {
+TEST_F(ValueArithmeticTest, StringConcatenateAndRepeat) {
   Value hello(std::string{"hello"});
   Value world(std::string{"world"});
   Value three(3);
@@ -143,7 +143,7 @@ TEST_F(ValueTest, StringConcatenateAndRepeat) {
             std::string("ababab"));
 }
 
-TEST_F(ValueTest, DivisionByZero) {
+TEST_F(ValueArithmeticTest, DivisionByZero) {
   Value six(6), zero(0);
 
   // int / 0 returns 0 per implementation
@@ -152,6 +152,40 @@ TEST_F(ValueTest, DivisionByZero) {
   // double / 0.0 returns 0.0 per implementation
   EXPECT_EQ(eval(Value(4.2), Op::Div, Value(0.0)), 0.0);
 }
+
+TEST_F(ValueArithmeticTest, NilValue) {
+  Value nil = serilang::nil;
+  Dict* dict = Alloc<Dict>();
+
+  auto testNilEquality = [&](Value v) {
+    Op op[2] = {Op::Equal, Op::NotEqual};
+    if (v.Type() == ObjType::Nil)
+      std::swap(op[0], op[1]);
+    EXPECT_EQ(eval(nil, op[0], v), false) << ToString(op[0]) << ' ' << v.Desc();
+    EXPECT_EQ(eval(v, op[0], nil), false) << ToString(op[0]) << ' ' << v.Desc();
+    EXPECT_EQ(eval(nil, op[1], v), true) << ToString(op[1]) << ' ' << v.Desc();
+    EXPECT_EQ(eval(v, op[1], nil), true) << ToString(op[1]) << ' ' << v.Desc();
+  };
+  testNilEquality(nil);
+  testNilEquality(Value(true));
+  testNilEquality(Value(false));
+  testNilEquality(Value(123));
+  testNilEquality(Value(123.4));
+  testNilEquality(Value("hello"));
+  testNilEquality(Value(dict));
+
+  EXPECT_EQ(eval(Op::Tilde, nil), true);
+}
+
+class ValueTest : public ::testing::Test {
+ protected:
+  GarbageCollector gc;
+
+  template <typename T, typename... Ts>
+  inline auto Alloc(Ts&&... params) {
+    return gc.Allocate<T>(std::forward<Ts>(params)...);
+  }
+};
 
 TEST_F(ValueTest, ContainerListAndDict) {
   // empty & filled lists
