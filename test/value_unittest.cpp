@@ -26,6 +26,7 @@
 
 #include "vm/gc.hpp"
 #include "vm/object.hpp"
+#include "vm/primops.hpp"
 #include "vm/value.hpp"
 
 namespace value_test {
@@ -40,13 +41,11 @@ class ValueTest : public ::testing::Test {
     return gc.Allocate<T>(std::forward<Ts>(params)...);
   }
 
-  Value eval(Value lhs, Op op, Value rhs) {
-    TempValue out = lhs.Operator(op, rhs);
-    return gc.TrackValue(std::move(out));
+  std::optional<Value> eval(Value lhs, Op op, Value rhs) {
+    return primops::EvaluateBinary(op, lhs, rhs);
   }
-  Value eval(Op op, Value rhs) {
-    TempValue out = rhs.Operator(op);
-    return gc.TrackValue(std::move(out));
+  std::optional<Value> eval(Op op, Value rhs) {
+    return primops::EvaluateUnary(op, rhs);
   }
 };
 

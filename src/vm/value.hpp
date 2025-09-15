@@ -59,13 +59,8 @@ class Value {
 
   ObjType Type() const;
 
-  // Full dispatchers (can use hooks and magic with VM context)
   TempValue Operator(VM& vm, Fiber& f, Op op, Value rhs);
   TempValue Operator(VM& vm, Fiber& f, Op op);
-
-  // Legacy dispatchers (primitive fast-path only; for tests and helpers)
-  TempValue Operator(Op op, Value rhs);
-  TempValue Operator(Op op);
 
   void Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs);
   void GetItem(VM& vm, Fiber& f);

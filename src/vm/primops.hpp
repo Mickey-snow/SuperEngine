@@ -4,46 +4,39 @@
 //
 // -----------------------------------------------------------------------
 //
-// Centralized primitive operator tables and helpers.
+// Copyright (C) 2025 Serina Sakurai
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 //
 // -----------------------------------------------------------------------
 
 #pragma once
 
+// Centralized primitive operator tables and helpers.
+
 #include "machine/op.hpp"
 #include "vm/value.hpp"
 
+#include <optional>
+
 namespace serilang::primops {
 
-enum class Kind : uint8_t { Nil = 0, Bool, Int, Double, Str, Object, Count };
+// Evaluate primitive binary op. Returns std::nullopt if not handled.
+std::optional<Value> EvaluateBinary(Op op, const Value& lhs, const Value& rhs);
 
-inline Kind kind_of(const Value& v) {
-  // Keep in sync with Value::value_t order
-  return v.Apply<Kind>([](auto const& x) -> Kind {
-    using T = std::decay_t<decltype(x)>;
-    if constexpr (std::same_as<T, std::monostate>)
-      return Kind::Nil;
-    else if constexpr (std::same_as<T, bool>)
-      return Kind::Bool;
-    else if constexpr (std::same_as<T, int>)
-      return Kind::Int;
-    else if constexpr (std::same_as<T, double>)
-      return Kind::Double;
-    else if constexpr (std::same_as<T, std::string>)
-      return Kind::Str;
-    else
-      return Kind::Object;
-  });
-}
-
-using BinFn = Value (*)(Op, const Value&, const Value&);
-using UnFn = Value (*)(Op, const Value&);
-
-// Evaluate primitive binary op. Returns true and sets out if handled.
-bool EvaluateBinary(Op op, const Value& lhs, const Value& rhs, Value& out);
-
-// Evaluate primitive unary op. Returns true and sets out if handled.
-bool EvaluateUnary(Op op, const Value& v, Value& out);
+// Evaluate primitive unary op. Returns std::nullopt if not handled.
+std::optional<Value> EvaluateUnary(Op op, const Value& v);
 
 }  // namespace serilang::primops
-

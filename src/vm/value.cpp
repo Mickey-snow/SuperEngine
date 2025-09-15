@@ -27,8 +27,8 @@
 #include "utilities/string_utilities.hpp"
 #include "vm/iobject.hpp"
 #include "vm/object.hpp"
-#include "vm/vm.hpp"
 #include "vm/primops.hpp"
+#include "vm/vm.hpp"
 
 #include <cmath>
 #include <format>
@@ -95,8 +95,10 @@ bool Value::IsTruthy() const {
         else if constexpr (std::same_as<T, std::string>)
           return !x.empty();
         else if constexpr (std::same_as<T, IObject*>) {
-          if (!x) return false;
-          if (auto b = x->Bool(); b.has_value()) return *b;
+          if (!x)
+            return false;
+          if (auto b = x->Bool(); b.has_value())
+            return *b;
           return true;
         }
       },
@@ -123,199 +125,11 @@ ObjType Value::Type() const {
       val_);
 }
 
-namespace {
-static const Value True(true);
-static const Value False(false);
-
-Value handleIntIntOp(Op op, int lhs, int rhs) {
-  switch (op) {
-    // Arithmetic
-    case Op::Add:
-      return Value(lhs + rhs);
-    case Op::Sub:
-      return Value(lhs - rhs);
-    case Op::Mul:
-      return Value(lhs * rhs);
-    case Op::Div:
-      return (rhs == 0) ? Value(0) : Value(lhs / rhs);
-    case Op::Mod:
-      return Value(lhs % rhs);
-    case Op::Pow: {
-      int result = 1;
-      while (rhs) {
-        if (rhs & 1)
-          result *= lhs;
-        lhs *= lhs;
-        rhs >>= 1;
-      }
-      return Value(result);
-    }
-
-    // Bitwise
-    case Op::BitAnd:
-      return Value(lhs & rhs);
-    case Op::BitOr:
-      return Value(lhs | rhs);
-    case Op::BitXor:
-      return Value(lhs ^ rhs);
-    case Op::ShiftLeft: {
-      if (rhs < 0) {
-        throw ValueError("negative shift count: " + std::to_string(rhs));
-      }
-      int shifted = lhs << rhs;
-      return Value(shifted);
-    }
-    case Op::ShiftRight: {
-      if (rhs < 0) {
-        throw ValueError("negative shift count: " + std::to_string(rhs));
-      }
-      int shifted = lhs >> rhs;
-      return Value(shifted);
-    }
-    case Op::ShiftUnsignedRight: {
-      if (rhs < 0) {
-        throw ValueError("negative shift count: " + std::to_string(rhs));
-      }
-      uint32_t uval = std::bit_cast<uint32_t>(lhs);
-      uint32_t shifted = uval >> rhs;
-      return Value(static_cast<int>(shifted));
-    }
-
-    // Comparisons
-    case Op::Equal:
-      return (lhs == rhs) ? True : False;
-    case Op::NotEqual:
-      return (lhs != rhs) ? True : False;
-    case Op::LessEqual:
-      return (lhs <= rhs) ? True : False;
-    case Op::Less:
-      return (lhs < rhs) ? True : False;
-    case Op::GreaterEqual:
-      return (lhs >= rhs) ? True : False;
-    case Op::Greater:
-      return (lhs > rhs) ? True : False;
-
-    // Logical
-    case Op::LogicalAnd:
-      return (lhs && rhs) ? True : False;
-    case Op::LogicalOr:
-      return (lhs || rhs) ? True : False;
-
-    default:
-      throw UndefinedOperator(op, {std::to_string(lhs), std::to_string(rhs)});
-  }
-}
-
-Value handleStringIntOp(Op op, std::string lhs, int rhs) {
-  if (op == Op::Mul && rhs >= 0) {
-    std::string result;
-    result.reserve(lhs.size() * rhs);
-    lhs.reserve(lhs.size() * rhs);
-    while (rhs > 0) {
-      if (rhs & 1) {
-        result += lhs;
-      }
-      lhs += lhs;
-      rhs >>= 1;
-    }
-    return Value(std::move(result));
-  }
-
-  throw UndefinedOperator(op, {"<str>", std::to_string(rhs)});
-}
-
-Value handleStringStringOp(Op op,
-                           const std::string& lhs,
-                           const std::string& rhs) {
-  switch (op) {
-    case Op::Equal:
-      return (lhs == rhs) ? True : False;
-    case Op::NotEqual:
-      return (lhs != rhs) ? True : False;
-    case Op::Add:
-      return Value(lhs + rhs);
-    default:
-      throw UndefinedOperator(op, {lhs, rhs});
-  }
-}
-
-Value handleDoubleDoubleOp(Op op, double lhs, double rhs) {
-  switch (op) {
-    // Arithmetic
-    case Op::Add:
-      return Value(lhs + rhs);
-    case Op::Sub:
-      return Value(lhs - rhs);
-    case Op::Mul:
-      return Value(lhs * rhs);
-    case Op::Div:
-      return (rhs == 0.0) ? Value(0.0) : Value(lhs / rhs);
-    case Op::Mod:
-      return Value(std::fmod(lhs, rhs));
-
-    // Comparisons
-    case Op::Equal:
-      return (lhs == rhs) ? True : False;
-    case Op::NotEqual:
-      return (lhs != rhs) ? True : False;
-    case Op::LessEqual:
-      return (lhs <= rhs) ? True : False;
-    case Op::Less:
-      return (lhs < rhs) ? True : False;
-    case Op::GreaterEqual:
-      return (lhs >= rhs) ? True : False;
-    case Op::Greater:
-      return (lhs > rhs) ? True : False;
-
-    // Logical
-    case Op::LogicalAnd:
-      return (lhs && rhs) ? True : False;
-    case Op::LogicalOr:
-      return (lhs || rhs) ? True : False;
-
-    default:
-      throw UndefinedOperator(op, {std::to_string(lhs), std::to_string(rhs)});
-  }
-}
-
-Value handleBoolBoolOp(Op op, bool lhs, bool rhs) {
-  switch (op) {
-    case Op::LogicalAnd:
-      return (lhs && rhs) ? True : False;
-    case Op::LogicalOr:
-      return (lhs || rhs) ? True : False;
-    case Op::Equal:
-      return (lhs == rhs) ? True : False;
-    case Op::NotEqual:
-      return (lhs != rhs) ? True : False;
-    default:
-      throw UndefinedOperator(op,
-                              {lhs ? "true" : "false", rhs ? "true" : "false"});
-  }
-}
-
-}  // namespace
-
-TempValue Value::Operator(Op op, Value rhs) {
-  Value out(nil);
-  if (primops::EvaluateBinary(op, *this, rhs, out))
-    return TempValue(std::move(out));
-  throw UndefinedOperator(op, {this->Desc(), rhs.Desc()});
-}
-
-TempValue Value::Operator(Op op) {
-  Value out(nil);
-  if (primops::EvaluateUnary(op, *this, out))
-    return TempValue(std::move(out));
-  throw UndefinedOperator(op, {this->Desc()});
-}
-
 TempValue Value::Operator(VM& vm, Fiber& f, Op op, Value rhs) {
   // 1) Primitive fast path
   {
-    Value out(nil);
-    if (primops::EvaluateBinary(op, *this, rhs, out))
-      return TempValue(std::move(out));
+    if (auto out = primops::EvaluateBinary(op, *this, rhs))
+      return TempValue(std::move(*out));
   }
 
   // 2) Native fast hooks
@@ -336,9 +150,8 @@ TempValue Value::Operator(VM& vm, Fiber& f, Op op, Value rhs) {
 TempValue Value::Operator(VM& vm, Fiber& f, Op op) {
   // 1) Primitive fast path
   {
-    Value out(nil);
-    if (primops::EvaluateUnary(op, *this, out))
-      return TempValue(std::move(out));
+    if (auto out = primops::EvaluateUnary(op, *this))
+      return TempValue(std::move(*out));
   }
 
   // 2) Native fast hooks
