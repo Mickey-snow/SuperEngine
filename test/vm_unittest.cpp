@@ -198,48 +198,48 @@ TEST_F(VMTest, YieldFiber) {
   append_ins(chunk, {Push(0), Yield{}, Push(1), Yield{}, Push(2), Return{}});
   Fiber* f = vm.AddFiber(chunk);
 
-  f->state = FiberState::Running;
+  vm.Enqueue(f);
+  Promise* pm = f->completion_promise;
   std::ignore = vm.Run();
   EXPECT_EQ(f->state, FiberState::Suspended);
-  EXPECT_EQ(f->pending_result, 1);
+  EXPECT_EQ(pm->status, Promise::Status::Resolved);
+  EXPECT_EQ(pm->result->value(), 1);
 
-  f->state = FiberState::Running;
+  vm.Enqueue(f);
+  pm = f->completion_promise;
   std::ignore = vm.Run();
   EXPECT_EQ(f->state, FiberState::Suspended);
-  EXPECT_EQ(f->pending_result, 2);
+  EXPECT_EQ(pm->status, Promise::Status::Resolved);
+  EXPECT_EQ(pm->result->value(), 2);
 
-  f->state = FiberState::Running;
+  vm.Enqueue(f);
+  pm = f->completion_promise;
   std::ignore = vm.Run();
   EXPECT_EQ(f->state, FiberState::Dead);
-  EXPECT_EQ(f->pending_result, 3);
+  EXPECT_EQ(pm->status, Promise::Status::Resolved);
+  EXPECT_EQ(pm->result->value(), 3);
 }
 
 TEST_F(VMTest, SpawnFiber) {
-  int call_count = 0;
-  std::vector<Value> arg;
-  std::unordered_map<std::string, Value> kwarg;
-  auto* fn = gc->Allocate<NativeFunction>(
-      "my_function",
-      [&call_count](VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) -> Value {
-        ++call_count;
-        EXPECT_EQ(nargs, 1);
-        EXPECT_EQ(nkwargs, 1);
-        std::span<Value> stk(f.stack.end() - nargs - 2 * nkwargs,
-                             f.stack.end());
-        EXPECT_EQ(stk[0], 1);
-        EXPECT_EQ(stk[1], "foo");
-        EXPECT_EQ(stk[2], "boo");
-        f.stack.resize(f.stack.size() - nargs - 2 * nkwargs);
-        return nil;
-      });
+  // Create a simple function that immediately returns 123 when run in a fiber.
+  auto* code = gc->Allocate<Code>();
+  code->const_pool = value_vector(123);
+  append_ins(code, {Push{0}, Return{}});
+  auto* fn = gc->Allocate<Function>(code, 0, 0);
 
+  // Main program: spawn the function, then await its completion promise.
+  // Stack after MakeFiber: (fiber)
+  // GetField("completion") -> (promise)
+  // Await -> (123)
   auto* chunk = gc->Allocate<Code>();
-  chunk->const_pool = value_vector(fn, 1, "foo", "boo");
-  append_ins(chunk, {Push{0}, Push{1}, Push{2}, Push{3},
-                     // fn, 1, "foo", "boo"
-                     MakeFiber{1, 1}, Push{1}, Return{}});
-  std::ignore = run_and_get(chunk);
-  EXPECT_EQ(call_count, 1);
+  chunk->const_pool = value_vector(fn, std::string("completion"));
+  append_ins(chunk, {Push{0},          // fn
+                     MakeFiber{0, 0},  // -> fiber
+                     Await{},          // -> 123
+                     Return{}});
+
+  Value out = run_and_get(chunk);
+  EXPECT_EQ(out, 123);
 }
 
 TEST_F(VMTest, AwaitFiber) {

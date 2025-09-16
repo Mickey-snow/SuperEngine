@@ -28,9 +28,14 @@
 #include "vm/object.hpp"
 #include "vm/value.hpp"
 
+#include <chrono>
+#include <deque>
+#include <functional>
 #include <iostream>
 #include <memory>
+#include <queue>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -59,7 +64,8 @@ class VM {
 
   Fiber* AddFiber(Code* entry);
 
-  // Run until all fibers die or error; returns last fiber's result
+  // Run the event loop until no runnable work and no timers remain.
+  // Returns the last dead fiber's result if any.
   Value Run();
 
   /// Pop an exception from f.stack and unwind to the nearest handler.
@@ -74,6 +80,15 @@ class VM {
   void CollectGarbage();
   // Let the garbage collector track a Value allocated elsewhere
   Value AddTrack(TempValue&& t);
+
+  //----------------------------------------------------------------
+  // Event loop scheduling API
+  void Enqueue(Fiber* f);       // schedule to run queue (FIFO)
+  void EnqueueMicro(Fiber* f);  // schedule to microtask queue (LIFO/FIFO)
+  void ScheduleAt(Fiber* f, std::chrono::steady_clock::time_point when);
+  void ScheduleAfter(Fiber* f, std::chrono::milliseconds dur) {
+    ScheduleAt(f, std::chrono::steady_clock::now() + dur);
+  }
 
  public:
   //----------------------------------------------------------------
@@ -97,6 +112,32 @@ class VM {
   //----------------------------------------------------------------
   // Core interpreter loop for one fiber
   void ExecuteFiber(Fiber* fib);
+
+  //----------------------------------------------------------------
+  // Event loop internals
+  struct TimerEntry {
+    std::chrono::steady_clock::time_point when;
+    Fiber* fib;
+    bool operator>(const TimerEntry& other) const { return when > other.when; }
+  };
+
+  std::deque<Fiber*> runq_;
+  std::deque<Fiber*> microq_;
+  std::priority_queue<TimerEntry,
+                      std::vector<TimerEntry>,
+                      std::greater<TimerEntry>>
+      timers_;
+
+  struct IPoller {
+    virtual ~IPoller() = default;
+    virtual void Wait(std::chrono::milliseconds timeout) {
+      if (timeout > std::chrono::milliseconds(0))
+        std::this_thread::sleep_for(timeout);
+      else
+        std::this_thread::yield();
+    }
+  };
+  std::unique_ptr<IPoller> poller_;
 };
 
 }  // namespace serilang

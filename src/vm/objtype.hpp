@@ -48,6 +48,8 @@ enum class ObjType : uint8_t {
   Closure,
   Fiber,
   Class,
-  Instance
+  Instance,
+  Promise
 };
+
 }

@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include "utilities/expected.hpp"
 #include "utilities/transparent_hash.hpp"
 #include "vm/call_frame.hpp"
 #include "vm/instruction.hpp"
@@ -136,11 +137,23 @@ struct NativeClass : public IObject {
 
   using finalize_fn = void (*)(void*);
   using trace_fn = void (*)(GCVisitor&, void*);
+  // Optional awaitable protocol hooks. If set, instances of this class can be
+  // awaited by the VM's Await opcode without script intervention.
+  // await_poll: returns true if ready and stores the result in out_value;
+  //             returns false if still pending.
+  // await_set_waker: registers a waker that should enqueue the waiting fiber
+  //                  when the awaitable becomes ready.
+  using await_poll_fn = bool (*)(VM&, NativeInstance&, Value& out_value);
+  using await_set_waker_fn = void (*)(VM&,
+                                      NativeInstance&,
+                                      std::function<void()> waker);
 
   std::string name;
   transparent_hashmap<Value> methods;
   finalize_fn finalize = nullptr;
   trace_fn trace = nullptr;
+  await_poll_fn await_poll = nullptr;
+  await_set_waker_fn await_set_waker = nullptr;
 
   constexpr ObjType Type() const noexcept final { return objtype; }
   constexpr size_t Size() const noexcept final { return sizeof(*this); }
@@ -187,6 +200,7 @@ struct NativeInstance : public IObject {
 enum class FiberState { New, Running, Suspended, Dead };
 
 struct Upvalue;
+struct Promise;
 
 struct Fiber : public IObject {
   static constexpr inline ObjType objtype = ObjType::Fiber;
@@ -196,7 +210,14 @@ struct Fiber : public IObject {
   FiberState state;
   std::optional<Value> pending_result = std::nullopt;
   Fiber* waiter = nullptr;
+  // Number of fibers awaiting this fiber's completion (via Promise semantics).
+  // When > 0, the scheduler will keep driving this fiber through yields until
+  // it completes, so that awaiters eventually resume.
+  int awaiting_completion = 0;
   std::vector<std::shared_ptr<Upvalue>> open_upvalues;
+
+  // Internal promise that represents this fiber's completion.
+  Promise* completion_promise = nullptr;
 
   explicit Fiber(size_t reserve = 64);
 
@@ -211,6 +232,13 @@ struct Fiber : public IObject {
 
   std::string Str() const override;
   std::string Desc() const override;
+
+  TempValue Member(std::string_view mem) override;
+
+  inline bool IsRunning() const {
+    return state == FiberState::Running && !frames.empty();
+  }
+  void ResetPromise(Promise* promise);
 };
 
 struct List : public IObject {
@@ -346,6 +374,29 @@ struct BoundMethod : public IObject {
   std::string Desc() const override;
 
   void Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) override;
+};
+
+struct Promise : public IObject {
+  static constexpr inline ObjType objtype = ObjType::Promise;
+
+  enum class Status { Pending, Resolved, Rejected };
+  Fiber* fiber = nullptr;
+  Status status = Status::Pending;
+  std::optional<expected<Value, std::string>> result = std::nullopt;
+  std::vector<std::function<void(Promise*)>> wakers;
+
+  constexpr ObjType Type() const noexcept final { return objtype; }
+  constexpr size_t Size() const noexcept final { return sizeof(*this); }
+
+  void MarkRoots(GCVisitor& visitor) override;
+
+  std::string Str() const override;
+  std::string Desc() const override;
+
+  void Reset(Fiber* fiber);
+  void WakeAll();
+  void Resolve(Value value);
+  void Reject(std::string msg);
 };
 
 }  // namespace serilang

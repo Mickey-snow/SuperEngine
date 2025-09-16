@@ -52,10 +52,16 @@ using helper::push;
 VM::VM(std::shared_ptr<GarbageCollector> gc)
     : gc_(gc),
       globals_(gc_->Allocate<Dict>()),
-      builtins_(gc->Allocate<Dict>()) {}
+      builtins_(gc->Allocate<Dict>()),
+      poller_(std::make_unique<IPoller>()) {
+  // Promise class is lazily initialized in CreatePromise().
+}
 
 VM::VM(std::shared_ptr<GarbageCollector> gc, Dict* globals, Dict* builtins)
-    : gc_(gc), globals_(globals), builtins_(builtins) {}
+    : gc_(gc),
+      globals_(globals),
+      builtins_(builtins),
+      poller_(std::make_unique<IPoller>()) {}
 
 Value VM::Evaluate(Code* chunk) {
   Fiber* f = AddFiber(chunk);
@@ -66,10 +72,12 @@ Value VM::Evaluate(Code* chunk) {
 Fiber* VM::AddFiber(Code* chunk) {
   Function* fn = gc_->Allocate<Function>(chunk);
   Fiber* fiber = gc_->Allocate<Fiber>();
+  // Create and attach completion promise
+  fiber->ResetPromise(gc_->Allocate<Promise>());
   push(fiber->stack, Value(fn));
   fn->Call(*this, *fiber, 0, 0);
   fibres_.push_back(fiber);
-
+  Enqueue(fiber);
   return fiber;
 }
 
@@ -90,43 +98,89 @@ void VM::CollectGarbage() {
 Value VM::AddTrack(TempValue&& t) { return gc_->TrackValue(std::move(t)); }
 
 Value VM::Run() {
-  bool active = true;
-  while (active) {
-    active = false;
+  // Seed: enqueue any New fibers so they can be processed.
+  for (auto* f : fibres_) {
+    if (f->state == FiberState::New)
+      Enqueue(f);
+  }
 
-    for (size_t i = 0, n = fibres_.size(); i < n; ++i) {
-      // Note: new fibres might be added to the array during iteration
-      Fiber* f = fibres_[i];
-      switch (f->state) {
-        case FiberState::New:
-          f->state = FiberState::Running;
-          [[fallthrough]];
-        case FiberState::Running:
-          ExecuteFiber(f);
-          active = true;
-          break;
-        case FiberState::Suspended:
-          break;
-        case FiberState::Dead:
-          break;
-      }
+  while (true) {
+    // Drain timers whose deadline has passed
+    auto now = std::chrono::steady_clock::now();
+    while (!timers_.empty() && timers_.top().when <= now) {
+      auto t = timers_.top();
+      timers_.pop();
+      if (t.fib && t.fib->state != FiberState::Dead)
+        Enqueue(t.fib);
     }
 
-    std::erase_if(fibres_, [&](Fiber* f) {
-      if (f->state == FiberState::Dead) {
-        if (f->pending_result.has_value())
-          last_ = f->pending_result.value();
-        return true;
-      }
-      return false;
-    });
+    Fiber* next = nullptr;
+    if (!microq_.empty()) {
+      next = microq_.front();
+      microq_.pop_front();
+    } else if (!runq_.empty()) {
+      next = runq_.front();
+      runq_.pop_front();
+    }
 
-    // run garbage collector
+    if (next) {
+      if (next->state == FiberState::Running ||
+          next->state == FiberState::New) {
+        next->state = FiberState::Running;
+        try {
+          ExecuteFiber(next);
+        } catch (const RuntimeError& e) {
+          // Uncaught exception terminates fiber; reject its promise.
+          if (next->completion_promise) {
+            next->completion_promise->Reject(e.message());
+            next->ResetPromise(gc_->Allocate<Promise>());
+          }
+          next->state = FiberState::Dead;
+        }
+
+        // If still running and not finished, requeue for fairness.
+        if (next->state == FiberState::Running && !next->frames.empty())
+          Enqueue(next);
+      }
+    } else {
+      // No immediate work; if no timers pending, we are done (remaining
+      // fibers are suspended and cannot make progress here).
+      if (timers_.empty())
+        break;
+
+      // Sleep until next timer (if any) or yield control via poller.
+      auto delta = timers_.top().when - now;
+      std::chrono::milliseconds timeout =
+          std::chrono::duration_cast<std::chrono::milliseconds>(delta);
+      poller_->Wait(timeout);
+    }
+
+    // run garbage collector periodically
     if (gc_threshold_ > 0 && gc_->AllocatedBytes() >= gc_threshold_) {
       CollectGarbage();
       gc_threshold_ *= 2;
     }
+
+    // Remove dead fibers and record last result
+    std::erase_if(fibres_, [&](Fiber* f) {
+      if (f->state == FiberState::Dead) {
+        if (f->pending_result.has_value())
+          last_ = std::move(*f->pending_result);
+        return true;
+      }
+      return false;
+    });
   }
+
+  // Final sweep of dead fibers to update last_
+  std::erase_if(fibres_, [&](Fiber* f) {
+    if (f->state == FiberState::Dead) {
+      if (f->pending_result.has_value())
+        last_ = std::move(*f->pending_result);
+      return true;
+    }
+    return false;
+  });
 
   return last_;
 }
@@ -147,7 +201,7 @@ void VM::Error(Fiber& f) {
   Value exc = pop(f.stack);
   while (true) {
     if (f.frames.empty())
-      throw std::runtime_error(exc.Str());
+      throw RuntimeError(exc.Str());
 
     CallFrame& fr = f.frames.back();
     if (!fr.handlers.empty()) {
@@ -180,9 +234,15 @@ void VM::Return(Fiber& f) {
   if (f.frames.empty()) {
     // fiber finished
     f.state = FiberState::Dead;
+    // Resolve completion promise
+    if (f.completion_promise) {
+      f.completion_promise->Resolve(ret);
+      f.ResetPromise(gc_->Allocate<Promise>());
+    }
     if (f.waiter) {
       push(f.waiter->stack, std::move(ret));
       f.waiter->state = FiberState::Running;
+      EnqueueMicro(f.waiter);
     } else
       f.pending_result = std::move(ret);
   } else {
@@ -519,6 +579,7 @@ void VM::ExecuteFiber(Fiber* fib) {
 
         Fiber* f = gc_->Allocate<Fiber>(/*reserve=*/16 + ins.argcnt +
                                         2 * ins.kwargcnt);
+        f->ResetPromise(gc_->Allocate<Promise>());
         std::move(fib->stack.begin() + base, fib->stack.end(),
                   std::back_inserter(f->stack));
         fib->stack.resize(base);
@@ -527,29 +588,52 @@ void VM::ExecuteFiber(Fiber* fib) {
 
         push(fib->stack, Value(f));
         fibres_.push_back(f);
+        Enqueue(f);
       } break;
 
       case OpCode::Await: {
         const auto ins = chunk->Read<serilang::Await>(ip);
         ip += sizeof(ins);
-        // TODO: support passing argument
-        Fiber* f = pop(fib->stack).template Get<Fiber*>();
-        if (f->pending_result.has_value()) {
-          push(fib->stack, f->pending_result.value());
-          f->pending_result.reset();
-          if (f->state != FiberState::Dead)
-            f->state = FiberState::Running;
-        } else {
-          if (f->state == FiberState::Dead) {
-            Error(*fib, "cannot await a dead fiber: " + f->Desc());
+        Value awaited = pop(fib->stack);
+        Promise* promise = nullptr;
+
+        // If awaiting a Fiber, redirect to its completion promise so that
+        // `await fiber` awaits final completion (not intermediate yields).
+        if (auto tf = awaited.Get_if<Fiber>()) {
+          if (tf->state == FiberState::Dead) {
+            push(fib->stack, tf->pending_result.value_or(nil));
             return;
           }
-          f->state = FiberState::Running;
-          f->waiter = fib;
-          fib->state = FiberState::Suspended;
+          promise = tf->completion_promise;
+        } else if (auto pm = awaited.Get_if<Promise>()) {
+          promise = pm;
         }
-      }
+
+        if (promise == nullptr) {
+          Error(*fib, "object is not awaitable: " + awaited.Desc());
+          return;
+        }
+
+        fib->state = FiberState::Suspended;
+        auto waker = [this, fib](Promise* promise) {
+          if (promise->result->has_value() &&
+              promise->status != Promise::Status::Pending) {
+            push(fib->stack, promise->result->value());
+          } else {
+            this->Error(*fib, promise->result->error());
+            // should we return here?
+          }
+          this->EnqueueMicro(fib);
+        };
+
+        if (promise->result.has_value()) {  // ready
+          waker(promise);
+        } else {  // pending
+          promise->wakers.emplace_back(waker);
+          EnqueueMicro(promise->fiber);
+        }
         return;  // switch -> await
+      } break;
 
       case OpCode::Yield: {
         const auto ins = chunk->Read<serilang::Yield>(ip);
@@ -559,9 +643,12 @@ void VM::ExecuteFiber(Fiber* fib) {
         if (fib->waiter) {
           push(fib->waiter->stack, pop(fib->stack));
           fib->waiter->state = FiberState::Running;
+          EnqueueMicro(fib->waiter);
           fib->waiter = nullptr;
-        } else
-          fib->pending_result = pop(fib->stack);
+        } else {
+          fib->completion_promise->Resolve(pop(fib->stack));
+          fib->ResetPromise(gc_->Allocate<Promise>());
+        }
       }
         return;  // switch -> yield
 
@@ -605,6 +692,29 @@ void VM::ExecuteFiber(Fiber* fib) {
 
   if (fib->frames.empty())
     fib->state = FiberState::Dead;
+}
+
+//------------------------------------------------------------------------------
+// Event loop helpers
+//------------------------------------------------------------------------------
+void VM::Enqueue(Fiber* f) {
+  if (!f || f->state == FiberState::Dead)
+    return;
+  f->state = FiberState::Running;
+  runq_.push_back(f);
+}
+
+void VM::EnqueueMicro(Fiber* f) {
+  if (!f || f->state == FiberState::Dead)
+    return;
+  f->state = FiberState::Running;
+  microq_.push_back(f);
+}
+
+void VM::ScheduleAt(Fiber* f, std::chrono::steady_clock::time_point when) {
+  if (!f || f->state == FiberState::Dead)
+    return;
+  timers_.push(TimerEntry{when, f});
 }
 
 }  // namespace serilang
