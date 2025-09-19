@@ -53,16 +53,10 @@ using helper::push;
 VM::VM(std::shared_ptr<GarbageCollector> gc)
     : gc_(gc),
       globals_(gc_->Allocate<Dict>()),
-      builtins_(gc->Allocate<Dict>()),
-      poller_(std::make_unique<IPoller>()) {
-  // Promise class is lazily initialized in CreatePromise().
-}
+      builtins_(gc->Allocate<Dict>()) {}
 
 VM::VM(std::shared_ptr<GarbageCollector> gc, Dict* globals, Dict* builtins)
-    : gc_(gc),
-      globals_(globals),
-      builtins_(builtins),
-      poller_(std::make_unique<IPoller>()) {}
+    : gc_(gc), globals_(globals), builtins_(builtins) {}
 
 Value VM::Evaluate(Code* chunk) {
   Fiber* f = AddFiber(chunk);
@@ -73,12 +67,10 @@ Value VM::Evaluate(Code* chunk) {
 Fiber* VM::AddFiber(Code* chunk) {
   Function* fn = gc_->Allocate<Function>(chunk);
   Fiber* fiber = gc_->Allocate<Fiber>();
-  // Create and attach completion promise
-  fiber->ResetPromise();
   push(fiber->stack, Value(fn));
   fn->Call(*this, *fiber, 0, 0);
   fibres_.push_back(fiber);
-  Enqueue(fiber);
+  scheduler_.PushTask(fiber);
   return fiber;
 }
 
@@ -100,31 +92,14 @@ Value VM::AddTrack(TempValue&& t) { return gc_->TrackValue(std::move(t)); }
 
 Value VM::Run() {
   // Seed: enqueue any New fibers so they can be processed.
-  for (auto* f : fibres_) {
+  for (auto* f : fibres_)
     if (f->state == FiberState::New)
-      Enqueue(f);
-  }
+      scheduler_.PushTask(f);
 
-  while (true) {
-    // Drain timers whose deadline has passed
-    auto now = std::chrono::steady_clock::now();
-    while (!timers_.empty() && timers_.top().when <= now) {
-      auto t = timers_.top();
-      timers_.pop();
-      if (t.fib && t.fib->state != FiberState::Dead)
-        Enqueue(t.fib);
-    }
+  while (!scheduler_.IsIdle()) {
+    scheduler_.DrainExpiredTimers();
 
-    Fiber* next = nullptr;
-    if (!microq_.empty()) {
-      next = microq_.front();
-      microq_.pop_front();
-    } else if (!runq_.empty()) {
-      next = runq_.front();
-      runq_.pop_front();
-    }
-
-    if (next) {
+    if (Fiber* next = scheduler_.NextTask()) {
       if (next->state == FiberState::Running ||
           next->state == FiberState::New) {
         next->state = FiberState::Running;
@@ -141,19 +116,10 @@ Value VM::Run() {
 
         // If still running and not finished, requeue for fairness.
         if (next->state == FiberState::Running && !next->frames.empty())
-          Enqueue(next);
+          scheduler_.PushTask(next);
       }
     } else {
-      // No immediate work; if no timers pending, we are done (remaining
-      // fibers are suspended and cannot make progress here).
-      if (timers_.empty())
-        break;
-
-      // Sleep until next timer (if any) or yield control via poller.
-      auto delta = timers_.top().when - now;
-      std::chrono::milliseconds timeout =
-          std::chrono::duration_cast<std::chrono::milliseconds>(delta);
-      poller_->Wait(timeout);
+      scheduler_.WaitForNext();
     }
 
     // run garbage collector periodically
@@ -582,7 +548,7 @@ void VM::ExecuteFiber(Fiber* fib) {
 
         push(fib->stack, Value(f));
         fibres_.push_back(f);
-        Enqueue(f);
+        scheduler_.PushTask(f);
       } break;
 
       case OpCode::Await: {
@@ -615,14 +581,14 @@ void VM::ExecuteFiber(Fiber* fib) {
             this->Error(*fib, promise->result->error());
             // should we return here?
           }
-          this->EnqueueMicro(fib);
+          this->scheduler_.PushMicroTask(fib);
         };
 
         if (promise->result.has_value()) {  // ready
           waker(promise.get());
         } else {  // pending
           promise->wakers.emplace_back(waker);
-          EnqueueMicro(promise->fiber);
+          scheduler_.PushMicroTask(promise->fiber);
         }
         return;  // switch -> await
       } break;
@@ -677,29 +643,6 @@ void VM::ExecuteFiber(Fiber* fib) {
 
   if (fib->frames.empty())
     fib->state = FiberState::Dead;
-}
-
-//------------------------------------------------------------------------------
-// Event loop helpers
-//------------------------------------------------------------------------------
-void VM::Enqueue(Fiber* f) {
-  if (!f || f->state == FiberState::Dead)
-    return;
-  f->state = FiberState::Running;
-  runq_.push_back(f);
-}
-
-void VM::EnqueueMicro(Fiber* f) {
-  if (!f || f->state == FiberState::Dead)
-    return;
-  f->state = FiberState::Running;
-  microq_.push_back(f);
-}
-
-void VM::ScheduleAt(Fiber* f, std::chrono::steady_clock::time_point when) {
-  if (!f || f->state == FiberState::Dead)
-    return;
-  timers_.push(TimerEntry{when, f});
 }
 
 }  // namespace serilang

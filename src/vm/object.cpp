@@ -226,6 +226,7 @@ void NativeInstance::SetMember(std::string_view mem, Value val) {
 // -----------------------------------------------------------------------
 Fiber::Fiber(size_t reserve) : state(FiberState::New) {
   stack.reserve(reserve);
+  ResetPromise();
 }
 
 void Fiber::MarkRoots(GCVisitor& visitor) {
