@@ -25,6 +25,7 @@
 #include "vm/object.hpp"
 
 #include "utilities/string_utilities.hpp"
+#include "vm/promise.hpp"
 #include "vm/upvalue.hpp"
 #include "vm/value.hpp"
 #include "vm/vm.hpp"
@@ -230,8 +231,10 @@ Fiber::Fiber(size_t reserve) : state(FiberState::New) {
 void Fiber::MarkRoots(GCVisitor& visitor) {
   if (pending_result.has_value())
     visitor.MarkSub(*pending_result);
-  visitor.MarkSub(waiter);
-  visitor.MarkSub(completion_promise);
+  // mark completion promise's payload
+  if (completion_promise && completion_promise->result.has_value())
+    visitor.MarkSub(
+        completion_promise->result->value_or(nil).Get_if<IObject>());
 
   for (auto& it : stack)
     visitor.MarkSub(it);
@@ -276,17 +279,8 @@ std::string Fiber::Str() const { return "fiber"; }
 
 std::string Fiber::Desc() const { return "<fiber>"; }
 
-TempValue Fiber::Member(std::string_view mem) {
-  if (mem == "completion" || mem == "done" || mem == "promise") {
-    return Value(completion_promise);
-  }
-  throw RuntimeError("'" + Desc() + "' object has no member '" +
-                     std::string(mem) + "'");
-}
-
-void Fiber::ResetPromise(Promise* promise) {
-  promise->Reset(this);
-  completion_promise = promise;
+void Fiber::ResetPromise() {
+  completion_promise = std::make_shared<Promise>(this);
 }
 
 // -----------------------------------------------------------------------
@@ -570,44 +564,6 @@ void BoundMethod::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
   f.stack.insert(f.stack.begin() + base + 1, additional_args.cbegin(),
                  additional_args.cend());
   method.Call(vm, f, nargs + additional_args.size(), nkwargs);
-}
-
-// -----------------------------------------------------------------------
-void Promise::MarkRoots(GCVisitor& visitor) {
-  visitor.MarkSub(fiber);
-  if (result.has_value())
-    visitor.MarkSub(result->value_or(nil).Get_if<IObject>());
-}
-std::string Promise::Str() const { return "<promise>"; }
-std::string Promise::Desc() const { return "<promise>"; }
-
-void Promise::Reset(Fiber* fib) {
-  fiber = fib;
-  status = Status::Pending;
-  result = std::nullopt;
-  wakers.clear();
-}
-
-void Promise::WakeAll() {
-  std::for_each(wakers.begin(), wakers.end(), [this](auto it) { it(this); });
-  wakers.clear();
-}
-
-void Promise::Resolve(Value value) {
-  if (status != Status::Pending)
-    return;
-  result = value;
-  fiber->pending_result = std::move(value);
-  status = Status::Resolved;
-  WakeAll();
-}
-
-void Promise::Reject(std::string msg) {
-  if (status != Status::Pending)
-    return;
-  result = unexpected(std::move(msg));
-  status = Status::Rejected;
-  WakeAll();
 }
 
 }  // namespace serilang

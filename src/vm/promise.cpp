@@ -22,33 +22,47 @@
 //
 // -----------------------------------------------------------------------
 
-#pragma once
+#include "vm/promise.hpp"
 
-#include <cstdint>
+#include "vm/gc.hpp"
+#include "vm/object.hpp"
+
+#include <algorithm>
+#include <format>
 
 namespace serilang {
-enum class ObjType : uint8_t {
-  Dummy,  // for testing
-  Other,
 
-  Nil,
-  Bool,
-  Int,
-  Double,
-  Str,
-  List,
-  Dict,
-  Module,
-  Native,
-  BoundMethod,
-  NativeClass,
-  NativeInstance,
-  Code,
-  Function,
-  Closure,
-  Fiber,
-  Class,
-  Instance
-};
-
+std::string Promise::ToDebugString() const {
+  return std::format("{}.promise", fiber->Desc());
 }
+
+void Promise::Reset(Fiber* fib) {
+  fiber = fib;
+  status = Status::Pending;
+  result = std::nullopt;
+  wakers.clear();
+}
+
+void Promise::WakeAll() {
+  std::for_each(wakers.begin(), wakers.end(), [this](auto it) { it(this); });
+  wakers.clear();
+}
+
+void Promise::Resolve(Value value) {
+  if (status != Status::Pending)
+    return;
+  result = value;
+  fiber->pending_result = std::move(value);
+  status = Status::Resolved;
+  WakeAll();
+}
+
+void Promise::Reject(std::string msg) {
+  if (status != Status::Pending)
+    return;
+  result = unexpected(std::move(msg));
+  status = Status::Rejected;
+  WakeAll();
+}
+
+}  // namespace serilang

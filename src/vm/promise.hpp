@@ -24,31 +24,38 @@
 
 #pragma once
 
-#include <cstdint>
+#include "utilities/expected.hpp"
+#include "vm/value.hpp"
+
+#include <functional>
+#include <optional>
+#include <string>
+#include <vector>
 
 namespace serilang {
-enum class ObjType : uint8_t {
-  Dummy,  // for testing
-  Other,
 
-  Nil,
-  Bool,
-  Int,
-  Double,
-  Str,
-  List,
-  Dict,
-  Module,
-  Native,
-  BoundMethod,
-  NativeClass,
-  NativeInstance,
-  Code,
-  Function,
-  Closure,
-  Fiber,
-  Class,
-  Instance
+struct Fiber;
+struct GCVisitor;
+
+// Fibres are awaitable handles; Promises are hidden internal machinery
+struct Promise {
+  enum class Status { Pending, Resolved, Rejected };
+  Fiber* fiber;  // owner, we don't mark this object
+  Status status = Status::Pending;
+
+  // note: result.has_value() -> has result or exception
+  // result->has_value() -> has result
+  std::optional<expected<Value, std::string>> result = std::nullopt;
+  std::vector<std::function<void(Promise*)>> wakers;
+
+  Promise(Fiber* fib) : fiber(fib) {}
+
+  std::string ToDebugString() const;
+
+  void Reset(Fiber* fiber);
+  void WakeAll();
+  void Resolve(Value value);
+  void Reject(std::string msg);
 };
 
-}
+}  // namespace serilang

@@ -32,6 +32,7 @@
 #include "vm/gc.hpp"
 #include "vm/instruction.hpp"
 #include "vm/object.hpp"
+#include "vm/promise.hpp"
 #include "vm/upvalue.hpp"
 #include "vm/value.hpp"
 
@@ -73,7 +74,7 @@ Fiber* VM::AddFiber(Code* chunk) {
   Function* fn = gc_->Allocate<Function>(chunk);
   Fiber* fiber = gc_->Allocate<Fiber>();
   // Create and attach completion promise
-  fiber->ResetPromise(gc_->Allocate<Promise>());
+  fiber->ResetPromise();
   push(fiber->stack, Value(fn));
   fn->Call(*this, *fiber, 0, 0);
   fibres_.push_back(fiber);
@@ -133,7 +134,7 @@ Value VM::Run() {
           // Uncaught exception terminates fiber; reject its promise.
           if (next->completion_promise) {
             next->completion_promise->Reject(e.message());
-            next->ResetPromise(gc_->Allocate<Promise>());
+            next->ResetPromise();
           }
           next->state = FiberState::Dead;
         }
@@ -225,26 +226,19 @@ void VM::Error(Fiber& f, std::string exc) {
 
 void VM::Return(Fiber& f) {
   auto& frame = f.frames.back();
-  Value ret = f.stack.empty() ? Value() : f.stack.back();
+  Value ret = f.stack.empty() ? Value() : std::move(f.stack.back());
 
   // shrink stack to base pointer + 1 (for return value)
   f.stack.resize(frame.bp + 1);
-
   f.frames.pop_back();
+
   if (f.frames.empty()) {
     // fiber finished
     f.state = FiberState::Dead;
+
     // Resolve completion promise
-    if (f.completion_promise) {
-      f.completion_promise->Resolve(ret);
-      f.ResetPromise(gc_->Allocate<Promise>());
-    }
-    if (f.waiter) {
-      push(f.waiter->stack, std::move(ret));
-      f.waiter->state = FiberState::Running;
-      EnqueueMicro(f.waiter);
-    } else
-      f.pending_result = std::move(ret);
+    f.completion_promise->Resolve(ret);
+    f.ResetPromise();
   } else {
     // push return value back on stack
     f.stack.back() = std::move(ret);
@@ -579,7 +573,7 @@ void VM::ExecuteFiber(Fiber* fib) {
 
         Fiber* f = gc_->Allocate<Fiber>(/*reserve=*/16 + ins.argcnt +
                                         2 * ins.kwargcnt);
-        f->ResetPromise(gc_->Allocate<Promise>());
+        f->ResetPromise();
         std::move(fib->stack.begin() + base, fib->stack.end(),
                   std::back_inserter(f->stack));
         fib->stack.resize(base);
@@ -595,7 +589,7 @@ void VM::ExecuteFiber(Fiber* fib) {
         const auto ins = chunk->Read<serilang::Await>(ip);
         ip += sizeof(ins);
         Value awaited = pop(fib->stack);
-        Promise* promise = nullptr;
+        std::shared_ptr<Promise> promise = nullptr;
 
         // If awaiting a Fiber, redirect to its completion promise so that
         // `await fiber` awaits final completion (not intermediate yields).
@@ -605,8 +599,6 @@ void VM::ExecuteFiber(Fiber* fib) {
             return;
           }
           promise = tf->completion_promise;
-        } else if (auto pm = awaited.Get_if<Promise>()) {
-          promise = pm;
         }
 
         if (promise == nullptr) {
@@ -627,7 +619,7 @@ void VM::ExecuteFiber(Fiber* fib) {
         };
 
         if (promise->result.has_value()) {  // ready
-          waker(promise);
+          waker(promise.get());
         } else {  // pending
           promise->wakers.emplace_back(waker);
           EnqueueMicro(promise->fiber);
@@ -640,15 +632,8 @@ void VM::ExecuteFiber(Fiber* fib) {
         ip += sizeof(ins);
         fib->state = FiberState::Suspended;
 
-        if (fib->waiter) {
-          push(fib->waiter->stack, pop(fib->stack));
-          fib->waiter->state = FiberState::Running;
-          EnqueueMicro(fib->waiter);
-          fib->waiter = nullptr;
-        } else {
-          fib->completion_promise->Resolve(pop(fib->stack));
-          fib->ResetPromise(gc_->Allocate<Promise>());
-        }
+        fib->completion_promise->Resolve(pop(fib->stack));
+        fib->ResetPromise();
       }
         return;  // switch -> yield
 

@@ -492,10 +492,9 @@ for(i=1;i<=5;i+=1){
     // FIXME: this should be "1\n2\n3\n4\n5\n"
     EXPECT_EQ(res, "nil\nnil\nnil\nnil\nnil\n");
   }
-}
 
-TEST_F(CompilerTest, CoroutinePromiseCompletion) {
-  auto res = Run(R"(
+  {
+    auto res = Run(R"(
 fn foo(){
   for(i=0;i<3;i+=1) yield i;
   return 42;
@@ -504,27 +503,28 @@ f = spawn foo();
 tmp = await f; tmp = await f; tmp = await f;
 print(await f);
 )");
-  EXPECT_EQ(res, "42\n");
-}
+    EXPECT_EQ(res, "42\n");
+  }
 
-TEST_F(CompilerTest, CoroutinePromiseReject) {
-  auto res = Run(R"(
+  {
+    auto res = Run(R"(
 fn bad(){ throw "boom"; }
 f = spawn bad();
 try{ await f; print("nope"); }
 catch(e){ print(e); }
 )");
-  EXPECT_EQ(res, "boom\n");
-}
+    EXPECT_EQ(res, "boom\n");
+  }
 
-TEST_F(CompilerTest, CoroutineMultiAwaitersOnCompletion) {
-  auto res = Run(R"(
+  {
+    auto res = Run(R"(
 fn foo(){ yield; return 99; }
 f = spawn foo();
 x = await f;
 print(x, await f, await f);
 )");
-  EXPECT_EQ(res, "nil 99 99\n");
+    EXPECT_EQ(res, "nil 99 99\n");
+  }
 }
 
 TEST_F(CompilerTest, Import) {
@@ -766,6 +766,17 @@ TEST_F(CompilerTest, ReturnOutside) {
 TEST_F(CompilerTest, YieldOutside) {
   auto res = Interpret({R"( yield 1; )"});
   EXPECT_EQ(res, error("'yield' outside function"));
+}
+
+TEST_F(CompilerTest, AwaitNonAwaitable) {
+  auto res = Interpret({R"( a = 1; b = "abc"; c = [1,2,3]; )", " await a; ",
+                        " await b; ", " await c; "});
+
+  EXPECT_EQ(res, R"(
+object is not awaitable: <int: 1>
+object is not awaitable: <str: abc>
+object is not awaitable: <list[3]>
+)");
 }
 
 }  // namespace m6test

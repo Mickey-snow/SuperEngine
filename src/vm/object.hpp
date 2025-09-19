@@ -24,7 +24,6 @@
 
 #pragma once
 
-#include "utilities/expected.hpp"
 #include "utilities/transparent_hash.hpp"
 #include "vm/call_frame.hpp"
 #include "vm/instruction.hpp"
@@ -34,7 +33,6 @@
 #include <functional>
 #include <memory>
 #include <optional>
-#include <span>
 #include <string>
 #include <utility>
 #include <vector>
@@ -209,15 +207,11 @@ struct Fiber : public IObject {
   std::vector<CallFrame> frames;
   FiberState state;
   std::optional<Value> pending_result = std::nullopt;
-  Fiber* waiter = nullptr;
-  // Number of fibers awaiting this fiber's completion (via Promise semantics).
-  // When > 0, the scheduler will keep driving this fiber through yields until
-  // it completes, so that awaiters eventually resume.
-  int awaiting_completion = 0;
+
   std::vector<std::shared_ptr<Upvalue>> open_upvalues;
 
   // Internal promise that represents this fiber's completion.
-  Promise* completion_promise = nullptr;
+  std::shared_ptr<Promise> completion_promise;
 
   explicit Fiber(size_t reserve = 64);
 
@@ -233,12 +227,10 @@ struct Fiber : public IObject {
   std::string Str() const override;
   std::string Desc() const override;
 
-  TempValue Member(std::string_view mem) override;
-
   inline bool IsRunning() const {
     return state == FiberState::Running && !frames.empty();
   }
-  void ResetPromise(Promise* promise);
+  void ResetPromise();
 };
 
 struct List : public IObject {
@@ -374,29 +366,6 @@ struct BoundMethod : public IObject {
   std::string Desc() const override;
 
   void Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) override;
-};
-
-struct Promise : public IObject {
-  static constexpr inline ObjType objtype = ObjType::Promise;
-
-  enum class Status { Pending, Resolved, Rejected };
-  Fiber* fiber = nullptr;
-  Status status = Status::Pending;
-  std::optional<expected<Value, std::string>> result = std::nullopt;
-  std::vector<std::function<void(Promise*)>> wakers;
-
-  constexpr ObjType Type() const noexcept final { return objtype; }
-  constexpr size_t Size() const noexcept final { return sizeof(*this); }
-
-  void MarkRoots(GCVisitor& visitor) override;
-
-  std::string Str() const override;
-  std::string Desc() const override;
-
-  void Reset(Fiber* fiber);
-  void WakeAll();
-  void Resolve(Value value);
-  void Reject(std::string msg);
 };
 
 }  // namespace serilang

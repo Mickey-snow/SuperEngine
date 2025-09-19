@@ -27,6 +27,7 @@
 #include "vm/disassembler.hpp"
 #include "vm/instruction.hpp"
 #include "vm/object.hpp"
+#include "vm/promise.hpp"
 #include "vm/vm.hpp"
 
 namespace serilang_test {
@@ -199,7 +200,7 @@ TEST_F(VMTest, YieldFiber) {
   Fiber* f = vm.AddFiber(chunk);
 
   vm.Enqueue(f);
-  Promise* pm = f->completion_promise;
+  std::shared_ptr<Promise> pm = f->completion_promise;
   std::ignore = vm.Run();
   EXPECT_EQ(f->state, FiberState::Suspended);
   EXPECT_EQ(pm->status, Promise::Status::Resolved);
