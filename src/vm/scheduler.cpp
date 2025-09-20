@@ -24,6 +24,7 @@
 
 #include "vm/scheduler.hpp"
 
+#include "log/domain_logger.hpp"
 #include "vm/object.hpp"
 
 #include <thread>
@@ -42,20 +43,32 @@ void IPoller::Wait(std::chrono::milliseconds timeout) {
 
 // -----------------------------------------------------------------------
 // class Scheduler
-Scheduler::Scheduler(std::unique_ptr<IPoller> poller)
-    : poller_(std::move(poller)) {}
+Scheduler::Scheduler(std::unique_ptr<IPoller> poller,
+                     std::unique_ptr<Clock> clock)
+    : poller_(std::move(poller)), clock_(std::move(clock)) {}
 
 bool Scheduler::IsIdle() const {
   return timers_.empty() && microq_.empty() && runq_.empty();
 }
 
 void Scheduler::DrainExpiredTimers() {
-  auto now = chr::steady_clock::now();
+  auto now = clock_->GetTime();
   while (!timers_.empty() && timers_.top().when <= now) {
-    auto t = timers_.top();
-    timers_.pop();
+    auto const& t = timers_.top();
+
+    if (t.callback) {
+      try {
+        t.callback();
+      } catch (std::exception& e) {
+        static thread_local DomainLogger logger("Scheduler");
+        logger(Severity::Error) << "timer callback threw: " << e.what();
+      }
+    }
+
     if (t.fib && t.fib->state != FiberState::Dead)
       PushTask(t.fib);
+
+    timers_.pop();
   }
 }
 
@@ -76,7 +89,7 @@ void Scheduler::WaitForNext() {
   if (timers_.empty())
     return;
 
-  auto deltaTime = timers_.top().when - chr::steady_clock::now();
+  auto deltaTime = timers_.top().when - clock_->GetTime();
   if (deltaTime < chr::steady_clock::duration::zero())
     deltaTime = chr::steady_clock::duration::zero();
   poller_->Wait(chr::duration_cast<chr::milliseconds>(deltaTime));
@@ -95,14 +108,24 @@ void Scheduler::PushMicroTask(Fiber* f) {
   microq_.push_back(f);
 }
 
-void Scheduler::PushAt(Fiber* f, chr::steady_clock::time_point when) {
+void Scheduler::PushAt(Fiber* f, Clock::timepoint_t when) {
   if (!f || f->state == FiberState::Dead)
     return;
-  timers_.push(TimerEntry{when, f});
+  timers_.emplace(when, f, std::function<void()>{});
 }
 
 void Scheduler::PushAfter(Fiber* f, chr::milliseconds duration) {
-  PushAt(f, chr::steady_clock::now() + duration);
+  PushAt(f, clock_->GetTime() + duration);
+}
+
+void Scheduler::PushCallbackAt(std::function<void()> fn,
+                               Clock::timepoint_t when) {
+  timers_.emplace(when, nullptr, std::move(fn));
+}
+
+void Scheduler::PushCallbackAfter(std::function<void()> fn,
+                                  chr::milliseconds duration) {
+  PushCallbackAt(std::move(fn), clock_->GetTime() + duration);
 }
 
 }  // namespace serilang

@@ -24,8 +24,11 @@
 
 #pragma once
 
+#include "utilities/clock.hpp"
+
 #include <chrono>
 #include <deque>
+#include <functional>
 #include <memory>
 #include <queue>
 #include <vector>
@@ -39,8 +42,9 @@ struct IPoller {
 };
 
 struct TimerEntry {
-  std::chrono::steady_clock::time_point when;
-  Fiber* fib;
+  Clock::timepoint_t when;
+  Fiber* fib = nullptr;
+  std::function<void()> callback;
   inline bool operator>(const TimerEntry& other) const {
     return when > other.when;
   }
@@ -48,7 +52,8 @@ struct TimerEntry {
 
 class Scheduler {
  public:
-  Scheduler(std::unique_ptr<IPoller> poller = std::make_unique<IPoller>());
+  Scheduler(std::unique_ptr<IPoller> poller = std::make_unique<IPoller>(),
+            std::unique_ptr<Clock> clock = std::make_unique<Clock>());
 
   bool IsIdle() const;
 
@@ -58,8 +63,11 @@ class Scheduler {
 
   void PushTask(Fiber* f);
   void PushMicroTask(Fiber* f);
-  void PushAt(Fiber* f, std::chrono::steady_clock::time_point when);
+  void PushAt(Fiber* f, Clock::timepoint_t when);
   void PushAfter(Fiber* f, std::chrono::milliseconds duration);
+  void PushCallbackAt(std::function<void()> fn, Clock::timepoint_t when);
+  void PushCallbackAfter(std::function<void()> fn,
+                         std::chrono::milliseconds duration);
 
  private:
   std::deque<Fiber*> runq_;
@@ -70,6 +78,7 @@ class Scheduler {
       timers_;
 
   std::unique_ptr<IPoller> poller_;
+  std::unique_ptr<Clock> clock_;
 };
 
 }  // namespace serilang

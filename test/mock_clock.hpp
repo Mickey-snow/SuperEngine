@@ -28,6 +28,8 @@
 
 #include "utilities/clock.hpp"
 
+#include <chrono>
+
 class MockClock : public Clock {
  public:
   using duration_t = typename Clock::duration_t;
@@ -39,6 +41,9 @@ class MockClock : public Clock {
   virtual duration_t GetTicks() const override { return elapsed_; }
   virtual timepoint_t GetTime() const override { return epoch_ + elapsed_; }
 
+  void SetNow(timepoint_t now) {
+    elapsed_ = std::chrono::duration_cast<duration_t>(now - epoch_);
+  }
   void SetEpoch(timepoint_t epoch) { epoch_ = epoch; }
   void SetElapsed(duration_t elapsed) { elapsed_ = elapsed; }
   void AdvanceTime(duration_t duration) { elapsed_ += duration; }
