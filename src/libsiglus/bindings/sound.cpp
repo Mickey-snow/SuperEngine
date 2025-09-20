@@ -21,20 +21,45 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#pragma once
+#include "libsiglus/bindings/sound.hpp"
 
-#include "libsiglus/bindings/common.hpp"
-#include "libsiglus/siglus_runtime.hpp"
+#include "srbind/srbind.hpp"
+#include "systems/sdl/sdl_sound_system.hpp"
+#include "systems/sdl/sdl_system.hpp"
+#include "vm/vm.hpp"
+
+#include <string>
 
 namespace libsiglus::binding {
+namespace sr = serilang;
+namespace sb = srbind;
 
-class SDL {
-  Context& ctx;
+class SoundHandle {
+  SDLSystem* system;
 
  public:
-  explicit SDL(Context& c) : ctx(c) {}
+  SoundHandle(SDLSystem* sys) : system(sys) {}
 
-  void Bind(SiglusRuntime& runtime);
+  void play(std::string name, bool loop) {
+    system->sound_system_->WavPlay(name, loop);
+  }
+
+  void bgm(std::string name, bool loop) {
+    system->sound_system_->BgmPlay(name, loop);
+  }
 };
+
+void Sound::Bind(SiglusRuntime& runtime) {
+  sr::VM& vm = *runtime.vm;
+
+  sb::module_ m(vm.gc_.get(), vm.globals_);
+  sb::class_<SoundHandle> sdl(m, "Sound");
+
+  sdl.def(sb::init([sys = runtime.system.get()]() -> SoundHandle* {
+    return new SoundHandle(sys);
+  }));
+  sdl.def("play", &SoundHandle::play, sb::arg("name"), sb::arg("loop") = false);
+  sdl.def("bgm", &SoundHandle::bgm, sb::arg("name"), sb::arg("loop") = true);
+}
 
 }  // namespace libsiglus::binding

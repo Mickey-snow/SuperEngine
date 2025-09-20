@@ -62,11 +62,6 @@ class Object {
     obj.Param().SetVisible(disp);
   }
 
-  void Render() {
-    obj.ExecuteMutators();
-    graphics_->RenderFrame(true);
-  }
-
   int GetSizeX(int cut_no) { return obj.PixelWidth(); }
   int GetSizeY(int cut_no) { return obj.PixelHeight(); }
 
@@ -121,8 +116,6 @@ void Obj::Bind(SiglusRuntime& runtime) {
   o.def("set_pos", &Object::SetPos);
   o.def("set_xeve", &Object::SetXEve);
   o.def("set_yeve", &Object::SetYEve);
-
-  o.def("render", &Object::Render);
 }
 
 }  // namespace libsiglus::binding

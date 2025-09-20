@@ -25,15 +25,20 @@
 
 #include "libsiglus/bindings/common.hpp"
 #include "libsiglus/bindings/obj.hpp"
-#include "libsiglus/bindings/sdl.hpp"
+#include "libsiglus/bindings/sound.hpp"
 #include "libsiglus/bindings/system.hpp"
 
 #include "m6/vm_factory.hpp"
+#include "systems/base/graphics_object.hpp"
+#include "systems/event_system.hpp"
+#include "systems/sdl/sdl_graphics_system.hpp"
 #include "systems/sdl/sdl_system.hpp"
 
+#include <chrono>
 #include <filesystem>
 
 namespace libsiglus {
+namespace chr = std::chrono;
 namespace sr = serilang;
 namespace fs = std::filesystem;
 
@@ -49,6 +54,10 @@ SiglusRuntime SGVMFactory::Create() {
   gexe.SetIntAt("MOUSE_CURSOR", 0);
   gexe.SetStringAt("__GAMEPATH", (fs::temp_directory_path() / "game").string());
   gexe.parseLine("#SCREENSIZE_MOD=999.1920.1080");
+  // TODO: gameexe cannot parse siglus format config files yet
+  gexe.parseLine(R"(#BGM.000 = "BGM01","BGM01",82286,5184000,905143)");
+  gexe.parseLine(R"(#BGM.001 = "BGM02","BGM02",147692,7015385,221538)");
+
   runtime.system = std::make_unique<SDLSystem>(gexe);
 
   binding::Context ctx;
@@ -59,9 +68,33 @@ SiglusRuntime SGVMFactory::Create() {
   runtime.asset_scanner->IndexDirectory(ctx.base_pth);
 
   // add bindings here
-  binding::SDL(ctx).Bind(runtime);
+  binding::Sound(ctx).Bind(runtime);
   binding::System(ctx).Bind(runtime);
   binding::Obj(ctx).Bind(runtime);
+
+  // abuse the vm scheduler to refresh sdl regularly
+  std::function<void()>& cb = runtime.exec_sdl_callback;
+  cb = [&cb, &runtime]() {
+    constexpr auto period =
+        chr::duration_cast<chr::steady_clock::duration>(chr::seconds(1)) / 60;
+
+    auto next = chr::steady_clock::now() + period;
+    runtime.vm->scheduler_.PushDaemonAt(cb, next);
+
+    // redraw
+    std::shared_ptr<SDLGraphicsSystem> graphics =
+        runtime.system->graphics_system_;
+    for (auto& obj : graphics->GetForegroundObjects())
+      obj.ExecuteMutators();
+    for (auto& obj : graphics->GetBackgroundObjects())
+      obj.ExecuteMutators();
+    graphics->RenderFrame(true);
+
+    // poll events
+    std::shared_ptr<EventSystem> event = runtime.system->event_system_;
+    event->ExecuteEventSystem();
+  };
+  runtime.vm->scheduler_.PushDaemonAfter(cb, chr::milliseconds(2));
 
   return runtime;
 }

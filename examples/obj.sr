@@ -1,7 +1,4 @@
 
-sdl = SDL();
-sdl.init();
-
 file = "bg47";
 fn create_effects_obj(file){
   obj = Object();
@@ -18,15 +15,9 @@ fn create_effects_obj(file){
 }
 
 bg = create_effects_obj(file);
-bg.render();
 
-delay = 100;
-
-bg.set_pos(-480, -270);
-bg.set_xeve(480, 35000, delay, 0);
-bg.set_yeve(-270, 35000, delay, 0);
-
-fn Render(reps = 100){
-  for(i=0; i<reps; i+=1)
-    bg.render();
+fn test_poseve(obj, delay = 100){
+  obj.set_pos(-480, -270);
+  obj.set_xeve(480, 35000, delay, 0);
+  obj.set_yeve(-270, 35000, delay, 0);
 }

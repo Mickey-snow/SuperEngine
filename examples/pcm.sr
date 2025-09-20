@@ -1,4 +1,4 @@
-handle = SDL();
-handle.init();
+handle = Sound();
+
 handle.bgm("bgm01");
 handle.play("se032");
