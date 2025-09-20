@@ -420,6 +420,9 @@ void SDLSoundSystem::PlaySe(const int se_num) {
   const std::string& file_name = se.file;
   int channel = se.channel;
 
+  if (channel < 0)
+    channel = sound_impl_->FindIdleChannel();
+
   // Make sure there isn't anything playing on the current channel
   sound_impl_->HaltChannel(channel);
   if (file_name == "") {

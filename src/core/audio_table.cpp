@@ -57,7 +57,13 @@ AudioTable::AudioTable(Gameexe& gexe) {
     int entry_number = std::stoi(raw_number);
 
     std::string file_name = se.GetStringAt(0);
-    int target_channel = se.GetIntAt(1);
+
+    int target_channel;
+    try {
+      target_channel = se.GetIntAt(1);
+    } catch (...) {
+      target_channel = -1;
+    }
 
     se_table_[entry_number] = std::make_pair(file_name, target_channel);
   }
@@ -82,6 +88,19 @@ AudioTable::AudioTable(Gameexe& gexe) {
     to_lower(name);
 
     cd_tracks_[name] = CDTrack(name, from, to, loop);
+  }
+
+  // Read the \#BGM.xxx entries
+  for (auto bgmtrack : gexe.Filter("BGM")) {
+    DSTrack track;
+    track.name = bgmtrack.GetStringAt(0);
+    track.file = bgmtrack.GetStringAt(1);
+    track.from = bgmtrack.GetIntAt(2);
+    track.to = bgmtrack.GetIntAt(3);
+    track.loop = bgmtrack.GetIntAt(4);
+
+    to_lower(track.name);
+    ds_tracks_[track.name] = std::move(track);
   }
 }
 
