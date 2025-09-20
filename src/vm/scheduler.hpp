@@ -55,7 +55,7 @@ class Scheduler {
   Scheduler(std::unique_ptr<IPoller> poller = std::make_unique<IPoller>(),
             std::unique_ptr<Clock> clock = std::make_unique<Clock>());
 
-  bool IsIdle() const;
+  bool IsIdle() const noexcept;
 
   void DrainExpiredTimers();
   Fiber* NextTask();
@@ -64,10 +64,13 @@ class Scheduler {
   void PushTask(Fiber* f);
   void PushMicroTask(Fiber* f);
   void PushAt(Fiber* f, Clock::timepoint_t when);
-  void PushAfter(Fiber* f, std::chrono::milliseconds duration);
+  void PushAfter(Fiber* f, std::chrono::milliseconds delay);
   void PushCallbackAt(std::function<void()> fn, Clock::timepoint_t when);
   void PushCallbackAfter(std::function<void()> fn,
-                         std::chrono::milliseconds duration);
+                         std::chrono::milliseconds delay);
+  void PushDaemonAt(std::function<void()> fn, Clock::timepoint_t when);
+  void PushDaemonAfter(std::function<void()> fn,
+                       std::chrono::milliseconds delay);
 
  private:
   std::deque<Fiber*> runq_;
@@ -75,7 +78,12 @@ class Scheduler {
   std::priority_queue<TimerEntry,
                       std::vector<TimerEntry>,
                       std::greater<TimerEntry>>
-      timers_;
+      timers_, daemons_;
+
+  // helpers
+  bool empty() const noexcept;
+  TimerEntry const& top() const;
+  TimerEntry pop_top();
 
   std::unique_ptr<IPoller> poller_;
   std::unique_ptr<Clock> clock_;
