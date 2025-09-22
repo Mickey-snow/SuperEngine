@@ -125,7 +125,7 @@ BOOST_CLASS_VERSION(SystemGlobals, 1)
 // specialized.
 class System {
  public:
-  System();
+  System(std::shared_ptr<AssetScanner> scanner = nullptr);
   virtual ~System();
 
   bool confirm_save_load() const { return globals_.confirm_save_load_; }

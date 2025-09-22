@@ -40,7 +40,7 @@ class SDLSoundSystem;
 
 class SDLSystem : public System {
  public:
-  explicit SDLSystem(Gameexe& gameexe);
+  explicit SDLSystem(Gameexe& gameexe, std::shared_ptr<AssetScanner> assets);
   virtual ~SDLSystem();
 
   // Implementation of System:

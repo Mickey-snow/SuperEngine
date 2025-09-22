@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <filesystem>
 #include <string_view>
 
 class Gameexe;
@@ -30,5 +31,6 @@ class Gameexe;
 namespace libsiglus {
 
 Gameexe CreateGexe(std::string_view sv);
+Gameexe CreateGexe(const std::filesystem::path& pth);
 
 }  // namespace libsiglus

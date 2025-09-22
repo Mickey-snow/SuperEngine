@@ -27,7 +27,9 @@
 #include "libsiglus/bindings/obj.hpp"
 #include "libsiglus/bindings/sound.hpp"
 #include "libsiglus/bindings/system.hpp"
+#include "libsiglus/gexedat.hpp"
 
+#include "log/domain_logger.hpp"
 #include "m6/vm_factory.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/event_system.hpp"
@@ -42,10 +44,24 @@ namespace chr = std::chrono;
 namespace sr = serilang;
 namespace fs = std::filesystem;
 
+static DomainLogger logger("SiglusFactory");
+
 SiglusRuntime SGVMFactory::Create() {
   SiglusRuntime runtime;
   runtime.vm = std::make_unique<sr::VM>(m6::VMFactory::Create());
 
+  binding::Context ctx;
+  ctx.base_pth = fs::temp_directory_path() / "game";
+  ctx.save_pth = ctx.base_pth / "save";
+  ctx.asset_scanner = runtime.asset_scanner = std::make_shared<AssetScanner>();
+  runtime.asset_scanner->IndexDirectory(ctx.base_pth);
+
+  // Load Gameexe.ini config
+  if (auto pth = ctx.asset_scanner->FindFile("Gameexe", {"dat"});
+      pth.has_value())
+    runtime.gameexe = CreateGexe(pth.value());
+  else
+    logger(Severity::Error) << "Gameexe.dat not found: " << pth.error().what();
   Gameexe& gexe = runtime.gameexe;
   gexe.SetStringAt("CAPTION", "SiglusTest");
   gexe.SetStringAt("REGNAME", "sjis: SIGLUS\\TEST");
@@ -54,18 +70,9 @@ SiglusRuntime SGVMFactory::Create() {
   gexe.SetIntAt("MOUSE_CURSOR", 0);
   gexe.SetStringAt("__GAMEPATH", (fs::temp_directory_path() / "game").string());
   gexe.parseLine("#SCREENSIZE_MOD=999.1920.1080");
-  // TODO: gameexe cannot parse siglus format config files yet
-  gexe.parseLine(R"(#BGM.000 = "BGM01","BGM01",82286,5184000,905143)");
-  gexe.parseLine(R"(#BGM.001 = "BGM02","BGM02",147692,7015385,221538)");
 
-  runtime.system = std::make_unique<SDLSystem>(gexe);
-
-  binding::Context ctx;
-  ctx.base_pth = fs::temp_directory_path() / "game";
-  ctx.save_pth = ctx.base_pth / "save";
-  ctx.asset_scanner = runtime.asset_scanner = runtime.system->GetAssetScanner();
-
-  runtime.asset_scanner->IndexDirectory(ctx.base_pth);
+  // Init sdl system
+  runtime.system = std::make_unique<SDLSystem>(gexe, runtime.asset_scanner);
 
   // add bindings here
   binding::Sound(ctx).Bind(runtime);

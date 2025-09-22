@@ -37,7 +37,6 @@
 #include <deque>
 #include <iostream>
 #include <iterator>
-#include <list>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -70,6 +69,7 @@
 #include "systems/sdl_surface.hpp"
 #include "utilities/exception.hpp"
 #include "utilities/lazy_array.hpp"
+#include "utilities/string_utilities.hpp"
 
 namespace fs = std::filesystem;
 
@@ -83,7 +83,7 @@ struct GraphicsSystem::GraphicsObjectSettings {
 
   // Each is a valid index into data, associating each object slot with an
   // ObjectSettings instance.
-  std::unique_ptr<unsigned char[]> position;
+  std::vector<unsigned char> position;
 
   std::vector<ObjectSettings> data;
 
@@ -93,7 +93,23 @@ struct GraphicsSystem::GraphicsObjectSettings {
 };
 
 // -----------------------------------------------------------------------
-
+static std::optional<std::pair<int, int>> parse_range(std::string_view sv) {
+  // Accepts "N" or "A:B" (whitespace allowed). Returns nullopt if invalid.
+  sv = trim_sv(sv);
+  if (auto pos = sv.find(':'); pos == std::string_view::npos) {
+    int v;
+    if (!parse_int(sv, v))
+      return std::nullopt;
+    return std::make_pair(v, v);
+  } else {
+    int a, b;
+    if (!parse_int(sv.substr(0, pos), a))
+      return std::nullopt;
+    if (!parse_int(sv.substr(pos + 1), b))
+      return std::nullopt;
+    return std::make_pair(a, b);
+  }
+}
 GraphicsSystem::GraphicsObjectSettings::GraphicsObjectSettings(
     Gameexe& gameexe) {
   if (gameexe.Exists("OBJECT_MAX"))
@@ -102,8 +118,7 @@ GraphicsSystem::GraphicsObjectSettings::GraphicsObjectSettings(
     objects_in_a_layer = 256;
 
   // First we populate everything with the special value
-  position.reset(new unsigned char[objects_in_a_layer]);
-  std::fill(position.get(), position.get() + objects_in_a_layer, 0);
+  position = std::vector<unsigned char>(objects_in_a_layer, 0);
 
   if (gameexe.Exists("OBJECT.999"))
     data.emplace_back(gameexe("OBJECT.999"));
@@ -112,20 +127,19 @@ GraphicsSystem::GraphicsObjectSettings::GraphicsObjectSettings(
 
   // Read the #OBJECT.xxx entries from the Gameexe
   for (auto it : gameexe.Filter("OBJECT.")) {
-    string s = it.key().substr(it.key().find_first_of(".") + 1);
-    std::list<int> object_nums;
-    string::size_type poscolon = s.find_first_of(":");
-    if (poscolon != string::npos) {
-      int obj_num_first = std::stoi(s.substr(0, poscolon));
-      int obj_num_last = std::stoi(s.substr(poscolon + 1));
-      while (obj_num_first <= obj_num_last) {
-        object_nums.push_back(obj_num_first++);
-      }
-    } else {
-      object_nums.push_back(std::stoi(s));
-    }
+    std::string_view key = it.key();
+    size_t dot_pos = key.find('.');
+    if (dot_pos == std::string_view::npos || dot_pos + 1 >= key.size())
+      continue;
 
-    for (int obj_num : object_nums) {
+    std::string_view s = key.substr(dot_pos + 1);
+    int lo, hi;
+    if (auto maybe = parse_range(s); maybe && maybe->first <= maybe->second)
+      std::tie(lo, hi) = *maybe;
+    else
+      continue;
+
+    for (int obj_num : std::views::iota(lo, hi + 1)) {
       if (obj_num != 999 && obj_num < objects_in_a_layer) {
         position[obj_num] = data.size();
         data.emplace_back(it);
@@ -208,8 +222,9 @@ GraphicsSystem::GraphicsSystem(System& system, Gameexe& gameexe)
       interface_hidden_(false),
       globals_(gameexe),
       time_at_last_queue_change_(0),
-      graphics_object_settings_(new GraphicsObjectSettings(gameexe)),
-      graphics_object_impl_(new GraphicsObjectImpl(
+      graphics_object_settings_(
+          std::make_unique<GraphicsObjectSettings>(gameexe)),
+      graphics_object_impl_(std::make_unique<GraphicsObjectImpl>(
           graphics_object_settings_->objects_in_a_layer)),
       use_custom_mouse_cursor_(gameexe("MOUSE_CURSOR").Exists()),
       show_cursor_from_bytecode_(true),

@@ -27,11 +27,12 @@
 
 #include "utilities/string_utilities.hpp"
 
-#include <string>
-
 #include "encodings/codepage.hpp"
 #include "utf8.h"
 #include "utilities/exception.hpp"
+
+#include <charconv>
+#include <string>
 
 using std::string;
 using std::wstring;
@@ -221,4 +222,14 @@ int ConvertLetterIndexToInt(const std::string& value) {
   }
 
   return total;
+}
+
+bool parse_int(std::string_view sv, int& out, int base) {
+  sv = trim_sv(sv);
+  if (sv.empty())
+    return false;
+  const char* first = sv.data();
+  const char* last = sv.data() + sv.size();
+  auto [ptr, ec] = std::from_chars(first, last, out, base);
+  return ec == std::errc{} && ptr == last;
 }

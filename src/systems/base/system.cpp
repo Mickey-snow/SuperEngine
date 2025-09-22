@@ -94,11 +94,12 @@ SystemGlobals::SystemGlobals()
 // System
 // -----------------------------------------------------------------------
 
-System::System()
+System::System(std::shared_ptr<AssetScanner> scanner)
     : in_menu_(false),
       force_fast_forward_(false),
       force_wait_(false),
-      use_western_font_(false) {
+      use_western_font_(false),
+      rlvm_assets_(scanner) {
   std::fill(syscom_status_, syscom_status_ + NUM_SYSCOM_ENTRIES,
             SYSCOM_VISIBLE);
 
@@ -287,12 +288,7 @@ void System::InvokeSyscom(RLMachine& machine, int syscom) {
   }
 }
 
-std::shared_ptr<AssetScanner> System::GetAssetScanner() {
-  if (!rlvm_assets_)
-    rlvm_assets_ = std::make_shared<AssetScanner>(
-        AssetScanner::BuildFromGameexe(gameexe()));
-  return rlvm_assets_;
-}
+std::shared_ptr<AssetScanner> System::GetAssetScanner() { return rlvm_assets_; }
 
 void System::Reset() {
   in_menu_ = false;

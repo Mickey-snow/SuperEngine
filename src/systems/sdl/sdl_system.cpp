@@ -47,7 +47,8 @@
 
 // -----------------------------------------------------------------------
 
-SDLSystem::SDLSystem(Gameexe& gameexe) : System(), gameexe_(gameexe) {
+SDLSystem::SDLSystem(Gameexe& gameexe, std::shared_ptr<AssetScanner> assets)
+    : System(assets), gameexe_(gameexe) {
   // First, initialize SDL's video subsystem.
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
     std::ostringstream ss;

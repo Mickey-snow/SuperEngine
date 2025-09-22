@@ -26,6 +26,7 @@
 #include "core/audio_table.hpp"
 
 #include "core/gameexe.hpp"
+#include "utilities/string_utilities.hpp"
 
 #include <cctype>
 #include <sstream>
@@ -54,7 +55,10 @@ AudioTable::AudioTable(Gameexe& gexe) {
   // Read the \#SE.xxx entries from the Gameexe
   for (auto se : gexe.Filter("SE.")) {
     std::string raw_number = se.GetKeyParts().at(1);
-    int entry_number = std::stoi(raw_number);
+    int entry_number;
+
+    if (!parse_int(raw_number, entry_number))
+      continue;
 
     std::string file_name = se.GetStringAt(0);
 
@@ -70,37 +74,49 @@ AudioTable::AudioTable(Gameexe& gexe) {
 
   // Read the \#DSTRACK entries
   for (auto dstrack : gexe.Filter("DSTRACK")) {
-    int from = dstrack.GetIntAt(0);
-    int to = dstrack.GetIntAt(1);
-    int loop = dstrack.GetIntAt(2);
-    const std::string& file = dstrack.GetStringAt(3);
-    std::string name = dstrack.GetStringAt(4);
-    to_lower(name);
-    ds_tracks_[name] = DSTrack(name, file, from, to, loop);
+    try {
+      int from = dstrack.GetIntAt(0);
+      int to = dstrack.GetIntAt(1);
+      int loop = dstrack.GetIntAt(2);
+      const std::string& file = dstrack.GetStringAt(3);
+      std::string name = dstrack.GetStringAt(4);
+      to_lower(name);
+      ds_tracks_[name] = DSTrack(name, file, from, to, loop);
+    } catch (...) {
+      continue;
+    }
   }
 
   // Read the \#CDTRACK entries
   for (auto cdtrack : gexe.Filter("CDTRACK")) {
-    int from = cdtrack.GetIntAt(0);
-    int to = cdtrack.GetIntAt(1);
-    int loop = cdtrack.GetIntAt(2);
-    std::string name = cdtrack.GetStringAt(3);
-    to_lower(name);
+    try {
+      int from = cdtrack.GetIntAt(0);
+      int to = cdtrack.GetIntAt(1);
+      int loop = cdtrack.GetIntAt(2);
+      std::string name = cdtrack.GetStringAt(3);
+      to_lower(name);
 
-    cd_tracks_[name] = CDTrack(name, from, to, loop);
+      cd_tracks_[name] = CDTrack(name, from, to, loop);
+    } catch (...) {
+      continue;
+    }
   }
 
   // Read the \#BGM.xxx entries
   for (auto bgmtrack : gexe.Filter("BGM")) {
-    DSTrack track;
-    track.name = bgmtrack.GetStringAt(0);
-    track.file = bgmtrack.GetStringAt(1);
-    track.from = bgmtrack.GetIntAt(2);
-    track.to = bgmtrack.GetIntAt(3);
-    track.loop = bgmtrack.GetIntAt(4);
+    try {
+      DSTrack track;
+      track.name = bgmtrack.GetStringAt(0);
+      track.file = bgmtrack.GetStringAt(1);
+      track.from = bgmtrack.GetIntAt(2);
+      track.to = bgmtrack.GetIntAt(3);
+      track.loop = bgmtrack.GetIntAt(4);
 
-    to_lower(track.name);
-    ds_tracks_[track.name] = std::move(track);
+      to_lower(track.name);
+      ds_tracks_[track.name] = std::move(track);
+    } catch (...) {
+      continue;
+    }
   }
 }
 

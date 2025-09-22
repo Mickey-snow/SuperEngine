@@ -89,7 +89,9 @@ GameLoader::GameLoader(fs::path gameroot) {
   archive_ = std::make_shared<libreallive::Archive>(seenPath.string(),
                                                     (*gameexe_)("REGNAME"));
 
-  system_ = std::make_shared<SDLSystem>(*gameexe_);
+  system_ = std::make_shared<SDLSystem>(
+      *gameexe_, std::make_shared<AssetScanner>(
+                     AssetScanner::BuildFromGameexe(*gameexe_)));
 
   // Instantiate the rl machine
   auto memory = std::make_unique<Memory>();

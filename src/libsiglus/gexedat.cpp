@@ -28,6 +28,7 @@
 #include "encodings/utf16.hpp"
 #include "libsiglus/xorkey.hpp"
 #include "utilities/byte_reader.hpp"
+#include "utilities/mapped_file.hpp"
 
 #include <boost/algorithm/string/trim.hpp>
 #include <iostream>
@@ -102,6 +103,11 @@ Gameexe CreateGexe(std::string_view sv) {
   }
 
   throw std::runtime_error("CreateGexe: no valid key found.");
+}
+
+Gameexe CreateGexe(const std::filesystem::path& pth) {
+  MappedFile f(pth);
+  return CreateGexe(f.Read());
 }
 
 }  // namespace libsiglus

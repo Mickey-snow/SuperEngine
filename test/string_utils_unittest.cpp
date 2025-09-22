@@ -41,3 +41,10 @@ TEST(StringUtilTest, RemoveQuotes) {
   EXPECT_EQ(RemoveQuotes(""), "");
   EXPECT_EQ(RemoveQuotes("\"a\"b\""), "a\"b");
 }
+
+TEST(StringUtilTest, SiglusRegression) {
+  int result;
+  ASSERT_TRUE(parse_int("00123", result));
+  EXPECT_EQ(result, 123);
+  ASSERT_FALSE(parse_int("CNT", result));
+}

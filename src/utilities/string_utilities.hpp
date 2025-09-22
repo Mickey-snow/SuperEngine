@@ -200,3 +200,5 @@ inline std::string_view rtrim_sv(std::string_view s) {
 inline std::string_view trim_sv(std::string_view s) {
   return ltrim_sv(rtrim_sv(s));
 }
+
+bool parse_int(std::string_view sv, int& out, int base = 10);
