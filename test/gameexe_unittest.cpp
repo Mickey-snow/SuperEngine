@@ -39,6 +39,34 @@ TEST(GameexeUnit, ReadAllKeys) {
   EXPECT_EQ(26, ini.Size()) << "Wrong number of keys";
 }
 
+TEST(GameexeUnit, SiglusFormatParsing) {
+  Gameexe ini(LocateTestCase("Gameexe_data/siglus.ini"));
+
+  ASSERT_TRUE(ini("BGM.000").Exists());
+  EXPECT_EQ((std::vector<std::string>{"BGM01", "BGM01", "82286", "5184000",
+                                      "905143"}),
+            ini("BGM.000").ToStrVector());
+
+  EXPECT_EQ(string("Noto Serif JP Medium"), ini("CONFIG.FONT.NAME").ToString());
+  EXPECT_EQ(1, ini("CONFIG.SWITCH.ON").ToInt());
+
+  auto chrEntry = ini("CHR.ENTRY").ToStrVector();
+  ASSERT_EQ(4u, chrEntry.size());
+  EXPECT_EQ("Hero", chrEntry.at(0));
+  EXPECT_TRUE(chrEntry.at(1).empty());
+  EXPECT_EQ(1, ini("CHR.ENTRY").GetIntAt(2));
+  EXPECT_EQ(255, ini("CHR.ENTRY").GetIntAt(3));
+
+  EXPECT_EQ(-1, ini("FLAGS").GetIntAt(0));
+  EXPECT_EQ(0, ini("FLAGS").GetIntAt(1));
+  EXPECT_EQ(1, ini("FLAGS").GetIntAt(2));
+
+  auto textLine = ini("TEXT.LINE").ToStrVector();
+  ASSERT_EQ(2u, textLine.size());
+  EXPECT_EQ("Quoted value", textLine.at(0));
+  EXPECT_EQ("next", textLine.at(1));
+}
+
 // Make sure #CAPTION exists and that we read its value correctly.
 TEST(GameexeUnit, ReadsCaption) {
   Gameexe ini(LocateTestCase("Gameexe_data/Gameexe.ini"));

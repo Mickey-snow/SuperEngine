@@ -183,13 +183,42 @@ Gameexe::~Gameexe() {}
 
 // -----------------------------------------------------------------------
 
+namespace {
+
+bool TryParseIntToken(const std::string& token, int& parsed_value) {
+  if (token.empty())
+    return false;
+
+  size_t pos = 0;
+  try {
+    int value = std::stoi(token, &pos, 10);
+    if (pos == token.size()) {
+      parsed_value = value;
+      return true;
+    }
+  } catch (...) {
+    return false;
+  }
+
+  return false;
+}
+
+}  // namespace
+
 void Gameexe::parseLine(const std::string& line) {
-  size_t firstHash = line.find_first_of('#');
-  if (firstHash != std::string::npos) {
+  std::string trimmed = line;
+  boost::trim(trimmed);
+  if (trimmed.empty())
+    return;
+
+  size_t firstEqual = trimmed.find_first_of('=');
+  if (firstEqual == std::string::npos)
+    return;
+
+  if (!trimmed.empty() && trimmed.front() == '#') {
     // Extract what's the key and value
-    size_t firstEqual = line.find_first_of('=');
-    std::string key = line.substr(firstHash + 1, firstEqual - firstHash - 1);
-    std::string value = line.substr(firstEqual + 1);
+    std::string key = trimmed.substr(1, firstEqual - 1);
+    std::string value = trimmed.substr(firstEqual + 1);
 
     // Get rid of extra whitespace
     boost::trim(key);
@@ -216,7 +245,46 @@ void Gameexe::parseLine(const std::string& line) {
       }
     }
     data_.emplace(key, vec);
+    return;
   }
+
+  std::string key = trimmed.substr(0, firstEqual);
+  std::string value = trimmed.substr(firstEqual + 1);
+  boost::trim(key);
+  boost::trim(value);
+
+  if (key.empty())
+    return;
+
+  Gameexe_vec_type vec;
+
+  if (value.empty()) {
+    data_.emplace(key, vec);
+    return;
+  }
+
+  std::vector<std::string> tokens;
+  boost::split(tokens, value, boost::is_any_of(","), boost::token_compress_off);
+
+  for (std::string token : tokens) {
+    boost::trim(token);
+
+    if (!token.empty() && token.front() == '"' && token.back() == '"' &&
+        token.size() >= 2) {
+      token = token.substr(1, token.size() - 2);
+      vec.push_back(std::make_shared<StringToken>(token));
+      continue;
+    }
+
+    int asint;
+    if (TryParseIntToken(token, asint)) {
+      vec.push_back(std::make_shared<IntToken>(asint));
+    } else {
+      vec.push_back(std::make_shared<StringToken>(token));
+    }
+  }
+
+  data_.emplace(key, vec);
 }
 
 // -----------------------------------------------------------------------
