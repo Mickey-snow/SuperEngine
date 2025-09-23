@@ -233,9 +233,8 @@ void Fiber::MarkRoots(GCVisitor& visitor) {
   if (pending_result.has_value())
     visitor.MarkSub(*pending_result);
   // mark completion promise's payload
-  if (completion_promise && completion_promise->result.has_value())
-    visitor.MarkSub(
-        completion_promise->result->value_or(nil).Get_if<IObject>());
+  for (IObject* it : completion_promise->roots)
+    visitor.MarkSub(it);
 
   for (auto& it : stack)
     visitor.MarkSub(it);
@@ -280,9 +279,7 @@ std::string Fiber::Str() const { return "fiber"; }
 
 std::string Fiber::Desc() const { return "<fiber>"; }
 
-void Fiber::ResetPromise() {
-  completion_promise = std::make_shared<Promise>(this);
-}
+void Fiber::ResetPromise() { completion_promise = std::make_shared<Promise>(); }
 
 // -----------------------------------------------------------------------
 std::string List::Str() const {

@@ -26,6 +26,7 @@
 
 #include "m6/compiler_pipeline.hpp"
 #include "srbind/srbind.hpp"
+#include "vm/future.hpp"
 
 #include <chrono>
 #include <fstream>
@@ -130,6 +131,7 @@ sr::VM VMFactory::Create(std::shared_ptr<sr::GarbageCollector> gc,
             return std::move(mod);
           })));
 
+  serilang::InstallAsyncBuiltins(vm);
   return vm;
 }
 

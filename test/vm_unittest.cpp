@@ -200,25 +200,19 @@ TEST_F(VMTest, YieldFiber) {
   Fiber* f = vm.AddFiber(chunk);
 
   vm.scheduler_.PushTask(f);
-  std::shared_ptr<Promise> pm = f->completion_promise;
   std::ignore = vm.Run();
   EXPECT_EQ(f->state, FiberState::Suspended);
-  EXPECT_EQ(pm->status, Promise::Status::Resolved);
-  EXPECT_EQ(pm->result->value(), 1);
+  EXPECT_EQ(f->pending_result, 1);
 
   vm.scheduler_.PushTask(f);
-  pm = f->completion_promise;
   std::ignore = vm.Run();
   EXPECT_EQ(f->state, FiberState::Suspended);
-  EXPECT_EQ(pm->status, Promise::Status::Resolved);
-  EXPECT_EQ(pm->result->value(), 2);
+  EXPECT_EQ(f->pending_result, 2);
 
   vm.scheduler_.PushTask(f);
-  pm = f->completion_promise;
   std::ignore = vm.Run();
   EXPECT_EQ(f->state, FiberState::Dead);
-  EXPECT_EQ(pm->status, Promise::Status::Resolved);
-  EXPECT_EQ(pm->result->value(), 3);
+  EXPECT_EQ(f->pending_result, 3);
 }
 
 TEST_F(VMTest, SpawnFiber) {

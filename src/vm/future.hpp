@@ -24,32 +24,40 @@
 
 #pragma once
 
-#include <cstdint>
+#include "utilities/expected.hpp"
+#include "vm/iobject.hpp"
+#include "vm/promise.hpp"
+#include "vm/value.hpp"
+
+#include <functional>
+#include <memory>
+#include <optional>
+#include <string>
+#include <vector>
 
 namespace serilang {
-enum class ObjType : uint8_t {
-  Dummy,  // for testing
-  Other,
 
-  Nil,
-  Bool,
-  Int,
-  Double,
-  Str,
-  List,
-  Dict,
-  Module,
-  Native,
-  BoundMethod,
-  NativeClass,
-  NativeInstance,
-  Code,
-  Function,
-  Closure,
-  Fiber,
-  Class,
-  Instance,
-  Future
+struct Fiber;
+struct GCVisitor;
+class VM;
+
+struct Future : public IObject {
+  static constexpr inline ObjType objtype = ObjType::Future;
+
+  std::shared_ptr<Promise> promise;
+
+  Future();
+
+  constexpr ObjType Type() const noexcept final { return objtype; }
+  constexpr size_t Size() const noexcept final { return sizeof(*this); }
+
+  inline void AddRoot(Value& v) { promise->AddRoot(v); }
+  void MarkRoots(GCVisitor& visitor) override;
+
+  std::string Str() const override;
+  std::string Desc() const override;
 };
 
-}
+void InstallAsyncBuiltins(VM& m);
+
+}  // namespace serilang

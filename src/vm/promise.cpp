@@ -28,20 +28,10 @@
 #include "vm/object.hpp"
 
 #include <algorithm>
-#include <format>
 
 namespace serilang {
 
-std::string Promise::ToDebugString() const {
-  return std::format("{}.promise", fiber->Desc());
-}
-
-void Promise::Reset(Fiber* fib) {
-  fiber = fib;
-  status = Status::Pending;
-  result = std::nullopt;
-  wakers.clear();
-}
+std::string Promise::ToDebugString() const { return "<promise>"; }
 
 void Promise::WakeAll() {
   std::for_each(wakers.begin(), wakers.end(), [this](auto it) { it(this); });
@@ -52,7 +42,6 @@ void Promise::Resolve(Value value) {
   if (status != Status::Pending)
     return;
   result = value;
-  fiber->pending_result = std::move(value);
   status = Status::Resolved;
   WakeAll();
 }

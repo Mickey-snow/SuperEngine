@@ -525,6 +525,87 @@ print(x, await f, await f);
 )");
     EXPECT_EQ(res, "nil 99 99\n");
   }
+
+  // timeout
+  {
+    auto res = Run(R"(
+fn foo(){ return await async.Sleep(30, result = 123); }
+future = spawn foo();
+try{
+  result = await async.Timeout(future, 10);
+  print(result);
+} catch(e) { print(e); }
+)");
+    EXPECT_EQ(res, "Timeout after 10 ms");
+  }
+  {
+    auto res = Run(R"(
+fn foo(){ return await async.Sleep(5, result = 123); }
+try{
+  result = await async.Timeout(spawn foo(), 20);
+  print(result);
+} catch(e) { print(e); }
+)");
+    EXPECT_EQ(res, "123");
+  }
+
+  // gather
+  {
+    auto res = Run(R"(
+fn foo(n){ return await async.Sleep(n, n+1); }
+fn boo(n){ return await async.Sleep(n, n**3); }
+try{
+  result = await async.Gather(spawn foo(1), spawn boo(2));
+  print(result);
+} catch(e) { print(e); }
+)");
+    EXPECT_EQ(res, "[2,8]");
+  }
+  {
+    auto res = Run(R"(
+try{
+  result = await async.Gather();
+  print(result);
+} catch(e) { print(e); }
+)");
+    EXPECT_EQ(res, "[]");
+  }
+  {
+    auto res = Run(R"(
+fn foo(n){ throw "foo_error";  }
+fn boo(n){ return await async.Sleep(n, n**3); }
+future = async.Gather(spawn foo(1), spawn boo(2));
+try{
+  print(await future);
+} catch(e) { print(e); }
+try{
+  print(await future);
+} catch(e) { print(e); }
+)");
+    EXPECT_EQ(res, "foo_error\nfoo_error");
+  }
+
+  // race
+  {
+    auto res = Run(R"(
+fn foo(n){ return await async.Sleep(10, n+1); }
+fn boo(n){ return await async.Sleep(30, n**3); }
+try{
+  result = await async.Race(spawn foo(1), spawn boo(2));
+  print(result);
+} catch(e) { print(e); }
+)");
+    EXPECT_EQ(res, "2");
+  }
+  {
+    auto res = Run(R"(
+try{
+  result = await async.Race();
+  print(result);
+} catch(e) { print(e); }
+)");
+    EXPECT_EQ(res, "nil");
+  }
 }
 
 TEST_F(CompilerTest, Import) {

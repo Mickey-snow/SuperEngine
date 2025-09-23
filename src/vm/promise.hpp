@@ -36,11 +36,11 @@ namespace serilang {
 
 struct Fiber;
 struct GCVisitor;
+class IObject;
 
 // Fibres are awaitable handles; Promises are hidden internal machinery
 struct Promise {
   enum class Status { Pending, Resolved, Rejected };
-  Fiber* fiber;  // owner, we don't mark this object
   Status status = Status::Pending;
 
   // note: result.has_value() -> has result or exception
@@ -48,7 +48,11 @@ struct Promise {
   std::optional<expected<Value, std::string>> result = std::nullopt;
   std::vector<std::function<void(Promise*)>> wakers;
 
-  Promise(Fiber* fib) : fiber(fib) {}
+  std::vector<IObject*> roots;
+  inline void AddRoot(Value& value) {
+    if (auto* obj = value.Get_if<IObject>())
+      roots.emplace_back(obj);
+  }
 
   std::string ToDebugString() const;
 

@@ -1,0 +1,81 @@
+
+fn slow_add(a, b, delay_ms){
+  return await async.Sleep(delay_ms, a + b);
+}
+
+fn may_fail(n){
+  if (n % 2 == 0) {
+    throw "even not allowed";
+  }
+  return await async.Sleep(10, n);
+}
+
+
+print("--- Sleep ---");
+print(await async.Sleep(10, "ready"));
+
+
+print("--- spawn + await ---");
+f = spawn slow_add(3, 4, 15);
+print("   doing other work while it runs...");
+result = await f;
+print(result);
+
+
+
+print("--- Timeout ---");
+f = spawn slow_add(10, 20, 50);
+try{
+  print(await async.Timeout(f, 20));
+} catch(e) {
+  print(e);
+}
+
+try{
+  print(await async.Timeout(spawn slow_add(1, 2, 5), 200));
+} catch(e) {
+  print(e);
+}
+
+
+print("--- Gather ---");
+g = await async.Gather(
+  spawn slow_add(1, 1, 10),
+  spawn slow_add(2, 2, 5),
+  spawn slow_add(3, 3, 15)
+);
+print(g);
+
+
+print("--- Race ---");
+winner = await async.Race(
+  spawn slow_add(0, 1, 30),
+  spawn slow_add(0, 2, 10)
+);
+print(winner);
+
+
+print("--- Error propagation ---");
+try{
+  r = await async.Gather(
+    spawn may_fail(1),
+    spawn may_fail(2),
+    spawn may_fail(3)
+  );
+  print(r);
+} catch(e) {
+  print(e);
+}
+
+
+fn get_user_name(){
+  return await async.Sleep(5, "Miki");
+}
+fn make_greeting(name){
+  return await async.Sleep(5, "Hello, " + name);
+}
+
+print("--- Chaining ---");
+nameF = spawn get_user_name();
+greetF = spawn make_greeting(await nameF);
+print(await greetF);

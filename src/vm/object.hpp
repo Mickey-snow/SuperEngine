@@ -28,6 +28,7 @@
 #include "vm/call_frame.hpp"
 #include "vm/instruction.hpp"
 #include "vm/iobject.hpp"
+#include "vm/promise.hpp"
 #include "vm/value.hpp"
 
 #include <functional>
@@ -198,7 +199,6 @@ struct NativeInstance : public IObject {
 enum class FiberState { New, Running, Suspended, Dead };
 
 struct Upvalue;
-struct Promise;
 
 struct Fiber : public IObject {
   static constexpr inline ObjType objtype = ObjType::Fiber;
