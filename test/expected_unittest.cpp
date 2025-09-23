@@ -48,6 +48,33 @@ TEST(Expected_Observers, ValueOr) {
   EXPECT_EQ(std::move(b).value_or(77), 77);
 }
 
+TEST(Expected_Observers, ArrowOperatorAccessesValue) {
+  expected<std::string, std::string> e{"hello"};
+  EXPECT_EQ(e->size(), 5u);
+  e->push_back('!');
+  EXPECT_EQ(e.value(), "hello!");
+
+  const expected<std::string, std::string> c{"abc"};
+  EXPECT_EQ(c->at(1), 'b');
+}
+
+TEST(Expected_Observers, DereferenceOperatorAccessesValue) {
+  expected<std::string, std::string> e{"foo"};
+  auto& ref = *e;
+  ref = "bar";
+  EXPECT_EQ(e.value(), "bar");
+
+  const expected<std::string, std::string> c{"baz"};
+  EXPECT_EQ((*c).size(), 3u);
+
+  expected<std::unique_ptr<int>, std::string> move{std::make_unique<int>(10)};
+  std::unique_ptr<int> ptr = *std::move(move);
+  ASSERT_TRUE(ptr);
+  EXPECT_EQ(*ptr, 10);
+  EXPECT_TRUE(move.has_value());
+  EXPECT_EQ(move.value(), nullptr);
+}
+
 TEST(Expected_Modifiers, EmplaceAndAssignments) {
   expected<std::string, std::string> e(unexpect, "err");
   auto& ref = e.emplace(3, 'x');  // "xxx"

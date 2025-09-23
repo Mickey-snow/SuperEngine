@@ -380,6 +380,32 @@ class expected {
   constexpr bool has_value() const noexcept { return has_; }
   constexpr explicit operator bool() const noexcept { return has_; }
 
+  constexpr T* operator->() noexcept {
+    assert(has_);
+    return std::addressof(sto_.val_);
+  }
+  constexpr const T* operator->() const noexcept {
+    assert(has_);
+    return std::addressof(sto_.val_);
+  }
+
+  constexpr T& operator*() & noexcept {
+    assert(has_);
+    return sto_.val_;
+  }
+  constexpr const T& operator*() const& noexcept {
+    assert(has_);
+    return sto_.val_;
+  }
+  constexpr T&& operator*() && noexcept {
+    assert(has_);
+    return std::move(sto_.val_);
+  }
+  constexpr const T&& operator*() const&& noexcept {
+    assert(has_);
+    return std::move(sto_.val_);
+  }
+
   constexpr T& value() & {
     if (!has_)
       throw bad_expected_access<E>(error());
