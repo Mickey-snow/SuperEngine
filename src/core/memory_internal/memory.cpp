@@ -51,7 +51,7 @@ void Memory::LoadFrom(Gameexe& gameexe) {
     try {
       Write(StrMemoryLocation(StrBank::global_name,
                               ConvertLetterIndexToInt(it.GetKeyParts().at(1))),
-            RemoveQuotes(it.ToString()));
+            RemoveQuotes(it.ToStr()));
     } catch (...) {
       std::cerr << "WARNING: Invalid format for key " << it.key() << std::endl;
     }
@@ -61,7 +61,7 @@ void Memory::LoadFrom(Gameexe& gameexe) {
     try {
       Write(StrMemoryLocation(StrBank::local_name,
                               ConvertLetterIndexToInt(it.GetKeyParts().at(1))),
-            RemoveQuotes(it.ToString()));
+            RemoveQuotes(it.ToStr()));
     } catch (...) {
       std::cerr << "WARNING: Invalid format for key " << it.key() << std::endl;
     }

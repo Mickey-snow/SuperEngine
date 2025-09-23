@@ -112,18 +112,14 @@ static std::optional<std::pair<int, int>> parse_range(std::string_view sv) {
 }
 GraphicsSystem::GraphicsObjectSettings::GraphicsObjectSettings(
     Gameexe& gameexe) {
-  if (gameexe.Exists("OBJECT_MAX"))
-    objects_in_a_layer = gameexe("OBJECT_MAX");
-  else
-    objects_in_a_layer = 256;
+  static constexpr std::vector<int> empty_ivec;
+
+  objects_in_a_layer = gameexe("OBJECT_MAX").Int().value_or(256);
 
   // First we populate everything with the special value
   position = std::vector<unsigned char>(objects_in_a_layer, 0);
 
-  if (gameexe.Exists("OBJECT.999"))
-    data.emplace_back(gameexe("OBJECT.999"));
-  else
-    data.emplace_back();
+  data.emplace_back(gameexe("OBJECT.999").IntVec().value_or(empty_ivec));
 
   // Read the #OBJECT.xxx entries from the Gameexe
   for (auto it : gameexe.Filter("OBJECT.")) {
@@ -142,7 +138,7 @@ GraphicsSystem::GraphicsObjectSettings::GraphicsObjectSettings(
     for (int obj_num : std::views::iota(lo, hi + 1)) {
       if (obj_num != 999 && obj_num < objects_in_a_layer) {
         position[obj_num] = data.size();
-        data.emplace_back(it);
+        data.emplace_back(it.IntVec().value_or(empty_ivec));
       }
     }
   }
@@ -168,9 +164,11 @@ GraphicsSystemGlobals::GraphicsSystemGlobals()
       tone_curves() {}
 
 GraphicsSystemGlobals::GraphicsSystemGlobals(Gameexe& gameexe)
-    : show_object_1(gameexe("INIT_OBJECT1_ONOFF_MOD").ToInt(0) ? 0 : 1),
-      show_object_2(gameexe("INIT_OBJECT2_ONOFF_MOD").ToInt(0) ? 0 : 1),
-      show_weather(gameexe("INIT_WEATHER_ONOFF_MOD").ToInt(0) ? 0 : 1),
+    : show_object_1(gameexe("INIT_OBJECT1_ONOFF_MOD").Int().value_or(0) ? 0
+                                                                        : 1),
+      show_object_2(gameexe("INIT_OBJECT2_ONOFF_MOD").Int().value_or(0) ? 0
+                                                                        : 1),
+      show_weather(gameexe("INIT_WEATHER_ONOFF_MOD").Int().value_or(0) ? 0 : 1),
       skip_animations(0),
       screen_mode(1),
       cg_table(CreateCGMTable(gameexe)),
@@ -218,7 +216,7 @@ GraphicsSystem::GraphicsSystem(System& system, Gameexe& gameexe)
       background_type_(BACKGROUND_DC0),
       screen_needs_refresh_(false),
       is_responsible_for_update_(true),
-      display_subtitle_(gameexe("SUBTITLE").ToInt(0)),
+      display_subtitle_(gameexe("SUBTITLE").Int().value_or(0)),
       interface_hidden_(false),
       globals_(gameexe),
       time_at_last_queue_change_(0),
@@ -228,7 +226,7 @@ GraphicsSystem::GraphicsSystem(System& system, Gameexe& gameexe)
           graphics_object_settings_->objects_in_a_layer)),
       use_custom_mouse_cursor_(gameexe("MOUSE_CURSOR").Exists()),
       show_cursor_from_bytecode_(true),
-      cursor_(gameexe("MOUSE_CURSOR").ToInt(0)),
+      cursor_(gameexe("MOUSE_CURSOR").Int().value_or(0)),
       system_(system),
       preloaded_hik_scripts_(32),
       preloaded_g00_(256),
@@ -262,7 +260,7 @@ void GraphicsSystem::QueueShakeSpec(int spec) {
   Gameexe& gameexe = system().gameexe();
 
   if (gameexe("SHAKE", spec).Exists()) {
-    std::vector<int> spec_vector = gameexe("SHAKE", spec).ToIntVector();
+    std::vector<int> spec_vector = gameexe("SHAKE", spec).ToIntVec();
 
     int x, y, time;
     std::vector<int>::const_iterator it = spec_vector.begin();
@@ -310,7 +308,9 @@ int GraphicsSystem::CurrentShakingFrameTime() const {
 
 int GraphicsSystem::ShouldUseCustomCursor() {
   return use_custom_mouse_cursor_ &&
-         system().gameexe()("MOUSE_CURSOR", cursor_, "NAME").ToString("") != "";
+         system().gameexe()("MOUSE_CURSOR", cursor_, "NAME")
+                 .Str()
+                 .value_or("") != "";
 }
 
 // -----------------------------------------------------------------------
@@ -487,7 +487,7 @@ void GraphicsSystem::Reset() {
 
   // Reset the cursor
   show_cursor_from_bytecode_ = true;
-  cursor_ = system().gameexe()("MOUSE_CURSOR").ToInt(0);
+  cursor_ = system().gameexe()("MOUSE_CURSOR").Int().value_or(0);
   mouse_cursor_.reset();
 
   screen_update_mode_ = SCREENUPDATEMODE_AUTOMATIC;
@@ -499,7 +499,7 @@ void GraphicsSystem::Reset() {
 std::shared_ptr<Surface> GraphicsSystem::GetEmojiSurface() {
   for (auto it : system().gameexe().Filter("E_MOJI.")) {
     // Try to interpret each key as a filename.
-    std::string file_name = it.ToString("");
+    std::string file_name = it.Str().value_or("");
     std::shared_ptr<Surface> surface = GetSurfaceNamed(file_name);
     if (surface)
       return surface;
@@ -815,13 +815,12 @@ std::shared_ptr<MouseCursor> GraphicsSystem::GetCurrentCursor() {
       std::shared_ptr<Surface> cursor_surface;
       GameexeInterpretObject cursor =
           system().gameexe()("MOUSE_CURSOR", cursor_);
-      GameexeInterpretObject name_key = cursor("NAME");
 
-      if (name_key.Exists()) {
-        int count = cursor("CONT").ToInt(1);
-        int speed = cursor("SPEED").ToInt(800);
+      if (auto name = cursor("NAME").Str()) {
+        int count = cursor("CONT").Int().value_or(1);
+        int speed = cursor("SPEED").Int().value_or(800);
 
-        cursor_surface = GetSurfaceNamed(name_key);
+        cursor_surface = GetSurfaceNamed(*name);
         mouse_cursor_.reset(
             new MouseCursor(system(), cursor_surface, count, speed));
         cursor_cache_[cursor_] = mouse_cursor_;

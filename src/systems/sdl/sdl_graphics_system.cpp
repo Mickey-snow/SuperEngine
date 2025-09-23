@@ -219,8 +219,8 @@ SDLGraphicsSystem::SDLGraphicsSystem(System& system, Gameexe& gameexe)
     display_contexts_[i] = std::make_shared<SDLSurface>();
 
   // Grab the caption
-  std::string cp932caption = gameexe("CAPTION").ToString();
-  int name_enc = gameexe("NAME_ENC").ToInt(0);
+  std::string cp932caption = gameexe("CAPTION").ToStr();
+  int name_enc = gameexe("NAME_ENC").Int().value_or(0);
   caption_title_ = cp932toUTF8(cp932caption, name_enc);
 
   SetupVideo(GetScreenSize(gameexe));

@@ -41,7 +41,7 @@ rlSoundSettings::rlSoundSettings()
       bgm_koe_fade_vol(128) {}
 
 rlSoundSettings::rlSoundSettings(Gameexe& gexe)
-    : sound_quality(gexe("SOUND_DEFAULT").ToInt(5)),
+    : sound_quality(gexe("SOUND_DEFAULT").Int().value_or(5)),
       bgm_enabled(true),
       bgm_volume(255),
       pcm_enabled(true),

@@ -312,8 +312,8 @@ void TextPage::Replay(bool is_active_page) {
   if (!is_active_page) {
     Gameexe& gexe = system_->gameexe();
     GameexeInterpretObject colour(gexe("COLOR_TABLE", 254));
-    if (colour.Exists()) {
-      system_->text().GetTextWindow(window_num_)->SetFontColor(colour);
+    if (auto vec = colour.IntVec()) {
+      system_->text().GetTextWindow(window_num_)->SetFontColor(*vec);
     }
   }
 
@@ -442,7 +442,7 @@ void TextPage::RunTextPageCommand(const Command& command, bool is_active_page) {
     case TYPE_FONT_COLOUR:
       if (is_active_page) {
         window->SetFontColor(
-            system_->gameexe()("COLOR_TABLE", command.font_colour));
+            system_->gameexe()("COLOR_TABLE", command.font_colour).ToIntVec());
       }
       break;
     case TYPE_DEFAULT_FONT_SIZE:

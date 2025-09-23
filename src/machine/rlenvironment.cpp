@@ -32,8 +32,8 @@
 Generic& RLEnvironment::GetGenerics() { return generic_; }
 
 void RLEnvironment::InitFrom(Gameexe& gexe) {
-  generic_.val1 = gexe("INIT_ORIGINALSETING1_MOD").ToInt(0);
-  generic_.val2 = gexe("INIT_ORIGINALSETING2_MOD").ToInt(0);
+  generic_.val1 = gexe("INIT_ORIGINALSETING1_MOD").Int().value_or(0);
+  generic_.val2 = gexe("INIT_ORIGINALSETING2_MOD").Int().value_or(0);
 }
 
 Stopwatch& RLEnvironment::GetTimer(int layer, int idx) {

@@ -166,14 +166,14 @@ CGMTable CreateCGMTable(Gameexe& gameexe) {
     return CGMTable();
   }
 
-  std::string cgtable = filename_key.ToString("");
+  std::string cgtable = filename_key.Str().value_or("");
   if (cgtable == "") {
     // It is perfectly valid not to have a CG table. All operations in this
     // class become noops.
     return CGMTable();
   }
 
-  fs::path basepath = gameexe("__GAMEPATH").ToString();
+  fs::path basepath = gameexe("__GAMEPATH").ToStr();
   fs::path filepath = CorrectPathCase(basepath / "dat" / cgtable);
 
   MappedFile mfile(filepath);

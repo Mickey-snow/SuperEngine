@@ -105,9 +105,8 @@ ReturnGameexeInt::ReturnGameexeInt(const std::string& full_key, int en)
 
 int ReturnGameexeInt::operator()(RLMachine& machine) {
   Gameexe& gexe = machine.GetSystem().gameexe();
-  std::vector<int> values = gexe(full_key_name_);
-  if (static_cast<size_t>(entry_) < values.size()) {
-    return values[entry_];
+  if (auto it = gexe(full_key_name_).IntAt(entry_)) {
+    return *it;
   } else {
     std::ostringstream oss;
     oss << "Could not access piece " << entry_ << " in Gameexe key \""

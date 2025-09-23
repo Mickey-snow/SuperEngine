@@ -101,7 +101,7 @@ std::vector<IDumper::Task> Dumper::GetTasks(std::vector<int> scenarios) {
 
 void Dumper::DumpGexe(std::ostream& out) {
   for (const auto& it : gexe_.Filter(""))
-    out << it.key() << " = " << Join(",", it.ToStrVector()) << std::endl;
+    out << it.key() << " = " << Join(",", it.ToStrVec()) << std::endl;
 }
 
 void Dumper::DumpArchive(std::ostream& out) {

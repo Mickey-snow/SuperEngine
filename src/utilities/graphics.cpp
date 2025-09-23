@@ -41,19 +41,19 @@ std::vector<int> GetSELEffect(RLMachine& machine, int selNum) {
   std::vector<int> selEffect;
 
   if (gexe("SEL", selNum).Exists()) {
-    selEffect = gexe("SEL", selNum).ToIntVector();
+    selEffect = gexe("SEL", selNum).ToIntVec();
     grp_to_rec_coordinates(selEffect[0], selEffect[1], selEffect[2],
                            selEffect[3]);
   } else if (gexe("SELR", selNum).Exists()) {
-    selEffect = gexe("SELR", selNum).ToIntVector();
+    selEffect = gexe("SELR", selNum).ToIntVec();
   } else {
     // Can't find the specified #SEL effect. See if there's a #SEL.000 effect:
     if (gexe("SEL", 0).Exists()) {
-      selEffect = gexe("SEL", 0).ToIntVector();
+      selEffect = gexe("SEL", 0).ToIntVec();
       grp_to_rec_coordinates(selEffect[0], selEffect[1], selEffect[2],
                              selEffect[3]);
     } else if (gexe("SELR", 0).Exists()) {
-      selEffect = gexe("SELR", 0).ToIntVector();
+      selEffect = gexe("SELR", 0).ToIntVec();
     } else {
       // Crap! Couldn't fall back on the default one either, so instead return
       // a SEL vector that is a screenwide, short fade because we absolutely
@@ -91,7 +91,7 @@ void GetSELPointAndRect(RLMachine& machine,
 }
 
 Size GetScreenSize(Gameexe& gameexe) {
-  std::vector<int> graphicsMode = gameexe("SCREENSIZE_MOD");
+  std::vector<int> graphicsMode = gameexe("SCREENSIZE_MOD").ToIntVec();
   if (graphicsMode.size()) {
     if (graphicsMode[0] == 0) {
       return Size(640, 480);

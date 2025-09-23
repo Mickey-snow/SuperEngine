@@ -69,9 +69,9 @@ TextWakuType4::TextWakuType4(System& system,
       area_left_(0),
       area_right_(0) {
   GameexeInterpretObject waku(system_.gameexe()("WAKU", setno_, no_));
-  SetWakuMain(waku("NAME").ToString(""));
+  SetWakuMain(waku("NAME").Str().value_or(""));
 
-  std::vector<int> area = waku("AREA");
+  std::vector<int> area = waku("AREA").IntVec().value_or(std::vector<int>{});
   if (area.size() >= 1)
     area_top_ = area[0];
   if (area.size() >= 2)

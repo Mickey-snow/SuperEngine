@@ -35,59 +35,95 @@
 
 #pragma once
 
-#include <boost/iterator/iterator_facade.hpp>
+#include <algorithm>
 #include <filesystem>
-
 #include <iomanip>
+#include <iterator>
 #include <map>
-#include <memory>
+#include <optional>
 #include <sstream>
+#include <stdexcept>
 #include <string>
+#include <string_view>
+#include <utility>
+#include <variant>
 #include <vector>
 
+#include "utilities/expected.hpp"
+
+struct GexeErr {
+  std::string key;
+  std::string message;
+  std::optional<std::size_t> line;
+
+  inline bool operator==(const GexeErr& other) const {
+    return key == other.key && message == other.message && line == other.line;
+  }
+};
+
+template <typename T>
+using GexeExpected = expected<T, GexeErr>;
+
 class Gameexe;
-class Token;
 
-// Storage backend for the Gameexe
-using Gameexe_vec_type = std::vector<std::shared_ptr<Token>>;
-using GameexeData_t = std::multimap<std::string, Gameexe_vec_type>;
+struct GexeStr {
+  std::string value;
+  int id = 0;
+};
 
-// -----------------------------------------------------------------------
+using GexeVal = std::variant<int, GexeStr>;
 
-/**
- * @brief Encapsulates a line of the game configuration file that's passed to
- * the user.
- *
- * This is a temporary class, which should hopefully be inlined away from the
- * target implementation.
- *
- * This allows us to write code like this:
- * @code
- * vector<string> x = gameexe("WHATEVER", 5).to_strVector();
- * int var = gameexe("EXPLICIT_CAST").ToInt();
- * int var2 = gameexe("IMPLICIT_CAST");
- * gameexe("SOMEVAL") = 5;
- * @endcode
- *
- * This design solves the problem with the old interface, where all
- * the default parameters and overloads lead to confusion about
- * whether a parameter was part of the key, or was the default
- * value. Saying that components of the key are part of the operator()
- * on Gameexe and that default values are in the casting function in
- * GameexeInterpretObject solves this accidental difficulty.
- */
 class GameexeInterpretObject {
  public:
-  ~GameexeInterpretObject();
+  ~GameexeInterpretObject() = default;
+
+  template <typename... Ts>
+  GameexeInterpretObject operator()(Ts&&... nextKeys) {
+    std::string new_key = key_;
+    if constexpr (sizeof...(nextKeys) > 0) {
+      if (!new_key.empty())
+        new_key += '.';
+      new_key += MakeKey(std::forward<Ts>(nextKeys)...);
+    }
+    return GameexeInterpretObject(owner_, std::move(new_key));
+  }
+
+  int ToInt() const;
+  GexeExpected<int> Int() const;
+  GexeExpected<int> IntAt(std::size_t index) const;
+
+  std::string ToStr() const;
+  GexeExpected<std::string> Str() const;
+  GexeExpected<std::string> StrAt(std::size_t index) const;
+
+  GexeExpected<std::vector<int>> IntVec() const;
+  std::vector<int> ToIntVec() const;
+  GexeExpected<std::vector<std::string>> StrVec() const;
+  std::vector<std::string> ToStrVec() const;
+
+  bool Exists() const;
+  inline const std::string& key() const { return key_; }
+
+  std::vector<std::string> GetKeyParts() const;
+
+  GameexeInterpretObject& operator=(std::string value);
+  GameexeInterpretObject& operator=(int value);
+
+  friend std::ostream& operator<<(std::ostream& os,
+                                  GameexeInterpretObject const& io);
 
  private:
-  /**
-   * @brief Converts an integer value to a key string with leading zeros.
-   *
-   * @param value The integer value to convert.
-   * @return The formatted key string.
-   */
-  std::string ToKeyString(const int& value) {
+  friend class Gameexe;
+
+  GameexeInterpretObject(Gameexe* owner, std::string key);
+  GameexeInterpretObject(Gameexe* owner,
+                         std::string key,
+                         std::vector<GexeVal>* direct_values);
+
+  GexeExpected<const std::vector<GexeVal>*> FetchValues() const;
+  std::vector<GexeVal>* EnsureMutableValues();
+
+  std::string ToKeyString(int value) {
     std::ostringstream ss;
     ss << std::setw(3) << std::setfill('0') << value;
     return ss.str();
@@ -95,15 +131,6 @@ class GameexeInterpretObject {
 
   std::string ToKeyString(const std::string& value) { return value; }
 
-  /**
-   * @brief Connects several key pieces together to form a key string.
-   *
-   * @tparam T The type of the first parameter.
-   * @tparam Ts The types of the remaining parameters.
-   * @param first The first key piece.
-   * @param params The remaining key pieces.
-   * @return A concatenated key string.
-   */
   template <typename T, typename... Ts>
   std::string MakeKey(T&& first, Ts&&... params) {
     std::string key = ToKeyString(std::forward<T>(first));
@@ -112,201 +139,93 @@ class GameexeInterpretObject {
     return key;
   }
 
- public:
-  /**
-   * @brief Extends the key by appending additional key pieces.
-   *
-   * @tparam Ts The types of the key pieces.
-   * @param nextKeys The key pieces to append.
-   * @return A new GameexeInterpretObject with the extended key.
-   */
-  template <typename... Ts>
-  GameexeInterpretObject operator()(Ts&&... nextKeys) {
-    std::string newkey = key_;
-    if constexpr (sizeof...(nextKeys) > 0) {
-      if (!key_.empty())
-        newkey += '.';
-      newkey += MakeKey(std::forward<Ts>(nextKeys)...);
-    }
-    return GameexeInterpretObject(newkey, data_);
-  }
-
-  // Finds an int value, returning a default if non-existant.
-  int ToInt(const int defaultValue) const;
-
-  // Finds an int value, throwing if non-existant.
-  int ToInt() const;
-
-  // Allow implicit casts to int with no default value
-  operator int() const { return ToInt(); }
-
-  // Returns a specific piece of data at index as an int
-  int GetIntAt(int index) const;
-
-  // Finds a string value, throwing if non-existant.
-  std::string ToString(const std::string& defaultValue) const;
-
-  // Finds a string value, throwing if non-existant.
-  std::string ToString() const;
-
-  // Allow implicit casts to string
-  operator std::string() const { return ToString(); }
-
-  // Returns a piece of data at a certain location as a string.
-  std::string GetStringAt(int index) const;
-
-  // Finds a vector of ints, throwing if non-existant.
-  std::vector<int> ToIntVector() const;
-
-  std::vector<std::string> ToStrVector() const;
-
-  operator std::vector<int>() const { return ToIntVector(); }
-
-  // Checks to see if the key exists.
-  bool Exists() const;
-
-  const std::string& key() const { return key_; }
-
-  // Returns the key splitted on periods.
-  std::vector<std::string> GetKeyParts() const;
-
-  GameexeInterpretObject& operator=(const std::string& value);
-  GameexeInterpretObject& operator=(const int value);
-
- private:
-  // We expose our private constructor to Gameexe and GameexeFilteringiterator
-  friend class Gameexe;
-
-  std::vector<int> GetIntArray() const;
-
-  static void ThrowUnknownKey(const std::string& key);
-
+  Gameexe* owner_ = nullptr;
   std::string key_;
-  GameexeData_t* data_;  // We don't own this object
-  GameexeData_t::const_iterator iterator_;
-
-  /**
-   * @brief Constructs a GameexeInterpretObject with the specified key.
-   *
-   * Private constructor; only accessible by Gameexe and
-   * GameexeFilteringIterator.
-   *
-   * Does not validate the key; defers error checking to data accessing.
-   * For example, using Gameexe("IMG") and then accessing with ini("005") is
-   * permitted if "IMG.005" is valid.
-   *
-   * Note: Iterators are generated on-demand via data->find(key) when accessed
-   * by key, which may not align with client expectations due to the multimap
-   * nature of GameexeData.
-   *
-   * @param key The key string.
-   * @param data Pointer to the Gameexe data.
-   */
-  GameexeInterpretObject(const std::string& key, GameexeData_t* data);
-
-  /**
-   * @brief Constructs a GameexeInterpretObject with the specified iterator.
-   *
-   * Private constructor; only accessible by Gameexe and
-   * GameexeFilteringIterator.
-   *
-   * Directly accesses a multimap entry at the iterator's position.
-   * The iterator must be valid and not at data->end(), with key_ initialized
-   * to it->first.
-   *
-   * @param it The iterator pointing to the multimap entry.
-   * @param data Pointer to the Gameexe data.
-   */
-  GameexeInterpretObject(GameexeData_t::const_iterator it, GameexeData_t* data);
+  std::vector<GexeVal>* direct_values_ = nullptr;
 };
 
 class Gameexe {
  public:
-  explicit Gameexe(const std::filesystem::path& filename);
+  using Storage = std::multimap<std::string, std::vector<GexeVal>>;
+
   Gameexe();
-  ~Gameexe();
 
-  // Parses an individual Gameexe.ini line.
-  void parseLine(const std::string& line);
+  static GexeExpected<Gameexe> FromFile(const std::filesystem::path& path);
+  GexeExpected<void> LoadFromFile(const std::filesystem::path& path);
 
-  /**
-   * @brief Accesses or modifies data associated with the given keys.
-   *
-   * When the client code tries to access or modify data, this function creates
-   * a GameexeInterpretObject and transfers control of read/write to the object.
-   *
-   * @tparam Ts Types of the keys.
-   * @param keys The keys to access.
-   * @return A GameexeInterpretObject for the specified keys.
-   */
   template <typename... Ts>
   GameexeInterpretObject operator()(Ts&&... keys) {
-    auto it = GameexeInterpretObject("", &data_);
-    return it(std::forward<Ts>(keys)...);
+    GameexeInterpretObject root(this, "");
+    return root(std::forward<Ts>(keys)...);
   }
 
-  class range;
-  range Filter(const std::string& filter);
+  bool Exists(std::string_view key) const;
+  std::size_t Size() const { return entries_.size(); }
 
-  // Returns whether key exists in the stored data
-  bool Exists(const std::string& key);
+  class FilterRange;
+  FilterRange Filter(std::string prefix);
 
-  // Returns the number of keys in the Gameexe.ini file.
-  size_t Size() const { return data_.size(); }
+  void SetStringAt(std::string_view key, std::string value);
+  void SetIntAt(std::string_view key, int value);
 
-  // Exposed for testing.
-  void SetStringAt(const std::string& key, std::string value);
-  void SetIntAt(const std::string& key, int value);
+  inline void parseLine(const std::string& line) { (void)ParseLine(line, 0); }
 
  private:
-  GameexeData_t data_;
+  friend class GameexeInterpretObject;
+  friend class Gameexe::FilterRange;
+
+  GexeExpected<void> ParseLine(std::string_view line, std::size_t line_number);
+
+  GexeExpected<std::vector<GexeVal>> ParseValues(std::string_view key,
+                                                 std::string_view value,
+                                                 std::size_t line_number);
+
+  const std::vector<GexeVal>* Find(std::string_view key) const;
+  std::vector<GexeVal>* Find(std::string_view key);
+  std::vector<GexeVal>& Ensure(std::string key);
+
+  GexeVal MakeIntValue(int value) const;
+  GexeVal MakeStringValue(std::string value);
 
  public:
-  // const iterator
-  class iterator : public boost::iterator_facade<iterator,
-                                                 GameexeInterpretObject,
-                                                 boost::forward_traversal_tag,
-                                                 GameexeInterpretObject> {
+  class FilterRange {
    public:
-    iterator(GameexeData_t::const_iterator it, GameexeData_t* indata)
-        : it_(it), data_(indata) {}
+    class iterator {
+     public:
+      using iterator_category = std::forward_iterator_tag;
+      using value_type = GameexeInterpretObject;
+      using difference_type = std::ptrdiff_t;
+
+      iterator(Gameexe* owner,
+               Storage::iterator current,
+               Storage::iterator end,
+               std::string prefix);
+
+      GameexeInterpretObject operator*() const;
+      iterator& operator++();
+      bool operator==(const iterator& other) const;
+      bool operator!=(const iterator& other) const { return !(*this == other); }
+
+     private:
+      void AdvanceToMatch();
+
+      Gameexe* owner_ = nullptr;
+      Storage::iterator current_;
+      Storage::iterator end_;
+      std::string prefix_;
+    };
+
+    FilterRange(Gameexe* owner, std::string prefix);
+
+    iterator begin();
+    iterator end();
 
    private:
-    friend class boost::iterator_core_access;
-
-    bool equal(iterator const& other) const { return it_ == other.it_; }
-
-    void increment() { ++it_; }
-
-    GameexeInterpretObject dereference() const {
-      return GameexeInterpretObject(it_, data_);
-    }
-
-   private:
-    GameexeData_t::const_iterator it_;
-    GameexeData_t* data_;
+    Gameexe* owner_;
+    std::string prefix_;
   };
 
-  // range that can be iterate through
-  class range {
-   public:
-    range(GameexeData_t* indata, const std::string& inkey)
-        : data_(indata), key_(inkey) {}
-
-    iterator begin() const { return iterator(data_->lower_bound(key_), data_); }
-    iterator end() const {
-      std::string upper_key = key_;
-      GameexeData_t::const_iterator end_it;
-      if (!upper_key.empty()) {
-        upper_key.back()++;
-        end_it = data_->lower_bound(upper_key);
-      } else
-        end_it = data_->cend();
-      return iterator(end_it, data_);
-    }
-
-   private:
-    GameexeData_t* data_;
-    std::string key_;
-  };
+ private:
+  Storage entries_;
+  int next_string_id_ = 0;
 };

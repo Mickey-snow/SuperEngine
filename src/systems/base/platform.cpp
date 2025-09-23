@@ -62,18 +62,18 @@ Platform::Platform(Gameexe& gameexe) {
     string key = it.key().substr(7);
     if (key.size() == 3 && isdigit(key[0]) && isdigit(key[1]) &&
         isdigit(key[2])) {
-      AddSyscomStringFor(key, it.ToString());
+      AddSyscomStringFor(key, it.ToStr());
     } else if (key.size() == 7 && isdigit(key[0]) && isdigit(key[1]) &&
                isdigit(key[2]) && key[3] == '.' && isdigit(key[4]) &&
                isdigit(key[5]) && isdigit(key[6])) {
-      AddSyscomStringFor(key, it.ToString());
+      AddSyscomStringFor(key, it.ToStr());
     }
   }
 
   for (int i = 0; ADDTIONAL_STRINGS_TO_LOAD[i] != NULL; ++i) {
     GameexeInterpretObject toload = gameexe(ADDTIONAL_STRINGS_TO_LOAD[i]);
     if (toload.Exists())
-      AddSyscomStringFor(toload.key(), toload.ToString());
+      AddSyscomStringFor(toload.key(), toload.ToStr());
   }
 }
 

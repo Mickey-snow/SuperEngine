@@ -119,48 +119,48 @@ TextWindow::TextWindow(System& system, int window_num)
   GameexeInterpretObject window(gexe("WINDOW", window_num));
 
   // Handle: #WINDOW.index.ATTR_MOD, #WINDOW_ATTR, #WINDOW.index.ATTR
-  window_attr_mod_ = window("ATTR_MOD");
+  window_attr_mod_ = window("ATTR_MOD").Int().value_or(0);
   if (window_attr_mod_ == 0)
     SetRGBAF(system.text().window_attr());
   else
-    SetRGBAF(window("ATTR"));
+    SetRGBAF(window("ATTR").ToIntVec());
 
-  default_font_size_in_pixels_ = window("MOJI_SIZE").ToInt(25);
+  default_font_size_in_pixels_ = window("MOJI_SIZE").Int().value_or(25);
   set_font_size_in_pixels(default_font_size_in_pixels_);
-  SetWindowSizeInCharacters(window("MOJI_CNT"));
-  SetSpacingBetweenCharacters(window("MOJI_REP"));
-  set_ruby_text_size(window("LUBY_SIZE").ToInt(0));
-  SetTextboxPadding(window("MOJI_POS"));
+  SetWindowSizeInCharacters(window("MOJI_CNT").ToIntVec());
+  SetSpacingBetweenCharacters(window("MOJI_REP").ToIntVec());
+  set_ruby_text_size(window("LUBY_SIZE").Int().value_or(0));
+  SetTextboxPadding(window("MOJI_POS").ToIntVec());
 
-  SetWindowPosition(window("POS"));
+  SetWindowPosition(window("POS").ToIntVec());
 
-  SetDefaultTextColor(gexe("COLOR_TABLE", 0));
+  SetDefaultTextColor(gexe("COLOR_TABLE", 0).ToIntVec());
 
   // INDENT_USE appears to default to on. See the first scene in the
   // game with Nagisa, paying attention to indentation; then check the
   // Gameexe.ini.
-  set_use_indentation(window("INDENT_USE").ToInt(1));
+  set_use_indentation(window("INDENT_USE").Int().value_or(1));
 
-  SetKeycursorMod(window("KEYCUR_MOD"));
-  set_action_on_pause(window("R_COMMAND_MOD").ToInt(0));
+  SetKeycursorMod(window("KEYCUR_MOD").ToIntVec());
+  set_action_on_pause(window("R_COMMAND_MOD").Int().value_or(0));
 
   // Main textbox waku
-  waku_set_ = window("WAKU_SETNO").ToInt(0);
+  waku_set_ = window("WAKU_SETNO").Int().value_or(0);
   textbox_waku_.reset(TextWaku::Create(system_, *this, waku_set_, 0));
 
   // Name textbox if that setting has been enabled.
-  set_name_mod(window("NAME_MOD").ToInt(0));
-  if (name_mod_ == 1 && window("NAME_WAKU_SETNO").Exists()) {
-    name_waku_set_ = window("NAME_WAKU_SETNO");
+  set_name_mod(window("NAME_MOD").Int().value_or(0));
+  if (auto no = window("NAME_WAKU_SETNO").Int(); name_mod_ == 1 && no) {
+    name_waku_set_ = *no;
     namebox_waku_.reset(TextWaku::Create(system_, *this, name_waku_set_, 0));
-    SetNameSpacingBetweenCharacters(window("NAME_MOJI_REP"));
-    SetNameboxPadding(window("NAME_MOJI_POS"));
+    SetNameSpacingBetweenCharacters(window("NAME_MOJI_REP").ToIntVec());
+    SetNameboxPadding(window("NAME_MOJI_POS").ToIntVec());
     // Ignoring NAME_WAKU_MIN for now
-    SetNameboxPosition(window("NAME_POS"));
-    name_waku_dir_set_ = window("NAME_WAKU_DIR").ToInt(0);
-    namebox_centering_ = window("NAME_CENTERING").ToInt(0);
-    minimum_namebox_size_ = window("NAME_MOJI_MIN").ToInt(4);
-    name_size_ = window("NAME_MOJI_SIZE");
+    SetNameboxPosition(window("NAME_POS").ToIntVec());
+    name_waku_dir_set_ = window("NAME_WAKU_DIR").Int().value_or(0);
+    namebox_centering_ = window("NAME_CENTERING").Int().value_or(0);
+    minimum_namebox_size_ = window("NAME_MOJI_MIN").Int().value_or(4);
+    name_size_ = window("NAME_MOJI_SIZE").ToInt();
   }
 
   // Load #FACE information.
@@ -171,7 +171,7 @@ TextWindow::TextWindow(System& system, int window_num)
     try {
       int slot = std::stoi(GetKeyParts.at(3));
       if (slot < kNumFaceSlots) {
-        face_slot_[slot].reset(new FaceSlot(it.ToIntVector()));
+        face_slot_[slot].reset(new FaceSlot(it.ToIntVec()));
       }
     } catch (...) {
       // Parsing failure. Ignore this key.
@@ -652,8 +652,8 @@ void TextWindow::KoeMarker(int id) {
     GameexeInterpretObject replay_icon(gexe("KOEREPLAYICON"));
 
     koe_replay_info_->icon =
-        system_.graphics().GetSurfaceNamed(replay_icon("NAME"));
-    std::vector<int> reppos = replay_icon("REPPOS");
+        system_.graphics().GetSurfaceNamed(replay_icon("NAME").ToStr());
+    std::vector<int> reppos = replay_icon("REPPOS").ToIntVec();
     if (reppos.size() == 2)
       koe_replay_info_->repos = Size(reppos[0], reppos[1]);
   }

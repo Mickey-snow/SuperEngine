@@ -58,7 +58,8 @@ void LB_SkipBaseball(RLMachine& machine) {
 }  // namespace
 
 void AddGameHacks(RLMachine& machine) {
-  std::string diskmark = machine.GetSystem().gameexe()("DISKMARK");
+  std::string diskmark =
+      machine.GetSystem().gameexe()("DISKMARK").Str().value_or("");
 
   if (diskmark == "P_BRIDE_SE.ENV") {
     machine.AddLineAction(310, 446, bind(PBRIDE_ResetAutoMode, ref(machine)));

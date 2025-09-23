@@ -79,7 +79,9 @@ TEST_F(rlfsTest, IndexDirectory) {
 }
 
 TEST_F(rlfsTest, BuildFromGexe) {
-  Gameexe gexe(PathToTestCase("Gameexe_data/rl_filesystem.ini"));
+  auto gexe =
+      Gameexe::FromFile(PathToTestCase("Gameexe_data/rl_filesystem.ini"))
+          .value();
   gexe("__GAMEPATH") = LocateTestDirectory("Gameroot");
 
   game_assets = AssetScanner::BuildFromGameexe(gexe);

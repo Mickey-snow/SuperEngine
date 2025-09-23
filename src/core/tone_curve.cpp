@@ -163,14 +163,14 @@ ToneCurve CreateToneCurve(Gameexe& gameexe) {
     return ToneCurve();
   }
 
-  std::string tonecurve = filename_key.ToString("");
+  std::string tonecurve = filename_key.Str().value_or("");
   if (tonecurve == "") {
     // It is perfectly valid not to have a tone curve. All operations in this
     // class become noops.
     return ToneCurve();
   }
 
-  fs::path basename = gameexe("__GAMEPATH").ToString();
+  fs::path basename = gameexe("__GAMEPATH").ToStr();
   fs::path filename = CorrectPathCase(basename / "dat" / tonecurve);
 
   MappedFile mfile(filename);

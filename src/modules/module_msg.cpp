@@ -88,7 +88,7 @@ struct SetFontColour : public RLOpcode<DefaultIntValue_T<0>> {
     Gameexe& gexe = machine.GetSystem().gameexe();
     if (gexe("COLOR_TABLE", textColorNum).Exists()) {
       machine.GetSystem().text().GetCurrentWindow()->SetDefaultTextColor(
-          gexe("COLOR_TABLE", textColorNum));
+          gexe("COLOR_TABLE", textColorNum).ToIntVec());
     }
   }
 };

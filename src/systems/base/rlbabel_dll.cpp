@@ -169,7 +169,7 @@ int RlBabelDLL::CallDLL(RLMachine& machine,
       return TestGlosses(arg1, arg2, GetSvar(arg3), arg4);
     case dllGetRCommandMod: {
       int window = GetWindow(arg1)->window_number();
-      return machine.GetSystem().gameexe()("WINDOW")(window)("R_COMMAND_MOD");
+      return machine.GetSystem().gameexe()("WINDOW")(window)("R_COMMAND_MOD").ToInt();
     }
     case dllMessageBox:
     //      return rlMsgBox(arg1, arg2);

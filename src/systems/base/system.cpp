@@ -195,14 +195,14 @@ int System::ReadSyscom(int syscom) {
 void System::ShowSyscomMenu(RLMachine& machine) {
   Gameexe& gexe = machine.GetSystem().gameexe();
 
-  if (gexe("CANCELCALL_MOD") == 1) {
+  if (gexe("CANCELCALL_MOD").Int() == 1) {
     if (!in_menu_) {
       // Multiple right clicks shouldn't spawn multiple copies of the menu
       // system on top of each other.
       in_menu_ = true;
       machine.PushLongOperation(std::make_shared<MenuReseter>(*this));
 
-      const std::vector<int> cancelcall = gexe("CANCELCALL");
+      const std::vector<int> cancelcall = gexe("CANCELCALL").ToIntVec();
       Farcall(machine, cancelcall.at(0), cancelcall.at(1));
     }
   } else if (platform_) {
@@ -303,7 +303,7 @@ void System::Reset() {
 
 std::string System::Regname() {
   Gameexe& gexe = gameexe();
-  std::string regname = gexe("REGNAME");
+  std::string regname = gexe("REGNAME").Str().value_or("");
   replace_all(regname, "\\", "_");
 
   // Note that we assume the Gameexe file is written in Shift-JIS. I don't
@@ -348,13 +348,12 @@ void System::InvokeSaveOrLoad(RLMachine& machine,
                               int syscom,
                               const std::string& mod_key,
                               const std::string& location) {
-  GameexeInterpretObject save_mod = gameexe()(mod_key);
-  GameexeInterpretObject save_loc = gameexe()(location);
+  auto save_mod = gameexe()(mod_key).Int();
+  auto save_loc = gameexe()(location).IntVec();
 
-  if (save_mod.Exists() && save_loc.Exists() && save_mod == 1) {
-    std::vector<int> raw_ints = save_loc;
-    int scenario = raw_ints.at(0);
-    int entrypoint = raw_ints.at(1);
+  if (save_mod && save_loc && save_mod == 1) {
+    int scenario = save_loc->at(0);
+    int entrypoint = save_loc->at(1);
 
     text().set_system_visible(false);
     machine.PushLongOperation(std::make_shared<RestoreTextSystemVisibility>());

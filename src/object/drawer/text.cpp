@@ -58,13 +58,13 @@ void GraphicsTextObject::UpdateSurface(const GraphicsObject& rp) {
 
   // Get the correct colour
   Gameexe& gexe = system_.gameexe();
-  std::vector<int> vec = gexe("COLOR_TABLE", text_property.colour);
+  std::vector<int> vec = gexe("COLOR_TABLE", text_property.colour).ToIntVec();
   RGBColour colour(vec.at(0), vec.at(1), vec.at(2));
 
   RGBColour* shadow = nullptr;
   RGBColour shadow_impl;
   if (text_property.shadow_colour != -1) {
-    vec = gexe("COLOR_TABLE", text_property.shadow_colour);
+    vec = gexe("COLOR_TABLE", text_property.shadow_colour).ToIntVec();
     shadow_impl = RGBColour(vec.at(0), vec.at(1), vec.at(2));
     shadow = &shadow_impl;
   }

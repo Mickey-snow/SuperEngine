@@ -169,9 +169,9 @@ bool TextWakuNormal::HandleMouseClick(RLMachine& machine,
 void TextWakuNormal::LoadWindowWaku() {
   GameexeInterpretObject waku(system_.gameexe()("WAKU", setno_, no_));
 
-  SetWakuMain(waku("NAME").ToString(""));
-  SetWakuBacking(waku("BACK").ToString(""));
-  SetWakuButton(waku("BTN").ToString(""));
+  SetWakuMain(waku("NAME").Str().value_or(""));
+  SetWakuBacking(waku("BACK").Str().value_or(""));
+  SetWakuButton(waku("BTN").Str().value_or(""));
 
   TextSystem& ts = system_.text();
   GraphicsSystem& gs = system_.graphics();

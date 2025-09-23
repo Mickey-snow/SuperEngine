@@ -315,7 +315,7 @@ struct DefWindowAttr : public RLOpcode<IntReference_T,
                   IntReferenceIterator a,
                   IntReferenceIterator f) {
     Gameexe& gexe = machine.GetSystem().gameexe();
-    std::vector<int> attr = gexe("WINDOW_ATTR");
+    std::vector<int> attr = gexe("WINDOW_ATTR").ToIntVec();
 
     *r = attr.at(0);
     *g = attr.at(1);

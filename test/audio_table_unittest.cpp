@@ -35,7 +35,9 @@ using std::string_literals::operator""s;
 class AudioTableTest : public ::testing::Test {
  protected:
   void SetUp() override {
-    gexe_ = Gameexe(LocateTestCase("Gameexe_data/Gameexe_soundsys.ini"));
+    if (!gexe_.LoadFromFile(LocateTestCase("Gameexe_data/Gameexe_soundsys.ini"))
+             .has_value())
+      ADD_FAILURE() << "Failed to locate test";
     atable_ = AudioTable(gexe_);
   }
 

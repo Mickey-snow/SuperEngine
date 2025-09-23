@@ -51,6 +51,22 @@ inline void to_lower(std::string& str) {
     it = tolower(it);
 }
 
+static inline bool load_int(int& to, expected<int, GexeErr> from) {
+  if (from) {
+    to = *from;
+    return true;
+  } else
+    return false;
+}
+static inline bool load_str(std::string& to,
+                            expected<std::string, GexeErr> from) {
+  if (from) {
+    to = std::move(*from);
+    return true;
+  } else
+    return false;
+}
+
 AudioTable::AudioTable(Gameexe& gexe) {
   // Read the \#SE.xxx entries from the Gameexe
   for (auto se : gexe.Filter("SE.")) {
@@ -60,63 +76,67 @@ AudioTable::AudioTable(Gameexe& gexe) {
     if (!parse_int(raw_number, entry_number))
       continue;
 
-    std::string file_name = se.GetStringAt(0);
+    std::string file_name;
+    if (!load_str(file_name, se.StrAt(0)))
+      continue;
 
-    int target_channel;
-    try {
-      target_channel = se.GetIntAt(1);
-    } catch (...) {
-      target_channel = -1;
-    }
+    int target_channel = se.IntAt(1).value_or(-1);
 
     se_table_[entry_number] = std::make_pair(file_name, target_channel);
   }
 
   // Read the \#DSTRACK entries
   for (auto dstrack : gexe.Filter("DSTRACK")) {
-    try {
-      int from = dstrack.GetIntAt(0);
-      int to = dstrack.GetIntAt(1);
-      int loop = dstrack.GetIntAt(2);
-      const std::string& file = dstrack.GetStringAt(3);
-      std::string name = dstrack.GetStringAt(4);
-      to_lower(name);
-      ds_tracks_[name] = DSTrack(name, file, from, to, loop);
-    } catch (...) {
+    int from, to, loop;
+    std::string file, name;
+    if (!load_int(from, dstrack.IntAt(0)))
       continue;
-    }
+    if (!load_int(to, dstrack.IntAt(1)))
+      continue;
+    if (!load_int(loop, dstrack.IntAt(2)))
+      continue;
+    if (!load_str(file, dstrack.StrAt(3)))
+      continue;
+    if (!load_str(name, dstrack.StrAt(4)))
+      continue;
+
+    to_lower(name);
+    ds_tracks_[name] = DSTrack(name, file, from, to, loop);
   }
 
   // Read the \#CDTRACK entries
   for (auto cdtrack : gexe.Filter("CDTRACK")) {
-    try {
-      int from = cdtrack.GetIntAt(0);
-      int to = cdtrack.GetIntAt(1);
-      int loop = cdtrack.GetIntAt(2);
-      std::string name = cdtrack.GetStringAt(3);
-      to_lower(name);
-
-      cd_tracks_[name] = CDTrack(name, from, to, loop);
-    } catch (...) {
+    int from, to, loop;
+    std::string name;
+    if (!load_int(from, cdtrack.IntAt(0)))
       continue;
-    }
+    if (!load_int(to, cdtrack.IntAt(1)))
+      continue;
+    if (!load_int(loop, cdtrack.IntAt(2)))
+      continue;
+    if (!load_str(name, cdtrack.StrAt(3)))
+      continue;
+
+    to_lower(name);
+    cd_tracks_[name] = CDTrack(name, from, to, loop);
   }
 
   // Read the \#BGM.xxx entries
   for (auto bgmtrack : gexe.Filter("BGM")) {
-    try {
-      DSTrack track;
-      track.name = bgmtrack.GetStringAt(0);
-      track.file = bgmtrack.GetStringAt(1);
-      track.from = bgmtrack.GetIntAt(2);
-      track.to = bgmtrack.GetIntAt(3);
-      track.loop = bgmtrack.GetIntAt(4);
-
-      to_lower(track.name);
-      ds_tracks_[track.name] = std::move(track);
-    } catch (...) {
+    DSTrack track;
+    if (!load_str(track.name, bgmtrack.StrAt(0)))
       continue;
-    }
+    if (!load_str(track.file, bgmtrack.StrAt(1)))
+      continue;
+    if (!load_int(track.from, bgmtrack.IntAt(2)))
+      continue;
+    if (!load_int(track.to, bgmtrack.IntAt(3)))
+      continue;
+    if (!load_int(track.loop, bgmtrack.IntAt(4)))
+      continue;
+
+    to_lower(track.name);
+    ds_tracks_[track.name] = std::move(track);
   }
 }
 

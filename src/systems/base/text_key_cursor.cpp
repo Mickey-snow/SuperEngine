@@ -52,11 +52,11 @@ TextKeyCursor::TextKeyCursor(System& system, int in_curosr_number)
   Gameexe& gexe = system.gameexe();
   GameexeInterpretObject cursor = gexe("CURSOR", in_curosr_number);
 
-  if (cursor("NAME").Exists()) {
-    SetCursorImage(system, cursor("NAME"));
-    SetCursorSize(cursor("SIZE"));
-    SetCursorFrameCount(cursor("CONT"));
-    SetCursorFrameSpeed(cursor("SPEED"));
+  if (auto name = cursor("NAME").Str()) {
+    SetCursorImage(system, *name);
+    SetCursorSize(cursor("SIZE").ToIntVec());
+    SetCursorFrameCount(cursor("CONT").ToInt());
+    SetCursorFrameSpeed(cursor("SPEED").ToInt());
   }
 }
 

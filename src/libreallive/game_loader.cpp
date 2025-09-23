@@ -83,11 +83,12 @@ GameLoader::GameLoader(fs::path gameroot) {
   CheckBadEngine(gameroot, avg32_exes, "Can't run AVG32 games");
   CheckBadEngine(gameroot, siglus_exes, "Can't run Siglus games");
 
-  gameexe_ = std::make_shared<Gameexe>(gameexePath);
+  gameexe_ = std::make_shared<Gameexe>();
+  gameexe_->LoadFromFile(gameexePath);
   (*gameexe_)("__GAMEPATH") = gameroot.string();
 
-  archive_ = std::make_shared<libreallive::Archive>(seenPath.string(),
-                                                    (*gameexe_)("REGNAME"));
+  archive_ = std::make_shared<libreallive::Archive>(
+      seenPath.string(), (*gameexe_)("REGNAME").Str().value_or(""));
 
   system_ = std::make_shared<SDLSystem>(
       *gameexe_, std::make_shared<AssetScanner>(
@@ -96,23 +97,17 @@ GameLoader::GameLoader(fs::path gameroot) {
   // Instantiate the rl machine
   auto memory = std::make_unique<Memory>();
   memory->LoadFrom(*gameexe_);
-  int first_seen = -1;
-  if ((*gameexe_).Exists("SEEN_START"))
-    first_seen = (*gameexe_)("SEEN_START").ToInt();
-  if (first_seen < 0) {
-    // if SEEN_START is undefined, then just grab the first SEEN.
-    first_seen = archive_->GetFirstScenarioID();
-  }
+  int first_seen =
+      (*gameexe_)("SEEN_START").Int().value_or(archive_->GetFirstScenarioID());
+
   auto scriptor = std::make_shared<Scriptor>(*archive_);
   ScenarioConfig default_config;
   auto savepoint_decide = [&](std::string key) -> bool {
-    int value = -1;
-    if ((*gameexe_).Exists(key))
-      value = (*gameexe_)(key);
-    switch (value) {
+    switch ((*gameexe_)(key).Int().value_or(-1)) {
       case 0:
         return false;
       case 1:
+        [[fallthrough]];
       default:
         return true;
     }
@@ -189,7 +184,7 @@ GameLoader::GameLoader(fs::path gameroot) {
 
   // Load the "DLLs" required
   for (auto it : gameexe_->Filter("DLL.")) {
-    const std::string& name = it.ToString("");
+    const std::string& name = it.Str().value_or("");
     try {
       std::string index_str = it.key().substr(it.key().find_first_of(".") + 1);
       int index = std::stoi(index_str);

@@ -80,14 +80,13 @@ TextSystemGlobals::TextSystemGlobals()
 // -----------------------------------------------------------------------
 
 TextSystemGlobals::TextSystemGlobals(Gameexe& gexe)
-    : auto_mode_base_time(gexe("MESSAGE_KEY_WAIT_TIME").ToInt(1500)),
-      auto_mode_char_time(gexe("INIT_MESSAGE_SPEED").ToInt(30)),
-      message_speed(gexe("INIT_MESSAGE_SPEED").ToInt(30)),
+    : auto_mode_base_time(gexe("MESSAGE_KEY_WAIT_TIME").Int().value_or(1500)),
+      auto_mode_char_time(gexe("INIT_MESSAGE_SPEED").Int().value_or(30)),
+      message_speed(gexe("INIT_MESSAGE_SPEED").Int().value_or(30)),
       font_weight(0),
       font_shadow(1) {
-  GameexeInterpretObject in_window_attr(gexe("WINDOW_ATTR"));
-  if (in_window_attr.Exists())
-    window_attr = in_window_attr;
+  if (auto in_window_attr = gexe("WINDOW_ATTR").IntVec())
+    window_attr = std::move(*in_window_attr);
 }
 
 // -----------------------------------------------------------------------
@@ -119,8 +118,7 @@ TextSystem::TextSystem(System& system, Gameexe& gexe)
       in_selection_mode_(false),
       system_(system) {
   GameexeInterpretObject ctrl_use(gexe("CTRL_USE"));
-  if (ctrl_use.Exists())
-    ctrl_key_skip_ = ctrl_use;
+  ctrl_key_skip_ = ctrl_use.Int().value_or(ctrl_key_skip_);
 
   CheckAndSetBool(gexe, "WINDOW_MOVE_USE", move_use_);
   CheckAndSetBool(gexe, "WINDOW_CLEAR_USE", clear_use_);
@@ -137,8 +135,8 @@ TextSystem::TextSystem(System& system, Gameexe& gexe)
     try {
       // Data in the Gameexe.ini file is implicitly in Shift-JIS and needs to
       // be converted to UTF-8.
-      std::string key = cp932toUTF8(it.GetStringAt(0), 0);
-      std::string value = cp932toUTF8(it.GetStringAt(1), 0);
+      std::string key = cp932toUTF8(it.StrAt(0).value(), 0);
+      std::string value = cp932toUTF8(it.StrAt(1).value(), 0);
       namae_mapping_[key] = value;
     } catch (...) {
       // Gameexe.ini file is malformed.
@@ -677,7 +675,7 @@ std::shared_ptr<Surface> TextSystem::RenderText(const std::string& utf8str,
           int val;
           if (parseInteger(cur_end, strend, val)) {
             Gameexe& gexe = system().gameexe();
-            current_colour = RGBColour(gexe("COLOR_TABLE", val));
+            current_colour = RGBColour(gexe("COLOR_TABLE", val).ToIntVec());
           } else {
             current_colour = colour;
           }

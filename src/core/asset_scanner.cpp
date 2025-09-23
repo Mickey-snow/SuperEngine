@@ -43,7 +43,7 @@ AssetScanner AssetScanner::BuildFromGameexe(Gameexe& gexe) {
 
   std::set<std::string> valid_directories;
   for (auto it : gexe.Filter("FOLDNAME")) {
-    std::string dir = it.ToString();
+    std::string dir = it.ToStr();
     if (!dir.empty()) {
       to_lower(dir);
       valid_directories.insert(dir);
@@ -58,7 +58,7 @@ AssetScanner AssetScanner::BuildFromGameexe(Gameexe& gexe) {
   if (!gexe("__GAMEPATH").Exists())
     throw std::runtime_error("AssetScanner: __GAMEPATH not exist.");
 
-  gamepath = gexe("__GAMEPATH").ToString();
+  gamepath = gexe("__GAMEPATH").ToStr();
 
   AssetScanner scanner;
   for (const auto& dir : fs::directory_iterator(gamepath)) {

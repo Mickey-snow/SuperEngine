@@ -71,8 +71,8 @@ static void DumpImpl(libreallive::Scenario* scenario, std::ostream& out) {
 Dumper::Dumper(fs::path gexe_path, fs::path seen_path)
     : gexe_path_(std::move(gexe_path)),
       seen_path_(std::move(seen_path)),
-      gexe_(gexe_path_),
-      regname_(gexe_("REGNAME")),
+      gexe_(Gameexe::FromFile(gexe_path_).value()),
+      regname_(gexe_("REGNAME").ToStr()),
       archive_(seen_path_, regname_) {
   regname_ = archive_.regname_;  // ensure canonical name
 }

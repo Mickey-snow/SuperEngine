@@ -384,7 +384,7 @@ struct objEveDisplay_1 : public RLOpcode<IntConstant_T,
                   int delay,
                   int objdisp_idx) {
     Gameexe& gameexe = machine.GetSystem().gameexe();
-    const std::vector<int> disp = gameexe("OBJDISP", objdisp_idx).ToIntVector();
+    const std::vector<int> disp = gameexe("OBJDISP", objdisp_idx).ToIntVec();
 
     GraphicsObject& object = GetGraphicsObject(machine, this, obj);
     std::shared_ptr<Clock> clock = machine.GetSystem().event().GetClock();

@@ -265,19 +265,19 @@ ButtonSelectLongOperation::ButtonSelectLongOperation(
   Gameexe& gexe = machine.GetSystem().gameexe();
   GameexeInterpretObject selbtn(gexe("SELBTN", selbtn_set));
 
-  std::vector<int> vec = selbtn("BASEPOS");
+  std::vector<int> vec = selbtn("BASEPOS").ToIntVec();
   basepos_x_ = vec.at(0);
   basepos_y_ = vec.at(1);
 
-  vec = selbtn("REPPOS");
+  vec = selbtn("REPPOS").ToIntVec();
   reppos_x_ = vec.at(0);
   reppos_y_ = vec.at(1);
 
-  vec = selbtn("CENTERING");
+  vec = selbtn("CENTERING").ToIntVec();
   int center_x = vec.at(0);
   int center_y = vec.at(1);
 
-  moji_size_ = selbtn("MOJISIZE");
+  moji_size_ = selbtn("MOJISIZE").Int().value();
 
   // Retrieve the parameters needed to render as a color mask.
   std::shared_ptr<TextWindow> window =
@@ -285,47 +285,42 @@ ButtonSelectLongOperation::ButtonSelectLongOperation(
   window_bg_colour_ = window->colour();
   window_filter_ = window->filter();
 
-  int default_colour_num_ = selbtn("MOJIDEFAULTCOL");
-  int select_colour_num_ = selbtn("MOJISELECTCOL");
+  int default_colour_num_ = selbtn("MOJIDEFAULTCOL").Int().value();
+  int select_colour_num_ = selbtn("MOJISELECTCOL").Int().value();
   if (default_colour_num_ == select_colour_num_)
     select_colour_num_ = 1;      // For CLANNAD
   if (select_colour_num_ == -1)  // For little busters
     select_colour_num_ = default_colour_num_;
 
   GraphicsSystem& gs = machine.GetSystem().graphics();
-  if (selbtn("NAME").Exists() && selbtn("NAME").ToString() != "")
-    name_surface_ = gs.GetSurfaceNamed(selbtn("NAME"));
-  if (selbtn("BACK").Exists() && selbtn("BACK").ToString() != "")
-    back_surface_ = gs.GetSurfaceNamed(selbtn("BACK"));
+  if (auto name = selbtn("NAME").Str())
+    name_surface_ = gs.GetSurfaceNamed(name.value());
+  if (auto name = selbtn("BACK").Str())
+    back_surface_ = gs.GetSurfaceNamed(name.value());
 
-  std::vector<int> tmp;
-  if (selbtn("NORMAL").Exists()) {
-    tmp = selbtn("NORMAL");
-    normal_frame_ = tmp.at(0);
-    normal_frame_offset_ = Point(tmp.at(1), tmp.at(2));
+  if (auto tmp = selbtn("NORMAL").IntVec()) {
+    normal_frame_ = tmp->at(0);
+    normal_frame_offset_ = Point(tmp->at(1), tmp->at(2));
   }
-  if (selbtn("SELECT").Exists()) {
-    tmp = selbtn("SELECT");
-    select_frame_ = tmp.at(0);
-    select_frame_offset_ = Point(tmp.at(1), tmp.at(2));
+  if (auto tmp = selbtn("SELECT").IntVec()) {
+    select_frame_ = tmp->at(0);
+    select_frame_offset_ = Point(tmp->at(1), tmp->at(2));
   }
-  if (selbtn("PUSH").Exists()) {
-    tmp = selbtn("PUSH");
-    push_frame_ = tmp.at(0);
-    push_frame_offset_ = Point(tmp.at(1), tmp.at(2));
+  if (auto tmp = selbtn("PUSH").IntVec()) {
+    push_frame_ = tmp->at(0);
+    push_frame_offset_ = Point(tmp->at(1), tmp->at(2));
   }
-  if (selbtn("DONTSEL").Exists()) {
-    tmp = selbtn("DONTSEL");
-    dontsel_frame_ = tmp.at(0);
-    dontsel_frame_offset_ = Point(tmp.at(1), tmp.at(2));
+  if (auto tmp = selbtn("DONTSEL").IntVec()) {
+    dontsel_frame_ = tmp->at(0);
+    dontsel_frame_offset_ = Point(tmp->at(1), tmp->at(2));
   }
 
   // Pick the correct font colour
-  vec = gexe("COLOR_TABLE", default_colour_num_);
+  vec = gexe("COLOR_TABLE", default_colour_num_).ToIntVec();
   RGBColour default_colour(vec.at(0), vec.at(1), vec.at(2));
-  vec = gexe("COLOR_TABLE", select_colour_num_);
+  vec = gexe("COLOR_TABLE", select_colour_num_).ToIntVec();
   RGBColour select_colour(vec.at(0), vec.at(1), vec.at(2));
-  vec = gexe("COLOR_TABLE", 255);
+  vec = gexe("COLOR_TABLE", 255).ToIntVec();
   RGBColour shadow_colour(vec.at(0), vec.at(1), vec.at(2));
 
   // Build graphic representations of the choices to display to the user.
@@ -365,7 +360,8 @@ ButtonSelectLongOperation::ButtonSelectLongOperation(
       RGBColour text_selection_colour = select_colour;
 
       if (options_[i].use_colour) {
-        std::vector<int> vec = gexe("COLOR_TABLE", options_[i].colour_index);
+        std::vector<int> vec =
+            gexe("COLOR_TABLE", options_[i].colour_index).ToIntVec();
         text_colour = RGBColour(vec.at(0), vec.at(1), vec.at(2));
 
         if (!options_[i].enabled)

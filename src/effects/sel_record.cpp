@@ -68,24 +68,24 @@ selRecord GetSelRecord(Gameexe& gexe, int selNum) {
   std::vector<int> selEffect;
 
   if (gexe("SEL", selNum).Exists()) {
-    selEffect = gexe("SEL", selNum).ToIntVector();
+    selEffect = gexe("SEL", selNum).ToIntVec();
     auto rect =
         Rect::GRP(selEffect[0], selEffect[1], selEffect[2], selEffect[3]);
     result = selRecord(selEffect);
     result.rect = rect;
   } else if (gexe("SELR", selNum).Exists()) {
-    selEffect = gexe("SELR", selNum).ToIntVector();
+    selEffect = gexe("SELR", selNum).ToIntVec();
     result = selRecord(selEffect);
   } else {
     // Can't find the specified #SEL effect. See if there's a #SEL.000 effect:
     if (gexe("SEL", 0).Exists()) {
-      selEffect = gexe("SEL", 0).ToIntVector();
+      selEffect = gexe("SEL", 0).ToIntVec();
       auto rect =
           Rect::GRP(selEffect[0], selEffect[1], selEffect[2], selEffect[3]);
       result = selRecord(selEffect);
       result.rect = rect;
     } else if (gexe("SELR", 0).Exists()) {
-      selEffect = gexe("SELR", 0).ToIntVector();
+      selEffect = gexe("SELR", 0).ToIntVec();
       result = selRecord(selEffect);
     }
     // If all else fails, return a default SEL effect
