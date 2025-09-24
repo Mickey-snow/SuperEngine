@@ -210,7 +210,7 @@ class TextWindow {
   // character. Returns true if the character fits on the screen. False if it
   // does not and was not displayed.
   virtual bool DisplayCharacter(const std::string& current,
-                                const std::string& rest);
+                                const std::string& rest) = 0;
 
   // Checks to make sure that not only will |cur_codepoint| fit on the line,
   // but also that we'll perform kinsoku rules correctly.

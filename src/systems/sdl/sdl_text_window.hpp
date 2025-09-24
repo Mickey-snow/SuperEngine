@@ -40,7 +40,7 @@ class SelectionElement;
 
 class SDLTextWindow : public TextWindow {
  public:
-  SDLTextWindow(SDLSystem& system, int window);
+  SDLTextWindow(SDLSystem& system, int window_num);
   virtual ~SDLTextWindow();
 
   // Overridden from TextWindow:
@@ -51,6 +51,12 @@ class SDLTextWindow : public TextWindow {
   virtual void DisplayRubyText(const std::string& utf8str) override;
   virtual void AddSelectionItem(const std::string& utf8str,
                                 int selection_id) override;
+
+  // Displays one character, and performs line breaking logic based on the next
+  // character. Returns true if the character fits on the screen. False if it
+  // does not and was not displayed.
+  virtual bool DisplayCharacter(const std::string& current,
+                                const std::string& rest) override;
 
  private:
   SDLSystem& sdl_system_;

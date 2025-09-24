@@ -174,11 +174,11 @@ bool TextoutLongOperation::DisplayOneMoreCharacter(RLMachine& machine,
     return DisplayName(machine);
   } else {
     // Isolate the next character
-    string::iterator it = current_position_;
+    string::iterator next_position = current_position_;
     string::iterator strend = utf8_string_.end();
 
-    if (it != strend) {
-      int codepoint = utf8::next(it, strend);
+    if (next_position != strend) {
+      int codepoint = utf8::next(next_position, strend);
       TextPage& page = machine.GetSystem().text().GetCurrentPage();
       if (codepoint) {
         string rest(current_position_, strend);
@@ -188,13 +188,13 @@ bool TextoutLongOperation::DisplayOneMoreCharacter(RLMachine& machine,
         // this is false, then the page is probably full and the check
         // later on will do something about that.
         if (rendered) {
-          current_char_ = std::string(current_position_, it);
-          current_position_ = it;
+          current_char_ = std::string(current_position_, next_position);
+          current_position_ = next_position;
         }
       } else {
         // advance to the next character if we've somehow hit an
         // embedded NULL that isn't the end of the string
-        current_position_ = it;
+        current_position_ = next_position;
       }
 
       // Call the pause operation if we've filled up the current page.

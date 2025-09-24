@@ -61,17 +61,16 @@ SDLTextSystem::~SDLTextSystem() {
   // reference so we'll just leak the FreeType structures.
 }
 
-std::shared_ptr<TextWindow> SDLTextSystem::GetTextWindow(int text_window) {
-  WindowMap::iterator it = text_window_.find(text_window);
-  if (it == text_window_.end()) {
-    it =
-        text_window_
-            .emplace(text_window, std::shared_ptr<TextWindow>(new SDLTextWindow(
-                                      sdl_system_, text_window)))
-            .first;
+std::shared_ptr<TextWindow> SDLTextSystem::GetTextWindow(int window_id) {
+  auto [it, inserted] = text_window_.try_emplace(window_id, nullptr);
+  try {
+    if (inserted)
+      it->second = std::make_shared<SDLTextWindow>(sdl_system_, window_id);
+    return it->second;
+  } catch (...) {
+    text_window_.erase(window_id);
+    throw;
   }
-
-  return it->second;
 }
 
 Size SDLTextSystem::RenderGlyphOnto(
@@ -141,38 +140,32 @@ int SDLTextSystem::GetCharWidth(int size, uint16_t codepoint) {
 }
 
 std::shared_ptr<TTF_Font> SDLTextSystem::GetFontOfSize(int size) {
-  FontSizeMap::iterator it = map_.find(size);
-  if (it == map_.end()) {
-    std::string filename = FindFontFile(system()).native();
-    TTF_Font* f = TTF_OpenFont(filename.c_str(), size);
-    if (f == NULL) {
-      std::ostringstream oss;
-      oss << "Error loading font: " << TTF_GetError();
-      throw SystemError(oss.str());
-    }
-
-    TTF_SetFontStyle(f, TTF_STYLE_NORMAL);
-
-    // Build a smart_ptr to own this font, and set a deleter function.
-    std::shared_ptr<TTF_Font> font(f, TTF_CloseFont);
-
-    map_[size] = font;
-
-    // Now that we've put this font into the cache, we can safely use
-    // GetCharWidth to ensure whether we're monospaced.
-    if (!is_monospace_.get()) {
-      is_monospace_.reset(new bool);
-      // Why not use TTF_FontFaceIsFixedWidth()? Because that checks if the
-      // font is fixed width, which msgothic.ttc among others is not. However,
-      // it does use monospaced characters.
-      *is_monospace_ = GetCharWidth(size, 'i') == GetCharWidth(size, 'm');
-    }
-    return font;
-  } else {
+  auto it = map_.find(size);
+  if (it != map_.end())
     return it->second;
-  }
-}
 
-bool SDLTextSystem::FontIsMonospaced() {
-  return is_monospace_ ? *is_monospace_ : false;
+  std::string filename = FindFontFile(system()).native();
+  TTF_Font* f = TTF_OpenFont(filename.c_str(), size);
+  if (f == NULL) {
+    std::ostringstream oss;
+    oss << "Error loading font: " << TTF_GetError();
+    throw SystemError(oss.str());
+  }
+
+  TTF_SetFontStyle(f, TTF_STYLE_NORMAL);
+
+  // Build a smart_ptr to own this font, and set a deleter function.
+  std::shared_ptr<TTF_Font> font(f, TTF_CloseFont);
+
+  map_[size] = font;
+
+  // Now that we've put this font into the cache, we can safely use
+  // GetCharWidth to ensure whether we're monospaced.
+  if (!is_monospace_) {
+    // Why not use TTF_FontFaceIsFixedWidth()? Because that checks if the
+    // font is fixed width, which msgothic.ttc among others is not. However,
+    // it does use monospaced characters.
+    is_monospace_ = GetCharWidth(size, 'i') == GetCharWidth(size, 'm');
+  }
+  return font;
 }

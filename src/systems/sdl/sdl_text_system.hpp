@@ -29,10 +29,11 @@
 
 #include <SDL/SDL_ttf.h>
 
-#include <map>
-#include <string>
-
 #include "systems/base/text_system.hpp"
+
+#include <optional>
+#include <string>
+#include <unordered_map>
 
 class Point;
 class RLMachine;
@@ -58,17 +59,18 @@ class SDLTextSystem : public TextSystem {
       int insertion_point_y,
       const std::shared_ptr<Surface>& destination) override;
   virtual int GetCharWidth(int size, uint16_t codepoint) override;
-  bool FontIsMonospaced() override;
+  inline bool FontIsMonospaced() override {
+    return is_monospace_.value_or(false);
+  }
 
   // Returns (and caches) a SDL_ttf font object for a font of |size|.
   std::shared_ptr<TTF_Font> GetFontOfSize(int size);
 
  private:
   // Font storage.
-  typedef std::map<int, std::shared_ptr<TTF_Font>> FontSizeMap;
-  FontSizeMap map_;
+  std::unordered_map<int, std::shared_ptr<TTF_Font>> map_;
 
   SDLSystem& sdl_system_;
 
-  std::unique_ptr<bool> is_monospace_;
+  std::optional<bool> is_monospace_;
 };

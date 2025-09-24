@@ -34,6 +34,7 @@
 
 #include "core/colour.hpp"
 #include "core/gameexe.hpp"
+#include "log/domain_logger.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/selection_element.hpp"
 #include "systems/base/system_error.hpp"
@@ -73,8 +74,8 @@ void SDLTextWindow::ClearWin() {
 
 void SDLTextWindow::RenderNameInBox(const std::string& utf8str) {
   RGBColour shadow = RGBAColour::Black().rgb();
-  name_surface_ = system_.text().RenderText(utf8str, font_size_in_pixels(), 0,
-                                            0, font_colour_, &shadow, 0);
+  name_surface_ = sdl_system_.text().RenderText(utf8str, font_size_in_pixels(),
+                                                0, 0, font_colour_, &shadow, 0);
 }
 
 void SDLTextWindow::AddSelectionItem(const std::string& utf8str,
@@ -95,15 +96,14 @@ void SDLTextWindow::AddSelectionItem(const std::string& utf8str,
   // Figure out xpos and ypos
   Point position = GetTextSurfaceRect().origin() +
                    Size(text_insertion_point_x_, text_insertion_point_y_);
+  text_insertion_point_y_ += (font_size_in_pixels_ + y_spacing_ + ruby_size_);
 
   std::unique_ptr<SelectionElement> element =
       std::make_unique<SelectionElement>(
           system(), std::make_shared<Surface>(normal),
           std::make_shared<Surface>(inverted), selectionCallback(),
           selection_id, position);
-
-  text_insertion_point_y_ += (font_size_in_pixels_ + y_spacing_ + ruby_size_);
-  selections_.push_back(std::move(element));
+  selections_.emplace_back(std::move(element));
 }
 
 void SDLTextWindow::DisplayRubyText(const std::string& utf8str) {
@@ -138,4 +138,85 @@ void SDLTextWindow::DisplayRubyText(const std::string& utf8str) {
   }
 
   last_token_was_name_ = false;
+}
+
+bool SDLTextWindow::DisplayCharacter(const std::string& current,
+                                     const std::string& rest) {
+  // If this text page is already full, save some time and reject
+  // early.
+  if (IsFull())
+    return false;
+
+  set_is_visible(true);
+
+  if (current != "") {
+    int cur_codepoint = Codepoint(current);
+    bool indent_after_spacing = false;
+
+    // But if the last character was a lenticular bracket, we need to indent
+    // now. See doc/notes/NamesAndIndentation.txt for more details.
+    if (last_token_was_name_) {
+      if (name_mod_ == 0) {
+        if (IsOpeningQuoteMark(cur_codepoint))
+          indent_after_spacing = true;
+      } else if (name_mod_ == 2) {
+        if (IsOpeningQuoteMark(cur_codepoint)) {
+          indent_after_spacing = true;
+        }
+      }
+    }
+
+    // If the width of this glyph plus the spacing will put us over the
+    // edge of the window, then line increment.
+    if (MustLineBreak(cur_codepoint, rest)) {
+      HardBrake();
+
+      if (IsFull())
+        return false;
+    }
+
+    RGBColour shadow = RGBAColour::Black().rgb();
+    sdl_system_.text().RenderGlyphOnto(
+        current, font_size_in_pixels(), next_char_italic_, font_colour_,
+        &shadow, text_insertion_point_x_, text_insertion_point_y_,
+        GetTextSurface());
+    next_char_italic_ = false;
+    text_wrapping_point_x_ += GetWrappingWidthFor(cur_codepoint);
+
+    if (cur_codepoint < 127) {
+      // This is a basic ASCII character. In normal RealLive, western text
+      // appears to be treated as half width monospace. If we're here, we are
+      // either in a manually laid out western game (therefore we should try to
+      // fit onto the monospace grid) or we're in rlbabel (in which case, our
+      // insertion point will be manually set by the bytecode immediately after
+      // this character).
+      if (text_system_.FontIsMonospaced()) {
+        // If our font is monospaced (ie msgothic.ttc), we want to follow the
+        // game's layout instructions perfectly.
+        text_insertion_point_x_ += GetWrappingWidthFor(cur_codepoint);
+      } else {
+        // If out font has different widths for 'i' and 'm', we aren't using
+        // the recommended font so we'll try laying out the text so that
+        // kerning looks better. This is the common case.
+        text_insertion_point_x_ +=
+            text_system_.GetCharWidth(font_size_in_pixels(), cur_codepoint);
+      }
+    } else {
+      // Move the insertion point forward one character
+      text_insertion_point_x_ += font_size_in_pixels_ + x_spacing_;
+    }
+
+    if (indent_after_spacing)
+      SetIndentation();
+  }
+
+  // When we aren't rendering a piece of text with a ruby gloss, mark
+  // the screen as dirty so that this character renders.
+  if (ruby_begin_point_ == -1) {
+    // system_.graphics().MarkScreenAsDirty(GUT_TEXTSYS);
+  }
+
+  last_token_was_name_ = false;
+
+  return true;
 }
