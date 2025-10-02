@@ -69,7 +69,7 @@ SiglusRuntime SGVMFactory::Create() {
   gexe.SetIntAt("SUBTITLE", 0);
   gexe.SetIntAt("MOUSE_CURSOR", 0);
   gexe.SetStringAt("__GAMEPATH", (fs::temp_directory_path() / "game").string());
-  gexe.parseLine("#SCREENSIZE_MOD=999.1920.1080");
+  gexe.parseLine("#SCREENSIZE_MOD=999,1920,1080");
 
   // Init sdl system
   runtime.system = std::make_unique<SDLSystem>(gexe, runtime.asset_scanner);

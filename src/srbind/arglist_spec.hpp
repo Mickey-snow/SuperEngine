@@ -28,6 +28,7 @@
 #include "utilities/mpl.hpp"
 
 #include <functional>
+#include <string>
 #include <type_traits>
 #include <unordered_map>
 #include <vector>
@@ -41,6 +42,8 @@ struct arglist_spec {
   std::unordered_map<size_t, std::function<serilang::TempValue()>> defaults;
   bool has_vararg = false;
   bool has_kwarg = false;
+
+  [[nodiscard]] std::string GetDebugString() const;
 };
 
 namespace {

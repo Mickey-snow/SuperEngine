@@ -43,20 +43,12 @@ class ParseSpecTest : public ::testing::Test {
 TEST_F(ParseSpecTest, Parsespec) {
   arglist_spec spec =
       parse_spec(arg("first"), arg("second") = 1, vararg, kwargs);
-  EXPECT_EQ(spec.nparam, 2u);
-  EXPECT_EQ(spec.param_index.at("first"), 0);
-  EXPECT_EQ(spec.param_index.at("second"), 1);
-  EXPECT_TRUE(spec.has_vararg);
-  EXPECT_TRUE(spec.has_kwarg);
+  EXPECT_EQ(spec.GetDebugString(), "(first,second=1)ak");
 }
 
 TEST_F(ParseSpecTest, EmptySpec) {
   auto spec = parse_spec();
-  EXPECT_EQ(spec.nparam, 0u);
-  EXPECT_FALSE(spec.has_vararg);
-  EXPECT_FALSE(spec.has_kwarg);
-  EXPECT_TRUE(spec.param_index.empty());
-  EXPECT_TRUE(spec.defaults.empty());
+  EXPECT_EQ(spec.GetDebugString(), "()");
 }
 
 TEST_F(ParseSpecTest, DuplicateNamesThrow) {
@@ -85,53 +77,38 @@ TEST_F(ParseSpecTest, PosAfterKwonlyThrows) {
 
 TEST_F(ParseSpecTest, TraitParse_NoVarNoKw) {
   auto s = srbind::parse_spec<void(int, double)>();
-  EXPECT_EQ(s.nparam, 2u);
-  EXPECT_FALSE(s.has_vararg);
-  EXPECT_FALSE(s.has_kwarg);
-  EXPECT_TRUE(s.param_index.empty());
-  EXPECT_TRUE(s.defaults.empty());
+  EXPECT_EQ(s.GetDebugString(), "(arg_0,arg_1)");
 }
 
 TEST_F(ParseSpecTest, TraitParse_Vararg) {
   auto s = srbind::parse_spec<void(int, VV)>();
-  EXPECT_EQ(s.nparam, 1u);
-  EXPECT_TRUE(s.has_vararg);
-  EXPECT_FALSE(s.has_kwarg);
+  EXPECT_EQ(s.GetDebugString(), "(arg_0)a");
 }
 
 TEST_F(ParseSpecTest, TraitParse_Kwarg) {
   auto s = srbind::parse_spec<void(int, KW)>();
-  EXPECT_EQ(s.nparam, 1u);
-  EXPECT_FALSE(s.has_vararg);
-  EXPECT_TRUE(s.has_kwarg);
+  EXPECT_EQ(s.GetDebugString(), "(arg_0)k");
 }
 
 TEST_F(ParseSpecTest, TraitParse_VarargKwarg) {
   auto s = srbind::parse_spec<void(int, VV, KW)>();
-  EXPECT_EQ(s.nparam, 1u);
-  EXPECT_TRUE(s.has_vararg);
-  EXPECT_TRUE(s.has_kwarg);
+  EXPECT_EQ(s.GetDebugString(), "(arg_0)ak");
 }
 
 TEST_F(ParseSpecTest, TraitParse_KwargVararg) {
   auto s = srbind::parse_spec<void(KW, VV)>();
-  EXPECT_EQ(s.nparam, 1u);  // KW counted as positional, VV recognized as vararg
-  EXPECT_TRUE(s.has_vararg);
-  EXPECT_FALSE(s.has_kwarg);
+  EXPECT_EQ(s.GetDebugString(), "(arg_0)a");
+  // KW counted as positional, VV recognized as vararg
 }
 
 TEST_F(ParseSpecTest, TraitParse_OnlyVararg) {
   auto s = srbind::parse_spec<void(VV)>();
-  EXPECT_EQ(s.nparam, 0u);
-  EXPECT_TRUE(s.has_vararg);
-  EXPECT_FALSE(s.has_kwarg);
+  EXPECT_EQ(s.GetDebugString(), "()a");
 }
 
 TEST_F(ParseSpecTest, TraitParse_OnlyKwarg) {
   auto s = srbind::parse_spec<void(KW)>();
-  EXPECT_EQ(s.nparam, 0u);
-  EXPECT_FALSE(s.has_vararg);
-  EXPECT_TRUE(s.has_kwarg);
+  EXPECT_EQ(s.GetDebugString(), "()k");
 }
 
 TEST_F(ParseSpecTest, TraitParse_MemberFunctionPointer) {
@@ -141,14 +118,10 @@ TEST_F(ParseSpecTest, TraitParse_MemberFunctionPointer) {
   };
 
   auto s1 = srbind::parse_spec<decltype(&C::m1)>();
-  EXPECT_EQ(s1.nparam, 1u);
-  EXPECT_TRUE(s1.has_vararg);
-  EXPECT_TRUE(s1.has_kwarg);
+  EXPECT_EQ(s1.GetDebugString(), "(arg_0)ak");
 
   auto s2 = srbind::parse_spec<decltype(&C::m2)>();
-  EXPECT_EQ(s2.nparam, 1u);
-  EXPECT_FALSE(s2.has_vararg);
-  EXPECT_TRUE(s2.has_kwarg);
+  EXPECT_EQ(s2.GetDebugString(), "(arg_0)k");
 }
 
 TEST_F(ParseSpecTest, TraitParse_Functor) {
@@ -157,9 +130,7 @@ TEST_F(ParseSpecTest, TraitParse_Functor) {
   };
 
   auto s = srbind::parse_spec<Functor>();
-  EXPECT_EQ(s.nparam, 1u);
-  EXPECT_TRUE(s.has_vararg);
-  EXPECT_FALSE(s.has_kwarg);
+  EXPECT_EQ(s.GetDebugString(), "(arg_0)a");
 }
 
 }  // namespace srbind_test
