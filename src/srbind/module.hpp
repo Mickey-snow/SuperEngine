@@ -135,8 +135,7 @@ class class_ {
   // __init__ via operator new
   template <class... Args, class... A>
   class_& def(init_t<Args...>, A&&... a) {
-    arglist_spec spec = (sizeof...(A) == 0) ? parse_spec<T*(Args...)>()
-                                            : parse_spec(std::forward<A>(a)...);
+    arglist_spec spec = parse_spec<T*(Args...)>(std::forward<A>(a)...);
 
     auto* nf = gc_->Allocate<serilang::NativeFunction>(
         "__init__",
@@ -176,12 +175,12 @@ class class_ {
   // Factory signature:  R(Args...) where R is T* or std::unique_ptr<T/Derived>
   template <class F, class... A>
   class_& def(init_factory_t<F> tag, A&&... a) {
-    arglist_spec spec = (sizeof...(A) == 0) ? parse_spec<F>()
-                                            : parse_spec(std::forward<A>(a)...);
+    arglist_spec spec = parse_spec<F>(std::forward<A>(a)...);
+
     auto* nf = gc_->Allocate<serilang::NativeFunction>(
         "__init__",
         [factory = std::move(tag.factory), spec = std::move(spec)](
-            serilang::VM& /*vm*/, serilang::Fiber& fib, uint8_t nargs,
+            serilang::VM& vm, serilang::Fiber& fib, uint8_t nargs,
             uint8_t nkwargs) -> serilang::TempValue {
           try {
             if (nargs < 1)
@@ -194,7 +193,7 @@ class class_ {
               throw type_error("__init__ called twice");
 
             auto r =
-                detail::invoke_free(fib, nargs - 1, nkwargs, factory, spec);
+                detail::invoke_free(vm, fib, nargs - 1, nkwargs, factory, spec);
             fib.stack.pop_back();  // self
             T* raw = detail::convert_factory_return<T>(std::move(r));
             if (!raw)
@@ -214,8 +213,8 @@ class class_ {
 
   template <class M, class... A>
   class_& def(const char* name, M pmf, A&&... a) {
-    arglist_spec spec = (sizeof...(A) == 0) ? parse_spec<M>()
-                                            : parse_spec(std::forward<A>(a)...);
+    arglist_spec spec = parse_spec<M>(std::forward<A>(a)...);
+
     cls_->methods[name] =
         Value(make_method<T>(gc_, name, pmf, std::move(spec)));
     return *this;

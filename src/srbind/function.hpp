@@ -39,48 +39,115 @@ namespace srbind {
 
 namespace detail {
 
+template <class F, class R, class... Args, class... Extras>
+auto invoke_extra(serilang::VM& vm,
+                  serilang::Fiber& f,
+                  size_t nargs,
+                  size_t nkwargs,
+                  F&& fn,
+                  R (*)(Args...),
+                  std::tuple<Extras...> extra,
+                  const arglist_spec& spec) {
+  auto tup = std::tuple_cat(std::move(extra),
+                            load_args<Args...>(f.stack, nargs, nkwargs, spec));
+  if constexpr (std::is_void_v<R>) {
+    std::apply(std::forward<F>(fn), std::move(tup));
+    return serilang::nil;
+  } else {
+    return std::apply(std::forward<F>(fn), std::move(tup));
+  }
+}
+
 // SFINAE-friendly invoke for free functions
 template <class F, class R, class... Args>
-auto invoke_free_impl(serilang::Fiber& f,
+auto invoke_free_impl(serilang::VM& vm,
+                      serilang::Fiber& f,
                       size_t nargs,
                       size_t nkwargs,
                       F&& fn,
                       R (*)(Args...),
                       const arglist_spec& spec) {
-  auto tup = load_args<Args...>(f.stack, nargs, nkwargs, spec);
-  if constexpr (std::is_void_v<R>) {
-    std::apply(std::forward<F>(fn), tup);
-    return serilang::nil;
-  } else {
-    return std::apply(std::forward<F>(fn), tup);
-  }
+  return invoke_extra(vm, f, nargs, nkwargs, std::forward<F>(fn),
+                      (R (*)(Args...)) nullptr, std::make_tuple(), spec);
+}
+
+template <class F,
+          class R,
+          std::same_as<serilang::VM&> vm_t,
+          std::same_as<serilang::Fiber&> fib_t,
+          class... Args>
+auto invoke_free_impl(serilang::VM& vm,
+                      serilang::Fiber& f,
+                      size_t nargs,
+                      size_t nkwargs,
+                      F&& fn,
+                      R (*)(vm_t, fib_t, Args...),
+                      const arglist_spec& spec) {
+  if (!spec.has_vm || !spec.has_fib)
+    throw type_error("Unexpected vm and fiber arguments");
+  return invoke_extra(vm, f, nargs, nkwargs, std::forward<F>(fn),
+                      (R (*)(Args...)) nullptr,
+                      std::make_tuple(std::ref(vm), std::ref(f)), spec);
+}
+
+template <class F, class R, std::same_as<serilang::VM&> vm_t, class... Args>
+auto invoke_free_impl(serilang::VM& vm,
+                      serilang::Fiber& f,
+                      size_t nargs,
+                      size_t nkwargs,
+                      F&& fn,
+                      R (*)(vm_t, Args...),
+                      const arglist_spec& spec) {
+  if (!spec.has_vm)
+    throw type_error("Unexpected vm argument");
+  return invoke_extra(vm, f, nargs, nkwargs, std::forward<F>(fn),
+                      (R (*)(Args...)) nullptr, std::make_tuple(std::ref(vm)),
+                      spec);
+}
+
+template <class F, class R, std::same_as<serilang::Fiber&> fib_t, class... Args>
+auto invoke_free_impl(serilang::VM& vm,
+                      serilang::Fiber& f,
+                      size_t nargs,
+                      size_t nkwargs,
+                      F&& fn,
+                      R (*)(fib_t, Args...),
+                      const arglist_spec& spec) {
+  if (!spec.has_fib)
+    throw type_error("Unexpected fiber argument");
+  return invoke_extra(vm, f, nargs, nkwargs, std::forward<F>(fn),
+                      (R (*)(Args...)) nullptr, std::make_tuple(std::ref(f)),
+                      spec);
 }
 
 template <class F, class C, class R, class... Args>
-auto invoke_free_sig(serilang::Fiber& f,
+auto invoke_free_sig(serilang::VM& vm,
+                     serilang::Fiber& f,
                      size_t nargs,
                      size_t nkwargs,
                      F&& fn,
                      R (C::*)(Args...) const,
                      const arglist_spec& spec) {
-  return invoke_free_impl(f, nargs, nkwargs, std::forward<F>(fn),
+  return invoke_free_impl(vm, f, nargs, nkwargs, std::forward<F>(fn),
                           (R (*)(Args...)) nullptr, spec);
 }
 
 template <class F, class C, class R, class... Args>
-auto invoke_free_sig(serilang::Fiber& f,
+auto invoke_free_sig(serilang::VM& vm,
+                     serilang::Fiber& f,
                      size_t nargs,
                      size_t nkwargs,
                      F&& fn,
                      R (C::*)(Args...),
                      const arglist_spec& spec) {
-  return invoke_free_impl(f, nargs, nkwargs, std::forward<F>(fn),
+  return invoke_free_impl(vm, f, nargs, nkwargs, std::forward<F>(fn),
                           (R (*)(Args...)) nullptr, spec);
 }
 
 // helper to deduce F’s type
 template <class F>
-auto invoke_free(serilang::Fiber& f,
+auto invoke_free(serilang::VM& vm,
+                 serilang::Fiber& f,
                  size_t nargs,
                  size_t nkwargs,
                  F&& fn,
@@ -91,16 +158,17 @@ auto invoke_free(serilang::Fiber& f,
     ;
   else if constexpr (std::is_function_v<Fn>) {
     using Sig = Fn;  // R(Args...)
-    return invoke_free_impl(f, nargs, nkwargs, std::forward<F>(fn),
+    return invoke_free_impl(vm, f, nargs, nkwargs, std::forward<F>(fn),
                             static_cast<Sig*>(nullptr), spec);
   } else if constexpr (std::is_pointer_v<Fn> &&
                        std::is_function_v<std::remove_pointer_t<Fn>>) {
     using Sig = std::remove_pointer_t<Fn>;  // R(Args...)
-    return invoke_free_impl(f, nargs, nkwargs, std::forward<F>(fn),
+    return invoke_free_impl(vm, f, nargs, nkwargs, std::forward<F>(fn),
                             static_cast<Sig*>(nullptr), spec);
   } else {
     using Sig = decltype(&Fn::operator());  // R(C::*)(Args...) [const]
-    return invoke_free_sig(f, nargs, nkwargs, std::forward<F>(fn), Sig{}, spec);
+    return invoke_free_sig(vm, f, nargs, nkwargs, std::forward<F>(fn), Sig{},
+                           spec);
   }
 }
 
@@ -115,7 +183,7 @@ serilang::NativeFunction* make_function(serilang::GarbageCollector* gc,
           serilang::VM& vm, serilang::Fiber& fib, uint8_t nargs,
           uint8_t nkwargs) -> serilang::TempValue {
         try {
-          auto r = invoke_free(fib, nargs, nkwargs, fn, spec);
+          auto r = invoke_free(vm, fib, nargs, nkwargs, fn, spec);
           serilang::TempValue tv =
               type_caster<std::decay_t<decltype(r)>>::cast(std::move(r));
           return tv;
@@ -138,7 +206,7 @@ serilang::NativeFunction* make_function(serilang::GarbageCollector* gc,
                                         F&& f,
                                         A&&... a) {
   return detail::make_function(gc, std::move(name), std::forward<F>(f),
-                               parse_spec(std::forward<A>(a)...));
+                               parse_spec<F>(std::forward<A>(a)...));
 }
 
 template <class F>

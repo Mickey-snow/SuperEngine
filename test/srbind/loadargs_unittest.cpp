@@ -127,7 +127,7 @@ TEST_F(LoadArgsTest, DefaultArg) {
 }
 
 TEST_F(LoadArgsTest, KwonlyArg) {
-  auto spec = parse_spec(arg("a"), kw_arg("b"), vararg, kwargs);
+  auto spec = parse_spec_impl(arg("a"), kw_arg("b"), vararg, kwargs);
   auto stack = Stack(1, 2, 3, "x"s, 4, "y"s, 5, "b"s, 6);
   auto [a, b, v, kw] = load_args<int, int, V, KW>(stack, 3, 3, spec);
   EXPECT_EQ(a, 1);

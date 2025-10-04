@@ -33,9 +33,17 @@
 #include <unordered_map>
 #include <vector>
 
+namespace serilang {
+class VM;
+struct Fiber;
+}  // namespace serilang
+
 namespace srbind {
 
 struct arglist_spec {
+  bool has_vm = false;
+  bool has_fib = false;
+
   uint32_t nparam = 0;
   uint32_t npos = 0;
   std::unordered_map<std::string, size_t> param_index;
@@ -56,6 +64,12 @@ template <class T>
 inline constexpr bool is_kwarg_type_v =
     std::same_as<std::remove_cvref_t<T>,
                  std::unordered_map<std::string, serilang::Value>>;
+
+template <class T>
+inline constexpr bool is_vm_type_v = std::same_as<T, serilang::VM&>;
+
+template <class T>
+inline constexpr bool is_fib_type_v = std::same_as<T, serilang::Fiber&>;
 
 class spec_parser {
   bool passed_vararg = false;
@@ -119,18 +133,37 @@ class spec_parser {
 }  // namespace
 
 template <argument_like... A>
-arglist_spec parse_spec(A&&... a) {
+arglist_spec parse_spec_impl(A&&... a) {
   return spec_parser().parse_spec(std::forward<A>(a)...);
 }
 
 template <class F>
-arglist_spec parse_spec() {
+arglist_spec parse_spec_impl() {
   using args_list =
       typename function_traits<std::remove_reference_t<F>>::argument_types;
 
   arglist_spec spec{};
   constexpr std::size_t N = SizeOfTypeList<args_list>::value;
   spec.nparam = static_cast<uint32_t>(N);  // start with all as positional
+
+  if constexpr (N >= 1) {
+    using first_t = typename GetNthType<0, args_list>::type;
+
+    if constexpr (is_vm_type_v<first_t>) {
+      spec.has_vm = true;
+      --spec.nparam;  // drop vm from pos count
+      if constexpr (N >= 2) {
+        using second = typename GetNthType<1, args_list>::type;
+        if constexpr (is_fib_type_v<second>) {
+          spec.has_fib = true;
+          --spec.nparam;
+        }
+      }
+    } else if constexpr (is_fib_type_v<first_t>) {
+      spec.has_fib = true;
+      --spec.nparam;
+    }
+  }
 
   if constexpr (N > 0) {
     using last_t = typename GetNthType<N - 1, args_list>::type;
@@ -158,6 +191,59 @@ arglist_spec parse_spec() {
 
   // param_index and defaults intentionally left empty
   return spec;
+}
+
+namespace helper {
+template <class F>
+consteval std::pair<bool, bool> deduce_vmfib() {
+  using args_list =
+      typename function_traits<std::remove_reference_t<F>>::argument_types;
+  constexpr std::size_t args_list_size = SizeOfTypeList<args_list>::value;
+
+  bool has_vm = false, has_fib = false;
+  if constexpr (args_list_size >= 1) {
+    using first_t = typename GetNthType<0, args_list>::type;
+    if constexpr (is_vm_type_v<first_t>) {
+      has_vm = true;
+      if constexpr (args_list_size >= 2) {
+        using second_t = typename GetNthType<1, args_list>::type;
+        if constexpr (is_fib_type_v<second_t>)
+          has_fib = true;
+      }
+    } else if constexpr (is_fib_type_v<first_t>)
+      has_fib = true;
+  }
+
+  return std::make_pair(has_vm, has_fib);
+}
+
+}  // namespace helper
+
+template <class F, argument_like... A>
+arglist_spec parse_spec(A&&... a) {
+  using args_list =
+      typename function_traits<std::remove_reference_t<F>>::argument_types;
+  [[maybe_unused]] constexpr std::size_t args_list_size =
+      SizeOfTypeList<args_list>::value;
+
+  constexpr std::size_t given_cnt = sizeof...(A);
+
+  if constexpr (given_cnt == 0) {
+    // deduce from callable F
+    return parse_spec_impl<F>();
+  } else {
+    constexpr auto deduce_result = helper::deduce_vmfib<F>();
+    constexpr bool has_vm = deduce_result.first, has_fib = deduce_result.second;
+    static_assert(
+        given_cnt + (has_vm ? 1 : 0) + (has_fib ? 1 : 0) == args_list_size,
+        "argument count mismatch");
+
+    arglist_spec spec = parse_spec_impl(std::forward<A>(a)...);
+    spec.has_vm = has_vm;
+    spec.has_fib = has_fib;
+
+    return spec;
+  }
 }
 
 }  // namespace srbind

@@ -50,7 +50,6 @@ class SrbindTest : public ::testing::Test {
   using error_type = serilang::RuntimeError;
   std::shared_ptr<GarbageCollector> gc;
 
- private:
   VM vm;
   Fiber* f;
 
@@ -346,6 +345,34 @@ TEST_F(SrbindTest, FreeFunction_InferredVarargAndKwargSpec) {
   EXPECT_EQ(r2, 7 + 10 * 0 + 100 * 3);
 }
 
+TEST_F(SrbindTest, FreeFunction_InferredVmFib) {
+  serilang::VM* vm_ptr = &vm;
+  serilang::Fiber* fib_ptr = f;
+  const int value = 123;
+
+  auto vmfib_fn = [&](serilang::VM& vm, serilang::Fiber& f, int a) {
+    EXPECT_EQ(&vm, vm_ptr);
+    EXPECT_EQ(&f, fib_ptr);
+    EXPECT_EQ(a, value);
+  };
+  auto vm_fn = [&](serilang::VM& vm, int a) {
+    EXPECT_EQ(&vm, vm_ptr);
+    EXPECT_EQ(a, value);
+  };
+  auto fib_fn = [&](serilang::Fiber& f, int a) {
+    EXPECT_EQ(&f, fib_ptr);
+    EXPECT_EQ(a, value);
+  };
+
+  NativeFunction* vmfib_nf = make_function(gc.get(), "vmfib", vmfib_fn);
+  NativeFunction* vm_nf = make_function(gc.get(), "vm", vm_fn);
+  NativeFunction* fib_nf = make_function(gc.get(), "fib", fib_fn);
+
+  CallCallee(Value(vmfib_nf), {Value(value)});
+  CallCallee(Value(vm_nf), {Value(value)});
+  CallCallee(Value(fib_nf), {Value(value)});
+}
+
 TEST_F(SrbindTest, Class_InitFactory) {
   class_<W> cw(mod, "W");
   auto factory = [](int x) { return std::make_unique<W>(x); };
@@ -482,6 +509,75 @@ TEST_F(SrbindTest, Class_DeduceMemberSpec) {
 
   EXPECT_NO_THROW(CallCallee(GetMember(inst, "set"), {Value(88)}));
   EXPECT_EQ(CallCallee(GetMember(inst, "get")), 88);
+}
+
+TEST_F(SrbindTest, Class_MemberFnWithVmFib) {
+  const int val(123);
+
+  struct vmfib {
+    serilang::VM* vm_ptr = nullptr;
+    serilang::Fiber* fib_ptr = nullptr;
+    int value = 0;
+
+    void SetVm(serilang::VM& vm, int val) {
+      EXPECT_EQ(&vm, vm_ptr);
+      EXPECT_EQ(val, value);
+    }
+    void SetFib(serilang::Fiber& f, int val) {
+      EXPECT_EQ(&f, fib_ptr);
+      EXPECT_EQ(val, value);
+    }
+    void SetVmFib(serilang::VM& vm, serilang::Fiber& f, int val) {
+      EXPECT_EQ(&vm, vm_ptr);
+      EXPECT_EQ(&f, fib_ptr);
+      EXPECT_EQ(val, value);
+    }
+  };
+
+  class_<vmfib> cb(mod, "vmfib_class");
+  cb.def(init([&]() {
+      return new vmfib{.vm_ptr = &vm, .fib_ptr = f, .value = val};
+    }))
+      .def("set_vm", &vmfib::SetVm)
+      .def("set_fib", &vmfib::SetFib)
+      .def("set_vmfib", &vmfib::SetVmFib)
+      .def("set_vm_named", &vmfib::SetVm, arg("val"))
+      .def("set_fib_named", &vmfib::SetFib, arg("val"))
+      .def("set_vmfib_named", &vmfib::SetVmFib, arg("val"));
+
+  Value klass = GetItem(dict, "vmfib_class");
+  Value inst_v = CallCallee(klass);
+  auto* inst = inst_v.Get_if<NativeInstance>();
+  ASSERT_NE(inst, nullptr);
+  EXPECT_NO_THROW(CallCallee(GetMember(inst, "set_vm"), {Value(val)}));
+
+  inst_v = CallCallee(klass);
+  inst = inst_v.Get_if<NativeInstance>();
+  ASSERT_NE(inst, nullptr);
+  EXPECT_NO_THROW(CallCallee(GetMember(inst, "set_fib"), {Value(val)}));
+
+  inst_v = CallCallee(klass);
+  inst = inst_v.Get_if<NativeInstance>();
+  ASSERT_NE(inst, nullptr);
+  EXPECT_NO_THROW(CallCallee(GetMember(inst, "set_vmfib"), {Value(val)}));
+
+  inst_v = CallCallee(klass);
+  inst = inst_v.Get_if<NativeInstance>();
+  ASSERT_NE(inst, nullptr);
+  EXPECT_NO_THROW(
+      CallCallee(GetMember(inst, "set_vm_named"), {}, {{"val", Value(val)}}));
+
+  inst_v = CallCallee(klass);
+  inst = inst_v.Get_if<NativeInstance>();
+  ASSERT_NE(inst, nullptr);
+  EXPECT_NO_THROW(
+      CallCallee(GetMember(inst, "set_fib_named"), {}, {{"val", Value(val)}}));
+
+  inst_v = CallCallee(klass);
+  inst = inst_v.Get_if<NativeInstance>();
+  ASSERT_NE(inst, nullptr);
+  EXPECT_NO_THROW(CallCallee(GetMember(inst, "set_vmfib_named"), {},
+                             {{"val", Value(val)}}));
 }
 
 }  // namespace srbind_test

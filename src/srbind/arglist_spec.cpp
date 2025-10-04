@@ -41,6 +41,10 @@ static inline std::string str(serilang::TempValue val) {
 
 std::string arglist_spec::GetDebugString() const {
   std::string result;
+  if (has_vm)
+    result += 'v';
+  if (has_fib)
+    result += 'f';
 
   result += '(';
 
