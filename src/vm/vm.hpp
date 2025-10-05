@@ -79,6 +79,8 @@ class VM {
   // Let the garbage collector track a Value allocated elsewhere
   Value AddTrack(TempValue&& t);
 
+  bool Await(Fiber& awaiter, Value& awaited);
+
  public:
   //----------------------------------------------------------------
   // Public VM state
@@ -99,6 +101,8 @@ class VM {
   // Execution helpers
   void Return(Fiber& f);
   Dict* GetNamespace(Fiber& f);
+
+  void SweepDeadFibres();
 
   //----------------------------------------------------------------
   // Core interpreter loop for one fiber

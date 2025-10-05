@@ -128,25 +128,11 @@ Value VM::Run() {
     }
 
     // Remove dead fibers and record last result
-    std::erase_if(fibres_, [&](Fiber* f) {
-      if (f->state == FiberState::Dead) {
-        if (f->pending_result.has_value())
-          last_ = std::move(*f->pending_result);
-        return true;
-      }
-      return false;
-    });
+    SweepDeadFibres();
   }
 
   // Final sweep of dead fibers to update last_
-  std::erase_if(fibres_, [&](Fiber* f) {
-    if (f->state == FiberState::Dead) {
-      if (f->pending_result.has_value())
-        last_ = std::move(*f->pending_result);
-      return true;
-    }
-    return false;
-  });
+  SweepDeadFibres();
 
   return last_;
 }
@@ -555,47 +541,9 @@ void VM::ExecuteFiber(Fiber* fib) {
         const auto ins = chunk->Read<serilang::Await>(ip);
         ip += sizeof(ins);
         Value awaited = pop(fib->stack);
-        std::shared_ptr<Promise> promise = nullptr;
-        Fiber* await_fib = nullptr;
-
-        // If awaiting a Fiber, redirect to its completion promise so that
-        // `await fiber` awaits final completion (not intermediate yields).
-        if (Fiber* tf = awaited.Get_if<Fiber>()) {
-          if (tf->state == FiberState::Dead) {
-            push(fib->stack, tf->pending_result.value_or(nil));
-            return;
-          }
-          promise = tf->completion_promise;
-          await_fib = tf;
-        }
-        if (Future* ft = awaited.Get_if<Future>()) {
-          promise = ft->promise;
-        }
-
-        if (promise == nullptr) {
-          Error(*fib, "object is not awaitable: " + awaited.Desc());
-          return;
-        }
-
-        fib->state = FiberState::Suspended;
-        auto waker = [this, fib](Promise* promise) {
-          if (promise->result->has_value() &&
-              promise->status != Promise::Status::Pending) {
-            push(fib->stack, promise->result->value());
-          } else {
-            this->Error(*fib, promise->result->error());
-            // should we return here?
-          }
-          this->scheduler_.PushMicroTask(fib);
-        };
-
-        if (promise->result.has_value()) {  // ready
-          waker(promise.get());
-        } else {  // pending
-          promise->wakers.emplace_back(waker);
-          scheduler_.PushMicroTask(await_fib);
-        }
-        return;  // switch -> await
+        bool stopped = Await(*fib, awaited);
+        if (stopped)
+          return;  // switch -> await
       } break;
 
       case OpCode::Yield: {
@@ -650,6 +598,61 @@ void VM::ExecuteFiber(Fiber* fib) {
 
   if (fib->frames.empty())
     fib->state = FiberState::Dead;
+}
+
+bool VM::Await(Fiber& awaiter, Value& awaited) {
+  std::shared_ptr<Promise> promise = nullptr;
+  Fiber* await_fib = nullptr;
+
+  // If awaiting a Fiber, redirect to its completion promise so that
+  // `await fiber` awaits final completion (not intermediate yields).
+  if (Fiber* tf = awaited.Get_if<Fiber>()) {
+    if (tf->state == FiberState::Dead) {
+      push(awaiter.stack, tf->pending_result.value_or(nil));
+      return false;
+    }
+    promise = tf->completion_promise;
+    await_fib = tf;
+  }
+  if (Future* ft = awaited.Get_if<Future>()) {
+    promise = ft->promise;
+  }
+
+  if (promise == nullptr) {
+    Error(awaiter, "object is not awaitable: " + awaited.Desc());
+    return true;  // switch -> await
+  }
+
+  awaiter.state = FiberState::Suspended;
+  auto waker = [this, &awaiter](Promise* promise) {
+    if (promise->result->has_value() &&
+        promise->status != Promise::Status::Pending) {
+      push(awaiter.stack, promise->result->value());
+    } else {
+      this->Error(awaiter, promise->result->error());
+    }
+    this->scheduler_.PushMicroTask(&awaiter);
+  };
+
+  if (promise->result.has_value()) {  // ready
+    waker(promise.get());
+  } else {  // pending
+    promise->wakers.emplace_back(waker);
+    scheduler_.PushMicroTask(await_fib);
+  }
+
+  return true;
+}
+
+void VM::SweepDeadFibres() {
+  std::erase_if(fibres_, [&](Fiber* f) {
+    if (f->state == FiberState::Dead) {
+      if (f->pending_result.has_value())
+        last_ = std::move(*f->pending_result);
+      return true;
+    }
+    return false;
+  });
 }
 
 }  // namespace serilang
