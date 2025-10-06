@@ -59,6 +59,8 @@ struct GexeErr {
   inline bool operator==(const GexeErr& other) const {
     return key == other.key && message == other.message && line == other.line;
   }
+
+  [[nodiscard]] std::string GetDebugString() const;
 };
 
 template <typename T>
@@ -169,12 +171,11 @@ class Gameexe {
   void SetIntAt(std::string_view key, int value);
 
   inline void parseLine(const std::string& line) { (void)ParseLine(line, 0); }
+  GexeExpected<void> ParseLine(std::string_view line, std::size_t line_number);
 
  private:
   friend class GameexeInterpretObject;
   friend class Gameexe::FilterRange;
-
-  GexeExpected<void> ParseLine(std::string_view line, std::size_t line_number);
 
   GexeExpected<std::vector<GexeVal>> ParseValues(std::string_view key,
                                                  std::string_view value,

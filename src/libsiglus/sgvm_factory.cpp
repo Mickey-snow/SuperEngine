@@ -25,6 +25,7 @@
 
 #include "libsiglus/bindings/common.hpp"
 #include "libsiglus/bindings/event.hpp"
+#include "libsiglus/bindings/gexe.hpp"
 #include "libsiglus/bindings/obj.hpp"
 #include "libsiglus/bindings/sound.hpp"
 #include "libsiglus/bindings/system.hpp"
@@ -47,6 +48,31 @@ namespace fs = std::filesystem;
 
 static DomainLogger logger("SiglusFactory");
 
+// Load Gameexe.ini config
+static Gameexe LoadGameexe(std::shared_ptr<AssetScanner> scanner) {
+  auto pth = scanner->FindFile("Gameexe", {"dat", "ini"});
+  if (!pth.has_value()) {
+    logger(Severity::Error) << "Gameexe.dat not found: " << pth.error().what();
+    return {};
+  }
+
+  if (pth->extension() == ".ini") {
+    auto gexe = Gameexe::FromFile(pth.value());
+    if (gexe.has_value())
+      return gexe.value();
+    logger(Severity::Error) << "Error while loading " << pth->string() << ": "
+                            << gexe.error().message;
+  } else {
+    try {
+      return CreateGexe(pth.value());
+    } catch (std::exception& e) {
+      logger(Severity::Error)
+          << "Error while loading " << pth->string() << ": " << e.what();
+    }
+  }
+  return {};
+}
+
 SiglusRuntime SGVMFactory::Create() {
   SiglusRuntime runtime;
   runtime.vm = std::make_unique<sr::VM>(m6::VMFactory::Create());
@@ -57,12 +83,7 @@ SiglusRuntime SGVMFactory::Create() {
   ctx.asset_scanner = runtime.asset_scanner = std::make_shared<AssetScanner>();
   runtime.asset_scanner->IndexDirectory(ctx.base_pth);
 
-  // Load Gameexe.ini config
-  if (auto pth = ctx.asset_scanner->FindFile("Gameexe", {"dat"});
-      pth.has_value())
-    runtime.gameexe = CreateGexe(pth.value());
-  else
-    logger(Severity::Error) << "Gameexe.dat not found: " << pth.error().what();
+  runtime.gameexe = LoadGameexe(runtime.asset_scanner);
   Gameexe& gexe = runtime.gameexe;
   gexe.SetStringAt("CAPTION", "SiglusTest");
   gexe.SetStringAt("REGNAME", "sjis: SIGLUS\\TEST");
@@ -80,6 +101,7 @@ SiglusRuntime SGVMFactory::Create() {
   binding::System(ctx).Bind(runtime);
   binding::Obj(ctx).Bind(runtime);
   binding::sgEvent(ctx).Bind(runtime);
+  binding::sgGexe(ctx).Bind(runtime);
 
   // abuse the vm scheduler to refresh sdl regularly
   std::function<void()>& cb = runtime.exec_sdl_callback;

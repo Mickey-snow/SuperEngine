@@ -41,6 +41,16 @@
 #include <fstream>
 #include <sstream>
 
+std::string GexeErr::GetDebugString() const {
+  std::ostringstream oss;
+  if (!key.empty())
+    oss << "Gameexe[" << key << "]: ";
+  oss << message;
+  if (line)
+    oss << " (line " << *line << ")";
+  return oss.str();
+}
+
 namespace {
 [[nodiscard]] static inline GexeErr MakeError(std::string_view key,
                                               std::string message,
@@ -49,13 +59,7 @@ namespace {
 }
 
 [[noreturn]] static void ThrowGameexeError(const GexeErr& error) {
-  std::ostringstream oss;
-  if (!error.key.empty())
-    oss << "Gameexe[" << error.key << "]: ";
-  oss << error.message;
-  if (error.line)
-    oss << " (line " << *error.line << ")";
-  throw std::runtime_error(oss.str());
+  throw std::runtime_error(error.GetDebugString());
 }
 }  // namespace
 
