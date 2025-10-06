@@ -33,6 +33,7 @@
 #include "vm/gc.hpp"
 #include "vm/instruction.hpp"
 #include "vm/object.hpp"
+#include "vm/operator_protocol.hpp"
 #include "vm/promise.hpp"
 #include "vm/upvalue.hpp"
 #include "vm/value.hpp"
@@ -43,12 +44,155 @@
 #include <fstream>
 #include <iterator>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 
 namespace serilang {
 
 using helper::pop;
 using helper::push;
+
+namespace {
+
+enum class ScriptDispatchResult { NotHandled, Handled, Error };
+
+std::optional<Value> ResolveMagic(Instance* inst, std::string_view name) {
+  if (!inst || name.empty())
+    return std::nullopt;
+
+  if (auto it = inst->fields.find(name); it != inst->fields.end())
+    return it->second;
+
+  if (auto it = inst->klass->memfns.find(name); it != inst->klass->memfns.end())
+    return Value(it->second);
+
+  if (auto it = inst->klass->fields.find(name); it != inst->klass->fields.end())
+    return it->second;
+
+  return std::nullopt;
+}
+
+std::optional<Value> ResolveMagic(NativeInstance* inst, std::string_view name) {
+  if (!inst || name.empty())
+    return std::nullopt;
+
+  if (auto it = inst->fields.find(name); it != inst->fields.end())
+    return it->second;
+
+  if (auto it = inst->klass->methods.find(name);
+      it != inst->klass->methods.end())
+    return it->second;
+
+  return std::nullopt;
+}
+
+ScriptDispatchResult CallMagicUnary(VM& vm,
+                                    Fiber& f,
+                                    Value callee,
+                                    Value self) {
+  const size_t base = f.stack.size();
+  f.stack.emplace_back(std::move(callee));
+  f.stack.emplace_back(std::move(self));
+  try {
+    f.stack[base].Call(vm, f, 1, 0);
+  } catch (RuntimeError& e) {
+    f.stack.resize(base);
+    push(f.stack, nil);
+    vm.Error(f, e.message());
+    return ScriptDispatchResult::Error;
+  }
+  return ScriptDispatchResult::Handled;
+}
+
+ScriptDispatchResult CallMagicBinary(VM& vm,
+                                     Fiber& f,
+                                     Value callee,
+                                     Value self,
+                                     Value other) {
+  const size_t base = f.stack.size();
+  f.stack.emplace_back(std::move(callee));
+  f.stack.emplace_back(std::move(self));
+  f.stack.emplace_back(std::move(other));
+  try {
+    f.stack[base].Call(vm, f, 2, 0);
+  } catch (RuntimeError& e) {
+    f.stack.resize(base);
+    push(f.stack, nil);
+    vm.Error(f, e.message());
+    return ScriptDispatchResult::Error;
+  }
+  return ScriptDispatchResult::Handled;
+}
+
+ScriptDispatchResult TryDispatchUnaryMagic(VM& vm,
+                                           Fiber& f,
+                                           Op op,
+                                           Value& operand) {
+  using namespace opproto;
+
+  const std::string_view name = UnaryMagic(op);
+  if (name.empty())
+    return ScriptDispatchResult::NotHandled;
+
+  if (auto* inst = operand.Get_if<Instance>()) {
+    if (auto callee = ResolveMagic(inst, name))
+      return CallMagicUnary(vm, f, std::move(*callee), Value(inst));
+  }
+
+  if (auto* ninst = operand.Get_if<NativeInstance>()) {
+    if (auto callee = ResolveMagic(ninst, name))
+      return CallMagicUnary(vm, f, std::move(*callee), Value(ninst));
+  }
+
+  return ScriptDispatchResult::NotHandled;
+}
+
+ScriptDispatchResult TryDispatchBinaryMagic(VM& vm,
+                                            Fiber& f,
+                                            Op op,
+                                            Value& lhs,
+                                            Value& rhs) {
+  using namespace opproto;
+
+  const auto names = BinaryMagic(op);
+  if (names.lhs.empty() && names.rhs.empty())
+    return ScriptDispatchResult::NotHandled;
+
+  if (!names.inplace.empty()) {
+    // TODO: when augmented assignment information reaches the VM, dispatch
+    //       __iop__ here. For now fall back to __op__/__rop__.
+  }
+
+  if (!names.lhs.empty()) {
+    if (auto* inst = lhs.Get_if<Instance>()) {
+      if (auto callee = ResolveMagic(inst, names.lhs))
+        return CallMagicBinary(vm, f, std::move(*callee), Value(inst),
+                               std::move(rhs));
+    }
+    if (auto* ninst = lhs.Get_if<NativeInstance>()) {
+      if (auto callee = ResolveMagic(ninst, names.lhs))
+        return CallMagicBinary(vm, f, std::move(*callee), Value(ninst),
+                               std::move(rhs));
+    }
+  }
+
+  if (!names.rhs.empty()) {
+    if (auto* inst = rhs.Get_if<Instance>()) {
+      if (auto callee = ResolveMagic(inst, names.rhs))
+        return CallMagicBinary(vm, f, std::move(*callee), Value(inst),
+                               std::move(lhs));
+    }
+    if (auto* ninst = rhs.Get_if<NativeInstance>()) {
+      if (auto callee = ResolveMagic(ninst, names.rhs))
+        return CallMagicBinary(vm, f, std::move(*callee), Value(ninst),
+                               std::move(lhs));
+    }
+  }
+
+  return ScriptDispatchResult::NotHandled;
+}
+
+}  // namespace
 
 // -----------------------------------------------------------------------
 // class VM
@@ -256,16 +400,26 @@ void VM::ExecuteFiber(Fiber* fib) {
         const auto ins = chunk->Read<serilang::UnaryOp>(ip);
         ip += sizeof(ins);
         auto v = pop(fib->stack);
-        TempValue result = nil;
-        try {
-          result = v.Operator(*this, *fib, ins.op);
-        } catch (RuntimeError& e) {
-          push(fib->stack, nil);
-          Error(*fib, e.message());
-          return;
-        }
 
-        push(fib->stack, AddTrack(std::move(result)));
+        switch (TryDispatchUnaryMagic(*this, *fib, ins.op, v)) {
+          case ScriptDispatchResult::Handled:
+            break;
+          case ScriptDispatchResult::Error:
+            return;
+          case ScriptDispatchResult::NotHandled: {
+            TempValue result = nil;
+            try {
+              result = v.Operator(*this, *fib, ins.op);
+            } catch (RuntimeError& e) {
+              push(fib->stack, nil);
+              Error(*fib, e.message());
+              return;
+            }
+
+            push(fib->stack, AddTrack(std::move(result)));
+            break;
+          }
+        }
       } break;
 
       case OpCode::BinaryOp: {
@@ -273,16 +427,26 @@ void VM::ExecuteFiber(Fiber* fib) {
         ip += sizeof(ins);
         auto rhs = pop(fib->stack);
         auto lhs = pop(fib->stack);
-        TempValue result = nil;
-        try {
-          result = lhs.Operator(*this, *fib, ins.op, std::move(rhs));
-        } catch (RuntimeError& e) {
-          push(fib->stack, nil);
-          Error(*fib, e.message());
-          return;
-        }
 
-        push(fib->stack, AddTrack(std::move(result)));
+        switch (TryDispatchBinaryMagic(*this, *fib, ins.op, lhs, rhs)) {
+          case ScriptDispatchResult::Handled:
+            break;
+          case ScriptDispatchResult::Error:
+            return;
+          case ScriptDispatchResult::NotHandled: {
+            TempValue result = nil;
+            try {
+              result = lhs.Operator(*this, *fib, ins.op, std::move(rhs));
+            } catch (RuntimeError& e) {
+              push(fib->stack, nil);
+              Error(*fib, e.message());
+              return;
+            }
+
+            push(fib->stack, AddTrack(std::move(result)));
+            break;
+          }
+        }
       } break;
 
       //------------------------------------------------------------------

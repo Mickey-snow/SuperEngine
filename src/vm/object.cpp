@@ -31,6 +31,7 @@
 #include "vm/vm.hpp"
 
 #include <format>
+#include <optional>
 
 namespace serilang {
 
@@ -221,6 +222,47 @@ TempValue NativeInstance::Member(std::string_view mem) {
 
 void NativeInstance::SetMember(std::string_view mem, Value val) {
   fields[std::string(mem)] = std::move(val);
+}
+
+void NativeInstance::GetItem(VM& vm, Fiber& f) {
+  Value& idx = f.stack.back();
+
+  auto lookup = [this](std::string_view name) -> std::optional<Value> {
+    if (auto it = fields.find(name); it != fields.end())
+      return it->second;
+    if (auto it = klass->methods.find(name); it != klass->methods.end())
+      return it->second;
+    return std::nullopt;
+  };
+
+  auto callee = lookup("__getitem__");
+  if (!callee) {
+    vm.Error(f, std::format("'{}' object has no item '{}'", Desc(), idx.Str()));
+    return;
+  }
+
+  f.stack.insert(f.stack.end() - 2, *callee);
+  f.stack.end()[-3].Call(vm, f, 2, 0);
+}
+
+void NativeInstance::SetItem(VM& vm, Fiber& f) {
+  auto lookup = [this](std::string_view name) -> std::optional<Value> {
+    if (auto it = fields.find(name); it != fields.end())
+      return it->second;
+    if (auto it = klass->methods.find(name); it != klass->methods.end())
+      return it->second;
+    return std::nullopt;
+  };
+
+  auto callee = lookup("__setitem__");
+  if (!callee) {
+    vm.Error(
+        f, std::format("'{}' object does not support item assignment", Desc()));
+    return;
+  }
+
+  f.stack.insert(f.stack.end() - 3, *callee);
+  f.stack.end()[-4].Call(vm, f, 3, 0);
 }
 
 // -----------------------------------------------------------------------

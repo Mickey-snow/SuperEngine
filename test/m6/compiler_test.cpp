@@ -27,6 +27,7 @@
 #include "m6/compiler_pipeline.hpp"
 #include "m6/source_buffer.hpp"
 #include "m6/vm_factory.hpp"
+#include "srbind/module.hpp"
 #include "utilities/string_utilities.hpp"
 #include "vm/disassembler.hpp"
 #include "vm/object.hpp"
@@ -35,9 +36,11 @@
 #include <filesystem>
 #include <format>
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <regex>
 #include <sstream>
+#include <unordered_map>
 
 namespace m6test {
 
@@ -80,11 +83,19 @@ class CompilerTest : public ::testing::Test {
 
   // Compile + run `source`.
   [[nodiscard]] ExecutionResult Run(std::string source) {
+    return RunWith(std::move(source), nullptr);
+  }
+
+  [[nodiscard]] ExecutionResult RunWith(
+      std::string source,
+      std::function<void(serilang::VM&)> init_vm) {
     std::stringstream outBuf, errBuf;
     ExecutionResult r;
 
     // ── compile ────────────────────────────────────────────────────
     auto vm = m6::VMFactory::Create(gc, outBuf, inBuf, errBuf);
+    if (init_vm)
+      init_vm(vm);
     m6::CompilerPipeline pipe(gc, false);
     auto sb = SourceBuffer::Create(std::move(source), "<CompilerTest>");
     pipe.compile(sb);
@@ -449,6 +460,72 @@ print("x = ", a["x"], ", y = ", a["y"], sep="", end="");
 )");
 
   EXPECT_EQ(res, "x = 5, y = 6");
+}
+
+TEST_F(CompilerTest, InstanceMagicMethods) {
+  auto res = Run(R"(
+class Box{
+  fn __init__(self, value){ self.value = value; }
+  fn __add__(self, other){ return Box(self.value + other.value); }
+  fn __radd__(self, other){ return Box(other + self.value); }
+  fn __neg__(self){ return Box(-self.value); }
+}
+
+a = Box(2);
+b = Box(5);
+print((a + b).value, (-a).value, (3 + b).value);
+)");
+
+  EXPECT_EQ(res, "7 -2 8\n");
+}
+
+TEST_F(CompilerTest, NativeInstanceMagicMethods) {
+  struct NativeBox {
+    explicit NativeBox(int v = 0) : value(v) {}
+
+    int Get() const { return value; }
+    void Set(int v) { value = v; }
+    int Add(const NativeBox* other) const {
+      return value + (other ? other->value : 0);
+    }
+    int RAdd(int other) const { return other + value; }
+    int Neg() const { return -value; }
+    int GetItem(std::string key) const {
+      auto it = items.find(key);
+      if (it == items.end())
+        return 0;
+      return it->second;
+    }
+    void SetItem(std::string key, int val) { items[std::move(key)] = val; }
+
+    int value = 0;
+    std::unordered_map<std::string, int> items;
+  };
+
+  auto res = RunWith(
+      R"(
+box = NativeBox(10);
+other = NativeBox(5);
+box["score"] = 7;
+box["bonus"] = 9;
+print(box + other, 3 + box, -box, box["score"], box["bonus"]);
+)",
+      [&](serilang::VM& vm) {
+        using srbind::arg;
+        using srbind::class_;
+        using srbind::init;
+
+        srbind::module_ mod(vm.gc_.get(), vm.builtins_);
+        class_<NativeBox> box(mod, "NativeBox");
+        box.def(init<int>(), arg("value") = 0)
+            .def("__add__", &NativeBox::Add, arg("other"))
+            .def("__radd__", &NativeBox::RAdd, arg("other"))
+            .def("__neg__", &NativeBox::Neg)
+            .def("__getitem__", &NativeBox::GetItem, arg("key"))
+            .def("__setitem__", &NativeBox::SetItem, arg("key"), arg("value"));
+      });
+
+  EXPECT_EQ(res, "15 13 -10 7 9\n");
 }
 
 TEST_F(CompilerTest, Coroutine) {

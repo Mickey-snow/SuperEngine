@@ -23,8 +23,6 @@
 
 #include "libsiglus/bindings/event.hpp"
 
-#include "libsiglus/bindings/exception.hpp"
-#include "log/domain_logger.hpp"
 #include "srbind/srbind.hpp"
 #include "systems/event_system.hpp"
 #include "systems/sdl/sdl_system.hpp"

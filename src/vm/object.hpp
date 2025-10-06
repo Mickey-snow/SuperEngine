@@ -194,6 +194,8 @@ struct NativeInstance : public IObject {
 
   TempValue Member(std::string_view mem) override;
   void SetMember(std::string_view mem, Value val) override;
+  void GetItem(VM& vm, Fiber& f) override;
+  void SetItem(VM& vm, Fiber& f) override;
 };
 
 enum class FiberState { New, Running, Suspended, Dead };
