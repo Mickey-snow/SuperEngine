@@ -24,6 +24,7 @@
 
 #include "vm/promise.hpp"
 
+#include "vm/future.hpp"
 #include "vm/gc.hpp"
 #include "vm/object.hpp"
 
@@ -34,24 +35,35 @@ namespace serilang {
 std::string Promise::ToDebugString() const { return "<promise>"; }
 
 void Promise::WakeAll() {
-  std::for_each(wakers.begin(), wakers.end(), [this](auto it) { it(this); });
+  std::for_each(wakers.begin(), wakers.end(),
+                [this](auto it) { it(this->result.value()); });
   wakers.clear();
 }
 
 void Promise::Resolve(Value value) {
-  if (status != Status::Pending)
+  if (HasResult())
     return;
+  AddRoot(value);
   result = value;
   status = Status::Resolved;
   WakeAll();
 }
 
 void Promise::Reject(std::string msg) {
-  if (status != Status::Pending)
+  if (HasResult())
     return;
   result = unexpected(std::move(msg));
   status = Status::Rejected;
   WakeAll();
+}
+
+std::shared_ptr<Promise> get_promise(Value& value) {
+  if (auto tf = value.Get_if<Fiber>()) {
+    return tf->completion_promise;
+  } else if (auto ft = value.Get_if<Future>()) {
+    return ft->promise;
+  }
+  return nullptr;
 }
 
 }  // namespace serilang

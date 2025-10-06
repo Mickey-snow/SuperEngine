@@ -40,13 +40,13 @@ class IObject;
 
 // Fibres are awaitable handles; Promises are hidden internal machinery
 struct Promise {
-  enum class Status { Pending, Resolved, Rejected };
-  Status status = Status::Pending;
+  enum class Status { New, Pending, Resolved, Rejected };
+  Status status = Status::New;
 
   // note: result.has_value() -> has result or exception
   // result->has_value() -> has result
   std::optional<expected<Value, std::string>> result = std::nullopt;
-  std::vector<std::function<void(Promise*)>> wakers;
+  std::vector<std::function<void(const expected<Value, std::string>&)>> wakers;
 
   std::vector<IObject*> roots;
   inline void AddRoot(Value& value) {
@@ -54,12 +54,22 @@ struct Promise {
       roots.emplace_back(obj);
   }
 
+  std::function<void(VM&, Value& /*awaiter*/, Value& /*awaited*/)>
+      initial_await;
+
   std::string ToDebugString() const;
+
+  inline bool HasResult() const noexcept {
+    return status == Status::Rejected || status == Status::Resolved;
+  }
 
   void Reset(Fiber* fiber);
   void WakeAll();
   void Resolve(Value value);
   void Reject(std::string msg);
 };
+
+// helper to get promise from awaited value
+std::shared_ptr<Promise> get_promise(Value& value);
 
 }  // namespace serilang

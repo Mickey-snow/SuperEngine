@@ -41,148 +41,159 @@ void Future::MarkRoots(GCVisitor& visitor) {
     visitor.MarkSub(it);
 }
 
-// -----------------------------------------------------------------------
-static void SubscribeAwaitable(
-    VM& vm,
-    std::shared_ptr<Promise> owner,
-    Value& awaited,
-    std::function<void(expected<Value, std::string>)> callback) {
-  auto deliver = [cb = std::move(callback)](Promise* pr) {
-    if (cb && pr->result.has_value())
-      cb(*pr->result);
+namespace async_builtin {
+namespace chr = std::chrono;
+Value Sleep(VM& vm, int ms, Value result) {
+  if (ms < 0)
+    ms = 0;
+  Future* future = vm.gc_->Allocate<Future>();
+  future->AddRoot(result);
+  future->promise->initial_await = [r = std::move(result),
+                                    dur = chr::milliseconds(ms)](VM& vm, Value&,
+                                                                 Value& sleep) {
+    std::weak_ptr<Promise> promise = get_promise(sleep);
+
+    vm.scheduler_.PushCallbackAfter(
+        [promise, r = std::move(r)]() {
+          if (auto p = promise.lock())
+            p->Resolve(std::move(r));
+        },
+        dur);
   };
 
-  owner->AddRoot(awaited);
-  std::shared_ptr<Promise> promise = nullptr;
-
-  if (auto tf = awaited.Get_if<Fiber>()) {
-    promise = tf->completion_promise;
-    if (!promise->result.has_value())
-      vm.scheduler_.PushMicroTask(tf);
-  } else if (auto ft = awaited.Get_if<Future>()) {
-    promise = ft->promise;
-  }
-
-  if (!promise) {
-    callback(unexpected("Object is not awaitable: " + awaited.Desc()));
-    return;
-  }
-
-  if (promise->result.has_value())
-    deliver(promise.get());
-  else
-    promise->wakers.emplace_back(std::move(deliver));
+  return Value(future);
 }
-void InstallAsyncBuiltins(VM& vm) {
-  namespace chr = std::chrono;
 
+Value Timeout(VM& vm, Value awaited, int ms) {
+  if (ms < 0)
+    ms = 0;
+  Future* future = vm.gc_->Allocate<Future>();
+  future->promise->AddRoot(awaited);
+
+  future->promise->initial_await = [ms, awaited = std::move(awaited)](
+                                       VM& vm, Value&, Value& timeout) {
+    std::weak_ptr<Promise> promise = get_promise(timeout);
+
+    vm.scheduler_.PushCallbackAfter(
+        [ms, promise]() {
+          if (auto p = promise.lock())
+            p->Reject(std::format("Timeout after {} ms", ms));
+        },
+        chr::milliseconds(ms));
+
+    vm.Await(timeout, const_cast<Value&>(awaited),
+             [promise](const expected<Value, std::string>& outcome) {
+               if (auto p = promise.lock()) {
+                 if (outcome.has_value())
+                   p->Resolve(outcome.value());
+                 else
+                   p->Reject(outcome.error());
+               }
+             });
+  };
+
+  return Value(future);
+}
+
+Value Gather(VM& vm, std::vector<Value> awaitables) {
+  Future* future = vm.gc_->Allocate<Future>();
+  if (awaitables.empty()) {
+    auto* empty_list = vm.gc_->Allocate<List>();
+    future->promise->Resolve(Value(empty_list));
+    return Value(future);
+  }
+
+  struct GatherData {
+    List* results;
+    size_t remaining;
+  };
+  auto data = std::make_shared<GatherData>();
+  data->results =
+      vm.gc_->Allocate<List>(std::vector<Value>(awaitables.size(), nil));
+  data->remaining = awaitables.size();
+  future->promise->roots.push_back(data->results);
+
+  future->promise->initial_await = [data = std::move(data),
+                                    awaitables = std::move(awaitables)](
+                                       VM& vm, Value&, Value& gather) {
+    std::weak_ptr<Promise> promise = get_promise(gather);
+
+    for (size_t i = 0; i < awaitables.size(); ++i) {
+      Value& awaitable = const_cast<Value&>(awaitables[i]);
+
+      vm.Await(gather, awaitable,
+               [data, i, promise](expected<Value, std::string> outcome) {
+                 if (auto p = promise.lock()) {
+                   if (!outcome.has_value())
+                     p->Reject(outcome.error());
+                   else
+                     data->results->items[i] = outcome.value();
+
+                   if (--data->remaining == 0)
+                     p->Resolve(Value(data->results));
+                 }
+               });
+    }
+  };
+
+  return Value(future);
+}
+
+Value Race(VM& vm, std::vector<Value> awaitables) {
+  Future* future = vm.gc_->Allocate<Future>();
+  if (awaitables.empty()) {
+    future->promise->Resolve(nil);
+    return Value(future);
+  }
+
+  future->promise->initial_await = [awaitables = std::move(awaitables)](
+                                       VM& vm, Value&, Value& race) {
+    std::weak_ptr<Promise> promise = get_promise(race);
+
+    for (Value const& awaitable : awaitables) {
+      vm.Await(race, const_cast<Value&>(awaitable),
+               [promise](expected<Value, std::string> outcome) {
+                 if (auto p = promise.lock()) {
+                   if (!outcome.has_value())
+                     p->Reject(outcome.error());
+                   else
+                     p->Resolve(outcome.value());
+                 }
+               });
+    }
+  };
+
+  return Value(future);
+}
+
+}  // namespace async_builtin
+
+void InstallAsyncBuiltins(VM& vm) {
   srbind::module_ m(vm, "async");
 
   m.def(
       "Sleep",
-      [&vm](int ms, Value result) {
-        if (ms < 0)
-          ms = 0;
-        Future* future = vm.gc_->Allocate<Future>();
-        future->AddRoot(result);
-        vm.scheduler_.PushCallbackAfter(
-            [state = std::weak_ptr(future->promise), r = std::move(result)]() {
-              if (auto p = state.lock())
-                p->Resolve(std::move(r));
-            },
-            chr::milliseconds(ms));
-        return Value(future);
+      +[](VM& vm, int ms, Value result) {
+        return async_builtin::Sleep(vm, ms, std::move(result));
       },
       srbind::arg("msecs"), srbind::arg("result") = nil);
 
   m.def(
       "Timeout",
-      [&vm](Value awaited, int ms) {
-        if (ms < 0)
-          ms = 0;
-        Future* future = vm.gc_->Allocate<Future>();
-        vm.scheduler_.PushCallbackAfter(
-            [ms, state = std::weak_ptr(future->promise)]() {
-              if (auto p = state.lock())
-                p->Reject(std::format("Timeout after {} ms", ms));
-            },
-            chr::milliseconds(ms));
-
-        SubscribeAwaitable(vm, future->promise, awaited,
-                           [state = std::weak_ptr(future->promise)](
-                               expected<Value, std::string> outcome) {
-                             if (auto p = state.lock()) {
-                               if (outcome.has_value())
-                                 p->Resolve(outcome.value());
-                               else
-                                 p->Reject(outcome.error());
-                             }
-                           });
-        return Value(future);
+      +[](VM& vm, Value awaited, int ms) {
+        return async_builtin::Timeout(vm, std::move(awaited), ms);
       },
       srbind::arg("awaitable"), srbind::arg("timeout_ms"));
 
-  m.def("Gather", [&vm](std::vector<Value> awaitables) {
-    Future* future = vm.gc_->Allocate<Future>();
-    if (awaitables.empty()) {
-      auto* empty_list = vm.gc_->Allocate<List>();
-      future->promise->Resolve(Value(empty_list));
-      return Value(future);
-    }
+  m.def(
+      "Gather", +[](VM& vm, std::vector<Value> awaitables) {
+        return async_builtin::Gather(vm, std::move(awaitables));
+      });
 
-    struct GatherData {
-      List* results;
-      size_t remaining;
-    };
-    auto data = std::make_shared<GatherData>();
-    data->results =
-        vm.gc_->Allocate<List>(std::vector<Value>(awaitables.size(), nil));
-    data->remaining = awaitables.size();
-    future->promise->roots.push_back(data->results);
-
-    for (size_t i = 0; i < awaitables.size(); ++i) {
-      Value& awaitable = awaitables[i];
-
-      SubscribeAwaitable(vm, future->promise, awaitable,
-                         [data, i, state = std::weak_ptr(future->promise)](
-                             expected<Value, std::string> outcome) {
-                           if (auto p = state.lock()) {
-                             if (!outcome.has_value())
-                               p->Reject(outcome.error());
-                             else
-                               data->results->items[i] = outcome.value();
-
-                             if (--data->remaining == 0)
-                               p->Resolve(Value(data->results));
-                           }
-                         });
-    }
-
-    return Value(future);
-  });
-
-  m.def("Race", [&vm](std::vector<Value> awaitables) {
-    Future* future = vm.gc_->Allocate<Future>();
-    if (awaitables.empty()) {
-      future->promise->Resolve(nil);
-      return Value(future);
-    }
-
-    for (Value& awaitable : awaitables) {
-      SubscribeAwaitable(vm, future->promise, awaitable,
-                         [state = std::weak_ptr(future->promise)](
-                             expected<Value, std::string> outcome) {
-                           if (auto p = state.lock()) {
-                             if (!outcome.has_value())
-                               p->Reject(outcome.error());
-                             else
-                               p->Resolve(outcome.value());
-                           }
-                         });
-    }
-
-    return Value(future);
-  });
+  m.def(
+      "Race", +[](VM& vm, std::vector<Value> awaitables) {
+        return async_builtin::Race(vm, std::move(awaitables));
+      });
 }
 
 }  // namespace serilang

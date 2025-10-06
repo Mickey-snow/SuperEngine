@@ -79,7 +79,10 @@ class VM {
   // Let the garbage collector track a Value allocated elsewhere
   Value AddTrack(TempValue&& t);
 
-  bool Await(Fiber& awaiter, Value& awaited);
+  bool Await(
+      Value& awaiter,
+      Value& awaited,
+      std::function<void(const expected<Value, std::string>&)> result_callback);
 
  public:
   //----------------------------------------------------------------

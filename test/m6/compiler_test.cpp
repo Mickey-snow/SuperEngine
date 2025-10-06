@@ -525,9 +525,10 @@ print(x, await f, await f);
 )");
     EXPECT_EQ(res, "nil 99 99\n");
   }
+}
 
-  // timeout
-  {
+TEST_F(CompilerTest, Async_Timeout) {
+  {  // rejected
     auto res = Run(R"(
 fn foo(){ return await async.Sleep(30, result = 123); }
 future = spawn foo();
@@ -538,7 +539,7 @@ try{
 )");
     EXPECT_EQ(res, "Timeout after 10 ms");
   }
-  {
+  {  // resolve
     auto res = Run(R"(
 fn foo(){ return await async.Sleep(5, result = 123); }
 try{
@@ -548,8 +549,19 @@ try{
 )");
     EXPECT_EQ(res, "123");
   }
+  {  // timer should start at await command, not future creation
+    auto res = Run(R"(
+try{
+  future = async.Timeout(async.Sleep(5, result = 123), 20);
+  await async.Sleep(20);
+  print(await future);
+} catch(e) { print(e); }
+)");
+    EXPECT_EQ(res, "123");
+  }
+}
 
-  // gather
+TEST_F(CompilerTest, Async_Gather) {
   {
     auto res = Run(R"(
 fn foo(n){ return await async.Sleep(n, n+1); }
@@ -561,6 +573,7 @@ try{
 )");
     EXPECT_EQ(res, "[2,8]");
   }
+
   {
     auto res = Run(R"(
 try{
@@ -570,6 +583,7 @@ try{
 )");
     EXPECT_EQ(res, "[]");
   }
+
   {
     auto res = Run(R"(
 fn foo(n){ throw "foo_error";  }
@@ -584,8 +598,9 @@ try{
 )");
     EXPECT_EQ(res, "foo_error\nfoo_error");
   }
+}
 
-  // race
+TEST_F(CompilerTest, Async_Race) {
   {
     auto res = Run(R"(
 fn foo(n){ return await async.Sleep(10, n+1); }
@@ -597,6 +612,7 @@ try{
 )");
     EXPECT_EQ(res, "2");
   }
+
   {
     auto res = Run(R"(
 try{

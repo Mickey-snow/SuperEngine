@@ -38,6 +38,7 @@
 #include "vm/value.hpp"
 
 #include <algorithm>
+#include <cassert>
 #include <chrono>
 #include <fstream>
 #include <iterator>
@@ -540,10 +541,23 @@ void VM::ExecuteFiber(Fiber* fib) {
       case OpCode::Await: {
         const auto ins = chunk->Read<serilang::Await>(ip);
         ip += sizeof(ins);
+        Value awaiter(fib);
         Value awaited = pop(fib->stack);
-        bool stopped = Await(*fib, awaited);
+
+        fib->state = FiberState::Suspended;
+        auto cb = [this, fib](const expected<Value, std::string>& result) {
+          if (result.has_value())
+            push(fib->stack, result.value());
+          else
+            this->Error(*fib, result.error());
+
+          this->scheduler_.PushMicroTask(fib);
+        };
+
+        bool stopped = Await(awaiter, awaited, std::move(cb));
         if (stopped)
           return;  // switch -> await
+
       } break;
 
       case OpCode::Yield: {
@@ -600,7 +614,11 @@ void VM::ExecuteFiber(Fiber* fib) {
     fib->state = FiberState::Dead;
 }
 
-bool VM::Await(Fiber& awaiter, Value& awaited) {
+bool VM::Await(Value& awaiter,
+               Value& awaited,
+               std::function<void(const expected<Value, std::string>&)> waker) {
+  assert(waker);
+
   std::shared_ptr<Promise> promise = nullptr;
   Fiber* await_fib = nullptr;
 
@@ -608,7 +626,7 @@ bool VM::Await(Fiber& awaiter, Value& awaited) {
   // `await fiber` awaits final completion (not intermediate yields).
   if (Fiber* tf = awaited.Get_if<Fiber>()) {
     if (tf->state == FiberState::Dead) {
-      push(awaiter.stack, tf->pending_result.value_or(nil));
+      waker(tf->pending_result.value_or(nil));
       return false;
     }
     promise = tf->completion_promise;
@@ -619,27 +637,23 @@ bool VM::Await(Fiber& awaiter, Value& awaited) {
   }
 
   if (promise == nullptr) {
-    Error(awaiter, "object is not awaitable: " + awaited.Desc());
-    return true;  // switch -> await
+    waker(unexpected("object is not awaitable: " + awaited.Desc()));
+    return false;
   }
-
-  awaiter.state = FiberState::Suspended;
-  auto waker = [this, &awaiter](Promise* promise) {
-    if (promise->result->has_value() &&
-        promise->status != Promise::Status::Pending) {
-      push(awaiter.stack, promise->result->value());
-    } else {
-      this->Error(awaiter, promise->result->error());
-    }
-    this->scheduler_.PushMicroTask(&awaiter);
-  };
 
   if (promise->result.has_value()) {  // ready
-    waker(promise.get());
-  } else {  // pending
-    promise->wakers.emplace_back(waker);
-    scheduler_.PushMicroTask(await_fib);
+    waker(*promise->result);
+    return false;
   }
+
+  // pending
+  promise->wakers.emplace_back(std::move(waker));
+  if (promise->status == Promise::Status::New) {
+    promise->status = Promise::Status::Pending;
+    if (promise->initial_await)
+      promise->initial_await(*this, awaiter, awaited);
+  }
+  scheduler_.PushMicroTask(await_fib);
 
   return true;
 }

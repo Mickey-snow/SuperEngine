@@ -58,6 +58,13 @@ struct Future : public IObject {
   std::string Desc() const override;
 };
 
+namespace async_builtin {
+Value Sleep(VM& vm, int ms, Value result);
+Value Timeout(VM& vm, Value awaited, int ms);
+Value Gather(VM& vm, std::vector<Value> awaitables);
+Value Race(VM& vm, std::vector<Value> awaitables);
+}  // namespace async_builtin
+
 void InstallAsyncBuiltins(VM& m);
 
 }  // namespace serilang
