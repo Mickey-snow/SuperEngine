@@ -203,44 +203,4 @@ TEST_F(SchedulerTest, ScheduleAtOffsets) {
   EXPECT_EQ(scheduler.NextTask(), nullptr);
 }
 
-TEST_F(SchedulerTest, ScheduleDaemons) {
-  Fiber fiber;
-  fiber.state = FiberState::Suspended;
-
-  int daemon_cb_count = 0;
-  auto daemon = [&daemon_cb_count]() { ++daemon_cb_count; };
-
-  scheduler.PushAfter(&fiber, 30ms);
-  scheduler.PushDaemonAfter(daemon, 10ms);
-  scheduler.PushDaemonAfter(daemon, 20ms);
-  scheduler.PushDaemonAfter(daemon, 30ms);
-  scheduler.PushDaemonAfter(daemon, 40ms);
-
-  scheduler.WaitForNext();
-  EXPECT_EQ(poller->last_timeout, 10ms);
-
-  clock->AdvanceTime(10ms);
-  scheduler.DrainExpiredTimers();
-  EXPECT_EQ(scheduler.NextTask(), nullptr);
-  EXPECT_EQ(daemon_cb_count, 1);
-
-  scheduler.WaitForNext();
-  EXPECT_EQ(poller->last_timeout, 10ms);
-
-  clock->AdvanceTime(10ms);
-  scheduler.DrainExpiredTimers();
-  EXPECT_EQ(scheduler.NextTask(), nullptr);
-  EXPECT_EQ(daemon_cb_count, 2);
-
-  scheduler.WaitForNext();
-  EXPECT_EQ(poller->last_timeout, 10ms);
-
-  clock->AdvanceTime(10ms);
-  scheduler.DrainExpiredTimers();
-  EXPECT_EQ(scheduler.NextTask(), &fiber);
-  EXPECT_EQ(daemon_cb_count, 3);
-
-  EXPECT_TRUE(scheduler.IsIdle());
-}
-
 }  // namespace serilang_test

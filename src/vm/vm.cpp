@@ -98,7 +98,7 @@ Value VM::Run() {
     if (f->state == FiberState::New)
       scheduler_.PushTask(f);
 
-  while (!scheduler_.IsIdle()) {
+  while (!scheduler_.IsIdle() || CountPendingPromises() > 0) {
     scheduler_.DrainExpiredTimers();
 
     if (Fiber* next = scheduler_.NextTask()) {
@@ -654,6 +654,7 @@ bool VM::Await(Value& awaiter,
       promise->initial_await(*this, awaiter, awaited);
   }
   scheduler_.PushMicroTask(await_fib);
+  pending_promises_.emplace_back(promise);
 
   return true;
 }
@@ -667,6 +668,17 @@ void VM::SweepDeadFibres() {
     }
     return false;
   });
+}
+
+std::size_t VM::CountPendingPromises() {
+  std::erase_if(pending_promises_, [](std::weak_ptr<Promise> p) {
+    std::shared_ptr<Promise> promise = p.lock();
+    if (!promise)
+      return true;
+    return promise->HasResult();
+  });
+
+  return pending_promises_.size();
 }
 
 }  // namespace serilang

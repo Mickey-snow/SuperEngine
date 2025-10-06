@@ -68,9 +68,6 @@ class Scheduler {
   void PushCallbackAt(std::function<void()> fn, Clock::timepoint_t when);
   void PushCallbackAfter(std::function<void()> fn,
                          std::chrono::milliseconds delay);
-  void PushDaemonAt(std::function<void()> fn, Clock::timepoint_t when);
-  void PushDaemonAfter(std::function<void()> fn,
-                       std::chrono::milliseconds delay);
 
  private:
   std::deque<Fiber*> runq_;
@@ -78,12 +75,7 @@ class Scheduler {
   std::priority_queue<TimerEntry,
                       std::vector<TimerEntry>,
                       std::greater<TimerEntry>>
-      timers_, daemons_;
-
-  // helpers
-  bool empty() const noexcept;
-  TimerEntry const& top() const;
-  TimerEntry pop_top();
+      timers_;
 
   std::unique_ptr<IPoller> poller_;
   std::unique_ptr<Clock> clock_;

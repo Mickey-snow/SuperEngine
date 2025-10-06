@@ -84,6 +84,8 @@ class VM {
       Value& awaited,
       std::function<void(const expected<Value, std::string>&)> result_callback);
 
+  std::size_t CountPendingPromises();
+
  public:
   //----------------------------------------------------------------
   // Public VM state
@@ -98,6 +100,8 @@ class VM {
   std::unordered_map<std::string, Module*> module_cache_;
 
   Scheduler scheduler_;
+
+  std::vector<std::weak_ptr<Promise>> pending_promises_;
 
  private:
   //----------------------------------------------------------------
