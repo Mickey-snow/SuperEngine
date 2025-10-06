@@ -23,6 +23,9 @@
 
 #include "machine/dumper.hpp"
 
+#include "core/asset_scanner.hpp"
+#include "core/avdec/audio_decoder.hpp"
+#include "core/avdec/image_decoder.hpp"
 #include "libreallive/elements/bytecode.hpp"
 #include "libreallive/elements/command.hpp"
 #include "libreallive/scenario.hpp"
@@ -68,31 +71,61 @@ static void DumpImpl(libreallive::Scenario* scenario, std::ostream& out) {
   }
 }
 
-Dumper::Dumper(fs::path gexe_path, fs::path seen_path)
-    : gexe_path_(std::move(gexe_path)),
-      seen_path_(std::move(seen_path)),
-      gexe_(Gameexe::FromFile(gexe_path_).value()),
+Dumper::Dumper(fs::path gexe_path, fs::path seen_path, fs::path root_path)
+    : root_path_(std::move(root_path)),
+      gexe_(Gameexe::FromFile(gexe_path).value()),
       regname_(gexe_("REGNAME").ToStr()),
-      archive_(seen_path_, regname_) {
+      archive_(seen_path, regname_) {
   regname_ = archive_.regname_;  // ensure canonical name
 }
 
 std::vector<IDumper::Task> Dumper::GetTasks(std::vector<int> scenarios) {
+  using tsk_t = typename IDumper::task_t;
   std::vector<IDumper::Task> tasks;
-
-  using packaged = std::packaged_task<void(std::ostream&)>;
 
   for (int i = 0; i < 10'000; ++i) {
     libreallive::Scenario* sc = archive_.GetScenario(i);
     if (!sc)
       continue;
 
-    packaged job(std::bind(DumpImpl, sc, _1));
+    tsk_t job(std::bind(DumpImpl, sc, _1));
 
     tasks.push_back(IDumper::Task{
         .path = std::format("{}.{:04}.txt", regname_, sc->scene_number()),
         .task = std::move(job)});
   }
 
+  AssetScanner scanner;
+  scanner.IndexDirectory(root_path_);
+  for (const auto& it : scanner.filesystem_cache_) {
+    static const std::set<std::string> audio_ext{"nwa", "wav", "ogg", "mp3",
+                                                 "ovk", "koe", "nwk"};
+    static const std::set<std::string> image_ext{"g00", "pdt"};
+    auto name = it.first;
+    auto [ext, path] = it.second;
+
+    if (audio_ext.contains(ext)) {
+      tasks.emplace_back(std::filesystem::path("audio") / (name + '.' + ext),
+                         tsk_t(std::bind(&Dumper::DumpAudio, this, path, _1)));
+    } else if (image_ext.contains(ext)) {
+      tasks.emplace_back(std::filesystem::path("image") / (name + '.' + ext),
+                         tsk_t(std::bind(&Dumper::DumpImage, this, path, _1)));
+    }
+  }
+
   return tasks;
+}
+
+void Dumper::DumpAudio(std::filesystem::path path, std::ostream& out) {
+  AudioDecoder decoder(path);
+  AudioData data = decoder.DecodeAll();
+  std::vector<uint8_t> wav = EncodeWav(std::move(data));
+  out.write(reinterpret_cast<const char*>(wav.data()),
+            static_cast<std::streamsize>(wav.size()));
+}
+
+void Dumper::DumpImage(std::filesystem::path path, std::ostream& out) {
+  MappedFile mfile(path);
+  ImageDecoder decoder(mfile.Read());
+  saveRGBAasPPM(out, decoder.width, decoder.height, decoder.mem);
 }

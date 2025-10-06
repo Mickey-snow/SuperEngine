@@ -37,13 +37,17 @@ class Scenario;
 
 class Dumper : public IDumper {
  public:
-  Dumper(std::filesystem::path gexe_path, std::filesystem::path seen_path);
+  Dumper(std::filesystem::path gexe_path,
+         std::filesystem::path scene_path,
+         std::filesystem::path root_path);
 
   std::vector<IDumper::Task> GetTasks(std::vector<int> scenarios) final;
 
  private:
-  std::filesystem::path gexe_path_;
-  std::filesystem::path seen_path_;
+  void DumpAudio(std::filesystem::path path, std::ostream& out);
+  void DumpImage(std::filesystem::path path, std::ostream& out);
+
+  std::filesystem::path root_path_;
   Gameexe gexe_;
   std::string regname_;
   libreallive::Archive archive_;

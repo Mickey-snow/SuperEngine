@@ -35,6 +35,7 @@ struct XorKey {
 
 extern const std::vector<XorKey const*> keyring;
 
+extern const XorKey empty_key;
 extern const XorKey sprb_key;
 extern const XorKey stella_key;
 

@@ -113,6 +113,9 @@ Script ParseScript(const Header& hdr,
   while (pos < dlen) {
     // Parse bytecode element
     const auto elm = parser.ParseBytecode(stream, end);
+    if (!elm)
+      break;
+
     elements.emplace_back(pos, elm);
 
     // Keep track of the entrypoints

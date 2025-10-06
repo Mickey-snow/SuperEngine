@@ -93,9 +93,9 @@ int main(int argc, char* argv[]) {
   fs::path gameexe_path = CorrectPathCase(game_root / "Gameexe.ini");
   fs::path seen_path = CorrectPathCase(game_root / "Seen.txt");
 
-  if (fs::exists(gameexe_path) && fs::exists(seen_path))
-    dumper = std::make_unique<Dumper>(gameexe_path, seen_path);
-  else {
+  if (fs::exists(gameexe_path) && fs::exists(seen_path)) {
+    dumper = std::make_unique<Dumper>(gameexe_path, seen_path, game_root);
+  } else {
     // siglus game
     gameexe_path = CorrectPathCase(game_root / "Gameexe.dat");
     seen_path = CorrectPathCase(game_root / "Scene.pck");
