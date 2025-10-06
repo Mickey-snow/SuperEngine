@@ -54,7 +54,7 @@ bool Scheduler::IsIdle() const noexcept {
 void Scheduler::DrainExpiredTimers() {
   auto now = clock_->GetTime();
   while (!timers_.empty() && timers_.top().when <= now) {
-    TimerEntry t = std::move(timers_.top());
+    TimerEntry t = timers_.top();
     timers_.pop();
 
     if (t.callback) {

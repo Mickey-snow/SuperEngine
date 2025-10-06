@@ -27,6 +27,7 @@
 #include "utilities/expected.hpp"
 #include "vm/value.hpp"
 
+#include <any>
 #include <functional>
 #include <optional>
 #include <string>
@@ -49,6 +50,7 @@ struct Promise {
   std::vector<std::function<void(const expected<Value, std::string>&)>> wakers;
 
   std::vector<IObject*> roots;
+  std::vector<std::any> usrdata;
   inline void AddRoot(Value& value) {
     if (auto* obj = value.Get_if<IObject>())
       roots.emplace_back(obj);

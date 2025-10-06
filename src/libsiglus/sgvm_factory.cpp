@@ -24,6 +24,7 @@
 #include "libsiglus/sgvm_factory.hpp"
 
 #include "libsiglus/bindings/common.hpp"
+#include "libsiglus/bindings/event.hpp"
 #include "libsiglus/bindings/obj.hpp"
 #include "libsiglus/bindings/sound.hpp"
 #include "libsiglus/bindings/system.hpp"
@@ -78,6 +79,7 @@ SiglusRuntime SGVMFactory::Create() {
   binding::Sound(ctx).Bind(runtime);
   binding::System(ctx).Bind(runtime);
   binding::Obj(ctx).Bind(runtime);
+  binding::sgEvent(ctx).Bind(runtime);
 
   // abuse the vm scheduler to refresh sdl regularly
   std::function<void()>& cb = runtime.exec_sdl_callback;
@@ -86,7 +88,7 @@ SiglusRuntime SGVMFactory::Create() {
         chr::duration_cast<chr::steady_clock::duration>(chr::seconds(1)) / 60;
 
     auto next = chr::steady_clock::now() + period;
-    runtime.vm->scheduler_.PushDaemonAt(cb, next);
+    runtime.vm->scheduler_.PushCallbackAt(cb, next);
 
     // redraw
     std::shared_ptr<SDLGraphicsSystem> graphics =
@@ -101,7 +103,7 @@ SiglusRuntime SGVMFactory::Create() {
     std::shared_ptr<EventSystem> event = runtime.system->event_system_;
     event->ExecuteEventSystem();
   };
-  runtime.vm->scheduler_.PushDaemonAfter(cb, chr::milliseconds(2));
+  runtime.vm->scheduler_.PushCallbackAfter(cb, chr::milliseconds(2));
 
   return runtime;
 }
