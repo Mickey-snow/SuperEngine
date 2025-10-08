@@ -191,6 +191,8 @@ serilang::NativeFunction* make_function(serilang::GarbageCollector* gc,
           throw serilang::RuntimeError(e.what());
         } catch (const std::exception& e) {
           throw serilang::RuntimeError(e.what());
+        } catch (...) {
+          throw serilang::RuntimeError("uncaught error");
         }
       });
 }

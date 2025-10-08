@@ -27,27 +27,58 @@
 #include "libsiglus/siglus_runtime.hpp"
 
 #include "srbind/srbind.hpp"
+#include "systems/base/text_page.hpp"
+#include "systems/sdl/sdl_system.hpp"
+#include "systems/sdl/sdl_text_system.hpp"
+#include "systems/sdl/sdl_text_window.hpp"
+
+#include <chrono>
+#include <thread>
 
 namespace libsiglus::binding {
 namespace sb = srbind;
+namespace sr = serilang;
 
 class SiglusMwnd {
+  std::shared_ptr<SDLTextWindow> text_win_;
+  TextPage page;
+
  public:
-  bool msgblk_started = false;
-  bool clear_when_ready = false;
+  SiglusMwnd(std::shared_ptr<SDLTextWindow> wd, SDLSystem& sys)
+      : text_win_(wd), page(sys, wd->window_number()) {}
+
+  bool DisplayCharacter(std::string current, std::string rest) {
+    return page.Character(current, rest);
+  }
 };
 
 void MWND::Bind(SiglusRuntime& runtime) {
-  runtime.mwnd = std::make_shared<SiglusMwnd>();
-  SiglusMwnd* mwnd = runtime.mwnd.get();
+  sr::VM& vm = *runtime.vm;
 
-  sb::module_ m(*runtime.vm, "mwnd");
+  sb::module_ m(vm.gc_.get(), vm.globals_);
+  sb::class_<SiglusMwnd> mwnd(m, "Mwnd");
 
-  m.def("msg_block", [mwnd]() {
-    if (mwnd->msgblk_started)
+  mwnd.def(sb::init([sys = runtime.system.get()](int id) -> SiglusMwnd* {
+             std::shared_ptr<SDLTextSystem> text = sys->text_system_;
+             if (auto wd = std::dynamic_pointer_cast<SDLTextWindow>(
+                     text->GetTextWindow(id))) {
+               return new SiglusMwnd(wd, *sys);
+             } else
+               throw std::runtime_error("Failed to create text window " +
+                                        std::to_string(id));
+           }),
+           sb::arg("id") = 0);
+  mwnd.def("disp", &SiglusMwnd::DisplayCharacter, sb::arg("current"),
+           sb::arg("rest") = "");
+
+  m.def("msg_block", []() {
+    bool msgblk_started = false;
+    bool clear_when_ready = false;
+
+    if (msgblk_started)
       return;
 
-    if (mwnd->clear_when_ready) {
+    if (clear_when_ready) {
       // TODO: クリア準備フラグが立っているならクリアする
       // 1. mwndのクリア
       // 2. シングルトンのフルメッセージのクリア
@@ -55,8 +86,6 @@ void MWND::Bind(SiglusRuntime& runtime) {
 
     // TODO: いろいろクリア処理とセーブ
   });
-
-  m.def("r", [mwnd]() { std::ignore = mwnd; });
 }
 
 }  // namespace libsiglus::binding

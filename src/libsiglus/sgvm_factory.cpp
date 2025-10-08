@@ -26,6 +26,7 @@
 #include "libsiglus/bindings/common.hpp"
 #include "libsiglus/bindings/event.hpp"
 #include "libsiglus/bindings/gexe.hpp"
+#include "libsiglus/bindings/mwnd.hpp"
 #include "libsiglus/bindings/obj.hpp"
 #include "libsiglus/bindings/sound.hpp"
 #include "libsiglus/bindings/system.hpp"
@@ -102,6 +103,7 @@ SiglusRuntime SGVMFactory::Create() {
   binding::Obj(ctx).Bind(runtime);
   binding::sgEvent(ctx).Bind(runtime);
   binding::sgGexe(ctx).Bind(runtime);
+  binding::MWND(ctx).Bind(runtime);
 
   // abuse the vm scheduler to refresh sdl regularly
   std::function<void()>& cb = runtime.exec_sdl_callback;

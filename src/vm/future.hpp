@@ -24,7 +24,6 @@
 
 #pragma once
 
-#include "utilities/expected.hpp"
 #include "vm/iobject.hpp"
 #include "vm/promise.hpp"
 #include "vm/value.hpp"
@@ -37,7 +36,6 @@
 
 namespace serilang {
 
-struct Fiber;
 struct GCVisitor;
 class VM;
 

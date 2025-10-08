@@ -1,0 +1,8 @@
+
+mw = Mwnd(0);
+
+print("mwnd init ok");
+
+mw.textout("Hello, world " * 20);
+
+print("output finished");
