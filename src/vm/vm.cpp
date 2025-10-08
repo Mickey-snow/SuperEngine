@@ -25,7 +25,6 @@
 #include "vm/vm.hpp"
 
 #include "m6/compiler_pipeline.hpp"
-
 #include "machine/op.hpp"
 #include "utilities/string_utilities.hpp"
 #include "vm/call_frame.hpp"
@@ -34,6 +33,7 @@
 #include "vm/instruction.hpp"
 #include "vm/object.hpp"
 #include "vm/operator_protocol.hpp"
+#include "vm/primops.hpp"
 #include "vm/promise.hpp"
 #include "vm/upvalue.hpp"
 #include "vm/value.hpp"
@@ -407,16 +407,18 @@ void VM::ExecuteFiber(Fiber* fib) {
           case ScriptDispatchResult::Error:
             return;
           case ScriptDispatchResult::NotHandled: {
-            TempValue result = nil;
             try {
-              result = v.Operator(*this, *fib, ins.op);
+              std::optional<TempValue> result =
+                  primops::EvaluateUnary(ins.op, v);
+              if (!result)
+                throw UndefinedOperator(ins.op, {v});
+              push(fib->stack, AddTrack(std::move(*result)));
+
             } catch (RuntimeError& e) {
-              push(fib->stack, nil);
               Error(*fib, e.message());
               return;
             }
 
-            push(fib->stack, AddTrack(std::move(result)));
             break;
           }
         }
@@ -434,16 +436,17 @@ void VM::ExecuteFiber(Fiber* fib) {
           case ScriptDispatchResult::Error:
             return;
           case ScriptDispatchResult::NotHandled: {
-            TempValue result = nil;
             try {
-              result = lhs.Operator(*this, *fib, ins.op, std::move(rhs));
+              std::optional<TempValue> result =
+                  primops::EvaluateBinary(ins.op, lhs, rhs);
+              if (!result)
+                throw UndefinedOperator(ins.op, {lhs, rhs});
+              push(fib->stack, AddTrack(std::move(*result)));
             } catch (RuntimeError& e) {
-              push(fib->stack, nil);
               Error(*fib, e.message());
               return;
             }
 
-            push(fib->stack, AddTrack(std::move(result)));
             break;
           }
         }

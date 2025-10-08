@@ -42,10 +42,16 @@ class ValueArithmeticTest : public ::testing::Test {
   }
 
   std::optional<Value> eval(Value lhs, Op op, Value rhs) {
-    return primops::EvaluateBinary(op, lhs, rhs);
+    std::optional<TempValue> result = primops::EvaluateBinary(op, lhs, rhs);
+    if (!result)
+      return std::nullopt;
+    return gc.TrackValue(std::move(*result));
   }
   std::optional<Value> eval(Op op, Value rhs) {
-    return primops::EvaluateUnary(op, rhs);
+    std::optional<TempValue> result = primops::EvaluateUnary(op, rhs);
+    if (!result)
+      return std::nullopt;
+    return gc.TrackValue(std::move(*result));
   }
 };
 

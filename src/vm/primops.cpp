@@ -25,6 +25,7 @@
 #include "vm/primops.hpp"
 
 #include "vm/exception.hpp"
+#include "vm/iobject.hpp"
 
 #include <bit>
 #include <cmath>
@@ -294,104 +295,110 @@ static Value unaryNil(Op op) {
 }
 
 // dispatch table
-using BinFn = Value (*)(Op, const Value&, const Value&);
-using UnFn = Value (*)(Op, const Value&);
+using BinFn = TempValue (*)(Op, const Value&, const Value&);
+using UnFn = TempValue (*)(Op, const Value&);
 constexpr inline size_t K = static_cast<size_t>(Kind::Count);
 static BinFn BIN[K][K] = {};
 static UnFn UN[K] = {};
 
-static std::once_flag is_init;
 static void ensure_init() {
-  std::call_once(is_init, []() {
+  static std::once_flag init_once_flag;
+  std::call_once(init_once_flag, []() {
     // Binary table
     BIN[static_cast<size_t>(Kind::Int)][static_cast<size_t>(Kind::Int)] =
-        +[](Op op, const Value& l, const Value& r) {
-          return handleIntIntOp(op, l.Get<int>(), r.Get<int>());
-        };
+        +[](Op op, const Value& l, const Value& r) -> TempValue {
+      return handleIntIntOp(op, l.Get<int>(), r.Get<int>());
+    };
     BIN[static_cast<size_t>(Kind::Int)][static_cast<size_t>(Kind::Double)] =
-        +[](Op op, const Value& l, const Value& r) {
-          return handleDoubleDoubleOp(op, static_cast<double>(l.Get<int>()),
-                                      r.Get<double>());
-        };
+        +[](Op op, const Value& l, const Value& r) -> TempValue {
+      return handleDoubleDoubleOp(op, static_cast<double>(l.Get<int>()),
+                                  r.Get<double>());
+    };
     BIN[static_cast<size_t>(Kind::Double)][static_cast<size_t>(Kind::Int)] =
-        +[](Op op, const Value& l, const Value& r) {
-          return handleDoubleDoubleOp(op, l.Get<double>(),
-                                      static_cast<double>(r.Get<int>()));
-        };
+        +[](Op op, const Value& l, const Value& r) -> TempValue {
+      return handleDoubleDoubleOp(op, l.Get<double>(),
+                                  static_cast<double>(r.Get<int>()));
+    };
     BIN[static_cast<size_t>(Kind::Double)][static_cast<size_t>(Kind::Double)] =
-        +[](Op op, const Value& l, const Value& r) {
-          return handleDoubleDoubleOp(op, l.Get<double>(), r.Get<double>());
-        };
+        +[](Op op, const Value& l, const Value& r) -> TempValue {
+      return handleDoubleDoubleOp(op, l.Get<double>(), r.Get<double>());
+    };
     BIN[static_cast<size_t>(Kind::Bool)][static_cast<size_t>(Kind::Bool)] =
-        +[](Op op, const Value& l, const Value& r) {
-          return handleBoolBoolOp(op, l.Get<bool>(), r.Get<bool>());
-        };
+        +[](Op op, const Value& l, const Value& r) -> TempValue {
+      return handleBoolBoolOp(op, l.Get<bool>(), r.Get<bool>());
+    };
     BIN[static_cast<size_t>(Kind::Int)][static_cast<size_t>(Kind::Bool)] =
-        +[](Op op, const Value& l, const Value& r) {
-          return handleIntIntOp(op, l.Get<int>(), r.Get<bool>() ? 1 : 0);
-        };
+        +[](Op op, const Value& l, const Value& r) -> TempValue {
+      return handleIntIntOp(op, l.Get<int>(), r.Get<bool>() ? 1 : 0);
+    };
     BIN[static_cast<size_t>(Kind::Bool)][static_cast<size_t>(Kind::Int)] =
-        +[](Op op, const Value& l, const Value& r) {
-          return handleIntIntOp(op, l.Get<bool>() ? 1 : 0, r.Get<int>());
-        };
+        +[](Op op, const Value& l, const Value& r) -> TempValue {
+      return handleIntIntOp(op, l.Get<bool>() ? 1 : 0, r.Get<int>());
+    };
     BIN[static_cast<size_t>(Kind::Double)][static_cast<size_t>(Kind::Bool)] =
-        +[](Op op, const Value& l, const Value& r) {
-          return handleDoubleDoubleOp(op, l.Get<double>(),
-                                      r.Get<bool>() ? 1.0 : 0.0);
-        };
+        +[](Op op, const Value& l, const Value& r) -> TempValue {
+      return handleDoubleDoubleOp(op, l.Get<double>(),
+                                  r.Get<bool>() ? 1.0 : 0.0);
+    };
     BIN[static_cast<size_t>(Kind::Bool)][static_cast<size_t>(Kind::Double)] =
-        +[](Op op, const Value& l, const Value& r) {
-          return handleDoubleDoubleOp(op, l.Get<bool>() ? 1.0 : 0.0,
-                                      r.Get<double>());
-        };
+        +[](Op op, const Value& l, const Value& r) -> TempValue {
+      return handleDoubleDoubleOp(op, l.Get<bool>() ? 1.0 : 0.0,
+                                  r.Get<double>());
+    };
     BIN[static_cast<size_t>(Kind::Str)][static_cast<size_t>(Kind::Int)] =
-        +[](Op op, const Value& l, const Value& r) {
-          return handleStringIntOp(op, l.Get<std::string>(), r.Get<int>());
-        };
+        +[](Op op, const Value& l, const Value& r) -> TempValue {
+      return handleStringIntOp(op, l.Get<std::string>(), r.Get<int>());
+    };
     BIN[static_cast<size_t>(Kind::Str)][static_cast<size_t>(Kind::Str)] =
-        +[](Op op, const Value& l, const Value& r) {
-          return handleStringStringOp(op, l.Get<std::string>(),
-                                      r.Get<std::string>());
-        };
+        +[](Op op, const Value& l, const Value& r) -> TempValue {
+      return handleStringStringOp(op, l.Get<std::string>(),
+                                  r.Get<std::string>());
+    };
     BIN[static_cast<size_t>(Kind::Nil)][static_cast<size_t>(Kind::Nil)] =
-        +[](Op op, const Value& l, const Value& r) {
-          return handleNilOp(op, Kind::Nil);
-        };
+        +[](Op op, const Value& l, const Value& r) -> TempValue {
+      return handleNilOp(op, Kind::Nil);
+    };
     BIN[static_cast<size_t>(Kind::Nil)][static_cast<size_t>(Kind::Int)] =
         BIN[static_cast<size_t>(Kind::Int)][static_cast<size_t>(Kind::Nil)] =
-            +[](Op op, const Value& l, const Value& r) {
-              return handleNilOp(op, Kind::Int);
-            };
+            +[](Op op, const Value& l, const Value& r) -> TempValue {
+      return handleNilOp(op, Kind::Int);
+    };
     BIN[static_cast<size_t>(Kind::Nil)][static_cast<size_t>(Kind::Double)] =
         BIN[static_cast<size_t>(Kind::Double)][static_cast<size_t>(Kind::Nil)] =
-            +[](Op op, const Value& l, const Value& r) {
-              return handleNilOp(op, Kind::Double);
-            };
+            +[](Op op, const Value& l, const Value& r) -> TempValue {
+      return handleNilOp(op, Kind::Double);
+    };
     BIN[static_cast<size_t>(Kind::Nil)][static_cast<size_t>(Kind::Str)] =
         BIN[static_cast<size_t>(Kind::Str)][static_cast<size_t>(Kind::Nil)] =
-            +[](Op op, const Value& l, const Value& r) {
-              return handleNilOp(op, Kind::Str);
-            };
+            +[](Op op, const Value& l, const Value& r) -> TempValue {
+      return handleNilOp(op, Kind::Str);
+    };
     BIN[static_cast<size_t>(Kind::Nil)][static_cast<size_t>(Kind::Bool)] =
         BIN[static_cast<size_t>(Kind::Bool)][static_cast<size_t>(Kind::Nil)] =
-            +[](Op op, const Value& l, const Value& r) {
-              return handleNilOp(op, Kind::Bool);
-            };
+            +[](Op op, const Value& l, const Value& r) -> TempValue {
+      return handleNilOp(op, Kind::Bool);
+    };
     BIN[static_cast<size_t>(Kind::Nil)][static_cast<size_t>(Kind::Object)] =
         BIN[static_cast<size_t>(Kind::Object)][static_cast<size_t>(Kind::Nil)] =
-            +[](Op op, const Value& l, const Value& r) {
-              return handleNilOp(op, Kind::Object);
-            };
+            +[](Op op, const Value& l, const Value& r) -> TempValue {
+      return handleNilOp(op, Kind::Object);
+    };
 
     // Unary table
     UN[static_cast<size_t>(Kind::Int)] =
-        +[](Op op, const Value& v) { return unaryInt(op, v.Get<int>()); };
+        +[](Op op, const Value& v) -> TempValue {
+      return unaryInt(op, v.Get<int>());
+    };
     UN[static_cast<size_t>(Kind::Double)] =
-        +[](Op op, const Value& v) { return unaryDouble(op, v.Get<double>()); };
+        +[](Op op, const Value& v) -> TempValue {
+      return unaryDouble(op, v.Get<double>());
+    };
     UN[static_cast<size_t>(Kind::Bool)] =
-        +[](Op op, const Value& v) { return unaryBool(op, v.Get<bool>()); };
+        +[](Op op, const Value& v) -> TempValue {
+      return unaryBool(op, v.Get<bool>());
+    };
     UN[static_cast<size_t>(Kind::Nil)] =
-        +[](Op op, const Value& v) { return unaryNil(op); };
+        +[](Op op, const Value& v) -> TempValue { return unaryNil(op); };
   });
 }
 
@@ -399,7 +406,9 @@ static void ensure_init() {
 
 // public API
 
-std::optional<Value> EvaluateBinary(Op op, const Value& lhs, const Value& rhs) {
+std::optional<TempValue> EvaluateBinary(Op op,
+                                        const Value& lhs,
+                                        const Value& rhs) {
   ensure_init();
 
   const auto lk = kind_of(lhs);
@@ -411,7 +420,7 @@ std::optional<Value> EvaluateBinary(Op op, const Value& lhs, const Value& rhs) {
   return f(op, lhs, rhs);
 }
 
-std::optional<Value> EvaluateUnary(Op op, const Value& v) {
+std::optional<TempValue> EvaluateUnary(Op op, const Value& v) {
   ensure_init();
 
   const auto k = kind_of(v);

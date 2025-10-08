@@ -34,9 +34,11 @@
 namespace serilang::primops {
 
 // Evaluate primitive binary op. Returns std::nullopt if not handled.
-std::optional<Value> EvaluateBinary(Op op, const Value& lhs, const Value& rhs);
+std::optional<TempValue> EvaluateBinary(Op op,
+                                        const Value& lhs,
+                                        const Value& rhs);
 
 // Evaluate primitive unary op. Returns std::nullopt if not handled.
-std::optional<Value> EvaluateUnary(Op op, const Value& v);
+std::optional<TempValue> EvaluateUnary(Op op, const Value& v);
 
 }  // namespace serilang::primops

@@ -125,46 +125,6 @@ ObjType Value::Type() const {
       val_);
 }
 
-TempValue Value::Operator(VM& vm, Fiber& f, Op op, Value rhs) {
-  // 1) Primitive fast path
-  {
-    if (auto out = primops::EvaluateBinary(op, *this, rhs))
-      return TempValue(std::move(*out));
-  }
-
-  // 2) Native fast hooks
-  if (IObject* lhs_obj = this->Get_if<IObject>()) {
-    if (auto r = lhs_obj->BinaryOp(vm, f, op, rhs))
-      return *std::move(r);
-  }
-  if (IObject* rhs_obj = rhs.Get_if<IObject>()) {
-    if (auto r = rhs_obj->BinaryOp(vm, f, op, *this))
-      return *std::move(r);
-  }
-
-  // 3) TODO: Script magic methods (__op__ and __rop__)
-
-  throw UndefinedOperator(op, {this->Desc(), rhs.Desc()});
-}
-
-TempValue Value::Operator(VM& vm, Fiber& f, Op op) {
-  // 1) Primitive fast path
-  {
-    if (auto out = primops::EvaluateUnary(op, *this))
-      return TempValue(std::move(*out));
-  }
-
-  // 2) Native fast hooks
-  if (IObject* obj = this->Get_if<IObject>()) {
-    if (auto r = obj->UnaryOp(vm, f, op))
-      return *std::move(r);
-  }
-
-  // 3) TODO: Script magic methods (__neg__/__pos__/__invert__)
-
-  throw UndefinedOperator(op, {this->Desc()});
-}
-
 void Value::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
   std::visit(
       [&](auto& x) {

@@ -56,12 +56,6 @@ class IObject {
   virtual TempValue Member(std::string_view mem);
   virtual void SetMember(std::string_view mem, Value value);
 
-  // Optional fast-path operator hooks for native objects.
-  // Return std::nullopt to indicate "not handled" so the VM can fall back
-  // to script magic methods or default behaviour.
-  virtual std::optional<TempValue> UnaryOp(VM& vm, Fiber& f, Op op);
-  virtual std::optional<TempValue> BinaryOp(VM& vm, Fiber& f, Op op, Value rhs);
-
   // Optional truthiness hook. If not provided, non-null objects are truthy.
   virtual std::optional<bool> Bool() const;
 };

@@ -59,9 +59,6 @@ class Value {
 
   ObjType Type() const;
 
-  TempValue Operator(VM& vm, Fiber& f, Op op, Value rhs);
-  TempValue Operator(VM& vm, Fiber& f, Op op);
-
   void Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs);
   void GetItem(VM& vm, Fiber& f);
   void SetItem(VM& vm, Fiber& f);
