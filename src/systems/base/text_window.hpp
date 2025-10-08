@@ -137,7 +137,7 @@ class TextWindow {
 
   // Sets the size of the spacing between characters. Represented by
   // #WINDOW.xxx.NAME_MOJI_REP.
-  void SetNameSpacingBetweenCharacters(const std::vector<int>& pos_data);
+  void SetNameSpacingBetweenCharacters(int pos_data);
 
   void SetNameboxPadding(const std::vector<int>& pos_data);
   void SetNameboxPosition(const std::vector<int>& pos_data);

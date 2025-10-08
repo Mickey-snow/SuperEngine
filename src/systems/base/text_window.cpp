@@ -153,7 +153,7 @@ TextWindow::TextWindow(System& system, int window_num)
   if (auto no = window("NAME_WAKU_SETNO").Int(); name_mod_ == 1 && no) {
     name_waku_set_ = *no;
     namebox_waku_.reset(TextWaku::Create(system_, *this, name_waku_set_, 0));
-    SetNameSpacingBetweenCharacters(window("NAME_MOJI_REP").ToIntVec());
+    SetNameSpacingBetweenCharacters(window("NAME_MOJI_REP").Int().value_or(0));
     SetNameboxPadding(window("NAME_MOJI_POS").ToIntVec());
     // Ignoring NAME_WAKU_MIN for now
     SetNameboxPosition(window("NAME_POS").ToIntVec());
@@ -354,9 +354,8 @@ Size TextWindow::GetNameboxTextArea() const {
       vertical_namebox_padding_ + name_size_);
 }
 
-void TextWindow::SetNameSpacingBetweenCharacters(
-    const std::vector<int>& pos_data) {
-  name_x_spacing_ = pos_data.at(0);
+void TextWindow::SetNameSpacingBetweenCharacters(int pos_data) {
+  name_x_spacing_ = pos_data;
 }
 
 void TextWindow::SetNameboxPadding(const std::vector<int>& pos_data) {

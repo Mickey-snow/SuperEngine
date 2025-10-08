@@ -132,11 +132,17 @@ int main(int argc, char* argv[]) {
     fs::create_directory(output_path / "audio");
     fs::create_directory(output_path / "image");
 
-    std::for_each(std::execution::par_unseq, tasks.begin(), tasks.end(),
-                  [&output_path, &run](Dumper::Task& t) {
-                    std::ofstream ofs(output_path / t.path);
-                    run(ofs, t.task);
-                  });
+    const size_t total_tasks = tasks.size();
+    std::atomic<size_t> completed_count = 0;
+    std::for_each(
+        std::execution::par_unseq, tasks.begin(), tasks.end(),
+        [&](Dumper::Task& t) {
+          const int percentage = (++completed_count * 100) / total_tasks;
+          std::clog << std::format("[{}%] {}", percentage, t.path.string())
+                    << std::endl;
+          std::ofstream ofs(output_path / t.path);
+          run(ofs, t.task);
+        });
   }
 
   return 0;
