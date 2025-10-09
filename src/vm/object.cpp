@@ -26,6 +26,7 @@
 
 #include "utilities/string_utilities.hpp"
 #include "vm/promise.hpp"
+#include "vm/string.hpp"
 #include "vm/upvalue.hpp"
 #include "vm/value.hpp"
 #include "vm/vm.hpp"
@@ -402,13 +403,13 @@ void Dict::MarkRoots(GCVisitor& visitor) {
 void Dict::GetItem(VM& vm, Fiber& f) {
   Value idx = std::move(f.stack.back());
   f.stack.pop_back();
-  auto* index = idx.Get_if<std::string>();
+  String const* index = idx.Get_if<const String>();
   if (!index) {
     vm.Error(f, "dictionary index must be string, but got: " + idx.Desc());
     return;
   }
 
-  auto it = map.find(*index);
+  auto it = map.find(index->str_);
   if (it == map.cend()) {
     vm.Error(f, "dictionary has no key: " + idx.Str());
     return;
@@ -420,13 +421,13 @@ void Dict::GetItem(VM& vm, Fiber& f) {
 void Dict::SetItem(VM& vm, Fiber& f) {
   Value idx = std::move(f.stack.end()[-2]), val = std::move(f.stack.end()[-1]);
   f.stack.resize(f.stack.size() - 3);  // (dict, idx, val)
-  auto* index = idx.Get_if<std::string>();
+  String const* index = idx.Get_if<const String>();
   if (!index) {
     vm.Error(f, "dictionary index must be string, but got: " + idx.Desc());
     return;
   }
 
-  map[*index] = std::move(val);
+  map[index->str_] = std::move(val);
 }
 
 // -----------------------------------------------------------------------
@@ -494,9 +495,9 @@ void Function::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
   kwargs.reserve(nkwargs);
   size_t idx = base + 1 + nargs;
   for (uint8_t i = 0; i < nkwargs; ++i) {
-    std::string* k = stack[idx++].Get_if<std::string>();
+    std::string k = stack[idx++].Get_if<String>()->str_;
     Value v = std::move(stack[idx++]);
-    kwargs.emplace(std::move(*k), std::move(v));
+    kwargs.emplace(std::move(k), std::move(v));
   }
   stack.resize(base + 1);  // leave the callee on stack
 

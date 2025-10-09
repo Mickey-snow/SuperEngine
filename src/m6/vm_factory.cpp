@@ -24,6 +24,7 @@
 
 #include "m6/vm_factory.hpp"
 
+#include "vm/string.hpp"
 #include "m6/compiler_pipeline.hpp"
 #include "srbind/srbind.hpp"
 #include "vm/future.hpp"
@@ -102,8 +103,8 @@ sr::VM VMFactory::Create(std::shared_ptr<sr::GarbageCollector> gc,
               throw std::runtime_error("import() expects module name");
             sr::Value argv = f.stack.back();
             f.stack.pop_back();
-            std::string* modstr = argv.Get_if<std::string>();
-            if (auto it = vm.module_cache_.find(*modstr);
+            std::string const& modstr = argv.Get_if<sr::String>()->str_;
+            if (auto it = vm.module_cache_.find(modstr);
                 it != vm.module_cache_.end())
               return sr::Value(it->second);
 
@@ -111,20 +112,20 @@ sr::VM VMFactory::Create(std::shared_ptr<sr::GarbageCollector> gc,
             mvm.gc_threshold_ = 0;  // disable garbage collector
 
             CompilerPipeline pipe(mvm.gc_, false);
-            std::ifstream file(*modstr + ".sr");
+            std::ifstream file(modstr + ".sr");
             if (!file.is_open())
-              throw std::runtime_error("module not found: " + *modstr);
+              throw std::runtime_error("module not found: " + modstr);
             std::string src((std::istreambuf_iterator<char>(file)),
                             std::istreambuf_iterator<char>());
             file.close();
-            auto sb = m6::SourceBuffer::Create(std::move(src), *modstr);
+            auto sb = m6::SourceBuffer::Create(std::move(src), modstr);
             pipe.compile(sb);
             if (!pipe.Ok())
               throw std::runtime_error(pipe.FormatErrors());
             sr::Code* chunk = pipe.Get();
 
-            auto mod = std::make_unique<sr::Module>(*modstr, mvm.globals_);
-            vm.module_cache_[*modstr] = mod.get();
+            auto mod = std::make_unique<sr::Module>(modstr, mvm.globals_);
+            vm.module_cache_[modstr] = mod.get();
             mvm.module_cache_ = vm.module_cache_;
             mvm.Evaluate(chunk);
 

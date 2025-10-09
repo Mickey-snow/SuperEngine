@@ -28,6 +28,7 @@
 #include "vm/instruction.hpp"
 #include "vm/object.hpp"
 #include "vm/promise.hpp"
+#include "vm/string.hpp"
 #include "vm/vm.hpp"
 
 namespace serilang_test {
@@ -40,11 +41,20 @@ class VMTest : public ::testing::Test {
   VM vm;
   VMTest() : gc(std::make_shared<GarbageCollector>()), vm(gc) {}
 
+  template <typename T>
+    requires std::constructible_from<Value, T>
+  inline Value to_value(T&& param) {
+    return Value(std::forward<T>(param));
+  }
+  inline Value to_value(const char* s) {
+    String* str = gc->Allocate<String>(s);
+    return Value(str);
+  }
+
   // Small helper: wrapper to create Value array
   template <typename... Ts>
-    requires(std::constructible_from<Value, Ts> && ...)
   inline std::vector<Value> value_vector(Ts&&... param) {
-    return std::vector<Value>{Value(std::forward<Ts>(param))...};
+    return std::vector<Value>{to_value(std::forward<Ts>(param))...};
   }
 
   inline void append_ins(Code* chunk, std::initializer_list<Instruction> ins) {
@@ -227,7 +237,7 @@ TEST_F(VMTest, SpawnFiber) {
   // GetField("completion") -> (promise)
   // Await -> (123)
   auto* chunk = gc->Allocate<Code>();
-  chunk->const_pool = value_vector(fn, std::string("completion"));
+  chunk->const_pool = value_vector(fn, "completion");
   append_ins(chunk, {Push{0},          // fn
                      MakeFiber{0, 0},  // -> fiber
                      Await{},          // -> 123
@@ -266,7 +276,7 @@ TEST_F(VMTest, FunctionGlobal) {
   append_ins(code, {LoadLocal{1}, LoadGlobal{0}, BinaryOp(Op::Add), Return{}});
   Function* fn = gc->Allocate<Function>(code, 0, 1);
   fn->globals = gc->Allocate<Dict>(
-      std::unordered_map<std::string, Value>{{"one", Value("one")}});
+      std::unordered_map<std::string, Value>{{"one", to_value("one")}});
 
   Code* chunk = gc->Allocate<Code>();
   chunk->const_pool =

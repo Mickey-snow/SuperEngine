@@ -27,6 +27,7 @@
 #include "vm/gc.hpp"
 #include "vm/object.hpp"
 #include "vm/primops.hpp"
+#include "vm/string.hpp"
 #include "vm/value.hpp"
 
 namespace value_test {
@@ -53,6 +54,11 @@ class ValueArithmeticTest : public ::testing::Test {
       return std::nullopt;
     return gc.TrackValue(std::move(*result));
   }
+
+  inline Value v(const char* s) {
+    String* str = gc.Allocate<String>(s);
+    return Value(str);
+  }
 };
 
 TEST_F(ValueArithmeticTest, TruthinessAndType) {
@@ -63,8 +69,8 @@ TEST_F(ValueArithmeticTest, TruthinessAndType) {
   Value iPos(42);
   Value dZero(0.0);
   Value dPos(3.14);
-  Value strEmpty(std::string{});
-  Value strNonEmpty(std::string{"hi"});
+  Value strEmpty = v("");
+  Value strNonEmpty = v("hi");
 
   EXPECT_FALSE(nil.IsTruthy());
   EXPECT_TRUE(bTrue.IsTruthy());
@@ -80,7 +86,7 @@ TEST_F(ValueArithmeticTest, TruthinessAndType) {
   EXPECT_EQ(bTrue.Type(), ObjType::Bool);
   EXPECT_EQ(iPos.Type(), ObjType::Int);
   EXPECT_EQ(dPos.Type(), ObjType::Double);
-  EXPECT_EQ(strNonEmpty.Type(), ObjType::Str);
+  EXPECT_EQ(strNonEmpty.Type(), ObjType::String);
 }
 
 TEST_F(ValueArithmeticTest, IntAndDoubleArithmetic) {
@@ -140,13 +146,12 @@ TEST_F(ValueArithmeticTest, BoolLogicalOps) {
 }
 
 TEST_F(ValueArithmeticTest, StringConcatenateAndRepeat) {
-  Value hello(std::string{"hello"});
-  Value world(std::string{"world"});
+  Value hello = v("hello");
+  Value world = v("world");
   Value three(3);
 
-  EXPECT_EQ(eval(hello, Op::Add, world), std::string("helloworld"));
-  EXPECT_EQ(eval(Value(std::string{"ab"}), Op::Mul, three),
-            std::string("ababab"));
+  EXPECT_EQ(eval(hello, Op::Add, world), "helloworld");
+  EXPECT_EQ(eval(v("ab"), Op::Mul, three), "ababab");
 }
 
 TEST_F(ValueArithmeticTest, DivisionByZero) {
@@ -177,7 +182,7 @@ TEST_F(ValueArithmeticTest, NilValue) {
   testNilEquality(Value(false));
   testNilEquality(Value(123));
   testNilEquality(Value(123.4));
-  testNilEquality(Value("hello"));
+  testNilEquality(v("hello"));
   testNilEquality(Value(dict));
 
   EXPECT_EQ(eval(Op::Tilde, nil), true);

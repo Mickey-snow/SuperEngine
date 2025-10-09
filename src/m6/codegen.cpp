@@ -26,6 +26,7 @@
 
 #include "utilities/mpl.hpp"
 #include "vm/object.hpp"
+#include "vm/string.hpp"
 #include "vm/value.hpp"
 
 #include <stdexcept>
@@ -91,6 +92,10 @@ void CodeGenerator::AddError(std::string msg,
 }
 
 // Constant-pool helpers
+uint32_t CodeGenerator::constant(std::string_view str) {
+  sr::String* s = gc_->Allocate<sr::String>(std::string(str));
+  return constant(Value(s));
+}
 uint32_t CodeGenerator::constant(Value v) {
   chunk_->const_pool.emplace_back(std::move(v));
   return static_cast<uint32_t>(chunk_->const_pool.size() - 1);
@@ -98,11 +103,12 @@ uint32_t CodeGenerator::constant(Value v) {
 
 uint32_t CodeGenerator::intern_name(std::string_view s) {
   for (uint32_t i = 0; i < chunk_->const_pool.size(); ++i) {
-    if (auto p = chunk_->const_pool[i].Get_if<std::string>(); p && *p == s) {
+    if (auto p = chunk_->const_pool[i].Get_if<sr::String>();
+        p && p->str_ == s) {
       return i;
     }
   }
-  return constant(Value{std::string{s}});
+  return constant(s);
 }
 
 // emit helpers
@@ -462,12 +468,12 @@ void CodeGenerator::emit_stmt_node(const FuncDecl& fn) {
 void CodeGenerator::emit_stmt_node(const ClassDecl& cd) {
   for (auto& m : cd.memfn) {
     std::string const& name = m.name;
-    emit(sr::Push{constant(Value(name))});
+    emit(sr::Push{constant(name)});
     emit_function(
         m, name == "__init__" ? CompileMode::Ctor : CompileMode::Function);
   }
   for (auto& m : cd.staticfn) {
-    emit(sr::Push{constant(Value(m.name))});
+    emit(sr::Push{constant(m.name)});
     emit_function(m);
   }
   emit(sr::MakeClass{intern_name(cd.name),

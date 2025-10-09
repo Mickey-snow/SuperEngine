@@ -64,6 +64,11 @@ class SrbindTest : public ::testing::Test {
         dict(gc->Allocate<Dict>()),
         mod(gc.get(), dict) {}
 
+  inline Value v(const char* s) {
+    String* str = gc->Allocate<String>(s);
+    return Value(str);
+  }
+
   // Helper: push a callee and args on the fiber stack and invoke the callee.
   // Layout: [callee, pos0, pos1, ..., k1, v1, k2, v2, ...]
   Value CallCallee(
@@ -75,7 +80,8 @@ class SrbindTest : public ::testing::Test {
     for (auto const& v : pos)
       f->stack.emplace_back(v);
     for (auto const& kv : kwargs) {
-      f->stack.emplace_back(kv.first);
+      String* str = gc->Allocate<String>(kv.first);
+      f->stack.emplace_back(str);
       f->stack.emplace_back(kv.second);
     }
     const uint8_t nargs = static_cast<uint8_t>(pos.size());
@@ -203,9 +209,7 @@ TEST_F(SrbindTest, FreeFunction_KeywordsAndDefaults) {
       error_type)
       << "Expected error for too many positional";
   // type error (c must be int)
-  EXPECT_THROW(
-      std::ignore = CallCallee(nf, {}, {{"c", Value(std::string("oops"))}}),
-      error_type)
+  EXPECT_THROW(std::ignore = CallCallee(nf, {}, {{"c", v("oops")}}), error_type)
       << "Expected error for type mismatch";
 }
 

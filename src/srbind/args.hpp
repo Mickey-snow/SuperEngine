@@ -56,6 +56,16 @@ struct arg_t {
     };
     return r;
   }
+  arg_t operator=(std::string&& s) {
+    arg_t r = *this;
+    r.has_default = true;
+    r.make_default =
+        [strobj = serilang::String(std::move(s))]() -> serilang::TempValue {
+      return Value(const_cast<serilang::String*>(&strobj));
+    };
+    return r;
+  }
+  arg_t operator=(const char* s) { return *this = std::string(s); }
 };
 
 inline arg_t arg(const char* name) { return arg_t{name}; }

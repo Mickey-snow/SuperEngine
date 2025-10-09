@@ -47,7 +47,6 @@ class Value {
                                bool,
                                int,
                                double,
-                               std::string,
                                IObject*  // object
                                >;
 
@@ -163,9 +162,8 @@ class Value {
   bool operator==(const std::string& rhs) const;
   bool operator==(char const* s) const;
 
-  friend std::ostream& operator<<(std::ostream& os, const Value& v) {
-    os << v.Desc();
-    return os;
+  inline friend std::ostream& operator<<(std::ostream& os, const Value& v) {
+    return os << v.Desc();
   }
 
  private:

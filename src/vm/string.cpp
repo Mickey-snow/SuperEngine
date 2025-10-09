@@ -22,34 +22,21 @@
 //
 // -----------------------------------------------------------------------
 
-#pragma once
+#include "vm/string.hpp"
 
-#include <cstdint>
+#include "vm/object.hpp"
+
+#include <format>
 
 namespace serilang {
-enum class ObjType : uint8_t {
-  Dummy,  // for testing
-  Other,
 
-  Nil,
-  Bool,
-  Int,
-  Double,
-  String,
-  List,
-  Dict,
-  Module,
-  Native,
-  BoundMethod,
-  NativeClass,
-  NativeInstance,
-  Code,
-  Function,
-  Closure,
-  Fiber,
-  Class,
-  Instance,
-  Future
-};
+std::string String::Str() const { return str_; }
+std::string String::Desc() const { return std::format("<str: {}>", str_); }
 
+void String::MarkRoots(GCVisitor& visitor) {
+  // nothing
 }
+
+std::optional<bool> String::Bool() const { return !str_.empty(); }
+
+}  // namespace serilang

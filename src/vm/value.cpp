@@ -28,6 +28,7 @@
 #include "vm/iobject.hpp"
 #include "vm/object.hpp"
 #include "vm/primops.hpp"
+#include "vm/string.hpp"
 #include "vm/vm.hpp"
 
 #include <cmath>
@@ -92,8 +93,6 @@ bool Value::IsTruthy() const {
           return x != 0;
         else if constexpr (std::same_as<T, double>)
           return x != 0.0;
-        else if constexpr (std::same_as<T, std::string>)
-          return !x.empty();
         else if constexpr (std::same_as<T, IObject*>) {
           if (!x)
             return false;
@@ -115,8 +114,6 @@ ObjType Value::Type() const {
           return ObjType::Int;
         else if constexpr (std::same_as<T, double>)
           return ObjType::Double;
-        else if constexpr (std::same_as<T, std::string>)
-          return ObjType::Str;
         else if constexpr (std::same_as<T, IObject*>)
           return x->Type();
         else
@@ -237,13 +234,13 @@ bool Value::operator==(bool rhs) const {
 }
 
 bool Value::operator==(const std::string& rhs) const {
-  auto ptr = std::get_if<std::string>(&val_);
-  return ptr && *ptr == rhs;
+  auto ptr = Get_if<String>();
+  return ptr && ptr->str_ == rhs;
 }
 
 bool Value::operator==(char const* s) const {
-  auto ptr = std::get_if<std::string>(&val_);
-  return ptr && *ptr == s;
+  auto ptr = Get_if<String>();
+  return ptr && ptr->str_ == s;
 }
 
 }  // namespace serilang

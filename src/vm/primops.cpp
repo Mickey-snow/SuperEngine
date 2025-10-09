@@ -26,6 +26,7 @@
 
 #include "vm/exception.hpp"
 #include "vm/iobject.hpp"
+#include "vm/string.hpp"
 
 #include <bit>
 #include <cmath>
@@ -34,7 +35,7 @@
 namespace serilang::primops {
 
 namespace {
-enum class Kind : uint8_t { Nil = 0, Bool, Int, Double, Str, Object, Count };
+enum class Kind : uint8_t { Nil = 0, Bool, Int, Double, String, Object, Count };
 inline static Kind kind_of(const Value& v) {
   switch (v.Type()) {
     case ObjType::Nil:
@@ -45,10 +46,29 @@ inline static Kind kind_of(const Value& v) {
       return Kind::Int;
     case ObjType::Double:
       return Kind::Double;
-    case ObjType::Str:
-      return Kind::Str;
+    case ObjType::String:
+      return Kind::String;
     default:
       return Kind::Object;
+  }
+}
+
+static std::string kind_name(Kind kind) {
+  switch (kind) {
+    case Kind::Nil:
+      return "nil";
+    case Kind::Int:
+      return "<int>";
+    case Kind::Double:
+      return "<double>";
+    case Kind::String:
+      return "<string>";
+    case Kind::Bool:
+      return "<bool>";
+    case Kind::Object:
+      return "<object>";
+    default:
+      return "<unknown>";
   }
 }
 
@@ -183,22 +203,22 @@ static Value handleBoolBoolOp(Op op, bool lhs, bool rhs) {
   }
 }
 
-static Value handleStringStringOp(Op op,
-                                  const std::string& lhs,
-                                  const std::string& rhs) {
+static TempValue handleStringStringOp(Op op,
+                                      const std::string& lhs,
+                                      const std::string& rhs) {
   switch (op) {
     case Op::Equal:
       return (lhs == rhs) ? kTrue : kFalse;
     case Op::NotEqual:
       return (lhs != rhs) ? kTrue : kFalse;
     case Op::Add:
-      return Value(lhs + rhs);
+      return std::make_unique<String>(lhs + rhs);
     default:
       throw UndefinedOperator(op, {lhs, rhs});
   }
 }
 
-static Value handleStringIntOp(Op op, std::string lhs, int rhs) {
+static TempValue handleStringIntOp(Op op, std::string lhs, int rhs) {
   if (op == Op::Mul && rhs >= 0) {
     std::string result;
     result.reserve(lhs.size() * static_cast<size_t>(rhs));
@@ -210,10 +230,10 @@ static Value handleStringIntOp(Op op, std::string lhs, int rhs) {
       lhs += lhs;
       rhs >>= 1;
     }
-    return Value(std::move(result));
+    return std::make_unique<String>(std::move(result));
   }
 
-  throw UndefinedOperator(op, {"<str>", std::to_string(rhs)});
+  throw UndefinedOperator(op, {"<string>", std::to_string(rhs)});
 }
 
 static Value handleNilOp(Op op, Kind other_kind) {
@@ -227,31 +247,7 @@ static Value handleNilOp(Op op, Kind other_kind) {
   }
 
   // error formatting
-  char const* kind_name;
-  switch (other_kind) {
-    case Kind::Nil:
-      kind_name = "nil";
-      break;
-    case Kind::Int:
-      kind_name = "<int>";
-      break;
-    case Kind::Double:
-      kind_name = "<double>";
-      break;
-    case Kind::Str:
-      kind_name = "<str>";
-      break;
-    case Kind::Bool:
-      kind_name = "<bool>";
-      break;
-    case Kind::Object:
-      kind_name = "<object>";
-      break;
-    default:
-      kind_name = "<unknown>";
-      break;
-  }
-  throw UndefinedOperator(op, {"nil", kind_name});
+  throw UndefinedOperator(op, {"nil", kind_name(other_kind)});
 }
 
 // ---- unary helpers ----
@@ -345,14 +341,15 @@ static void ensure_init() {
       return handleDoubleDoubleOp(op, l.Get<bool>() ? 1.0 : 0.0,
                                   r.Get<double>());
     };
-    BIN[static_cast<size_t>(Kind::Str)][static_cast<size_t>(Kind::Int)] =
+    BIN[static_cast<size_t>(Kind::String)][static_cast<size_t>(Kind::Int)] =
         +[](Op op, const Value& l, const Value& r) -> TempValue {
-      return handleStringIntOp(op, l.Get<std::string>(), r.Get<int>());
+      return handleStringIntOp(op, l.Get_if<const String>()->str_,
+                               r.Get<int>());
     };
-    BIN[static_cast<size_t>(Kind::Str)][static_cast<size_t>(Kind::Str)] =
+    BIN[static_cast<size_t>(Kind::String)][static_cast<size_t>(Kind::String)] =
         +[](Op op, const Value& l, const Value& r) -> TempValue {
-      return handleStringStringOp(op, l.Get<std::string>(),
-                                  r.Get<std::string>());
+      return handleStringStringOp(op, l.Get_if<const String>()->str_,
+                                  r.Get_if<const String>()->str_);
     };
     BIN[static_cast<size_t>(Kind::Nil)][static_cast<size_t>(Kind::Nil)] =
         +[](Op op, const Value& l, const Value& r) -> TempValue {
@@ -368,10 +365,10 @@ static void ensure_init() {
             +[](Op op, const Value& l, const Value& r) -> TempValue {
       return handleNilOp(op, Kind::Double);
     };
-    BIN[static_cast<size_t>(Kind::Nil)][static_cast<size_t>(Kind::Str)] =
-        BIN[static_cast<size_t>(Kind::Str)][static_cast<size_t>(Kind::Nil)] =
+    BIN[static_cast<size_t>(Kind::Nil)][static_cast<size_t>(Kind::String)] =
+        BIN[static_cast<size_t>(Kind::String)][static_cast<size_t>(Kind::Nil)] =
             +[](Op op, const Value& l, const Value& r) -> TempValue {
-      return handleNilOp(op, Kind::Str);
+      return handleNilOp(op, Kind::String);
     };
     BIN[static_cast<size_t>(Kind::Nil)][static_cast<size_t>(Kind::Bool)] =
         BIN[static_cast<size_t>(Kind::Bool)][static_cast<size_t>(Kind::Nil)] =

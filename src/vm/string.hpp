@@ -24,32 +24,31 @@
 
 #pragma once
 
-#include <cstdint>
+#include "vm/iobject.hpp"
+
+#include <string>
 
 namespace serilang {
-enum class ObjType : uint8_t {
-  Dummy,  // for testing
-  Other,
 
-  Nil,
-  Bool,
-  Int,
-  Double,
-  String,
-  List,
-  Dict,
-  Module,
-  Native,
-  BoundMethod,
-  NativeClass,
-  NativeInstance,
-  Code,
-  Function,
-  Closure,
-  Fiber,
-  Class,
-  Instance,
-  Future
+struct GCVisitor;
+class VM;
+
+struct String : public IObject {
+  static constexpr inline ObjType objtype = ObjType::String;
+
+  const std::string str_;
+
+  inline String(std::string str) : str_(std::move(str)) {}
+
+  constexpr ObjType Type() const noexcept final { return objtype; }
+  constexpr size_t Size() const noexcept final { return sizeof(*this); }
+
+  void MarkRoots(GCVisitor& visitor) override;
+
+  std::string Str() const override;
+  std::string Desc() const override;
+
+  std::optional<bool> Bool() const override;
 };
 
-}
+}  // namespace serilang

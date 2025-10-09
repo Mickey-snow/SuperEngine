@@ -35,6 +35,7 @@
 #include "vm/operator_protocol.hpp"
 #include "vm/primops.hpp"
 #include "vm/promise.hpp"
+#include "vm/string.hpp"
 #include "vm/upvalue.hpp"
 #include "vm/value.hpp"
 
@@ -316,7 +317,8 @@ void VM::Error(Fiber& f) {
 }
 
 void VM::Error(Fiber& f, std::string exc) {
-  push(f.stack, Value(std::move(exc)));
+  String* excstr = gc_->Allocate<String>(std::move(exc));
+  push(f.stack, Value(excstr));
   Error(f);
 }
 
@@ -470,17 +472,19 @@ void VM::ExecuteFiber(Fiber* fib) {
       case OpCode::LoadGlobal: {
         const auto ins = chunk->Read<serilang::LoadGlobal>(ip);
         ip += sizeof(ins);
-        const auto name =
-            chunk->const_pool[ins.name_index].template Get<std::string>();
+
+        const String* name =
+            chunk->const_pool[ins.name_index].template Get_if<const String>();
+        const std::string& name_str = name->str_;
 
         Dict* d = GetNamespace(*fib);
-        if (d == nullptr || !d->map.contains(name))
+        if (d == nullptr || !d->map.contains(name_str))
           d = globals_;
-        if (d == nullptr || !d->map.contains(name))
+        if (d == nullptr || !d->map.contains(name_str))
           d = builtins_;
-        auto it = d->map.find(name);
+        auto it = d->map.find(name_str);
         if (it == d->map.cend()) {
-          Error(*fib, "NameError: '" + name + "' is not defined");
+          Error(*fib, "NameError: '" + name_str + "' is not defined");
           return;
         }
         push(fib->stack, it->second);
@@ -489,14 +493,17 @@ void VM::ExecuteFiber(Fiber* fib) {
       case OpCode::StoreGlobal: {
         const auto ins = chunk->Read<serilang::StoreGlobal>(ip);
         ip += sizeof(ins);
-        const auto name =
-            chunk->const_pool[ins.name_index].template Get<std::string>();
+
+        const String* name =
+            chunk->const_pool[ins.name_index].template Get_if<const String>();
+        const std::string& name_str = name->str_;
+
         Value val = pop(fib->stack);
 
         Dict* dst = GetNamespace(*fib);
         if (dst == nullptr)
           dst = globals_;
-        dst->map[name] = std::move(val);
+        dst->map[name_str] = std::move(val);
       } break;
 
       //------------------------------------------------------------------
@@ -541,8 +548,8 @@ void VM::ExecuteFiber(Fiber* fib) {
         param_index.reserve(ins.nparam);
         size_t name_idx = fib->stack.size() - ins.nparam;
         for (uint32_t i = 0; i < ins.nparam; ++i) {
-          param_index.emplace(
-              std::move(*fib->stack[name_idx + i].Get_if<std::string>()), i);
+          param_index.emplace(fib->stack[name_idx + i].Get_if<String>()->str_,
+                              i);
         }
         fib->stack.resize(name_idx);
 
@@ -553,9 +560,9 @@ void VM::ExecuteFiber(Fiber* fib) {
         defaults.reserve(ins.ndefault);
         for (size_t i = fib->stack.size() - ins.ndefault * 2;
              i < fib->stack.size(); i += 2) {
-          std::string* k = fib->stack[i].Get_if<std::string>();
+          std::string const& k = fib->stack[i].Get_if<String>()->str_;
           Value v = std::move(fib->stack[i + 1]);
-          defaults.emplace(param_index.at(*k), std::move(v));
+          defaults.emplace(param_index.at(k), std::move(v));
         }
         fib->stack.resize(fib->stack.size() - ins.ndefault * 2);
 
@@ -591,11 +598,9 @@ void VM::ExecuteFiber(Fiber* fib) {
       case OpCode::MakeList: {
         const auto ins = chunk->Read<serilang::MakeList>(ip);
         ip += sizeof(ins);
-        std::vector<Value> elms;
-        elms.reserve(ins.nelms);
-        for (size_t i = fib->stack.size() - ins.nelms; i < fib->stack.size();
-             ++i)
-          elms.emplace_back(std::move(fib->stack[i]));
+        std::vector<Value> elms(
+            std::make_move_iterator(fib->stack.end() - ins.nelms),
+            std::make_move_iterator(fib->stack.end()));
         fib->stack.resize(fib->stack.size() - ins.nelms);
         fib->stack.emplace_back(gc_->Allocate<List>(std::move(elms)));
       } break;
@@ -606,7 +611,7 @@ void VM::ExecuteFiber(Fiber* fib) {
         std::unordered_map<std::string, Value> elms;
         for (size_t i = fib->stack.size() - 2 * ins.nelms;
              i < fib->stack.size(); i += 2) {
-          std::string key = fib->stack[i].Get<std::string>();
+          std::string key = fib->stack[i].Get_if<String>()->str_;
           Value val = std::move(fib->stack[i + 1]);
           elms.try_emplace(std::move(key), std::move(val));
         }
@@ -618,16 +623,15 @@ void VM::ExecuteFiber(Fiber* fib) {
         const auto ins = chunk->Read<serilang::MakeClass>(ip);
         ip += sizeof(ins);
         auto klass = gc_->Allocate<Class>();
-        klass->name =
-            chunk->const_pool[ins.name_index].template Get<std::string>();
+        klass->name = chunk->const_pool[ins.name_index].Get_if<String>()->str_;
         for (int i = 0; i < ins.nstaticfn; i++) {
           Function* fn = pop(fib->stack).template Get<Function*>();
-          std::string name = pop(fib->stack).template Get<std::string>();
+          std::string name = pop(fib->stack).Get_if<String>()->str_;
           klass->fields.try_emplace(std::move(name), fn);
         }
         for (int i = 0; i < ins.nmemfn; i++) {
           Function* fn = pop(fib->stack).template Get<Function*>();
-          std::string name = pop(fib->stack).template Get<std::string>();
+          std::string name = pop(fib->stack).Get_if<String>()->str_;
           klass->memfns.try_emplace(std::move(name), fn);
         }
 
@@ -638,8 +642,8 @@ void VM::ExecuteFiber(Fiber* fib) {
         const auto ins = chunk->Read<serilang::GetField>(ip);
         ip += sizeof(ins);
         Value receiver = pop(fib->stack);
-        auto name =
-            chunk->const_pool[ins.name_index].template Get<std::string>();
+        const std::string& name =
+            chunk->const_pool[ins.name_index].Get_if<String>()->str_;
         TempValue result = nil;
         try {
           result = receiver.Member(name);
@@ -657,10 +661,10 @@ void VM::ExecuteFiber(Fiber* fib) {
         ip += sizeof(ins);
         Value val = pop(fib->stack);
         Value receiver = pop(fib->stack);
-        std::string* name =
-            chunk->const_pool[ins.name_index].template Get_if<std::string>();
+        std::string const& name =
+            chunk->const_pool[ins.name_index].Get_if<String>()->str_;
         try {
-          receiver.SetMember(*name, std::move(val));
+          receiver.SetMember(name, std::move(val));
         } catch (RuntimeError& e) {
           Error(*fib, e.message());
           return;

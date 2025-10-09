@@ -80,6 +80,7 @@ class CodeGenerator {
 
   // -- Constant-pool helpers ------------------------------------------
   uint32_t constant(Value v);
+  uint32_t constant(std::string_view str);
   uint32_t intern_name(std::string_view s);
   void emit_const(Value v);
   void emit_const(std::string_view s);

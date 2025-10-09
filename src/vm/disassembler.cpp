@@ -26,6 +26,7 @@
 
 #include "vm/instruction.hpp"
 #include "vm/object.hpp"
+#include "vm/string.hpp"
 
 #include <format>
 #include <iomanip>
@@ -56,8 +57,8 @@ void Disassembler::PrintIns(Code& chunk,
   };
   const auto string_at = [&](size_t index) {
     return index < chunk.const_pool.size()
-               ? chunk.const_pool[index].template Get<std::string>()
-               : "???";
+               ? chunk.const_pool[index].template Get_if<String>()->str_
+               : std::string("???");
   };
 
   // header (address column) --------------------------------------

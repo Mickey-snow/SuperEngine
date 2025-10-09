@@ -26,6 +26,7 @@
 
 #include "srbind/common.hpp"
 #include "vm/object.hpp"
+#include "vm/string.hpp"
 #include "vm/value.hpp"
 
 #include <memory>
@@ -75,18 +76,20 @@ struct type_caster<bool> {
 template <>
 struct type_caster<std::string> {
   static std::string load(Value& v) { return v.Str(); }
-  static serilang::TempValue cast(std::string s) { return Value(std::move(s)); }
+  static serilang::TempValue cast(std::string s) {
+    return std::make_unique<serilang::String>(std::move(s));
+  }
 };
 
 template <>
 struct type_caster<char const*> {
   static char const* load(Value& v) {
-    if (auto p = v.Get_if<std::string>())
-      return p->c_str();
+    if (auto p = v.Get_if<serilang::String>())
+      return p->str_.c_str();
     throw type_error("expected str, got " + v.Desc());
   }
   static serilang::TempValue cast(char const* s) {
-    return Value(std::string(s));
+    return std::make_unique<serilang::String>(s);
   }
 };
 

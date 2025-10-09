@@ -25,6 +25,8 @@
 #include <gtest/gtest.h>
 
 #include "srbind/argloader.hpp"
+#include "vm/gc.hpp"
+#include "vm/string.hpp"
 #include "vm/value.hpp"
 
 #include <string>
@@ -38,17 +40,31 @@ using namespace serilang;
 using std::string_literals::operator""s;
 
 template <typename T>
-concept value_type =
-    Contains<T,
-             TypeList<std::monostate, bool, int, double, std::string>>::value;
+concept value_type = Contains<
+    T,
+    TypeList<std::monostate, bool, int, double, std::string, const char*>>::
+    value;
 
 class LoadArgsTest : public ::testing::Test {
  protected:
+  GarbageCollector gc;
+
+  template <typename T>
+    requires std::constructible_from<Value, T>
+  inline Value to_value(T&& param) {
+    return Value(std::forward<T>(param));
+  }
+  inline Value to_value(std::string s) {
+    String* str = gc.Allocate<String>(std::move(s));
+    return Value(str);
+  }
+  inline Value to_value(const char* s) { return to_value(std::string(s)); }
+
   template <typename... Ts, typename... Us>
     requires(value_type<Ts> && ...)
-  inline static std::vector<Value> Stack(Ts&&... params) {
+  inline std::vector<Value> Stack(Ts&&... params) {
     // layout: (arg0, arg1,..., kw0, kwarg0, kw1, kwarg1,...)
-    return std::vector<Value>{Value(std::forward<Ts>(params))...};
+    return std::vector<Value>{to_value(std::forward<Ts>(params))...};
   }
 
   inline static arglist_spec make_spec(std::size_t nparam,
@@ -117,7 +133,9 @@ TEST_F(LoadArgsTest, VarargAndKwarg) {
 TEST_F(LoadArgsTest, DefaultArg) {
   auto spec = make_spec(1, /*vararg=*/false, /*kwarg=*/true);
   spec.param_index["k"] = 0;
-  spec.defaults[0] = []() { return TempValue(Value("default")); };
+  spec.defaults[0] = [strobj = String("default")]() -> TempValue {
+    return Value(const_cast<String*>(&strobj));
+  };
 
   auto stack = Stack("m"s, 1);
   auto [k, kw] = load_args<std::string, KW>(stack, 0, 1, spec);

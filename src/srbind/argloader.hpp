@@ -26,6 +26,7 @@
 
 #include "srbind/arglist_spec.hpp"
 #include "srbind/args.hpp"
+#include "vm/string.hpp"
 #include "vm/value.hpp"
 
 #include <format>
@@ -35,6 +36,7 @@
 #include <vector>
 
 namespace srbind {
+namespace sr = serilang;
 
 struct argloader_error : std::runtime_error {
   using std::runtime_error::runtime_error;
@@ -79,9 +81,9 @@ auto load_args_impl(std::vector<Value>& stack,
   kwargs.reserve(nkwargs);
   size_t idx = base + nargs;
   for (size_t i = 0; i < nkwargs; ++i) {
-    std::string* k = stack[idx++].Get_if<std::string>();
+    std::string k = stack[idx++].Get_if<sr::String>()->str_;
     Value v = std::move(stack[idx++]);
-    auto [it, ok] = kwargs.try_emplace(std::move(*k), std::move(v));
+    auto [it, ok] = kwargs.try_emplace(std::move(k), std::move(v));
     if (!ok)
       throw argloader_error(std::format("duplicate keyword '{}'", it->first));
   }
