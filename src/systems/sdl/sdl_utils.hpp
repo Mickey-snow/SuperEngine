@@ -65,4 +65,5 @@ SDL_Surface* AlphaInvert(SDL_Surface* in_surface);
 void RectToSDLRect(const Rect& rect, SDL_Rect* out);
 
 void RGBColourToSDLColor(const RGBColour& in, SDL_Color* out);
+SDL_Color ToSDLColor(const RGBColour& in);
 Uint32 MapRGBA(SDL_PixelFormat* fmt, const RGBAColour& in);

@@ -100,6 +100,14 @@ void RGBColourToSDLColor(const RGBColour& in, SDL_Color* out) {
   out->b = in.b();
 }
 
+SDL_Color ToSDLColor(const RGBColour& in) {
+  SDL_Color out;
+  out.r = in.r();
+  out.g = in.g();
+  out.b = in.b();
+  return out;
+}
+
 // -----------------------------------------------------------------------
 
 Uint32 MapRGBA(SDL_PixelFormat* fmt, const RGBAColour& in) {

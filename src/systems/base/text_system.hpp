@@ -27,18 +27,20 @@
 
 #pragma once
 
+#include "core/event_listener.hpp"
+#include "machine/long_operation.hpp"
+
 #include <boost/serialization/split_member.hpp>
 #include <boost/serialization/version.hpp>
 
 #include <cstdint>
+#include <filesystem>
 #include <list>
 #include <map>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
-
-#include "core/event_listener.hpp"
-#include "machine/long_operation.hpp"
 
 class Gameexe;
 class Memory;
@@ -52,6 +54,8 @@ class System;
 class TextKeyCursor;
 class TextPage;
 class TextWindow;
+class ITextSystem;
+class IFont;
 
 // Global variables written to disk.
 struct TextSystemGlobals {
@@ -88,13 +92,13 @@ BOOST_CLASS_VERSION(TextSystemGlobals, 1)
 
 // -----------------------------------------------------------------------
 
-class TextSystem : public EventListener {
+class TextSystem final : public EventListener {
  public:
   // Internal structure used to keep track of the state of
   typedef std::map<int, TextPage> PageSet;
 
  public:
-  TextSystem(System& system, Gameexe& gexe);
+  TextSystem(System& system, Gameexe& gexe, std::unique_ptr<ITextSystem> impl);
   virtual ~TextSystem();
 
   // Controls whether the text system is rendered at all.
@@ -113,7 +117,10 @@ class TextSystem : public EventListener {
   void SetVisualOverride(int win_number, bool show_window);
   void SetVisualOverrideAll(bool show_window);
   void ClearVisualOverrides();
-  virtual std::shared_ptr<TextWindow> GetTextWindow(int text_window_number) = 0;
+
+  // Text window, aka mwnd. Consists of waku decoration and TextPage layout
+  // management
+  std::shared_ptr<TextWindow> GetTextWindow(int text_window_number);
   std::shared_ptr<TextWindow> GetCurrentWindow();
 
   void set_in_pause_state(bool in) { in_pause_state_ = in; }
@@ -230,21 +237,6 @@ class TextSystem : public EventListener {
                                       RGBColour* shadow_colour,
                                       int max_chars_in_line);
 
-  // Renders a glyph onto destination. Returns the size of the glyph blitted.
-  virtual Size RenderGlyphOnto(const std::string& current,
-                               int font_size,
-                               bool italic,
-                               const RGBColour& font_colour,
-                               const RGBColour* shadow_colour,
-                               int insertion_point_x,
-                               int insertion_point_y,
-                               const std::shared_ptr<Surface>& destination) = 0;
-
-  virtual int GetCharWidth(int size, uint16_t codepoint) = 0;
-
-  // Whether the current font has monospaced Roman letters.
-  virtual bool FontIsMonospaced() = 0;
-
   TextSystemGlobals& globals() { return globals_; }
 
   // Resets non-configuration values (so we can load games).
@@ -265,7 +257,12 @@ class TextSystem : public EventListener {
 
   System& system() { return system_; }
 
- protected:
+  ITextSystem& impl() { return *text_impl_; }
+
+  // Load a font of given size
+  std::shared_ptr<IFont> LoadFont(int size);
+
+ private:
   void UpdateWindowsForChangeToWindowAttr();
 
   bool ShowWindow(int win_num) const;
@@ -275,6 +272,14 @@ class TextSystem : public EventListener {
   // Reduces the number of page snapshots in previous_page_sets_ down to a
   // manageable constant number.
   void ExpireOldPages();
+
+  // Platform dependent text implementor
+  std::unique_ptr<ITextSystem> text_impl_;
+
+  std::filesystem::path default_font_file_;
+
+  // Cached instances of default font of various sizes
+  std::unordered_map<int, std::shared_ptr<IFont>> font_cache_;
 
   // TextPage will call our internals since it actually does most of
   // the work while we hold state.

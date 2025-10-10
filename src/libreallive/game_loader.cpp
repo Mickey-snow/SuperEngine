@@ -29,6 +29,7 @@
 #include "libreallive/scriptor.hpp"
 #include "log/domain_logger.hpp"
 #include "machine/game_hacks.hpp"
+#include "machine/long_operation.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/serialization.hpp"
 #include "systems/base/graphics_system.hpp"

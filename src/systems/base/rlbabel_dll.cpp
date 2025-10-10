@@ -58,6 +58,7 @@
 #include "systems/base/system.hpp"
 #include "systems/base/text_system.hpp"
 #include "systems/base/text_window.hpp"
+#include "systems/itext_system.hpp"
 #include "utilities/string_utilities.hpp"
 
 using std::cerr;
@@ -169,7 +170,9 @@ int RlBabelDLL::CallDLL(RLMachine& machine,
       return TestGlosses(arg1, arg2, GetSvar(arg3), arg4);
     case dllGetRCommandMod: {
       int window = GetWindow(arg1)->window_number();
-      return machine.GetSystem().gameexe()("WINDOW")(window)("R_COMMAND_MOD").ToInt();
+      return machine.GetSystem()
+          .gameexe()("WINDOW")(window)("R_COMMAND_MOD")
+          .ToInt();
     }
     case dllMessageBox:
     //      return rlMsgBox(arg1, arg2);
@@ -207,7 +210,8 @@ int RlBabelDLL::TextoutAdd(const std::string& str) {
       Memory& memory = machine_.GetMemory();
       const auto nameloc = StrMemoryLocation(
           global ? StrBank::global_name : StrBank::local_name, idx);
-      const char* namestr = memory.Read(nameloc).c_str();
+      const std::string name = memory.Read(nameloc);
+      const char* namestr = name.c_str();
 
       // Copy to string.
       if (string[0] == 0x82 && (string[1] >= 0x4f && string[1] <= 0x58)) {
@@ -577,8 +581,8 @@ int RlBabelDLL::GetCharWidth(uint16_t cp932_char, bool as_xmod) {
   std::shared_ptr<TextWindow> window = GetWindow(-1);
   int font_size = window->font_size_in_pixels();
   // TODO(erg): Can I somehow modify this to try to do proper kerning?
-  int width =
-      machine_.GetSystem().text().GetCharWidth(font_size, unicode_codepoint);
+  int width = machine_.GetSystem().text().LoadFont(font_size)->GetCharWidth(
+      unicode_codepoint);
   return as_xmod ? window->insertion_point_x() + width : width;
 }
 

@@ -48,9 +48,13 @@
 #include "systems/base/text_key_cursor.hpp"
 #include "systems/base/text_page.hpp"
 #include "systems/base/text_window.hpp"
+#include "systems/itext_system.hpp"
+#include "systems/sdl/sdl_system.hpp"
+#include "systems/sdl/sdl_text_window.hpp"  // TODO: refactor sdl related details away later
 #include "systems/sdl_surface.hpp"
 #include "utf8.h"
 #include "utilities/exception.hpp"
+#include "utilities/find_font_file.hpp"
 #include "utilities/string_utilities.hpp"
 
 using std::back_inserter;
@@ -92,8 +96,12 @@ TextSystemGlobals::TextSystemGlobals(Gameexe& gexe)
 // -----------------------------------------------------------------------
 // TextSystem
 // -----------------------------------------------------------------------
-TextSystem::TextSystem(System& system, Gameexe& gexe)
-    : auto_mode_(false),
+TextSystem::TextSystem(System& system,
+                       Gameexe& gexe,
+                       std::unique_ptr<ITextSystem> impl)
+    : text_impl_(std::move(impl)),
+      default_font_file_(FindFontFile(system)),
+      auto_mode_(false),
       ctrl_key_skip_(true),
       fast_text_mode_(false),
       message_no_wait_(false),
@@ -117,6 +125,8 @@ TextSystem::TextSystem(System& system, Gameexe& gexe)
       kidoku_read_(false),
       in_selection_mode_(false),
       system_(system) {
+  text_impl_->InitSystem();
+
   GameexeInterpretObject ctrl_use(gexe("CTRL_USE"));
   ctrl_key_skip_ = ctrl_use.Int().value_or(ctrl_key_skip_);
 
@@ -145,7 +155,11 @@ TextSystem::TextSystem(System& system, Gameexe& gexe)
   previous_page_it_ = previous_page_sets_.end();
 }
 
-TextSystem::~TextSystem() {}
+TextSystem::~TextSystem() {
+  font_cache_.clear();
+  text_window_.clear();
+  text_impl_->QuitSystem();
+}
 
 void TextSystem::ExecuteTextSystem() {
   // Check to see if the cursor is displayed
@@ -247,6 +261,19 @@ void TextSystem::SetVisualOverrideAll(bool show_window) {
 }
 
 void TextSystem::ClearVisualOverrides() { window_visual_override_.clear(); }
+
+std::shared_ptr<TextWindow> TextSystem::GetTextWindow(int window_id) {
+  auto [it, inserted] = text_window_.try_emplace(window_id, nullptr);
+  try {
+    if (inserted)
+      it->second = std::make_shared<SDLTextWindow>(
+          static_cast<SDLSystem&>(system_), window_id);
+    return it->second;
+  } catch (...) {
+    text_window_.erase(window_id);
+    throw;
+  }
+}
 
 std::shared_ptr<TextWindow> TextSystem::GetCurrentWindow() {
   return GetTextWindow(active_window_);
@@ -597,7 +624,7 @@ std::shared_ptr<Surface> TextSystem::RenderText(const std::string& utf8str,
 
     int added_width = 0;
     if (add_char)
-      added_width = GetCharWidth(current_size, codepoint) + xspace;
+      added_width = LoadFont(current_size)->GetCharWidth(codepoint) + xspace;
     else if (is_emoji)
       added_width = size + xspace;
 
@@ -722,7 +749,7 @@ std::shared_ptr<Surface> TextSystem::RenderText(const std::string& utf8str,
     int item_width = 0;
     if (add_char) {
       // If we add this character, will we horizontally overflow?
-      item_width = GetCharWidth(current_size, codepoint);
+      item_width = LoadFont(current_size)->GetCharWidth(codepoint);
     } else if (is_emoji) {
       // Whatever the real size is, we only allocate the incoming size. This
       // means that if the emoji is larger than |size|, we'll draw text over
@@ -740,8 +767,15 @@ std::shared_ptr<Surface> TextSystem::RenderText(const std::string& utf8str,
     }
 
     if (add_char) {
-      Size s = RenderGlyphOnto(character, current_size, false, current_colour,
-                               shadow_colour, currentX, currentY, surface);
+      std::optional<RGBColour> shadow;
+      if (font_shadow() && shadow_colour != nullptr)
+        shadow = *shadow_colour;
+
+      FontFace font{.font = LoadFont(current_size), .is_italic = false};
+      Size s =
+          text_impl_->RenderGlyphOnto(character, font, current_colour, shadow,
+                                      Point(currentX, currentY), surface);
+
       currentX += s.width() + xspace;
       current_line_height = std::max(current_line_height, current_size);
     } else if (is_emoji) {
@@ -881,4 +915,11 @@ bool TextSystem::CurrentlySkipping() const {
 bool RestoreTextSystemVisibility::operator()(RLMachine& machine) {
   machine.GetSystem().text().set_system_visible(true);
   return true;
+}
+
+std::shared_ptr<IFont> TextSystem::LoadFont(int size) {
+  auto [it, ok] = font_cache_.try_emplace(size, nullptr);
+  if (ok)
+    it->second = text_impl_->GetFont(default_font_file_, size);
+  return it->second;
 }

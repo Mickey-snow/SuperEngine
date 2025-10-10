@@ -38,12 +38,13 @@
 #include "object/objdrawer.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/base/platform.hpp"
+#include "systems/base/text_system.hpp"
 #include "systems/event_system.hpp"
 #include "systems/sdl/event_backend.hpp"
 #include "systems/sdl/sdl_graphics_system.hpp"
 #include "systems/sdl/sdl_sound_system.hpp"
-#include "systems/sdl/sdl_text_system.hpp"
 #include "systems/sdl/sound_implementor.hpp"
+#include "systems/sdl/text_implementor.hpp"
 
 // -----------------------------------------------------------------------
 
@@ -62,7 +63,9 @@ SDLSystem::SDLSystem(Gameexe& gameexe, std::shared_ptr<AssetScanner> assets)
   auto event_impl = std::make_unique<SDLEventBackend>();
   event_system_ = std::make_shared<EventSystem>(std::move(event_impl));
 
-  text_system_ = std::make_shared<SDLTextSystem>(*this, gameexe);
+  auto text_impl = std::make_unique<SDLTextImpl>();
+  text_system_ =
+      std::make_shared<TextSystem>(*this, gameexe, std::move(text_impl));
 
   // The implementor for sound system
   auto sound_impl = std::make_unique<SDLSoundImpl>();
@@ -120,7 +123,7 @@ Gameexe& SDLSystem::gameexe() { return gameexe_; }
 
 // -----------------------------------------------------------------------
 
-SDLTextSystem& SDLSystem::text() { return *text_system_; }
+TextSystem& SDLSystem::text() { return *text_system_; }
 
 // -----------------------------------------------------------------------
 

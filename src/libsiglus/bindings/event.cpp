@@ -23,6 +23,7 @@
 
 #include "libsiglus/bindings/event.hpp"
 
+#include "core/event_listener.hpp"
 #include "srbind/srbind.hpp"
 #include "systems/event_system.hpp"
 #include "systems/sdl/sdl_system.hpp"

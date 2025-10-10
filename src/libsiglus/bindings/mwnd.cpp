@@ -28,8 +28,8 @@
 
 #include "srbind/srbind.hpp"
 #include "systems/base/text_page.hpp"
+#include "systems/base/text_system.hpp"
 #include "systems/sdl/sdl_system.hpp"
-#include "systems/sdl/sdl_text_system.hpp"
 #include "systems/sdl/sdl_text_window.hpp"
 
 #include <chrono>
@@ -59,7 +59,7 @@ void MWND::Bind(SiglusRuntime& runtime) {
   sb::class_<SiglusMwnd> mwnd(m, "Mwnd");
 
   mwnd.def(sb::init([sys = runtime.system.get()](int id) -> SiglusMwnd* {
-             std::shared_ptr<SDLTextSystem> text = sys->text_system_;
+             std::shared_ptr<TextSystem> text = sys->text_system_;
              if (auto wd = std::dynamic_pointer_cast<SDLTextWindow>(
                      text->GetTextWindow(id))) {
                return new SiglusMwnd(wd, *sys);

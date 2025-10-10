@@ -29,24 +29,27 @@
 
 #include <SDL/SDL_ttf.h>
 
-#include <string>
-#include <vector>
-
 #include "core/colour.hpp"
 #include "core/gameexe.hpp"
 #include "log/domain_logger.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/selection_element.hpp"
 #include "systems/base/system_error.hpp"
+#include "systems/base/text_system.hpp"
 #include "systems/base/text_window_button.hpp"
 #include "systems/sdl/sdl_graphics_system.hpp"
 #include "systems/sdl/sdl_system.hpp"
-#include "systems/sdl/sdl_text_system.hpp"
 #include "systems/sdl/sdl_utils.hpp"
+#include "systems/sdl/text_implementor.hpp"
 #include "systems/sdl_surface.hpp"
 #include "utf8.h"
 #include "utilities/exception.hpp"
 #include "utilities/string_utilities.hpp"
+
+#include <cassert>
+#include <optional>
+#include <string>
+#include <vector>
 
 SDLTextWindow::SDLTextWindow(SDLSystem& system, int window_num)
     : TextWindow(system, window_num), sdl_system_(system) {
@@ -80,15 +83,16 @@ void SDLTextWindow::RenderNameInBox(const std::string& utf8str) {
 
 void SDLTextWindow::AddSelectionItem(const std::string& utf8str,
                                      int selection_id) {
-  std::shared_ptr<TTF_Font> font =
-      sdl_system_.text().GetFontOfSize(font_size_in_pixels());
+  std::shared_ptr<IFont> ifont =
+      sdl_system_.text().LoadFont(font_size_in_pixels());
+  TTF_Font* f = static_cast<TTF_Font*>(get_ttf(ifont));
+  assert(f != nullptr);
 
   // Render the incoming string for both selected and not-selected.
   SDL_Color colour;
   RGBColourToSDLColor(font_colour_, &colour);
 
-  SDL_Surface* normal =
-      TTF_RenderUTF8_Blended(font.get(), utf8str.c_str(), colour);
+  SDL_Surface* normal = TTF_RenderUTF8_Blended(f, utf8str.c_str(), colour);
 
   // Copy and invert the surface for whatever.
   SDL_Surface* inverted = AlphaInvert(normal);
@@ -108,8 +112,11 @@ void SDLTextWindow::AddSelectionItem(const std::string& utf8str,
 
 void SDLTextWindow::DisplayRubyText(const std::string& utf8str) {
   if (ruby_begin_point_ != -1) {
-    std::shared_ptr<TTF_Font> font =
-        sdl_system_.text().GetFontOfSize(ruby_text_size());
+    std::shared_ptr<IFont> ifont =
+        sdl_system_.text().LoadFont(ruby_text_size());
+    TTF_Font* f = static_cast<TTF_Font*>(get_ttf(ifont));
+    assert(f != nullptr);
+
     int end_point = text_insertion_point_x_ - x_spacing_;
 
     if (ruby_begin_point_ > end_point) {
@@ -119,8 +126,7 @@ void SDLTextWindow::DisplayRubyText(const std::string& utf8str) {
 
     SDL_Color colour;
     RGBColourToSDLColor(font_colour_, &colour);
-    SDL_Surface* tmp =
-        TTF_RenderUTF8_Blended(font.get(), utf8str.c_str(), colour);
+    SDL_Surface* tmp = TTF_RenderUTF8_Blended(f, utf8str.c_str(), colour);
 
     // Render glyph to surface
     int w = tmp->w;
@@ -175,11 +181,19 @@ bool SDLTextWindow::DisplayCharacter(const std::string& current,
         return false;
     }
 
-    RGBColour shadow = RGBAColour::Black().rgb();
-    sdl_system_.text().RenderGlyphOnto(
-        current, font_size_in_pixels(), next_char_italic_, font_colour_,
-        &shadow, text_insertion_point_x_, text_insertion_point_y_,
+    std::optional<RGBColour> shadow;
+    if (sdl_system_.text().font_shadow())
+      shadow = RGBAColour::Black().rgb();
+
+    std::shared_ptr<IFont> font =
+        sdl_system_.text().LoadFont(font_size_in_pixels());
+    FontFace font_face{.font = font, .is_italic = next_char_italic_};
+
+    sdl_system_.text().impl().RenderGlyphOnto(
+        current, font_face, font_colour_, shadow,
+        Point(text_insertion_point_x_, text_insertion_point_y_),
         GetTextSurface());
+
     next_char_italic_ = false;
     text_wrapping_point_x_ += GetWrappingWidthFor(cur_codepoint);
 
@@ -190,7 +204,7 @@ bool SDLTextWindow::DisplayCharacter(const std::string& current,
       // fit onto the monospace grid) or we're in rlbabel (in which case, our
       // insertion point will be manually set by the bytecode immediately after
       // this character).
-      if (text_system_.FontIsMonospaced()) {
+      if (font->IsMonospace()) {
         // If our font is monospaced (ie msgothic.ttc), we want to follow the
         // game's layout instructions perfectly.
         text_insertion_point_x_ += GetWrappingWidthFor(cur_codepoint);
@@ -198,8 +212,7 @@ bool SDLTextWindow::DisplayCharacter(const std::string& current,
         // If out font has different widths for 'i' and 'm', we aren't using
         // the recommended font so we'll try laying out the text so that
         // kerning looks better. This is the common case.
-        text_insertion_point_x_ +=
-            text_system_.GetCharWidth(font_size_in_pixels(), cur_codepoint);
+        text_insertion_point_x_ += font->GetCharWidth(cur_codepoint);
       }
     } else {
       // Move the insertion point forward one character

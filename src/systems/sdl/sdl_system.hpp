@@ -30,11 +30,10 @@
 #include <memory>
 
 #include "systems/base/system.hpp"
-#include "systems/sdl/sdl_text_system.hpp"
 
 class SDLGraphicsSystem;
-class SDLTextSystem;
 class SDLSoundSystem;
+class TextSystem;
 
 // -----------------------------------------------------------------------
 
@@ -48,12 +47,12 @@ class SDLSystem : public System {
   virtual GraphicsSystem& graphics() override;
   virtual EventSystem& event() override;
   virtual Gameexe& gameexe() override;
-  virtual SDLTextSystem& text() override;
+  virtual TextSystem& text() override;
   virtual SoundSystem& sound() override;
 
   std::shared_ptr<SDLGraphicsSystem> graphics_system_;
   std::shared_ptr<EventSystem> event_system_;
-  std::shared_ptr<SDLTextSystem> text_system_;
+  std::shared_ptr<TextSystem> text_system_;
   std::shared_ptr<SDLSoundSystem> sound_system_;
   Gameexe& gameexe_;
 };
