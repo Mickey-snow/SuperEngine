@@ -91,7 +91,7 @@ LazyArray<GraphicsObject>& GetGraphicsObjects(RLMachine& machine,
 
 // -----------------------------------------------------------------------
 
-ObjRangeAdapter::ObjRangeAdapter(std::unique_ptr<RLOperation> in)
+ObjRangeAdapter::ObjRangeAdapter(std::shared_ptr<RLOperation> in)
     : handler(std::move(in)) {}
 
 void ObjRangeAdapter::operator()(RLMachine& machine,
@@ -130,7 +130,7 @@ void ObjRangeAdapter::operator()(RLMachine& machine,
   }
 }
 
-std::shared_ptr<RLOperation> RangeMappingFun(std::unique_ptr<RLOperation> op) {
+std::shared_ptr<RLOperation> RangeMappingFun(std::shared_ptr<RLOperation> op) {
   return std::make_shared<ObjRangeAdapter>(std::move(op));
 }
 
@@ -138,7 +138,7 @@ std::shared_ptr<RLOperation> RangeMappingFun(std::unique_ptr<RLOperation> op) {
 // ChildObjAdapter
 // -----------------------------------------------------------------------
 
-ChildObjAdapter::ChildObjAdapter(std::unique_ptr<RLOperation> in)
+ChildObjAdapter::ChildObjAdapter(std::shared_ptr<RLOperation> in)
     : handler(std::move(in)) {}
 
 ChildObjAdapter::~ChildObjAdapter() {}
@@ -166,7 +166,7 @@ void ChildObjAdapter::operator()(RLMachine& machine,
 }
 
 std::shared_ptr<RLOperation> ChildObjMappingFun(
-    std::unique_ptr<RLOperation> op) {
+    std::shared_ptr<RLOperation> op) {
   return std::make_shared<ChildObjAdapter>(std::move(op));
 }
 
@@ -174,7 +174,7 @@ std::shared_ptr<RLOperation> ChildObjMappingFun(
 // ChildObjRangeAdapter
 // -----------------------------------------------------------------------
 
-ChildObjRangeAdapter::ChildObjRangeAdapter(std::unique_ptr<RLOperation> in)
+ChildObjRangeAdapter::ChildObjRangeAdapter(std::shared_ptr<RLOperation> in)
     : handler(std::move(in)) {}
 
 ChildObjRangeAdapter::~ChildObjRangeAdapter() {}
@@ -223,7 +223,7 @@ void ChildObjRangeAdapter::operator()(RLMachine& machine,
 }
 
 std::shared_ptr<RLOperation> ChildRangeMappingFun(
-    std::unique_ptr<RLOperation> op) {
+    std::shared_ptr<RLOperation> op) {
   return std::make_shared<ChildObjRangeAdapter>(std::move(op));
 }
 

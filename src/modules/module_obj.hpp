@@ -60,13 +60,13 @@ LazyArray<GraphicsObject>& GetGraphicsObjects(RLMachine& machine,
 // defined operations.
 class ObjRangeAdapter : public RLOp_SpecialCase {
  public:
-  explicit ObjRangeAdapter(std::unique_ptr<RLOperation> in);
+  explicit ObjRangeAdapter(std::shared_ptr<RLOperation> in);
 
   virtual void operator()(RLMachine& machine,
                           const libreallive::CommandElement& ff) final;
 
  private:
-  std::unique_ptr<RLOperation> handler;
+  std::shared_ptr<RLOperation> handler;
 };
 
 // Mapping function for a MappedRLModule which turns operation op into
@@ -74,7 +74,7 @@ class ObjRangeAdapter : public RLOp_SpecialCase {
 //
 // The wrapper takes ownership of the incoming op pointer, and the
 // caller takes ownership of the resultant RLOperation.
-std::shared_ptr<RLOperation> RangeMappingFun(std::unique_ptr<RLOperation> op);
+std::shared_ptr<RLOperation> RangeMappingFun(std::shared_ptr<RLOperation> op);
 
 // -----------------------------------------------------------------------
 
@@ -82,39 +82,39 @@ std::shared_ptr<RLOperation> RangeMappingFun(std::unique_ptr<RLOperation> op);
 // an object's child objects.
 class ChildObjAdapter : public RLOp_SpecialCase {
  public:
-  explicit ChildObjAdapter(std::unique_ptr<RLOperation> in);
+  explicit ChildObjAdapter(std::shared_ptr<RLOperation> in);
   virtual ~ChildObjAdapter();
 
   virtual void operator()(RLMachine& machine,
                           const libreallive::CommandElement& ff) final;
 
  private:
-  std::unique_ptr<RLOperation> handler;
+  std::shared_ptr<RLOperation> handler;
 };
 
 std::shared_ptr<RLOperation> ChildObjMappingFun(
-    std::unique_ptr<RLOperation> op);
+    std::shared_ptr<RLOperation> op);
 
 // -----------------------------------------------------------------------
 
 // An adapter that ranges over children of a certain parent object.
 class ChildObjRangeAdapter : public RLOp_SpecialCase {
  public:
-  explicit ChildObjRangeAdapter(std::unique_ptr<RLOperation> in);
+  explicit ChildObjRangeAdapter(std::shared_ptr<RLOperation> in);
   virtual ~ChildObjRangeAdapter();
 
   virtual void operator()(RLMachine& machine,
                           const libreallive::CommandElement& ff) final;
 
  private:
-  std::unique_ptr<RLOperation> handler;
+  std::shared_ptr<RLOperation> handler;
 };
 
 // The combo form of rangeMappingFun and childObjMappingFun. Used for
 // operations that start with (parent object num, first child num, last child
 // num).
 std::shared_ptr<RLOperation> ChildRangeMappingFun(
-    std::unique_ptr<RLOperation> op);
+    std::shared_ptr<RLOperation> op);
 
 // -----------------------------------------------------------------------
 

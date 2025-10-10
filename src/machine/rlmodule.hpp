@@ -93,10 +93,10 @@ class RLModule {
                          unsigned char overload,
                          const char* name,
                          RLOperation* op);
-  void AddOpcode(int opcode,
-                 unsigned char overload,
-                 std::string name,
-                 std::shared_ptr<RLOperation> op);
+  virtual void AddOpcode(int opcode,
+                         unsigned char overload,
+                         std::string name,
+                         std::shared_ptr<RLOperation> op);
 
   // Adds an UndefinedFunction object to this module.
   void AddUnsupportedOpcode(int opcode,
@@ -130,6 +130,7 @@ class RLModule {
   typedef std::pair<int, int> Property;
   typedef std::vector<Property> PropertyList;
 
+  [[deprecated]]
   PropertyList::iterator FindProperty(int property) const;
 
   std::unique_ptr<PropertyList> property_list_;

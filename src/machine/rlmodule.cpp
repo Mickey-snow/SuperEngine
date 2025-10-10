@@ -62,8 +62,8 @@ void RLModule::AddOpcode(int opcode,
       std::make_pair(opcode, static_cast<int>(overload)), op);
   if (!emplace_result.second) {
     throw std::invalid_argument(
-        std::format("Duplicate opcode in {}: opcode {},{}", GetDebugString(),
-                    opcode, overload));
+        std::format("Duplicate opcode in {}: opcode {},{:d}", GetDebugString(),
+                    opcode, static_cast<unsigned int>(overload)));
   }
 }
 void RLModule::AddOpcode(int opcode,

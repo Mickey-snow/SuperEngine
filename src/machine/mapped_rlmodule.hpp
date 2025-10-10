@@ -37,7 +37,7 @@
 class MappedRLModule : public RLModule {
  public:
   using MappingFunction =
-      std::function<std::shared_ptr<RLOperation>(std::unique_ptr<RLOperation>)>;
+      std::function<std::shared_ptr<RLOperation>(std::shared_ptr<RLOperation>)>;
 
  protected:
   MappedRLModule(MappingFunction fun,
@@ -52,6 +52,10 @@ class MappedRLModule : public RLModule {
                          unsigned char overload,
                          char const* name,
                          RLOperation* op) override;
+  virtual void AddOpcode(int opcode,
+                         unsigned char overload,
+                         std::string name,
+                         std::shared_ptr<RLOperation> op) override;
 
  private:
   // Function which takes an RLOperation and returns an RLOperation. Takes

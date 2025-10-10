@@ -26,6 +26,7 @@
 #include <gtest/gtest.h>
 
 #include "libreallive/elements/command.hpp"
+#include "machine/mapped_rlmodule.hpp"
 #include "machine/module_manager.hpp"
 #include "machine/rlmodule.hpp"
 #include "machine/rloperation.hpp"
@@ -84,6 +85,21 @@ class FooModule : public RLModule {
     AddUnsupportedOpcode(0, 1, "Foo2");
     AddUnsupportedOpcode(1, 1, "Foo3");
   }
+};
+
+class MappedModule : public MappedRLModule {
+ public:
+  struct Adapter : public RLOp_SpecialCase {
+    std::shared_ptr<RLOperation> raw_op;
+    Adapter(std::shared_ptr<RLOperation> op) : raw_op(op) {}
+    void operator()(RLMachine&, const libreallive::CommandElement&) override {}
+  };
+  inline static auto MappingFn(std::shared_ptr<RLOperation> op)
+      -> std::shared_ptr<RLOperation> {
+    return std::make_shared<Adapter>(std::move(op));
+  };
+
+  MappedModule() : MappedRLModule(MappingFn, "MappedModule", 23, 45) {}
 };
 }  // namespace
 
@@ -163,4 +179,24 @@ TEST_F(ModuleManagerTest, GetModule) {
 
   result = manager.GetModule(999, 999);
   EXPECT_EQ(result, nullptr);
+}
+
+TEST_F(ModuleManagerTest, MappedModule) {
+  auto mapped_module = std::make_shared<MappedModule>();
+  struct DummyOp : public RLOpcode<> {
+    void operator()(RLMachine&) {}
+  };
+  auto op = std::make_shared<DummyOp>();
+  RLModule& base = *mapped_module;
+  base.AddOpcode(1, 2, "foo", op);
+  base.AddOpcode(3, 4, "bar", new DummyOp());
+  manager.AttachModule(mapped_module);
+
+  auto r1 = manager.GetOperation(23, 45, 1, 2);
+  auto adapter = std::dynamic_pointer_cast<MappedModule::Adapter>(r1);
+  ASSERT_NE(adapter, nullptr);
+  EXPECT_EQ(adapter->raw_op.get(), op.get());
+
+  auto r2 = manager.GetOperation(23, 45, 3, 4);
+  EXPECT_TRUE(std::dynamic_pointer_cast<MappedModule::Adapter>(r2));
 }

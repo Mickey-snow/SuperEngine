@@ -48,5 +48,13 @@ void MappedRLModule::AddOpcode(int opcode,
                                char const* name,
                                RLOperation* op) {
   RLModule::AddOpcode(opcode, overload, name,
-                      map_function_(std::unique_ptr<RLOperation>(op)));
+                      map_function_(std::shared_ptr<RLOperation>(op)));
+}
+
+void MappedRLModule::AddOpcode(int opcode,
+                               unsigned char overload,
+                               std::string name,
+                               std::shared_ptr<RLOperation> op) {
+  std::shared_ptr<RLOperation> mapped_op = map_function_(op);
+  RLModule::AddOpcode(opcode, overload, std::move(name), mapped_op);
 }
