@@ -124,7 +124,7 @@ void addObjManagementFunctions(RLModule& m, const std::string& base) {
       0, 0, base + "Free",
       std::make_shared<Obj_CallFunction>(&GraphicsObject::FreeObjectData));
   m.AddOpcode(0, 1, base + "Free",
-              RangeMappingFun(std::make_unique<Obj_CallFunction>(
+              RangeMappingFun(std::make_shared<Obj_CallFunction>(
                   &GraphicsObject::FreeObjectData)));
 
   m.AddOpcode(4, 0, base + "WipeCopyOn", std::make_shared<SetWipeCopyTo_0>(1));
@@ -136,13 +136,13 @@ void addObjManagementFunctions(RLModule& m, const std::string& base) {
       10, 0, base + "Init",
       std::make_shared<Obj_CallFunction>(&GraphicsObject::InitializeParams));
   m.AddOpcode(10, 1, base + "Init",
-              RangeMappingFun(std::make_unique<Obj_CallFunction>(
+              RangeMappingFun(std::make_shared<Obj_CallFunction>(
                   &GraphicsObject::InitializeParams)));
   m.AddOpcode(11, 0, base + "FreeInit",
               std::make_shared<Obj_CallFunction>(
                   &GraphicsObject::FreeDataAndInitializeParams));
   m.AddOpcode(11, 1, base + "FreeInit",
-              RangeMappingFun(std::make_unique<Obj_CallFunction>(
+              RangeMappingFun(std::make_shared<Obj_CallFunction>(
                   &GraphicsObject::FreeDataAndInitializeParams)));
 
   m.AddOpcode(100, 0, base + "FreeAll", std::make_shared<objFreeAll>());
@@ -198,7 +198,7 @@ struct objFgBgFreeInitAll : public RLOpcode<> {
 ObjManagement::ObjManagement() : RLModule("ObjManagement", 1, 60) {
   AddOpcode(0, 0, "objFree", CallFunction(&GraphicsSystem::FreeObjectData));
   AddOpcode(0, 1, "objFree",
-            RangeMappingFun(std::unique_ptr<RLOperation>(
+            RangeMappingFun(std::shared_ptr<RLOperation>(
                 CallFunction(&GraphicsSystem::FreeObjectData))));
 
   // TODO: This needs to be reverse engineered. It doesn't seem to be quite
@@ -211,12 +211,12 @@ ObjManagement::ObjManagement() : RLModule("ObjManagement", 1, 60) {
   AddOpcode(10, 0, "objInit",
             CallFunction(&GraphicsSystem::InitializeObjectParams));
   AddOpcode(10, 1, "objInit",
-            RangeMappingFun(std::unique_ptr<RLOperation>(
+            RangeMappingFun(std::shared_ptr<RLOperation>(
                 CallFunction(&GraphicsSystem::InitializeObjectParams))));
 
   AddOpcode(11, 0, "objFreeInit", new objFreeInit);
   AddOpcode(11, 1, "objFreeInit",
-            RangeMappingFun(std::make_unique<objFreeInit>()));
+            RangeMappingFun(std::make_shared<objFreeInit>()));
 
   AddOpcode(100, 0, "objFreeAll",
             CallFunction(&GraphicsSystem::FreeAllObjectData));
