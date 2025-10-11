@@ -252,7 +252,7 @@ void TextWakuNormal::SetWakuMain(const std::string& name) {
 
 void TextWakuNormal::SetWakuBacking(const std::string& name) {
   if (name != "") {
-    waku_backing_.reset(system_.graphics().GetSurfaceNamed(name)->Clone());
+    waku_backing_ = system_.graphics().GetSurfaceNamed(name)->Clone();
     waku_backing_->SetIsMask(true);
   } else {
     waku_backing_.reset();

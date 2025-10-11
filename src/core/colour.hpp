@@ -40,6 +40,10 @@ class RGBColour {
   // Reads (r,g,b) from (colour[0], colour[1], colour[2]).
   explicit RGBColour(const std::vector<int>& colour);
 
+  [[nodiscard]] inline bool is_within_u8() const noexcept {
+    return 0 <= r() && r() <= 255 && 0 <= g() && g() <= 255 && 0 <= b() &&
+           b() <= 255;
+  }
   int r() const { return r_; }
   int g() const { return g_; }
   int b() const { return b_; }
@@ -83,6 +87,9 @@ class RGBAColour {
   // Reads (r,g,b) from (colour[0], colour[1], colour[2]). Alpha is always 255.
   explicit RGBAColour(const std::vector<int>& colour);
 
+  [[nodiscard]] inline bool is_within_u8() const noexcept {
+    return rgb().is_within_u8() && 0 <= a() && a() <= 255;
+  }
   int r() const { return rgb_.r(); }
   int g() const { return rgb_.g(); }
   int b() const { return rgb_.b(); }

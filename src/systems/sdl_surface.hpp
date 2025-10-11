@@ -105,6 +105,9 @@ class SDLSurface {
   void Mono(const Rect& area);
   void ApplyColour(const RGBColour& colour, const Rect& area);
 
+  // Applies a |transformer| to every pixel in |area| in the surface |surface|.
+  void Apply(std::function<RGBAColour(RGBAColour)> transformer, Rect area);
+
   SDL_Surface* surface() const { return surface_; }
   SDL_Surface* rawSurface() { return surface_; }
 
@@ -117,7 +120,7 @@ class SDLSurface {
                                            int g,
                                            int b) const;
 
-  Surface* Clone() const;
+  std::shared_ptr<Surface> Clone() const;
 
   // Called after each change to surface_. Marks the texture as
   // invalid and notifies SDLGraphicsSystem when appropriate.

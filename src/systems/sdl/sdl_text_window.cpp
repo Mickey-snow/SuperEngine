@@ -94,20 +94,25 @@ void SDLTextWindow::AddSelectionItem(const std::string& utf8str,
 
   SDL_Surface* normal = TTF_RenderUTF8_Blended(f, utf8str.c_str(), colour);
 
-  // Copy and invert the surface for whatever.
-  SDL_Surface* inverted = AlphaInvert(normal);
+  // clone and create an inverted surface
+  auto normal_surf = std::make_shared<SDLSurface>(normal);
+  auto inverted_surf = normal_surf->Clone();
+  inverted_surf->Apply(
+      [](RGBAColour c) {
+        c.set_alpha(255 - c.a());
+        return c;
+      },
+      inverted_surf->GetRect());
 
   // Figure out xpos and ypos
   Point position = GetTextSurfaceRect().origin() +
                    Size(text_insertion_point_x_, text_insertion_point_y_);
   text_insertion_point_y_ += (font_size_in_pixels_ + y_spacing_ + ruby_size_);
 
-  std::unique_ptr<SelectionElement> element =
-      std::make_unique<SelectionElement>(
-          system(), std::make_shared<Surface>(normal),
-          std::make_shared<Surface>(inverted), selectionCallback(),
-          selection_id, position);
-  selections_.emplace_back(std::move(element));
+  auto sel = std::make_unique<SelectionElement>(
+      system(), normal_surf, inverted_surf, selectionCallback(), selection_id,
+      position);
+  selections_.emplace_back(std::move(sel));
 }
 
 void SDLTextWindow::DisplayRubyText(const std::string& utf8str) {

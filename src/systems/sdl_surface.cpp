@@ -39,141 +39,13 @@
 #include "utilities/graphics.hpp"
 
 #include <algorithm>
+#include <cassert>
+#include <cmath>
 #include <cstring>
-#include <iostream>
 #include <sstream>
 #include <vector>
 
 std::shared_ptr<glFrameBuffer> SDLSurface::screen_ = nullptr;
-
-namespace {
-
-// An interface to TransformSurface that maps one color to another.
-class ColourTransformer {
- public:
-  virtual ~ColourTransformer() {}
-  virtual SDL_Color operator()(const SDL_Color& colour) const = 0;
-};
-
-class ToneCurveColourTransformer : public ColourTransformer {
- public:
-  explicit ToneCurveColourTransformer(const ToneCurveRGBMap m) : colormap(m) {}
-  virtual SDL_Color operator()(const SDL_Color& colour) const {
-    SDL_Color out = {colormap[0][colour.r], colormap[1][colour.g],
-                     colormap[2][colour.b], 0};
-    return out;
-  }
-
- private:
-  ToneCurveRGBMap colormap;
-};
-
-class InvertColourTransformer : public ColourTransformer {
- public:
-  virtual SDL_Color operator()(const SDL_Color& colour) const {
-    SDL_Color out = {255 - colour.r, 255 - colour.g, 255 - colour.b, 0};
-    return out;
-  }
-};
-
-class MonoColourTransformer : public ColourTransformer {
- public:
-  virtual SDL_Color operator()(const SDL_Color& colour) const {
-    float grayscale = 0.3 * colour.r + 0.59 * colour.g + 0.11 * colour.b;
-
-    static const auto Clamp = [](float& var, float min, float max) {
-      if (var < min)
-        var = min;
-      else if (var > max)
-        var = max;
-    };
-    Clamp(grayscale, 0, 255);
-
-    SDL_Color out = {grayscale, grayscale, grayscale, 0};
-    return out;
-  }
-};
-
-class ApplyColourTransformer : public ColourTransformer {
- public:
-  explicit ApplyColourTransformer(const RGBColour& colour) : colour_(colour) {}
-
-  int compose(int in_colour, int surface_colour) const {
-    if (in_colour > 0) {
-      return 255 -
-             ((static_cast<float>((255 - in_colour) * (255 - surface_colour)) /
-               (255 * 255)) *
-              255);
-    } else if (in_colour < 0) {
-      return (static_cast<float>(abs(in_colour) * surface_colour) /
-              (255 * 255)) *
-             255;
-    } else {
-      return surface_colour;
-    }
-  }
-
-  virtual SDL_Color operator()(const SDL_Color& colour) const {
-    SDL_Color out = {compose(colour_.r(), colour.r),
-                     compose(colour_.g(), colour.g),
-                     compose(colour_.b(), colour.b), 0};
-    return out;
-  }
-
- private:
-  RGBColour colour_;
-};
-
-// Applies a |transformer| to every pixel in |area| in the surface |surface|.
-void TransformSurface(SDLSurface* our_surface,
-                      const Rect& area,
-                      const ColourTransformer& transformer) {
-  SDL_Surface* surface = our_surface->rawSurface();
-  SDL_Color colour;
-  Uint32 col = 0;
-
-  // determine position
-  char* p_position = (char*)surface->pixels;
-
-  // offset by y
-  p_position += (surface->pitch * area.y());
-
-  SDL_LockSurface(surface);
-  {
-    for (int y = 0; y < area.height(); ++y) {
-      // advance forward x
-      p_position += (surface->format->BytesPerPixel * area.x());
-
-      for (int x = 0; x < area.width(); ++x) {
-        // copy pixel data
-        memcpy(&col, p_position, surface->format->BytesPerPixel);
-
-        // Before someone tries to simplify the following four lines,
-        // remember that sizeof(int) != sizeof(Uint8).
-        Uint8 alpha;
-        SDL_GetRGBA(col, surface->format, &colour.r, &colour.g, &colour.b,
-                    &alpha);
-        SDL_Color out = transformer(colour);
-        Uint32 out_colour =
-            SDL_MapRGBA(surface->format, out.r, out.g, out.b, alpha);
-
-        memcpy(p_position, &out_colour, surface->format->BytesPerPixel);
-
-        p_position += surface->format->BytesPerPixel;
-      }
-
-      // advance forward image_width - area.width() - x
-      int advance = surface->w - area.x() - area.width();
-      p_position += (surface->format->BytesPerPixel * advance);
-    }
-  }
-  SDL_UnlockSurface(surface);
-
-  // If we are the main screen, then we want to update the screen
-  our_surface->markWrittenTo(our_surface->GetRect());
-}
-
-}  // namespace
 
 // -----------------------------------------------------------------------
 
@@ -580,29 +452,123 @@ void SDLSurface::Fill(const RGBAColour& colour, const Rect& area) {
 // -----------------------------------------------------------------------
 
 void SDLSurface::Invert(const Rect& rect) {
-  InvertColourTransformer inverter;
-  TransformSurface(this, rect, inverter);
+  Apply(
+      +[](RGBAColour c) {
+        c.set_red(255 - c.r());
+        c.set_green(255 - c.g());
+        c.set_blue(255 - c.b());
+        return c;
+      },
+      rect);
 }
 
 // -----------------------------------------------------------------------
 
 void SDLSurface::Mono(const Rect& rect) {
-  MonoColourTransformer mono;
-  TransformSurface(this, rect, mono);
+  Apply(
+      +[](RGBAColour c) {
+        int grayscale =
+            static_cast<int>(0.3 * c.r() + 0.59 * c.g() + 0.11 * c.b());
+        grayscale = std::clamp(grayscale, 0, 255);
+        c.set_red(grayscale);
+        c.set_green(grayscale);
+        c.set_blue(grayscale);
+        return c;
+      },
+      rect);
 }
 
 // -----------------------------------------------------------------------
 
 void SDLSurface::ToneCurve(const ToneCurveRGBMap effect, const Rect& area) {
-  ToneCurveColourTransformer tc(effect);
-  TransformSurface(this, area, tc);
+  Apply(
+      [&effect](RGBAColour c) {
+        assert(c.is_within_u8());
+        c.set_red(effect[0][c.r()]);
+        c.set_green(effect[1][c.g()]);
+        c.set_blue(effect[2][c.b()]);
+        return c;
+      },
+      area);
 }
 
 // -----------------------------------------------------------------------
 
 void SDLSurface::ApplyColour(const RGBColour& colour, const Rect& area) {
-  ApplyColourTransformer apply(colour);
-  TransformSurface(this, area, apply);
+  Apply(
+      [refcol = colour](RGBAColour c) {
+        auto compose = [](int in_colour, int surface_colour) -> int {
+          if (in_colour > 0) {
+            return 255 - ((static_cast<float>((255 - in_colour) *
+                                              (255 - surface_colour)) /
+                           (255 * 255)) *
+                          255);
+          } else if (in_colour < 0) {
+            return (static_cast<float>(std::abs(in_colour) * surface_colour) /
+                    (255 * 255)) *
+                   255;
+          } else {
+            return surface_colour;
+          }
+        };
+        c.set_red(std::clamp(compose(refcol.r(), c.r()), 0, 255));
+        c.set_green(std::clamp(compose(refcol.g(), c.g()), 0, 255));
+        c.set_blue(std::clamp(compose(refcol.b(), c.b()), 0, 255));
+        return c;
+      },
+      area);
+}
+
+// -----------------------------------------------------------------------
+
+void SDLSurface::Apply(std::function<RGBAColour(RGBAColour)> transformer,
+                       Rect area) {
+  SDL_Surface* surface = rawSurface();
+
+  const int bpp = surface->format->BytesPerPixel;
+  const int row_advance = surface->pitch - bpp * area.width();
+
+  // determine position
+  char* p_position = static_cast<char*>(surface->pixels);
+  // offset by y
+  p_position += (surface->pitch * area.y());
+  // offset by x
+  p_position += bpp * area.x();
+
+  if (SDL_MUSTLOCK(surface))
+    SDL_LockSurface(surface);
+  {
+    for (int y = 0; y < area.height(); ++y) {
+      for (int x = 0; x < area.width(); ++x) {
+        // copy pixel data
+        Uint32 col;
+        memcpy(&col, p_position, bpp);
+
+        // Before someone tries to simplify the following four lines,
+        // remember that sizeof(int) != sizeof(Uint8).
+        Uint8 r, g, b, a;
+        SDL_GetRGBA(col, surface->format, &r, &g, &b, &a);
+        RGBAColour out = transformer(RGBAColour(r, g, b, a));
+        assert(out.is_within_u8());
+        col = SDL_MapRGBA(surface->format, static_cast<Uint8>(out.r()),
+                          static_cast<Uint8>(out.g()),
+                          static_cast<Uint8>(out.b()),
+                          static_cast<Uint8>(out.a()));
+
+        memcpy(p_position, &col, bpp);
+
+        p_position += bpp;
+      }
+
+      // advance forward to next row, area.x() column
+      p_position += row_advance;
+    }
+  }
+  if (SDL_MUSTLOCK(surface))
+    SDL_UnlockSurface(surface);
+
+  // If we are the main screen, then we want to update the screen
+  markWrittenTo(area);
 }
 
 // -----------------------------------------------------------------------
@@ -620,7 +586,7 @@ const GrpRect& SDLSurface::GetPattern(int patt_no) const {
 
 // -----------------------------------------------------------------------
 
-Surface* SDLSurface::Clone() const {
+std::shared_ptr<Surface> SDLSurface::Clone() const {
   SDL_Surface* tmp_surface = SDL_CreateRGBSurface(
       surface_->flags, surface_->w, surface_->h, surface_->format->BitsPerPixel,
       surface_->format->Rmask, surface_->format->Gmask, surface_->format->Bmask,
@@ -634,7 +600,7 @@ Surface* SDLSurface::Clone() const {
   if (SDL_BlitSurface(surface_, NULL, tmp_surface, NULL))
     reportSDLError("SDL_BlitSurface", "SDLSurface::clone()");
 
-  return new SDLSurface(tmp_surface, region_table_);
+  return std::make_shared<SDLSurface>(tmp_surface, region_table_);
 }
 
 // -----------------------------------------------------------------------

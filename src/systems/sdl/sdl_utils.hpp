@@ -59,9 +59,6 @@ int GetMaxTextureSize();
 // than |i| if GL_MAX_TEXTURE_SIZE is small.)
 int SafeSize(int i);
 
-struct SDL_Surface;
-SDL_Surface* AlphaInvert(SDL_Surface* in_surface);
-
 void RectToSDLRect(const Rect& rect, SDL_Rect* out);
 
 void RGBColourToSDLColor(const RGBColour& in, SDL_Color* out);
