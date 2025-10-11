@@ -27,11 +27,7 @@
 
 #include "systems/sdl/sdl_text_window.hpp"
 
-#include <SDL/SDL_ttf.h>
-
 #include "core/colour.hpp"
-#include "core/gameexe.hpp"
-#include "log/domain_logger.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/selection_element.hpp"
 #include "systems/base/system_error.hpp"
@@ -51,8 +47,12 @@
 #include <string>
 #include <vector>
 
-SDLTextWindow::SDLTextWindow(SDLSystem& system, int window_num)
-    : TextWindow(system, window_num), sdl_system_(system) {
+SDLTextWindow::SDLTextWindow(SDLSystem& system,
+                             int window_num,
+                             ITextSystem* text_impl)
+    : TextWindow(system, window_num),
+      sdl_system_(system),
+      text_impl_(text_impl) {
   ClearWin();
 }
 
@@ -72,7 +72,7 @@ void SDLTextWindow::ClearWin() {
     surface_ = std::make_shared<Surface>(GetTextSurfaceSize());
   surface_->Fill(RGBAColour::Clear());
 
-  name_surface_.reset();
+  name_surface_ = nullptr;
 }
 
 void SDLTextWindow::RenderNameInBox(const std::string& utf8str) {
@@ -85,24 +85,18 @@ void SDLTextWindow::AddSelectionItem(const std::string& utf8str,
                                      int selection_id) {
   std::shared_ptr<IFont> ifont =
       sdl_system_.text().LoadFont(font_size_in_pixels());
-  TTF_Font* f = static_cast<TTF_Font*>(get_ttf(ifont));
-  assert(f != nullptr);
 
-  // Render the incoming string for both selected and not-selected.
-  SDL_Color colour;
-  RGBColourToSDLColor(font_colour_, &colour);
-
-  SDL_Surface* normal = TTF_RenderUTF8_Blended(f, utf8str.c_str(), colour);
+  std::shared_ptr<Surface> normal =
+      text_impl_->RenderText(utf8str, FontFace(ifont), font_colour_);
 
   // clone and create an inverted surface
-  auto normal_surf = std::make_shared<SDLSurface>(normal);
-  auto inverted_surf = normal_surf->Clone();
-  inverted_surf->Apply(
+  auto inverted = normal->Clone();
+  inverted->Apply(
       [](RGBAColour c) {
         c.set_alpha(255 - c.a());
         return c;
       },
-      inverted_surf->GetRect());
+      inverted->GetRect());
 
   // Figure out xpos and ypos
   Point position = GetTextSurfaceRect().origin() +
@@ -110,18 +104,12 @@ void SDLTextWindow::AddSelectionItem(const std::string& utf8str,
   text_insertion_point_y_ += (font_size_in_pixels_ + y_spacing_ + ruby_size_);
 
   auto sel = std::make_unique<SelectionElement>(
-      system(), normal_surf, inverted_surf, selectionCallback(), selection_id,
-      position);
+      system(), normal, inverted, selectionCallback(), selection_id, position);
   selections_.emplace_back(std::move(sel));
 }
 
 void SDLTextWindow::DisplayRubyText(const std::string& utf8str) {
   if (ruby_begin_point_ != -1) {
-    std::shared_ptr<IFont> ifont =
-        sdl_system_.text().LoadFont(ruby_text_size());
-    TTF_Font* f = static_cast<TTF_Font*>(get_ttf(ifont));
-    assert(f != nullptr);
-
     int end_point = text_insertion_point_x_ - x_spacing_;
 
     if (ruby_begin_point_ > end_point) {
@@ -129,21 +117,20 @@ void SDLTextWindow::DisplayRubyText(const std::string& utf8str) {
       throw rlvm::Exception("We don't handle ruby across line breaks yet!");
     }
 
-    SDL_Color colour;
-    RGBColourToSDLColor(font_colour_, &colour);
-    SDL_Surface* tmp = TTF_RenderUTF8_Blended(f, utf8str.c_str(), colour);
+    std::shared_ptr<IFont> ifont =
+        sdl_system_.text().LoadFont(ruby_text_size());
+    std::shared_ptr<SDLSurface> tmp =
+        text_impl_->RenderText(utf8str, FontFace(ifont), font_colour_);
 
     // Render glyph to surface
-    int w = tmp->w;
-    int h = tmp->h;
+    Size tmpsiz = tmp->GetSize();
     int height_location = text_insertion_point_y_ - ruby_text_size();
     int width_start =
         int(ruby_begin_point_ + ((end_point - ruby_begin_point_) * 0.5f) -
-            (w * 0.5f));
-    surface_->blitFROMSurface(
-        tmp, Rect(Point(0, 0), Size(w, h)),
-        Rect(Point(width_start, height_location), Size(w, h)), 255);
-    SDL_FreeSurface(tmp);
+            (tmpsiz.width() * 0.5f));
+    surface_->blitFROMSurface(*tmp, Rect(Point(0, 0), tmpsiz),
+                              Rect(Point(width_start, height_location), tmpsiz),
+                              255);
 
     ruby_begin_point_ = -1;
   }

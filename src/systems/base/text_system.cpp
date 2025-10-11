@@ -267,7 +267,7 @@ std::shared_ptr<TextWindow> TextSystem::GetTextWindow(int window_id) {
   try {
     if (inserted)
       it->second = std::make_shared<SDLTextWindow>(
-          static_cast<SDLSystem&>(system_), window_id);
+          static_cast<SDLSystem&>(system_), window_id, text_impl_.get());
     return it->second;
   } catch (...) {
     text_window_.erase(window_id);

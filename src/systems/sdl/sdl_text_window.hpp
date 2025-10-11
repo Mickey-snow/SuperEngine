@@ -37,10 +37,15 @@
 class SDLSurface;
 class SDLSystem;
 class SelectionElement;
+class ITextSystem;
 
 class SDLTextWindow : public TextWindow {
  public:
-  SDLTextWindow(SDLSystem& system, int window_num);
+  SDLTextWindow(
+      SDLSystem& system,
+      int window_num,
+      ITextSystem* text_impl  // non-owning pointer to text implementor
+  );
   virtual ~SDLTextWindow();
 
   // Overridden from TextWindow:
@@ -61,6 +66,8 @@ class SDLTextWindow : public TextWindow {
  private:
   SDLSystem& sdl_system_;
 
+  ITextSystem* text_impl_;
+
   std::shared_ptr<SDLSurface> surface_;
-  std::shared_ptr<Surface> name_surface_;
+  std::shared_ptr<SDLSurface> name_surface_;
 };

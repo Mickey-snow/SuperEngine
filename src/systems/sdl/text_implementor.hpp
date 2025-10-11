@@ -46,6 +46,10 @@ class SDLTextImpl final : public ITextSystem {
                        std::optional<RGBColour> shadow_color,
                        Point insertion,
                        std::shared_ptr<SDLSurface> dst) override;
+
+  std::shared_ptr<SDLSurface> RenderText(const std::string& text /* utf8 */,
+                                         FontFace font,
+                                         RGBColour color);
 };
 
 // helper to get a TTF_Font*

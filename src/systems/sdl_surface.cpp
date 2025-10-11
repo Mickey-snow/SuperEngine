@@ -262,6 +262,13 @@ void SDLSurface::blitFROMSurface(SDL_Surface* src_surface,
 
   markWrittenTo(dst);
 }
+void SDLSurface::blitFROMSurface(Surface& src_surface,
+                                 const Rect& src,
+                                 const Rect& dst,
+                                 int alpha,
+                                 bool use_src_alpha) {
+  blitFROMSurface(src_surface.rawSurface(), src, dst, alpha, use_src_alpha);
+}
 
 // -----------------------------------------------------------------------
 

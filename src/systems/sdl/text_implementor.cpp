@@ -30,6 +30,8 @@
 #include "systems/sdl_surface.hpp"
 
 #include <SDL/SDL_ttf.h>
+
+#include <cassert>
 #include <string>
 
 using std::string_literals::operator""s;
@@ -133,6 +135,19 @@ Size SDLTextImpl::RenderGlyphOnto(const std::string& text,
 
   return size;
 }
+
+std::shared_ptr<SDLSurface> SDLTextImpl::RenderText(
+    const std::string& text /* utf8 */,
+    FontFace font,
+    RGBColour c) {
+  SDL_Color color = ToSDLColor(c);
+  TTF_Font* f = static_cast<TTF_Font*>(get_ttf(font.font));
+  assert(f != nullptr);
+  SDL_Surface* tmp = TTF_RenderUTF8_Blended(f, text.c_str(), color);
+  return std::make_shared<SDLSurface>(tmp);
+}
+
+// ------------------------------------------------------------------------------
 
 void* get_ttf(std::shared_ptr<IFont> font) {
   if (!font)

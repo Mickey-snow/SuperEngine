@@ -63,4 +63,9 @@ class ITextSystem {
                                std::optional<RGBColour> shadow_color,
                                Point insertion,
                                std::shared_ptr<SDLSurface> dst) = 0;
+
+  virtual std::shared_ptr<SDLSurface> RenderText(
+      const std::string& text /* utf8 */,
+      FontFace font,
+      RGBColour color) = 0;
 };

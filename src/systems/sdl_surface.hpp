@@ -77,6 +77,11 @@ class SDLSurface {
                        const Rect& dst,
                        int alpha = 255,
                        bool use_src_alpha = true);
+  void blitFROMSurface(Surface& src_surface,
+                       const Rect& src,
+                       const Rect& dst,
+                       int alpha = 255,
+                       bool use_src_alpha = true);
 
   void RenderToScreen(const Rect& src, const Rect& dst, int alpha = 255) const;
 
