@@ -29,8 +29,8 @@
 #include "srbind/srbind.hpp"
 #include "systems/base/text_page.hpp"
 #include "systems/base/text_system.hpp"
+#include "systems/base/text_window.hpp"
 #include "systems/sdl/sdl_system.hpp"
-#include "systems/sdl/sdl_text_window.hpp"
 
 #include <chrono>
 #include <thread>
@@ -40,11 +40,11 @@ namespace sb = srbind;
 namespace sr = serilang;
 
 class SiglusMwnd {
-  std::shared_ptr<SDLTextWindow> text_win_;
+  std::shared_ptr<TextWindow> text_win_;
   TextPage page;
 
  public:
-  SiglusMwnd(std::shared_ptr<SDLTextWindow> wd, SDLSystem& sys)
+  SiglusMwnd(std::shared_ptr<TextWindow> wd, SDLSystem& sys)
       : text_win_(wd), page(sys, wd->window_number()) {}
 
   bool DisplayCharacter(std::string current, std::string rest) {
@@ -60,8 +60,7 @@ void MWND::Bind(SiglusRuntime& runtime) {
 
   mwnd.def(sb::init([sys = runtime.system.get()](int id) -> SiglusMwnd* {
              std::shared_ptr<TextSystem> text = sys->text_system_;
-             if (auto wd = std::dynamic_pointer_cast<SDLTextWindow>(
-                     text->GetTextWindow(id))) {
+             if (auto wd = text->GetTextWindow(id)) {
                return new SiglusMwnd(wd, *sys);
              } else
                throw std::runtime_error("Failed to create text window " +

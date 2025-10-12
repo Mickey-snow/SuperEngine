@@ -49,8 +49,6 @@
 #include "systems/base/text_page.hpp"
 #include "systems/base/text_window.hpp"
 #include "systems/itext_system.hpp"
-#include "systems/sdl/sdl_system.hpp"
-#include "systems/sdl/sdl_text_window.hpp"  // TODO: refactor sdl related details away later
 #include "systems/sdl_surface.hpp"
 #include "utf8.h"
 #include "utilities/exception.hpp"
@@ -266,8 +264,8 @@ std::shared_ptr<TextWindow> TextSystem::GetTextWindow(int window_id) {
   auto [it, inserted] = text_window_.try_emplace(window_id, nullptr);
   try {
     if (inserted)
-      it->second = std::make_shared<SDLTextWindow>(
-          static_cast<SDLSystem&>(system_), window_id, text_impl_.get());
+      it->second =
+          std::make_shared<TextWindow>(system_, window_id, text_impl_.get());
     return it->second;
   } catch (...) {
     text_window_.erase(window_id);

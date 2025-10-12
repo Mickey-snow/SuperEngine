@@ -46,14 +46,12 @@ class SDLSurface;
 using Surface = SDLSurface;
 class System;
 class TextSystem;
+class ITextSystem;
 class TextWaku;
 class TextWindowButton;
 
-const int kNumFaceSlots = 8;
+constexpr int kNumFaceSlots = 8;
 
-// Abstract representation of a TextWindow. Aggregated by TextSystem, and
-// rendered in conjunction with GraphicsSystem.
-//
 // Sets of TextWindows should be reconstructable by the state in TextPage,
 // though there are some notable exceptions, specifically Select_LongOperation.
 //
@@ -62,8 +60,8 @@ const int kNumFaceSlots = 8;
 // reverse engineers a headache.
 class TextWindow {
  public:
-  TextWindow(System& system, int window_num);
-  virtual ~TextWindow();
+  TextWindow(System& system, int window_num, ITextSystem* text_impl);
+  ~TextWindow();
 
   void Execute();
 
@@ -104,7 +102,7 @@ class TextWindow {
   int current_indentation() const { return current_indentation_in_pixels_; }
 
   void SetDefaultTextColor(const std::vector<int>& colour_data);
-  virtual void SetFontColor(const std::vector<int>& colour_data);
+  void SetFontColor(const std::vector<int>& colour_data);
 
   void SetWindowPosition(const std::vector<int>& pos_data);
 
@@ -198,19 +196,14 @@ class TextWindow {
   // ------------------------------------------------ [ Abstract interface ]
   void Render();
 
-  // Returns a surface that is the text.
-  virtual std::shared_ptr<Surface> GetTextSurface() = 0;
-  virtual std::shared_ptr<Surface> GetNameSurface() = 0;
-
   // Clears the text window of all text and resets the insertion
   // point.
-  virtual void ClearWin();
+  void ClearWin();
 
   // Displays one character, and performs line breaking logic based on the next
   // character. Returns true if the character fits on the screen. False if it
   // does not and was not displayed.
-  virtual bool DisplayCharacter(const std::string& current,
-                                const std::string& rest) = 0;
+  bool DisplayCharacter(const std::string& current, const std::string& rest);
 
   // Checks to make sure that not only will |cur_codepoint| fit on the line,
   // but also that we'll perform kinsoku rules correctly.
@@ -220,31 +213,30 @@ class TextWindow {
   bool IsFull() const;
 
   // Sets (and displays, if appropriate) the name of the current speaker.
-  virtual void SetName(const std::string& utf8name,
-                       const std::string& next_char);
+  void SetName(const std::string& utf8name, const std::string& next_char);
   void SetNameWithoutDisplay(const std::string& utf8name);
 
-  virtual void RenderNameInBox(const std::string& utf8str) = 0;
+  void RenderNameInBox(const std::string& utf8str);
 
-  virtual void KoeMarker(int id);
-  virtual void HardBrake();
-  virtual void ResetIndentation();
-  virtual void MarkRubyBegin();
-  virtual void DisplayRubyText(const std::string& utf8str) = 0;
+  void KoeMarker(int id);
+  void HardBrake();
+  void ResetIndentation();
+  void MarkRubyBegin();
+  void DisplayRubyText(const std::string& utf8str);
 
   // Text Windows are responsible for presenting the questions from
   // select() and select_s() calls. (select_w() is not done here.)
-  virtual void StartSelectionMode();
+  void StartSelectionMode();
 
   bool in_selection_mode() { return in_selection_mode_; }
 
-  virtual void AddSelectionItem(const std::string& utf8str,
-                                int selection_id) = 0;
-  virtual void SetSelectionCallback(const std::function<void(int)>& func);
+  void AddSelectionItem(const std::string& utf8str, int selection_id);
+
+  void SetSelectionCallback(const std::function<void(int)>& func);
 
   void EndSelectionMode();
 
- protected:
+ private:
   // Accessor for the |selection_callback_| for TextWindow subclasses
   const std::function<void(int)>& selectionCallback() {
     return selection_callback_;
@@ -263,7 +255,13 @@ class TextWindow {
 
   int GetWrappingWidthFor(int cur_codepoint);
 
- protected:
+ private:
+  // Non-owning pointer to the text implementor
+  ITextSystem* text_impl_;
+
+  std::shared_ptr<SDLSurface> text_surface_;
+  std::shared_ptr<SDLSurface> name_surface_;
+
   // We cache the size of the screen so we don't need the machine in
   // some accessors.
   int screen_width_, screen_height_;
