@@ -31,17 +31,18 @@
 #include "pygame/alphablit.h"
 #include "systems/base/graphics_object.hpp"
 #include "systems/gl_frame_buffer.hpp"
+#include "systems/gl_utils.hpp"
 #include "systems/glrenderer.hpp"
 #include "systems/gltexture.hpp"
 #include "systems/screen_canvas.hpp"
 #include "systems/sdl/sdl_graphics_system.hpp"
-#include "systems/sdl/sdl_utils.hpp"
 #include "utilities/graphics.hpp"
 
 #include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <cstring>
+#include <format>
 #include <sstream>
 #include <vector>
 
@@ -56,6 +57,13 @@ static inline SDL_Rect ToSDLRect(const Rect rect) {
   out.w = rect.width();
   out.h = rect.height();
   return out;
+}
+
+[[noreturn]] static inline void ThrowSDLError(std::string_view sdl_fn_name,
+                                              std::string_view fn_name) {
+  throw std::runtime_error(
+      std::format("Error while calling SDL function '{}' in {}: {}",
+                  sdl_fn_name, fn_name, SDL_GetError()));
 }
 
 // -----------------------------------------------------------------------
@@ -213,36 +221,36 @@ void SDLSurface::BlitToSurface(Surface& dest_surface,
     // Blit the source rectangle into its own image.
     SDL_Surface* src_image = buildNewSurface(src.size());
     if (pygame_AlphaBlit(surface_, &src_rect, src_image, NULL))
-      reportSDLError("SDL_BlitSurface", "SDLGraphicsSystem::blitSurfaceToDC()");
+      ThrowSDLError("SDL_BlitSurface", "SDLGraphicsSystem::blitSurfaceToDC()");
 
     SDL_Surface* tmp = buildNewSurface(dst.size());
     pygame_stretch(src_image, tmp);
 
     if (use_src_alpha) {
       if (SDL_SetAlpha(tmp, SDL_SRCALPHA, alpha))
-        reportSDLError("SDL_SetAlpha", "SDLGraphicsSystem::blitSurfaceToDC()");
+        ThrowSDLError("SDL_SetAlpha", "SDLGraphicsSystem::blitSurfaceToDC()");
     } else {
       if (SDL_SetAlpha(tmp, 0, 0))
-        reportSDLError("SDL_SetAlpha", "SDLGraphicsSystem::blitSurfaceToDC()");
+        ThrowSDLError("SDL_SetAlpha", "SDLGraphicsSystem::blitSurfaceToDC()");
     }
 
     if (SDL_BlitSurface(tmp, NULL, sdl_dest_surface.RawSurface(), &dest_rect))
-      reportSDLError("SDL_BlitSurface", "SDLGraphicsSystem::blitSurfaceToDC()");
+      ThrowSDLError("SDL_BlitSurface", "SDLGraphicsSystem::blitSurfaceToDC()");
 
     SDL_FreeSurface(tmp);
     SDL_FreeSurface(src_image);
   } else {
     if (use_src_alpha) {
       if (SDL_SetAlpha(surface_, SDL_SRCALPHA, alpha))
-        reportSDLError("SDL_SetAlpha", "SDLGraphicsSystem::blitSurfaceToDC()");
+        ThrowSDLError("SDL_SetAlpha", "SDLGraphicsSystem::blitSurfaceToDC()");
     } else {
       if (SDL_SetAlpha(surface_, 0, 0))
-        reportSDLError("SDL_SetAlpha", "SDLGraphicsSystem::blitSurfaceToDC()");
+        ThrowSDLError("SDL_SetAlpha", "SDLGraphicsSystem::blitSurfaceToDC()");
     }
 
     if (SDL_BlitSurface(surface_, &src_rect, sdl_dest_surface.RawSurface(),
                         &dest_rect))
-      reportSDLError("SDL_BlitSurface", "SDLGraphicsSystem::blitSurfaceToDC()");
+      ThrowSDLError("SDL_BlitSurface", "SDLGraphicsSystem::blitSurfaceToDC()");
   }
   sdl_dest_surface.markWrittenTo(dst);
 }
@@ -260,11 +268,10 @@ void SDLSurface::blitFROMSurface(SDL_Surface* src_surface,
 
   if (use_src_alpha) {
     if (pygame_AlphaBlit(src_surface, &src_rect, surface_, &dest_rect))
-      reportSDLError("pygame_AlphaBlit",
-                     "SDLGraphicsSystem::blitSurfaceToDC()");
+      ThrowSDLError("pygame_AlphaBlit", "SDLGraphicsSystem::blitSurfaceToDC()");
   } else {
     if (SDL_BlitSurface(src_surface, &src_rect, surface_, &dest_rect))
-      reportSDLError("SDL_BlitSurface", "SDLGraphicsSystem::blitSurfaceToDC()");
+      ThrowSDLError("SDL_BlitSurface", "SDLGraphicsSystem::blitSurfaceToDC()");
   }
 
   markWrittenTo(dst);
@@ -442,7 +449,7 @@ void SDLSurface::Fill(const RGBAColour& colour, const Rect& area) {
 
   SDL_Rect rect = ToSDLRect(area);
   if (SDL_FillRect(surface_, &rect, sdl_colour))
-    reportSDLError("SDL_FillRect", "SDLGraphicsSystem::wipe()");
+    ThrowSDLError("SDL_FillRect", "SDLGraphicsSystem::wipe()");
 
   // If we are the main screen, then we want to update the screen
   markWrittenTo(area);
@@ -524,10 +531,10 @@ std::shared_ptr<Surface> SDLSurface::Clone() const {
   // Disable alpha blending because we're copying onto a blank (and
   // blank alpha!) surface
   if (SDL_SetAlpha(surface_, 0, 0))
-    reportSDLError("SDL_SetAlpha", "SDLGraphicsSystem::blitSurfaceToDC()");
+    ThrowSDLError("SDL_SetAlpha", "SDLGraphicsSystem::blitSurfaceToDC()");
 
   if (SDL_BlitSurface(surface_, NULL, tmp_surface, NULL))
-    reportSDLError("SDL_BlitSurface", "SDLSurface::clone()");
+    ThrowSDLError("SDL_BlitSurface", "SDLSurface::clone()");
 
   return std::make_shared<SDLSurface>(tmp_surface, region_table_);
 }
@@ -621,14 +628,14 @@ std::shared_ptr<Surface> SDLSurface::ClipAsColorMask(const Rect& clip_rect,
       0, surface_->w, surface_->h, 24, 0xFF0000, 0xFF00, 0xFF, 0);
 
   if (!tmp_surface)
-    reportSDLError("SDL_CreateRGBSurface", function_name);
+    ThrowSDLError("SDL_CreateRGBSurface", function_name);
 
   if (SDL_BlitSurface(surface_, NULL, tmp_surface, NULL))
-    reportSDLError("SDL_BlitSurface", function_name);
+    ThrowSDLError("SDL_BlitSurface", function_name);
 
   Uint32 colour = SDL_MapRGB(tmp_surface->format, r, g, b);
   if (SDL_SetColorKey(tmp_surface, SDL_SRCCOLORKEY, colour))
-    reportSDLError("SDL_SetAlpha", function_name);
+    ThrowSDLError("SDL_SetAlpha", function_name);
 
   // The OpenGL pieces don't know what to do an image formatted to
   // (FF0000, FF00, FF, 0), so convert it to a standard RGBA image
@@ -636,7 +643,7 @@ std::shared_ptr<Surface> SDLSurface::ClipAsColorMask(const Rect& clip_rect,
   SDL_Surface* surface = buildNewSurface(clip_rect.size());
   SDL_Rect srcrect = ToSDLRect(clip_rect);
   if (SDL_BlitSurface(tmp_surface, &srcrect, surface, NULL))
-    reportSDLError("SDL_BlitSurface", function_name);
+    ThrowSDLError("SDL_BlitSurface", function_name);
 
   SDL_FreeSurface(tmp_surface);
 

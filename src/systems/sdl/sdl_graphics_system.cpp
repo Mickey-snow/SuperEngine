@@ -52,11 +52,11 @@
 #include "systems/base/system_error.hpp"
 #include "systems/base/text_system.hpp"
 #include "systems/event_system.hpp"
+#include "systems/gl_utils.hpp"
 #include "systems/glcanvas.hpp"
 #include "systems/glrenderer.hpp"
 #include "systems/gltexture.hpp"
 #include "systems/screen_canvas.hpp"
-#include "systems/sdl/sdl_utils.hpp"
 #include "systems/sdl/shaders.hpp"
 #include "systems/sdl_surface.hpp"
 #include "utilities/exception.hpp"
@@ -91,7 +91,7 @@ void SDLGraphicsSystem::BeginFrame() {
   renderer.SetUp();
   renderer.ClearBuffer(std::make_shared<ScreenCanvas>(screen_size()),
                        RGBAColour(0, 0, 0, 255));
-  DebugShowGLErrors();
+  ShowGLErrors();
 
   glViewport(0, 0, display_size_.width(), display_size_.height());
 
@@ -99,11 +99,11 @@ void SDLGraphicsSystem::BeginFrame() {
   glLoadIdentity();
   glOrtho(0.0, (GLdouble)display_size_.width(),
           (GLdouble)display_size_.height(), 0.0, 0.0, 1.0);
-  DebugShowGLErrors();
+  ShowGLErrors();
 
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
-  DebugShowGLErrors();
+  ShowGLErrors();
 
   // Full screen shaking moves where the origin is.
   Point origin = GetScreenOrigin();

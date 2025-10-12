@@ -24,7 +24,6 @@
 
 #include "systems/glshaders.hpp"
 
-#include "systems/sdl/sdl_utils.hpp"
 #include "systems/sdl/shaders.hpp"
 
 #include <GL/glew.h>

@@ -64,7 +64,8 @@ class SDLSurface {
   void Allocate(const Size& size);
   void Deallocate();
 
-  Rect GetRect() const;
+  [[nodiscard]] Size GetSize() const;
+  [[nodiscard]] Rect GetRect() const;
 
   void BlitToSurface(Surface& dest_surface,
                      const Rect& src,
@@ -98,8 +99,6 @@ class SDLSurface {
   [[nodiscard]] const GrpRect& GetPattern(int patt_no) const;
 
   // -----------------------------------------------------------------------
-
-  Size GetSize() const;
 
   // Fill the given area with the incoming colour
   void Fill(const RGBAColour& colour, const Rect& area);

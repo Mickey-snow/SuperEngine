@@ -24,7 +24,6 @@
 
 #include <GL/glew.h>
 
-#include "systems/sdl/sdl_utils.hpp"
 #include "systems/sdl/shaders.hpp"
 
 static_assert(std::same_as<unsigned int, GLuint>);
