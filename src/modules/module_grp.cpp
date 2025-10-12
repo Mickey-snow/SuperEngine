@@ -59,6 +59,51 @@ std::string default_grp_name = "";
 
 namespace {
 
+static RGBAColour InvertColor(RGBAColour c) {
+  c.set_red(255 - c.r());
+  c.set_green(255 - c.g());
+  c.set_blue(255 - c.b());
+  return c;
+}
+
+static RGBAColour ToGrayscale(RGBAColour c) {
+  int grayscale = static_cast<int>(0.3 * c.r() + 0.59 * c.g() + 0.11 * c.b());
+  grayscale = std::clamp(grayscale, 0, 255);
+  c.set_red(grayscale);
+  c.set_green(grayscale);
+  c.set_blue(grayscale);
+  return c;
+}
+
+struct ApplyColorTransformer {
+  RGBColour refcol;
+  // positive = lighten via “screen”
+  // negative = darken via “multiply”
+  // zero = identity
+
+  int Compose(int in_colour, int surface_colour) const {
+    if (in_colour > 0) {
+      return 255 -
+             ((static_cast<float>((255 - in_colour) * (255 - surface_colour)) /
+               (255 * 255)) *
+              255);
+    } else if (in_colour < 0) {
+      return (static_cast<float>(std::abs(in_colour) * surface_colour) /
+              (255 * 255)) *
+             255;
+    } else {
+      return surface_colour;
+    }
+  }
+
+  RGBAColour operator()(RGBAColour c) const {
+    c.set_red(std::clamp(Compose(refcol.r(), c.r()), 0, 255));
+    c.set_green(std::clamp(Compose(refcol.g(), c.g()), 0, 255));
+    c.set_blue(std::clamp(Compose(refcol.b(), c.b()), 0, 255));
+    return c;
+  }
+};
+
 void blitDC1toDC0(RLMachine& machine) {
   GraphicsSystem& graphics = machine.GetSystem().graphics();
 
@@ -789,35 +834,35 @@ struct fill_3
 struct invert_1 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int dc) {
     std::shared_ptr<Surface> surface = machine.GetSystem().graphics().GetDC(dc);
-    surface->Invert(surface->GetRect());
+    surface->Apply(InvertColor);
   }
 };
 
 template <typename SPACE>
 struct invert_3 : public RLOpcode<Rect_T<SPACE>, IntConstant_T> {
   void operator()(RLMachine& machine, Rect rect, int dc) {
-    machine.GetSystem().graphics().GetDC(dc)->Invert(rect);
+    machine.GetSystem().graphics().GetDC(dc)->Apply(InvertColor, rect);
   }
 };
 
 struct mono_1 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int dc) {
     std::shared_ptr<Surface> surface = machine.GetSystem().graphics().GetDC(dc);
-    surface->Mono(surface->GetRect());
+    surface->Apply(ToGrayscale);
   }
 };
 
 template <typename SPACE>
 struct mono_3 : public RLOpcode<Rect_T<SPACE>, IntConstant_T> {
   void operator()(RLMachine& machine, Rect rect, int dc) {
-    machine.GetSystem().graphics().GetDC(dc)->Mono(rect);
+    machine.GetSystem().graphics().GetDC(dc)->Apply(ToGrayscale, rect);
   }
 };
 
 struct colour_1 : public RLOpcode<IntConstant_T, RGBColour_T> {
   void operator()(RLMachine& machine, int dc, RGBAColour colour) {
     std::shared_ptr<Surface> surface = machine.GetSystem().graphics().GetDC(dc);
-    surface->ApplyColour(colour.rgb(), surface->GetRect());
+    surface->Apply(ApplyColorTransformer(colour.rgb()));
   }
 };
 
@@ -825,14 +870,14 @@ template <typename SPACE>
 struct colour_2 : public RLOpcode<Rect_T<SPACE>, IntConstant_T, RGBColour_T> {
   void operator()(RLMachine& machine, Rect rect, int dc, RGBAColour colour) {
     std::shared_ptr<Surface> surface = machine.GetSystem().graphics().GetDC(dc);
-    surface->ApplyColour(colour.rgb(), rect);
+    surface->Apply(ApplyColorTransformer(colour.rgb()), rect);
   }
 };
 
 struct light_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int dc, int level) {
     std::shared_ptr<Surface> surface = machine.GetSystem().graphics().GetDC(dc);
-    surface->ApplyColour(RGBColour(level, level, level), surface->GetRect());
+    surface->Apply(ApplyColorTransformer(RGBColour(level, level, level)));
   }
 };
 
@@ -840,7 +885,7 @@ template <typename SPACE>
 struct light_2 : public RLOpcode<Rect_T<SPACE>, IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, Rect rect, int dc, int level) {
     std::shared_ptr<Surface> surface = machine.GetSystem().graphics().GetDC(dc);
-    surface->ApplyColour(RGBColour(level, level, level), rect);
+    surface->Apply(ApplyColorTransformer(RGBColour(level, level, level)), rect);
   }
 };
 

@@ -55,14 +55,14 @@ class SDLSurface {
   ~SDLSurface();
 
   // Whether we have an underlying allocated surface.
-  bool allocated() { return surface_; }
+  [[nodiscard]] bool IsAllocated() { return surface_; }
 
   void SetIsMask(const bool is) { is_mask_ = is; }
 
   void buildRegionTable(const Size& size);
 
-  void allocate(const Size& size);
-  void deallocate();
+  void Allocate(const Size& size);
+  void Deallocate();
 
   Rect GetRect() const;
 
@@ -94,44 +94,38 @@ class SDLSurface {
                       const Rect& dst,
                       const int opacity[4]) const;
 
-  int GetNumPatterns() const;
-
-  // Returns pattern information.
-  const GrpRect& GetPattern(int patt_no) const;
+  [[nodiscard]] int GetNumPatterns() const;
+  [[nodiscard]] const GrpRect& GetPattern(int patt_no) const;
 
   // -----------------------------------------------------------------------
 
   Size GetSize() const;
 
-  void Fill(const RGBAColour& colour);
+  // Fill the given area with the incoming colour
   void Fill(const RGBAColour& colour, const Rect& area);
-  void ToneCurve(const ToneCurveRGBMap effect, const Rect& area);
-  void Invert(const Rect& rect);
-  void Mono(const Rect& area);
-  void ApplyColour(const RGBColour& colour, const Rect& area);
+  // Fill the entire surface with the incoming colour
+  inline void Fill(const RGBAColour& colour) { Fill(colour, GetRect()); }
 
   // Applies a |transformer| to every pixel in |area| in the surface |surface|.
   void Apply(std::function<RGBAColour(RGBAColour)> transformer, Rect area);
+  inline void Apply(std::function<RGBAColour(RGBAColour)> transformer) {
+    Apply(std::move(transformer), GetRect());
+  }
 
-  SDL_Surface* surface() const { return surface_; }
-  SDL_Surface* rawSurface() { return surface_; }
+  [[nodiscard]] inline SDL_Surface* RawSurface() const { return surface_; }
 
-  void GetDCPixel(const Point& pos, int& r, int& g, int& b) const;
-
-  RGBAColour GetPixel(Point pos) const;
+  [[nodiscard]] RGBAColour GetPixelAt(Point pos) const;
 
   std::shared_ptr<Surface> ClipAsColorMask(const Rect& clip_rect,
                                            int r,
                                            int g,
                                            int b) const;
 
-  std::shared_ptr<Surface> Clone() const;
+  [[nodiscard]] std::shared_ptr<Surface> Clone() const;
 
-  // Called after each change to surface_. Marks the texture as
-  // invalid and notifies SDLGraphicsSystem when appropriate.
-  void markWrittenTo(const Rect& written_rect);
-
-  std::vector<char> Dump(Rect region) const;
+  // Dump the raw memory representing surface pixel data from a region
+  // Note: the dumped pixels are upside down
+  [[nodiscard]] std::vector<char> Dump(Rect region) const;
 
   // Keeps track of a texture and the information about which region
   // of the current surface this Texture is. We keep track of this
@@ -167,6 +161,10 @@ class SDLSurface {
   std::vector<TextureRecord> GetTextureArray() const;
 
  private:
+  // Called after each change to surface_. Marks the texture as
+  // invalid and notifies SDLGraphicsSystem when appropriate.
+  void markWrittenTo(const Rect& written_rect);
+
   // Makes sure that texture_ is a valid object and that it's
   // updated. This method should be called before doing anything with
   // texture_.

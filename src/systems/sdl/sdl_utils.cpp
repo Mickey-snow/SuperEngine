@@ -46,33 +46,10 @@ void reportSDLError(const std::string& sdl_name,
   throw SystemError(ss.str());
 }
 
-// -----------------------------------------------------------------------
-
-void RectToSDLRect(const Rect& rect, SDL_Rect* out) {
-  out->x = rect.x();
-  out->y = rect.y();
-  out->w = rect.width();
-  out->h = rect.height();
-}
-
-// -----------------------------------------------------------------------
-
-void RGBColourToSDLColor(const RGBColour& in, SDL_Color* out) {
-  out->r = in.r();
-  out->g = in.g();
-  out->b = in.b();
-}
-
 SDL_Color ToSDLColor(const RGBColour& in) {
   SDL_Color out;
   out.r = in.r();
   out.g = in.g();
   out.b = in.b();
   return out;
-}
-
-// -----------------------------------------------------------------------
-
-Uint32 MapRGBA(SDL_PixelFormat* fmt, const RGBAColour& in) {
-  return SDL_MapRGBA(fmt, in.r(), in.g(), in.b(), in.a());
 }

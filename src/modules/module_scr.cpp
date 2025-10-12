@@ -66,12 +66,11 @@ struct GetDCPixel : public RLOpcode<IntConstant_T,
                   IntReferenceIterator r,
                   IntReferenceIterator g,
                   IntReferenceIterator b) {
-    int rval, gval, bval;
-    machine.GetSystem().graphics().GetDC(dc)->GetDCPixel(Point(x, y), rval,
-                                                         gval, bval);
-    *r = rval;
-    *g = gval;
-    *b = bval;
+    RGBAColour pixel =
+        machine.GetSystem().graphics().GetDC(dc)->GetPixelAt(Point(x, y));
+    *r = pixel.r();
+    *g = pixel.g();
+    *b = pixel.b();
   }
 };
 

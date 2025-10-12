@@ -54,12 +54,11 @@ MouseCursor::MouseCursor(System& system,
   // hotspot is in the same place every frame.
   FindHotspot();
 
-  int alphaR, alphaG, alphaB;
-  cursor_surface->GetDCPixel(Point(0, 0), alphaR, alphaG, alphaB);
+  RGBAColour pixel = cursor_surface->GetPixelAt(Point(0, 0));
 
   cursor_surface_ = cursor_surface->ClipAsColorMask(
-      Rect(8, 8, Size(CURSOR_SIZE_INT * count_, CURSOR_SIZE_INT)), alphaR,
-      alphaG, alphaB);
+      Rect(8, 8, Size(CURSOR_SIZE_INT * count_, CURSOR_SIZE_INT)), pixel.r(),
+      pixel.g(), pixel.b());
 }
 
 MouseCursor::~MouseCursor() {}
@@ -92,15 +91,13 @@ Point MouseCursor::GetTopLeftForHotspotAt(const Point& mouse_location) {
 }
 
 void MouseCursor::FindHotspot() {
-  int r, g, b;
-
   for (int x = HOTSPOTMASK_X_OFFSET; x < HOTSPOTMASK_X_OFFSET + CURSOR_SIZE_INT;
        ++x) {
     for (int y = HOTSPOTMASK_Y_OFFSET;
          y < HOTSPOTMASK_Y_OFFSET + CURSOR_SIZE_INT; ++y) {
-      cursor_surface_->GetDCPixel(Point(x, y), r, g, b);
+      RGBAColour pixel = cursor_surface_->GetPixelAt(Point(x, y));
 
-      if (r == 255 && g == 255 && b == 255) {
+      if (pixel.r() == 255 && pixel.g() == 255 && pixel.b() == 255) {
         hotspot_offset_ =
             Size(x - HOTSPOTMASK_X_OFFSET, y - HOTSPOTMASK_Y_OFFSET);
         return;

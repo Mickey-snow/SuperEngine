@@ -227,8 +227,8 @@ SDLGraphicsSystem::SDLGraphicsSystem(System& system, Gameexe& gameexe)
 
   // Now we allocate the first two display contexts with equal size to
   // the display
-  display_contexts_[0]->allocate(screen_size());
-  display_contexts_[1]->allocate(screen_size());
+  display_contexts_[0]->Allocate(screen_size());
+  display_contexts_[1]->Allocate(screen_size());
 
   SetWindowTitle(caption_title_);
 
@@ -393,7 +393,7 @@ void SDLGraphicsSystem::AllocateDC(int dc, Size size) {
   // DC 1 is a special case and must always be at least the size of
   // the screen.
   if (dc == 1) {
-    SDL_Surface* dc0 = display_contexts_[0]->rawSurface();
+    SDL_Surface* dc0 = display_contexts_[0]->RawSurface();
     if (size.width() < dc0->w)
       size.set_width(dc0->w);
     if (size.height() < dc0->h)
@@ -401,11 +401,11 @@ void SDLGraphicsSystem::AllocateDC(int dc, Size size) {
   }
 
   // Allocate a new obj.
-  display_contexts_[dc]->allocate(size);
+  display_contexts_[dc]->Allocate(size);
 }
 
 void SDLGraphicsSystem::SetMinimumSizeForDC(int dc, Size size) {
-  if (display_contexts_[dc] == NULL || !display_contexts_[dc]->allocated()) {
+  if (display_contexts_[dc] == NULL || !display_contexts_[dc]->IsAllocated()) {
     AllocateDC(dc, size);
   } else {
     Size current = display_contexts_[dc]->GetSize();
@@ -414,7 +414,7 @@ void SDLGraphicsSystem::SetMinimumSizeForDC(int dc, Size size) {
       Size maxSize = current.SizeUnion(size);
 
       std::shared_ptr<SDLSurface> newdc = std::make_shared<SDLSurface>();
-      newdc->allocate(maxSize);
+      newdc->Allocate(maxSize);
 
       display_contexts_[dc]->BlitToSurface(*newdc,
                                            display_contexts_[dc]->GetRect(),
@@ -432,7 +432,7 @@ void SDLGraphicsSystem::FreeDC(int dc) {
     // DC[1] never gets freed; it only gets blanked
     GetDC(1)->Fill(RGBAColour::Black());
   } else {
-    display_contexts_[dc]->deallocate();
+    display_contexts_[dc]->Deallocate();
   }
 }
 
@@ -550,8 +550,6 @@ std::shared_ptr<SDLSurface> SDLGraphicsSystem::LoadSurfaceFromFile(
   }
 
   std::shared_ptr<SDLSurface> result = LoadSurface(pth);
-  const auto size = result->GetSize();
-
   // handle tone curve effect loading
   if (auto pos = short_filename.find("?"); pos != short_filename.npos) {
     auto effect_str = std::string_view(short_filename).substr(pos + 1);
@@ -567,16 +565,22 @@ std::shared_ptr<SDLSurface> SDLGraphicsSystem::LoadSurfaceFromFile(
       oss << "Tone curve index " << effect_no << " is invalid.";
       throw rlvm::Exception(oss.str());
     }
-    result.get()->ToneCurve(globals().tone_curves.GetEffect(effect_no / 10 - 1),
-                            Rect(Point(0, 0), size));
+
+    result->Apply([effect = globals().tone_curves.GetEffect(effect_no / 10 -
+                                                            1)](RGBAColour c) {
+      c.set_red(effect[0][c.r()]);
+      c.set_green(effect[1][c.g()]);
+      c.set_blue(effect[2][c.b()]);
+      return c;
+    });
   }
 
   return result;
 }
 
 std::shared_ptr<SDLSurface> SDLGraphicsSystem::GetHaikei() {
-  if (haikei_->rawSurface() == NULL) {
-    haikei_->allocate(screen_size());
+  if (haikei_->RawSurface() == NULL) {
+    haikei_->Allocate(screen_size());
   }
 
   return haikei_;
@@ -586,7 +590,7 @@ std::shared_ptr<SDLSurface> SDLGraphicsSystem::GetDC(int dc) {
   VerifySurfaceExists(dc, "SDLGraphicsSystem::get_dc");
 
   // If requesting a DC that doesn't exist, allocate it first.
-  if (display_contexts_[dc]->rawSurface() == NULL)
+  if (display_contexts_[dc]->RawSurface() == NULL)
     AllocateDC(dc, display_contexts_[0]->GetSize());
 
   return display_contexts_[dc];

@@ -49,6 +49,17 @@ std::shared_ptr<glFrameBuffer> SDLSurface::screen_ = nullptr;
 
 // -----------------------------------------------------------------------
 
+static inline SDL_Rect ToSDLRect(const Rect rect) {
+  SDL_Rect out;
+  out.x = rect.x();
+  out.y = rect.y();
+  out.w = rect.width();
+  out.h = rect.height();
+  return out;
+}
+
+// -----------------------------------------------------------------------
+
 // Note to self: These describe the byte order IN THE RAW G00 DATA!
 // These should NOT be switched to native byte order.
 #define DefaultRmask 0xff0000
@@ -138,7 +149,7 @@ SDLSurface::SDLSurface(SDL_Surface* surf, std::vector<GrpRect> region_table)
 
 SDLSurface::SDLSurface(const Size& size)
     : surface_(NULL), texture_is_valid_(false), is_mask_(false) {
-  allocate(size);
+  Allocate(size);
   buildRegionTable(size);
 }
 
@@ -159,7 +170,7 @@ void SDLSurface::buildRegionTable(const Size& size) {
 
 // -----------------------------------------------------------------------
 
-SDLSurface::~SDLSurface() { deallocate(); }
+SDLSurface::~SDLSurface() { Deallocate(); }
 
 // -----------------------------------------------------------------------
 
@@ -169,8 +180,8 @@ Rect SDLSurface::GetRect() const { return Rect(Point(0, 0), GetSize()); }
 
 // -----------------------------------------------------------------------
 
-void SDLSurface::allocate(const Size& size) {
-  deallocate();
+void SDLSurface::Allocate(const Size& size) {
+  Deallocate();
 
   surface_ = buildNewSurface(size);
 
@@ -179,7 +190,7 @@ void SDLSurface::allocate(const Size& size) {
 
 // -----------------------------------------------------------------------
 
-void SDLSurface::deallocate() {
+void SDLSurface::Deallocate() {
   textures_.clear();
   if (surface_) {
     SDL_FreeSurface(surface_);
@@ -196,9 +207,7 @@ void SDLSurface::BlitToSurface(Surface& dest_surface,
                                bool use_src_alpha) const {
   SDLSurface& sdl_dest_surface = dynamic_cast<SDLSurface&>(dest_surface);
 
-  SDL_Rect src_rect, dest_rect;
-  RectToSDLRect(src, &src_rect);
-  RectToSDLRect(dst, &dest_rect);
+  SDL_Rect src_rect = ToSDLRect(src), dest_rect = ToSDLRect(dst);
 
   if (src.size() != dst.size()) {
     // Blit the source rectangle into its own image.
@@ -217,7 +226,7 @@ void SDLSurface::BlitToSurface(Surface& dest_surface,
         reportSDLError("SDL_SetAlpha", "SDLGraphicsSystem::blitSurfaceToDC()");
     }
 
-    if (SDL_BlitSurface(tmp, NULL, sdl_dest_surface.surface(), &dest_rect))
+    if (SDL_BlitSurface(tmp, NULL, sdl_dest_surface.RawSurface(), &dest_rect))
       reportSDLError("SDL_BlitSurface", "SDLGraphicsSystem::blitSurfaceToDC()");
 
     SDL_FreeSurface(tmp);
@@ -231,7 +240,7 @@ void SDLSurface::BlitToSurface(Surface& dest_surface,
         reportSDLError("SDL_SetAlpha", "SDLGraphicsSystem::blitSurfaceToDC()");
     }
 
-    if (SDL_BlitSurface(surface_, &src_rect, sdl_dest_surface.surface(),
+    if (SDL_BlitSurface(surface_, &src_rect, sdl_dest_surface.RawSurface(),
                         &dest_rect))
       reportSDLError("SDL_BlitSurface", "SDLGraphicsSystem::blitSurfaceToDC()");
   }
@@ -247,9 +256,7 @@ void SDLSurface::blitFROMSurface(SDL_Surface* src_surface,
                                  const Rect& dst,
                                  int alpha,
                                  bool use_src_alpha) {
-  SDL_Rect src_rect, dest_rect;
-  RectToSDLRect(src, &src_rect);
-  RectToSDLRect(dst, &dest_rect);
+  SDL_Rect src_rect = ToSDLRect(src), dest_rect = ToSDLRect(dst);
 
   if (use_src_alpha) {
     if (pygame_AlphaBlit(src_surface, &src_rect, surface_, &dest_rect))
@@ -267,7 +274,7 @@ void SDLSurface::blitFROMSurface(Surface& src_surface,
                                  const Rect& dst,
                                  int alpha,
                                  bool use_src_alpha) {
-  blitFROMSurface(src_surface.rawSurface(), src, dst, alpha, use_src_alpha);
+  blitFROMSurface(src_surface.RawSurface(), src, dst, alpha, use_src_alpha);
 }
 
 // -----------------------------------------------------------------------
@@ -429,26 +436,11 @@ void SDLSurface::RenderToScreen(const Rect& src_rect,
 
 // -----------------------------------------------------------------------
 
-void SDLSurface::Fill(const RGBAColour& colour) {
-  // Fill the entire surface with the incoming colour
-  Uint32 sdl_colour = MapRGBA(surface_->format, colour);
-
-  if (SDL_FillRect(surface_, NULL, sdl_colour))
-    reportSDLError("SDL_FillRect", "SDLGraphicsSystem::wipe()");
-
-  // If we are the main screen, then we want to update the screen
-  markWrittenTo(GetRect());
-}
-
-// -----------------------------------------------------------------------
-
 void SDLSurface::Fill(const RGBAColour& colour, const Rect& area) {
-  // Fill the entire surface with the incoming colour
-  Uint32 sdl_colour = MapRGBA(surface_->format, colour);
+  Uint32 sdl_colour = SDL_MapRGBA(surface_->format, colour.r(), colour.g(),
+                                  colour.b(), colour.a());
 
-  SDL_Rect rect;
-  RectToSDLRect(area, &rect);
-
+  SDL_Rect rect = ToSDLRect(area);
   if (SDL_FillRect(surface_, &rect, sdl_colour))
     reportSDLError("SDL_FillRect", "SDLGraphicsSystem::wipe()");
 
@@ -458,79 +450,9 @@ void SDLSurface::Fill(const RGBAColour& colour, const Rect& area) {
 
 // -----------------------------------------------------------------------
 
-void SDLSurface::Invert(const Rect& rect) {
-  Apply(
-      +[](RGBAColour c) {
-        c.set_red(255 - c.r());
-        c.set_green(255 - c.g());
-        c.set_blue(255 - c.b());
-        return c;
-      },
-      rect);
-}
-
-// -----------------------------------------------------------------------
-
-void SDLSurface::Mono(const Rect& rect) {
-  Apply(
-      +[](RGBAColour c) {
-        int grayscale =
-            static_cast<int>(0.3 * c.r() + 0.59 * c.g() + 0.11 * c.b());
-        grayscale = std::clamp(grayscale, 0, 255);
-        c.set_red(grayscale);
-        c.set_green(grayscale);
-        c.set_blue(grayscale);
-        return c;
-      },
-      rect);
-}
-
-// -----------------------------------------------------------------------
-
-void SDLSurface::ToneCurve(const ToneCurveRGBMap effect, const Rect& area) {
-  Apply(
-      [&effect](RGBAColour c) {
-        assert(c.is_within_u8());
-        c.set_red(effect[0][c.r()]);
-        c.set_green(effect[1][c.g()]);
-        c.set_blue(effect[2][c.b()]);
-        return c;
-      },
-      area);
-}
-
-// -----------------------------------------------------------------------
-
-void SDLSurface::ApplyColour(const RGBColour& colour, const Rect& area) {
-  Apply(
-      [refcol = colour](RGBAColour c) {
-        auto compose = [](int in_colour, int surface_colour) -> int {
-          if (in_colour > 0) {
-            return 255 - ((static_cast<float>((255 - in_colour) *
-                                              (255 - surface_colour)) /
-                           (255 * 255)) *
-                          255);
-          } else if (in_colour < 0) {
-            return (static_cast<float>(std::abs(in_colour) * surface_colour) /
-                    (255 * 255)) *
-                   255;
-          } else {
-            return surface_colour;
-          }
-        };
-        c.set_red(std::clamp(compose(refcol.r(), c.r()), 0, 255));
-        c.set_green(std::clamp(compose(refcol.g(), c.g()), 0, 255));
-        c.set_blue(std::clamp(compose(refcol.b(), c.b()), 0, 255));
-        return c;
-      },
-      area);
-}
-
-// -----------------------------------------------------------------------
-
 void SDLSurface::Apply(std::function<RGBAColour(RGBAColour)> transformer,
                        Rect area) {
-  SDL_Surface* surface = rawSurface();
+  SDL_Surface* surface = RawSurface();
 
   const int bpp = surface->format->BytesPerPixel;
   const int row_advance = surface->pitch - bpp * area.width();
@@ -641,33 +563,7 @@ std::vector<int> SDLSurface::segmentPicture(int size_remainging) {
 
 // -----------------------------------------------------------------------
 
-void SDLSurface::GetDCPixel(const Point& pos, int& r, int& g, int& b) const {
-  SDL_Color colour;
-  Uint32 col = 0;
-
-  // determine position
-  char* p_position = (char*)surface_->pixels;
-
-  // offset by y
-  p_position += (surface_->pitch * pos.y());
-
-  // offset by x
-  p_position += (surface_->format->BytesPerPixel * pos.x());
-
-  // copy pixel data
-  memcpy(&col, p_position, surface_->format->BytesPerPixel);
-
-  // Before someone tries to simplify the following four lines,
-  // remember that sizeof(int) != sizeof(Uint8).
-  SDL_GetRGB(col, surface_->format, &colour.r, &colour.g, &colour.b);
-  r = colour.r;
-  g = colour.g;
-  b = colour.b;
-}
-
-// -----------------------------------------------------------------------
-
-RGBAColour SDLSurface::GetPixel(Point pos) const {
+RGBAColour SDLSurface::GetPixelAt(Point pos) const {
   SDL_Color colour;
   Uint32 col = 0;
 
@@ -676,7 +572,7 @@ RGBAColour SDLSurface::GetPixel(Point pos) const {
   p_position += (surface_->format->BytesPerPixel * pos.x());
 
   // Copy pixel data
-  memcpy(&col, p_position, surface_->format->BytesPerPixel);
+  std::memcpy(&col, p_position, surface_->format->BytesPerPixel);
 
   // Use SDL_GetRGBA to extract RGBA components
   SDL_GetRGBA(col, surface_->format, &colour.r, &colour.g, &colour.b,
@@ -684,31 +580,29 @@ RGBAColour SDLSurface::GetPixel(Point pos) const {
   return RGBAColour(colour.r, colour.g, colour.b, colour.unused);
 }
 
-// Note: the dumped pixels are upside down
 std::vector<char> SDLSurface::Dump(Rect region) const {
-  SDL_Surface* surface = this->surface();
   auto x = region.x(), y = region.y();
   auto w = region.width(), h = region.height();
 
-  std::vector<char> buf(surface->format->BytesPerPixel * w * h);
+  std::vector<char> buf(surface_->format->BytesPerPixel * w * h);
   char* dst = buf.data();
-  if (SDL_MUSTLOCK(surface)) {
-    if (SDL_LockSurface(surface) != 0) {
+  if (SDL_MUSTLOCK(surface_)) {
+    if (SDL_LockSurface(surface_) != 0) {
       throw std::runtime_error("Failed to lock the SDL_Surface: " +
                                std::string(SDL_GetError()));
     }
   }
-  char* src = static_cast<char*>(surface->pixels);
-  src += surface->pitch * (y + h - 1);
-  int col_offset = surface->format->BytesPerPixel * x;
-  int col_size = surface->format->BytesPerPixel * w;
+  char* src = static_cast<char*>(surface_->pixels);
+  src += surface_->pitch * (y + h - 1);
+  int col_offset = surface_->format->BytesPerPixel * x;
+  int col_size = surface_->format->BytesPerPixel * w;
   for (int row = 0; row < h; ++row) {
     std::memcpy(dst, src + col_offset, col_size);
     dst += col_size;
-    src -= surface->pitch;
+    src -= surface_->pitch;
   }
-  if (SDL_MUSTLOCK(surface)) {
-    SDL_UnlockSurface(surface);
+  if (SDL_MUSTLOCK(surface_)) {
+    SDL_UnlockSurface(surface_);
   }
   return buf;
 }
@@ -740,8 +634,7 @@ std::shared_ptr<Surface> SDLSurface::ClipAsColorMask(const Rect& clip_rect,
   // (FF0000, FF00, FF, 0), so convert it to a standard RGBA image
   // (and clip to the desired rectangle)
   SDL_Surface* surface = buildNewSurface(clip_rect.size());
-  SDL_Rect srcrect;
-  RectToSDLRect(clip_rect, &srcrect);
+  SDL_Rect srcrect = ToSDLRect(clip_rect);
   if (SDL_BlitSurface(tmp_surface, &srcrect, surface, NULL))
     reportSDLError("SDL_BlitSurface", function_name);
 
