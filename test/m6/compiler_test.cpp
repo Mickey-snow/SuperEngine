@@ -198,6 +198,37 @@ TEST_F(CompilerTest, MultipleStatements) {
   EXPECT_EQ(res, "24\n");
 }
 
+TEST_F(CompilerTest, StringMethods) {
+  auto res = Run(R"(
+s = "abcdef";
+print(s.len());
+print(s.substr(1, 3));
+print(s.substr(2));
+print(s.substr(-2));
+print(s.prefix(4));
+print(s.prefix(10));
+print(s.suffix(2));
+print(s.suffix(10));
+print(s[0], s[-1], sep=",", end="");
+)");
+
+  EXPECT_EQ(res, "6\nbcd\ncdef\nef\nabcd\nabcdef\nef\nabcdef\na,f");
+}
+
+TEST_F(CompilerTest, StringMethodErrors) {
+  auto res =
+      Interpret({R"( s = "abc"; )", R"( s.substr(10); )", R"( s.prefix(-1); )",
+                 R"( s.suffix("bad"); )", R"( s[3]; )", R"( "ok"; )"});
+
+  EXPECT_EQ(res, R"(
+string index '10' out of range
+prefix length must be non-negative
+suffix length must be integer, but got: <str: bad>
+string index '3' out of range
+ok
+)");
+}
+
 TEST_F(CompilerTest, List) {
   {
     auto res = Run("x=1; a=[x,x+1,x*3]; print(a);");
