@@ -127,5 +127,5 @@ void Dumper::DumpAudio(std::filesystem::path path, std::ostream& out) {
 void Dumper::DumpImage(std::filesystem::path path, std::ostream& out) {
   MappedFile mfile(path);
   ImageDecoder decoder(mfile.Read());
-  saveRGBAasPPM(out, decoder.width, decoder.height, decoder.mem);
+  saveBGRAasPPM(out, decoder.width, decoder.height, decoder.mem);
 }

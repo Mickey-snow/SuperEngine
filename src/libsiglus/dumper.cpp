@@ -153,7 +153,7 @@ void Dumper::DumpAudio(std::filesystem::path path, std::ostream& s) {
 void Dumper::DumpImage(std::filesystem::path path, std::ostream& s) {
   MappedFile mfile(path);
   ImageDecoder decoder(mfile.Read());
-  saveRGBAasPPM(s, decoder.width, decoder.height, decoder.mem);
+  saveBGRAasPPM(s, decoder.width, decoder.height, decoder.mem);
 }
 
 }  // namespace libsiglus

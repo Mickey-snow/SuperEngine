@@ -36,7 +36,7 @@
 /// @param height    Image height in pixels.
 /// @param rgba      Flat vector of size width*height*4, in R,G,B,A order.
 /// @throws runtime_error on I/O error or invalid buffer size.
-void saveRGBAasPPM(std::ostream& os,
+void saveBGRAasPPM(std::ostream& os,
                    int width,
                    int height,
                    const std::vector<char>& rgba);

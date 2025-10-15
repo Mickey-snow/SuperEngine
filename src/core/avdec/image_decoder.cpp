@@ -31,12 +31,12 @@
 #include <memory>
 #include <stdexcept>
 
-void saveRGBAasPPM(std::ostream& os,
+void saveBGRAasPPM(std::ostream& os,
                    int width,
                    int height,
-                   const std::vector<char>& rgba) {
+                   const std::vector<char>& bgra) {
   // Check that we have exactly width*height*4 bytes
-  if (rgba.size() != static_cast<size_t>(width) * height * 4) {
+  if (bgra.size() != static_cast<size_t>(width) * height * 4) {
     throw std::runtime_error("RGBA buffer has wrong size");
   }
 
@@ -53,9 +53,14 @@ void saveRGBAasPPM(std::ostream& os,
   for (int y = 0; y < height; ++y) {
     for (int x = 0; x < width; ++x) {
       const size_t idx = (static_cast<size_t>(y) * width + x) * 4;
-      os.put(rgba[idx + 0]);
-      os.put(rgba[idx + 1]);
-      os.put(rgba[idx + 2]);
+      char b = bgra[idx + 0];
+      char g = bgra[idx + 1];
+      char r = bgra[idx + 2];
+      [[maybe_unused]] char a = bgra[idx + 3];
+
+      os.put(r);
+      os.put(g);
+      os.put(b);
     }
   }
 
