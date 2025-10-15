@@ -45,13 +45,24 @@ using Surface = SDLSurface;
 class System;
 class TextWindow;
 
-class TextWindowButton {
+// Describes the state of a Waku button
+enum class ButtonState : int {
+  Unused = -1,
+  Normal = 0,
+  Highlighted = 1,
+  Pressed = 2,
+  Activated = 4,
+  Disabled = 3
+};
+
+// The base class for text window buttons
+class BasicTextWindowButton {
  public:
-  explicit TextWindowButton(std::shared_ptr<Clock> clock);
-  TextWindowButton(std::shared_ptr<Clock> clock,
-                   bool use,
-                   GameexeInterpretObject location_box);
-  virtual ~TextWindowButton();
+  explicit BasicTextWindowButton(std::shared_ptr<Clock> clock);
+  BasicTextWindowButton(std::shared_ptr<Clock> clock,
+                        bool use,
+                        GameexeInterpretObject location_box);
+  virtual ~BasicTextWindowButton() = default;
 
   // Returns the absolute screen coordinate of this button.
   Rect Location(TextWindow& window);
@@ -67,7 +78,6 @@ class TextWindowButton {
                         const Point& pos,
                         bool pressed);
 
-  //
   void Render(TextWindow& window,
               const std::shared_ptr<const Surface>& buttons,
               int base_pattern);
@@ -86,12 +96,12 @@ class TextWindowButton {
   std::shared_ptr<Clock> clock_;
 
   std::vector<int> location_;
-  int state_;
+  ButtonState state_;
 };
 
 // -----------------------------------------------------------------------
 
-class ActionTextWindowButton : public TextWindowButton {
+class ActionTextWindowButton : public BasicTextWindowButton {
  public:
   typedef std::function<void(void)> CallbackFunction;
 
@@ -100,9 +110,8 @@ class ActionTextWindowButton : public TextWindowButton {
                          bool use,
                          GameexeInterpretObject location_box,
                          CallbackFunction action);
-  virtual ~ActionTextWindowButton();
 
-  virtual void ButtonReleased(RLMachine& machine) override;
+  virtual void ButtonReleased(RLMachine&) override;
 
  private:
   CallbackFunction action_;
@@ -110,7 +119,7 @@ class ActionTextWindowButton : public TextWindowButton {
 
 // -----------------------------------------------------------------------
 
-class ActivationTextWindowButton : public TextWindowButton,
+class ActivationTextWindowButton : public BasicTextWindowButton,
                                    public NotificationObserver {
  public:
   typedef std::function<void(int)> CallbackFunction;
@@ -120,9 +129,8 @@ class ActivationTextWindowButton : public TextWindowButton,
                              bool use,
                              GameexeInterpretObject location_box,
                              CallbackFunction setter);
-  virtual ~ActivationTextWindowButton();
 
-  virtual void ButtonReleased(RLMachine& machine) override;
+  virtual void ButtonReleased(RLMachine&) override;
 
   void SetEnabled(bool enabled);
 
@@ -149,7 +157,7 @@ class ActivationTextWindowButton : public TextWindowButton,
 
 // -----------------------------------------------------------------------
 
-class RepeatActionWhileHoldingWindowButton : public TextWindowButton {
+class RepeatActionWhileHoldingWindowButton : public BasicTextWindowButton {
  public:
   using CallbackFunction = std::function<void(void)>;
 
@@ -159,11 +167,10 @@ class RepeatActionWhileHoldingWindowButton : public TextWindowButton {
       GameexeInterpretObject location_box,
       CallbackFunction callback,
       std::chrono::milliseconds time_between_invocations);
-  virtual ~RepeatActionWhileHoldingWindowButton();
 
   virtual void ButtonPressed() override;
   virtual void Execute() override;
-  virtual void ButtonReleased(RLMachine& machine) override;
+  virtual void ButtonReleased(RLMachine&) override;
 
  private:
   CallbackFunction callback_;
@@ -174,13 +181,12 @@ class RepeatActionWhileHoldingWindowButton : public TextWindowButton {
 
 // -----------------------------------------------------------------------
 
-class ExbtnWindowButton : public TextWindowButton {
+class ExbtnWindowButton : public BasicTextWindowButton {
  public:
   ExbtnWindowButton(std::shared_ptr<Clock> clock,
                     bool use,
                     GameexeInterpretObject location_box,
                     GameexeInterpretObject to_call);
-  virtual ~ExbtnWindowButton();
 
   virtual void ButtonReleased(RLMachine& machine) override;
 

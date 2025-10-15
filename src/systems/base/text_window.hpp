@@ -49,7 +49,7 @@ class System;
 class TextSystem;
 class ITextSystem;
 class TextWaku;
-class TextWindowButton;
+class BasicTextWindowButton;
 
 constexpr int kNumFaceSlots = 8;
 

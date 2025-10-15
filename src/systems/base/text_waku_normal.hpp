@@ -40,7 +40,7 @@ class SDLSurface;
 using Surface = SDLSurface;
 class System;
 class TextWindow;
-class TextWindowButton;
+class BasicTextWindowButton;
 
 // Container class that owns all text window decorations.
 //
@@ -102,5 +102,5 @@ class TextWakuNormal : public TextWaku {
   // things such as moving the text box, clearing the text box, moving
   // forward or backwards in message history, and farcall()-ing a
   // custom handler (EXBTN_index_BOX).
-  std::unique_ptr<TextWindowButton> button_map_[12];
+  std::unique_ptr<BasicTextWindowButton> button_map_[12];
 };  // end of class TextWakuNormal
