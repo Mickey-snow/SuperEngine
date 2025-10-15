@@ -700,7 +700,12 @@ std::shared_ptr<Surface> TextSystem::RenderText(const std::string& utf8str,
           int val;
           if (parseInteger(cur_end, strend, val)) {
             Gameexe& gexe = system().gameexe();
-            current_colour = RGBColour(gexe("COLOR_TABLE", val).ToIntVec());
+            auto colvec = gexe("COLOR_TABLE", val)
+                              .IntVec()
+                              .value_or(std::vector<int>{colour.r(), colour.g(),
+                                                         colour.b()});
+            current_colour =
+                RGBColour(colvec.at(0), colvec.at(1), colvec.at(2));
           } else {
             current_colour = colour;
           }

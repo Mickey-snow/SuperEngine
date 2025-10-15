@@ -97,7 +97,6 @@ TextWindow::TextWindow(System& system, int window_num, ITextSystem* text_impl)
       text_insertion_point_x_(0),
       text_insertion_point_y_(0),
       text_wrapping_point_x_(0),
-      ruby_begin_point_(-1),
       current_line_number_(0),
       current_indentation_in_pixels_(0),
       current_indentation_in_chars_(0),
@@ -242,11 +241,11 @@ void TextWindow::RenderNameInBox(const std::string& utf8str) {
 }
 
 void TextWindow::SetDefaultTextColor(const vector<int>& colour) {
-  default_colour_ = RGBColour(colour.at(0), colour.at(1), colour.at(2));
+  SetDefaultTextColor(RGBColour(colour.at(0), colour.at(1), colour.at(2)));
 }
 
 void TextWindow::SetFontColor(const vector<int>& colour) {
-  font_colour_ = RGBColour(colour.at(0), colour.at(1), colour.at(2));
+  SetFontColor(RGBColour(colour.at(0), colour.at(1), colour.at(2)));
 }
 
 void TextWindow::SetWindowSizeInCharacters(const vector<int>& pos_data) {
@@ -501,7 +500,7 @@ void TextWindow::ClearWin() {
   current_indentation_in_pixels_ = 0;
   current_indentation_in_chars_ = 0;
   current_line_number_ = 0;
-  ruby_begin_point_ = -1;
+  ruby_begin_point_.reset();
   font_colour_ = default_colour_;
   koe_replay_button_.clear();
 
@@ -587,12 +586,6 @@ bool TextWindow::DisplayCharacter(const std::string& current,
 
     if (indent_after_spacing)
       SetIndentation();
-  }
-
-  // When we aren't rendering a piece of text with a ruby gloss, mark
-  // the screen as dirty so that this character renders.
-  if (ruby_begin_point_ == -1) {
-    // system_.graphics().MarkScreenAsDirty(GUT_TEXTSYS);
   }
 
   last_token_was_name_ = false;
@@ -706,11 +699,11 @@ void TextWindow::MarkRubyBegin() {
 }
 
 void TextWindow::DisplayRubyText(const std::string& utf8str) {
-  if (ruby_begin_point_ != -1) {
+  if (ruby_begin_point_) {
     int end_point = text_insertion_point_x_ - x_spacing_;
 
-    if (ruby_begin_point_ > end_point) {
-      ruby_begin_point_ = -1;
+    if (*ruby_begin_point_ > end_point) {
+      ruby_begin_point_.reset();
       throw rlvm::Exception("We don't handle ruby across line breaks yet!");
     }
 
@@ -721,14 +714,14 @@ void TextWindow::DisplayRubyText(const std::string& utf8str) {
     // Render glyph to surface
     Size tmpsiz = tmp->GetSize();
     int height_location = text_insertion_point_y_ - ruby_text_size();
-    int width_start =
-        int(ruby_begin_point_ + ((end_point - ruby_begin_point_) * 0.5f) -
-            (tmpsiz.width() * 0.5f));
+    int width_start = *ruby_begin_point_ +
+                      ((end_point - *ruby_begin_point_) * 0.5f) -
+                      (tmpsiz.width() * 0.5f);
     text_surface_->blitFROMSurface(
         *tmp, Rect(Point(0, 0), tmpsiz),
         Rect(Point(width_start, height_location), tmpsiz), 255);
 
-    ruby_begin_point_ = -1;
+    ruby_begin_point_.reset();
   }
 
   last_token_was_name_ = false;

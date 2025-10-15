@@ -3,6 +3,13 @@ mw = Mwnd(0);
 
 print("mwnd init ok");
 
-mw.textout("Hello, world " * 20);
+fn Textout(text, pause_ms = 140){
+  len = text.len();
+  for(i=0; i<len; i+=1){
+    should_pause = i != len-1;
+    mw.disp(text[i], text.suffix(len-i));
+    if(should_pause)
+      await async.Sleep(pause_ms);
+  }
+}
 
-print("output finished");

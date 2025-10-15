@@ -27,14 +27,15 @@
 
 #pragma once
 
+#include "core/colour.hpp"
+#include "core/rect.hpp"
+
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
-
-#include "core/colour.hpp"
-#include "core/rect.hpp"
 
 class Gameexe;
 class GameexeInterpretObject;
@@ -103,6 +104,8 @@ class TextWindow {
 
   void SetDefaultTextColor(const std::vector<int>& colour_data);
   void SetFontColor(const std::vector<int>& colour_data);
+  inline void SetDefaultTextColor(RGBColour rgb) { default_colour_ = rgb; }
+  inline void SetFontColor(RGBColour rgb) { font_colour_ = rgb; }
 
   void SetWindowPosition(const std::vector<int>& pos_data);
 
@@ -286,9 +289,9 @@ class TextWindow {
   // an internal count as if all characters were monospaced.
   int text_wrapping_point_x_;
 
-  // Current ruby insertion point (or -1 if MarkRubyBegin() hasn't
+  // Current ruby insertion point (or nullopt if MarkRubyBegin() hasn't
   // been called)
-  int ruby_begin_point_;
+  std::optional<int> ruby_begin_point_;
 
   // The line number in this text window; used to detect whether we
   // have filled this text box

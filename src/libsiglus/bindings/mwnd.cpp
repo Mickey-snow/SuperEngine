@@ -50,6 +50,17 @@ class SiglusMwnd {
   bool DisplayCharacter(std::string current, std::string rest) {
     return page.Character(current, rest);
   }
+  void DisplayRuby(std::string text) {
+    text_win_->MarkRubyBegin();
+    text_win_->DisplayRubyText(text);
+  }
+
+  void Clear() { text_win_->ClearWin(); }
+
+  void SetFontColor(int r, int g, int b) {
+    RGBColour rgb(r, g, b);
+    text_win_->SetFontColor(rgb);
+  }
 };
 
 void MWND::Bind(SiglusRuntime& runtime) {
@@ -69,6 +80,10 @@ void MWND::Bind(SiglusRuntime& runtime) {
            sb::arg("id") = 0);
   mwnd.def("disp", &SiglusMwnd::DisplayCharacter, sb::arg("current"),
            sb::arg("rest") = "");
+  mwnd.def("disp_ruby", &SiglusMwnd::DisplayRuby, sb::arg("ruby_text"));
+  mwnd.def("clear", &SiglusMwnd::Clear);
+  mwnd.def("set_font_color", &SiglusMwnd::SetFontColor, sb::arg("r"),
+           sb::arg("g"), sb::arg("b"));
 
   m.def("msg_block", []() {
     bool msgblk_started = false;
