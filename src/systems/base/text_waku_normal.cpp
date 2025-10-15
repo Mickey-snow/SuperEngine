@@ -26,11 +26,6 @@
 
 #include "systems/base/text_waku_normal.hpp"
 
-#include <functional>
-#include <iomanip>
-#include <sstream>
-#include <string>
-
 #include "core/gameexe.hpp"
 #include "core/rect.hpp"
 #include "systems/base/graphics_system.hpp"
@@ -38,13 +33,15 @@
 #include "systems/base/text_system.hpp"
 #include "systems/base/text_window.hpp"
 #include "systems/base/text_window_button.hpp"
+#include "systems/event_system.hpp"
 #include "systems/sdl_surface.hpp"
 
-using std::endl;
-using std::ostringstream;
-using std::setfill;
-using std::setw;
-using std::placeholders::_1;
+#include <format>
+#include <functional>
+#include <memory>
+#include <string>
+
+using namespace std::chrono_literals;
 
 namespace {
 
@@ -176,36 +173,36 @@ void TextWakuNormal::LoadWindowWaku() {
   TextSystem& ts = system_.text();
   GraphicsSystem& gs = system_.graphics();
 
+  std::shared_ptr<Clock> clock = system_.event().GetClock();
   if (waku("CLEAR_BOX").Exists()) {
-    button_map_[0].reset(new ActionTextWindowButton(
-        system_, ts.window_clear_use(), waku("CLEAR_BOX"),
-        std::bind(&GraphicsSystem::ToggleInterfaceHidden, std::ref(gs))));
+    button_map_[0] = std::make_unique<ActionTextWindowButton>(
+        clock, ts.window_clear_use(), waku("CLEAR_BOX"),
+        [&gs]() { gs.ToggleInterfaceHidden(); });
   }
   if (waku("MSGBKLEFT_BOX").Exists()) {
-    button_map_[1].reset(new RepeatActionWhileHoldingWindowButton(
-        system_, ts.window_msgbkleft_use(), waku("MSGBKLEFT_BOX"),
-        std::bind(&TextSystem::BackPage, std::ref(ts)), 250));
+    button_map_[1] = std::make_unique<RepeatActionWhileHoldingWindowButton>(
+        clock, ts.window_msgbkleft_use(), waku("MSGBKLEFT_BOX"),
+        [&ts]() { ts.BackPage(); }, 250ms);
   }
   if (waku("MSGBKRIGHT_BOX").Exists()) {
-    button_map_[2].reset(new RepeatActionWhileHoldingWindowButton(
-        system_, ts.window_msgbkright_use(), waku("MSGBKRIGHT_BOX"),
-        std::bind(&TextSystem::ForwardPage, std::ref(ts)), 250));
+    button_map_[2] = std::make_unique<RepeatActionWhileHoldingWindowButton>(
+        clock, ts.window_msgbkright_use(), waku("MSGBKRIGHT_BOX"),
+        [&ts]() { ts.ForwardPage(); }, 250ms);
   }
 
   for (int i = 0; i < 7; ++i) {
     GameexeInterpretObject wbcall(system_.gameexe()("WBCALL", i));
-    ostringstream oss;
-    oss << "EXBTN_" << setw(3) << setfill('0') << i << "_BOX";
-    if (waku(oss.str()).Exists()) {
-      button_map_[3 + i].reset(new ExbtnWindowButton(
-          system_, ts.window_exbtn_use(), waku(oss.str()), wbcall));
+    const std::string key = std::format("EXBTN_{:0>3}_BOX", i);
+    if (waku(key).Exists()) {
+      button_map_[3 + i] = std::make_unique<ExbtnWindowButton>(
+          clock, ts.window_exbtn_use(), waku(key), wbcall);
     }
   }
 
   if (waku("READJUMP_BOX").Exists()) {
-    ActivationTextWindowButton* readjump_box = new ActivationTextWindowButton(
-        system_, ts.window_read_jump_use(), waku("READJUMP_BOX"),
-        std::bind(&TextSystem::SetSkipMode, std::ref(ts), _1));
+    auto readjump_box = std::make_unique<ActivationTextWindowButton>(
+        clock, ts.window_read_jump_use(), waku("READJUMP_BOX"),
+        [&ts](int skip_mode) { ts.SetSkipMode(skip_mode); });
     readjump_box->SetEnabledNotification(
         NotificationType::SKIP_MODE_ENABLED_CHANGED);
     readjump_box->SetChangeNotification(
@@ -215,18 +212,17 @@ void TextWakuNormal::LoadWindowWaku() {
     // immediately.
     readjump_box->SetEnabled(ts.kidoku_read());
 
-    button_map_[10].reset(readjump_box);
+    button_map_[10] = std::move(readjump_box);
   }
 
   if (waku("AUTOMODE_BOX").Exists()) {
-    ActivationTextWindowButton* automode_button =
-        new ActivationTextWindowButton(
-            system_, ts.window_automode_use(), waku("AUTOMODE_BOX"),
-            std::bind(&TextSystem::SetAutoMode, std::ref(ts), _1));
+    auto automode_button = std::make_unique<ActivationTextWindowButton>(
+        clock, ts.window_automode_use(), waku("AUTOMODE_BOX"),
+        [&ts](int auto_mode) { ts.SetAutoMode(auto_mode); });
     automode_button->SetChangeNotification(
         NotificationType::AUTO_MODE_STATE_CHANGED);
 
-    button_map_[11].reset(automode_button);
+    button_map_[11] = std::move(automode_button);
   }
 
   /*

@@ -27,14 +27,15 @@
 
 #pragma once
 
-#include <functional>
-#include <memory>
-#include <vector>
-
 #include "core/gameexe.hpp"
 #include "core/notification/observer.hpp"
 #include "core/notification/registrar.hpp"
 #include "core/notification/type.hpp"
+#include "utilities/clock.hpp"
+
+#include <functional>
+#include <memory>
+#include <vector>
 
 class Point;
 class RLMachine;
@@ -46,8 +47,8 @@ class TextWindow;
 
 class TextWindowButton {
  public:
-  explicit TextWindowButton(System& system);
-  TextWindowButton(System& system,
+  explicit TextWindowButton(std::shared_ptr<Clock> clock);
+  TextWindowButton(std::shared_ptr<Clock> clock,
                    bool use,
                    GameexeInterpretObject location_box);
   virtual ~TextWindowButton();
@@ -82,7 +83,7 @@ class TextWindowButton {
   virtual void ButtonReleased(RLMachine& machine) {}
 
  protected:
-  System& system_;
+  std::shared_ptr<Clock> clock_;
 
   std::vector<int> location_;
   int state_;
@@ -95,7 +96,7 @@ class ActionTextWindowButton : public TextWindowButton {
   typedef std::function<void(void)> CallbackFunction;
 
  public:
-  ActionTextWindowButton(System& system,
+  ActionTextWindowButton(std::shared_ptr<Clock> clock,
                          bool use,
                          GameexeInterpretObject location_box,
                          CallbackFunction action);
@@ -115,7 +116,7 @@ class ActivationTextWindowButton : public TextWindowButton,
   typedef std::function<void(int)> CallbackFunction;
 
  public:
-  ActivationTextWindowButton(System& system,
+  ActivationTextWindowButton(std::shared_ptr<Clock> clock,
                              bool use,
                              GameexeInterpretObject location_box,
                              CallbackFunction setter);
@@ -150,14 +151,14 @@ class ActivationTextWindowButton : public TextWindowButton,
 
 class RepeatActionWhileHoldingWindowButton : public TextWindowButton {
  public:
-  typedef std::function<void(void)> CallbackFunction;
+  using CallbackFunction = std::function<void(void)>;
 
- public:
-  RepeatActionWhileHoldingWindowButton(System& system,
-                                       bool use,
-                                       GameexeInterpretObject location_box,
-                                       CallbackFunction callback,
-                                       unsigned int time_between_invocations);
+  RepeatActionWhileHoldingWindowButton(
+      std::shared_ptr<Clock> clock,
+      bool use,
+      GameexeInterpretObject location_box,
+      CallbackFunction callback,
+      std::chrono::milliseconds time_between_invocations);
   virtual ~RepeatActionWhileHoldingWindowButton();
 
   virtual void ButtonPressed() override;
@@ -167,15 +168,15 @@ class RepeatActionWhileHoldingWindowButton : public TextWindowButton {
  private:
   CallbackFunction callback_;
   bool held_down_;
-  unsigned int last_invocation_;
-  unsigned int time_between_invocations_;
+  Clock::timepoint_t last_invocation_;
+  std::chrono::milliseconds time_between_invocations_;
 };
 
 // -----------------------------------------------------------------------
 
 class ExbtnWindowButton : public TextWindowButton {
  public:
-  ExbtnWindowButton(System& system,
+  ExbtnWindowButton(std::shared_ptr<Clock> clock,
                     bool use,
                     GameexeInterpretObject location_box,
                     GameexeInterpretObject to_call);

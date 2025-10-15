@@ -58,13 +58,13 @@ enum ButtonState {
 // TextWindowButton
 // -----------------------------------------------------------------------
 
-TextWindowButton::TextWindowButton(System& system)
-    : system_(system), state_(BUTTONSTATE_BUTTON_NOT_USED) {}
+TextWindowButton::TextWindowButton(std::shared_ptr<Clock> clock)
+    : clock_(clock), state_(BUTTONSTATE_BUTTON_NOT_USED) {}
 
-TextWindowButton::TextWindowButton(System& system,
+TextWindowButton::TextWindowButton(std::shared_ptr<Clock> clock,
                                    bool use_this_button,
                                    GameexeInterpretObject location_box)
-    : system_(system), state_(BUTTONSTATE_BUTTON_NOT_USED) {
+    : clock_(clock), state_(BUTTONSTATE_BUTTON_NOT_USED) {
   if (auto z = location_box.IntVec(); z && use_this_button) {
     location_ = std::move(*z);
     state_ = BUTTONSTATE_NORMAL;
@@ -181,11 +181,11 @@ void TextWindowButton::Render(TextWindow& window,
 // -----------------------------------------------------------------------
 
 ActionTextWindowButton::ActionTextWindowButton(
-    System& system,
+    std::shared_ptr<Clock> clock,
     bool use,
     GameexeInterpretObject location_box,
     CallbackFunction action)
-    : TextWindowButton(system, use, location_box), action_(action) {}
+    : TextWindowButton(clock, use, location_box), action_(action) {}
 
 ActionTextWindowButton::~ActionTextWindowButton() {}
 
@@ -196,11 +196,11 @@ void ActionTextWindowButton::ButtonReleased(RLMachine& machine) { action_(); }
 // -----------------------------------------------------------------------
 
 ActivationTextWindowButton::ActivationTextWindowButton(
-    System& system,
+    std::shared_ptr<Clock> clock,
     bool use,
     GameexeInterpretObject location_box,
     CallbackFunction setter)
-    : TextWindowButton(system, use, location_box),
+    : TextWindowButton(clock, use, location_box),
       on_set_(setter),
       on_(false),
       enabled_(true),
@@ -261,12 +261,12 @@ void ActivationTextWindowButton::Observe(NotificationType type,
 // -----------------------------------------------------------------------
 
 RepeatActionWhileHoldingWindowButton::RepeatActionWhileHoldingWindowButton(
-    System& system,
+    std::shared_ptr<Clock> clock,
     bool use,
     GameexeInterpretObject location_box,
     CallbackFunction callback,
-    unsigned int time_between_invocations)
-    : TextWindowButton(system, use, location_box),
+    std::chrono::milliseconds time_between_invocations)
+    : TextWindowButton(clock, use, location_box),
       callback_(callback),
       held_down_(false),
       time_between_invocations_(time_between_invocations) {}
@@ -277,14 +277,14 @@ void RepeatActionWhileHoldingWindowButton::ButtonPressed() {
   held_down_ = true;
 
   callback_();
-  last_invocation_ = system_.event().GetTicks();
+  last_invocation_ = clock_->GetTime();
 }
 
 void RepeatActionWhileHoldingWindowButton::Execute() {
   if (held_down_) {
-    unsigned int cur_time = system_.event().GetTicks();
+    auto cur_time = clock_->GetTime();
 
-    if (last_invocation_ + time_between_invocations_ > cur_time) {
+    if (last_invocation_ + time_between_invocations_ <= cur_time) {
       callback_();
       last_invocation_ = cur_time;
     }
@@ -299,13 +299,11 @@ void RepeatActionWhileHoldingWindowButton::ButtonReleased(RLMachine& machine) {
 // ExbtnWindowButton
 // -----------------------------------------------------------------------
 
-ExbtnWindowButton::ExbtnWindowButton(System& system,
+ExbtnWindowButton::ExbtnWindowButton(std::shared_ptr<Clock> clock,
                                      bool use,
                                      GameexeInterpretObject location_box,
                                      GameexeInterpretObject to_call)
-    : TextWindowButton(system, use, location_box),
-      scenario_(0),
-      entrypoint_(0) {
+    : TextWindowButton(clock, use, location_box), scenario_(0), entrypoint_(0) {
   if (auto farcall = to_call.IntVec(); farcall && location_box.Exists()) {
     scenario_ = farcall->at(0);
     entrypoint_ = farcall->at(1);

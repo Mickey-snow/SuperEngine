@@ -27,14 +27,6 @@
 
 #include "systems/base/text_window.hpp"
 
-#include <algorithm>
-#include <cmath>
-#include <iomanip>
-#include <ostream>
-#include <string>
-#include <utility>
-#include <vector>
-
 #include "core/gameexe.hpp"
 #include "libreallive/alldefs.hpp"
 #include "machine/rlmachine.hpp"
@@ -52,29 +44,24 @@
 #include "utilities/graphics.hpp"
 #include "utilities/string_utilities.hpp"
 
-using std::bind;
-using std::endl;
-using std::ostringstream;
-using std::ref;
-using std::setfill;
-using std::setw;
-using std::unique_ptr;
-using std::vector;
-using std::placeholders::_1;
-using std::placeholders::_2;
+#include <algorithm>
+#include <cmath>
+#include <string>
+#include <utility>
+#include <vector>
 
 struct TextWindow::FaceSlot {
   explicit FaceSlot(const std::vector<int> vec)
       : x(vec.at(0)),
         y(vec.at(1)),
-        behind(vec.at(2)),
+        is_behind(vec.at(2)),
         hide_other_windows(vec.at(3)),
         unknown(vec.at(4)) {}
 
   int x, y;
 
   // 0 if layered in front or window background. 1 if behind.
-  int behind;
+  int is_behind;
 
   // Speculation: This makes ALMA work correctly and doesn't appear to harm
   // P_BRIDE.
@@ -192,7 +179,7 @@ void TextWindow::Execute() {
   }
 }
 
-void TextWindow::SetTextboxPadding(const vector<int>& pos_data) {
+void TextWindow::SetTextboxPadding(const std::vector<int>& pos_data) {
   upper_box_padding_ = pos_data.at(0);
   lower_box_padding_ = pos_data.at(1);
   left_box_padding_ = pos_data.at(2);
@@ -205,8 +192,11 @@ void TextWindow::SetName(const std::string& utf8name,
     std::string interpreted_name = text_system_.InterpretName(utf8name);
 
     // Display the name in one pass
-    PrintTextToFunction(bind(&TextWindow::DisplayCharacter, ref(*this), _1, _2),
-                        interpreted_name, next_char);
+    PrintTextToFunction(
+        [this](const std::string& current, const std::string& rest) {
+          return this->DisplayCharacter(current, rest);
+        },
+        interpreted_name, next_char);
     SetIndentation();
   }
 
@@ -240,25 +230,25 @@ void TextWindow::RenderNameInBox(const std::string& utf8str) {
                                             0, font_colour_, &shadow, 0);
 }
 
-void TextWindow::SetDefaultTextColor(const vector<int>& colour) {
+void TextWindow::SetDefaultTextColor(const std::vector<int>& colour) {
   SetDefaultTextColor(RGBColour(colour.at(0), colour.at(1), colour.at(2)));
 }
 
-void TextWindow::SetFontColor(const vector<int>& colour) {
+void TextWindow::SetFontColor(const std::vector<int>& colour) {
   SetFontColor(RGBColour(colour.at(0), colour.at(1), colour.at(2)));
 }
 
-void TextWindow::SetWindowSizeInCharacters(const vector<int>& pos_data) {
+void TextWindow::SetWindowSizeInCharacters(const std::vector<int>& pos_data) {
   x_window_size_in_chars_ = pos_data.at(0);
   y_window_size_in_chars_ = pos_data.at(1);
 }
 
-void TextWindow::SetSpacingBetweenCharacters(const vector<int>& pos_data) {
+void TextWindow::SetSpacingBetweenCharacters(const std::vector<int>& pos_data) {
   x_spacing_ = pos_data.at(0);
   y_spacing_ = pos_data.at(1);
 }
 
-void TextWindow::SetWindowPosition(const vector<int>& pos_data) {
+void TextWindow::SetWindowPosition(const std::vector<int>& pos_data) {
   origin_ = pos_data.at(0);
   x_distance_from_origin_ = pos_data.at(1);
   y_distance_from_origin_ = pos_data.at(2);
@@ -376,12 +366,12 @@ void TextWindow::SetNameboxPadding(const std::vector<int>& pos_data) {
     vertical_namebox_padding_ = pos_data.at(1);
 }
 
-void TextWindow::SetNameboxPosition(const vector<int>& pos_data) {
+void TextWindow::SetNameboxPosition(const std::vector<int>& pos_data) {
   namebox_x_offset_ = pos_data.at(0);
   namebox_y_offset_ = pos_data.at(1);
 }
 
-void TextWindow::SetKeycursorMod(const vector<int>& keycur) {
+void TextWindow::SetKeycursorMod(const std::vector<int>& keycur) {
   keycursor_type_ = keycur.at(0);
   keycursor_pos_ = Point(keycur.at(1), keycur.at(2));
 }
@@ -439,7 +429,7 @@ void TextWindow::Render() {
 
     if (in_selection_mode()) {
       for_each(selections_.begin(), selections_.end(),
-               [](unique_ptr<SelectionElement>& e) { e->Render(); });
+               [](std::unique_ptr<SelectionElement>& e) { e->Render(); });
     } else {
       if (name_surface_) {
         Rect r = GetNameboxWakuRect();
@@ -470,7 +460,7 @@ void TextWindow::Render() {
 void TextWindow::RenderFaces(int behind) {
   for (int i = 0; i < kNumFaceSlots; ++i) {
     if (face_slot_[i] && face_slot_[i]->face_surface &&
-        face_slot_[i]->behind == behind) {
+        face_slot_[i]->is_behind == behind) {
       const std::shared_ptr<const Surface>& surface =
           face_slot_[i]->face_surface;
 
@@ -727,16 +717,17 @@ void TextWindow::DisplayRubyText(const std::string& utf8str) {
   last_token_was_name_ = false;
 }
 
-void TextWindow::SetRGBAF(const vector<int>& attr) {
+void TextWindow::SetRGBAF(const std::vector<int>& attr) {
   colour_ = RGBAColour(attr.at(0), attr.at(1), attr.at(2), attr.at(3));
   set_filter(attr.at(4));
 }
 
 void TextWindow::SetMousePosition(const Point& pos) {
   if (in_selection_mode()) {
-    for_each(
-        selections_.begin(), selections_.end(),
-        [&](unique_ptr<SelectionElement>& e) { e->SetMousePosition(pos); });
+    for_each(selections_.begin(), selections_.end(),
+             [&](std::unique_ptr<SelectionElement>& e) {
+               e->SetMousePosition(pos);
+             });
   }
 
   textbox_waku_->SetMousePosition(pos);
@@ -746,25 +737,22 @@ bool TextWindow::HandleMouseClick(RLMachine& machine,
                                   const Point& pos,
                                   bool pressed) {
   if (in_selection_mode()) {
-    bool found = find_if(selections_.begin(), selections_.end(),
-                         [&](unique_ptr<SelectionElement>& e) {
-                           return e->HandleMouseClick(pos, pressed);
-                         }) != selections_.end();
+    bool found =
+        std::any_of(selections_.begin(), selections_.end(),
+                    [&](auto& e) { return e->HandleMouseClick(pos, pressed); });
 
     if (found)
       return true;
   }
 
-  for (std::vector<std::pair<Point, int>>::const_iterator it =
-           koe_replay_button_.begin();
-       it != koe_replay_button_.end(); ++it) {
-    Rect r = Rect(GetTextSurfaceRect().origin() + it->first,
+  for (const auto& it : koe_replay_button_) {
+    Rect r = Rect(GetTextSurfaceRect().origin() + it.first,
                   koe_replay_info_->icon->GetSize());
     if (r.Contains(pos)) {
       // We only want to actually replay the voice clip once, but we want to
       // catch both clicks.
       if (pressed)
-        system_.sound().KoePlay(it->second);
+        system_.sound().KoePlay(it.second);
       return true;
     }
   }
