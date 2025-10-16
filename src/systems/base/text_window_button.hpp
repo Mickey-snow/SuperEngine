@@ -27,10 +27,10 @@
 
 #pragma once
 
-#include "core/gameexe.hpp"
 #include "core/notification/observer.hpp"
 #include "core/notification/registrar.hpp"
 #include "core/notification/type.hpp"
+#include "core/rect.hpp"
 #include "utilities/clock.hpp"
 
 #include <functional>
@@ -58,29 +58,20 @@ enum class ButtonState : int {
 // The base class for text window buttons
 class BasicTextWindowButton {
  public:
-  explicit BasicTextWindowButton(std::shared_ptr<Clock> clock);
-  BasicTextWindowButton(std::shared_ptr<Clock> clock,
-                        bool use,
-                        GameexeInterpretObject location_box);
+  explicit BasicTextWindowButton(std::shared_ptr<Clock> clock,
+                                 bool enable,
+                                 Rect button_rect);
   virtual ~BasicTextWindowButton() = default;
-
-  // Returns the absolute screen coordinate of this button.
-  Rect Location(TextWindow& window);
 
   // Checks to see if this is a valid, used button
   bool IsValid() const;
 
   // Track the mouse position to see if we need to alter our state
-  void SetMousePosition(TextWindow& window, const Point& pos);
+  void SetMousePosition(const Point& pos);
 
-  bool HandleMouseClick(RLMachine& machine,
-                        TextWindow& window,
-                        const Point& pos,
-                        bool pressed);
+  bool HandleMouseClick(RLMachine& machine, const Point& pos, bool pressed);
 
-  void Render(TextWindow& window,
-              const std::shared_ptr<const Surface>& buttons,
-              int base_pattern);
+  void Render(const std::shared_ptr<const Surface>& buttons, int base_pattern);
 
   // Called when the button is pressed
   virtual void ButtonPressed() {}
@@ -95,8 +86,8 @@ class BasicTextWindowButton {
  protected:
   std::shared_ptr<Clock> clock_;
 
-  std::vector<int> location_;
   ButtonState state_;
+  Rect btn_rect_;
 };
 
 // -----------------------------------------------------------------------
@@ -108,7 +99,7 @@ class ActionTextWindowButton : public BasicTextWindowButton {
  public:
   ActionTextWindowButton(std::shared_ptr<Clock> clock,
                          bool use,
-                         GameexeInterpretObject location_box,
+                         Rect btn_rect,
                          CallbackFunction action);
 
   virtual void ButtonReleased(RLMachine&) override;
@@ -127,7 +118,7 @@ class ActivationTextWindowButton : public BasicTextWindowButton,
  public:
   ActivationTextWindowButton(std::shared_ptr<Clock> clock,
                              bool use,
-                             GameexeInterpretObject location_box,
+                             Rect btn_rect,
                              CallbackFunction setter);
 
   virtual void ButtonReleased(RLMachine&) override;
@@ -164,7 +155,7 @@ class RepeatActionWhileHoldingWindowButton : public BasicTextWindowButton {
   RepeatActionWhileHoldingWindowButton(
       std::shared_ptr<Clock> clock,
       bool use,
-      GameexeInterpretObject location_box,
+      Rect btn_rect,
       CallbackFunction callback,
       std::chrono::milliseconds time_between_invocations);
 
@@ -185,8 +176,9 @@ class ExbtnWindowButton : public BasicTextWindowButton {
  public:
   ExbtnWindowButton(std::shared_ptr<Clock> clock,
                     bool use,
-                    GameexeInterpretObject location_box,
-                    GameexeInterpretObject to_call);
+                    Rect btn_rect,
+                    int to_scenario,
+                    int to_entrypoint);
 
   virtual void ButtonReleased(RLMachine& machine) override;
 

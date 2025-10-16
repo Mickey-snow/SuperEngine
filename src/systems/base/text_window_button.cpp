@@ -48,76 +48,24 @@
 // TextWindowButton
 // -----------------------------------------------------------------------
 
-BasicTextWindowButton::BasicTextWindowButton(std::shared_ptr<Clock> clock)
-    : clock_(clock), state_(ButtonState::Not_used) {}
-
-BasicTextWindowButton::BasicTextWindowButton(
-    std::shared_ptr<Clock> clock,
-    bool use_this_button,
-    GameexeInterpretObject location_box)
-    : clock_(clock), state_(ButtonState::Unused) {
-  if (auto z = location_box.IntVec(); z && use_this_button) {
-    location_ = std::move(*z);
-    state_ = ButtonState::Normal;
-  }
-}
-
-Rect BasicTextWindowButton::Location(TextWindow& window) {
-  int type = location_.at(0);
-  Size size(location_.at(3), location_.at(4));
-  Rect win_rect = window.GetWindowRect();
-
-  switch (type) {
-    case 0: {
-      // Top and left
-      Point origin = win_rect.origin() + Size(location_.at(1), location_.at(2));
-      return Rect(origin, size);
-    }
-    case 1: {
-      // Top and right
-      Point origin = win_rect.origin() +
-                     Size(-location_.at(1), location_.at(2)) +
-                     Size(win_rect.size().width() - size.width(), 0);
-      return Rect(origin, size);
-    }
-    // TODO(erg): While 0 is used in pretty much everything I've tried, and 1
-    // is used in the Maiden Halo demo, I'm not certain about these other two
-    // calculations. Both KareKare games screw up here, but it may be because
-    // of the win_rect. Needs further investigation.
-    case 2: {
-      // Bottom and left
-      Point origin = win_rect.origin() +
-                     Size(location_.at(1), -location_.at(2)) +
-                     Size(0, win_rect.size().height() - size.height());
-      return Rect(origin, size);
-    }
-    case 3: {
-      // Bottom and right
-      Point origin = win_rect.origin() +
-                     Size(-location_.at(1), -location_.at(2)) +
-                     Size(win_rect.size().width() - size.width(),
-                          win_rect.size().height() - size.height());
-      return Rect(origin, size);
-    }
-    default: {
-      throw SystemError("Unsupported coordinate system");
-    }
-  }
+BasicTextWindowButton::BasicTextWindowButton(std::shared_ptr<Clock> clock,
+                                             bool enable,
+                                             Rect button_rect)
+    : clock_(clock), state_(ButtonState::Normal), btn_rect_(button_rect) {
+  if (!enable || !IsValid())
+    state_ = ButtonState::Unused;
 }
 
 bool BasicTextWindowButton::IsValid() const {
-  return state_ != ButtonState::Unused && location_.size() == 5 &&
-         !(location_[0] == 0 && location_[1] == 0 && location_[2] == 0 &&
-           location_[3] == 0 && location_[4] == 0);
+  return state_ != ButtonState::Unused && !btn_rect_.is_empty();
 }
 
-void BasicTextWindowButton::SetMousePosition(TextWindow& window,
-                                             const Point& pos) {
+void BasicTextWindowButton::SetMousePosition(const Point& pos) {
   if (state_ == ButtonState::Disabled)
     return;
 
   if (IsValid()) {
-    bool in_box = Location(window).Contains(pos);
+    bool in_box = btn_rect_.Contains(pos);
     if (in_box && state_ == ButtonState::Normal)
       state_ = ButtonState::Highlighted;
     else if (!in_box && state_ == ButtonState::Highlighted)
@@ -128,14 +76,13 @@ void BasicTextWindowButton::SetMousePosition(TextWindow& window,
 }
 
 bool BasicTextWindowButton::HandleMouseClick(RLMachine& machine,
-                                             TextWindow& window,
                                              const Point& pos,
                                              bool pressed) {
   if (state_ == ButtonState::Disabled)
     return false;
 
   if (IsValid()) {
-    bool in_box = Location(window).Contains(pos);
+    bool in_box = btn_rect_.Contains(pos);
 
     if (in_box) {
       // Perform any activation
@@ -155,13 +102,12 @@ bool BasicTextWindowButton::HandleMouseClick(RLMachine& machine,
 }
 
 void BasicTextWindowButton::Render(
-    TextWindow& window,
     const std::shared_ptr<const Surface>& buttons,
     int base_pattern) {
   if (IsValid()) {
     GrpRect rect = buttons->GetPattern(base_pattern + static_cast<int>(state_));
     if (!rect.rect.is_empty()) {
-      Rect dest = Rect(Location(window).origin(), rect.rect.size());
+      Rect dest = Rect(btn_rect_.origin(), rect.rect.size());
       buttons->RenderToScreen(rect.rect, dest, 255);
     }
   }
@@ -171,12 +117,11 @@ void BasicTextWindowButton::Render(
 // ActionTextWindowButton
 // -----------------------------------------------------------------------
 
-ActionTextWindowButton::ActionTextWindowButton(
-    std::shared_ptr<Clock> clock,
-    bool use,
-    GameexeInterpretObject location_box,
-    CallbackFunction action)
-    : BasicTextWindowButton(clock, use, location_box), action_(action) {}
+ActionTextWindowButton::ActionTextWindowButton(std::shared_ptr<Clock> clock,
+                                               bool use,
+                                               Rect btn_rect,
+                                               CallbackFunction action)
+    : BasicTextWindowButton(clock, use, btn_rect), action_(action) {}
 
 void ActionTextWindowButton::ButtonReleased(RLMachine&) { action_(); }
 
@@ -187,9 +132,9 @@ void ActionTextWindowButton::ButtonReleased(RLMachine&) { action_(); }
 ActivationTextWindowButton::ActivationTextWindowButton(
     std::shared_ptr<Clock> clock,
     bool use,
-    GameexeInterpretObject location_box,
+    Rect btn_rect,
     CallbackFunction setter)
-    : BasicTextWindowButton(clock, use, location_box),
+    : BasicTextWindowButton(clock, use, btn_rect),
       on_set_(setter),
       on_(false),
       enabled_(true),
@@ -250,10 +195,10 @@ void ActivationTextWindowButton::Observe(NotificationType type,
 RepeatActionWhileHoldingWindowButton::RepeatActionWhileHoldingWindowButton(
     std::shared_ptr<Clock> clock,
     bool use,
-    GameexeInterpretObject location_box,
+    Rect btn_rect,
     CallbackFunction callback,
     std::chrono::milliseconds time_between_invocations)
-    : BasicTextWindowButton(clock, use, location_box),
+    : BasicTextWindowButton(clock, use, btn_rect),
       callback_(callback),
       held_down_(false),
       time_between_invocations_(time_between_invocations) {}
@@ -286,15 +231,14 @@ void RepeatActionWhileHoldingWindowButton::ButtonReleased(RLMachine&) {
 
 ExbtnWindowButton::ExbtnWindowButton(std::shared_ptr<Clock> clock,
                                      bool use,
-                                     GameexeInterpretObject location_box,
-                                     GameexeInterpretObject to_call)
-    : BasicTextWindowButton(clock, use, location_box),
-      scenario_(0),
-      entrypoint_(0) {
-  if (auto farcall = to_call.IntVec(); farcall && location_box.Exists()) {
-    scenario_ = farcall->at(0);
-    entrypoint_ = farcall->at(1);
-  }
+                                     Rect btn_rect,
+                                     int to_scenario,
+                                     int to_entrypoint)
+    : BasicTextWindowButton(clock, use, btn_rect),
+      scenario_(to_scenario),
+      entrypoint_(to_entrypoint) {
+  if (!use || !IsValid())
+    scenario_ = entrypoint_ = 0;
 }
 
 void ExbtnWindowButton::ButtonReleased(RLMachine& machine) {

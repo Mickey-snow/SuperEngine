@@ -28,6 +28,7 @@
 
 #include "core/gameexe.hpp"
 #include "core/rect.hpp"
+#include "log/domain_logger.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/text_system.hpp"
@@ -112,7 +113,7 @@ void TextWakuNormal::Render(Point box_location, Size namebox_size) {
 void TextWakuNormal::RenderButtons() {
   for (int i = 0; BUTTON_INFO[i].index != -1; ++i) {
     if (button_map_[i]) {
-      button_map_[i]->Render(window_, waku_button_, BUTTON_INFO[i].waku_offset);
+      button_map_[i]->Render(waku_button_, BUTTON_INFO[i].waku_offset);
     }
   }
 }
@@ -145,7 +146,7 @@ Point TextWakuNormal::InsertionPoint(const Rect& waku_rect,
 void TextWakuNormal::SetMousePosition(const Point& pos) {
   for (int i = 0; BUTTON_INFO[i].index != -1; ++i) {
     if (button_map_[i]) {
-      button_map_[i]->SetMousePosition(window_, pos);
+      button_map_[i]->SetMousePosition(pos);
     }
   }
 }
@@ -155,12 +156,59 @@ bool TextWakuNormal::HandleMouseClick(RLMachine& machine,
                                       bool pressed) {
   for (int i = 0; BUTTON_INFO[i].index != -1; ++i) {
     if (button_map_[i]) {
-      if (button_map_[i]->HandleMouseClick(machine, window_, pos, pressed))
+      if (button_map_[i]->HandleMouseClick(machine, pos, pressed))
         return true;
     }
   }
 
   return false;
+}
+
+static std::optional<Rect> GetButtonRect(Rect window_rect,
+                                         std::vector<int> loc_param) {
+  if (loc_param.size() != 5)
+    return std::nullopt;
+  int type = loc_param.at(0);
+  Size size(loc_param.at(3), loc_param.at(4));
+  switch (type) {
+    case 0: {
+      // Top and left
+      Point origin =
+          window_rect.origin() + Size(loc_param.at(1), loc_param.at(2));
+      return Rect(origin, size);
+    }
+    case 1: {
+      // Top and right
+      Point origin = window_rect.origin() +
+                     Size(-loc_param.at(1), loc_param.at(2)) +
+                     Size(window_rect.size().width() - size.width(), 0);
+      return Rect(origin, size);
+    }
+    // TODO(erg): While 0 is used in pretty much everything I've tried, and 1
+    // is used in the Maiden Halo demo, I'm not certain about these other two
+    // calculations. Both KareKare games screw up here, but it may be because
+    // of the win_rect. Needs further investigation.
+    case 2: {
+      // Bottom and left
+      Point origin = window_rect.origin() +
+                     Size(loc_param.at(1), -loc_param.at(2)) +
+                     Size(0, window_rect.size().height() - size.height());
+      return Rect(origin, size);
+    }
+    case 3: {
+      // Bottom and right
+      Point origin = window_rect.origin() +
+                     Size(-loc_param.at(1), -loc_param.at(2)) +
+                     Size(window_rect.size().width() - size.width(),
+                          window_rect.size().height() - size.height());
+      return Rect(origin, size);
+    }
+    default: {
+      static DomainLogger logger("GetButtonRect");
+      logger(Severity::Error) << "Unsupported coordinate system type=" << type;
+    }
+  }
+  return std::nullopt;
 }
 
 void TextWakuNormal::LoadWindowWaku() {
@@ -175,18 +223,27 @@ void TextWakuNormal::LoadWindowWaku() {
 
   std::shared_ptr<Clock> clock = system_.event().GetClock();
   if (waku("CLEAR_BOX").Exists()) {
+    std::optional<Rect> btn_rect =
+        GetButtonRect(window_.GetWindowRect(),
+                      waku("CLEAR_BOX").IntVec().value_or(std::vector<int>{}));
     button_map_[0] = std::make_unique<ActionTextWindowButton>(
-        clock, ts.window_clear_use(), waku("CLEAR_BOX"),
+        clock, ts.window_clear_use(), btn_rect.value_or(Rect()),
         [&gs]() { gs.ToggleInterfaceHidden(); });
   }
   if (waku("MSGBKLEFT_BOX").Exists()) {
+    std::optional<Rect> btn_rect = GetButtonRect(
+        window_.GetWindowRect(),
+        waku("MSGBKLEFT_BOX").IntVec().value_or(std::vector<int>{}));
     button_map_[1] = std::make_unique<RepeatActionWhileHoldingWindowButton>(
-        clock, ts.window_msgbkleft_use(), waku("MSGBKLEFT_BOX"),
+        clock, ts.window_msgbkleft_use(), btn_rect.value_or(Rect()),
         [&ts]() { ts.BackPage(); }, 250ms);
   }
   if (waku("MSGBKRIGHT_BOX").Exists()) {
+    std::optional<Rect> btn_rect = GetButtonRect(
+        window_.GetWindowRect(),
+        waku("MSGBKRIGHT_BOX").IntVec().value_or(std::vector<int>{}));
     button_map_[2] = std::make_unique<RepeatActionWhileHoldingWindowButton>(
-        clock, ts.window_msgbkright_use(), waku("MSGBKRIGHT_BOX"),
+        clock, ts.window_msgbkright_use(), btn_rect.value_or(Rect()),
         [&ts]() { ts.ForwardPage(); }, 250ms);
   }
 
@@ -194,14 +251,23 @@ void TextWakuNormal::LoadWindowWaku() {
     GameexeInterpretObject wbcall(system_.gameexe()("WBCALL", i));
     const std::string key = std::format("EXBTN_{:0>3}_BOX", i);
     if (waku(key).Exists()) {
+      std::optional<Rect> btn_rect =
+          GetButtonRect(window_.GetWindowRect(),
+                        waku(key).IntVec().value_or(std::vector<int>{}));
+      int scenario = wbcall.IntAt(0).value_or(0);
+      int entrypoint = wbcall.IntAt(1).value_or(0);
       button_map_[3 + i] = std::make_unique<ExbtnWindowButton>(
-          clock, ts.window_exbtn_use(), waku(key), wbcall);
+          clock, ts.window_exbtn_use(), btn_rect.value_or(Rect()), scenario,
+          entrypoint);
     }
   }
 
   if (waku("READJUMP_BOX").Exists()) {
+    std::optional<Rect> btn_rect = GetButtonRect(
+        window_.GetWindowRect(),
+        waku("READJUMP_BOX").IntVec().value_or(std::vector<int>{}));
     auto readjump_box = std::make_unique<ActivationTextWindowButton>(
-        clock, ts.window_read_jump_use(), waku("READJUMP_BOX"),
+        clock, ts.window_read_jump_use(), btn_rect.value_or(Rect()),
         [&ts](int skip_mode) { ts.SetSkipMode(skip_mode); });
     readjump_box->SetEnabledNotification(
         NotificationType::SKIP_MODE_ENABLED_CHANGED);
@@ -216,8 +282,11 @@ void TextWakuNormal::LoadWindowWaku() {
   }
 
   if (waku("AUTOMODE_BOX").Exists()) {
+    std::optional<Rect> btn_rect = GetButtonRect(
+        window_.GetWindowRect(),
+        waku("AUTOMODE_BOX").IntVec().value_or(std::vector<int>{}));
     auto automode_button = std::make_unique<ActivationTextWindowButton>(
-        clock, ts.window_automode_use(), waku("AUTOMODE_BOX"),
+        clock, ts.window_automode_use(), btn_rect.value_or(Rect()),
         [&ts](int auto_mode) { ts.SetAutoMode(auto_mode); });
     automode_button->SetChangeNotification(
         NotificationType::AUTO_MODE_STATE_CHANGED);

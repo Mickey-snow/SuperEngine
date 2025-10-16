@@ -26,11 +26,11 @@
 
 #pragma once
 
-#include <iosfwd>
+#include "systems/base/text_waku.hpp"
+
 #include <memory>
 #include <string>
-
-#include "systems/base/text_waku.hpp"
+#include <vector>
 
 class Point;
 class Rect;
