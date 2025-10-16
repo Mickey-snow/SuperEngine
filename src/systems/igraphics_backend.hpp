@@ -39,9 +39,12 @@ class IGraphicsBackend {
  public:
   virtual ~IGraphicsBackend() = default;
 
-  virtual void InitSystem() = 0;
+  virtual void InitSystem(Size screen_size, bool is_fullscreen) = 0;
   virtual void QuitSystem() = 0;
 
+  virtual void Resize(Size screen_size, bool is_fullscreen) = 0;
+
+  virtual std::shared_ptr<Surface> CreateSurface(Size size) = 0;
   virtual std::shared_ptr<Surface> CreateSurfaceBGRA(Size size,
                                                      std::span<char> bgra,
                                                      bool is_alpha_mask) = 0;

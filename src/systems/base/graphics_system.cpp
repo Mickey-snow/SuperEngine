@@ -60,7 +60,7 @@
 #include "systems/event_system.hpp"
 #include "systems/igraphics_backend.hpp"
 #include "systems/sdl_surface.hpp"
-#include "utilities/exception.hpp"
+#include "utilities/graphics.hpp"
 #include "utilities/lazy_array.hpp"
 #include "utilities/string_utilities.hpp"
 
@@ -235,7 +235,16 @@ GraphicsSystem::GraphicsSystem(System& system,
       asset_scanner_(system.GetAssetScanner()),
       preloaded_hik_scripts_(32),
       preloaded_g00_(256),
-      image_cache_(10) {}
+      image_cache_(10) {
+  Size screen_size = GetScreenSize(gameexe);
+  bool is_fullscreen = screen_mode() == 0;
+  impl_->InitSystem(screen_size, is_fullscreen);
+  SetScreenSize(screen_size);
+
+  haikei_ = impl_->CreateSurface(Size());
+  for (int i = 0; i < 16; ++i)
+    display_contexts_[i] = impl_->CreateSurface(screen_size);
+}
 
 // -----------------------------------------------------------------------
 
@@ -403,7 +412,11 @@ void GraphicsSystem::SetWindowSubtitle(const std::string& cp932str,
 
 // -----------------------------------------------------------------------
 
-void GraphicsSystem::SetScreenMode(const int in) { globals_.screen_mode = in; }
+void GraphicsSystem::SetScreenMode(const int in) {
+  globals_.screen_mode = in;
+
+  Resize(screen_size());
+}
 
 // -----------------------------------------------------------------------
 
@@ -676,7 +689,7 @@ void GraphicsSystem::ClearAndPromoteObjects() {
 
 GraphicsObject& GraphicsSystem::GetObject(int layer, int obj_number) {
   if (layer < 0 || layer > 1)
-    throw rlvm::Exception("Invalid layer number");
+    throw std::runtime_error("Invalid layer number");
 
   if (layer == OBJ_BG)
     return graphics_object_impl_->background_objects[obj_number];
@@ -685,7 +698,7 @@ GraphicsObject& GraphicsSystem::GetObject(int layer, int obj_number) {
 }
 size_t GraphicsSystem::GetFreeObjectId(int layer) {
   if (layer < 0 || layer > 1)
-    throw rlvm::Exception("Invalid layer number");
+    throw std::runtime_error("Invalid layer number");
 
   LazyArray<GraphicsObject>& objs =
       layer == OBJ_BG ? graphics_object_impl_->background_objects
@@ -702,7 +715,7 @@ void GraphicsSystem::SetObject(int layer,
                                int obj_number,
                                GraphicsObject&& obj) {
   if (layer < 0 || layer > 1)
-    throw rlvm::Exception("Invalid layer number");
+    throw std::runtime_error("Invalid layer number");
 
   if (layer == OBJ_BG)
     graphics_object_impl_->background_objects[obj_number] = std::move(obj);
@@ -714,7 +727,7 @@ void GraphicsSystem::SetObject(int layer,
 
 void GraphicsSystem::RemoveObject(int layer, size_t obj_number) {
   if (layer < 0 || layer > 1)
-    throw rlvm::Exception("Invalid layer number");
+    throw std::runtime_error("Invalid layer number");
 
   if (layer == OBJ_BG)
     graphics_object_impl_->background_objects.DeleteAt(obj_number);
@@ -809,6 +822,81 @@ void GraphicsSystem::TakeSavepointSnapshot() {
 }
 
 // -----------------------------------------------------------------------
+
+std::shared_ptr<SDLSurface> GraphicsSystem::GetHaikei() {
+  if (haikei_->RawSurface() == NULL) {
+    haikei_->Allocate(screen_size());
+  }
+
+  return haikei_;
+}
+
+// -----------------------------------------------------------------------
+
+void GraphicsSystem::AllocateDC(int dc, Size size) {
+  if (dc < 0 || dc >= 16)
+    throw std::runtime_error(std::format(
+        "Invalid DC number '{}' in SDLGraphicsSystem::allocate_dc", dc));
+
+  // We can't reallocate the screen!
+  if (dc == 0)
+    throw std::runtime_error("Attempting to reallocate DC 0!");
+
+  // DC 1 is a special case and must always be at least the size of
+  // the screen.
+  if (dc == 1) {
+    Size dc0_size = display_contexts_[0]->GetSize();
+    if (size.width() < dc0_size.width())
+      size.set_width(dc0_size.width());
+    if (size.height() < dc0_size.height())
+      size.set_height(dc0_size.height());
+  }
+
+  // Allocate a new obj.
+  display_contexts_[dc]->Allocate(size);
+}
+
+void GraphicsSystem::SetMinimumSizeForDC(int dc, Size size) {
+  if (display_contexts_[dc] == NULL || !display_contexts_[dc]->IsAllocated()) {
+    AllocateDC(dc, size);
+  } else {
+    Size current = display_contexts_[dc]->GetSize();
+    if (current.width() < size.width() || current.height() < size.height()) {
+      // Make a new surface of the maximum size.
+      Size maxSize = current.SizeUnion(size);
+
+      std::shared_ptr<SDLSurface> newdc = std::make_shared<SDLSurface>();
+      newdc->Allocate(maxSize);
+
+      display_contexts_[dc]->BlitToSurface(*newdc,
+                                           display_contexts_[dc]->GetRect(),
+                                           display_contexts_[dc]->GetRect());
+
+      display_contexts_[dc] = newdc;
+    }
+  }
+}
+
+void GraphicsSystem::FreeDC(int dc) {
+  if (dc == 0) {
+    throw std::runtime_error("Attempt to deallocate DC[0]");
+  } else if (dc == 1) {
+    // DC[1] never gets freed; it only gets blanked
+    GetDC(1)->Fill(RGBAColour::Black());
+  } else {
+    display_contexts_[dc]->Deallocate();
+  }
+}
+
+std::shared_ptr<SDLSurface> GraphicsSystem::GetDC(int dc) {
+  assert(0 <= dc && dc < 16);
+
+  // If requesting a DC that doesn't exist, allocate it first.
+  if (display_contexts_[dc]->RawSurface() == NULL)
+    AllocateDC(dc, display_contexts_[0]->GetSize());
+
+  return display_contexts_[dc];
+}
 
 void GraphicsSystem::ClearAllDCs() {
   GetDC(0)->Fill(RGBAColour::Black());

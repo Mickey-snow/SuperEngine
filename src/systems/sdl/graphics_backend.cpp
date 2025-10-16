@@ -22,17 +22,24 @@
 //
 // -----------------------------------------------------------------------
 
+#include "GL/glew.h"
+
 #include "systems/sdl/graphics_backend.hpp"
 
 #include "core/album.hpp"
 #include "core/avdec/image_decoder.hpp"
 #include "log/domain_logger.hpp"
+#include "systems/gl_utils.hpp"
+#include "systems/screen_canvas.hpp"
 #include "systems/sdl_surface.hpp"
 
 #include <SDL/SDL.h>
 #include <SDL/SDL_video.h>
 
 #include <fstream>
+#include <string>
+
+using std::string_literals::operator""s;
 
 static DomainLogger logger("SDLGraphicsBackend");
 
@@ -50,8 +57,58 @@ static std::string LoadFile(const std::filesystem::path& pth) {
 SDLGraphicsBackend::SDLGraphicsBackend() = default;
 
 // TODO: Move initialization code from SDLGraphicsSystem class
-void SDLGraphicsBackend::InitSystem() {}
+void SDLGraphicsBackend::InitSystem(Size screen_size, bool is_fullscreen) {
+  SDLSurface::screen_ = std::make_shared<ScreenCanvas>(screen_size);
+  Resize(screen_size, is_fullscreen);
+
+  // Initialize glew
+  if (glewInit() != GLEW_OK)
+    throw std::runtime_error("Failed to initialize GLEW: " + GetGLErrors());
+
+  ShowGLErrors();
+}
 void SDLGraphicsBackend::QuitSystem() {}
+
+void SDLGraphicsBackend::Resize(Size display_size, bool is_fullscreen) {
+  if (auto fake_screen =
+          std::dynamic_pointer_cast<ScreenCanvas>(SDLSurface::screen_)) {
+    fake_screen->display_size_ = display_size;
+  }
+
+  const SDL_VideoInfo* info = SDL_GetVideoInfo();
+  if (!info)
+    throw std::runtime_error("Video query failed: "s + SDL_GetError());
+
+  int bpp = info->vfmt->BitsPerPixel;
+
+  // the flags to pass to SDL_SetVideoMode
+  int video_flags;
+  video_flags = SDL_OPENGL;            // Enable OpenGL in SDL
+  video_flags |= SDL_GL_DOUBLEBUFFER;  // Enable double buffering
+  video_flags |= SDL_SWSURFACE;
+  video_flags |= SDL_RESIZABLE;
+
+  if (is_fullscreen)
+    video_flags |= SDL_FULLSCREEN;
+
+  // Sets up OpenGL double buffering
+  SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
+  SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
+  SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
+  SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+
+  // Set the video mode
+  if ((screen_ = SDL_SetVideoMode(display_size.width(), display_size.height(),
+                                  bpp, video_flags)) == 0) {
+    throw std::runtime_error("Video mode set failed: "s + SDL_GetError());
+  }
+}
+
+// -----------------------------------------------------------------------
+
+std::shared_ptr<Surface> SDLGraphicsBackend::CreateSurface(Size size) {
+  return std::make_shared<SDLSurface>(size);
+}
 
 std::shared_ptr<Surface> SDLGraphicsBackend::CreateSurfaceBGRA(
     Size size,

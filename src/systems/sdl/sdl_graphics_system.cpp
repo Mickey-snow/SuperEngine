@@ -214,21 +214,12 @@ void SDLGraphicsSystem::DrawCursor() {
 SDLGraphicsSystem::SDLGraphicsSystem(System& system, Gameexe& gameexe)
     : GraphicsSystem(system, gameexe, std::make_shared<SDLGraphicsBackend>()),
       screen_contents_texture_valid_(false) {
-  haikei_ = std::make_shared<SDLSurface>();
-  for (int i = 0; i < 16; ++i)
-    display_contexts_[i] = std::make_shared<SDLSurface>();
+  Resize(screen_size());
 
   // Grab the caption
   std::string cp932caption = gameexe("CAPTION").ToStr();
   int name_enc = gameexe("NAME_ENC").Int().value_or(0);
   caption_title_ = cp932toUTF8(cp932caption, name_enc);
-
-  SetupVideo(GetScreenSize(gameexe));
-
-  // Now we allocate the first two display contexts with equal size to
-  // the display
-  display_contexts_[0]->Allocate(screen_size());
-  display_contexts_[1]->Allocate(screen_size());
 
   SetWindowTitle(caption_title_);
 
@@ -248,65 +239,12 @@ SDLGraphicsSystem::SDLGraphicsSystem(System& system, Gameexe& gameexe)
 }
 
 void SDLGraphicsSystem::Resize(Size display_size) {
-  if (auto fake_screen =
-          std::dynamic_pointer_cast<ScreenCanvas>(SDLSurface::screen_)) {
-    fake_screen->display_size_ = display_size;
-  }
   display_size_ = display_size;
   screen_contents_texture_ = nullptr;
-
-  const SDL_VideoInfo* info = SDL_GetVideoInfo();
-  if (!info) {
-    std::ostringstream ss;
-    ss << "Video query failed: " << SDL_GetError();
-    throw std::runtime_error(ss.str());
-  }
-
-  int bpp = info->vfmt->BitsPerPixel;
-
-  // the flags to pass to SDL_SetVideoMode
-  int video_flags;
-  video_flags = SDL_OPENGL;            // Enable OpenGL in SDL
-  video_flags |= SDL_GL_DOUBLEBUFFER;  // Enable double buffering
-  video_flags |= SDL_SWSURFACE;
-  video_flags |= SDL_RESIZABLE;
-
-  if (screen_mode() == 0)
-    video_flags |= SDL_FULLSCREEN;
-
-  // Sets up OpenGL double buffering
-  SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
-  SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
-  SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
-  SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-
-  // Set the video mode
-  if ((screen_ = SDL_SetVideoMode(display_size_.width(), display_size_.height(),
-                                  bpp, video_flags)) == 0) {
-    std::ostringstream ss;
-    ss << "Video mode set failed: " << SDL_GetError();
-    throw std::runtime_error(ss.str());
-  }
+  impl_->Resize(display_size, screen_mode() == 0);
 }
 
-void SDLGraphicsSystem::SetupVideo(Size window_size) {
-  GraphicsSystem::SetScreenSize(window_size);
-  SDLSurface::screen_ = std::make_shared<ScreenCanvas>(screen_size());
-
-  Resize(window_size);
-
-  // Initialize glew
-  GLenum err = glewInit();
-  if (GLEW_OK != err) {
-    std::ostringstream oss;
-    oss << "Failed to initialize GLEW: " << glewGetErrorString(err);
-    throw SystemError(oss.str());
-  }
-
-  ShowGLErrors();
-}
-
-SDLGraphicsSystem::~SDLGraphicsSystem() {}
+SDLGraphicsSystem::~SDLGraphicsSystem() = default;
 
 void SDLGraphicsSystem::RenderFrame(bool should_refresh) {
   if (!should_refresh) {
@@ -374,66 +312,6 @@ void SDLGraphicsSystem::SetWindowSubtitle(const std::string& cp932str,
 
 void SDLGraphicsSystem::SetScreenMode(const int in) {
   GraphicsSystem::SetScreenMode(in);
-
-  SetupVideo(screen_size());
-}
-
-void SDLGraphicsSystem::AllocateDC(int dc, Size size) {
-  if (dc >= 16) {
-    std::ostringstream ss;
-    ss << "Invalid DC number \"" << dc
-       << "\" in SDLGraphicsSystem::allocate_dc";
-    throw rlvm::Exception(ss.str());
-  }
-
-  // We can't reallocate the screen!
-  if (dc == 0)
-    throw rlvm::Exception("Attempting to reallocate DC 0!");
-
-  // DC 1 is a special case and must always be at least the size of
-  // the screen.
-  if (dc == 1) {
-    SDL_Surface* dc0 = display_contexts_[0]->RawSurface();
-    if (size.width() < dc0->w)
-      size.set_width(dc0->w);
-    if (size.height() < dc0->h)
-      size.set_height(dc0->h);
-  }
-
-  // Allocate a new obj.
-  display_contexts_[dc]->Allocate(size);
-}
-
-void SDLGraphicsSystem::SetMinimumSizeForDC(int dc, Size size) {
-  if (display_contexts_[dc] == NULL || !display_contexts_[dc]->IsAllocated()) {
-    AllocateDC(dc, size);
-  } else {
-    Size current = display_contexts_[dc]->GetSize();
-    if (current.width() < size.width() || current.height() < size.height()) {
-      // Make a new surface of the maximum size.
-      Size maxSize = current.SizeUnion(size);
-
-      std::shared_ptr<SDLSurface> newdc = std::make_shared<SDLSurface>();
-      newdc->Allocate(maxSize);
-
-      display_contexts_[dc]->BlitToSurface(*newdc,
-                                           display_contexts_[dc]->GetRect(),
-                                           display_contexts_[dc]->GetRect());
-
-      display_contexts_[dc] = newdc;
-    }
-  }
-}
-
-void SDLGraphicsSystem::FreeDC(int dc) {
-  if (dc == 0) {
-    throw rlvm::Exception("Attempt to deallocate DC[0]");
-  } else if (dc == 1) {
-    // DC[1] never gets freed; it only gets blanked
-    GetDC(1)->Fill(RGBAColour::Black());
-  } else {
-    display_contexts_[dc]->Deallocate();
-  }
 }
 
 void SDLGraphicsSystem::VerifySurfaceExists(int dc, const std::string& caller) {
@@ -455,23 +333,3 @@ std::shared_ptr<SDLSurface> GetSDLSurface(std::shared_ptr<SDLSurface> surface) {
     return sdl_surface;
   throw std::runtime_error("SDLGraphicsSystem: expected sdl surface.");
 }
-
-std::shared_ptr<SDLSurface> SDLGraphicsSystem::GetHaikei() {
-  if (haikei_->RawSurface() == NULL) {
-    haikei_->Allocate(screen_size());
-  }
-
-  return haikei_;
-}
-
-std::shared_ptr<SDLSurface> SDLGraphicsSystem::GetDC(int dc) {
-  VerifySurfaceExists(dc, "SDLGraphicsSystem::get_dc");
-
-  // If requesting a DC that doesn't exist, allocate it first.
-  if (display_contexts_[dc]->RawSurface() == NULL)
-    AllocateDC(dc, display_contexts_[0]->GetSize());
-
-  return display_contexts_[dc];
-}
-
-void SDLGraphicsSystem::Reset() { GraphicsSystem::Reset(); }

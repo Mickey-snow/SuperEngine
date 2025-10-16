@@ -26,13 +26,18 @@
 
 #include "systems/igraphics_backend.hpp"
 
+struct SDL_Surface;
+
 class SDLGraphicsBackend : public IGraphicsBackend {
  public:
   SDLGraphicsBackend();
 
-  virtual void InitSystem() override;
+  virtual void InitSystem(Size screen_size, bool is_fullscreen) override;
   virtual void QuitSystem() override;
 
+  virtual void Resize(Size screen_size, bool is_fullscreen) override;
+
+  virtual std::shared_ptr<Surface> CreateSurface(Size size) override;
   virtual std::shared_ptr<Surface> CreateSurfaceBGRA(
       Size size,
       std::span<char> bgra,
@@ -43,4 +48,7 @@ class SDLGraphicsBackend : public IGraphicsBackend {
       const std::filesystem::path& path) override;
   virtual std::shared_ptr<Album> LoadAlbum(
       const std::filesystem::path& path) override;
+
+ private:
+  SDL_Surface* screen_;
 };

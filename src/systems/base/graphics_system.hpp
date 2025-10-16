@@ -62,6 +62,7 @@ class RGBAColour;
 class RLMachine;
 class Size;
 class SDLSurface;
+using Surface = SDLSurface;
 class System;
 struct ObjectSettings;
 class Album;
@@ -330,10 +331,6 @@ class GraphicsSystem : public EventListener {
   // screen_size().
   const Rect& screen_rect() const { return screen_rect_; }
 
-  virtual void AllocateDC(int dc, Size size) = 0;
-  virtual void SetMinimumSizeForDC(int dc, Size size) = 0;
-  virtual void FreeDC(int dc) = 0;
-
   // Loads an image, optionally marking that this image has been loaded (if it
   // is in the game's CGM table).
   std::shared_ptr<SDLSurface> GetSurfaceNamedAndMarkViewed(
@@ -344,10 +341,6 @@ class GraphicsSystem : public EventListener {
   // for one of the DCs, since those can be CGs.
   std::shared_ptr<SDLSurface> GetSurfaceNamed(
       const std::string& short_filename);
-
-  virtual std::shared_ptr<SDLSurface> GetHaikei() = 0;
-
-  virtual std::shared_ptr<SDLSurface> GetDC(int dc) = 0;
 
   // A process where the front and back buffers swap, updating the display to
   // show objects prepared in the back buffer. Documented as "Wipe operation".
@@ -394,6 +387,12 @@ class GraphicsSystem : public EventListener {
   // relativly cheap operation.)
   void TakeSavepointSnapshot();
 
+  std::shared_ptr<SDLSurface> GetHaikei();
+
+  void AllocateDC(int dc, Size screen_size);
+  void SetMinimumSizeForDC(int dc, Size size);
+  void FreeDC(int dc);
+  std::shared_ptr<SDLSurface> GetDC(int dc);
   // Sets DC0 to black and frees up DCs 1 through 16.
   void ClearAllDCs();
 
@@ -401,7 +400,7 @@ class GraphicsSystem : public EventListener {
   virtual void OnEvent(std::shared_ptr<Event> event) override;
 
   // Reset the system. Should clear all state for when a user loads a game.
-  virtual void Reset();
+  void Reset();
 
   // Access to the cgtable for the cg* functions.
   CGMTable& cg_table() { return globals_.cg_table; }
@@ -557,6 +556,9 @@ class GraphicsSystem : public EventListener {
   typedef std::vector<std::tuple<int, int, int, int, GraphicsObject*>>
       ToRenderVec;
   ToRenderVec to_render_;
+
+  std::shared_ptr<Surface> haikei_;
+  std::shared_ptr<Surface> display_contexts_[16];
 
   // boost::serialization support
   friend class boost::serialization::access;

@@ -76,25 +76,12 @@ class SDLGraphicsSystem : public GraphicsSystem {
   void UpdateWindowTitle();
   virtual void ExecuteGraphicsSystem(RLMachine& machine) override;
 
-  virtual void AllocateDC(int dc, Size screen_size) override;
-  virtual void SetMinimumSizeForDC(int dc, Size size) override;
-  virtual void FreeDC(int dc) override;
-
-  virtual std::shared_ptr<SDLSurface> GetHaikei() override;
-  virtual std::shared_ptr<SDLSurface> GetDC(int dc) override;
-
   // -----------------------------------------------------------------------
   virtual void SetWindowTitle(std::string new_caption);
   virtual void SetWindowSubtitle(const std::string& cp932str,
                                  int text_encoding) override;
 
   virtual void SetScreenMode(const int in) override;
-
-  // Reset the system. Should clear all state for when a user loads a
-  // game.
-  virtual void Reset() override;
-
-  void SetupVideo(Size window_size);
 
   virtual void Resize(Size display_size) override;
 
@@ -106,11 +93,6 @@ class SDLGraphicsSystem : public GraphicsSystem {
   void VerifySurfaceExists(int dc, const std::string& caller);
 
   // ---------------------------------------------------------------------
-
-  SDL_Surface* screen_;
-
-  std::shared_ptr<SDLSurface> haikei_;
-  std::shared_ptr<SDLSurface> display_contexts_[16];
 
   // utf8 encoded title string
   std::string caption_title_;
