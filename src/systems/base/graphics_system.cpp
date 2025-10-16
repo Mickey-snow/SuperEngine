@@ -33,15 +33,7 @@
 #include <boost/serialization/deque.hpp>
 #include <boost/serialization/vector.hpp>
 
-#include <algorithm>
-#include <deque>
-#include <iostream>
-#include <iterator>
-#include <sstream>
-#include <string>
-#include <utility>
-#include <vector>
-
+#include "core/asset_scanner.hpp"
 #include "core/cgm_table.hpp"
 #include "core/gameexe.hpp"
 #include "core/memory.hpp"
@@ -66,10 +58,19 @@
 #include "systems/base/system_error.hpp"
 #include "systems/base/text_system.hpp"
 #include "systems/event_system.hpp"
+#include "systems/igraphics_backend.hpp"
 #include "systems/sdl_surface.hpp"
 #include "utilities/exception.hpp"
 #include "utilities/lazy_array.hpp"
 #include "utilities/string_utilities.hpp"
+
+#include <algorithm>
+#include <charconv>
+#include <deque>
+#include <format>
+#include <set>
+#include <utility>
+#include <vector>
 
 namespace fs = std::filesystem;
 
@@ -211,7 +212,9 @@ GraphicsSystem::GraphicsObjectImpl::GraphicsObjectImpl(int size)
 // -----------------------------------------------------------------------
 // GraphicsSystem
 // -----------------------------------------------------------------------
-GraphicsSystem::GraphicsSystem(System& system, Gameexe& gameexe)
+GraphicsSystem::GraphicsSystem(System& system,
+                               Gameexe& gameexe,
+                               std::shared_ptr<IGraphicsBackend> backend)
     : screen_update_mode_(SCREENUPDATEMODE_AUTOMATIC),
       background_type_(BACKGROUND_DC0),
       screen_needs_refresh_(false),
@@ -228,6 +231,8 @@ GraphicsSystem::GraphicsSystem(System& system, Gameexe& gameexe)
       show_cursor_from_bytecode_(true),
       cursor_(gameexe("MOUSE_CURSOR").Int().value_or(0)),
       system_(system),
+      impl_(backend),
+      asset_scanner_(system.GetAssetScanner()),
       preloaded_hik_scripts_(32),
       preloaded_g00_(256),
       image_cache_(10) {}
@@ -562,6 +567,51 @@ std::shared_ptr<Surface> GraphicsSystem::GetPreloadedG00(
   }
 
   return nullptr;
+}
+
+// -----------------------------------------------------------------------
+
+std::shared_ptr<SDLSurface> GraphicsSystem::LoadSurfaceFromFile(
+    const std::string& short_filename) {
+  static const std::set<std::string> IMAGE_FILETYPES = {"g00", "pdt"};
+  auto pth = asset_scanner_->FindFile(short_filename, IMAGE_FILETYPES);
+
+  if (!pth.has_value())
+    throw pth.error();
+
+  if (pth->empty())
+    throw std::runtime_error(
+        std::format("Could not load image file '{}'", short_filename));
+
+  std::shared_ptr<SDLSurface> result = impl_->LoadSurface(*pth);
+  // handle tone curve effect loading
+  if (auto pos = short_filename.find("?"); pos != short_filename.npos) {
+    auto effect_str = std::string_view(short_filename).substr(pos + 1);
+    int effect_no = 0;
+    if (auto [ptr, ec] =
+            std::from_chars(effect_str.begin(), effect_str.end(), effect_no);
+        ec != std::errc{} || ptr != effect_str.end()) {
+      throw std::runtime_error(
+          std::format("Invalid tone curve query '{}'", effect_str));
+    }
+
+    // the effect number is an index that goes from 10 to GetEffectCount() * 10,
+    // so keep that in mind here
+    if ((effect_no / 10) > globals().tone_curves.GetEffectCount() ||
+        effect_no < 10)
+      throw std::runtime_error(
+          std::format("Tone curve index {} is invalid.", effect_no));
+
+    result->Apply([effect = globals().tone_curves.GetEffect(effect_no / 10 -
+                                                            1)](RGBAColour c) {
+      c.set_red(effect[0][c.r()]);
+      c.set_green(effect[1][c.g()]);
+      c.set_blue(effect[2][c.b()]);
+      return c;
+    });
+  }
+
+  return result;
 }
 
 // -----------------------------------------------------------------------

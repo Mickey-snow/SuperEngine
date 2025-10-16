@@ -4,7 +4,7 @@
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2007 Elliot Glaysher
+// Copyright (C) 2025 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,18 +18,29 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
+// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 //
 // -----------------------------------------------------------------------
 
 #pragma once
 
-#include "core/rect.hpp"
+#include "systems/igraphics_backend.hpp"
 
-struct GrpRect {
-  Rect rect;
+class SDLGraphicsBackend : public IGraphicsBackend {
+ public:
+  SDLGraphicsBackend();
 
-  // Describes an offset to rect. Why VisualArts threw this in is
-  // unknown.
-  int originX = 0, originY = 0;
+  virtual void InitSystem() override;
+  virtual void QuitSystem() override;
+
+  virtual std::shared_ptr<Surface> CreateSurfaceBGRA(
+      Size size,
+      std::span<char> bgra,
+      bool is_alpha_mask) override;
+
+  [[deprecated]]
+  virtual std::shared_ptr<Surface> LoadSurface(
+      const std::filesystem::path& path) override;
+  virtual std::shared_ptr<Album> LoadAlbum(
+      const std::filesystem::path& path) override;
 };

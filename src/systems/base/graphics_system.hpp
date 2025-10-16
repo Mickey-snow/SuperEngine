@@ -49,6 +49,8 @@
 #include "lru_cache.hpp"
 #include "utilities/lazy_array.hpp"
 
+class AssetScanner;
+class IGraphicsBackend;
 class Gameexe;
 class GraphicsObject;
 class GraphicsObjectData;
@@ -62,6 +64,7 @@ class Size;
 class SDLSurface;
 class System;
 struct ObjectSettings;
+class Album;
 
 template <typename T>
 class LazyArray;
@@ -152,8 +155,12 @@ class GraphicsSystem : public EventListener {
     SCREENUPDATEMODE_MANUAL
   };
 
-  GraphicsSystem(System& system, Gameexe& gameexe);
+  GraphicsSystem(System& system,
+                 Gameexe& gameexe,
+                 std::shared_ptr<IGraphicsBackend> backend);
   virtual ~GraphicsSystem();
+
+  std::shared_ptr<IGraphicsBackend> GetBackend() const { return impl_; }
 
   // Resize window
   virtual void Resize(Size display_size) = 0;
@@ -423,6 +430,10 @@ class GraphicsSystem : public EventListener {
   void ClearAllPreloadedG00();
   std::shared_ptr<SDLSurface> GetPreloadedG00(const std::string& name);
 
+  // Gets a platform appropriate surface loaded.
+  [[deprecated]] std::shared_ptr<SDLSurface> LoadSurfaceFromFile(
+      const std::string& short_filename);
+
  protected:
   typedef std::set<Renderable*> FinalRenderers;
 
@@ -436,10 +447,6 @@ class GraphicsSystem : public EventListener {
   void SetScreenSize(const Size& size);
 
   void DrawFrame();
-
-  // Gets a platform appropriate surface loaded.
-  virtual std::shared_ptr<SDLSurface> LoadSurfaceFromFile(
-      const std::string& short_filename) = 0;
 
   // Current screen update mode
   DCScreenUpdateMode screen_update_mode_;
@@ -518,6 +525,11 @@ class GraphicsSystem : public EventListener {
 
   // Our parent system object.
   System& system_;
+
+  // Graphics backend implementation
+  std::shared_ptr<IGraphicsBackend> impl_;
+
+  std::shared_ptr<AssetScanner> asset_scanner_;
 
   // Preloaded HIKScripts.
   typedef std::pair<std::string, std::shared_ptr<HIKScript>> HIKArrayItem;

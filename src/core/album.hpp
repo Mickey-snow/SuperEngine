@@ -4,7 +4,7 @@
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2007 Elliot Glaysher
+// Copyright (C) 2025 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,17 +19,43 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
-//
 // -----------------------------------------------------------------------
 
 #pragma once
 
-#include "core/rect.hpp"
+class SDLSurface;
+using Surface = SDLSurface;
 
-struct GrpRect {
-  Rect rect;
+#include "core/grprect.hpp"
 
-  // Describes an offset to rect. Why VisualArts threw this in is
-  // unknown.
-  int originX = 0, originY = 0;
+#include <memory>
+#include <vector>
+
+struct Image {
+  std::shared_ptr<Surface> surface;
+  GrpRect region;
+};
+
+class Album {
+ public:
+  Album(std::shared_ptr<Surface> surface,
+        std::vector<GrpRect> region_table = {});
+
+  [[nodiscard]] inline std::shared_ptr<Surface> GetSurface() const {
+    return surface_;
+  }
+  [[nodiscard]] inline std::size_t GetNumPatterns() const {
+    return region_table_.size();
+  }
+  [[nodiscard]] inline std::vector<GrpRect> const& GetPatternTable() const {
+    return region_table_;
+  }
+  [[nodiscard]] inline GrpRect GetPattern(int no) const {
+    return region_table_.at(no);
+  }
+  [[nodiscard]] Image GetImage(int pattern_no) const;
+
+ private:
+  std::shared_ptr<Surface> surface_;
+  std::vector<GrpRect> region_table_;
 };

@@ -182,6 +182,10 @@ SDLSurface::~SDLSurface() { Deallocate(); }
 
 // -----------------------------------------------------------------------
 
+SDL_Surface* SDLSurface::Release() { return std::exchange(surface_, nullptr); }
+
+// -----------------------------------------------------------------------
+
 Size SDLSurface::GetSize() const { return Size(surface_->w, surface_->h); }
 
 Rect SDLSurface::GetRect() const { return Rect(Point(0, 0), GetSize()); }

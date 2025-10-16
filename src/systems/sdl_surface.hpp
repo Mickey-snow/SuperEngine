@@ -64,6 +64,8 @@ class SDLSurface {
   void Allocate(const Size& size);
   void Deallocate();
 
+  [[nodiscard]] SDL_Surface* Release();
+
   [[nodiscard]] Size GetSize() const;
   [[nodiscard]] Rect GetRect() const;
 

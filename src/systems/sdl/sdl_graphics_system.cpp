@@ -57,6 +57,7 @@
 #include "systems/glrenderer.hpp"
 #include "systems/gltexture.hpp"
 #include "systems/screen_canvas.hpp"
+#include "systems/sdl/graphics_backend.hpp"
 #include "systems/sdl/shaders.hpp"
 #include "systems/sdl_surface.hpp"
 #include "utilities/exception.hpp"
@@ -211,9 +212,8 @@ void SDLGraphicsSystem::DrawCursor() {
 }
 
 SDLGraphicsSystem::SDLGraphicsSystem(System& system, Gameexe& gameexe)
-    : GraphicsSystem(system, gameexe),
-      screen_contents_texture_valid_(false),
-      asset_scanner_(system.GetAssetScanner()) {
+    : GraphicsSystem(system, gameexe, std::make_shared<SDLGraphicsBackend>()),
+      screen_contents_texture_valid_(false) {
   haikei_ = std::make_shared<SDLSurface>();
   for (int i = 0; i < 16; ++i)
     display_contexts_[i] = std::make_shared<SDLSurface>();
@@ -450,132 +450,10 @@ void SDLGraphicsSystem::VerifySurfaceExists(int dc, const std::string& caller) {
   }
 }
 
-// -----------------------------------------------------------------------
-
-typedef enum { NO_MASK, ALPHA_MASK, COLOR_MASK } MaskType;
-static SDL_Surface* newSurfaceFromRGBAData(int w,
-                                           int h,
-                                           char* data,
-                                           MaskType with_mask) {
-  // Note to self: These describe the byte order IN THE RAW G00 DATA!
-  // These should NOT be switched to native byte order.
-  constexpr auto DefaultBpp = 32;
-  constexpr auto DefaultAmask = 0xff000000;
-  constexpr auto DefaultRmask = 0xff0000;
-  constexpr auto DefaultGmask = 0xff00;
-  constexpr auto DefaultBmask = 0xff;
-
-  int amask = (with_mask == ALPHA_MASK) ? DefaultAmask : 0;
-  SDL_Surface* tmp =
-      SDL_CreateRGBSurfaceFrom(data, w, h, DefaultBpp, w * 4, DefaultRmask,
-                               DefaultGmask, DefaultBmask, amask);
-
-  // We now need to convert this surface to a format suitable for use across
-  // the rest of the program. We can't (regretfully) rely on
-  // SDL_DisplayFormat[Alpha] to decide on a format that we can send to OpenGL
-  // (see some Intel macs) so use convert surface to a pixel order our data
-  // correctly while still using the appropriate alpha flags. So use the above
-  // format with only the flags that would have been set by
-  // SDL_DisplayFormat[Alpha].
-  Uint32 flags;
-  if (with_mask == ALPHA_MASK) {
-    flags = tmp->flags & (SDL_SRCALPHA | SDL_RLEACCELOK);
-  } else {
-    flags = tmp->flags & (SDL_SRCCOLORKEY | SDL_SRCALPHA | SDL_RLEACCELOK);
-  }
-
-  SDL_Surface* surf = SDL_ConvertSurface(tmp, tmp->format, flags);
-  SDL_FreeSurface(tmp);
-  return surf;
-}
-
 std::shared_ptr<SDLSurface> GetSDLSurface(std::shared_ptr<SDLSurface> surface) {
   if (auto sdl_surface = std::dynamic_pointer_cast<SDLSurface>(surface))
     return sdl_surface;
   throw std::runtime_error("SDLGraphicsSystem: expected sdl surface.");
-}
-
-std::shared_ptr<SDLSurface> SDLGraphicsSystem::LoadSurface(
-    const std::filesystem::path& pth) {
-  MappedFile file(pth);
-  ImageDecoder dec(file.Read());
-
-  const auto width = dec.width;
-  const auto height = dec.height;
-
-  // do not free until SDL_FreeSurface() is called on the surface using it
-  char* mem = dec.mem.data();
-  SDL_Surface* s = nullptr;
-  MaskType is_mask = dec.ismask ? ALPHA_MASK : NO_MASK;
-  if (is_mask == ALPHA_MASK) {
-    int len = width * height;
-    uint32_t* d = reinterpret_cast<uint32_t*>(mem);
-    int i;
-    for (i = 0; i < len; i++) {
-      if ((*d & 0xff000000) != 0xff000000)
-        break;
-      d++;
-    }
-    if (i == len) {
-      is_mask = NO_MASK;
-    }
-  }
-
-  s = newSurfaceFromRGBAData(width, height, mem, is_mask);
-
-  // Grab the Type-2 information out of the converter or create one
-  // default region if none exist
-  std::vector<GrpRect> region_table = dec.region_table;
-  if (region_table.empty()) {
-    GrpRect rect;
-    rect.rect = Rect(Point(0, 0), Size(width, height));
-    rect.originX = 0;
-    rect.originY = 0;
-    region_table.push_back(rect);
-  }
-
-  return std::make_shared<SDLSurface>(s, region_table);
-}
-
-std::shared_ptr<SDLSurface> SDLGraphicsSystem::LoadSurfaceFromFile(
-    const std::string& short_filename) {
-  static const std::set<std::string> IMAGE_FILETYPES = {"g00", "pdt"};
-  std::filesystem::path pth =
-      asset_scanner_->FindFile(short_filename, IMAGE_FILETYPES).value();
-
-  if (pth.empty()) {
-    std::ostringstream oss;
-    oss << "Could not find image file \"" << short_filename << "\".";
-    throw rlvm::Exception(oss.str());
-  }
-
-  std::shared_ptr<SDLSurface> result = LoadSurface(pth);
-  // handle tone curve effect loading
-  if (auto pos = short_filename.find("?"); pos != short_filename.npos) {
-    auto effect_str = std::string_view(short_filename).substr(pos + 1);
-    int effect_no = 0;
-    std::ignore =
-        std::from_chars(effect_str.cbegin(), effect_str.cend(), effect_no);
-
-    // the effect number is an index that goes from 10 to GetEffectCount() * 10,
-    // so keep that in mind here
-    if ((effect_no / 10) > globals().tone_curves.GetEffectCount() ||
-        effect_no < 10) {
-      std::ostringstream oss;
-      oss << "Tone curve index " << effect_no << " is invalid.";
-      throw rlvm::Exception(oss.str());
-    }
-
-    result->Apply([effect = globals().tone_curves.GetEffect(effect_no / 10 -
-                                                            1)](RGBAColour c) {
-      c.set_red(effect[0][c.r()]);
-      c.set_green(effect[1][c.g()]);
-      c.set_blue(effect[2][c.b()]);
-      return c;
-    });
-  }
-
-  return result;
 }
 
 std::shared_ptr<SDLSurface> SDLGraphicsSystem::GetHaikei() {

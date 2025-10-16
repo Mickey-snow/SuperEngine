@@ -98,10 +98,6 @@ class SDLGraphicsSystem : public GraphicsSystem {
 
   virtual void Resize(Size display_size) override;
 
-  virtual std::shared_ptr<SDLSurface> LoadSurfaceFromFile(
-      const std::string& short_filename) override;
-  std::shared_ptr<SDLSurface> LoadSurface(const std::filesystem::path& path);
-
  private:
   // Makes sure that a passed in dc number is valid.
   //
@@ -134,6 +130,4 @@ class SDLGraphicsSystem : public GraphicsSystem {
 
   // Whether |screen_contents_texture_| is valid to use.
   bool screen_contents_texture_valid_;
-
-  std::shared_ptr<AssetScanner> asset_scanner_;
 };

@@ -4,7 +4,7 @@
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2007 Elliot Glaysher
+// Copyright (C) 2025 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,17 +19,22 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
-//
 // -----------------------------------------------------------------------
 
-#pragma once
+#include "core/album.hpp"
 
-#include "core/rect.hpp"
+#include "systems/sdl_surface.hpp"
 
-struct GrpRect {
-  Rect rect;
+Album::Album(std::shared_ptr<Surface> surface,
+             std::vector<GrpRect> region_table)
+    : surface_(surface), region_table_(std::move(region_table)) {
+  if (region_table_.empty()) {
+    GrpRect region;
+    region.rect = surface->GetRect();
+    region_table_.emplace_back(region);
+  }
+}
 
-  // Describes an offset to rect. Why VisualArts threw this in is
-  // unknown.
-  int originX = 0, originY = 0;
-};
+Image Album::GetImage(int pattern_no) const {
+  return Image{.surface = surface_, .region = GetPattern(pattern_no)};
+}
