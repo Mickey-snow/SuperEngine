@@ -73,39 +73,32 @@ class BasicTextWindowButton {
 
   void Render(const std::shared_ptr<const Surface>& buttons, int base_pattern);
 
-  // Called when the button is pressed
-  virtual void ButtonPressed() {}
-
   // Called by other execute() calls while the System object has its
   // turn to do any updating
   virtual void Execute() {}
 
+  // Called when the button is pressed
+  std::function<void()> on_pressed_;
+
   // Called when the button is released
-  virtual void ButtonReleased(RLMachine& machine) {}
+  std::function<void()> on_release_;
+
+ protected:
+  virtual void ButtonPressed() {
+    if (on_pressed_)
+      on_pressed_();
+  }
+
+  virtual void ButtonReleased(RLMachine&) {
+    if (on_release_)
+      on_release_();
+  }
 
  protected:
   std::shared_ptr<Clock> clock_;
 
   ButtonState state_;
   Rect btn_rect_;
-};
-
-// -----------------------------------------------------------------------
-
-class ActionTextWindowButton : public BasicTextWindowButton {
- public:
-  typedef std::function<void(void)> CallbackFunction;
-
- public:
-  ActionTextWindowButton(std::shared_ptr<Clock> clock,
-                         bool use,
-                         Rect btn_rect,
-                         CallbackFunction action);
-
-  virtual void ButtonReleased(RLMachine&) override;
-
- private:
-  CallbackFunction action_;
 };
 
 // -----------------------------------------------------------------------
@@ -120,8 +113,6 @@ class ActivationTextWindowButton : public BasicTextWindowButton,
                              bool use,
                              Rect btn_rect,
                              CallbackFunction setter);
-
-  virtual void ButtonReleased(RLMachine&) override;
 
   void SetEnabled(bool enabled);
 
@@ -159,9 +150,7 @@ class RepeatActionWhileHoldingWindowButton : public BasicTextWindowButton {
       CallbackFunction callback,
       std::chrono::milliseconds time_between_invocations);
 
-  virtual void ButtonPressed() override;
   virtual void Execute() override;
-  virtual void ButtonReleased(RLMachine&) override;
 
  private:
   CallbackFunction callback_;

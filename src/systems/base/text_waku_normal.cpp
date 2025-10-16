@@ -36,6 +36,8 @@
 #include "systems/base/text_window_button.hpp"
 #include "systems/event_system.hpp"
 #include "systems/sdl_surface.hpp"
+#include "utilities/expected.hpp"
+#include "utilities/string_utilities.hpp"
 
 #include <format>
 #include <functional>
@@ -164,23 +166,40 @@ bool TextWakuNormal::HandleMouseClick(RLMachine& machine,
   return false;
 }
 
-static std::optional<Rect> GetButtonRect(Rect window_rect,
-                                         std::vector<int> loc_param) {
-  if (loc_param.size() != 5)
-    return std::nullopt;
-  int type = loc_param.at(0);
-  Size size(loc_param.at(3), loc_param.at(4));
+static Rect ParseButtonRect(Rect window_rect,
+                            GameexeInterpretObject& it,
+                            const std::string& key) {
+  static DomainLogger logger("ParseButtonRect");
+
+  auto loc_param = it(key).IntVec();
+
+  if (!loc_param.has_value()) {
+    logger(Severity::Error) << "Failed to load " << key << ": "
+                            << loc_param.error().GetDebugString();
+    return {};
+  }
+
+  if (loc_param->size() != 5) {
+    logger(Severity::Error)
+        << "Expected 5 integers, but got: {"
+        << Join(",", view_to_string(loc_param.value())) << '}';
+    return {};
+  }
+
+  int type = loc_param->at(0);
+  Size size(loc_param->at(3), loc_param->at(4));
+
   switch (type) {
     case 0: {
       // Top and left
       Point origin =
-          window_rect.origin() + Size(loc_param.at(1), loc_param.at(2));
+          window_rect.origin() + Size(loc_param->at(1), loc_param->at(2));
       return Rect(origin, size);
     }
     case 1: {
       // Top and right
       Point origin = window_rect.origin() +
-                     Size(-loc_param.at(1), loc_param.at(2)) +
+                     Size(-loc_param->at(1), loc_param->at(2)) +
                      Size(window_rect.size().width() - size.width(), 0);
       return Rect(origin, size);
     }
@@ -191,24 +210,23 @@ static std::optional<Rect> GetButtonRect(Rect window_rect,
     case 2: {
       // Bottom and left
       Point origin = window_rect.origin() +
-                     Size(loc_param.at(1), -loc_param.at(2)) +
+                     Size(loc_param->at(1), -loc_param->at(2)) +
                      Size(0, window_rect.size().height() - size.height());
       return Rect(origin, size);
     }
     case 3: {
       // Bottom and right
       Point origin = window_rect.origin() +
-                     Size(-loc_param.at(1), -loc_param.at(2)) +
+                     Size(-loc_param->at(1), -loc_param->at(2)) +
                      Size(window_rect.size().width() - size.width(),
                           window_rect.size().height() - size.height());
       return Rect(origin, size);
     }
     default: {
-      static DomainLogger logger("GetButtonRect");
       logger(Severity::Error) << "Unsupported coordinate system type=" << type;
+      return {};
     }
   }
-  return std::nullopt;
 }
 
 void TextWakuNormal::LoadWindowWaku() {
@@ -221,29 +239,26 @@ void TextWakuNormal::LoadWindowWaku() {
   TextSystem& ts = system_.text();
   GraphicsSystem& gs = system_.graphics();
 
+  const Rect window_rect = window_.GetWindowRect();
+
   std::shared_ptr<Clock> clock = system_.event().GetClock();
   if (waku("CLEAR_BOX").Exists()) {
-    std::optional<Rect> btn_rect =
-        GetButtonRect(window_.GetWindowRect(),
-                      waku("CLEAR_BOX").IntVec().value_or(std::vector<int>{}));
-    button_map_[0] = std::make_unique<ActionTextWindowButton>(
-        clock, ts.window_clear_use(), btn_rect.value_or(Rect()),
-        [&gs]() { gs.ToggleInterfaceHidden(); });
+    auto btn = std::make_unique<BasicTextWindowButton>(
+        clock, ts.window_clear_use(),
+        ParseButtonRect(window_rect, waku, "CLEAR_BOX"));
+    btn->on_release_ = [&gs]() { gs.ToggleInterfaceHidden(); };
+    button_map_[0] = std::move(btn);
   }
   if (waku("MSGBKLEFT_BOX").Exists()) {
-    std::optional<Rect> btn_rect = GetButtonRect(
-        window_.GetWindowRect(),
-        waku("MSGBKLEFT_BOX").IntVec().value_or(std::vector<int>{}));
     button_map_[1] = std::make_unique<RepeatActionWhileHoldingWindowButton>(
-        clock, ts.window_msgbkleft_use(), btn_rect.value_or(Rect()),
+        clock, ts.window_msgbkleft_use(),
+        ParseButtonRect(window_rect, waku, "MSGBKLEFT_BOX"),
         [&ts]() { ts.BackPage(); }, 250ms);
   }
   if (waku("MSGBKRIGHT_BOX").Exists()) {
-    std::optional<Rect> btn_rect = GetButtonRect(
-        window_.GetWindowRect(),
-        waku("MSGBKRIGHT_BOX").IntVec().value_or(std::vector<int>{}));
     button_map_[2] = std::make_unique<RepeatActionWhileHoldingWindowButton>(
-        clock, ts.window_msgbkright_use(), btn_rect.value_or(Rect()),
+        clock, ts.window_msgbkright_use(),
+        ParseButtonRect(window_rect, waku, "MSGBKRIGHT_BOX"),
         [&ts]() { ts.ForwardPage(); }, 250ms);
   }
 
@@ -251,23 +266,18 @@ void TextWakuNormal::LoadWindowWaku() {
     GameexeInterpretObject wbcall(system_.gameexe()("WBCALL", i));
     const std::string key = std::format("EXBTN_{:0>3}_BOX", i);
     if (waku(key).Exists()) {
-      std::optional<Rect> btn_rect =
-          GetButtonRect(window_.GetWindowRect(),
-                        waku(key).IntVec().value_or(std::vector<int>{}));
       int scenario = wbcall.IntAt(0).value_or(0);
       int entrypoint = wbcall.IntAt(1).value_or(0);
       button_map_[3 + i] = std::make_unique<ExbtnWindowButton>(
-          clock, ts.window_exbtn_use(), btn_rect.value_or(Rect()), scenario,
-          entrypoint);
+          clock, ts.window_exbtn_use(), ParseButtonRect(window_rect, waku, key),
+          scenario, entrypoint);
     }
   }
 
   if (waku("READJUMP_BOX").Exists()) {
-    std::optional<Rect> btn_rect = GetButtonRect(
-        window_.GetWindowRect(),
-        waku("READJUMP_BOX").IntVec().value_or(std::vector<int>{}));
     auto readjump_box = std::make_unique<ActivationTextWindowButton>(
-        clock, ts.window_read_jump_use(), btn_rect.value_or(Rect()),
+        clock, ts.window_read_jump_use(),
+        ParseButtonRect(window_rect, waku, "READJUMP_BOX"),
         [&ts](int skip_mode) { ts.SetSkipMode(skip_mode); });
     readjump_box->SetEnabledNotification(
         NotificationType::SKIP_MODE_ENABLED_CHANGED);
@@ -282,11 +292,9 @@ void TextWakuNormal::LoadWindowWaku() {
   }
 
   if (waku("AUTOMODE_BOX").Exists()) {
-    std::optional<Rect> btn_rect = GetButtonRect(
-        window_.GetWindowRect(),
-        waku("AUTOMODE_BOX").IntVec().value_or(std::vector<int>{}));
     auto automode_button = std::make_unique<ActivationTextWindowButton>(
-        clock, ts.window_automode_use(), btn_rect.value_or(Rect()),
+        clock, ts.window_automode_use(),
+        ParseButtonRect(window_rect, waku, "AUTOMODE_BOX"),
         [&ts](int auto_mode) { ts.SetAutoMode(auto_mode); });
     automode_button->SetChangeNotification(
         NotificationType::AUTO_MODE_STATE_CHANGED);

@@ -114,18 +114,6 @@ void BasicTextWindowButton::Render(
 }
 
 // -----------------------------------------------------------------------
-// ActionTextWindowButton
-// -----------------------------------------------------------------------
-
-ActionTextWindowButton::ActionTextWindowButton(std::shared_ptr<Clock> clock,
-                                               bool use,
-                                               Rect btn_rect,
-                                               CallbackFunction action)
-    : BasicTextWindowButton(clock, use, btn_rect), action_(action) {}
-
-void ActionTextWindowButton::ButtonReleased(RLMachine&) { action_(); }
-
-// -----------------------------------------------------------------------
 // ActivationTextWindowButton
 // -----------------------------------------------------------------------
 
@@ -139,15 +127,12 @@ ActivationTextWindowButton::ActivationTextWindowButton(
       on_(false),
       enabled_(true),
       enabled_listener_(static_cast<NotificationType::Type>(-1)),
-      change_listener_(static_cast<NotificationType::Type>(-1)) {}
-
-void ActivationTextWindowButton::ButtonReleased(RLMachine&) {
-  if (enabled_) {
-    if (on_)
-      on_set_(false);
-    else
-      on_set_(true);
-  }
+      change_listener_(static_cast<NotificationType::Type>(-1)) {
+  on_release_ = [this]() {
+    if (enabled_) {
+      on_set_(!on_);
+    }
+  };
 }
 
 void ActivationTextWindowButton::SetEnabled(bool enabled) {
@@ -175,7 +160,7 @@ void ActivationTextWindowButton::SetState() {
 }
 
 void ActivationTextWindowButton::Observe(NotificationType type,
-                                         const NotificationSource& source,
+                                         const NotificationSource&,
                                          const NotificationDetails& details) {
   if (type == enabled_listener_) {
     Details<int> i(details);
@@ -201,13 +186,13 @@ RepeatActionWhileHoldingWindowButton::RepeatActionWhileHoldingWindowButton(
     : BasicTextWindowButton(clock, use, btn_rect),
       callback_(callback),
       held_down_(false),
-      time_between_invocations_(time_between_invocations) {}
-
-void RepeatActionWhileHoldingWindowButton::ButtonPressed() {
-  held_down_ = true;
-
-  callback_();
-  last_invocation_ = clock_->GetTime();
+      time_between_invocations_(time_between_invocations) {
+  on_pressed_ = [this]() {
+    held_down_ = true;
+    callback_();
+    last_invocation_ = clock_->GetTime();
+  };
+  on_release_ = [this]() { held_down_ = false; };
 }
 
 void RepeatActionWhileHoldingWindowButton::Execute() {
@@ -219,10 +204,6 @@ void RepeatActionWhileHoldingWindowButton::Execute() {
       last_invocation_ = cur_time;
     }
   }
-}
-
-void RepeatActionWhileHoldingWindowButton::ButtonReleased(RLMachine&) {
-  held_down_ = false;
 }
 
 // -----------------------------------------------------------------------
