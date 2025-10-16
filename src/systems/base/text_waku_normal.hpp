@@ -32,6 +32,7 @@
 #include <string>
 #include <vector>
 
+class Gameexe;
 class Point;
 class Rect;
 class RLMachine;
@@ -49,6 +50,10 @@ class TextWakuNormal : public TextWaku {
  public:
   TextWakuNormal(System& system, TextWindow& window, int setno, int no);
   virtual ~TextWakuNormal();
+
+  void AddButton(std::string btn_name,
+                 int waku_offset,
+                 std::unique_ptr<BasicTextWindowButton> btn_impl);
 
   virtual void Execute() override;
   virtual void Render(Point box_location, Size namebox_size) override;
@@ -72,7 +77,7 @@ class TextWakuNormal : public TextWaku {
   void RenderButtons();
 
   // Loads all bitmaps and sets up all window buttons for this waku.
-  void LoadWindowWaku();
+  void LoadWindowWaku(Gameexe& gexe);
 
   void SetWakuMain(const std::string& name);
 
@@ -93,14 +98,14 @@ class TextWakuNormal : public TextWaku {
 
   int setno_, no_;
 
-  std::shared_ptr<const Surface> waku_main_;
-  std::shared_ptr<Surface> waku_backing_;
-  std::shared_ptr<const Surface> waku_button_;
+  std::shared_ptr<const Surface> main_surface_;
+  std::shared_ptr<Surface> backing_surface_;
+  std::shared_ptr<const Surface> button_surface_;
 
-  // Attached action buttons defined in the
-  // #WAKU.index1.index2.XXX_BOX properties. These actions represent
-  // things such as moving the text box, clearing the text box, moving
-  // forward or backwards in message history, and farcall()-ing a
-  // custom handler (EXBTN_index_BOX).
-  std::unique_ptr<BasicTextWindowButton> button_map_[12];
-};  // end of class TextWakuNormal
+  struct WakuButton {
+    std::string name;
+    int waku_offset;
+    std::unique_ptr<BasicTextWindowButton> btn;
+  };
+  std::vector<WakuButton> buttons_;
+};
