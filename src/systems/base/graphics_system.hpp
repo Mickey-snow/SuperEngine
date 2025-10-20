@@ -47,7 +47,9 @@
 #include "core/tone_curve.hpp"
 
 #include "lru_cache.hpp"
+#include "systems/igraphics_backend.hpp"
 #include "utilities/lazy_array.hpp"
+#include "utilities/clock.hpp"
 
 class AssetScanner;
 class IGraphicsBackend;
@@ -121,9 +123,9 @@ enum GraphicsUpdateType {
 // Which type of mutually exclusive background should we display?
 enum GraphicsBackgroundType { BACKGROUND_DC0, BACKGROUND_HIK };
 
-// Abstract interface to a graphics system. Specialize this class for
-// each system you plan on running RLVM on. For now, there's only one
-// derived class; SDLGraphicsSystem.
+// Abstract interface to a graphics system. Platform-specific behaviour is
+// implemented through IGraphicsBackend instances (see SDLGraphicsBackend for
+// the current implementation).
 //
 // Two device contexts must be allocated during initialization; DC 0,
 // which should refer to a surface that is (usually) blitted onto the
@@ -164,7 +166,7 @@ class GraphicsSystem : public EventListener {
   std::shared_ptr<IGraphicsBackend> GetBackend() const { return impl_; }
 
   // Resize window
-  virtual void Resize(Size display_size) = 0;
+  void Resize(Size display_size);
 
   bool is_responsible_for_update() const { return is_responsible_for_update_; }
   void set_is_responsible_for_update(bool in) {
@@ -312,12 +314,13 @@ class GraphicsSystem : public EventListener {
 
   bool screen_needs_refresh() const { return screen_needs_refresh_; }
 
-  virtual void BeginFrame() = 0;
-  virtual void EndFrame() = 0;
+  void RenderFrame(bool should_refresh = true);
+  void RenderCustomFrame(const DrawCallback& draw_scene,
+                         const DrawCallback& draw_after = DrawCallback());
 
   // Draws the screen (as if refresh() was called), but draw to the returned
   // surface instead of the screen.
-  virtual std::shared_ptr<SDLSurface> RenderToSurface() = 0;
+  std::shared_ptr<SDLSurface> RenderToSurface();
 
   // Called from the game loop; Does everything that's needed to keep
   // things up.
@@ -446,6 +449,8 @@ class GraphicsSystem : public EventListener {
   void SetScreenSize(const Size& size);
 
   void DrawFrame();
+  void UpdateWindowTitle();
+  std::string ComposeWindowTitle() const;
 
   // Current screen update mode
   DCScreenUpdateMode screen_update_mode_;
@@ -467,6 +472,7 @@ class GraphicsSystem : public EventListener {
 
   // cp932 encoded subtitle string
   std::string subtitle_;
+  std::string subtitle_utf8_;
 
   // Controls whether we render the interface (this can be
   // temporarily toggled by the user at runtime)
@@ -518,6 +524,12 @@ class GraphicsSystem : public EventListener {
   // build:
   typedef std::map<int, std::shared_ptr<MouseCursor>> MouseCursorCache;
   MouseCursorCache cursor_cache_;
+
+  std::string caption_title_utf8_;
+  std::string current_window_title_;
+  Clock window_title_clock_;
+  Clock::timepoint_t last_window_title_update_;
+  Clock::duration_t window_title_update_interval_;
 
   // A set of renderers
   FinalRenderers final_renderers_;

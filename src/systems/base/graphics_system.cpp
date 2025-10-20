@@ -40,6 +40,7 @@
 #include "core/notification/details.hpp"
 #include "core/notification/service.hpp"
 #include "core/notification/source.hpp"
+#include "core/rlevent_listener.hpp"
 #include "libreallive/expression.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/serialization.hpp"
@@ -54,6 +55,7 @@
 #include "systems/base/hik_script.hpp"
 #include "systems/base/mouse_cursor.hpp"
 #include "systems/base/object_settings.hpp"
+#include "systems/base/renderable.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/system_error.hpp"
 #include "systems/base/text_system.hpp"
@@ -66,6 +68,7 @@
 
 #include <algorithm>
 #include <charconv>
+#include <chrono>
 #include <deque>
 #include <format>
 #include <set>
@@ -240,6 +243,22 @@ GraphicsSystem::GraphicsSystem(System& system,
   bool is_fullscreen = screen_mode() == 0;
   impl_->InitSystem(screen_size, is_fullscreen);
   SetScreenSize(screen_size);
+  display_size_ = screen_size;
+
+  window_title_update_interval_ = std::chrono::milliseconds(60);
+  last_window_title_update_ =
+      window_title_clock_.GetTime() - window_title_update_interval_;
+
+  int name_enc = gameexe("NAME_ENC").Int().value_or(0);
+  caption_title_utf8_ = cp932toUTF8(gameexe("CAPTION").ToStr(), name_enc);
+  subtitle_.clear();
+  subtitle_utf8_.clear();
+  current_window_title_.clear();
+
+  std::string initial_title = ComposeWindowTitle();
+  impl_->SetWindowTitle(initial_title);
+  current_window_title_ = std::move(initial_title);
+  impl_->ShowSystemCursor(!ShouldUseCustomCursor());
 
   haikei_ = impl_->CreateSurface(Size());
   for (int i = 0; i < 16; ++i)
@@ -332,6 +351,8 @@ int GraphicsSystem::ShouldUseCustomCursor() {
 void GraphicsSystem::SetCursor(int cursor) {
   cursor_ = cursor;
   mouse_cursor_.reset();
+  if (impl_)
+    impl_->ShowSystemCursor(!ShouldUseCustomCursor());
 }
 
 // -----------------------------------------------------------------------
@@ -408,6 +429,20 @@ void GraphicsSystem::RemoveRenderable(Renderable* renderable) {
 void GraphicsSystem::SetWindowSubtitle(const std::string& cp932str,
                                        int text_encoding) {
   subtitle_ = cp932str;
+  subtitle_utf8_ = cp932toUTF8(cp932str, text_encoding);
+  // Force update on next tick to avoid stalling title updates after load.
+  last_window_title_update_ =
+      window_title_clock_.GetTime() - window_title_update_interval_;
+  UpdateWindowTitle();
+}
+
+// -----------------------------------------------------------------------
+
+void GraphicsSystem::Resize(Size display_size) {
+  display_size_ = display_size;
+  if (impl_)
+    impl_->Resize(display_size_, screen_mode() == 0);
+  ForceRefresh();
 }
 
 // -----------------------------------------------------------------------
@@ -463,6 +498,111 @@ void GraphicsSystem::DrawFrame() {
 
 // -----------------------------------------------------------------------
 
+void GraphicsSystem::RenderFrame(bool should_refresh) {
+  RenderFrameConfig config{
+      .screen_size = screen_size(),
+      .display_size = display_size_,
+      .screen_origin = GetScreenOrigin(),
+      .manual_update_mode = screen_update_mode_ == SCREENUPDATEMODE_MANUAL};
+
+  auto draw_scene = [this]() { DrawFrame(); };
+  auto draw_renderables = [this]() {
+    for (Renderable* renderable : final_renderers_)
+      renderable->Render();
+  };
+  auto draw_cursor = [this]() {
+    if (!ShouldUseCustomCursor())
+      return;
+    std::shared_ptr<MouseCursor> cursor;
+    if (system().rlEvent().mouse_inside_window())
+      cursor = GetCurrentCursor();
+    if (cursor)
+      cursor->RenderHotspotAt(cursor_pos());
+  };
+
+  if (!should_refresh) {
+    impl_->RedrawLastFrame(config, draw_cursor);
+    return;
+  }
+
+  impl_->RenderFrame(config, draw_scene, draw_renderables, draw_cursor);
+}
+
+// -----------------------------------------------------------------------
+
+void GraphicsSystem::RenderCustomFrame(const DrawCallback& draw_scene,
+                                       const DrawCallback& draw_after) {
+  RenderFrameConfig config{
+      .screen_size = screen_size(),
+      .display_size = display_size_,
+      .screen_origin = GetScreenOrigin(),
+      .manual_update_mode = screen_update_mode_ == SCREENUPDATEMODE_MANUAL};
+
+  auto draw_cursor = [this]() {
+    if (!ShouldUseCustomCursor())
+      return;
+    std::shared_ptr<MouseCursor> cursor;
+    if (system().rlEvent().mouse_inside_window())
+      cursor = GetCurrentCursor();
+    if (cursor)
+      cursor->RenderHotspotAt(cursor_pos());
+  };
+
+  // Preserve the old Begin/EndFrame behavior: render final_renderers_ and then
+  // the optional draw_after()
+  auto draw_renderables_then_after = [this, &draw_after]() {
+    for (Renderable* renderable : final_renderers_)
+      renderable->Render();
+    if (draw_after)
+      draw_after();
+  };
+
+  impl_->RenderFrame(config, draw_scene, draw_renderables_then_after,
+                     draw_cursor);
+}
+
+// -----------------------------------------------------------------------
+
+std::shared_ptr<SDLSurface> GraphicsSystem::RenderToSurface() {
+  RenderFrameConfig config{
+      .screen_size = screen_size(),
+      .display_size = display_size_,
+      .screen_origin = GetScreenOrigin(),
+      .manual_update_mode = screen_update_mode_ == SCREENUPDATEMODE_MANUAL};
+  auto draw_scene = [this]() { DrawFrame(); };
+  return impl_->RenderToSurface(config, draw_scene);
+}
+
+// -----------------------------------------------------------------------
+
+void GraphicsSystem::UpdateWindowTitle() {
+  if (!impl_)
+    return;
+
+  Clock::timepoint_t now = window_title_clock_.GetTime();
+  if (now - last_window_title_update_ < window_title_update_interval_)
+    return;
+
+  last_window_title_update_ = now;
+  std::string title = ComposeWindowTitle();
+  impl_->SetWindowTitle(title);
+  current_window_title_ = std::move(title);
+}
+
+// -----------------------------------------------------------------------
+
+std::string GraphicsSystem::ComposeWindowTitle() const {
+  std::string result = caption_title_utf8_;
+  if (should_display_subtitle() && !subtitle_utf8_.empty()) {
+    if (!result.empty())
+      result += ": ";
+    result += subtitle_utf8_;
+  }
+  return result;
+}
+
+// -----------------------------------------------------------------------
+
 void GraphicsSystem::ExecuteGraphicsSystem(RLMachine& machine) {
   // Check to see if any of the graphics objects are reporting that
   // they want to force a redraw
@@ -488,6 +628,25 @@ void GraphicsSystem::ExecuteGraphicsSystem(RLMachine& machine) {
       ForceRefresh();
     }
   }
+
+  if (is_responsible_for_update()) {
+    switch (screen_update_mode_) {
+      case SCREENUPDATEMODE_AUTOMATIC:
+      case SCREENUPDATEMODE_SEMIAUTOMATIC:
+        screen_needs_refresh_ = true;
+        break;
+      case SCREENUPDATEMODE_MANUAL:
+        break;
+      default:
+        throw std::runtime_error("GraphicsSystem: Invalid screen update mode " +
+                                 std::to_string(screen_update_mode_));
+    }
+
+    RenderFrame(screen_needs_refresh_);
+    screen_needs_refresh_ = false;
+  }
+
+  UpdateWindowTitle();
 }
 
 // -----------------------------------------------------------------------
@@ -507,10 +666,17 @@ void GraphicsSystem::Reset() {
   show_cursor_from_bytecode_ = true;
   cursor_ = system().gameexe()("MOUSE_CURSOR").Int().value_or(0);
   mouse_cursor_.reset();
+  if (impl_)
+    impl_->ShowSystemCursor(!ShouldUseCustomCursor());
 
   screen_update_mode_ = SCREENUPDATEMODE_AUTOMATIC;
   background_type_ = BACKGROUND_DC0;
-  subtitle_ = "";
+  subtitle_.clear();
+  subtitle_utf8_.clear();
+  current_window_title_.clear();
+  last_window_title_update_ =
+      window_title_clock_.GetTime() - window_title_update_interval_;
+  UpdateWindowTitle();
   interface_hidden_ = false;
 }
 
@@ -836,7 +1002,7 @@ std::shared_ptr<SDLSurface> GraphicsSystem::GetHaikei() {
 void GraphicsSystem::AllocateDC(int dc, Size size) {
   if (dc < 0 || dc >= 16)
     throw std::runtime_error(std::format(
-        "Invalid DC number '{}' in SDLGraphicsSystem::allocate_dc", dc));
+        "Invalid DC number '{}' in GraphicsSystem::allocate_dc", dc));
 
   // We can't reallocate the screen!
   if (dc == 0)

@@ -72,16 +72,13 @@ bool Effect::operator()(RLMachine& machine) {
     return true;
   } else {
     GraphicsSystem& graphics = machine.GetSystem().graphics();
-    graphics.BeginFrame();
-
-    if (BlitOriginalImage()) {
-      dst_surface().RenderToScreen(Rect(Point(0, 0), size()),
-                                   Rect(Point(0, 0), size()), 255);
-    }
-
-    PerformEffectForTime(current_frame);
-
-    graphics.EndFrame();
+    graphics.RenderCustomFrame([&]() {
+      if (BlitOriginalImage()) {
+        dst_surface().RenderToScreen(Rect(Point(0, 0), size()),
+                                     Rect(Point(0, 0), size()), 255);
+      }
+      PerformEffectForTime(current_frame);
+    });
     return false;
   }
 }

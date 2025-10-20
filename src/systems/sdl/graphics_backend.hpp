@@ -26,7 +26,12 @@
 
 #include "systems/igraphics_backend.hpp"
 
+#include <string>
+
 struct SDL_Surface;
+class glTexture;
+
+class MouseCursor;
 
 class SDLGraphicsBackend : public IGraphicsBackend {
  public:
@@ -49,6 +54,24 @@ class SDLGraphicsBackend : public IGraphicsBackend {
   virtual std::shared_ptr<Album> LoadAlbum(
       const std::filesystem::path& path) override;
 
+  virtual void SetWindowTitle(const std::string& title_utf8) override;
+  virtual void ShowSystemCursor(bool show) override;
+
+  virtual void RenderFrame(const RenderFrameConfig& config,
+                           const DrawCallback& draw_scene,
+                           const DrawCallback& draw_renderables,
+                           const DrawCallback& draw_cursor) override;
+
+  virtual void RedrawLastFrame(const RenderFrameConfig& config,
+                               const DrawCallback& draw_cursor) override;
+
+  virtual std::shared_ptr<Surface> RenderToSurface(
+      const RenderFrameConfig& config,
+      const DrawCallback& draw_scene) override;
+
  private:
   SDL_Surface* screen_;
+  std::shared_ptr<glTexture> screen_contents_texture_;
+  bool screen_contents_texture_valid_;
+  std::string current_window_title_;
 };

@@ -35,8 +35,8 @@
 #include "log/domain_logger.hpp"
 #include "m6/vm_factory.hpp"
 #include "systems/base/graphics_object.hpp"
+#include "systems/base/graphics_system.hpp"
 #include "systems/event_system.hpp"
-#include "systems/sdl/sdl_graphics_system.hpp"
 #include "systems/sdl/sdl_system.hpp"
 
 #include <chrono>
@@ -115,7 +115,7 @@ SiglusRuntime SGVMFactory::Create() {
     runtime.vm->scheduler_.PushCallbackAt(cb, next);
 
     // redraw
-    std::shared_ptr<SDLGraphicsSystem> graphics =
+    std::shared_ptr<GraphicsSystem> graphics =
         runtime.system->graphics_system_;
     for (auto& obj : graphics->GetForegroundObjects())
       obj.ExecuteMutators();

@@ -66,20 +66,19 @@ bool ZoomLongOperation::operator()(RLMachine& machine) {
   } else {
     // Render to the screen
     GraphicsSystem& graphics = machine.GetSystem().graphics();
-    graphics.BeginFrame();
+    graphics.RenderCustomFrame([&]() {
+      // First blit the original dc0 to the screen
+      orig_surface_->RenderToScreen(orig_surface_->GetRect(),
+                                    orig_surface_->GetRect(), 255);
 
-    // First blit the original dc0 to the screen
-    orig_surface_->RenderToScreen(orig_surface_->GetRect(),
-                                  orig_surface_->GetRect(), 255);
+      // figure out the new coordinates for the zoom.
+      float ratio = currentFrame / float(duration_);
+      Point zPt =
+          frect_.origin() + ((trect_.origin() - frect_.origin()) * ratio);
+      Size zSize = frect_.size() + ((trect_.size() - frect_.size()) * ratio);
 
-    // figure out the new coordinates for the zoom.
-    float ratio = currentFrame / float(duration_);
-    Point zPt = frect_.origin() + ((trect_.origin() - frect_.origin()) * ratio);
-    Size zSize = frect_.size() + ((trect_.size() - frect_.size()) * ratio);
-
-    src_surface_->RenderToScreen(Rect(zPt, zSize), drect_, 255);
-
-    graphics.EndFrame();
+      src_surface_->RenderToScreen(Rect(zPt, zSize), drect_, 255);
+    });
     return false;
   }
 }

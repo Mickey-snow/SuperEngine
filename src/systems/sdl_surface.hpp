@@ -38,7 +38,6 @@ class glFrameBuffer;
 class ScreenCanvas;
 struct SDL_Surface;
 class GraphicsSystem;
-class SDLGraphicsSystem;
 class GraphicsObject;
 class glTexture;
 
@@ -163,7 +162,7 @@ class SDLSurface {
 
  private:
   // Called after each change to surface_. Marks the texture as
-  // invalid and notifies SDLGraphicsSystem when appropriate.
+  // invalid and notifies the active GraphicsSystem when appropriate.
   void markWrittenTo(const Rect& written_rect);
 
   // Makes sure that texture_ is a valid object and that it's

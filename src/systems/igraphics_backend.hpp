@@ -27,6 +27,7 @@
 #include "core/rect.hpp"
 
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <span>
 
@@ -34,6 +35,15 @@ class Album;
 // TODO: Extract Surface abstraction from SDLSurface class
 class SDLSurface;
 using Surface = SDLSurface;
+
+struct RenderFrameConfig {
+  Size screen_size;
+  Size display_size;
+  Point screen_origin;
+  bool manual_update_mode;
+};
+
+using DrawCallback = std::function<void()>;
 
 class IGraphicsBackend {
  public:
@@ -54,4 +64,19 @@ class IGraphicsBackend {
       const std::filesystem::path& path) = 0;
   virtual std::shared_ptr<Album> LoadAlbum(
       const std::filesystem::path& path) = 0;
+
+  virtual void SetWindowTitle(const std::string& title_utf8) = 0;
+  virtual void ShowSystemCursor(bool show) = 0;
+
+  virtual void RenderFrame(const RenderFrameConfig& config,
+                           const DrawCallback& draw_scene,
+                           const DrawCallback& draw_renderables,
+                           const DrawCallback& draw_cursor) = 0;
+
+  virtual void RedrawLastFrame(const RenderFrameConfig& config,
+                               const DrawCallback& draw_cursor) = 0;
+
+  virtual std::shared_ptr<Surface> RenderToSurface(
+      const RenderFrameConfig& config,
+      const DrawCallback& draw_scene) = 0;
 };

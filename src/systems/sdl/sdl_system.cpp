@@ -37,11 +37,12 @@
 #include "machine/rlmachine.hpp"
 #include "object/objdrawer.hpp"
 #include "systems/base/graphics_object.hpp"
+#include "systems/base/graphics_system.hpp"
 #include "systems/base/platform.hpp"
 #include "systems/base/text_system.hpp"
 #include "systems/event_system.hpp"
 #include "systems/sdl/event_backend.hpp"
-#include "systems/sdl/sdl_graphics_system.hpp"
+#include "systems/sdl/graphics_backend.hpp"
 #include "systems/sdl/sdl_sound_system.hpp"
 #include "systems/sdl/sound_implementor.hpp"
 #include "systems/sdl/text_implementor.hpp"
@@ -58,7 +59,9 @@ SDLSystem::SDLSystem(Gameexe& gameexe, std::shared_ptr<AssetScanner> assets)
   }
 
   // Initialize the various subsystems
-  graphics_system_ = std::make_shared<SDLGraphicsSystem>(*this, gameexe);
+  auto graphics_backend = std::make_shared<SDLGraphicsBackend>();
+  graphics_system_ =
+      std::make_shared<GraphicsSystem>(*this, gameexe, graphics_backend);
 
   auto event_impl = std::make_unique<SDLEventBackend>();
   event_system_ = std::make_shared<EventSystem>(std::move(event_impl));
@@ -128,7 +131,3 @@ TextSystem& SDLSystem::text() { return *text_system_; }
 // -----------------------------------------------------------------------
 
 SoundSystem& SDLSystem::sound() { return *sound_system_; }
-
-SDLGraphicsSystem* getSDLGraphics(System& system) {
-  return static_cast<SDLGraphicsSystem*>(&system.graphics());
-}

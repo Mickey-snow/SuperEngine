@@ -29,7 +29,7 @@
 #include "object/drawer/file.hpp"
 #include "object/object_mutator.hpp"
 #include "systems/base/graphics_object.hpp"
-#include "systems/sdl/sdl_graphics_system.hpp"
+#include "systems/base/graphics_system.hpp"
 #include "systems/sdl/sdl_system.hpp"
 #include "systems/sdl_surface.hpp"
 
@@ -40,13 +40,13 @@ namespace sr = serilang;
 namespace sb = srbind;
 
 class Object {
-  std::shared_ptr<SDLGraphicsSystem> graphics_;
+  std::shared_ptr<GraphicsSystem> graphics_;
   size_t objid;
   GraphicsObject& obj;
   std::shared_ptr<Clock> clock = std::make_shared<Clock>();
 
  public:
-  Object(std::shared_ptr<SDLGraphicsSystem> g)
+  Object(std::shared_ptr<GraphicsSystem> g)
       : graphics_(g),
         objid(g->GetFreeObjectId(OBJ_FG)),
         obj(g->GetObject(OBJ_FG, objid)) {}

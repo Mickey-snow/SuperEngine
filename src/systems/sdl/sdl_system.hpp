@@ -31,7 +31,6 @@
 
 #include "systems/base/system.hpp"
 
-class SDLGraphicsSystem;
 class SDLSoundSystem;
 class TextSystem;
 
@@ -50,12 +49,9 @@ class SDLSystem : public System {
   virtual TextSystem& text() override;
   virtual SoundSystem& sound() override;
 
-  std::shared_ptr<SDLGraphicsSystem> graphics_system_;
+  std::shared_ptr<GraphicsSystem> graphics_system_;
   std::shared_ptr<EventSystem> event_system_;
   std::shared_ptr<TextSystem> text_system_;
   std::shared_ptr<SDLSoundSystem> sound_system_;
   Gameexe& gameexe_;
 };
-
-// Convenience function to do the casting.
-SDLGraphicsSystem* getSDLGraphics(System& system);

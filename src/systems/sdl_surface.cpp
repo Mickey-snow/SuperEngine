@@ -35,7 +35,8 @@
 #include "systems/glrenderer.hpp"
 #include "systems/gltexture.hpp"
 #include "systems/screen_canvas.hpp"
-#include "systems/sdl/sdl_graphics_system.hpp"
+
+#include "GL/glew.h"
 #include "utilities/graphics.hpp"
 
 #include <algorithm>
@@ -225,36 +226,36 @@ void SDLSurface::BlitToSurface(Surface& dest_surface,
     // Blit the source rectangle into its own image.
     SDL_Surface* src_image = buildNewSurface(src.size());
     if (pygame_AlphaBlit(surface_, &src_rect, src_image, NULL))
-      ThrowSDLError("SDL_BlitSurface", "SDLGraphicsSystem::blitSurfaceToDC()");
+      ThrowSDLError("SDL_BlitSurface", "GraphicsSystem::blitSurfaceToDC()");
 
     SDL_Surface* tmp = buildNewSurface(dst.size());
     pygame_stretch(src_image, tmp);
 
     if (use_src_alpha) {
       if (SDL_SetAlpha(tmp, SDL_SRCALPHA, alpha))
-        ThrowSDLError("SDL_SetAlpha", "SDLGraphicsSystem::blitSurfaceToDC()");
+        ThrowSDLError("SDL_SetAlpha", "GraphicsSystem::blitSurfaceToDC()");
     } else {
       if (SDL_SetAlpha(tmp, 0, 0))
-        ThrowSDLError("SDL_SetAlpha", "SDLGraphicsSystem::blitSurfaceToDC()");
+        ThrowSDLError("SDL_SetAlpha", "GraphicsSystem::blitSurfaceToDC()");
     }
 
     if (SDL_BlitSurface(tmp, NULL, sdl_dest_surface.RawSurface(), &dest_rect))
-      ThrowSDLError("SDL_BlitSurface", "SDLGraphicsSystem::blitSurfaceToDC()");
+      ThrowSDLError("SDL_BlitSurface", "GraphicsSystem::blitSurfaceToDC()");
 
     SDL_FreeSurface(tmp);
     SDL_FreeSurface(src_image);
   } else {
     if (use_src_alpha) {
       if (SDL_SetAlpha(surface_, SDL_SRCALPHA, alpha))
-        ThrowSDLError("SDL_SetAlpha", "SDLGraphicsSystem::blitSurfaceToDC()");
+        ThrowSDLError("SDL_SetAlpha", "GraphicsSystem::blitSurfaceToDC()");
     } else {
       if (SDL_SetAlpha(surface_, 0, 0))
-        ThrowSDLError("SDL_SetAlpha", "SDLGraphicsSystem::blitSurfaceToDC()");
+        ThrowSDLError("SDL_SetAlpha", "GraphicsSystem::blitSurfaceToDC()");
     }
 
     if (SDL_BlitSurface(surface_, &src_rect, sdl_dest_surface.RawSurface(),
                         &dest_rect))
-      ThrowSDLError("SDL_BlitSurface", "SDLGraphicsSystem::blitSurfaceToDC()");
+      ThrowSDLError("SDL_BlitSurface", "GraphicsSystem::blitSurfaceToDC()");
   }
   sdl_dest_surface.markWrittenTo(dst);
 }
@@ -272,10 +273,10 @@ void SDLSurface::blitFROMSurface(SDL_Surface* src_surface,
 
   if (use_src_alpha) {
     if (pygame_AlphaBlit(src_surface, &src_rect, surface_, &dest_rect))
-      ThrowSDLError("pygame_AlphaBlit", "SDLGraphicsSystem::blitSurfaceToDC()");
+      ThrowSDLError("pygame_AlphaBlit", "GraphicsSystem::blitSurfaceToDC()");
   } else {
     if (SDL_BlitSurface(src_surface, &src_rect, surface_, &dest_rect))
-      ThrowSDLError("SDL_BlitSurface", "SDLGraphicsSystem::blitSurfaceToDC()");
+      ThrowSDLError("SDL_BlitSurface", "GraphicsSystem::blitSurfaceToDC()");
   }
 
   markWrittenTo(dst);
@@ -453,7 +454,7 @@ void SDLSurface::Fill(const RGBAColour& colour, const Rect& area) {
 
   SDL_Rect rect = ToSDLRect(area);
   if (SDL_FillRect(surface_, &rect, sdl_colour))
-    ThrowSDLError("SDL_FillRect", "SDLGraphicsSystem::wipe()");
+    ThrowSDLError("SDL_FillRect", "GraphicsSystem::wipe()");
 
   // If we are the main screen, then we want to update the screen
   markWrittenTo(area);
@@ -535,7 +536,7 @@ std::shared_ptr<Surface> SDLSurface::Clone() const {
   // Disable alpha blending because we're copying onto a blank (and
   // blank alpha!) surface
   if (SDL_SetAlpha(surface_, 0, 0))
-    ThrowSDLError("SDL_SetAlpha", "SDLGraphicsSystem::blitSurfaceToDC()");
+    ThrowSDLError("SDL_SetAlpha", "GraphicsSystem::blitSurfaceToDC()");
 
   if (SDL_BlitSurface(surface_, NULL, tmp_surface, NULL))
     ThrowSDLError("SDL_BlitSurface", "SDLSurface::clone()");
@@ -624,7 +625,7 @@ std::shared_ptr<Surface> SDLSurface::ClipAsColorMask(const Rect& clip_rect,
                                                      int r,
                                                      int g,
                                                      int b) const {
-  const char* function_name = "SDLGraphicsSystem::ClipAsColorMask()";
+  const char* function_name = "GraphicsSystem::ClipAsColorMask()";
 
   // TODO(erg): This needs to be made exception safe and so does the rest
   // of this file.
