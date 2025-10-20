@@ -1,13 +1,11 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2009 Elliot Glaysher
+// Copyright (C) 2006, 2007 Elliot Glaysher
+// Copyright (C) 2025 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,38 +20,27 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
+//
 // -----------------------------------------------------------------------
 
 #pragma once
 
-#include <iosfwd>
+#include <memory>
 
-class Point;
-class Rect;
-class RLMachine;
-class Size;
-class System;
+class Gameexe;
+class TextWaku;
 class TextWindow;
+class System;
 
-class TextWaku {
+class TextWakuFactory {
  public:
-  virtual ~TextWaku() = default;
+  TextWakuFactory(Gameexe& gexe);
 
-  virtual void Execute() = 0;
-  virtual void Render(Point box_location, Size namebox_size) = 0;
+  std::unique_ptr<TextWaku> CreateWaku(System& system,
+                                       TextWindow& window,
+                                       int setno,
+                                       int no);
 
-  // Possibly returns the size if this TextWaku object has a known size on
-  // screen.
-  virtual Size GetSize(const Size& text_surface) const = 0;
-  virtual Point InsertionPoint(const Rect& waku_rect,
-                               const Size& padding,
-                               const Size& surface_size,
-                               bool center) const = 0;
-
-  virtual void SetMousePosition(const Point& pos) {}
-  virtual bool HandleMouseClick(RLMachine& machine,
-                                const Point& pos,
-                                bool pressed) {
-    return false;
-  }
+ private:
+  Gameexe& gexe_;
 };

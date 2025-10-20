@@ -37,6 +37,7 @@
 #include "systems/base/system_error.hpp"
 #include "systems/base/text_system.hpp"
 #include "systems/base/text_waku.hpp"
+#include "systems/base/text_waku_factory.hpp"
 #include "systems/itext_system.hpp"
 #include "systems/sdl_surface.hpp"
 #include "utf8.h"
@@ -135,14 +136,15 @@ TextWindow::TextWindow(System& system, int window_num, ITextSystem* text_impl)
   set_action_on_pause(window("R_COMMAND_MOD").Int().value_or(0));
 
   // Main textbox waku
+  TextWakuFactory waku_factory(gexe);
   waku_set_ = window("WAKU_SETNO").Int().value_or(0);
-  textbox_waku_.reset(TextWaku::Create(system_, *this, waku_set_, 0));
+  textbox_waku_ = waku_factory.CreateWaku(system_, *this, waku_set_, 0);
 
   // Name textbox if that setting has been enabled.
   set_name_mod(window("NAME_MOD").Int().value_or(0));
   if (auto no = window("NAME_WAKU_SETNO").Int(); name_mod_ == 1 && no) {
     name_waku_set_ = *no;
-    namebox_waku_.reset(TextWaku::Create(system_, *this, name_waku_set_, 0));
+    namebox_waku_ = waku_factory.CreateWaku(system_, *this, name_waku_set_, 0);
     SetNameSpacingBetweenCharacters(window("NAME_MOJI_REP").Int().value_or(0));
     SetNameboxPadding(window("NAME_MOJI_POS").ToIntVec());
     // Ignoring NAME_WAKU_MIN for now

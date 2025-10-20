@@ -1,13 +1,11 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2009 Elliot Glaysher
+// Copyright (C) 2006, 2007 Elliot Glaysher
+// Copyright (C) 2025 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,34 +20,25 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
+//
 // -----------------------------------------------------------------------
 
-#include "systems/base/text_waku.hpp"
+#include "systems/base/text_waku_factory.hpp"
 
 #include "core/gameexe.hpp"
-#include "systems/base/system.hpp"
 #include "systems/base/text_waku_normal.hpp"
 #include "systems/base/text_waku_type4.hpp"
 
-// static
-TextWaku* TextWaku::Create(System& system,
-                           TextWindow& window,
-                           int setno,
-                           int no) {
-  GameexeInterpretObject waku(system.gameexe()("WAKU", setno, "TYPE"));
-  if (waku.Int().value_or(5) == 5) {
-    return new TextWakuNormal(system, window, setno, no);
-  } else {
-    return new TextWakuType4(system, window, setno, no);
-  }
-}
+TextWakuFactory::TextWakuFactory(Gameexe& gexe) : gexe_(gexe) {}
 
-TextWaku::~TextWaku() {}
+std::unique_ptr<TextWaku> TextWakuFactory::CreateWaku(System& system,
+                                                      TextWindow& window,
+                                                      int setno,
+                                                      int no) {
+  auto waku = gexe_("WAKU", setno, "TYPE");
 
-void TextWaku::SetMousePosition(const Point& pos) {}
-
-bool TextWaku::HandleMouseClick(RLMachine& machine,
-                                const Point& pos,
-                                bool pressed) {
-  return false;
+  if (waku.Int().value_or(5) == 5)
+    return std::make_unique<TextWakuNormal>(system, window, setno, no);
+  else
+    return std::make_unique<TextWakuType4>(system, window, setno, no);
 }
