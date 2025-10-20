@@ -36,8 +36,8 @@
 // box expands to fill whatever size is passed into render().
 class TextWakuType4 : public TextWaku {
  public:
-  TextWakuType4(System& system, TextWindow& window, int setno, int no);
-  virtual ~TextWakuType4();
+  TextWakuType4(TextWindow& window, int setno, int no);
+  virtual ~TextWakuType4() = default;
 
   virtual void Execute() override;
   virtual void Render(Point box_location, Size namebox_size) override;
@@ -59,14 +59,12 @@ class TextWakuType4 : public TextWaku {
                                 const Point& pos,
                                 bool pressed) override;
 
- private:
-  void SetWakuMain(const std::string& name);
+  void SetMainWaku(std::shared_ptr<const Surface> waku_surface);
+  void SetArea(int top, int bottom, int left, int right);
 
+ private:
   // Returns |cached_backing_|, shrinking or enlarging it to |size|.
   const std::shared_ptr<Surface>& GetWakuBackingOfSize(Size size);
-
-  // The system we are a part of.
-  System& system_;
 
   // The text window we decorate. TODO: Figure out how wrong this is when we
   // are a name box.
@@ -84,14 +82,7 @@ class TextWakuType4 : public TextWaku {
   std::shared_ptr<Surface> cached_backing_;
 
   // G00 regions in |waku_main_|.
-  GrpRect top_left;
-  GrpRect top_center;
-  GrpRect top_right;
-
-  GrpRect left_side;
-  GrpRect right_side;
-
-  GrpRect bottom_left;
-  GrpRect bottom_center;
-  GrpRect bottom_right;
+  GrpRect top_left_, top_center_, top_right_;
+  GrpRect left_side_, right_side_;
+  GrpRect bottom_left_, bottom_center_, bottom_right_;
 };

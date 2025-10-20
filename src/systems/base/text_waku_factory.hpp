@@ -42,5 +42,14 @@ class TextWakuFactory {
                                        int no);
 
  private:
+  std::unique_ptr<TextWaku> CreateWakuNormal(System& system,
+                                             TextWindow& window,
+                                             int setno,
+                                             int no);
+  std::unique_ptr<TextWaku> CreateWakuType4(System& system,
+                                            TextWindow& window,
+                                            int setno,
+                                            int no);
+
   Gameexe& gexe_;
 };

@@ -48,7 +48,7 @@ class BasicTextWindowButton;
 // Window decorations are defined with \#WAKU.<setno>.<no>. Gameexe.ini keys.
 class TextWakuNormal : public TextWaku {
  public:
-  TextWakuNormal(System& system, TextWindow& window, int setno, int no);
+  TextWakuNormal(TextWindow& window, int setno, int no);
   virtual ~TextWakuNormal();
 
   void AddButton(std::string btn_name,
@@ -72,25 +72,13 @@ class TextWakuNormal : public TextWaku {
                                 const Point& pos,
                                 bool pressed) override;
 
+  void SetWakuMain(std::shared_ptr<const Surface> surface);
+  void SetWakuBacking(std::shared_ptr<const Surface> surface);
+  void SetWakuButton(std::shared_ptr<const Surface> surface);
+
  private:
   // Renders all the buttons in |button_map_|.
   void RenderButtons();
-
-  // Loads all bitmaps and sets up all window buttons for this waku.
-  void LoadWindowWaku(Gameexe& gexe);
-
-  void SetWakuMain(const std::string& name);
-
-  // Loads the graphics file name as the mask for represents the areas
-  // of the text window that should be shaded.
-  void SetWakuBacking(const std::string& name);
-
-  // Loads the graphics file name as the image with all the button
-  // images used when drawing
-  void SetWakuButton(const std::string& name);
-
-  // The system we are a part of.
-  System& system_;
 
   // The text window we decorate. TODO: Figure out how wrong this is when we
   // are a name box.
