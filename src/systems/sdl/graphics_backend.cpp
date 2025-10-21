@@ -345,8 +345,8 @@ std::shared_ptr<Surface> SDLGraphicsBackend::RenderToSurface(
                        GL_UNSIGNED_BYTE, buf.size(), buf.data());
 
   SDL_Surface* surface =
-      SDL_CreateRGBSurface(width, height, 32, width * 4, 0xFF000000, 0x00FF0000,
-                           0x0000FF00, 0x000000FF);
+      SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32, 0xFF000000,
+                           0x00FF0000, 0x0000FF00, 0x000000FF);
   if (!surface)
     throw std::runtime_error("SDL_CreateRGBSurface failed");
 

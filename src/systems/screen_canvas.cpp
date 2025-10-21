@@ -35,6 +35,7 @@ std::shared_ptr<glTexture> ScreenCanvas::GetTexture() const {
   glBindTexture(GL_TEXTURE_2D, result->GetID());
   glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, display_size_.width(),
                       display_size_.height());
+  glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 
   return result;
 }

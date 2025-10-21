@@ -60,6 +60,7 @@ void glRenderer::ClearBuffer(std::shared_ptr<glFrameBuffer> canvas,
   glClearColor(color.r_float(), color.g_float(), color.b_float(),
                color.a_float());
   glClear(GL_COLOR_BUFFER_BIT);
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void glRenderer::RenderColormask(glRenderable src,
@@ -147,6 +148,7 @@ void glRenderer::RenderColormask(glRenderable src,
 
   glUseProgram(0);
   glBindVertexArray(0);
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glBlendFunc(GL_ONE, GL_ZERO);
   ShowGLErrors();
 }
