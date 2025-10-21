@@ -146,7 +146,9 @@ std::unique_ptr<TextWaku> TextWakuFactory::CreateWakuNormal(System& system,
   result->SetWakuButton(
       surface_name.empty() ? nullptr : gs.GetSurfaceNamed(surface_name));
 
-  const Rect window_rect = window.GetWindowRect();
+  const Size text_surf_size = window.GetTextSurfaceSize();
+  const Rect window_rect =
+      window.GetWindowRect(result->GetSize(text_surf_size));
   btn_name = "CLEAR_BOX";
   if (waku(btn_name).Exists()) {
     auto btn = std::make_unique<BasicTextWindowButton>(

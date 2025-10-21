@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -117,6 +114,7 @@ class TextWindow {
   Size GetTextSurfaceSize() const;
 
   Rect GetWindowRect() const;
+  Rect GetWindowRect(Size waku_size) const;
   Rect GetTextSurfaceRect() const;
 
   // Locations of the namebox waku (will be a relative calculation to

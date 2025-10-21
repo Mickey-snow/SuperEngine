@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -41,12 +38,13 @@
 #include "systems/itext_system.hpp"
 #include "systems/sdl_surface.hpp"
 #include "utf8.h"
-#include "utilities/exception.hpp"
 #include "utilities/graphics.hpp"
 #include "utilities/string_utilities.hpp"
 
 #include <algorithm>
+#include <cassert>
 #include <cmath>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -270,6 +268,12 @@ Size TextWindow::GetTextSurfaceSize() const {
 }
 
 Rect TextWindow::GetWindowRect() const {
+  assert(textbox_waku_ != nullptr);
+  Size waku_size = textbox_waku_->GetSize(GetTextSurfaceSize());
+  return GetWindowRect(waku_size);
+}
+
+Rect TextWindow::GetWindowRect(Size waku_size) const {
   // This absolutely needs to know the size of the on main backing waku if we
   // want to draw things correctly! If we are going to offset this text box
   // from the top or the bottom, we MUST know what the size of the image
@@ -282,7 +286,6 @@ Rect TextWindow::GetWindowRect() const {
   // pixels. The image is still centered perfectly, even though it's supposed
   // to be shifted 78 pixels right since the origin is the bottom
   // left. Expanding this number didn't change the position offscreen.
-  Size boxSize = textbox_waku_->GetSize(GetTextSurfaceSize());
 
   int x, y;
   switch (origin_) {
@@ -292,10 +295,10 @@ Rect TextWindow::GetWindowRect() const {
       break;
     case 1:
     case 3:
-      x = screen_width_ - boxSize.width() - x_distance_from_origin_;
+      x = screen_width_ - waku_size.width() - x_distance_from_origin_;
       break;
-    default:
-      throw SystemError("Invalid origin");
+    [[unlikely]] default:
+      throw std::logic_error("Invalid origin = " + std::to_string(origin_));
   }
 
   switch (origin_) {
@@ -305,25 +308,25 @@ Rect TextWindow::GetWindowRect() const {
       break;
     case 2:  // Bottom and left
     case 3:  // Bottom and right
-      y = screen_height_ - boxSize.height() - y_distance_from_origin_;
+      y = screen_height_ - waku_size.height() - y_distance_from_origin_;
       break;
-    default:
-      throw SystemError("Invalid origin");
+    [[unlikely]] default:
+      throw std::logic_error("Invalid origin = " + std::to_string(origin_));
   }
 
   // Now that we have the coordinate that the programmer wanted to position the
   // box at, possibly move the box so it fits on screen.
-  if ((x + boxSize.width()) > screen_width_)
-    x -= (x + boxSize.width()) - screen_width_;
+  if ((x + waku_size.width()) > screen_width_)
+    x -= (x + waku_size.width()) - screen_width_;
   if (x < 0)
     x = 0;
 
-  if ((y + boxSize.height()) > screen_height_)
-    y -= (y + boxSize.height()) - screen_height_;
+  if ((y + waku_size.height()) > screen_height_)
+    y -= (y + waku_size.height()) - screen_height_;
   if (y < 0)
     y = 0;
 
-  return Rect(x, y, boxSize);
+  return Rect(x, y, waku_size);
 }
 
 Rect TextWindow::GetTextSurfaceRect() const {
@@ -696,7 +699,7 @@ void TextWindow::DisplayRubyText(const std::string& utf8str) {
 
     if (*ruby_begin_point_ > end_point) {
       ruby_begin_point_.reset();
-      throw rlvm::Exception("We don't handle ruby across line breaks yet!");
+      throw std::logic_error("We don't handle ruby across line breaks yet!");
     }
 
     std::shared_ptr<IFont> ifont = system_.text().LoadFont(ruby_text_size());
