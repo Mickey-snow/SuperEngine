@@ -46,7 +46,6 @@ class TextKeyCursor {
   // \#CURSOR.cursor_number. This will load all image files, and data
   // from the Gameexe.
   TextKeyCursor(System& system, int curosr_number);
-  ~TextKeyCursor();
 
   // Updates the key cursor properties during the System::execute()
   // phase. This should run once every game loop while a key cursor is

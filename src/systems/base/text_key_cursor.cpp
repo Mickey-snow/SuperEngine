@@ -27,9 +27,6 @@
 
 #include "systems/base/text_key_cursor.hpp"
 
-#include <string>
-#include <vector>
-
 #include "core/gameexe.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/system.hpp"
@@ -37,9 +34,8 @@
 #include "systems/event_system.hpp"
 #include "systems/sdl_surface.hpp"
 
-using std::endl;
-using std::string;
-using std::vector;
+#include <string>
+#include <vector>
 
 // -----------------------------------------------------------------------
 // TextKeyCursor
@@ -59,10 +55,6 @@ TextKeyCursor::TextKeyCursor(System& system, int in_curosr_number)
     SetCursorFrameSpeed(cursor("SPEED").ToInt());
   }
 }
-
-// -----------------------------------------------------------------------
-
-TextKeyCursor::~TextKeyCursor() {}
 
 // -----------------------------------------------------------------------
 
@@ -94,12 +86,12 @@ void TextKeyCursor::Render(TextWindow& text_window) {
 // -----------------------------------------------------------------------
 
 void TextKeyCursor::SetCursorImage(System& system, const std::string& name) {
-  if (name != "") {
+  if (!name.empty()) {
     cursor_image_ = system.graphics().GetSurfaceNamed(name);
     cursor_image_file_ = name;
   } else {
     cursor_image_.reset();
-    cursor_image_file_ = "";
+    cursor_image_file_.clear();
   }
 }
 

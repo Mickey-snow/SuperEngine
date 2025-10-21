@@ -35,6 +35,7 @@
 #include "core/rlevent_listener.hpp"
 #include "libreallive/expression.hpp"
 #include "libreallive/parser.hpp"
+#include "log/domain_logger.hpp"
 #include "machine/long_operation.hpp"
 #include "machine/rlmachine.hpp"
 #include "systems/base/graphics_system.hpp"
@@ -171,28 +172,37 @@ NormalSelectLongOperation::NormalSelectLongOperation(
     const libreallive::SelectElement& commandElement)
     : SelectLongOperation(machine, commandElement),
       text_window_(machine.GetSystem().text().GetCurrentWindow()) {
-  machine.GetSystem().text().set_in_selection_mode(true);
-  text_window_->set_is_visible(true);
-  text_window_->StartSelectionMode();
-  text_window_->SetSelectionCallback(
-      std::bind(&NormalSelectLongOperation::SelectByIndex, this, _1));
+  static DomainLogger logger("NormalSelectLongOperation");
 
+  TextSystem& ts = machine.GetSystem().text();
+  ts.set_in_selection_mode(true);
+  text_window_->SetVisible(true);
+
+  std::vector<TextWindow::Selection> choices;
+  choices.reserve(options_.size());
   for (size_t i = 0; i < options_.size(); ++i) {
-    // TODO(erg): Also deal with colour.
-    if (options_[i].shown) {
-      if (options_[i].use_colour == true || options_[i].enabled == false) {
-        std::cerr
-            << "We don't deal with color/enabled state in normal selections..."
-            << std::endl;
-      }
-
-      text_window_->AddSelectionItem(options_[i].str, i);
+    auto& opt = options_[i];
+    if (!opt.shown)
+      continue;
+    if (opt.use_colour) {
+      logger(Severity::Warn)
+          << "Colour for normal selections is not implemented (option = "
+          << opt.str << ", color_index = " << opt.colour_index << ')';
     }
+    if (!opt.enabled) {
+      logger(Severity::Warn) << "Disabled state for normal selections is not "
+                                "implemented (option = "
+                             << opt.str << ')';
+    }
+
+    choices.emplace_back(opt.str, [this, idx = i]() { SelectByIndex(idx); });
   }
+
+  text_window_->StartSelection(std::move(choices));
 }
 
 NormalSelectLongOperation::~NormalSelectLongOperation() {
-  text_window_->EndSelectionMode();
+  text_window_->EndSelection();
   machine_.GetSystem().text().set_in_selection_mode(false);
 }
 
@@ -282,7 +292,7 @@ ButtonSelectLongOperation::ButtonSelectLongOperation(
   // Retrieve the parameters needed to render as a color mask.
   std::shared_ptr<TextWindow> window =
       machine.GetSystem().text().GetCurrentWindow();
-  window_bg_colour_ = window->colour();
+  window_bg_colour_ = window->GetColour();
   window_filter_ = window->filter();
 
   int default_colour_num_ = selbtn("MOJIDEFAULTCOL").Int().value();

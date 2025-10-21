@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -34,41 +31,40 @@
 
 class SDLSurface;
 using Surface = SDLSurface;
-class System;
 
 // Represents a clickable element inside TextWindows.
 class SelectionElement {
  public:
-  SelectionElement(System& system,
-                   const std::shared_ptr<Surface>& normal_image,
-                   const std::shared_ptr<Surface>& highlighted_image,
-                   const std::function<void(int)>& selection_callback,
-                   int id,
-                   const Point& pos);
-  ~SelectionElement();
-
-  void SetSelectionCallback(const std::function<void(int)>& func);
+  SelectionElement(std::shared_ptr<Surface> normal_image,
+                   std::shared_ptr<Surface> highlighted_image,
+                   Point pos);
 
   void SetMousePosition(const Point& pos);
   bool HandleMouseClick(const Point& pos, bool pressed);
 
   void Render();
 
+  inline void OnMouseover(std::function<void()> mouseover_callback) {
+    on_mouseover_ = std::move(mouseover_callback);
+  }
+
+  inline void OnSelect(std::function<void()> selection_callback) {
+    selection_callback_ = std::move(selection_callback);
+  }
+
  private:
-  bool IsHighlighted(const Point& p);
+  bool IsHighlightedAt(const Point& p);
 
   bool is_highlighted_;
 
-  int id_;
-
-  // Upper right location of the button
-  Point pos_;
+  Point upper_right_;
 
   std::shared_ptr<Surface> normal_image_;
   std::shared_ptr<Surface> highlighted_image_;
 
   // Callback function for when item is selected.
-  std::function<void(int)> selection_callback_;
+  std::function<void()> selection_callback_;
 
-  System& system_;
+  // Callback function when cursor is over the selection item
+  std::function<void()> on_mouseover_;
 };

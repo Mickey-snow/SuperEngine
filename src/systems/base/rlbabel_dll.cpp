@@ -144,12 +144,12 @@ int RlBabelDLL::CallDLL(RLMachine& machine,
       return StartNewScreen(*GetSvar(arg1));
     case dllSetNameMod: {
       std::shared_ptr<TextWindow> textWindow = GetWindow(arg1);
-      int original_mod = textWindow->name_mod();
-      textWindow->set_name_mod(arg2);
+      int original_mod = textWindow->GetNameMod();
+      textWindow->SetNameMod(arg2);
       return original_mod;
     }
     case dllGetNameMod:
-      return GetWindow(arg1)->name_mod();
+      return GetWindow(arg1)->GetNameMod();
     case dllGetTextWindow:
       return GetWindow(-1)->window_number();
     case dllSetWindowName:
@@ -358,7 +358,7 @@ int RlBabelDLL::TextoutGetChar(StringReferenceIterator buffer,
 
         // If name display is not inline, skip the token to avoid
         // rendering it inline.
-        if (GetWindow(-1)->name_mod() >= 1)
+        if (GetWindow(-1)->GetNameMod() >= 1)
           text_index = end_token_index;
 
         // Set the window name.

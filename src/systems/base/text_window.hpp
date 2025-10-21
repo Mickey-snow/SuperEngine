@@ -131,8 +131,8 @@ class TextWindow {
   bool HandleMouseClick(RLMachine& machine, const Point& pos, bool pressed);
 
   // Sets how the name is displayed
-  void set_name_mod(const int in) { name_mod_ = in; }
-  int name_mod() const { return name_mod_; }
+  void SetNameMod(const int in);
+  [[nodiscard]] int GetNameMod() const { return static_cast<int>(name_mod_); }
 
   // Sets the size of the spacing between characters. Represented by
   // #WINDOW.xxx.NAME_MOJI_REP.
@@ -157,15 +157,13 @@ class TextWindow {
   void set_filter(int i) { filter_ = i; }
   void SetRGBAF(const std::vector<int>& rgba_values);
 
-  int r() const { return colour_.r(); }
-  int g() const { return colour_.g(); }
-  int b() const { return colour_.b(); }
-  int alpha() const { return colour_.a(); }
-  const RGBAColour& colour() const { return colour_; }
-  int filter() const { return filter_; }
+  [[nodiscard]] RGBAColour GetColour() const { return colour_; }
+  void SetColour(RGBAColour col) { colour_ = col; }
+  [[nodiscard]] int filter() const { return filter_; }
+  void SetFilter(int f) { filter_ = f; }
 
-  void set_is_visible(int in) { is_visible_ = in; }
-  bool is_visible() const { return is_visible_; }
+  void SetVisible(bool in) { is_visible_ = in; }
+  bool IsVisible() const { return is_visible_; }
 
   void set_action_on_pause(const int i) { action_on_pause_ = i; }
   bool action_on_pause() const { return action_on_pause_; }
@@ -225,29 +223,16 @@ class TextWindow {
   void MarkRubyBegin();
   void DisplayRubyText(const std::string& utf8str);
 
-  // Text Windows are responsible for presenting the questions from
-  // select() and select_s() calls. (select_w() is not done here.)
-  void StartSelectionMode();
+  struct Selection {
+    std::string text;
+    std::function<void()> callback;
+  };
+  void StartSelection(std::vector<Selection> choices);
 
-  bool in_selection_mode() { return in_selection_mode_; }
-
-  void AddSelectionItem(const std::string& utf8str, int selection_id);
-
-  void SetSelectionCallback(const std::function<void(int)>& func);
-
-  void EndSelectionMode();
+  void EndSelection();
 
  private:
-  // Accessor for the |selection_callback_| for TextWindow subclasses
-  const std::function<void(int)>& selectionCallback() {
-    return selection_callback_;
-  }
-
-  // The actual selection items in this TextWindow.
-  typedef std::vector<std::unique_ptr<SelectionElement>> Selections;
-  Selections selections_;
-
-  System& system() { return system_; }
+  std::vector<std::unique_ptr<SelectionElement>> selections_;
 
   // Render faces implementation.
   void RenderFaces(int behind);
@@ -349,7 +334,7 @@ class TextWindow {
   RGBAColour colour_;
   int filter_;
 
-  int is_visible_;
+  bool is_visible_;
 
   // Determines the position of the keycursor (the animated cursor
   // that appears when the game is waiting for a click to move to the
@@ -363,11 +348,8 @@ class TextWindow {
   int keycursor_type_;
   Point keycursor_pos_;
 
-  // Describes how to render character names.
-  // - 0: Display names inline (default)
-  // - 1: Display names in a separate window
-  // - 2: Do not display names
-  int name_mod_;
+  enum class NameMode : int { Inline = 0, SeparateWindow = 1, Disable = 2 };
+  NameMode name_mod_;
 
   // Waku set to use for the text box in the case where name_mod_ == 1.
   int name_waku_set_;
@@ -396,15 +378,13 @@ class TextWindow {
   // The number of characters in the window (or |minimum_namebox_size_|).
   int namebox_characters_;
 
-  // Text boxes can be in selection mode, in which case a Select_LongOperation
-  // is on the top of the RLMachine's call stack.
-  bool in_selection_mode_;
+  enum class State {
+    Normal,
+    Selection /* see select long operation */
+  };
+  State state_;
 
   bool next_char_italic_;
-
-  // Callback function for when item is selected; usually will call a
-  // specific method on Select_LongOperation
-  std::function<void(int)> selection_callback_;
 
   struct FaceSlot;
   std::unique_ptr<FaceSlot> face_slot_[kNumFaceSlots];

@@ -66,7 +66,7 @@ void TextWakuNormal::Render(Point box_location, Size namebox_size) {
     Size backing_size = backing_surface_->GetSize();
     backing_surface_->RenderToScreenAsColorMask(
         Rect(Point(0, 0), backing_size), Rect(box_location, backing_size),
-        window_.colour(), window_.filter());
+        window_.GetColour(), window_.filter());
   }
 
   if (main_surface_) {

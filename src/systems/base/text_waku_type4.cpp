@@ -79,7 +79,7 @@ void TextWakuType4::Render(Point box_location, Size content_size) {
     std::shared_ptr<Surface> backing = GetWakuBackingOfSize(backing_size);
     backing->RenderToScreenAsColorMask(backing->GetRect(),
                                        Rect(backing_point, backing_size),
-                                       window_.colour(), window_.filter());
+                                       window_.GetColour(), window_.filter());
 
     // Calculate the total size of the waku decoration. We need this to get the
     // size of the non-corners correct.

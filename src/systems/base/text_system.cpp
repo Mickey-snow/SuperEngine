@@ -163,7 +163,7 @@ void TextSystem::ExecuteTextSystem() {
   // Check to see if the cursor is displayed
   if (ShowWindow(active_window_)) {
     WindowMap::iterator it = text_window_.find(active_window_);
-    if (it != text_window_.end() && it->second->is_visible() &&
+    if (it != text_window_.end() && it->second->IsVisible() &&
         in_pause_state_ && !IsReadingBacklog()) {
       if (!text_key_cursor_)
         SetKeyCursor(0);
@@ -193,7 +193,7 @@ void TextSystem::Render() {
     if (ShowWindow(active_window_)) {
       WindowMap::iterator it = text_window_.find(active_window_);
 
-      if (it != text_window_.end() && it->second->is_visible() &&
+      if (it != text_window_.end() && it->second->IsVisible() &&
           in_pause_state_ && !IsReadingBacklog()) {
         if (!text_key_cursor_)
           SetKeyCursor(0);
@@ -207,14 +207,14 @@ void TextSystem::Render() {
 void TextSystem::HideTextWindow(int win_number) {
   WindowMap::iterator it = text_window_.find(win_number);
   if (it != text_window_.end()) {
-    it->second->set_is_visible(0);
+    it->second->SetVisible(false);
   }
 }
 
 void TextSystem::HideAllTextWindows() {
   for (WindowMap::iterator it = text_window_.begin(); it != text_window_.end();
        ++it) {
-    it->second->set_is_visible(0);
+    it->second->SetVisible(false);
   }
 }
 
@@ -222,7 +222,7 @@ void TextSystem::HideAllTextWindowsExcept(int i) {
   for (WindowMap::iterator it = text_window_.begin(); it != text_window_.end();
        ++it) {
     if (it->first != i) {
-      it->second->set_is_visible(0);
+      it->second->SetVisible(false);
     }
   }
 }
@@ -230,14 +230,14 @@ void TextSystem::HideAllTextWindowsExcept(int i) {
 void TextSystem::ShowTextWindow(int win_number) {
   WindowMap::iterator it = text_window_.find(win_number);
   if (it != text_window_.end()) {
-    it->second->set_is_visible(1);
+    it->second->SetVisible(true);
   }
 }
 
 void TextSystem::ShowAllTextWindows() {
   for (WindowMap::iterator it = text_window_.begin(); it != text_window_.end();
        ++it) {
-    it->second->set_is_visible(1);
+    it->second->SetVisible(true);
   }
 }
 

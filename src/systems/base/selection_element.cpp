@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -28,56 +25,38 @@
 #include "systems/base/selection_element.hpp"
 
 #include "core/rect.hpp"
-#include "machine/rlmachine.hpp"
-#include "systems/base/graphics_system.hpp"
-#include "systems/base/sound_system.hpp"
-#include "systems/base/system.hpp"
 #include "systems/sdl_surface.hpp"
+
+#include <utility>
 
 // -----------------------------------------------------------------------
 // SelectionElement
 // -----------------------------------------------------------------------
-SelectionElement::SelectionElement(
-    System& system,
-    const std::shared_ptr<Surface>& normal_image,
-    const std::shared_ptr<Surface>& highlighted_image,
-    const std::function<void(int)>& selection_callback,
-    int id,
-    const Point& pos)
+SelectionElement::SelectionElement(std::shared_ptr<Surface> normal_image,
+                                   std::shared_ptr<Surface> highlighted_image,
+                                   Point pos)
     : is_highlighted_(false),
-      id_(id),
-      pos_(pos),
+      upper_right_(pos),
       normal_image_(normal_image),
-      highlighted_image_(highlighted_image),
-      selection_callback_(selection_callback),
-      system_(system) {}
+      highlighted_image_(highlighted_image) {}
 
-SelectionElement::~SelectionElement() {}
-
-void SelectionElement::SetSelectionCallback(
-    const std::function<void(int)>& func) {
-  selection_callback_ = func;
-}
-
-bool SelectionElement::IsHighlighted(const Point& p) {
-  return Rect(pos_, normal_image_->GetSize()).Contains(p);
+bool SelectionElement::IsHighlightedAt(const Point& p) {
+  return Rect(upper_right_, normal_image_->GetSize()).Contains(p);
 }
 
 void SelectionElement::SetMousePosition(const Point& pos) {
-  bool start_value = is_highlighted_;
-  is_highlighted_ = IsHighlighted(pos);
-
-  if (start_value != is_highlighted_) {
-    if (is_highlighted_ && system_.sound().HasSe(0))
-      system_.sound().PlaySe(0);
+  if (!std::exchange(is_highlighted_, IsHighlightedAt(pos)) &&
+      is_highlighted_) {
+    if (on_mouseover_)
+      on_mouseover_();
   }
 }
 
 bool SelectionElement::HandleMouseClick(const Point& pos, bool pressed) {
-  if (pressed == false && IsHighlighted(pos)) {
+  if (pressed == false && IsHighlightedAt(pos)) {
     // Released within the button
     if (selection_callback_)
-      selection_callback_(id_);
+      selection_callback_();
 
     return true;
   } else {
@@ -95,5 +74,5 @@ void SelectionElement::Render() {
 
   Size s = target->GetSize();
 
-  target->RenderToScreen(Rect(Point(0, 0), s), Rect(pos_, s), 255);
+  target->RenderToScreen(Rect(Point(0, 0), s), Rect(upper_right_, s), 255);
 }
