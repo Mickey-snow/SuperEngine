@@ -54,10 +54,10 @@ struct UnaryOp {
 };  // (x) -> (result)
 
 // ––– 3. Local / global / up‑value access ––––––––––––––––––––––––––
-struct LoadLocal {
+struct LoadFast {
   uint8_t slot;
 };  // () -> (value)
-struct StoreLocal {
+struct StoreFast {
   uint8_t slot;
 };  // (value) ->
 struct LoadGlobal {
@@ -144,8 +144,8 @@ using Instruction = std::variant<Push,
                                  Pop,
                                  BinaryOp,
                                  UnaryOp,
-                                 LoadLocal,
-                                 StoreLocal,
+                                 LoadFast,
+                                 StoreFast,
                                  LoadGlobal,
                                  StoreGlobal,
                                  LoadUpvalue,
@@ -179,8 +179,8 @@ enum class OpCode : uint8_t {
   Pop,
   BinaryOp,
   UnaryOp,
-  LoadLocal,
-  StoreLocal,
+  LoadFast,
+  StoreFast,
   LoadGlobal,
   StoreGlobal,
   LoadUpvalue,
@@ -224,10 +224,10 @@ constexpr inline OpCode GetOpcode() {
     return OpCode::BinaryOp;
   else if constexpr (std::same_as<T, UnaryOp>)
     return OpCode::UnaryOp;
-  else if constexpr (std::same_as<T, LoadLocal>)
-    return OpCode::LoadLocal;
-  else if constexpr (std::same_as<T, StoreLocal>)
-    return OpCode::StoreLocal;
+  else if constexpr (std::same_as<T, LoadFast>)
+    return OpCode::LoadFast;
+  else if constexpr (std::same_as<T, StoreFast>)
+    return OpCode::StoreFast;
   else if constexpr (std::same_as<T, LoadGlobal>)
     return OpCode::LoadGlobal;
   else if constexpr (std::same_as<T, StoreGlobal>)

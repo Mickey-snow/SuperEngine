@@ -171,7 +171,7 @@ TEST_F(GCTest, MarkFibresAndClosures) {
   auto* d1 = Alloc<DummyObject>();
   auto* d2 = Alloc<DummyObject>();
   auto* d3 = Alloc<DummyObject>();
-  f->stack.emplace_back(d1);
+  f->op_stack.emplace_back(d1);
   f->completion_promise->roots.emplace_back(d2);
   fn->chunk->const_pool.emplace_back(d3);
 

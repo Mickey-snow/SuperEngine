@@ -75,26 +75,26 @@ class SrbindTest : public ::testing::Test {
       Value callee,
       const std::vector<Value>& pos = {},
       const std::vector<std::pair<std::string, Value>>& kwargs = {}) {
-    f->stack.clear();
-    f->stack.emplace_back(std::move(callee));  // callee first
+    f->op_stack.clear();
+    f->op_stack.emplace_back(std::move(callee));  // callee first
     for (auto const& v : pos)
-      f->stack.emplace_back(v);
+      f->op_stack.emplace_back(v);
     for (auto const& kv : kwargs) {
       String* str = gc->Allocate<String>(kv.first);
-      f->stack.emplace_back(str);
-      f->stack.emplace_back(kv.second);
+      f->op_stack.emplace_back(str);
+      f->op_stack.emplace_back(kv.second);
     }
     const uint8_t nargs = static_cast<uint8_t>(pos.size());
     const uint8_t nkwargs = static_cast<uint8_t>(kwargs.size());
 
     callee.Call(vm, *f, nargs, nkwargs);
-    Value ret = pop(f->stack);  // (callee) <- (retval)
-    if (!f->stack.empty()) {
+    Value ret = pop(f->op_stack);  // (callee) <- (retval)
+    if (!f->op_stack.empty()) {
       ADD_FAILURE() << "stack not empty after function call, leftovers are: "
-                    << Join(",", std::views::all(f->stack) |
+                    << Join(",", std::views::all(f->op_stack) |
                                      std::views::transform(
                                          [](Value& v) { return v.Desc(); }));
-      f->stack.clear();
+      f->op_stack.clear();
     }
     return ret;
   }

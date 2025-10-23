@@ -262,8 +262,7 @@ if(one < two){
 print(result);
 )");
 
-  ASSERT_TRUE(res.stderr.empty()) << res.stderr;
-  EXPECT_EQ(res.stdout, "3\n") << "\nDisassembly:\n" << res.disasm;
+  EXPECT_EQ(res, "3\n");
 }
 
 TEST_F(CompilerTest, VariableScope) {
@@ -280,8 +279,7 @@ a = 12;
 print(foo(), a);
 )");
 
-  ASSERT_TRUE(res.stderr.empty()) << res.stderr;
-  EXPECT_EQ(res.stdout, "14 2\n") << "\nDisassembly:\n" << res.disasm;
+  EXPECT_EQ(res, "14 2\n");
 }
 
 TEST_F(CompilerTest, While) {
@@ -292,8 +290,7 @@ while(i <= 10){ sum+=i; i+=1; }
 print(sum);
 )");
 
-  ASSERT_TRUE(res.stderr.empty()) << res.stderr;
-  EXPECT_EQ(res.stdout, "55\n") << "\nDisassembly:\n" << res.disasm;
+  EXPECT_EQ(res, "55\n");
 }
 
 TEST_F(CompilerTest, For) {
@@ -303,8 +300,7 @@ for(i=1; i<10; i+=1) fact *= i;
 print(fact);
 )");
 
-  ASSERT_TRUE(res.stderr.empty()) << res.stderr;
-  EXPECT_EQ(res.stdout, "362880\n") << "\nDisassembly:\n" << res.disasm;
+  EXPECT_EQ(res, "362880\n");
 }
 
 TEST_F(CompilerTest, Function) {

@@ -35,7 +35,8 @@ namespace serilang {
 
 expected<void, std::string> ArgumentList::Load(
     std::shared_ptr<GarbageCollector> gc,
-    std::vector<Value>& stack,
+    std::vector<std::optional<Value>>& local_stack,
+    std::vector<Value>& op_stack,
     uint8_t nargs,
     uint8_t nkwargs) const {
   using std::string_literals::operator""s;
@@ -45,28 +46,31 @@ expected<void, std::string> ArgumentList::Load(
 
   // Set up call stack:
   // (fn, pos_arg1, (nargs)..., kw1, kw_arg1, (nkwargs)...)
-  const size_t base = stack.size() - nargs - 2 * nkwargs - 1;
+  const size_t base = op_stack.size() - nargs - 2 * nkwargs - 1;
 
   // pull arguments & kwargs off the stack
   std::vector<Value> posargs(
-      std::make_move_iterator(stack.begin() + base + 1),
-      std::make_move_iterator(stack.begin() + base + 1 + nargs));
+      std::make_move_iterator(op_stack.begin() + base + 1),
+      std::make_move_iterator(op_stack.begin() + base + 1 + nargs));
   posargs.reserve(std::max<size_t>(nparam, nargs));
   std::unordered_map<std::string, Value> kwargs;
   kwargs.reserve(nkwargs);
   size_t idx = base + 1 + nargs;
   for (uint8_t i = 0; i < nkwargs; ++i) {
-    std::string k = stack[idx++].Get_if<String>()->str_;
-    Value v = std::move(stack[idx++]);
+    std::string k = op_stack[idx++].Get_if<String>()->str_;
+    Value v = std::move(op_stack[idx++]);
     kwargs.emplace(std::move(k), std::move(v));
   }
-  stack.resize(base + 1);  // leave the callee on stack
 
-  std::vector<Value> finalargs(nparam);
+  if (!local_stack.empty())
+    local_stack.front() = op_stack[base];
+  op_stack.resize(base);
+
+  auto final_args = local_stack.begin() + 1;
   std::vector<bool> assigned(nparam, false);
 
   for (size_t i = 0; i < posargs.size() && i < nparam; ++i) {
-    finalargs[i] = std::move(posargs[i]);
+    final_args[i] = std::move(posargs[i]);
     assigned[i] = true;
   }
 
@@ -83,7 +87,7 @@ expected<void, std::string> ArgumentList::Load(
       if (assigned[idx])
         return unexpected(std::format("multiple values for argument '{}'", k));
 
-      finalargs[idx] = std::move(v);
+      final_args[idx] = std::move(v);
       assigned[idx] = true;
     } else {
       extra_kwargs.emplace(k, std::move(v));
@@ -96,18 +100,20 @@ expected<void, std::string> ArgumentList::Load(
       if (it == defaults.cend())
         return unexpected("missing arguments"s);
 
-      finalargs[i] = it->second;
+      final_args[i] = it->second;
     }
   }
 
-  std::move(finalargs.begin(), finalargs.end(), std::back_inserter(stack));
+  size_t var_kw_slot = nparam;
 
   if (has_vararg) {
-    stack.emplace_back(gc->Allocate<List>(std::move(rest)));
+    List* vararg = gc->Allocate<List>(std::move(rest));
+    final_args[var_kw_slot++] = Value(vararg);
   }
 
   if (has_kwarg) {
-    stack.emplace_back(gc->Allocate<Dict>(std::move(extra_kwargs)));
+    Dict* kwarg = gc->Allocate<Dict>(std::move(extra_kwargs));
+    final_args[var_kw_slot++] = Value(kwarg);
   } else if (!extra_kwargs.empty()) {
     return unexpected("unexpected keyword argument"s);
   }
@@ -130,22 +136,25 @@ void Function::MarkRoots(GCVisitor& visitor) {
 }
 
 void Function::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
-  std::vector<Value>& stack = f.stack;
-  const size_t base = stack.size() - nargs - 2 * nkwargs - 1;
+  std::vector<Value>& op_stack = f.op_stack;
+  std::vector<std::optional<Value>> local_stack(chunk->fast_locals.size());
+
+  const size_t base = op_stack.size() - nargs - 2 * nkwargs - 1;
 
   // load arguments
-  if (auto result = arglist.Load(vm.gc_, stack, nargs, nkwargs);
+  if (auto result = arglist.Load(vm.gc_, local_stack, op_stack, nargs, nkwargs);
       !result.has_value()) {
     vm.Error(f, std::format("{}: {}", Desc(), std::move(result.error())));
     return;
   }
   // (fn, pos_arg1, ..., [var_arg], [kw_arg])
 
-  f.frames.push_back({});
+  f.frames.emplace_back();
   auto& frame = f.frames.back();
   frame.fn = this;
   frame.ip = entry;
   frame.bp = base;
+  frame.fast_locals = std::move(local_stack);
 }
 
 }  // namespace serilang

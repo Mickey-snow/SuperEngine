@@ -48,8 +48,8 @@ auto invoke_extra(serilang::VM& vm,
                   R (*)(Args...),
                   std::tuple<Extras...> extra,
                   const arglist_spec& spec) {
-  auto tup = std::tuple_cat(std::move(extra),
-                            load_args<Args...>(f.stack, nargs, nkwargs, spec));
+  auto tup = std::tuple_cat(
+      std::move(extra), load_args<Args...>(f.op_stack, nargs, nkwargs, spec));
   if constexpr (std::is_void_v<R>) {
     std::apply(std::forward<F>(fn), std::move(tup));
     return serilang::nil;

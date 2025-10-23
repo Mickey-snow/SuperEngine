@@ -101,8 +101,8 @@ sr::VM VMFactory::Create(std::shared_ptr<sr::GarbageCollector> gc,
                                           uint8_t nkwargs) -> sr::TempValue {
             if (!(nargs == 1 && nkwargs == 0))
               throw std::runtime_error("import() expects module name");
-            sr::Value argv = f.stack.back();
-            f.stack.pop_back();
+            sr::Value argv = f.op_stack.back();
+            f.op_stack.pop_back();
             std::string const& modstr = argv.Get_if<sr::String>()->str_;
             if (auto it = vm.module_cache_.find(modstr);
                 it != vm.module_cache_.end())

@@ -64,9 +64,9 @@ void Class::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
     Function* init_fn = init_it->second;
 
     // (class, args..., kwargs...)
-    auto base = f.stack.end() - nargs - 2 * nkwargs - 1;
+    auto base = f.op_stack.end() - nargs - 2 * nkwargs - 1;
     *base = Value(inst);
-    f.stack.insert(base, Value(init_fn));
+    f.op_stack.insert(base, Value(init_fn));
     // (init, inst, args..., kwargs...)
     // here, we do a manual tail-call
     init_fn->Call(vm, f, nargs + 1, nkwargs);
@@ -74,7 +74,7 @@ void Class::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
   } else {
     if (nargs != 0 || nkwargs != 0)
       throw RuntimeError(Str() + " takes no arguments");
-    f.stack.back() = Value(inst);
+    f.op_stack.back() = Value(inst);
   }
 }
 
@@ -119,14 +119,14 @@ void Instance::SetMember(std::string_view mem, Value val) {
 void Instance::GetItem(VM& vm, Fiber& f) {
   // (..., inst, idx)
 
-  Value& idx = f.stack.end()[-1];
+  Value& idx = f.op_stack.end()[-1];
   auto it = klass->memfns.find("__getitem__");
   if (it == klass->memfns.end()) {
     vm.Error(f, std::format("'{}' object has no item '{}'", Desc(), idx.Str()));
     return;
   }
 
-  f.stack.insert(f.stack.end() - 2, Value(it->second));
+  f.op_stack.insert(f.op_stack.end() - 2, Value(it->second));
   it->second->Call(vm, f, 2, 0);
   // (..., __getitem__, inst, idx) -> (..., result)
 }
@@ -140,7 +140,7 @@ void Instance::SetItem(VM& vm, Fiber& f) {
     return;
   }
 
-  f.stack.insert(f.stack.end() - 3, Value(it->second));
+  f.op_stack.insert(f.op_stack.end() - 3, Value(it->second));
   it->second->Call(vm, f, 3, 0);
   // (..., __setitem__, inst, idx, val) -> (...)
 }
@@ -162,9 +162,9 @@ void NativeClass::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
   if (init_it != methods.cend()) {
     Value init_fn = init_it->second;
 
-    auto base = f.stack.end() - nargs - 2 * nkwargs - 1;
+    auto base = f.op_stack.end() - nargs - 2 * nkwargs - 1;
     *base = Value(inst);
-    f.stack.insert(base, init_fn);
+    f.op_stack.insert(base, init_fn);
     // (__init__, inst, args, ...)
     init_fn.Call(vm, f, nargs + 1, nkwargs);
     // -> (nil)
@@ -173,7 +173,7 @@ void NativeClass::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
       throw RuntimeError(Str() + " takes no arguments");
   }
 
-  f.stack.back() = Value(inst);  // -> (inst)
+  f.op_stack.back() = Value(inst);  // -> (inst)
 }
 
 // -----------------------------------------------------------------------
@@ -227,7 +227,7 @@ void NativeInstance::SetMember(std::string_view mem, Value val) {
 }
 
 void NativeInstance::GetItem(VM& vm, Fiber& f) {
-  Value& idx = f.stack.back();
+  Value& idx = f.op_stack.back();
 
   auto lookup = [this](std::string_view name) -> std::optional<Value> {
     if (auto it = fields.find(name); it != fields.end())
@@ -243,8 +243,8 @@ void NativeInstance::GetItem(VM& vm, Fiber& f) {
     return;
   }
 
-  f.stack.insert(f.stack.end() - 2, *callee);
-  f.stack.end()[-3].Call(vm, f, 2, 0);
+  f.op_stack.insert(f.op_stack.end() - 2, *callee);
+  f.op_stack.end()[-3].Call(vm, f, 2, 0);
 }
 
 void NativeInstance::SetItem(VM& vm, Fiber& f) {
@@ -263,13 +263,13 @@ void NativeInstance::SetItem(VM& vm, Fiber& f) {
     return;
   }
 
-  f.stack.insert(f.stack.end() - 3, *callee);
-  f.stack.end()[-4].Call(vm, f, 3, 0);
+  f.op_stack.insert(f.op_stack.end() - 3, *callee);
+  f.op_stack.end()[-4].Call(vm, f, 3, 0);
 }
 
 // -----------------------------------------------------------------------
 Fiber::Fiber(size_t reserve) : state(FiberState::New) {
-  stack.reserve(reserve);
+  op_stack.reserve(reserve);
   ResetPromise();
 }
 
@@ -278,18 +278,13 @@ void Fiber::MarkRoots(GCVisitor& visitor) {
   for (IObject* it : completion_promise->roots)
     visitor.MarkSub(it);
 
-  for (auto& it : stack)
+  for (auto& it : op_stack)
     visitor.MarkSub(it);
   for (auto& it : frames)
     visitor.MarkSub(it.fn);
   for (auto& it : open_upvalues)
     if (it->location)
       visitor.MarkSub(*it->location);
-}
-
-Value* Fiber::local_slot(size_t frame_index, uint8_t slot) {
-  auto bp = frames[frame_index].bp;
-  return &stack[bp + slot];
 }
 
 std::shared_ptr<Upvalue> Fiber::capture_upvalue(Value* slot) {
@@ -321,6 +316,16 @@ std::string Fiber::Str() const { return "fiber"; }
 
 std::string Fiber::Desc() const { return "<fiber>"; }
 
+std::optional<Value>& Fiber::GetFastLocal(size_t slot) {
+  CallFrame& frame = frames.back();
+  return frame.fast_locals.at(slot);
+}
+
+std::string_view Fiber::GetFastLocalName(size_t slot) {
+  CallFrame& frame = frames.back();
+  return frame.fn->chunk->fast_locals.at(slot);
+}
+
 void Fiber::Yield(Value result) {
   if (state == FiberState::Dead)
     throw std::logic_error("Fiber: Yield from a dead fiber");
@@ -340,7 +345,7 @@ void Fiber::Kill(expected<Value, std::string> result) {
   // let the completion promise hold final result, don't reset promise here
 
   frames.clear();
-  stack.clear();
+  op_stack.clear();
 }
 
 // -----------------------------------------------------------------------
@@ -361,8 +366,8 @@ void List::MarkRoots(GCVisitor& visitor) {
 }
 
 void List::GetItem(VM& vm, Fiber& f) {
-  Value idx = std::move(f.stack.back());
-  f.stack.pop_back();
+  Value idx = std::move(f.op_stack.back());
+  f.op_stack.pop_back();
 
   auto* index_ptr = idx.Get_if<int>();
   if (!index_ptr) {
@@ -376,12 +381,13 @@ void List::GetItem(VM& vm, Fiber& f) {
     return;
   }
 
-  f.stack.back() = items[index];
+  f.op_stack.back() = items[index];
 }
 
 void List::SetItem(VM& vm, Fiber& f) {
-  Value idx = std::move(f.stack.end()[-2]), val = std::move(f.stack.end()[-1]);
-  f.stack.resize(f.stack.size() - 3);  // (list, idx, val)
+  Value idx = std::move(f.op_stack.end()[-2]),
+        val = std::move(f.op_stack.end()[-1]);
+  f.op_stack.resize(f.op_stack.size() - 3);  // (list, idx, val)
 
   auto* index_ptr = idx.Get_if<int>();
   if (!index_ptr) {
@@ -420,8 +426,8 @@ void Dict::MarkRoots(GCVisitor& visitor) {
 }
 
 void Dict::GetItem(VM& vm, Fiber& f) {
-  Value idx = std::move(f.stack.back());
-  f.stack.pop_back();
+  Value idx = std::move(f.op_stack.back());
+  f.op_stack.pop_back();
   String const* index = idx.Get_if<const String>();
   if (!index) {
     vm.Error(f, "dictionary index must be string, but got: " + idx.Desc());
@@ -434,12 +440,13 @@ void Dict::GetItem(VM& vm, Fiber& f) {
     return;
   }
 
-  f.stack.back() = it->second;
+  f.op_stack.back() = it->second;
 }
 
 void Dict::SetItem(VM& vm, Fiber& f) {
-  Value idx = std::move(f.stack.end()[-2]), val = std::move(f.stack.end()[-1]);
-  f.stack.resize(f.stack.size() - 3);  // (dict, idx, val)
+  Value idx = std::move(f.op_stack.end()[-2]),
+        val = std::move(f.op_stack.end()[-1]);
+  f.op_stack.resize(f.op_stack.size() - 3);  // (dict, idx, val)
   String const* index = idx.Get_if<const String>();
   if (!index) {
     vm.Error(f, "dictionary index must be string, but got: " + idx.Desc());
@@ -489,7 +496,7 @@ void NativeFunction::MarkRoots(GCVisitor& visitor) {}
 void NativeFunction::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
   TempValue retval = std::invoke(fn_, vm, f, nargs, nkwargs);
 
-  f.stack.back() = vm.AddTrack(std::move(retval));  // (fn) <- (retval)
+  f.op_stack.back() = vm.AddTrack(std::move(retval));  // (fn) <- (retval)
 }
 
 // -----------------------------------------------------------------------
@@ -510,10 +517,10 @@ std::string BoundMethod::Str() const { return Desc(); }
 std::string BoundMethod::Desc() const { return "<bound method>"; }
 
 void BoundMethod::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
-  size_t base = f.stack.size() - nargs - 2 * nkwargs - 1;
-  f.stack[base] = method;
-  f.stack.insert(f.stack.begin() + base + 1, additional_args.cbegin(),
-                 additional_args.cend());
+  size_t base = f.op_stack.size() - nargs - 2 * nkwargs - 1;
+  f.op_stack[base] = method;
+  f.op_stack.insert(f.op_stack.begin() + base + 1, additional_args.cbegin(),
+                    additional_args.cend());
   method.Call(vm, f, nargs + additional_args.size(), nkwargs);
 }
 

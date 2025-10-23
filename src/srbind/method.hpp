@@ -40,10 +40,10 @@ auto invoke_method_extra_impl(serilang::VM& vm,
                               R (*)(LoadArgs...),
                               std::tuple<Extra...> extras,
                               const arglist_spec& spec) -> serilang::TempValue {
-  auto tup =
-      std::tuple_cat(std::move(extras),
-                     load_args<LoadArgs...>(f.stack, nargs - 1, nkwargs, spec));
-  f.stack.pop_back();  // self
+  auto tup = std::tuple_cat(
+      std::move(extras),
+      load_args<LoadArgs...>(f.op_stack, nargs - 1, nkwargs, spec));
+  f.op_stack.pop_back();  // self
 
   if constexpr (std::is_void_v<R>) {
     std::apply(
@@ -177,7 +177,7 @@ serilang::NativeFunction* make_method(serilang::GarbageCollector* gc,
         try {
           if (nargs == 0)
             throw type_error("missing 'self'");
-          Value& selfv = f.stack.end()[-nargs - 2 * nkwargs];
+          Value& selfv = f.op_stack.end()[-nargs - 2 * nkwargs];
           T* self = type_caster<T*>::load(selfv);
           return detail::invoke_method(vm, f, nargs, nkwargs, self, method,
                                        spec);

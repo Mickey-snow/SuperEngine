@@ -88,14 +88,14 @@ ScriptDispatchResult CallMagicUnary(VM& vm,
                                     Fiber& f,
                                     Value callee,
                                     Value self) {
-  const size_t base = f.stack.size();
-  f.stack.emplace_back(std::move(callee));
-  f.stack.emplace_back(std::move(self));
+  const size_t base = f.op_stack.size();
+  f.op_stack.emplace_back(std::move(callee));
+  f.op_stack.emplace_back(std::move(self));
   try {
-    f.stack[base].Call(vm, f, 1, 0);
+    f.op_stack[base].Call(vm, f, 1, 0);
   } catch (RuntimeError& e) {
-    f.stack.resize(base);
-    push(f.stack, nil);
+    f.op_stack.resize(base);
+    push(f.op_stack, nil);
     vm.Error(f, e.message());
     return ScriptDispatchResult::Error;
   }
@@ -107,15 +107,15 @@ ScriptDispatchResult CallMagicBinary(VM& vm,
                                      Value callee,
                                      Value self,
                                      Value other) {
-  const size_t base = f.stack.size();
-  f.stack.emplace_back(std::move(callee));
-  f.stack.emplace_back(std::move(self));
-  f.stack.emplace_back(std::move(other));
+  const size_t base = f.op_stack.size();
+  f.op_stack.emplace_back(std::move(callee));
+  f.op_stack.emplace_back(std::move(self));
+  f.op_stack.emplace_back(std::move(other));
   try {
-    f.stack[base].Call(vm, f, 2, 0);
+    f.op_stack[base].Call(vm, f, 2, 0);
   } catch (RuntimeError& e) {
-    f.stack.resize(base);
-    push(f.stack, nil);
+    f.op_stack.resize(base);
+    push(f.op_stack, nil);
     vm.Error(f, e.message());
     return ScriptDispatchResult::Error;
   }
@@ -211,7 +211,7 @@ Value VM::Evaluate(Code* chunk) {
 Fiber* VM::AddFiber(Code* chunk) {
   Function* fn = gc_->Allocate<Function>(chunk);
   Fiber* fiber = gc_->Allocate<Fiber>();
-  push(fiber->stack, Value(fn));
+  push(fiber->op_stack, Value(fn));
   fn->Call(*this, *fiber, 0, 0);
   fibres_.push_back(fiber);
   scheduler_.PushTask(fiber);
@@ -291,7 +291,7 @@ Dict* VM::GetNamespace(Fiber& f) {
 }
 
 void VM::Error(Fiber& f) {
-  Value exc = pop(f.stack);
+  Value exc = pop(f.op_stack);
   while (true) {
     if (f.frames.empty()) {
       f.Kill(unexpected(exc.Str()));
@@ -302,12 +302,12 @@ void VM::Error(Fiber& f) {
     if (!fr.handlers.empty()) {
       ExceptionHandler h = std::move(fr.handlers.back());
       fr.handlers.pop_back();
-      f.stack.resize(h.stack_top);
-      push(f.stack, std::move(exc));
+      f.op_stack.resize(h.stack_top);
+      push(f.op_stack, std::move(exc));
       fr.ip = h.handler_ip;
       break;
     } else {
-      f.stack.resize(fr.bp);
+      f.op_stack.resize(fr.bp);
       f.frames.pop_back();
     }
   }
@@ -315,23 +315,23 @@ void VM::Error(Fiber& f) {
 
 void VM::Error(Fiber& f, std::string exc) {
   String* excstr = gc_->Allocate<String>(std::move(exc));
-  push(f.stack, Value(excstr));
+  push(f.op_stack, Value(excstr));
   Error(f);
 }
 
 void VM::Return(Fiber& f) {
   auto& frame = f.frames.back();
-  Value ret = f.stack.empty() ? Value() : std::move(f.stack.back());
+  Value ret = f.op_stack.empty() ? Value() : std::move(f.op_stack.back());
 
   // shrink stack to base pointer + 1 (for return value)
-  f.stack.resize(frame.bp + 1);
+  f.op_stack.resize(frame.bp + 1);
   f.frames.pop_back();
 
   if (f.frames.empty()) {
     f.Kill(ret);
   } else {
     // push return value back on stack
-    f.stack.back() = std::move(ret);
+    f.op_stack.back() = std::move(ret);
   }
 }
 
@@ -365,26 +365,26 @@ void VM::ExecuteFiber(Fiber* fib) {
       case OpCode::Push: {
         const auto ins = chunk->Read<serilang::Push>(ip);
         ip += sizeof(ins);
-        push(fib->stack, chunk->const_pool[ins.const_index]);
+        push(fib->op_stack, chunk->const_pool[ins.const_index]);
       } break;
 
       case OpCode::Dup: {
         const auto ins = chunk->Read<serilang::Dup>(ip);
         ip += sizeof(ins);
-        push(fib->stack, fib->stack.end()[-ins.top_ofs - 1]);
+        push(fib->op_stack, fib->op_stack.end()[-ins.top_ofs - 1]);
       } break;
 
       case OpCode::Swap: {
         const auto ins = chunk->Read<serilang::Swap>(ip);
         ip += sizeof(ins);
-        std::swap(fib->stack.end()[-1], fib->stack.end()[-2]);
+        std::swap(fib->op_stack.end()[-1], fib->op_stack.end()[-2]);
       } break;
 
       case OpCode::Pop: {
         const auto ins = chunk->Read<serilang::Pop>(ip);
         ip += sizeof(ins);
         for (uint8_t i = 0; i < ins.count; ++i)
-          fib->stack.pop_back();
+          fib->op_stack.pop_back();
       } break;
 
       //------------------------------------------------------------------
@@ -393,7 +393,7 @@ void VM::ExecuteFiber(Fiber* fib) {
       case OpCode::UnaryOp: {
         const auto ins = chunk->Read<serilang::UnaryOp>(ip);
         ip += sizeof(ins);
-        auto v = pop(fib->stack);
+        auto v = pop(fib->op_stack);
 
         switch (TryDispatchUnaryMagic(*this, *fib, ins.op, v)) {
           case ScriptDispatchResult::Handled:
@@ -406,7 +406,7 @@ void VM::ExecuteFiber(Fiber* fib) {
                   primops::EvaluateUnary(ins.op, v);
               if (!result)
                 throw UndefinedOperator(ins.op, {v});
-              push(fib->stack, AddTrack(std::move(*result)));
+              push(fib->op_stack, AddTrack(std::move(*result)));
 
             } catch (RuntimeError& e) {
               Error(*fib, e.message());
@@ -421,8 +421,8 @@ void VM::ExecuteFiber(Fiber* fib) {
       case OpCode::BinaryOp: {
         const auto ins = chunk->Read<serilang::BinaryOp>(ip);
         ip += sizeof(ins);
-        auto rhs = pop(fib->stack);
-        auto lhs = pop(fib->stack);
+        auto rhs = pop(fib->op_stack);
+        auto lhs = pop(fib->op_stack);
 
         switch (TryDispatchBinaryMagic(*this, *fib, ins.op, lhs, rhs)) {
           case ScriptDispatchResult::Handled:
@@ -435,7 +435,7 @@ void VM::ExecuteFiber(Fiber* fib) {
                   primops::EvaluateBinary(ins.op, lhs, rhs);
               if (!result)
                 throw UndefinedOperator(ins.op, {lhs, rhs});
-              push(fib->stack, AddTrack(std::move(*result)));
+              push(fib->op_stack, AddTrack(std::move(*result)));
             } catch (RuntimeError& e) {
               Error(*fib, e.message());
               return;
@@ -449,16 +449,24 @@ void VM::ExecuteFiber(Fiber* fib) {
       //------------------------------------------------------------------
       // 3. Locals / globals / upvalues
       //------------------------------------------------------------------
-      case OpCode::LoadLocal: {
-        const auto ins = chunk->Read<serilang::LoadLocal>(ip);
+      case OpCode::LoadFast: {
+        const auto ins = chunk->Read<serilang::LoadFast>(ip);
         ip += sizeof(ins);
-        push(fib->stack, *fib->local_slot(fib->frames.size() - 1, ins.slot));
+        std::optional<Value>& fast_local = fib->GetFastLocal(ins.slot);
+        if (!fast_local.has_value()) {
+          Error(*fib, std::format("NameError: variable {} is unbound (slot={})",
+                                  fib->GetFastLocalName(ins.slot), ins.slot));
+          return;  // switch -> LoadFast
+        }
+
+        push(fib->op_stack, fast_local.value());
       } break;
 
-      case OpCode::StoreLocal: {
-        const auto ins = chunk->Read<serilang::StoreLocal>(ip);
+      case OpCode::StoreFast: {
+        const auto ins = chunk->Read<serilang::StoreFast>(ip);
         ip += sizeof(ins);
-        *fib->local_slot(fib->frames.size() - 1, ins.slot) = pop(fib->stack);
+        std::optional<Value>& fast_local = fib->GetFastLocal(ins.slot);
+        fast_local = pop(fib->op_stack);
       } break;
 
       case OpCode::LoadGlobal: {
@@ -479,7 +487,7 @@ void VM::ExecuteFiber(Fiber* fib) {
           Error(*fib, "NameError: '" + name_str + "' is not defined");
           return;
         }
-        push(fib->stack, it->second);
+        push(fib->op_stack, it->second);
       } break;
 
       case OpCode::StoreGlobal: {
@@ -490,7 +498,7 @@ void VM::ExecuteFiber(Fiber* fib) {
             chunk->const_pool[ins.name_index].template Get_if<const String>();
         const std::string& name_str = name->str_;
 
-        Value val = pop(fib->stack);
+        Value val = pop(fib->op_stack);
 
         Dict* dst = GetNamespace(*fib);
         if (dst == nullptr)
@@ -510,7 +518,7 @@ void VM::ExecuteFiber(Fiber* fib) {
       case OpCode::JumpIfTrue: {
         const auto ins = chunk->Read<serilang::JumpIfTrue>(ip);
         ip += sizeof(ins);
-        auto cond = pop(fib->stack);
+        auto cond = pop(fib->op_stack);
         if (cond.IsTruthy())
           frame.ip += ins.offset;
       } break;
@@ -518,7 +526,7 @@ void VM::ExecuteFiber(Fiber* fib) {
       case OpCode::JumpIfFalse: {
         const auto ins = chunk->Read<serilang::JumpIfFalse>(ip);
         ip += sizeof(ins);
-        auto cond = pop(fib->stack);
+        auto cond = pop(fib->op_stack);
         if (!cond.IsTruthy())
           frame.ip += ins.offset;
       } break;
@@ -538,25 +546,25 @@ void VM::ExecuteFiber(Fiber* fib) {
         ip += sizeof(ins);
         std::unordered_map<std::string, size_t> param_index;
         param_index.reserve(ins.nparam);
-        size_t name_idx = fib->stack.size() - ins.nparam;
+        size_t name_idx = fib->op_stack.size() - ins.nparam;
         for (uint32_t i = 0; i < ins.nparam; ++i) {
-          param_index.emplace(fib->stack[name_idx + i].Get_if<String>()->str_,
-                              i);
+          param_index.emplace(
+              fib->op_stack[name_idx + i].Get_if<String>()->str_, i);
         }
-        fib->stack.resize(name_idx);
+        fib->op_stack.resize(name_idx);
 
         Code* chunk =
-            fib->stack.end()[-1 - static_cast<size_t>(ins.ndefault) * 2]
+            fib->op_stack.end()[-1 - static_cast<size_t>(ins.ndefault) * 2]
                 .Get<Code*>();
         std::unordered_map<size_t, Value> defaults;
         defaults.reserve(ins.ndefault);
-        for (size_t i = fib->stack.size() - ins.ndefault * 2;
-             i < fib->stack.size(); i += 2) {
-          std::string const& k = fib->stack[i].Get_if<String>()->str_;
-          Value v = std::move(fib->stack[i + 1]);
+        for (size_t i = fib->op_stack.size() - ins.ndefault * 2;
+             i < fib->op_stack.size(); i += 2) {
+          std::string const& k = fib->op_stack[i].Get_if<String>()->str_;
+          Value v = std::move(fib->op_stack[i + 1]);
           defaults.emplace(param_index.at(k), std::move(v));
         }
-        fib->stack.resize(fib->stack.size() - ins.ndefault * 2);
+        fib->op_stack.resize(fib->op_stack.size() - ins.ndefault * 2);
 
         Function* fn = gc_->Allocate<Function>(chunk);
         ArgumentList& fnargs = fn->arglist;
@@ -568,15 +576,15 @@ void VM::ExecuteFiber(Fiber* fib) {
         fnargs.has_vararg = ins.has_vararg;
         fnargs.has_kwarg = ins.has_kwarg;
 
-        fib->stack.back() = Value(fn);
+        fib->op_stack.back() = Value(fn);
       } break;
 
       case OpCode::Call: {
         const auto ins = chunk->Read<serilang::Call>(ip);
         ip += sizeof(ins);
         Value& callee =
-            fib->stack.end()[-static_cast<size_t>(ins.argcnt) -
-                             2 * static_cast<size_t>(ins.kwargcnt) - 1];
+            fib->op_stack.end()[-static_cast<size_t>(ins.argcnt) -
+                                2 * static_cast<size_t>(ins.kwargcnt) - 1];
         try {
           callee.Call(*this, *fib, ins.argcnt, ins.kwargcnt);
         } catch (RuntimeError& e) {
@@ -592,24 +600,24 @@ void VM::ExecuteFiber(Fiber* fib) {
         const auto ins = chunk->Read<serilang::MakeList>(ip);
         ip += sizeof(ins);
         std::vector<Value> elms(
-            std::make_move_iterator(fib->stack.end() - ins.nelms),
-            std::make_move_iterator(fib->stack.end()));
-        fib->stack.resize(fib->stack.size() - ins.nelms);
-        fib->stack.emplace_back(gc_->Allocate<List>(std::move(elms)));
+            std::make_move_iterator(fib->op_stack.end() - ins.nelms),
+            std::make_move_iterator(fib->op_stack.end()));
+        fib->op_stack.resize(fib->op_stack.size() - ins.nelms);
+        fib->op_stack.emplace_back(gc_->Allocate<List>(std::move(elms)));
       } break;
 
       case OpCode::MakeDict: {
         const auto ins = chunk->Read<serilang::MakeDict>(ip);
         ip += sizeof(ins);
         std::unordered_map<std::string, Value> elms;
-        for (size_t i = fib->stack.size() - 2 * ins.nelms;
-             i < fib->stack.size(); i += 2) {
-          std::string key = fib->stack[i].Get_if<String>()->str_;
-          Value val = std::move(fib->stack[i + 1]);
+        for (size_t i = fib->op_stack.size() - 2 * ins.nelms;
+             i < fib->op_stack.size(); i += 2) {
+          std::string key = fib->op_stack[i].Get_if<String>()->str_;
+          Value val = std::move(fib->op_stack[i + 1]);
           elms.try_emplace(std::move(key), std::move(val));
         }
-        fib->stack.resize(fib->stack.size() - 2 * ins.nelms);
-        fib->stack.emplace_back(gc_->Allocate<Dict>(std::move(elms)));
+        fib->op_stack.resize(fib->op_stack.size() - 2 * ins.nelms);
+        fib->op_stack.emplace_back(gc_->Allocate<Dict>(std::move(elms)));
       } break;
 
       case OpCode::MakeClass: {
@@ -618,42 +626,42 @@ void VM::ExecuteFiber(Fiber* fib) {
         auto klass = gc_->Allocate<Class>();
         klass->name = chunk->const_pool[ins.name_index].Get_if<String>()->str_;
         for (int i = 0; i < ins.nstaticfn; i++) {
-          Function* fn = pop(fib->stack).template Get<Function*>();
-          std::string name = pop(fib->stack).Get_if<String>()->str_;
+          Function* fn = pop(fib->op_stack).template Get<Function*>();
+          std::string name = pop(fib->op_stack).Get_if<String>()->str_;
           klass->fields.try_emplace(std::move(name), fn);
         }
         for (int i = 0; i < ins.nmemfn; i++) {
-          Function* fn = pop(fib->stack).template Get<Function*>();
-          std::string name = pop(fib->stack).Get_if<String>()->str_;
+          Function* fn = pop(fib->op_stack).template Get<Function*>();
+          std::string name = pop(fib->op_stack).Get_if<String>()->str_;
           klass->memfns.try_emplace(std::move(name), fn);
         }
 
-        push(fib->stack, Value(klass));
+        push(fib->op_stack, Value(klass));
       } break;
 
       case OpCode::GetField: {
         const auto ins = chunk->Read<serilang::GetField>(ip);
         ip += sizeof(ins);
-        Value receiver = pop(fib->stack);
+        Value receiver = pop(fib->op_stack);
         const std::string& name =
             chunk->const_pool[ins.name_index].Get_if<String>()->str_;
         TempValue result = nil;
         try {
           result = receiver.Member(name);
         } catch (RuntimeError& e) {
-          push(fib->stack, nil);
+          push(fib->op_stack, nil);
           Error(*fib, e.message());
           return;
         }
 
-        push(fib->stack, AddTrack(std::move(result)));
+        push(fib->op_stack, AddTrack(std::move(result)));
       } break;
 
       case OpCode::SetField: {
         const auto ins = chunk->Read<serilang::SetField>(ip);
         ip += sizeof(ins);
-        Value val = pop(fib->stack);
-        Value receiver = pop(fib->stack);
+        Value val = pop(fib->op_stack);
+        Value receiver = pop(fib->op_stack);
         std::string const& name =
             chunk->const_pool[ins.name_index].Get_if<String>()->str_;
         try {
@@ -668,14 +676,14 @@ void VM::ExecuteFiber(Fiber* fib) {
         const auto ins = chunk->Read<serilang::GetItem>(ip);
         ip += sizeof(ins);
 
-        Value& receiver = fib->stack.end()[-2];
+        Value& receiver = fib->op_stack.end()[-2];
         receiver.GetItem(*this, *fib);
       } break;
       case OpCode::SetItem: {
         const auto ins = chunk->Read<serilang::SetItem>(ip);
         ip += sizeof(ins);
 
-        Value& receiver = fib->stack.end()[-3];
+        Value& receiver = fib->op_stack.end()[-3];
         receiver.SetItem(*this, *fib);
       } break;
 
@@ -685,18 +693,18 @@ void VM::ExecuteFiber(Fiber* fib) {
       case OpCode::MakeFiber: {
         const auto ins = chunk->Read<serilang::MakeFiber>(ip);
         ip += sizeof(ins);
-        size_t base = fib->stack.size() - ins.argcnt - 2 * ins.kwargcnt - 1;
-        Value fn = fib->stack[base];
+        size_t base = fib->op_stack.size() - ins.argcnt - 2 * ins.kwargcnt - 1;
+        Value fn = fib->op_stack[base];
 
         Fiber* f = gc_->Allocate<Fiber>(/*reserve=*/16 + ins.argcnt +
                                         2 * ins.kwargcnt);
-        std::move(fib->stack.begin() + base, fib->stack.end(),
-                  std::back_inserter(f->stack));
-        fib->stack.resize(base);
+        std::move(fib->op_stack.begin() + base, fib->op_stack.end(),
+                  std::back_inserter(f->op_stack));
+        fib->op_stack.resize(base);
 
         fn.Call(*this, *f, ins.argcnt, ins.kwargcnt);
 
-        push(fib->stack, Value(f));
+        push(fib->op_stack, Value(f));
         fibres_.push_back(f);
         scheduler_.PushTask(f);
       } break;
@@ -705,13 +713,13 @@ void VM::ExecuteFiber(Fiber* fib) {
         const auto ins = chunk->Read<serilang::Await>(ip);
         ip += sizeof(ins);
         Value awaiter(fib);
-        Value awaited = pop(fib->stack);
+        Value awaited = pop(fib->op_stack);
 
         fib->state = FiberState::Suspended;
         auto cb = [vm = this, fib, awaited_fib = awaited.Get_if<Fiber>()](
                       const expected<Value, std::string>& result) {
           if (result.has_value())
-            push(fib->stack, result.value());
+            push(fib->op_stack, result.value());
           else
             vm->Error(*fib, result.error());
           vm->scheduler_.PushMicroTask(fib);
@@ -730,7 +738,7 @@ void VM::ExecuteFiber(Fiber* fib) {
         const auto ins = chunk->Read<serilang::Yield>(ip);
         ip += sizeof(ins);
 
-        Value val = pop(fib->stack);
+        Value val = pop(fib->op_stack);
         fib->Yield(std::move(val));
       }
         return;  // switch -> yield
@@ -750,7 +758,7 @@ void VM::ExecuteFiber(Fiber* fib) {
         ip += sizeof(ins);
         frame.handlers.push_back(
             {static_cast<uint32_t>(ip + ins.handler_rel_ofs),
-             fib->stack.size()});
+             fib->op_stack.size()});
       } break;
 
       case OpCode::TryEnd: {

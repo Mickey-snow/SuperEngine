@@ -130,12 +130,13 @@ void CodeGenerator::emit_store_var(const std::string& id) {
     return;
   }
 
-  if (auto slot = resolve_local(id); slot.has_value()) {
-    emit(sr::StoreLocal{static_cast<uint8_t>(*slot)});
-  } else {
-    slot = add_local(id);
-    // No StoreLocal here because stack top is current slot
-  }
+  uint8_t slot;
+  if (auto local_slot = resolve_local(id))
+    slot = static_cast<uint8_t>(*local_slot);
+  else
+    slot = static_cast<uint8_t>(add_local(id));
+
+  emit(sr::StoreFast{slot});
 }
 
 void CodeGenerator::emit_load_var(std::string_view id) {
@@ -145,7 +146,7 @@ void CodeGenerator::emit_load_var(std::string_view id) {
   }
 
   if (auto slot = resolve_local(id)) {
-    emit(sr::LoadLocal{static_cast<uint8_t>(*slot)});
+    emit(sr::LoadFast{static_cast<uint8_t>(*slot)});
   } else {
     emit(sr::LoadGlobal{intern_name(id)});
   }
@@ -164,6 +165,7 @@ std::optional<std::size_t> CodeGenerator::resolve_local(
 
 std::size_t CodeGenerator::add_local(const std::string& id) {
   locals_[id] = local_depth_;
+  chunk_->fast_locals.emplace_back(id);
   return local_depth_++;
 }
 
@@ -447,7 +449,7 @@ void CodeGenerator::emit_return(std::shared_ptr<ExprAST> expr) {
   if (mode_ == CompileMode::Ctor) {
     if (expr)
       AddError("Can't return a value from __init__");
-    emit(sr::LoadLocal{.slot = 1});  // 'self'
+    emit(sr::LoadFast{.slot = 1});  // 'self'
     emit(sr::Return{});
   } else if (mode_ != CompileMode::Function) {
     AddError("'return' outside function");

@@ -44,10 +44,12 @@ struct ArgumentList {
   bool has_vararg = false;
   bool has_kwarg = false;
 
-  expected<void, std::string> Load(std::shared_ptr<GarbageCollector> gc,
-                                   std::vector<Value>& stack,
-                                   uint8_t nargs,
-                                   uint8_t nkwargs) const;
+  expected<void, std::string> Load(
+      std::shared_ptr<GarbageCollector> gc,
+      std::vector<std::optional<Value>>& local_stack,
+      std::vector<Value>& op_stack,
+      uint8_t nargs,
+      uint8_t nkwargs) const;
 };
 
 struct Function : public IObject {

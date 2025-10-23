@@ -98,13 +98,14 @@ TEST_F(VMTest, DupAndSwap) {
   EXPECT_EQ(out, 4.0);
 }
 
-TEST_F(VMTest, StoreLoadLocal) {
+TEST_F(VMTest, StoreLoadFast) {
   auto* chunk = gc->Allocate<Code>();
   chunk->const_pool = value_vector(42.0);
+  chunk->fast_locals = {"local0"};
 
   // bootstrap main-closure: we need one local slot
   //   local0 = 42;  return local0;
-  append_ins(chunk, {Push{0}, StoreLocal{0}, LoadLocal{0}, Return{}});
+  append_ins(chunk, {Push{0}, StoreFast{0}, LoadFast{0}, Return{}});
 
   Value out = run_and_get(chunk);
   EXPECT_EQ(out, 42.0);
@@ -166,8 +167,8 @@ TEST_F(VMTest, CallNative) {
         ++call_count;
         EXPECT_EQ(nargs, 2);
         EXPECT_EQ(nkwargs, 0);
-        std::vector<Value> args(f.stack.end() - 2, f.stack.end());
-        f.stack.resize(f.stack.size() - 2);
+        std::vector<Value> args(f.op_stack.end() - 2, f.op_stack.end());
+        f.op_stack.resize(f.op_stack.size() - 2);
         EXPECT_EQ(args[0], 1);
         EXPECT_EQ(args[1], "foo");
         return Value();
@@ -254,7 +255,8 @@ TEST_F(VMTest, SpawnFiber) {
 TEST_F(VMTest, AwaitFiber) {
   Code* print_code = gc->Allocate<Code>();
   print_code->const_pool = value_vector("print", std::monostate());
-  append_ins(print_code, {Push{1}, Yield{}, LoadLocal{1},
+  print_code->fast_locals = {"fn", "val"};
+  append_ins(print_code, {Push{1}, Yield{}, LoadFast{1},
                           Return{}});  // yield nil; return arg0;
   Function* print_fn = gc->Allocate<Function>(print_code);
   print_fn->arglist.nparam = 1;
@@ -278,7 +280,8 @@ TEST_F(VMTest, AwaitFiber) {
 TEST_F(VMTest, FunctionGlobal) {
   Code* code = gc->Allocate<Code>();
   code->const_pool = value_vector("one");
-  append_ins(code, {LoadLocal{1}, LoadGlobal{0}, BinaryOp(Op::Add), Return{}});
+  code->fast_locals = {"fn", "arg1"};
+  append_ins(code, {LoadFast{1}, LoadGlobal{0}, BinaryOp(Op::Add), Return{}});
   Function* fn = gc->Allocate<Function>(code);
   fn->arglist.nparam = 1;
   fn->globals = gc->Allocate<Dict>(
@@ -305,13 +308,14 @@ TEST_F(VMTest, FunctionGlobal) {
 TEST_F(VMTest, Exception) {
   Code* code = gc->Allocate<Code>();
   code->const_pool = value_vector(1, 2);
+  code->fast_locals = {"unused", "error_handle"};
   append_ins(code, {Push(1),
                     // 5: try
                     TryBegin(19), Push(1), Push(0), Throw(), TryEnd(), Jump(2),
                     // 29: handle
-                    StoreLocal(1),
+                    StoreFast(1),
                     // 31: return local #1
-                    LoadLocal(1), Return()});
+                    LoadFast(1), Return()});
 
   Value result = run_and_get(code);
   EXPECT_EQ(result.Desc(), "<int: 1>");

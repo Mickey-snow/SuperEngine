@@ -63,11 +63,11 @@ class StringMethod : public IObject {
       return;
     }
 
-    const size_t base = f.stack.size() - nargs - 2 * nkwargs - 1;
+    const size_t base = f.op_stack.size() - nargs - 2 * nkwargs - 1;
 
     auto read_int = [&](size_t offset,
                         std::string_view what) -> std::optional<int> {
-      Value& v = f.stack[base + 1 + offset];
+      Value& v = f.op_stack[base + 1 + offset];
       if (auto* iv = v.Get_if<int>())
         return *iv;
       vm.Error(f,
@@ -180,15 +180,15 @@ class StringMethod : public IObject {
                    std::format("str.len expects no argument, got {}", nargs));
           return;
         }
-        f.stack.resize(base + 1);
-        f.stack.back() = Value(static_cast<int>(self_->str_.length()));
+        f.op_stack.resize(base + 1);
+        f.op_stack.back() = Value(static_cast<int>(self_->str_.length()));
         return;
       }
     }
 
-    f.stack.resize(base + 1);
+    f.op_stack.resize(base + 1);
     String* str = vm.gc_->Allocate<String>(std::move(result));
-    f.stack.back() = Value(str);
+    f.op_stack.back() = Value(str);
   }
 
  private:
@@ -228,8 +228,8 @@ TempValue String::Member(std::string_view mem) {
 }
 
 void String::GetItem(VM& vm, Fiber& f) {
-  Value idx_val = std::move(f.stack.back());
-  f.stack.pop_back();
+  Value idx_val = std::move(f.op_stack.back());
+  f.op_stack.pop_back();
 
   auto* idx_ptr = idx_val.Get_if<int>();
   if (!idx_ptr) {
@@ -246,7 +246,7 @@ void String::GetItem(VM& vm, Fiber& f) {
 
   String* result =
       vm.gc_->Allocate<String>(str_.substr(static_cast<size_t>(index), 1));
-  f.stack.back() = Value(result);
+  f.op_stack.back() = Value(result);
 }
 
 std::string String::Str() const { return str_; }

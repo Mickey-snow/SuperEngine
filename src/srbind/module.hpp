@@ -145,12 +145,12 @@ class class_ {
           try {
             if (nargs < 1)
               throw type_error("missing 'self'");
-            Value selfv = std::move(f.stack.end()[-nargs - 2 * nkwargs]);
+            Value selfv = std::move(f.op_stack.end()[-nargs - 2 * nkwargs]);
             auto* self = selfv.Get_if<serilang::NativeInstance>();
             if (!self)
               throw type_error("self is not a native instance");
-            auto tup = load_args<Args...>(f.stack, nargs - 1, nkwargs, spec);
-            f.stack.pop_back();  // self
+            auto tup = load_args<Args...>(f.op_stack, nargs - 1, nkwargs, spec);
+            f.op_stack.pop_back();  // self
 
             if (self->foreign)
               throw type_error("__init__ called twice");
@@ -185,7 +185,7 @@ class class_ {
           try {
             if (nargs < 1)
               throw type_error("missing 'self'");
-            Value selfv = std::move(fib.stack.end()[-nargs - 2 * nkwargs]);
+            Value selfv = std::move(fib.op_stack.end()[-nargs - 2 * nkwargs]);
             auto* self = selfv.Get_if<serilang::NativeInstance>();
             if (!self)
               throw type_error("self is not a native instance");
@@ -194,7 +194,7 @@ class class_ {
 
             auto r =
                 detail::invoke_free(vm, fib, nargs - 1, nkwargs, factory, spec);
-            fib.stack.pop_back();  // self
+            fib.op_stack.pop_back();  // self
             T* raw = detail::convert_factory_return<T>(std::move(r));
             if (!raw)
               throw type_error("factory returned null");

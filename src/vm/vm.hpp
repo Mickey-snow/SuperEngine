@@ -69,9 +69,9 @@ class VM {
   // Returns the last dead fiber's result if any.
   Value Run();
 
-  /// Pop an exception from f.stack and unwind to the nearest handler.
+  /// Pop an exception from f.op_stack and unwind to the nearest handler.
   void Error(Fiber& f);
-  /// Push exc onto f.stack, then unwind to the nearest handler.
+  /// Push exc onto f.op_stack, then unwind to the nearest handler.
   void Error(Fiber& f, std::string exc);
 
   // REPL support: execute a single chunk, preserving VM state (globals, etc.)

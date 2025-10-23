@@ -24,8 +24,11 @@
 
 #pragma once
 
+#include "vm/value.hpp"
+
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 namespace serilang {
@@ -42,6 +45,7 @@ struct CallFrame {
   uint32_t ip = 0;  // index into chunk->code
   size_t bp = 0;    // base pointer into fiber stack
   std::vector<ExceptionHandler> handlers;
+  std::vector<std::optional<Value>> fast_locals;
 };
 
 }  // namespace serilang

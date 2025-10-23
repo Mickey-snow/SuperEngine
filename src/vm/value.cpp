@@ -188,7 +188,7 @@ void Value::GetItem(VM& vm, Fiber& f) {
 
         else
           vm.Error(f, std::format("'{}' object has no item '{}'", Desc(),
-                                  f.stack.back().Str()));
+                                  f.op_stack.back().Str()));
       },
       val_);
 }

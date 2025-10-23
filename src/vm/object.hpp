@@ -50,6 +50,7 @@ struct Code final : public IObject {
 
   std::vector<std::byte> code;
   std::vector<Value> const_pool;
+  std::vector<std::string> fast_locals;
 
   void MarkRoots(GCVisitor& visitor) final;
 
@@ -208,7 +209,7 @@ struct Fiber : public IObject {
 
   explicit Fiber(size_t reserve = 64);
 
-  std::vector<Value> stack;
+  std::vector<Value> op_stack;
   std::vector<CallFrame> frames;
   FiberState state;
 
@@ -216,7 +217,6 @@ struct Fiber : public IObject {
   std::shared_ptr<Promise> completion_promise;
 
   std::vector<std::shared_ptr<Upvalue>> open_upvalues;
-  Value* local_slot(size_t frame_index, uint8_t slot);
   std::shared_ptr<Upvalue> capture_upvalue(Value* slot);
   void close_upvalues_from(Value* from);
 
@@ -227,6 +227,9 @@ struct Fiber : public IObject {
 
   std::string Str() const override;
   std::string Desc() const override;
+
+  std::optional<Value>& GetFastLocal(size_t slot);
+  std::string_view GetFastLocalName(size_t slot);
 
   inline bool IsRunning() const {
     return state == FiberState::Running && !frames.empty();

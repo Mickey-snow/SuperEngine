@@ -109,17 +109,19 @@ void Disassembler::PrintIns(Code& chunk,
     } break;
 
       // ── 3. locals / globals / up-values ─────────────────────
-    case OpCode::LoadLocal: {
-      const auto ins = chunk.Read<LoadLocal>(ip);
+    case OpCode::LoadFast: {
+      const auto ins = chunk.Read<LoadFast>(ip);
       ip += sizeof(ins);
-      emit_mnemonic("LD_LOCAL");
+      emit_mnemonic("LD_FAST");
       emit_operand(+ins.slot);
+      out_ << "  ; " << chunk.fast_locals.at(ins.slot);
     } break;
-    case OpCode::StoreLocal: {
-      const auto ins = chunk.Read<StoreLocal>(ip);
+    case OpCode::StoreFast: {
+      const auto ins = chunk.Read<StoreFast>(ip);
       ip += sizeof(ins);
-      emit_mnemonic("ST_LOCAL");
+      emit_mnemonic("ST_FAST");
       emit_operand(+ins.slot);
+      out_ << "  ; " << chunk.fast_locals.at(ins.slot);
     } break;
     case OpCode::LoadGlobal: {
       const auto ins = chunk.Read<LoadGlobal>(ip);
