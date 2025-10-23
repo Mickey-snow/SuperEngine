@@ -273,8 +273,6 @@ Fiber::Fiber(size_t reserve) : state(FiberState::New) {
 }
 
 void Fiber::MarkRoots(GCVisitor& visitor) {
-  if (pending_result.has_value())
-    visitor.MarkSub(*pending_result);
   // mark completion promise's payload
   for (IObject* it : completion_promise->roots)
     visitor.MarkSub(it);
@@ -322,7 +320,27 @@ std::string Fiber::Str() const { return "fiber"; }
 
 std::string Fiber::Desc() const { return "<fiber>"; }
 
-void Fiber::ResetPromise() { completion_promise = std::make_shared<Promise>(); }
+void Fiber::Yield(Value result) {
+  if (state == FiberState::Dead)
+    throw std::logic_error("Fiber: Yield from a dead fiber");
+
+  completion_promise->Resolve(std::move(result));
+  ResetPromise();
+
+  state = FiberState::Suspended;
+}
+
+void Fiber::Kill(expected<Value, std::string> result) {
+  if (state == FiberState::Dead)
+    throw std::logic_error("Fiber: Killing a dead fiber");
+
+  state = FiberState::Dead;
+  completion_promise->Provide(std::move(result));
+  // let the completion promise hold final result, don't reset promise here
+
+  frames.clear();
+  stack.clear();
+}
 
 // -----------------------------------------------------------------------
 std::string List::Str() const {

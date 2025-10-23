@@ -27,8 +27,7 @@
 #include "vm/gc.hpp"
 #include "vm/vm.hpp"
 
-#include <istream>
-#include <ostream>
+#include <iostream>
 
 namespace m6 {
 

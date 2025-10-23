@@ -30,7 +30,6 @@
 #include "srbind/module.hpp"
 #include "utilities/string_utilities.hpp"
 #include "vm/disassembler.hpp"
-#include "vm/object.hpp"
 #include "vm/value.hpp"
 
 #include <filesystem>
@@ -859,6 +858,57 @@ try{
 print(result);
 )");
     EXPECT_EQ(res, "2\n");
+  }
+}
+
+TEST_F(CompilerTest, AsyncErrorPropagation) {
+  {
+    auto res = Run(R"(
+fn nilAfter(t){ return await async.Sleep(t); }
+fn errAfter(t){ await async.Sleep(t); throw t; }
+first = spawn nilAfter(10);
+second = spawn nilAfter(5);
+thrid = spawn errAfter(5);
+)");  // main fiber ends immediately, last fiber returns nil after 10ms
+    // vm must report the fiber that throws
+    EXPECT_EQ(res, error("5"));
+  }
+
+  {
+    auto res = Run(R"(
+fn errAfter(t){ await async.Sleep(t); throw t; }
+fn foo(){
+  return await async.Race(async.Sleep(5, "ok"), spawn errAfter(20));
+}
+print(foo());
+)");
+    EXPECT_EQ(res, "ok");
+  }
+
+  {
+    auto res = Run(R"(
+fn errAfter(t){ await async.Sleep(t); throw t; }
+try{
+  f = spawn errAfter(15);
+  await f;
+} catch(e) { print("first:", e); }
+try{ await f; }
+catch(e){ print("second:", e); }
+)");
+    EXPECT_EQ(res, "first: 15\nsecond: 15");
+  }
+
+  {
+    auto res = Run(R"(
+fn foo(){
+  yield "first, yield value";
+  throw "error on resume";
+}
+f = spawn foo();
+await async.Sleep(1);
+kFirstYieldValue = await f;
+)");  // first await should push foo through yield statement and make it throw
+    EXPECT_EQ(res, error("error on resume"));
   }
 }
 

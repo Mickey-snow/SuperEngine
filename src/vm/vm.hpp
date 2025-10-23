@@ -29,10 +29,9 @@
 #include "vm/scheduler.hpp"
 #include "vm/value.hpp"
 
-#include <chrono>
 #include <functional>
-#include <iostream>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -52,6 +51,10 @@ inline void push(std::vector<Value>& stack, Value v) {
   stack.emplace_back(std::move(v));
 }
 }  // namespace helper
+
+struct UnhandledError : public std::runtime_error {
+  using std::runtime_error::runtime_error;
+};
 
 class VM {
  public:
@@ -94,7 +97,7 @@ class VM {
 
   Fiber* main_fiber_ = nullptr;
   std::vector<Fiber*> fibres_;
-  Value last_;  // last fiber's return value
+  Value last_ = nil;  // last fiber's return value
 
   Dict *globals_, *builtins_;
   std::unordered_map<std::string, Module*> module_cache_;

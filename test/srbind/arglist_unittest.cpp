@@ -28,7 +28,7 @@
 
 namespace serilang {
 class VM;
-struct Fiber;
+class Fiber;
 }  // namespace serilang
 
 namespace srbind_test {

@@ -205,18 +205,16 @@ struct Upvalue;
 struct Fiber : public IObject {
   static constexpr inline ObjType objtype = ObjType::Fiber;
 
+  explicit Fiber(size_t reserve = 64);
+
   std::vector<Value> stack;
   std::vector<CallFrame> frames;
   FiberState state;
-  std::optional<Value> pending_result = std::nullopt;
-
-  std::vector<std::shared_ptr<Upvalue>> open_upvalues;
 
   // Internal promise that represents this fiber's completion.
   std::shared_ptr<Promise> completion_promise;
 
-  explicit Fiber(size_t reserve = 64);
-
+  std::vector<std::shared_ptr<Upvalue>> open_upvalues;
   Value* local_slot(size_t frame_index, uint8_t slot);
   std::shared_ptr<Upvalue> capture_upvalue(Value* slot);
   void close_upvalues_from(Value* from);
@@ -232,7 +230,13 @@ struct Fiber : public IObject {
   inline bool IsRunning() const {
     return state == FiberState::Running && !frames.empty();
   }
-  void ResetPromise();
+
+  void Yield(Value result);
+  void Kill(expected<Value, std::string> result);
+
+  inline void ResetPromise() {
+    completion_promise = std::make_shared<Promise>();
+  }
 };
 
 struct List : public IObject {

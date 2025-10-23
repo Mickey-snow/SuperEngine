@@ -28,9 +28,7 @@
 #include "vm/promise.hpp"
 #include "vm/value.hpp"
 
-#include <functional>
 #include <memory>
-#include <optional>
 #include <string>
 #include <vector>
 

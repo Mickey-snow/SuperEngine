@@ -199,8 +199,8 @@ TEST_F(VMTest, MultipleFibres) {
 
   EXPECT_EQ(f1->state, FiberState::Dead);
   EXPECT_EQ(f2->state, FiberState::Dead);
-  EXPECT_EQ(f1->pending_result, 1);
-  EXPECT_EQ(f2->pending_result, 9);
+  EXPECT_EQ(f1->completion_promise->result->value(), 1);
+  EXPECT_EQ(f2->completion_promise->result->value(), 9);
 }
 
 TEST_F(VMTest, YieldFiber) {
@@ -208,21 +208,24 @@ TEST_F(VMTest, YieldFiber) {
   chunk->const_pool = value_vector(1, 2, 3);
   append_ins(chunk, {Push(0), Yield{}, Push(1), Yield{}, Push(2), Return{}});
   Fiber* f = vm.AddFiber(chunk);
+  std::shared_ptr<Promise> promise = f->completion_promise;
 
   vm.scheduler_.PushTask(f);
   std::ignore = vm.Run();
   EXPECT_EQ(f->state, FiberState::Suspended);
-  EXPECT_EQ(f->pending_result, 1);
+  EXPECT_EQ(promise->result->value(), 1);
 
+  promise = f->completion_promise;
   vm.scheduler_.PushTask(f);
   std::ignore = vm.Run();
   EXPECT_EQ(f->state, FiberState::Suspended);
-  EXPECT_EQ(f->pending_result, 2);
+  EXPECT_EQ(promise->result->value(), 2);
 
+  promise = f->completion_promise;
   vm.scheduler_.PushTask(f);
   std::ignore = vm.Run();
   EXPECT_EQ(f->state, FiberState::Dead);
-  EXPECT_EQ(f->pending_result, 3);
+  EXPECT_EQ(promise->result->value(), 3);
 }
 
 TEST_F(VMTest, SpawnFiber) {

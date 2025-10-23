@@ -40,14 +40,16 @@ struct GCVisitor;
 class IObject;
 
 // Fibres are awaitable handles; Promises are hidden internal machinery
-struct Promise {
+class Promise {
+ public:
+  Promise() = default;
+
   enum class Status { New, Pending, Resolved, Rejected };
   Status status = Status::New;
 
   // note: result.has_value() -> has result or exception
   // result->has_value() -> has result
   std::optional<expected<Value, std::string>> result = std::nullopt;
-  std::vector<std::function<void(const expected<Value, std::string>&)>> wakers;
 
   std::vector<IObject*> roots;
   std::vector<std::any> usrdata;
@@ -65,10 +67,23 @@ struct Promise {
     return status == Status::Rejected || status == Status::Resolved;
   }
 
-  void Reset(Fiber* fiber);
+  using waker_t = std::function<void(const expected<Value, std::string>&)>;
+  auto AddWaker(waker_t waker) -> bool /* is_pending */;
   void WakeAll();
+  inline std::size_t GetWakeCount() const { return wake_count_; }
+
   void Resolve(Value value);
   void Reject(std::string msg);
+  inline void Provide(expected<Value, std::string> result_or_error) {
+    if (result_or_error.has_value())
+      Resolve(std::move(result_or_error.value()));
+    else
+      Reject(std::move(result_or_error.error()));
+  }
+
+ private:
+  std::vector<waker_t> wakers_;
+  std::size_t wake_count_ = 0;
 };
 
 // helper to get promise from awaited value

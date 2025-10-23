@@ -24,9 +24,8 @@
 
 #include "vm/vm.hpp"
 
-#include "m6/compiler_pipeline.hpp"
 #include "machine/op.hpp"
-#include "utilities/string_utilities.hpp"
+#include "utilities/expected.hpp"
 #include "vm/call_frame.hpp"
 #include "vm/future.hpp"
 #include "vm/gc.hpp"
@@ -36,13 +35,10 @@
 #include "vm/primops.hpp"
 #include "vm/promise.hpp"
 #include "vm/string.hpp"
-#include "vm/upvalue.hpp"
 #include "vm/value.hpp"
 
 #include <algorithm>
 #include <cassert>
-#include <chrono>
-#include <fstream>
 #include <iterator>
 #include <memory>
 #include <optional>
@@ -253,10 +249,8 @@ Value VM::Run() {
         try {
           ExecuteFiber(next);
         } catch (const RuntimeError& e) {
-          // Uncaught exception terminates fiber; reject its promise.
-          next->completion_promise->Reject(e.message());
-          next->ResetPromise();
-          next->state = FiberState::Dead;
+          // Uncaught exception terminates fiber
+          next->Kill(unexpected(e.message()));
         }
 
         // If still running and not finished, requeue for fairness.
@@ -298,8 +292,10 @@ Dict* VM::GetNamespace(Fiber& f) {
 void VM::Error(Fiber& f) {
   Value exc = pop(f.stack);
   while (true) {
-    if (f.frames.empty())
-      throw RuntimeError(exc.Str());
+    if (f.frames.empty()) {
+      f.Kill(unexpected(exc.Str()));
+      return;
+    }
 
     CallFrame& fr = f.frames.back();
     if (!fr.handlers.empty()) {
@@ -331,13 +327,7 @@ void VM::Return(Fiber& f) {
   f.frames.pop_back();
 
   if (f.frames.empty()) {
-    // fiber finished
-    f.state = FiberState::Dead;
-
-    // Resolve completion promise
-    f.completion_promise->Resolve(ret);
-    f.pending_result = std::move(ret);
-    f.ResetPromise();
+    f.Kill(ret);
   } else {
     // push return value back on stack
     f.stack.back() = std::move(ret);
@@ -350,6 +340,7 @@ void VM::Return(Fiber& f) {
 
 void VM::ExecuteFiber(Fiber* fib) {
   fib->state = FiberState::Running;
+
   while (!fib->frames.empty()) {
     auto& frame = fib->frames.back();
     auto* chunk = frame.fn->chunk;
@@ -697,7 +688,6 @@ void VM::ExecuteFiber(Fiber* fib) {
 
         Fiber* f = gc_->Allocate<Fiber>(/*reserve=*/16 + ins.argcnt +
                                         2 * ins.kwargcnt);
-        f->ResetPromise();
         std::move(fib->stack.begin() + base, fib->stack.end(),
                   std::back_inserter(f->stack));
         fib->stack.resize(base);
@@ -716,13 +706,16 @@ void VM::ExecuteFiber(Fiber* fib) {
         Value awaited = pop(fib->stack);
 
         fib->state = FiberState::Suspended;
-        auto cb = [this, fib](const expected<Value, std::string>& result) {
+        auto cb = [vm = this, fib, awaited_fib = awaited.Get_if<Fiber>()](
+                      const expected<Value, std::string>& result) {
           if (result.has_value())
             push(fib->stack, result.value());
           else
-            this->Error(*fib, result.error());
+            vm->Error(*fib, result.error());
+          vm->scheduler_.PushMicroTask(fib);
 
-          this->scheduler_.PushMicroTask(fib);
+          if (awaited_fib && awaited_fib->state == FiberState::Suspended)
+            vm->scheduler_.PushTask(awaited_fib);
         };
 
         bool stopped = Await(awaiter, awaited, std::move(cb));
@@ -734,12 +727,9 @@ void VM::ExecuteFiber(Fiber* fib) {
       case OpCode::Yield: {
         const auto ins = chunk->Read<serilang::Yield>(ip);
         ip += sizeof(ins);
-        fib->state = FiberState::Suspended;
 
         Value val = pop(fib->stack);
-        fib->completion_promise->Resolve(val);
-        fib->pending_result = std::move(val);
-        fib->ResetPromise();
+        fib->Yield(std::move(val));
       }
         return;  // switch -> yield
 
@@ -782,7 +772,7 @@ void VM::ExecuteFiber(Fiber* fib) {
   }
 
   if (fib->frames.empty())
-    fib->state = FiberState::Dead;
+    fib->Kill(nil);
 }
 
 bool VM::Await(Value& awaiter,
@@ -793,13 +783,7 @@ bool VM::Await(Value& awaiter,
   std::shared_ptr<Promise> promise = nullptr;
   Fiber* await_fib = nullptr;
 
-  // If awaiting a Fiber, redirect to its completion promise so that
-  // `await fiber` awaits final completion (not intermediate yields).
   if (Fiber* tf = awaited.Get_if<Fiber>()) {
-    if (tf->state == FiberState::Dead) {
-      waker(tf->pending_result.value_or(nil));
-      return false;
-    }
     promise = tf->completion_promise;
     await_fib = tf;
   }
@@ -812,32 +796,38 @@ bool VM::Await(Value& awaiter,
     return false;
   }
 
-  if (promise->result.has_value()) {  // ready
-    waker(*promise->result);
+  bool is_pending = promise->AddWaker(std::move(waker));
+  if (!is_pending)  // ready
     return false;
-  }
 
   // pending
-  promise->wakers.emplace_back(std::move(waker));
   if (promise->status == Promise::Status::New) {
     promise->status = Promise::Status::Pending;
     if (promise->initial_await)
       promise->initial_await(*this, awaiter, awaited);
+    pending_promises_.emplace_back(promise);
   }
   scheduler_.PushMicroTask(await_fib);
-  pending_promises_.emplace_back(promise);
 
   return true;
 }
 
 void VM::SweepDeadFibres() {
-  std::erase_if(fibres_, [&](Fiber* f) {
-    if (f->state == FiberState::Dead) {
-      if (f->pending_result.has_value())
-        last_ = std::move(*f->pending_result);
-      return true;
+  std::erase_if(fibres_, [this](Fiber* f) {
+    if (f->state != FiberState::Dead)
+      return false;
+
+    std::shared_ptr<Promise> promise = f->completion_promise;
+    bool has_pending_result = promise->GetWakeCount() == 0;
+    if (has_pending_result) {
+      [[unlikely]] if (!promise->result.has_value())
+        last_ = nil;  // unreachable
+      else if (promise->result->has_value())
+        last_ = promise->result->value();  // success case
+      else
+        throw UnhandledError(promise->result->error());  // error case
     }
-    return false;
+    return true;
   });
 }
 
