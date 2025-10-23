@@ -175,12 +175,15 @@ TEST_F(GCTest, MarkFibresAndClosures) {
   f->completion_promise->roots.emplace_back(d2);
   fn->chunk->const_pool.emplace_back(d3);
 
+  auto* d4 = Alloc<DummyObject>();
+  auto* d5 = Alloc<DummyObject>();
+  f->frames[0].fast_locals = {Value(d4), std::nullopt, Value(d5)};
+
   // Register fiber in VM
-  vm.fibres_.clear();
-  vm.fibres_.push_back(f);
+  vm.fibres_ = {f};
 
   vm.CollectGarbage();
-  EXPECT_EQ(DummyObject::aliveCount(), 3);
+  EXPECT_EQ(DummyObject::aliveCount(), 5);
 
   // Next collection with no fiber should collect both
   vm.fibres_.clear();

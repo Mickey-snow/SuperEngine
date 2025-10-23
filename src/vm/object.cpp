@@ -280,8 +280,12 @@ void Fiber::MarkRoots(GCVisitor& visitor) {
 
   for (auto& it : op_stack)
     visitor.MarkSub(it);
-  for (auto& it : frames)
+  for (auto& it : frames) {
     visitor.MarkSub(it.fn);
+    for (auto& local : it.fast_locals)
+      if (local)
+        visitor.MarkSub(*local);
+  }
   for (auto& it : open_upvalues)
     if (it->location)
       visitor.MarkSub(*it->location);
