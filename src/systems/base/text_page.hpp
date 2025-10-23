@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -27,11 +24,12 @@
 
 #pragma once
 
-#include <algorithm>
-#include <functional>
+#include <memory>
 #include <string>
 #include <vector>
 
+class TextWindow;
+class Gameexe;
 class TextPageElement;
 class SetWindowTextPageElement;
 class System;
@@ -45,7 +43,8 @@ class TextTextPageElement;
 // back log for replay.
 class TextPage {
  public:
-  TextPage(System& system, int window_num);
+  TextPage(Gameexe& gexe, std::shared_ptr<TextWindow> window);
+
   TextPage(const TextPage& rhs);
   TextPage(TextPage&& rhs);
   ~TextPage();
@@ -132,10 +131,10 @@ class TextPage {
   // Actually performs the command in most cases.
   void RunTextPageCommand(const Command& command, bool is_active_page);
 
-  System* system_;
+  Gameexe& gexe;
 
   // Current window that this page is rendering into
-  int window_num_;
+  std::shared_ptr<TextWindow> text_window_;
 
   // Number of characters on this page (used in automode)
   int number_of_chars_on_page_;

@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -27,22 +24,15 @@
 
 #include "systems/base/text_page.hpp"
 
-#include <algorithm>
-#include <string>
-
 #include "core/gameexe.hpp"
-#include "machine/rlmachine.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/text_system.hpp"
 #include "systems/base/text_window.hpp"
-#include "utf8.h"
-#include "utilities/exception.hpp"
 #include "utilities/string_utilities.hpp"
 
-using std::bind;
-using std::ref;
-using std::placeholders::_1;
-using std::placeholders::_2;
+#include <algorithm>
+#include <stdexcept>
+#include <string>
 
 // Represents the various commands.
 enum CommandType {
@@ -144,7 +134,7 @@ TextPage::Command::Command(CommandType type) : command(type) {
       new (&characters) std::string;
       break;
     default:
-      throw rlvm::Exception("Incorrect arity");
+      throw std::logic_error("Incorrect arity");
   }
 }
 
@@ -175,7 +165,7 @@ TextPage::Command::Command(CommandType type, int one) : command(type) {
       face_close = one;
       break;
     default:
-      throw rlvm::Exception("Incorrect arity");
+      throw std::logic_error("Incorrect arity");
   }
 }
 
@@ -186,7 +176,7 @@ TextPage::Command::Command(CommandType type, const std::string& one)
       new (&ruby_text) std::string(one);
       break;
     default:
-      throw rlvm::Exception("Incorrect arity");
+      throw std::logic_error("Incorrect arity");
   }
 }
 
@@ -200,7 +190,7 @@ TextPage::Command::Command(CommandType type,
       new (&name.next_char) std::string(two);
       break;
     default:
-      throw rlvm::Exception("Incorrect arity");
+      throw std::logic_error("Incorrect arity");
   }
 }
 
@@ -212,7 +202,7 @@ TextPage::Command::Command(CommandType type, const std::string& one, int two)
       face_open.index = two;
       break;
     default:
-      throw rlvm::Exception("Incorrect arity");
+      throw std::logic_error("Incorrect arity");
   }
 }
 
@@ -295,25 +285,22 @@ TextPage::Command::~Command() {
 // TextPage
 // -----------------------------------------------------------------------
 
-TextPage::TextPage(System& system, int window_num)
-    : system_(&system),
-      window_num_(window_num),
+TextPage::TextPage(Gameexe& g, std::shared_ptr<TextWindow> window)
+    : gexe(g),
+      text_window_(window),
       number_of_chars_on_page_(0),
       in_ruby_gloss_(false) {}
 
 TextPage::TextPage(const TextPage& rhs) = default;
-
 TextPage::TextPage(TextPage&& rhs) = default;
-
-TextPage::~TextPage() {}
+TextPage::~TextPage() = default;
 
 void TextPage::Replay(bool is_active_page) {
   // Reset the font color.
   if (!is_active_page) {
-    Gameexe& gexe = system_->gameexe();
-    GameexeInterpretObject colour(gexe("COLOR_TABLE", 254));
+    auto colour = gexe("COLOR_TABLE", 254);
     if (auto vec = colour.IntVec()) {
-      system_->text().GetTextWindow(window_num_)->SetFontColor(*vec);
+      text_window_->SetFontColor(*vec);
     }
   }
 
@@ -323,7 +310,7 @@ void TextPage::Replay(bool is_active_page) {
 
 // ------------------------------------------------- [ Public operations ]
 
-bool TextPage::Character(const string& current, const string& rest) {
+bool TextPage::Character(const std::string& current, const std::string& rest) {
   bool rendered = CharacterImpl(current, rest);
 
   if (rendered) {
@@ -340,7 +327,7 @@ bool TextPage::Character(const string& current, const string& rest) {
   return rendered;
 }
 
-void TextPage::Name(const string& name, const string& next_char) {
+void TextPage::Name(const std::string& name, const std::string& next_char) {
   AddAction(Command(TYPE_NAME, name, next_char));
   number_of_chars_on_page_++;
 }
@@ -399,28 +386,28 @@ void TextPage::NextCharIsItalic() {
   AddAction(Command(TYPE_NEXT_CHAR_IS_ITALIC));
 }
 
-bool TextPage::IsFull() const {
-  return system_->text().GetTextWindow(window_num_)->IsFull();
-}
+bool TextPage::IsFull() const { return text_window_->IsFull(); }
 
 void TextPage::AddAction(const Command& command) {
   RunTextPageCommand(command, true);
   elements_to_replay_.push_back(command);
 }
 
-bool TextPage::CharacterImpl(const string& c, const string& rest) {
-  return system_->text().GetTextWindow(window_num_)->DisplayCharacter(c, rest);
+bool TextPage::CharacterImpl(const std::string& c, const std::string& rest) {
+  return text_window_->DisplayCharacter(c, rest);
 }
 
 void TextPage::RunTextPageCommand(const Command& command, bool is_active_page) {
-  std::shared_ptr<TextWindow> window =
-      system_->text().GetTextWindow(window_num_);
+  std::shared_ptr<TextWindow> window = text_window_;
 
   switch (command.command) {
     case TYPE_CHARACTERS:
       if (command.characters.size()) {
-        PrintTextToFunction(bind(&TextPage::CharacterImpl, ref(*this), _1, _2),
-                            command.characters, "");
+        PrintTextToFunction(
+            [this](const std::string& c, const std::string& rest) {
+              return this->CharacterImpl(c, rest);
+            },
+            command.characters, "");
       }
       break;
     case TYPE_NAME:
@@ -442,7 +429,7 @@ void TextPage::RunTextPageCommand(const Command& command, bool is_active_page) {
     case TYPE_FONT_COLOUR:
       if (is_active_page) {
         window->SetFontColor(
-            system_->gameexe()("COLOR_TABLE", command.font_colour).ToIntVec());
+            gexe("COLOR_TABLE", command.font_colour).ToIntVec());
       }
       break;
     case TYPE_DEFAULT_FONT_SIZE:

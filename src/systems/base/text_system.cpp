@@ -330,24 +330,27 @@ void TextSystem::Snapshot() {
   }
 }
 
-void TextSystem::NewPageOnWindow(int window) {
+void TextSystem::NewPageOnWindow(int window_id) {
   // Erase the current instance of this window if it exists
-  PageSet::iterator it = current_pageset_.find(window);
+  PageSet::iterator it = current_pageset_.find(window_id);
+  std::shared_ptr<TextWindow> text_window = GetTextWindow(window_id);
   if (it != current_pageset_.end()) {
     current_pageset_.erase(it);
   }
 
   previous_page_it_ = previous_page_sets_.end();
-  current_pageset_.emplace(window, TextPage(system(), window));
+  current_pageset_.emplace(window_id,
+                           TextPage(system().gameexe(), text_window));
   ExpireOldPages();
 }
 
 TextPage& TextSystem::GetCurrentPage() {
   // Check to see if the active window has a current page.
+  std::shared_ptr<TextWindow> text_window = GetTextWindow(active_window_);
   PageSet::iterator it = current_pageset_.find(active_window_);
   if (it == current_pageset_.end())
     it = current_pageset_
-             .emplace(active_window_, TextPage(system(), active_window_))
+             .emplace(active_window_, TextPage(system().gameexe(), text_window))
              .first;
 
   return it->second;

@@ -45,7 +45,7 @@ class SiglusMwnd {
 
  public:
   SiglusMwnd(std::shared_ptr<TextWindow> wd, SDLSystem& sys)
-      : text_win_(wd), page(sys, wd->window_number()) {}
+      : text_win_(wd), page(sys.gameexe(), wd) {}
 
   bool DisplayCharacter(std::string current, std::string rest) {
     return page.Character(current, rest);
