@@ -198,6 +198,10 @@ class ValueTest : public ::testing::Test {
   }
 };
 
+TEST_F(ValueTest, TriviallyCopyable) {
+  EXPECT_TRUE(std::is_trivially_copyable<Value>::value);
+}
+
 TEST_F(ValueTest, ContainerListAndDict) {
   // empty & filled lists
   Value lstEmpty(Alloc<List>());

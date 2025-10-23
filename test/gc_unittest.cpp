@@ -25,6 +25,7 @@
 #include <gtest/gtest.h>
 
 #include "vm/call_frame.hpp"
+#include "vm/function.hpp"
 #include "vm/gc.hpp"
 #include "vm/object.hpp"
 #include "vm/vm.hpp"

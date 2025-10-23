@@ -25,6 +25,7 @@
 #include <gtest/gtest.h>
 
 #include "vm/disassembler.hpp"
+#include "vm/function.hpp"
 #include "vm/instruction.hpp"
 #include "vm/object.hpp"
 #include "vm/promise.hpp"

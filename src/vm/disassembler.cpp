@@ -24,6 +24,7 @@
 
 #include "vm/disassembler.hpp"
 
+#include "vm/function.hpp"
 #include "vm/instruction.hpp"
 #include "vm/object.hpp"
 #include "vm/string.hpp"

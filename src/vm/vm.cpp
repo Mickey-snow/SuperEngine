@@ -27,6 +27,7 @@
 #include "machine/op.hpp"
 #include "utilities/expected.hpp"
 #include "vm/call_frame.hpp"
+#include "vm/function.hpp"
 #include "vm/future.hpp"
 #include "vm/gc.hpp"
 #include "vm/instruction.hpp"

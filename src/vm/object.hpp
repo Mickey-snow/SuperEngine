@@ -1,3 +1,4 @@
+
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -295,35 +296,6 @@ struct Module : public IObject {
 
   TempValue Member(std::string_view mem) override;
   void SetMember(std::string_view mem, Value value) override;
-};
-
-struct Function : public IObject {
-  static constexpr inline ObjType objtype = ObjType::Function;
-
-  Dict* globals = nullptr;
-  Code* chunk;
-  uint32_t entry;
-
-  uint32_t nparam;
-  std::unordered_map<std::string, size_t> param_index;
-  std::unordered_map<size_t, Value> defaults;
-
-  bool has_vararg;
-  bool has_kwarg;
-
-  explicit Function(Code* in_chunk,
-                    uint32_t in_entry = 0,
-                    uint32_t in_nparam = 0);
-
-  constexpr ObjType Type() const noexcept final { return objtype; }
-  constexpr size_t Size() const noexcept final { return sizeof(*this); }
-
-  void MarkRoots(GCVisitor& visitor) override;
-
-  std::string Str() const override;
-  std::string Desc() const override;
-
-  void Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) override;
 };
 
 class NativeFunction : public IObject {
