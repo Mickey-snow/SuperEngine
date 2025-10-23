@@ -165,7 +165,7 @@ class ButtonSelectLongOperation : public SelectLongOperation,
 
   // Properties when rendering our back surface as a color mask.
   RGBAColour window_bg_colour_;
-  int window_filter_;
+  bool window_filter_;
 
   // g00 pattern numbers in name_surface_ for which pattern to display during
   // certain states.

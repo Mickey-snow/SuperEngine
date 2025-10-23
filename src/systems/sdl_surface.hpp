@@ -90,7 +90,7 @@ class SDLSurface {
   void RenderToScreenAsColorMask(const Rect& src,
                                  const Rect& dst,
                                  const RGBAColour& rgba,
-                                 int filter) const;
+                                 bool filter) const;
 
   void RenderToScreen(const Rect& src,
                       const Rect& dst,

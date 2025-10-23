@@ -452,7 +452,7 @@ void TextSystem::UpdateWindowsForChangeToWindowAttr() {
   // Check each text window to see if it needs updating
   for (WindowMap::iterator it = text_window_.begin(); it != text_window_.end();
        ++it) {
-    if (!it->second->windowAttrMod())
+    if (!it->second->GetAttrMod())
       it->second->SetRGBAF(window_attr());
   }
 }

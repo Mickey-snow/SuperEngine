@@ -40,7 +40,6 @@ class Size;
 class SDLSurface;
 using Surface = SDLSurface;
 class System;
-class TextWindow;
 class BasicTextWindowButton;
 
 // Container class that owns all text window decorations.
@@ -48,15 +47,17 @@ class BasicTextWindowButton;
 // Window decorations are defined with \#WAKU.<setno>.<no>. Gameexe.ini keys.
 class TextWakuNormal : public TextWaku {
  public:
-  TextWakuNormal(TextWindow& window, int setno, int no);
-  virtual ~TextWakuNormal();
+  TextWakuNormal(int setno, int no);
 
   void AddButton(std::string btn_name,
                  int waku_offset,
                  std::unique_ptr<BasicTextWindowButton> btn_impl);
 
   virtual void Execute() override;
-  virtual void Render(Point box_location, Size namebox_size) override;
+  virtual void Render(Point box_location,
+                      Size namebox_size,
+                      RGBAColour colour,
+                      bool is_filter) override;
   virtual Size GetSize(const Size& text_surface) const override;
   virtual Point InsertionPoint(const Rect& waku_rect,
                                const Size& padding,
@@ -79,10 +80,6 @@ class TextWakuNormal : public TextWaku {
  private:
   // Renders all the buttons in |button_map_|.
   void RenderButtons();
-
-  // The text window we decorate. TODO: Figure out how wrong this is when we
-  // are a name box.
-  TextWindow& window_;
 
   int setno_, no_;
 

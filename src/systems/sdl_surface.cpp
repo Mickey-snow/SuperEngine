@@ -405,7 +405,7 @@ void SDLSurface::RenderToScreen(const Rect& src_rect,
 void SDLSurface::RenderToScreenAsColorMask(const Rect& src,
                                            const Rect& dst,
                                            const RGBAColour& rgba,
-                                           int filter) const {
+                                           bool filter) const {
   uploadTextureIfNeeded();
 
   for (const auto& it : textures_) {
@@ -414,7 +414,7 @@ void SDLSurface::RenderToScreenAsColorMask(const Rect& src,
     if (!coordinate_system.intersectAndTransform(src_rect, dst_rect))
       continue;
 
-    if (filter == 0) {  // subtractive color mask
+    if (!filter) {  // subtractive color mask
       glRenderer().RenderColormask({it.gltexture, src_rect},
                                    {screen_, dst_rect}, rgba);
     } else {

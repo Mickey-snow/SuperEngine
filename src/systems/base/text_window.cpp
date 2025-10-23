@@ -36,9 +36,10 @@
 #include "systems/base/text_waku.hpp"
 #include "systems/itext_system.hpp"
 #include "systems/sdl_surface.hpp"
-#include "utf8.h"
 #include "utilities/graphics.hpp"
 #include "utilities/string_utilities.hpp"
+
+#include "utf8.h"
 
 #include <algorithm>
 #include <cassert>
@@ -88,7 +89,7 @@ TextWindow::TextWindow(System& system, int window_num, ITextSystem* text_impl)
       last_token_was_name_(false),
       use_indentation_(0),
       colour_(),
-      filter_(0),
+      is_filter_(0),
       is_visible_(false),
       state_(State::Normal),
       next_char_italic_(false),
@@ -435,7 +436,7 @@ void TextWindow::Render() {
 
     Point textOrigin = GetTextSurfaceRect().origin();
 
-    textbox_waku_->Render(box, surface_size);
+    textbox_waku_->Render(box, surface_size, GetColour(), GetIsFilter());
     RenderFaces(1);
 
     switch (state_) {
@@ -450,7 +451,8 @@ void TextWindow::Render() {
           if (namebox_waku_) {
             // TODO(erg): The waku needs to be adjusted to be the minimum size
             // of the window in characters
-            namebox_waku_->Render(r.origin(), GetNameboxTextArea());
+            namebox_waku_->Render(r.origin(), GetNameboxTextArea(), GetColour(),
+                                  GetIsFilter());
           }
 
           Point insertion_point = namebox_waku_->InsertionPoint(

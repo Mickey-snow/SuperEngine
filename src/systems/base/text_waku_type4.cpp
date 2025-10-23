@@ -26,18 +26,9 @@
 
 #include "systems/base/text_waku_type4.hpp"
 
-#include <ostream>
-#include <string>
-#include <vector>
-
-#include "core/colour.hpp"
-#include "core/gameexe.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/system.hpp"
-#include "systems/base/text_window.hpp"
 #include "systems/sdl_surface.hpp"
-
-using std::endl;
 
 // A listing of all the g00 regions in type 4 wakus. The ranges to the right
 // are from the file smw01a.g00 in CLANNAD_FV.
@@ -56,9 +47,8 @@ enum WakuPart {
   BOTTOM_RIGHT_CORNER,  // <region x1="20" y1="20" x2="23" y2="23"/>
 };
 
-TextWakuType4::TextWakuType4(TextWindow& window, int setno, int no)
-    : window_(window),
-      setno_(setno),
+TextWakuType4::TextWakuType4(int setno, int no)
+    : setno_(setno),
       no_(no),
       area_top_(0),
       area_bottom_(0),
@@ -67,7 +57,10 @@ TextWakuType4::TextWakuType4(TextWindow& window, int setno, int no)
 
 void TextWakuType4::Execute() {}
 
-void TextWakuType4::Render(Point box_location, Size content_size) {
+void TextWakuType4::Render(Point box_location,
+                           Size content_size,
+                           RGBAColour colour,
+                           bool is_filter) {
   if (waku_main_) {
     // Calculate the location/area and render the filtered background.
     Point backing_point =
@@ -79,7 +72,7 @@ void TextWakuType4::Render(Point box_location, Size content_size) {
     std::shared_ptr<Surface> backing = GetWakuBackingOfSize(backing_size);
     backing->RenderToScreenAsColorMask(backing->GetRect(),
                                        Rect(backing_point, backing_size),
-                                       window_.GetColour(), window_.filter());
+                                       colour, is_filter);
 
     // Calculate the total size of the waku decoration. We need this to get the
     // size of the non-corners correct.

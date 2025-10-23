@@ -26,21 +26,23 @@
 
 #pragma once
 
-#include <iosfwd>
+#include "core/colour.hpp"
 
 class Point;
 class Rect;
 class RLMachine;
 class Size;
 class System;
-class TextWindow;
 
 class TextWaku {
  public:
   virtual ~TextWaku() = default;
 
   virtual void Execute() = 0;
-  virtual void Render(Point box_location, Size namebox_size) = 0;
+  virtual void Render(Point box_location,
+                      Size namebox_size,
+                      RGBAColour colour,
+                      bool is_filter) = 0;
 
   // Possibly returns the size if this TextWaku object has a known size on
   // screen.

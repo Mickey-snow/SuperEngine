@@ -152,15 +152,14 @@ class TextWindow {
   //
   // Represents the data parsed from #WINDOW_ATTR,
   // #WINDOW.index.ATTR_MOD, and #WINDOW.index.ATTR
-  int windowAttrMod() const { return window_attr_mod_; }
+  int GetAttrMod() const { return window_attr_mod_; }
 
-  void set_filter(int i) { filter_ = i; }
   void SetRGBAF(const std::vector<int>& rgba_values);
 
   [[nodiscard]] RGBAColour GetColour() const { return colour_; }
   void SetColour(RGBAColour col) { colour_ = col; }
-  [[nodiscard]] int filter() const { return filter_; }
-  void SetFilter(int f) { filter_ = f; }
+  [[nodiscard]] bool GetIsFilter() const { return is_filter_; }
+  void SetFilter(bool f) { is_filter_ = f; }
 
   void SetVisible(bool in) { is_visible_ = in; }
   bool IsVisible() const { return is_visible_; }
@@ -332,7 +331,7 @@ class TextWindow {
 
   // The default window background colour.
   RGBAColour colour_;
-  int filter_;
+  bool is_filter_;
 
   bool is_visible_;
 

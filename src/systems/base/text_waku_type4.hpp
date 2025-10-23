@@ -26,8 +26,6 @@
 
 #pragma once
 
-#include <string>
-
 #include "systems/base/text_waku.hpp"
 #include "systems/sdl_surface.hpp"
 
@@ -36,11 +34,14 @@
 // box expands to fill whatever size is passed into render().
 class TextWakuType4 : public TextWaku {
  public:
-  TextWakuType4(TextWindow& window, int setno, int no);
+  TextWakuType4(int setno, int no);
   virtual ~TextWakuType4() = default;
 
   virtual void Execute() override;
-  virtual void Render(Point box_location, Size namebox_size) override;
+  virtual void Render(Point box_location,
+                      Size namebox_size,
+                      RGBAColour colour,
+                      bool is_filter) override;
 
   // We have no size other than what is passed to |namebox_size|. Always
   // returns false and resets |out|.
@@ -65,10 +66,6 @@ class TextWakuType4 : public TextWaku {
  private:
   // Returns |cached_backing_|, shrinking or enlarging it to |size|.
   const std::shared_ptr<Surface>& GetWakuBackingOfSize(Size size);
-
-  // The text window we decorate. TODO: Figure out how wrong this is when we
-  // are a name box.
-  TextWindow& window_;
 
   int setno_, no_;
 

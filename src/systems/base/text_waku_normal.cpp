@@ -26,14 +26,11 @@
 
 #include "systems/base/text_waku_normal.hpp"
 
-#include "core/gameexe.hpp"
 #include "core/rect.hpp"
-#include "systems/base/text_window.hpp"
 #include "systems/base/text_window_button.hpp"
 #include "systems/sdl_surface.hpp"
 
 #include <algorithm>
-#include <functional>
 #include <memory>
 #include <string>
 
@@ -42,10 +39,7 @@ using namespace std::chrono_literals;
 // -----------------------------------------------------------------------
 // TextWakuNormal
 // -----------------------------------------------------------------------
-TextWakuNormal::TextWakuNormal(TextWindow& window, int setno, int no)
-    : window_(window), setno_(setno), no_(no) {}
-
-TextWakuNormal::~TextWakuNormal() = default;
+TextWakuNormal::TextWakuNormal(int setno, int no) : setno_(setno), no_(no) {}
 
 void TextWakuNormal::AddButton(
     std::string btn_name,
@@ -61,12 +55,15 @@ void TextWakuNormal::Execute() {
     btn.btn->Execute();
 }
 
-void TextWakuNormal::Render(Point box_location, Size namebox_size) {
+void TextWakuNormal::Render(Point box_location,
+                            Size namebox_size,
+                            RGBAColour colour,
+                            bool is_filter) {
   if (backing_surface_) {
     Size backing_size = backing_surface_->GetSize();
     backing_surface_->RenderToScreenAsColorMask(
         Rect(Point(0, 0), backing_size), Rect(box_location, backing_size),
-        window_.GetColour(), window_.filter());
+        colour, is_filter);
   }
 
   if (main_surface_) {

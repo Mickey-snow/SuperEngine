@@ -293,7 +293,7 @@ ButtonSelectLongOperation::ButtonSelectLongOperation(
   std::shared_ptr<TextWindow> window =
       machine.GetSystem().text().GetCurrentWindow();
   window_bg_colour_ = window->GetColour();
-  window_filter_ = window->filter();
+  window_filter_ = window->GetIsFilter();
 
   int default_colour_num_ = selbtn("MOJIDEFAULTCOL").Int().value();
   int select_colour_num_ = selbtn("MOJISELECTCOL").Int().value();
