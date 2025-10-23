@@ -559,13 +559,14 @@ void VM::ExecuteFiber(Fiber* fib) {
         fib->stack.resize(fib->stack.size() - ins.ndefault * 2);
 
         Function* fn = gc_->Allocate<Function>(chunk);
+        ArgumentList& fnargs = fn->arglist;
         fn->globals = globals_;
         fn->entry = ins.entry;
-        fn->defaults = std::move(defaults);
-        fn->nparam = ins.nparam;
-        fn->param_index = std::move(param_index);
-        fn->has_vararg = ins.has_vararg;
-        fn->has_kwarg = ins.has_kwarg;
+        fnargs.nparam = ins.nparam;
+        fnargs.param_index = std::move(param_index);
+        fnargs.defaults = std::move(defaults);
+        fnargs.has_vararg = ins.has_vararg;
+        fnargs.has_kwarg = ins.has_kwarg;
 
         fib->stack.back() = Value(fn);
       } break;

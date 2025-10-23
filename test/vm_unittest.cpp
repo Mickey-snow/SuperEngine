@@ -234,7 +234,7 @@ TEST_F(VMTest, SpawnFiber) {
   auto* code = gc->Allocate<Code>();
   code->const_pool = value_vector(123);
   append_ins(code, {Push{0}, Return{}});
-  auto* fn = gc->Allocate<Function>(code, 0, 0);
+  auto* fn = gc->Allocate<Function>(code);
 
   // Main program: spawn the function, then await its completion promise.
   // Stack after MakeFiber: (fiber)
@@ -256,7 +256,8 @@ TEST_F(VMTest, AwaitFiber) {
   print_code->const_pool = value_vector("print", std::monostate());
   append_ins(print_code, {Push{1}, Yield{}, LoadLocal{1},
                           Return{}});  // yield nil; return arg0;
-  Function* print_fn = gc->Allocate<Function>(print_code, 0, 1);
+  Function* print_fn = gc->Allocate<Function>(print_code);
+  print_fn->arglist.nparam = 1;
 
   Code* chunk = gc->Allocate<Code>();
   chunk->const_pool = value_vector(print_fn, "foo", "boo", std::monostate());
@@ -278,7 +279,8 @@ TEST_F(VMTest, FunctionGlobal) {
   Code* code = gc->Allocate<Code>();
   code->const_pool = value_vector("one");
   append_ins(code, {LoadLocal{1}, LoadGlobal{0}, BinaryOp(Op::Add), Return{}});
-  Function* fn = gc->Allocate<Function>(code, 0, 1);
+  Function* fn = gc->Allocate<Function>(code);
+  fn->arglist.nparam = 1;
   fn->globals = gc->Allocate<Dict>(
       std::unordered_map<std::string, Value>{{"one", to_value("one")}});
 

@@ -29,39 +29,23 @@
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
+#include <format>
+
 namespace serilang {
 
-Function::Function(Code* in_chunk, uint32_t in_entry, uint32_t in_nparam)
-    : chunk(in_chunk),
-      entry(in_entry),
-      nparam(in_nparam),
-      param_index(),
-      defaults(),
-      has_vararg(false),
-      has_kwarg(false) {}
+expected<void, std::string> ArgumentList::Load(
+    std::shared_ptr<GarbageCollector> gc,
+    std::vector<Value>& stack,
+    uint8_t nargs,
+    uint8_t nkwargs) const {
+  using std::string_literals::operator""s;
 
-std::string Function::Str() const { return "function"; }
-
-std::string Function::Desc() const { return "<function>"; }
-
-void Function::MarkRoots(GCVisitor& visitor) {
-  visitor.MarkSub(globals);
-  visitor.MarkSub(chunk);
-  for (auto& [k, v] : defaults)
-    visitor.MarkSub(v);
-}
-
-void Function::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
-  std::vector<Value>& stack = f.stack;
-
-  if (nargs > nparam && !has_vararg) {
-    vm.Error(f, Desc() + ": too many arguments");
-    return;
-  }
+  if (nargs > nparam && !has_vararg)
+    return unexpected("too many arguments"s);
 
   // Set up call stack:
   // (fn, pos_arg1, (nargs)..., kw1, kw_arg1, (nkwargs)...)
-  const auto base = stack.size() - nargs - 2 * nkwargs - 1;
+  const size_t base = stack.size() - nargs - 2 * nkwargs - 1;
 
   // pull arguments & kwargs off the stack
   std::vector<Value> posargs(
@@ -96,10 +80,9 @@ void Function::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
     auto it = param_index.find(k);
     if (it != param_index.end()) {
       auto idx = it->second;
-      if (assigned[idx]) {
-        vm.Error(f, Desc() + ": multiple values for argument '" + k + "'");
-        return;
-      }
+      if (assigned[idx])
+        return unexpected(std::format("multiple values for argument '{}'", k));
+
       finalargs[idx] = std::move(v);
       assigned[idx] = true;
     } else {
@@ -110,10 +93,9 @@ void Function::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
   for (size_t i = 0; i < nparam; ++i) {
     if (!assigned[i]) {
       const auto it = defaults.find(i);
-      if (it == defaults.cend()) {
-        vm.Error(f, Desc() + ": missing arguments");
-        return;
-      }
+      if (it == defaults.cend())
+        return unexpected("missing arguments"s);
+
       finalargs[i] = it->second;
     }
   }
@@ -121,17 +103,44 @@ void Function::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
   std::move(finalargs.begin(), finalargs.end(), std::back_inserter(stack));
 
   if (has_vararg) {
-    stack.emplace_back(vm.gc_->Allocate<List>(std::move(rest)));
+    stack.emplace_back(gc->Allocate<List>(std::move(rest)));
   }
 
   if (has_kwarg) {
-    stack.emplace_back(vm.gc_->Allocate<Dict>(std::move(extra_kwargs)));
+    stack.emplace_back(gc->Allocate<Dict>(std::move(extra_kwargs)));
   } else if (!extra_kwargs.empty()) {
-    vm.Error(f, Desc() + ": unexpected keyword argument");
-    return;
+    return unexpected("unexpected keyword argument"s);
   }
 
+  return {};
+}
+
+// -----------------------------------------------------------------------
+Function::Function(Code* c) : chunk(c) {}
+
+std::string Function::Str() const { return "function"; }
+
+std::string Function::Desc() const { return "<function>"; }
+
+void Function::MarkRoots(GCVisitor& visitor) {
+  visitor.MarkSub(globals);
+  visitor.MarkSub(chunk);
+  for (auto& [k, v] : arglist.defaults)
+    visitor.MarkSub(v);
+}
+
+void Function::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
+  std::vector<Value>& stack = f.stack;
+  const size_t base = stack.size() - nargs - 2 * nkwargs - 1;
+
+  // load arguments
+  if (auto result = arglist.Load(vm.gc_, stack, nargs, nkwargs);
+      !result.has_value()) {
+    vm.Error(f, std::format("{}: {}", Desc(), std::move(result.error())));
+    return;
+  }
   // (fn, pos_arg1, ..., [var_arg], [kw_arg])
+
   f.frames.push_back({});
   auto& frame = f.frames.back();
   frame.fn = this;

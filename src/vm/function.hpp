@@ -26,6 +26,8 @@
 
 #include "vm/iobject.hpp"
 
+#include "utilities/expected.hpp"
+
 #include <cstdint>
 #include <string>
 #include <unordered_map>
@@ -33,24 +35,31 @@
 namespace serilang {
 struct Dict;
 struct Code;
+class GarbageCollector;
+
+struct ArgumentList {
+  uint32_t nparam = 0;
+  std::unordered_map<std::string, size_t> param_index;
+  std::unordered_map<size_t, Value> defaults;
+  bool has_vararg = false;
+  bool has_kwarg = false;
+
+  expected<void, std::string> Load(std::shared_ptr<GarbageCollector> gc,
+                                   std::vector<Value>& stack,
+                                   uint8_t nargs,
+                                   uint8_t nkwargs) const;
+};
 
 struct Function : public IObject {
   static constexpr inline ObjType objtype = ObjType::Function;
 
   Dict* globals = nullptr;
   Code* chunk;
-  uint32_t entry;
+  uint32_t entry = 0;
 
-  uint32_t nparam;
-  std::unordered_map<std::string, size_t> param_index;
-  std::unordered_map<size_t, Value> defaults;
+  ArgumentList arglist;
 
-  bool has_vararg;
-  bool has_kwarg;
-
-  explicit Function(Code* in_chunk,
-                    uint32_t in_entry = 0,
-                    uint32_t in_nparam = 0);
+  explicit Function(Code* chunk);
 
   constexpr ObjType Type() const noexcept final { return objtype; }
   constexpr size_t Size() const noexcept final { return sizeof(*this); }
