@@ -115,8 +115,7 @@ SiglusRuntime SGVMFactory::Create() {
     runtime.vm->scheduler_.PushCallbackAt(cb, next);
 
     // redraw
-    std::shared_ptr<GraphicsSystem> graphics =
-        runtime.system->graphics_system_;
+    std::shared_ptr<GraphicsSystem> graphics = runtime.system->graphics_system_;
     for (auto& obj : graphics->GetForegroundObjects())
       obj.ExecuteMutators();
     for (auto& obj : graphics->GetBackgroundObjects())

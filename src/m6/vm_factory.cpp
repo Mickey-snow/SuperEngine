@@ -24,10 +24,10 @@
 
 #include "m6/vm_factory.hpp"
 
-#include "vm/string.hpp"
 #include "m6/compiler_pipeline.hpp"
 #include "srbind/srbind.hpp"
 #include "vm/future.hpp"
+#include "vm/string.hpp"
 
 #include <chrono>
 #include <fstream>

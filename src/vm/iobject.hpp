@@ -24,13 +24,13 @@
 
 #pragma once
 
-#include "vm/gc.hpp"
 #include "machine/op.hpp"
+#include "vm/gc.hpp"
 #include "vm/objtype.hpp"
 #include "vm/value_fwd.hpp"
 
-#include <string>
 #include <optional>
+#include <string>
 
 namespace serilang {
 struct Fiber;

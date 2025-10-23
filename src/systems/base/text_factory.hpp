@@ -32,9 +32,9 @@ class TextWaku;
 class TextWindow;
 class System;
 
-class TextWakuFactory {
+class TextFactory {
  public:
-  TextWakuFactory(Gameexe& gexe);
+  TextFactory(Gameexe& gexe);
 
   std::unique_ptr<TextWaku> CreateWaku(System& system,
                                        TextWindow& window,

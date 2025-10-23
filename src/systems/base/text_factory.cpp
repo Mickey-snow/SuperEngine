@@ -23,7 +23,7 @@
 //
 // -----------------------------------------------------------------------
 
-#include "systems/base/text_waku_factory.hpp"
+#include "systems/base/text_factory.hpp"
 
 #include "core/gameexe.hpp"
 #include "log/domain_logger.hpp"
@@ -39,12 +39,12 @@
 
 #include <format>
 
-TextWakuFactory::TextWakuFactory(Gameexe& gexe) : gexe_(gexe) {}
+TextFactory::TextFactory(Gameexe& gexe) : gexe_(gexe) {}
 
-std::unique_ptr<TextWaku> TextWakuFactory::CreateWaku(System& system,
-                                                      TextWindow& window,
-                                                      int setno,
-                                                      int no) {
+std::unique_ptr<TextWaku> TextFactory::CreateWaku(System& system,
+                                                  TextWindow& window,
+                                                  int setno,
+                                                  int no) {
   auto waku = gexe_("WAKU", setno, "TYPE");
 
   if (waku.Int().value_or(5) == 5)
@@ -117,10 +117,10 @@ static Rect ParseButtonRect(Rect window_rect,
   }
 }
 
-std::unique_ptr<TextWaku> TextWakuFactory::CreateWakuNormal(System& system,
-                                                            TextWindow& window,
-                                                            int setno,
-                                                            int no) {
+std::unique_ptr<TextWaku> TextFactory::CreateWakuNormal(System& system,
+                                                        TextWindow& window,
+                                                        int setno,
+                                                        int no) {
   using namespace std::chrono_literals;
   auto result = std::make_unique<TextWakuNormal>(window, setno, no);
 
@@ -233,10 +233,10 @@ button_map_.insert(
 }
 
 // -----------------------------------------------------------------------
-std::unique_ptr<TextWaku> TextWakuFactory::CreateWakuType4(System& system,
-                                                           TextWindow& window,
-                                                           int setno,
-                                                           int no) {
+std::unique_ptr<TextWaku> TextFactory::CreateWakuType4(System& system,
+                                                       TextWindow& window,
+                                                       int setno,
+                                                       int no) {
   auto result = std::make_unique<TextWakuType4>(window, setno, no);
 
   auto waku = gexe_("WAKU", setno, no);

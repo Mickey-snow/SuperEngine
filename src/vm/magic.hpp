@@ -42,4 +42,3 @@ std::optional<TempValue> CallMagicIfPresent(VM& vm,
                                             std::initializer_list<Value> args);
 
 }  // namespace serilang::magic
-

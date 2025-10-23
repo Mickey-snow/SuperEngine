@@ -48,8 +48,8 @@
 
 #include "lru_cache.hpp"
 #include "systems/igraphics_backend.hpp"
-#include "utilities/lazy_array.hpp"
 #include "utilities/clock.hpp"
+#include "utilities/lazy_array.hpp"
 
 class AssetScanner;
 class IGraphicsBackend;

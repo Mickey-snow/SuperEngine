@@ -31,9 +31,9 @@
 #include "systems/base/selection_element.hpp"
 #include "systems/base/sound_system.hpp"
 #include "systems/base/system.hpp"
+#include "systems/base/text_factory.hpp"
 #include "systems/base/text_system.hpp"
 #include "systems/base/text_waku.hpp"
-#include "systems/base/text_waku_factory.hpp"
 #include "systems/itext_system.hpp"
 #include "systems/sdl_surface.hpp"
 #include "utf8.h"
@@ -133,7 +133,7 @@ TextWindow::TextWindow(System& system, int window_num, ITextSystem* text_impl)
   set_action_on_pause(window("R_COMMAND_MOD").Int().value_or(0));
 
   // Main textbox waku
-  TextWakuFactory waku_factory(gexe);
+  TextFactory waku_factory(gexe);
   waku_set_ = window("WAKU_SETNO").Int().value_or(0);
   textbox_waku_ = waku_factory.CreateWaku(system_, *this, waku_set_, 0);
 
