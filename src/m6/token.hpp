@@ -74,6 +74,13 @@ struct WS {
   auto operator<=>(const WS& rhs) const = default;
 };
 
+struct Comment {
+  enum class Kind { Line, Block };
+  Kind kind;
+  std::string text;
+  auto operator<=>(const Comment& rhs) const = default;
+};
+
 struct Int {
   int value;
   auto operator<=>(const Int& rhs) const = default;
@@ -128,6 +135,7 @@ using Token_t = std::variant<Reserved,
                              Literal,
                              ID,
                              WS,
+                             Comment,
                              Int,
                              Operator,
                              Dollar,
@@ -169,6 +177,7 @@ struct DebugStringVisitor {
   std::string operator()(const tok::Literal&) const;
   std::string operator()(const tok::ID&) const;
   std::string operator()(const tok::WS&) const;
+  std::string operator()(const tok::Comment&) const;
   std::string operator()(const tok::Int&) const;
   std::string operator()(const tok::Operator&) const;
   std::string operator()(const tok::Dollar&) const;

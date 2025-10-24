@@ -168,14 +168,59 @@ void Tokenizer::Parse(std::shared_ptr<SourceBuffer> src) {
       continue;
     }
 
-    // 2) Check single character token
+    // 2) Check comments
+    if (c == '/' && pos + 1 < len) {
+      const char next = input[pos + 1];
+      if (next == '/') {  // line comment
+        pos += 2;
+        while (pos < len && input[pos] != '\n')
+          ++pos;
+
+        if (!skip_comments_) {
+          std::string comment = std::string(input.substr(start, pos - start));
+          storage_.emplace_back(
+              tok::Comment{tok::Comment::Kind::Line, std::move(comment)},
+              src->GetReference(start, pos));
+        }
+        continue;
+      }
+
+      if (next == '*') {  // block comment
+        pos += 2;
+        bool closed = false;
+        while (pos < len) {
+          if (input[pos] == '*' && pos + 1 < len && input[pos + 1] == '/') {
+            pos += 2;
+            closed = true;
+            break;
+          }
+          ++pos;
+        }
+
+        if (!closed) {
+          errors_.emplace_back("Unterminated block comment.",
+                               src->GetReference(start, pos));
+          continue;
+        }
+
+        if (!skip_comments_) {
+          std::string comment = std::string(input.substr(start, pos - start));
+          storage_.emplace_back(
+              tok::Comment{tok::Comment::Kind::Block, std::move(comment)},
+              src->GetReference(start, pos));
+        }
+        continue;
+      }
+    }
+
+    // 3) Check single character token
     if (SINGLE_CHAR_TOKEN.find(c) != SINGLE_CHAR_TOKEN.end()) {
       storage_.emplace_back(SINGLE_CHAR_TOKEN.at(c),
                             src->GetReference(start, ++pos));
       continue;
     }
 
-    // 3) Check operator (longest match)
+    // 4) Check operator (longest match)
     {
       std::string opMatch = matchLongestOperator(input, pos);
       if (!opMatch.empty()) {
@@ -201,21 +246,21 @@ void Tokenizer::Parse(std::shared_ptr<SourceBuffer> src) {
       return std::string(input.substr(start, pos - start));
     }();
 
-    // 4) Check reserved keywords
+    // 5) Check reserved keywords
     if (RESERVED_KEYWORD_TOKEN.contains(idVal)) {
       storage_.emplace_back(RESERVED_KEYWORD_TOKEN.at(idVal),
                             src->GetReference(start, pos));
       continue;
     }
 
-    // 5) Check identifier: [a-zA-Z_][a-zA-Z0-9_]*
+    // 6) Check identifier: [a-zA-Z_][a-zA-Z0-9_]*
     if (!idVal.empty()) {
       storage_.emplace_back(tok::ID(std::move(idVal)),
                             src->GetReference(start, pos));
       continue;
     }
 
-    // 6) Check integer literal: hex (0x), octal (0o), binary (0b), or decimal
+    // 7) Check integer literal: hex (0x), octal (0o), binary (0b), or decimal
     if (std::isdigit(static_cast<unsigned char>(c))) {
       // determine base
       int base = 10;
@@ -300,7 +345,7 @@ void Tokenizer::Parse(std::shared_ptr<SourceBuffer> src) {
       continue;
     }
 
-    // 7) Check string literal: \"([^\"\\\\]|\\\\.)*\"
+    // 8) Check string literal: \"([^\"\\\\]|\\\\.)*\"
     // A naive approach: detect '\"', then parse until matching '\"' or end of
     // input.
     if (c == '\"') {
@@ -336,7 +381,7 @@ void Tokenizer::Parse(std::shared_ptr<SourceBuffer> src) {
       continue;
     }
 
-    // 8) If none matched, mark it as an error. We consume one character.
+    // 9) If none matched, mark it as an error. We consume one character.
     errors_.emplace_back("Unknown token", src->GetReference(start, start + 1));
     ++pos;
   }
@@ -346,7 +391,11 @@ void Tokenizer::Parse(std::shared_ptr<SourceBuffer> src) {
 }
 
 Tokenizer::Tokenizer(std::vector<Token>& s)
-    : errors_(), skip_ws_(true), add_eof_(true), storage_(s) {}
+    : errors_(),
+      skip_ws_(true),
+      skip_comments_(true),
+      add_eof_(true),
+      storage_(s) {}
 
 bool Tokenizer::Ok() const { return errors_.empty(); }
 

@@ -51,6 +51,7 @@ class TokenizerTest : public ::testing::Test {
   TokenizerTest() : tokens(), tokenizer(tokens) {
     tokenizer.add_eof_ = false;
     tokenizer.skip_ws_ = true;
+    tokenizer.skip_comments_ = true;
   }
 
   std::vector<Token> tokens;
@@ -225,6 +226,26 @@ TEST_F(TokenizerTest, UnknownToken) {
 
   EXPECT_EQ(Accumulate(tokens),
             "<ID(\"id\"), 0,2> <Operator(+), 4,5> <Int(32), 5,7>");
+}
+
+TEST_F(TokenizerTest, LineCommentToken) {
+  const std::string input = "// comment\nid";
+  tokenizer.skip_comments_ = false;
+  tokens.clear();
+  tokenizer.Parse(SourceBuffer::Create(input, "<test>"));
+
+  EXPECT_EQ(Accumulate(tokens),
+            "<Comment(line,\"// comment\"), 0,10> <ID(\"id\"), 11,13>");
+}
+
+TEST_F(TokenizerTest, BlockCommentToken) {
+  const std::string input = "/* block */ value";
+  tokenizer.skip_comments_ = false;
+  tokens.clear();
+  tokenizer.Parse(SourceBuffer::Create(input, "<test>"));
+
+  EXPECT_EQ(Accumulate(tokens),
+            "<Comment(block,\"/* block */\"), 0,11> <ID(\"value\"), 12,17>");
 }
 
 }  // namespace m6test

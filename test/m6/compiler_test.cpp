@@ -187,6 +187,31 @@ true&&(true&&false));
   }
 }
 
+TEST_F(CompilerTest, Comments) {
+  {
+    auto res = Run("// leading comment\nprint(1); /* trailing */");
+    EXPECT_EQ(res, "1\n");
+  }
+
+  {
+    auto res = Run("/* unterminated");
+    EXPECT_EQ(res, error{R"(
+At file '<CompilerTest>' Unterminated block comment.
+1│ /* unterminated
+   ^^^^^^^^^^^^^^^
+)"});
+  }
+
+  {
+    auto res = Run("foo /*comment*/");
+    EXPECT_EQ(res, error{R"(
+At file '<CompilerTest>' Expected ';'.
+1│ foo /*comment*/
+      ^
+)"});
+  }
+}
+
 TEST_F(CompilerTest, GlobalVariable) {
   auto res = Run("a = 10;\n print(a + 5);");
   EXPECT_EQ(res, "15\n");

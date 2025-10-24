@@ -112,6 +112,11 @@ std::string tok::DebugStringVisitor::operator()(const tok::WS&) const {
   return "ws";
 }
 
+std::string tok::DebugStringVisitor::operator()(const tok::Comment& p) const {
+  const char* kind = p.kind == tok::Comment::Kind::Line ? "line" : "block";
+  return "Comment(" + std::string(kind) + ",\"" + p.text + "\")";
+}
+
 std::string tok::DebugStringVisitor::operator()(const tok::Int& p) const {
   return "Int(" + std::to_string(p.value) + ")";
 }

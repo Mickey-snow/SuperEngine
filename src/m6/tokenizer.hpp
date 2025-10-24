@@ -49,6 +49,7 @@ class Tokenizer {
  public:
   std::vector<Error> errors_;
   bool skip_ws_;
+  bool skip_comments_;
   bool add_eof_;
 
  private:
