@@ -266,11 +266,6 @@ class TextWindow {
   int text_insertion_point_x_;
   int text_insertion_point_y_;
 
-  // In Japanese games, this will be exactly the same as
-  // |text_insertion_point_x_|. In official English edition games, this will be
-  // an internal count as if all characters were monospaced.
-  int text_wrapping_point_x_;
-
   // Current ruby insertion point (or nullopt if MarkRubyBegin() hasn't
   // been called)
   std::optional<int> ruby_begin_point_;
@@ -281,9 +276,6 @@ class TextWindow {
 
   // The initial value of text_insertion_point_y_ on new lines.
   int current_indentation_in_pixels_;
-
-  // The initial value of |text_wrapping_point_x_| on new lines.
-  int current_indentation_in_chars_;
 
   // Whether the last token was a SetName. This is used to control indentation
   // for quotes.
