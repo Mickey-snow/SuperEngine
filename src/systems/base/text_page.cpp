@@ -418,7 +418,7 @@ void TextPage::RunTextPageCommand(const Command& command, bool is_active_page) {
         window->KoeMarker(command.koe_id);
       break;
     case TYPE_HARD_BREAK:
-      window->HardBrake();
+      window->Layout().HardBreak();
       break;
     case TYPE_SET_INDENTATION:
       window->SetIndentation();

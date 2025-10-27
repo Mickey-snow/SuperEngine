@@ -26,6 +26,7 @@
 
 #include "core/colour.hpp"
 #include "core/rect.hpp"
+#include "systems/base/text_layout.hpp"
 
 #include <functional>
 #include <memory>
@@ -61,6 +62,9 @@ class TextWindow {
   TextWindow(System& system, int window_num, ITextSystem* text_impl);
   ~TextWindow();
 
+  inline TextLayout& Layout() { return layout_; }
+  inline TextLayout const& Layout() const { return layout_; }
+
   void Execute();
 
   int window_number() const { return window_num_; }
@@ -70,26 +74,12 @@ class TextWindow {
   // TextWindow? O RLY?
   int waku_set() const { return waku_set_; }
 
-  // Sets the size of the text window in characters. Represented by
-  // #WINDOW.xxx.MOJI_CNT.
-  void SetWindowSizeInCharacters(const std::vector<int>& pos_data);
-
-  // Sets the size of the spacing between characters. Represented by
-  // #WINDOW.xxx.MOJI_REP.
-  void SetSpacingBetweenCharacters(const std::vector<int>& pos_data);
-
-  // Sets the size of the ruby (furigana; pronunciation guide) text in
-  // pixels. If zero, ruby text is disabled in this window. Represented by
-  // #WINDOW.xxx.LUBY_SIZE.
-  void set_ruby_text_size(const int i) { ruby_size_ = i; }
-  int ruby_text_size() const { return ruby_size_; }
-
   // Sets the size of the font. Represented by #WINDOW.xxx.MOJI.SIZE.
   void set_font_size_to_default() {
-    font_size_in_pixels_ = default_font_size_in_pixels_;
+    set_font_size_in_pixels(default_font_size_);
   }
-  void set_font_size_in_pixels(int i) { font_size_in_pixels_ = i; }
-  int font_size_in_pixels() const { return font_size_in_pixels_; }
+  void set_font_size_in_pixels(int i) { layout_.font_size = i; }
+  int font_size_in_pixels() const { return layout_.font_size; }
 
   void SetTextboxPadding(const std::vector<int>& pos_data);
 
@@ -97,7 +87,7 @@ class TextWindow {
   int use_indentation() const { return use_indentation_; }
 
   void SetIndentation();
-  int current_indentation() const { return current_indentation_in_pixels_; }
+  int current_indentation() const { return layout_.indent_pixels; }
 
   void SetDefaultTextColor(const std::vector<int>& colour_data);
   void SetFontColor(const std::vector<int>& colour_data);
@@ -167,20 +157,13 @@ class TextWindow {
   void set_action_on_pause(const int i) { action_on_pause_ = i; }
   bool action_on_pause() const { return action_on_pause_; }
 
-  int insertion_point_x() const { return text_insertion_point_x_; }
-  int insertion_point_y() const { return text_insertion_point_y_; }
-  void offset_insertion_point_x(int offset) {
-    text_insertion_point_x_ += offset;
-  }
-  void offset_insertion_point_y(int offset) {
-    text_insertion_point_y_ += offset;
-  }
-  void set_insertion_point_x(int x) { text_insertion_point_x_ = x; }
-  void set_insertion_point_y(int y) { text_insertion_point_y_ = y; }
-
-  int line_height() const {
-    return font_size_in_pixels_ + y_spacing_ + ruby_size_;
-  }
+  int insertion_point_x() const { return layout_.insertion_x; }
+  int insertion_point_y() const { return layout_.insertion_y; }
+  void offset_insertion_point_x(int offset) { layout_.insertion_x += offset; }
+  void offset_insertion_point_y(int offset) { layout_.insertion_y += offset; }
+  void set_insertion_point_x(int x) { layout_.insertion_x = x; }
+  void set_insertion_point_y(int y) { layout_.insertion_y = y; }
+  int line_height() const { return layout_.GetLineHeight(); }
 
   // Loads |filename| into face slot |index|.
   void FaceOpen(const std::string& filename, int index);
@@ -191,7 +174,6 @@ class TextWindow {
   // Marks that the next character rendered in the window should be italic.
   void NextCharIsItalic();
 
-  // ------------------------------------------------ [ Abstract interface ]
   void Render();
 
   // Clears the text window of all text and resets the insertion
@@ -217,7 +199,6 @@ class TextWindow {
   void RenderNameInBox(const std::string& utf8str);
 
   void KoeMarker(int id);
-  void HardBrake();
   void ResetIndentation();
   void MarkRubyBegin();
   void DisplayRubyText(const std::string& utf8str);
@@ -237,8 +218,6 @@ class TextWindow {
   void RenderFaces(int behind);
 
   void RenderKoeReplayButtons();
-
-  int GetWrappingWidthFor(int cur_codepoint);
 
  private:
   // Non-owning pointer to the text implementor
@@ -260,41 +239,14 @@ class TextWindow {
   // The window decorations for the text window
   std::unique_ptr<TextWaku> textbox_waku_;
 
-  // The text insertion point. These two numbers are relative to the
-  // text window location and represent the top left corner of where
-  // the next piece of text should be inserted.
-  int text_insertion_point_x_;
-  int text_insertion_point_y_;
-
-  // Current ruby insertion point (or nullopt if MarkRubyBegin() hasn't
-  // been called)
-  std::optional<int> ruby_begin_point_;
-
-  // The line number in this text window; used to detect whether we
-  // have filled this text box
-  int current_line_number_;
-
-  // The initial value of text_insertion_point_y_ on new lines.
-  int current_indentation_in_pixels_;
+  TextLayout layout_;
 
   // Whether the last token was a SetName. This is used to control indentation
   // for quotes.
   bool last_token_was_name_;
 
   // The default font size.
-  int default_font_size_in_pixels_;
-
-  // The current size of the font
-  int font_size_in_pixels_;
-
-  // The current size of the ruby text in pixels
-  int ruby_size_;
-
-  // Size of the window in characters
-  int x_window_size_in_chars_, y_window_size_in_chars_;
-
-  // Spacing between characters
-  int x_spacing_, y_spacing_;
+  int default_font_size_;
 
   // Whether to indent (INDENT_USE)
   int use_indentation_;

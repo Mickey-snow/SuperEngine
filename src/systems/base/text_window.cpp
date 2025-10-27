@@ -36,13 +36,13 @@
 #include "systems/base/text_waku.hpp"
 #include "systems/itext_system.hpp"
 #include "systems/sdl_surface.hpp"
+#include "utilities/assertx.hpp"
 #include "utilities/graphics.hpp"
 #include "utilities/string_utilities.hpp"
 
 #include "utf8.h"
 
 #include <algorithm>
-#include <cassert>
 #include <cmath>
 #include <stdexcept>
 #include <string>
@@ -80,10 +80,7 @@ struct TextWindow::FaceSlot {
 TextWindow::TextWindow(System& system, int window_num, ITextSystem* text_impl)
     : text_impl_(text_impl),
       window_num_(window_num),
-      text_insertion_point_x_(0),
-      text_insertion_point_y_(0),
-      current_line_number_(0),
-      current_indentation_in_pixels_(0),
+      layout_(0, 0, 0),
       last_token_was_name_(false),
       use_indentation_(0),
       colour_(),
@@ -93,7 +90,7 @@ TextWindow::TextWindow(System& system, int window_num, ITextSystem* text_impl)
       next_char_italic_(false),
       system_(system),
       text_system_(system.text()) {
-  assert(text_impl != nullptr);
+  ASSERTX_NE(text_impl, nullptr);
 
   Gameexe& gexe = system.gameexe();
 
@@ -112,11 +109,34 @@ TextWindow::TextWindow(System& system, int window_num, ITextSystem* text_impl)
   else
     SetRGBAF(window("ATTR").ToIntVec());
 
-  default_font_size_in_pixels_ = window("MOJI_SIZE").Int().value_or(25);
-  set_font_size_in_pixels(default_font_size_in_pixels_);
-  SetWindowSizeInCharacters(window("MOJI_CNT").ToIntVec());
-  SetSpacingBetweenCharacters(window("MOJI_REP").ToIntVec());
-  set_ruby_text_size(window("LUBY_SIZE").Int().value_or(0));
+  // parse layout
+  {
+    default_font_size_ = window("MOJI_SIZE").Int().value_or(25);
+    set_font_size_in_pixels(default_font_size_);
+    std::vector<int> moji_cnt = window("MOJI_CNT").ToIntVec();
+    const int x_window_size_in_chars = moji_cnt.at(0);
+    const int y_window_size_in_chars = moji_cnt.at(1);
+    std::vector<int> moji_rep = window("MOJI_REP").ToIntVec();
+    const int x_spacing = moji_rep.at(0);
+    const int y_spacing = moji_rep.at(1);
+    const int ruby_size = window("LUBY_SIZE").Int().value_or(0);
+
+    const int layout_height =
+        y_window_size_in_chars * (default_font_size_ + y_spacing + ruby_size);
+    const int layout_width =
+        x_window_size_in_chars * (default_font_size_ + x_spacing);
+    const int layout_extended =
+        layout_width +
+        default_font_size_;  // There is one extra character in each line to
+                             // accommodate squeezed punctuation.
+
+    layout_ = TextLayout(layout_height, layout_width, layout_extended);
+    layout_.font_size = default_font_size_;
+    layout_.ruby_font_size = ruby_size;
+    layout_.x_spacing = x_spacing;
+    layout_.y_spacing = y_spacing;
+  }
+
   SetTextboxPadding(window("MOJI_POS").ToIntVec());
 
   SetWindowPosition(window("POS").ToIntVec());
@@ -170,7 +190,7 @@ TextWindow::TextWindow(System& system, int window_num, ITextSystem* text_impl)
   ClearWin();
 }
 
-TextWindow::~TextWindow() {}
+TextWindow::~TextWindow() = default;
 
 void TextWindow::Execute() {
   if (IsVisible() && !system_.graphics().is_interface_hidden()) {
@@ -237,37 +257,20 @@ void TextWindow::SetFontColor(const std::vector<int>& colour) {
   SetFontColor(RGBColour(colour.at(0), colour.at(1), colour.at(2)));
 }
 
-void TextWindow::SetWindowSizeInCharacters(const std::vector<int>& pos_data) {
-  x_window_size_in_chars_ = pos_data.at(0);
-  y_window_size_in_chars_ = pos_data.at(1);
-}
-
-void TextWindow::SetSpacingBetweenCharacters(const std::vector<int>& pos_data) {
-  x_spacing_ = pos_data.at(0);
-  y_spacing_ = pos_data.at(1);
-}
-
 void TextWindow::SetWindowPosition(const std::vector<int>& pos_data) {
   origin_ = pos_data.at(0);
   x_distance_from_origin_ = pos_data.at(1);
   y_distance_from_origin_ = pos_data.at(2);
 }
 
-Size TextWindow::GetTextWindowSize() const {
-  return Size(
-      (x_window_size_in_chars_ * (default_font_size_in_pixels_ + x_spacing_)),
-      (y_window_size_in_chars_ *
-       (default_font_size_in_pixels_ + y_spacing_ + ruby_size_)));
-}
+Size TextWindow::GetTextWindowSize() const { return layout_.GetNormalSize(); }
 
 Size TextWindow::GetTextSurfaceSize() const {
-  // There is one extra character in each line to accommodate squeezed
-  // punctuation.
-  return GetTextWindowSize() + Size(default_font_size_in_pixels_, 0);
+  return layout_.GetExtendedSize();
 }
 
 Rect TextWindow::GetWindowRect() const {
-  assert(textbox_waku_ != nullptr);
+  ASSERTX_NE(textbox_waku_, nullptr);
   Size waku_size = textbox_waku_->GetSize(GetTextSurfaceSize());
   return GetWindowRect(waku_size);
 }
@@ -360,7 +363,8 @@ Size TextWindow::GetNameboxTextArea() const {
 }
 
 void TextWindow::SetNameMod(const int in) {
-  assert(0 <= in && in <= 2);
+  ASSERTX_LE(0, in);
+  ASSERTX_LE(in, 2);
   name_mod_ = static_cast<NameMode>(in);
 }
 
@@ -390,8 +394,7 @@ Point TextWindow::KeycursorPosition(const Size& cursor_size) const {
     case 0:
       return GetTextSurfaceRect().lower_right() - cursor_size;
     case 1:
-      return GetTextSurfaceRect().origin() +
-             Point(text_insertion_point_x_, text_insertion_point_y_);
+      return GetTextSurfaceRect().origin() + layout_.GetInsertionPoint();
     case 2:
       return GetTextSurfaceRect().origin() + keycursor_pos_;
     [[unlikely]] default:
@@ -499,11 +502,7 @@ void TextWindow::RenderKoeReplayButtons() {
 }
 
 void TextWindow::ClearWin() {
-  text_insertion_point_x_ = 0;
-  text_insertion_point_y_ = ruby_text_size();
-  current_indentation_in_pixels_ = 0;
-  current_line_number_ = 0;
-  ruby_begin_point_.reset();
+  layout_.Reset();
   font_colour_ = default_colour_;
   koe_replay_button_.clear();
 
@@ -543,50 +542,29 @@ bool TextWindow::DisplayCharacter(const std::string& current,
       }
     }
 
-    // If the width of this glyph plus the spacing will put us over the
-    // edge of the window, then line increment.
-    if (MustLineBreak(cur_codepoint, rest)) {
-      HardBrake();
+    std::shared_ptr<IFont> font =
+        system_.text().LoadFont(font_size_in_pixels());
+    FontFace font_face{.font = font,
+                       .is_italic = std::exchange(next_char_italic_, false)};
 
-      if (IsFull())
-        return false;
-    }
+    // If our font is not monospaced ASCII, we aren't using
+    // the recommended font so we'll try laying out the text so that
+    // kerning looks better. This is the common case.
+    std::optional<int> width;
+    if (cur_codepoint < 127 && !font->IsMonospace())
+      width = font->GetCharWidth(cur_codepoint);
+
+    std::optional<Point> insertion_point =
+        layout_.PlaceCharacter(cur_codepoint, width, rest);
+    if (!insertion_point.has_value())
+      return false;
 
     std::optional<RGBColour> shadow;
     if (system_.text().font_shadow())
       shadow = RGBAColour::Black().rgb();
 
-    std::shared_ptr<IFont> font =
-        system_.text().LoadFont(font_size_in_pixels());
-    FontFace font_face{.font = font, .is_italic = next_char_italic_};
-
-    text_impl_->RenderGlyphOnto(
-        current, font_face, font_colour_, shadow,
-        Point(text_insertion_point_x_, text_insertion_point_y_), text_surface_);
-
-    next_char_italic_ = false;
-
-    if (cur_codepoint < 127) {
-      // This is a basic ASCII character. In normal RealLive, western text
-      // appears to be treated as half width monospace. If we're here, we are
-      // either in a manually laid out western game (therefore we should try to
-      // fit onto the monospace grid) or we're in rlbabel (in which case, our
-      // insertion point will be manually set by the bytecode immediately after
-      // this character).
-      if (font->IsMonospace()) {
-        // If our font is monospaced (ie msgothic.ttc), we want to follow the
-        // game's layout instructions perfectly.
-        text_insertion_point_x_ += GetWrappingWidthFor(cur_codepoint);
-      } else {
-        // If out font has different widths for 'i' and 'm', we aren't using
-        // the recommended font so we'll try laying out the text so that
-        // kerning looks better. This is the common case.
-        text_insertion_point_x_ += font->GetCharWidth(cur_codepoint);
-      }
-    } else {
-      // Move the insertion point forward one character
-      text_insertion_point_x_ += font_size_in_pixels_ + x_spacing_;
-    }
+    text_impl_->RenderGlyphOnto(current, font_face, font_colour_, shadow,
+                                *insertion_point, text_surface_);
 
     if (indent_after_spacing)
       SetIndentation();
@@ -597,71 +575,7 @@ bool TextWindow::DisplayCharacter(const std::string& current,
   return true;
 }
 
-// Lines we still get wrong in CLANNAD Prologue:
-//
-// <rlmax> = Official RealLive's breaking
-// <rlvm> = Where rlvm places the line break
-//
-// - "Whose ides was it to put a school at the top of a giant <rlmax>
-// slope,<rlvm> anyway?"
-//
-
-bool TextWindow::MustLineBreak(int cur_codepoint, const std::string& rest) {
-  int char_width = GetWrappingWidthFor(cur_codepoint);
-  bool cur_codepoint_is_kinsoku =
-      IsKinsoku(cur_codepoint) || cur_codepoint == 0x20;
-  int normal_width =
-      x_window_size_in_chars_ * (default_font_size_in_pixels_ + x_spacing_);
-  int extended_width = normal_width + default_font_size_in_pixels_;
-
-  // If this character is a kinsoku, and will squeeze onto this line, don't
-  // break and don't follow any of the further rules.
-  if (cur_codepoint_is_kinsoku &&
-      (text_insertion_point_x_ + char_width <= extended_width)) {
-    return false;
-  }
-
-  // If this character won't fit on the line normally, break.
-  if (text_insertion_point_x_ + char_width > normal_width) {
-    return true;
-  }
-
-  // If this character will fit on the line, but the next n characters are
-  // kinsoku characters OR wrapping roman characters and one of them won't,
-  // then break.
-  if (!cur_codepoint_is_kinsoku && rest != "") {
-    int final_insertion_x = text_insertion_point_x_ + char_width;
-
-    string::const_iterator cur = rest.begin();
-    string::const_iterator end = rest.end();
-    while (cur != end) {
-      int point = utf8::next(cur, end);
-      if (IsKinsoku(point)) {
-        final_insertion_x += GetWrappingWidthFor(point);
-
-        if (final_insertion_x > extended_width) {
-          return true;
-        }
-        // OK, is this correct? I'm now having places where we prematurely
-        // break.
-      } else if (IsWrappingRomanCharacter(point)) {
-        final_insertion_x += GetWrappingWidthFor(point);
-
-        if (final_insertion_x > normal_width) {
-          return true;
-        }
-      } else {
-        break;
-      }
-    }
-  }
-
-  return false;
-}
-
-bool TextWindow::IsFull() const {
-  return current_line_number_ >= y_window_size_in_chars_;
-}
+bool TextWindow::IsFull() const { return layout_.IsFull(); }
 
 void TextWindow::KoeMarker(int id) {
   if (!koe_replay_info_) {
@@ -676,58 +590,38 @@ void TextWindow::KoeMarker(int id) {
       koe_replay_info_->repos = Size(reppos[0], reppos[1]);
   }
 
-  Point p = Point(text_insertion_point_x_, text_insertion_point_y_) +
-            koe_replay_info_->repos;
+  Point p = layout_.GetInsertionPoint() + koe_replay_info_->repos;
   koe_replay_button_.emplace_back(p, id);
 }
 
-void TextWindow::HardBrake() {
-  text_insertion_point_x_ = current_indentation_in_pixels_;
-  text_insertion_point_y_ += line_height();
-  current_line_number_++;
-}
-
 void TextWindow::SetIndentation() {
-  current_indentation_in_pixels_ = text_insertion_point_x_;
+  layout_.indent_pixels = layout_.insertion_x;
 }
+void TextWindow::ResetIndentation() { layout_.indent_pixels = 0; }
 
-void TextWindow::ResetIndentation() { current_indentation_in_pixels_ = 0; }
-
-void TextWindow::MarkRubyBegin() {
-  ruby_begin_point_ = text_insertion_point_x_;
-}
+void TextWindow::MarkRubyBegin() { layout_.RubyBegin(); }
 
 void TextWindow::DisplayRubyText(const std::string& utf8str) {
-  if (ruby_begin_point_) {
-    int end_point = text_insertion_point_x_ - x_spacing_;
-
-    if (*ruby_begin_point_ > end_point) {
-      ruby_begin_point_.reset();
-      throw std::logic_error("We don't handle ruby across line breaks yet!");
-    }
-
-    std::shared_ptr<IFont> ifont = system_.text().LoadFont(ruby_text_size());
-    std::shared_ptr<SDLSurface> tmp =
+  if (std::optional<Rect> ruby_area = layout_.PlaceRubyText(utf8str)) {
+    std::shared_ptr<IFont> ifont =
+        system_.text().LoadFont(layout_.ruby_font_size);
+    std::shared_ptr<SDLSurface> ruby_surface =
         text_impl_->RenderText(utf8str, FontFace(ifont), font_colour_);
 
-    // Render glyph to surface
-    Size tmpsiz = tmp->GetSize();
-    int height_location = text_insertion_point_y_ - ruby_text_size();
-    int width_start = *ruby_begin_point_ +
-                      ((end_point - *ruby_begin_point_) * 0.5f) -
-                      (tmpsiz.width() * 0.5f);
-    text_surface_->blitFROMSurface(
-        *tmp, Rect(Point(0, 0), tmpsiz),
-        Rect(Point(width_start, height_location), tmpsiz), 255);
+    Point origin = ruby_area->origin();
+    int delta_x =
+        (ruby_area->size().width() - ruby_surface->GetSize().width()) / 2;
+    origin += Point(delta_x, 0);
 
-    ruby_begin_point_.reset();
+    text_surface_->blitFROMSurface(*ruby_surface, ruby_surface->GetRect(),
+                                   Rect(origin, ruby_area->size()));
   }
 
   last_token_was_name_ = false;
 }
 
 void TextWindow::SetRGBAF(const std::vector<int>& attr) {
-  assert(attr.size() >= 5);
+  ASSERTX_GE(attr.size(), 5);
   SetColour(RGBAColour(attr.at(0), attr.at(1), attr.at(2), attr.at(3)));
   SetFilter(attr.at(4));
 }
@@ -795,9 +689,9 @@ void TextWindow::StartSelection(std::vector<Selection> choices) {
         inverted->GetRect());
 
     // Figure out xpos and ypos
-    Point position = GetTextSurfaceRect().origin() +
-                     Size(text_insertion_point_x_, text_insertion_point_y_);
-    text_insertion_point_y_ += (font_size_in_pixels_ + y_spacing_ + ruby_size_);
+    Point position =
+        GetTextSurfaceRect().origin() + layout_.GetInsertionPoint();
+    layout_.insertion_y += layout_.GetLineHeight();
 
     auto sel = std::make_unique<SelectionElement>(normal, inverted, position);
     sel->OnMouseover([this]() {
@@ -815,12 +709,4 @@ void TextWindow::EndSelection() {
   state_ = State::Normal;
   selections_.clear();
   ClearWin();
-}
-
-int TextWindow::GetWrappingWidthFor(int cur_codepoint) {
-  if (cur_codepoint < 127) {
-    return std::floor((font_size_in_pixels_ + x_spacing_) / 2.0f);
-  } else {
-    return font_size_in_pixels_ + x_spacing_;
-  }
 }
