@@ -55,12 +55,6 @@
 #include "utilities/find_font_file.hpp"
 #include "utilities/string_utilities.hpp"
 
-using std::back_inserter;
-using std::endl;
-using std::ostringstream;
-using std::string;
-using std::vector;
-
 const unsigned int MAX_PAGE_HISTORY = 100;
 
 const int FULLWIDTH_NUMBER_SIGN = 0xFF03;
@@ -310,8 +304,8 @@ void TextSystem::OnEvent(std::shared_ptr<Event> event) {
   }
 }
 
-vector<int> TextSystem::GetActiveWindows() {
-  vector<int> tmp;
+std::vector<int> TextSystem::GetActiveWindows() {
+  std::vector<int> tmp;
   for (PageSet::iterator it = current_pageset_.begin();
        it != current_pageset_.end(); ++it) {
     tmp.push_back(it->first);

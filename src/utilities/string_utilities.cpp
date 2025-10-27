@@ -31,7 +31,9 @@
 #include "utf8.h"
 #include "utilities/exception.hpp"
 
+#include <algorithm>
 #include <charconv>
+#include <iterator>
 #include <string>
 
 using std::string;
@@ -86,7 +88,7 @@ bool IsWrappingRomanCharacter(int codepoint) {
 }
 
 bool IsKinsoku(int codepoint) {
-  static const int matchingCodepoints[] = {
+  static constexpr int matchingCodepoints[] = {
       0x0021, 0x0022, 0x0027, 0x0029, 0x002c, 0x002e, 0x003a, 0x003b, 0x003e,
       0x003f, 0x005d, 0x007d, 0x2019, 0x201d, 0x2025, 0x2026, 0x3001, 0x3002,
       0x3009, 0x300b, 0x300d, 0x300f, 0x3011, 0x301f, 0x3041, 0x3043, 0x3045,
@@ -95,13 +97,11 @@ bool IsKinsoku(int codepoint) {
       0x30f6, 0x30fb, 0x30fc, 0xff01, 0xff09, 0xff0c, 0xff0e, 0xff1a, 0xff1b,
       0xff1f, 0xff3d, 0xff5d, 0xff5e, 0xff61, 0xff63, 0xff64, 0xff65, 0xff67,
       0xff68, 0xff69, 0xff6a, 0xff6b, 0xff6c, 0xff6d, 0xff6e, 0xff6f, 0xff70,
-      0xff9e, 0xff9f, 0x0};
+      0xff9e, 0xff9f};
 
-  for (int i = 0; matchingCodepoints[i] != 0x0; ++i)
-    if (matchingCodepoints[i] == codepoint)
-      return true;
-
-  return false;
+  const int* begin = std::begin(matchingCodepoints);
+  const int* end = std::end(matchingCodepoints);
+  return std::binary_search(begin, end, codepoint);
 }
 
 int Codepoint(const string& c) {
