@@ -58,6 +58,11 @@ add_library(rlvm_src OBJECT)
 target_sources(rlvm_src PRIVATE ${RLVM_SRC_FILES})
 target_include_directories(rlvm_src PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
+include(ConfigureStacktrace)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  configure_stacktrace(rlvm_src)
+endif()
+
 target_compile_options(rlvm_src PUBLIC
   $<$<CXX_COMPILER_ID:GNU,Clang>:-funsigned-char -Wall -Wno-narrowing -Wno-write-strings
   -Wno-sign-compare>
