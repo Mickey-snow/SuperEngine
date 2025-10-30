@@ -29,6 +29,7 @@
 #include "core/rect.hpp"
 
 #include <algorithm>
+#include <format>
 #include <sstream>
 
 // -----------------------------------------------------------------------
@@ -42,7 +43,11 @@ int Point::x() const { return x_; }
 void Point::set_x(int in) { x_ = in; }
 int Point::y() const { return y_; }
 void Point::set_y(int in) { y_ = in; }
+
 bool Point::is_empty() const { return x_ == 0 && y_ == 0; }
+std::string Point::DebugString() const {
+  return std::format("Point({}, {})", x_, y_);
+}
 
 Point& Point::operator+=(const Point& rhs) {
   x_ += rhs.x_;
@@ -89,7 +94,11 @@ int Size::width() const { return width_; }
 void Size::set_width(int width) { width_ = width; }
 int Size::height() const { return height_; }
 void Size::set_height(int height) { height_ = height; }
+
 bool Size::is_empty() const { return width_ == 0 && height_ == 0; }
+std::string Size::DebugString() const {
+  return std::format("Size({}, {})", width_, height_);
+}
 
 Rect Size::CenteredIn(const Rect& r) const {
   int new_x = r.x() + (r.width() - width_) / 2;
@@ -175,6 +184,9 @@ const Point& Rect::origin() const { return origin_; }
 bool Rect::is_empty() const {
   return size_.width() == 0 && size_.height() == 0;
 }
+std::string Rect::DebugString() const {
+  return std::format("Rect({}, {}, {})", x(), y(), size().DebugString());
+}
 
 bool Rect::Contains(const Point& loc) const {
   return loc.x() >= x() && loc.x() < x2() && loc.y() >= y() && loc.y() < y2();
@@ -236,13 +248,13 @@ Rect::operator std::string() const {
 // Overloaded output operators
 
 std::ostream& operator<<(std::ostream& os, const Point& p) {
-  return os << "Point(" << p.x() << ", " << p.y() << ")";
+  return os << p.DebugString();
 }
 
 std::ostream& operator<<(std::ostream& os, const Size& s) {
-  return os << "Size(" << s.width() << ", " << s.height() << ")";
+  return os << s.DebugString();
 }
 
 std::ostream& operator<<(std::ostream& os, const Rect& r) {
-  return os << "Rect(" << r.x() << ", " << r.y() << ", " << r.size() << ")";
+  return os << r.DebugString();
 }

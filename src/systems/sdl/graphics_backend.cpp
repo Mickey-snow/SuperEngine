@@ -133,6 +133,9 @@ void SDLGraphicsBackend::Resize(Size display_size, bool is_fullscreen) {
 // -----------------------------------------------------------------------
 
 std::shared_ptr<Surface> SDLGraphicsBackend::CreateSurface(Size size) {
+  if (size.width() <= 0 || size.height() <= 0)
+    throw std::invalid_argument("Cannot create a surface of size " +
+                                size.DebugString());
   return std::make_shared<SDLSurface>(size);
 }
 

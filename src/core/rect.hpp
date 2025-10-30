@@ -49,6 +49,7 @@ class Point {
 
   // Utility
   bool is_empty() const;
+  [[nodiscard]] std::string DebugString() const;
 
   // Operators
   Point& operator+=(const Point& rhs);
@@ -88,6 +89,7 @@ class Size {
 
   // Utility
   bool is_empty() const;
+  [[nodiscard]] std::string DebugString() const;
 
   // Methods
   Rect CenteredIn(const Rect& r) const;
@@ -146,6 +148,7 @@ class Rect {
 
   // Utility
   bool is_empty() const;
+  [[nodiscard]] std::string DebugString() const;
 
   // Methods
   bool Contains(const Point& loc) const;

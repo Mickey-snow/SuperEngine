@@ -260,7 +260,7 @@ GraphicsSystem::GraphicsSystem(System& system,
   current_window_title_ = std::move(initial_title);
   impl_->ShowSystemCursor(!ShouldUseCustomCursor());
 
-  haikei_ = impl_->CreateSurface(Size());
+  haikei_ = impl_->CreateSurface(screen_size);
   for (int i = 0; i < 16; ++i)
     display_contexts_[i] = impl_->CreateSurface(screen_size);
 }
