@@ -301,9 +301,9 @@ ButtonSelectLongOperation::ButtonSelectLongOperation(
     select_colour_num_ = default_colour_num_;
 
   GraphicsSystem& gs = machine.GetSystem().graphics();
-  if (auto name = selbtn("NAME").Str())
+  if (auto name = selbtn("NAME").Str(); name.has_value() && !name->empty())
     name_surface_ = gs.GetSurfaceNamed(name.value());
-  if (auto name = selbtn("BACK").Str())
+  if (auto name = selbtn("BACK").Str(); name.has_value() && !name->empty())
     back_surface_ = gs.GetSurfaceNamed(name.value());
 
   if (auto tmp = selbtn("NORMAL").IntVec()) {
