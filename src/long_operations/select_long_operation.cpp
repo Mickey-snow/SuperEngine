@@ -269,8 +269,6 @@ ButtonSelectLongOperation::ButtonSelectLongOperation(
       push_frame_(0),
       dontsel_frame_(0),
       mouse_down_(false) {
-  machine.GetSystem().graphics().AddRenderable(this);
-
   // Load all the data about this #SELBTN from the Gameexe.ini file.
   Gameexe& gexe = machine.GetSystem().gameexe();
   GameexeInterpretObject selbtn(gexe("SELBTN", selbtn_set));
@@ -400,9 +398,7 @@ ButtonSelectLongOperation::ButtonSelectLongOperation(
   }
 }
 
-ButtonSelectLongOperation::~ButtonSelectLongOperation() {
-  machine_.GetSystem().graphics().RemoveRenderable(this);
-}
+ButtonSelectLongOperation::~ButtonSelectLongOperation() = default;
 
 void ButtonSelectLongOperation::OnEvent(std::shared_ptr<Event> event) {
   const bool result = std::visit(

@@ -414,18 +414,6 @@ void GraphicsSystem::SetHikRenderer(HIKRenderer* renderer) {
 
 // -----------------------------------------------------------------------
 
-void GraphicsSystem::AddRenderable(Renderable* renderable) {
-  final_renderers_.insert(renderable);
-}
-
-// -----------------------------------------------------------------------
-
-void GraphicsSystem::RemoveRenderable(Renderable* renderable) {
-  final_renderers_.erase(renderable);
-}
-
-// -----------------------------------------------------------------------
-
 void GraphicsSystem::SetWindowSubtitle(const std::string& cp932str,
                                        int text_encoding) {
   subtitle_ = cp932str;
@@ -507,8 +495,13 @@ void GraphicsSystem::RenderFrame(bool should_refresh) {
 
   auto draw_scene = [this]() { DrawFrame(); };
   auto draw_renderables = [this]() {
-    for (Renderable* renderable : final_renderers_)
+    std::erase_if(final_renderers_, [](std::weak_ptr<Renderable> wp) {
+      std::shared_ptr<Renderable> renderable = wp.lock();
+      if (!renderable)
+        return true;
       renderable->Render();
+      return false;
+    });
   };
   auto draw_cursor = [this]() {
     if (!ShouldUseCustomCursor())
@@ -551,8 +544,14 @@ void GraphicsSystem::RenderCustomFrame(const DrawCallback& draw_scene,
   // Preserve the old Begin/EndFrame behavior: render final_renderers_ and then
   // the optional draw_after()
   auto draw_renderables_then_after = [this, &draw_after]() {
-    for (Renderable* renderable : final_renderers_)
+    std::erase_if(final_renderers_, [](std::weak_ptr<Renderable> wp) {
+      std::shared_ptr<Renderable> renderable = wp.lock();
+      if (!renderable)
+        return true;
       renderable->Render();
+      return false;
+    });
+
     if (draw_after)
       draw_after();
   };

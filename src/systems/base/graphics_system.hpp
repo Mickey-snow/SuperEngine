@@ -252,8 +252,9 @@ class GraphicsSystem : public EventListener {
   // pipeline by injecting Renderables. There should only really be one
   // Renderable on screen at a time, but the interface allows for multiple
   // ones.
-  void AddRenderable(Renderable* renderable);
-  void RemoveRenderable(Renderable* renderable);
+  inline void AddRenderable(std::weak_ptr<Renderable> renderable) {
+    final_renderers_.emplace_back(renderable);
+  }
 
   // -----------------------------------------------------------------------
   // Subtitle management
@@ -437,11 +438,6 @@ class GraphicsSystem : public EventListener {
       const std::string& short_filename);
 
  protected:
-  typedef std::set<Renderable*> FinalRenderers;
-
-  FinalRenderers::iterator renderer_begin() { return final_renderers_.begin(); }
-  FinalRenderers::iterator renderer_end() { return final_renderers_.end(); }
-
   const Point& cursor_pos() const { return cursor_pos_; }
 
   std::shared_ptr<MouseCursor> GetCurrentCursor();
@@ -532,7 +528,7 @@ class GraphicsSystem : public EventListener {
   Clock::duration_t window_title_update_interval_;
 
   // A set of renderers
-  FinalRenderers final_renderers_;
+  std::vector<std::weak_ptr<Renderable>> final_renderers_;
 
   // Our parent system object.
   System& system_;

@@ -77,8 +77,10 @@ struct Sel_select_s : public RLOp_SpecialCase {
       MarkSavepoint(machine);
 
     const SelectElement& element = dynamic_cast<const SelectElement&>(ce);
-    machine.PushLongOperation(
-        std::make_shared<ButtonSelectLongOperation>(machine, element, 0));
+    auto btn_select =
+        std::make_shared<ButtonSelectLongOperation>(machine, element, 0);
+    machine.PushLongOperation(btn_select);
+    machine.GetSystem().graphics().AddRenderable(btn_select);
   }
 };
 
