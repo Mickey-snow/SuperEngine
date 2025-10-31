@@ -25,6 +25,7 @@
 
 #include <filesystem>
 #include <memory>
+#include <optional>
 
 class EventListener;
 class System;
@@ -37,7 +38,7 @@ class Archive;
 
 class GameLoader {
  public:
-  GameLoader(std::filesystem::path gameroot);
+  GameLoader(std::filesystem::path gameroot, std::optional<int> start_scene);
 
   std::shared_ptr<libreallive::Archive> archive_;
 

@@ -76,7 +76,7 @@ void CheckBadEngine(const std::filesystem::path& gamerootPath,
 
 }  // namespace
 
-GameLoader::GameLoader(fs::path gameroot) {
+GameLoader::GameLoader(fs::path gameroot, std::optional<int> start_scene) {
   fs::path gameexePath = FindGameFile(gameroot, "Gameexe.ini");
   fs::path seenPath = FindGameFile(gameroot, "Seen.txt");
 
@@ -100,6 +100,8 @@ GameLoader::GameLoader(fs::path gameroot) {
   memory->LoadFrom(*gameexe_);
   int first_seen =
       (*gameexe_)("SEEN_START").Int().value_or(archive_->GetFirstScenarioID());
+  if (start_scene.has_value())
+    first_seen = *start_scene;
 
   auto scriptor = std::make_shared<Scriptor>(*archive_);
   ScenarioConfig default_config;

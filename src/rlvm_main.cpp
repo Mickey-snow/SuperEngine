@@ -91,6 +91,8 @@ int main(int argc, char* argv[]) {
       "help-debug", "Print help message for people working on rlvm")(
       "version", "Display version and license information")(
       "font", po::value<std::string>(), "Specifies TrueType font to use.")(
+      "scene", po::value<int>(),
+      "Specifies which scenario we should start execution from")(
       "platform", po::value<std::string>(),
       "Specifies which gui platform to use.")(
       "show-platforms", "Print all avaliable gui platforms.")(
@@ -236,7 +238,10 @@ int main(int argc, char* argv[]) {
   instance.SetPlatformImplementor(platform_impl);
 
   if (vm.count("font"))
-    instance.set_custom_font(vm["font"].as<std::string>());
+    instance.SetCustomFont(vm["font"].as<std::string>());
+
+  if (vm.count("scene"))
+    instance.SetStartScene(vm["scene"].as<int>());
 
   instance.Main(gamerootPath);
 

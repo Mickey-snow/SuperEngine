@@ -28,6 +28,7 @@
 
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -46,25 +47,14 @@ class Archive;
 class RLVMInstance {
  public:
   RLVMInstance();
-  virtual ~RLVMInstance();
+  ~RLVMInstance();
 
   void Main(const std::filesystem::path& gamepath);
 
-  void set_seen_start(int in) { seen_start_ = in; }
-  void set_custom_font(const std::string& font) { custom_font_ = font; }
+  void SetStartScene(int scene_id) { start_scene_ = scene_id; }
+  void SetCustomFont(std::string font) { custom_font_ = std::move(font); }
 
   void SetPlatformImplementor(std::shared_ptr<IPlatformImplementor> impl);
-
- protected:
-  // Should bring up a platform native dialog box to report the message.
-  virtual void ReportFatalError(const std::string& message_text,
-                                const std::string& informative_text);
-
-  // Ask the user if we should take an action.
-  virtual bool AskUserPrompt(const std::string& message_text,
-                             const std::string& informative_text,
-                             const std::string& true_button,
-                             const std::string& false_button);
 
  private:
   // Control the machine to execute the next operation
@@ -73,6 +63,16 @@ class RLVMInstance {
   // Returns a formatted string to descirbe current location (scene number,
   // line)
   std::string DescribeCurrentIP() const;
+
+  // Should bring up a platform native dialog box to report the message.
+  void ReportFatalError(const std::string& message_text,
+                        const std::string& informative_text);
+
+  // Ask the user if we should take an action.
+  bool AskUserPrompt(const std::string& message_text,
+                     const std::string& informative_text,
+                     const std::string& true_button,
+                     const std::string& false_button);
 
   std::shared_ptr<System> system_;
 
@@ -83,8 +83,8 @@ class RLVMInstance {
   // Whether we should set a custom font.
   std::string custom_font_;
 
-  // Which SEEN# we should start execution from (-1 if we shouldn't set this).
-  int seen_start_;
+  // Which SEEN# we should start execution from
+  std::optional<int> start_scene_;
 
   // The bridge to the class that implements platform-specific code
   std::shared_ptr<IPlatformImplementor> platform_implementor_;

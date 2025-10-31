@@ -45,11 +45,11 @@
 
 namespace fs = std::filesystem;
 
-RLVMInstance::RLVMInstance() : seen_start_(-1), platform_implementor_(nullptr) {
+RLVMInstance::RLVMInstance() : platform_implementor_(nullptr) {
   srand(time(NULL));
 }
 
-RLVMInstance::~RLVMInstance() {}
+RLVMInstance::~RLVMInstance() = default;
 
 void RLVMInstance::SetPlatformImplementor(
     std::shared_ptr<IPlatformImplementor> impl) {
@@ -59,7 +59,7 @@ void RLVMInstance::SetPlatformImplementor(
 void RLVMInstance::Main(const std::filesystem::path& gameroot) {
   std::unique_ptr<libreallive::GameLoader> loader = nullptr;
   try {
-    loader = std::make_unique<libreallive::GameLoader>(gameroot);
+    loader = std::make_unique<libreallive::GameLoader>(gameroot, start_scene_);
     machine_ = loader->machine_;
     system_ = loader->system_;
   } catch (std::exception& e) {
