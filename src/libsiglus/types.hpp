@@ -64,6 +64,7 @@ enum class Type : uint32_t {
   Pcmch,
   PcmchList,
   PcmEventList,
+  Wipe,
 
   None = 0x00,
   Int = 0x0a,

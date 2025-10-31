@@ -1555,6 +1555,49 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
       return &mp;
     }
 
+    case Type::Wipe: {
+      static const auto mp = make_flatmap<Builder>(
+          // TODO: Named args
+          id[7] | callable(
+                      fn("wipe")[0](), fn("wipe")[1](Type::Int),
+                      fn("wipe")[2](Type::Int, Type::Int),
+                      fn("wipe")[3](Type::Int, Type::Int, Type::Int),
+                      fn("wipe")[4](Type::Int, Type::Int, Type::Int, Type::Int),
+                      fn("wipe")[any](Type::Int, Type::Int, Type::Int,
+                                      Type::Int, va_arg(Type::Int))),
+          id[23] | callable(fn("wipe_all")[0](), fn("wipe_all")[1](Type::Int),
+                            fn("wipe_all")[2](Type::Int, Type::Int),
+                            fn("wipe_all")[3](Type::Int, Type::Int, Type::Int),
+                            fn("wipe_all")[4](Type::Int, Type::Int, Type::Int,
+                                              Type::Int),
+                            fn("wipe_all")[any](Type::Int, Type::Int, Type::Int,
+                                                Type::Int, va_arg(Type::Int))),
+          id[50] |
+              callable(fn("wipe_mask")[0](Type::String),
+                       fn("wipe_mask")[1](Type::String, Type::Int),
+                       fn("wipe_mask")[2](Type::String, Type::Int, Type::Int),
+                       fn("wipe_mask")[3](Type::String, Type::Int, Type::Int,
+                                          Type::Int),
+                       fn("wipe_mask")[4](Type::String, Type::Int, Type::Int,
+                                          Type::Int, Type::Int),
+                       fn("wipe_mask")[any](Type::String, Type::Int, Type::Int,
+                                            Type::Int, Type::Int,
+                                            va_arg(Type::Int))),
+          id[51] |
+              callable(
+                  fn("wipe_mask_all")[0](Type::String),
+                  fn("wipe_mask_all")[1](Type::String, Type::Int),
+                  fn("wipe_mask_all")[2](Type::String, Type::Int, Type::Int),
+                  fn("wipe_mask_all")[3](Type::String, Type::Int, Type::Int,
+                                         Type::Int),
+                  fn("wipe_mask_all")[4](Type::String, Type::Int, Type::Int,
+                                         Type::Int, Type::Int),
+                  fn("wipe_mask_all")[any](Type::String, Type::Int, Type::Int,
+                                           Type::Int, Type::Int,
+                                           va_arg(Type::Int))));
+      return &mp;
+    }
+
     [[unlikely]]
     default:
       return nullptr;
@@ -1904,6 +1947,12 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
       elm.force_bind = false;
       return AccessChain{.root = std::move(farcall)};
     }
+
+    case 7:   // WIPE
+    case 23:  // WIPE_ALL
+    case 50:  // MASK_WIPE
+    case 51:  // MASK_WIPE_ALL
+      return make_chain(Type::Wipe, elm::Sym("wipe"), elm, 0);
 
     case 49:  // STAGE
       return make_chain(Type::StageList, elm::Sym("stage"), elm, 1);
