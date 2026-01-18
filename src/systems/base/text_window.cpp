@@ -180,7 +180,7 @@ TextWindow::TextWindow(System& system, int window_num, ITextSystem* text_impl)
     try {
       int slot = std::stoi(GetKeyParts.at(3));
       if (slot < kNumFaceSlots) {
-        face_slot_[slot].reset(new FaceSlot(it.ToIntVec()));
+        face_slot_[slot] = std::make_unique<FaceSlot>(it.ToIntVec());
       }
     } catch (...) {
       // Parsing failure. Ignore this key.

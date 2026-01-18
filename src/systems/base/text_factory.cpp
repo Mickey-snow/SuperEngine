@@ -27,6 +27,8 @@
 
 #include "core/gameexe.hpp"
 #include "log/domain_logger.hpp"
+#include "machine/rlmachine.hpp"
+#include "modules/jump.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/system.hpp"
 #include "systems/base/text_system.hpp"
@@ -160,19 +162,21 @@ std::unique_ptr<TextWaku> TextFactory::CreateWakuNormal(System& system,
 
   btn_name = "MSGBKLEFT_BOX";
   if (waku(btn_name).Exists()) {
-    auto btn = std::make_unique<RepeatActionWhileHoldingWindowButton>(
+    auto btn = std::make_unique<BasicTextWindowButton>(
         clock, ts.window_msgbkleft_use(),
-        ParseButtonRect(window_rect, waku, btn_name),
-        [&ts]() { ts.BackPage(); }, 250ms);
+        ParseButtonRect(window_rect, waku, btn_name));
+    btn->on_pressed_ = [&ts] { ts.BackPage(); };
+    btn->time_between_invocations_ = 250ms;
     result->AddButton(btn_name, 24, std::move(btn));
   }
 
   btn_name = "MSGBKRIGHT_BOX";
   if (waku(btn_name).Exists()) {
-    auto btn = std::make_unique<RepeatActionWhileHoldingWindowButton>(
+    auto btn = std::make_unique<BasicTextWindowButton>(
         clock, ts.window_msgbkright_use(),
-        ParseButtonRect(window_rect, waku, btn_name),
-        [&ts]() { ts.ForwardPage(); }, 250ms);
+        ParseButtonRect(window_rect, waku, btn_name));
+    btn->on_pressed_ = [&ts] { ts.ForwardPage(); };
+    btn->time_between_invocations_ = 250ms;
     result->AddButton(btn_name, 32, std::move(btn));
   }
 
@@ -182,37 +186,45 @@ std::unique_ptr<TextWaku> TextFactory::CreateWakuNormal(System& system,
     if (waku(btn_name).Exists()) {
       int scenario = wbcall.IntAt(0).value_or(0);
       int entrypoint = wbcall.IntAt(1).value_or(0);
-      auto btn = std::make_unique<ExbtnWindowButton>(
+      auto btn = std::make_unique<BasicTextWindowButton>(
           clock, ts.window_exbtn_use(),
-          ParseButtonRect(window_rect, waku, btn_name), scenario, entrypoint);
+          ParseButtonRect(window_rect, waku, btn_name));
+      btn->on_release_ = [&system, scenario, entrypoint] {
+        if (!system.machine_)
+          return;
+        system.text().set_system_visible(false);
+        system.machine_->PushLongOperation(
+            std::make_shared<RestoreTextSystemVisibility>());
+        Farcall(*system.machine_, scenario, entrypoint);
+      };
       result->AddButton(btn_name, 40 + i * 8, std::move(btn));
     }
   }
 
   btn_name = "READJUMP_BOX";
   if (waku(btn_name).Exists()) {
-    auto btn = std::make_unique<ActivationTextWindowButton>(
+    auto btn = std::make_unique<BasicTextWindowButton>(
         clock, ts.window_read_jump_use(),
-        ParseButtonRect(window_rect, waku, btn_name),
-        [&ts](int skip_mode) { ts.SetSkipMode(skip_mode); });
-    btn->SetEnabledNotification(NotificationType::SKIP_MODE_ENABLED_CHANGED);
-    btn->SetChangeNotification(NotificationType::SKIP_MODE_STATE_CHANGED);
-
-    // Set the initial enabled state. If true, we'll get a signal enabling it
-    // immediately.
-    btn->SetEnabled(ts.kidoku_read());
-
+        ParseButtonRect(window_rect, waku, btn_name));
+    btn->on_pressed_ = [&ts] { ts.SetSkipMode(!ts.skip_mode()); };
+    btn->on_update_ = [&ts](BasicTextWindowButton& btn) {
+      const bool can_use = ts.kidoku_read(), on = ts.skip_mode();
+      btn.state_ = can_use ? (on ? ButtonState::Activated : ButtonState::Normal)
+                           : ButtonState::Disabled;
+    };
     result->AddButton(btn_name, 104, std::move(btn));
   }
 
   btn_name = "AUTOMODE_BOX";
   if (waku(btn_name).Exists()) {
-    auto btn = std::make_unique<ActivationTextWindowButton>(
+    auto btn = std::make_unique<BasicTextWindowButton>(
         clock, ts.window_automode_use(),
-        ParseButtonRect(window_rect, waku, btn_name),
-        [&ts](int auto_mode) { ts.SetAutoMode(auto_mode); });
-    btn->SetChangeNotification(NotificationType::AUTO_MODE_STATE_CHANGED);
-
+        ParseButtonRect(window_rect, waku, btn_name));
+    btn->on_pressed_ = [&ts] { ts.SetAutoMode(!ts.auto_mode()); };
+    btn->on_update_ = [&ts](BasicTextWindowButton& btn) {
+      bool automode = ts.auto_mode();
+      btn.state_ = automode ? ButtonState::Activated : ButtonState::Normal;
+    };
     result->AddButton(btn_name, 112, std::move(btn));
   }
 

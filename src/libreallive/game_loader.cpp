@@ -124,6 +124,7 @@ GameLoader::GameLoader(fs::path gameroot, std::optional<int> start_scene) {
 
   // instantiate virtual machine
   machine_ = std::make_shared<RLMachine>(system_, scriptor, std::move(memory));
+  system_->machine_ = machine_.get();
   machine_->GetCallStack().Push(
       StackFrame(scriptor->Load(first_seen), StackFrame::TYPE_ROOT));
 

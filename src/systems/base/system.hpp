@@ -254,6 +254,8 @@ class System {
 
   std::shared_ptr<AssetScanner> GetAssetScanner();
 
+  RLMachine* machine_ = nullptr;
+
  protected:
   // Native widget drawer. Can be NULL. This field is protected instead of
   // private because we need to be destroy the Platform before we destroy SDL.

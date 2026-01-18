@@ -159,17 +159,6 @@ Point TextWakuType4::InsertionPoint(const Rect& waku_rect,
   return insertion_point;
 }
 
-void TextWakuType4::SetMousePosition(const Point& pos) {
-  // Noop
-}
-
-bool TextWakuType4::HandleMouseClick(RLMachine& machine,
-                                     const Point& pos,
-                                     bool pressed) {
-  // Noop; this window won't do anything with mouse clicks.
-  return false;
-}
-
 const std::shared_ptr<Surface>& TextWakuType4::GetWakuBackingOfSize(Size size) {
   if (!cached_backing_ || cached_backing_->GetSize() != size) {
     cached_backing_ = std::make_shared<Surface>(size);

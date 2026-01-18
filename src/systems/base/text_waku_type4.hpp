@@ -55,10 +55,13 @@ class TextWakuType4 : public TextWaku {
   // plumbing of events so that these aren't routed through TextWindow, but are
   // instead some sort of listener. I'm currently thinking that the individual
   // buttons that need to handle events should be listeners.
-  virtual void SetMousePosition(const Point& pos) override;
+  // normal waku only
+  virtual void SetMousePosition(const Point& pos) override {}
   virtual bool HandleMouseClick(RLMachine& machine,
                                 const Point& pos,
-                                bool pressed) override;
+                                bool pressed) override {
+    return false;
+  }
 
   void SetMainWaku(std::shared_ptr<const Surface> waku_surface);
   void SetArea(int top, int bottom, int left, int right);
