@@ -237,7 +237,7 @@ bool NormalSelectLongOperation::OnMouseButtonStateChanged(
   switch (mouseButton) {
     case MouseButton::LEFT: {
       Point pos = machine_.GetSystem().rlEvent().GetCursorPos();
-      machine_.GetSystem().text().HandleMouseClick(machine_, pos, pressed);
+      machine_.GetSystem().text().HandleMouseClick(pos, pressed);
       return true;
       break;
     }

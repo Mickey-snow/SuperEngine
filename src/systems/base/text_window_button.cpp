@@ -35,20 +35,19 @@
 // TextWindowButton
 // -----------------------------------------------------------------------
 
-BasicTextWindowButton::BasicTextWindowButton(std::shared_ptr<Clock> clock,
-                                             bool enable,
-                                             Rect button_rect)
+TextWindowButton::TextWindowButton(std::shared_ptr<Clock> clock,
+                                   bool enable,
+                                   Rect button_rect)
     : state_(ButtonState::Normal), clock_(clock), btn_rect_(button_rect) {
   if (!enable || !IsValid())
     state_ = ButtonState::Unused;
-  on_update_(*this);
 }
 
-bool BasicTextWindowButton::IsValid() const {
+bool TextWindowButton::IsValid() const {
   return state_ != ButtonState::Unused && !btn_rect_.is_empty();
 }
 
-void BasicTextWindowButton::SetMousePosition(const Point& pos) {
+void TextWindowButton::SetMousePosition(const Point& pos) {
   if (state_ == ButtonState::Disabled)
     return;
 
@@ -63,11 +62,16 @@ void BasicTextWindowButton::SetMousePosition(const Point& pos) {
   }
 }
 
-bool BasicTextWindowButton::HandleMouseClick(RLMachine& machine,
-                                             const Point& pos,
-                                             bool pressed) {
+bool TextWindowButton::HandleMouseClick(const Point& pos, bool pressed) {
   if (state_ == ButtonState::Disabled)
     return false;
+
+  if (!pressed && state_ == ButtonState::Pressed) {
+    ButtonReleased();
+    state_ = btn_rect_.Contains(pos) ? ButtonState::Highlighted
+                                     : ButtonState::Normal;
+    return true;
+  }
 
   if (IsValid()) {
     bool in_box = btn_rect_.Contains(pos);
@@ -79,7 +83,7 @@ bool BasicTextWindowButton::HandleMouseClick(RLMachine& machine,
         ButtonPressed();
       } else {
         state_ = ButtonState::Highlighted;
-        ButtonReleased(machine);
+        ButtonReleased();
       }
 
       return true;
@@ -89,9 +93,8 @@ bool BasicTextWindowButton::HandleMouseClick(RLMachine& machine,
   return false;
 }
 
-void BasicTextWindowButton::Render(
-    const std::shared_ptr<const Surface>& buttons,
-    int base_pattern) {
+void TextWindowButton::Render(const std::shared_ptr<const Surface>& buttons,
+                              int base_pattern) {
   if (IsValid()) {
     GrpRect rect = buttons->GetPattern(base_pattern + static_cast<int>(state_));
     if (!rect.rect.is_empty()) {
@@ -101,7 +104,7 @@ void BasicTextWindowButton::Render(
   }
 }
 
-void BasicTextWindowButton::Execute() {
+void TextWindowButton::Execute() {
   if (on_update_)
     on_update_(*this);
 

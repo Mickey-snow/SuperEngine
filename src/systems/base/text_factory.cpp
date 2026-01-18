@@ -153,7 +153,7 @@ std::unique_ptr<TextWaku> TextFactory::CreateWakuNormal(System& system,
       window.GetWindowRect(result->GetSize(text_surf_size));
   btn_name = "CLEAR_BOX";
   if (waku(btn_name).Exists()) {
-    auto btn = std::make_unique<BasicTextWindowButton>(
+    auto btn = std::make_unique<TextWindowButton>(
         clock, ts.window_clear_use(),
         ParseButtonRect(window_rect, waku, btn_name));
     btn->on_release_ = [&gs]() { gs.ToggleInterfaceHidden(); };
@@ -162,7 +162,7 @@ std::unique_ptr<TextWaku> TextFactory::CreateWakuNormal(System& system,
 
   btn_name = "MSGBKLEFT_BOX";
   if (waku(btn_name).Exists()) {
-    auto btn = std::make_unique<BasicTextWindowButton>(
+    auto btn = std::make_unique<TextWindowButton>(
         clock, ts.window_msgbkleft_use(),
         ParseButtonRect(window_rect, waku, btn_name));
     btn->on_pressed_ = [&ts] { ts.BackPage(); };
@@ -172,7 +172,7 @@ std::unique_ptr<TextWaku> TextFactory::CreateWakuNormal(System& system,
 
   btn_name = "MSGBKRIGHT_BOX";
   if (waku(btn_name).Exists()) {
-    auto btn = std::make_unique<BasicTextWindowButton>(
+    auto btn = std::make_unique<TextWindowButton>(
         clock, ts.window_msgbkright_use(),
         ParseButtonRect(window_rect, waku, btn_name));
     btn->on_pressed_ = [&ts] { ts.ForwardPage(); };
@@ -186,7 +186,7 @@ std::unique_ptr<TextWaku> TextFactory::CreateWakuNormal(System& system,
     if (waku(btn_name).Exists()) {
       int scenario = wbcall.IntAt(0).value_or(0);
       int entrypoint = wbcall.IntAt(1).value_or(0);
-      auto btn = std::make_unique<BasicTextWindowButton>(
+      auto btn = std::make_unique<TextWindowButton>(
           clock, ts.window_exbtn_use(),
           ParseButtonRect(window_rect, waku, btn_name));
       btn->on_release_ = [&system, scenario, entrypoint] {
@@ -203,28 +203,30 @@ std::unique_ptr<TextWaku> TextFactory::CreateWakuNormal(System& system,
 
   btn_name = "READJUMP_BOX";
   if (waku(btn_name).Exists()) {
-    auto btn = std::make_unique<BasicTextWindowButton>(
+    auto btn = std::make_unique<TextWindowButton>(
         clock, ts.window_read_jump_use(),
         ParseButtonRect(window_rect, waku, btn_name));
-    btn->on_pressed_ = [&ts] { ts.SetSkipMode(!ts.skip_mode()); };
-    btn->on_update_ = [&ts](BasicTextWindowButton& btn) {
+    btn->on_release_ = [&ts] { ts.SetSkipMode(!ts.skip_mode()); };
+    btn->on_update_ = [&ts](TextWindowButton& btn) {
       const bool can_use = ts.kidoku_read(), on = ts.skip_mode();
       btn.state_ = can_use ? (on ? ButtonState::Activated : ButtonState::Normal)
                            : ButtonState::Disabled;
     };
+    btn->on_update_(*btn);
     result->AddButton(btn_name, 104, std::move(btn));
   }
 
   btn_name = "AUTOMODE_BOX";
   if (waku(btn_name).Exists()) {
-    auto btn = std::make_unique<BasicTextWindowButton>(
+    auto btn = std::make_unique<TextWindowButton>(
         clock, ts.window_automode_use(),
         ParseButtonRect(window_rect, waku, btn_name));
-    btn->on_pressed_ = [&ts] { ts.SetAutoMode(!ts.auto_mode()); };
-    btn->on_update_ = [&ts](BasicTextWindowButton& btn) {
+    btn->on_release_ = [&ts] { ts.SetAutoMode(!ts.auto_mode()); };
+    btn->on_update_ = [&ts](TextWindowButton& btn) {
       bool automode = ts.auto_mode();
       btn.state_ = automode ? ButtonState::Activated : ButtonState::Normal;
     };
+    btn->on_update_(*btn);
     result->AddButton(btn_name, 112, std::move(btn));
   }
 

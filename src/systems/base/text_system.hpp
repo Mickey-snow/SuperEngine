@@ -221,7 +221,7 @@ class TextSystem final : public EventListener {
 
   // Update the mouse cursor.
   void SetMousePosition(const Point& pos);
-  bool HandleMouseClick(RLMachine& machine, const Point& pos, bool pressed);
+  bool HandleMouseClick(const Point& pos, bool pressed);
 
   // Save pieces of state that would be saved to disk.
   void TakeSavepointSnapshot();

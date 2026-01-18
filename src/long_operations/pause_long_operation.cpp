@@ -106,7 +106,7 @@ bool PauseLongOperation::OnMouseButtonStateChanged(MouseButton mouseButton,
           graphics.ToggleInterfaceHidden();
           return true;
         }
-      } else if (!text.HandleMouseClick(machine_, pos, pressed)) {
+      } else if (!text.HandleMouseClick(pos, pressed)) {
         // We *must* only respond on mouseups! This detail matters because in
         // rlBabel, if glosses are enabled, an spause() is called and then the
         // mouse button value returned by GetCursorPos needs to be "2" for the

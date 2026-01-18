@@ -637,9 +637,7 @@ void TextWindow::SetMousePosition(const Point& pos) {
   textbox_waku_->SetMousePosition(pos);
 }
 
-bool TextWindow::HandleMouseClick(RLMachine& machine,
-                                  const Point& pos,
-                                  bool pressed) {
+bool TextWindow::HandleMouseClick(const Point& pos, bool pressed) {
   if (state_ == State::Selection) {
     bool found =
         std::any_of(selections_.begin(), selections_.end(),
@@ -662,7 +660,7 @@ bool TextWindow::HandleMouseClick(RLMachine& machine,
   }
 
   if (IsVisible() && !system_.graphics().is_interface_hidden()) {
-    return textbox_waku_->HandleMouseClick(machine, pos, pressed);
+    return textbox_waku_->HandleMouseClick(pos, pressed);
   }
 
   return false;

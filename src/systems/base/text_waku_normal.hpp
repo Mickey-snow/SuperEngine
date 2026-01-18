@@ -40,7 +40,7 @@ class Size;
 class SDLSurface;
 using Surface = SDLSurface;
 class System;
-class BasicTextWindowButton;
+class TextWindowButton;
 
 // Container class that owns all text window decorations.
 //
@@ -51,7 +51,7 @@ class TextWakuNormal : public TextWaku {
 
   void AddButton(std::string btn_name,
                  int waku_offset,
-                 std::unique_ptr<BasicTextWindowButton> btn_impl);
+                 std::unique_ptr<TextWindowButton> btn_impl);
 
   virtual void Execute() override;
   virtual void Render(Point box_location,
@@ -69,9 +69,7 @@ class TextWakuNormal : public TextWaku {
   // instead some sort of listener. I'm currently thinking that the individual
   // buttons that need to handle events should be listeners.
   virtual void SetMousePosition(const Point& pos) override;
-  virtual bool HandleMouseClick(RLMachine& machine,
-                                const Point& pos,
-                                bool pressed) override;
+  virtual bool HandleMouseClick(const Point& pos, bool pressed) override;
 
   void SetWakuMain(std::shared_ptr<const Surface> surface);
   void SetWakuBacking(std::shared_ptr<const Surface> surface);
@@ -90,7 +88,7 @@ class TextWakuNormal : public TextWaku {
   struct WakuButton {
     std::string name;
     int waku_offset;
-    std::unique_ptr<BasicTextWindowButton> btn;
+    std::unique_ptr<TextWindowButton> btn;
   };
   std::vector<WakuButton> buttons_;
 };

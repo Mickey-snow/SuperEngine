@@ -499,14 +499,12 @@ void TextSystem::SetMousePosition(const Point& pos) {
   }
 }
 
-bool TextSystem::HandleMouseClick(RLMachine& machine,
-                                  const Point& pos,
-                                  bool pressed) {
+bool TextSystem::HandleMouseClick(const Point& pos, bool pressed) {
   if (system_visible()) {
     for (WindowMap::iterator it = text_window_.begin();
          it != text_window_.end(); ++it) {
       if (ShowWindow(it->first)) {
-        if (it->second->HandleMouseClick(machine, pos, pressed))
+        if (it->second->HandleMouseClick(pos, pressed))
           return true;
       }
     }

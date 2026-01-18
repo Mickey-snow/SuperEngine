@@ -41,10 +41,9 @@ using namespace std::chrono_literals;
 // -----------------------------------------------------------------------
 TextWakuNormal::TextWakuNormal(int setno, int no) : setno_(setno), no_(no) {}
 
-void TextWakuNormal::AddButton(
-    std::string btn_name,
-    int waku_offset,
-    std::unique_ptr<BasicTextWindowButton> btn_impl) {
+void TextWakuNormal::AddButton(std::string btn_name,
+                               int waku_offset,
+                               std::unique_ptr<TextWindowButton> btn_impl) {
   if (!btn_impl)
     return;
   buttons_.emplace_back(std::move(btn_name), waku_offset, std::move(btn_impl));
@@ -111,11 +110,9 @@ void TextWakuNormal::SetMousePosition(const Point& pos) {
     btn.btn->SetMousePosition(pos);
 }
 
-bool TextWakuNormal::HandleMouseClick(RLMachine& machine,
-                                      const Point& pos,
-                                      bool pressed) {
+bool TextWakuNormal::HandleMouseClick(const Point& pos, bool pressed) {
   return std::any_of(buttons_.begin(), buttons_.end(), [&](auto& btn) {
-    return btn.btn->HandleMouseClick(machine, pos, pressed);
+    return btn.btn->HandleMouseClick(pos, pressed);
   });
 }
 

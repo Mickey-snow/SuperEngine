@@ -57,9 +57,7 @@ class TextWakuType4 : public TextWaku {
   // buttons that need to handle events should be listeners.
   // normal waku only
   virtual void SetMousePosition(const Point& pos) override {}
-  virtual bool HandleMouseClick(RLMachine& machine,
-                                const Point& pos,
-                                bool pressed) override {
+  virtual bool HandleMouseClick(const Point& pos, bool pressed) override {
     return false;
   }
 

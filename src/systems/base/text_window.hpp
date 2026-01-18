@@ -47,7 +47,7 @@ class System;
 class TextSystem;
 class ITextSystem;
 class TextWaku;
-class BasicTextWindowButton;
+class TextWindowButton;
 
 constexpr int kNumFaceSlots = 8;
 
@@ -118,7 +118,7 @@ class TextWindow {
   // TODO(erg): What's SetMousePosition and how does it differ from mouse
   // listeners?
   void SetMousePosition(const Point& pos);
-  bool HandleMouseClick(RLMachine& machine, const Point& pos, bool pressed);
+  bool HandleMouseClick(const Point& pos, bool pressed);
 
   // Sets how the name is displayed
   void SetNameMod(const int in);

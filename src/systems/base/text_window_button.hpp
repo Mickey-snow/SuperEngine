@@ -34,7 +34,6 @@
 #include <memory>
 #include <optional>
 
-class RLMachine;
 class SDLSurface;
 using Surface = SDLSurface;
 
@@ -49,11 +48,11 @@ enum class ButtonState : int {
 };
 
 // The base class for text window buttons
-class BasicTextWindowButton {
+class TextWindowButton {
  public:
-  explicit BasicTextWindowButton(std::shared_ptr<Clock> clock,
-                                 bool enable,
-                                 Rect button_rect);
+  explicit TextWindowButton(std::shared_ptr<Clock> clock,
+                            bool enable,
+                            Rect button_rect);
 
   // Checks to see if this is a valid, used button
   bool IsValid() const;
@@ -61,7 +60,7 @@ class BasicTextWindowButton {
   // Track the mouse position to see if we need to alter our state
   void SetMousePosition(const Point& pos);
 
-  bool HandleMouseClick(RLMachine& machine, const Point& pos, bool pressed);
+  bool HandleMouseClick(const Point& pos, bool pressed);
 
   void Render(const std::shared_ptr<const Surface>& buttons, int base_pattern);
 
@@ -70,7 +69,7 @@ class BasicTextWindowButton {
   void Execute();
 
   // Called before Execute() call, handles periodical updates.
-  std::function<void(BasicTextWindowButton&)> on_update_;
+  std::function<void(TextWindowButton&)> on_update_;
 
   // Called when the button is pressed
   std::function<void()> on_pressed_;
@@ -91,7 +90,7 @@ class BasicTextWindowButton {
     }
   }
 
-  inline void ButtonReleased(RLMachine&) {
+  inline void ButtonReleased() {
     if (on_release_)
       on_release_();
     last_invocation_.reset();
