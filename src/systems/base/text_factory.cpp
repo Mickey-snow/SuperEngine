@@ -209,8 +209,14 @@ std::unique_ptr<TextWaku> TextFactory::CreateWakuNormal(System& system,
     btn->on_release_ = [&ts] { ts.SetSkipMode(!ts.skip_mode()); };
     btn->on_update_ = [&ts](TextWindowButton& btn) {
       const bool can_use = ts.kidoku_read(), on = ts.skip_mode();
-      btn.state_ = can_use ? (on ? ButtonState::Activated : ButtonState::Normal)
-                           : ButtonState::Disabled;
+      if (!can_use)
+        btn.state_ = ButtonState::Disabled;
+      else if (btn.state_ == ButtonState::Disabled)
+        btn.state_ = ButtonState::Normal;
+      if (on)
+        btn.state_ = ButtonState::Activated;
+      else if (btn.state_ == ButtonState::Activated)
+        btn.state_ = ButtonState::Normal;
     };
     btn->on_update_(*btn);
     result->AddButton(btn_name, 104, std::move(btn));
@@ -224,7 +230,10 @@ std::unique_ptr<TextWaku> TextFactory::CreateWakuNormal(System& system,
     btn->on_release_ = [&ts] { ts.SetAutoMode(!ts.auto_mode()); };
     btn->on_update_ = [&ts](TextWindowButton& btn) {
       bool automode = ts.auto_mode();
-      btn.state_ = automode ? ButtonState::Activated : ButtonState::Normal;
+      if (automode)
+        btn.state_ = ButtonState::Activated;
+      else if (btn.state_ == ButtonState::Activated)
+        btn.state_ = ButtonState::Normal;
     };
     btn->on_update_(*btn);
     result->AddButton(btn_name, 112, std::move(btn));
