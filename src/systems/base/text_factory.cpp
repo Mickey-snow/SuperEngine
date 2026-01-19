@@ -134,30 +134,31 @@ std::unique_ptr<TextWaku> TextFactory::CreateWakuNormal(System& system,
 
   GraphicsSystem& gs = system.graphics();
   TextSystem& ts = system.text();
-  std::string surface_name, btn_name;
   std::shared_ptr<Clock> clock = system.event().GetClock();
 
+  std::shared_ptr<Surface> main_surface, back_surface, btn_surface;
   auto waku = gexe_("WAKU", setno, no);
-  surface_name = waku("NAME").Str().value_or("");
-  result->SetWakuMain(surface_name.empty() ? nullptr
-                                           : gs.GetSurfaceNamed(surface_name));
-  surface_name = waku("BACK").Str().value_or("");
-  result->SetWakuBacking(
-      surface_name.empty() ? nullptr : gs.GetSurfaceNamed(surface_name));
-  surface_name = waku("BTN").Str().value_or("");
-  result->SetWakuButton(
-      surface_name.empty() ? nullptr : gs.GetSurfaceNamed(surface_name));
+  if (auto name = waku("NAME").Str(); name.has_value() && !name.value().empty())
+    main_surface = gs.GetSurfaceNamed(name.value());
+  if (auto name = waku("BACK").Str(); name.has_value() && !name.value().empty())
+    back_surface = gs.GetSurfaceNamed(name.value());
+  if (auto name = waku("BTN").Str(); name.has_value() && !name.value().empty())
+    btn_surface = gs.GetSurfaceNamed(name.value());
+
+  result->SetWakuMain(main_surface);
+  result->SetWakuBacking(back_surface);
 
   const Size text_surf_size = window.GetTextSurfaceSize();
   const Rect window_rect =
       window.GetWindowRect(result->GetSize(text_surf_size));
-  btn_name = "CLEAR_BOX";
+  std::string btn_name = "CLEAR_BOX";
   if (waku(btn_name).Exists()) {
     auto btn = std::make_unique<TextWindowButton>(
         clock, ts.window_clear_use(),
         ParseButtonRect(window_rect, waku, btn_name));
     btn->on_release_ = [&gs]() { gs.ToggleInterfaceHidden(); };
-    result->AddButton(btn_name, 8, std::move(btn));
+    btn->SetSurface(btn_surface, 8);
+    result->AddButton(btn_name, std::move(btn));
   }
 
   btn_name = "MSGBKLEFT_BOX";
@@ -167,7 +168,8 @@ std::unique_ptr<TextWaku> TextFactory::CreateWakuNormal(System& system,
         ParseButtonRect(window_rect, waku, btn_name));
     btn->on_pressed_ = [&ts] { ts.BackPage(); };
     btn->time_between_invocations_ = 250ms;
-    result->AddButton(btn_name, 24, std::move(btn));
+    btn->SetSurface(btn_surface, 24);
+    result->AddButton(btn_name, std::move(btn));
   }
 
   btn_name = "MSGBKRIGHT_BOX";
@@ -177,7 +179,8 @@ std::unique_ptr<TextWaku> TextFactory::CreateWakuNormal(System& system,
         ParseButtonRect(window_rect, waku, btn_name));
     btn->on_pressed_ = [&ts] { ts.ForwardPage(); };
     btn->time_between_invocations_ = 250ms;
-    result->AddButton(btn_name, 32, std::move(btn));
+    btn->SetSurface(btn_surface, 32);
+    result->AddButton(btn_name, std::move(btn));
   }
 
   for (int i = 0; i < 7; ++i) {
@@ -197,7 +200,8 @@ std::unique_ptr<TextWaku> TextFactory::CreateWakuNormal(System& system,
             std::make_shared<RestoreTextSystemVisibility>());
         Farcall(*system.machine_, scenario, entrypoint);
       };
-      result->AddButton(btn_name, 40 + i * 8, std::move(btn));
+      btn->SetSurface(btn_surface, 40 + i * 8);
+      result->AddButton(btn_name, std::move(btn));
     }
   }
 
@@ -219,7 +223,8 @@ std::unique_ptr<TextWaku> TextFactory::CreateWakuNormal(System& system,
         btn.state_ = ButtonState::Normal;
     };
     btn->on_update_(*btn);
-    result->AddButton(btn_name, 104, std::move(btn));
+    btn->SetSurface(btn_surface, 104);
+    result->AddButton(btn_name, std::move(btn));
   }
 
   btn_name = "AUTOMODE_BOX";
@@ -236,7 +241,8 @@ std::unique_ptr<TextWaku> TextFactory::CreateWakuNormal(System& system,
         btn.state_ = ButtonState::Normal;
     };
     btn->on_update_(*btn);
-    result->AddButton(btn_name, 112, std::move(btn));
+    btn->SetSurface(btn_surface, 112);
+    result->AddButton(btn_name, std::move(btn));
   }
 
   /*

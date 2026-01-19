@@ -33,6 +33,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <utility>
 
 class SDLSurface;
 using Surface = SDLSurface;
@@ -51,8 +52,9 @@ enum class ButtonState : int {
 class TextWindowButton {
  public:
   explicit TextWindowButton(std::shared_ptr<Clock> clock,
-                            bool enable,
+                            bool should_use,
                             Rect button_rect);
+  inline Rect GetRect() const { return btn_rect_; }
 
   // Checks to see if this is a valid, used button
   bool IsValid() const;
@@ -62,7 +64,9 @@ class TextWindowButton {
 
   bool HandleMouseClick(const Point& pos, bool pressed);
 
-  void Render(const std::shared_ptr<const Surface>& buttons, int base_pattern);
+  void SetSurface(std::shared_ptr<Surface> surf, int base_pattern);
+
+  std::pair<std::shared_ptr<Surface>, Rect> Render() const;
 
   // Called by other execute() calls while the System object has its
   // turn to do any updating
@@ -100,4 +104,7 @@ class TextWindowButton {
   std::optional<Clock::timepoint_t> last_invocation_;
 
   Rect btn_rect_;
+
+  std::shared_ptr<Surface> button_surface_;
+  int base_pattern_;
 };

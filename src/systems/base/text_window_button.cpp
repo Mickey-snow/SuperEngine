@@ -28,18 +28,19 @@
 #include "systems/base/text_window.hpp"
 #include "systems/sdl_surface.hpp"
 
-#include <stdexcept>
-#include <vector>
-
 // -----------------------------------------------------------------------
 // TextWindowButton
 // -----------------------------------------------------------------------
 
 TextWindowButton::TextWindowButton(std::shared_ptr<Clock> clock,
-                                   bool enable,
+                                   bool should_use,
                                    Rect button_rect)
-    : state_(ButtonState::Normal), clock_(clock), btn_rect_(button_rect) {
-  if (!enable || !IsValid())
+    : state_(ButtonState::Normal),
+      clock_(clock),
+      btn_rect_(button_rect),
+      button_surface_(nullptr),
+      base_pattern_(0) {
+  if (!should_use || !IsValid())
     state_ = ButtonState::Unused;
 }
 
@@ -93,15 +94,18 @@ bool TextWindowButton::HandleMouseClick(const Point& pos, bool pressed) {
   return false;
 }
 
-void TextWindowButton::Render(const std::shared_ptr<const Surface>& buttons,
-                              int base_pattern) {
-  if (IsValid()) {
-    GrpRect rect = buttons->GetPattern(base_pattern + static_cast<int>(state_));
-    if (!rect.rect.is_empty()) {
-      Rect dest = Rect(btn_rect_.origin(), rect.rect.size());
-      buttons->RenderToScreen(rect.rect, dest, 255);
-    }
-  }
+void TextWindowButton::SetSurface(std::shared_ptr<Surface> surf,
+                                  int base_pattern) {
+  button_surface_ = surf;
+  base_pattern_ = base_pattern;
+}
+
+std::pair<std::shared_ptr<Surface>, Rect> TextWindowButton::Render() const {
+  if (!IsValid() || !button_surface_)
+    return std::make_pair(nullptr, Rect());
+  int offset = base_pattern_ + static_cast<int>(state_);
+  GrpRect src = button_surface_->GetPattern(offset);
+  return std::make_pair(button_surface_, src.rect);
 }
 
 void TextWindowButton::Execute() {

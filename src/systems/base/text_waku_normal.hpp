@@ -50,7 +50,6 @@ class TextWakuNormal : public TextWaku {
   TextWakuNormal(int setno, int no);
 
   void AddButton(std::string btn_name,
-                 int waku_offset,
                  std::unique_ptr<TextWindowButton> btn_impl);
 
   virtual void Execute() override;
@@ -73,21 +72,15 @@ class TextWakuNormal : public TextWaku {
 
   void SetWakuMain(std::shared_ptr<const Surface> surface);
   void SetWakuBacking(std::shared_ptr<const Surface> surface);
-  void SetWakuButton(std::shared_ptr<const Surface> surface);
 
  private:
-  // Renders all the buttons in |button_map_|.
-  void RenderButtons();
-
   int setno_, no_;
 
   std::shared_ptr<const Surface> main_surface_;
   std::shared_ptr<Surface> backing_surface_;
-  std::shared_ptr<const Surface> button_surface_;
 
   struct WakuButton {
     std::string name;
-    int waku_offset;
     std::unique_ptr<TextWindowButton> btn;
   };
   std::vector<WakuButton> buttons_;

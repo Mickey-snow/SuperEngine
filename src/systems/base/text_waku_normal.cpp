@@ -42,11 +42,10 @@ using namespace std::chrono_literals;
 TextWakuNormal::TextWakuNormal(int setno, int no) : setno_(setno), no_(no) {}
 
 void TextWakuNormal::AddButton(std::string btn_name,
-                               int waku_offset,
                                std::unique_ptr<TextWindowButton> btn_impl) {
   if (!btn_impl)
     return;
-  buttons_.emplace_back(std::move(btn_name), waku_offset, std::move(btn_impl));
+  buttons_.emplace_back(std::move(btn_name), std::move(btn_impl));
 }
 
 void TextWakuNormal::Execute() {
@@ -71,13 +70,13 @@ void TextWakuNormal::Render(Point box_location,
                                   Rect(box_location, main_size), 255);
   }
 
-  if (button_surface_)
-    RenderButtons();
-}
-
-void TextWakuNormal::RenderButtons() {
-  for (auto& btn : buttons_)
-    btn.btn->Render(button_surface_, btn.waku_offset);
+  for (auto& btn : buttons_) {
+    auto [surf, src] = btn.btn->Render();
+    if (!surf || src.is_empty())
+      continue;
+    Rect dst(btn.btn->GetRect().origin(), src.size());
+    surf->RenderToScreen(src, dst);
+  }
 }
 
 Size TextWakuNormal::GetSize(const Size& text_surface) const {
@@ -128,8 +127,4 @@ void TextWakuNormal::SetWakuBacking(std::shared_ptr<const Surface> surface) {
 
   backing_surface_ = surface->Clone();
   backing_surface_->SetIsMask(true);
-}
-
-void TextWakuNormal::SetWakuButton(std::shared_ptr<const Surface> surface) {
-  button_surface_ = surface;
 }
