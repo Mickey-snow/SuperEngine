@@ -37,9 +37,6 @@
 #include "core/cgm_table.hpp"
 #include "core/gameexe.hpp"
 #include "core/memory.hpp"
-#include "core/notification/details.hpp"
-#include "core/notification/service.hpp"
-#include "core/notification/source.hpp"
 #include "core/rlevent_listener.hpp"
 #include "libreallive/expression.hpp"
 #include "machine/rlmachine.hpp"
@@ -695,15 +692,12 @@ void GraphicsSystem::PreloadHIKScript(System& system,
                                       int slot,
                                       const std::string& name,
                                       const std::filesystem::path& file_path) {
-  HIKScript* script = new HIKScript(system, file_path);
-
-  preloaded_hik_scripts_[slot] =
-      std::make_pair(name, std::shared_ptr<HIKScript>(script));
+  auto script = std::make_shared<HIKScript>(system, file_path);
+  preloaded_hik_scripts_[slot] = std::make_pair(name, script);
 }
 
 void GraphicsSystem::ClearPreloadedHIKScript(int slot) {
-  preloaded_hik_scripts_[slot] =
-      std::make_pair("", std::shared_ptr<HIKScript>());
+  preloaded_hik_scripts_[slot] = std::make_pair("", nullptr);
 }
 
 void GraphicsSystem::ClearAllPreloadedHIKScripts() {
@@ -719,7 +713,7 @@ std::shared_ptr<HIKScript> GraphicsSystem::GetHIKScript(
       return item.second;
   }
 
-  return std::shared_ptr<HIKScript>(new HIKScript(system, file_path));
+  return std::make_shared<HIKScript>(system, file_path);
 }
 
 void GraphicsSystem::PreloadG00(int slot, const std::string& name) {
@@ -1124,8 +1118,8 @@ std::shared_ptr<MouseCursor> GraphicsSystem::GetCurrentCursor() {
         int speed = cursor("SPEED").Int().value_or(800);
 
         cursor_surface = GetSurfaceNamed(*name);
-        mouse_cursor_.reset(
-            new MouseCursor(system(), cursor_surface, count, speed));
+        mouse_cursor_ = std::make_shared<MouseCursor>(system(), cursor_surface,
+                                                      count, speed);
         cursor_cache_[cursor_] = mouse_cursor_;
       } else {
         mouse_cursor_.reset();

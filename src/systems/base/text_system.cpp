@@ -38,9 +38,6 @@
 
 #include "core/gameexe.hpp"
 #include "core/memory.hpp"
-#include "core/notification/details.hpp"
-#include "core/notification/service.hpp"
-#include "core/notification/source.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/serialization.hpp"
 #include "systems/base/graphics_system.hpp"
@@ -413,13 +410,7 @@ std::string TextSystem::InterpretName(const std::string& utf8name) {
   return it->second;
 }
 
-void TextSystem::SetAutoMode(int i) {
-  auto_mode_ = (bool)i;
-
-  NotificationService::current()->Notify(
-      NotificationType::AUTO_MODE_STATE_CHANGED, Source<TextSystem>(this),
-      Details<const int>(&i));
-}
+void TextSystem::SetAutoMode(int i) { auto_mode_ = (bool)i; }
 
 int TextSystem::GetAutoTime(int num_chars) {
   return globals_.auto_mode_base_time +
@@ -431,7 +422,7 @@ void TextSystem::SetKeyCursor(int new_cursor) {
     text_key_cursor_.reset();
   } else if (!text_key_cursor_ ||
              text_key_cursor_->cursor_number() != new_cursor) {
-    text_key_cursor_.reset(new TextKeyCursor(system(), new_cursor));
+    text_key_cursor_ = std::make_shared<TextKeyCursor>(system(), new_cursor);
   }
 }
 
@@ -819,26 +810,13 @@ void TextSystem::SetKidokuRead(const int in) {
   bool value_changed = kidoku_read_ != in;
 
   kidoku_read_ = in;
-  NotificationService::current()->Notify(
-      NotificationType::SKIP_MODE_ENABLED_CHANGED, Source<TextSystem>(this),
-      Details<const int>(&in));
-
   if (value_changed && !kidoku_read_ && skip_mode_) {
     // Auto leave skip mode when we stop reading previously read text.
     SetSkipMode(false);
   }
 }
 
-void TextSystem::SetSkipMode(int in) {
-  bool value_changed = skip_mode_ != in;
-  skip_mode_ = in;
-
-  if (value_changed) {
-    NotificationService::current()->Notify(
-        NotificationType::SKIP_MODE_STATE_CHANGED, Source<TextSystem>(this),
-        Details<int>(&in));
-  }
-}
+void TextSystem::SetSkipMode(int in) { skip_mode_ = in; }
 
 template <class Archive>
 void TextSystem::load(Archive& ar, unsigned int version) {
