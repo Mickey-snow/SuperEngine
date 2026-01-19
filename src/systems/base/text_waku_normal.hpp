@@ -47,7 +47,7 @@ class TextWindowButton;
 // Window decorations are defined with \#WAKU.<setno>.<no>. Gameexe.ini keys.
 class TextWakuNormal : public TextWaku {
  public:
-  TextWakuNormal(int setno, int no);
+  TextWakuNormal();
 
   void AddButton(std::string btn_name,
                  std::unique_ptr<TextWindowButton> btn_impl);
@@ -58,10 +58,6 @@ class TextWakuNormal : public TextWaku {
                       RGBAColour colour,
                       bool is_filter) override;
   virtual Size GetSize(const Size& text_surface) const override;
-  virtual Point InsertionPoint(const Rect& waku_rect,
-                               const Size& padding,
-                               const Size& surface_size,
-                               bool center) const override;
 
   // TODO(erg): These two methods shouldn't really exist; I need to redo
   // plumbing of events so that these aren't routed through TextWindow, but are
@@ -74,8 +70,6 @@ class TextWakuNormal : public TextWaku {
   void SetWakuBacking(std::shared_ptr<const Surface> surface);
 
  private:
-  int setno_, no_;
-
   std::shared_ptr<const Surface> main_surface_;
   std::shared_ptr<Surface> backing_surface_;
 

@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -34,8 +31,7 @@
 // box expands to fill whatever size is passed into render().
 class TextWakuType4 : public TextWaku {
  public:
-  TextWakuType4(int setno, int no);
-  virtual ~TextWakuType4() = default;
+  TextWakuType4();
 
   virtual void Execute() override;
   virtual void Render(Point box_location,
@@ -46,10 +42,6 @@ class TextWakuType4 : public TextWaku {
   // We have no size other than what is passed to |namebox_size|. Always
   // returns false and resets |out|.
   virtual Size GetSize(const Size& text_surface) const override;
-  virtual Point InsertionPoint(const Rect& waku_rect,
-                               const Size& padding,
-                               const Size& surface_size,
-                               bool center) const override;
 
   // TODO(erg): These two methods shouldn't really exist; I need to redo
   // plumbing of events so that these aren't routed through TextWindow, but are
@@ -67,8 +59,6 @@ class TextWakuType4 : public TextWaku {
  private:
   // Returns |cached_backing_|, shrinking or enlarging it to |size|.
   const std::shared_ptr<Surface>& GetWakuBackingOfSize(Size size);
-
-  int setno_, no_;
 
   // Additional area that adds to the filter backing in four directions.
   int area_top_, area_bottom_, area_left_, area_right_;

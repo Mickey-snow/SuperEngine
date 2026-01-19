@@ -27,6 +27,7 @@
 #include "systems/base/text_waku_normal.hpp"
 
 #include "core/rect.hpp"
+#include "systems/base/text_waku.hpp"
 #include "systems/base/text_window_button.hpp"
 #include "systems/sdl_surface.hpp"
 
@@ -39,7 +40,7 @@ using namespace std::chrono_literals;
 // -----------------------------------------------------------------------
 // TextWakuNormal
 // -----------------------------------------------------------------------
-TextWakuNormal::TextWakuNormal(int setno, int no) : setno_(setno), no_(no) {}
+TextWakuNormal::TextWakuNormal() : TextWaku(true, false) {}
 
 void TextWakuNormal::AddButton(std::string btn_name,
                                std::unique_ptr<TextWindowButton> btn_impl) {
@@ -86,22 +87,6 @@ Size TextWakuNormal::GetSize(const Size& text_surface) const {
     return backing_surface_->GetSize();
   else
     return text_surface;
-}
-
-Point TextWakuNormal::InsertionPoint(const Rect& waku_rect,
-                                     const Size& padding,
-                                     const Size& surface_size,
-                                     bool center) const {
-  // In normal type 5 wakus, we just offset from the top left corner by padding
-  // amounts.
-  Point insertion_point = waku_rect.origin() + padding;
-  if (center) {
-    int half_width = (waku_rect.width() - 2 * padding.width()) / 2;
-    int half_text_width = surface_size.width() / 2;
-    insertion_point += Point(half_width - half_text_width, 0);
-  }
-
-  return insertion_point;
 }
 
 void TextWakuNormal::SetMousePosition(const Point& pos) {

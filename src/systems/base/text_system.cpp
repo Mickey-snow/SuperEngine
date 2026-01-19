@@ -482,23 +482,19 @@ void TextSystem::SetWindowAttrF(int i) {
 }
 
 void TextSystem::SetMousePosition(const Point& pos) {
-  for (WindowMap::iterator it = text_window_.begin(); it != text_window_.end();
-       ++it) {
-    if (ShowWindow(it->first)) {
-      it->second->SetMousePosition(pos);
+  for (auto const& [id, it] : text_window_) {
+    if (ShowWindow(id)) {
+      it->SetMousePosition(pos);
     }
   }
 }
 
 bool TextSystem::HandleMouseClick(const Point& pos, bool pressed) {
-  if (system_visible()) {
-    for (WindowMap::iterator it = text_window_.begin();
-         it != text_window_.end(); ++it) {
-      if (ShowWindow(it->first)) {
-        if (it->second->HandleMouseClick(pos, pressed))
-          return true;
-      }
-    }
+  if (!system_visible())
+    return false;
+  for (auto const& [id, it] : text_window_) {
+    if (ShowWindow(id) && it->HandleMouseClick(pos, pressed))
+      return true;
   }
 
   return false;

@@ -124,7 +124,7 @@ std::unique_ptr<TextWaku> TextFactory::CreateWakuNormal(System& system,
                                                         int setno,
                                                         int no) {
   using namespace std::chrono_literals;
-  auto result = std::make_unique<TextWakuNormal>(setno, no);
+  auto result = std::make_unique<TextWakuNormal>();
 
   // Attach waku surface and action buttons defined in the
   // #WAKU.index1.index2.XXX_BOX properties. These actions represent
@@ -266,7 +266,7 @@ std::unique_ptr<TextWaku> TextFactory::CreateWakuType4(System& system,
                                                        TextWindow& window,
                                                        int setno,
                                                        int no) {
-  auto result = std::make_unique<TextWakuType4>(setno, no);
+  auto result = std::make_unique<TextWakuType4>();
 
   auto waku = gexe_("WAKU", setno, no);
   std::string waku_main_name = waku("NAME").Str().value_or("");

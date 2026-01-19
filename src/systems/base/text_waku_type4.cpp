@@ -27,7 +27,7 @@
 #include "systems/base/text_waku_type4.hpp"
 
 #include "systems/base/graphics_system.hpp"
-#include "systems/base/system.hpp"
+#include "systems/base/text_waku.hpp"
 #include "systems/sdl_surface.hpp"
 
 // A listing of all the g00 regions in type 4 wakus. The ranges to the right
@@ -47,9 +47,8 @@ enum WakuPart {
   BOTTOM_RIGHT_CORNER,  // <region x1="20" y1="20" x2="23" y2="23"/>
 };
 
-TextWakuType4::TextWakuType4(int setno, int no)
-    : setno_(setno),
-      no_(no),
+TextWakuType4::TextWakuType4()
+    : TextWaku(true, true),
       area_top_(0),
       area_bottom_(0),
       area_left_(0),
@@ -136,27 +135,6 @@ Size TextWakuType4::GetSize(const Size& text_surface) const {
   Size padding = Size(left_side_.rect.width() + right_side_.rect.width(),
                       top_center_.rect.height() + bottom_center_.rect.height());
   return text_surface + padding;
-}
-
-Point TextWakuType4::InsertionPoint(const Rect& waku_rect,
-                                    const Size& padding,
-                                    const Size& surface_size,
-                                    bool center) const {
-  Point insertion_point = waku_rect.origin();
-  if (center) {
-    int half_width = (waku_rect.width()) / 2;
-    int half_text_width = surface_size.width() / 2;
-
-    int half_height = (waku_rect.height()) / 2;
-    int half_text_height = surface_size.height() / 2;
-
-    insertion_point +=
-        Point(half_width - half_text_width, half_height - half_text_height);
-  } else {
-    insertion_point += Point(padding.width(), padding.height());
-  }
-
-  return insertion_point;
 }
 
 const std::shared_ptr<Surface>& TextWakuType4::GetWakuBackingOfSize(Size size) {

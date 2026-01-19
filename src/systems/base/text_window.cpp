@@ -25,7 +25,6 @@
 #include "systems/base/text_window.hpp"
 
 #include "core/gameexe.hpp"
-#include "libreallive/alldefs.hpp"
 #include "machine/rlmachine.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/base/selection_element.hpp"
@@ -40,10 +39,7 @@
 #include "utilities/graphics.hpp"
 #include "utilities/string_utilities.hpp"
 
-#include "utf8.h"
-
 #include <algorithm>
-#include <cmath>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -426,6 +422,24 @@ void TextWindow::FaceClose(int index) {
 
 void TextWindow::NextCharIsItalic() { next_char_italic_ = true; }
 
+static Point InsertionPoint(const Rect& waku_rect,
+                            const Size& padding,
+                            const Size& surface_size,
+                            bool center_w,
+                            bool center_h) {
+  Point insertion_point = waku_rect.origin() + padding;
+  if (center_w) {
+    int half_width = (waku_rect.width() - 2 * padding.width()) / 2;
+    int half_text_width = surface_size.width() / 2;
+    insertion_point += Point(half_width - half_text_width, 0);
+  }
+  if (center_h) {
+    int half_height = (waku_rect.height() - 2 * padding.height()) / 2;
+    int half_text_height = surface_size.height() / 2;
+    insertion_point += Point(0, half_height - half_text_height);
+  }
+  return insertion_point;
+}
 // TODO(erg): Make this pass the #WINDOW_ATTR colour off wile rendering the
 // waku_backing.
 void TextWindow::Render() {
@@ -456,9 +470,13 @@ void TextWindow::Render() {
                                   GetIsFilter());
           }
 
-          Point insertion_point = namebox_waku_->InsertionPoint(
+          auto [center_w, center_h] = namebox_waku_->ShouldCenter();
+          if (!namebox_centering_)
+            center_h = center_w = false;
+          Point insertion_point = InsertionPoint(
               r, Size(horizontal_namebox_padding_, vertical_namebox_padding_),
-              name_surface_->GetSize(), namebox_centering_);
+              name_surface_->GetSize(), center_w, center_h);
+
           name_surface_->RenderToScreen(
               name_surface_->GetRect(),
               Rect(insertion_point, name_surface_->GetSize()), 255);

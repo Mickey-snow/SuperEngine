@@ -1,13 +1,10 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2009 Elliot Glaysher
+// Copyright (C) 2026 Sakurai Serina
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,38 +21,11 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#pragma once
+#include "systems/base/text_waku.hpp"
 
-#include "core/colour.hpp"
+TextWaku::TextWaku(bool should_center_w, bool should_center_h)
+    : center_w_(should_center_w), center_h_(should_center_h) {}
 
-class Point;
-class Rect;
-class RLMachine;
-class Size;
-class System;
-
-class TextWaku {
- public:
-  TextWaku(bool should_center_w, bool should_center_h);
-  virtual ~TextWaku() = default;
-
-  virtual void Execute() = 0;
-  virtual void Render(Point box_location,
-                      Size namebox_size,
-                      RGBAColour colour,
-                      bool is_filter) = 0;
-
-  // Possibly returns the size if this TextWaku object has a known size on
-  // screen.
-  virtual Size GetSize(const Size& text_surface) const = 0;
-
-  virtual void SetMousePosition(const Point& pos) {}
-  virtual bool HandleMouseClick(const Point& pos, bool pressed) {
-    return false;
-  }
-
-  std::pair<bool, bool> ShouldCenter() const;
-
- private:
-  bool center_w_, center_h_;
-};
+std::pair<bool, bool> TextWaku::ShouldCenter() const {
+  return std::make_pair(center_w_, center_h_);
+}
