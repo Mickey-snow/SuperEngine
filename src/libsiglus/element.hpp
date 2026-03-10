@@ -28,10 +28,7 @@
 #include "libsiglus/value.hpp"
 #include "utilities/flat_map.hpp"
 
-#include <functional>
-#include <memory>
 #include <optional>
-#include <span>
 #include <utility>
 #include <variant>
 #include <vector>

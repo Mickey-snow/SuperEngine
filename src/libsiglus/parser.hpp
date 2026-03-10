@@ -89,7 +89,7 @@ class Parser {
   void push(const token::GetProperty& prop);
   void debug_assert_stack_empty();
 
-  Value add_var(Type type);
+  Variable add_var(Type type);
   void add_label(int id);
 
   // dispatch functions

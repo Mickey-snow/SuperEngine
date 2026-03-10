@@ -66,7 +66,7 @@ Parser::Parser(Context& ctx) : ctx_(ctx), reader_("") {
   elm_parser_ = std::make_unique<elm::ElementParser>(std::move(elmctx));
 }
 
-Value Parser::add_var(Type type) {
+Variable Parser::add_var(Type type) {
   Variable var(type, var_cnt_++);
   return var;
 }
@@ -88,12 +88,14 @@ Value Parser::pop(Type type) {
       return {};
 
     default: {
-      token::MakeVariable var_tok;
-      var_tok.elmcode = stack_.Popelm();
-      auto var = add_var(type);
-      var_tok.dst = var;
-      emit_token(std::move(var_tok));
-      return var;  // TODO: return element?
+      token::ElmAlias tok;
+      tok.elmcode = stack_.Popelm();
+      tok.elmcode.force_bind = false;
+      tok.chain = elm_parser_->Parse(tok.elmcode);
+      Variable var = add_var(type);
+      tok.dst = var;
+      emit_token(std::move(tok));
+      return var;
     }
   }
 }

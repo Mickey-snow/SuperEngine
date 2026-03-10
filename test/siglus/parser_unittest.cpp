@@ -157,7 +157,7 @@ TEST_F(SiglusParserTest, AssignElement) {
   EXPECT_EQ(AsInt(tok.src), 7);
 }
 
-TEST_F(SiglusParserTest, ObjectElmArg) {
+TEST_F(SiglusParserTest, ElementAlias) {
   std::vector<std::string> strs{"bg47"};
   EXPECT_CALL(ctx, Strings).WillRepeatedly(ReturnRef(strs));
   std::vector<libsiglus::Command> g_cmd{
@@ -174,8 +174,8 @@ TEST_F(SiglusParserTest, ObjectElmArg) {
             .rettype = Type::Int}));
 
   EXPECT_EQ(Tokens(), R"(
-object v0 = <int:37,int:2,int:-1,int:0>
-int v1 = @78.913:$$usr_cmd(v0,str:bg47) ;cmd<int:2113929216>
+alias.object v0 = stage_back.object[int:0]              ;cmd<int:37,int:2,int:-1,int:0>
+int v1 = @78.913:$$usr_cmd(v0,str:bg47)                 ;cmd<int:2113929216>
 )");
 }
 

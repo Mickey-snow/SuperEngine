@@ -28,16 +28,25 @@
 #include <sstream>
 
 namespace libsiglus::token {
-std::string MakeVariable::ToDebugString() const {
-  return std::format("{} {} = <{}>", ToString(Typeof(dst)), ToString(dst),
-                     Join(",", vals_to_string(elmcode.code)));
+
+namespace {
+inline std::string get_cmd_repr(std::span<const Value> elmcode) {
+  return std::format("cmd<{}>", Join(",", vals_to_string(elmcode)));
+}
+}  // namespace
+
+std::string ElmAlias::ToDebugString() const {
+  const std::string dump =
+      std::format("alias.{} {} = {}", ToString(Typeof(dst)),
+                  dst.ToDebugString(), chain.ToDebugString());
+  const std::string comment = get_cmd_repr(elmcode.code);
+  return std::format("{:<55} ;{}", dump, comment);
 }
 std::string Command::ToDebugString() const {
-  const std::string cmd_repr =
-      std::format("cmd<{}>", Join(",", vals_to_string(elmcode.code)));
-
-  return std::format("{} {} = {:<30} ;{}", ToString(Typeof(dst)), ToString(dst),
-                     chain.ToDebugString(), cmd_repr);
+  const std::string dump = std::format("{} {} = {}", ToString(Typeof(dst)),
+                                       ToString(dst), chain.ToDebugString());
+  const std::string comment = get_cmd_repr(elmcode.code);
+  return std::format("{:<55} ;{}", dump, comment);
 }
 std::string Name::ToDebugString() const {
   return "Name(" + ToString(str) + ')';

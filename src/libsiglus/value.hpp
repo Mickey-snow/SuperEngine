@@ -88,7 +88,7 @@ inline std::string ToString(const auto& v) {
   return std::visit([](const auto& x) { return x.ToDebugString(); }, v);
 }
 // helper to convert a range of Value to string
-inline auto vals_to_string(std::vector<Value> const& vals) {
+inline auto vals_to_string(std::span<const Value> vals) {
   return std::views::all(vals) |
          std::views::transform([](const Value& v) { return ToString(v); });
 }
