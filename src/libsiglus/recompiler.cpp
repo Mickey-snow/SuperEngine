@@ -22,7 +22,9 @@
 // -----------------------------------------------------------------------
 
 #include "libsiglus/recompiler.hpp"
+
 #include <exception>
+#include <limits>
 #include <stdexcept>
 
 #include "libsiglus/types.hpp"
@@ -34,6 +36,26 @@
 namespace sr = serilang;
 
 namespace libsiglus {
+
+namespace {
+
+uint8_t fast_local_slot(int id) {
+  if (id < 0)
+    throw std::runtime_error("Codegen: invalid fast-local id " +
+                             std::to_string(id));
+  if (id > std::numeric_limits<uint8_t>::max())
+    throw std::runtime_error("Codegen: too many fast locals (" +
+                             std::to_string(id) + ')');
+  return static_cast<uint8_t>(id);
+}
+
+void reserve_fast_local(sr::Code* chunk, int id) {
+  const auto slot = static_cast<std::size_t>(fast_local_slot(id));
+  for (std::size_t i = chunk->fast_locals.size(); i <= slot; ++i)
+    chunk->fast_locals.emplace_back("v" + std::to_string(i));
+}
+
+}  // namespace
 
 Recompiler::Recompiler(std::shared_ptr<serilang::GarbageCollector> gc)
     : gc_(std::move(gc)) {
@@ -56,7 +78,8 @@ uint32_t Recompiler::constant(sr::Value v) {
   if (!chunk_)
     throw std::logic_error("Recompiler chunk is not set");
 
-  auto [it, ok] = const_pool_.emplace(std::move(v), const_pool_.size());
+  const auto next_slot = static_cast<uint32_t>(chunk_->const_pool.size());
+  auto [it, ok] = const_pool_.emplace(std::move(v), next_slot);
   if (ok)
     chunk_->const_pool.emplace_back(it->first);
   return it->second;
@@ -82,13 +105,19 @@ uint32_t Recompiler::intern_name(std::string v) {
   return slot;
 }
 
-void Recompiler::emit_store_fast(int id) { emit(sr::StoreFast{id}); }
-void Recompiler::emit_load_fast(int id) { emit(sr::LoadFast{id}); }
+void Recompiler::emit_store_fast(int id) {
+  reserve_fast_local(chunk_, id);
+  emit(sr::StoreFast{fast_local_slot(id)});
+}
+void Recompiler::emit_load_fast(int id) {
+  reserve_fast_local(chunk_, id);
+  emit(sr::LoadFast{fast_local_slot(id)});
+}
 void Recompiler::emit_store_global(std::string id) {
-  emit(sr::LoadGlobal{intern_name(std::move(id))});
+  emit(sr::StoreGlobal{intern_name(std::move(id))});
 }
 void Recompiler::emit_load_global(std::string id) {
-  emit(sr::StoreGlobal{intern_name(std::move(id))});
+  emit(sr::LoadGlobal{intern_name(std::move(id))});
 }
 
 void Recompiler::add_patch_site(int lid, std::size_t site) {
@@ -133,10 +162,7 @@ void Recompiler::emit_val(const Value& v) {
   std::visit(
       overload([&](Integer const& v) { emit_const(v.val_); },
                [&](String const& v) { emit_const(v.val_); },
-               [&](Variable const& v) {
-                 uint32_t slot = 0;
-                 emit_load_fast(slot);
-               },
+               [&](Variable const& v) { emit_load_fast(v.id); },
                [&](const auto&) {
                  throw std::runtime_error("Cannot emit value " + ToString(v));
                }),
