@@ -137,16 +137,18 @@ static inline constexpr auto rel(offset_t from, offset_t to) -> offset_t {
 }
 void Recompiler::patch(std::size_t site,
                        std::size_t target) {  // Patch jumps
-  const auto offset =
-      rel<int32_t>(site + sizeof(std::byte) + sizeof(int32_t), target);
-
   switch (static_cast<sr::OpCode>((*chunk_)[site])) {
     case sr::OpCode::Jump:
     case sr::OpCode::JumpIfFalse:
     case sr::OpCode::JumpIfTrue:
-    case sr::OpCode::TryBegin:
-    case sr::OpCode::MakeFunction:
+    case sr::OpCode::TryBegin: {
+      const auto offset =
+          rel<int32_t>(site + sizeof(std::byte) + sizeof(int32_t), target);
       chunk_->Write(site + 1, offset);
+    } break;
+
+    case sr::OpCode::MakeFunction:
+      chunk_->Write(site + 1, static_cast<uint32_t>(target));
       break;
 
     default:
