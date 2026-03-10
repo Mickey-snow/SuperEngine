@@ -26,6 +26,8 @@
 #include <cstdint>
 #include <string>
 
+#include "machine/op.hpp"
+
 namespace libsiglus {
 
 enum class Type : uint32_t {
@@ -111,5 +113,7 @@ enum class OperatorCode : uint8_t {
 };
 
 std::string ToString(OperatorCode op);
+Op LowerUnaryOperator(OperatorCode op);
+Op LowerBinaryOperator(OperatorCode op);
 
 }  // namespace libsiglus

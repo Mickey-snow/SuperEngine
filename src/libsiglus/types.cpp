@@ -23,6 +23,8 @@
 
 #include "libsiglus/types.hpp"
 
+#include <stdexcept>
+
 namespace libsiglus {
 
 std::string ToString(Type type) {
@@ -112,6 +114,64 @@ std::string ToString(OperatorCode op) {
       return "u>>";
     default:
       return "<?>";
+  }
+}
+
+Op LowerUnaryOperator(OperatorCode op) {
+  switch (op) {
+    case OperatorCode::Plus:
+      return Op::Add;
+    case OperatorCode::Minus:
+      return Op::Sub;
+    case OperatorCode::Inv:
+      return Op::Tilde;
+    default:
+      throw std::runtime_error("unsupported unary operator: " + ToString(op));
+  }
+}
+
+Op LowerBinaryOperator(OperatorCode op) {
+  switch (op) {
+    case OperatorCode::Plus:
+      return Op::Add;
+    case OperatorCode::Minus:
+      return Op::Sub;
+    case OperatorCode::Mult:
+      return Op::Mul;
+    case OperatorCode::Div:
+      return Op::Div;
+    case OperatorCode::Mod:
+      return Op::Mod;
+    case OperatorCode::Equal:
+      return Op::Equal;
+    case OperatorCode::Ne:
+      return Op::NotEqual;
+    case OperatorCode::Gt:
+      return Op::Greater;
+    case OperatorCode::Ge:
+      return Op::GreaterEqual;
+    case OperatorCode::Lt:
+      return Op::Less;
+    case OperatorCode::Le:
+      return Op::LessEqual;
+    case OperatorCode::LogicalAnd:
+      return Op::LogicalAnd;
+    case OperatorCode::LogicalOr:
+      return Op::LogicalOr;
+    case OperatorCode::And:
+      return Op::BitAnd;
+    case OperatorCode::Or:
+      return Op::BitOr;
+    case OperatorCode::Xor:
+      return Op::BitXor;
+    case OperatorCode::Sl:
+      return Op::ShiftLeft;
+    case OperatorCode::Sr:
+      return Op::ShiftRight;
+    case OperatorCode::Sru:
+      return Op::ShiftUnsignedRight;
+    default:
+      throw std::runtime_error("unsupported binary operator: " + ToString(op));
   }
 }
 

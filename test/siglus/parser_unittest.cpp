@@ -119,7 +119,7 @@ TEST_F(SiglusParserTest, Operate1) {
   EXPECT_EQ(AsInt(tok.rhs), 5);
   ASSERT_TRUE(tok.val.has_value());
   EXPECT_EQ(AsInt(*tok.val), -5);
-  EXPECT_EQ(std::get<Variable>(tok.dst).id, 0);
+  EXPECT_EQ(tok.dst.id, 0);
 }
 
 TEST_F(SiglusParserTest, Operate2) {
@@ -133,7 +133,7 @@ TEST_F(SiglusParserTest, Operate2) {
   EXPECT_EQ(AsInt(tok.rhs), 20);
   ASSERT_TRUE(tok.val.has_value());
   EXPECT_EQ(AsInt(*tok.val), 30);
-  EXPECT_EQ(std::get<Variable>(tok.dst).id, 0);
+  EXPECT_EQ(tok.dst.id, 0);
 }
 
 TEST_F(SiglusParserTest, ConditionalGoto) {

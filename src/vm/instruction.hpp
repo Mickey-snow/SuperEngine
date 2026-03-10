@@ -97,8 +97,8 @@ struct MakeFunction {
   bool has_kwarg = false;
 };  // (code, def_name1, def_val1, ..., name1, ...) -> (fn)
 struct Call {
-  uint32_t argcnt;
-  uint32_t kwargcnt;
+  uint32_t argcnt = 0;
+  uint32_t kwargcnt = 0;
 };  // (fn,arg*,kwargs*) -> (ret)
 
 // ––– 6. Object / container ops ––––––––––––––––––––––––––––––––––––
