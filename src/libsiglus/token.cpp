@@ -56,10 +56,11 @@ std::string Textout::ToDebugString() const {
   return std::format("Textout@{} ({})", kidoku, ToString(str));
 }
 std::string GetProperty::ToDebugString() const {
-  auto repr = std::format("{} {} = {}", ToString(Typeof(dst)), ToString(dst),
-                          chain.ToDebugString());
-  return std::format("{:<30} ;<{}>", std::move(repr),
-                     Join(",", vals_to_string(elmcode.code)));
+  const std::string dump =
+      std::format("{} {} = {}", ToString(Typeof(dst)), dst.ToDebugString(),
+                  chain.ToDebugString());
+  const std::string comment = get_cmd_repr(elmcode.code);
+  return std::format("{:<55} ;{}", dump, comment);
 }
 std::string Goto::ToDebugString() const {
   return "goto .L" + std::to_string(label);
@@ -69,32 +70,33 @@ std::string GotoIf::ToDebugString() const {
                      label);
 }
 std::string Gosub::ToDebugString() const {
-  return std::format("gosub@.L{}({})", entry_id,
+  return std::format("{} {} = gosub@.L{}({})", ToString(Typeof(dst)),
+                     dst.ToDebugString(), entry_id,
                      Join(",", vals_to_string(args)));
 }
 std::string Label::ToDebugString() const { return ".L" + std::to_string(id); }
 std::string Operate1::ToDebugString() const {
-  auto expr = std::format("{} {} = {} {}", ToString(Typeof(dst)), ToString(dst),
-                          ToString(op), ToString(rhs));
+  auto expr = std::format("{} {} = {} {}", ToString(Typeof(dst)),
+                          dst.ToDebugString(), ToString(op), ToString(rhs));
   return val.has_value()
-             ? std::format("{:<30} ;{}", std::move(expr), ToString(*val))
+             ? std::format("{:<55} ;{}", std::move(expr), ToString(*val))
              : expr;
 }
 std::string Operate2::ToDebugString() const {
-  auto expr =
-      std::format("{} {} = {} {} {}", ToString(Typeof(dst)), ToString(dst),
-                  ToString(lhs), ToString(op), ToString(rhs));
+  auto expr = std::format("{} {} = {} {} {}", ToString(Typeof(dst)),
+                          dst.ToDebugString(), ToString(lhs), ToString(op),
+                          ToString(rhs));
   return val.has_value()
-             ? std::format("{:<30} ;{}", std::move(expr), ToString(*val))
+             ? std::format("{:<55} ;{}", std::move(expr), ToString(*val))
              : expr;
 }
 std::string Assign::ToDebugString() const {
-  std::string repr = dst.ToDebugString() + " = " + ToString(src);
-  return std::format("{:<30} ;<{}>", std::move(repr),
-                     Join(",", vals_to_string(dst_elmcode.code)));
+  const std::string dump = dst.ToDebugString() + " = " + ToString(src);
+  const std::string comment = Join(",", vals_to_string(dst_elmcode.code));
+  return std::format("{:<55} ;<{}>", dump, comment);
 }
 std::string Duplicate::ToDebugString() const {
-  return std::format("{} {} = {}", ToString(Typeof(dst)), ToString(dst),
+  return std::format("{} {} = {}", ToString(Typeof(dst)), dst.ToDebugString(),
                      ToString(src));
 }
 std::string Subroutine::ToDebugString() const {

@@ -281,7 +281,8 @@ void Parser::Add(lex::Operate2 op) {
 }
 
 void Parser::Add(lex::Copy cp) {
-  Value src, dst = add_var(cp.type_);
+  Value src;
+  Variable dst = add_var(cp.type_);
 
   switch (cp.type_) {
     case Type::Int:

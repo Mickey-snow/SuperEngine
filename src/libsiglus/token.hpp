@@ -70,7 +70,7 @@ struct GetProperty {
   elm::ElementCode elmcode;
 
   elm::AccessChain chain;
-  Value dst;
+  Variable dst;
   std::string ToDebugString() const;
   bool operator==(const GetProperty&) const = default;
 };
@@ -99,7 +99,8 @@ struct Label {
 
 struct Operate1 {
   OperatorCode op;
-  Value rhs, dst;
+  Value rhs;
+  Variable dst;
   std::optional<Value> val;  // if can be eval at compile time
   std::string ToDebugString() const;
   bool operator==(const Operate1&) const = default;
@@ -107,7 +108,8 @@ struct Operate1 {
 
 struct Operate2 {
   OperatorCode op;
-  Value lhs, rhs, dst;
+  Value lhs, rhs;
+  Variable dst;
   std::optional<Value> val;  // if can be eval at compile time
   std::string ToDebugString() const;
   bool operator==(const Operate2&) const = default;
@@ -122,7 +124,8 @@ struct Assign {
 };
 
 struct Duplicate {
-  Value src, dst;
+  Value src;
+  Variable dst;
   std::string ToDebugString() const;
   bool operator==(const Duplicate&) const = default;
 };
@@ -130,7 +133,7 @@ struct Duplicate {
 struct Gosub {
   int entry_id;
   std::vector<Value> args;
-  Value dst;
+  Variable dst;
   std::string ToDebugString() const;
   bool operator==(const Gosub&) const = default;
 };
