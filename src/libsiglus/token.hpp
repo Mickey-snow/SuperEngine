@@ -45,7 +45,7 @@ struct ElmAlias {
 struct Command {
   elm::ElementCode elmcode;
   elm::AccessChain chain;
-  Value dst;
+  Variable dst;
 
   std::string ToDebugString() const;
   bool operator==(const Command&) const = default;

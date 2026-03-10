@@ -31,10 +31,112 @@
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
+#include <bit>
 #include <cmath>
+#include <compare>
+#include <cstdint>
 #include <format>
 
 namespace serilang {
+
+namespace {
+constexpr std::uint64_t kCanonicalNaNBits = 0x7ff8000000000000ULL;
+std::uint64_t CanonicalizeDoubleBits(double value) {
+  std::uint64_t bits = std::bit_cast<std::uint64_t>(value);
+  if ((bits & 0x7fffffffffffffffULL) == 0)
+    return 0;
+  if (std::isnan(value))
+    return kCanonicalNaNBits;
+  return bits;
+}
+
+std::strong_ordering CompareDouble(double lhs, double rhs) {
+  if (lhs < rhs)
+    return std::strong_ordering::less;
+  if (lhs > rhs)
+    return std::strong_ordering::greater;
+
+  const auto lhs_bits = CanonicalizeDoubleBits(lhs);
+  const auto rhs_bits = CanonicalizeDoubleBits(rhs);
+  if (lhs_bits < rhs_bits)
+    return std::strong_ordering::less;
+  if (lhs_bits > rhs_bits)
+    return std::strong_ordering::greater;
+  return std::strong_ordering::equal;
+}
+
+bool EqualDouble(double lhs, double rhs) {
+  return CompareDouble(lhs, rhs) == std::strong_ordering::equal;
+}
+
+std::size_t HashCombine(std::size_t seed, std::size_t value) {
+  constexpr std::size_t kMul = 0x9e3779b97f4a7c15ULL;
+  seed ^= value + kMul + (seed << 6) + (seed >> 2);
+  return seed;
+}
+
+inline ObjType TypeOf(const Value& value) {
+  return value.Apply<ObjType>([](const auto& x) {
+    using T = std::decay_t<decltype(x)>;
+    if constexpr (std::same_as<T, std::monostate>)
+      return ObjType::Nil;
+    else if constexpr (std::same_as<T, bool>)
+      return ObjType::Bool;
+    else if constexpr (std::same_as<T, int>)
+      return ObjType::Int;
+    else if constexpr (std::same_as<T, double>)
+      return ObjType::Double;
+    else if constexpr (std::same_as<T, IObject*>)
+      return x ? x->Type() : ObjType::Other;
+  });
+}
+
+const String* GetStringObject(IObject* obj) {
+  if (!obj || obj->Type() != ObjType::String)
+    return nullptr;
+  return static_cast<const String*>(obj);
+}
+
+[[noreturn]] void ThrowTypeMismatch(const Value& lhs, const Value& rhs) {
+  throw ValueError("cannot compare values of different underlying types: " +
+                   lhs.Desc() + " and " + rhs.Desc());
+}
+
+std::strong_ordering CompareObjects(IObject* lhs, IObject* rhs) {
+  if (lhs == rhs)
+    return std::strong_ordering::equal;
+
+  if (const String* lhs_str = GetStringObject(lhs)) {
+    const auto rhs_str = static_cast<const String*>(rhs);
+    if (lhs_str->str_ < rhs_str->str_)
+      return std::strong_ordering::less;
+    if (lhs_str->str_ > rhs_str->str_)
+      return std::strong_ordering::greater;
+    return std::strong_ordering::equal;
+  }
+
+  return std::compare_three_way{}(lhs, rhs);
+}
+
+bool EqualObjects(IObject* lhs, IObject* rhs) {
+  if (lhs == rhs)
+    return true;
+
+  if (const String* lhs_str = GetStringObject(lhs)) {
+    const auto rhs_str = static_cast<const String*>(rhs);
+    return lhs_str->str_ == rhs_str->str_;
+  }
+
+  return false;
+}
+
+std::size_t HashObject(IObject* obj) {
+  if (const String* str = GetStringObject(obj))
+    return std::hash<std::string>{}(str->str_);
+  return std::hash<const void*>{}(obj);
+}
+
+}  // namespace
 
 // -----------------------------------------------------------------------
 // class Value
@@ -104,23 +206,7 @@ bool Value::IsTruthy() const {
       val_);
 }
 
-ObjType Value::Type() const {
-  return std::visit(
-      [](const auto& x) {
-        using T = std::decay_t<decltype(x)>;
-        if constexpr (std::same_as<T, bool>)
-          return ObjType::Bool;
-        else if constexpr (std::same_as<T, int>)
-          return ObjType::Int;
-        else if constexpr (std::same_as<T, double>)
-          return ObjType::Double;
-        else if constexpr (std::same_as<T, IObject*>)
-          return x->Type();
-        else
-          return ObjType::Nil;
-      },
-      val_);
-}
+ObjType Value::Type() const { return TypeOf(*this); }
 
 void Value::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
   std::visit(
@@ -214,6 +300,52 @@ void Value::SetItem(VM& vm, Fiber& f) {
 
 Value::operator std::string() const { return this->Desc(); }
 
+bool Value::operator==(const Value& rhs) const {
+  if (TypeOf(*this) != TypeOf(rhs))
+    ThrowTypeMismatch(*this, rhs);
+
+  return std::visit(
+      [](const auto& lhs, const auto& rhs) -> bool {
+        using L = std::decay_t<decltype(lhs)>;
+        using R = std::decay_t<decltype(rhs)>;
+
+        if constexpr (!std::same_as<L, R>)
+          throw std::logic_error("internal Value equality type mismatch");
+        else if constexpr (std::same_as<L, std::monostate>)
+          return true;
+        else if constexpr (std::same_as<L, bool> || std::same_as<L, int>)
+          return lhs == rhs;
+        else if constexpr (std::same_as<L, double>)
+          return EqualDouble(lhs, rhs);
+        else if constexpr (std::same_as<L, IObject*>)
+          return EqualObjects(lhs, rhs);
+      },
+      val_, rhs.val_);
+}
+
+auto Value::operator<=>(const Value& rhs) const -> std::strong_ordering {
+  if (TypeOf(*this) != TypeOf(rhs))
+    ThrowTypeMismatch(*this, rhs);
+
+  return std::visit(
+      [](const auto& lhs, const auto& rhs) -> std::strong_ordering {
+        using L = std::decay_t<decltype(lhs)>;
+        using R = std::decay_t<decltype(rhs)>;
+
+        if constexpr (!std::same_as<L, R>)
+          throw std::logic_error("internal Value ordering type mismatch");
+        else if constexpr (std::same_as<L, std::monostate>)
+          return std::strong_ordering::equal;
+        else if constexpr (std::same_as<L, bool> || std::same_as<L, int>)
+          return lhs <=> rhs;
+        else if constexpr (std::same_as<L, double>)
+          return CompareDouble(lhs, rhs);
+        else if constexpr (std::same_as<L, IObject*>)
+          return CompareObjects(lhs, rhs);
+      },
+      val_, rhs.val_);
+}
+
 bool Value::operator==(std::monostate) const {
   return std::holds_alternative<std::monostate>(val_);
 }
@@ -241,6 +373,27 @@ bool Value::operator==(const std::string& rhs) const {
 bool Value::operator==(char const* s) const {
   auto ptr = Get_if<String>();
   return ptr && ptr->str_ == s;
+}
+
+std::size_t Value::Hash() const {
+  std::size_t seed = static_cast<std::size_t>(TypeOf(*this));
+
+  return std::visit(
+      [seed](const auto& x) -> std::size_t {
+        using T = std::decay_t<decltype(x)>;
+        if constexpr (std::same_as<T, std::monostate>)
+          return seed;
+        else if constexpr (std::same_as<T, bool>)
+          return HashCombine(seed, std::hash<bool>{}(x));
+        else if constexpr (std::same_as<T, int>)
+          return HashCombine(seed, std::hash<int>{}(x));
+        else if constexpr (std::same_as<T, double>)
+          return HashCombine(
+              seed, std::hash<std::uint64_t>{}(CanonicalizeDoubleBits(x)));
+        else if constexpr (std::same_as<T, IObject*>)
+          return HashCombine(seed, HashObject(x));
+      },
+      val_);
 }
 
 }  // namespace serilang

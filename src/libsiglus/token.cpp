@@ -43,8 +43,9 @@ std::string ElmAlias::ToDebugString() const {
   return std::format("{:<55} ;{}", dump, comment);
 }
 std::string Command::ToDebugString() const {
-  const std::string dump = std::format("{} {} = {}", ToString(Typeof(dst)),
-                                       ToString(dst), chain.ToDebugString());
+  const std::string dump =
+      std::format("{} {} = {}", ToString(Typeof(dst)), dst.ToDebugString(),
+                  chain.ToDebugString());
   const std::string comment = get_cmd_repr(elmcode.code);
   return std::format("{:<55} ;{}", dump, comment);
 }

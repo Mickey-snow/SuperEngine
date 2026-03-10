@@ -24,6 +24,9 @@
 
 #include <gtest/gtest.h>
 
+#include <set>
+#include <unordered_set>
+
 #include "vm/gc.hpp"
 #include "vm/object.hpp"
 #include "vm/primops.hpp"
@@ -252,6 +255,42 @@ TEST_F(ValueTest, Code) {
 
   EXPECT_EQ(v.Type(), ObjType::Code);
   EXPECT_EQ(v.Get<Code*>(), code);
+}
+
+TEST_F(ValueTest, ValueComparisonRejectsDifferentUnderlyingTypes) {
+  const Value one(1);
+  const Value truth(true);
+  const Value one_double(1.0);
+
+  EXPECT_THROW(static_cast<void>(one == truth), ValueError);
+  EXPECT_THROW(static_cast<void>(one < truth), ValueError);
+  EXPECT_THROW(static_cast<void>(truth == one_double), ValueError);
+}
+
+TEST_F(ValueTest, OrderedAndHashedContainersSupportValueKeys) {
+  std::set<Value> ints;
+  EXPECT_TRUE(ints.insert(Value(2)).second);
+  EXPECT_TRUE(ints.insert(Value(1)).second);
+  EXPECT_FALSE(ints.insert(Value(2)).second);
+  EXPECT_EQ(*ints.begin(), 1);
+
+  Value hello1(Alloc<String>("hello"));
+  Value hello2(Alloc<String>("hello"));
+
+  EXPECT_TRUE(hello1 == hello2);
+  EXPECT_EQ(std::hash<Value>{}(hello1), std::hash<Value>{}(hello2));
+
+  std::set<Value> strings;
+  EXPECT_TRUE(strings.insert(hello1).second);
+  EXPECT_FALSE(strings.insert(hello2).second);
+
+  std::unordered_set<Value> string_set;
+  EXPECT_TRUE(string_set.insert(hello1).second);
+  EXPECT_FALSE(string_set.insert(hello2).second);
+
+  std::set<Value> mixed;
+  EXPECT_TRUE(mixed.insert(Value(1)).second);
+  EXPECT_THROW(mixed.insert(Value(true)), ValueError);
 }
 
 }  // namespace value_test

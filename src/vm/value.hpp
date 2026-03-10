@@ -29,6 +29,9 @@
 #include "vm/objtype.hpp"
 #include "vm/value_fwd.hpp"
 
+#include <compare>
+#include <cstddef>
+#include <functional>
 #include <memory>
 #include <stdexcept>
 #include <variant>
@@ -155,12 +158,15 @@ class Value {
 
   // for testing
   operator std::string() const;
+  bool operator==(const Value& rhs) const;
+  auto operator<=>(const Value& rhs) const -> std::strong_ordering;
   bool operator==(std::monostate) const;
   bool operator==(int rhs) const;
   bool operator==(double rhs) const;
   bool operator==(bool rhs) const;
   bool operator==(const std::string& rhs) const;
   bool operator==(char const* s) const;
+  std::size_t Hash() const;
 
   inline friend std::ostream& operator<<(std::ostream& os, const Value& v) {
     return os << v.Desc();
@@ -173,3 +179,14 @@ class Value {
 inline const auto nil = Value(std::monostate());
 
 }  // namespace serilang
+
+namespace std {
+
+template <>
+struct hash<serilang::Value> {
+  std::size_t operator()(const serilang::Value& value) const {
+    return value.Hash();
+  }
+};
+
+}  // namespace std
