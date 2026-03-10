@@ -198,6 +198,7 @@ void Recompiler::emit_tok(const token::Operate1& tk) {
   }
   emit_val(tk.rhs);
   emit(sr::UnaryOp{LowerUnaryOperator(tk.op)});
+  emit_store_fast(tk.dst.id);
 }
 void Recompiler::emit_tok(const token::Operate2& tk) {
   if (tk.val) {
@@ -206,6 +207,7 @@ void Recompiler::emit_tok(const token::Operate2& tk) {
   }
   emit_val(tk.lhs), emit_val(tk.rhs);
   emit(sr::BinaryOp{LowerBinaryOperator(tk.op)});
+  emit_store_fast(tk.dst.id);
 }
 void Recompiler::emit_tok(const token::Label& tk) {
   const int lid = tk.id;
@@ -249,6 +251,7 @@ void Recompiler::emit_tok(const token::Gosub& tk) {
   for (auto const& arg : tk.args)
     emit_val(arg);
   emit(sr::Call{.argcnt = tk.args.size(), .kwargcnt = 0});
+  emit_store_fast(tk.dst.id);
 }
 void Recompiler::emit_tok(const token::Assign& tk) {
   emit_elm(tk.dst);
