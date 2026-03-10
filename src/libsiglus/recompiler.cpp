@@ -1,0 +1,267 @@
+// -----------------------------------------------------------------------
+//
+// This file is part of RLVM
+//
+// -----------------------------------------------------------------------
+//
+// Copyright (C) 2026 Serina Sakurai
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
+// -----------------------------------------------------------------------
+
+#include "libsiglus/recompiler.hpp"
+#include <exception>
+#include <stdexcept>
+
+#include "libsiglus/types.hpp"
+#include "libsiglus/value.hpp"
+#include "utilities/overload.hpp"
+#include "vm/instruction.hpp"
+#include "vm/string.hpp"
+
+namespace sr = serilang;
+
+namespace libsiglus {
+
+Recompiler::Recompiler(std::shared_ptr<serilang::GarbageCollector> gc)
+    : gc_(std::move(gc)) {
+  chunk_ = gc_->Allocate<sr::Code>();
+  chunk_->const_pool.emplace_back(chunk_);
+}
+Recompiler::~Recompiler() = default;
+
+void Recompiler::Gen(token::Token_t tok) {
+  try {
+    std::visit([this](const auto& stmt) { emit_tok(stmt); }, std::move(tok));
+  } catch (std::exception& e) {
+    AddError(e.what(), tok);
+  }
+}
+
+void Recompiler::emit_current_chunk() { emit(sr::Push{0}); }
+
+uint32_t Recompiler::constant(sr::Value v) {
+  if (!chunk_)
+    throw std::logic_error("Recompiler chunk is not set");
+
+  auto [it, ok] = const_pool_.emplace(std::move(v), const_pool_.size());
+  if (ok)
+    chunk_->const_pool.emplace_back(it->first);
+  return it->second;
+}
+uint32_t Recompiler::emit_const_nil() {
+  uint32_t slot = constant(sr::nil);
+  emit(sr::Push{slot});
+  return slot;
+}
+uint32_t Recompiler::emit_const(int v) {
+  uint32_t slot = constant(sr::Value(v));
+  emit(sr::Push{slot});
+  return slot;
+}
+uint32_t Recompiler::emit_const(std::string v) {
+  uint32_t slot = intern_name(std::move(v));
+  emit(sr::Push{slot});
+  return slot;
+}
+uint32_t Recompiler::intern_name(std::string v) {
+  sr::String* str = gc_->Allocate<sr::String>(std::move(v));
+  uint32_t slot = constant(sr::Value(str));
+  return slot;
+}
+
+void Recompiler::emit_store_fast(int id) { emit(sr::StoreFast{id}); }
+void Recompiler::emit_load_fast(int id) { emit(sr::LoadFast{id}); }
+void Recompiler::emit_store_global(std::string id) {
+  emit(sr::LoadGlobal{intern_name(std::move(id))});
+}
+void Recompiler::emit_load_global(std::string id) {
+  emit(sr::StoreGlobal{intern_name(std::move(id))});
+}
+
+void Recompiler::add_patch_site(int lid, std::size_t site) {
+  if (lid >= patch_sites_.size()) {
+    patch_sites_.resize(lid + 1), label_offsets_.resize(lid + 1);
+  }
+
+  if (label_offsets_[lid].has_value())
+    patch(site, *label_offsets_[lid]);
+  else
+    patch_sites_[lid].emplace_back(site);
+}
+
+template <typename offset_t>
+static inline constexpr auto rel(offset_t from, offset_t to) -> offset_t {
+  return to - from;
+}
+void Recompiler::patch(std::size_t site,
+                       std::size_t target) {  // Patch jumps
+  const auto offset =
+      rel<int32_t>(site + sizeof(std::byte) + sizeof(int32_t), target);
+
+  switch (static_cast<sr::OpCode>((*chunk_)[site])) {
+    case sr::OpCode::Jump:
+    case sr::OpCode::JumpIfFalse:
+    case sr::OpCode::JumpIfTrue:
+    case sr::OpCode::TryBegin:
+    case sr::OpCode::MakeFunction:
+      chunk_->Write(site + 1, offset);
+      break;
+
+    default:
+      throw std::runtime_error(
+          "Codegen: invalid patch site (type" +
+          std::to_string(static_cast<uint8_t>((*chunk_)[site])) + ')');
+  }
+}
+
+// -----------------------------------------------------------------------
+// token codegen
+void Recompiler::emit_val(const Value& v) {
+  std::visit(
+      overload([&](Integer const& v) { emit_const(v.val_); },
+               [&](String const& v) { emit_const(v.val_); },
+               [&](Variable const& v) {
+                 uint32_t slot = 0;
+                 emit_load_fast(slot);
+               },
+               [&](const auto&) {
+                 throw std::runtime_error("Cannot emit value " + ToString(v));
+               }),
+      v);
+}
+
+void Recompiler::emit_tok(const token::ElmAlias& tk) {
+  emit_elm(tk.chain);
+  emit_store_fast(tk.dst.id);
+}
+void Recompiler::emit_tok(const token::Command& tk) {
+  emit_elm(tk.chain);
+  emit_store_fast(tk.dst.id);
+}
+void Recompiler::emit_tok(const token::Name& tk) {
+  emit_load_global("__builtin_name");
+  emit_val(tk.str);
+  emit(sr::Call{.argcnt = 1});
+}
+void Recompiler::emit_tok(const token::Textout& tk) {
+  emit_load_global("__builtin_textout");
+  emit_const(tk.kidoku), emit_val(tk.str);
+  emit(sr::Call{.argcnt = 2});
+}
+void Recompiler::emit_tok(const token::GetProperty& tk) {
+  emit_elm(tk.chain);
+  emit_store_fast(tk.dst.id);
+}
+void Recompiler::emit_tok(const token::Operate1& tk) {
+  if (tk.val) {
+    emit_val(*tk.val);
+    return;
+  }
+  emit_val(tk.rhs);
+  emit(sr::UnaryOp{LowerUnaryOperator(tk.op)});
+}
+void Recompiler::emit_tok(const token::Operate2& tk) {
+  if (tk.val) {
+    emit_val(*tk.val);
+    return;
+  }
+  emit_val(tk.lhs), emit_val(tk.rhs);
+  emit(sr::BinaryOp{LowerBinaryOperator(tk.op)});
+}
+void Recompiler::emit_tok(const token::Label& tk) {
+  const int lid = tk.id;
+  if (label_offsets_.size() <= lid) {
+    label_offsets_.resize(lid + 1), patch_sites_.resize(lid + 1);
+  }
+  const std::size_t target = code_size();
+
+  label_offsets_[lid] = target;
+  for (auto site : patch_sites_[lid])
+    patch(site, target);
+  patch_sites_[lid].clear();
+}
+void Recompiler::emit_tok(const token::Goto& tk) {
+  auto site = code_size();
+  emit(sr::Jump{0});
+  add_patch_site(tk.label, site);
+}
+void Recompiler::emit_tok(const token::GotoIf& tk) {
+  emit_val(tk.src);
+  auto site = code_size();
+  if (tk.cond)
+    emit(sr::JumpIfTrue{0});
+  else
+    emit(sr::JumpIfFalse{0});
+  add_patch_site(tk.label, site);
+}
+void Recompiler::emit_tok(const token::Gosub& tk) {
+  emit_current_chunk();
+  for (int i = 0; i < tk.args.size(); ++i)
+    emit_const("arg" + std::to_string(i));
+
+  auto site = code_size();
+  emit(sr::MakeFunction{.entry = 0,
+                        .nparam = tk.args.size(),
+                        .ndefault = 0,
+                        .has_vararg = false,
+                        .has_kwarg = false});
+  add_patch_site(tk.entry_id, site);
+
+  for (auto const& arg : tk.args)
+    emit_val(arg);
+  emit(sr::Call{.argcnt = tk.args.size(), .kwargcnt = 0});
+}
+void Recompiler::emit_tok(const token::Assign& tk) {
+  emit_elm(tk.dst);
+  emit(sr::GetField{intern_name("Assign")});
+  emit_val(tk.src);
+  emit(sr::Call{.argcnt = 1, .kwargcnt = 0});
+}
+void Recompiler::emit_tok(const token::Duplicate& tk) {
+  emit_val(tk.src);
+  emit_store_fast(tk.dst.id);
+}
+void Recompiler::emit_tok(const token::Subroutine& tk) {
+  auto loc = code_size();
+  auto [it, ok] = subroutine_entries_.emplace(tk.name, loc);
+  if (!ok)
+    throw std::runtime_error("redefinition of subroutine " + tk.name);
+}
+void Recompiler::emit_tok(const token::Return& tk) {
+  if (tk.ret_vals.size() == 0)
+    emit_const_nil();
+  else if (tk.ret_vals.size() == 1)
+    emit_val(tk.ret_vals.front());
+  else {
+    for (const auto& it : tk.ret_vals)
+      emit_val(it);
+    emit(sr::MakeList{.nelms = tk.ret_vals.size()});
+  }
+  emit(sr::Return{});
+}
+void Recompiler::emit_tok(const token::Eof& tk) {
+  // nop
+}
+
+// element codegen
+void Recompiler::emit_elm(const elm::AccessChain& e) {
+  // TODO: not implemented yet, this should produce a single value (or nil for
+  // void)
+
+  emit_const_nil();
+}
+
+}  // namespace libsiglus
