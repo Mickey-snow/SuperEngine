@@ -24,7 +24,6 @@
 #include "libsiglus/parser.hpp"
 
 #include "libsiglus/archive.hpp"
-#include "libsiglus/callable_builder.hpp"
 #include "libsiglus/lexeme.hpp"
 #include "libsiglus/scene.hpp"
 #include "utilities/flat_map.hpp"
@@ -218,27 +217,28 @@ void Parser::Add(lex::Command command) {
   auto& sig = command.sig;
 
   token::Command tok;
-  elm::Invoke call;
+  elm::Invoke invoke;
 
-  call.return_type = sig.rettype;
-  call.overload_id = sig.overload_id;
+  invoke.return_type = sig.rettype;
+  invoke.overload_id = sig.overload_id;
 
-  call.named_arg.resize(sig.argtags.size());
-  call.arg.resize(sig.arglist.size() - sig.argtags.size());
-  for (auto it = call.named_arg.rbegin(); it != call.named_arg.rend(); ++it) {
+  invoke.named_arg.resize(sig.argtags.size());
+  invoke.arg.resize(sig.arglist.size() - sig.argtags.size());
+  for (auto it = invoke.named_arg.rbegin(); it != invoke.named_arg.rend();
+       ++it) {
     it->first = sig.argtags.back();
     it->second = pop_arg(sig.arglist.args.back());
     sig.argtags.pop_back();
     sig.arglist.args.pop_back();
   }
-  for (auto it = call.arg.rbegin(); it != call.arg.rend(); ++it) {
+  for (auto it = invoke.arg.rbegin(); it != invoke.arg.rend(); ++it) {
     *it = pop_arg(sig.arglist.args.back());
     sig.arglist.args.pop_back();
   }
 
   tok.elmcode = stack_.Popelm();
-  tok.dst = add_var(call.return_type);
-  tok.elmcode.ForceBind(std::move(call));
+  tok.dst = add_var(invoke.return_type);
+  tok.elmcode.ForceBind(std::move(invoke));
   tok.chain = elm_parser_->Parse(tok.elmcode);
 
   push(tok.dst);

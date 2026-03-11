@@ -157,11 +157,13 @@ TEST_F(ElementParserTest, Title) {
   {
     ElementCode elm{74};
     elm.ForceBind({0, {v("title")}});
-    EXPECT_EQ(chain(elm), ".set_title(str:title)");
+    EXPECT_EQ(chain(elm), "set_title(str:title)");
   }
   {
     ElementCode elm{75};
-    EXPECT_EQ(chain(elm), ".get_title()");
+    auto parsed = chain(elm);
+    EXPECT_EQ(parsed, "get_title()");
+    EXPECT_EQ(parsed.chain.GetType(), Type::String);
   }
 }
 
@@ -181,20 +183,22 @@ TEST_F(ElementParserTest, CurcallArgStr) {
   int flag = 0x7d << 24;
   int idx = 1;
   ElementCode elm{83, (flag | idx), 2};
-  EXPECT_EQ(chain(elm), "arg_1.left()");
+  auto parsed = chain(elm);
+  EXPECT_EQ(parsed, "arg_1.left()");
+  EXPECT_EQ(parsed.chain.GetType(), Type::String);
 }
 
 TEST_F(ElementParserTest, Movie) {
   {
     ElementCode elm{20, 2};
     elm.ForceBind({0, {v("mov1")}});
-    EXPECT_EQ(chain(elm), "mov.play_wait(str:mov1)");
+    EXPECT_EQ(chain(elm), "mov.play_wait[0](str:mov1)");
   }
   {
     ElementCode elm{20, 3};
     elm.ForceBind({1, {v("mov2"), v(0), v(0), v(420), v(420)}});
     EXPECT_EQ(chain(elm),
-              "mov.play_waitkey(str:mov2,int:0,int:0,int:420,int:420)");
+              "mov.play_waitkey[1](str:mov2,int:0,int:0,int:420,int:420)");
   }
 }
 
@@ -202,7 +206,7 @@ TEST_F(ElementParserTest, BgmTable) {
   {
     ElementCode elm{123, 2};
     elm.ForceBind({0, {v("song01"), v(1)}});
-    EXPECT_EQ(chain(elm), "bgm_table.set_listen(str:song01,int:1)");
+    EXPECT_EQ(chain(elm), "bgm_table.set_listen[0](str:song01,int:1)");
   }
 }
 
@@ -268,7 +272,7 @@ TEST_F(ElementParserTest, Pcmch) {
   {
     ElementCode elm{44, -1, 0, 0};
     elm.ForceBind({0, {}});
-    EXPECT_EQ(chain(elm), "pcmch_list[int:0].play()");
+    EXPECT_EQ(chain(elm), "pcmch_list[int:0].play[0]()");
   }
 }
 

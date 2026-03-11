@@ -27,6 +27,7 @@
 #include "utilities/string_utilities.hpp"
 
 #include <format>
+#include <optional>
 #include <variant>
 
 namespace libsiglus::elm {
@@ -53,12 +54,15 @@ std::string Wait::ToDebugString() const {
 }
 std::string Member::ToDebugString() const { return '.' + std::string(name); }
 std::string Call::ToDebugString() const {
-  std::vector<std::string> repr;
+  std::vector<std::string> parts;
   for (const auto& it : args)
-    repr.emplace_back(ToString(it));
+    parts.emplace_back(ToString(it));
   for (const auto& [key, val] : kwargs)
-    repr.emplace_back(std::format("{}={}", key, ToString(val)));
-  return std::format(".{}({})", name, Join(",", repr));
+    parts.emplace_back(std::format("{}={}", key, ToString(val)));
+  std::string repr = '(' + Join(",", parts) + ')';
+  if (overload_id)
+    repr = '[' + std::to_string(*overload_id) + ']' + repr;
+  return repr;
 }
 std::string Subscript::ToDebugString() const {
   return std::format("[{}]", ToString(idx));
@@ -81,6 +85,17 @@ Type AccessChain::GetType() const {
     return root.type;
   else
     return nodes.back().type;
+}
+
+// -----------------------------------------------------------------------
+Node Node::BuildCall(Invoke inv, bool is_implicit) {
+  Call call;
+  call.overload_id =
+      is_implicit ? std::nullopt : std::make_optional(inv.overload_id);
+  call.args = std::move(inv.arg);
+  call.kwargs = std::move(inv.named_arg);
+  Node nd(inv.return_type, std::move(call));
+  return nd;
 }
 
 }  // namespace libsiglus::elm

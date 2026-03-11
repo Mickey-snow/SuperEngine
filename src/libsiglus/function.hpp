@@ -99,9 +99,4 @@ struct Function {
   std::string ToDebugString() const;
 };
 
-struct Callable {
-  std::vector<Function> overloads;
-  std::string ToDebugString() const;
-};
-
 }  // namespace libsiglus::elm

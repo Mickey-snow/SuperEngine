@@ -23,17 +23,14 @@
 
 #include "libsiglus/element_parser.hpp"
 
-#include "libsiglus/callable_builder.hpp"
 #include "libsiglus/element.hpp"
 #include "utilities/flat_map.hpp"
 #include "utilities/string_utilities.hpp"
 
-#include <optional>
-#include <sstream>
+#include <format>
 #include <variant>
 
 namespace libsiglus::elm {
-using namespace libsiglus::elm::callable_builder;
 
 // ==============================================================================
 // Helpers
@@ -75,72 +72,22 @@ inline static Builder b_index_array(Type value_type) {
     ctx.elmcode = ctx.elmcode.subspan(2);
   });
 }
-template <typename... Ts>
-inline static Builder callable(Ts&&... params) {
-  auto builder = Builder([callable = make_callable(
-                              std::forward<Ts>(params)...)](Builder::Ctx& ctx) {
-    auto& bind = ctx.elm.bind_ctx;
-    auto& chain = ctx.chain;
-
-    // consume the callable element
-    ctx.elmcode = ctx.elmcode.subspan(1);
-
-    // resolve overload
-    auto candidate = std::find_if(
-        callable.overloads.begin(), callable.overloads.end(),
-        [overload = bind.overload_id](const Function& fn) {
-          return !fn.overload.has_value() || *fn.overload == overload;
-        });
-    if (candidate == callable.overloads.end()) {
-      std::ostringstream oss;
-      oss << "[Callable] ";
-      oss << "Overload " << std::to_string(bind.overload_id) << " not found in "
-          << callable.ToDebugString() << '\n';
-      oss << "access chain: " << chain.ToDebugString();
-      ctx.Warn(oss.str());
-    }
-
-    // TODO: Check signature mismatch
-    Call call;
-    call.args = std::move(bind.arg);
-    call.kwargs = std::move(bind.named_arg);
-    call.name = candidate->name;
-
-    ctx.elm.force_bind = false;
-    chain.nodes.emplace_back(candidate->return_t, std::move(call));
-
-    // check return type
-    if (ctx.elm.force_bind && bind.return_type != chain.GetType()) {
-      std::ostringstream oss;
-      oss << "[Callable] ";
-      oss << "return type mismatch: " << ToString(bind.return_type) << " vs "
-          << ToString(chain.GetType()) << '\n';
-      oss << chain.ToDebugString();
-      ctx.Warn(oss.str());
-    }
-  });
-  return builder;
+inline static Builder b_callable(std::string_view mem,
+                                 Type return_type = Type::None) {
+  return b(Type::Callable, Member{mem, return_type, true});
+}
+inline static Builder b_call0(Type return_type, std::string_view mem) {
+  return b(return_type, Member{mem, return_type, true});
 }
 static Builder obj_getset(std::string_view mem,
                           Type type,
                           int get_code = 0,
                           int set_code = 1) {
-  return callable(fn(mem)[get_code]().ret(type),
-                  fn(mem)[set_code](type).ret(Type::None));
+  return b_callable(mem, type);
 }
 
-static Builder obj_getter(std::string_view mem,
-                          Type rettype = Type::Int,
-                          Type argtype = Type::Int) {
-  return callable(fn(mem)[0]().ret(rettype), fn(mem)[1](argtype).ret(rettype),
-                  fn(mem)[any]().ret(rettype));
-}
-static Builder obj_colgetter(std::string_view mem,
-                             Type rettype = Type::Int,
-                             Type argtype = Type::Int) {
-  return callable(fn(mem)[0](argtype, argtype).ret(rettype),
-                  fn(mem)[1](argtype, argtype, argtype).ret(rettype),
-                  fn(mem)[any]().ret(rettype));
+static Builder obj_getter(std::string_view mem, Type rettype = Type::Int) {
+  return b_callable(mem, rettype);
 }
 
 // ==============================================================================
@@ -155,40 +102,29 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
           id[5] | b(Type::IntList, Member("b4")),
           id[7] | b(Type::IntList, Member("b8")),
           id[6] | b(Type::IntList, Member("b16")),
-          id[10] | b(Type::None, Call("init")),
-          id[2] | callable(fn("resize")[any](Type::Int)),
-          id[9] | callable(fn("size")[any]().ret(Type::Int)),
-          id[8] | callable(fn("fill")[0](Type::Int, Type::Int),
-                           fn("fill")[any](Type::Int, Type::Int, Type::Int)),
-          id[1] | callable(fn("Set")[any](Type::Int, va_arg(Type::Int))));
+          id[10] | b_call0(Type::None, "init"), id[2] | b_callable("resize"),
+          id[9] | b_callable("size", Type::Int), id[8] | b_callable("fill"),
+          id[1] | b_callable("Set"));
       return &mp;
     }
 
     case Type::IntEventList: {
-      static const auto mp =
-          make_flatmap<Builder>(id[-1] | b_index_array(Type::IntEvent),
-                                id[1] | callable(fn("resize")[any](Type::Int)));
+      static const auto mp = make_flatmap<Builder>(
+          id[-1] | b_index_array(Type::IntEvent), id[1] | b_callable("resize"));
       return &mp;
     }
     case Type::IntEvent: {
-      static const auto mp = make_flatmap<Builder>(
-          id[0] | callable(fn("set")[any](Type::Int, Type::Int, Type::Int,
-                                          Type::Int, kw_arg(0, Type::Int))),
-          id[7] |
-              callable(fn("set_real")[any](Type::Int, Type::Int, Type::Int,
-                                           Type::Int, kw_arg(0, Type::Int))),
-          id[1] | callable(fn("loop")[any](Type::Int, Type::Int, Type::Int,
-                                           Type::Int, Type::Int)),
-          id[8] | callable(fn("loop_real")[any](Type::Int, Type::Int, Type::Int,
-                                                Type::Int, Type::Int)),
-          id[2] | callable(fn("turn")[any](Type::Int, Type::Int, Type::Int,
-                                           Type::Int, Type::Int)),
-          id[9] | callable(fn("turn_real")[any](Type::Int, Type::Int, Type::Int,
-                                                Type::Int, Type::Int)),
-          id[3] | b(Type::None, Call("end")),
-          id[4] | b(Type::None, Call("wait")),
-          id[10] | b(Type::None, Call("wait_key")),
-          id[5] | b(Type::Int, Call("check")));
+      static const auto mp =
+          make_flatmap<Builder>(id[0] | b(Type::Callable, Member("set")),
+                                id[7] | b(Type::Callable, Member("set_real")),
+                                id[1] | b(Type::Callable, Member("loop")),
+                                id[8] | b(Type::Callable, Member("loop_real")),
+                                id[2] | b(Type::Callable, Member("turn")),
+                                id[9] | b(Type::Callable, Member("turn_real")),
+                                id[3] | b(Type::None, Member("end")),
+                                id[4] | b(Type::None, Member("wait")),
+                                id[10] | b(Type::None, Member("wait_key")),
+                                id[5] | b(Type::Int, Member("check")));
 
       return &mp;
     }
@@ -196,162 +132,111 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
     case Type::StrList: {
       static const auto mp = make_flatmap<Builder>(
           id[-1] | Builder([](Builder::Ctx& ctx) {
-            ctx.chain.nodes.emplace_back(
-                Type::String, Call("substr", {ctx.elmcode[1]}));  // really?
+            ctx.chain.nodes.emplace_back(Type::Callable, Member("substr"));
+            Call call;
+            call.args = {ctx.elmcode[1]};
+            ctx.chain.nodes.emplace_back(Type::String,
+                                         std::move(call));  // really?
             ctx.elmcode = ctx.elmcode.subspan(2);
           }),
-          id[3] | b(Type::None, Call("init")),
-          id[2] | callable(fn("resize")[any](Type::Int)),
-          id[4] | b(Type::Int, Call("size")));
+          id[3] | b(Type::None, Member("init")),
+          id[2] | b(Type::Callable, Member("resize")),
+          id[4] | b(Type::Int, Member("size")));
       return &mp;
     }
     case Type::String: {
       static const auto mp = make_flatmap<Builder>(
-          id[0] | b(Type::String, Call("upper")),
-          id[1] | b(Type::String, Call("lower")),
-          id[6] | b(Type::Int, Call("cnt")), id[5] | b(Type::Int, Call("len")),
-          id[2] | callable(fn("left")[any](Type::Int).ret(Type::String)),
-          id[7] | callable(fn("left_len")[any](Type::Int).ret(Type::String)),
-          id[4] | callable(fn("right")[any](Type::Int).ret(Type::String)),
-          id[9] | callable(fn("right_len")[any](Type::Int).ret(Type::String)),
-          id[3] |
-              callable(fn("mid")[0](Type::Int).ret(Type::String),
-                       fn("mid")[any](Type::Int, Type::Int).ret(Type::String)),
-          id[8] |
-              callable(
-                  fn("mid_len")[any](Type::Int, Type::Int).ret(Type::String)),
-          id[10] | callable(fn("find")[any](Type::String).ret(Type::Int)),
-          id[11] | callable(fn("rfind")[any](Type::String).ret(Type::Int)),
-          id[13] | callable(fn("charat")[any](Type::Int).ret(Type::Int)),
-          id[13] | b(Type::Int, Call("tonum")));
+          id[0] | b_call0(Type::String, "upper"),
+          id[1] | b_call0(Type::String, "lower"),
+          id[6] | b_call0(Type::Int, "cnt"), id[5] | b_call0(Type::Int, "len"),
+          id[2] | b_callable("left", Type::String),
+          id[7] | b_callable("left_len", Type::String),
+          id[4] | b_callable("right", Type::String),
+          id[9] | b_callable("right_len", Type::String),
+          id[3] | b_callable("mid", Type::String),
+          id[8] | b_callable("mid_len", Type::String),
+          id[10] | b_callable("find", Type::Int),
+          id[11] | b_callable("rfind", Type::Int),
+          id[13] | b_callable("charat", Type::Int),
+          id[13] | b_call0(Type::Int, "tonum"));
       return &mp;
     }
 
     case Type::Math: {
       static const auto mp = make_flatmap<Builder>(
-          id[3] | callable(fn("max")[any](Type::Int, Type::Int).ret(Type::Int)),
-          id[4] | callable(fn("min")[any](Type::Int, Type::Int).ret(Type::Int)),
-          id[10] | callable(fn("limit")[any](Type::Int, Type::Int, Type::Int)
-                                .ret(Type::Int)),
-          id[5] | callable(fn("abs")[any](Type::Int).ret(Type::Int)),
-          id[0] |
-              callable(fn("rand")[any](Type::Int, Type::Int).ret(Type::Int)),
-          id[14] |
-              callable(fn("sqrt")[any](Type::Int, Type::Int).ret(Type::Int)),
-          id[19] |
-              callable(fn("log")[any](Type::Int, Type::Int).ret(Type::Int)),
-          id[20] |
-              callable(fn("log2")[any](Type::Int, Type::Int).ret(Type::Int)),
-          id[21] |
-              callable(fn("log10")[any](Type::Int, Type::Int).ret(Type::Int)),
-          id[6] | callable(fn("sin")[any](Type::Int, Type::Int).ret(Type::Int)),
-          id[7] | callable(fn("cos")[any](Type::Int, Type::Int).ret(Type::Int)),
-          id[8] | callable(fn("tan")[any](Type::Int, Type::Int).ret(Type::Int)),
-          id[16] |
-              callable(fn("asin")[any](Type::Int, Type::Int).ret(Type::Int)),
-          id[17] |
-              callable(fn("acos")[any](Type::Int, Type::Int).ret(Type::Int)),
-          id[18] |
-              callable(fn("atan")[any](Type::Int, Type::Int).ret(Type::Int)),
-          id[15] | callable(fn("distance")[any](Type::Int, Type::Int, Type::Int,
-                                                Type::Int)
-                                .ret(Type::Int)),
-          id[22] | callable(fn("angle")[any](Type::Int, Type::Int, Type::Int,
-                                             Type::Int)
-                                .ret(Type::Int)),
-          id[9] | callable(fn("linear")[any](Type::Int, Type::Int, Type::Int,
-                                             Type::Int, Type::Int)
-                               .ret(Type::Int)),
-          id[2] | callable(fn("timetable")[any](Type::Int, Type::Int, Type::Int,
-                                                va_arg(Type::List))
-                               .ret(Type::Int)),
-          id[1] |
-              callable(fn("tostr")[1](Type::Int, Type::Int).ret(Type::String),
-                       fn("tostr")[0](Type::Int).ret(Type::String)),
-          id[11] | callable(fn("tostr_zero")[any](Type::Int, Type::Int)
-                                .ret(Type::String)),
-          id[12] |
-              callable(
-                  fn("tostr_zen")[0](Type::Int).ret(Type::String),
-                  fn("tostr_zen")[1](Type::Int, Type::Int).ret(Type::String)),
-          id[13] | callable(fn("tostr_zen_zero")[any](Type::Int, Type::Int)
-                                .ret(Type::String)),
-          id[23] |
-              callable(fn("tostr_code")[any](Type::Int).ret(Type::String)));
+          id[3] | b(Type::Callable, Member("max")),
+          id[4] | b(Type::Callable, Member("min")),
+          id[10] | b(Type::Callable, Member("limit")),
+          id[5] | b(Type::Callable, Member("abs")),
+          id[0] | b(Type::Callable, Member("rand")),
+          id[14] | b(Type::Callable, Member("sqrt")),
+          id[19] | b(Type::Callable, Member("log")),
+          id[20] | b(Type::Callable, Member("log2")),
+          id[21] | b(Type::Callable, Member("log10")),
+          id[6] | b(Type::Callable, Member("sin")),
+          id[7] | b(Type::Callable, Member("cos")),
+          id[8] | b(Type::Callable, Member("tan")),
+          id[16] | b(Type::Callable, Member("asin")),
+          id[17] | b(Type::Callable, Member("acos")),
+          id[18] | b(Type::Callable, Member("atan")),
+          id[15] | b(Type::Callable, Member("distance")),
+          id[22] | b(Type::Callable, Member("angle")),
+          id[9] | b(Type::Callable, Member("linear")),
+          id[2] | b(Type::Callable, Member("timetable")),
+          id[1] | b(Type::Callable, Member("tostr")),
+          id[11] | b(Type::Callable, Member("tostr_zero")),
+          id[12] | b(Type::Callable, Member("tostr_zen")),
+          id[13] | b(Type::Callable, Member("tostr_zen_zero")),
+          id[23] | b(Type::Callable, Member("tostr_code")));
       return &mp;
     }
 
     case Type::System: {
       static const auto mp = make_flatmap<Builder>(
-          id[14] | b(Type::None, Call("calendar")),
-          id[15] | b(Type::Int, Call("time")),
-          id[0] | b(Type::Int, Call("window_active")),
-          id[13] | b(Type::Int, Call("is_debug")),
-          id[1] | callable(fn("shell_openfile")[any](Type::String)),
-          id[5] | callable(fn("openurl")[any](Type::String)),
-          id[6] | callable(
-                      fn("check_file_exist")[any](Type::String).ret(Type::Int)),
-          id[12] | callable(fn("check_save_file_exist")[any](Type::String)
-                                .ret(Type::Int)),
-          id[2] | callable(fn("check_dummy")[any](Type::String, Type::Int,
-                                                  Type::String)),
-          id[21] | b(Type::None, Call("clear_dummy")),
-          id[17] | callable(fn("msgbox_ok")[0](Type::Int).ret(Type::Int),
-                            fn("msgbox_ok")[1](Type::String).ret(Type::Int)),
-          id[18] |
-              callable(fn("msgbox_okcancel")[0](Type::Int).ret(Type::Int),
-                       fn("msgbox_okcancel")[1](Type::String).ret(Type::Int)),
-          id[19] | callable(fn("msgbox_yn")[0](Type::Int).ret(Type::Int),
-                            fn("msgbox_yn")[1](Type::String).ret(Type::Int)),
-          id[20] |
-              callable(fn("msgbox_yncancel")[0](Type::Int).ret(Type::Int),
-                       fn("msgbox_yncancel")[1](Type::String).ret(Type::Int)),
-          id[7] |
-              callable(fn("debug_msgbox_ok")[0](Type::Int).ret(Type::Int),
-                       fn("debug_msgbox_ok")[1](Type::String).ret(Type::Int)),
-          id[8] |
-              callable(
-                  fn("debug_msgbox_okcancel")[0](Type::Int).ret(Type::Int),
-                  fn("debug_msgbox_okcancel")[1](Type::String).ret(Type::Int)),
-          id[9] |
-              callable(fn("debug_msgbox_yn")[0](Type::Int).ret(Type::Int),
-                       fn("debug_msgbox_yn")[1](Type::String).ret(Type::Int)),
-          id[10] |
-              callable(
-                  fn("debug_msgbox_yncancel")[0](Type::Int).ret(Type::Int),
-                  fn("debug_msgbox_yncancel")[1](Type::String).ret(Type::Int)),
-
-          id[11] | callable(fn("debug_write_log")[0](Type::Int),
-                            fn("debug_write_log")[1](Type::String)),
-
-          id[4] | b(Type::String, Call("get_chihayabench")),
-          id[3] | callable(fn("open_chihayabench")[any](Type::String)),
-          id[16] | b(Type::String, Call("get_lang")));
+          id[14] | b_call0(Type::None, "calendar"),
+          id[15] | b_call0(Type::Int, "time"),
+          id[0] | b_call0(Type::Int, "window_active"),
+          id[13] | b_call0(Type::Int, "is_debug"),
+          id[1] | b_callable("shell_openfile"), id[5] | b_callable("openurl"),
+          id[6] | b_callable("check_file_exist"),
+          id[12] | b_callable("check_save_file_exist"),
+          id[2] | b_callable("check_dummy"),
+          id[21] | b_call0(Type::None, "clear_dummy"),
+          id[17] | b_callable("msgbox_ok"),
+          id[18] | b_callable("msgbox_okcancel"),
+          id[19] | b_callable("msgbox_yn"),
+          id[20] | b_callable("msgbox_yncancel"),
+          id[7] | b_callable("debug_msgbox_ok"),
+          id[8] | b_callable("debug_msgbox_okcancel"),
+          id[9] | b_callable("debug_msgbox_yn"),
+          id[10] | b_callable("debug_msgbox_yncancel"),
+          id[11] | b_callable("debug_write_log"),
+          id[4] | b_call0(Type::String, "get_chihayabench"),
+          id[3] | b_callable("open_chihayabench"),
+          id[16] | b_call0(Type::String, "get_lang"));
       return &mp;
     }
 
     case Type::FrameActionList: {
-      static const auto mp =
-          make_flatmap<Builder>(id[-1] | b_index_array(Type::FrameAction),
-                                id[2] | b(Type::Callable, Member("size")),
-                                id[1] | b(Type::Callable, Member("resize")));
+      static const auto mp = make_flatmap<Builder>(
+          id[-1] | b_index_array(Type::FrameAction),
+          id[2] | b_callable("size", Type::Int), id[1] | b_callable("resize"));
       return &mp;
     }
 
     case Type::FrameAction: {
       static const auto mp = make_flatmap<Builder>(
-          id[1] | callable(fn("start")[any](Type::Int, Type::String)),
-          id[3] | callable(fn("start_real")[any](Type::Int, Type::String)),
-          id[2] | b(Type::None, Call("end")),
+          id[1] | b_callable("start"), id[3] | b_callable("start_real"),
+          id[2] | b_call0(Type::None, "end"),
           id[0] | b(Type::Counter, Member("counter")),
-          id[4] | b(Type::Int, Member("is_end_action")));
+          id[4] | b_call0(Type::Int, "is_end_action"));
       return &mp;
     }
 
     case Type::CounterList: {
       static const auto mp =
           make_flatmap<Builder>(id[-1] | b_index_array(Type::Counter),
-                                id[1] | b(Type::Int, Member("size")));
+                                id[1] | b_call0(Type::Int, "size"));
       return &mp;
     }
 
@@ -378,522 +263,383 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
     case Type::Syscom: {
       static const auto mp = make_flatmap<Builder>(
           // TODO: 236 -> Syscom_call_ex ?
-          id[0] | b(Type::None, Call("menu")),
-          id[6] | b(Type::None, Call("menu_enable")),
-          id[7] | b(Type::None, Call("menu_disable")),
-          id[11] | callable(fn("btn_enable_all")[0](),
-                            fn("btn_enable")[1](Type::Int)),
-          id[12] | callable(fn("btn_disable_all")[0](),
-                            fn("btn_disable")[1](Type::Int)),
-          id[133] | b(Type::None, Call("touch_enable")),
-          id[134] | b(Type::None, Call("touch_disable")),
-          id[5] | b(Type::None, Call("init_flags")),
+          id[0] | b(Type::None, Member("menu")),
+          id[6] | b(Type::None, Member("menu_enable")),
+          id[7] | b(Type::None, Member("menu_disable")),
+          id[11] | b(Type::Callable, Member("btn_enable_all")),
+          id[12] | b(Type::Callable, Member("btn_disable_all")),
+          id[133] | b(Type::None, Member("touch_enable")),
+          id[134] | b(Type::None, Member("touch_disable")),
+          id[5] | b(Type::None, Member("init_flags")),
           // readskip
-          id[200] | callable(fn("set_readskip")[any](Type::Int)),
-          id[201] | b(Type::Int, Call("get_readskip")),
-          id[202] | callable(fn("set_enable_readskip")[any](Type::Int).ret(
-                        Type::None)),
-          id[203] | b(Type::Int, Call("get_enable_readskip")),
-          id[204] | callable(fn("set_exist_readskip")[any](Type::Int).ret(
-                        Type::None)),
-          id[205] | b(Type::Int, Call("get_exist_readskip")),
-          id[206] | b(Type::Int, Call("is_readskip_enable")),
+          id[200] | b(Type::Callable, Member("set_readskip")),
+          id[201] | b(Type::Int, Member("get_readskip")),
+          id[202] | b(Type::Callable, Member("set_enable_readskip")),
+          id[203] | b(Type::Int, Member("get_enable_readskip")),
+          id[204] | b(Type::Callable, Member("set_exist_readskip")),
+          id[205] | b(Type::Int, Member("get_exist_readskip")),
+          id[206] | b(Type::Int, Member("is_readskip_enable")),
           // autoskip
-          id[207] | callable(fn("set_autoskip")[any](Type::Int)),
-          id[208] | b(Type::Int, Call("get_autoskip")),
-          id[209] | callable(fn("set_enable_autoskip")[any](Type::Int).ret(
-                        Type::None)),
-          id[210] | b(Type::Int, Call("get_enable_autoskip")),
-          id[211] | callable(fn("set_exist_autoskip")[any](Type::Int).ret(
-                        Type::None)),
-          id[212] | b(Type::Int, Call("get_exist_autoskip")),
-          id[213] | b(Type::Int, Call("is_autoskip_enable")),
+          id[207] | b(Type::Callable, Member("set_autoskip")),
+          id[208] | b(Type::Int, Member("get_autoskip")),
+          id[209] | b(Type::Callable, Member("set_enable_autoskip")),
+          id[210] | b(Type::Int, Member("get_enable_autoskip")),
+          id[211] | b(Type::Callable, Member("set_exist_autoskip")),
+          id[212] | b(Type::Int, Member("get_exist_autoskip")),
+          id[213] | b(Type::Int, Member("is_autoskip_enable")),
           // automode
-          id[214] | callable(fn("set_automode")[any](Type::Int)),
-          id[215] | b(Type::Int, Call("get_automode")),
-          id[216] | callable(fn("set_enable_automode")[any](Type::Int).ret(
-                        Type::None)),
-          id[217] | b(Type::Int, Call("get_enable_automode")),
-          id[218] | callable(fn("set_exist_automode")[any](Type::Int).ret(
-                        Type::None)),
-          id[219] | b(Type::Int, Call("get_exist_automode")),
-          id[220] | b(Type::Int, Call("is_automode_enable")),
+          id[214] | b(Type::Callable, Member("set_automode")),
+          id[215] | b(Type::Int, Member("get_automode")),
+          id[216] | b(Type::Callable, Member("set_enable_automode")),
+          id[217] | b(Type::Int, Member("get_enable_automode")),
+          id[218] | b(Type::Callable, Member("set_exist_automode")),
+          id[219] | b(Type::Int, Member("get_exist_automode")),
+          id[220] | b(Type::Int, Member("is_automode_enable")),
           // hide mwnd
-          id[221] | callable(fn("set_hidemwnd")[any](Type::Int)),
-          id[222] | b(Type::Int, Call("get_hidemwnd")),
-          id[223] | callable(fn("set_enable_hidemwnd")[any](Type::Int).ret(
-                        Type::None)),
-          id[224] | b(Type::Int, Call("get_enable_hidemwnd")),
-          id[225] | callable(fn("set_exist_hidemwnd")[any](Type::Int).ret(
-                        Type::None)),
-          id[226] | b(Type::Int, Call("get_exist_hidemwnd")),
-          id[227] | b(Type::Int, Call("is_hidemwnd_enable")),
+          id[221] | b(Type::Callable, Member("set_hidemwnd")),
+          id[222] | b(Type::Int, Member("get_hidemwnd")),
+          id[223] | b(Type::Callable, Member("set_enable_hidemwnd")),
+          id[224] | b(Type::Int, Member("get_enable_hidemwnd")),
+          id[225] | b(Type::Callable, Member("set_exist_hidemwnd")),
+          id[226] | b(Type::Int, Member("get_exist_hidemwnd")),
+          id[227] | b(Type::Int, Member("is_hidemwnd_enable")),
           // extra local switch
-          id[300] | callable(fn("set_extraswitch")[any](Type::Int, Type::Int)),
-          id[301] |
-              callable(fn("get_extraswitch")[any](Type::Int).ret(Type::Int)),
-          id[302] |
-              callable(fn("set_enable_extraswitch")[any](Type::Int, Type::Int)),
-          id[303] | callable(fn("get_enable_extraswitch")[any](Type::Int).ret(
-                        Type::Int)),
-          id[304] |
-              callable(fn("set_exist_extraswitch")[any](Type::Int, Type::Int)),
-          id[305] | callable(fn("get_exist_extraswitch")[any](Type::Int).ret(
-                        Type::Int)),
-          id[306] | callable(fn("is_extraswitch_enable")[any](Type::Int).ret(
-                        Type::Int)),
+          id[300] | b(Type::Callable, Member("set_extraswitch")),
+          id[301] | b(Type::Callable, Member("get_extraswitch")),
+          id[302] | b(Type::Callable, Member("set_enable_extraswitch")),
+          id[303] | b(Type::Callable, Member("get_enable_extraswitch")),
+          id[304] | b(Type::Callable, Member("set_exist_extraswitch")),
+          id[305] | b(Type::Callable, Member("get_exist_extraswitch")),
+          id[306] | b(Type::Callable, Member("is_extraswitch_enable")),
           // local mode
-          id[23] | callable(fn("set_localmode")[any](Type::Int)),
-          id[57] | b(Type::Int, Call("get_localmode")),
-          id[58] | callable(fn("set_enable_localmode")[any](Type::Int).ret(
-                       Type::None)),
-          id[59] | b(Type::Int, Call("get_enable_localmode")),
-          id[62] | callable(fn("set_exist_localmode")[any](Type::Int).ret(
-                       Type::None)),
-          id[63] | b(Type::Int, Call("get_exist_localmode")),
-          id[64] | b(Type::Int, Call("is_localmode_enable")),
+          id[23] | b(Type::Callable, Member("set_localmode")),
+          id[57] | b(Type::Int, Member("get_localmode")),
+          id[58] | b(Type::Callable, Member("set_enable_localmode")),
+          id[59] | b(Type::Int, Member("get_enable_localmode")),
+          id[62] | b(Type::Callable, Member("set_exist_localmode")),
+          id[63] | b(Type::Int, Member("get_exist_localmode")),
+          id[64] | b(Type::Int, Member("is_localmode_enable")),
           // msgback
-          id[192] | b(Type::None, Call("open_msgback")),
-          id[193] | b(Type::None, Call("close_msgback")),
-          id[194] | callable(fn("set_enable_msgback")[any](Type::Int).ret(
-                        Type::None)),
-          id[195] | b(Type::Int, Call("get_enable_msgback")),
-          id[196] | callable(fn("set_exist_msgback")[any](Type::Int)),
-          id[197] | b(Type::Int, Call("get_exist_msgback")),
-          id[198] | b(Type::Int, Call("is_msgback_enable")),
-          id[329] | b(Type::Int, Call("is_msgback_open")),
+          id[192] | b(Type::None, Member("open_msgback")),
+          id[193] | b(Type::None, Member("close_msgback")),
+          id[194] | b(Type::Callable, Member("set_enable_msgback")),
+          id[195] | b(Type::Int, Member("get_enable_msgback")),
+          id[196] | b(Type::Callable, Member("set_exist_msgback")),
+          id[197] | b(Type::Int, Member("get_exist_msgback")),
+          id[198] | b(Type::Int, Member("is_msgback_enable")),
+          id[329] | b(Type::Int, Member("is_msgback_open")),
           // return to sel
-          id[228] | callable(fn("return_to_sel")[any](Type::Int, Type::Int,
-                                                      Type::Int)),
-          id[230] | callable(fn("set_enable_retsel")[any](Type::Int)),
-          id[231] | b(Type::Int, Call("get_enable_retsel")),
-          id[232] | callable(fn("set_exist_retsel")[any](Type::Int)),
-          id[233] | b(Type::Int, Call("get_exist_retsel")),
-          id[234] | b(Type::Int, Call("is_retsel_enable")),
+          id[228] | b(Type::Callable, Member("return_to_sel")),
+          id[230] | b(Type::Callable, Member("set_enable_retsel")),
+          id[231] | b(Type::Int, Member("get_enable_retsel")),
+          id[232] | b(Type::Callable, Member("set_exist_retsel")),
+          id[233] | b(Type::Int, Member("get_exist_retsel")),
+          id[234] | b(Type::Int, Member("is_retsel_enable")),
           // return to menu
-          id[235] | callable(fn("return_to_menu")[any](
-                        Type::Int, Type::Int, Type::Int, kw_arg(0, Type::Int))),
-          id[237] | callable(fn("set_enable_retmenu")[any](Type::Int).ret(
-                        Type::None)),
-          id[238] | b(Type::Int, Call("get_enable_retmenu")),
-          id[239] | callable(fn("set_exist_retmenu")[any](Type::Int)),
-          id[240] | b(Type::Int, Call("get_exist_retmenu")),
-          id[241] | b(Type::Int, Call("is_retmenu_enable")),
+          id[235] | b(Type::Callable, Member("return_to_menu")),
+          id[237] | b(Type::Callable, Member("set_enable_retmenu")),
+          id[238] | b(Type::Int, Member("get_enable_retmenu")),
+          id[239] | b(Type::Callable, Member("set_exist_retmenu")),
+          id[240] | b(Type::Int, Member("get_exist_retmenu")),
+          id[241] | b(Type::Int, Member("is_retmenu_enable")),
           // end game
-          id[242] | callable(fn("end_game")[1](Type::Int, Type::Int, Type::Int),
-                             fn("end_game")[any](Type::Int)),
-          id[244] | callable(fn("set_enable_endgame")[any](Type::Int).ret(
-                        Type::None)),
-          id[245] | b(Type::Int, Call("get_enable_endgame")),
-          id[246] | callable(fn("set_exist_endgame")[any](Type::Int)),
-          id[247] | b(Type::Int, Call("get_exist_endgame")),
-          id[248] | b(Type::Int, Call("is_endgame_enable")),
+          id[242] | b(Type::Callable, Member("end_game")),
+          id[244] | b(Type::Callable, Member("set_enable_endgame")),
+          id[245] | b(Type::Int, Member("get_enable_endgame")),
+          id[246] | b(Type::Callable, Member("set_exist_endgame")),
+          id[247] | b(Type::Int, Member("get_exist_endgame")),
+          id[248] | b(Type::Int, Member("is_endgame_enable")),
           // replay koe
-          id[288] | b(Type::None, Call("replay_koe")),
-          id[292] | b(Type::Int, Call("check_koe")),
-          id[289] | b(Type::Int, Call("get_cur_koe")),
-          id[291] | b(Type::Int, Call("get_cur_chr")),
-          id[293] | b(Type::None, Call("clear_koe_chr")),
-          id[294] | b(Type::String, Call("get_scene_title")),
-          id[295] | b(Type::String, Call("get_save_message")),
+          id[288] | b(Type::None, Member("replay_koe")),
+          id[292] | b(Type::Int, Member("check_koe")),
+          id[289] | b(Type::Int, Member("get_cur_koe")),
+          id[291] | b(Type::Int, Member("get_cur_chr")),
+          id[293] | b(Type::None, Member("clear_koe_chr")),
+          id[294] | b(Type::String, Member("get_scene_title")),
+          id[295] | b(Type::String, Member("get_save_message")),
 
-          id[199] | b(Type::None, Call("get_total_playtime(fixme)")),
-          id[229] | callable(fn("set_total_playtime")[any](
-                        Type::Int, Type::Int, Type::Int, Type::Int, Type::Int)),
+          id[199] | b(Type::None, Member("get_total_playtime(fixme)")),
+          id[229] | b(Type::Callable, Member("set_total_playtime")),
 
           // save
-          id[1] | b(Type::None, Call("open_save")),
-          id[251] | callable(fn("set_enable_save")[any](Type::Int)),
-          id[252] | b(Type::Int, Call("get_enable_save")),
-          id[253] | callable(fn("set_exist_save")[any](Type::Int)),
-          id[254] | b(Type::Int, Call("get_exist_save")),
-          id[255] | b(Type::Int, Call("is_save_enable")),
+          id[1] | b(Type::None, Member("open_save")),
+          id[251] | b(Type::Callable, Member("set_enable_save")),
+          id[252] | b(Type::Int, Member("get_enable_save")),
+          id[253] | b(Type::Callable, Member("set_exist_save")),
+          id[254] | b(Type::Int, Member("get_exist_save")),
+          id[255] | b(Type::Int, Member("is_save_enable")),
           // load
-          id[2] | b(Type::None, Call("open_load")),
-          id[258] | callable(fn("set_enable_load")[any](Type::Int)),
-          id[259] | b(Type::Int, Call("get_enable_load")),
-          id[260] | callable(fn("set_exist_load")[any](Type::Int)),
-          id[261] | b(Type::Int, Call("get_exist_load")),
-          id[262] | b(Type::Int, Call("is_load_enable")),
+          id[2] | b(Type::None, Member("open_load")),
+          id[258] | b(Type::Callable, Member("set_enable_load")),
+          id[259] | b(Type::Int, Member("get_enable_load")),
+          id[260] | b(Type::Callable, Member("set_exist_load")),
+          id[261] | b(Type::Int, Member("get_exist_load")),
+          id[262] | b(Type::Int, Member("is_load_enable")),
 
           // save / load
-          id[249] | callable(fn("save")[any](Type::Int, Type::Int, Type::Int)
-                                 .ret(Type::Int)),
-          id[256] | callable(fn("load")[any](Type::Int, Type::Int, Type::Int,
-                                             Type::Int)),
-          id[18] | callable(fn("qsave")[any](Type::Int, Type::Int, Type::Int)
-                                .ret(Type::Int)),
-          id[20] | callable(fn("qload")[any](Type::Int, Type::Int, Type::Int,
-                                             Type::Int)),
-          id[271] |
-              callable(fn("endsave")[any](Type::Int, Type::Int).ret(Type::Int)),
-          id[269] |
-              callable(fn("endload")[any](Type::Int, Type::Int, Type::Int)),
+          id[249] | b(Type::Callable, Member("save")),
+          id[256] | b(Type::Callable, Member("load")),
+          id[18] | b(Type::Callable, Member("qsave")),
+          id[20] | b(Type::Callable, Member("qload")),
+          id[271] | b(Type::Callable, Member("endsave")),
+          id[269] | b(Type::Callable, Member("endload")),
           // inner save / load
-          id[272] | callable(fn("inner_save")[any](Type::Int).ret(Type::Int)),
-          id[273] | callable(fn("inner_load")[any](Type::Int, Type::Int,
-                                                   Type::Int, Type::Int)
-                                 .ret(Type::Int)),
-          id[276] |
-              callable(fn("clear_inner_save")[any](Type::Int).ret(Type::Int)),
-          id[274] |
-              callable(fn("check_inner_save")[any](Type::Int).ret(Type::Int)),
+          id[272] | b(Type::Callable, Member("inner_save")),
+          id[273] | b(Type::Callable, Member("inner_load")),
+          id[276] | b(Type::Callable, Member("clear_inner_save")),
+          id[274] | b(Type::Callable, Member("check_inner_save")),
           // message back save / load
-          id[310] |
-              callable(fn("msgbk_load")[any](Type::Int, Type::Int, Type::Int)),
+          id[310] | b(Type::Callable, Member("msgbk_load")),
           // save data
-          id[68] | b(Type::Int, Call("get_save_count")),
-          id[168] | b(Type::Int, Call("get_qsave_count")),
-          id[79] | callable(fn("get_new_save_no")[0]().ret(Type::Int),
-                            fn("get_new_save_no")[1](Type::Int, Type::Int)
-                                .ret(Type::Int)),
-          id[170] | callable(fn("get_new_qsave_no")[0]().ret(Type::Int),
-                             fn("get_new_qsave_no")[1](Type::Int, Type::Int)
-                                 .ret(Type::Int)),
-          id[69] | callable(fn("is_save_exist")[any](Type::Int).ret(Type::Int)),
-          id[70] | callable(fn("get_save_year")[any](Type::Int).ret(Type::Int)),
-          id[71] |
-              callable(fn("get_save_month")[any](Type::Int).ret(Type::Int)),
-          id[72] | callable(fn("get_save_day")[any](Type::Int).ret(Type::Int)),
-          id[73] |
-              callable(fn("get_save_weekday")[any](Type::Int).ret(Type::Int)),
-          id[74] | callable(fn("get_save_hour")[any](Type::Int).ret(Type::Int)),
-          id[75] |
-              callable(fn("get_save_minute")[any](Type::Int).ret(Type::Int)),
-          id[76] |
-              callable(fn("get_save_second")[any](Type::Int).ret(Type::Int)),
-          id[77] | callable(fn("get_save_millisecond")[any](Type::Int).ret(
-                       Type::Int)),
-          id[78] |
-              callable(fn("get_save_title")[any](Type::Int).ret(Type::String)),
-          id[129] | callable(fn("get_save_message")[any](Type::Int).ret(
-                        Type::String)),
-          id[324] | callable(fn("get_save_full_message")[any](Type::Int).ret(
-                        Type::String)),
-          id[131] | callable(fn("get_save_comment")[any](Type::Int).ret(
-                        Type::String)),
-          id[180] |
-              callable(fn("set_save_comment")[any](Type::Int, Type::String)),
+          id[68] | b(Type::Int, Member("get_save_count")),
+          id[168] | b(Type::Int, Member("get_qsave_count")),
+          id[79] | b(Type::Callable, Member("get_new_save_no")),
+          id[170] | b(Type::Callable, Member("get_new_qsave_no")),
+          id[69] | b(Type::Callable, Member("is_save_exist")),
+          id[70] | b(Type::Callable, Member("get_save_year")),
+          id[71] | b(Type::Callable, Member("get_save_month")),
+          id[72] | b(Type::Callable, Member("get_save_day")),
+          id[73] | b(Type::Callable, Member("get_save_weekday")),
+          id[74] | b(Type::Callable, Member("get_save_hour")),
+          id[75] | b(Type::Callable, Member("get_save_minute")),
+          id[76] | b(Type::Callable, Member("get_save_second")),
+          id[77] | b(Type::Callable, Member("get_save_millisecond")),
+          id[78] | b(Type::Callable, Member("get_save_title")),
+          id[129] | b(Type::Callable, Member("get_save_message")),
+          id[324] | b(Type::Callable, Member("get_save_full_message")),
+          id[131] | b(Type::Callable, Member("get_save_comment")),
+          id[180] | b(Type::Callable, Member("set_save_comment")),
           // TODO: 183 -> get_save_value
           // TODO: 182 -> set_save_value
-          id[320] | callable(fn("get_save_append_dir")[any](Type::Int).ret(
-                        Type::String)),
-          id[321] | callable(fn("get_save_append_name")[any](Type::Int).ret(
-                        Type::String)),
-
-          id[169] |
-              callable(fn("is_qsave_exist")[any](Type::Int).ret(Type::Int)),
-          id[171] |
-              callable(fn("get_qsave_year")[any](Type::Int).ret(Type::Int)),
-          id[172] |
-              callable(fn("get_qsave_month")[any](Type::Int).ret(Type::Int)),
-          id[173] |
-              callable(fn("get_qsave_day")[any](Type::Int).ret(Type::Int)),
-          id[174] |
-              callable(fn("get_qsave_weekday")[any](Type::Int).ret(Type::Int)),
-          id[175] |
-              callable(fn("get_qsave_hour")[any](Type::Int).ret(Type::Int)),
-          id[176] |
-              callable(fn("get_qsave_minute")[any](Type::Int).ret(Type::Int)),
-          id[177] |
-              callable(fn("get_qsave_second")[any](Type::Int).ret(Type::Int)),
-          id[178] | callable(fn("get_qsave_millisecond")[any](Type::Int).ret(
-                        Type::Int)),
-          id[179] |
-              callable(fn("get_qsave_title")[any](Type::Int).ret(Type::String)),
-          id[130] | callable(fn("get_qsave_message")[any](Type::Int).ret(
-                        Type::String)),
-          id[325] | callable(fn("get_qsave_full_message")[any](Type::Int).ret(
-                        Type::String)),
-          id[132] | callable(fn("get_qsave_comment")[any](Type::Int).ret(
-                        Type::String)),
-          id[181] |
-              callable(fn("set_qsave_comment")[any](Type::Int, Type::String)),
+          id[320] | b(Type::Callable, Member("get_save_append_dir")),
+          id[321] | b(Type::Callable, Member("get_save_append_name")),
+          id[169] | b(Type::Callable, Member("is_qsave_exist")),
+          id[171] | b(Type::Callable, Member("get_qsave_year")),
+          id[172] | b(Type::Callable, Member("get_qsave_month")),
+          id[173] | b(Type::Callable, Member("get_qsave_day")),
+          id[174] | b(Type::Callable, Member("get_qsave_weekday")),
+          id[175] | b(Type::Callable, Member("get_qsave_hour")),
+          id[176] | b(Type::Callable, Member("get_qsave_minute")),
+          id[177] | b(Type::Callable, Member("get_qsave_second")),
+          id[178] | b(Type::Callable, Member("get_qsave_millisecond")),
+          id[179] | b(Type::Callable, Member("get_qsave_title")),
+          id[130] | b(Type::Callable, Member("get_qsave_message")),
+          id[325] | b(Type::Callable, Member("get_qsave_full_message")),
+          id[132] | b(Type::Callable, Member("get_qsave_comment")),
+          id[181] | b(Type::Callable, Member("set_qsave_comment")),
           // TODO: 184 -> get_qsave_value
           // TODO: 185 -> set_qsave_value
-          id[322] | callable(fn("get_qsave_append_dir")[any](Type::Int).ret(
-                        Type::String)),
-          id[323] | callable(fn("get_qsave_append_name")[any](Type::Int).ret(
-                        Type::String)),
-
-          id[270] |
-              callable(fn("is_endsave_exist")[any](Type::Int).ret(Type::Int)),
-          id[67] |
-              callable(
-                  fn("copy_save")[any](Type::Int, Type::Int).ret(Type::Int)),
-          id[22] |
-              callable(
-                  fn("change_save")[any](Type::Int, Type::Int).ret(Type::Int)),
-          id[19] | callable(fn("delete_save")[any](Type::Int).ret(Type::Int)),
-          id[128] |
-              callable(
-                  fn("copy_qsave")[any](Type::Int, Type::Int).ret(Type::Int)),
-          id[66] |
-              callable(
-                  fn("change_qsave")[any](Type::Int, Type::Int).ret(Type::Int)),
-          id[65] | callable(fn("delete_qsave")[any](Type::Int).ret(Type::Int)),
+          id[322] | b(Type::Callable, Member("get_qsave_append_dir")),
+          id[323] | b(Type::Callable, Member("get_qsave_append_name")),
+          id[270] | b(Type::Callable, Member("is_endsave_exist")),
+          id[67] | b(Type::Callable, Member("copy_save")),
+          id[22] | b(Type::Callable, Member("change_save")),
+          id[19] | b(Type::Callable, Member("delete_save")),
+          id[128] | b(Type::Callable, Member("copy_qsave")),
+          id[66] | b(Type::Callable, Member("change_qsave")),
+          id[65] | b(Type::Callable, Member("delete_qsave")),
 
           // environment settings
-          id[3] | b(Type::None, Call("open_config_menu")),
-          id[138] | b(Type::None, Call("open_config_windowmode_menu")),
-          id[139] | b(Type::None, Call("open_config_volume_menu")),
-          id[137] | b(Type::None, Call("open_config_bgm_fade_menu")),
-          id[147] | b(Type::None, Call("open_config_koemode_menu")),
-          id[146] | b(Type::None, Call("open_config_charakoe_menu")),
-          id[151] | b(Type::None, Call("open_config_jitan_menu")),
-          id[135] | b(Type::None, Call("open_config_message_speed_menu")),
-          id[136] | b(Type::None, Call("open_config_filter_color_menu")),
-          id[140] | b(Type::None, Call("open_config_auto_mode_menu")),
-          id[142] | b(Type::None, Call("open_config_font_menu")),
-          id[141] | b(Type::None, Call("open_config_system_menu")),
-          id[167] | b(Type::None, Call("open_config_movie_menu")),
+          id[3] | b(Type::None, Member("open_config_menu")),
+          id[138] | b(Type::None, Member("open_config_windowmode_menu")),
+          id[139] | b(Type::None, Member("open_config_volume_menu")),
+          id[137] | b(Type::None, Member("open_config_bgm_fade_menu")),
+          id[147] | b(Type::None, Member("open_config_koemode_menu")),
+          id[146] | b(Type::None, Member("open_config_charakoe_menu")),
+          id[151] | b(Type::None, Member("open_config_jitan_menu")),
+          id[135] | b(Type::None, Member("open_config_message_speed_menu")),
+          id[136] | b(Type::None, Member("open_config_filter_color_menu")),
+          id[140] | b(Type::None, Member("open_config_auto_mode_menu")),
+          id[142] | b(Type::None, Member("open_config_font_menu")),
+          id[141] | b(Type::None, Member("open_config_system_menu")),
+          id[167] | b(Type::None, Member("open_config_movie_menu")),
           // window mode
-          id[4] | callable(fn("set_window_mode")[any](Type::Int)),
-          id[99] | b(Type::None, Call("set_window_mode_default")),
-          id[9] | b(Type::Int, Call("get_window_mode")),
-          id[13] |
-              callable(fn("set_window_mode_size")[any](Type::Int, Type::Int)),
-          id[100] | b(Type::None, Call("set_window_mode_default")),
-          id[16] | b(Type::Int, Call("get_window_mode_size")),
-          id[309] |
-              callable(fn("check_window_mode_size_enable")[any](Type::Int).ret(
-                  Type::Int)),
+          id[4] | b(Type::Callable, Member("set_window_mode")),
+          id[99] | b(Type::None, Member("set_window_mode_default")),
+          id[9] | b(Type::Int, Member("get_window_mode")),
+          id[13] | b(Type::Callable, Member("set_window_mode_size")),
+          id[100] | b(Type::None, Member("set_window_mode_default")),
+          id[16] | b(Type::Int, Member("get_window_mode_size")),
+          id[309] | b(Type::Callable, Member("check_window_mode_size_enable")),
+
           // volume
-          id[39] | callable(fn("set_all_volume")[any](Type::Int)),
-          id[21] | callable(fn("set_bgm_volume")[any](Type::Int)),
-          id[26] | callable(fn("set_koe_volume")[any](Type::Int)),
-          id[29] | callable(fn("set_pcm_volume")[any](Type::Int)),
-          id[32] | callable(fn("set_se_volume")[any](Type::Int)),
-          id[263] | callable(fn("set_mov_volume")[any](Type::Int)),
-          id[277] | callable(fn("set_sound_volume")[any](Type::Int, Type::Int)),
-          id[60] | callable(fn("set_all_onoff")[any](Type::Int)),
-          id[35] | callable(fn("set_bgm_onoff")[any](Type::Int)),
-          id[36] | callable(fn("set_koe_onoff")[any](Type::Int)),
-          id[37] | callable(fn("set_pcm_onoff")[any](Type::Int)),
-          id[38] | callable(fn("set_se_onoff")[any](Type::Int)),
-          id[266] | callable(fn("set_mov_onoff")[any](Type::Int)),
-          id[280] | callable(fn("set_sound_onoff")[any](Type::Int, Type::Int)),
-          id[40] | b(Type::None, Call("set_all_volume_default")),
-          id[24] | b(Type::None, Call("set_bgm_volume_default")),
-          id[27] | b(Type::None, Call("set_koe_volume_default")),
-          id[30] | b(Type::None, Call("set_pcm_volume_default")),
-          id[33] | b(Type::None, Call("set_se_volume_default")),
-          id[264] | b(Type::None, Call("set_mov_volume_default")),
-          id[278] | callable(fn("set_sound_volume_default")[any](Type::Int).ret(
-                        Type::None)),
-          id[101] | b(Type::None, Call("set_all_onoff_default")),
-          id[102] | b(Type::None, Call("set_bgm_onoff_default")),
-          id[103] | b(Type::None, Call("set_koe_onoff_default")),
-          id[104] | b(Type::None, Call("set_pcm_onoff_default")),
-          id[105] | b(Type::None, Call("set_se_onoff_default")),
-          id[267] | b(Type::None, Call("set_mov_onoff_default")),
-          id[281] | callable(fn("set_sound_onoff_default")[any](Type::Int).ret(
-                        Type::None)),
-          id[41] | b(Type::Int, Call("get_all_volume")),
-          id[25] | b(Type::Int, Call("get_bgm_volume")),
-          id[28] | b(Type::Int, Call("get_koe_volume")),
-          id[31] | b(Type::Int, Call("get_pcm_volume")),
-          id[34] | b(Type::Int, Call("get_se_volume")),
-          id[265] | b(Type::Int, Call("get_mov_volume")),
-          id[279] |
-              callable(fn("get_sound_volume")[any](Type::Int).ret(Type::Int)),
-          id[61] | b(Type::Int, Call("get_all_onoff")),
-          id[42] | b(Type::Int, Call("get_bgm_onoff")),
-          id[43] | b(Type::Int, Call("get_koe_onoff")),
-          id[44] | b(Type::Int, Call("get_pcm_onoff")),
-          id[45] | b(Type::Int, Call("get_se_onoff")),
-          id[268] | b(Type::Int, Call("get_mov_onoff")),
-          id[282] |
-              callable(fn("get_sound_onoff")[any](Type::Int).ret(Type::Int)),
+          id[39] | b(Type::Callable, Member("set_all_volume")),
+          id[21] | b(Type::Callable, Member("set_bgm_volume")),
+          id[26] | b(Type::Callable, Member("set_koe_volume")),
+          id[29] | b(Type::Callable, Member("set_pcm_volume")),
+          id[32] | b(Type::Callable, Member("set_se_volume")),
+          id[263] | b(Type::Callable, Member("set_mov_volume")),
+          id[277] | b(Type::Callable, Member("set_sound_volume")),
+          id[60] | b(Type::Callable, Member("set_all_onoff")),
+          id[35] | b(Type::Callable, Member("set_bgm_onoff")),
+          id[36] | b(Type::Callable, Member("set_koe_onoff")),
+          id[37] | b(Type::Callable, Member("set_pcm_onoff")),
+          id[38] | b(Type::Callable, Member("set_se_onoff")),
+          id[266] | b(Type::Callable, Member("set_mov_onoff")),
+          id[280] | b(Type::Callable, Member("set_sound_onoff")),
+          id[40] | b(Type::None, Member("set_all_volume_default")),
+          id[24] | b(Type::None, Member("set_bgm_volume_default")),
+          id[27] | b(Type::None, Member("set_koe_volume_default")),
+          id[30] | b(Type::None, Member("set_pcm_volume_default")),
+          id[33] | b(Type::None, Member("set_se_volume_default")),
+          id[264] | b(Type::None, Member("set_mov_volume_default")),
+          id[278] | b(Type::Callable, Member("set_sound_volume_default")),
+          id[101] | b(Type::None, Member("set_all_onoff_default")),
+          id[102] | b(Type::None, Member("set_bgm_onoff_default")),
+          id[103] | b(Type::None, Member("set_koe_onoff_default")),
+          id[104] | b(Type::None, Member("set_pcm_onoff_default")),
+          id[105] | b(Type::None, Member("set_se_onoff_default")),
+          id[267] | b(Type::None, Member("set_mov_onoff_default")),
+          id[281] | b(Type::Callable, Member("set_sound_onoff_default")),
+          id[41] | b(Type::Int, Member("get_all_volume")),
+          id[25] | b(Type::Int, Member("get_bgm_volume")),
+          id[28] | b(Type::Int, Member("get_koe_volume")),
+          id[31] | b(Type::Int, Member("get_pcm_volume")),
+          id[34] | b(Type::Int, Member("get_se_volume")),
+          id[265] | b(Type::Int, Member("get_mov_volume")),
+          id[279] | b(Type::Callable, Member("get_sound_volume")),
+          id[61] | b(Type::Int, Member("get_all_onoff")),
+          id[42] | b(Type::Int, Member("get_bgm_onoff")),
+          id[43] | b(Type::Int, Member("get_koe_onoff")),
+          id[44] | b(Type::Int, Member("get_pcm_onoff")),
+          id[45] | b(Type::Int, Member("get_se_onoff")),
+          id[268] | b(Type::Int, Member("get_mov_onoff")),
+          id[282] | b(Type::Callable, Member("get_sound_onoff")),
           // bgm fade
-          id[94] | callable(fn("set_bgmfade_volume")[any](Type::Int).ret(
-                       Type::None)),
-          id[97] | callable(fn("set_bgmfade_onoff")[any](Type::Int)),
-          id[95] | b(Type::None, Call("set_bgmfade_volume_default")),
-          id[106] | b(Type::None, Call("set_bgmfade_onoff_default")),
-          id[96] | b(Type::Int, Call("get_bgmfade_volume")),
-          id[98] | b(Type::Int, Call("get_bgmfade_onoff")),
+          id[94] | b(Type::Callable, Member("set_bgmfade_volume")),
+          id[97] | b(Type::Callable, Member("set_bgmfade_onoff")),
+          id[95] | b(Type::None, Member("set_bgmfade_volume_default")),
+          id[106] | b(Type::None, Member("set_bgmfade_onoff_default")),
+          id[96] | b(Type::Int, Member("get_bgmfade_volume")),
+          id[98] | b(Type::Int, Member("get_bgmfade_onoff")),
           // koemode
-          id[148] | callable(fn("set_koemode")[any](Type::Int)),
-          id[149] | b(Type::None, Call("set_koemode_default")),
-          id[150] | b(Type::Int, Call("get_koemode")),
+          id[148] | b(Type::Callable, Member("set_koemode")),
+          id[149] | b(Type::None, Member("set_koemode_default")),
+          id[150] | b(Type::Int, Member("get_koemode")),
           // character koe
-          id[143] |
-              callable(fn("set_charakoe_onoff")[any](Type::Int, Type::Int)),
-          id[144] |
-              callable(fn("set_charakoe_onoff_default")[any](Type::Int).ret(
-                  Type::None)),
-          id[145] |
-              callable(fn("get_charakoe_onoff")[any](Type::Int).ret(Type::Int)),
-          id[186] |
-              callable(fn("set_charakoe_volume")[any](Type::Int, Type::Int)),
-          id[187] |
-              callable(fn("set_charakoe_volume_default")[any](Type::Int).ret(
-                  Type::None)),
-          id[188] | callable(fn("get_charakoe_volume")[any](Type::Int).ret(
-                        Type::Int)),
+          id[143] | b(Type::Callable, Member("set_charakoe_onoff")),
+          id[144] | b(Type::Callable, Member("set_charakoe_onoff_default")),
+          id[145] | b(Type::Callable, Member("get_charakoe_onoff")),
+          id[186] | b(Type::Callable, Member("set_charakoe_volume")),
+          id[187] | b(Type::Callable, Member("set_charakoe_volume_default")),
+          id[188] | b(Type::Callable, Member("get_charakoe_volume")),
           // jitan
-          id[153] | callable(fn("set_jitan_normal_onoff")[any](Type::Int).ret(
-                        Type::None)),
-          id[154] | b(Type::None, Call("set_jitan_normal_onoff_default")),
-          id[155] | b(Type::Int, Call("get_jitan_normal_onoff")),
-          id[156] |
-              callable(fn("set_jitan_auto_mode_onoff")[any](Type::Int).ret(
-                  Type::None)),
-          id[157] | b(Type::None, Call("set_jitan_auto_mode_onoff_default")),
-          id[158] | b(Type::Int, Call("get_jitan_auto_mode_onoff")),
-          id[159] |
-              callable(fn("set_jitan_koe_replay_onoff")[any](Type::Int).ret(
-                  Type::None)),
-          id[160] | b(Type::None, Call("set_jitan_koe_replay_onoff_default")),
-          id[161] | b(Type::Int, Call("get_jitan_koe_replay_onoff")),
-          id[152] | callable(fn("set_jitan_speed")[any](Type::Int)),
-          id[162] | b(Type::None, Call("set_jitan_speed_default")),
-          id[163] | b(Type::Int, Call("get_jitan_speed")),
+          id[153] | b(Type::Callable, Member("set_jitan_normal_onoff")),
+          id[154] | b(Type::None, Member("set_jitan_normal_onoff_default")),
+          id[155] | b(Type::Int, Member("get_jitan_normal_onoff")),
+          id[156] | b(Type::Callable, Member("set_jitan_auto_mode_onoff")),
+          id[157] | b(Type::None, Member("set_jitan_auto_mode_onoff_default")),
+          id[158] | b(Type::Int, Member("get_jitan_auto_mode_onoff")),
+          id[159] | b(Type::Callable, Member("set_jitan_koe_replay_onoff")),
+          id[160] | b(Type::None, Member("set_jitan_koe_replay_onoff_default")),
+          id[161] | b(Type::Int, Member("get_jitan_koe_replay_onoff")),
+          id[152] | b(Type::Callable, Member("set_jitan_speed")),
+          id[162] | b(Type::None, Member("set_jitan_speed_default")),
+          id[163] | b(Type::Int, Member("get_jitan_speed")),
           // message speed
-          id[46] | callable(fn("set_message_speed")[any](Type::Int)),
-          id[47] | b(Type::None, Call("set_message_speed_default")),
-          id[48] | b(Type::Int, Call("get_message_speed")),
-          id[49] | callable(fn("set_message_nowait")[any](Type::Int).ret(
-                       Type::None)),
-          id[107] | b(Type::None, Call("set_message_nowait_default")),
-          id[50] | b(Type::Int, Call("get_message_nowait")),
+          id[46] | b(Type::Callable, Member("set_message_speed")),
+          id[47] | b(Type::None, Member("set_message_speed_default")),
+          id[48] | b(Type::Int, Member("get_message_speed")),
+          id[49] | b(Type::Callable, Member("set_message_nowait")),
+          id[107] | b(Type::None, Member("set_message_nowait_default")),
+          id[50] | b(Type::Int, Member("get_message_nowait")),
           // auto mode
-          id[51] | callable(fn("set_auto_mode_moji_wait")[any](Type::Int).ret(
-                       Type::None)),
-          id[52] | b(Type::None, Call("set_auto_mode_moji_wait_default")),
-          id[53] | b(Type::Int, Call("get_auto_mode_moji_wait")),
-          id[54] | callable(fn("set_auto_mode_min_wait")[any](Type::Int).ret(
-                       Type::None)),
-          id[55] | b(Type::None, Call("set_auto_mode_min_wait_default")),
-          id[56] | b(Type::Int, Call("get_auto_mode_min_wait")),
+          id[51] | b(Type::Callable, Member("set_auto_mode_moji_wait")),
+          id[52] | b(Type::None, Member("set_auto_mode_moji_wait_default")),
+          id[53] | b(Type::Int, Member("get_auto_mode_moji_wait")),
+          id[54] | b(Type::Callable, Member("set_auto_mode_min_wait")),
+          id[55] | b(Type::None, Member("set_auto_mode_min_wait_default")),
+          id[56] | b(Type::Int, Member("get_auto_mode_min_wait")),
           // auto hide mouse cursor
-          id[311] |
-              callable(fn("set_mouse_cursor_hide_onoff")[any](Type::Int).ret(
-                  Type::None)),
-          id[312] | b(Type::None, Call("set_mouse_cursor_hide_onoff_default")),
-          id[313] | b(Type::Int, Call("get_mouse_cursor_hide_onoff")),
-          id[317] |
-              callable(fn("set_mouse_cursor_hide_time")[any](Type::Int).ret(
-                  Type::None)),
-          id[318] | b(Type::None, Call("set_mouse_cursor_hide_time_default")),
-          id[319] | b(Type::Int, Call("get_mouse_cursor_hide_time")),
+          id[311] | b(Type::Callable, Member("set_mouse_cursor_hide_onoff")),
+          id[312] |
+              b(Type::None, Member("set_mouse_cursor_hide_onoff_default")),
+          id[313] | b(Type::Int, Member("get_mouse_cursor_hide_onoff")),
+          id[317] | b(Type::Callable, Member("set_mouse_cursor_hide_time")),
+          id[318] | b(Type::None, Member("set_mouse_cursor_hide_time_default")),
+          id[319] | b(Type::Int, Member("get_mouse_cursor_hide_time")),
           // window background color
-          id[82] | callable(fn("set_filter_color_r")[any](Type::Int).ret(
-                       Type::None)),
-          id[85] | callable(fn("set_filter_color_g")[any](Type::Int).ret(
-                       Type::None)),
-          id[86] | callable(fn("set_filter_color_b")[any](Type::Int).ret(
-                       Type::None)),
-          id[87] | callable(fn("set_filter_color_a")[any](Type::Int).ret(
-                       Type::None)),
-          id[83] | b(Type::None, Call("set_filter_color_r_default")),
-          id[88] | b(Type::None, Call("set_filter_color_g_default")),
-          id[89] | b(Type::None, Call("set_filter_color_b_default")),
-          id[90] | b(Type::None, Call("set_filter_color_a_default")),
-          id[84] | b(Type::Int, Call("get_filter_color_r")),
-          id[91] | b(Type::Int, Call("get_filter_color_g")),
-          id[92] | b(Type::Int, Call("get_filter_color_b")),
-          id[93] | b(Type::Int, Call("get_filter_color_a")),
+          id[82] | b(Type::Callable, Member("set_filter_color_r")),
+          id[85] | b(Type::Callable, Member("set_filter_color_g")),
+          id[86] | b(Type::Callable, Member("set_filter_color_b")),
+          id[87] | b(Type::Callable, Member("set_filter_color_a")),
+          id[83] | b(Type::None, Member("set_filter_color_r_default")),
+          id[88] | b(Type::None, Member("set_filter_color_g_default")),
+          id[89] | b(Type::None, Member("set_filter_color_b_default")),
+          id[90] | b(Type::None, Member("set_filter_color_a_default")),
+          id[84] | b(Type::Int, Member("get_filter_color_r")),
+          id[91] | b(Type::Int, Member("get_filter_color_g")),
+          id[92] | b(Type::Int, Member("get_filter_color_b")),
+          id[93] | b(Type::Int, Member("get_filter_color_a")),
           // display object
-          id[189] |
-              callable(fn("set_obj_disp_onoff")[any](Type::Int, Type::Int)),
-          id[190] | callable(fn("set_obj_disp_onoff_default")[any](Type::Int)),
-          id[191] |
-              callable(fn("get_obj_disp_onoff")[any](Type::Int).ret(Type::Int)),
+          id[189] | b(Type::Callable, Member("set_obj_disp_onoff")),
+          id[190] | b(Type::Callable, Member("set_obj_disp_onoff_default")),
+          id[191] | b(Type::Callable, Member("get_obj_disp_onoff")),
           // global extra switch
-          id[14] | callable(fn("set_global_extraswitch_onoff")[any](Type::Int,
-                                                                    Type::Int)),
-          id[15] | callable(fn("set_global_extraswitch_onoff_default")[any](
-                       Type::Int)),
-          id[17] |
-              callable(fn("get_global_extraswitch_onoff")[any](Type::Int).ret(
-                  Type::Int)),
+          id[14] | b(Type::Callable, Member("set_global_extraswitch_onoff")),
+          id[15] |
+              b(Type::Callable, Member("set_global_extraswitch_onoff_default")),
+          id[17] | b(Type::Callable, Member("get_global_extraswitch_onoff")),
           // global extra mode
-          id[164] |
-              callable(fn("set_global_extramode")[any](Type::Int, Type::Int)),
-          id[165] |
-              callable(fn("set_global_extramode_default")[any](Type::Int)),
-          id[166] |
-              callable(fn("get_global_extramode_default")[any](Type::Int).ret(
-                  Type::Int)),
+          id[164] | b(Type::Callable, Member("set_global_extramode")),
+          id[165] | b(Type::Callable, Member("set_global_extramode_default")),
+          id[166] | b(Type::Callable, Member("get_global_extramode_default")),
 
           // system settings
-          id[80] | callable(fn("set_saveload_alert_onoff")[any](Type::Int)),
-          id[108] | b(Type::None, Call("set_saveload_alert_onoff_default")),
-          id[10] | b(Type::Int, Call("get_saveload_alert_onoff")),
-          id[110] | callable(fn("set_sleep_onoff")[any](Type::Int)),
-          id[111] | b(Type::None, Call("set_sleep_onoff_default")),
-          id[112] | b(Type::Int, Call("get_sleep_onoff")),
-          id[113] | callable(fn("set_no_wipe_anime_onoff")[any](Type::Int)),
-          id[114] | b(Type::None, Call("set_no_wipe_anime_onoff_default")),
-          id[115] | b(Type::Int, Call("get_no_wipe_anime_onoff")),
-          id[116] | callable(fn("set_skip_wipe_anime_onoff")[any](Type::Int)),
-          id[117] | b(Type::None, Call("set_skip_wipe_anime_onoff_default")),
-          id[118] | b(Type::Int, Call("get_skip_wipe_anime_onoff")),
-          id[8] | callable(fn("set_no_mwnd_anime_onoff")[any](Type::Int)),
-          id[109] | b(Type::None, Call("set_no_mwnd_anime_onoff_default")),
-          id[81] | b(Type::Int, Call("get_no_mwnd_anime_onoff")),
-          id[119] |
-              callable(fn("set_wheel_next_message_onoff")[any](Type::Int)),
-          id[120] | b(Type::None, Call("set_wheel_next_message_onoff_default")),
-          id[121] | b(Type::Int, Call("get_wheel_next_message_onoff")),
-          id[122] | callable(fn("set_koe_dont_stop_onoff")[any](Type::Int)),
-          id[123] | b(Type::None, Call("set_koe_dont_stop_onoff_default")),
-          id[124] | b(Type::Int, Call("get_koe_dont_stop_onoff")),
-          id[125] |
-              callable(fn("set_skip_unread_message_onoff")[any](Type::Int)),
+          id[80] | b(Type::Callable, Member("set_saveload_alert_onoff")),
+          id[108] | b(Type::None, Member("set_saveload_alert_onoff_default")),
+          id[10] | b(Type::Int, Member("get_saveload_alert_onoff")),
+          id[110] | b(Type::Callable, Member("set_sleep_onoff")),
+          id[111] | b(Type::None, Member("set_sleep_onoff_default")),
+          id[112] | b(Type::Int, Member("get_sleep_onoff")),
+          id[113] | b(Type::Callable, Member("set_no_wipe_anime_onoff")),
+          id[114] | b(Type::None, Member("set_no_wipe_anime_onoff_default")),
+          id[115] | b(Type::Int, Member("get_no_wipe_anime_onoff")),
+          id[116] | b(Type::Callable, Member("set_skip_wipe_anime_onoff")),
+          id[117] | b(Type::None, Member("set_skip_wipe_anime_onoff_default")),
+          id[118] | b(Type::Int, Member("get_skip_wipe_anime_onoff")),
+          id[8] | b(Type::Callable, Member("set_no_mwnd_anime_onoff")),
+          id[109] | b(Type::None, Member("set_no_mwnd_anime_onoff_default")),
+          id[81] | b(Type::Int, Member("get_no_mwnd_anime_onoff")),
+          id[119] | b(Type::Callable, Member("set_wheel_next_message_onoff")),
+          id[120] |
+              b(Type::None, Member("set_wheel_next_message_onoff_default")),
+          id[121] | b(Type::Int, Member("get_wheel_next_message_onoff")),
+          id[122] | b(Type::Callable, Member("set_koe_dont_stop_onoff")),
+          id[123] | b(Type::None, Member("set_koe_dont_stop_onoff_default")),
+          id[124] | b(Type::Int, Member("get_koe_dont_stop_onoff")),
+          id[125] | b(Type::Callable, Member("set_skip_unread_message_onoff")),
           id[126] |
-              b(Type::None, Call("set_skip_unread_message_onoff_default")),
-          id[127] | b(Type::Int, Call("get_skip_unread_message_onoff")),
-          id[250] | callable(fn("set_play_silent_sound_onoff")[any](Type::Int)),
-          id[247] | b(Type::None, Call("set_play_silent_sound_onoff_default")),
-          id[243] | b(Type::Int, Call("get_play_silent_sound_onoff")),
+              b(Type::None, Member("set_skip_unread_message_onoff_default")),
+          id[127] | b(Type::Int, Member("get_skip_unread_message_onoff")),
+          id[250] | b(Type::Callable, Member("set_play_silent_sound_onoff")),
+          id[247] |
+              b(Type::None, Member("set_play_silent_sound_onoff_default")),
+          id[243] | b(Type::Int, Member("get_play_silent_sound_onoff")),
 
           // font
-          id[283] | callable(fn("set_font_name")[any](Type::String)),
-          id[326] | b(Type::None, Call("set_font_name_default")),
-          id[284] | b(Type::String, Call("get_font_name")),
-          id[285] |
-              callable(fn("is_font_exist")[any](Type::String).ret(Type::Int)),
-          id[296] | callable(fn("set_font_bold")[any](Type::Int)),
-          id[298] | b(Type::None, Call("set_font_bold_default")),
-          id[307] | b(Type::Int, Call("get_font_bold")),
-          id[297] | callable(fn("set_font_decoration")[any](Type::Int)),
-          id[299] | b(Type::None, Call("set_font_decoration_default")),
-          id[308] | b(Type::Int, Call("get_font_decoration")),
+          id[283] | b(Type::Callable, Member("set_font_name")),
+          id[326] | b(Type::None, Member("set_font_name_default")),
+          id[284] | b(Type::String, Member("get_font_name")),
+          id[285] | b(Type::Callable, Member("is_font_exist")),
+          id[296] | b(Type::Callable, Member("set_font_bold")),
+          id[298] | b(Type::None, Member("set_font_bold_default")),
+          id[307] | b(Type::Int, Member("get_font_bold")),
+          id[297] | b(Type::Callable, Member("set_font_decoration")),
+          id[299] | b(Type::None, Member("set_font_decoration_default")),
+          id[308] | b(Type::Int, Member("get_font_decoration")),
 
           // capture
-          id[286] |
-              callable(fn("create_capture_buffer")[any](Type::Int, Type::Int)),
-          id[287] | b(Type::None, Call("destroy_capture_buffer")),
-          id[316] | callable(fn("capture_to_capture_buffer")[any](Type::Int,
-                                                                  Type::Int)),
-          id[314] | callable(fn("save_capture_buffer_to_file")[any](
-                                 Type::String, Type::String,
-                                 kw_arg(0, Type::Int), kw_arg(1, Type::String),
-                                 kw_arg(2, Type::Other), kw_arg(3, Type::Int),
-                                 kw_arg(4, Type::Int), kw_arg(5, Type::Other),
-                                 kw_arg(6, Type::Int), kw_arg(7, Type::Int))
-                                 .ret(Type::Int)),
-          id[315] | callable(fn("load_flag_from_capture_file")[any](
-                                 Type::String, Type::String,
-                                 kw_arg(0, Type::Int), kw_arg(1, Type::String),
-                                 kw_arg(2, Type::Other), kw_arg(3, Type::Int),
-                                 kw_arg(4, Type::Int), kw_arg(5, Type::Other),
-                                 kw_arg(6, Type::Int), kw_arg(7, Type::Int))
-                                 .ret(Type::Int)),
-          id[290] | callable(fn("capture_to_png")[any](Type::Int, Type::Int,
-                                                       Type::String)),
-          id[327] | b(Type::None, Call("twitter")),
-          id[328] |
-              callable(fn("set_ret_scene_once")[0](Type::String),
-                       fn("set_ret_scene_once")[any](Type::String, Type::Int)),
-
-          id[330] |
-              callable(fn("get_sys_extra_int")[any](Type::Int).ret(Type::Int)),
-          id[331] | callable(fn("get_sys_extra_str")[any](Type::Int).ret(
-                        Type::String)));
+          id[286] | b(Type::Callable, Member("create_capture_buffer")),
+          id[287] | b(Type::None, Member("destroy_capture_buffer")),
+          id[316] | b(Type::Callable, Member("capture_to_capture_buffer")),
+          id[314] | b(Type::Callable, Member("save_capture_buffer_to_file")),
+          id[315] | b(Type::Callable, Member("load_flag_from_capture_file")),
+          id[290] | b(Type::Callable, Member("capture_to_png")),
+          id[327] | b(Type::None, Member("twitter")),
+          id[328] | b(Type::Callable, Member("set_ret_scene_once")),
+          id[330] | b(Type::Callable, Member("get_sys_extra_int")),
+          id[331] | b(Type::Callable, Member("get_sys_extra_str")));
       return &mp;
     }
 
@@ -944,14 +690,7 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
     }
     case Type::Object: {
       auto obj_createmov = [](std::string_view mem) -> Builder {
-        return callable(
-            fn(mem)[2](Type::String, Type::Int, Type::Int, Type::Int,
-                       kw_arg(0, Type::Int), kw_arg(1, Type::Int),
-                       kw_arg(2, Type::Int)),
-            fn(mem)[1](Type::String, Type::Int, kw_arg(0, Type::Int),
-                       kw_arg(1, Type::Int), kw_arg(2, Type::Int)),
-            fn(mem)[any](Type::String, kw_arg(0, Type::Int),
-                         kw_arg(1, Type::Int), kw_arg(2, Type::Int)));
+        return b(Type::Callable, Member(mem));
       };
 
       static const auto mp = make_flatmap<Builder>(
@@ -969,46 +708,35 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
           id[54] | b(Type::IntList, Member("x_rep")),
           id[63] | b(Type::IntList, Member("y_rep")),
           id[110] | b(Type::IntList, Member("z_rep")),
-          id[48] | callable(fn("set_pos")[0](Type::Int, Type::Int),
-                            fn("set_pos")[1](Type::Int, Type::Int, Type::Int)),
+          id[48] | b(Type::Callable, Member("set_pos")),
           id[6] | obj_getset("center_x", Type::Int),
           id[7] | obj_getset("center_y", Type::Int),
           id[8] | obj_getset("center_z", Type::Int),
-          id[158] |
-              callable(fn("set_center")[0](Type::Int, Type::Int),
-                       fn("set_center")[1](Type::Int, Type::Int, Type::Int)),
+          id[158] | b(Type::Callable, Member("set_center")),
           id[9] | obj_getset("center_rep_x", Type::Int),
           id[10] | obj_getset("center_rep_y", Type::Int),
           id[11] | obj_getset("center_rep_z", Type::Int),
-          id[159] | callable(fn("set_center_rep")[0](Type::Int, Type::Int),
-                             fn("set_center_rep")[1](Type::Int, Type::Int,
-                                                     Type::Int)),
+          id[159] | b(Type::Callable, Member("set_center_rep")),
           id[12] | obj_getset("scale_x", Type::Int),
           id[13] | obj_getset("scale_y", Type::Int),
           id[14] | obj_getset("scale_z", Type::Int),
-          id[49] |
-              callable(fn("set_scale")[0](Type::Int, Type::Int),
-                       fn("set_scale")[1](Type::Int, Type::Int, Type::Int)),
+          id[49] | b(Type::Callable, Member("set_scale")),
           id[15] | obj_getset("rotate_x", Type::Int),
           id[16] | obj_getset("rotate_y", Type::Int),
           id[17] | obj_getset("rotate_z", Type::Int),
-          id[50] |
-              callable(fn("set_rotate")[0](Type::Int, Type::Int),
-                       fn("set_rotate")[1](Type::Int, Type::Int, Type::Int)),
+          id[50] | b(Type::Callable, Member("set_rotate")),
           id[18] | obj_getset("clip_use", Type::Int),
           id[19] | obj_getset("clip_left", Type::Int),
           id[20] | obj_getset("clip_top", Type::Int),
           id[21] | obj_getset("clip_right", Type::Int),
           id[22] | obj_getset("clip_bottom", Type::Int),
-          id[160] | callable(fn("set_clip")[any](
-                        Type::Int, Type::Int, Type::Int, Type::Int, Type::Int)),
+          id[160] | b(Type::Callable, Member("set_clip")),
           id[149] | obj_getset("src_clip_use", Type::Int),
           id[150] | obj_getset("src_clip_left", Type::Int),
           id[151] | obj_getset("src_clip_top", Type::Int),
           id[152] | obj_getset("src_clip_right", Type::Int),
           id[153] | obj_getset("src_clip_bottom", Type::Int),
-          id[161] | callable(fn("set_src_clip")[any](
-                        Type::Int, Type::Int, Type::Int, Type::Int, Type::Int)),
+          id[161] | b(Type::Callable, Member("set_src_clip")),
           id[27] | obj_getset("tr", Type::Int),
           id[141] | b(Type::IntList, Member("tr_rep")),
           id[28] | obj_getset("mono", Type::Int),
@@ -1075,13 +803,13 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
             ctx.chain.nodes.emplace_back(Type::Invalid, Member("alleve"));
             switch (peek) {
               case 0:  // ALLEVENT_END
-                ctx.chain.nodes.emplace_back(Type::None, Call("end"));
+                ctx.chain.nodes.emplace_back(Type::None, Member("end"));
                 return;
               case 1:
-                ctx.chain.nodes.emplace_back(Type::None, Call("wait"));
+                ctx.chain.nodes.emplace_back(Type::None, Member("wait"));
                 return;
               case 2:
-                ctx.chain.nodes.emplace_back(Type::Int, Call("check"));
+                ctx.chain.nodes.emplace_back(Type::Int, Member("check"));
                 return;
               default:
                 ctx.chain.nodes.emplace_back(Type::Invalid, Member("???"));
@@ -1092,167 +820,83 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
 
           id[24] | obj_getter("get_size_x"), id[25] | obj_getter("get_size_y"),
           id[47] | obj_getter("get_size_z"),
-          id[100] | obj_colgetter("get_pixel_color_a"),
-          id[101] | obj_colgetter("get_pixel_color_r"),
-          id[102] | obj_colgetter("get_pixel_color_g"),
-          id[103] | obj_colgetter("get_pixel_color_b"),
+          id[100] | obj_getter("get_pixel_color_a"),
+          id[101] | obj_getter("get_pixel_color_r"),
+          id[102] | obj_getter("get_pixel_color_g"),
+          id[103] | obj_getter("get_pixel_color_b"),
 
-          id[62] | b(Type::String, Call("get_file_path")),
+          id[62] | b(Type::String, Member("get_file_path")),
           id[111] | b(Type::IntList, Member("F")),
 
           id[93] | b(Type::ObjList, Member("child")),
-          id[35] | b(Type::None, Call("init")),
-          id[36] | b(Type::None, Call("free")),
-          id[37] | b(Type::None, Call("init_param")),
-          id[38] | callable(fn("create")[3](Type::String, Type::Int, Type::Int,
-                                            Type::Int, Type::Int),
-                            fn("create")[2](Type::String, Type::Int, Type::Int,
-                                            Type::Int),
-                            fn("create")[1](Type::String, Type::Int),
-                            fn("crate")[any](Type::String)),
-          id[40] |
-              callable(fn("create_rect")[2](Type::Int, Type::Int, Type::Int,
-                                            Type::Int, Type::Int, Type::Int,
-                                            Type::Int, Type::Int, Type::Int,
-                                            Type::Int, Type::Int),
-                       fn("create_rect")[1](Type::Int, Type::Int, Type::Int,
-                                            Type::Int, Type::Int, Type::Int,
-                                            Type::Int, Type::Int, Type::Int),
-                       fn("create_rect")[any](Type::Int, Type::Int, Type::Int,
-                                              Type::Int, Type::Int, Type::Int,
-                                              Type::Int, Type::Int)),
-          id[39] | callable(fn("create_string")[2](Type::String, Type::Int,
-                                                   Type::Int, Type::Int),
-                            fn("create_string")[1](Type::String, Type::Int),
-                            fn("create_string")[any](Type::String)),
-          id[132] | callable(fn("create_number")[2](Type::String, Type::Int,
-                                                    Type::Int, Type::Int),
-                             fn("create_number")[1](Type::String, Type::Int),
-                             fn("create_number")[any](Type::String)),
-          id[129] | callable(fn("create_weather")[2](Type::String, Type::Int,
-                                                     Type::Int, Type::Int),
-                             fn("create_weather")[1](Type::String, Type::Int),
-                             fn("create_weather")[any](Type::String)),
-          id[43] | callable(fn("create_mesh")[2](Type::String, Type::Int,
-                                                 Type::Int, Type::Int),
-                            fn("create_mesh")[1](Type::String, Type::Int),
-                            fn("create_mesh")[any](Type::String)),
-          id[45] | callable(fn("create_billboard")[2](Type::String, Type::Int,
-                                                      Type::Int, Type::Int),
-                            fn("create_billboard")[1](Type::String, Type::Int),
-                            fn("create_billboard")[any](Type::String)),
-          id[116] | callable(fn("create_save_thumb")[2](Type::Int, Type::Int,
-                                                        Type::Int, Type::Int),
-                             fn("create_save_thumb")[1](Type::Int, Type::Int),
-                             fn("create_save_thumb")[any](Type::Int)),
-          id[170] |
-              callable(fn("create_capture_thumb")[2](Type::Int, Type::Int,
-                                                     Type::Int, Type::Int),
-                       fn("create_capture_thumb")[1](Type::Int, Type::Int),
-                       fn("create_capture_thumb")[any](Type::Int)),
+          id[35] | b(Type::None, Member("init")),
+          id[36] | b(Type::None, Member("free")),
+          id[37] | b(Type::None, Member("init_param")),
+          id[38] | b(Type::Callable, Member("create")),
+          id[40] | b(Type::Callable, Member("create_rect")),
+          id[39] | b(Type::Callable, Member("create_string")),
+          id[132] | b(Type::Callable, Member("create_number")),
+          id[129] | b(Type::Callable, Member("create_weather")),
+          id[43] | b(Type::Callable, Member("create_mesh")),
+          id[45] | b(Type::Callable, Member("create_billboard")),
+          id[116] | b(Type::Callable, Member("create_save_thumb")),
+          id[170] | b(Type::Callable, Member("create_capture_thumb")),
 
-          id[165] |
-              callable(fn("create_capture")[2](Type::Int, Type::Int, Type::Int),
-                       fn("create_capture")[1](Type::Int),
-                       fn("create_capture")[any]()),
+          id[165] | b(Type::Callable, Member("create_capture")),
           id[120] | obj_createmov("create_movie"),
           id[121] | obj_createmov("create_movie_loop"),
           id[122] | obj_createmov("create_movie_wait"),
           id[143] | obj_createmov("create_movie_waitkey"),
-          id[177] | callable(fn("create_emote")[2](
-                                 Type::Int, Type::Int, Type::String, Type::Int,
-                                 Type::Int, Type::Int, kw_arg(0, Type::Int),
-                                 kw_arg(1, Type::Int)),
-                             fn("create_emote")[1](
-                                 Type::Int, Type::Int, Type::String, Type::Int,
-                                 kw_arg(0, Type::Int), kw_arg(1, Type::Int)),
-                             fn("create_emote")[any](
-                                 Type::Int, Type::Int, Type::String,
-                                 kw_arg(0, Type::Int), kw_arg(1, Type::Int))),
+          id[177] | b(Type::Callable, Member("create_emote")),
 
-          id[41] | callable(fn("copy_from")[any](Type::Object)),
-          id[53] | callable(fn("change_file")[any](Type::String)),
-          id[174] | b(Type::Int, Call("exist_type")),
+          id[41] | b(Type::Callable, Member("copy_from")),
+          id[53] | b(Type::Callable, Member("change_file")),
+          id[174] | b(Type::Int, Member("exist_type")),
 
           // String
-          id[99] | callable(fn("set_string")[any](Type::String)),
-          id[135] | b(Type::String, Call("get_string")),
-          id[104] | callable(fn("set_string_param")[1](Type::Int, Type::Int,
-                                                       Type::Int, Type::Int,
-                                                       Type::Int, Type::Int,
-                                                       Type::Int, Type::Int),
-                             fn("set_string_param")[0](Type::Int, Type::Int,
-                                                       Type::Int, Type::Int,
-                                                       Type::Int, Type::Int,
-                                                       Type::Int),
-                             fn("set_string_param")[any](Type::Int, Type::Int,
-                                                         Type::Int, Type::Int,
-                                                         Type::Int)),
-          id[133] | callable(fn("set_number")[any](Type::Int)),
-          id[136] | b(Type::Int, Call("set_number")),
-          id[134] | callable(fn("set_number_param")[any](Type::Int, Type::Int,
-                                                         Type::Int, Type::Int,
-                                                         Type::Int, Type::Int)),
+          id[99] | b(Type::Callable, Member("set_string")),
+          id[135] | b(Type::String, Member("get_string")),
+          id[104] | b(Type::Callable, Member("set_string_param")),
+          id[133] | b(Type::Callable, Member("set_number")),
+          id[136] | b(Type::Int, Member("set_number")),
+          id[134] | b(Type::Callable, Member("set_number_param")),
 
           // environment
-          id[130] | callable(fn("set_weather_param_type_a")[any](
-                        kw_arg(0, Type::Int), kw_arg(1, Type::Int),
-                        kw_arg(2, Type::Int), kw_arg(3, Type::Int),
-                        kw_arg(4, Type::Int), kw_arg(5, Type::Int),
-                        kw_arg(6, Type::Int), kw_arg(7, Type::Int),
-                        kw_arg(8, Type::Int), kw_arg(9, Type::Int),
-                        kw_arg(10, Type::Int), kw_arg(11, Type::Int),
-                        kw_arg(12, Type::Int), kw_arg(13, Type::Int),
-                        kw_arg(14, Type::Int))),
-          id[131] | callable(fn("set_weather_param_type_a")[any](
-                        kw_arg(0, Type::Int), kw_arg(1, Type::Int),
-                        kw_arg(2, Type::Int), kw_arg(3, Type::Int),
-                        kw_arg(4, Type::Int), kw_arg(5, Type::Int),
-                        kw_arg(6, Type::Int), kw_arg(7, Type::Int),
-                        kw_arg(8, Type::Int), kw_arg(9, Type::Int),
-                        kw_arg(10, Type::Int), kw_arg(11, Type::Int),
-                        kw_arg(12, Type::Int), kw_arg(13, Type::Int),
-                        kw_arg(14, Type::Int), kw_arg(15, Type::Int),
-                        kw_arg(16, Type::Int), kw_arg(17, Type::Int),
-                        kw_arg(18, Type::Int), kw_arg(19, Type::Int))),
+          id[130] | b(Type::Callable, Member("set_weather_param_type_a")),
+          id[131] | b(Type::Callable, Member("set_weather_param_type_a")),
 
           // movie
-          id[125] | b(Type::None, Call("pause_movie")),
-          id[126] | b(Type::None, Call("resume_movie")),
-          id[137] | callable(fn("seek_movie")[any](Type::Int)),
-          id[138] | b(Type::Int, Call("get_movie_seek_time")),
-          id[127] | b(Type::Int, Call("check_movie")),
-          id[128] | b(Type::None, Call("wait_movie")),
-          id[142] | b(Type::None, Call("wait_movie_key")),
-          id[171] | b(Type::None, Call("end_movie_loop")),
-          id[172] | callable(fn("set_movie_auto_free")[any](Type::Int)),
+          id[125] | b(Type::None, Member("pause_movie")),
+          id[126] | b(Type::None, Member("resume_movie")),
+          id[137] | b(Type::Callable, Member("seek_movie")),
+          id[138] | b(Type::Int, Member("get_movie_seek_time")),
+          id[127] | b(Type::Int, Member("check_movie")),
+          id[128] | b(Type::None, Member("wait_movie")),
+          id[142] | b(Type::None, Member("wait_movie_key")),
+          id[171] | b(Type::None, Member("end_movie_loop")),
+          id[172] | b(Type::Callable, Member("set_movie_auto_free")),
 
           // frame action
           id[52] | b(Type::FrameAction, Member("frame_action")),
           id[115] | b(Type::FrameActionList, Member("frame_action_ch")),
 
           // button
-          id[61] | b(Type::None, Call("clear_button")),
-          id[42] | callable(fn("set_button")[2](Type::Int, Type::Int, Type::Int,
-                                                Type::Int),
-                            fn("set_button")[1](Type::Int, Type::Int),
-                            fn("set_button")[0](Type::Int),
-                            fn("set_button")[any]()),
-          id[164] | callable(fn("set_button_group")[0](Type::Int),
-                             fn("set_button_group")[1](Type::Other)),
-          id[98] | callable(fn("set_button_pushkeep")[any](Type::Int)),
-          id[119] | b(Type::Int, Call("get_button_pushkeep")),
-          id[175] | callable(fn("set_button_alpha_test")[any](Type::Int)),
-          id[176] | b(Type::Int, Call("get_button_alpha_test")),
+          id[61] | b(Type::None, Member("clear_button")),
+          id[42] | b(Type::Callable, Member("set_button")),
+          id[164] | b(Type::Callable, Member("set_button_group")),
+          id[98] | b(Type::Callable, Member("set_button_pushkeep")),
+          id[119] | b(Type::Int, Member("get_button_pushkeep")),
+          id[175] | b(Type::Callable, Member("set_button_alpha_test")),
+          id[176] | b(Type::Int, Member("get_button_alpha_test")),
 
-          id[95] | b(Type::None, Call("set_button_state_normal")),
-          id[96] | b(Type::None, Call("set_button_state_select")),
-          id[97] | b(Type::None, Call("set_button_state_disable")),
-          id[118] | b(Type::Int, Call("get_button_state")),
-          id[123] | b(Type::Int, Call("get_button_hit_state")),
-          id[124] | b(Type::Int, Call("get_button_real_state")),
-          id[26] | callable(fn("set_button_call")[any](Type::String)),
-          id[60] | b(Type::None, Call("clear_button_call"))
+          id[95] | b(Type::None, Member("set_button_state_normal")),
+          id[96] | b(Type::None, Member("set_button_state_select")),
+          id[97] | b(Type::None, Member("set_button_state_disable")),
+          id[118] | b(Type::Int, Member("get_button_state")),
+          id[123] | b(Type::Int, Member("get_button_hit_state")),
+          id[124] | b(Type::Int, Member("get_button_real_state")),
+          id[26] | b(Type::Callable, Member("set_button_call")),
+          id[60] | b(Type::None, Member("clear_button_call"))
 
           // GAN
 
@@ -1279,74 +923,40 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
 
     case Type::Movie: {
       static const auto mp = make_flatmap<Builder>(
-          id[0] | callable(fn("play")[any](Type::String),
-                           fn("play")[any](Type::String, Type::Int, Type::Int,
-                                           Type::Int, Type::Int)),
-          id[2] |
-              callable(fn("play_wait")[any](Type::String),
-                       fn("play_wait")[any](Type::String, Type::Int, Type::Int,
-                                            Type::Int, Type::Int)),
-          id[3] | callable(
-                      fn("play_waitkey")[any](Type::String),
-                      fn("play_waitkey")[any](Type::String, Type::Int,
-                                              Type::Int, Type::Int, Type::Int)),
-          id[1] | b(Type::None, Call("stop")));
+          id[0] | b(Type::Callable, Member("play")),
+          id[2] | b(Type::Callable, Member("play_wait")),
+          id[3] | b(Type::Callable, Member("play_waitkey")),
+          id[1] | b(Type::None, Member("stop")));
       return &mp;
     }
 
     case Type::BgmTable: {
       static const auto mp = make_flatmap<Builder>(
           id[0] | b(Type::Int, Member("cnt")),
-          id[2] | callable(fn("set_listen")[any](Type::String, Type::Int)),
-          id[4] | callable(fn("set_listen_all")[any](Type::Int)),
-          id[1] | callable(fn("get_listen")[any](Type::String).ret(Type::Int)));
+          id[2] | b(Type::Callable, Member("set_listen")),
+          id[4] | b(Type::Callable, Member("set_listen_all")),
+          id[1] | b(Type::Callable, Member("get_listen")));
       return &mp;
     }
 
     case Type::Bgm: {
       static const auto mp = make_flatmap<Builder>(
           // TODO: handle overload with default argument
-          id[0] | callable(fn("play")[any](
-                      Type::String, Type::Int, Type::Int,
-                      kw_arg(0, Type::String), kw_arg(1, Type::Int),
-                      kw_arg(2, Type::Int), kw_arg(3, Type::Int),
-                      kw_arg(4, Type::Int), kw_arg(5, Type::Int))),
-          id[1] | callable(fn("play_oneshot")[0](Type::String),
-                           fn("play_oneshot")[1](Type::String, Type::Int),
-                           fn("play_oneshot")[2](Type::String, Type::Int,
-                                                 Type::Int)),
-          id[2] |
-              callable(fn("play_wait")[0](Type::String),
-                       fn("play_wait")[1](Type::String, Type::Int),
-                       fn("play_wait")[2](Type::String, Type::Int, Type::Int)),
-          id[16] |
-              callable(
-                  fn("ready")[0](Type::String, kw_arg(0, Type::String),
-                                 kw_arg(1, Type::Int), kw_arg(3, Type::Int),
-                                 kw_arg(5, Type::Int)),
-                  fn("ready")[2](Type::String, Type::Int,
-                                 kw_arg(0, Type::String), kw_arg(1, Type::Int),
-                                 kw_arg(3, Type::Int), kw_arg(5, Type::Int))),
-          id[4] | callable(fn("stop")[0](), fn("stop")[1](Type::Int)),
-          id[10] | callable(fn("pause")[0](), fn("pause")[1](Type::Int)),
-          id[11] | callable(fn("resume")[0](kw_arg(0, Type::Int)),
-                            fn("resume")[1](Type::Int, kw_arg(0, Type::Int))),
-          id[12] |
-              callable(fn("resume_wait")[0](), fn("resume_wait")[1](Type::Int)),
-          id[3] | b(Type::None, Call("wait")),
-          id[14] | b(Type::None, Call("wait_key")),
-          id[5] | b(Type::None, Call("wait_fade")),
-          id[15] | b(Type::None, Call("wait_fade_key")),
-          id[18] | b(Type::Int, Call("check")),
-          id[6] | callable(fn("set_volume")[0](Type::Int),
-                           fn("set_volume")[1](Type::Int, Type::Int)),
-          id[7] | callable(fn("set_volume_max")[0](Type::Int),
-                           fn("set_volume_max")[1](Type::Int, Type::Int)),
-          id[8] | callable(fn("set_volume_min")[0](Type::Int),
-                           fn("set_volume_min")[1](Type::Int, Type::Int)),
-          id[9] | b(Type::Int, Call("get_volume")),
-          id[19] | b(Type::String, Call("get_regist_name")),
-          id[13] | b(Type::Int, Call("get_play_pos")));
+          id[0] | b_callable("play"), id[1] | b_callable("play_oneshot"),
+          id[2] | b_callable("play_wait"), id[16] | b_callable("ready"),
+          id[4] | b_callable("stop"), id[10] | b_callable("pause"),
+          id[11] | b_callable("resume"), id[12] | b_callable("resume_wait"),
+          id[3] | b_call0(Type::None, "wait"),
+          id[14] | b_call0(Type::None, "wait_key"),
+          id[5] | b_call0(Type::None, "wait_fade"),
+          id[15] | b_call0(Type::None, "wait_fade_key"),
+          id[18] | b_call0(Type::Int, "check"),
+          id[6] | b_callable("set_volume"),
+          id[7] | b_callable("set_volume_max"),
+          id[8] | b_callable("set_volume_min"),
+          id[9] | b_call0(Type::Int, "get_volume"),
+          id[19] | b_call0(Type::String, "get_regist_name"),
+          id[13] | b_call0(Type::Int, "get_play_pos"));
       return &mp;
     }
 
@@ -1354,135 +964,105 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
       static const auto mp = make_flatmap<Builder>(
           // TODO: Handle ELM_UP = -5
           id[-1] | b_index_array(Type::Mwnd),
-          id[1] | b(Type::None, Call("close")),
-          id[2] | b(Type::None, Call("close_wait")),
-          id[3] | b(Type::None, Call("close_nowait")));
+          id[1] | b_call0(Type::None, "close"),
+          id[2] | b_call0(Type::None, "close_wait"),
+          id[3] | b_call0(Type::None, "close_nowait"));
       return &mp;
     }
 
     case Type::Mwnd: {
       static const auto mp = make_flatmap<Builder>(
           // TODO: Handle ELM_UP = -5
-          id[0] | callable(fn("set_waku")[2](Type::Int, Type::Int),
-                           fn("set_waku")[1](Type::Int), fn("set_waku")[any]()),
-          id[79] | b(Type::None, Call("init_waku_file")),
-          id[78] | callable(fn("set_waku_file")[any](Type::String)),
-          id[80] | b(Type::String, Call("get_waku_file")),
-          id[82] | b(Type::None, Call("init_filter_file")),
-          id[81] | callable(fn("set_filter_file")[any](Type::String)),
-          id[83] | b(Type::String, Call("get_filter_file")),
-          id[1] | b(Type::None, Call("open")),
-          id[15] | b(Type::None, Call("open_wait")),
-          id[16] | b(Type::None, Call("open_nowait")),
-          id[65] | b(Type::Int, Call("check_open")),
-          id[2] | b(Type::None, Call("close")),
-          id[13] | b(Type::None, Call("close_wait")),
-          id[14] | b(Type::None, Call("close_nowait")),
-          id[64] | b(Type::None, Call("end_close")),
-          id[49] | b(Type::None, Call("msg_block")),
-          id[59] | b(Type::None, Call("msg_pp_block")),
-          id[3] | b(Type::None, Call("clear")),
-          id[55] | b(Type::None, Call("novel_clear")),
-          id[4] |
-              callable(fn("print")[0](Type::Int), fn("print")[1](Type::String)),
-          id[57] |
-              callable(fn("overflow_print")[0](Type::Int, Type::Int, Type::Int),
-                       fn("print")[1](Type::String, Type::Int, Type::Int)),
-          id[63] | callable(fn("overflow_name")[0](Type::Int),
-                            fn("overflow_name")[1](Type::String)),
-          id[12] | callable(fn("ruby_end")[0](),
-                            fn("ruby_start")[any](Type::String)),
-          id[18] | b(Type::None, Call("msg_wait")),
-          id[19] | b(Type::None, Call("pp")), id[20] | b(Type::None, Call("r")),
-          id[54] | b(Type::None, Call("page")),
-          id[6] | b(Type::None, Call("nl")),
-          id[17] | b(Type::None, Call("nil")),
-          id[56] | b(Type::None, Call("indent")),
-          id[28] | b(Type::None, Call("clear_indent")),
-          id[31] | b(Type::None, Call("enable_multi_msg")),
-          id[29] | b(Type::None, Call("next_msg")),
-          id[58] | callable(fn("set_slide_msg")[any](Type::Int)),
-          id[60] | b(Type::None, Call("set_slide_msg")),
-          id[61] | b(Type::None, Call("slide_msg")),
+          id[0] | b_callable("set_waku"),
+          id[79] | b_call0(Type::None, "init_waku_file"),
+          id[78] | b_callable("set_waku_file"),
+          id[80] | b_call0(Type::String, "get_waku_file"),
+          id[82] | b_call0(Type::None, "init_filter_file"),
+          id[81] | b_callable("set_filter_file"),
+          id[83] | b_call0(Type::String, "get_filter_file"),
+          id[1] | b_call0(Type::None, "open"),
+          id[15] | b_call0(Type::None, "open_wait"),
+          id[16] | b_call0(Type::None, "open_nowait"),
+          id[65] | b_call0(Type::Int, "check_open"),
+          id[2] | b_call0(Type::None, "close"),
+          id[13] | b_call0(Type::None, "close_wait"),
+          id[14] | b_call0(Type::None, "close_nowait"),
+          id[64] | b_call0(Type::None, "end_close"),
+          id[49] | b_call0(Type::None, "msg_block"),
+          id[59] | b_call0(Type::None, "msg_pp_block"),
+          id[3] | b_call0(Type::None, "clear"),
+          id[55] | b_call0(Type::None, "novel_clear"),
+          id[4] | b_callable("print"), id[57] | b_callable("overflow_print"),
+          id[63] | b_callable("overflow_name"), id[12] | b_callable("ruby_end"),
+          id[18] | b_call0(Type::None, "msg_wait"),
+          id[19] | b_call0(Type::None, "pp"), id[20] | b_call0(Type::None, "r"),
+          id[54] | b_call0(Type::None, "page"),
+          id[6] | b_call0(Type::None, "nl"),
+          id[17] | b_call0(Type::None, "nil"),
+          id[56] | b_call0(Type::None, "indent"),
+          id[28] | b_call0(Type::None, "clear_indent"),
+          id[31] | b_call0(Type::None, "enable_multi_msg"),
+          id[29] | b_call0(Type::None, "next_msg"),
+          id[58] | b_callable("set_slide_msg"),
+          id[60] | b_call0(Type::None, "set_slide_msg"),
+          id[61] | b_call0(Type::None, "slide_msg"),
 
           // SEL
-          id[5] | callable(fn("sel")[any]()),
-          id[51] | callable(fn("sel_cancel")[any]()),
-          id[50] | callable(fn("selmsg")[any]()),
-          id[52] | callable(fn("selmsg_cancel")[any]()),
-          id[84] | callable(fn("rep_pos_default")[0](),
-                            fn("rep_pos")[1](Type::Int, Type::Int)),
-          id[7] | callable(fn("size_default")[0](),
-                           fn("size")[1](Type::Int, Type::Int)),
-          id[8] | callable(fn("color_default")[0](),
-                           fn("color")[1](Type::Int, Type::Int)),
-          id[86] | callable(fn("msgbtn")[0](), fn("msgbtn")[1](Type::Int),
-                            fn("msgbtn")[2](Type::Int, Type::Int),
-                            fn("msgbtn")[3](Type::Int, Type::Int, Type::Int,
-                                            Type::Int)),
-          id[85] | callable(fn("set_namae")[any](Type::String)),
-          id[9] |
-              callable(fn("koe")[1](Type::Int, Type::Int, kw_arg(0, Type::Int)),
-                       fn("koe")[0](Type::Int, kw_arg(0, Type::Int)),
-                       fn("koe")[any](kw_arg(0, Type::Int))),
-          id[26] |
-              callable(fn("koe_play_wait")[1](Type::Int, Type::Int,
-                                              kw_arg(0, Type::Int)),
-                       fn("koe_play_wait")[0](Type::Int, kw_arg(0, Type::Int)),
-                       fn("koe_play_wait")[any](kw_arg(0, Type::Int))),
-          id[27] | callable(fn("koe_play_wait_key")[1](Type::Int, Type::Int,
-                                                       kw_arg(0, Type::Int)),
-                            fn("koe_play_wait_key")[0](Type::Int,
-                                                       kw_arg(0, Type::Int)),
-                            fn("koe_play_wait_key")[any](kw_arg(0, Type::Int))),
-          id[22] | b(Type::None, Call("clear_face")),
-          id[21] | callable(fn("set_face")[0](Type::String),
-                            fn("set_face")[1](Type::Int, Type::String)),
-          id[10] |
-              callable(fn("get_layer")[0](), fn("set_layer")[1](Type::Int)),
-          id[11] |
-              callable(fn("get_world")[0](), fn("set_world")[1](Type::Int)),
+          id[5] | b(Type::Callable, Member("sel")),
+          id[51] | b(Type::Callable, Member("sel_cancel")),
+          id[50] | b(Type::Callable, Member("selmsg")),
+          id[52] | b(Type::Callable, Member("selmsg_cancel")),
+          id[84] | b(Type::Callable, Member("rep_pos_default")),
+          id[7] | b(Type::Callable, Member("size_default")),
+          id[8] | b(Type::Callable, Member("color_default")),
+          id[86] | b(Type::Callable, Member("msgbtn")),
+          id[85] | b(Type::Callable, Member("set_namae")),
+          id[9] | b(Type::Callable, Member("koe")),
+          id[26] | b(Type::Callable, Member("koe_play_wait")),
+          id[22] | b(Type::None, Member("clear_face")),
+          id[21] | b(Type::Callable, Member("set_face")),
+          id[10] | b(Type::Callable, Member("get_layer")),
+          id[11] | b(Type::Callable, Member("get_world")),
           id[32] | b(Type::ObjList, Member("button")),
           id[53] | b(Type::ObjList, Member("face")),
           id[30] | b(Type::ObjList, Member("object")),
 
           // parameter
-          id[66] | b(Type::None, Call("init_window_pos")),
-          id[67] | b(Type::None, Call("init_window_size")),
-          id[74] | b(Type::None, Call("init_window_moji_cnt")),
-          id[68] | callable(fn("set_window_pos")[any](Type::Int, Type::Int)),
-          id[69] | callable(fn("set_window_size")[any](Type::Int, Type::Int)),
-          id[75] |
-              callable(fn("set_window_moji_cnt")[any](Type::Int, Type::Int)),
-          id[70] | b(Type::Int, Call("get_window_pos_x")),
-          id[71] | b(Type::Int, Call("get_window_pos_y")),
-          id[72] | b(Type::Int, Call("get_window_size_x")),
-          id[73] | b(Type::Int, Call("get_window_size_y")),
-          id[77] | b(Type::Int, Call("get_window_moji_cnt_x")),
-          id[76] | b(Type::Int, Call("get_window_moji_cnt_y")),
-          id[41] | b(Type::None, Call("init_open_anime_type")),
-          id[42] | b(Type::None, Call("init_open_anime_time")),
-          id[43] | b(Type::None, Call("init_close_anime_type")),
-          id[44] | b(Type::None, Call("init_close_anime_time")),
-          id[37] | callable(fn("set_open_anime_type")[any](Type::Int)),
-          id[34] | callable(fn("set_open_anime_time")[any](Type::Int)),
-          id[45] | callable(fn("set_close_anime_type")[any](Type::Int)),
-          id[35] | callable(fn("set_close_anime_time")[any](Type::Int)),
-          id[48] | b(Type::Int, Call("get_open_anime_type")),
-          id[47] | b(Type::Int, Call("get_open_anime_time")),
-          id[38] | b(Type::Int, Call("get_close_anime_type")),
-          id[46] | b(Type::Int, Call("get_close_anime_time")),
-          id[36] | b(Type::Int, Call("get_default_open_anime_type")),
-          id[33] | b(Type::Int, Call("get_default_open_anime_time")),
-          id[40] | b(Type::Int, Call("get_default_close_anime_type")),
-          id[39] | b(Type::Int, Call("get_default_close_anime_time")));
+          id[66] | b(Type::None, Member("init_window_pos")),
+          id[67] | b(Type::None, Member("init_window_size")),
+          id[74] | b(Type::None, Member("init_window_moji_cnt")),
+          id[68] | b(Type::Callable, Member("set_window_pos")),
+          id[69] | b(Type::Callable, Member("set_window_size")),
+          id[75] | b(Type::Callable, Member("set_window_moji_cnt")),
+          id[70] | b(Type::Int, Member("get_window_pos_x")),
+          id[71] | b(Type::Int, Member("get_window_pos_y")),
+          id[72] | b(Type::Int, Member("get_window_size_x")),
+          id[73] | b(Type::Int, Member("get_window_size_y")),
+          id[77] | b(Type::Int, Member("get_window_moji_cnt_x")),
+          id[76] | b(Type::Int, Member("get_window_moji_cnt_y")),
+          id[41] | b(Type::None, Member("init_open_anime_type")),
+          id[42] | b(Type::None, Member("init_open_anime_time")),
+          id[43] | b(Type::None, Member("init_close_anime_type")),
+          id[44] | b(Type::None, Member("init_close_anime_time")),
+          id[37] | b(Type::Callable, Member("set_open_anime_type")),
+          id[34] | b(Type::Callable, Member("set_open_anime_time")),
+          id[45] | b(Type::Callable, Member("set_close_anime_type")),
+          id[35] | b(Type::Callable, Member("set_close_anime_time")),
+          id[48] | b(Type::Int, Member("get_open_anime_type")),
+          id[47] | b(Type::Int, Member("get_open_anime_time")),
+          id[38] | b(Type::Int, Member("get_close_anime_type")),
+          id[46] | b(Type::Int, Member("get_close_anime_time")),
+          id[36] | b(Type::Int, Member("get_default_open_anime_type")),
+          id[33] | b(Type::Int, Member("get_default_open_anime_time")),
+          id[40] | b(Type::Int, Member("get_default_close_anime_type")),
+          id[39] | b(Type::Int, Member("get_default_close_anime_time")));
       return &mp;
     }
 
     case Type::Pcm: {
       static const auto mp =
-          make_flatmap<Builder>(id[0] | callable(fn("play")[any](Type::String)),
-                                id[1] | b(Type::None, Call("stop")));
+          make_flatmap<Builder>(id[0] | b(Type::Callable, Member("play")),
+                                id[1] | b(Type::None, Member("stop")));
       return &mp;
     }
 
@@ -1494,110 +1074,33 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
 
     case Type::Pcmch: {
       static const auto mp = make_flatmap<Builder>(
-          id[0] |
-              callable(
-                  fn("play")[1](Type::String, Type::Int, kw_arg(0, Type::Int),
-                                kw_arg(1, Type::Int), kw_arg(2, Type::Int),
-                                kw_arg(3, Type::Int), kw_arg(4, Type::Int),
-                                kw_arg(5, Type::Int), kw_arg(6, Type::Int),
-                                kw_arg(7, Type::String), kw_arg(8, Type::Int),
-                                kw_arg(9, Type::Int), kw_arg(10, Type::String),
-                                kw_arg(11, Type::Int)),
-                  fn("play")[0](Type::String, kw_arg(0, Type::Int),
-                                kw_arg(1, Type::Int), kw_arg(2, Type::Int),
-                                kw_arg(3, Type::Int), kw_arg(4, Type::Int),
-                                kw_arg(5, Type::Int), kw_arg(6, Type::Int),
-                                kw_arg(7, Type::String), kw_arg(8, Type::Int),
-                                kw_arg(9, Type::Int), kw_arg(10, Type::String),
-                                kw_arg(11, Type::Int)),
-                  fn("play")[2](kw_arg(0, Type::Int), kw_arg(1, Type::Int),
-                                kw_arg(2, Type::Int), kw_arg(3, Type::Int),
-                                kw_arg(4, Type::Int), kw_arg(5, Type::Int),
-                                kw_arg(6, Type::Int), kw_arg(7, Type::String),
-                                kw_arg(8, Type::Int), kw_arg(9, Type::Int),
-                                kw_arg(10, Type::String),
-                                kw_arg(11, Type::Int))),
-          id[2] | callable(fn("play_loop")[0](Type::String),
-                           fn("play_loop")[1](Type::String, Type::Int)),
-          id[1] | callable(fn("play_wait")[0](Type::String),
-                           fn("play_wait")[1](Type::String, Type::Int)),
-          id[11] |
-              callable(
-                  fn("ready")[0](Type::String, kw_arg(0, Type::Int),
-                                 kw_arg(3, Type::Int), kw_arg(4, Type::Int),
-                                 kw_arg(5, Type::Int), kw_arg(6, Type::Int),
-                                 kw_arg(7, Type::String), kw_arg(8, Type::Int),
-                                 kw_arg(9, Type::Int), kw_arg(10, Type::String),
-                                 kw_arg(11, Type::Int)),
-                  fn("ready")[any](
-                      kw_arg(0, Type::Int), kw_arg(3, Type::Int),
-                      kw_arg(4, Type::Int), kw_arg(5, Type::Int),
-                      kw_arg(6, Type::Int), kw_arg(7, Type::String),
-                      kw_arg(8, Type::Int), kw_arg(9, Type::Int),
-                      kw_arg(10, Type::String), kw_arg(11, Type::Int))),
-          id[16] | callable(fn("ready_loop")[0](Type::String),
-                            fn("ready_loop")[1](Type::String, Type::Int)),
-          id[5] | callable(fn("stop")[0](), fn("stop")[1](Type::Int)),
-          id[10] | callable(fn("pause")[0](), fn("pause")[1](Type::Int)),
-          id[9] | callable(fn("resume")[1](Type::Int, kw_arg(0, Type::Int)),
-                           fn("resume")[0](kw_arg(0, Type::Int))),
-          id[17] |
-              callable(fn("resume_wait")[0](), fn("resume_wait")[1](Type::Int)),
-          id[3] | b(Type::None, Call("wait")),
-          id[6] | b(Type::Int, Call("wait_key")),
-          id[8] | b(Type::None, Call("wait_fade")),
-          id[7] | b(Type::Int, Call("wait_fade_key")),
-          id[4] | b(Type::Int, Call("check")),
-          id[13] | callable(fn("set_volume")[0](Type::Int),
-                            fn("set_volume")[1](Type::Int, Type::Int)),
-          id[14] |
-              callable(fn("set_vol_max")[0](), fn("set_vol_max")[1](Type::Int)),
-          id[15] |
-              callable(fn("set_vol_min")[0](), fn("set_vol_min")[1](Type::Int)),
-          id[12] | b(Type::Int, Call("get_volume")));
+          id[0] | b(Type::Callable, Member("play")),
+          id[2] | b(Type::Callable, Member("play_loop")),
+          id[1] | b(Type::Callable, Member("play_wait")),
+          id[11] | b(Type::Callable, Member("ready")),
+          id[16] | b(Type::Callable, Member("ready_loop")),
+          id[5] | b(Type::Callable, Member("stop")),
+          id[10] | b(Type::Callable, Member("pause")),
+          id[9] | b(Type::Callable, Member("resume")),
+          id[17] | b(Type::Callable, Member("resume_wait")),
+          id[3] | b(Type::None, Member("wait")),
+          id[6] | b(Type::Int, Member("wait_key")),
+          id[8] | b(Type::None, Member("wait_fade")),
+          id[7] | b(Type::Int, Member("wait_fade_key")),
+          id[4] | b(Type::Int, Member("check")),
+          id[13] | b(Type::Callable, Member("set_volume")),
+          id[14] | b(Type::Callable, Member("set_vol_max")),
+          id[15] | b(Type::Callable, Member("set_vol_min")),
+          id[12] | b(Type::Int, Member("get_volume")));
       return &mp;
     }
 
     case Type::Wipe: {
       static const auto mp = make_flatmap<Builder>(
-          // TODO: Named args
-          id[7] | callable(
-                      fn("wipe")[0](), fn("wipe")[1](Type::Int),
-                      fn("wipe")[2](Type::Int, Type::Int),
-                      fn("wipe")[3](Type::Int, Type::Int, Type::Int),
-                      fn("wipe")[4](Type::Int, Type::Int, Type::Int, Type::Int),
-                      fn("wipe")[any](Type::Int, Type::Int, Type::Int,
-                                      Type::Int, va_arg(Type::Int))),
-          id[23] | callable(fn("wipe_all")[0](), fn("wipe_all")[1](Type::Int),
-                            fn("wipe_all")[2](Type::Int, Type::Int),
-                            fn("wipe_all")[3](Type::Int, Type::Int, Type::Int),
-                            fn("wipe_all")[4](Type::Int, Type::Int, Type::Int,
-                                              Type::Int),
-                            fn("wipe_all")[any](Type::Int, Type::Int, Type::Int,
-                                                Type::Int, va_arg(Type::Int))),
-          id[50] |
-              callable(fn("wipe_mask")[0](Type::String),
-                       fn("wipe_mask")[1](Type::String, Type::Int),
-                       fn("wipe_mask")[2](Type::String, Type::Int, Type::Int),
-                       fn("wipe_mask")[3](Type::String, Type::Int, Type::Int,
-                                          Type::Int),
-                       fn("wipe_mask")[4](Type::String, Type::Int, Type::Int,
-                                          Type::Int, Type::Int),
-                       fn("wipe_mask")[any](Type::String, Type::Int, Type::Int,
-                                            Type::Int, Type::Int,
-                                            va_arg(Type::Int))),
-          id[51] |
-              callable(
-                  fn("wipe_mask_all")[0](Type::String),
-                  fn("wipe_mask_all")[1](Type::String, Type::Int),
-                  fn("wipe_mask_all")[2](Type::String, Type::Int, Type::Int),
-                  fn("wipe_mask_all")[3](Type::String, Type::Int, Type::Int,
-                                         Type::Int),
-                  fn("wipe_mask_all")[4](Type::String, Type::Int, Type::Int,
-                                         Type::Int, Type::Int),
-                  fn("wipe_mask_all")[any](Type::String, Type::Int, Type::Int,
-                                           Type::Int, Type::Int,
-                                           va_arg(Type::Int))));
+          id[7] | b(Type::Callable, Member("wipe")),
+          id[23] | b(Type::Callable, Member("wipe_all")),
+          id[50] | b(Type::Callable, Member("wipe_mask")),
+          id[51] | b(Type::Callable, Member("wipe_mask_all")));
       return &mp;
     }
 
@@ -1627,10 +1130,26 @@ AccessChain ElementParser::Parse(ElementCode& elm) {
   else
     result = resolve_element(elm);
 
-  if (elm.bind_ctx.Empty())  // implicit
+  const Member* implicit_call = nullptr;
+  if (!result.nodes.empty()) {
+    const auto* member = std::get_if<Member>(&result.nodes.back().var);
+    if (member && member->implicit_call)
+      implicit_call = member;
+  }
+
+  if (elm.bind_ctx.Empty())
     elm.force_bind = false;
-  if (elm.force_bind) {
-    ctx_->Warn("[ElementParser] bind ignored: " + elm.bind_ctx.ToDebugString());
+  if (elm.force_bind || result.GetType() == Type::Callable || implicit_call) {
+    if (result.GetType() != Type::Callable && !implicit_call)
+      ctx_->Warn(std::format("[ElementParser] cannot bind {} to {}",
+                             elm.bind_ctx.ToDebugString(),
+                             result.ToDebugString()));
+    else {
+      if (implicit_call && elm.bind_ctx.return_type == Type::None)
+        elm.bind_ctx.return_type = implicit_call->call_return_type;
+      result.nodes.emplace_back(
+          Node::BuildCall(std::move(elm.bind_ctx), implicit_call));
+    }
   }
 
   return result;
@@ -1760,18 +1279,17 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
 
       // ====== Title ======
     case 74: {  // SET_TITLE
-      Call set_title;
-      set_title.name = "set_title";
-      set_title.args = {elm.bind_ctx.arg[0]};
+      Member set_title("set_title");
+      auto call = Node::BuildCall(elm.bind_ctx, true);
       elm.force_bind = false;
       return AccessChain{.root = std::monostate(),
-                         .nodes = {std::move(set_title)}};
+                         .nodes = {Node(Type::Callable, std::move(set_title)),
+                                   std::move(call)}};
     }
     case 75: {  // GET_TITLE
-      Call get_title;
-      get_title.name = "get_title";
+      Member get_title{"get_title", Type::String, true};
       AccessChain chain{.root = std::monostate(),
-                        .nodes = {Node(Type::String, std::move(get_title))}};
+                        .nodes = {Node(Type::Callable, std::move(get_title))}};
       return make_chain(std::move(chain), elm,
                         std::span(elm.code.begin() + 1, elm.code.end()));
     }

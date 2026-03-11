@@ -34,9 +34,14 @@
 
 namespace libsiglus::elm {
 
+// Parsed representation of a Siglus "element" expression. Parsing starts from a
+// root value or a synthetic top-level symbol and then appends member, call, and
+// subscript nodes to reconstruct the access path encoded in bytecode.
+
 struct Root;
 struct Node;
 
+// User-defined command reference emitted as `@scene.entry:name(...)`.
 struct Usrcmd {
   int scene, entry;
   std::string_view name;
@@ -46,6 +51,7 @@ struct Usrcmd {
   bool operator==(const Usrcmd&) const = default;
 };
 
+// User-defined property reference emitted as `@scene.idx:name`.
 struct Usrprop {
   int scene, idx;
   std::string_view name;
@@ -53,6 +59,7 @@ struct Usrprop {
   bool operator==(const Usrprop&) const = default;
 };
 
+// Reference to the current function's positional argument (`arg_N`).
 struct Arg {
   int id;
   std::string ToDebugString() const;
@@ -60,10 +67,10 @@ struct Arg {
 };
 
 struct Farcall {
-  Value scn_name;             // type is string
-  Value zlabel = Integer(0);  // type is int
-  std::vector<Value> intargs;
-  std::vector<Value> strargs;
+  Value scn_name;              // Scene name; encoded as a string value.
+  Value zlabel = Integer(0);   // Target label; encoded as an integer value.
+  std::vector<Value> intargs;  // Positional integer argument block.
+  std::vector<Value> strargs;  // Positional string argument block.
 
   std::string ToDebugString() const;
   bool operator==(const Farcall&) const = default;
@@ -71,17 +78,20 @@ struct Farcall {
 
 struct Wait {
   bool interruptable;
-  Value time_ms;  // type is int
+  Value time_ms;  // Delay in milliseconds; encoded as an integer value.
 
   std::string ToDebugString() const;
   bool operator==(const Wait&) const = default;
 };
 
 struct Root {
+  // Special root variants that do not naturally fit in the node chain.
+  // `std::monostate` is used for synthetic symbol roots such as `syscom`,
+  // where the first visible identifier is stored as a Member in `nodes`.
   using var_t =
       std::variant<std::monostate, Usrcmd, Usrprop, Arg, Farcall, Wait>;
   var_t var;
-  Type type;
+  Type type;  // Static type of the root before walking `nodes`.
 
   template <typename... Ts>
     requires std::constructible_from<var_t, Ts...>
@@ -105,14 +115,26 @@ struct Root {
   bool operator==(const Root&) const = default;
 };
 
+// -----------------------------------------------------------------------
+
 struct Member {
-  std::string_view name;
+  std::string_view name;  // Reconstructed exported/native member name.
+  // Return type to use when this member is materialized as an implicit call.
+  Type call_return_type = Type::None;
+  // Marks zero-argument ops that should parse as `member()` even without an
+  // explicit bind payload.
+  bool implicit_call = false;
   std::string ToDebugString() const;
   bool operator==(const Member&) const = default;
 };
 
+// Call nodes preserve the bind payload attached to an element. Siglus selects
+// native overloads by integer id, so the AST stores that id and the raw
+// argument bags without trying to validate them against a recovered signature.
 struct Call {
-  std::string_view name;
+  // Present for explicit binds from bytecode. Implicit zero-argument calls use
+  // `nullopt` because there is no standalone overload token to preserve.
+  std::optional<int> overload_id;
   std::vector<Value> args;
   std::vector<std::pair<int, Value>> kwargs;
   std::string ToDebugString() const;
@@ -120,7 +142,7 @@ struct Call {
 };
 
 struct Subscript {
-  Value idx;
+  Value idx;  // Index expression; `-1` may be used as a placeholder on errors.
   std::string ToDebugString() const;
   bool operator==(const Subscript&) const = default;
 };
@@ -128,7 +150,7 @@ struct Subscript {
 struct Node {
   using var_t = std::variant<Member, Call, Subscript>;
   var_t var;
-  Type type;
+  Type type;  // Static type after evaluating this step in the chain.
 
   template <typename... Ts>
     requires std::constructible_from<var_t, Ts...>
@@ -143,11 +165,26 @@ struct Node {
     return std::visit([](const auto& x) { return x.ToDebugString(); }, var);
   }
   bool operator==(const Node&) const = default;
+
+  // Builds a call node from parsed bind data. Implicit calls intentionally drop
+  // the overload id because the call is synthesized from the selected member.
+  static Node BuildCall(Invoke inv, bool is_implicit = false);
 };
 
+// Normalized AST for an element bytecode sequence.
+//
+// Example:
+//   53, -1, 8, 1  ->  frame_action_ch[8].start()
+//
+// Most elements are reconstructed as a left-to-right chain of members,
+// subscripts, and calls rooted at either a special object (`syscom`, `system`,
+// `arg_0`, ...) or one of the dedicated Root variants above. `GetType()`
+// returns the type of the final node, or `root.type` when the chain is empty.
 struct AccessChain {
   Root root;
   std::vector<Node> nodes;
+  // Some text-related element encodings carry a kidoku marker alongside the
+  // access chain. When present, the parser stores it here for later tokens.
   std::optional<int> kidoku = std::nullopt;
 
   std::string ToDebugString() const;

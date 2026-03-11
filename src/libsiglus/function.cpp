@@ -106,13 +106,5 @@ std::string Function::ToDebugString() const {
            })),
       ToString(return_t));
 }
-std::string Callable::ToDebugString() const {
-  return ".<callable " +
-         Join("  ", std::views::all(overloads) |
-                        std::views::transform([](const auto& it) {
-                          return it.ToDebugString();
-                        })) +
-         '>';
-}
 
 }  // namespace libsiglus::elm
