@@ -26,7 +26,6 @@
 #include "libsiglus/element_code.hpp"
 #include "libsiglus/function.hpp"
 #include "libsiglus/value.hpp"
-#include "utilities/flat_map.hpp"
 
 #include <optional>
 #include <utility>
@@ -54,18 +53,6 @@ struct Usrprop {
   bool operator==(const Usrprop&) const = default;
 };
 
-struct Mem {
-  char bank;
-  std::string ToDebugString() const;
-  bool operator==(const Mem&) const = default;
-};
-
-struct Sym {
-  std::string name;
-  std::string ToDebugString() const;
-  bool operator==(const Sym&) const = default;
-};
-
 struct Arg {
   int id;
   std::string ToDebugString() const;
@@ -91,14 +78,8 @@ struct Wait {
 };
 
 struct Root {
-  using var_t = std::variant<std::monostate,
-                             Usrcmd,
-                             Usrprop,
-                             Mem,
-                             Sym,  // <-- consider push down to node
-                             Arg,
-                             Farcall,
-                             Wait>;
+  using var_t =
+      std::variant<std::monostate, Usrcmd, Usrprop, Arg, Farcall, Wait>;
   var_t var;
   Type type;
 
@@ -139,19 +120,13 @@ struct Call {
 };
 
 struct Subscript {
-  std::optional<Value> idx;
+  Value idx;
   std::string ToDebugString() const;
   bool operator==(const Subscript&) const = default;
 };
 
-struct Val {
-  Value value;
-  std::string ToDebugString() const;
-  bool operator==(const Val&) const = default;
-};
-
 struct Node {
-  using var_t = std::variant<Member, Call, Subscript, Val>;
+  using var_t = std::variant<Member, Call, Subscript>;
   var_t var;
   Type type;
 

@@ -69,6 +69,10 @@ class ElementParser {
                          Root::var_t root_node,
                          ElementCode& elm,
                          size_t subidx);
+  AccessChain make_sym_chain(Type type,
+                             std::string_view top_id,
+                             ElementCode& elm,
+                             size_t subidx);
 
  private:
   std::unique_ptr<Context> ctx_;

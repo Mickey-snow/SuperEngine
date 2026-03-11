@@ -24,10 +24,13 @@
 #include "libsiglus/element_parser.hpp"
 
 #include "libsiglus/callable_builder.hpp"
+#include "libsiglus/element.hpp"
 #include "utilities/flat_map.hpp"
 #include "utilities/string_utilities.hpp"
 
+#include <optional>
 #include <sstream>
+#include <variant>
 
 namespace libsiglus::elm {
 using namespace libsiglus::elm::callable_builder;
@@ -1680,32 +1683,32 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
   switch (root) {
       // ====== Memory Banks ======
     case 25:  // A
-      return make_chain(Type::IntList, elm::Sym("A"), elm, 1);
+      return make_sym_chain(Type::IntList, "A", elm, 1);
     case 26:  // B
-      return make_chain(Type::IntList, elm::Sym("B"), elm, 1);
+      return make_sym_chain(Type::IntList, "B", elm, 1);
     case 27:  // C
-      return make_chain(Type::IntList, elm::Sym("C"), elm, 1);
+      return make_sym_chain(Type::IntList, "C", elm, 1);
     case 28:  // D
-      return make_chain(Type::IntList, elm::Sym("D"), elm, 1);
+      return make_sym_chain(Type::IntList, "D", elm, 1);
     case 29:  // E
-      return make_chain(Type::IntList, elm::Sym("E"), elm, 1);
+      return make_sym_chain(Type::IntList, "E", elm, 1);
     case 30:  // F
-      return make_chain(Type::IntList, elm::Sym("F"), elm, 1);
+      return make_sym_chain(Type::IntList, "F", elm, 1);
     case 137:  // X
-      return make_chain(Type::IntList, elm::Sym("X"), elm, 1);
+      return make_sym_chain(Type::IntList, "X", elm, 1);
     case 31:  // G
-      return make_chain(Type::IntList, elm::Sym("G"), elm, 1);
+      return make_sym_chain(Type::IntList, "G", elm, 1);
     case 32:  // Z
-      return make_chain(Type::IntList, elm::Sym("Z"), elm, 1);
+      return make_sym_chain(Type::IntList, "Z", elm, 1);
 
     case 34:  // S
-      return make_chain(Type::StrList, elm::Sym("S"), elm, 1);
+      return make_sym_chain(Type::StrList, "S", elm, 1);
     case 35:  // M
-      return make_chain(Type::StrList, elm::Sym("M"), elm, 1);
+      return make_sym_chain(Type::StrList, "M", elm, 1);
     case 106:  // NAMAE_LOCAL
-      return make_chain(Type::StrList, elm::Sym("LN"), elm, 1);
+      return make_sym_chain(Type::StrList, "LN", elm, 1);
     case 107:  // NAMAE_GLOBAL
-      return make_chain(Type::StrList, elm::Sym("GN"), elm, 1);
+      return make_sym_chain(Type::StrList, "GN", elm, 1);
 
       // ====== CUR_CALL (Special Case) ======
     case 83: {  // CUR_CALL
@@ -1716,21 +1719,21 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
       }
 
       else if (elmcall == 0)
-        return make_chain(Type::IntList, elm::Sym("L"), elm, 2);
+        return make_sym_chain(Type::IntList, "L", elm, 2);
 
       else if (elmcall == 1)
-        return make_chain(Type::StrList, elm::Sym("K"), elm, 2);
+        return make_sym_chain(Type::StrList, "K", elm, 2);
     } break;
 
       // ====== Sound ======
     case 42:  // BGM
-      return make_chain(Type::Bgm, elm::Sym("bgm"), elm, 1);
+      return make_sym_chain(Type::Bgm, "bgm", elm, 1);
     case 123:  // BGMTABLE
-      return make_chain(Type::BgmTable, elm::Sym("bgm_table"), elm, 1);
+      return make_sym_chain(Type::BgmTable, "bgm_table", elm, 1);
     case 43:
-      return make_chain(Type::Pcm, elm::Sym("pcm"), elm, 1);
+      return make_sym_chain(Type::Pcm, "pcm", elm, 1);
     case 44:
-      return make_chain(Type::PcmchList, elm::Sym("pcmch_list"), elm, 1);
+      return make_sym_chain(Type::PcmchList, "pcmch_list", elm, 1);
 
       // ====== SEL ======
       // some needs kidoku flag
@@ -1776,125 +1779,125 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
       // ====== MWND ======
     case 22: {  // SET_WAKU
       elm.code.front() = Value(Integer(0));
-      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+      return make_sym_chain(Type::Mwnd, "mwnd", elm, 0);
     }
     case 9: {  // OPEN
       elm.code.front() = Value(Integer(1));
-      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+      return make_sym_chain(Type::Mwnd, "mwnd", elm, 0);
     }
     case 58: {  // OPEN_WAIT
       elm.code.front() = Value(Integer(15));
-      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+      return make_sym_chain(Type::Mwnd, "mwnd", elm, 0);
     }
     case 59: {  // OPEN_NOWAIT
       elm.code.front() = Value(Integer(16));
-      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+      return make_sym_chain(Type::Mwnd, "mwnd", elm, 0);
     }
     case 10: {  // CLOSE
       elm.code.front() = Value(Integer(2));
-      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+      return make_sym_chain(Type::Mwnd, "mwnd", elm, 0);
     }
     case 56: {  // CLOSE_WAIT
       elm.code.front() = Value(Integer(13));
-      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+      return make_sym_chain(Type::Mwnd, "mwnd", elm, 0);
     }
     case 57: {  // CLOSE_NOWAIT
       elm.code.front() = Value(Integer(14));
-      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+      return make_sym_chain(Type::Mwnd, "mwnd", elm, 0);
     }
     case 125: {  // END_CLOSE
       elm.code.front() = Value(Integer(64));
-      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+      return make_sym_chain(Type::Mwnd, "mwnd", elm, 0);
     }
     case 84: {  // MSG_BLOCK
       elm.code.front() = Value(Integer(49));
-      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+      return make_sym_chain(Type::Mwnd, "mwnd", elm, 0);
     }
     case 121: {  // MSG_PP_BLOCK
       elm.code.front() = Value(Integer(59));
-      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+      return make_sym_chain(Type::Mwnd, "mwnd", elm, 0);
     }
     case 11: {  // CLEAR
       elm.code.front() = Value(Integer(3));
-      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+      return make_sym_chain(Type::Mwnd, "mwnd", elm, 0);
     }
     case 156: {  // SET_NAMAE
       elm.code.front() = Value(Integer(85));
-      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+      return make_sym_chain(Type::Mwnd, "mwnd", elm, 0);
     }
     case 12: {  // PRINT
       elm.code.front() = Value(Integer(4));
-      auto result = make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+      auto result = make_sym_chain(Type::Mwnd, "mwnd", elm, 0);
       result.kidoku = ctx_->ReadKidoku();
       return result;
     }
     case 61: {  // RUBY
       elm.code.front() = Value(Integer(12));
-      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+      return make_sym_chain(Type::Mwnd, "mwnd", elm, 0);
     }
     case 47: {  // MSGBTN
       elm.code.front() = Value(Integer(86));
-      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+      return make_sym_chain(Type::Mwnd, "mwnd", elm, 0);
     }
     case 15: {  // NL
       elm.code.front() = Value(Integer(6));
-      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+      return make_sym_chain(Type::Mwnd, "mwnd", elm, 0);
     }
     case 62: {  // NLI
       elm.code.front() = Value(Integer(17));
-      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+      return make_sym_chain(Type::Mwnd, "mwnd", elm, 0);
     }
     case 119: {  // INDENT
       elm.code.front() = Value(Integer(56));
-      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+      return make_sym_chain(Type::Mwnd, "mwnd", elm, 0);
     }
     case 94: {  // CLEAR_INDENT
       elm.code.front() = Value(Integer(28));
-      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+      return make_sym_chain(Type::Mwnd, "mwnd", elm, 0);
     }
     case 21: {  // WAIT_MSG
       elm.code.front() = Value(Integer(18));
-      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+      return make_sym_chain(Type::Mwnd, "mwnd", elm, 0);
     }
     case 13: {  // PP
       elm.code.front() = Value(Integer(19));
-      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+      return make_sym_chain(Type::Mwnd, "mwnd", elm, 0);
     }
     case 14: {  // R
       elm.code.front() = Value(Integer(20));
-      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+      return make_sym_chain(Type::Mwnd, "mwnd", elm, 0);
     }
     case 115: {  // PAGE
       elm.code.front() = Value(Integer(54));
-      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+      return make_sym_chain(Type::Mwnd, "mwnd", elm, 0);
     }
     case 151: {  // REP_POS
       elm.code.front() = Value(Integer(84));
-      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+      return make_sym_chain(Type::Mwnd, "mwnd", elm, 0);
     }
     case 16: {  // SIZE
       elm.code.front() = Value(Integer(7));
-      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+      return make_sym_chain(Type::Mwnd, "mwnd", elm, 0);
     }
     case 17: {  // COLOR
       elm.code.front() = Value(Integer(8));
-      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+      return make_sym_chain(Type::Mwnd, "mwnd", elm, 0);
     }
     case 95: {  // MULTI_MSG
       elm.code.front() = Value(Integer(31));
-      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+      return make_sym_chain(Type::Mwnd, "mwnd", elm, 0);
     }
     case 93: {  // NEXT_MSG
       elm.code.front() = Value(Integer(29));
-      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+      return make_sym_chain(Type::Mwnd, "mwnd", elm, 0);
     }
     case 120: {  // START_SLIDE_MSG
       elm.code.front() = Value(Integer(58));
-      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+      return make_sym_chain(Type::Mwnd, "mwnd", elm, 0);
     }
     case 122: {  // END_SLIDE_MSG
       elm.code.front() = Value(Integer(60));
-      return make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+      return make_sym_chain(Type::Mwnd, "mwnd", elm, 0);
     }
     case 18:  // KOE
       elm.code.front() = Value(Integer(9));
@@ -1908,7 +1911,7 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
       elm.code.front() = Value(Integer(27));
       goto KOE;
     KOE: {
-      auto result = make_chain(Type::Mwnd, elm::Sym("mwnd"), elm, 0);
+      auto result = make_sym_chain(Type::Mwnd, "mwnd", elm, 0);
       result.kidoku = ctx_->ReadKidoku();
       return result;
     }
@@ -1952,27 +1955,27 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
     case 23:  // WIPE_ALL
     case 50:  // MASK_WIPE
     case 51:  // MASK_WIPE_ALL
-      return make_chain(Type::Wipe, elm::Sym("wipe"), elm, 0);
+      return make_sym_chain(Type::Wipe, "wipe", elm, 0);
 
     case 49:  // STAGE
-      return make_chain(Type::StageList, elm::Sym("stage"), elm, 1);
+      return make_sym_chain(Type::StageList, "stage", elm, 1);
     case 37:  // BACK
-      return make_chain(Type::Stage, elm::Sym("stage_back"), elm, 1);
+      return make_sym_chain(Type::Stage, "stage_back", elm, 1);
     case 38:  // FRONT
-      return make_chain(Type::Stage, elm::Sym("stage_front"), elm, 1);
+      return make_sym_chain(Type::Stage, "stage_front", elm, 1);
     case 73:  // NEXT
-      return make_chain(Type::Stage, elm::Sym("stage_next"), elm, 1);
+      return make_sym_chain(Type::Stage, "stage_next", elm, 1);
 
     case 65:  // EXCALL
-      return make_chain(Type::Excall, elm::Sym("excall"), elm, 1);
+      return make_sym_chain(Type::Excall, "excall", elm, 1);
 
     case 135:  // MASK
-      return make_chain(Type::MaskList, elm::Sym("mask"), elm, 1);
+      return make_sym_chain(Type::MaskList, "mask", elm, 1);
 
     case 63:  // SYSCOM
-      return make_chain(Type::Syscom, elm::Sym("syscom"), elm, 1);
+      return make_sym_chain(Type::Syscom, "syscom", elm, 1);
     case 64:  // SCRIPT
-      return make_chain(Type::Script, elm::Sym("script"), elm, 1);
+      return make_sym_chain(Type::Script, "script", elm, 1);
 
     case 54:    // WAIT
     case 55: {  // WAIT_KEY
@@ -1987,19 +1990,18 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
     }
 
     case 92:  // SYSTEM
-      return make_chain(Type::System, elm::Sym("system"), elm, 1);
+      return make_sym_chain(Type::System, "system", elm, 1);
 
     case 40:  // COUNTER
-      return make_chain(Type::CounterList, elm::Sym("counter"), elm, 1);
+      return make_sym_chain(Type::CounterList, "counter", elm, 1);
 
     case 79:  // FRAME_ACTION
-      return make_chain(Type::FrameAction, elm::Sym("frame_action"), elm, 1);
+      return make_sym_chain(Type::FrameAction, "frame_action", elm, 1);
     case 53:  // FRAME_ACTION_CH
-      return make_chain(Type::FrameActionList, elm::Sym("frame_action_ch"), elm,
-                        1);
+      return make_sym_chain(Type::FrameActionList, "frame_action_ch", elm, 1);
 
     case 20:  // MOVIE
-      return make_chain(Type::Movie, elm::Sym("mov"), elm, 1);
+      return make_sym_chain(Type::Movie, "mov", elm, 1);
 
     [[unlikely]]
     default: {
@@ -2053,6 +2055,17 @@ AccessChain ElementParser::make_chain(Type root_type,
                                       size_t subidx) {
   Root root(root_type, std::move(root_node));
   AccessChain result{.root = std::move(root), .nodes = {}};
+  return make_chain(std::move(result), elm,
+                    std::span{elm.code}.subspan(subidx));
+}
+
+AccessChain ElementParser::make_sym_chain(Type type,
+                                          std::string_view top_id,
+                                          ElementCode& elm,
+                                          size_t subidx) {
+  Root root(Type::None, std::monostate());
+  Node nd(type, Member(top_id));
+  AccessChain result{.root = std::move(root), .nodes = {std::move(nd)}};
   return make_chain(std::move(result), elm,
                     std::span{elm.code}.subspan(subidx));
 }

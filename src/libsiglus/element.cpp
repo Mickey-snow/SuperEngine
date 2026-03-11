@@ -24,10 +24,10 @@
 
 #include "libsiglus/element.hpp"
 
-#include "utilities/overload.hpp"
 #include "utilities/string_utilities.hpp"
 
 #include <format>
+#include <variant>
 
 namespace libsiglus::elm {
 
@@ -38,8 +38,6 @@ std::string Usrcmd::ToDebugString() const {
 std::string Usrprop::ToDebugString() const {
   return std::format("@{}.{}:{}", scene, idx, name);
 }
-std::string Mem::ToDebugString() const { return std::string{bank}; }
-std::string Sym::ToDebugString() const { return name; }
 std::string Arg::ToDebugString() const { return "arg_" + std::to_string(id); }
 std::string Farcall::ToDebugString() const {
   std::string repr =
@@ -63,9 +61,8 @@ std::string Call::ToDebugString() const {
   return std::format(".{}({})", name, Join(",", repr));
 }
 std::string Subscript::ToDebugString() const {
-  return '[' + (idx.has_value() ? ToString(*idx) : std::string()) + ']';
+  return std::format("[{}]", ToString(idx));
 }
-std::string Val::ToDebugString() const { return ".<" + ToString(value) + '>'; }
 
 // -----------------------------------------------------------------------
 // AccessChain
@@ -73,6 +70,9 @@ std::string AccessChain::ToDebugString() const {
   std::string repr = root.ToDebugString();
   for (const auto& n : nodes)
     repr += n.ToDebugString();
+  if (repr.starts_with('.') && !nodes.empty() &&
+      std::holds_alternative<Member>(nodes.front().var))
+    repr = repr.substr(1);
   return repr;
 }
 

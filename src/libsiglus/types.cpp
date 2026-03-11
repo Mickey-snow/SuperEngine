@@ -50,7 +50,7 @@ std::string ToString(Type type) {
       return "str[]&";
 
     case Type::Label:
-      return "lebel";
+      return "label";
     case Type::List:
       return "list";
 
@@ -58,6 +58,11 @@ std::string ToString(Type type) {
       return "object";
     case Type::ObjList:
       return "object[]";
+
+    case Type::Stage:
+      return "stage";
+    case Type::StageList:
+      return "stage[]";
 
     case Type::Invalid:
       return "invalid";
