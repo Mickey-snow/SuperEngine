@@ -278,7 +278,7 @@ TEST_F(CompilerTest, List) {
 TEST_F(CompilerTest, Dict) {
   {
     auto res = Run(R"( x=1; a={"1":x,"2":x+1,"3":1+x*2}; print(a); )");
-    EXPECT_EQ(res, "{2:2,3:3,1:1}\n");
+    EXPECT_EQ(res, "{1:1,2:2,3:3}\n");
   }
   {
     auto res = Run(R"( a={"1":1}; a["1"]+=1; print(a); )");

@@ -414,8 +414,18 @@ Dict::Dict(map_t m) : map(std::move(m)) {}
 
 std::string Dict::Str() const {
   std::string repr;
+  std::vector<const map_t::value_type*> items;
+  items.reserve(map.size());
+  for (const auto& item : map)
+    items.push_back(&item);
 
-  for (const auto& [k, v] : map) {
+  std::ranges::sort(
+      items, [](const map_t::value_type* lhs, const map_t::value_type* rhs) {
+        return lhs->first.Desc() < rhs->first.Desc();
+      });
+
+  for (const auto* item : items) {
+    const auto& [k, v] = *item;
     if (!repr.empty())
       repr += ',';
     repr += k.Str() + ':' + v.Str();
