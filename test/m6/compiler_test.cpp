@@ -907,6 +907,18 @@ print(result);
 )");
     EXPECT_EQ(res, "2\n");
   }
+
+  {
+    auto res = Run(R"(
+try{
+  a = 1;
+  spawn a();
+} catch(e){
+  print(e);
+}
+)");
+    EXPECT_EQ(res, "'<int: 1>' object is not callable.");
+  }
 }
 
 TEST_F(CompilerTest, AsyncErrorPropagation) {
@@ -1063,6 +1075,20 @@ TEST_F(CompilerTest, AssignmentNotSupported) {
   EXPECT_EQ(res, R"(
 '<str: abc>' object does not support item assignment.
 ok
+)");
+}
+
+TEST_F(CompilerTest, NonHashableKey) {
+  auto res = Interpret({
+      R"( d = {}; k = []; )",
+      R"( d[k] = 123; )",
+      R"( d; )",
+      R"( k; )",
+  });
+  EXPECT_EQ(res, R"(
+'<list[0]>' object is not hashable.
+{}
+[]
 )");
 }
 

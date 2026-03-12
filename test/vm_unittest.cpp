@@ -182,6 +182,38 @@ TEST_F(VMTest, CallNative) {
   EXPECT_EQ(out, std::monostate());
 }
 
+TEST_F(VMTest, NativeExceptionsEscapeVM) {
+  auto* chunk = gc->Allocate<Code>();
+  auto* fn = gc->Allocate<NativeFunction>(
+      "explode", [](VM&, Fiber&, uint8_t, uint8_t) -> Value {
+        throw std::runtime_error("native failure");
+      });
+
+  chunk->const_pool = value_vector(fn);
+  append_ins(chunk, {Push{0}, Call{0, 0}, Return{}});
+
+  try {
+    std::ignore = run_and_get(chunk);
+    FAIL() << "expected std::runtime_error";
+  } catch (const std::runtime_error& e) {
+    EXPECT_STREQ(e.what(), "native failure");
+  }
+}
+
+TEST_F(VMTest, InvalidOpcodeReportsInternalVmError) {
+  auto* chunk = gc->Allocate<Code>();
+  chunk->code.push_back(std::byte{0xff});
+
+  try {
+    std::ignore = run_and_get(chunk);
+    FAIL() << "expected std::runtime_error";
+  } catch (const std::runtime_error& e) {
+    EXPECT_STREQ(
+        e.what(),
+        "VM internal error: unimplemented instruction at bytecode offset 0");
+  }
+}
+
 TEST_F(VMTest, MultipleFibres) {
   auto* chunk1 = gc->Allocate<Code>();
   chunk1->const_pool = value_vector(1);
