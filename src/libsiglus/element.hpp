@@ -76,20 +76,11 @@ struct Farcall {
   bool operator==(const Farcall&) const = default;
 };
 
-struct Wait {
-  bool interruptable;
-  Value time_ms;  // Delay in milliseconds; encoded as an integer value.
-
-  std::string ToDebugString() const;
-  bool operator==(const Wait&) const = default;
-};
-
 struct Root {
   // Special root variants that do not naturally fit in the node chain.
   // `std::monostate` is used for synthetic symbol roots such as `syscom`,
   // where the first visible identifier is stored as a Member in `nodes`.
-  using var_t =
-      std::variant<std::monostate, Usrcmd, Usrprop, Arg, Farcall, Wait>;
+  using var_t = std::variant<std::monostate, Usrcmd, Usrprop, Arg, Farcall>;
   var_t var;
   Type type;  // Static type of the root before walking `nodes`.
 

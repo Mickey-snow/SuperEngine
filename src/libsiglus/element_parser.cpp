@@ -1495,16 +1495,21 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
     case 64:  // SCRIPT
       return make_sym_chain(Type::Script, "script", elm, 1);
 
-    case 54:    // WAIT
+    case 54: {  // WAIT
+      Member wait("wait");
+      wait.implicit_call = true;
+      auto call = Node ::BuildCall(std::move(elm.bind_ctx), true);
+      return AccessChain{
+          .root = std::monostate(),
+          .nodes = {Node(Type::Callable, std::move(wait)), std::move(call)}};
+    }
     case 55: {  // WAIT_KEY
-      Wait wait;
-      wait.interruptable = root == 55;
-      if (Typeof(elm.bind_ctx.arg[0]) != Type::Int)
-        ctx_->Warn("[Wait] expected int, but got: " +
-                   ToString(elm.bind_ctx.arg[0]));
-      wait.time_ms = elm.bind_ctx.arg[0];
-      elm.force_bind = false;
-      return AccessChain{.root = std::move(wait)};
+      Member wait("wait_key");
+      wait.implicit_call = true;
+      auto call = Node::BuildCall(std::move(elm.bind_ctx), true);
+      return AccessChain{
+          .root = std::monostate(),
+          .nodes = {Node(Type::Callable, std::move(wait)), std::move(call)}};
     }
 
     case 92:  // SYSTEM

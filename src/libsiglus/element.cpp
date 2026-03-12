@@ -47,11 +47,6 @@ std::string Farcall::ToDebugString() const {
   repr += '(' + Join(",", vals_to_string(strargs)) + ')';
   return repr;
 }
-std::string Wait::ToDebugString() const {
-  std::string repr = interruptable ? "wait_key" : "wait";
-  repr += '(' + ToString(time_ms) + ')';
-  return repr;
-}
 std::string Member::ToDebugString() const { return '.' + std::string(name); }
 std::string Call::ToDebugString() const {
   std::vector<std::string> parts;
