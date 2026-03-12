@@ -123,6 +123,14 @@ class Recompiler {
 
   // Element/AccessChain codegen
   void emit_elm(const elm::AccessChain& e);
+  void emit_elm_root(const std::monostate& r);
+  void emit_elm_root(const elm::Usrcmd& r);
+  void emit_elm_root(const elm::Usrprop& r);
+  void emit_elm_root(const elm::Arg& r);
+  void emit_elm_root(const elm::Farcall& r);
+  void emit_elm_node(const elm::Member& nd);
+  void emit_elm_node(const elm::Call& nd);
+  void emit_elm_node(const elm::Subscript& nd);
 };
 
 }  // namespace libsiglus

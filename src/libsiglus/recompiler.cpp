@@ -23,12 +23,15 @@
 
 #include "libsiglus/recompiler.hpp"
 
+#include <algorithm>
 #include <exception>
 #include <limits>
 #include <stdexcept>
+#include <variant>
 
 #include "libsiglus/types.hpp"
 #include "libsiglus/value.hpp"
+#include "utilities/assertx.hpp"
 #include "utilities/overload.hpp"
 #include "vm/instruction.hpp"
 #include "vm/string.hpp"
@@ -289,10 +292,110 @@ void Recompiler::emit_tok(const token::Eof& tk) {
 
 // element codegen
 void Recompiler::emit_elm(const elm::AccessChain& e) {
-  // TODO: not implemented yet, this should produce a single value (or nil for
-  // void)
+  if (!std::holds_alternative<std::monostate>(e.root.var)) {
+    ASSERTX_TRUE(e.nodes.empty());
+    std::visit([&](const auto& rt) { emit_elm_root(rt); }, e.root.var);
+  } else {
+    if (e.nodes.empty())
+      return;
+    auto* sym = std::get_if<elm::Member>(&e.nodes.front().var);
+    if (sym == nullptr) {
+      throw std::runtime_error("[Recompiler] cannot compile element: " +
+                               e.ToDebugString());
+    }
 
-  emit_const_nil();
+    emit_load_global(std::string(sym->name));
+    for (size_t i = 1; i < e.nodes.size(); ++i)
+      std::visit([&](const auto& nd) { emit_elm_node(nd); }, e.nodes[i].var);
+  }
+
+  // (result)
+}
+void Recompiler::emit_elm_root(const std::monostate& r) {
+  ASSERTX_TRUE(false);  // unreachable
+}
+void Recompiler::emit_elm_root(const elm::Usrcmd& r) {
+  emit_load_global("__builtin_usrcmd");
+  emit_const(r.scene), emit_const(r.entry), emit_const(std::string(r.name));
+  emit(sr::Call{.argcnt = 3, .kwargcnt = 0});
+  // (usrcmd)
+
+  const auto& arg = r.arguments;
+  emit_const(arg.overload_id);
+  // (usrcmd, ol)
+
+  for (auto const& it : arg.arg)
+    emit_val(it);
+  emit(sr::MakeList{.nelms = arg.arg.size()});
+  // (usrcmd, ol, list)
+
+  for (auto const& [k, it] : arg.named_arg)
+    emit_const(k), emit_val(it);
+  emit(sr::MakeDict{.nelms = arg.named_arg.size()});
+  // (usrcmd, ol, list, dict)
+
+  emit(sr::Call{.argcnt = 3, .kwargcnt = 0});
+  // (ret)
+}
+void Recompiler::emit_elm_root(const elm::Usrprop& r) {
+  emit_load_global("__builtin_usrprop");
+  emit_const(r.scene);
+  emit_const(r.idx);
+  emit_const(std::string(r.name));
+  emit(sr::Call{.argcnt = 3, .kwargcnt = 0});
+  // (usrprop, scene, idx, name) -> (ret)
+}
+void Recompiler::emit_elm_root(const elm::Arg& r) {
+  // fast: (arg_0, arg_1, ...)
+  emit(sr::LoadFast{r.id});
+  // (arg)
+}
+void Recompiler::emit_elm_root(const elm::Farcall& r) {
+  emit_load_global("__builtin_farcall");
+  emit_val(r.scn_name), emit_val(r.zlabel);
+  emit(sr::Call{.argcnt = 2, .kwargcnt = 0});
+  // (farcall, scn, z) -> (fn)
+  for (auto const& it : r.intargs)
+    emit_val(it);
+  emit(sr::MakeList{.nelms = r.intargs.size()});
+  for (auto const& it : r.strargs)
+    emit_val(it);
+  emit(sr::MakeList{.nelms = r.strargs.size()});
+  emit(sr::Call{.argcnt = 2, .kwargcnt = 0});
+  // (fn, intargs, strargs) -> (ret)
+}
+
+void Recompiler::emit_elm_node(const elm::Member& nd) {
+  // (primary)
+  uint32_t slot = intern_name(std::string(nd.name));
+  emit(sr::GetField{slot});
+  // (member)
+}
+void Recompiler::emit_elm_node(const elm::Call& nd) {
+  // (fn)
+  if (nd.overload_id)
+    emit_const(*nd.overload_id);
+  else
+    emit_const_nil();
+  // (fn, ol)
+
+  for (auto const& arg : nd.args)
+    emit_val(arg);
+  emit(sr::MakeList{.nelms = nd.args.size()});
+  // (fn, al, list)
+
+  for (auto const& [k, arg] : nd.kwargs)
+    emit_const(k), emit_val(arg);
+  emit(sr::MakeDict{.nelms = nd.kwargs.size()});
+  // (fn, al, list, dist)
+
+  emit(sr::Call{.argcnt = 3, .kwargcnt = 0});
+  // (ret)
+}
+void Recompiler::emit_elm_node(const elm::Subscript& nd) {
+  // (primary)
+  emit_val(nd.idx);     // (primary, idx)
+  emit(sr::GetItem{});  // (item)
 }
 
 }  // namespace libsiglus
