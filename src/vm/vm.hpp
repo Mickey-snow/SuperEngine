@@ -99,7 +99,7 @@ class VM {
   std::vector<Fiber*> fibres_;
   Value last_ = nil;  // last fiber's return value
 
-  std::unordered_map<std::string, Value> globals_, builtins_;
+  std::shared_ptr<std::unordered_map<std::string, Value>> globals_, builtins_;
   std::unordered_map<std::string, Module*> module_cache_;
 
   Scheduler scheduler_;

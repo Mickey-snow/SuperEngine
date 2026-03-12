@@ -176,13 +176,13 @@ TEST_F(GCTest, MarkGlobalsRoot) {
   EXPECT_EQ(DummyObject::aliveCount(), 1);
 
   // Place into VM globals
-  vm.globals_["foo"] = Value(d);
+  (*vm.globals_)["foo"] = Value(d);
   vm.CollectGarbage();
   // Still alive
   EXPECT_EQ(DummyObject::aliveCount(), 1);
 
   // Remove global and recollect
-  vm.globals_.clear();
+  vm.globals_->clear();
   vm.CollectGarbage();
   EXPECT_EQ(DummyObject::aliveCount(), 0);
 }

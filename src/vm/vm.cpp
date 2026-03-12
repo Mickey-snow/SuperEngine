@@ -195,12 +195,19 @@ ScriptDispatchResult TryDispatchBinaryMagic(VM& vm,
 
 // -----------------------------------------------------------------------
 // class VM
-VM::VM(std::shared_ptr<GarbageCollector> gc) : gc_(gc) {}
+VM::VM(std::shared_ptr<GarbageCollector> gc)
+    : gc_(gc),
+      globals_(std::make_shared<std::unordered_map<std::string, Value>>()),
+      builtins_(std::make_shared<std::unordered_map<std::string, Value>>()) {}
 
 VM::VM(std::shared_ptr<GarbageCollector> gc,
        std::unordered_map<std::string, Value> globals,
        std::unordered_map<std::string, Value> builtins)
-    : gc_(gc), globals_(std::move(globals)), builtins_(std::move(builtins)) {}
+    : gc_(gc),
+      globals_(std::make_shared<std::unordered_map<std::string, Value>>(
+          std::move(globals))),
+      builtins_(std::make_shared<std::unordered_map<std::string, Value>>(
+          std::move(builtins))) {}
 
 Value VM::Evaluate(Code* chunk) {
   Fiber* f = AddFiber(chunk);
@@ -223,9 +230,9 @@ void VM::CollectGarbage() {
   GCVisitor collector(*gc_);
   collector.MarkSub(last_);
   collector.MarkSub(main_fiber_);
-  for (auto& [k, v] : globals_)
+  for (auto& [k, v] : *globals_)
     collector.MarkSub(v);
-  for (auto& [k, v] : builtins_)
+  for (auto& [k, v] : *builtins_)
     collector.MarkSub(v);
   for (auto& it : fibres_)
     collector.MarkSub(it);
@@ -287,9 +294,9 @@ std::unordered_map<std::string, Value>* VM::GetNamespace(Fiber& f) {
   if (f.frames.empty())
     return nullptr;
   Function* fn = f.frames.back().fn;
-  if (fn == nullptr)
+  if (fn == nullptr || !fn->globals)
     return nullptr;
-  return &fn->globals;
+  return fn->globals.get();
 }
 
 void VM::Error(Fiber& f) {
@@ -481,9 +488,9 @@ void VM::ExecuteFiber(Fiber* fib) {
 
         auto* d = GetNamespace(*fib);
         if (d == nullptr || !d->contains(name_str))
-          d = &globals_;
+          d = globals_.get();
         if (d == nullptr || !d->contains(name_str))
-          d = &builtins_;
+          d = builtins_.get();
         auto it = d->find(name_str);
         if (it == d->cend()) {
           Error(*fib, "NameError: '" + name_str + "' is not defined");
@@ -504,7 +511,7 @@ void VM::ExecuteFiber(Fiber* fib) {
 
         auto* dst = GetNamespace(*fib);
         if (dst == nullptr)
-          dst = &globals_;
+          dst = globals_.get();
         (*dst)[name_str] = std::move(val);
       } break;
 
@@ -570,7 +577,10 @@ void VM::ExecuteFiber(Fiber* fib) {
 
         Function* fn = gc_->Allocate<Function>(chunk);
         ArgumentList& fnargs = fn->arglist;
-        fn->globals = globals_;
+        if (fib->frames.back().fn != nullptr && fib->frames.back().fn->globals)
+          fn->globals = fib->frames.back().fn->globals;
+        else
+          fn->globals = globals_;
         fn->entry = ins.entry;
         fnargs.nparam = ins.nparam;
         fnargs.param_index = std::move(param_index);

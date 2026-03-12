@@ -32,6 +32,7 @@
 #include "vm/value.hpp"
 #include "vm/vm.hpp"
 
+#include <algorithm>
 #include <format>
 #include <optional>
 
@@ -455,12 +456,20 @@ void Dict::SetItem(VM& vm, Fiber& f) {
 }
 
 // -----------------------------------------------------------------------
-Module::Module(std::string in_name,
-               std::unordered_map<std::string, Value> in_globals)
-    : name(std::move(in_name)), globals(std::move(in_globals)) {}
+Module::Module(
+    std::string in_name,
+    std::shared_ptr<std::unordered_map<std::string, Value>> in_globals)
+    : name(std::move(in_name)),
+      globals(
+          in_globals
+              ? std::move(in_globals)
+              : std::make_shared<std::unordered_map<std::string, Value>>()) {}
 
 void Module::MarkRoots(GCVisitor& visitor) {
-  for (auto& [k, v] : globals)
+  if (!globals)
+    return;
+
+  for (auto& [k, v] : *globals)
     visitor.MarkSub(v);
 }
 
@@ -470,8 +479,8 @@ std::string Module::Desc() const { return "<module " + name + ">"; }
 
 TempValue Module::Member(std::string_view mem) {
   std::string mem_str(mem);
-  auto it = globals.find(mem_str);
-  if (it == globals.cend())
+  auto it = globals->find(mem_str);
+  if (it == globals->cend())
     throw RuntimeError("module '" + name + "' has no attribute '" + mem_str +
                        '\'');
   return it->second;
@@ -479,7 +488,7 @@ TempValue Module::Member(std::string_view mem) {
 
 void Module::SetMember(std::string_view mem, Value value) {
   std::string mem_str(mem);
-  globals[std::move(mem_str)] = std::move(value);
+  (*globals)[std::move(mem_str)] = std::move(value);
 }
 
 // -----------------------------------------------------------------------

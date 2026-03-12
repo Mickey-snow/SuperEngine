@@ -217,6 +217,17 @@ TEST_F(CompilerTest, GlobalVariable) {
   EXPECT_EQ(res, "15\n");
 }
 
+TEST_F(CompilerTest, FunctionReadsUpdatedGlobalNamespace) {
+  auto res = Run(R"(
+a = 12;
+fn foo(){ return a; }
+a = 34;
+print(foo());
+)");
+
+  EXPECT_EQ(res, "34\n");
+}
+
 TEST_F(CompilerTest, MultipleStatements) {
   auto res = Run("x = 4;\n y = 6;\n print(x * y);");
   EXPECT_EQ(res, "24\n");
@@ -566,7 +577,7 @@ print(box + other, 3 + box, -box, box["score"], box["bonus"]);
         using srbind::class_;
         using srbind::init;
 
-        srbind::module_ mod(vm.gc_.get(), &vm.builtins_);
+        srbind::module_ mod(vm.gc_.get(), vm.builtins_.get());
         class_<NativeBox> box(mod, "NativeBox");
         box.def(init<int>(), arg("value") = 0)
             .def("__add__", &NativeBox::Add, arg("other"))
@@ -788,6 +799,22 @@ print(v);
     EXPECT_EQ(res, "123\n123\n123\n");
   }
 
+  {
+    Source srcx("module_live", R"(
+val = 123;
+fn func(){ return val; }
+)");
+
+    auto res = Run(std::format(R"(
+import {0} as m;
+m.val = 456;
+print(m.func());
+)",
+                               srcx.modname));
+
+    EXPECT_EQ(res, "456\n");
+  }
+
   // name collisions
   {
     Source srcx("modulex", R"(
@@ -966,6 +993,11 @@ for(i=0;i<3;i+=1){
     auto res = Interpret({R"( if (true) 42; else print("43"); )"});
     EXPECT_EQ(res, "");
   }
+}
+
+TEST_F(CompilerTest, InterpretPreservesGlobalsAcrossChunks) {
+  auto res = Interpret({"a = 123;", "a;"});
+  EXPECT_EQ(res, "123\n");
 }
 
 // ==============================================================================

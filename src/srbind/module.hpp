@@ -24,13 +24,13 @@
 
 #pragma once
 
-#include <unordered_map>
 #include "srbind/function.hpp"
 #include "srbind/method.hpp"
 #include "vm/gc.hpp"
 #include "vm/object.hpp"
-#include "vm/string.hpp"
 #include "vm/value.hpp"
+
+#include <unordered_map>
 
 namespace srbind {
 
@@ -47,8 +47,8 @@ class module_ {
       : gc_(gc), dict_(dict) {}
   module_(serilang::VM& vm, char const* name) : gc_(vm.gc_.get()) {
     serilang::Module* mod = gc_->Allocate<serilang::Module>(name);
-    dict_ = &mod->globals;
-    vm.builtins_[std::string(name)] = Value(mod);
+    dict_ = mod->globals.get();
+    (*vm.builtins_)[std::string(name)] = Value(mod);
   }
 
   template <class F, class... A>
@@ -122,18 +122,12 @@ class class_ {
   serilang::NativeClass* cls_;
   static void finalize_T(void* p) { delete static_cast<T*>(p); }
 
- private:
-  inline Value make_str(std::string str) const {
-    serilang::String* ret = gc_->Allocate<serilang::String>(std::move(str));
-    return Value(ret);
-  }
-
  public:
   class_(module_& m, const char* name) : gc_(m.gc()) {
     cls_ = gc_->Allocate<serilang::NativeClass>();
     cls_->name = name;
     cls_->finalize = &finalize_T;
-    (*m.dict())[make_str(name)] = Value(cls_);
+    (*m.dict())[std::string(name)] = Value(cls_);
   }
 
   class_& no_delete() {

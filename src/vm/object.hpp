@@ -289,10 +289,11 @@ struct Module : public IObject {
   static constexpr inline ObjType objtype = ObjType::Module;
 
   std::string name;
-  std::unordered_map<std::string, Value> globals;
+  std::shared_ptr<std::unordered_map<std::string, Value>> globals;
 
   explicit Module(std::string in_name,
-                  std::unordered_map<std::string, Value> in_globals = {});
+                  std::shared_ptr<std::unordered_map<std::string, Value>>
+                      in_globals = nullptr);
 
   constexpr ObjType Type() const noexcept final { return objtype; }
   constexpr size_t Size() const noexcept final { return sizeof(*this); }

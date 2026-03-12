@@ -102,7 +102,7 @@ class Object {
 void Obj::Bind(SiglusRuntime& runtime) {
   sr::VM& vm = *runtime.vm;
 
-  sb::module_ m(vm.gc_.get(), &vm.globals_);
+  sb::module_ m(vm.gc_.get(), vm.globals_.get());
   sb::class_<Object> o(m, "Object");
 
   o.def(sb::init([gs = runtime.system->graphics_system_]() -> Object* {

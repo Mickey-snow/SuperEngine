@@ -51,7 +51,7 @@ sr::VM VMFactory::Create(std::shared_ptr<sr::GarbageCollector> gc,
     gc = std::make_shared<sr::GarbageCollector>();
   sr::VM vm(gc);
 
-  sb::module_ m(vm.gc_.get(), &vm.builtins_);
+  sb::module_ m(vm.gc_.get(), vm.builtins_.get());
   m.def("time", &Time);
 
   m.def("__repl_print__", [&stdout](sr::Value result) {
@@ -92,7 +92,7 @@ sr::VM VMFactory::Create(std::shared_ptr<sr::GarbageCollector> gc,
 
       sb::kw_arg("prompt") = "");
 
-  vm.builtins_.try_emplace(
+  vm.builtins_->try_emplace(
       "import",
       sr::Value(gc->Allocate<sr::NativeFunction>(
           "import",

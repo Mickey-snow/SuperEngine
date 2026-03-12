@@ -81,12 +81,16 @@ expected<void, std::string> ArgumentList::Load(
 
   std::unordered_map<Value, Value> extra_kwargs;
   for (auto& [k, v] : kwargs) {
-    auto it = param_index.find(k);
+    const auto* key = k.Get_if<const String>();
+    if (!key)
+      return unexpected("keyword name must be string"s);
+
+    auto it = param_index.find(key->str_);
     if (it != param_index.end()) {
       auto idx = it->second;
       if (assigned[idx]) {
         return unexpected(
-            std::format("multiple values for argument '{}'", k.Str()));
+            std::format("multiple values for argument '{}'", key->str_));
       }
 
       final_args[idx] = std::move(v);
@@ -131,8 +135,10 @@ std::string Function::Str() const { return "function"; }
 std::string Function::Desc() const { return "<function>"; }
 
 void Function::MarkRoots(GCVisitor& visitor) {
-  for (auto& [k, v] : globals)
-    visitor.MarkSub(v);
+  if (globals) {
+    for (auto& [k, v] : *globals)
+      visitor.MarkSub(v);
+  }
   visitor.MarkSub(chunk);
   for (auto& [k, v] : arglist.defaults)
     visitor.MarkSub(v);

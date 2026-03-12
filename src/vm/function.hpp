@@ -29,6 +29,7 @@
 #include "utilities/expected.hpp"
 
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <unordered_map>
 
@@ -60,7 +61,7 @@ struct Function : public IObject {
 
   ArgumentList arglist;
 
-  std::unordered_map<std::string, Value> globals;
+  std::shared_ptr<std::unordered_map<std::string, Value>> globals;
 
   explicit Function(Code* chunk);
 

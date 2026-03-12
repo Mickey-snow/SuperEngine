@@ -284,7 +284,8 @@ TEST_F(VMTest, FunctionGlobal) {
   append_ins(code, {LoadFast{1}, LoadGlobal{0}, BinaryOp(Op::Add), Return{}});
   Function* fn = gc->Allocate<Function>(code);
   fn->arglist.nparam = 1;
-  fn->globals["one"] = to_value("one");
+  fn->globals = std::make_shared<std::unordered_map<std::string, Value>>();
+  (*fn->globals)["one"] = to_value("one");
 
   Code* chunk = gc->Allocate<Code>();
   chunk->const_pool =

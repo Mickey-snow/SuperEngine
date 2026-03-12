@@ -212,6 +212,15 @@ struct V {
   int sum() const { return s; }
 };
 
+TEST_F(SrbindTest, Class_RegistersByPlainName) {
+  class_<V> cv(mod, "V");
+  cv.def(init<>());
+
+  EXPECT_TRUE(dict.contains("V"));
+  EXPECT_FALSE(dict.contains("<str: V>"));
+  EXPECT_NE(dict.at("V").Get_if<NativeClass>(), nullptr);
+}
+
 TEST_F(SrbindTest, Class_Methods) {
   // Bind class V with __init__() (no args) and methods:
   // add(dx, dy=0), sum()

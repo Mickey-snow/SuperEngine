@@ -66,7 +66,7 @@ class SiglusMwnd {
 void MWND::Bind(SiglusRuntime& runtime) {
   sr::VM& vm = *runtime.vm;
 
-  sb::module_ m(vm.gc_.get(), &vm.globals_);
+  sb::module_ m(vm.gc_.get(), vm.globals_.get());
   sb::class_<SiglusMwnd> mwnd(m, "Mwnd");
 
   mwnd.def(sb::init([sys = runtime.system.get()](int id) -> SiglusMwnd* {
