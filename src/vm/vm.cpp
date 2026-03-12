@@ -44,6 +44,7 @@
 #include <memory>
 #include <optional>
 #include <stdexcept>
+#include <unordered_map>
 
 namespace serilang {
 
@@ -194,13 +195,12 @@ ScriptDispatchResult TryDispatchBinaryMagic(VM& vm,
 
 // -----------------------------------------------------------------------
 // class VM
-VM::VM(std::shared_ptr<GarbageCollector> gc)
-    : gc_(gc),
-      globals_(gc_->Allocate<Dict>()),
-      builtins_(gc->Allocate<Dict>()) {}
+VM::VM(std::shared_ptr<GarbageCollector> gc) : gc_(gc) {}
 
-VM::VM(std::shared_ptr<GarbageCollector> gc, Dict* globals, Dict* builtins)
-    : gc_(gc), globals_(globals), builtins_(builtins) {}
+VM::VM(std::shared_ptr<GarbageCollector> gc,
+       std::unordered_map<std::string, Value> globals,
+       std::unordered_map<std::string, Value> builtins)
+    : gc_(gc), globals_(std::move(globals)), builtins_(std::move(builtins)) {}
 
 Value VM::Evaluate(Code* chunk) {
   Fiber* f = AddFiber(chunk);
@@ -223,8 +223,10 @@ void VM::CollectGarbage() {
   GCVisitor collector(*gc_);
   collector.MarkSub(last_);
   collector.MarkSub(main_fiber_);
-  collector.MarkSub(globals_);
-  collector.MarkSub(builtins_);
+  for (auto& [k, v] : globals_)
+    collector.MarkSub(v);
+  for (auto& [k, v] : builtins_)
+    collector.MarkSub(v);
   for (auto& it : fibres_)
     collector.MarkSub(it);
   for (auto& [name, mod] : module_cache_)
@@ -281,13 +283,13 @@ Value VM::Run() {
 //------------------------------------------------------------------------------
 // Exec helpers
 //------------------------------------------------------------------------------
-Dict* VM::GetNamespace(Fiber& f) {
+std::unordered_map<std::string, Value>* VM::GetNamespace(Fiber& f) {
   if (f.frames.empty())
     return nullptr;
   Function* fn = f.frames.back().fn;
   if (fn == nullptr)
     return nullptr;
-  return fn->globals;
+  return &fn->globals;
 }
 
 void VM::Error(Fiber& f) {
@@ -477,13 +479,13 @@ void VM::ExecuteFiber(Fiber* fib) {
             chunk->const_pool[ins.name_index].template Get_if<const String>();
         const std::string& name_str = name->str_;
 
-        Dict* d = GetNamespace(*fib);
-        if (d == nullptr || !d->map.contains(name_str))
-          d = globals_;
-        if (d == nullptr || !d->map.contains(name_str))
-          d = builtins_;
-        auto it = d->map.find(name_str);
-        if (it == d->map.cend()) {
+        auto* d = GetNamespace(*fib);
+        if (d == nullptr || !d->contains(name_str))
+          d = &globals_;
+        if (d == nullptr || !d->contains(name_str))
+          d = &builtins_;
+        auto it = d->find(name_str);
+        if (it == d->cend()) {
           Error(*fib, "NameError: '" + name_str + "' is not defined");
           return;
         }
@@ -500,10 +502,10 @@ void VM::ExecuteFiber(Fiber* fib) {
 
         Value val = pop(fib->op_stack);
 
-        Dict* dst = GetNamespace(*fib);
+        auto* dst = GetNamespace(*fib);
         if (dst == nullptr)
-          dst = globals_;
-        dst->map[name_str] = std::move(val);
+          dst = &globals_;
+        (*dst)[name_str] = std::move(val);
       } break;
 
       //------------------------------------------------------------------
@@ -609,12 +611,12 @@ void VM::ExecuteFiber(Fiber* fib) {
       case OpCode::MakeDict: {
         const auto ins = chunk->Read<serilang::MakeDict>(ip);
         ip += sizeof(ins);
-        std::unordered_map<std::string, Value> elms;
+        Dict::map_t elms;
         for (size_t i = fib->op_stack.size() - 2 * ins.nelms;
              i < fib->op_stack.size(); i += 2) {
-          std::string key = fib->op_stack[i].Get_if<String>()->str_;
+          const auto& key = fib->op_stack[i];
           Value val = std::move(fib->op_stack[i + 1]);
-          elms.try_emplace(std::move(key), std::move(val));
+          std::ignore = elms.try_emplace(std::move(key), std::move(val));
         }
         fib->op_stack.resize(fib->op_stack.size() - 2 * ins.nelms);
         fib->op_stack.emplace_back(gc_->Allocate<Dict>(std::move(elms)));

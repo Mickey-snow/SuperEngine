@@ -53,11 +53,11 @@ expected<void, std::string> ArgumentList::Load(
       std::make_move_iterator(op_stack.begin() + base + 1),
       std::make_move_iterator(op_stack.begin() + base + 1 + nargs));
   posargs.reserve(std::max<size_t>(nparam, nargs));
-  std::unordered_map<std::string, Value> kwargs;
+  std::unordered_map<Value, Value> kwargs;
   kwargs.reserve(nkwargs);
   size_t idx = base + 1 + nargs;
   for (uint8_t i = 0; i < nkwargs; ++i) {
-    std::string k = op_stack[idx++].Get_if<String>()->str_;
+    Value k = std::move(op_stack[idx++]);
     Value v = std::move(op_stack[idx++]);
     kwargs.emplace(std::move(k), std::move(v));
   }
@@ -79,13 +79,15 @@ expected<void, std::string> ArgumentList::Load(
     rest.assign(std::make_move_iterator(posargs.begin() + nparam),
                 std::make_move_iterator(posargs.end()));
 
-  std::unordered_map<std::string, Value> extra_kwargs;
+  std::unordered_map<Value, Value> extra_kwargs;
   for (auto& [k, v] : kwargs) {
     auto it = param_index.find(k);
     if (it != param_index.end()) {
       auto idx = it->second;
-      if (assigned[idx])
-        return unexpected(std::format("multiple values for argument '{}'", k));
+      if (assigned[idx]) {
+        return unexpected(
+            std::format("multiple values for argument '{}'", k.Str()));
+      }
 
       final_args[idx] = std::move(v);
       assigned[idx] = true;
@@ -129,7 +131,8 @@ std::string Function::Str() const { return "function"; }
 std::string Function::Desc() const { return "<function>"; }
 
 void Function::MarkRoots(GCVisitor& visitor) {
-  visitor.MarkSub(globals);
+  for (auto& [k, v] : globals)
+    visitor.MarkSub(v);
   visitor.MarkSub(chunk);
   for (auto& [k, v] : arglist.defaults)
     visitor.MarkSub(v);

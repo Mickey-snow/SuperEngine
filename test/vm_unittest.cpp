@@ -284,8 +284,7 @@ TEST_F(VMTest, FunctionGlobal) {
   append_ins(code, {LoadFast{1}, LoadGlobal{0}, BinaryOp(Op::Add), Return{}});
   Function* fn = gc->Allocate<Function>(code);
   fn->arglist.nparam = 1;
-  fn->globals = gc->Allocate<Dict>(
-      std::unordered_map<std::string, Value>{{"one", to_value("one")}});
+  fn->globals["one"] = to_value("one");
 
   Code* chunk = gc->Allocate<Code>();
   chunk->const_pool =
@@ -302,7 +301,59 @@ TEST_F(VMTest, FunctionGlobal) {
               MakeDict{.nelms = 2}, Return{}});
 
   Value result = run_and_get(chunk);
-  EXPECT_EQ(result.Str(), "{second:2,first:oneone}");
+  auto* dict = result.Get_if<Dict>();
+  ASSERT_NE(dict, nullptr);
+  EXPECT_EQ(dict->map.at(to_value("first")), "oneone");
+  EXPECT_EQ(dict->map.at(to_value("second")), 2);
+}
+
+TEST_F(VMTest, DictItemOpsSupportMixedKeyTypes) {
+  auto* dict = gc->Allocate<Dict>();
+  auto* fiber = gc->Allocate<Fiber>();
+
+  fiber->op_stack = value_vector(Value(dict), 1, 10);
+  dict->SetItem(vm, *fiber);
+  EXPECT_TRUE(fiber->op_stack.empty());
+
+  fiber->op_stack = value_vector(Value(dict), true, 20);
+  dict->SetItem(vm, *fiber);
+  EXPECT_TRUE(fiber->op_stack.empty());
+
+  auto* alpha1 = gc->Allocate<String>("alpha");
+  auto* alpha2 = gc->Allocate<String>("alpha");
+  fiber->op_stack = value_vector(Value(dict), Value(alpha1), 30);
+  dict->SetItem(vm, *fiber);
+  EXPECT_TRUE(fiber->op_stack.empty());
+
+  fiber->op_stack = value_vector(Value(dict), 1);
+  dict->GetItem(vm, *fiber);
+  ASSERT_EQ(fiber->op_stack.size(), 1u);
+  EXPECT_EQ(fiber->op_stack.back(), 10);
+
+  fiber->op_stack = value_vector(Value(dict), true);
+  dict->GetItem(vm, *fiber);
+  ASSERT_EQ(fiber->op_stack.size(), 1u);
+  EXPECT_EQ(fiber->op_stack.back(), 20);
+
+  fiber->op_stack = value_vector(Value(dict), Value(alpha2));
+  dict->GetItem(vm, *fiber);
+  ASSERT_EQ(fiber->op_stack.size(), 1u);
+  EXPECT_EQ(fiber->op_stack.back(), 30);
+}
+
+TEST_F(VMTest, MakeDictSupportsMixedKeyTypes) {
+  auto* chunk = gc->Allocate<Code>();
+  chunk->const_pool = value_vector(1, "one", true, 10, 20, 30);
+  append_ins(chunk, {Push{0}, Push{3}, Push{1}, Push{4}, Push{2}, Push{5},
+                     MakeDict{.nelms = 3}, Return{}});
+
+  Value result = run_and_get(chunk);
+  auto* dict = result.Get_if<Dict>();
+  ASSERT_NE(dict, nullptr);
+  EXPECT_EQ(dict->map.at(Value(1)), 10);
+  String one("one");
+  EXPECT_EQ(dict->map.at(Value(&one)), 20);
+  EXPECT_EQ(dict->map.at(Value(true)), 30);
 }
 
 TEST_F(VMTest, Exception) {

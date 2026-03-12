@@ -391,7 +391,7 @@ std::size_t Value::Hash() const {
           return HashCombine(
               seed, std::hash<std::uint64_t>{}(CanonicalizeDoubleBits(x)));
         else if constexpr (std::same_as<T, IObject*>)
-          return HashCombine(seed, HashObject(x));
+          return HashCombine(seed, x->Hash());
       },
       val_);
 }

@@ -28,6 +28,7 @@
 #include "vm/function.hpp"
 #include "vm/gc.hpp"
 #include "vm/object.hpp"
+#include "vm/string.hpp"
 #include "vm/vm.hpp"
 
 namespace serilang_test {
@@ -48,6 +49,8 @@ class DummyObject : public IObject {
   constexpr ObjType Type() const noexcept override { return objtype; }
   constexpr size_t Size() const noexcept final { return sizeof(*this); }
   void MarkRoots(GCVisitor&) override {}
+
+  std::size_t Hash() const override { return 1; }
 };
 
 class GCTest : public ::testing::Test {
@@ -60,6 +63,11 @@ class GCTest : public ::testing::Test {
   T* Alloc(Args... args) {
     auto* ptr = gc->Allocate<T>(std::forward<Args>(args)...);
     return ptr;
+  }
+
+  Value strval(const char* str) {
+    auto* s = Alloc<serilang::String>(str);
+    return Value(s);
   }
 };
 
@@ -128,11 +136,30 @@ TEST_F(GCTest, MarkDict) {
   EXPECT_EQ(DummyObject::aliveCount(), 2);
 
   // Build a Dict containing both
-  std::unordered_map<std::string, Value> mp;
-  mp["one"] = Value(d1);
-  mp["two"] = Value(d2);
+  std::unordered_map<Value, Value> mp;
+  mp[strval("one")] = Value(d1);
+  mp[strval("two")] = Value(d2);
   auto* dictObj = Alloc<Dict>(std::move(mp));
   Value dictVal(dictObj);
+
+  vm.last_ = Value(dictObj);
+  vm.CollectGarbage();
+  EXPECT_EQ(DummyObject::aliveCount(), 2);
+
+  vm.last_ = Value();
+  vm.CollectGarbage();
+  EXPECT_EQ(DummyObject::aliveCount(), 0);
+}
+
+TEST_F(GCTest, MarkDictObjectKeys) {
+  DummyObject::aliveCount() = 0;
+  auto* key = Alloc<DummyObject>();
+  auto* value = Alloc<DummyObject>();
+  EXPECT_EQ(DummyObject::aliveCount(), 2);
+
+  Dict::map_t mp;
+  mp.emplace(key, Value(value));
+  auto* dictObj = Alloc<Dict>(std::move(mp));
 
   vm.last_ = Value(dictObj);
   vm.CollectGarbage();
@@ -149,13 +176,13 @@ TEST_F(GCTest, MarkGlobalsRoot) {
   EXPECT_EQ(DummyObject::aliveCount(), 1);
 
   // Place into VM globals
-  vm.globals_->map["foo"] = Value(d);
+  vm.globals_["foo"] = Value(d);
   vm.CollectGarbage();
   // Still alive
   EXPECT_EQ(DummyObject::aliveCount(), 1);
 
   // Remove global and recollect
-  vm.globals_->map.clear();
+  vm.globals_.clear();
   vm.CollectGarbage();
   EXPECT_EQ(DummyObject::aliveCount(), 0);
 }
@@ -234,9 +261,9 @@ TEST_F(GCTest, MixedValueGraph) {
   auto* list = Alloc<List>(std::vector<Value>{Value(d2)});
 
   // Dict holding d1 and the list
-  std::unordered_map<std::string, Value> mp;
-  mp["one"] = Value(d1);
-  mp["lst"] = Value(list);
+  std::unordered_map<Value, Value> mp;
+  mp[strval("one")] = Value(d1);
+  mp[strval("lst")] = Value(list);
   auto* dict = Alloc<Dict>(mp);
 
   // Class+Instance: instance.field → dict, class.method → closure

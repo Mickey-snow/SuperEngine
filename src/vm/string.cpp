@@ -252,6 +252,8 @@ void String::GetItem(VM& vm, Fiber& f) {
 std::string String::Str() const { return str_; }
 std::string String::Desc() const { return std::format("<str: {}>", str_); }
 
+std::size_t String::Hash() const { return std::hash<std::string>{}(str_); }
+
 void String::MarkRoots(GCVisitor& visitor) {
   // nothing
 }

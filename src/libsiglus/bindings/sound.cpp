@@ -52,7 +52,7 @@ class SoundHandle {
 void Sound::Bind(SiglusRuntime& runtime) {
   sr::VM& vm = *runtime.vm;
 
-  sb::module_ m(vm.gc_.get(), vm.globals_);
+  sb::module_ m(vm.gc_.get(), &vm.globals_);
   sb::class_<SoundHandle> sdl(m, "Sound");
 
   sdl.def(sb::init([sys = runtime.system.get()]() -> SoundHandle* {

@@ -566,7 +566,7 @@ print(box + other, 3 + box, -box, box["score"], box["bonus"]);
         using srbind::class_;
         using srbind::init;
 
-        srbind::module_ mod(vm.gc_.get(), vm.builtins_);
+        srbind::module_ mod(vm.gc_.get(), &vm.builtins_);
         class_<NativeBox> box(mod, "NativeBox");
         box.def(init<int>(), arg("value") = 0)
             .def("__add__", &NativeBox::Add, arg("other"))
@@ -992,7 +992,7 @@ TEST_F(CompilerTest, DictIndexType) {
       R"(a[0];)",
       R"("ok";)",
   });
-  EXPECT_EQ(res, "dictionary index must be string, but got: <int: 0>\nok");
+  EXPECT_EQ(res, "dictionary has no key: 0\nok");
 }
 
 TEST_F(CompilerTest, NegativeShiftRHS) {

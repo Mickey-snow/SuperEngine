@@ -50,6 +50,7 @@ struct String : public IObject {
 
   std::string Str() const override;
   std::string Desc() const override;
+  std::size_t Hash() const override;
 
   std::optional<bool> Bool() const override;
 };

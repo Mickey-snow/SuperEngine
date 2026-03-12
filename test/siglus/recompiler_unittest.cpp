@@ -31,6 +31,7 @@
 #include "vm/vm.hpp"
 
 #include <sstream>
+#include <unordered_map>
 
 namespace siglus_test {
 
@@ -69,18 +70,9 @@ class RecompilerTest : public ::testing::Test {
     FAIL() << Errors();
   }
 
-  sr::Value Run(sr::Dict* globals = nullptr, sr::Dict* builtins = nullptr) {
-    if (!globals && !builtins) {
-      sr::VM vm(gc);
-      return vm.Evaluate(recompiler.chunk_);
-    }
-
-    if (!globals)
-      globals = gc->Allocate<sr::Dict>();
-    if (!builtins)
-      builtins = gc->Allocate<sr::Dict>();
-
-    sr::VM vm(gc, globals, builtins);
+  sr::Value Run(std::unordered_map<std::string, sr::Value> globals = {},
+                std::unordered_map<std::string, sr::Value> builtins = {}) {
+    sr::VM vm(gc, std::move(globals), std::move(builtins));
     return vm.Evaluate(recompiler.chunk_);
   }
 };
@@ -113,9 +105,8 @@ TEST_F(RecompilerTest, UnaryOp) {
 
 TEST_F(RecompilerTest, Name) {
   std::string seen;
-  auto* globals = gc->Allocate<sr::Dict>();
-  auto* builtins = gc->Allocate<sr::Dict>();
-  builtins->map["__builtin_name"] = sr::Value(gc->Allocate<sr::NativeFunction>(
+  std::unordered_map<std::string, sr::Value> globals, builtins;
+  builtins["__builtin_name"] = sr::Value(gc->Allocate<sr::NativeFunction>(
       "__builtin_name",
       [&](sr::VM&, sr::Fiber& f, uint8_t nargs,
           uint8_t nkwargs) -> sr::TempValue {
@@ -140,27 +131,25 @@ TEST_F(RecompilerTest, Name) {
 TEST_F(RecompilerTest, Textout) {
   int seen_kidoku = -1;
   std::string seen_text;
-  auto* globals = gc->Allocate<sr::Dict>();
-  auto* builtins = gc->Allocate<sr::Dict>();
-  builtins->map["__builtin_textout"] =
-      sr::Value(gc->Allocate<sr::NativeFunction>(
-          "__builtin_textout",
-          [&](sr::VM&, sr::Fiber& f, uint8_t nargs,
-              uint8_t nkwargs) -> sr::TempValue {
-            EXPECT_EQ(nargs, 2);
-            EXPECT_EQ(nkwargs, 0);
+  std::unordered_map<std::string, sr::Value> globals, builtins;
+  builtins["__builtin_textout"] = sr::Value(gc->Allocate<sr::NativeFunction>(
+      "__builtin_textout",
+      [&](sr::VM&, sr::Fiber& f, uint8_t nargs,
+          uint8_t nkwargs) -> sr::TempValue {
+        EXPECT_EQ(nargs, 2);
+        EXPECT_EQ(nkwargs, 0);
 
-            const int* kidoku = f.op_stack.end()[-2].Get_if<int>();
-            const auto* str = f.op_stack.back().Get_if<sr::String>();
-            EXPECT_NE(kidoku, nullptr);
-            EXPECT_NE(str, nullptr);
-            if (kidoku)
-              seen_kidoku = *kidoku;
-            if (str)
-              seen_text = str->str_;
-            f.op_stack.resize(f.op_stack.size() - 2);
-            return sr::Value();
-          }));
+        const int* kidoku = f.op_stack.end()[-2].Get_if<int>();
+        const auto* str = f.op_stack.back().Get_if<sr::String>();
+        EXPECT_NE(kidoku, nullptr);
+        EXPECT_NE(str, nullptr);
+        if (kidoku)
+          seen_kidoku = *kidoku;
+        if (str)
+          seen_text = str->str_;
+        f.op_stack.resize(f.op_stack.size() - 2);
+        return sr::Value();
+      }));
 
   Emit(tk::Duplicate{.src = ls::String{"Hello"}, .dst = StrVar(0)},
        tk::Textout{.kidoku = 7, .str = StrVar(0)}, tk::Return{.ret_vals = {}});

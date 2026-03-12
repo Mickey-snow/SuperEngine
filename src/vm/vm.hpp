@@ -60,8 +60,8 @@ class VM {
  public:
   explicit VM(std::shared_ptr<GarbageCollector> gc);
   explicit VM(std::shared_ptr<GarbageCollector> gc,
-              Dict* globals,
-              Dict* builtins);
+              std::unordered_map<std::string, Value> globals,
+              std::unordered_map<std::string, Value> builtins);
 
   Fiber* AddFiber(Code* entry);
 
@@ -99,7 +99,7 @@ class VM {
   std::vector<Fiber*> fibres_;
   Value last_ = nil;  // last fiber's return value
 
-  Dict *globals_, *builtins_;
+  std::unordered_map<std::string, Value> globals_, builtins_;
   std::unordered_map<std::string, Module*> module_cache_;
 
   Scheduler scheduler_;
@@ -110,7 +110,7 @@ class VM {
   //----------------------------------------------------------------
   // Execution helpers
   void Return(Fiber& f);
-  Dict* GetNamespace(Fiber& f);
+  std::unordered_map<std::string, Value>* GetNamespace(Fiber& f);
 
   void SweepDeadFibres();
 

@@ -24,10 +24,12 @@
 
 #pragma once
 
+#include <unordered_map>
 #include "srbind/function.hpp"
 #include "srbind/method.hpp"
 #include "vm/gc.hpp"
 #include "vm/object.hpp"
+#include "vm/string.hpp"
 #include "vm/value.hpp"
 
 namespace srbind {
@@ -37,25 +39,26 @@ namespace srbind {
 // -------------------------------------------------------------
 class module_ {
   serilang::GarbageCollector* gc_;
-  serilang::Dict* dict_;
+  std::unordered_map<std::string, Value>* dict_;
 
  public:
-  module_(serilang::GarbageCollector* gc, serilang::Dict* dict)
+  module_(serilang::GarbageCollector* gc,
+          std::unordered_map<std::string, Value>* dict)
       : gc_(gc), dict_(dict) {}
   module_(serilang::VM& vm, char const* name) : gc_(vm.gc_.get()) {
-    dict_ = gc_->Allocate<serilang::Dict>();
-    serilang::Module* mod = gc_->Allocate<serilang::Module>(name, dict_);
-    vm.builtins_->map[name] = Value(mod);
+    serilang::Module* mod = gc_->Allocate<serilang::Module>(name);
+    dict_ = &mod->globals;
+    vm.builtins_[std::string(name)] = Value(mod);
   }
 
   template <class F, class... A>
   module_& def(const char* name, F&& f, A&&... a) {
-    dict_->map[name] = Value(
+    (*dict_)[std::string(name)] = Value(
         make_function(gc_, name, std::forward<F>(f), std::forward<A>(a)...));
     return *this;
   }
-  serilang::Dict* dict() const { return dict_; }
-  serilang::GarbageCollector* gc() const { return gc_; }
+  inline std::unordered_map<std::string, Value>* dict() const { return dict_; }
+  inline serilang::GarbageCollector* gc() const { return gc_; }
 };
 
 // -------------------------------------------------------------
@@ -119,12 +122,18 @@ class class_ {
   serilang::NativeClass* cls_;
   static void finalize_T(void* p) { delete static_cast<T*>(p); }
 
+ private:
+  inline Value make_str(std::string str) const {
+    serilang::String* ret = gc_->Allocate<serilang::String>(std::move(str));
+    return Value(ret);
+  }
+
  public:
   class_(module_& m, const char* name) : gc_(m.gc()) {
     cls_ = gc_->Allocate<serilang::NativeClass>();
     cls_->name = name;
     cls_->finalize = &finalize_T;
-    m.dict()->map[name] = Value(cls_);
+    (*m.dict())[make_str(name)] = Value(cls_);
   }
 
   class_& no_delete() {

@@ -54,6 +54,10 @@ void IObject::SetMember(std::string_view mem, Value value) {
                      "' object does not support member assignment.");
 }
 
+std::size_t IObject::Hash() const {
+  throw RuntimeError('\'' + Desc() + "' object is not hashable.");
+}
+
 std::optional<bool> IObject::Bool() const { return std::nullopt; }
 
 }  // namespace serilang

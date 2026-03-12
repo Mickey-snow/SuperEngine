@@ -213,8 +213,9 @@ TEST_F(ValueTest, ContainerListAndDict) {
 
   // empty & filled dicts
   Value dictEmpty(Alloc<Dict>());
+  Value ka(Alloc<String>("a"));
   Value dictFilled(
-      Alloc<Dict>(std::unordered_map<std::string, Value>{{"a", Value(1)}}));
+      Alloc<Dict>(std::unordered_map<Value, Value>{{ka, Value(1)}}));
 
   // All container objects are truthy
   EXPECT_TRUE(lstEmpty.IsTruthy());

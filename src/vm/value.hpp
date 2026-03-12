@@ -178,6 +178,8 @@ class Value {
 
 inline const auto nil = Value(std::monostate());
 
+std::size_t HashFor(ObjType type, std::size_t hash);
+
 }  // namespace serilang
 
 namespace std {

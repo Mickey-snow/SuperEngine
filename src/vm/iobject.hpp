@@ -55,6 +55,7 @@ class IObject {
   virtual void SetItem(VM& vm, Fiber& f);
   virtual TempValue Member(std::string_view mem);
   virtual void SetMember(std::string_view mem, Value value);
+  virtual std::size_t Hash() const;
 
   // Optional truthiness hook. If not provided, non-null objects are truthy.
   virtual std::optional<bool> Bool() const;

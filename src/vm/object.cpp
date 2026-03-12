@@ -409,13 +409,15 @@ void List::SetItem(VM& vm, Fiber& f) {
 }
 
 // -----------------------------------------------------------------------
+Dict::Dict(map_t m) : map(std::move(m)) {}
+
 std::string Dict::Str() const {
   std::string repr;
 
   for (const auto& [k, v] : map) {
     if (!repr.empty())
       repr += ',';
-    repr += k + ':' + v.Str();
+    repr += k.Str() + ':' + v.Str();
   }
 
   return '{' + repr + '}';
@@ -425,20 +427,17 @@ std::string Dict::Desc() const {
 }
 
 void Dict::MarkRoots(GCVisitor& visitor) {
-  for (auto& [k, it] : map)
+  for (auto& [k, it] : map) {
+    visitor.MarkSub(const_cast<Value&>(k));
     visitor.MarkSub(it);
+  }
 }
 
 void Dict::GetItem(VM& vm, Fiber& f) {
   Value idx = std::move(f.op_stack.back());
   f.op_stack.pop_back();
-  String const* index = idx.Get_if<const String>();
-  if (!index) {
-    vm.Error(f, "dictionary index must be string, but got: " + idx.Desc());
-    return;
-  }
 
-  auto it = map.find(index->str_);
+  auto it = map.find(idx);
   if (it == map.cend()) {
     vm.Error(f, "dictionary has no key: " + idx.Str());
     return;
@@ -451,20 +450,19 @@ void Dict::SetItem(VM& vm, Fiber& f) {
   Value idx = std::move(f.op_stack.end()[-2]),
         val = std::move(f.op_stack.end()[-1]);
   f.op_stack.resize(f.op_stack.size() - 3);  // (dict, idx, val)
-  String const* index = idx.Get_if<const String>();
-  if (!index) {
-    vm.Error(f, "dictionary index must be string, but got: " + idx.Desc());
-    return;
-  }
 
-  map[index->str_] = std::move(val);
+  map[idx] = std::move(val);
 }
 
 // -----------------------------------------------------------------------
-Module::Module(std::string in_name, Dict* in_globals)
-    : name(std::move(in_name)), globals(in_globals) {}
+Module::Module(std::string in_name,
+               std::unordered_map<std::string, Value> in_globals)
+    : name(std::move(in_name)), globals(std::move(in_globals)) {}
 
-void Module::MarkRoots(GCVisitor& visitor) { visitor.MarkSub(globals); }
+void Module::MarkRoots(GCVisitor& visitor) {
+  for (auto& [k, v] : globals)
+    visitor.MarkSub(v);
+}
 
 std::string Module::Str() const { return "<module " + name + ">"; }
 
@@ -472,15 +470,16 @@ std::string Module::Desc() const { return "<module " + name + ">"; }
 
 TempValue Module::Member(std::string_view mem) {
   std::string mem_str(mem);
-  auto it = globals->map.find(mem_str);
-  if (it == globals->map.cend())
+  auto it = globals.find(mem_str);
+  if (it == globals.cend())
     throw RuntimeError("module '" + name + "' has no attribute '" + mem_str +
                        '\'');
   return it->second;
 }
 
 void Module::SetMember(std::string_view mem, Value value) {
-  globals->map[std::string(mem)] = std::move(value);
+  std::string mem_str(mem);
+  globals[std::move(mem_str)] = std::move(value);
 }
 
 // -----------------------------------------------------------------------

@@ -35,6 +35,7 @@
 
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -54,15 +55,15 @@ class SrbindTest : public ::testing::Test {
   Fiber* f;
 
  protected:
-  serilang::Dict* dict;
+  std::unordered_map<std::string, Value> dict;
   srbind::module_ mod;
 
   SrbindTest()
       : gc(std::make_shared<GarbageCollector>()),
         vm(gc),
         f(gc->Allocate<Fiber>()),
-        dict(gc->Allocate<Dict>()),
-        mod(gc.get(), dict) {}
+        dict(),
+        mod(gc.get(), &dict) {}
 
   inline Value v(const char* s) {
     String* str = gc->Allocate<String>(s);
@@ -103,14 +104,6 @@ class SrbindTest : public ::testing::Test {
   Value GetMember(IObject* receiver, std::string_view item) {
     TempValue tval = receiver->Member(item);
     return gc->TrackValue(std::move(tval));
-  }
-  Value GetItem(serilang::Dict* dict, char const* item) {
-    auto it = dict->map.find(item);
-    if (it == dict->map.end()) {
-      ADD_FAILURE() << dict->Desc() << " has no item " << item;
-      return nil;
-    }
-    return it->second;
   }
 
   template <typename T>
@@ -228,7 +221,7 @@ TEST_F(SrbindTest, Class_Methods) {
       .def("sum", &V::sum);
 
   // Fetch class object from dict
-  Value vclass = GetItem(dict, "V");
+  Value vclass = dict["V"];
 
   // Construct instance by calling the class (allocates NativeInstance and
   // copies methods)
@@ -268,7 +261,7 @@ TEST_F(SrbindTest, Class_Init) {
   class_<P> cp(mod, "P");
   cp.def(init<int, int>(), arg("x") = 10, arg("y")).def("sum", &P::sum);
 
-  Value klass = GetItem(dict, "P");
+  Value klass = dict["P"];
 
   // Allocate instance by calling class
   // Call __init__(self, y=5)  -> x=10 (default), y=5
@@ -383,7 +376,7 @@ TEST_F(SrbindTest, Class_InitFactory) {
   cw.def(init(factory))  // no arg spec -> positional only
       .def("get", &W::get);
 
-  Value klass = GetItem(dict, "W");
+  Value klass = dict["W"];
   Value inst_v = CallCallee(klass, {Value(42)});  // W(42)
   auto* inst = inst_v.Get_if<NativeInstance>();
   ASSERT_NE(inst, nullptr);
@@ -402,7 +395,7 @@ TEST_F(SrbindTest, Class_InitFactory_WithArgSpec) {
   // Allow kwargs and a default
   cw.def(init(factory), arg("x") = 7).def("get", &W::get);
 
-  Value klass = GetItem(dict, "W");
+  Value klass = dict["W"];
 
   // Use default (x=7)
   Value inst1_v = CallCallee(klass);
@@ -431,7 +424,7 @@ TEST_F(SrbindTest, Class_InitFactory_ReturnsNull) {
   };
   cu.def(init(bad_factory_ptr), arg("x"));
 
-  Value klass = GetItem(dict, "U");
+  Value klass = dict["U"];
   EXPECT_THROW(std::ignore = CallCallee(klass, {Value(9)}), error_type);
 }
 
@@ -440,7 +433,7 @@ TEST_F(SrbindTest, Class_InitFactory_MissingOrWrongSelf) {
   auto factory = [](int x) { return std::make_unique<W>(x); };
   cw.def(init(factory), arg("x"));
 
-  Value klass = GetItem(dict, "W");
+  Value klass = dict["W"];
   auto* cls = klass.Get_if<NativeClass>();
   ASSERT_NE(cls, nullptr);
   auto it = cls->methods.find("__init__");
@@ -462,7 +455,7 @@ TEST_F(SrbindTest, Class_DoubleInit) {
   auto factory = [](int x) { return std::make_unique<W>(x); };
   cw.def(init(factory), arg("x")).def("get", &W::get);
 
-  Value klass = GetItem(dict, "W");
+  Value klass = dict["W"];
   Value inst_v = CallCallee(klass, {Value(5)});
   auto* inst = inst_v.Get_if<NativeInstance>();
   ASSERT_NE(inst, nullptr);
@@ -479,7 +472,7 @@ TEST_F(SrbindTest, Class_InitDerived) {
       .def("val", &B1::val)
       .def("set", &B1::set, arg("val") = 0);
 
-  Value klass = GetItem(dict, "B1");
+  Value klass = dict["B1"];
   Value inst_v = CallCallee(klass, {Value(77)});
   auto* inst = inst_v.Get_if<NativeInstance>();
   ASSERT_NE(inst, nullptr);
@@ -503,7 +496,7 @@ TEST_F(SrbindTest, Class_DeduceMemberSpec) {
   class_<B1> cb(mod, "B1");
   cb.def(init<int>()).def("get", &B1::val).def("set", &B1::set);
 
-  Value klass = GetItem(dict, "B1");
+  Value klass = dict["B1"];
   Value inst_v = CallCallee(klass, {Value(77)});
   auto* inst = inst_v.Get_if<NativeInstance>();
   ASSERT_NE(inst, nullptr);
@@ -549,7 +542,7 @@ TEST_F(SrbindTest, Class_MemberFnWithVmFib) {
       .def("set_fib_named", &vmfib::SetFib, arg("val"))
       .def("set_vmfib_named", &vmfib::SetVmFib, arg("val"));
 
-  Value klass = GetItem(dict, "vmfib_class");
+  Value klass = dict["vmfib_class"];
   Value inst_v = CallCallee(klass);
   auto* inst = inst_v.Get_if<NativeInstance>();
   ASSERT_NE(inst, nullptr);

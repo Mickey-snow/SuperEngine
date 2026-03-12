@@ -55,11 +55,12 @@ struct ArgumentList {
 struct Function : public IObject {
   static constexpr inline ObjType objtype = ObjType::Function;
 
-  Dict* globals = nullptr;
   Code* chunk;
   uint32_t entry = 0;
 
   ArgumentList arglist;
+
+  std::unordered_map<std::string, Value> globals;
 
   explicit Function(Code* chunk);
 

@@ -32,10 +32,14 @@
 #include "vm/promise.hpp"
 #include "vm/value.hpp"
 
+#include <bit>
+#include <cmath>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -265,10 +269,10 @@ struct List : public IObject {
 struct Dict : public IObject {
   static constexpr inline ObjType objtype = ObjType::Dict;
 
-  std::unordered_map<std::string, Value> map;
+  using map_t = std::unordered_map<Value, Value>;
+  map_t map;
 
-  explicit Dict(std::unordered_map<std::string, Value> m = {})
-      : map(std::move(m)) {}
+  explicit Dict(map_t m = {});
   constexpr ObjType Type() const noexcept final { return objtype; }
   constexpr size_t Size() const noexcept final { return sizeof(*this); }
 
@@ -285,9 +289,10 @@ struct Module : public IObject {
   static constexpr inline ObjType objtype = ObjType::Module;
 
   std::string name;
-  Dict* globals;
+  std::unordered_map<std::string, Value> globals;
 
-  explicit Module(std::string in_name, Dict* in_globals);
+  explicit Module(std::string in_name,
+                  std::unordered_map<std::string, Value> in_globals = {});
 
   constexpr ObjType Type() const noexcept final { return objtype; }
   constexpr size_t Size() const noexcept final { return sizeof(*this); }

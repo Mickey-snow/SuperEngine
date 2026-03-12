@@ -31,9 +31,9 @@
 #include "vm/value.hpp"
 #include "vm/vm.hpp"
 
+#include <stdexcept>
 #include <type_traits>
 #include <utility>
-#include <vector>
 
 namespace srbind {
 
