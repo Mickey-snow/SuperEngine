@@ -37,12 +37,14 @@ class VM;
 };
 
 namespace libsiglus {
+class Archive;
 namespace binding {
 class SiglusMwnd;
 }
 
 struct SiglusRuntime {
-  Gameexe gameexe;
+  std::shared_ptr<Gameexe> gameexe;
+  std::shared_ptr<Archive> archive;
   std::unique_ptr<serilang::VM> vm;
   std::shared_ptr<AssetScanner> asset_scanner;
   std::shared_ptr<binding::SiglusMwnd> mwnd;

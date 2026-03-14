@@ -24,39 +24,33 @@
 
 #include "sgvm_instance.hpp"
 
-#include "core/gameexe.hpp"
 #include "libsiglus/archive.hpp"
-#include "libsiglus/gexedat.hpp"
 #include "libsiglus/parser.hpp"
 #include "libsiglus/parser_context.hpp"
 #include "libsiglus/recompiler.hpp"
 #include "libsiglus/sgvm_factory.hpp"
 #include "libsiglus/token.hpp"
-#include "utilities/file.hpp"
-#include "utilities/mapped_file.hpp"
 #include "vm/vm.hpp"
 
 #include <exception>
 #include <filesystem>
 #include <iostream>
 
-namespace fs = std::filesystem;
 using namespace libsiglus;
 namespace sr = serilang;
 
-void SgvmInstance::Main(const std::filesystem::path& game_root) {
-  struct Context : public ParserContext {
-    Context(Archive& ar, Scene& sc, std::vector<token::Token_t>& tok)
-        : ParserContext(ar, sc), tokens(tok) {}
-    std::vector<token::Token_t>& tokens;
-    void Emit(token::Token_t tok) final { tokens.emplace_back(std::move(tok)); }
-    void Warn(std::string msg) final { std::cerr << msg << std::endl; }
-  };
+struct Context : public ParserContext {
+  Context(Archive& ar, Scene& sc, std::vector<token::Token_t>& tok)
+      : ParserContext(ar, sc), tokens(tok) {}
+  std::vector<token::Token_t>& tokens;
+  void Emit(token::Token_t tok) final { tokens.emplace_back(std::move(tok)); }
+  void Warn(std::string msg) final { std::cerr << msg << std::endl; }
+};
 
+void SgvmInstance::Main(const std::filesystem::path& game_root) {
   try {
-    fs::path seen_path = CorrectPathCase(game_root / "scene.pck");
-    MappedFile archive_mf(seen_path);
-    Archive archive = Archive::Create(archive_mf.Read());
+    SiglusRuntime rt = SGVMFactory(game_root).Create();
+    Archive& archive = *rt.archive;
 
     Scene scn = archive.ParseScene(start_scene_);
     std::vector<token::Token_t> tokens;
@@ -65,13 +59,13 @@ void SgvmInstance::Main(const std::filesystem::path& game_root) {
 
     parser.ParseAll();
 
-    SiglusRuntime runtime = SGVMFactory(game_root).Create();
-    sr::VM& vm = *runtime.vm;
+    sr::VM& vm = *rt.vm;
 
-    Recompiler compiler(runtime.vm->gc_);
+    Recompiler compiler(rt.vm->gc_);
     compiler.is_debug_ = true;
-    for (auto it : tokens)
+    for (auto& it : tokens)
       compiler.Gen(std::move(it));
+    tokens.clear();
 
     if (!compiler.Ok()) {
       for (auto& it : compiler.GetErrors())

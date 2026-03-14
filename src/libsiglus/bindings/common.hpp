@@ -33,7 +33,9 @@ namespace serilang {
 class VM;
 }
 
-namespace libsiglus::binding {
+namespace libsiglus {
+
+namespace binding {
 namespace fs = std::filesystem;
 
 struct Context {
@@ -41,4 +43,5 @@ struct Context {
   std::shared_ptr<AssetScanner> asset_scanner;
 };
 
-}  // namespace libsiglus::binding
+}  // namespace binding
+}  // namespace libsiglus

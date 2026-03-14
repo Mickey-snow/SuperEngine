@@ -69,6 +69,10 @@ class Archive {
   static Archive Create(std::string_view raw_data);
 
   Archive(std::string_view data, const XorKey& key);
+  Archive(const Archive&) = delete;
+  Archive& operator=(const Archive&) = delete;
+  Archive(Archive&& other) noexcept;
+  Archive& operator=(Archive&& other) = delete;
 
   Scene ParseScene(int id) const;
 
@@ -90,8 +94,8 @@ class Archive {
  public:
   std::string_view data_;
   const XorKey& key_;
-
   Pack_hdr const* hdr_;
+
   std::vector<std::string> raw_scene_data_;
   std::vector<std::string> scene_names_;
   std::map<std::string, int> scn_map_;

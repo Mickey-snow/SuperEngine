@@ -30,14 +30,14 @@
 #include "vm/vm.hpp"
 
 #include <fstream>
-#include <functional>
+#include <memory>
 
 namespace libsiglus::binding {
 namespace sb = srbind;
 using namespace serilang;
 
 struct GameexeHandle {
-  Gameexe* gexe;
+  std::shared_ptr<Gameexe> gexe;
   void Clear() { *gexe = Gameexe(); }
   void LoadFrom(std::string path) {
     if (auto result = Gameexe::FromFile(std::filesystem::path(std::move(path))))
@@ -76,8 +76,8 @@ void sgGexe::Bind(SiglusRuntime& runtime) {
   sb::module_ m(runtime.vm->gc_.get(), runtime.vm->globals_.get());
   sb::class_<GameexeHandle> gh(m, "gexe");
 
-  gh.def(sb::init(
-      [gexe = &runtime.gameexe]() { return new GameexeHandle(gexe); }));
+  gh.def(
+      sb::init([gexe = runtime.gameexe]() { return new GameexeHandle(gexe); }));
 
   gh.def("clear", &GameexeHandle::Clear);
   gh.def("load_from", &GameexeHandle::LoadFrom);

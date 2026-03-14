@@ -135,13 +135,14 @@ static void run_repl(VM& vm) {
 }
 
 int main(int argc, char* argv[]) {
-  bool use_siglus;
   std::cout << copyright_info << "\n\n" << help_info << std::endl;
+
+  std::string siglus_path;
   try {
     // Define options
     po::options_description desc("Allowed options");
     desc.add_options()("help,h", "Produce help message")(
-        "siglus", po::value<bool>(&use_siglus)->default_value(false));
+        "siglus", po::value<std::string>()->default_value(""));
 
     // Parse arguments
     po::variables_map vm;
@@ -155,6 +156,9 @@ int main(int argc, char* argv[]) {
     }
 
     po::notify(vm);
+
+    siglus_path = vm["siglus"].as<std::string>();
+
   } catch (const po::error& e) {
     std::cerr << "Error: " << e.what() << "\n";
     return 1;
@@ -164,8 +168,8 @@ int main(int argc, char* argv[]) {
   }
 
   try {
-    if (use_siglus) {
-      auto env = libsiglus::SGVMFactory().Create();
+    if (!siglus_path.empty()) {
+      auto env = libsiglus::SGVMFactory(std::move(siglus_path)).Create();
       run_repl(*env.vm);
     } else {
       auto vm = m6::VMFactory::Create();

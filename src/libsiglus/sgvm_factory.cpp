@@ -32,6 +32,7 @@
 #include "libsiglus/bindings/system.hpp"
 #include "libsiglus/gexedat.hpp"
 
+#include "libsiglus/archive.hpp"
 #include "log/domain_logger.hpp"
 #include "m6/vm_factory.hpp"
 #include "srbind/srbind.hpp"
@@ -39,12 +40,16 @@
 #include "systems/base/graphics_system.hpp"
 #include "systems/event_system.hpp"
 #include "systems/sdl/sdl_system.hpp"
+#include "utilities/file.hpp"
+#include "utilities/mapped_file.hpp"
 
 #include <chrono>
 #include <filesystem>
+#include <memory>
 
 namespace libsiglus {
 namespace chr = std::chrono;
+namespace fs = std::filesystem;
 namespace sr = serilang;
 namespace sb = srbind;
 
@@ -76,17 +81,21 @@ static Gameexe LoadGameexe(std::shared_ptr<AssetScanner> scanner) {
 }
 
 SiglusRuntime SGVMFactory::Create() {
-  SiglusRuntime runtime;
-  runtime.vm = std::make_unique<sr::VM>(m6::VMFactory::Create());
+  SiglusRuntime rt;
+  rt.vm = std::make_unique<sr::VM>(m6::VMFactory::Create());
+
+  fs::path seen_path = CorrectPathCase(base_path_ / "scene.pck");
+  MappedFile archive_mf(seen_path);
+  rt.archive = std::make_shared<Archive>(Archive::Create(archive_mf.Read()));
 
   binding::Context ctx;
   ctx.base_pth = base_path_;
   ctx.save_pth = ctx.base_pth / "save";
-  ctx.asset_scanner = runtime.asset_scanner = std::make_shared<AssetScanner>();
-  runtime.asset_scanner->IndexDirectory(ctx.base_pth);
+  ctx.asset_scanner = rt.asset_scanner = std::make_shared<AssetScanner>();
+  rt.asset_scanner->IndexDirectory(ctx.base_pth);
 
-  runtime.gameexe = LoadGameexe(runtime.asset_scanner);
-  Gameexe& gexe = runtime.gameexe;
+  rt.gameexe = std::make_shared<Gameexe>(LoadGameexe(rt.asset_scanner));
+  Gameexe& gexe = *rt.gameexe;
   gexe.SetStringAt("CAPTION", "SiglusTest");
   gexe.SetStringAt("REGNAME", "sjis: SIGLUS\\TEST");
   gexe.SetIntAt("NAME_ENC", 0);
@@ -96,16 +105,16 @@ SiglusRuntime SGVMFactory::Create() {
   gexe.parseLine("#SCREENSIZE_MOD=999,1920,1080");
 
   // Init sdl system
-  runtime.system = std::make_unique<SDLSystem>(gexe, runtime.asset_scanner);
+  rt.system = std::make_unique<SDLSystem>(gexe, rt.asset_scanner);
 
   // add bindings here
-  binding::Sound(ctx).Bind(runtime);
-  binding::System(ctx).Bind(runtime);
-  binding::Obj(ctx).Bind(runtime);
-  binding::sgEvent(ctx).Bind(runtime);
-  binding::sgGexe(ctx).Bind(runtime);
-  binding::MWND(ctx).Bind(runtime);
-  sb::module_ m(runtime.vm->gc_.get(), runtime.vm->globals_.get());
+  binding::Sound(ctx).Bind(rt);
+  binding::System(ctx).Bind(rt);
+  binding::Obj(ctx).Bind(rt);
+  binding::sgEvent(ctx).Bind(rt);
+  binding::sgGexe(ctx).Bind(rt);
+  binding::MWND(ctx).Bind(rt);
+  sb::module_ m(rt.vm->gc_.get(), rt.vm->globals_.get());
   m.def("__builtin_dbgprint",
         [](std::string str) { std::cerr << "[TRACE] " << str << std::endl; });
   m.def("__builtin_name", [](std::string str) {
@@ -125,16 +134,16 @@ SiglusRuntime SGVMFactory::Create() {
   });
 
   // abuse the vm scheduler to refresh sdl regularly
-  std::function<void()>& cb = runtime.exec_sdl_callback;
-  cb = [&cb, &runtime]() {
+  std::function<void()>& cb = rt.exec_sdl_callback;
+  cb = [&cb, &rt]() {
     constexpr auto period =
         chr::duration_cast<chr::steady_clock::duration>(chr::seconds(1)) / 60;
 
     auto next = chr::steady_clock::now() + period;
-    runtime.vm->scheduler_.PushCallbackAt(cb, next);
+    rt.vm->scheduler_.PushCallbackAt(cb, next);
 
     // redraw
-    std::shared_ptr<GraphicsSystem> graphics = runtime.system->graphics_system_;
+    std::shared_ptr<GraphicsSystem> graphics = rt.system->graphics_system_;
     for (auto& obj : graphics->GetForegroundObjects())
       obj.ExecuteMutators();
     for (auto& obj : graphics->GetBackgroundObjects())
@@ -142,12 +151,12 @@ SiglusRuntime SGVMFactory::Create() {
     graphics->RenderFrame(true);
 
     // poll events
-    std::shared_ptr<EventSystem> event = runtime.system->event_system_;
+    std::shared_ptr<EventSystem> event = rt.system->event_system_;
     event->ExecuteEventSystem();
   };
-  runtime.vm->scheduler_.PushCallbackAfter(cb, chr::milliseconds(2));
+  rt.vm->scheduler_.PushCallbackAfter(cb, chr::milliseconds(2));
 
-  return runtime;
+  return rt;
 }
 
 }  // namespace libsiglus
