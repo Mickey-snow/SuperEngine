@@ -212,6 +212,18 @@ TEST_F(RecompilerTest, SparseFastLocals) {
   EXPECT_EQ(Run(), 7);
 }
 
+TEST_F(RecompilerTest, SparseFastLocalsAboveByteRange) {
+  constexpr int kHighSlot = 300;
+
+  Emit(tk::Duplicate{.src = ls::Integer{7}, .dst = IntVar(kHighSlot)},
+       tk::Return{.ret_vals = {IntVar(kHighSlot)}});
+
+  EXPECT_EQ(recompiler.chunk_->fast_locals.size(),
+            static_cast<std::size_t>(kHighSlot) + 1);
+  EXPECT_EQ(recompiler.chunk_->fast_locals.back(), "v300");
+  EXPECT_EQ(Run(), 7);
+}
+
 TEST_F(RecompilerTest, Gosub) {
   Emit(tk::Gosub{.entry_id = 0, .args = {}, .dst = IntVar(0)},
        tk::Return{.ret_vals = {IntVar(0)}}, tk::Label{.id = 0},

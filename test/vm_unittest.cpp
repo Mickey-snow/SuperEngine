@@ -32,6 +32,8 @@
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
+#include <limits>
+
 namespace serilang_test {
 
 using namespace serilang;
@@ -109,6 +111,21 @@ TEST_F(VMTest, StoreLoadFast) {
 
   Value out = run_and_get(chunk);
   EXPECT_EQ(out, 42.0);
+}
+
+TEST_F(VMTest, StoreLoadFastAtUint16MaxSlot) {
+  constexpr auto kMaxSlot = std::numeric_limits<uint16_t>::max();
+
+  auto* chunk = gc->Allocate<Code>();
+  chunk->const_pool = value_vector(99.0);
+  chunk->fast_locals.resize(static_cast<std::size_t>(kMaxSlot) + 1);
+  chunk->fast_locals.back() = "max_local";
+
+  append_ins(chunk,
+             {Push{0}, StoreFast{kMaxSlot}, LoadFast{kMaxSlot}, Return{}});
+
+  Value out = run_and_get(chunk);
+  EXPECT_EQ(out, 99.0);
 }
 
 TEST_F(VMTest, FunctionCall) {

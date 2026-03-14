@@ -318,6 +318,19 @@ print(foo(), a);
   EXPECT_EQ(res, "14 2\n");
 }
 
+TEST_F(CompilerTest, FunctionFastLocalsAboveByteRange) {
+  constexpr int kLocalCount = 300;
+
+  std::string source = "fn foo(){\n";
+  for (int i = 0; i <= kLocalCount; ++i)
+    source += std::format("  v{} = {};\n", i, i);
+  source += std::format("  return v{};\n", kLocalCount);
+  source += "}\nprint(foo(), end=\"\");\n";
+
+  auto res = Run(source);
+  EXPECT_EQ(res, "300");
+}
+
 TEST_F(CompilerTest, While) {
   auto res = Run(R"(
 sum = 0;

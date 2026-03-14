@@ -462,11 +462,12 @@ void VM::ExecuteFiber(Fiber* fib) {
         case OpCode::LoadFast: {
           const auto ins = chunk->Read<serilang::LoadFast>(ip);
           ip += sizeof(ins);
-          std::optional<Value>& fast_local = fib->GetFastLocal(ins.slot);
+          const auto slot = static_cast<std::size_t>(ins.slot);
+          std::optional<Value>& fast_local = fib->GetFastLocal(slot);
           if (!fast_local.has_value()) {
             Error(*fib,
                   std::format("NameError: variable {} is unbound (slot={})",
-                              fib->GetFastLocalName(ins.slot), ins.slot));
+                              fib->GetFastLocalName(slot), slot));
             return;  // switch -> LoadFast
           }
 
@@ -476,7 +477,8 @@ void VM::ExecuteFiber(Fiber* fib) {
         case OpCode::StoreFast: {
           const auto ins = chunk->Read<serilang::StoreFast>(ip);
           ip += sizeof(ins);
-          std::optional<Value>& fast_local = fib->GetFastLocal(ins.slot);
+          const auto slot = static_cast<std::size_t>(ins.slot);
+          std::optional<Value>& fast_local = fib->GetFastLocal(slot);
           fast_local = pop(fib->op_stack);
         } break;
 

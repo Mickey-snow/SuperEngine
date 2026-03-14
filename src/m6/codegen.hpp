@@ -96,7 +96,7 @@ class CodeGenerator {
 
   // -- Identifier resolution ------------------------------------------
   std::optional<std::size_t> resolve_local(std::string_view id) const;
-  std::size_t add_local(const std::string& id);
+  std::optional<std::size_t> add_local(const std::string& id);
   SCOPE get_scope(std::string_view id);
 
   // -- Emit helpers ---------------------------------------------------
@@ -145,7 +145,7 @@ class CodeGenerator {
   void emit_stmt_node(const ImportStmt& is);
   void emit_stmt_node(const std::shared_ptr<ExprAST>& s);
 
-  void emit_function(const FuncDecl& fn,
+  bool emit_function(const FuncDecl& fn,
                      CompileMode nested_mode = CompileMode::Function);
   void emit_return(std::shared_ptr<ExprAST> expr = nullptr);
 

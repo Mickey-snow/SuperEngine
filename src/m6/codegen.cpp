@@ -29,6 +29,7 @@
 #include "vm/string.hpp"
 #include "vm/value.hpp"
 
+#include <limits>
 #include <stdexcept>
 #include <utility>
 
@@ -37,6 +38,16 @@ namespace m6 {
 namespace sr = serilang;
 
 static constexpr std::string_view kReplPrintName = "__repl_print__";
+
+namespace {
+
+std::optional<uint16_t> ToFastLocalSlot(std::size_t slot) {
+  if (slot > std::numeric_limits<uint16_t>::max())
+    return std::nullopt;
+  return static_cast<uint16_t>(slot);
+}
+
+}  // namespace
 
 // Constructor / Destructor
 CodeGenerator::CodeGenerator(std::shared_ptr<serilang::GarbageCollector> gc,
@@ -130,13 +141,18 @@ void CodeGenerator::emit_store_var(const std::string& id) {
     return;
   }
 
-  uint8_t slot;
-  if (auto local_slot = resolve_local(id))
-    slot = static_cast<uint8_t>(*local_slot);
-  else
-    slot = static_cast<uint8_t>(add_local(id));
+  std::optional<std::size_t> slot = resolve_local(id);
+  if (!slot)
+    slot = add_local(id);
+  if (!slot)
+    return;
+  const auto fast_slot = ToFastLocalSlot(*slot);
+  if (!fast_slot) {
+    AddError("Codegen: too many fast locals (" + std::to_string(*slot) + ')');
+    return;
+  }
 
-  emit(sr::StoreFast{slot});
+  emit(sr::StoreFast{*fast_slot});
 }
 
 void CodeGenerator::emit_load_var(std::string_view id) {
@@ -146,7 +162,12 @@ void CodeGenerator::emit_load_var(std::string_view id) {
   }
 
   if (auto slot = resolve_local(id)) {
-    emit(sr::LoadFast{static_cast<uint8_t>(*slot)});
+    const auto fast_slot = ToFastLocalSlot(*slot);
+    if (!fast_slot) {
+      AddError("Codegen: too many fast locals (" + std::to_string(*slot) + ')');
+      return;
+    }
+    emit(sr::LoadFast{*fast_slot});
   } else {
     emit(sr::LoadGlobal{intern_name(id)});
   }
@@ -163,7 +184,13 @@ std::optional<std::size_t> CodeGenerator::resolve_local(
   return std::nullopt;
 }
 
-std::size_t CodeGenerator::add_local(const std::string& id) {
+std::optional<std::size_t> CodeGenerator::add_local(const std::string& id) {
+  if (!ToFastLocalSlot(local_depth_).has_value()) {
+    AddError("Codegen: too many fast locals (" + std::to_string(local_depth_) +
+             ')');
+    return std::nullopt;
+  }
+
   locals_[id] = local_depth_;
   chunk_->fast_locals.emplace_back(id);
   return local_depth_++;
@@ -408,25 +435,38 @@ void CodeGenerator::emit_stmt_node(const BlockStmt& s) {
   --scope_depth_;
 }
 
-void CodeGenerator::emit_function(const FuncDecl& fn, CompileMode nested_mode) {
+bool CodeGenerator::emit_function(const FuncDecl& fn, CompileMode nested_mode) {
   // compile body with a fresh compiler
   CodeGenerator nested(gc_, repl_mode_);
   nested.SetChunk(gc_->Allocate<serilang::Code>());
   nested.scope_heuristic_ = scope_heuristic_;
   nested.mode_ = nested_mode;
 
-  nested.add_local(fn.name);
+  const auto propagate_nested_errors = [&]() {
+    errors_.insert(errors_.end(), nested.errors_.begin(), nested.errors_.end());
+    return false;
+  };
+
+  if (!nested.add_local(fn.name))
+    return propagate_nested_errors();
   for (auto& p : fn.params)
-    nested.add_local(p);
+    if (!nested.add_local(p))
+      return propagate_nested_errors();
   for (auto& p : fn.default_params)
-    nested.add_local(p.first);
+    if (!nested.add_local(p.first))
+      return propagate_nested_errors();
   if (!fn.var_arg.empty())
-    nested.add_local(fn.var_arg);
+    if (!nested.add_local(fn.var_arg))
+      return propagate_nested_errors();
   if (!fn.kw_arg.empty())
-    nested.add_local(fn.kw_arg);
+    if (!nested.add_local(fn.kw_arg))
+      return propagate_nested_errors();
 
   nested.emit_stmt(fn.body);
   nested.emit_return();
+
+  if (!nested.Ok())
+    return propagate_nested_errors();
 
   emit_const(nested.GetChunk());
   for (auto& p : fn.default_params) {
@@ -443,6 +483,8 @@ void CodeGenerator::emit_function(const FuncDecl& fn, CompileMode nested_mode) {
                         .ndefault = fn.default_params.size(),
                         .has_vararg = !fn.var_arg.empty(),
                         .has_kwarg = !fn.kw_arg.empty()});
+
+  return true;
 }
 
 void CodeGenerator::emit_return(std::shared_ptr<ExprAST> expr) {
@@ -462,7 +504,10 @@ void CodeGenerator::emit_return(std::shared_ptr<ExprAST> expr) {
 
 void CodeGenerator::emit_stmt_node(const FuncDecl& fn) {
   ++scope_depth_;
-  emit_function(fn);
+  if (!emit_function(fn)) {
+    --scope_depth_;
+    return;
+  }
   emit(sr::StoreGlobal{intern_name(fn.name)});
   --scope_depth_;
 }
@@ -471,12 +516,14 @@ void CodeGenerator::emit_stmt_node(const ClassDecl& cd) {
   for (auto& m : cd.memfn) {
     std::string const& name = m.name;
     emit(sr::Push{constant(name)});
-    emit_function(
-        m, name == "__init__" ? CompileMode::Ctor : CompileMode::Function);
+    if (!emit_function(
+            m, name == "__init__" ? CompileMode::Ctor : CompileMode::Function))
+      return;
   }
   for (auto& m : cd.staticfn) {
     emit(sr::Push{constant(m.name)});
-    emit_function(m);
+    if (!emit_function(m))
+      return;
   }
   emit(sr::MakeClass{intern_name(cd.name),
                      static_cast<uint16_t>(cd.memfn.size()),

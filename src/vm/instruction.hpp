@@ -55,10 +55,10 @@ struct UnaryOp {
 
 // ––– 3. Local / global / up‑value access ––––––––––––––––––––––––––
 struct LoadFast {
-  uint8_t slot;
+  uint16_t slot;
 };  // () -> (value)
 struct StoreFast {
-  uint8_t slot;
+  uint16_t slot;
 };  // (value) ->
 struct LoadGlobal {
   uint32_t name_index;

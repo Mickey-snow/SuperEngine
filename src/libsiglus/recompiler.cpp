@@ -42,14 +42,14 @@ namespace libsiglus {
 
 namespace {
 
-uint8_t fast_local_slot(int id) {
+uint16_t fast_local_slot(int id) {
   if (id < 0)
     throw std::runtime_error("Codegen: invalid fast-local id " +
                              std::to_string(id));
-  if (id > std::numeric_limits<uint8_t>::max())
+  if (id > std::numeric_limits<uint16_t>::max())
     throw std::runtime_error("Codegen: too many fast locals (" +
                              std::to_string(id) + ')');
-  return static_cast<uint8_t>(id);
+  return static_cast<uint16_t>(id);
 }
 
 void reserve_fast_local(sr::Code* chunk, int id) {
@@ -347,7 +347,7 @@ void Recompiler::emit_elm_root(const elm::Usrprop& r) {
 }
 void Recompiler::emit_elm_root(const elm::Arg& r) {
   // fast: (arg_0, arg_1, ...)
-  emit(sr::LoadFast{r.id});
+  emit_load_fast(r.id);
   // (arg)
 }
 void Recompiler::emit_elm_root(const elm::Farcall& r) {
