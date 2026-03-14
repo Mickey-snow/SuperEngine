@@ -27,6 +27,7 @@
 #include "machine/op.hpp"
 #include "utilities/mpl.hpp"
 
+#include <concepts>
 #include <cstdint>
 #include <variant>
 
@@ -138,7 +139,12 @@ struct TryBegin {
 };  // mark try scope
 struct TryEnd {};  // pop handler
 
-using Instruction = std::variant<Push,
+// ––– 9. Debug -------------––––––––––––––––––---------
+struct Nop {};
+struct DebugValue {};  // (val) -> ()
+
+using Instruction = std::variant<Nop,
+                                 Push,
                                  Dup,
                                  Swap,
                                  Pop,
@@ -169,7 +175,8 @@ using Instruction = std::variant<Push,
                                  Yield,
                                  Throw,
                                  TryBegin,
-                                 TryEnd>;
+                                 TryEnd,
+                                 DebugValue>;
 
 enum class OpCode : uint8_t {
   Nop,
@@ -204,10 +211,11 @@ enum class OpCode : uint8_t {
   Yield,
   Throw,
   TryBegin,
-  TryEnd
+  TryEnd,
+  DebugValue
 };
 
-template <class T>
+template <typename T>
   requires std::constructible_from<Instruction, T>
 constexpr inline OpCode GetOpcode() {
   if constexpr (false)
@@ -276,6 +284,10 @@ constexpr inline OpCode GetOpcode() {
     return OpCode::TryBegin;
   else if constexpr (std::same_as<T, TryEnd>)
     return OpCode::TryEnd;
+  else if constexpr (std::same_as<T, Nop>)
+    return OpCode::Nop;
+  else if constexpr (std::same_as<T, DebugValue>)
+    return OpCode::DebugValue;
 
   else
     static_assert(always_false<T>);

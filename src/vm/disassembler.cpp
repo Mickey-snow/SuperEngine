@@ -67,6 +67,18 @@ void Disassembler::PrintIns(Code& chunk,
 
   // body ----------------------------------------------------------
   switch (static_cast<OpCode>(chunk[ip++])) {
+    // ── 0. debug ────────────────────────────────────────────
+    case OpCode::Nop: {
+      const auto ins = chunk.Read<Nop>(ip);
+      ip += sizeof(ins);
+      emit_mnemonic("NOP");
+    } break;
+    case OpCode::DebugValue: {
+      const auto ins = chunk.Read<DebugValue>(ip);
+      ip += sizeof(ins);
+      emit_mnemonic("DBG_VAL");
+    } break;
+
     // ── 1. stack manipulation ───────────────────────────────
     case OpCode::Push: {
       const auto ins = chunk.Read<Push>(ip);

@@ -231,6 +231,24 @@ TEST_F(VMTest, InvalidOpcodeReportsInternalVmError) {
   }
 }
 
+TEST_F(VMTest, Nop) {
+  auto* chunk = gc->Allocate<Code>();
+  chunk->const_pool = value_vector(123);
+  append_ins(chunk, {Nop{}, Push{0}, Nop{}, Nop{}, Return{}, Nop{}});
+
+  Value out = run_and_get(chunk);
+  EXPECT_EQ(out, 123);
+}
+
+TEST_F(VMTest, DebugValue) {
+  auto* chunk = gc->Allocate<Code>();
+  chunk->const_pool = value_vector(123, 234);
+  append_ins(chunk, {Push{1}, Push{0}, DebugValue{}, Return{}});
+
+  Value out = run_and_get(chunk);
+  EXPECT_EQ(out, 234);
+}
+
 TEST_F(VMTest, MultipleFibres) {
   auto* chunk1 = gc->Allocate<Code>();
   chunk1->const_pool = value_vector(1);

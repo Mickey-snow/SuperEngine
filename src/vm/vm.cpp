@@ -363,11 +363,21 @@ void VM::ExecuteFiber(Fiber* fib) {
 
     try {
       switch (static_cast<OpCode>((*chunk)[ip++])) {
-        //------------------------------------------------------------------
-        // 0. No-op
-        //------------------------------------------------------------------
-        case OpCode::Nop:
-          break;
+          //------------------------------------------------------------------
+          // 0. Debug
+          //------------------------------------------------------------------
+        case OpCode::Nop: {
+          const auto ins = chunk->Read<serilang::Nop>(ip);
+          ip += sizeof(ins);
+        } break;
+
+        case OpCode::DebugValue: {
+          const auto ins = chunk->Read<serilang::DebugValue>(ip);
+          ip += sizeof(ins);
+
+          [[maybe_unused]] Value val = pop(fib->op_stack);
+          [[maybe_unused]] std::string desc = val.Desc();
+        } break;
 
         //------------------------------------------------------------------
         // 1. Stack Manipulation
@@ -387,7 +397,7 @@ void VM::ExecuteFiber(Fiber* fib) {
         case OpCode::Swap: {
           const auto ins = chunk->Read<serilang::Swap>(ip);
           ip += sizeof(ins);
-          std::swap(fib->op_stack.end()[-1], fib->op_stack.end()[-2]);
+          std::iter_swap(fib->op_stack.end() - 1, fib->op_stack.end() - 2);
         } break;
 
         case OpCode::Pop: {
