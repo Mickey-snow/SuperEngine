@@ -29,7 +29,6 @@
 #include "vm/disassembler.hpp"
 
 #include <boost/program_options.hpp>
-#include <chrono>
 #include <fstream>
 #include <iostream>
 
@@ -142,7 +141,7 @@ int main(int argc, char* argv[]) {
     // Define options
     po::options_description desc("Allowed options");
     desc.add_options()("help,h", "Produce help message")(
-        "siglus", po::value<bool>(&use_siglus)->default_value(true));
+        "siglus", po::value<bool>(&use_siglus)->default_value(false));
 
     // Parse arguments
     po::variables_map vm;

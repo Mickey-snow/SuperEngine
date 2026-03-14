@@ -34,6 +34,7 @@
 
 #include "log/domain_logger.hpp"
 #include "m6/vm_factory.hpp"
+#include "srbind/srbind.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/event_system.hpp"
@@ -45,7 +46,7 @@
 namespace libsiglus {
 namespace chr = std::chrono;
 namespace sr = serilang;
-namespace fs = std::filesystem;
+namespace sb = srbind;
 
 static DomainLogger logger("SiglusFactory");
 
@@ -79,7 +80,7 @@ SiglusRuntime SGVMFactory::Create() {
   runtime.vm = std::make_unique<sr::VM>(m6::VMFactory::Create());
 
   binding::Context ctx;
-  ctx.base_pth = fs::temp_directory_path() / "game";
+  ctx.base_pth = base_path_;
   ctx.save_pth = ctx.base_pth / "save";
   ctx.asset_scanner = runtime.asset_scanner = std::make_shared<AssetScanner>();
   runtime.asset_scanner->IndexDirectory(ctx.base_pth);
@@ -91,7 +92,7 @@ SiglusRuntime SGVMFactory::Create() {
   gexe.SetIntAt("NAME_ENC", 0);
   gexe.SetIntAt("SUBTITLE", 0);
   gexe.SetIntAt("MOUSE_CURSOR", 0);
-  gexe.SetStringAt("__GAMEPATH", (fs::temp_directory_path() / "game").string());
+  gexe.SetStringAt("__GAMEPATH", base_path_.string());
   gexe.parseLine("#SCREENSIZE_MOD=999,1920,1080");
 
   // Init sdl system
@@ -104,6 +105,24 @@ SiglusRuntime SGVMFactory::Create() {
   binding::sgEvent(ctx).Bind(runtime);
   binding::sgGexe(ctx).Bind(runtime);
   binding::MWND(ctx).Bind(runtime);
+  sb::module_ m(runtime.vm->gc_.get(), runtime.vm->globals_.get());
+  m.def("__builtin_dbgprint",
+        [](std::string str) { std::cerr << "[TRACE] " << str << std::endl; });
+  m.def("__builtin_name", [](std::string str) {
+    // not implemented yet
+  });
+  m.def("__builtin_textout", [](int kidoku, std::string text) {
+    // not implemented yet
+  });
+  m.def("__builtin_usrcmd", [](int scene, int entry, std::string name) {
+    // not implemented yet
+  });
+  m.def("__builtin_usrprop", [](int scene, int idx, std::string name) {
+    // not implemented yet
+  });
+  m.def("__builtin_farcall", [](std::string scn, int zlabel) {
+    // not implemented yet
+  });
 
   // abuse the vm scheduler to refresh sdl regularly
   std::function<void()>& cb = runtime.exec_sdl_callback;

@@ -37,7 +37,7 @@
 #include "platforms/implementor.hpp"
 #include "platforms/platform_factory.hpp"
 #include "rlvm_instance.hpp"
-#include "systems/base/system.hpp"
+#include "sgvm_instance.hpp"
 #include "utilities/file.hpp"
 #include "version.h"
 
@@ -97,7 +97,8 @@ int main(int argc, char* argv[]) {
       "Specifies which gui platform to use.")(
       "show-platforms", "Print all avaliable gui platforms.")(
       "log-level", po::value<std::string>(),
-      "Minimum severity level to log (none, info, warning, error)");
+      "Minimum severity level to log (none, info, warning, error)")(
+      "engine", po::value<std::string>()->default_value("reallive"));
 
   // Declare the final option to be game-root
   po::options_description hidden("Hidden");
@@ -234,16 +235,34 @@ int main(int argc, char* argv[]) {
   // -----------------------------------------------------------------------
   // Create game instance
 
-  RLVMInstance instance;
-  instance.SetPlatformImplementor(platform_impl);
+  std::string engine = "reallive";
+  if (vm.count("engine"))
+    engine = vm["engine"].as<std::string>();
 
-  if (vm.count("font"))
-    instance.SetCustomFont(vm["font"].as<std::string>());
+  if (engine == "reallive" || engine == "Reallive") {
+    RLVMInstance instance;
+    instance.SetPlatformImplementor(platform_impl);
 
-  if (vm.count("scene"))
-    instance.SetStartScene(vm["scene"].as<int>());
+    if (vm.count("font"))
+      instance.SetCustomFont(vm["font"].as<std::string>());
 
-  instance.Main(gamerootPath);
+    if (vm.count("scene"))
+      instance.SetStartScene(vm["scene"].as<int>());
+
+    instance.Main(gamerootPath);
+  } else if (engine == "siglus" || engine == "Siglus") {
+    SgvmInstance instance;
+    instance.platform_implementor_ = platform_impl;
+    if (vm.count("font"))
+      instance.font_ = vm["font"].as<std::string>();
+    if (vm.count("scene"))
+      instance.start_scene_ = vm["scene"].as<int>();
+
+    instance.Main(gamerootPath);
+  } else {
+    std::cerr << "Couldn't recongnize engine: " << engine;
+    return -1;
+  }
 
   return 0;
 }

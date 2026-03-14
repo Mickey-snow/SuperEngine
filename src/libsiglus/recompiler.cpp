@@ -23,7 +23,6 @@
 
 #include "libsiglus/recompiler.hpp"
 
-#include <algorithm>
 #include <exception>
 #include <limits>
 #include <stdexcept>
@@ -39,6 +38,14 @@
 namespace sr = serilang;
 
 namespace libsiglus {
+
+std::string CompileError::ToString() const {
+  std::string ret;
+  if (token)
+    ret = ::libsiglus::ToString(*token) + '\n';
+  ret += message;
+  return ret;
+}
 
 namespace {
 
@@ -69,6 +76,15 @@ Recompiler::~Recompiler() = default;
 
 void Recompiler::Gen(token::Token_t tok) {
   try {
+    if (is_debug_) {
+      emit_const(ToString(tok));
+      emit(sr::Dup{});
+      emit(sr::DebugValue{});
+      emit_load_global("__builtin_dbgprint");
+      emit(sr::Swap{});
+      emit(sr::Call{.argcnt = 1, .kwargcnt = 0});
+      emit(sr::Pop{});
+    }
     std::visit([this](const auto& stmt) { emit_tok(stmt); }, std::move(tok));
   } catch (std::exception& e) {
     AddError(e.what(), tok);
@@ -292,23 +308,27 @@ void Recompiler::emit_tok(const token::Eof& tk) {
 
 // element codegen
 void Recompiler::emit_elm(const elm::AccessChain& e) {
+  bool is_first = true;
   if (!std::holds_alternative<std::monostate>(e.root.var)) {
-    ASSERTX_TRUE(e.nodes.empty());
+    is_first = false;
     std::visit([&](const auto& rt) { emit_elm_root(rt); }, e.root.var);
-  } else {
-    if (e.nodes.empty())
-      return;
-    auto* sym = std::get_if<elm::Member>(&e.nodes.front().var);
-    if (sym == nullptr) {
-      throw std::runtime_error("[Recompiler] cannot compile element: " +
-                               e.ToDebugString());
-    }
-
-    emit_load_global(std::string(sym->name));
-    for (size_t i = 1; i < e.nodes.size(); ++i)
-      std::visit([&](const auto& nd) { emit_elm_node(nd); }, e.nodes[i].var);
   }
 
+  if (e.nodes.empty())
+    return;
+
+  for (size_t i = 0; i < e.nodes.size(); ++i) {
+    if (i == 0 && is_first) {
+      if (auto* sym = std::get_if<elm::Member>(&e.nodes.front().var)) {
+        emit_load_global(std::string(sym->name));
+        continue;
+      } else {
+        throw std::runtime_error("[Recompiler] cannot compile element: " +
+                                 e.ToDebugString());
+      }
+    }
+    std::visit([&](const auto& nd) { emit_elm_node(nd); }, e.nodes[i].var);
+  }
   // (result)
 }
 void Recompiler::emit_elm_root(const std::monostate& r) {

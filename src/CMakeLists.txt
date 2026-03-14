@@ -76,6 +76,7 @@ target_include_directories(rlvm_src PUBLIC "${CMAKE_CURRENT_BINARY_DIR}")
 # -------------------------------------------------------------------
 set(RLVM_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/rlvm_instance.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/sgvm_instance.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/rlvm_main.cpp"
 )
 

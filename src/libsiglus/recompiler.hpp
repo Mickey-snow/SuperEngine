@@ -41,6 +41,8 @@ namespace libsiglus {
 struct CompileError {
   std::string message;
   std::optional<token::Token_t> token;
+
+  std::string ToString() const;
 };
 
 class Recompiler {
@@ -61,6 +63,7 @@ class Recompiler {
  public:
   std::unordered_map<std::string, std::size_t> subroutine_entries_;
   serilang::Code* chunk_ = nullptr;
+  bool is_debug_ = false;
 
  private:
   // Error handling

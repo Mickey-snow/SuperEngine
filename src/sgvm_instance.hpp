@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //
-// This file is part of RLVM
+// This file is part of RLVM, a RealLive virtual machine clone.
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2025 Serina Sakurai
+// Copyright (C) 2026 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,21 +19,22 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
+//
 // -----------------------------------------------------------------------
 
 #pragma once
 
-#include "libsiglus/siglus_runtime.hpp"
-
 #include <filesystem>
+#include <memory>
+#include <string>
 
-namespace libsiglus {
+class IPlatformImplementor;
 
-class SGVMFactory {
+class SgvmInstance {
  public:
-  SiglusRuntime Create();
+  int start_scene_ = 0;
+  std::string font_;
+  std::shared_ptr<IPlatformImplementor> platform_implementor_;
 
-  std::filesystem::path base_path_;
+  void Main(const std::filesystem::path& gameroot);
 };
-
-}  // namespace libsiglus
