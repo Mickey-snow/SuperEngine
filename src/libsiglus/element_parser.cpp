@@ -130,18 +130,11 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
     }
 
     case Type::StrList: {
-      static const auto mp = make_flatmap<Builder>(
-          id[-1] | Builder([](Builder::Ctx& ctx) {
-            ctx.chain.nodes.emplace_back(Type::Callable, Member("substr"));
-            Call call;
-            call.args = {ctx.elmcode[1]};
-            ctx.chain.nodes.emplace_back(Type::String,
-                                         std::move(call));  // really?
-            ctx.elmcode = ctx.elmcode.subspan(2);
-          }),
-          id[3] | b(Type::None, Member("init")),
-          id[2] | b(Type::Callable, Member("resize")),
-          id[4] | b(Type::Int, Member("size")));
+      static const auto mp =
+          make_flatmap<Builder>(id[-1] | b_index_array(Type::String),
+                                id[3] | b(Type::None, Member("init")),
+                                id[2] | b(Type::Callable, Member("resize")),
+                                id[4] | b(Type::Int, Member("size")));
       return &mp;
     }
     case Type::String: {
