@@ -313,6 +313,27 @@ struct U {
   explicit U(int xx) : x(xx) {}
 };
 
+struct SingletonCounter {
+  int value{0};
+
+  void add(int delta) { value += delta; }
+  int get() const { return value; }
+};
+
+struct LifetimeTracked {
+  static int& aliveCount() {
+    static int count = 0;
+    return count;
+  }
+
+  int value{0};
+
+  explicit LifetimeTracked(int value_in) : value(value_in) { ++aliveCount(); }
+  ~LifetimeTracked() { --aliveCount(); }
+
+  int get() const { return value; }
+};
+
 TEST_F(SrbindTest, FreeFunction_PlainFunctionPointer) {
   NativeFunction* nf =
       make_function(gc.get(), "mul", &mul_fn);  // fn ptr, no spec
@@ -584,6 +605,85 @@ TEST_F(SrbindTest, Class_MemberFnWithVmFib) {
   ASSERT_NE(inst, nullptr);
   EXPECT_NO_THROW(CallCallee(GetMember(inst, "set_vmfib_named"), {},
                              {{"val", Value(val)}}));
+}
+
+TEST_F(SrbindTest, Module_BindInstance_ByReference) {
+  SingletonCounter counter{.value = 5};
+
+  mod.bind_instance("counter", counter)
+      .def("add", &SingletonCounter::add, arg("delta"))
+      .def("get", &SingletonCounter::get);
+
+  ASSERT_TRUE(dict.contains("counter"));
+  EXPECT_EQ(dict.at("counter").Get_if<NativeClass>(), nullptr);
+
+  auto* inst = dict.at("counter").Get_if<NativeInstance>();
+  ASSERT_NE(inst, nullptr);
+  EXPECT_EQ(inst->GetForeign<SingletonCounter>(), &counter);
+
+  EXPECT_NO_THROW(CallCallee(GetMember(inst, "add"), {Value(7)}));
+  EXPECT_EQ(counter.value, 12);
+  EXPECT_EQ(CallCallee(GetMember(inst, "get")), 12);
+}
+
+TEST_F(SrbindTest, Module_BindInstance_KeepsNativeClassAliveWhileRooted) {
+  SingletonCounter counter{.value = 17};
+
+  module_ globals_mod(vm.gc_.get(), vm.globals_.get());
+  globals_mod.bind_instance("counter", counter)
+      .def("get", &SingletonCounter::get);
+
+  vm.fibres_.push_back(f);
+
+  const size_t bytes_before_gc = gc->AllocatedBytes();
+  vm.CollectGarbage();
+  EXPECT_EQ(gc->AllocatedBytes(), bytes_before_gc);
+
+  auto* inst = (*vm.globals_)["counter"].Get_if<NativeInstance>();
+  ASSERT_NE(inst, nullptr);
+  EXPECT_EQ(CallCallee(GetMember(inst, "get")), 17);
+}
+
+TEST_F(SrbindTest, Module_BindInstance_ByReferenceDoesNotDeleteForeign) {
+  LifetimeTracked::aliveCount() = 0;
+  module_ globals_mod(vm.gc_.get(), vm.globals_.get());
+
+  {
+    LifetimeTracked tracked(9);
+    EXPECT_EQ(LifetimeTracked::aliveCount(), 1);
+
+    globals_mod.bind_instance("tracked", tracked)
+        .def("get", &LifetimeTracked::get);
+
+    auto* inst = (*vm.globals_)["tracked"].Get_if<NativeInstance>();
+    ASSERT_NE(inst, nullptr);
+    EXPECT_EQ(CallCallee(GetMember(inst, "get")), 9);
+
+    vm.globals_->clear();
+    vm.last_ = Value();
+    vm.CollectGarbage();
+    EXPECT_EQ(LifetimeTracked::aliveCount(), 1);
+  }
+
+  EXPECT_EQ(LifetimeTracked::aliveCount(), 0);
+}
+
+TEST_F(SrbindTest, Module_BindInstance_UniquePtrTransfersOwnership) {
+  LifetimeTracked::aliveCount() = 0;
+  module_ globals_mod(vm.gc_.get(), vm.globals_.get());
+
+  globals_mod.bind_instance("owned", std::make_unique<LifetimeTracked>(33))
+      .def("get", &LifetimeTracked::get);
+
+  auto* inst = (*vm.globals_)["owned"].Get_if<NativeInstance>();
+  ASSERT_NE(inst, nullptr);
+  EXPECT_EQ(CallCallee(GetMember(inst, "get")), 33);
+  EXPECT_EQ(LifetimeTracked::aliveCount(), 1);
+
+  vm.globals_->clear();
+  vm.last_ = Value();
+  vm.CollectGarbage();
+  EXPECT_EQ(LifetimeTracked::aliveCount(), 0);
 }
 
 }  // namespace srbind_test

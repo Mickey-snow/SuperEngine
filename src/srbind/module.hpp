@@ -30,12 +30,17 @@
 #include "vm/object.hpp"
 #include "vm/value.hpp"
 
+#include <memory>
+#include <type_traits>
 #include <unordered_map>
 
 namespace srbind {
 
+template <class T>
+class instance_;
+
 // -------------------------------------------------------------
-// module: where we register functions/classes
+// module: where we register functions/classes/native instances
 // -------------------------------------------------------------
 class module_ {
   serilang::GarbageCollector* gc_;
@@ -57,6 +62,16 @@ class module_ {
         make_function(gc_, name, std::forward<F>(f), std::forward<A>(a)...));
     return *this;
   }
+
+  template <class T>
+  instance_<T> bind_instance(const char* name, T* obj);
+
+  template <class T>
+  instance_<T> bind_instance(const char* name, T& obj);
+
+  template <class T>
+  instance_<T> bind_instance(const char* name, std::unique_ptr<T> obj);
+
   inline std::unordered_map<std::string, Value>* dict() const { return dict_; }
   inline serilang::GarbageCollector* gc() const { return gc_; }
 };
@@ -112,6 +127,37 @@ static T* convert_factory_return(R&& r) {
   }
 }
 }  // namespace detail
+
+// -------------------------------------------------------------
+// instance_<T>: binds a single pre-existing native object as a
+// NativeInstance in the module dict
+// -------------------------------------------------------------
+template <class T>
+class instance_ {
+  serilang::GarbageCollector* gc_;
+  serilang::NativeClass* cls_;
+  serilang::NativeInstance* inst_;
+
+ public:
+  instance_(serilang::GarbageCollector* gc,
+            serilang::NativeClass* cls,
+            serilang::NativeInstance* inst)
+      : gc_(gc), cls_(cls), inst_(inst) {}
+
+  instance_& no_delete() {
+    cls_->finalize = nullptr;
+    return *this;
+  }
+
+  template <class M, class... A>
+  instance_& def(const char* name, M pmf, A&&... a) {
+    arglist_spec spec = parse_spec<M>(std::forward<A>(a)...);
+
+    cls_->methods[name] =
+        Value(make_method<T>(gc_, name, pmf, std::move(spec)));
+    return *this;
+  }
+};
 
 // -------------------------------------------------------------
 // class_<T>: binds a NativeClass container + methods + __init__
@@ -230,5 +276,43 @@ class class_ {
     return *this;
   }
 };
+
+template <typename T>
+static void finalize_T(void* p) {
+  delete static_cast<T*>(p);
+}
+
+template <class T>
+std::pair<serilang::NativeClass*, serilang::NativeInstance*>
+create_instance(std::string name, T* obj, serilang::GarbageCollector* gc) {
+  serilang::NativeClass* cls = gc->Allocate<serilang::NativeClass>();
+  serilang::NativeInstance* inst = gc->Allocate<serilang::NativeInstance>(cls);
+  cls->name = std::move(name);
+  inst->SetForeign<T>(obj);
+  cls->finalize = &finalize_T<T>;
+  return std::make_pair(cls, inst);
+}
+
+template <class T>
+instance_<T> module_::bind_instance(const char* name, T* obj) {
+  auto [cls, inst] = create_instance(name, obj, gc_);
+  cls->finalize = nullptr;
+  (*dict_)[std::string(name)] = Value(inst);
+  return instance_<T>(gc_, cls, inst);
+}
+
+template <class T>
+instance_<T> module_::bind_instance(const char* name, T& obj) {
+  return bind_instance(name, std::addressof(obj));
+}
+
+template <class T>
+instance_<T> module_::bind_instance(const char* name, std::unique_ptr<T> obj) {
+  T* ptr = obj.get();
+  auto [cls, inst] = create_instance(name, ptr, gc_);
+  (*dict_)[std::string(name)] = Value(inst);
+  obj.release();
+  return instance_<T>(gc_, cls, inst);
+}
 
 }  // namespace srbind

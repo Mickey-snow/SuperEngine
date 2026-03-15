@@ -83,7 +83,7 @@ void Class::Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) {
 Instance::Instance(Class* klass_) : klass(klass_) {}
 
 void Instance::MarkRoots(GCVisitor& visitor) {
-  klass->MarkRoots(visitor);
+  visitor.MarkSub(klass);
   for (auto& [k, it] : fields)
     visitor.MarkSub(it);
 }
@@ -186,7 +186,7 @@ NativeInstance::~NativeInstance() {
 }
 
 void NativeInstance::MarkRoots(GCVisitor& visitor) {
-  klass->MarkRoots(visitor);
+  visitor.MarkSub(klass);
   for (auto& [k, it] : fields)
     visitor.MarkSub(it);
   if (klass->trace && foreign)
