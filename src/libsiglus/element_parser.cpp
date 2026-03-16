@@ -72,9 +72,49 @@ inline static Builder b_index_array(Type value_type) {
     ctx.elmcode = ctx.elmcode.subspan(2);
   });
 }
+
+struct CallableTarget {
+  std::optional<int> overload_id;
+  std::string_view name;
+  Type return_type = Type::None;
+};
+
 inline static Builder b_callable(std::string_view mem,
                                  Type return_type = Type::None) {
   return b(Type::Callable, Member{mem, return_type, true});
+}
+inline static Builder b_callable(
+    std::initializer_list<CallableTarget> targets) {
+  return Builder([targets =
+                      std::vector<CallableTarget>(targets)](Builder::Ctx& ctx) {
+    const int overload_id = ctx.elm.bind_ctx.overload_id;
+
+    const CallableTarget* fallback = nullptr;
+    for (const auto& target : targets) {
+      if (target.overload_id && *target.overload_id == overload_id) {
+        ctx.chain.nodes.emplace_back(
+            Type::Callable, Member{target.name, target.return_type, true});
+        ctx.elmcode = ctx.elmcode.subspan(1);
+        return;
+      }
+      if (!target.overload_id && !fallback)
+        fallback = &target;
+    }
+
+    if (fallback) {
+      ctx.chain.nodes.emplace_back(
+          Type::Callable, Member{fallback->name, fallback->return_type, true});
+      ctx.elmcode = ctx.elmcode.subspan(1);
+      return;
+    }
+
+    ctx.Warn(std::format("[Callable] overload {} not found while parsing {}",
+                         overload_id, ctx.chain.ToDebugString()));
+    ctx.chain.nodes.emplace_back(
+        Type::Callable,
+        Member{targets.front().name, targets.front().return_type, true});
+    ctx.elmcode = ctx.elmcode.subspan(1);
+  });
 }
 inline static Builder b_call0(Type return_type, std::string_view mem) {
   return b(return_type, Member{mem, return_type, true});
@@ -83,7 +123,7 @@ static Builder obj_getset(std::string_view mem,
                           Type type,
                           int get_code = 0,
                           int set_code = 1) {
-  return b_callable(mem, type);
+  return b_callable({{get_code, mem, type}, {set_code, mem, Type::None}});
 }
 
 static Builder obj_getter(std::string_view mem, Type rettype = Type::Int) {
@@ -259,8 +299,8 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
           id[0] | b(Type::None, Member("menu")),
           id[6] | b(Type::None, Member("menu_enable")),
           id[7] | b(Type::None, Member("menu_disable")),
-          id[11] | b(Type::Callable, Member("btn_enable_all")),
-          id[12] | b(Type::Callable, Member("btn_disable_all")),
+          id[11] | b_callable({{0, "btn_enable_all"}, {1, "btn_enable"}}),
+          id[12] | b_callable({{0, "btn_disable_all"}, {1, "btn_disable"}}),
           id[133] | b(Type::None, Member("touch_enable")),
           id[134] | b(Type::None, Member("touch_disable")),
           id[5] | b(Type::None, Member("init_flags")),
@@ -985,8 +1025,10 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
           id[59] | b_call0(Type::None, "msg_pp_block"),
           id[3] | b_call0(Type::None, "clear"),
           id[55] | b_call0(Type::None, "novel_clear"),
-          id[4] | b_callable("print"), id[57] | b_callable("overflow_print"),
-          id[63] | b_callable("overflow_name"), id[12] | b_callable("ruby_end"),
+          id[4] | b_callable("print"),
+          id[57] | b_callable({{0, "overflow_print"}, {1, "print"}}),
+          id[63] | b_callable("overflow_name"),
+          id[12] | b_callable({{0, "ruby_end"}, {std::nullopt, "ruby_start"}}),
           id[18] | b_call0(Type::None, "msg_wait"),
           id[19] | b_call0(Type::None, "pp"), id[20] | b_call0(Type::None, "r"),
           id[54] | b_call0(Type::None, "page"),
@@ -1005,17 +1047,17 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
           id[51] | b(Type::Callable, Member("sel_cancel")),
           id[50] | b(Type::Callable, Member("selmsg")),
           id[52] | b(Type::Callable, Member("selmsg_cancel")),
-          id[84] | b(Type::Callable, Member("rep_pos_default")),
-          id[7] | b(Type::Callable, Member("size_default")),
-          id[8] | b(Type::Callable, Member("color_default")),
+          id[84] | b_callable({{0, "rep_pos_default"}, {1, "rep_pos"}}),
+          id[7] | b_callable({{0, "size_default"}, {1, "size"}}),
+          id[8] | b_callable({{0, "color_default"}, {1, "color"}}),
           id[86] | b(Type::Callable, Member("msgbtn")),
           id[85] | b(Type::Callable, Member("set_namae")),
           id[9] | b(Type::Callable, Member("koe")),
           id[26] | b(Type::Callable, Member("koe_play_wait")),
           id[22] | b(Type::None, Member("clear_face")),
           id[21] | b(Type::Callable, Member("set_face")),
-          id[10] | b(Type::Callable, Member("get_layer")),
-          id[11] | b(Type::Callable, Member("get_world")),
+          id[10] | b_callable({{0, "get_layer"}, {1, "set_layer"}}),
+          id[11] | b_callable({{0, "get_world"}, {1, "set_world"}}),
           id[32] | b(Type::ObjList, Member("button")),
           id[53] | b(Type::ObjList, Member("face")),
           id[30] | b(Type::ObjList, Member("object")),

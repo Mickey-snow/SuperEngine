@@ -244,6 +244,20 @@ TEST_F(ElementParserTest, Mwnd) {
     ElementCode elm{119};
     EXPECT_EQ(chain(elm), "mwnd.indent()");
   }
+  {
+    ElementCode elm{151};
+    EXPECT_EQ(chain(elm), "mwnd.rep_pos_default()");
+  }
+  {
+    ElementCode elm{151};
+    elm.ForceBind({1, {v(320), v(240)}});
+    EXPECT_EQ(chain(elm), "mwnd.rep_pos(int:320,int:240)");
+  }
+  {
+    ElementCode elm{61};
+    elm.ForceBind({1, {v("ruby")}});
+    EXPECT_EQ(chain(elm), "mwnd.ruby_start(str:ruby)");
+  }
 }
 
 TEST_F(ElementParserTest, System) {
@@ -265,6 +279,15 @@ TEST_F(ElementParserTest, System) {
     ElementCode elm{92, 2};
     elm.ForceBind({0, {v("dummy"), v(123), v("key")}});
     EXPECT_EQ(chain(elm), "system.check_dummy(str:dummy,int:123,str:key)");
+  }
+  {
+    ElementCode elm{63, 11};
+    EXPECT_EQ(chain(elm), "syscom.btn_enable_all()");
+  }
+  {
+    ElementCode elm{63, 11};
+    elm.ForceBind({1, {v(3)}});
+    EXPECT_EQ(chain(elm), "syscom.btn_enable(int:3)");
   }
 }
 
