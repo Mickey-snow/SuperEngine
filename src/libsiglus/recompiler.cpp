@@ -25,9 +25,11 @@
 
 #include <exception>
 #include <limits>
+#include <memory>
 #include <stdexcept>
 #include <variant>
 
+#include "libsiglus/element.hpp"
 #include "libsiglus/types.hpp"
 #include "libsiglus/value.hpp"
 #include "utilities/assertx.hpp"
@@ -209,10 +211,8 @@ void Recompiler::emit_tok(const token::Textout& tk) {
   emit(sr::Call{.argcnt = 2});
 }
 void Recompiler::emit_tok(const token::GetProperty& tk) {
-  emit_elm(tk.chain);                          // (elm)
-  emit(sr::GetField{intern_name("get")});      // (getter)
-  emit(sr::Call{.argcnt = 0, .kwargcnt = 0});  // (val)
-  emit_store_fast(tk.dst.id);                  // -> ()
+  emit_elm(tk.chain);
+  emit_store_fast(tk.dst.id);  // (val) -> ()
 }
 void Recompiler::emit_tok(const token::Operate1& tk) {
   if (tk.val) {
@@ -277,11 +277,7 @@ void Recompiler::emit_tok(const token::Gosub& tk) {
   emit_store_fast(tk.dst.id);
 }
 void Recompiler::emit_tok(const token::Assign& tk) {
-  emit_elm(tk.dst);                        // (proxy)
-  emit(sr::GetField{intern_name("set")});  // (proxy.setter)
-  emit_val(tk.src);
-  emit(sr::Call({.argcnt = 1, .kwargcnt = 0}));
-  // (proxy.setter, value) -> ()
+  emit_elm(tk.dst, &tk.src);
 }
 void Recompiler::emit_tok(const token::Duplicate& tk) {
   emit_val(tk.src);
@@ -310,17 +306,40 @@ void Recompiler::emit_tok(const token::Eof& tk) {
 }
 
 // element codegen
-void Recompiler::emit_elm(const elm::AccessChain& e) {
+void Recompiler::emit_elm(const elm::AccessChain& e, const Value* assign) {
   bool is_first = true;
   if (!std::holds_alternative<std::monostate>(e.root.var)) {
     is_first = false;
     std::visit([&](const auto& rt) { emit_elm_root(rt); }, e.root.var);
   }
 
-  if (e.nodes.empty())
-    return;
+  if (auto* prop = std::get_if<elm::Usrprop>(&e.root.var);
+      prop && assign && e.nodes.empty()) {
+    emit_load_global("get_proplist");
+    emit_const(prop->scene);
+    emit(sr::Call{.argcnt = 1, .kwargcnt = 0});  // (getprop, scn) -> (prop[])
 
-  for (size_t i = 0; i < e.nodes.size(); ++i) {
+    emit_const(prop->idx), emit_val(*assign);
+    emit(sr::SetItem{});  // (prop[], idx, val) -> ()
+    return;
+  }
+
+  auto fail = [] { throw std::runtime_error("cannot assign to this element"); };
+  if (e.nodes.empty()) {
+    if (assign)
+      fail();
+    return;
+  }
+
+  size_t n = e.nodes.size();
+  if (assign)
+    --n;
+  if (assign && std::holds_alternative<elm::Call>(e.nodes.back().var)) {
+    ASSERTX_GE(n, 1);
+    --n;
+  }
+
+  for (size_t i = 0; i < n; ++i) {
     if (i == 0 && is_first) {
       if (auto* sym = std::get_if<elm::Member>(&e.nodes.front().var)) {
         emit_load_global(std::string(sym->name));
@@ -332,7 +351,28 @@ void Recompiler::emit_elm(const elm::AccessChain& e) {
     }
     std::visit([&](const auto& nd) { emit_elm_node(nd); }, e.nodes[i].var);
   }
-  // (result)
+
+  if (assign) {
+    if (auto* mem = std::get_if<elm::Member>(&e.nodes.back().var)) {
+      emit_val(*assign);
+      auto name_slot = intern_name(std::string(mem->name));
+      emit(sr::SetField{name_slot});
+    } else if (auto* itm = std::get_if<elm::Subscript>(&e.nodes.back().var)) {
+      emit_val(itm->idx), emit_val(*assign);
+      emit(sr::SetItem{});
+    } else if (auto* call = std::get_if<elm::Call>(&e.nodes.back().var)) {
+      auto* mem = std::get_if<elm::Member>(&e.nodes[e.nodes.size() - 2].var);
+      ASSERTX_NE(mem, nullptr);
+      std::string fn(mem->name);
+      fn = "set_" + fn;
+      emit(sr::GetField{intern_name(std::move(fn))});  // (setter)
+      ASSERTX_TRUE(call->args.empty() && call->kwargs.empty());
+      emit_val(*assign);
+      emit(sr::Call{.argcnt = 1, .kwargcnt = 0});  // (setter, val) -> (nil)
+      emit(sr::Pop{});
+    } else
+      fail();
+  }
 }
 
 void Recompiler::emit_elm_root(const std::monostate& r) {
@@ -362,12 +402,12 @@ void Recompiler::emit_elm_root(const elm::Usrcmd& r) {
   // (ret)
 }
 void Recompiler::emit_elm_root(const elm::Usrprop& r) {
-  emit_load_global("__builtin_usrprop");
+  emit_load_global("get_proplist");
   emit_const(r.scene);
+  emit(sr::Call{.argcnt = 1, .kwargcnt = 0});
+  // (getprop, scn) -> (prop[])
   emit_const(r.idx);
-  emit_const(std::string(r.name));
-  emit(sr::Call{.argcnt = 3, .kwargcnt = 0});
-  // (usrprop, scene, idx, name) -> (prop)
+  emit(sr::GetItem{});  // (prop[], idx) -> (item)
 }
 void Recompiler::emit_elm_root(const elm::Arg& r) {
   // fast: (arg_0, arg_1, ...)
@@ -405,16 +445,15 @@ void Recompiler::emit_elm_node(const elm::Call& nd) {
 
   for (auto const& arg : nd.args)
     emit_val(arg);
-  emit(sr::MakeList{.nelms = nd.args.size()});
-  // (fn, al, list)
+  // (fn, al, args...)
 
   for (auto const& [k, arg] : nd.kwargs)
     emit_const(k), emit_val(arg);
   emit(sr::MakeDict{.nelms = nd.kwargs.size()});
-  // (fn, al, list, dist)
+  // (fn, al, args..., tags)
 
-  emit(sr::Call{.argcnt = 3, .kwargcnt = 0});
-  // (ret)
+  emit(sr::Call{.argcnt = nd.args.size() + 1});
+  // -> (ret)
 }
 void Recompiler::emit_elm_node(const elm::Subscript& nd) {
   // (primary)

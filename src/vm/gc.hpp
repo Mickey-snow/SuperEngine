@@ -54,7 +54,7 @@ class GarbageCollector {
   ~GarbageCollector();
 
   template <typename T, typename... Args>
-  auto Allocate(Args&&... args) -> std::add_pointer_t<T>
+  [[nodiscard]] auto Allocate(Args&&... args) -> std::add_pointer_t<T>
     requires is_object<T>
   {
     auto obj = static_cast<T*>(::operator new(sizeof(T)));

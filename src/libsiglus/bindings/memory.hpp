@@ -4,7 +4,7 @@
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2025 Serina Sakurai
+// Copyright (C) 2026 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,30 +21,21 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#include "libsiglus/bindings/proxy.hpp"
+#pragma once
 
-#include "srbind/module.hpp"
+#include "libsiglus/bindings/common.hpp"
+#include "libsiglus/siglus_runtime.hpp"
 
 namespace libsiglus::binding {
 
-namespace sr = serilang;
-namespace sb = srbind;
+// Memory banks and user properties
+class Memory {
+  Context& ctx;
 
-sr::Value MakeProxy(sr::GarbageCollector* gc,
-                    std::function<sr::Value()> getter,
-                    std::function<sr::Value(sr::Value)> setter) {
-  struct Proxy {
-    std::function<sr::Value()> getter;
-    std::function<sr::Value(sr::Value)> setter;
-    sr::Value get() const { return getter(); }
-    sr::Value set(sr::Value v) const { return setter(v); }
-  };
+ public:
+  explicit Memory(Context& c) : ctx(c) {}
 
-  Proxy* px = new Proxy(std::move(getter), std::move(setter));
-  auto [cls, inst] = sb::create_instance("proxy", px, gc);
-  sb::instance_<Proxy> in(gc, cls, inst);
-  in.def("get", &Proxy::get).def("set", &Proxy::set, sb::arg("value"));
-  return sr::Value(inst);
-}
+  void Bind(SiglusRuntime& runtime);
+};
 
 }  // namespace libsiglus::binding

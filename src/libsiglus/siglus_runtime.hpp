@@ -29,7 +29,6 @@
 
 #include <functional>
 #include <memory>
-#include <unordered_map>
 
 class AssetScanner;
 class SDLSystem;
@@ -44,8 +43,6 @@ namespace binding {
 class SiglusMwnd;
 }
 
-using Usrprop_storage_t = std::unordered_map<long long, serilang::Value>;
-
 struct SiglusRuntime {
   std::shared_ptr<Gameexe> gameexe;
   std::shared_ptr<Archive> archive;
@@ -55,7 +52,6 @@ struct SiglusRuntime {
   std::unique_ptr<SDLSystem> system;
 
   std::function<void()> exec_sdl_callback;
-  std::unique_ptr<Usrprop_storage_t> usrprop;
 
   SiglusRuntime() = default;
   ~SiglusRuntime();

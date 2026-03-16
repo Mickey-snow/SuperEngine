@@ -26,9 +26,9 @@
 #include "libsiglus/bindings/common.hpp"
 #include "libsiglus/bindings/event.hpp"
 #include "libsiglus/bindings/gexe.hpp"
+#include "libsiglus/bindings/memory.hpp"
 #include "libsiglus/bindings/mwnd.hpp"
 #include "libsiglus/bindings/obj.hpp"
-#include "libsiglus/bindings/proxy.hpp"
 #include "libsiglus/bindings/sound.hpp"
 #include "libsiglus/bindings/system.hpp"
 #include "libsiglus/gexedat.hpp"
@@ -38,7 +38,6 @@
 #include "log/domain_logger.hpp"
 #include "m6/vm_factory.hpp"
 #include "srbind/module.hpp"
-#include "srbind/srbind.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/event_system.hpp"
@@ -46,7 +45,6 @@
 #include "utilities/file.hpp"
 #include "utilities/mapped_file.hpp"
 #include "vm/gc.hpp"
-#include "vm/object.hpp"
 
 #include <chrono>
 #include <filesystem>
@@ -116,14 +114,14 @@ SiglusRuntime SGVMFactory::Create() {
   rt.system = std::make_unique<SDLSystem>(gexe, rt.asset_scanner);
 
   // add bindings here
+  binding::sgGexe(ctx).Bind(rt);
+  binding::Memory(ctx).Bind(rt);
   binding::Sound(ctx).Bind(rt);
   binding::System(ctx).Bind(rt);
   binding::Obj(ctx).Bind(rt);
   binding::sgEvent(ctx).Bind(rt);
-  binding::sgGexe(ctx).Bind(rt);
   binding::MWND(ctx).Bind(rt);
   sb::module_ m(gc.get(), vm.globals_.get());
-  rt.usrprop = std::make_unique<Usrprop_storage_t>();
 
   m.def("__builtin_dbgprint",
         [](std::string str) { std::cerr << "[TRACE] " << str << std::endl; });
@@ -133,20 +131,9 @@ SiglusRuntime SGVMFactory::Create() {
   m.def("__builtin_textout", [](int kidoku, std::string text) {
     // not implemented yet
   });
-  m.def("__builtin_usrprop",
-        [usrprop = rt.usrprop.get(), gc](int scene, int idx, std::string name) {
-          long long hash = ((long long)scene << 32) | idx;
-          return binding::MakeProxy(
-              gc.get(),
-              [usrprop, hash]() {
-                auto it = usrprop->find(hash);
-                return it == usrprop->cend() ? sr::nil : it->second;
-              },
-              [usrprop, hash](sr::Value val) {
-                (*usrprop)[hash] = val;
-                return sr::nil;
-              });
-        });
+  m.def("__builtin_load_scn", [](int scn) {
+    // not implemented yet
+  });
   m.def("__builtin_farcall", [](std::string scn, int zlabel) {
     // not implemented yet
   });

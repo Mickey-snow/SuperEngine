@@ -4,7 +4,7 @@
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2025 Serina Sakurai
+// Copyright (C) 2026 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,16 +23,16 @@
 
 #pragma once
 
-#include "vm/gc.hpp"
-#include "vm/value.hpp"
+#include <string>
 
-#include <functional>
+namespace serilang {
+class VM;
+class Value;
+};  // namespace serilang
 
 namespace libsiglus::binding {
 
-serilang::Value MakeProxy(
-    serilang::GarbageCollector* gc,
-    std::function<serilang::Value()> getter,
-    std::function<serilang::Value(serilang::Value)> setter);
+// for code injection
+serilang::Value Execute(serilang::VM& vm, std::string src);
 
 }  // namespace libsiglus::binding

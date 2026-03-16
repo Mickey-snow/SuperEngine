@@ -124,8 +124,8 @@ class Recompiler {
   void emit_tok(const token::Return& tk);
   void emit_tok(const token::Eof& tk);
 
-  // Element/AccessChain codegen, returns is_proxy
-  void emit_elm(const elm::AccessChain& e);
+  // Element/AccessChain codegen
+  void emit_elm(const elm::AccessChain& e, const Value* assign = nullptr);
   void emit_elm_root(const std::monostate& r);
   void emit_elm_root(const elm::Usrcmd& r);
   void emit_elm_root(const elm::Usrprop& r);
