@@ -26,6 +26,7 @@
 #include "libsiglus/types.hpp"
 
 #include <cstdint>
+#include <format>
 #include <string>
 
 namespace libsiglus {
@@ -37,12 +38,18 @@ struct Property {
   Type form;
   int32_t size;
   std::string name;
+  inline std::string ToDebugString() const {
+    return std::format("{} {{{},{}}}", name, ToString(form), size);
+  }
 };
 
 struct Command {
   int32_t scene_id;
   int32_t offset;
   std::string name;
+  inline std::string ToDebugString() const {
+    return std::format("{} @{}-{}", name, scene_id, offset);
+  }
 };
 
 }  // namespace libsiglus

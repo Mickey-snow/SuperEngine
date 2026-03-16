@@ -26,15 +26,14 @@
 #include "log/domain_logger.hpp"
 #include "machine/dumper.hpp"
 #include "utilities/file.hpp"
-#include "utilities/string_utilities.hpp"
 
 #include <boost/program_options.hpp>
 #include <execution>
 #include <filesystem>
 #include <format>
 #include <fstream>
-#include <future>
 #include <iostream>
+#include <syncstream>
 
 namespace fs = std::filesystem;
 namespace po = boost::program_options;
@@ -138,8 +137,8 @@ int main(int argc, char* argv[]) {
         std::execution::par_unseq, tasks.begin(), tasks.end(),
         [&](Dumper::Task& t) {
           const int percentage = (++completed_count * 100) / total_tasks;
-          std::clog << std::format("[{}%] {}", percentage, t.path.string())
-                    << std::endl;
+          std::osyncstream(std::clog)
+              << std::format("[{}%] {}\n", percentage, t.path.string());
           std::ofstream ofs(output_path / t.path);
           run(ofs, t.task);
         });

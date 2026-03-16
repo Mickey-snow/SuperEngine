@@ -30,7 +30,6 @@
 #include "libsiglus/archive.hpp"
 #include "libsiglus/gexedat.hpp"
 #include "libsiglus/parser.hpp"
-#include "libsiglus/xorkey.hpp"
 #include "parser_context.hpp"
 #include "utilities/mapped_file.hpp"
 #include "utilities/string_utilities.hpp"
@@ -38,8 +37,8 @@
 #include <filesystem>
 #include <format>
 #include <numeric>
+#include <ostream>
 
-namespace fs = std::filesystem;
 using namespace std::placeholders;
 
 namespace libsiglus {
@@ -101,24 +100,38 @@ std::vector<IDumper::Task> Dumper::GetTasks(std::vector<int> scenarios) {
 
 void Dumper::DumpGexe(std::ostream& out) {
   for (const auto& it : gexe_.Filter(""))
-    out << it.key() << " = " << Join(",", it.ToStrVec()) << std::endl;
+    out << it.key() << " = " << Join(",", it.ToStrVec()) << '\n';
+  out.flush();
 }
 
 void Dumper::DumpArchive(std::ostream& out) {
-  std::string result;
-  for (const auto& p : archive_.prop_)
-    out << "prop " << p.name << " {" << ToString(p.form) << ',' << p.size << '}'
-        << std::endl;
-  for (const auto& c : archive_.cmd_)
-    out << std::format("cmd {} @{}-{}", c.name, c.scene_id, c.offset)
-        << std::endl;
-  ;
+  for (size_t i = 0; i < archive_.prop_.size(); ++i) {
+    auto& p = archive_.prop_[i];
+    out << std::format("prop.{} {}\n", i, p.ToDebugString());
+  }
+  for (size_t i = 0; i < archive_.cmd_.size(); ++i) {
+    auto& c = archive_.cmd_[i];
+    out << std::format("cmd.{} {}\n", i, c.ToDebugString());
+  }
+  out.flush();
 }
 
 void Dumper::DumpScene(size_t id, std::ostream& out) {
   Scene scn = archive_.ParseScene(id);
-  out << id << ' ' << scn.scnname_ << std::endl;
+  out << id << ' ' << scn.scnname_ << '\n';  // title
+  out << '\n'
+      << std::string(3, '=') << " header " << std::string(20, '=') << '\n';
+  for (size_t i = 0; i < scn.property.size(); ++i) {
+    auto& p = scn.property[i];
+    out << std::format("prop.{} {}\n", i, p.ToDebugString());
+  }
+  for (size_t i = 0; i < scn.cmd.size(); ++i) {
+    auto& c = scn.cmd[i];
+    out << std::format("cmd.{} {}\n", i, c.ToDebugString());
+  }
 
+  out << '\n'
+      << std::string(3, '=') << " script " << std::string(20, '=') << '\n';
   struct Context : public ParserContext {
     Context(Archive& ar, Scene& sc, std::ostream& o, std::ostream& e)
         : ParserContext(ar, sc), idx(1), out(o), err(e) {}
@@ -127,9 +140,9 @@ void Dumper::DumpScene(size_t id, std::ostream& out) {
     std::ostream& err;
 
     void Emit(token::Token_t tok) final {
-      out << idx++ << ": " << ToString(tok) << std::endl;
+      out << idx++ << ": " << ToString(tok) << '\n';
     }
-    void Warn(std::string msg) final { err << msg << std::endl; }
+    void Warn(std::string msg) final { err << msg << '\n'; }
   };
 
   Context ctx(archive_, scn, out, out);
@@ -138,8 +151,9 @@ void Dumper::DumpScene(size_t id, std::ostream& out) {
   try {
     parser.ParseAll();
   } catch (std::exception& e) {
-    out << '\n' << e.what() << std::endl;
+    out << '\n' << e.what() << '\n';
   }
+  out.flush();
 }
 
 void Dumper::DumpAudio(std::filesystem::path path, std::ostream& s) {
