@@ -26,6 +26,7 @@
 
 #include "srbind/srbind.hpp"
 #include "vm/gc.hpp"
+#include "vm/list.hpp"
 #include "vm/object.hpp"
 #include "vm/promise.hpp"
 #include "vm/vm.hpp"

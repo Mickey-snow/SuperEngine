@@ -27,13 +27,14 @@
 
 #include "utilities/transparent_hash.hpp"
 #include "vm/call_frame.hpp"
+#include "vm/dict.hpp"
 #include "vm/instruction.hpp"
 #include "vm/iobject.hpp"
+#include "vm/list.hpp"
 #include "vm/promise.hpp"
 #include "vm/value.hpp"
 
 #include <bit>
-#include <cmath>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -245,44 +246,6 @@ struct Fiber : public IObject {
   inline void ResetPromise() {
     completion_promise = std::make_shared<Promise>();
   }
-};
-
-struct List : public IObject {
-  static constexpr inline ObjType objtype = ObjType::List;
-
-  std::vector<Value> items;
-
-  explicit List(std::vector<Value> xs = {}) : items(std::move(xs)) {}
-
-  constexpr ObjType Type() const noexcept final { return objtype; }
-  constexpr size_t Size() const noexcept final { return sizeof(*this); }
-
-  void MarkRoots(GCVisitor& visitor) override;
-
-  std::string Str() const override;   // “[1, 2, 3]”
-  std::string Desc() const override;  // “<list[3]>”
-
-  void GetItem(VM& vm, Fiber& f) override;
-  void SetItem(VM& vm, Fiber& f) override;
-};
-
-struct Dict : public IObject {
-  static constexpr inline ObjType objtype = ObjType::Dict;
-
-  using map_t = std::unordered_map<Value, Value>;
-  map_t map;
-
-  explicit Dict(map_t m = {});
-  constexpr ObjType Type() const noexcept final { return objtype; }
-  constexpr size_t Size() const noexcept final { return sizeof(*this); }
-
-  void MarkRoots(GCVisitor& visitor) override;
-
-  std::string Str() const override;   // “{a: 1, b: 2}”
-  std::string Desc() const override;  // “<dict{2}>”
-
-  void GetItem(VM& vm, Fiber& f) override;
-  void SetItem(VM& vm, Fiber& f) override;
 };
 
 struct Module : public IObject {

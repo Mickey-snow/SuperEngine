@@ -27,10 +27,12 @@
 #include "machine/op.hpp"
 #include "utilities/expected.hpp"
 #include "vm/call_frame.hpp"
+#include "vm/dict.hpp"
 #include "vm/function.hpp"
 #include "vm/future.hpp"
 #include "vm/gc.hpp"
 #include "vm/instruction.hpp"
+#include "vm/list.hpp"
 #include "vm/object.hpp"
 #include "vm/operator_protocol.hpp"
 #include "vm/primops.hpp"
@@ -403,8 +405,11 @@ void VM::ExecuteFiber(Fiber* fib) {
         case OpCode::Pop: {
           const auto ins = chunk->Read<serilang::Pop>(ip);
           ip += sizeof(ins);
-          for (uint8_t i = 0; i < ins.count; ++i)
-            fib->op_stack.pop_back();
+          if (fib->op_stack.size() < ins.count) {
+            Error(*fib, "stack underflow");
+            return;
+          }
+          fib->op_stack.resize(fib->op_stack.size() - ins.count);
         } break;
 
         //------------------------------------------------------------------
