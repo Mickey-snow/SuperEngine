@@ -637,14 +637,23 @@ void VM::ExecuteFiber(Fiber* fib) {
           const auto ins = chunk->Read<serilang::MakeDict>(ip);
           ip += sizeof(ins);
           Dict::map_t elms;
+          std::vector<Value> order;
+          order.reserve(ins.nelms);
           for (size_t i = fib->op_stack.size() - 2 * ins.nelms;
                i < fib->op_stack.size(); i += 2) {
             const auto& key = fib->op_stack[i];
             Value val = std::move(fib->op_stack[i + 1]);
-            std::ignore = elms.try_emplace(std::move(key), std::move(val));
+            auto it = elms.find(key);
+            if (it == elms.end()) {
+              order.push_back(key);
+              elms.emplace(key, std::move(val));
+            } else {
+              it->second = std::move(val);
+            }
           }
           fib->op_stack.resize(fib->op_stack.size() - 2 * ins.nelms);
-          fib->op_stack.emplace_back(gc_->Allocate<Dict>(std::move(elms)));
+          fib->op_stack.emplace_back(
+              gc_->Allocate<Dict>(std::move(elms), std::move(order)));
         } break;
 
         case OpCode::MakeClass: {

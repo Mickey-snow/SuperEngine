@@ -33,6 +33,7 @@
 #include "vm/vm.hpp"
 
 #include <limits>
+#include <utility>
 
 namespace serilang_test {
 
@@ -63,6 +64,30 @@ class VMTest : public ::testing::Test {
   inline void append_ins(Code* chunk, std::initializer_list<Instruction> ins) {
     for (const auto& it : ins)
       chunk->Append(it);
+  }
+
+  Value CallMember(
+      IObject* receiver,
+      std::string_view item,
+      const std::vector<Value>& pos = {},
+      const std::vector<std::pair<std::string, Value>>& kwargs = {}) {
+    TempValue method = receiver->Member(item);
+    Value callee = gc->TrackValue(std::move(method));
+
+    auto* fiber = gc->Allocate<Fiber>();
+    fiber->op_stack.emplace_back(callee);
+    for (const Value& arg : pos)
+      fiber->op_stack.emplace_back(arg);
+    for (const auto& [key, value] : kwargs) {
+      fiber->op_stack.emplace_back(gc->Allocate<String>(key));
+      fiber->op_stack.emplace_back(value);
+    }
+
+    callee.Call(vm, *fiber, static_cast<uint8_t>(pos.size()),
+                static_cast<uint8_t>(kwargs.size()));
+
+    EXPECT_EQ(fiber->op_stack.size(), 1u);
+    return fiber->op_stack.back();
   }
 
   Value run_and_get(Code* chunk) { return vm.Evaluate(chunk); }
@@ -422,6 +447,111 @@ TEST_F(VMTest, MakeDictSupportsMixedKeyTypes) {
   String one("one");
   EXPECT_EQ(dict->map.at(Value(&one)), 20);
   EXPECT_EQ(dict->map.at(Value(true)), 30);
+}
+
+TEST_F(VMTest, DictMethods) {
+  auto* dict = gc->Allocate<Dict>();
+
+  EXPECT_EQ(CallMember(dict, "update", {},
+                       {std::pair<std::string, Value>{"a", Value(1)},
+                        std::pair<std::string, Value>{"b", Value(2)}}),
+            nil);
+  EXPECT_EQ(CallMember(dict, "get", value_vector("a")), 1);
+  EXPECT_EQ(CallMember(dict, "get", value_vector("missing", 42)), 42);
+
+  EXPECT_EQ(CallMember(dict, "setdefault", value_vector("c", 3)), 3);
+  EXPECT_EQ(CallMember(dict, "setdefault", value_vector("c", 99)), 3);
+
+  auto* keys = CallMember(dict, "keys").Get_if<List>();
+  ASSERT_NE(keys, nullptr);
+  ASSERT_EQ(keys->items.size(), 3u);
+  EXPECT_EQ(keys->items[0], "a");
+  EXPECT_EQ(keys->items[1], "b");
+  EXPECT_EQ(keys->items[2], "c");
+
+  auto* values = CallMember(dict, "values").Get_if<List>();
+  ASSERT_NE(values, nullptr);
+  ASSERT_EQ(values->items.size(), 3u);
+  EXPECT_EQ(values->items[0], 1);
+  EXPECT_EQ(values->items[1], 2);
+  EXPECT_EQ(values->items[2], 3);
+
+  auto* items = CallMember(dict, "items").Get_if<List>();
+  ASSERT_NE(items, nullptr);
+  ASSERT_EQ(items->items.size(), 3u);
+  auto* item0 = items->items[0].Get_if<List>();
+  ASSERT_NE(item0, nullptr);
+  EXPECT_EQ(item0->items[0], "a");
+  EXPECT_EQ(item0->items[1], 1);
+
+  auto* copied = CallMember(dict, "copy").Get_if<Dict>();
+  ASSERT_NE(copied, nullptr);
+  ASSERT_NE(copied, dict);
+  EXPECT_EQ(copied->map.at(to_value("a")), 1);
+  EXPECT_EQ(copied->map.at(to_value("b")), 2);
+  EXPECT_EQ(copied->map.at(to_value("c")), 3);
+
+  EXPECT_EQ(CallMember(dict, "pop", value_vector("b")), 2);
+
+  auto* pair_list = gc->Allocate<List>(
+      std::vector<Value>{Value(gc->Allocate<List>(value_vector("d", 4))),
+                         Value(gc->Allocate<List>(value_vector("e", 5)))});
+  EXPECT_EQ(CallMember(dict, "update", std::vector<Value>{Value(pair_list)}),
+            nil);
+
+  auto* popped = CallMember(dict, "popitem").Get_if<List>();
+  ASSERT_NE(popped, nullptr);
+  ASSERT_EQ(popped->items.size(), 2u);
+  EXPECT_EQ(popped->items[0], "e");
+  EXPECT_EQ(popped->items[1], 5);
+
+  auto* seed_keys = gc->Allocate<List>(value_vector("x", "y"));
+  auto* from_keys = CallMember(dict, "fromkeys",
+                               std::vector<Value>{Value(seed_keys), Value(9)})
+                        .Get_if<Dict>();
+  ASSERT_NE(from_keys, nullptr);
+  EXPECT_EQ(from_keys->map.at(to_value("x")), 9);
+  EXPECT_EQ(from_keys->map.at(to_value("y")), 9);
+
+  EXPECT_EQ(CallMember(dict, "clear"), nil);
+  EXPECT_TRUE(dict->map.empty());
+  EXPECT_TRUE(dict->order.empty());
+}
+
+TEST_F(VMTest, ListMethods) {
+  auto* xs = gc->Allocate<List>(value_vector(2, 1, 2));
+
+  EXPECT_EQ(CallMember(xs, "append", std::vector<Value>{Value(3)}), nil);
+  EXPECT_EQ(CallMember(xs, "count", std::vector<Value>{Value(2)}), 2);
+  EXPECT_EQ(CallMember(xs, "index", std::vector<Value>{Value(3)}), 3);
+
+  auto* copied = CallMember(xs, "copy").Get_if<serilang::List>();
+  ASSERT_NE(copied, nullptr);
+  ASSERT_NE(copied, xs);
+  ASSERT_EQ(copied->items.size(), 4u);
+  EXPECT_EQ(copied->items[0], 2);
+  EXPECT_EQ(copied->items[3], 3);
+
+  auto* extension = gc->Allocate<List>(value_vector(4, 5));
+  EXPECT_EQ(CallMember(xs, "extend", std::vector<Value>{Value(extension)}),
+            nil);
+  EXPECT_EQ(CallMember(xs, "insert", std::vector<Value>{Value(1), Value(9)}),
+            nil);
+
+  EXPECT_EQ(CallMember(xs, "pop"), 5);
+  EXPECT_EQ(CallMember(xs, "pop", std::vector<Value>{Value(1)}), 9);
+  EXPECT_EQ(CallMember(xs, "remove", std::vector<Value>{Value(2)}), nil);
+  EXPECT_EQ(CallMember(xs, "reverse"), nil);
+  EXPECT_EQ(CallMember(xs, "sort"), nil);
+
+  ASSERT_EQ(xs->items.size(), 4u);
+  EXPECT_EQ(xs->items[0], 1);
+  EXPECT_EQ(xs->items[1], 2);
+  EXPECT_EQ(xs->items[2], 3);
+  EXPECT_EQ(xs->items[3], 4);
+
+  EXPECT_EQ(CallMember(xs, "clear"), nil);
+  EXPECT_TRUE(xs->items.empty());
 }
 
 TEST_F(VMTest, Exception) {

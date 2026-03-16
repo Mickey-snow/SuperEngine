@@ -29,6 +29,7 @@
 
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 namespace serilang {
 
@@ -37,11 +38,13 @@ struct Dict : public IObject {
 
   using map_t = std::unordered_map<Value, Value>;
   map_t map;
+  std::vector<Value> order;
 
-  explicit Dict(map_t m = {});
+  explicit Dict(map_t m = {}, std::vector<Value> order = {});
   constexpr ObjType Type() const noexcept final { return objtype; }
   constexpr size_t Size() const noexcept final { return sizeof(*this); }
 
+  TempValue Member(std::string_view mem) override;
   void MarkRoots(GCVisitor& visitor) override;
 
   std::string Str() const override;   // “{a: 1, b: 2}”
