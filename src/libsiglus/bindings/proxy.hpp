@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------
 //
-// This file is part of RLVM, a RealLive virtual machine clone.
+// This file is part of RLVM
 //
 // -----------------------------------------------------------------------
 //
@@ -19,50 +19,20 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
-//
 // -----------------------------------------------------------------------
 
 #pragma once
 
-#include "core/gameexe.hpp"
+#include "vm/gc.hpp"
 #include "vm/value.hpp"
 
 #include <functional>
-#include <memory>
-#include <unordered_map>
 
-class AssetScanner;
-class SDLSystem;
+namespace libsiglus::binding {
 
-namespace serilang {
-class VM;
-};  // namespace serilang
+serilang::Value MakeProxy(
+    serilang::GarbageCollector* gc,
+    std::function<serilang::Value()> getter,
+    std::function<serilang::Value(serilang::Value)> setter);
 
-namespace libsiglus {
-class Archive;
-namespace binding {
-class SiglusMwnd;
-}
-
-using Usrprop_storage_t = std::unordered_map<long long, serilang::Value>;
-
-struct SiglusRuntime {
-  std::shared_ptr<Gameexe> gameexe;
-  std::shared_ptr<Archive> archive;
-  std::unique_ptr<serilang::VM> vm;
-  std::shared_ptr<AssetScanner> asset_scanner;
-  std::shared_ptr<binding::SiglusMwnd> mwnd;
-  std::unique_ptr<SDLSystem> system;
-
-  std::function<void()> exec_sdl_callback;
-  std::unique_ptr<Usrprop_storage_t> usrprop;
-
-  SiglusRuntime() = default;
-  ~SiglusRuntime();
-  SiglusRuntime(const SiglusRuntime&) = delete;
-  SiglusRuntime& operator=(const SiglusRuntime&) = delete;
-  SiglusRuntime(SiglusRuntime&&) noexcept = default;
-  SiglusRuntime& operator=(SiglusRuntime&&) noexcept = default;
-};
-
-}  // namespace libsiglus
+}  // namespace libsiglus::binding

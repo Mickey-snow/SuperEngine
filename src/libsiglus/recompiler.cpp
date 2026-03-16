@@ -79,11 +79,11 @@ void Recompiler::Gen(token::Token_t tok) {
     if (is_debug_) {
       emit_const(ToString(tok));
       emit(sr::Dup{});
-      emit(sr::DebugValue{});
       emit_load_global("__builtin_dbgprint");
       emit(sr::Swap{});
       emit(sr::Call{.argcnt = 1, .kwargcnt = 0});
       emit(sr::Pop{});
+      emit(sr::DebugValue{});
     }
     std::visit([this](const auto& stmt) { emit_tok(stmt); }, std::move(tok));
   } catch (std::exception& e) {
@@ -209,8 +209,10 @@ void Recompiler::emit_tok(const token::Textout& tk) {
   emit(sr::Call{.argcnt = 2});
 }
 void Recompiler::emit_tok(const token::GetProperty& tk) {
-  emit_elm(tk.chain);
-  emit_store_fast(tk.dst.id);
+  emit_elm(tk.chain);                          // (elm)
+  emit(sr::GetField{intern_name("get")});      // (getter)
+  emit(sr::Call{.argcnt = 0, .kwargcnt = 0});  // (val)
+  emit_store_fast(tk.dst.id);                  // -> ()
 }
 void Recompiler::emit_tok(const token::Operate1& tk) {
   if (tk.val) {
@@ -275,10 +277,11 @@ void Recompiler::emit_tok(const token::Gosub& tk) {
   emit_store_fast(tk.dst.id);
 }
 void Recompiler::emit_tok(const token::Assign& tk) {
-  emit_elm(tk.dst);
-  emit(sr::GetField{intern_name("Assign")});
+  emit_elm(tk.dst);                        // (proxy)
+  emit(sr::GetField{intern_name("set")});  // (proxy.setter)
   emit_val(tk.src);
-  emit(sr::Call{.argcnt = 1, .kwargcnt = 0});
+  emit(sr::Call({.argcnt = 1, .kwargcnt = 0}));
+  // (proxy.setter, value) -> ()
 }
 void Recompiler::emit_tok(const token::Duplicate& tk) {
   emit_val(tk.src);
@@ -331,6 +334,7 @@ void Recompiler::emit_elm(const elm::AccessChain& e) {
   }
   // (result)
 }
+
 void Recompiler::emit_elm_root(const std::monostate& r) {
   ASSERTX_TRUE(false);  // unreachable
 }
@@ -363,7 +367,7 @@ void Recompiler::emit_elm_root(const elm::Usrprop& r) {
   emit_const(r.idx);
   emit_const(std::string(r.name));
   emit(sr::Call{.argcnt = 3, .kwargcnt = 0});
-  // (usrprop, scene, idx, name) -> (ret)
+  // (usrprop, scene, idx, name) -> (prop)
 }
 void Recompiler::emit_elm_root(const elm::Arg& r) {
   // fast: (arg_0, arg_1, ...)

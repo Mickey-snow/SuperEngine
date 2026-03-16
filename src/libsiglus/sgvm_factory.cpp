@@ -28,13 +28,16 @@
 #include "libsiglus/bindings/gexe.hpp"
 #include "libsiglus/bindings/mwnd.hpp"
 #include "libsiglus/bindings/obj.hpp"
+#include "libsiglus/bindings/proxy.hpp"
 #include "libsiglus/bindings/sound.hpp"
 #include "libsiglus/bindings/system.hpp"
 #include "libsiglus/gexedat.hpp"
 
 #include "libsiglus/archive.hpp"
+#include "libsiglus/siglus_runtime.hpp"
 #include "log/domain_logger.hpp"
 #include "m6/vm_factory.hpp"
+#include "srbind/module.hpp"
 #include "srbind/srbind.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/base/graphics_system.hpp"
@@ -42,10 +45,13 @@
 #include "systems/sdl/sdl_system.hpp"
 #include "utilities/file.hpp"
 #include "utilities/mapped_file.hpp"
+#include "vm/gc.hpp"
+#include "vm/object.hpp"
 
 #include <chrono>
 #include <filesystem>
 #include <memory>
+#include <stdexcept>
 
 namespace libsiglus {
 namespace chr = std::chrono;
@@ -83,6 +89,8 @@ static Gameexe LoadGameexe(std::shared_ptr<AssetScanner> scanner) {
 SiglusRuntime SGVMFactory::Create() {
   SiglusRuntime rt;
   rt.vm = std::make_unique<sr::VM>(m6::VMFactory::Create());
+  sr::VM& vm = *rt.vm;
+  std::shared_ptr<sr::GarbageCollector> gc = vm.gc_;
 
   fs::path seen_path = CorrectPathCase(base_path_ / "scene.pck");
   MappedFile archive_mf(seen_path);
@@ -114,7 +122,9 @@ SiglusRuntime SGVMFactory::Create() {
   binding::sgEvent(ctx).Bind(rt);
   binding::sgGexe(ctx).Bind(rt);
   binding::MWND(ctx).Bind(rt);
-  sb::module_ m(rt.vm->gc_.get(), rt.vm->globals_.get());
+  sb::module_ m(gc.get(), vm.globals_.get());
+  rt.usrprop = std::make_unique<Usrprop_storage_t>();
+
   m.def("__builtin_dbgprint",
         [](std::string str) { std::cerr << "[TRACE] " << str << std::endl; });
   m.def("__builtin_name", [](std::string str) {
@@ -123,12 +133,20 @@ SiglusRuntime SGVMFactory::Create() {
   m.def("__builtin_textout", [](int kidoku, std::string text) {
     // not implemented yet
   });
-  m.def("__builtin_usrcmd", [](int scene, int entry, std::string name) {
-    // not implemented yet
-  });
-  m.def("__builtin_usrprop", [](int scene, int idx, std::string name) {
-    // not implemented yet
-  });
+  m.def("__builtin_usrprop",
+        [usrprop = rt.usrprop.get(), gc](int scene, int idx, std::string name) {
+          long long hash = ((long long)scene << 32) | idx;
+          return binding::MakeProxy(
+              gc.get(),
+              [usrprop, hash]() {
+                auto it = usrprop->find(hash);
+                return it == usrprop->cend() ? sr::nil : it->second;
+              },
+              [usrprop, hash](sr::Value val) {
+                (*usrprop)[hash] = val;
+                return sr::nil;
+              });
+        });
   m.def("__builtin_farcall", [](std::string scn, int zlabel) {
     // not implemented yet
   });
