@@ -131,7 +131,7 @@ class ListMethod final : public IObject {
   void Call(VM& vm, Fiber& f, uint8_t nargs, uint8_t nkwargs) override {
     const size_t base = f.op_stack.size() - nargs - 2 * nkwargs - 1;
 
-    auto fail = [&](std::string message) { vm.Error(f, std::move(message)); };
+    auto fail = [](std::string msg) { throw RuntimeError(std::move(msg)); };
 
     auto finish = [&](Value result = nil) {
       f.op_stack.resize(base + 1);
