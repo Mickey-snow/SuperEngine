@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------
 //
-// This file is part of RLVM, a RealLive virtual machine clone.
+// This file is part of RLVM
 //
 // -----------------------------------------------------------------------
 //
@@ -19,25 +19,20 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
-//
 // -----------------------------------------------------------------------
 
-#include "sgvm_instance.hpp"
+#include "libsiglus/bindings/loader.hpp"
 
 #include "libsiglus/archive.hpp"
 #include "libsiglus/parser.hpp"
 #include "libsiglus/parser_context.hpp"
 #include "libsiglus/recompiler.hpp"
-#include "libsiglus/sgvm_factory.hpp"
+#include "libsiglus/scene.hpp"
 #include "libsiglus/token.hpp"
-#include "vm/object.hpp"
-#include "vm/vm.hpp"
 
-#include <exception>
-#include <filesystem>
 #include <iostream>
 
-using namespace libsiglus;
+namespace libsiglus ::binding {
 namespace sr = serilang;
 
 struct Context : public ParserContext {
@@ -48,22 +43,27 @@ struct Context : public ParserContext {
   void Warn(std::string msg) final { std::cerr << msg << std::endl; }
 };
 
-void SgvmInstance::Main(const std::filesystem::path& game_root) {
-  try {
-    SiglusRuntime rt = SGVMFactory(game_root).Create();
-    sr::VM& vm = *rt.vm;
+sr::Module* Loader::Load(int scene) {
+  Scene scn = archive.ParseScene(scene);
+  std::vector<token::Token_t> tokens;
+  Context ctx(archive, scn, tokens);
+  Parser parser(ctx);
+  parser.ParseAll();
 
-    sr::Module* mod = rt.loader->Load(start_scene_);
-    if (!mod)
-      return;
-    sr::Code* code = (*mod->globals)["%%script"].Get_if<sr::Code>();
-    if (!code)
-      return;
+  Recompiler compiler(vm.gc_);
+  compiler.is_debug_ = true;  // TODO: Add an option to control debug flag
+  for (auto& it : tokens)
+    compiler.Gen(std::move(it));
+  tokens.clear();
 
-    sr::Value result = vm.Evaluate(code);
-    std::cout << "Result is: " << result.Desc() << std::endl;
-
-  } catch (std::exception& e) {
-    std::cerr << e.what() << std::endl;
+  if (!compiler.Ok()) {
+    for (auto& it : compiler.GetErrors())
+      std::cerr << it.ToString() << std::endl;
+    return nullptr;
   }
+
+  compiler.module_->name = scn.scnname_;
+  return compiler.module_;
 }
+
+}  // namespace libsiglus::binding

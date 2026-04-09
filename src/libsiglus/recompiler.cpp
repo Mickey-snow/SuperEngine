@@ -35,6 +35,7 @@
 #include "utilities/assertx.hpp"
 #include "utilities/overload.hpp"
 #include "vm/instruction.hpp"
+#include "vm/object.hpp"
 #include "vm/string.hpp"
 
 namespace sr = serilang;
@@ -71,8 +72,10 @@ void reserve_fast_local(sr::Code* chunk, int id) {
 
 Recompiler::Recompiler(std::shared_ptr<serilang::GarbageCollector> gc)
     : gc_(std::move(gc)) {
-  chunk_ = gc_->Allocate<sr::Code>();
-  chunk_->const_pool.emplace_back(chunk_);
+  cur_chunk_ = gc_->Allocate<sr::Code>();
+  module_ = gc->Allocate<sr::Module>("<siglus script>");
+  (*module_->globals)["@@script"] = sr::Value(cur_chunk_);
+  cur_chunk_->const_pool.emplace_back(cur_chunk_);
 }
 Recompiler::~Recompiler() = default;
 
@@ -96,13 +99,13 @@ void Recompiler::Gen(token::Token_t tok) {
 void Recompiler::emit_current_chunk() { emit(sr::Push{0}); }
 
 uint32_t Recompiler::constant(sr::Value v) {
-  if (!chunk_)
+  if (!cur_chunk_)
     throw std::logic_error("Recompiler chunk is not set");
 
-  const auto next_slot = static_cast<uint32_t>(chunk_->const_pool.size());
+  const auto next_slot = static_cast<uint32_t>(cur_chunk_->const_pool.size());
   auto [it, ok] = const_pool_.emplace(std::move(v), next_slot);
   if (ok)
-    chunk_->const_pool.emplace_back(it->first);
+    cur_chunk_->const_pool.emplace_back(it->first);
   return it->second;
 }
 uint32_t Recompiler::emit_const_nil() {
@@ -127,11 +130,11 @@ uint32_t Recompiler::intern_name(std::string v) {
 }
 
 void Recompiler::emit_store_fast(int id) {
-  reserve_fast_local(chunk_, id);
+  reserve_fast_local(cur_chunk_, id);
   emit(sr::StoreFast{fast_local_slot(id)});
 }
 void Recompiler::emit_load_fast(int id) {
-  reserve_fast_local(chunk_, id);
+  reserve_fast_local(cur_chunk_, id);
   emit(sr::LoadFast{fast_local_slot(id)});
 }
 void Recompiler::emit_store_global(std::string id) {
@@ -158,24 +161,24 @@ static inline constexpr auto rel(offset_t from, offset_t to) -> offset_t {
 }
 void Recompiler::patch(std::size_t site,
                        std::size_t target) {  // Patch jumps
-  switch (static_cast<sr::OpCode>((*chunk_)[site])) {
+  switch (static_cast<sr::OpCode>((*cur_chunk_)[site])) {
     case sr::OpCode::Jump:
     case sr::OpCode::JumpIfFalse:
     case sr::OpCode::JumpIfTrue:
     case sr::OpCode::TryBegin: {
       const auto offset =
           rel<int32_t>(site + sizeof(std::byte) + sizeof(int32_t), target);
-      chunk_->Write(site + 1, offset);
+      cur_chunk_->Write(site + 1, offset);
     } break;
 
     case sr::OpCode::MakeFunction:
-      chunk_->Write(site + 1, static_cast<uint32_t>(target));
+      cur_chunk_->Write(site + 1, static_cast<uint32_t>(target));
       break;
 
     default:
       throw std::runtime_error(
           "Codegen: invalid patch site (type" +
-          std::to_string(static_cast<uint8_t>((*chunk_)[site])) + ')');
+          std::to_string(static_cast<uint8_t>((*cur_chunk_)[site])) + ')');
   }
 }
 

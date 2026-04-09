@@ -26,6 +26,7 @@
 #include "libsiglus/bindings/common.hpp"
 #include "libsiglus/bindings/event.hpp"
 #include "libsiglus/bindings/gexe.hpp"
+#include "libsiglus/bindings/loader.hpp"
 #include "libsiglus/bindings/memory.hpp"
 #include "libsiglus/bindings/mwnd.hpp"
 #include "libsiglus/bindings/obj.hpp"
@@ -93,6 +94,7 @@ SiglusRuntime SGVMFactory::Create() {
   fs::path seen_path = CorrectPathCase(base_path_ / "scene.pck");
   MappedFile archive_mf(seen_path);
   rt.archive = std::make_shared<Archive>(Archive::Create(archive_mf.Read()));
+  rt.loader = std::make_unique<binding::Loader>(*rt.archive, vm);
 
   binding::Context ctx;
   ctx.base_pth = base_path_;
@@ -135,6 +137,9 @@ SiglusRuntime SGVMFactory::Create() {
     // not implemented yet
   });
   m.def("__builtin_farcall", [](std::string scn, int zlabel) {
+    // not implemented yet
+  });
+  m.def("__builtin_usrcmd", [](int scn, int entry, std::string name) {
     // not implemented yet
   });
 

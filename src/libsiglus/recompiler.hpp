@@ -59,10 +59,11 @@ class Recompiler {
  private:
   // Data members
   std::shared_ptr<serilang::GarbageCollector> gc_;
+  serilang::Code* cur_chunk_ = nullptr;
 
  public:
   std::unordered_map<std::string, std::size_t> subroutine_entries_;
-  serilang::Code* chunk_ = nullptr;
+  serilang::Module* module_ = nullptr;
   bool is_debug_ = false;
 
  private:
@@ -76,9 +77,9 @@ class Recompiler {
   // Emit helpers
   template <typename T>
   inline void emit(T ins) {
-    chunk_->Append(std::move(ins));
+    cur_chunk_->Append(std::move(ins));
   }
-  inline std::size_t code_size() const { return chunk_->code.size(); }
+  inline std::size_t code_size() const { return cur_chunk_->code.size(); }
   void emit_current_chunk();
 
   // Constant pool

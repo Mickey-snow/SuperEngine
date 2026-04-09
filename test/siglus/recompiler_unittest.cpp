@@ -70,10 +70,18 @@ class RecompilerTest : public ::testing::Test {
     FAIL() << Errors();
   }
 
+  sr::Code* GetChunk() {
+    sr::Module* mod = recompiler.module_;
+    EXPECT_NE(mod, nullptr);
+    sr::Code* chunk = (*mod->globals)["@@script"].Get_if<sr::Code>();
+    EXPECT_NE(chunk, nullptr);
+    return chunk;
+  }
+
   sr::Value Run(std::unordered_map<std::string, sr::Value> globals = {},
                 std::unordered_map<std::string, sr::Value> builtins = {}) {
     sr::VM vm(gc, std::move(globals), std::move(builtins));
-    return vm.Evaluate(recompiler.chunk_);
+    return vm.Evaluate(GetChunk());
   }
 };
 
@@ -87,7 +95,8 @@ TEST_F(RecompilerTest, BinaryOp) {
                     .val = std::nullopt},
        tk::Return{.ret_vals = {IntVar(2)}});
 
-  EXPECT_THAT(recompiler.chunk_->fast_locals, ElementsAre("v0", "v1", "v2"));
+  EXPECT_THAT(GetChunk()->fast_locals,
+              ElementsAre("v0", "v1", "v2"));
   EXPECT_EQ(Run(), 33);
 }
 
@@ -99,7 +108,7 @@ TEST_F(RecompilerTest, UnaryOp) {
                     .val = std::nullopt},
        tk::Return{.ret_vals = {IntVar(1)}});
 
-  EXPECT_THAT(recompiler.chunk_->fast_locals, ElementsAre("v0", "v1"));
+  EXPECT_THAT(GetChunk()->fast_locals, ElementsAre("v0", "v1"));
   EXPECT_EQ(Run(), -7);
 }
 
@@ -122,7 +131,7 @@ TEST_F(RecompilerTest, Name) {
       }));
 
   Emit(tk::Name{.str = ls::String{"Alice"}});
-  ASSERT_FALSE(recompiler.chunk_->code.empty());
+  ASSERT_FALSE(GetChunk()->code.empty());
 
   EXPECT_EQ(Run(globals, builtins), std::monostate());
   EXPECT_EQ(seen, "Alice");
@@ -154,7 +163,7 @@ TEST_F(RecompilerTest, Textout) {
   Emit(tk::Duplicate{.src = ls::String{"Hello"}, .dst = StrVar(0)},
        tk::Textout{.kidoku = 7, .str = StrVar(0)}, tk::Return{.ret_vals = {}});
 
-  EXPECT_THAT(recompiler.chunk_->fast_locals, ElementsAre("v0"));
+  EXPECT_THAT(GetChunk()->fast_locals, ElementsAre("v0"));
   EXPECT_EQ(Run(globals, builtins), std::monostate());
   EXPECT_EQ(seen_kidoku, 7);
   EXPECT_EQ(seen_text, "Hello");
@@ -207,7 +216,7 @@ TEST_F(RecompilerTest, SparseFastLocals) {
   Emit(tk::Duplicate{.src = ls::Integer{7}, .dst = IntVar(3)},
        tk::Return{.ret_vals = {IntVar(3)}});
 
-  EXPECT_THAT(recompiler.chunk_->fast_locals,
+  EXPECT_THAT(GetChunk()->fast_locals,
               ElementsAre("v0", "v1", "v2", "v3"));
   EXPECT_EQ(Run(), 7);
 }
@@ -218,9 +227,9 @@ TEST_F(RecompilerTest, SparseFastLocalsAboveByteRange) {
   Emit(tk::Duplicate{.src = ls::Integer{7}, .dst = IntVar(kHighSlot)},
        tk::Return{.ret_vals = {IntVar(kHighSlot)}});
 
-  EXPECT_EQ(recompiler.chunk_->fast_locals.size(),
+  EXPECT_EQ(GetChunk()->fast_locals.size(),
             static_cast<std::size_t>(kHighSlot) + 1);
-  EXPECT_EQ(recompiler.chunk_->fast_locals.back(), "v300");
+  EXPECT_EQ(GetChunk()->fast_locals.back(), "v300");
   EXPECT_EQ(Run(), 7);
 }
 
@@ -244,7 +253,7 @@ TEST_F(RecompilerTest, GosubWithArgs) {
                     .val = std::nullopt},
        tk::Return{.ret_vals = {IntVar(3)}});
 
-  EXPECT_THAT(recompiler.chunk_->fast_locals,
+  EXPECT_THAT(GetChunk()->fast_locals,
               ElementsAre("v0", "v1", "v2", "v3"));
   EXPECT_EQ(Run(), 42);
 }

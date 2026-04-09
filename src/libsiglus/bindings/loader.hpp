@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //
-// This file is part of RLVM, a RealLive virtual machine clone.
+// This file is part of RLVM
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2025 Serina Sakurai
+// Copyright (C) 2026 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,49 +19,26 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
-//
 // -----------------------------------------------------------------------
 
 #pragma once
 
-#include "core/gameexe.hpp"
-#include "libsiglus/bindings/loader.hpp"
-#include "vm/value.hpp"
-
-#include <functional>
-#include <memory>
-
-class AssetScanner;
-class SDLSystem;
-
-namespace serilang {
-class VM;
-};  // namespace serilang
+#include "vm/object.hpp"
+#include "vm/vm.hpp"
 
 namespace libsiglus {
 class Archive;
 namespace binding {
-class SiglusMwnd;
-}
 
-struct SiglusRuntime {
-  std::shared_ptr<Gameexe> gameexe;
-  std::shared_ptr<Archive> archive;
-  std::unique_ptr<serilang::VM> vm;
-  std::unique_ptr<binding::Loader> loader;
-  std::shared_ptr<AssetScanner> asset_scanner;
+class Loader {
+  Archive& archive;
+  serilang::VM& vm;
 
-  std::shared_ptr<binding::SiglusMwnd> mwnd;
-  std::unique_ptr<SDLSystem> system;
+ public:
+  explicit Loader(Archive& ar, serilang::VM& v) : archive(ar), vm(v) {}
 
-  std::function<void()> exec_sdl_callback;
-
-  SiglusRuntime() = default;
-  ~SiglusRuntime();
-  SiglusRuntime(const SiglusRuntime&) = delete;
-  SiglusRuntime& operator=(const SiglusRuntime&) = delete;
-  SiglusRuntime(SiglusRuntime&&) noexcept = default;
-  SiglusRuntime& operator=(SiglusRuntime&&) noexcept = default;
+  serilang::Module* Load(int scene);
 };
 
+}  // namespace binding
 }  // namespace libsiglus
