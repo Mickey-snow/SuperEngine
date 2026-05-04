@@ -36,6 +36,7 @@
 #include <exception>
 #include <filesystem>
 #include <iostream>
+#include <stdexcept>
 
 using namespace libsiglus;
 namespace sr = serilang;
@@ -54,11 +55,18 @@ void SgvmInstance::Main(const std::filesystem::path& game_root) {
     sr::VM& vm = *rt.vm;
 
     sr::Module* mod = rt.loader->Load(start_scene_);
-    if (!mod)
-      return;
+    if (!mod) {
+      std::string errmsg =
+          std::format("Failed to parse start scene: {}", start_scene_);
+      throw std::runtime_error(std::move(errmsg));
+    }
+
     sr::Code* code = (*mod->globals)["%%script"].Get_if<sr::Code>();
-    if (!code)
-      return;
+    if (!code) {
+      std::string errmsg =
+          std::format("Scene {}: %%script not found", start_scene_);
+      throw std::runtime_error(std::move(errmsg));
+    }
 
     sr::Value result = vm.Evaluate(code);
     std::cout << "Result is: " << result.Desc() << std::endl;

@@ -74,7 +74,7 @@ Recompiler::Recompiler(std::shared_ptr<serilang::GarbageCollector> gc)
     : gc_(gc) {
   cur_chunk_ = gc_->Allocate<sr::Code>();
   module_ = gc_->Allocate<sr::Module>("<siglus script>");
-  (*module_->globals)["@@script"] = sr::Value(cur_chunk_);
+  (*module_->globals)["%%script"] = sr::Value(cur_chunk_);
   cur_chunk_->const_pool.emplace_back(cur_chunk_);
 }
 Recompiler::~Recompiler() = default;

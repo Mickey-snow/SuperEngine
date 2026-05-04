@@ -73,7 +73,7 @@ class RecompilerTest : public ::testing::Test {
   sr::Code* GetChunk() {
     sr::Module* mod = recompiler.module_;
     EXPECT_NE(mod, nullptr);
-    sr::Code* chunk = (*mod->globals)["@@script"].Get_if<sr::Code>();
+    sr::Code* chunk = (*mod->globals)["%%script"].Get_if<sr::Code>();
     EXPECT_NE(chunk, nullptr);
     return chunk;
   }
