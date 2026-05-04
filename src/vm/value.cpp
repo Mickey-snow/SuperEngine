@@ -130,12 +130,6 @@ bool EqualObjects(IObject* lhs, IObject* rhs) {
   return false;
 }
 
-std::size_t HashObject(IObject* obj) {
-  if (const String* str = GetStringObject(obj))
-    return std::hash<std::string>{}(str->str_);
-  return std::hash<const void*>{}(obj);
-}
-
 }  // namespace
 
 // -----------------------------------------------------------------------
