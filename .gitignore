@@ -19,3 +19,8 @@ _site
 compile_commands.json
 .ccls-cache
 .projectile
+Makefile
+testcmd
+
+local/
+data/
