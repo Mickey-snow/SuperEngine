@@ -24,14 +24,19 @@
 #include "libsiglus/recompiler.hpp"
 
 #include <exception>
+#include <format>
 #include <limits>
 #include <memory>
 #include <stdexcept>
+#include <unordered_map>
 #include <variant>
 
 #include "libsiglus/element.hpp"
+#include "libsiglus/intern_name.hpp"
 #include "libsiglus/types.hpp"
 #include "libsiglus/value.hpp"
+#include "log/core.hpp"
+#include "log/domain_logger.hpp"
 #include "utilities/assertx.hpp"
 #include "utilities/overload.hpp"
 #include "vm/instruction.hpp"
@@ -41,6 +46,8 @@
 namespace sr = serilang;
 
 namespace libsiglus {
+
+DomainLogger logger("Recompiler");
 
 std::string CompileError::ToString() const {
   std::string ret;
@@ -74,13 +81,25 @@ Recompiler::Recompiler(std::shared_ptr<serilang::GarbageCollector> gc)
     : gc_(gc) {
   cur_chunk_ = gc_->Allocate<sr::Code>();
   module_ = gc_->Allocate<sr::Module>("<siglus script>");
-  (*module_->globals)["%%script"] = sr::Value(cur_chunk_);
   cur_chunk_->const_pool.emplace_back(cur_chunk_);
+
+  initial_jump_site_ = code_size();
+  emit(sr::Jump{0});
+  main_entry_ = code_size();
 }
 Recompiler::~Recompiler() = default;
 
+void Recompiler::SetSceneProperties(int scene_id,
+                                    std::vector<Property> properties) {
+  scene_id_ = scene_id;
+  scene_properties_ = std::move(properties);
+}
+
 void Recompiler::Gen(token::Token_t tok) {
   try {
+    if (is_finalized_)
+      throw std::runtime_error("cannot emit token after EOF");
+
     if (is_debug_) {
       emit_const(ToString(tok));
       emit(sr::Dup{});
@@ -94,6 +113,38 @@ void Recompiler::Gen(token::Token_t tok) {
   } catch (std::exception& e) {
     AddError(e.what(), tok);
   }
+}
+
+void Recompiler::Finish() {
+  if (is_finalized_)
+    return;
+
+  // Payload functions should not fall through into the bootstrap block.
+  emit_const_nil();
+  emit(sr::Return{});
+
+  const std::size_t bootstrap_entry = code_size();
+  patch(initial_jump_site_, bootstrap_entry);
+
+  emit_store_function_global("%%script", main_entry_, 0);
+
+  for (const auto& record : subroutines_) {
+    const std::string entry_name = GetUsercmdId(record.source_entry);
+    emit_store_function_global(entry_name, record.bytecode_entry,
+                               record.args.size());
+  }
+
+  if (scene_id_.has_value()) {
+    emit_const(*scene_id_);
+    emit_scene_property_table();
+    emit(sr::MakeDict{.nelms = 1});
+    emit_store_global("%%usrprop");
+  }
+
+  emit_const_nil();
+  emit(sr::Return{});
+
+  is_finalized_ = true;
 }
 
 void Recompiler::emit_current_chunk() { emit(sr::Push{0}); }
@@ -142,6 +193,71 @@ void Recompiler::emit_store_global(std::string id) {
 }
 void Recompiler::emit_load_global(std::string id) {
   emit(sr::LoadGlobal{intern_name(std::move(id))});
+}
+
+void Recompiler::emit_make_function(std::size_t entry, std::size_t nargs) {
+  if (nargs > 0)
+    reserve_fast_local(cur_chunk_, static_cast<int>(nargs));
+
+  emit_current_chunk();
+  for (std::size_t i = 0; i < nargs; ++i)
+    emit_const("arg" + std::to_string(i));
+
+  emit(sr::MakeFunction{.entry = static_cast<uint32_t>(entry),
+                        .nparam = static_cast<uint32_t>(nargs),
+                        .ndefault = 0,
+                        .has_vararg = false,
+                        .has_kwarg = false});
+}
+
+void Recompiler::emit_store_function_global(std::string id,
+                                            std::size_t entry,
+                                            std::size_t nargs) {
+  emit_make_function(entry, nargs);
+  emit_store_global(std::move(id));
+}
+
+void Recompiler::emit_scene_property_value(const Property& property) {
+  switch (property.form) {
+    case Type::Int:
+      emit_const(0);
+      break;
+    case Type::IntList:
+      emit_load_global("make_intlist");
+      emit_const(property.size);
+      emit(sr::Call{.argcnt = 1, .kwargcnt = 0});
+      break;
+    case Type::String:
+      emit_const("");
+      break;
+    case Type::StrList:
+      emit_load_global("make_strlist");
+      emit_const(property.size);
+      emit(sr::Call{.argcnt = 1, .kwargcnt = 0});
+      break;
+    default:
+      emit_const_nil();
+      break;
+  }
+}
+
+void Recompiler::emit_scene_property_table() {
+  for (const Property& property : scene_properties_)
+    emit_scene_property_value(property);
+  emit(sr::MakeList{.nelms = static_cast<uint32_t>(scene_properties_.size())});
+}
+
+void Recompiler::emit_load_proplist(int scene) {
+  if (scene_id_.has_value() && scene == *scene_id_) {
+    emit_load_global("%%usrprop");
+    emit_const(scene);
+    emit(sr::GetItem{});
+    return;
+  }
+
+  emit_load_global("get_proplist");
+  emit_const(scene);
+  emit(sr::Call{.argcnt = 1, .kwargcnt = 0});
 }
 
 void Recompiler::add_patch_site(int lid, std::size_t site) {
@@ -287,10 +403,17 @@ void Recompiler::emit_tok(const token::Duplicate& tk) {
   emit_store_fast(tk.dst.id);
 }
 void Recompiler::emit_tok(const token::Subroutine& tk) {
-  auto loc = code_size();
-  auto [it, ok] = subroutine_entries_.emplace(tk.name, loc);
-  if (!ok)
-    throw std::runtime_error("redefinition of subroutine " + tk.name);
+  const std::size_t loc = code_size();
+  auto [it, ok] = subroutine_entries_.emplace(tk.source_entry, loc);
+  if (!ok) {
+    throw std::runtime_error(
+        std::format("redefinition of user command entry {}", tk.source_entry));
+  }
+
+  subroutines_.push_back(SubroutineRecord{.name = tk.name,
+                                          .source_entry = tk.source_entry,
+                                          .bytecode_entry = loc,
+                                          .args = tk.args});
 }
 void Recompiler::emit_tok(const token::Return& tk) {
   if (tk.ret_vals.size() == 0)
@@ -304,9 +427,7 @@ void Recompiler::emit_tok(const token::Return& tk) {
   }
   emit(sr::Return{});
 }
-void Recompiler::emit_tok(const token::Eof& tk) {
-  // nop
-}
+void Recompiler::emit_tok(const token::Eof& tk) { Finish(); }
 
 // element codegen
 void Recompiler::emit_elm(const elm::AccessChain& e, const Value* assign) {
@@ -318,9 +439,7 @@ void Recompiler::emit_elm(const elm::AccessChain& e, const Value* assign) {
 
   if (auto* prop = std::get_if<elm::Usrprop>(&e.root.var);
       prop && assign && e.nodes.empty()) {
-    emit_load_global("get_proplist");
-    emit_const(prop->scene);
-    emit(sr::Call{.argcnt = 1, .kwargcnt = 0});  // (getprop, scn) -> (prop[])
+    emit_load_proplist(prop->scene);  // (prop[])
 
     emit_const(prop->idx), emit_val(*assign);
     emit(sr::SetItem{});  // (prop[], idx, val) -> ()
@@ -382,39 +501,41 @@ void Recompiler::emit_elm_root(const std::monostate& r) {
   ASSERTX_TRUE(false);  // unreachable
 }
 void Recompiler::emit_elm_root(const elm::Usrcmd& r) {
+  const std::string cmd_name = GetUsercmdName(std::string(r.name));
+
   emit_load_global("__builtin_usrcmd");
   emit_const(r.scene), emit_const(r.entry), emit_const(std::string(r.name));
   emit(sr::Call{.argcnt = 3, .kwargcnt = 0});
   // (usrcmd)
 
   const auto& arg = r.arguments;
-  emit_const(arg.overload_id);
-  // (usrcmd, ol)
+  if (arg.overload_id != 0) {
+    logger(Severity::Error)
+        << "Usrcmd " << cmd_name << " has overload: " << arg.overload_id;
+  }
 
   for (auto const& it : arg.arg)
     emit_val(it);
-  emit(sr::MakeList{.nelms = arg.arg.size()});
-  // (usrcmd, ol, list)
 
-  for (auto const& [k, it] : arg.named_arg)
-    emit_const(k), emit_val(it);
-  emit(sr::MakeDict{.nelms = arg.named_arg.size()});
-  // (usrcmd, ol, list, dict)
+  if (!arg.named_arg.empty()) {
+    emit_const("unsupported named/tagged user-command arguments for " +
+               cmd_name);
+    emit(sr::Throw{});
+    return;
+  }
 
-  emit(sr::Call{.argcnt = 3, .kwargcnt = 0});
-  // (ret)
+  emit(sr::Call{.argcnt = arg.arg.size(), .kwargcnt = 0});
+  // (usrcmd, args...) -> (ret)
 }
 void Recompiler::emit_elm_root(const elm::Usrprop& r) {
-  emit_load_global("get_proplist");
-  emit_const(r.scene);
-  emit(sr::Call{.argcnt = 1, .kwargcnt = 0});
-  // (getprop, scn) -> (prop[])
+  emit_load_proplist(r.scene);
+  // (prop[])
   emit_const(r.idx);
   emit(sr::GetItem{});  // (prop[], idx) -> (item)
 }
 void Recompiler::emit_elm_root(const elm::Arg& r) {
   // fast: (arg_0, arg_1, ...)
-  emit_load_fast(r.id);
+  emit_load_fast(r.id + 1);
   // (arg)
 }
 void Recompiler::emit_elm_root(const elm::Farcall& r) {

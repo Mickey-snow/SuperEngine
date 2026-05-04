@@ -30,6 +30,8 @@
 #include "libsiglus/recompiler.hpp"
 #include "libsiglus/sgvm_factory.hpp"
 #include "libsiglus/token.hpp"
+#include "vm/function.hpp"
+#include "vm/instruction.hpp"
 #include "vm/object.hpp"
 #include "vm/vm.hpp"
 
@@ -61,14 +63,20 @@ void SgvmInstance::Main(const std::filesystem::path& game_root) {
       throw std::runtime_error(std::move(errmsg));
     }
 
-    sr::Code* code = (*mod->globals)["%%script"].Get_if<sr::Code>();
-    if (!code) {
+    sr::Function* script = (*mod->globals)["%%script"].Get_if<sr::Function>();
+    if (!script) {
       std::string errmsg =
           std::format("Scene {}: %%script not found", start_scene_);
       throw std::runtime_error(std::move(errmsg));
     }
 
-    sr::Value result = vm.Evaluate(code);
+    sr::Code* thunk = vm.gc_->Allocate<sr::Code>();
+    thunk->const_pool.emplace_back(script);
+    thunk->Append(sr::Push{0});
+    thunk->Append(sr::Call{.argcnt = 0, .kwargcnt = 0});
+    thunk->Append(sr::Return{});
+
+    sr::Value result = vm.Evaluate(thunk);
     std::cout << "Result is: " << result.Desc() << std::endl;
 
   } catch (std::exception& e) {

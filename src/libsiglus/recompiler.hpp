@@ -24,6 +24,7 @@
 #pragma once
 
 #include "libsiglus/element.hpp"
+#include "libsiglus/property.hpp"
 #include "libsiglus/token.hpp"
 #include "vm/gc.hpp"
 #include "vm/instruction.hpp"
@@ -34,7 +35,9 @@
 #include <memory>
 #include <optional>
 #include <span>
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace libsiglus {
 
@@ -53,16 +56,33 @@ class Recompiler {
   inline bool Ok() const { return errors_.empty(); }
   inline std::span<const CompileError> GetErrors() const { return errors_; }
   inline void ClearErrors() { errors_.clear(); }
+  inline serilang::Code* GetCode() const { return cur_chunk_; }
 
   void Gen(token::Token_t tok);
+  void Finish();
+  void SetSceneProperties(int scene_id, std::vector<Property> properties);
 
  private:
+  struct SubroutineRecord {
+    std::string name;
+    int source_entry = -1;
+    std::size_t bytecode_entry = 0;
+    std::vector<Type> args;
+  };
+
   // Data members
   std::shared_ptr<serilang::GarbageCollector> gc_;
   serilang::Code* cur_chunk_ = nullptr;
+  std::size_t initial_jump_site_ = 0;
+  std::size_t main_entry_ = 0;
+  bool is_finalized_ = false;
+
+  std::optional<int> scene_id_;
+  std::vector<Property> scene_properties_;
+  std::vector<SubroutineRecord> subroutines_;
 
  public:
-  std::unordered_map<std::string, std::size_t> subroutine_entries_;
+  std::unordered_map<int, std::size_t> subroutine_entries_;
   serilang::Module* module_ = nullptr;
   bool is_debug_ = false;
 
@@ -97,6 +117,13 @@ class Recompiler {
 
   void emit_store_global(std::string id);
   void emit_load_global(std::string id);
+  void emit_make_function(std::size_t entry, std::size_t nargs);
+  void emit_store_function_global(std::string id,
+                                  std::size_t entry,
+                                  std::size_t nargs);
+  void emit_scene_property_value(const Property& property);
+  void emit_scene_property_table();
+  void emit_load_proplist(int scene);
 
   // Patch sites and labels
   std::vector<std::optional<std::size_t>> label_offsets_;

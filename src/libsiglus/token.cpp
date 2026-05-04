@@ -101,7 +101,7 @@ std::string Duplicate::ToDebugString() const {
 }
 std::string Subroutine::ToDebugString() const {
   std::stringstream ss;
-  ss << "====== SUBROUTINE " << name << " ======";
+  ss << "====== SUBROUTINE " << name << " @" << source_entry << " ======";
   for (size_t i = 0; i < args.size(); ++i) {
     ss << '\n' << "  arg_" << i << ": " << ToString(args[i]);
   }

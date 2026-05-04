@@ -25,7 +25,6 @@
 
 #include "libsiglus/element.hpp"
 #include "libsiglus/element_code.hpp"
-#include "libsiglus/function.hpp"
 #include "libsiglus/value.hpp"
 
 #include <string>
@@ -140,6 +139,7 @@ struct Gosub {
 
 struct Subroutine {
   std::string name;
+  int source_entry = -1;
   std::vector<Type> args;
   std::string ToDebugString() const;
   bool operator==(const Subroutine&) const = default;

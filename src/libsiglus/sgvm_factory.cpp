@@ -32,9 +32,10 @@
 #include "libsiglus/bindings/obj.hpp"
 #include "libsiglus/bindings/sound.hpp"
 #include "libsiglus/bindings/system.hpp"
-#include "libsiglus/gexedat.hpp"
 
 #include "libsiglus/archive.hpp"
+#include "libsiglus/gexedat.hpp"
+#include "libsiglus/intern_name.hpp"
 #include "libsiglus/siglus_runtime.hpp"
 #include "log/domain_logger.hpp"
 #include "m6/vm_factory.hpp"
@@ -45,10 +46,13 @@
 #include "systems/sdl/sdl_system.hpp"
 #include "utilities/file.hpp"
 #include "utilities/mapped_file.hpp"
+#include "vm/exception.hpp"
+#include "vm/function.hpp"
 #include "vm/gc.hpp"
 
 #include <chrono>
 #include <filesystem>
+#include <format>
 #include <memory>
 #include <stdexcept>
 
@@ -83,6 +87,10 @@ static Gameexe LoadGameexe(std::shared_ptr<AssetScanner> scanner) {
     }
   }
   return {};
+}
+
+inline void dbg_print(std::string str) {
+  std::cerr << "[TRACE] " << str << std::endl;
 }
 
 SiglusRuntime SGVMFactory::Create() {
@@ -125,23 +133,51 @@ SiglusRuntime SGVMFactory::Create() {
   binding::MWND(ctx).Bind(rt);
   sb::module_ m(gc.get(), vm.globals_.get());
 
-  m.def("__builtin_dbgprint",
-        [](std::string str) { std::cerr << "[TRACE] " << str << std::endl; });
+  m.def("__builtin_dbgprint", dbg_print);
   m.def("__builtin_name", [](std::string str) {
     // not implemented yet
   });
   m.def("__builtin_textout", [](int kidoku, std::string text) {
     // not implemented yet
   });
-  m.def("__builtin_load_scn", [](int scn) {
-    // not implemented yet
-  });
+  m.def("__builtin_load_scn",
+        [loader = rt.loader.get()](int scnid) -> sr::Value {
+          sr::Module* mod = loader->Load(scnid);
+          return sr::Value(mod);
+        });
   m.def("__builtin_farcall", [](std::string scn, int zlabel) {
     // not implemented yet
   });
-  m.def("__builtin_usrcmd", [](int scn, int entry, std::string name) {
-    // not implemented yet
-  });
+  m.def("__builtin_usrcmd",
+        [loader = rt.loader.get()](int scn, int entry,
+                                   std::string name) -> sr::Value {
+          const std::string cmdname = GetUsercmdId(entry);
+          const std::string dbgname = std::format("{}:{}@{}", scn, entry, name);
+
+          sr::Module* mod = loader->Load(scn);
+          if (!mod) {
+            throw sr::RuntimeError(std::format(
+                "User command {} could not load scene {}", dbgname, scn));
+          }
+
+          auto it = mod->globals->find(cmdname);
+          if (it == mod->globals->cend()) {
+            std::string errmsg =
+                std::format("User command {} does not exist in {}:{}", dbgname,
+                            scn, mod->name);
+            throw sr::RuntimeError(std::move(errmsg));
+          }
+
+          auto* cmd = it->second.Get_if<sr::Function>();
+          if (!cmd) {
+            std::string errmsg =
+                std::format("User command ({}:{}) {} (aka.{}) is not callable",
+                            scn, mod->name, dbgname, it->second.Desc());
+            throw sr::RuntimeError(std::move(errmsg));
+          }
+
+          return sr::Value(cmd);
+        });
 
   // abuse the vm scheduler to refresh sdl regularly
   std::function<void()>& cb = rt.exec_sdl_callback;

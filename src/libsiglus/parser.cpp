@@ -342,7 +342,10 @@ void Parser::Add(lex::Gosub s) {
 
 void Parser::Add(lex::Arg a) {
   token::Subroutine tok;
-  tok.name = curcall_cmd_->name;
+  if (curcall_cmd_) {
+    tok.name = curcall_cmd_->name;
+    tok.source_entry = curcall_cmd_->offset;
+  }
   tok.args = curcall_args_;
   emit_token(std::move(tok));
 }

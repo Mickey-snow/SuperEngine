@@ -23,26 +23,15 @@
 
 #pragma once
 
-#include "vm/object.hpp"
-#include "vm/vm.hpp"
-
 #include <string>
-#include <unordered_map>
 
 namespace libsiglus {
-class Archive;
-namespace binding {
 
-class Loader {
-  Archive& archive;
-  serilang::VM& vm;
-  std::unordered_map<std::string, serilang::Module*> scene_module_cache_;
+[[nodiscard]] inline std::string GetUsercmdId(int entry) {
+  return "%%cmd@" + std::to_string(entry);
+}
+[[nodiscard]] inline std::string GetUsercmdName(std::string name) {
+  return "%%cmd@" + name;
+}
 
- public:
-  explicit Loader(Archive& ar, serilang::VM& v) : archive(ar), vm(v) {}
-
-  serilang::Module* Load(int scene);
-};
-
-}  // namespace binding
 }  // namespace libsiglus
