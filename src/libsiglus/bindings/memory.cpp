@@ -28,7 +28,9 @@
 #include "libsiglus/property.hpp"
 #include "log/core.hpp"
 #include "log/domain_logger.hpp"
+#include "srbind/module.hpp"
 #include "srbind/srbind.hpp"
+#include "utilities/assertx.hpp"
 #include "vm/exception.hpp"
 #include "vm/gc.hpp"
 #include "vm/vm.hpp"
@@ -38,6 +40,49 @@
 namespace libsiglus::binding {
 namespace sb = srbind;
 using namespace serilang;
+
+struct MemoryBank {
+  bool is_dynamic = false;
+  Value default_value = Value(0);
+  std::vector<Value> payload;
+
+  MemoryBank(bool dynamic = true, int size = 8, Value default_value = Value(0))
+      : is_dynamic(dynamic), default_value(default_value) {
+    if (size < 0)
+      throw RuntimeError("cannot create memory bank with negative size: " +
+                         std::to_string(size));
+    payload.resize(static_cast<std::size_t>(size), this->default_value);
+  }
+
+  Value get(int idx) {
+    ASSERTX_GE(idx, 0);
+    auto index = static_cast<std::size_t>(idx);
+    if (index >= payload.size()) {
+      if (!is_dynamic)
+        throw RuntimeError("Out of range: " + std::to_string(idx));
+      payload.resize(index + 1, default_value);
+    }
+    return payload[index];
+  }
+
+  void set(int idx, Value val) {
+    ASSERTX_GE(idx, 0);
+    auto index = static_cast<std::size_t>(idx);
+    if (index >= payload.size()) {
+      if (!is_dynamic)
+        throw RuntimeError("Out of range: " + std::to_string(idx));
+      payload.resize(index + 1, default_value);
+    }
+    payload[index] = val;
+  }
+};
+
+void TraceMemoryBank(GCVisitor& visitor, void* data) {
+  auto* bank = static_cast<MemoryBank*>(data);
+  visitor.MarkSub(bank->default_value);
+  for (Value& value : bank->payload)
+    visitor.MarkSub(value);
+}
 
 void Memory::Bind(SiglusRuntime& runtime) {
   VM& vm = *runtime.vm;
@@ -100,7 +145,22 @@ void Memory::Bind(SiglusRuntime& runtime) {
   }
   Execute(vm, std::move(src));
 
-  // TODO: install memory banks
+  // Install MemoryBank class
+  sb::class_<MemoryBank> mb(m, "MemoryBank");
+  mb.def(sb::init<bool, int, Value>(), sb::arg("dynamic") = true,
+         sb::arg("size") = 8, sb::arg("default_value") = Value(0));
+  mb.def("__getitem__", &MemoryBank::get, sb::arg("idx"));
+  mb.def("__setitem__", &MemoryBank::set, sb::arg("idx"), sb::arg("val"));
+  (*m.dict())["MemoryBank"].Get<NativeClass*>()->trace = &TraceMemoryBank;
+
+  // Install global memory banks
+  src.clear();
+  constexpr std::string_view int_banks = "ABCDEFXGZ";
+  for (auto bank : int_banks)
+    src += std::format("{}=MemoryBank(true,8,0);", bank);
+  for (std::string_view bank : {"S", "M", "LN", "GN"})
+    src += std::format("{}=MemoryBank(true,8,\"\");", bank);
+  Execute(vm, std::move(src));
 };
 
 }  // namespace libsiglus::binding

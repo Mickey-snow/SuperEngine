@@ -139,6 +139,26 @@ void Recompiler::Finish() {
     emit_store_global("__usrprop");  // __usrprop -> list
   }
 
+  const std::size_t memorybank_try = code_size();
+  emit(sr::TryBegin{0});
+  emit_load_global("MemoryBank");
+  emit(sr::TryEnd{});
+  emit(sr::Dup{});
+  emit(sr::Call{.argcnt = 0, .kwargcnt = 0});
+  emit_store_global("L");
+  emit_const(1);
+  emit_const(8);
+  emit_const("");
+  emit(sr::Call{.argcnt = 3, .kwargcnt = 0});
+  emit_store_global("K");
+
+  const std::size_t memorybank_done = code_size();
+  emit(sr::Jump{0});
+  const std::size_t memorybank_missing = code_size();
+  patch(memorybank_try, memorybank_missing);
+  emit(sr::Pop{});
+  patch(memorybank_done, code_size());
+
   emit_const_nil();
   emit(sr::Return{});
 

@@ -43,7 +43,9 @@
 
 #include <memory>
 #include <sstream>
+#include <tuple>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace siglus_test {
@@ -205,6 +207,58 @@ class RecompilerTest : public ::testing::Test {
     return builtins;
   }
 };
+
+sr::Value MakeString(std::shared_ptr<sr::GarbageCollector> gc,
+                     std::string value) {
+  return sr::Value(gc->Allocate<sr::String>(std::move(value)));
+}
+
+sr::Value CallNative(
+    std::shared_ptr<sr::GarbageCollector> gc,
+    sr::VM& vm,
+    sr::Value callee,
+    const std::vector<sr::Value>& pos = {},
+    const std::vector<std::pair<std::string, sr::Value>>& kwargs = {}) {
+  auto* fiber = gc->Allocate<sr::Fiber>();
+  fiber->op_stack.emplace_back(std::move(callee));
+  for (const auto& value : pos)
+    fiber->op_stack.emplace_back(value);
+  for (const auto& [key, value] : kwargs) {
+    fiber->op_stack.emplace_back(gc->Allocate<sr::String>(key));
+    fiber->op_stack.emplace_back(value);
+  }
+
+  fiber->op_stack.front().Call(vm, *fiber, static_cast<uint8_t>(pos.size()),
+                               static_cast<uint8_t>(kwargs.size()));
+  EXPECT_EQ(fiber->op_stack.size(), 1u);
+  return fiber->op_stack.back();
+}
+
+sr::Value BankGet(std::shared_ptr<sr::GarbageCollector> gc,
+                  sr::VM& vm,
+                  sr::NativeInstance* bank,
+                  int idx) {
+  auto* fiber = gc->Allocate<sr::Fiber>();
+  fiber->op_stack.emplace_back(sr::Value(bank));
+  fiber->op_stack.emplace_back(sr::Value(idx));
+  bank->GetItem(vm, *fiber);
+  EXPECT_EQ(fiber->op_stack.size(), 1u);
+  return fiber->op_stack.back();
+}
+
+void BankSet(std::shared_ptr<sr::GarbageCollector> gc,
+             sr::VM& vm,
+             sr::NativeInstance* bank,
+             int idx,
+             sr::Value value) {
+  auto* fiber = gc->Allocate<sr::Fiber>();
+  fiber->op_stack.emplace_back(sr::Value(bank));
+  fiber->op_stack.emplace_back(sr::Value(idx));
+  fiber->op_stack.emplace_back(std::move(value));
+  bank->SetItem(vm, *fiber);
+  EXPECT_EQ(fiber->op_stack.size(), 1u);
+  EXPECT_EQ(fiber->op_stack.back(), std::monostate{});
+}
 
 TEST_F(RecompilerTest, BinaryOp) {
   Emit(tk::Duplicate{.src = ls::Integer{11}, .dst = IntVar(0)},
@@ -405,6 +459,44 @@ TEST_F(RecompilerTest, BootstrapCreatesScriptAndCommandEntryFunctions) {
   EXPECT_EQ(command->entry, recompiler.subroutine_entries_.at(123));
   EXPECT_EQ(command->arglist.nparam, 1u);
   EXPECT_EQ(GetGlobalFunction(libsiglus::GetUsercmdId(123)), command);
+}
+
+TEST_F(RecompilerTest, BootstrapDoesNotRequireMemoryBankBinding) {
+  Emit(tk::Return{.ret_vals = {ls::Integer{7}}});
+
+  sr::VM vm(gc);
+  EXPECT_NO_THROW(Bootstrap(vm));
+  EXPECT_NE(GetGlobalFunction("%%script"), nullptr);
+  EXPECT_FALSE(recompiler.module_->globals->contains("L"));
+  EXPECT_FALSE(recompiler.module_->globals->contains("K"));
+  EXPECT_EQ(Call(vm, sr::Value(GetGlobalFunction("%%script"))), 7);
+}
+
+TEST_F(RecompilerTest, BootstrapCreatesTypedLocalMemoryBanksWhenAvailable) {
+  std::string raw_archive(sizeof(ls::Pack_hdr), '\0');
+  auto archive = std::make_shared<ls::Archive>(std::string_view(raw_archive),
+                                               ls::empty_key);
+  ls::SiglusRuntime runtime;
+  runtime.vm = std::make_unique<sr::VM>(gc);
+  runtime.archive = std::move(archive);
+
+  ls::binding::Context ctx;
+  ls::binding::Memory memory(ctx);
+  memory.Bind(runtime);
+
+  Emit(tk::Return{.ret_vals = {}});
+
+  sr::VM vm(gc, {}, *runtime.vm->globals_);
+  Bootstrap(vm);
+
+  auto* local_int =
+      recompiler.module_->globals->at("L").Get_if<sr::NativeInstance>();
+  auto* local_str =
+      recompiler.module_->globals->at("K").Get_if<sr::NativeInstance>();
+  ASSERT_NE(local_int, nullptr);
+  ASSERT_NE(local_str, nullptr);
+  EXPECT_EQ(BankGet(gc, vm, local_int, 99), 0);
+  EXPECT_EQ(BankGet(gc, vm, local_str, 99), "");
 }
 
 TEST_F(RecompilerTest, BootstrapInitializesSceneLocalProperties) {
@@ -638,11 +730,80 @@ TEST(SiglusMemoryBindingTest, InstallsCanonicalGlobalPropertiesOnly) {
   EXPECT_THAT(globalprop->items, ElementsAre(0, ""));
 
   EXPECT_FALSE(globals.contains("__usrprop"));
+  for (const char* name :
+       {"A", "B", "C", "D", "E", "F", "X", "G", "Z", "S", "M", "LN", "GN"}) {
+    EXPECT_TRUE(globals.contains(name)) << name;
+  }
   for (const std::string& name :
        {std::string("__") + "locprop", std::string("get_") + "proplist",
         std::string("%%") + "usrprop", std::string("%%") + "scnprop"}) {
     EXPECT_FALSE(globals.contains(name)) << name;
   }
+}
+
+TEST(SiglusMemoryBindingTest, MemoryBankConstructorUsesDynamicThenSize) {
+  auto gc = std::make_shared<sr::GarbageCollector>();
+  std::string raw_archive(sizeof(ls::Pack_hdr), '\0');
+  auto archive = std::make_shared<ls::Archive>(std::string_view(raw_archive),
+                                               ls::empty_key);
+
+  ls::SiglusRuntime runtime;
+  runtime.vm = std::make_unique<sr::VM>(gc);
+  runtime.archive = std::move(archive);
+
+  ls::binding::Context ctx;
+  ls::binding::Memory memory(ctx);
+  memory.Bind(runtime);
+
+  auto& vm = *runtime.vm;
+  sr::Value bank_value =
+      CallNative(gc, vm, (*vm.globals_)["MemoryBank"], {},
+                 {{"dynamic", sr::Value(false)}, {"size", sr::Value(16)}});
+  auto* bank = bank_value.Get_if<sr::NativeInstance>();
+  ASSERT_NE(bank, nullptr);
+
+  EXPECT_EQ(BankGet(gc, vm, bank, 15), 0);
+  EXPECT_THROW(std::ignore = BankGet(gc, vm, bank, 16), sr::RuntimeError);
+}
+
+TEST(SiglusMemoryBindingTest, MemoryBanksUseTypedDefaultsAndTraceStoredValues) {
+  auto gc = std::make_shared<sr::GarbageCollector>();
+  std::string raw_archive(sizeof(ls::Pack_hdr), '\0');
+  auto archive = std::make_shared<ls::Archive>(std::string_view(raw_archive),
+                                               ls::empty_key);
+
+  ls::SiglusRuntime runtime;
+  runtime.vm = std::make_unique<sr::VM>(gc);
+  runtime.archive = std::move(archive);
+
+  ls::binding::Context ctx;
+  ls::binding::Memory memory(ctx);
+  memory.Bind(runtime);
+
+  auto& vm = *runtime.vm;
+  auto& globals = *vm.globals_;
+  auto* memory_bank_class = globals.at("MemoryBank").Get_if<sr::NativeClass>();
+  ASSERT_NE(memory_bank_class, nullptr);
+  EXPECT_NE(memory_bank_class->trace, nullptr);
+
+  auto* int_bank = globals.at("A").Get_if<sr::NativeInstance>();
+  auto* str_bank = globals.at("S").Get_if<sr::NativeInstance>();
+  auto* local_name_bank = globals.at("LN").Get_if<sr::NativeInstance>();
+  auto* global_name_bank = globals.at("GN").Get_if<sr::NativeInstance>();
+  ASSERT_NE(int_bank, nullptr);
+  ASSERT_NE(str_bank, nullptr);
+  ASSERT_NE(local_name_bank, nullptr);
+  ASSERT_NE(global_name_bank, nullptr);
+
+  EXPECT_EQ(BankGet(gc, vm, int_bank, 64), 0);
+  EXPECT_EQ(BankGet(gc, vm, str_bank, 64), "");
+  EXPECT_EQ(BankGet(gc, vm, local_name_bank, 64), "");
+  EXPECT_EQ(BankGet(gc, vm, global_name_bank, 64), "");
+
+  BankSet(gc, vm, str_bank, 3, MakeString(gc, "stored"));
+  vm.last_ = sr::nil;
+  vm.CollectGarbage();
+  EXPECT_EQ(BankGet(gc, vm, str_bank, 3), "stored");
 }
 
 }  // namespace siglus_test
