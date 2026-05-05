@@ -83,10 +83,12 @@ Type AccessChain::GetType() const {
 }
 
 // -----------------------------------------------------------------------
-Node Node::BuildCall(Invoke inv, bool is_implicit) {
+Node Node::BuildCall(Invoke inv, bool is_implicit, bool is_simple) {
   Call call;
-  call.overload_id =
-      is_implicit ? std::nullopt : std::make_optional(inv.overload_id);
+  call.is_simple = is_simple;
+  call.overload_id = (is_implicit || is_simple)
+                         ? std::nullopt
+                         : std::make_optional(inv.overload_id);
   call.args = std::move(inv.arg);
   call.kwargs = std::move(inv.named_arg);
   Node nd(inv.return_type, std::move(call));

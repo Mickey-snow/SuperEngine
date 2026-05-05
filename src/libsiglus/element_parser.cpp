@@ -93,7 +93,8 @@ inline static Builder b_callable(
     for (const auto& target : targets) {
       if (target.overload_id && *target.overload_id == overload_id) {
         ctx.chain.nodes.emplace_back(
-            Type::Callable, Member{target.name, target.return_type, true});
+            Type::Callable,
+            Member{target.name, target.return_type, true, false});
         ctx.elmcode = ctx.elmcode.subspan(1);
         return;
       }
@@ -103,7 +104,8 @@ inline static Builder b_callable(
 
     if (fallback) {
       ctx.chain.nodes.emplace_back(
-          Type::Callable, Member{fallback->name, fallback->return_type, true});
+          Type::Callable,
+          Member{fallback->name, fallback->return_type, true, false});
       ctx.elmcode = ctx.elmcode.subspan(1);
       return;
     }
@@ -112,7 +114,7 @@ inline static Builder b_callable(
                          overload_id, ctx.chain.ToDebugString()));
     ctx.chain.nodes.emplace_back(
         Type::Callable,
-        Member{targets.front().name, targets.front().return_type, true});
+        Member{targets.front().name, targets.front().return_type, true, false});
     ctx.elmcode = ctx.elmcode.subspan(1);
   });
 }
@@ -1165,25 +1167,30 @@ AccessChain ElementParser::Parse(ElementCode& elm) {
   else
     result = resolve_element(elm);
 
-  const Member* implicit_call = nullptr;
+  const bool explicit_bind = elm.force_bind;
+  const Member* call_member = nullptr;
   if (!result.nodes.empty()) {
     const auto* member = std::get_if<Member>(&result.nodes.back().var);
-    if (member && member->implicit_call)
-      implicit_call = member;
+    if (member)
+      call_member = member;
   }
+  const bool can_implicit_call = call_member && call_member->implicit_call;
+  const bool is_implicit_call = !explicit_bind && can_implicit_call;
 
   if (elm.bind_ctx.Empty())
     elm.force_bind = false;
-  if (elm.force_bind || result.GetType() == Type::Callable || implicit_call) {
-    if (result.GetType() != Type::Callable && !implicit_call)
+  if (elm.force_bind || result.GetType() == Type::Callable ||
+      can_implicit_call) {
+    if (result.GetType() != Type::Callable && !can_implicit_call)
       ctx_->Warn(std::format("[ElementParser] cannot bind {} to {}",
                              elm.bind_ctx.ToDebugString(),
                              result.ToDebugString()));
     else {
-      if (implicit_call && elm.bind_ctx.return_type == Type::None)
-        elm.bind_ctx.return_type = implicit_call->call_return_type;
+      if (can_implicit_call && elm.bind_ctx.return_type == Type::None)
+        elm.bind_ctx.return_type = call_member->call_return_type;
       result.nodes.emplace_back(
-          Node::BuildCall(std::move(elm.bind_ctx), implicit_call));
+          Node::BuildCall(std::move(elm.bind_ctx), is_implicit_call,
+                          call_member ? call_member->is_simple : false));
     }
   }
 

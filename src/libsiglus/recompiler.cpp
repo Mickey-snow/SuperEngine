@@ -581,22 +581,25 @@ void Recompiler::emit_elm_node(const elm::Member& nd) {
 }
 void Recompiler::emit_elm_node(const elm::Call& nd) {
   // (fn)
-  if (nd.overload_id)
+  uint32_t nargs = static_cast<uint32_t>(nd.args.size());
+  if (nd.overload_id) {
     emit_const(*nd.overload_id);
-  else
-    emit_const_nil();
-  // (fn, ol)
+    ++nargs;
+  }
+  // (fn, [ol])
 
   for (auto const& arg : nd.args)
     emit_val(arg);
-  // (fn, al, args...)
+  // (fn, [ol], args...)
 
-  for (auto const& [k, arg] : nd.kwargs)
-    emit_const(k), emit_val(arg);
-  emit(sr::MakeDict{.nelms = nd.kwargs.size()});
-  // (fn, al, args..., tags)
+  for (auto const& [k, arg] : nd.kwargs) {
+    emit_const("_" + std::to_string(k));
+    emit_val(arg);
+  }
+  // (fn, [ol], args..., tags...)
 
-  emit(sr::Call{.argcnt = nd.args.size() + 1});
+  emit(sr::Call{.argcnt = nargs,
+                .kwargcnt = static_cast<uint32_t>(nd.kwargs.size())});
   // -> (ret)
 }
 void Recompiler::emit_elm_node(const elm::Subscript& nd) {

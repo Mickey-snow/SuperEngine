@@ -115,19 +115,25 @@ struct Member {
   // Marks zero-argument ops that should parse as `member()` even without an
   // explicit bind payload.
   bool implicit_call = false;
+  // Simple callables do not need Siglus' overload id at runtime. Ambiguous
+  // element ids that dispatch to different exported names remain non-simple.
+  bool is_simple = true;
   std::string ToDebugString() const;
   bool operator==(const Member&) const = default;
 };
 
-// Call nodes preserve the bind payload attached to an element. Siglus selects
-// native overloads by integer id, so the AST stores that id and the raw
-// argument bags without trying to validate them against a recovered signature.
+// Call nodes preserve the raw argument bags attached to an element. Ambiguous
+// native dispatches also retain Siglus' integer overload id; simple calls drop
+// it once the selected member name is known.
 struct Call {
   // Present for explicit binds from bytecode. Implicit zero-argument calls use
-  // `nullopt` because there is no standalone overload token to preserve.
+  // `nullopt` because there is no standalone overload token to preserve. Simple
+  // explicit calls also use `nullopt` because their selected member fully
+  // identifies the runtime function.
   std::optional<int> overload_id;
   std::vector<Value> args;
   std::vector<std::pair<int, Value>> kwargs;
+  bool is_simple = true;
   std::string ToDebugString() const;
   bool operator==(const Call&) const = default;
 };
@@ -157,9 +163,12 @@ struct Node {
   }
   bool operator==(const Node&) const = default;
 
-  // Builds a call node from parsed bind data. Implicit calls intentionally drop
-  // the overload id because the call is synthesized from the selected member.
-  static Node BuildCall(Invoke inv, bool is_implicit = false);
+  // Builds a call node from parsed bind data. Implicit calls and simple
+  // explicit calls intentionally drop the overload id because the selected
+  // member is sufficient to identify the runtime function.
+  static Node BuildCall(Invoke inv,
+                        bool is_implicit = false,
+                        bool is_simple = true);
 };
 
 // Normalized AST for an element bytecode sequence.
