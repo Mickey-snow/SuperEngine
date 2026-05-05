@@ -135,10 +135,8 @@ void Recompiler::Finish() {
   }
 
   if (scene_id_.has_value()) {
-    emit_const(*scene_id_);
     emit_scene_property_table();
-    emit(sr::MakeDict{.nelms = 1});
-    emit_store_global("%%usrprop");
+    emit_store_global("__usrprop");  // __usrprop -> list
   }
 
   emit_const_nil();
@@ -217,47 +215,49 @@ void Recompiler::emit_store_function_global(std::string id,
   emit_store_global(std::move(id));
 }
 
-void Recompiler::emit_scene_property_value(const Property& property) {
-  switch (property.form) {
-    case Type::Int:
-      emit_const(0);
-      break;
-    case Type::IntList:
-      emit_load_global("make_intlist");
-      emit_const(property.size);
-      emit(sr::Call{.argcnt = 1, .kwargcnt = 0});
-      break;
-    case Type::String:
-      emit_const("");
-      break;
-    case Type::StrList:
-      emit_load_global("make_strlist");
-      emit_const(property.size);
-      emit(sr::Call{.argcnt = 1, .kwargcnt = 0});
-      break;
-    default:
-      emit_const_nil();
-      break;
-  }
-}
-
 void Recompiler::emit_scene_property_table() {
-  for (const Property& property : scene_properties_)
-    emit_scene_property_value(property);
+  for (const Property& property : scene_properties_) {
+    switch (property.form) {
+      case Type::Int:
+        emit_const(0);
+        break;
+      case Type::IntList:
+        emit_load_global("make_intlist");
+        emit_const(property.size);
+        emit(sr::Call{.argcnt = 1, .kwargcnt = 0});
+        break;
+      case Type::String:
+        emit_const("");
+        break;
+      case Type::StrList:
+        emit_load_global("make_strlist");
+        emit_const(property.size);
+        emit(sr::Call{.argcnt = 1, .kwargcnt = 0});
+        break;
+      default:
+        emit_const_nil();
+        break;
+    }
+  }
+
   emit(sr::MakeList{.nelms = static_cast<uint32_t>(scene_properties_.size())});
 }
 
 void Recompiler::emit_load_proplist(int scene) {
-  if (scene_id_.has_value() && scene == *scene_id_) {
-    emit_load_global("%%usrprop");
-    emit_const(scene);
-    emit(sr::GetItem{});
+  if (scene == -1) {
+    emit_load_global("__globalprop");
     return;
   }
 
-  emit_load_global("get_proplist");
+  if (scene == scene_id_) {
+    emit_load_global("__usrprop");
+    return;
+  }
+
+  emit_load_global("__builtin_load_scn");
   emit_const(scene);
   emit(sr::Call{.argcnt = 1, .kwargcnt = 0});
+  emit(sr::GetField{intern_name("__usrprop")});
 }
 
 void Recompiler::add_patch_site(int lid, std::size_t site) {
@@ -431,12 +431,6 @@ void Recompiler::emit_tok(const token::Eof& tk) { Finish(); }
 
 // element codegen
 void Recompiler::emit_elm(const elm::AccessChain& e, const Value* assign) {
-  bool is_first = true;
-  if (!std::holds_alternative<std::monostate>(e.root.var)) {
-    is_first = false;
-    std::visit([&](const auto& rt) { emit_elm_root(rt); }, e.root.var);
-  }
-
   if (auto* prop = std::get_if<elm::Usrprop>(&e.root.var);
       prop && assign && e.nodes.empty()) {
     emit_load_proplist(prop->scene);  // (prop[])
@@ -444,6 +438,12 @@ void Recompiler::emit_elm(const elm::AccessChain& e, const Value* assign) {
     emit_const(prop->idx), emit_val(*assign);
     emit(sr::SetItem{});  // (prop[], idx, val) -> ()
     return;
+  }
+
+  bool is_first = true;
+  if (!std::holds_alternative<std::monostate>(e.root.var)) {
+    is_first = false;
+    std::visit([&](const auto& rt) { emit_elm_root(rt); }, e.root.var);
   }
 
   auto fail = [] { throw std::runtime_error("cannot assign to this element"); };

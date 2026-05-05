@@ -24,9 +24,14 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "libsiglus/archive.hpp"
+#include "libsiglus/bindings/memory.hpp"
 #include "libsiglus/recompiler.hpp"
+#include "libsiglus/siglus_runtime.hpp"
+#include "libsiglus/xorkey.hpp"
 
 #include "libsiglus/intern_name.hpp"
+#include "systems/sdl/sdl_system.hpp"
 #include "vm/dict.hpp"
 #include "vm/exception.hpp"
 #include "vm/function.hpp"
@@ -36,8 +41,10 @@
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
+#include <memory>
 #include <sstream>
 #include <unordered_map>
+#include <vector>
 
 namespace siglus_test {
 
@@ -56,6 +63,14 @@ class RecompilerTest : public ::testing::Test {
 
   static ls::Variable IntVar(int id) { return {ls::Type::Int, id}; }
   static ls::Variable StrVar(int id) { return {ls::Type::String, id}; }
+
+  static ls::elm::AccessChain UserProperty(int scene, int idx) {
+    return ls::elm::AccessChain{
+        .root = ls::elm::Root(
+            ls::Type::Int,
+            ls::elm::Usrprop{.scene = scene, .idx = idx, .name = "flag"}),
+        .nodes = {}};
+  }
 
   template <typename... Ts>
   void Emit(Ts&&... toks) {
@@ -155,6 +170,37 @@ class RecompilerTest : public ::testing::Test {
             throw sr::RuntimeError("command entry is not callable");
 
           return sr::Value(command);
+        }));
+    return builtins;
+  }
+
+  sr::Module* MakeSceneModule(std::vector<sr::Value> properties) {
+    auto* list = gc->Allocate<sr::List>(std::move(properties));
+
+    auto* module = gc->Allocate<sr::Module>("SCENE");
+    (*module->globals)["__usrprop"] = sr::Value(list);
+    return module;
+  }
+
+  std::unordered_map<std::string, sr::Value> LoadSceneBuiltins(
+      sr::Module* module,
+      std::vector<int>* calls) {
+    std::unordered_map<std::string, sr::Value> builtins;
+    builtins["__builtin_load_scn"] = sr::Value(gc->Allocate<sr::NativeFunction>(
+        "__builtin_load_scn",
+        [module, calls](sr::VM&, sr::Fiber& f, uint8_t nargs,
+                        uint8_t nkwargs) -> sr::TempValue {
+          EXPECT_EQ(nargs, 1);
+          EXPECT_EQ(nkwargs, 0);
+
+          const int* scene = f.op_stack.back().Get_if<int>();
+          EXPECT_NE(scene, nullptr);
+          if (!scene)
+            throw sr::RuntimeError("__builtin_load_scn received invalid args");
+          calls->push_back(*scene);
+
+          f.op_stack.resize(f.op_stack.size() - 1);
+          return sr::Value(module);
         }));
     return builtins;
   }
@@ -371,36 +417,100 @@ TEST_F(RecompilerTest, BootstrapInitializesSceneLocalProperties) {
   sr::VM vm(gc);
   Bootstrap(vm);
 
-  auto usrprop_it = recompiler.module_->globals->find("%%usrprop");
+  auto usrprop_it = recompiler.module_->globals->find("__usrprop");
   ASSERT_NE(usrprop_it, recompiler.module_->globals->end());
-
-  auto* usrprop = usrprop_it->second.Get_if<sr::Dict>();
+  auto* usrprop = usrprop_it->second.Get_if<sr::List>();
   ASSERT_NE(usrprop, nullptr);
-  auto scene_it = usrprop->map.find(sr::Value(42));
-  ASSERT_NE(scene_it, usrprop->map.end());
-
-  auto* properties = scene_it->second.Get_if<sr::List>();
-  ASSERT_NE(properties, nullptr);
-  ASSERT_THAT(properties->items, ElementsAre(0, ""));
-  EXPECT_FALSE(recompiler.module_->globals->contains("%%scnprop"));
+  ASSERT_THAT(usrprop->items, ElementsAre(0, ""));
 }
 
 TEST_F(RecompilerTest, CurrentSceneUserPropertyReadsFromBootstrappedUsrprop) {
   recompiler.SetSceneProperties(
       42, {ls::Property{.form = ls::Type::Int, .size = 0, .name = "flag"}});
 
-  Emit(
-      tk::GetProperty{
-          .chain =
-              ls::elm::AccessChain{
-                  .root = ls::elm::Root(
-                      ls::Type::Int,
-                      ls::elm::Usrprop{.scene = 42, .idx = 0, .name = "flag"}),
-                  .nodes = {}},
-          .dst = IntVar(0)},
-      tk::Return{.ret_vals = {IntVar(0)}});
+  Emit(tk::GetProperty{.chain = UserProperty(42, 0), .dst = IntVar(0)},
+       tk::Return{.ret_vals = {IntVar(0)}});
 
   EXPECT_EQ(Run(), 0);
+}
+
+TEST_F(RecompilerTest, GlobalUserPropertyReadsFromGlobalprop) {
+  auto* globalprop =
+      gc->Allocate<sr::List>(std::vector<sr::Value>{sr::Value(12)});
+
+  Emit(tk::GetProperty{.chain = UserProperty(-1, 0), .dst = IntVar(0)},
+       tk::Return{.ret_vals = {IntVar(0)}});
+
+  EXPECT_EQ(Run({{"__globalprop", sr::Value(globalprop)}}), 12);
+}
+
+TEST_F(RecompilerTest, GlobalUserPropertyWritesToGlobalprop) {
+  auto* globalprop =
+      gc->Allocate<sr::List>(std::vector<sr::Value>{sr::Value(0)});
+
+  Emit(tk::Assign{.dst = UserProperty(-1, 0), .src = ls::Integer{33}},
+       tk::GetProperty{.chain = UserProperty(-1, 0), .dst = IntVar(0)},
+       tk::Return{.ret_vals = {IntVar(0)}});
+
+  EXPECT_EQ(Run({{"__globalprop", sr::Value(globalprop)}}), 33);
+  EXPECT_THAT(globalprop->items, ElementsAre(33));
+}
+
+TEST_F(RecompilerTest, CurrentSceneUserPropertyWritesToBootstrappedUsrprop) {
+  recompiler.SetSceneProperties(
+      42, {ls::Property{.form = ls::Type::Int, .size = 0, .name = "flag"}});
+
+  Emit(tk::Assign{.dst = UserProperty(42, 0), .src = ls::Integer{44}},
+       tk::GetProperty{.chain = UserProperty(42, 0), .dst = IntVar(0)},
+       tk::Return{.ret_vals = {IntVar(0)}});
+
+  EXPECT_EQ(Run(), 44);
+}
+
+TEST_F(RecompilerTest, CrossSceneUserPropertyReadsFromLoadedModuleUsrprop) {
+  recompiler.SetSceneProperties(42, {});
+  sr::Module* scene43 = MakeSceneModule({sr::Value(55)});
+  std::vector<int> load_calls;
+
+  Emit(tk::GetProperty{.chain = UserProperty(43, 0), .dst = IntVar(0)},
+       tk::Return{.ret_vals = {IntVar(0)}});
+
+  EXPECT_EQ(Run({}, LoadSceneBuiltins(scene43, &load_calls)), 55);
+  EXPECT_THAT(load_calls, ElementsAre(43));
+}
+
+TEST_F(RecompilerTest, CrossSceneUserPropertyWritesToLoadedModuleUsrprop) {
+  recompiler.SetSceneProperties(42, {});
+  sr::Module* scene43 = MakeSceneModule({sr::Value(0)});
+  std::vector<int> load_calls;
+
+  Emit(tk::Assign{.dst = UserProperty(43, 0), .src = ls::Integer{66}},
+       tk::GetProperty{.chain = UserProperty(43, 0), .dst = IntVar(0)},
+       tk::Return{.ret_vals = {IntVar(0)}});
+
+  EXPECT_EQ(Run({}, LoadSceneBuiltins(scene43, &load_calls)), 66);
+  EXPECT_THAT(load_calls, ElementsAre(43, 43));
+
+  auto* usrprop = scene43->globals->at("__usrprop").Get_if<sr::List>();
+  ASSERT_NE(usrprop, nullptr);
+  EXPECT_THAT(usrprop->items, ElementsAre(66));
+}
+
+TEST_F(RecompilerTest, SceneRuntimeGlobalsUseCanonicalPropertyNamesOnly) {
+  recompiler.SetSceneProperties(
+      42, {ls::Property{.form = ls::Type::Int, .size = 0, .name = "flag"}});
+
+  Emit(tk::Return{.ret_vals = {}});
+
+  sr::VM vm(gc);
+  Bootstrap(vm);
+
+  EXPECT_TRUE(recompiler.module_->globals->contains("__usrprop"));
+  for (const std::string& name :
+       {std::string("__") + "locprop", std::string("get_") + "proplist",
+        std::string("%%") + "usrprop", std::string("%%") + "scnprop"}) {
+    EXPECT_FALSE(recompiler.module_->globals->contains(name)) << name;
+  }
 }
 
 TEST_F(RecompilerTest, UserCommandCallWithNoPositionalArgsCallsFunction) {
@@ -501,6 +611,38 @@ TEST_F(RecompilerTest, DuplicateSubroutineDefinitions) {
   recompiler.Gen(
       tk::Token_t(tk::Subroutine{.name = "bar", .source_entry = 10}));
   EXPECT_FALSE(recompiler.Ok());
+}
+
+TEST(SiglusMemoryBindingTest, InstallsCanonicalGlobalPropertiesOnly) {
+  auto gc = std::make_shared<sr::GarbageCollector>();
+  std::string raw_archive(sizeof(ls::Pack_hdr), '\0');
+  auto archive = std::make_shared<ls::Archive>(std::string_view(raw_archive),
+                                               ls::empty_key);
+  archive->prop_ = {
+      ls::Property{.form = ls::Type::Int, .size = 0, .name = "flag"},
+      ls::Property{.form = ls::Type::String, .size = 0, .name = "label"}};
+
+  ls::SiglusRuntime runtime;
+  runtime.vm = std::make_unique<sr::VM>(gc);
+  runtime.archive = std::move(archive);
+
+  ls::binding::Context ctx;
+  ls::binding::Memory memory(ctx);
+  memory.Bind(runtime);
+
+  auto& globals = *runtime.vm->globals_;
+  auto globalprop_it = globals.find("__globalprop");
+  ASSERT_NE(globalprop_it, globals.end());
+  auto* globalprop = globalprop_it->second.Get_if<sr::List>();
+  ASSERT_NE(globalprop, nullptr);
+  EXPECT_THAT(globalprop->items, ElementsAre(0, ""));
+
+  EXPECT_FALSE(globals.contains("__usrprop"));
+  for (const std::string& name :
+       {std::string("__") + "locprop", std::string("get_") + "proplist",
+        std::string("%%") + "usrprop", std::string("%%") + "scnprop"}) {
+    EXPECT_FALSE(globals.contains(name)) << name;
+  }
 }
 
 }  // namespace siglus_test

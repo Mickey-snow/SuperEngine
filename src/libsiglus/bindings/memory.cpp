@@ -70,54 +70,34 @@ void Memory::Bind(SiglusRuntime& runtime) {
       },
       sb::arg("size"));
 
-  std::string src = "__usrprop = [];\n";
+  std::string src = "__globalprop = [];\n";
   Archive& archive = *runtime.archive;
-  // install global usrprop
+  // install archive-global user properties
   for (size_t i = 0; i < archive.prop_.size(); ++i) {
     Property& p = archive.prop_[i];
     switch (p.form) {
       case Type::Int:
-        src += "__usrprop.append(0);";
+        src += "__globalprop.append(0);";
         break;
       case Type::IntList:
-        src += std::format("__usrprop.append(make_intlist({}));", p.size);
+        src += std::format("__globalprop.append(make_intlist({}));", p.size);
         break;
       case Type::String:
-        src += "__usrprop.append(\"\");";
+        src += "__globalprop.append(\"\");";
         break;
       case Type::StrList:
-        src += std::format("__usrprop.append(make_strlist({}));", p.size);
+        src += std::format("__globalprop.append(make_strlist({}));", p.size);
         break;
 
       default: {
         static DomainLogger log("Memory");
         log(Severity::Error)
-            << "failed to install global usrprop: " << p.ToDebugString();
-        src += "__usrprop.append(nil);\n";
+            << "failed to install global property: " << p.ToDebugString();
+        src += "__globalprop.append(nil);\n";
         break;
       }
     }
   }
-  Execute(vm, std::move(src));
-
-  // install scene local usrprop
-  src = "__locprop = {-1 : __usrprop};";
-  Execute(vm, std::move(src));
-
-  // install getter/setter for usrprop
-  src = R"(
-fn get_proplist(scn){
-  prop = __usrprop;
-  if(scn != -1){
-    prop = __locprop.get(scn);
-    if(prop == nil){
-      __builtin_load_scn(scn);
-      prop = __locprop[scn];
-    }
-  }
-  return prop;
-}
-)";
   Execute(vm, std::move(src));
 
   // TODO: install memory banks

@@ -121,7 +121,6 @@ class Recompiler {
   void emit_store_function_global(std::string id,
                                   std::size_t entry,
                                   std::size_t nargs);
-  void emit_scene_property_value(const Property& property);
   void emit_scene_property_table();
   void emit_load_proplist(int scene);
 
