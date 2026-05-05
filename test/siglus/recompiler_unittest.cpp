@@ -42,10 +42,12 @@
 #include "vm/vm.hpp"
 
 #include <memory>
+#include <optional>
 #include <sstream>
 #include <tuple>
 #include <unordered_map>
 #include <utility>
+#include <variant>
 #include <vector>
 
 namespace siglus_test {
@@ -357,6 +359,104 @@ TEST_F(RecompilerTest, ReturnMultipleValues) {
   const auto* list = result.Get_if<sr::List>();
   ASSERT_NE(list, nullptr);
   EXPECT_THAT(list->items, ElementsAre(1, 2, 3));
+}
+
+TEST_F(RecompilerTest, SimpleCallSignature) {
+  std::unordered_map<std::string, sr::Value> builtins;
+  builtins["simple"] = sr::Value(gc->Allocate<sr::NativeFunction>(
+      "simple",
+      [&](sr::VM&, sr::Fiber& f, uint8_t nargs,
+          uint8_t nkwargs) -> sr::TempValue {
+        EXPECT_EQ(nargs, 2);
+        EXPECT_EQ(nkwargs, 0);
+
+        const std::size_t base = f.op_stack.size() - nargs - 2 * nkwargs - 1;
+        const int* first = f.op_stack[base + 1].Get_if<int>();
+        const int* second = f.op_stack[base + 2].Get_if<int>();
+        EXPECT_NE(first, nullptr);
+        EXPECT_NE(second, nullptr);
+
+        if (first) {
+          EXPECT_EQ(*first, 11);
+        }
+        if (second) {
+          EXPECT_EQ(*second, 22);
+        }
+
+        f.op_stack.resize(base + 1);
+        return sr::Value(91);
+      }));
+
+  ls::elm::Call call;
+  call.args = {ls::Integer{11}, ls::Integer{22}};
+  call.kwargs = {{7, ls::Integer{33}}};  // ignored
+
+  ls::elm::AccessChain chain{
+      .root = ls::elm::Root(ls::Type::None, std::monostate()),
+      .nodes = {ls::elm::Node(ls::Type::Callable, ls::elm::Member("simple")),
+                ls::elm::Node(ls::Type::Int, std::move(call))}};
+  recompiler.Gen(tk::Command{.chain = std::move(chain), .dst = IntVar(0)});
+  recompiler.Gen(tk::Return{.ret_vals = {IntVar(0)}});
+  recompiler.Finish();
+
+  EXPECT_EQ(recompiler.GetErrors().size(), 1u) << "Callable kwargs ignored";
+  EXPECT_EQ(Run({}, builtins), 91);
+}
+
+TEST_F(RecompilerTest, NonSimpleCallSignature) {
+  std::unordered_map<std::string, sr::Value> builtins;
+  builtins["dispatch"] = sr::Value(gc->Allocate<sr::NativeFunction>(
+      "dispatch",
+      [&](sr::VM&, sr::Fiber& f, uint8_t nargs,
+          uint8_t nkwargs) -> sr::TempValue {
+        EXPECT_EQ(nargs, 3);
+        EXPECT_EQ(nkwargs, 0);
+
+        const std::size_t base = f.op_stack.size() - nargs - 1;
+        const int* overload = f.op_stack[base + 1].Get_if<int>();
+        const auto* args = f.op_stack[base + 2].Get_if<sr::List>();
+        const auto* kwargs = f.op_stack[base + 3].Get_if<sr::Dict>();
+        EXPECT_NE(overload, nullptr);
+        EXPECT_NE(args, nullptr);
+        EXPECT_NE(kwargs, nullptr);
+
+        if (overload) {
+          EXPECT_EQ(*overload, 5);
+        }
+        if (args) {
+          EXPECT_THAT(args->items, ElementsAre(7));
+        }
+        if (kwargs) {
+          EXPECT_EQ(kwargs->map.size(), 2u);
+
+          auto expect_kwarg = [&](std::string key, int value) {
+            auto it = kwargs->map.find(
+                sr::Value(gc->Allocate<sr::String>(std::move(key))));
+            ASSERT_NE(it, kwargs->map.end());
+            EXPECT_EQ(it->second, value);
+          };
+          expect_kwarg("_1", 123);
+          expect_kwarg("_2", 234);
+        }
+
+        f.op_stack.resize(base + 1);
+        return sr::Value(57);
+      }));
+
+  ls::elm::Call call;
+  call.overload_id = 5;
+  call.args = {ls::Integer{7}};
+  call.kwargs = {{1, ls::Integer{123}}, {2, ls::Integer{234}}};
+  call.is_simple = false;
+
+  ls::elm::AccessChain chain{
+      .root = ls::elm::Root(ls::Type::None, std::monostate()),
+      .nodes = {ls::elm::Node(ls::Type::Callable, ls::elm::Member("dispatch")),
+                ls::elm::Node(ls::Type::Int, std::move(call))}};
+  Emit(tk::Command{.chain = std::move(chain), .dst = IntVar(0)},
+       tk::Return{.ret_vals = {IntVar(0)}});
+
+  EXPECT_EQ(Run({}, builtins), 57);
 }
 
 TEST_F(RecompilerTest, Goto) {

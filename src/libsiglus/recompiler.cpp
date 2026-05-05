@@ -581,26 +581,45 @@ void Recompiler::emit_elm_node(const elm::Member& nd) {
 }
 void Recompiler::emit_elm_node(const elm::Call& nd) {
   // (fn)
-  uint32_t nargs = static_cast<uint32_t>(nd.args.size());
-  if (nd.overload_id) {
-    emit_const(*nd.overload_id);
-    ++nargs;
+  if (nd.is_simple) {
+    if (!nd.kwargs.empty()) {
+      std::string msg = std::format(
+          "Simple Siglus callable has {} tagged/keyword argument(s); ignoring "
+          "kwargs",
+          nd.kwargs.size());
+      AddError(msg);
+      logger(Severity::Warn) << msg;
+    }
+
+    // no overload, no kwargs
+    for (auto const& arg : nd.args)
+      emit_val(arg);
+    // (fn, args...)
+    emit(sr::Call(
+        {.argcnt = static_cast<uint32_t>(nd.args.size()), .kwargcnt = 0}));
+    // -> (ret)
+  } else {
+    if (nd.overload_id)
+      emit_const(*nd.overload_id);
+    else
+      emit_const_nil();
+    // (fn, ol)
+
+    for (auto const& arg : nd.args)
+      emit_val(arg);
+    emit(sr::MakeList{.nelms = nd.args.size()});
+    // (fn, ol, args)
+
+    for (auto const& [k, arg] : nd.kwargs) {
+      emit_const("_" + std::to_string(k));
+      emit_val(arg);
+    }
+    emit(sr::MakeDict{.nelms = nd.kwargs.size()});
+    // (fn, ol, args, kwargs)
+
+    emit(sr::Call{.argcnt = 3, .kwargcnt = 0});
+    // -> (ret)
   }
-  // (fn, [ol])
-
-  for (auto const& arg : nd.args)
-    emit_val(arg);
-  // (fn, [ol], args...)
-
-  for (auto const& [k, arg] : nd.kwargs) {
-    emit_const("_" + std::to_string(k));
-    emit_val(arg);
-  }
-  // (fn, [ol], args..., tags...)
-
-  emit(sr::Call{.argcnt = nargs,
-                .kwargcnt = static_cast<uint32_t>(nd.kwargs.size())});
-  // -> (ret)
 }
 void Recompiler::emit_elm_node(const elm::Subscript& nd) {
   // (primary)
