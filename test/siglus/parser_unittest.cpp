@@ -43,6 +43,7 @@ class MockParserContext : public Parser::Context {
   MOCK_METHOD(std::string_view, SceneData, (), (const, override));
   MOCK_METHOD(const std::vector<std::string>&, Strings, (), (const, override));
   MOCK_METHOD(const std::vector<int>&, Labels, (), (const, override));
+  MOCK_METHOD(const std::vector<int>&, Zlabels, (), (const, override));
 
   MOCK_METHOD(const std::vector<libsiglus::Property>&,
               SceneProperties,
@@ -108,6 +109,27 @@ TEST_F(SiglusParserTest, Gosub) {
             Push{Type::Int, -1}, Push{Type::Int, 0},
             Gosub{.return_type_ = Type::Int, .label_ = 5, .argt_ = {}},
             Assign{.ltype_ = Type::Int, .rtype_ = Type::Int, .v1_ = 1}));
+}
+
+TEST_F(SiglusParserTest, ParseAllLabelsAndZlabels) {
+  const std::string scene(1, static_cast<char>(ByteCode::End));
+  const std::vector<int> labels{0};
+  const std::vector<int> zlabels{0};
+  const std::vector<libsiglus::Command> commands;
+
+  EXPECT_CALL(ctx, SceneData).WillOnce(Return(std::string_view(scene)));
+  EXPECT_CALL(ctx, SceneId).WillRepeatedly(Return(0));
+  EXPECT_CALL(ctx, Labels).WillRepeatedly(ReturnRef(labels));
+  EXPECT_CALL(ctx, Zlabels).WillRepeatedly(ReturnRef(zlabels));
+  EXPECT_CALL(ctx, SceneCommands).WillRepeatedly(ReturnRef(commands));
+  EXPECT_CALL(ctx, GlobalCommands).WillRepeatedly(ReturnRef(commands));
+
+  parser.ParseAll();
+
+  ASSERT_EQ(tokens.size(), 3u);
+  EXPECT_EQ(tokens[0], token::Token_t(token::Label{0}));
+  EXPECT_EQ(tokens[1], token::Token_t(token::Zlabel{0}));
+  EXPECT_EQ(tokens[2], token::Token_t(token::Eof{}));
 }
 
 TEST_F(SiglusParserTest, Operate1) {

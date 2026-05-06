@@ -27,6 +27,9 @@
 
 namespace libsiglus {
 
+[[nodiscard]] inline std::string GetZlabelId(int z) {
+  return "%%z@" + std::to_string(z);
+}
 [[nodiscard]] inline std::string GetUsercmdId(int entry) {
   return "%%cmd@" + std::to_string(entry);
 }

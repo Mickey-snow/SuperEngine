@@ -74,11 +74,7 @@ sr::Module* Loader::Load(int scene) {
   tokens.clear();
 
   if (!compiler.Ok()) {
-    std::ostringstream errors;
-    for (auto& it : compiler.GetErrors())
-      errors << it.ToString() << '\n';
-    throw sr::RuntimeError(std::format("failed to compile scene {} ({}):\n{}",
-                                       scene, scn.scnname_, errors.str()));
+    std::ignore = compiler.GetErrors();
   }
 
   compiler.module_->name = scn.scnname_;
@@ -107,6 +103,14 @@ sr::Module* Loader::Load(int scene) {
   (*vm.builtins_)["%%siglus_module@" + scene_str] = sr::Value(mod);
 
   return mod;
+}
+
+serilang::Module* Loader::Load(std::string const& scnname) {
+  const auto it = archive.scn_map_.find(scnname);
+  if (it == archive.scn_map_.cend())
+    throw sr::RuntimeError(std::format("scene '{}' not found", scnname));
+  const int scnid = it->second;
+  return Load(scnid);
 }
 
 }  // namespace libsiglus::binding

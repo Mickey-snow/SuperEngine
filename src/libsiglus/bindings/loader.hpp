@@ -42,6 +42,7 @@ class Loader {
   explicit Loader(Archive& ar, serilang::VM& v) : archive(ar), vm(v) {}
 
   serilang::Module* Load(int scene);
+  serilang::Module* Load(std::string const& scnname);
 };
 
 }  // namespace binding

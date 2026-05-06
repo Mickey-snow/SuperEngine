@@ -75,6 +75,7 @@ std::string Gosub::ToDebugString() const {
                      Join(",", vals_to_string(args)));
 }
 std::string Label::ToDebugString() const { return ".L" + std::to_string(id); }
+std::string Zlabel::ToDebugString() const { return ".Z" + std::to_string(id); }
 std::string Operate1::ToDebugString() const {
   auto expr = std::format("{} {} = {} {}", ToString(Typeof(dst)),
                           dst.ToDebugString(), ToString(op), ToString(rhs));

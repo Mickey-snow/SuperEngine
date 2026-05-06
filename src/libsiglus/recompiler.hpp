@@ -70,6 +70,11 @@ class Recompiler {
     std::vector<Type> args;
   };
 
+  struct ZlabelRecord {
+    int id = -1;
+    std::size_t bytecode_entry = 0;
+  };
+
   // Data members
   std::shared_ptr<serilang::GarbageCollector> gc_;
   serilang::Code* cur_chunk_ = nullptr;
@@ -80,6 +85,8 @@ class Recompiler {
   std::optional<int> scene_id_;
   std::vector<Property> scene_properties_;
   std::vector<SubroutineRecord> subroutines_;
+  std::vector<ZlabelRecord> zlabels_;
+  std::unordered_map<int, std::size_t> zlabel_entries_;
 
  public:
   std::unordered_map<int, std::size_t> subroutine_entries_;
@@ -142,6 +149,7 @@ class Recompiler {
   void emit_tok(const token::Operate1& tk);
   void emit_tok(const token::Operate2& tk);
   void emit_tok(const token::Label& tk);
+  void emit_tok(const token::Zlabel& tk);
   void emit_tok(const token::Goto& tk);
   void emit_tok(const token::GotoIf& tk);
   void emit_tok(const token::Gosub& tk);

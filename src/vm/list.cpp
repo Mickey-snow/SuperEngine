@@ -49,6 +49,7 @@ enum class ListMethodKind {
   Extend,
   Index,
   Insert,
+  Len,
   Pop,
   Remove,
   Reverse,
@@ -255,6 +256,13 @@ class ListMethod final : public IObject {
         return;
       }
 
+      case ListMethodKind::Len: {
+        if (!require_no_kwargs() || !require_nargs(0))
+          return;
+        finish(Value(static_cast<int>(self_->items.size())));
+        return;
+      }
+
       case ListMethodKind::Pop: {
         if (!require_no_kwargs())
           return;
@@ -342,6 +350,8 @@ class ListMethod final : public IObject {
         return "index";
       case ListMethodKind::Insert:
         return "insert";
+      case ListMethodKind::Len:
+        return "len";
       case ListMethodKind::Pop:
         return "pop";
       case ListMethodKind::Remove:
@@ -375,6 +385,8 @@ TempValue List::Member(std::string_view mem) {
     return std::make_unique<ListMethod>(this, ListMethodKind::Index);
   if (mem == "insert")
     return std::make_unique<ListMethod>(this, ListMethodKind::Insert);
+  if (mem == "len")
+    return std::make_unique<ListMethod>(this, ListMethodKind::Len);
   if (mem == "pop")
     return std::make_unique<ListMethod>(this, ListMethodKind::Pop);
   if (mem == "remove")

@@ -145,9 +145,26 @@ SiglusRuntime SGVMFactory::Create() {
           sr::Module* mod = loader->Load(scnid);
           return sr::Value(mod);
         });
-  m.def("__builtin_farcall", [](std::string scn, int zlabel) {
-    // not implemented yet
-  });
+  m.def("__builtin_farcall",
+        [loader = rt.loader.get()](std::string scn, int zlabel) -> sr::Value {
+          for (auto& c : scn)
+            c = std::tolower(c);
+          const std::string zname = GetZlabelId(zlabel);
+          const std::string dbgname = std::format("SCENE{}@{}", scn, zlabel);
+          sr::Module* mod = loader->Load(scn);
+
+          if (!mod)
+            throw sr::RuntimeError(
+                std::format("Farcall {} could not load scene", dbgname));
+
+          const auto it = mod->globals->find(zname);
+          if (it == mod->globals->cend()) {
+            std::string errmsg = std::format(
+                "zlabel {} does not exist in scene {}", zlabel, scn);
+            throw sr::RuntimeError(std::move(errmsg));
+          }
+          return it->second;
+        });
   m.def("__builtin_usrcmd",
         [loader = rt.loader.get()](int scn, int entry,
                                    std::string name) -> sr::Value {
@@ -167,16 +184,7 @@ SiglusRuntime SGVMFactory::Create() {
                             scn, mod->name);
             throw sr::RuntimeError(std::move(errmsg));
           }
-
-          auto* cmd = it->second.Get_if<sr::Function>();
-          if (!cmd) {
-            std::string errmsg =
-                std::format("User command ({}:{}) {} (aka.{}) is not callable",
-                            scn, mod->name, dbgname, it->second.Desc());
-            throw sr::RuntimeError(std::move(errmsg));
-          }
-
-          return sr::Value(cmd);
+          return it->second;
         });
 
   // abuse the vm scheduler to refresh sdl regularly

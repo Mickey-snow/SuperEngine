@@ -521,7 +521,9 @@ TEST_F(VMTest, DictMethods) {
 TEST_F(VMTest, ListMethods) {
   auto* xs = gc->Allocate<List>(value_vector(2, 1, 2));
 
+  EXPECT_EQ(CallMember(xs, "len"), 3);
   EXPECT_EQ(CallMember(xs, "append", std::vector<Value>{Value(3)}), nil);
+  EXPECT_EQ(CallMember(xs, "len"), 4);
   EXPECT_EQ(CallMember(xs, "count", std::vector<Value>{Value(2)}), 2);
   EXPECT_EQ(CallMember(xs, "index", std::vector<Value>{Value(3)}), 3);
 
@@ -551,6 +553,7 @@ TEST_F(VMTest, ListMethods) {
   EXPECT_EQ(xs->items[3], 4);
 
   EXPECT_EQ(CallMember(xs, "clear"), nil);
+  EXPECT_EQ(CallMember(xs, "len"), 0);
   EXPECT_TRUE(xs->items.empty());
 }
 

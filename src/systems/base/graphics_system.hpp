@@ -264,9 +264,10 @@ class GraphicsSystem : public EventListener {
   // their own internal copy.
   virtual void SetWindowSubtitle(const std::string& cp932str,
                                  int text_encoding);
+  void SetWindowSubtitle(std::string utf8str);
 
   // Returns the current window subtitle, in native encoding.
-  const std::string& window_subtitle() const { return subtitle_; }
+  std::string window_subtitle() const { return subtitle_; }
 
   // Wether we should display the subtitle.
   bool should_display_subtitle() const { return display_subtitle_; }

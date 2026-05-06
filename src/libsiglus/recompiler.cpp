@@ -134,30 +134,15 @@ void Recompiler::Finish() {
                                record.args.size());
   }
 
+  for (const auto& record : zlabels_) {
+    const std::string entry_name = GetZlabelId(record.id);
+    emit_store_function_global(entry_name, record.bytecode_entry, 0);
+  }
+
   if (scene_id_.has_value()) {
     emit_scene_property_table();
     emit_store_global("__usrprop");  // __usrprop -> list
   }
-
-  const std::size_t memorybank_try = code_size();
-  emit(sr::TryBegin{0});
-  emit_load_global("MemoryBank");
-  emit(sr::TryEnd{});
-  emit(sr::Dup{});
-  emit(sr::Call{.argcnt = 0, .kwargcnt = 0});
-  emit_store_global("L");
-  emit_const(1);
-  emit_const(8);
-  emit_const("");
-  emit(sr::Call{.argcnt = 3, .kwargcnt = 0});
-  emit_store_global("K");
-
-  const std::size_t memorybank_done = code_size();
-  emit(sr::Jump{0});
-  const std::size_t memorybank_missing = code_size();
-  patch(memorybank_try, memorybank_missing);
-  emit(sr::Pop{});
-  patch(memorybank_done, code_size());
 
   emit_const_nil();
   emit(sr::Return{});
@@ -383,6 +368,16 @@ void Recompiler::emit_tok(const token::Label& tk) {
     patch(site, target);
   patch_sites_[lid].clear();
 }
+void Recompiler::emit_tok(const token::Zlabel& tk) {
+  const std::size_t loc = code_size();
+  auto [it, ok] = zlabel_entries_.emplace(tk.id, loc);
+  if (!ok) {
+    throw std::runtime_error(
+        std::format("redefinition of zlabel entry {}", tk.id));
+  }
+
+  zlabels_.push_back(ZlabelRecord{.id = tk.id, .bytecode_entry = loc});
+}
 void Recompiler::emit_tok(const token::Goto& tk) {
   auto site = code_size();
   emit(sr::Jump{0});
@@ -563,6 +558,8 @@ void Recompiler::emit_elm_root(const elm::Farcall& r) {
   emit_val(r.scn_name), emit_val(r.zlabel);
   emit(sr::Call{.argcnt = 2, .kwargcnt = 0});
   // (farcall, scn, z) -> (fn)
+
+  emit_load_global("__builtin_push_frame");
   for (auto const& it : r.intargs)
     emit_val(it);
   emit(sr::MakeList{.nelms = r.intargs.size()});
@@ -570,7 +567,17 @@ void Recompiler::emit_elm_root(const elm::Farcall& r) {
     emit_val(it);
   emit(sr::MakeList{.nelms = r.strargs.size()});
   emit(sr::Call{.argcnt = 2, .kwargcnt = 0});
-  // (fn, intargs, strargs) -> (ret)
+  // (fn, push_frame, L[], K[]) -> (fn, nil)
+  emit(sr::Pop{});
+  // (fn, nil) -> (fn)
+
+  emit(sr::Call{.argcnt = 0, .kwargcnt = 0});
+  // -> (ret)
+
+  emit_load_global("__builtin_pop_frame");
+  emit(sr::Call{.argcnt = 0, .kwargcnt = 0});
+  emit(sr::Pop{});
+  // (ret,nil) -> (ret)
 }
 
 void Recompiler::emit_elm_node(const elm::Member& nd) {

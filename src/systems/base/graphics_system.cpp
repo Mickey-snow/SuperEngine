@@ -414,7 +414,11 @@ void GraphicsSystem::SetHikRenderer(HIKRenderer* renderer) {
 void GraphicsSystem::SetWindowSubtitle(const std::string& cp932str,
                                        int text_encoding) {
   subtitle_ = cp932str;
-  subtitle_utf8_ = cp932toUTF8(cp932str, text_encoding);
+  SetWindowSubtitle(cp932toUTF8(cp932str, text_encoding));
+}
+
+void GraphicsSystem::SetWindowSubtitle(std::string utf8str) {
+  subtitle_utf8_ = std::move(utf8str);
   // Force update on next tick to avoid stalling title updates after load.
   last_window_title_update_ =
       window_title_clock_.GetTime() - window_title_update_interval_;

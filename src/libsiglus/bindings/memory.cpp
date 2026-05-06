@@ -155,11 +155,30 @@ void Memory::Bind(SiglusRuntime& runtime) {
 
   // Install global memory banks
   src.clear();
-  constexpr std::string_view int_banks = "ABCDEFXGZ";
+  constexpr std::string_view int_banks = "ABCDEFXGZL";
   for (auto bank : int_banks)
     src += std::format("{}=MemoryBank(true,8,0);", bank);
-  for (std::string_view bank : {"S", "M", "LN", "GN"})
+  for (std::string_view bank : {"K", "S", "M", "LN", "GN"})
     src += std::format("{}=MemoryBank(true,8,\"\");", bank);
+  Execute(vm, std::move(src));
+
+  // Install builtin call frame handlers for frame local memory banks
+  src = R"(
+__L_stk = []; __K_stk = [];
+fn __builtin_push_frame(newl, newk){
+  global L, K;
+  __L_stk.append(L); __K_stk.append(K);
+  L = MemoryBank(true, 8, 0);
+  for(i=0; i<newl.len(); i+=1) L[i] = newl[i];
+  K = MemoryBank(true, 8, "");
+  for(i=0; i<newk.len(); i+=1) K[i] = newk[i];
+}
+
+fn __builtin_pop_frame(){
+  global L, K;
+  L = __L_stk.pop(); K = __K_stk.pop();
+}
+)";
   Execute(vm, std::move(src));
 };
 

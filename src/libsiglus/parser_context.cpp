@@ -33,6 +33,7 @@ const std::vector<std::string>& ParserContext::Strings() const {
   return scene_.str_;
 }
 const std::vector<int>& ParserContext::Labels() const { return scene_.label; }
+const std::vector<int>& ParserContext::Zlabels() const { return scene_.zlabel; }
 
 const std::vector<Property>& ParserContext::SceneProperties() const {
   return scene_.property;

@@ -36,6 +36,7 @@ class ParserContext : public Parser::Context {
   virtual std::string_view SceneData() const override;
   virtual const std::vector<std::string>& Strings() const override;
   virtual const std::vector<int>& Labels() const override;
+  virtual const std::vector<int>& Zlabels() const override;
 
   virtual const std::vector<Property>& SceneProperties() const override;
   virtual const std::vector<Property>& GlobalProperties() const override;

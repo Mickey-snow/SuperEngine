@@ -26,6 +26,8 @@
 #include "libsiglus/bindings/exception.hpp"
 #include "log/domain_logger.hpp"
 #include "srbind/srbind.hpp"
+#include "systems/base/graphics_system.hpp"
+#include "systems/sdl/sdl_system.hpp"
 #include "vm/gc.hpp"
 #include "vm/vm.hpp"
 
@@ -55,6 +57,11 @@ void System::Bind(SiglusRuntime& runtime) {
           logger(Severity::Info) << std::move(msg);
         });
   m.def("get_lang", +[]() { return "ja"; });
+
+  sb::module_ gm(vm.gc_.get(), vm.globals_.get());
+  gm.def("set_title", [sys = runtime.system.get()](std::string title) {
+    sys->graphics().SetWindowSubtitle(std::move(title));
+  });
 };
 
 }  // namespace libsiglus::binding

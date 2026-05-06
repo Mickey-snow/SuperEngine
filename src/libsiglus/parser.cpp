@@ -132,20 +132,25 @@ void Parser::push(const token::GetProperty& prop) {
 }
 
 void Parser::add_label(int id) { emit_token(Label{id}); }
+void Parser::add_zlabel(int id) { emit_token(Zlabel{id}); }
 
 void Parser::ParseAll() {
   reader_ = ByteReader(ctx_.SceneData());
   var_cnt_ = lineno_ = 0;
   offset2cmd_.clear();
   offset2labels_.clear();
+  offset2zlabels_.clear();
   stack_.Clear();
 
   const int this_scene_id = ctx_.SceneId();
   std::vector<int> const& labels = ctx_.Labels();
+  std::vector<int> const& zlabels = ctx_.Zlabels();
   std::vector<libsiglus::Command> const& scene_cmd = ctx_.SceneCommands();
   std::vector<libsiglus::Command> const& global_cmd = ctx_.GlobalCommands();
   for (size_t i = 0; i < labels.size(); ++i)
     offset2labels_.emplace(labels[i], i);  // (location, lid)
+  for (size_t i = 0; i < zlabels.size(); ++i)
+    offset2zlabels_.emplace(zlabels[i], i);  // (location, zid)
   for (size_t i = 0; i < scene_cmd.size(); ++i)
     offset2cmd_.emplace(scene_cmd[i].offset, &scene_cmd[i]);
   for (size_t i = 0; i < global_cmd.size(); ++i)
@@ -157,6 +162,13 @@ void Parser::ParseAll() {
     for (auto [begin, end] = offset2labels_.equal_range(reader_.Position());
          begin != end; ++begin) {
       add_label(begin->second);
+      debug_assert_stack_empty();
+    }
+
+    // Add zlabels
+    for (auto [begin, end] = offset2zlabels_.equal_range(reader_.Position());
+         begin != end; ++begin) {
+      add_zlabel(begin->second);
       debug_assert_stack_empty();
     }
 

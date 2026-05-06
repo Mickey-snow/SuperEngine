@@ -51,6 +51,7 @@ class Parser {
     virtual std::string_view SceneData() const = 0;
     virtual const std::vector<std::string>& Strings() const = 0;
     virtual const std::vector<int>& Labels() const = 0;
+    virtual const std::vector<int>& Zlabels() const = 0;
 
     virtual const std::vector<Property>& SceneProperties() const = 0;
     virtual const std::vector<Property>& GlobalProperties() const = 0;
@@ -91,6 +92,7 @@ class Parser {
 
   Variable add_var(Type type);
   void add_label(int id);
+  void add_zlabel(int id);
 
   // dispatch functions
   void Add(lex::Push);
@@ -140,6 +142,7 @@ class Parser {
   Stack stack_;
   int var_cnt_ = 0;
   std::multimap<int, int> offset2labels_;
+  std::multimap<int, int> offset2zlabels_;
   std::unordered_map<int, const Command*> offset2cmd_;
 
   const Command* curcall_cmd_ = nullptr;

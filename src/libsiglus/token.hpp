@@ -96,6 +96,12 @@ struct Label {
   bool operator==(const Label&) const = default;
 };
 
+struct Zlabel {
+  int id;
+  std::string ToDebugString() const;
+  bool operator==(const Zlabel&) const = default;
+};
+
 struct Operate1 {
   OperatorCode op;
   Value rhs;
@@ -164,6 +170,7 @@ using Token_t = std::variant<ElmAlias,
                              Operate1,
                              Operate2,
                              Label,
+                             Zlabel,
                              Goto,
                              GotoIf,
                              Gosub,

@@ -561,6 +561,29 @@ TEST_F(RecompilerTest, BootstrapCreatesScriptAndCommandEntryFunctions) {
   EXPECT_EQ(GetGlobalFunction(libsiglus::GetUsercmdId(123)), command);
 }
 
+TEST_F(RecompilerTest, BootstrapZlabel) {
+  Emit(tk::Goto{.label = 0}, tk::Zlabel{.id = 5},
+       tk::Return{.ret_vals = {ls::Integer{88}}}, tk::Label{.id = 0},
+       tk::Return{.ret_vals = {ls::Integer{7}}});
+
+  sr::VM vm(gc);
+  Bootstrap(vm);
+
+  sr::Function* zlabel = GetGlobalFunction(libsiglus::GetZlabelId(5));
+  ASSERT_NE(zlabel, nullptr);
+  EXPECT_EQ(zlabel->arglist.nparam, 0u);
+  EXPECT_EQ(Call(vm, sr::Value(zlabel)), 88);
+  EXPECT_EQ(Call(vm, sr::Value(GetGlobalFunction("%%script"))), 7);
+}
+
+TEST_F(RecompilerTest, DuplicateZlabel) {
+  recompiler.Gen(tk::Zlabel{.id = 5});
+  recompiler.Gen(tk::Zlabel{.id = 5});
+
+  EXPECT_FALSE(recompiler.Ok());
+  EXPECT_THAT(Errors(), HasSubstr("redefinition of zlabel entry 5"));
+}
+
 TEST_F(RecompilerTest, BootstrapDoesNotRequireMemoryBankBinding) {
   Emit(tk::Return{.ret_vals = {ls::Integer{7}}});
 
