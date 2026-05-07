@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "core/asset_scanner.hpp"
 #include "core/voice_archive/ivoicearchive.hpp"
 #include "core/voice_archive/nwk.hpp"
 #include "core/voice_archive/ovk.hpp"

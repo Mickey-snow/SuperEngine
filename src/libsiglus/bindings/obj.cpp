@@ -30,7 +30,7 @@
 #include "object/object_mutator.hpp"
 #include "systems/base/graphics_object.hpp"
 #include "systems/base/graphics_system.hpp"
-#include "systems/sdl/sdl_system.hpp"
+#include "systems/base/system.hpp"
 #include "systems/sdl_surface.hpp"
 
 #include <set>
@@ -105,8 +105,8 @@ void Obj::Bind(SiglusRuntime& runtime) {
   sb::module_ m(vm.gc_.get(), vm.globals_.get());
   sb::class_<Object> o(m, "Object");
 
-  o.def(sb::init([gs = runtime.system->graphics_system_]() -> Object* {
-     return new Object(gs);
+  o.def(sb::init([sys = runtime.system.get()]() -> Object* {
+     return new Object(sys->graphics_ptr());
    })).def("init", &Object::Init);
   o.def("create", &Object::Create);
   o.def("get_size_x", &Object::GetSizeX, sb::arg("cut_no") = 0)

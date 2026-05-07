@@ -25,8 +25,8 @@
 
 #include "core/event_listener.hpp"
 #include "srbind/srbind.hpp"
+#include "systems/base/system.hpp"
 #include "systems/event_system.hpp"
-#include "systems/sdl/sdl_system.hpp"
 #include "utilities/overload.hpp"
 #include "vm/future.hpp"
 #include "vm/gc.hpp"
@@ -42,7 +42,7 @@ using namespace serilang;
 void sgEvent::Bind(SiglusRuntime& runtime) {
   sb::module_ m(*runtime.vm, "event");
 
-  m.def("keydown", [event = runtime.system->event_system_](VM& vm) {
+  m.def("keydown", [event = runtime.system->event_ptr()](VM& vm) {
     struct KeyDownListener : public EventListener {
       std::weak_ptr<Promise> promise;
       KeyDownListener(std::weak_ptr<Promise> p) : promise(p) {}

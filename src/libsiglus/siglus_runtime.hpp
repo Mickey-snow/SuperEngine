@@ -32,7 +32,7 @@
 #include <memory>
 
 class AssetScanner;
-class SDLSystem;
+class System;
 
 namespace serilang {
 class VM;
@@ -52,7 +52,7 @@ struct SiglusRuntime {
   std::shared_ptr<AssetScanner> asset_scanner;
 
   std::shared_ptr<binding::SiglusMwnd> mwnd;
-  std::unique_ptr<SDLSystem> system;
+  std::unique_ptr<System> system;
 
   std::function<void()> exec_sdl_callback;
 

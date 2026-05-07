@@ -32,7 +32,6 @@
 
 #include "gtest/gtest.h"
 #include "libreallive/archive.hpp"
-#include "test_system/mock_system.hpp"
 
 // Locates a test file in the test/ directory.
 std::filesystem::path PathToTestCase(const std::string& baseName);

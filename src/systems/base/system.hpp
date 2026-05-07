@@ -49,6 +49,7 @@ class Gameexe;
 class GameexeInterpretObject;
 class Platform;
 class RLEventListener;
+class SDLSoundSystem;
 
 // Syscom Constants
 //
@@ -116,17 +117,12 @@ struct SystemGlobals {
 
 BOOST_CLASS_VERSION(SystemGlobals, 1)
 
-// The system class provides a generalized interface to all the
-// components that make up a local system that may need to be
-// implemented differently on different systems, i.e., sound,
-// graphics, filesystem etc.
-//
-// The base System class is an abstract base class that is meant to be
-// specialized.
+// The system class provides the SDL-backed components that make up a local
+// runtime system, i.e., sound, graphics, filesystem etc.
 class System {
  public:
-  System(std::shared_ptr<AssetScanner> scanner = nullptr);
-  virtual ~System();
+  System(Gameexe& gameexe, std::shared_ptr<AssetScanner> scanner = nullptr);
+  ~System();
 
   bool confirm_save_load() const { return globals_.confirm_save_load_; }
   void set_confirm_save_load(const int in) { globals_.confirm_save_load_ = in; }
@@ -241,28 +237,27 @@ class System {
   bool ShouldFastForward();
 
   // Called once per gameloop.
-  virtual void Run(RLMachine& machine) = 0;
+  void Run(RLMachine& machine);
 
-  // Returns the specific subclasses.
-  virtual GraphicsSystem& graphics() = 0;
-  virtual EventSystem& event() = 0;
-  virtual Gameexe& gameexe() = 0;
-  virtual TextSystem& text() = 0;
-  virtual SoundSystem& sound() = 0;
-
-  RLEventListener& rlEvent() { return *rlevent_handler_; }
-
-  std::shared_ptr<AssetScanner> GetAssetScanner();
+  inline RLEventListener& rlEvent() { return *rlevent_handler_; }
+  inline std::shared_ptr<AssetScanner> GetAssetScanner() { return assets_; }
+  inline GraphicsSystem& graphics() { return *graphics_system_; }
+  inline EventSystem& event() { return *event_system_; }
+  inline Gameexe& gameexe() { return gameexe_; }
+  inline TextSystem& text() { return *text_system_; }
+  SoundSystem& sound();
+  inline std::shared_ptr<GraphicsSystem> graphics_ptr() {
+    return graphics_system_;
+  }
+  inline std::shared_ptr<EventSystem> event_ptr() { return event_system_; }
 
   RLMachine* machine_ = nullptr;
 
- protected:
-  // Native widget drawer. Can be NULL. This field is protected instead of
-  // private because we need to be destroy the Platform before we destroy SDL.
+ private:
+  // Native widget drawer. Can be NULL. Destroyed before SDL teardown.
   std::shared_ptr<Platform> platform_;
   std::shared_ptr<RLEventListener> rlevent_handler_;
 
- private:
   std::filesystem::path GetHomeDirectory();
 
   // Invokes a custom dialog or the standard one if none present.
@@ -273,6 +268,12 @@ class System {
 
   // Verify that |index| is valid and throw if it isn't.
   void CheckSyscomIndex(int index, const char* function);
+
+  Gameexe& gameexe_;
+  std::shared_ptr<GraphicsSystem> graphics_system_;
+  std::shared_ptr<EventSystem> event_system_;
+  std::shared_ptr<TextSystem> text_system_;
+  std::shared_ptr<SDLSoundSystem> sound_system_;
 
   // The visibility status for all syscom entries
   int syscom_status_[NUM_SYSCOM_ENTRIES];
@@ -292,7 +293,7 @@ class System {
   bool use_western_font_;
 
   // Object to index and find rlvm related files
-  std::shared_ptr<AssetScanner> rlvm_assets_;
+  std::shared_ptr<AssetScanner> assets_;
 
   SystemGlobals globals_;
 

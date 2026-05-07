@@ -24,8 +24,8 @@
 #include "libsiglus/bindings/sound.hpp"
 
 #include "srbind/srbind.hpp"
-#include "systems/sdl/sdl_sound_system.hpp"
-#include "systems/sdl/sdl_system.hpp"
+#include "systems/base/system.hpp"
+#include "systems/base/sound_system.hpp"
 #include "vm/vm.hpp"
 
 #include <string>
@@ -35,17 +35,17 @@ namespace sr = serilang;
 namespace sb = srbind;
 
 class SoundHandle {
-  SDLSystem* system;
+  System* system;
 
  public:
-  SoundHandle(SDLSystem* sys) : system(sys) {}
+  SoundHandle(System* sys) : system(sys) {}
 
   void play(std::string name, bool loop) {
-    system->sound_system_->WavPlay(name, loop);
+    system->sound().WavPlay(name, loop);
   }
 
   void bgm(std::string name, bool loop) {
-    system->sound_system_->BgmPlay(name, loop);
+    system->sound().BgmPlay(name, loop);
   }
 };
 

@@ -30,6 +30,7 @@
 #include "core/gameexe.hpp"
 #include "core/rlevent_listener.hpp"
 #include "effects/fade_effect.hpp"
+#include "libreallive/alldefs.hpp"
 #include "machine/long_operation.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/serialization.hpp"
@@ -42,10 +43,17 @@
 #include "systems/base/system_error.hpp"
 #include "systems/base/text_system.hpp"
 #include "systems/event_system.hpp"
+#include "systems/sdl/event_backend.hpp"
+#include "systems/sdl/graphics_backend.hpp"
+#include "systems/sdl/sdl_sound_system.hpp"
+#include "systems/sdl/sound_implementor.hpp"
+#include "systems/sdl/text_implementor.hpp"
 #include "systems/sdl_surface.hpp"
 #include "utilities/exception.hpp"
 #include "utilities/string_utilities.hpp"
 #include "version.h"
+
+#include <SDL/SDL.h>
 
 #include <algorithm>
 #include <boost/algorithm/string.hpp>
@@ -94,19 +102,58 @@ SystemGlobals::SystemGlobals()
 // System
 // -----------------------------------------------------------------------
 
-System::System(std::shared_ptr<AssetScanner> scanner)
-    : in_menu_(false),
+System::System(Gameexe& gameexe, std::shared_ptr<AssetScanner> scanner)
+    : gameexe_(gameexe),
+      in_menu_(false),
       force_fast_forward_(false),
       force_wait_(false),
       use_western_font_(false),
-      rlvm_assets_(scanner) {
+      assets_(scanner) {
   std::fill(syscom_status_, syscom_status_ + NUM_SYSCOM_ENTRIES,
             SYSCOM_VISIBLE);
 
   rlevent_handler_ = std::make_shared<RLEventListener>();
+
+  if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+    std::ostringstream ss;
+    ss << "Video initialization failed: " << SDL_GetError();
+    throw libreallive::Error(ss.str());
+  }
+
+  auto graphics_backend = std::make_shared<SDLGraphicsBackend>();
+  graphics_system_ =
+      std::make_shared<GraphicsSystem>(*this, gameexe, graphics_backend);
+
+  auto event_impl = std::make_unique<SDLEventBackend>();
+  event_system_ = std::make_shared<EventSystem>(std::move(event_impl));
+
+  auto text_impl = std::make_unique<SDLTextImpl>();
+  text_system_ =
+      std::make_shared<TextSystem>(*this, gameexe, std::move(text_impl));
+
+  auto sound_impl = std::make_unique<SDLSoundImpl>();
+  sound_system_ =
+      std::make_shared<SDLSoundSystem>(*this, std::move(sound_impl));
+
+  event_system_->AddListener(graphics_system_);
+  event_system_->AddListener(text_system_);
+
+  event_system_->AddListener(19, rlevent_handler_);
 }
 
-System::~System() {}
+System::~System() {
+  // Some combinations of SDL and FT on the Mac require us to destroy the
+  // Platform first. This will crash on Tiger if this isn't here, but it won't
+  // crash under Linux.
+  platform_.reset();
+
+  sound_system_.reset();
+  graphics_system_.reset();
+  event_system_.reset();
+  text_system_.reset();
+
+  SDL_Quit();
+}
 
 void System::SetPlatform(const std::shared_ptr<Platform>& platform) {
   platform_ = platform;
@@ -288,8 +335,6 @@ void System::InvokeSyscom(RLMachine& machine, int syscom) {
   }
 }
 
-std::shared_ptr<AssetScanner> System::GetAssetScanner() { return rlvm_assets_; }
-
 void System::Reset() {
   in_menu_ = false;
   previous_selection_.reset();
@@ -322,6 +367,18 @@ bool System::ShouldFastForward() {
   return (rlEvent().CtrlPressed() && text().ctrl_key_skip()) ||
          text().CurrentlySkipping() || force_fast_forward_;
 }
+
+void System::Run(RLMachine& machine) {
+  event_system_->ExecuteEventSystem();
+  text_system_->ExecuteTextSystem();
+  sound_system_->ExecuteSoundSystem();
+  graphics_system_->ExecuteGraphicsSystem(machine);
+
+  if (platform())
+    platform()->Run(machine);
+}
+
+SoundSystem& System::sound() { return *sound_system_; }
 
 std::filesystem::path System::GetHomeDirectory() {
   std::string drive, home;

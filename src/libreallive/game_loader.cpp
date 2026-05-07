@@ -34,7 +34,7 @@
 #include "machine/serialization.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/event_system.hpp"
-#include "systems/sdl/sdl_system.hpp"
+#include "systems/base/system.hpp"
 #include "utilities/file.hpp"
 
 #include <stdexcept>
@@ -91,7 +91,7 @@ GameLoader::GameLoader(fs::path gameroot, std::optional<int> start_scene) {
   archive_ = std::make_shared<libreallive::Archive>(
       seenPath.string(), (*gameexe_)("REGNAME").Str().value_or(""));
 
-  system_ = std::make_shared<SDLSystem>(
+  system_ = std::make_shared<System>(
       *gameexe_, std::make_shared<AssetScanner>(
                      AssetScanner::BuildFromGameexe(*gameexe_)));
 

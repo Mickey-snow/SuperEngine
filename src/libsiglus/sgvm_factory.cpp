@@ -43,7 +43,7 @@
 #include "systems/base/graphics_object.hpp"
 #include "systems/base/graphics_system.hpp"
 #include "systems/event_system.hpp"
-#include "systems/sdl/sdl_system.hpp"
+#include "systems/base/system.hpp"
 #include "utilities/file.hpp"
 #include "utilities/mapped_file.hpp"
 #include "vm/exception.hpp"
@@ -121,7 +121,7 @@ SiglusRuntime SGVMFactory::Create() {
   gexe.parseLine("#SCREENSIZE_MOD=999,1920,1080");
 
   // Init sdl system
-  rt.system = std::make_unique<SDLSystem>(gexe, rt.asset_scanner);
+  rt.system = std::make_unique<System>(gexe, rt.asset_scanner);
 
   // add bindings here
   binding::sgGexe(ctx).Bind(rt);
@@ -195,16 +195,15 @@ SiglusRuntime SGVMFactory::Create() {
     rt.vm->scheduler_.PushCallbackAt(cb, next);
 
     // redraw
-    std::shared_ptr<GraphicsSystem> graphics = rt.system->graphics_system_;
-    for (auto& obj : graphics->GetForegroundObjects())
+    GraphicsSystem& graphics = rt.system->graphics();
+    for (auto& obj : graphics.GetForegroundObjects())
       obj.ExecuteMutators();
-    for (auto& obj : graphics->GetBackgroundObjects())
+    for (auto& obj : graphics.GetBackgroundObjects())
       obj.ExecuteMutators();
-    graphics->RenderFrame(true);
+    graphics.RenderFrame(true);
 
     // poll events
-    std::shared_ptr<EventSystem> event = rt.system->event_system_;
-    event->ExecuteEventSystem();
+    rt.system->event().ExecuteEventSystem();
   };
   rt.vm->scheduler_.PushCallbackAfter(cb, chr::milliseconds(2));
 

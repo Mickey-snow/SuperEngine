@@ -27,10 +27,10 @@
 #include "libsiglus/siglus_runtime.hpp"
 
 #include "srbind/srbind.hpp"
+#include "systems/base/system.hpp"
 #include "systems/base/text_page.hpp"
 #include "systems/base/text_system.hpp"
 #include "systems/base/text_window.hpp"
-#include "systems/sdl/sdl_system.hpp"
 
 #include <chrono>
 #include <thread>
@@ -44,7 +44,7 @@ class SiglusMwnd {
   TextPage page;
 
  public:
-  SiglusMwnd(std::shared_ptr<TextWindow> wd, SDLSystem& sys)
+  SiglusMwnd(std::shared_ptr<TextWindow> wd, System& sys)
       : text_win_(wd), page(sys.gameexe(), wd) {}
 
   bool DisplayCharacter(std::string current, std::string rest) {
@@ -70,8 +70,8 @@ void MWND::Bind(SiglusRuntime& runtime) {
   sb::class_<SiglusMwnd> mwnd(m, "Mwnd");
 
   mwnd.def(sb::init([sys = runtime.system.get()](int id) -> SiglusMwnd* {
-             std::shared_ptr<TextSystem> text = sys->text_system_;
-             if (auto wd = text->GetTextWindow(id)) {
+             TextSystem& text = sys->text();
+             if (auto wd = text.GetTextWindow(id)) {
                return new SiglusMwnd(wd, *sys);
              } else
                throw std::runtime_error("Failed to create text window " +

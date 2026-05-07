@@ -32,7 +32,7 @@
 #include "machine/serialization.hpp"
 #include "platforms/implementor.hpp"
 #include "systems/base/system_error.hpp"
-#include "systems/sdl/sdl_system.hpp"
+#include "systems/base/system.hpp"
 #include "utf8.h"
 #include "utilities/clock.hpp"
 #include "utilities/exception.hpp"

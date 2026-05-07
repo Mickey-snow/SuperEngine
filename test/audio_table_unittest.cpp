@@ -25,6 +25,7 @@
 #include "gtest/gtest.h"
 
 #include "core/audio_table.hpp"
+#include "core/gameexe.hpp"
 #include "test_utils.hpp"
 
 #include <sstream>
