@@ -31,6 +31,7 @@
 #include "libsiglus/bindings/mwnd.hpp"
 #include "libsiglus/bindings/obj.hpp"
 #include "libsiglus/bindings/sound.hpp"
+#include "libsiglus/bindings/syscom.hpp"
 #include "libsiglus/bindings/system.hpp"
 
 #include "libsiglus/archive.hpp"
@@ -40,9 +41,9 @@
 #include "log/domain_logger.hpp"
 #include "m6/vm_factory.hpp"
 #include "srbind/module.hpp"
+#include "systems/event_system.hpp"
 #include "systems/graphics_object.hpp"
 #include "systems/graphics_system.hpp"
-#include "systems/event_system.hpp"
 #include "systems/system.hpp"
 #include "utilities/file.hpp"
 #include "utilities/mapped_file.hpp"
@@ -131,6 +132,7 @@ SiglusRuntime SGVMFactory::Create() {
   binding::Obj(ctx).Bind(rt);
   binding::sgEvent(ctx).Bind(rt);
   binding::MWND(ctx).Bind(rt);
+  binding::Syscom(ctx).Bind(rt);
   sb::module_ m(gc.get(), vm.globals_.get());
 
   m.def("__builtin_dbgprint", dbg_print);

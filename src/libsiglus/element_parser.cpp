@@ -299,8 +299,8 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
       static const auto mp = make_flatmap<Builder>(
           // TODO: 236 -> Syscom_call_ex ?
           id[0] | b(Type::None, Member("menu")),
-          id[6] | b(Type::None, Member("menu_enable")),
-          id[7] | b(Type::None, Member("menu_disable")),
+          id[6] | b(Type::Callable, Member("menu_enable")),
+          id[7] | b(Type::Callable, Member("menu_disable")),
           id[11] | b_callable({{0, "btn_enable_all"}, {1, "btn_enable"}}),
           id[12] | b_callable({{0, "btn_disable_all"}, {1, "btn_disable"}}),
           id[133] | b(Type::None, Member("touch_enable")),
@@ -629,7 +629,7 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
           id[112] | b(Type::Int, Member("get_sleep_onoff")),
           id[113] | b(Type::Callable, Member("set_no_wipe_anime_onoff")),
           id[114] | b(Type::None, Member("set_no_wipe_anime_onoff_default")),
-          id[115] | b(Type::Int, Member("get_no_wipe_anime_onoff")),
+          id[115] | b(Type::Callable, Member("get_no_wipe_anime_onoff")),
           id[116] | b(Type::Callable, Member("set_skip_wipe_anime_onoff")),
           id[117] | b(Type::None, Member("set_skip_wipe_anime_onoff_default")),
           id[118] | b(Type::Int, Member("get_skip_wipe_anime_onoff")),
