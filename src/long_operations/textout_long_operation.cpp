@@ -29,11 +29,11 @@
 
 #include "long_operations/pause_long_operation.hpp"
 #include "machine/rlmachine.hpp"
-#include "systems/base/graphics_system.hpp"
-#include "systems/base/system.hpp"
-#include "systems/base/system_error.hpp"
-#include "systems/base/text_page.hpp"
-#include "systems/base/text_system.hpp"
+#include "systems/graphics_system.hpp"
+#include "systems/system.hpp"
+#include "systems/system_error.hpp"
+#include "systems/text_page.hpp"
+#include "systems/text_system.hpp"
 #include "systems/event_system.hpp"
 #include "utilities/exception.hpp"
 

@@ -34,13 +34,13 @@
 #include <ostream>
 
 #include "core/colour.hpp"
-#include "systems/base/graphics_object.hpp"
-#include "systems/base/graphics_system.hpp"
-#include "systems/base/system.hpp"
-#include "systems/gl_frame_buffer.hpp"
-#include "systems/glrenderer.hpp"
-#include "systems/gltexture.hpp"
-#include "systems/sdl_surface.hpp"
+#include "systems/graphics_object.hpp"
+#include "systems/graphics_system.hpp"
+#include "systems/system.hpp"
+#include "systems/sdl/gl_frame_buffer.hpp"
+#include "systems/sdl/glrenderer.hpp"
+#include "systems/sdl/gltexture.hpp"
+#include "systems/sdl/sdl_surface.hpp"
 
 ColourFilterObjectData::ColourFilterObjectData(const Rect& screen_rect)
     : screen_rect_(screen_rect) {}

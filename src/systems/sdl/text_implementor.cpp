@@ -26,7 +26,7 @@
 #include "systems/sdl/text_implementor.hpp"
 
 #include "log/domain_logger.hpp"
-#include "systems/sdl_surface.hpp"
+#include "systems/sdl/sdl_surface.hpp"
 
 #include <SDL/SDL_ttf.h>
 

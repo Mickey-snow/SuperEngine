@@ -40,11 +40,11 @@
 #include "machine/rloperation/complex_t.hpp"
 #include "machine/rloperation/special_t.hpp"
 #include "modules/module_grp.hpp"
-#include "systems/base/graphics_system.hpp"
-#include "systems/base/hik_renderer.hpp"
-#include "systems/base/hik_script.hpp"
-#include "systems/base/system.hpp"
-#include "systems/sdl_surface.hpp"
+#include "systems/graphics_system.hpp"
+#include "systems/hik_renderer.hpp"
+#include "systems/hik_script.hpp"
+#include "systems/system.hpp"
+#include "systems/sdl/sdl_surface.hpp"
 #include "utilities/graphics.hpp"
 
 namespace fs = std::filesystem;

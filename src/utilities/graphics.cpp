@@ -33,8 +33,8 @@
 #include "core/gameexe.hpp"
 #include "core/rect.hpp"
 #include "machine/rlmachine.hpp"
-#include "systems/base/system.hpp"
-#include "systems/base/system_error.hpp"
+#include "systems/system.hpp"
+#include "systems/system_error.hpp"
 
 std::vector<int> GetSELEffect(RLMachine& machine, int selNum) {
   Gameexe& gexe = machine.GetSystem().gameexe();

@@ -23,7 +23,7 @@
 
 #include "core/album.hpp"
 
-#include "systems/sdl_surface.hpp"
+#include "systems/sdl/sdl_surface.hpp"
 
 Album::Album(std::shared_ptr<SDLSurface> surface,
              std::vector<GrpRect> region_table)

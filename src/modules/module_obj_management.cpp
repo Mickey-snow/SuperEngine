@@ -34,9 +34,9 @@
 #include "machine/rloperation.hpp"
 #include "modules/module_obj.hpp"
 #include "object/drawer/parent.hpp"
-#include "systems/base/graphics_object.hpp"
-#include "systems/base/graphics_system.hpp"
-#include "systems/base/system.hpp"
+#include "systems/graphics_object.hpp"
+#include "systems/graphics_system.hpp"
+#include "systems/system.hpp"
 
 // -----------------------------------------------------------------------
 

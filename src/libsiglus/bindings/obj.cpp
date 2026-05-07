@@ -28,10 +28,10 @@
 #include "core/rect.hpp"
 #include "object/drawer/file.hpp"
 #include "object/object_mutator.hpp"
-#include "systems/base/graphics_object.hpp"
-#include "systems/base/graphics_system.hpp"
-#include "systems/base/system.hpp"
-#include "systems/sdl_surface.hpp"
+#include "systems/graphics_object.hpp"
+#include "systems/graphics_system.hpp"
+#include "systems/system.hpp"
+#include "systems/sdl/sdl_surface.hpp"
 
 #include <set>
 

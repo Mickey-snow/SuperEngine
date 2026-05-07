@@ -32,9 +32,9 @@
 #include "machine/long_operation.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/serialization.hpp"
-#include "systems/base/graphics_system.hpp"
+#include "systems/graphics_system.hpp"
 #include "systems/event_system.hpp"
-#include "systems/base/system.hpp"
+#include "systems/system.hpp"
 #include "utilities/file.hpp"
 
 #include <stdexcept>

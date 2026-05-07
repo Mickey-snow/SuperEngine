@@ -33,7 +33,7 @@
 #include "core/gameexe.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/rloperation.hpp"
-#include "systems/base/system.hpp"
+#include "systems/system.hpp"
 #include "utilities/string_utilities.hpp"
 
 // The Debug Module (mod<1:255)

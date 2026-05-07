@@ -37,9 +37,9 @@
 #include "effects/sel_record.hpp"
 #include "effects/wipe_effect.hpp"
 #include "machine/rlmachine.hpp"
-#include "systems/base/graphics_system.hpp"
-#include "systems/base/system.hpp"
-#include "systems/sdl_surface.hpp"
+#include "systems/graphics_system.hpp"
+#include "systems/system.hpp"
+#include "systems/sdl/sdl_surface.hpp"
 
 enum ScreenDirection {
   TOP_TO_BOTTOM = 0,  // From the top to the bottom

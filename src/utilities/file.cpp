@@ -39,8 +39,8 @@
 #include <stdexcept>
 #include <string>
 
-#include "systems/base/system.hpp"
-#include "systems/base/system_error.hpp"
+#include "systems/system.hpp"
+#include "systems/system_error.hpp"
 #include "utilities/exception.hpp"
 
 using boost::to_upper;

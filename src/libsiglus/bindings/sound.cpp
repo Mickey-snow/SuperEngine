@@ -24,8 +24,8 @@
 #include "libsiglus/bindings/sound.hpp"
 
 #include "srbind/srbind.hpp"
-#include "systems/base/system.hpp"
-#include "systems/base/sound_system.hpp"
+#include "systems/system.hpp"
+#include "systems/sound_system.hpp"
 #include "vm/vm.hpp"
 
 #include <string>

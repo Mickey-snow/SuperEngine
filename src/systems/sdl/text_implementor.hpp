@@ -27,7 +27,7 @@
 
 #include "systems/itext_system.hpp"
 
-#include "systems/sdl_surface.hpp"
+#include "systems/sdl/sdl_surface.hpp"
 
 #include <filesystem>
 #include <optional>

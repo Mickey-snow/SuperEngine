@@ -32,8 +32,8 @@
 #include "core/gameexe.hpp"
 #include "machine/rlmachine.hpp"
 #include "modules/jump.hpp"
-#include "systems/base/graphics_system.hpp"
-#include "systems/base/system.hpp"
+#include "systems/graphics_system.hpp"
+#include "systems/system.hpp"
 
 using std::bind;
 using std::ref;

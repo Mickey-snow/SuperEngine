@@ -33,9 +33,9 @@
 
 #include "core/localrect.hpp"
 #include "core/rect.hpp"
-#include "systems/base/graphics_object.hpp"
-#include "systems/glrenderer.hpp"
-#include "systems/sdl_surface.hpp"
+#include "systems/graphics_object.hpp"
+#include "systems/sdl/glrenderer.hpp"
+#include "systems/sdl/sdl_surface.hpp"
 
 #include <ostream>
 

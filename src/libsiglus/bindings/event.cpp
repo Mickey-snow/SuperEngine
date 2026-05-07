@@ -25,7 +25,7 @@
 
 #include "core/event_listener.hpp"
 #include "srbind/srbind.hpp"
-#include "systems/base/system.hpp"
+#include "systems/system.hpp"
 #include "systems/event_system.hpp"
 #include "utilities/overload.hpp"
 #include "vm/future.hpp"

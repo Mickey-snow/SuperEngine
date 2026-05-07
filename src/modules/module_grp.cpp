@@ -47,10 +47,10 @@
 #include "machine/rloperation/rect_t.hpp"
 #include "machine/rloperation/rgb_colour_t.hpp"
 #include "machine/rloperation/special_t.hpp"
-#include "systems/base/graphics_system.hpp"
-#include "systems/base/system.hpp"
-#include "systems/base/text_system.hpp"
-#include "systems/sdl_surface.hpp"
+#include "systems/graphics_system.hpp"
+#include "systems/system.hpp"
+#include "systems/text_system.hpp"
+#include "systems/sdl/sdl_surface.hpp"
 #include "utilities/graphics.hpp"
 
 namespace fs = std::filesystem;

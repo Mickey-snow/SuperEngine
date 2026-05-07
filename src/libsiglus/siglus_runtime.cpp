@@ -24,7 +24,7 @@
 
 #include "libsiglus/siglus_runtime.hpp"
 
-#include "systems/base/system.hpp"
+#include "systems/system.hpp"
 #include "vm/vm.hpp"
 
 namespace libsiglus {

@@ -1,7 +1,7 @@
 
 #include <gtest/gtest.h>
 
-#include "systems/base/text_layout.hpp"
+#include "systems/text_layout.hpp"
 #include "utilities/string_utilities.hpp"
 
 class TextLayoutEngineTest : public ::testing::Test {

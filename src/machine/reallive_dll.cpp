@@ -30,10 +30,10 @@
 #include <sstream>
 #include <string>
 
-#include "systems/base/little_busters_ef00dll.hpp"
-#include "systems/base/little_busters_pt00dll.hpp"
-#include "systems/base/rlbabel_dll.hpp"
-#include "systems/base/tomoyo_after_dt00dll.hpp"
+#include "systems/little_busters_ef00dll.hpp"
+#include "systems/little_busters_pt00dll.hpp"
+#include "systems/rlbabel_dll.hpp"
+#include "systems/tomoyo_after_dt00dll.hpp"
 #include "utilities/exception.hpp"
 
 using std::ostringstream;

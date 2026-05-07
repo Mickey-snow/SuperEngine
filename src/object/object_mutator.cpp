@@ -27,7 +27,7 @@
 #include "core/frame_counter.hpp"
 #include "object/parameter_manager.hpp"
 #include "object/service_locator.hpp"
-#include "systems/base/graphics_object.hpp"
+#include "systems/graphics_object.hpp"
 
 #include <algorithm>
 #include <functional>

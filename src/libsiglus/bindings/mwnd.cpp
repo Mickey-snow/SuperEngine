@@ -27,10 +27,10 @@
 #include "libsiglus/siglus_runtime.hpp"
 
 #include "srbind/srbind.hpp"
-#include "systems/base/system.hpp"
-#include "systems/base/text_page.hpp"
-#include "systems/base/text_system.hpp"
-#include "systems/base/text_window.hpp"
+#include "systems/system.hpp"
+#include "systems/text_page.hpp"
+#include "systems/text_system.hpp"
+#include "systems/text_window.hpp"
 
 #include <chrono>
 #include <thread>

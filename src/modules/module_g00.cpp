@@ -29,8 +29,8 @@
 #include <string>
 
 #include "machine/general_operations.hpp"
-#include "systems/base/graphics_system.hpp"
-#include "systems/base/system.hpp"
+#include "systems/graphics_system.hpp"
+#include "systems/system.hpp"
 
 struct g00Preload : public RLOpcode<IntConstant_T, StrConstant_T> {
   void operator()(RLMachine& machine, int slot, string name) {

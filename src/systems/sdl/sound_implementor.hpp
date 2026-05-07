@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include "systems/base/isound_system.hpp"
+#include "systems/isound_system.hpp"
 
 #include <cstdint>
 #include <memory>

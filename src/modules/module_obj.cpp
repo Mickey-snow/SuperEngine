@@ -31,9 +31,9 @@
 #include "machine/properties.hpp"
 #include "machine/rlmachine.hpp"
 #include "object/drawer/parent.hpp"
-#include "systems/base/graphics_object.hpp"
-#include "systems/base/graphics_system.hpp"
-#include "systems/base/system.hpp"
+#include "systems/graphics_object.hpp"
+#include "systems/graphics_system.hpp"
+#include "systems/system.hpp"
 #include "utilities/exception.hpp"
 
 #include <iostream>

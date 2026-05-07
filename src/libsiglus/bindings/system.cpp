@@ -26,8 +26,8 @@
 #include "libsiglus/bindings/exception.hpp"
 #include "log/domain_logger.hpp"
 #include "srbind/srbind.hpp"
-#include "systems/base/graphics_system.hpp"
-#include "systems/base/system.hpp"
+#include "systems/graphics_system.hpp"
+#include "systems/system.hpp"
 #include "vm/gc.hpp"
 #include "vm/vm.hpp"
 

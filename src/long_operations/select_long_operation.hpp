@@ -33,8 +33,8 @@
 #include "core/colour.hpp"
 #include "core/rect.hpp"
 #include "machine/long_operation.hpp"
-#include "systems/base/renderable.hpp"
-#include "systems/sdl_surface.hpp"
+#include "systems/renderable.hpp"
+#include "systems/sdl/sdl_surface.hpp"
 
 class RLMachine;
 class TextWindow;

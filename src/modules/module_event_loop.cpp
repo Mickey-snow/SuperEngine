@@ -31,11 +31,11 @@
 #include "machine/general_operations.hpp"
 #include "machine/rlmachine.hpp"
 #include "modules/jump.hpp"
-#include "systems/base/graphics_system.hpp"
-#include "systems/base/sound_system.hpp"
-#include "systems/base/system.hpp"
-#include "systems/base/text_system.hpp"
-#include "systems/base/text_window.hpp"
+#include "systems/graphics_system.hpp"
+#include "systems/sound_system.hpp"
+#include "systems/system.hpp"
+#include "systems/text_system.hpp"
+#include "systems/text_window.hpp"
 
 namespace {
 

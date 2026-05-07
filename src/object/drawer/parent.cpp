@@ -30,7 +30,7 @@
 
 #include "object/drawer/parent.hpp"
 
-#include "systems/base/graphics_object.hpp"
+#include "systems/graphics_object.hpp"
 #include "utilities/exception.hpp"
 
 // -----------------------------------------------------------------------

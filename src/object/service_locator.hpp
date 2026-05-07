@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "systems/base/graphics_system.hpp"
+#include "systems/graphics_system.hpp"
 
 class IRenderingService {
  public:

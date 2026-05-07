@@ -35,10 +35,10 @@
 #include <vector>
 
 #include "core/gameexe.hpp"
-#include "systems/base/graphics_object.hpp"
-#include "systems/base/system.hpp"
-#include "systems/base/text_system.hpp"
-#include "systems/sdl_surface.hpp"
+#include "systems/graphics_object.hpp"
+#include "systems/system.hpp"
+#include "systems/text_system.hpp"
+#include "systems/sdl/sdl_surface.hpp"
 
 // -----------------------------------------------------------------------
 

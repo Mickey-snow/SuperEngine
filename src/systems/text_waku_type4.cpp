@@ -1,0 +1,174 @@
+// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+// vi:tw=80:et:ts=2:sts=2
+//
+// -----------------------------------------------------------------------
+//
+// This file is part of RLVM, a RealLive virtual machine clone.
+//
+// -----------------------------------------------------------------------
+//
+// Copyright (C) 2009 Elliot Glaysher
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
+// -----------------------------------------------------------------------
+
+#include "systems/text_waku_type4.hpp"
+
+#include "systems/graphics_system.hpp"
+#include "systems/text_waku.hpp"
+#include "systems/sdl/sdl_surface.hpp"
+
+// A listing of all the g00 regions in type 4 wakus. The ranges to the right
+// are from the file smw01a.g00 in CLANNAD_FV.
+enum WakuPart {
+  TOP_LEFT_CORNER,      // <region x1="0" y1="0" x2="3" y2="3"/>
+  TOP_CENTER,           // <region x1="4" y1="0" x2="19" y2="3"/>
+  TOP_RIGHT_CORNER,     // <region x1="20" y1="0" x2="23" y2="3"/>
+  LEFT_SIDE,            // <region x1="0" y1="4" x2="1" y2="5"/>
+  UNKNOWN_1,            // <region x1="0" y1="4" x2="1" y2="5"/>
+  UNKNOWN_2,            // <region x1="0" y1="4" x2="1" y2="5"/>
+  RIGHT_SIDE,           // <region x1="22" y1="4" x2="23" y2="5"/>
+  UNKNOWN_3,            // <region x1="22" y1="4" x2="23" y2="5"/>
+  UNKNOWN_4,            // <region x1="22" y1="4" x2="23" y2="5"/>
+  BOTTOM_LEFT_CORNER,   // <region x1="0" y1="20" x2="3" y2="23"/>
+  BOTTOM_CENTER,        // <region x1="4" y1="20" x2="19" y2="23"/>
+  BOTTOM_RIGHT_CORNER,  // <region x1="20" y1="20" x2="23" y2="23"/>
+};
+
+TextWakuType4::TextWakuType4()
+    : TextWaku(true, true),
+      area_top_(0),
+      area_bottom_(0),
+      area_left_(0),
+      area_right_(0) {}
+
+void TextWakuType4::Execute() {}
+
+void TextWakuType4::Render(Point box_location,
+                           Size content_size,
+                           RGBAColour colour,
+                           bool is_filter) {
+  if (waku_main_) {
+    // Calculate the location/area and render the filtered background.
+    Point backing_point =
+        box_location +
+        Size(left_side_.rect.width(), top_center_.rect.height()) -
+        Size(area_left_, area_top_);
+    Size backing_size =
+        content_size + Size(area_left_ + area_right_, area_top_ + area_bottom_);
+    std::shared_ptr<SDLSurface> backing = GetWakuBackingOfSize(backing_size);
+    backing->RenderToScreenAsColorMask(backing->GetRect(),
+                                       Rect(backing_point, backing_size),
+                                       colour, is_filter);
+
+    // Calculate the total size of the waku decoration. We need this to get the
+    // size of the non-corners correct.
+    Size total_size =
+        Size(left_side_.rect.width(), top_center_.rect.height()) +
+        content_size +
+        Size(right_side_.rect.width(), bottom_center_.rect.height());
+
+    // Top row
+    waku_main_->RenderToScreen(top_left_.rect,
+                               Rect(box_location, top_left_.rect.size()));
+
+    const Point top_center_p = box_location + Size(top_left_.rect.width(), 0);
+    int top_center_width =
+        total_size.width() - top_left_.rect.width() - top_right_.rect.width();
+    const Size top_center_s = Size(top_center_width, top_center_.rect.height());
+    waku_main_->RenderToScreen(top_center_.rect,
+                               Rect(top_center_p, top_center_s));
+
+    const Point top_right_p = top_center_p + Size(top_center_width, 0);
+    waku_main_->RenderToScreen(top_right_.rect,
+                               Rect(top_right_p, top_right_.rect.size()));
+
+    // Center row
+    const Point left_side_p = box_location + Size(0, top_left_.rect.height());
+    int left_side_height = content_size.height();
+    const Size left_side_s = Size(left_side_.rect.width(), left_side_height);
+    waku_main_->RenderToScreen(left_side_.rect, Rect(left_side_p, left_side_s));
+
+    const Point right_side_p =
+        box_location + Size(total_size.width() - right_side_.rect.width(),
+                            top_right_.rect.height());
+    int right_side_height = content_size.height();
+    const Size right_side_s = Size(right_side_.rect.width(), right_side_height);
+    waku_main_->RenderToScreen(right_side_.rect,
+                               Rect(right_side_p, right_side_s));
+
+    // Bottom row
+    const Point bottom_left_p = left_side_p + Size(0, left_side_height);
+    waku_main_->RenderToScreen(bottom_left_.rect,
+                               Rect(bottom_left_p, bottom_left_.rect.size()));
+
+    // Sometimes |top_center_width| != |bottom_center_width| (for example, when
+    // the decorations have a larger rounded corner on the top).
+    const Point bottom_center_p =
+        bottom_left_p + Size(bottom_left_.rect.width(), 0);
+    int bottom_center_width = total_size.width() - bottom_left_.rect.width() -
+                              bottom_right_.rect.width();
+    const Size bottom_center_s =
+        Size(bottom_center_width, bottom_center_.rect.height());
+    waku_main_->RenderToScreen(bottom_center_.rect,
+                               Rect(bottom_center_p, bottom_center_s));
+
+    const Point bottom_right_p = bottom_center_p + Size(bottom_center_width, 0);
+    waku_main_->RenderToScreen(bottom_right_.rect,
+                               Rect(bottom_right_p, bottom_right_.rect.size()));
+  }
+}
+
+Size TextWakuType4::GetSize(const Size& text_surface) const {
+  Size padding = Size(left_side_.rect.width() + right_side_.rect.width(),
+                      top_center_.rect.height() + bottom_center_.rect.height());
+  return text_surface + padding;
+}
+
+const std::shared_ptr<SDLSurface>& TextWakuType4::GetWakuBackingOfSize(Size size) {
+  if (!cached_backing_ || cached_backing_->GetSize() != size) {
+    cached_backing_ = std::make_shared<SDLSurface>(size);
+    cached_backing_->Fill(RGBAColour::Black());
+  }
+
+  return cached_backing_;
+}
+
+void TextWakuType4::SetMainWaku(std::shared_ptr<const SDLSurface> waku_surface) {
+  if (!waku_surface) {
+    waku_main_ = nullptr;
+    return;
+  }
+
+  waku_main_ = waku_surface;
+
+  top_left_ = waku_main_->GetPattern(TOP_LEFT_CORNER);
+  top_center_ = waku_main_->GetPattern(TOP_CENTER);
+  top_right_ = waku_main_->GetPattern(TOP_RIGHT_CORNER);
+
+  left_side_ = waku_main_->GetPattern(LEFT_SIDE);
+  right_side_ = waku_main_->GetPattern(RIGHT_SIDE);
+
+  bottom_left_ = waku_main_->GetPattern(BOTTOM_LEFT_CORNER);
+  bottom_center_ = waku_main_->GetPattern(BOTTOM_CENTER);
+  bottom_right_ = waku_main_->GetPattern(BOTTOM_RIGHT_CORNER);
+}
+
+void TextWakuType4::SetArea(int top, int bottom, int left, int right) {
+  area_top_ = top;
+  area_bottom_ = bottom;
+  area_left_ = left;
+  area_right_ = right;
+}

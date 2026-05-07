@@ -30,12 +30,12 @@
 #include "core/avdec/image_decoder.hpp"
 #include "core/colour.hpp"
 #include "log/domain_logger.hpp"
-#include "systems/gl_utils.hpp"
-#include "systems/glcanvas.hpp"
-#include "systems/glrenderer.hpp"
-#include "systems/gltexture.hpp"
-#include "systems/screen_canvas.hpp"
-#include "systems/sdl_surface.hpp"
+#include "systems/sdl/gl_utils.hpp"
+#include "systems/sdl/glcanvas.hpp"
+#include "systems/sdl/glrenderer.hpp"
+#include "systems/sdl/gltexture.hpp"
+#include "systems/sdl/screen_canvas.hpp"
+#include "systems/sdl/sdl_surface.hpp"
 
 #include <SDL/SDL.h>
 #include <SDL/SDL_video.h>

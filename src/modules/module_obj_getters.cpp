@@ -34,7 +34,7 @@
 #include "machine/rloperation/rlop_store.hpp"
 #include "modules/module_obj.hpp"
 #include "object/parameter_manager.hpp"
-#include "systems/base/graphics_object.hpp"
+#include "systems/graphics_object.hpp"
 
 #include <functional>
 

@@ -59,12 +59,12 @@
 #include "modules/module_sys_timer.hpp"
 #include "modules/module_sys_timetable2.hpp"
 #include "modules/module_sys_wait.hpp"
-#include "systems/base/graphics_system.hpp"
-#include "systems/base/sound_system.hpp"
-#include "systems/base/system.hpp"
-#include "systems/base/text_system.hpp"
-#include "systems/base/text_window.hpp"
-#include "systems/sdl_surface.hpp"
+#include "systems/graphics_system.hpp"
+#include "systems/sound_system.hpp"
+#include "systems/system.hpp"
+#include "systems/text_system.hpp"
+#include "systems/text_window.hpp"
+#include "systems/sdl/sdl_surface.hpp"
 #include "utilities/string_utilities.hpp"
 
 inline constexpr float PI = std::numbers::pi;

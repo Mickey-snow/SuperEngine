@@ -32,8 +32,8 @@
 #include "object/drawer/gan.hpp"
 
 #include "object/animator.hpp"
-#include "systems/base/graphics_object.hpp"
-#include "systems/sdl_surface.hpp"
+#include "systems/graphics_object.hpp"
+#include "systems/sdl/sdl_surface.hpp"
 #include "utilities/clock.hpp"
 
 // -----------------------------------------------------------------------
