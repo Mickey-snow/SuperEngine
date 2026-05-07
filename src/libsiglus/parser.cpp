@@ -168,6 +168,9 @@ void Parser::ParseAll() {
     // Add zlabels
     for (auto [begin, end] = offset2zlabels_.equal_range(reader_.Position());
          begin != end; ++begin) {
+      const auto [loc, zid] = *begin;
+      if (loc <= 0)
+        continue;  // implicit zlabel -> use %%script instead
       add_zlabel(begin->second);
       debug_assert_stack_empty();
     }

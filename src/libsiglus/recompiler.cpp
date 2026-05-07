@@ -125,7 +125,6 @@ void Recompiler::Finish() {
 
   const std::size_t bootstrap_entry = code_size();
   patch(initial_jump_site_, bootstrap_entry);
-
   emit_store_function_global("%%script", main_entry_, 0);
 
   for (const auto& record : subroutines_) {

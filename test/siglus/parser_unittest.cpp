@@ -126,10 +126,9 @@ TEST_F(SiglusParserTest, ParseAllLabelsAndZlabels) {
 
   parser.ParseAll();
 
-  ASSERT_EQ(tokens.size(), 3u);
+  ASSERT_EQ(tokens.size(), 2u);
   EXPECT_EQ(tokens[0], token::Token_t(token::Label{0}));
-  EXPECT_EQ(tokens[1], token::Token_t(token::Zlabel{0}));
-  EXPECT_EQ(tokens[2], token::Token_t(token::Eof{}));
+  EXPECT_EQ(tokens[1], token::Token_t(token::Eof{}));
 }
 
 TEST_F(SiglusParserTest, Operate1) {

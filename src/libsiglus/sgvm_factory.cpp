@@ -145,6 +145,7 @@ SiglusRuntime SGVMFactory::Create() {
           sr::Module* mod = loader->Load(scnid);
           return sr::Value(mod);
         });
+
   m.def("__builtin_farcall",
         [loader = rt.loader.get()](std::string scn, int zlabel) -> sr::Value {
           for (auto& c : scn)
@@ -157,12 +158,9 @@ SiglusRuntime SGVMFactory::Create() {
             throw sr::RuntimeError(
                 std::format("Farcall {} could not load scene", dbgname));
 
-          const auto it = mod->globals->find(zname);
-          if (it == mod->globals->cend()) {
-            std::string errmsg = std::format(
-                "zlabel {} does not exist in scene {}", zlabel, scn);
-            throw sr::RuntimeError(std::move(errmsg));
-          }
+          auto it = mod->globals->find(zname);
+          if (it == mod->globals->cend())
+            it = mod->globals->find("%%script");
           return it->second;
         });
   m.def("__builtin_usrcmd",
