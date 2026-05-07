@@ -27,7 +27,7 @@
 #include "test_utils.hpp"
 
 #include "core/avspec.hpp"
-#include "systems/sdl/sdl_sound_system.hpp"
+#include "systems/base/sound_system.hpp"
 #include "systems/sdl/sound_implementor.hpp"
 
 #include <filesystem>

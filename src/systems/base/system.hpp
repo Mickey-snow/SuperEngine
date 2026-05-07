@@ -49,7 +49,6 @@ class Gameexe;
 class GameexeInterpretObject;
 class Platform;
 class RLEventListener;
-class SDLSoundSystem;
 
 // Syscom Constants
 //
@@ -273,7 +272,7 @@ class System {
   std::shared_ptr<GraphicsSystem> graphics_system_;
   std::shared_ptr<EventSystem> event_system_;
   std::shared_ptr<TextSystem> text_system_;
-  std::shared_ptr<SDLSoundSystem> sound_system_;
+  std::shared_ptr<SoundSystem> sound_system_;
 
   // The visibility status for all syscom entries
   int syscom_status_[NUM_SYSCOM_ENTRIES];

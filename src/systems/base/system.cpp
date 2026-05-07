@@ -45,7 +45,6 @@
 #include "systems/event_system.hpp"
 #include "systems/sdl/event_backend.hpp"
 #include "systems/sdl/graphics_backend.hpp"
-#include "systems/sdl/sdl_sound_system.hpp"
 #include "systems/sdl/sound_implementor.hpp"
 #include "systems/sdl/text_implementor.hpp"
 #include "systems/sdl_surface.hpp"
@@ -133,7 +132,7 @@ System::System(Gameexe& gameexe, std::shared_ptr<AssetScanner> scanner)
 
   auto sound_impl = std::make_unique<SDLSoundImpl>();
   sound_system_ =
-      std::make_shared<SDLSoundSystem>(*this, std::move(sound_impl));
+      std::make_shared<SoundSystem>(*this, std::move(sound_impl));
 
   event_system_->AddListener(graphics_system_);
   event_system_->AddListener(text_system_);
