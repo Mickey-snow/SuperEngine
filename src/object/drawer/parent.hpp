@@ -122,7 +122,7 @@ class ParentGraphicsObjectData : public GraphicsObjectData {
   virtual bool IsParentLayer() const override { return true; }
 
  protected:
-  virtual std::shared_ptr<const Surface> CurrentSurface(
+  virtual std::shared_ptr<const SDLSurface> CurrentSurface(
       const GraphicsObject& rp) override;
 
  private:

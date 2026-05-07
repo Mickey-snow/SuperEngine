@@ -24,7 +24,6 @@
 #pragma once
 
 class SDLSurface;
-using Surface = SDLSurface;
 
 #include "core/grprect.hpp"
 
@@ -32,16 +31,16 @@ using Surface = SDLSurface;
 #include <vector>
 
 struct Image {
-  std::shared_ptr<Surface> surface;
+  std::shared_ptr<SDLSurface> surface;
   GrpRect region;
 };
 
 class Album {
  public:
-  Album(std::shared_ptr<Surface> surface,
+  Album(std::shared_ptr<SDLSurface> surface,
         std::vector<GrpRect> region_table = {});
 
-  [[nodiscard]] inline std::shared_ptr<Surface> GetSurface() const {
+  [[nodiscard]] inline std::shared_ptr<SDLSurface> GetSurface() const {
     return surface_;
   }
   [[nodiscard]] inline std::size_t GetNumPatterns() const {
@@ -56,6 +55,6 @@ class Album {
   [[nodiscard]] Image GetImage(int pattern_no) const;
 
  private:
-  std::shared_ptr<Surface> surface_;
+  std::shared_ptr<SDLSurface> surface_;
   std::vector<GrpRect> region_table_;
 };

@@ -132,14 +132,14 @@ void SDLGraphicsBackend::Resize(Size display_size, bool is_fullscreen) {
 
 // -----------------------------------------------------------------------
 
-std::shared_ptr<Surface> SDLGraphicsBackend::CreateSurface(Size size) {
+std::shared_ptr<SDLSurface> SDLGraphicsBackend::CreateSurface(Size size) {
   if (size.width() <= 0 || size.height() <= 0)
     throw std::invalid_argument("Cannot create a surface of size " +
                                 size.DebugString());
   return std::make_shared<SDLSurface>(size);
 }
 
-std::shared_ptr<Surface> SDLGraphicsBackend::CreateSurfaceBGRA(
+std::shared_ptr<SDLSurface> SDLGraphicsBackend::CreateSurfaceBGRA(
     Size size,
     std::span<char> bgra,
     bool is_alpha_mask) {
@@ -173,10 +173,10 @@ std::shared_ptr<Surface> SDLGraphicsBackend::CreateSurfaceBGRA(
   SDL_Surface* surf = SDL_ConvertSurface(tmp, tmp->format, flags);
   SDL_FreeSurface(tmp);
 
-  return std::make_shared<Surface>(surf);
+  return std::make_shared<SDLSurface>(surf);
 }
 
-std::shared_ptr<Surface> SDLGraphicsBackend::LoadSurface(
+std::shared_ptr<SDLSurface> SDLGraphicsBackend::LoadSurface(
     const std::filesystem::path& pth) {
   std::string raw = LoadFile(pth);
   ImageDecoder dec(raw);
@@ -326,7 +326,7 @@ void SDLGraphicsBackend::RedrawLastFrame(const RenderFrameConfig& config,
   ShowGLErrors();
 }
 
-std::shared_ptr<Surface> SDLGraphicsBackend::RenderToSurface(
+std::shared_ptr<SDLSurface> SDLGraphicsBackend::RenderToSurface(
     const RenderFrameConfig& config,
     const DrawCallback& draw_scene) {
   auto canvas = std::make_shared<glCanvas>(

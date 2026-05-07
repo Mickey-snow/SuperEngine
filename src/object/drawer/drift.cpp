@@ -80,7 +80,7 @@ DriftGraphicsObject::~DriftGraphicsObject() {}
 void DriftGraphicsObject::Render(const GraphicsObject& go,
                                  const GraphicsObject* parent) {
   auto& param = go.Param();
-  std::shared_ptr<const Surface> surface = CurrentSurface(go);
+  std::shared_ptr<const SDLSurface> surface = CurrentSurface(go);
 
   if (!surface)
     return;
@@ -191,7 +191,7 @@ std::unique_ptr<GraphicsObjectData> DriftGraphicsObject::Clone() const {
 
 void DriftGraphicsObject::Execute(RLMachine&) {}
 
-std::shared_ptr<const Surface> DriftGraphicsObject::CurrentSurface(
+std::shared_ptr<const SDLSurface> DriftGraphicsObject::CurrentSurface(
     const GraphicsObject& rp) {
   return surface_;
 }

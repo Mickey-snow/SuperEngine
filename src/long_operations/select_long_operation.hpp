@@ -141,14 +141,14 @@ class ButtonSelectLongOperation : public SelectLongOperation,
     bool enabled;
 
     // Text representations to blit to the screen.
-    std::shared_ptr<Surface> default_surface;
-    std::shared_ptr<Surface> select_surface;
+    std::shared_ptr<SDLSurface> default_surface;
+    std::shared_ptr<SDLSurface> select_surface;
 
     // Where to render the above surface to.
     Rect bounding_rect;
   };
 
-  void RenderTextSurface(const std::shared_ptr<Surface>& text_surface,
+  void RenderTextSurface(const std::shared_ptr<SDLSurface>& text_surface,
                          const Rect& bounding_rect);
 
   // ????
@@ -183,11 +183,11 @@ class ButtonSelectLongOperation : public SelectLongOperation,
   // Whether the left mouse button is currently pressed.
   bool mouse_down_;
 
-  // Surface loaded from #SELBTN.xxx.NAME.
-  std::shared_ptr<const Surface> name_surface_;
+  // SDLSurface loaded from #SELBTN.xxx.NAME.
+  std::shared_ptr<const SDLSurface> name_surface_;
 
-  // Surface loaded from #SELBTN.xxx.BACK.
-  std::shared_ptr<const Surface> back_surface_;
+  // SDLSurface loaded from #SELBTN.xxx.BACK.
+  std::shared_ptr<const SDLSurface> back_surface_;
 
   std::vector<ButtonOption> buttons_;
 };

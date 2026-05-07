@@ -36,8 +36,8 @@
 // -----------------------------------------------------------------------
 
 BlindEffect::BlindEffect(RLMachine& machine,
-                         std::shared_ptr<Surface> src,
-                         std::shared_ptr<Surface> dst,
+                         std::shared_ptr<SDLSurface> src,
+                         std::shared_ptr<SDLSurface> dst,
                          const Size& screen_size,
                          int time,
                          int blindSize)
@@ -88,8 +88,8 @@ bool BlindEffect::BlitOriginalImage() const { return true; }
 // -----------------------------------------------------------------------
 
 BlindTopToBottomEffect::BlindTopToBottomEffect(RLMachine& machine,
-                                               std::shared_ptr<Surface> src,
-                                               std::shared_ptr<Surface> dst,
+                                               std::shared_ptr<SDLSurface> src,
+                                               std::shared_ptr<SDLSurface> dst,
                                                const Size& screen_size,
                                                int time,
                                                int blindSize)
@@ -111,8 +111,8 @@ void BlindTopToBottomEffect::RenderPolygon(int polyStart, int polyEnd) {
 // -----------------------------------------------------------------------
 
 BlindBottomToTopEffect::BlindBottomToTopEffect(RLMachine& machine,
-                                               std::shared_ptr<Surface> src,
-                                               std::shared_ptr<Surface> dst,
+                                               std::shared_ptr<SDLSurface> src,
+                                               std::shared_ptr<SDLSurface> dst,
                                                const Size& screen_size,
                                                int time,
                                                int blindSize)
@@ -135,8 +135,8 @@ void BlindBottomToTopEffect::RenderPolygon(int polyStart, int polyEnd) {
 // -----------------------------------------------------------------------
 
 BlindLeftToRightEffect::BlindLeftToRightEffect(RLMachine& machine,
-                                               std::shared_ptr<Surface> src,
-                                               std::shared_ptr<Surface> dst,
+                                               std::shared_ptr<SDLSurface> src,
+                                               std::shared_ptr<SDLSurface> dst,
                                                const Size& screen_size,
                                                int time,
                                                int blindSize)
@@ -158,8 +158,8 @@ void BlindLeftToRightEffect::RenderPolygon(int polyStart, int polyEnd) {
 // -----------------------------------------------------------------------
 
 BlindRightToLeftEffect::BlindRightToLeftEffect(RLMachine& machine,
-                                               std::shared_ptr<Surface> src,
-                                               std::shared_ptr<Surface> dst,
+                                               std::shared_ptr<SDLSurface> src,
+                                               std::shared_ptr<SDLSurface> dst,
                                                const Size& screen_size,
                                                int time,
                                                int blindSize)

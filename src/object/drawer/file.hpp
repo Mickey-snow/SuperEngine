@@ -65,7 +65,7 @@ class GraphicsObjectOfFile : public GraphicsObjectData {
   virtual Animator* GetAnimator() override;
 
  protected:
-  virtual std::shared_ptr<const Surface> CurrentSurface(
+  virtual std::shared_ptr<const SDLSurface> CurrentSurface(
       const GraphicsObject& go) override;
   virtual Rect SrcRect(const GraphicsObject& go) override;
 
@@ -73,7 +73,7 @@ class GraphicsObjectOfFile : public GraphicsObjectData {
   Animator animator_;
 
   // The encapsulated surface to render
-  std::shared_ptr<Surface> surface_;
+  std::shared_ptr<SDLSurface> surface_;
 
   // Number of milliseconds to spend on a single frame in the
   // animation

@@ -94,13 +94,13 @@ bool TextWindowButton::HandleMouseClick(const Point& pos, bool pressed) {
   return false;
 }
 
-void TextWindowButton::SetSurface(std::shared_ptr<Surface> surf,
+void TextWindowButton::SetSurface(std::shared_ptr<SDLSurface> surf,
                                   int base_pattern) {
   button_surface_ = surf;
   base_pattern_ = base_pattern;
 }
 
-std::pair<std::shared_ptr<Surface>, Rect> TextWindowButton::Render() const {
+std::pair<std::shared_ptr<SDLSurface>, Rect> TextWindowButton::Render() const {
   if (!IsValid() || !button_surface_)
     return std::make_pair(nullptr, Rect());
   int offset = base_pattern_ + static_cast<int>(state_);

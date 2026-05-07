@@ -68,7 +68,7 @@ void TextWakuType4::Render(Point box_location,
         Size(area_left_, area_top_);
     Size backing_size =
         content_size + Size(area_left_ + area_right_, area_top_ + area_bottom_);
-    std::shared_ptr<Surface> backing = GetWakuBackingOfSize(backing_size);
+    std::shared_ptr<SDLSurface> backing = GetWakuBackingOfSize(backing_size);
     backing->RenderToScreenAsColorMask(backing->GetRect(),
                                        Rect(backing_point, backing_size),
                                        colour, is_filter);
@@ -137,16 +137,16 @@ Size TextWakuType4::GetSize(const Size& text_surface) const {
   return text_surface + padding;
 }
 
-const std::shared_ptr<Surface>& TextWakuType4::GetWakuBackingOfSize(Size size) {
+const std::shared_ptr<SDLSurface>& TextWakuType4::GetWakuBackingOfSize(Size size) {
   if (!cached_backing_ || cached_backing_->GetSize() != size) {
-    cached_backing_ = std::make_shared<Surface>(size);
+    cached_backing_ = std::make_shared<SDLSurface>(size);
     cached_backing_->Fill(RGBAColour::Black());
   }
 
   return cached_backing_;
 }
 
-void TextWakuType4::SetMainWaku(std::shared_ptr<const Surface> waku_surface) {
+void TextWakuType4::SetMainWaku(std::shared_ptr<const SDLSurface> waku_surface) {
   if (!waku_surface) {
     waku_main_ = nullptr;
     return;

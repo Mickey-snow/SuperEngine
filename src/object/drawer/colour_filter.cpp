@@ -83,7 +83,7 @@ void ColourFilterObjectData::Execute(RLMachine& machine) {
   // Nothing to do.
 }
 
-std::shared_ptr<const Surface> ColourFilterObjectData::CurrentSurface(
+std::shared_ptr<const SDLSurface> ColourFilterObjectData::CurrentSurface(
     const GraphicsObject&) {
-  return std::shared_ptr<const Surface>();
+  return std::shared_ptr<const SDLSurface>();
 }

@@ -87,9 +87,9 @@ void ParentGraphicsObjectData::Execute(RLMachine& machine) {
     obj.Execute(machine);
 }
 
-std::shared_ptr<const Surface> ParentGraphicsObjectData::CurrentSurface(
+std::shared_ptr<const SDLSurface> ParentGraphicsObjectData::CurrentSurface(
     const GraphicsObject& rp) {
-  return std::shared_ptr<const Surface>();
+  return std::shared_ptr<const SDLSurface>();
 }
 
 ParentGraphicsObjectData::ParentGraphicsObjectData() : objects_(0) {}

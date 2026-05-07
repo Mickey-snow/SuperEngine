@@ -136,7 +136,7 @@ std::unique_ptr<TextWaku> TextFactory::CreateWakuNormal(System& system,
   TextSystem& ts = system.text();
   std::shared_ptr<Clock> clock = system.event().GetClock();
 
-  std::shared_ptr<Surface> main_surface, back_surface, btn_surface;
+  std::shared_ptr<SDLSurface> main_surface, back_surface, btn_surface;
   auto waku = gexe_("WAKU", setno, no);
   if (auto name = waku("NAME").Str(); name.has_value() && !name.value().empty())
     main_surface = gs.GetSurfaceNamed(name.value());

@@ -64,7 +64,6 @@ class RGBAColour;
 class RLMachine;
 class Size;
 class SDLSurface;
-using Surface = SDLSurface;
 class System;
 struct ObjectSettings;
 class Album;
@@ -326,7 +325,7 @@ class GraphicsSystem : public EventListener {
 
   // Called from the game loop; Does everything that's needed to keep
   // things up.
-  virtual void ExecuteGraphicsSystem(RLMachine& machine);
+  void ExecuteGraphicsSystem(RLMachine& machine);
 
   // Returns the size of the window in pixels.
   Size screen_size() const noexcept { return screen_size_; }
@@ -334,7 +333,7 @@ class GraphicsSystem : public EventListener {
 
   // Returns a rectangle with an origin of (0,0) and a size returned by
   // screen_size().
-  const Rect& screen_rect() const { return screen_rect_; }
+  Rect screen_rect() const { return screen_rect_; }
 
   // Loads an image, optionally marking that this image has been loaded (if it
   // is in the game's CGM table).
@@ -566,8 +565,8 @@ class GraphicsSystem : public EventListener {
       ToRenderVec;
   ToRenderVec to_render_;
 
-  std::shared_ptr<Surface> haikei_;
-  std::shared_ptr<Surface> display_contexts_[16];
+  std::shared_ptr<SDLSurface> haikei_;
+  std::shared_ptr<SDLSurface> display_contexts_[16];
 
   // boost::serialization support
   friend class boost::serialization::access;

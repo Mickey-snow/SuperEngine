@@ -419,13 +419,13 @@ void Sys_MenuReturn::operator()(RLMachine& machine) {
   GraphicsSystem& graphics = machine.GetSystem().graphics();
 
   // Render the screen as is.
-  std::shared_ptr<Surface> dc0 = graphics.GetDC(0);
-  std::shared_ptr<Surface> before = graphics.RenderToSurface();
+  std::shared_ptr<SDLSurface> dc0 = graphics.GetDC(0);
+  std::shared_ptr<SDLSurface> before = graphics.RenderToSurface();
 
   // Clear everything
   machine.LocalReset();
 
-  std::shared_ptr<Surface> after = graphics.RenderToSurface();
+  std::shared_ptr<SDLSurface> after = graphics.RenderToSurface();
 
   // First, we jump the instruction pointer to the new location.
   int scenario = machine.GetSystem().gameexe()("SEEN_MENU").ToInt();

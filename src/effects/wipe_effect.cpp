@@ -39,8 +39,8 @@
 // -----------------------------------------------------------------------
 
 WipeEffect::WipeEffect(RLMachine& machine,
-                       std::shared_ptr<Surface> src,
-                       std::shared_ptr<Surface> dst,
+                       std::shared_ptr<SDLSurface> src,
+                       std::shared_ptr<SDLSurface> dst,
                        const Size& screen_size,
                        int time,
                        int interpolation)
@@ -89,8 +89,8 @@ bool WipeEffect::BlitOriginalImage() const { return true; }
 // -----------------------------------------------------------------------
 
 WipeTopToBottomEffect::WipeTopToBottomEffect(RLMachine& machine,
-                                             std::shared_ptr<Surface> src,
-                                             std::shared_ptr<Surface> dst,
+                                             std::shared_ptr<SDLSurface> src,
+                                             std::shared_ptr<SDLSurface> dst,
                                              const Size& screen_size,
                                              int time,
                                              int interpolation)
@@ -125,8 +125,8 @@ void WipeTopToBottomEffect::PerformEffectForTime(int currentTime) {
 // -----------------------------------------------------------------------
 
 WipeBottomToTopEffect::WipeBottomToTopEffect(RLMachine& machine,
-                                             std::shared_ptr<Surface> src,
-                                             std::shared_ptr<Surface> dst,
+                                             std::shared_ptr<SDLSurface> src,
+                                             std::shared_ptr<SDLSurface> dst,
                                              const Size& screen_size,
                                              int time,
                                              int interpolation)
@@ -161,8 +161,8 @@ void WipeBottomToTopEffect::PerformEffectForTime(int currentTime) {
 // -----------------------------------------------------------------------
 
 WipeLeftToRightEffect::WipeLeftToRightEffect(RLMachine& machine,
-                                             std::shared_ptr<Surface> src,
-                                             std::shared_ptr<Surface> dst,
+                                             std::shared_ptr<SDLSurface> src,
+                                             std::shared_ptr<SDLSurface> dst,
                                              const Size& screen_size,
                                              int time,
                                              int interpolation)
@@ -198,8 +198,8 @@ void WipeLeftToRightEffect::PerformEffectForTime(int currentTime) {
 // -----------------------------------------------------------------------
 
 WipeRightToLeftEffect::WipeRightToLeftEffect(RLMachine& machine,
-                                             std::shared_ptr<Surface> src,
-                                             std::shared_ptr<Surface> dst,
+                                             std::shared_ptr<SDLSurface> src,
+                                             std::shared_ptr<SDLSurface> dst,
                                              const Size& screen_size,
                                              int time,
                                              int interpolation)

@@ -100,11 +100,11 @@ bool TextWakuNormal::HandleMouseClick(const Point& pos, bool pressed) {
   });
 }
 
-void TextWakuNormal::SetWakuMain(std::shared_ptr<const Surface> surface) {
+void TextWakuNormal::SetWakuMain(std::shared_ptr<const SDLSurface> surface) {
   main_surface_ = surface;
 }
 
-void TextWakuNormal::SetWakuBacking(std::shared_ptr<const Surface> surface) {
+void TextWakuNormal::SetWakuBacking(std::shared_ptr<const SDLSurface> surface) {
   if (!surface) {
     backing_surface_ = nullptr;
     return;

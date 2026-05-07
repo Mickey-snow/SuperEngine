@@ -39,8 +39,8 @@ class GraphicsSystem;
 class WipeEffect : public Effect {
  public:
   WipeEffect(RLMachine& machine,
-             std::shared_ptr<Surface> src,
-             std::shared_ptr<Surface> dst,
+             std::shared_ptr<SDLSurface> src,
+             std::shared_ptr<SDLSurface> dst,
              const Size& screen_size,
              int time,
              int interpolation);
@@ -63,8 +63,8 @@ class WipeEffect : public Effect {
 class WipeTopToBottomEffect : public WipeEffect {
  public:
   WipeTopToBottomEffect(RLMachine& machine,
-                        std::shared_ptr<Surface> src,
-                        std::shared_ptr<Surface> dst,
+                        std::shared_ptr<SDLSurface> src,
+                        std::shared_ptr<SDLSurface> dst,
                         const Size& screen_size,
                         int time,
                         int interpolation);
@@ -78,8 +78,8 @@ class WipeTopToBottomEffect : public WipeEffect {
 class WipeBottomToTopEffect : public WipeEffect {
  public:
   WipeBottomToTopEffect(RLMachine& machine,
-                        std::shared_ptr<Surface> src,
-                        std::shared_ptr<Surface> dst,
+                        std::shared_ptr<SDLSurface> src,
+                        std::shared_ptr<SDLSurface> dst,
                         const Size& screen_size,
                         int time,
                         int interpolation);
@@ -93,8 +93,8 @@ class WipeBottomToTopEffect : public WipeEffect {
 class WipeLeftToRightEffect : public WipeEffect {
  public:
   WipeLeftToRightEffect(RLMachine& machine,
-                        std::shared_ptr<Surface> src,
-                        std::shared_ptr<Surface> dst,
+                        std::shared_ptr<SDLSurface> src,
+                        std::shared_ptr<SDLSurface> dst,
                         const Size& screen_size,
                         int time,
                         int interpolation);
@@ -108,8 +108,8 @@ class WipeLeftToRightEffect : public WipeEffect {
 class WipeRightToLeftEffect : public WipeEffect {
  public:
   WipeRightToLeftEffect(RLMachine& machine,
-                        std::shared_ptr<Surface> src,
-                        std::shared_ptr<Surface> dst,
+                        std::shared_ptr<SDLSurface> src,
+                        std::shared_ptr<SDLSurface> dst,
                         const Size& screen_size,
                         int time,
                         int interpolation);

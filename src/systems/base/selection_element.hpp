@@ -30,13 +30,12 @@
 #include "core/rect.hpp"
 
 class SDLSurface;
-using Surface = SDLSurface;
 
 // Represents a clickable element inside TextWindows.
 class SelectionElement {
  public:
-  SelectionElement(std::shared_ptr<Surface> normal_image,
-                   std::shared_ptr<Surface> highlighted_image,
+  SelectionElement(std::shared_ptr<SDLSurface> normal_image,
+                   std::shared_ptr<SDLSurface> highlighted_image,
                    Point pos);
 
   void SetMousePosition(const Point& pos);
@@ -59,8 +58,8 @@ class SelectionElement {
 
   Point upper_right_;
 
-  std::shared_ptr<Surface> normal_image_;
-  std::shared_ptr<Surface> highlighted_image_;
+  std::shared_ptr<SDLSurface> normal_image_;
+  std::shared_ptr<SDLSurface> highlighted_image_;
 
   // Callback function for when item is selected.
   std::function<void()> selection_callback_;

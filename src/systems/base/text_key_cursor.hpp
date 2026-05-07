@@ -34,7 +34,6 @@
 #include "core/rect.hpp"
 
 class SDLSurface;
-using Surface = SDLSurface;
 class System;
 class TextWindow;
 
@@ -71,7 +70,7 @@ class TextKeyCursor {
   int cursor_number_;
 
   // The surface containing the cursor
-  std::shared_ptr<const Surface> cursor_image_;
+  std::shared_ptr<const SDLSurface> cursor_image_;
 
   // The cursor image file
   std::string cursor_image_file_;

@@ -680,11 +680,11 @@ void GraphicsSystem::Reset() {
   interface_hidden_ = false;
 }
 
-std::shared_ptr<Surface> GraphicsSystem::GetEmojiSurface() {
+std::shared_ptr<SDLSurface> GraphicsSystem::GetEmojiSurface() {
   for (auto it : system().gameexe().Filter("E_MOJI.")) {
     // Try to interpret each key as a filename.
     std::string file_name = it.Str().value_or("");
-    std::shared_ptr<Surface> surface = GetSurfaceNamed(file_name);
+    std::shared_ptr<SDLSurface> surface = GetSurfaceNamed(file_name);
     if (surface)
       return surface;
   }
@@ -722,7 +722,7 @@ std::shared_ptr<HIKScript> GraphicsSystem::GetHIKScript(
 
 void GraphicsSystem::PreloadG00(int slot, const std::string& name) {
   // We first check our implicit cache just in case so we don't load it twice.
-  std::shared_ptr<Surface> surface = image_cache_.fetch(name);
+  std::shared_ptr<SDLSurface> surface = image_cache_.fetch(name);
   if (!surface)
     surface = LoadSurfaceFromFile(name);
 
@@ -735,7 +735,7 @@ void GraphicsSystem::ClearPreloadedG00(int slot) {
 
 void GraphicsSystem::ClearAllPreloadedG00() { preloaded_g00_.Clear(); }
 
-std::shared_ptr<Surface> GraphicsSystem::GetPreloadedG00(
+std::shared_ptr<SDLSurface> GraphicsSystem::GetPreloadedG00(
     const std::string& name) {
   for (G00ArrayItem& item : preloaded_g00_) {
     if (item.first == name)
@@ -792,7 +792,7 @@ std::shared_ptr<SDLSurface> GraphicsSystem::LoadSurfaceFromFile(
 
 // -----------------------------------------------------------------------
 
-std::shared_ptr<Surface> GraphicsSystem::GetSurfaceNamedAndMarkViewed(
+std::shared_ptr<SDLSurface> GraphicsSystem::GetSurfaceNamedAndMarkViewed(
     RLMachine& machine,
     const std::string& short_filename) {
   // Record that we viewed this CG.
@@ -810,10 +810,10 @@ std::shared_ptr<Surface> GraphicsSystem::GetSurfaceNamedAndMarkViewed(
 
 // -----------------------------------------------------------------------
 
-std::shared_ptr<Surface> GraphicsSystem::GetSurfaceNamed(
+std::shared_ptr<SDLSurface> GraphicsSystem::GetSurfaceNamed(
     const std::string& short_filename) {
   // Check if this is in the script controlled cache.
-  std::shared_ptr<Surface> cached_surface = GetPreloadedG00(short_filename);
+  std::shared_ptr<SDLSurface> cached_surface = GetPreloadedG00(short_filename);
   if (cached_surface)
     return cached_surface;
 
@@ -822,7 +822,7 @@ std::shared_ptr<Surface> GraphicsSystem::GetSurfaceNamed(
   if (cached_surface)
     return cached_surface;
 
-  std::shared_ptr<Surface> surface_to_ret = LoadSurfaceFromFile(short_filename);
+  std::shared_ptr<SDLSurface> surface_to_ret = LoadSurfaceFromFile(short_filename);
   image_cache_.insert(short_filename, surface_to_ret);
   return surface_to_ret;
 }
@@ -1113,7 +1113,7 @@ std::shared_ptr<MouseCursor> GraphicsSystem::GetCurrentCursor() {
     if (it != cursor_cache_.end()) {
       mouse_cursor_ = it->second;
     } else {
-      std::shared_ptr<Surface> cursor_surface;
+      std::shared_ptr<SDLSurface> cursor_surface;
       GameexeInterpretObject cursor =
           system().gameexe()("MOUSE_CURSOR", cursor_);
 

@@ -42,14 +42,14 @@ class SDLGraphicsBackend : public IGraphicsBackend {
 
   virtual void Resize(Size screen_size, bool is_fullscreen) override;
 
-  virtual std::shared_ptr<Surface> CreateSurface(Size size) override;
-  virtual std::shared_ptr<Surface> CreateSurfaceBGRA(
+  virtual std::shared_ptr<SDLSurface> CreateSurface(Size size) override;
+  virtual std::shared_ptr<SDLSurface> CreateSurfaceBGRA(
       Size size,
       std::span<char> bgra,
       bool is_alpha_mask) override;
 
   [[deprecated]]
-  virtual std::shared_ptr<Surface> LoadSurface(
+  virtual std::shared_ptr<SDLSurface> LoadSurface(
       const std::filesystem::path& path) override;
   virtual std::shared_ptr<Album> LoadAlbum(
       const std::filesystem::path& path) override;
@@ -65,7 +65,7 @@ class SDLGraphicsBackend : public IGraphicsBackend {
   virtual void RedrawLastFrame(const RenderFrameConfig& config,
                                const DrawCallback& draw_cursor) override;
 
-  virtual std::shared_ptr<Surface> RenderToSurface(
+  virtual std::shared_ptr<SDLSurface> RenderToSurface(
       const RenderFrameConfig& config,
       const DrawCallback& draw_scene) override;
 

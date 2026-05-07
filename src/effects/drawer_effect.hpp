@@ -126,8 +126,8 @@ class DrawerEffect : public Effect {
 
   DrawerEffect(RLMachine& machine,
                DrawerEffectDetails::Direction direction,
-               std::shared_ptr<Surface> src,
-               std::shared_ptr<Surface> dst,
+               std::shared_ptr<SDLSurface> src,
+               std::shared_ptr<SDLSurface> dst,
                const Size& screen,
                int time)
       : Effect(machine, src, dst, screen, time), direction_(direction) {}

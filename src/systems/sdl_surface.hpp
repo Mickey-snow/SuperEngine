@@ -42,14 +42,13 @@ class GraphicsObject;
 class glTexture;
 
 class SDLSurface;
-using Surface = SDLSurface;
 
 class SDLSurface {
  public:
   SDLSurface();
-  // Surface created with a specified width and height
+  // SDLSurface created with a specified width and height
   SDLSurface(const Size& size);
-  // Surface that takes ownership of an externally created surface.
+  // SDLSurface that takes ownership of an externally created surface.
   SDLSurface(SDL_Surface* surf, std::vector<GrpRect> region_table = {});
   ~SDLSurface();
 
@@ -68,7 +67,7 @@ class SDLSurface {
   [[nodiscard]] Size GetSize() const;
   [[nodiscard]] Rect GetRect() const;
 
-  void BlitToSurface(Surface& dest_surface,
+  void BlitToSurface(SDLSurface& dest_surface,
                      const Rect& src,
                      const Rect& dst,
                      int alpha = 255,
@@ -79,7 +78,7 @@ class SDLSurface {
                        const Rect& dst,
                        int alpha = 255,
                        bool use_src_alpha = true);
-  void blitFROMSurface(Surface& src_surface,
+  void blitFROMSurface(SDLSurface& src_surface,
                        const Rect& src,
                        const Rect& dst,
                        int alpha = 255,
@@ -116,12 +115,12 @@ class SDLSurface {
 
   [[nodiscard]] RGBAColour GetPixelAt(Point pos) const;
 
-  std::shared_ptr<Surface> ClipAsColorMask(const Rect& clip_rect,
+  std::shared_ptr<SDLSurface> ClipAsColorMask(const Rect& clip_rect,
                                            int r,
                                            int g,
                                            int b) const;
 
-  [[nodiscard]] std::shared_ptr<Surface> Clone() const;
+  [[nodiscard]] std::shared_ptr<SDLSurface> Clone() const;
 
   // Dump the raw memory representing surface pixel data from a region
   // Note: the dumped pixels are upside down

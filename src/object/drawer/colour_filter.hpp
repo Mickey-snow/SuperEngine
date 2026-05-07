@@ -51,7 +51,7 @@ class ColourFilterObjectData : public GraphicsObjectData {
   virtual void Execute(RLMachine& machine) override;
 
  protected:
-  virtual std::shared_ptr<const Surface> CurrentSurface(
+  virtual std::shared_ptr<const SDLSurface> CurrentSurface(
       const GraphicsObject& rp) override;
 
  private:

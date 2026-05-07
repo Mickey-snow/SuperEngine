@@ -36,7 +36,7 @@
 // AnmGraphicsObjectData
 // -----------------------------------------------------------------------
 
-AnmGraphicsObjectData::AnmGraphicsObjectData(std::shared_ptr<Surface> surface,
+AnmGraphicsObjectData::AnmGraphicsObjectData(std::shared_ptr<SDLSurface> surface,
                                              AnmDecoder anm_data)
     : animator_(std::make_shared<Clock>()),
       frames(std::move(anm_data.frames)),
@@ -112,7 +112,7 @@ void AnmGraphicsObjectData::PlaySet(int set) {
   current_frame_ = *cur_frame_;
 }
 
-std::shared_ptr<const Surface> AnmGraphicsObjectData::CurrentSurface(
+std::shared_ptr<const SDLSurface> AnmGraphicsObjectData::CurrentSurface(
     const GraphicsObject& rp) {
   return image_;
 }

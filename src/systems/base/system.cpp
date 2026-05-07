@@ -168,15 +168,15 @@ void System::RestoreSelectionSnapshot(RLMachine& machine) {
   // System::reset() to get the black screen.
   std::shared_ptr<std::stringstream> s = previous_selection_;
   if (s) {
-    std::shared_ptr<Surface> before =
+    std::shared_ptr<SDLSurface> before =
         machine.GetSystem().graphics().RenderToSurface();
     Size screen_size = before->GetSize();
-    std::shared_ptr<Surface> black_screen =
-        std::make_shared<Surface>(screen_size);
+    std::shared_ptr<SDLSurface> black_screen =
+        std::make_shared<SDLSurface>(screen_size);
     black_screen->Fill(RGBAColour::Black());
 
     Serialization::loadGameFrom(*s, machine);
-    std::shared_ptr<Surface> after =
+    std::shared_ptr<SDLSurface> after =
         machine.GetSystem().graphics().RenderToSurface();
 
     constexpr int duration = 250;

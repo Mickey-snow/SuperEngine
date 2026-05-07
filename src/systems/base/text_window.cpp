@@ -66,7 +66,7 @@ struct TextWindow::FaceSlot {
   int unknown;
 
   // The current face loaded. NULL whenever no face is loaded.
-  std::shared_ptr<const Surface> face_surface;
+  std::shared_ptr<const SDLSurface> face_surface;
 };
 
 // -----------------------------------------------------------------------
@@ -497,7 +497,7 @@ void TextWindow::RenderFaces(int behind) {
   for (int i = 0; i < kNumFaceSlots; ++i) {
     if (face_slot_[i] && face_slot_[i]->face_surface &&
         face_slot_[i]->is_behind == behind) {
-      const std::shared_ptr<const Surface>& surface =
+      const std::shared_ptr<const SDLSurface>& surface =
           face_slot_[i]->face_surface;
 
       Rect dest(GetWindowRect().x() + face_slot_[i]->x,
@@ -526,7 +526,7 @@ void TextWindow::ClearWin() {
 
   // Allocate the text window surface
   if (!text_surface_)
-    text_surface_ = std::make_shared<Surface>(GetTextSurfaceSize());
+    text_surface_ = std::make_shared<SDLSurface>(GetTextSurfaceSize());
   text_surface_->Fill(RGBAColour::Clear());
 
   name_surface_ = nullptr;
@@ -692,7 +692,7 @@ void TextWindow::StartSelection(std::vector<Selection> choices) {
   selections_.clear();
   selections_.reserve(choices.size());
   for (auto& choice : choices) {
-    std::shared_ptr<Surface> normal =
+    std::shared_ptr<SDLSurface> normal =
         text_impl_->RenderText(choice.text, FontFace(ifont), font_colour_);
 
     // clone and create an inverted surface

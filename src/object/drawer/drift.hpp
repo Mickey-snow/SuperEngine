@@ -39,7 +39,6 @@
 
 class GraphicsObject;
 class SDLSurface;
-using Surface = SDLSurface;
 class System;
 
 // Draws a collection of particles to the screen. Used to implement snow and
@@ -68,7 +67,7 @@ class DriftGraphicsObject : public GraphicsObjectData {
   virtual void Execute(RLMachine& machine) override;
 
  protected:
-  virtual std::shared_ptr<const Surface> CurrentSurface(
+  virtual std::shared_ptr<const SDLSurface> CurrentSurface(
       const GraphicsObject& go) override;
 
  private:
@@ -95,7 +94,7 @@ class DriftGraphicsObject : public GraphicsObjectData {
   std::string filename_;
 
   // The encapsulated surface to render
-  std::shared_ptr<const Surface> surface_;
+  std::shared_ptr<const SDLSurface> surface_;
 
   // The individual particles that make up this drift object.
   std::vector<Particle> particles_;

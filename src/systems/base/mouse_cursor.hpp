@@ -32,7 +32,6 @@
 #include "core/rect.hpp"
 
 class SDLSurface;
-using Surface = SDLSurface;
 class System;
 class RLMachine;
 
@@ -40,7 +39,7 @@ class RLMachine;
 class MouseCursor {
  public:
   explicit MouseCursor(System& system,
-                       const std::shared_ptr<const Surface>& cursor_surface,
+                       const std::shared_ptr<const SDLSurface>& cursor_surface,
                        int count,
                        int speed);
   ~MouseCursor();
@@ -60,7 +59,7 @@ class MouseCursor {
   void FindHotspot();
 
   // The raw image read from the PDT.
-  std::shared_ptr<const Surface> cursor_surface_;
+  std::shared_ptr<const SDLSurface> cursor_surface_;
 
   // The number of frames in cursor.
   int count_;

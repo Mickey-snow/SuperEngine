@@ -36,7 +36,6 @@
 
 class System;
 class SDLSurface;
-using Surface = SDLSurface;
 
 // Class that parses and executes HIK files.
 class HIKScript {
@@ -51,7 +50,7 @@ class HIKScript {
   struct Frame {
     int opacity;
     std::string image;
-    std::shared_ptr<const Surface> surface;
+    std::shared_ptr<const SDLSurface> surface;
 
     int grp_pattern;
     int frame_length_ms;

@@ -34,13 +34,12 @@
 
 class RLMachine;
 class SDLSurface;
-using Surface = SDLSurface;
 
 class ZoomLongOperation : public LongOperation {
  public:
   ZoomLongOperation(RLMachine& machine,
-                    const std::shared_ptr<Surface>& orig_surface_,
-                    const std::shared_ptr<Surface>& src_surface_,
+                    const std::shared_ptr<SDLSurface>& orig_surface_,
+                    const std::shared_ptr<SDLSurface>& src_surface_,
                     const Rect& frect_,
                     const Rect& trect_,
                     const Rect& drect_,
@@ -50,8 +49,8 @@ class ZoomLongOperation : public LongOperation {
   virtual bool operator()(RLMachine& machine) override;
 
  private:
-  std::shared_ptr<Surface> orig_surface_;
-  std::shared_ptr<Surface> src_surface_;
+  std::shared_ptr<SDLSurface> orig_surface_;
+  std::shared_ptr<SDLSurface> src_surface_;
 
   const Rect frect_;
   const Rect trect_;

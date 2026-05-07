@@ -144,7 +144,7 @@ SDLSurface::SDLSurface()
 
 // -----------------------------------------------------------------------
 
-// Surface that takes ownership of an externally created surface.
+// SDLSurface that takes ownership of an externally created surface.
 SDLSurface::SDLSurface(SDL_Surface* surf, std::vector<GrpRect> region_table)
     : surface_(surf),
       region_table_(std::move(region_table)),
@@ -213,13 +213,11 @@ void SDLSurface::Deallocate() {
 
 // TODO(erg): This function doesn't ignore alpha blending when use_src_alpha is
 // false; thus, grp_open and grp_mask_open are really grp_mask_open.
-void SDLSurface::BlitToSurface(Surface& dest_surface,
+void SDLSurface::BlitToSurface(SDLSurface& dest_surface,
                                const Rect& src,
                                const Rect& dst,
                                int alpha,
                                bool use_src_alpha) const {
-  SDLSurface& sdl_dest_surface = dynamic_cast<SDLSurface&>(dest_surface);
-
   SDL_Rect src_rect = ToSDLRect(src), dest_rect = ToSDLRect(dst);
 
   if (src.size() != dst.size()) {
@@ -239,7 +237,7 @@ void SDLSurface::BlitToSurface(Surface& dest_surface,
         ThrowSDLError("SDL_SetAlpha", "GraphicsSystem::blitSurfaceToDC()");
     }
 
-    if (SDL_BlitSurface(tmp, NULL, sdl_dest_surface.RawSurface(), &dest_rect))
+    if (SDL_BlitSurface(tmp, NULL, dest_surface.RawSurface(), &dest_rect))
       ThrowSDLError("SDL_BlitSurface", "GraphicsSystem::blitSurfaceToDC()");
 
     SDL_FreeSurface(tmp);
@@ -253,11 +251,11 @@ void SDLSurface::BlitToSurface(Surface& dest_surface,
         ThrowSDLError("SDL_SetAlpha", "GraphicsSystem::blitSurfaceToDC()");
     }
 
-    if (SDL_BlitSurface(surface_, &src_rect, sdl_dest_surface.RawSurface(),
+    if (SDL_BlitSurface(surface_, &src_rect, dest_surface.RawSurface(),
                         &dest_rect))
       ThrowSDLError("SDL_BlitSurface", "GraphicsSystem::blitSurfaceToDC()");
   }
-  sdl_dest_surface.markWrittenTo(dst);
+  dest_surface.markWrittenTo(dst);
 }
 
 // -----------------------------------------------------------------------
@@ -281,7 +279,7 @@ void SDLSurface::blitFROMSurface(SDL_Surface* src_surface,
 
   markWrittenTo(dst);
 }
-void SDLSurface::blitFROMSurface(Surface& src_surface,
+void SDLSurface::blitFROMSurface(SDLSurface& src_surface,
                                  const Rect& src,
                                  const Rect& dst,
                                  int alpha,
@@ -332,7 +330,7 @@ static void determineProperties(SDL_Surface* surface,
     } else if (bytes_per_pixel == 3) {
       // For now, just assume RGB.
       byte_order = GL_RGB;
-      std::cerr << "Warning: Am I really an RGB Surface? Check"
+      std::cerr << "Warning: Am I really an RGB SDLSurface? Check"
                 << " Texture::Texture()!" << std::endl;
     } else {
       std::ostringstream oss;
@@ -527,7 +525,7 @@ const GrpRect& SDLSurface::GetPattern(int patt_no) const {
 
 // -----------------------------------------------------------------------
 
-std::shared_ptr<Surface> SDLSurface::Clone() const {
+std::shared_ptr<SDLSurface> SDLSurface::Clone() const {
   SDL_Surface* tmp_surface = SDL_CreateRGBSurface(
       surface_->flags, surface_->w, surface_->h, surface_->format->BitsPerPixel,
       surface_->format->Rmask, surface_->format->Gmask, surface_->format->Bmask,
@@ -621,7 +619,7 @@ std::vector<char> SDLSurface::Dump(Rect region) const {
 
 // -----------------------------------------------------------------------
 
-std::shared_ptr<Surface> SDLSurface::ClipAsColorMask(const Rect& clip_rect,
+std::shared_ptr<SDLSurface> SDLSurface::ClipAsColorMask(const Rect& clip_rect,
                                                      int r,
                                                      int g,
                                                      int b) const {

@@ -34,7 +34,6 @@
 #include "machine/long_operation.hpp"
 
 class SDLSurface;
-using Surface = SDLSurface;
 class RLMachine;
 
 // SEL/SELR transition effects:
@@ -61,8 +60,8 @@ class Effect : public LongOperation {
   // Sets up all other variables, adding 1 to both width and height; RL is the
   // only system I know of where ranges are inclusive...
   Effect(RLMachine& machine,
-         std::shared_ptr<Surface> src,
-         std::shared_ptr<Surface> dst,
+         std::shared_ptr<SDLSurface> src,
+         std::shared_ptr<SDLSurface> dst,
          Size size,
          int time);
 
@@ -76,8 +75,8 @@ class Effect : public LongOperation {
 
   // Accessors for which surfaces we're composing. These are public as
   // an ugly hack for ScrollOnScrollOff.cpp.
-  Surface& src_surface() { return *src_surface_; }
-  Surface& dst_surface() { return *dst_surface_; }
+  SDLSurface& src_surface() { return *src_surface_; }
+  SDLSurface& dst_surface() { return *dst_surface_; }
 
  protected:
   Size size() const { return screen_size_; }
@@ -109,10 +108,10 @@ class Effect : public LongOperation {
 
   // The source surface (previously known as DC1, before I realized
   // that temporary surfaces could in fact be part of effects)
-  std::shared_ptr<Surface> src_surface_;
+  std::shared_ptr<SDLSurface> src_surface_;
 
   // The destination surface (previously known as DC0)
-  std::shared_ptr<Surface> dst_surface_;
+  std::shared_ptr<SDLSurface> dst_surface_;
 };
 
 // LongOperationDecorator used in cases where we need to blit an image
@@ -123,8 +122,8 @@ class Effect : public LongOperation {
 class BlitAfterEffectFinishes : public PerformAfterLongOperationDecorator {
  public:
   BlitAfterEffectFinishes(LongOperation* in,
-                          std::shared_ptr<Surface> src,
-                          std::shared_ptr<Surface> dst,
+                          std::shared_ptr<SDLSurface> src,
+                          std::shared_ptr<SDLSurface> dst,
                           const Rect& srcRect,
                           const Rect& destRect);
 
@@ -135,10 +134,10 @@ class BlitAfterEffectFinishes : public PerformAfterLongOperationDecorator {
 
   // The source surface (previously known as DC1, before I realized
   // that temporary surfaces could in fact be part of effects)
-  std::shared_ptr<Surface> src_surface_;
+  std::shared_ptr<SDLSurface> src_surface_;
 
   // The destination surface (previously known as DC0)
-  std::shared_ptr<Surface> dst_surface_;
+  std::shared_ptr<SDLSurface> dst_surface_;
 
   Rect src_rect_, dest_rect_;
 };

@@ -36,7 +36,6 @@
 #include <utility>
 
 class SDLSurface;
-using Surface = SDLSurface;
 
 // Describes the state of a Waku button
 enum class ButtonState : int {
@@ -64,9 +63,9 @@ class TextWindowButton {
 
   bool HandleMouseClick(const Point& pos, bool pressed);
 
-  void SetSurface(std::shared_ptr<Surface> surf, int base_pattern);
+  void SetSurface(std::shared_ptr<SDLSurface> surf, int base_pattern);
 
-  std::pair<std::shared_ptr<Surface>, Rect> Render() const;
+  std::pair<std::shared_ptr<SDLSurface>, Rect> Render() const;
 
   // Called by other execute() calls while the System object has its
   // turn to do any updating
@@ -105,6 +104,6 @@ class TextWindowButton {
 
   Rect btn_rect_;
 
-  std::shared_ptr<Surface> button_surface_;
+  std::shared_ptr<SDLSurface> button_surface_;
   int base_pattern_;
 };

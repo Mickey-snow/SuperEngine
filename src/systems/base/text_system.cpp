@@ -522,7 +522,7 @@ bool parseInteger(std::string::const_iterator& begin,
   return true;
 }
 
-std::shared_ptr<Surface> TextSystem::RenderText(const std::string& utf8str,
+std::shared_ptr<SDLSurface> TextSystem::RenderText(const std::string& utf8str,
                                                 int size,
                                                 int xspace,
                                                 int yspace,
@@ -639,7 +639,7 @@ std::shared_ptr<Surface> TextSystem::RenderText(const std::string& utf8str,
   if (total_height == 0)
     total_height = 1;
 
-  auto surface = std::make_shared<Surface>(Size(max_width, total_height));
+  auto surface = std::make_shared<SDLSurface>(Size(max_width, total_height));
   surface->Fill(RGBAColour::Clear());
 
   RGBColour current_colour = colour;
@@ -655,7 +655,7 @@ std::shared_ptr<Surface> TextSystem::RenderText(const std::string& utf8str,
     bool add_char = true;
     bool is_emoji = false;
     int emoji_id = 0;
-    std::shared_ptr<const Surface> emoji_surface;
+    std::shared_ptr<const SDLSurface> emoji_surface;
 
     if (codepoint == '#') {
       add_char = false;

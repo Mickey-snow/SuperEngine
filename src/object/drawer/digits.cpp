@@ -75,7 +75,7 @@ std::unique_ptr<GraphicsObjectData> DigitsGraphicsObject::Clone() const {
 
 void DigitsGraphicsObject::Execute(RLMachine& machine) {}
 
-std::shared_ptr<const Surface> DigitsGraphicsObject::CurrentSurface(
+std::shared_ptr<const SDLSurface> DigitsGraphicsObject::CurrentSurface(
     const GraphicsObject& go) {
   if (NeedsUpdate(go))
     UpdateSurface(go);
@@ -103,7 +103,7 @@ void DigitsGraphicsObject::UpdateSurface(const GraphicsObject& rp) {
 
   int total_pixel_width = (num_chars + num_extra) * digit_pixel_width;
 
-  surface_ = std::make_shared<Surface>(
+  surface_ = std::make_shared<SDLSurface>(
       Size(total_pixel_width, font_->GetPattern(0).rect.size().height()));
   surface_->Fill(RGBAColour::Clear());
 

@@ -32,9 +32,8 @@
 #include <span>
 
 class Album;
-// TODO: Extract Surface abstraction from SDLSurface class
+// TODO: Extract SDLSurface abstraction from SDLSurface class
 class SDLSurface;
-using Surface = SDLSurface;
 
 struct RenderFrameConfig {
   Size screen_size;
@@ -54,13 +53,13 @@ class IGraphicsBackend {
 
   virtual void Resize(Size screen_size, bool is_fullscreen) = 0;
 
-  virtual std::shared_ptr<Surface> CreateSurface(Size size) = 0;
-  virtual std::shared_ptr<Surface> CreateSurfaceBGRA(Size size,
+  virtual std::shared_ptr<SDLSurface> CreateSurface(Size size) = 0;
+  virtual std::shared_ptr<SDLSurface> CreateSurfaceBGRA(Size size,
                                                      std::span<char> bgra,
                                                      bool is_alpha_mask) = 0;
 
   [[deprecated]]
-  virtual std::shared_ptr<Surface> LoadSurface(
+  virtual std::shared_ptr<SDLSurface> LoadSurface(
       const std::filesystem::path& path) = 0;
   virtual std::shared_ptr<Album> LoadAlbum(
       const std::filesystem::path& path) = 0;
@@ -76,7 +75,7 @@ class IGraphicsBackend {
   virtual void RedrawLastFrame(const RenderFrameConfig& config,
                                const DrawCallback& draw_cursor) = 0;
 
-  virtual std::shared_ptr<Surface> RenderToSurface(
+  virtual std::shared_ptr<SDLSurface> RenderToSurface(
       const RenderFrameConfig& config,
       const DrawCallback& draw_scene) = 0;
 };

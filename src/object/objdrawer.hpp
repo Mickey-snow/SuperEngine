@@ -38,7 +38,6 @@ class Point;
 class RLMachine;
 class Rect;
 class SDLSurface;
-using Surface = SDLSurface;
 class Animator;
 
 class GraphicsObjectData {
@@ -71,7 +70,7 @@ class GraphicsObjectData {
  protected:
   // Template method used during rendering to get the surface to render.
   // Return a null shared_ptr to disable rendering.
-  virtual std::shared_ptr<const Surface> CurrentSurface(
+  virtual std::shared_ptr<const SDLSurface> CurrentSurface(
       const GraphicsObject& rp) = 0;
 
   // Returns the rectangle in currentSurface() to draw to the screen. Override

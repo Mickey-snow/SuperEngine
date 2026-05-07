@@ -32,8 +32,8 @@
 // -----------------------------------------------------------------------
 // SelectionElement
 // -----------------------------------------------------------------------
-SelectionElement::SelectionElement(std::shared_ptr<Surface> normal_image,
-                                   std::shared_ptr<Surface> highlighted_image,
+SelectionElement::SelectionElement(std::shared_ptr<SDLSurface> normal_image,
+                                   std::shared_ptr<SDLSurface> highlighted_image,
                                    Point pos)
     : is_highlighted_(false),
       upper_right_(pos),
@@ -65,7 +65,7 @@ bool SelectionElement::HandleMouseClick(const Point& pos, bool pressed) {
 }
 
 void SelectionElement::Render() {
-  std::shared_ptr<Surface> target;
+  std::shared_ptr<SDLSurface> target;
 
   if (is_highlighted_)
     target = highlighted_image_;

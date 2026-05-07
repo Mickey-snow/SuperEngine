@@ -53,21 +53,21 @@ class TextWakuType4 : public TextWaku {
     return false;
   }
 
-  void SetMainWaku(std::shared_ptr<const Surface> waku_surface);
+  void SetMainWaku(std::shared_ptr<const SDLSurface> waku_surface);
   void SetArea(int top, int bottom, int left, int right);
 
  private:
   // Returns |cached_backing_|, shrinking or enlarging it to |size|.
-  const std::shared_ptr<Surface>& GetWakuBackingOfSize(Size size);
+  const std::shared_ptr<SDLSurface>& GetWakuBackingOfSize(Size size);
 
   // Additional area that adds to the filter backing in four directions.
   int area_top_, area_bottom_, area_left_, area_right_;
 
   // The surface that we pick pieces of our textbox against.
-  std::shared_ptr<const Surface> waku_main_;
+  std::shared_ptr<const SDLSurface> waku_main_;
 
   // A cached backing regenerated whenever the namebox size changes
-  std::shared_ptr<Surface> cached_backing_;
+  std::shared_ptr<SDLSurface> cached_backing_;
 
   // G00 regions in |waku_main_|.
   GrpRect top_left_, top_center_, top_right_;

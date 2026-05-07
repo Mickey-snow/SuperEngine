@@ -39,7 +39,6 @@
 
 class GraphicsObject;
 class SDLSurface;
-using Surface = SDLSurface;
 class System;
 
 // Represents the textual data made with commands such as obj_of_text,
@@ -59,7 +58,7 @@ class GraphicsTextObject : public GraphicsObjectData {
   virtual void Execute(RLMachine& machine) override;
 
  protected:
-  virtual std::shared_ptr<const Surface> CurrentSurface(
+  virtual std::shared_ptr<const SDLSurface> CurrentSurface(
       const GraphicsObject& go) override;
 
  private:
@@ -68,7 +67,7 @@ class GraphicsTextObject : public GraphicsObjectData {
 
   TextProperties cached_param_;
 
-  std::shared_ptr<Surface> surface_;
+  std::shared_ptr<SDLSurface> surface_;
 
   bool NeedsUpdate(const GraphicsObject& rendering_properties);
 

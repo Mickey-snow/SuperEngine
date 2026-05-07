@@ -33,8 +33,8 @@
 class FadeEffect : public Effect {
  public:
   FadeEffect(RLMachine& machine,
-             std::shared_ptr<Surface> src,
-             std::shared_ptr<Surface> dst,
+             std::shared_ptr<SDLSurface> src,
+             std::shared_ptr<SDLSurface> dst,
              const Size& screen_size,
              int time);
   virtual ~FadeEffect();

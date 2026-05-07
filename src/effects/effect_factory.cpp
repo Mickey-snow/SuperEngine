@@ -53,8 +53,8 @@ enum ScreenDirection {
 // -----------------------------------------------------------------------
 
 Effect* BuildDrawerEffect(RLMachine& machine,
-                          std::shared_ptr<Surface> src,
-                          std::shared_ptr<Surface> dst,
+                          std::shared_ptr<SDLSurface> src,
+                          std::shared_ptr<SDLSurface> dst,
                           const Size& screen_size,
                           int time,
                           int style,
@@ -101,8 +101,8 @@ Effect* BuildDrawerEffect(RLMachine& machine,
 
 // Creates a specific subclass of WipeEffect for \#SEL #10, Wipe.
 Effect* BuildWipeEffect(RLMachine& machine,
-                        std::shared_ptr<Surface> src,
-                        std::shared_ptr<Surface> dst,
+                        std::shared_ptr<SDLSurface> src,
+                        std::shared_ptr<SDLSurface> dst,
                         const Size& screen_size,
                         int time,
                         int direction,
@@ -131,8 +131,8 @@ Effect* BuildWipeEffect(RLMachine& machine,
 
 // Creates a specific subclass of BlindEffect for \#SEL #120, Blind.
 Effect* BuildBlindEffect(RLMachine& machine,
-                         std::shared_ptr<Surface> src,
-                         std::shared_ptr<Surface> dst,
+                         std::shared_ptr<SDLSurface> src,
+                         std::shared_ptr<SDLSurface> dst,
                          const Size& screen_size,
                          int time,
                          int direction,
@@ -178,16 +178,16 @@ Effect* BuildBlindEffect(RLMachine& machine,
 // -----------------------------------------------------------------------
 
 Effect* EffectFactory::BuildFromSEL(RLMachine& machine,
-                                    std::shared_ptr<Surface> src,
-                                    std::shared_ptr<Surface> dst,
+                                    std::shared_ptr<SDLSurface> src,
+                                    std::shared_ptr<SDLSurface> dst,
                                     int selNum) {
   auto sel_record = GetSelRecord(machine.GetSystem().gameexe(), selNum);
   return Build(machine, src, dst, sel_record);
 }
 
 Effect* EffectFactory::Build(RLMachine& machine,
-                             std::shared_ptr<Surface> src,
-                             std::shared_ptr<Surface> dst,
+                             std::shared_ptr<SDLSurface> src,
+                             std::shared_ptr<SDLSurface> dst,
                              selRecord record) {
   Size screen_size = machine.GetSystem().graphics().screen_size();
 

@@ -38,7 +38,6 @@
 #include <vector>
 
 class SDLSurface;
-using Surface = SDLSurface;
 class System;
 
 // Executable, in-memory representation of an ANM file. This internal structure
@@ -46,7 +45,7 @@ class System;
 // changed to be all C++ like.
 class AnmGraphicsObjectData : public GraphicsObjectData {
  public:
-  AnmGraphicsObjectData(std::shared_ptr<Surface> surface, AnmDecoder anm_data);
+  AnmGraphicsObjectData(std::shared_ptr<SDLSurface> surface, AnmDecoder anm_data);
   virtual ~AnmGraphicsObjectData();
 
   virtual int PixelWidth(const GraphicsObject& rendering_properties) override;
@@ -58,7 +57,7 @@ class AnmGraphicsObjectData : public GraphicsObjectData {
   virtual void PlaySet(int set) override;
 
  protected:
-  virtual std::shared_ptr<const Surface> CurrentSurface(
+  virtual std::shared_ptr<const SDLSurface> CurrentSurface(
       const GraphicsObject& go) override;
   virtual Rect SrcRect(const GraphicsObject& go) override;
   virtual Rect DstRect(const GraphicsObject& go,
@@ -80,7 +79,7 @@ class AnmGraphicsObjectData : public GraphicsObjectData {
   std::vector<std::vector<int>> animation_set_;
 
   // The image the above coordinates map into.
-  std::shared_ptr<Surface> image_;
+  std::shared_ptr<SDLSurface> image_;
 
   bool currently_playing_;
   int current_set_;

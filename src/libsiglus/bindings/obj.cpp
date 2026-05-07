@@ -55,7 +55,7 @@ class Object {
   void Init() { obj.FreeDataAndInitializeParams(); }
 
   void Create(std::string filename, bool disp) {
-    std::shared_ptr<Surface> surface = graphics_->LoadSurfaceFromFile(filename);
+    std::shared_ptr<SDLSurface> surface = graphics_->LoadSurfaceFromFile(filename);
 
     auto obj_data = std::make_unique<GraphicsObjectOfFile>(surface);
     obj.SetObjectData(std::move(obj_data));

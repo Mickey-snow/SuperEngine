@@ -107,8 +107,8 @@ struct ApplyColorTransformer {
 void blitDC1toDC0(RLMachine& machine) {
   GraphicsSystem& graphics = machine.GetSystem().graphics();
 
-  std::shared_ptr<Surface> src = graphics.GetDC(1);
-  std::shared_ptr<Surface> dst = graphics.GetDC(0);
+  std::shared_ptr<SDLSurface> src = graphics.GetDC(1);
+  std::shared_ptr<SDLSurface> dst = graphics.GetDC(0);
 
   // Blit DC1 onto DC0, with full opacity, and end the operation
   src->BlitToSurface(*dst, src->GetRect(), dst->GetRect(), 255);
@@ -139,8 +139,8 @@ void loadImageToDC1(RLMachine& machine,
     if (name == "???")
       name = default_grp_name;
 
-    std::shared_ptr<Surface> dc0 = graphics.GetDC(0);
-    std::shared_ptr<Surface> dc1 = graphics.GetDC(1);
+    std::shared_ptr<SDLSurface> dc0 = graphics.GetDC(0);
+    std::shared_ptr<SDLSurface> dc1 = graphics.GetDC(1);
 
     // Inclusive ranges are a monstrosity to computer people
     Size size = srcRect.size() + Size(1, 1);
@@ -148,7 +148,7 @@ void loadImageToDC1(RLMachine& machine,
     dc0->BlitToSurface(*dc1, dc0->GetRect(), dc0->GetRect(), 255);
 
     // Load the section of the image file on top of dc1
-    std::shared_ptr<const Surface> surface(
+    std::shared_ptr<const SDLSurface> surface(
         graphics.GetSurfaceNamedAndMarkViewed(machine, name));
     surface->BlitToSurface(*graphics.GetDC(1), Rect(srcRect.origin(), size),
                            Rect(dest, size), opacity, useAlpha);
@@ -161,8 +161,8 @@ void loadDCToDC1(RLMachine& machine,
                  const Point& dest,
                  int opacity) {
   GraphicsSystem& graphics = machine.GetSystem().graphics();
-  std::shared_ptr<Surface> dc1 = graphics.GetDC(1);
-  std::shared_ptr<Surface> src = graphics.GetDC(srcDc);
+  std::shared_ptr<SDLSurface> dc1 = graphics.GetDC(1);
+  std::shared_ptr<SDLSurface> src = graphics.GetDC(srcDc);
 
   // Inclusive ranges are a monstrosity to computer people
   Size size = srcRect.size() + Size(1, 1);
@@ -201,8 +201,8 @@ selRecord PackEffectParam(Rect srcRect,
 }
 
 void performEffect(RLMachine& machine,
-                   const std::shared_ptr<Surface>& src,
-                   const std::shared_ptr<Surface>& dst,
+                   const std::shared_ptr<SDLSurface>& src,
+                   const std::shared_ptr<SDLSurface>& dst,
                    int selnum) {
   if (!machine.replaying_graphics_stack()) {
     std::shared_ptr<LongOperation> lop(
@@ -212,8 +212,8 @@ void performEffect(RLMachine& machine,
 }
 
 void performEffect(RLMachine& machine,
-                   const std::shared_ptr<Surface>& src,
-                   const std::shared_ptr<Surface>& dst,
+                   const std::shared_ptr<SDLSurface>& src,
+                   const std::shared_ptr<SDLSurface>& dst,
                    selRecord effect_param) {
   if (!machine.replaying_graphics_stack()) {
     std::shared_ptr<LongOperation> lop(
@@ -297,7 +297,7 @@ struct load_1
   void operator()(RLMachine& machine, string filename, int dc, int opacity) {
     GraphicsSystem& graphics = machine.GetSystem().graphics();
 
-    std::shared_ptr<const Surface> surface(
+    std::shared_ptr<const SDLSurface> surface(
         graphics.GetSurfaceNamedAndMarkViewed(machine, filename));
 
     if (dc != 0 && dc != 1) {
@@ -330,7 +330,7 @@ struct load_3 : public RLOpcode<StrConstant_T,
                   Point dest,
                   int opacity) {
     GraphicsSystem& graphics = machine.GetSystem().graphics();
-    std::shared_ptr<const Surface> surface(
+    std::shared_ptr<const SDLSurface> surface(
         graphics.GetSurfaceNamedAndMarkViewed(machine, filename));
 
     Rect destRect = Rect(dest, srcRect.size());
@@ -355,10 +355,10 @@ void DisplayEffect(RLMachine& machine, int dc, const selRecord& param) {
 
   GraphicsSystem& graphics = machine.GetSystem().graphics();
 
-  std::shared_ptr<Surface> before = graphics.RenderToSurface();
+  std::shared_ptr<SDLSurface> before = graphics.RenderToSurface();
   loadDCToDC1(machine, dc, src, dest, transparency);
   blitDC1toDC0(machine);
-  std::shared_ptr<Surface> after = graphics.RenderToSurface();
+  std::shared_ptr<SDLSurface> after = graphics.RenderToSurface();
 
   performEffect(machine, after, before, param);
 }
@@ -483,12 +483,12 @@ struct open_1 : public RLOpcode<StrConstant_T, IntConstant_T, IntConstant_T> {
     GetSELPointAndRect(machine, effectNum, src, dest);
 
     GraphicsSystem& graphics = machine.GetSystem().graphics();
-    std::shared_ptr<Surface> before = graphics.RenderToSurface();
+    std::shared_ptr<SDLSurface> before = graphics.RenderToSurface();
 
     loadImageToDC1(machine, filename, src, dest, opacity, use_alpha_);
     blitDC1toDC0(machine);
 
-    std::shared_ptr<Surface> after = graphics.RenderToSurface();
+    std::shared_ptr<SDLSurface> after = graphics.RenderToSurface();
     performEffect(machine, after, before, effectNum);
     performHideAllTextWindows(machine);
   }
@@ -526,14 +526,14 @@ struct open_3 : public RLOpcode<StrConstant_T,
                   int opacity) {
     GraphicsSystem& graphics = machine.GetSystem().graphics();
 
-    std::shared_ptr<Surface> before = graphics.RenderToSurface();
+    std::shared_ptr<SDLSurface> before = graphics.RenderToSurface();
 
     // Kanon uses the recOpen('?', ...) form for rendering Last Regrets. This
     // isn't documented in the rldev manual.
     loadImageToDC1(machine, filename, srcRect, dest, opacity, use_alpha_);
     blitDC1toDC0(machine);
 
-    std::shared_ptr<Surface> after = graphics.RenderToSurface();
+    std::shared_ptr<SDLSurface> after = graphics.RenderToSurface();
     performEffect(machine, after, before, effectNum);
     performHideAllTextWindows(machine);
   }
@@ -594,14 +594,14 @@ struct open_4 : public RLOpcode<StrConstant_T,
                   int c) {
     GraphicsSystem& graphics = machine.GetSystem().graphics();
 
-    std::shared_ptr<Surface> before = graphics.RenderToSurface();
+    std::shared_ptr<SDLSurface> before = graphics.RenderToSurface();
 
     // Kanon uses the recOpen('?', ...) form for rendering Last Regrets. This
     // isn't documented in the rldev manual.
     loadImageToDC1(machine, fileName, srcRect, dest, opacity, use_alpha_);
     blitDC1toDC0(machine);
 
-    std::shared_ptr<Surface> after = graphics.RenderToSurface();
+    std::shared_ptr<SDLSurface> after = graphics.RenderToSurface();
 
     performEffect(
         machine, after, before,
@@ -623,12 +623,12 @@ struct openBg_1 : public RLOpcode<StrConstant_T, IntConstant_T, IntConstant_T> {
 
     OpenBgPrelude(machine, fileName);
 
-    std::shared_ptr<Surface> before = graphics.RenderToSurface();
+    std::shared_ptr<SDLSurface> before = graphics.RenderToSurface();
 
     loadImageToDC1(machine, fileName, srcRect, destPoint, opacity, false);
     blitDC1toDC0(machine);
 
-    std::shared_ptr<Surface> after = graphics.RenderToSurface();
+    std::shared_ptr<SDLSurface> after = graphics.RenderToSurface();
     performEffect(machine, after, before, effectNum);
     performHideAllTextWindows(machine);
   }
@@ -662,12 +662,12 @@ struct openBg_3 : public RLOpcode<StrConstant_T,
     OpenBgPrelude(machine, fileName);
 
     // Set the long operation for the correct transition long operation
-    std::shared_ptr<Surface> before = graphics.RenderToSurface();
+    std::shared_ptr<SDLSurface> before = graphics.RenderToSurface();
 
     loadImageToDC1(machine, fileName, srcRect, destPt, opacity, use_alpha_);
     blitDC1toDC0(machine);
 
-    std::shared_ptr<Surface> after = graphics.RenderToSurface();
+    std::shared_ptr<SDLSurface> after = graphics.RenderToSurface();
     performEffect(machine, after, before, effectNum);
     performHideAllTextWindows(machine);
   }
@@ -724,13 +724,13 @@ struct openBg_4 : public RLOpcode<StrConstant_T,
     OpenBgPrelude(machine, fileName);
 
     // Set the long operation for the correct transition long operation
-    std::shared_ptr<Surface> before = graphics.RenderToSurface();
+    std::shared_ptr<SDLSurface> before = graphics.RenderToSurface();
 
     loadImageToDC1(machine, fileName, srcRect, destPt, opacity, use_alpha_);
     blitDC1toDC0(machine);
 
     // Render the screen to a temporary
-    std::shared_ptr<Surface> after = graphics.RenderToSurface();
+    std::shared_ptr<SDLSurface> after = graphics.RenderToSurface();
 
     performEffect(
         machine, after, before,
@@ -764,7 +764,7 @@ struct copy_3 : public RLOpcode<Rect_T<SPACE>,
 
     GraphicsSystem& graphics = machine.GetSystem().graphics();
 
-    std::shared_ptr<Surface> sourceSurface = graphics.GetDC(src);
+    std::shared_ptr<SDLSurface> sourceSurface = graphics.GetDC(src);
 
     if (dst != 0 && dst != 1) {
       graphics.SetMinimumSizeForDC(dst, srcRect.size());
@@ -788,7 +788,7 @@ struct copy_1
 
     GraphicsSystem& graphics = machine.GetSystem().graphics();
 
-    std::shared_ptr<Surface> sourceSurface = graphics.GetDC(src);
+    std::shared_ptr<SDLSurface> sourceSurface = graphics.GetDC(src);
 
     if (dst != 0 && dst != 1) {
       graphics.SetMinimumSizeForDC(dst, sourceSurface->GetSize());
@@ -833,7 +833,7 @@ struct fill_3
 
 struct invert_1 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int dc) {
-    std::shared_ptr<Surface> surface = machine.GetSystem().graphics().GetDC(dc);
+    std::shared_ptr<SDLSurface> surface = machine.GetSystem().graphics().GetDC(dc);
     surface->Apply(InvertColor);
   }
 };
@@ -847,7 +847,7 @@ struct invert_3 : public RLOpcode<Rect_T<SPACE>, IntConstant_T> {
 
 struct mono_1 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int dc) {
-    std::shared_ptr<Surface> surface = machine.GetSystem().graphics().GetDC(dc);
+    std::shared_ptr<SDLSurface> surface = machine.GetSystem().graphics().GetDC(dc);
     surface->Apply(ToGrayscale);
   }
 };
@@ -861,7 +861,7 @@ struct mono_3 : public RLOpcode<Rect_T<SPACE>, IntConstant_T> {
 
 struct colour_1 : public RLOpcode<IntConstant_T, RGBColour_T> {
   void operator()(RLMachine& machine, int dc, RGBAColour colour) {
-    std::shared_ptr<Surface> surface = machine.GetSystem().graphics().GetDC(dc);
+    std::shared_ptr<SDLSurface> surface = machine.GetSystem().graphics().GetDC(dc);
     surface->Apply(ApplyColorTransformer(colour.rgb()));
   }
 };
@@ -869,14 +869,14 @@ struct colour_1 : public RLOpcode<IntConstant_T, RGBColour_T> {
 template <typename SPACE>
 struct colour_2 : public RLOpcode<Rect_T<SPACE>, IntConstant_T, RGBColour_T> {
   void operator()(RLMachine& machine, Rect rect, int dc, RGBAColour colour) {
-    std::shared_ptr<Surface> surface = machine.GetSystem().graphics().GetDC(dc);
+    std::shared_ptr<SDLSurface> surface = machine.GetSystem().graphics().GetDC(dc);
     surface->Apply(ApplyColorTransformer(colour.rgb()), rect);
   }
 };
 
 struct light_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int dc, int level) {
-    std::shared_ptr<Surface> surface = machine.GetSystem().graphics().GetDC(dc);
+    std::shared_ptr<SDLSurface> surface = machine.GetSystem().graphics().GetDC(dc);
     surface->Apply(ApplyColorTransformer(RGBColour(level, level, level)));
   }
 };
@@ -884,7 +884,7 @@ struct light_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
 template <typename SPACE>
 struct light_2 : public RLOpcode<Rect_T<SPACE>, IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, Rect rect, int dc, int level) {
-    std::shared_ptr<Surface> surface = machine.GetSystem().graphics().GetDC(dc);
+    std::shared_ptr<SDLSurface> surface = machine.GetSystem().graphics().GetDC(dc);
     surface->Apply(ApplyColorTransformer(RGBColour(level, level, level)), rect);
   }
 };
@@ -898,9 +898,9 @@ struct fade_7
     : public RLOpcode<Rect_T<SPACE>, RGBColour_T, DefaultIntValue_T<0>> {
   void operator()(RLMachine& machine, Rect rect, RGBAColour colour, int time) {
     GraphicsSystem& graphics = machine.GetSystem().graphics();
-    std::shared_ptr<Surface> before = graphics.RenderToSurface();
+    std::shared_ptr<SDLSurface> before = graphics.RenderToSurface();
     graphics.GetDC(0)->Fill(colour, rect);
-    std::shared_ptr<Surface> after = graphics.RenderToSurface();
+    std::shared_ptr<SDLSurface> after = graphics.RenderToSurface();
 
     if (time > 0) {
       performEffect(machine, after, before,
@@ -964,7 +964,7 @@ struct stretchBlit_1 : public RLOpcode<Rect_T<SPACE>,
       return;
 
     GraphicsSystem& graphics = machine.GetSystem().graphics();
-    std::shared_ptr<Surface> sourceSurface = graphics.GetDC(src);
+    std::shared_ptr<SDLSurface> sourceSurface = graphics.GetDC(src);
 
     if (dst != 0 && dst != 1) {
       graphics.SetMinimumSizeForDC(dst, sourceSurface->GetSize());

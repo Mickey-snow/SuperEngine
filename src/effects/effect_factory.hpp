@@ -31,7 +31,6 @@
 
 class RLMachine;
 class SDLSurface;
-using Surface = SDLSurface;
 class Effect;
 struct selRecord;
 
@@ -45,14 +44,14 @@ class EffectFactory {
   // y1, x2, y2), are converted to rec* format and then based to the
   // build() method.
   static Effect* BuildFromSEL(RLMachine& machine,
-                              std::shared_ptr<Surface> src,
-                              std::shared_ptr<Surface> dst,
+                              std::shared_ptr<SDLSurface> src,
+                              std::shared_ptr<SDLSurface> dst,
                               int selnum);
 
   // Returns a constructed LongOperation with the following properties
   // to perform a transition.
   static Effect* Build(RLMachine& machine,
-                       std::shared_ptr<Surface> src,
-                       std::shared_ptr<Surface> dst,
+                       std::shared_ptr<SDLSurface> src,
+                       std::shared_ptr<SDLSurface> dst,
                        selRecord record);
 };

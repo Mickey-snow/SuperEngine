@@ -509,7 +509,7 @@ void ButtonSelectLongOperation::Render() {
 }
 
 void ButtonSelectLongOperation::RenderTextSurface(
-    const std::shared_ptr<Surface>& text_surface,
+    const std::shared_ptr<SDLSurface>& text_surface,
     const Rect& bounding_rect) {
   // Render the correct text in the correct place.
   Rect text_bounding_rect = text_surface->GetSize().CenteredIn(bounding_rect);

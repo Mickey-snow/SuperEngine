@@ -42,7 +42,6 @@ class Point;
 class RLMachine;
 class SelectionElement;
 class SDLSurface;
-using Surface = SDLSurface;
 class System;
 class TextSystem;
 class ITextSystem;
@@ -338,7 +337,7 @@ class TextWindow {
 
   // We lazily parse and load data about displaying the koe icon on demand.
   struct KoeReplayInfo {
-    std::shared_ptr<const Surface> icon;
+    std::shared_ptr<const SDLSurface> icon;
     Size repos;
   };
   std::unique_ptr<KoeReplayInfo> koe_replay_info_;

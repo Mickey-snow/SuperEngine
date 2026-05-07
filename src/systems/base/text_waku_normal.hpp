@@ -38,7 +38,6 @@ class Rect;
 class RLMachine;
 class Size;
 class SDLSurface;
-using Surface = SDLSurface;
 class System;
 class TextWindowButton;
 
@@ -66,12 +65,12 @@ class TextWakuNormal : public TextWaku {
   virtual void SetMousePosition(const Point& pos) override;
   virtual bool HandleMouseClick(const Point& pos, bool pressed) override;
 
-  void SetWakuMain(std::shared_ptr<const Surface> surface);
-  void SetWakuBacking(std::shared_ptr<const Surface> surface);
+  void SetWakuMain(std::shared_ptr<const SDLSurface> surface);
+  void SetWakuBacking(std::shared_ptr<const SDLSurface> surface);
 
  private:
-  std::shared_ptr<const Surface> main_surface_;
-  std::shared_ptr<Surface> backing_surface_;
+  std::shared_ptr<const SDLSurface> main_surface_;
+  std::shared_ptr<SDLSurface> backing_surface_;
 
   struct WakuButton {
     std::string name;

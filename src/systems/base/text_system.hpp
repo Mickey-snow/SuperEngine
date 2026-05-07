@@ -49,7 +49,6 @@ class RGBColour;
 class RLMachine;
 class Size;
 class SDLSurface;
-using Surface = SDLSurface;
 class System;
 class TextKeyCursor;
 class TextPage;
@@ -229,7 +228,7 @@ class TextSystem final : public EventListener {
   // Returns a surface with |utf8str| rendered with the other specified
   // properties. Will search |utf8str| for object text syntax and will change
   // various properties based on that syntax.
-  std::shared_ptr<Surface> RenderText(const std::string& utf8str,
+  std::shared_ptr<SDLSurface> RenderText(const std::string& utf8str,
                                       int size,
                                       int xspace,
                                       int yspace,

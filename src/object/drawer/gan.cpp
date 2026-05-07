@@ -41,7 +41,7 @@
 // -----------------------------------------------------------------------
 
 GanGraphicsObjectData::GanGraphicsObjectData(
-    std::shared_ptr<Surface> image,
+    std::shared_ptr<SDLSurface> image,
     std::vector<std::vector<GanDecoder::Frame>> frames)
     : animator_(std::make_shared<Clock>()),
       image_(image),
@@ -117,7 +117,7 @@ void GanGraphicsObjectData::Execute(RLMachine&) {
   }
 }
 
-std::shared_ptr<const Surface> GanGraphicsObjectData::CurrentSurface(
+std::shared_ptr<const SDLSurface> GanGraphicsObjectData::CurrentSurface(
     const GraphicsObject&) {
   if (current_set_ != -1 && current_frame_ != -1) {
     const Frame& frame = animation_sets.at(current_set_).at(current_frame_);
@@ -129,7 +129,7 @@ std::shared_ptr<const Surface> GanGraphicsObjectData::CurrentSurface(
     }
   }
 
-  return std::shared_ptr<const Surface>();
+  return std::shared_ptr<const SDLSurface>();
 }
 
 Rect GanGraphicsObjectData::SrcRect(const GraphicsObject&) {

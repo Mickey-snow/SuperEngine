@@ -96,7 +96,7 @@ void GraphicsObjectOfFile::Execute() {
 
 // -----------------------------------------------------------------------
 
-std::shared_ptr<const Surface> GraphicsObjectOfFile::CurrentSurface(
+std::shared_ptr<const SDLSurface> GraphicsObjectOfFile::CurrentSurface(
     const GraphicsObject& rp) {
   return surface_;
 }

@@ -32,7 +32,6 @@
 #include <string>
 
 class SDLSurface;
-using Surface = SDLSurface;
 class System;
 class RLMachine;
 class GraphicsObject;
@@ -43,7 +42,7 @@ class GraphicsObject;
 // storing, and rendering GAN data as a GraphicsObjectData.
 class GanGraphicsObjectData : public GraphicsObjectData {
  public:
-  GanGraphicsObjectData(std::shared_ptr<Surface> image,
+  GanGraphicsObjectData(std::shared_ptr<SDLSurface> image,
                         std::vector<std::vector<GanDecoder::Frame>> frames);
   virtual ~GanGraphicsObjectData();
 
@@ -61,7 +60,7 @@ class GanGraphicsObjectData : public GraphicsObjectData {
   virtual Animator* GetAnimator() override { return &animator_; }
 
  protected:
-  virtual std::shared_ptr<const Surface> CurrentSurface(
+  virtual std::shared_ptr<const SDLSurface> CurrentSurface(
       const GraphicsObject& go) override;
   virtual Rect SrcRect(const GraphicsObject& go) override;
   virtual Point DstOrigin(const GraphicsObject& go) override;
@@ -71,7 +70,7 @@ class GanGraphicsObjectData : public GraphicsObjectData {
  private:
   Animator animator_;
 
-  std::shared_ptr<Surface> image_;
+  std::shared_ptr<SDLSurface> image_;
 
   using Frame = GanDecoder::Frame;
   std::vector<std::vector<Frame>> animation_sets;

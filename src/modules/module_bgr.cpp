@@ -69,13 +69,13 @@ struct bgrLoadHaikei_blank : public RLOpcode<IntConstant_T> {
     graphics.SetHikRenderer(NULL);
     graphics.set_graphics_background(BACKGROUND_HIK);
 
-    std::shared_ptr<Surface> before = graphics.RenderToSurface();
+    std::shared_ptr<SDLSurface> before = graphics.RenderToSurface();
     graphics.GetHaikei()->Fill(RGBAColour::Clear());
 
     if (!machine.replaying_graphics_stack())
       graphics.ClearAndPromoteObjects();
 
-    std::shared_ptr<Surface> after = graphics.RenderToSurface();
+    std::shared_ptr<SDLSurface> after = graphics.RenderToSurface();
 
     std::shared_ptr<LongOperation> effect(
         EffectFactory::BuildFromSEL(machine, after, before, sel));
@@ -107,12 +107,12 @@ struct bgrLoadHaikei_main : RLOpcode<StrConstant_T, IntConstant_T> {
       graphics.SetHikRenderer(new HIKRenderer(
           system, graphics.GetHIKScript(system, filename, path)));
     } else {
-      std::shared_ptr<Surface> before = graphics.RenderToSurface();
+      std::shared_ptr<SDLSurface> before = graphics.RenderToSurface();
 
       if (!path.empty()) {
-        std::shared_ptr<const Surface> source(
+        std::shared_ptr<const SDLSurface> source(
             graphics.GetSurfaceNamedAndMarkViewed(machine, filename));
-        std::shared_ptr<Surface> haikei = graphics.GetHaikei();
+        std::shared_ptr<SDLSurface> haikei = graphics.GetHaikei();
         source->BlitToSurface(*haikei, source->GetRect(), source->GetRect(),
                               255, true);
       }
@@ -122,7 +122,7 @@ struct bgrLoadHaikei_main : RLOpcode<StrConstant_T, IntConstant_T> {
       if (!machine.replaying_graphics_stack())
         graphics.ClearAndPromoteObjects();
 
-      std::shared_ptr<Surface> after = graphics.RenderToSurface();
+      std::shared_ptr<SDLSurface> after = graphics.RenderToSurface();
 
       std::shared_ptr<LongOperation> effect(
           EffectFactory::BuildFromSEL(machine, after, before, sel));
@@ -189,7 +189,7 @@ struct bgrMulti_1
     GraphicsSystem& graphics = machine.GetSystem().graphics();
 
     // Get the state of the world before we do any processing.
-    std::shared_ptr<Surface> before = graphics.RenderToSurface();
+    std::shared_ptr<SDLSurface> before = graphics.RenderToSurface();
 
     graphics.set_graphics_background(BACKGROUND_HIK);
 
@@ -198,7 +198,7 @@ struct bgrMulti_1
       filename = default_bgr_name;
 
     // Load "filename" as the background.
-    std::shared_ptr<const Surface> surface(
+    std::shared_ptr<const SDLSurface> surface(
         graphics.GetSurfaceNamedAndMarkViewed(machine, filename));
     surface->BlitToSurface(*graphics.GetHaikei(), surface->GetRect(),
                            surface->GetRect(), 255, true);
@@ -240,7 +240,7 @@ struct bgrMulti_1
     if (!machine.replaying_graphics_stack())
       graphics.ClearAndPromoteObjects();
 
-    std::shared_ptr<Surface> after = graphics.RenderToSurface();
+    std::shared_ptr<SDLSurface> after = graphics.RenderToSurface();
     std::shared_ptr<LongOperation> effect(
         EffectFactory::BuildFromSEL(machine, after, before, effectNum));
     machine.PushLongOperation(effect);

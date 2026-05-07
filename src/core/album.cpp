@@ -25,7 +25,7 @@
 
 #include "systems/sdl_surface.hpp"
 
-Album::Album(std::shared_ptr<Surface> surface,
+Album::Album(std::shared_ptr<SDLSurface> surface,
              std::vector<GrpRect> region_table)
     : surface_(surface), region_table_(std::move(region_table)) {
   if (region_table_.empty()) {

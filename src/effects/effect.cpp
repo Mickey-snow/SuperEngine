@@ -38,8 +38,8 @@
 // -----------------------------------------------------------------------
 
 Effect::Effect(RLMachine& machine,
-               std::shared_ptr<Surface> src,
-               std::shared_ptr<Surface> dst,
+               std::shared_ptr<SDLSurface> src,
+               std::shared_ptr<SDLSurface> dst,
                Size size,
                int time)
     : screen_size_(size),
@@ -88,8 +88,8 @@ bool Effect::operator()(RLMachine& machine) {
 // -----------------------------------------------------------------------
 
 BlitAfterEffectFinishes::BlitAfterEffectFinishes(LongOperation* in,
-                                                 std::shared_ptr<Surface> src,
-                                                 std::shared_ptr<Surface> dst,
+                                                 std::shared_ptr<SDLSurface> src,
+                                                 std::shared_ptr<SDLSurface> dst,
                                                  const Rect& srcRect,
                                                  const Rect& destRect)
     : PerformAfterLongOperationDecorator(in),

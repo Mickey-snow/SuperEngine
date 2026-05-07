@@ -37,7 +37,6 @@
 
 class GraphicsObject;
 class SDLSurface;
-using Surface = SDLSurface;
 class System;
 
 class DigitsGraphicsObject : public GraphicsObjectData {
@@ -53,7 +52,7 @@ class DigitsGraphicsObject : public GraphicsObjectData {
   virtual void Execute(RLMachine& machine) override;
 
  protected:
-  virtual std::shared_ptr<const Surface> CurrentSurface(
+  virtual std::shared_ptr<const SDLSurface> CurrentSurface(
       const GraphicsObject& go) override;
 
  private:
@@ -67,10 +66,10 @@ class DigitsGraphicsObject : public GraphicsObjectData {
 
   // The source font.
   std::string font_name_;
-  std::shared_ptr<const Surface> font_;
+  std::shared_ptr<const SDLSurface> font_;
 
   // The current composited surface.
-  std::shared_ptr<Surface> surface_;
+  std::shared_ptr<SDLSurface> surface_;
 
   // boost::serialization support
   friend class boost::serialization::access;

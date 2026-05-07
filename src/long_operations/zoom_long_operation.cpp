@@ -39,8 +39,8 @@
 
 ZoomLongOperation::ZoomLongOperation(
     RLMachine& machine,
-    const std::shared_ptr<Surface>& origSurface,
-    const std::shared_ptr<Surface>& srcSurface,
+    const std::shared_ptr<SDLSurface>& origSurface,
+    const std::shared_ptr<SDLSurface>& srcSurface,
     const Rect& frect,
     const Rect& trect,
     const Rect& drect,
