@@ -127,8 +127,6 @@ bool GtkImplementor::AskUserPrompt(const std::string& message_text,
   return result;
 }
 
-namespace {
-PlatformFactory::Registrar gtk_platform_registry("gtk", []() {
+RLVM_REGISTER(PlatformFactory, "gtk", []() {
   return std::make_shared<GtkImplementor>();
 });
-}  // namespace

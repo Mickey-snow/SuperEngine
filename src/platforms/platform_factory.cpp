@@ -26,16 +26,14 @@
 
 #include <filesystem>
 #include <iostream>
-#include <stdexcept>
 
 namespace fs = std::filesystem;
 
 PlatformImpl_t PlatformFactory::Create(const std::string& platform_name) {
   if (platform_name != "default") {
-    const Context& ctx = GetContext();
-    auto it = ctx.map_.find(platform_name);
-    if (it != ctx.map_.cend())
-      return std::invoke(it->second);
+    const auto* constructor = Registry::Find(platform_name);
+    if (constructor != nullptr)
+      return std::invoke(*constructor);
 
     std::cerr << "[WARNING] Constructor for platform " << platform_name
               << " not found.";
@@ -58,23 +56,8 @@ PlatformImpl_t PlatformFactory::Create(const std::string& platform_name) {
   return std::make_shared<FakePlatform>();
 }
 
-void PlatformFactory::Reset() { GetContext().map_.clear(); }
+void PlatformFactory::Reset() { Registry::Reset(); }
 
 using const_iterator_t = PlatformFactory::const_iterator_t;
-const_iterator_t PlatformFactory::cbegin() {
-  return GetContext().map_.cbegin();
-}
-const_iterator_t PlatformFactory::cend() { return GetContext().map_.cend(); }
-
-PlatformFactory::Registrar::Registrar(
-    const std::string& name,
-    std::function<PlatformImpl_t()> constructor) {
-  auto result = GetContext().map_.try_emplace(name, constructor);
-  if (!result.second)
-    throw std::invalid_argument("Platform " + name + " registered twice.");
-}
-
-PlatformFactory::Context& PlatformFactory::GetContext() {
-  static Context ctx;
-  return ctx;
-}
+const_iterator_t PlatformFactory::cbegin() { return Registry::cbegin(); }
+const_iterator_t PlatformFactory::cend() { return Registry::cend(); }

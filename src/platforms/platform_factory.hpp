@@ -25,9 +25,9 @@
 #pragma once
 
 #include "platforms/implementor.hpp"
+#include "utilities/static_registry.hpp"
 
 #include <functional>
-#include <map>
 #include <string>
 
 /**
@@ -46,6 +46,10 @@
  * @endcode
  */
 class PlatformFactory {
+  struct RegistryTag;
+  using Registry =
+      StaticRegistry<RegistryTag, std::string, std::function<PlatformImpl_t()>>;
+
  public:
   PlatformFactory() = delete;
 
@@ -53,63 +57,9 @@ class PlatformFactory {
 
   static void Reset();
 
-  using const_iterator_t =
-      typename std::map<std::string,
-                        std::function<PlatformImpl_t()>>::const_iterator;
+  using const_iterator_t = typename Registry::const_iterator;
   static const_iterator_t cbegin();
   static const_iterator_t cend();
 
-  /**
-   * @class PlatformFactory::Registrar
-   * @brief Helper class for registering platform implementations.
-   *
-   * The `Registrar` class is used to register platform implementations with
-   * the factory. It associates a platform name with a constructor function
-   * that creates an instance of the platform implementation.
-   *
-   * To add a new platform implementation:
-   *
-   * 1. Implement a subclass of `IPlatformImplementor`.
-   * 2. Register the subclass using `PlatformFactory::Registrar`, by passing the
-   * platform name and a functor that returns a new instance.
-   *
-   * Example:
-   * @code
-   * class MyPlatform : public IPlatformImplementor {
-   *   // Implementation of MyPlatform
-   * };
-   *
-   * namespace {
-   *   PlatformFactory::Registrar registrar("my_platform_name", []() {
-   *     return std::make_shared<MyPlatform>();
-   *   });
-   * }
-   * @endcode
-   */
-  class Registrar {
-   public:
-    /**
-     * @brief Constructor for registering a platform implementation.
-     *
-     * This constructor registers a new platform implementation with the
-     * `PlatformFactory`. It associates the platform name with the constructor
-     * function that will be used to create instances of the platform.
-     *
-     * @param name The unique name of the platform implementation.
-     * @param constructor A function that returns an instance of the platform
-     * implementation.
-     */
-    Registrar(const std::string& name,
-              std::function<PlatformImpl_t()> constructor);
-    ~Registrar() = default;
-  };
-
- private:
-  struct Context {
-    std::map<std::string, std::function<PlatformImpl_t()>> map_;
-  };
-
-  static Context& GetContext();
-
-  friend class Registrar;
+  using Registrar = typename Registry::Registrar;
 };
