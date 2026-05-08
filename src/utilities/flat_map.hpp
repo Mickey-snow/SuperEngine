@@ -27,9 +27,12 @@
 #include "utilities/mpl.hpp"
 
 #include <algorithm>
+#include <functional>
+#include <limits>
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <variant>
 #include <vector>
 
 template <typename T>
@@ -106,17 +109,57 @@ class flat_map {
 };
 
 template <typename T>
-flat_map<T> make_flatmap(std::initializer_list<std::pair<int, T>> init) {
-  int lo = std::min_element(init.begin(), init.end(), [](auto& a, auto& b) {
-             return a.first < b.first;
-           })->first;
-  int hi = std::max_element(init.begin(), init.end(), [](auto& a, auto& b) {
-             return a.first < b.first;
-           })->first;
-  flat_map<T> fm(lo, hi);
-  for (auto& p : init)
-    fm.insert(p.first, std::move(p.second));
-  return fm;
+struct flatmap_entry {
+  using value_type = std::variant<std::reference_wrapper<const flat_map<T>>,
+                                  std::pair<int, T>>;
+
+  flatmap_entry(const flat_map<T>& fm) : value(std::cref(fm)) {}
+
+  template <typename U>
+  flatmap_entry(std::pair<int, U> p)
+      : value(std::pair<int, T>(std::move(p.first), std::move(p.second))) {}
+
+  value_type value;
+};
+
+template <typename T>
+flat_map<T> make_flatmap(std::initializer_list<flatmap_entry<T>> init) {
+  if (init.size() <= 0) {
+    throw std::invalid_argument(
+        "make_flatmap<T>(...) requires at least one entry");
+  }
+
+  int lo = std::numeric_limits<int>::max();
+  int hi = std::numeric_limits<int>::min();
+
+  for (auto& item : init) {
+    if (auto fm = std::get_if<std::reference_wrapper<const flat_map<T>>>(
+            &item.value)) {
+      lo = std::min(lo, fm->get().min_key());
+      hi = std::max(hi, fm->get().max_key());
+    } else {
+      auto& p = std::get<std::pair<int, T>>(item.value);
+      lo = std::min(lo, p.first);
+      hi = std::max(hi, p.first);
+    }
+  }
+
+  flat_map<T> result(lo, hi);
+
+  for (auto& item : init) {
+    if (auto fm = std::get_if<std::reference_wrapper<const flat_map<T>>>(
+            &item.value)) {
+      for (int k = fm->get().min_key(); k <= fm->get().max_key(); ++k) {
+        if (fm->get().contains(k))
+          result.insert(k, fm->get().at(k));
+      }
+    } else {
+      auto& p = std::get<std::pair<int, T>>(item.value);
+      result.insert(p.first, p.second);
+    }
+  }
+
+  return result;
 }
 
 struct key_holder {
@@ -129,55 +172,3 @@ struct key_holder {
 [[maybe_unused]] inline constexpr struct {
   key_holder operator[](int k) const { return key_holder{k}; }
 } id{};
-
-template <typename T, typename... Args>
-constexpr flat_map<T> make_flatmap(Args&&... args) {
-  static_assert(sizeof...(Args) > 0,
-                "make_flatmap<T>(...) requires at least one argument");
-
-  std::vector<int> all_keys;
-  all_keys.reserve((sizeof...(Args) * 2) + 2);
-
-  auto collect_keys = [&](auto&& item) {
-    using U = std::remove_cv_t<std::remove_reference_t<decltype(item)>>;
-    if constexpr (std::is_same_v<U, flat_map<T>>) {
-      all_keys.push_back(item.min_key());
-      all_keys.push_back(item.max_key());
-    } else if constexpr (std::is_same_v<U, std::pair<int, T>>) {
-      all_keys.push_back(item.first);
-    } else {
-      static_assert(
-          always_false<U>,
-          "make_flatmap<T>(...): each argument must be either flat_map<T> or "
-          "std::pair<int,T>");
-    }
-  };
-
-  (void)std::initializer_list<int>{
-      (collect_keys(std::forward<Args>(args)), 0)...};
-
-  int lo = *std::min_element(all_keys.begin(), all_keys.end());
-  int hi = *std::max_element(all_keys.begin(), all_keys.end());
-  flat_map<T> result(lo, hi);
-
-  auto do_insert = [&](auto&& item) {
-    using U = std::remove_cv_t<std::remove_reference_t<decltype(item)>>;
-    if constexpr (std::is_same_v<U, flat_map<T>>) {
-      // Copy every existing key↦value from that map into `result`.
-      for (int k = item.min_key(); k <= item.max_key(); ++k) {
-        if (item.contains(k)) {
-          // We can use at(k) to get the T&, and do a copy-insert:
-          result.insert(k, item.at(k));
-        }
-      }
-    } else {
-      int k = item.first;
-      T v = std::forward<decltype(item.second)>(item.second);
-      result.insert(k, std::move(v));
-    }
-  };
-
-  (void)std::initializer_list<int>{(do_insert(std::forward<Args>(args)), 0)...};
-
-  return result;
-}

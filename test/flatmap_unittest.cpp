@@ -100,11 +100,12 @@ TEST(FlatMapTest, MakeCombineMap) {
   fm2.insert(2, 200);
   fm2.insert(3, 300);
 
-  auto combined = make_flatmap<int>(fm1,
-                                    id[0] | 999,  // overwrite key=0
-                                    fm2,
-                                    id[2] | 555  // overwrite key=2
-  );
+  auto combined = make_flatmap<int>({
+      fm1,
+      id[0] | 999,  // overwrite key=0
+      fm2,
+      id[2] | 555   // overwrite key=2
+  });
 
   EXPECT_EQ(combined.min_key(), -2);
   EXPECT_EQ(combined.max_key(), 3);

@@ -138,589 +138,699 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
   switch (type) {
     case Type::IntList: {
       static const auto mp = make_flatmap<Builder>(
-          id[-1] | b_index_array(Type::Int),
-          id[3] | b(Type::IntList, Member("b1")),
-          id[4] | b(Type::IntList, Member("b2")),
-          id[5] | b(Type::IntList, Member("b4")),
-          id[7] | b(Type::IntList, Member("b8")),
-          id[6] | b(Type::IntList, Member("b16")),
-          id[10] | b_call0(Type::None, "init"), id[2] | b_callable("resize"),
-          id[9] | b_callable("size", Type::Int), id[8] | b_callable("fill"),
-          id[1] | b_callable("Set"));
+          {id[-1] | b_index_array(Type::Int),
+           id[3] | b(Type::IntList, Member("b1")),
+           id[4] | b(Type::IntList, Member("b2")),
+           id[5] | b(Type::IntList, Member("b4")),
+           id[7] | b(Type::IntList, Member("b8")),
+           id[6] | b(Type::IntList, Member("b16")), id[10] | b_callable("init"),
+           id[2] | b_callable("resize"), id[9] | b_callable("size", Type::Int),
+           id[8] | b_callable("fill"), id[1] | b_callable("Set")});
       return &mp;
     }
 
     case Type::IntEventList: {
-      static const auto mp = make_flatmap<Builder>(
-          id[-1] | b_index_array(Type::IntEvent), id[1] | b_callable("resize"));
+      static const auto mp =
+          make_flatmap<Builder>({id[-1] | b_index_array(Type::IntEvent),
+                                 id[1] | b_callable("resize")});
       return &mp;
     }
     case Type::IntEvent: {
       static const auto mp =
-          make_flatmap<Builder>(id[0] | b(Type::Callable, Member("set")),
-                                id[7] | b(Type::Callable, Member("set_real")),
-                                id[1] | b(Type::Callable, Member("loop")),
-                                id[8] | b(Type::Callable, Member("loop_real")),
-                                id[2] | b(Type::Callable, Member("turn")),
-                                id[9] | b(Type::Callable, Member("turn_real")),
-                                id[3] | b(Type::None, Member("end")),
-                                id[4] | b(Type::None, Member("wait")),
-                                id[10] | b(Type::None, Member("wait_key")),
-                                id[5] | b(Type::Int, Member("check")));
+          make_flatmap<Builder>({id[0] | b(Type::Callable, Member("set")),
+                                 id[7] | b(Type::Callable, Member("set_real")),
+                                 id[1] | b(Type::Callable, Member("loop")),
+                                 id[8] | b(Type::Callable, Member("loop_real")),
+                                 id[2] | b(Type::Callable, Member("turn")),
+                                 id[9] | b(Type::Callable, Member("turn_real")),
+                                 id[3] | b(Type::None, Member("end")),
+                                 id[4] | b(Type::None, Member("wait")),
+                                 id[10] | b(Type::None, Member("wait_key")),
+                                 id[5] | b(Type::Int, Member("check"))});
 
       return &mp;
     }
 
     case Type::StrList: {
       static const auto mp =
-          make_flatmap<Builder>(id[-1] | b_index_array(Type::String),
-                                id[3] | b(Type::None, Member("init")),
-                                id[2] | b(Type::Callable, Member("resize")),
-                                id[4] | b(Type::Int, Member("size")));
+          make_flatmap<Builder>({id[-1] | b_index_array(Type::String),
+                                 id[3] | b(Type::None, Member("init")),
+                                 id[2] | b(Type::Callable, Member("resize")),
+                                 id[4] | b(Type::Int, Member("size"))});
       return &mp;
     }
     case Type::String: {
       static const auto mp = make_flatmap<Builder>(
-          id[0] | b_call0(Type::String, "upper"),
-          id[1] | b_call0(Type::String, "lower"),
-          id[6] | b_call0(Type::Int, "cnt"), id[5] | b_call0(Type::Int, "len"),
-          id[2] | b_callable("left", Type::String),
-          id[7] | b_callable("left_len", Type::String),
-          id[4] | b_callable("right", Type::String),
-          id[9] | b_callable("right_len", Type::String),
-          id[3] | b_callable("mid", Type::String),
-          id[8] | b_callable("mid_len", Type::String),
-          id[10] | b_callable("find", Type::Int),
-          id[11] | b_callable("rfind", Type::Int),
-          id[13] | b_callable("charat", Type::Int),
-          id[13] | b_call0(Type::Int, "tonum"));
+          {id[0] | b_call0(Type::String, "upper"),
+           id[1] | b_call0(Type::String, "lower"),
+           id[6] | b_call0(Type::Int, "cnt"), id[5] | b_call0(Type::Int, "len"),
+           id[2] | b_callable("left", Type::String),
+           id[7] | b_callable("left_len", Type::String),
+           id[4] | b_callable("right", Type::String),
+           id[9] | b_callable("right_len", Type::String),
+           id[3] | b_callable("mid", Type::String),
+           id[8] | b_callable("mid_len", Type::String),
+           id[10] | b_callable("find", Type::Int),
+           id[11] | b_callable("rfind", Type::Int),
+           id[13] | b_callable("charat", Type::Int),
+           id[13] | b_call0(Type::Int, "tonum")});
       return &mp;
     }
 
     case Type::Math: {
       static const auto mp = make_flatmap<Builder>(
-          id[3] | b(Type::Callable, Member("max")),
-          id[4] | b(Type::Callable, Member("min")),
-          id[10] | b(Type::Callable, Member("limit")),
-          id[5] | b(Type::Callable, Member("abs")),
-          id[0] | b(Type::Callable, Member("rand")),
-          id[14] | b(Type::Callable, Member("sqrt")),
-          id[19] | b(Type::Callable, Member("log")),
-          id[20] | b(Type::Callable, Member("log2")),
-          id[21] | b(Type::Callable, Member("log10")),
-          id[6] | b(Type::Callable, Member("sin")),
-          id[7] | b(Type::Callable, Member("cos")),
-          id[8] | b(Type::Callable, Member("tan")),
-          id[16] | b(Type::Callable, Member("asin")),
-          id[17] | b(Type::Callable, Member("acos")),
-          id[18] | b(Type::Callable, Member("atan")),
-          id[15] | b(Type::Callable, Member("distance")),
-          id[22] | b(Type::Callable, Member("angle")),
-          id[9] | b(Type::Callable, Member("linear")),
-          id[2] | b(Type::Callable, Member("timetable")),
-          id[1] | b(Type::Callable, Member("tostr")),
-          id[11] | b(Type::Callable, Member("tostr_zero")),
-          id[12] | b(Type::Callable, Member("tostr_zen")),
-          id[13] | b(Type::Callable, Member("tostr_zen_zero")),
-          id[23] | b(Type::Callable, Member("tostr_code")));
+          {id[3] | b(Type::Callable, Member("max")),
+           id[4] | b(Type::Callable, Member("min")),
+           id[10] | b(Type::Callable, Member("limit")),
+           id[5] | b(Type::Callable, Member("abs")),
+           id[0] | b(Type::Callable, Member("rand")),
+           id[14] | b(Type::Callable, Member("sqrt")),
+           id[19] | b(Type::Callable, Member("log")),
+           id[20] | b(Type::Callable, Member("log2")),
+           id[21] | b(Type::Callable, Member("log10")),
+           id[6] | b(Type::Callable, Member("sin")),
+           id[7] | b(Type::Callable, Member("cos")),
+           id[8] | b(Type::Callable, Member("tan")),
+           id[16] | b(Type::Callable, Member("asin")),
+           id[17] | b(Type::Callable, Member("acos")),
+           id[18] | b(Type::Callable, Member("atan")),
+           id[15] | b(Type::Callable, Member("distance")),
+           id[22] | b(Type::Callable, Member("angle")),
+           id[9] | b(Type::Callable, Member("linear")),
+           id[2] | b(Type::Callable, Member("timetable")),
+           id[1] | b(Type::Callable, Member("tostr")),
+           id[11] | b(Type::Callable, Member("tostr_zero")),
+           id[12] | b(Type::Callable, Member("tostr_zen")),
+           id[13] | b(Type::Callable, Member("tostr_zen_zero")),
+           id[23] | b(Type::Callable, Member("tostr_code"))});
       return &mp;
     }
 
     case Type::System: {
       static const auto mp = make_flatmap<Builder>(
-          id[14] | b_call0(Type::None, "calendar"),
-          id[15] | b_call0(Type::Int, "time"),
-          id[0] | b_call0(Type::Int, "window_active"),
-          id[13] | b_call0(Type::Int, "is_debug"),
-          id[1] | b_callable("shell_openfile"), id[5] | b_callable("openurl"),
-          id[6] | b_callable("check_file_exist"),
-          id[12] | b_callable("check_save_file_exist"),
-          id[2] | b_callable("check_dummy"),
-          id[21] | b_call0(Type::None, "clear_dummy"),
-          id[17] | b_callable("msgbox_ok"),
-          id[18] | b_callable("msgbox_okcancel"),
-          id[19] | b_callable("msgbox_yn"),
-          id[20] | b_callable("msgbox_yncancel"),
-          id[7] | b_callable("debug_msgbox_ok"),
-          id[8] | b_callable("debug_msgbox_okcancel"),
-          id[9] | b_callable("debug_msgbox_yn"),
-          id[10] | b_callable("debug_msgbox_yncancel"),
-          id[11] | b_callable("debug_write_log"),
-          id[4] | b_call0(Type::String, "get_chihayabench"),
-          id[3] | b_callable("open_chihayabench"),
-          id[16] | b_call0(Type::String, "get_lang"));
+          {id[14] | b_call0(Type::None, "calendar"),
+           id[15] | b_call0(Type::Int, "time"),
+           id[0] | b_call0(Type::Int, "window_active"),
+           id[13] | b_call0(Type::Int, "is_debug"),
+           id[1] | b_callable("shell_openfile"),
+           id[5] | b_callable("openurl"),
+           id[6] | b_callable("check_file_exist"),
+           id[12] | b_callable("check_save_file_exist"),
+           id[2] | b_callable("check_dummy"),
+           id[21] | b_call0(Type::None, "clear_dummy"),
+           id[17] | b_callable("msgbox_ok"),
+           id[18] | b_callable("msgbox_okcancel"),
+           id[19] | b_callable("msgbox_yn"),
+           id[20] | b_callable("msgbox_yncancel"),
+           id[7] | b_callable("debug_msgbox_ok"),
+           id[8] | b_callable("debug_msgbox_okcancel"),
+           id[9] | b_callable("debug_msgbox_yn"),
+           id[10] | b_callable("debug_msgbox_yncancel"),
+           id[11] | b_callable("debug_write_log"),
+           id[4] | b_call0(Type::String, "get_chihayabench"),
+           id[3] | b_callable("open_chihayabench"),
+           id[16] | b_call0(Type::String, "get_lang")});
+      return &mp;
+    }
+
+    case Type::Script: {
+      static const auto mp = make_flatmap<Builder>(
+          {id[38] | b_callable("set_auto_savepoint_off"),
+           id[39] | b_callable("set_auto_savepoint_on"),
+           id[2] | b_callable("set_skip_disable"),
+           id[5] | b_callable("set_skip_enable"),
+           id[85] | b_callable("set_skip_disable_flag"),
+           id[83] | b_callable("get_skip_disable_flag", Type::Int),
+           id[6] | b_callable("set_ctrl_skip_disable"),
+           id[7] | b_callable("set_ctrl_skip_enable"),
+           id[86] | b_callable("set_ctrl_skip_disable_flag"),
+           id[84] | b_callable("get_ctrl_skip_disable_flag", Type::Int),
+           id[18] | b_callable("check_skip"),
+           id[30] | b_callable("set_stop_skip_by_key_disable"),
+           id[31] | b_callable("set_stop_skip_by_key_enable"),
+           id[54] | b_callable("set_end_msg_by_key_disable"),
+           id[55] | b_callable("set_end_msg_by_key_enable"),
+           id[74] | b_callable("set_skip_unread_message_flag"),
+           id[75] | b_callable("get_skip_unread_message_flag", Type::Int),
+           id[0] | b_callable("start_auto_mode"),
+           id[1] | b_callable("end_auto_mode"),
+           id[60] | b_callable("set_auto_mode_moji_wait"),
+           id[62] | b_callable("set_auto_mode_moji_wait_default"),
+           id[64] | b_callable("get_auto_mode_moji_wait", Type::Int),
+           id[61] | b_callable("set_auto_mode_min_wait"),
+           id[63] | b_callable("set_auto_mode_min_wait_default"),
+           id[65] | b_callable("get_auto_mode_min_wait", Type::Int),
+           id[76] | b_callable("set_auto_mode_moji_cnt"),
+           id[77] | b_callable("set_mouse_cursor_hide_onoff"),
+           id[82] | b_callable("set_mouse_cursor_hide_onoff_default"),
+           id[78] | b_callable("get_mouse_cursor_hide_onoff", Type::Int),
+           id[79] | b_callable("set_mouse_cursor_hide_time"),
+           id[80] | b_callable("set_mouse_cursor_hide_time_default"),
+           id[81] | b_callable("get_mouse_cursor_hide_time", Type::Int),
+           id[25] | b_callable("set_message_speed"),
+           id[27] | b_callable("set_message_speed_default"),
+           id[26] | b_callable("get_message_speed", Type::Int),
+           id[28] | b_callable("set_message_nowait_flag"),
+           id[29] | b_callable("get_message_nowait_flag", Type::Int),
+           id[21] | b_callable("set_msg_async_mode_on"),
+           id[51] | b_callable("set_msg_async_mode_on_once"),
+           id[22] | b_callable("set_msg_async_mode_off"),
+           id[46] | b_callable("set_hide_mwnd_disable"),
+           id[47] | b_callable("set_hide_mwnd_enable"),
+           id[12] | b_callable("set_msg_back_disable"),
+           id[13] | b_callable("set_msg_back_enable"),
+           id[34] | b_callable("set_msg_back_off"),
+           id[35] | b_callable("set_msg_back_on"),
+           id[56] | b_callable("set_msg_back_disp_off"),
+           id[57] | b_callable("set_msg_back_disp_on"),
+           id[14] | b_callable("set_mouse_disp_off"),
+           id[15] | b_callable("set_mouse_disp_on"),
+           id[19] | b_callable("set_mouse_move_by_key_disable"),
+           id[20] | b_callable("set_mouse_move_by_key_enable"),
+           id[40] | b_callable("set_key_disable"),
+           id[41] | b_callable("set_key_enable"),
+           id[3] | b_callable("set_mwnd_anime_off_flag"),
+           id[9] | b_callable("get_mwnd_anime_off_flag", Type::Int),
+           id[4] | b_callable("set_mwnd_anime_on_flag"),
+           id[16] | b_callable("get_mwnd_anime_on_flag", Type::Int),
+           id[8] | b_callable("set_mwnd_disp_off_flag"),
+           id[17] | b_callable("get_mwnd_disp_off_flag", Type::Int),
+           id[42] | b_callable("set_koe_dont_stop_on_flag"),
+           id[43] | b_callable("get_koe_dont_stop_on_flag", Type::Int),
+           id[44] | b_callable("set_koe_dont_stop_off_flag"),
+           id[45] | b_callable("get_koe_dont_stop_off_flag", Type::Int),
+           id[33] | b_callable("set_shortcut_enable"),
+           id[32] | b_callable("set_shortcut_disable"),
+           id[11] | b_callable("set_quake_stop_flag"),
+           id[23] | b_callable("get_quake_stop_flag", Type::Int),
+           id[96] | b_callable("set_emote_mouth_stop_flag"),
+           id[97] | b_callable("get_emote_mouth_stop_flag", Type::Int),
+           id[36] | b_callable("start_bgmfade"),
+           id[37] | b_callable("end_bgmfade"),
+           id[10] | b_callable("set_vsync_wait_off_flag"),
+           id[24] | b_callable("get_vsync_wait_off_flag", Type::Int),
+           id[48] | b_callable("set_skip_trigger"),
+           id[49] | b_callable("ignore_r_on"),
+           id[50] | b_callable("ignore_r_off"),
+           id[52] | b_callable("set_cursor_no"),
+           id[53] | b_callable("get_cursor_no", Type::Int),
+           id[66] | b_callable("set_time_stop_flag"),
+           id[67] | b_callable("get_time_stop_flag", Type::Int),
+           id[68] | b_callable("set_counter_time_stop_flag"),
+           id[73] | b_callable("get_counter_time_stop_flag", Type::Int),
+           id[69] | b_callable("set_frame_action_time_stop_flag"),
+           id[72] | b_callable("get_frame_action_time_stop_flag", Type::Int),
+           id[70] | b_callable("set_stage_time_stop_flag"),
+           id[71] | b_callable("get_stage_time_stop_flag", Type::Int)});
+      return &mp;
+    }
+
+    case Type::ScriptExcall: {
+      static const auto mp = make_flatmap<Builder>(
+          {id[87] | b_callable("set_font_name"),
+           id[89] | b_callable("set_font_name_default"),
+           id[88] | b_callable("get_font_name", Type::String),
+           id[90] | b_callable("set_font_bold"),
+           id[91] | b_callable("set_font_bold_default"),
+           id[92] | b_callable("get_font_bold", Type::Int),
+           id[93] | b_callable("set_font_shadow"),
+           id[94] | b_callable("set_font_shadow_default"),
+           id[95] | b_callable("get_font_shadow", Type::Int)});
       return &mp;
     }
 
     case Type::FrameActionList: {
-      static const auto mp = make_flatmap<Builder>(
-          id[-1] | b_index_array(Type::FrameAction),
-          id[2] | b_callable("size", Type::Int), id[1] | b_callable("resize"));
+      static const auto mp =
+          make_flatmap<Builder>({id[-1] | b_index_array(Type::FrameAction),
+                                 id[2] | b_callable("size", Type::Int),
+                                 id[1] | b_callable("resize")});
       return &mp;
     }
 
     case Type::FrameAction: {
       static const auto mp = make_flatmap<Builder>(
-          id[1] | b_callable("start"), id[3] | b_callable("start_real"),
-          id[2] | b_call0(Type::None, "end"),
-          id[0] | b(Type::Counter, Member("counter")),
-          id[4] | b_call0(Type::Int, "is_end_action"));
+          {id[1] | b_callable("start"), id[3] | b_callable("start_real"),
+           id[2] | b_call0(Type::None, "end"),
+           id[0] | b(Type::Counter, Member("counter")),
+           id[4] | b_call0(Type::Int, "is_end_action")});
       return &mp;
     }
 
     case Type::CounterList: {
       static const auto mp =
-          make_flatmap<Builder>(id[-1] | b_index_array(Type::Counter),
-                                id[1] | b_call0(Type::Int, "size"));
+          make_flatmap<Builder>({id[-1] | b_index_array(Type::Counter),
+                                 id[1] | b_call0(Type::Int, "size")});
       return &mp;
     }
 
     case Type::Counter: {
       static const auto mp = make_flatmap<Builder>(
-          id[0] | b(Type::Callable, Member("set")),
-          id[1] | b(Type::Int, Member("get")),
-          id[2] | b(Type::None, Member("reset")),
-          id[3] | b(Type::None, Member("start")),
-          id[9] | b(Type::None, Member("start_real")),
-          id[10] | b(Type::Callable, Member("start_frame")),
-          id[11] | b(Type::Callable, Member("start_frame_real")),
-          id[12] | b(Type::Callable, Member("start_frame_loop")),
-          id[13] | b(Type::Callable, Member("start_frame_loop_real")),
-          id[4] | b(Type::None, Member("stop")),
-          id[5] | b(Type::None, Member("resume")),
-          id[6] | b(Type::Callable, Member("wait")),
-          id[8] | b(Type::Callable, Member("wait_key")),
-          id[7] | b(Type::Int, Member("check_value")),
-          id[14] | b(Type::Int, Member("check_active")));
+          {id[0] | b(Type::Callable, Member("set")),
+           id[1] | b(Type::Int, Member("get")),
+           id[2] | b(Type::None, Member("reset")),
+           id[3] | b(Type::None, Member("start")),
+           id[9] | b(Type::None, Member("start_real")),
+           id[10] | b(Type::Callable, Member("start_frame")),
+           id[11] | b(Type::Callable, Member("start_frame_real")),
+           id[12] | b(Type::Callable, Member("start_frame_loop")),
+           id[13] | b(Type::Callable, Member("start_frame_loop_real")),
+           id[4] | b(Type::None, Member("stop")),
+           id[5] | b(Type::None, Member("resume")),
+           id[6] | b(Type::Callable, Member("wait")),
+           id[8] | b(Type::Callable, Member("wait_key")),
+           id[7] | b(Type::Int, Member("check_value")),
+           id[14] | b(Type::Int, Member("check_active"))});
       return &mp;
     }
 
     case Type::Syscom: {
       static const auto mp = make_flatmap<Builder>(
-          // TODO: 236 -> Syscom_call_ex ?
-          id[0] | b(Type::None, Member("menu")),
-          id[6] | b(Type::Callable, Member("menu_enable")),
-          id[7] | b(Type::Callable, Member("menu_disable")),
-          id[11] | b_callable({{0, "btn_enable_all"}, {1, "btn_enable"}}),
-          id[12] | b_callable({{0, "btn_disable_all"}, {1, "btn_disable"}}),
-          id[133] | b(Type::None, Member("touch_enable")),
-          id[134] | b(Type::None, Member("touch_disable")),
-          id[5] | b(Type::None, Member("init_flags")),
-          // readskip
-          id[200] | b(Type::Callable, Member("set_readskip")),
-          id[201] | b(Type::Int, Member("get_readskip")),
-          id[202] | b(Type::Callable, Member("set_enable_readskip")),
-          id[203] | b(Type::Int, Member("get_enable_readskip")),
-          id[204] | b(Type::Callable, Member("set_exist_readskip")),
-          id[205] | b(Type::Int, Member("get_exist_readskip")),
-          id[206] | b(Type::Int, Member("is_readskip_enable")),
-          // autoskip
-          id[207] | b(Type::Callable, Member("set_autoskip")),
-          id[208] | b(Type::Int, Member("get_autoskip")),
-          id[209] | b(Type::Callable, Member("set_enable_autoskip")),
-          id[210] | b(Type::Int, Member("get_enable_autoskip")),
-          id[211] | b(Type::Callable, Member("set_exist_autoskip")),
-          id[212] | b(Type::Int, Member("get_exist_autoskip")),
-          id[213] | b(Type::Int, Member("is_autoskip_enable")),
-          // automode
-          id[214] | b(Type::Callable, Member("set_automode")),
-          id[215] | b(Type::Int, Member("get_automode")),
-          id[216] | b(Type::Callable, Member("set_enable_automode")),
-          id[217] | b(Type::Int, Member("get_enable_automode")),
-          id[218] | b(Type::Callable, Member("set_exist_automode")),
-          id[219] | b(Type::Int, Member("get_exist_automode")),
-          id[220] | b(Type::Int, Member("is_automode_enable")),
-          // hide mwnd
-          id[221] | b(Type::Callable, Member("set_hidemwnd")),
-          id[222] | b(Type::Int, Member("get_hidemwnd")),
-          id[223] | b(Type::Callable, Member("set_enable_hidemwnd")),
-          id[224] | b(Type::Int, Member("get_enable_hidemwnd")),
-          id[225] | b(Type::Callable, Member("set_exist_hidemwnd")),
-          id[226] | b(Type::Int, Member("get_exist_hidemwnd")),
-          id[227] | b(Type::Int, Member("is_hidemwnd_enable")),
-          // extra local switch
-          id[300] | b(Type::Callable, Member("set_extraswitch")),
-          id[301] | b(Type::Callable, Member("get_extraswitch")),
-          id[302] | b(Type::Callable, Member("set_enable_extraswitch")),
-          id[303] | b(Type::Callable, Member("get_enable_extraswitch")),
-          id[304] | b(Type::Callable, Member("set_exist_extraswitch")),
-          id[305] | b(Type::Callable, Member("get_exist_extraswitch")),
-          id[306] | b(Type::Callable, Member("is_extraswitch_enable")),
-          // local mode
-          id[23] | b(Type::Callable, Member("set_localmode")),
-          id[57] | b(Type::Int, Member("get_localmode")),
-          id[58] | b(Type::Callable, Member("set_enable_localmode")),
-          id[59] | b(Type::Int, Member("get_enable_localmode")),
-          id[62] | b(Type::Callable, Member("set_exist_localmode")),
-          id[63] | b(Type::Int, Member("get_exist_localmode")),
-          id[64] | b(Type::Int, Member("is_localmode_enable")),
-          // msgback
-          id[192] | b(Type::None, Member("open_msgback")),
-          id[193] | b(Type::None, Member("close_msgback")),
-          id[194] | b(Type::Callable, Member("set_enable_msgback")),
-          id[195] | b(Type::Int, Member("get_enable_msgback")),
-          id[196] | b(Type::Callable, Member("set_exist_msgback")),
-          id[197] | b(Type::Int, Member("get_exist_msgback")),
-          id[198] | b(Type::Int, Member("is_msgback_enable")),
-          id[329] | b(Type::Int, Member("is_msgback_open")),
-          // return to sel
-          id[228] | b(Type::Callable, Member("return_to_sel")),
-          id[230] | b(Type::Callable, Member("set_enable_retsel")),
-          id[231] | b(Type::Int, Member("get_enable_retsel")),
-          id[232] | b(Type::Callable, Member("set_exist_retsel")),
-          id[233] | b(Type::Int, Member("get_exist_retsel")),
-          id[234] | b(Type::Int, Member("is_retsel_enable")),
-          // return to menu
-          id[235] | b(Type::Callable, Member("return_to_menu")),
-          id[237] | b(Type::Callable, Member("set_enable_retmenu")),
-          id[238] | b(Type::Int, Member("get_enable_retmenu")),
-          id[239] | b(Type::Callable, Member("set_exist_retmenu")),
-          id[240] | b(Type::Int, Member("get_exist_retmenu")),
-          id[241] | b(Type::Int, Member("is_retmenu_enable")),
-          // end game
-          id[242] | b(Type::Callable, Member("end_game")),
-          id[244] | b(Type::Callable, Member("set_enable_endgame")),
-          id[245] | b(Type::Int, Member("get_enable_endgame")),
-          id[246] | b(Type::Callable, Member("set_exist_endgame")),
-          id[247] | b(Type::Int, Member("get_exist_endgame")),
-          id[248] | b(Type::Int, Member("is_endgame_enable")),
-          // replay koe
-          id[288] | b(Type::None, Member("replay_koe")),
-          id[292] | b(Type::Int, Member("check_koe")),
-          id[289] | b(Type::Int, Member("get_cur_koe")),
-          id[291] | b(Type::Int, Member("get_cur_chr")),
-          id[293] | b(Type::None, Member("clear_koe_chr")),
-          id[294] | b(Type::String, Member("get_scene_title")),
-          id[295] | b(Type::String, Member("get_save_message")),
+          {// TODO: 236 -> Syscom_call_ex ?
+           id[0] | b(Type::None, Member("menu")),
+           id[6] | b(Type::Callable, Member("menu_enable")),
+           id[7] | b(Type::Callable, Member("menu_disable")),
+           id[11] | b_callable({{0, "btn_enable_all"}, {1, "btn_enable"}}),
+           id[12] | b_callable({{0, "btn_disable_all"}, {1, "btn_disable"}}),
+           id[133] | b(Type::None, Member("touch_enable")),
+           id[134] | b(Type::None, Member("touch_disable")),
+           id[5] | b(Type::None, Member("init_flags")),
+           // readskip
+           id[200] | b(Type::Callable, Member("set_readskip")),
+           id[201] | b(Type::Int, Member("get_readskip")),
+           id[202] | b(Type::Callable, Member("set_enable_readskip")),
+           id[203] | b(Type::Int, Member("get_enable_readskip")),
+           id[204] | b(Type::Callable, Member("set_exist_readskip")),
+           id[205] | b(Type::Int, Member("get_exist_readskip")),
+           id[206] | b(Type::Int, Member("is_readskip_enable")),
+           // autoskip
+           id[207] | b(Type::Callable, Member("set_autoskip")),
+           id[208] | b(Type::Int, Member("get_autoskip")),
+           id[209] | b(Type::Callable, Member("set_enable_autoskip")),
+           id[210] | b(Type::Int, Member("get_enable_autoskip")),
+           id[211] | b(Type::Callable, Member("set_exist_autoskip")),
+           id[212] | b(Type::Int, Member("get_exist_autoskip")),
+           id[213] | b(Type::Int, Member("is_autoskip_enable")),
+           // automode
+           id[214] | b(Type::Callable, Member("set_automode")),
+           id[215] | b(Type::Int, Member("get_automode")),
+           id[216] | b(Type::Callable, Member("set_enable_automode")),
+           id[217] | b(Type::Int, Member("get_enable_automode")),
+           id[218] | b(Type::Callable, Member("set_exist_automode")),
+           id[219] | b(Type::Int, Member("get_exist_automode")),
+           id[220] | b(Type::Int, Member("is_automode_enable")),
+           // hide mwnd
+           id[221] | b(Type::Callable, Member("set_hidemwnd")),
+           id[222] | b(Type::Int, Member("get_hidemwnd")),
+           id[223] | b(Type::Callable, Member("set_enable_hidemwnd")),
+           id[224] | b(Type::Int, Member("get_enable_hidemwnd")),
+           id[225] | b(Type::Callable, Member("set_exist_hidemwnd")),
+           id[226] | b(Type::Int, Member("get_exist_hidemwnd")),
+           id[227] | b(Type::Int, Member("is_hidemwnd_enable")),
+           // extra local switch
+           id[300] | b(Type::Callable, Member("set_extraswitch")),
+           id[301] | b(Type::Callable, Member("get_extraswitch")),
+           id[302] | b(Type::Callable, Member("set_enable_extraswitch")),
+           id[303] | b(Type::Callable, Member("get_enable_extraswitch")),
+           id[304] | b(Type::Callable, Member("set_exist_extraswitch")),
+           id[305] | b(Type::Callable, Member("get_exist_extraswitch")),
+           id[306] | b(Type::Callable, Member("is_extraswitch_enable")),
+           // local mode
+           id[23] | b(Type::Callable, Member("set_localmode")),
+           id[57] | b(Type::Int, Member("get_localmode")),
+           id[58] | b(Type::Callable, Member("set_enable_localmode")),
+           id[59] | b(Type::Int, Member("get_enable_localmode")),
+           id[62] | b(Type::Callable, Member("set_exist_localmode")),
+           id[63] | b(Type::Int, Member("get_exist_localmode")),
+           id[64] | b(Type::Int, Member("is_localmode_enable")),
+           // msgback
+           id[192] | b(Type::None, Member("open_msgback")),
+           id[193] | b(Type::None, Member("close_msgback")),
+           id[194] | b(Type::Callable, Member("set_enable_msgback")),
+           id[195] | b(Type::Int, Member("get_enable_msgback")),
+           id[196] | b(Type::Callable, Member("set_exist_msgback")),
+           id[197] | b(Type::Int, Member("get_exist_msgback")),
+           id[198] | b(Type::Int, Member("is_msgback_enable")),
+           id[329] | b(Type::Int, Member("is_msgback_open")),
+           // return to sel
+           id[228] | b(Type::Callable, Member("return_to_sel")),
+           id[230] | b(Type::Callable, Member("set_enable_retsel")),
+           id[231] | b(Type::Int, Member("get_enable_retsel")),
+           id[232] | b(Type::Callable, Member("set_exist_retsel")),
+           id[233] | b(Type::Int, Member("get_exist_retsel")),
+           id[234] | b(Type::Int, Member("is_retsel_enable")),
+           // return to menu
+           id[235] | b(Type::Callable, Member("return_to_menu")),
+           id[237] | b(Type::Callable, Member("set_enable_retmenu")),
+           id[238] | b(Type::Int, Member("get_enable_retmenu")),
+           id[239] | b(Type::Callable, Member("set_exist_retmenu")),
+           id[240] | b(Type::Int, Member("get_exist_retmenu")),
+           id[241] | b(Type::Int, Member("is_retmenu_enable")),
+           // end game
+           id[242] | b(Type::Callable, Member("end_game")),
+           id[244] | b(Type::Callable, Member("set_enable_endgame")),
+           id[245] | b(Type::Int, Member("get_enable_endgame")),
+           id[246] | b(Type::Callable, Member("set_exist_endgame")),
+           id[247] | b(Type::Int, Member("get_exist_endgame")),
+           id[248] | b(Type::Int, Member("is_endgame_enable")),
+           // replay koe
+           id[288] | b(Type::None, Member("replay_koe")),
+           id[292] | b(Type::Int, Member("check_koe")),
+           id[289] | b(Type::Int, Member("get_cur_koe")),
+           id[291] | b(Type::Int, Member("get_cur_chr")),
+           id[293] | b(Type::None, Member("clear_koe_chr")),
+           id[294] | b(Type::String, Member("get_scene_title")),
+           id[295] | b(Type::String, Member("get_save_message")),
 
-          id[199] | b(Type::None, Member("get_total_playtime(fixme)")),
-          id[229] | b(Type::Callable, Member("set_total_playtime")),
+           id[199] | b(Type::None, Member("get_total_playtime(fixme)")),
+           id[229] | b(Type::Callable, Member("set_total_playtime")),
 
-          // save
-          id[1] | b(Type::None, Member("open_save")),
-          id[251] | b(Type::Callable, Member("set_enable_save")),
-          id[252] | b(Type::Int, Member("get_enable_save")),
-          id[253] | b(Type::Callable, Member("set_exist_save")),
-          id[254] | b(Type::Int, Member("get_exist_save")),
-          id[255] | b(Type::Int, Member("is_save_enable")),
-          // load
-          id[2] | b(Type::None, Member("open_load")),
-          id[258] | b(Type::Callable, Member("set_enable_load")),
-          id[259] | b(Type::Int, Member("get_enable_load")),
-          id[260] | b(Type::Callable, Member("set_exist_load")),
-          id[261] | b(Type::Int, Member("get_exist_load")),
-          id[262] | b(Type::Int, Member("is_load_enable")),
+           // save
+           id[1] | b(Type::None, Member("open_save")),
+           id[251] | b(Type::Callable, Member("set_enable_save")),
+           id[252] | b(Type::Int, Member("get_enable_save")),
+           id[253] | b(Type::Callable, Member("set_exist_save")),
+           id[254] | b(Type::Int, Member("get_exist_save")),
+           id[255] | b(Type::Int, Member("is_save_enable")),
+           // load
+           id[2] | b(Type::None, Member("open_load")),
+           id[258] | b(Type::Callable, Member("set_enable_load")),
+           id[259] | b(Type::Int, Member("get_enable_load")),
+           id[260] | b(Type::Callable, Member("set_exist_load")),
+           id[261] | b(Type::Int, Member("get_exist_load")),
+           id[262] | b(Type::Int, Member("is_load_enable")),
 
-          // save / load
-          id[249] | b(Type::Callable, Member("save")),
-          id[256] | b(Type::Callable, Member("load")),
-          id[18] | b(Type::Callable, Member("qsave")),
-          id[20] | b(Type::Callable, Member("qload")),
-          id[271] | b(Type::Callable, Member("endsave")),
-          id[269] | b(Type::Callable, Member("endload")),
-          // inner save / load
-          id[272] | b(Type::Callable, Member("inner_save")),
-          id[273] | b(Type::Callable, Member("inner_load")),
-          id[276] | b(Type::Callable, Member("clear_inner_save")),
-          id[274] | b(Type::Callable, Member("check_inner_save")),
-          // message back save / load
-          id[310] | b(Type::Callable, Member("msgbk_load")),
-          // save data
-          id[68] | b(Type::Int, Member("get_save_count")),
-          id[168] | b(Type::Int, Member("get_qsave_count")),
-          id[79] | b(Type::Callable, Member("get_new_save_no")),
-          id[170] | b(Type::Callable, Member("get_new_qsave_no")),
-          id[69] | b(Type::Callable, Member("is_save_exist")),
-          id[70] | b(Type::Callable, Member("get_save_year")),
-          id[71] | b(Type::Callable, Member("get_save_month")),
-          id[72] | b(Type::Callable, Member("get_save_day")),
-          id[73] | b(Type::Callable, Member("get_save_weekday")),
-          id[74] | b(Type::Callable, Member("get_save_hour")),
-          id[75] | b(Type::Callable, Member("get_save_minute")),
-          id[76] | b(Type::Callable, Member("get_save_second")),
-          id[77] | b(Type::Callable, Member("get_save_millisecond")),
-          id[78] | b(Type::Callable, Member("get_save_title")),
-          id[129] | b(Type::Callable, Member("get_save_message")),
-          id[324] | b(Type::Callable, Member("get_save_full_message")),
-          id[131] | b(Type::Callable, Member("get_save_comment")),
-          id[180] | b(Type::Callable, Member("set_save_comment")),
-          // TODO: 183 -> get_save_value
-          // TODO: 182 -> set_save_value
-          id[320] | b(Type::Callable, Member("get_save_append_dir")),
-          id[321] | b(Type::Callable, Member("get_save_append_name")),
-          id[169] | b(Type::Callable, Member("is_qsave_exist")),
-          id[171] | b(Type::Callable, Member("get_qsave_year")),
-          id[172] | b(Type::Callable, Member("get_qsave_month")),
-          id[173] | b(Type::Callable, Member("get_qsave_day")),
-          id[174] | b(Type::Callable, Member("get_qsave_weekday")),
-          id[175] | b(Type::Callable, Member("get_qsave_hour")),
-          id[176] | b(Type::Callable, Member("get_qsave_minute")),
-          id[177] | b(Type::Callable, Member("get_qsave_second")),
-          id[178] | b(Type::Callable, Member("get_qsave_millisecond")),
-          id[179] | b(Type::Callable, Member("get_qsave_title")),
-          id[130] | b(Type::Callable, Member("get_qsave_message")),
-          id[325] | b(Type::Callable, Member("get_qsave_full_message")),
-          id[132] | b(Type::Callable, Member("get_qsave_comment")),
-          id[181] | b(Type::Callable, Member("set_qsave_comment")),
-          // TODO: 184 -> get_qsave_value
-          // TODO: 185 -> set_qsave_value
-          id[322] | b(Type::Callable, Member("get_qsave_append_dir")),
-          id[323] | b(Type::Callable, Member("get_qsave_append_name")),
-          id[270] | b(Type::Callable, Member("is_endsave_exist")),
-          id[67] | b(Type::Callable, Member("copy_save")),
-          id[22] | b(Type::Callable, Member("change_save")),
-          id[19] | b(Type::Callable, Member("delete_save")),
-          id[128] | b(Type::Callable, Member("copy_qsave")),
-          id[66] | b(Type::Callable, Member("change_qsave")),
-          id[65] | b(Type::Callable, Member("delete_qsave")),
+           // save / load
+           id[249] | b(Type::Callable, Member("save")),
+           id[256] | b(Type::Callable, Member("load")),
+           id[18] | b(Type::Callable, Member("qsave")),
+           id[20] | b(Type::Callable, Member("qload")),
+           id[271] | b(Type::Callable, Member("endsave")),
+           id[269] | b(Type::Callable, Member("endload")),
+           // inner save / load
+           id[272] | b(Type::Callable, Member("inner_save")),
+           id[273] | b(Type::Callable, Member("inner_load")),
+           id[276] | b(Type::Callable, Member("clear_inner_save")),
+           id[274] | b(Type::Callable, Member("check_inner_save")),
+           // message back save / load
+           id[310] | b(Type::Callable, Member("msgbk_load")),
+           // save data
+           id[68] | b(Type::Int, Member("get_save_count")),
+           id[168] | b(Type::Int, Member("get_qsave_count")),
+           id[79] | b(Type::Callable, Member("get_new_save_no")),
+           id[170] | b(Type::Callable, Member("get_new_qsave_no")),
+           id[69] | b(Type::Callable, Member("is_save_exist")),
+           id[70] | b(Type::Callable, Member("get_save_year")),
+           id[71] | b(Type::Callable, Member("get_save_month")),
+           id[72] | b(Type::Callable, Member("get_save_day")),
+           id[73] | b(Type::Callable, Member("get_save_weekday")),
+           id[74] | b(Type::Callable, Member("get_save_hour")),
+           id[75] | b(Type::Callable, Member("get_save_minute")),
+           id[76] | b(Type::Callable, Member("get_save_second")),
+           id[77] | b(Type::Callable, Member("get_save_millisecond")),
+           id[78] | b(Type::Callable, Member("get_save_title")),
+           id[129] | b(Type::Callable, Member("get_save_message")),
+           id[324] | b(Type::Callable, Member("get_save_full_message")),
+           id[131] | b(Type::Callable, Member("get_save_comment")),
+           id[180] | b(Type::Callable, Member("set_save_comment")),
+           // TODO: 183 -> get_save_value
+           // TODO: 182 -> set_save_value
+           id[320] | b(Type::Callable, Member("get_save_append_dir")),
+           id[321] | b(Type::Callable, Member("get_save_append_name")),
+           id[169] | b(Type::Callable, Member("is_qsave_exist")),
+           id[171] | b(Type::Callable, Member("get_qsave_year")),
+           id[172] | b(Type::Callable, Member("get_qsave_month")),
+           id[173] | b(Type::Callable, Member("get_qsave_day")),
+           id[174] | b(Type::Callable, Member("get_qsave_weekday")),
+           id[175] | b(Type::Callable, Member("get_qsave_hour")),
+           id[176] | b(Type::Callable, Member("get_qsave_minute")),
+           id[177] | b(Type::Callable, Member("get_qsave_second")),
+           id[178] | b(Type::Callable, Member("get_qsave_millisecond")),
+           id[179] | b(Type::Callable, Member("get_qsave_title")),
+           id[130] | b(Type::Callable, Member("get_qsave_message")),
+           id[325] | b(Type::Callable, Member("get_qsave_full_message")),
+           id[132] | b(Type::Callable, Member("get_qsave_comment")),
+           id[181] | b(Type::Callable, Member("set_qsave_comment")),
+           // TODO: 184 -> get_qsave_value
+           // TODO: 185 -> set_qsave_value
+           id[322] | b(Type::Callable, Member("get_qsave_append_dir")),
+           id[323] | b(Type::Callable, Member("get_qsave_append_name")),
+           id[270] | b(Type::Callable, Member("is_endsave_exist")),
+           id[67] | b(Type::Callable, Member("copy_save")),
+           id[22] | b(Type::Callable, Member("change_save")),
+           id[19] | b(Type::Callable, Member("delete_save")),
+           id[128] | b(Type::Callable, Member("copy_qsave")),
+           id[66] | b(Type::Callable, Member("change_qsave")),
+           id[65] | b(Type::Callable, Member("delete_qsave")),
 
-          // environment settings
-          id[3] | b(Type::None, Member("open_config_menu")),
-          id[138] | b(Type::None, Member("open_config_windowmode_menu")),
-          id[139] | b(Type::None, Member("open_config_volume_menu")),
-          id[137] | b(Type::None, Member("open_config_bgm_fade_menu")),
-          id[147] | b(Type::None, Member("open_config_koemode_menu")),
-          id[146] | b(Type::None, Member("open_config_charakoe_menu")),
-          id[151] | b(Type::None, Member("open_config_jitan_menu")),
-          id[135] | b(Type::None, Member("open_config_message_speed_menu")),
-          id[136] | b(Type::None, Member("open_config_filter_color_menu")),
-          id[140] | b(Type::None, Member("open_config_auto_mode_menu")),
-          id[142] | b(Type::None, Member("open_config_font_menu")),
-          id[141] | b(Type::None, Member("open_config_system_menu")),
-          id[167] | b(Type::None, Member("open_config_movie_menu")),
-          // window mode
-          id[4] | b(Type::Callable, Member("set_window_mode")),
-          id[99] | b(Type::None, Member("set_window_mode_default")),
-          id[9] | b(Type::Int, Member("get_window_mode")),
-          id[13] | b(Type::Callable, Member("set_window_mode_size")),
-          id[100] | b(Type::None, Member("set_window_mode_default")),
-          id[16] | b(Type::Int, Member("get_window_mode_size")),
-          id[309] | b(Type::Callable, Member("check_window_mode_size_enable")),
+           // environment settings
+           id[3] | b(Type::None, Member("open_config_menu")),
+           id[138] | b(Type::None, Member("open_config_windowmode_menu")),
+           id[139] | b(Type::None, Member("open_config_volume_menu")),
+           id[137] | b(Type::None, Member("open_config_bgm_fade_menu")),
+           id[147] | b(Type::None, Member("open_config_koemode_menu")),
+           id[146] | b(Type::None, Member("open_config_charakoe_menu")),
+           id[151] | b(Type::None, Member("open_config_jitan_menu")),
+           id[135] | b(Type::None, Member("open_config_message_speed_menu")),
+           id[136] | b(Type::None, Member("open_config_filter_color_menu")),
+           id[140] | b(Type::None, Member("open_config_auto_mode_menu")),
+           id[142] | b(Type::None, Member("open_config_font_menu")),
+           id[141] | b(Type::None, Member("open_config_system_menu")),
+           id[167] | b(Type::None, Member("open_config_movie_menu")),
+           // window mode
+           id[4] | b(Type::Callable, Member("set_window_mode")),
+           id[99] | b(Type::None, Member("set_window_mode_default")),
+           id[9] | b(Type::Int, Member("get_window_mode")),
+           id[13] | b(Type::Callable, Member("set_window_mode_size")),
+           id[100] | b(Type::None, Member("set_window_mode_default")),
+           id[16] | b(Type::Int, Member("get_window_mode_size")),
+           id[309] | b(Type::Callable, Member("check_window_mode_size_enable")),
 
-          // volume
-          id[39] | b(Type::Callable, Member("set_all_volume")),
-          id[21] | b(Type::Callable, Member("set_bgm_volume")),
-          id[26] | b(Type::Callable, Member("set_koe_volume")),
-          id[29] | b(Type::Callable, Member("set_pcm_volume")),
-          id[32] | b(Type::Callable, Member("set_se_volume")),
-          id[263] | b(Type::Callable, Member("set_mov_volume")),
-          id[277] | b(Type::Callable, Member("set_sound_volume")),
-          id[60] | b(Type::Callable, Member("set_all_onoff")),
-          id[35] | b(Type::Callable, Member("set_bgm_onoff")),
-          id[36] | b(Type::Callable, Member("set_koe_onoff")),
-          id[37] | b(Type::Callable, Member("set_pcm_onoff")),
-          id[38] | b(Type::Callable, Member("set_se_onoff")),
-          id[266] | b(Type::Callable, Member("set_mov_onoff")),
-          id[280] | b(Type::Callable, Member("set_sound_onoff")),
-          id[40] | b(Type::None, Member("set_all_volume_default")),
-          id[24] | b(Type::None, Member("set_bgm_volume_default")),
-          id[27] | b(Type::None, Member("set_koe_volume_default")),
-          id[30] | b(Type::None, Member("set_pcm_volume_default")),
-          id[33] | b(Type::None, Member("set_se_volume_default")),
-          id[264] | b(Type::None, Member("set_mov_volume_default")),
-          id[278] | b(Type::Callable, Member("set_sound_volume_default")),
-          id[101] | b(Type::None, Member("set_all_onoff_default")),
-          id[102] | b(Type::None, Member("set_bgm_onoff_default")),
-          id[103] | b(Type::None, Member("set_koe_onoff_default")),
-          id[104] | b(Type::None, Member("set_pcm_onoff_default")),
-          id[105] | b(Type::None, Member("set_se_onoff_default")),
-          id[267] | b(Type::None, Member("set_mov_onoff_default")),
-          id[281] | b(Type::Callable, Member("set_sound_onoff_default")),
-          id[41] | b(Type::Int, Member("get_all_volume")),
-          id[25] | b(Type::Int, Member("get_bgm_volume")),
-          id[28] | b(Type::Int, Member("get_koe_volume")),
-          id[31] | b(Type::Int, Member("get_pcm_volume")),
-          id[34] | b(Type::Int, Member("get_se_volume")),
-          id[265] | b(Type::Int, Member("get_mov_volume")),
-          id[279] | b(Type::Callable, Member("get_sound_volume")),
-          id[61] | b(Type::Int, Member("get_all_onoff")),
-          id[42] | b(Type::Int, Member("get_bgm_onoff")),
-          id[43] | b(Type::Int, Member("get_koe_onoff")),
-          id[44] | b(Type::Int, Member("get_pcm_onoff")),
-          id[45] | b(Type::Int, Member("get_se_onoff")),
-          id[268] | b(Type::Int, Member("get_mov_onoff")),
-          id[282] | b(Type::Callable, Member("get_sound_onoff")),
-          // bgm fade
-          id[94] | b(Type::Callable, Member("set_bgmfade_volume")),
-          id[97] | b(Type::Callable, Member("set_bgmfade_onoff")),
-          id[95] | b(Type::None, Member("set_bgmfade_volume_default")),
-          id[106] | b(Type::None, Member("set_bgmfade_onoff_default")),
-          id[96] | b(Type::Int, Member("get_bgmfade_volume")),
-          id[98] | b(Type::Int, Member("get_bgmfade_onoff")),
-          // koemode
-          id[148] | b(Type::Callable, Member("set_koemode")),
-          id[149] | b(Type::None, Member("set_koemode_default")),
-          id[150] | b(Type::Int, Member("get_koemode")),
-          // character koe
-          id[143] | b(Type::Callable, Member("set_charakoe_onoff")),
-          id[144] | b(Type::Callable, Member("set_charakoe_onoff_default")),
-          id[145] | b(Type::Callable, Member("get_charakoe_onoff")),
-          id[186] | b(Type::Callable, Member("set_charakoe_volume")),
-          id[187] | b(Type::Callable, Member("set_charakoe_volume_default")),
-          id[188] | b(Type::Callable, Member("get_charakoe_volume")),
-          // jitan
-          id[153] | b(Type::Callable, Member("set_jitan_normal_onoff")),
-          id[154] | b(Type::None, Member("set_jitan_normal_onoff_default")),
-          id[155] | b(Type::Int, Member("get_jitan_normal_onoff")),
-          id[156] | b(Type::Callable, Member("set_jitan_auto_mode_onoff")),
-          id[157] | b(Type::None, Member("set_jitan_auto_mode_onoff_default")),
-          id[158] | b(Type::Int, Member("get_jitan_auto_mode_onoff")),
-          id[159] | b(Type::Callable, Member("set_jitan_koe_replay_onoff")),
-          id[160] | b(Type::None, Member("set_jitan_koe_replay_onoff_default")),
-          id[161] | b(Type::Int, Member("get_jitan_koe_replay_onoff")),
-          id[152] | b(Type::Callable, Member("set_jitan_speed")),
-          id[162] | b(Type::None, Member("set_jitan_speed_default")),
-          id[163] | b(Type::Int, Member("get_jitan_speed")),
-          // message speed
-          id[46] | b(Type::Callable, Member("set_message_speed")),
-          id[47] | b(Type::None, Member("set_message_speed_default")),
-          id[48] | b(Type::Int, Member("get_message_speed")),
-          id[49] | b(Type::Callable, Member("set_message_nowait")),
-          id[107] | b(Type::None, Member("set_message_nowait_default")),
-          id[50] | b(Type::Int, Member("get_message_nowait")),
-          // auto mode
-          id[51] | b(Type::Callable, Member("set_auto_mode_moji_wait")),
-          id[52] | b(Type::None, Member("set_auto_mode_moji_wait_default")),
-          id[53] | b(Type::Int, Member("get_auto_mode_moji_wait")),
-          id[54] | b(Type::Callable, Member("set_auto_mode_min_wait")),
-          id[55] | b(Type::None, Member("set_auto_mode_min_wait_default")),
-          id[56] | b(Type::Int, Member("get_auto_mode_min_wait")),
-          // auto hide mouse cursor
-          id[311] | b(Type::Callable, Member("set_mouse_cursor_hide_onoff")),
-          id[312] |
-              b(Type::None, Member("set_mouse_cursor_hide_onoff_default")),
-          id[313] | b(Type::Int, Member("get_mouse_cursor_hide_onoff")),
-          id[317] | b(Type::Callable, Member("set_mouse_cursor_hide_time")),
-          id[318] | b(Type::None, Member("set_mouse_cursor_hide_time_default")),
-          id[319] | b(Type::Int, Member("get_mouse_cursor_hide_time")),
-          // window background color
-          id[82] | b(Type::Callable, Member("set_filter_color_r")),
-          id[85] | b(Type::Callable, Member("set_filter_color_g")),
-          id[86] | b(Type::Callable, Member("set_filter_color_b")),
-          id[87] | b(Type::Callable, Member("set_filter_color_a")),
-          id[83] | b(Type::None, Member("set_filter_color_r_default")),
-          id[88] | b(Type::None, Member("set_filter_color_g_default")),
-          id[89] | b(Type::None, Member("set_filter_color_b_default")),
-          id[90] | b(Type::None, Member("set_filter_color_a_default")),
-          id[84] | b(Type::Int, Member("get_filter_color_r")),
-          id[91] | b(Type::Int, Member("get_filter_color_g")),
-          id[92] | b(Type::Int, Member("get_filter_color_b")),
-          id[93] | b(Type::Int, Member("get_filter_color_a")),
-          // display object
-          id[189] | b(Type::Callable, Member("set_obj_disp_onoff")),
-          id[190] | b(Type::Callable, Member("set_obj_disp_onoff_default")),
-          id[191] | b(Type::Callable, Member("get_obj_disp_onoff")),
-          // global extra switch
-          id[14] | b(Type::Callable, Member("set_global_extraswitch_onoff")),
-          id[15] |
-              b(Type::Callable, Member("set_global_extraswitch_onoff_default")),
-          id[17] | b(Type::Callable, Member("get_global_extraswitch_onoff")),
-          // global extra mode
-          id[164] | b(Type::Callable, Member("set_global_extramode")),
-          id[165] | b(Type::Callable, Member("set_global_extramode_default")),
-          id[166] | b(Type::Callable, Member("get_global_extramode_default")),
+           // volume
+           id[39] | b(Type::Callable, Member("set_all_volume")),
+           id[21] | b(Type::Callable, Member("set_bgm_volume")),
+           id[26] | b(Type::Callable, Member("set_koe_volume")),
+           id[29] | b(Type::Callable, Member("set_pcm_volume")),
+           id[32] | b(Type::Callable, Member("set_se_volume")),
+           id[263] | b(Type::Callable, Member("set_mov_volume")),
+           id[277] | b(Type::Callable, Member("set_sound_volume")),
+           id[60] | b(Type::Callable, Member("set_all_onoff")),
+           id[35] | b(Type::Callable, Member("set_bgm_onoff")),
+           id[36] | b(Type::Callable, Member("set_koe_onoff")),
+           id[37] | b(Type::Callable, Member("set_pcm_onoff")),
+           id[38] | b(Type::Callable, Member("set_se_onoff")),
+           id[266] | b(Type::Callable, Member("set_mov_onoff")),
+           id[280] | b(Type::Callable, Member("set_sound_onoff")),
+           id[40] | b(Type::None, Member("set_all_volume_default")),
+           id[24] | b(Type::None, Member("set_bgm_volume_default")),
+           id[27] | b(Type::None, Member("set_koe_volume_default")),
+           id[30] | b(Type::None, Member("set_pcm_volume_default")),
+           id[33] | b(Type::None, Member("set_se_volume_default")),
+           id[264] | b(Type::None, Member("set_mov_volume_default")),
+           id[278] | b(Type::Callable, Member("set_sound_volume_default")),
+           id[101] | b(Type::None, Member("set_all_onoff_default")),
+           id[102] | b(Type::None, Member("set_bgm_onoff_default")),
+           id[103] | b(Type::None, Member("set_koe_onoff_default")),
+           id[104] | b(Type::None, Member("set_pcm_onoff_default")),
+           id[105] | b(Type::None, Member("set_se_onoff_default")),
+           id[267] | b(Type::None, Member("set_mov_onoff_default")),
+           id[281] | b(Type::Callable, Member("set_sound_onoff_default")),
+           id[41] | b(Type::Int, Member("get_all_volume")),
+           id[25] | b(Type::Int, Member("get_bgm_volume")),
+           id[28] | b(Type::Int, Member("get_koe_volume")),
+           id[31] | b(Type::Int, Member("get_pcm_volume")),
+           id[34] | b(Type::Int, Member("get_se_volume")),
+           id[265] | b(Type::Int, Member("get_mov_volume")),
+           id[279] | b(Type::Callable, Member("get_sound_volume")),
+           id[61] | b(Type::Int, Member("get_all_onoff")),
+           id[42] | b(Type::Int, Member("get_bgm_onoff")),
+           id[43] | b(Type::Int, Member("get_koe_onoff")),
+           id[44] | b(Type::Int, Member("get_pcm_onoff")),
+           id[45] | b(Type::Int, Member("get_se_onoff")),
+           id[268] | b(Type::Int, Member("get_mov_onoff")),
+           id[282] | b(Type::Callable, Member("get_sound_onoff")),
+           // bgm fade
+           id[94] | b(Type::Callable, Member("set_bgmfade_volume")),
+           id[97] | b(Type::Callable, Member("set_bgmfade_onoff")),
+           id[95] | b(Type::None, Member("set_bgmfade_volume_default")),
+           id[106] | b(Type::None, Member("set_bgmfade_onoff_default")),
+           id[96] | b(Type::Int, Member("get_bgmfade_volume")),
+           id[98] | b(Type::Int, Member("get_bgmfade_onoff")),
+           // koemode
+           id[148] | b(Type::Callable, Member("set_koemode")),
+           id[149] | b(Type::None, Member("set_koemode_default")),
+           id[150] | b(Type::Int, Member("get_koemode")),
+           // character koe
+           id[143] | b(Type::Callable, Member("set_charakoe_onoff")),
+           id[144] | b(Type::Callable, Member("set_charakoe_onoff_default")),
+           id[145] | b(Type::Callable, Member("get_charakoe_onoff")),
+           id[186] | b(Type::Callable, Member("set_charakoe_volume")),
+           id[187] | b(Type::Callable, Member("set_charakoe_volume_default")),
+           id[188] | b(Type::Callable, Member("get_charakoe_volume")),
+           // jitan
+           id[153] | b(Type::Callable, Member("set_jitan_normal_onoff")),
+           id[154] | b(Type::None, Member("set_jitan_normal_onoff_default")),
+           id[155] | b(Type::Int, Member("get_jitan_normal_onoff")),
+           id[156] | b(Type::Callable, Member("set_jitan_auto_mode_onoff")),
+           id[157] | b(Type::None, Member("set_jitan_auto_mode_onoff_default")),
+           id[158] | b(Type::Int, Member("get_jitan_auto_mode_onoff")),
+           id[159] | b(Type::Callable, Member("set_jitan_koe_replay_onoff")),
+           id[160] |
+               b(Type::None, Member("set_jitan_koe_replay_onoff_default")),
+           id[161] | b(Type::Int, Member("get_jitan_koe_replay_onoff")),
+           id[152] | b(Type::Callable, Member("set_jitan_speed")),
+           id[162] | b(Type::None, Member("set_jitan_speed_default")),
+           id[163] | b(Type::Int, Member("get_jitan_speed")),
+           // message speed
+           id[46] | b(Type::Callable, Member("set_message_speed")),
+           id[47] | b(Type::None, Member("set_message_speed_default")),
+           id[48] | b(Type::Int, Member("get_message_speed")),
+           id[49] | b(Type::Callable, Member("set_message_nowait")),
+           id[107] | b(Type::None, Member("set_message_nowait_default")),
+           id[50] | b(Type::Int, Member("get_message_nowait")),
+           // auto mode
+           id[51] | b(Type::Callable, Member("set_auto_mode_moji_wait")),
+           id[52] | b(Type::None, Member("set_auto_mode_moji_wait_default")),
+           id[53] | b(Type::Int, Member("get_auto_mode_moji_wait")),
+           id[54] | b(Type::Callable, Member("set_auto_mode_min_wait")),
+           id[55] | b(Type::None, Member("set_auto_mode_min_wait_default")),
+           id[56] | b(Type::Int, Member("get_auto_mode_min_wait")),
+           // auto hide mouse cursor
+           id[311] | b(Type::Callable, Member("set_mouse_cursor_hide_onoff")),
+           id[312] |
+               b(Type::None, Member("set_mouse_cursor_hide_onoff_default")),
+           id[313] | b(Type::Int, Member("get_mouse_cursor_hide_onoff")),
+           id[317] | b(Type::Callable, Member("set_mouse_cursor_hide_time")),
+           id[318] |
+               b(Type::None, Member("set_mouse_cursor_hide_time_default")),
+           id[319] | b(Type::Int, Member("get_mouse_cursor_hide_time")),
+           // window background color
+           id[82] | b(Type::Callable, Member("set_filter_color_r")),
+           id[85] | b(Type::Callable, Member("set_filter_color_g")),
+           id[86] | b(Type::Callable, Member("set_filter_color_b")),
+           id[87] | b(Type::Callable, Member("set_filter_color_a")),
+           id[83] | b(Type::None, Member("set_filter_color_r_default")),
+           id[88] | b(Type::None, Member("set_filter_color_g_default")),
+           id[89] | b(Type::None, Member("set_filter_color_b_default")),
+           id[90] | b(Type::None, Member("set_filter_color_a_default")),
+           id[84] | b(Type::Int, Member("get_filter_color_r")),
+           id[91] | b(Type::Int, Member("get_filter_color_g")),
+           id[92] | b(Type::Int, Member("get_filter_color_b")),
+           id[93] | b(Type::Int, Member("get_filter_color_a")),
+           // display object
+           id[189] | b(Type::Callable, Member("set_obj_disp_onoff")),
+           id[190] | b(Type::Callable, Member("set_obj_disp_onoff_default")),
+           id[191] | b(Type::Callable, Member("get_obj_disp_onoff")),
+           // global extra switch
+           id[14] | b(Type::Callable, Member("set_global_extraswitch_onoff")),
+           id[15] | b(Type::Callable,
+                      Member("set_global_extraswitch_onoff_default")),
+           id[17] | b(Type::Callable, Member("get_global_extraswitch_onoff")),
+           // global extra mode
+           id[164] | b(Type::Callable, Member("set_global_extramode")),
+           id[165] | b(Type::Callable, Member("set_global_extramode_default")),
+           id[166] | b(Type::Callable, Member("get_global_extramode_default")),
 
-          // system settings
-          id[80] | b(Type::Callable, Member("set_saveload_alert_onoff")),
-          id[108] | b(Type::None, Member("set_saveload_alert_onoff_default")),
-          id[10] | b(Type::Int, Member("get_saveload_alert_onoff")),
-          id[110] | b(Type::Callable, Member("set_sleep_onoff")),
-          id[111] | b(Type::None, Member("set_sleep_onoff_default")),
-          id[112] | b(Type::Int, Member("get_sleep_onoff")),
-          id[113] | b(Type::Callable, Member("set_no_wipe_anime_onoff")),
-          id[114] | b(Type::None, Member("set_no_wipe_anime_onoff_default")),
-          id[115] | b(Type::Callable, Member("get_no_wipe_anime_onoff")),
-          id[116] | b(Type::Callable, Member("set_skip_wipe_anime_onoff")),
-          id[117] | b(Type::None, Member("set_skip_wipe_anime_onoff_default")),
-          id[118] | b(Type::Int, Member("get_skip_wipe_anime_onoff")),
-          id[8] | b(Type::Callable, Member("set_no_mwnd_anime_onoff")),
-          id[109] | b(Type::None, Member("set_no_mwnd_anime_onoff_default")),
-          id[81] | b(Type::Int, Member("get_no_mwnd_anime_onoff")),
-          id[119] | b(Type::Callable, Member("set_wheel_next_message_onoff")),
-          id[120] |
-              b(Type::None, Member("set_wheel_next_message_onoff_default")),
-          id[121] | b(Type::Int, Member("get_wheel_next_message_onoff")),
-          id[122] | b(Type::Callable, Member("set_koe_dont_stop_onoff")),
-          id[123] | b(Type::None, Member("set_koe_dont_stop_onoff_default")),
-          id[124] | b(Type::Int, Member("get_koe_dont_stop_onoff")),
-          id[125] | b(Type::Callable, Member("set_skip_unread_message_onoff")),
-          id[126] |
-              b(Type::None, Member("set_skip_unread_message_onoff_default")),
-          id[127] | b(Type::Int, Member("get_skip_unread_message_onoff")),
-          id[250] | b(Type::Callable, Member("set_play_silent_sound_onoff")),
-          id[247] |
-              b(Type::None, Member("set_play_silent_sound_onoff_default")),
-          id[243] | b(Type::Int, Member("get_play_silent_sound_onoff")),
+           // system settings
+           id[80] | b(Type::Callable, Member("set_saveload_alert_onoff")),
+           id[108] | b(Type::None, Member("set_saveload_alert_onoff_default")),
+           id[10] | b(Type::Int, Member("get_saveload_alert_onoff")),
+           id[110] | b(Type::Callable, Member("set_sleep_onoff")),
+           id[111] | b(Type::None, Member("set_sleep_onoff_default")),
+           id[112] | b(Type::Int, Member("get_sleep_onoff")),
+           id[113] | b(Type::Callable, Member("set_no_wipe_anime_onoff")),
+           id[114] | b(Type::None, Member("set_no_wipe_anime_onoff_default")),
+           id[115] | b(Type::Callable, Member("get_no_wipe_anime_onoff")),
+           id[116] | b(Type::Callable, Member("set_skip_wipe_anime_onoff")),
+           id[117] | b(Type::None, Member("set_skip_wipe_anime_onoff_default")),
+           id[118] | b(Type::Int, Member("get_skip_wipe_anime_onoff")),
+           id[8] | b(Type::Callable, Member("set_no_mwnd_anime_onoff")),
+           id[109] | b(Type::None, Member("set_no_mwnd_anime_onoff_default")),
+           id[81] | b(Type::Int, Member("get_no_mwnd_anime_onoff")),
+           id[119] | b(Type::Callable, Member("set_wheel_next_message_onoff")),
+           id[120] |
+               b(Type::None, Member("set_wheel_next_message_onoff_default")),
+           id[121] | b(Type::Int, Member("get_wheel_next_message_onoff")),
+           id[122] | b(Type::Callable, Member("set_koe_dont_stop_onoff")),
+           id[123] | b(Type::None, Member("set_koe_dont_stop_onoff_default")),
+           id[124] | b(Type::Int, Member("get_koe_dont_stop_onoff")),
+           id[125] | b(Type::Callable, Member("set_skip_unread_message_onoff")),
+           id[126] |
+               b(Type::None, Member("set_skip_unread_message_onoff_default")),
+           id[127] | b(Type::Int, Member("get_skip_unread_message_onoff")),
+           id[250] | b(Type::Callable, Member("set_play_silent_sound_onoff")),
+           id[247] |
+               b(Type::None, Member("set_play_silent_sound_onoff_default")),
+           id[243] | b(Type::Int, Member("get_play_silent_sound_onoff")),
 
-          // font
-          id[283] | b(Type::Callable, Member("set_font_name")),
-          id[326] | b(Type::None, Member("set_font_name_default")),
-          id[284] | b(Type::String, Member("get_font_name")),
-          id[285] | b(Type::Callable, Member("is_font_exist")),
-          id[296] | b(Type::Callable, Member("set_font_bold")),
-          id[298] | b(Type::None, Member("set_font_bold_default")),
-          id[307] | b(Type::Int, Member("get_font_bold")),
-          id[297] | b(Type::Callable, Member("set_font_decoration")),
-          id[299] | b(Type::None, Member("set_font_decoration_default")),
-          id[308] | b(Type::Int, Member("get_font_decoration")),
+           // font
+           id[283] | b(Type::Callable, Member("set_font_name")),
+           id[326] | b(Type::None, Member("set_font_name_default")),
+           id[284] | b(Type::String, Member("get_font_name")),
+           id[285] | b(Type::Callable, Member("is_font_exist")),
+           id[296] | b(Type::Callable, Member("set_font_bold")),
+           id[298] | b(Type::None, Member("set_font_bold_default")),
+           id[307] | b(Type::Int, Member("get_font_bold")),
+           id[297] | b(Type::Callable, Member("set_font_decoration")),
+           id[299] | b(Type::None, Member("set_font_decoration_default")),
+           id[308] | b(Type::Int, Member("get_font_decoration")),
 
-          // capture
-          id[286] | b(Type::Callable, Member("create_capture_buffer")),
-          id[287] | b(Type::None, Member("destroy_capture_buffer")),
-          id[316] | b(Type::Callable, Member("capture_to_capture_buffer")),
-          id[314] | b(Type::Callable, Member("save_capture_buffer_to_file")),
-          id[315] | b(Type::Callable, Member("load_flag_from_capture_file")),
-          id[290] | b(Type::Callable, Member("capture_to_png")),
-          id[327] | b(Type::None, Member("twitter")),
-          id[328] | b(Type::Callable, Member("set_ret_scene_once")),
-          id[330] | b(Type::Callable, Member("get_sys_extra_int")),
-          id[331] | b(Type::Callable, Member("get_sys_extra_str")));
+           // capture
+           id[286] | b(Type::Callable, Member("create_capture_buffer")),
+           id[287] | b(Type::None, Member("destroy_capture_buffer")),
+           id[316] | b(Type::Callable, Member("capture_to_capture_buffer")),
+           id[314] | b(Type::Callable, Member("save_capture_buffer_to_file")),
+           id[315] | b(Type::Callable, Member("load_flag_from_capture_file")),
+           id[290] | b(Type::Callable, Member("capture_to_png")),
+           id[327] | b(Type::None, Member("twitter")),
+           id[328] | b(Type::Callable, Member("set_ret_scene_once")),
+           id[330] | b(Type::Callable, Member("get_sys_extra_int")),
+           id[331] | b(Type::Callable, Member("get_sys_extra_str"))});
       return &mp;
     }
 
     case Type::Excall: {
       static const auto mp = make_flatmap<Builder>(
-          id[-1] | b_index_array(Type::Excall),
-          id[4] | b(Type::None, Member("alloc")),
-          id[5] | b(Type::None, Member("free")),
-          id[12] | b(Type::Int, Member("is_excall")),
-          id[8] | b(Type::Int, Member("check_alloc")),
-          id[7] | b(Type::IntList, Member("F")),
-          id[6] | b(Type::CounterList, Member("counter")),
-          id[9] | b(Type::FrameAction, Member("frame_action")),
-          id[10] | b(Type::FrameActionList, Member("frame_action_ch")),
-          id[0] | b(Type::StageList, Member("stage")),
-          id[2] | b(Type::Stage, Member("back")),
-          id[1] | b(Type::Stage, Member("front")),
-          id[3] | b(Type::Stage, Member("next")),
-          id[13] | b(Type::ScriptExcall, Member("script")));
+          {id[-1] | b_index_array(Type::Excall),
+           id[4] | b(Type::None, Member("alloc")),
+           id[5] | b(Type::None, Member("free")),
+           id[12] | b(Type::Int, Member("is_excall")),
+           id[8] | b(Type::Int, Member("check_alloc")),
+           id[7] | b(Type::IntList, Member("F")),
+           id[6] | b(Type::CounterList, Member("counter")),
+           id[9] | b(Type::FrameAction, Member("frame_action")),
+           id[10] | b(Type::FrameActionList, Member("frame_action_ch")),
+           id[0] | b(Type::StageList, Member("stage")),
+           id[2] | b(Type::Stage, Member("back")),
+           id[1] | b(Type::Stage, Member("front")),
+           id[3] | b(Type::Stage, Member("next")),
+           id[13] | b(Type::ScriptExcall, Member("script"))});
       return &mp;
     }
 
     case Type::StageList: {
       static const auto mp =
-          make_flatmap<Builder>(id[-1] | b_index_array(Type::Stage));
+          make_flatmap<Builder>({id[-1] | b_index_array(Type::Stage)});
       return &mp;
     }
     case Type::Stage: {
       static const auto mp = make_flatmap<Builder>(
-          id[2] | b(Type::ObjList, Member("object")),
-          id[3] | b(Type::MwndList, Member("mwnd")),
-          id[6] | b(Type::GroupList, Member("objgroup")),
-          id[5] | b(Type::BtnselItemList, Member("btnsel")),
-          id[8] | b(Type::WorldList, Member("world")),
-          id[4] | b(Type::EffectList, Member("effect")),
-          id[7] | b(Type::QuakeList, Member("quake")),
-          id[0] | b(Type::Callable, Member("create_obj")),
-          id[1] | b(Type::Callable, Member("create_mwnd")));
+          {id[2] | b(Type::ObjList, Member("object")),
+           id[3] | b(Type::MwndList, Member("mwnd")),
+           id[6] | b(Type::GroupList, Member("objgroup")),
+           id[5] | b(Type::BtnselItemList, Member("btnsel")),
+           id[8] | b(Type::WorldList, Member("world")),
+           id[4] | b(Type::EffectList, Member("effect")),
+           id[7] | b(Type::QuakeList, Member("quake")),
+           id[0] | b(Type::Callable, Member("create_obj")),
+           id[1] | b(Type::Callable, Member("create_mwnd"))});
       return &mp;
     }
 
     case Type::ObjList: {
       static const auto mp =
-          make_flatmap<Builder>(id[-1] | b_index_array(Type::Object),
-                                id[4] | b(Type::Callable, Member("resize")),
-                                id[3] | b(Type::Callable, Member("size")));
+          make_flatmap<Builder>({id[-1] | b_index_array(Type::Object),
+                                 id[4] | b(Type::Callable, Member("resize")),
+                                 id[3] | b(Type::Callable, Member("size"))});
       return &mp;
     }
     case Type::Object: {
@@ -728,7 +838,7 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
         return b(Type::Callable, Member(mem));
       };
 
-      static const auto mp = make_flatmap<Builder>(
+      static const auto mp = make_flatmap<Builder>({
           id[56] | obj_getset("wipe_copy", Type::Int),
           id[92] | obj_getset("wipe_erase", Type::Int),
           id[139] | obj_getset("click_disable", Type::Int),
@@ -935,209 +1045,210 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
 
           // GAN
 
-      );
+      });
       return &mp;
     }
 
     case Type::MaskList: {
       static const auto mp =
-          make_flatmap<Builder>(id[-1] | b_index_array(Type::Mask),
-                                id[1] | b(Type::Int, Member("size")));
+          make_flatmap<Builder>({id[-1] | b_index_array(Type::Mask),
+                                 id[1] | b(Type::Int, Member("size"))});
       return &mp;
     }
 
     case Type::Mask: {
       static const auto mp = make_flatmap<Builder>(
-          id[1] | b(Type::None, Member("init")),
-          id[0] | b(Type::None, Member("create")),
-          id[4] | b(Type::Int, Member("x")), id[5] | b(Type::Int, Member("y")),
-          id[2] | b(Type::IntEvent, Member("x_eve")),
-          id[3] | b(Type::IntEvent, Member("y_eve")));
+          {id[1] | b(Type::None, Member("init")),
+           id[0] | b(Type::None, Member("create")),
+           id[4] | b(Type::Int, Member("x")), id[5] | b(Type::Int, Member("y")),
+           id[2] | b(Type::IntEvent, Member("x_eve")),
+           id[3] | b(Type::IntEvent, Member("y_eve"))});
       return &mp;
     }
 
     case Type::Movie: {
       static const auto mp = make_flatmap<Builder>(
-          id[0] | b(Type::Callable, Member("play")),
-          id[2] | b(Type::Callable, Member("play_wait")),
-          id[3] | b(Type::Callable, Member("play_waitkey")),
-          id[1] | b(Type::None, Member("stop")));
+          {id[0] | b(Type::Callable, Member("play")),
+           id[2] | b(Type::Callable, Member("play_wait")),
+           id[3] | b(Type::Callable, Member("play_waitkey")),
+           id[1] | b(Type::None, Member("stop"))});
       return &mp;
     }
 
     case Type::BgmTable: {
       static const auto mp = make_flatmap<Builder>(
-          id[0] | b(Type::Int, Member("cnt")),
-          id[2] | b(Type::Callable, Member("set_listen")),
-          id[4] | b(Type::Callable, Member("set_listen_all")),
-          id[1] | b(Type::Callable, Member("get_listen")));
+          {id[0] | b(Type::Int, Member("cnt")),
+           id[2] | b(Type::Callable, Member("set_listen")),
+           id[4] | b(Type::Callable, Member("set_listen_all")),
+           id[1] | b(Type::Callable, Member("get_listen"))});
       return &mp;
     }
 
     case Type::Bgm: {
       static const auto mp = make_flatmap<Builder>(
-          // TODO: handle overload with default argument
-          id[0] | b_callable("play"), id[1] | b_callable("play_oneshot"),
-          id[2] | b_callable("play_wait"), id[16] | b_callable("ready"),
-          id[4] | b_callable("stop"), id[10] | b_callable("pause"),
-          id[11] | b_callable("resume"), id[12] | b_callable("resume_wait"),
-          id[3] | b_call0(Type::None, "wait"),
-          id[14] | b_call0(Type::None, "wait_key"),
-          id[5] | b_call0(Type::None, "wait_fade"),
-          id[15] | b_call0(Type::None, "wait_fade_key"),
-          id[18] | b_call0(Type::Int, "check"),
-          id[6] | b_callable("set_volume"),
-          id[7] | b_callable("set_volume_max"),
-          id[8] | b_callable("set_volume_min"),
-          id[9] | b_call0(Type::Int, "get_volume"),
-          id[19] | b_call0(Type::String, "get_regist_name"),
-          id[13] | b_call0(Type::Int, "get_play_pos"));
+          {// TODO: handle overload with default argument
+           id[0] | b_callable("play"), id[1] | b_callable("play_oneshot"),
+           id[2] | b_callable("play_wait"), id[16] | b_callable("ready"),
+           id[4] | b_callable("stop"), id[10] | b_callable("pause"),
+           id[11] | b_callable("resume"), id[12] | b_callable("resume_wait"),
+           id[3] | b_call0(Type::None, "wait"),
+           id[14] | b_call0(Type::None, "wait_key"),
+           id[5] | b_call0(Type::None, "wait_fade"),
+           id[15] | b_call0(Type::None, "wait_fade_key"),
+           id[18] | b_call0(Type::Int, "check"),
+           id[6] | b_callable("set_volume"),
+           id[7] | b_callable("set_volume_max"),
+           id[8] | b_callable("set_volume_min"),
+           id[9] | b_call0(Type::Int, "get_volume"),
+           id[19] | b_call0(Type::String, "get_regist_name"),
+           id[13] | b_call0(Type::Int, "get_play_pos")});
       return &mp;
     }
 
     case Type::MwndList: {
-      static const auto mp = make_flatmap<Builder>(
-          // TODO: Handle ELM_UP = -5
-          id[-1] | b_index_array(Type::Mwnd),
-          id[1] | b_call0(Type::None, "close"),
-          id[2] | b_call0(Type::None, "close_wait"),
-          id[3] | b_call0(Type::None, "close_nowait"));
+      static const auto mp =
+          make_flatmap<Builder>({// TODO: Handle ELM_UP = -5
+                                 id[-1] | b_index_array(Type::Mwnd),
+                                 id[1] | b_call0(Type::None, "close"),
+                                 id[2] | b_call0(Type::None, "close_wait"),
+                                 id[3] | b_call0(Type::None, "close_nowait")});
       return &mp;
     }
 
     case Type::Mwnd: {
       static const auto mp = make_flatmap<Builder>(
-          // TODO: Handle ELM_UP = -5
-          id[0] | b_callable("set_waku"),
-          id[79] | b_call0(Type::None, "init_waku_file"),
-          id[78] | b_callable("set_waku_file"),
-          id[80] | b_call0(Type::String, "get_waku_file"),
-          id[82] | b_call0(Type::None, "init_filter_file"),
-          id[81] | b_callable("set_filter_file"),
-          id[83] | b_call0(Type::String, "get_filter_file"),
-          id[1] | b_call0(Type::None, "open"),
-          id[15] | b_call0(Type::None, "open_wait"),
-          id[16] | b_call0(Type::None, "open_nowait"),
-          id[65] | b_call0(Type::Int, "check_open"),
-          id[2] | b_call0(Type::None, "close"),
-          id[13] | b_call0(Type::None, "close_wait"),
-          id[14] | b_call0(Type::None, "close_nowait"),
-          id[64] | b_call0(Type::None, "end_close"),
-          id[49] | b_call0(Type::None, "msg_block"),
-          id[59] | b_call0(Type::None, "msg_pp_block"),
-          id[3] | b_call0(Type::None, "clear"),
-          id[55] | b_call0(Type::None, "novel_clear"),
-          id[4] | b_callable("print"),
-          id[57] | b_callable({{0, "overflow_print"}, {1, "print"}}),
-          id[63] | b_callable("overflow_name"),
-          id[12] | b_callable({{0, "ruby_end"}, {std::nullopt, "ruby_start"}}),
-          id[18] | b_call0(Type::None, "msg_wait"),
-          id[19] | b_call0(Type::None, "pp"), id[20] | b_call0(Type::None, "r"),
-          id[54] | b_call0(Type::None, "page"),
-          id[6] | b_call0(Type::None, "nl"),
-          id[17] | b_call0(Type::None, "nil"),
-          id[56] | b_call0(Type::None, "indent"),
-          id[28] | b_call0(Type::None, "clear_indent"),
-          id[31] | b_call0(Type::None, "enable_multi_msg"),
-          id[29] | b_call0(Type::None, "next_msg"),
-          id[58] | b_callable("set_slide_msg"),
-          id[60] | b_call0(Type::None, "set_slide_msg"),
-          id[61] | b_call0(Type::None, "slide_msg"),
+          {// TODO: Handle ELM_UP = -5
+           id[0] | b_callable("set_waku"),
+           id[79] | b_call0(Type::None, "init_waku_file"),
+           id[78] | b_callable("set_waku_file"),
+           id[80] | b_call0(Type::String, "get_waku_file"),
+           id[82] | b_call0(Type::None, "init_filter_file"),
+           id[81] | b_callable("set_filter_file"),
+           id[83] | b_call0(Type::String, "get_filter_file"),
+           id[1] | b_call0(Type::None, "open"),
+           id[15] | b_call0(Type::None, "open_wait"),
+           id[16] | b_call0(Type::None, "open_nowait"),
+           id[65] | b_call0(Type::Int, "check_open"),
+           id[2] | b_call0(Type::None, "close"),
+           id[13] | b_call0(Type::None, "close_wait"),
+           id[14] | b_call0(Type::None, "close_nowait"),
+           id[64] | b_call0(Type::None, "end_close"),
+           id[49] | b_call0(Type::None, "msg_block"),
+           id[59] | b_call0(Type::None, "msg_pp_block"),
+           id[3] | b_call0(Type::None, "clear"),
+           id[55] | b_call0(Type::None, "novel_clear"),
+           id[4] | b_callable("print"),
+           id[57] | b_callable({{0, "overflow_print"}, {1, "print"}}),
+           id[63] | b_callable("overflow_name"),
+           id[12] | b_callable({{0, "ruby_end"}, {std::nullopt, "ruby_start"}}),
+           id[18] | b_call0(Type::None, "msg_wait"),
+           id[19] | b_call0(Type::None, "pp"),
+           id[20] | b_call0(Type::None, "r"),
+           id[54] | b_call0(Type::None, "page"),
+           id[6] | b_call0(Type::None, "nl"),
+           id[17] | b_call0(Type::None, "nil"),
+           id[56] | b_call0(Type::None, "indent"),
+           id[28] | b_call0(Type::None, "clear_indent"),
+           id[31] | b_call0(Type::None, "enable_multi_msg"),
+           id[29] | b_call0(Type::None, "next_msg"),
+           id[58] | b_callable("set_slide_msg"),
+           id[60] | b_call0(Type::None, "set_slide_msg"),
+           id[61] | b_call0(Type::None, "slide_msg"),
 
-          // SEL
-          id[5] | b(Type::Callable, Member("sel")),
-          id[51] | b(Type::Callable, Member("sel_cancel")),
-          id[50] | b(Type::Callable, Member("selmsg")),
-          id[52] | b(Type::Callable, Member("selmsg_cancel")),
-          id[84] | b_callable({{0, "rep_pos_default"}, {1, "rep_pos"}}),
-          id[7] | b_callable({{0, "size_default"}, {1, "size"}}),
-          id[8] | b_callable({{0, "color_default"}, {1, "color"}}),
-          id[86] | b(Type::Callable, Member("msgbtn")),
-          id[85] | b(Type::Callable, Member("set_namae")),
-          id[9] | b(Type::Callable, Member("koe")),
-          id[26] | b(Type::Callable, Member("koe_play_wait")),
-          id[22] | b(Type::None, Member("clear_face")),
-          id[21] | b(Type::Callable, Member("set_face")),
-          id[10] | b_callable({{0, "get_layer"}, {1, "set_layer"}}),
-          id[11] | b_callable({{0, "get_world"}, {1, "set_world"}}),
-          id[32] | b(Type::ObjList, Member("button")),
-          id[53] | b(Type::ObjList, Member("face")),
-          id[30] | b(Type::ObjList, Member("object")),
+           // SEL
+           id[5] | b(Type::Callable, Member("sel")),
+           id[51] | b(Type::Callable, Member("sel_cancel")),
+           id[50] | b(Type::Callable, Member("selmsg")),
+           id[52] | b(Type::Callable, Member("selmsg_cancel")),
+           id[84] | b_callable({{0, "rep_pos_default"}, {1, "rep_pos"}}),
+           id[7] | b_callable({{0, "size_default"}, {1, "size"}}),
+           id[8] | b_callable({{0, "color_default"}, {1, "color"}}),
+           id[86] | b(Type::Callable, Member("msgbtn")),
+           id[85] | b(Type::Callable, Member("set_namae")),
+           id[9] | b(Type::Callable, Member("koe")),
+           id[26] | b(Type::Callable, Member("koe_play_wait")),
+           id[22] | b(Type::None, Member("clear_face")),
+           id[21] | b(Type::Callable, Member("set_face")),
+           id[10] | b_callable({{0, "get_layer"}, {1, "set_layer"}}),
+           id[11] | b_callable({{0, "get_world"}, {1, "set_world"}}),
+           id[32] | b(Type::ObjList, Member("button")),
+           id[53] | b(Type::ObjList, Member("face")),
+           id[30] | b(Type::ObjList, Member("object")),
 
-          // parameter
-          id[66] | b(Type::None, Member("init_window_pos")),
-          id[67] | b(Type::None, Member("init_window_size")),
-          id[74] | b(Type::None, Member("init_window_moji_cnt")),
-          id[68] | b(Type::Callable, Member("set_window_pos")),
-          id[69] | b(Type::Callable, Member("set_window_size")),
-          id[75] | b(Type::Callable, Member("set_window_moji_cnt")),
-          id[70] | b(Type::Int, Member("get_window_pos_x")),
-          id[71] | b(Type::Int, Member("get_window_pos_y")),
-          id[72] | b(Type::Int, Member("get_window_size_x")),
-          id[73] | b(Type::Int, Member("get_window_size_y")),
-          id[77] | b(Type::Int, Member("get_window_moji_cnt_x")),
-          id[76] | b(Type::Int, Member("get_window_moji_cnt_y")),
-          id[41] | b(Type::None, Member("init_open_anime_type")),
-          id[42] | b(Type::None, Member("init_open_anime_time")),
-          id[43] | b(Type::None, Member("init_close_anime_type")),
-          id[44] | b(Type::None, Member("init_close_anime_time")),
-          id[37] | b(Type::Callable, Member("set_open_anime_type")),
-          id[34] | b(Type::Callable, Member("set_open_anime_time")),
-          id[45] | b(Type::Callable, Member("set_close_anime_type")),
-          id[35] | b(Type::Callable, Member("set_close_anime_time")),
-          id[48] | b(Type::Int, Member("get_open_anime_type")),
-          id[47] | b(Type::Int, Member("get_open_anime_time")),
-          id[38] | b(Type::Int, Member("get_close_anime_type")),
-          id[46] | b(Type::Int, Member("get_close_anime_time")),
-          id[36] | b(Type::Int, Member("get_default_open_anime_type")),
-          id[33] | b(Type::Int, Member("get_default_open_anime_time")),
-          id[40] | b(Type::Int, Member("get_default_close_anime_type")),
-          id[39] | b(Type::Int, Member("get_default_close_anime_time")));
+           // parameter
+           id[66] | b(Type::None, Member("init_window_pos")),
+           id[67] | b(Type::None, Member("init_window_size")),
+           id[74] | b(Type::None, Member("init_window_moji_cnt")),
+           id[68] | b(Type::Callable, Member("set_window_pos")),
+           id[69] | b(Type::Callable, Member("set_window_size")),
+           id[75] | b(Type::Callable, Member("set_window_moji_cnt")),
+           id[70] | b(Type::Int, Member("get_window_pos_x")),
+           id[71] | b(Type::Int, Member("get_window_pos_y")),
+           id[72] | b(Type::Int, Member("get_window_size_x")),
+           id[73] | b(Type::Int, Member("get_window_size_y")),
+           id[77] | b(Type::Int, Member("get_window_moji_cnt_x")),
+           id[76] | b(Type::Int, Member("get_window_moji_cnt_y")),
+           id[41] | b(Type::None, Member("init_open_anime_type")),
+           id[42] | b(Type::None, Member("init_open_anime_time")),
+           id[43] | b(Type::None, Member("init_close_anime_type")),
+           id[44] | b(Type::None, Member("init_close_anime_time")),
+           id[37] | b(Type::Callable, Member("set_open_anime_type")),
+           id[34] | b(Type::Callable, Member("set_open_anime_time")),
+           id[45] | b(Type::Callable, Member("set_close_anime_type")),
+           id[35] | b(Type::Callable, Member("set_close_anime_time")),
+           id[48] | b(Type::Int, Member("get_open_anime_type")),
+           id[47] | b(Type::Int, Member("get_open_anime_time")),
+           id[38] | b(Type::Int, Member("get_close_anime_type")),
+           id[46] | b(Type::Int, Member("get_close_anime_time")),
+           id[36] | b(Type::Int, Member("get_default_open_anime_type")),
+           id[33] | b(Type::Int, Member("get_default_open_anime_time")),
+           id[40] | b(Type::Int, Member("get_default_close_anime_type")),
+           id[39] | b(Type::Int, Member("get_default_close_anime_time"))});
       return &mp;
     }
 
     case Type::Pcm: {
       static const auto mp =
-          make_flatmap<Builder>(id[0] | b(Type::Callable, Member("play")),
-                                id[1] | b(Type::None, Member("stop")));
+          make_flatmap<Builder>({id[0] | b(Type::Callable, Member("play")),
+                                 id[1] | b(Type::None, Member("stop"))});
       return &mp;
     }
 
     case Type::PcmchList: {
       static const auto mp =
-          make_flatmap<Builder>(id[-1] | b_index_array(Type::Pcmch));
+          make_flatmap<Builder>({id[-1] | b_index_array(Type::Pcmch)});
       return &mp;
     }
 
     case Type::Pcmch: {
       static const auto mp = make_flatmap<Builder>(
-          id[0] | b(Type::Callable, Member("play")),
-          id[2] | b(Type::Callable, Member("play_loop")),
-          id[1] | b(Type::Callable, Member("play_wait")),
-          id[11] | b(Type::Callable, Member("ready")),
-          id[16] | b(Type::Callable, Member("ready_loop")),
-          id[5] | b(Type::Callable, Member("stop")),
-          id[10] | b(Type::Callable, Member("pause")),
-          id[9] | b(Type::Callable, Member("resume")),
-          id[17] | b(Type::Callable, Member("resume_wait")),
-          id[3] | b(Type::None, Member("wait")),
-          id[6] | b(Type::Int, Member("wait_key")),
-          id[8] | b(Type::None, Member("wait_fade")),
-          id[7] | b(Type::Int, Member("wait_fade_key")),
-          id[4] | b(Type::Int, Member("check")),
-          id[13] | b(Type::Callable, Member("set_volume")),
-          id[14] | b(Type::Callable, Member("set_vol_max")),
-          id[15] | b(Type::Callable, Member("set_vol_min")),
-          id[12] | b(Type::Int, Member("get_volume")));
+          {id[0] | b(Type::Callable, Member("play")),
+           id[2] | b(Type::Callable, Member("play_loop")),
+           id[1] | b(Type::Callable, Member("play_wait")),
+           id[11] | b(Type::Callable, Member("ready")),
+           id[16] | b(Type::Callable, Member("ready_loop")),
+           id[5] | b(Type::Callable, Member("stop")),
+           id[10] | b(Type::Callable, Member("pause")),
+           id[9] | b(Type::Callable, Member("resume")),
+           id[17] | b(Type::Callable, Member("resume_wait")),
+           id[3] | b(Type::None, Member("wait")),
+           id[6] | b(Type::Int, Member("wait_key")),
+           id[8] | b(Type::None, Member("wait_fade")),
+           id[7] | b(Type::Int, Member("wait_fade_key")),
+           id[4] | b(Type::Int, Member("check")),
+           id[13] | b(Type::Callable, Member("set_volume")),
+           id[14] | b(Type::Callable, Member("set_vol_max")),
+           id[15] | b(Type::Callable, Member("set_vol_min")),
+           id[12] | b(Type::Int, Member("get_volume"))});
       return &mp;
     }
 
     case Type::Wipe: {
       static const auto mp = make_flatmap<Builder>(
-          id[7] | b(Type::Callable, Member("wipe")),
-          id[23] | b(Type::Callable, Member("wipe_all")),
-          id[50] | b(Type::Callable, Member("wipe_mask")),
-          id[51] | b(Type::Callable, Member("wipe_mask_all")));
+          {id[7] | b(Type::Callable, Member("wipe")),
+           id[23] | b(Type::Callable, Member("wipe_all")),
+           id[50] | b(Type::Callable, Member("wipe_mask")),
+           id[51] | b(Type::Callable, Member("wipe_mask_all"))});
       return &mp;
     }
 
