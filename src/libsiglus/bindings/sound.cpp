@@ -21,11 +21,10 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#include "libsiglus/bindings/sound.hpp"
-
+#include "libsiglus/bindings/registry.hpp"
 #include "srbind/srbind.hpp"
-#include "systems/system.hpp"
 #include "systems/sound_system.hpp"
+#include "systems/system.hpp"
 #include "vm/vm.hpp"
 
 #include <string>
@@ -44,12 +43,10 @@ class SoundHandle {
     system->sound().WavPlay(name, loop);
   }
 
-  void bgm(std::string name, bool loop) {
-    system->sound().BgmPlay(name, loop);
-  }
+  void bgm(std::string name, bool loop) { system->sound().BgmPlay(name, loop); }
 };
 
-void Sound::Bind(SiglusRuntime& runtime) {
+void BindSound(Context&, SiglusRuntime& runtime) {
   sr::VM& vm = *runtime.vm;
 
   sb::module_ m(vm.gc_.get(), vm.globals_.get());
@@ -61,5 +58,7 @@ void Sound::Bind(SiglusRuntime& runtime) {
   sdl.def("play", &SoundHandle::play, sb::arg("name"), sb::arg("loop") = false);
   sdl.def("bgm", &SoundHandle::bgm, sb::arg("name"), sb::arg("loop") = true);
 }
+
+RLVM_REGISTER(SiglusBindingRegistry, "sound", BindSound)
 
 }  // namespace libsiglus::binding

@@ -21,16 +21,22 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#include "libsiglus/bindings/gexe.hpp"
-
 #include "core/gameexe.hpp"
+#include "libsiglus/bindings/registry.hpp"
 #include "srbind/srbind.hpp"
 #include "utilities/string_utilities.hpp"
-#include "vm/gc.hpp"
 #include "vm/vm.hpp"
 
+#include <filesystem>
+#include <format>
 #include <fstream>
+#include <iterator>
 #include <memory>
+#include <ranges>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <utility>
 
 namespace libsiglus::binding {
 namespace sb = srbind;
@@ -72,7 +78,7 @@ struct GameexeHandle {
   }
 };
 
-void sgGexe::Bind(SiglusRuntime& runtime) {
+void BindGexe(Context&, SiglusRuntime& runtime) {
   sb::module_ m(runtime.vm->gc_.get(), runtime.vm->globals_.get());
   sb::class_<GameexeHandle> gh(m, "gexe");
 
@@ -85,6 +91,8 @@ void sgGexe::Bind(SiglusRuntime& runtime) {
   gh.def("set", &GameexeHandle::Set);
   gh.def("get_range", &GameexeHandle::GetRange);
   gh.def("add_parse", &GameexeHandle::AddParse);
-};
+}
+
+RLVM_REGISTER(SiglusBindingRegistry, "gexe", BindGexe)
 
 }  // namespace libsiglus::binding

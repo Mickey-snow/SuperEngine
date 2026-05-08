@@ -21,23 +21,26 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#include "libsiglus/bindings/memory.hpp"
-
 #include "libsiglus/archive.hpp"
+#include "libsiglus/bindings/registry.hpp"
 #include "libsiglus/bindings/util.hpp"
 #include "libsiglus/property.hpp"
-#include "log/core.hpp"
 #include "log/domain_logger.hpp"
-#include "srbind/module.hpp"
 #include "srbind/srbind.hpp"
 #include "utilities/assertx.hpp"
 #include "vm/exception.hpp"
 #include "vm/gc.hpp"
 #include "vm/vm.hpp"
 
-#include <memory>
+#include <cstddef>
+#include <format>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 
 namespace libsiglus::binding {
+
 namespace sb = srbind;
 using namespace serilang;
 
@@ -84,7 +87,7 @@ void TraceMemoryBank(GCVisitor& visitor, void* data) {
     visitor.MarkSub(value);
 }
 
-void Memory::Bind(SiglusRuntime& runtime) {
+void BindMemory(Context& ctx, SiglusRuntime& runtime) {
   VM& vm = *runtime.vm;
   sb::module_ m(vm.gc_.get(), runtime.vm->globals_.get());
   m.def(
@@ -180,6 +183,8 @@ fn __builtin_pop_frame(){
 }
 )";
   Execute(vm, std::move(src));
-};
+}
+
+RLVM_REGISTER(SiglusBindingRegistry, "memory", BindMemory)
 
 }  // namespace libsiglus::binding

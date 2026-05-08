@@ -21,20 +21,16 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#include "libsiglus/bindings/syscom.hpp"
-
-#include "srbind/module.hpp"
+#include "libsiglus/bindings/registry.hpp"
 #include "srbind/srbind.hpp"
 #include "systems/system.hpp"
 #include "vm/vm.hpp"
-
-#include <memory>
 
 namespace libsiglus::binding {
 namespace sb = srbind;
 using namespace serilang;
 
-void Syscom::Bind(SiglusRuntime& runtime) {
+void BindSyscom(Context&, SiglusRuntime& runtime) {
   auto* sys = runtime.system.get();
 
   VM& vm = *runtime.vm;
@@ -43,6 +39,8 @@ void Syscom::Bind(SiglusRuntime& runtime) {
   m.def("menu_disable", [sys] { sys->DisableSyscom(); });
   m.def("set_enable_hidemwnd", [](bool) {});
   m.def("get_no_wipe_anime_onoff", []() { return 0; });
-};
+}
+
+RLVM_REGISTER(SiglusBindingRegistry, "syscom", BindSyscom)
 
 }  // namespace libsiglus::binding

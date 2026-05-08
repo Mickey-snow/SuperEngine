@@ -21,25 +21,23 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#include "libsiglus/bindings/system.hpp"
-
-#include "libsiglus/bindings/exception.hpp"
+#include "systems/system.hpp"
+#include "libsiglus/bindings/registry.hpp"
 #include "log/domain_logger.hpp"
 #include "srbind/srbind.hpp"
 #include "systems/graphics_system.hpp"
-#include "systems/system.hpp"
-#include "vm/gc.hpp"
 #include "vm/vm.hpp"
 
 #include <ctime>
 #include <string>
+#include <utility>
 
 namespace libsiglus::binding {
 namespace sb = srbind;
 
 static void nop() {}
 
-void System::Bind(SiglusRuntime& runtime) {
+void BindSystem(Context& ctx, SiglusRuntime& runtime) {
   serilang::VM& vm = *runtime.vm;
 
   sb::module_ m(vm, "system");
@@ -62,6 +60,8 @@ void System::Bind(SiglusRuntime& runtime) {
   gm.def("set_title", [sys = runtime.system.get()](std::string title) {
     sys->graphics().SetWindowSubtitle(std::move(title));
   });
-};
+}
+
+RLVM_REGISTER(SiglusBindingRegistry, "system", BindSystem)
 
 }  // namespace libsiglus::binding

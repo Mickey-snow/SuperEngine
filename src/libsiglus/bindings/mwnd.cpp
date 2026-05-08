@@ -21,19 +21,19 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#include "libsiglus/bindings/mwnd.hpp"
+#include "libsiglus/bindings/registry.hpp"
 
-#include "libsiglus/bindings/common.hpp"
-#include "libsiglus/siglus_runtime.hpp"
-
+#include "core/colour.hpp"
 #include "srbind/srbind.hpp"
 #include "systems/system.hpp"
 #include "systems/text_page.hpp"
 #include "systems/text_system.hpp"
 #include "systems/text_window.hpp"
+#include "vm/vm.hpp"
 
-#include <chrono>
-#include <thread>
+#include <memory>
+#include <stdexcept>
+#include <string>
 
 namespace libsiglus::binding {
 namespace sb = srbind;
@@ -63,7 +63,7 @@ class SiglusMwnd {
   }
 };
 
-void MWND::Bind(SiglusRuntime& runtime) {
+void BindMwnd(Context&, SiglusRuntime& runtime) {
   sr::VM& vm = *runtime.vm;
 
   sb::module_ m(vm.gc_.get(), vm.globals_.get());
@@ -101,5 +101,7 @@ void MWND::Bind(SiglusRuntime& runtime) {
     // TODO: いろいろクリア処理とセーブ
   });
 }
+
+RLVM_REGISTER(SiglusBindingRegistry, "mwnd", BindMwnd)
 
 }  // namespace libsiglus::binding

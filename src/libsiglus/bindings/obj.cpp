@@ -21,19 +21,21 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#include "libsiglus/bindings/obj.hpp"
+#include "libsiglus/bindings/registry.hpp"
 #include "srbind/srbind.hpp"
 
 #include "core/frame_counter.hpp"
-#include "core/rect.hpp"
 #include "object/drawer/file.hpp"
 #include "object/object_mutator.hpp"
 #include "systems/graphics_object.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
-#include "systems/sdl/sdl_surface.hpp"
+#include "utilities/clock.hpp"
 
-#include <set>
+#include <chrono>
+#include <cstddef>
+#include <memory>
+#include <string>
 
 namespace libsiglus::binding {
 namespace sr = serilang;
@@ -55,7 +57,8 @@ class Object {
   void Init() { obj.FreeDataAndInitializeParams(); }
 
   void Create(std::string filename, bool disp) {
-    std::shared_ptr<SDLSurface> surface = graphics_->LoadSurfaceFromFile(filename);
+    std::shared_ptr<SDLSurface> surface =
+        graphics_->LoadSurfaceFromFile(filename);
 
     auto obj_data = std::make_unique<GraphicsObjectOfFile>(surface);
     obj.SetObjectData(std::move(obj_data));
@@ -99,7 +102,7 @@ class Object {
   }
 };
 
-void Obj::Bind(SiglusRuntime& runtime) {
+void BindObj(Context&, SiglusRuntime& runtime) {
   sr::VM& vm = *runtime.vm;
 
   sb::module_ m(vm.gc_.get(), vm.globals_.get());
@@ -117,5 +120,7 @@ void Obj::Bind(SiglusRuntime& runtime) {
   o.def("set_xeve", &Object::SetXEve);
   o.def("set_yeve", &Object::SetYEve);
 }
+
+RLVM_REGISTER(SiglusBindingRegistry, "obj", BindObj)
 
 }  // namespace libsiglus::binding

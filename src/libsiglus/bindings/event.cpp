@@ -21,25 +21,22 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#include "libsiglus/bindings/event.hpp"
-
 #include "core/event_listener.hpp"
+#include "libsiglus/bindings/registry.hpp"
 #include "srbind/srbind.hpp"
-#include "systems/system.hpp"
 #include "systems/event_system.hpp"
+#include "systems/system.hpp"
 #include "utilities/overload.hpp"
 #include "vm/future.hpp"
-#include "vm/gc.hpp"
-#include "vm/object.hpp"
 #include "vm/vm.hpp"
 
-#include <functional>
+#include <memory>
 
 namespace libsiglus::binding {
 namespace sb = srbind;
 using namespace serilang;
 
-void sgEvent::Bind(SiglusRuntime& runtime) {
+void BindEvent(Context&, SiglusRuntime& runtime) {
   sb::module_ m(*runtime.vm, "event");
 
   m.def("keydown", [event = runtime.system->event_ptr()](VM& vm) {
@@ -70,6 +67,8 @@ void sgEvent::Bind(SiglusRuntime& runtime) {
 
     return Value(future);
   });
-};
+}
+
+RLVM_REGISTER(SiglusBindingRegistry, "event", BindEvent)
 
 }  // namespace libsiglus::binding

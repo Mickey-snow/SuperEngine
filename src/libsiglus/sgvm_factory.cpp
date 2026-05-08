@@ -24,15 +24,8 @@
 #include "libsiglus/sgvm_factory.hpp"
 
 #include "libsiglus/bindings/common.hpp"
-#include "libsiglus/bindings/event.hpp"
-#include "libsiglus/bindings/gexe.hpp"
 #include "libsiglus/bindings/loader.hpp"
-#include "libsiglus/bindings/memory.hpp"
-#include "libsiglus/bindings/mwnd.hpp"
-#include "libsiglus/bindings/obj.hpp"
-#include "libsiglus/bindings/sound.hpp"
-#include "libsiglus/bindings/syscom.hpp"
-#include "libsiglus/bindings/system.hpp"
+#include "libsiglus/bindings/registry.hpp"
 
 #include "libsiglus/archive.hpp"
 #include "libsiglus/gexedat.hpp"
@@ -124,15 +117,10 @@ SiglusRuntime SGVMFactory::Create() {
   // Init sdl system
   rt.system = std::make_unique<System>(gexe, rt.asset_scanner);
 
-  // add bindings here
-  binding::sgGexe(ctx).Bind(rt);
-  binding::Memory(ctx).Bind(rt);
-  binding::Sound(ctx).Bind(rt);
-  binding::System(ctx).Bind(rt);
-  binding::Obj(ctx).Bind(rt);
-  binding::sgEvent(ctx).Bind(rt);
-  binding::MWND(ctx).Bind(rt);
-  binding::Syscom(ctx).Bind(rt);
+  for (auto it = binding::SiglusBindingRegistry::cbegin();
+       it != binding::SiglusBindingRegistry::cend(); ++it) {
+    it->second(ctx, rt);
+  }
   sb::module_ m(gc.get(), vm.globals_.get());
 
   m.def("__builtin_dbgprint", dbg_print);

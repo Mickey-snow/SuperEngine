@@ -25,16 +25,16 @@
 
 #include "libsiglus/bindings/common.hpp"
 #include "libsiglus/siglus_runtime.hpp"
+#include "utilities/static_registry.hpp"
+
+#include <functional>
+#include <string>
 
 namespace libsiglus::binding {
 
-class Syscom {
-  Context& ctx;
-
- public:
-  explicit Syscom(Context& c) : ctx(c) {}
-
-  void Bind(SiglusRuntime& runtime);
-};
+struct SiglusBindingRegistryTag;
+using BindFn = std::function<void(Context&, SiglusRuntime&)>;
+using SiglusBindingRegistry =
+    StaticRegistry<SiglusBindingRegistryTag, std::string, BindFn>;
 
 }  // namespace libsiglus::binding
