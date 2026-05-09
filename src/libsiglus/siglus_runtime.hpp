@@ -54,6 +54,8 @@ struct SiglusRuntime {
   std::shared_ptr<binding::SiglusMwnd> mwnd;
   std::unique_ptr<System> system;
 
+  std::shared_ptr<Gameexe> local_config, global_config;
+
   std::function<void()> exec_sdl_callback;
 
   SiglusRuntime() = default;

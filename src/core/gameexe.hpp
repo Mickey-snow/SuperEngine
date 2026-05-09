@@ -35,14 +35,12 @@
 
 #pragma once
 
-#include <algorithm>
 #include <filesystem>
 #include <iomanip>
 #include <iterator>
 #include <map>
 #include <optional>
 #include <sstream>
-#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -90,6 +88,8 @@ class GameexeInterpretObject {
     return GameexeInterpretObject(owner_, std::move(new_key));
   }
 
+  GexeVal& operator[](std::size_t idx);
+
   int ToInt() const;
   GexeExpected<int> Int() const;
   GexeExpected<int> IntAt(std::size_t index) const;
@@ -131,10 +131,14 @@ class GameexeInterpretObject {
     return ss.str();
   }
 
-  std::string ToKeyString(const std::string& value) { return value; }
+  template <class T>
+    requires std::constructible_from<std::string, T>
+  inline std::string ToKeyString(T&& value) {
+    return std::string(std::forward<T>(value));
+  }
 
   template <typename T, typename... Ts>
-  std::string MakeKey(T&& first, Ts&&... params) {
+  inline std::string MakeKey(T&& first, Ts&&... params) {
     std::string key = ToKeyString(std::forward<T>(first));
     if constexpr (sizeof...(params) > 0)
       key += '.' + MakeKey(std::forward<Ts>(params)...);
@@ -169,6 +173,7 @@ class Gameexe {
 
   void SetStringAt(std::string_view key, std::string value);
   void SetIntAt(std::string_view key, int value);
+  void SetAt(std::string_view key, std::vector<GexeVal> value);
 
   inline void parseLine(const std::string& line) { (void)ParseLine(line, 0); }
   GexeExpected<void> ParseLine(std::string_view line, std::size_t line_number);

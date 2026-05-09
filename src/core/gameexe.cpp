@@ -346,15 +346,20 @@ Gameexe::FilterRange Gameexe::Filter(std::string prefix) {
 }
 
 void Gameexe::SetStringAt(std::string_view key, std::string value) {
-  auto& slot = Ensure(std::string(key));
+  std::vector<GexeVal>& slot = Ensure(std::string(key));
   slot.clear();
   slot.push_back(MakeStringValue(std::move(value)));
 }
 
 void Gameexe::SetIntAt(std::string_view key, int value) {
-  auto& slot = Ensure(std::string(key));
+  std::vector<GexeVal>& slot = Ensure(std::string(key));
   slot.clear();
   slot.push_back(MakeIntValue(value));
+}
+
+void Gameexe::SetAt(std::string_view key, std::vector<GexeVal> value) {
+  std::vector<GexeVal>& slot = Ensure(std::string(key));
+  slot.swap(value);
 }
 
 // -----------------------------------------------------------------------
@@ -387,6 +392,11 @@ std::vector<GexeVal>* GameexeInterpretObject::EnsureMutableValues() {
   if (direct_values_)
     return direct_values_;
   return &owner_->Ensure(key_);
+}
+
+GexeVal& GameexeInterpretObject::operator[](std::size_t idx) {
+  const auto* values = owner_->Find(key_);
+  return const_cast<GexeVal&>((*values)[idx]);
 }
 
 GexeExpected<int> GameexeInterpretObject::Int() const { return IntAt(0); }

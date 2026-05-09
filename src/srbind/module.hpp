@@ -56,10 +56,12 @@ class module_ {
     (*vm.builtins_)[std::string(name)] = Value(mod);
   }
 
-  template <class F, class... A>
-  module_& def(const char* name, F&& f, A&&... a) {
-    (*dict_)[std::string(name)] = Value(
-        make_function(gc_, name, std::forward<F>(f), std::forward<A>(a)...));
+  template <class T, class F, class... A>
+    requires std::constructible_from<std::string, T>
+  module_& def(T&& name, F&& f, A&&... a) {
+    std::string n(std::forward<T>(name));
+    (*dict_)[n] =
+        Value(make_function(gc_, n, std::forward<F>(f), std::forward<A>(a)...));
     return *this;
   }
 
