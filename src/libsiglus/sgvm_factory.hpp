@@ -34,6 +34,7 @@ class SGVMFactory {
   SiglusRuntime Create();
 
   std::filesystem::path base_path_;
+  bool debug_ = false;
 };
 
 }  // namespace libsiglus

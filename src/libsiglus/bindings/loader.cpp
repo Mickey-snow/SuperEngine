@@ -33,7 +33,6 @@
 
 #include <format>
 #include <iostream>
-#include <sstream>
 #include <unordered_map>
 
 namespace libsiglus::binding {
@@ -67,7 +66,7 @@ sr::Module* Loader::Load(int scene) {
 
   Recompiler compiler(vm.gc_);
   compiler.SetSceneProperties(scn.id_, scn.property);
-  compiler.is_debug_ = true;  // TODO: Add an option to control debug flag
+  compiler.is_debug_ = debug_;
   for (auto& it : tokens)
     compiler.Gen(std::move(it));
   compiler.Finish();

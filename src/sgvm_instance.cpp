@@ -53,7 +53,9 @@ struct Context : public ParserContext {
 
 void SgvmInstance::Main(const std::filesystem::path& game_root) {
   try {
-    SiglusRuntime rt = SGVMFactory(game_root).Create();
+    SGVMFactory factory(game_root);
+    factory.debug_ = debug_;
+    SiglusRuntime rt = factory.Create();
     sr::VM& vm = *rt.vm;
 
     sr::Module* mod = rt.loader->Load(start_scene_);

@@ -98,6 +98,11 @@ int main(int argc, char* argv[]) {
       "show-platforms", "Print all avaliable gui platforms.")(
       "log-level", po::value<std::string>(),
       "Minimum severity level to log (none, info, warning, error)")(
+      "debug",
+      po::value<bool>()
+          ->default_value(false, "false")
+          ->implicit_value(true, "true"),
+      "Enable debug instrumentation (true/false)")(
       "engine", po::value<std::string>()->default_value("reallive"));
 
   // Declare the final option to be game-root
@@ -257,6 +262,7 @@ int main(int argc, char* argv[]) {
       instance.font_ = vm["font"].as<std::string>();
     if (vm.count("scene"))
       instance.start_scene_ = vm["scene"].as<int>();
+    instance.debug_ = vm["debug"].as<bool>();
 
     instance.Main(gamerootPath);
   } else {

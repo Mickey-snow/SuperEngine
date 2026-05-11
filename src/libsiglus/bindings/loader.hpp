@@ -36,10 +36,12 @@ namespace binding {
 class Loader {
   Archive& archive;
   serilang::VM& vm;
+  bool debug_;
   std::unordered_map<std::string, serilang::Module*> scene_module_cache_;
 
  public:
-  explicit Loader(Archive& ar, serilang::VM& v) : archive(ar), vm(v) {}
+  explicit Loader(Archive& ar, serilang::VM& v, bool debug = true)
+      : archive(ar), vm(v), debug_(debug) {}
 
   serilang::Module* Load(int scene);
   serilang::Module* Load(std::string const& scnname);
