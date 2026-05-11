@@ -33,6 +33,7 @@
 #include <memory>
 #include <type_traits>
 #include <unordered_map>
+#include <utility>
 
 namespace srbind {
 
@@ -159,6 +160,8 @@ class instance_ {
         Value(make_method<T>(gc_, name, pmf, std::move(spec)));
     return *this;
   }
+
+  inline Value& operator[](std::string key) { return inst_->fields[key]; }
 };
 
 // -------------------------------------------------------------
@@ -166,12 +169,13 @@ class instance_ {
 // -------------------------------------------------------------
 template <class T>
 class class_ {
+  module_& m_;
   serilang::GarbageCollector* gc_;
   serilang::NativeClass* cls_;
   static void finalize_T(void* p) { delete static_cast<T*>(p); }
 
  public:
-  class_(module_& m, const char* name) : gc_(m.gc()) {
+  class_(module_& m, const char* name) : m_(m), gc_(m.gc()) {
     cls_ = gc_->Allocate<serilang::NativeClass>();
     cls_->name = name;
     cls_->finalize = &finalize_T;
@@ -276,6 +280,20 @@ class class_ {
     cls_->methods[name] = Value(
         make_function(gc_, name, std::forward<F>(f), std::forward<A>(a)...));
     return *this;
+  }
+
+  template <class... A>
+  auto make_inst(A&&... a) -> serilang::NativeInstance* {
+    serilang::NativeInstance* inst_ =
+        gc_->Allocate<serilang::NativeInstance>(cls_);
+    inst_->SetForeign<T>(new T(std::forward<A>(a)...));
+    return inst_;
+  }
+  template <class... A>
+  auto inst(std::string_view name, A&&... a) -> instance_<T> {
+    auto inst_ = make_inst(std::forward<A>(a)...);
+    (*m_.dict())[std::string(name)] = Value(inst_);
+    return instance_<T>(gc_, cls_, inst_);
   }
 };
 

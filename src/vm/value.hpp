@@ -30,6 +30,7 @@
 #include "vm/value_fwd.hpp"
 
 #include <compare>
+#include <concepts>
 #include <cstddef>
 #include <functional>
 #include <memory>
@@ -54,6 +55,9 @@ class Value {
                                >;
 
   Value(value_t x = std::monostate());
+  template <typename T>
+    requires std::constructible_from<value_t, T>
+  Value(T&& x) : Value(value_t(std::forward<T>(x))) {}
 
   std::string Str() const;
   std::string Desc() const;

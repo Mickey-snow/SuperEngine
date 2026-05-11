@@ -24,15 +24,15 @@
 
 #pragma once
 
+#include "core/asset_scanner.hpp"
 #include "core/gameexe.hpp"
+#include "core/memory_internal/memory.hpp"
 #include "libsiglus/bindings/loader.hpp"
+#include "systems/system.hpp"
 #include "vm/value.hpp"
 
 #include <functional>
 #include <memory>
-
-class AssetScanner;
-class System;
 
 namespace serilang {
 class VM;
@@ -47,6 +47,7 @@ class SiglusMwnd;
 struct SiglusRuntime {
   std::shared_ptr<Gameexe> gameexe;
   std::shared_ptr<Archive> archive;
+  std::unique_ptr<Memory> memory;
   std::unique_ptr<serilang::VM> vm;
   std::unique_ptr<binding::Loader> loader;
   std::shared_ptr<AssetScanner> asset_scanner;

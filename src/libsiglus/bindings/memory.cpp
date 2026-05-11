@@ -30,10 +30,15 @@
 #include "utilities/assertx.hpp"
 #include "vm/exception.hpp"
 #include "vm/gc.hpp"
+#include "vm/list.hpp"
+#include "vm/string.hpp"
 #include "vm/vm.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <format>
+#include <limits>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -44,52 +49,171 @@ namespace libsiglus::binding {
 namespace sb = srbind;
 using namespace serilang;
 
-struct MemoryBank {
-  bool is_dynamic = false;
-  Value default_value = Value(0);
-  std::vector<Value> payload;
+namespace {
 
-  MemoryBank(bool dynamic = true, int size = 8, Value default_value = Value(0))
-      : is_dynamic(dynamic), default_value(default_value) {
-    if (size < 0)
-      throw RuntimeError("cannot create memory bank with negative size: " +
-                         std::to_string(size));
-    payload.resize(static_cast<std::size_t>(size), this->default_value);
+std::size_t CheckIndex(int idx) {
+  if (idx < 0)
+    throw RuntimeError("negative memory bank index: " + std::to_string(idx));
+  return static_cast<std::size_t>(idx);
+}
+
+std::size_t CheckSize(int size) {
+  if (size < 0)
+    throw RuntimeError("negative memory bank size: " + std::to_string(size));
+  return static_cast<std::size_t>(size);
+}
+
+int CheckedIntSize(std::size_t size) {
+  if (size > static_cast<std::size_t>(std::numeric_limits<int>::max()))
+    throw RuntimeError("memory bank size exceeds script integer range");
+  return static_cast<int>(size);
+}
+
+std::size_t RequiredIntWords(std::size_t logical_size, uint8_t bits) {
+  if (bits == 32)
+    return logical_size;
+
+  const std::size_t max_bits = std::numeric_limits<std::size_t>::max() - 31;
+  if (logical_size > max_bits / bits)
+    throw RuntimeError("memory bank size overflow");
+
+  return (logical_size * bits + 31) / 32;
+}
+
+int RequireInt(Value const& value, std::string_view where) {
+  if (auto* i = value.Get_if<int>())
+    return *i;
+  throw RuntimeError(
+      std::format("expected int for {}, got {}", where, value.Desc()));
+}
+
+const List* RequireList(Value const& value, std::string_view where) {
+  if (auto* list = value.Get_if<List>())
+    return list;
+  throw RuntimeError(
+      std::format("expected list for {}, got {}", where, value.Desc()));
+}
+
+class SiglusIntBank {
+ public:
+  SiglusIntBank(Memory& memory, IntBank bank, uint8_t bits = 32)
+      : memory_(&memory), bank_(bank), bits_(bits) {
+    ASSERTX_TRUE(bits == 32 || bits == 1 || bits == 2 || bits == 4 ||
+                 bits == 8 || bits == 16);
   }
 
-  Value get(int idx) {
-    ASSERTX_GE(idx, 0);
-    auto index = static_cast<std::size_t>(idx);
-    if (index >= payload.size()) {
-      if (!is_dynamic)
-        throw RuntimeError("Out of range: " + std::to_string(idx));
-      payload.resize(index + 1, default_value);
+  int get(int idx) {
+    const std::size_t index = CheckIndex(idx);
+    EnsureSize(index + 1);
+    return memory_->Read(IntMemoryLocation(bank_, index, bits_));
+  }
+
+  void set(int idx, int value) {
+    const std::size_t index = CheckIndex(idx);
+    EnsureSize(index + 1);
+    memory_->Write(IntMemoryLocation(bank_, index, bits_), value);
+  }
+
+  void Set(int idx, int value) { set(idx, value); }
+
+  void resize(int size) {
+    memory_->Resize(bank_, RequiredIntWords(CheckSize(size), bits_));
+  }
+
+  int size() const {
+    const std::size_t words = memory_->Size(bank_);
+    if (bits_ == 32)
+      return CheckedIntSize(words);
+    return CheckedIntSize(words * (32 / bits_));
+  }
+
+  void fill(int begin, int end, int value) {
+    const std::size_t begin_index = CheckIndex(begin);
+    const std::size_t end_index = CheckIndex(end);
+    if (begin_index > end_index)
+      throw RuntimeError("invalid memory fill range");
+    if (begin_index == end_index)
+      return;
+
+    EnsureSize(end_index);
+    if (bits_ == 32) {
+      memory_->Fill(bank_, begin_index, end_index, value);
+      return;
     }
-    return payload[index];
+
+    for (std::size_t i = begin_index; i < end_index; ++i)
+      memory_->Write(IntMemoryLocation(bank_, i, bits_), value);
   }
 
-  void set(int idx, Value val) {
-    ASSERTX_GE(idx, 0);
-    auto index = static_cast<std::size_t>(idx);
-    if (index >= payload.size()) {
-      if (!is_dynamic)
-        throw RuntimeError("Out of range: " + std::to_string(idx));
-      payload.resize(index + 1, default_value);
-    }
-    payload[index] = val;
+  void init(int value = 0) { fill(0, size(), value); }
+
+ private:
+  void EnsureSize(std::size_t logical_size) {
+    const std::size_t required = RequiredIntWords(logical_size, bits_);
+    if (memory_->Size(bank_) < required)
+      memory_->Resize(bank_, required);
   }
+
+  Memory* memory_;
+  IntBank bank_;
+  uint8_t bits_;
 };
 
-void TraceMemoryBank(GCVisitor& visitor, void* data) {
-  auto* bank = static_cast<MemoryBank*>(data);
-  visitor.MarkSub(bank->default_value);
-  for (Value& value : bank->payload)
-    visitor.MarkSub(value);
-}
+class SiglusStrBank {
+ public:
+  SiglusStrBank(Memory& memory, StrBank bank) : memory_(&memory), bank_(bank) {}
+
+  std::string get(int idx) {
+    const std::size_t index = CheckIndex(idx);
+    EnsureSize(index + 1);
+    return memory_->Read(bank_, index);
+  }
+
+  void set(int idx, std::string value) {
+    const std::size_t index = CheckIndex(idx);
+    EnsureSize(index + 1);
+    memory_->Write(bank_, index, value);
+  }
+
+  void Set(int idx, std::string value) { set(idx, std::move(value)); }
+
+  void resize(int size) { memory_->Resize(bank_, CheckSize(size)); }
+
+  int size() const { return CheckedIntSize(memory_->Size(bank_)); }
+
+  void fill(int begin, int end, std::string value) {
+    const std::size_t begin_index = CheckIndex(begin);
+    const std::size_t end_index = CheckIndex(end);
+    if (begin_index > end_index)
+      throw RuntimeError("invalid memory fill range");
+    if (begin_index == end_index)
+      return;
+
+    EnsureSize(end_index);
+    memory_->Fill(bank_, begin_index, end_index, value);
+  }
+
+  void init(std::string value = "") { fill(0, size(), std::move(value)); }
+
+ private:
+  void EnsureSize(std::size_t size) {
+    if (memory_->Size(bank_) < size)
+      memory_->Resize(bank_, size);
+  }
+
+  Memory* memory_;
+  StrBank bank_;
+};
+
+}  // namespace
 
 void BindMemory(Context& ctx, SiglusRuntime& runtime) {
   VM& vm = *runtime.vm;
   sb::module_ m(vm.gc_.get(), runtime.vm->globals_.get());
+  if (!runtime.memory)
+    runtime.memory = std::make_unique<Memory>();
+  Memory& memory = *runtime.memory;
+
   m.def(
       "make_intlist",
       [](VM& vm, int size) {
@@ -119,70 +243,117 @@ void BindMemory(Context& ctx, SiglusRuntime& runtime) {
       sb::arg("size"));
 
   std::string src = "__globalprop = [];\n";
-  Archive& archive = *runtime.archive;
   // install archive-global user properties
-  for (size_t i = 0; i < archive.prop_.size(); ++i) {
-    Property& p = archive.prop_[i];
-    switch (p.form) {
-      case Type::Int:
-        src += "__globalprop.append(0);";
-        break;
-      case Type::IntList:
-        src += std::format("__globalprop.append(make_intlist({}));", p.size);
-        break;
-      case Type::String:
-        src += "__globalprop.append(\"\");";
-        break;
-      case Type::StrList:
-        src += std::format("__globalprop.append(make_strlist({}));", p.size);
-        break;
+  if (runtime.archive) {
+    Archive& archive = *runtime.archive;
+    for (size_t i = 0; i < archive.prop_.size(); ++i) {
+      Property& p = archive.prop_[i];
+      switch (p.form) {
+        case Type::Int:
+          src += "__globalprop.append(0);";
+          break;
+        case Type::IntList:
+          src += std::format("__globalprop.append(make_intlist({}));", p.size);
+          break;
+        case Type::String:
+          src += "__globalprop.append(\"\");";
+          break;
+        case Type::StrList:
+          src += std::format("__globalprop.append(make_strlist({}));", p.size);
+          break;
 
-      default: {
-        static DomainLogger log("Memory");
-        log(Severity::Error)
-            << "failed to install global property: " << p.ToDebugString();
-        src += "__globalprop.append(nil);\n";
-        break;
+        default: {
+          static DomainLogger log("Memory");
+          log(Severity::Error)
+              << "failed to install global property: " << p.ToDebugString();
+          src += "__globalprop.append(nil);\n";
+          break;
+        }
       }
     }
   }
   Execute(vm, std::move(src));
 
-  // Install MemoryBank class
-  sb::class_<MemoryBank> mb(m, "MemoryBank");
-  mb.def(sb::init<bool, int, Value>(), sb::arg("dynamic") = true,
-         sb::arg("size") = 8, sb::arg("default_value") = Value(0));
-  mb.def("__getitem__", &MemoryBank::get, sb::arg("idx"));
-  mb.def("__setitem__", &MemoryBank::set, sb::arg("idx"), sb::arg("val"));
-  (*m.dict())["MemoryBank"].Get<NativeClass*>()->trace = &TraceMemoryBank;
+  // Install memory bank classes and global bank views.
+  sb::class_<SiglusIntBank> ibank(m, "__SiglusIntBank");
+  ibank.def("__getitem__", &SiglusIntBank::get, sb::arg("idx"));
+  ibank.def("__setitem__", &SiglusIntBank::set, sb::arg("idx"), sb::arg("val"));
+  ibank.def("Set", &SiglusIntBank::Set, sb::arg("idx"), sb::arg("val"));
+  ibank.def("resize", &SiglusIntBank::resize, sb::arg("size"));
+  ibank.def("size", &SiglusIntBank::size);
+  ibank.def("fill", &SiglusIntBank::fill, sb::arg("begin"), sb::arg("end"),
+            sb::arg("val"));
+  ibank.def("init", &SiglusIntBank::init, sb::arg("val") = 0);
 
-  // Install global memory banks
-  src.clear();
-  constexpr std::string_view int_banks = "ABCDEFXGZL";
-  for (auto bank : int_banks)
-    src += std::format("{}=MemoryBank(true,8,0);", bank);
-  for (std::string_view bank : {"K", "S", "M", "LN", "GN"})
-    src += std::format("{}=MemoryBank(true,8,\"\");", bank);
-  Execute(vm, std::move(src));
+  sb::class_<SiglusStrBank> sbank(m, "__SiglusStrBank");
+  sbank.def("__getitem__", &SiglusStrBank::get, sb::arg("idx"));
+  sbank.def("__setitem__", &SiglusStrBank::set, sb::arg("idx"), sb::arg("val"));
+  sbank.def("Set", &SiglusStrBank::Set, sb::arg("idx"), sb::arg("val"));
+  sbank.def("resize", &SiglusStrBank::resize, sb::arg("size"));
+  sbank.def("size", &SiglusStrBank::size);
+  sbank.def("fill", &SiglusStrBank::fill, sb::arg("begin"), sb::arg("end"),
+            sb::arg("val"));
+  sbank.def("init", &SiglusStrBank::init, sb::arg("val") = "");
 
-  // Install builtin call frame handlers for frame local memory banks
-  src = R"(
-__L_stk = []; __K_stk = [];
-fn __builtin_push_frame(newl, newk){
-  global L, K;
-  __L_stk.append(L); __K_stk.append(K);
-  L = MemoryBank(true, 8, 0);
-  for(i=0; i<newl.len(); i+=1) L[i] = newl[i];
-  K = MemoryBank(true, 8, "");
-  for(i=0; i<newk.len(); i+=1) K[i] = newk[i];
-}
+  auto bind_int_bank = [&](std::string_view name, IntBank bank) {
+    auto inst = ibank.inst(name, memory, bank);
+    inst["b1"] = ibank.make_inst(memory, bank, 1);
+    inst["b2"] = ibank.make_inst(memory, bank, 2);
+    inst["b4"] = ibank.make_inst(memory, bank, 4);
+    inst["b8"] = ibank.make_inst(memory, bank, 8);
+    inst["b16"] = ibank.make_inst(memory, bank, 16);
+  };
+  auto bind_str_bank = [&](std::string_view name, StrBank bank) {
+    sbank.inst(name, memory, bank);
+  };
 
-fn __builtin_pop_frame(){
-  global L, K;
-  L = __L_stk.pop(); K = __K_stk.pop();
-}
-)";
-  Execute(vm, std::move(src));
+  bind_int_bank("A", IntBank::A);
+  bind_int_bank("B", IntBank::B);
+  bind_int_bank("C", IntBank::C);
+  bind_int_bank("D", IntBank::D);
+  bind_int_bank("E", IntBank::E);
+  bind_int_bank("F", IntBank::F);
+  bind_int_bank("X", IntBank::X);
+  bind_int_bank("G", IntBank::G);
+  bind_int_bank("Z", IntBank::Z);
+  bind_int_bank("L", IntBank::L);
+
+  bind_str_bank("S", StrBank::S);
+  bind_str_bank("M", StrBank::M);
+  bind_str_bank("K", StrBank::K);
+  bind_str_bank("LN", StrBank::local_name);
+  bind_str_bank("GN", StrBank::global_name);
+
+  auto frame_stack = std::make_shared<std::vector<Memory::Stack>>();
+  m.def(
+      "__builtin_push_frame",
+      [&memory, frame_stack](Value newl, Value newk) {
+        const List* largs = RequireList(newl, "L frame arguments");
+        const List* kargs = RequireList(newk, "K frame arguments");
+
+        frame_stack->push_back(memory.GetStackMemory());
+        Memory::Stack stack{
+            .L = MemoryBank<int>(Storage::DYNAMIC,
+                                 std::max<std::size_t>(8, largs->items.size())),
+            .K = MemoryBank<std::string>(
+                Storage::DYNAMIC,
+                std::max<std::size_t>(8, kargs->items.size()))};
+        memory.PartialReset(std::move(stack));
+
+        for (std::size_t i = 0; i < largs->items.size(); ++i)
+          memory.Write(IntBank::L, i,
+                       RequireInt(largs->items[i], "L frame argument"));
+        for (std::size_t i = 0; i < kargs->items.size(); ++i)
+          memory.Write(StrBank::K, i, kargs->items[i].Str());
+      },
+      sb::arg("newl"), sb::arg("newk"));
+
+  m.def("__builtin_pop_frame", [&memory, frame_stack]() {
+    if (frame_stack->empty())
+      throw RuntimeError("Siglus call frame stack underflow");
+    memory.PartialReset(std::move(frame_stack->back()));
+    frame_stack->pop_back();
+  });
 }
 
 RLVM_REGISTER(SiglusBindingRegistry, "memory", BindMemory)

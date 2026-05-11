@@ -114,6 +114,14 @@ std::string Memory::Read(StrBank bank, size_t index) const {
   return GetBank(bank).Get(index);
 }
 
+size_t Memory::Size(IntBank bank) const {
+  return GetBank(bank).GetSize();
+}
+
+size_t Memory::Size(StrBank bank) const {
+  return GetBank(bank).GetSize();
+}
+
 void Memory::Write(IntMemoryLocation loc, int value) {
   const auto bits = loc.Bitwidth();
   if (bits == 32) {
