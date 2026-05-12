@@ -35,6 +35,12 @@
 
 #pragma once
 
+#include <boost/serialization/access.hpp>
+#include <boost/serialization/split_member.hpp>
+#include <boost/serialization/string.hpp>
+#include <boost/serialization/vector.hpp>
+
+#include <algorithm>
 #include <filesystem>
 #include <iomanip>
 #include <iterator>
@@ -192,6 +198,59 @@ class Gameexe {
 
   GexeVal MakeIntValue(int value) const;
   GexeVal MakeStringValue(std::string value);
+
+ private:
+  // BOOST.Serialization support
+  friend class boost::serialization::access;
+  template <class Archive>
+  void save(Archive& ar, const unsigned int version) const {
+    ar & entries_.size();
+    for (auto const& [key, arr] : entries_) {
+      std::size_t n = arr.size();
+      ar& static_cast<std::string>(key) & n;
+      for (auto const& it : arr) {
+        const int* iptr = std::get_if<int>(&it);
+        const GexeStr* sptr = std::get_if<GexeStr>(&it);
+        char type = iptr ? 'i' : 's';
+        ar & type;
+        if (type == 'i')
+          ar&(*iptr);
+        else
+          ar & sptr->value;
+      }
+    }
+  }
+  template <class Archive>
+  void load(Archive& ar, const unsigned int version) {
+    std::size_t n, entry_cnt;
+    entries_.clear();
+    next_string_id_ = 0;
+
+    ar & entry_cnt;
+    for (std::size_t entry = 0; entry < entry_cnt; ++entry) {
+      std::string key;
+      std::vector<GexeVal> arr;
+
+      ar & key & n;
+      arr.resize(n);
+      for (std::size_t i = 0; i < n; ++i) {
+        char type;
+        int intval;
+        std::string strval;
+        ar & type;
+        if (type == 'i') {
+          ar & intval;
+          arr[i] = intval;
+        } else {
+          ar & strval;
+          arr[i] = GexeStr{.value = std::move(strval), .id = next_string_id_++};
+        }
+      }
+
+      entries_.emplace(std::move(key), std::move(arr));
+    }
+  }
+  BOOST_SERIALIZATION_SPLIT_MEMBER()
 
  public:
   class FilterRange {

@@ -27,6 +27,9 @@
 
 #include <gtest/gtest.h>
 
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
+
 #include "core/gameexe.hpp"
 
 #include "test_utils.hpp"
@@ -34,6 +37,7 @@
 
 #include <filesystem>
 #include <set>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -189,6 +193,42 @@ TEST_F(GameexeTest, FilterEmpty) {
   Gameexe ini = LoadTestCase("Gameexe_data/Gameexe.ini");
   for (const auto entry : ini.Filter("nonexist.OBJECT"))
     FAIL() << "Filter should be empty";
+}
+
+TEST_F(GameexeTest, SerializationRoundTrip) {
+  Gameexe original = LoadTestCase("Gameexe_data/Gameexe.ini");
+  original("SERIALIZED.INT") = 123;
+  original("SERIALIZED.STR") = std::string("alpha");
+  original("SERIALIZED.NEXT") = std::string("beta");
+
+  const std::size_t original_size = original.Size();
+  const int next_string_id = original("SERIALIZED.NEXT").ToIntVec().front();
+
+  std::stringstream buffer;
+  {
+    boost::archive::text_oarchive oa(buffer);
+    oa << original;
+  }
+
+  Gameexe restored;
+  {
+    boost::archive::text_iarchive ia(buffer);
+    ia >> restored;
+  }
+
+  EXPECT_EQ(original_size, restored.Size());
+  EXPECT_EQ(restored("SERIALIZED.INT"), ValArr(123));
+  EXPECT_EQ(restored("SERIALIZED.STR"), ValArr("alpha"));
+  EXPECT_EQ(restored("CAPTION"), ValArr("Canon: A firearm"));
+
+  std::vector<int> filtered;
+  for (auto entry : restored.Filter("IMAGINE."))
+    filtered.push_back(entry.Int().value());
+  EXPECT_EQ((std::vector<int>{1, 3, 2}), filtered);
+
+  restored("SERIALIZED.AFTER") = std::string("gamma");
+  EXPECT_EQ((std::vector<int>{next_string_id + 1}),
+            restored("SERIALIZED.AFTER").ToIntVec());
 }
 
 TEST_F(GameexeTest, KeyParts) {
