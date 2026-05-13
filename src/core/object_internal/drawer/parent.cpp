@@ -28,9 +28,9 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/serialization/export.hpp>
 
-#include "object/drawer/parent.hpp"
+#include "core/object_internal/drawer/parent.hpp"
 
-#include "systems/graphics_object.hpp"
+#include "core/object.hpp"
 #include "utilities/exception.hpp"
 
 // -----------------------------------------------------------------------

@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -25,11 +22,11 @@
 //
 // -----------------------------------------------------------------------
 
-#include "graphics_object.hpp"
+#include "core/object.hpp"
 
-#include "object/animator.hpp"
-#include "object/objdrawer.hpp"
-#include "object/object_mutator.hpp"
+#include "core/object_internal/animator.hpp"
+#include "core/object_internal/objdrawer.hpp"
+#include "core/object_internal/object_mutator.hpp"
 #include "utilities/exception.hpp"
 
 #include <boost/archive/text_iarchive.hpp>

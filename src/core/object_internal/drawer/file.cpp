@@ -25,13 +25,13 @@
 //
 // -----------------------------------------------------------------------
 
-#include "object/drawer/file.hpp"
+#include "core/object_internal/drawer/file.hpp"
 
 #include <iostream>
 #include <memory>
 #include <string>
 
-#include "systems/graphics_object.hpp"
+#include "core/object.hpp"
 #include "systems/sdl/sdl_surface.hpp"
 #include "utilities/clock.hpp"
 

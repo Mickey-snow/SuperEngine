@@ -24,9 +24,9 @@
 #include "service_locator.hpp"
 
 #include "machine/rlmachine.hpp"
-#include "object/drawer/parent.hpp"
-#include "object/objdrawer.hpp"
-#include "systems/graphics_object.hpp"
+#include "core/object_internal/drawer/parent.hpp"
+#include "core/object_internal/objdrawer.hpp"
+#include "core/object.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
 #include "systems/event_system.hpp"

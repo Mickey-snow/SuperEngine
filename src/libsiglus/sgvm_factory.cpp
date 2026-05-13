@@ -35,7 +35,7 @@
 #include "m6/vm_factory.hpp"
 #include "srbind/module.hpp"
 #include "systems/event_system.hpp"
-#include "systems/graphics_object.hpp"
+#include "core/object.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
 #include "utilities/file.hpp"

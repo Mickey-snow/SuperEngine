@@ -1,3 +1,6 @@
+// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+// vi:tw=80:et:ts=2:sts=2
+//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -24,29 +27,26 @@
 
 #pragma once
 
-#include "core/avdec/gan.hpp"
-#include "object/animator.hpp"
-#include "object/objdrawer.hpp"
+#include "core/avdec/anm.hpp"
+#include "machine/rlmachine.hpp"
+#include "machine/serialization.hpp"
+#include "core/object_internal/animator.hpp"
+#include "core/object_internal/objdrawer.hpp"
 
 #include <memory>
 #include <string>
+#include <vector>
 
 class SDLSurface;
 class System;
-class RLMachine;
-class GraphicsObject;
 
-// -----------------------------------------------------------------------
-
-// In-memory representation of a GAN file. Responsible for reading in,
-// storing, and rendering GAN data as a GraphicsObjectData.
-class GanGraphicsObjectData : public GraphicsObjectData {
+// Executable, in-memory representation of an ANM file. This internal structure
+// is heavily based off of xkanon's ANM file implementation, but has been
+// changed to be all C++ like.
+class AnmGraphicsObjectData : public GraphicsObjectData {
  public:
-  GanGraphicsObjectData(std::shared_ptr<SDLSurface> image,
-                        std::vector<std::vector<GanDecoder::Frame>> frames);
-  virtual ~GanGraphicsObjectData();
-
-  void LoadGANData();
+  AnmGraphicsObjectData(std::shared_ptr<SDLSurface> surface, AnmDecoder anm_data);
+  virtual ~AnmGraphicsObjectData();
 
   virtual int PixelWidth(const GraphicsObject& rendering_properties) override;
   virtual int PixelHeight(const GraphicsObject& rendering_properties) override;
@@ -56,26 +56,42 @@ class GanGraphicsObjectData : public GraphicsObjectData {
 
   virtual void PlaySet(int set) override;
 
-  virtual Animator const* GetAnimator() const override { return &animator_; }
-  virtual Animator* GetAnimator() override { return &animator_; }
-
  protected:
   virtual std::shared_ptr<const SDLSurface> CurrentSurface(
       const GraphicsObject& go) override;
   virtual Rect SrcRect(const GraphicsObject& go) override;
-  virtual Point DstOrigin(const GraphicsObject& go) override;
-  virtual int GetRenderingAlpha(const GraphicsObject& go,
-                                const GraphicsObject* parent) override;
+  virtual Rect DstRect(const GraphicsObject& go,
+                       const GraphicsObject* parent) override;
+
+  virtual Animator const* GetAnimator() const override { return &animator_; }
+  virtual Animator* GetAnimator() override { return &animator_; }
 
  private:
+  // Advance the position in the animation.
+  void AdvanceFrame();
+  using Frame = AnmDecoder::Frame;
+
   Animator animator_;
 
+  // Animation Data (This structure was stolen from xkanon.)
+  std::vector<Frame> frames;
+  std::vector<std::vector<int>> framelist_;
+  std::vector<std::vector<int>> animation_set_;
+
+  // The image the above coordinates map into.
   std::shared_ptr<SDLSurface> image_;
 
-  using Frame = GanDecoder::Frame;
-  std::vector<std::vector<Frame>> animation_sets;
-
+  bool currently_playing_;
   int current_set_;
-  int current_frame_;
   unsigned int delta_time_;
+
+  // iterators of animation_set_
+  std::vector<int>::const_iterator cur_frame_set_;
+  std::vector<int>::const_iterator cur_frame_set_end_;
+
+  // iterators of framelist_
+  std::vector<int>::const_iterator cur_frame_;
+  std::vector<int>::const_iterator cur_frame_end_;
+
+  int current_frame_;
 };

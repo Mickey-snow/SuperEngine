@@ -7,7 +7,7 @@
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2007 Elliot Glaysher
+// Copyright (C) 2009 Elliot Glaysher
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,38 +22,47 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
-//
 // -----------------------------------------------------------------------
 
 #pragma once
 
+#include <boost/serialization/access.hpp>
 #include <boost/serialization/split_member.hpp>
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "machine/rlmachine.hpp"
 #include "machine/serialization.hpp"
-#include "object/objdrawer.hpp"
-#include "object/properties.hpp"
+#include "core/object_internal/objdrawer.hpp"
 
 class GraphicsObject;
 class SDLSurface;
 class System;
 
-// Represents the textual data made with commands such as obj_of_text,
-// obj_set_text, obj_text_opts, etc.
-class GraphicsTextObject : public GraphicsObjectData {
+// Draws a collection of particles to the screen. Used to implement snow and
+// sakura petals.
+//
+// This implementation is incomplete, but hopefully a good enough
+// approximate. There are full parameters that we don't take use, and
+// speculation/approximations of what some things are.
+//
+// There's an additional set of commands that look like they control how these
+// particles fade in and out, which is another thing we don't implement right
+// now.
+class DriftGraphicsObject : public GraphicsObjectData {
  public:
-  explicit GraphicsTextObject(System& system);
-  virtual ~GraphicsTextObject();
+  explicit DriftGraphicsObject(System& system);
+  DriftGraphicsObject(System& system, const std::string& filename);
+  DriftGraphicsObject(const DriftGraphicsObject& system);
+  virtual ~DriftGraphicsObject();
 
-  void UpdateSurface(const GraphicsObject& rp);
-
-  // ------------------------------------ [ GraphicsObjectData interface ]
+  // Implementation of GraphicsObjectData:
+  virtual void Render(const GraphicsObject& go,
+                      const GraphicsObject* parent) override;
   virtual int PixelWidth(const GraphicsObject& rendering_properties) override;
   virtual int PixelHeight(const GraphicsObject& rendering_properties) override;
-
   virtual std::unique_ptr<GraphicsObjectData> Clone() const override;
   virtual void Execute(RLMachine& machine) override;
 
@@ -62,14 +71,37 @@ class GraphicsTextObject : public GraphicsObjectData {
       const GraphicsObject& go) override;
 
  private:
+  // Individual particle on screen.
+  struct Particle {
+    // Randomly generated starting location for this particle.
+    int x;
+    int y;
+
+    // Current alpha
+    int alpha;
+
+    // The number of ticks when this particle was first
+    int start_time;
+  };
+
+  // Loading step separate for de-serialization purposes.
+  void LoadFile();
+
   // Current machine context.
   System& system_;
 
-  TextProperties cached_param_;
+  // The name of the graphics file that was loaded.
+  std::string filename_;
 
-  std::shared_ptr<SDLSurface> surface_;
+  // The encapsulated surface to render
+  std::shared_ptr<const SDLSurface> surface_;
 
-  bool NeedsUpdate(const GraphicsObject& rendering_properties);
+  // The individual particles that make up this drift object.
+  std::vector<Particle> particles_;
+
+  // The last time we were rendered. We keep track of this to make sure we
+  // don't force refresh in a loop.
+  int last_rendered_time_;
 
   // boost::serialization support
   friend class boost::serialization::access;
@@ -83,15 +115,14 @@ class GraphicsTextObject : public GraphicsObjectData {
   BOOST_SERIALIZATION_SPLIT_MEMBER()
 };
 
-// We need help creating GraphicsTextObject s since they don't have a default
-// constructor:
+// DriftGraphicsObject doesn't have a default constructor:
 namespace boost {
 namespace serialization {
 template <class Archive>
 inline void load_construct_data(Archive& ar,
-                                GraphicsTextObject* t,
+                                DriftGraphicsObject* t,
                                 const unsigned int file_version) {
-  ::new (t) GraphicsTextObject(Serialization::g_current_machine->GetSystem());
+  ::new (t) DriftGraphicsObject(Serialization::g_current_machine->GetSystem());
 }
 }  // namespace serialization
 }  // namespace boost

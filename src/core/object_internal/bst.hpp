@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include "object/properties.hpp"
+#include "core/object_internal/properties.hpp"
 #include "utilities/mpl.hpp"
 
 #include <any>

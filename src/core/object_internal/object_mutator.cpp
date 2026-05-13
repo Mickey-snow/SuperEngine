@@ -22,12 +22,12 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 // -----------------------------------------------------------------------
 
-#include "object/object_mutator.hpp"
+#include "core/object_internal/object_mutator.hpp"
 
 #include "core/frame_counter.hpp"
-#include "object/parameter_manager.hpp"
-#include "object/service_locator.hpp"
-#include "systems/graphics_object.hpp"
+#include "core/object_internal/parameter_manager.hpp"
+#include "core/object_internal/service_locator.hpp"
+#include "core/object.hpp"
 
 #include <algorithm>
 #include <functional>

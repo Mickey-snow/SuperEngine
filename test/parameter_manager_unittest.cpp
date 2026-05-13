@@ -23,7 +23,7 @@
 
 #include <gtest/gtest.h>
 
-#include "object/parameter_manager.hpp"
+#include "core/object_internal/parameter_manager.hpp"
 
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>

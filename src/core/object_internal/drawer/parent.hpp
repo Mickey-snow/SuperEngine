@@ -30,8 +30,8 @@
 
 #include <iosfwd>
 
-#include "object/objdrawer.hpp"
-#include "systems/graphics_object.hpp"
+#include "core/object_internal/objdrawer.hpp"
+#include "core/object.hpp"
 #include "utilities/lazy_array.hpp"
 
 /**

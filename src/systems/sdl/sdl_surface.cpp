@@ -29,7 +29,7 @@
 #include "core/colour.hpp"
 #include "core/localrect.hpp"
 #include "pygame/alphablit.h"
-#include "systems/graphics_object.hpp"
+#include "core/object.hpp"
 #include "systems/sdl/gl_frame_buffer.hpp"
 #include "systems/sdl/gl_utils.hpp"
 #include "systems/sdl/glrenderer.hpp"

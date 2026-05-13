@@ -25,9 +25,9 @@
 #include "srbind/srbind.hpp"
 
 #include "core/frame_counter.hpp"
-#include "object/drawer/file.hpp"
-#include "object/object_mutator.hpp"
-#include "systems/graphics_object.hpp"
+#include "core/object_internal/drawer/file.hpp"
+#include "core/object_internal/object_mutator.hpp"
+#include "core/object.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
 #include "utilities/clock.hpp"

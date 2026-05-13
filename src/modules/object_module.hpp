@@ -30,7 +30,7 @@
 #include <string>
 
 #include "machine/rlmodule.hpp"
-#include "systems/graphics_object.hpp"
+#include "core/object.hpp"
 
 class RLModule;
 class RLOperation;

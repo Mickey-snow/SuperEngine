@@ -23,7 +23,7 @@
 
 #include <gtest/gtest.h>
 
-#include "systems/graphics_object.hpp"
+#include "core/object.hpp"
 
 class GraphicsObjectTest : public ::testing::Test {
  protected:

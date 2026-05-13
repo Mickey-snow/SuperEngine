@@ -35,7 +35,6 @@ file(GLOB_RECURSE RLVM_SRC_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/long_operations/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/machine/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/modules/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/object/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/utilities/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/systems/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/log/*.cpp"

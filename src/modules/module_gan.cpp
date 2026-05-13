@@ -35,9 +35,9 @@
 #include "machine/rloperation.hpp"
 #include "machine/rloperation/rlop_store.hpp"
 #include "modules/module_obj.hpp"
-#include "object/drawer/gan.hpp"
-#include "object/drawer/parent.hpp"
-#include "systems/graphics_object.hpp"
+#include "core/object_internal/drawer/gan.hpp"
+#include "core/object_internal/drawer/parent.hpp"
+#include "core/object.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
 

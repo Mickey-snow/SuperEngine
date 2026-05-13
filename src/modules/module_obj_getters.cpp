@@ -33,8 +33,8 @@
 #include "machine/rloperation/reference_types.hpp"
 #include "machine/rloperation/rlop_store.hpp"
 #include "modules/module_obj.hpp"
-#include "object/parameter_manager.hpp"
-#include "systems/graphics_object.hpp"
+#include "core/object_internal/parameter_manager.hpp"
+#include "core/object.hpp"
 
 #include <functional>
 

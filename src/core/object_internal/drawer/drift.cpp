@@ -28,13 +28,13 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/serialization/export.hpp>
 
-#include "object/drawer/drift.hpp"
+#include "core/object_internal/drawer/drift.hpp"
 
 #include <string>
 #include <vector>
 
 #include "core/rect.hpp"
-#include "systems/graphics_object.hpp"
+#include "core/object.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
 #include "systems/event_system.hpp"

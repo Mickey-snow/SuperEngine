@@ -24,7 +24,7 @@
 
 #include <gtest/gtest.h>
 
-#include "object/parameter_manager.hpp"
+#include "core/object_internal/parameter_manager.hpp"
 
 class ScapegoatTest : public ::testing::Test {
  protected:

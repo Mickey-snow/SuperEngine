@@ -28,13 +28,13 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/serialization/export.hpp>
 
-#include "object/drawer/digits.hpp"
+#include "core/object_internal/drawer/digits.hpp"
 
 #include <algorithm>
 #include <iostream>
 
 #include "core/colour.hpp"
-#include "systems/graphics_object.hpp"
+#include "core/object.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
 #include "systems/sdl/sdl_surface.hpp"

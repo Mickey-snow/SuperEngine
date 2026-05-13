@@ -25,7 +25,7 @@
 //
 // -----------------------------------------------------------------------
 
-#include "object/objdrawer.hpp"
+#include "core/object_internal/objdrawer.hpp"
 
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
@@ -33,7 +33,7 @@
 
 #include "core/localrect.hpp"
 #include "core/rect.hpp"
-#include "systems/graphics_object.hpp"
+#include "core/object.hpp"
 #include "systems/sdl/glrenderer.hpp"
 #include "systems/sdl/sdl_surface.hpp"
 

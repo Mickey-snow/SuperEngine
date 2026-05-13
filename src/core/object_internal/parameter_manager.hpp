@@ -24,8 +24,8 @@
 
 #pragma once
 
-#include "object/bst.hpp"
-#include "object/properties.hpp"
+#include "core/object_internal/bst.hpp"
+#include "core/object_internal/properties.hpp"
 #include "utilities/mpl.hpp"
 
 #include <functional>

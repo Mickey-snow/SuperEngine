@@ -38,7 +38,7 @@
 #include "machine/rlmachine.hpp"
 #include "machine/rloperation.hpp"
 #include "machine/rloperation/rlop_store.hpp"
-#include "systems/graphics_object.hpp"
+#include "core/object.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
 #include "systems/text_system.hpp"

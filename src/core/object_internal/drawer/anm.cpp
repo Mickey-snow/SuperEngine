@@ -23,9 +23,9 @@
 //
 // -----------------------------------------------------------------------
 
-#include "object/drawer/anm.hpp"
+#include "core/object_internal/drawer/anm.hpp"
 
-#include "systems/graphics_object.hpp"
+#include "core/object.hpp"
 #include "systems/sdl/sdl_surface.hpp"
 #include "utilities/clock.hpp"
 

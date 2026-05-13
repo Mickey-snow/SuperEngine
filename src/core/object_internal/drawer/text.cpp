@@ -29,13 +29,13 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/serialization/export.hpp>
 
-#include "object/drawer/text.hpp"
+#include "core/object_internal/drawer/text.hpp"
 
 #include <ostream>
 #include <vector>
 
 #include "core/gameexe.hpp"
-#include "systems/graphics_object.hpp"
+#include "core/object.hpp"
 #include "systems/system.hpp"
 #include "systems/text_system.hpp"
 #include "systems/sdl/sdl_surface.hpp"

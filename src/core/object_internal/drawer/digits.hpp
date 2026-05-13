@@ -33,7 +33,7 @@
 
 #include "machine/rlmachine.hpp"
 #include "machine/serialization.hpp"
-#include "object/objdrawer.hpp"
+#include "core/object_internal/objdrawer.hpp"
 
 class GraphicsObject;
 class SDLSurface;

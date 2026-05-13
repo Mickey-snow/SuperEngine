@@ -22,7 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#include "object/properties.hpp"
+#include "core/object_internal/properties.hpp"
 
 #include <sstream>
 

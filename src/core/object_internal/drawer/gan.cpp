@@ -29,10 +29,10 @@
 // (which translates binary GAN files to and from an XML
 // representation), found at rldev/src/rlxml/gan.ml.
 
-#include "object/drawer/gan.hpp"
+#include "core/object_internal/drawer/gan.hpp"
 
-#include "object/animator.hpp"
-#include "systems/graphics_object.hpp"
+#include "core/object_internal/animator.hpp"
+#include "core/object.hpp"
 #include "systems/sdl/sdl_surface.hpp"
 #include "utilities/clock.hpp"
 

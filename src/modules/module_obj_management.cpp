@@ -33,8 +33,8 @@
 #include "machine/rlmodule.hpp"
 #include "machine/rloperation.hpp"
 #include "modules/module_obj.hpp"
-#include "object/drawer/parent.hpp"
-#include "systems/graphics_object.hpp"
+#include "core/object_internal/drawer/parent.hpp"
+#include "core/object.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
 

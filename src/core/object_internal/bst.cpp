@@ -22,7 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#include "object/parameter_manager.hpp"
+#include "core/object_internal/parameter_manager.hpp"
 
 #include <stdexcept>
 

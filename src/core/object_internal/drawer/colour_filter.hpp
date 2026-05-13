@@ -7,7 +7,7 @@
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2007 Elliot Glaysher
+// Copyright (C) 2011 Elliot Glaysher
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,63 +22,38 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
-//
 // -----------------------------------------------------------------------
 
 #pragma once
 
-#include <memory>
-#include <string>
-
+#include "core/rect.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/serialization.hpp"
-#include "object/animator.hpp"
-#include "object/objdrawer.hpp"
-#include "object/service_locator.hpp"
+#include "core/object_internal/objdrawer.hpp"
 
-class System;
-class SDLSurface;
-class RLMachine;
+#include <memory>
 
-// -----------------------------------------------------------------------
+class GraphicsObject;
 
-// GraphicsObjectData class that encapsulates a G00 or ANM file.
-//
-// GraphicsObjectOfFile is used for loading individual bitmaps into an
-// object. It has support for normal display, and also
-class GraphicsObjectOfFile : public GraphicsObjectData {
+class ColourFilterObjectData : public GraphicsObjectData {
  public:
-  GraphicsObjectOfFile(std::shared_ptr<SDLSurface> surface);
-  virtual ~GraphicsObjectOfFile();
+  ColourFilterObjectData(const Rect& screen_rect);
+  virtual ~ColourFilterObjectData();
 
-  virtual int PixelWidth(const GraphicsObject& rp) override;
-  virtual int PixelHeight(const GraphicsObject& rp) override;
+  void set_rect(const Rect& screen_rect) { screen_rect_ = screen_rect; }
 
+  // Overridden from GraphicsObjectData:
+  virtual void Render(const GraphicsObject& go,
+                      const GraphicsObject* parent) override;
+  virtual int PixelWidth(const GraphicsObject& rendering_properties) override;
+  virtual int PixelHeight(const GraphicsObject& rendering_properties) override;
   virtual std::unique_ptr<GraphicsObjectData> Clone() const override;
-
   virtual void Execute(RLMachine& machine) override;
-  void Execute();
-
-  virtual void PlaySet(int set) override;
-
-  virtual Animator const* GetAnimator() const override;
-  virtual Animator* GetAnimator() override;
 
  protected:
   virtual std::shared_ptr<const SDLSurface> CurrentSurface(
-      const GraphicsObject& go) override;
-  virtual Rect SrcRect(const GraphicsObject& go) override;
+      const GraphicsObject& rp) override;
 
  private:
-  Animator animator_;
-
-  // The encapsulated surface to render
-  std::shared_ptr<SDLSurface> surface_;
-
-  // Number of milliseconds to spend on a single frame in the
-  // animation
-  unsigned int frame_time_;
-
-  // Current frame displayed (when animating)
-  int current_frame_;
+  Rect screen_rect_;
 };
