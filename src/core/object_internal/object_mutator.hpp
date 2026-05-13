@@ -31,9 +31,6 @@
 
 class FrameCounter;
 class ObjectParameter;
-class GraphicsObject;
-class RLMachine;
-class RenderingService;
 
 struct Mutator {
   using SetFn = std::function<void(ObjectParameter&, int)>;
@@ -72,9 +69,6 @@ class ObjectMutator {
   }
 
   void OnComplete(DoneFn fn);
-
-  bool operator()(RLMachine& machine, GraphicsObject& go);
-  bool operator()(RenderingService& locator, ObjectParameter& pm);
 
   bool Update(ObjectParameter& pm);
   void SetToEnd(ObjectParameter& pm);

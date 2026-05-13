@@ -32,8 +32,8 @@
 #include "glm/matrix.hpp"
 
 #include "core/localrect.hpp"
-#include "core/rect.hpp"
 #include "core/object.hpp"
+#include "core/rect.hpp"
 #include "systems/sdl/glrenderer.hpp"
 #include "systems/sdl/sdl_surface.hpp"
 
@@ -206,3 +206,5 @@ int GraphicsObjectData::GetRenderingAlpha(const GraphicsObject& go,
 void GraphicsObjectData::PlaySet(int set) {}
 
 bool GraphicsObjectData::IsParentLayer() const { return false; }
+
+void GraphicsObjectData::Execute() {}

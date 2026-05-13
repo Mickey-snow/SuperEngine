@@ -33,12 +33,12 @@
 #include <string>
 #include <vector>
 
-#include "core/rect.hpp"
 #include "core/object.hpp"
-#include "systems/graphics_system.hpp"
-#include "systems/system.hpp"
+#include "core/rect.hpp"
 #include "systems/event_system.hpp"
+#include "systems/graphics_system.hpp"
 #include "systems/sdl/sdl_surface.hpp"
+#include "systems/system.hpp"
 #include "utilities/graphics.hpp"
 
 namespace {
@@ -187,8 +187,6 @@ int DriftGraphicsObject::PixelHeight(const GraphicsObject& go) {
 std::unique_ptr<GraphicsObjectData> DriftGraphicsObject::Clone() const {
   return std::make_unique<DriftGraphicsObject>(*this);
 }
-
-void DriftGraphicsObject::Execute(RLMachine&) {}
 
 std::shared_ptr<const SDLSurface> DriftGraphicsObject::CurrentSurface(
     const GraphicsObject& rp) {

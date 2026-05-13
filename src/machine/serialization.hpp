@@ -33,6 +33,7 @@
 
 class RLMachine;
 class Memory;
+class System;
 
 namespace Serialization {
 
@@ -44,6 +45,8 @@ namespace Serialization {
 // @warning We're using what is essentially a piece of static data
 //          here; this is a likely location for errors
 extern RLMachine* g_current_machine;
+
+System& currentSystem();
 
 void saveGlobalMemory(RLMachine& machine);
 void saveGlobalMemoryTo(std::ostream& oss, RLMachine& machine);

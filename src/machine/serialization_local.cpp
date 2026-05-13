@@ -69,6 +69,12 @@ RLMachine* g_current_machine = NULL;
 
 const int CURRENT_LOCAL_VERSION = 2;
 
+System& currentSystem() {
+  if (!g_current_machine)
+    throw std::runtime_error("No active serialization machine context");
+  return g_current_machine->GetSystem();
+}
+
 }  // namespace Serialization
 
 namespace {

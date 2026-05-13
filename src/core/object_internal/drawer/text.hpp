@@ -34,7 +34,6 @@
 
 #include "core/object_internal/objdrawer.hpp"
 #include "core/object_internal/object_parameter.hpp"
-#include "machine/rlmachine.hpp"
 #include "machine/serialization.hpp"
 
 class GraphicsObject;
@@ -55,7 +54,6 @@ class GraphicsTextObject : public GraphicsObjectData {
   virtual int PixelHeight(const GraphicsObject& rendering_properties) override;
 
   virtual std::unique_ptr<GraphicsObjectData> Clone() const override;
-  virtual void Execute(RLMachine& machine) override;
 
  protected:
   virtual std::shared_ptr<const SDLSurface> CurrentSurface(
@@ -91,7 +89,7 @@ template <class Archive>
 inline void load_construct_data(Archive& ar,
                                 GraphicsTextObject* t,
                                 const unsigned int file_version) {
-  ::new (t) GraphicsTextObject(Serialization::g_current_machine->GetSystem());
+  ::new (t) GraphicsTextObject(Serialization::currentSystem());
 }
 }  // namespace serialization
 }  // namespace boost

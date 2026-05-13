@@ -73,8 +73,6 @@ std::unique_ptr<GraphicsObjectData> DigitsGraphicsObject::Clone() const {
   return std::make_unique<DigitsGraphicsObject>(*this);
 }
 
-void DigitsGraphicsObject::Execute(RLMachine& machine) {}
-
 std::shared_ptr<const SDLSurface> DigitsGraphicsObject::CurrentSurface(
     const GraphicsObject& go) {
   if (NeedsUpdate(go))

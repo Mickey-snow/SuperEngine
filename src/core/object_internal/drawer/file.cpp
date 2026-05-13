@@ -75,7 +75,6 @@ std::unique_ptr<GraphicsObjectData> GraphicsObjectOfFile::Clone() const {
 
 // -----------------------------------------------------------------------
 
-void GraphicsObjectOfFile::Execute(RLMachine&) { Execute(); }
 void GraphicsObjectOfFile::Execute() {
   if (!animator_.IsPlaying())
     return;

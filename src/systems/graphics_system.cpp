@@ -607,7 +607,7 @@ void GraphicsSystem::ExecuteGraphicsSystem(RLMachine& machine) {
   // Check to see if any of the graphics objects are reporting that
   // they want to force a redraw
   for (GraphicsObject& obj : GetForegroundObjects())
-    obj.Execute(machine);
+    obj.Execute();
 
   if (mouse_cursor_)
     mouse_cursor_->Execute(system());

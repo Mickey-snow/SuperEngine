@@ -26,8 +26,6 @@
 
 #include "core/frame_counter.hpp"
 #include "core/object_internal/object_parameter.hpp"
-#include "core/object_internal/service_locator.hpp"
-#include "core/object.hpp"
 
 #include <algorithm>
 #include <functional>
@@ -55,17 +53,6 @@ ObjectMutator ObjectMutator::DeepCopy() const {
 }
 
 void ObjectMutator::OnComplete(DoneFn fn) { on_complete_ = std::move(fn); }
-
-bool ObjectMutator::operator()(RLMachine& machine, GraphicsObject& go) {
-  RenderingService locator(machine);
-  return this->operator()(locator, go.Param());
-}
-
-bool ObjectMutator::operator()(RenderingService& locator,
-                               ObjectParameter& pm) {
-  locator.MarkObjStateDirty();
-  return Update(pm);
-}
 
 bool ObjectMutator::Update(ObjectParameter& pm) {
   auto it = std::remove_if(mutators_.begin(), mutators_.end(),

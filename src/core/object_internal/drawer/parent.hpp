@@ -30,8 +30,8 @@
 
 #include <iosfwd>
 
-#include "core/object_internal/objdrawer.hpp"
 #include "core/object.hpp"
+#include "core/object_internal/objdrawer.hpp"
 #include "utilities/lazy_array.hpp"
 
 /**
@@ -117,7 +117,7 @@ class ParentGraphicsObjectData : public GraphicsObjectData {
   virtual int PixelWidth(const GraphicsObject& rendering_properties) override;
   virtual int PixelHeight(const GraphicsObject& rendering_properties) override;
   virtual std::unique_ptr<GraphicsObjectData> Clone() const override;
-  virtual void Execute(RLMachine& machine) override;
+  virtual void Execute() override;
 
   virtual bool IsParentLayer() const override { return true; }
 

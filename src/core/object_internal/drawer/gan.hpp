@@ -33,7 +33,6 @@
 
 class SDLSurface;
 class System;
-class RLMachine;
 class GraphicsObject;
 
 // -----------------------------------------------------------------------
@@ -52,7 +51,7 @@ class GanGraphicsObjectData : public GraphicsObjectData {
   virtual int PixelHeight(const GraphicsObject& rendering_properties) override;
 
   virtual std::unique_ptr<GraphicsObjectData> Clone() const override;
-  virtual void Execute(RLMachine& machine) override;
+  virtual void Execute() override;
 
   virtual void PlaySet(int set) override;
 

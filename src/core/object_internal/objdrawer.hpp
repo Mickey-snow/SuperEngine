@@ -35,7 +35,6 @@
 
 class GraphicsObject;
 class Point;
-class RLMachine;
 class Rect;
 class SDLSurface;
 class Animator;
@@ -58,7 +57,7 @@ class GraphicsObjectData {
 
   virtual std::unique_ptr<GraphicsObjectData> Clone() const = 0;
 
-  virtual void Execute(RLMachine& machine) = 0;
+  virtual void Execute() ;
 
   // Whether this object data owns another layer of objects.
   virtual bool IsParentLayer() const;

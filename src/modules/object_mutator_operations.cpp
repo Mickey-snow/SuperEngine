@@ -198,7 +198,7 @@ void Op_EndObjectMutation_Normal::operator()(RLMachine& machine,
                                              int object,
                                              int speedup) {
   GetGraphicsObject(machine, this, object)
-      .EndObjectMutatorMatching(machine, -1, name_, speedup);
+      .EndObjectMutatorMatching(-1, name_, speedup);
 }
 
 // -----------------------------------------------------------------------
@@ -213,7 +213,7 @@ void Op_EndObjectMutation_RepNo::operator()(RLMachine& machine,
                                             int repno,
                                             int speedup) {
   GetGraphicsObject(machine, this, object)
-      .EndObjectMutatorMatching(machine, repno, name_, speedup);
+      .EndObjectMutatorMatching(repno, name_, speedup);
 }
 
 // -----------------------------------------------------------------------

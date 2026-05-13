@@ -27,8 +27,6 @@
 #pragma once
 
 #include "core/rect.hpp"
-#include "machine/rlmachine.hpp"
-#include "machine/serialization.hpp"
 #include "core/object_internal/objdrawer.hpp"
 
 #include <memory>
@@ -48,7 +46,6 @@ class ColourFilterObjectData : public GraphicsObjectData {
   virtual int PixelWidth(const GraphicsObject& rendering_properties) override;
   virtual int PixelHeight(const GraphicsObject& rendering_properties) override;
   virtual std::unique_ptr<GraphicsObjectData> Clone() const override;
-  virtual void Execute(RLMachine& machine) override;
 
  protected:
   virtual std::shared_ptr<const SDLSurface> CurrentSurface(

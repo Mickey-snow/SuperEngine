@@ -86,10 +86,6 @@ std::unique_ptr<GraphicsObjectData> ColourFilterObjectData::Clone() const {
   return std::make_unique<ColourFilterObjectData>(screen_rect_);
 }
 
-void ColourFilterObjectData::Execute(RLMachine& machine) {
-  // Nothing to do.
-}
-
 std::shared_ptr<const SDLSurface> ColourFilterObjectData::CurrentSurface(
     const GraphicsObject&) {
   return std::shared_ptr<const SDLSurface>();

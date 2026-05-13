@@ -31,7 +31,6 @@
 #include <memory>
 #include <string>
 
-#include "machine/rlmachine.hpp"
 #include "machine/serialization.hpp"
 #include "core/object_internal/objdrawer.hpp"
 
@@ -49,7 +48,6 @@ class DigitsGraphicsObject : public GraphicsObjectData {
   virtual int PixelHeight(const GraphicsObject& rendering_properties) override;
 
   virtual std::unique_ptr<GraphicsObjectData> Clone() const override;
-  virtual void Execute(RLMachine& machine) override;
 
  protected:
   virtual std::shared_ptr<const SDLSurface> CurrentSurface(
@@ -91,7 +89,7 @@ template <class Archive>
 inline void load_construct_data(Archive& ar,
                                 DigitsGraphicsObject* t,
                                 const unsigned int file_version) {
-  ::new (t) DigitsGraphicsObject(Serialization::g_current_machine->GetSystem());
+  ::new (t) DigitsGraphicsObject(Serialization::currentSystem());
 }
 }  // namespace serialization
 }  // namespace boost

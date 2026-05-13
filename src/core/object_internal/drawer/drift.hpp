@@ -33,9 +33,8 @@
 #include <string>
 #include <vector>
 
-#include "machine/rlmachine.hpp"
-#include "machine/serialization.hpp"
 #include "core/object_internal/objdrawer.hpp"
+#include "machine/serialization.hpp"
 
 class GraphicsObject;
 class SDLSurface;
@@ -64,7 +63,6 @@ class DriftGraphicsObject : public GraphicsObjectData {
   virtual int PixelWidth(const GraphicsObject& rendering_properties) override;
   virtual int PixelHeight(const GraphicsObject& rendering_properties) override;
   virtual std::unique_ptr<GraphicsObjectData> Clone() const override;
-  virtual void Execute(RLMachine& machine) override;
 
  protected:
   virtual std::shared_ptr<const SDLSurface> CurrentSurface(
@@ -122,7 +120,7 @@ template <class Archive>
 inline void load_construct_data(Archive& ar,
                                 DriftGraphicsObject* t,
                                 const unsigned int file_version) {
-  ::new (t) DriftGraphicsObject(Serialization::g_current_machine->GetSystem());
+  ::new (t) DriftGraphicsObject(Serialization::currentSystem());
 }
 }  // namespace serialization
 }  // namespace boost

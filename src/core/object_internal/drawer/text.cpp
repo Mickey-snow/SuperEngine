@@ -36,9 +36,9 @@
 
 #include "core/gameexe.hpp"
 #include "core/object.hpp"
+#include "systems/sdl/sdl_surface.hpp"
 #include "systems/system.hpp"
 #include "systems/text_system.hpp"
-#include "systems/sdl/sdl_surface.hpp"
 
 // -----------------------------------------------------------------------
 
@@ -119,10 +119,6 @@ int GraphicsTextObject::PixelHeight(const GraphicsObject& rp) {
 std::unique_ptr<GraphicsObjectData> GraphicsTextObject::Clone() const {
   return std::make_unique<GraphicsTextObject>(*this);
 }
-
-// -----------------------------------------------------------------------
-
-void GraphicsTextObject::Execute(RLMachine& machine) {}
 
 // -----------------------------------------------------------------------
 

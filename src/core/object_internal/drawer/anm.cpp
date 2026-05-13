@@ -48,7 +48,7 @@ AnmGraphicsObjectData::AnmGraphicsObjectData(std::shared_ptr<SDLSurface> surface
 
 AnmGraphicsObjectData::~AnmGraphicsObjectData() = default;
 
-void AnmGraphicsObjectData::Execute(RLMachine&) {
+void AnmGraphicsObjectData::Execute() {
   if (animator_.IsPlaying())
     AdvanceFrame();
 }

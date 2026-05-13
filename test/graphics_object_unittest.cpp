@@ -24,6 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "core/object.hpp"
+#include "core/object_internal/object_mutator.hpp"
 
 class GraphicsObjectTest : public ::testing::Test {
  protected:
@@ -56,4 +57,12 @@ TEST_F(GraphicsObjectTest, Clone) {
   EXPECT_EQ(other.Param().position_x, 100);
   EXPECT_EQ(other.Param().position_y, 20);
   EXPECT_EQ(obj.Param().position_x, 10);
+}
+
+TEST_F(GraphicsObjectTest, EndObjectMutatorMatching) {
+  obj.AddObjectMutator(ObjectMutator({}, -1, "fade"));
+  EXPECT_TRUE(obj.IsMutatorRunningMatching(-1, "fade"));
+
+  obj.EndObjectMutatorMatching(-1, "fade", 0);
+  EXPECT_FALSE(obj.IsMutatorRunningMatching(-1, "fade"));
 }

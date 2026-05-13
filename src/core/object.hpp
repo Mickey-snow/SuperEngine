@@ -28,14 +28,14 @@
 #include <boost/serialization/version.hpp>
 
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
 
 #include "core/colour.hpp"
-#include "core/rect.hpp"
 #include "core/object_internal/object_parameter.hpp"
+#include "core/rect.hpp"
 
-class RLMachine;
 class GraphicsObjectSlot;
 class GraphicsObjectData;
 class ObjectMutator;
@@ -83,7 +83,7 @@ class GraphicsObject {
 
   // Called each pass through the gameloop to see if this object needs
   // to force a redraw, or something.
-  void Execute(RLMachine& machine);
+  void Execute();
   void ExecuteMutators();
 
   // Adds a mutator to the list of active mutators. GraphicsSystem takes
@@ -95,8 +95,7 @@ class GraphicsObject {
   bool IsMutatorRunningMatching(int repno, const std::string& name);
 
   // Ends all mutators that match the given parameters.
-  void EndObjectMutatorMatching(RLMachine& machine,
-                                int repno,
+  void EndObjectMutatorMatching(int repno,
                                 const std::string& name,
                                 int speedup);
 

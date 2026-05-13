@@ -135,8 +135,7 @@ bool GraphicsObject::IsMutatorRunningMatching(int repno,
       [&](const auto& it) { return it.OperationMatches(repno, name); });
 }
 
-void GraphicsObject::EndObjectMutatorMatching(RLMachine& machine,
-                                              int repno,
+void GraphicsObject::EndObjectMutatorMatching(int repno,
                                               const std::string& name,
                                               int speedup) {
   if (speedup == 0) {
@@ -180,9 +179,9 @@ void GraphicsObject::FreeDataAndInitializeParams() {
   object_mutators_.clear();
 }
 
-void GraphicsObject::Execute(RLMachine& machine) {
+void GraphicsObject::Execute() {
   if (object_data_) {
-    object_data_->Execute(machine);
+    object_data_->Execute();
 
     auto should_delete = [](GraphicsObjectData* it) -> bool {
       auto animator = it->GetAnimator();

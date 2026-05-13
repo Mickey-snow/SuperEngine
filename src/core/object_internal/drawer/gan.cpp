@@ -31,8 +31,8 @@
 
 #include "core/object_internal/drawer/gan.hpp"
 
-#include "core/object_internal/animator.hpp"
 #include "core/object.hpp"
+#include "core/object_internal/animator.hpp"
 #include "systems/sdl/sdl_surface.hpp"
 #include "utilities/clock.hpp"
 
@@ -86,7 +86,7 @@ std::unique_ptr<GraphicsObjectData> GanGraphicsObjectData::Clone() const {
   return std::make_unique<GanGraphicsObjectData>(*this);
 }
 
-void GanGraphicsObjectData::Execute(RLMachine&) {
+void GanGraphicsObjectData::Execute() {
   // obtain delta time first to avoid adding up when paused
   unsigned int deltaTime = static_cast<unsigned int>(
       std::chrono::duration_cast<std::chrono::milliseconds>(

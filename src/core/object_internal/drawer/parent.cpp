@@ -82,9 +82,9 @@ std::unique_ptr<GraphicsObjectData> ParentGraphicsObjectData::Clone() const {
   return cloned;
 }
 
-void ParentGraphicsObjectData::Execute(RLMachine& machine) {
+void ParentGraphicsObjectData::Execute() {
   for (GraphicsObject& obj : objects_)
-    obj.Execute(machine);
+    obj.Execute();
 }
 
 std::shared_ptr<const SDLSurface> ParentGraphicsObjectData::CurrentSurface(

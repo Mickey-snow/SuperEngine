@@ -30,15 +30,11 @@
 #include <memory>
 #include <string>
 
-#include "machine/rlmachine.hpp"
-#include "machine/serialization.hpp"
 #include "core/object_internal/animator.hpp"
 #include "core/object_internal/objdrawer.hpp"
-#include "core/object_internal/service_locator.hpp"
 
 class System;
 class SDLSurface;
-class RLMachine;
 
 // -----------------------------------------------------------------------
 
@@ -56,8 +52,7 @@ class GraphicsObjectOfFile : public GraphicsObjectData {
 
   virtual std::unique_ptr<GraphicsObjectData> Clone() const override;
 
-  virtual void Execute(RLMachine& machine) override;
-  void Execute();
+  virtual void Execute() override;
 
   virtual void PlaySet(int set) override;
 
