@@ -66,42 +66,51 @@ class SiglusMwnd {
 void BindMwnd(Context&, SiglusRuntime& runtime) {
   sr::VM& vm = *runtime.vm;
 
-  sb::module_ m(vm.gc_.get(), vm.globals_.get());
-  sb::class_<SiglusMwnd> mwnd(m, "Mwnd");
+  {
+    sb::module_ m(vm.gc_.get(), vm.globals_.get());
+    sb::class_<SiglusMwnd> mwnd(m, "Mwnd");
 
-  mwnd.def(sb::init([sys = runtime.system.get()](int id) -> SiglusMwnd* {
-             TextSystem& text = sys->text();
-             if (auto wd = text.GetTextWindow(id)) {
-               return new SiglusMwnd(wd, *sys);
-             } else
-               throw std::runtime_error("Failed to create text window " +
-                                        std::to_string(id));
-           }),
-           sb::arg("id") = 0);
-  mwnd.def("disp", &SiglusMwnd::DisplayCharacter, sb::arg("current"),
-           sb::arg("rest") = "");
-  mwnd.def("disp_ruby", &SiglusMwnd::DisplayRuby, sb::arg("ruby_text"));
-  mwnd.def("clear", &SiglusMwnd::Clear);
-  mwnd.def("set_font_color", &SiglusMwnd::SetFontColor, sb::arg("r"),
-           sb::arg("g"), sb::arg("b"));
+    mwnd.def(sb::init([sys = runtime.system.get()](int id) -> SiglusMwnd* {
+               TextSystem& text = sys->text();
+               if (auto wd = text.GetTextWindow(id)) {
+                 return new SiglusMwnd(wd, *sys);
+               } else
+                 throw std::runtime_error("Failed to create text window " +
+                                          std::to_string(id));
+             }),
+             sb::arg("id") = 0);
+    mwnd.def("disp", &SiglusMwnd::DisplayCharacter, sb::arg("current"),
+             sb::arg("rest") = "");
+    mwnd.def("disp_ruby", &SiglusMwnd::DisplayRuby, sb::arg("ruby_text"));
+    mwnd.def("clear", &SiglusMwnd::Clear);
+    mwnd.def("set_font_color", &SiglusMwnd::SetFontColor, sb::arg("r"),
+             sb::arg("g"), sb::arg("b"));
 
-  m.def("msg_block", []() {
-    bool msgblk_started = false;
-    bool clear_when_ready = false;
+    m.def("msg_block", []() {
+      bool msgblk_started = false;
+      bool clear_when_ready = false;
 
-    if (msgblk_started)
-      return;
+      if (msgblk_started)
+        return;
 
-    if (clear_when_ready) {
-      // TODO: クリア準備フラグが立っているならクリアする
-      // 1. mwndのクリア
-      // 2. シングルトンのフルメッセージのクリア
-    }
+      if (clear_when_ready) {
+        // TODO: クリア準備フラグが立っているならクリアする
+        // 1. mwndのクリア
+        // 2. シングルトンのフルメッセージのクリア
+      }
 
-    // TODO: いろいろクリア処理とセーブ
-  });
+      // TODO: いろいろクリア処理とセーブ
+    });
+  }
+
+  {
+    sb::module_ m(vm, "mwnd");
+    m.def("close", [] { /* TODO*/ });
+    m.def("close_nowait", [] { /* TODO*/ });
+    m.def("close_wait", [] { /* TODO*/ });
+  }
 }
 
-RLVM_REGISTER(SiglusBindingRegistry, "mwnd", BindMwnd)
+RLVM_REGISTER(SiglusBindingRegistry, "0_mwnd", BindMwnd)
 
 }  // namespace libsiglus::binding
