@@ -36,11 +36,11 @@
 #include "core/colour.hpp"
 #include "core/object.hpp"
 #include "systems/graphics_system.hpp"
-#include "systems/system.hpp"
 #include "systems/sdl/gl_frame_buffer.hpp"
 #include "systems/sdl/glrenderer.hpp"
 #include "systems/sdl/gltexture.hpp"
 #include "systems/sdl/sdl_surface.hpp"
+#include "systems/system.hpp"
 
 ColourFilterObjectData::ColourFilterObjectData(const Rect& screen_rect)
     : screen_rect_(screen_rect) {}
@@ -63,8 +63,15 @@ void ColourFilterObjectData::Render(const GraphicsObject& go,
 
   const Rect src(Point(0, 0), background->GetSize());
   const Rect dst(Point(0, 0), screen_canvas->GetSize());
-  glRenderer().Render({background, src}, go.CreateRenderingConfig(),
-                      {screen_canvas, dst});
+
+  RenderingConfig cfg;
+  cfg.blend_type = param.composite_mode;
+  cfg.color = param.colour();
+  cfg.tint = param.tint();
+  cfg.mono = param.mono();
+  cfg.invert = param.invert();
+  cfg.light = param.light();
+  glRenderer().Render({background, src}, cfg, {screen_canvas, dst});
 }
 
 int ColourFilterObjectData::PixelWidth(const GraphicsObject&) {

@@ -164,20 +164,6 @@ void GraphicsObject::Render(int objNum, const GraphicsObject* parent) {
   }
 }
 
-RenderingConfig GraphicsObject::CreateRenderingConfig() const {
-  RenderingConfig config;
-
-  const auto& param = Param();
-  config.blend_type = param.composite_mode;
-  config.color = param.colour();
-  config.tint = param.tint();
-  config.mono = param.mono();
-  config.invert = param.invert();
-  config.light = param.light();
-
-  return config;
-}
-
 void GraphicsObject::FreeObjectData() {
   object_data_.reset();
   object_mutators_.clear();

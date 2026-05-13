@@ -34,7 +34,6 @@
 #include "core/colour.hpp"
 #include "core/rect.hpp"
 #include "core/object_internal/object_parameter.hpp"
-#include "systems/sdl/glrenderer.hpp"
 
 class RLMachine;
 class GraphicsObjectSlot;
@@ -70,7 +69,6 @@ class GraphicsObject {
 
   // Render!
   void Render(int objNum, const GraphicsObject* parent);
-  RenderingConfig CreateRenderingConfig() const;
 
   // Frees the object data. Corresponds to objFree, but is also invoked by
   // other commands.
