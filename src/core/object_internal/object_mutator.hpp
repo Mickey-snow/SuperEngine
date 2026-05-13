@@ -30,21 +30,21 @@
 #include <vector>
 
 class FrameCounter;
-class ParameterManager;
+class ObjectParameter;
 class GraphicsObject;
 class RLMachine;
 class RenderingService;
 
 struct Mutator {
-  using SetFn = std::function<void(ParameterManager&, int)>;
+  using SetFn = std::function<void(ObjectParameter&, int)>;
   SetFn setter_;
   std::shared_ptr<FrameCounter> fc_;
 
-  bool Update(ParameterManager& pm) const;
+  bool Update(ObjectParameter& pm) const;
 };
 
 class ObjectMutator {
-  using DoneFn = std::function<void(ParameterManager&)>;
+  using DoneFn = std::function<void(ObjectParameter&)>;
   std::vector<Mutator> mutators_;
   int repr_;
   std::string name_;
@@ -74,8 +74,8 @@ class ObjectMutator {
   void OnComplete(DoneFn fn);
 
   bool operator()(RLMachine& machine, GraphicsObject& go);
-  bool operator()(RenderingService& locator, ParameterManager& pm);
+  bool operator()(RenderingService& locator, ObjectParameter& pm);
 
-  bool Update(ParameterManager& pm);
-  void SetToEnd(ParameterManager& pm);
+  bool Update(ObjectParameter& pm);
+  void SetToEnd(ObjectParameter& pm);
 };

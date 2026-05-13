@@ -31,7 +31,7 @@
 #include "machine/rlmachine.hpp"
 #include "modules/module_obj.hpp"
 #include "core/object_internal/object_mutator.hpp"
-#include "core/object_internal/parameter_manager.hpp"
+#include "core/object_internal/object_parameter.hpp"
 #include "core/object.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
@@ -170,7 +170,7 @@ void Op_ObjectMutatorIntInt::operator()(RLMachine& machine,
                                         int type) {
   std::shared_ptr<Clock> clock = machine.GetSystem().event().GetClock();
   GraphicsObject& obj = GetGraphicsObject(machine, this, object);
-  ParameterManager& pm = obj.Param();
+  ObjectParameter& pm = obj.Param();
 
   int startval_one = std::invoke(getter_one_, pm);
   int startval_two = std::invoke(getter_two_, pm);

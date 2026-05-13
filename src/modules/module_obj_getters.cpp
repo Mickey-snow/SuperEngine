@@ -33,7 +33,7 @@
 #include "machine/rloperation/reference_types.hpp"
 #include "machine/rloperation/rlop_store.hpp"
 #include "modules/module_obj.hpp"
-#include "core/object_internal/parameter_manager.hpp"
+#include "core/object_internal/object_parameter.hpp"
 #include "core/object.hpp"
 
 #include <functional>
@@ -44,7 +44,7 @@ namespace {
 
 class Obj_GetInt : public RLStoreOpcode<IntConstant_T> {
  public:
-  using Getter = std::function<int(const ParameterManager&)>;
+  using Getter = std::function<int(const ObjectParameter&)>;
 
   explicit Obj_GetInt(Getter getter) : getter_(getter) {}
   virtual ~Obj_GetInt() {}
@@ -129,27 +129,27 @@ struct objGetDims : public RLOpcode<IntConstant_T,
 void addFunctions(RLModule& m) {
   m.AddOpcode(1000, 0, "objGetPos", new objGetPos);
   m.AddOpcode(1001, 0, "objGetPosX",
-              new Obj_GetInt(CreateGetter<ObjectProperty::PositionX>()));
+              new Obj_GetInt(CreateGetter<&ObjectParameter::position_x>()));
   m.AddOpcode(1002, 0, "objGetPosY",
-              new Obj_GetInt(CreateGetter<ObjectProperty::PositionX>()));
+              new Obj_GetInt(CreateGetter<&ObjectParameter::position_x>()));
   m.AddOpcode(1003, 0, "objGetAlpha",
-              new Obj_GetInt(CreateGetter<ObjectProperty::AlphaSource>()));
+              new Obj_GetInt(CreateGetter<&ObjectParameter::alpha_source>()));
   m.AddOpcode(1004, 0, "objGetShow",
-              new Obj_GetInt(CreateGetter<ObjectProperty::IsVisible>()));
+              new Obj_GetInt(CreateGetter<&ObjectParameter::is_visible>()));
 
   m.AddOpcode(1006, 0, "objGetAdjust", new objGetAdjust);
   m.AddOpcode(1007, 0, "objGetAdjustX", new objGetAdjustX);
   m.AddOpcode(1008, 0, "objGetAdjustY", new objGetAdjustY);
   m.AddOpcode(
       1009, 0, "objGetMono",
-      new Obj_GetInt(CreateGetter<ObjectProperty::MonochromeTransform>()));
+      new Obj_GetInt(CreateGetter<&ObjectParameter::monochrome_transform>()));
   m.AddOpcode(1010, 0, "objGetInvert",
-              new Obj_GetInt(CreateGetter<ObjectProperty::InvertTransform>()));
+              new Obj_GetInt(CreateGetter<&ObjectParameter::invert_transform>()));
   m.AddOpcode(1011, 0, "objGetLight",
-              new Obj_GetInt(CreateGetter<ObjectProperty::LightLevel>()));
+              new Obj_GetInt(CreateGetter<&ObjectParameter::light_level>()));
 
   m.AddOpcode(1039, 0, "objGetPattNo",
-              new Obj_GetInt(CreateGetter<ObjectProperty::PatternNumber>()));
+              new Obj_GetInt(CreateGetter<&ObjectParameter::pattern_number>()));
   m.AddOpcode(1100, 0, "objGetDims", new objGetDims);
   m.AddOpcode(1100, 1, "objGetDims", new objGetDims);
 }

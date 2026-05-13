@@ -126,7 +126,7 @@ void GraphicsObjectData::Render(const GraphicsObject& go,
                         glm::vec3(0.0f, 0.0f, 1.0f));
     model = glm::translate(model, glm::vec3(-x_rep, -y_rep, 0.0f));
     config.model = model;
-    config.blend_type = param.composite_mode();
+    config.blend_type = param.composite_mode;
     config.color = param.colour();
     config.tint = param.tint();
     config.mono = param.mono();
@@ -144,8 +144,8 @@ Rect GraphicsObjectData::SrcRect(const GraphicsObject& go) {
 
 Point GraphicsObjectData::DstOrigin(const GraphicsObject& go) {
   auto& param = go.Param();
-  if (param.origin_x() || param.origin_y()) {
-    return Point(param.origin_x(), param.origin_y());
+  if (param.origin_x || param.origin_y) {
+    return Point(param.origin_x, param.origin_y);
   }
 
   std::shared_ptr<const SDLSurface> surface = CurrentSurface(go);

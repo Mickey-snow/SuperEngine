@@ -73,7 +73,7 @@ GraphicsObject::GraphicsObject(GraphicsObject&& rhs)
   }
   object_mutators_ = std::move(rhs.object_mutators_);
 
-  rhs.param_ = ParameterManager();
+  rhs.param_ = ObjectParameter();
 }
 
 GraphicsObject& GraphicsObject::operator=(GraphicsObject&& rhs) {
@@ -86,7 +86,7 @@ GraphicsObject& GraphicsObject::operator=(GraphicsObject&& rhs) {
 
   object_mutators_ = std::move(rhs.object_mutators_);
 
-  rhs.param_ = ParameterManager();
+  rhs.param_ = ObjectParameter();
 
   return *this;
 }
@@ -168,7 +168,7 @@ RenderingConfig GraphicsObject::CreateRenderingConfig() const {
   RenderingConfig config;
 
   const auto& param = Param();
-  config.blend_type = param.composite_mode();
+  config.blend_type = param.composite_mode;
   config.color = param.colour();
   config.tint = param.tint();
   config.mono = param.mono();
@@ -184,13 +184,13 @@ void GraphicsObject::FreeObjectData() {
 }
 
 void GraphicsObject::InitializeParams() {
-  param_ = ParameterManager();
+  param_ = ObjectParameter();
   object_mutators_.clear();
 }
 
 void GraphicsObject::FreeDataAndInitializeParams() {
   object_data_.reset();
-  param_ = ParameterManager();
+  param_ = ObjectParameter();
   object_mutators_.clear();
 }
 

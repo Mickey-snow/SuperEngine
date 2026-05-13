@@ -99,8 +99,7 @@ void DriftGraphicsObject::Render(const GraphicsObject& go,
   int use_drift = param.GetDriftUseDrift();
   int drift_speed = param.GetDriftDriftSpeed();
 
-  DriftProperties property = go.Param().Get<ObjectProperty::DriftProperties>();
-  Rect bounding_box = property.drift_area;
+  Rect bounding_box = param.drift.drift_area;
   if (bounding_box.x() == -1) {
     bounding_box = system_.graphics().screen_rect();
   }

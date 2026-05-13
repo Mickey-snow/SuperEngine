@@ -33,7 +33,7 @@
 #include <functional>
 
 class GraphicsObject;
-class ParameterManager;
+class ObjectParameter;
 
 // -----------------------------------------------------------------------
 
@@ -143,7 +143,7 @@ class Obj_CallFunction : public RLOpcode<IntConstant_T> {
 // structs.
 class Obj_SetOneIntOnObj : public RLOpcode<IntConstant_T, IntConstant_T> {
  public:
-  using Setter = std::function<void(ParameterManager&, int)>;
+  using Setter = std::function<void(ObjectParameter&, int)>;
 
   explicit Obj_SetOneIntOnObj(Setter s);
   virtual ~Obj_SetOneIntOnObj();
@@ -164,7 +164,7 @@ class Obj_SetOneIntOnObj : public RLOpcode<IntConstant_T, IntConstant_T> {
 class Obj_SetTwoIntOnObj
     : public RLOpcode<IntConstant_T, IntConstant_T, IntConstant_T> {
  public:
-  using Setter = std::function<void(ParameterManager&, int)>;
+  using Setter = std::function<void(ObjectParameter&, int)>;
 
   Obj_SetTwoIntOnObj(Setter one, Setter two);
   virtual ~Obj_SetTwoIntOnObj();
@@ -184,7 +184,7 @@ class Obj_SetTwoIntOnObj
 class Obj_SetRepnoIntOnObj
     : public RLOpcode<IntConstant_T, IntConstant_T, IntConstant_T> {
  public:
-  using Setter = std::function<void(ParameterManager&, int, int)>;
+  using Setter = std::function<void(ObjectParameter&, int, int)>;
 
   Obj_SetRepnoIntOnObj(Setter setter);
   virtual ~Obj_SetRepnoIntOnObj();

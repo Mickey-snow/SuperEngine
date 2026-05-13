@@ -25,7 +25,7 @@
 #include "core/object_internal/object_mutator.hpp"
 
 #include "core/frame_counter.hpp"
-#include "core/object_internal/parameter_manager.hpp"
+#include "core/object_internal/object_parameter.hpp"
 #include "core/object_internal/service_locator.hpp"
 #include "core/object.hpp"
 
@@ -33,7 +33,7 @@
 #include <functional>
 #include <utility>
 
-bool Mutator::Update(ParameterManager& pm) const {
+bool Mutator::Update(ObjectParameter& pm) const {
   float value = fc_->ReadFrame();
   std::invoke(setter_, pm, static_cast<int>(value));
   return fc_->IsFinished();
@@ -62,12 +62,12 @@ bool ObjectMutator::operator()(RLMachine& machine, GraphicsObject& go) {
 }
 
 bool ObjectMutator::operator()(RenderingService& locator,
-                               ParameterManager& pm) {
+                               ObjectParameter& pm) {
   locator.MarkObjStateDirty();
   return Update(pm);
 }
 
-bool ObjectMutator::Update(ParameterManager& pm) {
+bool ObjectMutator::Update(ObjectParameter& pm) {
   auto it = std::remove_if(mutators_.begin(), mutators_.end(),
                            [&pm](const auto& it) { return it.Update(pm); });
   mutators_.erase(it, mutators_.end());
@@ -77,7 +77,7 @@ bool ObjectMutator::Update(ParameterManager& pm) {
   return done;
 }
 
-void ObjectMutator::SetToEnd(ParameterManager& pm) {
+void ObjectMutator::SetToEnd(ObjectParameter& pm) {
   for (auto& it : mutators_) {
     it.fc_->EndTimer();
     it.Update(pm);

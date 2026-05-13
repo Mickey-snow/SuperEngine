@@ -310,11 +310,11 @@ class objEveAdjust : public RLOpcode<IntConstant_T,
     int start_y = object.Param().y_adjustment(repno);
 
     Mutator mutator_x{
-        .setter_ = std::bind(CreateSetter<ObjectProperty::AdjustmentOffsetsX>(),
+        .setter_ = std::bind(CreateSetter<&ObjectParameter::adjustment_offsets_x>(),
                              _1, repno, _2),
         .fc_ = MakeFrameCounter(duration_time, delay, start_x, x, type, clock)};
     Mutator mutator_y{
-        .setter_ = std::bind(CreateSetter<ObjectProperty::AdjustmentOffsetsY>(),
+        .setter_ = std::bind(CreateSetter<&ObjectParameter::adjustment_offsets_y>(),
                              _1, repno, _2),
         .fc_ = MakeFrameCounter(duration_time, delay, start_y, y, type, clock)};
     object.AddObjectMutator(ObjectMutator(
@@ -331,7 +331,7 @@ static void objEveDisplay_impl(GraphicsObject& object,
                                int move_mod,
                                int move_len_x,
                                int move_len_y) {
-  ParameterManager& pm = object.Param();
+  ObjectParameter& pm = object.Param();
 
   int tr_start = display ? 0 : 255, tr_end = display ? 255 : 0;
   int move_start_x = pm.x(), move_end_x = pm.x(), move_start_y = pm.y(),
@@ -349,25 +349,25 @@ static void objEveDisplay_impl(GraphicsObject& object,
   std::vector<Mutator> mutators;
   if (tr_mod) {
     mutators.emplace_back(
-        Mutator{.setter_ = CreateSetter<ObjectProperty::AlphaSource>(),
+        Mutator{.setter_ = CreateSetter<&ObjectParameter::alpha_source>(),
                 .fc_ = MakeFrameCounter(duration_time, delay, tr_start, tr_end,
                                         0, clock)});
   }
 
   if (move_mod) {
     mutators.emplace_back(
-        Mutator{.setter_ = CreateSetter<ObjectProperty::PositionX>(),
+        Mutator{.setter_ = CreateSetter<&ObjectParameter::position_x>(),
                 .fc_ = MakeFrameCounter(duration_time, delay, move_start_x,
                                         move_end_x, 0, clock)});
     mutators.emplace_back(
-        Mutator{.setter_ = CreateSetter<ObjectProperty::PositionY>(),
+        Mutator{.setter_ = CreateSetter<&ObjectParameter::position_y>(),
                 .fc_ = MakeFrameCounter(duration_time, delay, move_start_y,
                                         move_end_y, 0, clock)});
   }
 
   ObjectMutator om(std::move(mutators), -1, "objEveDisplay");
   if (display == 0) {
-    om.OnComplete([](ParameterManager& pm) { pm.SetVisible(false); });
+    om.OnComplete([](ObjectParameter& pm) { pm.SetVisible(false); });
   }
   object.AddObjectMutator(std::move(om));
 }
@@ -475,188 +475,167 @@ struct objEveDisplay_3 : public RLOpcode<IntConstant_T,
 
 void addUnifiedFunctions(ObjectModule& h) {
   h.AddDoubleObjectCommands(0, "Move",
-                            CreateGetter<ObjectProperty::PositionX>(),
-                            CreateSetter<ObjectProperty::PositionX>(),
-                            CreateGetter<ObjectProperty::PositionY>(),
-                            CreateSetter<ObjectProperty::PositionY>());
+                            CreateGetter<&ObjectParameter::position_x>(),
+                            CreateSetter<&ObjectParameter::position_x>(),
+                            CreateGetter<&ObjectParameter::position_y>(),
+                            CreateSetter<&ObjectParameter::position_y>());
   h.AddSingleObjectCommands(1, "Left",
-                            CreateGetter<ObjectProperty::PositionX>(),
-                            CreateSetter<ObjectProperty::PositionX>());
-  h.AddSingleObjectCommands(2, "Top", CreateGetter<ObjectProperty::PositionY>(),
-                            CreateSetter<ObjectProperty::PositionY>());
+                            CreateGetter<&ObjectParameter::position_x>(),
+                            CreateSetter<&ObjectParameter::position_x>());
+  h.AddSingleObjectCommands(2, "Top", CreateGetter<&ObjectParameter::position_y>(),
+                            CreateSetter<&ObjectParameter::position_y>());
   h.AddSingleObjectCommands(3, "Alpha",
-                            CreateGetter<ObjectProperty::AlphaSource>(),
-                            CreateSetter<ObjectProperty::AlphaSource>());
+                            CreateGetter<&ObjectParameter::alpha_source>(),
+                            CreateSetter<&ObjectParameter::alpha_source>());
 
   // ----
 
   h.AddCustomRepno<adjust, objEveAdjust>(6, "Adjust");
   h.AddRepnoObjectCommands(7, "AdjustX",
-                           CreateGetter<ObjectProperty::AdjustmentOffsetsX>(),
-                           CreateSetter<ObjectProperty::AdjustmentOffsetsX>());
+                           CreateGetter<&ObjectParameter::adjustment_offsets_x>(),
+                           CreateSetter<&ObjectParameter::adjustment_offsets_x>());
   h.AddRepnoObjectCommands(8, "AdjustY",
-                           CreateGetter<ObjectProperty::AdjustmentOffsetsY>(),
-                           CreateSetter<ObjectProperty::AdjustmentOffsetsY>());
+                           CreateGetter<&ObjectParameter::adjustment_offsets_y>(),
+                           CreateSetter<&ObjectParameter::adjustment_offsets_y>());
   h.AddSingleObjectCommands(
-      9, "Mono", CreateGetter<ObjectProperty::MonochromeTransform>(),
-      CreateSetter<ObjectProperty::MonochromeTransform>());
+      9, "Mono", CreateGetter<&ObjectParameter::monochrome_transform>(),
+      CreateSetter<&ObjectParameter::monochrome_transform>());
   h.AddSingleObjectCommands(10, "Invert",
-                            CreateGetter<ObjectProperty::InvertTransform>(),
-                            CreateSetter<ObjectProperty::InvertTransform>());
+                            CreateGetter<&ObjectParameter::invert_transform>(),
+                            CreateSetter<&ObjectParameter::invert_transform>());
   h.AddSingleObjectCommands(11, "Light",
-                            CreateGetter<ObjectProperty::LightLevel>(),
-                            CreateSetter<ObjectProperty::LightLevel>());
+                            CreateGetter<&ObjectParameter::light_level>(),
+                            CreateSetter<&ObjectParameter::light_level>());
 
   // ---
 
   h.AddSingleObjectCommands(
       13, "TintR",
-      [](const ParameterManager& param) {
-        auto colour = param.Get<ObjectProperty::TintColour>();
-        return colour.r();
+      [](const ObjectParameter& param) {
+        return param.tint_colour.r();
       },
-      [](ParameterManager& param, int value) {
-        auto colour = param.Get<ObjectProperty::TintColour>();
-        colour.set_red(value);
-        param.Set(ObjectProperty::TintColour, colour);
+      [](ObjectParameter& param, int value) {
+        param.tint_colour.set_red(value);
       });
   h.AddSingleObjectCommands(
       14, "TintG",
-      [](const ParameterManager& param) {
-        auto colour = param.Get<ObjectProperty::TintColour>();
-        return colour.g();
+      [](const ObjectParameter& param) {
+        return param.tint_colour.g();
       },
-      [](ParameterManager& param, int value) {
-        auto colour = param.Get<ObjectProperty::TintColour>();
-        colour.set_green(value);
-        param.Set(ObjectProperty::TintColour, colour);
+      [](ObjectParameter& param, int value) {
+        param.tint_colour.set_green(value);
       });
   h.AddSingleObjectCommands(
       15, "TintB",
-      [](const ParameterManager& param) {
-        auto colour = param.Get<ObjectProperty::TintColour>();
-        return colour.b();
+      [](const ObjectParameter& param) {
+        return param.tint_colour.b();
       },
-      [](ParameterManager& param, int value) {
-        auto colour = param.Get<ObjectProperty::TintColour>();
-        colour.set_blue(value);
-        param.Set(ObjectProperty::TintColour, colour);
+      [](ObjectParameter& param, int value) {
+        param.tint_colour.set_blue(value);
       });
 
   // ---
 
   h.AddSingleObjectCommands(
       17, "ColR",
-      [](const ParameterManager& param) {
-        auto colour = param.Get<ObjectProperty::BlendColour>();
-        return colour.r();
+      [](const ObjectParameter& param) {
+        return param.blend_colour.r();
       },
-      [](ParameterManager& param, int value) {
-        auto colour = param.Get<ObjectProperty::BlendColour>();
-        colour.set_red(value);
-        param.Set(ObjectProperty::BlendColour, colour);
+      [](ObjectParameter& param, int value) {
+        param.blend_colour.set_red(value);
       });
   h.AddSingleObjectCommands(
       18, "ColG",
-      [](const ParameterManager& param) {
-        auto colour = param.Get<ObjectProperty::BlendColour>();
-        return colour.g();
+      [](const ObjectParameter& param) {
+        return param.blend_colour.g();
       },
-      [](ParameterManager& param, int value) {
-        auto colour = param.Get<ObjectProperty::BlendColour>();
-        colour.set_green(value);
-        param.Set(ObjectProperty::BlendColour, colour);
+      [](ObjectParameter& param, int value) {
+        param.blend_colour.set_green(value);
       });
   h.AddSingleObjectCommands(
       19, "ColB",
-      [](const ParameterManager& param) {
-        auto colour = param.Get<ObjectProperty::BlendColour>();
-        return colour.b();
+      [](const ObjectParameter& param) {
+        return param.blend_colour.b();
       },
-      [](ParameterManager& param, int value) {
-        auto colour = param.Get<ObjectProperty::BlendColour>();
-        colour.set_blue(value);
-        param.Set(ObjectProperty::BlendColour, colour);
+      [](ObjectParameter& param, int value) {
+        param.blend_colour.set_blue(value);
       });
   h.AddSingleObjectCommands(
       20, "ColLevel",
-      [](const ParameterManager& param) {
-        auto colour = param.Get<ObjectProperty::BlendColour>();
-        return colour.a();
+      [](const ObjectParameter& param) {
+        return param.blend_colour.a();
       },
-      [](ParameterManager& param, int value) {
-        auto colour = param.Get<ObjectProperty::BlendColour>();
-        colour.set_alpha(value);
-        param.Set(ObjectProperty::BlendColour, colour);
+      [](ObjectParameter& param, int value) {
+        param.blend_colour.set_alpha(value);
       });
 
   // ---
 
   h.AddSingleObjectCommands(36, "AdjustVert",
-                            CreateGetter<ObjectProperty::AdjustmentVertical>(),
-                            CreateSetter<ObjectProperty::AdjustmentVertical>());
+                            CreateGetter<&ObjectParameter::adjustment_vertical>(),
+                            CreateSetter<&ObjectParameter::adjustment_vertical>());
 
   h.AddRepnoObjectCommands(40, "AdjustAlpha",
-                           CreateGetter<ObjectProperty::AdjustmentAlphas>(),
-                           CreateSetter<ObjectProperty::AdjustmentAlphas>());
+                           CreateGetter<&ObjectParameter::adjustment_alphas>(),
+                           CreateSetter<&ObjectParameter::adjustment_alphas>());
 
   // --
   h.AddDoubleObjectCommands(46, "Scale",
-                            CreateGetter<ObjectProperty::ScaleXPercent>(),
-                            CreateSetter<ObjectProperty::ScaleXPercent>(),
-                            CreateGetter<ObjectProperty::ScaleYPercent>(),
-                            CreateSetter<ObjectProperty::ScaleYPercent>());
+                            CreateGetter<&ObjectParameter::scale_x_percent>(),
+                            CreateSetter<&ObjectParameter::scale_x_percent>(),
+                            CreateGetter<&ObjectParameter::scale_y_percent>(),
+                            CreateSetter<&ObjectParameter::scale_y_percent>());
   h.AddSingleObjectCommands(47, "Width",
-                            CreateGetter<ObjectProperty::ScaleXPercent>(),
-                            CreateSetter<ObjectProperty::ScaleXPercent>());
+                            CreateGetter<&ObjectParameter::scale_x_percent>(),
+                            CreateSetter<&ObjectParameter::scale_x_percent>());
   h.AddSingleObjectCommands(48, "Height",
-                            CreateGetter<ObjectProperty::ScaleYPercent>(),
-                            CreateSetter<ObjectProperty::ScaleYPercent>());
+                            CreateGetter<&ObjectParameter::scale_y_percent>(),
+                            CreateSetter<&ObjectParameter::scale_y_percent>());
   h.AddSingleObjectCommands(49, "Rotate",
-                            CreateGetter<ObjectProperty::RotationDiv10>(),
-                            CreateSetter<ObjectProperty::RotationDiv10>());
+                            CreateGetter<&ObjectParameter::rotation_div10>(),
+                            CreateSetter<&ObjectParameter::rotation_div10>());
   h.AddDoubleObjectCommands(50, "RepOrigin",
-                            CreateGetter<ObjectProperty::RepetitionOriginX>(),
-                            CreateSetter<ObjectProperty::RepetitionOriginX>(),
-                            CreateGetter<ObjectProperty::RepetitionOriginY>(),
-                            CreateSetter<ObjectProperty::RepetitionOriginY>());
+                            CreateGetter<&ObjectParameter::repetition_origin_x>(),
+                            CreateSetter<&ObjectParameter::repetition_origin_x>(),
+                            CreateGetter<&ObjectParameter::repetition_origin_y>(),
+                            CreateSetter<&ObjectParameter::repetition_origin_y>());
   h.AddSingleObjectCommands(51, "RepOriginX",
-                            CreateGetter<ObjectProperty::RepetitionOriginX>(),
-                            CreateSetter<ObjectProperty::RepetitionOriginX>());
+                            CreateGetter<&ObjectParameter::repetition_origin_x>(),
+                            CreateSetter<&ObjectParameter::repetition_origin_x>());
   h.AddSingleObjectCommands(52, "RepOriginY",
-                            CreateGetter<ObjectProperty::RepetitionOriginY>(),
-                            CreateSetter<ObjectProperty::RepetitionOriginY>());
+                            CreateGetter<&ObjectParameter::repetition_origin_y>(),
+                            CreateSetter<&ObjectParameter::repetition_origin_y>());
   h.AddDoubleObjectCommands(53, "Origin",
-                            CreateGetter<ObjectProperty::OriginX>(),
-                            CreateSetter<ObjectProperty::OriginX>(),
-                            CreateGetter<ObjectProperty::OriginY>(),
-                            CreateSetter<ObjectProperty::OriginY>());
+                            CreateGetter<&ObjectParameter::origin_x>(),
+                            CreateSetter<&ObjectParameter::origin_x>(),
+                            CreateGetter<&ObjectParameter::origin_y>(),
+                            CreateSetter<&ObjectParameter::origin_y>());
   h.AddSingleObjectCommands(54, "OriginX",
-                            CreateGetter<ObjectProperty::OriginX>(),
-                            CreateSetter<ObjectProperty::OriginX>());
+                            CreateGetter<&ObjectParameter::origin_x>(),
+                            CreateSetter<&ObjectParameter::origin_x>());
   h.AddSingleObjectCommands(55, "OriginY",
-                            CreateGetter<ObjectProperty::OriginY>(),
-                            CreateSetter<ObjectProperty::OriginY>());
+                            CreateGetter<&ObjectParameter::origin_y>(),
+                            CreateSetter<&ObjectParameter::origin_y>());
 
   // ---
 
   h.AddDoubleObjectCommands(
-      61, "HqScale", CreateGetter<ObjectProperty::HighQualityScaleXPercent>(),
-      CreateSetter<ObjectProperty::HighQualityScaleXPercent>(),
-      CreateGetter<ObjectProperty::HighQualityScaleYPercent>(),
-      CreateSetter<ObjectProperty::HighQualityScaleYPercent>());
+      61, "HqScale", CreateGetter<&ObjectParameter::high_quality_scale_x_percent>(),
+      CreateSetter<&ObjectParameter::high_quality_scale_x_percent>(),
+      CreateGetter<&ObjectParameter::high_quality_scale_y_percent>(),
+      CreateSetter<&ObjectParameter::high_quality_scale_y_percent>());
   h.AddSingleObjectCommands(
-      62, "HqWidth", CreateGetter<ObjectProperty::HighQualityScaleXPercent>(),
-      CreateSetter<ObjectProperty::HighQualityScaleXPercent>());
+      62, "HqWidth", CreateGetter<&ObjectParameter::high_quality_scale_x_percent>(),
+      CreateSetter<&ObjectParameter::high_quality_scale_x_percent>());
   h.AddSingleObjectCommands(
-      63, "HqHeight", CreateGetter<ObjectProperty::HighQualityScaleYPercent>(),
-      CreateSetter<ObjectProperty::HighQualityScaleYPercent>());
+      63, "HqHeight", CreateGetter<&ObjectParameter::high_quality_scale_y_percent>(),
+      CreateSetter<&ObjectParameter::high_quality_scale_y_percent>());
 }
 
 void addObjectFunctions(RLModule& m) {
   m.AddOpcode(
       1004, 0, "objShow",
-      new Obj_SetOneIntOnObj(CreateSetter<ObjectProperty::IsVisible>()));
+      new Obj_SetOneIntOnObj(CreateSetter<&ObjectParameter::is_visible>()));
   m.AddOpcode(1005, 0, "objDispArea", new dispArea_0);
   m.AddOpcode(1005, 1, "objDispArea", new dispArea_1);
 
@@ -666,7 +645,7 @@ void addObjectFunctions(RLModule& m) {
 
   m.AddOpcode(
       1021, 0, "objComposite",
-      new Obj_SetOneIntOnObj(CreateSetter<ObjectProperty::CompositeMode>()));
+      new Obj_SetOneIntOnObj(CreateSetter<&ObjectParameter::composite_mode>()));
 
   m.AddOpcode(1022, 0, "objSetRect", new objSetRect_0);
   m.AddOpcode(1022, 1, "objSetRect", new objSetRect_1);
@@ -677,19 +656,19 @@ void addObjectFunctions(RLModule& m) {
   m.AddOpcode(1025, 1, "objTextOpts", new objTextOpts);
 
   m.AddOpcode(1026, 0, "objLayer",
-              new Obj_SetOneIntOnObj(CreateSetter<ObjectProperty::ZLayer>()));
+              new Obj_SetOneIntOnObj(CreateSetter<&ObjectParameter::z_layer>()));
   m.AddOpcode(1027, 0, "objDepth",
-              new Obj_SetOneIntOnObj(CreateSetter<ObjectProperty::ZDepth>()));
+              new Obj_SetOneIntOnObj(CreateSetter<&ObjectParameter::z_depth>()));
   m.AddUnsupportedOpcode(1028, 0, "objScrollRate");
   m.AddOpcode(
       1029, 0, "objScrollRateX",
-      new Obj_SetOneIntOnObj(CreateSetter<ObjectProperty::ScrollRateX>()));
+      new Obj_SetOneIntOnObj(CreateSetter<&ObjectParameter::scroll_rate_x>()));
   m.AddOpcode(
       1030, 0, "objScrollRateY",
-      new Obj_SetOneIntOnObj(CreateSetter<ObjectProperty::ScrollRateY>()));
+      new Obj_SetOneIntOnObj(CreateSetter<&ObjectParameter::scroll_rate_y>()));
   m.AddOpcode(1031, 0, "objDriftOpts", new objDriftOpts);
   m.AddOpcode(1032, 0, "objOrder",
-              new Obj_SetOneIntOnObj(CreateSetter<ObjectProperty::ZOrder>()));
+              new Obj_SetOneIntOnObj(CreateSetter<&ObjectParameter::z_order>()));
   m.AddUnsupportedOpcode(1033, 0, "objQuarterView");
 
   m.AddOpcode(1034, 0, "objDispRect", new dispArea_0);
@@ -699,15 +678,13 @@ void addObjectFunctions(RLModule& m) {
   m.AddOpcode(1035, 2, "objDispCorner", new dispCorner_1);
 
   m.AddOpcode(1037, 0, "objSetDigitValue",
-              new Obj_SetOneIntOnObj([](ParameterManager& param, int value) {
-                auto digit = param.Get<ObjectProperty::DigitProperties>();
-                digit.value = value;
-                param.Set(ObjectProperty::DigitProperties, std::move(digit));
+              new Obj_SetOneIntOnObj([](ObjectParameter& param, int value) {
+                param.digit.value = value;
               }));
   m.AddOpcode(1038, 0, "objNumOpts", new objNumOpts);
   m.AddOpcode(
       1039, 0, "objPattNo",
-      new Obj_SetOneIntOnObj(CreateSetter<ObjectProperty::PatternNumber>()));
+      new Obj_SetOneIntOnObj(CreateSetter<&ObjectParameter::pattern_number>()));
 
   m.AddUnsupportedOpcode(1041, 0, "objAdjustAll");
   m.AddUnsupportedOpcode(1042, 0, "objAdjustAllX");
@@ -717,10 +694,8 @@ void addObjectFunctions(RLModule& m) {
 
   m.AddOpcode(1064, 2, "objButtonOpts", new objButtonOpts);
   m.AddOpcode(1066, 0, "objBtnState",
-              new Obj_SetOneIntOnObj([](ParameterManager& param, int value) {
-                auto btn = param.Get<ObjectProperty::ButtonProperties>();
-                btn.state = value;
-                param.Set(ObjectProperty::ButtonProperties, std::move(btn));
+              new Obj_SetOneIntOnObj([](ObjectParameter& param, int value) {
+                param.button.state = value;
               }));
 
   m.AddOpcode(1070, 0, "objOwnDispArea", new dispOwnArea_0);
@@ -732,7 +707,7 @@ void addObjectFunctions(RLModule& m) {
 void addEveObjectFunctions(RLModule& m) {
   m.AddOpcode(
       2004, 0, "objEveDisplay",
-      new Obj_SetOneIntOnObj(CreateSetter<ObjectProperty::IsVisible>()));
+      new Obj_SetOneIntOnObj(CreateSetter<&ObjectParameter::is_visible>()));
   m.AddOpcode(2004, 1, "objEveDisplay", new objEveDisplay_1);
   m.AddOpcode(2004, 2, "objEveDisplay", new objEveDisplay_2);
   m.AddOpcode(2004, 3, "objEveDisplay", new objEveDisplay_3);

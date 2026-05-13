@@ -33,7 +33,7 @@
 
 #include "core/colour.hpp"
 #include "core/rect.hpp"
-#include "core/object_internal/parameter_manager.hpp"
+#include "core/object_internal/object_parameter.hpp"
 #include "systems/sdl/glrenderer.hpp"
 
 class RLMachine;
@@ -56,8 +56,8 @@ class GraphicsObject {
 
   GraphicsObject Clone() const;
 
-  ParameterManager& Param() { return param_; }
-  ParameterManager const& Param() const { return param_; }
+  ObjectParameter& Param() { return param_; }
+  ObjectParameter const& Param() const { return param_; }
 
   int PixelWidth() const;
   int PixelHeight() const;
@@ -104,7 +104,7 @@ class GraphicsObject {
 
  private:
   // Class to manage the actual implementation data
-  ParameterManager param_;
+  ObjectParameter param_;
 
   // The actual data used to render the object
   std::unique_ptr<GraphicsObjectData> object_data_;

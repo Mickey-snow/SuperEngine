@@ -52,7 +52,7 @@ GraphicsTextObject::~GraphicsTextObject() {}
 // -----------------------------------------------------------------------
 
 void GraphicsTextObject::UpdateSurface(const GraphicsObject& rp) {
-  auto text_property = rp.Param().Get<ObjectProperty::TextProperties>();
+  auto text_property = rp.Param().text;
 
   cached_param_ = text_property;
 
@@ -79,7 +79,7 @@ void GraphicsTextObject::UpdateSurface(const GraphicsObject& rp) {
 bool GraphicsTextObject::NeedsUpdate(const GraphicsObject& rp) {
   if (surface_ == nullptr)
     return true;
-  return cached_param_ != rp.Param().Get<ObjectProperty::TextProperties>();
+  return cached_param_ != rp.Param().text;
 }
 
 // -----------------------------------------------------------------------

@@ -30,9 +30,9 @@ class GraphicsObjectTest : public ::testing::Test {
   void SetUp() override {
     auto& param = obj.Param();
 
-    param.Set(ObjectProperty::IsVisible, true);
-    param.Set(ObjectProperty::PositionX, 10);
-    param.Set(ObjectProperty::PositionY, 20);
+    param.is_visible = true;
+    param.position_x = 10;
+    param.position_y = 20;
   }
 
   GraphicsObject obj;
@@ -41,19 +41,19 @@ class GraphicsObjectTest : public ::testing::Test {
 TEST_F(GraphicsObjectTest, MoveSemantics) {
   GraphicsObject other = std::move(obj);
 
-  EXPECT_TRUE(other.Param().Get<ObjectProperty::IsVisible>());
-  EXPECT_EQ(other.Param().Get<ObjectProperty::PositionX>(), 10);
-  EXPECT_EQ(other.Param().Get<ObjectProperty::PositionY>(), 20);
+  EXPECT_TRUE(other.Param().is_visible);
+  EXPECT_EQ(other.Param().position_x, 10);
+  EXPECT_EQ(other.Param().position_y, 20);
 
-  EXPECT_FALSE(obj.Param().Get<ObjectProperty::IsVisible>());
+  EXPECT_FALSE(obj.Param().is_visible);
 }
 
 TEST_F(GraphicsObjectTest, Clone) {
   GraphicsObject other = obj.Clone();
 
-  other.Param().Set(ObjectProperty::PositionX, 100);
-  EXPECT_TRUE(other.Param().Get<ObjectProperty::IsVisible>());
-  EXPECT_EQ(other.Param().Get<ObjectProperty::PositionX>(), 100);
-  EXPECT_EQ(other.Param().Get<ObjectProperty::PositionY>(), 20);
-  EXPECT_EQ(obj.Param().Get<ObjectProperty::PositionX>(), 10);
+  other.Param().position_x = 100;
+  EXPECT_TRUE(other.Param().is_visible);
+  EXPECT_EQ(other.Param().position_x, 100);
+  EXPECT_EQ(other.Param().position_y, 20);
+  EXPECT_EQ(obj.Param().position_x, 10);
 }

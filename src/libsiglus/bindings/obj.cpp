@@ -84,19 +84,19 @@ class Object {
   }
 
   void SetXEve(int value, int total_time, int delay_time, int speed_type) {
-    int x = obj.Param().Get<ObjectProperty::PositionX>();
+    int x = obj.Param().position_x;
     auto fc = std::make_shared<SimpleFrameCounter>(clock, x, value, total_time);
     fc->BeginTimer(std::chrono::milliseconds(delay_time));
-    Mutator mutator{.setter_ = CreateSetter<ObjectProperty::PositionX>(),
+    Mutator mutator{.setter_ = CreateSetter<&ObjectParameter::position_x>(),
                     .fc_ = fc};
     obj.AddObjectMutator(ObjectMutator({std::move(mutator)}, -1, "x_eve"));
   }
 
   void SetYEve(int value, int total_time, int delay_time, int speed_type) {
-    int y = obj.Param().Get<ObjectProperty::PositionY>();
+    int y = obj.Param().position_y;
     auto fc = std::make_shared<SimpleFrameCounter>(clock, y, value, total_time);
     fc->BeginTimer(std::chrono::milliseconds(delay_time));
-    Mutator mutator{.setter_ = CreateSetter<ObjectProperty::PositionY>(),
+    Mutator mutator{.setter_ = CreateSetter<&ObjectParameter::position_y>(),
                     .fc_ = fc};
     obj.AddObjectMutator(ObjectMutator({std::move(mutator)}, -1, "y_eve"));
   }

@@ -84,7 +84,7 @@ std::shared_ptr<const SDLSurface> DigitsGraphicsObject::CurrentSurface(
 }
 
 void DigitsGraphicsObject::UpdateSurface(const GraphicsObject& rp) {
-  auto digit_param = rp.Param().Get<ObjectProperty::DigitProperties>();
+  auto digit_param = rp.Param().digit;
 
   value_ = digit_param.value;
 

@@ -32,10 +32,10 @@
 #include <memory>
 #include <string>
 
+#include "core/object_internal/objdrawer.hpp"
+#include "core/object_internal/object_parameter.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/serialization.hpp"
-#include "core/object_internal/objdrawer.hpp"
-#include "core/object_internal/properties.hpp"
 
 class GraphicsObject;
 class SDLSurface;

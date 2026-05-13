@@ -34,7 +34,7 @@
 #include <memory>
 
 class GraphicsObject;
-class ParameterManager;
+class ObjectParameter;
 class Clock;
 
 std::shared_ptr<FrameCounter> MakeFrameCounter(int duration,
@@ -50,8 +50,8 @@ class Op_ObjectMutatorInt : public RLOpcode<IntConstant_T,
                                             IntConstant_T,
                                             IntConstant_T> {
  public:
-  using Getter = std::function<int(const ParameterManager&)>;
-  using Setter = std::function<void(ParameterManager&, int)>;
+  using Getter = std::function<int(const ObjectParameter&)>;
+  using Setter = std::function<void(ObjectParameter&, int)>;
 
   Op_ObjectMutatorInt(Getter getter, Setter setter, const std::string& name);
   virtual ~Op_ObjectMutatorInt();
@@ -76,8 +76,8 @@ class Op_ObjectMutatorRepnoInt : public RLOpcode<IntConstant_T,
                                                  IntConstant_T,
                                                  IntConstant_T> {
  public:
-  using Getter = std::function<int(const ParameterManager&, int)>;
-  using Setter = std::function<void(ParameterManager&, int, int)>;
+  using Getter = std::function<int(const ObjectParameter&, int)>;
+  using Setter = std::function<void(ObjectParameter&, int, int)>;
 
   Op_ObjectMutatorRepnoInt(Getter getter,
                            Setter setter,
@@ -105,8 +105,8 @@ class Op_ObjectMutatorIntInt : public RLOpcode<IntConstant_T,
                                                IntConstant_T,
                                                IntConstant_T> {
  public:
-  using Getter = std::function<int(const ParameterManager&)>;
-  using Setter = std::function<void(ParameterManager&, int)>;
+  using Getter = std::function<int(const ObjectParameter&)>;
+  using Setter = std::function<void(ObjectParameter&, int)>;
 
   Op_ObjectMutatorIntInt(Getter getter_one,
                          Setter setter_one,

@@ -37,11 +37,11 @@ class RLOperation;
 
 class ObjectModule {
  public:
-  using NormalGetter = std::function<int(const ParameterManager&)>;
-  using NormalSetter = std::function<void(ParameterManager&, int)>;
+  using NormalGetter = std::function<int(const ObjectParameter&)>;
+  using NormalSetter = std::function<void(ObjectParameter&, int)>;
 
-  using RepnoGetter = std::function<int(const ParameterManager&, int)>;
-  using RepnoSetter = std::function<void(ParameterManager&, int, int)>;
+  using RepnoGetter = std::function<int(const ObjectParameter&, int)>;
+  using RepnoSetter = std::function<void(ObjectParameter&, int, int)>;
 
   ObjectModule(const std::string& prefix, RLModule* module);
   virtual ~ObjectModule();
