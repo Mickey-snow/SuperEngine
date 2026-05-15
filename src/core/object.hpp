@@ -55,8 +55,8 @@ class GraphicsObject {
 
   GraphicsObject Clone() const;
 
-  ObjectParameter& Param() { return param_; }
-  ObjectParameter const& Param() const { return param_; }
+  inline ObjectParameter& Param() { return param_; }
+  inline ObjectParameter const& Param() const { return param_; }
 
   int PixelWidth() const;
   int PixelHeight() const;
@@ -64,7 +64,7 @@ class GraphicsObject {
   bool has_object_data() const { return object_data_.get(); }
 
   GraphicsObjectData& GetObjectData();
-  void SetObjectData(GraphicsObjectData* obj);
+  [[deprecated]] void SetObjectData(GraphicsObjectData* obj);
   void SetObjectData(std::unique_ptr<GraphicsObjectData>);
 
   // Render!

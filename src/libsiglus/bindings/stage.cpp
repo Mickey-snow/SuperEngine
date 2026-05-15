@@ -85,8 +85,7 @@ stage_front = Stage();
 stage_next = Stage();
 )";
   Execute(vm, std::move(src));
-  // TODO: Implement actual Object, Group, Btnsel, World, Effect, Quake
-  // classes
+  // TODO: Implement actual Mwnd, Group, Btnsel, World, Effect, Quake classes
 }
 
 RLVM_REGISTER(SiglusBindingRegistry, "1_stage", BindStage)
