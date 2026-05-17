@@ -23,9 +23,7 @@ endif()
 
 find_package(PkgConfig REQUIRED)
 if(RLVM_FULLSTATIC)
-  set(_PKG_CONFIG_ARGS "--static")
-else()
-  set(_PKG_CONFIG_ARGS "")
+  list(APPEND PKG_CONFIG_EXECUTABLE --static)
 endif()
 
 enable_testing()
@@ -66,7 +64,7 @@ endif()
 # -------------------------------------------------------------------
 # Find SDL1 Library
 # -------------------------------------------------------------------
-pkg_check_modules(SDL1 REQUIRED sdl "${_PKG_CONFIG_ARGS}")
+pkg_check_modules(SDL1 REQUIRED sdl)
 include_directories(${SDL1_INCLUDE_DIRS})
 link_directories(${SDL1_LIBRARY_DIRS})
 
