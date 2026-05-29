@@ -42,6 +42,7 @@
 #include <sstream>
 
 #include "core/memory.hpp"
+#include "core/memory_internal/serialization_global.hpp"
 #include "libreallive/intmemref.hpp"
 #include "machine/rlenvironment.hpp"
 #include "machine/rlmachine.hpp"

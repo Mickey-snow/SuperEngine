@@ -43,6 +43,7 @@
 #include <string>
 
 #include "core/memory.hpp"
+#include "core/memory_internal/serialization_local.hpp"
 #include "libreallive/archive.hpp"
 #include "libreallive/intmemref.hpp"
 #include "machine/rlmachine.hpp"

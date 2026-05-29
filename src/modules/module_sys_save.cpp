@@ -37,6 +37,7 @@
 
 #include "core/colour.hpp"
 #include "core/memory.hpp"
+#include "core/memory_internal/serialization_global.hpp"
 #include "effects/fade_effect.hpp"
 #include "libreallive/intmemref.hpp"
 #include "machine/general_operations.hpp"

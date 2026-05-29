@@ -27,6 +27,8 @@
 
 #include "core/event_listener.hpp"
 #include "core/memory.hpp"
+#include "core/memory_internal/serialization_local.hpp"
+#include "core/memory_internal/stack_adapter.hpp"
 #include "log/domain_logger.hpp"
 #include "long_operations/pause_long_operation.hpp"
 #include "long_operations/textout_long_operation.hpp"
