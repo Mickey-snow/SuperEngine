@@ -78,6 +78,12 @@ TEST(MemoryBankTest, FillValues) {
     EXPECT_EQ(bank.Get(i), 7);
   }
   EXPECT_NE(bank.Get(6), 7);
+
+  EXPECT_NO_THROW(bank.Fill(0, 0, 9));
+  EXPECT_EQ(bank.Get(0), 0);
+  EXPECT_NO_THROW(bank.Fill(10, 10, 9));
+  EXPECT_THROW(bank.Fill(11, 11, 9), std::out_of_range);
+  EXPECT_THROW(bank.Fill(6, 5, 9), std::invalid_argument);
 }
 
 TEST(MemoryBankTest, Append) {

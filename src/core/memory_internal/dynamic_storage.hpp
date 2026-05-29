@@ -83,6 +83,19 @@ class DynamicStorage : public StoragePolicy<T> {
   size_t GetSize() const override { return size_; }
 
   void Fill(size_t begin, size_t end, T const& value) override {
+    if (begin > end) {
+      throw std::invalid_argument("DynamicStorage: invalid fill range [" +
+                                  std::to_string(begin) + ',' +
+                                  std::to_string(end) + ").");
+    }
+    if (end > size_) {
+      throw std::out_of_range("DynamicStorage: fill range [" +
+                              std::to_string(begin) + ',' +
+                              std::to_string(end) + ") out of bounds.");
+    }
+    if (begin == end)
+      return;
+
     // the implementation code uses ranges [begin,end] everywhere.
     Set_impl(begin, end - 1, value, root_);
   }

@@ -124,6 +124,14 @@ TEST_F(MemoryTest, IntFill) {
     EXPECT_EQ(memory_->Read(loc_after), 0)
         << "Values outside the range should remain default";
 
+    EXPECT_NO_THROW(memory_->Fill(IntBank::B, 0, 0, 9));
+    EXPECT_EQ(memory_->Read(IntBank::B, 0), 0);
+    EXPECT_NO_THROW(memory_->Fill(IntBank::B,
+                                  memory_->Size(IntBank::B),
+                                  memory_->Size(IntBank::B),
+                                  9));
+    EXPECT_THROW(memory_->Fill(IntBank::B, 2001, 2001, 9),
+                 std::out_of_range);
     EXPECT_THROW(memory_->Fill(IntBank::B, 100, 50, 5), std::invalid_argument)
         << "Should throw when range (begin > end)";
     EXPECT_THROW(memory_->Fill(IntBank::B, 1990, 2010, 5), std::out_of_range);
@@ -142,6 +150,14 @@ TEST_F(MemoryTest, IntFill) {
     EXPECT_EQ(memory_->Read(loc_before), "");
     EXPECT_EQ(memory_->Read(loc_after), "");
 
+    EXPECT_NO_THROW(memory_->Fill(StrBank::M, 0, 0, "Empty"));
+    EXPECT_EQ(memory_->Read(StrBank::M, 0), "");
+    EXPECT_NO_THROW(memory_->Fill(StrBank::M,
+                                  memory_->Size(StrBank::M),
+                                  memory_->Size(StrBank::M),
+                                  "Empty"));
+    EXPECT_THROW(memory_->Fill(StrBank::M, 2001, 2001, "OutOfRange"),
+                 std::out_of_range);
     EXPECT_THROW(memory_->Fill(StrBank::M, 30, 20, "Invalid"),
                  std::invalid_argument);
     EXPECT_THROW(memory_->Fill(StrBank::M, 1995, 2005, "OutOfRange"),
