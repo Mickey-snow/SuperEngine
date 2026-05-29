@@ -65,8 +65,14 @@ std::variant<IntBank, StrBank> DeserializeBankTag(Archive& ar) {
   ar & tag & bank;
   switch (tag) {
     case 0:
+      if (bank >= static_cast<uint8_t>(IntBank::CNT))
+        throw std::runtime_error("DeserializeBankTag: invalid int bank " +
+                                 std::to_string(bank));
       return static_cast<IntBank>(bank);
     case 1:
+      if (bank >= static_cast<uint8_t>(StrBank::CNT))
+        throw std::runtime_error("DeserializeBankTag: invalid string bank " +
+                                 std::to_string(bank));
       return static_cast<StrBank>(bank);
     default:
       throw std::runtime_error("DeserializeBankTag: unknown tag " +

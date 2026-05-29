@@ -34,7 +34,6 @@
 #include <stdexcept>
 #include <string>
 #include <type_traits>
-#include <unordered_map>
 #include <utility>
 
 struct LocalMemory {
@@ -77,28 +76,89 @@ struct LocalMemory {
 
     if (bank_count != 12)
       throw std::runtime_error(
-          "GlobalMemory::load: expected 12 local memory banks, but got " +
+          "LocalMemory::load: expected 12 local memory banks, but got " +
           std::to_string(bank_count));
 
-    const std::unordered_map<IntBank, MemoryBank<int>*> intbank{
-        {IntBank::A, &A}, {IntBank::B, &B}, {IntBank::C, &C}, {IntBank::D, &D},
-        {IntBank::E, &E}, {IntBank::F, &F}, {IntBank::X, &X}, {IntBank::H, &H},
-        {IntBank::I, &I}, {IntBank::J, &J},
+    std::array<bool, static_cast<size_t>(IntBank::CNT)> seen_int{};
+    std::array<bool, static_cast<size_t>(StrBank::CNT)> seen_str{};
+
+    const auto intbank = [&](IntBank bank) -> MemoryBank<int>* {
+      switch (bank) {
+        case IntBank::A:
+          return &A;
+        case IntBank::B:
+          return &B;
+        case IntBank::C:
+          return &C;
+        case IntBank::D:
+          return &D;
+        case IntBank::E:
+          return &E;
+        case IntBank::F:
+          return &F;
+        case IntBank::X:
+          return &X;
+        case IntBank::H:
+          return &H;
+        case IntBank::I:
+          return &I;
+        case IntBank::J:
+          return &J;
+        default:
+          throw std::runtime_error("LocalMemory::load: unexpected bank " +
+                                   ToString(bank));
+      }
     };
-    const std::unordered_map<StrBank, MemoryBank<std::string>*> strbank{
-        {StrBank::S, &S}, {StrBank::local_name, &local_names}};
+
+    const auto strbank = [&](StrBank bank) -> MemoryBank<std::string>* {
+      switch (bank) {
+        case StrBank::S:
+          return &S;
+        case StrBank::local_name:
+          return &local_names;
+        default:
+          throw std::runtime_error("LocalMemory::load: unexpected bank " +
+                                   ToString(bank));
+      }
+    };
 
     for (int i = 0; i < bank_count; ++i) {
       auto tag = DeserializeBankTag(ar);
       std::visit(
           [&](auto tag) {
             using T = std::decay_t<decltype(tag)>;
-            if constexpr (std::is_same_v<T, IntBank>)
-              ar&* intbank.at(tag);
-            else if constexpr (std::is_same_v<T, StrBank>)
-              ar&* strbank.at(tag);
+            if constexpr (std::is_same_v<T, IntBank>) {
+              const auto index = static_cast<size_t>(tag);
+              if (seen_int[index])
+                throw std::runtime_error("LocalMemory::load: duplicate bank " +
+                                         ToString(tag));
+              auto* bank = intbank(tag);
+              seen_int[index] = true;
+              ar&* bank;
+            } else if constexpr (std::is_same_v<T, StrBank>) {
+              const auto index = static_cast<size_t>(tag);
+              if (seen_str[index])
+                throw std::runtime_error("LocalMemory::load: duplicate bank " +
+                                         ToString(tag));
+              auto* bank = strbank(tag);
+              seen_str[index] = true;
+              ar&* bank;
+            }
           },
           tag);
     }
+
+    const std::array<IntBank, 10> required_int{
+        IntBank::A, IntBank::B, IntBank::C, IntBank::D, IntBank::E,
+        IntBank::F, IntBank::X, IntBank::H, IntBank::I, IntBank::J};
+    for (const auto bank : required_int) {
+      if (!seen_int[static_cast<size_t>(bank)])
+        throw std::runtime_error("LocalMemory::load: missing bank " +
+                                 ToString(bank));
+    }
+    if (!seen_str[static_cast<size_t>(StrBank::S)])
+      throw std::runtime_error("LocalMemory::load: missing bank strS");
+    if (!seen_str[static_cast<size_t>(StrBank::local_name)])
+      throw std::runtime_error("LocalMemory::load: missing bank LocalName");
   }
 };
