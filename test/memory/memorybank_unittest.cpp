@@ -190,3 +190,30 @@ TEST(MemoryBankTest, Deserialization) {
     EXPECT_EQ(arr.Get(i), data.at(i));
   }
 }
+
+TEST(MemoryBankTest, DeserializationReplacesExistingStorage) {
+  std::stringstream ss;
+  {
+    MemoryBank<int> source;
+    source.Resize(10);
+    source.Set(2, 22);
+
+    boost::archive::text_oarchive oa(ss);
+    oa << source;
+  }
+
+  MemoryBank<int> target;
+  target.Resize(20);
+  target.Set(15, 99);
+
+  {
+    boost::archive::text_iarchive ia(ss);
+    ia >> target;
+  }
+
+  ASSERT_EQ(target.GetSize(), 10);
+  EXPECT_EQ(target.Get(2), 22);
+
+  target.Resize(20);
+  EXPECT_EQ(target.Get(15), 0);
+}

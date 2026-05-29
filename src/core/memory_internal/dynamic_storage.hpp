@@ -26,6 +26,7 @@
 
 #include "core/memory_internal/storage_policy.hpp"
 
+#include <algorithm>
 #include <functional>
 #include <limits>
 #include <memory>
@@ -107,17 +108,34 @@ class DynamicStorage : public StoragePolicy<T> {
   using SerializedStorage = typename StoragePolicy<T>::Serialized;
   SerializedStorage Save() const override {
     std::vector<std::tuple<size_t, size_t, T>> serialized;
-    Apply(root_, [&serialized](size_t fr, size_t to, T value) {
-      serialized.emplace_back(std::make_tuple(fr, to + 1, std::move(value)));
+    Apply(root_, [this, &serialized](size_t fr, size_t to, T value) {
+      if (size_ == 0 || fr >= size_)
+        return;
+
+      const auto end = to >= size_ - 1 ? size_ : to + 1;
+      if (fr < end)
+        serialized.emplace_back(std::make_tuple(fr, end, std::move(value)));
     });
     return SerializedStorage{.size = size_, .data = std::move(serialized)};
   }
 
   void Load(SerializedStorage serialized) override {
+    root_.reset();
+    size_ = 0;
     Resize(serialized.size);
     Fill(0, serialized.size, T{});
     for (const auto& [fr, to, val] : serialized.data) {
-      Fill(fr, to, val);
+      if (fr > to) {
+        throw std::invalid_argument("DynamicStorage: invalid serialized range [" +
+                                    std::to_string(fr) + ',' +
+                                    std::to_string(to) + ").");
+      }
+      if (fr >= serialized.size)
+        continue;
+
+      const auto end = std::min(to, serialized.size);
+      if (fr < end)
+        Fill(fr, end, val);
     }
   }
 
