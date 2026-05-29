@@ -25,6 +25,7 @@
 #include <gtest/gtest.h>
 
 #include "core/memory.hpp"
+#include "core/memory_internal/stack_adapter.hpp"
 #include "machine/call_stack.hpp"
 #include "machine/stack_frame.hpp"
 
@@ -98,4 +99,23 @@ TEST_F(StackAdapterTest, StrK) {
   for (int i = 0; i < 40; ++i) {
     EXPECT_EQ(memory.Read(StrBank::K, i), std::to_string(i * i));
   }
+}
+
+TEST_F(StackAdapterTest, GetStackMemorySnapshotsCurrentFrame) {
+  auto frame1 = std::make_shared<StackFrame>();
+  auto frame2 = std::make_shared<StackFrame>();
+
+  frame1->intL.Set(0, 10);
+  frame1->strK.Set(0, "first");
+  frame2->intL.Set(0, 20);
+  frame2->strK.Set(0, "second");
+
+  stack.frame = frame1;
+  auto snapshot = memory.GetStackMemory();
+
+  stack.frame = frame2;
+  EXPECT_EQ(memory.Read(IntBank::L, 0), 20);
+  EXPECT_EQ(memory.Read(StrBank::K, 0), "second");
+  EXPECT_EQ(snapshot.L.Get(0), 10);
+  EXPECT_EQ(snapshot.K.Get(0), "first");
 }

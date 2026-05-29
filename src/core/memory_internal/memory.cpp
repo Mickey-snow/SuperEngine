@@ -236,8 +236,20 @@ void Memory::Resize(StrBank bankid, std::size_t size) {
 }
 
 Memory::Stack Memory::GetStackMemory() const {
-  return Stack{intbanks_[static_cast<uint8_t>(IntBank::L)],
-               strbanks_[static_cast<uint8_t>(StrBank::K)]};
+  const auto& int_l = GetBank(IntBank::L);
+  const auto& str_k = GetBank(StrBank::K);
+  const auto int_l_size = int_l.GetSize();
+  const auto str_k_size = str_k.GetSize();
+  Stack result{
+      .L = MemoryBank<int>(Storage::DYNAMIC, int_l_size),
+      .K = MemoryBank<std::string>(Storage::DYNAMIC, str_k_size)};
+
+  for (std::size_t i = 0; i < int_l_size; ++i)
+    result.L.Set(i, int_l.Get(i));
+  for (std::size_t i = 0; i < str_k_size; ++i)
+    result.K.Set(i, str_k.Get(i));
+
+  return result;
 }
 
 void Memory::PartialReset(Stack stack_memory) {

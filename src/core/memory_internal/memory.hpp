@@ -75,7 +75,7 @@ class Memory {
     MemoryBank<int> L;
     MemoryBank<std::string> K;
   };
-  // Create and return a copy of stack memory
+  // Create and return a value snapshot of stack memory.
   Stack GetStackMemory() const;
 
   // Create and return a copy of global memory
