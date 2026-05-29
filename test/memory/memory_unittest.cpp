@@ -27,6 +27,7 @@
 #include "core/memory.hpp"
 
 #include <bitset>
+#include <limits>
 #include <map>
 #include <sstream>
 #include <string>
@@ -105,7 +106,11 @@ TEST_F(MemoryTest, WriteInt) {
       << std::bitset<4>(memory_->Read(IntMemoryLocation(IntBank::B, 8, 4)));
 
   EXPECT_THROW(Write(4, 0, 0b10000), std::overflow_error);
+  EXPECT_THROW(Write(4, 0, -1), std::overflow_error);
   EXPECT_THROW(Write(5, 0, 0), std::invalid_argument);
+
+  memory_->Write(IntBank::B, 2, std::numeric_limits<int>::min());
+  EXPECT_EQ(memory_->Read(IntMemoryLocation(IntBank::B, 5, 16)), 0x8000);
 }
 
 TEST_F(MemoryTest, IntFill) {

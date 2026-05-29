@@ -25,21 +25,32 @@
 
 #include "core/memory_internal/memory.hpp"
 
+#include <cstdint>
 #include <iostream>
-#include <map>
 #include <string>
-#include <unordered_set>
 
 #include "core/gameexe.hpp"
 #include "core/memory_internal/serialization_global.hpp"
 #include "core/memory_internal/serialization_local.hpp"
 #include "utilities/string_utilities.hpp"
 
+namespace {
+
+constexpr bool IsSupportedSubwordWidth(std::uint8_t bits) {
+  return bits == 1 || bits == 2 || bits == 4 || bits == 8 || bits == 16;
+}
+
+constexpr std::uint32_t BitMask(std::uint8_t bits) {
+  return (std::uint32_t{1} << bits) - 1;
+}
+
+}  // namespace
+
 Memory::Memory() {
   for (size_t i = 0; i < int_bank_cnt; ++i)
-    intbanks_[i].Resize(SIZE_OF_MEM_BANK);
+    intbanks_[i].Resize(kDefaultBankSize);
   for (size_t i = 0; i < str_bank_cnt; ++i)
-    strbanks_[i].Resize(SIZE_OF_MEM_BANK);
+    strbanks_[i].Resize(kDefaultBankSize);
 }
 
 Memory::~Memory() {}
@@ -68,12 +79,28 @@ void Memory::LoadFrom(Gameexe& gameexe) {
   }
 }
 
+MemoryBank<int>& Memory::GetBank(IntBank bank) {
+  const auto bankidx = static_cast<uint8_t>(bank);
+  if (bankidx >= int_bank_cnt)
+    throw std::invalid_argument("Memory: invalid int bank " +
+                                std::to_string(bankidx));
+  return intbanks_[bankidx];
+}
+
 const MemoryBank<int>& Memory::GetBank(IntBank bank) const {
   const auto bankidx = static_cast<uint8_t>(bank);
   if (bankidx >= int_bank_cnt)
     throw std::invalid_argument("Memory: invalid int bank " +
                                 std::to_string(bankidx));
   return intbanks_[bankidx];
+}
+
+MemoryBank<std::string>& Memory::GetBank(StrBank bank) {
+  const auto bankidx = static_cast<uint8_t>(bank);
+  if (bankidx >= str_bank_cnt)
+    throw std::invalid_argument("Memory: invalid string bank " +
+                                std::to_string(bankidx));
+  return strbanks_[bankidx];
 }
 
 const MemoryBank<std::string>& Memory::GetBank(StrBank bank) const {
@@ -89,16 +116,16 @@ int Memory::Read(IntMemoryLocation loc) const {
   if (bits == 32)
     return Read(loc.Bank(), loc.Index());
   else {
-    static const std::unordered_set<int> allowed_bits{1, 2, 4, 8, 16};
-    if (!allowed_bits.count(bits))
+    if (!IsSupportedSubwordWidth(bits))
       throw std::invalid_argument("Memory: access type " +
                                   std::to_string(bits) + "b not supported.");
 
-    const auto index32 = loc.Index() * bits / 32;
-    auto val32 = Read(IntMemoryLocation(loc.Bank(), index32));
-    const int mask = (1 << bits) - 1;
-    const int shiftbits = loc.Index() * bits % 32;
-    return (val32 >> shiftbits) & mask;
+    const auto subwords_per_int = 32 / bits;
+    const auto index32 = loc.Index() / subwords_per_int;
+    const auto val32 =
+        static_cast<std::uint32_t>(Read(IntMemoryLocation(loc.Bank(), index32)));
+    const auto shiftbits = (loc.Index() % subwords_per_int) * bits;
+    return static_cast<int>((val32 >> shiftbits) & BitMask(bits));
   }
 }
 
@@ -129,34 +156,35 @@ void Memory::Write(IntMemoryLocation loc, int value) {
     return;
   }
 
-  auto& bank = const_cast<MemoryBank<int>&>(GetBank(loc.Bank()));
-  static const std::unordered_set<int> allowed_bits{1, 2, 4, 8, 16};
-  if (!allowed_bits.count(bits))
+  auto& bank = GetBank(loc.Bank());
+  if (!IsSupportedSubwordWidth(bits))
     throw std::invalid_argument("Memory: access type " + std::to_string(bits) +
                                 "b not supported.");
 
-  const auto index32 = loc.Index() * bits / 32;
-  auto val32 = Read(IntMemoryLocation(loc.Bank(), index32));
-  int mask = (1 << bits) - 1;
-  if (value > mask) {
+  const auto subwords_per_int = 32 / bits;
+  const auto index32 = loc.Index() / subwords_per_int;
+  auto val32 =
+      static_cast<std::uint32_t>(Read(IntMemoryLocation(loc.Bank(), index32)));
+  const auto mask = BitMask(bits);
+  if (value < 0 || static_cast<std::uint32_t>(value) > mask) {
     throw std::overflow_error("Memory: value " + std::to_string(value) +
                               " overflow when casting to " +
                               std::to_string(bits) + " bit int.");
   }
-  const int shiftbits = loc.Index() * bits % 32;
-  mask <<= shiftbits;
-  val32 &= (~mask);
-  val32 |= value << shiftbits;
-  bank.Set(index32, val32);
+  const auto shiftbits = (loc.Index() % subwords_per_int) * bits;
+  const auto shifted_mask = mask << shiftbits;
+  val32 &= ~shifted_mask;
+  val32 |= static_cast<std::uint32_t>(value) << shiftbits;
+  bank.Set(index32, static_cast<int>(val32));
 }
 
 void Memory::Write(IntBank bankid, size_t index, int value) {
-  auto& bank = const_cast<MemoryBank<int>&>(GetBank(bankid));
+  auto& bank = GetBank(bankid);
   bank.Set(index, value);
 }
 
 void Memory::Write(StrMemoryLocation loc, const std::string& value) {
-  auto& bank = const_cast<MemoryBank<std::string>&>(GetBank(loc.Bank()));
+  auto& bank = GetBank(loc.Bank());
   bank.Set(loc.Index(), value);
 }
 
@@ -165,7 +193,7 @@ void Memory::Write(StrBank bank, size_t index, const std::string& value) {
 }
 
 void Memory::Fill(IntBank bankid, size_t begin, size_t end, int value) {
-  auto& bank = const_cast<MemoryBank<int>&>(GetBank(bankid));
+  auto& bank = GetBank(bankid);
   if (begin > end) {
     throw std::invalid_argument("Memory::Fill: invalid range [" +
                                 std::to_string(begin) + ',' +
@@ -183,7 +211,7 @@ void Memory::Fill(StrBank bankid,
                   size_t begin,
                   size_t end,
                   const std::string& value) {
-  auto& bank = const_cast<MemoryBank<std::string>&>(GetBank(bankid));
+  auto& bank = GetBank(bankid);
   if (begin > end) {
     throw std::invalid_argument("Memory::Fill: invalid range [" +
                                 std::to_string(begin) + ',' +
@@ -198,12 +226,12 @@ void Memory::Fill(StrBank bankid,
 }
 
 void Memory::Resize(IntBank bankid, std::size_t size) {
-  auto& bank = const_cast<MemoryBank<int>&>(GetBank(bankid));
+  auto& bank = GetBank(bankid);
   bank.Resize(size);
 }
 
 void Memory::Resize(StrBank bankid, std::size_t size) {
-  auto& bank = const_cast<MemoryBank<std::string>&>(GetBank(bankid));
+  auto& bank = GetBank(bankid);
   bank.Resize(size);
 }
 

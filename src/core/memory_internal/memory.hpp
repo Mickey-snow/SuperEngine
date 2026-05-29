@@ -27,21 +27,10 @@
 
 #include "core/memory_internal/bank.hpp"
 #include "core/memory_internal/location.hpp"
-#include "libreallive/intmemref.hpp"
 
-#include <algorithm>
 #include <array>
-#include <map>
-#include <memory>
-#include <optional>
+#include <cstddef>
 #include <string>
-#include <utility>
-#include <vector>
-
-[[maybe_unused]] constexpr int NUMBER_OF_INT_LOCATIONS = 8;
-[[maybe_unused]] constexpr int SIZE_OF_MEM_BANK = 2000;
-[[maybe_unused]] constexpr int SIZE_OF_INT_PASSING_MEM = 40;
-[[maybe_unused]] constexpr int SIZE_OF_NAME_BANK = 702;
 
 class Gameexe;
 
@@ -100,14 +89,17 @@ class Memory {
   void PartialReset(LocalMemory local_memory);
 
  private:
+  MemoryBank<int>& GetBank(IntBank);
   const MemoryBank<int>& GetBank(IntBank) const;
+  MemoryBank<std::string>& GetBank(StrBank);
   const MemoryBank<std::string>& GetBank(StrBank) const;
 
   static constexpr auto int_bank_cnt = static_cast<size_t>(IntBank::CNT);
   static constexpr auto str_bank_cnt = static_cast<size_t>(StrBank::CNT);
+  static constexpr std::size_t kDefaultBankSize = 2000;
 
   // internally MemoryBank<T> is a structure representing a dynamic array,
   // supports COW and can be trivally copied.
-  MemoryBank<int> intbanks_[int_bank_cnt];
-  MemoryBank<std::string> strbanks_[str_bank_cnt];
+  std::array<MemoryBank<int>, int_bank_cnt> intbanks_;
+  std::array<MemoryBank<std::string>, str_bank_cnt> strbanks_;
 };
