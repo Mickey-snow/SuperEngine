@@ -30,10 +30,12 @@
 #include "core/memory_internal/bank.hpp"
 #include "core/memory_internal/location.hpp"
 
+#include <array>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <unordered_map>
+#include <utility>
 
 struct LocalMemory {
   LocalMemory();
@@ -51,11 +53,11 @@ struct LocalMemory {
     ar & bank_count;
 
     // save integer memory banks
-    const std::unordered_map<IntBank, MemoryBank<int> const*> bank{
+    const std::array<std::pair<IntBank, MemoryBank<int> const*>, 10> bank{{
         {IntBank::A, &A}, {IntBank::B, &B}, {IntBank::C, &C}, {IntBank::D, &D},
         {IntBank::E, &E}, {IntBank::F, &F}, {IntBank::X, &X}, {IntBank::H, &H},
         {IntBank::I, &I}, {IntBank::J, &J},
-    };
+    }};
     for (const auto [tag, ptr] : bank) {
       SerializeBankTag(ar, tag);
       ar&(*ptr);
