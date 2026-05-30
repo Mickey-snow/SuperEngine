@@ -68,7 +68,7 @@ class Archive {
  public:
   static Archive Create(std::string_view raw_data);
 
-  Archive(std::string_view data, const XorKey& key);
+  Archive(std::string_view data, const xorkey_t& key);
   Archive(const Archive&) = delete;
   Archive& operator=(const Archive&) = delete;
   Archive(Archive&& other) noexcept;
@@ -93,7 +93,7 @@ class Archive {
 
  public:
   std::string_view data_;
-  const XorKey& key_;
+  const xorkey_t& key_;
   Pack_hdr const* hdr_;
 
   std::vector<std::string> raw_scene_data_;
