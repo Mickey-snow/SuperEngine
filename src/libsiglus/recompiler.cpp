@@ -499,12 +499,18 @@ void Recompiler::emit_elm(const elm::AccessChain& e, const Value* assign) {
     } else if (auto* call = std::get_if<elm::Call>(&e.nodes.back().var)) {
       auto* mem = std::get_if<elm::Member>(&e.nodes[e.nodes.size() - 2].var);
       ASSERTX_NE(mem, nullptr);
-      std::string fn(mem->name);
-      fn = "set_" + fn;
+      if (!call->kwargs.empty())
+        throw std::runtime_error(
+            "cannot assign to callable element with keyword arguments");
+
+      std::string fn = call->args.empty() ? "set_" + std::string(mem->name)
+                                          : "write_" + std::string(mem->name);
       emit(sr::GetField{intern_name(std::move(fn))});  // (setter)
-      ASSERTX_TRUE(call->args.empty() && call->kwargs.empty());
+      for (const auto& arg : call->args)
+        emit_val(arg);
       emit_val(*assign);
-      emit(sr::Call{.argcnt = 1, .kwargcnt = 0});  // (setter, val) -> (nil)
+      emit(sr::Call{.argcnt = static_cast<uint32_t>(call->args.size() + 1),
+                    .kwargcnt = 0});  // (setter, args..., val) -> (nil)
       emit(sr::Pop{});
     } else
       fail();

@@ -62,9 +62,10 @@ TEST_F(SiglusMemoryBindingTest, IntBanksReadWriteAndGrow) {
 }
 
 TEST_F(SiglusMemoryBindingTest, IntBankBitViewsShareBackingStorage) {
-  Eval("B[0] = 0; B.b1[3] = 1;");
+  Eval("B[0] = 0; B.write_b1(3, 1); A[0] = B.b1(3);");
   EXPECT_EQ(runtime.memory->Read(IntBank::B, 0), 8);
   EXPECT_EQ(runtime.memory->Read(IntMemoryLocation(IntBank::B, 3, 1)), 1);
+  EXPECT_EQ(runtime.memory->Read(IntBank::A, 0), 1);
 }
 
 TEST_F(SiglusMemoryBindingTest, StringBanksReadWriteAndNameBanksWork) {
@@ -81,9 +82,35 @@ TEST_F(SiglusMemoryBindingTest, BankOperationsRemainCallable) {
   Eval("A.resize(3);");
   EXPECT_EQ(runtime.memory->Size(IntBank::A), 3);
 
-  Eval("A.fill(0, 3, 5); A.Set(1, 11);");
+  Eval("A.fill(0, 3, 5); A.Set(1, 11, 12);");
   EXPECT_EQ(runtime.memory->Read(IntBank::A, 1), 11);
-  EXPECT_EQ(runtime.memory->Read(IntBank::A, 2), 5);
+  EXPECT_EQ(runtime.memory->Read(IntBank::A, 2), 12);
+}
+
+TEST_F(SiglusMemoryBindingTest, FactoryIntListsUseSiglusFacade) {
+  Eval("xs = make_intlist(4); xs.Set(1, 10, 20); A[0] = xs[1]; A[1] = xs[2];");
+  EXPECT_EQ(runtime.memory->Read(IntBank::A, 0), 10);
+  EXPECT_EQ(runtime.memory->Read(IntBank::A, 1), 20);
+
+  Eval("xs[0] = 0; xs.write_b2(1, 3); A[2] = xs.b2(1); A[3] = xs[0];");
+  EXPECT_EQ(runtime.memory->Read(IntBank::A, 2), 3);
+  EXPECT_EQ(runtime.memory->Read(IntBank::A, 3), 12);
+
+  Eval("xs.resize(5); xs[4] = 7; xs.init(); A[4] = xs.size(); A[5] = xs[1];");
+  EXPECT_EQ(runtime.memory->Read(IntBank::A, 4), 4);
+  EXPECT_EQ(runtime.memory->Read(IntBank::A, 5), 0);
+}
+
+TEST_F(SiglusMemoryBindingTest, FactoryStrListsUseSiglusFacade) {
+  Eval(
+      R"(ss = make_strlist(2); ss[0] = "x"; ss.resize(3); ss[2] = "z"; A[0] = ss.size(); S[0] = ss[0]; S[1] = ss[2];)");
+  EXPECT_EQ(runtime.memory->Read(IntBank::A, 0), 3);
+  EXPECT_EQ(runtime.memory->Read(StrBank::S, 0), "x");
+  EXPECT_EQ(runtime.memory->Read(StrBank::S, 1), "z");
+
+  Eval("ss.init(); A[1] = ss.size(); S[2] = ss[0];");
+  EXPECT_EQ(runtime.memory->Read(IntBank::A, 1), 2);
+  EXPECT_EQ(runtime.memory->Read(StrBank::S, 2), "");
 }
 
 TEST_F(SiglusMemoryBindingTest, PushAndPopFrameRestoresStackBanks) {

@@ -27,7 +27,9 @@
 #include "utilities/flat_map.hpp"
 #include "utilities/string_utilities.hpp"
 
+#include <algorithm>
 #include <format>
+#include <string>
 #include <variant>
 
 namespace libsiglus::elm {
@@ -70,6 +72,42 @@ inline static Builder b_index_array(Type value_type) {
     subscript.idx = ctx.elmcode[1];
     ctx.chain.nodes.emplace_back(t, std::move(subscript));
     ctx.elmcode = ctx.elmcode.subspan(2);
+  });
+}
+
+inline static Builder b_intlist_bit_access(std::string_view mem) {
+  return Builder([mem](Builder::Ctx& ctx) {
+    auto emit_error = [&](std::string message, std::size_t consume) {
+      ctx.Warn(std::move(message));
+
+      ctx.chain.nodes.emplace_back(Type::Callable,
+                                   Member{mem, Type::Int, true});
+      Call call;
+      call.args.emplace_back(Integer(-1));
+      call.is_simple = true;
+      ctx.chain.nodes.emplace_back(Type::Int, std::move(call));
+      ctx.elmcode = ctx.elmcode.subspan(std::min(consume, ctx.elmcode.size()));
+    };
+
+    if (ctx.elmcode.size() < 3) {
+      emit_error(std::format("[IntListBit] {} expected immediate index", mem),
+                 ctx.elmcode.size());
+      return;
+    }
+
+    auto* marker = std::get_if<Integer>(&ctx.elmcode[1]);
+    if (!marker || marker->val_ != -1) {
+      emit_error(std::format("[IntListBit] {} expected immediate index", mem),
+                 1);
+      return;
+    }
+
+    ctx.chain.nodes.emplace_back(Type::Callable, Member{mem, Type::Int, true});
+    Call call;
+    call.args.emplace_back(ctx.elmcode[2]);
+    call.is_simple = true;
+    ctx.chain.nodes.emplace_back(Type::Int, std::move(call));
+    ctx.elmcode = ctx.elmcode.subspan(3);
   });
 }
 
@@ -139,11 +177,11 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
     case Type::IntList: {
       static const auto mp = make_flatmap<Builder>(
           {id[-1] | b_index_array(Type::Int),
-           id[3] | b(Type::IntList, Member("b1")),
-           id[4] | b(Type::IntList, Member("b2")),
-           id[5] | b(Type::IntList, Member("b4")),
-           id[7] | b(Type::IntList, Member("b8")),
-           id[6] | b(Type::IntList, Member("b16")), id[10] | b_callable("init"),
+           id[3] | b_intlist_bit_access("b1"),
+           id[4] | b_intlist_bit_access("b2"),
+           id[5] | b_intlist_bit_access("b4"),
+           id[7] | b_intlist_bit_access("b8"),
+           id[6] | b_intlist_bit_access("b16"), id[10] | b_callable("init"),
            id[2] | b_callable("resize"), id[9] | b_callable("size", Type::Int),
            id[8] | b_callable("fill"), id[1] | b_callable("Set")});
       return &mp;

@@ -114,11 +114,11 @@ class ElementParserTest : public ::testing::Test {
 
 TEST_F(ElementParserTest, MemoryBank) {
   EXPECT_EQ(chain(25, -1, 0), "A[int:0]");
-  EXPECT_EQ(chain(26, 3, -1, 1), "B.b1[int:1]");
-  EXPECT_EQ(chain(27, 4, -1, 2), "C.b2[int:2]");
-  EXPECT_EQ(chain(28, 5, -1, 3), "D.b4[int:3]");
-  EXPECT_EQ(chain(29, 7, -1, 4), "E.b8[int:4]");
-  EXPECT_EQ(chain(30, 6, -1, 5), "F.b16[int:5]");
+  EXPECT_EQ(chain(26, 3, -1, 1), "B.b1(int:1)");
+  EXPECT_EQ(chain(27, 4, -1, 2), "C.b2(int:2)");
+  EXPECT_EQ(chain(28, 5, -1, 3), "D.b4(int:3)");
+  EXPECT_EQ(chain(29, 7, -1, 4), "E.b8(int:4)");
+  EXPECT_EQ(chain(30, 6, -1, 5), "F.b16(int:5)");
   EXPECT_EQ(chain(31, -1, 250), "G[int:250]");
   EXPECT_EQ(chain(32, -1, 251), "Z[int:251]");
 }
