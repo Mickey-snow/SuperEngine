@@ -25,7 +25,6 @@
 #include <gtest/gtest.h>
 
 #include "core/memory.hpp"
-#include "core/memory_internal/stack_adapter.hpp"
 #include "machine/call_stack.hpp"
 #include "machine/stack_frame.hpp"
 
@@ -36,22 +35,15 @@ class FakeStack : public CallStack {
   std::shared_ptr<StackFrame> frame;
 };
 
-class StackAdapterTest : public ::testing::Test {
+class StackRoutingTest : public ::testing::Test {
  protected:
-  void SetUp() {
-    Memory::Stack stack_memory;
-    stack_memory.K = MemoryBank<std::string>(
-        std::make_shared<StackMemoryAdapter<StackBank::StrK>>(stack));
-    stack_memory.L = MemoryBank<int>(
-        std::make_shared<StackMemoryAdapter<StackBank::IntL>>(stack));
-    memory.PartialReset(stack_memory);
-  }
+  void SetUp() { memory.AttachCallStack(&stack); }
 
   FakeStack stack;
   Memory memory;
 };
 
-TEST_F(StackAdapterTest, IntL) {
+TEST_F(StackRoutingTest, IntL) {
   auto frame1 = std::make_shared<StackFrame>();
   auto frame2 = std::make_shared<StackFrame>();
   auto frame3 = std::make_shared<StackFrame>();
@@ -76,7 +68,7 @@ TEST_F(StackAdapterTest, IntL) {
   }
 }
 
-TEST_F(StackAdapterTest, StrK) {
+TEST_F(StackRoutingTest, StrK) {
   auto frame1 = std::make_shared<StackFrame>();
   auto frame2 = std::make_shared<StackFrame>();
   auto frame3 = std::make_shared<StackFrame>();
@@ -101,7 +93,7 @@ TEST_F(StackAdapterTest, StrK) {
   }
 }
 
-TEST_F(StackAdapterTest, GetStackMemorySnapshotsCurrentFrame) {
+TEST_F(StackRoutingTest, GetStackMemorySnapshotsCurrentFrame) {
   auto frame1 = std::make_shared<StackFrame>();
   auto frame2 = std::make_shared<StackFrame>();
 

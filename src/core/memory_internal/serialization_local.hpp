@@ -40,8 +40,8 @@ struct LocalMemory {
   LocalMemory();
   ~LocalMemory();
 
-  MemoryBank<int> A, B, C, D, E, F, X, H, I, J;
-  MemoryBank<std::string> S, local_names;
+  IntBankStorage A, B, C, D, E, F, X, H, I, J;
+  StrBankStorage S, local_names;
 
   // boost::serialization support
   BOOST_SERIALIZATION_SPLIT_MEMBER();
@@ -52,7 +52,7 @@ struct LocalMemory {
     ar & bank_count;
 
     // save integer memory banks
-    const std::array<std::pair<IntBank, MemoryBank<int> const*>, 10> bank{{
+    const std::array<std::pair<IntBank, IntBankStorage const*>, 10> bank{{
         {IntBank::A, &A}, {IntBank::B, &B}, {IntBank::C, &C}, {IntBank::D, &D},
         {IntBank::E, &E}, {IntBank::F, &F}, {IntBank::X, &X}, {IntBank::H, &H},
         {IntBank::I, &I}, {IntBank::J, &J},
@@ -82,7 +82,7 @@ struct LocalMemory {
     std::array<bool, static_cast<size_t>(IntBank::CNT)> seen_int{};
     std::array<bool, static_cast<size_t>(StrBank::CNT)> seen_str{};
 
-    const auto intbank = [&](IntBank bank) -> MemoryBank<int>* {
+    const auto intbank = [&](IntBank bank) -> IntBankStorage* {
       switch (bank) {
         case IntBank::A:
           return &A;
@@ -110,7 +110,7 @@ struct LocalMemory {
       }
     };
 
-    const auto strbank = [&](StrBank bank) -> MemoryBank<std::string>* {
+    const auto strbank = [&](StrBank bank) -> StrBankStorage* {
       switch (bank) {
         case StrBank::S:
           return &S;

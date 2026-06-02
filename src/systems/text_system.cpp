@@ -41,12 +41,12 @@
 #include "machine/rlmachine.hpp"
 #include "machine/serialization.hpp"
 #include "systems/graphics_system.hpp"
+#include "systems/itext_system.hpp"
+#include "systems/sdl/sdl_surface.hpp"
 #include "systems/system.hpp"
 #include "systems/text_key_cursor.hpp"
 #include "systems/text_page.hpp"
 #include "systems/text_window.hpp"
-#include "systems/itext_system.hpp"
-#include "systems/sdl/sdl_surface.hpp"
 #include "utf8.h"
 #include "utilities/exception.hpp"
 #include "utilities/find_font_file.hpp"
@@ -523,12 +523,12 @@ bool parseInteger(std::string::const_iterator& begin,
 }
 
 std::shared_ptr<SDLSurface> TextSystem::RenderText(const std::string& utf8str,
-                                                int size,
-                                                int xspace,
-                                                int yspace,
-                                                const RGBColour& colour,
-                                                RGBColour* shadow_colour,
-                                                int max_chars_in_line) {
+                                                   int size,
+                                                   int xspace,
+                                                   int yspace,
+                                                   const RGBColour& colour,
+                                                   RGBColour* shadow_colour,
+                                                   int max_chars_in_line) {
   const int line_max_width =
       (max_chars_in_line > 0) ? (size + xspace) * max_chars_in_line : INT_MAX;
 
@@ -843,7 +843,7 @@ template void TextSystem::load<boost::archive::text_iarchive>(
 
 // -----------------------------------------------------------------------
 
-std::string parseNames(const Memory& memory, const std::string& input) {
+std::string parseNames(Memory& memory, const std::string& input) {
   std::string output;
   const char* cur = input.c_str();
 

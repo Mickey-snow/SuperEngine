@@ -24,20 +24,18 @@
 
 #include "serialization_local.hpp"
 
-#include "core/memory_internal/storage_policy.hpp"
-
 LocalMemory::LocalMemory()
-    : A(MemoryBank<int>(Storage::DYNAMIC, 2000)),
-      B(MemoryBank<int>(Storage::DYNAMIC, 2000)),
-      C(MemoryBank<int>(Storage::DYNAMIC, 2000)),
-      D(MemoryBank<int>(Storage::DYNAMIC, 2000)),
-      E(MemoryBank<int>(Storage::DYNAMIC, 2000)),
-      F(MemoryBank<int>(Storage::DYNAMIC, 2000)),
-      X(MemoryBank<int>(Storage::DYNAMIC, 2000)),
-      H(MemoryBank<int>(Storage::DYNAMIC, 2000)),
-      I(MemoryBank<int>(Storage::DYNAMIC, 2000)),
-      J(MemoryBank<int>(Storage::DYNAMIC, 2000)),
-      S(MemoryBank<std::string>(Storage::DYNAMIC, 2000)),
-      local_names(MemoryBank<std::string>(Storage::DYNAMIC, 2000)) {}
+    : A(2000),
+      B(2000),
+      C(2000),
+      D(2000),
+      E(2000),
+      F(2000),
+      X(2000),
+      H(2000),
+      I(2000),
+      J(2000),
+      S(2000),
+      local_names(2000) {}
 
 LocalMemory::~LocalMemory() = default;

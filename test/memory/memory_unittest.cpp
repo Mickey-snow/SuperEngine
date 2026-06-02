@@ -68,9 +68,11 @@ TEST_F(MemoryTest, ReadWrite) {
     IntMemoryLocation loc2(IntBank::Z, 101);
     EXPECT_EQ(memory_->Read(loc2), 0);
 
-    IntMemoryLocation invalid_loc(IntBank::F, 2000);
-    EXPECT_THROW(memory_->Read(invalid_loc), std::out_of_range);
-    EXPECT_THROW(memory_->Write(invalid_loc, 10), std::out_of_range);
+    IntMemoryLocation grown_loc(IntBank::F, 2000);
+    EXPECT_EQ(memory_->Read(grown_loc), 0);
+    EXPECT_EQ(memory_->Size(IntBank::F), 2001);
+    memory_->Write(grown_loc, 10);
+    EXPECT_EQ(memory_->Read(grown_loc), 10);
   }
 
   {
@@ -82,9 +84,11 @@ TEST_F(MemoryTest, ReadWrite) {
     StrMemoryLocation loc2(StrBank::M, 151);
     EXPECT_EQ(memory_->Read(loc2), "");
 
-    StrMemoryLocation invalid_loc(StrBank::S, 2000);
-    EXPECT_THROW(memory_->Read(invalid_loc), std::out_of_range);
-    EXPECT_THROW(memory_->Write(invalid_loc, "Test"), std::out_of_range);
+    StrMemoryLocation grown_loc(StrBank::S, 2000);
+    EXPECT_EQ(memory_->Read(grown_loc), "");
+    EXPECT_EQ(memory_->Size(StrBank::S), 2001);
+    memory_->Write(grown_loc, "Test");
+    EXPECT_EQ(memory_->Read(grown_loc), "Test");
   }
 }
 
@@ -106,7 +110,9 @@ TEST_F(MemoryTest, WriteInt) {
       << std::bitset<4>(memory_->Read(IntMemoryLocation(IntBank::B, 8, 4)));
 
   EXPECT_THROW(Write(4, 0, 0b10000), std::overflow_error);
+  EXPECT_EQ(memory_->Read(IntBank::B, 0), 0);
   EXPECT_THROW(Write(4, 0, -1), std::overflow_error);
+  EXPECT_EQ(memory_->Read(IntBank::B, 0), 0);
   EXPECT_THROW(Write(5, 0, 0), std::invalid_argument);
 
   memory_->Write(IntBank::B, 2, std::numeric_limits<int>::min());
@@ -135,11 +141,13 @@ TEST_F(MemoryTest, IntFill) {
                                   memory_->Size(IntBank::B),
                                   memory_->Size(IntBank::B),
                                   9));
-    EXPECT_THROW(memory_->Fill(IntBank::B, 2001, 2001, 9),
-                 std::out_of_range);
+    EXPECT_NO_THROW(memory_->Fill(IntBank::B, 2001, 2001, 9));
+    EXPECT_EQ(memory_->Size(IntBank::B), 2000);
     EXPECT_THROW(memory_->Fill(IntBank::B, 100, 50, 5), std::invalid_argument)
         << "Should throw when range (begin > end)";
-    EXPECT_THROW(memory_->Fill(IntBank::B, 1990, 2010, 5), std::out_of_range);
+    EXPECT_NO_THROW(memory_->Fill(IntBank::B, 1990, 2010, 5));
+    EXPECT_EQ(memory_->Size(IntBank::B), 2010);
+    EXPECT_EQ(memory_->Read(IntBank::B, 2009), 5);
   }
 
   {
@@ -161,12 +169,13 @@ TEST_F(MemoryTest, IntFill) {
                                   memory_->Size(StrBank::M),
                                   memory_->Size(StrBank::M),
                                   "Empty"));
-    EXPECT_THROW(memory_->Fill(StrBank::M, 2001, 2001, "OutOfRange"),
-                 std::out_of_range);
+    EXPECT_NO_THROW(memory_->Fill(StrBank::M, 2001, 2001, "OutOfRange"));
+    EXPECT_EQ(memory_->Size(StrBank::M), 2000);
     EXPECT_THROW(memory_->Fill(StrBank::M, 30, 20, "Invalid"),
                  std::invalid_argument);
-    EXPECT_THROW(memory_->Fill(StrBank::M, 1995, 2005, "OutOfRange"),
-                 std::out_of_range);
+    EXPECT_NO_THROW(memory_->Fill(StrBank::M, 1995, 2005, "OutOfRange"));
+    EXPECT_EQ(memory_->Size(StrBank::M), 2005);
+    EXPECT_EQ(memory_->Read(StrBank::M, 2004), "OutOfRange");
   }
 }
 
@@ -183,7 +192,8 @@ TEST_F(MemoryTest, Resize) {
 
     // Resize to a smaller size
     memory_->Resize(IntBank::C, 1000);
-    EXPECT_THROW(memory_->Read(loc_existing), std::out_of_range);
+    EXPECT_EQ(memory_->Read(loc_existing), 0);
+    EXPECT_EQ(memory_->Size(IntBank::C), 2000);
     memory_->Resize(IntBank::C, 8888);
     EXPECT_EQ(memory_->Read(loc), 0);
   }
@@ -197,7 +207,8 @@ TEST_F(MemoryTest, Resize) {
     EXPECT_EQ(memory_->Read(loc), "");
 
     memory_->Resize(StrBank::K, 0);
-    EXPECT_THROW(memory_->Read(loc_existing), std::out_of_range);
+    EXPECT_EQ(memory_->Read(loc_existing), "");
+    EXPECT_EQ(memory_->Size(StrBank::K), 2000);
   }
 }
 
@@ -212,7 +223,8 @@ TEST_F(MemoryTest, EdgeCases) {
 
   IntMemoryLocation loc(IntBank::E, 0);
   memory_->Resize(IntBank::E, 0);
-  EXPECT_THROW(memory_->Read(loc), std::out_of_range);
+  EXPECT_EQ(memory_->Read(loc), 0);
+  EXPECT_EQ(memory_->Size(IntBank::E), 1);
 }
 
 TEST_F(MemoryTest, GetStack) {

@@ -77,8 +77,8 @@ struct StackFrame {
   std::shared_ptr<LongOperation> long_op;
 
   // Stack memory, used for passing parameters.
-  MemoryBank<int> intL;
-  MemoryBank<std::string> strK;
+  IntBankStorage intL;
+  StrBankStorage strK;
 
   FrameType frame_type;
 

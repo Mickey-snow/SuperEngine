@@ -28,7 +28,6 @@
 #include "core/event_listener.hpp"
 #include "core/memory.hpp"
 #include "core/memory_internal/serialization_local.hpp"
-#include "core/memory_internal/stack_adapter.hpp"
 #include "log/domain_logger.hpp"
 #include "long_operations/pause_long_operation.hpp"
 #include "long_operations/textout_long_operation.hpp"
@@ -70,13 +69,7 @@ RLMachine::RLMachine(std::shared_ptr<System> system,
       system_(*system) {
   if (!memory_)
     memory_ = std::make_unique<Memory>();
-  // Setup stack memory
-  Memory::Stack stack_memory;
-  stack_memory.K = MemoryBank<std::string>(
-      std::make_shared<StackMemoryAdapter<StackBank::StrK>>(call_stack_));
-  stack_memory.L = MemoryBank<int>(
-      std::make_shared<StackMemoryAdapter<StackBank::IntL>>(call_stack_));
-  memory_->PartialReset(std::move(stack_memory));
+  memory_->AttachCallStack(&call_stack_);
 
   if (system) {
     // Setup runtime environment

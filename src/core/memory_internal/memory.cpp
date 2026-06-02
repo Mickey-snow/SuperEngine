@@ -27,11 +27,13 @@
 
 #include <cstdint>
 #include <iostream>
+#include <stdexcept>
 #include <string>
 
 #include "core/gameexe.hpp"
 #include "core/memory_internal/serialization_global.hpp"
 #include "core/memory_internal/serialization_local.hpp"
+#include "machine/call_stack.hpp"
 #include "utilities/string_utilities.hpp"
 
 namespace {
@@ -53,7 +55,24 @@ Memory::Memory() {
     strbanks_[i].Resize(kDefaultBankSize);
 }
 
-Memory::~Memory() {}
+Memory::Memory(const Memory& other)
+    : intbanks_(other.intbanks_), strbanks_(other.strbanks_) {}
+
+Memory& Memory::operator=(const Memory& other) {
+  if (this == &other)
+    return *this;
+
+  intbanks_ = other.intbanks_;
+  strbanks_ = other.strbanks_;
+  call_stack_ = nullptr;
+  return *this;
+}
+
+Memory::~Memory() = default;
+
+void Memory::AttachCallStack(CallStack* call_stack) {
+  call_stack_ = call_stack;
+}
 
 void Memory::LoadFrom(Gameexe& gameexe) {
   // Note: We ignore the \#NAME_MAXLEN variable because manual allocation is
@@ -79,103 +98,94 @@ void Memory::LoadFrom(Gameexe& gameexe) {
   }
 }
 
-MemoryBank<int>& Memory::GetBank(IntBank bank) {
+IntBankStorage& Memory::GetBank(IntBank bank) {
   const auto bankidx = static_cast<uint8_t>(bank);
   if (bankidx >= int_bank_cnt)
     throw std::invalid_argument("Memory: invalid int bank " +
                                 std::to_string(bankidx));
-  return intbanks_[bankidx];
-}
 
-const MemoryBank<int>& Memory::GetBank(IntBank bank) const {
-  const auto bankidx = static_cast<uint8_t>(bank);
-  if (bankidx >= int_bank_cnt)
-    throw std::invalid_argument("Memory: invalid int bank " +
-                                std::to_string(bankidx));
-  return intbanks_[bankidx];
-}
-
-MemoryBank<std::string>& Memory::GetBank(StrBank bank) {
-  const auto bankidx = static_cast<uint8_t>(bank);
-  if (bankidx >= str_bank_cnt)
-    throw std::invalid_argument("Memory: invalid string bank " +
-                                std::to_string(bankidx));
-  return strbanks_[bankidx];
-}
-
-const MemoryBank<std::string>& Memory::GetBank(StrBank bank) const {
-  const auto bankidx = static_cast<uint8_t>(bank);
-  if (bankidx >= str_bank_cnt)
-    throw std::invalid_argument("Memory: invalid string bank " +
-                                std::to_string(bankidx));
-  return strbanks_[bankidx];
-}
-
-int Memory::Read(IntMemoryLocation loc) const {
-  const auto bits = loc.Bitwidth();
-  if (bits == 32)
-    return Read(loc.Bank(), loc.Index());
-  else {
-    if (!IsSupportedSubwordWidth(bits))
-      throw std::invalid_argument("Memory: access type " +
-                                  std::to_string(bits) + "b not supported.");
-
-    const auto subwords_per_int = 32 / bits;
-    const auto index32 = loc.Index() / subwords_per_int;
-    const auto val32 =
-        static_cast<std::uint32_t>(Read(IntMemoryLocation(loc.Bank(), index32)));
-    const auto shiftbits = (loc.Index() % subwords_per_int) * bits;
-    return static_cast<int>((val32 >> shiftbits) & BitMask(bits));
+  if (bank == IntBank::L && call_stack_ != nullptr) {
+    auto* frame = call_stack_->FindTopRealFrame();
+    if (frame == nullptr)
+      throw std::runtime_error("Memory: stack memory requested with no frame.");
+    return frame->intL;
   }
+
+  return intbanks_[bankidx];
 }
 
-int Memory::Read(IntBank bank, size_t index) const {
+const IntBankStorage& Memory::GetBank(IntBank bank) const {
+  const auto bankidx = static_cast<uint8_t>(bank);
+  if (bankidx >= int_bank_cnt)
+    throw std::invalid_argument("Memory: invalid int bank " +
+                                std::to_string(bankidx));
+
+  if (bank == IntBank::L && call_stack_ != nullptr) {
+    auto* frame = call_stack_->FindTopRealFrame();
+    if (frame == nullptr)
+      throw std::runtime_error("Memory: stack memory requested with no frame.");
+    return frame->intL;
+  }
+
+  return intbanks_[bankidx];
+}
+
+StrBankStorage& Memory::GetBank(StrBank bank) {
+  const auto bankidx = static_cast<uint8_t>(bank);
+  if (bankidx >= str_bank_cnt)
+    throw std::invalid_argument("Memory: invalid string bank " +
+                                std::to_string(bankidx));
+
+  if (bank == StrBank::K && call_stack_ != nullptr) {
+    auto* frame = call_stack_->FindTopRealFrame();
+    if (frame == nullptr)
+      throw std::runtime_error("Memory: stack memory requested with no frame.");
+    return frame->strK;
+  }
+
+  return strbanks_[bankidx];
+}
+
+const StrBankStorage& Memory::GetBank(StrBank bank) const {
+  const auto bankidx = static_cast<uint8_t>(bank);
+  if (bankidx >= str_bank_cnt)
+    throw std::invalid_argument("Memory: invalid string bank " +
+                                std::to_string(bankidx));
+
+  if (bank == StrBank::K && call_stack_ != nullptr) {
+    auto* frame = call_stack_->FindTopRealFrame();
+    if (frame == nullptr)
+      throw std::runtime_error("Memory: stack memory requested with no frame.");
+    return frame->strK;
+  }
+
+  return strbanks_[bankidx];
+}
+
+int Memory::Read(IntMemoryLocation loc) {
+  auto& bank = GetBank(loc.Bank());
+  return bank.Get(loc.Index(), loc.Bitwidth());
+}
+
+int Memory::Read(IntBank bank, size_t index) {
   return GetBank(bank).Get(index);
 }
 
-std::string Memory::Read(StrMemoryLocation loc) const {
+std::string Memory::Read(StrMemoryLocation loc) {
   return Read(loc.Bank(), loc.Index());
 }
 
-std::string Memory::Read(StrBank bank, size_t index) const {
+std::string Memory::Read(StrBank bank, size_t index) {
   return GetBank(bank).Get(index);
 }
 
-size_t Memory::Size(IntBank bank) const {
-  return GetBank(bank).GetSize();
-}
+size_t Memory::Size(IntBank bank) const { return GetBank(bank).GetSize(); }
 
-size_t Memory::Size(StrBank bank) const {
-  return GetBank(bank).GetSize();
-}
+size_t Memory::Size(StrBank bank) const { return GetBank(bank).GetSize(); }
 
 void Memory::Write(IntMemoryLocation loc, int value) {
-  const auto bits = loc.Bitwidth();
-  if (bits == 32) {
-    Write(loc.Bank(), loc.Index(), value);
-    return;
-  }
-
   auto& bank = GetBank(loc.Bank());
-  if (!IsSupportedSubwordWidth(bits))
-    throw std::invalid_argument("Memory: access type " + std::to_string(bits) +
-                                "b not supported.");
-
-  const auto subwords_per_int = 32 / bits;
-  const auto index32 = loc.Index() / subwords_per_int;
-  auto val32 =
-      static_cast<std::uint32_t>(Read(IntMemoryLocation(loc.Bank(), index32)));
-  const auto mask = BitMask(bits);
-  if (value < 0 || static_cast<std::uint32_t>(value) > mask) {
-    throw std::overflow_error("Memory: value " + std::to_string(value) +
-                              " overflow when casting to " +
-                              std::to_string(bits) + " bit int.");
-  }
-  const auto shiftbits = (loc.Index() % subwords_per_int) * bits;
-  const auto shifted_mask = mask << shiftbits;
-  val32 &= ~shifted_mask;
-  val32 |= static_cast<std::uint32_t>(value) << shiftbits;
-  bank.Set(index32, static_cast<int>(val32));
+  bank.Set(loc.Index(), value, loc.Bitwidth());
 }
 
 void Memory::Write(IntBank bankid, size_t index, int value) {
@@ -194,16 +204,6 @@ void Memory::Write(StrBank bank, size_t index, const std::string& value) {
 
 void Memory::Fill(IntBank bankid, size_t begin, size_t end, int value) {
   auto& bank = GetBank(bankid);
-  if (begin > end) {
-    throw std::invalid_argument("Memory::Fill: invalid range [" +
-                                std::to_string(begin) + ',' +
-                                std::to_string(end) + ").");
-  }
-  if (end > bank.GetSize()) {
-    throw std::out_of_range("Memory::Fill: range [" + std::to_string(begin) +
-                            ',' + std::to_string(end) + ") out of bounds.");
-  }
-
   bank.Fill(begin, end, value);
 }
 
@@ -212,16 +212,6 @@ void Memory::Fill(StrBank bankid,
                   size_t end,
                   const std::string& value) {
   auto& bank = GetBank(bankid);
-  if (begin > end) {
-    throw std::invalid_argument("Memory::Fill: invalid range [" +
-                                std::to_string(begin) + ',' +
-                                std::to_string(end) + ").");
-  }
-  if (end > bank.GetSize()) {
-    throw std::out_of_range("Memory::Fill: range [" + std::to_string(begin) +
-                            ',' + std::to_string(end) + ") out of bounds.");
-  }
-
   bank.Fill(begin, end, value);
 }
 
@@ -236,25 +226,12 @@ void Memory::Resize(StrBank bankid, std::size_t size) {
 }
 
 Memory::Stack Memory::GetStackMemory() const {
-  const auto& int_l = GetBank(IntBank::L);
-  const auto& str_k = GetBank(StrBank::K);
-  const auto int_l_size = int_l.GetSize();
-  const auto str_k_size = str_k.GetSize();
-  Stack result{
-      .L = MemoryBank<int>(Storage::DYNAMIC, int_l_size),
-      .K = MemoryBank<std::string>(Storage::DYNAMIC, str_k_size)};
-
-  for (std::size_t i = 0; i < int_l_size; ++i)
-    result.L.Set(i, int_l.Get(i));
-  for (std::size_t i = 0; i < str_k_size; ++i)
-    result.K.Set(i, str_k.Get(i));
-
-  return result;
+  return Stack{.L = GetBank(IntBank::L), .K = GetBank(StrBank::K)};
 }
 
 void Memory::PartialReset(Stack stack_memory) {
-  intbanks_[static_cast<uint8_t>(IntBank::L)] = std::move(stack_memory.L);
-  strbanks_[static_cast<uint8_t>(StrBank::K)] = std::move(stack_memory.K);
+  GetBank(IntBank::L) = std::move(stack_memory.L);
+  GetBank(StrBank::K) = std::move(stack_memory.K);
 }
 
 GlobalMemory Memory::GetGlobalMemory() const {

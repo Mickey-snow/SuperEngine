@@ -333,11 +333,9 @@ void BindMemory(Context& ctx, SiglusRuntime& runtime) {
 
         frame_stack->push_back(memory.GetStackMemory());
         Memory::Stack stack{
-            .L = MemoryBank<int>(Storage::DYNAMIC,
-                                 std::max<std::size_t>(8, largs->items.size())),
-            .K = MemoryBank<std::string>(
-                Storage::DYNAMIC,
-                std::max<std::size_t>(8, kargs->items.size()))};
+            .L = IntBankStorage(std::max<std::size_t>(8, largs->items.size())),
+            .K =
+                StrBankStorage(std::max<std::size_t>(8, kargs->items.size()))};
         memory.PartialReset(std::move(stack));
 
         for (std::size_t i = 0; i < largs->items.size(); ++i)

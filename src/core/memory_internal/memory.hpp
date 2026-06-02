@@ -33,6 +33,7 @@
 #include <string>
 
 class Gameexe;
+class CallStack;
 
 struct GlobalMemory;
 struct LocalMemory;
@@ -43,6 +44,10 @@ struct LocalMemory;
 class Memory {
  public:
   Memory();
+  Memory(const Memory& other);
+  Memory& operator=(const Memory& other);
+  Memory(Memory&&) = default;
+  Memory& operator=(Memory&&) = default;
   ~Memory();
 
   // Reads in default memory values from the passed in Gameexe, such as \#NAME
@@ -50,6 +55,8 @@ class Memory {
   // @note For now, we only read \#NAME and \#LOCALNAME variables, skipping any
   // declaration of the form \#intvar[index] or \#strvar[index].
   void LoadFrom(Gameexe& gameexe);
+
+  void AttachCallStack(CallStack* call_stack);
 
  public:
   void Write(IntMemoryLocation, int);
@@ -60,10 +67,10 @@ class Memory {
   void Fill(IntBank, size_t begin, size_t end, int value);
   void Fill(StrBank, size_t begin, size_t end, const std::string& value);
 
-  int Read(IntMemoryLocation) const;
-  int Read(IntBank bank, size_t index) const;
-  std::string Read(StrMemoryLocation) const;
-  std::string Read(StrBank bank, size_t index) const;
+  int Read(IntMemoryLocation);
+  int Read(IntBank bank, size_t index);
+  std::string Read(StrMemoryLocation);
+  std::string Read(StrBank bank, size_t index);
 
   size_t Size(IntBank bank) const;
   size_t Size(StrBank bank) const;
@@ -72,8 +79,8 @@ class Memory {
   void Resize(StrBank, std::size_t);
 
   struct Stack {
-    MemoryBank<int> L;
-    MemoryBank<std::string> K;
+    IntBankStorage L;
+    StrBankStorage K;
   };
   // Create and return a value snapshot of stack memory.
   Stack GetStackMemory() const;
@@ -89,17 +96,16 @@ class Memory {
   void PartialReset(LocalMemory local_memory);
 
  private:
-  MemoryBank<int>& GetBank(IntBank);
-  const MemoryBank<int>& GetBank(IntBank) const;
-  MemoryBank<std::string>& GetBank(StrBank);
-  const MemoryBank<std::string>& GetBank(StrBank) const;
+  IntBankStorage& GetBank(IntBank);
+  const IntBankStorage& GetBank(IntBank) const;
+  StrBankStorage& GetBank(StrBank);
+  const StrBankStorage& GetBank(StrBank) const;
 
   static constexpr auto int_bank_cnt = static_cast<size_t>(IntBank::CNT);
   static constexpr auto str_bank_cnt = static_cast<size_t>(StrBank::CNT);
   static constexpr std::size_t kDefaultBankSize = 2000;
 
-  // internally MemoryBank<T> is a structure representing a dynamic array,
-  // supports COW and can be trivally copied.
-  std::array<MemoryBank<int>, int_bank_cnt> intbanks_;
-  std::array<MemoryBank<std::string>, str_bank_cnt> strbanks_;
+  std::array<IntBankStorage, int_bank_cnt> intbanks_;
+  std::array<StrBankStorage, str_bank_cnt> strbanks_;
+  CallStack* call_stack_ = nullptr;  // rlvm only
 };

@@ -96,7 +96,7 @@ TEST_F(MemorySerializationTest, Local) {
     ia >> deserialized;
 
     int expect_value = 0;
-    for (auto bank : std::vector<MemoryBank<int>>{
+    for (auto bank : std::vector<IntBankStorage>{
              deserialized.A, deserialized.B, deserialized.C, deserialized.D,
              deserialized.E, deserialized.F, deserialized.X, deserialized.H,
              deserialized.I, deserialized.J}) {

@@ -35,8 +35,8 @@
 #include <type_traits>
 
 struct GlobalMemory {
-  MemoryBank<int> G, Z;
-  MemoryBank<std::string> M, global_names;
+  IntBankStorage G, Z;
+  StrBankStorage M, global_names;
 
   // boost::serialization support
   template <class Archive>

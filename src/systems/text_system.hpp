@@ -229,12 +229,12 @@ class TextSystem final : public EventListener {
   // properties. Will search |utf8str| for object text syntax and will change
   // various properties based on that syntax.
   std::shared_ptr<SDLSurface> RenderText(const std::string& utf8str,
-                                      int size,
-                                      int xspace,
-                                      int yspace,
-                                      const RGBColour& colour,
-                                      RGBColour* shadow_colour,
-                                      int max_chars_in_line);
+                                         int size,
+                                         int xspace,
+                                         int yspace,
+                                         const RGBColour& colour,
+                                         RGBColour* shadow_colour,
+                                         int max_chars_in_line);
 
   TextSystemGlobals& globals() { return globals_; }
 
@@ -376,7 +376,7 @@ class TextSystem final : public EventListener {
 // variable placeholders with the names from Memory. This function assumes that
 // text is in CP932 encoding, and will need to be generalized when we try to
 // support other hacks on top of cp932.
-std::string parseNames(const Memory& memory, const std::string& input);
+std::string parseNames(Memory& memory, const std::string& input);
 
 // LongOperation which just calls text().set_system_visible(true) and removes
 // itself from the callstack.

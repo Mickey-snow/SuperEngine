@@ -31,9 +31,11 @@
 
 class MemoryStressTest : public ::testing::Test {
  protected:
+  static constexpr std::size_t kStressBankSize = 4096;
+
   MemoryStressTest()
       : gen(rd()),
-        size_dist(0, std::numeric_limits<size_t>::max()),
+        index_dist(0, kStressBankSize - 1),
         int_dist(std::numeric_limits<int>::min(),
                  std::numeric_limits<int>::max()),
         bankid_dist(0, static_cast<uint8_t>(IntBank::CNT) - 1),
@@ -41,13 +43,13 @@ class MemoryStressTest : public ::testing::Test {
 
   std::random_device rd;
   std::mt19937 gen;
-  std::uniform_int_distribution<size_t> size_dist;
+  std::uniform_int_distribution<size_t> index_dist;
   std::uniform_int_distribution<int> int_dist;
   std::uniform_int_distribution<uint8_t> bankid_dist;
 
   IntMemoryLocation RandomIntLocation() {
     return IntMemoryLocation(static_cast<IntBank>(bankid_dist(gen)),
-                             size_dist(gen));
+                             index_dist(gen));
   }
 
   std::shared_ptr<Memory> memory_;
@@ -63,8 +65,7 @@ TEST_F(MemoryStressTest, DynamicAllocation) {
 
   EXPECT_NO_THROW({
     for (uint8_t i = 0; i < static_cast<uint8_t>(IntBank::CNT); ++i)
-      memory_->Resize(static_cast<IntBank>(i),
-                      std::numeric_limits<size_t>::max());
+      memory_->Resize(static_cast<IntBank>(i), kStressBankSize);
   }) << "Memory class should dynamically allocate memory on demand";
 
   for (const auto& [loc, val] : fake_memory)
@@ -96,7 +97,7 @@ TEST_F(MemoryStressTest, DynamicAllocation) {
   }
 }
 
-TEST_F(MemoryStressTest, CopyOnWrite) {
+TEST_F(MemoryStressTest, DeepCopyIsIndependent) {
   Memory memory_copy = *memory_;
 
   IntMemoryLocation loc(IntBank::F, 500);

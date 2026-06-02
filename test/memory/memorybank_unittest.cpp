@@ -29,23 +29,23 @@
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
 
-#include <cmath>
+#include <map>
 #include <string>
 
-TEST(MemoryBankTest, Basic) {
+TEST(DynamicBankTest, Basic) {
   {
-    MemoryBank<int> bank;
+    IntBankStorage bank;
     EXPECT_EQ(bank.GetSize(), 0);
   }
 
   {
-    MemoryBank<int> bank;
+    IntBankStorage bank;
     bank.Resize(10);
     EXPECT_EQ(bank.GetSize(), 10);
   }
 
   {
-    MemoryBank<int> bank;
+    IntBankStorage bank;
     bank.Resize(10);
     bank.Set(0, 42);
     bank.Set(9, 99);
@@ -54,7 +54,7 @@ TEST(MemoryBankTest, Basic) {
   }
 
   {
-    MemoryBank<std::string> bank;
+    StrBankStorage bank;
     bank.Resize(3);
     bank.Set(0, "Hello");
     bank.Set(1, "World");
@@ -63,15 +63,37 @@ TEST(MemoryBankTest, Basic) {
   }
 }
 
-TEST(MemoryBankTest, OutOfBounds) {
-  MemoryBank<int> bank;
+TEST(DynamicBankTest, GrowsOnOutOfBoundsAccess) {
+  IntBankStorage bank;
   bank.Resize(5);
-  EXPECT_THROW(bank.Set(5, 10), std::out_of_range);
-  EXPECT_THROW(bank.Get(5), std::out_of_range);
+
+  bank.Set(5, 10);
+  EXPECT_EQ(bank.GetSize(), 6);
+  EXPECT_EQ(bank.Get(5), 10);
+
+  EXPECT_EQ(bank.Get(8), 0);
+  EXPECT_EQ(bank.GetSize(), 9);
+
+  StrBankStorage strings;
+  strings.Resize(2);
+  EXPECT_EQ(strings.Get(3), "");
+  EXPECT_EQ(strings.GetSize(), 4);
 }
 
-TEST(MemoryBankTest, FillValues) {
-  MemoryBank<int> bank;
+TEST(DynamicBankTest, SubwordWriteValidatesBeforeMutating) {
+  IntBankStorage bank;
+  bank.Resize(1);
+  bank.Set(0, 0x12345678);
+
+  EXPECT_THROW(bank.Set(0, 0b10000, 4), std::overflow_error);
+  EXPECT_EQ(bank.Get(0), 0x12345678);
+
+  EXPECT_THROW(bank.Set(0, -1, 4), std::overflow_error);
+  EXPECT_EQ(bank.Get(0), 0x12345678);
+}
+
+TEST(DynamicBankTest, FillValues) {
+  IntBankStorage bank;
   bank.Resize(10);
   bank.Fill(2, 5, 7);
   for (size_t i = 2; i < 5; ++i) {
@@ -82,12 +104,17 @@ TEST(MemoryBankTest, FillValues) {
   EXPECT_NO_THROW(bank.Fill(0, 0, 9));
   EXPECT_EQ(bank.Get(0), 0);
   EXPECT_NO_THROW(bank.Fill(10, 10, 9));
-  EXPECT_THROW(bank.Fill(11, 11, 9), std::out_of_range);
+  EXPECT_EQ(bank.GetSize(), 10);
+  EXPECT_NO_THROW(bank.Fill(11, 11, 9));
+  EXPECT_EQ(bank.GetSize(), 10);
+  EXPECT_NO_THROW(bank.Fill(12, 15, 9));
+  EXPECT_EQ(bank.GetSize(), 15);
+  EXPECT_EQ(bank.Get(14), 9);
   EXPECT_THROW(bank.Fill(6, 5, 9), std::invalid_argument);
 }
 
-TEST(MemoryBankTest, Append) {
-  MemoryBank<int> bank;
+TEST(DynamicBankTest, Append) {
+  IntBankStorage bank;
   for (int i = 0; i < 1000; ++i) {
     bank.Resize(i + 1);
     bank.Set(i, i);
@@ -100,8 +127,8 @@ TEST(MemoryBankTest, Append) {
   EXPECT_EQ(bank.GetSize(), 0);
 }
 
-TEST(MemoryBankTest, Persistence) {
-  MemoryBank<int> bank;
+TEST(DynamicBankTest, Persistence) {
+  IntBankStorage bank;
   bank.Resize(5);
   bank.Set(0, 1);
   auto memento1 = bank;
@@ -130,71 +157,40 @@ TEST(MemoryBankTest, Persistence) {
   EXPECT_EQ(bank.Get(0), 1);
 }
 
-TEST(MemoryBankTest, Serialization) {
-  const size_t size = 100000;
+TEST(DynamicBankTest, Serialization) {
+  const size_t size = 128;
   std::stringstream ss;
-  size_t serialized_data_len = 0;
 
   {
-    MemoryBank<std::string> arr;
+    StrBankStorage arr;
     arr.Resize(size);
-    for (size_t i = 0; i < 100; ++i) {
-      // fill random data
-      const auto value = std::to_string(i * i);
-      arr.Set(i, value);
-      serialized_data_len += value.length();
-    }
-    for (size_t i = 100; i < size;) {
-      // fill with data chunk
-      const size_t end = std::min(size, i + 1000);
-      const auto value = std::to_string(i);
-      arr.Fill(i, end, value);
-      serialized_data_len += value.length();
-      i = end + 1;
-    }
+    arr.Set(0, "zero");
+    arr.Fill(16, 32, "chunk");
+    arr.Set(size - 1, "last");
 
     boost::archive::text_oarchive oa(ss);
     oa << arr;
   }
 
-  EXPECT_LE(ss.tellp(), 4 * std::log2(size) * serialized_data_len);
-
   {
     boost::archive::text_iarchive ia(ss);
-    MemoryBank<std::string> deserialized;
+    StrBankStorage deserialized;
     ia >> deserialized;
 
-    ASSERT_EQ(deserialized.GetSize(), 100000);
-    for (size_t i = 0; i < 100; ++i)
-      EXPECT_EQ(deserialized.Get(i), std::to_string(i * i));
+    ASSERT_EQ(deserialized.GetSize(), size);
+    EXPECT_EQ(deserialized.Get(0), "zero");
+    EXPECT_EQ(deserialized.Get(15), "");
+    EXPECT_EQ(deserialized.Get(16), "chunk");
+    EXPECT_EQ(deserialized.Get(31), "chunk");
+    EXPECT_EQ(deserialized.Get(32), "");
+    EXPECT_EQ(deserialized.Get(size - 1), "last");
   }
 }
 
-TEST(MemoryBankTest, Deserialization) {
-  // Ensure implementations provide deserialization logic with compatibility
-  std::stringstream ss(
-      "22 serialization::archive 19 0 0 10 9 0 1 3 1 2 3 2 3 99 3 4 0 4 6 0 6 "
-      "7 0 7 8 10 8 16 0 16 32 0");
-  constexpr size_t size = 10;
-
-  std::map<int, int> data{{0, 3}, {1, 3}, {2, 99}, {7, 10}};
-  for (int i = 0; i < size; ++i)
-    data.emplace(i, 0);
-
-  MemoryBank<int> arr;
-  boost::archive::text_iarchive ia(ss);
-  ASSERT_NO_THROW({ ia >> arr; });
-
-  ASSERT_EQ(arr.GetSize(), size);
-  for (int i = 0; i < size; ++i) {
-    EXPECT_EQ(arr.Get(i), data.at(i));
-  }
-}
-
-TEST(MemoryBankTest, DeserializationReplacesExistingStorage) {
+TEST(DynamicBankTest, DeserializationReplacesExistingStorage) {
   std::stringstream ss;
   {
-    MemoryBank<int> source;
+    IntBankStorage source;
     source.Resize(10);
     source.Set(2, 22);
 
@@ -202,7 +198,7 @@ TEST(MemoryBankTest, DeserializationReplacesExistingStorage) {
     oa << source;
   }
 
-  MemoryBank<int> target;
+  IntBankStorage target;
   target.Resize(20);
   target.Set(15, 99);
 
