@@ -4,7 +4,7 @@
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2025 Serina Sakurai
+// Copyright (C) 2026 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,32 +21,29 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#pragma once
+#include "libsiglus/bindings/common.hpp"
 
-#include "core/asset_scanner.hpp"
+#include "vm/string.hpp"
+#include "vm/value.hpp"
 
-#include <filesystem>
-#include <memory>
-#include <optional>
-#include <string>
+namespace libsiglus ::binding {
 
-namespace serilang {
-class VM;
-class Value;
-}  // namespace serilang
+namespace sr = serilang;
 
-namespace libsiglus {
+std::optional<int> AsInt(const sr::Value& value) {
+  if (const int* int_value = value.Get_if<int>())
+    return *int_value;
+  if (const bool* bool_value = value.Get_if<bool>())
+    return *bool_value ? 1 : 0;
+  if (const double* double_value = value.Get_if<double>())
+    return static_cast<int>(*double_value);
+  return std::nullopt;
+}
 
-namespace binding {
-namespace fs = std::filesystem;
+std::string AsString(const sr::Value& value) {
+  if (const sr::String* str = value.Get_if<sr::String>())
+    return str->str_;
+  return value.Str();
+}
 
-std::optional<int> AsInt(const serilang::Value& value);
-std::string AsString(const serilang::Value& value);
-
-struct Context {
-  fs::path base_pth, save_pth;
-  std::shared_ptr<AssetScanner> asset_scanner;
-};
-
-}  // namespace binding
-}  // namespace libsiglus
+}  // namespace libsiglus::binding

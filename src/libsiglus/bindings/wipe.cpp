@@ -21,6 +21,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
+#include "libsiglus/bindings/common.hpp"
 #include "libsiglus/bindings/registry.hpp"
 #include "srbind/srbind.hpp"
 #include "vm/dict.hpp"
@@ -65,22 +66,6 @@ struct CallPacket {
   std::vector<sr::Value> args;
   const sr::Dict* kwargs = nullptr;
 };
-
-std::optional<int> AsInt(const sr::Value& value) {
-  if (const int* int_value = value.Get_if<int>())
-    return *int_value;
-  if (const bool* bool_value = value.Get_if<bool>())
-    return *bool_value ? 1 : 0;
-  if (const double* double_value = value.Get_if<double>())
-    return static_cast<int>(*double_value);
-  return std::nullopt;
-}
-
-std::string AsString(const sr::Value& value) {
-  if (const sr::String* str = value.Get_if<sr::String>())
-    return str->str_;
-  return value.Str();
-}
 
 void CopyOptions(const sr::Value& value,
                  std::array<int, kWipeOptionMax>& options) {
