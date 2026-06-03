@@ -110,6 +110,10 @@ class ElementParserTest : public ::testing::Test {
     else
       static_assert(always_false<T>);
   }
+
+  inline static Value list(std::initializer_list<Value> values) {
+    return Value(List{std::vector<Value>(values)});
+  }
 };
 
 TEST_F(ElementParserTest, MemoryBank) {
@@ -238,6 +242,39 @@ TEST_F(ElementParserTest, SimpleCallableIgnoresOl) {
 
   EXPECT_EQ(chain(elm), "bgm.play(str:song02,int:1,int:2)");
   EXPECT_TRUE(ctx->warnings.empty());
+}
+
+TEST_F(ElementParserTest, WipePreservesNamedArguments) {
+  Invoke invoke(0, {}, Type::None);
+  invoke.named_arg = {{8, v(1)}, {0, v(2)}, {3, list({v(10), v(11)})}};
+
+  ElementCode elm{7};
+  elm.ForceBind(std::move(invoke));
+
+  EXPECT_EQ(chain(elm),
+            "wipe.wipe[0](8=int:1,0=int:2,3=[int:10,int:11])");
+}
+
+TEST_F(ElementParserTest, WipeCommandMappings) {
+  {
+    ElementCode elm{51};
+    elm.ForceBind({0, {v("mask")}});
+    EXPECT_EQ(chain(elm), "wipe.wipe_mask[0](str:mask)");
+  }
+  {
+    ElementCode elm{50};
+    elm.ForceBind({0, {v("mask")}});
+    EXPECT_EQ(chain(elm), "wipe.wipe_mask_all[0](str:mask)");
+  }
+  EXPECT_EQ(chain(33), "wipe.end()");
+
+  auto wait = chain(103);
+  EXPECT_EQ(wait, "wipe.wait()");
+  EXPECT_EQ(wait.chain.GetType(), Type::Int);
+
+  auto check = chain(109);
+  EXPECT_EQ(check, "wipe.check()");
+  EXPECT_EQ(check.chain.GetType(), Type::Int);
 }
 
 TEST_F(ElementParserTest, Mwnd) {

@@ -121,8 +121,11 @@ inline static Builder b_callable(std::string_view mem,
                                  Type return_type = Type::None) {
   return b(Type::Callable, Member{mem, return_type, true});
 }
-inline static Builder b_callable(
-    std::initializer_list<CallableTarget> targets) {
+inline static Builder b_siglus_callable(std::string_view mem,
+                                        Type return_type = Type::None) {
+  return b(Type::Callable, Member{mem, return_type, true, /*is_simple=*/false});
+}
+static Builder b_callable(std::initializer_list<CallableTarget> targets) {
   return Builder([targets =
                       std::vector<CallableTarget>(targets)](Builder::Ctx& ctx) {
     const int overload_id = ctx.elm.bind_ctx.overload_id;
@@ -1283,10 +1286,13 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
 
     case Type::Wipe: {
       static const auto mp = make_flatmap<Builder>(
-          {id[7] | b(Type::Callable, Member("wipe")),
-           id[23] | b(Type::Callable, Member("wipe_all")),
-           id[50] | b(Type::Callable, Member("wipe_mask")),
-           id[51] | b(Type::Callable, Member("wipe_mask_all"))});
+          {id[7] | b_siglus_callable("wipe"),
+           id[23] | b_siglus_callable("wipe_all"),
+           id[51] | b_siglus_callable("wipe_mask"),
+           id[50] | b_siglus_callable("wipe_mask_all"),
+           id[33] | b_siglus_callable("end"),
+           id[103] | b_siglus_callable("wait", Type::Int),
+           id[109] | b_siglus_callable("check", Type::Int)});
       return &mp;
     }
 
@@ -1660,10 +1666,13 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
       return AccessChain{.root = std::move(farcall)};
     }
 
-    case 7:   // WIPE
-    case 23:  // WIPE_ALL
-    case 50:  // MASK_WIPE
-    case 51:  // MASK_WIPE_ALL
+    case 7:    // WIPE
+    case 23:   // WIPE_ALL
+    case 51:   // MASK_WIPE
+    case 50:   // MASK_WIPE_ALL
+    case 33:   // WIPE_END
+    case 103:  // WAIT_WIPE
+    case 109:  // CHECK_WIPE
       return make_sym_chain(Type::Wipe, "wipe", elm, 0);
 
     case 49:  // STAGE

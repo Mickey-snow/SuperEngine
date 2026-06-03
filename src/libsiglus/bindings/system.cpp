@@ -57,6 +57,8 @@ void BindSystem(Context& ctx, SiglusRuntime& runtime) {
   m.def("get_lang", +[]() { return "ja"; });
 
   sb::module_ gm(vm.gc_.get(), vm.globals_.get());
+  gm.def("wait", +[](int) {}, sb::arg("msecs") = 0);
+  gm.def("wait_key", +[](int) { return 0; }, sb::arg("msecs") = 0);
   gm.def("set_title", [sys = runtime.system.get()](std::string title) {
     sys->graphics().SetWindowSubtitle(std::move(title));
   });
