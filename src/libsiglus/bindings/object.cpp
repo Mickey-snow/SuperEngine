@@ -22,18 +22,23 @@
 // -----------------------------------------------------------------------
 
 #include "core/colour.hpp"
+#include "core/frame_counter.hpp"
 #include "core/object_internal/drawer/colour_filter.hpp"
 #include "core/object_internal/drawer/file.hpp"
+#include "core/object_internal/object_mutator.hpp"
 #include "libsiglus/bindings/registry.hpp"
 
 #include "core/object.hpp"
 #include "libsiglus/bindings/common.hpp"
 #include "srbind/module.hpp"
+#include "systems/event_system.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
 #include "vm/value.hpp"
 #include "vm/vm.hpp"
 
+#include <chrono>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <stdexcept>
@@ -56,9 +61,37 @@ int RequiredInt(const sr::Value& value, std::string_view name) {
   return *result;
 }
 
+std::shared_ptr<FrameCounter> MakeSiglusFrameCounter(
+    int duration,
+    int delay,
+    int start_val,
+    int end_val,
+    int type,
+    std::shared_ptr<Clock> clock) {
+  std::shared_ptr<FrameCounter> fc;
+  switch (type) {
+    case 1:
+      fc = std::make_shared<AcceleratingFrameCounter>(
+          std::move(clock), start_val, end_val, duration);
+      break;
+    case 2:
+      fc = std::make_shared<DeceleratingFrameCounter>(
+          std::move(clock), start_val, end_val, duration);
+      break;
+    case 0:
+    default:
+      fc = std::make_shared<SimpleFrameCounter>(std::move(clock), start_val,
+                                                end_val, duration);
+      break;
+  }
+  fc->BeginTimer(std::chrono::milliseconds(delay));
+  return fc;
+}
+
 }  // namespace
 
 class SiglusObject {
+ public:
   std::shared_ptr<GraphicsSystem> graphics_;
   int layer_ = OBJ_FG;
   int object_id_ = 0;
@@ -93,7 +126,6 @@ class SiglusObject {
     param().SetOwnClipRect(rect);
   }
 
- public:
   SiglusObject() = default;
   SiglusObject(std::shared_ptr<GraphicsSystem> graphics,
                int layer,
@@ -255,6 +287,8 @@ void BindObject(Context&, SiglusRuntime& runtime) {
   sb::class_<SiglusObject> obj(m, "Object");
 
   auto graphics = runtime.system ? runtime.system->graphics_ptr() : nullptr;
+  auto event = runtime.system ? runtime.system->event_ptr() : nullptr;
+
   obj.def(sb::init([graphics](int layer, int object_id) -> SiglusObject* {
             return new SiglusObject(graphics, layer, object_id);
           }),
@@ -350,6 +384,207 @@ void BindObject(Context&, SiglusRuntime& runtime) {
   obj.def("set_center_rep", &SiglusObject::set_center_rep);
   obj.def("set_scale", &SiglusObject::set_scale);
   obj.def("set_pos", &SiglusObject::set_pos);
+
+  // ------------------------------------------------------------------------------
+  // Object Events
+  struct ObjEve {
+    SiglusObject* parent;
+    std::shared_ptr<GraphicsSystem> graphics_;
+    std::shared_ptr<EventSystem> event_;
+    std::string name;
+    std::function<int(const ObjectParameter&)> getter_;
+    std::function<void(ObjectParameter&, int)> setter_;
+    void verify() {
+      if (!graphics_)
+        throw std::runtime_error("ObjEve requires a graphics system");
+      if (!event_)
+        throw std::runtime_error("ObjEve requires an event system");
+    }
+  };
+  sb::class_<ObjEve> oe(m, "ObjectEvent", false);
+  oe.def(
+      "set",
+      [](ObjEve* oe, int end_value, int duration_time, int delay, int type) {
+        oe->verify();
+        GraphicsObject& obj = oe->parent->owned_;
+        std::shared_ptr<Clock> clock = oe->event_->GetClock();
+
+        obj.EndObjectMutatorMatching(-1, oe->name, 0);
+        const int start = oe->getter_(obj.Param());
+        const int end = end_value / 10;
+        Mutator mutator{.setter_ = oe->setter_,
+                        .fc_ = MakeSiglusFrameCounter(duration_time, delay,
+                                                      start, end, type, clock)};
+        obj.AddObjectMutator(ObjectMutator({std::move(mutator)}, -1, oe->name));
+      },
+      sb::arg("end_value"), sb::arg("duration_time"), sb::arg("delay"),
+      sb::arg("type"));
+  oe.def("end", [](ObjEve* oe) {
+    oe->verify();
+    GraphicsObject& obj = oe->parent->owned_;
+    return obj.EndObjectMutatorMatching(-1, oe->name, 0);
+  });
+  oe.def("check", [](ObjEve* oe) {
+    oe->verify();
+    GraphicsObject& obj = oe->parent->owned_;
+    bool ret = obj.IsMutatorRunningMatching(-1, oe->name);
+    return ret ? 1 : 0;
+  });
+
+  // register objeve
+  auto BindObjeve = [graphics, event, &oe, &obj](
+                        std::string name,
+                        std::function<int(const ObjectParameter&)> getter,
+                        std::function<void(ObjectParameter&, int)> setter) {
+    std::string field_name = name;
+    obj.subcls(
+        field_name, oe,
+        [name = std::move(name), graphics, event, getter = std::move(getter),
+         setter = std::move(setter)](SiglusObject* parent) {
+          auto ret = std::make_unique<ObjEve>();
+          ret->parent = parent;
+          ret->graphics_ = graphics;
+          ret->event_ = event;
+          ret->name = name;
+          ret->getter_ = getter;
+          ret->setter_ = setter;
+          return ret;
+        });
+  };
+  auto BindObjeveMember = [&BindObjeve]<auto member>(std::string name) {
+    BindObjeve(std::move(name), CreateGetter<member>(), CreateSetter<member>());
+  };
+  auto SetClipRectValue = [](ObjectParameter& param, void (Rect::*setter)(int),
+                             int value) {
+    Rect rect =
+        param.has_clip_rect() ? param.clip_rect() : Rect::GRP(0, 0, 0, 0);
+    (rect.*setter)(value);
+    param.SetClipRect(rect);
+  };
+  auto SetOwnClipRectValue = [](ObjectParameter& param,
+                                void (Rect::*setter)(int), int value) {
+    Rect rect = param.has_own_clip_rect() ? param.own_clip_rect()
+                                          : Rect::GRP(0, 0, 0, 0);
+    (rect.*setter)(value);
+    param.SetOwnClipRect(rect);
+  };
+
+  BindObjeveMember.template operator()<&ObjectParameter::pattern_number>(
+      "patno_eve");
+  BindObjeveMember.template operator()<&ObjectParameter::position_x>("x_eve");
+  BindObjeveMember.template operator()<&ObjectParameter::position_y>("y_eve");
+  BindObjeveMember.template operator()<&ObjectParameter::z_depth>("z_eve");
+  BindObjeveMember.template operator()<&ObjectParameter::origin_x>(
+      "center_x_eve");
+  BindObjeveMember.template operator()<&ObjectParameter::origin_y>(
+      "center_y_eve");
+  BindObjeveMember.template operator()<&ObjectParameter::repetition_origin_x>(
+      "center_rep_x_eve");
+  BindObjeveMember.template operator()<&ObjectParameter::repetition_origin_y>(
+      "center_rep_y_eve");
+  BindObjeveMember.template operator()<&ObjectParameter::scale_x_percent>(
+      "scale_x_eve");
+  BindObjeveMember.template operator()<&ObjectParameter::scale_y_percent>(
+      "scale_y_eve");
+  BindObjeveMember.template operator()<&ObjectParameter::rotation_div10>(
+      "rotate_z_eve");
+
+  BindObjeve(
+      "clip_left_eve",
+      [](const ObjectParameter& param) { return param.clip_rect().x(); },
+      [SetClipRectValue](ObjectParameter& param, int value) {
+        SetClipRectValue(param, &Rect::set_x, value);
+      });
+  BindObjeve(
+      "clip_top_eve",
+      [](const ObjectParameter& param) { return param.clip_rect().y(); },
+      [SetClipRectValue](ObjectParameter& param, int value) {
+        SetClipRectValue(param, &Rect::set_y, value);
+      });
+  BindObjeve(
+      "clip_right_eve",
+      [](const ObjectParameter& param) { return param.clip_rect().x2(); },
+      [SetClipRectValue](ObjectParameter& param, int value) {
+        SetClipRectValue(param, &Rect::set_x2, value);
+      });
+  BindObjeve(
+      "clip_bottom_eve",
+      [](const ObjectParameter& param) { return param.clip_rect().y2(); },
+      [SetClipRectValue](ObjectParameter& param, int value) {
+        SetClipRectValue(param, &Rect::set_y2, value);
+      });
+  BindObjeve(
+      "src_clip_left_eve",
+      [](const ObjectParameter& param) { return param.own_clip_rect().x(); },
+      [SetOwnClipRectValue](ObjectParameter& param, int value) {
+        SetOwnClipRectValue(param, &Rect::set_x, value);
+      });
+  BindObjeve(
+      "src_clip_top_eve",
+      [](const ObjectParameter& param) { return param.own_clip_rect().y(); },
+      [SetOwnClipRectValue](ObjectParameter& param, int value) {
+        SetOwnClipRectValue(param, &Rect::set_y, value);
+      });
+  BindObjeve(
+      "src_clip_right_eve",
+      [](const ObjectParameter& param) { return param.own_clip_rect().x2(); },
+      [SetOwnClipRectValue](ObjectParameter& param, int value) {
+        SetOwnClipRectValue(param, &Rect::set_x2, value);
+      });
+  BindObjeve(
+      "src_clip_bottom_eve",
+      [](const ObjectParameter& param) { return param.own_clip_rect().y2(); },
+      [SetOwnClipRectValue](ObjectParameter& param, int value) {
+        SetOwnClipRectValue(param, &Rect::set_y2, value);
+      });
+
+  BindObjeveMember.template operator()<&ObjectParameter::alpha_source>(
+      "tr_eve");
+  BindObjeve(
+      "tr_rep_eve",
+      [](const ObjectParameter& param) { return param.alpha_adjustment(0); },
+      [](ObjectParameter& param, int value) {
+        param.SetAlphaAdjustment(0, value);
+      });
+  BindObjeveMember.template operator()<&ObjectParameter::monochrome_transform>(
+      "mono_eve");
+  BindObjeveMember.template operator()<&ObjectParameter::invert_transform>(
+      "reverse_eve");
+  BindObjeveMember.template operator()<&ObjectParameter::light_level>(
+      "bright_eve");
+  BindObjeve(
+      "dark_eve",
+      [](const ObjectParameter& param) { return -param.light_level; },
+      [](ObjectParameter& param, int value) { param.light_level = -value; });
+
+  BindObjeve(
+      "color_r_eve",
+      [](const ObjectParameter& param) { return param.colour_red(); },
+      [](ObjectParameter& param, int value) { param.SetColourRed(value); });
+  BindObjeve(
+      "color_g_eve",
+      [](const ObjectParameter& param) { return param.colour_green(); },
+      [](ObjectParameter& param, int value) { param.SetColourGreen(value); });
+  BindObjeve(
+      "color_b_eve",
+      [](const ObjectParameter& param) { return param.colour_blue(); },
+      [](ObjectParameter& param, int value) { param.SetColourBlue(value); });
+  BindObjeve(
+      "color_rate_eve",
+      [](const ObjectParameter& param) { return param.colour_level(); },
+      [](ObjectParameter& param, int value) { param.SetColourLevel(value); });
+  BindObjeve(
+      "color_add_r_eve",
+      [](const ObjectParameter& param) { return param.tint_red(); },
+      [](ObjectParameter& param, int value) { param.SetTintRed(value); });
+  BindObjeve(
+      "color_add_g_eve",
+      [](const ObjectParameter& param) { return param.tint_green(); },
+      [](ObjectParameter& param, int value) { param.SetTintGreen(value); });
+  BindObjeve(
+      "color_add_b_eve",
+      [](const ObjectParameter& param) { return param.tint_blue(); },
+      [](ObjectParameter& param, int value) { param.SetTintBlue(value); });
 }
 
 RLVM_REGISTER(SiglusBindingRegistry, "0_object", BindObject)
