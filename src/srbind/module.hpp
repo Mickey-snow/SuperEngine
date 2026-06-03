@@ -154,7 +154,7 @@ class instance_ {
 
   template <class M, class... A>
   instance_& def(const char* name, M pmf, A&&... a) {
-    arglist_spec spec = parse_spec<M>(std::forward<A>(a)...);
+    arglist_spec spec = detail::parse_method_spec<T, M>(std::forward<A>(a)...);
 
     cls_->methods[name] =
         Value(make_method<T>(gc_, name, pmf, std::move(spec)));
@@ -268,7 +268,7 @@ class class_ {
 
   template <class M, class... A>
   class_& def(const char* name, M pmf, A&&... a) {
-    arglist_spec spec = parse_spec<M>(std::forward<A>(a)...);
+    arglist_spec spec = detail::parse_method_spec<T, M>(std::forward<A>(a)...);
 
     cls_->methods[name] =
         Value(make_method<T>(gc_, name, pmf, std::move(spec)));

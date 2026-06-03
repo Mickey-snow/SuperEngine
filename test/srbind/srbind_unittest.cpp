@@ -260,6 +260,36 @@ TEST_F(SrbindTest, Class_Methods) {
       << "Expected error duplicate 'dx'";
 }
 
+TEST_F(SrbindTest, ClassSelfFreeFunction) {
+  class_<V> cv(mod, "VSelf");
+  auto add = [](V* self, int dx, int dy) { self->s += dx + dy; };
+  cv.def(init<>())
+      .def("add", add, arg("dx"), arg("dy") = 0)
+      .def("add_infer", add)
+      .def("sum", [](const V* self) { return self->s; });
+
+  Value klass = dict["VSelf"];
+  Value inst_v = CallCallee(klass);
+  auto* inst = inst_v.Get_if<NativeInstance>();
+  ASSERT_NE(inst, nullptr);
+
+  EXPECT_NO_THROW(CallCallee(GetMember(inst, "add"), {},
+                             {{"dy", Value(2)}, {"dx", Value(3)}}));
+  EXPECT_EQ(CallCallee(GetMember(inst, "sum")), 5);
+
+  EXPECT_NO_THROW(CallCallee(GetMember(inst, "add"), {Value(4)}));
+  EXPECT_EQ(CallCallee(GetMember(inst, "sum")), 9);
+
+  EXPECT_NO_THROW(
+      CallCallee(GetMember(inst, "add_infer"), {Value(1), Value(2)}));
+  EXPECT_EQ(CallCallee(GetMember(inst, "sum")), 12);
+
+  EXPECT_THROW(std::ignore = CallCallee(GetMember(inst, "add_infer"), {},
+                                        {{"dx", Value(1)}}),
+               error_type)
+      << "self should not be part of inferred positional-only method spec";
+}
+
 struct P {
   int x, y;
   P(int x_, int y_) : x(x_), y(y_) {}
@@ -607,6 +637,38 @@ TEST_F(SrbindTest, Class_MemberFnWithVmFib) {
                              {{"val", Value(val)}}));
 }
 
+TEST_F(SrbindTest, Class_SelfFirstFreeFunctionWithVmFib) {
+  class_<SingletonCounter> cb(mod, "CounterVmFibSelf");
+  auto set = [&](SingletonCounter* self, serilang::VM& got_vm,
+                 serilang::Fiber& got_fib, int value) {
+    EXPECT_EQ(&got_vm, &vm);
+    EXPECT_EQ(&got_fib, f);
+    self->value = value;
+  };
+  auto get = [&](const SingletonCounter* self, serilang::VM& got_vm,
+                 serilang::Fiber& got_fib) {
+    EXPECT_EQ(&got_vm, &vm);
+    EXPECT_EQ(&got_fib, f);
+    return self->value;
+  };
+  cb.def(init<>())
+      .def("set", set)
+      .def("set_named", set, arg("value"))
+      .def("get", get);
+
+  Value klass = dict["CounterVmFibSelf"];
+  Value inst_v = CallCallee(klass);
+  auto* inst = inst_v.Get_if<NativeInstance>();
+  ASSERT_NE(inst, nullptr);
+
+  EXPECT_NO_THROW(CallCallee(GetMember(inst, "set"), {Value(123)}));
+  EXPECT_EQ(CallCallee(GetMember(inst, "get")), 123);
+
+  EXPECT_NO_THROW(
+      CallCallee(GetMember(inst, "set_named"), {}, {{"value", Value(77)}}));
+  EXPECT_EQ(CallCallee(GetMember(inst, "get")), 77);
+}
+
 TEST_F(SrbindTest, Module_BindInstance_ByReference) {
   SingletonCounter counter{.value = 5};
 
@@ -620,6 +682,24 @@ TEST_F(SrbindTest, Module_BindInstance_ByReference) {
   auto* inst = dict.at("counter").Get_if<NativeInstance>();
   ASSERT_NE(inst, nullptr);
   EXPECT_EQ(inst->GetForeign<SingletonCounter>(), &counter);
+
+  EXPECT_NO_THROW(CallCallee(GetMember(inst, "add"), {Value(7)}));
+  EXPECT_EQ(counter.value, 12);
+  EXPECT_EQ(CallCallee(GetMember(inst, "get")), 12);
+}
+
+TEST_F(SrbindTest, Module_BindInstance_SelfFirstFreeFunctionMethods) {
+  SingletonCounter counter{.value = 5};
+
+  mod.bind_instance("counter_self", counter)
+      .def(
+          "add",
+          [](SingletonCounter* self, int delta) { self->value += delta; },
+          arg("delta"))
+      .def("get", [](const SingletonCounter* self) { return self->value; });
+
+  auto* inst = dict.at("counter_self").Get_if<NativeInstance>();
+  ASSERT_NE(inst, nullptr);
 
   EXPECT_NO_THROW(CallCallee(GetMember(inst, "add"), {Value(7)}));
   EXPECT_EQ(counter.value, 12);
