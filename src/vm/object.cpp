@@ -150,6 +150,8 @@ void Instance::SetItem(VM& vm, Fiber& f) {
 void NativeClass::MarkRoots(GCVisitor& visitor) {
   for (auto& [k, it] : methods)
     visitor.MarkSub(it);
+  for (auto& it : gc_roots)
+    visitor.MarkSub(it);
 }
 
 std::string NativeClass::Str() const { return Desc(); }

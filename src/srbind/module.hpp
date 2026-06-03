@@ -30,10 +30,14 @@
 #include "vm/object.hpp"
 #include "vm/value.hpp"
 
+#include <functional>
 #include <memory>
+#include <string>
+#include <string_view>
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 namespace srbind {
 
@@ -123,12 +127,13 @@ static T* convert_factory_return(R&& r) {
 
     return r.release();  // transfer ownership to engine (deleted by finalize)
   } else {
-    static_assert(
-        !sizeof(RD),
-        "Unsupported factory return type. Use T* or std::unique_ptr<T>.");
+    static_assert(always_false<RD>,
+                  "Unsupported factory return type. Use T* or "
+                  "std::unique_ptr<T>.");
     return nullptr;
   }
 }
+
 }  // namespace detail
 
 // -------------------------------------------------------------
@@ -169,17 +174,35 @@ class instance_ {
 // -------------------------------------------------------------
 template <class T>
 class class_ {
+  template <class>
+  friend class class_;
+
   module_& m_;
   serilang::GarbageCollector* gc_;
   serilang::NativeClass* cls_;
+  using subinst_initializer =
+      std::function<void(T*, serilang::NativeInstance*)>;
+  std::shared_ptr<std::vector<subinst_initializer>> subinst_initializers_;
   static void finalize_T(void* p) { delete static_cast<T*>(p); }
+  static void initialize_subinsts(
+      T* obj,
+      serilang::NativeInstance* self,
+      const std::shared_ptr<std::vector<subinst_initializer>>& initializers) {
+    for (const auto& initializer : *initializers)
+      initializer(obj, self);
+  }
 
  public:
-  class_(module_& m, const char* name) : m_(m), gc_(m.gc()) {
+  class_(module_& m, const char* name, bool should_register = true)
+      : m_(m),
+        gc_(m.gc()),
+        subinst_initializers_(
+            std::make_shared<std::vector<subinst_initializer>>()) {
     cls_ = gc_->Allocate<serilang::NativeClass>();
     cls_->name = name;
     cls_->finalize = &finalize_T;
-    (*m.dict())[std::string(name)] = Value(cls_);
+    if (should_register)
+      (*m.dict())[std::string(name)] = Value(cls_);
   }
 
   class_& no_delete() {
@@ -191,12 +214,13 @@ class class_ {
   template <class... Args, class... A>
   class_& def(init_t<Args...>, A&&... a) {
     arglist_spec spec = parse_spec<T*(Args...)>(std::forward<A>(a)...);
+    auto subinst_initializers = subinst_initializers_;
 
     auto* nf = gc_->Allocate<serilang::NativeFunction>(
         "__init__",
-        [spec = std::move(spec)](serilang::VM& vm, serilang::Fiber& f,
-                                 uint8_t nargs,
-                                 uint8_t nkwargs) -> serilang::TempValue {
+        [spec = std::move(spec), subinst_initializers](
+            serilang::VM& vm, serilang::Fiber& f, uint8_t nargs,
+            uint8_t nkwargs) -> serilang::TempValue {
           try {
             if (nargs < 1)
               throw type_error("missing 'self'");
@@ -215,6 +239,7 @@ class class_ {
                 },
                 std::move(tup));
             self->SetForeign<T>(obj);
+            initialize_subinsts(obj, self, subinst_initializers);
             return serilang::nil;
           } catch (const type_error& e) {
             throw serilang::RuntimeError(e.what());
@@ -231,12 +256,14 @@ class class_ {
   template <class F, class... A>
   class_& def(init_factory_t<F> tag, A&&... a) {
     arglist_spec spec = parse_spec<F>(std::forward<A>(a)...);
+    auto subinst_initializers = subinst_initializers_;
 
     auto* nf = gc_->Allocate<serilang::NativeFunction>(
         "__init__",
-        [factory = std::move(tag.factory), spec = std::move(spec)](
-            serilang::VM& vm, serilang::Fiber& fib, uint8_t nargs,
-            uint8_t nkwargs) -> serilang::TempValue {
+        [factory = std::move(tag.factory), spec = std::move(spec),
+         subinst_initializers](serilang::VM& vm, serilang::Fiber& fib,
+                               uint8_t nargs,
+                               uint8_t nkwargs) -> serilang::TempValue {
           try {
             if (nargs < 1)
               throw type_error("missing 'self'");
@@ -254,6 +281,7 @@ class class_ {
             if (!raw)
               throw type_error("factory returned null");
             self->SetForeign<T>(raw);
+            initialize_subinsts(raw, self, subinst_initializers);
 
             return serilang::nil;
           } catch (const type_error& e) {
@@ -263,6 +291,42 @@ class class_ {
           }
         });
     cls_->methods["__init__"] = Value(nf);
+    return *this;
+  }
+
+  template <class Child, class F>
+  class_& subcls(std::string field_name,
+                 class_<Child>& child_class,
+                 F&& factory) {
+    using factory_t = std::decay_t<F>;
+    static_assert(std::is_invocable_v<factory_t&, T*>,
+                  "Subinst factory must be callable with T*");
+
+    if (child_class.gc_ != gc_)
+      throw type_error(
+          "subinst class belongs to a different garbage collector");
+
+    serilang::NativeClass* child_cls = child_class.cls_;
+    auto child_initializers = child_class.subinst_initializers_;
+    if (std::ranges::find(cls_->gc_roots, child_cls) == cls_->gc_roots.cend())
+      cls_->gc_roots.emplace_back(child_cls);
+
+    subinst_initializers_->emplace_back(
+        [gc = gc_, child_cls, field_name,
+         child_initializers = std::move(child_initializers),
+         factory = factory_t(std::forward<F>(factory))](
+            T* parent, serilang::NativeInstance* self) mutable {
+          auto result = std::invoke(factory, parent);
+          Child* raw = detail::convert_factory_return<Child>(std::move(result));
+          if (!raw)
+            throw type_error("subinst factory returned null");
+
+          auto* child = gc->Allocate<serilang::NativeInstance>(child_cls);
+          child->template SetForeign<Child>(raw);
+          class_<Child>::initialize_subinsts(raw, child, child_initializers);
+          self->fields[field_name] = Value(child);
+        });
+
     return *this;
   }
 
@@ -286,7 +350,9 @@ class class_ {
   auto make_inst(A&&... a) -> serilang::NativeInstance* {
     serilang::NativeInstance* inst_ =
         gc_->Allocate<serilang::NativeInstance>(cls_);
-    inst_->SetForeign<T>(new T(std::forward<A>(a)...));
+    T* obj = new T(std::forward<A>(a)...);
+    inst_->SetForeign<T>(obj);
+    initialize_subinsts(obj, inst_, subinst_initializers_);
     return inst_;
   }
   template <class... A>

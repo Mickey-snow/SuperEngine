@@ -156,6 +156,7 @@ struct NativeClass : public IObject {
 
   std::string name;
   transparent_hashmap<Value> methods;
+  std::vector<Value> gc_roots;
   finalize_fn finalize = nullptr;
   trace_fn trace = nullptr;
   await_poll_fn await_poll = nullptr;
