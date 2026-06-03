@@ -200,4 +200,22 @@ int v1 = @78.913:$$usr_cmd(v0,str:bg47)                 ;cmd<int:2113929216>
 )");
 }
 
+TEST_F(SiglusParserTest, StageObjectCreate) {
+  std::vector<std::string> strs{"bg47"};
+  EXPECT_CALL(ctx, Strings).WillRepeatedly(ReturnRef(strs));
+
+  Parse(Marker{}, Push{Type::Int, 37}, Push{Type::Int, 2}, Push{Type::Int, -1},
+        Push{Type::Int, 0}, Push{Type::Int, 38}, Push{Type::String, 0},
+        Push{Type::Int, 1},
+        lex::Command(elm::Signature{
+            .overload_id = 0,
+            .arglist = elm::ArgumentList({Type::String, Type::Int}),
+            .argtags = {},
+            .rettype = Type::None}));
+
+  EXPECT_EQ(Tokens(), R"(
+null_t v0 = stage_back.object[int:0].create(str:bg47,int:1) ;cmd<int:37,int:2,int:-1,int:0,int:38>
+)");
+}
+
 }  // namespace siglus_test

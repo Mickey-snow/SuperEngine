@@ -23,23 +23,61 @@
 
 #include "core/colour.hpp"
 #include "core/object_internal/drawer/colour_filter.hpp"
+#include "core/object_internal/drawer/file.hpp"
 #include "libsiglus/bindings/registry.hpp"
 
 #include "core/object.hpp"
-#include "libsiglus/bindings/util.hpp"
+#include "libsiglus/bindings/common.hpp"
 #include "srbind/module.hpp"
+#include "systems/graphics_system.hpp"
+#include "systems/system.hpp"
+#include "vm/value.hpp"
 #include "vm/vm.hpp"
 
+#include <memory>
+#include <optional>
+#include <stdexcept>
 #include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 
 namespace libsiglus::binding {
 namespace sb = srbind;
+namespace sr = serilang;
+
+namespace {
+
+int RequiredInt(const sr::Value& value, std::string_view name) {
+  std::optional<int> result = AsInt(value);
+  if (!result)
+    throw std::runtime_error("Object.create expected int for " +
+                             std::string(name));
+  return *result;
+}
+
+}  // namespace
 
 class SiglusObject {
-  GraphicsObject go;
+  std::shared_ptr<GraphicsSystem> graphics_;
+  int layer_ = OBJ_FG;
+  int object_id_ = 0;
+  GraphicsObject owned_;
 
-  ObjectParameter& param() { return go.Param(); }
-  const ObjectParameter& param() const { return go.Param(); }
+  GraphicsObject& object() {
+    if (graphics_)
+      return graphics_->GetObject(layer_, object_id_);
+    return owned_;
+  }
+
+  const GraphicsObject& object() const {
+    if (graphics_)
+      return graphics_->GetObject(layer_, object_id_);
+    return owned_;
+  }
+
+  ObjectParameter& param() { return object().Param(); }
+  const ObjectParameter& param() const { return object().Param(); }
 
   void SetClipRectValue(void (Rect::*setter)(int), int value) {
     Rect rect =
@@ -56,6 +94,56 @@ class SiglusObject {
   }
 
  public:
+  SiglusObject() = default;
+  SiglusObject(std::shared_ptr<GraphicsSystem> graphics,
+               int layer,
+               int object_id)
+      : graphics_(std::move(graphics)), layer_(layer), object_id_(object_id) {}
+
+  void init() { object().FreeDataAndInitializeParams(); }
+
+  void create(std::vector<sr::Value> args) {
+    if (args.size() != 1 && args.size() != 2 && args.size() != 4 &&
+        args.size() != 5) {
+      throw std::runtime_error("Object.create expects 1, 2, 4, or 5 args");
+    }
+
+    if (!graphics_)
+      throw std::runtime_error("Object.create requires a graphics system");
+
+    const std::string filename = AsString(args[0]);
+    if (filename.empty())
+      throw std::runtime_error("Object.create filename is empty");
+
+    std::optional<int> visible;
+    std::optional<int> x;
+    std::optional<int> y;
+    std::optional<int> pattern;
+
+    if (args.size() >= 2)
+      visible = RequiredInt(args[1], "disp");
+    if (args.size() >= 4) {
+      x = RequiredInt(args[2], "x");
+      y = RequiredInt(args[3], "y");
+    }
+    if (args.size() == 5)
+      pattern = RequiredInt(args[4], "pat");
+
+    GraphicsObject& obj = object();
+    obj.FreeDataAndInitializeParams();
+    auto surface = graphics_->GetSurfaceNamed(filename);
+    obj.SetObjectData(std::make_unique<GraphicsObjectOfFile>(surface));
+
+    if (visible)
+      obj.Param().SetVisible(*visible);
+    if (x)
+      obj.Param().SetX(*x);
+    if (y)
+      obj.Param().SetY(*y);
+    if (pattern)
+      obj.Param().SetPattNo(*pattern);
+  }
+
   void create_rect(int left,
                    int top,
                    int right,
@@ -67,7 +155,26 @@ class SiglusObject {
                    int display) {
     auto rect = Rect::GRP(left, top, right, down);
     param().blend_colour = RGBAColour(r, g, b, alpha);
-    go.SetObjectData(std::make_unique<ColourFilterObjectData>(rect));
+    object().SetObjectData(std::make_unique<ColourFilterObjectData>(rect));
+    param().SetVisible(display);
+  }
+
+  int get_size_x(int cut_no) const { return object().PixelWidth(); }
+  int get_size_y(int cut_no) const { return object().PixelHeight(); }
+
+  void set_center_rep(int x, int y) {
+    param().SetRepOriginX(x);
+    param().SetRepOriginY(y);
+  }
+
+  void set_scale(int x, int y) {
+    param().SetScaleX(x / 10);
+    param().SetScaleY(y / 10);
+  }
+
+  void set_pos(int x, int y) {
+    param().SetX(x);
+    param().SetY(y);
   }
 
   template <auto member>
@@ -142,93 +249,107 @@ class SiglusObject {
   void set_color_add_b(int value) { param().SetTintBlue(value); }
 };
 
-template <auto member>
-void BindObjectProperty(sb::class_<SiglusObject>& obj, const char* name) {
-  const std::string setter_name = std::string("set_") + name;
-  obj.def(name, &SiglusObject::get_member<member>);
-  obj.def(setter_name.c_str(), &SiglusObject::set_member<member>,
-          sb::arg("value"));
-}
-
-template <typename Getter, typename Setter>
-void BindObjectProperty(sb::class_<SiglusObject>& obj,
-                        const char* name,
-                        Getter getter,
-                        Setter setter) {
-  const std::string setter_name = std::string("set_") + name;
-  obj.def(name, getter);
-  obj.def(setter_name.c_str(), setter, sb::arg("value"));
-}
-
 void BindObject(Context&, SiglusRuntime& runtime) {
   auto& vm = *runtime.vm;
   sb::module_ m(vm.gc_.get(), vm.globals_.get());
   sb::class_<SiglusObject> obj(m, "Object");
 
-  obj.def(sb::init([]() -> SiglusObject* { return new SiglusObject(); }));
+  auto graphics = runtime.system ? runtime.system->graphics_ptr() : nullptr;
+  obj.def(sb::init([graphics](int layer, int object_id) -> SiglusObject* {
+            return new SiglusObject(graphics, layer, object_id);
+          }),
+          sb::arg("layer") = static_cast<int>(OBJ_FG),
+          sb::arg("object_id") = 0);
 
-  BindObjectProperty<&ObjectParameter::wipe_copy>(obj, "wipe_copy");
-  BindObjectProperty<&ObjectParameter::is_visible>(obj, "disp");
-  BindObjectProperty<&ObjectParameter::pattern_number>(obj, "patno");
-  BindObjectProperty<&ObjectParameter::z_order>(obj, "order");
-  BindObjectProperty<&ObjectParameter::z_layer>(obj, "layer");
-  BindObjectProperty<&ObjectParameter::position_x>(obj, "x");
-  BindObjectProperty<&ObjectParameter::position_y>(obj, "y");
-  BindObjectProperty<&ObjectParameter::z_depth>(obj, "z");
-  BindObjectProperty<&ObjectParameter::origin_x>(obj, "center_x");
-  BindObjectProperty<&ObjectParameter::origin_y>(obj, "center_y");
-  BindObjectProperty<&ObjectParameter::repetition_origin_x>(obj,
-                                                            "center_rep_x");
-  BindObjectProperty<&ObjectParameter::repetition_origin_y>(obj,
-                                                            "center_rep_y");
-  BindObjectProperty<&ObjectParameter::scale_x_percent>(obj, "scale_x");
-  BindObjectProperty<&ObjectParameter::scale_y_percent>(obj, "scale_y");
-  BindObjectProperty<&ObjectParameter::rotation_div10>(obj, "rotate_z");
+  auto BindObjectMember = [&obj]<auto member>(const char* name) {
+    const std::string setter_name = std::string("set_") + name;
+    obj.def(name, &SiglusObject::get_member<member>);
+    obj.def(setter_name.c_str(), &SiglusObject::set_member<member>,
+            sb::arg("value"));
+  };
+  auto BindObjectProperty = [&obj](const char* name, auto getter, auto setter) {
+    const std::string setter_name = std::string("set_") + name;
+    obj.def(name, getter);
+    obj.def(setter_name.c_str(), setter, sb::arg("value"));
+  };
 
-  BindObjectProperty(obj, "clip_use", &SiglusObject::get_clip_use,
+  BindObjectMember.template operator()<&ObjectParameter::wipe_copy>(
+      "wipe_copy");
+  BindObjectMember.template operator()<&ObjectParameter::is_visible>("disp");
+  BindObjectMember.template operator()<&ObjectParameter::pattern_number>(
+      "patno");
+  BindObjectMember.template operator()<&ObjectParameter::z_order>("order");
+  BindObjectMember.template operator()<&ObjectParameter::z_layer>("layer");
+  BindObjectMember.template operator()<&ObjectParameter::position_x>("x");
+  BindObjectMember.template operator()<&ObjectParameter::position_y>("y");
+  BindObjectMember.template operator()<&ObjectParameter::z_depth>("z");
+  BindObjectMember.template operator()<&ObjectParameter::origin_x>("center_x");
+  BindObjectMember.template operator()<&ObjectParameter::origin_y>("center_y");
+  BindObjectMember.template operator()<&ObjectParameter::repetition_origin_x>(
+      "center_rep_x");
+  BindObjectMember.template operator()<&ObjectParameter::repetition_origin_y>(
+      "center_rep_y");
+  BindObjectMember.template operator()<&ObjectParameter::scale_x_percent>(
+      "scale_x");
+  BindObjectMember.template operator()<&ObjectParameter::scale_y_percent>(
+      "scale_y");
+  BindObjectMember.template operator()<&ObjectParameter::rotation_div10>(
+      "rotate_z");
+
+  BindObjectProperty("clip_use", &SiglusObject::get_clip_use,
                      &SiglusObject::set_clip_use);
-  BindObjectProperty(obj, "clip_left", &SiglusObject::get_clip_left,
+  BindObjectProperty("clip_left", &SiglusObject::get_clip_left,
                      &SiglusObject::set_clip_left);
-  BindObjectProperty(obj, "clip_top", &SiglusObject::get_clip_top,
+  BindObjectProperty("clip_top", &SiglusObject::get_clip_top,
                      &SiglusObject::set_clip_top);
-  BindObjectProperty(obj, "clip_right", &SiglusObject::get_clip_right,
+  BindObjectProperty("clip_right", &SiglusObject::get_clip_right,
                      &SiglusObject::set_clip_right);
-  BindObjectProperty(obj, "clip_bottom", &SiglusObject::get_clip_bottom,
+  BindObjectProperty("clip_bottom", &SiglusObject::get_clip_bottom,
                      &SiglusObject::set_clip_bottom);
 
-  BindObjectProperty(obj, "src_clip_use", &SiglusObject::get_src_clip_use,
+  BindObjectProperty("src_clip_use", &SiglusObject::get_src_clip_use,
                      &SiglusObject::set_src_clip_use);
-  BindObjectProperty(obj, "src_clip_left", &SiglusObject::get_src_clip_left,
+  BindObjectProperty("src_clip_left", &SiglusObject::get_src_clip_left,
                      &SiglusObject::set_src_clip_left);
-  BindObjectProperty(obj, "src_clip_top", &SiglusObject::get_src_clip_top,
+  BindObjectProperty("src_clip_top", &SiglusObject::get_src_clip_top,
                      &SiglusObject::set_src_clip_top);
-  BindObjectProperty(obj, "src_clip_right", &SiglusObject::get_src_clip_right,
+  BindObjectProperty("src_clip_right", &SiglusObject::get_src_clip_right,
                      &SiglusObject::set_src_clip_right);
-  BindObjectProperty(obj, "src_clip_bottom", &SiglusObject::get_src_clip_bottom,
+  BindObjectProperty("src_clip_bottom", &SiglusObject::get_src_clip_bottom,
                      &SiglusObject::set_src_clip_bottom);
 
-  BindObjectProperty<&ObjectParameter::alpha_source>(obj, "tr");
-  BindObjectProperty<&ObjectParameter::monochrome_transform>(obj, "mono");
-  BindObjectProperty<&ObjectParameter::invert_transform>(obj, "reverse");
+  BindObjectMember.template operator()<&ObjectParameter::alpha_source>("tr");
+  BindObjectMember.template operator()<&ObjectParameter::monochrome_transform>(
+      "mono");
+  BindObjectMember.template operator()<&ObjectParameter::invert_transform>(
+      "reverse");
 
-  BindObjectProperty(obj, "color_r", &SiglusObject::get_color_r,
+  BindObjectProperty("color_r", &SiglusObject::get_color_r,
                      &SiglusObject::set_color_r);
-  BindObjectProperty(obj, "color_g", &SiglusObject::get_color_g,
+  BindObjectProperty("color_g", &SiglusObject::get_color_g,
                      &SiglusObject::set_color_g);
-  BindObjectProperty(obj, "color_b", &SiglusObject::get_color_b,
+  BindObjectProperty("color_b", &SiglusObject::get_color_b,
                      &SiglusObject::set_color_b);
-  BindObjectProperty(obj, "color_rate", &SiglusObject::get_color_rate,
+  BindObjectProperty("color_rate", &SiglusObject::get_color_rate,
                      &SiglusObject::set_color_rate);
-  BindObjectProperty(obj, "color_add_r", &SiglusObject::get_color_add_r,
+  BindObjectProperty("color_add_r", &SiglusObject::get_color_add_r,
                      &SiglusObject::set_color_add_r);
-  BindObjectProperty(obj, "color_add_g", &SiglusObject::get_color_add_g,
+  BindObjectProperty("color_add_g", &SiglusObject::get_color_add_g,
                      &SiglusObject::set_color_add_g);
-  BindObjectProperty(obj, "color_add_b", &SiglusObject::get_color_add_b,
+  BindObjectProperty("color_add_b", &SiglusObject::get_color_add_b,
                      &SiglusObject::set_color_add_b);
 
-  BindObjectProperty<&ObjectParameter::composite_mode>(obj, "blend");
+  BindObjectMember.template operator()<&ObjectParameter::composite_mode>(
+      "blend");
 
+  obj.def("init", &SiglusObject::init);
+  obj.def("create", &SiglusObject::create, sb::vararg);
   obj.def("create_rect", &SiglusObject::create_rect);
+  obj.def("get_size_x", &SiglusObject::get_size_x, sb::arg("cut_no") = 0)
+      .def("get_size_y", &SiglusObject::get_size_y, sb::arg("cut_no") = 0);
+  obj.def("set_center_rep", &SiglusObject::set_center_rep);
+  obj.def("set_scale", &SiglusObject::set_scale);
+  obj.def("set_pos", &SiglusObject::set_pos);
 }
 
 RLVM_REGISTER(SiglusBindingRegistry, "0_object", BindObject)

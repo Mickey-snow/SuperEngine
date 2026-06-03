@@ -47,10 +47,22 @@ class LazyArray {
   }
 }
 
+class ObjectArray {
+  fn __init__(self, layer){
+    self.layer = layer;
+    self.storage = [];
+  }
+  fn __getitem__(self, idx){
+    while(self.storage.len() <= idx) self.storage.append(nil);
+    if(self.storage[idx] == nil) self.storage[idx] = Object(self.layer, idx);
+    return self.storage[idx];
+  }
+}
+
 class Stage {
-  fn __init__(self){
+  fn __init__(self, object_layer=0){
     self.object = nil;
-    try{ self.object = LazyArray(Object); }
+    try{ self.object = ObjectArray(object_layer); }
     catch(e){ print("Siglus stage.object binding unavailable:", e); }
 
     self.mwnd = nil;
@@ -80,9 +92,9 @@ class Stage {
 }
 
 stage = LazyArray(Stage);
-stage_back = Stage();
-stage_front = Stage();
-stage_next = Stage();
+stage_back = Stage(1);
+stage_front = Stage(0);
+stage_next = Stage(1);
 )";
   Execute(vm, std::move(src));
   // TODO: Implement actual Mwnd, Group, Btnsel, World, Effect, Quake classes
