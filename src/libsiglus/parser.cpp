@@ -362,6 +362,7 @@ void Parser::Add(lex::Arg a) {
     tok.source_entry = curcall_cmd_->offset;
   }
   tok.args = curcall_args_;
+  var_cnt_ = static_cast<int>(curcall_args_.size()) + 1;
   emit_token(std::move(tok));
 }
 

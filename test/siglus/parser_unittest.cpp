@@ -218,4 +218,24 @@ null_t v0 = stage_back.object[int:0].create(str:bg47,int:1) ;cmd<int:37,int:2,in
 )");
 }
 
+TEST_F(SiglusParserTest, SubroutineTemporariesDoNotOverwriteArguments) {
+  std::vector<std::string> strs{"bg47"};
+  EXPECT_CALL(ctx, Strings).WillRepeatedly(ReturnRef(strs));
+
+  Parse(Declare{Type::String, 1}, Arg{}, Marker{}, Push{Type::Int, 37},
+        Push{Type::Int, 2}, Push{Type::Int, -1}, Push{Type::Int, 0},
+        Push{Type::Int, 38}, Push{Type::String, 0}, Push{Type::Int, 1},
+        lex::Command(elm::Signature{
+            .overload_id = 0,
+            .arglist = elm::ArgumentList({Type::String, Type::Int}),
+            .argtags = {},
+            .rettype = Type::None}));
+
+  EXPECT_EQ(Tokens(), R"(
+====== SUBROUTINE  @-1 ======
+  arg_0: str
+null_t v2 = stage_back.object[int:0].create(str:bg47,int:1) ;cmd<int:37,int:2,int:-1,int:0,int:38>
+)");
+}
+
 }  // namespace siglus_test
