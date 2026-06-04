@@ -69,6 +69,11 @@ include_directories(${SDL1_INCLUDE_DIRS})
 link_directories(${SDL1_LIBRARY_DIRS})
 
 # -------------------------------------------------------------------
+# Find Theora decoder library
+# -------------------------------------------------------------------
+pkg_check_modules(THEORADEC REQUIRED IMPORTED_TARGET theoradec)
+
+# -------------------------------------------------------------------
 # Find Boost Libraries
 # -------------------------------------------------------------------
 set(BOOST_COMPONENTS program_options serialization iostreams filesystem log)

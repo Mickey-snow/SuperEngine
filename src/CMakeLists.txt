@@ -11,6 +11,7 @@ set(RLVM_REQUIRED_LIBRARIES
     ${OPENGL_LIBRARIES}
     ${Boost_LIBRARIES}
     ${GLEW_LIBRARIES}
+    PkgConfig::THEORADEC
     VorbisFile::VorbisFile
     glm::glm
     xclannad
