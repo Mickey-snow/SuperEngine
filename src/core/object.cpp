@@ -121,6 +121,15 @@ GraphicsObjectData& GraphicsObject::GetObjectData() {
     throw rlvm::Exception("null object data");
   }
 }
+
+const GraphicsObjectData& GraphicsObject::GetObjectData() const {
+  if (object_data_) {
+    return *object_data_;
+  } else {
+    throw rlvm::Exception("null object data");
+  }
+}
+
 void GraphicsObject::AddObjectMutator(ObjectMutator mutator) {
   // If there's a currently running mutator that matches the incoming mutator,
   // we ignore the incoming mutator. Kud Wafter's ED relies on this behavior.

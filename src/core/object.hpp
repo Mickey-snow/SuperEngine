@@ -64,6 +64,7 @@ class GraphicsObject {
   bool has_object_data() const { return object_data_.get(); }
 
   GraphicsObjectData& GetObjectData();
+  const GraphicsObjectData& GetObjectData() const;
   [[deprecated]] void SetObjectData(GraphicsObjectData* obj);
   void SetObjectData(std::unique_ptr<GraphicsObjectData>);
 

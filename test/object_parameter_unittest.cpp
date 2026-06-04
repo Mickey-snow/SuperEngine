@@ -59,13 +59,22 @@ TEST(ObjectParameterTest, DefaultInit) {
   EXPECT_EQ(param.light_level, 0);
   EXPECT_EQ(param.tint_colour, RGBColour(0, 0, 0));
   EXPECT_EQ(param.blend_colour, RGBAColour(0, 0, 0, 0));
+  EXPECT_EQ(param.mask_no, -1);
+  EXPECT_EQ(param.tonecurve_no, -1);
+  EXPECT_EQ(param.culling, 0);
+  EXPECT_EQ(param.alpha_test, 1);
+  EXPECT_EQ(param.alpha_blend, 1);
   EXPECT_EQ(param.composite_mode, 0);
+  EXPECT_EQ(param.light_no, -1);
+  EXPECT_EQ(param.fog_use, 0);
   EXPECT_EQ(param.scroll_rate_x, 0);
   EXPECT_EQ(param.scroll_rate_y, 0);
   EXPECT_EQ(param.z_order, 0);
   EXPECT_EQ(param.z_layer, 0);
   EXPECT_EQ(param.z_depth, 0);
   EXPECT_EQ(param.wipe_copy, 0);
+  EXPECT_EQ(param.wipe_erase, 0);
+  EXPECT_EQ(param.click_disable, 0);
 }
 
 TEST(ObjectParameterTest, AccessorsUpdateTypedFields) {
@@ -99,7 +108,14 @@ TEST(ObjectParameterTest, AccessorsUpdateTypedFields) {
   param.SetColourGreen(65);
   param.SetColourBlue(75);
   param.SetColourLevel(85);
+  param.SetMaskNo(4);
+  param.SetTonecurveNo(5);
+  param.SetCulling(7);
+  param.SetAlphaTest(0);
+  param.SetAlphaBlend(0);
   param.SetCompositeMode(2);
+  param.SetLightNo(6);
+  param.SetFogUse(8);
   param.SetScrollRateX(5);
   param.SetScrollRateY(-5);
   param.SetZOrder(1);
@@ -110,6 +126,8 @@ TEST(ObjectParameterTest, AccessorsUpdateTypedFields) {
   param.SetClipRect(Rect::GRP(0, 0, 100, 100));
   param.SetOwnClipRect(Rect::GRP(10, 10, 80, 80));
   param.SetWipeCopy(1);
+  param.SetWipeErase(2);
+  param.SetClickDisable(3);
 
   EXPECT_EQ(param.visible(), 1);
   EXPECT_EQ(param.x(), 50);
@@ -132,7 +150,14 @@ TEST(ObjectParameterTest, AccessorsUpdateTypedFields) {
   EXPECT_EQ(param.light(), 1);
   EXPECT_EQ(param.tint(), RGBColour(110, 160, 210));
   EXPECT_EQ(param.colour(), RGBAColour(55, 65, 75, 85));
+  EXPECT_EQ(param.mask_no, 4);
+  EXPECT_EQ(param.tonecurve_no, 5);
+  EXPECT_EQ(param.culling, 1);
+  EXPECT_EQ(param.alpha_test, 0);
+  EXPECT_EQ(param.alpha_blend, 0);
   EXPECT_EQ(param.composite_mode, 2);
+  EXPECT_EQ(param.light_no, 6);
+  EXPECT_EQ(param.fog_use, 1);
   EXPECT_EQ(param.scroll_rate_x, 5);
   EXPECT_EQ(param.scroll_rate_y, -5);
   EXPECT_EQ(param.z_order, 1);
@@ -143,6 +168,8 @@ TEST(ObjectParameterTest, AccessorsUpdateTypedFields) {
   EXPECT_TRUE(param.has_clip_rect());
   EXPECT_TRUE(param.has_own_clip_rect());
   EXPECT_EQ(param.wipe_copy, 1);
+  EXPECT_EQ(param.wipe_erase, 1);
+  EXPECT_EQ(param.click_disable, 1);
 }
 
 TEST(ObjectParameterTest, CompoundProperties) {
@@ -222,6 +249,13 @@ TEST(ObjectParameterTest, Serialization) {
     param.adjustment_offsets_y = {10, -10, 0};
     param.blend_colour = RGBAColour(1, 2, 3, 4);
     param.tint_colour = RGBColour(5, 6, 7);
+    param.mask_no = 8;
+    param.tonecurve_no = 9;
+    param.culling = 1;
+    param.alpha_test = 0;
+    param.alpha_blend = 0;
+    param.light_no = 10;
+    param.fog_use = 1;
     param.text = TextProperties{"This is a sample text.", 1, 2, 3, 4, 5, 6};
     param.drift =
         DriftProperties{1, 2, 3, 4,  5,  6,
@@ -229,6 +263,8 @@ TEST(ObjectParameterTest, Serialization) {
     param.digit = DigitProperties{16, 17, 18, 19, 20, 21};
     param.button = ButtonProperties{1, 22, 23, 24, 25,
                                     26, true, 27, 28, 29};
+    param.wipe_erase = 1;
+    param.click_disable = 1;
 
     boost::archive::text_oarchive oa(ss);
     oa << param;
@@ -246,6 +282,13 @@ TEST(ObjectParameterTest, Serialization) {
     EXPECT_EQ(deserialized.adjustment_offsets_y[1], -10);
     EXPECT_EQ(deserialized.blend_colour, RGBAColour(1, 2, 3, 4));
     EXPECT_EQ(deserialized.tint_colour, RGBColour(5, 6, 7));
+    EXPECT_EQ(deserialized.mask_no, 8);
+    EXPECT_EQ(deserialized.tonecurve_no, 9);
+    EXPECT_EQ(deserialized.culling, 1);
+    EXPECT_EQ(deserialized.alpha_test, 0);
+    EXPECT_EQ(deserialized.alpha_blend, 0);
+    EXPECT_EQ(deserialized.light_no, 10);
+    EXPECT_EQ(deserialized.fog_use, 1);
     EXPECT_EQ(deserialized.text.ToString(),
               "value=\"This is a sample text.\", text_size=1, xspace=2, "
               "yspace=3, char_count=4, colour=5, shadow_colour=6");
@@ -260,5 +303,7 @@ TEST(ObjectParameterTest, Serialization) {
               "is_button=1, action=22, se=23, group=24, button_number=25, "
               "state=26, using_overides=true, pattern_override=27, "
               "x_offset_override=28, y_offset_override=29");
+    EXPECT_EQ(deserialized.wipe_erase, 1);
+    EXPECT_EQ(deserialized.click_disable, 1);
   }
 }

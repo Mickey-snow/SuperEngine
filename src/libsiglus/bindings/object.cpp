@@ -133,6 +133,8 @@ class SiglusObject {
       : graphics_(std::move(graphics)), layer_(layer), object_id_(object_id) {}
 
   void init() { object().FreeDataAndInitializeParams(); }
+  void init_param() { object().InitializeParams(); }
+  void free() { object().FreeObjectData(); }
 
   void create(std::vector<sr::Value> args) {
     if (args.size() != 1 && args.size() != 2 && args.size() != 4 &&
@@ -279,6 +281,32 @@ class SiglusObject {
   void set_color_add_g(int value) { param().SetTintGreen(value); }
   int get_color_add_b() const { return param().tint_blue(); }
   void set_color_add_b(int value) { param().SetTintBlue(value); }
+
+  int get_mask_no() const { return param().mask_no; }
+  void set_mask_no(int value) { param().SetMaskNo(value); }
+  int get_tonecurve_no() const { return param().tonecurve_no; }
+  void set_tonecurve_no(int value) { param().SetTonecurveNo(value); }
+  int get_culling() const { return param().culling; }
+  void set_culling(int value) { param().SetCulling(value); }
+  int get_alpha_test() const { return param().alpha_test; }
+  void set_alpha_test(int value) { param().SetAlphaTest(value); }
+  int get_alpha_blend() const { return param().alpha_blend; }
+  void set_alpha_blend(int value) { param().SetAlphaBlend(value); }
+  int get_blend() const { return param().composite_mode; }
+  void set_blend(int value) {
+    param().SetCompositeMode(std::clamp(value, 0, 4));
+  }
+  int get_light_no() const { return param().light_no; }
+  void set_light_no(int value) { param().SetLightNo(value); }
+  int get_fog_use() const { return param().fog_use; }
+  void set_fog_use(int value) { param().SetFogUse(value); }
+
+  int get_wipe_copy() const { return param().wipe_copy; }
+  void set_wipe_copy(int value) { param().SetWipeCopy(value); }
+  int get_wipe_erase() const { return param().wipe_erase; }
+  void set_wipe_erase(int value) { param().SetWipeErase(value); }
+  int get_click_disable() const { return param().click_disable; }
+  void set_click_disable(int value) { param().SetClickDisable(value); }
 };
 
 void BindObject(Context&, SiglusRuntime& runtime) {
@@ -307,8 +335,12 @@ void BindObject(Context&, SiglusRuntime& runtime) {
     obj.def(setter_name.c_str(), setter, sb::arg("value"));
   };
 
-  BindObjectMember.template operator()<&ObjectParameter::wipe_copy>(
-      "wipe_copy");
+  BindObjectProperty("wipe_copy", &SiglusObject::get_wipe_copy,
+                     &SiglusObject::set_wipe_copy);
+  BindObjectProperty("wipe_erase", &SiglusObject::get_wipe_erase,
+                     &SiglusObject::set_wipe_erase);
+  BindObjectProperty("click_disable", &SiglusObject::get_click_disable,
+                     &SiglusObject::set_click_disable);
   BindObjectMember.template operator()<&ObjectParameter::is_visible>("disp");
   BindObjectMember.template operator()<&ObjectParameter::pattern_number>(
       "patno");
@@ -373,10 +405,26 @@ void BindObject(Context&, SiglusRuntime& runtime) {
   BindObjectProperty("color_add_b", &SiglusObject::get_color_add_b,
                      &SiglusObject::set_color_add_b);
 
-  BindObjectMember.template operator()<&ObjectParameter::composite_mode>(
-      "blend");
+  BindObjectProperty("mask_no", &SiglusObject::get_mask_no,
+                     &SiglusObject::set_mask_no);
+  BindObjectProperty("tonecurve_no", &SiglusObject::get_tonecurve_no,
+                     &SiglusObject::set_tonecurve_no);
+  BindObjectProperty("culling", &SiglusObject::get_culling,
+                     &SiglusObject::set_culling);
+  BindObjectProperty("alpha_test", &SiglusObject::get_alpha_test,
+                     &SiglusObject::set_alpha_test);
+  BindObjectProperty("alpha_blend", &SiglusObject::get_alpha_blend,
+                     &SiglusObject::set_alpha_blend);
+  BindObjectProperty("blend", &SiglusObject::get_blend,
+                     &SiglusObject::set_blend);
+  BindObjectProperty("light_no", &SiglusObject::get_light_no,
+                     &SiglusObject::set_light_no);
+  BindObjectProperty("fog_use", &SiglusObject::get_fog_use,
+                     &SiglusObject::set_fog_use);
 
   obj.def("init", &SiglusObject::init);
+  obj.def("init_param", &SiglusObject::init_param);
+  obj.def("free", &SiglusObject::free);
   obj.def("create", &SiglusObject::create, sb::vararg);
   obj.def("create_rect", &SiglusObject::create_rect);
   obj.def("get_size_x", &SiglusObject::get_size_x, sb::arg("cut_no") = 0)

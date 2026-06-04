@@ -36,6 +36,7 @@
 
 #include <boost/serialization/array.hpp>
 #include <boost/serialization/serialization.hpp>
+#include <boost/serialization/version.hpp>
 
 extern const Rect EMPTY_RECT;
 
@@ -174,7 +175,14 @@ struct ObjectParameter {
   int light_level = 0;
   RGBColour tint_colour = RGBColour(0, 0, 0);
   RGBAColour blend_colour = RGBAColour(0, 0, 0, 0);
+  int mask_no = -1;
+  int tonecurve_no = -1;
+  int culling = 0;
+  int alpha_test = 1;
+  int alpha_blend = 1;
   int composite_mode = 0;
+  int light_no = -1;
+  int fog_use = 0;
   int scroll_rate_x = 0;
   int scroll_rate_y = 0;
   int z_order = 0;
@@ -185,6 +193,8 @@ struct ObjectParameter {
   DigitProperties digit;
   ButtonProperties button;
   int wipe_copy = 0;
+  int wipe_erase = 0;
+  int click_disable = 0;
 
   int visible() const { return static_cast<int>(is_visible); }
   void SetVisible(const int in) { is_visible = static_cast<bool>(in); }
@@ -282,7 +292,14 @@ struct ObjectParameter {
   void SetColourBlue(const int in) { blend_colour.set_blue(in); }
   void SetColourLevel(const int in) { blend_colour.set_alpha(in); }
 
+  void SetMaskNo(int in) { mask_no = in; }
+  void SetTonecurveNo(int in) { tonecurve_no = in; }
+  void SetCulling(int in) { culling = in ? 1 : 0; }
+  void SetAlphaTest(int in) { alpha_test = in ? 1 : 0; }
+  void SetAlphaBlend(int in) { alpha_blend = in ? 1 : 0; }
   void SetCompositeMode(int in) { composite_mode = in; }
+  void SetLightNo(int in) { light_no = in; }
+  void SetFogUse(int in) { fog_use = in ? 1 : 0; }
 
   void SetScrollRateX(int in) { scroll_rate_x = in; }
 
@@ -323,7 +340,9 @@ struct ObjectParameter {
   void ClearOwnClipRect() { SetOwnClipRect(EMPTY_RECT); }
   void SetOwnClipRect(const Rect& in) { own_space_clipping_region = in; }
 
-  void SetWipeCopy(int in) { wipe_copy = in; }
+  void SetWipeCopy(int in) { wipe_copy = in ? 1 : 0; }
+  void SetWipeErase(int in) { wipe_erase = in ? 1 : 0; }
+  void SetClickDisable(int in) { click_disable = in ? 1 : 0; }
 
   TextProperties TextProperty() const { return text; }
   void SetTextProperty(const TextProperties& in) { text = in; }
@@ -449,11 +468,23 @@ struct ObjectParameter {
         high_quality_scale_y_percent & rotation_div10 & pattern_number &
         alpha_source & adjustment_alphas & clipping_region &
         own_space_clipping_region & monochrome_transform & invert_transform &
-        light_level & tint_colour & blend_colour & composite_mode &
-        scroll_rate_x & scroll_rate_y & z_order & z_layer & z_depth & text &
+        light_level & tint_colour & blend_colour;
+    if (version >= 1) {
+      ar & mask_no & tonecurve_no & culling & alpha_test & alpha_blend;
+    }
+    ar & composite_mode;
+    if (version >= 1) {
+      ar & light_no & fog_use;
+    }
+    ar & scroll_rate_x & scroll_rate_y & z_order & z_layer & z_depth & text &
         drift & digit & button & wipe_copy;
+    if (version >= 1) {
+      ar & wipe_erase & click_disable;
+    }
   }
 };
+
+BOOST_CLASS_VERSION(ObjectParameter, 1)
 
 template <typename T>
 inline constexpr bool always_false_v = false;
