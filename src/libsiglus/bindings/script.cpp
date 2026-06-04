@@ -24,6 +24,7 @@
 #include "core/gameexe.hpp"
 #include "libsiglus/bindings/registry.hpp"
 #include "srbind/srbind.hpp"
+#include "systems/system.hpp"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
@@ -90,7 +91,9 @@ void BindScript(Context&, SiglusRuntime& rt) {
                "set_skip_disable_flag", "get_skip_disable_flag");
   add_bool_cfg("ctrl_skip", "set_ctrl_skip_disable", "set_ctrl_skip_enable",
                "set_ctrl_skip_disable_flag", "get_ctrl_skip_disable_flag");
-  // TODO: Check skip
+  m.def("check_skip", [sys = rt.system.get()]() -> int {
+    return sys && sys->ShouldFastForward() ? 1 : 0;
+  });
   add_bool_cfg("not_stop_skip_by_click", "set_stop_skip_by_key_disable",
                "set_stop_skip_by_key_enable");
   add_bool_cfg("not_skip_msg_by_click", "set_end_msg_by_key_disable",

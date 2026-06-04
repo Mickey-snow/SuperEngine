@@ -86,21 +86,6 @@ void BindMwnd(Context&, SiglusRuntime& runtime) {
     mwnd.def("set_font_color", &SiglusMwnd::SetFontColor, sb::arg("r"),
              sb::arg("g"), sb::arg("b"));
 
-    m.def("msg_block", []() {
-      bool msgblk_started = false;
-      bool clear_when_ready = false;
-
-      if (msgblk_started)
-        return;
-
-      if (clear_when_ready) {
-        // TODO: クリア準備フラグが立っているならクリアする
-        // 1. mwndのクリア
-        // 2. シングルトンのフルメッセージのクリア
-      }
-
-      // TODO: いろいろクリア処理とセーブ
-    });
   }
 
   {
@@ -108,6 +93,8 @@ void BindMwnd(Context&, SiglusRuntime& runtime) {
     m.def("close", [] { /* TODO*/ });
     m.def("close_nowait", [] { /* TODO*/ });
     m.def("close_wait", [] { /* TODO*/ });
+    m.def("msg_block", [] { /* TODO: Siglus message blocking */ });
+    m.def("msg_pp_block", [] { /* TODO: Siglus page-break blocking */ });
   }
 }
 

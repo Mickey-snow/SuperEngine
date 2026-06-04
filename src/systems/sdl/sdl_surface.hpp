@@ -32,6 +32,7 @@
 
 #include <functional>
 #include <memory>
+#include <span>
 #include <vector>
 
 class glFrameBuffer;
@@ -104,6 +105,8 @@ class SDLSurface {
   void Fill(const RGBAColour& colour, const Rect& area);
   // Fill the entire surface with the incoming colour
   inline void Fill(const RGBAColour& colour) { Fill(colour, GetRect()); }
+
+  void UpdateBGRA(std::span<const char> bgra, bool is_alpha_mask);
 
   // Applies a |transformer| to every pixel in |area| in the surface |surface|.
   void Apply(std::function<RGBAColour(RGBAColour)> transformer, Rect area);

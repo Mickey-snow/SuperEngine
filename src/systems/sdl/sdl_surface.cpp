@@ -44,6 +44,7 @@
 #include <cmath>
 #include <cstring>
 #include <format>
+#include <stdexcept>
 #include <sstream>
 #include <vector>
 
@@ -456,6 +457,63 @@ void SDLSurface::Fill(const RGBAColour& colour, const Rect& area) {
 
   // If we are the main screen, then we want to update the screen
   markWrittenTo(area);
+}
+
+void SDLSurface::UpdateBGRA(std::span<const char> bgra, bool is_alpha_mask) {
+  if (!surface_)
+    throw std::runtime_error("SDLSurface::UpdateBGRA called on null surface");
+
+  const int width = surface_->w;
+  const int height = surface_->h;
+  const std::size_t expected_size =
+      static_cast<std::size_t>(width) * height * 4;
+  if (bgra.size() != expected_size)
+    throw std::runtime_error("SDLSurface::UpdateBGRA buffer size mismatch");
+
+  is_mask_ = is_alpha_mask;
+
+  if (SDL_MUSTLOCK(surface_) && SDL_LockSurface(surface_) != 0)
+    ThrowSDLError("SDL_LockSurface", "SDLSurface::UpdateBGRA()");
+
+  constexpr Uint32 kDefaultAmask = 0xff000000;
+  constexpr Uint32 kDefaultRmask = 0xff0000;
+  constexpr Uint32 kDefaultGmask = 0xff00;
+  constexpr Uint32 kDefaultBmask = 0xff;
+  const bool direct_copy =
+      surface_->format->BytesPerPixel == 4 &&
+      surface_->format->Rmask == kDefaultRmask &&
+      surface_->format->Gmask == kDefaultGmask &&
+      surface_->format->Bmask == kDefaultBmask &&
+      (!is_alpha_mask || surface_->format->Amask == kDefaultAmask);
+
+  auto* dst = static_cast<unsigned char*>(surface_->pixels);
+  const auto* src = reinterpret_cast<const unsigned char*>(bgra.data());
+  if (direct_copy) {
+    for (int y = 0; y < height; ++y) {
+      std::memcpy(dst + y * surface_->pitch,
+                  src + static_cast<std::size_t>(y) * width * 4,
+                  static_cast<std::size_t>(width) * 4);
+    }
+  } else {
+    for (int y = 0; y < height; ++y) {
+      unsigned char* row = dst + y * surface_->pitch;
+      for (int x = 0; x < width; ++x) {
+        const std::size_t src_idx =
+            (static_cast<std::size_t>(y) * width + x) * 4;
+        const Uint32 pixel =
+            SDL_MapRGBA(surface_->format, src[src_idx + 2], src[src_idx + 1],
+                        src[src_idx + 0],
+                        is_alpha_mask ? src[src_idx + 3] : 255);
+        std::memcpy(row + x * surface_->format->BytesPerPixel, &pixel,
+                    surface_->format->BytesPerPixel);
+      }
+    }
+  }
+
+  if (SDL_MUSTLOCK(surface_))
+    SDL_UnlockSurface(surface_);
+
+  markWrittenTo(GetRect());
 }
 
 // -----------------------------------------------------------------------
