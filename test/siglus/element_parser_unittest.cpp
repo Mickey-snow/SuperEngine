@@ -125,6 +125,7 @@ TEST_F(ElementParserTest, MemoryBank) {
   EXPECT_EQ(chain(30, 6, -1, 5), "F.b16(int:5)");
   EXPECT_EQ(chain(31, -1, 250), "G[int:250]");
   EXPECT_EQ(chain(32, -1, 251), "Z[int:251]");
+  EXPECT_EQ(chain(34, 3), "S.init()");
 }
 
 TEST_F(ElementParserTest, Farcall) {
@@ -215,6 +216,22 @@ TEST_F(ElementParserTest, Movie) {
   }
 }
 
+TEST_F(ElementParserTest, ObjectMoviePreservesTaggedArguments) {
+  Invoke invoke(0, {v("ef_dust01"), v(1)}, Type::None);
+  invoke.named_arg = {{0, v(0)}};
+
+  ElementCode elm{37, 2, -1, 114, 120};
+  elm.ForceBind(std::move(invoke));
+
+  EXPECT_EQ(chain(elm),
+            "stage_back.object[int:114].create_movie[0]"
+            "(str:ef_dust01,int:1,0=int:0)");
+}
+
+TEST_F(ElementParserTest, ObjectInitIsImplicitCall) {
+  EXPECT_EQ(chain(37, 2, -1, 0, 35), "stage_back.object[int:0].init()");
+}
+
 TEST_F(ElementParserTest, BgmTable) {
   {
     ElementCode elm{123, 2};
@@ -251,8 +268,7 @@ TEST_F(ElementParserTest, WipePreservesNamedArguments) {
   ElementCode elm{7};
   elm.ForceBind(std::move(invoke));
 
-  EXPECT_EQ(chain(elm),
-            "wipe.wipe[0](8=int:1,0=int:2,3=[int:10,int:11])");
+  EXPECT_EQ(chain(elm), "wipe.wipe[0](8=int:1,0=int:2,3=[int:10,int:11])");
 }
 
 TEST_F(ElementParserTest, WipeCommandMappings) {

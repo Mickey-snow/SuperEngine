@@ -215,9 +215,9 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
     case Type::StrList: {
       static const auto mp =
           make_flatmap<Builder>({id[-1] | b_index_array(Type::String),
-                                 id[3] | b(Type::None, Member("init")),
+                                 id[3] | b_call0(Type::None, "init"),
                                  id[2] | b(Type::Callable, Member("resize")),
-                                 id[4] | b(Type::Int, Member("size"))});
+                                 id[4] | b_call0(Type::Int, "size")});
       return &mp;
     }
     case Type::String: {
@@ -876,7 +876,7 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
     }
     case Type::Object: {
       auto obj_createmov = [](std::string_view mem) -> Builder {
-        return b(Type::Callable, Member(mem));
+        return b_siglus_callable(mem);
       };
 
       static const auto mp = make_flatmap<Builder>({
@@ -1015,9 +1015,9 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
           id[111] | b(Type::IntList, Member("F")),
 
           id[93] | b(Type::ObjList, Member("child")),
-          id[35] | b(Type::None, Member("init")),
-          id[36] | b(Type::None, Member("free")),
-          id[37] | b(Type::None, Member("init_param")),
+          id[35] | b_call0(Type::None, "init"),
+          id[36] | b_call0(Type::None, "free"),
+          id[37] | b_call0(Type::None, "init_param"),
           id[38] | b(Type::Callable, Member("create")),
           id[40] | b(Type::Callable, Member("create_rect")),
           id[39] | b(Type::Callable, Member("create_string")),
@@ -1052,14 +1052,14 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
           id[131] | b(Type::Callable, Member("set_weather_param_type_a")),
 
           // movie
-          id[125] | b(Type::None, Member("pause_movie")),
-          id[126] | b(Type::None, Member("resume_movie")),
+          id[125] | b_call0(Type::None, "pause_movie"),
+          id[126] | b_call0(Type::None, "resume_movie"),
           id[137] | b(Type::Callable, Member("seek_movie")),
-          id[138] | b(Type::Int, Member("get_movie_seek_time")),
-          id[127] | b(Type::Int, Member("check_movie")),
-          id[128] | b(Type::None, Member("wait_movie")),
-          id[142] | b(Type::None, Member("wait_movie_key")),
-          id[171] | b(Type::None, Member("end_movie_loop")),
+          id[138] | b_call0(Type::Int, "get_movie_seek_time"),
+          id[127] | b_call0(Type::Int, "check_movie"),
+          id[128] | b_call0(Type::None, "wait_movie"),
+          id[142] | b_call0(Type::None, "wait_movie_key"),
+          id[171] | b_call0(Type::None, "end_movie_loop"),
           id[172] | b(Type::Callable, Member("set_movie_auto_free")),
 
           // frame action
