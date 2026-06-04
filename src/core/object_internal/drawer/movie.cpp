@@ -97,7 +97,9 @@ void ObjectMovieData::Execute() {
 
   const unsigned int now = Now();
   if (!paused_) {
-    const unsigned int delta = now >= last_tick_ ? now - last_tick_ : 0;
+    unsigned int delta = now >= last_tick_ ? now - last_tick_ : 0;
+    if (!real_time_)
+      delta = std::min(delta, FrameDurationMilliseconds());
     current_time_ += static_cast<int>(delta);
   }
   last_tick_ = now;
@@ -160,6 +162,15 @@ std::shared_ptr<const SDLSurface> ObjectMovieData::CurrentSurface(
   return surface_;
 }
 
+Point ObjectMovieData::DstOrigin(const GraphicsObject& go) {
+  const auto& param = go.Param();
+  if (param.origin_x || param.origin_y)
+    return Point(param.origin_x, param.origin_y);
+  if (decoder_)
+    return decoder_->info().center;
+  return Point();
+}
+
 void ObjectMovieData::DecodeCurrentFrame(bool force) {
   if (!decoder_ || !surface_)
     return;
@@ -169,4 +180,21 @@ void ObjectMovieData::DecodeCurrentFrame(bool force) {
     decoder_->DecodeFrame(frame_no, frame_, force);
     surface_->UpdateBGRA(frame_, true);
   }
+}
+
+unsigned int ObjectMovieData::FrameDurationMilliseconds() const {
+  if (!decoder_)
+    return 1;
+
+  const int frame_count = decoder_->frame_count();
+  if (frame_count > 0 && decoder_->total_time() > 0) {
+    return static_cast<unsigned int>(
+        std::max(1, decoder_->total_time() / frame_count));
+  }
+
+  const int usec_per_frame = decoder_->info().usec_per_frame;
+  if (usec_per_frame > 0)
+    return static_cast<unsigned int>(std::max(1, usec_per_frame / 1000));
+
+  return 1;
 }

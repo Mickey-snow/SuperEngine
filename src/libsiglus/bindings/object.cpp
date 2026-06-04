@@ -343,7 +343,7 @@ class SiglusObject {
     if (params.y)
       obj.Param().SetY(*params.y);
 
-    if (params.wait)
+    if (params.wait && !params.ready_only)
       wait_movie_impl(params.key_skip);
   }
 

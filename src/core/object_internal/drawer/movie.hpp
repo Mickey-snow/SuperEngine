@@ -61,9 +61,11 @@ class ObjectMovieData : public GraphicsObjectData {
  protected:
   std::shared_ptr<const SDLSurface> CurrentSurface(
       const GraphicsObject& go) override;
+  Point DstOrigin(const GraphicsObject& go) override;
 
  private:
   void DecodeCurrentFrame(bool force);
+  unsigned int FrameDurationMilliseconds() const;
   unsigned int Now() const;
 
   std::filesystem::path path_;
