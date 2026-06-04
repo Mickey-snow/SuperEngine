@@ -201,50 +201,17 @@ class SiglusObject {
         layer_(layer),
         object_id_(object_id) {}
 
-  void init() { object().FreeDataAndInitializeParams(); }
-  void init_param() { object().InitializeParams(); }
-  void free() { object().FreeObjectData(); }
-
-  void create(std::vector<sr::Value> args) {
-    if (args.size() != 1 && args.size() != 2 && args.size() != 4 &&
-        args.size() != 5) {
-      throw std::runtime_error("Object.create expects 1, 2, 4, or 5 args");
-    }
-
+  void create(std::string filename) {
     if (!graphics_)
       throw std::runtime_error("Object.create requires a graphics system");
 
-    const std::string filename = AsString(args[0]);
     if (filename.empty())
       throw std::runtime_error("Object.create filename is empty");
 
-    std::optional<int> visible;
-    std::optional<int> x;
-    std::optional<int> y;
-    std::optional<int> pattern;
-
-    if (args.size() >= 2)
-      visible = RequiredInt(args[1], "disp");
-    if (args.size() >= 4) {
-      x = RequiredInt(args[2], "x");
-      y = RequiredInt(args[3], "y");
-    }
-    if (args.size() == 5)
-      pattern = RequiredInt(args[4], "pat");
-
     GraphicsObject& obj = object();
     obj.FreeDataAndInitializeParams();
-    auto surface = graphics_->GetSurfaceNamed(filename);
+    auto surface = graphics_->GetSurfaceNamed(std::move(filename));
     obj.SetObjectData(std::make_unique<GraphicsObjectOfFile>(surface));
-
-    if (visible)
-      obj.Param().SetVisible(*visible);
-    if (x)
-      obj.Param().SetX(*x);
-    if (y)
-      obj.Param().SetY(*y);
-    if (pattern)
-      obj.Param().SetPattNo(*pattern);
   }
 
   MovieCreateParams ParseCreateMovie(std::vector<sr::Value> raw_args,
@@ -483,9 +450,6 @@ class SiglusObject {
     param().SetVisible(display);
   }
 
-  int get_size_x(int cut_no) const { return object().PixelWidth(); }
-  int get_size_y(int cut_no) const { return object().PixelHeight(); }
-
   void set_center_rep(int x, int y) {
     param().SetRepOriginX(x);
     param().SetRepOriginY(y);
@@ -511,92 +475,6 @@ class SiglusObject {
     using member_type = ObjectParameterMemberType<member>;
     param().*member = static_cast<member_type>(value);
   }
-
-  int get_clip_use() const { return param().has_clip_rect(); }
-  void set_clip_use(int value) {
-    if (value) {
-      if (!param().has_clip_rect())
-        param().SetClipRect(Rect::GRP(0, 0, 0, 0));
-    } else {
-      param().ClearClipRect();
-    }
-  }
-
-  int get_clip_left() const { return param().clip_rect().x(); }
-  void set_clip_left(int value) { SetClipRectValue(&Rect::set_x, value); }
-  int get_clip_top() const { return param().clip_rect().y(); }
-  void set_clip_top(int value) { SetClipRectValue(&Rect::set_y, value); }
-  int get_clip_right() const { return param().clip_rect().x2(); }
-  void set_clip_right(int value) { SetClipRectValue(&Rect::set_x2, value); }
-  int get_clip_bottom() const { return param().clip_rect().y2(); }
-  void set_clip_bottom(int value) { SetClipRectValue(&Rect::set_y2, value); }
-
-  int get_src_clip_use() const { return param().has_own_clip_rect(); }
-  void set_src_clip_use(int value) {
-    if (value) {
-      if (!param().has_own_clip_rect())
-        param().SetOwnClipRect(Rect::GRP(0, 0, 0, 0));
-    } else {
-      param().ClearOwnClipRect();
-    }
-  }
-
-  int get_src_clip_left() const { return param().own_clip_rect().x(); }
-  void set_src_clip_left(int value) {
-    SetOwnClipRectValue(&Rect::set_x, value);
-  }
-  int get_src_clip_top() const { return param().own_clip_rect().y(); }
-  void set_src_clip_top(int value) { SetOwnClipRectValue(&Rect::set_y, value); }
-  int get_src_clip_right() const { return param().own_clip_rect().x2(); }
-  void set_src_clip_right(int value) {
-    SetOwnClipRectValue(&Rect::set_x2, value);
-  }
-  int get_src_clip_bottom() const { return param().own_clip_rect().y2(); }
-  void set_src_clip_bottom(int value) {
-    SetOwnClipRectValue(&Rect::set_y2, value);
-  }
-
-  int get_color_r() const { return param().colour_red(); }
-  void set_color_r(int value) { param().SetColourRed(value); }
-  int get_color_g() const { return param().colour_green(); }
-  void set_color_g(int value) { param().SetColourGreen(value); }
-  int get_color_b() const { return param().colour_blue(); }
-  void set_color_b(int value) { param().SetColourBlue(value); }
-  int get_color_rate() const { return param().colour_level(); }
-  void set_color_rate(int value) { param().SetColourLevel(value); }
-
-  int get_color_add_r() const { return param().tint_red(); }
-  void set_color_add_r(int value) { param().SetTintRed(value); }
-  int get_color_add_g() const { return param().tint_green(); }
-  void set_color_add_g(int value) { param().SetTintGreen(value); }
-  int get_color_add_b() const { return param().tint_blue(); }
-  void set_color_add_b(int value) { param().SetTintBlue(value); }
-
-  int get_mask_no() const { return param().mask_no; }
-  void set_mask_no(int value) { param().SetMaskNo(value); }
-  int get_tonecurve_no() const { return param().tonecurve_no; }
-  void set_tonecurve_no(int value) { param().SetTonecurveNo(value); }
-  int get_culling() const { return param().culling; }
-  void set_culling(int value) { param().SetCulling(value); }
-  int get_alpha_test() const { return param().alpha_test; }
-  void set_alpha_test(int value) { param().SetAlphaTest(value); }
-  int get_alpha_blend() const { return param().alpha_blend; }
-  void set_alpha_blend(int value) { param().SetAlphaBlend(value); }
-  int get_blend() const { return param().composite_mode; }
-  void set_blend(int value) {
-    param().SetCompositeMode(std::clamp(value, 0, 4));
-  }
-  int get_light_no() const { return param().light_no; }
-  void set_light_no(int value) { param().SetLightNo(value); }
-  int get_fog_use() const { return param().fog_use; }
-  void set_fog_use(int value) { param().SetFogUse(value); }
-
-  int get_wipe_copy() const { return param().wipe_copy; }
-  void set_wipe_copy(int value) { param().SetWipeCopy(value); }
-  int get_wipe_erase() const { return param().wipe_erase; }
-  void set_wipe_erase(int value) { param().SetWipeErase(value); }
-  int get_click_disable() const { return param().click_disable; }
-  void set_click_disable(int value) { param().SetClickDisable(value); }
 };
 
 void BindObject(Context&, SiglusRuntime& runtime) {
@@ -628,12 +506,12 @@ void BindObject(Context&, SiglusRuntime& runtime) {
     obj.def(setter_name.c_str(), setter, sb::arg("value"));
   };
 
-  BindObjectProperty("wipe_copy", &SiglusObject::get_wipe_copy,
-                     &SiglusObject::set_wipe_copy);
-  BindObjectProperty("wipe_erase", &SiglusObject::get_wipe_erase,
-                     &SiglusObject::set_wipe_erase);
-  BindObjectProperty("click_disable", &SiglusObject::get_click_disable,
-                     &SiglusObject::set_click_disable);
+  BindObjectMember.template operator()<&ObjectParameter::wipe_copy>(
+      "wipe_copy");
+  BindObjectMember.template operator()<&ObjectParameter::wipe_erase>(
+      "wipe_erase");
+  BindObjectMember.template operator()<&ObjectParameter::click_disable>(
+      "click_disable");
   BindObjectMember.template operator()<&ObjectParameter::is_visible>("disp");
   BindObjectMember.template operator()<&ObjectParameter::pattern_number>(
       "patno");
@@ -655,27 +533,81 @@ void BindObject(Context&, SiglusRuntime& runtime) {
   BindObjectMember.template operator()<&ObjectParameter::rotation_div10>(
       "rotate_z");
 
-  BindObjectProperty("clip_use", &SiglusObject::get_clip_use,
-                     &SiglusObject::set_clip_use);
-  BindObjectProperty("clip_left", &SiglusObject::get_clip_left,
-                     &SiglusObject::set_clip_left);
-  BindObjectProperty("clip_top", &SiglusObject::get_clip_top,
-                     &SiglusObject::set_clip_top);
-  BindObjectProperty("clip_right", &SiglusObject::get_clip_right,
-                     &SiglusObject::set_clip_right);
-  BindObjectProperty("clip_bottom", &SiglusObject::get_clip_bottom,
-                     &SiglusObject::set_clip_bottom);
+  BindObjectProperty(
+      "clip_use",
+      [](const SiglusObject* obj) {
+        return obj->param().has_clip_rect() ? 1 : 0;
+      },
+      [](SiglusObject* obj, int value) {
+        if (value) {
+          if (!obj->param().has_clip_rect())
+            obj->param().SetClipRect(Rect::GRP(0, 0, 0, 0));
+        } else {
+          obj->param().ClearClipRect();
+        }
+      });
+  BindObjectProperty(
+      "clip_left",
+      [](const SiglusObject* obj) { return obj->param().clip_rect().x(); },
+      [](SiglusObject* obj, int value) {
+        obj->SetClipRectValue(&Rect::set_x, value);
+      });
+  BindObjectProperty(
+      "clip_top",
+      [](const SiglusObject* obj) { return obj->param().clip_rect().y(); },
+      [](SiglusObject* obj, int value) {
+        obj->SetClipRectValue(&Rect::set_y, value);
+      });
+  BindObjectProperty(
+      "clip_right",
+      [](const SiglusObject* obj) { return obj->param().clip_rect().x2(); },
+      [](SiglusObject* obj, int value) {
+        obj->SetClipRectValue(&Rect::set_x2, value);
+      });
+  BindObjectProperty(
+      "clip_bottom",
+      [](const SiglusObject* obj) { return obj->param().clip_rect().y2(); },
+      [](SiglusObject* obj, int value) {
+        obj->SetClipRectValue(&Rect::set_y2, value);
+      });
 
-  BindObjectProperty("src_clip_use", &SiglusObject::get_src_clip_use,
-                     &SiglusObject::set_src_clip_use);
-  BindObjectProperty("src_clip_left", &SiglusObject::get_src_clip_left,
-                     &SiglusObject::set_src_clip_left);
-  BindObjectProperty("src_clip_top", &SiglusObject::get_src_clip_top,
-                     &SiglusObject::set_src_clip_top);
-  BindObjectProperty("src_clip_right", &SiglusObject::get_src_clip_right,
-                     &SiglusObject::set_src_clip_right);
-  BindObjectProperty("src_clip_bottom", &SiglusObject::get_src_clip_bottom,
-                     &SiglusObject::set_src_clip_bottom);
+  BindObjectProperty(
+      "src_clip_use",
+      [](const SiglusObject* obj) {
+        return obj->param().has_own_clip_rect() ? 1 : 0;
+      },
+      [](SiglusObject* obj, int value) {
+        if (value) {
+          if (!obj->param().has_own_clip_rect())
+            obj->param().SetOwnClipRect(Rect::GRP(0, 0, 0, 0));
+        } else {
+          obj->param().ClearOwnClipRect();
+        }
+      });
+  BindObjectProperty(
+      "src_clip_left",
+      [](const SiglusObject* obj) { return obj->param().own_clip_rect().x(); },
+      [](SiglusObject* obj, int value) {
+        obj->SetOwnClipRectValue(&Rect::set_x, value);
+      });
+  BindObjectProperty(
+      "src_clip_top",
+      [](const SiglusObject* obj) { return obj->param().own_clip_rect().y(); },
+      [](SiglusObject* obj, int value) {
+        obj->SetOwnClipRectValue(&Rect::set_y, value);
+      });
+  BindObjectProperty(
+      "src_clip_right",
+      [](const SiglusObject* obj) { return obj->param().own_clip_rect().x2(); },
+      [](SiglusObject* obj, int value) {
+        obj->SetOwnClipRectValue(&Rect::set_x2, value);
+      });
+  BindObjectProperty(
+      "src_clip_bottom",
+      [](const SiglusObject* obj) { return obj->param().own_clip_rect().y2(); },
+      [](SiglusObject* obj, int value) {
+        obj->SetOwnClipRectValue(&Rect::set_y2, value);
+      });
 
   BindObjectMember.template operator()<&ObjectParameter::alpha_source>("tr");
   BindObjectMember.template operator()<&ObjectParameter::monochrome_transform>(
@@ -683,50 +615,106 @@ void BindObject(Context&, SiglusRuntime& runtime) {
   BindObjectMember.template operator()<&ObjectParameter::invert_transform>(
       "reverse");
 
-  BindObjectProperty("color_r", &SiglusObject::get_color_r,
-                     &SiglusObject::set_color_r);
-  BindObjectProperty("color_g", &SiglusObject::get_color_g,
-                     &SiglusObject::set_color_g);
-  BindObjectProperty("color_b", &SiglusObject::get_color_b,
-                     &SiglusObject::set_color_b);
-  BindObjectProperty("color_rate", &SiglusObject::get_color_rate,
-                     &SiglusObject::set_color_rate);
-  BindObjectProperty("color_add_r", &SiglusObject::get_color_add_r,
-                     &SiglusObject::set_color_add_r);
-  BindObjectProperty("color_add_g", &SiglusObject::get_color_add_g,
-                     &SiglusObject::set_color_add_g);
-  BindObjectProperty("color_add_b", &SiglusObject::get_color_add_b,
-                     &SiglusObject::set_color_add_b);
+  BindObjectProperty(
+      "color_r",
+      [](const SiglusObject* obj) { return obj->param().colour_red(); },
+      [](SiglusObject* obj, int value) { obj->param().SetColourRed(value); });
+  BindObjectProperty(
+      "color_g",
+      [](const SiglusObject* obj) { return obj->param().colour_green(); },
+      [](SiglusObject* obj, int value) { obj->param().SetColourGreen(value); });
+  BindObjectProperty(
+      "color_b",
+      [](const SiglusObject* obj) { return obj->param().colour_blue(); },
+      [](SiglusObject* obj, int value) { obj->param().SetColourBlue(value); });
+  BindObjectProperty(
+      "color_rate",
+      [](const SiglusObject* obj) { return obj->param().colour_level(); },
+      [](SiglusObject* obj, int value) { obj->param().SetColourLevel(value); });
+  BindObjectProperty(
+      "color_add_r",
+      [](const SiglusObject* obj) { return obj->param().tint_red(); },
+      [](SiglusObject* obj, int value) { obj->param().SetTintRed(value); });
+  BindObjectProperty(
+      "color_add_g",
+      [](const SiglusObject* obj) { return obj->param().tint_green(); },
+      [](SiglusObject* obj, int value) { obj->param().SetTintGreen(value); });
+  BindObjectProperty(
+      "color_add_b",
+      [](const SiglusObject* obj) { return obj->param().tint_blue(); },
+      [](SiglusObject* obj, int value) { obj->param().SetTintBlue(value); });
 
-  BindObjectProperty("mask_no", &SiglusObject::get_mask_no,
-                     &SiglusObject::set_mask_no);
-  BindObjectProperty("tonecurve_no", &SiglusObject::get_tonecurve_no,
-                     &SiglusObject::set_tonecurve_no);
-  BindObjectProperty("culling", &SiglusObject::get_culling,
-                     &SiglusObject::set_culling);
-  BindObjectProperty("alpha_test", &SiglusObject::get_alpha_test,
-                     &SiglusObject::set_alpha_test);
-  BindObjectProperty("alpha_blend", &SiglusObject::get_alpha_blend,
-                     &SiglusObject::set_alpha_blend);
-  BindObjectProperty("blend", &SiglusObject::get_blend,
-                     &SiglusObject::set_blend);
-  BindObjectProperty("light_no", &SiglusObject::get_light_no,
-                     &SiglusObject::set_light_no);
-  BindObjectProperty("fog_use", &SiglusObject::get_fog_use,
-                     &SiglusObject::set_fog_use);
+  BindObjectMember.template operator()<&ObjectParameter::mask_no>("mask_no");
+  BindObjectMember.template operator()<&ObjectParameter::tonecurve_no>(
+      "tonecurve_no");
+  BindObjectMember.template operator()<&ObjectParameter::culling>("culling");
+  BindObjectMember.template operator()<&ObjectParameter::alpha_test>(
+      "alpha_test");
+  BindObjectMember.template operator()<&ObjectParameter::alpha_blend>(
+      "alpha_blend");
+  BindObjectMember.template operator()<&ObjectParameter::light_no>("light_no");
+  BindObjectMember.template operator()<&ObjectParameter::fog_use>("fog_use");
+  BindObjectProperty(
+      "blend",
+      [](const SiglusObject* obj) { return obj->param().composite_mode; },
+      [](SiglusObject* obj, int value) {
+        obj->param().SetCompositeMode(std::clamp(value, 0, 4));
+      });
 
-  obj.def("init", &SiglusObject::init);
-  obj.def("init_param", &SiglusObject::init_param);
-  obj.def("free", &SiglusObject::free);
-  obj.def("create", &SiglusObject::create, sb::vararg);
+  obj.def("init", [](SiglusObject* obj) {
+    obj->object().FreeDataAndInitializeParams();
+  });
+  obj.def("init_param",
+          [](SiglusObject* obj) { obj->object().InitializeParams(); });
+  obj.def("free", [](SiglusObject* obj) { obj->object().FreeObjectData(); });
+  obj.def(
+      "create",
+      [](SiglusObject* obj, std::vector<sr::Value> args) {
+        if (args.size() != 1 && args.size() != 2 && args.size() != 4 &&
+            args.size() != 5) {
+          throw std::runtime_error("Object.create expects 1, 2, 4, or 5 args");
+        }
+        std::string filename = AsString(args[0]);
+        if (filename.empty())
+          throw std::runtime_error("Object.create filename is empty");
+
+        std::optional<int> visible, x, y, pattern;
+        if (args.size() >= 2)
+          visible = RequiredInt(args[1], "disp");
+        if (args.size() >= 4)
+          x = RequiredInt(args[2], "x"), y = RequiredInt(args[3], "y");
+        if (args.size() == 5)
+          pattern = RequiredInt(args[4], "pat");
+
+        obj->create(std::move(filename));
+        if (visible)
+          obj->param().SetVisible(*visible);
+        if (x)
+          obj->param().SetX(*x);
+        if (y)
+          obj->param().SetY(*y);
+        if (pattern)
+          obj->param().SetPattNo(*pattern);
+      },
+      sb::vararg);
   obj.def("create_movie", &SiglusObject::create_movie, sb::vararg);
   obj.def("create_movie_loop", &SiglusObject::create_movie_loop, sb::vararg);
   obj.def("create_movie_wait", &SiglusObject::create_movie_wait, sb::vararg);
   obj.def("create_movie_waitkey", &SiglusObject::create_movie_waitkey,
           sb::vararg);
   obj.def("create_rect", &SiglusObject::create_rect);
-  obj.def("get_size_x", &SiglusObject::get_size_x, sb::arg("cut_no") = 0)
-      .def("get_size_y", &SiglusObject::get_size_y, sb::arg("cut_no") = 0);
+  obj.def(
+      "get_size_x",
+      [](const SiglusObject* obj, int cut_no) {
+        return obj->object().PixelWidth();
+      },
+      sb::arg("cut_no") = 0);
+  obj.def(
+      "get_size_y",
+      [](const SiglusObject* obj, int cut_no) {
+        return obj->object().PixelHeight();
+      },
+      sb::arg("cut_no") = 0);
   obj.def("set_center_rep", &SiglusObject::set_center_rep);
   obj.def("set_scale", &SiglusObject::set_scale);
   obj.def("set_pos", &SiglusObject::set_pos);
