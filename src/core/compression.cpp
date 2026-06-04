@@ -68,7 +68,11 @@ std::string Decompress_lzss(std::string_view data) {
       } else {
         uint16_t chunk_data = reader.PopAs<uint16_t>(2);
         uint16_t chunk_size = 2 + (chunk_data & 0xf);
-        size_t chunk_offset = result.size() - (chunk_data >> 4);
+        size_t chunk_distance = chunk_data >> 4;
+        if (chunk_distance == 0 || chunk_distance > result.size())
+          throw std::logic_error("Invalid LZSS back reference");
+
+        size_t chunk_offset = result.size() - chunk_distance;
 
         for (size_t i = 0; i < chunk_size; ++i)
           result += result[chunk_offset + i];
@@ -125,9 +129,12 @@ std::string Decompress_lzss32(std::string_view data) {
       } else {
         uint16_t chunk_data = reader.PopAs<uint16_t>(2);
         uint16_t chunk_size = 1 + (chunk_data & 0b1111);
-        size_t chunk_offset = result.size() - ((chunk_data >> 2) & (~0b11));
+        size_t chunk_distance = static_cast<size_t>(chunk_data >> 4) * 4;
+        if (chunk_distance == 0 || chunk_distance > result.size())
+          throw std::logic_error("Invalid LZSS32 back reference");
 
         chunk_size *= 4;
+        size_t chunk_offset = result.size() - chunk_distance;
         for (size_t i = 0; i < chunk_size; ++i)
           result += result[chunk_offset + i];
       }

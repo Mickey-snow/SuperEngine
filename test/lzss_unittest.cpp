@@ -101,6 +101,19 @@ TEST(lzssTest, IncorrectArchiveSize) {
   EXPECT_THROW(Decompress_lzss(compressed_data), std::logic_error);
 }
 
+TEST(lzssTest, InvalidBackReference) {
+  uint8_t compressed[] = {
+      0x0b, 0x00, 0x00, 0x00,  // archive size = 11
+      0x01, 0x00, 0x00, 0x00,  // original size = 1
+      0x00,                    // flag: first chunk is a back reference
+      0x10, 0x00               // distance 1 before any output exists
+  };
+
+  std::string_view compressed_data(reinterpret_cast<char*>(compressed),
+                                   sizeof(compressed));
+  EXPECT_THROW(Decompress_lzss(compressed_data), std::logic_error);
+}
+
 TEST(lzssTest, OverlappingBackRefs) {
   // Test with overlapping back references
   uint8_t compressed[] = {
