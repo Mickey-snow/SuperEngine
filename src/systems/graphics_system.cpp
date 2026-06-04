@@ -608,6 +608,8 @@ void GraphicsSystem::ExecuteGraphicsSystem(RLMachine& machine) {
   // they want to force a redraw
   for (GraphicsObject& obj : GetForegroundObjects())
     obj.Execute();
+  for (GraphicsObject& obj : GetBackgroundObjects())
+    obj.Execute();
 
   if (mouse_cursor_)
     mouse_cursor_->Execute(system());
@@ -1071,35 +1073,36 @@ void GraphicsSystem::ClearAllDCs() {
 // -----------------------------------------------------------------------
 
 void GraphicsSystem::RenderObjects() {
-  to_render_.clear();
+  auto render_layer = [&](LazyArray<GraphicsObject>& objects) {
+    to_render_.clear();
 
-  // Collate all objects that we might want to render.
-  AllocatedLazyArrayIterator<GraphicsObject> it =
-      graphics_object_impl_->foreground_objects.begin();
-  AllocatedLazyArrayIterator<GraphicsObject> end =
-      graphics_object_impl_->foreground_objects.end();
-  for (; it != end; ++it) {
-    const ObjectSettings& settings = GetObjectSettings(it.pos());
-    if (settings.obj_on_off == 1 && should_show_object1() == false)
-      continue;
-    else if (settings.obj_on_off == 2 && should_show_object2() == false)
-      continue;
-    else if (settings.weather_on_off && should_show_weather() == false)
-      continue;
-    else if (settings.space_key && is_interface_hidden())
-      continue;
+    AllocatedLazyArrayIterator<GraphicsObject> it = objects.begin();
+    AllocatedLazyArrayIterator<GraphicsObject> end = objects.end();
+    for (; it != end; ++it) {
+      const ObjectSettings& settings = GetObjectSettings(it.pos());
+      if (settings.obj_on_off == 1 && should_show_object1() == false)
+        continue;
+      else if (settings.obj_on_off == 2 && should_show_object2() == false)
+        continue;
+      else if (settings.weather_on_off && should_show_weather() == false)
+        continue;
+      else if (settings.space_key && is_interface_hidden())
+        continue;
 
-    to_render_.emplace_back(it->Param().z_order, it->Param().z_layer,
-                            it->Param().z_depth, it.pos(), &*it);
-  }
+      to_render_.emplace_back(it->Param().z_order, it->Param().z_layer,
+                              it->Param().z_depth, it.pos(), &*it);
+    }
 
-  // Sort by all the ordering values.
-  std::sort(to_render_.begin(), to_render_.end());
+    std::sort(to_render_.begin(), to_render_.end());
 
-  for (ToRenderVec::iterator it = to_render_.begin(); it != to_render_.end();
-       ++it) {
-    get<4>(*it)->Render(get<3>(*it), nullptr);
-  }
+    for (ToRenderVec::iterator it = to_render_.begin(); it != to_render_.end();
+         ++it) {
+      get<4>(*it)->Render(get<3>(*it), nullptr);
+    }
+  };
+
+  render_layer(graphics_object_impl_->background_objects);
+  render_layer(graphics_object_impl_->foreground_objects);
 }
 
 // -----------------------------------------------------------------------

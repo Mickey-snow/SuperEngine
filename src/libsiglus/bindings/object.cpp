@@ -25,25 +25,35 @@
 #include "core/frame_counter.hpp"
 #include "core/object_internal/drawer/colour_filter.hpp"
 #include "core/object_internal/drawer/file.hpp"
+#include "core/object_internal/drawer/movie.hpp"
 #include "core/object_internal/object_mutator.hpp"
 #include "libsiglus/bindings/registry.hpp"
 
+#include "core/event_listener.hpp"
 #include "core/object.hpp"
 #include "libsiglus/bindings/common.hpp"
 #include "srbind/module.hpp"
 #include "systems/event_system.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
+#include "utilities/overload.hpp"
+#include "vm/dict.hpp"
+#include "vm/list.hpp"
+#include "vm/string.hpp"
 #include "vm/value.hpp"
 #include "vm/vm.hpp"
 
+#include <algorithm>
+#include <charconv>
 #include <chrono>
+#include <filesystem>
 #include <functional>
 #include <memory>
 #include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -88,11 +98,64 @@ std::shared_ptr<FrameCounter> MakeSiglusFrameCounter(
   return fc;
 }
 
+struct CallPacket {
+  std::optional<int> overload_id;
+  std::vector<sr::Value> args;
+  const sr::Dict* kwargs = nullptr;
+};
+
+std::optional<int> ParseKeywordId(const sr::Value& key) {
+  const sr::String* str = key.Get_if<sr::String>();
+  if (!str)
+    return std::nullopt;
+
+  std::string_view text = str->str_;
+  if (!text.empty() && text.front() == '_')
+    text.remove_prefix(1);
+  if (text.empty())
+    return std::nullopt;
+
+  int result = 0;
+  const char* begin = text.data();
+  const char* end = begin + text.size();
+  const auto [ptr, ec] = std::from_chars(begin, end, result);
+  if (ec != std::errc() || ptr != end)
+    return std::nullopt;
+  return result;
+}
+
+CallPacket DecodePacket(std::vector<sr::Value> raw) {
+  if (raw.size() == 3 && raw[1].Get_if<sr::List>() &&
+      raw[2].Get_if<sr::Dict>()) {
+    const sr::List* args = raw[1].Get_if<sr::List>();
+    return CallPacket{.overload_id = AsInt(raw[0]),
+                      .args = args->items,
+                      .kwargs = raw[2].Get_if<sr::Dict>()};
+  }
+
+  return CallPacket{.args = std::move(raw)};
+}
+
+struct MovieCreateParams {
+  std::string file_name;
+  std::optional<int> display;
+  std::optional<int> x;
+  std::optional<int> y;
+  bool loop = false;
+  bool wait = false;
+  bool key_skip = false;
+  bool auto_free = true;
+  bool real_time = true;
+  bool ready_only = false;
+};
+
 }  // namespace
 
 class SiglusObject {
  public:
   std::shared_ptr<GraphicsSystem> graphics_;
+  std::shared_ptr<EventSystem> event_;
+  std::shared_ptr<AssetScanner> asset_scanner_;
   int layer_ = OBJ_FG;
   int object_id_ = 0;
   GraphicsObject owned_;
@@ -128,9 +191,15 @@ class SiglusObject {
 
   SiglusObject() = default;
   SiglusObject(std::shared_ptr<GraphicsSystem> graphics,
+               std::shared_ptr<EventSystem> event,
+               std::shared_ptr<AssetScanner> asset_scanner,
                int layer,
                int object_id)
-      : graphics_(std::move(graphics)), layer_(layer), object_id_(object_id) {}
+      : graphics_(std::move(graphics)),
+        event_(std::move(event)),
+        asset_scanner_(std::move(asset_scanner)),
+        layer_(layer),
+        object_id_(object_id) {}
 
   void init() { object().FreeDataAndInitializeParams(); }
   void init_param() { object().InitializeParams(); }
@@ -176,6 +245,227 @@ class SiglusObject {
       obj.Param().SetY(*y);
     if (pattern)
       obj.Param().SetPattNo(*pattern);
+  }
+
+  MovieCreateParams ParseCreateMovie(std::vector<sr::Value> raw_args,
+                                     bool loop,
+                                     bool wait,
+                                     bool key_skip) {
+    CallPacket packet = DecodePacket(std::move(raw_args));
+    const std::vector<sr::Value>& args = packet.args;
+    if (args.size() != 1 && args.size() != 2 && args.size() != 4) {
+      throw std::runtime_error(
+          "Object.create_movie expects 1, 2, or 4 positional args");
+    }
+
+    MovieCreateParams params;
+    params.loop = loop;
+    params.wait = wait;
+    params.key_skip = key_skip;
+    params.file_name = AsString(args[0]);
+    if (params.file_name.empty())
+      throw std::runtime_error("Object.create_movie filename is empty");
+
+    if (args.size() >= 2)
+      params.display = RequiredInt(args[1], "disp");
+    if (args.size() >= 4) {
+      params.x = RequiredInt(args[2], "x");
+      params.y = RequiredInt(args[3], "y");
+    }
+
+    if (packet.kwargs) {
+      for (const auto& [key, value] : packet.kwargs->map) {
+        const std::optional<int> id = ParseKeywordId(key);
+        if (!id)
+          continue;
+
+        switch (*id) {
+          case 0:
+            params.auto_free = AsInt(value).value_or(0) != 0;
+            break;
+          case 1:
+            params.real_time = AsInt(value).value_or(0) != 0;
+            break;
+          case 2:
+            params.ready_only = AsInt(value).value_or(0) != 0;
+            break;
+          default:
+            break;
+        }
+      }
+    }
+
+    return params;
+  }
+
+  ObjectMovieData* movie_data() {
+    if (!object().has_object_data())
+      return nullptr;
+    return dynamic_cast<ObjectMovieData*>(&object().GetObjectData());
+  }
+
+  const ObjectMovieData* movie_data() const {
+    if (!object().has_object_data())
+      return nullptr;
+    return dynamic_cast<const ObjectMovieData*>(&object().GetObjectData());
+  }
+
+  void create_movie_common(std::vector<sr::Value> raw_args,
+                           bool loop,
+                           bool wait,
+                           bool key_skip) {
+    if (!graphics_)
+      throw std::runtime_error(
+          "Object.create_movie requires a graphics system");
+    if (!asset_scanner_)
+      throw std::runtime_error("Object.create_movie requires an asset scanner");
+
+    MovieCreateParams params =
+        ParseCreateMovie(std::move(raw_args), loop, wait, key_skip);
+    auto movie_path = asset_scanner_->FindFile(params.file_name, {"omv"});
+    if (!movie_path) {
+      throw std::runtime_error("Object.create_movie could not find " +
+                               params.file_name +
+                               ".omv: " + movie_path.error().what());
+    }
+
+    GraphicsObject& obj = object();
+    obj.FreeDataAndInitializeParams();
+    obj.SetObjectData(std::make_unique<ObjectMovieData>(
+        movie_path.value(), params.loop, params.auto_free, params.real_time,
+        params.ready_only, graphics_->GetBackend(),
+        event_ ? event_->GetClock() : std::make_shared<Clock>()));
+
+    if (params.display)
+      obj.Param().SetVisible(*params.display);
+    if (params.x)
+      obj.Param().SetX(*params.x);
+    if (params.y)
+      obj.Param().SetY(*params.y);
+
+    if (params.wait)
+      wait_movie_impl(params.key_skip);
+  }
+
+  void create_movie(std::vector<sr::Value> args) {
+    create_movie_common(std::move(args), false, false, false);
+  }
+
+  void create_movie_loop(std::vector<sr::Value> args) {
+    create_movie_common(std::move(args), true, false, false);
+  }
+
+  void create_movie_wait(std::vector<sr::Value> args) {
+    create_movie_common(std::move(args), false, true, false);
+  }
+
+  void create_movie_waitkey(std::vector<sr::Value> args) {
+    create_movie_common(std::move(args), false, true, true);
+  }
+
+  void PumpGraphicsOnce() {
+    if (graphics_) {
+      for (GraphicsObject& obj : graphics_->GetForegroundObjects()) {
+        obj.Execute();
+        obj.ExecuteMutators();
+      }
+      for (GraphicsObject& obj : graphics_->GetBackgroundObjects()) {
+        obj.Execute();
+        obj.ExecuteMutators();
+      }
+      graphics_->RenderFrame(true);
+    }
+    if (event_)
+      event_->ExecuteEventSystem();
+  }
+
+  int wait_movie_impl(bool key_skip) {
+    ObjectMovieData* data = movie_data();
+    if (!data)
+      return 0;
+
+    struct MovieWaitListener : public EventListener {
+      bool triggered = false;
+      void OnEvent(std::shared_ptr<Event> event) override {
+        if (!event)
+          return;
+
+        const bool consumed =
+            std::visit(overload([](const KeyDown&) { return true; },
+                                [](const MouseDown&) { return true; },
+                                [](const auto&) { return false; }),
+                       *event);
+        if (consumed) {
+          triggered = true;
+          *event = std::monostate();
+        }
+      }
+    };
+
+    std::shared_ptr<MovieWaitListener> listener;
+    if (key_skip && event_) {
+      listener = std::make_shared<MovieWaitListener>();
+      event_->AddListener(listener);
+    }
+
+    while ((data = movie_data()) && data->CheckMovie()) {
+      PumpGraphicsOnce();
+      if (listener && listener->triggered)
+        break;
+      std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
+
+    if (listener && event_)
+      event_->RemoveListener(listener);
+
+    return listener && listener->triggered ? 1 : 0;
+  }
+
+  void pause_movie() {
+    if (ObjectMovieData* data = movie_data())
+      data->Pause();
+  }
+
+  void resume_movie() {
+    if (ObjectMovieData* data = movie_data())
+      data->Resume();
+  }
+
+  void seek_movie(std::vector<sr::Value> raw_args) {
+    if (ObjectMovieData* data = movie_data()) {
+      CallPacket packet = DecodePacket(std::move(raw_args));
+      if (!packet.args.empty())
+        data->Seek(AsInt(packet.args[0]).value_or(0));
+    }
+  }
+
+  int get_movie_seek_time() const {
+    if (const ObjectMovieData* data = movie_data())
+      return data->GetSeekTime();
+    return 0;
+  }
+
+  int check_movie() const {
+    if (const ObjectMovieData* data = movie_data())
+      return data->CheckMovie() ? 1 : 0;
+    return 0;
+  }
+
+  int wait_movie(std::vector<sr::Value>) { return wait_movie_impl(false); }
+
+  int wait_movie_key(std::vector<sr::Value>) { return wait_movie_impl(true); }
+
+  void end_movie_loop() {
+    if (ObjectMovieData* data = movie_data())
+      data->EndLoop();
+  }
+
+  void set_movie_auto_free(std::vector<sr::Value> raw_args) {
+    if (ObjectMovieData* data = movie_data()) {
+      CallPacket packet = DecodePacket(std::move(raw_args));
+      if (!packet.args.empty())
+        data->SetAutoFree(AsInt(packet.args[0]).value_or(0) != 0);
+    }
   }
 
   void create_rect(int left,
@@ -316,9 +606,12 @@ void BindObject(Context&, SiglusRuntime& runtime) {
 
   auto graphics = runtime.system ? runtime.system->graphics_ptr() : nullptr;
   auto event = runtime.system ? runtime.system->event_ptr() : nullptr;
+  auto asset_scanner = runtime.asset_scanner;
 
-  obj.def(sb::init([graphics](int layer, int object_id) -> SiglusObject* {
-            return new SiglusObject(graphics, layer, object_id);
+  obj.def(sb::init([graphics, event, asset_scanner](
+                       int layer, int object_id) -> SiglusObject* {
+            return new SiglusObject(graphics, event, asset_scanner, layer,
+                                    object_id);
           }),
           sb::arg("layer") = static_cast<int>(OBJ_FG),
           sb::arg("object_id") = 0);
@@ -426,12 +719,27 @@ void BindObject(Context&, SiglusRuntime& runtime) {
   obj.def("init_param", &SiglusObject::init_param);
   obj.def("free", &SiglusObject::free);
   obj.def("create", &SiglusObject::create, sb::vararg);
+  obj.def("create_movie", &SiglusObject::create_movie, sb::vararg);
+  obj.def("create_movie_loop", &SiglusObject::create_movie_loop, sb::vararg);
+  obj.def("create_movie_wait", &SiglusObject::create_movie_wait, sb::vararg);
+  obj.def("create_movie_waitkey", &SiglusObject::create_movie_waitkey,
+          sb::vararg);
   obj.def("create_rect", &SiglusObject::create_rect);
   obj.def("get_size_x", &SiglusObject::get_size_x, sb::arg("cut_no") = 0)
       .def("get_size_y", &SiglusObject::get_size_y, sb::arg("cut_no") = 0);
   obj.def("set_center_rep", &SiglusObject::set_center_rep);
   obj.def("set_scale", &SiglusObject::set_scale);
   obj.def("set_pos", &SiglusObject::set_pos);
+  obj.def("pause_movie", &SiglusObject::pause_movie);
+  obj.def("resume_movie", &SiglusObject::resume_movie);
+  obj.def("seek_movie", &SiglusObject::seek_movie, sb::vararg);
+  obj.def("get_movie_seek_time", &SiglusObject::get_movie_seek_time);
+  obj.def("check_movie", &SiglusObject::check_movie);
+  obj.def("wait_movie", &SiglusObject::wait_movie, sb::vararg);
+  obj.def("wait_movie_key", &SiglusObject::wait_movie_key, sb::vararg);
+  obj.def("end_movie_loop", &SiglusObject::end_movie_loop);
+  obj.def("set_movie_auto_free", &SiglusObject::set_movie_auto_free,
+          sb::vararg);
 
   // ------------------------------------------------------------------------------
   // Object Events

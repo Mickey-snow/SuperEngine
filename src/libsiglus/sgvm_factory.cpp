@@ -87,6 +87,20 @@ inline void dbg_print(std::string str) {
   std::cerr << "[TRACE] " << str << std::endl;
 }
 
+void PumpSiglusGraphics(System& system) {
+  GraphicsSystem& graphics = system.graphics();
+  for (auto& obj : graphics.GetForegroundObjects()) {
+    obj.Execute();
+    obj.ExecuteMutators();
+  }
+  for (auto& obj : graphics.GetBackgroundObjects()) {
+    obj.Execute();
+    obj.ExecuteMutators();
+  }
+  graphics.RenderFrame(true);
+  system.event().ExecuteEventSystem();
+}
+
 SiglusRuntime SGVMFactory::Create() {
   SiglusRuntime rt;
   rt.vm = std::make_unique<sr::VM>(m6::VMFactory::Create());
@@ -176,26 +190,18 @@ SiglusRuntime SGVMFactory::Create() {
         });
 
   // abuse the vm scheduler to refresh sdl regularly
-  std::function<void()>& cb = rt.exec_sdl_callback;
-  cb = [&cb, &rt]() {
+  auto cb_holder = std::make_shared<std::function<void()>>();
+  *cb_holder = [cb_holder, vm = rt.vm.get(), system = rt.system.get()]() {
     constexpr auto period =
         chr::duration_cast<chr::steady_clock::duration>(chr::seconds(1)) / 60;
 
     auto next = chr::steady_clock::now() + period;
-    rt.vm->scheduler_.PushCallbackAt(cb, next);
-
-    // redraw
-    GraphicsSystem& graphics = rt.system->graphics();
-    for (auto& obj : graphics.GetForegroundObjects())
-      obj.ExecuteMutators();
-    for (auto& obj : graphics.GetBackgroundObjects())
-      obj.ExecuteMutators();
-    graphics.RenderFrame(true);
-
-    // poll events
-    rt.system->event().ExecuteEventSystem();
+    vm->scheduler_.PushCallbackAt(*cb_holder, next);
+    PumpSiglusGraphics(*system);
   };
-  rt.vm->scheduler_.PushCallbackAfter(cb, chr::milliseconds(2));
+  rt.exec_sdl_callback = [cb_holder]() { (*cb_holder)(); };
+  rt.vm->scheduler_.PushCallbackAfter(rt.exec_sdl_callback,
+                                      chr::milliseconds(2));
 
   return rt;
 }

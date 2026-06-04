@@ -264,8 +264,18 @@ void glRenderer::Render(glRenderable src,
       glBlendFunc(GL_SRC_ALPHA, GL_ONE);
       glBlendEquation(GL_FUNC_REVERSE_SUBTRACT);
       break;
+    case 3:
+      glBlendFunc(GL_ZERO, GL_SRC_COLOR);
+      glBlendEquation(GL_FUNC_ADD);
+      break;
+    case 4:
+      glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
+      glBlendEquation(GL_FUNC_ADD);
+      break;
     default:
-      throw std::runtime_error("glRenderer: Invalid blend type.");
+      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+      glBlendEquation(GL_FUNC_ADD);
+      break;
   }
 
   auto mono = cfg.mono.value_or(0.0f) / 255.0f;
