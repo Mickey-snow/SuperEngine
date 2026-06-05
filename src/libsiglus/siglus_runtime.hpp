@@ -27,6 +27,7 @@
 #include "core/asset_scanner.hpp"
 #include "core/gameexe.hpp"
 #include "core/memory_internal/memory.hpp"
+#include "core/stage.hpp"
 #include "libsiglus/bindings/loader.hpp"
 #include "systems/system.hpp"
 #include "vm/value.hpp"
@@ -54,6 +55,7 @@ struct SiglusRuntime {
 
   std::shared_ptr<binding::SiglusMwnd> mwnd;
   std::unique_ptr<System> system;
+  std::unique_ptr<Stage> siglus_stage;
 
   std::shared_ptr<Gameexe> local_config, global_config;
 

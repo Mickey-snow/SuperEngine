@@ -24,6 +24,7 @@
 
 #include "libsiglus/siglus_runtime.hpp"
 
+#include "core/stage.hpp"
 #include "systems/system.hpp"
 #include "vm/vm.hpp"
 

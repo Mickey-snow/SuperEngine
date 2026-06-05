@@ -31,6 +31,7 @@
 
 #include "core/event_listener.hpp"
 #include "core/object.hpp"
+#include "core/stage.hpp"
 #include "libsiglus/bindings/common.hpp"
 #include "srbind/module.hpp"
 #include "systems/event_system.hpp"
@@ -149,27 +150,46 @@ struct MovieCreateParams {
   bool ready_only = false;
 };
 
+Stage* ResolveSiglusStage(SiglusRuntime& runtime) {
+  if (runtime.system)
+    return &runtime.system->graphics().stage();
+
+  if (!runtime.siglus_stage)
+    runtime.siglus_stage = std::make_unique<Stage>(256);
+  return runtime.siglus_stage.get();
+}
+
 }  // namespace
 
 class SiglusObject {
  public:
+  Stage* stage_ = nullptr;
   std::shared_ptr<GraphicsSystem> graphics_;
   std::shared_ptr<EventSystem> event_;
   std::shared_ptr<AssetScanner> asset_scanner_;
   int layer_ = OBJ_FG;
   int object_id_ = 0;
-  GraphicsObject owned_;
 
   GraphicsObject& object() {
-    if (graphics_)
-      return graphics_->GetObject(layer_, object_id_);
-    return owned_;
+    if (!stage_)
+      throw std::runtime_error("Object requires a stage buffer");
+    if (object_id_ < 0)
+      throw std::runtime_error("Invalid object number");
+
+    switch (layer_) {
+      case OBJ_FG:
+        return stage_->foreground_objects[object_id_];
+      case OBJ_BG:
+        return stage_->background_objects[object_id_];
+      case OBJ_NEXT:
+        return stage_->next_objects[object_id_];
+      default:
+        throw std::runtime_error("Invalid object layer");
+    }
   }
 
   const GraphicsObject& object() const {
-    if (graphics_)
-      return graphics_->GetObject(layer_, object_id_);
-    return owned_;
+    return const_cast<SiglusObject*>(this)->object();
   }
 
   ObjectParameter& param() { return object().Param(); }
@@ -190,12 +210,14 @@ class SiglusObject {
   }
 
   SiglusObject() = default;
-  SiglusObject(std::shared_ptr<GraphicsSystem> graphics,
+  SiglusObject(Stage* stage,
+               std::shared_ptr<GraphicsSystem> graphics,
                std::shared_ptr<EventSystem> event,
                std::shared_ptr<AssetScanner> asset_scanner,
                int layer,
                int object_id)
-      : graphics_(std::move(graphics)),
+      : stage_(stage),
+        graphics_(std::move(graphics)),
         event_(std::move(event)),
         asset_scanner_(std::move(asset_scanner)),
         layer_(layer),
@@ -482,14 +504,15 @@ void BindObject(Context&, SiglusRuntime& runtime) {
   sb::module_ m(vm.gc_.get(), vm.globals_.get());
   sb::class_<SiglusObject> obj(m, "Object");
 
+  Stage* stage = ResolveSiglusStage(runtime);
   auto graphics = runtime.system ? runtime.system->graphics_ptr() : nullptr;
   auto event = runtime.system ? runtime.system->event_ptr() : nullptr;
   auto asset_scanner = runtime.asset_scanner;
 
-  obj.def(sb::init([graphics, event, asset_scanner](
+  obj.def(sb::init([stage, graphics, event, asset_scanner](
                        int layer, int object_id) -> SiglusObject* {
-            return new SiglusObject(graphics, event, asset_scanner, layer,
-                                    object_id);
+            return new SiglusObject(stage, graphics, event, asset_scanner,
+                                    layer, object_id);
           }),
           sb::arg("layer") = static_cast<int>(OBJ_FG),
           sb::arg("object_id") = 0);
@@ -750,7 +773,7 @@ void BindObject(Context&, SiglusRuntime& runtime) {
       "set",
       [](ObjEve* oe, int end_value, int duration_time, int delay, int type) {
         oe->verify();
-        GraphicsObject& obj = oe->parent->owned_;
+        GraphicsObject& obj = oe->parent->object();
         std::shared_ptr<Clock> clock = oe->event_->GetClock();
 
         obj.EndObjectMutatorMatching(-1, oe->name, 0);
@@ -765,12 +788,12 @@ void BindObject(Context&, SiglusRuntime& runtime) {
       sb::arg("type"));
   oe.def("end", [](ObjEve* oe) {
     oe->verify();
-    GraphicsObject& obj = oe->parent->owned_;
+    GraphicsObject& obj = oe->parent->object();
     return obj.EndObjectMutatorMatching(-1, oe->name, 0);
   });
   oe.def("check", [](ObjEve* oe) {
     oe->verify();
-    GraphicsObject& obj = oe->parent->owned_;
+    GraphicsObject& obj = oe->parent->object();
     bool ret = obj.IsMutatorRunningMatching(-1, oe->name);
     return ret ? 1 : 0;
   });
