@@ -195,7 +195,7 @@ TEST_F(SiglusParserTest, ElementAlias) {
             .rettype = Type::Int}));
 
   EXPECT_EQ(Tokens(), R"(
-alias.object v0 = stage_back.object[int:0]              ;cmd<int:37,int:2,int:-1,int:0>
+alias.object v0 = stage.back.object[int:0]              ;cmd<int:37,int:2,int:-1,int:0>
 int v1 = @78.913:$$usr_cmd(v0,str:bg47)                 ;cmd<int:2113929216>
 )");
 }
@@ -214,7 +214,7 @@ TEST_F(SiglusParserTest, StageObjectCreate) {
             .rettype = Type::None}));
 
   EXPECT_EQ(Tokens(), R"(
-null_t v0 = stage_back.object[int:0].create(str:bg47,int:1) ;cmd<int:37,int:2,int:-1,int:0,int:38>
+null_t v0 = stage.back.object[int:0].create(str:bg47,int:1) ;cmd<int:37,int:2,int:-1,int:0,int:38>
 )");
 }
 
@@ -234,7 +234,7 @@ TEST_F(SiglusParserTest, SubroutineTemporariesDoNotOverwriteArguments) {
   EXPECT_EQ(Tokens(), R"(
 ====== SUBROUTINE  @-1 ======
   arg_0: str
-null_t v2 = stage_back.object[int:0].create(str:bg47,int:1) ;cmd<int:37,int:2,int:-1,int:0,int:38>
+null_t v2 = stage.back.object[int:0].create(str:bg47,int:1) ;cmd<int:37,int:2,int:-1,int:0,int:38>
 )");
 }
 

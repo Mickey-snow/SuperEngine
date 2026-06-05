@@ -224,12 +224,12 @@ TEST_F(ElementParserTest, ObjectMoviePreservesTaggedArguments) {
   elm.ForceBind(std::move(invoke));
 
   EXPECT_EQ(chain(elm),
-            "stage_back.object[int:114].create_movie[0]"
+            "stage.back.object[int:114].create_movie[0]"
             "(str:ef_dust01,int:1,0=int:0)");
 }
 
 TEST_F(ElementParserTest, ObjectInitIsImplicitCall) {
-  EXPECT_EQ(chain(37, 2, -1, 0, 35), "stage_back.object[int:0].init()");
+  EXPECT_EQ(chain(37, 2, -1, 0, 35), "stage.back.object[int:0].init()");
 }
 
 TEST_F(ElementParserTest, BgmTable) {

@@ -21,9 +21,12 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
+#include "core/stage.hpp"
 #include "libsiglus/bindings/common.hpp"
 #include "libsiglus/bindings/registry.hpp"
 #include "srbind/srbind.hpp"
+#include "systems/graphics_system.hpp"
+#include "systems/system.hpp"
 #include "vm/dict.hpp"
 #include "vm/list.hpp"
 #include "vm/string.hpp"
@@ -115,6 +118,8 @@ CallPacket DecodePacket(std::vector<sr::Value> raw) {
 
 class SiglusWipe {
  public:
+  explicit SiglusWipe(System* system) : system_(system) {}
+
   void wipe(std::vector<sr::Value> args) {
     Start(std::move(args), false, false);
   }
@@ -128,10 +133,10 @@ class SiglusWipe {
     Start(std::move(args), true, true);
   }
 
-  void end(std::vector<sr::Value>) { active_ = false; }
+  void end(std::vector<sr::Value>) { EndCurrent(); }
 
   int wait(std::vector<sr::Value>) {
-    active_ = false;
+    EndCurrent();
     return 0;
   }
 
@@ -139,6 +144,8 @@ class SiglusWipe {
 
  private:
   void Start(std::vector<sr::Value> raw_args, bool masked, bool all) {
+    EndCurrent();
+
     WipeParams params;
     if (all)
       params.end_order = std::numeric_limits<int>::max();
@@ -149,7 +156,25 @@ class SiglusWipe {
 
     last_ = std::move(params);
     active_ = true;
+
+    if (system_) {
+      system_->graphics().stage().Wipe(last_.begin_order, last_.end_order,
+                                       last_.begin_layer, last_.end_layer);
+    }
+
+    // TODO(siglus): This state-only implementation fast-forwards wipes. It
+    // intentionally ignores visual wipe animation, mask rendering, wipe
+    // type/options, start time, speed mode, with_low_order, and key-skip wait
+    // behavior until the renderer has Siglus transition support.
+    EndCurrent();
+  }
+
+  void EndCurrent() {
     active_ = false;
+    if (system_) {
+      auto& stage = system_->graphics().stage();
+      stage.next_objects.Clear();
+    }
   }
 
   void ApplyPositional(const std::vector<sr::Value>& args,
@@ -213,7 +238,7 @@ class SiglusWipe {
           params.end_layer = AsInt(value).value_or(0);
           break;
         case 8:
-          params.wait_flag = AsInt(value).has_value();
+          params.wait_flag = AsInt(value).value_or(0) != 0;
           break;
         case 9:
           params.key_wait_mode = AsInt(value).value_or(0);
@@ -232,13 +257,15 @@ class SiglusWipe {
 
   bool active_ = false;
   WipeParams last_;
+  System* system_ = nullptr;
 };
 
 void BindWipe(Context&, SiglusRuntime& runtime) {
   sr::VM& vm = *runtime.vm;
   sb::module_ m(vm.gc_.get(), vm.globals_.get());
 
-  auto wipe = m.bind_instance("wipe", std::make_unique<SiglusWipe>());
+  auto wipe = m.bind_instance(
+      "wipe", std::make_unique<SiglusWipe>(runtime.system.get()));
   wipe.def("wipe", &SiglusWipe::wipe, sb::vararg);
   wipe.def("wipe_all", &SiglusWipe::wipe_all, sb::vararg);
   wipe.def("wipe_mask", &SiglusWipe::wipe_mask, sb::vararg);

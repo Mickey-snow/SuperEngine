@@ -24,30 +24,66 @@
 
 #include "core/stage.hpp"
 
+#include <algorithm>
+#include <limits>
+
 Stage::Stage(int size)
     : foreground_objects(size),
       background_objects(size),
+      next_objects(size),
       saved_foreground_objects(size),
       saved_background_objects(size) {}
 
 void Stage::Reset() {
   foreground_objects.Clear();
   background_objects.Clear();
+  next_objects.Clear();
 }
 
 void Stage::Wipe() {
-  auto bg = background_objects.fbegin();
-  const auto bg_end = background_objects.fend();
-  auto fg = foreground_objects.fbegin();
-  const auto fg_end = foreground_objects.fend();
-  for (; bg != bg_end && fg != fg_end; bg++, fg++) {
-    if (fg.valid() && !fg->Param().wipe_copy) {
-      fg->InitializeParams();
-      fg->FreeObjectData();
-    }
+  Wipe(std::numeric_limits<int>::min(), std::numeric_limits<int>::max(),
+       std::numeric_limits<int>::min(), std::numeric_limits<int>::max());
+}
 
-    if (bg.valid()) {
-      *fg = std::move(*bg);
+void Stage::Wipe(int begin_order,
+                 int end_order,
+                 int begin_layer,
+                 int end_layer) {
+  // TODO(siglus): This only handles object buffers. Promote mwnd, group,
+  // btnsel, world, effect, and quake stage state when those core Siglus
+  // element implementations exist.
+  next_objects.Clear();
+
+  const size_t count =
+      std::min({foreground_objects.Size(), background_objects.Size(),
+                next_objects.Size()});
+  for (size_t i = 0; i < count; ++i) {
+    const bool fg_exists = foreground_objects.Exists(i);
+    const bool bg_exists = background_objects.Exists(i);
+
+    auto in_range = [&](const ObjectParameter& param) {
+      const int order = param.z_order, layer = param.z_layer;
+      return (begin_order <= order && order <= end_order) &&
+             (begin_layer <= layer && layer <= end_layer);
+    };
+    const bool front_in_range = in_range(foreground_objects[i].Param());
+    if (!front_in_range && !bg_exists)
+      continue;
+
+    if (fg_exists)
+      next_objects[i] = foreground_objects[i].Clone();
+
+    const bool replace_front =
+        bg_exists ||
+        (fg_exists && foreground_objects[i].Param().wipe_copy == 0);
+    if (!replace_front)
+      continue;
+
+    if (bg_exists) {
+      foreground_objects[i] = std::move(background_objects[i]);
+      background_objects.DeleteAt(i);
+    } else {
+      foreground_objects[i].FreeDataAndInitializeParams();
     }
   }
 }

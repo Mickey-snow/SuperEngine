@@ -350,6 +350,7 @@ class GraphicsSystem : public EventListener {
 
   LazyArray<GraphicsObject>& GetBackgroundObjects();
   LazyArray<GraphicsObject>& GetForegroundObjects();
+  LazyArray<GraphicsObject>& GetNextObjects();
 
   // Returns true if there's a currently playing animation.
   bool AnimationsPlaying() const;

@@ -73,6 +73,9 @@ class ElementParser {
                              std::string_view top_id,
                              ElementCode& elm,
                              size_t subidx);
+  AccessChain make_stage_member_chain(std::string_view member,
+                                      ElementCode& elm,
+                                      size_t subidx);
 
  private:
   std::unique_ptr<Context> ctx_;

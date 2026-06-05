@@ -742,20 +742,23 @@ std::shared_ptr<SDLSurface> GraphicsSystem::GetSurfaceNamed(
 // -----------------------------------------------------------------------
 
 GraphicsObject& GraphicsSystem::GetObject(int layer, int obj_number) {
-  if (layer < 0 || layer > 1)
+  if (layer < 0 || layer > 2)
     throw std::runtime_error("Invalid layer number");
 
   if (layer == OBJ_BG)
     return stage_->background_objects[obj_number];
-  else
+  else if (layer == OBJ_FG)
     return stage_->foreground_objects[obj_number];
+  else
+    return stage_->next_objects[obj_number];
 }
 size_t GraphicsSystem::GetFreeObjectId(int layer) {
-  if (layer < 0 || layer > 1)
+  if (layer < 0 || layer > 2)
     throw std::runtime_error("Invalid layer number");
 
-  LazyArray<GraphicsObject>& objs =
-      layer == OBJ_BG ? stage_->background_objects : stage_->foreground_objects;
+  LazyArray<GraphicsObject>& objs = layer == OBJ_BG   ? stage_->background_objects
+                                     : layer == OBJ_FG ? stage_->foreground_objects
+                                                       : stage_->next_objects;
 
   for (size_t i = 0;; ++i)
     if (!objs.Exists(i))
@@ -767,25 +770,29 @@ size_t GraphicsSystem::GetFreeObjectId(int layer) {
 void GraphicsSystem::SetObject(int layer,
                                int obj_number,
                                GraphicsObject&& obj) {
-  if (layer < 0 || layer > 1)
+  if (layer < 0 || layer > 2)
     throw std::runtime_error("Invalid layer number");
 
   if (layer == OBJ_BG)
     stage_->background_objects[obj_number] = std::move(obj);
-  else
+  else if (layer == OBJ_FG)
     stage_->foreground_objects[obj_number] = std::move(obj);
+  else
+    stage_->next_objects[obj_number] = std::move(obj);
 }
 
 // -----------------------------------------------------------------------
 
 void GraphicsSystem::RemoveObject(int layer, size_t obj_number) {
-  if (layer < 0 || layer > 1)
+  if (layer < 0 || layer > 2)
     throw std::runtime_error("Invalid layer number");
 
   if (layer == OBJ_BG)
     stage_->background_objects.DeleteAt(obj_number);
-  else
+  else if (layer == OBJ_FG)
     stage_->foreground_objects.DeleteAt(obj_number);
+  else
+    stage_->next_objects.DeleteAt(obj_number);
 }
 
 // -----------------------------------------------------------------------
@@ -838,6 +845,12 @@ LazyArray<GraphicsObject>& GraphicsSystem::GetBackgroundObjects() {
 
 LazyArray<GraphicsObject>& GraphicsSystem::GetForegroundObjects() {
   return stage_->foreground_objects;
+}
+
+// -----------------------------------------------------------------------
+
+LazyArray<GraphicsObject>& GraphicsSystem::GetNextObjects() {
+  return stage_->next_objects;
 }
 
 // -----------------------------------------------------------------------

@@ -1678,11 +1678,11 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
     case 49:  // STAGE
       return make_sym_chain(Type::StageList, "stage", elm, 1);
     case 37:  // BACK
-      return make_sym_chain(Type::Stage, "stage_back", elm, 1);
+      return make_stage_member_chain("back", elm, 1);
     case 38:  // FRONT
-      return make_sym_chain(Type::Stage, "stage_front", elm, 1);
+      return make_stage_member_chain("front", elm, 1);
     case 73:  // NEXT
-      return make_sym_chain(Type::Stage, "stage_next", elm, 1);
+      return make_stage_member_chain("next", elm, 1);
 
     case 65:  // EXCALL
       return make_sym_chain(Type::Excall, "excall", elm, 1);
@@ -1789,6 +1789,18 @@ AccessChain ElementParser::make_sym_chain(Type type,
   Root root(Type::None, std::monostate());
   Node nd(type, Member(top_id));
   AccessChain result{.root = std::move(root), .nodes = {std::move(nd)}};
+  return make_chain(std::move(result), elm,
+                    std::span{elm.code}.subspan(subidx));
+}
+
+AccessChain ElementParser::make_stage_member_chain(std::string_view member,
+                                                   ElementCode& elm,
+                                                   size_t subidx) {
+  Root root(Type::None, std::monostate());
+  AccessChain result{
+      .root = std::move(root),
+      .nodes = {Node(Type::StageList, Member("stage")),
+                Node(Type::Stage, Member(member))}};
   return make_chain(std::move(result), elm,
                     std::span{elm.code}.subspan(subidx));
 }

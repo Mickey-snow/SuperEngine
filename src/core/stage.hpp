@@ -40,6 +40,9 @@ class Stage {
   // Background objects
   LazyArray<GraphicsObject> background_objects;
 
+  // Next objects
+  LazyArray<GraphicsObject> next_objects;
+
   // Foreground objects (at the time of the last save)
   LazyArray<GraphicsObject> saved_foreground_objects;
 
@@ -59,6 +62,7 @@ class Stage {
   // A process where the front and back buffers swap, updating the display to
   // show objects prepared in the back buffer. Documented as "Wipe operation".
   void Wipe();
+  void Wipe(int begin_order, int end_order, int begin_layer, int end_layer);
 
   // Adds |command|, the serialized form of a bytecode used by calling the
   // BytecodeElement::data().

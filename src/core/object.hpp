@@ -128,4 +128,4 @@ class GraphicsObject {
 
 BOOST_CLASS_VERSION(GraphicsObject, 1)
 
-enum { OBJ_FG = 0, OBJ_BG = 1 };
+enum { OBJ_FG = 0, OBJ_BG = 1, OBJ_NEXT = 2 };
