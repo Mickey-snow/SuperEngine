@@ -960,36 +960,32 @@ void GraphicsSystem::ClearAllDCs() {
 // -----------------------------------------------------------------------
 
 void GraphicsSystem::RenderObjects() {
-  auto render_layer = [&](LazyArray<GraphicsObject>& objects) {
-    to_render_.clear();
+  LazyArray<GraphicsObject>& objects = stage_->foreground_objects;
+  to_render_.clear();
 
-    AllocatedLazyArrayIterator<GraphicsObject> it = objects.begin();
-    AllocatedLazyArrayIterator<GraphicsObject> end = objects.end();
-    for (; it != end; ++it) {
-      const ObjectSettings& settings = GetObjectSettings(it.pos());
-      if (settings.obj_on_off == 1 && should_show_object1() == false)
-        continue;
-      else if (settings.obj_on_off == 2 && should_show_object2() == false)
-        continue;
-      else if (settings.weather_on_off && should_show_weather() == false)
-        continue;
-      else if (settings.space_key && is_interface_hidden())
-        continue;
+  AllocatedLazyArrayIterator<GraphicsObject> it = objects.begin();
+  AllocatedLazyArrayIterator<GraphicsObject> end = objects.end();
+  for (; it != end; ++it) {
+    const ObjectSettings& settings = GetObjectSettings(it.pos());
+    if (settings.obj_on_off == 1 && should_show_object1() == false)
+      continue;
+    else if (settings.obj_on_off == 2 && should_show_object2() == false)
+      continue;
+    else if (settings.weather_on_off && should_show_weather() == false)
+      continue;
+    else if (settings.space_key && is_interface_hidden())
+      continue;
 
-      to_render_.emplace_back(it->Param().z_order, it->Param().z_layer,
-                              it->Param().z_depth, it.pos(), &*it);
-    }
+    to_render_.emplace_back(it->Param().z_order, it->Param().z_layer,
+                            it->Param().z_depth, it.pos(), &*it);
+  }
 
-    std::sort(to_render_.begin(), to_render_.end());
+  std::sort(to_render_.begin(), to_render_.end());
 
-    for (ToRenderVec::iterator it = to_render_.begin(); it != to_render_.end();
-         ++it) {
-      get<4>(*it)->Render(get<3>(*it), nullptr);
-    }
-  };
-
-  render_layer(stage_->background_objects);
-  render_layer(stage_->foreground_objects);
+  for (ToRenderVec::iterator it = to_render_.begin(); it != to_render_.end();
+       ++it) {
+    get<4>(*it)->Render(get<3>(*it), nullptr);
+  }
 }
 
 // -----------------------------------------------------------------------
@@ -1048,8 +1044,7 @@ void GraphicsSystem::OnEvent(std::shared_ptr<Event> event) {
 template <class Archive>
 void GraphicsSystem::save(Archive& ar, unsigned int version) const {
   ar & subtitle_ & stage_->saved_graphics_stack &
-      stage_->saved_background_objects &
-      stage_->saved_foreground_objects;
+      stage_->saved_background_objects & stage_->saved_foreground_objects;
 }
 
 // -----------------------------------------------------------------------
@@ -1063,8 +1058,7 @@ void GraphicsSystem::load(Archive& ar, unsigned int version) {
     throw std::runtime_error("Deprecated old graphics stack has been removed");
   }
 
-  ar & stage_->background_objects &
-      stage_->foreground_objects;
+  ar & stage_->background_objects & stage_->foreground_objects;
 
   // Now alert all subclasses that we've set the subtitle
   SetWindowSubtitle(subtitle_,
