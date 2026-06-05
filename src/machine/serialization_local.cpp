@@ -212,9 +212,7 @@ void loadGameFrom(std::istream& iss, RLMachine& machine) {
         machine.GetSystem().sound();
 
     machine.GetMemory().PartialReset(std::move(local_memory));
-
-    machine.GetSystem().graphics().ReplayGraphicsStack(machine);
-
+    machine.ReplayGraphicsStackCommand();
     machine.GetSystem().graphics().ForceRefresh();
   } catch (std::exception& e) {
     std::cerr << "--- WARNING: ERROR DURING LOADING FILE: " << e.what()

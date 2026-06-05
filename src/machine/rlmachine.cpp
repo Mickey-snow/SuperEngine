@@ -28,6 +28,8 @@
 #include "core/event_listener.hpp"
 #include "core/memory.hpp"
 #include "core/memory_internal/serialization_local.hpp"
+#include "core/stage.hpp"
+#include "libreallive/parser.hpp"
 #include "log/domain_logger.hpp"
 #include "long_operations/pause_long_operation.hpp"
 #include "long_operations/textout_long_operation.hpp"
@@ -37,12 +39,12 @@
 #include "machine/rloperation.hpp"
 #include "machine/serialization.hpp"
 #include "machine/stack_frame.hpp"
+#include "systems/event_system.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
 #include "systems/system_error.hpp"
 #include "systems/text_page.hpp"
 #include "systems/text_system.hpp"
-#include "systems/event_system.hpp"
 #include "utilities/exception.hpp"
 #include "utilities/string_utilities.hpp"
 
@@ -351,3 +353,33 @@ void RLMachine::operator()(rlExpression e) { e.Execute(*this); }
 void RLMachine::operator()(Textout t) { PerformTextout(std::move(t.text)); }
 
 void RLMachine::operator()(End) { Halt(); }
+
+// ------------------------------------------------------------------------------
+void RLMachine::ReplayGraphicsStackCommand() {
+  Stage& stage = GetSystem().graphics().stage();
+  std::deque<std::string> stack;
+  stack.swap(stage.graphics_stack);
+
+  set_replaying_graphics_stack(true);
+  {
+    try {
+      for (auto const& command : stack) {
+        if (command != "") {
+          // Parse the string as a chunk of Reallive bytecode.
+          libreallive::Parser parser;
+          auto element = parser.ParseBytecode(command.c_str(),
+                                              command.c_str() + command.size());
+          if (auto command =
+                  std::dynamic_pointer_cast<libreallive::CommandElement>(
+                      element)) {
+            operator()(rlCommand(command.get()));
+          }
+        }
+      }
+    } catch (std::exception& e) {
+      std::cerr << "Error while replaying graphics stack: " << e.what()
+                << std::endl;
+    }
+  }
+  set_replaying_graphics_stack(false);
+}

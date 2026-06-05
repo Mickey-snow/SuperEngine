@@ -27,31 +27,15 @@
 
 #include "modules/module_scr.hpp"
 
+#include "core/stage.hpp"
 #include "machine/general_operations.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/rloperation.hpp"
 #include "systems/graphics_system.hpp"
-#include "systems/system.hpp"
 #include "systems/sdl/sdl_surface.hpp"
+#include "systems/system.hpp"
 
 namespace {
-
-struct stackNop : public RLOpcode<IntConstant_T> {
-  void operator()(RLMachine& machine, int numberOfNops) {
-    GraphicsSystem& sys = machine.GetSystem().graphics();
-
-    for (int i = 0; i < numberOfNops; ++i) {
-      sys.AddGraphicsStackCommand("");
-    }
-  }
-};
-
-struct stackTrunc : public RLOpcode<IntConstant_T> {
-  void operator()(RLMachine& machine, int count) {
-    GraphicsSystem& sys = machine.GetSystem().graphics();
-    sys.StackPop(sys.StackSize() - count);
-  }
-};
 
 struct GetDCPixel : public RLOpcode<IntConstant_T,
                                     IntConstant_T,
@@ -74,16 +58,58 @@ struct GetDCPixel : public RLOpcode<IntConstant_T,
   }
 };
 
+struct StackClear : public RLOpcode<> {
+  void operator()(RLMachine& machine) {
+    Stage& stage = machine.GetSystem().graphics().stage();
+    stage.graphics_stack.clear();
+  }
+};
+
+struct StackPop : public RLOpcode<IntConstant_T> {
+  void operator()(RLMachine& machine, int count) {
+    Stage& stage = machine.GetSystem().graphics().stage();
+    if (count > stage.graphics_stack.size())
+      count = stage.graphics_stack.size();
+    stage.graphics_stack.resize(stage.graphics_stack.size() - count);
+  }
+};
+
+struct StackSize : public RLStoreOpcode<> {
+  int operator()(RLMachine& machine) {
+    Stage& stage = machine.GetSystem().graphics().stage();
+    return stage.graphics_stack.size();
+  }
+};
+
+struct StackNop : public RLOpcode<IntConstant_T> {
+  void operator()(RLMachine& machine, int numberOfNops) {
+    Stage& stage = machine.GetSystem().graphics().stage();
+
+    for (int i = 0; i < numberOfNops; ++i)
+      stage.AddGraphicsStackCommand("");
+  }
+};
+
+struct StackTrunc : public RLOpcode<IntConstant_T> {
+  void operator()(RLMachine& machine, int count) {
+    Stage& stage = machine.GetSystem().graphics().stage();
+    if (count < 0)
+      count = 0;
+    if (static_cast<size_t>(count) < stage.graphics_stack.size())
+      stage.graphics_stack.resize(count);
+  }
+};
+
 }  // namespace
 
 // -----------------------------------------------------------------------
 
 ScrModule::ScrModule() : RLModule("Scr", 1, 30) {
-  AddOpcode(0, 0, "stackClear", CallFunction(&GraphicsSystem::ClearStack));
-  AddOpcode(1, 0, "stackNop", new stackNop);
-  AddOpcode(2, 0, "StackPop", CallFunction(&GraphicsSystem::StackPop));
-  AddOpcode(3, 0, "StackSize", ReturnIntValue(&GraphicsSystem::StackSize));
-  AddOpcode(4, 0, "stackTrunc", new stackTrunc);
+  AddOpcode(0, 0, "stackClear", std::make_shared<StackClear>());
+  AddOpcode(1, 0, "stackNop", std::make_shared<StackNop>());
+  AddOpcode(2, 0, "StackPop", std::make_shared<StackPop>());
+  AddOpcode(3, 0, "StackSize", std::make_shared<StackSize>());
+  AddOpcode(4, 0, "stackTrunc", std::make_shared<StackTrunc>());
 
   AddOpcode(20, 0, "DrawAuto",
             CallFunctionWith(&GraphicsSystem::SetScreenUpdateMode,
@@ -95,5 +121,5 @@ ScrModule::ScrModule() : RLModule("Scr", 1, 30) {
             CallFunctionWith(&GraphicsSystem::SetScreenUpdateMode,
                              GraphicsSystem::SCREENUPDATEMODE_MANUAL));
 
-  AddOpcode(31, 0, "GetDCPixel", new GetDCPixel);
+  AddOpcode(31, 0, "GetDCPixel", std::make_shared<GetDCPixel>());
 }

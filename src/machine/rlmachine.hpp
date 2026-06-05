@@ -207,6 +207,11 @@ class RLMachine {
   void operator()(End);
 
   // -----------------------------------------------------------------------
+  // Replays the new Graphics stack, string representations of reallive
+  // bytecode.
+  void ReplayGraphicsStackCommand();
+
+  // -----------------------------------------------------------------------
   // Temporary 'environment' field, planned to remove this later
   RLEnvironment& GetEnvironment();
 

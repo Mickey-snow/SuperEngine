@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -37,28 +34,29 @@
 #include "core/cgm_table.hpp"
 #include "core/gameexe.hpp"
 #include "core/memory.hpp"
+#include "core/object.hpp"
+#include "core/object_internal/drawer/anm.hpp"
+#include "core/object_internal/drawer/file.hpp"
+#include "core/object_internal/objdrawer.hpp"
+#include "core/object_internal/object_mutator.hpp"
 #include "core/rlevent_listener.hpp"
+#include "core/stage.hpp"
 #include "libreallive/expression.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/serialization.hpp"
 #include "machine/stack_frame.hpp"
 #include "modules/module_grp.hpp"
-#include "core/object_internal/drawer/anm.hpp"
-#include "core/object_internal/drawer/file.hpp"
-#include "core/object_internal/objdrawer.hpp"
-#include "core/object_internal/object_mutator.hpp"
-#include "core/object.hpp"
+#include "systems/event_system.hpp"
 #include "systems/hik_renderer.hpp"
 #include "systems/hik_script.hpp"
+#include "systems/igraphics_backend.hpp"
 #include "systems/mouse_cursor.hpp"
 #include "systems/object_settings.hpp"
 #include "systems/renderable.hpp"
+#include "systems/sdl/sdl_surface.hpp"
 #include "systems/system.hpp"
 #include "systems/system_error.hpp"
 #include "systems/text_system.hpp"
-#include "systems/event_system.hpp"
-#include "systems/igraphics_backend.hpp"
-#include "systems/sdl/sdl_surface.hpp"
 #include "utilities/graphics.hpp"
 #include "utilities/lazy_array.hpp"
 #include "utilities/string_utilities.hpp"
@@ -176,40 +174,6 @@ GraphicsSystemGlobals::GraphicsSystemGlobals(Gameexe& gameexe)
       tone_curves(CreateToneCurve(gameexe)) {}
 
 // -----------------------------------------------------------------------
-// GraphicsObjectImpl
-// -----------------------------------------------------------------------
-struct GraphicsSystem::GraphicsObjectImpl {
-  explicit GraphicsObjectImpl(int objects_in_layer);
-
-  // Foreground objects
-  LazyArray<GraphicsObject> foreground_objects;
-
-  // Background objects
-  LazyArray<GraphicsObject> background_objects;
-
-  // Foreground objects (at the time of the last save)
-  LazyArray<GraphicsObject> saved_foreground_objects;
-
-  // Background objects (at the time of the last save)
-  LazyArray<GraphicsObject> saved_background_objects;
-
-  // List of commands in RealLive bytecode to rebuild the graphics stack at the
-  // current moment.
-  std::deque<std::string> graphics_stack;
-
-  // Commands to rebuild the graphics stack (at the time of the last savepoint)
-  std::deque<std::string> saved_graphics_stack;
-};
-
-// -----------------------------------------------------------------------
-
-GraphicsSystem::GraphicsObjectImpl::GraphicsObjectImpl(int size)
-    : foreground_objects(size),
-      background_objects(size),
-      saved_foreground_objects(size),
-      saved_background_objects(size) {}
-
-// -----------------------------------------------------------------------
 // GraphicsSystem
 // -----------------------------------------------------------------------
 GraphicsSystem::GraphicsSystem(System& system,
@@ -225,7 +189,7 @@ GraphicsSystem::GraphicsSystem(System& system,
       time_at_last_queue_change_(0),
       graphics_object_settings_(
           std::make_unique<GraphicsObjectSettings>(gameexe)),
-      graphics_object_impl_(std::make_unique<GraphicsObjectImpl>(
+      stage_(std::make_unique<Stage>(
           graphics_object_settings_->objects_in_a_layer)),
       use_custom_mouse_cursor_(gameexe("MOUSE_CURSOR").Exists()),
       show_cursor_from_bytecode_(true),
@@ -262,9 +226,7 @@ GraphicsSystem::GraphicsSystem(System& system,
     display_contexts_[i] = impl_->CreateSurface(screen_size);
 }
 
-// -----------------------------------------------------------------------
-
-GraphicsSystem::~GraphicsSystem() {}
+GraphicsSystem::~GraphicsSystem() = default;
 
 // -----------------------------------------------------------------------
 
@@ -350,57 +312,6 @@ void GraphicsSystem::SetCursor(int cursor) {
   mouse_cursor_.reset();
   if (impl_)
     impl_->ShowSystemCursor(!ShouldUseCustomCursor());
-}
-
-// -----------------------------------------------------------------------
-
-void GraphicsSystem::AddGraphicsStackCommand(const std::string& command) {
-  graphics_object_impl_->graphics_stack.push_back(command);
-
-  // RealLive only allows 127 commands to be on the stack so game programmers
-  // can be lazy and not clear it.
-  if (graphics_object_impl_->graphics_stack.size() > 127)
-    graphics_object_impl_->graphics_stack.pop_front();
-}
-
-// -----------------------------------------------------------------------
-
-int GraphicsSystem::StackSize() const {
-  // I don't think this will ever be accurate in the face of multi()
-  // commands. I'm not sure if this matters because the only use of StackSize()
-  // appears to be this recurring pattern in RL bytecode:
-  //
-  //   x = stackSize()
-  //   ... large graphics demo
-  //   stackTrunk(x)
-  return graphics_object_impl_->graphics_stack.size();
-}
-
-// -----------------------------------------------------------------------
-
-void GraphicsSystem::ClearStack() {
-  graphics_object_impl_->graphics_stack.clear();
-}
-
-// -----------------------------------------------------------------------
-
-void GraphicsSystem::StackPop(int items) {
-  for (int i = 0; i < items; ++i) {
-    if (graphics_object_impl_->graphics_stack.size()) {
-      graphics_object_impl_->graphics_stack.pop_back();
-    }
-  }
-}
-
-// -----------------------------------------------------------------------
-
-void GraphicsSystem::ReplayGraphicsStack(RLMachine& machine) {
-  std::deque<std::string> stack_to_replay;
-  stack_to_replay.swap(graphics_object_impl_->graphics_stack);
-
-  machine.set_replaying_graphics_stack(true);
-  ReplayGraphicsStackCommand(machine, stack_to_replay);
-  machine.set_replaying_graphics_stack(false);
 }
 
 // -----------------------------------------------------------------------
@@ -654,9 +565,7 @@ void GraphicsSystem::ExecuteGraphicsSystem(RLMachine& machine) {
 // -----------------------------------------------------------------------
 
 void GraphicsSystem::Reset() {
-  graphics_object_impl_->foreground_objects.Clear();
-  graphics_object_impl_->background_objects.Clear();
-
+  stage_->Reset();
   ClearAllDCs();
 
   preloaded_hik_scripts_.Clear();
@@ -824,30 +733,10 @@ std::shared_ptr<SDLSurface> GraphicsSystem::GetSurfaceNamed(
   if (cached_surface)
     return cached_surface;
 
-  std::shared_ptr<SDLSurface> surface_to_ret = LoadSurfaceFromFile(short_filename);
+  std::shared_ptr<SDLSurface> surface_to_ret =
+      LoadSurfaceFromFile(short_filename);
   image_cache_.insert(short_filename, surface_to_ret);
   return surface_to_ret;
-}
-
-// -----------------------------------------------------------------------
-
-void GraphicsSystem::ClearAndPromoteObjects() {
-  typedef LazyArray<GraphicsObject>::full_iterator FullIterator;
-
-  FullIterator bg = graphics_object_impl_->background_objects.fbegin();
-  FullIterator bg_end = graphics_object_impl_->background_objects.fend();
-  FullIterator fg = graphics_object_impl_->foreground_objects.fbegin();
-  FullIterator fg_end = graphics_object_impl_->foreground_objects.fend();
-  for (; bg != bg_end && fg != fg_end; bg++, fg++) {
-    if (fg.valid() && !fg->Param().wipe_copy) {
-      fg->InitializeParams();
-      fg->FreeObjectData();
-    }
-
-    if (bg.valid()) {
-      *fg = std::move(*bg);
-    }
-  }
 }
 
 // -----------------------------------------------------------------------
@@ -857,17 +746,16 @@ GraphicsObject& GraphicsSystem::GetObject(int layer, int obj_number) {
     throw std::runtime_error("Invalid layer number");
 
   if (layer == OBJ_BG)
-    return graphics_object_impl_->background_objects[obj_number];
+    return stage_->background_objects[obj_number];
   else
-    return graphics_object_impl_->foreground_objects[obj_number];
+    return stage_->foreground_objects[obj_number];
 }
 size_t GraphicsSystem::GetFreeObjectId(int layer) {
   if (layer < 0 || layer > 1)
     throw std::runtime_error("Invalid layer number");
 
   LazyArray<GraphicsObject>& objs =
-      layer == OBJ_BG ? graphics_object_impl_->background_objects
-                      : graphics_object_impl_->foreground_objects;
+      layer == OBJ_BG ? stage_->background_objects : stage_->foreground_objects;
 
   for (size_t i = 0;; ++i)
     if (!objs.Exists(i))
@@ -883,9 +771,9 @@ void GraphicsSystem::SetObject(int layer,
     throw std::runtime_error("Invalid layer number");
 
   if (layer == OBJ_BG)
-    graphics_object_impl_->background_objects[obj_number] = std::move(obj);
+    stage_->background_objects[obj_number] = std::move(obj);
   else
-    graphics_object_impl_->foreground_objects[obj_number] = std::move(obj);
+    stage_->foreground_objects[obj_number] = std::move(obj);
 }
 
 // -----------------------------------------------------------------------
@@ -895,42 +783,42 @@ void GraphicsSystem::RemoveObject(int layer, size_t obj_number) {
     throw std::runtime_error("Invalid layer number");
 
   if (layer == OBJ_BG)
-    graphics_object_impl_->background_objects.DeleteAt(obj_number);
+    stage_->background_objects.DeleteAt(obj_number);
   else
-    graphics_object_impl_->foreground_objects.DeleteAt(obj_number);
+    stage_->foreground_objects.DeleteAt(obj_number);
 }
 
 // -----------------------------------------------------------------------
 
 void GraphicsSystem::FreeObjectData(int obj_number) {
-  graphics_object_impl_->foreground_objects[obj_number].FreeObjectData();
-  graphics_object_impl_->background_objects[obj_number].FreeObjectData();
+  stage_->foreground_objects[obj_number].FreeObjectData();
+  stage_->background_objects[obj_number].FreeObjectData();
 }
 
 // -----------------------------------------------------------------------
 
 void GraphicsSystem::FreeAllObjectData() {
-  for (GraphicsObject& object : graphics_object_impl_->foreground_objects)
+  for (GraphicsObject& object : stage_->foreground_objects)
     object.FreeObjectData();
 
-  for (GraphicsObject& object : graphics_object_impl_->background_objects)
+  for (GraphicsObject& object : stage_->background_objects)
     object.FreeObjectData();
 }
 
 // -----------------------------------------------------------------------
 
 void GraphicsSystem::InitializeObjectParams(int obj_number) {
-  graphics_object_impl_->foreground_objects[obj_number].InitializeParams();
-  graphics_object_impl_->background_objects[obj_number].InitializeParams();
+  stage_->foreground_objects[obj_number].InitializeParams();
+  stage_->background_objects[obj_number].InitializeParams();
 }
 
 // -----------------------------------------------------------------------
 
 void GraphicsSystem::InitializeAllObjectParams() {
-  for (GraphicsObject& object : graphics_object_impl_->foreground_objects)
+  for (GraphicsObject& object : stage_->foreground_objects)
     object.InitializeParams();
 
-  for (GraphicsObject& object : graphics_object_impl_->background_objects)
+  for (GraphicsObject& object : stage_->background_objects)
     object.InitializeParams();
 }
 
@@ -943,19 +831,19 @@ int GraphicsSystem::GetObjectLayerSize() {
 // -----------------------------------------------------------------------
 
 LazyArray<GraphicsObject>& GraphicsSystem::GetBackgroundObjects() {
-  return graphics_object_impl_->background_objects;
+  return stage_->background_objects;
 }
 
 // -----------------------------------------------------------------------
 
 LazyArray<GraphicsObject>& GraphicsSystem::GetForegroundObjects() {
-  return graphics_object_impl_->foreground_objects;
+  return stage_->foreground_objects;
 }
 
 // -----------------------------------------------------------------------
 
 bool GraphicsSystem::AnimationsPlaying() const {
-  for (GraphicsObject& object : graphics_object_impl_->foreground_objects) {
+  for (GraphicsObject& object : stage_->foreground_objects) {
     if (object.has_object_data()) {
       GraphicsObjectData& data = object.GetObjectData();
       if (data.IsAnimation() && data.GetAnimator()->IsPlaying())
@@ -972,18 +860,17 @@ void GraphicsSystem::TakeSavepointSnapshot() {
   auto& foreground = GetForegroundObjects();
   auto& background = GetBackgroundObjects();
 
-  graphics_object_impl_->saved_foreground_objects.Clear();
+  stage_->saved_foreground_objects.Clear();
   for (auto it = foreground.begin(), end = foreground.end(); it != end; ++it) {
-    graphics_object_impl_->saved_foreground_objects[it.pos()] = it->Clone();
+    stage_->saved_foreground_objects[it.pos()] = it->Clone();
   }
 
-  graphics_object_impl_->saved_background_objects.Clear();
+  stage_->saved_background_objects.Clear();
   for (auto it = background.begin(), end = background.end(); it != end; ++it) {
-    graphics_object_impl_->saved_background_objects[it.pos()] = it->Clone();
+    stage_->saved_background_objects[it.pos()] = it->Clone();
   }
 
-  graphics_object_impl_->saved_graphics_stack =
-      graphics_object_impl_->graphics_stack;
+  stage_->saved_graphics_stack = stage_->graphics_stack;
 }
 
 // -----------------------------------------------------------------------
@@ -1101,8 +988,8 @@ void GraphicsSystem::RenderObjects() {
     }
   };
 
-  render_layer(graphics_object_impl_->background_objects);
-  render_layer(graphics_object_impl_->foreground_objects);
+  render_layer(stage_->background_objects);
+  render_layer(stage_->foreground_objects);
 }
 
 // -----------------------------------------------------------------------
@@ -1160,9 +1047,9 @@ void GraphicsSystem::OnEvent(std::shared_ptr<Event> event) {
 
 template <class Archive>
 void GraphicsSystem::save(Archive& ar, unsigned int version) const {
-  ar & subtitle_ & graphics_object_impl_->saved_graphics_stack &
-      graphics_object_impl_->saved_background_objects &
-      graphics_object_impl_->saved_foreground_objects;
+  ar & subtitle_ & stage_->saved_graphics_stack &
+      stage_->saved_background_objects &
+      stage_->saved_foreground_objects;
 }
 
 // -----------------------------------------------------------------------
@@ -1171,13 +1058,13 @@ template <class Archive>
 void GraphicsSystem::load(Archive& ar, unsigned int version) {
   ar & subtitle_;
   if (version > 0) {
-    ar & graphics_object_impl_->graphics_stack;
+    ar & stage_->graphics_stack;
   } else {
     throw std::runtime_error("Deprecated old graphics stack has been removed");
   }
 
-  ar & graphics_object_impl_->background_objects &
-      graphics_object_impl_->foreground_objects;
+  ar & stage_->background_objects &
+      stage_->foreground_objects;
 
   // Now alert all subclasses that we've set the subtitle
   SetWindowSubtitle(subtitle_,

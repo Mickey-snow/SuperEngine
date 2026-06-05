@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -64,6 +61,7 @@ class RGBAColour;
 class RLMachine;
 class Size;
 class SDLSurface;
+class Stage;
 class System;
 struct ObjectSettings;
 class Album;
@@ -180,7 +178,9 @@ class GraphicsSystem : public EventListener {
     background_type_ = t;
   }
 
-  System& system() { return system_; }
+  inline System& system() { return system_; }
+
+  inline Stage& stage() { return *stage_; }
 
   // Screen Shaking
 
@@ -215,30 +215,6 @@ class GraphicsSystem : public EventListener {
   void set_show_cursor_from_bytecode(const int in) {
     show_cursor_from_bytecode_ = in;
   }
-
-  // Graphics stack implementation
-  //
-  // The RealLive virtual machine keeps track of recent graphics commands so
-  // that when the game is restored, these graphics commands can be replayed to
-  // recreate the screen state.
-
-  // Adds |command|, the serialized form of a bytecode used by calling the
-  // BytecodeElement::data().
-  void AddGraphicsStackCommand(const std::string& command);
-
-  // Returns the number of entries in the stack.
-  int StackSize() const;
-
-  // Clears the graphics stack.
-  void ClearStack();
-
-  // Removes (up to) |num_items| from the stack. (Stops when the stack is
-  // empty).
-  void StackPop(int num_items);
-
-  // Replays the graphics stack. This is called after we've reloaded
-  // a saved game and deals with both old style and the new stack system.
-  void ReplayGraphicsStack(RLMachine& machine);
 
   // Sets the current hik script. GraphicsSystem takes ownership, freeing the
   // current HIKScript if applicable. |script| can be NULL.
@@ -345,10 +321,6 @@ class GraphicsSystem : public EventListener {
   // for one of the DCs, since those can be CGs.
   std::shared_ptr<SDLSurface> GetSurfaceNamed(
       const std::string& short_filename);
-
-  // A process where the front and back buffers swap, updating the display to
-  // show objects prepared in the back buffer. Documented as "Wipe operation".
-  void ClearAndPromoteObjects();
 
   // Calls render() on all foreground objects that need to be
   // rendered.
@@ -496,8 +468,7 @@ class GraphicsSystem : public EventListener {
   // Immutable global data that's constructed from the Gameexe.ini file.
   std::unique_ptr<GraphicsObjectSettings> graphics_object_settings_;
 
-  struct GraphicsObjectImpl;
-  std::unique_ptr<GraphicsObjectImpl> graphics_object_impl_;
+  std::unique_ptr<Stage> stage_;
 
   // Whether we should use a custom mouse cursor. Set while parsing the Gameexe
   // file, and then left unchanged. We only use a custom mouse cursor if

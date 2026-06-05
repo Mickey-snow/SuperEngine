@@ -31,11 +31,10 @@
 
 #include "core/colour.hpp"
 #include "core/gameexe.hpp"
+#include "core/stage.hpp"
 #include "effects/effect.hpp"
 #include "effects/effect_factory.hpp"
 #include "effects/sel_record.hpp"
-#include "libreallive/expression.hpp"
-#include "libreallive/parser.hpp"
 #include "long_operations/wait_long_operation.hpp"
 #include "long_operations/zoom_long_operation.hpp"
 #include "machine/general_operations.hpp"
@@ -48,9 +47,9 @@
 #include "machine/rloperation/rgb_colour_t.hpp"
 #include "machine/rloperation/special_t.hpp"
 #include "systems/graphics_system.hpp"
+#include "systems/sdl/sdl_surface.hpp"
 #include "systems/system.hpp"
 #include "systems/text_system.hpp"
-#include "systems/sdl/sdl_surface.hpp"
 #include "utilities/graphics.hpp"
 
 namespace fs = std::filesystem;
@@ -119,7 +118,7 @@ void blitDC1toDC0(RLMachine& machine) {
   // Promote the objects if we're in normal mode. If we're restoring the
   // graphics stack, we already have our layers promoted.
   if (!machine.replaying_graphics_stack())
-    graphics.ClearAndPromoteObjects();
+    graphics.stage().Wipe();
 }
 
 // Performs half the grunt work of a recOpen command; Copies DC0 to DC1, loads
@@ -237,7 +236,7 @@ void OpenBgPrelude(RLMachine& machine, const std::string& filename) {
     default_grp_name = filename;
 
     // Only clear the stack when we are the command setting the background.
-    graphics.ClearStack();
+    graphics.stage().graphics_stack.clear();
   }
 }
 
@@ -833,7 +832,8 @@ struct fill_3
 
 struct invert_1 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int dc) {
-    std::shared_ptr<SDLSurface> surface = machine.GetSystem().graphics().GetDC(dc);
+    std::shared_ptr<SDLSurface> surface =
+        machine.GetSystem().graphics().GetDC(dc);
     surface->Apply(InvertColor);
   }
 };
@@ -847,7 +847,8 @@ struct invert_3 : public RLOpcode<Rect_T<SPACE>, IntConstant_T> {
 
 struct mono_1 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int dc) {
-    std::shared_ptr<SDLSurface> surface = machine.GetSystem().graphics().GetDC(dc);
+    std::shared_ptr<SDLSurface> surface =
+        machine.GetSystem().graphics().GetDC(dc);
     surface->Apply(ToGrayscale);
   }
 };
@@ -861,7 +862,8 @@ struct mono_3 : public RLOpcode<Rect_T<SPACE>, IntConstant_T> {
 
 struct colour_1 : public RLOpcode<IntConstant_T, RGBColour_T> {
   void operator()(RLMachine& machine, int dc, RGBAColour colour) {
-    std::shared_ptr<SDLSurface> surface = machine.GetSystem().graphics().GetDC(dc);
+    std::shared_ptr<SDLSurface> surface =
+        machine.GetSystem().graphics().GetDC(dc);
     surface->Apply(ApplyColorTransformer(colour.rgb()));
   }
 };
@@ -869,14 +871,16 @@ struct colour_1 : public RLOpcode<IntConstant_T, RGBColour_T> {
 template <typename SPACE>
 struct colour_2 : public RLOpcode<Rect_T<SPACE>, IntConstant_T, RGBColour_T> {
   void operator()(RLMachine& machine, Rect rect, int dc, RGBAColour colour) {
-    std::shared_ptr<SDLSurface> surface = machine.GetSystem().graphics().GetDC(dc);
+    std::shared_ptr<SDLSurface> surface =
+        machine.GetSystem().graphics().GetDC(dc);
     surface->Apply(ApplyColorTransformer(colour.rgb()), rect);
   }
 };
 
 struct light_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int dc, int level) {
-    std::shared_ptr<SDLSurface> surface = machine.GetSystem().graphics().GetDC(dc);
+    std::shared_ptr<SDLSurface> surface =
+        machine.GetSystem().graphics().GetDC(dc);
     surface->Apply(ApplyColorTransformer(RGBColour(level, level, level)));
   }
 };
@@ -884,7 +888,8 @@ struct light_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
 template <typename SPACE>
 struct light_2 : public RLOpcode<Rect_T<SPACE>, IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, Rect rect, int dc, int level) {
-    std::shared_ptr<SDLSurface> surface = machine.GetSystem().graphics().GetDC(dc);
+    std::shared_ptr<SDLSurface> surface =
+        machine.GetSystem().graphics().GetDC(dc);
     surface->Apply(ApplyColorTransformer(RGBColour(level, level, level)), rect);
   }
 };
@@ -1184,10 +1189,9 @@ class GrpStackAdapter : public RLOp_SpecialCase {
 
   void operator()(RLMachine& machine, const libreallive::CommandElement& ff) {
     operation->DispatchFunction(machine, ff);
-
+    auto& stage = machine.GetSystem().graphics().stage();
     // Record this command's reallive bytecode form onto the graphics stack.
-    machine.GetSystem().graphics().AddGraphicsStackCommand(
-        ff.GetSerializedCommand(machine));
+    stage.AddGraphicsStackCommand(ff.GetSerializedCommand(machine));
   }
 
  private:
@@ -1438,28 +1442,3 @@ GrpModule::GrpModule() : MappedRLModule(GraphicsStackMappingFun, "Grp", 1, 33) {
 }
 
 // @}
-
-// -----------------------------------------------------------------------
-
-void ReplayGraphicsStackCommand(RLMachine& machine,
-                                const std::deque<std::string>& stack) {
-  try {
-    for (auto const& command : stack) {
-      if (command != "") {
-        // Parse the string as a chunk of Reallive bytecode.
-        libreallive::Parser parser;
-        auto element = parser.ParseBytecode(command.c_str(),
-                                            command.c_str() + command.size());
-        if (auto command =
-                std::dynamic_pointer_cast<libreallive::CommandElement>(
-                    element)) {
-          machine(rlCommand(command.get()));
-        }
-      }
-    }
-  } catch (std::exception& e) {
-    std::cerr << "Error while replaying graphics stack: " << e.what()
-              << std::endl;
-    return;
-  }
-}

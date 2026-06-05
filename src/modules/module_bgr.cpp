@@ -31,6 +31,7 @@
 #include <string>
 
 #include "core/colour.hpp"
+#include "core/stage.hpp"
 #include "effects/effect.hpp"
 #include "effects/effect_factory.hpp"
 #include "machine/general_operations.hpp"
@@ -43,8 +44,8 @@
 #include "systems/graphics_system.hpp"
 #include "systems/hik_renderer.hpp"
 #include "systems/hik_script.hpp"
-#include "systems/system.hpp"
 #include "systems/sdl/sdl_surface.hpp"
+#include "systems/system.hpp"
 #include "utilities/graphics.hpp"
 
 namespace fs = std::filesystem;
@@ -73,7 +74,7 @@ struct bgrLoadHaikei_blank : public RLOpcode<IntConstant_T> {
     graphics.GetHaikei()->Fill(RGBAColour::Clear());
 
     if (!machine.replaying_graphics_stack())
-      graphics.ClearAndPromoteObjects();
+      graphics.stage().Wipe();
 
     std::shared_ptr<SDLSurface> after = graphics.RenderToSurface();
 
@@ -91,7 +92,7 @@ struct bgrLoadHaikei_main : RLOpcode<StrConstant_T, IntConstant_T> {
     graphics.set_graphics_background(BACKGROUND_HIK);
 
     // bgrLoadHaikei clears the stack.
-    graphics.ClearStack();
+    graphics.stage().graphics_stack.clear();
 
     fs::path path;
     if (auto f = system.GetAssetScanner()->FindFile(filename, HIK_FILETYPES);
@@ -102,7 +103,7 @@ struct bgrLoadHaikei_main : RLOpcode<StrConstant_T, IntConstant_T> {
 
     if (path.string().ends_with("hik")) {
       if (!machine.replaying_graphics_stack())
-        graphics.ClearAndPromoteObjects();
+        graphics.stage().Wipe();
 
       graphics.SetHikRenderer(new HIKRenderer(
           system, graphics.GetHIKScript(system, filename, path)));
@@ -120,7 +121,7 @@ struct bgrLoadHaikei_main : RLOpcode<StrConstant_T, IntConstant_T> {
       // Promote the objects if we're in normal mode. If we're restoring the
       // graphics stack, we already have our layers promoted.
       if (!machine.replaying_graphics_stack())
-        graphics.ClearAndPromoteObjects();
+        graphics.stage().Wipe();
 
       std::shared_ptr<SDLSurface> after = graphics.RenderToSurface();
 
@@ -238,7 +239,7 @@ struct bgrMulti_1
     // Promote the objects if we're in normal mode. If we're restoring the
     // graphics stack, we already have our layers promoted.
     if (!machine.replaying_graphics_stack())
-      graphics.ClearAndPromoteObjects();
+      graphics.stage().Wipe();
 
     std::shared_ptr<SDLSurface> after = graphics.RenderToSurface();
     std::shared_ptr<LongOperation> effect(
