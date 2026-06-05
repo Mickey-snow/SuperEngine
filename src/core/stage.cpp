@@ -54,6 +54,12 @@ void Stage::Wipe(int begin_order,
   // element implementations exist.
   next_objects.Clear();
 
+  auto InWipeRange = [begin = std::make_pair(begin_order, begin_layer),
+                      end = std::make_pair(end_order, end_layer)](
+                         const ObjectParameter& param) -> bool {
+    const auto now = std::make_pair(param.z_order, param.z_layer);
+    return begin <= now && now <= end;
+  };
   const size_t count =
       std::min({foreground_objects.Size(), background_objects.Size(),
                 next_objects.Size()});
@@ -61,25 +67,24 @@ void Stage::Wipe(int begin_order,
     const bool fg_exists = foreground_objects.Exists(i);
     const bool bg_exists = background_objects.Exists(i);
 
-    auto in_range = [&](const ObjectParameter& param) {
-      const int order = param.z_order, layer = param.z_layer;
-      return (begin_order <= order && order <= end_order) &&
-             (begin_layer <= layer && layer <= end_layer);
-    };
-    const bool front_in_range = in_range(foreground_objects[i].Param());
-    if (!front_in_range && !bg_exists)
+    const bool front_in_range =
+        fg_exists && InWipeRange(foreground_objects.At(i).value().Param());
+    const bool back_participates =
+        bg_exists && (background_objects[i].has_object_data() ||
+                      background_objects[i].Param().wipe_erase != 0);
+    if (!front_in_range && !back_participates)
       continue;
 
     if (fg_exists)
       next_objects[i] = foreground_objects[i].Clone();
 
     const bool replace_front =
-        bg_exists ||
-        (fg_exists && foreground_objects[i].Param().wipe_copy == 0);
+        back_participates || (front_in_range && fg_exists &&
+                              foreground_objects[i].Param().wipe_copy == 0);
     if (!replace_front)
       continue;
 
-    if (bg_exists) {
+    if (back_participates) {
       foreground_objects[i] = std::move(background_objects[i]);
       background_objects.DeleteAt(i);
     } else {
