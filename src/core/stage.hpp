@@ -63,4 +63,13 @@ class Stage {
   // Adds |command|, the serialized form of a bytecode used by calling the
   // BytecodeElement::data().
   void AddGraphicsStackCommand(std::string command);
+
+  // Takes a snapshot of the current object state. This snapshot is saved
+  // instead of the current state of the graphics, since RealLive is a savepoint
+  // based system.
+  //
+  // (This operation isn't exceptionally expensive; internally GraphicsObject
+  // has multiple copy-on-write data structs to make this and object promotion a
+  // relativly cheap operation.)
+  void TakeSavepointSnapshot();
 };

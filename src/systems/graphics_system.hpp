@@ -354,15 +354,6 @@ class GraphicsSystem : public EventListener {
   // Returns true if there's a currently playing animation.
   bool AnimationsPlaying() const;
 
-  // Takes a snapshot of the current object state. This snapshot is saved
-  // instead of the current state of the graphics, since RealLive is a savepoint
-  // based system.
-  //
-  // (This operation isn't exceptionally expensive; internally GraphicsObject
-  // has multiple copy-on-write data structs to make this and object promotion a
-  // relativly cheap operation.)
-  void TakeSavepointSnapshot();
-
   std::shared_ptr<SDLSurface> GetHaikei();
 
   void AllocateDC(int dc, Size screen_size);

@@ -856,25 +856,6 @@ bool GraphicsSystem::AnimationsPlaying() const {
 
 // -----------------------------------------------------------------------
 
-void GraphicsSystem::TakeSavepointSnapshot() {
-  auto& foreground = GetForegroundObjects();
-  auto& background = GetBackgroundObjects();
-
-  stage_->saved_foreground_objects.Clear();
-  for (auto it = foreground.begin(), end = foreground.end(); it != end; ++it) {
-    stage_->saved_foreground_objects[it.pos()] = it->Clone();
-  }
-
-  stage_->saved_background_objects.Clear();
-  for (auto it = background.begin(), end = background.end(); it != end; ++it) {
-    stage_->saved_background_objects[it.pos()] = it->Clone();
-  }
-
-  stage_->saved_graphics_stack = stage_->graphics_stack;
-}
-
-// -----------------------------------------------------------------------
-
 std::shared_ptr<SDLSurface> GraphicsSystem::GetHaikei() {
   if (haikei_->RawSurface() == NULL) {
     haikei_->Allocate(screen_size());

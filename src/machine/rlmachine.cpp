@@ -87,7 +87,7 @@ RLMachine::~RLMachine() = default;
 void RLMachine::MarkSavepoint() {
   savepoint_call_stack_ = call_stack_.Clone();
   savepoint_memory_ = Memory();
-  GetSystem().graphics().TakeSavepointSnapshot();
+  GetSystem().graphics().stage().TakeSavepointSnapshot();
   GetSystem().text().TakeSavepointSnapshot();
 }
 

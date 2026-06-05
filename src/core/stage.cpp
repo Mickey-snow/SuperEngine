@@ -60,3 +60,20 @@ void Stage::AddGraphicsStackCommand(std::string command) {
   if (graphics_stack.size() > 127)
     graphics_stack.pop_front();
 }
+
+void Stage::TakeSavepointSnapshot() {
+  auto& foreground = foreground_objects;
+  auto& background = background_objects;
+
+  saved_foreground_objects.Clear();
+  for (auto it = foreground.begin(), end = foreground.end(); it != end; ++it) {
+    saved_foreground_objects[it.pos()] = it->Clone();
+  }
+
+  saved_background_objects.Clear();
+  for (auto it = background.begin(), end = background.end(); it != end; ++it) {
+    saved_background_objects[it.pos()] = it->Clone();
+  }
+
+  saved_graphics_stack = graphics_stack;
+}
