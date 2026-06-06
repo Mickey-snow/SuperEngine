@@ -308,6 +308,11 @@ void Recompiler::emit_val(const Value& v) {
   std::visit(
       overload([&](Integer const& v) { emit_const(v.val_); },
                [&](String const& v) { emit_const(v.val_); },
+               [&](List const& v) {
+                 for (const auto& item : v.vals)
+                   emit_val(item);
+                 emit(sr::MakeList{.nelms = v.vals.size()});
+               },
                [&](Variable const& v) { emit_load_fast(v.id); },
                [&](const auto&) {
                  throw std::runtime_error("Cannot emit value " + ToString(v));
@@ -632,6 +637,9 @@ void Recompiler::emit_elm_node(const elm::Call& nd) {
     emit(sr::Call{.argcnt = 3, .kwargcnt = 0});
     // -> (ret)
   }
+
+  if (nd.await_result)
+    emit(sr::Await{});
 }
 void Recompiler::emit_elm_node(const elm::Subscript& nd) {
   // (primary)
