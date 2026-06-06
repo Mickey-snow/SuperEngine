@@ -107,6 +107,25 @@ struct Root {
 };
 
 // -----------------------------------------------------------------------
+struct CallFlags {
+  // Marks calls that came from an explicit bind payload. The default models an
+  // implicit call.
+  bool is_explicit = false;
+  // Simple callables do not need Siglus' overload id at runtime. Ambiguous
+  // element ids that dispatch to different exported names remain non-simple.
+  bool is_nonsimple = false;
+  // Calls that model blocking commands should return an awaitable.
+  bool await_result = false;
+
+  constexpr CallFlags operator|(const CallFlags f) const {
+    return {.is_explicit = is_explicit || f.is_explicit,
+            .is_nonsimple = is_nonsimple || f.is_nonsimple,
+            .await_result = await_result || f.await_result};
+  }
+};
+[[maybe_unused]] constexpr CallFlags EXPLICIT{.is_explicit = true};
+[[maybe_unused]] constexpr CallFlags NONSIMPLE{.is_nonsimple = true};
+[[maybe_unused]] constexpr CallFlags AWAIT{.await_result = true};
 
 struct Member {
   std::string_view name;  // Reconstructed exported/native member name.
@@ -118,6 +137,9 @@ struct Member {
   // Simple callables do not need Siglus' overload id at runtime. Ambiguous
   // element ids that dispatch to different exported names remain non-simple.
   bool is_simple = true;
+  // Calls that model blocking commands should return an awaitable.
+  bool await_result = false;
+
   std::string ToDebugString() const;
   bool operator==(const Member&) const = default;
 };
@@ -134,6 +156,7 @@ struct Call {
   std::vector<Value> args;
   std::vector<std::pair<int, Value>> kwargs;
   bool is_simple = true;
+  bool await_result = false;
   std::string ToDebugString() const;
   bool operator==(const Call&) const = default;
 };
@@ -166,9 +189,7 @@ struct Node {
   // Builds a call node from parsed bind data. Implicit calls and simple
   // explicit calls intentionally drop the overload id because the selected
   // member is sufficient to identify the runtime function.
-  static Node BuildCall(Invoke inv,
-                        bool is_implicit = false,
-                        bool is_simple = true);
+  static Node BuildCall(Invoke inv, CallFlags flags = {});
 };
 
 // Normalized AST for an element bytecode sequence.

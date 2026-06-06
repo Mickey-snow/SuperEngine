@@ -275,22 +275,40 @@ TEST_F(ElementParserTest, WipeCommandMappings) {
   {
     ElementCode elm{51};
     elm.ForceBind({0, {v("mask")}});
-    EXPECT_EQ(chain(elm), "wipe.wipe_mask[0](str:mask)");
+    auto parsed = chain(elm);
+    EXPECT_EQ(parsed, "wipe.wipe_mask[0](str:mask)");
+    const auto* call = std::get_if<Call>(&parsed.chain.nodes.back().var);
+    ASSERT_NE(call, nullptr);
+    EXPECT_TRUE(call->await_result);
   }
   {
     ElementCode elm{50};
     elm.ForceBind({0, {v("mask")}});
-    EXPECT_EQ(chain(elm), "wipe.wipe_mask_all[0](str:mask)");
+    auto parsed = chain(elm);
+    EXPECT_EQ(parsed, "wipe.wipe_mask_all[0](str:mask)");
+    const auto* call = std::get_if<Call>(&parsed.chain.nodes.back().var);
+    ASSERT_NE(call, nullptr);
+    EXPECT_TRUE(call->await_result);
   }
-  EXPECT_EQ(chain(33), "wipe.end()");
+  auto end = chain(33);
+  EXPECT_EQ(end, "wipe.end()");
+  const auto* end_call = std::get_if<Call>(&end.chain.nodes.back().var);
+  ASSERT_NE(end_call, nullptr);
+  EXPECT_FALSE(end_call->await_result);
 
   auto wait = chain(103);
   EXPECT_EQ(wait, "wipe.wait()");
   EXPECT_EQ(wait.chain.GetType(), Type::Int);
+  const auto* wait_call = std::get_if<Call>(&wait.chain.nodes.back().var);
+  ASSERT_NE(wait_call, nullptr);
+  EXPECT_TRUE(wait_call->await_result);
 
   auto check = chain(109);
   EXPECT_EQ(check, "wipe.check()");
   EXPECT_EQ(check.chain.GetType(), Type::Int);
+  const auto* check_call = std::get_if<Call>(&check.chain.nodes.back().var);
+  ASSERT_NE(check_call, nullptr);
+  EXPECT_FALSE(check_call->await_result);
 }
 
 TEST_F(ElementParserTest, Mwnd) {

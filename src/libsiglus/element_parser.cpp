@@ -59,71 +59,19 @@ inline static auto b(Type type, Node::var_t node) {
     ctx.elmcode = ctx.elmcode.subspan(1);
   });
 }
-inline static Builder b_index_array(Type value_type) {
-  return Builder([t = value_type](Builder::Ctx& ctx) {
-    Subscript subscript{Integer(-1)};
-    if (ctx.elmcode.size() < 2) {
-      ctx.Warn("[IndexArray] expected index");
-      ctx.chain.nodes.emplace_back(t, std::move(subscript));
-      ctx.elmcode = ctx.elmcode.subspan(ctx.elmcode.size());
-      return;
-    }
-
-    subscript.idx = ctx.elmcode[1];
-    ctx.chain.nodes.emplace_back(t, std::move(subscript));
-    ctx.elmcode = ctx.elmcode.subspan(2);
-  });
-}
-
-inline static Builder b_intlist_bit_access(std::string_view mem) {
-  return Builder([mem](Builder::Ctx& ctx) {
-    auto emit_error = [&](std::string message, std::size_t consume) {
-      ctx.Warn(std::move(message));
-
-      ctx.chain.nodes.emplace_back(Type::Callable,
-                                   Member{mem, Type::Int, true});
-      Call call;
-      call.args.emplace_back(Integer(-1));
-      call.is_simple = true;
-      ctx.chain.nodes.emplace_back(Type::Int, std::move(call));
-      ctx.elmcode = ctx.elmcode.subspan(std::min(consume, ctx.elmcode.size()));
-    };
-
-    if (ctx.elmcode.size() < 3) {
-      emit_error(std::format("[IntListBit] {} expected immediate index", mem),
-                 ctx.elmcode.size());
-      return;
-    }
-
-    auto* marker = std::get_if<Integer>(&ctx.elmcode[1]);
-    if (!marker || marker->val_ != -1) {
-      emit_error(std::format("[IntListBit] {} expected immediate index", mem),
-                 1);
-      return;
-    }
-
-    ctx.chain.nodes.emplace_back(Type::Callable, Member{mem, Type::Int, true});
-    Call call;
-    call.args.emplace_back(ctx.elmcode[2]);
-    call.is_simple = true;
-    ctx.chain.nodes.emplace_back(Type::Int, std::move(call));
-    ctx.elmcode = ctx.elmcode.subspan(3);
-  });
-}
 
 struct CallableTarget {
   std::optional<int> overload_id;
   std::string_view name;
   Type return_type = Type::None;
+  CallFlags flags = {};
 };
 
 inline static Builder b_callable(std::string_view mem,
-                                 Type return_type = Type::None) {
-  return b(Type::Callable, Member{mem, return_type, true});
-}
-inline static Builder b_siglus_callable(std::string_view mem,
-                                        Type return_type = Type::None) {
-  return b(Type::Callable, Member{mem, return_type, true, /*is_simple=*/false});
+                                 Type return_type = Type::None,
+                                 CallFlags flags = {}) {
+  return b(Type::Callable, Member{mem, return_type, !flags.is_explicit,
+                                  !flags.is_nonsimple, flags.await_result});
 }
 static Builder b_callable(std::initializer_list<CallableTarget> targets) {
   return Builder([targets =
@@ -159,8 +107,55 @@ static Builder b_callable(std::initializer_list<CallableTarget> targets) {
     ctx.elmcode = ctx.elmcode.subspan(1);
   });
 }
-inline static Builder b_call0(Type return_type, std::string_view mem) {
-  return b(return_type, Member{mem, return_type, true});
+inline static Builder b_index_array(Type value_type) {
+  return Builder([t = value_type](Builder::Ctx& ctx) {
+    Subscript subscript{Integer(-1)};
+    if (ctx.elmcode.size() < 2) {
+      ctx.Warn("[IndexArray] expected index");
+      ctx.chain.nodes.emplace_back(t, std::move(subscript));
+      ctx.elmcode = ctx.elmcode.subspan(ctx.elmcode.size());
+      return;
+    }
+
+    subscript.idx = ctx.elmcode[1];
+    ctx.chain.nodes.emplace_back(t, std::move(subscript));
+    ctx.elmcode = ctx.elmcode.subspan(2);
+  });
+}
+inline static Builder b_intlist_bit_access(std::string_view mem) {
+  return Builder([mem](Builder::Ctx& ctx) {
+    auto emit_error = [&](std::string message, std::size_t consume) {
+      ctx.Warn(std::move(message));
+
+      ctx.chain.nodes.emplace_back(Type::Callable,
+                                   Member{mem, Type::Int, true});
+      Call call;
+      call.args.emplace_back(Integer(-1));
+      call.is_simple = true;
+      ctx.chain.nodes.emplace_back(Type::Int, std::move(call));
+      ctx.elmcode = ctx.elmcode.subspan(std::min(consume, ctx.elmcode.size()));
+    };
+
+    if (ctx.elmcode.size() < 3) {
+      emit_error(std::format("[IntListBit] {} expected immediate index", mem),
+                 ctx.elmcode.size());
+      return;
+    }
+
+    auto* marker = std::get_if<Integer>(&ctx.elmcode[1]);
+    if (!marker || marker->val_ != -1) {
+      emit_error(std::format("[IntListBit] {} expected immediate index", mem),
+                 1);
+      return;
+    }
+
+    ctx.chain.nodes.emplace_back(Type::Callable, Member{mem, Type::Int, true});
+    Call call;
+    call.args.emplace_back(ctx.elmcode[2]);
+    call.is_simple = true;
+    ctx.chain.nodes.emplace_back(Type::Int, std::move(call));
+    ctx.elmcode = ctx.elmcode.subspan(3);
+  });
 }
 static Builder obj_getset(std::string_view mem,
                           Type type,
@@ -213,18 +208,19 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
     }
 
     case Type::StrList: {
-      static const auto mp =
-          make_flatmap<Builder>({id[-1] | b_index_array(Type::String),
-                                 id[3] | b_call0(Type::None, "init"),
-                                 id[2] | b(Type::Callable, Member("resize")),
-                                 id[4] | b_call0(Type::Int, "size")});
+      static const auto mp = make_flatmap<Builder>(
+          {id[-1] | b_index_array(Type::String),
+           id[3] | b_callable("init", Type::None),
+           id[2] | b(Type::Callable, Member("resize")),
+           id[4] | b_callable("size", Type::Int)});
       return &mp;
     }
     case Type::String: {
       static const auto mp = make_flatmap<Builder>(
-          {id[0] | b_call0(Type::String, "upper"),
-           id[1] | b_call0(Type::String, "lower"),
-           id[6] | b_call0(Type::Int, "cnt"), id[5] | b_call0(Type::Int, "len"),
+          {id[0] | b_callable("upper", Type::String),
+           id[1] | b_callable("lower", Type::String),
+           id[6] | b_callable("cnt", Type::Int),
+           id[5] | b_callable("len", Type::Int),
            id[2] | b_callable("left", Type::String),
            id[7] | b_callable("left_len", Type::String),
            id[4] | b_callable("right", Type::String),
@@ -234,7 +230,7 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
            id[10] | b_callable("find", Type::Int),
            id[11] | b_callable("rfind", Type::Int),
            id[13] | b_callable("charat", Type::Int),
-           id[13] | b_call0(Type::Int, "tonum")});
+           id[13] | b_callable("tonum", Type::Int)});
       return &mp;
     }
 
@@ -269,16 +265,16 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
 
     case Type::System: {
       static const auto mp = make_flatmap<Builder>(
-          {id[14] | b_call0(Type::None, "calendar"),
-           id[15] | b_call0(Type::Int, "time"),
-           id[0] | b_call0(Type::Int, "window_active"),
-           id[13] | b_call0(Type::Int, "is_debug"),
+          {id[14] | b_callable("calendar", Type::None),
+           id[15] | b_callable("time", Type::Int),
+           id[0] | b_callable("window_active", Type::Int),
+           id[13] | b_callable("is_debug", Type::Int),
            id[1] | b_callable("shell_openfile"),
            id[5] | b_callable("openurl"),
            id[6] | b_callable("check_file_exist"),
            id[12] | b_callable("check_save_file_exist"),
            id[2] | b_callable("check_dummy"),
-           id[21] | b_call0(Type::None, "clear_dummy"),
+           id[21] | b_callable("clear_dummy", Type::None),
            id[17] | b_callable("msgbox_ok"),
            id[18] | b_callable("msgbox_okcancel"),
            id[19] | b_callable("msgbox_yn"),
@@ -288,9 +284,9 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
            id[9] | b_callable("debug_msgbox_yn"),
            id[10] | b_callable("debug_msgbox_yncancel"),
            id[11] | b_callable("debug_write_log"),
-           id[4] | b_call0(Type::String, "get_chihayabench"),
+           id[4] | b_callable("get_chihayabench", Type::String),
            id[3] | b_callable("open_chihayabench"),
-           id[16] | b_call0(Type::String, "get_lang")});
+           id[16] | b_callable("get_lang", Type::String)});
       return &mp;
     }
 
@@ -411,16 +407,16 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
     case Type::FrameAction: {
       static const auto mp = make_flatmap<Builder>(
           {id[1] | b_callable("start"), id[3] | b_callable("start_real"),
-           id[2] | b_call0(Type::None, "end"),
+           id[2] | b_callable("end", Type::None),
            id[0] | b(Type::Counter, Member("counter")),
-           id[4] | b_call0(Type::Int, "is_end_action")});
+           id[4] | b_callable("is_end_action", Type::Int)});
       return &mp;
     }
 
     case Type::CounterList: {
-      static const auto mp =
-          make_flatmap<Builder>({id[-1] | b_index_array(Type::Counter),
-                                 id[1] | b_call0(Type::Int, "size")});
+      static const auto mp = make_flatmap<Builder>(
+          {id[-1] | b_index_array(Type::Counter),
+           id[1] | b_callable("size", Type::Int)});
       return &mp;
     }
 
@@ -446,8 +442,7 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
 
     case Type::Syscom: {
       static const auto mp = make_flatmap<Builder>(
-          {// TODO: 236 -> Syscom_call_ex ?
-           id[0] | b(Type::None, Member("menu")),
+          {id[0] | b(Type::None, Member("menu")),
            id[6] | b(Type::Callable, Member("menu_enable")),
            id[7] | b(Type::Callable, Member("menu_disable")),
            id[11] | b_callable({{0, "btn_enable_all"}, {1, "btn_enable"}}),
@@ -593,8 +588,8 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
            id[324] | b(Type::Callable, Member("get_save_full_message")),
            id[131] | b(Type::Callable, Member("get_save_comment")),
            id[180] | b(Type::Callable, Member("set_save_comment")),
-           // TODO: 183 -> get_save_value
-           // TODO: 182 -> set_save_value
+           id[183] | b_callable("get_save_value", Type::Int),
+           id[182] | b_callable("set_save_value"),
            id[320] | b(Type::Callable, Member("get_save_append_dir")),
            id[321] | b(Type::Callable, Member("get_save_append_name")),
            id[169] | b(Type::Callable, Member("is_qsave_exist")),
@@ -611,8 +606,8 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
            id[325] | b(Type::Callable, Member("get_qsave_full_message")),
            id[132] | b(Type::Callable, Member("get_qsave_comment")),
            id[181] | b(Type::Callable, Member("set_qsave_comment")),
-           // TODO: 184 -> get_qsave_value
-           // TODO: 185 -> set_qsave_value
+           id[184] | b_callable("get_qsave_value", Type::Int),
+           id[185] | b_callable("set_qsave_value"),
            id[322] | b(Type::Callable, Member("get_qsave_append_dir")),
            id[323] | b(Type::Callable, Member("get_qsave_append_name")),
            id[270] | b(Type::Callable, Member("is_endsave_exist")),
@@ -876,7 +871,7 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
     }
     case Type::Object: {
       auto obj_createmov = [](std::string_view mem) -> Builder {
-        return b_siglus_callable(mem);
+        return b_callable(mem, Type::None, NONSIMPLE);
       };
 
       static const auto mp = make_flatmap<Builder>({
@@ -1015,9 +1010,9 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
           id[111] | b(Type::IntList, Member("F")),
 
           id[93] | b(Type::ObjList, Member("child")),
-          id[35] | b_call0(Type::None, "init"),
-          id[36] | b_call0(Type::None, "free"),
-          id[37] | b_call0(Type::None, "init_param"),
+          id[35] | b_callable("init", Type::None),
+          id[36] | b_callable("free", Type::None),
+          id[37] | b_callable("init_param", Type::None),
           id[38] | b(Type::Callable, Member("create")),
           id[40] | b(Type::Callable, Member("create_rect")),
           id[39] | b(Type::Callable, Member("create_string")),
@@ -1052,14 +1047,14 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
           id[131] | b(Type::Callable, Member("set_weather_param_type_a")),
 
           // movie
-          id[125] | b_call0(Type::None, "pause_movie"),
-          id[126] | b_call0(Type::None, "resume_movie"),
+          id[125] | b_callable("pause_movie", Type::None),
+          id[126] | b_callable("resume_movie", Type::None),
           id[137] | b(Type::Callable, Member("seek_movie")),
-          id[138] | b_call0(Type::Int, "get_movie_seek_time"),
-          id[127] | b_call0(Type::Int, "check_movie"),
-          id[128] | b_call0(Type::None, "wait_movie"),
-          id[142] | b_call0(Type::None, "wait_movie_key"),
-          id[171] | b_call0(Type::None, "end_movie_loop"),
+          id[138] | b_callable("get_movie_seek_time", Type::Int),
+          id[127] | b_callable("check_movie", Type::Int),
+          id[128] | b_callable("wait_movie", Type::None),
+          id[142] | b_callable("wait_movie_key", Type::None),
+          id[171] | b_callable("end_movie_loop", Type::None),
           id[172] | b(Type::Callable, Member("set_movie_auto_free")),
 
           // frame action
@@ -1127,74 +1122,71 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
 
     case Type::Bgm: {
       static const auto mp = make_flatmap<Builder>(
-          {// TODO: handle overload with default argument
-           id[0] | b_callable("play"), id[1] | b_callable("play_oneshot"),
+          {id[0] | b_callable("play"), id[1] | b_callable("play_oneshot"),
            id[2] | b_callable("play_wait"), id[16] | b_callable("ready"),
            id[4] | b_callable("stop"), id[10] | b_callable("pause"),
            id[11] | b_callable("resume"), id[12] | b_callable("resume_wait"),
-           id[3] | b_call0(Type::None, "wait"),
-           id[14] | b_call0(Type::None, "wait_key"),
-           id[5] | b_call0(Type::None, "wait_fade"),
-           id[15] | b_call0(Type::None, "wait_fade_key"),
-           id[18] | b_call0(Type::Int, "check"),
+           id[3] | b_callable("wait", Type::None),
+           id[14] | b_callable("wait_key", Type::None),
+           id[5] | b_callable("wait_fade", Type::None),
+           id[15] | b_callable("wait_fade_key", Type::None),
+           id[18] | b_callable("check", Type::Int),
            id[6] | b_callable("set_volume"),
            id[7] | b_callable("set_volume_max"),
            id[8] | b_callable("set_volume_min"),
-           id[9] | b_call0(Type::Int, "get_volume"),
-           id[19] | b_call0(Type::String, "get_regist_name"),
-           id[13] | b_call0(Type::Int, "get_play_pos")});
+           id[9] | b_callable("get_volume", Type::Int),
+           id[19] | b_callable("get_regist_name", Type::String),
+           id[13] | b_callable("get_play_pos", Type::Int)});
       return &mp;
     }
 
     case Type::MwndList: {
-      static const auto mp =
-          make_flatmap<Builder>({// TODO: Handle ELM_UP = -5
-                                 id[-1] | b_index_array(Type::Mwnd),
-                                 id[1] | b_call0(Type::None, "close"),
-                                 id[2] | b_call0(Type::None, "close_wait"),
-                                 id[3] | b_call0(Type::None, "close_nowait")});
+      static const auto mp = make_flatmap<Builder>(
+          {id[-1] | b_index_array(Type::Mwnd),
+           id[1] | b_callable("close", Type::None),
+           id[2] | b_callable("close_wait", Type::None),
+           id[3] | b_callable("close_nowait", Type::None)});
       return &mp;
     }
 
     case Type::Mwnd: {
       static const auto mp = make_flatmap<Builder>(
-          {// TODO: Handle ELM_UP = -5
-           id[0] | b_callable("set_waku"),
-           id[79] | b_call0(Type::None, "init_waku_file"),
+          {id[0] | b_callable("set_waku"),
+           id[79] | b_callable("init_waku_file", Type::None),
            id[78] | b_callable("set_waku_file"),
-           id[80] | b_call0(Type::String, "get_waku_file"),
-           id[82] | b_call0(Type::None, "init_filter_file"),
+           id[80] | b_callable("get_waku_file", Type::String),
+           id[82] | b_callable("init_filter_file", Type::None),
            id[81] | b_callable("set_filter_file"),
-           id[83] | b_call0(Type::String, "get_filter_file"),
-           id[1] | b_call0(Type::None, "open"),
-           id[15] | b_call0(Type::None, "open_wait"),
-           id[16] | b_call0(Type::None, "open_nowait"),
-           id[65] | b_call0(Type::Int, "check_open"),
-           id[2] | b_call0(Type::None, "close"),
-           id[13] | b_call0(Type::None, "close_wait"),
-           id[14] | b_call0(Type::None, "close_nowait"),
-           id[64] | b_call0(Type::None, "end_close"),
-           id[49] | b_call0(Type::None, "msg_block"),
-           id[59] | b_call0(Type::None, "msg_pp_block"),
-           id[3] | b_call0(Type::None, "clear"),
-           id[55] | b_call0(Type::None, "novel_clear"),
+           id[83] | b_callable("get_filter_file", Type::String),
+           id[1] | b_callable("open", Type::None),
+           id[15] | b_callable("open_wait", Type::None),
+           id[16] | b_callable("open_nowait", Type::None),
+           id[65] | b_callable("check_open", Type::Int),
+           id[2] | b_callable("close", Type::None),
+           id[13] | b_callable("close_wait", Type::None),
+           id[14] | b_callable("close_nowait", Type::None),
+           id[64] | b_callable("end_close", Type::None),
+           id[49] | b_callable("msg_block", Type::None),
+           id[59] | b_callable("msg_pp_block", Type::None),
+           id[3] | b_callable("clear", Type::None),
+           id[55] | b_callable("novel_clear", Type::None),
            id[4] | b_callable("print"),
            id[57] | b_callable({{0, "overflow_print"}, {1, "print"}}),
            id[63] | b_callable("overflow_name"),
            id[12] | b_callable({{0, "ruby_end"}, {std::nullopt, "ruby_start"}}),
-           id[18] | b_call0(Type::None, "msg_wait"),
-           id[19] | b_call0(Type::None, "pp"),
-           id[20] | b_call0(Type::None, "r"),
-           id[54] | b_call0(Type::None, "page"),
-           id[6] | b_call0(Type::None, "nl"),
-           id[17] | b_call0(Type::None, "nil"),
-           id[56] | b_call0(Type::None, "indent"),
-           id[28] | b_call0(Type::None, "clear_indent"),
-           id[31] | b_call0(Type::None, "enable_multi_msg"),
-           id[29] | b_call0(Type::None, "next_msg"),
+           id[18] | b_callable("msg_wait", Type::None),
+           id[19] | b_callable("pp", Type::None),
+           id[20] | b_callable("r", Type::None),
+           id[54] | b_callable("page", Type::None),
+           id[6] | b_callable("nl", Type::None),
+           id[17] | b_callable("nil", Type::None),
+           id[56] | b_callable("indent", Type::None),
+           id[28] | b_callable("clear_indent", Type::None),
+           id[31] | b_callable("enable_multi_msg", Type::None),
+           id[29] | b_callable("next_msg", Type::None),
            id[58] | b_callable("set_slide_msg"),
-           id[60] | b_call0(Type::None, "set_slide_msg"),
-           id[61] | b_call0(Type::None, "slide_msg"),
+           id[60] | b_callable("set_slide_msg", Type::None),
+           id[61] | b_callable("slide_msg", Type::None),
 
            // SEL
            id[5] | b(Type::Callable, Member("sel")),
@@ -1286,13 +1278,16 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
 
     case Type::Wipe: {
       static const auto mp = make_flatmap<Builder>(
-          {id[7] | b_siglus_callable("wipe"),
-           id[23] | b_siglus_callable("wipe_all"),
-           id[51] | b_siglus_callable("wipe_mask"),
-           id[50] | b_siglus_callable("wipe_mask_all"),
-           id[33] | b_siglus_callable("end"),
-           id[103] | b_siglus_callable("wait", Type::Int),
-           id[109] | b_siglus_callable("check", Type::Int)});
+          {id[7] | b_callable("wipe", Type::None, AWAIT | NONSIMPLE),
+           id[23] | b_callable("wipe_all", Type::None,
+                                NONSIMPLE | AWAIT),
+           id[51] | b_callable("wipe_mask", Type::None,
+                               AWAIT | NONSIMPLE),
+           id[50] | b_callable("wipe_mask_all", Type::None,
+                               AWAIT | NONSIMPLE),
+           id[33] | b_callable("end", Type::None, NONSIMPLE),
+           id[103] | b_callable("wait", Type::Int, AWAIT),
+           id[109] | b_callable("check", Type::Int)});
       return &mp;
     }
 
@@ -1343,9 +1338,15 @@ AccessChain ElementParser::Parse(ElementCode& elm) {
     else {
       if (can_implicit_call && elm.bind_ctx.return_type == Type::None)
         elm.bind_ctx.return_type = call_member->call_return_type;
+      CallFlags flags;
+      if (call_member) {
+        flags.is_explicit = !is_implicit_call;
+        // simple callable should be the default
+        flags.is_nonsimple = !call_member->is_simple;
+        flags.await_result = call_member->await_result;
+      }
       result.nodes.emplace_back(
-          Node::BuildCall(std::move(elm.bind_ctx), is_implicit_call,
-                          call_member ? call_member->is_simple : false));
+          Node::BuildCall(std::move(elm.bind_ctx), flags));
     }
   }
 
@@ -1477,7 +1478,7 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
       // ====== Title ======
     case 74: {  // SET_TITLE
       Member set_title("set_title");
-      auto call = Node::BuildCall(elm.bind_ctx, true);
+      auto call = Node::BuildCall(elm.bind_ctx);
       elm.force_bind = false;
       return AccessChain{.root = std::monostate(),
                          .nodes = {Node(Type::Callable, std::move(set_title)),
@@ -1698,7 +1699,7 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
     case 54: {  // WAIT
       Member wait("wait");
       wait.implicit_call = true;
-      auto call = Node ::BuildCall(std::move(elm.bind_ctx), true);
+      auto call = Node::BuildCall(std::move(elm.bind_ctx));
       return AccessChain{
           .root = std::monostate(),
           .nodes = {Node(Type::Callable, std::move(wait)), std::move(call)}};
@@ -1706,7 +1707,7 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
     case 55: {  // WAIT_KEY
       Member wait("wait_key");
       wait.implicit_call = true;
-      auto call = Node::BuildCall(std::move(elm.bind_ctx), true);
+      auto call = Node::BuildCall(std::move(elm.bind_ctx));
       return AccessChain{
           .root = std::monostate(),
           .nodes = {Node(Type::Callable, std::move(wait)), std::move(call)}};
@@ -1797,10 +1798,9 @@ AccessChain ElementParser::make_stage_member_chain(std::string_view member,
                                                    ElementCode& elm,
                                                    size_t subidx) {
   Root root(Type::None, std::monostate());
-  AccessChain result{
-      .root = std::move(root),
-      .nodes = {Node(Type::StageList, Member("stage")),
-                Node(Type::Stage, Member(member))}};
+  AccessChain result{.root = std::move(root),
+                     .nodes = {Node(Type::StageList, Member("stage")),
+                               Node(Type::Stage, Member(member))}};
   return make_chain(std::move(result), elm,
                     std::span{elm.code}.subspan(subidx));
 }
