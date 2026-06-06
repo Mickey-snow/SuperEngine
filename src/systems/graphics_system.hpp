@@ -180,7 +180,7 @@ class GraphicsSystem : public EventListener {
 
   inline System& system() { return system_; }
 
-  inline Stage& stage() { return *stage_; }
+  void BindStage(Stage* stage);
 
   // Screen Shaking
 
@@ -460,7 +460,10 @@ class GraphicsSystem : public EventListener {
   // Immutable global data that's constructed from the Gameexe.ini file.
   std::unique_ptr<GraphicsObjectSettings> graphics_object_settings_;
 
-  std::unique_ptr<Stage> stage_;
+  Stage& BoundStage();
+  Stage& BoundStage() const;
+
+  Stage* stage_ = nullptr;
 
   // Whether we should use a custom mouse cursor. Set while parsing the Gameexe
   // file, and then left unchanged. We only use a custom mouse cursor if

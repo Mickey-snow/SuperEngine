@@ -25,11 +25,17 @@
 #include "libsiglus/siglus_runtime.hpp"
 
 #include "core/stage.hpp"
+#include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
 #include "vm/vm.hpp"
 
+#include <stdexcept>
+
 namespace libsiglus {
 
-SiglusRuntime::~SiglusRuntime() = default;
-
+SiglusRuntime::~SiglusRuntime() {
+  if (system)
+    system->graphics().BindStage(nullptr);
 }
+
+}  // namespace libsiglus

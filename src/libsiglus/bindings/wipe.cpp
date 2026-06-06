@@ -25,8 +25,6 @@
 #include "libsiglus/bindings/common.hpp"
 #include "libsiglus/bindings/registry.hpp"
 #include "srbind/srbind.hpp"
-#include "systems/graphics_system.hpp"
-#include "systems/system.hpp"
 #include "vm/dict.hpp"
 #include "vm/list.hpp"
 #include "vm/string.hpp"
@@ -118,7 +116,7 @@ CallPacket DecodePacket(std::vector<sr::Value> raw) {
 
 class SiglusWipe {
  public:
-  explicit SiglusWipe(System* system) : system_(system) {}
+  explicit SiglusWipe(Stage* stage) : stage_(stage) {}
 
   void wipe(std::vector<sr::Value> args) {
     Start(std::move(args), false, false);
@@ -157,10 +155,8 @@ class SiglusWipe {
     last_ = std::move(params);
     active_ = true;
 
-    if (system_) {
-      system_->graphics().stage().Wipe(last_.begin_order, last_.end_order,
-                                       last_.begin_layer, last_.end_layer);
-    }
+    stage_->Wipe(last_.begin_order, last_.end_order, last_.begin_layer,
+                 last_.end_layer);
 
     // TODO(siglus): This state-only implementation fast-forwards wipes. It
     // intentionally ignores visual wipe animation, mask rendering, wipe
@@ -171,10 +167,7 @@ class SiglusWipe {
 
   void EndCurrent() {
     active_ = false;
-    if (system_) {
-      auto& stage = system_->graphics().stage();
-      stage.next_objects.Clear();
-    }
+    stage_->next_objects.Clear();
   }
 
   void ApplyPositional(const std::vector<sr::Value>& args,
@@ -257,7 +250,7 @@ class SiglusWipe {
 
   bool active_ = false;
   WipeParams last_;
-  System* system_ = nullptr;
+  Stage* stage_ = nullptr;
 };
 
 void BindWipe(Context&, SiglusRuntime& runtime) {
@@ -265,7 +258,7 @@ void BindWipe(Context&, SiglusRuntime& runtime) {
   sb::module_ m(vm.gc_.get(), vm.globals_.get());
 
   auto wipe = m.bind_instance(
-      "wipe", std::make_unique<SiglusWipe>(runtime.system.get()));
+      "wipe", std::make_unique<SiglusWipe>(runtime.stage.get()));
   wipe.def("wipe", &SiglusWipe::wipe, sb::vararg);
   wipe.def("wipe_all", &SiglusWipe::wipe_all, sb::vararg);
   wipe.def("wipe_mask", &SiglusWipe::wipe_mask, sb::vararg);

@@ -60,14 +60,14 @@ struct GetDCPixel : public RLOpcode<IntConstant_T,
 
 struct StackClear : public RLOpcode<> {
   void operator()(RLMachine& machine) {
-    Stage& stage = machine.GetSystem().graphics().stage();
+    Stage& stage = machine.stage();
     stage.graphics_stack.clear();
   }
 };
 
 struct StackPop : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int count) {
-    Stage& stage = machine.GetSystem().graphics().stage();
+    Stage& stage = machine.stage();
     if (count > stage.graphics_stack.size())
       count = stage.graphics_stack.size();
     stage.graphics_stack.resize(stage.graphics_stack.size() - count);
@@ -76,14 +76,14 @@ struct StackPop : public RLOpcode<IntConstant_T> {
 
 struct StackSize : public RLStoreOpcode<> {
   int operator()(RLMachine& machine) {
-    Stage& stage = machine.GetSystem().graphics().stage();
+    Stage& stage = machine.stage();
     return stage.graphics_stack.size();
   }
 };
 
 struct StackNop : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int numberOfNops) {
-    Stage& stage = machine.GetSystem().graphics().stage();
+    Stage& stage = machine.stage();
 
     for (int i = 0; i < numberOfNops; ++i)
       stage.AddGraphicsStackCommand("");
@@ -92,7 +92,7 @@ struct StackNop : public RLOpcode<IntConstant_T> {
 
 struct StackTrunc : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int count) {
-    Stage& stage = machine.GetSystem().graphics().stage();
+    Stage& stage = machine.stage();
     if (count < 0)
       count = 0;
     if (static_cast<size_t>(count) < stage.graphics_stack.size())

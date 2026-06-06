@@ -74,6 +74,9 @@ RLMachine::RLMachine(std::shared_ptr<System> system,
   memory_->AttachCallStack(&call_stack_);
 
   if (system) {
+    stage_ = std::make_unique<Stage>(system->graphics().GetObjectLayerSize());
+    system->graphics().BindStage(stage_.get());
+
     // Setup runtime environment
     env_.InitFrom(system->gameexe());
 
@@ -82,12 +85,18 @@ RLMachine::RLMachine(std::shared_ptr<System> system,
   }
 }
 
-RLMachine::~RLMachine() = default;
+RLMachine::~RLMachine() {
+  GetSystem().graphics().BindStage(nullptr);
+}
+
+Stage& RLMachine::stage() { return *stage_; }
+
+const Stage& RLMachine::stage() const { return *stage_; }
 
 void RLMachine::MarkSavepoint() {
   savepoint_call_stack_ = call_stack_.Clone();
   savepoint_memory_ = Memory();
-  GetSystem().graphics().stage().TakeSavepointSnapshot();
+  stage().TakeSavepointSnapshot();
   GetSystem().text().TakeSavepointSnapshot();
 }
 
@@ -196,12 +205,14 @@ void RLMachine::PushLongOperation(
 void RLMachine::Reset() {
   call_stack_ = CallStack();
   savepoint_call_stack_ = CallStack();
+  stage().Reset();
   GetSystem().Reset();
 }
 
 void RLMachine::LocalReset() {
   savepoint_call_stack_ = CallStack();
   memory_->PartialReset(LocalMemory());
+  stage().Reset();
   GetSystem().Reset();
 }
 
@@ -356,7 +367,7 @@ void RLMachine::operator()(End) { Halt(); }
 
 // ------------------------------------------------------------------------------
 void RLMachine::ReplayGraphicsStackCommand() {
-  Stage& stage = GetSystem().graphics().stage();
+  Stage& stage = this->stage();
   std::deque<std::string> stack;
   stack.swap(stage.graphics_stack);
 

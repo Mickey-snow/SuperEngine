@@ -74,7 +74,7 @@ struct bgrLoadHaikei_blank : public RLOpcode<IntConstant_T> {
     graphics.GetHaikei()->Fill(RGBAColour::Clear());
 
     if (!machine.replaying_graphics_stack())
-      graphics.stage().Wipe();
+      machine.stage().Wipe();
 
     std::shared_ptr<SDLSurface> after = graphics.RenderToSurface();
 
@@ -92,7 +92,7 @@ struct bgrLoadHaikei_main : RLOpcode<StrConstant_T, IntConstant_T> {
     graphics.set_graphics_background(BACKGROUND_HIK);
 
     // bgrLoadHaikei clears the stack.
-    graphics.stage().graphics_stack.clear();
+    machine.stage().graphics_stack.clear();
 
     fs::path path;
     if (auto f = system.GetAssetScanner()->FindFile(filename, HIK_FILETYPES);
@@ -103,7 +103,7 @@ struct bgrLoadHaikei_main : RLOpcode<StrConstant_T, IntConstant_T> {
 
     if (path.string().ends_with("hik")) {
       if (!machine.replaying_graphics_stack())
-        graphics.stage().Wipe();
+        machine.stage().Wipe();
 
       graphics.SetHikRenderer(new HIKRenderer(
           system, graphics.GetHIKScript(system, filename, path)));
@@ -121,7 +121,7 @@ struct bgrLoadHaikei_main : RLOpcode<StrConstant_T, IntConstant_T> {
       // Promote the objects if we're in normal mode. If we're restoring the
       // graphics stack, we already have our layers promoted.
       if (!machine.replaying_graphics_stack())
-        graphics.stage().Wipe();
+        machine.stage().Wipe();
 
       std::shared_ptr<SDLSurface> after = graphics.RenderToSurface();
 
@@ -239,7 +239,7 @@ struct bgrMulti_1
     // Promote the objects if we're in normal mode. If we're restoring the
     // graphics stack, we already have our layers promoted.
     if (!machine.replaying_graphics_stack())
-      graphics.stage().Wipe();
+      machine.stage().Wipe();
 
     std::shared_ptr<SDLSurface> after = graphics.RenderToSurface();
     std::shared_ptr<LongOperation> effect(

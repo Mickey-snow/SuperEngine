@@ -150,15 +150,6 @@ struct MovieCreateParams {
   bool ready_only = false;
 };
 
-Stage* ResolveSiglusStage(SiglusRuntime& runtime) {
-  if (runtime.system)
-    return &runtime.system->graphics().stage();
-
-  if (!runtime.siglus_stage)
-    runtime.siglus_stage = std::make_unique<Stage>(256);
-  return runtime.siglus_stage.get();
-}
-
 }  // namespace
 
 class SiglusObject {
@@ -504,7 +495,7 @@ void BindObject(Context&, SiglusRuntime& runtime) {
   sb::module_ m(vm.gc_.get(), vm.globals_.get());
   sb::class_<SiglusObject> obj(m, "Object");
 
-  Stage* stage = ResolveSiglusStage(runtime);
+  Stage* stage = runtime.stage.get();
   auto graphics = runtime.system ? runtime.system->graphics_ptr() : nullptr;
   auto event = runtime.system ? runtime.system->event_ptr() : nullptr;
   auto asset_scanner = runtime.asset_scanner;

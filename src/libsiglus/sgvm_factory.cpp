@@ -34,8 +34,9 @@
 #include "log/domain_logger.hpp"
 #include "m6/vm_factory.hpp"
 #include "srbind/module.hpp"
-#include "systems/event_system.hpp"
 #include "core/object.hpp"
+#include "core/stage.hpp"
+#include "systems/event_system.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
 #include "utilities/file.hpp"
@@ -130,6 +131,9 @@ SiglusRuntime SGVMFactory::Create() {
 
   // Init sdl system
   rt.system = std::make_unique<System>(gexe, rt.asset_scanner);
+  rt.siglus_stage =
+      std::make_unique<Stage>(rt.system->graphics().GetObjectLayerSize());
+  rt.system->graphics().BindStage(rt.siglus_stage.get());
 
   for (auto it = binding::SiglusBindingRegistry::cbegin();
        it != binding::SiglusBindingRegistry::cend(); ++it) {

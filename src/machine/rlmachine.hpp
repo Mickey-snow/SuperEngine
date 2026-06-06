@@ -50,6 +50,7 @@ class Memory;
 class RLModule;
 class RealLiveDLL;
 class System;
+class Stage;
 struct StackFrame;
 class EventListener;
 class Debugger;
@@ -95,6 +96,9 @@ class RLMachine {
 
   // Returns the current System that this RLMachine outputs to.
   System& GetSystem() { return system_; }
+
+  Stage& stage();
+  const Stage& stage() const;
 
   std::shared_ptr<IScriptor> GetScriptor();
 
@@ -239,6 +243,8 @@ class RLMachine {
   // The RLMachine carried around a reference to the local system, to keep it
   // from being a Singleton so we can do proper unit testing.
   System& system_;
+
+  std::unique_ptr<Stage> stage_;
 
   RLEnvironment env_;
 

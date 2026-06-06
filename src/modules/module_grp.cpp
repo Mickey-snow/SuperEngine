@@ -118,7 +118,7 @@ void blitDC1toDC0(RLMachine& machine) {
   // Promote the objects if we're in normal mode. If we're restoring the
   // graphics stack, we already have our layers promoted.
   if (!machine.replaying_graphics_stack())
-    graphics.stage().Wipe();
+    machine.stage().Wipe();
 }
 
 // Performs half the grunt work of a recOpen command; Copies DC0 to DC1, loads
@@ -232,11 +232,10 @@ void performHideAllTextWindows(RLMachine& machine) {
 // Common code to all the openBg commands.
 void OpenBgPrelude(RLMachine& machine, const std::string& filename) {
   if (!filename.starts_with("?")) {
-    GraphicsSystem& graphics = machine.GetSystem().graphics();
     default_grp_name = filename;
 
     // Only clear the stack when we are the command setting the background.
-    graphics.stage().graphics_stack.clear();
+    machine.stage().graphics_stack.clear();
   }
 }
 
@@ -1189,7 +1188,7 @@ class GrpStackAdapter : public RLOp_SpecialCase {
 
   void operator()(RLMachine& machine, const libreallive::CommandElement& ff) {
     operation->DispatchFunction(machine, ff);
-    auto& stage = machine.GetSystem().graphics().stage();
+    auto& stage = machine.stage();
     // Record this command's reallive bytecode form onto the graphics stack.
     stage.AddGraphicsStackCommand(ff.GetSerializedCommand(machine));
   }

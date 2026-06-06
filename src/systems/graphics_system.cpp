@@ -189,8 +189,6 @@ GraphicsSystem::GraphicsSystem(System& system,
       time_at_last_queue_change_(0),
       graphics_object_settings_(
           std::make_unique<GraphicsObjectSettings>(gameexe)),
-      stage_(std::make_unique<Stage>(
-          graphics_object_settings_->objects_in_a_layer)),
       use_custom_mouse_cursor_(gameexe("MOUSE_CURSOR").Exists()),
       show_cursor_from_bytecode_(true),
       cursor_(gameexe("MOUSE_CURSOR").Int().value_or(0)),
@@ -227,6 +225,24 @@ GraphicsSystem::GraphicsSystem(System& system,
 }
 
 GraphicsSystem::~GraphicsSystem() = default;
+
+// -----------------------------------------------------------------------
+
+void GraphicsSystem::BindStage(Stage* stage) { stage_ = stage; }
+
+// -----------------------------------------------------------------------
+
+Stage& GraphicsSystem::BoundStage() {
+  if (!stage_)
+    throw std::runtime_error("GraphicsSystem requires a bound stage");
+  return *stage_;
+}
+
+Stage& GraphicsSystem::BoundStage() const {
+  if (!stage_)
+    throw std::runtime_error("GraphicsSystem requires a bound stage");
+  return *stage_;
+}
 
 // -----------------------------------------------------------------------
 
@@ -565,7 +581,6 @@ void GraphicsSystem::ExecuteGraphicsSystem(RLMachine& machine) {
 // -----------------------------------------------------------------------
 
 void GraphicsSystem::Reset() {
-  stage_->Reset();
   ClearAllDCs();
 
   preloaded_hik_scripts_.Clear();
@@ -746,19 +761,20 @@ GraphicsObject& GraphicsSystem::GetObject(int layer, int obj_number) {
     throw std::runtime_error("Invalid layer number");
 
   if (layer == OBJ_BG)
-    return stage_->background_objects[obj_number];
+    return BoundStage().background_objects[obj_number];
   else if (layer == OBJ_FG)
-    return stage_->foreground_objects[obj_number];
+    return BoundStage().foreground_objects[obj_number];
   else
-    return stage_->next_objects[obj_number];
+    return BoundStage().next_objects[obj_number];
 }
 size_t GraphicsSystem::GetFreeObjectId(int layer) {
   if (layer < 0 || layer > 2)
     throw std::runtime_error("Invalid layer number");
 
-  LazyArray<GraphicsObject>& objs = layer == OBJ_BG   ? stage_->background_objects
-                                     : layer == OBJ_FG ? stage_->foreground_objects
-                                                       : stage_->next_objects;
+  Stage& stage = BoundStage();
+  LazyArray<GraphicsObject>& objs = layer == OBJ_BG   ? stage.background_objects
+                                    : layer == OBJ_FG ? stage.foreground_objects
+                                                      : stage.next_objects;
 
   for (size_t i = 0;; ++i)
     if (!objs.Exists(i))
@@ -774,11 +790,11 @@ void GraphicsSystem::SetObject(int layer,
     throw std::runtime_error("Invalid layer number");
 
   if (layer == OBJ_BG)
-    stage_->background_objects[obj_number] = std::move(obj);
+    BoundStage().background_objects[obj_number] = std::move(obj);
   else if (layer == OBJ_FG)
-    stage_->foreground_objects[obj_number] = std::move(obj);
+    BoundStage().foreground_objects[obj_number] = std::move(obj);
   else
-    stage_->next_objects[obj_number] = std::move(obj);
+    BoundStage().next_objects[obj_number] = std::move(obj);
 }
 
 // -----------------------------------------------------------------------
@@ -788,44 +804,44 @@ void GraphicsSystem::RemoveObject(int layer, size_t obj_number) {
     throw std::runtime_error("Invalid layer number");
 
   if (layer == OBJ_BG)
-    stage_->background_objects.DeleteAt(obj_number);
+    BoundStage().background_objects.DeleteAt(obj_number);
   else if (layer == OBJ_FG)
-    stage_->foreground_objects.DeleteAt(obj_number);
+    BoundStage().foreground_objects.DeleteAt(obj_number);
   else
-    stage_->next_objects.DeleteAt(obj_number);
+    BoundStage().next_objects.DeleteAt(obj_number);
 }
 
 // -----------------------------------------------------------------------
 
 void GraphicsSystem::FreeObjectData(int obj_number) {
-  stage_->foreground_objects[obj_number].FreeObjectData();
-  stage_->background_objects[obj_number].FreeObjectData();
+  BoundStage().foreground_objects[obj_number].FreeObjectData();
+  BoundStage().background_objects[obj_number].FreeObjectData();
 }
 
 // -----------------------------------------------------------------------
 
 void GraphicsSystem::FreeAllObjectData() {
-  for (GraphicsObject& object : stage_->foreground_objects)
+  for (GraphicsObject& object : BoundStage().foreground_objects)
     object.FreeObjectData();
 
-  for (GraphicsObject& object : stage_->background_objects)
+  for (GraphicsObject& object : BoundStage().background_objects)
     object.FreeObjectData();
 }
 
 // -----------------------------------------------------------------------
 
 void GraphicsSystem::InitializeObjectParams(int obj_number) {
-  stage_->foreground_objects[obj_number].InitializeParams();
-  stage_->background_objects[obj_number].InitializeParams();
+  BoundStage().foreground_objects[obj_number].InitializeParams();
+  BoundStage().background_objects[obj_number].InitializeParams();
 }
 
 // -----------------------------------------------------------------------
 
 void GraphicsSystem::InitializeAllObjectParams() {
-  for (GraphicsObject& object : stage_->foreground_objects)
+  for (GraphicsObject& object : BoundStage().foreground_objects)
     object.InitializeParams();
 
-  for (GraphicsObject& object : stage_->background_objects)
+  for (GraphicsObject& object : BoundStage().background_objects)
     object.InitializeParams();
 }
 
@@ -838,25 +854,25 @@ int GraphicsSystem::GetObjectLayerSize() {
 // -----------------------------------------------------------------------
 
 LazyArray<GraphicsObject>& GraphicsSystem::GetBackgroundObjects() {
-  return stage_->background_objects;
+  return BoundStage().background_objects;
 }
 
 // -----------------------------------------------------------------------
 
 LazyArray<GraphicsObject>& GraphicsSystem::GetForegroundObjects() {
-  return stage_->foreground_objects;
+  return BoundStage().foreground_objects;
 }
 
 // -----------------------------------------------------------------------
 
 LazyArray<GraphicsObject>& GraphicsSystem::GetNextObjects() {
-  return stage_->next_objects;
+  return BoundStage().next_objects;
 }
 
 // -----------------------------------------------------------------------
 
 bool GraphicsSystem::AnimationsPlaying() const {
-  for (GraphicsObject& object : stage_->foreground_objects) {
+  for (GraphicsObject& object : BoundStage().foreground_objects) {
     if (object.has_object_data()) {
       GraphicsObjectData& data = object.GetObjectData();
       if (data.IsAnimation() && data.GetAnimator()->IsPlaying())
@@ -954,7 +970,7 @@ void GraphicsSystem::ClearAllDCs() {
 // -----------------------------------------------------------------------
 
 void GraphicsSystem::RenderObjects() {
-  LazyArray<GraphicsObject>& objects = stage_->foreground_objects;
+  LazyArray<GraphicsObject>& objects = BoundStage().foreground_objects;
   to_render_.clear();
 
   AllocatedLazyArrayIterator<GraphicsObject> it = objects.begin();
@@ -1037,22 +1053,25 @@ void GraphicsSystem::OnEvent(std::shared_ptr<Event> event) {
 
 template <class Archive>
 void GraphicsSystem::save(Archive& ar, unsigned int version) const {
-  ar & subtitle_ & stage_->saved_graphics_stack &
-      stage_->saved_background_objects & stage_->saved_foreground_objects;
+  Stage& stage = BoundStage();
+  ar & subtitle_ & stage.saved_graphics_stack & stage.saved_background_objects &
+      stage.saved_foreground_objects;
 }
 
 // -----------------------------------------------------------------------
 
 template <class Archive>
 void GraphicsSystem::load(Archive& ar, unsigned int version) {
+  Stage& stage = BoundStage();
+
   ar & subtitle_;
   if (version > 0) {
-    ar & stage_->graphics_stack;
+    ar & stage.graphics_stack;
   } else {
     throw std::runtime_error("Deprecated old graphics stack has been removed");
   }
 
-  ar & stage_->background_objects & stage_->foreground_objects;
+  ar & stage.background_objects & stage.foreground_objects;
 
   // Now alert all subclasses that we've set the subtitle
   SetWindowSubtitle(subtitle_,

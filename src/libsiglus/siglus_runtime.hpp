@@ -55,7 +55,7 @@ struct SiglusRuntime {
 
   std::shared_ptr<binding::SiglusMwnd> mwnd;
   std::unique_ptr<System> system;
-  std::unique_ptr<Stage> siglus_stage;
+  std::unique_ptr<Stage> stage;
 
   std::shared_ptr<Gameexe> local_config, global_config;
 
