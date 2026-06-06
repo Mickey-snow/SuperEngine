@@ -167,16 +167,7 @@ class SiglusObject {
     if (object_id_ < 0)
       throw std::runtime_error("Invalid object number");
 
-    switch (layer_) {
-      case OBJ_FG:
-        return stage_->foreground_objects[object_id_];
-      case OBJ_BG:
-        return stage_->background_objects[object_id_];
-      case OBJ_NEXT:
-        return stage_->next_objects[object_id_];
-      default:
-        throw std::runtime_error("Invalid object layer");
-    }
+    return stage_->GetObject(layer_, object_id_);
   }
 
   const GraphicsObject& object() const {
@@ -345,13 +336,15 @@ class SiglusObject {
 
   void PumpGraphicsOnce() {
     if (graphics_) {
-      for (GraphicsObject& obj : graphics_->GetForegroundObjects()) {
-        obj.Execute();
-        obj.ExecuteMutators();
-      }
-      for (GraphicsObject& obj : graphics_->GetBackgroundObjects()) {
-        obj.Execute();
-        obj.ExecuteMutators();
+      if (stage_) {
+        for (GraphicsObject& obj : stage_->GetForegroundObjects()) {
+          obj.Execute();
+          obj.ExecuteMutators();
+        }
+        for (GraphicsObject& obj : stage_->GetBackgroundObjects()) {
+          obj.Execute();
+          obj.ExecuteMutators();
+        }
       }
       graphics_->RenderFrame(true);
     }

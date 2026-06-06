@@ -39,6 +39,7 @@
 #include "machine/rloperation.hpp"
 #include "machine/rloperation/rlop_store.hpp"
 #include "core/object.hpp"
+#include "core/stage.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
 #include "systems/text_system.hpp"
@@ -163,7 +164,7 @@ struct Sel_select_objbtn_cancel_2 : public RLOpcode<> {
     if (machine.GetScenarioConfig().enable_selcom_savepoint)
       MarkSavepoint(machine);
 
-    auto& fg_objs = machine.GetSystem().graphics().GetForegroundObjects();
+    auto& fg_objs = machine.stage().GetForegroundObjects();
     int group = 0;
     for (GraphicsObject& obj : fg_objs)
       if (obj.Param().IsButton()) {

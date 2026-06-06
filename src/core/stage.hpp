@@ -27,11 +27,18 @@
 #include "core/object.hpp"
 #include "utilities/lazy_array.hpp"
 
+#include <cstddef>
 #include <deque>
+#include <functional>
 #include <string>
+#include <tuple>
+#include <vector>
 
 class Stage {
  public:
+  using ObjectRenderPredicate =
+      std::function<bool(size_t, const GraphicsObject&)>;
+
   Stage(int size);
 
   // Foreground objects
@@ -64,6 +71,34 @@ class Stage {
   void Wipe();
   void Wipe(int begin_order, int end_order, int begin_layer, int end_layer);
 
+  // Object getters
+  // layer == OBJ_FG for foreground, OBJ_BG for background, OBJ_NEXT for next.
+  GraphicsObject& GetObject(int layer, int obj_number);
+  size_t GetFreeObjectId(int layer);
+  void SetObject(int layer, int obj_number, GraphicsObject&& object);
+
+  // Remove the entire graphics object.
+  void RemoveObject(int layer, size_t obj_number);
+
+  // Frees the object data (but not the parameters).
+  void FreeObjectData(int obj_number);
+  void FreeAllObjectData();
+
+  // Resets/reinitializes all the object parameters without deleting the loaded
+  // graphics object data.
+  void InitializeObjectParams(int obj_number);
+  void InitializeAllObjectParams();
+
+  LazyArray<GraphicsObject>& GetBackgroundObjects();
+  LazyArray<GraphicsObject>& GetForegroundObjects();
+  LazyArray<GraphicsObject>& GetNextObjects();
+
+  // Returns true if there's a currently playing animation.
+  bool AnimationsPlaying() const;
+
+  // Calls render() on foreground objects that pass |should_render|.
+  void RenderObjects(const ObjectRenderPredicate& should_render);
+
   // Adds |command|, the serialized form of a bytecode used by calling the
   // BytecodeElement::data().
   void AddGraphicsStackCommand(std::string command);
@@ -76,4 +111,17 @@ class Stage {
   // has multiple copy-on-write data structs to make this and object promotion a
   // relativly cheap operation.)
   void TakeSavepointSnapshot();
+
+ private:
+  LazyArray<GraphicsObject>& ObjectsForLayer(int layer);
+  const LazyArray<GraphicsObject>& ObjectsForLayer(int layer) const;
+
+  // Tuple used in RenderObjects(). Causes about a half megabyte of allocator
+  // churn per minute if we try to allocate it every time.
+  //
+  // The tuple is order, layer, depth, objid, GraphicsObject. Tuples are easy
+  // to sort.
+  using ToRenderVec =
+      std::vector<std::tuple<int, int, int, int, GraphicsObject*>>;
+  ToRenderVec to_render_;
 };

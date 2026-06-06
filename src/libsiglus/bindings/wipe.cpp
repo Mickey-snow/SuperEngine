@@ -167,7 +167,7 @@ class SiglusWipe {
 
   void EndCurrent() {
     active_ = false;
-    stage_->next_objects.Clear();
+    stage_->GetNextObjects().Clear();
   }
 
   void ApplyPositional(const std::vector<sr::Value>& args,

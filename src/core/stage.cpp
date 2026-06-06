@@ -24,8 +24,12 @@
 
 #include "core/stage.hpp"
 
+#include "core/object_internal/animator.hpp"
+#include "core/object_internal/objdrawer.hpp"
+
 #include <algorithm>
 #include <limits>
+#include <stdexcept>
 
 Stage::Stage(int size)
     : foreground_objects(size),
@@ -91,6 +95,123 @@ void Stage::Wipe(int begin_order,
       foreground_objects[i].FreeDataAndInitializeParams();
     }
   }
+}
+
+LazyArray<GraphicsObject>& Stage::ObjectsForLayer(int layer) {
+  switch (layer) {
+    case OBJ_FG:
+      return foreground_objects;
+    case OBJ_BG:
+      return background_objects;
+    case OBJ_NEXT:
+      return next_objects;
+    default:
+      throw std::runtime_error("Invalid layer number");
+  }
+}
+
+const LazyArray<GraphicsObject>& Stage::ObjectsForLayer(int layer) const {
+  switch (layer) {
+    case OBJ_FG:
+      return foreground_objects;
+    case OBJ_BG:
+      return background_objects;
+    case OBJ_NEXT:
+      return next_objects;
+    default:
+      throw std::runtime_error("Invalid layer number");
+  }
+}
+
+GraphicsObject& Stage::GetObject(int layer, int obj_number) {
+  return ObjectsForLayer(layer)[obj_number];
+}
+
+size_t Stage::GetFreeObjectId(int layer) {
+  LazyArray<GraphicsObject>& objects = ObjectsForLayer(layer);
+
+  for (size_t i = 0, end = objects.Size(); i < end; ++i) {
+    if (!objects.Exists(i))
+      return i;
+  }
+
+  throw std::runtime_error("No free object slots");
+}
+
+void Stage::SetObject(int layer, int obj_number, GraphicsObject&& object) {
+  ObjectsForLayer(layer)[obj_number] = std::move(object);
+}
+
+void Stage::RemoveObject(int layer, size_t obj_number) {
+  ObjectsForLayer(layer).DeleteAt(obj_number);
+}
+
+void Stage::FreeObjectData(int obj_number) {
+  foreground_objects[obj_number].FreeObjectData();
+  background_objects[obj_number].FreeObjectData();
+}
+
+void Stage::FreeAllObjectData() {
+  for (GraphicsObject& object : foreground_objects)
+    object.FreeObjectData();
+
+  for (GraphicsObject& object : background_objects)
+    object.FreeObjectData();
+}
+
+void Stage::InitializeObjectParams(int obj_number) {
+  foreground_objects[obj_number].InitializeParams();
+  background_objects[obj_number].InitializeParams();
+}
+
+void Stage::InitializeAllObjectParams() {
+  for (GraphicsObject& object : foreground_objects)
+    object.InitializeParams();
+
+  for (GraphicsObject& object : background_objects)
+    object.InitializeParams();
+}
+
+LazyArray<GraphicsObject>& Stage::GetBackgroundObjects() {
+  return background_objects;
+}
+
+LazyArray<GraphicsObject>& Stage::GetForegroundObjects() {
+  return foreground_objects;
+}
+
+LazyArray<GraphicsObject>& Stage::GetNextObjects() { return next_objects; }
+
+bool Stage::AnimationsPlaying() const {
+  for (size_t i = 0, end = foreground_objects.Size(); i < end; ++i) {
+    const auto& object = foreground_objects.At(i);
+    if (object && object->has_object_data()) {
+      const GraphicsObjectData& data = object->GetObjectData();
+      if (data.IsAnimation() && data.GetAnimator()->IsPlaying())
+        return true;
+    }
+  }
+
+  return false;
+}
+
+void Stage::RenderObjects(const ObjectRenderPredicate& should_render) {
+  to_render_.clear();
+
+  for (auto it = foreground_objects.begin(), end = foreground_objects.end();
+       it != end; ++it) {
+    if (should_render && !should_render(it.pos(), *it))
+      continue;
+
+    to_render_.emplace_back(it->Param().z_order, it->Param().z_layer,
+                            it->Param().z_depth, static_cast<int>(it.pos()),
+                            &*it);
+  }
+
+  std::sort(to_render_.begin(), to_render_.end());
+
+  for (auto& object : to_render_)
+    std::get<4>(object)->Render(std::get<3>(object), nullptr);
 }
 
 void Stage::AddGraphicsStackCommand(std::string command) {

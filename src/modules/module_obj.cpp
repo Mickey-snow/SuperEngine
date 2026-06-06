@@ -32,6 +32,7 @@
 #include "machine/rlmachine.hpp"
 #include "core/object_internal/drawer/parent.hpp"
 #include "core/object.hpp"
+#include "core/stage.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
 #include "utilities/exception.hpp"
@@ -52,6 +53,7 @@ GraphicsObject& GetGraphicsObject(RLMachine& machine,
                                   RLOperation* op,
                                   int obj) {
   GraphicsSystem& graphics = machine.GetSystem().graphics();
+  Stage& stage = machine.stage();
 
   int fgbg;
   if (!op->GetProperty(P_FGBG, fgbg))
@@ -59,18 +61,19 @@ GraphicsObject& GetGraphicsObject(RLMachine& machine,
 
   int parentobj;
   if (op->GetProperty(P_PARENTOBJ, parentobj)) {
-    GraphicsObject& parent = graphics.GetObject(fgbg, parentobj);
+    GraphicsObject& parent = stage.GetObject(fgbg, parentobj);
     EnsureIsParentObject(parent, graphics.GetObjectLayerSize());
     return static_cast<ParentGraphicsObjectData&>(parent.GetObjectData())
         .GetObject(obj);
   } else {
-    return graphics.GetObject(fgbg, obj);
+    return stage.GetObject(fgbg, obj);
   }
 }
 
 LazyArray<GraphicsObject>& GetGraphicsObjects(RLMachine& machine,
                                               RLOperation* op) {
   GraphicsSystem& graphics = machine.GetSystem().graphics();
+  Stage& stage = machine.stage();
 
   int fgbg;
   if (!op->GetProperty(P_FGBG, fgbg))
@@ -78,14 +81,14 @@ LazyArray<GraphicsObject>& GetGraphicsObjects(RLMachine& machine,
 
   int parentobj;
   if (op->GetProperty(P_PARENTOBJ, parentobj)) {
-    GraphicsObject& parent = graphics.GetObject(fgbg, parentobj);
+    GraphicsObject& parent = stage.GetObject(fgbg, parentobj);
     EnsureIsParentObject(parent, graphics.GetObjectLayerSize());
     return static_cast<ParentGraphicsObjectData&>(parent.GetObjectData())
         .objects();
   } else if (fgbg == OBJ_FG) {
-    return graphics.GetForegroundObjects();
+    return stage.GetForegroundObjects();
   } else {
-    return graphics.GetBackgroundObjects();
+    return stage.GetBackgroundObjects();
   }
 }
 

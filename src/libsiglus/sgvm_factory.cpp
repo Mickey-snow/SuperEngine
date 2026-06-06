@@ -88,13 +88,13 @@ inline void dbg_print(std::string str) {
   std::cerr << "[TRACE] " << str << std::endl;
 }
 
-void PumpSiglusGraphics(System& system) {
+void PumpSiglusGraphics(System& system, Stage& stage) {
   GraphicsSystem& graphics = system.graphics();
-  for (auto& obj : graphics.GetForegroundObjects()) {
+  for (auto& obj : stage.GetForegroundObjects()) {
     obj.Execute();
     obj.ExecuteMutators();
   }
-  for (auto& obj : graphics.GetBackgroundObjects()) {
+  for (auto& obj : stage.GetBackgroundObjects()) {
     obj.Execute();
     obj.ExecuteMutators();
   }
@@ -131,9 +131,9 @@ SiglusRuntime SGVMFactory::Create() {
 
   // Init sdl system
   rt.system = std::make_unique<System>(gexe, rt.asset_scanner);
-  rt.siglus_stage =
+  rt.stage =
       std::make_unique<Stage>(rt.system->graphics().GetObjectLayerSize());
-  rt.system->graphics().BindStage(rt.siglus_stage.get());
+  rt.system->graphics().BindStage(rt.stage.get());
 
   for (auto it = binding::SiglusBindingRegistry::cbegin();
        it != binding::SiglusBindingRegistry::cend(); ++it) {
@@ -195,13 +195,14 @@ SiglusRuntime SGVMFactory::Create() {
 
   // abuse the vm scheduler to refresh sdl regularly
   auto cb_holder = std::make_shared<std::function<void()>>();
-  *cb_holder = [cb_holder, vm = rt.vm.get(), system = rt.system.get()]() {
+  *cb_holder = [cb_holder, vm = rt.vm.get(), system = rt.system.get(),
+                stage = rt.stage.get()]() {
     constexpr auto period =
         chr::duration_cast<chr::steady_clock::duration>(chr::seconds(1)) / 60;
 
     auto next = chr::steady_clock::now() + period;
     vm->scheduler_.PushCallbackAt(*cb_holder, next);
-    PumpSiglusGraphics(*system);
+    PumpSiglusGraphics(*system, *stage);
   };
   rt.exec_sdl_callback = [cb_holder]() { (*cb_holder)(); };
   rt.vm->scheduler_.PushCallbackAfter(rt.exec_sdl_callback,

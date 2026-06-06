@@ -531,11 +531,13 @@ std::string GraphicsSystem::ComposeWindowTitle() const {
 // -----------------------------------------------------------------------
 
 void GraphicsSystem::ExecuteGraphicsSystem(RLMachine& machine) {
+  Stage& stage = BoundStage();
+
   // Check to see if any of the graphics objects are reporting that
   // they want to force a redraw
-  for (GraphicsObject& obj : GetForegroundObjects())
+  for (GraphicsObject& obj : stage.GetForegroundObjects())
     obj.Execute();
-  for (GraphicsObject& obj : GetBackgroundObjects())
+  for (GraphicsObject& obj : stage.GetBackgroundObjects())
     obj.Execute();
 
   if (mouse_cursor_)
@@ -756,131 +758,8 @@ std::shared_ptr<SDLSurface> GraphicsSystem::GetSurfaceNamed(
 
 // -----------------------------------------------------------------------
 
-GraphicsObject& GraphicsSystem::GetObject(int layer, int obj_number) {
-  if (layer < 0 || layer > 2)
-    throw std::runtime_error("Invalid layer number");
-
-  if (layer == OBJ_BG)
-    return BoundStage().background_objects[obj_number];
-  else if (layer == OBJ_FG)
-    return BoundStage().foreground_objects[obj_number];
-  else
-    return BoundStage().next_objects[obj_number];
-}
-size_t GraphicsSystem::GetFreeObjectId(int layer) {
-  if (layer < 0 || layer > 2)
-    throw std::runtime_error("Invalid layer number");
-
-  Stage& stage = BoundStage();
-  LazyArray<GraphicsObject>& objs = layer == OBJ_BG   ? stage.background_objects
-                                    : layer == OBJ_FG ? stage.foreground_objects
-                                                      : stage.next_objects;
-
-  for (size_t i = 0;; ++i)
-    if (!objs.Exists(i))
-      return i;
-}
-
-// -----------------------------------------------------------------------
-
-void GraphicsSystem::SetObject(int layer,
-                               int obj_number,
-                               GraphicsObject&& obj) {
-  if (layer < 0 || layer > 2)
-    throw std::runtime_error("Invalid layer number");
-
-  if (layer == OBJ_BG)
-    BoundStage().background_objects[obj_number] = std::move(obj);
-  else if (layer == OBJ_FG)
-    BoundStage().foreground_objects[obj_number] = std::move(obj);
-  else
-    BoundStage().next_objects[obj_number] = std::move(obj);
-}
-
-// -----------------------------------------------------------------------
-
-void GraphicsSystem::RemoveObject(int layer, size_t obj_number) {
-  if (layer < 0 || layer > 2)
-    throw std::runtime_error("Invalid layer number");
-
-  if (layer == OBJ_BG)
-    BoundStage().background_objects.DeleteAt(obj_number);
-  else if (layer == OBJ_FG)
-    BoundStage().foreground_objects.DeleteAt(obj_number);
-  else
-    BoundStage().next_objects.DeleteAt(obj_number);
-}
-
-// -----------------------------------------------------------------------
-
-void GraphicsSystem::FreeObjectData(int obj_number) {
-  BoundStage().foreground_objects[obj_number].FreeObjectData();
-  BoundStage().background_objects[obj_number].FreeObjectData();
-}
-
-// -----------------------------------------------------------------------
-
-void GraphicsSystem::FreeAllObjectData() {
-  for (GraphicsObject& object : BoundStage().foreground_objects)
-    object.FreeObjectData();
-
-  for (GraphicsObject& object : BoundStage().background_objects)
-    object.FreeObjectData();
-}
-
-// -----------------------------------------------------------------------
-
-void GraphicsSystem::InitializeObjectParams(int obj_number) {
-  BoundStage().foreground_objects[obj_number].InitializeParams();
-  BoundStage().background_objects[obj_number].InitializeParams();
-}
-
-// -----------------------------------------------------------------------
-
-void GraphicsSystem::InitializeAllObjectParams() {
-  for (GraphicsObject& object : BoundStage().foreground_objects)
-    object.InitializeParams();
-
-  for (GraphicsObject& object : BoundStage().background_objects)
-    object.InitializeParams();
-}
-
-// -----------------------------------------------------------------------
-
 int GraphicsSystem::GetObjectLayerSize() {
   return graphics_object_settings_->objects_in_a_layer;
-}
-
-// -----------------------------------------------------------------------
-
-LazyArray<GraphicsObject>& GraphicsSystem::GetBackgroundObjects() {
-  return BoundStage().background_objects;
-}
-
-// -----------------------------------------------------------------------
-
-LazyArray<GraphicsObject>& GraphicsSystem::GetForegroundObjects() {
-  return BoundStage().foreground_objects;
-}
-
-// -----------------------------------------------------------------------
-
-LazyArray<GraphicsObject>& GraphicsSystem::GetNextObjects() {
-  return BoundStage().next_objects;
-}
-
-// -----------------------------------------------------------------------
-
-bool GraphicsSystem::AnimationsPlaying() const {
-  for (GraphicsObject& object : BoundStage().foreground_objects) {
-    if (object.has_object_data()) {
-      GraphicsObjectData& data = object.GetObjectData();
-      if (data.IsAnimation() && data.GetAnimator()->IsPlaying())
-        return true;
-    }
-  }
-
-  return false;
 }
 
 // -----------------------------------------------------------------------
@@ -970,32 +849,21 @@ void GraphicsSystem::ClearAllDCs() {
 // -----------------------------------------------------------------------
 
 void GraphicsSystem::RenderObjects() {
-  LazyArray<GraphicsObject>& objects = BoundStage().foreground_objects;
-  to_render_.clear();
-
-  AllocatedLazyArrayIterator<GraphicsObject> it = objects.begin();
-  AllocatedLazyArrayIterator<GraphicsObject> end = objects.end();
-  for (; it != end; ++it) {
-    const ObjectSettings& settings = GetObjectSettings(it.pos());
+  BoundStage().RenderObjects([this](size_t obj_number,
+                                    const GraphicsObject&) -> bool {
+    const ObjectSettings& settings =
+        GetObjectSettings(static_cast<int>(obj_number));
     if (settings.obj_on_off == 1 && should_show_object1() == false)
-      continue;
+      return false;
     else if (settings.obj_on_off == 2 && should_show_object2() == false)
-      continue;
+      return false;
     else if (settings.weather_on_off && should_show_weather() == false)
-      continue;
+      return false;
     else if (settings.space_key && is_interface_hidden())
-      continue;
+      return false;
 
-    to_render_.emplace_back(it->Param().z_order, it->Param().z_layer,
-                            it->Param().z_depth, it.pos(), &*it);
-  }
-
-  std::sort(to_render_.begin(), to_render_.end());
-
-  for (ToRenderVec::iterator it = to_render_.begin(); it != to_render_.end();
-       ++it) {
-    get<4>(*it)->Render(get<3>(*it), nullptr);
-  }
+    return true;
+  });
 }
 
 // -----------------------------------------------------------------------

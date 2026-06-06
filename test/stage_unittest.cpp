@@ -28,6 +28,8 @@
 
 #include <limits>
 #include <memory>
+#include <stdexcept>
+#include <vector>
 
 class StageTest : public ::testing::Test {
  protected:
@@ -47,8 +49,32 @@ class StageTest : public ::testing::Test {
     }
   };
 
+  class RecordingObjectData : public DummyObjectData {
+   public:
+    RecordingObjectData(std::vector<int>* rendered, int id)
+        : rendered_(rendered), id_(id) {}
+
+    void Render(const GraphicsObject&, const GraphicsObject*) override {
+      rendered_->push_back(id_);
+    }
+
+    std::unique_ptr<GraphicsObjectData> Clone() const override {
+      return std::make_unique<RecordingObjectData>(*this);
+    }
+
+   private:
+    std::vector<int>* rendered_;
+    int id_;
+  };
+
   void SetDummyData(GraphicsObject& object) {
     object.SetObjectData(std::make_unique<DummyObjectData>());
+  }
+
+  void SetRecordingData(GraphicsObject& object,
+                        std::vector<int>* rendered,
+                        int id) {
+    object.SetObjectData(std::make_unique<RecordingObjectData>(rendered, id));
   }
 
   std::string GetExistFlags(const LazyArray<GraphicsObject>& la) {
@@ -58,6 +84,120 @@ class StageTest : public ::testing::Test {
     return ret;
   }
 };
+
+TEST_F(StageTest, ObjectLayerHelpersAccessExpectedBuffers) {
+  Stage stage(3);
+
+  EXPECT_EQ(&stage.GetObject(OBJ_FG, 0), &stage.foreground_objects[0]);
+  EXPECT_EQ(&stage.GetObject(OBJ_BG, 1), &stage.background_objects[1]);
+  EXPECT_EQ(&stage.GetObject(OBJ_NEXT, 2), &stage.next_objects[2]);
+
+  EXPECT_THROW(stage.GetObject(-1, 0), std::runtime_error);
+  EXPECT_THROW(stage.GetObject(3, 0), std::runtime_error);
+  EXPECT_THROW(stage.GetFreeObjectId(3), std::runtime_error);
+}
+
+TEST_F(StageTest, SetRemoveAndFreeIdUseRequestedLayer) {
+  Stage stage(3);
+  stage.GetObject(OBJ_FG, 0).Param().SetX(7);
+  EXPECT_EQ(stage.GetFreeObjectId(OBJ_FG), 1);
+
+  GraphicsObject object;
+  SetDummyData(object);
+  object.Param().SetX(42);
+  stage.SetObject(OBJ_NEXT, 2, std::move(object));
+
+  ASSERT_TRUE(stage.next_objects.Exists(2));
+  EXPECT_TRUE(stage.next_objects[2].has_object_data());
+  EXPECT_EQ(stage.next_objects[2].Param().position_x, 42);
+
+  stage.RemoveObject(OBJ_NEXT, 2);
+  EXPECT_FALSE(stage.next_objects.Exists(2));
+}
+
+TEST_F(StageTest, FreeAndInitializeSingleObjectAffectFrontAndBackOnly) {
+  Stage stage(1);
+  SetDummyData(stage.foreground_objects[0]);
+  SetDummyData(stage.background_objects[0]);
+  SetDummyData(stage.next_objects[0]);
+  stage.foreground_objects[0].Param().SetX(10);
+  stage.background_objects[0].Param().SetX(20);
+  stage.next_objects[0].Param().SetX(30);
+
+  stage.FreeObjectData(0);
+
+  EXPECT_FALSE(stage.foreground_objects[0].has_object_data());
+  EXPECT_FALSE(stage.background_objects[0].has_object_data());
+  EXPECT_TRUE(stage.next_objects[0].has_object_data());
+
+  stage.InitializeObjectParams(0);
+
+  EXPECT_EQ(stage.foreground_objects[0].Param().position_x, 0);
+  EXPECT_EQ(stage.background_objects[0].Param().position_x, 0);
+  EXPECT_EQ(stage.next_objects[0].Param().position_x, 30);
+}
+
+TEST_F(StageTest, FreeAndInitializeAllObjectsAffectFrontAndBackOnly) {
+  Stage stage(2);
+  SetDummyData(stage.foreground_objects[0]);
+  SetDummyData(stage.background_objects[1]);
+  SetDummyData(stage.next_objects[0]);
+  stage.foreground_objects[0].Param().SetX(10);
+  stage.background_objects[1].Param().SetX(20);
+  stage.next_objects[0].Param().SetX(30);
+
+  stage.FreeAllObjectData();
+
+  EXPECT_FALSE(stage.foreground_objects[0].has_object_data());
+  EXPECT_FALSE(stage.background_objects[1].has_object_data());
+  EXPECT_TRUE(stage.next_objects[0].has_object_data());
+
+  stage.InitializeAllObjectParams();
+
+  EXPECT_EQ(stage.foreground_objects[0].Param().position_x, 0);
+  EXPECT_EQ(stage.background_objects[1].Param().position_x, 0);
+  EXPECT_EQ(stage.next_objects[0].Param().position_x, 30);
+}
+
+TEST_F(StageTest, AnimationsPlayingIsFalseWithoutActiveForegroundAnimation) {
+  Stage stage(1);
+  EXPECT_FALSE(stage.AnimationsPlaying());
+
+  SetDummyData(stage.foreground_objects[0]);
+  EXPECT_FALSE(stage.AnimationsPlaying());
+}
+
+TEST_F(StageTest, RenderObjectsSortsFiltersAndReusesScratch) {
+  Stage stage(4);
+  std::vector<int> rendered;
+
+  auto prepare = [&](int slot, int order, int layer, int depth) {
+    GraphicsObject& object = stage.foreground_objects[slot];
+    SetRecordingData(object, &rendered, slot);
+    object.Param().SetVisible(1);
+    object.Param().z_order = order;
+    object.Param().z_layer = layer;
+    object.Param().z_depth = depth;
+  };
+
+  prepare(0, 2, 0, 0);
+  prepare(1, 1, 9, 0);
+  prepare(2, 1, 1, 0);
+  prepare(3, 3, 0, 0);
+
+  stage.RenderObjects([](size_t slot, const GraphicsObject&) {
+    return slot != 1;
+  });
+
+  EXPECT_EQ(rendered, std::vector<int>({2, 0, 3}));
+
+  rendered.clear();
+  stage.RenderObjects([](size_t slot, const GraphicsObject&) {
+    return slot == 3;
+  });
+
+  EXPECT_EQ(rendered, std::vector<int>({3}));
+}
 
 TEST_F(StageTest, ConstructorAndResetIncludeNextObjects) {
   Stage stage(3);

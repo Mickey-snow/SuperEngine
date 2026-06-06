@@ -54,6 +54,10 @@ EventSystem& GetSystemObj(RLMachine& machine);
 template <>
 GraphicsSystem& GetSystemObj(RLMachine& machine);
 
+// Equivalent to machine.stage().
+template <>
+Stage& GetSystemObj(RLMachine& machine);
+
 // Equivalent to machine.system().text().
 template <>
 TextSystem& GetSystemObj(RLMachine& machine);

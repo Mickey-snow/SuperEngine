@@ -35,6 +35,7 @@
 #include "modules/module_obj.hpp"
 #include "core/object_internal/drawer/parent.hpp"
 #include "core/object.hpp"
+#include "core/stage.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
 
@@ -44,19 +45,19 @@ namespace {
 
 struct objCopyFgToBg_0 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int buf) {
-    GraphicsSystem& sys = machine.GetSystem().graphics();
-    GraphicsObject& go = sys.GetObject(OBJ_FG, buf);
-    sys.SetObject(OBJ_BG, buf, go.Clone());
+    Stage& stage = machine.stage();
+    GraphicsObject& go = stage.GetObject(OBJ_FG, buf);
+    stage.SetObject(OBJ_BG, buf, go.Clone());
   }
 };
 
 struct objCopyFgToBg_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int start, int end) {
-    GraphicsSystem& sys = machine.GetSystem().graphics();
+    Stage& stage = machine.stage();
 
     for (int i = start; i <= end; ++i) {
-      GraphicsObject& go = sys.GetObject(OBJ_FG, i);
-      sys.SetObject(OBJ_BG, i, go.Clone());
+      GraphicsObject& go = stage.GetObject(OBJ_FG, i);
+      stage.SetObject(OBJ_BG, i, go.Clone());
     }
   }
 };
@@ -66,9 +67,9 @@ struct objCopy : public RLOpcode<IntConstant_T, IntConstant_T> {
   objCopy(int from, int to) : from_fgbg_(from), to_fgbg_(to) {}
 
   void operator()(RLMachine& machine, int sbuf, int dbuf) {
-    GraphicsSystem& sys = machine.GetSystem().graphics();
-    GraphicsObject& go = sys.GetObject(from_fgbg_, sbuf);
-    sys.SetObject(to_fgbg_, dbuf, go.Clone());
+    Stage& stage = machine.stage();
+    GraphicsObject& go = stage.GetObject(from_fgbg_, sbuf);
+    stage.SetObject(to_fgbg_, dbuf, go.Clone());
   }
 };
 
@@ -155,15 +156,16 @@ struct objChildCopy : public RLOpcode<IntConstant_T, IntConstant_T> {
   explicit objChildCopy(int fgbg) : fgbg_(fgbg) {}
 
   void operator()(RLMachine& machine, int sbuf, int dbuf) {
-    GraphicsSystem& sys = machine.GetSystem().graphics();
+    GraphicsSystem& graphics = machine.GetSystem().graphics();
+    Stage& stage = machine.stage();
 
     // By the time we enter this method, our parameters have already been
     // tampered with by the ChildObjAdaptor. So use P_PARENTOBJ as our toplevel
     // object.
     int parentobj;
     if (GetProperty(P_PARENTOBJ, parentobj)) {
-      GraphicsObject& go = sys.GetObject(fgbg_, parentobj);
-      EnsureIsParentObject(go, sys.GetObjectLayerSize());
+      GraphicsObject& go = stage.GetObject(fgbg_, parentobj);
+      EnsureIsParentObject(go, graphics.GetObjectLayerSize());
 
       // Pick out the object data.
       ParentGraphicsObjectData& parent =
@@ -177,17 +179,17 @@ struct objChildCopy : public RLOpcode<IntConstant_T, IntConstant_T> {
 
 struct objFreeInit : public RLOpcode<IntConstant_T> {
   virtual void operator()(RLMachine& machine, int buf) {
-    GraphicsSystem& sys = machine.GetSystem().graphics();
-    sys.FreeObjectData(buf);
-    sys.InitializeObjectParams(buf);
+    Stage& stage = machine.stage();
+    stage.FreeObjectData(buf);
+    stage.InitializeObjectParams(buf);
   }
 };
 
 struct objFgBgFreeInitAll : public RLOpcode<> {
   virtual void operator()(RLMachine& machine) override {
-    GraphicsSystem& sys = machine.GetSystem().graphics();
-    sys.FreeAllObjectData();
-    sys.InitializeAllObjectParams();
+    Stage& stage = machine.stage();
+    stage.FreeAllObjectData();
+    stage.InitializeAllObjectParams();
   }
 };
 
@@ -196,10 +198,10 @@ struct objFgBgFreeInitAll : public RLOpcode<> {
 // -----------------------------------------------------------------------
 
 ObjManagement::ObjManagement() : RLModule("ObjManagement", 1, 60) {
-  AddOpcode(0, 0, "objFree", CallFunction(&GraphicsSystem::FreeObjectData));
+  AddOpcode(0, 0, "objFree", CallFunction(&Stage::FreeObjectData));
   AddOpcode(0, 1, "objFree",
             RangeMappingFun(std::shared_ptr<RLOperation>(
-                CallFunction(&GraphicsSystem::FreeObjectData))));
+                CallFunction(&Stage::FreeObjectData))));
 
   // TODO: This needs to be reverse engineered. It doesn't seem to be quite
   // equivalent to objWipeCopyOff.
@@ -209,19 +211,18 @@ ObjManagement::ObjManagement() : RLModule("ObjManagement", 1, 60) {
   AddOpcode(2, 1, "objCopyFgToBg", new objCopyFgToBg_1);
 
   AddOpcode(10, 0, "objInit",
-            CallFunction(&GraphicsSystem::InitializeObjectParams));
+            CallFunction(&Stage::InitializeObjectParams));
   AddOpcode(10, 1, "objInit",
             RangeMappingFun(std::shared_ptr<RLOperation>(
-                CallFunction(&GraphicsSystem::InitializeObjectParams))));
+                CallFunction(&Stage::InitializeObjectParams))));
 
   AddOpcode(11, 0, "objFreeInit", new objFreeInit);
   AddOpcode(11, 1, "objFreeInit",
             RangeMappingFun(std::make_shared<objFreeInit>()));
 
-  AddOpcode(100, 0, "objFreeAll",
-            CallFunction(&GraphicsSystem::FreeAllObjectData));
+  AddOpcode(100, 0, "objFreeAll", CallFunction(&Stage::FreeAllObjectData));
   AddOpcode(110, 0, "objInitAll",
-            CallFunction(&GraphicsSystem::InitializeAllObjectParams));
+            CallFunction(&Stage::InitializeAllObjectParams));
   AddOpcode(111, 0, "objFreeInitAll", new objFgBgFreeInitAll);
 }
 

@@ -38,6 +38,7 @@
 #include "core/object_internal/drawer/gan.hpp"
 #include "core/object_internal/drawer/parent.hpp"
 #include "core/object.hpp"
+#include "core/stage.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
 
@@ -50,7 +51,7 @@ struct objWaitAll : public RLOpcode<> {
     // Clannad puts us in DrawManual() right before calling us so we force
     // refreshes.
     machine.GetSystem().graphics().ForceRefresh();
-    return !machine.GetSystem().graphics().AnimationsPlaying();
+    return !machine.stage().AnimationsPlaying();
   }
 
   void operator()(RLMachine& machine) {
@@ -100,14 +101,15 @@ struct WaitForGanToFinish : public LongOperation {
 
   GraphicsObject& GetObject(RLMachine& machine) {
     GraphicsSystem& graphics = machine.GetSystem().graphics();
+    Stage& stage = machine.stage();
 
     if (parent_ != -1) {
-      GraphicsObject& parent = graphics.GetObject(fgbg_, parent_);
+      GraphicsObject& parent = stage.GetObject(fgbg_, parent_);
       EnsureIsParentObject(parent, graphics.GetObjectLayerSize());
       return static_cast<ParentGraphicsObjectData&>(parent.GetObjectData())
           .GetObject(buf_);
     } else {
-      return graphics.GetObject(fgbg_, buf_);
+      return stage.GetObject(fgbg_, buf_);
     }
   }
 

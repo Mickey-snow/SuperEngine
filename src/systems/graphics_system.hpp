@@ -326,34 +326,9 @@ class GraphicsSystem : public EventListener {
   // rendered.
   void RenderObjects();
 
-  // Object getters
-  // layer == 0 for fg, layer == 1 for bg.
-  GraphicsObject& GetObject(int layer, int obj_number);
-  size_t GetFreeObjectId(int layer);
-  void SetObject(int layer, int obj_number, GraphicsObject&& object);
-
-  // Remove the entire graphics object
-  void RemoveObject(int layer, size_t obj_number);
-
-  // Frees the object data (but not the parameters).
-  void FreeObjectData(int obj_number);
-  void FreeAllObjectData();
-
-  // Resets/reinitializes all the object parameters without deleting the loaded
-  // graphics object data.
-  void InitializeObjectParams(int obj_number);
-  void InitializeAllObjectParams();
-
   // The number of objects in a layer for this game. Defaults to 256 and can be
   // overridden with #OBJECT_MAX.
   int GetObjectLayerSize();
-
-  LazyArray<GraphicsObject>& GetBackgroundObjects();
-  LazyArray<GraphicsObject>& GetForegroundObjects();
-  LazyArray<GraphicsObject>& GetNextObjects();
-
-  // Returns true if there's a currently playing animation.
-  bool AnimationsPlaying() const;
 
   std::shared_ptr<SDLSurface> GetHaikei();
 
@@ -521,15 +496,6 @@ class GraphicsSystem : public EventListener {
 
   // Possible background script which drives graphics to the screen.
   std::unique_ptr<HIKRenderer> hik_renderer_;
-
-  // Tuple used in RenderObjects(). Causes about a half megabyte of allocator
-  // churn per minute if we try to allocate it every time.
-  //
-  // The tuple is order, layer, depth, objid, GraphicsObject. Tuples are easy
-  // to sort.
-  typedef std::vector<std::tuple<int, int, int, int, GraphicsObject*>>
-      ToRenderVec;
-  ToRenderVec to_render_;
 
   std::shared_ptr<SDLSurface> haikei_;
   std::shared_ptr<SDLSurface> display_contexts_[16];

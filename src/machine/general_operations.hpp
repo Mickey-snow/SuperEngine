@@ -38,6 +38,7 @@
 class System;
 class EventSystem;
 class GraphicsSystem;
+class Stage;
 class TextPage;
 class TextSystem;
 class SoundSystem;
