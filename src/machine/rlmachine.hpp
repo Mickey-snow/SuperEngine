@@ -25,6 +25,13 @@
 
 #pragma once
 
+#include "core/kidoku_table.hpp"
+#include "machine/call_stack.hpp"
+#include "machine/instruction.hpp"
+#include "machine/iscriptor.hpp"
+#include "machine/module_manager.hpp"
+#include "machine/rlenvironment.hpp"
+
 #include <boost/serialization/split_member.hpp>
 
 #include <functional>
@@ -34,13 +41,6 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-
-#include "core/kidoku_table.hpp"
-#include "machine/call_stack.hpp"
-#include "machine/instruction.hpp"
-#include "machine/iscriptor.hpp"
-#include "machine/module_manager.hpp"
-#include "machine/rlenvironment.hpp"
 
 namespace libreallive {
 class IntMemRef;
@@ -56,6 +56,7 @@ struct StackFrame;
 class EventListener;
 class Debugger;
 struct LongopListenerAdapter;
+class rlSceneRenderer;
 
 // The RealLive virtual machine implementation. This class is the main user
 // facing class which contains all state regarding integer/string memory, flow
@@ -251,6 +252,8 @@ class RLMachine {
 
   std::unique_ptr<Stage> stage_;
   std::unique_ptr<Haikei> haikei_;
+
+  std::shared_ptr<rlSceneRenderer> renderer_;
 
   RLEnvironment env_;
 

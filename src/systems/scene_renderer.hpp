@@ -4,7 +4,7 @@
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2025 Serina Sakurai
+// Copyright (C) 2026 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,10 +22,15 @@
 //
 // -----------------------------------------------------------------------
 
-#include "libsiglus/siglus_runtime.hpp"
+#pragma once
 
-namespace libsiglus {
+// Runtime-specific scene policy. GraphicsSystem owns the reusable frame
+// presentation machinery; implementations decide what scene state is advanced
+// and drawn for a particular VM/runtime.
+class ISceneRenderer {
+ public:
+  virtual ~ISceneRenderer() = default;
 
-SiglusRuntime::~SiglusRuntime() = default;
-
-}  // namespace libsiglus
+  virtual void ExecuteFrame() = 0;
+  virtual void RenderScene() = 0;
+};

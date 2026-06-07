@@ -45,6 +45,7 @@ class Archive;
 namespace binding {
 class SiglusMwnd;
 }
+class SiglusSceneRenderer;
 
 struct SiglusRuntime {
   std::filesystem::path base_pth, save_pth;
@@ -61,6 +62,7 @@ struct SiglusRuntime {
 
   std::shared_ptr<Gameexe> local_config, global_config;
 
+  std::shared_ptr<SiglusSceneRenderer> renderer;
   std::function<void()> exec_sdl_callback;
 
   SiglusRuntime() = default;

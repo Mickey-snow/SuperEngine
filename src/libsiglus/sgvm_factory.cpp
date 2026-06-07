@@ -26,15 +26,16 @@
 #include "libsiglus/bindings/loader.hpp"
 #include "libsiglus/bindings/registry.hpp"
 
+#include "core/object.hpp"
+#include "core/stage.hpp"
 #include "libsiglus/archive.hpp"
 #include "libsiglus/gexedat.hpp"
 #include "libsiglus/intern_name.hpp"
 #include "libsiglus/siglus_runtime.hpp"
+#include "libsiglus/siglus_scene_renderer.hpp"
 #include "log/domain_logger.hpp"
 #include "m6/vm_factory.hpp"
 #include "srbind/module.hpp"
-#include "core/object.hpp"
-#include "core/stage.hpp"
 #include "systems/event_system.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
@@ -87,13 +88,6 @@ inline void dbg_print(std::string str) {
   std::cerr << "[TRACE] " << str << std::endl;
 }
 
-void PumpSiglusGraphics(System& system, Stage& stage) {
-  GraphicsSystem& graphics = system.graphics();
-  stage.Execute();
-  graphics.RenderFrame(true);
-  system.event().ExecuteEventSystem();
-}
-
 SiglusRuntime SGVMFactory::Create() {
   SiglusRuntime rt;
   rt.vm = std::make_unique<sr::VM>(m6::VMFactory::Create());
@@ -124,7 +118,8 @@ SiglusRuntime SGVMFactory::Create() {
   rt.system = std::make_unique<System>(gexe, rt.asset_scanner);
   rt.stage =
       std::make_unique<Stage>(rt.system->graphics().GetObjectLayerSize());
-  rt.system->graphics().BindStage(rt.stage.get());
+  rt.renderer = std::make_shared<SiglusSceneRenderer>(*rt.stage, *rt.system);
+  rt.system->graphics().BindSceneRenderer(rt.renderer);
 
   for (auto it = binding::SiglusBindingRegistry::cbegin();
        it != binding::SiglusBindingRegistry::cend(); ++it) {
@@ -186,14 +181,13 @@ SiglusRuntime SGVMFactory::Create() {
 
   // abuse the vm scheduler to refresh sdl regularly
   auto cb_holder = std::make_shared<std::function<void()>>();
-  *cb_holder = [cb_holder, vm = rt.vm.get(), system = rt.system.get(),
-                stage = rt.stage.get()]() {
+  *cb_holder = [cb_holder, vm = rt.vm.get(), system = rt.system.get()]() {
     constexpr auto period =
         chr::duration_cast<chr::steady_clock::duration>(chr::seconds(1)) / 60;
 
     auto next = chr::steady_clock::now() + period;
     vm->scheduler_.PushCallbackAt(*cb_holder, next);
-    PumpSiglusGraphics(*system, *stage);
+    system->Run();
   };
   rt.exec_sdl_callback = [cb_holder]() { (*cb_holder)(); };
   rt.vm->scheduler_.PushCallbackAfter(rt.exec_sdl_callback,

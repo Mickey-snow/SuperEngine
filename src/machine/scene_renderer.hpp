@@ -4,7 +4,7 @@
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2025 Serina Sakurai
+// Copyright (C) 2006, 2007 Elliot Glaysher
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,10 +22,24 @@
 //
 // -----------------------------------------------------------------------
 
-#include "libsiglus/siglus_runtime.hpp"
+#pragma once
 
-namespace libsiglus {
+#include "systems/scene_renderer.hpp"
 
-SiglusRuntime::~SiglusRuntime() = default;
+#include <cstddef>
 
-}  // namespace libsiglus
+class RLMachine;
+class GraphicsObject;
+
+class rlSceneRenderer final : public ISceneRenderer {
+ public:
+  rlSceneRenderer(RLMachine& machine);
+
+  void ExecuteFrame() override;
+  void RenderScene() override;
+
+ private:
+  bool ShouldRenderObject(size_t obj_number, const GraphicsObject& object);
+
+  RLMachine& machine_;
+};

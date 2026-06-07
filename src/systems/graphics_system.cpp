@@ -52,6 +52,7 @@
 #include "systems/igraphics_backend.hpp"
 #include "systems/object_settings.hpp"
 #include "systems/renderable.hpp"
+#include "systems/scene_renderer.hpp"
 #include "systems/sdl/sdl_surface.hpp"
 #include "systems/system.hpp"
 #include "systems/system_error.hpp"
@@ -218,42 +219,6 @@ GraphicsSystem::~GraphicsSystem() = default;
 
 // -----------------------------------------------------------------------
 
-void GraphicsSystem::BindStage(Stage* stage) { stage_ = stage; }
-
-// -----------------------------------------------------------------------
-
-void GraphicsSystem::BindHaikei(Haikei* haikei) { haikei_ = haikei; }
-
-// -----------------------------------------------------------------------
-
-Stage& GraphicsSystem::BoundStage() {
-  if (!stage_)
-    throw std::runtime_error("GraphicsSystem requires a bound stage");
-  return *stage_;
-}
-
-Stage& GraphicsSystem::BoundStage() const {
-  if (!stage_)
-    throw std::runtime_error("GraphicsSystem requires a bound stage");
-  return *stage_;
-}
-
-// -----------------------------------------------------------------------
-
-Haikei& GraphicsSystem::BoundHaikei() {
-  if (!haikei_)
-    throw std::runtime_error("GraphicsSystem requires a bound haikei");
-  return *haikei_;
-}
-
-Haikei& GraphicsSystem::BoundHaikei() const {
-  if (!haikei_)
-    throw std::runtime_error("GraphicsSystem requires a bound haikei");
-  return *haikei_;
-}
-
-// -----------------------------------------------------------------------
-
 void GraphicsSystem::ForceRefresh() {
   screen_needs_refresh_ = true;
 
@@ -392,27 +357,8 @@ const ObjectSettings& GraphicsSystem::GetObjectSettings(const int obj_num) {
 // -----------------------------------------------------------------------
 
 void GraphicsSystem::DrawFrame() {
-  Haikei& haikei = BoundHaikei();
-  switch (haikei.background_type()) {
-    case BACKGROUND_DC0: {
-      // Display DC0
-      haikei.GetDC(0)->RenderToScreen(screen_rect(), screen_rect(), 255);
-      break;
-    }
-    case BACKGROUND_HIK: {
-      if (HIKRenderer* renderer = haikei.hik_renderer()) {
-        renderer->Render();
-      } else {
-        haikei.GetHaikei()->RenderToScreen(screen_rect(), screen_rect(), 255);
-      }
-    }
-  }
-
-  RenderObjects();
-
-  // Render text
-  if (!is_interface_hidden())
-    system().text().Render();
+  if (auto renderer = scene_renderer_.lock())
+    renderer->RenderScene();
 }
 
 // -----------------------------------------------------------------------
@@ -426,6 +372,7 @@ void GraphicsSystem::RenderFrame(bool should_refresh) {
 
   auto draw_scene = [this]() { DrawFrame(); };
   auto draw_renderables = [this]() {
+    // TODO: Move this to RLMachine
     std::erase_if(final_renderers_, [](std::weak_ptr<Renderable> wp) {
       std::shared_ptr<Renderable> renderable = wp.lock();
       if (!renderable)
@@ -534,6 +481,9 @@ std::string GraphicsSystem::ComposeWindowTitle() const {
 // -----------------------------------------------------------------------
 
 void GraphicsSystem::ExecuteGraphicsSystem() {
+  if (auto renderer = scene_renderer_.lock())
+    renderer->ExecuteFrame();
+
   if (mouse_cursor_)
     mouse_cursor_->Execute();
 
@@ -717,26 +667,6 @@ std::shared_ptr<SDLSurface> GraphicsSystem::GetSurfaceNamed(
 
 int GraphicsSystem::GetObjectLayerSize() {
   return graphics_object_settings_->objects_in_a_layer;
-}
-
-// -----------------------------------------------------------------------
-
-void GraphicsSystem::RenderObjects() {
-  BoundStage().RenderObjects(
-      [this](size_t obj_number, const GraphicsObject&) -> bool {
-        const ObjectSettings& settings =
-            GetObjectSettings(static_cast<int>(obj_number));
-        if (settings.obj_on_off == 1 && should_show_object1() == false)
-          return false;
-        else if (settings.obj_on_off == 2 && should_show_object2() == false)
-          return false;
-        else if (settings.weather_on_off && should_show_weather() == false)
-          return false;
-        else if (settings.space_key && is_interface_hidden())
-          return false;
-
-        return true;
-      });
 }
 
 // -----------------------------------------------------------------------

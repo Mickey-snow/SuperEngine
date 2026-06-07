@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //
-// This file is part of RLVM, a RealLive virtual machine clone.
+// This file is part of RLVM
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2025 Serina Sakurai
+// Copyright (C) 2026 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,13 +19,26 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
-//
 // -----------------------------------------------------------------------
 
-#include "libsiglus/siglus_runtime.hpp"
+#include "libsiglus/siglus_scene_renderer.hpp"
+
+#include "core/stage.hpp"
+#include "systems/graphics_system.hpp"
+#include "systems/system.hpp"
+#include "systems/text_system.hpp"
 
 namespace libsiglus {
 
-SiglusRuntime::~SiglusRuntime() = default;
+SiglusSceneRenderer::SiglusSceneRenderer(Stage& stage, System& system)
+    : stage_(stage), system_(system) {}
+
+void SiglusSceneRenderer::ExecuteFrame() { stage_.Execute(); }
+
+void SiglusSceneRenderer::RenderScene() {
+  stage_.RenderObjects(nullptr);
+  if (!system_.graphics().is_interface_hidden())
+    system_.text().Render();
+}
 
 }  // namespace libsiglus

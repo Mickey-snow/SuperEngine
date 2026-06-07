@@ -38,6 +38,7 @@
 #include "machine/reallive_dll.hpp"
 #include "machine/rlmodule.hpp"
 #include "machine/rloperation.hpp"
+#include "machine/scene_renderer.hpp"
 #include "machine/serialization.hpp"
 #include "machine/stack_frame.hpp"
 #include "systems/event_system.hpp"
@@ -53,6 +54,7 @@
 #include <format>
 #include <functional>
 #include <iterator>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -76,7 +78,6 @@ RLMachine::RLMachine(std::shared_ptr<System> system,
 
   if (system) {
     stage_ = std::make_unique<Stage>(system->graphics().GetObjectLayerSize());
-    system->graphics().BindStage(stage_.get());
     auto backend = system->graphics().GetBackend();
     haikei_ = std::make_unique<Haikei>(
         system->graphics().screen_size(),
@@ -85,7 +86,9 @@ RLMachine::RLMachine(std::shared_ptr<System> system,
           return GetSystem().graphics().GetSurfaceNamed(name);
         },
         system->event().GetClock());
-    system->graphics().BindHaikei(haikei_.get());
+
+    renderer_ = std::make_shared<rlSceneRenderer>(*this);
+    system->graphics().BindSceneRenderer(renderer_);
 
     // Setup runtime environment
     env_.InitFrom(system->gameexe());
@@ -95,13 +98,9 @@ RLMachine::RLMachine(std::shared_ptr<System> system,
   }
 }
 
-RLMachine::~RLMachine() {
-  GetSystem().graphics().BindHaikei(nullptr);
-  GetSystem().graphics().BindStage(nullptr);
-}
+RLMachine::~RLMachine() = default;
 
 void RLMachine::Update() {
-  stage_->Execute();
   system_.Run();
 }
 

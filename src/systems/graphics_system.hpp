@@ -50,6 +50,7 @@
 
 class AssetScanner;
 class IGraphicsBackend;
+class ISceneRenderer;
 class Gameexe;
 class GraphicsObject;
 class GraphicsObjectData;
@@ -172,8 +173,9 @@ class GraphicsSystem : public EventListener {
 
   inline System& system() { return system_; }
 
-  void BindStage(Stage* stage);
-  void BindHaikei(Haikei* haikei);
+  inline void BindSceneRenderer(std::weak_ptr<ISceneRenderer> scene_renderer) {
+    scene_renderer_ = std::move(scene_renderer);
+  }
 
   // Screen Shaking
 
@@ -310,10 +312,6 @@ class GraphicsSystem : public EventListener {
   std::shared_ptr<SDLSurface> GetSurfaceNamed(
       const std::string& short_filename);
 
-  // Calls render() on all foreground objects that need to be
-  // rendered.
-  void RenderObjects();
-
   // The number of objects in a layer for this game. Defaults to 256 and can be
   // overridden with #OBJECT_MAX.
   int GetObjectLayerSize();
@@ -399,14 +397,6 @@ class GraphicsSystem : public EventListener {
   // Immutable global data that's constructed from the Gameexe.ini file.
   std::unique_ptr<GraphicsObjectSettings> graphics_object_settings_;
 
-  Stage& BoundStage();
-  Stage& BoundStage() const;
-  Haikei& BoundHaikei();
-  Haikei& BoundHaikei() const;
-
-  Stage* stage_ = nullptr;
-  Haikei* haikei_ = nullptr;
-
   // Whether we should use a custom mouse cursor. Set while parsing the Gameexe
   // file, and then left unchanged. We only use a custom mouse cursor if
   // \#MOUSE_CURSOR is set in the Gameexe
@@ -437,6 +427,10 @@ class GraphicsSystem : public EventListener {
 
   // A set of renderers
   std::vector<std::weak_ptr<Renderable>> final_renderers_;
+
+  // Runtime-specific scene renderer. GraphicsSystem owns frame presentation,
+  // while this object owns scene traversal and draw order.
+  std::weak_ptr<ISceneRenderer> scene_renderer_;
 
   // Our parent system object.
   System& system_;
