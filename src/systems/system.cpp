@@ -36,18 +36,17 @@
 #include "machine/serialization.hpp"
 #include "modules/jump.hpp"
 #include "modules/module_sys.hpp"
+#include "systems/event_system.hpp"
 #include "systems/graphics_system.hpp"
-#include "systems/platform.hpp"
 #include "systems/rlvm_info.hpp"
+#include "systems/sdl/event_backend.hpp"
+#include "systems/sdl/graphics_backend.hpp"
+#include "systems/sdl/sdl_surface.hpp"
+#include "systems/sdl/sound_implementor.hpp"
+#include "systems/sdl/text_implementor.hpp"
 #include "systems/sound_system.hpp"
 #include "systems/system_error.hpp"
 #include "systems/text_system.hpp"
-#include "systems/event_system.hpp"
-#include "systems/sdl/event_backend.hpp"
-#include "systems/sdl/graphics_backend.hpp"
-#include "systems/sdl/sound_implementor.hpp"
-#include "systems/sdl/text_implementor.hpp"
-#include "systems/sdl/sdl_surface.hpp"
 #include "utilities/exception.hpp"
 #include "utilities/string_utilities.hpp"
 #include "version.h"
@@ -131,8 +130,7 @@ System::System(Gameexe& gameexe, std::shared_ptr<AssetScanner> scanner)
       std::make_shared<TextSystem>(*this, gameexe, std::move(text_impl));
 
   auto sound_impl = std::make_unique<SDLSoundImpl>();
-  sound_system_ =
-      std::make_shared<SoundSystem>(*this, std::move(sound_impl));
+  sound_system_ = std::make_shared<SoundSystem>(*this, std::move(sound_impl));
 
   event_system_->AddListener(graphics_system_);
   event_system_->AddListener(text_system_);
@@ -141,21 +139,12 @@ System::System(Gameexe& gameexe, std::shared_ptr<AssetScanner> scanner)
 }
 
 System::~System() {
-  // Some combinations of SDL and FT on the Mac require us to destroy the
-  // Platform first. This will crash on Tiger if this isn't here, but it won't
-  // crash under Linux.
-  platform_.reset();
-
   sound_system_.reset();
   graphics_system_.reset();
   event_system_.reset();
   text_system_.reset();
 
   SDL_Quit();
-}
-
-void System::SetPlatform(const std::shared_ptr<Platform>& platform) {
-  platform_ = platform;
 }
 
 void System::TakeSelectionSnapshot(RLMachine& machine) {
@@ -251,8 +240,6 @@ void System::ShowSyscomMenu(RLMachine& machine) {
       const std::vector<int> cancelcall = gexe("CANCELCALL").ToIntVec();
       Farcall(machine, cancelcall.at(0), cancelcall.at(1));
     }
-  } else if (platform_) {
-    platform_->ShowNativeSyscomMenu(machine);
   } else {
     std::cerr << "(We don't deal with non-custom SYSCOM calls yet.)"
               << std::endl;
@@ -280,8 +267,6 @@ void System::InvokeSyscom(RLMachine& machine, int syscom) {
     case SYSCOM_AUTO_MODE_SETTINGS:
     case SYSCOM_USE_KOE:
     case SYSCOM_DISPLAY_VERSION: {
-      if (platform_)
-        platform_->InvokeSyscomStandardUI(machine, syscom);
       break;
     }
     case SYSCOM_RETURN_TO_PREVIOUS_SELECTION:
@@ -367,14 +352,11 @@ bool System::ShouldFastForward() {
          text().CurrentlySkipping() || force_fast_forward_;
 }
 
-void System::Run(RLMachine& machine) {
+void System::Run() {
   event_system_->ExecuteEventSystem();
   text_system_->ExecuteTextSystem();
   sound_system_->ExecuteSoundSystem();
-  graphics_system_->ExecuteGraphicsSystem(machine);
-
-  if (platform())
-    platform()->Run(machine);
+  graphics_system_->ExecuteGraphicsSystem();
 }
 
 SoundSystem& System::sound() { return *sound_system_; }
@@ -414,8 +396,6 @@ void System::InvokeSaveOrLoad(RLMachine& machine,
     text().set_system_visible(false);
     machine.PushLongOperation(std::make_shared<RestoreTextSystemVisibility>());
     Farcall(machine, scenario, entrypoint);
-  } else if (platform_) {
-    platform_->InvokeSyscomStandardUI(machine, syscom);
   }
 }
 

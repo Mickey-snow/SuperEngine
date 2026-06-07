@@ -24,6 +24,11 @@
 
 #include "core/haikei.hpp"
 
+#include "core/colour.hpp"
+#include "core/hik.hpp"
+#include "libreallive/alldefs.hpp"
+#include "systems/sdl/sdl_surface.hpp"
+
 #include <algorithm>
 #include <cassert>
 #include <format>
@@ -32,11 +37,6 @@
 #include <stdexcept>
 #include <utility>
 #include <vector>
-
-#include "core/colour.hpp"
-#include "core/hik.hpp"
-#include "libreallive/alldefs.hpp"
-#include "systems/sdl/sdl_surface.hpp"
 
 namespace fs = std::filesystem;
 

@@ -835,8 +835,7 @@ struct fill_3
 
 struct invert_1 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int dc) {
-    std::shared_ptr<SDLSurface> surface =
-        machine.haikei().GetDC(dc);
+    std::shared_ptr<SDLSurface> surface = machine.haikei().GetDC(dc);
     surface->Apply(InvertColor);
   }
 };
@@ -850,8 +849,7 @@ struct invert_3 : public RLOpcode<Rect_T<SPACE>, IntConstant_T> {
 
 struct mono_1 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int dc) {
-    std::shared_ptr<SDLSurface> surface =
-        machine.haikei().GetDC(dc);
+    std::shared_ptr<SDLSurface> surface = machine.haikei().GetDC(dc);
     surface->Apply(ToGrayscale);
   }
 };
@@ -865,8 +863,7 @@ struct mono_3 : public RLOpcode<Rect_T<SPACE>, IntConstant_T> {
 
 struct colour_1 : public RLOpcode<IntConstant_T, RGBColour_T> {
   void operator()(RLMachine& machine, int dc, RGBAColour colour) {
-    std::shared_ptr<SDLSurface> surface =
-        machine.haikei().GetDC(dc);
+    std::shared_ptr<SDLSurface> surface = machine.haikei().GetDC(dc);
     surface->Apply(ApplyColorTransformer(colour.rgb()));
   }
 };
@@ -874,16 +871,14 @@ struct colour_1 : public RLOpcode<IntConstant_T, RGBColour_T> {
 template <typename SPACE>
 struct colour_2 : public RLOpcode<Rect_T<SPACE>, IntConstant_T, RGBColour_T> {
   void operator()(RLMachine& machine, Rect rect, int dc, RGBAColour colour) {
-    std::shared_ptr<SDLSurface> surface =
-        machine.haikei().GetDC(dc);
+    std::shared_ptr<SDLSurface> surface = machine.haikei().GetDC(dc);
     surface->Apply(ApplyColorTransformer(colour.rgb()), rect);
   }
 };
 
 struct light_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int dc, int level) {
-    std::shared_ptr<SDLSurface> surface =
-        machine.haikei().GetDC(dc);
+    std::shared_ptr<SDLSurface> surface = machine.haikei().GetDC(dc);
     surface->Apply(ApplyColorTransformer(RGBColour(level, level, level)));
   }
 };
@@ -891,8 +886,7 @@ struct light_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
 template <typename SPACE>
 struct light_2 : public RLOpcode<Rect_T<SPACE>, IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, Rect rect, int dc, int level) {
-    std::shared_ptr<SDLSurface> surface =
-        machine.haikei().GetDC(dc);
+    std::shared_ptr<SDLSurface> surface = machine.haikei().GetDC(dc);
     surface->Apply(ApplyColorTransformer(RGBColour(level, level, level)), rect);
   }
 };
@@ -999,9 +993,9 @@ struct zoom : public RLOpcode<Rect_T<SPACE>,
     Haikei& haikei = machine.haikei();
     haikei.set_graphics_background(BACKGROUND_DC0);
 
-    LongOperation* zoomOp = new ZoomLongOperation(
-        machine, haikei.GetDC(0), haikei.GetDC(srcDC), frect, trect, drect,
-        time);
+    LongOperation* zoomOp =
+        new ZoomLongOperation(machine, haikei.GetDC(0), haikei.GetDC(srcDC),
+                              frect, trect, drect, time);
     auto blitOp = std::make_shared<BlitAfterEffectFinishes>(
         zoomOp, haikei.GetDC(srcDC), haikei.GetDC(0), trect, drect);
     machine.PushLongOperation(blitOp);

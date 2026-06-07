@@ -25,7 +25,6 @@
 
 #include "core/gameexe.hpp"
 #include "core/memory.hpp"
-#include "core/stage.hpp"
 #include "libreallive/game_loader.hpp"
 #include "log/domain_logger.hpp"
 #include "machine/rlmachine.hpp"
@@ -75,8 +74,7 @@ void RLVMInstance::Main(const std::filesystem::path& gameroot) {
     while (!machine_->IsHalted()) {
       // Give SDL a chance to respond to events, redraw the screen,
       // etc.
-      machine_->stage().Execute();
-      system_->Run(*machine_);
+      machine_->Update();
 
       constexpr auto frame_time = std::chrono::seconds(1) / 144.0;
       auto start = clock.GetTime();

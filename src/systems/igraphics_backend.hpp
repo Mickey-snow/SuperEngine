@@ -55,10 +55,9 @@ class IGraphicsBackend {
 
   virtual std::shared_ptr<SDLSurface> CreateSurface(Size size) = 0;
   virtual std::shared_ptr<SDLSurface> CreateSurfaceBGRA(Size size,
-                                                     std::span<char> bgra,
-                                                     bool is_alpha_mask) = 0;
+                                                        std::span<char> bgra,
+                                                        bool is_alpha_mask) = 0;
 
-  [[deprecated]]
   virtual std::shared_ptr<SDLSurface> LoadSurface(
       const std::filesystem::path& path) = 0;
   virtual std::shared_ptr<Album> LoadAlbum(

@@ -47,7 +47,6 @@ class SoundSystem;
 class RLMachine;
 class Gameexe;
 class GameexeInterpretObject;
-class Platform;
 class RLEventListener;
 
 // Syscom Constants
@@ -128,9 +127,6 @@ class System {
 
   bool low_priority() const { return globals_.low_priority_; }
   void set_low_priority(const int in) { globals_.low_priority_ = in; }
-
-  std::shared_ptr<Platform> platform() { return platform_; }
-  void SetPlatform(const std::shared_ptr<Platform>& platform);
 
   // Whether we're currently forcing fast forward (only used during game tests
   // to zoom through).
@@ -236,7 +232,7 @@ class System {
   bool ShouldFastForward();
 
   // Called once per gameloop.
-  void Run(RLMachine& machine);
+  void Run();
 
   inline RLEventListener& rlEvent() { return *rlevent_handler_; }
   inline std::shared_ptr<AssetScanner> GetAssetScanner() { return assets_; }
@@ -253,8 +249,6 @@ class System {
   RLMachine* machine_ = nullptr;
 
  private:
-  // Native widget drawer. Can be NULL. Destroyed before SDL teardown.
-  std::shared_ptr<Platform> platform_;
   std::shared_ptr<RLEventListener> rlevent_handler_;
 
   std::filesystem::path GetHomeDirectory();

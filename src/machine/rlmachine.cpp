@@ -100,6 +100,11 @@ RLMachine::~RLMachine() {
   GetSystem().graphics().BindStage(nullptr);
 }
 
+void RLMachine::Update() {
+  stage_->Execute();
+  system_.Run();
+}
+
 Stage& RLMachine::stage() { return *stage_; }
 
 const Stage& RLMachine::stage() const { return *stage_; }

@@ -67,6 +67,8 @@ class RLMachine {
             std::unique_ptr<Memory> memory = nullptr);
   virtual ~RLMachine();
 
+  void Update();
+
   // Returns whether the machine is halted. When the machine is
   // halted, no more instruction may be executed, either because it
   // ran off the end of a scenario, or because the end() or halt()

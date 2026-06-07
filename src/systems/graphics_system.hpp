@@ -289,7 +289,7 @@ class GraphicsSystem : public EventListener {
 
   // Called from the game loop; Does everything that's needed to keep
   // things up.
-  void ExecuteGraphicsSystem(RLMachine& machine);
+  void ExecuteGraphicsSystem();
 
   // Returns the size of the window in pixels.
   Size screen_size() const noexcept { return screen_size_; }

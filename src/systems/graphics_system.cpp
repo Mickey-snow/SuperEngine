@@ -212,7 +212,6 @@ GraphicsSystem::GraphicsSystem(System& system,
   impl_->SetWindowTitle(initial_title);
   current_window_title_ = std::move(initial_title);
   impl_->ShowSystemCursor(!ShouldUseCustomCursor());
-
 }
 
 GraphicsSystem::~GraphicsSystem() = default;
@@ -534,7 +533,7 @@ std::string GraphicsSystem::ComposeWindowTitle() const {
 
 // -----------------------------------------------------------------------
 
-void GraphicsSystem::ExecuteGraphicsSystem(RLMachine& machine) {
+void GraphicsSystem::ExecuteGraphicsSystem() {
   if (mouse_cursor_)
     mouse_cursor_->Execute();
 
@@ -795,25 +794,14 @@ void GraphicsSystem::OnEvent(std::shared_ptr<Event> event) {
 
 template <class Archive>
 void GraphicsSystem::save(Archive& ar, unsigned int version) const {
-  Stage& stage = BoundStage();
-  ar & subtitle_ & stage.saved_graphics_stack & stage.saved_background_objects &
-      stage.saved_foreground_objects;
+  ar & subtitle_;
 }
 
 // -----------------------------------------------------------------------
 
 template <class Archive>
 void GraphicsSystem::load(Archive& ar, unsigned int version) {
-  Stage& stage = BoundStage();
-
   ar & subtitle_;
-  if (version > 0) {
-    ar & stage.graphics_stack;
-  } else {
-    throw std::runtime_error("Deprecated old graphics stack has been removed");
-  }
-
-  ar & stage.background_objects & stage.foreground_objects;
 
   // Now alert all subclasses that we've set the subtitle
   SetWindowSubtitle(subtitle_,
