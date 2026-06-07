@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -8,6 +5,7 @@
 // -----------------------------------------------------------------------
 //
 // Copyright (C) 2009 Elliot Glaysher
+// Copyright (C) 2011 Elliot Glaysher
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -26,26 +24,18 @@
 
 #pragma once
 
-#include <filesystem>
-
 #include <memory>
 #include <string>
 #include <vector>
 
 #include "core/rect.hpp"
+#include "utilities/clock.hpp"
 
-class System;
 class SDLSurface;
 
 // Class that parses and executes HIK files.
 class HIKScript {
  public:
-  HIKScript(System& system, const std::filesystem::path& file);
-  ~HIKScript();
-
-  // Loads our data from a HIK file.
-  void LoadHikFile(System& system, const std::filesystem::path& file);
-
   // The contents of the 40000 keys which define an individual frame.
   struct Frame {
     int opacity;
@@ -98,17 +88,14 @@ class HIKScript {
     std::vector<Animation> animations;
   };
 
+  HIKScript(std::vector<Layer> layers, int number_of_layers, Size size_of_hik);
+  ~HIKScript();
+
   // Returns the HIK layer data.
   const std::vector<Layer>& layers() const { return layers_; }
   const Size& size() const { return size_of_hik_; }
 
  private:
-  // Returns the current structure being operated on, throwing on logic
-  // errors. Only to be used during parsing of the file.
-  Animation& CurrentAnimation();
-  Layer& CurrentLayer();
-  Frame& CurrentFrame();
-
   // Each graphics component in the HIK script.
   std::vector<Layer> layers_;
 
@@ -117,4 +104,44 @@ class HIKScript {
 
   // Size of the hik graphic as reported by the hik.
   Size size_of_hik_;
+};
+
+// Displays a HIKScript at a certain time to the screen.
+class HIKRenderer {
+ public:
+  HIKRenderer(std::shared_ptr<Clock> clock,
+              const std::shared_ptr<const HIKScript>& script);
+  ~HIKRenderer();
+
+  void Render();
+
+  // Advances to the next layer.
+  void NextAnimationFrame();
+
+  // RL bytecode controlled offsets from the top left corner of the source
+  // image.
+  inline void set_x_offset(int offset) { x_offset_ = offset; }
+  inline void set_y_offset(int offset) { y_offset_ = offset; }
+
+ private:
+  std::shared_ptr<Clock> clock_;
+
+  // The script data.
+  std::shared_ptr<const HIKScript> script_;
+
+  // Time when this HIK renderer was loaded. Used for animation timing.
+  Clock::timepoint_t creation_time_;
+
+  // Bytecode controllable offset.
+  int x_offset_;
+  int y_offset_;
+
+  struct LayerData {
+    explicit LayerData(Clock::timepoint_t time);
+    int animation_num_;
+    Clock::timepoint_t animation_start_time_;
+  };
+
+  // Which animation frame to use per layer. Defaults to zero.
+  std::vector<LayerData> layer_to_animation_num_;
 };

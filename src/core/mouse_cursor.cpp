@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -25,7 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
-#include "systems/mouse_cursor.hpp"
+#include "core/mouse_cursor.hpp"
 
 #include "systems/event_system.hpp"
 #include "systems/graphics_system.hpp"
@@ -63,7 +60,7 @@ MouseCursor::MouseCursor(
       pixel.g(), pixel.b());
 }
 
-MouseCursor::~MouseCursor() {}
+MouseCursor::~MouseCursor() = default;
 
 void MouseCursor::Execute() {
   Clock::timepoint_t cur_time = clock_->GetTime();

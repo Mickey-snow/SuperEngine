@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -24,13 +21,24 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#include "systems/hik_renderer.hpp"
+#include "core/hik.hpp"
 
 #include <iostream>
+#include <utility>
+#include <vector>
 
-#include "systems/hik_script.hpp"
+#include "core/hik.hpp"
 #include "systems/sdl/sdl_surface.hpp"
 #include "utilities/graphics.hpp"
+
+HIKScript::HIKScript(std::vector<Layer> layers,
+                     int number_of_layers,
+                     Size size_of_hik)
+    : layers_(std::move(layers)),
+      number_of_layers_(number_of_layers),
+      size_of_hik_(size_of_hik) {}
+
+HIKScript::~HIKScript() = default;
 
 HIKRenderer::LayerData::LayerData(Clock::timepoint_t time)
     : animation_num_(0), animation_start_time_(time) {}

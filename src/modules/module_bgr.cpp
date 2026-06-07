@@ -31,6 +31,7 @@
 #include <string>
 
 #include "core/colour.hpp"
+#include "core/hik.hpp"
 #include "core/stage.hpp"
 #include "effects/effect.hpp"
 #include "effects/effect_factory.hpp"
@@ -43,8 +44,6 @@
 #include "modules/module_grp.hpp"
 #include "systems/event_system.hpp"
 #include "systems/graphics_system.hpp"
-#include "systems/hik_renderer.hpp"
-#include "systems/hik_script.hpp"
 #include "systems/sdl/sdl_surface.hpp"
 #include "systems/system.hpp"
 #include "utilities/graphics.hpp"
@@ -107,8 +106,7 @@ struct bgrLoadHaikei_main : RLOpcode<StrConstant_T, IntConstant_T> {
         machine.stage().Wipe();
 
       graphics.SetHikRenderer(new HIKRenderer(
-          system.event().GetClock(),
-          graphics.GetHIKScript(system, filename, path)));
+          system.event().GetClock(), graphics.GetHIKScript(filename, path)));
     } else {
       std::shared_ptr<SDLSurface> before = graphics.RenderToSurface();
 
@@ -287,7 +285,7 @@ struct bgrPreloadScript : public RLOpcode<IntConstant_T, StrConstant_T> {
     else
       throw f.error();
     if (path.string().ends_with("hik")) {
-      system.graphics().PreloadHIKScript(system, slot, name, path);
+      system.graphics().PreloadHIKScript(slot, name, path);
     }
   }
 };

@@ -356,14 +356,13 @@ class GraphicsSystem : public EventListener {
 
   // We have a cache of HIK scripts. This is done so we can load HIKScripts
   // outside of loops.
-  void PreloadHIKScript(System& system,
-                        int slot,
+  std::shared_ptr<HIKScript> LoadHikFile(const std::filesystem::path& file);
+  void PreloadHIKScript(int slot,
                         const std::string& name,
                         const std::filesystem::path& file);
   void ClearPreloadedHIKScript(int slot);
   void ClearAllPreloadedHIKScripts();
-  std::shared_ptr<HIKScript> GetHIKScript(System& system,
-                                          const std::string& name,
+  std::shared_ptr<HIKScript> GetHIKScript(const std::string& name,
                                           const std::filesystem::path& file);
 
   // We have a cache of preloaded g00 files.
@@ -373,7 +372,7 @@ class GraphicsSystem : public EventListener {
   std::shared_ptr<SDLSurface> GetPreloadedG00(const std::string& name);
 
   // Gets a platform appropriate surface loaded.
-  [[deprecated]] std::shared_ptr<SDLSurface> LoadSurfaceFromFile(
+  std::shared_ptr<SDLSurface> LoadSurfaceFromFile(
       const std::string& short_filename);
 
  protected:
