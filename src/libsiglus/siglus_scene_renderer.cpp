@@ -24,6 +24,7 @@
 #include "libsiglus/siglus_scene_renderer.hpp"
 
 #include "core/stage.hpp"
+#include "libsiglus/bindings/wipe.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
 #include "systems/text_system.hpp"
@@ -33,9 +34,14 @@ namespace libsiglus {
 SiglusSceneRenderer::SiglusSceneRenderer(Stage& stage, System& system)
     : stage_(stage), system_(system) {}
 
+void SiglusSceneRenderer::SetWipe(binding::SiglusWipe* wipe) { wipe_ = wipe; }
+
 void SiglusSceneRenderer::ExecuteFrame() { stage_.Execute(); }
 
 void SiglusSceneRenderer::RenderScene() {
+  if (wipe_ && wipe_->UpdateAndRender())
+    return;
+
   stage_.RenderObjects(nullptr);
   if (!system_.graphics().is_interface_hidden())
     system_.text().Render();

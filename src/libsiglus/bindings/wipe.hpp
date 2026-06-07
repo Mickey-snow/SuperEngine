@@ -23,30 +23,42 @@
 
 #pragma once
 
-#include "systems/scene_renderer.hpp"
+#include "vm/value.hpp"
+
+#include <memory>
+#include <vector>
 
 class Stage;
 class System;
 
-namespace libsiglus {
+namespace serilang {
+class VM;
+}  // namespace serilang
 
-namespace binding {
-class SiglusWipe;
-}  // namespace binding
+namespace libsiglus::binding {
 
-class SiglusSceneRenderer final : public ISceneRenderer {
+class SiglusWipe {
  public:
-  SiglusSceneRenderer(::Stage& stage, ::System& system);
+  SiglusWipe(::System* system, ::Stage* stage);
+  ~SiglusWipe();
 
-  void SetWipe(binding::SiglusWipe* wipe);
+  serilang::Value wipe(serilang::VM& vm, std::vector<serilang::Value> args);
+  serilang::Value wipe_all(serilang::VM& vm,
+                           std::vector<serilang::Value> args);
+  serilang::Value wipe_mask(serilang::VM& vm,
+                            std::vector<serilang::Value> args);
+  serilang::Value wipe_mask_all(serilang::VM& vm,
+                                std::vector<serilang::Value> args);
 
-  void ExecuteFrame() override;
-  void RenderScene() override;
+  void end(std::vector<serilang::Value> args);
+  serilang::Value wait(serilang::VM& vm, std::vector<serilang::Value> args);
+  int check(std::vector<serilang::Value> args) const;
+
+  bool UpdateAndRender();
 
  private:
-  ::Stage& stage_;
-  ::System& system_;
-  binding::SiglusWipe* wipe_ = nullptr;
+  struct Impl;
+  std::unique_ptr<Impl> impl_;
 };
 
-}  // namespace libsiglus
+}  // namespace libsiglus::binding
