@@ -24,7 +24,6 @@
 
 #include "systems/graphics_system.hpp"
 
-#include <boost/algorithm/string.hpp>
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/serialization/deque.hpp>
@@ -33,6 +32,7 @@
 #include "core/asset_scanner.hpp"
 #include "core/cgm_table.hpp"
 #include "core/gameexe.hpp"
+#include "core/haikei.hpp"
 #include "core/hik.hpp"
 #include "core/memory.hpp"
 #include "core/mouse_cursor.hpp"
@@ -43,7 +43,6 @@
 #include "core/object_internal/object_mutator.hpp"
 #include "core/rlevent_listener.hpp"
 #include "core/stage.hpp"
-#include "libreallive/alldefs.hpp"
 #include "libreallive/expression.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/serialization.hpp"
@@ -64,270 +63,10 @@
 #include <algorithm>
 #include <charconv>
 #include <chrono>
-#include <deque>
 #include <format>
-#include <fstream>
 #include <set>
-#include <sstream>
 #include <utility>
 #include <vector>
-
-namespace fs = std::filesystem;
-
-// TODO(erg): Move everything to a common reader.
-using libreallive::read_i32;
-
-namespace {
-
-int consume_i32(const char*& curpointer) {
-  int x = read_i32(curpointer);
-  curpointer += 4;
-  return x;
-}
-
-std::string consume_string(const char*& curpointer) {
-  int size = consume_i32(curpointer);
-  std::string x(curpointer, size - 1);
-  curpointer += size;
-  return x;
-}
-
-class HIKScriptLoader {
- public:
-  explicit HIKScriptLoader(GraphicsSystem& graphics) : graphics_(graphics) {}
-
-  std::shared_ptr<HIKScript> Load(const fs::path& file) {
-    std::ifstream ifs(file, std::ios::binary);
-    if (!ifs) {
-      throw std::runtime_error("Could not read the contents of \"" +
-                               file.string() + '"');
-    }
-    std::string hik_data(fs::file_size(file), '\0');
-    ifs.read(hik_data.data(), hik_data.size());
-    ifs.close();
-
-    const char* curpointer = hik_data.data();
-    const char* endpointer = hik_data.data() + hik_data.size();
-    int a = consume_i32(curpointer), b = consume_i32(curpointer);
-    if (a != 10000 || b != 10000)
-      throw std::runtime_error("HIK Parse error: Invalid magic");
-
-    while (curpointer < endpointer) {
-      int property_id = consume_i32(curpointer);
-      switch (property_id) {
-        case 10100:
-        case 10101:
-        case 10102: {
-          consume_i32(curpointer);
-          break;
-        }
-        case 10103: {
-          int width = consume_i32(curpointer);
-          int height = consume_i32(curpointer);
-          size_of_hik_ = Size(width, height);
-          break;
-        }
-        case 20000: {
-          number_of_layers_ = consume_i32(curpointer);
-          break;
-        }
-        case 20001: {
-          consume_i32(curpointer);
-          layers_.emplace_back();
-          break;
-        }
-        case 20100: {
-          // String name of this layer? We can't make use of this.
-          consume_string(curpointer);
-          break;
-        }
-        case 20101: {
-          int x = consume_i32(curpointer);
-          int y = consume_i32(curpointer);
-          CurrentLayer().top_offset = Point(x, y);
-          break;
-        }
-        case 21000: {
-          consume_i32(curpointer);
-          break;
-        }
-        case 21001: {
-          consume_i32(curpointer);
-          consume_i32(curpointer);
-          consume_i32(curpointer);
-          consume_i32(curpointer);
-          break;
-        }
-        case 21002: {
-          consume_i32(curpointer);
-          consume_i32(curpointer);
-          consume_i32(curpointer);
-          consume_i32(curpointer);
-          consume_i32(curpointer);
-          break;
-        }
-        case 21003: {
-          consume_i32(curpointer);
-          break;
-        }
-        case 21100: {
-          consume_i32(curpointer);
-          break;
-        }
-        case 21101: {
-          consume_i32(curpointer);
-          consume_i32(curpointer);
-          consume_i32(curpointer);
-          consume_i32(curpointer);
-          break;
-        }
-        case 21200: {
-          CurrentLayer().use_scrolling = consume_i32(curpointer);
-          break;
-        }
-        case 21201: {
-          int x = consume_i32(curpointer);
-          int y = consume_i32(curpointer);
-          CurrentLayer().start_point = Point(x, y);
-          x = consume_i32(curpointer);
-          y = consume_i32(curpointer);
-          CurrentLayer().end_point = Point(x, y);
-          break;
-        }
-        case 21202: {
-          CurrentLayer().x_scroll_time_ms = consume_i32(curpointer);
-          CurrentLayer().y_scroll_time_ms = consume_i32(curpointer);
-          break;
-        }
-        case 21203: {
-          consume_i32(curpointer);
-          break;
-        }
-        case 21301: {
-          CurrentLayer().use_clip_area = consume_i32(curpointer);
-          break;
-        }
-        case 21300: {
-          // GRP or REC?
-          int x = consume_i32(curpointer);
-          int y = consume_i32(curpointer);
-          int x2 = consume_i32(curpointer);
-          int y2 = consume_i32(curpointer);
-          CurrentLayer().clip_area = Rect::GRP(x, y, x2, y2);
-          break;
-        }
-        case 30000: {
-          CurrentLayer().number_of_animations = consume_i32(curpointer);
-          break;
-        }
-        case 30001: {
-          consume_i32(curpointer);
-          CurrentLayer().animations.emplace_back();
-          break;
-        }
-        case 30100: {
-          CurrentAnimation().use_multiframe_animation = consume_i32(curpointer);
-          break;
-        }
-        case 30101: {
-          CurrentAnimation().i_30101 = consume_i32(curpointer);
-          break;
-        }
-        case 30102: {
-          CurrentAnimation().i_30102 = consume_i32(curpointer);
-          break;
-        }
-        case 40000: {
-          CurrentAnimation().number_of_frames = consume_i32(curpointer);
-          break;
-        }
-        case 40101: {
-          for (int i = 0; i < 31; ++i) {
-            consume_i32(curpointer);
-          }
-
-          CurrentAnimation().frames.emplace_back();
-          break;
-        }
-        case 40102: {
-          CurrentFrame().opacity = consume_i32(curpointer);
-          break;
-        }
-        case 40103: {
-          consume_i32(curpointer);
-          consume_i32(curpointer);
-          break;
-        }
-        case 40100: {
-          HIKScript::Frame& frame = CurrentFrame();
-          frame.image = consume_string(curpointer);
-          frame.surface = graphics_.GetSurfaceNamed(frame.image);
-          if (!frame.surface) {
-            std::ostringstream oss;
-            oss << "Could not load image " << frame.image << " for HIK";
-            throw std::runtime_error(oss.str());
-          }
-          frame.grp_pattern = consume_i32(curpointer);
-          frame.frame_length_ms = consume_i32(curpointer);
-          break;
-        }
-        default: {
-          std::ostringstream oss;
-          oss << "HIK Parse exception. Unknown id: " << property_id;
-          throw std::runtime_error(oss.str());
-          break;
-        }
-      }
-    }
-
-    // For every Animation, sum up the frame_length_ms.
-    for (HIKScript::Layer& layer : layers_) {
-      for (HIKScript::Animation& animation : layer.animations) {
-        animation.total_time = 0;
-        for (HIKScript::Frame& frame : animation.frames) {
-          animation.total_time += frame.frame_length_ms;
-        }
-      }
-    }
-
-    // Records are in reverse order of what they should be.
-    std::reverse(layers_.begin(), layers_.end());
-
-    return std::make_shared<HIKScript>(std::move(layers_), number_of_layers_,
-                                       size_of_hik_);
-  }
-
- private:
-  HIKScript::Layer& CurrentLayer() {
-    if (layers_.size() == 0)
-      throw std::runtime_error("Invalid layer reference");
-
-    return layers_.back();
-  }
-
-  HIKScript::Animation& CurrentAnimation() {
-    HIKScript::Layer& layer = CurrentLayer();
-    if (layer.animations.size() == 0)
-      throw std::runtime_error("Invalid unknowns reference");
-
-    return layer.animations.back();
-  }
-
-  HIKScript::Frame& CurrentFrame() {
-    HIKScript::Animation& animation = CurrentAnimation();
-    if (animation.frames.size() == 0)
-      throw std::runtime_error("Invalid frame reference");
-
-    return animation.frames.back();
-  }
-
-  GraphicsSystem& graphics_;
-  std::vector<HIKScript::Layer> layers_;
-  int number_of_layers_ = 0;
-  Size size_of_hik_;
-};
-
-}  // namespace
 
 // -----------------------------------------------------------------------
 // GraphicsSystem::GraphicsObjectSettings
@@ -437,7 +176,6 @@ GraphicsSystem::GraphicsSystem(System& system,
                                Gameexe& gameexe,
                                std::shared_ptr<IGraphicsBackend> backend)
     : screen_update_mode_(SCREENUPDATEMODE_AUTOMATIC),
-      background_type_(BACKGROUND_DC0),
       screen_needs_refresh_(false),
       is_responsible_for_update_(true),
       display_subtitle_(gameexe("SUBTITLE").Int().value_or(0)),
@@ -452,7 +190,6 @@ GraphicsSystem::GraphicsSystem(System& system,
       system_(system),
       impl_(backend),
       asset_scanner_(system.GetAssetScanner()),
-      preloaded_hik_scripts_(32),
       preloaded_g00_(256),
       image_cache_(10) {
   Size screen_size = GetScreenSize(gameexe);
@@ -476,9 +213,6 @@ GraphicsSystem::GraphicsSystem(System& system,
   current_window_title_ = std::move(initial_title);
   impl_->ShowSystemCursor(!ShouldUseCustomCursor());
 
-  haikei_ = impl_->CreateSurface(screen_size);
-  for (int i = 0; i < 16; ++i)
-    display_contexts_[i] = impl_->CreateSurface(screen_size);
 }
 
 GraphicsSystem::~GraphicsSystem() = default;
@@ -486,6 +220,10 @@ GraphicsSystem::~GraphicsSystem() = default;
 // -----------------------------------------------------------------------
 
 void GraphicsSystem::BindStage(Stage* stage) { stage_ = stage; }
+
+// -----------------------------------------------------------------------
+
+void GraphicsSystem::BindHaikei(Haikei* haikei) { haikei_ = haikei; }
 
 // -----------------------------------------------------------------------
 
@@ -499,6 +237,20 @@ Stage& GraphicsSystem::BoundStage() const {
   if (!stage_)
     throw std::runtime_error("GraphicsSystem requires a bound stage");
   return *stage_;
+}
+
+// -----------------------------------------------------------------------
+
+Haikei& GraphicsSystem::BoundHaikei() {
+  if (!haikei_)
+    throw std::runtime_error("GraphicsSystem requires a bound haikei");
+  return *haikei_;
+}
+
+Haikei& GraphicsSystem::BoundHaikei() const {
+  if (!haikei_)
+    throw std::runtime_error("GraphicsSystem requires a bound haikei");
+  return *haikei_;
 }
 
 // -----------------------------------------------------------------------
@@ -589,12 +341,6 @@ void GraphicsSystem::SetCursor(int cursor) {
 
 // -----------------------------------------------------------------------
 
-void GraphicsSystem::SetHikRenderer(HIKRenderer* renderer) {
-  hik_renderer_.reset(renderer);
-}
-
-// -----------------------------------------------------------------------
-
 void GraphicsSystem::SetWindowSubtitle(const std::string& cp932str,
                                        int text_encoding) {
   subtitle_ = cp932str;
@@ -647,17 +393,18 @@ const ObjectSettings& GraphicsSystem::GetObjectSettings(const int obj_num) {
 // -----------------------------------------------------------------------
 
 void GraphicsSystem::DrawFrame() {
-  switch (background_type_) {
+  Haikei& haikei = BoundHaikei();
+  switch (haikei.background_type()) {
     case BACKGROUND_DC0: {
       // Display DC0
-      GetDC(0)->RenderToScreen(screen_rect(), screen_rect(), 255);
+      haikei.GetDC(0)->RenderToScreen(screen_rect(), screen_rect(), 255);
       break;
     }
     case BACKGROUND_HIK: {
-      if (hik_renderer_) {
-        hik_renderer_->Render();
+      if (HIKRenderer* renderer = haikei.hik_renderer()) {
+        renderer->Render();
       } else {
-        GetHaikei()->RenderToScreen(screen_rect(), screen_rect(), 255);
+        haikei.GetHaikei()->RenderToScreen(screen_rect(), screen_rect(), 255);
       }
     }
   }
@@ -828,12 +575,7 @@ void GraphicsSystem::ExecuteGraphicsSystem(RLMachine& machine) {
 // -----------------------------------------------------------------------
 
 void GraphicsSystem::Reset() {
-  ClearAllDCs();
-
-  preloaded_hik_scripts_.Clear();
   preloaded_g00_.Clear();
-  hik_renderer_.reset();
-  background_type_ = BACKGROUND_DC0;
 
   // Reset the cursor
   show_cursor_from_bytecode_ = true;
@@ -843,7 +585,6 @@ void GraphicsSystem::Reset() {
     impl_->ShowSystemCursor(!ShouldUseCustomCursor());
 
   screen_update_mode_ = SCREENUPDATEMODE_AUTOMATIC;
-  background_type_ = BACKGROUND_DC0;
   subtitle_.clear();
   subtitle_utf8_.clear();
   current_window_title_.clear();
@@ -863,38 +604,6 @@ std::shared_ptr<SDLSurface> GraphicsSystem::GetEmojiSurface() {
   }
 
   return nullptr;
-}
-
-std::shared_ptr<HIKScript> GraphicsSystem::LoadHikFile(
-    const std::filesystem::path& file_path) {
-  HIKScriptLoader loader(*this);
-  return loader.Load(file_path);
-}
-
-void GraphicsSystem::PreloadHIKScript(int slot,
-                                      const std::string& name,
-                                      const std::filesystem::path& file_path) {
-  auto script = LoadHikFile(file_path);
-  preloaded_hik_scripts_[slot] = std::make_pair(name, script);
-}
-
-void GraphicsSystem::ClearPreloadedHIKScript(int slot) {
-  preloaded_hik_scripts_[slot] = std::make_pair("", nullptr);
-}
-
-void GraphicsSystem::ClearAllPreloadedHIKScripts() {
-  preloaded_hik_scripts_.Clear();
-}
-
-std::shared_ptr<HIKScript> GraphicsSystem::GetHIKScript(
-    const std::string& name,
-    const std::filesystem::path& file_path) {
-  for (HIKArrayItem& item : preloaded_hik_scripts_) {
-    if (item.first == name)
-      return item.second;
-  }
-
-  return LoadHikFile(file_path);
 }
 
 void GraphicsSystem::PreloadG00(int slot, const std::string& name) {
@@ -1009,90 +718,6 @@ std::shared_ptr<SDLSurface> GraphicsSystem::GetSurfaceNamed(
 
 int GraphicsSystem::GetObjectLayerSize() {
   return graphics_object_settings_->objects_in_a_layer;
-}
-
-// -----------------------------------------------------------------------
-
-std::shared_ptr<SDLSurface> GraphicsSystem::GetHaikei() {
-  if (haikei_->RawSurface() == NULL) {
-    haikei_->Allocate(screen_size());
-  }
-
-  return haikei_;
-}
-
-// -----------------------------------------------------------------------
-
-void GraphicsSystem::AllocateDC(int dc, Size size) {
-  if (dc < 0 || dc >= 16)
-    throw std::runtime_error(std::format(
-        "Invalid DC number '{}' in GraphicsSystem::allocate_dc", dc));
-
-  // We can't reallocate the screen!
-  if (dc == 0)
-    throw std::runtime_error("Attempting to reallocate DC 0!");
-
-  // DC 1 is a special case and must always be at least the size of
-  // the screen.
-  if (dc == 1) {
-    Size dc0_size = display_contexts_[0]->GetSize();
-    if (size.width() < dc0_size.width())
-      size.set_width(dc0_size.width());
-    if (size.height() < dc0_size.height())
-      size.set_height(dc0_size.height());
-  }
-
-  // Allocate a new obj.
-  display_contexts_[dc]->Allocate(size);
-}
-
-void GraphicsSystem::SetMinimumSizeForDC(int dc, Size size) {
-  if (display_contexts_[dc] == NULL || !display_contexts_[dc]->IsAllocated()) {
-    AllocateDC(dc, size);
-  } else {
-    Size current = display_contexts_[dc]->GetSize();
-    if (current.width() < size.width() || current.height() < size.height()) {
-      // Make a new surface of the maximum size.
-      Size maxSize = current.SizeUnion(size);
-
-      std::shared_ptr<SDLSurface> newdc = std::make_shared<SDLSurface>();
-      newdc->Allocate(maxSize);
-
-      display_contexts_[dc]->BlitToSurface(*newdc,
-                                           display_contexts_[dc]->GetRect(),
-                                           display_contexts_[dc]->GetRect());
-
-      display_contexts_[dc] = newdc;
-    }
-  }
-}
-
-void GraphicsSystem::FreeDC(int dc) {
-  if (dc == 0) {
-    throw std::runtime_error("Attempt to deallocate DC[0]");
-  } else if (dc == 1) {
-    // DC[1] never gets freed; it only gets blanked
-    GetDC(1)->Fill(RGBAColour::Black());
-  } else {
-    display_contexts_[dc]->Deallocate();
-  }
-}
-
-std::shared_ptr<SDLSurface> GraphicsSystem::GetDC(int dc) {
-  assert(0 <= dc && dc < 16);
-
-  // If requesting a DC that doesn't exist, allocate it first.
-  if (display_contexts_[dc]->RawSurface() == NULL)
-    AllocateDC(dc, display_contexts_[0]->GetSize());
-
-  return display_contexts_[dc];
-}
-
-void GraphicsSystem::ClearAllDCs() {
-  GetDC(0)->Fill(RGBAColour::Black());
-
-  for (int i = 1; i < 16; ++i)
-    FreeDC(i);
 }
 
 // -----------------------------------------------------------------------

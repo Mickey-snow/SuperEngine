@@ -51,6 +51,7 @@ class RLModule;
 class RealLiveDLL;
 class System;
 class Stage;
+class Haikei;
 struct StackFrame;
 class EventListener;
 class Debugger;
@@ -99,6 +100,8 @@ class RLMachine {
 
   Stage& stage();
   const Stage& stage() const;
+  Haikei& haikei();
+  const Haikei& haikei() const;
 
   std::shared_ptr<IScriptor> GetScriptor();
 
@@ -245,6 +248,7 @@ class RLMachine {
   System& system_;
 
   std::unique_ptr<Stage> stage_;
+  std::unique_ptr<Haikei> haikei_;
 
   RLEnvironment env_;
 

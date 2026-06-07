@@ -42,6 +42,7 @@
 
 #include "core/cgm_table.hpp"
 #include "core/gameexe.hpp"
+#include "core/haikei.hpp"
 #include "core/rlevent_listener.hpp"
 #include "effects/fade_effect.hpp"
 #include "machine/general_operations.hpp"
@@ -419,7 +420,7 @@ void Sys_MenuReturn::operator()(RLMachine& machine) {
   GraphicsSystem& graphics = machine.GetSystem().graphics();
 
   // Render the screen as is.
-  std::shared_ptr<SDLSurface> dc0 = graphics.GetDC(0);
+  (void)machine.haikei().GetDC(0);
   std::shared_ptr<SDLSurface> before = graphics.RenderToSurface();
 
   // Clear everything

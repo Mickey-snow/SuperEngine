@@ -53,8 +53,7 @@ class IGraphicsBackend;
 class Gameexe;
 class GraphicsObject;
 class GraphicsObjectData;
-class HIKRenderer;
-class HIKScript;
+class Haikei;
 class MouseCursor;
 class Renderable;
 class RGBAColour;
@@ -117,9 +116,6 @@ enum GraphicsUpdateType {
   GUT_MOUSE_MOTION
 };
 
-// Which type of mutually exclusive background should we display?
-enum GraphicsBackgroundType { BACKGROUND_DC0, BACKGROUND_HIK };
-
 // Abstract interface to a graphics system. Platform-specific behaviour is
 // implemented through IGraphicsBackend instances (see SDLGraphicsBackend for
 // the current implementation).
@@ -174,13 +170,10 @@ class GraphicsSystem : public EventListener {
   DCScreenUpdateMode screen_update_mode() const { return screen_update_mode_; }
   virtual void SetScreenUpdateMode(DCScreenUpdateMode u);
 
-  void set_graphics_background(GraphicsBackgroundType t) {
-    background_type_ = t;
-  }
-
   inline System& system() { return system_; }
 
   void BindStage(Stage* stage);
+  void BindHaikei(Haikei* haikei);
 
   // Screen Shaking
 
@@ -215,11 +208,6 @@ class GraphicsSystem : public EventListener {
   void set_show_cursor_from_bytecode(const int in) {
     show_cursor_from_bytecode_ = in;
   }
-
-  // Sets the current hik script. GraphicsSystem takes ownership, freeing the
-  // current HIKScript if applicable. |script| can be NULL.
-  HIKRenderer* hik_renderer() const { return hik_renderer_.get(); }
-  void SetHikRenderer(HIKRenderer* script);
 
   // -----------------------------------------------------------------------
 
@@ -330,15 +318,6 @@ class GraphicsSystem : public EventListener {
   // overridden with #OBJECT_MAX.
   int GetObjectLayerSize();
 
-  std::shared_ptr<SDLSurface> GetHaikei();
-
-  void AllocateDC(int dc, Size screen_size);
-  void SetMinimumSizeForDC(int dc, Size size);
-  void FreeDC(int dc);
-  std::shared_ptr<SDLSurface> GetDC(int dc);
-  // Sets DC0 to black and frees up DCs 1 through 16.
-  void ClearAllDCs();
-
   // Override from EventListener
   virtual void OnEvent(std::shared_ptr<Event> event) override;
 
@@ -353,17 +332,6 @@ class GraphicsSystem : public EventListener {
 
   // Gets the emoji surface, if any.
   std::shared_ptr<SDLSurface> GetEmojiSurface();
-
-  // We have a cache of HIK scripts. This is done so we can load HIKScripts
-  // outside of loops.
-  std::shared_ptr<HIKScript> LoadHikFile(const std::filesystem::path& file);
-  void PreloadHIKScript(int slot,
-                        const std::string& name,
-                        const std::filesystem::path& file);
-  void ClearPreloadedHIKScript(int slot);
-  void ClearAllPreloadedHIKScripts();
-  std::shared_ptr<HIKScript> GetHIKScript(const std::string& name,
-                                          const std::filesystem::path& file);
 
   // We have a cache of preloaded g00 files.
   void PreloadG00(int slot, const std::string& name);
@@ -388,9 +356,6 @@ class GraphicsSystem : public EventListener {
 
   // Current screen update mode
   DCScreenUpdateMode screen_update_mode_;
-
-  // Whether we display HIK or DC0.
-  GraphicsBackgroundType background_type_;
 
   // Flag set to redraw the screen NOW
   bool screen_needs_refresh_;
@@ -436,8 +401,11 @@ class GraphicsSystem : public EventListener {
 
   Stage& BoundStage();
   Stage& BoundStage() const;
+  Haikei& BoundHaikei();
+  Haikei& BoundHaikei() const;
 
   Stage* stage_ = nullptr;
+  Haikei* haikei_ = nullptr;
 
   // Whether we should use a custom mouse cursor. Set while parsing the Gameexe
   // file, and then left unchanged. We only use a custom mouse cursor if
@@ -478,11 +446,6 @@ class GraphicsSystem : public EventListener {
 
   std::shared_ptr<AssetScanner> asset_scanner_;
 
-  // Preloaded HIKScripts.
-  typedef std::pair<std::string, std::shared_ptr<HIKScript>> HIKArrayItem;
-  typedef LazyArray<HIKArrayItem> HIKScriptList;
-  HIKScriptList preloaded_hik_scripts_;
-
   // Preloaded G00 images.
   typedef std::pair<std::string, std::shared_ptr<SDLSurface>> G00ArrayItem;
   typedef LazyArray<G00ArrayItem> G00ScriptList;
@@ -492,12 +455,6 @@ class GraphicsSystem : public EventListener {
   //
   // This cache's contents are assumed to be immutable.
   LRUCache<std::string, std::shared_ptr<SDLSurface>> image_cache_;
-
-  // Possible background script which drives graphics to the screen.
-  std::unique_ptr<HIKRenderer> hik_renderer_;
-
-  std::shared_ptr<SDLSurface> haikei_;
-  std::shared_ptr<SDLSurface> display_contexts_[16];
 
   // boost::serialization support
   friend class boost::serialization::access;

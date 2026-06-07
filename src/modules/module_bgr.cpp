@@ -31,6 +31,7 @@
 #include <string>
 
 #include "core/colour.hpp"
+#include "core/haikei.hpp"
 #include "core/hik.hpp"
 #include "core/stage.hpp"
 #include "effects/effect.hpp"
@@ -66,12 +67,13 @@ namespace {
 struct bgrLoadHaikei_blank : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int sel) {
     GraphicsSystem& graphics = machine.GetSystem().graphics();
+    Haikei& haikei = machine.haikei();
     default_bgr_name = "";
-    graphics.SetHikRenderer(NULL);
-    graphics.set_graphics_background(BACKGROUND_HIK);
+    haikei.ClearHikRenderer();
+    haikei.set_graphics_background(BACKGROUND_HIK);
 
     std::shared_ptr<SDLSurface> before = graphics.RenderToSurface();
-    graphics.GetHaikei()->Fill(RGBAColour::Clear());
+    haikei.GetHaikei()->Fill(RGBAColour::Clear());
 
     if (!machine.replaying_graphics_stack())
       machine.stage().Wipe();
@@ -88,8 +90,9 @@ struct bgrLoadHaikei_main : RLOpcode<StrConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, std::string filename, int sel) {
     System& system = machine.GetSystem();
     GraphicsSystem& graphics = system.graphics();
+    Haikei& haikei = machine.haikei();
     default_bgr_name = filename;
-    graphics.set_graphics_background(BACKGROUND_HIK);
+    haikei.set_graphics_background(BACKGROUND_HIK);
 
     // bgrLoadHaikei clears the stack.
     machine.stage().graphics_stack.clear();
@@ -105,17 +108,16 @@ struct bgrLoadHaikei_main : RLOpcode<StrConstant_T, IntConstant_T> {
       if (!machine.replaying_graphics_stack())
         machine.stage().Wipe();
 
-      graphics.SetHikRenderer(new HIKRenderer(
-          system.event().GetClock(), graphics.GetHIKScript(filename, path)));
+      haikei.LoadHikRenderer(filename, path);
     } else {
       std::shared_ptr<SDLSurface> before = graphics.RenderToSurface();
 
       if (!path.empty()) {
         std::shared_ptr<const SDLSurface> source(
             graphics.GetSurfaceNamedAndMarkViewed(machine, filename));
-        std::shared_ptr<SDLSurface> haikei = graphics.GetHaikei();
-        source->BlitToSurface(*haikei, source->GetRect(), source->GetRect(),
-                              255, true);
+        std::shared_ptr<SDLSurface> haikei_surface = haikei.GetHaikei();
+        source->BlitToSurface(*haikei_surface, source->GetRect(),
+                              source->GetRect(), 255, true);
       }
 
       // Promote the objects if we're in normal mode. If we're restoring the
@@ -188,11 +190,12 @@ struct bgrMulti_1
                   int effectNum,
                   BgrMultiCommand::type commands) {
     GraphicsSystem& graphics = machine.GetSystem().graphics();
+    Haikei& haikei = machine.haikei();
 
     // Get the state of the world before we do any processing.
     std::shared_ptr<SDLSurface> before = graphics.RenderToSurface();
 
-    graphics.set_graphics_background(BACKGROUND_HIK);
+    haikei.set_graphics_background(BACKGROUND_HIK);
 
     // May need to use current background.
     if (filename == "???")
@@ -201,7 +204,7 @@ struct bgrMulti_1
     // Load "filename" as the background.
     std::shared_ptr<const SDLSurface> surface(
         graphics.GetSurfaceNamedAndMarkViewed(machine, filename));
-    surface->BlitToSurface(*graphics.GetHaikei(), surface->GetRect(),
+    surface->BlitToSurface(*haikei.GetHaikei(), surface->GetRect(),
                            surface->GetRect(), 255, true);
 
     // TODO(erg): Unsure about the alpha in these implementation.
@@ -211,7 +214,7 @@ struct bgrMulti_1
         case 0: {
           // 0:copy(strC 'filename')
           surface = graphics.GetSurfaceNamedAndMarkViewed(machine, it->first);
-          surface->BlitToSurface(*graphics.GetHaikei(), surface->GetRect(),
+          surface->BlitToSurface(*haikei.GetHaikei(), surface->GetRect(),
                                  surface->GetRect(), 255, true);
           break;
         }
@@ -224,7 +227,7 @@ struct bgrMulti_1
           surface = graphics.GetSurfaceNamedAndMarkViewed(
               machine, std::get<0>(it->third));
           Rect destRect = Rect(dest, srcRect.size());
-          surface->BlitToSurface(*graphics.GetHaikei(), srcRect, destRect, 255,
+          surface->BlitToSurface(*haikei.GetHaikei(), srcRect, destRect, 255,
                                  true);
           break;
         }
@@ -250,7 +253,7 @@ struct bgrMulti_1
 
 struct bgrNext : public RLOpcode<> {
   void operator()(RLMachine& machine) {
-    HIKRenderer* renderer = machine.GetSystem().graphics().hik_renderer();
+    HIKRenderer* renderer = machine.haikei().hik_renderer();
     if (renderer) {
       renderer->NextAnimationFrame();
     }
@@ -259,7 +262,7 @@ struct bgrNext : public RLOpcode<> {
 
 struct bgrSetXOffset : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int offset) {
-    HIKRenderer* renderer = machine.GetSystem().graphics().hik_renderer();
+    HIKRenderer* renderer = machine.haikei().hik_renderer();
     if (renderer) {
       renderer->set_x_offset(offset);
     }
@@ -268,7 +271,7 @@ struct bgrSetXOffset : public RLOpcode<IntConstant_T> {
 
 struct bgrSetYOffset : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int offset) {
-    HIKRenderer* renderer = machine.GetSystem().graphics().hik_renderer();
+    HIKRenderer* renderer = machine.haikei().hik_renderer();
     if (renderer) {
       renderer->set_y_offset(offset);
     }
@@ -285,7 +288,7 @@ struct bgrPreloadScript : public RLOpcode<IntConstant_T, StrConstant_T> {
     else
       throw f.error();
     if (path.string().ends_with("hik")) {
-      system.graphics().PreloadHIKScript(slot, name, path);
+      machine.haikei().PreloadHIKScript(slot, name, path);
     }
   }
 };
@@ -310,7 +313,7 @@ BgrModule::BgrModule() : MappedRLModule(GraphicsStackMappingFun, "Bgr", 1, 40) {
 
   AddOpcode(2000, 0, "bgrPreloadScript", new bgrPreloadScript);
   AddOpcode(2001, 0, "bgrClearPreloadedScript",
-            CallFunction(&GraphicsSystem::ClearPreloadedHIKScript));
+            CallFunction(&Haikei::ClearPreloadedHIKScript));
   AddOpcode(2002, 0, "bgrClearAllPreloadedScripts",
-            CallFunction(&GraphicsSystem::ClearAllPreloadedHIKScripts));
+            CallFunction(&Haikei::ClearAllPreloadedHIKScripts));
 }

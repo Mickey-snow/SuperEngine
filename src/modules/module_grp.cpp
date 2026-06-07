@@ -31,6 +31,7 @@
 
 #include "core/colour.hpp"
 #include "core/gameexe.hpp"
+#include "core/haikei.hpp"
 #include "core/stage.hpp"
 #include "effects/effect.hpp"
 #include "effects/effect_factory.hpp"
@@ -104,16 +105,16 @@ struct ApplyColorTransformer {
 };
 
 void blitDC1toDC0(RLMachine& machine) {
-  GraphicsSystem& graphics = machine.GetSystem().graphics();
+  Haikei& haikei = machine.haikei();
 
-  std::shared_ptr<SDLSurface> src = graphics.GetDC(1);
-  std::shared_ptr<SDLSurface> dst = graphics.GetDC(0);
+  std::shared_ptr<SDLSurface> src = haikei.GetDC(1);
+  std::shared_ptr<SDLSurface> dst = haikei.GetDC(0);
 
   // Blit DC1 onto DC0, with full opacity, and end the operation
   src->BlitToSurface(*dst, src->GetRect(), dst->GetRect(), 255);
 
   // Mark that the background should be DC0 instead of the Haikei.
-  graphics.set_graphics_background(BACKGROUND_DC0);
+  haikei.set_graphics_background(BACKGROUND_DC0);
 
   // Promote the objects if we're in normal mode. If we're restoring the
   // graphics stack, we already have our layers promoted.
@@ -133,13 +134,14 @@ void loadImageToDC1(RLMachine& machine,
                     int opacity,
                     bool useAlpha) {
   GraphicsSystem& graphics = machine.GetSystem().graphics();
+  Haikei& haikei = machine.haikei();
 
   if (name != "?") {
     if (name == "???")
       name = default_grp_name;
 
-    std::shared_ptr<SDLSurface> dc0 = graphics.GetDC(0);
-    std::shared_ptr<SDLSurface> dc1 = graphics.GetDC(1);
+    std::shared_ptr<SDLSurface> dc0 = haikei.GetDC(0);
+    std::shared_ptr<SDLSurface> dc1 = haikei.GetDC(1);
 
     // Inclusive ranges are a monstrosity to computer people
     Size size = srcRect.size() + Size(1, 1);
@@ -149,7 +151,7 @@ void loadImageToDC1(RLMachine& machine,
     // Load the section of the image file on top of dc1
     std::shared_ptr<const SDLSurface> surface(
         graphics.GetSurfaceNamedAndMarkViewed(machine, name));
-    surface->BlitToSurface(*graphics.GetDC(1), Rect(srcRect.origin(), size),
+    surface->BlitToSurface(*haikei.GetDC(1), Rect(srcRect.origin(), size),
                            Rect(dest, size), opacity, useAlpha);
   }
 }
@@ -159,9 +161,9 @@ void loadDCToDC1(RLMachine& machine,
                  const Rect& srcRect,
                  const Point& dest,
                  int opacity) {
-  GraphicsSystem& graphics = machine.GetSystem().graphics();
-  std::shared_ptr<SDLSurface> dc1 = graphics.GetDC(1);
-  std::shared_ptr<SDLSurface> src = graphics.GetDC(srcDc);
+  Haikei& haikei = machine.haikei();
+  std::shared_ptr<SDLSurface> dc1 = haikei.GetDC(1);
+  std::shared_ptr<SDLSurface> src = haikei.GetDC(srcDc);
 
   // Inclusive ranges are a monstrosity to computer people
   Size size = srcRect.size() + Size(1, 1);
@@ -246,7 +248,7 @@ void OpenBgPrelude(RLMachine& machine, const std::string& filename) {
 // resolution. Any previous contents of dc are erased.
 struct allocDC : public RLOpcode<IntConstant_T, IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int dc, int width, int height) {
-    machine.GetSystem().graphics().AllocateDC(dc, Size(width, height));
+    machine.haikei().AllocateDC(dc, Size(width, height));
   }
 };
 
@@ -258,7 +260,7 @@ struct wipe : public RLOpcode<IntConstant_T,
                               IntConstant_T,
                               IntConstant_T> {
   void operator()(RLMachine& machine, int dc, int r, int g, int b) {
-    machine.GetSystem().graphics().GetDC(dc)->Fill(RGBAColour(r, g, b));
+    machine.haikei().GetDC(dc)->Fill(RGBAColour(r, g, b));
   }
 };
 
@@ -294,15 +296,16 @@ struct load_1
 
   void operator()(RLMachine& machine, string filename, int dc, int opacity) {
     GraphicsSystem& graphics = machine.GetSystem().graphics();
+    Haikei& haikei = machine.haikei();
 
     std::shared_ptr<const SDLSurface> surface(
         graphics.GetSurfaceNamedAndMarkViewed(machine, filename));
 
     if (dc != 0 && dc != 1) {
-      graphics.AllocateDC(dc, surface->GetSize());
+      haikei.AllocateDC(dc, surface->GetSize());
     }
 
-    surface->BlitToSurface(*graphics.GetDC(dc), surface->GetRect(),
+    surface->BlitToSurface(*haikei.GetDC(dc), surface->GetRect(),
                            surface->GetRect(), opacity, use_alpha_);
   }
 };
@@ -328,16 +331,17 @@ struct load_3 : public RLOpcode<StrConstant_T,
                   Point dest,
                   int opacity) {
     GraphicsSystem& graphics = machine.GetSystem().graphics();
+    Haikei& haikei = machine.haikei();
     std::shared_ptr<const SDLSurface> surface(
         graphics.GetSurfaceNamedAndMarkViewed(machine, filename));
 
     Rect destRect = Rect(dest, srcRect.size());
 
     if (dc != 0 && dc != 1) {
-      graphics.SetMinimumSizeForDC(dc, surface->GetSize());
+      haikei.SetMinimumSizeForDC(dc, surface->GetSize());
     }
 
-    surface->BlitToSurface(*graphics.GetDC(dc), srcRect, destRect, opacity,
+    surface->BlitToSurface(*haikei.GetDC(dc), srcRect, destRect, opacity,
                            use_alpha_);
   }
 };
@@ -760,15 +764,15 @@ struct copy_3 : public RLOpcode<Rect_T<SPACE>,
     if (src == dst)
       return;
 
-    GraphicsSystem& graphics = machine.GetSystem().graphics();
+    Haikei& haikei = machine.haikei();
 
-    std::shared_ptr<SDLSurface> sourceSurface = graphics.GetDC(src);
+    std::shared_ptr<SDLSurface> sourceSurface = haikei.GetDC(src);
 
     if (dst != 0 && dst != 1) {
-      graphics.SetMinimumSizeForDC(dst, srcRect.size());
+      haikei.SetMinimumSizeForDC(dst, srcRect.size());
     }
 
-    sourceSurface->BlitToSurface(*graphics.GetDC(dst), srcRect,
+    sourceSurface->BlitToSurface(*haikei.GetDC(dst), srcRect,
                                  Rect(destPoint, srcRect.size()), opacity,
                                  use_alpha_);
   }
@@ -784,15 +788,15 @@ struct copy_1
     if (src == dst)
       return;
 
-    GraphicsSystem& graphics = machine.GetSystem().graphics();
+    Haikei& haikei = machine.haikei();
 
-    std::shared_ptr<SDLSurface> sourceSurface = graphics.GetDC(src);
+    std::shared_ptr<SDLSurface> sourceSurface = haikei.GetDC(src);
 
     if (dst != 0 && dst != 1) {
-      graphics.SetMinimumSizeForDC(dst, sourceSurface->GetSize());
+      haikei.SetMinimumSizeForDC(dst, sourceSurface->GetSize());
     }
 
-    sourceSurface->BlitToSurface(*graphics.GetDC(dst), sourceSurface->GetRect(),
+    sourceSurface->BlitToSurface(*haikei.GetDC(dst), sourceSurface->GetRect(),
                                  sourceSurface->GetRect(), opacity, use_alpha_);
   }
 };
@@ -808,13 +812,13 @@ struct fill_0 : public RLOpcode<IntConstant_T, RGBColour_T> {
     if (colour.r() == 0 && colour.g() == 0 && colour.b() == 0)
       colour.set_alpha(0);
 
-    machine.GetSystem().graphics().GetDC(dc)->Fill(colour);
+    machine.haikei().GetDC(dc)->Fill(colour);
   }
 };
 
 struct fill_1 : public RLOpcode<IntConstant_T, RGBMaybeAColour_T> {
   void operator()(RLMachine& machine, int dc, RGBAColour colour) {
-    machine.GetSystem().graphics().GetDC(dc)->Fill(colour);
+    machine.haikei().GetDC(dc)->Fill(colour);
   }
 };
 
@@ -825,14 +829,14 @@ struct fill_3
                   Rect destRect,
                   int dc,
                   RGBAColour colour) {
-    machine.GetSystem().graphics().GetDC(dc)->Fill(colour, destRect);
+    machine.haikei().GetDC(dc)->Fill(colour, destRect);
   }
 };
 
 struct invert_1 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int dc) {
     std::shared_ptr<SDLSurface> surface =
-        machine.GetSystem().graphics().GetDC(dc);
+        machine.haikei().GetDC(dc);
     surface->Apply(InvertColor);
   }
 };
@@ -840,14 +844,14 @@ struct invert_1 : public RLOpcode<IntConstant_T> {
 template <typename SPACE>
 struct invert_3 : public RLOpcode<Rect_T<SPACE>, IntConstant_T> {
   void operator()(RLMachine& machine, Rect rect, int dc) {
-    machine.GetSystem().graphics().GetDC(dc)->Apply(InvertColor, rect);
+    machine.haikei().GetDC(dc)->Apply(InvertColor, rect);
   }
 };
 
 struct mono_1 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int dc) {
     std::shared_ptr<SDLSurface> surface =
-        machine.GetSystem().graphics().GetDC(dc);
+        machine.haikei().GetDC(dc);
     surface->Apply(ToGrayscale);
   }
 };
@@ -855,14 +859,14 @@ struct mono_1 : public RLOpcode<IntConstant_T> {
 template <typename SPACE>
 struct mono_3 : public RLOpcode<Rect_T<SPACE>, IntConstant_T> {
   void operator()(RLMachine& machine, Rect rect, int dc) {
-    machine.GetSystem().graphics().GetDC(dc)->Apply(ToGrayscale, rect);
+    machine.haikei().GetDC(dc)->Apply(ToGrayscale, rect);
   }
 };
 
 struct colour_1 : public RLOpcode<IntConstant_T, RGBColour_T> {
   void operator()(RLMachine& machine, int dc, RGBAColour colour) {
     std::shared_ptr<SDLSurface> surface =
-        machine.GetSystem().graphics().GetDC(dc);
+        machine.haikei().GetDC(dc);
     surface->Apply(ApplyColorTransformer(colour.rgb()));
   }
 };
@@ -871,7 +875,7 @@ template <typename SPACE>
 struct colour_2 : public RLOpcode<Rect_T<SPACE>, IntConstant_T, RGBColour_T> {
   void operator()(RLMachine& machine, Rect rect, int dc, RGBAColour colour) {
     std::shared_ptr<SDLSurface> surface =
-        machine.GetSystem().graphics().GetDC(dc);
+        machine.haikei().GetDC(dc);
     surface->Apply(ApplyColorTransformer(colour.rgb()), rect);
   }
 };
@@ -879,7 +883,7 @@ struct colour_2 : public RLOpcode<Rect_T<SPACE>, IntConstant_T, RGBColour_T> {
 struct light_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int dc, int level) {
     std::shared_ptr<SDLSurface> surface =
-        machine.GetSystem().graphics().GetDC(dc);
+        machine.haikei().GetDC(dc);
     surface->Apply(ApplyColorTransformer(RGBColour(level, level, level)));
   }
 };
@@ -888,7 +892,7 @@ template <typename SPACE>
 struct light_2 : public RLOpcode<Rect_T<SPACE>, IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, Rect rect, int dc, int level) {
     std::shared_ptr<SDLSurface> surface =
-        machine.GetSystem().graphics().GetDC(dc);
+        machine.haikei().GetDC(dc);
     surface->Apply(ApplyColorTransformer(RGBColour(level, level, level)), rect);
   }
 };
@@ -902,8 +906,9 @@ struct fade_7
     : public RLOpcode<Rect_T<SPACE>, RGBColour_T, DefaultIntValue_T<0>> {
   void operator()(RLMachine& machine, Rect rect, RGBAColour colour, int time) {
     GraphicsSystem& graphics = machine.GetSystem().graphics();
+    Haikei& haikei = machine.haikei();
     std::shared_ptr<SDLSurface> before = graphics.RenderToSurface();
-    graphics.GetDC(0)->Fill(colour, rect);
+    haikei.GetDC(0)->Fill(colour, rect);
     std::shared_ptr<SDLSurface> after = graphics.RenderToSurface();
 
     if (time > 0) {
@@ -967,14 +972,14 @@ struct stretchBlit_1 : public RLOpcode<Rect_T<SPACE>,
     if (src == dst)
       return;
 
-    GraphicsSystem& graphics = machine.GetSystem().graphics();
-    std::shared_ptr<SDLSurface> sourceSurface = graphics.GetDC(src);
+    Haikei& haikei = machine.haikei();
+    std::shared_ptr<SDLSurface> sourceSurface = haikei.GetDC(src);
 
     if (dst != 0 && dst != 1) {
-      graphics.SetMinimumSizeForDC(dst, sourceSurface->GetSize());
+      haikei.SetMinimumSizeForDC(dst, sourceSurface->GetSize());
     }
 
-    sourceSurface->BlitToSurface(*graphics.GetDC(dst), src_rect, dst_rect,
+    sourceSurface->BlitToSurface(*haikei.GetDC(dst), src_rect, dst_rect,
                                  opacity, use_alpha_);
   }
 };
@@ -991,13 +996,14 @@ struct zoom : public RLOpcode<Rect_T<SPACE>,
                   int srcDC,
                   Rect drect,
                   int time) {
-    GraphicsSystem& gs = machine.GetSystem().graphics();
-    gs.set_graphics_background(BACKGROUND_DC0);
+    Haikei& haikei = machine.haikei();
+    haikei.set_graphics_background(BACKGROUND_DC0);
 
     LongOperation* zoomOp = new ZoomLongOperation(
-        machine, gs.GetDC(0), gs.GetDC(srcDC), frect, trect, drect, time);
+        machine, haikei.GetDC(0), haikei.GetDC(srcDC), frect, trect, drect,
+        time);
     auto blitOp = std::make_shared<BlitAfterEffectFinishes>(
-        zoomOp, gs.GetDC(srcDC), gs.GetDC(0), trect, drect);
+        zoomOp, haikei.GetDC(srcDC), haikei.GetDC(0), trect, drect);
     machine.PushLongOperation(blitOp);
   }
 };
@@ -1209,7 +1215,7 @@ GrpModule::GrpModule() : MappedRLModule(GraphicsStackMappingFun, "Grp", 1, 33) {
   using rect_impl::REC;
 
   AddOpcode(15, 0, "allocDC", new allocDC);
-  AddOpcode(16, 0, "FreeDC", CallFunction(&GraphicsSystem::FreeDC));
+  AddOpcode(16, 0, "FreeDC", CallFunction(&Haikei::FreeDC));
 
   AddUnsupportedOpcode(20, 0, "grpLoadMask");
   // AddOpcode(30, 0, new grpTextout);

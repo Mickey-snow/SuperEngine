@@ -31,6 +31,7 @@
 #include <vector>
 
 #include "core/gameexe.hpp"
+#include "core/haikei.hpp"
 #include "core/stage.hpp"
 #include "libreallive/parser.hpp"
 #include "machine/rlmachine.hpp"
@@ -54,6 +55,11 @@ EventSystem& GetSystemObj(RLMachine& machine) {
 template <>
 GraphicsSystem& GetSystemObj(RLMachine& machine) {
   return machine.GetSystem().graphics();
+}
+
+template <>
+Haikei& GetSystemObj(RLMachine& machine) {
+  return machine.haikei();
 }
 
 template <>
@@ -163,6 +169,8 @@ void UndefinedFunction::operator()(RLMachine& machine,
 template RLOperation* CallFunction<EventSystem>(void (EventSystem::*)(int));
 template RLOperation* CallFunction<GraphicsSystem>(
     void (GraphicsSystem::*)(int));
+template RLOperation* CallFunction<Haikei>(void (Haikei::*)(int));
+template RLOperation* CallFunction<Haikei>(void (Haikei::*)());
 template RLOperation* CallFunction<Stage>(void (Stage::*)(int));
 template RLOperation* CallFunction<Stage>(void (Stage::*)());
 template RLOperation* CallFunction<SoundSystem>(void (SoundSystem::*)(int));

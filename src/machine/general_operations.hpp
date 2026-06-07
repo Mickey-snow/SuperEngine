@@ -38,6 +38,7 @@
 class System;
 class EventSystem;
 class GraphicsSystem;
+class Haikei;
 class Stage;
 class TextPage;
 class TextSystem;
@@ -202,6 +203,8 @@ extern template RLOperation* CallFunction<EventSystem>(
     void (EventSystem::*)(int));
 extern template RLOperation* CallFunction<GraphicsSystem>(
     void (GraphicsSystem::*)(int));
+extern template RLOperation* CallFunction<Haikei>(void (Haikei::*)(int));
+extern template RLOperation* CallFunction<Haikei>(void (Haikei::*)());
 extern template RLOperation* CallFunction<SoundSystem>(
     void (SoundSystem::*)(int));
 extern template RLOperation* CallFunction<System>(void (System::*)(int));

@@ -26,6 +26,7 @@
 #include "machine/rlmachine.hpp"
 
 #include "core/event_listener.hpp"
+#include "core/haikei.hpp"
 #include "core/memory.hpp"
 #include "core/memory_internal/serialization_local.hpp"
 #include "core/stage.hpp"
@@ -76,6 +77,15 @@ RLMachine::RLMachine(std::shared_ptr<System> system,
   if (system) {
     stage_ = std::make_unique<Stage>(system->graphics().GetObjectLayerSize());
     system->graphics().BindStage(stage_.get());
+    auto backend = system->graphics().GetBackend();
+    haikei_ = std::make_unique<Haikei>(
+        system->graphics().screen_size(),
+        [backend](Size size) { return backend->CreateSurface(size); },
+        [this](const std::string& name) {
+          return GetSystem().graphics().GetSurfaceNamed(name);
+        },
+        system->event().GetClock());
+    system->graphics().BindHaikei(haikei_.get());
 
     // Setup runtime environment
     env_.InitFrom(system->gameexe());
@@ -86,12 +96,17 @@ RLMachine::RLMachine(std::shared_ptr<System> system,
 }
 
 RLMachine::~RLMachine() {
+  GetSystem().graphics().BindHaikei(nullptr);
   GetSystem().graphics().BindStage(nullptr);
 }
 
 Stage& RLMachine::stage() { return *stage_; }
 
 const Stage& RLMachine::stage() const { return *stage_; }
+
+Haikei& RLMachine::haikei() { return *haikei_; }
+
+const Haikei& RLMachine::haikei() const { return *haikei_; }
 
 void RLMachine::MarkSavepoint() {
   savepoint_call_stack_ = call_stack_.Clone();
@@ -206,6 +221,7 @@ void RLMachine::Reset() {
   call_stack_ = CallStack();
   savepoint_call_stack_ = CallStack();
   stage().Reset();
+  haikei().Reset();
   GetSystem().Reset();
 }
 
@@ -213,6 +229,7 @@ void RLMachine::LocalReset() {
   savepoint_call_stack_ = CallStack();
   memory_->PartialReset(LocalMemory());
   stage().Reset();
+  haikei().Reset();
   GetSystem().Reset();
 }
 

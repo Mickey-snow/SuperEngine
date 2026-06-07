@@ -27,6 +27,7 @@
 
 #include "modules/module_scr.hpp"
 
+#include "core/haikei.hpp"
 #include "core/stage.hpp"
 #include "machine/general_operations.hpp"
 #include "machine/rlmachine.hpp"
@@ -50,8 +51,7 @@ struct GetDCPixel : public RLOpcode<IntConstant_T,
                   IntReferenceIterator r,
                   IntReferenceIterator g,
                   IntReferenceIterator b) {
-    RGBAColour pixel =
-        machine.GetSystem().graphics().GetDC(dc)->GetPixelAt(Point(x, y));
+    RGBAColour pixel = machine.haikei().GetDC(dc)->GetPixelAt(Point(x, y));
     *r = pixel.r();
     *g = pixel.g();
     *b = pixel.b();
