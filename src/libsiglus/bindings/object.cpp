@@ -483,7 +483,7 @@ class SiglusObject {
   }
 };
 
-void BindObject(Context&, SiglusRuntime& runtime) {
+void BindObject(SiglusRuntime& runtime) {
   auto& vm = *runtime.vm;
   sb::module_ m(vm.gc_.get(), vm.globals_.get());
   sb::class_<SiglusObject> obj(m, "Object");

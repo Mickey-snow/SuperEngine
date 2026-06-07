@@ -23,6 +23,7 @@
 
 #include "core/memory_internal/bank.hpp"
 #include "libsiglus/archive.hpp"
+#include "libsiglus/bindings/common.hpp"
 #include "libsiglus/bindings/registry.hpp"
 #include "libsiglus/bindings/util.hpp"
 #include "libsiglus/property.hpp"
@@ -130,20 +131,6 @@ std::pair<std::size_t, std::size_t> CheckFillRange(int begin,
                                    where, end_index, size));
   }
   return {begin_index, end_index};
-}
-
-int RequireInt(Value const& value, std::string_view where) {
-  if (auto* i = value.Get_if<int>())
-    return *i;
-  throw RuntimeError(
-      std::format("expected int for {}, got {}", where, value.Desc()));
-}
-
-const List* RequireList(Value const& value, std::string_view where) {
-  if (auto* list = value.Get_if<List>())
-    return list;
-  throw RuntimeError(
-      std::format("expected list for {}, got {}", where, value.Desc()));
 }
 
 class SiglusIntBank {
@@ -433,7 +420,7 @@ Value MakeBoundNativeInstance(VM& vm,
 
 }  // namespace
 
-void BindMemory(Context& ctx, SiglusRuntime& runtime) {
+void BindMemory(SiglusRuntime& runtime) {
   VM& vm = *runtime.vm;
   sb::module_ m(vm.gc_.get(), runtime.vm->globals_.get());
   if (!runtime.memory)

@@ -31,7 +31,7 @@ namespace libsiglus::binding {
 namespace sb = srbind;
 namespace sr = serilang;
 
-void BindStage(Context&, SiglusRuntime& runtime) {
+void BindStage(SiglusRuntime& runtime) {
   auto& vm = *runtime.vm;
 
   std::string src = R"(

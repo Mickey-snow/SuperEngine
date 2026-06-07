@@ -30,7 +30,7 @@ namespace libsiglus::binding {
 namespace sb = srbind;
 using namespace serilang;
 
-void BindSyscom(Context&, SiglusRuntime& runtime) {
+void BindSyscom(SiglusRuntime& runtime) {
   auto* sys = runtime.system.get();
 
   VM& vm = *runtime.vm;

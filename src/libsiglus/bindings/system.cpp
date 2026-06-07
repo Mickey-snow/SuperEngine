@@ -28,6 +28,7 @@
 #include "systems/graphics_system.hpp"
 #include "vm/vm.hpp"
 
+#include <filesystem>
 #include <ctime>
 #include <string>
 #include <utility>
@@ -35,18 +36,20 @@
 namespace libsiglus::binding {
 namespace sb = srbind;
 
+namespace fs = std::filesystem;
+
 static void nop() {}
 
-void BindSystem(Context& ctx, SiglusRuntime& runtime) {
+void BindSystem(SiglusRuntime& runtime) {
   serilang::VM& vm = *runtime.vm;
 
   sb::module_ m(vm, "system");
   m.def("is_debug", +[]() { return false; });
   m.def("time", +[]() { return static_cast<int>(std::time(nullptr)); });
-  m.def("check_file_exist", [root = ctx.base_pth](std::string filename) {
+  m.def("check_file_exist", [root = runtime.base_pth](std::string filename) {
     return fs::exists(root / filename);
   });
-  m.def("check_save_file_exist", [root = ctx.save_pth](std::string filename) {
+  m.def("check_save_file_exist", [root = runtime.save_pth](std::string filename) {
     return fs::exists(root / filename);
   });
   m.def("check_dummy", &nop).def("clear_dummy", &nop);

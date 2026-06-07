@@ -253,7 +253,7 @@ class SiglusWipe {
   Stage* stage_ = nullptr;
 };
 
-void BindWipe(Context&, SiglusRuntime& runtime) {
+void BindWipe(SiglusRuntime& runtime) {
   sr::VM& vm = *runtime.vm;
   sb::module_ m(vm.gc_.get(), vm.globals_.get());
 

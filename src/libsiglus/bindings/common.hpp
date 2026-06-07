@@ -23,30 +23,20 @@
 
 #pragma once
 
-#include "core/asset_scanner.hpp"
-
-#include <filesystem>
-#include <memory>
 #include <optional>
 #include <string>
 
 namespace serilang {
-class VM;
 class Value;
+class List;
 }  // namespace serilang
 
-namespace libsiglus {
-
-namespace binding {
-namespace fs = std::filesystem;
+namespace libsiglus::binding {
 
 std::optional<int> AsInt(const serilang::Value& value);
 std::string AsString(const serilang::Value& value);
+int RequireInt(const serilang::Value& value, std::string_view where);
+const serilang::List* RequireList(const serilang::Value& value,
+                                  std::string_view where);
 
-struct Context {
-  fs::path base_pth, save_pth;
-  std::shared_ptr<AssetScanner> asset_scanner;
-};
-
-}  // namespace binding
-}  // namespace libsiglus
+}  // namespace libsiglus::binding

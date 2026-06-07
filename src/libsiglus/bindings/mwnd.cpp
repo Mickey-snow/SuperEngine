@@ -63,7 +63,7 @@ class SiglusMwnd {
   }
 };
 
-void BindMwnd(Context&, SiglusRuntime& runtime) {
+void BindMwnd(SiglusRuntime& runtime) {
   sr::VM& vm = *runtime.vm;
 
   {

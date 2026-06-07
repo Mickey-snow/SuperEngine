@@ -78,7 +78,7 @@ struct GameexeHandle {
   }
 };
 
-void BindGexe(Context&, SiglusRuntime& runtime) {
+void BindGexe(SiglusRuntime& runtime) {
   sb::module_ m(runtime.vm->gc_.get(), runtime.vm->globals_.get());
   sb::class_<GameexeHandle> gh(m, "gexe");
 

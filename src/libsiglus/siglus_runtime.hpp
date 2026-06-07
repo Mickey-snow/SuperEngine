@@ -32,6 +32,7 @@
 #include "systems/system.hpp"
 #include "vm/value.hpp"
 
+#include <filesystem>
 #include <functional>
 #include <memory>
 
@@ -46,6 +47,7 @@ class SiglusMwnd;
 }
 
 struct SiglusRuntime {
+  std::filesystem::path base_pth, save_pth;
   std::shared_ptr<Gameexe> gameexe;
   std::shared_ptr<Archive> archive;
   std::unique_ptr<Memory> memory;

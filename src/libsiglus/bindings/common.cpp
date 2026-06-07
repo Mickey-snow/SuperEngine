@@ -23,8 +23,12 @@
 
 #include "libsiglus/bindings/common.hpp"
 
+#include "vm/exception.hpp"
+#include "vm/list.hpp"
 #include "vm/string.hpp"
 #include "vm/value.hpp"
+
+#include <format>
 
 namespace libsiglus ::binding {
 
@@ -44,6 +48,20 @@ std::string AsString(const sr::Value& value) {
   if (const sr::String* str = value.Get_if<sr::String>())
     return str->str_;
   return value.Str();
+}
+
+int RequireInt(sr::Value const& value, std::string_view where) {
+  if (auto* i = value.Get_if<int>())
+    return *i;
+  throw sr::RuntimeError(
+      std::format("expected int for {}, got {}", where, value.Desc()));
+}
+
+const sr::List* RequireList(sr::Value const& value, std::string_view where) {
+  if (auto* list = value.Get_if<sr::List>())
+    return list;
+  throw sr::RuntimeError(
+      std::format("expected list for {}, got {}", where, value.Desc()));
 }
 
 }  // namespace libsiglus::binding

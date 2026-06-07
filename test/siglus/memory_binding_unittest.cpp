@@ -42,10 +42,9 @@ class SiglusMemoryBindingTest : public ::testing::Test {
   void SetUp() override {
     runtime.vm = std::make_unique<serilang::VM>(m6::VMFactory::Create());
 
-    Context ctx;
     const auto* bind = SiglusBindingRegistry::Find("memory");
     ASSERT_NE(bind, nullptr);
-    (*bind)(ctx, runtime);
+    (*bind)(runtime);
   }
 
   serilang::Value Eval(std::string src) {

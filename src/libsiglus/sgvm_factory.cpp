@@ -23,7 +23,6 @@
 
 #include "libsiglus/sgvm_factory.hpp"
 
-#include "libsiglus/bindings/common.hpp"
 #include "libsiglus/bindings/loader.hpp"
 #include "libsiglus/bindings/registry.hpp"
 
@@ -113,11 +112,10 @@ SiglusRuntime SGVMFactory::Create() {
   rt.archive = std::make_shared<Archive>(Archive::Create(archive_mf.Read()));
   rt.loader = std::make_unique<binding::Loader>(*rt.archive, vm, debug_);
 
-  binding::Context ctx;
-  ctx.base_pth = base_path_;
-  ctx.save_pth = ctx.base_pth / "save";
-  ctx.asset_scanner = rt.asset_scanner = std::make_shared<AssetScanner>();
-  rt.asset_scanner->IndexDirectory(ctx.base_pth);
+  rt.base_pth = base_path_;
+  rt.save_pth = rt.base_pth / "save";
+  rt.asset_scanner = std::make_shared<AssetScanner>();
+  rt.asset_scanner->IndexDirectory(rt.base_pth);
 
   rt.gameexe = std::make_shared<Gameexe>(LoadGameexe(rt.asset_scanner));
   Gameexe& gexe = *rt.gameexe;
@@ -137,7 +135,7 @@ SiglusRuntime SGVMFactory::Create() {
 
   for (auto it = binding::SiglusBindingRegistry::cbegin();
        it != binding::SiglusBindingRegistry::cend(); ++it) {
-    it->second(ctx, rt);
+    it->second(rt);
   }
   sb::module_ m(gc.get(), vm.globals_.get());
 

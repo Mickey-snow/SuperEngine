@@ -36,7 +36,7 @@ namespace libsiglus::binding {
 namespace sb = srbind;
 using namespace serilang;
 
-void BindEvent(Context&, SiglusRuntime& runtime) {
+void BindEvent(SiglusRuntime& runtime) {
   sb::module_ m(*runtime.vm, "event");
 
   m.def("keydown", [event = runtime.system->event_ptr()](VM& vm) {

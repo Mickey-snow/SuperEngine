@@ -21,6 +21,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
+#include "libsiglus/bindings/common.hpp"
 #include "libsiglus/bindings/registry.hpp"
 #include "libsiglus/bindings/util.hpp"
 #include "srbind/srbind.hpp"
@@ -313,7 +314,7 @@ class SiglusPcmch {
   std::string pcm_name_;
 };
 
-void BindSound(Context&, SiglusRuntime& runtime) {
+void BindSound(SiglusRuntime& runtime) {
   sr::VM& vm = *runtime.vm;
 
   sb::module_ m(vm.gc_.get(), vm.globals_.get());
