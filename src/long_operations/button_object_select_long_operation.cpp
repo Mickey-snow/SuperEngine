@@ -26,10 +26,10 @@
 
 #include "long_operations/button_object_select_long_operation.hpp"
 
-#include "machine/rlmachine.hpp"
-#include "core/object_internal/drawer/parent.hpp"
 #include "core/object.hpp"
+#include "core/object_internal/drawer/parent.hpp"
 #include "core/stage.hpp"
+#include "machine/rlmachine.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
 
@@ -44,7 +44,7 @@ ButtonObjectSelectLongOperation::ButtonObjectSelectLongOperation(
       gameexe_(machine.GetSystem().gameexe()),
       currently_hovering_button_(NULL),
       currently_pressed_button_(NULL) {
-  for (GraphicsObject& obj : machine.stage().GetForegroundObjects()) {
+  for (GraphicsObject& obj : machine.stage().foreground_objects) {
     if (obj.Param().IsButton() && obj.Param().GetButtonGroup() == group_) {
       buttons_.emplace_back(&obj, static_cast<GraphicsObject*>(NULL));
     } else if (obj.has_object_data()) {

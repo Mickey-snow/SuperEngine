@@ -27,12 +27,12 @@
 
 #include "modules/module_obj.hpp"
 
+#include "core/object.hpp"
+#include "core/object_internal/drawer/parent.hpp"
+#include "core/stage.hpp"
 #include "libreallive/parser.hpp"
 #include "machine/properties.hpp"
 #include "machine/rlmachine.hpp"
-#include "core/object_internal/drawer/parent.hpp"
-#include "core/object.hpp"
-#include "core/stage.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
 #include "utilities/exception.hpp"
@@ -85,11 +85,8 @@ LazyArray<GraphicsObject>& GetGraphicsObjects(RLMachine& machine,
     EnsureIsParentObject(parent, graphics.GetObjectLayerSize());
     return static_cast<ParentGraphicsObjectData&>(parent.GetObjectData())
         .objects();
-  } else if (fgbg == OBJ_FG) {
-    return stage.GetForegroundObjects();
-  } else {
-    return stage.GetBackgroundObjects();
-  }
+  } else
+    return stage.ObjectsForLayer(fgbg);
 }
 
 // -----------------------------------------------------------------------

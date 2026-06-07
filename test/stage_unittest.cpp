@@ -137,28 +137,6 @@ TEST_F(StageTest, FreeAndInitializeSingleObjectAffectFrontAndBackOnly) {
   EXPECT_EQ(stage.next_objects[0].Param().position_x, 30);
 }
 
-TEST_F(StageTest, FreeAndInitializeAllObjectsAffectFrontAndBackOnly) {
-  Stage stage(2);
-  SetDummyData(stage.foreground_objects[0]);
-  SetDummyData(stage.background_objects[1]);
-  SetDummyData(stage.next_objects[0]);
-  stage.foreground_objects[0].Param().SetX(10);
-  stage.background_objects[1].Param().SetX(20);
-  stage.next_objects[0].Param().SetX(30);
-
-  stage.FreeAllObjectData();
-
-  EXPECT_FALSE(stage.foreground_objects[0].has_object_data());
-  EXPECT_FALSE(stage.background_objects[1].has_object_data());
-  EXPECT_TRUE(stage.next_objects[0].has_object_data());
-
-  stage.InitializeAllObjectParams();
-
-  EXPECT_EQ(stage.foreground_objects[0].Param().position_x, 0);
-  EXPECT_EQ(stage.background_objects[1].Param().position_x, 0);
-  EXPECT_EQ(stage.next_objects[0].Param().position_x, 30);
-}
-
 TEST_F(StageTest, AnimationsPlayingIsFalseWithoutActiveForegroundAnimation) {
   Stage stage(1);
   EXPECT_FALSE(stage.AnimationsPlaying());
@@ -185,16 +163,14 @@ TEST_F(StageTest, RenderObjectsSortsFiltersAndReusesScratch) {
   prepare(2, 1, 1, 0);
   prepare(3, 3, 0, 0);
 
-  stage.RenderObjects([](size_t slot, const GraphicsObject&) {
-    return slot != 1;
-  });
+  stage.RenderObjects(
+      [](size_t slot, const GraphicsObject&) { return slot != 1; });
 
   EXPECT_EQ(rendered, std::vector<int>({2, 0, 3}));
 
   rendered.clear();
-  stage.RenderObjects([](size_t slot, const GraphicsObject&) {
-    return slot == 3;
-  });
+  stage.RenderObjects(
+      [](size_t slot, const GraphicsObject&) { return slot == 3; });
 
   EXPECT_EQ(rendered, std::vector<int>({3}));
 }

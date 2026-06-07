@@ -32,19 +32,19 @@
 #include <vector>
 
 #include "core/gameexe.hpp"
+#include "core/object.hpp"
+#include "core/stage.hpp"
 #include "libreallive/parser.hpp"
 #include "long_operations/button_object_select_long_operation.hpp"
 #include "long_operations/select_long_operation.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/rloperation.hpp"
 #include "machine/rloperation/rlop_store.hpp"
-#include "core/object.hpp"
-#include "core/stage.hpp"
+#include "systems/event_system.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
 #include "systems/text_system.hpp"
 #include "systems/text_window.hpp"
-#include "systems/event_system.hpp"
 #include "utilities/string_utilities.hpp"
 
 using libreallive::CommandElement;
@@ -164,7 +164,7 @@ struct Sel_select_objbtn_cancel_2 : public RLOpcode<> {
     if (machine.GetScenarioConfig().enable_selcom_savepoint)
       MarkSavepoint(machine);
 
-    auto& fg_objs = machine.stage().GetForegroundObjects();
+    auto& fg_objs = machine.stage().foreground_objects;
     int group = 0;
     for (GraphicsObject& obj : fg_objs)
       if (obj.Param().IsButton()) {

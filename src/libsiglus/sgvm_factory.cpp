@@ -89,14 +89,7 @@ inline void dbg_print(std::string str) {
 
 void PumpSiglusGraphics(System& system, Stage& stage) {
   GraphicsSystem& graphics = system.graphics();
-  for (auto& obj : stage.GetForegroundObjects()) {
-    obj.Execute();
-    obj.ExecuteMutators();
-  }
-  for (auto& obj : stage.GetBackgroundObjects()) {
-    obj.Execute();
-    obj.ExecuteMutators();
-  }
+  stage.Execute();
   graphics.RenderFrame(true);
   system.event().ExecuteEventSystem();
 }

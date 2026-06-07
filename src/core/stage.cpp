@@ -152,11 +152,15 @@ void Stage::FreeObjectData(int obj_number) {
 }
 
 void Stage::FreeAllObjectData() {
-  for (GraphicsObject& object : foreground_objects)
-    object.FreeObjectData();
+  FreeLayerObjectData(OBJ_FG);
+  FreeLayerObjectData(OBJ_BG);
+  FreeLayerObjectData(OBJ_NEXT);
+}
 
-  for (GraphicsObject& object : background_objects)
-    object.FreeObjectData();
+void Stage::FreeLayerObjectData(int layer) {
+  LazyArray<GraphicsObject>& objects = ObjectsForLayer(layer);
+  for (auto& obj : objects)
+    obj.FreeObjectData();
 }
 
 void Stage::InitializeObjectParams(int obj_number) {
@@ -172,15 +176,20 @@ void Stage::InitializeAllObjectParams() {
     object.InitializeParams();
 }
 
-LazyArray<GraphicsObject>& Stage::GetBackgroundObjects() {
-  return background_objects;
+void Stage::Execute() {
+  for (auto& obj : foreground_objects) {
+    obj.Execute();
+    obj.ExecuteMutators();
+  }
+  for (auto& obj : background_objects) {
+    obj.Execute();
+    obj.ExecuteMutators();
+  }
+  for (auto& obj : next_objects) {
+    obj.Execute();
+    obj.ExecuteMutators();
+  }
 }
-
-LazyArray<GraphicsObject>& Stage::GetForegroundObjects() {
-  return foreground_objects;
-}
-
-LazyArray<GraphicsObject>& Stage::GetNextObjects() { return next_objects; }
 
 bool Stage::AnimationsPlaying() const {
   for (size_t i = 0, end = foreground_objects.Size(); i < end; ++i) {

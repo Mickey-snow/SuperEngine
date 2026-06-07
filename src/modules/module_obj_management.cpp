@@ -220,7 +220,7 @@ ObjManagement::ObjManagement() : RLModule("ObjManagement", 1, 60) {
   AddOpcode(11, 1, "objFreeInit",
             RangeMappingFun(std::make_shared<objFreeInit>()));
 
-  AddOpcode(100, 0, "objFreeAll", CallFunction(&Stage::FreeAllObjectData));
+  AddOpcode(100, 0, "objFreeAll", CallFunction(&Stage::FreeLayerObjectData));
   AddOpcode(110, 0, "objInitAll",
             CallFunction(&Stage::InitializeAllObjectParams));
   AddOpcode(111, 0, "objFreeInitAll", new objFgBgFreeInitAll);

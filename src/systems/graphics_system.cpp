@@ -531,15 +531,6 @@ std::string GraphicsSystem::ComposeWindowTitle() const {
 // -----------------------------------------------------------------------
 
 void GraphicsSystem::ExecuteGraphicsSystem(RLMachine& machine) {
-  Stage& stage = BoundStage();
-
-  // Check to see if any of the graphics objects are reporting that
-  // they want to force a redraw
-  for (GraphicsObject& obj : stage.GetForegroundObjects())
-    obj.Execute();
-  for (GraphicsObject& obj : stage.GetBackgroundObjects())
-    obj.Execute();
-
   if (mouse_cursor_)
     mouse_cursor_->Execute(system());
 
@@ -849,21 +840,21 @@ void GraphicsSystem::ClearAllDCs() {
 // -----------------------------------------------------------------------
 
 void GraphicsSystem::RenderObjects() {
-  BoundStage().RenderObjects([this](size_t obj_number,
-                                    const GraphicsObject&) -> bool {
-    const ObjectSettings& settings =
-        GetObjectSettings(static_cast<int>(obj_number));
-    if (settings.obj_on_off == 1 && should_show_object1() == false)
-      return false;
-    else if (settings.obj_on_off == 2 && should_show_object2() == false)
-      return false;
-    else if (settings.weather_on_off && should_show_weather() == false)
-      return false;
-    else if (settings.space_key && is_interface_hidden())
-      return false;
+  BoundStage().RenderObjects(
+      [this](size_t obj_number, const GraphicsObject&) -> bool {
+        const ObjectSettings& settings =
+            GetObjectSettings(static_cast<int>(obj_number));
+        if (settings.obj_on_off == 1 && should_show_object1() == false)
+          return false;
+        else if (settings.obj_on_off == 2 && should_show_object2() == false)
+          return false;
+        else if (settings.weather_on_off && should_show_weather() == false)
+          return false;
+        else if (settings.space_key && is_interface_hidden())
+          return false;
 
-    return true;
-  });
+        return true;
+      });
 }
 
 // -----------------------------------------------------------------------

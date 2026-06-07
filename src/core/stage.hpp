@@ -36,9 +36,6 @@
 
 class Stage {
  public:
-  using ObjectRenderPredicate =
-      std::function<bool(size_t, const GraphicsObject&)>;
-
   Stage(int size);
 
   // Foreground objects
@@ -82,6 +79,7 @@ class Stage {
 
   // Frees the object data (but not the parameters).
   void FreeObjectData(int obj_number);
+  void FreeLayerObjectData(int layer);
   void FreeAllObjectData();
 
   // Resets/reinitializes all the object parameters without deleting the loaded
@@ -89,13 +87,13 @@ class Stage {
   void InitializeObjectParams(int obj_number);
   void InitializeAllObjectParams();
 
-  LazyArray<GraphicsObject>& GetBackgroundObjects();
-  LazyArray<GraphicsObject>& GetForegroundObjects();
-  LazyArray<GraphicsObject>& GetNextObjects();
+  void Execute();
 
   // Returns true if there's a currently playing animation.
   bool AnimationsPlaying() const;
 
+  using ObjectRenderPredicate =
+      std::function<bool(size_t, const GraphicsObject&)>;
   // Calls render() on foreground objects that pass |should_render|.
   void RenderObjects(const ObjectRenderPredicate& should_render);
 
@@ -112,10 +110,10 @@ class Stage {
   // relativly cheap operation.)
   void TakeSavepointSnapshot();
 
- private:
-  LazyArray<GraphicsObject>& ObjectsForLayer(int layer);
   const LazyArray<GraphicsObject>& ObjectsForLayer(int layer) const;
+  LazyArray<GraphicsObject>& ObjectsForLayer(int layer);
 
+ private:
   // Tuple used in RenderObjects(). Causes about a half megabyte of allocator
   // churn per minute if we try to allocate it every time.
   //

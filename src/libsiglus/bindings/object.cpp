@@ -337,14 +337,7 @@ class SiglusObject {
   void PumpGraphicsOnce() {
     if (graphics_) {
       if (stage_) {
-        for (GraphicsObject& obj : stage_->GetForegroundObjects()) {
-          obj.Execute();
-          obj.ExecuteMutators();
-        }
-        for (GraphicsObject& obj : stage_->GetBackgroundObjects()) {
-          obj.Execute();
-          obj.ExecuteMutators();
-        }
+        stage_->Execute();
       }
       graphics_->RenderFrame(true);
     }
