@@ -137,44 +137,6 @@ TEST_F(StageTest, FreeAndInitializeSingleObjectAffectFrontAndBackOnly) {
   EXPECT_EQ(stage.next_objects[0].Param().position_x, 30);
 }
 
-TEST_F(StageTest, AnimationsPlayingIsFalseWithoutActiveForegroundAnimation) {
-  Stage stage(1);
-  EXPECT_FALSE(stage.AnimationsPlaying());
-
-  SetDummyData(stage.foreground_objects[0]);
-  EXPECT_FALSE(stage.AnimationsPlaying());
-}
-
-TEST_F(StageTest, RenderObjectsSortsFiltersAndReusesScratch) {
-  Stage stage(4);
-  std::vector<int> rendered;
-
-  auto prepare = [&](int slot, int order, int layer, int depth) {
-    GraphicsObject& object = stage.foreground_objects[slot];
-    SetRecordingData(object, &rendered, slot);
-    object.Param().SetVisible(1);
-    object.Param().z_order = order;
-    object.Param().z_layer = layer;
-    object.Param().z_depth = depth;
-  };
-
-  prepare(0, 2, 0, 0);
-  prepare(1, 1, 9, 0);
-  prepare(2, 1, 1, 0);
-  prepare(3, 3, 0, 0);
-
-  stage.RenderObjects(
-      [](size_t slot, const GraphicsObject&) { return slot != 1; });
-
-  EXPECT_EQ(rendered, std::vector<int>({2, 0, 3}));
-
-  rendered.clear();
-  stage.RenderObjects(
-      [](size_t slot, const GraphicsObject&) { return slot == 3; });
-
-  EXPECT_EQ(rendered, std::vector<int>({3}));
-}
-
 TEST_F(StageTest, ConstructorAndResetIncludeNextObjects) {
   Stage stage(3);
   stage.next_objects[1].Param().SetVisible(1);

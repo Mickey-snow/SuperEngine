@@ -28,13 +28,7 @@
 #include "modules/module_obj_creation.hpp"
 
 #include "core/avdec/gan.hpp"
-#include "machine/properties.hpp"
-#include "machine/rlmachine.hpp"
-#include "machine/rlmodule.hpp"
-#include "machine/rloperation.hpp"
-#include "machine/rloperation/default_value_t.hpp"
-#include "machine/rloperation/rect_t.hpp"
-#include "modules/module_obj.hpp"
+#include "core/object.hpp"
 #include "core/object_internal/drawer/anm.hpp"
 #include "core/object_internal/drawer/colour_filter.hpp"
 #include "core/object_internal/drawer/digits.hpp"
@@ -43,10 +37,16 @@
 #include "core/object_internal/drawer/gan.hpp"
 #include "core/object_internal/drawer/parent.hpp"
 #include "core/object_internal/drawer/text.hpp"
-#include "core/object.hpp"
+#include "machine/properties.hpp"
+#include "machine/rlmachine.hpp"
+#include "machine/rlmodule.hpp"
+#include "machine/rloperation.hpp"
+#include "machine/rloperation/default_value_t.hpp"
+#include "machine/rloperation/rect_t.hpp"
+#include "modules/module_obj.hpp"
 #include "systems/graphics_system.hpp"
-#include "systems/system.hpp"
 #include "systems/sdl/sdl_surface.hpp"
+#include "systems/system.hpp"
 #include "utilities/graphics.hpp"
 #include "utilities/mapped_file.hpp"
 #include "utilities/string_utilities.hpp"
@@ -149,21 +149,24 @@ void objOfTextBuilder(RLMachine& machine,
   // The text at this point is still cp932. Convert it.
   std::string utf8str = cp932toUTF8(val, machine.GetTextEncoding());
   obj.Param().SetTextText(utf8str);
-  GraphicsTextObject* text_obj = new GraphicsTextObject(machine.GetSystem());
-  obj.SetObjectData(text_obj);
+  auto ptr = std::make_unique<GraphicsTextObject>(machine.GetSystem());
+  GraphicsTextObject* text_obj = ptr.get();
+  obj.SetObjectData(std::move(ptr));
   text_obj->UpdateSurface(obj);
 }
 
 void objOfDriftLoader(RLMachine& machine,
                       GraphicsObject& obj,
                       const std::string& value) {
-  obj.SetObjectData(new DriftGraphicsObject(machine.GetSystem(), value));
+  obj.SetObjectData(
+      std::make_unique<DriftGraphicsObject>(machine.GetSystem(), value));
 }
 
 void objOfDigitsLoader(RLMachine& machine,
                        GraphicsObject& obj,
                        const std::string& value) {
-  obj.SetObjectData(new DigitsGraphicsObject(machine.GetSystem(), value));
+  obj.SetObjectData(
+      std::make_unique<DigitsGraphicsObject>(machine.GetSystem(), value));
 }
 
 struct objGeneric_0 : public RLOpcode<IntConstant_T, StrConstant_T> {
@@ -437,7 +440,7 @@ struct objOfChild_0 : public RLOpcode<IntConstant_T,
                   string imgFilename,
                   string ganFilename) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
-    obj.SetObjectData(new ParentGraphicsObjectData(count));
+    obj.SetObjectData(std::make_unique<ParentGraphicsObjectData>(count));
     obj.Param().SetVisible(true);
   }
 };
@@ -454,7 +457,7 @@ struct objOfChild_1 : public RLOpcode<IntConstant_T,
                   string ganFilename,
                   int visible) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
-    obj.SetObjectData(new ParentGraphicsObjectData(count));
+    obj.SetObjectData(std::make_unique<ParentGraphicsObjectData>(count));
     obj.Param().SetVisible(visible);
   }
 };
@@ -475,7 +478,7 @@ struct objOfChild_2 : public RLOpcode<IntConstant_T,
                   int x,
                   int y) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
-    obj.SetObjectData(new ParentGraphicsObjectData(count));
+    obj.SetObjectData(std::make_unique<ParentGraphicsObjectData>(count));
     obj.Param().SetVisible(visible);
     obj.Param().SetX(x);
     obj.Param().SetY(y);

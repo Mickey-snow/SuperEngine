@@ -46,7 +46,7 @@ void EnsureIsParentObject(GraphicsObject& parent, int size) {
     }
   }
 
-  parent.SetObjectData(new ParentGraphicsObjectData(size));
+  parent.SetObjectData(std::make_unique<ParentGraphicsObjectData>(size));
 }
 
 GraphicsObject& GetGraphicsObject(RLMachine& machine,

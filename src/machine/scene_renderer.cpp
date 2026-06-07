@@ -35,6 +35,8 @@
 #include "systems/system.hpp"
 #include "systems/text_system.hpp"
 
+#include <algorithm>
+
 rlSceneRenderer::rlSceneRenderer(RLMachine& machine) : machine_(machine) {}
 
 void rlSceneRenderer::ExecuteFrame() { machine_.stage().Execute(); }
@@ -45,6 +47,7 @@ void rlSceneRenderer::RenderScene() {
   System& system = machine_.GetSystem();
   GraphicsSystem& graphics = system.graphics();
 
+  // Render background
   switch (haikei.background_type()) {
     case BACKGROUND_DC0: {
       haikei.GetDC(0)->RenderToScreen(graphics.screen_rect(),
@@ -61,10 +64,23 @@ void rlSceneRenderer::RenderScene() {
     }
   }
 
-  stage.RenderObjects([this](size_t obj_number, const GraphicsObject& object) {
-    return ShouldRenderObject(obj_number, object);
-  });
+  // Render objects
+  to_render_.clear();
+  for (auto it = stage.foreground_objects.begin(),
+            end = stage.foreground_objects.end();
+       it != end; ++it) {
+    if (!ShouldRenderObject(it.pos(), *it))
+      continue;
+    to_render_.emplace_back(it->Param().z_order, it->Param().z_layer,
+                            it->Param().z_depth, static_cast<int>(it.pos()),
+                            &*it);
+  }
+  std::sort(to_render_.begin(), to_render_.end());
+  for (const auto& [order, layer, depth, pos, obj] : to_render_) {
+    obj->Render(pos, nullptr);
+  }
 
+  // Render text
   if (!graphics.is_interface_hidden())
     system.text().Render();
 }

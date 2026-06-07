@@ -91,10 +91,6 @@ GraphicsObject& GraphicsObject::operator=(GraphicsObject&& rhs) {
   return *this;
 }
 
-void GraphicsObject::SetObjectData(GraphicsObjectData* obj) {
-  object_data_.reset(obj);
-}
-
 void GraphicsObject::SetObjectData(std::unique_ptr<GraphicsObjectData> obj) {
   object_data_ = std::move(obj);
 }

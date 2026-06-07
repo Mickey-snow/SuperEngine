@@ -27,9 +27,13 @@
 #include "systems/scene_renderer.hpp"
 
 #include <cstddef>
+#include <functional>
+#include <tuple>
+#include <vector>
 
 class RLMachine;
 class GraphicsObject;
+class Stage;
 
 class rlSceneRenderer final : public ISceneRenderer {
  public:
@@ -42,4 +46,7 @@ class rlSceneRenderer final : public ISceneRenderer {
   bool ShouldRenderObject(size_t obj_number, const GraphicsObject& object);
 
   RLMachine& machine_;
+  using ToRenderVec =
+      std::vector<std::tuple<int, int, int, int, GraphicsObject*>>;
+  ToRenderVec to_render_;
 };

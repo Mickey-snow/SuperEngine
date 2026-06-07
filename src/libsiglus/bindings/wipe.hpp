@@ -37,26 +37,14 @@ class VM;
 
 namespace libsiglus::binding {
 
-class SiglusWipe {
- public:
+struct SiglusWipe {
   SiglusWipe(::System* system, ::Stage* stage);
   ~SiglusWipe();
 
-  serilang::Value wipe(serilang::VM& vm, std::vector<serilang::Value> args);
-  serilang::Value wipe_all(serilang::VM& vm,
-                           std::vector<serilang::Value> args);
-  serilang::Value wipe_mask(serilang::VM& vm,
-                            std::vector<serilang::Value> args);
-  serilang::Value wipe_mask_all(serilang::VM& vm,
-                                std::vector<serilang::Value> args);
+  bool Update();
+  bool IsActive() const;
+  double Progress() const;
 
-  void end(std::vector<serilang::Value> args);
-  serilang::Value wait(serilang::VM& vm, std::vector<serilang::Value> args);
-  int check(std::vector<serilang::Value> args) const;
-
-  bool UpdateAndRender();
-
- private:
   struct Impl;
   std::unique_ptr<Impl> impl_;
 };

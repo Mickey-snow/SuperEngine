@@ -29,10 +29,7 @@
 
 #include <cstddef>
 #include <deque>
-#include <functional>
 #include <string>
-#include <tuple>
-#include <vector>
 
 class Stage {
  public:
@@ -89,14 +86,6 @@ class Stage {
 
   void Execute();
 
-  // Returns true if there's a currently playing animation.
-  bool AnimationsPlaying() const;
-
-  using ObjectRenderPredicate =
-      std::function<bool(size_t, const GraphicsObject&)>;
-  // Calls render() on foreground objects that pass |should_render|.
-  void RenderObjects(const ObjectRenderPredicate& should_render);
-
   // Adds |command|, the serialized form of a bytecode used by calling the
   // BytecodeElement::data().
   void AddGraphicsStackCommand(std::string command);
@@ -112,14 +101,4 @@ class Stage {
 
   const LazyArray<GraphicsObject>& ObjectsForLayer(int layer) const;
   LazyArray<GraphicsObject>& ObjectsForLayer(int layer);
-
- private:
-  // Tuple used in RenderObjects(). Causes about a half megabyte of allocator
-  // churn per minute if we try to allocate it every time.
-  //
-  // The tuple is order, layer, depth, objid, GraphicsObject. Tuples are easy
-  // to sort.
-  using ToRenderVec =
-      std::vector<std::tuple<int, int, int, int, GraphicsObject*>>;
-  ToRenderVec to_render_;
 };

@@ -65,7 +65,6 @@ class GraphicsObject {
 
   GraphicsObjectData& GetObjectData();
   const GraphicsObjectData& GetObjectData() const;
-  [[deprecated]] void SetObjectData(GraphicsObjectData* obj);
   void SetObjectData(std::unique_ptr<GraphicsObjectData>);
 
   // Render!

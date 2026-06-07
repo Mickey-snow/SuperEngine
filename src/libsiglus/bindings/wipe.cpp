@@ -32,7 +32,6 @@
 #include "srbind/srbind.hpp"
 #include "systems/event_system.hpp"
 #include "systems/graphics_system.hpp"
-#include "systems/sdl/sdl_surface.hpp"
 #include "systems/system.hpp"
 #include "utilities/overload.hpp"
 #include "vm/dict.hpp"
@@ -45,7 +44,6 @@
 #include <algorithm>
 #include <array>
 #include <charconv>
-#include <cmath>
 #include <limits>
 #include <memory>
 #include <optional>
@@ -157,11 +155,8 @@ struct SiglusWipe::Impl {
       return MakeResolvedFuture(vm, 0);
     }
 
-    GraphicsSystem& graphics = system_->graphics();
-    before_surface_ = graphics.RenderToSurface();
     stage_->Wipe(last_.begin_order, last_.end_order, last_.begin_layer,
                  last_.end_layer);
-    after_surface_ = graphics.RenderToSurface();
 
     if (ShouldCompleteImmediately()) {
       EndCurrent(0);
@@ -199,8 +194,6 @@ struct SiglusWipe::Impl {
   void EndCurrent(int result) {
     active_ = false;
     progress_ = 1.0;
-    before_surface_.reset();
-    after_surface_.reset();
     DisableKeySkip();
 
     if (stage_)
@@ -209,9 +202,7 @@ struct SiglusWipe::Impl {
     ResolveWaiters(result);
   }
 
-  int Check() const { return active_ ? 1 : 0; }
-
-  bool UpdateAndRender() {
+  bool Update() {
     if (!active_ || !system_)
       return false;
 
@@ -228,11 +219,9 @@ struct SiglusWipe::Impl {
     }
 
     progress_ = ComputeProgress(elapsed);
-    RenderCrossfade(system_->graphics());
     return true;
   }
 
- private:
   struct KeySkipListener : public EventListener {
     explicit KeySkipListener(Impl* owner) : owner_(owner) {}
 
@@ -303,8 +292,7 @@ struct SiglusWipe::Impl {
   }
 
   bool ShouldCompleteImmediately() const {
-    return !before_surface_ || !after_surface_ || last_.wipe_time <= 0 ||
-           last_.start_time >= last_.wipe_time ||
+    return last_.wipe_time <= 0 || last_.start_time >= last_.wipe_time ||
            system_->graphics().should_skip_animations() ||
            system_->ShouldFastForward();
   }
@@ -330,17 +318,6 @@ struct SiglusWipe::Impl {
       default:
         return 0.0;
     }
-  }
-
-  void RenderCrossfade(GraphicsSystem& graphics) const {
-    if (!before_surface_ || !after_surface_)
-      return;
-
-    const Rect rect = graphics.screen_rect();
-    before_surface_->RenderToScreen(rect, rect, 255);
-    const int alpha =
-        std::clamp(static_cast<int>(std::lround(progress_ * 255.0)), 0, 255);
-    after_surface_->RenderToScreen(rect, rect, alpha);
   }
 
   void ApplyPositional(const std::vector<sr::Value>& args,
@@ -427,8 +404,6 @@ struct SiglusWipe::Impl {
   double progress_ = 1.0;
   System* system_ = nullptr;
   Stage* stage_ = nullptr;
-  std::shared_ptr<SDLSurface> before_surface_;
-  std::shared_ptr<SDLSurface> after_surface_;
   std::vector<std::shared_ptr<sr::Promise>> waiters_;
   std::shared_ptr<EventListener> key_listener_;
 };
@@ -436,26 +411,9 @@ struct SiglusWipe::Impl {
 SiglusWipe::SiglusWipe(System* system, Stage* stage)
     : impl_(std::make_unique<Impl>(system, stage)) {}
 SiglusWipe::~SiglusWipe() = default;
-
-sr::Value SiglusWipe::wipe(sr::VM& vm, std::vector<sr::Value> args) {
-  return impl_->Start(vm, std::move(args), false, false);
-}
-sr::Value SiglusWipe::wipe_all(sr::VM& vm, std::vector<sr::Value> args) {
-  return impl_->Start(vm, std::move(args), false, true);
-}
-sr::Value SiglusWipe::wipe_mask(sr::VM& vm, std::vector<sr::Value> args) {
-  return impl_->Start(vm, std::move(args), true, false);
-}
-sr::Value SiglusWipe::wipe_mask_all(sr::VM& vm,
-                                    std::vector<sr::Value> args) {
-  return impl_->Start(vm, std::move(args), true, true);
-}
-void SiglusWipe::end(std::vector<sr::Value>) { impl_->EndCurrent(0); }
-sr::Value SiglusWipe::wait(sr::VM& vm, std::vector<sr::Value> args) {
-  return impl_->Wait(vm, std::move(args));
-}
-int SiglusWipe::check(std::vector<sr::Value>) const { return impl_->Check(); }
-bool SiglusWipe::UpdateAndRender() { return impl_->UpdateAndRender(); }
+bool SiglusWipe::Update() { return impl_->Update(); }
+bool SiglusWipe::IsActive() const { return impl_->active_; }
+double SiglusWipe::Progress() const { return impl_->progress_; }
 
 void BindWipe(SiglusRuntime& runtime) {
   sr::VM& vm = *runtime.vm;
@@ -467,13 +425,49 @@ void BindWipe(SiglusRuntime& runtime) {
     runtime.renderer->SetWipe(runtime.wipe.get());
 
   auto wipe = m.bind_instance("wipe", runtime.wipe.get());
-  wipe.def("wipe", &SiglusWipe::wipe, sb::vararg);
-  wipe.def("wipe_all", &SiglusWipe::wipe_all, sb::vararg);
-  wipe.def("wipe_mask", &SiglusWipe::wipe_mask, sb::vararg);
-  wipe.def("wipe_mask_all", &SiglusWipe::wipe_mask_all, sb::vararg);
-  wipe.def("end", &SiglusWipe::end, sb::vararg);
-  wipe.def("wait", &SiglusWipe::wait, sb::vararg);
-  wipe.def("check", &SiglusWipe::check, sb::vararg);
+  wipe.def(
+      "wipe",
+      [](SiglusWipe* wipe, sr::VM& vm, std::vector<sr::Value> args) {
+        return wipe->impl_->Start(vm, std::move(args), false, false);
+      },
+      sb::vararg);
+  wipe.def(
+      "wipe_all",
+      [](SiglusWipe* wipe, sr::VM& vm, std::vector<sr::Value> args) {
+        return wipe->impl_->Start(vm, std::move(args), false, true);
+      },
+      sb::vararg);
+  wipe.def(
+      "wipe_mask",
+      [](SiglusWipe* wipe, sr::VM& vm, std::vector<sr::Value> args) {
+        return wipe->impl_->Start(vm, std::move(args), true, false);
+      },
+      sb::vararg);
+  wipe.def(
+      "wipe_mask_all",
+      [](SiglusWipe* wipe, sr::VM& vm, std::vector<sr::Value> args) {
+        return wipe->impl_->Start(vm, std::move(args), true, true);
+      },
+      sb::vararg);
+  wipe.def(
+      "end",
+      [](SiglusWipe* wipe, std::vector<sr::Value> args) {
+        wipe->impl_->EndCurrent(0);
+      },
+      sb::vararg);
+  wipe.def(
+      "wait",
+      [](SiglusWipe* wipe, sr::VM& vm, std::vector<sr::Value> args) {
+        return wipe->impl_->Wait(vm, std::move(args));
+      },
+      sb::vararg);
+  wipe.def(
+      "check",
+      [](SiglusWipe* wipe, std::vector<sr::Value> args) {
+        const int ret = wipe->impl_->active_ ? 1 : 0;
+        return sr::Value(ret);
+      },
+      sb::vararg);
 }
 
 RLVM_REGISTER(SiglusBindingRegistry, "wipe", BindWipe)

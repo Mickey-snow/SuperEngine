@@ -191,38 +191,6 @@ void Stage::Execute() {
   }
 }
 
-bool Stage::AnimationsPlaying() const {
-  for (size_t i = 0, end = foreground_objects.Size(); i < end; ++i) {
-    const auto& object = foreground_objects.At(i);
-    if (object && object->has_object_data()) {
-      const GraphicsObjectData& data = object->GetObjectData();
-      if (data.IsAnimation() && data.GetAnimator()->IsPlaying())
-        return true;
-    }
-  }
-
-  return false;
-}
-
-void Stage::RenderObjects(const ObjectRenderPredicate& should_render) {
-  to_render_.clear();
-
-  for (auto it = foreground_objects.begin(), end = foreground_objects.end();
-       it != end; ++it) {
-    if (should_render && !should_render(it.pos(), *it))
-      continue;
-
-    to_render_.emplace_back(it->Param().z_order, it->Param().z_layer,
-                            it->Param().z_depth, static_cast<int>(it.pos()),
-                            &*it);
-  }
-
-  std::sort(to_render_.begin(), to_render_.end());
-
-  for (auto& object : to_render_)
-    std::get<4>(object)->Render(std::get<3>(object), nullptr);
-}
-
 void Stage::AddGraphicsStackCommand(std::string command) {
   graphics_stack.emplace_back(std::move(command));
 

@@ -25,10 +25,19 @@
 
 #include "systems/scene_renderer.hpp"
 
+#include <tuple>
+#include <vector>
+
+class GraphicsObject;
 class Stage;
 class System;
 
+template <typename T>
+class LazyArray;
+
 namespace libsiglus {
+
+class SiglusSceneRendererTest;
 
 namespace binding {
 class SiglusWipe;
@@ -44,9 +53,25 @@ class SiglusSceneRenderer final : public ISceneRenderer {
   void RenderScene() override;
 
  private:
+  friend class SiglusSceneRendererTest;
+
+  using ToRenderVec =
+      std::vector<std::tuple<int, int, int, int, int, GraphicsObject*, double>>;
+
+  static void RenderForegroundObjects(::Stage& stage, ToRenderVec& to_render);
+  static void RenderWipeObjects(::Stage& stage,
+                                double progress,
+                                ToRenderVec& to_render);
+  static void QueueObjects(LazyArray<GraphicsObject>& objects,
+                           int source_order,
+                           double alpha_multiplier,
+                           ToRenderVec& to_render);
+  static void RenderQueuedObjects(ToRenderVec& to_render);
+
   ::Stage& stage_;
   ::System& system_;
   binding::SiglusWipe* wipe_ = nullptr;
+  ToRenderVec to_render_;
 };
 
 }  // namespace libsiglus

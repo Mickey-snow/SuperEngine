@@ -27,6 +27,10 @@
 
 #include "modules/module_gan.hpp"
 
+#include "core/object.hpp"
+#include "core/object_internal/drawer/gan.hpp"
+#include "core/object_internal/drawer/parent.hpp"
+#include "core/stage.hpp"
 #include "long_operations/wait_long_operation.hpp"
 #include "machine/long_operation.hpp"
 #include "machine/properties.hpp"
@@ -35,10 +39,6 @@
 #include "machine/rloperation.hpp"
 #include "machine/rloperation/rlop_store.hpp"
 #include "modules/module_obj.hpp"
-#include "core/object_internal/drawer/gan.hpp"
-#include "core/object_internal/drawer/parent.hpp"
-#include "core/object.hpp"
-#include "core/stage.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
 
@@ -51,7 +51,20 @@ struct objWaitAll : public RLOpcode<> {
     // Clannad puts us in DrawManual() right before calling us so we force
     // refreshes.
     machine.GetSystem().graphics().ForceRefresh();
-    return !machine.stage().AnimationsPlaying();
+    auto& fgobj = machine.stage().foreground_objects;
+    bool animations_playing = false;
+    for (size_t i = 0, end = fgobj.Size(); i < end; ++i) {
+      const auto& object = fgobj.At(i);
+      if (object && object->has_object_data()) {
+        const GraphicsObjectData& data = object->GetObjectData();
+        if (data.IsAnimation() && data.GetAnimator()->IsPlaying()) {
+          animations_playing = true;
+          break;
+        }
+      }
+    }
+
+    return !animations_playing;
   }
 
   void operator()(RLMachine& machine) {
