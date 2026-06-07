@@ -26,19 +26,18 @@
 
 #include "systems/hik_script.hpp"
 
-#include <filesystem>
-#include <sstream>
-#include <string>
-#include <vector>
-
 #include "libreallive/alldefs.hpp"
 #include "machine/rlmachine.hpp"
 #include "systems/graphics_system.hpp"
-#include "systems/system.hpp"
 #include "systems/sdl/sdl_surface.hpp"
-#include "utilities/exception.hpp"
-#include "utilities/file.hpp"
+#include "systems/system.hpp"
 #include "utilities/graphics.hpp"
+
+#include <filesystem>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <vector>
 
 namespace fs = std::filesystem;
 
@@ -66,27 +65,23 @@ HIKScript::HIKScript(System& system, const fs::path& file) {
   LoadHikFile(system, file);
 }
 
-HIKScript::~HIKScript() {}
+HIKScript::~HIKScript() = default;
 
 void HIKScript::LoadHikFile(System& system, const fs::path& file) {
-  // This is dumb. This all needs to rewritten as either FILE or stream.
-  int file_size = 0;
-  std::unique_ptr<char[]> hik_data;
-  if (LoadFileData(file, hik_data, file_size)) {
-    std::ostringstream oss;
-    oss << "Could not read the contents of \"" << file << "\"";
-    throw rlvm::Exception(oss.str());
+  std::ifstream ifs(file, std::ios::binary);
+  if (!ifs) {
+    throw std::runtime_error("Could not read the contents of \"" +
+                             file.string() + '"');
   }
+  std::string hik_data(fs::file_size(file), '\0');
+  ifs.read(hik_data.data(), hik_data.size());
+  ifs.close();
 
-  const char* curpointer = hik_data.get();
-  const char* endpointer = hik_data.get() + file_size;
-  int a = consume_i32(curpointer);
-  int b = consume_i32(curpointer);
-  if (a != 10000 || b != 10000) {
-    std::ostringstream oss;
-    oss << "HIK Parse error: Invalid magic";
-    throw std::runtime_error(oss.str());
-  }
+  const char* curpointer = hik_data.data();
+  const char* endpointer = hik_data.data() + hik_data.size();
+  int a = consume_i32(curpointer), b = consume_i32(curpointer);
+  if (a != 10000 || b != 10000)
+    throw std::runtime_error("HIK Parse error: Invalid magic");
 
   while (curpointer < endpointer) {
     int property_id = consume_i32(curpointer);
@@ -241,7 +236,7 @@ void HIKScript::LoadHikFile(System& system, const fs::path& file) {
         if (!frame.surface) {
           std::ostringstream oss;
           oss << "Could not load image " << frame.image << " for HIK";
-          throw rlvm::Exception(oss.str());
+          throw std::runtime_error(oss.str());
         }
         frame.grp_pattern = consume_i32(curpointer);
         frame.frame_length_ms = consume_i32(curpointer);
@@ -250,7 +245,7 @@ void HIKScript::LoadHikFile(System& system, const fs::path& file) {
       default: {
         std::ostringstream oss;
         oss << "HIK Parse exception. Unknown id: " << property_id;
-        throw rlvm::Exception(oss.str());
+        throw std::runtime_error(oss.str());
         break;
       }
     }
@@ -271,27 +266,24 @@ void HIKScript::LoadHikFile(System& system, const fs::path& file) {
 }
 
 HIKScript::Layer& HIKScript::CurrentLayer() {
-  if (layers_.size() == 0) {
-    throw rlvm::Exception("Invalid layer reference");
-  }
+  if (layers_.size() == 0)
+    throw std::runtime_error("Invalid layer reference");
 
   return layers_.back();
 }
 
 HIKScript::Animation& HIKScript::CurrentAnimation() {
   Layer& layer = CurrentLayer();
-  if (layer.animations.size() == 0) {
-    throw rlvm::Exception("Invalid unknowns reference");
-  }
+  if (layer.animations.size() == 0)
+    throw std::runtime_error("Invalid unknowns reference");
 
   return layer.animations.back();
 }
 
 HIKScript::Frame& HIKScript::CurrentFrame() {
   Animation& animation = CurrentAnimation();
-  if (animation.frames.size() == 0) {
-    throw rlvm::Exception("Invalid frame reference");
-  }
+  if (animation.frames.size() == 0)
+    throw std::runtime_error("Invalid frame reference");
 
   return animation.frames.back();
 }

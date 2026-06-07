@@ -41,6 +41,7 @@
 #include "machine/rloperation/complex_t.hpp"
 #include "machine/rloperation/special_t.hpp"
 #include "modules/module_grp.hpp"
+#include "systems/event_system.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/hik_renderer.hpp"
 #include "systems/hik_script.hpp"
@@ -106,7 +107,8 @@ struct bgrLoadHaikei_main : RLOpcode<StrConstant_T, IntConstant_T> {
         machine.stage().Wipe();
 
       graphics.SetHikRenderer(new HIKRenderer(
-          system, graphics.GetHIKScript(system, filename, path)));
+          system.event().GetClock(),
+          graphics.GetHIKScript(system, filename, path)));
     } else {
       std::shared_ptr<SDLSurface> before = graphics.RenderToSurface();
 

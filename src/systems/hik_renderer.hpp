@@ -26,21 +26,19 @@
 
 #pragma once
 
+#include "utilities/clock.hpp"
+
 #include <memory>
 #include <vector>
 
 class HIKScript;
-class RLMachine;
-class System;
 
 // Displays a HIKScript at a certain time to the screen.
 class HIKRenderer {
  public:
-  HIKRenderer(System& system, const std::shared_ptr<const HIKScript>& script);
+  HIKRenderer(std::shared_ptr<Clock> clock,
+              const std::shared_ptr<const HIKScript>& script);
   ~HIKRenderer();
-
-  // Run once per tick.
-  void Execute(RLMachine& machine);
 
   void Render();
 
@@ -53,23 +51,22 @@ class HIKRenderer {
   void set_y_offset(int offset) { y_offset_ = offset; }
 
  private:
-  System& system_;
+  std::shared_ptr<Clock> clock_;
 
   // The script data.
   std::shared_ptr<const HIKScript> script_;
 
-  // Time when this HIK renderer was loaded (in ms since startup). Used for
-  // animation.
-  int creation_time_;
+  // Time when this HIK renderer was loaded. Used for animation timing.
+  Clock::timepoint_t creation_time_;
 
   // Bytecode controllable offset.
   int x_offset_;
   int y_offset_;
 
   struct LayerData {
-    explicit LayerData(int time);
+    explicit LayerData(Clock::timepoint_t time);
     int animation_num_;
-    int animation_start_time_;
+    Clock::timepoint_t animation_start_time_;
   };
 
   // Which animation frame to use per layer. Defaults to zero.

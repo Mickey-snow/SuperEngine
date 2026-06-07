@@ -28,22 +28,18 @@
 
 #include <iostream>
 
-#include "machine/rlmachine.hpp"
-#include "systems/graphics_system.hpp"
 #include "systems/hik_script.hpp"
-#include "systems/system.hpp"
-#include "systems/event_system.hpp"
 #include "systems/sdl/sdl_surface.hpp"
 #include "utilities/graphics.hpp"
 
-HIKRenderer::LayerData::LayerData(int time)
+HIKRenderer::LayerData::LayerData(Clock::timepoint_t time)
     : animation_num_(0), animation_start_time_(time) {}
 
-HIKRenderer::HIKRenderer(System& system,
+HIKRenderer::HIKRenderer(std::shared_ptr<Clock> clock,
                          const std::shared_ptr<const HIKScript>& script)
-    : system_(system),
+    : clock_(clock),
       script_(script),
-      creation_time_(system_.event().GetTicks()),
+      creation_time_(clock_->GetTime()),
       x_offset_(0),
       y_offset_(0) {
   layer_to_animation_num_.insert(layer_to_animation_num_.begin(),
@@ -51,13 +47,14 @@ HIKRenderer::HIKRenderer(System& system,
                                  LayerData(creation_time_));
 }
 
-HIKRenderer::~HIKRenderer() {}
-
-void HIKRenderer::Execute(RLMachine& machine) {}
+HIKRenderer::~HIKRenderer() = default;
 
 void HIKRenderer::Render() {
-  int current_ticks = system_.event().GetTicks();
-  int time_since_creation = current_ticks - creation_time_;
+  auto current_time = clock_->GetTime();
+  auto time_since_creation =
+      std::chrono::duration_cast<std::chrono::milliseconds>(current_time -
+                                                           creation_time_)
+          .count();
 
   int layer_num = 0;
   for (std::vector<HIKScript::Layer>::const_iterator it =
@@ -91,8 +88,10 @@ void HIKRenderer::Render() {
         &it->animations.at(layer_data.animation_num_);
     size_t frame_to_use = 0;
     if (animation->use_multiframe_animation) {
-      int ticks_since_animation_began =
-          current_ticks - layer_data.animation_start_time_;
+      long long ticks_since_animation_began =
+          std::chrono::duration_cast<std::chrono::milliseconds>(
+              current_time - layer_data.animation_start_time_)
+              .count();
 
       // Advance to the correct animation.
       bool advanced = false;
@@ -117,7 +116,7 @@ void HIKRenderer::Render() {
       }
 
       if (advanced)
-        layer_data.animation_start_time_ = current_ticks;
+        layer_data.animation_start_time_ = current_time;
 
       while (ticks_since_animation_began > 0) {
         ticks_since_animation_began -=
@@ -150,7 +149,7 @@ void HIKRenderer::Render() {
 }
 
 void HIKRenderer::NextAnimationFrame() {
-  int time = system_.event().GetTicks();
+  auto time = clock_->GetTime();
 
   int idx = 0;
   for (std::vector<LayerData>::iterator it = layer_to_animation_num_.begin();

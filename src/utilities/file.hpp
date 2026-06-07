@@ -42,9 +42,3 @@ class System;
 // unchanged. On less tolerant platforms, returns a copy of the input with
 // correct case, or the empty string if no solution could be found.
 std::filesystem::path CorrectPathCase(std::filesystem::path Path);
-
-// Reads the entire contents of a file into the passed in |data| and
-// |size|. Returns true if there were no problems.
-bool LoadFileData(const std::filesystem::path& path,
-                  std::unique_ptr<char[]>& fileData,
-                  int& fileSize);

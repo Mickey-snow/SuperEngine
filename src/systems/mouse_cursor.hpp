@@ -27,25 +27,25 @@
 
 #pragma once
 
+#include "core/rect.hpp"
+#include "utilities/clock.hpp"
+
+#include <chrono>
 #include <memory>
 
-#include "core/rect.hpp"
-
 class SDLSurface;
-class System;
-class RLMachine;
 
 // Represents a mouse cursor on screen.
 class MouseCursor {
  public:
-  explicit MouseCursor(System& system,
+  explicit MouseCursor(std::shared_ptr<Clock> clock,
                        const std::shared_ptr<const SDLSurface>& cursor_surface,
                        int count,
                        int speed);
   ~MouseCursor();
 
   // Updates the MouseCursor.
-  void Execute(System& system);
+  void Execute();
 
   // Renders the cursor to the screen, taking the hotspot offset into account.
   void RenderHotspotAt(const Point& mouse_pt);
@@ -65,14 +65,17 @@ class MouseCursor {
   int count_;
 
   // How much time should be spent between mouse cursor frames.
-  int frame_speed_;
+  std::chrono::milliseconds frame_speed_;
 
   // The current frame.
   int current_frame_;
 
-  // The last time current_frame_ was incremented in ticks
-  unsigned int last_time_frame_incremented_;
+  // The last time current_frame_ was incremented
+  Clock::timepoint_t last_time_frame_incremented_;
 
   // The hotspot location.
   Size hotspot_offset_;
+
+  // The clock from event system
+  std::shared_ptr<Clock> clock_;
 };  // end of class MouseCursor

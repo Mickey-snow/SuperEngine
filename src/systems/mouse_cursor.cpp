@@ -27,10 +27,10 @@
 
 #include "systems/mouse_cursor.hpp"
 
-#include "systems/graphics_system.hpp"
-#include "systems/system.hpp"
 #include "systems/event_system.hpp"
+#include "systems/graphics_system.hpp"
 #include "systems/sdl/sdl_surface.hpp"
+#include "systems/system.hpp"
 
 const int CURSOR_SIZE_INT = 32;
 const Size CURSOR_SIZE = Size(CURSOR_SIZE_INT, CURSOR_SIZE_INT);
@@ -41,15 +41,17 @@ const int HOTSPOTMASK_Y_OFFSET = 48;
 // -----------------------------------------------------------------------
 // MouseCursor (public)
 // -----------------------------------------------------------------------
-MouseCursor::MouseCursor(System& system,
-                         const std::shared_ptr<const SDLSurface>& cursor_surface,
-                         int count,
-                         int speed)
+MouseCursor::MouseCursor(
+    std::shared_ptr<Clock> clock,
+    const std::shared_ptr<const SDLSurface>& cursor_surface,
+    int count,
+    int speed)
     : cursor_surface_(cursor_surface),
       count_(count),
-      frame_speed_(speed / count_),
+      frame_speed_(std::chrono::milliseconds(speed / count_)),
       current_frame_(0),
-      last_time_frame_incremented_(system.event().GetTicks()) {
+      last_time_frame_incremented_(clock->GetTime()),
+      clock_(clock) {
   // TODO(erg): Technically, each frame might have a hotspot. In practice, the
   // hotspot is in the same place every frame.
   FindHotspot();
@@ -63,8 +65,8 @@ MouseCursor::MouseCursor(System& system,
 
 MouseCursor::~MouseCursor() {}
 
-void MouseCursor::Execute(System& system) {
-  unsigned int cur_time = system.event().GetTicks();
+void MouseCursor::Execute() {
+  Clock::timepoint_t cur_time = clock_->GetTime();
 
   if (last_time_frame_incremented_ + frame_speed_ < cur_time) {
     last_time_frame_incremented_ = cur_time;

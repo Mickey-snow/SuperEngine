@@ -532,10 +532,7 @@ std::string GraphicsSystem::ComposeWindowTitle() const {
 
 void GraphicsSystem::ExecuteGraphicsSystem(RLMachine& machine) {
   if (mouse_cursor_)
-    mouse_cursor_->Execute(system());
-
-  if (hik_renderer_ && background_type_ == BACKGROUND_HIK)
-    hik_renderer_->Execute(machine);
+    mouse_cursor_->Execute();
 
   // Possibly update the screen shaking state
   if (!screen_shake_queue_.empty()) {
@@ -877,8 +874,8 @@ std::shared_ptr<MouseCursor> GraphicsSystem::GetCurrentCursor() {
         int speed = cursor("SPEED").Int().value_or(800);
 
         cursor_surface = GetSurfaceNamed(*name);
-        mouse_cursor_ = std::make_shared<MouseCursor>(system(), cursor_surface,
-                                                      count, speed);
+        mouse_cursor_ = std::make_shared<MouseCursor>(
+            system().event().GetClock(), cursor_surface, count, speed);
         cursor_cache_[cursor_] = mouse_cursor_;
       } else {
         mouse_cursor_.reset();
