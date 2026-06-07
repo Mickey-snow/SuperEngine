@@ -85,6 +85,8 @@ Before you begin, ensure you have the following libraries and utilities installe
 - **zlib**
 - **vorbisfile** (part of the Ogg Vorbis audio codec):
   [https://xiph.org/vorbis/](https://xiph.org/vorbis/)
+- **theoradec** (part of the Theora video codec):
+  [https://www.theora.org/](https://www.theora.org/)
 
 ### Obtaining the Source Code
 
