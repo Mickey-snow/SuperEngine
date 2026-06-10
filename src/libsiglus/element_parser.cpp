@@ -870,8 +870,9 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
       return &mp;
     }
     case Type::Object: {
-      auto obj_createmov = [](std::string_view mem) -> Builder {
-        return b_callable(mem, Type::None, NONSIMPLE);
+      auto obj_createmov = [](std::string_view mem, Type ret = Type::None,
+                              CallFlags flags = {}) -> Builder {
+        return b_callable(mem, ret, NONSIMPLE | flags);
       };
 
       static const auto mp = make_flatmap<Builder>({
@@ -1026,8 +1027,8 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
           id[165] | b(Type::Callable, Member("create_capture")),
           id[120] | obj_createmov("create_movie"),
           id[121] | obj_createmov("create_movie_loop"),
-          id[122] | obj_createmov("create_movie_wait"),
-          id[143] | obj_createmov("create_movie_waitkey"),
+          id[122] | obj_createmov("create_movie_wait", Type::None, AWAIT),
+          id[143] | obj_createmov("create_movie_waitkey", Type::Int, AWAIT),
           id[177] | b(Type::Callable, Member("create_emote")),
 
           id[41] | b(Type::Callable, Member("copy_from")),
@@ -1052,8 +1053,8 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
           id[137] | b(Type::Callable, Member("seek_movie")),
           id[138] | b_callable("get_movie_seek_time", Type::Int),
           id[127] | b_callable("check_movie", Type::Int),
-          id[128] | b_callable("wait_movie", Type::None),
-          id[142] | b_callable("wait_movie_key", Type::None),
+          id[128] | b_callable("wait_movie", Type::None, AWAIT),
+          id[142] | b_callable("wait_movie_key", Type::Int, AWAIT),
           id[171] | b_callable("end_movie_loop", Type::None),
           id[172] | b(Type::Callable, Member("set_movie_auto_free")),
 
@@ -1123,13 +1124,14 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
     case Type::Bgm: {
       static const auto mp = make_flatmap<Builder>(
           {id[0] | b_callable("play"), id[1] | b_callable("play_oneshot"),
-           id[2] | b_callable("play_wait"), id[16] | b_callable("ready"),
-           id[4] | b_callable("stop"), id[10] | b_callable("pause"),
-           id[11] | b_callable("resume"), id[12] | b_callable("resume_wait"),
-           id[3] | b_callable("wait", Type::None),
-           id[14] | b_callable("wait_key", Type::None),
-           id[5] | b_callable("wait_fade", Type::None),
-           id[15] | b_callable("wait_fade_key", Type::None),
+           id[2] | b_callable("play_wait", Type::None, AWAIT),
+           id[16] | b_callable("ready"), id[4] | b_callable("stop"),
+           id[10] | b_callable("pause"), id[11] | b_callable("resume"),
+           id[12] | b_callable("resume_wait", Type::None, AWAIT),
+           id[3] | b_callable("wait", Type::None, AWAIT),
+           id[14] | b_callable("wait_key", Type::Int, AWAIT),
+           id[5] | b_callable("wait_fade", Type::None, AWAIT),
+           id[15] | b_callable("wait_fade_key", Type::Int, AWAIT),
            id[18] | b_callable("check", Type::Int),
            id[6] | b_callable("set_volume"),
            id[7] | b_callable("set_volume_max"),
@@ -1255,24 +1257,21 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
 
     case Type::Pcmch: {
       static const auto mp = make_flatmap<Builder>(
-          {id[0] | b(Type::Callable, Member("play")),
-           id[2] | b(Type::Callable, Member("play_loop")),
-           id[1] | b(Type::Callable, Member("play_wait")),
-           id[11] | b(Type::Callable, Member("ready")),
-           id[16] | b(Type::Callable, Member("ready_loop")),
-           id[5] | b(Type::Callable, Member("stop")),
-           id[10] | b(Type::Callable, Member("pause")),
-           id[9] | b(Type::Callable, Member("resume")),
-           id[17] | b(Type::Callable, Member("resume_wait")),
-           id[3] | b(Type::None, Member("wait")),
-           id[6] | b(Type::Int, Member("wait_key")),
-           id[8] | b(Type::None, Member("wait_fade")),
-           id[7] | b(Type::Int, Member("wait_fade_key")),
-           id[4] | b(Type::Int, Member("check")),
-           id[13] | b(Type::Callable, Member("set_volume")),
-           id[14] | b(Type::Callable, Member("set_vol_max")),
-           id[15] | b(Type::Callable, Member("set_vol_min")),
-           id[12] | b(Type::Int, Member("get_volume"))});
+          {id[0] | b_callable("play"), id[2] | b_callable("play_loop"),
+           id[1] | b_callable("play_wait", Type::None, AWAIT),
+           id[11] | b_callable("ready"), id[16] | b_callable("ready_loop"),
+           id[5] | b_callable("stop"), id[10] | b_callable("pause"),
+           id[9] | b_callable("resume"),
+           id[17] | b_callable("resume_wait", Type::None, AWAIT),
+           id[3] | b_callable("wait", Type::None, AWAIT),
+           id[6] | b_callable("wait_key", Type::Int, AWAIT),
+           id[8] | b_callable("wait_fade", Type::None, AWAIT),
+           id[7] | b_callable("wait_fade_key", Type::Int, AWAIT),
+           id[4] | b_callable("check", Type::Int),
+           id[13] | b_callable("set_volume"),
+           id[14] | b_callable("set_vol_max"),
+           id[15] | b_callable("set_vol_min"),
+           id[12] | b_callable("get_volume", Type::Int)});
       return &mp;
     }
 
@@ -1698,16 +1697,22 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
 
     case 54: {  // WAIT
       Member wait("wait");
+      wait.call_return_type = Type::None;
       wait.implicit_call = true;
-      auto call = Node::BuildCall(std::move(elm.bind_ctx));
+      wait.await_result = true;
+      elm.bind_ctx.return_type = Type::None;
+      auto call = Node::BuildCall(std::move(elm.bind_ctx), AWAIT);
       return AccessChain{
           .root = std::monostate(),
           .nodes = {Node(Type::Callable, std::move(wait)), std::move(call)}};
     }
     case 55: {  // WAIT_KEY
       Member wait("wait_key");
+      wait.call_return_type = Type::Int;
       wait.implicit_call = true;
-      auto call = Node::BuildCall(std::move(elm.bind_ctx));
+      wait.await_result = true;
+      elm.bind_ctx.return_type = Type::Int;
+      auto call = Node::BuildCall(std::move(elm.bind_ctx), AWAIT);
       return AccessChain{
           .root = std::monostate(),
           .nodes = {Node(Type::Callable, std::move(wait)), std::move(call)}};

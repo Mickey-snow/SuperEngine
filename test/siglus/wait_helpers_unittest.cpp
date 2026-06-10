@@ -30,7 +30,9 @@
 #include "vm/future.hpp"
 #include "vm/gc.hpp"
 #include "vm/promise.hpp"
+#include "vm/vm.hpp"
 
+#include <chrono>
 #include <memory>
 #include <queue>
 
@@ -83,4 +85,73 @@ TEST(WaitHandlerTest, FuturesShareTheHandlerPromise) {
   ASSERT_TRUE(second->promise->HasResult());
   EXPECT_EQ(first->promise->result->value(), serilang::Value(1));
   EXPECT_EQ(second->promise->result->value(), serilang::Value(1));
+}
+
+TEST(WaitHandlerTest, PollingFutureResolvesImmediatelyWhenDone) {
+  serilang::VM vm(std::make_shared<serilang::GarbageCollector>());
+
+  serilang::Value value = MakePollingWaitFuture(vm, [] { return true; });
+  auto* future = value.Get_if<serilang::Future>();
+
+  ASSERT_NE(future, nullptr);
+  ASSERT_TRUE(future->promise->HasResult());
+  EXPECT_EQ(future->promise->result->value(), serilang::Value(0));
+}
+
+TEST(WaitHandlerTest, PollingFutureResolvesAfterPredicateChanges) {
+  serilang::VM vm(std::make_shared<serilang::GarbageCollector>());
+  bool done = false;
+  serilang::Value result;
+
+  serilang::Value value = MakePollingWaitFuture(vm, [&done] { return done; });
+  serilang::Value awaiter;
+  vm.Await(awaiter, value, [&result](const auto& outcome) {
+    ASSERT_TRUE(outcome.has_value());
+    result = outcome.value();
+  });
+  vm.scheduler_.PushCallbackAfter([&done] { done = true; },
+                                  std::chrono::milliseconds(1));
+
+  vm.Run();
+
+  EXPECT_EQ(result, serilang::Value(0));
+}
+
+TEST(WaitHandlerTest, PollingFutureKeySkipResolvesWithOne) {
+  auto expect_skip = [](auto event) {
+    auto backend = std::make_unique<QueueEventBackend>();
+    QueueEventBackend* backend_ptr = backend.get();
+    EventSystem event_system(std::move(backend));
+    serilang::VM vm(std::make_shared<serilang::GarbageCollector>());
+
+    serilang::Value value =
+        MakePollingWaitFuture(vm, [] { return false; }, true, &event_system);
+    backend_ptr->Push(event);
+    event_system.ExecuteEventSystem();
+
+    auto* future = value.Get_if<serilang::Future>();
+    ASSERT_NE(future, nullptr);
+    ASSERT_TRUE(future->promise->HasResult());
+    EXPECT_EQ(future->promise->result->value(), serilang::Value(1));
+  };
+
+  expect_skip(KeyDown{KeyCode::RETURN});
+  expect_skip(KeyDown{KeyCode::SPACE});
+  expect_skip(MouseDown{MouseButton::LEFT});
+}
+
+TEST(WaitHandlerTest, PollingFutureWithoutKeySkipIgnoresInput) {
+  auto backend = std::make_unique<QueueEventBackend>();
+  QueueEventBackend* backend_ptr = backend.get();
+  EventSystem event_system(std::move(backend));
+  serilang::VM vm(std::make_shared<serilang::GarbageCollector>());
+
+  serilang::Value value =
+      MakePollingWaitFuture(vm, [] { return false; }, false, &event_system);
+  backend_ptr->Push(KeyDown{KeyCode::RETURN});
+  event_system.ExecuteEventSystem();
+
+  auto* future = value.Get_if<serilang::Future>();
+  ASSERT_NE(future, nullptr);
+  EXPECT_FALSE(future->promise->HasResult());
 }

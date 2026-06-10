@@ -29,6 +29,7 @@
 #include "vm/future.hpp"
 #include "vm/gc.hpp"
 #include "vm/promise.hpp"
+#include "vm/vm.hpp"
 
 #include <utility>
 
@@ -90,6 +91,84 @@ void WaitHandler::Resolve(sr::Value result) {
 void WaitHandler::Reject(std::string error) {
   if (promise_)
     promise_->Reject(std::move(error));
+}
+
+sr::Value MakePollingWaitFuture(sr::VM& vm,
+                                std::function<bool()> done,
+                                bool key_skip,
+                                EventSystem* event_system,
+                                std::chrono::milliseconds poll_interval) {
+  if (!done || done())
+    return MakeResolvedFuture(*vm.gc_, 0);
+
+  struct PollState : public std::enable_shared_from_this<PollState> {
+    sr::VM& vm;
+    std::function<bool()> done;
+    std::chrono::milliseconds poll_interval;
+    std::shared_ptr<WaitHandler> wait_handler;
+    bool finished = false;
+
+    PollState(sr::VM& vm,
+              std::function<bool()> done,
+              std::chrono::milliseconds poll_interval)
+        : vm(vm),
+          done(std::move(done)),
+          poll_interval(poll_interval.count() < 0 ? std::chrono::milliseconds(0)
+                                                  : poll_interval) {}
+
+    void Resolve(int result) {
+      if (finished)
+        return;
+
+      finished = true;
+      wait_handler->Resolve(sr::Value(result));
+    }
+
+    void Reject(std::string error) {
+      if (finished)
+        return;
+
+      finished = true;
+      wait_handler->Reject(std::move(error));
+    }
+
+    void Poll() {
+      if (finished)
+        return;
+
+      try {
+        if (done()) {
+          Resolve(0);
+          return;
+        }
+      } catch (const std::exception& e) {
+        Reject(e.what());
+        return;
+      } catch (...) {
+        Reject("wait predicate threw an unknown exception");
+        return;
+      }
+
+      vm.scheduler_.PushCallbackAfter(
+          [self = shared_from_this()] { self->Poll(); }, poll_interval);
+    }
+  };
+
+  auto state = std::make_shared<PollState>(vm, std::move(done), poll_interval);
+  state->wait_handler =
+      std::make_shared<WaitHandler>(vm.gc_, key_skip ? event_system : nullptr);
+  if (key_skip) {
+    std::weak_ptr<PollState> weak_state = state;
+    state->wait_handler->OnKey([weak_state] {
+      if (auto state = weak_state.lock())
+        state->Resolve(1);
+    });
+  }
+
+  sr::Value future(state->wait_handler->GetFuture());
+  vm.scheduler_.PushCallbackAfter([state] { state->Poll(); },
+                                  state->poll_interval);
+  return future;
 }
 
 }  // namespace libsiglus::binding

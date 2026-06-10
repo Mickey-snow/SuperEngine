@@ -24,6 +24,7 @@
 #include "libsiglus/bindings/common.hpp"
 #include "libsiglus/bindings/registry.hpp"
 #include "libsiglus/bindings/util.hpp"
+#include "libsiglus/bindings/wait_helpers.hpp"
 #include "srbind/srbind.hpp"
 #include "systems/sound_system.hpp"
 #include "systems/system.hpp"
@@ -47,8 +48,10 @@ class SiglusBgm {
   void play_oneshot(std::vector<sr::Value> args) {
     Play(std::move(args), false);
   }
-  // TODO: Implement Wait
-  void play_wait(std::vector<sr::Value> args) { Play(std::move(args), true); }
+  sr::Value play_wait(sr::VM& vm, std::vector<sr::Value> args) {
+    Play(std::move(args), false);
+    return wait(vm, {});
+  }
 
   void ready(std::vector<sr::Value> args) {
     if (!args.empty())
@@ -77,16 +80,22 @@ class SiglusBgm {
       system_->sound().BgmUnPause();
     state_ = kPlay;
   }
-  // TODO: Implement Wait
-  void resume_wait(std::vector<sr::Value> args) { resume(std::move(args)); }
+  sr::Value resume_wait(sr::VM& vm, std::vector<sr::Value> args) {
+    resume(std::move(args));
+    return wait(vm, {});
+  }
 
-  // TODO: Implement Wait
-  void wait(std::vector<sr::Value>) {}
-  int wait_key(std::vector<sr::Value>) { return 0; }
-  void wait_fade(std::vector<sr::Value>) { state_ = kFree; }
-  int wait_fade_key(std::vector<sr::Value>) {
-    state_ = kFree;
-    return 0;
+  sr::Value wait(sr::VM& vm, std::vector<sr::Value>) {
+    return WaitForPlayback(vm, false, false);
+  }
+  sr::Value wait_key(sr::VM& vm, std::vector<sr::Value>) {
+    return WaitForPlayback(vm, true, false);
+  }
+  sr::Value wait_fade(sr::VM& vm, std::vector<sr::Value>) {
+    return WaitForPlayback(vm, false, true);
+  }
+  sr::Value wait_fade_key(sr::VM& vm, std::vector<sr::Value>) {
+    return WaitForPlayback(vm, true, true);
   }
 
   int check(std::vector<sr::Value>) const {
@@ -155,6 +164,23 @@ class SiglusBgm {
       system_->sound().BgmPlay(registered_name_, loop);
   }
 
+  sr::Value WaitForPlayback(sr::VM& vm, bool key_skip, bool fade_only) {
+    if (fade_only && state_ != kFadeOut)
+      return MakeResolvedFuture(*vm.gc_, 0);
+
+    auto done = [this] {
+      if (!system_ || !system_->sound().BgmStatus()) {
+        if (state_ == kPlay || state_ == kFadeOut)
+          state_ = kFree;
+        return true;
+      }
+      return false;
+    };
+    return MakePollingWaitFuture(
+        vm, std::move(done), key_skip,
+        system_ ? system_->event_ptr().get() : nullptr);
+  }
+
   static constexpr int kFree = 0;
   static constexpr int kPlay = 1;
   static constexpr int kFadeOut = 2;
@@ -173,23 +199,24 @@ class SiglusPcmch {
   SiglusPcmch(System* sys, int channel) : system_(sys), channel_(channel) {}
 
   void play(std::vector<sr::Value> args) {
-    Play(std::move(args), false, false, false);
+    Play(std::move(args), false, false);
   }
 
   void play_loop(std::vector<sr::Value> args) {
-    Play(std::move(args), true, false, false);
+    Play(std::move(args), true, false);
   }
 
-  void play_wait(std::vector<sr::Value> args) {
-    Play(std::move(args), false, true, false);
+  sr::Value play_wait(sr::VM& vm, std::vector<sr::Value> args) {
+    Play(std::move(args), false, false);
+    return wait(vm, {});
   }
 
   void ready(std::vector<sr::Value> args) {
-    Play(std::move(args), false, false, true);
+    Play(std::move(args), false, true);
   }
 
   void ready_loop(std::vector<sr::Value> args) {
-    Play(std::move(args), true, false, true);
+    Play(std::move(args), true, true);
   }
 
   void stop(std::vector<sr::Value> args) {
@@ -214,18 +241,22 @@ class SiglusPcmch {
     state_ = kPlay;
   }
 
-  void resume_wait(std::vector<sr::Value> args) {
+  sr::Value resume_wait(sr::VM& vm, std::vector<sr::Value> args) {
     resume(std::move(args));
-    wait({});
+    return wait(vm, {});
   }
 
-  // TODO: Implement Wait
-  void wait(std::vector<sr::Value>) {}
-  int wait_key(std::vector<sr::Value>) { return 0; }
-  void wait_fade(std::vector<sr::Value>) { state_ = kFree; }
-  int wait_fade_key(std::vector<sr::Value>) {
-    state_ = kFree;
-    return 0;
+  sr::Value wait(sr::VM& vm, std::vector<sr::Value>) {
+    return WaitForPlayback(vm, false, false);
+  }
+  sr::Value wait_key(sr::VM& vm, std::vector<sr::Value>) {
+    return WaitForPlayback(vm, true, false);
+  }
+  sr::Value wait_fade(sr::VM& vm, std::vector<sr::Value>) {
+    return WaitForPlayback(vm, false, true);
+  }
+  sr::Value wait_fade_key(sr::VM& vm, std::vector<sr::Value>) {
+    return WaitForPlayback(vm, true, true);
   }
 
   int check(std::vector<sr::Value>) const {
@@ -257,7 +288,7 @@ class SiglusPcmch {
   int get_volume(std::vector<sr::Value>) const { return volume_; }
 
  private:
-  void Play(std::vector<sr::Value> args, bool loop, bool wait, bool ready) {
+  void Play(std::vector<sr::Value> args, bool loop, bool ready) {
     if (args.empty())
       return;
 
@@ -272,8 +303,6 @@ class SiglusPcmch {
     }
 
     StartPlayback(fade_in_ms_);
-    if (wait)
-      this->wait({});
   }
 
   void StartPlayback(int fade_ms) {
@@ -295,6 +324,24 @@ class SiglusPcmch {
 
   bool IsValidChannel() const {
     return channel_ >= 0 && channel_ < NUM_TOTAL_CHANNELS;
+  }
+
+  sr::Value WaitForPlayback(sr::VM& vm, bool key_skip, bool fade_only) {
+    if (fade_only && state_ != kFadeOut)
+      return MakeResolvedFuture(*vm.gc_, 0);
+
+    auto done = [this] {
+      if (!system_ || !IsValidChannel() ||
+          !system_->sound().WavPlaying(channel_)) {
+        if (state_ == kPlay || state_ == kFadeOut)
+          state_ = kFree;
+        return true;
+      }
+      return false;
+    };
+    return MakePollingWaitFuture(
+        vm, std::move(done), key_skip,
+        system_ ? system_->event_ptr().get() : nullptr);
   }
 
   static constexpr int kFree = 0;

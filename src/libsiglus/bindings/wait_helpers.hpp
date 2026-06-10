@@ -27,6 +27,7 @@
 #include "core/event_listener.hpp"
 #include "vm/value.hpp"
 
+#include <chrono>
 #include <functional>
 #include <memory>
 #include <string>
@@ -37,6 +38,7 @@ namespace serilang {
 class GarbageCollector;
 struct Future;
 struct Promise;
+class VM;
 };  // namespace serilang
 
 namespace libsiglus::binding {
@@ -60,5 +62,11 @@ class WaitHandler {
 };
 
 serilang::Value MakeResolvedFuture(serilang::GarbageCollector& gc, int result);
+serilang::Value MakePollingWaitFuture(
+    serilang::VM& vm,
+    std::function<bool()> done,
+    bool key_skip = false,
+    EventSystem* event_system = nullptr,
+    std::chrono::milliseconds poll_interval = std::chrono::milliseconds(5));
 
 };  // namespace libsiglus::binding

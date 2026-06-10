@@ -23,25 +23,28 @@
 
 #include "systems/system.hpp"
 #include "libsiglus/bindings/registry.hpp"
+#include "libsiglus/bindings/wait_helpers.hpp"
 #include "log/domain_logger.hpp"
 #include "srbind/srbind.hpp"
+#include "systems/event_system.hpp"
 #include "systems/graphics_system.hpp"
 #include "vm/vm.hpp"
 
-#include <filesystem>
 #include <ctime>
+#include <filesystem>
 #include <string>
 #include <utility>
 
 namespace libsiglus::binding {
 namespace sb = srbind;
+namespace sr = serilang;
 
 namespace fs = std::filesystem;
 
 static void nop() {}
 
 void BindSystem(SiglusRuntime& runtime) {
-  serilang::VM& vm = *runtime.vm;
+  sr::VM& vm = *runtime.vm;
 
   sb::module_ m(vm, "system");
   m.def("is_debug", +[]() { return false; });
@@ -49,9 +52,10 @@ void BindSystem(SiglusRuntime& runtime) {
   m.def("check_file_exist", [root = runtime.base_pth](std::string filename) {
     return fs::exists(root / filename);
   });
-  m.def("check_save_file_exist", [root = runtime.save_pth](std::string filename) {
-    return fs::exists(root / filename);
-  });
+  m.def("check_save_file_exist",
+        [root = runtime.save_pth](std::string filename) {
+          return fs::exists(root / filename);
+        });
   m.def("check_dummy", &nop).def("clear_dummy", &nop);
   m.def("debug_write_log",
         [logger = DomainLogger("SiglusDbg")](std::string msg) {
@@ -60,8 +64,48 @@ void BindSystem(SiglusRuntime& runtime) {
   m.def("get_lang", +[]() { return "ja"; });
 
   sb::module_ gm(vm.gc_.get(), vm.globals_.get());
-  gm.def("wait", +[](int) {}, sb::arg("msecs") = 0);
-  gm.def("wait_key", +[](int) { return 0; }, sb::arg("msecs") = 0);
+  gm.def(
+      "wait",
+      [sys = runtime.system.get()](sr::VM& vm, int msecs) -> sr::Value {
+        if (!sys || msecs <= 0)
+          return MakeResolvedFuture(*vm.gc_, 0);
+
+        const unsigned int start_ticks = sys->event().GetTicks();
+        const unsigned int duration = static_cast<unsigned int>(msecs);
+        auto done = [sys, start_ticks, duration] {
+          if (sys->ShouldFastForward())
+            return true;
+
+          const unsigned int elapsed = sys->event().GetTicks() - start_ticks;
+          return elapsed >= duration;
+        };
+        return MakePollingWaitFuture(vm, std::move(done));
+      },
+      sb::arg("msecs") = 0);
+  gm.def(
+      "wait_key",
+      [sys = runtime.system.get()](sr::VM& vm, int msecs) -> sr::Value {
+        if (!sys)
+          return MakeResolvedFuture(*vm.gc_, 0);
+
+        const bool has_timeout = msecs > 0;
+        const unsigned int start_ticks = sys->event().GetTicks();
+        const unsigned int duration =
+            has_timeout ? static_cast<unsigned int>(msecs) : 0;
+        auto done = [sys, has_timeout, start_ticks, duration] {
+          if (sys->ShouldFastForward())
+            return true;
+
+          if (!has_timeout)
+            return false;
+
+          const unsigned int elapsed = sys->event().GetTicks() - start_ticks;
+          return elapsed >= duration;
+        };
+        return MakePollingWaitFuture(vm, std::move(done), true,
+                                     sys->event_ptr().get());
+      },
+      sb::arg("msecs") = 0);
   gm.def("set_title", [sys = runtime.system.get()](std::string title) {
     sys->graphics().SetWindowSubtitle(std::move(title));
   });

@@ -29,15 +29,14 @@
 #include "core/object_internal/object_mutator.hpp"
 #include "libsiglus/bindings/registry.hpp"
 
-#include "core/event_listener.hpp"
 #include "core/object.hpp"
 #include "core/stage.hpp"
 #include "libsiglus/bindings/common.hpp"
+#include "libsiglus/bindings/wait_helpers.hpp"
 #include "srbind/module.hpp"
 #include "systems/event_system.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
-#include "utilities/overload.hpp"
 #include "vm/dict.hpp"
 #include "vm/list.hpp"
 #include "vm/string.hpp"
@@ -54,7 +53,6 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <thread>
 #include <utility>
 #include <vector>
 
@@ -281,7 +279,7 @@ class SiglusObject {
     return dynamic_cast<const ObjectMovieData*>(&object().GetObjectData());
   }
 
-  void create_movie_common(std::vector<sr::Value> raw_args,
+  bool create_movie_common(std::vector<sr::Value> raw_args,
                            bool loop,
                            bool wait,
                            bool key_skip) {
@@ -314,8 +312,7 @@ class SiglusObject {
     if (params.y)
       obj.Param().SetY(*params.y);
 
-    if (params.wait && !params.ready_only)
-      wait_movie_impl(params.key_skip);
+    return params.wait && !params.ready_only;
   }
 
   void create_movie(std::vector<sr::Value> args) {
@@ -326,65 +323,24 @@ class SiglusObject {
     create_movie_common(std::move(args), true, false, false);
   }
 
-  void create_movie_wait(std::vector<sr::Value> args) {
-    create_movie_common(std::move(args), false, true, false);
+  sr::Value create_movie_wait(sr::VM& vm, std::vector<sr::Value> args) {
+    if (create_movie_common(std::move(args), false, true, false))
+      return wait_movie_impl(vm, false);
+    return MakeResolvedFuture(*vm.gc_, 0);
   }
 
-  void create_movie_waitkey(std::vector<sr::Value> args) {
-    create_movie_common(std::move(args), false, true, true);
+  sr::Value create_movie_waitkey(sr::VM& vm, std::vector<sr::Value> args) {
+    if (create_movie_common(std::move(args), false, true, true))
+      return wait_movie_impl(vm, true);
+    return MakeResolvedFuture(*vm.gc_, 0);
   }
 
-  void PumpGraphicsOnce() {
-    if (graphics_) {
-      if (stage_) {
-        stage_->Execute();
-      }
-      graphics_->RenderFrame(true);
-    }
-    if (event_)
-      event_->ExecuteEventSystem();
-  }
-
-  int wait_movie_impl(bool key_skip) {
-    ObjectMovieData* data = movie_data();
-    if (!data)
-      return 0;
-
-    struct MovieWaitListener : public EventListener {
-      bool triggered = false;
-      void OnEvent(std::shared_ptr<Event> event) override {
-        if (!event)
-          return;
-
-        const bool consumed =
-            std::visit(overload([](const KeyDown&) { return true; },
-                                [](const MouseDown&) { return true; },
-                                [](const auto&) { return false; }),
-                       *event);
-        if (consumed) {
-          triggered = true;
-          *event = std::monostate();
-        }
-      }
+  sr::Value wait_movie_impl(sr::VM& vm, bool key_skip) {
+    auto done = [this] {
+      const ObjectMovieData* data = movie_data();
+      return !data || !data->CheckMovie();
     };
-
-    std::shared_ptr<MovieWaitListener> listener;
-    if (key_skip && event_) {
-      listener = std::make_shared<MovieWaitListener>();
-      event_->AddListener(listener);
-    }
-
-    while ((data = movie_data()) && data->CheckMovie()) {
-      PumpGraphicsOnce();
-      if (listener && listener->triggered)
-        break;
-      std::this_thread::sleep_for(std::chrono::milliseconds(5));
-    }
-
-    if (listener && event_)
-      event_->RemoveListener(listener);
-
-    return listener && listener->triggered ? 1 : 0;
+    return MakePollingWaitFuture(vm, std::move(done), key_skip, event_.get());
   }
 
   void pause_movie() {
@@ -417,9 +373,13 @@ class SiglusObject {
     return 0;
   }
 
-  int wait_movie(std::vector<sr::Value>) { return wait_movie_impl(false); }
+  sr::Value wait_movie(sr::VM& vm, std::vector<sr::Value>) {
+    return wait_movie_impl(vm, false);
+  }
 
-  int wait_movie_key(std::vector<sr::Value>) { return wait_movie_impl(true); }
+  sr::Value wait_movie_key(sr::VM& vm, std::vector<sr::Value>) {
+    return wait_movie_impl(vm, true);
+  }
 
   void end_movie_loop() {
     if (ObjectMovieData* data = movie_data())
