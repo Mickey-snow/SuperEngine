@@ -415,8 +415,8 @@ class SiglusObject {
   }
 
   void set_scale(int x, int y) {
-    param().SetScaleX(x / 10);
-    param().SetScaleY(y / 10);
+    param().SetHqScaleX(x);
+    param().SetHqScaleY(y);
   }
 
   void set_pos(int x, int y) {
@@ -715,7 +715,7 @@ void BindObject(SiglusRuntime& runtime) {
 
         obj.EndObjectMutatorMatching(-1, oe->name, 0);
         const int start = oe->getter_(obj.Param());
-        const int end = end_value / 10;
+        const int end = end_value;
         Mutator mutator{.setter_ = oe->setter_,
                         .fc_ = MakeSiglusFrameCounter(duration_time, delay,
                                                       start, end, type, clock)};
@@ -786,10 +786,10 @@ void BindObject(SiglusRuntime& runtime) {
       "center_rep_x_eve");
   BindObjeveMember.template operator()<&ObjectParameter::repetition_origin_y>(
       "center_rep_y_eve");
-  BindObjeveMember.template operator()<&ObjectParameter::scale_x_percent>(
-      "scale_x_eve");
-  BindObjeveMember.template operator()<&ObjectParameter::scale_y_percent>(
-      "scale_y_eve");
+  BindObjeveMember.template
+  operator()<&ObjectParameter::high_quality_scale_x_percent>("scale_x_eve");
+  BindObjeveMember.template
+  operator()<&ObjectParameter::high_quality_scale_y_percent>("scale_y_eve");
   BindObjeveMember.template operator()<&ObjectParameter::rotation_div10>(
       "rotate_z_eve");
 
