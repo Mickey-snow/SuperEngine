@@ -84,10 +84,6 @@ static Gameexe LoadGameexe(std::shared_ptr<AssetScanner> scanner) {
   return {};
 }
 
-inline void dbg_print(std::string str) {
-  std::cerr << "[TRACE] " << str << std::endl;
-}
-
 SiglusRuntime SGVMFactory::Create() {
   SiglusRuntime rt;
   rt.vm = std::make_unique<sr::VM>(m6::VMFactory::Create());
@@ -127,7 +123,8 @@ SiglusRuntime SGVMFactory::Create() {
   }
   sb::module_ m(gc.get(), vm.globals_.get());
 
-  m.def("__builtin_dbgprint", dbg_print);
+  m.def("__builtin_dbgprint",
+        [](std::string str) { std::cerr << "[TRACE] " << str << std::endl; });
   m.def("__builtin_name", [](std::string str) {
     // not implemented yet
   });

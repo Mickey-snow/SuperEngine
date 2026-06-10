@@ -28,6 +28,7 @@
 #include "core/stage.hpp"
 #include "libsiglus/bindings/common.hpp"
 #include "libsiglus/bindings/registry.hpp"
+#include "libsiglus/bindings/wait_helpers.hpp"
 #include "libsiglus/siglus_scene_renderer.hpp"
 #include "srbind/srbind.hpp"
 #include "systems/event_system.hpp"
@@ -146,35 +147,35 @@ struct SiglusWipe::Impl {
     last_ = std::move(params);
 
     if (!stage_)
-      return MakeResolvedFuture(vm, 0);
-
-    if (!system_) {
-      stage_->Wipe(last_.begin_order, last_.end_order, last_.begin_layer,
-                   last_.end_layer);
-      EndCurrent(0);
-      return MakeResolvedFuture(vm, 0);
-    }
+      return MakeResolvedFuture(*vm.gc_, 0);
 
     stage_->Wipe(last_.begin_order, last_.end_order, last_.begin_layer,
                  last_.end_layer);
 
-    if (ShouldCompleteImmediately()) {
-      EndCurrent(0);
-      return MakeResolvedFuture(vm, 0);
+    if (!system_) {
+      ClearWipeState();
+      return MakeResolvedFuture(*vm.gc_, 0);
     }
 
-    active_ = true;
+    if (ShouldCompleteImmediately()) {
+      ClearWipeState();
+      return MakeResolvedFuture(*vm.gc_, 0);
+    }
+
+    wh_ = std::make_unique<WaitHandler>(vm.gc_, system_->event_ptr().get());
     start_ticks_ = system_->event().GetTicks();
     progress_ = ComputeProgress(last_.start_time);
 
     if (!last_.wait_flag)
-      return MakeResolvedFuture(vm, 0);
-    return MakePendingFuture(vm, last_.key_wait_mode);
+      return MakeResolvedFuture(*vm.gc_, 0);
+
+    SetKeySkip(last_.key_wait_mode);
+    return sr::Value(wh_->GetFuture());
   }
 
   sr::Value Wait(sr::VM& vm, std::vector<sr::Value> raw_args) {
-    if (!active_)
-      return MakeResolvedFuture(vm, 0);
+    if (!wh_)
+      return MakeResolvedFuture(*vm.gc_, 0);
 
     int key_wait_mode = -1;
     CallPacket packet = DecodePacket(std::move(raw_args));
@@ -187,23 +188,29 @@ struct SiglusWipe::Impl {
           key_wait_mode = AsInt(value).value_or(-1);
       }
     }
+    SetKeySkip(key_wait_mode);
 
-    return MakePendingFuture(vm, key_wait_mode);
+    return sr::Value(wh_->GetFuture());
   }
 
   void EndCurrent(int result) {
-    active_ = false;
+    if (!wh_)
+      return;
+
+    wh_->Resolve(result);
+    wh_ = nullptr;
+    ClearWipeState();
+  }
+
+  void ClearWipeState() {
     progress_ = 1.0;
-    DisableKeySkip();
 
     if (stage_)
       stage_->next_objects.Clear();
-
-    ResolveWaiters(result);
   }
 
   bool Update() {
-    if (!active_ || !system_)
+    if (!wh_ || !system_)
       return false;
 
     if (system_->ShouldFastForward() ||
@@ -222,73 +229,22 @@ struct SiglusWipe::Impl {
     return true;
   }
 
-  struct KeySkipListener : public EventListener {
-    explicit KeySkipListener(Impl* owner) : owner_(owner) {}
+  void SetKeySkip(int key_wait_mode) {
+    if (!wh_)
+      return;
 
-    void OnEvent(std::shared_ptr<Event> event) override {
-      if (!owner_ || !owner_->active_ || !event)
-        return;
-
-      std::visit(overload(
-                     [this](const KeyDown& event) {
-                       if (event.code == KeyCode::RETURN ||
-                           event.code == KeyCode::SPACE) {
-                         owner_->EndCurrent(1);
-                       }
-                     },
-                     [this](const MouseDown& event) {
-                       if (event.button == MouseButton::LEFT)
-                         owner_->EndCurrent(1);
-                     },
-                     [](const auto&) {}),
-                 *event);
-    }
-
-    Impl* owner_;
-  };
-
-  static sr::Value MakeResolvedFuture(sr::VM& vm, int result) {
-    sr::Future* future = vm.gc_->Allocate<sr::Future>();
-    future->promise->Resolve(sr::Value(result));
-    return sr::Value(future);
-  }
-
-  sr::Value MakePendingFuture(sr::VM& vm, int key_wait_mode) {
-    sr::Future* future = vm.gc_->Allocate<sr::Future>();
-    waiters_.emplace_back(future->promise);
-    if (KeySkipEnabled(key_wait_mode))
-      EnableKeySkip();
-    return sr::Value(future);
-  }
-
-  void ResolveWaiters(int result) {
-    for (auto& waiter : waiters_)
-      waiter->Resolve(sr::Value(result));
-    waiters_.clear();
-  }
-
-  bool KeySkipEnabled(int key_wait_mode) const {
+    bool enabled;
     if (key_wait_mode == 0)
-      return false;
-    if (key_wait_mode == 1)
-      return true;
-    return system_ && system_->graphics().should_skip_animations() != 0;
-  }
+      enabled = false;
+    else if (key_wait_mode == 1)
+      enabled = true;
+    else
+      enabled = system_ && system_->graphics().should_skip_animations() != 0;
 
-  void EnableKeySkip() {
-    if (!system_ || key_listener_)
-      return;
-
-    key_listener_ = std::make_shared<KeySkipListener>(this);
-    system_->event().AddListener(key_listener_);
-  }
-
-  void DisableKeySkip() {
-    if (!system_ || !key_listener_)
-      return;
-
-    system_->event().RemoveListener(key_listener_);
-    key_listener_.reset();
+    if (enabled)
+      wh_->OnKey([this] { EndCurrent(1); });
+    else
+      wh_->OnKey();
   }
 
   bool ShouldCompleteImmediately() const {
@@ -319,6 +275,8 @@ struct SiglusWipe::Impl {
         return 0.0;
     }
   }
+
+  inline bool IsActive() const { return wh_ != nullptr; }
 
   void ApplyPositional(const std::vector<sr::Value>& args,
                        WipeParams& params,
@@ -398,21 +356,19 @@ struct SiglusWipe::Impl {
     }
   }
 
-  bool active_ = false;
   WipeParams last_;
   unsigned int start_ticks_ = 0;
   double progress_ = 1.0;
   System* system_ = nullptr;
   Stage* stage_ = nullptr;
-  std::vector<std::shared_ptr<sr::Promise>> waiters_;
-  std::shared_ptr<EventListener> key_listener_;
+  std::unique_ptr<WaitHandler> wh_;
 };
 
 SiglusWipe::SiglusWipe(System* system, Stage* stage)
     : impl_(std::make_unique<Impl>(system, stage)) {}
 SiglusWipe::~SiglusWipe() = default;
 bool SiglusWipe::Update() { return impl_->Update(); }
-bool SiglusWipe::IsActive() const { return impl_->active_; }
+bool SiglusWipe::IsActive() const { return impl_->IsActive(); }
 double SiglusWipe::Progress() const { return impl_->progress_; }
 
 void BindWipe(SiglusRuntime& runtime) {
@@ -464,7 +420,7 @@ void BindWipe(SiglusRuntime& runtime) {
   wipe.def(
       "check",
       [](SiglusWipe* wipe, std::vector<sr::Value> args) {
-        const int ret = wipe->impl_->active_ ? 1 : 0;
+        const int ret = wipe->IsActive() ? 1 : 0;
         return sr::Value(ret);
       },
       sb::vararg);
