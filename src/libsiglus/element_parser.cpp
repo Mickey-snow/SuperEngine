@@ -1751,6 +1751,9 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
     case 92:  // SYSTEM
       return make_sym_chain(Type::System, "system", elm, 1);
 
+    case 39:  // MATH
+      return make_sym_chain(Type::Math, "math", elm, 1);
+
     case 40:  // COUNTER
       return make_sym_chain(Type::CounterList, "counter", elm, 1);
 
