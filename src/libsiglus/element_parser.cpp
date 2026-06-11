@@ -1178,6 +1178,8 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
           id[122] | obj_createmov("create_movie_wait", Type::None, AWAIT),
           id[143] | obj_createmov("create_movie_waitkey", Type::Int, AWAIT),
           id[177] | b(Type::Callable, Member("create_emote")),
+          id[0x01000000] | b_callable("load_gan", Type::None),
+          id[0x01000001] | b_callable("start_gan", Type::None),
 
           id[41] | b(Type::Callable, Member("copy_from")),
           id[53] | b(Type::Callable, Member("change_file")),
