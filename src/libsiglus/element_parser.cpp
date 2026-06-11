@@ -1114,15 +1114,19 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
             switch (peek) {
               case 0:  // ALLEVENT_END
                 ctx.chain.nodes.emplace_back(Type::None, Member("end"));
+                ctx.elmcode = ctx.elmcode.subspan(2);
                 return;
               case 1:
                 ctx.chain.nodes.emplace_back(Type::None, Member("wait"));
+                ctx.elmcode = ctx.elmcode.subspan(2);
                 return;
               case 2:
                 ctx.chain.nodes.emplace_back(Type::Int, Member("check"));
+                ctx.elmcode = ctx.elmcode.subspan(2);
                 return;
               default:
                 ctx.chain.nodes.emplace_back(Type::Invalid, Member("???"));
+                ctx.elmcode = ctx.elmcode.subspan(2);
                 return;
             }
           }),
