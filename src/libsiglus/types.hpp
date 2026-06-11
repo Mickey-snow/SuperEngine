@@ -39,7 +39,7 @@ enum class Type : uint32_t {
   System,
   Math,
   FrameActionList,
-  FrameAction,
+  FrameAction = 1210,
   CounterList,
   Counter,
   Syscom,
