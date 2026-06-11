@@ -82,6 +82,8 @@ std::string ToString(Type type) {
       return "quake";
     case Type::Input:
       return "input";
+    case Type::KeyList:
+      return "key[]";
     case Type::Key:
       return "key";
     case Type::Mouse:

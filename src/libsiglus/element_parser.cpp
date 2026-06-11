@@ -976,6 +976,16 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
       return &mp;
     }
 
+    case Type::KeyList: {
+      static const auto mp = make_flatmap<Builder>(
+          {id[-1] | b_index_array(Type::Key),
+           id[0] | b_callable("wait", Type::None, AWAIT),
+           id[1] | b_callable("wait_force", Type::None, AWAIT),
+           id[3] | b_callable("clear", Type::None),
+           id[5] | b_callable("next", Type::None)});
+      return &mp;
+    }
+
     case Type::Key: {
       static const auto mp = make_flatmap<Builder>(
           {id[1] | b_callable("on_down", Type::Int),
@@ -1273,11 +1283,14 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
 
     case Type::Bgm: {
       static const auto mp = make_flatmap<Builder>(
-          {id[0] | b_callable("play"), id[1] | b_callable("play_oneshot"),
+          {id[0] | b_callable("play"),
+           id[1] | b_callable("play_oneshot"),
            id[2] | b_callable("play_wait", Type::None, AWAIT),
            id[16] | b_callable("ready"),
-           id[17] | b_callable("ready_oneshot"), id[4] | b_callable("stop"),
-           id[10] | b_callable("pause"), id[11] | b_callable("resume"),
+           id[17] | b_callable("ready_oneshot"),
+           id[4] | b_callable("stop"),
+           id[10] | b_callable("pause"),
+           id[11] | b_callable("resume"),
            id[12] | b_callable("resume_wait", Type::None, AWAIT),
            id[3] | b_callable("wait", Type::None, AWAIT),
            id[14] | b_callable("wait_key", Type::Int, AWAIT),
@@ -1625,6 +1638,8 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
       return make_sym_chain(Type::PcmchList, "pcmch_list", elm, 1);
     case 45:
       return make_sym_chain(Type::Se, "se", elm, 1);
+    case 24:
+      return make_sym_chain(Type::KeyList, "key", elm, 1);
     case 46:
       return make_sym_chain(Type::Mouse, "mouse", elm, 1);
     case 86:
