@@ -65,6 +65,7 @@ enum class Type : uint32_t {
   Movie,
   BgmTable,
   Bgm,
+  Se,
   Pcm,
   Pcmch,
   PcmchList,

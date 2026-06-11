@@ -1220,6 +1220,21 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
       return &mp;
     }
 
+    case Type::Se: {
+      static const auto mp = make_flatmap<Builder>(
+          {id[0] | b_callable("play"), id[5] | b_callable("play_by_file_name"),
+           id[6] | b_callable("play_by_koe_no"),
+           id[9] | b_callable("play_by_se_no"), id[7] | b_callable("stop"),
+           id[8] | b_callable("wait", Type::None, AWAIT),
+           id[10] | b_callable("wait_key", Type::Int, AWAIT),
+           id[11] | b_callable("check", Type::Int),
+           id[1] | b_callable("set_volume"),
+           id[2] | b_callable("set_volume_max"),
+           id[3] | b_callable("set_volume_min"),
+           id[4] | b_callable("get_volume", Type::Int)});
+      return &mp;
+    }
+
     case Type::MwndList: {
       static const auto mp = make_flatmap<Builder>(
           {id[-1] | b_index_array(Type::Mwnd),
@@ -1525,6 +1540,8 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
       return make_sym_chain(Type::Pcm, "pcm", elm, 1);
     case 44:
       return make_sym_chain(Type::PcmchList, "pcmch_list", elm, 1);
+    case 45:
+      return make_sym_chain(Type::Se, "se", elm, 1);
 
       // ====== SEL ======
       // some needs kidoku flag
