@@ -29,17 +29,25 @@
 #include <filesystem>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <span>
 
 class Album;
 // TODO: Extract SDLSurface abstraction from SDLSurface class
 class SDLSurface;
 
+struct DebugFrameDumpConfig {
+  bool enabled = false;
+  int frame_interval = 0;
+  std::filesystem::path output_dir;
+};
+
 struct RenderFrameConfig {
   Size screen_size;
   Size display_size;
   Point screen_origin;
   bool manual_update_mode;
+  std::optional<std::filesystem::path> frame_dump_path;
 };
 
 using DrawCallback = std::function<void()>;
@@ -71,7 +79,7 @@ class IGraphicsBackend {
                            const DrawCallback& draw_renderables,
                            const DrawCallback& draw_cursor) = 0;
 
-  virtual void RedrawLastFrame(const RenderFrameConfig& config,
+  virtual bool RedrawLastFrame(const RenderFrameConfig& config,
                                const DrawCallback& draw_cursor) = 0;
 
   virtual std::shared_ptr<SDLSurface> RenderToSurface(

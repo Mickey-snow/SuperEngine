@@ -31,6 +31,7 @@
 #include "machine/rloperation.hpp"
 #include "machine/serialization.hpp"
 #include "platforms/implementor.hpp"
+#include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
 #include "systems/system_error.hpp"
 #include "utf8.h"
@@ -62,6 +63,7 @@ void RLVMInstance::Main(const std::filesystem::path& gameroot) {
     loader = std::make_unique<libreallive::GameLoader>(gameroot, start_scene_);
     machine_ = loader->machine_;
     system_ = loader->system_;
+    system_->graphics().SetDebugFrameDumpConfig(debug_frame_dump_config_);
   } catch (std::exception& e) {
     static DomainLogger logger("Main");
     logger(Severity::Error) << "Failed to load game:\n" << e.what();

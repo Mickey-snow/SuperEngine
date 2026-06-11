@@ -29,9 +29,11 @@
 #include <boost/serialization/version.hpp>
 #include <filesystem>
 
+#include <cstdint>
 #include <iosfwd>
 #include <map>
 #include <memory>
+#include <optional>
 #include <queue>
 #include <set>
 #include <string>
@@ -281,6 +283,8 @@ class GraphicsSystem : public EventListener {
 
   bool screen_needs_refresh() const { return screen_needs_refresh_; }
 
+  void SetDebugFrameDumpConfig(DebugFrameDumpConfig config);
+
   void RenderFrame(bool should_refresh = true);
   void RenderCustomFrame(const DrawCallback& draw_scene,
                          const DrawCallback& draw_after = DrawCallback());
@@ -347,6 +351,10 @@ class GraphicsSystem : public EventListener {
   std::shared_ptr<MouseCursor> GetCurrentCursor();
 
   void SetScreenSize(const Size& size);
+
+  RenderFrameConfig BuildPresentationFrameConfig();
+  std::optional<std::filesystem::path> NextDebugFrameDumpPath();
+  void RollBackDebugFrameDumpCounter();
 
   void DrawFrame();
   void UpdateWindowTitle();
@@ -437,6 +445,9 @@ class GraphicsSystem : public EventListener {
 
   // Graphics backend implementation
   std::shared_ptr<IGraphicsBackend> impl_;
+
+  DebugFrameDumpConfig debug_frame_dump_config_;
+  std::uint64_t debug_frame_dump_frame_number_ = 0;
 
   std::shared_ptr<AssetScanner> asset_scanner_;
 

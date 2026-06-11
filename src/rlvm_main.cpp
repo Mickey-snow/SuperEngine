@@ -30,14 +30,17 @@
 // refactoring for better cross-platform support and modularity.
 
 #include <boost/program_options.hpp>
+#include <filesystem>
 #include <iostream>
 #include <string>
+#include <system_error>
 
 #include "log/core.hpp"
 #include "platforms/implementor.hpp"
 #include "platforms/platform_factory.hpp"
 #include "rlvm_instance.hpp"
 #include "sgvm_instance.hpp"
+#include "systems/igraphics_backend.hpp"
 #include "utilities/file.hpp"
 #include "version.h"
 
@@ -105,6 +108,11 @@ int main(int argc, char* argv[]) {
       "Enable debug instrumentation (true/false)")(
       "engine", po::value<std::string>()->default_value("reallive"));
 
+  po::options_description debugOpts("Debug options");
+  debugOpts.add_options()(
+      "debug-frame-dump", po::value<int>(),
+      "Dump every N presented frames to ./rlvm-frame-dumps as BMP files.");
+
   // Declare the final option to be game-root
   po::options_description hidden("Hidden");
   hidden.add_options()("game-root", po::value<std::string>(),
@@ -115,7 +123,7 @@ int main(int argc, char* argv[]) {
 
   // Use these on the command line
   po::options_description commandLineOpts;
-  commandLineOpts.add(opts).add(hidden);
+  commandLineOpts.add(opts).add(debugOpts).add(hidden);
 
   po::variables_map vm;
   try {
@@ -141,7 +149,7 @@ int main(int argc, char* argv[]) {
   // -----------------------------------------------------------------------
 
   po::options_description allOpts("Allowed options");
-  allOpts.add(opts);
+  allOpts.add(opts).add(debugOpts);
 
   // -----------------------------------------------------------------------
   // Process command line options
@@ -185,6 +193,29 @@ int main(int argc, char* argv[]) {
       std::cout << begin->first << std::endl;
     }
     return 0;
+  }
+
+  DebugFrameDumpConfig debug_frame_dump_config;
+  if (vm.count("debug-frame-dump")) {
+    int interval = vm["debug-frame-dump"].as<int>();
+    if (interval <= 0) {
+      std::cerr << "ERROR: --debug-frame-dump must be greater than zero."
+                << std::endl;
+      return -1;
+    }
+
+    debug_frame_dump_config.enabled = true;
+    debug_frame_dump_config.frame_interval = interval;
+    debug_frame_dump_config.output_dir = "rlvm-frame-dumps";
+
+    std::error_code ec;
+    fs::create_directories(debug_frame_dump_config.output_dir, ec);
+    if (ec) {
+      std::cerr << "ERROR: Could not create frame dump directory '"
+                << debug_frame_dump_config.output_dir.string()
+                << "': " << ec.message() << std::endl;
+      return -1;
+    }
   }
 
   // This is where we need platform implementor to pop up platform-specific
@@ -247,6 +278,7 @@ int main(int argc, char* argv[]) {
   if (engine == "reallive" || engine == "Reallive") {
     RLVMInstance instance;
     instance.SetPlatformImplementor(platform_impl);
+    instance.SetDebugFrameDumpConfig(debug_frame_dump_config);
 
     if (vm.count("font"))
       instance.SetCustomFont(vm["font"].as<std::string>());
@@ -258,6 +290,7 @@ int main(int argc, char* argv[]) {
   } else if (engine == "siglus" || engine == "Siglus") {
     SgvmInstance instance;
     instance.platform_implementor_ = platform_impl;
+    instance.debug_frame_dump_config_ = debug_frame_dump_config;
     if (vm.count("font"))
       instance.font_ = vm["font"].as<std::string>();
     if (vm.count("scene"))

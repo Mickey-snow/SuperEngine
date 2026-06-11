@@ -48,7 +48,6 @@ class SDLGraphicsBackend : public IGraphicsBackend {
       std::span<char> bgra,
       bool is_alpha_mask) override;
 
-  [[deprecated]]
   virtual std::shared_ptr<SDLSurface> LoadSurface(
       const std::filesystem::path& path) override;
   virtual std::shared_ptr<Album> LoadAlbum(
@@ -62,7 +61,7 @@ class SDLGraphicsBackend : public IGraphicsBackend {
                            const DrawCallback& draw_renderables,
                            const DrawCallback& draw_cursor) override;
 
-  virtual void RedrawLastFrame(const RenderFrameConfig& config,
+  virtual bool RedrawLastFrame(const RenderFrameConfig& config,
                                const DrawCallback& draw_cursor) override;
 
   virtual std::shared_ptr<SDLSurface> RenderToSurface(

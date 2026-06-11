@@ -45,7 +45,9 @@
 #endif
 
 #include <fstream>
+#include <memory>
 #include <string>
+#include <system_error>
 #include <vector>
 
 #include <cstring>
@@ -64,6 +66,94 @@ static std::string LoadFile(const std::filesystem::path& pth) {
   return std::string(std::istreambuf_iterator<char>(ifs),
                      std::istreambuf_iterator<char>());
 }
+
+namespace {
+
+using SDL_SurfacePtr = std::unique_ptr<SDL_Surface, decltype(&SDL_FreeSurface)>;
+
+SDL_SurfacePtr CreateRGBASurface(Size size) {
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+  constexpr Uint32 rmask = 0xff000000;
+  constexpr Uint32 gmask = 0x00ff0000;
+  constexpr Uint32 bmask = 0x0000ff00;
+  constexpr Uint32 amask = 0x000000ff;
+#else
+  constexpr Uint32 rmask = 0x000000ff;
+  constexpr Uint32 gmask = 0x0000ff00;
+  constexpr Uint32 bmask = 0x00ff0000;
+  constexpr Uint32 amask = 0xff000000;
+#endif
+
+  return SDL_SurfacePtr(SDL_CreateRGBSurface(SDL_SWSURFACE, size.width(),
+                                             size.height(), 32, rmask, gmask,
+                                             bmask, amask),
+                        SDL_FreeSurface);
+}
+
+void SaveBackBufferBMP(const RenderFrameConfig& config) {
+  if (!config.frame_dump_path)
+    return;
+
+  const auto& path = *config.frame_dump_path;
+  const int width = config.display_size.width();
+  const int height = config.display_size.height();
+  if (width <= 0 || height <= 0) {
+    logger(Severity::Warn) << "Skipping frame dump for invalid display size "
+                           << config.display_size.DebugString();
+    return;
+  }
+
+  std::error_code ec;
+  const std::filesystem::path parent = path.parent_path();
+  if (!parent.empty()) {
+    std::filesystem::create_directories(parent, ec);
+    if (ec) {
+      logger(Severity::Warn)
+          << "Could not create frame dump directory " << parent.string()
+          << ": " << ec.message();
+      return;
+    }
+  }
+
+  std::vector<GLubyte> pixels(static_cast<size_t>(width) * height * 4);
+  GLint previous_pack_alignment = 0;
+  glGetIntegerv(GL_PACK_ALIGNMENT, &previous_pack_alignment);
+  glPixelStorei(GL_PACK_ALIGNMENT, 1);
+  glReadBuffer(GL_BACK);
+  glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+  glPixelStorei(GL_PACK_ALIGNMENT, previous_pack_alignment);
+  ShowGLErrors();
+
+  SDL_SurfacePtr surface = CreateRGBASurface(config.display_size);
+  if (!surface) {
+    logger(Severity::Warn) << "Could not allocate frame dump surface: "
+                           << SDL_GetError();
+    return;
+  }
+
+  if (SDL_MUSTLOCK(surface.get()) && SDL_LockSurface(surface.get()) != 0) {
+    logger(Severity::Warn) << "Could not lock frame dump surface: "
+                           << SDL_GetError();
+    return;
+  }
+
+  for (int y = 0; y < height; ++y) {
+    void* dst = static_cast<uint8_t*>(surface->pixels) + y * surface->pitch;
+    const void* src = pixels.data() +
+                      static_cast<size_t>(height - y - 1) * width * 4;
+    std::memcpy(dst, src, static_cast<size_t>(width) * 4);
+  }
+
+  if (SDL_MUSTLOCK(surface.get()))
+    SDL_UnlockSurface(surface.get());
+
+  if (SDL_SaveBMP(surface.get(), path.string().c_str()) != 0) {
+    logger(Severity::Warn) << "Could not save frame dump " << path.string()
+                           << ": " << SDL_GetError();
+  }
+}
+
+}  // namespace
 
 SDLGraphicsBackend::SDLGraphicsBackend()
     : screen_(nullptr),
@@ -303,15 +393,16 @@ void SDLGraphicsBackend::RenderFrame(const RenderFrameConfig& config,
     draw_cursor();
 
   glFlush();
+  SaveBackBufferBMP(config);
   SDL_GL_SwapBuffers();
   ShowGLErrors();
 }
 
-void SDLGraphicsBackend::RedrawLastFrame(const RenderFrameConfig& config,
+bool SDLGraphicsBackend::RedrawLastFrame(const RenderFrameConfig& config,
                                          const DrawCallback& draw_cursor) {
   if (!config.manual_update_mode || !screen_contents_texture_valid_ ||
       !screen_contents_texture_)
-    return;
+    return false;
 
   glRenderer renderer;
   renderer.Render(
@@ -322,8 +413,11 @@ void SDLGraphicsBackend::RedrawLastFrame(const RenderFrameConfig& config,
   if (draw_cursor)
     draw_cursor();
 
+  glFlush();
+  SaveBackBufferBMP(config);
   SDL_GL_SwapBuffers();
   ShowGLErrors();
+  return true;
 }
 
 std::shared_ptr<SDLSurface> SDLGraphicsBackend::RenderToSurface(

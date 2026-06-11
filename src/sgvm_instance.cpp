@@ -30,6 +30,7 @@
 #include "libsiglus/recompiler.hpp"
 #include "libsiglus/sgvm_factory.hpp"
 #include "libsiglus/token.hpp"
+#include "systems/graphics_system.hpp"
 #include "vm/function.hpp"
 #include "vm/instruction.hpp"
 #include "vm/object.hpp"
@@ -56,6 +57,7 @@ void SgvmInstance::Main(const std::filesystem::path& game_root) {
     SGVMFactory factory(game_root);
     factory.debug_ = debug_;
     SiglusRuntime rt = factory.Create();
+    rt.system->graphics().SetDebugFrameDumpConfig(debug_frame_dump_config_);
     sr::VM& vm = *rt.vm;
 
     sr::Module* mod = rt.loader->Load(start_scene_);

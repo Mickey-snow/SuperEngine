@@ -219,6 +219,13 @@ GraphicsSystem::~GraphicsSystem() = default;
 
 // -----------------------------------------------------------------------
 
+void GraphicsSystem::SetDebugFrameDumpConfig(DebugFrameDumpConfig config) {
+  debug_frame_dump_config_ = std::move(config);
+  debug_frame_dump_frame_number_ = 0;
+}
+
+// -----------------------------------------------------------------------
+
 void GraphicsSystem::ForceRefresh() {
   screen_needs_refresh_ = true;
 
@@ -363,12 +370,39 @@ void GraphicsSystem::DrawFrame() {
 
 // -----------------------------------------------------------------------
 
-void GraphicsSystem::RenderFrame(bool should_refresh) {
-  RenderFrameConfig config{
+RenderFrameConfig GraphicsSystem::BuildPresentationFrameConfig() {
+  return RenderFrameConfig{
       .screen_size = screen_size(),
       .display_size = display_size_,
       .screen_origin = GetScreenOrigin(),
-      .manual_update_mode = screen_update_mode_ == SCREENUPDATEMODE_MANUAL};
+      .manual_update_mode = screen_update_mode_ == SCREENUPDATEMODE_MANUAL,
+      .frame_dump_path = NextDebugFrameDumpPath()};
+}
+
+std::optional<std::filesystem::path> GraphicsSystem::NextDebugFrameDumpPath() {
+  if (!debug_frame_dump_config_.enabled ||
+      debug_frame_dump_config_.frame_interval <= 0)
+    return std::nullopt;
+
+  ++debug_frame_dump_frame_number_;
+  const auto interval =
+      static_cast<std::uint64_t>(debug_frame_dump_config_.frame_interval);
+  if (debug_frame_dump_frame_number_ % interval != 0)
+    return std::nullopt;
+
+  return debug_frame_dump_config_.output_dir /
+         std::format("frame_{:08}.bmp", debug_frame_dump_frame_number_);
+}
+
+void GraphicsSystem::RollBackDebugFrameDumpCounter() {
+  if (debug_frame_dump_config_.enabled && debug_frame_dump_frame_number_ > 0)
+    --debug_frame_dump_frame_number_;
+}
+
+// -----------------------------------------------------------------------
+
+void GraphicsSystem::RenderFrame(bool should_refresh) {
+  RenderFrameConfig config = BuildPresentationFrameConfig();
 
   auto draw_scene = [this]() { DrawFrame(); };
   auto draw_renderables = [this]() {
@@ -392,7 +426,8 @@ void GraphicsSystem::RenderFrame(bool should_refresh) {
   };
 
   if (!should_refresh) {
-    impl_->RedrawLastFrame(config, draw_cursor);
+    if (!impl_->RedrawLastFrame(config, draw_cursor))
+      RollBackDebugFrameDumpCounter();
     return;
   }
 
@@ -403,11 +438,7 @@ void GraphicsSystem::RenderFrame(bool should_refresh) {
 
 void GraphicsSystem::RenderCustomFrame(const DrawCallback& draw_scene,
                                        const DrawCallback& draw_after) {
-  RenderFrameConfig config{
-      .screen_size = screen_size(),
-      .display_size = display_size_,
-      .screen_origin = GetScreenOrigin(),
-      .manual_update_mode = screen_update_mode_ == SCREENUPDATEMODE_MANUAL};
+  RenderFrameConfig config = BuildPresentationFrameConfig();
 
   auto draw_cursor = [this]() {
     if (!ShouldUseCustomCursor())
@@ -445,7 +476,8 @@ std::shared_ptr<SDLSurface> GraphicsSystem::RenderToSurface() {
       .screen_size = screen_size(),
       .display_size = display_size_,
       .screen_origin = GetScreenOrigin(),
-      .manual_update_mode = screen_update_mode_ == SCREENUPDATEMODE_MANUAL};
+      .manual_update_mode = screen_update_mode_ == SCREENUPDATEMODE_MANUAL,
+      .frame_dump_path = std::nullopt};
   auto draw_scene = [this]() { DrawFrame(); };
   return impl_->RenderToSurface(config, draw_scene);
 }
