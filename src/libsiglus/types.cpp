@@ -78,6 +78,10 @@ std::string ToString(Type type) {
       return "quake[]";
     case Type::Quake:
       return "quake";
+    case Type::Input:
+      return "input";
+    case Type::Key:
+      return "key";
 
     case Type::Invalid:
       return "invalid";

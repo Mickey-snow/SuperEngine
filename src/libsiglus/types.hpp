@@ -55,6 +55,8 @@ enum class Type : uint32_t {
   Effect,
   QuakeList,
   Quake,
+  Input,
+  Key,
   Script,
   ScriptExcall,
   Excall,

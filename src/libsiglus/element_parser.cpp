@@ -967,6 +967,29 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
       return &mp;
     }
 
+    case Type::Input: {
+      static const auto mp =
+          make_flatmap<Builder>({id[2] | b_callable("clear", Type::None),
+                                 id[3] | b_callable("next", Type::None),
+                                 id[0] | b(Type::Key, Member("decide")),
+                                 id[1] | b(Type::Key, Member("cancel"))});
+      return &mp;
+    }
+
+    case Type::Key: {
+      static const auto mp = make_flatmap<Builder>(
+          {id[1] | b_callable("on_down", Type::Int),
+           id[4] | b_callable("on_up", Type::Int),
+           id[5] | b_callable("on_down_up", Type::Int),
+           id[6] | b_callable("is_down", Type::Int),
+           id[7] | b_callable("is_up", Type::Int),
+           id[10] | b_callable("on_flick", Type::Int),
+           id[0] | b_callable("get_flick_angle", Type::Int),
+           id[14] | b_callable("get_flick_pixel", Type::Int),
+           id[15] | b_callable("get_flick_mm", Type::Int)});
+      return &mp;
+    }
+
     case Type::ObjList: {
       static const auto mp =
           make_flatmap<Builder>({id[-1] | b_index_array(Type::Object),
@@ -1569,6 +1592,8 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
       return make_sym_chain(Type::PcmchList, "pcmch_list", elm, 1);
     case 45:
       return make_sym_chain(Type::Se, "se", elm, 1);
+    case 86:
+      return make_sym_chain(Type::Input, "input", elm, 1);
 
       // ====== SEL ======
       // some needs kidoku flag
