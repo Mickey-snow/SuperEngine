@@ -1858,6 +1858,16 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
           .nodes = {Node(Type::Callable, std::move(jump)), std::move(call)}};
     }
 
+    case 116: {  // GET_MWND
+      Member get_mwnd("get_mwnd", Type::Int, true);
+      elm.bind_ctx.return_type = Type::Int;
+      auto call = Node::BuildCall(std::move(elm.bind_ctx));
+      elm.force_bind = false;
+      return AccessChain{.root = std::monostate(),
+                         .nodes = {Node(Type::Callable, std::move(get_mwnd)),
+                                   std::move(call)}};
+    }
+
     case 6: {  // FRAME
       Member frame("frame");
       auto call = Node::BuildCall(std::move(elm.bind_ctx), AWAIT);
