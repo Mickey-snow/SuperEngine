@@ -48,6 +48,7 @@ enum class Type : uint32_t {
   MwndList,
   Mwnd,
   GroupList,
+  Group,
   BtnselItemList,
   WorldList,
   EffectList,

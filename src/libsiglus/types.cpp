@@ -63,6 +63,10 @@ std::string ToString(Type type) {
       return "stage";
     case Type::StageList:
       return "stage[]";
+    case Type::Group:
+      return "group";
+    case Type::GroupList:
+      return "group[]";
 
     case Type::Screen:
       return "screen";

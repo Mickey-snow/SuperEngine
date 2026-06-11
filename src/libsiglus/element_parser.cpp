@@ -862,6 +862,33 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
       return &mp;
     }
 
+    case Type::GroupList: {
+      static const auto mp =
+          make_flatmap<Builder>({id[-1] | b_index_array(Type::Group),
+                                 id[1] | b_callable("alloc", Type::None),
+                                 id[2] | b_callable("free", Type::None)});
+      return &mp;
+    }
+
+    case Type::Group: {
+      static const auto mp = make_flatmap<Builder>(
+          {id[0] | b_callable("sel", Type::None),
+           id[1] | b_callable("sel_cancel", Type::None),
+           id[4] | b_callable("init", Type::None),
+           id[2] | b_callable("start", Type::None),
+           id[10] | b_callable("start_cancel", Type::None),
+           id[5] | b_callable("end", Type::None),
+           id[6] | b_callable("get_hit_no", Type::Int),
+           id[7] | b_callable("get_pushed_no", Type::Int),
+           id[3] | b_callable("get_decided_no", Type::Int),
+           id[15] | b_callable("get_result", Type::Int),
+           id[16] | b_callable("get_result_button_no", Type::Int),
+           id[8] | obj_getset("order", Type::Int),
+           id[13] | obj_getset("layer", Type::Int),
+           id[14] | obj_getset("cancel_priority", Type::Int)});
+      return &mp;
+    }
+
     case Type::Screen: {
       static const auto mp =
           make_flatmap<Builder>({id[31] | b(Type::EffectList, Member("effect")),
