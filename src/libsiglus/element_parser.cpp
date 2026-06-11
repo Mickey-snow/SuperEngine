@@ -990,6 +990,22 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
       return &mp;
     }
 
+    case Type::Mouse: {
+      static const auto mp =
+          make_flatmap<Builder>({id[4] | b_callable("clear", Type::None),
+                                 id[8] | b_callable("next", Type::None),
+                                 id[0] | b_callable("pos_x", Type::Int),
+                                 id[1] | b_callable("pos_y", Type::Int),
+                                 id[2] | b_callable("get_pos_x", Type::Int),
+                                 id[3] | b_callable("get_pos_y", Type::Int),
+                                 id[9] | b_callable("get_pos", Type::None),
+                                 id[10] | b_callable("set_pos", Type::None),
+                                 id[5] | b_callable("wheel", Type::Int),
+                                 id[7] | b(Type::Key, Member("left")),
+                                 id[6] | b(Type::Key, Member("right"))});
+      return &mp;
+    }
+
     case Type::ObjList: {
       static const auto mp =
           make_flatmap<Builder>({id[-1] | b_index_array(Type::Object),
@@ -1596,6 +1612,8 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
       return make_sym_chain(Type::PcmchList, "pcmch_list", elm, 1);
     case 45:
       return make_sym_chain(Type::Se, "se", elm, 1);
+    case 46:
+      return make_sym_chain(Type::Mouse, "mouse", elm, 1);
     case 86:
       return make_sym_chain(Type::Input, "input", elm, 1);
 

@@ -82,6 +82,8 @@ std::string ToString(Type type) {
       return "input";
     case Type::Key:
       return "key";
+    case Type::Mouse:
+      return "mouse";
 
     case Type::Invalid:
       return "invalid";

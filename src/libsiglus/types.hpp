@@ -57,6 +57,7 @@ enum class Type : uint32_t {
   Quake,
   Input,
   Key,
+  Mouse,
   Script,
   ScriptExcall,
   Excall,
