@@ -998,7 +998,7 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
           id[156] | b(Type::IntEvent, Member("src_clip_right_eve")),
           id[157] | b(Type::IntEvent, Member("src_clip_bottom_eve")),
           id[72] | b(Type::IntEvent, Member("tr_eve")),
-          id[140] | b(Type::IntEvent, Member("tr_rep_eve")),
+          id[140] | b(Type::IntEventList, Member("tr_rep_eve")),
           id[73] | b(Type::IntEvent, Member("mono_eve")),
           id[74] | b(Type::IntEvent, Member("reverse_eve")),
           id[75] | b(Type::IntEvent, Member("bright_eve")),
