@@ -1275,7 +1275,8 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
       static const auto mp = make_flatmap<Builder>(
           {id[0] | b_callable("play"), id[1] | b_callable("play_oneshot"),
            id[2] | b_callable("play_wait", Type::None, AWAIT),
-           id[16] | b_callable("ready"), id[4] | b_callable("stop"),
+           id[16] | b_callable("ready"),
+           id[17] | b_callable("ready_oneshot"), id[4] | b_callable("stop"),
            id[10] | b_callable("pause"), id[11] | b_callable("resume"),
            id[12] | b_callable("resume_wait", Type::None, AWAIT),
            id[3] | b_callable("wait", Type::None, AWAIT),
