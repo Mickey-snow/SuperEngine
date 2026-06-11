@@ -1658,6 +1658,22 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
       return result;
     }
 
+    case 87:  // EXKOE
+    case 88:  // EXKOE_PLAY_WAIT
+    case 89:  // EXKOE_PLAY_WAIT_KEY
+    {
+      std::string_view name = root == 87   ? "exkoe"
+                              : root == 88 ? "exkoe_play_wait"
+                                           : "exkoe_play_wait_key";
+      CallFlags flags = root == 87 ? CallFlags{} : AWAIT;
+      elm.bind_ctx.return_type = Type::Int;
+      auto call = Node::BuildCall(std::move(elm.bind_ctx), flags);
+      elm.force_bind = false;
+      return AccessChain{
+          .root = std::monostate(),
+          .nodes = {Node(Type::Callable, Member(name)), std::move(call)}};
+    }
+
       // ====== Uncategorized ======
     case 5: {  // FARCALL
       auto& bind = elm.bind_ctx;
