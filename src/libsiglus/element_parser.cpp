@@ -863,17 +863,16 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
     }
 
     case Type::Screen: {
-      static const auto mp = make_flatmap<Builder>(
-          {id[31] | b(Type::EffectList, Member("effect")),
-           id[25] | b(Type::QuakeList, Member("quake"))});
+      static const auto mp =
+          make_flatmap<Builder>({id[31] | b(Type::EffectList, Member("effect")),
+                                 id[25] | b(Type::QuakeList, Member("quake"))});
       return &mp;
     }
 
     case Type::EffectList: {
-      static const auto mp =
-          make_flatmap<Builder>({id[-1] | b_index_array(Type::Effect),
-                                 id[1] | b_callable("resize"),
-                                 id[2] | b_callable("size", Type::Int)});
+      static const auto mp = make_flatmap<Builder>(
+          {id[-1] | b_index_array(Type::Effect), id[1] | b_callable("resize"),
+           id[2] | b_callable("size", Type::Int)});
       return &mp;
     }
 
@@ -1737,6 +1736,15 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
       return AccessChain{
           .root = std::monostate(),
           .nodes = {Node(Type::Callable, Member(name)), std::move(call)}};
+    }
+
+    case 68: {  // KOE_STOP
+      Member koe_stop("koe_stop");
+      auto call = Node::BuildCall(std::move(elm.bind_ctx));
+      elm.force_bind = false;
+      return AccessChain{.root = std::monostate(),
+                         .nodes = {Node(Type::Callable, std::move(koe_stop)),
+                                   std::move(call)}};
     }
 
       // ====== Uncategorized ======
