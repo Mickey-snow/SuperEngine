@@ -1773,6 +1773,29 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
           .nodes = {Node(Type::Callable, std::move(frame)), std::move(call)}};
     }
 
+    case 80:   // CAPTURE
+    case 163:  // CAPTURE_FROM_FILE
+    case 81:   // CAPTURE_FREE
+    case 130:  // CAPTURE_FOR_OBJECT
+    case 136:  // CAPTURE_FOR_OBJECT_FREE
+    case 164:  // CAPTURE_FOR_TWEET
+    case 165:  // CAPTURE_FREE_FOR_TWEET
+    {
+      std::string_view name = root == 80    ? "capture"
+                              : root == 163 ? "capture_from_file"
+                              : root == 81  ? "capture_free"
+                              : root == 130 ? "capture_for_object"
+                              : root == 136 ? "capture_for_object_free"
+                              : root == 164 ? "capture_for_tweet"
+                                            : "capture_free_for_tweet";
+      elm.bind_ctx.return_type = Type::None;
+      auto call = Node::BuildCall(std::move(elm.bind_ctx));
+      elm.force_bind = false;
+      return AccessChain{
+          .root = std::monostate(),
+          .nodes = {Node(Type::Callable, Member(name)), std::move(call)}};
+    }
+
       // ====== Uncategorized ======
     case 5: {  // FARCALL
       auto& bind = elm.bind_ctx;
