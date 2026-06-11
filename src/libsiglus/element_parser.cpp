@@ -1838,6 +1838,16 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
                                    std::move(call)}};
     }
 
+    case 4: {  // JUMP
+      Member jump("jump");
+      elm.bind_ctx.return_type = Type::None;
+      auto call = Node::BuildCall(std::move(elm.bind_ctx));
+      elm.force_bind = false;
+      return AccessChain{
+          .root = std::monostate(),
+          .nodes = {Node(Type::Callable, std::move(jump)), std::move(call)}};
+    }
+
     case 6: {  // FRAME
       Member frame("frame");
       auto call = Node::BuildCall(std::move(elm.bind_ctx), AWAIT);
