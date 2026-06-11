@@ -230,7 +230,7 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
                                  id[10] | b_callable("find", Type::Int),
                                  id[11] | b_callable("rfind", Type::Int),
                                  id[13] | b_callable("charat", Type::Int),
-                                 id[13] | b_callable("tonum", Type::Int)});
+                                 id[12] | b_callable("tonum", Type::Int)});
       return &mp;
     }
 
