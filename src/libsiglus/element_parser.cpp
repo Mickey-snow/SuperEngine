@@ -1518,6 +1518,22 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
                         std::span(elm.code.begin() + 1, elm.code.end()));
     }
 
+    case 36:   // SAVEPOINT
+    case 112:  // CHECK_SAVEPOINT
+    case 113:  // CLEAR_SAVEPOINT
+    {
+      std::string_view name = root == 36    ? "savepoint"
+                              : root == 112 ? "check_savepoint"
+                                            : "clear_savepoint";
+      Type return_type = root == 113 ? Type::None : Type::Int;
+      elm.bind_ctx.return_type = return_type;
+      auto call = Node::BuildCall(std::move(elm.bind_ctx));
+      elm.force_bind = false;
+      return AccessChain{
+          .root = std::monostate(),
+          .nodes = {Node(Type::Callable, Member(name)), std::move(call)}};
+    }
+
       // ====== MWND ======
     case 22: {  // SET_WAKU
       elm.code.front() = Value(Integer(0));
