@@ -64,6 +64,13 @@ std::string ToString(Type type) {
     case Type::StageList:
       return "stage[]";
 
+    case Type::Screen:
+      return "screen";
+    case Type::QuakeList:
+      return "quake[]";
+    case Type::Quake:
+      return "quake";
+
     case Type::Invalid:
       return "invalid";
     case Type::Other:

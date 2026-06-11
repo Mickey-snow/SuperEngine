@@ -208,29 +208,29 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
     }
 
     case Type::StrList: {
-      static const auto mp = make_flatmap<Builder>(
-          {id[-1] | b_index_array(Type::String),
-           id[3] | b_callable("init", Type::None),
-           id[2] | b(Type::Callable, Member("resize")),
-           id[4] | b_callable("size", Type::Int)});
+      static const auto mp =
+          make_flatmap<Builder>({id[-1] | b_index_array(Type::String),
+                                 id[3] | b_callable("init", Type::None),
+                                 id[2] | b(Type::Callable, Member("resize")),
+                                 id[4] | b_callable("size", Type::Int)});
       return &mp;
     }
     case Type::String: {
-      static const auto mp = make_flatmap<Builder>(
-          {id[0] | b_callable("upper", Type::String),
-           id[1] | b_callable("lower", Type::String),
-           id[6] | b_callable("cnt", Type::Int),
-           id[5] | b_callable("len", Type::Int),
-           id[2] | b_callable("left", Type::String),
-           id[7] | b_callable("left_len", Type::String),
-           id[4] | b_callable("right", Type::String),
-           id[9] | b_callable("right_len", Type::String),
-           id[3] | b_callable("mid", Type::String),
-           id[8] | b_callable("mid_len", Type::String),
-           id[10] | b_callable("find", Type::Int),
-           id[11] | b_callable("rfind", Type::Int),
-           id[13] | b_callable("charat", Type::Int),
-           id[13] | b_callable("tonum", Type::Int)});
+      static const auto mp =
+          make_flatmap<Builder>({id[0] | b_callable("upper", Type::String),
+                                 id[1] | b_callable("lower", Type::String),
+                                 id[6] | b_callable("cnt", Type::Int),
+                                 id[5] | b_callable("len", Type::Int),
+                                 id[2] | b_callable("left", Type::String),
+                                 id[7] | b_callable("left_len", Type::String),
+                                 id[4] | b_callable("right", Type::String),
+                                 id[9] | b_callable("right_len", Type::String),
+                                 id[3] | b_callable("mid", Type::String),
+                                 id[8] | b_callable("mid_len", Type::String),
+                                 id[10] | b_callable("find", Type::Int),
+                                 id[11] | b_callable("rfind", Type::Int),
+                                 id[13] | b_callable("charat", Type::Int),
+                                 id[13] | b_callable("tonum", Type::Int)});
       return &mp;
     }
 
@@ -414,9 +414,9 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
     }
 
     case Type::CounterList: {
-      static const auto mp = make_flatmap<Builder>(
-          {id[-1] | b_index_array(Type::Counter),
-           id[1] | b_callable("size", Type::Int)});
+      static const auto mp =
+          make_flatmap<Builder>({id[-1] | b_index_array(Type::Counter),
+                                 id[1] | b_callable("size", Type::Int)});
       return &mp;
     }
 
@@ -862,6 +862,36 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
       return &mp;
     }
 
+    case Type::Screen: {
+      static const auto mp =
+          make_flatmap<Builder>({id[25] | b(Type::QuakeList, Member("quake"))});
+      return &mp;
+    }
+
+    case Type::QuakeList: {
+      static const auto mp =
+          make_flatmap<Builder>({id[-1] | b_index_array(Type::Quake)});
+      return &mp;
+    }
+
+    case Type::Quake: {
+      static const auto mp = make_flatmap<Builder>(
+          {id[0] | b_callable("start", Type::None, NONSIMPLE),
+           id[1] | b_callable("start_wait", Type::None, NONSIMPLE | AWAIT),
+           id[2] | b_callable("start_wait_key", Type::None, NONSIMPLE | AWAIT),
+           id[3] | b_callable("start_nowait", Type::None, NONSIMPLE),
+           id[4] | b_callable("start_all", Type::None, NONSIMPLE),
+           id[5] | b_callable("start_all_wait", Type::None, NONSIMPLE | AWAIT),
+           id[6] |
+               b_callable("start_all_wait_key", Type::None, NONSIMPLE | AWAIT),
+           id[7] | b_callable("start_all_nowait", Type::None, NONSIMPLE),
+           id[8] | b_callable("end", Type::None, NONSIMPLE),
+           id[10] | b_callable("wait", Type::None, AWAIT),
+           id[11] | b_callable("wait_key", Type::None, AWAIT),
+           id[9] | b_callable("check", Type::Int)});
+      return &mp;
+    }
+
     case Type::ObjList: {
       static const auto mp =
           make_flatmap<Builder>({id[-1] | b_index_array(Type::Object),
@@ -1278,12 +1308,9 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
     case Type::Wipe: {
       static const auto mp = make_flatmap<Builder>(
           {id[7] | b_callable("wipe", Type::None, AWAIT | NONSIMPLE),
-           id[23] | b_callable("wipe_all", Type::None,
-                                NONSIMPLE | AWAIT),
-           id[51] | b_callable("wipe_mask", Type::None,
-                               AWAIT | NONSIMPLE),
-           id[50] | b_callable("wipe_mask_all", Type::None,
-                               AWAIT | NONSIMPLE),
+           id[23] | b_callable("wipe_all", Type::None, NONSIMPLE | AWAIT),
+           id[51] | b_callable("wipe_mask", Type::None, AWAIT | NONSIMPLE),
+           id[50] | b_callable("wipe_mask_all", Type::None, AWAIT | NONSIMPLE),
            id[33] | b_callable("end", Type::None, NONSIMPLE),
            id[103] | b_callable("wait", Type::Int, AWAIT),
            id[109] | b_callable("check", Type::Int)});
@@ -1683,6 +1710,9 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
       return make_stage_member_chain("front", elm, 1);
     case 73:  // NEXT
       return make_stage_member_chain("next", elm, 1);
+
+    case 70:  // SCREEN
+      return make_sym_chain(Type::Screen, "screen", elm, 1);
 
     case 65:  // EXCALL
       return make_sym_chain(Type::Excall, "excall", elm, 1);
