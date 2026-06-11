@@ -51,6 +51,7 @@ enum class Type : uint32_t {
   BtnselItemList,
   WorldList,
   EffectList,
+  Effect,
   QuakeList,
   Quake,
   Script,

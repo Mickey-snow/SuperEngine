@@ -66,6 +66,10 @@ std::string ToString(Type type) {
 
     case Type::Screen:
       return "screen";
+    case Type::EffectList:
+      return "effect[]";
+    case Type::Effect:
+      return "effect";
     case Type::QuakeList:
       return "quake[]";
     case Type::Quake:

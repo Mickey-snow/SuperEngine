@@ -863,8 +863,57 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
     }
 
     case Type::Screen: {
+      static const auto mp = make_flatmap<Builder>(
+          {id[31] | b(Type::EffectList, Member("effect")),
+           id[25] | b(Type::QuakeList, Member("quake"))});
+      return &mp;
+    }
+
+    case Type::EffectList: {
       static const auto mp =
-          make_flatmap<Builder>({id[25] | b(Type::QuakeList, Member("quake"))});
+          make_flatmap<Builder>({id[-1] | b_index_array(Type::Effect),
+                                 id[1] | b_callable("resize"),
+                                 id[2] | b_callable("size", Type::Int)});
+      return &mp;
+    }
+
+    case Type::Effect: {
+      static const auto mp = make_flatmap<Builder>(
+          {id[30] | b_callable("init"),
+           id[31] | obj_getset("wipe_copy", Type::Int),
+           id[32] | obj_getset("wipe_erase", Type::Int),
+           id[0] | obj_getset("x", Type::Int),
+           id[1] | obj_getset("y", Type::Int),
+           id[2] | obj_getset("z", Type::Int),
+           id[3] | obj_getset("mono", Type::Int),
+           id[4] | obj_getset("reverse", Type::Int),
+           id[5] | obj_getset("bright", Type::Int),
+           id[6] | obj_getset("dark", Type::Int),
+           id[7] | obj_getset("color_r", Type::Int),
+           id[8] | obj_getset("color_g", Type::Int),
+           id[9] | obj_getset("color_b", Type::Int),
+           id[10] | obj_getset("color_rate", Type::Int),
+           id[11] | obj_getset("color_add_r", Type::Int),
+           id[12] | obj_getset("color_add_g", Type::Int),
+           id[13] | obj_getset("color_add_b", Type::Int),
+           id[14] | b(Type::IntEvent, Member("x_eve")),
+           id[15] | b(Type::IntEvent, Member("y_eve")),
+           id[16] | b(Type::IntEvent, Member("z_eve")),
+           id[17] | b(Type::IntEvent, Member("mono_eve")),
+           id[18] | b(Type::IntEvent, Member("reverse_eve")),
+           id[19] | b(Type::IntEvent, Member("bright_eve")),
+           id[20] | b(Type::IntEvent, Member("dark_eve")),
+           id[21] | b(Type::IntEvent, Member("color_r_eve")),
+           id[22] | b(Type::IntEvent, Member("color_g_eve")),
+           id[23] | b(Type::IntEvent, Member("color_b_eve")),
+           id[24] | b(Type::IntEvent, Member("color_rate_eve")),
+           id[25] | b(Type::IntEvent, Member("color_add_r_eve")),
+           id[26] | b(Type::IntEvent, Member("color_add_g_eve")),
+           id[27] | b(Type::IntEvent, Member("color_add_b_eve")),
+           id[28] | obj_getset("begin_order", Type::Int),
+           id[29] | obj_getset("end_order", Type::Int),
+           id[33] | obj_getset("begin_layer", Type::Int),
+           id[34] | obj_getset("end_layer", Type::Int)});
       return &mp;
     }
 
