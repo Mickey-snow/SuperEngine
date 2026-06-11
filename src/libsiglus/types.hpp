@@ -47,6 +47,7 @@ enum class Type : uint32_t {
   StageList,
   MwndList,
   Mwnd,
+  Msgbk,
   GroupList,
   Group,
   BtnselItemList,

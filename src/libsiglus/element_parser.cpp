@@ -1405,6 +1405,16 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
       return &mp;
     }
 
+    case Type::Msgbk: {
+      static const auto mp = make_flatmap<Builder>(
+          {id[1] | b_callable("insert_msg", Type::None),
+           id[4] | b_callable("add_koe", Type::None),
+           id[5] | b_callable("add_namae", Type::None),
+           id[3] | b_callable("add_msg", Type::None),
+           id[2] | b_callable("go_next_msg", Type::None)});
+      return &mp;
+    }
+
     case Type::Pcm: {
       static const auto mp =
           make_flatmap<Builder>({id[0] | b(Type::Callable, Member("play")),
@@ -1983,6 +1993,9 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
       return make_sym_chain(Type::FrameAction, "frame_action", elm, 1);
     case 53:  // FRAME_ACTION_CH
       return make_sym_chain(Type::FrameActionList, "frame_action_ch", elm, 1);
+
+    case 145:  // MSGBK
+      return make_sym_chain(Type::Msgbk, "msgbk", elm, 1);
 
     case 20:  // MOVIE
       return make_sym_chain(Type::Movie, "mov", elm, 1);
