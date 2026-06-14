@@ -54,24 +54,15 @@ unsigned char ClampByte(int value) {
   return static_cast<unsigned char>(std::clamp(value, 0, 255));
 }
 
+// OMV stores visible pixels in the top-left rectangle of each Theora plane.
+// RGBA alpha data is packed below that rectangle, so plane reads must not
+// rescale by the decoded plane height.
 unsigned char PlaneAt(const th_img_plane& plane,
                       int x,
                       int y,
-                      int output_width,
-                      int output_height) {
-  if (!plane.data || plane.width <= 0 || plane.height <= 0)
-    return 0;
-
-  const int px = std::clamp(x * plane.width / std::max(output_width, 1), 0,
-                            plane.width - 1);
-  const int py = std::clamp(y * plane.height / std::max(output_height, 1), 0,
-                            plane.height - 1);
-  return plane.data[py * plane.stride + px];
-}
-
-unsigned char PlaneAtExact(const th_img_plane& plane, int x, int y) {
+                      unsigned char fallback = 0) {
   if (!plane.data || x < 0 || y < 0 || x >= plane.width || y >= plane.height)
-    return 255;
+    return fallback;
   return plane.data[y * plane.stride + x];
 }
 
@@ -550,9 +541,9 @@ void OmvDecoder::WriteVideo(std::span<char> bgra) {
     for (int y = 0; y < pic_h; ++y) {
       for (int x = 0; x < pic_w; ++x) {
         const std::size_t idx = (static_cast<std::size_t>(y) * pic_w + x) * 4;
-        dst[idx + 0] = PlaneAt(yuv[0], x, y, pic_w, pic_h);
-        dst[idx + 1] = PlaneAt(yuv[1], x, y, pic_w, pic_h);
-        dst[idx + 2] = PlaneAt(yuv[2], x, y, pic_w, pic_h);
+        dst[idx + 0] = PlaneAt(yuv[0], x, y);
+        dst[idx + 1] = PlaneAt(yuv[1], x, y);
+        dst[idx + 2] = PlaneAt(yuv[2], x, y);
         dst[idx + 3] = 255;
       }
     }
@@ -562,9 +553,9 @@ void OmvDecoder::WriteVideo(std::span<char> bgra) {
   if (info_.type == kTypeYuv) {
     for (int y = 0; y < pic_h; ++y) {
       for (int x = 0; x < pic_w; ++x) {
-        const int cy = PlaneAt(yuv[0], x, y, pic_w, pic_h);
-        const int cu = PlaneAt(yuv[1], x, y, pic_w, pic_h);
-        const int cv = PlaneAt(yuv[2], x, y, pic_w, pic_h);
+        const int cy = PlaneAt(yuv[0], x, y);
+        const int cu = PlaneAt(yuv[1], x, y);
+        const int cv = PlaneAt(yuv[2], x, y);
         const std::size_t idx = (static_cast<std::size_t>(y) * pic_w + x) * 4;
         dst[idx + 2] = ClampByte(cy + 1.40200 * (cv - 128));
         dst[idx + 1] =
@@ -584,16 +575,16 @@ void OmvDecoder::WriteVideo(std::span<char> bgra) {
       for (int x = 0; x < pic_w; ++x) {
         unsigned char alpha = 255;
         if (y < alpha_h)
-          alpha = PlaneAtExact(yuv[0], x, pic_h + y);
+          alpha = PlaneAt(yuv[0], x, pic_h + y, 255);
         else if (y < alpha_h_2)
-          alpha = PlaneAtExact(yuv[1], x, pic_h + y - alpha_h);
+          alpha = PlaneAt(yuv[1], x, pic_h + y - alpha_h, 255);
         else
-          alpha = PlaneAtExact(yuv[2], x, pic_h + y - alpha_h_2);
+          alpha = PlaneAt(yuv[2], x, pic_h + y - alpha_h_2, 255);
 
         const std::size_t idx = (static_cast<std::size_t>(y) * pic_w + x) * 4;
-        dst[idx + 0] = PlaneAt(yuv[0], x, y, pic_w, pic_h);
-        dst[idx + 1] = PlaneAt(yuv[1], x, y, pic_w, pic_h);
-        dst[idx + 2] = PlaneAt(yuv[2], x, y, pic_w, pic_h);
+        dst[idx + 0] = PlaneAt(yuv[0], x, y);
+        dst[idx + 1] = PlaneAt(yuv[1], x, y);
+        dst[idx + 2] = PlaneAt(yuv[2], x, y);
         dst[idx + 3] = alpha;
       }
     }
