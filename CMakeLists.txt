@@ -74,6 +74,16 @@ link_directories(${SDL1_LIBRARY_DIRS})
 pkg_check_modules(THEORADEC REQUIRED IMPORTED_TARGET theoradec)
 
 # -------------------------------------------------------------------
+# Find FFmpeg encoder libraries
+# -------------------------------------------------------------------
+pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET
+  libavformat
+  libavcodec
+  libavutil
+  libswscale
+)
+
+# -------------------------------------------------------------------
 # Find Boost Libraries
 # -------------------------------------------------------------------
 set(BOOST_COMPONENTS program_options serialization iostreams filesystem log)

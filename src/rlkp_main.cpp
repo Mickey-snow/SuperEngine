@@ -105,7 +105,7 @@ int main(int argc, char* argv[]) {
   std::vector<int> scenarios;
   if (scenario >= 0)
     scenarios.push_back(scenario);
-  auto tasks = dumper->GetTasks(std::move(scenarios));
+  std::vector<IDumper::Task> tasks = dumper->GetTasks(std::move(scenarios));
   auto run = [](std::ostream& os, typename IDumper::task_t& t) {
     try {
       t(os);
@@ -130,18 +130,20 @@ int main(int argc, char* argv[]) {
     fs::create_directories(output_path);
     fs::create_directory(output_path / "audio");
     fs::create_directory(output_path / "image");
+    fs::create_directory(output_path / "movie");
 
     const size_t total_tasks = tasks.size();
     std::atomic<size_t> completed_count = 0;
-    std::for_each(
-        std::execution::par_unseq, tasks.begin(), tasks.end(),
-        [&](Dumper::Task& t) {
-          const int percentage = (++completed_count * 100) / total_tasks;
-          std::osyncstream(std::clog)
-              << std::format("[{}%] {}\n", percentage, t.path.string());
-          std::ofstream ofs(output_path / t.path);
-          run(ofs, t.task);
-        });
+
+    std::for_each(std::execution::par_unseq, tasks.begin(), tasks.end(),
+                  [&](IDumper::Task& t) {
+                    const size_t cnt = completed_count.fetch_add(1) + 1;
+                    const int percentage = (cnt * 100) / total_tasks;
+                    std::osyncstream(std::clog) << std::format(
+                        "[{}%] {}\n", percentage, t.path.string());
+                    std::ofstream ofs(output_path / t.path, std::ios::binary);
+                    run(ofs, t.task);
+                  });
   }
 
   return 0;

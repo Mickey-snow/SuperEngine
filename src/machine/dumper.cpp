@@ -26,6 +26,7 @@
 #include "core/asset_scanner.hpp"
 #include "core/avdec/audio_decoder.hpp"
 #include "core/avdec/image_decoder.hpp"
+#include "core/avdec/video_encoder.hpp"
 #include "libreallive/elements/bytecode.hpp"
 #include "libreallive/elements/command.hpp"
 #include "libreallive/scenario.hpp"
@@ -90,9 +91,9 @@ std::vector<IDumper::Task> Dumper::GetTasks(std::vector<int> scenarios) {
 
     tsk_t job(std::bind(DumpImpl, sc, _1));
 
-    tasks.push_back(IDumper::Task{
-        .path = std::format("{}.{:04}.txt", regname_, sc->scene_number()),
-        .task = std::move(job)});
+    tasks.emplace_back(
+        std::format("{}.{:04}.txt", regname_, sc->scene_number()),
+        std::move(job));
   }
 
   AssetScanner scanner;
@@ -101,6 +102,7 @@ std::vector<IDumper::Task> Dumper::GetTasks(std::vector<int> scenarios) {
     static const std::set<std::string> audio_ext{"nwa", "wav", "ogg", "mp3",
                                                  "ovk", "koe", "nwk"};
     static const std::set<std::string> image_ext{"g00", "pdt"};
+    static const std::set<std::string> movie_ext{"omv"};
     auto name = it.first;
     auto [ext, path] = it.second;
 
@@ -110,6 +112,9 @@ std::vector<IDumper::Task> Dumper::GetTasks(std::vector<int> scenarios) {
     } else if (image_ext.contains(ext)) {
       tasks.emplace_back(std::filesystem::path("image") / (name + '.' + ext),
                          tsk_t(std::bind(&Dumper::DumpImage, this, path, _1)));
+    } else if (movie_ext.contains(ext)) {
+      tasks.emplace_back(std::filesystem::path("movie") / (name + ".webm"),
+                         tsk_t(std::bind(&Dumper::DumpMovie, this, path, _1)));
     }
   }
 
@@ -128,4 +133,8 @@ void Dumper::DumpImage(std::filesystem::path path, std::ostream& out) {
   MappedFile mfile(path);
   ImageDecoder decoder(mfile.Read());
   saveBGRAasPPM(out, decoder.width, decoder.height, decoder.mem);
+}
+
+void Dumper::DumpMovie(std::filesystem::path path, std::ostream& out) {
+  EncodeOmvAsWebm(path, out);
 }

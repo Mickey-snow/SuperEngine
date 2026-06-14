@@ -4,7 +4,7 @@
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2024 Serina Sakurai
+// Copyright (C) 2026 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,38 +18,13 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+// Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
+//
 // -----------------------------------------------------------------------
 
 #pragma once
 
-#include "core/gameexe.hpp"
-#include "idumper.hpp"
-#include "libreallive/archive.hpp"
-
 #include <filesystem>
-#include <string>
-#include <vector>
+#include <ostream>
 
-namespace libreallive {
-class Scenario;
-}
-
-class Dumper : public IDumper {
- public:
-  Dumper(std::filesystem::path gexe_path,
-         std::filesystem::path scene_path,
-         std::filesystem::path root_path);
-
-  std::vector<IDumper::Task> GetTasks(std::vector<int> scenarios) final;
-
- private:
-  void DumpAudio(std::filesystem::path path, std::ostream& out);
-  void DumpImage(std::filesystem::path path, std::ostream& out);
-  void DumpMovie(std::filesystem::path path, std::ostream& out);
-
-  std::filesystem::path root_path_;
-  Gameexe gexe_;
-  std::string regname_;
-  libreallive::Archive archive_;
-};
+void EncodeOmvAsWebm(const std::filesystem::path& path, std::ostream& out);

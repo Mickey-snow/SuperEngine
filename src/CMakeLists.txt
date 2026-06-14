@@ -12,6 +12,7 @@ set(RLVM_REQUIRED_LIBRARIES
     ${Boost_LIBRARIES}
     ${GLEW_LIBRARIES}
     PkgConfig::THEORADEC
+    PkgConfig::FFMPEG
     VorbisFile::VorbisFile
     glm::glm
     xclannad

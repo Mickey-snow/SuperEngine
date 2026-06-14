@@ -49,6 +49,7 @@ class Dumper : public IDumper {
   void DumpScene(size_t id, std::ostream& out);
   void DumpAudio(std::filesystem::path path, std::ostream& out);
   void DumpImage(std::filesystem::path path, std::ostream& s);
+  void DumpMovie(std::filesystem::path path, std::ostream& out);
 
   MappedFile gexe_data_, archive_data_;
   Gameexe gexe_;
