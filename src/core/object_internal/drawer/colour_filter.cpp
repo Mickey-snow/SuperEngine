@@ -67,6 +67,7 @@ void ColourFilterObjectData::Render(const GraphicsObject& go,
   RenderingConfig cfg;
   cfg.blend_type = param.composite_mode;
   cfg.color = param.colour();
+  cfg.alpha = param.GetComputedAlpha();
   cfg.tint = param.tint();
   cfg.mono = param.mono();
   cfg.invert = param.invert();
