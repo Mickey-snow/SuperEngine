@@ -100,6 +100,7 @@ uniform float invert;
 uniform float light;
 uniform vec3 tint;
 uniform float alpha;
+uniform int blend_type;
 
 out vec4 FragColor;
 
@@ -148,8 +149,13 @@ void main() {
   tinter(pixel.b, tint.b, out_b);
   pixel.rgb = vec3(out_r, out_g, out_b);
 
-  // Adjust alpha
-  pixel.a *= alpha * Opacity;
+  float source_alpha = pixel.a * alpha * Opacity;
+  if (blend_type == 3) {
+    pixel.rgb = mix(vec3(1.0), pixel.rgb, source_alpha);
+  } else if (blend_type == 4) {
+    pixel.rgb *= source_alpha;
+  }
+  pixel.a = source_alpha;
   FragColor = pixel;
 }
 )glsl";

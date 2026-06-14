@@ -277,6 +277,7 @@ void glRenderer::Render(glRenderable src,
       glBlendEquation(GL_FUNC_ADD);
       break;
   }
+  shader->SetUniform("blend_type", cfg.blend_type.value_or(0));
 
   auto mono = cfg.mono.value_or(0.0f) / 255.0f;
   shader->SetUniform("mono", mono);
