@@ -44,6 +44,9 @@
  *   - `PositionX`, `PositionY`
  *   - `AdjustmentOffsetsX`, `AdjustmentOffsetsY`
  *   - `AdjustmentVertical`
+ *   - `RepetitionOriginX`, `RepetitionOriginY`
+ *   - `ScaleXPercent`, `ScaleYPercent`
+ *   - `RotationDiv10`
  * - **Clipping Regions:**
  *   - `ClippingRegion`
  *   - `OwnSpaceClippingRegion`
@@ -65,11 +68,7 @@
  *
  * The following parameters do not affect children:
  * - **Pattern Number:** `PatternNumber`
- * - **Transformations:**
- *   - **Origin Points:** `OriginX`, `OriginY`
- *   - **Repetition Origins:** `RepetitionOriginX`, `RepetitionOriginY`
- *   - **Scaling:** `ScaleXPercent`, `ScaleYPercent`
- *   - **Rotation:** `RotationDiv10`
+ * - **Origin Points:** `OriginX`, `OriginY`
  * - **Others:** Display order (`ZOrder`, `ZLayer`, `ZDepth`), etc.
  */
 
@@ -118,8 +117,6 @@ class ParentGraphicsObjectData : public GraphicsObjectData {
   virtual int PixelHeight(const GraphicsObject& rendering_properties) override;
   virtual std::unique_ptr<GraphicsObjectData> Clone() const override;
   virtual void Execute() override;
-
-  virtual bool IsParentLayer() const override { return true; }
 
  protected:
   virtual std::shared_ptr<const SDLSurface> CurrentSurface(

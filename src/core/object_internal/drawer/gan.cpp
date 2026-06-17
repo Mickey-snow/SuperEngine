@@ -143,7 +143,17 @@ Rect GanGraphicsObjectData::SrcRect(const GraphicsObject&) {
 
 Point GanGraphicsObjectData::DstOrigin(const GraphicsObject& go) {
   const Frame& frame = animation_sets.at(current_set_).at(current_frame_);
-  return GraphicsObjectData::DstOrigin(go) - Size(frame.x, frame.y);
+  if (frame.pattern != -1) {
+    const GrpRect& rect = image_->GetPattern(frame.pattern);
+    return Point(rect.originX, rect.originY);
+  }
+
+  return Point();
+}
+
+Point GanGraphicsObjectData::DstPosition(const GraphicsObject& go) {
+  const Frame& frame = animation_sets.at(current_set_).at(current_frame_);
+  return GraphicsObjectData::DstPosition(go) + Size(frame.x, frame.y);
 }
 
 int GanGraphicsObjectData::GetRenderingAlpha(const GraphicsObject& go,

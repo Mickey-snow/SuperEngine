@@ -208,9 +208,13 @@ void glRenderer::Render(glRenderable src,
   const auto width = fdx2 - fdx1;
   const auto height = fdy2 - fdy1;
   const auto top_left = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+  const auto top_right = glm::vec4(width, 0.0f, 0.0f, 1.0f);
   const auto bottom_right = glm::vec4(width, height, 0.0f, 1.0f);
+  const auto bottom_left = glm::vec4(0.0f, height, 0.0f, 1.0f);
   auto [dx1, dy1] = toNDC(model * top_left);
-  auto [dx2, dy2] = toNDC(model * bottom_right);
+  auto [dx2, dy2] = toNDC(model * top_right);
+  auto [dx3, dy3] = toNDC(model * bottom_right);
+  auto [dx4, dy4] = toNDC(model * bottom_left);
 
   float thisx1 = float(x1) / texture_size.width();
   float thisy1 = 1.0f - float(y1) / texture_size.height();
@@ -226,9 +230,9 @@ void glRenderer::Render(glRenderable src,
 
   float vertices[] = {
       dx1, dy1, thisx1, thisy1, op[0],  // NOLINT
-      dx2, dy1, thisx2, thisy1, op[1],  // NOLINT
-      dx2, dy2, thisx2, thisy2, op[2],  // NOLINT
-      dx1, dy2, thisx1, thisy2, op[3]   // NOLINT
+      dx2, dy2, thisx2, thisy1, op[1],  // NOLINT
+      dx3, dy3, thisx2, thisy2, op[2],  // NOLINT
+      dx4, dy4, thisx1, thisy2, op[3]   // NOLINT
   };
   const GLuint VAO = buf.VAO, VBO = buf.VBO;
   glBindVertexArray(VAO);

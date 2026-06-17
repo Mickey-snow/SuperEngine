@@ -61,11 +61,19 @@ class GraphicsObject {
   int PixelWidth() const;
   int PixelHeight() const;
 
-  bool has_object_data() const { return object_data_.get(); }
-
+  inline bool has_object_data() const { return object_data_.operator bool(); }
   GraphicsObjectData& GetObjectData();
   const GraphicsObjectData& GetObjectData() const;
-  void SetObjectData(std::unique_ptr<GraphicsObjectData>);
+  template <std::derived_from<GraphicsObjectData> T = GraphicsObjectData>
+  inline const T* GetObjectDataPtr() const {
+    if constexpr (std::same_as<T, GraphicsObject>)
+      return object_data_.get();
+    else
+      return dynamic_cast<T*>(object_data_.get());
+  }
+  inline void SetObjectData(std::unique_ptr<GraphicsObjectData> obj) {
+    object_data_.swap(obj);
+  }
 
   // Render!
   void Render(int objNum, const GraphicsObject* parent);

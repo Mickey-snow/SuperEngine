@@ -139,15 +139,16 @@ class Rect {
   void set_x2(int in);
   int y2() const;
   void set_y2(int in);
-  int width() const;
-  int height() const;
+  inline int width() const { return size_.width(); }
+  inline int height() const { return size_.height(); }
 
   const Point lower_right() const;
   const Size& size() const;
   const Point& origin() const;
 
   // Utility
-  bool is_empty() const;
+  inline bool is_empty() const { return width() == 0 && height() == 0; }
+  inline bool is_degenerate() const { return width() <= 0 || height() <= 0; }
   [[nodiscard]] std::string DebugString() const;
 
   // Methods

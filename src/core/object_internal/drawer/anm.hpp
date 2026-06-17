@@ -58,6 +58,8 @@ class AnmGraphicsObjectData : public GraphicsObjectData {
   virtual std::shared_ptr<const SDLSurface> CurrentSurface(
       const GraphicsObject& go) override;
   virtual Rect SrcRect(const GraphicsObject& go) override;
+  virtual Point DstOrigin(const GraphicsObject& go) override;
+  virtual Point DstPosition(const GraphicsObject& go) override;
   virtual Rect DstRect(const GraphicsObject& go,
                        const GraphicsObject* parent) override;
 

@@ -174,16 +174,11 @@ int Rect::x2() const { return origin_.x() + size_.width(); }
 void Rect::set_x2(int in) { size_.set_width(in - origin_.x()); }
 int Rect::y2() const { return origin_.y() + size_.height(); }
 void Rect::set_y2(int in) { size_.set_height(in - origin_.y()); }
-int Rect::width() const { return size_.width(); }
-int Rect::height() const { return size_.height(); }
 
 const Point Rect::lower_right() const { return origin_ + size_; }
 const Size& Rect::size() const { return size_; }
 const Point& Rect::origin() const { return origin_; }
 
-bool Rect::is_empty() const {
-  return size_.width() == 0 && size_.height() == 0;
-}
 std::string Rect::DebugString() const {
   return std::format("Rect({}, {}, {})", x(), y(), size().DebugString());
 }

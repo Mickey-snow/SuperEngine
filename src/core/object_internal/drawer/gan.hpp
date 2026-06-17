@@ -63,6 +63,7 @@ class GanGraphicsObjectData : public GraphicsObjectData {
       const GraphicsObject& go) override;
   virtual Rect SrcRect(const GraphicsObject& go) override;
   virtual Point DstOrigin(const GraphicsObject& go) override;
+  virtual Point DstPosition(const GraphicsObject& go) override;
   virtual int GetRenderingAlpha(const GraphicsObject& go,
                                 const GraphicsObject* parent) override;
 

@@ -29,13 +29,13 @@
 
 #include <boost/serialization/access.hpp>
 
+#include "core/rect.hpp"
+
 #include <memory>
 #include <string>
 #include <vector>
 
 class GraphicsObject;
-class Point;
-class Rect;
 class SDLSurface;
 class Animator;
 
@@ -55,16 +55,19 @@ class GraphicsObjectData {
   // format.
   virtual Rect DstRect(const GraphicsObject& go, const GraphicsObject* parent);
 
+  // Tests whether |point| hits this object using the same geometry used for
+  // rendering. Button selection uses this instead of testing DstRect directly
+  // so rotated and alpha-tested buttons behave like Siglus.
+  virtual bool HitTest(const GraphicsObject& go,
+                       const GraphicsObject* parent,
+                       const Point& point);
+
   virtual std::unique_ptr<GraphicsObjectData> Clone() const = 0;
-
-  virtual void Execute() ;
-
-  // Whether this object data owns another layer of objects.
-  virtual bool IsParentLayer() const;
 
   bool IsAnimation() const { return GetAnimator() != nullptr; }
   virtual Animator const* GetAnimator() const { return nullptr; }
   virtual Animator* GetAnimator() { return nullptr; }
+  virtual void Execute();
 
  protected:
   // Template method used during rendering to get the surface to render.
@@ -80,10 +83,35 @@ class GraphicsObjectData {
   // basis. This template method can be ignored if you override dstRect().
   virtual Point DstOrigin(const GraphicsObject& go);
 
+  // Returns the unparented object position. Animation formats can override this
+  // when frame data contributes a position offset.
+  virtual Point DstPosition(const GraphicsObject& go);
+
   // Controls the alpha during rendering. Default implementation just consults
   // the GraphicsObject.
   virtual int GetRenderingAlpha(const GraphicsObject& go,
                                 const GraphicsObject* parent);
+
+ public:
+  struct RenderGeometry {
+    Rect src;
+    Rect dst;
+    Point pivot;
+    float pivot_x = 0.0f;
+    float pivot_y = 0.0f;
+    float rotation_degrees = 0.0f;
+    float scale_x = 1.0f;
+    float scale_y = 1.0f;
+    float local_x = 0.0f;
+    float local_y = 0.0f;
+
+    void UpdateDstFromLocal();
+    bool ApplySrcClip(const Rect clip);
+    bool ApplyDstClip(const Rect clip);
+  };
+
+  virtual RenderGeometry BuildRenderGeometry(const GraphicsObject& go,
+                                             const GraphicsObject* parent);
 
  protected:
   // boost::serialization support

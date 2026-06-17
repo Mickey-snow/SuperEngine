@@ -87,10 +87,7 @@ void ButtonObjectSelectLongOperation::OnEvent(std::shared_ptr<Event> event) {
           for (ButtonPair& button_pair : buttons_) {
             if (button_pair.first->has_object_data()) {
               GraphicsObjectData* data = &button_pair.first->GetObjectData();
-              Rect obj_rect =
-                  data->DstRect(*button_pair.first, button_pair.second);
-
-              if (obj_rect.Contains(point))
+              if (data->HitTest(*button_pair.first, button_pair.second, point))
                 hovering_button = button_pair.first;
             }
           }

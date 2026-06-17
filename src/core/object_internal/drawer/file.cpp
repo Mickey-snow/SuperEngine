@@ -114,6 +114,17 @@ Rect GraphicsObjectOfFile::SrcRect(const GraphicsObject& go) {
 
 // -----------------------------------------------------------------------
 
+Point GraphicsObjectOfFile::DstOrigin(const GraphicsObject& go) {
+  if (current_frame_ >= 0) {
+    const GrpRect& rect = surface_->GetPattern(current_frame_);
+    return Point(rect.originX, rect.originY);
+  }
+
+  return GraphicsObjectData::DstOrigin(go);
+}
+
+// -----------------------------------------------------------------------
+
 void GraphicsObjectOfFile::PlaySet(int frame_time) {
   frame_time_ = frame_time;
   current_frame_ = 0;

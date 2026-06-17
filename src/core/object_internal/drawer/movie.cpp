@@ -163,9 +163,6 @@ std::shared_ptr<const SDLSurface> ObjectMovieData::CurrentSurface(
 }
 
 Point ObjectMovieData::DstOrigin(const GraphicsObject& go) {
-  const auto& param = go.Param();
-  if (param.origin_x || param.origin_y)
-    return Point(param.origin_x, param.origin_y);
   if (decoder_)
     return decoder_->info().center;
   return Point();

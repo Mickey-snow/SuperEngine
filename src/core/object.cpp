@@ -91,10 +91,6 @@ GraphicsObject& GraphicsObject::operator=(GraphicsObject&& rhs) {
   return *this;
 }
 
-void GraphicsObject::SetObjectData(std::unique_ptr<GraphicsObjectData> obj) {
-  object_data_ = std::move(obj);
-}
-
 int GraphicsObject::PixelWidth() const {
   // Calculate out the pixel width of the current object taking in the
   // width() scaling.
@@ -110,11 +106,12 @@ int GraphicsObject::PixelHeight() const {
   else
     return 0;
 }
+
 GraphicsObjectData& GraphicsObject::GetObjectData() {
   if (object_data_) {
     return *object_data_;
   } else {
-    throw rlvm::Exception("null object data");
+    throw std::runtime_error("null object data");
   }
 }
 
@@ -122,7 +119,7 @@ const GraphicsObjectData& GraphicsObject::GetObjectData() const {
   if (object_data_) {
     return *object_data_;
   } else {
-    throw rlvm::Exception("null object data");
+    throw std::runtime_error("null object data");
   }
 }
 
