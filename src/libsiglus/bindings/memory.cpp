@@ -23,7 +23,6 @@
 
 #include "core/memory_internal/bank.hpp"
 #include "libsiglus/archive.hpp"
-#include "libsiglus/bindings/common.hpp"
 #include "libsiglus/bindings/registry.hpp"
 #include "libsiglus/bindings/util.hpp"
 #include "libsiglus/property.hpp"

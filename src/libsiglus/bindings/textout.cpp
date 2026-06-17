@@ -69,14 +69,12 @@ class SiglusTextoutState
         state->flush_requested_ = true;
     });
 
-    sr::Value future(wait_handler_->GetFuture());
-    if (ShouldFlushText()) {
+    if (ShouldFlushText())
       Complete();
-      return future;
-    }
+    else
+      Schedule();
 
-    Schedule();
-    return future;
+    return wait_handler_->GetFuture();
   }
 
  private:

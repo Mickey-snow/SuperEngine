@@ -31,7 +31,7 @@
 
 #include "core/object.hpp"
 #include "core/stage.hpp"
-#include "libsiglus/bindings/common.hpp"
+#include "libsiglus/bindings/util.hpp"
 #include "libsiglus/bindings/wait_helpers.hpp"
 #include "srbind/module.hpp"
 #include "systems/event_system.hpp"

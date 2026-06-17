@@ -25,8 +25,14 @@
 
 #include "m6/compiler_pipeline.hpp"
 #include "m6/source_buffer.hpp"
+#include "vm/exception.hpp"
+#include "vm/list.hpp"
+#include "vm/string.hpp"
+#include "vm/value.hpp"
 #include "vm/vm.hpp"
 
+#include <format>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -50,6 +56,36 @@ sr::Value Execute(sr::VM& vm, std::string src) {
 
   sr::Value result = vm.Evaluate(chunk);
   return result;
+}
+
+std::optional<int> AsInt(const sr::Value& value) {
+  if (const int* int_value = value.Get_if<int>())
+    return *int_value;
+  if (const bool* bool_value = value.Get_if<bool>())
+    return *bool_value ? 1 : 0;
+  if (const double* double_value = value.Get_if<double>())
+    return static_cast<int>(*double_value);
+  return std::nullopt;
+}
+
+std::string AsString(const sr::Value& value) {
+  if (const sr::String* str = value.Get_if<sr::String>())
+    return str->str_;
+  return value.Str();
+}
+
+int RequireInt(sr::Value const& value, std::string_view where) {
+  if (auto* i = value.Get_if<int>())
+    return *i;
+  throw sr::RuntimeError(
+      std::format("expected int for {}, got {}", where, value.Desc()));
+}
+
+const sr::List* RequireList(sr::Value const& value, std::string_view where) {
+  if (auto* list = value.Get_if<sr::List>())
+    return list;
+  throw sr::RuntimeError(
+      std::format("expected list for {}, got {}", where, value.Desc()));
 }
 
 }  // namespace libsiglus::binding

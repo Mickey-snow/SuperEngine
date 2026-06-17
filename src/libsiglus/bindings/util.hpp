@@ -23,16 +23,25 @@
 
 #pragma once
 
+#include <optional>
 #include <string>
+#include <string_view>
 
 namespace serilang {
 class VM;
 class Value;
+class List;
 };  // namespace serilang
 
 namespace libsiglus::binding {
 
 // for code injection
 serilang::Value Execute(serilang::VM& vm, std::string src);
+
+std::optional<int> AsInt(const serilang::Value& value);
+std::string AsString(const serilang::Value& value);
+int RequireInt(const serilang::Value& value, std::string_view where);
+const serilang::List* RequireList(const serilang::Value& value,
+                                  std::string_view where);
 
 }  // namespace libsiglus::binding
