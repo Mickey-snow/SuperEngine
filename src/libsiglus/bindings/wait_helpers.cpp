@@ -36,12 +36,6 @@
 namespace libsiglus::binding {
 namespace sr = serilang;
 
-sr::Value MakeResolvedFuture(sr::GarbageCollector& gc, int result) {
-  sr::Future* future = gc.Allocate<sr::Future>();
-  future->promise->Resolve(sr::Value(result));
-  return sr::Value(future);
-}
-
 WaitHandler::WaitHandler(std::shared_ptr<sr::GarbageCollector> gc,
                          EventSystem* event_system)
     : gc_(std::move(gc)), promise_(std::make_shared<sr::Promise>()), cb_() {
@@ -93,13 +87,21 @@ void WaitHandler::Reject(std::string error) {
     promise_->Reject(std::move(error));
 }
 
+// ------------------------------------------------------------------------------
+
+sr::Value MakeResolvedFuture(sr::GarbageCollector& gc, int result) {
+  sr::Future* future = gc.Allocate<sr::Future>();
+  future->promise->Resolve(sr::Value(result));
+  return sr::Value(future);
+}
+
 sr::Value MakePollingWaitFuture(sr::VM& vm,
                                 std::function<bool()> done,
                                 bool key_skip,
                                 EventSystem* event_system,
                                 std::chrono::milliseconds poll_interval) {
   if (!done || done())
-    return MakeResolvedFuture(*vm.gc_, 0);
+    return MakeResolvedFuture(*vm.gc_);
 
   struct PollState : public std::enable_shared_from_this<PollState> {
     sr::VM& vm;

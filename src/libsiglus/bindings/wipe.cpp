@@ -147,19 +147,19 @@ struct SiglusWipe::Impl {
     last_ = std::move(params);
 
     if (!stage_)
-      return MakeResolvedFuture(*vm.gc_, 0);
+      return MakeResolvedFuture(*vm.gc_);
 
     stage_->Wipe(last_.begin_order, last_.end_order, last_.begin_layer,
                  last_.end_layer);
 
     if (!system_) {
       ClearWipeState();
-      return MakeResolvedFuture(*vm.gc_, 0);
+      return MakeResolvedFuture(*vm.gc_);
     }
 
     if (ShouldCompleteImmediately()) {
       ClearWipeState();
-      return MakeResolvedFuture(*vm.gc_, 0);
+      return MakeResolvedFuture(*vm.gc_);
     }
 
     wh_ = std::make_unique<WaitHandler>(vm.gc_, system_->event_ptr().get());
@@ -167,7 +167,7 @@ struct SiglusWipe::Impl {
     progress_ = ComputeProgress(last_.start_time);
 
     if (!last_.wait_flag)
-      return MakeResolvedFuture(*vm.gc_, 0);
+      return MakeResolvedFuture(*vm.gc_);
 
     SetKeySkip(last_.key_wait_mode);
     return sr::Value(wh_->GetFuture());
@@ -175,7 +175,7 @@ struct SiglusWipe::Impl {
 
   sr::Value Wait(sr::VM& vm, std::vector<sr::Value> raw_args) {
     if (!wh_)
-      return MakeResolvedFuture(*vm.gc_, 0);
+      return MakeResolvedFuture(*vm.gc_);
 
     int key_wait_mode = -1;
     CallPacket packet = DecodePacket(std::move(raw_args));

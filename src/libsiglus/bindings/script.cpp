@@ -38,8 +38,10 @@ namespace sb = srbind;
 using namespace serilang;
 
 void BindScript(SiglusRuntime& rt) {
-  rt.local_config = std::make_shared<Gameexe>();
-  rt.global_config = std::make_shared<Gameexe>();
+  if (!rt.local_config)
+    rt.local_config = std::make_shared<Gameexe>();
+  if (!rt.global_config)
+    rt.global_config = std::make_shared<Gameexe>();
   auto lcfg = rt.local_config;
 
   auto& vm = *rt.vm;

@@ -326,13 +326,13 @@ class SiglusObject {
   sr::Value create_movie_wait(sr::VM& vm, std::vector<sr::Value> args) {
     if (create_movie_common(std::move(args), false, true, false))
       return wait_movie_impl(vm, false);
-    return MakeResolvedFuture(*vm.gc_, 0);
+    return MakeResolvedFuture(*vm.gc_);
   }
 
   sr::Value create_movie_waitkey(sr::VM& vm, std::vector<sr::Value> args) {
     if (create_movie_common(std::move(args), false, true, true))
       return wait_movie_impl(vm, true);
-    return MakeResolvedFuture(*vm.gc_, 0);
+    return MakeResolvedFuture(*vm.gc_);
   }
 
   sr::Value wait_movie_impl(sr::VM& vm, bool key_skip) {

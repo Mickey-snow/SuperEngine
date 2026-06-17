@@ -61,7 +61,8 @@ class WaitHandler {
   std::shared_ptr<EventListener> listener_;
 };
 
-serilang::Value MakeResolvedFuture(serilang::GarbageCollector& gc, int result);
+serilang::Value MakeResolvedFuture(serilang::GarbageCollector& gc,
+                                   int result = 0);
 serilang::Value MakePollingWaitFuture(
     serilang::VM& vm,
     std::function<bool()> done,

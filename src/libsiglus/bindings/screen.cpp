@@ -49,30 +49,30 @@ class SiglusQuake {
 
   sr::Value start_wait(sr::VM& vm, std::vector<sr::Value> args) {
     start(std::move(args));
-    return MakeResolvedFuture(*vm.gc_, 0);
+    return MakeResolvedFuture(*vm.gc_);
   }
 
   sr::Value start_wait_key(sr::VM& vm, std::vector<sr::Value> args) {
     start(std::move(args));
-    return MakeResolvedFuture(*vm.gc_, 0);
+    return MakeResolvedFuture(*vm.gc_);
   }
 
   sr::Value start_all_wait(sr::VM& vm, std::vector<sr::Value> args) {
     start(std::move(args));
-    return MakeResolvedFuture(*vm.gc_, 0);
+    return MakeResolvedFuture(*vm.gc_);
   }
 
   sr::Value start_all_wait_key(sr::VM& vm, std::vector<sr::Value> args) {
     start(std::move(args));
-    return MakeResolvedFuture(*vm.gc_, 0);
+    return MakeResolvedFuture(*vm.gc_);
   }
 
   sr::Value wait(sr::VM& vm, std::vector<sr::Value>) {
-    return MakeResolvedFuture(*vm.gc_, 0);
+    return MakeResolvedFuture(*vm.gc_);
   }
 
   sr::Value wait_key(sr::VM& vm, std::vector<sr::Value>) {
-    return MakeResolvedFuture(*vm.gc_, 0);
+    return MakeResolvedFuture(*vm.gc_);
   }
 
   int check(std::vector<sr::Value>) const { return running_ ? 1 : 0; }

@@ -23,33 +23,39 @@
 
 #include "libsiglus/sgvm_factory.hpp"
 
-#include "libsiglus/bindings/loader.hpp"
-#include "libsiglus/bindings/registry.hpp"
-
-#include "core/object.hpp"
+#include "core/asset_scanner.hpp"
+#include "core/gameexe.hpp"
 #include "core/stage.hpp"
 #include "libsiglus/archive.hpp"
+#include "libsiglus/bindings/loader.hpp"
+#include "libsiglus/bindings/registry.hpp"
 #include "libsiglus/gexedat.hpp"
 #include "libsiglus/intern_name.hpp"
-#include "libsiglus/siglus_runtime.hpp"
 #include "libsiglus/siglus_scene_renderer.hpp"
 #include "log/domain_logger.hpp"
 #include "m6/vm_factory.hpp"
 #include "srbind/module.hpp"
-#include "systems/event_system.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
 #include "utilities/file.hpp"
 #include "utilities/mapped_file.hpp"
 #include "vm/exception.hpp"
-#include "vm/function.hpp"
-#include "vm/gc.hpp"
+#include "vm/object.hpp"
+#include "vm/vm.hpp"
 
+#include <cctype>
 #include <chrono>
 #include <filesystem>
 #include <format>
+#include <functional>
+#include <initializer_list>
+#include <iostream>
 #include <memory>
 #include <stdexcept>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 
 namespace libsiglus {
 namespace chr = std::chrono;
@@ -58,6 +64,42 @@ namespace sr = serilang;
 namespace sb = srbind;
 
 static DomainLogger logger("SiglusFactory");
+
+namespace {
+
+void SetIntVecIfMissing(Gameexe& gexe,
+                        std::string_view key,
+                        std::initializer_list<int> values) {
+  if (gexe.Exists(key))
+    return;
+
+  std::vector<GexeVal> gexe_values;
+  gexe_values.reserve(values.size());
+  for (int value : values)
+    gexe_values.emplace_back(value);
+  gexe.SetAt(key, std::move(gexe_values));
+}
+
+void EnsureSiglusTextDefaults(Gameexe& gexe) {
+  SetIntVecIfMissing(gexe, "WINDOW_ATTR", {255, 255, 255, 255, 0});
+  SetIntVecIfMissing(gexe, "WINDOW.000.ATTR_MOD", {0});
+  SetIntVecIfMissing(gexe, "WINDOW.000.ATTR", {255, 255, 255, 255, 0});
+  SetIntVecIfMissing(gexe, "WINDOW.000.MOJI_SIZE", {25});
+  SetIntVecIfMissing(gexe, "WINDOW.000.MOJI_CNT", {50, 3});
+  SetIntVecIfMissing(gexe, "WINDOW.000.MOJI_REP", {0, 4});
+  SetIntVecIfMissing(gexe, "WINDOW.000.LUBY_SIZE", {0});
+  SetIntVecIfMissing(gexe, "WINDOW.000.MOJI_POS", {24, 24, 32, 32});
+  SetIntVecIfMissing(gexe, "WINDOW.000.POS", {2, 96, 64});
+  SetIntVecIfMissing(gexe, "WINDOW.000.INDENT_USE", {1});
+  SetIntVecIfMissing(gexe, "WINDOW.000.NAME_MOD", {0});
+  SetIntVecIfMissing(gexe, "WINDOW.000.KEYCUR_MOD", {0, 0, 0});
+  SetIntVecIfMissing(gexe, "WINDOW.000.R_COMMAND_MOD", {0});
+  SetIntVecIfMissing(gexe, "WINDOW.000.WAKU_SETNO", {0});
+  SetIntVecIfMissing(gexe, "COLOR_TABLE.000", {255, 255, 255});
+  SetIntVecIfMissing(gexe, "COLOR_TABLE.254", {255, 255, 255});
+}
+
+}  // namespace
 
 // Load Gameexe.ini config
 static Gameexe LoadGameexe(std::shared_ptr<AssetScanner> scanner) {
@@ -102,6 +144,7 @@ SiglusRuntime SGVMFactory::Create() {
 
   rt.gameexe = std::make_shared<Gameexe>(LoadGameexe(rt.asset_scanner));
   Gameexe& gexe = *rt.gameexe;
+  EnsureSiglusTextDefaults(gexe);
   gexe.SetStringAt("CAPTION", "SiglusTest");
   gexe.SetStringAt("REGNAME", "sjis: SIGLUS\\TEST");
   gexe.SetIntAt("NAME_ENC", 0);
@@ -117,6 +160,9 @@ SiglusRuntime SGVMFactory::Create() {
   rt.renderer = std::make_shared<SiglusSceneRenderer>(*rt.stage, *rt.system);
   rt.system->graphics().BindSceneRenderer(rt.renderer);
 
+  rt.local_config = std::make_shared<Gameexe>();
+  rt.global_config = std::make_shared<Gameexe>();
+
   for (auto it = binding::SiglusBindingRegistry::cbegin();
        it != binding::SiglusBindingRegistry::cend(); ++it) {
     it->second(rt);
@@ -126,10 +172,7 @@ SiglusRuntime SGVMFactory::Create() {
   m.def("__builtin_dbgprint",
         [](std::string str) { std::cerr << "[TRACE] " << str << std::endl; });
   m.def("__builtin_name", [](std::string str) {
-    // not implemented yet
-  });
-  m.def("__builtin_textout", [](int kidoku, std::string text) {
-    // not implemented yet
+    throw std::runtime_error("TODO: name() not implemented yet.");
   });
   m.def("__builtin_load_scn",
         [loader = rt.loader.get()](int scnid) -> sr::Value {

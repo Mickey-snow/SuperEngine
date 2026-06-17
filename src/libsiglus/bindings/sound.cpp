@@ -166,7 +166,7 @@ class SiglusBgm {
 
   sr::Value WaitForPlayback(sr::VM& vm, bool key_skip, bool fade_only) {
     if (fade_only && state_ != kFadeOut)
-      return MakeResolvedFuture(*vm.gc_, 0);
+      return MakeResolvedFuture(*vm.gc_);
 
     auto done = [this] {
       if (!system_ || !system_->sound().BgmStatus()) {
@@ -328,7 +328,7 @@ class SiglusPcmch {
 
   sr::Value WaitForPlayback(sr::VM& vm, bool key_skip, bool fade_only) {
     if (fade_only && state_ != kFadeOut)
-      return MakeResolvedFuture(*vm.gc_, 0);
+      return MakeResolvedFuture(*vm.gc_);
 
     auto done = [this] {
       if (!system_ || !IsValidChannel() ||

@@ -68,7 +68,8 @@ TextSystemGlobals::TextSystemGlobals()
       auto_mode_char_time(100),
       message_speed(30),
       font_weight(0),
-      font_shadow(1) {}
+      font_shadow(1),
+      window_attr{255, 255, 255, 255, 0} {}
 
 // -----------------------------------------------------------------------
 
@@ -77,8 +78,10 @@ TextSystemGlobals::TextSystemGlobals(Gameexe& gexe)
       auto_mode_char_time(gexe("INIT_MESSAGE_SPEED").Int().value_or(30)),
       message_speed(gexe("INIT_MESSAGE_SPEED").Int().value_or(30)),
       font_weight(0),
-      font_shadow(1) {
-  if (auto in_window_attr = gexe("WINDOW_ATTR").IntVec())
+      font_shadow(1),
+      window_attr{255, 255, 255, 255, 0} {
+  if (auto in_window_attr = gexe("WINDOW_ATTR").IntVec();
+      in_window_attr && in_window_attr->size() >= 5)
     window_attr = std::move(*in_window_attr);
 }
 

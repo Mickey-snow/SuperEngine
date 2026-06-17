@@ -68,7 +68,7 @@ void BindSystem(SiglusRuntime& runtime) {
       "wait",
       [sys = runtime.system.get()](sr::VM& vm, int msecs) -> sr::Value {
         if (!sys || msecs <= 0)
-          return MakeResolvedFuture(*vm.gc_, 0);
+          return MakeResolvedFuture(*vm.gc_);
 
         const unsigned int start_ticks = sys->event().GetTicks();
         const unsigned int duration = static_cast<unsigned int>(msecs);
@@ -86,7 +86,7 @@ void BindSystem(SiglusRuntime& runtime) {
       "wait_key",
       [sys = runtime.system.get()](sr::VM& vm, int msecs) -> sr::Value {
         if (!sys)
-          return MakeResolvedFuture(*vm.gc_, 0);
+          return MakeResolvedFuture(*vm.gc_);
 
         const bool has_timeout = msecs > 0;
         const unsigned int start_ticks = sys->event().GetTicks();
