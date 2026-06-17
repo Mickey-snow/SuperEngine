@@ -337,6 +337,7 @@ void Recompiler::emit_tok(const token::Textout& tk) {
   emit_load_global("__builtin_textout");
   emit_const(tk.kidoku), emit_val(tk.str);
   emit(sr::Call{.argcnt = 2});
+  emit(sr::Await{});
 }
 void Recompiler::emit_tok(const token::GetProperty& tk) {
   emit_elm(tk.chain);

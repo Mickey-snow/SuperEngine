@@ -416,15 +416,35 @@ TEST_F(ElementParserTest, Mwnd) {
   }
   {
     ElementCode elm{115};
-    EXPECT_EQ(chain(elm), "mwnd.page()");
+    auto parsed = chain(elm);
+    EXPECT_EQ(parsed, "mwnd.page()");
+    ASSERT_NE(last_call(parsed), nullptr);
+    EXPECT_TRUE(last_call(parsed)->await_result);
   }
   {
     ElementCode elm{84};
     EXPECT_EQ(chain(elm), "mwnd.msg_block()");
   }
   {
+    ElementCode elm{21};
+    auto parsed = chain(elm);
+    EXPECT_EQ(parsed, "mwnd.msg_wait()");
+    ASSERT_NE(last_call(parsed), nullptr);
+    EXPECT_TRUE(last_call(parsed)->await_result);
+  }
+  {
+    ElementCode elm{13};
+    auto parsed = chain(elm);
+    EXPECT_EQ(parsed, "mwnd.pp()");
+    ASSERT_NE(last_call(parsed), nullptr);
+    EXPECT_TRUE(last_call(parsed)->await_result);
+  }
+  {
     ElementCode elm{14};
-    EXPECT_EQ(chain(elm), "mwnd.r()");
+    auto parsed = chain(elm);
+    EXPECT_EQ(parsed, "mwnd.r()");
+    ASSERT_NE(last_call(parsed), nullptr);
+    EXPECT_TRUE(last_call(parsed)->await_result);
   }
   {
     ElementCode elm{119};
