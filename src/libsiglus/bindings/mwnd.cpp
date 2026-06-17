@@ -78,6 +78,15 @@ void ClearActiveMessageWindow(System* system) {
   text.NewPageOnWindow(active_window);
 }
 
+void CloseActiveMessageWindow(System* system) {
+  if (!system)
+    return;
+
+  TextSystem& text = system->text();
+  text.set_in_pause_state(false);
+  text.HideTextWindow(text.active_window());
+}
+
 class MwndWaitState : public std::enable_shared_from_this<MwndWaitState> {
  public:
   MwndWaitState(sr::VM& vm,
@@ -232,9 +241,10 @@ void BindMwnd(SiglusRuntime& runtime) {
   sb::module_ m(vm, "mwnd");
   auto system = runtime.system.get();
   auto local_config = runtime.local_config;
-  m.def("close", [] { throw std::runtime_error("TODO"); });
-  m.def("close_nowait", [] { throw std::runtime_error("TODO"); });
-  m.def("close_wait", [] { throw std::runtime_error("TODO"); });
+  m.def("close", [system] { CloseActiveMessageWindow(system); });
+  m.def("close_nowait", [system] { CloseActiveMessageWindow(system); });
+  m.def("close_wait", [system] { CloseActiveMessageWindow(system); });
+  m.def("end_close", [] {});
   m.def("msg_block",
         [] { throw std::runtime_error("TODO: Siglus message blocking"); });
   m.def("msg_pp_block",
