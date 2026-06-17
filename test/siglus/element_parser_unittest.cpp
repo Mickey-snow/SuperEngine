@@ -423,7 +423,24 @@ TEST_F(ElementParserTest, Mwnd) {
   }
   {
     ElementCode elm{84};
-    EXPECT_EQ(chain(elm), "mwnd.msg_block()");
+    auto parsed = chain(elm);
+    EXPECT_EQ(parsed, "mwnd.msg_block()");
+    ASSERT_NE(last_call(parsed), nullptr);
+    EXPECT_FALSE(last_call(parsed)->await_result);
+  }
+  {
+    ElementCode elm{121};
+    auto parsed = chain(elm);
+    EXPECT_EQ(parsed, "mwnd.msg_pp_block()");
+    ASSERT_NE(last_call(parsed), nullptr);
+    EXPECT_FALSE(last_call(parsed)->await_result);
+  }
+  {
+    ElementCode elm{11};
+    auto parsed = chain(elm);
+    EXPECT_EQ(parsed, "mwnd.clear()");
+    ASSERT_NE(last_call(parsed), nullptr);
+    EXPECT_FALSE(last_call(parsed)->await_result);
   }
   {
     ElementCode elm{21};

@@ -62,9 +62,23 @@ bool MessageNowait(System* system, const std::shared_ptr<Gameexe>& cfg) {
          text.script_message_nowait() || ConfigFlag(cfg, "message_nowait");
 }
 
+int ConfigInt(const std::shared_ptr<Gameexe>& cfg,
+              std::string const& key,
+              int fallback) {
+  if (!cfg)
+    return fallback;
+  return (*cfg)(key).Int().value_or(fallback);
+}
+
 bool AutoModeEnabled(System* system, const std::shared_ptr<Gameexe>& cfg) {
   return system &&
          (system->text().auto_mode() != 0 || ConfigFlag(cfg, "auto_mode"));
+}
+
+int CurrentPageCharCount(System* system) {
+  if (!system)
+    return 0;
+  return system->text().GetCurrentPage().number_of_chars_on_page();
 }
 
 void ClearActiveMessageWindow(System* system) {
@@ -87,35 +101,103 @@ void CloseActiveMessageWindow(System* system) {
   text.HideTextWindow(text.active_window());
 }
 
+struct MwndMessageState {
+  bool block_started = false;
+  bool clear_ready = false;
+  int auto_mode_base_chars = 0;
+};
+
+void MarkMessageClearReady(System* system,
+                           const std::shared_ptr<MwndMessageState>& state) {
+  if (!state)
+    return;
+
+  state->clear_ready = true;
+  state->block_started = false;
+  state->auto_mode_base_chars = CurrentPageCharCount(system);
+}
+
+void MarkMessageNovelClear(System* system,
+                           const std::shared_ptr<MwndMessageState>& state) {
+  if (!state)
+    return;
+
+  state->block_started = false;
+  state->auto_mode_base_chars = CurrentPageCharCount(system);
+}
+
+void StartMessageBlock(System* system,
+                       const std::shared_ptr<MwndMessageState>& state) {
+  if (!state)
+    return;
+
+  if (state->block_started)
+    return;
+
+  if (state->clear_ready) {
+    ClearActiveMessageWindow(system);
+    state->clear_ready = false;
+  }
+
+  // Legacy Siglus also updates savepoints/backlog/read flags here. Those
+  // subsystems do not exist in the current Siglus runtime yet.
+  state->block_started = true;
+  state->auto_mode_base_chars = CurrentPageCharCount(system);
+}
+
+void StartMessagePpBlock(System* system,
+                         const std::shared_ptr<MwndMessageState>& state) {
+  if (!state)
+    return;
+
+  state->auto_mode_base_chars = CurrentPageCharCount(system);
+}
+
+int AutoModeCharCount(System* system,
+                      const std::shared_ptr<Gameexe>& local_config,
+                      const std::shared_ptr<MwndMessageState>& state) {
+  const int configured_count = ConfigInt(local_config, "auto_mode_moji_cnt", 0);
+  if (configured_count > 0)
+    return configured_count;
+
+  const int current_count = CurrentPageCharCount(system);
+  if (!state)
+    return current_count;
+
+  return std::max(current_count - state->auto_mode_base_chars, 0);
+}
+
 class MwndWaitState : public std::enable_shared_from_this<MwndWaitState> {
  public:
   MwndWaitState(sr::VM& vm,
                 System* system,
                 std::shared_ptr<Gameexe> local_config,
-                bool clear_after)
+                std::shared_ptr<MwndMessageState> message_state,
+                bool mark_clear_ready_after)
       : vm_(vm),
         system_(system),
         local_config_(std::move(local_config)),
-        clear_after_(clear_after) {}
+        message_state_(std::move(message_state)),
+        mark_clear_ready_after_(mark_clear_ready_after) {}
 
   sr::Value Start() {
     if (!system_) {
-      if (clear_after_)
-        ClearActiveMessageWindow(system_);
+      if (mark_clear_ready_after_)
+        MarkMessageClearReady(system_, message_state_);
       return MakeResolvedFuture(*vm_.gc_);
     }
 
     if (MessageNowait(system_, local_config_)) {
-      if (clear_after_)
-        ClearActiveMessageWindow(system_);
+      if (mark_clear_ready_after_)
+        MarkMessageClearReady(system_, message_state_);
       return MakeResolvedFuture(*vm_.gc_);
     }
 
     TextSystem& text = system_->text();
     text.set_in_pause_state(true);
     start_ticks_ = system_->event().GetTicks();
-    auto_time_ =
-        text.GetAutoTime(text.GetCurrentPage().number_of_chars_on_page());
+    auto_time_ = text.GetAutoTime(
+        AutoModeCharCount(system_, local_config_, message_state_));
 
     wait_handler_ =
         std::make_shared<WaitHandler>(vm_.gc_, system_->event_ptr().get());
@@ -175,8 +257,8 @@ class MwndWaitState : public std::enable_shared_from_this<MwndWaitState> {
     finished_ = true;
     if (system_)
       system_->text().set_in_pause_state(false);
-    if (clear_after_)
-      ClearActiveMessageWindow(system_);
+    if (mark_clear_ready_after_)
+      MarkMessageClearReady(system_, message_state_);
     wait_handler_->Resolve(sr::Value(result));
   }
 
@@ -193,7 +275,8 @@ class MwndWaitState : public std::enable_shared_from_this<MwndWaitState> {
   sr::VM& vm_;
   System* system_;
   std::shared_ptr<Gameexe> local_config_;
-  bool clear_after_;
+  std::shared_ptr<MwndMessageState> message_state_;
+  bool mark_clear_ready_after_;
   unsigned int start_ticks_ = 0;
   int auto_time_ = 0;
   std::shared_ptr<WaitHandler> wait_handler_;
@@ -203,9 +286,11 @@ class MwndWaitState : public std::enable_shared_from_this<MwndWaitState> {
 sr::Value MakeMwndWaitFuture(sr::VM& vm,
                              System* system,
                              std::shared_ptr<Gameexe> local_config,
-                             bool clear_after) {
+                             std::shared_ptr<MwndMessageState> message_state,
+                             bool mark_clear_ready_after) {
   return std::make_shared<MwndWaitState>(vm, system, std::move(local_config),
-                                         clear_after)
+                                         std::move(message_state),
+                                         mark_clear_ready_after)
       ->Start();
 }
 
@@ -241,28 +326,35 @@ void BindMwnd(SiglusRuntime& runtime) {
   sb::module_ m(vm, "mwnd");
   auto system = runtime.system.get();
   auto local_config = runtime.local_config;
+  auto message_state = std::make_shared<MwndMessageState>();
   m.def("close", [system] { CloseActiveMessageWindow(system); });
   m.def("close_nowait", [system] { CloseActiveMessageWindow(system); });
   m.def("close_wait", [system] { CloseActiveMessageWindow(system); });
   m.def("end_close", [] {});
   m.def("msg_block",
-        [] { throw std::runtime_error("TODO: Siglus message blocking"); });
-  m.def("msg_pp_block",
-        [] { throw std::runtime_error("TODO: Siglus page-break blocking"); });
+        [system, message_state] { StartMessageBlock(system, message_state); });
+  m.def("msg_pp_block", [system, message_state] {
+    StartMessagePpBlock(system, message_state);
+  });
   m.def("msg_wait",
         [](sr::VM& vm) -> sr::Value { return MakeResolvedFuture(*vm.gc_); });
-  m.def("pp", [system, local_config](sr::VM& vm) -> sr::Value {
-    return MakeMwndWaitFuture(vm, system, local_config, false);
+  m.def("pp", [system, local_config, message_state](sr::VM& vm) -> sr::Value {
+    return MakeMwndWaitFuture(vm, system, local_config, message_state, false);
   });
-  m.def("r", [system, local_config](sr::VM& vm) -> sr::Value {
+  m.def("r", [system, local_config, message_state](sr::VM& vm) -> sr::Value {
     if (ConfigFlag(local_config, "ignore_r"))
       return MakeResolvedFuture(*vm.gc_);
-    return MakeMwndWaitFuture(vm, system, local_config, true);
+    return MakeMwndWaitFuture(vm, system, local_config, message_state, true);
   });
-  m.def("page", [system, local_config](sr::VM& vm) -> sr::Value {
-    return MakeMwndWaitFuture(vm, system, local_config, true);
+  m.def("page", [system, local_config, message_state](sr::VM& vm) -> sr::Value {
+    return MakeMwndWaitFuture(vm, system, local_config, message_state, true);
   });
-  m.def("clear", [system] { ClearActiveMessageWindow(system); });
+  m.def("clear", [system, message_state] {
+    MarkMessageClearReady(system, message_state);
+  });
+  m.def("novel_clear", [system, message_state] {
+    MarkMessageNovelClear(system, message_state);
+  });
 }
 
 RLVM_REGISTER(SiglusBindingRegistry, "0_mwnd", BindMwnd)
