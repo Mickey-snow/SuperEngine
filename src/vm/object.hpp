@@ -40,6 +40,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -72,8 +73,11 @@ struct Code final : public IObject {
     // opcode byte
     code.emplace_back(std::bit_cast<std::byte>(GetOpcode<T>()));
 
-    // payload
-    if constexpr (sizeof(T) > 0) {
+    // Empty instruction types still occupy one payload byte because readers
+    // advance by sizeof(T).
+    if constexpr (std::is_empty_v<T>) {
+      code.insert(code.end(), sizeof(T), std::byte{0});
+    } else if constexpr (sizeof(T) > 0) {
       auto* p = reinterpret_cast<const std::byte*>(&v);
       code.insert(code.end(), p, p + sizeof(T));
     }
