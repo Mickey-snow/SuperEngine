@@ -43,9 +43,6 @@ class VM;
 
 namespace libsiglus {
 class Archive;
-namespace binding {
-class SiglusMwnd;
-}
 class SiglusSceneRenderer;
 
 struct SiglusRuntime {
@@ -57,7 +54,6 @@ struct SiglusRuntime {
   std::unique_ptr<binding::Loader> loader;
   std::shared_ptr<AssetScanner> asset_scanner;
 
-  std::shared_ptr<binding::SiglusMwnd> mwnd;
   std::unique_ptr<System> system;
   std::unique_ptr<Stage> stage;
   std::unique_ptr<binding::SiglusWipe> wipe;
