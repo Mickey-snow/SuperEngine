@@ -176,9 +176,9 @@ sr::Value MakePollingWaitFuture(sr::VM& vm,
 
 // ------------------------------------------------------------------------------
 
-struct ITask::Awaitable::State : public EventListener {
+struct CoroutineTask::DelayAwaiter::State : public EventListener {
   State(std::coroutine_handle<> h) : h_(h) {}
-  void Notify(WaitResult res) {
+  void Notify(WaitOutcome res) {
     if (result.has_value())
       return;
     result = res;
@@ -190,48 +190,56 @@ struct ITask::Awaitable::State : public EventListener {
                    [this](const KeyDown& event) {
                      if (event.code == KeyCode::RETURN ||
                          event.code == KeyCode::SPACE) {
-                       Notify(WaitResult::Key);
+                       Notify(WaitOutcome::InterruptedByInput);
                      }
                    },
                    [this](const MouseDown& event) {
                      if (event.button == MouseButton::LEFT)
-                       Notify(WaitResult::Key);
+                       Notify(WaitOutcome::InterruptedByInput);
                    },
                    [](const auto&) {}),
                *event);
   }
   std::coroutine_handle<> h_;
-  std::optional<WaitResult> result;
+  std::optional<WaitOutcome> result;
 };
 
-ITask::Awaitable::Awaitable(serilang::VM& vm,
-                            EventSystem* es,
-                            std::chrono::milliseconds ms,
-                            bool key)
-    : vm_(vm), es_(es), ms_(ms), can_skip_by_key_(key) {}
+CoroutineTask::DelayAwaiter::DelayAwaiter(serilang::VM& vm,
+                                          EventSystem* event_system,
+                                          std::chrono::milliseconds delay,
+                                          bool interrupt_on_input)
+    : vm_(vm),
+      event_system_(event_system),
+      delay_(delay),
+      interrupt_on_input_(interrupt_on_input) {}
 
-void ITask::Awaitable::await_suspend(std::coroutine_handle<> h) {
+void CoroutineTask::DelayAwaiter::await_suspend(std::coroutine_handle<> h) {
   state_ = std::make_shared<State>(h);
   std::weak_ptr<State> weak = state_;
   vm_.scheduler_.PushCallbackAfter(
       [weak] {
         if (auto state = weak.lock())
-          state->Notify(WaitResult::Timeout);
+          state->Notify(WaitOutcome::Timeout);
       },
-      ms_);
-  if (es_ && can_skip_by_key_)
-    es_->AddListener(weak);
+      delay_);
+  if (event_system_ && interrupt_on_input_)
+    event_system_->AddListener(weak);
 }
 
-ITask::WaitResult ITask::Awaitable::await_resume() { return *state_->result; }
-
-ITask::ITask(serilang::VM& vm, EventSystem* es) : vm_(vm), es_(es) {}
-
-ITask::Awaitable ITask::Schedule(std::chrono::milliseconds ms, bool key) {
-  return Awaitable(vm_, es_, ms, key);
+CoroutineTask::WaitOutcome CoroutineTask::DelayAwaiter::await_resume() {
+  return *state_->result;
 }
 
-void ITask::Routine::promise_type::return_value(int value) {
+CoroutineTask::CoroutineTask(serilang::VM& vm, EventSystem* event_system)
+    : vm_(vm), event_system_(event_system) {}
+
+CoroutineTask::DelayAwaiter CoroutineTask::WaitFor(
+    std::chrono::milliseconds delay,
+    bool interrupt_on_input) {
+  return DelayAwaiter(vm_, event_system_, delay, interrupt_on_input);
+}
+
+void CoroutineTask::TaskCoroutine::promise_type::return_value(int value) {
   if (auto promise = completion_promise.lock())
     promise->Resolve(sr::Value(value));
 }
@@ -243,43 +251,44 @@ void ITask::Routine::promise_type::unhandled_exception() {
     std::terminate();
 }
 
-void ITask::Routine::SetCompletionPromise(
+void CoroutineTask::TaskCoroutine::SetCompletionPromise(
     std::weak_ptr<serilang::Promise> promise) {
   if (h)
     h.promise().completion_promise = std::move(promise);
 }
 
-struct PackagedTask::State {
-  explicit State(std::unique_ptr<ITask> task)
+struct FutureBackedCoroutineTask::State {
+  explicit State(std::unique_ptr<CoroutineTask> task)
       : task(std::move(task)), promise(std::make_shared<serilang::Promise>()) {}
 
-  std::unique_ptr<ITask> task;
+  std::unique_ptr<CoroutineTask> task;
   std::shared_ptr<serilang::Promise> promise;
-  ITask::Routine routine;
+  CoroutineTask::TaskCoroutine coroutine;
 };
 
-PackagedTask::PackagedTask(std::unique_ptr<ITask> task)
+FutureBackedCoroutineTask::FutureBackedCoroutineTask(
+    std::unique_ptr<CoroutineTask> task)
     : state_(std::make_shared<State>(std::move(task))) {
   std::weak_ptr<State> weak_state = state_;
   state_->promise->initial_await = [weak_state](sr::VM& vm, sr::Value& awaiter,
                                                 sr::Value& awaited) {
-    // important: routine should start after initial await
+    // The coroutine starts only after the returned future is first awaited.
     if (auto state = weak_state.lock()) {
-      state->routine = state->task->GetRoutine();
-      state->routine.SetCompletionPromise(state->promise);
-      state->routine.start();
+      state->coroutine = state->task->Run();
+      state->coroutine.SetCompletionPromise(state->promise);
+      state->coroutine.Start();
     }
     (void)vm, (void)awaiter, (void)awaited;
   };
 }
 
-sr::Future* PackagedTask::MakeFuture(sr::GarbageCollector& gc) {
+sr::Future* FutureBackedCoroutineTask::MakeFuture(sr::GarbageCollector& gc) {
   auto fut = gc.Allocate<sr::Future>();
   fut->promise = state_->promise;
   return fut;
 }
 
-bool PackagedTask::Done() const {
+bool FutureBackedCoroutineTask::Done() const {
   return !state_ || state_->promise->HasResult();
 }
 

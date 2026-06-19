@@ -75,41 +75,42 @@ serilang::Value MakePollingWaitFuture(
 
 // ------------------------------------------------------------------------------
 
-class ITask {
+// Base class for VM-backed asynchronous work implemented as a C++ coroutine.
+// Wrap it in FutureBackedCoroutineTask when the coroutine should be exposed as a
+// serilang::Future and started on first await.
+class CoroutineTask {
  public:
-  ITask(serilang::VM& vm, EventSystem* es = nullptr);
-  virtual ~ITask() = default;
+  CoroutineTask(serilang::VM& vm, EventSystem* event_system = nullptr);
+  virtual ~CoroutineTask() = default;
 
-  enum class WaitResult { Timeout, Key };
+  enum class WaitOutcome { Timeout, InterruptedByInput };
 
-  struct Awaitable {
-    Awaitable(serilang::VM& vm,
-              EventSystem* es,
-              std::chrono::milliseconds ms,
-              bool can_skip_by_key);
-    // TODO: By design, this awaitable object should be one-shot, not reusable
-    // how do we enforce this on language level?
-    inline bool await_ready() { return false; }
+  struct DelayAwaiter {
+    DelayAwaiter(serilang::VM& vm,
+                 EventSystem* event_system,
+                 std::chrono::milliseconds delay,
+                 bool interrupt_on_input);
+    inline bool await_ready() const noexcept { return false; }
     void await_suspend(std::coroutine_handle<> h);
-    WaitResult await_resume();
+    WaitOutcome await_resume();
 
     struct State;
     std::shared_ptr<State> state_;
     serilang::VM& vm_;
-    EventSystem* es_;
-    std::chrono::milliseconds ms_;
-    bool can_skip_by_key_;
+    EventSystem* event_system_;
+    std::chrono::milliseconds delay_;
+    bool interrupt_on_input_;
   };
-  Awaitable Schedule(std::chrono::milliseconds ms,
-                     bool can_skip_by_key = false);
+  DelayAwaiter WaitFor(std::chrono::milliseconds delay,
+                       bool interrupt_on_input = false);
 
-  struct Routine {
+  struct TaskCoroutine {
     struct promise_type;
     using handle = std::coroutine_handle<promise_type>;
 
     struct promise_type {
-      inline Routine get_return_object() {
-        return Routine{handle::from_promise(*this)};
+      inline TaskCoroutine get_return_object() {
+        return TaskCoroutine{handle::from_promise(*this)};
       }
       inline std::suspend_always initial_suspend() noexcept { return {}; }
       inline std::suspend_always final_suspend() noexcept { return {}; }
@@ -118,12 +119,13 @@ class ITask {
       std::weak_ptr<serilang::Promise> completion_promise;
     };
 
-    Routine() = default;
-    explicit Routine(handle h) : h(h) {}
-    Routine(const Routine&) = delete;
-    Routine& operator=(const Routine&) = delete;
-    Routine(Routine&& other) noexcept : h(std::exchange(other.h, nullptr)) {}
-    Routine& operator=(Routine&& other) noexcept {
+    TaskCoroutine() = default;
+    explicit TaskCoroutine(handle h) : h(h) {}
+    TaskCoroutine(const TaskCoroutine&) = delete;
+    TaskCoroutine& operator=(const TaskCoroutine&) = delete;
+    TaskCoroutine(TaskCoroutine&& other) noexcept
+        : h(std::exchange(other.h, nullptr)) {}
+    TaskCoroutine& operator=(TaskCoroutine&& other) noexcept {
       if (this == &other)
         return *this;
       if (h)
@@ -131,30 +133,32 @@ class ITask {
       h = std::exchange(other.h, nullptr);
       return *this;
     }
-    ~Routine() {
+    ~TaskCoroutine() {
       if (h)
         h.destroy();
     }
     inline operator bool() const { return h != nullptr; }
-    inline void start() { h.resume(); }
+    inline void Start() { h.resume(); }
     void SetCompletionPromise(std::weak_ptr<serilang::Promise> promise);
     handle h = nullptr;
   };
 
-  virtual Routine GetRoutine() = 0;
+  virtual TaskCoroutine Run() = 0;
 
  private:
   serilang::VM& vm_;
-  EventSystem* es_;
+  EventSystem* event_system_;
 };
 
-class PackagedTask {
+class FutureBackedCoroutineTask {
  public:
-  PackagedTask(std::unique_ptr<ITask> task);
-  PackagedTask(const PackagedTask&) = delete;
-  PackagedTask& operator=(const PackagedTask&) = delete;
-  PackagedTask(PackagedTask&&) noexcept = default;
-  PackagedTask& operator=(PackagedTask&&) noexcept = default;
+  FutureBackedCoroutineTask(std::unique_ptr<CoroutineTask> task);
+  FutureBackedCoroutineTask(const FutureBackedCoroutineTask&) = delete;
+  FutureBackedCoroutineTask& operator=(const FutureBackedCoroutineTask&) =
+      delete;
+  FutureBackedCoroutineTask(FutureBackedCoroutineTask&&) noexcept = default;
+  FutureBackedCoroutineTask& operator=(FutureBackedCoroutineTask&&) noexcept =
+      default;
 
   serilang::Future* MakeFuture(serilang::GarbageCollector& gc);
   bool Done() const;

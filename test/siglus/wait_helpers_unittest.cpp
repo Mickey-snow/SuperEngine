@@ -59,12 +59,12 @@ class QueueEventBackend : public IEventBackend {
   std::queue<std::shared_ptr<Event>> events_;
 };
 
-class ImmediateTask : public ITask {
+class ImmediateTask : public CoroutineTask {
  public:
   ImmediateTask(serilang::VM& vm, int result, int* starts)
-      : ITask(vm), result_(result), starts_(starts) {}
+      : CoroutineTask(vm), result_(result), starts_(starts) {}
 
-  Routine GetRoutine() override {
+  TaskCoroutine Run() override {
     ++*starts_;
     co_return result_;
   }
@@ -74,14 +74,14 @@ class ImmediateTask : public ITask {
   int* starts_;
 };
 
-class ScheduledTask : public ITask {
+class ScheduledTask : public CoroutineTask {
  public:
   ScheduledTask(serilang::VM& vm, int result, int* starts)
-      : ITask(vm), result_(result), starts_(starts) {}
+      : CoroutineTask(vm), result_(result), starts_(starts) {}
 
-  Routine GetRoutine() override {
+  TaskCoroutine Run() override {
     ++*starts_;
-    co_await Schedule(std::chrono::milliseconds(1));
+    co_await WaitFor(std::chrono::milliseconds(1));
     co_return result_;
   }
 
@@ -188,12 +188,12 @@ TEST(WaitHandlerTest, PollingFutureWithoutKeySkipIgnoresInput) {
   EXPECT_FALSE(future->promise->HasResult());
 }
 
-TEST(PackagedTaskTest, StartsAfterMoveAndResolvesReturnedValue) {
+TEST(FutureBackedCoroutineTaskTest, StartsAfterMoveAndResolvesReturnedValue) {
   serilang::VM vm(std::make_shared<serilang::GarbageCollector>());
-  std::vector<PackagedTask> pending;
+  std::vector<FutureBackedCoroutineTask> pending;
   int starts = 0;
 
-  PackagedTask task(
+  FutureBackedCoroutineTask task(
       std::make_unique<ImmediateTask>(vm, /*result=*/7, &starts));
   serilang::Future* future = task.MakeFuture(*vm.gc_);
   pending.emplace_back(std::move(task));
@@ -212,11 +212,12 @@ TEST(PackagedTaskTest, StartsAfterMoveAndResolvesReturnedValue) {
   EXPECT_TRUE(pending.front().Done());
 }
 
-TEST(PackagedTaskTest, ResolvesWhenScheduledRoutineCompletes) {
+TEST(FutureBackedCoroutineTaskTest, ResolvesWhenScheduledRoutineCompletes) {
   serilang::VM vm(std::make_shared<serilang::GarbageCollector>());
   int starts = 0;
 
-  PackagedTask task(std::make_unique<ScheduledTask>(vm, /*result=*/9, &starts));
+  FutureBackedCoroutineTask task(
+      std::make_unique<ScheduledTask>(vm, /*result=*/9, &starts));
   serilang::Future* future = task.MakeFuture(*vm.gc_);
   serilang::Value awaiter;
   serilang::Value awaited(future);

@@ -48,17 +48,17 @@ class SiglusTextout {
   SiglusTextout(sr::VM& vm, System* sys, std::shared_ptr<Gameexe> localcfg)
       : vm_(vm), sys_(sys), localcfg_(localcfg) {}
 
-  struct Textout : public ITask {
+  struct Textout : public CoroutineTask {
     Textout(sr::VM& vm,
             System* system,
             std::shared_ptr<Gameexe> localcfg,
             std::string text)
-        : ITask(vm, system ? system->event_ptr().get() : nullptr),
+        : CoroutineTask(vm, system ? system->event_ptr().get() : nullptr),
           system_(system),
           local_config_(localcfg),
           text_(text) {}
 
-    virtual Routine GetRoutine() override {
+    TaskCoroutine Run() override {
       for (std::string::const_iterator cur = text_.cbegin(), next;
            cur != text_.cend(); cur = next) {
         if (!ShouldFlushText()) {
@@ -69,8 +69,10 @@ class SiglusTextout {
           }
 
           const std::chrono::milliseconds duration(std::max(1, speed));
-          if ((co_await Schedule(duration, true)) == WaitResult::Key)
+          if ((co_await WaitFor(duration, true)) ==
+              WaitOutcome::InterruptedByInput) {
             flush_ = true;
+          }
         }
 
         next = cur;
@@ -107,7 +109,7 @@ class SiglusTextout {
     bool flush_ = false;
   };
 
-  std::vector<PackagedTask> pending_;
+  std::vector<FutureBackedCoroutineTask> pending_;
   sr::VM& vm_;
   System* sys_;
   std::shared_ptr<Gameexe> localcfg_;
@@ -127,8 +129,10 @@ void BindTextout(SiglusRuntime& runtime) {
           auto state = std::make_unique<SiglusTextout::Textout>(
               to->vm_, to->sys_, to->localcfg_, std::move(text));
           std::erase_if(to->pending_,
-                        [](const PackagedTask& pt) { return pt.Done(); });
-          PackagedTask task(std::move(state));
+                        [](const FutureBackedCoroutineTask& pt) {
+                          return pt.Done();
+                        });
+          FutureBackedCoroutineTask task(std::move(state));
           sr::Future* fut = task.MakeFuture(*to->vm_.gc_);
           to->pending_.emplace_back(std::move(task));
           return fut;
