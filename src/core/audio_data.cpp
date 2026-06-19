@@ -24,6 +24,8 @@
 
 #include "core/audio_data.hpp"
 
+#include <iterator>
+
 AudioData AudioData::Slice(int fr, int to, int step) {
   if (fr < 0)
     fr = SampleCount() + fr;
@@ -126,8 +128,23 @@ AudioData& AudioData::Append(const AudioData& rhs) {
     return *this = rhs;
   else if (rhs.SampleCount() == 0)
     return *this;
-  else
-    return *this = AudioData::Concat(std::move(*this), rhs);
+
+  if (spec != rhs.spec)
+    throw std::invalid_argument(
+        "All AudioData objects must have the same AVSpec.");
+  if (data.index() != rhs.data.index())
+    throw std::invalid_argument(
+        "All AudioData objects must have the same data type.");
+
+  std::visit(
+      [](auto& lhs, const auto& rhs) {
+        using lhs_t = std::decay_t<decltype(lhs)>;
+        using rhs_t = std::decay_t<decltype(rhs)>;
+        if constexpr (std::is_same_v<lhs_t, rhs_t>)
+          lhs.insert(lhs.end(), rhs.begin(), rhs.end());
+      },
+      data, rhs.data);
+  return *this;
 }
 
 AudioData& AudioData::Append(AudioData&& rhs) {
@@ -135,6 +152,22 @@ AudioData& AudioData::Append(AudioData&& rhs) {
     return *this = std::move(rhs);
   else if (rhs.SampleCount() == 0)
     return *this;
-  else
-    return *this = AudioData::Concat(std::move(*this), std::move(rhs));
+
+  if (spec != rhs.spec)
+    throw std::invalid_argument(
+        "All AudioData objects must have the same AVSpec.");
+  if (data.index() != rhs.data.index())
+    throw std::invalid_argument(
+        "All AudioData objects must have the same data type.");
+
+  std::visit(
+      [](auto& lhs, auto& rhs) {
+        using lhs_t = std::decay_t<decltype(lhs)>;
+        using rhs_t = std::decay_t<decltype(rhs)>;
+        if constexpr (std::is_same_v<lhs_t, rhs_t>)
+          lhs.insert(lhs.end(), std::make_move_iterator(rhs.begin()),
+                     std::make_move_iterator(rhs.end()));
+      },
+      data, rhs.data);
+  return *this;
 }

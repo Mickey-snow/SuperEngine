@@ -178,3 +178,44 @@ TEST(AudioDataTest, SampleLength) {
     EXPECT_EQ(audio_data.ByteLength(), 10);
   }
 }
+
+TEST(AudioDataTest, AppendAddsSamplesInPlace) {
+  AudioData lhs{.spec = {.sample_rate = 44100,
+                         .sample_format = AV_SAMPLE_FMT::S16,
+                         .channel_count = 2},
+                .data = std::vector<avsample_s16_t>{1, 2}};
+  AudioData rhs{.spec = lhs.spec, .data = std::vector<avsample_s16_t>{3, 4}};
+
+  lhs.Append(rhs);
+
+  EXPECT_EQ(std::get<std::vector<avsample_s16_t>>(lhs.data),
+            (std::vector<avsample_s16_t>{1, 2, 3, 4}));
+  EXPECT_EQ(std::get<std::vector<avsample_s16_t>>(rhs.data),
+            (std::vector<avsample_s16_t>{3, 4}));
+}
+
+TEST(AudioDataTest, AppendMovesSamplesFromRvalue) {
+  AudioData lhs{.spec = {.sample_rate = 44100,
+                         .sample_format = AV_SAMPLE_FMT::S16,
+                         .channel_count = 2},
+                .data = std::vector<avsample_s16_t>{1, 2}};
+  AudioData rhs{.spec = lhs.spec, .data = std::vector<avsample_s16_t>{3, 4}};
+
+  lhs.Append(std::move(rhs));
+
+  EXPECT_EQ(std::get<std::vector<avsample_s16_t>>(lhs.data),
+            (std::vector<avsample_s16_t>{1, 2, 3, 4}));
+}
+
+TEST(AudioDataTest, AppendRejectsDifferentSpec) {
+  AudioData lhs{.spec = {.sample_rate = 44100,
+                         .sample_format = AV_SAMPLE_FMT::S16,
+                         .channel_count = 2},
+                .data = std::vector<avsample_s16_t>{1, 2}};
+  AudioData rhs{.spec = {.sample_rate = 48000,
+                         .sample_format = AV_SAMPLE_FMT::S16,
+                         .channel_count = 2},
+                .data = std::vector<avsample_s16_t>{3, 4}};
+
+  EXPECT_THROW(lhs.Append(rhs), std::invalid_argument);
+}
