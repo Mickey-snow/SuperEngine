@@ -29,6 +29,17 @@
 
 namespace libsiglus {
 
+namespace detail {
+
+struct SiglusMwndConfig {
+  int default_mwnd_no = 0;
+  int default_sel_mwnd_no = 1;
+};
+
+SiglusMwndConfig NormalizeSiglusMwndConfig(Gameexe& gexe);
+
+}  // namespace detail
+
 class SGVMFactory {
  public:
   SiglusRuntime Create();

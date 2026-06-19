@@ -195,14 +195,41 @@ TextWindow::InitParams BuildTextWindowInitParams(System& system,
   return params;
 }
 
+}  // namespace
+
+namespace text_system_detail {
+
+std::optional<KoeReplayConfig> ReadKoeReplayConfig(Gameexe& gexe) {
+  GameexeInterpretObject replay_icon(gexe("KOEREPLAYICON"));
+  auto name = replay_icon("NAME").Str();
+  if (!name || name->empty())
+    return std::nullopt;
+
+  KoeReplayConfig config;
+  config.icon_name = std::move(name.value());
+
+  auto reppos = replay_icon("REPPOS").IntVec();
+  if (reppos && reppos->size() == 2) {
+    config.x_offset = reppos->at(0);
+    config.y_offset = reppos->at(1);
+  }
+
+  return config;
+}
+
+}  // namespace text_system_detail
+
+namespace {
+
 std::unique_ptr<TextWindow::KoeReplayInfo> BuildKoeReplayInfo(System& system,
                                                               Gameexe& gexe) {
+  auto config = text_system_detail::ReadKoeReplayConfig(gexe);
+  if (!config)
+    return nullptr;
+
   auto koe = std::make_unique<TextWindow::KoeReplayInfo>();
-  GameexeInterpretObject replay_icon(gexe("KOEREPLAYICON"));
-  koe->icon = system.graphics().GetSurfaceNamed(replay_icon("NAME").ToStr());
-  std::vector<int> reppos = replay_icon("REPPOS").ToIntVec();
-  if (reppos.size() == 2)
-    koe->repos = Size(reppos[0], reppos[1]);
+  koe->icon = system.graphics().GetSurfaceNamed(config->icon_name);
+  koe->repos = Size(config->x_offset, config->y_offset);
   return koe;
 }
 

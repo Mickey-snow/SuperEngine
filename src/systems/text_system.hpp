@@ -39,6 +39,7 @@
 #include <list>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -56,6 +57,18 @@ class TextPage;
 class TextWindow;
 class ITextSystem;
 class IFont;
+
+namespace text_system_detail {
+
+struct KoeReplayConfig {
+  std::string icon_name;
+  int x_offset = 0;
+  int y_offset = 0;
+};
+
+std::optional<KoeReplayConfig> ReadKoeReplayConfig(Gameexe& gexe);
+
+}  // namespace text_system_detail
 
 // Global variables written to disk.
 struct TextSystemGlobals {
