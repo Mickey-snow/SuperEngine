@@ -35,6 +35,7 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <functional>
 #include <list>
 #include <map>
 #include <memory>
@@ -120,6 +121,9 @@ class TextSystem final : public EventListener {
   // Text window, aka mwnd. Consists of waku decoration and TextPage layout
   // management
   std::shared_ptr<TextWindow> GetTextWindow(int text_window_number);
+  std::shared_ptr<TextWindow> GetTextWindow(
+      int num,
+      std::function<std::shared_ptr<TextWindow>()> orelse);
   std::shared_ptr<TextWindow> GetCurrentWindow();
 
   void set_in_pause_state(bool in) { in_pause_state_ = in; }

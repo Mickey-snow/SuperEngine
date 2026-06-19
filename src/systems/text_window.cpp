@@ -24,7 +24,6 @@
 
 #include "systems/text_window.hpp"
 
-#include "core/gameexe.hpp"
 #include "machine/rlmachine.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/itext_system.hpp"
@@ -32,26 +31,25 @@
 #include "systems/selection_element.hpp"
 #include "systems/sound_system.hpp"
 #include "systems/system.hpp"
-#include "systems/text_factory.hpp"
 #include "systems/text_system.hpp"
 #include "systems/text_waku.hpp"
 #include "utilities/assertx.hpp"
-#include "utilities/graphics.hpp"
 #include "utilities/string_utilities.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
 
 struct TextWindow::FaceSlot {
-  explicit FaceSlot(const std::vector<int> vec)
-      : x(vec.at(0)),
-        y(vec.at(1)),
-        is_behind(vec.at(2)),
-        hide_other_windows(vec.at(3)),
-        unknown(vec.at(4)) {}
+  explicit FaceSlot(const FaceSlotConfig& config)
+      : x(config.x),
+        y(config.y),
+        is_behind(config.is_behind),
+        hide_other_windows(config.hide_other_windows),
+        unknown(config.unknown) {}
 
   int x, y;
 
@@ -73,119 +71,74 @@ struct TextWindow::FaceSlot {
 // TextWindow
 // -----------------------------------------------------------------------
 
-TextWindow::TextWindow(System& system, int window_num, ITextSystem* text_impl)
+TextWindow::TextWindow(System& system,
+                       int window_num,
+                       ITextSystem* text_impl,
+                       const InitParams& params)
     : text_impl_(text_impl),
+      screen_width_(params.screen_size.width()),
+      screen_height_(params.screen_size.height()),
       window_num_(window_num),
-      layout_(0, 0, 0),
+      waku_set_(params.waku_set),
+      layout_(params.layout),
       last_token_was_name_(false),
-      use_indentation_(0),
-      colour_(),
-      is_filter_(0),
+      default_font_size_(params.default_font_size),
+      use_indentation_(params.use_indentation),
+      default_colour_(params.default_colour),
+      font_colour_(params.default_colour),
+      action_on_pause_(params.action_on_pause),
+      origin_(params.origin),
+      x_distance_from_origin_(params.x_distance_from_origin),
+      y_distance_from_origin_(params.y_distance_from_origin),
+      upper_box_padding_(params.upper_box_padding),
+      lower_box_padding_(params.lower_box_padding),
+      left_box_padding_(params.left_box_padding),
+      right_box_padding_(params.right_box_padding),
+      window_attr_mod_(params.window_attr_mod),
+      colour_(params.colour),
+      is_filter_(params.is_filter),
       is_visible_(false),
+      keycursor_type_(params.keycursor_type),
+      keycursor_pos_(params.keycursor_pos),
+      name_mod_(NameMode::Inline),
+      name_waku_set_(params.namebox.name_waku_set),
+      name_font_size_in_pixels_(0),
+      name_waku_dir_set_(params.namebox.waku_dir_set),
+      name_x_spacing_(params.namebox.name_x_spacing),
+      horizontal_namebox_padding_(params.namebox.horizontal_padding),
+      vertical_namebox_padding_(params.namebox.vertical_padding),
+      namebox_x_offset_(params.namebox.x_offset),
+      namebox_y_offset_(params.namebox.y_offset),
+      namebox_centering_(params.namebox.centering),
+      minimum_namebox_size_(params.namebox.minimum_size),
+      name_size_(params.namebox.character_size),
+      namebox_characters_(0),
       state_(State::Normal),
       next_char_italic_(false),
       system_(system) {
   ASSERTX_NE(text_impl, nullptr);
+  SetNameMod(params.name_mod);
 
-  Gameexe& gexe = system.gameexe();
-
-  // POINT
-  Size size = GetScreenSize(gexe);
-  screen_width_ = size.width();
-  screen_height_ = size.height();
-
-  // Base form for everything to follow.
-  GameexeInterpretObject window(gexe("WINDOW", window_num));
-
-  // Handle: #WINDOW.index.ATTR_MOD, #WINDOW_ATTR, #WINDOW.index.ATTR
-  window_attr_mod_ = window("ATTR_MOD").Int().value_or(0);
-  if (window_attr_mod_ == 0)
-    SetRGBAF(system.text().window_attr());
-  else
-    SetRGBAF(window("ATTR").ToIntVec());
-
-  // parse layout
-  {
-    default_font_size_ = window("MOJI_SIZE").Int().value_or(25);
-    set_font_size_in_pixels(default_font_size_);
-    std::vector<int> moji_cnt = window("MOJI_CNT").ToIntVec();
-    const int x_window_size_in_chars = moji_cnt.at(0);
-    const int y_window_size_in_chars = moji_cnt.at(1);
-    std::vector<int> moji_rep = window("MOJI_REP").ToIntVec();
-    const int x_spacing = moji_rep.at(0);
-    const int y_spacing = moji_rep.at(1);
-    const int ruby_size = window("LUBY_SIZE").Int().value_or(0);
-
-    const int layout_height =
-        y_window_size_in_chars * (default_font_size_ + y_spacing + ruby_size);
-    const int layout_width =
-        x_window_size_in_chars * (default_font_size_ + x_spacing);
-    const int layout_extended =
-        layout_width +
-        default_font_size_;  // There is one extra character in each line to
-                             // accommodate squeezed punctuation.
-
-    layout_ = TextLayout(layout_height, layout_width, layout_extended);
-    layout_.font_size = default_font_size_;
-    layout_.ruby_font_size = ruby_size;
-    layout_.x_spacing = x_spacing;
-    layout_.y_spacing = y_spacing;
-  }
-
-  SetTextboxPadding(window("MOJI_POS").ToIntVec());
-
-  SetWindowPosition(window("POS").ToIntVec());
-
-  SetDefaultTextColor(gexe("COLOR_TABLE", 0).ToIntVec());
-
-  // INDENT_USE appears to default to on. See the first scene in the
-  // game with Nagisa, paying attention to indentation; then check the
-  // Gameexe.ini.
-  set_use_indentation(window("INDENT_USE").Int().value_or(1));
-
-  SetKeycursorMod(window("KEYCUR_MOD").ToIntVec());
-  set_action_on_pause(window("R_COMMAND_MOD").Int().value_or(0));
-
-  // Main textbox waku
-  TextFactory waku_factory(gexe);
-  waku_set_ = window("WAKU_SETNO").Int().value_or(0);
-  textbox_waku_ = waku_factory.CreateWaku(system_, *this, waku_set_, 0);
-
-  // Name textbox if that setting has been enabled.
-  SetNameMod(window("NAME_MOD").Int().value_or(0));
-  if (auto no = window("NAME_WAKU_SETNO").Int();
-      name_mod_ == NameMode::SeparateWindow && no) {
-    name_waku_set_ = *no;
-    namebox_waku_ = waku_factory.CreateWaku(system_, *this, name_waku_set_, 0);
-    SetNameSpacingBetweenCharacters(window("NAME_MOJI_REP").Int().value_or(0));
-    SetNameboxPadding(window("NAME_MOJI_POS").ToIntVec());
-    // Ignoring NAME_WAKU_MIN for now
-    SetNameboxPosition(window("NAME_POS").ToIntVec());
-    name_waku_dir_set_ = window("NAME_WAKU_DIR").Int().value_or(0);
-    namebox_centering_ = window("NAME_CENTERING").Int().value_or(0);
-    minimum_namebox_size_ = window("NAME_MOJI_MIN").Int().value_or(4);
-    name_size_ = window("NAME_MOJI_SIZE").ToInt();
-  }
-
-  // Load #FACE information.
-  for (auto it : gexe.Filter(window.key() + ".FACE")) {
-    // Retrieve the face slot number
-    std::vector<std::string> GetKeyParts = it.GetKeyParts();
-
-    try {
-      int slot = std::stoi(GetKeyParts.at(3));
-      if (slot < kNumFaceSlots) {
-        face_slot_[slot] = std::make_unique<FaceSlot>(it.ToIntVec());
-      }
-    } catch (...) {
-      // Parsing failure. Ignore this key.
+  for (std::size_t i = 0; i < params.face_slots.size(); ++i) {
+    if (params.face_slots[i]) {
+      face_slot_[i] = std::make_unique<FaceSlot>(*params.face_slots[i]);
     }
   }
-
-  ClearWin();
 }
 
 TextWindow::~TextWindow() = default;
+
+void TextWindow::SetTextboxWaku(int waku_set, std::unique_ptr<TextWaku> waku) {
+  ASSERTX_NE(waku.get(), nullptr);
+  waku_set_ = waku_set;
+  textbox_waku_ = std::move(waku);
+}
+
+void TextWindow::SetNameboxWaku(int waku_set, std::unique_ptr<TextWaku> waku) {
+  ASSERTX_NE(waku.get(), nullptr);
+  name_waku_set_ = waku_set;
+  namebox_waku_ = std::move(waku);
+}
 
 void TextWindow::Execute() {
   if (IsVisible() && !system_.graphics().is_interface_hidden()) {

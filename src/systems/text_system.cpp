@@ -32,6 +32,7 @@
 
 #include <algorithm>
 #include <map>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -44,12 +45,16 @@
 #include "systems/itext_system.hpp"
 #include "systems/sdl/sdl_surface.hpp"
 #include "systems/system.hpp"
+#include "systems/text_factory.hpp"
 #include "systems/text_key_cursor.hpp"
 #include "systems/text_page.hpp"
+#include "systems/text_waku.hpp"
 #include "systems/text_window.hpp"
 #include "utf8.h"
+#include "utilities/assertx.hpp"
 #include "utilities/exception.hpp"
 #include "utilities/find_font_file.hpp"
+#include "utilities/graphics.hpp"
 #include "utilities/string_utilities.hpp"
 
 const unsigned int MAX_PAGE_HISTORY = 100;
@@ -59,6 +64,149 @@ const int FULLWIDTH_A = 0xFF21;
 const int FULLWIDTH_B = 0xFF22;
 const int FULLWIDTH_ZERO = 0xFF10;
 const int FULLWIDTH_NINE = 0xFF19;
+
+namespace {
+
+constexpr int kSeparateNameWindowMode = 1;
+
+std::pair<RGBAColour, bool> ParseRGBAF(const std::vector<int>& attr) {
+  ASSERTX_GE(attr.size(), 5);
+  return {RGBAColour(attr.at(0), attr.at(1), attr.at(2), attr.at(3)),
+          static_cast<bool>(attr.at(4))};
+}
+
+RGBColour ParseRGB(const std::vector<int>& colour) {
+  return RGBColour(colour.at(0), colour.at(1), colour.at(2));
+}
+
+TextLayout BuildTextLayout(GameexeInterpretObject& window,
+                           int default_font_size) {
+  std::vector<int> moji_cnt = window("MOJI_CNT").ToIntVec();
+  const int x_window_size_in_chars = moji_cnt.at(0);
+  const int y_window_size_in_chars = moji_cnt.at(1);
+  std::vector<int> moji_rep = window("MOJI_REP").ToIntVec();
+  const int x_spacing = moji_rep.at(0);
+  const int y_spacing = moji_rep.at(1);
+  const int ruby_size = window("LUBY_SIZE").Int().value_or(0);
+
+  const int layout_height =
+      y_window_size_in_chars * (default_font_size + y_spacing + ruby_size);
+  const int layout_width =
+      x_window_size_in_chars * (default_font_size + x_spacing);
+  const int layout_extended =
+      layout_width +
+      default_font_size;  // One extra character for squeezed punctuation.
+
+  TextLayout layout(layout_height, layout_width, layout_extended);
+  layout.font_size = default_font_size;
+  layout.ruby_font_size = ruby_size;
+  layout.x_spacing = x_spacing;
+  layout.y_spacing = y_spacing;
+  return layout;
+}
+
+TextWindow::FaceSlotConfig BuildFaceSlotConfig(const std::vector<int>& data) {
+  return TextWindow::FaceSlotConfig{.x = data.at(0),
+                                    .y = data.at(1),
+                                    .is_behind = data.at(2),
+                                    .hide_other_windows = data.at(3),
+                                    .unknown = data.at(4)};
+}
+
+TextWindow::InitParams BuildTextWindowInitParams(System& system,
+                                                 Gameexe& gexe,
+                                                 int window_num) {
+  TextWindow::InitParams params;
+  params.screen_size = GetScreenSize(gexe);
+
+  GameexeInterpretObject window(gexe("WINDOW", window_num));
+
+  params.window_attr_mod = window("ATTR_MOD").Int().value_or(0);
+  std::vector<int> attr = params.window_attr_mod == 0
+                              ? system.text().window_attr()
+                              : window("ATTR").ToIntVec();
+  auto [colour, is_filter] = ParseRGBAF(attr);
+  params.colour = colour;
+  params.is_filter = is_filter;
+
+  params.default_font_size = window("MOJI_SIZE").Int().value_or(25);
+  params.layout = BuildTextLayout(window, params.default_font_size);
+
+  std::vector<int> moji_pos = window("MOJI_POS").ToIntVec();
+  params.upper_box_padding = moji_pos.at(0);
+  params.lower_box_padding = moji_pos.at(1);
+  params.left_box_padding = moji_pos.at(2);
+  params.right_box_padding = moji_pos.at(3);
+
+  std::vector<int> pos = window("POS").ToIntVec();
+  params.origin = pos.at(0);
+  params.x_distance_from_origin = pos.at(1);
+  params.y_distance_from_origin = pos.at(2);
+
+  params.default_colour = ParseRGB(gexe("COLOR_TABLE", 0).ToIntVec());
+
+  // INDENT_USE appears to default to on. See the first scene in the game with
+  // Nagisa, paying attention to indentation; then check the Gameexe.ini.
+  params.use_indentation = window("INDENT_USE").Int().value_or(1);
+
+  std::vector<int> keycur = window("KEYCUR_MOD").ToIntVec();
+  params.keycursor_type = keycur.at(0);
+  params.keycursor_pos = Point(keycur.at(1), keycur.at(2));
+  params.action_on_pause = window("R_COMMAND_MOD").Int().value_or(0);
+  params.waku_set = window("WAKU_SETNO").Int().value_or(0);
+
+  params.name_mod = window("NAME_MOD").Int().value_or(0);
+  if (auto no = window("NAME_WAKU_SETNO").Int();
+      params.name_mod == kSeparateNameWindowMode && no) {
+    params.namebox.has_namebox_waku = true;
+    params.namebox.name_waku_set = *no;
+    params.namebox.name_x_spacing = window("NAME_MOJI_REP").Int().value_or(0);
+
+    std::vector<int> name_moji_pos = window("NAME_MOJI_POS").ToIntVec();
+    if (name_moji_pos.size() >= 1)
+      params.namebox.horizontal_padding = name_moji_pos.at(0);
+    if (name_moji_pos.size() >= 2)
+      params.namebox.vertical_padding = name_moji_pos.at(1);
+
+    // Ignoring NAME_WAKU_MIN for now.
+    std::vector<int> name_pos = window("NAME_POS").ToIntVec();
+    params.namebox.x_offset = name_pos.at(0);
+    params.namebox.y_offset = name_pos.at(1);
+
+    params.namebox.waku_dir_set = window("NAME_WAKU_DIR").Int().value_or(0);
+    params.namebox.centering = window("NAME_CENTERING").Int().value_or(0);
+    params.namebox.minimum_size = window("NAME_MOJI_MIN").Int().value_or(4);
+    params.namebox.character_size = window("NAME_MOJI_SIZE").ToInt();
+  }
+
+  // Load #FACE information.
+  for (auto it : gexe.Filter(window.key() + ".FACE")) {
+    std::vector<std::string> key_parts = it.GetKeyParts();
+
+    try {
+      int slot = std::stoi(key_parts.at(3));
+      if (slot < kNumFaceSlots)
+        params.face_slots.at(slot) = BuildFaceSlotConfig(it.ToIntVec());
+    } catch (...) {
+      // Parsing failure. Ignore this key.
+    }
+  }
+
+  return params;
+}
+
+std::unique_ptr<TextWindow::KoeReplayInfo> BuildKoeReplayInfo(System& system,
+                                                              Gameexe& gexe) {
+  auto koe = std::make_unique<TextWindow::KoeReplayInfo>();
+  GameexeInterpretObject replay_icon(gexe("KOEREPLAYICON"));
+  koe->icon = system.graphics().GetSurfaceNamed(replay_icon("NAME").ToStr());
+  std::vector<int> reppos = replay_icon("REPPOS").ToIntVec();
+  if (reppos.size() == 2)
+    koe->repos = Size(reppos[0], reppos[1]);
+  return koe;
+}
+
+}  // namespace
 
 // -----------------------------------------------------------------------
 // TextSystemGlobals
@@ -254,28 +402,43 @@ void TextSystem::SetVisualOverrideAll(bool show_window) {
 
 void TextSystem::ClearVisualOverrides() { window_visual_override_.clear(); }
 
-std::shared_ptr<TextWindow> TextSystem::GetTextWindow(int window_id) {
+std::shared_ptr<TextWindow> TextSystem::GetTextWindow(
+    int window_id,
+    std::function<std::shared_ptr<TextWindow>()> orelse) {
   auto [it, inserted] = text_window_.try_emplace(window_id, nullptr);
   try {
     if (inserted) {
-      auto tw =
-          std::make_shared<TextWindow>(system_, window_id, text_impl_.get());
-      auto koe = std::make_unique<TextWindow::KoeReplayInfo>();
-      Gameexe& gexe = system_.gameexe();
-      GameexeInterpretObject replay_icon(gexe("KOEREPLAYICON"));
-      koe->icon =
-          system_.graphics().GetSurfaceNamed(replay_icon("NAME").ToStr());
-      std::vector<int> reppos = replay_icon("REPPOS").ToIntVec();
-      if (reppos.size() == 2)
-        koe->repos = Size(reppos[0], reppos[1]);
-      tw->SetKoeReplayInfo(std::move(koe));
-      it->second = tw;
+      it->second = orelse();
     }
-    return it->second;
   } catch (...) {
     text_window_.erase(window_id);
     throw;
   }
+  return it->second;
+}
+
+std::shared_ptr<TextWindow> TextSystem::GetTextWindow(int window_id) {
+  return GetTextWindow(window_id, [this, window_id]() {
+    Gameexe& gexe = system_.gameexe();
+    TextWindow::InitParams params =
+        BuildTextWindowInitParams(system_, gexe, window_id);
+    auto tw = std::make_shared<TextWindow>(system_, window_id, text_impl_.get(),
+                                           params);
+
+    TextFactory waku_factory(gexe);
+    tw->SetTextboxWaku(params.waku_set, waku_factory.CreateWaku(
+                                            system_, *tw, params.waku_set, 0));
+    if (tw->GetNameMod() == kSeparateNameWindowMode &&
+        params.namebox.has_namebox_waku) {
+      tw->SetNameboxWaku(params.namebox.name_waku_set,
+                         waku_factory.CreateWaku(
+                             system_, *tw, params.namebox.name_waku_set, 0));
+    }
+
+    tw->ClearWin();
+    tw->SetKoeReplayInfo(BuildKoeReplayInfo(system_, gexe));
+    return tw;
+  });
 }
 
 std::shared_ptr<TextWindow> TextSystem::GetCurrentWindow() {
