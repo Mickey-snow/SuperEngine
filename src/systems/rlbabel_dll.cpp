@@ -55,10 +55,10 @@
 #include "encodings/western.hpp"
 #include "libreallive/intmemref.hpp"
 #include "machine/rlmachine.hpp"
+#include "systems/itext_system.hpp"
 #include "systems/system.hpp"
 #include "systems/text_system.hpp"
 #include "systems/text_window.hpp"
-#include "systems/itext_system.hpp"
 #include "utilities/string_utilities.hpp"
 
 using std::cerr;
@@ -526,11 +526,13 @@ int RlBabelDLL::StartNewScreen(const std::string& cnam) {
 }
 
 int RlBabelDLL::SetCurrentWindowName(StringReferenceIterator buffer) {
+  std::string name = cp932toUTF8(*buffer, machine_.GetTextEncoding());
+  name = machine_.GetSystem().text().InterpretName(name);
+
   // Haeleth's implementation of SetCurrentWindowName in rlBabel goes through
   // some monstrous hacks, including temporarily rewriting the bytecode at the
   // instruction pointer. I *think* I can get away with a simple:
-  GetWindow(-1)->SetNameWithoutDisplay(
-      cp932toUTF8(*buffer, machine_.GetTextEncoding()));
+  GetWindow(-1)->SetNameWithoutDisplay(name);
   return 1;
 }
 

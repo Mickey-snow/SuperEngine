@@ -29,12 +29,12 @@
 
 #include "long_operations/pause_long_operation.hpp"
 #include "machine/rlmachine.hpp"
+#include "systems/event_system.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
 #include "systems/system_error.hpp"
 #include "systems/text_page.hpp"
 #include "systems/text_system.hpp"
-#include "systems/event_system.hpp"
 #include "utilities/exception.hpp"
 
 #include <utf8.h>
@@ -148,7 +148,7 @@ bool TextoutLongOperation::DisplayName(RLMachine& machine) {
   }
 
   // Grab the name
-  string name(current_position_, curend);
+  std::string name(current_position_, curend);
 
   // Consume the next character
   current_position_ = it;
@@ -159,7 +159,9 @@ bool TextoutLongOperation::DisplayName(RLMachine& machine) {
     current_position_ = it;
   }
 
-  TextPage& page = machine.GetSystem().text().GetCurrentPage();
+  TextSystem& text = machine.GetSystem().text();
+  TextPage& page = text.GetCurrentPage();
+  name = text.InterpretName(name);
   page.Name(name, current_char_);
 
   // Stop if this was the end of input

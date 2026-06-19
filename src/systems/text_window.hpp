@@ -343,5 +343,4 @@ class TextWindow {
   std::unique_ptr<KoeReplayInfo> koe_replay_info_;
 
   System& system_;
-  TextSystem& text_system_;
 };

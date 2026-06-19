@@ -84,8 +84,7 @@ TextWindow::TextWindow(System& system, int window_num, ITextSystem* text_impl)
       is_visible_(false),
       state_(State::Normal),
       next_char_italic_(false),
-      system_(system),
-      text_system_(system.text()) {
+      system_(system) {
   ASSERTX_NE(text_impl, nullptr);
 
   Gameexe& gexe = system.gameexe();
@@ -204,14 +203,12 @@ void TextWindow::SetTextboxPadding(const std::vector<int>& pos_data) {
 void TextWindow::SetName(const std::string& utf8name,
                          const std::string& next_char) {
   if (name_mod_ == NameMode::Inline) {
-    std::string interpreted_name = text_system_.InterpretName(utf8name);
-
     // Display the name in one pass
     PrintTextToFunction(
         [this](const std::string& current, const std::string& rest) {
           return this->DisplayCharacter(current, rest);
         },
-        interpreted_name, next_char);
+        utf8name, next_char);
     SetIndentation();
   }
 
@@ -220,20 +217,15 @@ void TextWindow::SetName(const std::string& utf8name,
 
 void TextWindow::SetNameWithoutDisplay(const std::string& utf8name) {
   if (name_mod_ == NameMode::SeparateWindow) {
-    std::string interpreted_name = text_system_.InterpretName(utf8name);
-
     namebox_characters_ = 0;
     try {
-      namebox_characters_ =
-          utf8::distance(interpreted_name.begin(), interpreted_name.end());
+      namebox_characters_ = utf8::distance(utf8name.begin(), utf8name.end());
     } catch (...) {
       // If utf8name isn't a real UTF-8 string, possibly overestimate:
-      namebox_characters_ = interpreted_name.size();
+      namebox_characters_ = utf8name.size();
     }
-
     namebox_characters_ = std::max(namebox_characters_, minimum_namebox_size_);
-
-    RenderNameInBox(interpreted_name);
+    RenderNameInBox(utf8name);
   }
 
   last_token_was_name_ = true;
