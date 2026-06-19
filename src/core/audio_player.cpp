@@ -189,6 +189,7 @@ AudioData AudioPlayer::LoadRemain() {
   auto cur = PcmLocation();
   if (buffer_.has_value()) {
     ret = buffer_->ad;
+    cur = buffer_->cur + buffer_->SampleCount() / spec.channel_count;
     buffer_.reset();
   }
 
@@ -202,7 +203,9 @@ AudioData AudioPlayer::LoadRemain() {
     }
 
     ClipFrame(next);
+    const auto next_to = next.cur + next.SampleCount() / spec.channel_count;
     ret.Append(std::move(next.ad));
+    cur = next_to;
   }
   lock.unlock();
 

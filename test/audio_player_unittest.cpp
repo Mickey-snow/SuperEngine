@@ -281,6 +281,26 @@ TEST_F(AudioPlayerTest, TerminateLoop) {
   EXPECT_FALSE(player->IsPlaying());
 }
 
+TEST_F(AudioPlayerTest, LoadRemainStopsAtLoopBoundary) {
+  player->SetLoopTimes(-1);
+
+  auto first = player->LoadRemain();
+  ASSERT_EQ(first.SampleCount(), tot_samples);
+  EXPECT_TRUE(player->IsPlaying());
+  EXPECT_EQ(player->GetCurrentTime(), GetTicks(0.0));
+
+  auto second = player->LoadRemain();
+  ASSERT_EQ(second.SampleCount(), tot_samples);
+  EXPECT_TRUE(player->IsPlaying());
+
+  EXPECT_LE(Deviation(std::get<std::vector<float>>(first.data),
+                      decoder->buffer_),
+            1e-4);
+  EXPECT_LE(Deviation(std::get<std::vector<float>>(second.data),
+                      decoder->buffer_),
+            1e-4);
+}
+
 TEST_F(AudioPlayerTest, StartTerminated) {
   EXPECT_TRUE(player->IsPlaying());
 
