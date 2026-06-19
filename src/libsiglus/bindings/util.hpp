@@ -26,11 +26,13 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace serilang {
 class VM;
 class Value;
 class List;
+class Dict;
 };  // namespace serilang
 
 namespace libsiglus::binding {
@@ -43,5 +45,14 @@ std::string AsString(const serilang::Value& value);
 int RequireInt(const serilang::Value& value, std::string_view where);
 const serilang::List* RequireList(const serilang::Value& value,
                                   std::string_view where);
+
+struct CallPacket {
+  std::optional<int> overload_id;
+  std::vector<serilang::Value> args;
+  const serilang::Dict* kwargs = nullptr;
+
+  static CallPacket DecodeFrom(std::vector<serilang::Value> raw);
+};
+std::optional<int> ParseKeywordId(serilang::Value key);
 
 }  // namespace libsiglus::binding

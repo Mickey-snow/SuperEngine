@@ -129,74 +129,38 @@ void MarkMessageNovelClear(System* system,
   ClearKoeState(state);
 }
 
-struct CallPacket {
-  std::vector<sr::Value> args;
-  const sr::Dict* kwargs = nullptr;
-};
-
-std::optional<int> ParseKeywordId(const sr::Value& key) {
-  const sr::String* str = key.Get_if<sr::String>();
-  if (!str)
-    return std::nullopt;
-
-  std::string_view text = str->str_;
-  if (!text.empty() && text.front() == '_')
-    text.remove_prefix(1);
-  if (text.empty())
-    return std::nullopt;
-
-  int result = 0;
-  const char* begin = text.data();
-  const char* end = begin + text.size();
-  const auto [ptr, ec] = std::from_chars(begin, end, result);
-  if (ec != std::errc() || ptr != end)
-    return std::nullopt;
-  return result;
-}
-
-CallPacket DecodePacket(std::vector<sr::Value> raw) {
-  if (raw.size() == 3 && raw[1].Get_if<sr::List>() &&
-      raw[2].Get_if<sr::Dict>()) {
-    const sr::List* args = raw[1].Get_if<sr::List>();
-    return CallPacket{.args = args->items, .kwargs = raw[2].Get_if<sr::Dict>()};
-  }
-
-  return CallPacket{.args = std::move(raw)};
-}
-
 struct KoeCallParams {
   int koe = 0;
   int character = -1;
   bool no_auto_mode = false;
-};
+  static KoeCallParams ParseFrom(std::vector<sr::Value> raw_args) {
+    CallPacket packet = CallPacket::DecodeFrom(std::move(raw_args));
+    KoeCallParams params;
 
-KoeCallParams ParseKoeCall(std::vector<sr::Value> raw_args) {
-  CallPacket packet = DecodePacket(std::move(raw_args));
-  KoeCallParams params;
+    if (!packet.args.empty())
+      params.koe = AsInt(packet.args[0]).value_or(0);
+    if (packet.args.size() > 1)
+      params.character = AsInt(packet.args[1]).value_or(-1);
 
-  if (!packet.args.empty())
-    params.koe = AsInt(packet.args[0]).value_or(0);
-  if (packet.args.size() > 1)
-    params.character = AsInt(packet.args[1]).value_or(-1);
+    if (packet.kwargs) {
+      for (const auto& [key, value] : packet.kwargs->map) {
+        const std::optional<int> id = ParseKeywordId(key);
+        if (!id)
+          continue;
 
-  if (packet.kwargs) {
-    for (const auto& [key, value] : packet.kwargs->map) {
-      const std::optional<int> id = ParseKeywordId(key);
-      if (!id)
-        continue;
-
-      switch (*id) {
-        case 0:
-          params.no_auto_mode = AsInt(value).value_or(0) != 0;
-          break;
-        default:
-          break;
+        switch (*id) {
+          case 0:
+            params.no_auto_mode = AsInt(value).value_or(0) != 0;
+            break;
+          default:
+            break;
+        }
       }
     }
-  }
 
-  return params;
-}
+    return params;
+  }
+};
 
 class MwndWaitTask : public CoroutineTask {
  public:
@@ -323,7 +287,7 @@ struct MwndBindingState {
   }
 
   void PlayKoe(std::vector<sr::Value> raw_args) {
-    KoeCallParams params = ParseKoeCall(std::move(raw_args));
+    auto params = KoeCallParams::ParseFrom(std::move(raw_args));
     const bool character_enabled =
         !system || params.character < 0 ||
         system->sound().ShouldUseKoeForCharacter(params.character) != 0;

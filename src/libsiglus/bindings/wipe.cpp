@@ -76,11 +76,6 @@ struct WipeParams {
   std::string mask_file;
 };
 
-struct CallPacket {
-  std::vector<sr::Value> args;
-  const sr::Dict* kwargs = nullptr;
-};
-
 void CopyOptions(const sr::Value& value,
                  std::array<int, kWipeOptionMax>& options) {
   const sr::List* list = value.Get_if<sr::List>();
@@ -93,36 +88,6 @@ void CopyOptions(const sr::Value& value,
       std::min(list->items.size(), static_cast<std::size_t>(kWipeOptionMax));
   for (std::size_t i = 0; i < count; ++i)
     options[i] = AsInt(list->items[i]).value_or(0);
-}
-
-std::optional<int> ParseKeywordId(const sr::Value& key) {
-  const sr::String* str = key.Get_if<sr::String>();
-  if (!str)
-    return std::nullopt;
-
-  std::string_view text = str->str_;
-  if (!text.empty() && text.front() == '_')
-    text.remove_prefix(1);
-  if (text.empty())
-    return std::nullopt;
-
-  int result = 0;
-  const char* begin = text.data();
-  const char* end = begin + text.size();
-  const auto [ptr, ec] = std::from_chars(begin, end, result);
-  if (ec != std::errc() || ptr != end)
-    return std::nullopt;
-  return result;
-}
-
-CallPacket DecodePacket(std::vector<sr::Value> raw) {
-  if (raw.size() == 3 && raw[1].Get_if<sr::List>() &&
-      raw[2].Get_if<sr::Dict>()) {
-    const sr::List* args = raw[1].Get_if<sr::List>();
-    return CallPacket{.args = args->items, .kwargs = raw[2].Get_if<sr::Dict>()};
-  }
-
-  return CallPacket{.args = std::move(raw)};
 }
 
 }  // namespace
@@ -141,7 +106,7 @@ struct SiglusWipe::Impl {
     if (all)
       params.end_order = std::numeric_limits<int>::max();
 
-    CallPacket packet = DecodePacket(std::move(raw_args));
+    CallPacket packet = CallPacket::DecodeFrom(std::move(raw_args));
     ApplyPositional(packet.args, params, masked);
     ApplyKeywords(packet.kwargs, params);
     last_ = std::move(params);
@@ -178,7 +143,7 @@ struct SiglusWipe::Impl {
       return MakeResolvedFuture(*vm.gc_);
 
     int key_wait_mode = -1;
-    CallPacket packet = DecodePacket(std::move(raw_args));
+    CallPacket packet = CallPacket::DecodeFrom(std::move(raw_args));
     if (!packet.args.empty())
       key_wait_mode = AsInt(packet.args.front()).value_or(-1);
     if (packet.kwargs) {

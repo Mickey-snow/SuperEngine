@@ -88,4 +88,35 @@ const sr::List* RequireList(sr::Value const& value, std::string_view where) {
       std::format("expected list for {}, got {}", where, value.Desc()));
 }
 
+CallPacket CallPacket::DecodeFrom(std::vector<sr::Value> raw) {
+  if (raw.size() == 3 && raw[1].Get_if<sr::List>() &&
+      raw[2].Get_if<sr::Dict>()) {
+    const sr::List* args = raw[1].Get_if<sr::List>();
+    return CallPacket{.overload_id = AsInt(raw[0]),
+                      .args = args->items,
+                      .kwargs = raw[2].Get_if<sr::Dict>()};
+  }
+  return CallPacket{.args = std::move(raw)};
+}
+
+std::optional<int> ParseKeywordId(sr::Value key) {
+  const sr::String* str = key.Get_if<sr::String>();
+  if (!str)
+    return std::nullopt;
+
+  std::string_view text = str->str_;
+  if (!text.empty() && text.front() == '_')
+    text.remove_prefix(1);
+  if (text.empty())
+    return std::nullopt;
+
+  int result = 0;
+  const char* begin = text.data();
+  const char* end = begin + text.size();
+  const auto [ptr, ec] = std::from_chars(begin, end, result);
+  if (ec != std::errc() || ptr != end)
+    return std::nullopt;
+  return result;
+}
+
 }  // namespace libsiglus::binding

@@ -97,44 +97,6 @@ std::shared_ptr<FrameCounter> MakeSiglusFrameCounter(
   return fc;
 }
 
-struct CallPacket {
-  std::optional<int> overload_id;
-  std::vector<sr::Value> args;
-  const sr::Dict* kwargs = nullptr;
-};
-
-std::optional<int> ParseKeywordId(const sr::Value& key) {
-  const sr::String* str = key.Get_if<sr::String>();
-  if (!str)
-    return std::nullopt;
-
-  std::string_view text = str->str_;
-  if (!text.empty() && text.front() == '_')
-    text.remove_prefix(1);
-  if (text.empty())
-    return std::nullopt;
-
-  int result = 0;
-  const char* begin = text.data();
-  const char* end = begin + text.size();
-  const auto [ptr, ec] = std::from_chars(begin, end, result);
-  if (ec != std::errc() || ptr != end)
-    return std::nullopt;
-  return result;
-}
-
-CallPacket DecodePacket(std::vector<sr::Value> raw) {
-  if (raw.size() == 3 && raw[1].Get_if<sr::List>() &&
-      raw[2].Get_if<sr::Dict>()) {
-    const sr::List* args = raw[1].Get_if<sr::List>();
-    return CallPacket{.overload_id = AsInt(raw[0]),
-                      .args = args->items,
-                      .kwargs = raw[2].Get_if<sr::Dict>()};
-  }
-
-  return CallPacket{.args = std::move(raw)};
-}
-
 struct MovieCreateParams {
   std::string file_name;
   std::optional<int> display;
@@ -220,7 +182,7 @@ class SiglusObject {
                                      bool loop,
                                      bool wait,
                                      bool key_skip) {
-    CallPacket packet = DecodePacket(std::move(raw_args));
+    CallPacket packet = CallPacket::DecodeFrom(std::move(raw_args));
     const std::vector<sr::Value>& args = packet.args;
     if (args.size() != 1 && args.size() != 2 && args.size() != 4) {
       throw std::runtime_error(
@@ -355,7 +317,7 @@ class SiglusObject {
 
   void seek_movie(std::vector<sr::Value> raw_args) {
     if (ObjectMovieData* data = movie_data()) {
-      CallPacket packet = DecodePacket(std::move(raw_args));
+      CallPacket packet = CallPacket::DecodeFrom(std::move(raw_args));
       if (!packet.args.empty())
         data->Seek(AsInt(packet.args[0]).value_or(0));
     }
@@ -388,7 +350,7 @@ class SiglusObject {
 
   void set_movie_auto_free(std::vector<sr::Value> raw_args) {
     if (ObjectMovieData* data = movie_data()) {
-      CallPacket packet = DecodePacket(std::move(raw_args));
+      CallPacket packet = CallPacket::DecodeFrom(std::move(raw_args));
       if (!packet.args.empty())
         data->SetAutoFree(AsInt(packet.args[0]).value_or(0) != 0);
     }
