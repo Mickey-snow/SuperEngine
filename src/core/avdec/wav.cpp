@@ -76,6 +76,7 @@ class WavDataExtractor {
   std::vector<sample_t> Extract() {
     std::vector<sample_t> result;
     static constexpr int sample_width = sizeof(sample_t);
+    result.reserve(data_.size() / sample_width);
 
     ByteReader reader(data_.data(), data_.length());
     while (reader.Position() < reader.Size()) {
@@ -163,16 +164,24 @@ AudioData WavDecoder::DecodeNext() {
 AudioData WavDecoder::DecodeAll() {
   AudioData result;
   result.spec = GetSpec();
-  result.PrepareDatabuf();
 
-  while (!remain_data_.empty()) {
-    AudioData next_batch = DecodeNext();
-    std::visit(
-        [](auto& result, auto&& append) {
-          result.insert(result.end(), append.begin(), append.end());
-        },
-        result.data, std::move(next_batch.data));
+  switch (fmt_->wBitsPerSample) {
+    case 8u:
+      result.data = WavDataExtractor<avsample_u8_t>(remain_data_).Extract();
+      break;
+    case 16u:
+      result.data = WavDataExtractor<avsample_s16_t>(remain_data_).Extract();
+      break;
+    case 32u:
+      result.data = WavDataExtractor<avsample_s32_t>(remain_data_).Extract();
+      break;
+    case 64u:
+      result.data = WavDataExtractor<avsample_s64_t>(remain_data_).Extract();
+      break;
+    default:
+      throw std::logic_error("Unsupported sample format");
   }
+  remain_data_.remove_prefix(remain_data_.size());
 
   return result;
 }

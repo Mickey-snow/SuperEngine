@@ -219,6 +219,26 @@ TEST_P(WavCodecTest, EncoderTest) {
             (std::string_view((char*)encodedWav.data(), encodedWav.size())));
 }
 
+TEST(WavCodecStandaloneTest, DecodeAllConsumesRemainingData) {
+  AVSpec spec{.sample_rate = 8000,
+              .sample_format = AV_SAMPLE_FMT::S16,
+              .channel_count = 1};
+  AudioData source{.spec = spec,
+                   .data = std::vector<avsample_s16_t>{1, 2, 3, 4, 5}};
+  auto encoded = EncodeWav(source);
+  WavDecoder decoder(
+      std::string_view(reinterpret_cast<const char*>(encoded.data()),
+                       encoded.size()));
+
+  EXPECT_EQ(decoder.Seek(2, SEEKDIR::BEG), SEEK_RESULT::PRECISE_SEEK);
+  AudioData decoded = decoder.DecodeAll();
+
+  EXPECT_EQ(decoded.spec, spec);
+  EXPECT_EQ(std::get<std::vector<avsample_s16_t>>(decoded.data),
+            (std::vector<avsample_s16_t>{3, 4, 5}));
+  EXPECT_FALSE(decoder.HasNext());
+}
+
 std::vector<std::string> GetTestWavFiles() {
   static const std::string testdir = LocateTestDirectory("Gameroot/WAV");
   static const std::regex pattern(".*test[0-9]+\\.wav");
