@@ -173,6 +173,7 @@ class TextWindow {
   // Sets how the name is displayed
   void SetNameMod(const int in);
   [[nodiscard]] int GetNameMod() const { return static_cast<int>(name_mod_); }
+  [[nodiscard]] bool HasName() const { return !current_name_.empty(); }
 
   // Sets the size of the spacing between characters. Represented by
   // #WINDOW.xxx.NAME_MOJI_REP.
@@ -294,6 +295,7 @@ class TextWindow {
   // Whether the last token was a SetName. This is used to control indentation
   // for quotes.
   bool last_token_was_name_;
+  std::string current_name_;
 
   // The default font size.
   int default_font_size_;

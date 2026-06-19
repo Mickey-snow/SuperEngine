@@ -27,6 +27,7 @@
 #include "systems/system.hpp"
 #include "systems/text_page.hpp"
 #include "systems/text_system.hpp"
+#include "systems/text_window.hpp"
 #include "vm/future.hpp"
 #include "vm/vm.hpp"
 
@@ -117,6 +118,19 @@ class SiglusTextout {
 
 void BindTextout(SiglusRuntime& runtime) {
   sb::module_ m(runtime.vm->gc_.get(), runtime.vm->globals_.get());
+  m.def("__builtin_name", [sys = runtime.system.get()](std::string name) {
+    if (!sys || name.empty())
+      return;
+
+    TextSystem& text = sys->text();
+    std::shared_ptr<TextWindow> window = text.GetCurrentWindow();
+    if (window->HasName())
+      return;
+
+    name = text.InterpretName(name);
+    if (!name.empty())
+      text.GetCurrentPage().Name(name, "");
+  });
   m.def("__builtin_textout",
         [to = std::make_shared<SiglusTextout>(*runtime.vm, runtime.system.get(),
                                               runtime.local_config)](

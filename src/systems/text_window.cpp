@@ -169,6 +169,8 @@ void TextWindow::SetName(const std::string& utf8name,
 }
 
 void TextWindow::SetNameWithoutDisplay(const std::string& utf8name) {
+  current_name_ = utf8name;
+
   if (name_mod_ == NameMode::SeparateWindow) {
     namebox_characters_ = 0;
     try {
@@ -476,6 +478,7 @@ void TextWindow::ClearWin() {
   text_surface_->Fill(RGBAColour::Clear());
 
   name_surface_ = nullptr;
+  current_name_.clear();
 }
 
 bool TextWindow::DisplayCharacter(const std::string& current,

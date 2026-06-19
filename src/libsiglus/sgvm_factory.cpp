@@ -432,9 +432,6 @@ SiglusRuntime SGVMFactory::Create() {
 
   m.def("__builtin_dbgprint",
         [](std::string str) { std::cerr << "[TRACE] " << str << std::endl; });
-  m.def("__builtin_name", [](std::string str) {
-    throw std::runtime_error("TODO: name() not implemented yet.");
-  });
   m.def("__builtin_load_scn",
         [loader = rt.loader.get()](int scnid) -> sr::Value {
           sr::Module* mod = loader->Load(scnid);
