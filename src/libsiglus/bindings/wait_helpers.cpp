@@ -31,6 +31,7 @@
 #include "vm/promise.hpp"
 #include "vm/vm.hpp"
 
+#include <exception>
 #include <utility>
 
 namespace libsiglus::binding {
@@ -171,6 +172,115 @@ sr::Value MakePollingWaitFuture(sr::VM& vm,
   vm.scheduler_.PushCallbackAfter([state] { state->Poll(); },
                                   state->poll_interval);
   return future;
+}
+
+// ------------------------------------------------------------------------------
+
+struct ITask::Awaitable::State : public EventListener {
+  State(std::coroutine_handle<> h) : h_(h) {}
+  void Notify(WaitResult res) {
+    if (result.has_value())
+      return;
+    result = res;
+    h_.resume();  // will this result in recursion and create very deep
+                  // callstack?
+  }
+  void OnEvent(std::shared_ptr<Event> event) override {
+    std::visit(overload(
+                   [this](const KeyDown& event) {
+                     if (event.code == KeyCode::RETURN ||
+                         event.code == KeyCode::SPACE) {
+                       Notify(WaitResult::Key);
+                     }
+                   },
+                   [this](const MouseDown& event) {
+                     if (event.button == MouseButton::LEFT)
+                       Notify(WaitResult::Key);
+                   },
+                   [](const auto&) {}),
+               *event);
+  }
+  std::coroutine_handle<> h_;
+  std::optional<WaitResult> result;
+};
+
+ITask::Awaitable::Awaitable(serilang::VM& vm,
+                            EventSystem* es,
+                            std::chrono::milliseconds ms,
+                            bool key)
+    : vm_(vm), es_(es), ms_(ms), can_skip_by_key_(key) {}
+
+void ITask::Awaitable::await_suspend(std::coroutine_handle<> h) {
+  state_ = std::make_shared<State>(h);
+  std::weak_ptr<State> weak = state_;
+  vm_.scheduler_.PushCallbackAfter(
+      [weak] {
+        if (auto state = weak.lock())
+          state->Notify(WaitResult::Timeout);
+      },
+      ms_);
+  if (es_ && can_skip_by_key_)
+    es_->AddListener(weak);
+}
+
+ITask::WaitResult ITask::Awaitable::await_resume() { return *state_->result; }
+
+ITask::ITask(serilang::VM& vm, EventSystem* es) : vm_(vm), es_(es) {}
+
+ITask::Awaitable ITask::Schedule(std::chrono::milliseconds ms, bool key) {
+  return Awaitable(vm_, es_, ms, key);
+}
+
+void ITask::Routine::promise_type::return_value(int value) {
+  if (auto promise = completion_promise.lock())
+    promise->Resolve(sr::Value(value));
+}
+
+void ITask::Routine::promise_type::unhandled_exception() {
+  if (auto promise = completion_promise.lock())
+    promise->Reject("unhandled exception");
+  else
+    std::terminate();
+}
+
+void ITask::Routine::SetCompletionPromise(
+    std::weak_ptr<serilang::Promise> promise) {
+  if (h)
+    h.promise().completion_promise = std::move(promise);
+}
+
+struct PackagedTask::State {
+  explicit State(std::unique_ptr<ITask> task)
+      : task(std::move(task)), promise(std::make_shared<serilang::Promise>()) {}
+
+  std::unique_ptr<ITask> task;
+  std::shared_ptr<serilang::Promise> promise;
+  ITask::Routine routine;
+};
+
+PackagedTask::PackagedTask(std::unique_ptr<ITask> task)
+    : state_(std::make_shared<State>(std::move(task))) {
+  std::weak_ptr<State> weak_state = state_;
+  state_->promise->initial_await = [weak_state](sr::VM& vm, sr::Value& awaiter,
+                                                sr::Value& awaited) {
+    // important: routine should start after initial await
+    if (auto state = weak_state.lock()) {
+      state->routine = state->task->GetRoutine();
+      state->routine.SetCompletionPromise(state->promise);
+      state->routine.start();
+    }
+    (void)vm, (void)awaiter, (void)awaited;
+  };
+}
+
+sr::Future* PackagedTask::MakeFuture(sr::GarbageCollector& gc) {
+  auto fut = gc.Allocate<sr::Future>();
+  fut->promise = state_->promise;
+  return fut;
+}
+
+bool PackagedTask::Done() const {
+  return !state_ || state_->promise->HasResult();
 }
 
 }  // namespace libsiglus::binding

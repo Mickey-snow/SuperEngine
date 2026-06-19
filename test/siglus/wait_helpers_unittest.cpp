@@ -35,6 +35,7 @@
 #include <chrono>
 #include <memory>
 #include <queue>
+#include <vector>
 
 using namespace libsiglus::binding;
 
@@ -56,6 +57,37 @@ class QueueEventBackend : public IEventBackend {
 
  private:
   std::queue<std::shared_ptr<Event>> events_;
+};
+
+class ImmediateTask : public ITask {
+ public:
+  ImmediateTask(serilang::VM& vm, int result, int* starts)
+      : ITask(vm), result_(result), starts_(starts) {}
+
+  Routine GetRoutine() override {
+    ++*starts_;
+    co_return result_;
+  }
+
+ private:
+  int result_;
+  int* starts_;
+};
+
+class ScheduledTask : public ITask {
+ public:
+  ScheduledTask(serilang::VM& vm, int result, int* starts)
+      : ITask(vm), result_(result), starts_(starts) {}
+
+  Routine GetRoutine() override {
+    ++*starts_;
+    co_await Schedule(std::chrono::milliseconds(1));
+    co_return result_;
+  }
+
+ private:
+  int result_;
+  int* starts_;
 };
 
 TEST(WaitHandlerTest, SkipKeyWithoutCallbackIsNoop) {
@@ -154,4 +186,53 @@ TEST(WaitHandlerTest, PollingFutureWithoutKeySkipIgnoresInput) {
   auto* future = value.Get_if<serilang::Future>();
   ASSERT_NE(future, nullptr);
   EXPECT_FALSE(future->promise->HasResult());
+}
+
+TEST(PackagedTaskTest, StartsAfterMoveAndResolvesReturnedValue) {
+  serilang::VM vm(std::make_shared<serilang::GarbageCollector>());
+  std::vector<PackagedTask> pending;
+  int starts = 0;
+
+  PackagedTask task(
+      std::make_unique<ImmediateTask>(vm, /*result=*/7, &starts));
+  serilang::Future* future = task.MakeFuture(*vm.gc_);
+  pending.emplace_back(std::move(task));
+
+  serilang::Value awaiter;
+  serilang::Value awaited(future);
+  serilang::Value result;
+  vm.Await(awaiter, awaited, [&result](const auto& outcome) {
+    ASSERT_TRUE(outcome.has_value());
+    result = outcome.value();
+  });
+
+  EXPECT_EQ(starts, 1);
+  ASSERT_TRUE(future->promise->HasResult());
+  EXPECT_EQ(result, serilang::Value(7));
+  EXPECT_TRUE(pending.front().Done());
+}
+
+TEST(PackagedTaskTest, ResolvesWhenScheduledRoutineCompletes) {
+  serilang::VM vm(std::make_shared<serilang::GarbageCollector>());
+  int starts = 0;
+
+  PackagedTask task(std::make_unique<ScheduledTask>(vm, /*result=*/9, &starts));
+  serilang::Future* future = task.MakeFuture(*vm.gc_);
+  serilang::Value awaiter;
+  serilang::Value awaited(future);
+  serilang::Value result;
+
+  vm.Await(awaiter, awaited, [&result](const auto& outcome) {
+    ASSERT_TRUE(outcome.has_value());
+    result = outcome.value();
+  });
+
+  EXPECT_EQ(starts, 1);
+  EXPECT_FALSE(future->promise->HasResult());
+
+  vm.Run();
+
+  ASSERT_TRUE(future->promise->HasResult());
+  EXPECT_EQ(result, serilang::Value(9));
+  EXPECT_TRUE(task.Done());
 }
