@@ -27,14 +27,14 @@
 #include "core/gameexe.hpp"
 #include "machine/rlmachine.hpp"
 #include "systems/graphics_system.hpp"
+#include "systems/itext_system.hpp"
+#include "systems/sdl/sdl_surface.hpp"
 #include "systems/selection_element.hpp"
 #include "systems/sound_system.hpp"
 #include "systems/system.hpp"
 #include "systems/text_factory.hpp"
 #include "systems/text_system.hpp"
 #include "systems/text_waku.hpp"
-#include "systems/itext_system.hpp"
-#include "systems/sdl/sdl_surface.hpp"
 #include "utilities/assertx.hpp"
 #include "utilities/graphics.hpp"
 #include "utilities/string_utilities.hpp"
@@ -456,8 +456,9 @@ void TextWindow::Render() {
 
     switch (state_) {
       case State::Selection:
-        for_each(selections_.begin(), selections_.end(),
-                 [](std::unique_ptr<SelectionElement>& e) { e->Render(); });
+        std::for_each(
+            selections_.begin(), selections_.end(),
+            [](std::unique_ptr<SelectionElement>& e) { e->Render(); });
         break;
       case State::Normal:
         if (name_surface_) {

@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -44,9 +45,6 @@ class TextTextPageElement;
 class TextPage {
  public:
   TextPage(Gameexe& gexe, std::shared_ptr<TextWindow> window);
-
-  TextPage(const TextPage& rhs);
-  TextPage(TextPage&& rhs);
   ~TextPage();
 
   // Returns the number of characters printed with Character() and Name().
@@ -56,7 +54,7 @@ class TextPage {
   // MarkRubyBegin(), but not the closing DisplayRubyText().
   bool in_ruby_gloss() const { return in_ruby_gloss_; }
 
-  bool empty() const { return elements_to_replay_.empty(); }
+  bool empty() const { return replay_commands_.empty(); }
 
   // Replays every recordable action called on this TextPage.
   void Replay(bool is_active_page);
@@ -119,17 +117,13 @@ class TextPage {
   bool IsFull() const;
 
  private:
-  // Storage for an individual command.
-  struct Command;
+  using Command = std::function<void(TextPage&, bool)>;
 
   // Executes |command| and then adds it to |elements_to_replay_|.
-  void AddAction(const Command& command);
+  void AddAction(Command command);
 
   // Performs textout.
   bool CharacterImpl(const std::string& c, const std::string& rest);
-
-  // Actually performs the command in most cases.
-  void RunTextPageCommand(const Command& command, bool is_active_page);
 
   Gameexe& gexe;
 
@@ -143,6 +137,6 @@ class TextPage {
   // called.
   bool in_ruby_gloss_;
 
-  // A list of the text elements to replay on this page.
-  std::vector<Command> elements_to_replay_;
+  // A list of the text commands to replay on this page.
+  std::vector<Command> replay_commands_;
 };
