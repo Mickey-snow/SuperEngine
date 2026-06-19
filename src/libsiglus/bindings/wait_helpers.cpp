@@ -26,12 +26,12 @@
 
 #include "systems/event_system.hpp"
 #include "utilities/overload.hpp"
+#include "vm/exception.hpp"
 #include "vm/future.hpp"
 #include "vm/gc.hpp"
 #include "vm/promise.hpp"
 #include "vm/vm.hpp"
 
-#include <exception>
 #include <utility>
 
 namespace libsiglus::binding {
@@ -244,11 +244,16 @@ void CoroutineTask::TaskCoroutine::promise_type::return_value(int value) {
     promise->Resolve(sr::Value(value));
 }
 
-void ITask::Routine::promise_type::unhandled_exception() {
-  if (auto promise = completion_promise.lock())
-    promise->Reject("unhandled exception");
-  else
-    std::terminate();
+void CoroutineTask::TaskCoroutine::promise_type::unhandled_exception() {
+  try {
+    throw;
+  } catch (const sr::RuntimeError& e) {
+    if (auto promise = completion_promise.lock()) {
+      promise->Reject(e.message());
+    } else {
+      throw;
+    }
+  }
 }
 
 void CoroutineTask::TaskCoroutine::SetCompletionPromise(

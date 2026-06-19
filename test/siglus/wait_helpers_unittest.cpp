@@ -27,6 +27,7 @@
 #include "libsiglus/bindings/wait_helpers.hpp"
 #include "systems/event_backend.hpp"
 #include "systems/event_system.hpp"
+#include "vm/exception.hpp"
 #include "vm/future.hpp"
 #include "vm/gc.hpp"
 #include "vm/promise.hpp"
@@ -35,6 +36,7 @@
 #include <chrono>
 #include <memory>
 #include <queue>
+#include <stdexcept>
 #include <vector>
 
 using namespace libsiglus::binding;
@@ -88,6 +90,26 @@ class ScheduledTask : public CoroutineTask {
  private:
   int result_;
   int* starts_;
+};
+
+class StdExceptionThrowingTask : public CoroutineTask {
+ public:
+  explicit StdExceptionThrowingTask(serilang::VM& vm) : CoroutineTask(vm) {}
+
+  TaskCoroutine Run() override {
+    throw std::runtime_error("scheduled task failed");
+    co_return 0;
+  }
+};
+
+class RuntimeErrorThrowingTask : public CoroutineTask {
+ public:
+  explicit RuntimeErrorThrowingTask(serilang::VM& vm) : CoroutineTask(vm) {}
+
+  TaskCoroutine Run() override {
+    throw serilang::RuntimeError("scheduled task failed");
+    co_return 0;
+  }
 };
 
 TEST(WaitHandlerTest, SkipKeyWithoutCallbackIsNoop) {
@@ -236,4 +258,34 @@ TEST(FutureBackedCoroutineTaskTest, ResolvesWhenScheduledRoutineCompletes) {
   ASSERT_TRUE(future->promise->HasResult());
   EXPECT_EQ(result, serilang::Value(9));
   EXPECT_TRUE(task.Done());
+}
+
+TEST(FutureBackedCoroutineTaskTest, RejectsRuntimeErrorWithThrownMessage) {
+  serilang::VM vm(std::make_shared<serilang::GarbageCollector>());
+
+  FutureBackedCoroutineTask task(std::make_unique<RuntimeErrorThrowingTask>(vm));
+  serilang::Future* future = task.MakeFuture(*vm.gc_);
+  serilang::Value awaiter;
+  serilang::Value awaited(future);
+
+  vm.Await(awaiter, awaited, [](const auto& outcome) {
+    ASSERT_FALSE(outcome.has_value());
+    EXPECT_EQ(outcome.error(), "scheduled task failed");
+  });
+
+  ASSERT_TRUE(future->promise->HasResult());
+  ASSERT_FALSE(future->promise->result->has_value());
+  EXPECT_EQ(future->promise->result->error(), "scheduled task failed");
+  EXPECT_TRUE(task.Done());
+}
+
+TEST(FutureBackedCoroutineTaskTest, PropagatesNonRuntimeError) {
+  serilang::VM vm(std::make_shared<serilang::GarbageCollector>());
+
+  FutureBackedCoroutineTask task(std::make_unique<StdExceptionThrowingTask>(vm));
+  serilang::Value awaiter;
+  serilang::Value awaited(task.MakeFuture(*vm.gc_));
+
+  EXPECT_THROW(vm.Await(awaiter, awaited, [](const auto&) {}),
+               std::runtime_error);
 }
