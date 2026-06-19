@@ -1379,8 +1379,12 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
            id[8] | b_callable({{0, "color_default"}, {1, "color"}}),
            id[86] | b(Type::Callable, Member("msgbtn")),
            id[85] | b(Type::Callable, Member("set_namae")),
-           id[9] | b(Type::Callable, Member("koe")),
-           id[26] | b(Type::Callable, Member("koe_play_wait")),
+           id[9] | b_callable("koe", Type::None, NONSIMPLE),
+           id[26] |
+               b_callable("koe_play_wait", Type::None, NONSIMPLE | AWAIT),
+           id[27] |
+               b_callable("koe_play_wait_key", Type::Int,
+                          NONSIMPLE | AWAIT),
            id[22] | b(Type::None, Member("clear_face")),
            id[21] | b(Type::Callable, Member("set_face")),
            id[10] | b_callable({{0, "get_layer"}, {1, "set_layer"}}),

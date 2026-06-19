@@ -34,6 +34,7 @@ using namespace libsiglus;
 
 using ::testing::ElementsAre;
 using ::testing::HasSubstr;
+using ::testing::Return;
 using ::testing::ReturnRef;
 
 class ElementParserTest : public ::testing::Test {
@@ -480,6 +481,51 @@ TEST_F(ElementParserTest, Mwnd) {
     ElementCode elm{61};
     elm.ForceBind({1, {v("ruby")}});
     EXPECT_EQ(chain(elm), "mwnd.ruby_start[1](str:ruby)");
+  }
+  {
+    ElementCode elm{18};
+    elm.ForceBind({0, {v(12345), v(7)}});
+    EXPECT_CALL(*ctx, ReadKidoku()).WillOnce(Return(101));
+    auto parsed = chain(elm);
+    EXPECT_EQ(parsed, "mwnd.koe[0](int:12345,int:7)");
+    EXPECT_EQ(parsed.chain.kidoku, 101);
+    ASSERT_NE(last_call(parsed), nullptr);
+    EXPECT_FALSE(last_call(parsed)->await_result);
+  }
+  {
+    ElementCode elm{18};
+    Invoke invoke;
+    invoke.overload_id = 0;
+    invoke.arg = {v(12345)};
+    invoke.named_arg = {{0, v(1)}};
+    elm.ForceBind(std::move(invoke));
+    EXPECT_CALL(*ctx, ReadKidoku()).WillOnce(Return(102));
+    auto parsed = chain(elm);
+    EXPECT_EQ(parsed, "mwnd.koe[0](int:12345,0=int:1)");
+    EXPECT_EQ(parsed.chain.kidoku, 102);
+    ASSERT_NE(last_call(parsed), nullptr);
+    EXPECT_FALSE(last_call(parsed)->is_simple);
+  }
+  {
+    ElementCode elm{90};
+    elm.ForceBind({0, {v(12345)}});
+    EXPECT_CALL(*ctx, ReadKidoku()).WillOnce(Return(103));
+    auto parsed = chain(elm);
+    EXPECT_EQ(parsed, "mwnd.koe_play_wait[0](int:12345)");
+    EXPECT_EQ(parsed.chain.kidoku, 103);
+    ASSERT_NE(last_call(parsed), nullptr);
+    EXPECT_TRUE(last_call(parsed)->await_result);
+  }
+  {
+    ElementCode elm{91};
+    elm.ForceBind({0, {v(12345), v(7)}});
+    EXPECT_CALL(*ctx, ReadKidoku()).WillOnce(Return(104));
+    auto parsed = chain(elm);
+    EXPECT_EQ(parsed, "mwnd.koe_play_wait_key[0](int:12345,int:7)");
+    EXPECT_EQ(parsed.chain.GetType(), Type::Int);
+    EXPECT_EQ(parsed.chain.kidoku, 104);
+    ASSERT_NE(last_call(parsed), nullptr);
+    EXPECT_TRUE(last_call(parsed)->await_result);
   }
 }
 

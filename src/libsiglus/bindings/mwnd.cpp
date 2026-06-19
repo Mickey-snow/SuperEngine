@@ -25,19 +25,26 @@
 
 #include "core/colour.hpp"
 #include "core/gameexe.hpp"
+#include "libsiglus/bindings/util.hpp"
 #include "libsiglus/bindings/wait_helpers.hpp"
 #include "srbind/srbind.hpp"
 #include "systems/event_system.hpp"
+#include "systems/sound_system.hpp"
 #include "systems/system.hpp"
 #include "systems/text_page.hpp"
 #include "systems/text_system.hpp"
 #include "systems/text_window.hpp"
+#include "vm/dict.hpp"
 #include "vm/future.hpp"
+#include "vm/list.hpp"
+#include "vm/string.hpp"
 #include "vm/vm.hpp"
 
 #include <algorithm>
+#include <charconv>
 #include <chrono>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -85,7 +92,21 @@ struct MwndMessageState {
   bool block_started = false;
   bool clear_ready = false;
   int auto_mode_base_chars = 0;
+  int current_koe = -1;
+  int current_character = -1;
+  bool current_koe_played = false;
+  bool current_koe_no_auto_mode = false;
 };
+
+void ClearKoeState(const std::shared_ptr<MwndMessageState>& state) {
+  if (!state)
+    return;
+
+  state->current_koe = -1;
+  state->current_character = -1;
+  state->current_koe_played = false;
+  state->current_koe_no_auto_mode = false;
+}
 
 void MarkMessageClearReady(System* system,
                            const std::shared_ptr<MwndMessageState>& state) {
@@ -95,6 +116,7 @@ void MarkMessageClearReady(System* system,
   state->clear_ready = true;
   state->block_started = false;
   state->auto_mode_base_chars = CurrentPageCharCount(system);
+  ClearKoeState(state);
 }
 
 void MarkMessageNovelClear(System* system,
@@ -104,6 +126,76 @@ void MarkMessageNovelClear(System* system,
 
   state->block_started = false;
   state->auto_mode_base_chars = CurrentPageCharCount(system);
+  ClearKoeState(state);
+}
+
+struct CallPacket {
+  std::vector<sr::Value> args;
+  const sr::Dict* kwargs = nullptr;
+};
+
+std::optional<int> ParseKeywordId(const sr::Value& key) {
+  const sr::String* str = key.Get_if<sr::String>();
+  if (!str)
+    return std::nullopt;
+
+  std::string_view text = str->str_;
+  if (!text.empty() && text.front() == '_')
+    text.remove_prefix(1);
+  if (text.empty())
+    return std::nullopt;
+
+  int result = 0;
+  const char* begin = text.data();
+  const char* end = begin + text.size();
+  const auto [ptr, ec] = std::from_chars(begin, end, result);
+  if (ec != std::errc() || ptr != end)
+    return std::nullopt;
+  return result;
+}
+
+CallPacket DecodePacket(std::vector<sr::Value> raw) {
+  if (raw.size() == 3 && raw[1].Get_if<sr::List>() &&
+      raw[2].Get_if<sr::Dict>()) {
+    const sr::List* args = raw[1].Get_if<sr::List>();
+    return CallPacket{.args = args->items, .kwargs = raw[2].Get_if<sr::Dict>()};
+  }
+
+  return CallPacket{.args = std::move(raw)};
+}
+
+struct KoeCallParams {
+  int koe = 0;
+  int character = -1;
+  bool no_auto_mode = false;
+};
+
+KoeCallParams ParseKoeCall(std::vector<sr::Value> raw_args) {
+  CallPacket packet = DecodePacket(std::move(raw_args));
+  KoeCallParams params;
+
+  if (!packet.args.empty())
+    params.koe = AsInt(packet.args[0]).value_or(0);
+  if (packet.args.size() > 1)
+    params.character = AsInt(packet.args[1]).value_or(-1);
+
+  if (packet.kwargs) {
+    for (const auto& [key, value] : packet.kwargs->map) {
+      const std::optional<int> id = ParseKeywordId(key);
+      if (!id)
+        continue;
+
+      switch (*id) {
+        case 0:
+          params.no_auto_mode = AsInt(value).value_or(0) != 0;
+          break;
+        default:
+          break;
+      }
+    }
+  }
+
+  return params;
 }
 
 class MwndWaitTask : public CoroutineTask {
@@ -230,6 +322,37 @@ struct MwndBindingState {
     return future;
   }
 
+  void PlayKoe(std::vector<sr::Value> raw_args) {
+    KoeCallParams params = ParseKoeCall(std::move(raw_args));
+    const bool character_enabled =
+        !system || params.character < 0 ||
+        system->sound().ShouldUseKoeForCharacter(params.character) != 0;
+
+    if (message_state) {
+      message_state->current_koe = params.koe;
+      message_state->current_character = params.character;
+      message_state->current_koe_played = character_enabled;
+      message_state->current_koe_no_auto_mode = params.no_auto_mode;
+    }
+
+    if (!system)
+      return;
+
+    if (params.character >= 0)
+      system->sound().KoePlay(params.koe, params.character);
+    else
+      system->sound().KoePlay(params.koe);
+    system->text().GetCurrentPage().KoeMarker(params.koe);
+  }
+
+  sr::Value WaitKoe(sr::VM& vm, bool key_skip) {
+    auto done = [system = system] {
+      return !system || !system->sound().KoePlaying();
+    };
+    return MakePollingWaitFuture(vm, std::move(done), key_skip,
+                                 system ? system->event_ptr().get() : nullptr);
+  }
+
   sr::VM& vm;
   System* system;
   std::shared_ptr<Gameexe> local_config;
@@ -305,6 +428,24 @@ void BindMwnd(SiglusRuntime& runtime) {
   m.def("novel_clear", [state] {
     MarkMessageNovelClear(state->system, state->message_state);
   });
+  m.def(
+      "koe",
+      [state](std::vector<sr::Value> args) { state->PlayKoe(std::move(args)); },
+      sb::vararg);
+  m.def(
+      "koe_play_wait",
+      [state](sr::VM& vm, std::vector<sr::Value> args) -> sr::Value {
+        state->PlayKoe(std::move(args));
+        return state->WaitKoe(vm, false);
+      },
+      sb::vararg);
+  m.def(
+      "koe_play_wait_key",
+      [state](sr::VM& vm, std::vector<sr::Value> args) -> sr::Value {
+        state->PlayKoe(std::move(args));
+        return state->WaitKoe(vm, true);
+      },
+      sb::vararg);
 }
 
 RLVM_REGISTER(SiglusBindingRegistry, "0_mwnd", BindMwnd)
