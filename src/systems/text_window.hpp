@@ -335,11 +335,16 @@ class TextWindow {
   // the button and int is the corresponding id number.
   std::vector<std::pair<Point, int>> koe_replay_button_;
 
-  // We lazily parse and load data about displaying the koe icon on demand.
+ public:
   struct KoeReplayInfo {
     std::shared_ptr<const SDLSurface> icon;
     Size repos;
   };
+  inline void SetKoeReplayInfo(std::unique_ptr<KoeReplayInfo> in) {
+    koe_replay_info_.swap(in);
+  }
+
+ private:
   std::unique_ptr<KoeReplayInfo> koe_replay_info_;
 
   System& system_;

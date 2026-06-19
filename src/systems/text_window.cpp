@@ -501,12 +501,12 @@ void TextWindow::RenderFaces(int behind) {
 }
 
 void TextWindow::RenderKoeReplayButtons() {
-  for (std::vector<std::pair<Point, int>>::const_iterator it =
-           koe_replay_button_.begin();
-       it != koe_replay_button_.end(); ++it) {
+  if (!koe_replay_info_)
+    return;
+  for (const auto& [pt, _] : koe_replay_button_) {
     koe_replay_info_->icon->RenderToScreen(
         Rect(Point(0, 0), koe_replay_info_->icon->GetSize()),
-        Rect(GetTextSurfaceRect().origin() + it->first,
+        Rect(GetTextSurfaceRect().origin() + pt,
              koe_replay_info_->icon->GetSize()),
         255);
   }
@@ -589,18 +589,8 @@ bool TextWindow::DisplayCharacter(const std::string& current,
 bool TextWindow::IsFull() const { return layout_.IsFull(); }
 
 void TextWindow::KoeMarker(int id) {
-  if (!koe_replay_info_) {
-    koe_replay_info_.reset(new KoeReplayInfo);
-    Gameexe& gexe = system_.gameexe();
-    GameexeInterpretObject replay_icon(gexe("KOEREPLAYICON"));
-
-    koe_replay_info_->icon =
-        system_.graphics().GetSurfaceNamed(replay_icon("NAME").ToStr());
-    std::vector<int> reppos = replay_icon("REPPOS").ToIntVec();
-    if (reppos.size() == 2)
-      koe_replay_info_->repos = Size(reppos[0], reppos[1]);
-  }
-
+  if (!koe_replay_info_)
+    return;
   Point p = layout_.GetInsertionPoint() + koe_replay_info_->repos;
   koe_replay_button_.emplace_back(p, id);
 }

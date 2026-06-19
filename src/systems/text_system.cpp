@@ -257,9 +257,20 @@ void TextSystem::ClearVisualOverrides() { window_visual_override_.clear(); }
 std::shared_ptr<TextWindow> TextSystem::GetTextWindow(int window_id) {
   auto [it, inserted] = text_window_.try_emplace(window_id, nullptr);
   try {
-    if (inserted)
-      it->second =
+    if (inserted) {
+      auto tw =
           std::make_shared<TextWindow>(system_, window_id, text_impl_.get());
+      auto koe = std::make_unique<TextWindow::KoeReplayInfo>();
+      Gameexe& gexe = system_.gameexe();
+      GameexeInterpretObject replay_icon(gexe("KOEREPLAYICON"));
+      koe->icon =
+          system_.graphics().GetSurfaceNamed(replay_icon("NAME").ToStr());
+      std::vector<int> reppos = replay_icon("REPPOS").ToIntVec();
+      if (reppos.size() == 2)
+        koe->repos = Size(reppos[0], reppos[1]);
+      tw->SetKoeReplayInfo(std::move(koe));
+      it->second = tw;
+    }
     return it->second;
   } catch (...) {
     text_window_.erase(window_id);
