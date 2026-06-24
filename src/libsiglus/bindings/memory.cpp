@@ -21,14 +21,13 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#include "core/memory_internal/bank.hpp"
 #include "libsiglus/archive.hpp"
+#include "libsiglus/bindings/memory_facades.hpp"
 #include "libsiglus/bindings/registry.hpp"
 #include "libsiglus/bindings/util.hpp"
 #include "libsiglus/property.hpp"
 #include "log/domain_logger.hpp"
 #include "srbind/srbind.hpp"
-#include "utilities/assertx.hpp"
 #include "vm/exception.hpp"
 #include "vm/gc.hpp"
 #include "vm/list.hpp"
@@ -37,9 +36,7 @@
 
 #include <algorithm>
 #include <cstddef>
-#include <cstdint>
 #include <format>
-#include <limits>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -52,353 +49,6 @@ namespace sb = srbind;
 using namespace serilang;
 
 namespace {
-
-std::size_t CheckIndex(int idx) {
-  if (idx < 0)
-    throw RuntimeError("negative memory bank index: " + std::to_string(idx));
-  return static_cast<std::size_t>(idx);
-}
-
-std::size_t CheckSize(int size) {
-  if (size < 0)
-    throw RuntimeError("negative memory bank size: " + std::to_string(size));
-  return static_cast<std::size_t>(size);
-}
-
-int CheckedIntSize(std::size_t size) {
-  if (size > static_cast<std::size_t>(std::numeric_limits<int>::max()))
-    throw RuntimeError("memory bank size exceeds script integer range");
-  return static_cast<int>(size);
-}
-
-std::size_t RequiredIntWords(std::size_t logical_size, uint8_t bits) {
-  if (bits == 32)
-    return logical_size;
-
-  const std::size_t max_bits = std::numeric_limits<std::size_t>::max() - 31;
-  if (logical_size > max_bits / bits)
-    throw RuntimeError("memory bank size overflow");
-
-  return (logical_size * bits + 31) / 32;
-}
-
-std::size_t CheckedEnd(std::size_t begin,
-                       std::size_t count,
-                       std::string_view where) {
-  if (count > std::numeric_limits<std::size_t>::max() - begin)
-    throw RuntimeError(std::format("{} index overflow", where));
-  return begin + count;
-}
-
-std::size_t CheckExistingIndex(int idx,
-                               std::size_t size,
-                               std::string_view where) {
-  const std::size_t index = CheckIndex(idx);
-  if (index >= size) {
-    throw RuntimeError(std::format("{} index {} out of range for size {}",
-                                   where, index, size));
-  }
-  return index;
-}
-
-std::size_t CheckBitIndex(int idx,
-                          std::size_t words,
-                          std::uint8_t bits,
-                          std::string_view where) {
-  const std::size_t index = CheckIndex(idx);
-  const std::size_t per_word = 32 / bits;
-  if (words > std::numeric_limits<std::size_t>::max() / per_word)
-    throw RuntimeError(std::format("{} size overflow", where));
-  const std::size_t logical_size = words * per_word;
-  if (index >= logical_size) {
-    throw RuntimeError(std::format("{} index {} out of range for size {}",
-                                   where, index, logical_size));
-  }
-  return index;
-}
-
-std::pair<std::size_t, std::size_t> CheckFillRange(int begin,
-                                                   int end,
-                                                   std::size_t size,
-                                                   std::string_view where) {
-  const std::size_t begin_index = CheckIndex(begin);
-  const std::size_t end_index = CheckIndex(end);
-  if (begin_index > end_index)
-    throw RuntimeError(std::format("{} has invalid fill range", where));
-  if (end_index > size) {
-    throw RuntimeError(std::format("{} fill end {} out of range for size {}",
-                                   where, end_index, size));
-  }
-  return {begin_index, end_index};
-}
-
-class SiglusIntBank {
- public:
-  SiglusIntBank(Memory& memory, IntBank bank, uint8_t bits = 32)
-      : memory_(&memory), bank_(bank), bits_(bits) {
-    ASSERTX_TRUE(bits == 32 || bits == 1 || bits == 2 || bits == 4 ||
-                 bits == 8 || bits == 16);
-  }
-
-  int get(int idx) {
-    const std::size_t index = CheckIndex(idx);
-    EnsureSize(index + 1);
-    return memory_->Read(IntMemoryLocation(bank_, index, bits_));
-  }
-
-  void set(int idx, int value) {
-    const std::size_t index = CheckIndex(idx);
-    EnsureSize(index + 1);
-    memory_->Write(IntMemoryLocation(bank_, index, bits_), value);
-  }
-
-  void Set(int idx, std::vector<Value> values) {
-    const std::size_t begin = CheckIndex(idx);
-    if (values.empty())
-      return;
-
-    EnsureSize(CheckedEnd(begin, values.size(), "integer bank Set"));
-    for (std::size_t i = 0; i < values.size(); ++i) {
-      memory_->Write(IntMemoryLocation(bank_, begin + i, bits_),
-                     RequireInt(values[i], "integer bank Set"));
-    }
-  }
-
-  int b1(int idx) { return get_bits(idx, 1); }
-  void write_b1(int idx, int value) { set_bits(idx, value, 1); }
-
-  int b2(int idx) { return get_bits(idx, 2); }
-  void write_b2(int idx, int value) { set_bits(idx, value, 2); }
-
-  int b4(int idx) { return get_bits(idx, 4); }
-  void write_b4(int idx, int value) { set_bits(idx, value, 4); }
-
-  int b8(int idx) { return get_bits(idx, 8); }
-  void write_b8(int idx, int value) { set_bits(idx, value, 8); }
-
-  int b16(int idx) { return get_bits(idx, 16); }
-  void write_b16(int idx, int value) { set_bits(idx, value, 16); }
-
-  void resize(int size) {
-    memory_->Resize(bank_, RequiredIntWords(CheckSize(size), bits_));
-  }
-
-  int size() const {
-    const std::size_t words = memory_->Size(bank_);
-    if (bits_ == 32)
-      return CheckedIntSize(words);
-    return CheckedIntSize(words * (32 / bits_));
-  }
-
-  void fill(int begin, int end, int value) {
-    const std::size_t begin_index = CheckIndex(begin);
-    const std::size_t end_index = CheckIndex(end);
-    if (begin_index > end_index)
-      throw RuntimeError("invalid memory fill range");
-    if (begin_index == end_index)
-      return;
-
-    EnsureSize(end_index);
-    if (bits_ == 32) {
-      memory_->Fill(bank_, begin_index, end_index, value);
-      return;
-    }
-
-    for (std::size_t i = begin_index; i < end_index; ++i)
-      memory_->Write(IntMemoryLocation(bank_, i, bits_), value);
-  }
-
-  void init(int value = 0) { fill(0, size(), value); }
-
- private:
-  int get_bits(int idx, std::uint8_t bits) {
-    const std::size_t index = CheckIndex(idx);
-    EnsureSize(index + 1, bits);
-    return memory_->Read(IntMemoryLocation(bank_, index, bits));
-  }
-
-  void set_bits(int idx, int value, std::uint8_t bits) {
-    const std::size_t index = CheckIndex(idx);
-    EnsureSize(index + 1, bits);
-    memory_->Write(IntMemoryLocation(bank_, index, bits), value);
-  }
-
-  void EnsureSize(std::size_t logical_size) { EnsureSize(logical_size, bits_); }
-
-  void EnsureSize(std::size_t logical_size, std::uint8_t bits) {
-    const std::size_t required = RequiredIntWords(logical_size, bits);
-    if (memory_->Size(bank_) < required)
-      memory_->Resize(bank_, required);
-  }
-
-  Memory* memory_;
-  IntBank bank_;
-  uint8_t bits_;
-};
-
-class SiglusStrBank {
- public:
-  SiglusStrBank(Memory& memory, StrBank bank) : memory_(&memory), bank_(bank) {}
-
-  std::string get(int idx) {
-    const std::size_t index = CheckIndex(idx);
-    EnsureSize(index + 1);
-    return memory_->Read(bank_, index);
-  }
-
-  void set(int idx, std::string value) {
-    const std::size_t index = CheckIndex(idx);
-    EnsureSize(index + 1);
-    memory_->Write(bank_, index, value);
-  }
-
-  void Set(int idx, std::string value) { set(idx, std::move(value)); }
-
-  void resize(int size) { memory_->Resize(bank_, CheckSize(size)); }
-
-  int size() const { return CheckedIntSize(memory_->Size(bank_)); }
-
-  void fill(int begin, int end, std::string value) {
-    const std::size_t begin_index = CheckIndex(begin);
-    const std::size_t end_index = CheckIndex(end);
-    if (begin_index > end_index)
-      throw RuntimeError("invalid memory fill range");
-    if (begin_index == end_index)
-      return;
-
-    EnsureSize(end_index);
-    memory_->Fill(bank_, begin_index, end_index, value);
-  }
-
-  void init(std::string value = "") { fill(0, size(), std::move(value)); }
-
- private:
-  void EnsureSize(std::size_t size) {
-    if (memory_->Size(bank_) < size)
-      memory_->Resize(bank_, size);
-  }
-
-  Memory* memory_;
-  StrBank bank_;
-};
-
-class SiglusIntList {
- public:
-  explicit SiglusIntList(int size)
-      : storage_(CheckSize(size)), default_size_(CheckSize(size)) {}
-
-  int get(int idx) {
-    const std::size_t index =
-        CheckExistingIndex(idx, storage_.GetSize(), "integer list");
-    return storage_.Get(index);
-  }
-
-  void set(int idx, int value) {
-    const std::size_t index =
-        CheckExistingIndex(idx, storage_.GetSize(), "integer list");
-    storage_.Set(index, value);
-  }
-
-  void Set(int idx, std::vector<Value> values) {
-    const std::size_t begin = CheckIndex(idx);
-    if (values.empty())
-      return;
-
-    const std::size_t end =
-        CheckedEnd(begin, values.size(), "integer list Set");
-    if (end > storage_.GetSize()) {
-      throw RuntimeError(std::format(
-          "integer list Set range [{}, {}) out of range for size {}", begin,
-          end, storage_.GetSize()));
-    }
-
-    for (std::size_t i = 0; i < values.size(); ++i)
-      storage_.Set(begin + i, RequireInt(values[i], "integer list Set"));
-  }
-
-  void resize(int size) { storage_.Resize(CheckSize(size)); }
-
-  int size() const { return CheckedIntSize(storage_.GetSize()); }
-
-  void fill(int begin, int end, int value) {
-    const auto [begin_index, end_index] =
-        CheckFillRange(begin, end, storage_.GetSize(), "integer list");
-    storage_.Fill(begin_index, end_index, value);
-  }
-
-  void init() {
-    storage_.Resize(default_size_);
-    storage_.Fill(0, default_size_, 0);
-  }
-
-  int b1(int idx) { return get_bits(idx, 1); }
-  void write_b1(int idx, int value) { set_bits(idx, value, 1); }
-
-  int b2(int idx) { return get_bits(idx, 2); }
-  void write_b2(int idx, int value) { set_bits(idx, value, 2); }
-
-  int b4(int idx) { return get_bits(idx, 4); }
-  void write_b4(int idx, int value) { set_bits(idx, value, 4); }
-
-  int b8(int idx) { return get_bits(idx, 8); }
-  void write_b8(int idx, int value) { set_bits(idx, value, 8); }
-
-  int b16(int idx) { return get_bits(idx, 16); }
-  void write_b16(int idx, int value) { set_bits(idx, value, 16); }
-
- private:
-  int get_bits(int idx, std::uint8_t bits) {
-    const std::size_t index =
-        CheckBitIndex(idx, storage_.GetSize(), bits, "integer list bit access");
-    return storage_.Get(index, bits);
-  }
-
-  void set_bits(int idx, int value, std::uint8_t bits) {
-    const std::size_t index =
-        CheckBitIndex(idx, storage_.GetSize(), bits, "integer list bit access");
-    storage_.Set(index, value, bits);
-  }
-
-  IntBankStorage storage_;
-  std::size_t default_size_;
-};
-
-class SiglusStrList {
- public:
-  explicit SiglusStrList(int size)
-      : storage_(CheckSize(size)), default_size_(CheckSize(size)) {}
-
-  std::string get(int idx) {
-    const std::size_t index =
-        CheckExistingIndex(idx, storage_.GetSize(), "string list");
-    return storage_.Get(index);
-  }
-
-  void set(int idx, std::string value) {
-    const std::size_t index =
-        CheckExistingIndex(idx, storage_.GetSize(), "string list");
-    storage_.Set(index, value);
-  }
-
-  void resize(int size) { storage_.Resize(CheckSize(size)); }
-
-  int size() const { return CheckedIntSize(storage_.GetSize()); }
-
-  void fill(int begin, int end, std::string value) {
-    const auto [begin_index, end_index] =
-        CheckFillRange(begin, end, storage_.GetSize(), "string list");
-    storage_.Fill(begin_index, end_index, value);
-  }
-
-  void init() {
-    storage_.Resize(default_size_);
-    storage_.Fill(0, default_size_, "");
-  }
-
- private:
-  StrBankStorage storage_;
-  std::size_t default_size_;
-};
 
 template <typename T, typename... Args>
 Value MakeBoundNativeInstance(VM& vm,
@@ -417,6 +67,35 @@ Value MakeBoundNativeInstance(VM& vm,
   return Value(inst);
 }
 
+template <typename T>
+void BindIntSequenceMethods(sb::class_<T>& klass) {
+  klass.def("__getitem__", &T::get, sb::arg("idx"));
+  klass.def("__setitem__", &T::set, sb::arg("idx"), sb::arg("val"));
+  klass.def("Set", &T::Set, sb::arg("idx"), sb::vararg);
+  klass.def("resize", &T::resize, sb::arg("size"));
+  klass.def("size", &T::size);
+  klass.def("fill", &T::fill, sb::arg("begin"), sb::arg("end"), sb::arg("val"));
+  klass.def("b1", &T::b1, sb::arg("idx"));
+  klass.def("write_b1", &T::write_b1, sb::arg("idx"), sb::arg("val"));
+  klass.def("b2", &T::b2, sb::arg("idx"));
+  klass.def("write_b2", &T::write_b2, sb::arg("idx"), sb::arg("val"));
+  klass.def("b4", &T::b4, sb::arg("idx"));
+  klass.def("write_b4", &T::write_b4, sb::arg("idx"), sb::arg("val"));
+  klass.def("b8", &T::b8, sb::arg("idx"));
+  klass.def("write_b8", &T::write_b8, sb::arg("idx"), sb::arg("val"));
+  klass.def("b16", &T::b16, sb::arg("idx"));
+  klass.def("write_b16", &T::write_b16, sb::arg("idx"), sb::arg("val"));
+}
+
+template <typename T>
+void BindStrSequenceMethods(sb::class_<T>& klass) {
+  klass.def("__getitem__", &T::get, sb::arg("idx"));
+  klass.def("__setitem__", &T::set, sb::arg("idx"), sb::arg("val"));
+  klass.def("resize", &T::resize, sb::arg("size"));
+  klass.def("size", &T::size);
+  klass.def("fill", &T::fill, sb::arg("begin"), sb::arg("end"), sb::arg("val"));
+}
+
 }  // namespace
 
 void BindMemory(SiglusRuntime& runtime) {
@@ -427,37 +106,11 @@ void BindMemory(SiglusRuntime& runtime) {
   Memory& memory = *runtime.memory;
 
   sb::class_<SiglusIntList> ilist(m, "__SiglusIntList");
-  ilist.def("__getitem__", &SiglusIntList::get, sb::arg("idx"));
-  ilist.def("__setitem__", &SiglusIntList::set, sb::arg("idx"), sb::arg("val"));
-  ilist.def("Set", &SiglusIntList::Set, sb::arg("idx"), sb::vararg);
-  ilist.def("resize", &SiglusIntList::resize, sb::arg("size"));
-  ilist.def("size", &SiglusIntList::size);
-  ilist.def("fill", &SiglusIntList::fill, sb::arg("begin"), sb::arg("end"),
-            sb::arg("val"));
+  BindIntSequenceMethods(ilist);
   ilist.def("init", &SiglusIntList::init);
-  ilist.def("b1", &SiglusIntList::b1, sb::arg("idx"));
-  ilist.def("write_b1", &SiglusIntList::write_b1, sb::arg("idx"),
-            sb::arg("val"));
-  ilist.def("b2", &SiglusIntList::b2, sb::arg("idx"));
-  ilist.def("write_b2", &SiglusIntList::write_b2, sb::arg("idx"),
-            sb::arg("val"));
-  ilist.def("b4", &SiglusIntList::b4, sb::arg("idx"));
-  ilist.def("write_b4", &SiglusIntList::write_b4, sb::arg("idx"),
-            sb::arg("val"));
-  ilist.def("b8", &SiglusIntList::b8, sb::arg("idx"));
-  ilist.def("write_b8", &SiglusIntList::write_b8, sb::arg("idx"),
-            sb::arg("val"));
-  ilist.def("b16", &SiglusIntList::b16, sb::arg("idx"));
-  ilist.def("write_b16", &SiglusIntList::write_b16, sb::arg("idx"),
-            sb::arg("val"));
 
   sb::class_<SiglusStrList> slist(m, "__SiglusStrList");
-  slist.def("__getitem__", &SiglusStrList::get, sb::arg("idx"));
-  slist.def("__setitem__", &SiglusStrList::set, sb::arg("idx"), sb::arg("val"));
-  slist.def("resize", &SiglusStrList::resize, sb::arg("size"));
-  slist.def("size", &SiglusStrList::size);
-  slist.def("fill", &SiglusStrList::fill, sb::arg("begin"), sb::arg("end"),
-            sb::arg("val"));
+  BindStrSequenceMethods(slist);
   slist.def("init", &SiglusStrList::init);
 
   m.def(
@@ -509,38 +162,12 @@ void BindMemory(SiglusRuntime& runtime) {
 
   // Install memory bank classes and global bank views.
   sb::class_<SiglusIntBank> ibank(m, "__SiglusIntBank");
-  ibank.def("__getitem__", &SiglusIntBank::get, sb::arg("idx"));
-  ibank.def("__setitem__", &SiglusIntBank::set, sb::arg("idx"), sb::arg("val"));
-  ibank.def("Set", &SiglusIntBank::Set, sb::arg("idx"), sb::vararg);
-  ibank.def("resize", &SiglusIntBank::resize, sb::arg("size"));
-  ibank.def("size", &SiglusIntBank::size);
-  ibank.def("fill", &SiglusIntBank::fill, sb::arg("begin"), sb::arg("end"),
-            sb::arg("val"));
+  BindIntSequenceMethods(ibank);
   ibank.def("init", &SiglusIntBank::init, sb::arg("val") = 0);
-  ibank.def("b1", &SiglusIntBank::b1, sb::arg("idx"));
-  ibank.def("write_b1", &SiglusIntBank::write_b1, sb::arg("idx"),
-            sb::arg("val"));
-  ibank.def("b2", &SiglusIntBank::b2, sb::arg("idx"));
-  ibank.def("write_b2", &SiglusIntBank::write_b2, sb::arg("idx"),
-            sb::arg("val"));
-  ibank.def("b4", &SiglusIntBank::b4, sb::arg("idx"));
-  ibank.def("write_b4", &SiglusIntBank::write_b4, sb::arg("idx"),
-            sb::arg("val"));
-  ibank.def("b8", &SiglusIntBank::b8, sb::arg("idx"));
-  ibank.def("write_b8", &SiglusIntBank::write_b8, sb::arg("idx"),
-            sb::arg("val"));
-  ibank.def("b16", &SiglusIntBank::b16, sb::arg("idx"));
-  ibank.def("write_b16", &SiglusIntBank::write_b16, sb::arg("idx"),
-            sb::arg("val"));
 
   sb::class_<SiglusStrBank> sbank(m, "__SiglusStrBank");
-  sbank.def("__getitem__", &SiglusStrBank::get, sb::arg("idx"));
-  sbank.def("__setitem__", &SiglusStrBank::set, sb::arg("idx"), sb::arg("val"));
+  BindStrSequenceMethods(sbank);
   sbank.def("Set", &SiglusStrBank::Set, sb::arg("idx"), sb::arg("val"));
-  sbank.def("resize", &SiglusStrBank::resize, sb::arg("size"));
-  sbank.def("size", &SiglusStrBank::size);
-  sbank.def("fill", &SiglusStrBank::fill, sb::arg("begin"), sb::arg("end"),
-            sb::arg("val"));
   sbank.def("init", &SiglusStrBank::init, sb::arg("val") = "");
 
   auto bind_int_bank = [&](std::string_view name, IntBank bank) {
