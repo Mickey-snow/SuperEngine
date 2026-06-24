@@ -110,7 +110,7 @@ class SiglusTextout {
     bool flush_ = false;
   };
 
-  std::vector<FutureBackedCoroutineTask> pending_;
+  PendingCoroutineTasks pending_;
   sr::VM& vm_;
   System* sys_;
   std::shared_ptr<Gameexe> localcfg_;
@@ -142,14 +142,8 @@ void BindTextout(SiglusRuntime& runtime) {
 
           auto state = std::make_unique<SiglusTextout::Textout>(
               to->vm_, to->sys_, to->localcfg_, std::move(text));
-          std::erase_if(to->pending_,
-                        [](const FutureBackedCoroutineTask& pt) {
-                          return pt.Done();
-                        });
-          FutureBackedCoroutineTask task(std::move(state));
-          sr::Future* fut = task.MakeFuture(*to->vm_.gc_);
-          to->pending_.emplace_back(std::move(task));
-          return fut;
+          return sr::Value(
+              to->pending_.MakeFuture(*to->vm_.gc_, std::move(state)));
         });
 }
 

@@ -34,6 +34,7 @@
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 class EventSystem;
 
@@ -76,8 +77,8 @@ serilang::Value MakePollingWaitFuture(
 // ------------------------------------------------------------------------------
 
 // Base class for VM-backed asynchronous work implemented as a C++ coroutine.
-// Wrap it in FutureBackedCoroutineTask when the coroutine should be exposed as a
-// serilang::Future and started on first await.
+// Wrap it in FutureBackedCoroutineTask when the coroutine should be exposed as
+// a serilang::Future and started on first await.
 class CoroutineTask {
  public:
   CoroutineTask(serilang::VM& vm, EventSystem* event_system = nullptr);
@@ -166,6 +167,17 @@ class FutureBackedCoroutineTask {
  private:
   struct State;
   std::shared_ptr<State> state_;
+};
+
+class PendingCoroutineTasks {
+ public:
+  serilang::Future* MakeFuture(serilang::GarbageCollector& gc,
+                               std::unique_ptr<CoroutineTask> task);
+  void PruneDone();
+  std::size_t size() const;
+
+ private:
+  std::vector<FutureBackedCoroutineTask> tasks_;
 };
 
 };  // namespace libsiglus::binding

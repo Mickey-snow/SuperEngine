@@ -32,10 +32,29 @@
 #include "vm/promise.hpp"
 #include "vm/vm.hpp"
 
+#include <algorithm>
 #include <utility>
+#include <vector>
 
 namespace libsiglus::binding {
 namespace sr = serilang;
+
+namespace {
+
+bool IsAdvanceInput(const Event& event) {
+  return std::visit(overload(
+                        [](const KeyDown& event) {
+                          return event.code == KeyCode::RETURN ||
+                                 event.code == KeyCode::SPACE;
+                        },
+                        [](const MouseDown& event) {
+                          return event.button == MouseButton::LEFT;
+                        },
+                        [](const auto&) { return false; }),
+                    event);
+}
+
+}  // namespace
 
 WaitHandler::WaitHandler(std::shared_ptr<sr::GarbageCollector> gc,
                          EventSystem* event_system)
@@ -50,19 +69,8 @@ WaitHandler::WaitHandler(std::shared_ptr<sr::GarbageCollector> gc,
           cb();
       }
       void OnEvent(std::shared_ptr<Event> event) override {
-        std::visit(overload(
-                       [this](const KeyDown& event) {
-                         if (event.code == KeyCode::RETURN ||
-                             event.code == KeyCode::SPACE) {
-                           Notify();
-                         }
-                       },
-                       [this](const MouseDown& event) {
-                         if (event.button == MouseButton::LEFT)
-                           Notify();
-                       },
-                       [](const auto&) {}),
-                   *event);
+        if (IsAdvanceInput(*event))
+          Notify();
       }
     };
     listener_ = std::make_shared<SkipKeyListener>(*this);
@@ -186,19 +194,8 @@ struct CoroutineTask::DelayAwaiter::State : public EventListener {
                   // callstack?
   }
   void OnEvent(std::shared_ptr<Event> event) override {
-    std::visit(overload(
-                   [this](const KeyDown& event) {
-                     if (event.code == KeyCode::RETURN ||
-                         event.code == KeyCode::SPACE) {
-                       Notify(WaitOutcome::InterruptedByInput);
-                     }
-                   },
-                   [this](const MouseDown& event) {
-                     if (event.button == MouseButton::LEFT)
-                       Notify(WaitOutcome::InterruptedByInput);
-                   },
-                   [](const auto&) {}),
-               *event);
+    if (IsAdvanceInput(*event))
+      Notify(WaitOutcome::InterruptedByInput);
   }
   std::coroutine_handle<> h_;
   std::optional<WaitOutcome> result;
@@ -296,5 +293,23 @@ sr::Future* FutureBackedCoroutineTask::MakeFuture(sr::GarbageCollector& gc) {
 bool FutureBackedCoroutineTask::Done() const {
   return !state_ || state_->promise->HasResult();
 }
+
+sr::Future* PendingCoroutineTasks::MakeFuture(
+    sr::GarbageCollector& gc,
+    std::unique_ptr<CoroutineTask> task) {
+  PruneDone();
+  FutureBackedCoroutineTask pending(std::move(task));
+  sr::Future* future = pending.MakeFuture(gc);
+  tasks_.emplace_back(std::move(pending));
+  return future;
+}
+
+void PendingCoroutineTasks::PruneDone() {
+  std::erase_if(tasks_, [](const FutureBackedCoroutineTask& task) {
+    return task.Done();
+  });
+}
+
+std::size_t PendingCoroutineTasks::size() const { return tasks_.size(); }
 
 }  // namespace libsiglus::binding

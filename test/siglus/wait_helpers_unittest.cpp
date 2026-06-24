@@ -234,6 +234,32 @@ TEST(FutureBackedCoroutineTaskTest, StartsAfterMoveAndResolvesReturnedValue) {
   EXPECT_TRUE(pending.front().Done());
 }
 
+TEST(PendingCoroutineTasksTest, MakesFutureAndPrunesCompletedTasks) {
+  serilang::VM vm(std::make_shared<serilang::GarbageCollector>());
+  PendingCoroutineTasks pending;
+  int starts = 0;
+
+  serilang::Future* first = pending.MakeFuture(
+      *vm.gc_, std::make_unique<ImmediateTask>(vm, 3, &starts));
+  EXPECT_EQ(pending.size(), 1);
+
+  serilang::Value awaiter;
+  serilang::Value awaited(first);
+  serilang::Value result;
+  vm.Await(awaiter, awaited, [&result](const auto& outcome) {
+    ASSERT_TRUE(outcome.has_value());
+    result = outcome.value();
+  });
+
+  EXPECT_EQ(result, serilang::Value(3));
+  EXPECT_EQ(starts, 1);
+
+  serilang::Future* second = pending.MakeFuture(
+      *vm.gc_, std::make_unique<ImmediateTask>(vm, 4, &starts));
+  EXPECT_NE(second, nullptr);
+  EXPECT_EQ(pending.size(), 1);
+}
+
 TEST(FutureBackedCoroutineTaskTest, ResolvesWhenScheduledRoutineCompletes) {
   serilang::VM vm(std::make_shared<serilang::GarbageCollector>());
   int starts = 0;
@@ -263,7 +289,8 @@ TEST(FutureBackedCoroutineTaskTest, ResolvesWhenScheduledRoutineCompletes) {
 TEST(FutureBackedCoroutineTaskTest, RejectsRuntimeErrorWithThrownMessage) {
   serilang::VM vm(std::make_shared<serilang::GarbageCollector>());
 
-  FutureBackedCoroutineTask task(std::make_unique<RuntimeErrorThrowingTask>(vm));
+  FutureBackedCoroutineTask task(
+      std::make_unique<RuntimeErrorThrowingTask>(vm));
   serilang::Future* future = task.MakeFuture(*vm.gc_);
   serilang::Value awaiter;
   serilang::Value awaited(future);
@@ -282,7 +309,8 @@ TEST(FutureBackedCoroutineTaskTest, RejectsRuntimeErrorWithThrownMessage) {
 TEST(FutureBackedCoroutineTaskTest, PropagatesNonRuntimeError) {
   serilang::VM vm(std::make_shared<serilang::GarbageCollector>());
 
-  FutureBackedCoroutineTask task(std::make_unique<StdExceptionThrowingTask>(vm));
+  FutureBackedCoroutineTask task(
+      std::make_unique<StdExceptionThrowingTask>(vm));
   serilang::Value awaiter;
   serilang::Value awaited(task.MakeFuture(*vm.gc_));
 

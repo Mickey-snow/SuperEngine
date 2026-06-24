@@ -268,16 +268,9 @@ struct MwndBindingState {
         message_state(std::make_shared<MwndMessageState>()) {}
 
   sr::Value Wait(bool mark_clear_ready_after) {
-    std::erase_if(pending_waits, [](const FutureBackedCoroutineTask& task) {
-      return task.Done();
-    });
-
     auto wait_task = std::make_unique<MwndWaitTask>(
         vm, system, local_config, message_state, mark_clear_ready_after);
-    FutureBackedCoroutineTask task(std::move(wait_task));
-    sr::Future* future = task.MakeFuture(*vm.gc_);
-    pending_waits.emplace_back(std::move(task));
-    return future;
+    return sr::Value(pending_waits.MakeFuture(*vm.gc_, std::move(wait_task)));
   }
 
   void PlayKoe(std::vector<sr::Value> raw_args) {
@@ -315,7 +308,7 @@ struct MwndBindingState {
   System* system;
   std::shared_ptr<Gameexe> local_config;
   std::shared_ptr<MwndMessageState> message_state;
-  std::vector<FutureBackedCoroutineTask> pending_waits;
+  PendingCoroutineTasks pending_waits;
 };
 
 }  // namespace
