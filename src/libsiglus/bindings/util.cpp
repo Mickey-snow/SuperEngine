@@ -32,6 +32,7 @@
 #include "vm/vm.hpp"
 
 #include <format>
+#include <functional>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -117,6 +118,19 @@ std::optional<int> ParseKeywordId(sr::Value key) {
   if (ec != std::errc() || ptr != end)
     return std::nullopt;
   return result;
+}
+
+void ForEachKeywordId(
+    const sr::Dict* kwargs,
+    const std::function<void(int, const sr::Value&)>& callback) {
+  if (!kwargs || !callback)
+    return;
+
+  for (const auto& [key, value] : kwargs->map) {
+    const std::optional<int> id = ParseKeywordId(key);
+    if (id)
+      callback(*id, value);
+  }
 }
 
 }  // namespace libsiglus::binding

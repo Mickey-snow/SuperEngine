@@ -204,27 +204,21 @@ class SiglusObject {
       params.y = RequiredInt(args[3], "y");
     }
 
-    if (packet.kwargs) {
-      for (const auto& [key, value] : packet.kwargs->map) {
-        const std::optional<int> id = ParseKeywordId(key);
-        if (!id)
-          continue;
-
-        switch (*id) {
-          case 0:
-            params.auto_free = AsInt(value).value_or(0) != 0;
-            break;
-          case 1:
-            params.real_time = AsInt(value).value_or(0) != 0;
-            break;
-          case 2:
-            params.ready_only = AsInt(value).value_or(0) != 0;
-            break;
-          default:
-            break;
-        }
+    ForEachKeywordId(packet.kwargs, [&](int id, const sr::Value& value) {
+      switch (id) {
+        case 0:
+          params.auto_free = AsInt(value).value_or(0) != 0;
+          break;
+        case 1:
+          params.real_time = AsInt(value).value_or(0) != 0;
+          break;
+        case 2:
+          params.ready_only = AsInt(value).value_or(0) != 0;
+          break;
+        default:
+          break;
       }
-    }
+    });
 
     return params;
   }

@@ -146,13 +146,10 @@ struct SiglusWipe::Impl {
     CallPacket packet = CallPacket::DecodeFrom(std::move(raw_args));
     if (!packet.args.empty())
       key_wait_mode = AsInt(packet.args.front()).value_or(-1);
-    if (packet.kwargs) {
-      for (const auto& [key, value] : packet.kwargs->map) {
-        const std::optional<int> id = ParseKeywordId(key);
-        if (id && *id == 0)
-          key_wait_mode = AsInt(value).value_or(-1);
-      }
-    }
+    ForEachKeywordId(packet.kwargs, [&](int id, const sr::Value& value) {
+      if (id == 0)
+        key_wait_mode = AsInt(value).value_or(-1);
+    });
     SetKeySkip(key_wait_mode);
 
     return sr::Value(wh_->GetFuture());
@@ -270,15 +267,8 @@ struct SiglusWipe::Impl {
   }
 
   void ApplyKeywords(const sr::Dict* kwargs, WipeParams& params) {
-    if (!kwargs)
-      return;
-
-    for (const auto& [key, value] : kwargs->map) {
-      const std::optional<int> id = ParseKeywordId(key);
-      if (!id)
-        continue;
-
-      switch (*id) {
+    ForEachKeywordId(kwargs, [&](int id, const sr::Value& value) {
+      switch (id) {
         case 0:
           params.wipe_type = AsInt(value).value_or(0);
           break;
@@ -318,7 +308,7 @@ struct SiglusWipe::Impl {
         default:
           break;
       }
-    }
+    });
   }
 
   WipeParams last_;

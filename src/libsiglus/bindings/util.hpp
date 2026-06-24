@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -54,5 +55,8 @@ struct CallPacket {
   static CallPacket DecodeFrom(std::vector<serilang::Value> raw);
 };
 std::optional<int> ParseKeywordId(serilang::Value key);
+void ForEachKeywordId(
+    const serilang::Dict* kwargs,
+    const std::function<void(int, const serilang::Value&)>& callback);
 
 }  // namespace libsiglus::binding

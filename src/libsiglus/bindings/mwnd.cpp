@@ -142,21 +142,15 @@ struct KoeCallParams {
     if (packet.args.size() > 1)
       params.character = AsInt(packet.args[1]).value_or(-1);
 
-    if (packet.kwargs) {
-      for (const auto& [key, value] : packet.kwargs->map) {
-        const std::optional<int> id = ParseKeywordId(key);
-        if (!id)
-          continue;
-
-        switch (*id) {
-          case 0:
-            params.no_auto_mode = AsInt(value).value_or(0) != 0;
-            break;
-          default:
-            break;
-        }
+    ForEachKeywordId(packet.kwargs, [&](int id, const sr::Value& value) {
+      switch (id) {
+        case 0:
+          params.no_auto_mode = AsInt(value).value_or(0) != 0;
+          break;
+        default:
+          break;
       }
-    }
+    });
 
     return params;
   }
