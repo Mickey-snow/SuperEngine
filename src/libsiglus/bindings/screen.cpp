@@ -23,6 +23,7 @@
 
 #include "libsiglus/bindings/registry.hpp"
 
+#include "libsiglus/bindings/bootstrap.hpp"
 #include "libsiglus/bindings/util.hpp"
 #include "libsiglus/bindings/wait_helpers.hpp"
 #include "srbind/srbind.hpp"
@@ -42,9 +43,7 @@ class SiglusQuake {
   void start(std::vector<sr::Value>) { running_ = false; }
   void start_nowait(std::vector<sr::Value> args) { start(std::move(args)); }
   void start_all(std::vector<sr::Value> args) { start(std::move(args)); }
-  void start_all_nowait(std::vector<sr::Value> args) {
-    start(std::move(args));
-  }
+  void start_all_nowait(std::vector<sr::Value> args) { start(std::move(args)); }
   void end(std::vector<sr::Value>) { running_ = false; }
 
   sr::Value start_wait(sr::VM& vm, std::vector<sr::Value> args) {
@@ -94,27 +93,15 @@ void BindScreen(SiglusRuntime& runtime) {
       .def("start_nowait", &SiglusQuake::start_nowait, sb::vararg)
       .def("start_all", &SiglusQuake::start_all, sb::vararg)
       .def("start_all_wait", &SiglusQuake::start_all_wait, sb::vararg)
-      .def("start_all_wait_key", &SiglusQuake::start_all_wait_key,
-           sb::vararg)
+      .def("start_all_wait_key", &SiglusQuake::start_all_wait_key, sb::vararg)
       .def("start_all_nowait", &SiglusQuake::start_all_nowait, sb::vararg)
       .def("end", &SiglusQuake::end, sb::vararg)
       .def("wait", &SiglusQuake::wait, sb::vararg)
       .def("wait_key", &SiglusQuake::wait_key, sb::vararg)
       .def("check", &SiglusQuake::check, sb::vararg);
 
-  std::string src = R"(
-class __SiglusLazyArray {
-  fn __init__(self, klass){
-    self.klass = klass;
-    self.storage = [];
-  }
-  fn __getitem__(self, idx){
-    while(self.storage.len() <= idx) self.storage.append(nil);
-    if(self.storage[idx] == nil) self.storage[idx] = self.klass();
-    return self.storage[idx];
-  }
-}
-
+  std::string src = std::format(kLazyArrayClass, "__SiglusLazyArray");
+  src += R"(
 class Screen {
   fn __init__(self){
     self.quake = __SiglusLazyArray(Quake);

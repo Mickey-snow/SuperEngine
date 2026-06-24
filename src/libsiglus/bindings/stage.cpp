@@ -23,6 +23,7 @@
 
 #include "libsiglus/bindings/registry.hpp"
 
+#include "libsiglus/bindings/bootstrap.hpp"
 #include "libsiglus/bindings/util.hpp"
 #include "srbind/srbind.hpp"
 #include "vm/vm.hpp"
@@ -34,19 +35,8 @@ namespace sr = serilang;
 void BindStage(SiglusRuntime& runtime) {
   auto& vm = *runtime.vm;
 
-  std::string src = R"(
-class LazyArray {
-  fn __init__(self, klass){
-    self.klass = klass;
-    self.storage = [];
-  }
-  fn __getitem__(self, idx){
-    while(self.storage.len() <= idx) self.storage.append(nil);
-    if(self.storage[idx] == nil) self.storage[idx] = self.klass();
-    return self.storage[idx];
-  }
-}
-
+  std::string src = std::format(kLazyArrayClass, "LazyArray");
+  src += R"(
 class ObjectArray {
   fn __init__(self, layer){
     self.layer = layer;
@@ -55,7 +45,9 @@ class ObjectArray {
     return Object(self.layer, idx);
   }
 }
+)";
 
+  src += R"(
 class StageLayer {
   fn __init__(self, layer=0){
     self.object = nil;
@@ -105,6 +97,7 @@ stage_back = stage.back;
 stage_front = stage.front;
 stage_next = stage.next;
 )";
+
   Execute(vm, std::move(src));
   // TODO: Implement actual Mwnd, Group, Btnsel, World, Effect, Quake classes
 }

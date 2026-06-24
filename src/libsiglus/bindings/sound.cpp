@@ -21,6 +21,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
+#include "libsiglus/bindings/bootstrap.hpp"
 #include "libsiglus/bindings/registry.hpp"
 #include "libsiglus/bindings/util.hpp"
 #include "libsiglus/bindings/wait_helpers.hpp"
@@ -410,20 +411,10 @@ void BindSound(SiglusRuntime& runtime) {
   pcmch.def("set_vol_min", &SiglusPcmch::set_vol_min, sb::vararg);
   pcmch.def("get_volume", &SiglusPcmch::get_volume, sb::vararg);
 
-  Execute(vm, R"(
-class __SiglusPcmchList {
-  fn __init__(self){
-    self.storage = [];
-  }
-  fn __getitem__(self, idx){
-    while(self.storage.len() <= idx) self.storage.append(nil);
-    if(self.storage[idx] == nil) self.storage[idx] = __SiglusPcmch(idx);
-    return self.storage[idx];
-  }
-}
-
-pcmch_list = __SiglusPcmchList();
-)");
+  std::string src =
+      std::format(kIndexedFactory, "__SiglusPcmchList", "__SiglusPcmch");
+  src += "pcmch_list = __SiglusPcmchList();";
+  Execute(vm, std::move(src));
 }
 
 RLVM_REGISTER(SiglusBindingRegistry, "sound", BindSound)
