@@ -31,6 +31,7 @@
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <utility>
@@ -39,6 +40,52 @@
 namespace libsiglus::binding {
 namespace sr = serilang;
 namespace sb = srbind;
+
+namespace {
+
+class PlaybackState {
+ public:
+  static constexpr int kFree = 0;
+  static constexpr int kPlay = 1;
+  static constexpr int kFadeOut = 2;
+  static constexpr int kPause = 3;
+
+  void Set(int state) { state_ = state; }
+  int state() const { return state_; }
+
+  int Check(const std::function<bool()>& is_playing) const {
+    if (state_ == kFadeOut || state_ == kPause)
+      return state_;
+    if (is_playing && is_playing())
+      return kPlay;
+    return state_ == kPlay ? kPlay : kFree;
+  }
+
+  sr::Value WaitForPlayback(sr::VM& vm,
+                            System* system,
+                            bool key_skip,
+                            bool fade_only,
+                            std::function<bool()> is_playing) {
+    if (fade_only && state_ != kFadeOut)
+      return MakeResolvedFuture(*vm.gc_);
+
+    auto done = [this, is_playing = std::move(is_playing)] {
+      if (!is_playing || !is_playing()) {
+        if (state_ == kPlay || state_ == kFadeOut)
+          state_ = kFree;
+        return true;
+      }
+      return false;
+    };
+    return MakePollingWaitFuture(vm, std::move(done), key_skip,
+                                 system ? system->event_ptr().get() : nullptr);
+  }
+
+ private:
+  int state_ = kFree;
+};
+
+}  // namespace
 
 class SiglusBgm {
  public:
@@ -66,19 +113,19 @@ class SiglusBgm {
       else
         system_->sound().BgmStop();
     }
-    state_ = fade_ms > 0 ? kFadeOut : kFree;
+    playback_.Set(fade_ms > 0 ? PlaybackState::kFadeOut : PlaybackState::kFree);
   }
 
   void pause(std::vector<sr::Value>) {
     if (system_)
       system_->sound().BgmPause();
-    state_ = kPause;
+    playback_.Set(PlaybackState::kPause);
   }
 
   void resume(std::vector<sr::Value>) {
     if (system_)
       system_->sound().BgmUnPause();
-    state_ = kPlay;
+    playback_.Set(PlaybackState::kPlay);
   }
   sr::Value resume_wait(sr::VM& vm, std::vector<sr::Value> args) {
     resume(std::move(args));
@@ -99,11 +146,8 @@ class SiglusBgm {
   }
 
   int check(std::vector<sr::Value>) const {
-    if (state_ == kFadeOut || state_ == kPause)
-      return state_;
-    if (system_ && system_->sound().BgmStatus())
-      return kPlay;
-    return state_ == kPlay ? kPlay : kFree;
+    return playback_.Check(
+        [this] { return system_ && system_->sound().BgmStatus(); });
   }
 
   void set_volume(std::vector<sr::Value> args) {
@@ -149,7 +193,7 @@ class SiglusBgm {
       return;
 
     registered_name_ = AsString(args[0]);
-    state_ = kPlay;
+    playback_.Set(PlaybackState::kPlay);
     if (!system_)
       return;
 
@@ -165,29 +209,13 @@ class SiglusBgm {
   }
 
   sr::Value WaitForPlayback(sr::VM& vm, bool key_skip, bool fade_only) {
-    if (fade_only && state_ != kFadeOut)
-      return MakeResolvedFuture(*vm.gc_);
-
-    auto done = [this] {
-      if (!system_ || !system_->sound().BgmStatus()) {
-        if (state_ == kPlay || state_ == kFadeOut)
-          state_ = kFree;
-        return true;
-      }
-      return false;
-    };
-    return MakePollingWaitFuture(
-        vm, std::move(done), key_skip,
-        system_ ? system_->event_ptr().get() : nullptr);
+    return playback_.WaitForPlayback(vm, system_, key_skip, fade_only, [this] {
+      return system_ && system_->sound().BgmStatus();
+    });
   }
 
-  static constexpr int kFree = 0;
-  static constexpr int kPlay = 1;
-  static constexpr int kFadeOut = 2;
-  static constexpr int kPause = 3;
-
   System* system_;
-  int state_ = kFree;
+  PlaybackState playback_;
   int volume_ = 255;
   int volume_max_ = 255;
   int volume_min_ = 0;
@@ -227,18 +255,18 @@ class SiglusPcmch {
       else
         system_->sound().WavStop(channel_);
     }
-    state_ = fade_ms > 0 ? kFadeOut : kFree;
+    playback_.Set(fade_ms > 0 ? PlaybackState::kFadeOut : PlaybackState::kFree);
     loop_ = false;
   }
 
-  void pause(std::vector<sr::Value>) { state_ = kPause; }
+  void pause(std::vector<sr::Value>) { playback_.Set(PlaybackState::kPause); }
 
   void resume(std::vector<sr::Value> args) {
     const int fade_ms = args.empty() ? 0 : AsInt(args[0]).value_or(0);
     ready_ = false;
     if (!pcm_name_.empty())
       StartPlayback(fade_ms);
-    state_ = kPlay;
+    playback_.Set(PlaybackState::kPlay);
   }
 
   sr::Value resume_wait(sr::VM& vm, std::vector<sr::Value> args) {
@@ -260,11 +288,10 @@ class SiglusPcmch {
   }
 
   int check(std::vector<sr::Value>) const {
-    if (state_ == kFadeOut || state_ == kPause)
-      return state_;
-    if (system_ && IsValidChannel() && system_->sound().WavPlaying(channel_))
-      return kPlay;
-    return state_ == kPlay ? kPlay : kFree;
+    return playback_.Check([this] {
+      return system_ && IsValidChannel() &&
+             system_->sound().WavPlaying(channel_);
+    });
   }
 
   void set_volume(std::vector<sr::Value> args) {
@@ -298,7 +325,7 @@ class SiglusPcmch {
     ready_ = ready;
 
     if (ready) {
-      state_ = kFree;
+      playback_.Set(PlaybackState::kFree);
       return;
     }
 
@@ -306,7 +333,7 @@ class SiglusPcmch {
   }
 
   void StartPlayback(int fade_ms) {
-    state_ = kPlay;
+    playback_.Set(PlaybackState::kPlay);
     if (system_ && IsValidChannel() && !pcm_name_.empty())
       system_->sound().WavPlay(pcm_name_, loop_, channel_, fade_ms);
   }
@@ -327,33 +354,18 @@ class SiglusPcmch {
   }
 
   sr::Value WaitForPlayback(sr::VM& vm, bool key_skip, bool fade_only) {
-    if (fade_only && state_ != kFadeOut)
-      return MakeResolvedFuture(*vm.gc_);
-
-    auto done = [this] {
-      if (!system_ || !IsValidChannel() ||
-          !system_->sound().WavPlaying(channel_)) {
-        if (state_ == kPlay || state_ == kFadeOut)
-          state_ = kFree;
-        return true;
-      }
-      return false;
-    };
-    return MakePollingWaitFuture(
-        vm, std::move(done), key_skip,
-        system_ ? system_->event_ptr().get() : nullptr);
+    return playback_.WaitForPlayback(vm, system_, key_skip, fade_only, [this] {
+      return system_ && IsValidChannel() &&
+             system_->sound().WavPlaying(channel_);
+    });
   }
 
-  static constexpr int kFree = 0;
-  static constexpr int kPlay = 1;
-  static constexpr int kFadeOut = 2;
-  static constexpr int kPause = 3;
   static constexpr int kVolumeMin = 0;
   static constexpr int kVolumeMax = 255;
 
   System* system_;
   int channel_;
-  int state_ = kFree;
+  PlaybackState playback_;
   int volume_ = kVolumeMax;
   int fade_in_ms_ = 0;
   bool loop_ = false;
