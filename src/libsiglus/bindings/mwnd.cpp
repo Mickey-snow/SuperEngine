@@ -370,7 +370,7 @@ void BindMwnd(SiglusRuntime& runtime) {
   m.def("r", [state](sr::VM& vm) -> sr::Value {
     if (ConfigFlag(state->local_config, "ignore_r"))
       return MakeResolvedFuture(*vm.gc_);
-    return state->Wait(true);
+    return state->Wait(false);
   });
   m.def("page", [state](sr::VM&) -> sr::Value { return state->Wait(true); });
   m.def("clear", [state] {

@@ -84,6 +84,9 @@ class SiglusTextout {
         TextPage& page = system_->text().GetCurrentPage();
         page.Character(current, rest);
       }
+
+      TextPage& page = system_->text().GetCurrentPage();
+      page.HardBrake();  // new line?
       co_return 0;
     }
 
