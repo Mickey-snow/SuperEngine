@@ -78,6 +78,22 @@ TEST_F(FrameCounterTest, LinearZeroDuration) {
   EXPECT_FALSE(counter.IsActive());
 }
 
+TEST_F(FrameCounterTest, NegativeDelayStartsOneShotCountersPartwayThrough) {
+  const auto already_elapsed = std::chrono::milliseconds(-500);
+
+  SimpleFrameCounter linear(clock_, 0, 1, 1000);
+  linear.BeginTimer(already_elapsed);
+  EXPECT_FLOAT_EQ(linear.ReadFrame(), 0.5f);
+
+  AcceleratingFrameCounter accelerating(clock_, 0, 1, 1000);
+  accelerating.BeginTimer(already_elapsed);
+  EXPECT_FLOAT_EQ(accelerating.ReadFrame(), 0.25f);
+
+  DeceleratingFrameCounter decelerating(clock_, 0, 1, 1000);
+  decelerating.BeginTimer(already_elapsed);
+  EXPECT_FLOAT_EQ(decelerating.ReadFrame(), 0.75f);
+}
+
 TEST_F(FrameCounterTest, SimpleFrameCounter_MinEqualsMax) {
   SimpleFrameCounter counter(clock_, 5, 5, 1000);
 

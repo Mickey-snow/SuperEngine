@@ -263,9 +263,19 @@ struct FutureBackedCoroutineTask::State {
   explicit State(std::unique_ptr<CoroutineTask> task)
       : task(std::move(task)), promise(std::make_shared<serilang::Promise>()) {}
 
+  void Start() {
+    if (started)
+      return;
+    started = true;
+    coroutine = task->Run();
+    coroutine.SetCompletionPromise(promise);
+    coroutine.Start();
+  }
+
   std::unique_ptr<CoroutineTask> task;
   std::shared_ptr<serilang::Promise> promise;
   CoroutineTask::TaskCoroutine coroutine;
+  bool started = false;
 };
 
 FutureBackedCoroutineTask::FutureBackedCoroutineTask(
@@ -275,13 +285,15 @@ FutureBackedCoroutineTask::FutureBackedCoroutineTask(
   state_->promise->initial_await = [weak_state](sr::VM& vm, sr::Value& awaiter,
                                                 sr::Value& awaited) {
     // The coroutine starts only after the returned future is first awaited.
-    if (auto state = weak_state.lock()) {
-      state->coroutine = state->task->Run();
-      state->coroutine.SetCompletionPromise(state->promise);
-      state->coroutine.Start();
-    }
+    if (auto state = weak_state.lock())
+      state->Start();
     (void)vm, (void)awaiter, (void)awaited;
   };
+}
+
+void FutureBackedCoroutineTask::Start() {
+  if (state_)
+    state_->Start();
 }
 
 sr::Future* FutureBackedCoroutineTask::MakeFuture(sr::GarbageCollector& gc) {
@@ -292,6 +304,15 @@ sr::Future* FutureBackedCoroutineTask::MakeFuture(sr::GarbageCollector& gc) {
 
 bool FutureBackedCoroutineTask::Done() const {
   return !state_ || state_->promise->HasResult();
+}
+
+sr::Future* PendingCoroutineTasks::MakeFuture(
+    sr::GarbageCollector& gc,
+    FutureBackedCoroutineTask pending) {
+  PruneDone();
+  sr::Future* future = pending.MakeFuture(gc);
+  tasks_.emplace_back(std::move(pending));
+  return future;
 }
 
 sr::Future* PendingCoroutineTasks::MakeFuture(

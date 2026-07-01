@@ -41,9 +41,7 @@ struct SiglusWipe {
   SiglusWipe(::System* system, ::Stage* stage);
   ~SiglusWipe();
 
-  bool Update();
   bool IsActive() const;
-  double Progress() const;
 
   struct Impl;
   std::unique_ptr<Impl> impl_;

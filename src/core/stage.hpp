@@ -65,6 +65,11 @@ class Stage {
   void Wipe();
   void Wipe(int begin_order, int end_order, int begin_layer, int end_layer);
 
+  double foreground_render_alpha() const { return foreground_render_alpha_; }
+  double next_render_alpha() const { return next_render_alpha_; }
+  void SetTransitionRenderAlpha(double foreground_alpha, double next_alpha);
+  void ClearTransitionRenderState();
+
   // Object getters
   // layer == OBJ_FG for foreground, OBJ_BG for background, OBJ_NEXT for next.
   GraphicsObject& GetObject(int layer, int obj_number);
@@ -101,4 +106,8 @@ class Stage {
 
   const LazyArray<GraphicsObject>& ObjectsForLayer(int layer) const;
   LazyArray<GraphicsObject>& ObjectsForLayer(int layer);
+
+ private:
+  double foreground_render_alpha_ = 1.0;
+  double next_render_alpha_ = 0.0;
 };

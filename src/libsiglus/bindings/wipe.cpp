@@ -23,18 +23,15 @@
 
 #include "libsiglus/bindings/wipe.hpp"
 
-#include "core/event.hpp"
-#include "core/event_listener.hpp"
+#include "core/frame_counter.hpp"
 #include "core/stage.hpp"
 #include "libsiglus/bindings/registry.hpp"
 #include "libsiglus/bindings/util.hpp"
 #include "libsiglus/bindings/wait_helpers.hpp"
-#include "libsiglus/siglus_scene_renderer.hpp"
 #include "srbind/srbind.hpp"
 #include "systems/event_system.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
-#include "utilities/overload.hpp"
 #include "vm/dict.hpp"
 #include "vm/future.hpp"
 #include "vm/list.hpp"
@@ -44,12 +41,11 @@
 
 #include <algorithm>
 #include <array>
-#include <charconv>
+#include <chrono>
 #include <limits>
 #include <memory>
-#include <optional>
 #include <string>
-#include <string_view>
+#include <utility>
 #include <vector>
 
 namespace libsiglus::binding {
@@ -74,175 +70,16 @@ struct WipeParams {
   int key_wait_mode = -1;
   int with_low_order = 0;
   std::string mask_file;
-};
 
-void CopyOptions(const sr::Value& value,
-                 std::array<int, kWipeOptionMax>& options) {
-  const sr::List* list = value.Get_if<sr::List>();
-  if (!list) {
-    options[0] = AsInt(value).value_or(0);
-    return;
-  }
-
-  const std::size_t count =
-      std::min(list->items.size(), static_cast<std::size_t>(kWipeOptionMax));
-  for (std::size_t i = 0; i < count; ++i)
-    options[i] = AsInt(list->items[i]).value_or(0);
-}
-
-}  // namespace
-
-struct SiglusWipe::Impl {
-  Impl(System* system, Stage* stage) : system_(system), stage_(stage) {}
-  ~Impl() { EndCurrent(0); }
-
-  sr::Value Start(sr::VM& vm,
-                  std::vector<sr::Value> raw_args,
-                  bool masked,
-                  bool all) {
-    EndCurrent(0);
-
+  static WipeParams DecodeFrom(std::vector<sr::Value> raw_args,
+                               bool masked,
+                               bool all) {
     WipeParams params;
     if (all)
       params.end_order = std::numeric_limits<int>::max();
 
     CallPacket packet = CallPacket::DecodeFrom(std::move(raw_args));
-    ApplyPositional(packet.args, params, masked);
-    ApplyKeywords(packet.kwargs, params);
-    last_ = std::move(params);
-
-    if (!stage_)
-      return MakeResolvedFuture(*vm.gc_);
-
-    stage_->Wipe(last_.begin_order, last_.end_order, last_.begin_layer,
-                 last_.end_layer);
-
-    if (!system_) {
-      ClearWipeState();
-      return MakeResolvedFuture(*vm.gc_);
-    }
-
-    if (ShouldCompleteImmediately()) {
-      ClearWipeState();
-      return MakeResolvedFuture(*vm.gc_);
-    }
-
-    wh_ = std::make_unique<WaitHandler>(vm.gc_, system_->event_ptr().get());
-    start_ticks_ = system_->event().GetTicks();
-    progress_ = ComputeProgress(last_.start_time);
-
-    if (!last_.wait_flag)
-      return MakeResolvedFuture(*vm.gc_);
-
-    SetKeySkip(last_.key_wait_mode);
-    return sr::Value(wh_->GetFuture());
-  }
-
-  sr::Value Wait(sr::VM& vm, std::vector<sr::Value> raw_args) {
-    if (!wh_)
-      return MakeResolvedFuture(*vm.gc_);
-
-    int key_wait_mode = -1;
-    CallPacket packet = CallPacket::DecodeFrom(std::move(raw_args));
-    if (!packet.args.empty())
-      key_wait_mode = AsInt(packet.args.front()).value_or(-1);
-    ForEachKeywordId(packet.kwargs, [&](int id, const sr::Value& value) {
-      if (id == 0)
-        key_wait_mode = AsInt(value).value_or(-1);
-    });
-    SetKeySkip(key_wait_mode);
-
-    return sr::Value(wh_->GetFuture());
-  }
-
-  void EndCurrent(int result) {
-    if (!wh_)
-      return;
-
-    wh_->Resolve(result);
-    wh_ = nullptr;
-    ClearWipeState();
-  }
-
-  void ClearWipeState() {
-    progress_ = 1.0;
-
-    if (stage_)
-      stage_->next_objects.Clear();
-  }
-
-  bool Update() {
-    if (!wh_ || !system_)
-      return false;
-
-    if (system_->ShouldFastForward() ||
-        system_->graphics().should_skip_animations()) {
-      EndCurrent(0);
-      return false;
-    }
-
-    const int elapsed = ElapsedTime();
-    if (elapsed >= last_.wipe_time) {
-      EndCurrent(0);
-      return false;
-    }
-
-    progress_ = ComputeProgress(elapsed);
-    return true;
-  }
-
-  void SetKeySkip(int key_wait_mode) {
-    if (!wh_)
-      return;
-
-    bool enabled;
-    if (key_wait_mode == 0)
-      enabled = false;
-    else if (key_wait_mode == 1)
-      enabled = true;
-    else
-      enabled = system_ && system_->graphics().should_skip_animations() != 0;
-
-    if (enabled)
-      wh_->OnKey([this] { EndCurrent(1); });
-    else
-      wh_->OnKey();
-  }
-
-  bool ShouldCompleteImmediately() const {
-    return last_.wipe_time <= 0 || last_.start_time >= last_.wipe_time ||
-           system_->graphics().should_skip_animations() ||
-           system_->ShouldFastForward();
-  }
-
-  int ElapsedTime() const {
-    const unsigned int now = system_->event().GetTicks();
-    return last_.start_time + static_cast<int>(now - start_ticks_);
-  }
-
-  double ComputeProgress(int elapsed) const {
-    if (last_.wipe_time <= 0)
-      return 1.0;
-
-    const double t =
-        std::clamp(static_cast<double>(elapsed) / last_.wipe_time, 0.0, 1.0);
-    switch (last_.speed_mode) {
-      case 0:
-        return t;
-      case 1:
-        return t * t;
-      case 2:
-        return 1.0 - (1.0 - t) * (1.0 - t);
-      default:
-        return 0.0;
-    }
-  }
-
-  inline bool IsActive() const { return wh_ != nullptr; }
-
-  void ApplyPositional(const std::vector<sr::Value>& args,
-                       WipeParams& params,
-                       bool masked) {
+    const auto& args = packet.args;
     if (masked) {
       if (args.size() > 0)
         params.mask_file = AsString(args[0]);
@@ -264,9 +101,8 @@ struct SiglusWipe::Impl {
       if (args.size() > 3)
         CopyOptions(args[3], params.option);
     }
-  }
 
-  void ApplyKeywords(const sr::Dict* kwargs, WipeParams& params) {
+    const auto& kwargs = packet.kwargs;
     ForEachKeywordId(kwargs, [&](int id, const sr::Value& value) {
       switch (id) {
         case 0:
@@ -309,22 +145,281 @@ struct SiglusWipe::Impl {
           break;
       }
     });
+
+    return params;
   }
 
-  WipeParams last_;
-  unsigned int start_ticks_ = 0;
-  double progress_ = 1.0;
+  static void CopyOptions(const sr::Value& value,
+                          std::array<int, kWipeOptionMax>& options) {
+    const sr::List* list = value.Get_if<sr::List>();
+    if (!list) {
+      options[0] = AsInt(value).value_or(0);
+      return;
+    }
+
+    const std::size_t count =
+        std::min(list->items.size(), static_cast<std::size_t>(kWipeOptionMax));
+    for (std::size_t i = 0; i < count; ++i)
+      options[i] = AsInt(list->items[i]).value_or(0);
+  }
+};
+
+}  // namespace
+
+struct SiglusWipe::Impl {
+  Impl(System* system, Stage* stage) : system_(system), stage_(stage) {}
+  ~Impl() { EndCurrent(0); }
+
+  struct ActiveWipe {
+    std::shared_ptr<sr::Promise> promise;
+    int key_wait_mode = -1;
+    int result = 0;
+    bool cancelled = false;
+  };
+
+  std::shared_ptr<FrameCounter> MakeWipeFrameCounter(
+      const WipeParams& params,
+      std::shared_ptr<Clock> clock) {
+    if (!clock)
+      return nullptr;
+
+    std::shared_ptr<FrameCounter> counter;
+    switch (params.speed_mode) {
+      case 1:
+        counter = std::make_shared<AcceleratingFrameCounter>(
+            std::move(clock), 0, 1, params.wipe_time);
+        break;
+      case 2:
+        counter = std::make_shared<DeceleratingFrameCounter>(
+            std::move(clock), 0, 1, params.wipe_time);
+        break;
+      case 0:
+      default:
+        counter = std::make_shared<SimpleFrameCounter>(std::move(clock), 0, 1,
+                                                       params.wipe_time);
+        break;
+    }
+
+    counter->BeginTimer(std::chrono::milliseconds(0) -
+                        std::chrono::milliseconds(params.start_time));
+    return counter;
+  }
+
+  struct WipeTask final : CoroutineTask {
+    WipeTask(sr::VM& vm,
+             System* system,
+             Stage* stage,
+             WipeParams params,
+             std::weak_ptr<ActiveWipe> active,
+             std::shared_ptr<FrameCounter> progress_counter)
+        : CoroutineTask(vm, system ? system->event_ptr().get() : nullptr),
+          system_(system),
+          stage_(stage),
+          params_(std::move(params)),
+          active_(std::move(active)),
+          start_ticks_(system ? system->event().GetTicks() : 0),
+          progress_counter_(std::move(progress_counter)) {}
+
+    TaskCoroutine Run() override {
+      while (true) {
+        if (IsCancelled())
+          co_return CurrentResult();
+
+        if (!system_ || !stage_) {
+          FinishStage();
+          co_return 0;
+        }
+
+        if (system_->ShouldFastForward() ||
+            system_->graphics().should_skip_animations()) {
+          FinishStage();
+          co_return 0;
+        }
+
+        const int elapsed = ElapsedTime();
+        if (elapsed >= params_.wipe_time) {
+          FinishStage();
+          co_return 0;
+        }
+
+        if (progress_counter_ && stage_) {
+          float progress = progress_counter_->ReadFrame();
+          stage_->SetTransitionRenderAlpha(progress, 1.0 - progress);
+        }
+
+        const WaitOutcome outcome =
+            co_await WaitFor(kPollInterval, ShouldInterruptOnInput());
+        if (outcome == WaitOutcome::InterruptedByInput) {
+          FinishStage();
+          co_return 1;
+        }
+      }
+    }
+
+   private:
+    static constexpr std::chrono::milliseconds kPollInterval =
+        std::chrono::milliseconds(5);
+
+    bool IsCancelled() const {
+      std::shared_ptr<ActiveWipe> active = active_.lock();
+      if (!active)
+        return true;
+      if (active->cancelled)
+        return true;
+      return active->promise && active->promise->HasResult();
+    }
+
+    int CurrentResult() const {
+      if (std::shared_ptr<ActiveWipe> active = active_.lock())
+        return active->result;
+      return 0;
+    }
+
+    bool ShouldInterruptOnInput() const {
+      std::shared_ptr<ActiveWipe> active = active_.lock();
+      if (!active)
+        return false;
+
+      const int key_wait_mode = active->key_wait_mode;
+      if (key_wait_mode == 0)
+        return false;
+      if (key_wait_mode == 1)
+        return true;
+
+      return system_ && system_->graphics().should_skip_animations() != 0;
+    }
+
+    int ElapsedTime() const {
+      const unsigned int now = system_->event().GetTicks();
+      return params_.start_time + static_cast<int>(now - start_ticks_);
+    }
+
+    void FinishStage() {
+      if (!stage_)
+        return;
+
+      stage_->ClearTransitionRenderState();
+      stage_->next_objects.Clear();
+    }
+
+    System* system_ = nullptr;
+    Stage* stage_ = nullptr;
+    WipeParams params_;
+    std::weak_ptr<ActiveWipe> active_;
+    unsigned int start_ticks_ = 0;
+    std::shared_ptr<FrameCounter> progress_counter_;
+  };
+
+  sr::Value Start(sr::VM& vm,
+                  std::vector<sr::Value> raw_args,
+                  bool masked,
+                  bool all) {
+    EndCurrent(0);
+
+    auto params = WipeParams::DecodeFrom(std::move(raw_args), masked, all);
+
+    if (!stage_)
+      return MakeResolvedFuture(*vm.gc_);
+
+    stage_->Wipe(params.begin_order, params.end_order, params.begin_layer,
+                 params.end_layer);
+
+    if (!system_) {
+      ClearWipeState();
+      return MakeResolvedFuture(*vm.gc_);
+    }
+
+    if (ShouldCompleteImmediately(params)) {
+      ClearWipeState();
+      return MakeResolvedFuture(*vm.gc_);
+    }
+
+    auto active = std::make_shared<ActiveWipe>();
+    active->key_wait_mode = params.wait_flag ? params.key_wait_mode : -1;
+    active_ = active;
+
+    auto progress_counter =
+        MakeWipeFrameCounter(params, system_->event().GetClock());
+    const double initial_progress = progress_counter->ReadFrame();
+    stage_->SetTransitionRenderAlpha(initial_progress, 1.0 - initial_progress);
+
+    auto task = std::make_unique<WipeTask>(vm, system_, stage_, params, active,
+                                           std::move(progress_counter));
+    FutureBackedCoroutineTask pending(std::move(task));
+    pending.Start();  // eager start is required
+    sr::Future* future = pending_.MakeFuture(*vm.gc_, std::move(pending));
+    active->promise = future->promise;
+    vm.TrackPendingPromise(future->promise);
+
+    if (!params.wait_flag)
+      return MakeResolvedFuture(*vm.gc_);
+
+    return sr::Value(future);
+  }
+
+  sr::Value Wait(sr::VM& vm, std::vector<sr::Value> raw_args) {
+    if (!IsActive())
+      return MakeResolvedFuture(*vm.gc_);
+
+    int key_wait_mode = -1;
+    CallPacket packet = CallPacket::DecodeFrom(std::move(raw_args));
+    if (!packet.args.empty())
+      key_wait_mode = AsInt(packet.args.front()).value_or(-1);
+    ForEachKeywordId(packet.kwargs, [&](int id, const sr::Value& value) {
+      if (id == 0)
+        key_wait_mode = AsInt(value).value_or(-1);
+    });
+    if (active_)
+      active_->key_wait_mode = key_wait_mode;
+
+    return MakeFutureForActive(vm);
+  }
+
+  void EndCurrent(int result) {
+    if (!active_)
+      return;
+
+    active_->result = result;
+    active_->cancelled = true;
+    if (active_->promise)
+      active_->promise->Resolve(sr::Value(result));
+    active_ = nullptr;
+    ClearWipeState();
+  }
+
+  void ClearWipeState() {
+    if (stage_) {
+      stage_->ClearTransitionRenderState();
+      stage_->next_objects.Clear();
+    }
+  }
+
+  bool ShouldCompleteImmediately(const WipeParams& params) const {
+    return params.wipe_time <= 0 || params.start_time >= params.wipe_time ||
+           system_->graphics().should_skip_animations() ||
+           system_->ShouldFastForward();
+  }
+
+  bool IsActive() const {
+    return active_ && active_->promise && !active_->promise->HasResult();
+  }
+
+  sr::Value MakeFutureForActive(sr::VM& vm) {
+    sr::Future* future = vm.gc_->Allocate<sr::Future>();
+    future->promise = active_->promise;
+    return sr::Value(future);
+  }
+
   System* system_ = nullptr;
   Stage* stage_ = nullptr;
-  std::unique_ptr<WaitHandler> wh_;
+  std::shared_ptr<ActiveWipe> active_;
+  PendingCoroutineTasks pending_;
 };
 
 SiglusWipe::SiglusWipe(System* system, Stage* stage)
     : impl_(std::make_unique<Impl>(system, stage)) {}
 SiglusWipe::~SiglusWipe() = default;
-bool SiglusWipe::Update() { return impl_->Update(); }
 bool SiglusWipe::IsActive() const { return impl_->IsActive(); }
-double SiglusWipe::Progress() const { return impl_->progress_; }
 
 void BindWipe(SiglusRuntime& runtime) {
   sr::VM& vm = *runtime.vm;
@@ -332,8 +427,6 @@ void BindWipe(SiglusRuntime& runtime) {
 
   runtime.wipe =
       std::make_unique<SiglusWipe>(runtime.system.get(), runtime.stage.get());
-  if (runtime.renderer)
-    runtime.renderer->SetWipe(runtime.wipe.get());
 
   auto wipe = m.bind_instance("wipe", runtime.wipe.get());
   wipe.def(

@@ -286,6 +286,26 @@ TEST(FutureBackedCoroutineTaskTest, ResolvesWhenScheduledRoutineCompletes) {
   EXPECT_TRUE(task.Done());
 }
 
+TEST(FutureBackedCoroutineTaskTest, EagerStartKeepsVmAliveUntilCompletion) {
+  serilang::VM vm(std::make_shared<serilang::GarbageCollector>());
+  int starts = 0;
+
+  FutureBackedCoroutineTask task(
+      std::make_unique<ScheduledTask>(vm, /*result=*/9, &starts));
+  task.Start();
+  serilang::Future* future = task.MakeFuture(*vm.gc_);
+  vm.TrackPendingPromise(future->promise);
+
+  EXPECT_EQ(starts, 1);
+  EXPECT_FALSE(future->promise->HasResult());
+
+  vm.Run();
+
+  ASSERT_TRUE(future->promise->HasResult());
+  EXPECT_EQ(future->promise->result->value(), serilang::Value(9));
+  EXPECT_TRUE(task.Done());
+}
+
 TEST(FutureBackedCoroutineTaskTest, RejectsRuntimeErrorWithThrownMessage) {
   serilang::VM vm(std::make_shared<serilang::GarbageCollector>());
 

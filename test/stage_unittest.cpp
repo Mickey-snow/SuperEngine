@@ -25,10 +25,12 @@
 
 #include "core/object_internal/objdrawer.hpp"
 #include "core/stage.hpp"
+#include "libsiglus/siglus_scene_renderer.hpp"
 
 #include <limits>
 #include <memory>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 class StageTest : public ::testing::Test {
@@ -140,11 +142,31 @@ TEST_F(StageTest, FreeAndInitializeSingleObjectAffectFrontAndBackOnly) {
 TEST_F(StageTest, ConstructorAndResetIncludeNextObjects) {
   Stage stage(3);
   stage.next_objects[1].Param().SetVisible(1);
+  stage.SetTransitionRenderAlpha(0.25, 0.75);
 
   EXPECT_EQ(GetExistFlags(stage.next_objects), "010");
   stage.Reset();
   EXPECT_EQ(GetExistFlags(stage.next_objects), "000")
       << "Stage.Reset should clear next object buffer";
+  EXPECT_DOUBLE_EQ(stage.foreground_render_alpha(), 1.0);
+  EXPECT_DOUBLE_EQ(stage.next_render_alpha(), 0.0);
+}
+
+TEST_F(StageTest, TransitionRenderAlphaIsClampedAndClearable) {
+  Stage stage(1);
+
+  EXPECT_DOUBLE_EQ(stage.foreground_render_alpha(), 1.0);
+  EXPECT_DOUBLE_EQ(stage.next_render_alpha(), 0.0);
+
+  stage.SetTransitionRenderAlpha(-0.5, 1.5);
+
+  EXPECT_DOUBLE_EQ(stage.foreground_render_alpha(), 0.0);
+  EXPECT_DOUBLE_EQ(stage.next_render_alpha(), 1.0);
+
+  stage.ClearTransitionRenderState();
+
+  EXPECT_DOUBLE_EQ(stage.foreground_render_alpha(), 1.0);
+  EXPECT_DOUBLE_EQ(stage.next_render_alpha(), 0.0);
 }
 
 TEST_F(StageTest, WipePromotesBackToFrontAndClearsBack) {

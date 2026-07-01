@@ -87,6 +87,7 @@ class VM {
       Value& awaited,
       std::function<void(const expected<Value, std::string>&)> result_callback);
 
+  void TrackPendingPromise(std::shared_ptr<Promise> promise);
   std::size_t CountPendingPromises();
 
  public:

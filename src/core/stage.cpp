@@ -42,6 +42,7 @@ void Stage::Reset() {
   foreground_objects.Clear();
   background_objects.Clear();
   next_objects.Clear();
+  ClearTransitionRenderState();
 }
 
 void Stage::Wipe() {
@@ -95,6 +96,17 @@ void Stage::Wipe(int begin_order,
       foreground_objects[i].FreeDataAndInitializeParams();
     }
   }
+}
+
+void Stage::SetTransitionRenderAlpha(double foreground_alpha,
+                                     double next_alpha) {
+  foreground_render_alpha_ = std::clamp(foreground_alpha, 0.0, 1.0);
+  next_render_alpha_ = std::clamp(next_alpha, 0.0, 1.0);
+}
+
+void Stage::ClearTransitionRenderState() {
+  foreground_render_alpha_ = 1.0;
+  next_render_alpha_ = 0.0;
 }
 
 LazyArray<GraphicsObject>& Stage::ObjectsForLayer(int layer) {

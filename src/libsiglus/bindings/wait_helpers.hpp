@@ -161,18 +161,22 @@ class FutureBackedCoroutineTask {
   FutureBackedCoroutineTask& operator=(FutureBackedCoroutineTask&&) noexcept =
       default;
 
+  void Start();
   serilang::Future* MakeFuture(serilang::GarbageCollector& gc);
   bool Done() const;
 
  private:
   struct State;
   std::shared_ptr<State> state_;
+  bool started_ = false;
 };
 
 class PendingCoroutineTasks {
  public:
   serilang::Future* MakeFuture(serilang::GarbageCollector& gc,
                                std::unique_ptr<CoroutineTask> task);
+  serilang::Future* MakeFuture(serilang::GarbageCollector& gc,
+                               FutureBackedCoroutineTask task);
   void PruneDone();
   std::size_t size() const;
 

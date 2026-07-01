@@ -25,7 +25,6 @@
 
 #include "core/object.hpp"
 #include "core/stage.hpp"
-#include "libsiglus/bindings/wipe.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
 #include "systems/text_system.hpp"
@@ -58,38 +57,21 @@ class ScopedAlpha {
 SiglusSceneRenderer::SiglusSceneRenderer(Stage& stage, System& system)
     : stage_(stage), system_(system) {}
 
-void SiglusSceneRenderer::SetWipe(binding::SiglusWipe* wipe) { wipe_ = wipe; }
-
 void SiglusSceneRenderer::ExecuteFrame() { stage_.Execute(); }
 
 void SiglusSceneRenderer::RenderScene() {
-  if (wipe_)
-    wipe_->Update();
-
-  if (wipe_ && wipe_->IsActive())
-    RenderWipeObjects(stage_, wipe_->Progress(), to_render_);
-  else
-    RenderForegroundObjects(stage_, to_render_);
+  RenderStageObjects(stage_, to_render_);
 
   if (!system_.graphics().is_interface_hidden())
     system_.text().Render();
 }
 
-void SiglusSceneRenderer::RenderForegroundObjects(Stage& stage,
-                                                  ToRenderVec& to_render) {
+void SiglusSceneRenderer::RenderStageObjects(Stage& stage,
+                                             ToRenderVec& to_render) {
   to_render.clear();
-  QueueObjects(stage.foreground_objects, 0, 1.0, to_render);
-  RenderQueuedObjects(to_render);
-}
-
-void SiglusSceneRenderer::RenderWipeObjects(Stage& stage,
-                                            double progress,
-                                            ToRenderVec& to_render) {
-  progress = std::clamp(progress, 0.0, 1.0);
-
-  to_render.clear();
-  QueueObjects(stage.next_objects, 0, 1.0 - progress, to_render);
-  QueueObjects(stage.foreground_objects, 1, progress, to_render);
+  QueueObjects(stage.next_objects, 0, stage.next_render_alpha(), to_render);
+  QueueObjects(stage.foreground_objects, 1, stage.foreground_render_alpha(),
+               to_render);
   RenderQueuedObjects(to_render);
 }
 

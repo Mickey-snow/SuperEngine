@@ -39,15 +39,9 @@ namespace libsiglus {
 
 class SiglusSceneRendererTest;
 
-namespace binding {
-class SiglusWipe;
-}  // namespace binding
-
 class SiglusSceneRenderer final : public ISceneRenderer {
  public:
   SiglusSceneRenderer(::Stage& stage, ::System& system);
-
-  void SetWipe(binding::SiglusWipe* wipe);
 
   void ExecuteFrame() override;
   void RenderScene() override;
@@ -58,10 +52,7 @@ class SiglusSceneRenderer final : public ISceneRenderer {
   using ToRenderVec =
       std::vector<std::tuple<int, int, int, int, int, GraphicsObject*, double>>;
 
-  static void RenderForegroundObjects(::Stage& stage, ToRenderVec& to_render);
-  static void RenderWipeObjects(::Stage& stage,
-                                double progress,
-                                ToRenderVec& to_render);
+  static void RenderStageObjects(::Stage& stage, ToRenderVec& to_render);
   static void QueueObjects(LazyArray<GraphicsObject>& objects,
                            int source_order,
                            double alpha_multiplier,
@@ -70,7 +61,6 @@ class SiglusSceneRenderer final : public ISceneRenderer {
 
   ::Stage& stage_;
   ::System& system_;
-  binding::SiglusWipe* wipe_ = nullptr;
   ToRenderVec to_render_;
 };
 

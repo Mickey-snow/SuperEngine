@@ -855,6 +855,20 @@ bool VM::Await(Value& awaiter,
   return true;
 }
 
+void VM::TrackPendingPromise(std::shared_ptr<Promise> promise) {
+  if (!promise || promise->HasResult())
+    return;
+
+  if (promise->status == Promise::Status::New)
+    promise->status = Promise::Status::Pending;
+
+  auto already_tracked = std::ranges::any_of(
+      pending_promises_,
+      [&promise](const auto& tracked) { return tracked.lock() == promise; });
+  if (!already_tracked)
+    pending_promises_.emplace_back(std::move(promise));
+}
+
 void VM::SweepDeadFibres() {
   std::erase_if(fibres_, [this](Fiber* f) {
     if (f->state != FiberState::Dead)
