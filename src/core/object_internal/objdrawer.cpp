@@ -265,7 +265,9 @@ void GraphicsObjectData::Render(const GraphicsObject& go,
     config.tint = param.tint();
     config.mono = param.mono();
     config.invert = param.invert();
-    config.light = param.light();
+    const ObjectParameter* parent_param = parent ? &parent->Param() : nullptr;
+    config.bright = param.EffectiveBright(parent_param);
+    config.dark = param.EffectiveDark(parent_param);
 
     glRenderer().Render({it.gltexture, src_rect}, std::move(config),
                         {SDLSurface::screen_, dst_rect});

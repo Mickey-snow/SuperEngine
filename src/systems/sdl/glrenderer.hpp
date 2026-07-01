@@ -51,7 +51,8 @@ struct RenderingConfig {
   std::optional<RGBAColour> mask_color;
   std::optional<float> mono;
   std::optional<float> invert;
-  std::optional<float> light;
+  std::optional<float> bright;
+  std::optional<float> dark;
   std::optional<RGBColour> tint;
   std::optional<float> alpha;
   std::optional<std::array<float, 4>> vertex_alpha;

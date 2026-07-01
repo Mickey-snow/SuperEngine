@@ -504,8 +504,12 @@ void addUnifiedFunctions(ObjectModule& h) {
                             CreateGetter<&ObjectParameter::invert_transform>(),
                             CreateSetter<&ObjectParameter::invert_transform>());
   h.AddSingleObjectCommands(11, "Light",
-                            CreateGetter<&ObjectParameter::light_level>(),
-                            CreateSetter<&ObjectParameter::light_level>());
+                            [](const ObjectParameter& param) {
+                              return param.light();
+                            },
+                            [](ObjectParameter& param, int value) {
+                              param.SetLight(value);
+                            });
 
   // ---
 

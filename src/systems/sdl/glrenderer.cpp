@@ -289,6 +289,12 @@ void glRenderer::Render(glRenderable src,
   auto invert = cfg.invert.value_or(0.0f) / 255.0f;
   shader->SetUniform("invert", invert);
 
+  auto bright = cfg.bright.value_or(0.0f) / 255.0f;
+  shader->SetUniform("bright", bright);
+
+  auto dark = cfg.dark.value_or(0.0f) / 255.0f;
+  shader->SetUniform("dark", dark);
+
   auto alpha = cfg.alpha.value_or(255.0f) / 255.0f;
   shader->SetUniform("alpha", alpha);
 

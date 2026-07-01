@@ -97,7 +97,8 @@ uniform vec4 color;
 uniform vec4 mask_color;
 uniform float mono;
 uniform float invert;
-uniform float light;
+uniform float bright;
+uniform float dark;
 uniform vec3 tint;
 uniform float alpha;
 uniform int blend_type;
@@ -115,35 +116,32 @@ void tinter(in float pixel_val, in float tint_val, out float mixed) {
 }
 
 void main() {
-  vec4 pixel = texture(texture0, TexCoord);
+  vec4 original = texture(texture0, TexCoord);
+  vec4 pixel = original;
+
+  // Apply inversion effect
+  if (invert > 0.0) {
+    vec3 inverted = vec3(1.0) - original.rgb;
+    vec3 mixed = mix(pixel.rgb, inverted, invert);
+    pixel.rgb = mixed;
+  }
+
+  // Apply grayscale effect
+  if (mono > 0.0) {
+    float gray = dot(original.rgb, vec3(0.299, 0.587, 0.114));
+    vec3 mixed = mix(pixel.rgb, vec3(gray), mono);
+    pixel.rgb = mixed;
+  }
+
+  pixel.rgb = clamp(pixel.rgb + vec3(bright) - vec3(dark), 0.0, 1.0);
+  pixel.a = original.a;
 
   // Blend with the input color
   vec3 colored = mix(pixel.rgb, color.rgb, color.a);
   colored = clamp(colored + mask_color.rgb*mask_color.a, 0.0, 1.0);
   pixel = vec4(colored, pixel.a);
 
-  // Apply grayscale effect
-  if (mono > 0.0) {
-    float gray = dot(pixel.rgb, vec3(0.299, 0.587, 0.114));
-    vec3 mixed = mix(pixel.rgb, vec3(gray), mono);
-    pixel.rgb = mixed;
-  }
-
-  // Apply inversion effect
-  if (invert > 0.0) {
-    vec3 inverted = vec3(1.0) - pixel.rgb;
-    vec3 mixed = mix(pixel.rgb, inverted, invert);
-    pixel.rgb = mixed;
-  }
-
-  // Apply lighting adjustment
   float out_r, out_g, out_b;
-  tinter(pixel.r, light, out_r);
-  tinter(pixel.g, light, out_g);
-  tinter(pixel.b, light, out_b);
-  pixel.rgb = vec3(out_r, out_g, out_b);
-
-  // Apply tint
   tinter(pixel.r, tint.r, out_r);
   tinter(pixel.g, tint.g, out_g);
   tinter(pixel.b, tint.b, out_b);

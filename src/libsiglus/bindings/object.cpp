@@ -550,6 +550,10 @@ struct DirectObjectPropertyBinder {
     Member<&ObjectParameter::alpha_source>("tr");
     Member<&ObjectParameter::monochrome_transform>("mono");
     Member<&ObjectParameter::invert_transform>("reverse");
+    Property("bright", [](const auto* obj) { return obj->param().Bright(); },
+             [](auto* obj, int value) { obj->param().SetBright(value); });
+    Property("dark", [](const auto* obj) { return obj->param().Dark(); },
+             [](auto* obj, int value) { obj->param().SetDark(value); });
 
     Property(
         "color_r", [](const auto* obj) { return obj->param().colour_red(); },
@@ -712,11 +716,14 @@ struct ObjectEventPropertyBinder {
         });
     Member<&ObjectParameter::monochrome_transform>("mono_eve");
     Member<&ObjectParameter::invert_transform>("reverse_eve");
-    Member<&ObjectParameter::light_level>("bright_eve");
+    Property(
+        "bright_eve",
+        [](const ObjectParameter& param) { return param.Bright(); },
+        [](ObjectParameter& param, int value) { param.SetBright(value); });
     Property(
         "dark_eve",
-        [](const ObjectParameter& param) { return -param.light_level; },
-        [](ObjectParameter& param, int value) { param.light_level = -value; });
+        [](const ObjectParameter& param) { return param.Dark(); },
+        [](ObjectParameter& param, int value) { param.SetDark(value); });
 
     Property(
         "color_r_eve",

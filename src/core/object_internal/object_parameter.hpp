@@ -27,6 +27,7 @@
 #include "core/colour.hpp"
 #include "core/rect.hpp"
 
+#include <algorithm>
 #include <array>
 #include <functional>
 #include <numeric>
@@ -36,7 +37,6 @@
 
 #include <boost/serialization/array.hpp>
 #include <boost/serialization/serialization.hpp>
-#include <boost/serialization/version.hpp>
 
 extern const Rect EMPTY_RECT;
 
@@ -172,7 +172,8 @@ struct ObjectParameter {
   Rect own_space_clipping_region = Rect(Point(0, 0), Size(-1, -1));
   int monochrome_transform = 0;
   int invert_transform = 0;
-  int light_level = 0;
+  int bright = 0;
+  int dark = 0;
   RGBColour tint_colour = RGBColour(0, 0, 0);
   RGBAColour blend_colour = RGBAColour(0, 0, 0, 0);
   int mask_no = -1;
@@ -269,8 +270,33 @@ struct ObjectParameter {
   int invert() const { return invert_transform; }
   void SetInvert(const int in) { invert_transform = in; }
 
-  int light() const { return light_level; }
-  void SetLight(const int in) { light_level = in; }
+  int light() const { return Bright() - Dark(); }
+  void SetLight(const int in) {
+    const int light = std::clamp(in, -255, 255);
+    if (light >= 0) {
+      bright = light;
+      dark = 0;
+    } else {
+      bright = 0;
+      dark = -light;
+    }
+  }
+
+  int Bright() const { return std::clamp(bright, 0, 255); }
+  void SetBright(const int in) { bright = std::clamp(in, 0, 255); }
+  int Dark() const { return std::clamp(dark, 0, 255); }
+  void SetDark(const int in) { dark = std::clamp(in, 0, 255); }
+  static int ComposeEffectLevel(int child, int parent) {
+    child = std::clamp(child, 0, 255);
+    parent = std::clamp(parent, 0, 255);
+    return 255 - ((255 - child) * (255 - parent)) / 255;
+  }
+  int EffectiveBright(const ObjectParameter* parent = nullptr) const {
+    return parent ? ComposeEffectLevel(Bright(), parent->Bright()) : Bright();
+  }
+  int EffectiveDark(const ObjectParameter* parent = nullptr) const {
+    return parent ? ComposeEffectLevel(Dark(), parent->Dark()) : Dark();
+  }
 
   RGBColour tint() const { return tint_colour; }
   int tint_red() const { return tint().r(); }
@@ -468,23 +494,16 @@ struct ObjectParameter {
         high_quality_scale_y_percent & rotation_div10 & pattern_number &
         alpha_source & adjustment_alphas & clipping_region &
         own_space_clipping_region & monochrome_transform & invert_transform &
-        light_level & tint_colour & blend_colour;
-    if (version >= 1) {
-      ar & mask_no & tonecurve_no & culling & alpha_test & alpha_blend;
-    }
+        bright & dark;
+    ar & tint_colour & blend_colour;
+    ar & mask_no & tonecurve_no & culling & alpha_test & alpha_blend;
     ar & composite_mode;
-    if (version >= 1) {
-      ar & light_no & fog_use;
-    }
+    ar & light_no & fog_use;
     ar & scroll_rate_x & scroll_rate_y & z_order & z_layer & z_depth & text &
         drift & digit & button & wipe_copy;
-    if (version >= 1) {
-      ar & wipe_erase & click_disable;
-    }
+    ar & wipe_erase & click_disable;
   }
 };
-
-BOOST_CLASS_VERSION(ObjectParameter, 1)
 
 template <typename T>
 inline constexpr bool always_false_v = false;

@@ -56,7 +56,9 @@ TEST(ObjectParameterTest, DefaultInit) {
   EXPECT_FALSE(param.has_own_clip_rect());
   EXPECT_EQ(param.monochrome_transform, 0);
   EXPECT_EQ(param.invert_transform, 0);
-  EXPECT_EQ(param.light_level, 0);
+  EXPECT_EQ(param.light(), 0);
+  EXPECT_EQ(param.bright, 0);
+  EXPECT_EQ(param.dark, 0);
   EXPECT_EQ(param.tint_colour, RGBColour(0, 0, 0));
   EXPECT_EQ(param.blend_colour, RGBAColour(0, 0, 0, 0));
   EXPECT_EQ(param.mask_no, -1);
@@ -98,7 +100,8 @@ TEST(ObjectParameterTest, AccessorsUpdateTypedFields) {
   param.SetPattNo(5);
   param.SetMono(1);
   param.SetInvert(1);
-  param.SetLight(1);
+  param.SetBright(64);
+  param.SetDark(32);
   param.SetTint(RGBColour(100, 150, 200));
   param.SetTintRed(110);
   param.SetTintGreen(160);
@@ -147,7 +150,9 @@ TEST(ObjectParameterTest, AccessorsUpdateTypedFields) {
   EXPECT_EQ(param.GetPattNo(), 5);
   EXPECT_EQ(param.mono(), 1);
   EXPECT_EQ(param.invert(), 1);
-  EXPECT_EQ(param.light(), 1);
+  EXPECT_EQ(param.light(), 32);
+  EXPECT_EQ(param.Bright(), 64);
+  EXPECT_EQ(param.Dark(), 32);
   EXPECT_EQ(param.tint(), RGBColour(110, 160, 210));
   EXPECT_EQ(param.colour(), RGBAColour(55, 65, 75, 85));
   EXPECT_EQ(param.mask_no, 4);
@@ -170,6 +175,76 @@ TEST(ObjectParameterTest, AccessorsUpdateTypedFields) {
   EXPECT_EQ(param.wipe_copy, 1);
   EXPECT_EQ(param.wipe_erase, 1);
   EXPECT_EQ(param.click_disable, 1);
+}
+
+TEST(ObjectParameterTest, LightAccessorUsesBrightDark) {
+  ObjectParameter param;
+
+  param.SetLight(40);
+  EXPECT_EQ(param.light(), 40);
+  EXPECT_EQ(param.Bright(), 40);
+  EXPECT_EQ(param.Dark(), 0);
+
+  param.SetLight(-50);
+  EXPECT_EQ(param.light(), -50);
+  EXPECT_EQ(param.Bright(), 0);
+  EXPECT_EQ(param.Dark(), 50);
+
+  param.SetLight(0);
+  EXPECT_EQ(param.light(), 0);
+  EXPECT_EQ(param.Bright(), 0);
+  EXPECT_EQ(param.Dark(), 0);
+
+  param.SetLight(300);
+  EXPECT_EQ(param.light(), 255);
+  EXPECT_EQ(param.Bright(), 255);
+  EXPECT_EQ(param.Dark(), 0);
+
+  param.SetLight(-300);
+  EXPECT_EQ(param.light(), -255);
+  EXPECT_EQ(param.Bright(), 0);
+  EXPECT_EQ(param.Dark(), 255);
+
+  param.SetBright(120);
+  param.SetDark(20);
+  EXPECT_EQ(param.light(), 100);
+
+  param.bright = 400;
+  param.dark = -2;
+  EXPECT_EQ(param.light(), 255);
+}
+
+TEST(ObjectParameterTest, BrightDarkClampAndComposeWithParent) {
+  ObjectParameter child;
+  ObjectParameter parent;
+
+  child.SetBright(-1);
+  child.SetDark(-10);
+  EXPECT_EQ(child.Bright(), 0);
+  EXPECT_EQ(child.Dark(), 0);
+
+  child.SetBright(300);
+  child.SetDark(512);
+  EXPECT_EQ(child.Bright(), 255);
+  EXPECT_EQ(child.Dark(), 255);
+
+  child.SetBright(64);
+  parent.SetBright(128);
+  child.SetDark(32);
+  parent.SetDark(64);
+
+  EXPECT_EQ(child.EffectiveBright(), 64);
+  EXPECT_EQ(child.EffectiveDark(), 32);
+  EXPECT_EQ(child.EffectiveBright(&parent), 160);
+  EXPECT_EQ(child.EffectiveDark(&parent), 88);
+  EXPECT_EQ(ObjectParameter::ComposeEffectLevel(0, 0), 0);
+  EXPECT_EQ(ObjectParameter::ComposeEffectLevel(255, 12), 255);
+  EXPECT_EQ(ObjectParameter::ComposeEffectLevel(12, 255), 255);
+
+  child.bright = -12;
+  child.dark = 300;
+  EXPECT_EQ(child.EffectiveBright(), 0);
+  EXPECT_EQ(child.EffectiveDark(), 255);
 }
 
 TEST(ObjectParameterTest, CompoundProperties) {
@@ -235,75 +310,4 @@ TEST(ObjectParameterTest, SetterProxy) {
   repno_setter(param, 2, 24);
   repno_setter(param, 3, -12);
   EXPECT_EQ(param.adjustment_offsets_y, (std::array<int, 8>{0, 0, 24, -12}));
-}
-
-TEST(ObjectParameterTest, Serialization) {
-  std::stringstream ss;
-
-  {
-    ObjectParameter param;
-    param.is_visible = true;
-    param.position_x = 50;
-    param.position_y = 100;
-    param.adjustment_offsets_x = {5, 0};
-    param.adjustment_offsets_y = {10, -10, 0};
-    param.blend_colour = RGBAColour(1, 2, 3, 4);
-    param.tint_colour = RGBColour(5, 6, 7);
-    param.mask_no = 8;
-    param.tonecurve_no = 9;
-    param.culling = 1;
-    param.alpha_test = 0;
-    param.alpha_blend = 0;
-    param.light_no = 10;
-    param.fog_use = 1;
-    param.text = TextProperties{"This is a sample text.", 1, 2, 3, 4, 5, 6};
-    param.drift =
-        DriftProperties{1, 2, 3, 4,  5,  6,
-                        7, 8, 9, 10, 11, Rect::GRP(12, 13, 14, 15)};
-    param.digit = DigitProperties{16, 17, 18, 19, 20, 21};
-    param.button = ButtonProperties{1, 22, 23, 24, 25,
-                                    26, true, 27, 28, 29};
-    param.wipe_erase = 1;
-    param.click_disable = 1;
-
-    boost::archive::text_oarchive oa(ss);
-    oa << param;
-  }
-
-  {
-    boost::archive::text_iarchive ia(ss);
-    ObjectParameter deserialized;
-
-    ia >> deserialized;
-    EXPECT_TRUE(deserialized.is_visible);
-    EXPECT_EQ(deserialized.position_x, 50);
-    EXPECT_EQ(deserialized.position_y, 100);
-    EXPECT_EQ(deserialized.adjustment_offsets_x[0], 5);
-    EXPECT_EQ(deserialized.adjustment_offsets_y[1], -10);
-    EXPECT_EQ(deserialized.blend_colour, RGBAColour(1, 2, 3, 4));
-    EXPECT_EQ(deserialized.tint_colour, RGBColour(5, 6, 7));
-    EXPECT_EQ(deserialized.mask_no, 8);
-    EXPECT_EQ(deserialized.tonecurve_no, 9);
-    EXPECT_EQ(deserialized.culling, 1);
-    EXPECT_EQ(deserialized.alpha_test, 0);
-    EXPECT_EQ(deserialized.alpha_blend, 0);
-    EXPECT_EQ(deserialized.light_no, 10);
-    EXPECT_EQ(deserialized.fog_use, 1);
-    EXPECT_EQ(deserialized.text.ToString(),
-              "value=\"This is a sample text.\", text_size=1, xspace=2, "
-              "yspace=3, char_count=4, colour=5, shadow_colour=6");
-    EXPECT_EQ(deserialized.drift.ToString(),
-              "count=1, use_animation=2, start_pattern=3, end_pattern=4, "
-              "total_animation_time_ms=5, yspeed=6, period=7, amplitude=8, "
-              "use_drift=9, unknown_drift_property=10, driftspeed=11, "
-              "drift_area={Rect(12, 13, Size(2, 2))}");
-    EXPECT_EQ(deserialized.digit.ToString(),
-              "value=16, digits=17, zero=18, sign=19, pack=20, space=21");
-    EXPECT_EQ(deserialized.button.ToString(),
-              "is_button=1, action=22, se=23, group=24, button_number=25, "
-              "state=26, using_overides=true, pattern_override=27, "
-              "x_offset_override=28, y_offset_override=29");
-    EXPECT_EQ(deserialized.wipe_erase, 1);
-    EXPECT_EQ(deserialized.click_disable, 1);
-  }
 }

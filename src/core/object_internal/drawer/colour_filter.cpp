@@ -71,7 +71,9 @@ void ColourFilterObjectData::Render(const GraphicsObject& go,
   cfg.tint = param.tint();
   cfg.mono = param.mono();
   cfg.invert = param.invert();
-  cfg.light = param.light();
+  const ObjectParameter* parent_param = parent ? &parent->Param() : nullptr;
+  cfg.bright = param.EffectiveBright(parent_param);
+  cfg.dark = param.EffectiveDark(parent_param);
   glRenderer().Render({background, src}, cfg, {screen_canvas, dst});
 }
 

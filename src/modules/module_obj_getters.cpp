@@ -146,7 +146,8 @@ void addFunctions(RLModule& m) {
   m.AddOpcode(1010, 0, "objGetInvert",
               new Obj_GetInt(CreateGetter<&ObjectParameter::invert_transform>()));
   m.AddOpcode(1011, 0, "objGetLight",
-              new Obj_GetInt(CreateGetter<&ObjectParameter::light_level>()));
+              new Obj_GetInt(
+                  [](const ObjectParameter& param) { return param.light(); }));
 
   m.AddOpcode(1039, 0, "objGetPattNo",
               new Obj_GetInt(CreateGetter<&ObjectParameter::pattern_number>()));
