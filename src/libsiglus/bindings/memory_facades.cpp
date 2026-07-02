@@ -81,17 +81,6 @@ std::size_t CheckedEnd(std::size_t begin,
   return begin + count;
 }
 
-std::size_t CheckExistingIndex(int idx,
-                               std::size_t size,
-                               std::string_view where) {
-  const std::size_t index = CheckIndex(idx);
-  if (index >= size) {
-    throw RuntimeError(std::format("{} index {} out of range for size {}",
-                                   where, index, size));
-  }
-  return index;
-}
-
 std::size_t CheckBitIndex(int idx,
                           std::size_t words,
                           std::uint8_t bits,
@@ -272,15 +261,28 @@ void SiglusStrBank::EnsureSize(std::size_t size) {
 SiglusIntList::SiglusIntList(int size)
     : storage_(CheckSize(size)), default_size_(CheckSize(size)) {}
 
+std::size_t SiglusIntList::CheckExistingIndex(int idx) {
+  if (idx < 0)
+    throw RuntimeError("negative memory bank index: " + std::to_string(idx));
+
+  const std::size_t index = idx;
+  if (const std::size_t size = storage_.GetSize(); index >= size) {
+    if (autoresize_) {
+      storage_.Resize(index + 1);
+    } else
+      throw RuntimeError(std::format(
+          "IntList: index {} out of range for size {}", index, size));
+  }
+  return index;
+}
+
 int SiglusIntList::get(int idx) {
-  const std::size_t index =
-      CheckExistingIndex(idx, storage_.GetSize(), "integer list");
+  const std::size_t index = CheckExistingIndex(idx);
   return storage_.Get(index);
 }
 
 void SiglusIntList::set(int idx, int value) {
-  const std::size_t index =
-      CheckExistingIndex(idx, storage_.GetSize(), "integer list");
+  const std::size_t index = CheckExistingIndex(idx);
   storage_.Set(index, value);
 }
 
@@ -345,15 +347,28 @@ void SiglusIntList::set_bits(int idx, int value, std::uint8_t bits) {
 SiglusStrList::SiglusStrList(int size)
     : storage_(CheckSize(size)), default_size_(CheckSize(size)) {}
 
+std::size_t SiglusStrList::CheckExistingIndex(int idx) {
+  if (idx < 0)
+    throw RuntimeError("negative memory bank index: " + std::to_string(idx));
+
+  const std::size_t index = idx;
+  if (const std::size_t size = storage_.GetSize(); index >= size) {
+    if (autoresize_) {
+      storage_.Resize(index + 1);
+    } else
+      throw RuntimeError(std::format(
+          "StrList: index {} out of range for size {}", index, size));
+  }
+  return index;
+}
+
 std::string SiglusStrList::get(int idx) {
-  const std::size_t index =
-      CheckExistingIndex(idx, storage_.GetSize(), "string list");
+  const std::size_t index = CheckExistingIndex(idx);
   return storage_.Get(index);
 }
 
 void SiglusStrList::set(int idx, std::string value) {
-  const std::size_t index =
-      CheckExistingIndex(idx, storage_.GetSize(), "string list");
+  const std::size_t index = CheckExistingIndex(idx);
   storage_.Set(index, value);
 }
 

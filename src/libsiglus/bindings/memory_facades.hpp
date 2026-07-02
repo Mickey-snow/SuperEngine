@@ -113,8 +113,11 @@ class SiglusIntList {
   int get_bits(int idx, std::uint8_t bits);
   void set_bits(int idx, int value, std::uint8_t bits);
 
+  std::size_t CheckExistingIndex(int idx);
+
   IntBankStorage storage_;
   std::size_t default_size_;
+  bool autoresize_ = true;
 };
 
 class SiglusStrList {
@@ -129,8 +132,11 @@ class SiglusStrList {
   void init();
 
  private:
+  std::size_t CheckExistingIndex(int idx);
+
   StrBankStorage storage_;
   std::size_t default_size_;
+  bool autoresize_ = true;
 };
 
 }  // namespace libsiglus::binding
