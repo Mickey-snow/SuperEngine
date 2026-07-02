@@ -32,6 +32,7 @@
 
 #include <memory>
 #include <string>
+#include <unordered_map>
 
 namespace libsiglus::binding {
 
@@ -110,6 +111,30 @@ TEST_F(SiglusMemoryBindingTest, FactoryStrListsUseSiglusFacade) {
   Eval("ss.init(); A[1] = ss.size(); S[2] = ss[0];");
   EXPECT_EQ(runtime.memory->Read(IntBank::A, 1), 2);
   EXPECT_EQ(runtime.memory->Read(StrBank::S, 2), "");
+}
+
+TEST_F(SiglusMemoryBindingTest, FactoriesResolveClassesFromBootstrapBuiltins) {
+  serilang::VM bootstrap_vm(runtime.vm->gc_);
+  bootstrap_vm.gc_threshold_ = 0;
+
+  auto bootstrap_builtins =
+      std::make_shared<std::unordered_map<std::string, serilang::Value>>(
+          *runtime.vm->globals_);
+  bootstrap_builtins->insert(runtime.vm->builtins_->begin(),
+                             runtime.vm->builtins_->end());
+  bootstrap_vm.builtins_ = std::move(bootstrap_builtins);
+
+  Execute(bootstrap_vm, R"(
+xs = make_intlist(3);
+xs[1] = 42;
+A[0] = xs[1];
+ss = make_strlist(2);
+ss[1] = "boot";
+S[0] = ss[1];
+)");
+
+  EXPECT_EQ(runtime.memory->Read(IntBank::A, 0), 42);
+  EXPECT_EQ(runtime.memory->Read(StrBank::S, 0), "boot");
 }
 
 TEST_F(SiglusMemoryBindingTest, PushAndPopFrameRestoresStackBanks) {

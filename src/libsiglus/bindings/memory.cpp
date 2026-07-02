@@ -54,11 +54,21 @@ template <typename T, typename... Args>
 Value MakeBoundNativeInstance(VM& vm,
                               std::string_view class_name,
                               Args&&... args) {
-  auto it = vm.globals_->find(std::string(class_name));
-  if (it == vm.globals_->end())
+  const std::string name(class_name);
+  auto find_class = [&name](auto& dict) -> Value* {
+    if (!dict)
+      return nullptr;
+    auto it = dict->find(name);
+    return it == dict->end() ? nullptr : &it->second;
+  };
+
+  Value* klass_value = find_class(vm.globals_);
+  if (!klass_value)
+    klass_value = find_class(vm.builtins_);
+  if (!klass_value)
     throw RuntimeError(std::format("native class {} is not bound", class_name));
 
-  auto* klass = it->second.Get_if<NativeClass>();
+  auto* klass = klass_value->Get_if<NativeClass>();
   if (!klass)
     throw RuntimeError(std::format("{} is not a native class", class_name));
 
