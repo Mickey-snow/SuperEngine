@@ -473,8 +473,8 @@ struct DirectObjectPropertyBinder {
     Member<&ObjectParameter::origin_y>("center_y");
     Member<&ObjectParameter::repetition_origin_x>("center_rep_x");
     Member<&ObjectParameter::repetition_origin_y>("center_rep_y");
-    Member<&ObjectParameter::scale_x_percent>("scale_x");
-    Member<&ObjectParameter::scale_y_percent>("scale_y");
+    Member<&ObjectParameter::high_quality_scale_x_percent>("scale_x");
+    Member<&ObjectParameter::high_quality_scale_y_percent>("scale_y");
     Member<&ObjectParameter::rotation_div10>("rotate_z");
 
     Property(
@@ -491,11 +491,15 @@ struct DirectObjectPropertyBinder {
     Property(
         "clip_left",
         [](const auto* obj) { return obj->param().clip_rect().x(); },
-        [](auto* obj, int value) { obj->SetClipRectValue(&Rect::set_x, value); });
+        [](auto* obj, int value) {
+          obj->SetClipRectValue(&Rect::set_x, value);
+        });
     Property(
         "clip_top",
         [](const auto* obj) { return obj->param().clip_rect().y(); },
-        [](auto* obj, int value) { obj->SetClipRectValue(&Rect::set_y, value); });
+        [](auto* obj, int value) {
+          obj->SetClipRectValue(&Rect::set_y, value);
+        });
     Property(
         "clip_right",
         [](const auto* obj) { return obj->param().clip_rect().x2(); },
@@ -550,10 +554,12 @@ struct DirectObjectPropertyBinder {
     Member<&ObjectParameter::alpha_source>("tr");
     Member<&ObjectParameter::monochrome_transform>("mono");
     Member<&ObjectParameter::invert_transform>("reverse");
-    Property("bright", [](const auto* obj) { return obj->param().Bright(); },
-             [](auto* obj, int value) { obj->param().SetBright(value); });
-    Property("dark", [](const auto* obj) { return obj->param().Dark(); },
-             [](auto* obj, int value) { obj->param().SetDark(value); });
+    Property(
+        "bright", [](const auto* obj) { return obj->param().Bright(); },
+        [](auto* obj, int value) { obj->param().SetBright(value); });
+    Property(
+        "dark", [](const auto* obj) { return obj->param().Dark(); },
+        [](auto* obj, int value) { obj->param().SetDark(value); });
 
     Property(
         "color_r", [](const auto* obj) { return obj->param().colour_red(); },
@@ -572,7 +578,8 @@ struct DirectObjectPropertyBinder {
         "color_add_r", [](const auto* obj) { return obj->param().tint_red(); },
         [](auto* obj, int value) { obj->param().SetTintRed(value); });
     Property(
-        "color_add_g", [](const auto* obj) { return obj->param().tint_green(); },
+        "color_add_g",
+        [](const auto* obj) { return obj->param().tint_green(); },
         [](auto* obj, int value) { obj->param().SetTintGreen(value); });
     Property(
         "color_add_b", [](const auto* obj) { return obj->param().tint_blue(); },
@@ -586,8 +593,7 @@ struct DirectObjectPropertyBinder {
     Member<&ObjectParameter::light_no>("light_no");
     Member<&ObjectParameter::fog_use>("fog_use");
     Property(
-        "blend",
-        [](const auto* obj) { return obj->param().composite_mode; },
+        "blend", [](const auto* obj) { return obj->param().composite_mode; },
         [](auto* obj, int value) {
           obj->param().SetCompositeMode(std::clamp(value, 0, 4));
         });
@@ -721,8 +727,7 @@ struct ObjectEventPropertyBinder {
         [](const ObjectParameter& param) { return param.Bright(); },
         [](ObjectParameter& param, int value) { param.SetBright(value); });
     Property(
-        "dark_eve",
-        [](const ObjectParameter& param) { return param.Dark(); },
+        "dark_eve", [](const ObjectParameter& param) { return param.Dark(); },
         [](ObjectParameter& param, int value) { param.SetDark(value); });
 
     Property(
