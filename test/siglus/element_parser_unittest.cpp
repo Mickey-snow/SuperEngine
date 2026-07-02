@@ -297,6 +297,12 @@ TEST_F(ElementParserTest, ObjectInitIsImplicitCall) {
   EXPECT_EQ(chain(37, 2, -1, 0, 35), "stage.back.object[int:0].init()");
 }
 
+TEST_F(ElementParserTest, ObjectExistTypeIsImplicitGetterCall) {
+  auto parsed = chain(38, 2, -1, 0, 174);
+  EXPECT_EQ(parsed, "stage.front.object[int:0].exist_type()");
+  EXPECT_EQ(parsed.chain.GetType(), Type::Int);
+}
+
 TEST_F(ElementParserTest, BgmTable) {
   {
     ElementCode elm{123, 2};

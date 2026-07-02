@@ -824,6 +824,9 @@ void BindObject(SiglusRuntime& runtime) {
   obj.def("create_movie_waitkey", &SiglusObject::create_movie_waitkey,
           sb::vararg);
   obj.def("create_rect", &SiglusObject::create_rect);
+  obj.def("exist_type", [](SiglusObject* obj) {
+    return obj->object().has_object_data() ? 1 : 0;
+  });
   obj.def(
       "get_size_x",
       [](const SiglusObject* obj, int cut_no) {

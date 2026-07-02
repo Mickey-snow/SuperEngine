@@ -1193,7 +1193,7 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
 
           id[41] | b(Type::Callable, Member("copy_from")),
           id[53] | b(Type::Callable, Member("change_file")),
-          id[174] | b(Type::Int, Member("exist_type")),
+          id[174] | b_callable("exist_type", Type::Int),
 
           // String
           id[99] | b(Type::Callable, Member("set_string")),
