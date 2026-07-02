@@ -430,8 +430,9 @@ SiglusRuntime SGVMFactory::Create() {
   }
   sb::module_ m(gc.get(), vm.globals_.get());
 
-  m.def("__builtin_dbgprint",
-        [](std::string str) { std::cerr << "[TRACE] " << str << std::endl; });
+  m.def("__builtin_dbgprint", [](std::string str, int scn, int lin) {
+    std::cerr << '[' << scn << ':' << lin << "] " << str << std::endl;
+  });
   m.def("__builtin_load_scn",
         [loader = rt.loader.get()](int scnid) -> sr::Value {
           sr::Module* mod = loader->Load(scnid);

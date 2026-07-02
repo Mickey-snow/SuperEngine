@@ -100,12 +100,14 @@ void Recompiler::Gen(token::Token_t tok) {
     if (is_finalized_)
       throw std::runtime_error("cannot emit token after EOF");
 
+    ++line_id_;
     if (is_debug_) {
       emit_const(ToString(tok));
       emit(sr::Dup{});
       emit_load_global("__builtin_dbgprint");
       emit(sr::Swap{});
-      emit(sr::Call{.argcnt = 1, .kwargcnt = 0});
+      emit_const(scene_id_.value_or(-1)), emit_const(line_id_);
+      emit(sr::Call{.argcnt = 3, .kwargcnt = 0});
       emit(sr::Pop{});
       emit(sr::DebugValue{});
     }
