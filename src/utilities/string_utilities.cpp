@@ -226,6 +226,8 @@ int ConvertLetterIndexToInt(const std::string& value) {
 
 bool parse_int(std::string_view sv, int& out, int base) {
   sv = trim_sv(sv);
+  if (!sv.empty() && sv.front() == '+')
+    sv.remove_prefix(1);
   if (sv.empty())
     return false;
   const char* first = sv.data();

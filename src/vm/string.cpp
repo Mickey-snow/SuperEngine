@@ -24,18 +24,50 @@
 
 #include "vm/string.hpp"
 
+#include "utilities/string_utilities.hpp"
 #include "vm/object.hpp"
 #include "vm/value.hpp"
 #include "vm/vm.hpp"
 
+#include <algorithm>
 #include <format>
+#include <limits>
+#include <optional>
 #include <stdexcept>
 
 namespace serilang {
 
 namespace {
 
-enum class StringMethodKind { Substr, Prefix, Suffix, Length };
+enum class StringMethodKind {
+  Substr,
+  Prefix,
+  Suffix,
+  Length,
+  Upper,
+  Lower,
+  Count,
+  Left,
+  LeftLen,
+  Right,
+  RightLen,
+  Mid,
+  MidLen,
+  Find,
+  RFind,
+  CharAt,
+  ToNum,
+};
+
+int ToVmInt(size_t value) {
+  if (value > static_cast<size_t>(std::numeric_limits<int>::max()))
+    return std::numeric_limits<int>::max();
+  return static_cast<int>(value);
+}
+
+size_t ClampNonNegative(int value) {
+  return value <= 0 ? 0 : static_cast<size_t>(value);
+}
 
 class StringMethod : public IObject {
  public:
@@ -75,6 +107,17 @@ class StringMethod : public IObject {
       return std::nullopt;
     };
 
+    auto read_string =
+        [&](size_t offset,
+            std::string_view what) -> std::optional<std::string_view> {
+      Value& v = f.op_stack[base + 1 + offset];
+      if (auto* sv = v.Get_if<String>())
+        return sv->str_;
+      vm.Error(f,
+               std::format("{} must be string, but got: {}", what, v.Desc()));
+      return std::nullopt;
+    };
+
     auto clamp_index = [&](int raw, bool allow_end) -> std::optional<size_t> {
       const int len = static_cast<int>(self_->str_.size());
       int idx = raw < 0 ? len + raw : raw;
@@ -92,6 +135,17 @@ class StringMethod : public IObject {
         return std::nullopt;
       }
       return static_cast<size_t>(value);
+    };
+
+    auto return_int = [&](int value) {
+      f.op_stack.resize(base + 1);
+      f.op_stack.back() = Value(value);
+    };
+
+    auto return_string = [&](std::string value) {
+      f.op_stack.resize(base + 1);
+      String* str = vm.gc_->Allocate<String>(std::move(value));
+      f.op_stack.back() = Value(str);
     };
 
     std::string result;
@@ -180,15 +234,212 @@ class StringMethod : public IObject {
                    std::format("str.len expects no argument, got {}", nargs));
           return;
         }
-        f.op_stack.resize(base + 1);
-        f.op_stack.back() = Value(static_cast<int>(self_->str_.length()));
+        return_int(ToVmInt(SiglusDisplayWidth(self_->str_)));
+        return;
+      }
+
+      case StringMethodKind::Upper: {
+        if (nargs != 0) {
+          vm.Error(f,
+                   std::format("str.upper expects no argument, got {}", nargs));
+          return;
+        }
+        result = AsciiUpper(self_->str_);
+        break;
+      }
+
+      case StringMethodKind::Lower: {
+        if (nargs != 0) {
+          vm.Error(f,
+                   std::format("str.lower expects no argument, got {}", nargs));
+          return;
+        }
+        result = AsciiLower(self_->str_);
+        break;
+      }
+
+      case StringMethodKind::Count: {
+        if (nargs != 0) {
+          vm.Error(f,
+                   std::format("str.cnt expects no argument, got {}", nargs));
+          return;
+        }
+        return_int(ToVmInt(Utf8CodepointCount(self_->str_)));
+        return;
+      }
+
+      case StringMethodKind::Left: {
+        if (nargs != 1) {
+          vm.Error(f, std::format("str.left expects exactly 1 argument, got {}",
+                                  nargs));
+          return;
+        }
+        auto count_raw = read_int(0, "left length");
+        if (!count_raw)
+          return;
+        result = Utf8SubstringByCodepoints(self_->str_, 0,
+                                           ClampNonNegative(*count_raw));
+        break;
+      }
+
+      case StringMethodKind::LeftLen: {
+        if (nargs != 1) {
+          vm.Error(
+              f, std::format("str.left_len expects exactly 1 argument, got {}",
+                             nargs));
+          return;
+        }
+        auto width_raw = read_int(0, "left_len length");
+        if (!width_raw)
+          return;
+        result = SiglusPrefixByDisplayWidth(self_->str_,
+                                            ClampNonNegative(*width_raw));
+        break;
+      }
+
+      case StringMethodKind::Right: {
+        if (nargs != 1) {
+          vm.Error(f,
+                   std::format("str.right expects exactly 1 argument, got {}",
+                               nargs));
+          return;
+        }
+        auto count_raw = read_int(0, "right length");
+        if (!count_raw)
+          return;
+        const size_t count = Utf8CodepointCount(self_->str_);
+        const size_t keep = std::min(ClampNonNegative(*count_raw), count);
+        result = Utf8SubstringByCodepoints(self_->str_, count - keep);
+        break;
+      }
+
+      case StringMethodKind::RightLen: {
+        if (nargs != 1) {
+          vm.Error(
+              f, std::format("str.right_len expects exactly 1 argument, got {}",
+                             nargs));
+          return;
+        }
+        auto width_raw = read_int(0, "right_len length");
+        if (!width_raw)
+          return;
+        result = SiglusSuffixByDisplayWidth(self_->str_,
+                                            ClampNonNegative(*width_raw));
+        break;
+      }
+
+      case StringMethodKind::Mid: {
+        if (nargs == 0 || nargs > 2) {
+          vm.Error(f, std::format("str.mid expects 1 or 2 arguments, got {}",
+                                  nargs));
+          return;
+        }
+        auto start_raw = read_int(0, "mid start");
+        if (!start_raw)
+          return;
+        const size_t count = Utf8CodepointCount(self_->str_);
+        const size_t start = std::clamp<size_t>(*start_raw, 0, count);
+        if (nargs == 1) {
+          result = Utf8SubstringByCodepoints(self_->str_, start);
+        } else {
+          auto count_raw = read_int(1, "mid length");
+          if (!count_raw)
+            return;
+          result = Utf8SubstringByCodepoints(self_->str_, start,
+                                             ClampNonNegative(*count_raw));
+        }
+        break;
+      }
+
+      case StringMethodKind::MidLen: {
+        if (nargs == 0 || nargs > 2) {
+          vm.Error(f,
+                   std::format("str.mid_len expects 1 or 2 arguments, got {}",
+                               nargs));
+          return;
+        }
+        auto start_raw = read_int(0, "mid_len start");
+        if (!start_raw)
+          return;
+        const size_t count = Utf8CodepointCount(self_->str_);
+        const size_t start = std::clamp<size_t>(*start_raw, 0, count);
+        if (nargs == 1) {
+          result = Utf8SubstringByCodepoints(self_->str_, start);
+        } else {
+          auto width_raw = read_int(1, "mid_len length");
+          if (!width_raw)
+            return;
+          result = SiglusSubstringByDisplayWidth(self_->str_, start,
+                                                 ClampNonNegative(*width_raw));
+        }
+        break;
+      }
+
+      case StringMethodKind::Find: {
+        if (nargs != 1) {
+          vm.Error(f, std::format("str.find expects exactly 1 argument, got {}",
+                                  nargs));
+          return;
+        }
+        auto needle = read_string(0, "find substring");
+        if (!needle)
+          return;
+        const auto index =
+            FindAsciiCaseInsensitiveUtf8Index(self_->str_, *needle, false);
+        return_int(index ? ToVmInt(*index) : -1);
+        return;
+      }
+
+      case StringMethodKind::RFind: {
+        if (nargs != 1) {
+          vm.Error(f,
+                   std::format("str.rfind expects exactly 1 argument, got {}",
+                               nargs));
+          return;
+        }
+        auto needle = read_string(0, "rfind substring");
+        if (!needle)
+          return;
+        const auto index =
+            FindAsciiCaseInsensitiveUtf8Index(self_->str_, *needle, true);
+        return_int(index ? ToVmInt(*index) : -1);
+        return;
+      }
+
+      case StringMethodKind::CharAt: {
+        if (nargs != 1) {
+          vm.Error(f,
+                   std::format("str.charat expects exactly 1 argument, got {}",
+                               nargs));
+          return;
+        }
+        auto index_raw = read_int(0, "charat index");
+        if (!index_raw)
+          return;
+        if (*index_raw < 0) {
+          return_int(-1);
+          return;
+        }
+
+        const auto cp =
+            Utf8CodepointAt(self_->str_, static_cast<size_t>(*index_raw));
+        return_int(cp ? static_cast<int>(*cp) : -1);
+        return;
+      }
+
+      case StringMethodKind::ToNum: {
+        if (nargs != 0) {
+          vm.Error(f,
+                   std::format("str.tonum expects no argument, got {}", nargs));
+          return;
+        }
+        int result = 0;
+        return_int(parse_int(self_->str_, result) ? result : 0);
         return;
       }
     }
 
-    f.op_stack.resize(base + 1);
-    String* str = vm.gc_->Allocate<String>(std::move(result));
-    f.op_stack.back() = Value(str);
+    return_string(std::move(result));
   }
 
  private:
@@ -202,6 +453,32 @@ class StringMethod : public IObject {
         return "suffix";
       case StringMethodKind::Length:
         return "len";
+      case StringMethodKind::Upper:
+        return "upper";
+      case StringMethodKind::Lower:
+        return "lower";
+      case StringMethodKind::Count:
+        return "cnt";
+      case StringMethodKind::Left:
+        return "left";
+      case StringMethodKind::LeftLen:
+        return "left_len";
+      case StringMethodKind::Right:
+        return "right";
+      case StringMethodKind::RightLen:
+        return "right_len";
+      case StringMethodKind::Mid:
+        return "mid";
+      case StringMethodKind::MidLen:
+        return "mid_len";
+      case StringMethodKind::Find:
+        return "find";
+      case StringMethodKind::RFind:
+        return "rfind";
+      case StringMethodKind::CharAt:
+        return "charat";
+      case StringMethodKind::ToNum:
+        return "tonum";
     }
     return "";
   }
@@ -223,6 +500,32 @@ TempValue String::Member(std::string_view mem) {
     return std::make_unique<StringMethod>(this, StringMethodKind::Suffix);
   if (mem == "len")
     return std::make_unique<StringMethod>(this, StringMethodKind::Length);
+  if (mem == "upper")
+    return std::make_unique<StringMethod>(this, StringMethodKind::Upper);
+  if (mem == "lower")
+    return std::make_unique<StringMethod>(this, StringMethodKind::Lower);
+  if (mem == "cnt")
+    return std::make_unique<StringMethod>(this, StringMethodKind::Count);
+  if (mem == "left")
+    return std::make_unique<StringMethod>(this, StringMethodKind::Left);
+  if (mem == "left_len")
+    return std::make_unique<StringMethod>(this, StringMethodKind::LeftLen);
+  if (mem == "right")
+    return std::make_unique<StringMethod>(this, StringMethodKind::Right);
+  if (mem == "right_len")
+    return std::make_unique<StringMethod>(this, StringMethodKind::RightLen);
+  if (mem == "mid")
+    return std::make_unique<StringMethod>(this, StringMethodKind::Mid);
+  if (mem == "mid_len")
+    return std::make_unique<StringMethod>(this, StringMethodKind::MidLen);
+  if (mem == "find")
+    return std::make_unique<StringMethod>(this, StringMethodKind::Find);
+  if (mem == "rfind")
+    return std::make_unique<StringMethod>(this, StringMethodKind::RFind);
+  if (mem == "charat")
+    return std::make_unique<StringMethod>(this, StringMethodKind::CharAt);
+  if (mem == "tonum")
+    return std::make_unique<StringMethod>(this, StringMethodKind::ToNum);
 
   return IObject::Member(mem);
 }

@@ -449,6 +449,93 @@ TEST_F(VMTest, MakeDictSupportsMixedKeyTypes) {
   EXPECT_EQ(dict->map.at(Value(true)), 30);
 }
 
+TEST_F(VMTest, StringSiglusAsciiMethods) {
+  auto* text = gc->Allocate<String>("AbC xYz 123");
+  EXPECT_EQ(CallMember(text, "upper"), "ABC XYZ 123");
+  EXPECT_EQ(CallMember(text, "lower"), "abc xyz 123");
+
+  auto* searchable = gc->Allocate<String>("AbcAbCA");
+  EXPECT_EQ(CallMember(searchable, "find", value_vector("bca")), 1);
+  EXPECT_EQ(CallMember(searchable, "find", value_vector("BCA")), 1);
+  EXPECT_EQ(CallMember(searchable, "rfind", value_vector("bca")), 4);
+  EXPECT_EQ(CallMember(searchable, "find", value_vector("missing")), -1);
+
+  EXPECT_EQ(CallMember(gc->Allocate<String>("12345"), "tonum"), 12345);
+  EXPECT_EQ(CallMember(gc->Allocate<String>("-42"), "tonum"), -42);
+  EXPECT_EQ(CallMember(gc->Allocate<String>("+7"), "tonum"), 7);
+  EXPECT_EQ(CallMember(gc->Allocate<String>("12x"), "tonum"), 0);
+  EXPECT_EQ(CallMember(gc->Allocate<String>("nope"), "tonum"), 0);
+}
+
+TEST_F(VMTest, StringSiglusUtf8DisplayWidthMethods) {
+  const std::string hiragana_a = "\xe3\x81\x82";
+  const std::string halfwidth_ka = "\xef\xbd\xb6";
+  const std::string mixed = std::string("A") + hiragana_a + halfwidth_ka + "B";
+  auto* text = gc->Allocate<String>(mixed);
+
+  EXPECT_EQ(CallMember(text, "cnt"), 4);
+  EXPECT_EQ(CallMember(text, "len"), 5);
+  EXPECT_EQ(
+      CallMember(text, "find",
+                 std::vector<Value>{Value(gc->Allocate<String>(halfwidth_ka))}),
+      2);
+  EXPECT_EQ(CallMember(text, "rfind", value_vector("B")), 3);
+
+  EXPECT_EQ(CallMember(text, "left_len", value_vector(0)), "");
+  EXPECT_EQ(CallMember(text, "left_len", value_vector(1)), "A");
+  EXPECT_EQ(CallMember(text, "left_len", value_vector(2)), "A");
+  EXPECT_EQ(CallMember(text, "left_len", value_vector(3)),
+            std::string("A") + hiragana_a);
+  EXPECT_EQ(CallMember(text, "left_len", value_vector(4)),
+            std::string("A") + hiragana_a + halfwidth_ka);
+
+  EXPECT_EQ(CallMember(text, "right_len", value_vector(0)), "");
+  EXPECT_EQ(CallMember(text, "right_len", value_vector(3)), halfwidth_ka + "B");
+  EXPECT_EQ(CallMember(text, "right_len", value_vector(4)),
+            hiragana_a + halfwidth_ka + "B");
+
+  EXPECT_EQ(CallMember(text, "mid_len", value_vector(1)),
+            hiragana_a + halfwidth_ka + "B");
+  EXPECT_EQ(CallMember(text, "mid_len", value_vector(1, 1)), "");
+  EXPECT_EQ(CallMember(text, "mid_len", value_vector(1, 2)), hiragana_a);
+  EXPECT_EQ(CallMember(text, "mid_len", value_vector(1, 3)),
+            hiragana_a + halfwidth_ka);
+  EXPECT_EQ(CallMember(text, "mid_len", value_vector(2, 2)),
+            halfwidth_ka + "B");
+}
+
+TEST_F(VMTest, StringSiglusCharacterSubstringsClampRanges) {
+  auto* text = gc->Allocate<String>("abcd");
+
+  EXPECT_EQ(CallMember(text, "left", value_vector(-1)), "");
+  EXPECT_EQ(CallMember(text, "left", value_vector(2)), "ab");
+  EXPECT_EQ(CallMember(text, "left", value_vector(99)), "abcd");
+
+  EXPECT_EQ(CallMember(text, "right", value_vector(-1)), "");
+  EXPECT_EQ(CallMember(text, "right", value_vector(2)), "cd");
+  EXPECT_EQ(CallMember(text, "right", value_vector(99)), "abcd");
+
+  EXPECT_EQ(CallMember(text, "mid", value_vector(-5)), "abcd");
+  EXPECT_EQ(CallMember(text, "mid", value_vector(1)), "bcd");
+  EXPECT_EQ(CallMember(text, "mid", value_vector(1, 2)), "bc");
+  EXPECT_EQ(CallMember(text, "mid", value_vector(2, 99)), "cd");
+  EXPECT_EQ(CallMember(text, "mid", value_vector(2, -3)), "");
+  EXPECT_EQ(CallMember(text, "mid", value_vector(99)), "");
+}
+
+TEST_F(VMTest, StringSiglusCharAtReturnsCodepointOrMinusOne) {
+  const std::string hiragana_a = "\xe3\x81\x82";
+  const std::string halfwidth_ka = "\xef\xbd\xb6";
+  auto* text =
+      gc->Allocate<String>(std::string("A") + hiragana_a + halfwidth_ka);
+
+  EXPECT_EQ(CallMember(text, "charat", value_vector(0)), 'A');
+  EXPECT_EQ(CallMember(text, "charat", value_vector(1)), 0x3042);
+  EXPECT_EQ(CallMember(text, "charat", value_vector(2)), 0xff76);
+  EXPECT_EQ(CallMember(text, "charat", value_vector(-1)), -1);
+  EXPECT_EQ(CallMember(text, "charat", value_vector(3)), -1);
+}
+
 TEST_F(VMTest, DictMethods) {
   auto* dict = gc->Allocate<Dict>();
 

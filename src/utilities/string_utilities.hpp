@@ -27,11 +27,17 @@
 
 #pragma once
 
+#include "utf8.h"
+
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <iterator>
+#include <optional>
 #include <ranges>
 #include <string>
+#include <string_view>
 
 // Converts a CP932/Shift_JIS string into a wstring with Unicode
 // characters.
@@ -199,6 +205,180 @@ inline std::string_view rtrim_sv(std::string_view s) {
 
 inline std::string_view trim_sv(std::string_view s) {
   return ltrim_sv(rtrim_sv(s));
+}
+
+inline std::size_t Utf8CodepointCount(std::string_view s) {
+  return static_cast<std::size_t>(utf8::distance(s.begin(), s.end()));
+}
+
+inline std::size_t Utf8ByteOffsetAtCodepointIndex(std::string_view s,
+                                                  std::size_t index) {
+  auto it = s.begin();
+  const auto end = s.end();
+  while (index > 0 && it != end) {
+    utf8::next(it, end);
+    --index;
+  }
+  return static_cast<std::size_t>(std::distance(s.begin(), it));
+}
+
+inline std::size_t Utf8ByteOffsetAfterCodepoints(std::string_view s,
+                                                 std::size_t start_byte,
+                                                 std::size_t count) {
+  start_byte = std::min(start_byte, s.size());
+  auto it = s.begin() + static_cast<std::ptrdiff_t>(start_byte);
+  const auto end = s.end();
+  while (count > 0 && it != end) {
+    utf8::next(it, end);
+    --count;
+  }
+  return static_cast<std::size_t>(std::distance(s.begin(), it));
+}
+
+inline std::size_t Utf8CodepointIndexAtByteOffset(std::string_view s,
+                                                  std::size_t byte_offset) {
+  byte_offset = std::min(byte_offset, s.size());
+  auto it = s.begin();
+  const auto end = s.end();
+  std::size_t index = 0;
+  while (it != end) {
+    auto next = it;
+    utf8::next(next, end);
+    const auto next_offset =
+        static_cast<std::size_t>(std::distance(s.begin(), next));
+    if (next_offset > byte_offset)
+      break;
+    it = next;
+    ++index;
+  }
+  return index;
+}
+
+inline std::optional<char32_t> Utf8CodepointAt(std::string_view s,
+                                               std::size_t index) {
+  auto it = s.begin();
+  const auto end = s.end();
+  while (it != end) {
+    const char32_t cp = static_cast<char32_t>(utf8::next(it, end));
+    if (index == 0)
+      return cp;
+    --index;
+  }
+  return std::nullopt;
+}
+
+inline std::string Utf8SubstringByCodepoints(
+    std::string_view s,
+    std::size_t start,
+    std::size_t count = std::string::npos) {
+  const std::size_t start_byte = Utf8ByteOffsetAtCodepointIndex(s, start);
+  const std::size_t end_byte =
+      count == std::string::npos
+          ? s.size()
+          : Utf8ByteOffsetAfterCodepoints(s, start_byte, count);
+  return std::string(s.substr(start_byte, end_byte - start_byte));
+}
+
+inline std::string AsciiUpper(std::string_view s) {
+  std::string result(s);
+  for (char& c : result) {
+    if (c >= 'a' && c <= 'z')
+      c = static_cast<char>(c - 'a' + 'A');
+  }
+  return result;
+}
+
+inline std::string AsciiLower(std::string_view s) {
+  std::string result(s);
+  for (char& c : result) {
+    if (c >= 'A' && c <= 'Z')
+      c = static_cast<char>(c - 'A' + 'a');
+  }
+  return result;
+}
+
+inline bool IsSiglusHalfwidth(char32_t cp) {
+  return cp <= 0x7f || (cp >= 0xff61 && cp <= 0xffdc) ||
+         (cp >= 0xffe8 && cp <= 0xffee);
+}
+
+inline std::size_t SiglusCodepointDisplayWidth(char32_t cp) {
+  return IsSiglusHalfwidth(cp) ? 1 : 2;
+}
+
+inline std::size_t SiglusDisplayWidth(std::string_view s) {
+  std::size_t width = 0;
+  auto it = s.begin();
+  const auto end = s.end();
+  while (it != end) {
+    const char32_t cp = static_cast<char32_t>(utf8::next(it, end));
+    width += SiglusCodepointDisplayWidth(cp);
+  }
+  return width;
+}
+
+inline std::string SiglusPrefixByDisplayWidth(std::string_view s,
+                                              std::size_t limit) {
+  std::size_t width = 0;
+  auto it = s.begin();
+  const auto end = s.end();
+  auto prefix_end = s.begin();
+
+  while (it != end) {
+    auto next = it;
+    const char32_t cp = static_cast<char32_t>(utf8::next(next, end));
+    const std::size_t char_width = SiglusCodepointDisplayWidth(cp);
+    if (width + char_width > limit)
+      break;
+    width += char_width;
+    prefix_end = next;
+    it = next;
+  }
+
+  return std::string(s.substr(
+      0, static_cast<std::size_t>(std::distance(s.begin(), prefix_end))));
+}
+
+inline std::string SiglusSubstringByDisplayWidth(std::string_view s,
+                                                 std::size_t start,
+                                                 std::size_t limit) {
+  const std::size_t start_byte = Utf8ByteOffsetAtCodepointIndex(s, start);
+  return SiglusPrefixByDisplayWidth(s.substr(start_byte), limit);
+}
+
+inline std::string SiglusSuffixByDisplayWidth(std::string_view s,
+                                              std::size_t limit) {
+  std::size_t width = 0;
+  auto it = s.end();
+  const auto begin = s.begin();
+  auto suffix_begin = s.end();
+
+  while (it != begin) {
+    auto previous = it;
+    const char32_t cp = static_cast<char32_t>(utf8::prior(previous, begin));
+    const std::size_t char_width = SiglusCodepointDisplayWidth(cp);
+    if (width + char_width > limit)
+      break;
+    width += char_width;
+    suffix_begin = previous;
+    it = previous;
+  }
+
+  return std::string(s.substr(
+      static_cast<std::size_t>(std::distance(s.begin(), suffix_begin))));
+}
+
+inline std::optional<std::size_t> FindAsciiCaseInsensitiveUtf8Index(
+    std::string_view haystack,
+    std::string_view needle,
+    bool reverse) {
+  const std::string folded_haystack = AsciiLower(haystack);
+  const std::string folded_needle = AsciiLower(needle);
+  const std::size_t byte_pos = reverse ? folded_haystack.rfind(folded_needle)
+                                       : folded_haystack.find(folded_needle);
+  if (byte_pos == std::string::npos)
+    return std::nullopt;
+  return Utf8CodepointIndexAtByteOffset(haystack, byte_pos);
 }
 
 bool parse_int(std::string_view sv, int& out, int base = 10);
