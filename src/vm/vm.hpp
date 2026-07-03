@@ -68,6 +68,8 @@ class VM {
   // Run the event loop until no runnable work and no timers remain.
   // Returns the last dead fiber's result if any.
   Value Run();
+  inline void RequestStop() noexcept { stop_requested_ = true; }
+  inline bool IsStopRequested() const noexcept { return stop_requested_; }
 
   /// Pop an exception from f.op_stack and unwind to the nearest handler.
   void Error(Fiber& f);
@@ -118,6 +120,8 @@ class VM {
   //----------------------------------------------------------------
   // Core interpreter loop for one fiber
   void ExecuteFiber(Fiber* fib);
+
+  bool stop_requested_ = false;
 };
 
 }  // namespace serilang

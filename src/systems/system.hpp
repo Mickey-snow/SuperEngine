@@ -47,6 +47,7 @@ class SoundSystem;
 class RLMachine;
 class Gameexe;
 class GameexeInterpretObject;
+class EventListener;
 class RLEventListener;
 
 // Syscom Constants
@@ -136,6 +137,9 @@ class System {
 
   bool force_wait() { return force_wait_; }
   void set_force_wait(bool in) { force_wait_ = in; }
+
+  inline bool IsQuitRequested() const { return quit_requested_; }
+  inline void RequestQuit() { quit_requested_ = true; }
 
   // We record what the text encoding response was during the first scene, and
   // then during every scene change, if it was western, we flip this bit to
@@ -250,6 +254,7 @@ class System {
 
  private:
   std::shared_ptr<RLEventListener> rlevent_handler_;
+  std::shared_ptr<EventListener> quit_listener_;
 
   std::filesystem::path GetHomeDirectory();
 
@@ -281,6 +286,8 @@ class System {
   // Forces a 10ms sleep at the end of the System::run function. Used to lower
   // CPU usage during manual redrawing.
   bool force_wait_;
+
+  bool quit_requested_ = false;
 
   // Whether we should be trying to find a western font.
   bool use_western_font_;

@@ -483,10 +483,15 @@ SiglusRuntime SGVMFactory::Create() {
   *cb_holder = [cb_holder, vm = rt.vm.get(), system = rt.system.get()]() {
     constexpr auto period =
         chr::duration_cast<chr::steady_clock::duration>(chr::seconds(1)) / 60;
-
     auto next = chr::steady_clock::now() + period;
-    vm->scheduler_.PushCallbackAt(*cb_holder, next);
+
     system->Run();
+    if (system->IsQuitRequested()) {
+      vm->RequestStop();
+      return;
+    }
+
+    vm->scheduler_.PushCallbackAt(*cb_holder, next);
   };
   rt.exec_sdl_callback = [cb_holder]() { (*cb_holder)(); };
   rt.vm->scheduler_.PushCallbackAfter(rt.exec_sdl_callback,

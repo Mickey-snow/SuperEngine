@@ -48,6 +48,7 @@
 #include "systems/system_error.hpp"
 #include "systems/text_system.hpp"
 #include "utilities/exception.hpp"
+#include "utilities/shutdown_signal.hpp"
 #include "utilities/string_utilities.hpp"
 #include "version.h"
 
@@ -89,6 +90,19 @@ class MenuReseter : public LongOperation {
   System& sys_;
 };
 
+class QuitEventListener : public EventListener {
+ public:
+  explicit QuitEventListener(System& system) : system_(system) {}
+
+  void OnEvent(std::shared_ptr<Event> event) override {
+    if (std::holds_alternative<Quit>(*event))
+      system_.RequestQuit();
+  }
+
+ private:
+  System& system_;
+};
+
 // -----------------------------------------------------------------------
 // SystemGlobals
 // -----------------------------------------------------------------------
@@ -117,6 +131,7 @@ System::System(Gameexe& gameexe, std::shared_ptr<AssetScanner> scanner)
     ss << "Video initialization failed: " << SDL_GetError();
     throw libreallive::Error(ss.str());
   }
+  InstallShutdownSignalHandlers();
 
   auto graphics_backend = std::make_shared<SDLGraphicsBackend>();
   graphics_system_ =
@@ -124,6 +139,8 @@ System::System(Gameexe& gameexe, std::shared_ptr<AssetScanner> scanner)
 
   auto event_impl = std::make_unique<SDLEventBackend>();
   event_system_ = std::make_shared<EventSystem>(std::move(event_impl));
+  quit_listener_ = std::make_shared<QuitEventListener>(*this);
+  event_system_->AddListener(100, quit_listener_);
 
   auto text_impl = std::make_unique<SDLTextImpl>();
   text_system_ =

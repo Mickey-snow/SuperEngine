@@ -252,7 +252,11 @@ Value VM::Run() {
       scheduler_.PushTask(f);
 
   while (!scheduler_.IsIdle() || CountPendingPromises() > 0) {
+    if (stop_requested_)
+      break;
     scheduler_.DrainExpiredTimers();
+    if (stop_requested_)
+      break;
 
     if (Fiber* next = scheduler_.NextTask()) {
       if (next->state == FiberState::Running ||
@@ -266,7 +270,8 @@ Value VM::Run() {
         }
 
         // If still running and not finished, requeue for fairness.
-        if (next->state == FiberState::Running && !next->frames.empty())
+        if (!stop_requested_ && next->state == FiberState::Running &&
+            !next->frames.empty())
           scheduler_.PushTask(next);
       }
     } else {
@@ -353,7 +358,7 @@ void VM::Return(Fiber& f) {
 void VM::ExecuteFiber(Fiber* fib) {
   fib->state = FiberState::Running;
 
-  while (!fib->frames.empty()) {
+  while (!stop_requested_ && !fib->frames.empty()) {
     auto& frame = fib->frames.back();
     auto* chunk = frame.fn->chunk;
     auto& ip = frame.ip;
@@ -810,11 +815,11 @@ void VM::ExecuteFiber(Fiber* fib) {
       return;
     }
 
-    if (fib->state != FiberState::Running)
+    if (stop_requested_ || fib->state != FiberState::Running)
       break;
   }
 
-  if (fib->frames.empty())
+  if (!stop_requested_ && fib->frames.empty())
     fib->Kill(nil);
 }
 

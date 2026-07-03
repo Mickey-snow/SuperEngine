@@ -25,6 +25,8 @@
 
 #include "systems/sdl/event_backend.hpp"
 
+#include "utilities/shutdown_signal.hpp"
+
 #include <SDL/SDL.h>
 #include <SDL/SDL_events.h>
 
@@ -119,6 +121,9 @@ Event translateSDLToEvent(const SDL_Event& sdlEvent) {
 SDLEventBackend::SDLEventBackend() = default;
 
 std::shared_ptr<Event> SDLEventBackend::PollEvent() {
+  if (ConsumeShutdownSignal())
+    return std::make_shared<Event>(Quit{});
+
   SDL_Event event;
   if (SDL_PollEvent(&event))
     return std::make_shared<Event>(translateSDLToEvent(event));

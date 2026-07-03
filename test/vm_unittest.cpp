@@ -24,6 +24,8 @@
 
 #include <gtest/gtest.h>
 
+#include "mock_clock.hpp"
+
 #include "vm/disassembler.hpp"
 #include "vm/function.hpp"
 #include "vm/instruction.hpp"
@@ -32,6 +34,7 @@
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
+#include <chrono>
 #include <limits>
 #include <utility>
 
@@ -222,6 +225,64 @@ TEST_F(VMTest, CallNative) {
   Value out = run_and_get(chunk);
   EXPECT_EQ(call_count, 1);
   EXPECT_EQ(out, std::monostate());
+}
+
+TEST_F(VMTest, RequestStopInterruptsRunningFiber) {
+  auto* chunk = gc->Allocate<Code>();
+
+  int call_count = 0;
+  auto* fn = gc->Allocate<NativeFunction>(
+      "stop",
+      [&call_count](VM& vm, Fiber&, uint8_t, uint8_t) -> Value {
+        ++call_count;
+        vm.RequestStop();
+        return Value();
+      });
+
+  chunk->const_pool = value_vector(fn, 123);
+  append_ins(chunk, {Push{0}, Call{0, 0}, Push{1}, Return{}});
+
+  Value out = run_and_get(chunk);
+  EXPECT_EQ(call_count, 1);
+  EXPECT_TRUE(vm.IsStopRequested());
+  EXPECT_EQ(out, std::monostate());
+}
+
+TEST_F(VMTest, RequestStopFromTimerDoesNotWaitForLaterTimers) {
+  struct RecordingPoller : IPoller {
+    void Wait(std::chrono::milliseconds timeout) override {
+      ++wait_calls;
+      last_timeout = timeout;
+    }
+
+    int wait_calls = 0;
+    std::chrono::milliseconds last_timeout{};
+  };
+
+  auto poller = std::make_unique<RecordingPoller>();
+  auto clock = std::make_unique<MockClock>();
+  auto* poller_ptr = poller.get();
+  auto* clock_ptr = clock.get();
+  vm.scheduler_ = Scheduler(std::move(poller), std::move(clock));
+
+  auto pending = std::make_shared<Promise>();
+  vm.TrackPendingPromise(pending);
+
+  bool stop_callback_invoked = false;
+  const auto now = clock_ptr->GetTime();
+  vm.scheduler_.PushCallbackAt(
+      [this, &stop_callback_invoked] {
+        stop_callback_invoked = true;
+        vm.RequestStop();
+      },
+      now);
+  vm.scheduler_.PushCallbackAt([] {}, now + std::chrono::milliseconds(5000));
+
+  std::ignore = vm.Run();
+
+  EXPECT_TRUE(stop_callback_invoked);
+  EXPECT_TRUE(vm.IsStopRequested());
+  EXPECT_EQ(poller_ptr->wait_calls, 0);
 }
 
 TEST_F(VMTest, NativeExceptionsEscapeVM) {

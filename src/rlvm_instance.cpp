@@ -77,6 +77,8 @@ void RLVMInstance::Main(const std::filesystem::path& gameroot) {
       // Give SDL a chance to respond to events, redraw the screen,
       // etc.
       machine_->Update();
+      if (machine_->IsHalted() || system_->IsQuitRequested())
+        break;
 
       constexpr auto frame_time = std::chrono::seconds(1) / 144.0;
       auto start = clock.GetTime();
@@ -91,7 +93,8 @@ void RLVMInstance::Main(const std::filesystem::path& gameroot) {
 
         end = clock.GetTime();
 
-        if (machine_->IsHalted() || system_->force_wait() ||
+        if (machine_->IsHalted() || system_->IsQuitRequested() ||
+            system_->force_wait() ||
             (end - start) >= frame_time)
           should_continue = false;
       }
