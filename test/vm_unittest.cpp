@@ -521,6 +521,10 @@ TEST_F(VMTest, StringSiglusCharacterSubstringsClampRanges) {
   EXPECT_EQ(CallMember(text, "mid", value_vector(2, 99)), "cd");
   EXPECT_EQ(CallMember(text, "mid", value_vector(2, -3)), "");
   EXPECT_EQ(CallMember(text, "mid", value_vector(99)), "");
+
+  EXPECT_EQ(CallMember(text, "mid_len", value_vector(-5)), "abcd");
+  EXPECT_EQ(CallMember(text, "mid_len", value_vector(-5, 2)), "ab");
+  EXPECT_EQ(CallMember(text, "mid_len", value_vector(99)), "");
 }
 
 TEST_F(VMTest, StringSiglusCharAtReturnsCodepointOrMinusOne) {

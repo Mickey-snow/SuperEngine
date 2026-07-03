@@ -69,6 +69,12 @@ size_t ClampNonNegative(int value) {
   return value <= 0 ? 0 : static_cast<size_t>(value);
 }
 
+size_t ClampCodepointStart(int value, size_t count) {
+  if (value <= 0)
+    return 0;
+  return std::min(static_cast<size_t>(value), count);
+}
+
 class StringMethod : public IObject {
  public:
   static constexpr inline ObjType objtype = ObjType::BoundMethod;
@@ -338,7 +344,7 @@ class StringMethod : public IObject {
         if (!start_raw)
           return;
         const size_t count = Utf8CodepointCount(self_->str_);
-        const size_t start = std::clamp<size_t>(*start_raw, 0, count);
+        const size_t start = ClampCodepointStart(*start_raw, count);
         if (nargs == 1) {
           result = Utf8SubstringByCodepoints(self_->str_, start);
         } else {
@@ -362,7 +368,7 @@ class StringMethod : public IObject {
         if (!start_raw)
           return;
         const size_t count = Utf8CodepointCount(self_->str_);
-        const size_t start = std::clamp<size_t>(*start_raw, 0, count);
+        const size_t start = ClampCodepointStart(*start_raw, count);
         if (nargs == 1) {
           result = Utf8SubstringByCodepoints(self_->str_, start);
         } else {
