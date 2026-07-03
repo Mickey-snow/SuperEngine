@@ -39,7 +39,7 @@
 using namespace libsiglus;
 namespace sr = serilang;
 
-void SgvmInstance::Main(const std::filesystem::path& game_root) {
+int SgvmInstance::Main(const std::filesystem::path& game_root) {
   try {
     SGVMFactory factory(game_root);
     factory.debug_ = debug_;
@@ -69,8 +69,13 @@ void SgvmInstance::Main(const std::filesystem::path& game_root) {
 
     sr::Value result = vm.Evaluate(thunk);
     std::cout << "Result is: " << result.Desc() << std::endl;
+    return 0;
 
+  } catch (const sr::UnhandledError& e) {
+    std::cerr << "Fatal Siglus script error: " << e.what() << std::endl;
   } catch (std::exception& e) {
-    std::cerr << e.what() << std::endl;
+    std::cerr << "Fatal Siglus runtime error: " << e.what() << std::endl;
   }
+
+  return 1;
 }

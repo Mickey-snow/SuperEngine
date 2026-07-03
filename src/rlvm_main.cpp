@@ -286,7 +286,7 @@ int main(int argc, char* argv[]) {
     if (vm.count("scene"))
       instance.SetStartScene(vm["scene"].as<int>());
 
-    instance.Main(gamerootPath);
+    return instance.Main(gamerootPath);
   } else if (engine == "siglus" || engine == "Siglus") {
     SgvmInstance instance;
     instance.platform_implementor_ = platform_impl;
@@ -297,7 +297,7 @@ int main(int argc, char* argv[]) {
       instance.start_scene_ = vm["scene"].as<int>();
     instance.debug_ = vm["debug"].as<bool>();
 
-    instance.Main(gamerootPath);
+    return instance.Main(gamerootPath);
   } else {
     std::cerr << "Couldn't recongnize engine: " << engine;
     return -1;

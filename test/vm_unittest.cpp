@@ -317,6 +317,19 @@ TEST_F(VMTest, InvalidOpcodeReportsInternalVmError) {
   }
 }
 
+TEST_F(VMTest, UnhandledVmErrorReportsOriginalError) {
+  auto* chunk = gc->Allocate<Code>();
+  chunk->const_pool = value_vector(std::monostate(), 0);
+  append_ins(chunk, {Push{0}, Push{1}, GetItem{}, Return{}});
+
+  try {
+    std::ignore = run_and_get(chunk);
+    FAIL() << "expected UnhandledError";
+  } catch (const UnhandledError& e) {
+    EXPECT_STREQ(e.what(), "'<nil>' object has no item '0'");
+  }
+}
+
 TEST_F(VMTest, Nop) {
   auto* chunk = gc->Allocate<Code>();
   chunk->const_pool = value_vector(123);

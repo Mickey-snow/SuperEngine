@@ -40,5 +40,5 @@ class SgvmInstance {
   std::string font_;
   std::shared_ptr<IPlatformImplementor> platform_implementor_;
 
-  void Main(const std::filesystem::path& gameroot);
+  int Main(const std::filesystem::path& gameroot);
 };

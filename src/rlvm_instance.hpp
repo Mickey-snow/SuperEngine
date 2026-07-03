@@ -52,7 +52,7 @@ class RLVMInstance {
   RLVMInstance();
   ~RLVMInstance();
 
-  void Main(const std::filesystem::path& gamepath);
+  int Main(const std::filesystem::path& gamepath);
 
   void SetStartScene(int scene_id) { start_scene_ = scene_id; }
   void SetCustomFont(std::string font) { custom_font_ = std::move(font); }

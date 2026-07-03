@@ -57,7 +57,7 @@ void RLVMInstance::SetPlatformImplementor(
   platform_implementor_ = impl;
 }
 
-void RLVMInstance::Main(const std::filesystem::path& gameroot) {
+int RLVMInstance::Main(const std::filesystem::path& gameroot) {
   std::unique_ptr<libreallive::GameLoader> loader = nullptr;
   try {
     loader = std::make_unique<libreallive::GameLoader>(gameroot, start_scene_);
@@ -67,7 +67,8 @@ void RLVMInstance::Main(const std::filesystem::path& gameroot) {
   } catch (std::exception& e) {
     static DomainLogger logger("Main");
     logger(Severity::Error) << "Failed to load game:\n" << e.what();
-    std::terminate();
+    ReportFatalError(_("Fatal game loading error"), e.what());
+    return 1;
   }
 
   try {
@@ -94,8 +95,7 @@ void RLVMInstance::Main(const std::filesystem::path& gameroot) {
         end = clock.GetTime();
 
         if (machine_->IsHalted() || system_->IsQuitRequested() ||
-            system_->force_wait() ||
-            (end - start) >= frame_time)
+            system_->force_wait() || (end - start) >= frame_time)
           should_continue = false;
       }
 
@@ -114,6 +114,7 @@ void RLVMInstance::Main(const std::filesystem::path& gameroot) {
     }
 
     Serialization::saveGlobalMemory(*machine_);
+    return 0;
   } catch (rlvm::UserPresentableError& e) {
     ReportFatalError(e.message_text(), e.informative_text());
   } catch (rlvm::Exception& e) {
@@ -127,6 +128,8 @@ void RLVMInstance::Main(const std::filesystem::path& gameroot) {
   } catch (const char* e) {
     ReportFatalError(_("Uncaught exception"), e);
   }
+
+  return 1;
 }
 
 void RLVMInstance::Step() {

@@ -819,7 +819,7 @@ void VM::ExecuteFiber(Fiber* fib) {
       break;
   }
 
-  if (!stop_requested_ && fib->frames.empty())
+  if (!stop_requested_ && fib->state != FiberState::Dead && fib->frames.empty())
     fib->Kill(nil);
 }
 
