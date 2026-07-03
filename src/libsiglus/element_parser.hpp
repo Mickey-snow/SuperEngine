@@ -27,32 +27,24 @@
 #include "libsiglus/property.hpp"
 #include "libsiglus/value.hpp"
 
-#include <memory>
+#include <functional>
 #include <span>
+#include <string>
+#include <string_view>
+#include <vector>
 
 namespace libsiglus::elm {
 
 class ElementParser {
  public:
-  class Context {
-   public:
-    virtual ~Context() = default;
-
-    virtual const std::vector<Property>& SceneProperties() const = 0;
-    virtual const std::vector<Property>& GlobalProperties() const = 0;
-    virtual const std::vector<Command>& SceneCommands() const = 0;
-    virtual const std::vector<Command>& GlobalCommands() const = 0;
-    virtual const std::vector<Type>& CurcallArgs() const = 0;
-
-    virtual int ReadKidoku() = 0;
-
-    virtual int SceneId() const = 0;
-
-    virtual void Warn(std::string message) = 0;
-  };
-
- public:
-  ElementParser(std::unique_ptr<Context> ctx);
+  ElementParser(std::span<const Property> scene_properties,
+                std::span<const Property> global_properties,
+                std::span<const Command> scene_commands,
+                std::span<const Command> global_commands,
+                const std::vector<Type>& curcall_args,
+                int scene_id,
+                std::function<int()> read_kidoku_callback,
+                std::function<void(std::string)> warn_callback);
   ~ElementParser();
 
   AccessChain Parse(ElementCode& elm);
@@ -78,7 +70,14 @@ class ElementParser {
                                       size_t subidx);
 
  private:
-  std::unique_ptr<Context> ctx_;
+  std::span<const Property> scene_properties_;
+  std::span<const Property> global_properties_;
+  std::span<const Command> scene_commands_;
+  std::span<const Command> global_commands_;
+  const std::vector<Type>& curcall_args_;
+  int scene_id_;
+  std::function<int()> read_kidoku_;
+  std::function<void(std::string)> warn_;
 };
 
 }  // namespace libsiglus::elm

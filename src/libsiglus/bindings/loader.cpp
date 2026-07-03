@@ -25,7 +25,6 @@
 
 #include "libsiglus/archive.hpp"
 #include "libsiglus/parser.hpp"
-#include "libsiglus/parser_context.hpp"
 #include "libsiglus/recompiler.hpp"
 #include "libsiglus/scene.hpp"
 #include "libsiglus/token.hpp"
@@ -38,14 +37,6 @@
 namespace libsiglus::binding {
 namespace sr = serilang;
 
-struct Context : public ParserContext {
-  Context(Archive& ar, Scene& sc, std::vector<token::Token_t>& tok)
-      : ParserContext(ar, sc), tokens(tok) {}
-  std::vector<token::Token_t>& tokens;
-  void Emit(token::Token_t tok) final { tokens.emplace_back(std::move(tok)); }
-  void Warn(std::string msg) final { std::cerr << msg << std::endl; }
-};
-
 sr::Module* Loader::Load(int scene) {
   const std::string scene_str = std::format("SCENE_{:04}", scene);
   if (auto it = scene_module_cache_.find(scene_str);
@@ -54,21 +45,30 @@ sr::Module* Loader::Load(int scene) {
   }
 
   Scene scn = archive.ParseScene(scene);
-  std::vector<token::Token_t> tokens;
-  Context ctx(archive, scn, tokens);
-  Parser parser(ctx);
-  try {
-    parser.ParseAll();
-  } catch (const std::exception& e) {
+  Parser parser(scn.scene_,
+                scn.str_,
+                scn.label,
+                scn.zlabel,
+                scn.property,
+                archive.prop_,
+                scn.cmd,
+                archive.cmd_,
+                scn.id_,
+                scn.scnname_);
+  auto parsed = parser.ParseAll();
+  if (!parsed.has_value()) {
     throw sr::RuntimeError(std::format("failed to parse scene {} ({}): {}",
-                                       scene, scn.scnname_, e.what()));
+                                       scene, scn.scnname_, parsed.error()));
   }
+  auto [tokens, warnings] = std::move(parsed.value());
+  for (const auto& warning : warnings)
+    std::cerr << warning << std::endl;
 
   Recompiler compiler(vm.gc_);
   compiler.SetSceneProperties(scn.id_, scn.property);
   compiler.is_debug_ = debug_;
   for (auto& it : tokens)
-    compiler.Gen(std::move(it));
+    compiler.Gen(std::move(it.token));
   compiler.Finish();
   tokens.clear();
 

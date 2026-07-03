@@ -27,60 +27,35 @@
 #include "libsiglus/parser.hpp"
 #include "utilities/string_utilities.hpp"
 
+#include <memory>
 #include <sstream>
 
 namespace siglus_test {
 using namespace libsiglus;
 using namespace libsiglus::lex;
 
-using ::testing::Return;
-using ::testing::ReturnRef;
-
-class MockParserContext : public Parser::Context {
- public:
-  MockParserContext(std::vector<token::Token_t>& out_buf) : output(out_buf) {}
-
-  MOCK_METHOD(std::string_view, SceneData, (), (const, override));
-  MOCK_METHOD(const std::vector<std::string>&, Strings, (), (const, override));
-  MOCK_METHOD(const std::vector<int>&, Labels, (), (const, override));
-  MOCK_METHOD(const std::vector<int>&, Zlabels, (), (const, override));
-
-  MOCK_METHOD(const std::vector<libsiglus::Property>&,
-              SceneProperties,
-              (),
-              (const, override));
-  MOCK_METHOD(const std::vector<libsiglus::Property>&,
-              GlobalProperties,
-              (),
-              (const, override));
-  MOCK_METHOD(const std::vector<libsiglus::Command>&,
-              SceneCommands,
-              (),
-              (const, override));
-  MOCK_METHOD(const std::vector<libsiglus::Command>&,
-              GlobalCommands,
-              (),
-              (const, override));
-
-  MOCK_METHOD(int, SceneId, (), (const, override));
-  MOCK_METHOD(std::string, GetDebugTitle, (), (const, override));
-
-  void Emit(token::Token_t t) final { output.emplace_back(std::move(t)); }
-  std::vector<token::Token_t>& output;
-
-  void Warn(std::string msg) final { ADD_FAILURE() << msg; }
-};
-
 class SiglusParserTest : public ::testing::Test {
  protected:
-  std::vector<token::Token_t> tokens;
-  MockParserContext ctx;
-  Parser parser;
+  std::string rawdata;
+  std::vector<std::string> strs;
+  std::vector<int> labels;
+  std::vector<int> zlabels;
+  std::vector<libsiglus::Property> scn_props;
+  std::vector<libsiglus::Property> g_props;
+  std::vector<libsiglus::Command> scn_cmd;
+  std::vector<libsiglus::Command> g_cmd;
+  std::unique_ptr<Parser> parser;
 
-  SiglusParserTest() : tokens(), ctx(tokens), parser(ctx) {}
+  SiglusParserTest() { ResetParser(); }
+
+  void ResetParser(int scene_id = 0, std::string_view debug_title = "test") {
+    parser = std::make_unique<Parser>(rawdata, strs, labels, zlabels, scn_props,
+                                      g_props, scn_cmd, g_cmd, scene_id,
+                                      debug_title);
+  }
 
   inline void Parse(auto&&... params) {
-    (parser.Add(Lexeme(std::forward<decltype(params)>(params))), ...);
+    (parser->Add(Lexeme(std::forward<decltype(params)>(params))), ...);
   }
 
   struct TokenArray {
@@ -100,7 +75,13 @@ class SiglusParserTest : public ::testing::Test {
       return trim_cp(oss.str()) == trim_sv(sv);
     }
   };
-  inline TokenArray Tokens() const { return TokenArray(tokens); }
+  inline TokenArray Tokens() const {
+    TokenArray result;
+    result.tokens.reserve(parser->ParsedTokens().size());
+    for (const auto& parsed : parser->ParsedTokens())
+      result.tokens.emplace_back(parsed.token);
+    return result;
+  }
 };
 
 TEST_F(SiglusParserTest, Gosub) {
@@ -112,30 +93,34 @@ TEST_F(SiglusParserTest, Gosub) {
 }
 
 TEST_F(SiglusParserTest, ParseAllLabelsAndZlabels) {
-  const std::string scene(1, static_cast<char>(ByteCode::End));
-  const std::vector<int> labels{0};
-  const std::vector<int> zlabels{0};
-  const std::vector<libsiglus::Command> commands;
+  rawdata = std::string(1, static_cast<char>(ByteCode::End));
+  labels = {0};
+  zlabels = {0};
+  ResetParser();
 
-  EXPECT_CALL(ctx, SceneData).WillOnce(Return(std::string_view(scene)));
-  EXPECT_CALL(ctx, SceneId).WillRepeatedly(Return(0));
-  EXPECT_CALL(ctx, Labels).WillRepeatedly(ReturnRef(labels));
-  EXPECT_CALL(ctx, Zlabels).WillRepeatedly(ReturnRef(zlabels));
-  EXPECT_CALL(ctx, SceneCommands).WillRepeatedly(ReturnRef(commands));
-  EXPECT_CALL(ctx, GlobalCommands).WillRepeatedly(ReturnRef(commands));
-
-  parser.ParseAll();
+  auto parsed = parser->ParseAll();
+  ASSERT_TRUE(parsed.has_value()) << parsed.error();
+  const auto& tokens = parsed.value().first;
 
   ASSERT_EQ(tokens.size(), 2u);
-  EXPECT_EQ(tokens[0], token::Token_t(token::Label{0}));
-  EXPECT_EQ(tokens[1], token::Token_t(token::Eof{}));
+  EXPECT_EQ(tokens[0].token, token::Token_t(token::Label{0}));
+  EXPECT_EQ(tokens[1].token, token::Token_t(token::Eof{}));
+}
+
+TEST_F(SiglusParserTest, ParseAllMalformedInputReturnsUnexpected) {
+  rawdata = std::string(1, static_cast<char>(ByteCode::Push));
+  ResetParser();
+
+  auto parsed = parser->ParseAll();
+  ASSERT_FALSE(parsed.has_value());
 }
 
 TEST_F(SiglusParserTest, Operate1) {
   Parse(Push{Type::Int, 5}, Operate1{Type::Int, OperatorCode::Minus});
 
+  const auto& tokens = parser->ParsedTokens();
   ASSERT_EQ(tokens.size(), 1u);
-  const auto& tok = std::get<token::Operate1>(tokens[0]);
+  const auto& tok = std::get<token::Operate1>(tokens[0].token);
   EXPECT_EQ(tok.op, OperatorCode::Minus);
   EXPECT_EQ(AsInt(tok.rhs), 5);
   ASSERT_TRUE(tok.val.has_value());
@@ -147,8 +132,9 @@ TEST_F(SiglusParserTest, Operate2) {
   Parse(Push{Type::Int, 10}, Push{Type::Int, 20},
         Operate2{Type::Int, Type::Int, OperatorCode::Plus});
 
+  const auto& tokens = parser->ParsedTokens();
   ASSERT_EQ(tokens.size(), 1u);
-  const auto& tok = std::get<token::Operate2>(tokens[0]);
+  const auto& tok = std::get<token::Operate2>(tokens[0].token);
   EXPECT_EQ(tok.op, OperatorCode::Plus);
   EXPECT_EQ(AsInt(tok.lhs), 10);
   EXPECT_EQ(AsInt(tok.rhs), 20);
@@ -160,8 +146,9 @@ TEST_F(SiglusParserTest, Operate2) {
 TEST_F(SiglusParserTest, ConditionalGoto) {
   Parse(Push{Type::Int, 1}, Goto{lex::Goto::Condition::True, 42});
 
+  const auto& tokens = parser->ParsedTokens();
   ASSERT_EQ(tokens.size(), 1u);
-  const auto& tok = std::get<token::GotoIf>(tokens[0]);
+  const auto& tok = std::get<token::GotoIf>(tokens[0].token);
   EXPECT_TRUE(tok.cond);
   EXPECT_EQ(tok.label, 42);
   EXPECT_EQ(AsInt(tok.src), 1);
@@ -171,19 +158,19 @@ TEST_F(SiglusParserTest, AssignElement) {
   Parse(Marker{}, Push{Type::Int, 25}, Push{Type::Int, 7},
         Assign{Type::IntRef, Type::Int, 1});
 
+  const auto& tokens = parser->ParsedTokens();
   ASSERT_EQ(tokens.size(), 1u);
-  ASSERT_TRUE(std::holds_alternative<token::Assign>(tokens[0]));
-  const auto& tok = std::get<token::Assign>(tokens[0]);
+  ASSERT_TRUE(std::holds_alternative<token::Assign>(tokens[0].token));
+  const auto& tok = std::get<token::Assign>(tokens[0].token);
   EXPECT_EQ(tok.dst_elmcode, elm::ElementCode{25});
   EXPECT_EQ(AsInt(tok.src), 7);
 }
 
 TEST_F(SiglusParserTest, ElementAlias) {
-  std::vector<std::string> strs{"bg47"};
-  EXPECT_CALL(ctx, Strings).WillRepeatedly(ReturnRef(strs));
-  std::vector<libsiglus::Command> g_cmd{
+  strs = {"bg47"};
+  g_cmd = {
       libsiglus::Command{.scene_id = 78, .offset = 913, .name = "$$usr_cmd"}};
-  EXPECT_CALL(ctx, GlobalCommands).WillRepeatedly(ReturnRef(g_cmd));
+  ResetParser();
 
   Parse(Marker{}, Push{Type::Int, 0x7e000000}, Marker{}, Push{Type::Int, 37},
         Push{Type::Int, 2}, Push{Type::Int, -1}, Push{Type::Int, 0},
@@ -201,8 +188,8 @@ int v1 = @78.913:$$usr_cmd(v0,str:bg47)                 ;cmd<int:2113929216>
 }
 
 TEST_F(SiglusParserTest, StageObjectCreate) {
-  std::vector<std::string> strs{"bg47"};
-  EXPECT_CALL(ctx, Strings).WillRepeatedly(ReturnRef(strs));
+  strs = {"bg47"};
+  ResetParser();
 
   Parse(Marker{}, Push{Type::Int, 37}, Push{Type::Int, 2}, Push{Type::Int, -1},
         Push{Type::Int, 0}, Push{Type::Int, 38}, Push{Type::String, 0},
@@ -219,8 +206,8 @@ null_t v0 = stage.back.object[int:0].create(str:bg47,int:1) ;cmd<int:37,int:2,in
 }
 
 TEST_F(SiglusParserTest, SubroutineTemporariesDoNotOverwriteArguments) {
-  std::vector<std::string> strs{"bg47"};
-  EXPECT_CALL(ctx, Strings).WillRepeatedly(ReturnRef(strs));
+  strs = {"bg47"};
+  ResetParser();
 
   Parse(Declare{Type::String, 1}, Arg{}, Marker{}, Push{Type::Int, 37},
         Push{Type::Int, 2}, Push{Type::Int, -1}, Push{Type::Int, 0},
@@ -236,6 +223,20 @@ TEST_F(SiglusParserTest, SubroutineTemporariesDoNotOverwriteArguments) {
   arg_0: str
 null_t v2 = stage.back.object[int:0].create(str:bg47,int:1) ;cmd<int:37,int:2,int:-1,int:0,int:38>
 )");
+}
+
+TEST_F(SiglusParserTest, ReassignLinenoAndIgnoreLineLexeme) {
+  Parse(Line{123});  // ignored
+  Parse(Push{Type::Int, 5}, Operate1{Type::Int, OperatorCode::Minus});  // first
+  Parse(Line{234});  // ignored
+  Parse(Push{Type::Int, 10}, Push{Type::Int, 20},
+        Operate2{Type::Int, Type::Int, OperatorCode::Plus});  // second
+  Parse(Line{456});                                           // ignored
+
+  auto tokens = parser->ParsedTokens();
+  EXPECT_EQ(tokens.size(), 2);
+  EXPECT_EQ(tokens[0].line, 1);
+  EXPECT_EQ(tokens[1].line, 2);
 }
 
 }  // namespace siglus_test

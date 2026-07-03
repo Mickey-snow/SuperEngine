@@ -29,6 +29,7 @@
 
 #include <algorithm>
 #include <format>
+#include <functional>
 #include <string>
 #include <variant>
 
@@ -1489,8 +1490,27 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
 // ------------------------------------------------------------------------------
 // ==============================================================================
 // ElementParser public interface
-ElementParser::ElementParser(std::unique_ptr<Context> ctx)
-    : ctx_(std::move(ctx)) {}
+ElementParser::ElementParser(std::span<const Property> scene_properties,
+                             std::span<const Property> global_properties,
+                             std::span<const Command> scene_commands,
+                             std::span<const Command> global_commands,
+                             const std::vector<Type>& curcall_args,
+                             int scene_id,
+                             std::function<int()> read_kidoku,
+                             std::function<void(std::string)> warn)
+    : scene_properties_(scene_properties),
+      global_properties_(global_properties),
+      scene_commands_(scene_commands),
+      global_commands_(global_commands),
+      curcall_args_(curcall_args),
+      scene_id_(scene_id),
+      read_kidoku_(std::move(read_kidoku)),
+      warn_(std::move(warn)) {
+  if (!read_kidoku_)
+    read_kidoku_ = [] { return 0; };
+  if (!warn_)
+    warn_ = [](std::string) {};
+}
 ElementParser::~ElementParser() = default;
 
 AccessChain ElementParser::Parse(ElementCode& elm) {
@@ -1521,9 +1541,9 @@ AccessChain ElementParser::Parse(ElementCode& elm) {
   if (elm.force_bind || result.GetType() == Type::Callable ||
       can_implicit_call) {
     if (result.GetType() != Type::Callable && !can_implicit_call)
-      ctx_->Warn(std::format("[ElementParser] cannot bind {} to {}",
-                             elm.bind_ctx.ToDebugString(),
-                             result.ToDebugString()));
+      warn_(std::format("[ElementParser] cannot bind {} to {}",
+                        elm.bind_ctx.ToDebugString(),
+                        result.ToDebugString()));
     else {
       if (can_implicit_call && elm.bind_ctx.return_type == Type::None)
         elm.bind_ctx.return_type = call_member->call_return_type;
@@ -1546,10 +1566,10 @@ AccessChain ElementParser::resolve_usrcmd(ElementCode& elm, size_t idx) {
   Usrcmd usrcmd;
 
   const libsiglus::Command* cmd = nullptr;
-  if (idx < ctx_->GlobalCommands().size())
-    cmd = &ctx_->GlobalCommands()[idx];
+  if (idx < global_commands_.size())
+    cmd = &global_commands_[idx];
   else
-    cmd = &ctx_->SceneCommands()[idx - ctx_->GlobalCommands().size()];
+    cmd = &scene_commands_[idx - global_commands_.size()];
 
   usrcmd.scene = cmd->scene_id;
   usrcmd.entry = cmd->offset;
@@ -1564,18 +1584,18 @@ AccessChain ElementParser::resolve_usrprop(ElementCode& elm, size_t idx) {
   elm::Usrprop root;
   Type root_type;
 
-  if (idx < ctx_->GlobalProperties().size()) {
-    const auto& incprop = ctx_->GlobalProperties()[idx];
+  if (idx < global_properties_.size()) {
+    const auto& incprop = global_properties_[idx];
     root.name = incprop.name;
     root_type = incprop.form;
     root.scene = -1;  // global
     root.idx = idx;
   } else {
-    idx -= ctx_->GlobalProperties().size();
-    const auto& usrprop = ctx_->SceneProperties()[idx];
+    idx -= global_properties_.size();
+    const auto& usrprop = scene_properties_[idx];
     root.name = usrprop.name;
     root_type = usrprop.form;
-    root.scene = ctx_->SceneId();
+    root.scene = scene_id_;
     root.idx = idx;
   }
 
@@ -1621,7 +1641,7 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
       const int elmcall = elm_iv[1];
       if ((elmcall >> 24) == 0x7d) {
         auto id = (elmcall ^ (0x7d << 24));
-        return make_chain(ctx_->CurcallArgs()[id], elm::Arg(id), elm, 2);
+        return make_chain(curcall_args_[id], elm::Arg(id), elm, 2);
       }
 
       else if (elmcall == 0)
@@ -1653,12 +1673,12 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
       // some needs kidoku flag
     case 19:   // SEL
     case 101:  // SEL_CANCEL
-      ctx_->ReadKidoku();
+      read_kidoku_();
       break;
 
     case 100:  // SELMSG
     case 102:  // SELMSG_CANCEL
-      ctx_->ReadKidoku();
+      read_kidoku_();
       break;
 
     case 76:   // SELBTN
@@ -1668,7 +1688,7 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
     case 127:  // SELBTN_START
     {
       if (root == 76 || root == 126 || root == 127)
-        ctx_->ReadKidoku();
+        read_kidoku_();
       break;
     }
 
@@ -1757,7 +1777,7 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
     case 12: {  // PRINT
       elm.code.front() = Value(Integer(4));
       auto result = make_sym_chain(Type::Mwnd, "mwnd", elm, 0);
-      result.kidoku = ctx_->ReadKidoku();
+      result.kidoku = read_kidoku_();
       return result;
     }
     case 61: {  // RUBY
@@ -1841,7 +1861,7 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
       goto KOE;
     KOE: {
       auto result = make_sym_chain(Type::Mwnd, "mwnd", elm, 0);
-      result.kidoku = ctx_->ReadKidoku();
+      result.kidoku = read_kidoku_();
       return result;
     }
 
@@ -1928,14 +1948,12 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
 
       Farcall farcall;
       if (Typeof(bind.arg[0]) != Type::String)
-        ctx_->Warn("[Farcall] expected string, but got: " +
-                   ToString(bind.arg[0]));
+        warn_("[Farcall] expected string, but got: " + ToString(bind.arg[0]));
       farcall.scn_name = bind.arg[0];
 
       if (bind.overload_id == 1) {  // additionally has zlabel and arguments
         if (Typeof(bind.arg[1]) != Type::Int)
-          ctx_->Warn("[Farcall] expected int, but got: " +
-                     ToString(bind.arg[1]));
+          warn_("[Farcall] expected int, but got: " + ToString(bind.arg[1]));
 
         farcall.zlabel = bind.arg[1];
         for (auto& arg : std::views::drop(bind.arg, 2)) {
@@ -2037,7 +2055,7 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
       std::string msg = "[ElementParser] Unable to parse element: ";
       for (const Value& it : elm.code)
         msg += '<' + ToString(it) + '>';
-      ctx_->Warn(std::move(msg));
+      warn_(std::move(msg));
     } break;
   }
 
@@ -2054,7 +2072,7 @@ AccessChain ElementParser::make_chain(AccessChain result,
       .elm = elm,
       .elmcode = elmcode,
       .chain = result,
-      .Warn = [&](std::string msg) { this->ctx_->Warn(std::move(msg)); }};
+      .Warn = [&](std::string msg) { this->warn_(std::move(msg)); }};
   while ((mp = elm::GetMethodMap(result.GetType())) != nullptr) {
     if (!mp || elmcode.empty())
       break;
@@ -2072,7 +2090,7 @@ AccessChain ElementParser::make_chain(AccessChain result,
     msg += Join(",", std::views::all(elmcode) |
                          std::views::transform(
                              [](const Value& v) { return ToString(v); }));
-    ctx_->Warn(std::move(msg));
+    warn_(std::move(msg));
   }
 
   return result;

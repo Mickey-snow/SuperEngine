@@ -24,12 +24,7 @@
 
 #include "sgvm_instance.hpp"
 
-#include "libsiglus/archive.hpp"
-#include "libsiglus/parser.hpp"
-#include "libsiglus/parser_context.hpp"
-#include "libsiglus/recompiler.hpp"
 #include "libsiglus/sgvm_factory.hpp"
-#include "libsiglus/token.hpp"
 #include "systems/graphics_system.hpp"
 #include "vm/function.hpp"
 #include "vm/instruction.hpp"
@@ -43,14 +38,6 @@
 
 using namespace libsiglus;
 namespace sr = serilang;
-
-struct Context : public ParserContext {
-  Context(Archive& ar, Scene& sc, std::vector<token::Token_t>& tok)
-      : ParserContext(ar, sc), tokens(tok) {}
-  std::vector<token::Token_t>& tokens;
-  void Emit(token::Token_t tok) final { tokens.emplace_back(std::move(tok)); }
-  void Warn(std::string msg) final { std::cerr << msg << std::endl; }
-};
 
 void SgvmInstance::Main(const std::filesystem::path& game_root) {
   try {

@@ -34,48 +34,47 @@ using namespace libsiglus;
 
 using ::testing::ElementsAre;
 using ::testing::HasSubstr;
-using ::testing::Return;
-using ::testing::ReturnRef;
 
 class ElementParserTest : public ::testing::Test {
  protected:
-  class MockContext : public ElementParser::Context {
-   public:
-    MOCK_METHOD(const std::vector<Property>&,
-                SceneProperties,
-                (),
-                (const, override));
-    MOCK_METHOD(const std::vector<Property>&,
-                GlobalProperties,
-                (),
-                (const, override));
-    MOCK_METHOD(const std::vector<Command>&,
-                SceneCommands,
-                (),
-                (const, override));
-    MOCK_METHOD(const std::vector<Command>&,
-                GlobalCommands,
-                (),
-                (const, override));
-    MOCK_METHOD(const std::vector<Type>&, CurcallArgs, (), (const, override));
-    MOCK_METHOD(int, ReadKidoku, (), (override));
-    MOCK_METHOD(int, SceneId, (), (const, override));
+  ElementParserTest() { ResetParser(); }
 
-    void Warn(std::string message) override {
-      warnings.emplace_back(std::move(message));
-      if (fail_on_warn)
-        ADD_FAILURE() << warnings.back();
-    }
-
-    bool fail_on_warn = true;
-    std::vector<std::string> warnings;
-  };
-  ElementParserTest() {
-    std::unique_ptr<MockContext> c = std::make_unique<MockContext>();
-    ctx = c.get();
-    parser = std::make_unique<ElementParser>(std::move(c));
+  void ResetParser() {
+    parser = std::make_unique<ElementParser>(
+        scene_properties, global_properties, scene_commands, global_commands,
+        curcall_args, scene_id, [this] { return ReadKidoku(); },
+        [this](std::string message) { Warn(std::move(message)); });
   }
-  MockContext* ctx;
+
+  void SetKidoku(std::initializer_list<int> values) {
+    kidoku_values.assign(values.begin(), values.end());
+    kidoku_idx = 0;
+  }
+
+  int ReadKidoku() {
+    if (kidoku_idx >= kidoku_values.size()) {
+      ADD_FAILURE() << "unexpected kidoku read";
+      return 0;
+    }
+    return kidoku_values[kidoku_idx++];
+  }
+
+  void Warn(std::string message) {
+    warnings.emplace_back(std::move(message));
+    if (fail_on_warn)
+      ADD_FAILURE() << warnings.back();
+  }
+
+  std::vector<Property> scene_properties;
+  std::vector<Property> global_properties;
+  std::vector<Command> scene_commands;
+  std::vector<Command> global_commands;
+  std::vector<Type> curcall_args;
+  std::vector<int> kidoku_values;
+  size_t kidoku_idx = 0;
+  int scene_id = 0;
+  bool fail_on_warn = true;
+  std::vector<std::string> warnings;
   std::unique_ptr<ElementParser> parser;
 
   // ==============================================================================
@@ -213,8 +212,7 @@ TEST_F(ElementParserTest, FrameAction) {
 }
 
 TEST_F(ElementParserTest, CurcallArgStr) {
-  std::vector<Type> curcall_args{Type::None, Type::String};
-  EXPECT_CALL(*ctx, CurcallArgs()).WillOnce(ReturnRef(curcall_args));
+  curcall_args = {Type::None, Type::String};
 
   int flag = 0x7d << 24;
   int idx = 1;
@@ -363,7 +361,7 @@ TEST_F(ElementParserTest, SimpleCallableIgnoresOl) {
   elm.ForceBind({99, {v("song02"), v(1), v(2)}});
 
   EXPECT_EQ(chain(elm), "bgm.play(str:song02,int:1,int:2)");
-  EXPECT_TRUE(ctx->warnings.empty());
+  EXPECT_TRUE(warnings.empty());
 }
 
 TEST_F(ElementParserTest, WipePreservesNamedArguments) {
@@ -491,7 +489,7 @@ TEST_F(ElementParserTest, Mwnd) {
   {
     ElementCode elm{18};
     elm.ForceBind({0, {v(12345), v(7)}});
-    EXPECT_CALL(*ctx, ReadKidoku()).WillOnce(Return(101));
+    SetKidoku({101});
     auto parsed = chain(elm);
     EXPECT_EQ(parsed, "mwnd.koe[0](int:12345,int:7)");
     EXPECT_EQ(parsed.chain.kidoku, 101);
@@ -505,7 +503,7 @@ TEST_F(ElementParserTest, Mwnd) {
     invoke.arg = {v(12345)};
     invoke.named_arg = {{0, v(1)}};
     elm.ForceBind(std::move(invoke));
-    EXPECT_CALL(*ctx, ReadKidoku()).WillOnce(Return(102));
+    SetKidoku({102});
     auto parsed = chain(elm);
     EXPECT_EQ(parsed, "mwnd.koe[0](int:12345,0=int:1)");
     EXPECT_EQ(parsed.chain.kidoku, 102);
@@ -515,7 +513,7 @@ TEST_F(ElementParserTest, Mwnd) {
   {
     ElementCode elm{90};
     elm.ForceBind({0, {v(12345)}});
-    EXPECT_CALL(*ctx, ReadKidoku()).WillOnce(Return(103));
+    SetKidoku({103});
     auto parsed = chain(elm);
     EXPECT_EQ(parsed, "mwnd.koe_play_wait[0](int:12345)");
     EXPECT_EQ(parsed.chain.kidoku, 103);
@@ -525,7 +523,7 @@ TEST_F(ElementParserTest, Mwnd) {
   {
     ElementCode elm{91};
     elm.ForceBind({0, {v(12345), v(7)}});
-    EXPECT_CALL(*ctx, ReadKidoku()).WillOnce(Return(104));
+    SetKidoku({104});
     auto parsed = chain(elm);
     EXPECT_EQ(parsed, "mwnd.koe_play_wait_key[0](int:12345,int:7)");
     EXPECT_EQ(parsed.chain.GetType(), Type::Int);
@@ -565,12 +563,12 @@ TEST_F(ElementParserTest, System) {
     EXPECT_EQ(chain(elm), "syscom.btn_enable[1](int:3)");
   }
   {
-    ctx->fail_on_warn = false;
+    fail_on_warn = false;
 
     ElementCode elm{63, 11};
     elm.ForceBind({99, {}});
     EXPECT_EQ(chain(elm), "syscom.btn_enable_all[99]()");
-    EXPECT_THAT(ctx->warnings,
+    EXPECT_THAT(warnings,
                 ElementsAre(HasSubstr("[Callable] overload 99 not found")));
   }
 }
@@ -618,9 +616,9 @@ TEST_F(ElementParserTest, PcmchWaitCallsAreAwaitable) {
 }
 
 TEST_F(ElementParserTest, UsrcmdGlobal) {
-  std::vector<Command> globalcmd = {
+  global_commands = {
       Command{.scene_id = 1, .offset = 2, .name = "$$cmd"}};
-  EXPECT_CALL(*ctx, GlobalCommands()).WillRepeatedly(ReturnRef(globalcmd));
+  ResetParser();
 
   ElementCode elm{2113929216};
   elm.ForceBind({0, {v(20)}});

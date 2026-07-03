@@ -31,12 +31,15 @@
 #include "libsiglus/token.hpp"
 #include "libsiglus/value.hpp"
 #include "utilities/byte_reader.hpp"
+#include "utilities/expected.hpp"
 
 #include <iomanip>
 #include <map>
+#include <span>
 #include <sstream>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -44,30 +47,25 @@ namespace libsiglus {
 
 class Parser {
  public:
-  class Context {
-   public:
-    virtual ~Context() = default;
+  Parser(std::string_view rawdata,
+         std::span<const std::string> strpool,
+         std::span<const int> labels,
+         std::span<const int> zlabels,
+         std::span<const Property> scnprop,
+         std::span<const Property> globalprop,
+         std::span<const Command> scncmd,
+         std::span<const Command> gcmd,
+         int scnno = -1,
+         std::string_view debug_title = {});
 
-    virtual std::string_view SceneData() const = 0;
-    virtual const std::vector<std::string>& Strings() const = 0;
-    virtual const std::vector<int>& Labels() const = 0;
-    virtual const std::vector<int>& Zlabels() const = 0;
-
-    virtual const std::vector<Property>& SceneProperties() const = 0;
-    virtual const std::vector<Property>& GlobalProperties() const = 0;
-    virtual const std::vector<Command>& SceneCommands() const = 0;
-    virtual const std::vector<Command>& GlobalCommands() const = 0;
-
-    virtual int SceneId() const = 0;
-    virtual std::string GetDebugTitle() const = 0;
-
-    virtual void Emit(token::Token_t) = 0;
-    virtual void Warn(std::string message) = 0;
+  struct ParsedToken {
+    int line;
+    token::Token_t token;
   };
-
-  Parser(Context& ctx);
-
-  void ParseAll();
+  using Tokens = std::vector<ParsedToken>;
+  using Warnings = std::vector<std::string>;
+  expected<std::pair<Tokens, Warnings>, std::string> ParseAll() noexcept;
+  const Tokens& ParsedTokens() const noexcept { return parsed_; }
 
   inline void Add(Lexeme lex) {
     std::visit([&](auto&& x) { this->Add(std::forward<decltype(x)>(x)); },
@@ -78,7 +76,7 @@ class Parser {
   // helpers
   template <typename T>
   inline void emit_token(T&& t) {
-    ctx_.Emit(std::forward<T>(t));
+    parsed_.emplace_back(++lineno_, std::forward<T>(t));
   }
 
   inline auto read_kidoku() { return reader_.PopAs<int>(4); }
@@ -135,9 +133,15 @@ class Parser {
   }
 
  private:
-  Context& ctx_;
+  std::string_view raw_;
+  std::string_view debug_title_;
+  std::span<const std::string> strpool_;
+  std::span<const int> labels_, zlabels_;
+  std::span<const Property> scnprop_, gprop_;
+  std::span<const Command> scncmd_, gcmd_;
 
   ByteReader reader_;
+  int scnno_ = -1;
   int lineno_ = 0;
   Stack stack_;
   int var_cnt_ = 0;
@@ -148,7 +152,10 @@ class Parser {
   const Command* curcall_cmd_ = nullptr;
   std::vector<Type> curcall_args_;
 
-  std::unique_ptr<elm::ElementParser> elm_parser_;
+  elm::ElementParser elm_parser_;
+
+  std::vector<ParsedToken> parsed_;
+  Warnings warnings_;
 };
 
 }  // namespace libsiglus

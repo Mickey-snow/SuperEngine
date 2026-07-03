@@ -31,7 +31,6 @@
 #include "libsiglus/archive.hpp"
 #include "libsiglus/gexedat.hpp"
 #include "libsiglus/parser.hpp"
-#include "parser_context.hpp"
 #include "utilities/mapped_file.hpp"
 #include "utilities/string_utilities.hpp"
 
@@ -138,26 +137,18 @@ void Dumper::DumpScene(size_t id, std::ostream& out) {
 
   out << '\n'
       << std::string(3, '=') << " script " << std::string(20, '=') << '\n';
-  struct Context : public ParserContext {
-    Context(Archive& ar, Scene& sc, std::ostream& o, std::ostream& e)
-        : ParserContext(ar, sc), idx(1), out(o), err(e) {}
-    size_t idx;
-    std::ostream& out;
-    std::ostream& err;
+  Parser parser(scn.scene_, scn.str_, scn.label, scn.zlabel, scn.property,
+                archive_.prop_, scn.cmd, archive_.cmd_, scn.id_, scn.scnname_);
 
-    void Emit(token::Token_t tok) final {
-      out << idx++ << ": " << ToString(tok) << '\n';
-    }
-    void Warn(std::string msg) final { err << msg << '\n'; }
-  };
-
-  Context ctx(archive_, scn, out, out);
-  Parser parser(ctx);
-
-  try {
-    parser.ParseAll();
-  } catch (std::exception& e) {
-    out << '\n' << e.what() << '\n';
+  auto parsed = parser.ParseAll();
+  if (!parsed.has_value()) {
+    out << '\n' << parsed.error() << '\n';
+  } else {
+    auto [tokens, warnings] = std::move(parsed.value());
+    for (const auto& [idx, token] : tokens)
+      out << idx << ": " << ToString(token) << '\n';
+    for (const auto& warning : warnings)
+      out << warning << '\n';
   }
   out.flush();
 }

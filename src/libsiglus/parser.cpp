@@ -28,6 +28,8 @@
 #include "libsiglus/scene.hpp"
 #include "utilities/flat_map.hpp"
 
+#include <exception>
+#include <format>
 #include <sstream>
 
 namespace libsiglus {
@@ -35,35 +37,38 @@ using namespace token;
 
 // -----------------------------------------------------------------------
 // class Parser
-Parser::Parser(Context& ctx) : ctx_(ctx), reader_("") {
-  struct ElmParserCtx : public elm::ElementParser::Context {
-    libsiglus::Parser& self;
-    ElmParserCtx(libsiglus::Parser& s) : self(s) {}
-
-    const std::vector<libsiglus::Property>& SceneProperties() const final {
-      return self.ctx_.SceneProperties();
-    }
-    const std::vector<libsiglus::Property>& GlobalProperties() const final {
-      return self.ctx_.GlobalProperties();
-    }
-    const std::vector<libsiglus::Command>& SceneCommands() const final {
-      return self.ctx_.SceneCommands();
-    }
-    const std::vector<libsiglus::Command>& GlobalCommands() const final {
-      return self.ctx_.GlobalCommands();
-    }
-    const std::vector<Type>& CurcallArgs() const final {
-      return self.curcall_args_;
-    }
-
-    int ReadKidoku() final { return self.read_kidoku(); }
-    int SceneId() const final { return self.ctx_.SceneId(); }
-    void Warn(std::string message) final { self.ctx_.Warn(std::move(message)); }
-  };
-
-  auto elmctx = std::make_unique<ElmParserCtx>(*this);
-  elm_parser_ = std::make_unique<elm::ElementParser>(std::move(elmctx));
-}
+Parser::Parser(std::string_view rawdata,
+               std::span<const std::string> strpool,
+               std::span<const int> labels,
+               std::span<const int> zlabels,
+               std::span<const Property> scnprop,
+               std::span<const Property> globalprop,
+               std::span<const ::libsiglus::Command> scncmd,
+               std::span<const ::libsiglus::Command> gcmd,
+               int scnno,
+               std::string_view debug_title)
+    : raw_(rawdata),
+      debug_title_(debug_title),
+      strpool_(strpool),
+      labels_(labels),
+      zlabels_(zlabels),
+      scnprop_(scnprop),
+      gprop_(globalprop),
+      scncmd_(scncmd),
+      gcmd_(gcmd),
+      reader_(""),
+      scnno_(scnno),
+      elm_parser_(
+          scnprop_,
+          gprop_,
+          scncmd_,
+          gcmd_,
+          curcall_args_,
+          scnno_,
+          [this] { return read_kidoku(); },
+          [this](std::string message) {
+            warnings_.emplace_back(std::move(message));
+          }) {}
 
 Variable Parser::add_var(Type type) {
   Variable var(type, var_cnt_++);
@@ -90,7 +95,7 @@ Value Parser::pop(Type type) {
       token::ElmAlias tok;
       tok.elmcode = stack_.Popelm();
       tok.elmcode.force_bind = false;
-      tok.chain = elm_parser_->Parse(tok.elmcode);
+      tok.chain = elm_parser_.Parse(tok.elmcode);
       Variable var = add_var(type);
       tok.dst = var;
       emit_token(std::move(tok));
@@ -134,63 +139,71 @@ void Parser::push(const token::GetProperty& prop) {
 void Parser::add_label(int id) { emit_token(Label{id}); }
 void Parser::add_zlabel(int id) { emit_token(Zlabel{id}); }
 
-void Parser::ParseAll() {
-  reader_ = ByteReader(ctx_.SceneData());
-  var_cnt_ = lineno_ = 0;
-  offset2cmd_.clear();
-  offset2labels_.clear();
-  offset2zlabels_.clear();
-  stack_.Clear();
+expected<std::pair<Parser::Tokens, Parser::Warnings>, std::string>
+Parser::ParseAll() noexcept {
+  try {
+    parsed_.clear(), warnings_.clear();
 
-  const int this_scene_id = ctx_.SceneId();
-  std::vector<int> const& labels = ctx_.Labels();
-  std::vector<int> const& zlabels = ctx_.Zlabels();
-  std::vector<libsiglus::Command> const& scene_cmd = ctx_.SceneCommands();
-  std::vector<libsiglus::Command> const& global_cmd = ctx_.GlobalCommands();
-  for (size_t i = 0; i < labels.size(); ++i)
-    offset2labels_.emplace(labels[i], i);  // (location, lid)
-  for (size_t i = 0; i < zlabels.size(); ++i)
-    offset2zlabels_.emplace(zlabels[i], i);  // (location, zid)
-  for (size_t i = 0; i < scene_cmd.size(); ++i)
-    offset2cmd_.emplace(scene_cmd[i].offset, &scene_cmd[i]);
-  for (size_t i = 0; i < global_cmd.size(); ++i)
-    if (global_cmd[i].scene_id == this_scene_id)
-      offset2cmd_.emplace(global_cmd[i].offset, &global_cmd[i]);
+    reader_ = ByteReader(raw_);
+    var_cnt_ = lineno_ = 0;
+    offset2cmd_.clear();
+    offset2labels_.clear();
+    offset2zlabels_.clear();
+    curcall_cmd_ = nullptr;
+    curcall_args_.clear();
+    stack_.Clear();
 
-  while (reader_.Position() < reader_.Size()) {
-    // Add labels
-    for (auto [begin, end] = offset2labels_.equal_range(reader_.Position());
-         begin != end; ++begin) {
-      add_label(begin->second);
-      debug_assert_stack_empty();
-    }
+    for (size_t i = 0; i < labels_.size(); ++i)
+      offset2labels_.emplace(labels_[i], i);  // (location, lid)
+    for (size_t i = 0; i < zlabels_.size(); ++i)
+      offset2zlabels_.emplace(zlabels_[i], i);  // (location, zid)
+    for (size_t i = 0; i < scncmd_.size(); ++i)
+      offset2cmd_.emplace(scncmd_[i].offset, &scncmd_[i]);
+    for (size_t i = 0; i < gcmd_.size(); ++i)
+      if (gcmd_[i].scene_id == scnno_)
+        offset2cmd_.emplace(gcmd_[i].offset, &gcmd_[i]);
 
-    // Add zlabels
-    for (auto [begin, end] = offset2zlabels_.equal_range(reader_.Position());
-         begin != end; ++begin) {
-      const auto [loc, zid] = *begin;
-      if (loc <= 0)
-        continue;  // implicit zlabel -> use %%script instead
-      add_zlabel(begin->second);
-      debug_assert_stack_empty();
-    }
+    while (reader_.Position() < reader_.Size()) {
+      // Add labels
+      for (auto [begin, end] = offset2labels_.equal_range(reader_.Position());
+           begin != end; ++begin) {
+        add_label(begin->second);
+        debug_assert_stack_empty();
+      }
 
-    // update curcall
-    const auto it = offset2cmd_.find(reader_.Position());
-    if (it != offset2cmd_.cend()) {
-      curcall_cmd_ = it->second;
-      curcall_args_.clear();
-      debug_assert_stack_empty();
-    }
+      // Add zlabels
+      for (auto [begin, end] = offset2zlabels_.equal_range(reader_.Position());
+           begin != end; ++begin) {
+        const auto [loc, zid] = *begin;
+        if (loc <= 0)
+          continue;  // implicit zlabel -> use %%script instead
+        add_zlabel(begin->second);
+        debug_assert_stack_empty();
+      }
 
-    try {  // parse
+      // update curcall
+      const auto it = offset2cmd_.find(reader_.Position());
+      if (it != offset2cmd_.cend()) {
+        curcall_cmd_ = it->second;
+        curcall_args_.clear();
+        debug_assert_stack_empty();
+      }
+
       static Lexer lexer;
       auto lex = lexer.Parse(reader_);
       Add(std::move(lex));
-    } catch (std::runtime_error& e) {
-      std::string stack_dbgstr = "\nstack:\n" + stack_.ToDebugString();
-      throw std::runtime_error(e.what() + std::move(stack_dbgstr));
     }
+
+    return std::make_pair(std::move(parsed_), std::move(warnings_));
+  } catch (const std::exception& e) {
+    std::string errmsg = e.what();
+    errmsg += "\nstack:\n";
+    errmsg += stack_.ToDebugString();
+    return unexpected(std::move(errmsg));
+  } catch (...) {
+    std::string errmsg = "unknown parser error\nstack:\n";
+    errmsg += stack_.ToDebugString();
+    return unexpected(std::move(errmsg));
   }
 }
 
@@ -200,7 +213,7 @@ void Parser::Add(lex::Push p) {
       push(Integer(p.value_));
       break;
     case Type::String:
-      push(String(ctx_.Strings()[p.value_]));
+      push(String(strpool_[p.value_]));
       break;
 
     default:  // ignore
@@ -211,7 +224,9 @@ void Parser::Add(lex::Push p) {
 void Parser::Add(lex::Pop p) { pop(p.type_); }
 
 void Parser::Add(lex::Line line) {
-  lineno_ = line.linenum_;
+  std::ignore = line.linenum_;  // lex::line marks the original siglus debug
+                                // symbols, we assign new line numbers starting
+                                // from 1 for each token in parser
   // is it safe to assume the stack is empty here?
   debug_assert_stack_empty();
 }
@@ -221,7 +236,7 @@ void Parser::Add(lex::Marker marker) { stack_.PushMarker(); }
 void Parser::Add(lex::Property) {
   token::GetProperty tok;
   tok.elmcode = stack_.Popelm();
-  tok.chain = elm_parser_->Parse(tok.elmcode);
+  tok.chain = elm_parser_.Parse(tok.elmcode);
   tok.dst = add_var(tok.chain.GetType());
 
   push(tok);
@@ -254,7 +269,7 @@ void Parser::Add(lex::Command command) {
   tok.elmcode = stack_.Popelm();
   tok.dst = add_var(invoke.return_type);
   tok.elmcode.ForceBind(std::move(invoke));
-  tok.chain = elm_parser_->Parse(tok.elmcode);
+  tok.chain = elm_parser_.Parse(tok.elmcode);
 
   push(tok.dst);
 
@@ -334,7 +349,7 @@ void Parser::Add(lex::Assign a) {
   token::Assign tok;
   tok.src = pop(a.rtype_);
   tok.dst_elmcode = stack_.Popelm();
-  tok.dst = elm_parser_->Parse(tok.dst_elmcode);
+  tok.dst = elm_parser_.Parse(tok.dst_elmcode);
   emit_token(std::move(tok));
 }
 
@@ -393,19 +408,22 @@ void Parser::Add(lex::EndOfScene) {
   emit_token(Eof{});
 }
 
-void Parser::Add(lex::SelBegin) { ctx_.Warn("selbegin not implemented yet"); }
+void Parser::Add(lex::SelBegin) {
+  warnings_.emplace_back("selbegin not implemented yet");
+}
 
-void Parser::Add(lex::SelEnd) { ctx_.Warn("selend not implemented yet"); }
+void Parser::Add(lex::SelEnd) {
+  warnings_.emplace_back("selend not implemented yet");
+}
 
 void Parser::debug_assert_stack_empty() {
   if (!stack_.Empty()) {
-    std::ostringstream oss;
-    oss << "[Parser] ";
-    oss << "at " << ctx_.SceneId() << ':' << ctx_.GetDebugTitle() << '\n';
-    oss << "at line " << lineno_ << ", expected stack to be empty. but got:\n";
-    oss << stack_.ToDebugString();
-    ctx_.Warn(oss.str());
-
+    std::string msg = std::format(
+        "[Parser] at {}:{}\n"
+        "at line {}, expected stack to be empty. but got:\n"
+        "{}",
+        scnno_, debug_title_, lineno_, stack_.ToDebugString());
+    warnings_.emplace_back(std::move(msg));
     stack_.Clear();
   }
 }
