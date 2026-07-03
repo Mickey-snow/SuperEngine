@@ -40,8 +40,10 @@
 #include "systems/text_system.hpp"
 #include "utilities/file.hpp"
 #include "utilities/mapped_file.hpp"
+#include "utilities/string_utilities.hpp"
 #include "vm/exception.hpp"
 #include "vm/object.hpp"
+#include "vm/string.hpp"
 #include "vm/vm.hpp"
 
 #include <algorithm>
@@ -430,9 +432,22 @@ SiglusRuntime SGVMFactory::Create() {
   }
   sb::module_ m(gc.get(), vm.globals_.get());
 
-  m.def("__builtin_dbgprint", [](std::string str, int scn, int lin) {
-    std::cerr << '[' << scn << ':' << lin << "] " << str << std::endl;
+  m.def("__builtin_dbgvalue", [](sr::VM& vm, sr::Value value) -> sr::Value {
+    std::string s;
+    if (const auto* str = value.Get_if<sr::String>())
+      s = '"' + EncodeText(str->str_) + '"';
+    else
+      s = value.Str();
+    return vm.gc_->Allocate<sr::String>(std::move(s));
   });
+  m.def(
+      "__builtin_dbgprint",
+      [](std::vector<sr::Value> args) {
+        for (const auto& it : args)
+          std::cerr << it.Str();
+        std::cerr << std::endl;
+      },
+      sb::vararg);
   m.def("__builtin_load_scn",
         [loader = rt.loader.get()](int scnid) -> sr::Value {
           sr::Module* mod = loader->Load(scnid);

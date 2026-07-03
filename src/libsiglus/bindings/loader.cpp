@@ -45,16 +45,8 @@ sr::Module* Loader::Load(int scene) {
   }
 
   Scene scn = archive.ParseScene(scene);
-  Parser parser(scn.scene_,
-                scn.str_,
-                scn.label,
-                scn.zlabel,
-                scn.property,
-                archive.prop_,
-                scn.cmd,
-                archive.cmd_,
-                scn.id_,
-                scn.scnname_);
+  Parser parser(scn.scene_, scn.str_, scn.label, scn.zlabel, scn.property,
+                archive.prop_, scn.cmd, archive.cmd_, scn.id_, scn.scnname_);
   auto parsed = parser.ParseAll();
   if (!parsed.has_value()) {
     throw sr::RuntimeError(std::format("failed to parse scene {} ({}): {}",
@@ -68,7 +60,7 @@ sr::Module* Loader::Load(int scene) {
   compiler.SetSceneProperties(scn.id_, scn.property);
   compiler.is_debug_ = debug_;
   for (auto& it : tokens)
-    compiler.Gen(std::move(it.token));
+    compiler.Gen(std::move(it.token), it.line);
   compiler.Finish();
   tokens.clear();
 

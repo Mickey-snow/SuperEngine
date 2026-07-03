@@ -235,3 +235,31 @@ bool parse_int(std::string_view sv, int& out, int base) {
   auto [ptr, ec] = std::from_chars(first, last, out, base);
   return ec == std::errc{} && ptr == last;
 }
+
+std::string EncodeText(std::string_view text) {
+  std::string result;
+  result.reserve(text.size() + 2);
+  for (char ch : text) {
+    switch (ch) {
+      case '\\':
+        result += "\\\\";
+        break;
+      case '"':
+        result += "\\\"";
+        break;
+      case '\n':
+        result += "\\n";
+        break;
+      case '\r':
+        result += "\\r";
+        break;
+      case '\t':
+        result += "\\t";
+        break;
+      default:
+        result.push_back(ch);
+        break;
+    }
+  }
+  return result;
+}

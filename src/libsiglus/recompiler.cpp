@@ -95,20 +95,233 @@ void Recompiler::SetSceneProperties(int scene_id,
   scene_properties_ = std::move(properties);
 }
 
-void Recompiler::Gen(token::Token_t tok) {
+void Recompiler::Gen(token::Token_t tok, int lineno) {
   try {
     if (is_finalized_)
       throw std::runtime_error("cannot emit token after EOF");
 
-    ++line_id_;
     if (is_debug_) {
-      emit_const(ToString(tok));
-      emit(sr::Dup{});
+      struct DebugAnnotationVisitor {
+        Recompiler& compiler;
+        std::uint32_t terms = 0;
+        DebugAnnotationVisitor(Recompiler& r, int scnno, int lineno)
+            : compiler(r) {
+          str(std::format("[{}:{}] ", scnno, lineno));
+        }
+        void str(std::string s) {
+          compiler.emit_const(std::move(s));
+          ++terms;
+        }
+        void var(int slot) {
+          compiler.emit_load_global("__builtin_dbgvalue");
+          compiler.emit(sr::LoadFast{.slot = fast_local_slot(slot)});
+          compiler.emit(sr::Call{.argcnt = 1, .kwargcnt = 0});
+          ++terms;
+        }
+        void comma_if_needed(bool& needs_comma) {
+          if (needs_comma)
+            str(",");
+          needs_comma = true;
+        }
+        void values(const std::vector<Value>& vals) {
+          for (std::size_t i = 0; i < vals.size(); ++i) {
+            if (i > 0)
+              str(",");
+            (*this)(vals[i]);
+          }
+        }
+        void named_values(const std::vector<std::pair<int, Value>>& vals,
+                          bool& needs_comma,
+                          std::string_view prefix = "") {
+          for (const auto& [key, val] : vals) {
+            comma_if_needed(needs_comma);
+            str(std::format("{}{}=", prefix, key));
+            (*this)(val);
+          }
+        }
+        void assignment_prefix(Type type, const Variable& dst) {
+          str(std::format("{} {} = ", ToString(type), dst.ToDebugString()));
+        }
+        void invoke(const elm::Invoke& inv,
+                    bool show_overload,
+                    bool show_rettype) {
+          if (show_overload)
+            str("[" + std::to_string(inv.overload_id) + "]");
+
+          str("(");
+          bool needs_comma = false;
+          for (const auto& arg : inv.arg) {
+            comma_if_needed(needs_comma);
+            (*this)(arg);
+          }
+          named_values(inv.named_arg, needs_comma, "_");
+          str(")");
+
+          if (show_rettype)
+            str("->" + ToString(inv.return_type));
+        }
+        void access_chain(const elm::AccessChain& chain) {
+          const bool elide_first_member_dot =
+              std::holds_alternative<std::monostate>(chain.root.var) &&
+              !chain.nodes.empty() &&
+              std::holds_alternative<elm::Member>(chain.nodes.front().var);
+
+          (*this)(chain.root);
+          for (std::size_t i = 0; i < chain.nodes.size(); ++i) {
+            if (elide_first_member_dot && i == 0) {
+              const auto& member = std::get<elm::Member>(chain.nodes[i].var);
+              str(std::string(member.name));
+            } else {
+              (*this)(chain.nodes[i]);
+            }
+          }
+        }
+        void operator()(const token::ElmAlias& t) {
+          str(std::format("alias.{} {} = ", ToString(Typeof(t.dst)),
+                          t.dst.ToDebugString()));
+          access_chain(t.chain);
+        }
+        void operator()(const token::Command& t) {
+          assignment_prefix(Typeof(t.dst), t.dst);
+          access_chain(t.chain);
+        }
+        void operator()(const token::Name& t) {
+          str("Name(");
+          (*this)(t.str);
+          str(")");
+        }
+        void operator()(const token::Textout& t) {
+          str(std::format("Textout@{} (", t.kidoku));
+          (*this)(t.str);
+          str(")");
+        }
+        void operator()(const token::GetProperty& t) {
+          assignment_prefix(Typeof(t.dst), t.dst);
+          access_chain(t.chain);
+        }
+        void operator()(const token::Operate1& t) {
+          assignment_prefix(Typeof(t.dst), t.dst);
+          str(ToString(t.op) + " ");
+          (*this)(t.rhs);
+          if (t.val) {
+            str(" ;");
+            (*this)(*t.val);
+          }
+        }
+        void operator()(const token::Operate2& t) {
+          assignment_prefix(Typeof(t.dst), t.dst);
+          (*this)(t.lhs);
+          str(" " + ToString(t.op) + " ");
+          (*this)(t.rhs);
+          if (t.val) {
+            str(" ;");
+            (*this)(*t.val);
+          }
+        }
+        void operator()(const token::Label& t) { str(t.ToDebugString()); }
+        void operator()(const token::Zlabel& t) { str(t.ToDebugString()); }
+        void operator()(const token::Goto& t) { str(t.ToDebugString()); }
+        void operator()(const token::GotoIf& t) {
+          str(t.cond ? "if(" : "ifnot(");
+          (*this)(t.src);
+          str(std::format(") goto .L{}", t.label));
+        }
+        void operator()(const token::Gosub& t) {
+          assignment_prefix(Typeof(t.dst), t.dst);
+          str(std::format("gosub@.L{}(", t.entry_id));
+          values(t.args);
+          str(")");
+        }
+        void operator()(const token::Assign& t) {
+          access_chain(t.dst);
+          str(" = ");
+          (*this)(t.src);
+        }
+        void operator()(const token::Duplicate& t) {
+          assignment_prefix(Typeof(t.dst), t.dst);
+          (*this)(t.src);
+        }
+        void operator()(const token::Subroutine& t) {
+          str(t.ToDebugString());
+        }
+        void operator()(const token::Return& t) {
+          str("ret (");
+          values(t.ret_vals);
+          str(")");
+        }
+        void operator()(const token::Eof& t) { str(t.ToDebugString()); }
+
+        void operator()(const elm::Root& r) { std::visit(*this, r.var); }
+        void operator()(const std::monostate&) {}
+        void operator()(const elm::Usrcmd& t) {
+          str(std::format("@{}.{}:{}", t.scene, t.entry, t.name));
+          invoke(t.arguments, false, false);
+        }
+        void operator()(const elm::Usrprop& t) {
+          str(std::format("@{}.{}:{}", t.scene, t.idx, t.name));
+        }
+        void operator()(const elm::Arg& t) {
+          str("arg_" + std::to_string(t.id) + ':');
+          var(t.id + 1);
+        }
+        void operator()(const elm::Farcall& t) {
+          str("farcall@[");
+          (*this)(t.scn_name);
+          str("].z[");
+          (*this)(t.zlabel);
+          str("](");
+          values(t.intargs);
+          str(")(");
+          values(t.strargs);
+          str(")");
+        }
+
+        void operator()(const elm::Node& n) { std::visit(*this, n.var); }
+        void operator()(const elm::Member& t) {
+          str("." + std::string(t.name));
+        }
+        void operator()(const elm::Subscript& t) {
+          str("[");
+          (*this)(t.idx);
+          str("]");
+        }
+        void operator()(const elm::Call& t) {
+          if (t.overload_id)
+            str("[" + std::to_string(*t.overload_id) + "]");
+          str("(");
+          bool needs_comma = false;
+          for (const auto& arg : t.args) {
+            comma_if_needed(needs_comma);
+            (*this)(arg);
+          }
+          named_values(t.kwargs, needs_comma);
+          str(")");
+        }
+
+        void operator()(const Value& v) { std::visit(*this, v); }
+        void operator()(const Integer& t) { str(t.ToDebugString()); }
+        void operator()(const String& t) { str(t.ToDebugString()); }
+        void operator()(const List& t) {
+          str("[");
+          for (std::size_t i = 0; i < t.vals.size(); ++i) {
+            if (i > 0)
+              str(",");
+            (*this)(t.vals[i]);
+          }
+          str("]");
+        }
+        void operator()(const Variable& t) {
+          str(t.ToDebugString() + ':');
+          var(t.id); // v123:123
+        }
+      };
       emit_load_global("__builtin_dbgprint");
-      emit(sr::Swap{});
-      emit_const(scene_id_.value_or(-1)), emit_const(line_id_);
-      emit(sr::Call{.argcnt = 3, .kwargcnt = 0});
+      DebugAnnotationVisitor visitor(*this, scene_id_.value_or(-1), lineno);
+      std::visit(visitor, tok);
+      emit(sr::Call{.argcnt = visitor.terms, .kwargcnt = 0});
       emit(sr::Pop{});
+
+      emit_const(ToString(tok));
       emit(sr::DebugValue{});
     }
     std::visit([this](const auto& stmt) { emit_tok(stmt); }, std::move(tok));

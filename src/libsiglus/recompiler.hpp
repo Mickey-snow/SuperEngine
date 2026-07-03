@@ -58,7 +58,7 @@ class Recompiler {
   inline void ClearErrors() { errors_.clear(); }
   inline serilang::Code* GetCode() const { return cur_chunk_; }
 
-  void Gen(token::Token_t tok);
+  void Gen(token::Token_t tok, int lineno = -1);
   void Finish();
   void SetSceneProperties(int scene_id, std::vector<Property> properties);
 
@@ -83,7 +83,6 @@ class Recompiler {
   bool is_finalized_ = false;
 
   std::optional<int> scene_id_;
-  int line_id_ = 0;
   std::vector<Property> scene_properties_;
   std::vector<SubroutineRecord> subroutines_;
   std::vector<ZlabelRecord> zlabels_;

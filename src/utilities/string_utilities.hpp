@@ -382,3 +382,5 @@ inline std::optional<std::size_t> FindAsciiCaseInsensitiveUtf8Index(
 }
 
 bool parse_int(std::string_view sv, int& out, int base = 10);
+
+std::string EncodeText(std::string_view text);
