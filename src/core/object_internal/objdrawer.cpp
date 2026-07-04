@@ -97,7 +97,9 @@ void GraphicsObjectData::Render(const GraphicsObject& go,
     return;
 
   RenderGeometry geometry = BuildRenderGeometry(go, parent);
-  const int alpha = GetRenderingAlpha(go, parent);
+  const float parent_alpha =
+      parent ? parent->Param().GetNormalizedAlpha() : 1.f;
+  const float alpha = GetRenderingAlpha(go, parent_alpha);
 
   if (auto geo = ApplyClips(geometry, go, parent))
     geometry = *geo;
@@ -117,11 +119,11 @@ void GraphicsObjectData::Render(const GraphicsObject& go,
     config.blend_type = param.composite_mode;
     config.color = param.colour();
     config.tint = param.tint();
-    config.mono = param.mono();
-    config.invert = param.invert();
+    config.mono = param.mono() / 255.f;
+    config.invert = param.invert() / 255.f;
     const ObjectParameter* parent_param = parent ? &parent->Param() : nullptr;
-    config.bright = param.EffectiveBright(parent_param);
-    config.dark = param.EffectiveDark(parent_param);
+    config.bright = param.EffectiveBright(parent_param) / 255.f;
+    config.dark = param.EffectiveDark(parent_param) / 255.f;
 
     glRenderer().Render({it.gltexture, src_rect}, std::move(config),
                         {SDLSurface::screen_, dst_rect});
@@ -251,11 +253,10 @@ RenderGeometry GraphicsObjectData::BuildRenderGeometry(
   return geometry;
 }
 
-int GraphicsObjectData::GetRenderingAlpha(const GraphicsObject& go,
-                                          const GraphicsObject* parent) const {
-  const int alpha = go.Param().GetComputedAlpha();
-  const int par_alpha = parent ? parent->Param().GetComputedAlpha() : 255;
-  return static_cast<int>((par_alpha / 255.f) * (alpha / 255.f) * 255);
+float GraphicsObjectData::GetRenderingAlpha(const GraphicsObject& go,
+                                            float parent_alpha) const {
+  const float alpha = go.Param().GetNormalizedAlpha();
+  return alpha * parent_alpha;
 }
 
 void GraphicsObjectData::PlaySet(int set) {}

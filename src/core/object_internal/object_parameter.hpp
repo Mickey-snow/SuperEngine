@@ -341,6 +341,7 @@ struct ObjectParameter {
       alpha = (alpha * it) / 255;
     return alpha;
   }
+  inline float GetNormalizedAlpha() const { return GetComputedAlpha() / 255.f; }
   int raw_alpha() const { return alpha_source; }
   void SetAlpha(const int in) { alpha_source = in; }
 

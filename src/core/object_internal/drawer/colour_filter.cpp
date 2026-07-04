@@ -67,13 +67,13 @@ void ColourFilterObjectData::Render(const GraphicsObject& go,
   RenderingConfig cfg;
   cfg.blend_type = param.composite_mode;
   cfg.color = param.colour();
-  cfg.alpha = param.GetComputedAlpha();
+  cfg.alpha = param.GetNormalizedAlpha();
   cfg.tint = param.tint();
-  cfg.mono = param.mono();
-  cfg.invert = param.invert();
+  cfg.mono = param.mono() / 255.f;
+  cfg.invert = param.invert() / 255.f;
   const ObjectParameter* parent_param = parent ? &parent->Param() : nullptr;
-  cfg.bright = param.EffectiveBright(parent_param);
-  cfg.dark = param.EffectiveDark(parent_param);
+  cfg.bright = param.EffectiveBright(parent_param) / 255.f;
+  cfg.dark = param.EffectiveDark(parent_param) / 255.f;
   glRenderer().Render({background, src}, cfg, {screen_canvas, dst});
 }
 

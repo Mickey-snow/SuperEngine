@@ -283,19 +283,19 @@ void glRenderer::Render(glRenderable src,
   }
   shader->SetUniform("blend_type", cfg.blend_type.value_or(0));
 
-  auto mono = cfg.mono.value_or(0.0f) / 255.0f;
+  auto mono = cfg.mono.value_or(0.0f);
   shader->SetUniform("mono", mono);
 
-  auto invert = cfg.invert.value_or(0.0f) / 255.0f;
+  auto invert = cfg.invert.value_or(0.0f);
   shader->SetUniform("invert", invert);
 
-  auto bright = cfg.bright.value_or(0.0f) / 255.0f;
+  auto bright = cfg.bright.value_or(0.0f);
   shader->SetUniform("bright", bright);
 
-  auto dark = cfg.dark.value_or(0.0f) / 255.0f;
+  auto dark = cfg.dark.value_or(0.0f);
   shader->SetUniform("dark", dark);
 
-  auto alpha = cfg.alpha.value_or(255.0f) / 255.0f;
+  auto alpha = cfg.alpha.value_or(1.0f);
   shader->SetUniform("alpha", alpha);
 
   auto tint = cfg.tint.value_or(RGBColour(0, 0, 0));

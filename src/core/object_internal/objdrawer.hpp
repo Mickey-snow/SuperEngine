@@ -30,15 +30,17 @@
 #include "core/render_geometry.hpp"
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
-#include <optional>
 
 class GraphicsObject;
 class SDLSurface;
 class Animator;
 
-std::optional<RenderGeometry> ApplyClips(RenderGeometry geo, const GraphicsObject& go, const GraphicsObject* parent);
+std::optional<RenderGeometry> ApplyClips(RenderGeometry geo,
+                                         const GraphicsObject& go,
+                                         const GraphicsObject* parent);
 
 class GraphicsObjectData {
  public:
@@ -89,8 +91,8 @@ class GraphicsObjectData {
 
   // Controls the alpha during rendering. Default implementation just consults
   // the GraphicsObject.
-  virtual int GetRenderingAlpha(const GraphicsObject& go,
-                                const GraphicsObject* parent) const;
+  virtual float GetRenderingAlpha(const GraphicsObject& go,
+                                  float parent_alpha = 1.0f) const;
 
   RenderState BuildRenderState(const GraphicsObject& go) const;
   RenderGeometry BuildRenderGeometry(const GraphicsObject& go,

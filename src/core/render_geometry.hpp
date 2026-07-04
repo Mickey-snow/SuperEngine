@@ -58,7 +58,7 @@ struct RenderState {
   inline operator std::string() { return GetDebugString(); }
   bool operator==(const RenderState&) const;
 
-  inline static RenderState Id() { return {}; }
+  static constexpr RenderState Id() { return {}; }
   static RenderState Build(const ObjectParameter& param, Point dst_pos);
   static RenderState Fold(RenderState child, RenderState parent);
 };

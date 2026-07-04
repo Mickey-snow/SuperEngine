@@ -156,23 +156,19 @@ Point GanGraphicsObjectData::DstPosition(const GraphicsObject& go) const {
   return GraphicsObjectData::DstPosition(go) + Size(frame.x, frame.y);
 }
 
-int GanGraphicsObjectData::GetRenderingAlpha(const GraphicsObject& go,
-                                             const GraphicsObject* parent)
-    const {
+float GanGraphicsObjectData::GetRenderingAlpha(const GraphicsObject& go,
+                                               float parent_alpha) const {
   auto& param = go.Param();
 
   const Frame& frame = animation_sets.at(current_set_).at(current_frame_);
   if (frame.pattern != -1) {
     // Calculate the combination of our frame alpha with the current object
     // alpha.
-    float parent_alpha =
-        parent ? (parent->Param().GetComputedAlpha() / 255.0f) : 1;
-    return int(((frame.alpha / 255.0f) * (param.GetComputedAlpha() / 255.0f) *
-                parent_alpha) *
-               255);
+    const float frame_alpha = frame.alpha / 255.0f;
+    return frame_alpha * param.GetNormalizedAlpha() * parent_alpha;
   } else {
     // Should never happen.
-    return param.GetComputedAlpha();
+    return param.GetNormalizedAlpha();
   }
 }
 
