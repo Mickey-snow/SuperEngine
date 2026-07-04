@@ -38,6 +38,7 @@
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
 #include "vm/dict.hpp"
+#include "vm/exception.hpp"
 #include "vm/list.hpp"
 #include "vm/string.hpp"
 #include "vm/value.hpp"
@@ -46,8 +47,10 @@
 #include <algorithm>
 #include <charconv>
 #include <chrono>
+#include <cstddef>
 #include <filesystem>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <stdexcept>
@@ -112,27 +115,64 @@ struct MovieCreateParams {
 
 }  // namespace
 
+struct ObjectReference {
+  Stage* stage_ = nullptr;
+  int layer_ = OBJ_FG;
+  int object_id_ = 0;
+  std::vector<std::size_t> child_path_;
+
+  ObjectReference() = default;
+  ObjectReference(Stage* stage, int layer, int id)
+      : stage_(stage), layer_(layer), object_id_(id) {}
+  ObjectReference(Stage* stage,
+                  int layer,
+                  int id,
+                  std::vector<std::size_t> child_path)
+      : stage_(stage),
+        layer_(layer),
+        object_id_(id),
+        child_path_(std::move(child_path)) {}
+
+  GraphicsObject& get() {
+    if (!stage_)
+      throw std::runtime_error("Object requires a stage buffer");
+    if (object_id_ < 0) {
+      throw sr::RuntimeError("Invalid object number: " +
+                             std::to_string(object_id_));
+    }
+
+    GraphicsObject* current = &stage_->GetObject(layer_, object_id_);
+    for (const std::size_t child_index : child_path_) {
+      if (child_index >= current->GetChildren().size()) {
+        throw sr::RuntimeError(
+            "object.child index out of range: " +
+            std::to_string(child_index) + " for size " +
+            std::to_string(current->GetChildren().size()));
+      }
+      current = &current->TouchChild(child_index);
+    }
+    return *current;
+  }
+  const GraphicsObject& get() const {
+    return const_cast<ObjectReference*>(this)->get();
+  }
+
+  ObjectReference child(std::size_t index) const {
+    std::vector<std::size_t> path = child_path_;
+    path.emplace_back(index);
+    return ObjectReference(stage_, layer_, object_id_, std::move(path));
+  }
+};
+
 class SiglusObject {
  public:
-  Stage* stage_ = nullptr;
+  ObjectReference ref_;
   std::shared_ptr<GraphicsSystem> graphics_;
   std::shared_ptr<EventSystem> event_;
   std::shared_ptr<AssetScanner> asset_scanner_;
-  int layer_ = OBJ_FG;
-  int object_id_ = 0;
 
-  GraphicsObject& object() {
-    if (!stage_)
-      throw std::runtime_error("Object requires a stage buffer");
-    if (object_id_ < 0)
-      throw std::runtime_error("Invalid object number");
-
-    return stage_->GetObject(layer_, object_id_);
-  }
-
-  const GraphicsObject& object() const {
-    return const_cast<SiglusObject*>(this)->object();
-  }
+  inline GraphicsObject& object() { return ref_.get(); }
+  inline const GraphicsObject& object() const { return ref_.get(); }
 
   ObjectParameter& param() { return object().Param(); }
   const ObjectParameter& param() const { return object().Param(); }
@@ -158,12 +198,18 @@ class SiglusObject {
                std::shared_ptr<AssetScanner> asset_scanner,
                int layer,
                int object_id)
-      : stage_(stage),
+      : ref_(stage, layer, object_id),
         graphics_(std::move(graphics)),
         event_(std::move(event)),
-        asset_scanner_(std::move(asset_scanner)),
-        layer_(layer),
-        object_id_(object_id) {}
+        asset_scanner_(std::move(asset_scanner)) {}
+  SiglusObject(ObjectReference ref,
+               std::shared_ptr<GraphicsSystem> graphics,
+               std::shared_ptr<EventSystem> event,
+               std::shared_ptr<AssetScanner> asset_scanner)
+      : ref_(std::move(ref)),
+        graphics_(std::move(graphics)),
+        event_(std::move(event)),
+        asset_scanner_(std::move(asset_scanner)) {}
 
   void create(std::string filename) {
     if (!graphics_)
@@ -425,6 +471,52 @@ class ObjectEvent {
       throw std::runtime_error("ObjEve requires a graphics system");
     if (!event_)
       throw std::runtime_error("ObjEve requires an event system");
+  }
+};
+
+class ObjectChild {
+ public:
+  using Factory = std::function<sr::Value(ObjectReference)>;
+
+  ObjectReference parent_;
+  Factory make_object_;
+
+  ObjectChild() = default;
+  ObjectChild(ObjectReference parent, Factory make_object)
+      : parent_(std::move(parent)), make_object_(std::move(make_object)) {}
+
+  sr::Value get(int idx) {
+    if (idx < 0) {
+      throw sr::RuntimeError("object.child index is negative: " +
+                             std::to_string(idx));
+    }
+    const std::size_t index = static_cast<std::size_t>(idx);
+    GraphicsObject& parent = parent_.get();
+    const std::size_t size = parent.GetChildren().size();
+    if (index >= size) {
+      throw sr::RuntimeError("object.child index out of range: " +
+                             std::to_string(index) + " for size " +
+                             std::to_string(size));
+    }
+    if (!make_object_)
+      throw std::runtime_error("ObjectChild requires an object factory");
+    return make_object_(parent_.child(index));
+  }
+
+  void resize(int size) {
+    if (size < 0) {
+      throw sr::RuntimeError("object.child size is negative: " +
+                             std::to_string(size));
+    }
+    parent_.get().ResetChildren(static_cast<std::size_t>(size));
+  }
+
+  int size() {
+    const std::size_t size = parent_.get().GetChildren().size();
+    if (size > static_cast<std::size_t>(std::numeric_limits<int>::max()))
+      throw sr::RuntimeError(
+          "object.child size exceeds script integer range");
+    return static_cast<int>(size);
   }
 };
 
@@ -760,6 +852,7 @@ void BindObject(SiglusRuntime& runtime) {
   auto& vm = *runtime.vm;
   sb::module_ m(vm.gc_.get(), vm.globals_.get());
   sb::class_<SiglusObject> obj(m, "Object");
+  sb::class_<ObjectChild> child(m, "ObjectChild", false);
 
   Stage* stage = runtime.stage.get();
   auto graphics = runtime.system ? runtime.system->graphics_ptr() : nullptr;
@@ -773,6 +866,23 @@ void BindObject(SiglusRuntime& runtime) {
           }),
           sb::arg("layer") = static_cast<int>(OBJ_FG),
           sb::arg("object_id") = 0);
+
+  child.def("__getitem__", &ObjectChild::get, sb::arg("idx"));
+  child.def("resize", &ObjectChild::resize, sb::arg("size"));
+  child.def("size", &ObjectChild::size);
+
+  ObjectChild::Factory make_child_object =
+      [object_class = obj, graphics, event, asset_scanner](
+          ObjectReference ref) mutable -> sr::Value {
+    return sr::Value(object_class.make_inst(std::move(ref), graphics, event,
+                                            asset_scanner));
+  };
+  obj.subcls("child", child,
+             [make_child_object](SiglusObject* parent)
+                 -> std::unique_ptr<ObjectChild> {
+               return std::make_unique<ObjectChild>(parent->ref_,
+                                                    make_child_object);
+             });
 
   DirectObjectPropertyBinder direct_properties{obj};
   direct_properties.Bind();

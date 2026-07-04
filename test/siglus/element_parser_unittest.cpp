@@ -301,6 +301,22 @@ TEST_F(ElementParserTest, ObjectExistTypeIsImplicitGetterCall) {
   EXPECT_EQ(parsed.chain.GetType(), Type::Int);
 }
 
+TEST_F(ElementParserTest, ObjectChildList) {
+  EXPECT_EQ(chain(37, 2, -1, 0, 93, -1, 1, 35),
+            "stage.back.object[int:0].child[int:1].init()");
+
+  {
+    ElementCode elm{37, 2, -1, 0, 93, 4};
+    elm.ForceBind({0, {v(2)}});
+    EXPECT_EQ(chain(elm), "stage.back.object[int:0].child.resize(int:2)");
+  }
+  {
+    ElementCode elm{37, 2, -1, 0, 93, 3};
+    elm.ForceBind({0, {}});
+    EXPECT_EQ(chain(elm), "stage.back.object[int:0].child.size()");
+  }
+}
+
 TEST_F(ElementParserTest, BgmTable) {
   {
     ElementCode elm{123, 2};
