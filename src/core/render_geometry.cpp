@@ -29,6 +29,8 @@
 #include "utilities/graphics.hpp"
 
 #include <algorithm>
+#include <cmath>
+#include <format>
 
 namespace {
 
@@ -59,9 +61,7 @@ RenderState RenderState::Build(const ObjectParameter& param, Point position) {
   };
 }
 
-RenderState RenderState::Fold(const RenderState& self,
-                              const RenderState& parent) {
-  RenderState state = self;
+RenderState RenderState::Fold(RenderState state, RenderState parent) {
   state.pos_x = (state.pos_x - parent.center_rep_x) * parent.scale_x +
                 parent.center_rep_x;
   state.pos_y = (state.pos_y - parent.center_rep_y) * parent.scale_y +
@@ -76,6 +76,28 @@ RenderState RenderState::Fold(const RenderState& self,
   state.scale_y *= parent.scale_y;
   state.rotation_degrees += parent.rotation_degrees;
   return state;
+}
+
+std::string RenderState::GetDebugString() const {
+  return std::format(
+      "RenderState(pos=({}, {}), center=({}, {}), center_rep=({}, {}), "
+      "scale=({}, {}), rotation={})",
+      pos_x, pos_y, center_x, center_y, center_rep_x, center_rep_y, scale_x,
+      scale_y, rotation_degrees);
+}
+
+bool RenderState::operator==(const RenderState& o) const {
+  constexpr float eps = 1e-6f;
+  const auto equal = [&](float lhs, float rhs) {
+    return std::fabs(lhs - rhs) < eps;
+  };
+
+  return equal(pos_x, o.pos_x) && equal(pos_y, o.pos_y) &&
+         equal(center_x, o.center_x) && equal(center_y, o.center_y) &&
+         equal(center_rep_x, o.center_rep_x) &&
+         equal(center_rep_y, o.center_rep_y) && equal(scale_x, o.scale_x) &&
+         equal(scale_y, o.scale_y) &&
+         equal(rotation_degrees, o.rotation_degrees);
 }
 
 // ------------------------------------------------------------------------------

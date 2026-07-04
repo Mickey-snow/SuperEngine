@@ -26,6 +26,7 @@
 
 #include "core/rect.hpp"
 
+#include <string>
 #include <utility>
 
 class ObjectParameter;
@@ -47,16 +48,17 @@ struct RenderGeometry {
 };
 
 struct RenderState {
-  float pos_x = 0.0f;
-  float pos_y = 0.0f;
-  float center_x = 0.0f;
-  float center_y = 0.0f;
-  float center_rep_x = 0.0f;
-  float center_rep_y = 0.0f;
-  float scale_x = 1.0f;
-  float scale_y = 1.0f;
-  float rotation_degrees = 0.0f;
+  float pos_x = 0.0f, pos_y = 0.0f;                // translate
+  float center_x = 0.0f, center_y = 0.0f;          // actual center
+  float center_rep_x = 0.0f, center_rep_y = 0.0f;  // pivot center
+  float scale_x = 1.0f, scale_y = 1.0f;            // accumulated scale
+  float rotation_degrees = 0.0f;                   // accumulated rotate
 
+  std::string GetDebugString() const;
+  inline operator std::string() { return GetDebugString(); }
+  bool operator==(const RenderState&) const;
+
+  inline static RenderState Id() { return {}; }
   static RenderState Build(const ObjectParameter& param, Point dst_pos);
-  static RenderState Fold(const RenderState& self, const RenderState& parent);
+  static RenderState Fold(RenderState child, RenderState parent);
 };
