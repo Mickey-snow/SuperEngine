@@ -54,21 +54,9 @@ glm::mat4 BuildModelMatrix(const RenderGeometry& geometry, const Rect& dst) {
 
 }  // namespace
 
-// -----------------------------------------------------------------------
-// class GraphicsObjectData
-GraphicsObjectData::GraphicsObjectData() = default;
-
-GraphicsObjectData::~GraphicsObjectData() = default;
-
-void GraphicsObjectData::Render(const GraphicsObject& go,
-                                const GraphicsObject* parent) {
-  std::shared_ptr<const SDLSurface> surface = CurrentSurface(go);
-  if (!surface)
-    return;
-
-  RenderGeometry geometry = BuildRenderGeometry(go, parent);
-  int alpha = GetRenderingAlpha(go, parent);
-
+std::optional<RenderGeometry> ApplyClips(RenderGeometry geo,
+                                         const GraphicsObject& go,
+                                         const GraphicsObject* parent) {
   auto& param = go.Param();
   if (parent && parent->Param().has_own_clip_rect()) {
     // In Little Busters, a parent clip rect is used to clip text scrolling
@@ -82,23 +70,40 @@ void GraphicsObjectData::Render(const GraphicsObject& go,
     Rect full_parent_clip =
         Rect(parent_start + parent->Param().own_clip_rect().origin(),
              parent->Param().own_clip_rect().size());
-
-    if (!geometry.ApplyDstClip(full_parent_clip))
-      return;
+    if (!geo.ApplyDstClip(full_parent_clip))
+      return std::nullopt;
   }
 
-  if (param.has_own_clip_rect()) {
-    if (!geometry.ApplySrcClip(param.own_clip_rect()))
-      return;
-  }
+  if (param.has_own_clip_rect() && !geo.ApplySrcClip(param.own_clip_rect()))
+    return std::nullopt;
 
-  // Perform the object clipping.
-  if (param.has_clip_rect()) {
-    if (!geometry.ApplyDstClip(param.clip_rect()))
-      return;
-  }
+  if (param.has_clip_rect() && !geo.ApplyDstClip(param.clip_rect()))
+    return std::nullopt;
 
-  // surface->RenderToScreenAsObject(go, src, dst, alpha);
+  return geo;
+}
+
+// -----------------------------------------------------------------------
+// class GraphicsObjectData
+GraphicsObjectData::GraphicsObjectData() = default;
+
+GraphicsObjectData::~GraphicsObjectData() = default;
+
+void GraphicsObjectData::Render(const GraphicsObject& go,
+                                const GraphicsObject* parent) {
+  std::shared_ptr<const SDLSurface> surface = CurrentSurface(go);
+  if (!surface)
+    return;
+
+  RenderGeometry geometry = BuildRenderGeometry(go, parent);
+  const int alpha = GetRenderingAlpha(go, parent);
+
+  if (auto geo = ApplyClips(geometry, go, parent))
+    geometry = *geo;
+  else
+    return;
+
+  auto& param = go.Param();
   for (SDLSurface::TextureRecord it : surface->GetTextureArray()) {
     auto src_rect = geometry.src, dst_rect = geometry.dst;
     LocalRect coordinate_system(it.x_, it.y_, it.w_, it.h_);
@@ -150,24 +155,9 @@ bool GraphicsObjectData::HitTest(const GraphicsObject& go,
     return false;
 
   RenderGeometry geometry = BuildRenderGeometry(go, parent);
-  auto& param = go.Param();
-
-  if (parent && parent->Param().has_own_clip_rect()) {
-    Point parent_start(
-        parent->Param().x() + parent->Param().GetXAdjustmentSum(),
-        parent->Param().y() + parent->Param().GetYAdjustmentSum());
-    Rect full_parent_clip =
-        Rect(parent_start + parent->Param().own_clip_rect().origin(),
-             parent->Param().own_clip_rect().size());
-    if (!geometry.ApplyDstClip(full_parent_clip))
-      return false;
-  }
-
-  if (param.has_own_clip_rect() &&
-      !geometry.ApplySrcClip(param.own_clip_rect()))
-    return false;
-
-  if (param.has_clip_rect() && !geometry.ApplyDstClip(param.clip_rect()))
+  if (auto geo = ApplyClips(geometry, go, parent))
+    geometry = *geo;
+  else
     return false;
 
   float hit_x = static_cast<float>(point.x());
@@ -184,7 +174,7 @@ bool GraphicsObjectData::HitTest(const GraphicsObject& go,
       hit_y < geometry.dst.y() || hit_y >= geometry.dst.y2())
     return false;
 
-  if (!param.alpha_test)
+  if (!go.Param().alpha_test)
     return true;
 
   if (geometry.dst.width() == 0 || geometry.dst.height() == 0)
@@ -221,15 +211,22 @@ Point GraphicsObjectData::DstPosition(const GraphicsObject& go) const {
   return position;
 }
 
+RenderState GraphicsObjectData::BuildRenderState(
+    const GraphicsObject& go) const {
+  const auto& param = go.Param();
+  const Point position = go.GetObjectData().DstPosition(go);
+  return RenderState::Build(param, position);
+}
 RenderGeometry GraphicsObjectData::BuildRenderGeometry(
     const GraphicsObject& go,
-    const GraphicsObject* parent) {
+    const GraphicsObject* parent) const {
   RenderGeometry geometry;
   geometry.src = SrcRect(go);
 
-  auto state = RenderState::BuildFrom(go);
+  RenderState state = BuildRenderState(go);
   if (parent) {
-    auto parent_state = RenderState::BuildFrom(*parent);
+    RenderState parent_state =
+        parent->GetObjectData().BuildRenderState(*parent);
     state = RenderState::Fold(state, parent_state);
   }
 
@@ -256,12 +253,8 @@ RenderGeometry GraphicsObjectData::BuildRenderGeometry(
 int GraphicsObjectData::GetRenderingAlpha(const GraphicsObject& go,
                                           const GraphicsObject* parent) const {
   const int alpha = go.Param().GetComputedAlpha();
-  if (!parent) {
-    return alpha;
-  } else {
-    const int par_alpha = parent->Param().GetComputedAlpha();
-    return static_cast<int>((par_alpha / 255.f) * (alpha / 255.f) * 255);
-  }
+  const int par_alpha = parent ? parent->Param().GetComputedAlpha() : 255;
+  return static_cast<int>((par_alpha / 255.f) * (alpha / 255.f) * 255);
 }
 
 void GraphicsObjectData::PlaySet(int set) {}

@@ -32,10 +32,13 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <optional>
 
 class GraphicsObject;
 class SDLSurface;
 class Animator;
+
+std::optional<RenderGeometry> ApplyClips(RenderGeometry geo, const GraphicsObject& go, const GraphicsObject* parent);
 
 class GraphicsObjectData {
  public:
@@ -56,9 +59,9 @@ class GraphicsObjectData {
   // Tests whether |point| hits this object using the same geometry used for
   // rendering. Button selection uses this instead of testing DstRect directly
   // so rotated and alpha-tested buttons behave like Siglus.
-  virtual bool HitTest(const GraphicsObject& go,
-                       const GraphicsObject* parent,
-                       const Point& point);
+  bool HitTest(const GraphicsObject& go,
+               const GraphicsObject* parent,
+               const Point& point);
 
   virtual std::unique_ptr<GraphicsObjectData> Clone() const = 0;
 
@@ -89,8 +92,9 @@ class GraphicsObjectData {
   virtual int GetRenderingAlpha(const GraphicsObject& go,
                                 const GraphicsObject* parent) const;
 
-  virtual RenderGeometry BuildRenderGeometry(const GraphicsObject& go,
-                                             const GraphicsObject* parent);
+  RenderState BuildRenderState(const GraphicsObject& go) const;
+  RenderGeometry BuildRenderGeometry(const GraphicsObject& go,
+                                     const GraphicsObject* parent) const;
 
  private:
   // boost::serialization support

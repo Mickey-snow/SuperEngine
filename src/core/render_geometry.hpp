@@ -28,7 +28,7 @@
 
 #include <utility>
 
-class GraphicsObject;
+class ObjectParameter;
 
 std::pair<float, float> RotateAround(float x,
                                      float y,
@@ -63,6 +63,6 @@ struct RenderState {
   float scale_y = 1.0f;
   float rotation_degrees = 0.0f;
 
-  static RenderState BuildFrom(const GraphicsObject& go);
+  static RenderState Build(const ObjectParameter& param, Point dst_pos);
   static RenderState Fold(const RenderState& self, const RenderState& parent);
 };

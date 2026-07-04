@@ -61,9 +61,9 @@ std::pair<float, float> RotateAround(float x,
   return {dx * cosv - dy * sinv + center_x, dx * sinv + dy * cosv + center_y};
 }
 
-RenderState RenderState::BuildFrom(const GraphicsObject& go) {
-  const auto& param = go.Param();
-  const Point position = go.GetObjectData().DstPosition(go);
+// ------------------------------------------------------------------------------
+// struct RenderState
+RenderState RenderState::Build(const ObjectParameter& param, Point position) {
   return RenderState{
       .pos_x = static_cast<float>(position.x()),
       .pos_y = static_cast<float>(position.y()),
@@ -96,6 +96,8 @@ RenderState RenderState::Fold(const RenderState& self,
   return state;
 }
 
+// ------------------------------------------------------------------------------
+// struct RenderGeometry
 bool RenderGeometry::ApplySrcClip(const Rect clip) {
   const float local_left = local_x;
   const float local_top = local_y;
