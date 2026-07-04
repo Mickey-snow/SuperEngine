@@ -104,6 +104,7 @@ void Recompiler::Gen(token::Token_t tok, int lineno) {
       struct DebugAnnotationVisitor {
         Recompiler& compiler;
         std::uint32_t terms = 0;
+        bool should_annotate = true;
         DebugAnnotationVisitor(Recompiler& r, int scnno, int lineno)
             : compiler(r) {
           str(std::format("[{}:{}] ", scnno, lineno));
@@ -233,7 +234,9 @@ void Recompiler::Gen(token::Token_t tok, int lineno) {
           str(")");
         }
         void operator()(const token::Assign& t) {
+          should_annotate = false;  // lhs is not bounded yet
           access_chain(t.dst);
+          should_annotate = true;
           str(" = ");
           (*this)(t.src);
         }
@@ -259,8 +262,11 @@ void Recompiler::Gen(token::Token_t tok, int lineno) {
           str(std::format("@{}.{}:{}", t.scene, t.idx, t.name));
         }
         void operator()(const elm::Arg& t) {
-          str("arg_" + std::to_string(t.id) + ':');
-          var(t.id + 1);
+          str("arg_" + std::to_string(t.id));
+          if (should_annotate) {
+            str(":");
+            var(t.id + 1);
+          }
         }
         void operator()(const elm::Farcall& t) {
           str("farcall@[");
@@ -309,8 +315,11 @@ void Recompiler::Gen(token::Token_t tok, int lineno) {
           str("]");
         }
         void operator()(const Variable& t) {
-          str(t.ToDebugString() + ':');
-          var(t.id);  // v123:123
+          str(t.ToDebugString());
+          if (should_annotate) {
+            str(":");
+            var(t.id);  // v123:123
+          }
         }
       };
       emit_load_global("__builtin_dbgprint");
@@ -572,8 +581,7 @@ void Recompiler::emit_tok(const token::Operate2& tk) {
   }
 
   if ((tk.op == OperatorCode::Equal || tk.op == OperatorCode::Ne) &&
-      Typeof(tk.lhs) == Type::String &&
-      Typeof(tk.rhs) == Type::String) {
+      Typeof(tk.lhs) == Type::String && Typeof(tk.rhs) == Type::String) {
     emit_load_global("__builtin_streq");
     emit_val(tk.lhs), emit_val(tk.rhs);
     emit(sr::Call{.argcnt = 2});
