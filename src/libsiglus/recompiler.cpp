@@ -241,9 +241,7 @@ void Recompiler::Gen(token::Token_t tok, int lineno) {
           assignment_prefix(Typeof(t.dst), t.dst);
           (*this)(t.src);
         }
-        void operator()(const token::Subroutine& t) {
-          str(t.ToDebugString());
-        }
+        void operator()(const token::Subroutine& t) { str(t.ToDebugString()); }
         void operator()(const token::Return& t) {
           str("ret (");
           values(t.ret_vals);
@@ -312,7 +310,7 @@ void Recompiler::Gen(token::Token_t tok, int lineno) {
         }
         void operator()(const Variable& t) {
           str(t.ToDebugString() + ':');
-          var(t.id); // v123:123
+          var(t.id);  // v123:123
         }
       };
       emit_load_global("__builtin_dbgprint");
@@ -672,6 +670,12 @@ void Recompiler::emit_elm(const elm::AccessChain& e, const Value* assign) {
 
     emit_const(prop->idx), emit_val(*assign);
     emit(sr::SetItem{});  // (prop[], idx, val) -> ()
+    return;
+  }
+  if (auto* arg = std::get_if<elm::Arg>(&e.root.var);
+      arg && assign && e.nodes.empty()) {
+    emit_val(*assign);
+    emit_store_fast(arg->id + 1);
     return;
   }
 
