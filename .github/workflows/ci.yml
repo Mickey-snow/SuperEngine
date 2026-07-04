@@ -39,9 +39,7 @@ jobs:
 
       - name: Configure
         run: |
-          cmake -S . -B build \
-            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-            -DRLVM_BUILD_TESTS=OFF
+          cmake --preset release
 
       - name: Run clang-tidy
         run: |
@@ -64,7 +62,7 @@ jobs:
           echo "Running clang-tidy on:"
           echo "$FILES"
 
-          run-clang-tidy -p build/ -j"$(nproc)" $FILES -- -std=c++20
+          run-clang-tidy -p build/release/ -j"$(nproc)" $FILES -- -std=c++20
 
   build-and-test:
     name: Build & Test
@@ -103,16 +101,12 @@ jobs:
 
       - name: Configure (Ninja + ccache)
         run: |
-          cmake -S . -B build -G Ninja \
-            -DRLVM_BUILD_TESTS=ON \
-            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          cmake --preset ci-tests
 
       - name: Build
         run: |
-          cmake --build build --parallel
+          cmake --build --preset ci-tests
 
       - name: Run tests
-        working-directory: build
         run: |
-          ctest --output-on-failure -j"$(nproc)"
+          ctest --preset ci-tests -j"$(nproc)"

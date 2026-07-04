@@ -72,8 +72,10 @@ line with --font.
 
 Before you begin, ensure you have the following libraries and utilities installed:
 
-- **CMake** (version 3.18 or higher):
+- **CMake** (version 3.24 or higher):
   [https://cmake.org/](https://cmake.org/)
+- **Ninja**:
+  [https://ninja-build.org/](https://ninja-build.org/)
 - **Boost** (version 1.40 or higher):
   [https://www.boost.org/](https://www.boost.org/)
 - **SDL 1.2**:
@@ -100,26 +102,30 @@ git submodule update --init --recursive
 
 ### Configuring and Building RLVM
 
-Use CMake to configure and build the project:
+Use the release CMake preset to configure and build the project:
 
 1. **Configure the Build**
 
 ```bash
-cmake -S . -B build -G "<generator>" [options]
+cmake --preset release
 ```
 
 2. **Build the Project**
 
 ```bash
-cmake --build build
+cmake --build --preset release
 ```
+
+The project presets write build trees under `build/<preset-name>`. Put
+machine-specific settings, such as custom compilers or `CMAKE_PREFIX_PATH`,
+in a local `CMakeUserPresets.json` file.
 
 ### Running RLVM
 
 After a successful build, you can run RLVM using the following command:
 
 ```bash
-./build/rlvm
+./build/release/rlvm
 ```
 
 *Note:* RLVM runs without icons or localization support by default.
@@ -134,19 +140,19 @@ To run unit tests, additional dependencies are required:
 1. **Configure the Build with Tests Enabled**
 
    ```bash
-   cmake -S . -B build -DRLVM_BUILD_TESTS=ON
+   cmake --preset debug
    ```
 
 2. **Build the Project**
 
    ```bash
-   cmake --build build
+   cmake --build --preset debug
    ```
 
 3. **Run the Unit Tests**
 
    ```bash
-   ./build/unittest
+   ctest --preset debug
    ```
 
 All tests should pass successfully.

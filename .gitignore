@@ -17,6 +17,7 @@ rlvm.suo
 _site
 .dir-locals.el
 compile_commands.json
+CMakeUserPresets.json
 .ccls-cache
 .projectile
 Makefile
