@@ -56,7 +56,7 @@ class StageTest : public ::testing::Test {
     RecordingObjectData(std::vector<int>* rendered, int id)
         : rendered_(rendered), id_(id) {}
 
-    void Render(const GraphicsObject&, const GraphicsObject*) override {
+    void Render(const GraphicsObject&, std::optional<ParentObjState>) override {
       rendered_->push_back(id_);
     }
 

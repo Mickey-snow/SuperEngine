@@ -31,11 +31,14 @@
 #include "core/object_internal/drawer/parent.hpp"
 
 #include "core/object.hpp"
+#include "log/domain_logger.hpp"
 #include "utilities/exception.hpp"
 
 // -----------------------------------------------------------------------
 // ParentGraphicsObjectData
-// -----------------------------------------------------------------------
+
+static DomainLogger logger("ParentGraphicsObject");
+
 ParentGraphicsObjectData::ParentGraphicsObjectData(int size) : objects_(size) {}
 
 ParentGraphicsObjectData::~ParentGraphicsObjectData() {}
@@ -54,7 +57,12 @@ LazyArray<GraphicsObject>& ParentGraphicsObjectData::objects() {
 }
 
 void ParentGraphicsObjectData::Render(const GraphicsObject& go,
-                                      const GraphicsObject* parent) {
+                                      std::optional<ParentObjState> parent) {
+  if (parent != std::nullopt) {
+    logger(Severity::Warn) << "Nested parents are not supported.";
+    parent = std::nullopt;
+  }
+
   AllocatedLazyArrayIterator<GraphicsObject> it = objects_.begin();
   AllocatedLazyArrayIterator<GraphicsObject> end = objects_.end();
   for (; it != end; ++it) {

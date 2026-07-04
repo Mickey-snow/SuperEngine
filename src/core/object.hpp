@@ -24,14 +24,15 @@
 
 #pragma once
 
+#include "core/colour.hpp"
+#include "core/object_internal/object_parameter.hpp"
+#include "core/rect.hpp"
+#include "core/render_geometry.hpp"
+
 #include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
-
-#include "core/colour.hpp"
-#include "core/object_internal/object_parameter.hpp"
-#include "core/rect.hpp"
 
 class GraphicsObjectSlot;
 class GraphicsObjectData;
@@ -79,8 +80,8 @@ class GraphicsObject {
   // other commands.
   void FreeObjectData();
 
-  // Resets/reinitializes all the object parameters without deleting the loaded
-  // graphics object data.
+  // Resets/reinitializes all the object parameters without deleting the
+  // loaded graphics object data.
   void InitializeParams();
 
   // Both frees the object data and initializes parameters.
@@ -111,8 +112,9 @@ class GraphicsObject {
   // The actual data used to render the object
   std::unique_ptr<GraphicsObjectData> object_data_;
 
-  // Tasks that run every tick. Used to mutate object parameters over time (and
-  // how we check from a blocking LongOperation if the mutation is ongoing).
+  // Tasks that run every tick. Used to mutate object parameters over time
+  // (and how we check from a blocking LongOperation if the mutation is
+  // ongoing).
   //
   // I think R23 mentioned that these were called "Parameter Events" in the
   // RLMAX SDK.

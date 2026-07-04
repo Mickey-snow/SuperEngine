@@ -159,8 +159,27 @@ TEST(ObjectDrawerTest, ButtonOffsetsContributeToGeometry) {
   object.Param().SetButtonOverrides(0, 8, -4);
 
   EXPECT_EQ(data.DstRect(object, nullptr), Rect::GRP(18, 16, 28, 26));
-  EXPECT_TRUE(data.HitTest(object, nullptr, Point(20, 20)));
-  EXPECT_FALSE(data.HitTest(object, nullptr, Point(12, 20)));
+  EXPECT_TRUE(data.HitTest(object, Point(20, 20)));
+  EXPECT_FALSE(data.HitTest(object, Point(12, 20)));
+}
+
+TEST(ObjectDrawerTest, ParentButtonOffsetsContributeToChildGeometry) {
+  auto surface = OpaqueSurface(Size(32, 32));
+  GraphicsObject parent;
+  SetTestData(parent, Rect::REC(0, 0, 10, 10), Point(), surface);
+  parent.Param().SetX(10);
+  parent.Param().SetY(20);
+  parent.Param().SetButtonOverrides(0, 8, -4);
+
+  GraphicsObject child;
+  auto& data = SetTestData(child, Rect::REC(0, 0, 10, 10), Point(), surface);
+  child.Param().SetX(5);
+  child.Param().SetY(6);
+
+  EXPECT_EQ(data.DstRect(child, &parent), Rect::GRP(23, 22, 33, 32));
+  ParentObjState parent_state = ParentObjState::BuildFrom(parent);
+  EXPECT_TRUE(data.HitTest(child, Point(25, 25), parent_state));
+  EXPECT_FALSE(data.HitTest(child, Point(17, 25), parent_state));
 }
 
 TEST(ObjectDrawerTest, HitTestUsesRotationAroundLegacyPivot) {
@@ -171,8 +190,8 @@ TEST(ObjectDrawerTest, HitTestUsesRotationAroundLegacyPivot) {
   object.Param().SetY(100);
   object.Param().SetRotation(900);
 
-  EXPECT_TRUE(data.HitTest(object, nullptr, Point(95, 105)));
-  EXPECT_FALSE(data.HitTest(object, nullptr, Point(105, 105)));
+  EXPECT_TRUE(data.HitTest(object, Point(95, 105)));
+  EXPECT_FALSE(data.HitTest(object, Point(105, 105)));
 }
 
 TEST(ObjectDrawerTest, HitTestSamplesAlphaWhenAlphaTestIsEnabled) {
@@ -183,6 +202,6 @@ TEST(ObjectDrawerTest, HitTestSamplesAlphaWhenAlphaTestIsEnabled) {
   GraphicsObject object;
   auto& data = SetTestData(object, Rect::REC(0, 0, 10, 10), Point(), surface);
 
-  EXPECT_FALSE(data.HitTest(object, nullptr, Point(2, 5)));
-  EXPECT_TRUE(data.HitTest(object, nullptr, Point(7, 5)));
+  EXPECT_FALSE(data.HitTest(object, Point(2, 5)));
+  EXPECT_TRUE(data.HitTest(object, Point(7, 5)));
 }

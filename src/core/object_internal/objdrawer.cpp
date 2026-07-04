@@ -55,25 +55,49 @@ glm::mat4 BuildModelMatrix(const RenderGeometry& geometry, const Rect& dst) {
 
 }  // namespace
 
-std::optional<RenderGeometry> ApplyClips(RenderGeometry geo,
-                                         const GraphicsObject& go,
-                                         const GraphicsObject* parent) {
+ParentObjState ParentObjState::BuildFrom(const GraphicsObject& parent) {
+  ParentObjState ret;
+  const ObjectParameter& param = parent.Param();
+  ret.render_state = parent.GetObjectData().BuildRenderState(parent);
+  if (param.has_own_clip_rect())
+    ret.clip = param.own_clip_rect();
+  ret.alpha = param.GetNormalizedAlpha();
+  ret.bright = param.GetNormalizedBright();
+  ret.dark = param.GetNormalizedDark();
+  return ret;
+}
+
+std::optional<RenderGeometry> ApplyClips(
+    RenderGeometry geo,
+    const GraphicsObject& go,
+    const std::optional<ParentObjState>& parent) {
   auto& param = go.Param();
-  if (parent && parent->Param().has_own_clip_rect()) {
-    // In Little Busters, a parent clip rect is used to clip text scrolling
-    // in the battle system. rlvm has the concept of parent objects badly
-    // hacked in, and that means we can't directly apply the own clip
-    // rect. Instead we have to calculate this in terms of the screen
-    // coordinates and then apply that as a global clip rect.
-    Point parent_start(
-        parent->Param().x() + parent->Param().GetXAdjustmentSum(),
-        parent->Param().y() + parent->Param().GetYAdjustmentSum());
-    Rect full_parent_clip =
-        Rect(parent_start + parent->Param().own_clip_rect().origin(),
-             parent->Param().own_clip_rect().size());
+  if (parent && parent->clip) {
+    Rect clip = parent->clip.value();
+    const Point parent_start(parent->render_state.pos_x,
+                             parent->render_state.pos_y);
+    const Rect full_parent_clip =
+        Rect(parent_start + clip.origin(), clip.size());
     if (!geo.ApplyDstClip(full_parent_clip))
       return std::nullopt;
   }
+
+  // if (parent && parent->Param().has_own_clip_rect()) {
+  // In Little Busters, a parent clip rect is used to clip text scrolling
+  // in the battle system. rlvm has the concept of parent objects badly
+  // hacked in, and that means we can't directly apply the own clip
+  // rect. Instead we have to calculate this in terms of the screen
+  // coordinates and then apply that as a global clip rect.
+
+  // Point parent_start(
+  //       parent->Param().x() + parent->Param().GetXAdjustmentSum(),
+  //       parent->Param().y() + parent->Param().GetYAdjustmentSum());
+  //   Rect full_parent_clip =
+  //       Rect(parent_start + parent->Param().own_clip_rect().origin(),
+  //            parent->Param().own_clip_rect().size());
+  //   if (!geo.ApplyDstClip(full_parent_clip))
+  //     return std::nullopt;
+  // }
 
   if (param.has_own_clip_rect() && !geo.ApplySrcClip(param.own_clip_rect()))
     return std::nullopt;
@@ -91,14 +115,14 @@ GraphicsObjectData::GraphicsObjectData() = default;
 GraphicsObjectData::~GraphicsObjectData() = default;
 
 void GraphicsObjectData::Render(const GraphicsObject& go,
-                                const GraphicsObject* parent) {
+                                std::optional<ParentObjState> parent) {
   std::shared_ptr<const SDLSurface> surface = CurrentSurface(go);
   if (!surface)
     return;
 
-  RenderGeometry geometry = BuildRenderGeometry(go, parent);
-  const float parent_alpha =
-      parent ? parent->Param().GetNormalizedAlpha() : 1.f;
+  RenderGeometry geometry = BuildRenderGeometry(
+      go, parent ? std::make_optional(parent->render_state) : std::nullopt);
+  const float parent_alpha = parent ? parent->alpha : 1.f;
   const float alpha = GetRenderingAlpha(go, parent_alpha);
 
   if (auto geo = ApplyClips(geometry, go, parent))
@@ -121,9 +145,10 @@ void GraphicsObjectData::Render(const GraphicsObject& go,
     config.tint = param.tint();
     config.mono = param.mono() / 255.f;
     config.invert = param.invert() / 255.f;
-    const ObjectParameter* parent_param = parent ? &parent->Param() : nullptr;
-    config.bright = param.EffectiveBright(parent_param) / 255.f;
-    config.dark = param.EffectiveDark(parent_param) / 255.f;
+    const float bright = param.GetNormalizedBright();
+    const float dark = param.GetNormalizedDark();
+    config.bright = parent ? parent->EffectiveBright(bright) : bright;
+    config.dark = parent ? parent->EffectiveDark(dark) : dark;
 
     glRenderer().Render({it.gltexture, src_rect}, std::move(config),
                         {SDLSurface::screen_, dst_rect});
@@ -147,17 +172,23 @@ Point GraphicsObjectData::DstOrigin(const GraphicsObject& go) const {
 
 Rect GraphicsObjectData::DstRect(const GraphicsObject& go,
                                  const GraphicsObject* parent) {
-  return BuildRenderGeometry(go, parent).dst;
+  if (parent == nullptr)
+    return BuildRenderGeometry(go, std::nullopt).dst;
+  else {
+    ParentObjState state = ParentObjState ::BuildFrom(*parent);
+    return BuildRenderGeometry(go, state.render_state).dst;
+  }
 }
 
 bool GraphicsObjectData::HitTest(const GraphicsObject& go,
-                                 const GraphicsObject* parent,
-                                 const Point& point) {
+                                 const Point& point,
+                                 std::optional<ParentObjState> parent) {
   std::shared_ptr<const SDLSurface> surface = CurrentSurface(go);
   if (!surface)
     return false;
 
-  RenderGeometry geometry = BuildRenderGeometry(go, parent);
+  RenderGeometry geometry = BuildRenderGeometry(
+      go, parent ? std::make_optional(parent->render_state) : std::nullopt);
   if (auto geo = ApplyClips(geometry, go, parent))
     geometry = *geo;
   else
@@ -222,16 +253,13 @@ RenderState GraphicsObjectData::BuildRenderState(
 }
 RenderGeometry GraphicsObjectData::BuildRenderGeometry(
     const GraphicsObject& go,
-    const GraphicsObject* parent) const {
+    std::optional<RenderState> parent_state) const {
   RenderGeometry geometry;
   geometry.src = SrcRect(go);
 
   RenderState state = BuildRenderState(go);
-  if (parent) {
-    RenderState parent_state =
-        parent->GetObjectData().BuildRenderState(*parent);
-    state = RenderState::Fold(state, parent_state);
-  }
+  if (parent_state)
+    state = RenderState::Fold(state, *parent_state);
 
   const Point texture_origin = DstOrigin(go);
   const float pivot_x = state.pos_x + state.center_rep_x;

@@ -161,7 +161,10 @@ void GraphicsObject::EndObjectMutatorMatching(int repno,
 
 void GraphicsObject::Render(int objNum, const GraphicsObject* parent) {
   if (object_data_ && Param().visible()) {
-    object_data_->Render(*this, parent);
+    std::optional<ParentObjState> parent_state;
+    if (parent)
+      parent_state = ParentObjState::BuildFrom(*parent);
+    object_data_->Render(*this, parent_state);
   }
 }
 

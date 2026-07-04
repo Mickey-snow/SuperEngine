@@ -30,16 +30,17 @@
 
 #include "core/object_internal/drawer/drift.hpp"
 
-#include <string>
-#include <vector>
-
 #include "core/object.hpp"
 #include "core/rect.hpp"
+#include "log/domain_logger.hpp"
 #include "systems/event_system.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/sdl/sdl_surface.hpp"
 #include "systems/system.hpp"
 #include "utilities/graphics.hpp"
+
+#include <string>
+#include <vector>
 
 namespace {
 
@@ -55,6 +56,8 @@ double ScaleAmplitude(int amplitude) {
 }
 
 }  // namespace
+
+static DomainLogger logger("DriftGraphicsObject");
 
 DriftGraphicsObject::DriftGraphicsObject(System& system)
     : system_(system), filename_(), surface_(nullptr), last_rendered_time_(0) {}
@@ -78,7 +81,13 @@ DriftGraphicsObject::DriftGraphicsObject(System& system,
 DriftGraphicsObject::~DriftGraphicsObject() {}
 
 void DriftGraphicsObject::Render(const GraphicsObject& go,
-                                 const GraphicsObject* parent) {
+                                 std::optional<ParentObjState> parent) {
+  if (parent) {
+    logger(Severity::Warn)
+        << "parent object takes no effect on drift graphics objects";
+    parent = std::nullopt;
+  }
+
   auto& param = go.Param();
   std::shared_ptr<const SDLSurface> surface = CurrentSurface(go);
 

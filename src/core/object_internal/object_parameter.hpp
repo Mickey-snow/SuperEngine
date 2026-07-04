@@ -282,9 +282,11 @@ struct ObjectParameter {
     }
   }
 
-  int Bright() const { return std::clamp(bright, 0, 255); }
+  inline int Bright() const { return std::clamp(bright, 0, 255); }
+  inline float GetNormalizedBright() const { return Bright() / 255.f; }
   void SetBright(const int in) { bright = std::clamp(in, 0, 255); }
   int Dark() const { return std::clamp(dark, 0, 255); }
+  inline float GetNormalizedDark() const { return Dark() / 255.f; }
   void SetDark(const int in) { dark = std::clamp(in, 0, 255); }
   static int ComposeEffectLevel(int child, int parent) {
     child = std::clamp(child, 0, 255);

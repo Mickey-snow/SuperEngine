@@ -30,11 +30,9 @@
 
 #include "core/object_internal/drawer/colour_filter.hpp"
 
-#include <iostream>
-#include <ostream>
-
 #include "core/colour.hpp"
 #include "core/object.hpp"
+#include "log/domain_logger.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/sdl/gl_frame_buffer.hpp"
 #include "systems/sdl/glrenderer.hpp"
@@ -42,19 +40,21 @@
 #include "systems/sdl/sdl_surface.hpp"
 #include "systems/system.hpp"
 
+static DomainLogger logger("ColourFilter");
+
 ColourFilterObjectData::ColourFilterObjectData(const Rect& screen_rect)
     : screen_rect_(screen_rect) {}
 
 ColourFilterObjectData::~ColourFilterObjectData() {}
 
 void ColourFilterObjectData::Render(const GraphicsObject& go,
-                                    const GraphicsObject* parent) {
+                                    std::optional<ParentObjState> parent) {
   auto& param = go.Param();
   if (param.ScaleX() != 100 || param.ScaleY() != 100) {
     static bool printed = false;
     if (!printed) {
       printed = true;
-      std::cerr << "We can't yet scaling colour filters." << std::endl;
+      logger(Severity::Warn) << "We can't yet scaling colour filters.";
     }
   }
 
@@ -71,9 +71,10 @@ void ColourFilterObjectData::Render(const GraphicsObject& go,
   cfg.tint = param.tint();
   cfg.mono = param.mono() / 255.f;
   cfg.invert = param.invert() / 255.f;
-  const ObjectParameter* parent_param = parent ? &parent->Param() : nullptr;
-  cfg.bright = param.EffectiveBright(parent_param) / 255.f;
-  cfg.dark = param.EffectiveDark(parent_param) / 255.f;
+  const float bright = param.GetNormalizedBright();
+  const float dark = param.GetNormalizedDark();
+  cfg.bright = parent ? parent->EffectiveBright(bright) : bright;
+  cfg.dark = parent ? parent->EffectiveDark(dark) : dark;
   glRenderer().Render({background, src}, cfg, {screen_canvas, dst});
 }
 

@@ -38,9 +38,27 @@ class GraphicsObject;
 class SDLSurface;
 class Animator;
 
-std::optional<RenderGeometry> ApplyClips(RenderGeometry geo,
-                                         const GraphicsObject& go,
-                                         const GraphicsObject* parent);
+struct ParentObjState {
+  RenderState render_state = RenderState::Id();
+  std::optional<Rect> clip = std::nullopt;
+  float alpha = 1.f;
+  float bright = 0.f, dark = 0.f;
+
+  inline float EffectiveAlpha(float a) const { return a * alpha; }
+  inline float EffectiveDark(float d) const {
+    return 1.f - (1.f - d) * (1.f - dark);
+  }
+  inline float EffectiveBright(float b) const {
+    return 1.f - (1.f - b) * (1.f - bright);
+  }
+
+  static ParentObjState BuildFrom(const GraphicsObject& parent);
+};
+
+std::optional<RenderGeometry> ApplyClips(
+    RenderGeometry geo,
+    const GraphicsObject& go,
+    const std::optional<ParentObjState>& parent = {});
 
 class GraphicsObjectData {
  public:
@@ -49,7 +67,8 @@ class GraphicsObjectData {
 
   virtual void PlaySet(int set);
 
-  virtual void Render(const GraphicsObject& go, const GraphicsObject* parent);
+  virtual void Render(const GraphicsObject& go,
+                      std::optional<ParentObjState> parent = {});
 
   virtual int PixelWidth(const GraphicsObject& rendering_properties) = 0;
   virtual int PixelHeight(const GraphicsObject& rendering_properties) = 0;
@@ -62,8 +81,8 @@ class GraphicsObjectData {
   // rendering. Button selection uses this instead of testing DstRect directly
   // so rotated and alpha-tested buttons behave like Siglus.
   bool HitTest(const GraphicsObject& go,
-               const GraphicsObject* parent,
-               const Point& point);
+               const Point& point,
+               std::optional<ParentObjState> parent = {});
 
   virtual std::unique_ptr<GraphicsObjectData> Clone() const = 0;
 
@@ -95,8 +114,9 @@ class GraphicsObjectData {
                                   float parent_alpha = 1.0f) const;
 
   RenderState BuildRenderState(const GraphicsObject& go) const;
-  RenderGeometry BuildRenderGeometry(const GraphicsObject& go,
-                                     const GraphicsObject* parent) const;
+  RenderGeometry BuildRenderGeometry(
+      const GraphicsObject& go,
+      std::optional<RenderState> parent_state) const;
 
  private:
   // boost::serialization support

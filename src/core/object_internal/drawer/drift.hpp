@@ -59,7 +59,7 @@ class DriftGraphicsObject : public GraphicsObjectData {
 
   // Implementation of GraphicsObjectData:
   virtual void Render(const GraphicsObject& go,
-                      const GraphicsObject* parent) override;
+                      std::optional<ParentObjState> parent = {}) override;
   virtual int PixelWidth(const GraphicsObject& rendering_properties) override;
   virtual int PixelHeight(const GraphicsObject& rendering_properties) override;
   virtual std::unique_ptr<GraphicsObjectData> Clone() const override;

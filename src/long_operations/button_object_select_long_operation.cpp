@@ -33,6 +33,8 @@
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
 
+#include <optional>
+
 ButtonObjectSelectLongOperation::ButtonObjectSelectLongOperation(
     RLMachine& machine,
     int group)
@@ -87,7 +89,12 @@ void ButtonObjectSelectLongOperation::OnEvent(std::shared_ptr<Event> event) {
           for (ButtonPair& button_pair : buttons_) {
             if (button_pair.first->has_object_data()) {
               GraphicsObjectData* data = &button_pair.first->GetObjectData();
-              if (data->HitTest(*button_pair.first, button_pair.second, point))
+              std::optional<ParentObjState> parent_state =
+                  button_pair.second
+                      ? std::make_optional(
+                            ParentObjState::BuildFrom(*button_pair.second))
+                      : std::nullopt;
+              if (data->HitTest(*button_pair.first, point, parent_state))
                 hovering_button = button_pair.first;
             }
           }
