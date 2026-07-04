@@ -19,44 +19,45 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
-//
 // -----------------------------------------------------------------------
 
-#pragma once
+#include <gtest/gtest.h>
 
-#include "core/rect.hpp"
+#include <utilities/graphics.hpp>
 
-#include <utility>
+constexpr float EPS = 1e-6f;
 
-class ObjectParameter;
+TEST(RotateAroundTest, ZeroDegreeRotationLeavesPointUnchanged) {
+  auto [x, y] = RotateAround(5, -3, 2, 7, 0);
 
-struct RenderGeometry {
-  Rect src;
-  Rect dst;
-  float pivot_x = 0.0f;
-  float pivot_y = 0.0f;
-  float rotation_degrees = 0.0f;
-  float scale_x = 1.0f;
-  float scale_y = 1.0f;
-  float local_x = 0.0f;
-  float local_y = 0.0f;
+  EXPECT_FLOAT_EQ(x, 5);
+  EXPECT_FLOAT_EQ(y, -3);
+}
 
-  void UpdateDstFromLocal();
-  bool ApplySrcClip(const Rect clip);
-  bool ApplyDstClip(const Rect clip);
-};
+TEST(RotateAroundTest, CenterPointIsInvariantUnderAnyRotation) {
+  auto [x, y] = RotateAround(10, 20, 10, 20, 123);
 
-struct RenderState {
-  float pos_x = 0.0f;
-  float pos_y = 0.0f;
-  float center_x = 0.0f;
-  float center_y = 0.0f;
-  float center_rep_x = 0.0f;
-  float center_rep_y = 0.0f;
-  float scale_x = 1.0f;
-  float scale_y = 1.0f;
-  float rotation_degrees = 0.0f;
+  EXPECT_FLOAT_EQ(x, 10);
+  EXPECT_FLOAT_EQ(y, 20);
+}
 
-  static RenderState Build(const ObjectParameter& param, Point dst_pos);
-  static RenderState Fold(const RenderState& self, const RenderState& parent);
-};
+TEST(RotateAroundTest, PositiveNinetyDegreesAroundOrigin) {
+  auto [x, y] = RotateAround(1, 0, 0, 0, 90);
+
+  EXPECT_NEAR(x, 0, EPS);
+  EXPECT_NEAR(y, 1, EPS);
+}
+
+TEST(RotateAroundTest, PositiveNinetyDegreesAroundNonOriginCenter) {
+  auto [x, y] = RotateAround(12, 10, 10, 10, 90);
+
+  EXPECT_NEAR(x, 10, EPS);
+  EXPECT_NEAR(y, 12, EPS);
+}
+
+TEST(RotateAroundTest, NegativeNinetyDegreesUsesOppositeDirection) {
+  auto [x, y] = RotateAround(0, 1, 0, 0, -90);
+
+  EXPECT_NEAR(x, 1, EPS);
+  EXPECT_NEAR(y, 0, EPS);
+}

@@ -26,15 +26,17 @@
 
 #include "utilities/graphics.hpp"
 
-#include <iostream>
-#include <sstream>
-#include <vector>
-
 #include "core/gameexe.hpp"
 #include "core/rect.hpp"
 #include "machine/rlmachine.hpp"
 #include "systems/system.hpp"
 #include "systems/system_error.hpp"
+
+#include <cmath>
+#include <iostream>
+#include <numbers>
+#include <sstream>
+#include <vector>
 
 std::vector<int> GetSELEffect(RLMachine& machine, int selNum) {
   Gameexe& gexe = machine.GetSystem().gameexe();
@@ -130,4 +132,21 @@ void ClipDestination(const Rect& clip_rect, Rect& src, Rect& dest) {
     std::cerr << "Doesn't deal with different sizes in ClipDestination!"
               << std::endl;
   }
+}
+
+float deg2rad(float degrees) {
+  return degrees * std::numbers::pi_v<float> / 180.0f;
+}
+
+std::pair<float, float> RotateAround(float x,
+                                     float y,
+                                     float center_x,
+                                     float center_y,
+                                     float degrees) {
+  const float radians = deg2rad(degrees);
+  const float cosv = std::cos(radians);
+  const float sinv = std::sin(radians);
+  const float dx = x - center_x;
+  const float dy = y - center_y;
+  return {dx * cosv - dy * sinv + center_x, dx * sinv + dy * cosv + center_y};
 }

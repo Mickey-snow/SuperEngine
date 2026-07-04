@@ -26,16 +26,11 @@
 
 #include "core/object.hpp"
 #include "core/object_internal/objdrawer.hpp"
+#include "utilities/graphics.hpp"
 
 #include <algorithm>
-#include <cmath>
-#include <numbers>
 
 namespace {
-
-inline float deg2rad(float degrees) {
-  return degrees * std::numbers::pi_v<float> / 180.0f;
-}
 
 Rect RectFromFloats(float x1, float y1, float x2, float y2) {
   const float left = std::min(x1, x2);
@@ -47,19 +42,6 @@ Rect RectFromFloats(float x1, float y1, float x2, float y2) {
 }
 
 }  // namespace
-
-std::pair<float, float> RotateAround(float x,
-                                     float y,
-                                     float center_x,
-                                     float center_y,
-                                     float degrees) {
-  const float radians = deg2rad(degrees);
-  const float cosv = std::cos(radians);
-  const float sinv = std::sin(radians);
-  const float dx = x - center_x;
-  const float dy = y - center_y;
-  return {dx * cosv - dy * sinv + center_x, dx * sinv + dy * cosv + center_y};
-}
 
 // ------------------------------------------------------------------------------
 // struct RenderState

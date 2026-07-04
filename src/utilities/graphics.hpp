@@ -58,3 +58,11 @@ Size GetScreenSize(Gameexe& gameexe);
 
 // Clips |dest| to |clip_rect|, adjusting |src|.
 void ClipDestination(const Rect& clip_rect, Rect& src, Rect& dest);
+
+float deg2rad(float degrees);
+
+std::pair<float, float> RotateAround(float x,
+                                     float y,
+                                     float center_x,
+                                     float center_y,
+                                     float degrees);

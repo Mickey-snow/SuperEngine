@@ -34,6 +34,7 @@
 #include "core/render_geometry.hpp"
 #include "systems/sdl/glrenderer.hpp"
 #include "systems/sdl/sdl_surface.hpp"
+#include "utilities/graphics.hpp"
 
 #include <algorithm>
 #include <ostream>
