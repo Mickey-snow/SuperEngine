@@ -29,7 +29,6 @@
 
 #include "core/object.hpp"
 #include "core/object_internal/drawer/gan.hpp"
-#include "core/object_internal/drawer/parent.hpp"
 #include "core/stage.hpp"
 #include "long_operations/wait_long_operation.hpp"
 #include "machine/long_operation.hpp"
@@ -55,8 +54,8 @@ struct objWaitAll : public RLOpcode<> {
     bool animations_playing = false;
     for (size_t i = 0, end = fgobj.Size(); i < end; ++i) {
       const auto& object = fgobj.At(i);
-      if (object && object->has_object_data()) {
-        const GraphicsObjectData& data = object->GetObjectData();
+      if (object && object->HasDrawer()) {
+        const GraphicsObjectData& data = object->GetDrawer();
         if (data.IsAnimation() && data.GetAnimator()->IsPlaying()) {
           animations_playing = true;
           break;
@@ -98,8 +97,8 @@ struct WaitForGanToFinish : public LongOperation {
     GraphicsObject& obj = GetObject(machine);
     bool done = true;
 
-    if (obj.has_object_data()) {
-      const GraphicsObjectData& data = obj.GetObjectData();
+    if (obj.HasDrawer()) {
+      const GraphicsObjectData& data = obj.GetDrawer();
       if (data.IsAnimation())
         done = !data.GetAnimator()->IsPlaying();
     }
@@ -119,8 +118,7 @@ struct WaitForGanToFinish : public LongOperation {
     if (parent_ != -1) {
       GraphicsObject& parent = stage.GetObject(fgbg_, parent_);
       EnsureIsParentObject(parent, graphics.GetObjectLayerSize());
-      return static_cast<ParentGraphicsObjectData&>(parent.GetObjectData())
-          .GetObject(buf_);
+      return parent.TouchChild(buf_);
     } else {
       return stage.GetObject(fgbg_, buf_);
     }
@@ -144,8 +142,8 @@ struct ganPlay : public RLOpcode<IntConstant_T, IntConstant_T> {
   void operator()(RLMachine& machine, int buf, int animationSet) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
 
-    if (obj.has_object_data()) {
-      GraphicsObjectData& data = obj.GetObjectData();
+    if (obj.HasDrawer()) {
+      GraphicsObjectData& data = obj.GetDrawer();
       if (data.IsAnimation()) {
         data.PlaySet(animationSet);
         data.GetAnimator()->SetAfterAction(after_effect_);
@@ -220,8 +218,8 @@ struct isGanDonePlaying : public RLStoreOpcode<IntConstant_T> {
   int operator()(RLMachine& machine, int gan_num) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, gan_num);
 
-    if (obj.has_object_data()) {
-      GraphicsObjectData& data = obj.GetObjectData();
+    if (obj.HasDrawer()) {
+      GraphicsObjectData& data = obj.GetDrawer();
       if (data.IsAnimation()) {
         if (data.GetAnimator()->IsFinished()) {
           return 0;
@@ -238,8 +236,8 @@ struct isGanDonePlaying : public RLStoreOpcode<IntConstant_T> {
 struct objStop_0 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int obj_num) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, obj_num);
-    if (obj.has_object_data())
-      obj.GetObjectData().GetAnimator()->SetIsPlaying(false);
+    if (obj.HasDrawer())
+      obj.GetDrawer().GetAnimator()->SetIsPlaying(false);
   }
 };
 

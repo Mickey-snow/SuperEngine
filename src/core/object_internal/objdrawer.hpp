@@ -26,34 +26,16 @@
 
 #include <boost/serialization/access.hpp>
 
+#include "core/object.hpp"
 #include "core/rect.hpp"
 #include "core/render_geometry.hpp"
 
 #include <memory>
 #include <optional>
-#include <string>
-#include <vector>
 
 class GraphicsObject;
 class SDLSurface;
 class Animator;
-
-struct ParentObjState {
-  RenderState render_state = RenderState::Id();
-  std::optional<Rect> clip = std::nullopt;
-  float alpha = 1.f;
-  float bright = 0.f, dark = 0.f;
-
-  inline float EffectiveAlpha(float a) const { return a * alpha; }
-  inline float EffectiveDark(float d) const {
-    return 1.f - (1.f - d) * (1.f - dark);
-  }
-  inline float EffectiveBright(float b) const {
-    return 1.f - (1.f - b) * (1.f - bright);
-  }
-
-  static ParentObjState BuildFrom(const GraphicsObject& parent);
-};
 
 std::optional<RenderGeometry> ApplyClips(
     RenderGeometry geo,

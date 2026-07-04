@@ -70,13 +70,13 @@ class StageTest : public ::testing::Test {
   };
 
   void SetDummyData(GraphicsObject& object) {
-    object.SetObjectData(std::make_unique<DummyObjectData>());
+    object.SetDrawer(std::make_unique<DummyObjectData>());
   }
 
   void SetRecordingData(GraphicsObject& object,
                         std::vector<int>* rendered,
                         int id) {
-    object.SetObjectData(std::make_unique<RecordingObjectData>(rendered, id));
+    object.SetDrawer(std::make_unique<RecordingObjectData>(rendered, id));
   }
 
   std::string GetExistFlags(const LazyArray<GraphicsObject>& la) {
@@ -110,7 +110,7 @@ TEST_F(StageTest, SetRemoveAndFreeIdUseRequestedLayer) {
   stage.SetObject(OBJ_NEXT, 2, std::move(object));
 
   ASSERT_TRUE(stage.next_objects.Exists(2));
-  EXPECT_TRUE(stage.next_objects[2].has_object_data());
+  EXPECT_TRUE(stage.next_objects[2].HasDrawer());
   EXPECT_EQ(stage.next_objects[2].Param().position_x, 42);
 
   stage.RemoveObject(OBJ_NEXT, 2);
@@ -128,9 +128,9 @@ TEST_F(StageTest, FreeAndInitializeSingleObjectAffectFrontAndBackOnly) {
 
   stage.FreeObjectData(0);
 
-  EXPECT_FALSE(stage.foreground_objects[0].has_object_data());
-  EXPECT_FALSE(stage.background_objects[0].has_object_data());
-  EXPECT_TRUE(stage.next_objects[0].has_object_data());
+  EXPECT_FALSE(stage.foreground_objects[0].HasDrawer());
+  EXPECT_FALSE(stage.background_objects[0].HasDrawer());
+  EXPECT_TRUE(stage.next_objects[0].HasDrawer());
 
   stage.InitializeObjectParams(0);
 
@@ -180,9 +180,30 @@ TEST_F(StageTest, WipePromotesBackToFrontAndClearsBack) {
 
   EXPECT_EQ(GetExistFlags(stage.background_objects), "000");
   ASSERT_EQ(GetExistFlags(stage.foreground_objects), "100");
-  EXPECT_TRUE(stage.foreground_objects[0].has_object_data());
+  EXPECT_TRUE(stage.foreground_objects[0].HasDrawer());
   EXPECT_TRUE(stage.foreground_objects[0].Param().visible());
   EXPECT_EQ(stage.foreground_objects[0].Param().position_x, 42);
+}
+
+TEST_F(StageTest, WipePromotesBackObjectWithOnlyChildren) {
+  Stage stage(3);
+  stage.background_objects[0].ResetChildren(1);
+  stage.background_objects[0].Param().SetVisible(1);
+  stage.background_objects[0].Param().SetX(42);
+  GraphicsObject& child = stage.background_objects[0].TouchChild(0);
+  SetDummyData(child);
+  child.Param().SetX(7);
+
+  stage.Wipe();
+
+  EXPECT_EQ(GetExistFlags(stage.background_objects), "000");
+  ASSERT_EQ(GetExistFlags(stage.foreground_objects), "100");
+  EXPECT_FALSE(stage.foreground_objects[0].HasDrawer());
+  ASSERT_TRUE(stage.foreground_objects[0].HasChildren());
+  ASSERT_NE(stage.foreground_objects[0].GetChild(0), nullptr);
+  EXPECT_TRUE(stage.foreground_objects[0].GetChild(0)->HasDrawer());
+  EXPECT_EQ(stage.foreground_objects[0].Param().position_x, 42);
+  EXPECT_EQ(stage.foreground_objects[0].GetChild(0)->Param().position_x, 7);
 }
 
 TEST_F(StageTest, WipeDoesNotAllocateEmptySlots) {
@@ -218,7 +239,7 @@ TEST_F(StageTest, WipePreservesOldFrontInNext) {
   stage.Wipe();
 
   ASSERT_EQ(GetExistFlags(stage.next_objects), "100");
-  EXPECT_TRUE(stage.next_objects[0].has_object_data());
+  EXPECT_TRUE(stage.next_objects[0].HasDrawer());
   EXPECT_EQ(stage.next_objects[0].Param().position_x, 10);
   EXPECT_EQ(stage.foreground_objects[0].Param().position_x, 20);
 }
@@ -233,7 +254,7 @@ TEST_F(StageTest, WipeCopyPreservesFrontWhenBackIsEmpty) {
 
   ASSERT_EQ(GetExistFlags(stage.foreground_objects), "100");
   ASSERT_EQ(GetExistFlags(stage.next_objects), "100");
-  EXPECT_TRUE(stage.foreground_objects[0].has_object_data());
+  EXPECT_TRUE(stage.foreground_objects[0].HasDrawer());
   EXPECT_EQ(stage.foreground_objects[0].Param().position_x, 10);
   EXPECT_EQ(stage.next_objects[0].Param().position_x, 10);
 }
@@ -253,11 +274,11 @@ TEST_F(StageTest, WipeRangeUsesLexicographicSorterComparison) {
   stage.Wipe(1, 2, 9, 1);
 
   ASSERT_EQ(GetExistFlags(stage.next_objects), "01110");
-  EXPECT_TRUE(stage.foreground_objects[0].has_object_data());
-  EXPECT_FALSE(stage.foreground_objects[1].has_object_data());
-  EXPECT_FALSE(stage.foreground_objects[2].has_object_data());
-  EXPECT_FALSE(stage.foreground_objects[3].has_object_data());
-  EXPECT_TRUE(stage.foreground_objects[4].has_object_data());
+  EXPECT_TRUE(stage.foreground_objects[0].HasDrawer());
+  EXPECT_FALSE(stage.foreground_objects[1].HasDrawer());
+  EXPECT_FALSE(stage.foreground_objects[2].HasDrawer());
+  EXPECT_FALSE(stage.foreground_objects[3].HasDrawer());
+  EXPECT_TRUE(stage.foreground_objects[4].HasDrawer());
 
   EXPECT_EQ(stage.next_objects[1].Param().position_x, 11);
   EXPECT_EQ(stage.next_objects[2].Param().position_x, 12);
@@ -276,10 +297,10 @@ TEST_F(StageTest, WipeRangeIgnoresEmptyAllocatedBackSlots) {
 
   EXPECT_FALSE(stage.next_objects.Exists(0));
   ASSERT_TRUE(stage.foreground_objects.Exists(0));
-  EXPECT_TRUE(stage.foreground_objects[0].has_object_data());
+  EXPECT_TRUE(stage.foreground_objects[0].HasDrawer());
   EXPECT_EQ(stage.foreground_objects[0].Param().position_x, 10);
   ASSERT_TRUE(stage.background_objects.Exists(0));
-  EXPECT_FALSE(stage.background_objects[0].has_object_data());
+  EXPECT_FALSE(stage.background_objects[0].HasDrawer());
   EXPECT_EQ(stage.background_objects[0].Param().position_x, 99);
 }
 
@@ -295,7 +316,7 @@ TEST_F(StageTest, BackWipeEraseClearsFrontAndConsumesBack) {
   ASSERT_EQ(GetExistFlags(stage.next_objects), "100");
   ASSERT_EQ(GetExistFlags(stage.background_objects), "000");
 
-  EXPECT_FALSE(stage.foreground_objects[0].has_object_data());
+  EXPECT_FALSE(stage.foreground_objects[0].HasDrawer());
   EXPECT_EQ(stage.foreground_objects[0].Param().wipe_erase, 1);
   EXPECT_EQ(stage.next_objects[0].Param().position_x, 10);
 }

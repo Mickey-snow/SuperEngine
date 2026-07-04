@@ -80,7 +80,7 @@ TestGraphicsObjectData& SetTestData(GraphicsObject& object,
   auto data =
       std::make_unique<TestGraphicsObjectData>(src, texture_origin, surface);
   auto& ref = *data;
-  object.SetObjectData(std::move(data));
+  object.SetDrawer(std::move(data));
   return ref;
 }
 

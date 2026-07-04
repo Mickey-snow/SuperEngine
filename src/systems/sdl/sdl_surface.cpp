@@ -44,6 +44,7 @@
 #include <cmath>
 #include <cstring>
 #include <format>
+#include <iostream>
 #include <stdexcept>
 #include <sstream>
 #include <vector>

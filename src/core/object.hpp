@@ -24,19 +24,36 @@
 
 #pragma once
 
-#include "core/colour.hpp"
 #include "core/object_internal/object_parameter.hpp"
-#include "core/rect.hpp"
 #include "core/render_geometry.hpp"
 
-#include <iostream>
+#include <concepts>
+#include <cstddef>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
-class GraphicsObjectSlot;
 class GraphicsObjectData;
 class ObjectMutator;
+class GraphicsObject;
+
+struct ParentObjState {
+  RenderState render_state = RenderState::Id();
+  std::optional<Rect> clip = std::nullopt;
+  float alpha = 1.f;
+  float bright = 0.f, dark = 0.f;
+
+  inline float EffectiveAlpha(float a) const { return a * alpha; }
+  inline float EffectiveDark(float d) const {
+    return 1.f - (1.f - d) * (1.f - dark);
+  }
+  inline float EffectiveBright(float b) const {
+    return 1.f - (1.f - b) * (1.f - bright);
+  }
+
+  static ParentObjState BuildFrom(const GraphicsObject& parent);
+};
 
 // Describes an graphical object on the screen.
 class GraphicsObject {
@@ -59,22 +76,39 @@ class GraphicsObject {
   int PixelWidth() const;
   int PixelHeight() const;
 
-  inline bool has_object_data() const { return object_data_.operator bool(); }
-  GraphicsObjectData& GetObjectData();
-  const GraphicsObjectData& GetObjectData() const;
+  // Drawer (aka. graphics object data)
+  inline bool HasDrawer() const { return object_data_.operator bool(); }
+  GraphicsObjectData& GetDrawer();
+  const GraphicsObjectData& GetDrawer() const;
   template <std::derived_from<GraphicsObjectData> T = GraphicsObjectData>
-  inline const T* GetObjectDataPtr() const {
-    if constexpr (std::same_as<T, GraphicsObject>)
+  inline const T* GetDrawer() const {
+    if constexpr (std::same_as<T, GraphicsObjectData>)
+      return object_data_.get();
+    else
+      return dynamic_cast<const T*>(object_data_.get());
+  }
+  template <std::derived_from<GraphicsObjectData> T = GraphicsObjectData>
+  inline T* GetDrawer() {
+    if constexpr (std::same_as<T, GraphicsObjectData>)
       return object_data_.get();
     else
       return dynamic_cast<T*>(object_data_.get());
   }
-  inline void SetObjectData(std::unique_ptr<GraphicsObjectData> obj) {
-    object_data_.swap(obj);
-  }
+  void SetDrawer(std::unique_ptr<GraphicsObjectData> obj);
+
+  // Children objects
+  inline bool HasChildren() const { return !child_.empty(); }
+  std::vector<std::unique_ptr<GraphicsObject>>& GetChildren();
+  const std::vector<std::unique_ptr<GraphicsObject>>& GetChildren() const;
+  GraphicsObject* GetChild(std::size_t idx);
+  const GraphicsObject* GetChild(std::size_t idx) const;
+  GraphicsObject& TouchChild(std::size_t idx);
+  void SetChild(std::size_t idx, GraphicsObject&& obj);
+  void ResetChildren(std::size_t count);
+  void EnsureChildCapacity(std::size_t count);
 
   // Render!
-  void Render(int objNum, const GraphicsObject* parent);
+  void Render(std::optional<ParentObjState> parent = {});
 
   // Frees the object data. Corresponds to objFree, but is also invoked by
   // other commands.
@@ -119,6 +153,8 @@ class GraphicsObject {
   // I think R23 mentioned that these were called "Parameter Events" in the
   // RLMAX SDK.
   std::vector<ObjectMutator> object_mutators_;
+
+  std::vector<std::unique_ptr<GraphicsObject>> child_;
 };
 
 enum { OBJ_FG = 0, OBJ_BG = 1, OBJ_NEXT = 2 };

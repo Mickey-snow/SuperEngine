@@ -96,7 +96,7 @@ void SiglusSceneRenderer::RenderQueuedObjects(ToRenderVec& to_render) {
 
     GraphicsObject& graphics_object = *std::get<5>(object);
     ScopedAlpha alpha(graphics_object, alpha_multiplier);
-    graphics_object.Render(std::get<3>(object), nullptr);
+    graphics_object.Render();
   }
 }
 

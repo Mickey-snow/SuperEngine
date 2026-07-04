@@ -77,7 +77,7 @@ void rlSceneRenderer::RenderScene() {
   }
   std::sort(to_render_.begin(), to_render_.end());
   for (const auto& [order, layer, depth, pos, obj] : to_render_) {
-    obj->Render(pos, nullptr);
+    obj->Render();
   }
 
   // Render text

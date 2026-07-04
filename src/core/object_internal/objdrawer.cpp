@@ -37,7 +37,6 @@
 #include "utilities/graphics.hpp"
 
 #include <algorithm>
-#include <ostream>
 
 namespace {
 
@@ -54,18 +53,6 @@ glm::mat4 BuildModelMatrix(const RenderGeometry& geometry, const Rect& dst) {
 }
 
 }  // namespace
-
-ParentObjState ParentObjState::BuildFrom(const GraphicsObject& parent) {
-  ParentObjState ret;
-  const ObjectParameter& param = parent.Param();
-  ret.render_state = parent.GetObjectData().BuildRenderState(parent);
-  if (param.has_own_clip_rect())
-    ret.clip = param.own_clip_rect();
-  ret.alpha = param.GetNormalizedAlpha();
-  ret.bright = param.GetNormalizedBright();
-  ret.dark = param.GetNormalizedDark();
-  return ret;
-}
 
 std::optional<RenderGeometry> ApplyClips(
     RenderGeometry geo,
@@ -248,7 +235,7 @@ Point GraphicsObjectData::DstPosition(const GraphicsObject& go) const {
 RenderState GraphicsObjectData::BuildRenderState(
     const GraphicsObject& go) const {
   const auto& param = go.Param();
-  const Point position = go.GetObjectData().DstPosition(go);
+  const Point position = go.GetDrawer().DstPosition(go);
   return RenderState::Build(param, position);
 }
 RenderGeometry GraphicsObjectData::BuildRenderGeometry(

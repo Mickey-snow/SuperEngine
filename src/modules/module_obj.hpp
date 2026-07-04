@@ -28,7 +28,6 @@
 #pragma once
 
 #include "machine/rloperation.hpp"
-#include "utilities/lazy_array.hpp"
 
 #include <functional>
 
@@ -40,9 +39,6 @@ class ObjectParameter;
 void EnsureIsParentObject(GraphicsObject& parent, int size);
 
 GraphicsObject& GetGraphicsObject(RLMachine& machine, RLOperation* op, int obj);
-
-LazyArray<GraphicsObject>& GetGraphicsObjects(RLMachine& machine,
-                                              RLOperation* op);
 
 // -----------------------------------------------------------------------
 

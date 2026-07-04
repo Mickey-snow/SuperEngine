@@ -27,30 +27,40 @@
 #include "core/object_internal/animator.hpp"
 #include "core/object_internal/objdrawer.hpp"
 #include "core/object_internal/object_mutator.hpp"
-#include "utilities/exception.hpp"
-
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/serialization/array.hpp>
-#include <boost/serialization/scoped_ptr.hpp>
-#include <boost/serialization/shared_ptr.hpp>
-
-#include "glm/gtc/matrix_transform.hpp"
-#include "glm/gtc/type_ptr.hpp"
-#include "glm/matrix.hpp"
+#include "log/core.hpp"
+#include "log/domain_logger.hpp"
 
 #include <algorithm>
-#include <iostream>
-#include <numeric>
-#include <sstream>
+#include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
+
+ParentObjState ParentObjState::BuildFrom(const GraphicsObject& parent) {
+  ParentObjState ret;
+  const ObjectParameter& param = parent.Param();
+  Point position(param.x() + param.GetXAdjustmentSum(),
+                 param.y() + param.GetYAdjustmentSum());
+  if (param.GetButtonUsingOverides()) {
+    position += Point(param.GetButtonXOffsetOverride(),
+                      param.GetButtonYOffsetOverride());
+  }
+  ret.render_state = RenderState::Build(param, position);
+  if (param.has_own_clip_rect())
+    ret.clip = param.own_clip_rect();
+  ret.alpha = param.GetNormalizedAlpha();
+  ret.bright = param.GetNormalizedBright();
+  ret.dark = param.GetNormalizedDark();
+  return ret;
+}
 
 // -----------------------------------------------------------------------
 // GraphicsObject
 // -----------------------------------------------------------------------
 GraphicsObject::GraphicsObject() = default;
 GraphicsObject::~GraphicsObject() = default;
+
+static DomainLogger logger("GraphicsObject");
 
 GraphicsObject GraphicsObject::Clone() const {
   GraphicsObject result;
@@ -63,11 +73,20 @@ GraphicsObject GraphicsObject::Clone() const {
   for (const auto& it : object_mutators_)
     result.object_mutators_.emplace_back(it.DeepCopy());
 
+  result.child_.resize(child_.size());
+  for (std::size_t i = 0; i < child_.size(); ++i) {
+    if (child_[i])
+      result.child_[i] = std::make_unique<GraphicsObject>(child_[i]->Clone());
+  }
+
   return result;
 }
 
 GraphicsObject::GraphicsObject(GraphicsObject&& rhs)
-    : param_(rhs.param_), object_data_(nullptr), object_mutators_() {
+    : param_(rhs.param_),
+      object_data_(nullptr),
+      object_mutators_(),
+      child_(std::move(rhs.child_)) {
   if (rhs.object_data_) {
     object_data_ = std::move(rhs.object_data_);
   }
@@ -85,6 +104,7 @@ GraphicsObject& GraphicsObject::operator=(GraphicsObject&& rhs) {
   }
 
   object_mutators_ = std::move(rhs.object_mutators_);
+  child_ = std::move(rhs.child_);
 
   rhs.param_ = ObjectParameter();
 
@@ -94,20 +114,20 @@ GraphicsObject& GraphicsObject::operator=(GraphicsObject&& rhs) {
 int GraphicsObject::PixelWidth() const {
   // Calculate out the pixel width of the current object taking in the
   // width() scaling.
-  if (has_object_data())
+  if (HasDrawer())
     return object_data_->PixelWidth(*this);
   else
     return 0;
 }
 
 int GraphicsObject::PixelHeight() const {
-  if (has_object_data())
+  if (HasDrawer())
     return object_data_->PixelHeight(*this);
   else
     return 0;
 }
 
-GraphicsObjectData& GraphicsObject::GetObjectData() {
+GraphicsObjectData& GraphicsObject::GetDrawer() {
   if (object_data_) {
     return *object_data_;
   } else {
@@ -115,12 +135,62 @@ GraphicsObjectData& GraphicsObject::GetObjectData() {
   }
 }
 
-const GraphicsObjectData& GraphicsObject::GetObjectData() const {
+const GraphicsObjectData& GraphicsObject::GetDrawer() const {
   if (object_data_) {
     return *object_data_;
   } else {
     throw std::runtime_error("null object data");
   }
+}
+
+void GraphicsObject::SetDrawer(std::unique_ptr<GraphicsObjectData> obj) {
+  child_.clear();
+  object_data_ = std::move(obj);
+}
+
+std::vector<std::unique_ptr<GraphicsObject>>& GraphicsObject::GetChildren() {
+  return child_;
+}
+
+const std::vector<std::unique_ptr<GraphicsObject>>&
+GraphicsObject::GetChildren() const {
+  return child_;
+}
+
+GraphicsObject* GraphicsObject::GetChild(std::size_t idx) {
+  if (idx >= child_.size())
+    return nullptr;
+  return child_[idx].get();
+}
+
+const GraphicsObject* GraphicsObject::GetChild(std::size_t idx) const {
+  if (idx >= child_.size())
+    return nullptr;
+  return child_[idx].get();
+}
+
+GraphicsObject& GraphicsObject::TouchChild(std::size_t idx) {
+  if (idx >= child_.size())
+    throw std::out_of_range("GraphicsObject child index out of range");
+  if (!child_[idx])
+    child_[idx] = std::make_unique<GraphicsObject>();
+  return *child_[idx];
+}
+
+void GraphicsObject::SetChild(std::size_t idx, GraphicsObject&& obj) {
+  EnsureChildCapacity(idx + 1);
+  child_[idx] = std::make_unique<GraphicsObject>(std::move(obj));
+}
+
+void GraphicsObject::ResetChildren(std::size_t count) {
+  object_data_.reset();
+  child_.clear();
+  child_.resize(count);
+}
+
+void GraphicsObject::EnsureChildCapacity(std::size_t count) {
+  if (child_.size() < count)
+    child_.resize(count);
 }
 
 void GraphicsObject::AddObjectMutator(ObjectMutator mutator) {
@@ -141,36 +211,46 @@ void GraphicsObject::EndObjectMutatorMatching(int repno,
                                               const std::string& name,
                                               int speedup) {
   if (speedup == 0) {
-    auto it = std::remove_if(object_mutators_.begin(), object_mutators_.end(),
-                             [&](auto& it) {
-                               if (!it.OperationMatches(repno, name))
-                                 return false;
-                               it.SetToEnd(this->Param());
-                               return true;
-                             });
-    object_mutators_.erase(it, object_mutators_.end());
-
+    std::erase_if(object_mutators_, [&](auto& it) {
+      if (!it.OperationMatches(repno, name))
+        return false;
+      it.SetToEnd(this->Param());
+      return true;
+    });
   } else if (speedup == 1) {
     // This is explicitly a noop.
   } else {
-    std::cerr << "Warning: We only do immediate endings in "
-              << "EndObjectMutatorMatching(). Unsupported speedup " << speedup
-              << std::endl;
+    logger(Severity::Warn) << "We only do immediate endings in "
+                           << "EndObjectMutatorMatching(). Unsupported speedup "
+                           << speedup;
   }
 }
 
-void GraphicsObject::Render(int objNum, const GraphicsObject* parent) {
-  if (object_data_ && Param().visible()) {
-    std::optional<ParentObjState> parent_state;
-    if (parent)
-      parent_state = ParentObjState::BuildFrom(*parent);
-    object_data_->Render(*this, parent_state);
+void GraphicsObject::Render(std::optional<ParentObjState> parent) {
+  if (!Param().visible())
+    return;
+
+  if (object_data_)
+    object_data_->Render(*this, parent);
+
+  if (!child_.empty()) {
+    if (parent) {
+      logger(Severity::Warn) << "Nested parents are not supported yet.";
+    }
+
+    const ParentObjState child_parent = ParentObjState::BuildFrom(*this);
+    for (auto& it : child_) {
+      if (!it)
+        continue;
+      it->Render(child_parent);
+    }
   }
 }
 
 void GraphicsObject::FreeObjectData() {
   object_data_.reset();
   object_mutators_.clear();
+  child_.clear();
 }
 
 void GraphicsObject::InitializeParams() {
@@ -182,6 +262,7 @@ void GraphicsObject::FreeDataAndInitializeParams() {
   object_data_.reset();
   param_ = ObjectParameter();
   object_mutators_.clear();
+  child_.clear();
 }
 
 void GraphicsObject::Execute() {
@@ -198,10 +279,15 @@ void GraphicsObject::Execute() {
     if (should_delete(object_data_.get()))
       object_data_ = nullptr;
   }
+
+  for (auto& it : child_) {
+    if (!it)
+      continue;
+    it->Execute();
+  }
 }
 
 void GraphicsObject::ExecuteMutators() {
-  auto it = std::remove_if(object_mutators_.begin(), object_mutators_.end(),
-                           [&](auto& it) { return it.Update(this->Param()); });
-  object_mutators_.erase(it, object_mutators_.end());
+  std::erase_if(object_mutators_,
+                [&](auto& it) { return it.Update(this->Param()); });
 }

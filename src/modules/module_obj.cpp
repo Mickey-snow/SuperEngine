@@ -28,7 +28,6 @@
 #include "modules/module_obj.hpp"
 
 #include "core/object.hpp"
-#include "core/object_internal/drawer/parent.hpp"
 #include "core/stage.hpp"
 #include "libreallive/parser.hpp"
 #include "machine/properties.hpp"
@@ -40,10 +39,12 @@
 #include <iostream>
 
 void EnsureIsParentObject(GraphicsObject& parent, int size) {
-  if (parent.GetObjectDataPtr<ParentGraphicsObjectData>())
+  if (parent.HasChildren()) {
+    parent.EnsureChildCapacity(size);
     return;
+  }
 
-  parent.SetObjectData(std::make_unique<ParentGraphicsObjectData>(size));
+  parent.ResetChildren(size);
 }
 
 GraphicsObject& GetGraphicsObject(RLMachine& machine,
@@ -60,30 +61,10 @@ GraphicsObject& GetGraphicsObject(RLMachine& machine,
   if (op->GetProperty(P_PARENTOBJ, parentobj)) {
     GraphicsObject& parent = stage.GetObject(fgbg, parentobj);
     EnsureIsParentObject(parent, graphics.GetObjectLayerSize());
-    return static_cast<ParentGraphicsObjectData&>(parent.GetObjectData())
-        .GetObject(obj);
+    return parent.TouchChild(obj);
   } else {
     return stage.GetObject(fgbg, obj);
   }
-}
-
-LazyArray<GraphicsObject>& GetGraphicsObjects(RLMachine& machine,
-                                              RLOperation* op) {
-  GraphicsSystem& graphics = machine.GetSystem().graphics();
-  Stage& stage = machine.stage();
-
-  int fgbg;
-  if (!op->GetProperty(P_FGBG, fgbg))
-    fgbg = OBJ_FG;
-
-  int parentobj;
-  if (op->GetProperty(P_PARENTOBJ, parentobj)) {
-    GraphicsObject& parent = stage.GetObject(fgbg, parentobj);
-    EnsureIsParentObject(parent, graphics.GetObjectLayerSize());
-    return static_cast<ParentGraphicsObjectData&>(parent.GetObjectData())
-        .objects();
-  } else
-    return stage.ObjectsForLayer(fgbg);
 }
 
 // -----------------------------------------------------------------------

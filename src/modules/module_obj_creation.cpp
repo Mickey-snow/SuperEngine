@@ -35,7 +35,6 @@
 #include "core/object_internal/drawer/drift.hpp"
 #include "core/object_internal/drawer/file.hpp"
 #include "core/object_internal/drawer/gan.hpp"
-#include "core/object_internal/drawer/parent.hpp"
 #include "core/object_internal/drawer/text.hpp"
 #include "machine/properties.hpp"
 #include "machine/rlmachine.hpp"
@@ -97,7 +96,7 @@ void SetObjectDataToGan(RLMachine& machine,
   // create graphics object
   auto obj_data = std::make_unique<GanGraphicsObjectData>(
       image, std::move(dec.animation_sets));
-  obj.SetObjectData(std::move(obj_data));
+  obj.SetDrawer(std::move(obj_data));
 }
 
 typedef std::function<void(RLMachine&, GraphicsObject& obj, const string&)>
@@ -123,7 +122,7 @@ void objOfFileLoader(RLMachine& machine,
   if (file_str.ends_with("g00") || file_str.ends_with("pdt")) {
     auto surface = system.graphics().GetSurfaceNamed(filename);
     auto obj_data = std::make_unique<GraphicsObjectOfFile>(surface);
-    obj.SetObjectData(std::move(obj_data));
+    obj.SetDrawer(std::move(obj_data));
   } else if (file_str.ends_with("anm")) {
     std::vector<char> file_content = LoadFile(full_path);
     AnmDecoder decoder(std::move(file_content));
@@ -135,7 +134,7 @@ void objOfFileLoader(RLMachine& machine,
 
     auto obj_data =
         std::make_unique<AnmGraphicsObjectData>(surface, std::move(decoder));
-    obj.SetObjectData(std::move(obj_data));
+    obj.SetDrawer(std::move(obj_data));
   } else {
     std::ostringstream oss;
     oss << "Don't know how to handle object file: \"" << filename << "\"";
@@ -151,21 +150,21 @@ void objOfTextBuilder(RLMachine& machine,
   obj.Param().SetTextText(utf8str);
   auto ptr = std::make_unique<GraphicsTextObject>(machine.GetSystem());
   GraphicsTextObject* text_obj = ptr.get();
-  obj.SetObjectData(std::move(ptr));
+  obj.SetDrawer(std::move(ptr));
   text_obj->UpdateSurface(obj);
 }
 
 void objOfDriftLoader(RLMachine& machine,
                       GraphicsObject& obj,
                       const std::string& value) {
-  obj.SetObjectData(
+  obj.SetDrawer(
       std::make_unique<DriftGraphicsObject>(machine.GetSystem(), value));
 }
 
 void objOfDigitsLoader(RLMachine& machine,
                        GraphicsObject& obj,
                        const std::string& value) {
-  obj.SetObjectData(
+  obj.SetDrawer(
       std::make_unique<DigitsGraphicsObject>(machine.GetSystem(), value));
 }
 
@@ -350,7 +349,7 @@ void SetObjectDataToRect(RLMachine& machine,
                          int buf,
                          const Rect& r) {
   GraphicsObject& obj = GetGraphicsObject(machine, op, buf);
-  obj.SetObjectData(std::make_unique<ColourFilterObjectData>(r));
+  obj.SetDrawer(std::make_unique<ColourFilterObjectData>(r));
 }
 
 struct objOfArea_0 : public RLOpcode<IntConstant_T> {
@@ -440,7 +439,7 @@ struct objOfChild_0 : public RLOpcode<IntConstant_T,
                   string imgFilename,
                   string ganFilename) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
-    obj.SetObjectData(std::make_unique<ParentGraphicsObjectData>(count));
+    obj.ResetChildren(count);
     obj.Param().SetVisible(true);
   }
 };
@@ -457,7 +456,7 @@ struct objOfChild_1 : public RLOpcode<IntConstant_T,
                   string ganFilename,
                   int visible) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
-    obj.SetObjectData(std::make_unique<ParentGraphicsObjectData>(count));
+    obj.ResetChildren(count);
     obj.Param().SetVisible(visible);
   }
 };
@@ -478,7 +477,7 @@ struct objOfChild_2 : public RLOpcode<IntConstant_T,
                   int x,
                   int y) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
-    obj.SetObjectData(std::make_unique<ParentGraphicsObjectData>(count));
+    obj.ResetChildren(count);
     obj.Param().SetVisible(visible);
     obj.Param().SetX(x);
     obj.Param().SetY(y);

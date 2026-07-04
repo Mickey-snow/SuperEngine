@@ -57,6 +57,7 @@
 #include "modules/module_str.hpp"
 #include "modules/module_sys.hpp"
 
+#include <iostream>
 #include <stdexcept>
 #include <utility>
 

@@ -33,7 +33,6 @@
 #include "machine/rlmodule.hpp"
 #include "machine/rloperation.hpp"
 #include "modules/module_obj.hpp"
-#include "core/object_internal/drawer/parent.hpp"
 #include "core/object.hpp"
 #include "core/stage.hpp"
 #include "systems/graphics_system.hpp"
@@ -42,6 +41,31 @@
 // -----------------------------------------------------------------------
 
 namespace {
+
+template <typename Function>
+void ForEachTargetObject(RLMachine& machine, RLOperation* op, Function fn) {
+  Stage& stage = machine.stage();
+
+  int fgbg;
+  if (!op->GetProperty(P_FGBG, fgbg))
+    fgbg = OBJ_FG;
+
+  int parentobj;
+  if (op->GetProperty(P_PARENTOBJ, parentobj)) {
+    GraphicsObject& parent = stage.GetObject(fgbg, parentobj);
+    EnsureIsParentObject(parent,
+                         machine.GetSystem().graphics().GetObjectLayerSize());
+
+    for (auto& child : parent.GetChildren()) {
+      if (child)
+        fn(*child);
+    }
+    return;
+  }
+
+  for (GraphicsObject& object : stage.ObjectsForLayer(fgbg))
+    fn(object);
+}
 
 struct objCopyFgToBg_0 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int buf) {
@@ -96,27 +120,24 @@ struct SetWipeCopyTo_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
 
 struct objFreeAll : public RLOpcode<> {
   virtual void operator()(RLMachine& machine) override {
-    LazyArray<GraphicsObject>& objects = GetGraphicsObjects(machine, this);
-    for (GraphicsObject& object : objects)
-      object.FreeObjectData();
+    ForEachTargetObject(machine, this,
+                        [](GraphicsObject& object) { object.FreeObjectData(); });
   }
 };
 
 struct objInitAll : public RLOpcode<> {
   virtual void operator()(RLMachine& machine) override {
-    LazyArray<GraphicsObject>& objects = GetGraphicsObjects(machine, this);
-    for (GraphicsObject& object : objects)
-      object.InitializeParams();
+    ForEachTargetObject(
+        machine, this, [](GraphicsObject& object) { object.InitializeParams(); });
   }
 };
 
 struct objFreeInitAll : public RLOpcode<> {
   virtual void operator()(RLMachine& machine) override {
-    LazyArray<GraphicsObject>& objects = GetGraphicsObjects(machine, this);
-    for (GraphicsObject& object : objects) {
+    ForEachTargetObject(machine, this, [](GraphicsObject& object) {
       object.FreeObjectData();
       object.InitializeParams();
-    }
+    });
   }
 };
 
@@ -167,12 +188,8 @@ struct objChildCopy : public RLOpcode<IntConstant_T, IntConstant_T> {
       GraphicsObject& go = stage.GetObject(fgbg_, parentobj);
       EnsureIsParentObject(go, graphics.GetObjectLayerSize());
 
-      // Pick out the object data.
-      ParentGraphicsObjectData& parent =
-          static_cast<ParentGraphicsObjectData&>(go.GetObjectData());
-
-      GraphicsObject& src_obj = parent.GetObject(sbuf);
-      parent.SetObject(dbuf, src_obj.Clone());
+      GraphicsObject& src_obj = go.TouchChild(sbuf);
+      go.SetChild(dbuf, src_obj.Clone());
     }
   }
 };

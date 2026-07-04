@@ -175,7 +175,7 @@ class SiglusObject {
     GraphicsObject& obj = object();
     obj.FreeDataAndInitializeParams();
     auto surface = graphics_->GetSurfaceNamed(std::move(filename));
-    obj.SetObjectData(std::make_unique<GraphicsObjectOfFile>(surface));
+    obj.SetDrawer(std::make_unique<GraphicsObjectOfFile>(surface));
   }
 
   MovieCreateParams ParseCreateMovie(std::vector<sr::Value> raw_args,
@@ -223,16 +223,11 @@ class SiglusObject {
     return params;
   }
 
-  ObjectMovieData* movie_data() {
-    if (!object().has_object_data())
-      return nullptr;
-    return dynamic_cast<ObjectMovieData*>(&object().GetObjectData());
+  inline ObjectMovieData* movie_data() {
+    return object().GetDrawer<ObjectMovieData>();
   }
-
-  const ObjectMovieData* movie_data() const {
-    if (!object().has_object_data())
-      return nullptr;
-    return dynamic_cast<const ObjectMovieData*>(&object().GetObjectData());
+  inline const ObjectMovieData* movie_data() const {
+    return object().GetDrawer<const ObjectMovieData>();
   }
 
   bool create_movie_common(std::vector<sr::Value> raw_args,
@@ -256,7 +251,7 @@ class SiglusObject {
 
     GraphicsObject& obj = object();
     obj.FreeDataAndInitializeParams();
-    obj.SetObjectData(std::make_unique<ObjectMovieData>(
+    obj.SetDrawer(std::make_unique<ObjectMovieData>(
         movie_path.value(), params.loop, params.auto_free, params.real_time,
         params.ready_only, graphics_->GetBackend(),
         event_ ? event_->GetClock() : std::make_shared<Clock>()));
@@ -361,7 +356,7 @@ class SiglusObject {
                    int display) {
     auto rect = Rect::GRP(left, top, right, down);
     param().blend_colour = RGBAColour(r, g, b, alpha);
-    object().SetObjectData(std::make_unique<ColourFilterObjectData>(rect));
+    object().SetDrawer(std::make_unique<ColourFilterObjectData>(rect));
     param().SetVisible(display);
   }
 
@@ -824,9 +819,8 @@ void BindObject(SiglusRuntime& runtime) {
   obj.def("create_movie_waitkey", &SiglusObject::create_movie_waitkey,
           sb::vararg);
   obj.def("create_rect", &SiglusObject::create_rect);
-  obj.def("exist_type", [](SiglusObject* obj) {
-    return obj->object().has_object_data() ? 1 : 0;
-  });
+  obj.def("exist_type",
+          [](SiglusObject* obj) { return obj->object().HasDrawer() ? 1 : 0; });
   obj.def(
       "get_size_x",
       [](const SiglusObject* obj, int cut_no) {

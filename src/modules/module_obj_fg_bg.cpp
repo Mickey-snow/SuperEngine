@@ -40,6 +40,11 @@
 #include <vector>
 
 #include "core/gameexe.hpp"
+#include "core/object.hpp"
+#include "core/object_internal/drawer/colour_filter.hpp"
+#include "core/object_internal/drawer/text.hpp"
+#include "core/object_internal/objdrawer.hpp"
+#include "core/object_internal/object_mutator.hpp"
 #include "libreallive/parser.hpp"
 #include "machine/long_operation.hpp"
 #include "machine/properties.hpp"
@@ -50,14 +55,9 @@
 #include "machine/rloperation/rect_t.hpp"
 #include "modules/module_obj.hpp"
 #include "modules/object_mutator_operations.hpp"
-#include "core/object_internal/drawer/colour_filter.hpp"
-#include "core/object_internal/drawer/text.hpp"
-#include "core/object_internal/objdrawer.hpp"
-#include "core/object_internal/object_mutator.hpp"
-#include "core/object.hpp"
+#include "systems/event_system.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
-#include "systems/event_system.hpp"
 #include "utilities/exception.hpp"
 #include "utilities/graphics.hpp"
 #include "utilities/string_utilities.hpp"
@@ -161,12 +161,9 @@ struct colour : RLOpcode<IntConstant_T,
 struct objSetRect_1 : public RLOpcode<IntConstant_T, Rect_T<rect_impl::GRP>> {
   void operator()(RLMachine& machine, int buf, Rect rect) {
     GraphicsObject& obj = GetGraphicsObject(machine, this, buf);
-    if (obj.has_object_data()) {
-      ColourFilterObjectData* data =
-          dynamic_cast<ColourFilterObjectData*>(&obj.GetObjectData());
-      if (data) {
-        data->set_rect(rect);
-      }
+    ColourFilterObjectData* data = obj.GetDrawer<ColourFilterObjectData>();
+    if (data) {
+      data->set_rect(rect);
     }
   }
 };
@@ -310,12 +307,14 @@ class objEveAdjust : public RLOpcode<IntConstant_T,
     int start_y = object.Param().y_adjustment(repno);
 
     Mutator mutator_x{
-        .setter_ = std::bind(CreateSetter<&ObjectParameter::adjustment_offsets_x>(),
-                             _1, repno, _2),
+        .setter_ =
+            std::bind(CreateSetter<&ObjectParameter::adjustment_offsets_x>(),
+                      _1, repno, _2),
         .fc_ = MakeFrameCounter(duration_time, delay, start_x, x, type, clock)};
     Mutator mutator_y{
-        .setter_ = std::bind(CreateSetter<&ObjectParameter::adjustment_offsets_y>(),
-                             _1, repno, _2),
+        .setter_ =
+            std::bind(CreateSetter<&ObjectParameter::adjustment_offsets_y>(),
+                      _1, repno, _2),
         .fc_ = MakeFrameCounter(duration_time, delay, start_y, y, type, clock)};
     object.AddObjectMutator(ObjectMutator(
         {std::move(mutator_x), std::move(mutator_y)}, repno, "objEveAdjust"));
@@ -482,7 +481,8 @@ void addUnifiedFunctions(ObjectModule& h) {
   h.AddSingleObjectCommands(1, "Left",
                             CreateGetter<&ObjectParameter::position_x>(),
                             CreateSetter<&ObjectParameter::position_x>());
-  h.AddSingleObjectCommands(2, "Top", CreateGetter<&ObjectParameter::position_y>(),
+  h.AddSingleObjectCommands(2, "Top",
+                            CreateGetter<&ObjectParameter::position_y>(),
                             CreateSetter<&ObjectParameter::position_y>());
   h.AddSingleObjectCommands(3, "Alpha",
                             CreateGetter<&ObjectParameter::alpha_source>(),
@@ -491,49 +491,39 @@ void addUnifiedFunctions(ObjectModule& h) {
   // ----
 
   h.AddCustomRepno<adjust, objEveAdjust>(6, "Adjust");
-  h.AddRepnoObjectCommands(7, "AdjustX",
-                           CreateGetter<&ObjectParameter::adjustment_offsets_x>(),
-                           CreateSetter<&ObjectParameter::adjustment_offsets_x>());
-  h.AddRepnoObjectCommands(8, "AdjustY",
-                           CreateGetter<&ObjectParameter::adjustment_offsets_y>(),
-                           CreateSetter<&ObjectParameter::adjustment_offsets_y>());
+  h.AddRepnoObjectCommands(
+      7, "AdjustX", CreateGetter<&ObjectParameter::adjustment_offsets_x>(),
+      CreateSetter<&ObjectParameter::adjustment_offsets_x>());
+  h.AddRepnoObjectCommands(
+      8, "AdjustY", CreateGetter<&ObjectParameter::adjustment_offsets_y>(),
+      CreateSetter<&ObjectParameter::adjustment_offsets_y>());
   h.AddSingleObjectCommands(
       9, "Mono", CreateGetter<&ObjectParameter::monochrome_transform>(),
       CreateSetter<&ObjectParameter::monochrome_transform>());
   h.AddSingleObjectCommands(10, "Invert",
                             CreateGetter<&ObjectParameter::invert_transform>(),
                             CreateSetter<&ObjectParameter::invert_transform>());
-  h.AddSingleObjectCommands(11, "Light",
-                            [](const ObjectParameter& param) {
-                              return param.light();
-                            },
-                            [](ObjectParameter& param, int value) {
-                              param.SetLight(value);
-                            });
+  h.AddSingleObjectCommands(
+      11, "Light", [](const ObjectParameter& param) { return param.light(); },
+      [](ObjectParameter& param, int value) { param.SetLight(value); });
 
   // ---
 
   h.AddSingleObjectCommands(
       13, "TintR",
-      [](const ObjectParameter& param) {
-        return param.tint_colour.r();
-      },
+      [](const ObjectParameter& param) { return param.tint_colour.r(); },
       [](ObjectParameter& param, int value) {
         param.tint_colour.set_red(value);
       });
   h.AddSingleObjectCommands(
       14, "TintG",
-      [](const ObjectParameter& param) {
-        return param.tint_colour.g();
-      },
+      [](const ObjectParameter& param) { return param.tint_colour.g(); },
       [](ObjectParameter& param, int value) {
         param.tint_colour.set_green(value);
       });
   h.AddSingleObjectCommands(
       15, "TintB",
-      [](const ObjectParameter& param) {
-        return param.tint_colour.b();
-      },
+      [](const ObjectParameter& param) { return param.tint_colour.b(); },
       [](ObjectParameter& param, int value) {
         param.tint_colour.set_blue(value);
       });
@@ -542,42 +532,34 @@ void addUnifiedFunctions(ObjectModule& h) {
 
   h.AddSingleObjectCommands(
       17, "ColR",
-      [](const ObjectParameter& param) {
-        return param.blend_colour.r();
-      },
+      [](const ObjectParameter& param) { return param.blend_colour.r(); },
       [](ObjectParameter& param, int value) {
         param.blend_colour.set_red(value);
       });
   h.AddSingleObjectCommands(
       18, "ColG",
-      [](const ObjectParameter& param) {
-        return param.blend_colour.g();
-      },
+      [](const ObjectParameter& param) { return param.blend_colour.g(); },
       [](ObjectParameter& param, int value) {
         param.blend_colour.set_green(value);
       });
   h.AddSingleObjectCommands(
       19, "ColB",
-      [](const ObjectParameter& param) {
-        return param.blend_colour.b();
-      },
+      [](const ObjectParameter& param) { return param.blend_colour.b(); },
       [](ObjectParameter& param, int value) {
         param.blend_colour.set_blue(value);
       });
   h.AddSingleObjectCommands(
       20, "ColLevel",
-      [](const ObjectParameter& param) {
-        return param.blend_colour.a();
-      },
+      [](const ObjectParameter& param) { return param.blend_colour.a(); },
       [](ObjectParameter& param, int value) {
         param.blend_colour.set_alpha(value);
       });
 
   // ---
 
-  h.AddSingleObjectCommands(36, "AdjustVert",
-                            CreateGetter<&ObjectParameter::adjustment_vertical>(),
-                            CreateSetter<&ObjectParameter::adjustment_vertical>());
+  h.AddSingleObjectCommands(
+      36, "AdjustVert", CreateGetter<&ObjectParameter::adjustment_vertical>(),
+      CreateSetter<&ObjectParameter::adjustment_vertical>());
 
   h.AddRepnoObjectCommands(40, "AdjustAlpha",
                            CreateGetter<&ObjectParameter::adjustment_alphas>(),
@@ -598,17 +580,17 @@ void addUnifiedFunctions(ObjectModule& h) {
   h.AddSingleObjectCommands(49, "Rotate",
                             CreateGetter<&ObjectParameter::rotation_div10>(),
                             CreateSetter<&ObjectParameter::rotation_div10>());
-  h.AddDoubleObjectCommands(50, "RepOrigin",
-                            CreateGetter<&ObjectParameter::repetition_origin_x>(),
-                            CreateSetter<&ObjectParameter::repetition_origin_x>(),
-                            CreateGetter<&ObjectParameter::repetition_origin_y>(),
-                            CreateSetter<&ObjectParameter::repetition_origin_y>());
-  h.AddSingleObjectCommands(51, "RepOriginX",
-                            CreateGetter<&ObjectParameter::repetition_origin_x>(),
-                            CreateSetter<&ObjectParameter::repetition_origin_x>());
-  h.AddSingleObjectCommands(52, "RepOriginY",
-                            CreateGetter<&ObjectParameter::repetition_origin_y>(),
-                            CreateSetter<&ObjectParameter::repetition_origin_y>());
+  h.AddDoubleObjectCommands(
+      50, "RepOrigin", CreateGetter<&ObjectParameter::repetition_origin_x>(),
+      CreateSetter<&ObjectParameter::repetition_origin_x>(),
+      CreateGetter<&ObjectParameter::repetition_origin_y>(),
+      CreateSetter<&ObjectParameter::repetition_origin_y>());
+  h.AddSingleObjectCommands(
+      51, "RepOriginX", CreateGetter<&ObjectParameter::repetition_origin_x>(),
+      CreateSetter<&ObjectParameter::repetition_origin_x>());
+  h.AddSingleObjectCommands(
+      52, "RepOriginY", CreateGetter<&ObjectParameter::repetition_origin_y>(),
+      CreateSetter<&ObjectParameter::repetition_origin_y>());
   h.AddDoubleObjectCommands(53, "Origin",
                             CreateGetter<&ObjectParameter::origin_x>(),
                             CreateSetter<&ObjectParameter::origin_x>(),
@@ -624,15 +606,18 @@ void addUnifiedFunctions(ObjectModule& h) {
   // ---
 
   h.AddDoubleObjectCommands(
-      61, "HqScale", CreateGetter<&ObjectParameter::high_quality_scale_x_percent>(),
+      61, "HqScale",
+      CreateGetter<&ObjectParameter::high_quality_scale_x_percent>(),
       CreateSetter<&ObjectParameter::high_quality_scale_x_percent>(),
       CreateGetter<&ObjectParameter::high_quality_scale_y_percent>(),
       CreateSetter<&ObjectParameter::high_quality_scale_y_percent>());
   h.AddSingleObjectCommands(
-      62, "HqWidth", CreateGetter<&ObjectParameter::high_quality_scale_x_percent>(),
+      62, "HqWidth",
+      CreateGetter<&ObjectParameter::high_quality_scale_x_percent>(),
       CreateSetter<&ObjectParameter::high_quality_scale_x_percent>());
   h.AddSingleObjectCommands(
-      63, "HqHeight", CreateGetter<&ObjectParameter::high_quality_scale_y_percent>(),
+      63, "HqHeight",
+      CreateGetter<&ObjectParameter::high_quality_scale_y_percent>(),
       CreateSetter<&ObjectParameter::high_quality_scale_y_percent>());
 }
 
@@ -659,10 +644,12 @@ void addObjectFunctions(RLModule& m) {
   m.AddOpcode(1025, 0, "objTextOpts", new objTextOpts);
   m.AddOpcode(1025, 1, "objTextOpts", new objTextOpts);
 
-  m.AddOpcode(1026, 0, "objLayer",
-              new Obj_SetOneIntOnObj(CreateSetter<&ObjectParameter::z_layer>()));
-  m.AddOpcode(1027, 0, "objDepth",
-              new Obj_SetOneIntOnObj(CreateSetter<&ObjectParameter::z_depth>()));
+  m.AddOpcode(
+      1026, 0, "objLayer",
+      new Obj_SetOneIntOnObj(CreateSetter<&ObjectParameter::z_layer>()));
+  m.AddOpcode(
+      1027, 0, "objDepth",
+      new Obj_SetOneIntOnObj(CreateSetter<&ObjectParameter::z_depth>()));
   m.AddUnsupportedOpcode(1028, 0, "objScrollRate");
   m.AddOpcode(
       1029, 0, "objScrollRateX",
@@ -671,8 +658,9 @@ void addObjectFunctions(RLModule& m) {
       1030, 0, "objScrollRateY",
       new Obj_SetOneIntOnObj(CreateSetter<&ObjectParameter::scroll_rate_y>()));
   m.AddOpcode(1031, 0, "objDriftOpts", new objDriftOpts);
-  m.AddOpcode(1032, 0, "objOrder",
-              new Obj_SetOneIntOnObj(CreateSetter<&ObjectParameter::z_order>()));
+  m.AddOpcode(
+      1032, 0, "objOrder",
+      new Obj_SetOneIntOnObj(CreateSetter<&ObjectParameter::z_order>()));
   m.AddUnsupportedOpcode(1033, 0, "objQuarterView");
 
   m.AddOpcode(1034, 0, "objDispRect", new dispArea_0);

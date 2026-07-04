@@ -75,7 +75,8 @@ void Stage::Wipe(int begin_order,
     const bool front_in_range =
         fg_exists && InWipeRange(foreground_objects.At(i).value().Param());
     const bool back_participates =
-        bg_exists && (background_objects[i].has_object_data() ||
+        bg_exists && (background_objects[i].HasDrawer() ||
+                      background_objects[i].HasChildren() ||
                       background_objects[i].Param().wipe_erase != 0);
     if (!front_in_range && !back_participates)
       continue;

@@ -27,7 +27,7 @@
 #include "long_operations/button_object_select_long_operation.hpp"
 
 #include "core/object.hpp"
-#include "core/object_internal/drawer/parent.hpp"
+#include "core/object_internal/objdrawer.hpp"
 #include "core/stage.hpp"
 #include "machine/rlmachine.hpp"
 #include "systems/graphics_system.hpp"
@@ -49,16 +49,11 @@ ButtonObjectSelectLongOperation::ButtonObjectSelectLongOperation(
   for (GraphicsObject& obj : machine.stage().foreground_objects) {
     if (obj.Param().IsButton() && obj.Param().GetButtonGroup() == group_) {
       buttons_.emplace_back(&obj, static_cast<GraphicsObject*>(NULL));
-    } else if (obj.has_object_data()) {
-      ParentGraphicsObjectData* parent =
-          dynamic_cast<ParentGraphicsObjectData*>(&obj.GetObjectData());
-
-      if (parent) {
-        for (GraphicsObject& child : parent->objects()) {
-          if (child.Param().IsButton() &&
-              child.Param().GetButtonGroup() == group_) {
-            buttons_.emplace_back(&child, &obj);
-          }
+    } else if (obj.HasChildren()) {
+      for (auto& child : obj.GetChildren()) {
+        if (child && child->Param().IsButton() &&
+            child->Param().GetButtonGroup() == group_) {
+          buttons_.emplace_back(child.get(), &obj);
         }
       }
     }
@@ -87,8 +82,8 @@ void ButtonObjectSelectLongOperation::OnEvent(std::shared_ptr<Event> event) {
           GraphicsObject* hovering_button = NULL;
 
           for (ButtonPair& button_pair : buttons_) {
-            if (button_pair.first->has_object_data()) {
-              GraphicsObjectData* data = &button_pair.first->GetObjectData();
+            if (button_pair.first->HasDrawer()) {
+              GraphicsObjectData* data = button_pair.first->GetDrawer<>();
               std::optional<ParentObjState> parent_state =
                   button_pair.second
                       ? std::make_optional(
