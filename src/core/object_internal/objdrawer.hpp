@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -30,6 +27,7 @@
 #include <boost/serialization/access.hpp>
 
 #include "core/rect.hpp"
+#include "core/render_geometry.hpp"
 
 #include <memory>
 #include <string>
@@ -91,27 +89,10 @@ class GraphicsObjectData {
   virtual int GetRenderingAlpha(const GraphicsObject& go,
                                 const GraphicsObject* parent) const;
 
-  struct RenderGeometry {
-    Rect src;
-    Rect dst;
-    Point pivot;
-    float pivot_x = 0.0f;
-    float pivot_y = 0.0f;
-    float rotation_degrees = 0.0f;
-    float scale_x = 1.0f;
-    float scale_y = 1.0f;
-    float local_x = 0.0f;
-    float local_y = 0.0f;
-
-    void UpdateDstFromLocal();
-    bool ApplySrcClip(const Rect clip);
-    bool ApplyDstClip(const Rect clip);
-  };
-
   virtual RenderGeometry BuildRenderGeometry(const GraphicsObject& go,
                                              const GraphicsObject* parent);
 
- protected:
+ private:
   // boost::serialization support
   friend class boost::serialization::access;
   template <class Archive>
