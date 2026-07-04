@@ -118,7 +118,7 @@ class ParentGraphicsObjectData : public GraphicsObjectData {
 
  protected:
   virtual std::shared_ptr<const SDLSurface> CurrentSurface(
-      const GraphicsObject& rp) override;
+      const GraphicsObject& rp) const override;
 
  private:
   ParentGraphicsObjectData();

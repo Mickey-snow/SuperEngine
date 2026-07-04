@@ -57,7 +57,7 @@ class GraphicsTextObject : public GraphicsObjectData {
 
  protected:
   virtual std::shared_ptr<const SDLSurface> CurrentSurface(
-      const GraphicsObject& go) override;
+      const GraphicsObject& go) const override;
 
  private:
   // Current machine context.

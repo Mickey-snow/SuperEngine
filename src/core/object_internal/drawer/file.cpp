@@ -96,13 +96,13 @@ void GraphicsObjectOfFile::Execute() {
 // -----------------------------------------------------------------------
 
 std::shared_ptr<const SDLSurface> GraphicsObjectOfFile::CurrentSurface(
-    const GraphicsObject& rp) {
+    const GraphicsObject& rp) const {
   return surface_;
 }
 
 // -----------------------------------------------------------------------
 
-Rect GraphicsObjectOfFile::SrcRect(const GraphicsObject& go) {
+Rect GraphicsObjectOfFile::SrcRect(const GraphicsObject& go) const {
   if (current_frame_ >= 0) {
     // If we've ever been treated as an animation, we need to continue acting
     // as an animation even if we've stopped.
@@ -114,7 +114,7 @@ Rect GraphicsObjectOfFile::SrcRect(const GraphicsObject& go) {
 
 // -----------------------------------------------------------------------
 
-Point GraphicsObjectOfFile::DstOrigin(const GraphicsObject& go) {
+Point GraphicsObjectOfFile::DstOrigin(const GraphicsObject& go) const {
   if (current_frame_ >= 0) {
     const GrpRect& rect = surface_->GetPattern(current_frame_);
     return Point(rect.originX, rect.originY);

@@ -49,7 +49,7 @@ class ColourFilterObjectData : public GraphicsObjectData {
 
  protected:
   virtual std::shared_ptr<const SDLSurface> CurrentSurface(
-      const GraphicsObject& rp) override;
+      const GraphicsObject& rp) const override;
 
  private:
   Rect screen_rect_;

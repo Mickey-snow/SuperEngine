@@ -69,30 +69,28 @@ class GraphicsObjectData {
   virtual Animator* GetAnimator() { return nullptr; }
   virtual void Execute();
 
- protected:
   // Template method used during rendering to get the surface to render.
   // Return a null shared_ptr to disable rendering.
   virtual std::shared_ptr<const SDLSurface> CurrentSurface(
-      const GraphicsObject& rp) = 0;
+      const GraphicsObject& rp) const = 0;
 
   // Returns the rectangle in currentSurface() to draw to the screen. Override
   // to return custom rectangles in the case of a custom animation format.
-  virtual Rect SrcRect(const GraphicsObject& go);
+  virtual Rect SrcRect(const GraphicsObject& go) const;
 
   // Returns the offset to the destination, which is set on a per surface
   // basis. This template method can be ignored if you override dstRect().
-  virtual Point DstOrigin(const GraphicsObject& go);
+  virtual Point DstOrigin(const GraphicsObject& go) const;
 
   // Returns the unparented object position. Animation formats can override this
   // when frame data contributes a position offset.
-  virtual Point DstPosition(const GraphicsObject& go);
+  virtual Point DstPosition(const GraphicsObject& go) const;
 
   // Controls the alpha during rendering. Default implementation just consults
   // the GraphicsObject.
   virtual int GetRenderingAlpha(const GraphicsObject& go,
-                                const GraphicsObject* parent);
+                                const GraphicsObject* parent) const;
 
- public:
   struct RenderGeometry {
     Rect src;
     Rect dst;

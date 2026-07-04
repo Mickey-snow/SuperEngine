@@ -51,13 +51,15 @@ class TestGraphicsObjectData : public GraphicsObjectData {
 
  protected:
   std::shared_ptr<const SDLSurface> CurrentSurface(
-      const GraphicsObject& go) override {
+      const GraphicsObject& go) const override {
     return surface_;
   }
 
-  Rect SrcRect(const GraphicsObject& go) override { return src_; }
+  Rect SrcRect(const GraphicsObject& go) const override { return src_; }
 
-  Point DstOrigin(const GraphicsObject& go) override { return texture_origin_; }
+  Point DstOrigin(const GraphicsObject& go) const override {
+    return texture_origin_;
+  }
 
  private:
   Rect src_;
@@ -71,12 +73,24 @@ std::shared_ptr<SDLSurface> OpaqueSurface(Size size) {
   return surface;
 }
 
+TestGraphicsObjectData& SetTestData(GraphicsObject& object,
+                                    Rect src,
+                                    Point texture_origin,
+                                    std::shared_ptr<SDLSurface> surface) {
+  auto data =
+      std::make_unique<TestGraphicsObjectData>(src, texture_origin, surface);
+  auto& ref = *data;
+  object.SetObjectData(std::move(data));
+  return ref;
+}
+
 }  // namespace
 
 TEST(ObjectDrawerTest, DestinationAddsObjectCenterAndTextureOrigin) {
   auto surface = OpaqueSurface(Size(128, 32));
-  TestGraphicsObjectData data(Rect::REC(0, 0, 101, 20), Point(5, 3), surface);
   GraphicsObject object;
+  auto& data =
+      SetTestData(object, Rect::REC(0, 0, 101, 20), Point(5, 3), surface);
   object.Param().SetX(100);
   object.Param().SetY(200);
   object.Param().SetOriginX(10);
@@ -87,8 +101,9 @@ TEST(ObjectDrawerTest, DestinationAddsObjectCenterAndTextureOrigin) {
 
 TEST(ObjectDrawerTest, DestinationScalesAroundLegacyAnchor) {
   auto surface = OpaqueSurface(Size(128, 64));
-  TestGraphicsObjectData data(Rect::REC(0, 0, 100, 40), Point(5, 0), surface);
   GraphicsObject object;
+  auto& data =
+      SetTestData(object, Rect::REC(0, 0, 100, 40), Point(5, 0), surface);
   object.Param().SetX(100);
   object.Param().SetY(50);
   object.Param().SetOriginX(10);
@@ -100,8 +115,8 @@ TEST(ObjectDrawerTest, DestinationScalesAroundLegacyAnchor) {
 
 TEST(ObjectDrawerTest, ParentScaleAndPositionAffectChildPositionAndSize) {
   auto surface = OpaqueSurface(Size(32, 32));
-  TestGraphicsObjectData data(Rect::REC(0, 0, 10, 10), Point(), surface);
   GraphicsObject parent;
+  SetTestData(parent, Rect::REC(0, 0, 10, 10), Point(), surface);
   parent.Param().SetX(100);
   parent.Param().SetY(50);
   parent.Param().SetRepOriginX(10);
@@ -110,6 +125,7 @@ TEST(ObjectDrawerTest, ParentScaleAndPositionAffectChildPositionAndSize) {
   parent.Param().SetHqScaleY(2000);
 
   GraphicsObject child;
+  auto& data = SetTestData(child, Rect::REC(0, 0, 10, 10), Point(), surface);
   child.Param().SetX(15);
   child.Param().SetY(25);
 
@@ -118,8 +134,8 @@ TEST(ObjectDrawerTest, ParentScaleAndPositionAffectChildPositionAndSize) {
 
 TEST(ObjectDrawerTest, ParentRotationAffectsChildPosition) {
   auto surface = OpaqueSurface(Size(32, 32));
-  TestGraphicsObjectData data(Rect::REC(0, 0, 10, 10), Point(), surface);
   GraphicsObject parent;
+  SetTestData(parent, Rect::REC(0, 0, 10, 10), Point(), surface);
   parent.Param().SetX(100);
   parent.Param().SetY(50);
   parent.Param().SetRepOriginX(10);
@@ -127,6 +143,7 @@ TEST(ObjectDrawerTest, ParentRotationAffectsChildPosition) {
   parent.Param().SetRotation(900);
 
   GraphicsObject child;
+  auto& data = SetTestData(child, Rect::REC(0, 0, 10, 10), Point(), surface);
   child.Param().SetX(20);
   child.Param().SetY(20);
 
@@ -135,8 +152,8 @@ TEST(ObjectDrawerTest, ParentRotationAffectsChildPosition) {
 
 TEST(ObjectDrawerTest, ButtonOffsetsContributeToGeometry) {
   auto surface = OpaqueSurface(Size(32, 32));
-  TestGraphicsObjectData data(Rect::REC(0, 0, 10, 10), Point(), surface);
   GraphicsObject object;
+  auto& data = SetTestData(object, Rect::REC(0, 0, 10, 10), Point(), surface);
   object.Param().SetX(10);
   object.Param().SetY(20);
   object.Param().SetButtonOverrides(0, 8, -4);
@@ -148,8 +165,8 @@ TEST(ObjectDrawerTest, ButtonOffsetsContributeToGeometry) {
 
 TEST(ObjectDrawerTest, HitTestUsesRotationAroundLegacyPivot) {
   auto surface = OpaqueSurface(Size(32, 32));
-  TestGraphicsObjectData data(Rect::REC(0, 0, 10, 20), Point(), surface);
   GraphicsObject object;
+  auto& data = SetTestData(object, Rect::REC(0, 0, 10, 20), Point(), surface);
   object.Param().SetX(100);
   object.Param().SetY(100);
   object.Param().SetRotation(900);
@@ -163,8 +180,8 @@ TEST(ObjectDrawerTest, HitTestSamplesAlphaWhenAlphaTestIsEnabled) {
   surface->Fill(RGBAColour(255, 255, 255, 0));
   surface->Fill(RGBAColour(255, 255, 255, 255), Rect::REC(5, 0, 5, 10));
 
-  TestGraphicsObjectData data(Rect::REC(0, 0, 10, 10), Point(), surface);
   GraphicsObject object;
+  auto& data = SetTestData(object, Rect::REC(0, 0, 10, 10), Point(), surface);
 
   EXPECT_FALSE(data.HitTest(object, nullptr, Point(2, 5)));
   EXPECT_TRUE(data.HitTest(object, nullptr, Point(7, 5)));

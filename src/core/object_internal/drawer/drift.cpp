@@ -189,7 +189,7 @@ std::unique_ptr<GraphicsObjectData> DriftGraphicsObject::Clone() const {
 }
 
 std::shared_ptr<const SDLSurface> DriftGraphicsObject::CurrentSurface(
-    const GraphicsObject& rp) {
+    const GraphicsObject& rp) const {
   return surface_;
 }
 

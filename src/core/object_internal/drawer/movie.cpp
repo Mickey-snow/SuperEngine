@@ -158,11 +158,11 @@ void ObjectMovieData::EndLoop() {
 void ObjectMovieData::SetAutoFree(bool value) { auto_free_ = value; }
 
 std::shared_ptr<const SDLSurface> ObjectMovieData::CurrentSurface(
-    const GraphicsObject&) {
+    const GraphicsObject&) const {
   return surface_;
 }
 
-Point ObjectMovieData::DstOrigin(const GraphicsObject& go) {
+Point ObjectMovieData::DstOrigin(const GraphicsObject& go) const {
   if (decoder_)
     return decoder_->info().center;
   return Point();

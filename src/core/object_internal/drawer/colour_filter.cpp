@@ -90,6 +90,6 @@ std::unique_ptr<GraphicsObjectData> ColourFilterObjectData::Clone() const {
 }
 
 std::shared_ptr<const SDLSurface> ColourFilterObjectData::CurrentSurface(
-    const GraphicsObject&) {
+    const GraphicsObject&) const {
   return std::shared_ptr<const SDLSurface>();
 }

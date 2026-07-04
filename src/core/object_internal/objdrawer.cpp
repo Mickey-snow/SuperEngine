@@ -205,9 +205,7 @@ void GraphicsObjectData::RenderGeometry::UpdateDstFromLocal() {
 }
 
 // -----------------------------------------------------------------------
-// GraphicsObjectData
-// -----------------------------------------------------------------------
-
+// class GraphicsObjectData
 GraphicsObjectData::GraphicsObjectData() = default;
 
 GraphicsObjectData::~GraphicsObjectData() = default;

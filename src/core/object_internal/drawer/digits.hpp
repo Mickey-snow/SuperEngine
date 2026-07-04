@@ -51,7 +51,7 @@ class DigitsGraphicsObject : public GraphicsObjectData {
 
  protected:
   virtual std::shared_ptr<const SDLSurface> CurrentSurface(
-      const GraphicsObject& go) override;
+      const GraphicsObject& go) const override;
 
  private:
   void UpdateSurface(const GraphicsObject& rp);

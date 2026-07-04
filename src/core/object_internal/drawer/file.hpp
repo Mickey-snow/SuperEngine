@@ -61,9 +61,9 @@ class GraphicsObjectOfFile : public GraphicsObjectData {
 
  protected:
   virtual std::shared_ptr<const SDLSurface> CurrentSurface(
-      const GraphicsObject& go) override;
-  virtual Rect SrcRect(const GraphicsObject& go) override;
-  virtual Point DstOrigin(const GraphicsObject& go) override;
+      const GraphicsObject& go) const override;
+  virtual Rect SrcRect(const GraphicsObject& go) const override;
+  virtual Point DstOrigin(const GraphicsObject& go) const override;
 
  private:
   Animator animator_;

@@ -113,11 +113,11 @@ void AnmGraphicsObjectData::PlaySet(int set) {
 }
 
 std::shared_ptr<const SDLSurface> AnmGraphicsObjectData::CurrentSurface(
-    const GraphicsObject& rp) {
+    const GraphicsObject& rp) const {
   return image_;
 }
 
-Rect AnmGraphicsObjectData::SrcRect(const GraphicsObject& go) {
+Rect AnmGraphicsObjectData::SrcRect(const GraphicsObject& go) const {
   if (current_frame_ != -1) {
     const Frame& frame = frames.at(current_frame_);
     return Rect::GRP(frame.src_x1, frame.src_y1, frame.src_x2, frame.src_y2);
@@ -126,11 +126,11 @@ Rect AnmGraphicsObjectData::SrcRect(const GraphicsObject& go) {
   return Rect();
 }
 
-Point AnmGraphicsObjectData::DstOrigin(const GraphicsObject& go) {
+Point AnmGraphicsObjectData::DstOrigin(const GraphicsObject& go) const {
   return Point();
 }
 
-Point AnmGraphicsObjectData::DstPosition(const GraphicsObject& go) {
+Point AnmGraphicsObjectData::DstPosition(const GraphicsObject& go) const {
   if (current_frame_ != -1) {
     const Frame& frame = frames.at(current_frame_);
     return GraphicsObjectData::DstPosition(go) +

@@ -46,7 +46,7 @@ class StageTest : public ::testing::Test {
 
    protected:
     std::shared_ptr<const SDLSurface> CurrentSurface(
-        const GraphicsObject&) override {
+        const GraphicsObject&) const override {
       return nullptr;
     }
   };

@@ -74,9 +74,10 @@ std::unique_ptr<GraphicsObjectData> DigitsGraphicsObject::Clone() const {
 }
 
 std::shared_ptr<const SDLSurface> DigitsGraphicsObject::CurrentSurface(
-    const GraphicsObject& go) {
-  if (NeedsUpdate(go))
-    UpdateSurface(go);
+    const GraphicsObject& go) const {
+  auto* self = const_cast<DigitsGraphicsObject*>(this);
+  if (self->NeedsUpdate(go))
+    self->UpdateSurface(go);
 
   return surface_;
 }

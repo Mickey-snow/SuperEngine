@@ -88,7 +88,7 @@ void ParentGraphicsObjectData::Execute() {
 }
 
 std::shared_ptr<const SDLSurface> ParentGraphicsObjectData::CurrentSurface(
-    const GraphicsObject& rp) {
+    const GraphicsObject& rp) const {
   return std::shared_ptr<const SDLSurface>();
 }
 

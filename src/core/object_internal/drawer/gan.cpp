@@ -118,7 +118,7 @@ void GanGraphicsObjectData::Execute() {
 }
 
 std::shared_ptr<const SDLSurface> GanGraphicsObjectData::CurrentSurface(
-    const GraphicsObject&) {
+    const GraphicsObject&) const {
   if (current_set_ != -1 && current_frame_ != -1) {
     const Frame& frame = animation_sets.at(current_set_).at(current_frame_);
 
@@ -132,7 +132,7 @@ std::shared_ptr<const SDLSurface> GanGraphicsObjectData::CurrentSurface(
   return std::shared_ptr<const SDLSurface>();
 }
 
-Rect GanGraphicsObjectData::SrcRect(const GraphicsObject&) {
+Rect GanGraphicsObjectData::SrcRect(const GraphicsObject&) const {
   const Frame& frame = animation_sets.at(current_set_).at(current_frame_);
   if (frame.pattern != -1) {
     return image_->GetPattern(frame.pattern).rect;
@@ -141,7 +141,7 @@ Rect GanGraphicsObjectData::SrcRect(const GraphicsObject&) {
   return Rect();
 }
 
-Point GanGraphicsObjectData::DstOrigin(const GraphicsObject& go) {
+Point GanGraphicsObjectData::DstOrigin(const GraphicsObject& go) const {
   const Frame& frame = animation_sets.at(current_set_).at(current_frame_);
   if (frame.pattern != -1) {
     const GrpRect& rect = image_->GetPattern(frame.pattern);
@@ -151,13 +151,14 @@ Point GanGraphicsObjectData::DstOrigin(const GraphicsObject& go) {
   return Point();
 }
 
-Point GanGraphicsObjectData::DstPosition(const GraphicsObject& go) {
+Point GanGraphicsObjectData::DstPosition(const GraphicsObject& go) const {
   const Frame& frame = animation_sets.at(current_set_).at(current_frame_);
   return GraphicsObjectData::DstPosition(go) + Size(frame.x, frame.y);
 }
 
 int GanGraphicsObjectData::GetRenderingAlpha(const GraphicsObject& go,
-                                             const GraphicsObject* parent) {
+                                             const GraphicsObject* parent)
+    const {
   auto& param = go.Param();
 
   const Frame& frame = animation_sets.at(current_set_).at(current_frame_);
