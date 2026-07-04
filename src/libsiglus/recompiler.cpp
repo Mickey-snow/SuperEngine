@@ -570,8 +570,20 @@ void Recompiler::emit_tok(const token::Operate2& tk) {
     emit_val(*tk.val);
     return;
   }
-  emit_val(tk.lhs), emit_val(tk.rhs);
-  emit(sr::BinaryOp{LowerBinaryOperator(tk.op)});
+
+  if ((tk.op == OperatorCode::Equal || tk.op == OperatorCode::Ne) &&
+      Typeof(tk.lhs) == Type::String &&
+      Typeof(tk.rhs) == Type::String) {
+    emit_load_global("__builtin_streq");
+    emit_val(tk.lhs), emit_val(tk.rhs);
+    emit(sr::Call{.argcnt = 2});
+    if (tk.op == OperatorCode::Ne)
+      emit(sr::UnaryOp{Op::Tilde});
+  } else {
+    emit_val(tk.lhs), emit_val(tk.rhs);
+    emit(sr::BinaryOp{LowerBinaryOperator(tk.op)});
+  }
+
   emit_store_fast(tk.dst.id);
 }
 void Recompiler::emit_tok(const token::Label& tk) {

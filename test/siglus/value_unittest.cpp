@@ -40,6 +40,16 @@ TEST(sgValueTest, String) {
   EXPECT_EQ(Typeof(it), Type::String);
 }
 
+TEST(sgValueTest, StringComparisonsFoldCaseInsensitively) {
+  auto eq = TryEval(String("ABC"), OperatorCode::Equal, String("abc"));
+  ASSERT_TRUE(eq.has_value());
+  EXPECT_EQ(AsInt(*eq), 1);
+
+  auto ne = TryEval(String("ABC"), OperatorCode::Ne, String("abc"));
+  ASSERT_TRUE(ne.has_value());
+  EXPECT_EQ(AsInt(*ne), 0);
+}
+
 TEST(sgValueTest, Variable) {
   Value it = Variable(Type::Int, 123);
   EXPECT_EQ(ToString(it), "v123");

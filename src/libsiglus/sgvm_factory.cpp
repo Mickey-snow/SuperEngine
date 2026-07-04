@@ -432,6 +432,22 @@ SiglusRuntime SGVMFactory::Create() {
   }
   sb::module_ m(gc.get(), vm.globals_.get());
 
+  m.def("__builtin_streq", [](sr::Value lhs, sr::Value rhs) -> sr::Value {
+    const auto* lstr = lhs.Get_if<sr::String>();
+    const auto* rstr = rhs.Get_if<sr::String>();
+    if (lstr && rstr) {
+      [[likely]]
+      if (lstr->str_.size() != rstr->str_.size())
+        return false;
+      for (std::size_t i = 0, n = lstr->str_.size(); i < n; ++i) {
+        unsigned char c1 = lstr->str_[i], c2 = rstr->str_[i];
+        if (std::tolower(c1) != std::tolower(c2))
+          return false;
+      }
+      return true;
+    }
+    return lhs.Hash() == rhs.Hash();
+  });
   m.def("__builtin_dbgvalue", [](sr::VM& vm, sr::Value value) -> sr::Value {
     std::string s;
     if (const auto* str = value.Get_if<sr::String>())
