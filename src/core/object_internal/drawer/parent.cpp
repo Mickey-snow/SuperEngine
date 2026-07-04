@@ -93,23 +93,3 @@ std::shared_ptr<const SDLSurface> ParentGraphicsObjectData::CurrentSurface(
 }
 
 ParentGraphicsObjectData::ParentGraphicsObjectData() : objects_(0) {}
-
-template <class Archive>
-void ParentGraphicsObjectData::serialize(Archive& ar, unsigned int version) {
-  ar& boost::serialization::base_object<GraphicsObjectData>(*this);
-  ar & objects_;
-}
-
-// -----------------------------------------------------------------------
-
-// Explicit instantiations for text archives (since we hide the
-// implementation)
-
-template void ParentGraphicsObjectData::serialize<
-    boost::archive::text_iarchive>(boost::archive::text_iarchive& ar,
-                                   unsigned int version);
-template void ParentGraphicsObjectData::serialize<
-    boost::archive::text_oarchive>(boost::archive::text_oarchive& ar,
-                                   unsigned int version);
-
-BOOST_CLASS_EXPORT(ParentGraphicsObjectData);

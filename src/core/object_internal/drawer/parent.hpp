@@ -26,8 +26,6 @@
 
 #pragma once
 
-#include <boost/serialization/access.hpp>
-
 #include <iosfwd>
 
 #include "core/object.hpp"
@@ -126,8 +124,4 @@ class ParentGraphicsObjectData : public GraphicsObjectData {
   ParentGraphicsObjectData();
 
   LazyArray<GraphicsObject> objects_;
-
-  friend class boost::serialization::access;
-  template <class Archive>
-  void serialize(Archive& ar, const unsigned int file_version);
 };

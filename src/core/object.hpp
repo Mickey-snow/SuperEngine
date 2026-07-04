@@ -24,9 +24,6 @@
 
 #pragma once
 
-#include <boost/serialization/access.hpp>
-#include <boost/serialization/version.hpp>
-
 #include <iostream>
 #include <memory>
 #include <string>
@@ -120,19 +117,6 @@ class GraphicsObject {
   // I think R23 mentioned that these were called "Parameter Events" in the
   // RLMAX SDK.
   std::vector<ObjectMutator> object_mutators_;
-
- private:
-  // boost::serialization support
-  friend class boost::serialization::access;
-
-  template <class Archive>
-  void serialize(Archive& ar, unsigned int version) {
-    // TODO: fix serialization. We should save and load object parameters and
-    // object_data, but not object_mutators
-    std::cerr << "Currently under construction." << std::endl;
-  }
 };
-
-BOOST_CLASS_VERSION(GraphicsObject, 1)
 
 enum { OBJ_FG = 0, OBJ_BG = 1, OBJ_NEXT = 2 };
