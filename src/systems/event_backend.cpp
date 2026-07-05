@@ -4,7 +4,7 @@
 //
 // -----------------------------------------------------------------------
 //
-// Copyright (C) 2025 Serina Sakurai
+// Copyright (C) 2026 Serina Sakurai
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,42 +18,28 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
+// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+//
 // -----------------------------------------------------------------------
 
-#pragma once
+#include "systems/event_backend.hpp"
 
-#include <filesystem>
-#include <memory>
-#include <optional>
+#include <utility>
 
-class EventListener;
-class System;
-class RLMachine;
+FastForwardEventBackend::FastForwardEventBackend(
+    std::unique_ptr<IEventBackend> backend)
+    : backend_(std::move(backend)) {}
 
-class Gameexe;
-namespace libreallive {
+std::shared_ptr<Event> FastForwardEventBackend::PollEvent() {
+  if (pending_idle_event_) {
+    pending_idle_event_ = false;
+    return std::make_shared<Event>(std::monostate{});
+  }
 
-class Archive;
+  std::shared_ptr<Event> event = backend_->PollEvent();
+  if (!event || !std::holds_alternative<std::monostate>(*event))
+    return event;
 
-class GameLoader {
- public:
-  GameLoader(std::filesystem::path gameroot,
-             std::optional<int> start_scene,
-             bool fast_forward = false);
-
-  std::shared_ptr<libreallive::Archive> archive_;
-
-  std::shared_ptr<Gameexe> gameexe_;
-
-  std::shared_ptr<System> system_;
-
-  std::shared_ptr<RLMachine> machine_;
-
-  std::shared_ptr<EventListener> longop_listener_adapter_, system_listener_;
-
- private:
-  void Load();
-};
-
-}  // namespace libreallive
+  pending_idle_event_ = true;
+  return std::make_shared<Event>(KeyDown{KeyCode::LCTRL});
+}

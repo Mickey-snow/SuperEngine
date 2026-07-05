@@ -76,7 +76,9 @@ void CheckBadEngine(const std::filesystem::path& gamerootPath,
 
 }  // namespace
 
-GameLoader::GameLoader(fs::path gameroot, std::optional<int> start_scene) {
+GameLoader::GameLoader(fs::path gameroot,
+                       std::optional<int> start_scene,
+                       bool fast_forward) {
   fs::path gameexePath = FindGameFile(gameroot, "Gameexe.ini");
   fs::path seenPath = FindGameFile(gameroot, "Seen.txt");
 
@@ -91,9 +93,12 @@ GameLoader::GameLoader(fs::path gameroot, std::optional<int> start_scene) {
   archive_ = std::make_shared<libreallive::Archive>(
       seenPath.string(), (*gameexe_)("REGNAME").Str().value_or(""));
 
+  SystemOptions system_options;
+  system_options.fast_forward = fast_forward;
   system_ = std::make_shared<System>(
-      *gameexe_, std::make_shared<AssetScanner>(
-                     AssetScanner::BuildFromGameexe(*gameexe_)));
+      *gameexe_,
+      std::make_shared<AssetScanner>(AssetScanner::BuildFromGameexe(*gameexe_)),
+      system_options);
 
   // Instantiate the rl machine
   auto memory = std::make_unique<Memory>();

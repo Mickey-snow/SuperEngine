@@ -114,7 +114,9 @@ SystemGlobals::SystemGlobals()
 // System
 // -----------------------------------------------------------------------
 
-System::System(Gameexe& gameexe, std::shared_ptr<AssetScanner> scanner)
+System::System(Gameexe& gameexe,
+               std::shared_ptr<AssetScanner> scanner,
+               SystemOptions options)
     : gameexe_(gameexe),
       in_menu_(false),
       force_fast_forward_(false),
@@ -137,7 +139,11 @@ System::System(Gameexe& gameexe, std::shared_ptr<AssetScanner> scanner)
   graphics_system_ =
       std::make_shared<GraphicsSystem>(*this, gameexe, graphics_backend);
 
-  auto event_impl = std::make_unique<SDLEventBackend>();
+  std::unique_ptr<IEventBackend> event_impl =
+      std::make_unique<SDLEventBackend>();
+  if (options.fast_forward)
+    event_impl = std::make_unique<FastForwardEventBackend>(
+        std::move(event_impl));
   event_system_ = std::make_shared<EventSystem>(std::move(event_impl));
   quit_listener_ = std::make_shared<QuitEventListener>(*this);
   event_system_->AddListener(100, quit_listener_);

@@ -36,6 +36,7 @@ class SgvmInstance {
  public:
   int start_scene_ = 0;
   bool debug_ = false;
+  bool fast_forward_ = false;
   DebugFrameDumpConfig debug_frame_dump_config_;
   std::string font_;
   std::shared_ptr<IPlatformImplementor> platform_implementor_;

@@ -101,6 +101,8 @@ int main(int argc, char* argv[]) {
       "show-platforms", "Print all avaliable gui platforms.")(
       "log-level", po::value<std::string>(),
       "Minimum severity level to log (none, info, warning, error)")(
+      "fast-forward",
+      "Fast forward execution by injecting Ctrl key events")(
       "debug",
       po::value<bool>()
           ->default_value(false, "false")
@@ -279,6 +281,7 @@ int main(int argc, char* argv[]) {
     RLVMInstance instance;
     instance.SetPlatformImplementor(platform_impl);
     instance.SetDebugFrameDumpConfig(debug_frame_dump_config);
+    instance.SetFastForward(vm.count("fast-forward"));
 
     if (vm.count("font"))
       instance.SetCustomFont(vm["font"].as<std::string>());
@@ -291,6 +294,7 @@ int main(int argc, char* argv[]) {
     SgvmInstance instance;
     instance.platform_implementor_ = platform_impl;
     instance.debug_frame_dump_config_ = debug_frame_dump_config;
+    instance.fast_forward_ = vm.count("fast-forward");
     if (vm.count("font"))
       instance.font_ = vm["font"].as<std::string>();
     if (vm.count("scene"))

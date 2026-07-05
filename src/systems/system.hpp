@@ -50,6 +50,10 @@ class GameexeInterpretObject;
 class EventListener;
 class RLEventListener;
 
+struct SystemOptions {
+  bool fast_forward = false;
+};
+
 // Syscom Constants
 //
 // Associations between syscom integer values and their names.
@@ -120,7 +124,9 @@ BOOST_CLASS_VERSION(SystemGlobals, 1)
 // runtime system, i.e., sound, graphics, filesystem etc.
 class System {
  public:
-  System(Gameexe& gameexe, std::shared_ptr<AssetScanner> scanner = nullptr);
+  System(Gameexe& gameexe,
+         std::shared_ptr<AssetScanner> scanner = nullptr,
+         SystemOptions options = {});
   ~System();
 
   bool confirm_save_load() const { return globals_.confirm_save_load_; }

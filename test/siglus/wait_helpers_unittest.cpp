@@ -191,6 +191,8 @@ TEST(WaitHandlerTest, PollingFutureKeySkipResolvesWithOne) {
 
   expect_skip(KeyDown{KeyCode::RETURN});
   expect_skip(KeyDown{KeyCode::SPACE});
+  expect_skip(KeyDown{KeyCode::LCTRL});
+  expect_skip(KeyDown{KeyCode::RCTRL});
   expect_skip(MouseDown{MouseButton::LEFT});
 }
 

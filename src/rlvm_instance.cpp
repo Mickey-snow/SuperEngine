@@ -60,7 +60,8 @@ void RLVMInstance::SetPlatformImplementor(
 int RLVMInstance::Main(const std::filesystem::path& gameroot) {
   std::unique_ptr<libreallive::GameLoader> loader = nullptr;
   try {
-    loader = std::make_unique<libreallive::GameLoader>(gameroot, start_scene_);
+    loader = std::make_unique<libreallive::GameLoader>(gameroot, start_scene_,
+                                                       fast_forward_);
     machine_ = loader->machine_;
     system_ = loader->system_;
     system_->graphics().SetDebugFrameDumpConfig(debug_frame_dump_config_);

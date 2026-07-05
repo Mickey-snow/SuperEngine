@@ -43,6 +43,7 @@ int SgvmInstance::Main(const std::filesystem::path& game_root) {
   try {
     SGVMFactory factory(game_root);
     factory.debug_ = debug_;
+    factory.fast_forward_ = fast_forward_;
     SiglusRuntime rt = factory.Create();
     rt.system->graphics().SetDebugFrameDumpConfig(debug_frame_dump_config_);
     sr::VM& vm = *rt.vm;

@@ -33,3 +33,14 @@ class IEventBackend {
   virtual ~IEventBackend() = default;
   virtual std::shared_ptr<Event> PollEvent() = 0;
 };
+
+class FastForwardEventBackend : public IEventBackend {
+ public:
+  explicit FastForwardEventBackend(std::unique_ptr<IEventBackend> backend);
+
+  std::shared_ptr<Event> PollEvent() override;
+
+ private:
+  std::unique_ptr<IEventBackend> backend_;
+  bool pending_idle_event_ = false;
+};

@@ -59,6 +59,7 @@ class RLVMInstance {
   void SetDebugFrameDumpConfig(const DebugFrameDumpConfig& config) {
     debug_frame_dump_config_ = config;
   }
+  void SetFastForward(bool fast_forward) { fast_forward_ = fast_forward; }
 
   void SetPlatformImplementor(std::shared_ptr<IPlatformImplementor> impl);
 
@@ -93,6 +94,8 @@ class RLVMInstance {
   std::optional<int> start_scene_;
 
   DebugFrameDumpConfig debug_frame_dump_config_;
+
+  bool fast_forward_ = false;
 
   // The bridge to the class that implements platform-specific code
   std::shared_ptr<IPlatformImplementor> platform_implementor_;

@@ -45,7 +45,9 @@ bool IsAdvanceInput(const Event& event) {
   return std::visit(overload(
                         [](const KeyDown& event) {
                           return event.code == KeyCode::RETURN ||
-                                 event.code == KeyCode::SPACE;
+                                 event.code == KeyCode::SPACE ||
+                                 event.code == KeyCode::LCTRL ||
+                                 event.code == KeyCode::RCTRL;
                         },
                         [](const MouseDown& event) {
                           return event.button == MouseButton::LEFT;

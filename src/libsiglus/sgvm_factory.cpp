@@ -416,7 +416,9 @@ SiglusRuntime SGVMFactory::Create() {
   gexe.parseLine("#SCREENSIZE_MOD=999,1920,1080");
 
   // Init sdl system
-  rt.system = std::make_unique<System>(gexe, rt.asset_scanner);
+  SystemOptions system_options;
+  system_options.fast_forward = fast_forward_;
+  rt.system = std::make_unique<System>(gexe, rt.asset_scanner, system_options);
   rt.system->text().set_active_window(mwnd_config.default_mwnd_no);
   rt.stage =
       std::make_unique<Stage>(rt.system->graphics().GetObjectLayerSize());
