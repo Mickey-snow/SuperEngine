@@ -617,6 +617,38 @@ TEST_F(ElementParserTest, Mwnd) {
   }
 }
 
+TEST_F(ElementParserTest, Msgbk) {
+  {
+    ElementCode elm{145, 2};
+    EXPECT_EQ(chain(elm), "msgbk.go_next_msg()");
+  }
+  {
+    ElementCode elm{145, 3};
+    elm.ForceBind({0, {v("line")}});
+    EXPECT_EQ(chain(elm), "msgbk.add_msg(str:line)");
+  }
+  {
+    ElementCode elm{145, 1};
+    elm.ForceBind({0, {v("inserted")}});
+    EXPECT_EQ(chain(elm), "msgbk.insert_msg(str:inserted)");
+  }
+  {
+    ElementCode elm{145, 5};
+    elm.ForceBind({0, {v("name")}});
+    EXPECT_EQ(chain(elm), "msgbk.add_namae(str:name)");
+  }
+  {
+    ElementCode elm{145, 4};
+    elm.ForceBind({0, {v(12345)}});
+    EXPECT_EQ(chain(elm), "msgbk.add_koe(int:12345)");
+  }
+  {
+    ElementCode elm{145, 4};
+    elm.ForceBind({0, {v(12345), v(7)}});
+    EXPECT_EQ(chain(elm), "msgbk.add_koe(int:12345,int:7)");
+  }
+}
+
 TEST_F(ElementParserTest, System) {
   {
     ElementCode elm{92, 13};
