@@ -52,16 +52,16 @@ sr::Module* Loader::Load(int scene) {
     throw sr::RuntimeError(std::format("failed to parse scene {} ({}): {}",
                                        scene, scn.scnname_, parsed.error()));
   }
-  auto [tokens, warnings] = std::move(parsed.value());
+
+  std::vector<Parser::ParsedToken>& tokens = parsed->first;
+  std::vector<std::string>& warnings = parsed->second;
   for (const auto& warning : warnings)
     std::cerr << warning << std::endl;
 
   Recompiler compiler(vm.gc_);
   compiler.SetSceneProperties(scn.id_, scn.property);
   compiler.is_debug_ = debug_;
-  for (auto& it : tokens)
-    compiler.Gen(std::move(it.token), it.line);
-  compiler.Finish();
+  compiler.Compile(tokens);
   tokens.clear();
 
   if (!compiler.Ok()) {

@@ -58,7 +58,7 @@ struct String {
 };
 
 struct Variable {
-  std::string ToDebugString() const { return 'v' + std::to_string(id); }
+  std::string ToDebugString() const { return 't' + std::to_string(id); }
   auto operator<=>(const Variable&) const = default;
 
   Type type;

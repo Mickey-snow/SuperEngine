@@ -52,7 +52,7 @@ TEST(sgValueTest, StringComparisonsFoldCaseInsensitively) {
 
 TEST(sgValueTest, Variable) {
   Value it = Variable(Type::Int, 123);
-  EXPECT_EQ(ToString(it), "v123");
+  EXPECT_EQ(ToString(it), "t123");
   EXPECT_EQ(Typeof(it), Type::Int);
 }
 

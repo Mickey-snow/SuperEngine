@@ -151,7 +151,7 @@ TEST_F(ElementParserTest, Farcall) {
     elm.ForceBind({1,
                    {Value(Variable(Type::String, 123)),
                     Value(Variable(Type::Int, 456))}});
-    EXPECT_EQ(chain(elm), "farcall@[v123].z[v456]()()");
+    EXPECT_EQ(chain(elm), "farcall@[t123].z[t456]()()");
   }
 }
 
@@ -180,7 +180,7 @@ TEST_F(ElementParserTest, TimeWait) {
     ElementCode elm{55};
     elm.ForceBind({0, {Value(Variable(Type::Int, 456))}});
     auto parsed = chain(elm);
-    EXPECT_EQ(parsed, "wait_key(v456)");
+    EXPECT_EQ(parsed, "wait_key(t456)");
     EXPECT_EQ(parsed.chain.GetType(), Type::Int);
     const Call* call = last_call(parsed);
     ASSERT_NE(call, nullptr);
@@ -632,8 +632,7 @@ TEST_F(ElementParserTest, PcmchWaitCallsAreAwaitable) {
 }
 
 TEST_F(ElementParserTest, UsrcmdGlobal) {
-  global_commands = {
-      Command{.scene_id = 1, .offset = 2, .name = "$$cmd"}};
+  global_commands = {Command{.scene_id = 1, .offset = 2, .name = "$$cmd"}};
   ResetParser();
 
   ElementCode elm{2113929216};

@@ -23,9 +23,12 @@
 
 #include "libsiglus/recompiler.hpp"
 
+#include <algorithm>
 #include <cstdint>
+#include <deque>
 #include <exception>
 #include <format>
+#include <iterator>
 #include <limits>
 #include <memory>
 #include <stdexcept>
@@ -49,8 +52,280 @@ namespace sr = serilang;
 
 namespace libsiglus {
 
-DomainLogger logger("Recompiler");
+// helper to allocate fast locals
+expected<AllocationPlan, std::string> resolve_fast_slots(
+    const std::vector<Parser::ParsedToken>& tokens) {
+  std::string errmsg;
+  std::vector<std::pair<int, std::size_t>> reads, writes;  // (tid, token_idx)
+  std::vector<std::pair<std::size_t, uint16_t>> subroutine_args{
+      std::make_pair(0, 0)};
 
+  struct Visitor {
+    std::vector<std::pair<int, std::size_t>>& reads;
+    std::vector<std::pair<int, std::size_t>>& writes;
+    std::vector<std::pair<std::size_t, uint16_t>>& sub_args;
+    std::size_t cur = 0;
+
+    void emit_read(const Variable& v) { reads.emplace_back(v.id, cur); }
+    void emit_write(const Variable& v) { writes.emplace_back(v.id, cur); }
+
+    void invoke(const elm::Invoke& inv) {
+      for (const Value& arg : inv.arg)
+        (*this)(arg);
+      for (const auto& arg : inv.named_arg)
+        (*this)(arg.second);
+    }
+
+    void access_chain(const elm::AccessChain& chain) {
+      std::visit(*this, chain.root.var);
+      for (const elm::Node& nd : chain.nodes)
+        std::visit(*this, nd.var);
+    }
+
+    void assignment_target(const elm::AccessChain& chain) {
+      if ((std::holds_alternative<elm::Usrprop>(chain.root.var) ||
+           std::holds_alternative<elm::Arg>(chain.root.var)) &&
+          chain.nodes.empty()) {
+        return;
+      }
+
+      const bool has_root =
+          !std::holds_alternative<std::monostate>(chain.root.var);
+      if (has_root)
+        std::visit(*this, chain.root.var);
+
+      if (chain.nodes.empty())
+        return;
+
+      std::size_t prefix_count = chain.nodes.size() - 1;
+      const bool assigns_call =
+          std::holds_alternative<elm::Call>(chain.nodes.back().var);
+      if (assigns_call && prefix_count > 0)
+        --prefix_count;
+
+      for (std::size_t i = 0; i < prefix_count; ++i) {
+        if (!has_root && i == 0 &&
+            std::holds_alternative<elm::Member>(chain.nodes[i].var)) {
+          continue;
+        }
+        std::visit(*this, chain.nodes[i].var);
+      }
+
+      std::visit(
+          [&](const auto& nd) {
+            using T = std::decay_t<decltype(nd)>;
+            if constexpr (std::same_as<T, elm::Subscript>) {
+              (*this)(nd.idx);
+            } else if constexpr (std::same_as<T, elm::Call>) {
+              (*this)(nd);
+            }
+          },
+          chain.nodes.back().var);
+    }
+
+    void operator()(const token::ElmAlias& t) {
+      access_chain(t.chain);
+      emit_write(t.dst);
+    }
+    void operator()(const token::Command& t) {
+      access_chain(t.chain);
+      emit_write(t.dst);
+    }
+    void operator()(const token::Name& t) { (*this)(t.str); }
+    void operator()(const token::Textout& t) { (*this)(t.str); }
+    void operator()(const token::GetProperty& t) {
+      access_chain(t.chain);
+      emit_write(t.dst);
+    }
+    void operator()(const token::Operate1& t) {
+      if (t.val)
+        return;
+      (*this)(t.rhs);
+      emit_write(t.dst);
+    }
+    void operator()(const token::Operate2& t) {
+      if (t.val)
+        return;
+      (*this)(t.lhs), (*this)(t.rhs);
+      emit_write(t.dst);
+    }
+    void operator()(const token::Label&) {}
+    void operator()(const token::Zlabel&) {}
+    void operator()(const token::Goto&) {}
+    void operator()(const token::GotoIf& t) { (*this)(t.src); }
+    void operator()(const token::Gosub& t) {
+      for (const Value& arg : t.args)
+        (*this)(arg);
+      emit_write(t.dst);
+    }
+    void operator()(const token::Assign& t) {
+      assignment_target(t.dst);
+      (*this)(t.src);
+    }
+    void operator()(const token::Duplicate& t) {
+      (*this)(t.src);
+      emit_write(t.dst);
+    }
+    void operator()(const token::Subroutine& t) {
+      sub_args.emplace_back(cur, t.args.size());
+    }
+    void operator()(const token::LocalVar&) { sub_args.back().second++; }
+    void operator()(const token::Return& t) {
+      for (const Value& val : t.ret_vals)
+        (*this)(val);
+    }
+    void operator()(const token::Eof&) {}
+
+    void operator()(const Value& v) { std::visit(*this, v); }
+    void operator()(const Integer&) {}
+    void operator()(const String&) {}
+    void operator()(const List& t) {
+      for (const Value& val : t.vals)
+        (*this)(val);
+    }
+    void operator()(const Variable& t) { emit_read(t); }
+
+    void operator()(const std::monostate&) {}
+    void operator()(const elm::Usrcmd& t) { invoke(t.arguments); }
+    void operator()(const elm::Usrprop&) {}
+    void operator()(const elm::Arg&) {}
+    void operator()(const elm::Farcall& t) {
+      (*this)(t.scn_name);
+      (*this)(t.zlabel);
+      for (const Value& arg : t.intargs)
+        (*this)(arg);
+      for (const Value& arg : t.strargs)
+        (*this)(arg);
+    }
+    void operator()(const elm::Member&) {}
+    void operator()(const elm::Call& t) {
+      for (const Value& arg : t.args)
+        (*this)(arg);
+      for (const auto& arg : t.kwargs)
+        (*this)(arg.second);
+    }
+    void operator()(const elm::Subscript& t) { (*this)(t.idx); }
+  } visitor(reads, writes, subroutine_args);
+  for (std::size_t i = 0; i < tokens.size(); ++i) {
+    const Parser::ParsedToken& token = tokens[i];
+    visitor.cur = i;
+    std::visit(visitor, token.token);
+  }
+  if (!errmsg.empty())
+    return unexpected(std::move(errmsg));
+
+  auto fixed_fast_local_count = [&] {
+    uint16_t total_fast_locals = 1;  // slot 0 is reserved
+    for (const auto& subroutine : subroutine_args) {
+      const uint16_t reserved_slots = subroutine.second;
+      total_fast_locals =
+          std::max<uint16_t>(total_fast_locals, reserved_slots + 1);
+    }
+    return total_fast_locals;
+  };
+
+  int max_tid = -1;
+  for (const auto [tid, idx] : writes) {
+    if (tid < 0) {
+      errmsg += std::format("{}: t{} is invalid\n", idx, tid);
+      continue;
+    }
+    max_tid = std::max(max_tid, tid);
+  }
+
+  if (max_tid < 0) {
+    for (const auto [tid, idx] : reads)
+      errmsg += std::format("{}: t{} is uninitialized\n", idx, tid);
+    if (!errmsg.empty())
+      return unexpected(std::move(errmsg));
+    return AllocationPlan{.slots = {},
+                          .total_fast_locals = fixed_fast_local_count()};
+  }
+
+  auto segment_start = [&](std::size_t idx) {
+    const auto it = std::upper_bound(
+        subroutine_args.cbegin(), subroutine_args.cend(),
+        std::make_pair(idx, std::numeric_limits<uint16_t>::max()));
+    return std::prev(it)->first;
+  };
+
+  const int var_cnt = max_tid + 1;
+  std::vector<std::size_t> first(var_cnt,
+                                 std::numeric_limits<std::size_t>::max()),
+      last(var_cnt, 0);
+  for (const auto [tid, idx] : writes) {
+    if (tid < 0)
+      continue;
+    first[tid] = std::min(first[tid], idx);
+  }
+  for (int tid = 0; tid < var_cnt; ++tid) {
+    if (first[tid] != std::numeric_limits<std::size_t>::max())
+      last[tid] = first[tid];
+  }
+  for (const auto [tid, idx] : reads) {
+    if (tid < 0 || tid >= var_cnt ||
+        first[tid] == std::numeric_limits<std::size_t>::max() ||
+        first[tid] >= idx || segment_start(first[tid]) != segment_start(idx)) {
+      errmsg += std::format("{}: t{} is uninitialized\n", idx, tid);
+      continue;
+    }
+    last[tid] = std::max(last[tid], idx);
+  }
+  if (!errmsg.empty())
+    return unexpected(std::move(errmsg));
+
+  uint16_t total_fast_locals = fixed_fast_local_count();
+  std::vector<uint16_t> ret(var_cnt, static_cast<uint16_t>(-1));
+  for (auto sub_it = subroutine_args.cbegin(); sub_it != subroutine_args.cend();
+       ++sub_it) {
+    const std::size_t segment_begin = sub_it->first;
+    const std::size_t segment_end = std::next(sub_it) == subroutine_args.cend()
+                                        ? tokens.size()
+                                        : std::next(sub_it)->first;
+    uint16_t next_slot = sub_it->second + 1;
+    total_fast_locals = std::max(total_fast_locals, next_slot);
+    if (segment_begin >= segment_end)
+      continue;
+
+    std::vector<std::pair<std::size_t, int>> in, out;
+    for (int tid = 0; tid < var_cnt; ++tid) {
+      if (first[tid] < segment_begin || first[tid] >= segment_end)
+        continue;
+      in.emplace_back(first[tid], tid);
+      out.emplace_back(last[tid] + 1, tid);
+    }
+    std::sort(in.begin(), in.end());
+    std::sort(out.begin(), out.end());
+
+    std::deque<uint16_t> reusable_slots;
+    auto in_it = in.cbegin(), out_it = out.cbegin();
+    for (std::size_t i = segment_begin; i < segment_end; ++i) {
+      while (out_it != out.cend() && out_it->first <= i) {
+        const uint16_t release = ret[out_it->second];
+        if (release != static_cast<uint16_t>(-1))
+          reusable_slots.emplace_back(release);
+        ++out_it;
+      }
+      while (in_it != in.cend() && in_it->first <= i) {
+        uint16_t slot;
+        if (!reusable_slots.empty()) {
+          slot = reusable_slots.front();
+          reusable_slots.pop_front();
+        } else {
+          slot = next_slot++;
+          total_fast_locals = std::max(total_fast_locals, next_slot);
+        }
+        ret[in_it->second] = slot;
+        ++in_it;
+      }
+    }
+  }
+
+  return AllocationPlan{.slots = std::move(ret),
+                        .total_fast_locals = total_fast_locals};
+}
+
+// CompileError
 std::string CompileError::ToString() const {
   std::string ret;
   if (token)
@@ -71,19 +346,9 @@ uint16_t fast_local_slot(int id) {
   return static_cast<uint16_t>(id);
 }
 
-std::string default_fast_local_name(std::size_t slot) {
-  return slot == 0 ? "fn" : "v" + std::to_string(slot);
-}
-
-void reserve_fast_local(sr::Code* chunk, int id, std::string name) {
-  const auto slot = static_cast<std::size_t>(fast_local_slot(id));
-  for (std::size_t i = chunk->fast_locals.size(); i <= slot; ++i)
-    chunk->fast_locals.emplace_back(default_fast_local_name(i));
-  if (!name.empty())
-    chunk->fast_locals[slot] = std::move(name);
-}
-
 }  // namespace
+
+DomainLogger logger("Recompiler");
 
 Recompiler::Recompiler(std::shared_ptr<serilang::GarbageCollector> gc)
     : gc_(gc) {
@@ -101,6 +366,24 @@ void Recompiler::SetSceneProperties(int scene_id,
                                     std::vector<Property> properties) {
   scene_id_ = scene_id;
   scene_properties_ = std::move(properties);
+}
+
+void Recompiler::Compile(const std::vector<Parser::ParsedToken>& tokens) {
+  if (auto plan = resolve_fast_slots(tokens)) {
+    cur_chunk_->fast_locals.resize(plan->total_fast_locals);
+    for (uint16_t i = 0; i < plan->total_fast_locals; ++i) {
+      cur_chunk_->fast_locals[i] =
+          i == 0 ? std::string("fn") : 't' + std::to_string(i);
+    }
+    tvar_slots_ = std::move(plan->slots);
+  } else
+    throw std::runtime_error(plan.error());
+
+  for (const Parser::ParsedToken& tok : tokens) {
+    Gen(tok.token, tok.line);
+  }
+
+  Finish();
 }
 
 void Recompiler::Gen(token::Token_t tok, int lineno) {
@@ -123,13 +406,13 @@ void Recompiler::Gen(token::Token_t tok, int lineno) {
         }
         void variable(int id) {
           compiler.emit_load_global("__builtin_dbgvalue");
-          compiler.emit_load_fast(id);
+          compiler.emit(sr::LoadFast{.slot = compiler.variable_fast_slot(id)});
           compiler.emit(sr::Call{.argcnt = 1, .kwargcnt = 0});
           ++terms;
         }
         void curcall(int id) {
           compiler.emit_load_global("__builtin_dbgvalue");
-          compiler.emit_load_curcall(id);
+          compiler.emit(sr::LoadFast{.slot = compiler.curcall_fast_slot(id)});
           compiler.emit(sr::Call{.argcnt = 1, .kwargcnt = 0});
           ++terms;
         }
@@ -419,60 +702,21 @@ uint32_t Recompiler::intern_name(std::string v) {
   return slot;
 }
 
-uint16_t Recompiler::reserve_fast_slot(int slot, std::string name) {
-  reserve_fast_local(cur_chunk_, slot, std::move(name));
-  return fast_local_slot(slot);
-}
-
 uint16_t Recompiler::variable_fast_slot(int id) {
-  if (id < 0)
+  if (id < 0 || id >= tvar_slots_.size()) {
     throw std::runtime_error("Codegen: invalid temporary id " +
                              std::to_string(id));
-
-  auto it = temp_fast_slots_.find(id);
-  if (it != temp_fast_slots_.end())
-    return it->second;
-
-  const uint16_t slot =
-      reserve_fast_slot(next_temp_fast_slot_++, "v" + std::to_string(id));
-  temp_fast_slots_.emplace(id, slot);
-  return slot;
+  }
+  return tvar_slots_[id];
 }
 
 uint16_t Recompiler::curcall_fast_slot(int id) {
   if (id < 0)
     throw std::runtime_error("Codegen: invalid curcall id " +
                              std::to_string(id));
-
-  const bool is_arg = id < curcall_argcnt_;
-  const std::string name =
-      std::string(is_arg ? "arg" : "var") + std::to_string(id);
-  const uint16_t slot = reserve_fast_slot(id + 1, name);
-  if (next_temp_fast_slot_ <= slot)
-    next_temp_fast_slot_ = static_cast<int>(slot) + 1;
-  return slot;
+  return fast_local_slot(id + 1);
 }
 
-void Recompiler::emit_store_fast_slot(uint16_t slot) {
-  reserve_fast_slot(slot);
-  emit(sr::StoreFast{slot});
-}
-void Recompiler::emit_load_fast_slot(uint16_t slot) {
-  reserve_fast_slot(slot);
-  emit(sr::LoadFast{slot});
-}
-void Recompiler::emit_store_fast(int id) {
-  emit_store_fast_slot(variable_fast_slot(id));
-}
-void Recompiler::emit_load_fast(int id) {
-  emit_load_fast_slot(variable_fast_slot(id));
-}
-void Recompiler::emit_store_curcall(int id) {
-  emit_store_fast_slot(curcall_fast_slot(id));
-}
-void Recompiler::emit_load_curcall(int id) {
-  emit_load_fast_slot(curcall_fast_slot(id));
-}
 void Recompiler::emit_store_global(std::string id) {
   emit(sr::StoreGlobal{intern_name(std::move(id))});
 }
@@ -481,10 +725,6 @@ void Recompiler::emit_load_global(std::string id) {
 }
 
 void Recompiler::emit_make_function(std::size_t entry, std::size_t nargs) {
-  reserve_fast_slot(0, "fn");
-  for (std::size_t i = 0; i < nargs; ++i)
-    reserve_fast_slot(static_cast<int>(i) + 1, "arg" + std::to_string(i));
-
   emit_current_chunk();
   for (std::size_t i = 0; i < nargs; ++i)
     emit_const("arg" + std::to_string(i));
@@ -599,7 +839,9 @@ void Recompiler::emit_val(const Value& v) {
                    emit_val(item);
                  emit(sr::MakeList{.nelms = v.vals.size()});
                },
-               [&](Variable const& v) { emit_load_fast(v.id); },
+               [&](Variable const& v) {
+                 emit(sr::LoadFast{.slot = variable_fast_slot(v.id)});
+               },
                [&](const auto&) {
                  throw std::runtime_error("Cannot emit value " + ToString(v));
                }),
@@ -608,11 +850,11 @@ void Recompiler::emit_val(const Value& v) {
 
 void Recompiler::emit_tok(const token::ElmAlias& tk) {
   emit_elm(tk.chain);
-  emit_store_fast(tk.dst.id);
+  emit(sr::StoreFast{.slot = variable_fast_slot(tk.dst.id)});
 }
 void Recompiler::emit_tok(const token::Command& tk) {
   emit_elm(tk.chain);
-  emit_store_fast(tk.dst.id);
+  emit(sr::StoreFast{.slot = variable_fast_slot(tk.dst.id)});
 }
 void Recompiler::emit_tok(const token::Name& tk) {
   emit_load_global("__builtin_name");
@@ -627,7 +869,8 @@ void Recompiler::emit_tok(const token::Textout& tk) {
 }
 void Recompiler::emit_tok(const token::GetProperty& tk) {
   emit_elm(tk.chain);
-  emit_store_fast(tk.dst.id);  // (val) -> ()
+  emit(sr::StoreFast{.slot = variable_fast_slot(tk.dst.id)});
+  // (val) -> ()
 }
 void Recompiler::emit_tok(const token::Operate1& tk) {
   if (tk.val) {
@@ -636,7 +879,7 @@ void Recompiler::emit_tok(const token::Operate1& tk) {
   }
   emit_val(tk.rhs);
   emit(sr::UnaryOp{LowerUnaryOperator(tk.op)});
-  emit_store_fast(tk.dst.id);
+  emit(sr::StoreFast{.slot = variable_fast_slot(tk.dst.id)});
 }
 void Recompiler::emit_tok(const token::Operate2& tk) {
   if (tk.val) {
@@ -656,7 +899,7 @@ void Recompiler::emit_tok(const token::Operate2& tk) {
     emit(sr::BinaryOp{LowerBinaryOperator(tk.op)});
   }
 
-  emit_store_fast(tk.dst.id);
+  emit(sr::StoreFast{.slot = variable_fast_slot(tk.dst.id)});
 }
 void Recompiler::emit_tok(const token::Label& tk) {
   const int lid = tk.id;
@@ -710,14 +953,14 @@ void Recompiler::emit_tok(const token::Gosub& tk) {
   for (auto const& arg : tk.args)
     emit_val(arg);
   emit(sr::Call{.argcnt = tk.args.size(), .kwargcnt = 0});
-  emit_store_fast(tk.dst.id);
+  emit(sr::StoreFast{.slot = variable_fast_slot(tk.dst.id)});
 }
 void Recompiler::emit_tok(const token::Assign& tk) {
   emit_elm(tk.dst, &tk.src);
 }
 void Recompiler::emit_tok(const token::Duplicate& tk) {
   emit_val(tk.src);
-  emit_store_fast(tk.dst.id);
+  emit(sr::StoreFast{.slot = variable_fast_slot(tk.dst.id)});
 }
 void Recompiler::emit_tok(const token::Subroutine& tk) {
   const std::size_t loc = code_size();
@@ -731,16 +974,10 @@ void Recompiler::emit_tok(const token::Subroutine& tk) {
                                           .source_entry = tk.source_entry,
                                           .bytecode_entry = loc,
                                           .args = tk.args});
-  curcall_argcnt_ = tk.args.size();
-  temp_fast_slots_.clear();
-  next_temp_fast_slot_ = curcall_argcnt_ + 1;
-  reserve_fast_slot(0, "fn");
-  for (int i = 0; i < curcall_argcnt_; ++i)
-    curcall_fast_slot(i);
 }
 void Recompiler::emit_tok(const token::LocalVar& tk) {
   emit_init_value(tk.type, tk.size);
-  emit_store_curcall(tk.id);
+  emit(sr::StoreFast{.slot = curcall_fast_slot(tk.id)});
 }
 void Recompiler::emit_tok(const token::Return& tk) {
   if (tk.ret_vals.size() == 0)
@@ -769,7 +1006,7 @@ void Recompiler::emit_elm(const elm::AccessChain& e, const Value* assign) {
   if (auto* arg = std::get_if<elm::Arg>(&e.root.var);
       arg && assign && e.nodes.empty()) {
     emit_val(*assign);
-    emit_store_curcall(arg->id);
+    emit(sr::StoreFast{.slot = curcall_fast_slot(arg->id)});
     return;
   }
 
@@ -874,7 +1111,7 @@ void Recompiler::emit_elm_root(const elm::Usrprop& r) {
 }
 void Recompiler::emit_elm_root(const elm::Arg& r) {
   // fast: (fn, arg_0, arg_1, ...)
-  emit_load_curcall(r.id);
+  emit(sr::LoadFast{.slot = curcall_fast_slot(r.id)});
   // (arg_i) or (var_i)
 }
 void Recompiler::emit_elm_root(const elm::Farcall& r) {

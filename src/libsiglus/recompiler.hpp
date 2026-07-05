@@ -24,8 +24,10 @@
 #pragma once
 
 #include "libsiglus/element.hpp"
+#include "libsiglus/parser.hpp"
 #include "libsiglus/property.hpp"
 #include "libsiglus/token.hpp"
+#include "utilities/expected.hpp"
 #include "vm/gc.hpp"
 #include "vm/object.hpp"
 #include "vm/value.hpp"
@@ -40,10 +42,16 @@
 
 namespace libsiglus {
 
+struct AllocationPlan {
+  std::vector<uint16_t> slots;
+  uint16_t total_fast_locals;
+};
+expected<AllocationPlan, std::string> resolve_fast_slots(
+    const std::vector<Parser::ParsedToken>& tokens);
+
 struct CompileError {
   std::string message;
   std::optional<token::Token_t> token;
-
   std::string ToString() const;
 };
 
@@ -57,11 +65,13 @@ class Recompiler {
   inline void ClearErrors() { errors_.clear(); }
   inline serilang::Code* GetCode() const { return cur_chunk_; }
 
-  void Gen(token::Token_t tok, int lineno = -1);
-  void Finish();
   void SetSceneProperties(int scene_id, std::vector<Property> properties);
+  void Compile(const std::vector<Parser::ParsedToken>& tokens);
 
  private:
+  void Gen(token::Token_t tok, int lineno = -1);
+  void Finish();
+
   struct SubroutineRecord {
     std::string name;
     int source_entry = -1;
@@ -117,15 +127,9 @@ class Recompiler {
   uint32_t intern_name(std::string v);
 
   // Fast locals
-  uint16_t reserve_fast_slot(int slot, std::string name = {});
+  std::vector<uint16_t> tvar_slots_;
   uint16_t variable_fast_slot(int id);
   uint16_t curcall_fast_slot(int id);
-  void emit_store_fast_slot(uint16_t slot);
-  void emit_load_fast_slot(uint16_t slot);
-  void emit_store_fast(int id);
-  void emit_load_fast(int id);
-  void emit_store_curcall(int id);
-  void emit_load_curcall(int id);
 
   void emit_store_global(std::string id);
   void emit_load_global(std::string id);
@@ -142,11 +146,6 @@ class Recompiler {
   std::vector<std::vector<std::size_t>> patch_sites_;
   void add_patch_site(int lid, std::size_t site);
   void patch(std::size_t site, std::size_t target);
-
-  // curcall
-  int curcall_argcnt_ = 0;
-  int next_temp_fast_slot_ = 1;
-  std::unordered_map<int, uint16_t> temp_fast_slots_;
 
  private:
   void emit_val(const Value& v);
