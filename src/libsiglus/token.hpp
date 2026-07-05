@@ -151,6 +151,14 @@ struct Subroutine {
   bool operator==(const Subroutine&) const = default;
 };
 
+struct LocalVar {
+  int id;
+  Type type;
+  int size;
+  std::string ToDebugString() const;
+  bool operator==(const LocalVar&) const = default;
+};
+
 struct Return {
   std::vector<Value> ret_vals;
   std::string ToDebugString() const;
@@ -177,6 +185,7 @@ using Token_t = std::variant<ElmAlias,
                              Assign,
                              Duplicate,
                              Subroutine,
+                             LocalVar,
                              Return,
                              Eof>;
 

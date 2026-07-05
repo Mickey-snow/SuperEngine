@@ -27,6 +27,7 @@
 #include "libsiglus/parser.hpp"
 #include "utilities/string_utilities.hpp"
 
+#include <cstdint>
 #include <memory>
 #include <sstream>
 
@@ -56,6 +57,31 @@ class SiglusParserTest : public ::testing::Test {
 
   inline void Parse(auto&&... params) {
     (parser->Add(Lexeme(std::forward<decltype(params)>(params))), ...);
+  }
+
+  void AppendRawByte(ByteCode code) {
+    rawdata.push_back(static_cast<char>(code));
+  }
+
+  void AppendRawInt(std::int32_t value) {
+    rawdata.append(reinterpret_cast<const char*>(&value), sizeof(value));
+  }
+
+  void AppendRawPush(Type type, std::int32_t value) {
+    AppendRawByte(ByteCode::Push);
+    AppendRawInt(static_cast<std::int32_t>(type));
+    AppendRawInt(value);
+  }
+
+  void AppendRawDeclare(Type type, std::int32_t prop_id) {
+    AppendRawByte(ByteCode::Declare);
+    AppendRawInt(static_cast<std::int32_t>(type));
+    AppendRawInt(prop_id);
+  }
+
+  void AppendRawLine(std::int32_t line) {
+    AppendRawByte(ByteCode::Newline);
+    AppendRawInt(line);
   }
 
   struct TokenArray {
@@ -223,6 +249,38 @@ TEST_F(SiglusParserTest, SubroutineTemporariesDoNotOverwriteArguments) {
   arg_0: str
 null_t v2 = stage.back.object[int:0].create(str:bg47,int:1) ;cmd<int:37,int:2,int:-1,int:0,int:38>
 )");
+}
+
+TEST_F(SiglusParserTest, ListDeclareConsumesStackSizeBeforeLineCheck) {
+  for (const Type list_type : {Type::IntList, Type::StrList}) {
+    rawdata.clear();
+    AppendRawByte(ByteCode::Arg);
+    AppendRawLine(1);
+    AppendRawPush(Type::Int, 10);
+    AppendRawDeclare(list_type, 6);
+    AppendRawLine(2);
+    AppendRawByte(ByteCode::End);
+    ResetParser();
+
+    auto parsed = parser->ParseAll();
+    ASSERT_TRUE(parsed.has_value()) << parsed.error();
+    const auto& warnings = parsed.value().second;
+    EXPECT_THAT(warnings, ::testing::IsEmpty());
+  }
+}
+
+TEST_F(SiglusParserTest, NonListDeclareDoesNotConsumeStackValue) {
+  AppendRawPush(Type::Int, 10);
+  AppendRawDeclare(Type::String, 6);
+  AppendRawLine(1);
+  AppendRawByte(ByteCode::End);
+  ResetParser();
+
+  auto parsed = parser->ParseAll();
+  ASSERT_TRUE(parsed.has_value()) << parsed.error();
+  const auto& warnings = parsed.value().second;
+  EXPECT_THAT(warnings, ::testing::Contains(::testing::HasSubstr(
+                            "expected stack to be empty")));
 }
 
 TEST_F(SiglusParserTest, ReassignLinenoAndIgnoreLineLexeme) {

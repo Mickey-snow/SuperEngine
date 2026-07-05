@@ -27,7 +27,6 @@
 #include "libsiglus/property.hpp"
 #include "libsiglus/token.hpp"
 #include "vm/gc.hpp"
-#include "vm/instruction.hpp"
 #include "vm/object.hpp"
 #include "vm/value.hpp"
 
@@ -118,9 +117,15 @@ class Recompiler {
   uint32_t intern_name(std::string v);
 
   // Fast locals
-  int fast_local_cnt_ = 0;
+  uint16_t reserve_fast_slot(int slot, std::string name = {});
+  uint16_t variable_fast_slot(int id);
+  uint16_t curcall_fast_slot(int id);
+  void emit_store_fast_slot(uint16_t slot);
+  void emit_load_fast_slot(uint16_t slot);
   void emit_store_fast(int id);
   void emit_load_fast(int id);
+  void emit_store_curcall(int id);
+  void emit_load_curcall(int id);
 
   void emit_store_global(std::string id);
   void emit_load_global(std::string id);
@@ -130,12 +135,18 @@ class Recompiler {
                                   std::size_t nargs);
   void emit_scene_property_table();
   void emit_load_proplist(int scene);
+  void emit_init_value(Type type, int size = 0);
 
   // Patch sites and labels
   std::vector<std::optional<std::size_t>> label_offsets_;
   std::vector<std::vector<std::size_t>> patch_sites_;
   void add_patch_site(int lid, std::size_t site);
   void patch(std::size_t site, std::size_t target);
+
+  // curcall
+  int curcall_argcnt_ = 0;
+  int next_temp_fast_slot_ = 1;
+  std::unordered_map<int, uint16_t> temp_fast_slots_;
 
  private:
   void emit_val(const Value& v);
@@ -156,6 +167,7 @@ class Recompiler {
   void emit_tok(const token::Assign& tk);
   void emit_tok(const token::Duplicate& tk);
   void emit_tok(const token::Subroutine& tk);
+  void emit_tok(const token::LocalVar& tk);
   void emit_tok(const token::Return& tk);
   void emit_tok(const token::Eof& tk);
 

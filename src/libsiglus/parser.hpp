@@ -150,6 +150,7 @@ class Parser {
   std::unordered_map<int, const Command*> offset2cmd_;
 
   const Command* curcall_cmd_ = nullptr;
+  bool inside_curcall_body = false;
   std::vector<Type> curcall_args_;
 
   elm::ElementParser elm_parser_;

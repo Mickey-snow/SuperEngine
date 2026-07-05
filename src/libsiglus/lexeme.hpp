@@ -226,7 +226,7 @@ struct Arg {
 
 struct Declare {
   Type type;
-  size_t size;
+  size_t prop_id;
   std::string ToDebugString() const;
   size_t ByteLength() const { return 1 + 4 + 4; }
 };

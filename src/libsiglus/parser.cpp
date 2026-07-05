@@ -23,14 +23,13 @@
 
 #include "libsiglus/parser.hpp"
 
-#include "libsiglus/archive.hpp"
 #include "libsiglus/lexeme.hpp"
-#include "libsiglus/scene.hpp"
-#include "utilities/flat_map.hpp"
+#include "libsiglus/token.hpp"
+#include "libsiglus/value.hpp"
 
 #include <exception>
 #include <format>
-#include <sstream>
+#include <ranges>
 
 namespace libsiglus {
 using namespace token;
@@ -186,6 +185,7 @@ Parser::ParseAll() noexcept {
       if (it != offset2cmd_.cend()) {
         curcall_cmd_ = it->second;
         curcall_args_.clear();
+        inside_curcall_body = false;
         debug_assert_stack_empty();
       }
 
@@ -379,6 +379,8 @@ void Parser::Add(lex::Arg a) {
   tok.args = curcall_args_;
   var_cnt_ = static_cast<int>(curcall_args_.size()) + 1;
   emit_token(std::move(tok));
+
+  inside_curcall_body = true;
 }
 
 void Parser::Add(lex::Return r) {
@@ -391,7 +393,21 @@ void Parser::Add(lex::Return r) {
 }
 
 void Parser::Add(lex::Declare d) {
-  std::ignore = d.size;
+  std::ignore = d.prop_id;
+  int size = 0;
+  if (d.type == Type::IntList || d.type == Type::StrList) {
+    Value val = pop(Type::Int);
+    auto* it = std::get_if<Integer>(&val);
+    if (!it) {
+      warnings_.emplace_back("expected integer, but got " + ToString(val));
+    } else
+      size = it->val_;
+  }
+  if (inside_curcall_body) {
+    // local variable declaration
+    emit_token(
+        LocalVar{.id = curcall_args_.size(), .type = d.type, .size = size});
+  }
   curcall_args_.push_back(d.type);
 }
 

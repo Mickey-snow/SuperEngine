@@ -61,7 +61,7 @@ std::string Return::ToDebugString() const {
 size_t Return::ByteLength() const { return 1 + count_arglist(ret_types_); }
 
 std::string Declare::ToDebugString() const {
-  return std::format("declare {} {}", ToString(type), size);
+  return std::format("declare {} {}", ToString(type), prop_id);
 }
 
 }  // namespace libsiglus::lex

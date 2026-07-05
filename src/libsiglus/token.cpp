@@ -108,6 +108,12 @@ std::string Subroutine::ToDebugString() const {
   }
   return ss.str();
 }
+std::string LocalVar::ToDebugString() const {
+  std::string ret = std::format("var_{} : {}", id, ToString(type));
+  if (size > 0)
+    ret += std::format(" {{.size={}}}", size);
+  return ret;
+}
 std::string Return::ToDebugString() const {
   return std::format("ret ({})", Join(",", vals_to_string(ret_vals)));
 }

@@ -155,8 +155,8 @@ Lexeme Lexer::Parse(ByteReader& reader) const {
 
     case ByteCode::Declare: {
       auto type = static_cast<Type>(reader.PopAs<int32_t>(4));
-      auto size = static_cast<size_t>(reader.PopAs<uint32_t>(4));
-      return Declare(type, size);
+      auto prop_id = static_cast<size_t>(reader.PopAs<uint32_t>(4));
+      return Declare(type, prop_id);
     }
 
     case ByteCode::SelBegin:
