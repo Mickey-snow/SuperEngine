@@ -24,13 +24,19 @@
 
 #include <gtest/gtest.h>
 
+#include <SDL/SDL.h>
+
+#include <chrono>
 #include <memory>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
 #include "core/object.hpp"
 #include "core/object_internal/drawer/file.hpp"
+#include "core/object_internal/drawer/gan.hpp"
 #include "core/object_internal/objdrawer.hpp"
+#include "mock_clock.hpp"
 #include "systems/sdl/sdl_surface.hpp"
 
 namespace {
@@ -75,6 +81,27 @@ std::shared_ptr<SDLSurface> OpaqueSurface(Size size) {
   return surface;
 }
 
+std::shared_ptr<SDLSurface> PatternedSurface() {
+  std::vector<GrpRect> regions(2);
+  regions[0].rect = Rect::REC(0, 0, 10, 8);
+  regions[0].originX = 2;
+  regions[0].originY = 3;
+  regions[1].rect = Rect::REC(16, 0, 20, 12);
+  regions[1].originX = 4;
+  regions[1].originY = 5;
+
+  SDL_Surface* raw = SDL_CreateRGBSurface(
+      SDL_SWSURFACE | SDL_SRCALPHA, 64, 64, 32, 0xff0000, 0xff00, 0xff,
+      0xff000000);
+  if (!raw)
+    throw std::runtime_error(SDL_GetError());
+  return std::make_shared<SDLSurface>(raw, std::move(regions));
+}
+
+std::vector<std::vector<GanDecoder::Frame>> GanFrames() {
+  return {{{0, 3, 4, 50, 128, 0}, {1, 7, 8, 50, 255, 0}}};
+}
+
 TestGraphicsObjectData& SetTestData(GraphicsObject& object,
                                     Rect src,
                                     Point texture_origin,
@@ -87,6 +114,62 @@ TestGraphicsObjectData& SetTestData(GraphicsObject& object,
 }
 
 }  // namespace
+
+TEST(ObjectDrawerTest, GanPrimeSetShowsFirstFrameWithoutPlaying) {
+  auto surface = PatternedSurface();
+  auto clock = std::make_shared<MockClock>();
+  GraphicsObject object;
+  object.Param().SetX(100);
+  object.Param().SetY(50);
+  auto drawer =
+      std::make_unique<GanGraphicsObjectData>(surface, GanFrames(), clock);
+  auto& data = *drawer;
+  object.SetDrawer(std::move(drawer));
+
+  data.PrimeSet(0);
+
+  EXPECT_FALSE(data.GetAnimator()->IsPlaying());
+  EXPECT_TRUE(data.GetAnimator()->IsFinished());
+  EXPECT_EQ(data.PixelWidth(object), 10);
+  EXPECT_EQ(data.PixelHeight(object), 8);
+  EXPECT_EQ(data.DstRect(object, nullptr), Rect::GRP(101, 51, 111, 59));
+}
+
+TEST(ObjectDrawerTest, GanPlaySetAdvancesAndFinishesOneShot) {
+  auto surface = PatternedSurface();
+  auto clock = std::make_shared<MockClock>();
+  GanGraphicsObjectData data(surface, GanFrames(), clock);
+  GraphicsObject object;
+
+  data.PlaySet(0);
+  data.GetAnimator()->SetAfterAction(AFTER_NONE);
+
+  clock->AdvanceTime(std::chrono::milliseconds(60));
+  data.Execute();
+  EXPECT_TRUE(data.GetAnimator()->IsPlaying());
+  EXPECT_EQ(data.PixelWidth(object), 20);
+
+  clock->AdvanceTime(std::chrono::milliseconds(60));
+  data.Execute();
+  EXPECT_FALSE(data.GetAnimator()->IsPlaying());
+  EXPECT_TRUE(data.GetAnimator()->IsFinished());
+  EXPECT_EQ(data.PixelWidth(object), 20);
+}
+
+TEST(ObjectDrawerTest, GanLoopWrapsToFirstFrame) {
+  auto surface = PatternedSurface();
+  auto clock = std::make_shared<MockClock>();
+  GanGraphicsObjectData data(surface, GanFrames(), clock);
+  GraphicsObject object;
+
+  data.PlaySet(0);
+  data.GetAnimator()->SetAfterAction(AFTER_LOOP);
+
+  clock->AdvanceTime(std::chrono::milliseconds(120));
+  data.Execute();
+  EXPECT_TRUE(data.GetAnimator()->IsPlaying());
+  EXPECT_EQ(data.PixelWidth(object), 10);
+}
 
 TEST(ObjectDrawerTest, DestinationAddsObjectCenterAndTextureOrigin) {
   auto surface = OpaqueSurface(Size(128, 32));

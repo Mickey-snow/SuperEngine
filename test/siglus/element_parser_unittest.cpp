@@ -291,6 +291,33 @@ TEST_F(ElementParserTest, ObjectMovieWaitCallsAreAwaitable) {
   }
 }
 
+TEST_F(ElementParserTest, ObjectGanCallsAreSimpleObjectMethods) {
+  {
+    ElementCode elm{37, 2, -1, 106, 0x01000000};
+    elm.ForceBind({0, {v("ef_noise02")}});
+
+    auto parsed = chain(elm);
+    EXPECT_EQ(parsed, "stage.back.object[int:106].load_gan(str:ef_noise02)");
+    EXPECT_EQ(parsed.chain.GetType(), Type::None);
+    const Call* call = last_call(parsed);
+    ASSERT_NE(call, nullptr);
+    EXPECT_TRUE(call->is_simple);
+    EXPECT_FALSE(call->overload_id);
+  }
+  {
+    ElementCode elm{37, 2, -1, 106, 0x01000001};
+    elm.ForceBind({0, {v(0), v(1)}});
+
+    auto parsed = chain(elm);
+    EXPECT_EQ(parsed, "stage.back.object[int:106].start_gan(int:0,int:1)");
+    EXPECT_EQ(parsed.chain.GetType(), Type::None);
+    const Call* call = last_call(parsed);
+    ASSERT_NE(call, nullptr);
+    EXPECT_TRUE(call->is_simple);
+    EXPECT_FALSE(call->overload_id);
+  }
+}
+
 TEST_F(ElementParserTest, ObjectInitIsImplicitCall) {
   EXPECT_EQ(chain(37, 2, -1, 0, 35), "stage.back.object[int:0].init()");
 }

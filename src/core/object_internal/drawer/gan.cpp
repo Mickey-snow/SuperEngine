@@ -36,14 +36,19 @@
 #include "systems/sdl/sdl_surface.hpp"
 #include "utilities/clock.hpp"
 
+#include <algorithm>
+#include <stdexcept>
+#include <utility>
+
 // -----------------------------------------------------------------------
 // GanGraphicsObjectData
 // -----------------------------------------------------------------------
 
 GanGraphicsObjectData::GanGraphicsObjectData(
     std::shared_ptr<SDLSurface> image,
-    std::vector<std::vector<GanDecoder::Frame>> frames)
-    : animator_(std::make_shared<Clock>()),
+    std::vector<std::vector<GanDecoder::Frame>> frames,
+    std::shared_ptr<Clock> clock)
+    : animator_(clock ? std::move(clock) : std::make_shared<Clock>()),
       image_(image),
       animation_sets(std::move(frames)),
       current_set_(-1),
@@ -51,6 +56,21 @@ GanGraphicsObjectData::GanGraphicsObjectData(
       delta_time_(0) {}
 
 GanGraphicsObjectData::~GanGraphicsObjectData() = default;
+
+bool GanGraphicsObjectData::HasSet(int set) const {
+  return set >= 0 && static_cast<std::size_t>(set) < animation_sets.size() &&
+         !animation_sets[set].empty();
+}
+
+void GanGraphicsObjectData::PrimeSet(int set) {
+  if (!HasSet(set))
+    throw std::out_of_range("GanGraphicsObjectData::PrimeSet invalid set");
+
+  current_set_ = set;
+  current_frame_ = 0;
+  delta_time_ = 0;
+  animator_.SetIsFinished(true);
+}
 
 int GanGraphicsObjectData::PixelWidth(const GraphicsObject& go) {
   auto& rendering_properties = go.Param();
@@ -101,15 +121,21 @@ void GanGraphicsObjectData::Execute() {
     const std::vector<Frame>& current_set = animation_sets.at(current_set_);
     const auto total_frames = current_set.size();
 
-    while (delta_time_ >= current_set[current_frame_].time) {
-      delta_time_ -= current_set[current_frame_++].time;
+    while (delta_time_ >=
+           static_cast<unsigned int>(std::max(current_set[current_frame_].time,
+                                              1))) {
+      delta_time_ -=
+          static_cast<unsigned int>(std::max(current_set[current_frame_].time,
+                                             1));
+      ++current_frame_;
 
       if (current_frame_ >= total_frames) {
-        if (animator_.GetAfterAction() == AFTER_LOOP)
+        if (animator_.GetAfterAction() == AFTER_LOOP) {
           current_frame_ %= total_frames;
-        else {
+        } else {
           delta_time_ = 0;
           current_frame_ = total_frames - 1;
+          animator_.SetIsFinished(true);
           break;
         }
       }
@@ -173,9 +199,13 @@ float GanGraphicsObjectData::GetRenderingAlpha(const GraphicsObject& go,
 }
 
 void GanGraphicsObjectData::PlaySet(int set) {
+  if (!HasSet(set))
+    throw std::out_of_range("GanGraphicsObjectData::PlaySet invalid set");
+
   animator_.Reset();
   current_set_ = set;
   current_frame_ = 0;
+  delta_time_ = 0;
 }
 
 // template <class Archive>

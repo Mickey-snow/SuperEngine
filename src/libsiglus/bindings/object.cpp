@@ -21,10 +21,12 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
+#include "core/avdec/gan.hpp"
 #include "core/colour.hpp"
 #include "core/frame_counter.hpp"
 #include "core/object_internal/drawer/colour_filter.hpp"
 #include "core/object_internal/drawer/file.hpp"
+#include "core/object_internal/drawer/gan.hpp"
 #include "core/object_internal/drawer/movie.hpp"
 #include "core/object_internal/object_mutator.hpp"
 #include "core/object_internal/object_parameter.hpp"
@@ -38,6 +40,7 @@
 #include "systems/event_system.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
+#include "utilities/file.hpp"
 #include "vm/exception.hpp"
 #include "vm/string.hpp"
 #include "vm/value.hpp"
@@ -47,6 +50,7 @@
 #include <cstddef>
 #include <memory>
 #include <optional>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -228,6 +232,55 @@ class SiglusObject {
     } else {
       auto surface = graphics_->GetSurfaceNamed(std::move(filename));
       obj.SetDrawer(std::make_unique<GraphicsObjectOfFile>(surface));
+    }
+  }
+
+  void load_gan(std::string filename) {
+    if (filename.empty())
+      return;
+    if (!graphics_)
+      throw std::runtime_error("Object.load_gan requires a graphics system");
+    if (!asset_scanner_)
+      throw std::runtime_error("Object.load_gan requires an asset scanner");
+
+    auto gan_path = asset_scanner_->FindFile(filename, {"gan"});
+    if (!gan_path) {
+      throw std::runtime_error("Object.load_gan could not find " + filename +
+                               ".gan: " + gan_path.error().what());
+    }
+
+    GanDecoder decoder(LoadFile(*gan_path));
+    const std::string image_name =
+        decoder.raw_file_name.empty() ? filename : decoder.raw_file_name;
+    auto image = graphics_->GetSurfaceNamed(image_name);
+    auto data = std::make_unique<GanGraphicsObjectData>(
+        image, std::move(decoder.animation_sets),
+        event_ ? event_->GetClock() : std::make_shared<Clock>());
+    if (data->HasSet(0))
+      data->PrimeSet(0);
+    object().SetDrawer(std::move(data));
+  }
+
+  void start_gan(std::vector<sr::Value> raw_args) {
+    CallPacket packet = CallPacket::DecodeFrom(std::move(raw_args));
+    const std::vector<sr::Value>& args = packet.args;
+    if (args.size() > 3)
+      throw std::runtime_error("Object.start_gan expects 0 to 3 args");
+
+    int set_no = 0;
+    bool loop = true;
+    bool real_time = false;
+    if (args.size() >= 1)
+      set_no = RequireInt(args[0], "Object.start_gan set");
+    if (args.size() >= 2)
+      loop = RequireInt(args[1], "Object.start_gan loop") != 0;
+    if (args.size() >= 3)
+      real_time = RequireInt(args[2], "Object.start_gan real_time") != 0;
+    (void)real_time;
+
+    if (auto* data = object().GetDrawer<GanGraphicsObjectData>()) {
+      data->PlaySet(set_no);
+      data->GetAnimator()->SetAfterAction(loop ? AFTER_LOOP : AFTER_NONE);
     }
   }
 
@@ -982,6 +1035,8 @@ void BindObject(SiglusRuntime& runtime) {
   obj.def("create_movie_wait", &SiglusObject::create_movie_wait, sb::vararg);
   obj.def("create_movie_waitkey", &SiglusObject::create_movie_waitkey,
           sb::vararg);
+  obj.def("load_gan", &SiglusObject::load_gan);
+  obj.def("start_gan", &SiglusObject::start_gan, sb::vararg);
   obj.def("create_rect", &SiglusObject::create_rect);
   obj.def("exist_type",
           [](SiglusObject* obj) { return obj->object().HasDrawer() ? 1 : 0; });

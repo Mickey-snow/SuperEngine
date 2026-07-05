@@ -30,7 +30,9 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
+class Clock;
 class SDLSurface;
 class System;
 class GraphicsObject;
@@ -42,10 +44,13 @@ class GraphicsObject;
 class GanGraphicsObjectData : public GraphicsObjectData {
  public:
   GanGraphicsObjectData(std::shared_ptr<SDLSurface> image,
-                        std::vector<std::vector<GanDecoder::Frame>> frames);
+                        std::vector<std::vector<GanDecoder::Frame>> frames,
+                        std::shared_ptr<Clock> clock = nullptr);
   virtual ~GanGraphicsObjectData();
 
   void LoadGANData();
+  bool HasSet(int set) const;
+  void PrimeSet(int set);
 
   virtual int PixelWidth(const GraphicsObject& rendering_properties) override;
   virtual int PixelHeight(const GraphicsObject& rendering_properties) override;

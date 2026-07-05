@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -28,10 +25,6 @@
 #pragma once
 
 #include <filesystem>
-
-#include <iosfwd>
-#include <memory>
-#include <string>
 #include <vector>
 
 class Gameexe;
@@ -42,3 +35,5 @@ class System;
 // unchanged. On less tolerant platforms, returns a copy of the input with
 // correct case, or the empty string if no solution could be found.
 std::filesystem::path CorrectPathCase(std::filesystem::path Path);
+
+std::vector<char> LoadFile(const std::filesystem::path& file_path);

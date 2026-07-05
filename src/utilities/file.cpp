@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -30,26 +27,14 @@
 #include <boost/algorithm/string.hpp>
 #include <filesystem>
 
-#include <algorithm>
-#include <cctype>
 #include <fstream>
-#include <iterator>
 #include <sstream>
 #include <stack>
-#include <stdexcept>
 #include <string>
 
-#include "systems/system.hpp"
-#include "systems/system_error.hpp"
 #include "utilities/exception.hpp"
 
 using boost::to_upper;
-using std::ifstream;
-using std::ios;
-using std::ostringstream;
-using std::stack;
-using std::string;
-
 namespace fs = std::filesystem;
 
 // -----------------------------------------------------------------------
@@ -104,24 +89,23 @@ fs::path CorrectPathCase(fs::path Path) {
   return Path.string();
 }
 
-// -----------------------------------------------------------------------
+std::vector<char> LoadFile(const std::filesystem::path& path) {
+  std::ifstream file(path, std::ios::binary | std::ios::ate);
 
-bool LoadFileData(const std::filesystem::path& path,
-                  std::unique_ptr<char[]>& fileData,
-                  int& fileSize) {
-  std::ifstream ifs(path, ifstream::in | ifstream::binary);
-  if (!ifs) {
-    ostringstream oss;
-    oss << "Could not open file \"" << path << "\".";
-    throw rlvm::Exception(oss.str());
+  if (!file) {
+    throw std::runtime_error("Failed to open file: " + path.string());
   }
 
-  ifs.seekg(0, ios::end);
-  fileSize = ifs.tellg();
-  ifs.seekg(0, ios::beg);
+  const std::streamsize size = file.tellg();
+  if (size < 0) {
+    throw std::runtime_error("Failed to get file size: " + path.string());
+  }
 
-  fileData.reset(new char[fileSize]);
-  ifs.read(fileData.get(), fileSize);
+  std::vector<char> buffer(static_cast<std::size_t>(size));
+  file.seekg(0, std::ios::beg);
+  if (!file.read(buffer.data(), size)) {
+    throw std::runtime_error("Failed to read file: " + path.string());
+  }
 
-  return !ifs.good();
+  return buffer;
 }
