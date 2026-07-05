@@ -510,6 +510,13 @@ SiglusRuntime SGVMFactory::Create() {
           }
           return it->second;
         });
+  m.def("savepoint", [] {
+    // TODO: implement save/load and serialization support
+    return 0;
+  });
+  m.def("capture", []{
+    // TODO: create capture thumb image
+  });
 
   // abuse the vm scheduler to refresh sdl regularly
   auto cb_holder = std::make_shared<std::function<void()>>();

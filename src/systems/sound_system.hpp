@@ -52,7 +52,8 @@ constexpr int NUM_TOTAL_CHANNELS =
     NUM_BASE_CHANNELS + NUM_EXTRA_WAVPLAY_CHANNELS + NUM_KOE_CHANNELS;
 
 // The koe channel is the last one.
-constexpr int KOE_CHANNEL = NUM_BASE_CHANNELS + NUM_EXTRA_WAVPLAY_CHANNELS;
+[[maybe_unused]] constexpr int KOE_CHANNEL =
+    NUM_BASE_CHANNELS + NUM_EXTRA_WAVPLAY_CHANNELS;
 
 // -----------------------------------------------------------------------
 
@@ -110,10 +111,10 @@ class SoundSystem {
   void WavStopAll();
   void WavFadeOut(const int channel, const int fadetime);
 
-  int is_se_enabled() const;
+  int IsSeEnabled() const;
   void SetIsSeEnabled(const int in);
 
-  int se_volume_mod() const;
+  int GetSeVolumeMod() const;
   void SetSeVolumeMod(const int in);
 
   void PlaySe(const int se_num);

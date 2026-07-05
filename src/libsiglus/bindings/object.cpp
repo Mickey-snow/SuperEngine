@@ -1193,7 +1193,7 @@ void BindObject(SiglusRuntime& runtime) {
   obj.def("free", [](SiglusObject* obj) { obj->object().FreeObjectData(); });
   obj.def(
       "create",
-      [](SiglusObject* obj, std::vector<sr::Value> args) {
+      [](SiglusObject* obj, std::vector<sr::Value> args) -> void {
         if (args.size() != 1 && args.size() != 2 && args.size() != 4 &&
             args.size() != 5) {
           throw std::runtime_error("Object.create expects 1, 2, 4, or 5 args");

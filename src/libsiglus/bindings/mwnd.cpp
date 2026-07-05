@@ -397,6 +397,9 @@ void BindMwnd(SiglusRuntime& runtime) {
         return state->WaitKoe(vm, true);
       },
       sb::vararg);
+  m.def("set_waku", [](int waku){
+    // TODO
+  });
 }
 
 RLVM_REGISTER(SiglusBindingRegistry, "0_mwnd", BindMwnd)

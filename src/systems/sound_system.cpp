@@ -29,9 +29,9 @@
 
 #include "core/avdec/audio_decoder.hpp"
 #include "core/avspec.hpp"
+#include "systems/event_system.hpp"
 #include "systems/system.hpp"
 #include "systems/system_error.hpp"
-#include "systems/event_system.hpp"
 
 #include <algorithm>
 #include <boost/algorithm/string.hpp>
@@ -71,9 +71,9 @@ static constexpr AVSpec s_reallive_sound_qualities[] = {
 // SoundSystem::VolumeAdjustTask
 // -----------------------------------------------------------------------
 SoundSystem::VolumeAdjustTask::VolumeAdjustTask(unsigned int current_time,
-                                                 int in_start_volume,
-                                                 int in_final_volume,
-                                                 int fade_time_in_ms)
+                                                int in_start_volume,
+                                                int in_final_volume,
+                                                int fade_time_in_ms)
     : start_time(current_time),
       end_time(current_time + fade_time_in_ms),
       start_volume(in_start_volume),
@@ -188,7 +188,7 @@ void SoundSystem::SetSettings(const rlSoundSettings& settings) {
 }
 
 void SoundSystem::SetUseKoeForCharacter(const int character,
-                                           const int enabled) {
+                                        const int enabled) {
   auto range = usekoe_to_koeplay_mapping_.equal_range(character);
   for (auto it = range.first; it != range.second; ++it) {
     settings_.character_koe_enabled[it->second] = enabled;
@@ -233,8 +233,8 @@ void SoundSystem::SetBgmVolumeScript(const int level, int fade_in_ms) {
   } else {
     unsigned int cur_time = system_.event().GetTicks();
 
-    bgm_adjustment_task_.reset(new VolumeAdjustTask(
-        cur_time, settings_.bgm_volume, level, fade_in_ms));
+    bgm_adjustment_task_ = std::make_unique<VolumeAdjustTask>(
+        cur_time, settings_.bgm_volume, level, fade_in_ms);
   }
 
   player_t player = sound_impl_->GetBgm();
@@ -263,8 +263,8 @@ void SoundSystem::BgmPlay(const std::string& bgm_name, bool loop) {
 }
 
 void SoundSystem::BgmPlay(const std::string& bgm_name,
-                             bool loop,
-                             int fade_in_ms) {
+                          bool loop,
+                          int fade_in_ms) {
   if (!boost::iequals(GetBgmName(), bgm_name)) {
     player_t player = LoadMusic(bgm_name);
     player->FadeIn(fade_in_ms);
@@ -274,9 +274,9 @@ void SoundSystem::BgmPlay(const std::string& bgm_name,
 }
 
 void SoundSystem::BgmPlay(const std::string& bgm_name,
-                             bool loop,
-                             int fade_in_ms,
-                             int fade_out_ms) {
+                          bool loop,
+                          int fade_in_ms,
+                          int fade_out_ms) {
   if (!boost::iequals(GetBgmName(), bgm_name)) {
     player_t player = LoadMusic(bgm_name);
     player->FadeIn(fade_in_ms);
@@ -329,8 +329,8 @@ void SoundSystem::SetChannelVolume(const int channel, const int level) {
 }
 
 void SoundSystem::SetChannelVolume(const int channel,
-                                      const int level,
-                                      const int fade_time_in_ms) {
+                                   const int level,
+                                   const int fade_time_in_ms) {
   unsigned int cur_time = system_.event().GetTicks();
 
   pcm_adjustment_tasks_.emplace(
@@ -357,15 +357,15 @@ void SoundSystem::WavPlay(const std::string& wav_file, bool loop) {
 }
 
 void SoundSystem::WavPlay(const std::string& wav_file,
-                             bool loop,
-                             const int channel) {
+                          bool loop,
+                          const int channel) {
   WavPlayImpl(wav_file, channel, loop);
 }
 
 void SoundSystem::WavPlay(const std::string& filename,
-                             bool loop,
-                             const int channel,
-                             const int fadein_ms) {
+                          bool loop,
+                          const int channel,
+                          const int fadein_ms) {
   if (!settings_.pcm_enabled)
     return;
 
@@ -401,18 +401,18 @@ void SoundSystem::WavFadeOut(const int channel, const int fadetime) {
     sound_impl_->FadeOutChannel(channel, fadetime);
 }
 
-int SoundSystem::is_se_enabled() const { return settings_.se_enabled; }
+int SoundSystem::IsSeEnabled() const { return settings_.se_enabled; }
 
 void SoundSystem::SetIsSeEnabled(const int in) { settings_.se_enabled = in; }
 
-int SoundSystem::se_volume_mod() const { return settings_.se_volume; }
+int SoundSystem::GetSeVolumeMod() const { return settings_.se_volume; }
 
 void SoundSystem::SetSeVolumeMod(const int level) {
   settings_.se_volume = level;
 }
 
 void SoundSystem::PlaySe(const int se_num) {
-  if (!is_se_enabled())
+  if (!IsSeEnabled())
     return;
 
   auto se = audio_table_.FindSE(se_num);
@@ -435,7 +435,7 @@ void SoundSystem::PlaySe(const int se_num) {
 
   // SE chunks have no volume other than the modifier.
   sound_impl_->SetVolume(channel,
-                         realLiveVolumeToSDLMixerVolume(se_volume_mod()));
+                         realLiveVolumeToSDLMixerVolume(GetSeVolumeMod()));
   sound_impl_->PlayChannel(channel, player);
 }
 
@@ -456,9 +456,7 @@ void SoundSystem::SetKoeVolume(const int level, const int fadetime) {
   }
 }
 
-int SoundSystem::GetKoeVolume() const {
-  return GetChannelVolume(KOE_CHANNEL);
-}
+int SoundSystem::GetKoeVolume() const { return GetChannelVolume(KOE_CHANNEL); }
 
 void SoundSystem::KoePlay(int id) {
   if (!system_.ShouldFastForward())
@@ -525,8 +523,8 @@ player_t SoundSystem::LoadMusic(const std::string& bgm_name) {
 }
 
 void SoundSystem::WavPlayImpl(const std::string& filename,
-                                 const int channel,
-                                 bool loop) {
+                              const int channel,
+                              bool loop) {
   if (!settings_.pcm_enabled)
     return;
 
