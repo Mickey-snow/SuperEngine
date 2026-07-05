@@ -75,6 +75,9 @@ class GraphicsObject {
 
   int PixelWidth() const;
   int PixelHeight() const;
+  const std::string& FilePath() const;
+  void SetFilePath(std::string path);
+  void ClearFilePath();
 
   // Drawer (aka. graphics object data)
   inline bool HasDrawer() const { return object_data_.operator bool(); }
@@ -145,6 +148,8 @@ class GraphicsObject {
 
   // The actual data used to render the object
   std::unique_ptr<GraphicsObjectData> object_data_;
+
+  std::string file_path_;
 
   // Tasks that run every tick. Used to mutate object parameters over time
   // (and how we check from a blocking LongOperation if the mutation is

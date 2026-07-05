@@ -111,6 +111,23 @@ struct MovieCreateParams {
   bool ready_only = false;
 };
 
+void ApplyObjectFileSuffix(std::string& filename, ObjectParameter& param) {
+  const std::size_t pos = filename.find('?');
+  if (pos == std::string::npos)
+    return;
+
+  const std::string tone_curve = filename.substr(pos + 1);
+  filename.erase(pos);
+
+  try {
+    std::size_t parsed = 0;
+    int value = std::stoi(tone_curve, &parsed);
+    if (parsed == tone_curve.size() && value > 0)
+      param.tonecurve_no = value;
+  } catch (const std::exception&) {
+  }
+}
+
 }  // namespace
 
 struct ObjectReference {
@@ -169,8 +186,7 @@ sr::Value WaitForObjectMutator(sr::VM& vm,
                                std::string name,
                                EventSystem* event,
                                bool key_skip) {
-  auto done = [ref = std::move(ref), repno,
-               name = std::move(name)]() mutable {
+  auto done = [ref = std::move(ref), repno, name = std::move(name)]() mutable {
     return !ref.get().IsMutatorRunningMatching(repno, name);
   };
   return MakePollingWaitFuture(vm, std::move(done), key_skip, event);
@@ -234,6 +250,10 @@ class SiglusObject {
 
     GraphicsObject& obj = object();
     obj.FreeDataAndInitializeParams();
+    ApplyObjectFileSuffix(filename, obj.Param());
+    if (filename.empty())
+      throw std::runtime_error("Object.create filename is empty");
+
     if (IsCompositeObjectName(filename)) {
       std::vector<CompositeGraphicsObjectLayer> layers;
       for (const CompositeObjectPart& part :
@@ -247,9 +267,10 @@ class SiglusObject {
       obj.SetDrawer(
           std::make_unique<CompositeGraphicsObject>(std::move(layers)));
     } else {
-      auto surface = graphics_->GetSurfaceNamed(std::move(filename));
+      auto surface = graphics_->GetSurfaceNamed(filename);
       obj.SetDrawer(std::make_unique<GraphicsObjectOfFile>(surface));
     }
+    obj.SetFilePath(std::move(filename));
   }
 
   void load_gan(std::string filename) {
@@ -378,6 +399,7 @@ class SiglusObject {
         movie_path.value(), params.loop, params.auto_free, params.real_time,
         params.ready_only, graphics_->GetBackend(),
         event_ ? event_->GetClock() : std::make_shared<Clock>()));
+    obj.SetFilePath(params.file_name);
 
     if (params.display)
       obj.Param().SetVisible(*params.display);
@@ -480,6 +502,7 @@ class SiglusObject {
     auto rect = Rect::GRP(left, top, right, down);
     param().blend_colour = RGBAColour(r, g, b, alpha);
     object().SetDrawer(std::make_unique<ColourFilterObjectData>(rect));
+    object().ClearFilePath();
     param().SetVisible(display);
   }
 
@@ -594,13 +617,11 @@ class ObjectRepnoEvent {
 
     obj.EndObjectMutatorMatching(repno_, name, 0);
     const int start = getter_(obj.Param(), repno_);
-    Mutator mutator{
-        .setter_ = [setter = setter_, repno = repno_](ObjectParameter& param,
-                                                      int value) {
-          setter(param, repno, value);
-        },
-        .fc_ = MakeSiglusFrameCounter(duration_time, delay, start, end_value,
-                                      type, clock)};
+    Mutator mutator{.setter_ = [setter = setter_, repno = repno_](
+                                   ObjectParameter& param,
+                                   int value) { setter(param, repno, value); },
+                    .fc_ = MakeSiglusFrameCounter(duration_time, delay, start,
+                                                  end_value, type, clock)};
     obj.AddObjectMutator(ObjectMutator({std::move(mutator)}, repno_, name));
   }
 
@@ -680,11 +701,8 @@ class ObjectRepnoEventList {
  public:
   using Getter = ObjectRepnoEvent::Getter;
   using Setter = ObjectRepnoEvent::Setter;
-  using Factory = std::function<sr::Value(ObjectReference,
-                                          int,
-                                          std::string,
-                                          Getter,
-                                          Setter)>;
+  using Factory = std::function<
+      sr::Value(ObjectReference, int, std::string, Getter, Setter)>;
 
   ObjectReference ref_;
   std::string name_;
@@ -710,7 +728,8 @@ class ObjectRepnoEventList {
                              std::to_string(idx));
     }
     if (!make_event_)
-      throw std::runtime_error("ObjectRepnoEventList requires an event factory");
+      throw std::runtime_error(
+          "ObjectRepnoEventList requires an event factory");
     return make_event_(ref_, idx, name_, getter_, setter_);
   }
 
@@ -1069,8 +1088,8 @@ void BindObject(SiglusRuntime& runtime) {
   sb::class_<ObjectChild> child(m, "ObjectChild", false);
   sb::class_<ObjectRepnoParam> repno(m, "ObjectRepnoParam", false);
   sb::class_<ObjectRepnoEvent> repno_event(m, "ObjectRepnoEvent", false);
-  sb::class_<ObjectRepnoEventList> repno_event_list(
-      m, "ObjectRepnoEventList", false);
+  sb::class_<ObjectRepnoEventList> repno_event_list(m, "ObjectRepnoEventList",
+                                                    false);
   repno_event_list.add_gc_root(repno_event);
 
   Stage* stage = runtime.stage.get();
@@ -1162,28 +1181,26 @@ void BindObject(SiglusRuntime& runtime) {
         std::move(getter), std::move(setter)));
   };
 
-  auto bind_repno_event_list =
-      [&](const char* name,
-          ObjectRepnoEventList::Getter getter,
-          ObjectRepnoEventList::Setter setter) {
-        obj.subcls(name, repno_event_list,
-                   [name = std::string(name), getter = std::move(getter),
-                    setter = std::move(setter),
-                    make_repno_event](SiglusObject* parent) {
-                     return std::make_unique<ObjectRepnoEventList>(
-                         parent->ref_, name, getter, setter,
-                         make_repno_event);
-                   });
-      };
-  bind_repno_event_list(
-      "x_rep_eve", CreateGetter<&ObjectParameter::adjustment_offsets_x>(),
-      CreateSetter<&ObjectParameter::adjustment_offsets_x>());
-  bind_repno_event_list(
-      "y_rep_eve", CreateGetter<&ObjectParameter::adjustment_offsets_y>(),
-      CreateSetter<&ObjectParameter::adjustment_offsets_y>());
-  bind_repno_event_list(
-      "tr_rep_eve", CreateGetter<&ObjectParameter::adjustment_alphas>(),
-      CreateSetter<&ObjectParameter::adjustment_alphas>());
+  auto bind_repno_event_list = [&](const char* name,
+                                   ObjectRepnoEventList::Getter getter,
+                                   ObjectRepnoEventList::Setter setter) {
+    obj.subcls(
+        name, repno_event_list,
+        [name = std::string(name), getter = std::move(getter),
+         setter = std::move(setter), make_repno_event](SiglusObject* parent) {
+          return std::make_unique<ObjectRepnoEventList>(
+              parent->ref_, name, getter, setter, make_repno_event);
+        });
+  };
+  bind_repno_event_list("x_rep_eve",
+                        CreateGetter<&ObjectParameter::adjustment_offsets_x>(),
+                        CreateSetter<&ObjectParameter::adjustment_offsets_x>());
+  bind_repno_event_list("y_rep_eve",
+                        CreateGetter<&ObjectParameter::adjustment_offsets_y>(),
+                        CreateSetter<&ObjectParameter::adjustment_offsets_y>());
+  bind_repno_event_list("tr_rep_eve",
+                        CreateGetter<&ObjectParameter::adjustment_alphas>(),
+                        CreateSetter<&ObjectParameter::adjustment_alphas>());
 
   obj.def("init", [](SiglusObject* obj) {
     obj->object().FreeDataAndInitializeParams();
@@ -1243,6 +1260,8 @@ void BindObject(SiglusRuntime& runtime) {
         return obj->object().PixelHeight();
       },
       sb::arg("cut_no") = 0);
+  obj.def("get_file_path",
+          [](SiglusObject* obj) { return obj->object().FilePath(); });
   obj.def("set_center_rep", &SiglusObject::set_center_rep);
   obj.def("set_scale", &SiglusObject::set_scale);
   obj.def("set_pos", &SiglusObject::set_pos);

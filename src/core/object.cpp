@@ -65,6 +65,7 @@ static DomainLogger logger("GraphicsObject");
 GraphicsObject GraphicsObject::Clone() const {
   GraphicsObject result;
   result.param_ = param_;
+  result.file_path_ = file_path_;
   if (object_data_) {
     result.object_data_ = object_data_->Clone();
   }
@@ -85,6 +86,7 @@ GraphicsObject GraphicsObject::Clone() const {
 GraphicsObject::GraphicsObject(GraphicsObject&& rhs)
     : param_(rhs.param_),
       object_data_(nullptr),
+      file_path_(std::move(rhs.file_path_)),
       object_mutators_(),
       child_(std::move(rhs.child_)) {
   if (rhs.object_data_) {
@@ -93,10 +95,12 @@ GraphicsObject::GraphicsObject(GraphicsObject&& rhs)
   object_mutators_ = std::move(rhs.object_mutators_);
 
   rhs.param_ = ObjectParameter();
+  rhs.file_path_.clear();
 }
 
 GraphicsObject& GraphicsObject::operator=(GraphicsObject&& rhs) {
   param_ = rhs.param_;
+  file_path_ = std::move(rhs.file_path_);
   if (rhs.object_data_) {
     object_data_ = std::move(rhs.object_data_);
   } else {
@@ -107,6 +111,7 @@ GraphicsObject& GraphicsObject::operator=(GraphicsObject&& rhs) {
   child_ = std::move(rhs.child_);
 
   rhs.param_ = ObjectParameter();
+  rhs.file_path_.clear();
 
   return *this;
 }
@@ -141,6 +146,16 @@ const GraphicsObjectData& GraphicsObject::GetDrawer() const {
   } else {
     throw std::runtime_error("null object data");
   }
+}
+
+const std::string& GraphicsObject::FilePath() const { return file_path_; }
+
+void GraphicsObject::SetFilePath(std::string path) {
+  file_path_ = std::move(path);
+}
+
+void GraphicsObject::ClearFilePath() {
+  file_path_.clear();
 }
 
 void GraphicsObject::SetDrawer(std::unique_ptr<GraphicsObjectData> obj) {
@@ -184,6 +199,7 @@ void GraphicsObject::SetChild(std::size_t idx, GraphicsObject&& obj) {
 
 void GraphicsObject::ResetChildren(std::size_t count) {
   object_data_.reset();
+  file_path_.clear();
   child_.clear();
   child_.resize(count);
 }
@@ -249,6 +265,7 @@ void GraphicsObject::Render(std::optional<ParentObjState> parent) {
 
 void GraphicsObject::FreeObjectData() {
   object_data_.reset();
+  file_path_.clear();
   object_mutators_.clear();
   child_.clear();
 }
@@ -260,6 +277,7 @@ void GraphicsObject::InitializeParams() {
 
 void GraphicsObject::FreeDataAndInitializeParams() {
   object_data_.reset();
+  file_path_.clear();
   param_ = ObjectParameter();
   object_mutators_.clear();
   child_.clear();
@@ -276,8 +294,10 @@ void GraphicsObject::Execute() {
       return it->GetAnimator()->IsFinished() &&
              it->GetAnimator()->GetAfterAction() == AFTER_CLEAR;
     };
-    if (should_delete(object_data_.get()))
+    if (should_delete(object_data_.get())) {
       object_data_ = nullptr;
+      file_path_.clear();
+    }
   }
 
   for (auto& it : child_) {

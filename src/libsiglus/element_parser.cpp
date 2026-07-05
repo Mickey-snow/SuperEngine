@@ -1185,7 +1185,7 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
           id[102] | obj_getter("get_pixel_color_g"),
           id[103] | obj_getter("get_pixel_color_b"),
 
-          id[62] | b(Type::String, Member("get_file_path")),
+          id[62] | obj_getter("get_file_path", Type::String),
           id[111] | b(Type::IntList, Member("F")),
 
           id[93] | b(Type::ObjList, Member("child")),

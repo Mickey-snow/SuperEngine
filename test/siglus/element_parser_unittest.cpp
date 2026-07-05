@@ -328,6 +328,16 @@ TEST_F(ElementParserTest, ObjectExistTypeIsImplicitGetterCall) {
   EXPECT_EQ(parsed.chain.GetType(), Type::Int);
 }
 
+TEST_F(ElementParserTest, ObjectGetFilePathIsImplicitGetterCall) {
+  auto parsed = chain(37, 2, -1, 10, 62);
+  EXPECT_EQ(parsed, "stage.back.object[int:10].get_file_path()");
+  EXPECT_EQ(parsed.chain.GetType(), Type::String);
+  const Call* call = last_call(parsed);
+  ASSERT_NE(call, nullptr);
+  EXPECT_TRUE(call->is_simple);
+  EXPECT_FALSE(call->overload_id);
+}
+
 TEST_F(ElementParserTest, ObjectGetSetUsesSimpleGetterAndSetterCalls) {
   {
     ElementCode elm{38, 2, -1, 0, 3};

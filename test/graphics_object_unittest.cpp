@@ -99,6 +99,30 @@ TEST_F(GraphicsObjectTest, Clone) {
   EXPECT_EQ(obj.Param().position_x, 10);
 }
 
+TEST_F(GraphicsObjectTest, CloneCopiesFilePath) {
+  obj.SetFilePath("bg47");
+
+  GraphicsObject other = obj.Clone();
+
+  EXPECT_EQ(other.FilePath(), "bg47");
+  other.SetFilePath("cg01");
+  EXPECT_EQ(obj.FilePath(), "bg47");
+}
+
+TEST_F(GraphicsObjectTest, MoveTransfersFilePath) {
+  obj.SetFilePath("bg47");
+
+  GraphicsObject other = std::move(obj);
+
+  EXPECT_EQ(other.FilePath(), "bg47");
+  EXPECT_TRUE(obj.FilePath().empty());
+
+  GraphicsObject assigned;
+  assigned = std::move(other);
+  EXPECT_EQ(assigned.FilePath(), "bg47");
+  EXPECT_TRUE(other.FilePath().empty());
+}
+
 TEST_F(GraphicsObjectTest, CloneCopiesChildrenDeeply) {
   obj.ResetChildren(2);
   GraphicsObject& child = obj.TouchChild(1);
@@ -127,36 +151,50 @@ TEST_F(GraphicsObjectTest, SetObjectDataClearsChildren) {
   EXPECT_FALSE(obj.HasChildren());
 }
 
+TEST_F(GraphicsObjectTest, ResetChildrenClearsFilePath) {
+  obj.SetFilePath("bg47");
+
+  obj.ResetChildren(1);
+
+  EXPECT_TRUE(obj.FilePath().empty());
+}
+
 TEST_F(GraphicsObjectTest, InitializeParamsPreservesChildren) {
   obj.ResetChildren(1);
   obj.TouchChild(0).Param().SetX(42);
+  obj.SetFilePath("bg47");
 
   obj.InitializeParams();
 
   ASSERT_TRUE(obj.HasChildren());
   ASSERT_NE(obj.GetChild(0), nullptr);
   EXPECT_EQ(obj.GetChild(0)->Param().position_x, 42);
+  EXPECT_EQ(obj.FilePath(), "bg47");
 }
 
 TEST_F(GraphicsObjectTest, FreeObjectDataClearsChildren) {
   obj.ResetChildren(1);
   obj.TouchChild(0);
+  obj.SetFilePath("bg47");
 
   obj.FreeObjectData();
 
   EXPECT_FALSE(obj.HasDrawer());
   EXPECT_FALSE(obj.HasChildren());
+  EXPECT_TRUE(obj.FilePath().empty());
 }
 
 TEST_F(GraphicsObjectTest, FreeDataAndInitializeParamsClearsChildren) {
   obj.ResetChildren(1);
   obj.TouchChild(0);
   obj.Param().SetX(42);
+  obj.SetFilePath("bg47");
 
   obj.FreeDataAndInitializeParams();
 
   EXPECT_FALSE(obj.HasChildren());
   EXPECT_EQ(obj.Param().position_x, 0);
+  EXPECT_TRUE(obj.FilePath().empty());
 }
 
 TEST_F(GraphicsObjectTest, InvisibleParentDoesNotRenderChildren) {
