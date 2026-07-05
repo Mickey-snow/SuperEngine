@@ -27,6 +27,7 @@
 #include "core/object_internal/drawer/file.hpp"
 #include "core/object_internal/drawer/movie.hpp"
 #include "core/object_internal/object_mutator.hpp"
+#include "core/object_internal/object_parameter.hpp"
 #include "libsiglus/bindings/registry.hpp"
 
 #include "core/object.hpp"
@@ -525,6 +526,28 @@ class ObjectChild {
   }
 };
 
+struct ObjectRepnoParam {
+  using repno_t = std::array<int, 8>;
+  ObjectReference ref_;
+  std::function<repno_t&(ObjectParameter&)> fn_;
+  ObjectRepnoParam(ObjectReference ref,
+                   std::function<repno_t&(ObjectParameter&)> fn)
+      : ref_(std::move(ref)), fn_(std::move(fn)) {}
+
+  int size() { return 8; }
+  void resize(int) {}
+  sr::Value get(int idx) {
+    GraphicsObject& obj = ref_.get();
+    auto& arr = fn_(obj.Param());
+    return arr.at(idx);
+  }
+  void set(int idx, int val) {
+    GraphicsObject& obj = ref_.get();
+    auto& arr = fn_(obj.Param());
+    arr.at(idx) = val;
+  }
+};
+
 struct DirectObjectPropertyBinder {
   sb::class_<SiglusObject>& obj;
 
@@ -858,6 +881,7 @@ void BindObject(SiglusRuntime& runtime) {
   sb::module_ m(vm.gc_.get(), vm.globals_.get());
   sb::class_<SiglusObject> obj(m, "Object");
   sb::class_<ObjectChild> child(m, "ObjectChild", false);
+  sb::class_<ObjectRepnoParam> repno(m, "ObjectRepnoParam", false);
 
   Stage* stage = runtime.stage.get();
   auto graphics = runtime.system ? runtime.system->graphics_ptr() : nullptr;
@@ -872,6 +896,7 @@ void BindObject(SiglusRuntime& runtime) {
           sb::arg("layer") = static_cast<int>(OBJ_FG),
           sb::arg("object_id") = 0);
 
+  // child object
   child.def("__getitem__", &ObjectChild::get, sb::arg("idx"));
   child.def("resize", &ObjectChild::resize, sb::arg("size"));
   child.def("size", &ObjectChild::size);
@@ -889,8 +914,32 @@ void BindObject(SiglusRuntime& runtime) {
                                                     make_child_object);
              });
 
+  // direct properties
   DirectObjectPropertyBinder direct_properties{obj};
   direct_properties.Bind();
+
+  repno.def("__getitem__", &ObjectRepnoParam::get, sb::arg("idx"));
+  repno.def("__setitem__", &ObjectRepnoParam::set, sb::arg("idx"),
+            sb::arg("val"));
+  repno.def("resize", &ObjectRepnoParam::resize, sb::arg("size"));
+  repno.def("size", &ObjectRepnoParam::size);
+
+  obj.subcls("x_rep", repno,
+             [](SiglusObject* obj) -> std::unique_ptr<ObjectRepnoParam> {
+               auto fn = +[](ObjectParameter& param) -> std::array<int, 8>& {
+                 return param.adjustment_offsets_x;
+               };
+               return std::make_unique<ObjectRepnoParam>(obj->ref_,
+                                                         std::move(fn));
+             });
+  obj.subcls("y_rep", repno,
+             [](SiglusObject* obj) -> std::unique_ptr<ObjectRepnoParam> {
+               auto fn = +[](ObjectParameter& param) -> std::array<int, 8>& {
+                 return param.adjustment_offsets_y;
+               };
+               return std::make_unique<ObjectRepnoParam>(obj->ref_,
+                                                         std::move(fn));
+             });
 
   obj.def("init", [](SiglusObject* obj) {
     obj->object().FreeDataAndInitializeParams();
