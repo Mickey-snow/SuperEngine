@@ -244,13 +244,23 @@ TEST_F(ElementParserTest, Movie) {
   {
     ElementCode elm{20, 2};
     elm.ForceBind({0, {v("mov1")}});
-    EXPECT_EQ(chain(elm), "mov.play_wait(str:mov1)");
+    auto parsed = chain(elm);
+    EXPECT_EQ(parsed, "mov.play_wait(str:mov1)");
+    EXPECT_EQ(parsed.chain.GetType(), Type::None);
+    const Call* call = last_call(parsed);
+    ASSERT_NE(call, nullptr);
+    EXPECT_TRUE(call->await_result);
   }
   {
     ElementCode elm{20, 3};
     elm.ForceBind({1, {v("mov2"), v(0), v(0), v(420), v(420)}});
-    EXPECT_EQ(chain(elm),
+    auto parsed = chain(elm);
+    EXPECT_EQ(parsed,
               "mov.play_waitkey(str:mov2,int:0,int:0,int:420,int:420)");
+    EXPECT_EQ(parsed.chain.GetType(), Type::Int);
+    const Call* call = last_call(parsed);
+    ASSERT_NE(call, nullptr);
+    EXPECT_TRUE(call->await_result);
   }
 }
 

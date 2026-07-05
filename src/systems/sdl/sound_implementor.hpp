@@ -55,6 +55,10 @@ class SDLSoundImpl : public ISoundSystem {
   virtual void EnableBgm() override;
   virtual void DisableBgm() override;
 
+  virtual void PlayMovieAudio(player_t audio) override;
+  virtual player_t GetMovieAudio() const override;
+  virtual void StopMovieAudio() override;
+
   uint16_t ToSDLSoundFormat(AV_SAMPLE_FMT fmt) const;
   AV_SAMPLE_FMT FromSDLSoundFormat(uint16_t fmt) const;
 
@@ -77,6 +81,7 @@ class SDLSoundImpl : public ISoundSystem {
 
   static std::vector<ChannelInfo> ch_;
   static player_t bgm_player_;
+  static player_t movie_player_;
   static bool bgm_enabled_;
   static AVSpec spec_;
 };

@@ -29,8 +29,12 @@
 #include <SDL/SDL.h>
 #include <SDL/SDL_mixer.h>
 
+#include <algorithm>
+#include <cstring>
+#include <limits>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 
 using std::string_literals::operator""s;
 
@@ -74,11 +78,9 @@ void SDLSoundImpl::ChannelInfo::Reset() {
 // -----------------------------------------------------------------------
 
 SDLSoundImpl::SDLSoundImpl() = default;
-
 SDLSoundImpl::~SDLSoundImpl() = default;
 
 void SDLSoundImpl::InitSystem() const { SDL_InitSubSystem(SDL_INIT_AUDIO); }
-
 void SDLSoundImpl::QuitSystem() const { SDL_QuitSubSystem(SDL_INIT_AUDIO); }
 
 void SDLSoundImpl::AllocateChannels(int num) const {
@@ -109,6 +111,141 @@ inline static void CheckChannel(int ch_id,
   if (ch_id < 0 || ch_id >= tot_channel)
     throw std::invalid_argument(function_name + ": Invalid channel number " +
                                 std::to_string(ch_id));
+}
+
+template <typename T>
+T SilenceValue() {
+  if constexpr (std::is_unsigned_v<T>)
+    return static_cast<T>(std::numeric_limits<T>::max() / 2 + 1);
+  else
+    return T();
+}
+
+template <typename T>
+T ClampSample(long double value) {
+  const long double low =
+      static_cast<long double>(std::numeric_limits<T>::min());
+  const long double high =
+      static_cast<long double>(std::numeric_limits<T>::max());
+  return static_cast<T>(std::clamp(value, low, high));
+}
+
+template <typename T>
+T AverageSamples(const T* samples, int count) {
+  long double sum = 0;
+  for (int i = 0; i < count; ++i)
+    sum += static_cast<long double>(samples[i]);
+  return ClampSample<T>(sum / count);
+}
+
+void MatchChannelCount(AudioData& audio, int channel_count) {
+  if (audio.spec.channel_count == channel_count)
+    return;
+
+  const int input_channels = audio.spec.channel_count;
+  std::visit(
+      [&](auto& data) {
+        using container_t = std::decay_t<decltype(data)>;
+        using sample_t = typename container_t::value_type;
+
+        const std::size_t frames = data.size() / input_channels;
+        container_t converted;
+        converted.reserve(frames * channel_count);
+
+        for (std::size_t frame = 0; frame < frames; ++frame) {
+          const sample_t* input = data.data() + frame * input_channels;
+          if (channel_count == 1) {
+            converted.push_back(AverageSamples(input, input_channels));
+          } else {
+            for (int channel = 0; channel < channel_count; ++channel) {
+              converted.push_back(
+                  input[input_channels == 1
+                            ? 0
+                            : std::min(channel, input_channels - 1)]);
+            }
+          }
+        }
+
+        data = std::move(converted);
+      },
+      audio.data);
+
+  audio.spec.channel_count = channel_count;
+}
+
+template <typename T>
+T MixOne(T lhs, T rhs) {
+  if constexpr (std::is_unsigned_v<T>) {
+    const int silence = static_cast<int>(SilenceValue<T>());
+    const int mixed = static_cast<int>(lhs) - silence + static_cast<int>(rhs);
+    return ClampSample<T>(mixed);
+  } else {
+    const long double mixed =
+        static_cast<long double>(lhs) + static_cast<long double>(rhs);
+    return ClampSample<T>(mixed);
+  }
+}
+
+template <typename T>
+void MixSamples(uint8_t* stream, const std::vector<T>& samples) {
+  auto* dst = reinterpret_cast<T*>(stream);
+  for (std::size_t i = 0; i < samples.size(); ++i)
+    dst[i] = MixOne(dst[i], samples[i]);
+}
+
+avsample_buffer_t LoadForOutput(player_t player,
+                                std::size_t output_samples,
+                                const AVSpec& output_spec) {
+  const AVSpec player_spec = player->GetSpec();
+  const std::size_t output_frames =
+      output_samples / static_cast<std::size_t>(output_spec.channel_count);
+  std::size_t request_frames = output_frames;
+  if (player_spec.sample_rate != output_spec.sample_rate) {
+    request_frames =
+        (output_frames * static_cast<std::size_t>(player_spec.sample_rate) +
+         static_cast<std::size_t>(output_spec.sample_rate) - 1) /
+        static_cast<std::size_t>(output_spec.sample_rate);
+  }
+
+  AudioData audio = player->LoadPCM(
+      request_frames * static_cast<std::size_t>(player_spec.channel_count));
+  if (audio.spec.sample_rate != output_spec.sample_rate) {
+    Resampler resampler(output_spec.sample_rate);
+    resampler.Resample(audio);
+  }
+  MatchChannelCount(audio, output_spec.channel_count);
+
+  avsample_buffer_t converted = audio.GetAs(output_spec.sample_format);
+  std::visit(
+      [&](auto& data) {
+        using container_t = std::decay_t<decltype(data)>;
+        using sample_t = typename container_t::value_type;
+        data.resize(output_samples, SilenceValue<sample_t>());
+      },
+      converted);
+  return converted;
+}
+
+void MixPlayer(player_t& player,
+               bool enabled,
+               uint8_t* stream,
+               int len,
+               const AVSpec& output_spec) {
+  if (!player || !enabled)
+    return;
+  if (player->GetStatus() == AudioPlayer::STATUS::TERMINATED) {
+    player = nullptr;
+    return;
+  }
+
+  const std::size_t output_samples =
+      static_cast<std::size_t>(len) / Bytecount(output_spec.sample_format);
+  avsample_buffer_t converted =
+      LoadForOutput(player, output_samples, output_spec);
+  std::visit([&](auto&& data) { MixSamples(stream, data); }, converted);
+
+  if (player->GetStatus() == AudioPlayer::STATUS::TERMINATED)
+    player = nullptr;
 }
 
 void SDLSoundImpl::SetVolume(int channel, int vol) const {
@@ -210,6 +347,29 @@ void SDLSoundImpl::EnableBgm() { bgm_enabled_ = true; }
 
 void SDLSoundImpl::DisableBgm() { bgm_enabled_ = false; }
 
+void SDLSoundImpl::PlayMovieAudio(player_t audio) {
+  auto audio_spec = audio->GetSpec();
+  if (audio_spec.sample_rate != spec_.sample_rate) {
+    auto channels = ch_.size();
+    CloseAudio();
+    spec_.sample_rate = audio_spec.sample_rate;
+    OpenAudio(spec_);
+    AllocateChannels(channels);
+  }
+
+  SDLAudioLocker lock;
+  movie_player_ = audio;
+}
+
+player_t SDLSoundImpl::GetMovieAudio() const { return movie_player_; }
+
+void SDLSoundImpl::StopMovieAudio() {
+  SDLAudioLocker lock;
+  if (movie_player_)
+    movie_player_->Terminate();
+  movie_player_ = nullptr;
+}
+
 int SDLSoundImpl::FadeOutChannel(int channel, int fadetime) const {
   CheckChannel(channel, ch_.size(), "sdl FadeOutChannel");
 
@@ -273,22 +433,21 @@ void SDLSoundImpl::OnChannelFinished(int channel) {
 }
 
 void SDLSoundImpl::OnMusic(void*, uint8_t* stream, int len) {
-  std::memset(stream, 0, len);
-
-  if (!bgm_player_ || !bgm_enabled_)
-    return;
-  if (bgm_player_->GetStatus() == AudioPlayer::STATUS::TERMINATED) {
-    bgm_player_ = nullptr;
-    return;
+  switch (spec_.sample_format) {
+    case AV_SAMPLE_FMT::U8:
+      std::memset(stream, SilenceValue<avsample_u8_t>(), len);
+      break;
+    default:
+      std::memset(stream, 0, len);
+      break;
   }
 
-  auto pcm_count = len / Bytecount(spec_.sample_format);
-  auto audio_data = bgm_player_->LoadPCM(pcm_count).GetAs(spec_.sample_format);
-  std::visit([&](auto&& buf) { std::memmove(stream, buf.data(), len); },
-             std::move(audio_data));
+  MixPlayer(bgm_player_, bgm_enabled_, stream, len, spec_);
+  MixPlayer(movie_player_, true, stream, len, spec_);
 }
 
 std::vector<SDLSoundImpl::ChannelInfo> SDLSoundImpl::ch_;
 player_t SDLSoundImpl::bgm_player_ = nullptr;
+player_t SDLSoundImpl::movie_player_ = nullptr;
 bool SDLSoundImpl::bgm_enabled_ = true;
 AVSpec SDLSoundImpl::spec_;

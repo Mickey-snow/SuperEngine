@@ -50,4 +50,8 @@ class ISoundSystem {
   virtual player_t GetBgm() const = 0;
   virtual void EnableBgm() = 0;
   virtual void DisableBgm() = 0;
+
+  virtual void PlayMovieAudio(player_t audio) = 0;
+  virtual player_t GetMovieAudio() const = 0;
+  virtual void StopMovieAudio() = 0;
 };

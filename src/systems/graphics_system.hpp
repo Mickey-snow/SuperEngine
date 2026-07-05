@@ -345,6 +345,10 @@ class GraphicsSystem : public EventListener {
   std::shared_ptr<SDLSurface> LoadSurfaceFromFile(
       const std::string& short_filename);
 
+  std::shared_ptr<SDLSurface> CreateSurfaceBGRA(Size size,
+                                                std::span<char> data,
+                                                bool is_alpha_mask = false);
+
  protected:
   const Point& cursor_pos() const { return cursor_pos_; }
 

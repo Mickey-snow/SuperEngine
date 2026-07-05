@@ -72,7 +72,8 @@ serilang::Value MakePollingWaitFuture(
     std::function<bool()> done,
     bool key_skip = false,
     EventSystem* event_system = nullptr,
-    std::chrono::milliseconds poll_interval = std::chrono::milliseconds(5));
+    std::chrono::milliseconds poll_interval = std::chrono::milliseconds(5),
+    std::function<void()> on_key = {});
 
 // ------------------------------------------------------------------------------
 

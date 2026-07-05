@@ -27,12 +27,17 @@
 #include "test_utils.hpp"
 
 #include "core/avspec.hpp"
-#include "systems/sound_system.hpp"
 #include "systems/sdl/sound_implementor.hpp"
+#include "systems/sound_system.hpp"
 
 #include <filesystem>
+#include <limits>
 #include <memory>
 #include <tuple>
+
+avsample_buffer_t LoadForOutput(player_t player,
+                                std::size_t output_samples,
+                                const AVSpec& output_spec);
 
 class FakeAudioImpl : public SDLSoundImpl {
  public:
@@ -48,6 +53,39 @@ using ::testing::EndsWith;
 using ::testing::Return;
 
 namespace fs = std::filesystem;
+
+class OvershootingFloatDecoder : public IAudioDecoder {
+ public:
+  std::string DecoderName() const override {
+    return "OvershootingFloatDecoder";
+  }
+
+  AVSpec GetSpec() override {
+    return {.sample_rate = 48000,
+            .sample_format = AV_SAMPLE_FMT::FLT,
+            .channel_count = 2};
+  }
+
+  AudioData DecodeAll() override {
+    consumed_ = true;
+    return AudioData{GetSpec(), samples_};
+  }
+
+  AudioData DecodeNext() override {
+    consumed_ = true;
+    return AudioData{GetSpec(), samples_};
+  }
+
+  bool HasNext() override { return !consumed_; }
+
+  pcm_count_t Tell() override {
+    return consumed_ ? static_cast<pcm_count_t>(samples_.size() / 2) : 0;
+  }
+
+ private:
+  bool consumed_ = false;
+  std::vector<avsample_flt_t> samples_{-1.004753f, 1.004753f};
+};
 
 TEST(SDLSound, SoundFormat) {
   // sdl1.2 audio format flags
@@ -72,4 +110,20 @@ TEST(SDLSound, SoundFormat) {
 
   EXPECT_THROW(aimpl->FromSDLSoundFormat(0), std::invalid_argument);
   EXPECT_THROW(aimpl->FromSDLSoundFormat(12345), std::invalid_argument);
+}
+
+TEST(SDLSound, LoadForOutputClampsFloatOvershoot) {
+  auto decoder = std::make_shared<OvershootingFloatDecoder>();
+  auto player = std::make_shared<AudioPlayer>(AudioDecoder(decoder));
+  AVSpec output_spec{.sample_rate = 48000,
+                     .sample_format = AV_SAMPLE_FMT::S16,
+                     .channel_count = 2};
+
+  avsample_buffer_t converted = LoadForOutput(player, 2, output_spec);
+
+  ASSERT_TRUE(std::holds_alternative<std::vector<avsample_s16_t>>(converted));
+  EXPECT_EQ(std::get<std::vector<avsample_s16_t>>(converted),
+            (std::vector<avsample_s16_t>{
+                std::numeric_limits<avsample_s16_t>::min(),
+                std::numeric_limits<avsample_s16_t>::max()}));
 }

@@ -110,7 +110,8 @@ sr::Value MakePollingWaitFuture(sr::VM& vm,
                                 std::function<bool()> done,
                                 bool key_skip,
                                 EventSystem* event_system,
-                                std::chrono::milliseconds poll_interval) {
+                                std::chrono::milliseconds poll_interval,
+                                std::function<void()> on_key) {
   if (!done || done())
     return MakeResolvedFuture(*vm.gc_);
 
@@ -172,9 +173,12 @@ sr::Value MakePollingWaitFuture(sr::VM& vm,
       std::make_shared<WaitHandler>(vm.gc_, key_skip ? event_system : nullptr);
   if (key_skip) {
     std::weak_ptr<PollState> weak_state = state;
-    state->wait_handler->OnKey([weak_state] {
-      if (auto state = weak_state.lock())
+    state->wait_handler->OnKey([weak_state, on_key = std::move(on_key)] {
+      if (auto state = weak_state.lock()) {
+        if (on_key)
+          on_key();
         state->Resolve(1);
+      }
     });
   }
 

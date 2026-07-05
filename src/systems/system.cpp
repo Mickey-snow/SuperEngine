@@ -73,7 +73,9 @@ namespace {
 
 const std::vector<std::string> ALL_FILETYPES = {"g00", "pdt", "anm", "gan",
                                                 "hik", "wav", "ogg", "nwa",
-                                                "mp3", "ovk", "koe", "nwk"};
+                                                "mp3", "ovk", "koe", "nwk",
+                                                "wmv", "asf", "avi", "mpg",
+                                                "mpeg"};
 
 }  // namespace
 

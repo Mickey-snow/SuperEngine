@@ -497,8 +497,32 @@ bool SoundSystem::KoePlaying() const {
 
 void SoundSystem::KoeStop() { sound_impl_->HaltChannel(KOE_CHANNEL); }
 
+void SoundSystem::PlayMovieAudio(const std::filesystem::path& path,
+                                 int volume) {
+  player_t player = CreateAudioPlayer(path);
+  player->SetVolume(static_cast<float>(std::clamp(volume, 0, 255)) / 255.0f);
+  sound_impl_->PlayMovieAudio(player);
+}
+
+void SoundSystem::StopMovieAudio() {
+  sound_impl_->StopMovieAudio();
+}
+
+bool SoundSystem::MovieAudioPlaying() const {
+  player_t player = sound_impl_->GetMovieAudio();
+  return player && player->GetStatus() == AudioPlayer::STATUS::PLAYING;
+}
+
+int SoundSystem::MovieAudioTimeMs() const {
+  player_t player = sound_impl_->GetMovieAudio();
+  if (!player)
+    return 0;
+  return static_cast<int>(player->GetCurrentTime());
+}
+
 void SoundSystem::Reset() {
   BgmStop();
+  StopMovieAudio();
   WavStopAll();
 }
 

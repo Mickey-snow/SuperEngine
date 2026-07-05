@@ -659,6 +659,15 @@ std::shared_ptr<SDLSurface> GraphicsSystem::LoadSurfaceFromFile(
 
 // -----------------------------------------------------------------------
 
+std::shared_ptr<SDLSurface> GraphicsSystem::CreateSurfaceBGRA(
+    Size size,
+    std::span<char> data,
+    bool is_alpha_mask) {
+  return impl_->CreateSurfaceBGRA(size, data, is_alpha_mask);
+}
+
+// -----------------------------------------------------------------------
+
 std::shared_ptr<SDLSurface> GraphicsSystem::GetSurfaceNamedAndMarkViewed(
     RLMachine& machine,
     const std::string& short_filename) {

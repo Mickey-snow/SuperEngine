@@ -141,20 +141,20 @@ TEST(SampleConversionTest, U8ToFloat) {
   EXPECT_NEAR(result[3], -0.5f, 1.0f / 255);
 }
 
-TEST(SampleConversionTest, OutOfRangeFloat) {
-  std::vector<avsample_flt_t> flt_audio{-1.01, 1.001};
+TEST(SampleConversionTest, ClampOutOfRangeFloatToIntegral) {
+  std::vector<avsample_flt_t> flt_audio{-1.01f, -1.0f, 0.0f, 1.0f, 1.001f};
 
   AudioData audio_data;
   audio_data.data = flt_audio;
-  EXPECT_NO_THROW(audio_data.GetAs<avsample_dbl_t>())
-      << "Converting samples between floating point types should not throw "
-         "even when the sample is out of range [-1.0,1.0]";
-  EXPECT_THROW(audio_data.GetAs<avsample_s16_t>(), std::out_of_range);
 
-  std::vector<avsample_dbl_t> dbl_audio{-1.0001, 0, 1.000001};
-  audio_data.data = dbl_audio;
-  EXPECT_NO_THROW(audio_data.GetAs<avsample_dbl_t>());
-  EXPECT_THROW(audio_data.GetAs<avsample_s16_t>(), std::out_of_range);
+  std::vector<avsample_s16_t> result = audio_data.GetAs<avsample_s16_t>();
+
+  EXPECT_EQ(result,
+            (std::vector<avsample_s16_t>{-32768, -32768, 0, 32767, 32767}));
+
+  avsample_buffer_t dispatched = audio_data.GetAs(AV_SAMPLE_FMT::S16);
+  ASSERT_TRUE(std::holds_alternative<std::vector<avsample_s16_t>>(dispatched));
+  EXPECT_EQ(std::get<std::vector<avsample_s16_t>>(dispatched), result);
 }
 
 TEST(AudioDataTest, SampleLength) {

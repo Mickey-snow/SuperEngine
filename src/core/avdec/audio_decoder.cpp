@@ -24,6 +24,8 @@
 
 #include "core/avdec/audio_decoder.hpp"
 
+#include "core/avdec/ffmpeg.hpp"
+
 #include <algorithm>
 
 namespace fs = std::filesystem;
@@ -51,10 +53,19 @@ static decoder_constructor_t owp = [](std::string_view data) {
   return std::make_shared<OggDecoder>(data, owp_xorkey);
 };
 
+static decoder_constructor_t ffmpeg_audio = [](std::string_view data) {
+  return std::make_shared<FfmpegAudioDecoder>(data);
+};
+
 std::unordered_map<std::string, decoder_constructor_t>
     ADecoderFactory::default_decoder_map_ = {
         {"ogg", ogg}, {".ogg", ogg}, {"nwa", nwa}, {".nwa", nwa},
-        {"wav", wav}, {".wav", wav}, {"owp", owp}, {".owp", owp}};
+        {"wav", wav}, {".wav", wav}, {"owp", owp}, {".owp", owp},
+        {"wmv", ffmpeg_audio}, {".wmv", ffmpeg_audio},
+        {"asf", ffmpeg_audio}, {".asf", ffmpeg_audio},
+        {"avi", ffmpeg_audio}, {".avi", ffmpeg_audio},
+        {"mpg", ffmpeg_audio}, {".mpg", ffmpeg_audio},
+        {"mpeg", ffmpeg_audio}, {".mpeg", ffmpeg_audio}};
 
 ADecoderFactory::ADecoderFactory() : decoder_map_(&default_decoder_map_) {}
 

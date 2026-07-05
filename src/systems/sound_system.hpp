@@ -30,6 +30,7 @@
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/split_member.hpp>
+#include <filesystem>
 #include <map>
 #include <memory>
 #include <string>
@@ -129,6 +130,11 @@ class SoundSystem {
 
   bool KoePlaying() const;
   void KoeStop();
+
+  void PlayMovieAudio(const std::filesystem::path& path, int volume = 255);
+  void StopMovieAudio();
+  bool MovieAudioPlaying() const;
+  int MovieAudioTimeMs() const;
 
   void Reset();
 

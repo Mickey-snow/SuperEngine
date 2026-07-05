@@ -27,18 +27,12 @@
 #include "core/avspec.hpp"
 
 #include <algorithm>
+#include <execution>
 #include <functional>
 #include <limits>
 #include <stdexcept>
 #include <variant>
 #include <vector>
-
-#ifdef PARALLEL
-#include <execution>
-namespace execution = std::execution;
-#else
-enum class execution { seq, unseq, par_unseq, par };
-#endif
 
 using avsample_buffer_t = std::variant<std::vector<avsample_u8_t>,
                                        std::vector<avsample_s8_t>,
@@ -69,11 +63,8 @@ struct AudioData {
   void Apply(std::function<void(T&)> fn) {
     std::visit(
         [&fn](auto& data) {
-#ifdef PARALLEL
-          std::for_each(execution::par_unseq, data.begin(), data.end(), fn);
-#else
-          std::for_each(data.begin(), data.end(), fn);
-#endif
+          std::for_each(std::execution::par_unseq, data.begin(), data.end(),
+                        fn);
         },
         data);
   }
@@ -119,14 +110,9 @@ struct AudioData {
 
             else if constexpr (std::is_floating_point<InType>::value &&
                                std::is_integral<OutType>::value) {
-              if (sample < -1.0 || sample > 1.0) {
-                throw std::out_of_range(
-                    "Floating point samples should be within range [-1.0,1.0], "
-                    "got: " +
-                    std::to_string(sample));
-              }
-
-              result.push_back(scale_to_int(sample));
+              const double normalized_sample =
+                  std::clamp(static_cast<double>(sample), -1.0, 1.0);
+              result.push_back(scale_to_int(normalized_sample));
             } else if constexpr (std::is_integral<InType>::value &&
                                  std::is_floating_point<OutType>::value) {
               result.push_back(static_cast<OutType>(scale_to_float(sample)));

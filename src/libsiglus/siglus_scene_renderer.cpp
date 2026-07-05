@@ -69,27 +69,25 @@ void SiglusSceneRenderer::RenderScene() {
 void SiglusSceneRenderer::RenderStageObjects(Stage& stage,
                                              ToRenderVec& to_render) {
   to_render.clear();
-  QueueObjects(stage.next_objects, 0, stage.next_render_alpha(), to_render);
-  QueueObjects(stage.foreground_objects, 1, stage.foreground_render_alpha(),
-               to_render);
-  RenderQueuedObjects(to_render);
+  QueueObjects(stage.next_objects, 0, stage.next_render_alpha());
+  QueueObjects(stage.foreground_objects, 1, stage.foreground_render_alpha());
+  RenderQueuedObjects();
 }
 
 void SiglusSceneRenderer::QueueObjects(LazyArray<GraphicsObject>& objects,
                                        int source_order,
-                                       double alpha_multiplier,
-                                       ToRenderVec& to_render) {
+                                       double alpha_multiplier) {
   for (auto it = objects.begin(), end = objects.end(); it != end; ++it) {
-    to_render.emplace_back(it->Param().z_order, it->Param().z_layer,
-                           it->Param().z_depth, static_cast<int>(it.pos()),
-                           source_order, &*it, alpha_multiplier);
+    to_render_.emplace_back(it->Param().z_order, it->Param().z_layer,
+                            it->Param().z_depth, static_cast<int>(it.pos()),
+                            source_order, &*it, alpha_multiplier);
   }
 }
 
-void SiglusSceneRenderer::RenderQueuedObjects(ToRenderVec& to_render) {
-  std::sort(to_render.begin(), to_render.end());
+void SiglusSceneRenderer::RenderQueuedObjects() {
+  std::sort(to_render_.begin(), to_render_.end());
 
-  for (auto& object : to_render) {
+  for (auto& object : to_render_) {
     const double alpha_multiplier = std::get<6>(object);
     if (alpha_multiplier <= 0.0)
       continue;
