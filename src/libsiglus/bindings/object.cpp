@@ -161,6 +161,23 @@ struct ObjectReference {
   }
 };
 
+namespace {
+
+sr::Value WaitForObjectMutator(sr::VM& vm,
+                               ObjectReference ref,
+                               int repno,
+                               std::string name,
+                               EventSystem* event,
+                               bool key_skip) {
+  auto done = [ref = std::move(ref), repno,
+               name = std::move(name)]() mutable {
+    return !ref.get().IsMutatorRunningMatching(repno, name);
+  };
+  return MakePollingWaitFuture(vm, std::move(done), key_skip, event);
+}
+
+}  // namespace
+
 class SiglusObject {
  public:
   ObjectReference ref_;
@@ -495,7 +512,7 @@ class SiglusObject {
 
 class ObjectEvent {
  public:
-  SiglusObject* parent = nullptr;
+  ObjectReference ref_;
   std::shared_ptr<GraphicsSystem> graphics_;
   std::shared_ptr<EventSystem> event_;
   std::string name;
@@ -504,7 +521,7 @@ class ObjectEvent {
 
   void set(int end_value, int duration_time, int delay, int type) {
     Verify();
-    GraphicsObject& obj = parent->object();
+    GraphicsObject& obj = ref_.get();
     std::shared_ptr<Clock> clock = event_->GetClock();
 
     obj.EndObjectMutatorMatching(-1, name, 0);
@@ -517,12 +534,20 @@ class ObjectEvent {
 
   void end() {
     Verify();
-    parent->object().EndObjectMutatorMatching(-1, name, 0);
+    ref_.get().EndObjectMutatorMatching(-1, name, 0);
   }
 
   int check() {
     Verify();
-    return parent->object().IsMutatorRunningMatching(-1, name) ? 1 : 0;
+    return ref_.get().IsMutatorRunningMatching(-1, name) ? 1 : 0;
+  }
+
+  sr::Value wait(sr::VM& vm, std::vector<sr::Value>) {
+    return WaitForObjectMutator(vm, ref_, -1, name, event_.get(), false);
+  }
+
+  sr::Value wait_key(sr::VM& vm, std::vector<sr::Value>) {
+    return WaitForObjectMutator(vm, ref_, -1, name, event_.get(), true);
   }
 
  private:
@@ -587,6 +612,14 @@ class ObjectRepnoEvent {
   int check() {
     Verify();
     return ref_.get().IsMutatorRunningMatching(repno_, name) ? 1 : 0;
+  }
+
+  sr::Value wait(sr::VM& vm, std::vector<sr::Value>) {
+    return WaitForObjectMutator(vm, ref_, repno_, name, event_.get(), false);
+  }
+
+  sr::Value wait_key(sr::VM& vm, std::vector<sr::Value>) {
+    return WaitForObjectMutator(vm, ref_, repno_, name, event_.get(), true);
   }
 
  private:
@@ -897,7 +930,7 @@ struct ObjectEventPropertyBinder {
                 getter = std::move(property_getter),
                 setter = std::move(property_setter)](SiglusObject* parent) {
                  auto ret = std::make_unique<ObjectEvent>();
-                 ret->parent = parent;
+                 ret->ref_ = parent->ref_;
                  ret->graphics_ = graphics;
                  ret->event_ = event;
                  ret->name = name;
@@ -1110,6 +1143,8 @@ void BindObject(SiglusRuntime& runtime) {
                   sb::arg("duration_time"), sb::arg("delay"), sb::arg("type"));
   repno_event.def("end", &ObjectRepnoEvent::end);
   repno_event.def("check", &ObjectRepnoEvent::check);
+  repno_event.def("wait", &ObjectRepnoEvent::wait, sb::vararg);
+  repno_event.def("wait_key", &ObjectRepnoEvent::wait_key, sb::vararg);
 
   repno_event_list.def("__getitem__", &ObjectRepnoEventList::get,
                        sb::arg("idx"));
@@ -1227,6 +1262,8 @@ void BindObject(SiglusRuntime& runtime) {
          sb::arg("duration_time"), sb::arg("delay"), sb::arg("type"));
   oe.def("end", &ObjectEvent::end);
   oe.def("check", &ObjectEvent::check);
+  oe.def("wait", &ObjectEvent::wait, sb::vararg);
+  oe.def("wait_key", &ObjectEvent::wait_key, sb::vararg);
 
   ObjectEventPropertyBinder event_properties{obj, oe, graphics, event};
   event_properties.Bind();
