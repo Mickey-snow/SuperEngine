@@ -510,6 +510,22 @@ TEST_F(ElementParserTest, WipeCommandMappings) {
 
 TEST_F(ElementParserTest, Mwnd) {
   {
+    ElementCode elm{22};
+    elm.ForceBind({1, {v(1)}});
+    auto parsed = chain(elm);
+    EXPECT_EQ(parsed, "mwnd.set_waku(int:1)");
+    ASSERT_NE(last_call(parsed), nullptr);
+    EXPECT_FALSE(last_call(parsed)->await_result);
+  }
+  {
+    ElementCode elm{22};
+    elm.ForceBind({2, {v(1), v(-1)}});
+    auto parsed = chain(elm);
+    EXPECT_EQ(parsed, "mwnd.set_waku(int:1,int:-1)");
+    ASSERT_NE(last_call(parsed), nullptr);
+    EXPECT_FALSE(last_call(parsed)->await_result);
+  }
+  {
     ElementCode elm{9};
     auto parsed = chain(elm);
     EXPECT_EQ(parsed, "mwnd.open()");

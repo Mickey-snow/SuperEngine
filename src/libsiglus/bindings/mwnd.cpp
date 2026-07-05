@@ -31,23 +31,24 @@
 #include "systems/event_system.hpp"
 #include "systems/sound_system.hpp"
 #include "systems/system.hpp"
+#include "systems/text_factory.hpp"
 #include "systems/text_page.hpp"
 #include "systems/text_system.hpp"
+#include "systems/text_waku.hpp"
 #include "systems/text_window.hpp"
-#include "vm/dict.hpp"
 #include "vm/future.hpp"
-#include "vm/list.hpp"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
 #include <utf8.h>
 
 #include <algorithm>
-#include <charconv>
 #include <chrono>
+#include <format>
 #include <memory>
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -90,6 +91,10 @@ int CurrentPageCharCount(System* system) {
   return system->text().GetCurrentPage().number_of_chars_on_page();
 }
 
+inline std::string WindowKey(int window_number, std::string_view suffix) {
+  return std::format("WINDOW.{:03}.{}", window_number, suffix);
+}
+
 struct MwndMessageState {
   bool block_started = false;
   bool clear_ready = false;
@@ -98,38 +103,30 @@ struct MwndMessageState {
   int current_character = -1;
   bool current_koe_played = false;
   bool current_koe_no_auto_mode = false;
+
+  void ClearKoe() {
+    current_koe = -1;
+    current_character = -1;
+    current_koe_played = false;
+    current_koe_no_auto_mode = false;
+  }
+
+  void MarkNovelClear(System& system) {
+    block_started = false;
+    auto_mode_base_chars =
+        system.text().GetCurrentPage().number_of_chars_on_page();
+    ClearKoe();
+  }
+  void MarkMessageClearReady(System& system) {
+    clear_ready = true;
+    MarkNovelClear(system);
+  }
 };
 
-void ClearKoeState(const std::shared_ptr<MwndMessageState>& state) {
-  if (!state)
-    return;
-
-  state->current_koe = -1;
-  state->current_character = -1;
-  state->current_koe_played = false;
-  state->current_koe_no_auto_mode = false;
-}
-
-void MarkMessageClearReady(System* system,
-                           const std::shared_ptr<MwndMessageState>& state) {
-  if (!state)
-    return;
-
-  state->clear_ready = true;
-  state->block_started = false;
-  state->auto_mode_base_chars = CurrentPageCharCount(system);
-  ClearKoeState(state);
-}
-
-void MarkMessageNovelClear(System* system,
-                           const std::shared_ptr<MwndMessageState>& state) {
-  if (!state)
-    return;
-
-  state->block_started = false;
-  state->auto_mode_base_chars = CurrentPageCharCount(system);
-  ClearKoeState(state);
-}
+struct WakuSelection {
+  int msg_waku_no = 0;
+  int name_waku_no = -1;
+};
 
 struct KoeCallParams {
   int koe = 0;
@@ -238,8 +235,11 @@ class MwndWaitTask : public CoroutineTask {
   };
 
   void MarkClearReadyAfterWait() {
-    if (mark_clear_ready_after_)
-      MarkMessageClearReady(system_, message_state_);
+    if (!system_ || !message_state_)
+      return;
+    if (!mark_clear_ready_after_)
+      return;
+    message_state_->MarkMessageClearReady(*system_);
   }
 
   int AutoModeCharCount() {
@@ -248,7 +248,8 @@ class MwndWaitTask : public CoroutineTask {
     if (configured_count > 0)
       return configured_count;
 
-    const int current_count = CurrentPageCharCount(system_);
+    const int current_count =
+        system_->text().GetCurrentPage().number_of_chars_on_page();
     if (!message_state_)
       return current_count;
     return std::max(current_count - message_state_->auto_mode_base_chars, 0);
@@ -298,6 +299,62 @@ struct MwndBindingState {
     if (!system)
       return window_open ? 1 : 0;
     return system->text().GetCurrentWindow()->IsVisible() ? 1 : 0;
+  }
+
+  void SetWaku(std::vector<sr::Value> raw_args) {
+    CallPacket packet = CallPacket::DecodeFrom(std::move(raw_args));
+    std::optional<int> msg_waku_no;
+    std::optional<int> name_waku_no;
+
+    if (!packet.args.empty())
+      msg_waku_no = AsInt(packet.args[0]).value_or(0);
+    if (packet.args.size() > 1)
+      name_waku_no = AsInt(packet.args[1]).value_or(-1);
+
+    if (!system) {
+      if (msg_waku_no)
+        current_waku_set = *msg_waku_no;
+      if (name_waku_no)
+        current_name_waku_set = *name_waku_no;
+      return;
+    }
+
+    TextSystem& text = system->text();
+    const int window_number = text.active_window();
+    Gameexe& gexe = system->gameexe();
+    const WakuSelection defaults = GetDefaultWakuSelection(gexe, window_number);
+    const int resolved_msg_waku = msg_waku_no.value_or(defaults.msg_waku_no);
+    const int resolved_name_waku = name_waku_no.value_or(defaults.name_waku_no);
+
+    current_waku_set = resolved_msg_waku;
+    current_name_waku_set = resolved_name_waku;
+    gexe.SetIntAt(WindowKey(window_number, "WAKU_SETNO"), resolved_msg_waku);
+    gexe.SetIntAt(WindowKey(window_number, "NAME_WAKU_SETNO"),
+                  resolved_name_waku);
+
+    std::shared_ptr<TextWindow> window = text.GetCurrentWindow();
+    TextFactory waku_factory(gexe);
+    window->SetTextboxWaku(
+        resolved_msg_waku,
+        waku_factory.CreateWaku(*system, *window, resolved_msg_waku, 0));
+
+    if (resolved_name_waku >= 0 && window->GetNameMod() == 1) {
+      window->SetNameboxWaku(
+          resolved_name_waku,
+          waku_factory.CreateWaku(*system, *window, resolved_name_waku, 0));
+    }
+  }
+
+  WakuSelection GetDefaultWakuSelection(Gameexe& gexe, int window_number) {
+    auto [it, inserted] = default_waku_selections.try_emplace(window_number);
+    if (inserted) {
+      const std::string key = WindowKey(window_number, "");
+      it->second.msg_waku_no =
+          gexe(key + "WAKU_SETNO").Int().value_or(current_waku_set);
+      it->second.name_waku_no =
+          gexe(key + "NAME_WAKU_SETNO").Int().value_or(current_waku_set);
+    }
+    return it->second;
   }
 
   void Print(std::vector<sr::Value> raw_args) {
@@ -354,6 +411,9 @@ struct MwndBindingState {
   std::shared_ptr<Gameexe> local_config;
   std::shared_ptr<MwndMessageState> message_state;
   bool window_open = false;
+  int current_waku_set = 0;
+  int current_name_waku_set = -1;
+  std::unordered_map<int, WakuSelection> default_waku_selections;
   PendingCoroutineTasks pending_waits;
 };
 
@@ -371,6 +431,10 @@ void BindMwnd(SiglusRuntime& runtime) {
   m.def("open_nowait", open);
   m.def("open_wait", open);
   m.def("check_open", [state] { return state->CheckOpen(); });
+  m.def(
+      "set_waku",
+      [state](std::vector<sr::Value> args) { state->SetWaku(std::move(args)); },
+      sb::vararg);
   m.def("close", close);
   m.def("close_nowait", close);
   m.def("close_wait", close);
@@ -418,10 +482,14 @@ void BindMwnd(SiglusRuntime& runtime) {
   });
   m.def("page", [state](sr::VM&) -> sr::Value { return state->Wait(true); });
   m.def("clear", [state] {
-    MarkMessageClearReady(state->system, state->message_state);
+    if (!state || !state->system)
+      return;
+    state->message_state->MarkMessageClearReady(*state->system);
   });
   m.def("novel_clear", [state] {
-    MarkMessageNovelClear(state->system, state->message_state);
+    if (!state || !state->system)
+      return;
+    state->message_state->MarkMessageClearReady(*state->system);
   });
   m.def(
       "print",
@@ -445,7 +513,7 @@ void BindMwnd(SiglusRuntime& runtime) {
         return state->WaitKoe(vm, true);
       },
       sb::vararg);
-  m.def("set_waku", [](int waku){
+  m.def("set_waku", [](int waku) {
     // TODO
   });
 }
