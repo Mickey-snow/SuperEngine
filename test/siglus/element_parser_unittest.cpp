@@ -617,6 +617,45 @@ TEST_F(ElementParserTest, Mwnd) {
   }
 }
 
+TEST_F(ElementParserTest, GlobalKoe) {
+  {
+    ElementCode elm{87};
+    elm.ForceBind({0, {v(12345), v(1)}});
+    auto parsed = chain(elm);
+    EXPECT_EQ(parsed, "exkoe(int:12345,int:1)");
+    EXPECT_EQ(parsed.chain.GetType(), Type::Int);
+    ASSERT_NE(last_call(parsed), nullptr);
+    EXPECT_FALSE(last_call(parsed)->await_result);
+  }
+  {
+    ElementCode elm{88};
+    elm.ForceBind({0, {v(12345)}});
+    auto parsed = chain(elm);
+    EXPECT_EQ(parsed, "exkoe_play_wait(int:12345)");
+    EXPECT_EQ(parsed.chain.GetType(), Type::Int);
+    ASSERT_NE(last_call(parsed), nullptr);
+    EXPECT_TRUE(last_call(parsed)->await_result);
+  }
+  {
+    ElementCode elm{89};
+    elm.ForceBind({0, {v(12345), v(1)}});
+    auto parsed = chain(elm);
+    EXPECT_EQ(parsed, "exkoe_play_wait_key(int:12345,int:1)");
+    EXPECT_EQ(parsed.chain.GetType(), Type::Int);
+    ASSERT_NE(last_call(parsed), nullptr);
+    EXPECT_TRUE(last_call(parsed)->await_result);
+  }
+  {
+    ElementCode elm{68};
+    EXPECT_EQ(chain(elm), "koe_stop()");
+  }
+  {
+    ElementCode elm{68};
+    elm.ForceBind({1, {v(500)}});
+    EXPECT_EQ(chain(elm), "koe_stop(int:500)");
+  }
+}
+
 TEST_F(ElementParserTest, Msgbk) {
   {
     ElementCode elm{145, 2};

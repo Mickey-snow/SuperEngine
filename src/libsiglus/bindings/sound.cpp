@@ -85,7 +85,118 @@ class PlaybackState {
   int state_ = kFree;
 };
 
+struct ExKoeCallParams {
+  int koe = 0;
+  int character = -1;
+  bool wait = false;
+  bool key_skip = false;
+
+  static ExKoeCallParams ParseFrom(std::vector<sr::Value> raw_args,
+                                   bool default_wait,
+                                   bool default_key_skip) {
+    CallPacket packet = CallPacket::DecodeFrom(std::move(raw_args));
+    ExKoeCallParams params;
+    params.wait = default_wait;
+    params.key_skip = default_key_skip;
+
+    if (!packet.args.empty())
+      params.koe = AsInt(packet.args[0]).value_or(0);
+    if (packet.args.size() > 1)
+      params.character = AsInt(packet.args[1]).value_or(-1);
+
+    ForEachKeywordId(packet.kwargs, [&](int id, const sr::Value& value) {
+      switch (id) {
+        case 0:
+          params.koe = AsInt(value).value_or(params.koe);
+          break;
+        case 1:
+          params.character = AsInt(value).value_or(params.character);
+          break;
+        case 2:
+          params.wait = AsInt(value).value_or(params.wait ? 1 : 0) != 0;
+          break;
+        case 3:
+          params.key_skip = AsInt(value).value_or(params.key_skip ? 1 : 0) != 0;
+          break;
+        case 4:
+          // Legacy jitan speed has no voice-rate backend in rlvm yet.
+          break;
+        default:
+          break;
+      }
+    });
+
+    return params;
+  }
+};
+
 }  // namespace
+
+class SiglusGlobalKoe {
+ public:
+  explicit SiglusGlobalKoe(System* sys) : system_(sys) {}
+
+  int exkoe(std::vector<sr::Value> args) {
+    Play(ExKoeCallParams::ParseFrom(std::move(args), false, false));
+    return 0;
+  }
+
+  sr::Value exkoe_play_wait(sr::VM& vm, std::vector<sr::Value> args) {
+    auto params = ExKoeCallParams::ParseFrom(std::move(args), true, false);
+    Play(params);
+    return params.wait ? Wait(vm, params.key_skip)
+                       : MakeResolvedFuture(*vm.gc_);
+  }
+
+  sr::Value exkoe_play_wait_key(sr::VM& vm, std::vector<sr::Value> args) {
+    auto params = ExKoeCallParams::ParseFrom(std::move(args), true, true);
+    Play(params);
+    return params.wait ? Wait(vm, params.key_skip)
+                       : MakeResolvedFuture(*vm.gc_);
+  }
+
+  void koe_stop(std::vector<sr::Value> args) {
+    CallPacket packet = CallPacket::DecodeFrom(std::move(args));
+    int fade_ms = 0;
+    if (!packet.args.empty())
+      fade_ms = AsInt(packet.args[0]).value_or(0);
+    ForEachKeywordId(packet.kwargs, [&](int id, const sr::Value& value) {
+      if (id == 0)
+        fade_ms = AsInt(value).value_or(fade_ms);
+    });
+
+    if (!system_)
+      return;
+
+    if (fade_ms > 0)
+      system_->sound().WavFadeOut(KOE_CHANNEL, fade_ms);
+    else
+      system_->sound().KoeStop();
+  }
+
+ private:
+  void Play(const ExKoeCallParams& params) {
+    if (!system_)
+      return;
+
+    system_->sound().KoeStop();
+    if (params.character >= 0)
+      system_->sound().KoePlay(params.koe, params.character);
+    else
+      system_->sound().KoePlay(params.koe);
+  }
+
+  sr::Value Wait(sr::VM& vm, bool key_skip) {
+    auto done = [system = system_] {
+      return !system || !system->sound().KoePlaying();
+    };
+    return MakePollingWaitFuture(
+        vm, std::move(done), key_skip,
+        system_ ? system_->event_ptr().get() : nullptr);
+  }
+
+  System* system_;
+};
 
 class SiglusBgm {
  public:
@@ -377,6 +488,32 @@ void BindSound(SiglusRuntime& runtime) {
   sr::VM& vm = *runtime.vm;
 
   sb::module_ m(vm.gc_.get(), vm.globals_.get());
+  auto global_koe = std::make_shared<SiglusGlobalKoe>(runtime.system.get());
+  m.def(
+      "exkoe",
+      [global_koe](std::vector<sr::Value> args) {
+        return global_koe->exkoe(std::move(args));
+      },
+      sb::vararg);
+  m.def(
+      "exkoe_play_wait",
+      [global_koe](sr::VM& vm, std::vector<sr::Value> args) -> sr::Value {
+        return global_koe->exkoe_play_wait(vm, std::move(args));
+      },
+      sb::vararg);
+  m.def(
+      "exkoe_play_wait_key",
+      [global_koe](sr::VM& vm, std::vector<sr::Value> args) -> sr::Value {
+        return global_koe->exkoe_play_wait_key(vm, std::move(args));
+      },
+      sb::vararg);
+  m.def(
+      "koe_stop",
+      [global_koe](std::vector<sr::Value> args) {
+        global_koe->koe_stop(std::move(args));
+      },
+      sb::vararg);
+
   auto bgm =
       m.bind_instance("bgm", std::make_unique<SiglusBgm>(runtime.system.get()));
   bgm.def("play", &SiglusBgm::play, sb::vararg);
