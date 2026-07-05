@@ -40,6 +40,8 @@
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
+#include <utf8.h>
+
 #include <algorithm>
 #include <charconv>
 #include <chrono>
@@ -273,6 +275,49 @@ struct MwndBindingState {
     return sr::Value(pending_waits.MakeFuture(*vm.gc_, std::move(wait_task)));
   }
 
+  void Open() {
+    window_open = true;
+    if (!system)
+      return;
+
+    TextSystem& text = system->text();
+    text.GetCurrentWindow()->SetVisible(true);
+  }
+
+  void Close() {
+    window_open = false;
+    if (!system)
+      return;
+
+    TextSystem& text = system->text();
+    text.set_in_pause_state(false);
+    text.HideTextWindow(text.active_window());
+  }
+
+  int CheckOpen() {
+    if (!system)
+      return window_open ? 1 : 0;
+    return system->text().GetCurrentWindow()->IsVisible() ? 1 : 0;
+  }
+
+  void Print(std::vector<sr::Value> raw_args) {
+    CallPacket packet = CallPacket::DecodeFrom(std::move(raw_args));
+    const std::string text =
+        packet.args.empty() ? std::string() : AsString(packet.args.front());
+
+    if (!system || text.empty())
+      return;
+
+    TextPage& page = system->text().GetCurrentPage();
+    for (auto cur = text.cbegin(), next = cur; cur != text.cend(); cur = next) {
+      next = cur;
+      utf8::next(next, text.cend());
+      const std::string current(cur, next);
+      const std::string rest(next, text.cend());
+      page.Character(current, rest);
+    }
+  }
+
   void PlayKoe(std::vector<sr::Value> raw_args) {
     auto params = KoeCallParams::ParseFrom(std::move(raw_args));
     const bool character_enabled =
@@ -308,6 +353,7 @@ struct MwndBindingState {
   System* system;
   std::shared_ptr<Gameexe> local_config;
   std::shared_ptr<MwndMessageState> message_state;
+  bool window_open = false;
   PendingCoroutineTasks pending_waits;
 };
 
@@ -319,14 +365,12 @@ void BindMwnd(SiglusRuntime& runtime) {
   sb::module_ m(vm, "mwnd");
   auto state = std::make_shared<MwndBindingState>(vm, runtime.system.get(),
                                                   runtime.local_config);
-  auto close = [state] {
-    auto* sys = state->system;
-    if (!sys)
-      return;
-    TextSystem& text = sys->text();
-    text.set_in_pause_state(false);
-    text.HideTextWindow(text.active_window());
-  };
+  auto close = [state] { state->Close(); };
+  auto open = [state] { state->Open(); };
+  m.def("open", open);
+  m.def("open_nowait", open);
+  m.def("open_wait", open);
+  m.def("check_open", [state] { return state->CheckOpen(); });
   m.def("close", close);
   m.def("close_nowait", close);
   m.def("close_wait", close);
@@ -379,6 +423,10 @@ void BindMwnd(SiglusRuntime& runtime) {
   m.def("novel_clear", [state] {
     MarkMessageNovelClear(state->system, state->message_state);
   });
+  m.def(
+      "print",
+      [state](std::vector<sr::Value> args) { state->Print(std::move(args)); },
+      sb::vararg);
   m.def(
       "koe",
       [state](std::vector<sr::Value> args) { state->PlayKoe(std::move(args)); },

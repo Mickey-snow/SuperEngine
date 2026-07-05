@@ -510,6 +510,27 @@ TEST_F(ElementParserTest, WipeCommandMappings) {
 
 TEST_F(ElementParserTest, Mwnd) {
   {
+    ElementCode elm{9};
+    auto parsed = chain(elm);
+    EXPECT_EQ(parsed, "mwnd.open()");
+    ASSERT_NE(last_call(parsed), nullptr);
+    EXPECT_FALSE(last_call(parsed)->await_result);
+  }
+  {
+    ElementCode elm{58};
+    auto parsed = chain(elm);
+    EXPECT_EQ(parsed, "mwnd.open_wait()");
+    ASSERT_NE(last_call(parsed), nullptr);
+    EXPECT_FALSE(last_call(parsed)->await_result);
+  }
+  {
+    ElementCode elm{59};
+    auto parsed = chain(elm);
+    EXPECT_EQ(parsed, "mwnd.open_nowait()");
+    ASSERT_NE(last_call(parsed), nullptr);
+    EXPECT_FALSE(last_call(parsed)->await_result);
+  }
+  {
     ElementCode elm{10};
     EXPECT_EQ(chain(elm), "mwnd.close()");
   }
@@ -538,6 +559,26 @@ TEST_F(ElementParserTest, Mwnd) {
     ElementCode elm{11};
     auto parsed = chain(elm);
     EXPECT_EQ(parsed, "mwnd.clear()");
+    ASSERT_NE(last_call(parsed), nullptr);
+    EXPECT_FALSE(last_call(parsed)->await_result);
+  }
+  {
+    ElementCode elm{12};
+    elm.ForceBind({1, {v("hello")}});
+    SetKidoku({105});
+    auto parsed = chain(elm);
+    EXPECT_EQ(parsed, "mwnd.print(str:hello)");
+    EXPECT_EQ(parsed.chain.kidoku, 105);
+    ASSERT_NE(last_call(parsed), nullptr);
+    EXPECT_FALSE(last_call(parsed)->await_result);
+  }
+  {
+    ElementCode elm{12};
+    elm.ForceBind({0, {v(123)}});
+    SetKidoku({106});
+    auto parsed = chain(elm);
+    EXPECT_EQ(parsed, "mwnd.print(int:123)");
+    EXPECT_EQ(parsed.chain.kidoku, 106);
     ASSERT_NE(last_call(parsed), nullptr);
     EXPECT_FALSE(last_call(parsed)->await_result);
   }
