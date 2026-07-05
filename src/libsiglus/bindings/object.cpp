@@ -37,20 +37,13 @@
 #include "systems/event_system.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
-#include "vm/dict.hpp"
 #include "vm/exception.hpp"
-#include "vm/list.hpp"
 #include "vm/string.hpp"
 #include "vm/value.hpp"
 #include "vm/vm.hpp"
 
 #include <algorithm>
-#include <charconv>
-#include <chrono>
 #include <cstddef>
-#include <filesystem>
-#include <functional>
-#include <limits>
 #include <memory>
 #include <optional>
 #include <stdexcept>
@@ -145,9 +138,8 @@ struct ObjectReference {
     for (const std::size_t child_index : child_path_) {
       if (child_index >= current->GetChildren().size()) {
         throw sr::RuntimeError(
-            "object.child index out of range: " +
-            std::to_string(child_index) + " for size " +
-            std::to_string(current->GetChildren().size()));
+            "object.child index out of range: " + std::to_string(child_index) +
+            " for size " + std::to_string(current->GetChildren().size()));
       }
       current = &current->TouchChild(child_index);
     }
@@ -220,8 +212,22 @@ class SiglusObject {
 
     GraphicsObject& obj = object();
     obj.FreeDataAndInitializeParams();
-    auto surface = graphics_->GetSurfaceNamed(std::move(filename));
-    obj.SetDrawer(std::make_unique<GraphicsObjectOfFile>(surface));
+    if (IsCompositeObjectName(filename)) {
+      std::vector<CompositeGraphicsObjectLayer> layers;
+      for (const CompositeObjectPart& part :
+           ParseCompositeObjectName(filename)) {
+        layers.push_back(
+            {.surface = graphics_->LoadSurfaceFromFile(part.file_name),
+             .offset = Point(part.x, part.y),
+             .cut_no = part.cut_no,
+             .blend_type = part.blend_type});
+      }
+      obj.SetDrawer(
+          std::make_unique<CompositeGraphicsObject>(std::move(layers)));
+    } else {
+      auto surface = graphics_->GetSurfaceNamed(std::move(filename));
+      obj.SetDrawer(std::make_unique<GraphicsObjectOfFile>(surface));
+    }
   }
 
   MovieCreateParams ParseCreateMovie(std::vector<sr::Value> raw_args,
@@ -494,9 +500,9 @@ class ObjectChild {
     GraphicsObject& parent = parent_.get();
     const std::size_t size = parent.GetChildren().size();
     if (index >= size) {
-      throw sr::RuntimeError("object.child index out of range: " +
-                             std::to_string(index) + " for size " +
-                             std::to_string(size));
+      throw sr::RuntimeError(
+          "object.child index out of range: " + std::to_string(index) +
+          " for size " + std::to_string(size));
     }
     if (!make_object_)
       throw std::runtime_error("ObjectChild requires an object factory");
@@ -514,8 +520,7 @@ class ObjectChild {
   int size() {
     const std::size_t size = parent_.get().GetChildren().size();
     if (size > static_cast<std::size_t>(std::numeric_limits<int>::max()))
-      throw sr::RuntimeError(
-          "object.child size exceeds script integer range");
+      throw sr::RuntimeError("object.child size exceeds script integer range");
     return static_cast<int>(size);
   }
 };
@@ -872,14 +877,14 @@ void BindObject(SiglusRuntime& runtime) {
   child.def("size", &ObjectChild::size);
 
   ObjectChild::Factory make_child_object =
-      [object_class = obj, graphics, event, asset_scanner](
-          ObjectReference ref) mutable -> sr::Value {
-    return sr::Value(object_class.make_inst(std::move(ref), graphics, event,
-                                            asset_scanner));
+      [object_class = obj, graphics, event,
+       asset_scanner](ObjectReference ref) mutable -> sr::Value {
+    return sr::Value(
+        object_class.make_inst(std::move(ref), graphics, event, asset_scanner));
   };
   obj.subcls("child", child,
-             [make_child_object](SiglusObject* parent)
-                 -> std::unique_ptr<ObjectChild> {
+             [make_child_object](
+                 SiglusObject* parent) -> std::unique_ptr<ObjectChild> {
                return std::make_unique<ObjectChild>(parent->ref_,
                                                     make_child_object);
              });

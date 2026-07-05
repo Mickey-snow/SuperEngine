@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -27,17 +24,16 @@
 
 #pragma once
 
-#include <memory>
-#include <string>
-
 #include "core/object_internal/animator.hpp"
 #include "core/object_internal/objdrawer.hpp"
 
-class System;
+#include <memory>
+#include <optional>
+#include <vector>
+
 class SDLSurface;
 
 // -----------------------------------------------------------------------
-
 // GraphicsObjectData class that encapsulates a G00 or ANM file.
 //
 // GraphicsObjectOfFile is used for loading individual bitmaps into an
@@ -77,4 +73,52 @@ class GraphicsObjectOfFile : public GraphicsObjectData {
 
   // Current frame displayed (when animating)
   int current_frame_;
+};
+
+// -----------------------------------------------------------------------
+// GraphicsObjectData class that encapsulates layered G00 files.
+
+struct CompositeGraphicsObjectLayer {
+  std::shared_ptr<SDLSurface> surface;
+  Point offset;
+  int cut_no = 0;
+  int blend_type = 0;
+};
+struct CompositeObjectPart {
+  std::string file_name;
+  int x = 0;
+  int y = 0;
+  int cut_no = 0;
+  int blend_type = 0;
+
+  bool operator==(const CompositeObjectPart& rhs) const = default;
+};
+bool IsCompositeObjectName(std::string_view filename);
+std::vector<CompositeObjectPart> ParseCompositeObjectName(
+    std::string_view filename);
+
+class CompositeGraphicsObject : public GraphicsObjectData {
+ public:
+  explicit CompositeGraphicsObject(
+      std::vector<CompositeGraphicsObjectLayer> layers);
+  virtual ~CompositeGraphicsObject();
+
+  virtual void Render(const GraphicsObject& go,
+                      std::optional<ParentObjState> parent = {}) override;
+
+  virtual int PixelWidth(const GraphicsObject& rp) override;
+  virtual int PixelHeight(const GraphicsObject& rp) override;
+
+  virtual std::unique_ptr<GraphicsObjectData> Clone() const override;
+
+ protected:
+  virtual std::shared_ptr<const SDLSurface> CurrentSurface(
+      const GraphicsObject& go) const override;
+  virtual Rect SrcRect(const GraphicsObject& go) const override;
+  virtual Point DstOrigin(const GraphicsObject& go) const override;
+
+ private:
+  std::vector<CompositeGraphicsObjectLayer> layers_;
+  Rect bounds_;
+  std::shared_ptr<SDLSurface> hit_surface_;
 };

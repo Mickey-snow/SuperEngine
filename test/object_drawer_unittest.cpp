@@ -26,8 +26,10 @@
 
 #include <memory>
 #include <utility>
+#include <vector>
 
 #include "core/object.hpp"
+#include "core/object_internal/drawer/file.hpp"
 #include "core/object_internal/objdrawer.hpp"
 #include "systems/sdl/sdl_surface.hpp"
 
@@ -204,4 +206,72 @@ TEST(ObjectDrawerTest, HitTestSamplesAlphaWhenAlphaTestIsEnabled) {
 
   EXPECT_FALSE(data.HitTest(object, Point(2, 5)));
   EXPECT_TRUE(data.HitTest(object, Point(7, 5)));
+}
+
+TEST(ObjectDrawerTest, CompositeObjectBoundsUnionLayerRectangles) {
+  std::vector<CompositeGraphicsObjectLayer> layers = {
+      {.surface = OpaqueSurface(Size(10, 10)),
+       .offset = Point(0, 0),
+       .cut_no = 0,
+       .blend_type = 0},
+      {.surface = OpaqueSurface(Size(5, 6)),
+       .offset = Point(8, -2),
+       .cut_no = 0,
+       .blend_type = 0},
+  };
+
+  GraphicsObject object;
+  auto data = std::make_unique<CompositeGraphicsObject>(std::move(layers));
+  auto& ref = *data;
+  object.SetDrawer(std::move(data));
+  object.Param().SetX(100);
+  object.Param().SetY(50);
+
+  EXPECT_EQ(object.PixelWidth(), 13);
+  EXPECT_EQ(object.PixelHeight(), 12);
+  EXPECT_EQ(ref.DstRect(object, nullptr), Rect::GRP(100, 48, 113, 60));
+}
+
+TEST(ObjectDrawerTest, CompositeObjectHitTestUsesComposedAlpha) {
+  auto left = std::make_shared<SDLSurface>(Size(4, 4));
+  left->Fill(RGBAColour(255, 255, 255, 255));
+  auto right = std::make_shared<SDLSurface>(Size(4, 4));
+  right->Fill(RGBAColour(255, 255, 255, 255));
+
+  std::vector<CompositeGraphicsObjectLayer> layers = {
+      {.surface = left, .offset = Point(0, 0), .cut_no = 0, .blend_type = 0},
+      {.surface = right, .offset = Point(10, 0), .cut_no = 0, .blend_type = 0},
+  };
+
+  GraphicsObject object;
+  auto data = std::make_unique<CompositeGraphicsObject>(std::move(layers));
+  auto& ref = *data;
+  object.SetDrawer(std::move(data));
+
+  EXPECT_TRUE(ref.HitTest(object, Point(2, 2)));
+  EXPECT_FALSE(ref.HitTest(object, Point(8, 2)));
+  EXPECT_TRUE(ref.HitTest(object, Point(11, 2)));
+}
+
+TEST(ObjectDrawerTest, CompositeObjectClonePreservesLayerData) {
+  std::vector<CompositeGraphicsObjectLayer> layers = {
+      {.surface = OpaqueSurface(Size(3, 3)),
+       .offset = Point(0, 0),
+       .cut_no = 0,
+       .blend_type = 0},
+      {.surface = OpaqueSurface(Size(2, 2)),
+       .offset = Point(5, 0),
+       .cut_no = 0,
+       .blend_type = 0},
+  };
+
+  GraphicsObject object;
+  object.SetDrawer(
+      std::make_unique<CompositeGraphicsObject>(std::move(layers)));
+
+  GraphicsObject cloned = object.Clone();
+  EXPECT_EQ(cloned.PixelWidth(), 7);
+  EXPECT_EQ(cloned.PixelHeight(), 3);
+  EXPECT_TRUE(cloned.GetDrawer().HitTest(cloned, Point(1, 1)));
+  EXPECT_TRUE(cloned.GetDrawer().HitTest(cloned, Point(6, 1)));
 }
