@@ -1038,6 +1038,7 @@ void BindObject(SiglusRuntime& runtime) {
   sb::class_<ObjectRepnoEvent> repno_event(m, "ObjectRepnoEvent", false);
   sb::class_<ObjectRepnoEventList> repno_event_list(
       m, "ObjectRepnoEventList", false);
+  repno_event_list.add_gc_root(repno_event);
 
   Stage* stage = runtime.stage.get();
   auto graphics = runtime.system ? runtime.system->graphics_ptr() : nullptr;

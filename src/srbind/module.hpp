@@ -32,6 +32,7 @@
 
 #include <functional>
 #include <memory>
+#include <ranges>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -210,6 +211,17 @@ class class_ {
     return *this;
   }
 
+  template <class Child>
+  class_& add_gc_root(class_<Child>& child_class) {
+    if (child_class.gc_ != gc_)
+      throw type_error("gc root class belongs to a different garbage collector");
+
+    serilang::NativeClass* child_cls = child_class.cls_;
+    if (std::ranges::find(cls_->gc_roots, child_cls) == cls_->gc_roots.cend())
+      cls_->gc_roots.emplace_back(child_cls);
+    return *this;
+  }
+
   // __init__ via operator new
   template <class... Args, class... A>
   class_& def(init_t<Args...>, A&&... a) {
@@ -306,10 +318,9 @@ class class_ {
       throw type_error(
           "subinst class belongs to a different garbage collector");
 
+    add_gc_root(child_class);
     serilang::NativeClass* child_cls = child_class.cls_;
     auto child_initializers = child_class.subinst_initializers_;
-    if (std::ranges::find(cls_->gc_roots, child_cls) == cls_->gc_roots.cend())
-      cls_->gc_roots.emplace_back(child_cls);
 
     subinst_initializers_->emplace_back(
         [gc = gc_, child_cls, field_name,

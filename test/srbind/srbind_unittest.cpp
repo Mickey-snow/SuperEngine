@@ -678,6 +678,37 @@ TEST_F(SrbindTest, Subcls_KeepsChildClassAliveBeforeInstance) {
   EXPECT_EQ(CallCallee(GetMember(child_inst, "get")), 77);
 }
 
+TEST_F(SrbindTest, AddGcRootKeepsHiddenFactoryClassAlive) {
+  LifetimeTracked::aliveCount() = 0;
+
+  module_ globals_mod(vm.gc_.get(), vm.globals_.get());
+  class_<LifetimeTracked> child(globals_mod, "__FactoryChildRooted", false);
+  child.def("get", &LifetimeTracked::get);
+
+  class_<SubParent> parent(globals_mod, "FactoryParentRoot");
+  parent.add_gc_root(child).def(init<int>(), arg("value"));
+
+  ASSERT_FALSE(vm.globals_->contains("__FactoryChildRooted"));
+
+  vm.fibres_.push_back(f);
+  vm.CollectGarbage();
+
+  Value child_v(child.make_inst(88));
+  (*vm.globals_)["factory_child"] = child_v;
+  auto* child_inst = child_v.Get_if<NativeInstance>();
+  ASSERT_NE(child_inst, nullptr);
+  ASSERT_NE(child_inst->klass, nullptr);
+  EXPECT_EQ(child_inst->klass->name, "__FactoryChildRooted");
+  EXPECT_EQ(CallCallee(GetMember(child_inst, "get")), 88);
+  EXPECT_EQ(LifetimeTracked::aliveCount(), 1);
+
+  vm.globals_->erase("factory_child");
+  vm.last_ = Value();
+  f->op_stack.clear();
+  vm.CollectGarbage();
+  EXPECT_EQ(LifetimeTracked::aliveCount(), 0);
+}
+
 TEST_F(SrbindTest, Subcls_UniquePtrTransfersOwnership) {
   LifetimeTracked::aliveCount() = 0;
   vm.fibres_.push_back(f);
