@@ -301,6 +301,33 @@ TEST_F(ElementParserTest, ObjectExistTypeIsImplicitGetterCall) {
   EXPECT_EQ(parsed.chain.GetType(), Type::Int);
 }
 
+TEST_F(ElementParserTest, ObjectGetSetUsesSimpleGetterAndSetterCalls) {
+  {
+    ElementCode elm{38, 2, -1, 0, 3};
+    elm.ForceBind({0, {}});
+
+    auto parsed = chain(elm);
+    EXPECT_EQ(parsed, "stage.front.object[int:0].x()");
+    EXPECT_EQ(parsed.chain.GetType(), Type::Int);
+    const Call* call = last_call(parsed);
+    ASSERT_NE(call, nullptr);
+    EXPECT_TRUE(call->is_simple);
+    EXPECT_FALSE(call->overload_id);
+  }
+  {
+    ElementCode elm{38, 2, -1, 0, 3};
+    elm.ForceBind({1, {v(42)}});
+
+    auto parsed = chain(elm);
+    EXPECT_EQ(parsed, "stage.front.object[int:0].set_x(int:42)");
+    EXPECT_EQ(parsed.chain.GetType(), Type::None);
+    const Call* call = last_call(parsed);
+    ASSERT_NE(call, nullptr);
+    EXPECT_TRUE(call->is_simple);
+    EXPECT_FALSE(call->overload_id);
+  }
+}
+
 TEST_F(ElementParserTest, ObjectChildList) {
   EXPECT_EQ(chain(37, 2, -1, 0, 93, -1, 1, 35),
             "stage.back.object[int:0].child[int:1].init()");
@@ -495,12 +522,12 @@ TEST_F(ElementParserTest, Mwnd) {
   {
     ElementCode elm{151};
     elm.ForceBind({1, {v(320), v(240)}});
-    EXPECT_EQ(chain(elm), "mwnd.rep_pos[1](int:320,int:240)");
+    EXPECT_EQ(chain(elm), "mwnd.rep_pos(int:320,int:240)");
   }
   {
     ElementCode elm{61};
     elm.ForceBind({1, {v("ruby")}});
-    EXPECT_EQ(chain(elm), "mwnd.ruby_start[1](str:ruby)");
+    EXPECT_EQ(chain(elm), "mwnd.ruby_start(str:ruby)");
   }
   {
     ElementCode elm{18};
@@ -576,14 +603,14 @@ TEST_F(ElementParserTest, System) {
   {
     ElementCode elm{63, 11};
     elm.ForceBind({1, {v(3)}});
-    EXPECT_EQ(chain(elm), "syscom.btn_enable[1](int:3)");
+    EXPECT_EQ(chain(elm), "syscom.btn_enable(int:3)");
   }
   {
     fail_on_warn = false;
 
     ElementCode elm{63, 11};
     elm.ForceBind({99, {}});
-    EXPECT_EQ(chain(elm), "syscom.btn_enable_all[99]()");
+    EXPECT_EQ(chain(elm), "syscom.btn_enable_all()");
     EXPECT_THAT(warnings,
                 ElementsAre(HasSubstr("[Callable] overload 99 not found")));
   }

@@ -78,13 +78,16 @@ static Builder b_callable(std::initializer_list<CallableTarget> targets) {
   return Builder([targets =
                       std::vector<CallableTarget>(targets)](Builder::Ctx& ctx) {
     const int overload_id = ctx.elm.bind_ctx.overload_id;
+    auto member_from_target = [](const CallableTarget& target) {
+      return Member{target.name, target.return_type, !target.flags.is_explicit,
+                    !target.flags.is_nonsimple, target.flags.await_result};
+    };
 
     const CallableTarget* fallback = nullptr;
     for (const auto& target : targets) {
       if (target.overload_id && *target.overload_id == overload_id) {
-        ctx.chain.nodes.emplace_back(
-            Type::Callable,
-            Member{target.name, target.return_type, true, false});
+        ctx.chain.nodes.emplace_back(Type::Callable,
+                                     member_from_target(target));
         ctx.elmcode = ctx.elmcode.subspan(1);
         return;
       }
@@ -93,9 +96,8 @@ static Builder b_callable(std::initializer_list<CallableTarget> targets) {
     }
 
     if (fallback) {
-      ctx.chain.nodes.emplace_back(
-          Type::Callable,
-          Member{fallback->name, fallback->return_type, true, false});
+      ctx.chain.nodes.emplace_back(Type::Callable,
+                                   member_from_target(*fallback));
       ctx.elmcode = ctx.elmcode.subspan(1);
       return;
     }
@@ -103,8 +105,7 @@ static Builder b_callable(std::initializer_list<CallableTarget> targets) {
     ctx.Warn(std::format("[Callable] overload {} not found while parsing {}",
                          overload_id, ctx.chain.ToDebugString()));
     ctx.chain.nodes.emplace_back(
-        Type::Callable,
-        Member{targets.front().name, targets.front().return_type, true, false});
+        Type::Callable, member_from_target(targets.front()));
     ctx.elmcode = ctx.elmcode.subspan(1);
   });
 }
@@ -162,7 +163,25 @@ static Builder obj_getset(std::string_view mem,
                           Type type,
                           int get_code = 0,
                           int set_code = 1) {
-  return b_callable({{get_code, mem, type}, {set_code, mem, Type::None}});
+  return Builder(
+      [getter = std::string(mem), setter = "set_" + std::string(mem), type,
+       get_code, set_code](Builder::Ctx& ctx) {
+        const int overload_id = ctx.elm.bind_ctx.overload_id;
+        const std::string& name = overload_id == set_code ? setter : getter;
+        const Type return_type = overload_id == set_code ? Type::None : type;
+
+        if (overload_id != get_code && overload_id != set_code) {
+          ctx.Warn(std::format(
+              "[ObjectGetSet] overload {} not found while parsing {}",
+              overload_id, ctx.chain.ToDebugString()));
+        }
+
+        ctx.chain.nodes.emplace_back(
+            Type::Callable,
+            Member{name, return_type, /*implicit_call=*/true,
+                   /*is_simple=*/true});
+        ctx.elmcode = ctx.elmcode.subspan(1);
+      });
 }
 
 static Builder obj_getter(std::string_view mem, Type rettype = Type::Int) {
