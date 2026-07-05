@@ -534,6 +534,70 @@ class ObjectEvent {
   }
 };
 
+class ObjectRepnoEvent {
+ public:
+  using Getter = std::function<int(const ObjectParameter&, int)>;
+  using Setter = std::function<void(ObjectParameter&, int, int)>;
+
+  ObjectReference ref_;
+  int repno_ = 0;
+  std::shared_ptr<GraphicsSystem> graphics_;
+  std::shared_ptr<EventSystem> event_;
+  std::string name;
+  Getter getter_;
+  Setter setter_;
+
+  ObjectRepnoEvent(ObjectReference ref,
+                   int repno,
+                   std::shared_ptr<GraphicsSystem> graphics,
+                   std::shared_ptr<EventSystem> event,
+                   std::string name,
+                   Getter getter,
+                   Setter setter)
+      : ref_(std::move(ref)),
+        repno_(repno),
+        graphics_(std::move(graphics)),
+        event_(std::move(event)),
+        name(std::move(name)),
+        getter_(std::move(getter)),
+        setter_(std::move(setter)) {}
+
+  void set(int end_value, int duration_time, int delay, int type) {
+    Verify();
+    GraphicsObject& obj = ref_.get();
+    std::shared_ptr<Clock> clock = event_->GetClock();
+
+    obj.EndObjectMutatorMatching(repno_, name, 0);
+    const int start = getter_(obj.Param(), repno_);
+    Mutator mutator{
+        .setter_ = [setter = setter_, repno = repno_](ObjectParameter& param,
+                                                      int value) {
+          setter(param, repno, value);
+        },
+        .fc_ = MakeSiglusFrameCounter(duration_time, delay, start, end_value,
+                                      type, clock)};
+    obj.AddObjectMutator(ObjectMutator({std::move(mutator)}, repno_, name));
+  }
+
+  void end() {
+    Verify();
+    ref_.get().EndObjectMutatorMatching(repno_, name, 0);
+  }
+
+  int check() {
+    Verify();
+    return ref_.get().IsMutatorRunningMatching(repno_, name) ? 1 : 0;
+  }
+
+ private:
+  void Verify() {
+    if (!graphics_)
+      throw std::runtime_error("ObjectRepnoEvent requires a graphics system");
+    if (!event_)
+      throw std::runtime_error("ObjectRepnoEvent requires an event system");
+  }
+};
+
 class ObjectChild {
  public:
   using Factory = std::function<sr::Value(ObjectReference)>;
@@ -577,6 +641,48 @@ class ObjectChild {
       throw sr::RuntimeError("object.child size exceeds script integer range");
     return static_cast<int>(size);
   }
+};
+
+class ObjectRepnoEventList {
+ public:
+  using Getter = ObjectRepnoEvent::Getter;
+  using Setter = ObjectRepnoEvent::Setter;
+  using Factory = std::function<sr::Value(ObjectReference,
+                                          int,
+                                          std::string,
+                                          Getter,
+                                          Setter)>;
+
+  ObjectReference ref_;
+  std::string name_;
+  Getter getter_;
+  Setter setter_;
+  Factory make_event_;
+
+  ObjectRepnoEventList() = default;
+  ObjectRepnoEventList(ObjectReference ref,
+                       std::string name,
+                       Getter getter,
+                       Setter setter,
+                       Factory make_event)
+      : ref_(std::move(ref)),
+        name_(std::move(name)),
+        getter_(std::move(getter)),
+        setter_(std::move(setter)),
+        make_event_(std::move(make_event)) {}
+
+  sr::Value get(int idx) {
+    if (idx < 0 || idx >= 8) {
+      throw sr::RuntimeError("object rep event index out of range: " +
+                             std::to_string(idx));
+    }
+    if (!make_event_)
+      throw std::runtime_error("ObjectRepnoEventList requires an event factory");
+    return make_event_(ref_, idx, name_, getter_, setter_);
+  }
+
+  int size() { return 8; }
+  void resize(int) {}
 };
 
 struct ObjectRepnoParam {
@@ -882,12 +988,6 @@ struct ObjectEventPropertyBinder {
         });
 
     Member<&ObjectParameter::alpha_source>("tr_eve");
-    Property(
-        "tr_rep_eve",
-        [](const ObjectParameter& param) { return param.alpha_adjustment(0); },
-        [](ObjectParameter& param, int value) {
-          param.SetAlphaAdjustment(0, value);
-        });
     Member<&ObjectParameter::monochrome_transform>("mono_eve");
     Member<&ObjectParameter::invert_transform>("reverse_eve");
     Property(
@@ -935,6 +1035,9 @@ void BindObject(SiglusRuntime& runtime) {
   sb::class_<SiglusObject> obj(m, "Object");
   sb::class_<ObjectChild> child(m, "ObjectChild", false);
   sb::class_<ObjectRepnoParam> repno(m, "ObjectRepnoParam", false);
+  sb::class_<ObjectRepnoEvent> repno_event(m, "ObjectRepnoEvent", false);
+  sb::class_<ObjectRepnoEventList> repno_event_list(
+      m, "ObjectRepnoEventList", false);
 
   Stage* stage = runtime.stage.get();
   auto graphics = runtime.system ? runtime.system->graphics_ptr() : nullptr;
@@ -993,6 +1096,58 @@ void BindObject(SiglusRuntime& runtime) {
                return std::make_unique<ObjectRepnoParam>(obj->ref_,
                                                          std::move(fn));
              });
+  obj.subcls("tr_rep", repno,
+             [](SiglusObject* obj) -> std::unique_ptr<ObjectRepnoParam> {
+               auto fn = +[](ObjectParameter& param) -> std::array<int, 8>& {
+                 return param.adjustment_alphas;
+               };
+               return std::make_unique<ObjectRepnoParam>(obj->ref_,
+                                                         std::move(fn));
+             });
+
+  repno_event.def("set", &ObjectRepnoEvent::set, sb::arg("end_value"),
+                  sb::arg("duration_time"), sb::arg("delay"), sb::arg("type"));
+  repno_event.def("end", &ObjectRepnoEvent::end);
+  repno_event.def("check", &ObjectRepnoEvent::check);
+
+  repno_event_list.def("__getitem__", &ObjectRepnoEventList::get,
+                       sb::arg("idx"));
+  repno_event_list.def("resize", &ObjectRepnoEventList::resize,
+                       sb::arg("size"));
+  repno_event_list.def("size", &ObjectRepnoEventList::size);
+
+  ObjectRepnoEventList::Factory make_repno_event =
+      [event_class = repno_event, graphics, event](
+          ObjectReference ref, int repno, std::string name,
+          ObjectRepnoEventList::Getter getter,
+          ObjectRepnoEventList::Setter setter) mutable -> sr::Value {
+    return sr::Value(event_class.make_inst(
+        std::move(ref), repno, graphics, event, std::move(name),
+        std::move(getter), std::move(setter)));
+  };
+
+  auto bind_repno_event_list =
+      [&](const char* name,
+          ObjectRepnoEventList::Getter getter,
+          ObjectRepnoEventList::Setter setter) {
+        obj.subcls(name, repno_event_list,
+                   [name = std::string(name), getter = std::move(getter),
+                    setter = std::move(setter),
+                    make_repno_event](SiglusObject* parent) {
+                     return std::make_unique<ObjectRepnoEventList>(
+                         parent->ref_, name, getter, setter,
+                         make_repno_event);
+                   });
+      };
+  bind_repno_event_list(
+      "x_rep_eve", CreateGetter<&ObjectParameter::adjustment_offsets_x>(),
+      CreateSetter<&ObjectParameter::adjustment_offsets_x>());
+  bind_repno_event_list(
+      "y_rep_eve", CreateGetter<&ObjectParameter::adjustment_offsets_y>(),
+      CreateSetter<&ObjectParameter::adjustment_offsets_y>());
+  bind_repno_event_list(
+      "tr_rep_eve", CreateGetter<&ObjectParameter::adjustment_alphas>(),
+      CreateSetter<&ObjectParameter::adjustment_alphas>());
 
   obj.def("init", [](SiglusObject* obj) {
     obj->object().FreeDataAndInitializeParams();

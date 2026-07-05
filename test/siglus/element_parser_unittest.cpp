@@ -371,6 +371,20 @@ TEST_F(ElementParserTest, ObjectChildList) {
   }
 }
 
+TEST_F(ElementParserTest, ObjectRepnoAlphaLists) {
+  {
+    ElementCode elm{38, 2, -1, 0, 141, 2};
+    elm.ForceBind({0, {v(1)}});
+    EXPECT_EQ(chain(elm), "stage.front.object[int:0].tr_rep.resize(int:1)");
+  }
+  {
+    ElementCode elm{38, 2, -1, 0, 140, -1, 0, 0};
+    elm.ForceBind({0, {v(128), v(1000), v(0), v(0)}});
+    EXPECT_EQ(chain(elm),
+              "stage.front.object[int:0].tr_rep_eve[int:0].set(int:128,int:1000,int:0,int:0)");
+  }
+}
+
 TEST_F(ElementParserTest, BgmTable) {
   {
     ElementCode elm{123, 2};
