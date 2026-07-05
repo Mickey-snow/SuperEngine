@@ -81,6 +81,7 @@ TextWindow::TextWindow(System& system,
       window_num_(window_num),
       waku_set_(params.waku_set),
       layout_(params.layout),
+      glyph_render_offset_(0, 0),
       last_token_was_name_(false),
       default_font_size_(params.default_font_size),
       use_indentation_(params.use_indentation),
@@ -531,7 +532,8 @@ bool TextWindow::DisplayCharacter(const std::string& current,
       shadow = RGBAColour::Black().rgb();
 
     text_impl_->RenderGlyphOnto(current, font_face, font_colour_, shadow,
-                                *insertion_point, text_surface_);
+                                *insertion_point + glyph_render_offset_,
+                                text_surface_);
 
     if (indent_after_spacing)
       SetIndentation();

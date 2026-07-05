@@ -25,6 +25,7 @@
 
 #include "core/colour.hpp"
 #include "core/gameexe.hpp"
+#include "core/rect.hpp"
 #include "libsiglus/bindings/util.hpp"
 #include "libsiglus/bindings/wait_helpers.hpp"
 #include "srbind/srbind.hpp"
@@ -357,11 +358,7 @@ struct MwndBindingState {
     return it->second;
   }
 
-  void Print(std::vector<sr::Value> raw_args) {
-    CallPacket packet = CallPacket::DecodeFrom(std::move(raw_args));
-    const std::string text =
-        packet.args.empty() ? std::string() : AsString(packet.args.front());
-
+  void Print(std::string text) {
     if (!system || text.empty())
       return;
 
@@ -375,8 +372,23 @@ struct MwndBindingState {
     }
   }
 
-  void PlayKoe(std::vector<sr::Value> raw_args) {
-    auto params = KoeCallParams::ParseFrom(std::move(raw_args));
+  void RepPos(int x, int y) {
+    glyph_render_offset = Point(x, y);
+    if (!system)
+      return;
+
+    system->text().GetCurrentPage().SetGlyphRenderOffset(glyph_render_offset);
+  }
+
+  void RepPosDefault() {
+    glyph_render_offset = Point(0, 0);
+    if (!system)
+      return;
+
+    system->text().GetCurrentPage().ResetGlyphRenderOffset();
+  }
+
+  void PlayKoe(KoeCallParams params) {
     const bool character_enabled =
         !system || params.character < 0 ||
         system->sound().ShouldUseKoeForCharacter(params.character) != 0;
@@ -413,6 +425,7 @@ struct MwndBindingState {
   bool window_open = false;
   int current_waku_set = 0;
   int current_name_waku_set = -1;
+  Point glyph_render_offset = Point(0, 0);
   std::unordered_map<int, WakuSelection> default_waku_selections;
   PendingCoroutineTasks pending_waits;
 };
@@ -493,23 +506,42 @@ void BindMwnd(SiglusRuntime& runtime) {
   });
   m.def(
       "print",
-      [state](std::vector<sr::Value> args) { state->Print(std::move(args)); },
+      [state](std::vector<sr::Value> args) {
+        CallPacket packet = CallPacket::DecodeFrom(std::move(args));
+        std::string text =
+            packet.args.empty() ? std::string() : AsString(packet.args.front());
+        state->Print(std::move(text));
+      },
       sb::vararg);
   m.def(
+      "rep_pos",
+      [state](std::vector<sr::Value> args) {
+        CallPacket packet = CallPacket::DecodeFrom(std::move(args));
+        const int x =
+            packet.args.empty() ? 0 : AsInt(packet.args[0]).value_or(0);
+        const int y =
+            packet.args.size() < 2 ? 0 : AsInt(packet.args[1]).value_or(0);
+        state->RepPos(x, y);
+      },
+      sb::vararg);
+  m.def("rep_pos_default", [state] { state->RepPosDefault(); });
+  m.def(
       "koe",
-      [state](std::vector<sr::Value> args) { state->PlayKoe(std::move(args)); },
+      [state](std::vector<sr::Value> args) {
+        state->PlayKoe(KoeCallParams::ParseFrom(std::move(args)));
+      },
       sb::vararg);
   m.def(
       "koe_play_wait",
       [state](sr::VM& vm, std::vector<sr::Value> args) -> sr::Value {
-        state->PlayKoe(std::move(args));
+        state->PlayKoe(KoeCallParams::ParseFrom(std::move(args)));
         return state->WaitKoe(vm, false);
       },
       sb::vararg);
   m.def(
       "koe_play_wait_key",
       [state](sr::VM& vm, std::vector<sr::Value> args) -> sr::Value {
-        state->PlayKoe(std::move(args));
+        state->PlayKoe(KoeCallParams::ParseFrom(std::move(args)));
         return state->WaitKoe(vm, true);
       },
       sb::vararg);

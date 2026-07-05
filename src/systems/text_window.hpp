@@ -216,6 +216,12 @@ class TextWindow {
   void set_insertion_point_y(int y) { layout_.insertion_y = y; }
   int line_height() const { return layout_.GetLineHeight(); }
 
+  inline void SetGlyphRenderOffset(Point offset) {
+    glyph_render_offset_ = offset;
+  }
+  inline void ResetGlyphRenderOffset() { glyph_render_offset_ = Point(0, 0); }
+  inline Point glyph_render_offset() const { return glyph_render_offset_; }
+
   // Loads |filename| into face slot |index|.
   void FaceOpen(const std::string& filename, int index);
 
@@ -291,6 +297,7 @@ class TextWindow {
   std::unique_ptr<TextWaku> textbox_waku_;
 
   TextLayout layout_;
+  Point glyph_render_offset_;
 
   // Whether the last token was a SetName. This is used to control indentation
   // for quotes.

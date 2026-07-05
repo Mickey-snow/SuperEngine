@@ -31,6 +31,7 @@
 
 class TextWindow;
 class Gameexe;
+class Point;
 class TextPageElement;
 class SetWindowTextPageElement;
 class System;
@@ -101,6 +102,8 @@ class TextPage {
   void SetInsertionPointY(int y);
   void Offset_insertion_point_x(int offset);
   void Offset_insertion_point_y(int offset);
+  void SetGlyphRenderOffset(Point offset);
+  void ResetGlyphRenderOffset();
 
   // Sets the face in slot |index| to filename.
   void FaceOpen(const std::string& filename, int index);

@@ -162,6 +162,18 @@ void TextPage::Offset_insertion_point_y(int offset) {
   });
 }
 
+void TextPage::SetGlyphRenderOffset(Point offset) {
+  AddAction([offset](TextPage& page, bool) {
+    page.text_window_->SetGlyphRenderOffset(offset);
+  });
+}
+
+void TextPage::ResetGlyphRenderOffset() {
+  AddAction([](TextPage& page, bool) {
+    page.text_window_->ResetGlyphRenderOffset();
+  });
+}
+
 void TextPage::FaceOpen(const std::string& filename, int index) {
   AddAction([filename, index](TextPage& page, bool) {
     page.text_window_->FaceOpen(filename, index);
