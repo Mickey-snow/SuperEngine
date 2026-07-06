@@ -35,6 +35,7 @@
 #include "log/domain_logger.hpp"
 #include "m6/vm_factory.hpp"
 #include "srbind/module.hpp"
+#include "systems/event_system.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
 #include "systems/text_system.hpp"
@@ -60,6 +61,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <utility>
 #include <vector>
 
@@ -428,6 +430,48 @@ SiglusRuntime SGVMFactory::Create() {
   rt.local_config = std::make_shared<Gameexe>();
   rt.global_config = std::make_shared<Gameexe>();
 
+  struct SystemEventListener : public EventListener {
+    sr::VM& vm;
+    System& sys;
+    SystemEventListener(sr::VM& v, System& s) : vm(v), sys(s) {}
+    void OnEvent(std::shared_ptr<Event> event) override {
+      if (std::visit(
+              [&](auto& event) -> bool {
+                using T = std::decay_t<decltype(event)>;
+                if constexpr (std::same_as<T, Quit>) {
+                  vm.RequestStop();
+                  return true;
+                }
+                if constexpr (std::same_as<T, VideoExpose>) {
+                  sys.graphics().ForceRefresh();
+                  return true;
+                }
+                if constexpr (std::same_as<T, VideoResize>) {
+                  sys.graphics().Resize(event.size);
+                  return true;
+                }
+                if constexpr (std::same_as<T, MouseMotion>) {
+                  const auto& graphics_sys = sys.graphics();
+                  const auto aspect_ratio_w =
+                      1.0f * graphics_sys.GetDisplaySize().width() /
+                      graphics_sys.screen_size().width();
+                  const auto aspect_ratio_h =
+                      1.0f * graphics_sys.GetDisplaySize().height() /
+                      graphics_sys.screen_size().height();
+                  event.pos.set_x(event.pos.x() / aspect_ratio_w);
+                  event.pos.set_y(event.pos.y() / aspect_ratio_h);
+                  return false;
+                }
+                return false;
+              },
+              *event))
+        *event = std::monostate();
+    }
+  };
+  rt.system_event_listener =
+      std::make_shared<SystemEventListener>(vm, *rt.system);
+  rt.system->event().AddListener(20, rt.system_event_listener);
+
   for (auto it = binding::SiglusBindingRegistry::cbegin();
        it != binding::SiglusBindingRegistry::cend(); ++it) {
     it->second(rt);
@@ -514,7 +558,7 @@ SiglusRuntime SGVMFactory::Create() {
     // TODO: implement save/load and serialization support
     return 0;
   });
-  m.def("capture", []{
+  m.def("capture", [] {
     // TODO: create capture thumb image
   });
 

@@ -61,6 +61,7 @@ struct SiglusRuntime {
   std::shared_ptr<Gameexe> local_config, global_config;
 
   std::shared_ptr<SiglusSceneRenderer> renderer;
+  std::shared_ptr<EventListener> system_event_listener;
   std::function<void()> exec_sdl_callback;
 
   SiglusRuntime() = default;
