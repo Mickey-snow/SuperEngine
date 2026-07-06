@@ -155,6 +155,24 @@ TEST_F(ElementParserTest, Farcall) {
   }
 }
 
+TEST_F(ElementParserTest, Jump) {
+  {
+    ElementCode elm{4};
+    elm.ForceBind({0, {v("scene_name")}});
+    auto parsed = chain(elm);
+    EXPECT_EQ(parsed, "jump(str:scene_name)");
+    EXPECT_EQ(parsed.chain.GetType(), Type::None);
+    const Call* call = last_call(parsed);
+    ASSERT_NE(call, nullptr);
+    EXPECT_FALSE(call->await_result);
+  }
+  {
+    ElementCode elm{4};
+    elm.ForceBind({0, {v(69), v(2)}});
+    EXPECT_EQ(chain(elm), "jump(int:69,int:2)");
+  }
+}
+
 TEST_F(ElementParserTest, TimeWait) {
   {
     ElementCode elm{54};
