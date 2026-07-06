@@ -25,6 +25,7 @@
 #pragma once
 
 #include "core/colour.hpp"
+#include "core/memory_internal/bank.hpp"
 #include "core/rect.hpp"
 
 #include <algorithm>
@@ -193,6 +194,7 @@ struct ObjectParameter {
   DriftProperties drift;
   DigitProperties digit;
   ButtonProperties button;
+  IntBankStorage siglus_f;
   int wipe_copy = 0;
   int wipe_erase = 0;
   int click_disable = 0;
@@ -504,7 +506,7 @@ struct ObjectParameter {
     ar & light_no & fog_use;
     ar & scroll_rate_x & scroll_rate_y & z_order & z_layer & z_depth & text &
         drift & digit & button & wipe_copy;
-    ar & wipe_erase & click_disable;
+    ar & wipe_erase & click_disable & siglus_f;
   }
 };
 

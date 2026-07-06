@@ -426,6 +426,12 @@ TEST_F(ElementParserTest, ObjectChildList) {
   }
 }
 
+TEST_F(ElementParserTest, ObjectFList) {
+  ElementCode elm{37, 2, -1, 40, 111, 2};
+  elm.ForceBind({0, {v(1)}});
+  EXPECT_EQ(chain(elm), "stage.back.object[int:40].F.resize(int:1)");
+}
+
 TEST_F(ElementParserTest, ObjectRepnoAlphaLists) {
   {
     ElementCode elm{38, 2, -1, 0, 141, 2};
