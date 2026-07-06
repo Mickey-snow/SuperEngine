@@ -356,6 +356,33 @@ TEST_F(ElementParserTest, ObjectGetFilePathIsImplicitGetterCall) {
   EXPECT_FALSE(call->overload_id);
 }
 
+TEST_F(ElementParserTest, ObjectButtonCallsAreSimpleCallables) {
+  {
+    ElementCode elm{37, 2, -1, 40, 42};
+    elm.ForceBind({2, {v(0), v(1), v(2), v(3)}});
+
+    auto parsed = chain(elm);
+    EXPECT_EQ(parsed,
+              "stage.back.object[int:40].set_button(int:0,int:1,int:2,int:3)");
+    EXPECT_EQ(parsed.chain.GetType(), Type::None);
+    const Call* call = last_call(parsed);
+    ASSERT_NE(call, nullptr);
+    EXPECT_TRUE(call->is_simple);
+    EXPECT_FALSE(call->overload_id);
+  }
+
+  EXPECT_EQ(chain(37, 2, -1, 44, 61),
+            "stage.back.object[int:44].clear_button()");
+  EXPECT_EQ(chain(37, 2, -1, 44, 97),
+            "stage.back.object[int:44].set_button_state_disable()");
+  EXPECT_EQ(chain(37, 2, -1, 44, 118),
+            "stage.back.object[int:44].get_button_state()");
+  EXPECT_EQ(chain(37, 2, -1, 44, 123),
+            "stage.back.object[int:44].get_button_hit_state()");
+  EXPECT_EQ(chain(37, 2, -1, 44, 124),
+            "stage.back.object[int:44].get_button_real_state()");
+}
+
 TEST_F(ElementParserTest, ObjectGetSetUsesSimpleGetterAndSetterCalls) {
   {
     ElementCode elm{38, 2, -1, 0, 3};

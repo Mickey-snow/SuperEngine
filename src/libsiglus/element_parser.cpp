@@ -1243,7 +1243,7 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
           id[115] | b(Type::FrameActionList, Member("frame_action_ch")),
 
           // button
-          id[61] | b(Type::None, Member("clear_button")),
+          id[61] | b_callable("clear_button", Type::None),
           id[42] | b(Type::Callable, Member("set_button")),
           id[164] | b(Type::Callable, Member("set_button_group")),
           id[98] | b(Type::Callable, Member("set_button_pushkeep")),
@@ -1251,14 +1251,14 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
           id[175] | b(Type::Callable, Member("set_button_alpha_test")),
           id[176] | b(Type::Int, Member("get_button_alpha_test")),
 
-          id[95] | b(Type::None, Member("set_button_state_normal")),
-          id[96] | b(Type::None, Member("set_button_state_select")),
-          id[97] | b(Type::None, Member("set_button_state_disable")),
-          id[118] | b(Type::Int, Member("get_button_state")),
-          id[123] | b(Type::Int, Member("get_button_hit_state")),
-          id[124] | b(Type::Int, Member("get_button_real_state")),
+          id[95] | b_callable("set_button_state_normal", Type::None),
+          id[96] | b_callable("set_button_state_select", Type::None),
+          id[97] | b_callable("set_button_state_disable", Type::None),
+          id[118] | b_callable("get_button_state", Type::Int),
+          id[123] | b_callable("get_button_hit_state", Type::Int),
+          id[124] | b_callable("get_button_real_state", Type::Int),
           id[26] | b(Type::Callable, Member("set_button_call")),
-          id[60] | b(Type::None, Member("clear_button_call"))
+          id[60] | b_callable("clear_button_call", Type::None)
 
           // GAN
 

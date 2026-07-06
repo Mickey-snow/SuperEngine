@@ -63,6 +63,10 @@ namespace sr = serilang;
 
 namespace {
 
+constexpr int kBtnNormal = 0;
+constexpr int kBtnSelect = 3;
+constexpr int kBtnDisable = 4;
+
 int RequiredInt(const sr::Value& value, std::string_view name) {
   std::optional<int> result = AsInt(value);
   if (!result)
@@ -1265,6 +1269,71 @@ void BindObject(SiglusRuntime& runtime) {
   obj.def("set_center_rep", &SiglusObject::set_center_rep);
   obj.def("set_scale", &SiglusObject::set_scale);
   obj.def("set_pos", &SiglusObject::set_pos);
+  obj.def("clear_button", [](SiglusObject* obj) {
+    ButtonProperties button;
+    button.action = -1;
+    button.se = -1;
+    obj->param().SetButtonProperty(button);
+  });
+  obj.def(
+      "set_button",
+      [](SiglusObject* obj, std::vector<sr::Value> raw_args) {
+        CallPacket packet = CallPacket::DecodeFrom(std::move(raw_args));
+        const std::vector<sr::Value>& args = packet.args;
+        if (args.empty() || args.size() > 4) {
+          throw std::runtime_error("Object.set_button expects 1 to 4 args");
+        }
+
+        int button_no = 0;
+        int group_no = 0;
+        int action_no = 0;
+        int se_no = 0;
+        if (args.size() >= 1)
+          button_no = RequireInt(args[0], "Object.set_button button_no");
+        if (args.size() >= 2)
+          group_no = RequireInt(args[1], "Object.set_button group_no");
+        if (args.size() >= 3)
+          action_no = RequireInt(args[2], "Object.set_button action_no");
+        if (args.size() >= 4)
+          se_no = RequireInt(args[3], "Object.set_button se_no");
+
+        obj->param().SetButtonOpts(action_no, se_no, group_no, button_no);
+      },
+      sb::vararg);
+  obj.def(
+      "set_button_group",
+      [](SiglusObject* obj, std::vector<sr::Value> raw_args) {
+        CallPacket packet = CallPacket::DecodeFrom(std::move(raw_args));
+        const std::vector<sr::Value>& args = packet.args;
+        if (args.size() != 1)
+          throw std::runtime_error("Object.set_button_group expects 1 arg");
+
+        ButtonProperties button = obj->param().ButtonProperty();
+        button.group = RequireInt(args[0], "Object.set_button_group group_no");
+        obj->param().SetButtonProperty(button);
+      },
+      sb::vararg);
+  obj.def("set_button_state_normal",
+          [](SiglusObject* obj) { obj->param().SetButtonState(kBtnNormal); });
+  obj.def("set_button_state_select",
+          [](SiglusObject* obj) { obj->param().SetButtonState(kBtnSelect); });
+  obj.def("set_button_state_disable",
+          [](SiglusObject* obj) { obj->param().SetButtonState(kBtnDisable); });
+  obj.def("get_button_state",
+          [](SiglusObject* obj) { return obj->param().GetButtonState(); });
+  obj.def("get_button_hit_state", [](SiglusObject* obj) {
+    const int state = obj->param().GetButtonState();
+    if (state == kBtnSelect || state == kBtnDisable)
+      return state;
+    return kBtnNormal;
+  });
+  obj.def("get_button_real_state", [](SiglusObject* obj) {
+    const int state = obj->param().GetButtonState();
+    if (state == kBtnSelect || state == kBtnDisable)
+      return state;
+    return kBtnNormal;
+  });
+  obj.def("clear_button_call", [](SiglusObject*) {});
   obj.def("pause_movie", &SiglusObject::pause_movie);
   obj.def("resume_movie", &SiglusObject::resume_movie);
   obj.def("seek_movie", &SiglusObject::seek_movie, sb::vararg);
