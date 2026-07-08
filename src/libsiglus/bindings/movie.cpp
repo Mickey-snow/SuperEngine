@@ -25,6 +25,7 @@
 
 #include "core/asset_scanner.hpp"
 #include "core/avdec/ffmpeg.hpp"
+#include "core/queue.hpp"
 #include "libsiglus/bindings/util.hpp"
 #include "libsiglus/bindings/wait_helpers.hpp"
 #include "libsiglus/siglus_runtime.hpp"
@@ -34,18 +35,24 @@
 #include "systems/sdl/sdl_surface.hpp"
 #include "systems/sound_system.hpp"
 #include "systems/system.hpp"
+#include "vm/exception.hpp"
 #include "vm/future.hpp"
 #include "vm/value.hpp"
 #include "vm/vm.hpp"
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
+#include <exception>
 #include <filesystem>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <set>
 #include <stdexcept>
+#include <stop_token>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -86,20 +93,61 @@ class SiglusMovie {
           rect_(rect),
           wait_key_(wait_key),
           volume_(volume),
-          decoder_(path_),
           clock_(sys->event().GetClock()),
           sound_(sys->sound()),
-          graphics_(sys->graphics_ptr()),
-          frame_(static_cast<std::size_t>(decoder_.width()) *
-                     decoder_.height() * 4,
-                 0),
-          surface_(graphics_->CreateSurfaceBGRA(decoder_.info().size,
-                                                frame_,
-                                                false)) {}
+          graphics_(sys->graphics_ptr()) {}
+
+    struct Frame {
+      int timestamp;
+      std::vector<char> data;
+    };
 
     TaskCoroutine Run() override {
       playing_ = true;
+
+      std::shared_ptr<SDLSurface> surface_;
+      Frame current_frame;
+      auto queue = std::make_shared<Queue<Frame>>(32);
+      frame_queue_ = queue;
+
+      FfmpegVideoDecoder dec(path_);
+      const int msec_per_frame =
+          std::max(1, dec.info().usec_per_frame / 1000);
+      const std::size_t frame_size =
+          static_cast<std::size_t>(dec.width()) * dec.height() * 4;
+      current_frame.data.assign(frame_size, 0);
+      surface_ =
+          graphics_->CreateSurfaceBGRA(dec.info().size, current_frame.data);
+
       start_ = clock_->GetTime();
+      decoder_ = std::jthread([&](std::stop_token st) {
+        try {
+          for (int timestamp = 0; !st.stop_requested();
+               timestamp += msec_per_frame) {
+            if (int cur = playback_time_ms_.load(std::memory_order_relaxed);
+                timestamp < cur) {
+              timestamp = ((cur / msec_per_frame) + 1) * msec_per_frame;
+            }
+
+            Frame next;
+            next.data.resize(frame_size);
+            const bool updated = dec.DecodeTime(timestamp, next.data);
+            if (!updated) {
+              if (!dec.IsPlaying(timestamp))
+                break;
+              continue;
+            }
+            if (st.stop_requested())
+              break;
+
+            next.timestamp = timestamp;
+            queue->Push(std::move(next));
+          }
+        } catch (...) {
+          SetDecoderException(std::current_exception());
+        }
+        queue->Stop();
+      });
 
       try {
         sound_.PlayMovieAudio(path_, volume_);
@@ -111,24 +159,29 @@ class SiglusMovie {
 
       try {
         while (playing_) {
-          const int ms = CurrentTimeMs();
-          if (!decoder_.IsPlaying(ms))
+          UpdatePlaybackTime();
+          if (!queue->Pop(current_frame))
             break;
 
-          if (decoder_.DecodeTime(ms, frame_, false))
-            surface_->UpdateBGRA(frame_, false);
+          const int now = UpdatePlaybackTime();
+          bool late = now - current_frame.timestamp > msec_per_frame;
+          if (late && queue->Size() >= 1)
+            continue;
+          surface_->UpdateBGRA(current_frame.data, false);
 
-          graphics_->RenderCustomFrame([this] {
-            surface_->RenderToScreen(surface_->GetRect(), DestinationRect(),
+          graphics_->RenderCustomFrame([&] {
+            surface_->RenderToScreen(surface_->GetRect(),
+                                     DestinationRect(surface_->GetRect()),
                                      255);
           });
 
-          if ((co_await WaitFor(chr::milliseconds(20), wait_key_) ==
+          if ((co_await WaitFor(chr::milliseconds(msec_per_frame), wait_key_) ==
                WaitOutcome::InterruptedByInput)) {
             Stop();
             co_return 1;
           }
         }
+        RethrowDecoderException();
       } catch (...) {
         Stop();
         throw;
@@ -148,8 +201,45 @@ class SiglusMovie {
       return ms > 0 ? static_cast<int>(ms) : 0;
     }
 
-    bool IsPlaying() const {
-      return playing_ && decoder_.IsPlaying(CurrentTimeMs());
+    int UpdatePlaybackTime() {
+      const int ms = CurrentTimeMs();
+      playback_time_ms_.store(ms, std::memory_order_relaxed);
+      return ms;
+    }
+
+    bool IsPlaying() const { return playing_ || decoder_.joinable(); }
+
+    Rect DestinationRect(const Rect& source) const {
+      const int width = rect_.width > 0 ? rect_.width : source.width();
+      const int height = rect_.height > 0 ? rect_.height : source.height();
+      return Rect::REC(rect_.x, rect_.y, width, height);
+    }
+
+    void SetDecoderException(std::exception_ptr exception) {
+      std::lock_guard<std::mutex> lock(decoder_exception_mutex_);
+      if (!decoder_exception_)
+        decoder_exception_ = std::move(exception);
+    }
+
+    void RethrowDecoderException() {
+      std::exception_ptr exception;
+      {
+        std::lock_guard<std::mutex> lock(decoder_exception_mutex_);
+        exception = decoder_exception_;
+      }
+      if (!exception)
+        return;
+
+      try {
+        std::rethrow_exception(exception);
+      } catch (const sr::RuntimeError&) {
+        throw;
+      } catch (const std::exception& e) {
+        throw sr::RuntimeError(std::string("movie decode failed: ") +
+                               e.what());
+      } catch (...) {
+        throw sr::RuntimeError("movie decode failed");
+      }
     }
 
     void Stop() {
@@ -159,13 +249,12 @@ class SiglusMovie {
       playing_ = false;
       RestoreGraphicsUpdateResponsibility();
       sound_.StopMovieAudio();
-    }
-
-    Rect DestinationRect() const {
-      const Rect source = surface_->GetRect();
-      const int width = rect_.width > 0 ? rect_.width : source.width();
-      const int height = rect_.height > 0 ? rect_.height : source.height();
-      return Rect::REC(rect_.x, rect_.y, width, height);
+      if (frame_queue_)
+        frame_queue_->Stop();
+      if (decoder_.joinable()) {
+        decoder_.request_stop();
+        decoder_.join();
+      }
     }
 
     void TakeGraphicsUpdateResponsibility() {
@@ -190,13 +279,15 @@ class SiglusMovie {
     int volume_ = 255;
     bool playing_ = false;
     bool stopped_ = false;
-    mutable FfmpegVideoDecoder decoder_;
     std::shared_ptr<Clock> clock_;
     SoundSystem& sound_;
     std::shared_ptr<GraphicsSystem> graphics_;
-    std::vector<char> frame_;
-    std::shared_ptr<SDLSurface> surface_;
     Clock::timepoint_t start_;
+    std::atomic<int> playback_time_ms_ = 0;
+    std::jthread decoder_;
+    std::shared_ptr<Queue<Frame>> frame_queue_;
+    std::mutex decoder_exception_mutex_;
+    std::exception_ptr decoder_exception_;
     std::optional<bool> previous_graphics_update_responsibility_;
   };
 
