@@ -82,3 +82,10 @@ std::string ButtonProperties::ToString() const {
   oss << ", y_offset_override=" << y_offset_override;
   return oss.str();
 }
+
+// ------------------------------------------------------------------------------
+
+ObjectParameter::ObjectParameter()
+    : adjustment_offsets_x(8, 0),
+      adjustment_offsets_y(8, 0),
+      adjustment_alphas(8, 255) {}

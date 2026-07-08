@@ -152,8 +152,8 @@ struct ObjectParameter {
   bool is_visible = false;
   int position_x = 0;
   int position_y = 0;
-  std::array<int, 8> adjustment_offsets_x = {};
-  std::array<int, 8> adjustment_offsets_y = {};
+  std::vector<int> adjustment_offsets_x;
+  std::vector<int> adjustment_offsets_y;
   int adjustment_vertical = 0;
   int origin_x = 0;
   int origin_y = 0;
@@ -166,8 +166,7 @@ struct ObjectParameter {
   int rotation_div10 = 0;
   int pattern_number = 0;
   int alpha_source = 255;
-  std::array<int, 8> adjustment_alphas = {255, 255, 255, 255,
-                                          255, 255, 255, 255};
+  std::vector<int> adjustment_alphas;
   Rect clipping_region = Rect(Point(0, 0), Size(-1, -1));
   Rect own_space_clipping_region = Rect(Point(0, 0), Size(-1, -1));
   int monochrome_transform = 0;
@@ -193,10 +192,12 @@ struct ObjectParameter {
   DriftProperties drift;
   DigitProperties digit;
   ButtonProperties button;
-  std::vector<int> siglus_f;
+  std::vector<int> F;
   int wipe_copy = 0;
   int wipe_erase = 0;
   int click_disable = 0;
+
+  ObjectParameter();
 
   int visible() const { return static_cast<int>(is_visible); }
   void SetVisible(const int in) { is_visible = static_cast<bool>(in); }
@@ -348,7 +349,7 @@ struct ObjectParameter {
   int raw_alpha() const { return alpha_source; }
   void SetAlpha(const int in) { alpha_source = in; }
 
-  std::array<int, 8> alpha_adjustment() const { return adjustment_alphas; }
+  inline auto alpha_adjustment() const { return adjustment_alphas; }
   int alpha_adjustment(int idx) const { return adjustment_alphas[idx]; }
   void SetAlphaAdjustment(int idx, int alpha) {
     adjustment_alphas[idx] = alpha;
@@ -505,7 +506,7 @@ struct ObjectParameter {
     ar & light_no & fog_use;
     ar & scroll_rate_x & scroll_rate_y & z_order & z_layer & z_depth & text &
         drift & digit & button & wipe_copy;
-    ar & wipe_erase & click_disable & siglus_f;
+    ar & wipe_erase & click_disable & F;
   }
 };
 
@@ -520,7 +521,7 @@ template <auto member>
 auto CreateGetter() {
   using property_type = ObjectParameterMemberType<member>;
 
-  if constexpr (std::is_same_v<property_type, std::array<int, 8>>) {
+  if constexpr (std::is_same_v<property_type, std::vector<int>>) {
     return static_cast<std::function<int(const ObjectParameter&, int)>>(
         [](const ObjectParameter& param, int repno) -> int {
           return (param.*member)[repno];
@@ -540,7 +541,7 @@ template <auto member>
 auto CreateSetter() {
   using property_type = ObjectParameterMemberType<member>;
 
-  if constexpr (std::is_same_v<property_type, std::array<int, 8>>) {
+  if constexpr (std::is_same_v<property_type, std::vector<int>>) {
     return static_cast<std::function<void(ObjectParameter&, int, int)>>(
         [](ObjectParameter& param, int repno, int value) {
           (param.*member)[repno] = value;

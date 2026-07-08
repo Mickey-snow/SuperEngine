@@ -28,8 +28,6 @@
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
 
-#include <sstream>
-
 TEST(ObjectParameterTest, DefaultInit) {
   ObjectParameter param;
 
@@ -51,7 +49,7 @@ TEST(ObjectParameterTest, DefaultInit) {
   EXPECT_EQ(param.pattern_number, 0);
   EXPECT_EQ(param.alpha_source, 255);
   EXPECT_EQ(param.adjustment_alphas,
-            (std::array<int, 8>{255, 255, 255, 255, 255, 255, 255, 255}));
+            (std::vector<int>{255, 255, 255, 255, 255, 255, 255, 255}));
   EXPECT_FALSE(param.has_clip_rect());
   EXPECT_FALSE(param.has_own_clip_rect());
   EXPECT_EQ(param.monochrome_transform, 0);
@@ -74,7 +72,7 @@ TEST(ObjectParameterTest, DefaultInit) {
   EXPECT_EQ(param.z_order, 0);
   EXPECT_EQ(param.z_layer, 0);
   EXPECT_EQ(param.z_depth, 0);
-  EXPECT_EQ(param.siglus_f.size(), 0);
+  EXPECT_EQ(param.F.size(), 0);
   EXPECT_EQ(param.wipe_copy, 0);
   EXPECT_EQ(param.wipe_erase, 0);
   EXPECT_EQ(param.click_disable, 0);
@@ -310,5 +308,6 @@ TEST(ObjectParameterTest, SetterProxy) {
   auto repno_setter = CreateSetter<&ObjectParameter::adjustment_offsets_y>();
   repno_setter(param, 2, 24);
   repno_setter(param, 3, -12);
-  EXPECT_EQ(param.adjustment_offsets_y, (std::array<int, 8>{0, 0, 24, -12}));
+  EXPECT_EQ(param.adjustment_offsets_y,
+            (std::vector<int>{0, 0, 24, -12, 0, 0, 0, 0}));
 }

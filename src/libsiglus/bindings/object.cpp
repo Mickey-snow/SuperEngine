@@ -744,28 +744,6 @@ class ObjectRepnoEventList {
   void resize(int) {}
 };
 
-struct ObjectRepnoParam {
-  using repno_t = std::array<int, 8>;
-  ObjectReference ref_;
-  std::function<repno_t&(ObjectParameter&)> fn_;
-  ObjectRepnoParam(ObjectReference ref,
-                   std::function<repno_t&(ObjectParameter&)> fn)
-      : ref_(std::move(ref)), fn_(std::move(fn)) {}
-
-  int size() { return 8; }
-  void resize(int) {}
-  sr::Value get(int idx) {
-    GraphicsObject& obj = ref_.get();
-    auto& arr = fn_(obj.Param());
-    return arr.at(idx);
-  }
-  void set(int idx, int val) {
-    GraphicsObject& obj = ref_.get();
-    auto& arr = fn_(obj.Param());
-    arr.at(idx) = val;
-  }
-};
-
 struct DirectObjectPropertyBinder {
   sb::class_<SiglusObject>& obj;
 
@@ -1093,7 +1071,6 @@ void BindObject(SiglusRuntime& runtime) {
   sb::module_ m(vm.gc_.get(), vm.globals_.get());
   sb::class_<SiglusObject> obj(m, "Object");
   sb::class_<ObjectChild> child(m, "ObjectChild", false);
-  sb::class_<ObjectRepnoParam> repno(m, "ObjectRepnoParam", false);
   sb::class_<ObjectRepnoEvent> repno_event(m, "ObjectRepnoEvent", false);
   sb::class_<ObjectRepnoEventList> repno_event_list(m, "ObjectRepnoEventList",
                                                     false);
@@ -1130,50 +1107,26 @@ void BindObject(SiglusRuntime& runtime) {
                                                     make_child_object);
              });
 
-  obj.subcls(
-      "F", *runtime.ilist_cls,
-      [](SiglusObject* parent) -> std::unique_ptr<IntListFacade> {
-        auto getter = [ref = parent->ref_]() mutable -> std::vector<int>& {
-          auto& object = ref.get();
-          return object.Param().siglus_f;
-        };
-        return std::make_unique<IntListFacade>(std::move(getter));
-      });
+  auto ilist_param = [&](const char* name, auto&& F) {
+    obj.subcls(name, *runtime.ilist_cls,
+               [F = std::move(F)](
+                   SiglusObject* parent) -> std::unique_ptr<IntListFacade> {
+                 auto getter = [ref = parent->ref_,
+                                &F]() mutable -> std::vector<int>& {
+                   auto& object = ref.get();
+                   return std::invoke(F, object.Param());
+                 };
+                 return std::make_unique<IntListFacade>(std::move(getter));
+               });
+  };
+  ilist_param("F", &ObjectParameter::F);
+  ilist_param("x_rep", &ObjectParameter::adjustment_offsets_x);
+  ilist_param("y_rep", &ObjectParameter::adjustment_offsets_y);
+  ilist_param("tr_rep", &ObjectParameter::adjustment_alphas);
 
   // direct properties
   DirectObjectPropertyBinder direct_properties{obj};
   direct_properties.Bind();
-
-  repno.def("__getitem__", &ObjectRepnoParam::get, sb::arg("idx"));
-  repno.def("__setitem__", &ObjectRepnoParam::set, sb::arg("idx"),
-            sb::arg("val"));
-  repno.def("resize", &ObjectRepnoParam::resize, sb::arg("size"));
-  repno.def("size", &ObjectRepnoParam::size);
-
-  obj.subcls("x_rep", repno,
-             [](SiglusObject* obj) -> std::unique_ptr<ObjectRepnoParam> {
-               auto fn = +[](ObjectParameter& param) -> std::array<int, 8>& {
-                 return param.adjustment_offsets_x;
-               };
-               return std::make_unique<ObjectRepnoParam>(obj->ref_,
-                                                         std::move(fn));
-             });
-  obj.subcls("y_rep", repno,
-             [](SiglusObject* obj) -> std::unique_ptr<ObjectRepnoParam> {
-               auto fn = +[](ObjectParameter& param) -> std::array<int, 8>& {
-                 return param.adjustment_offsets_y;
-               };
-               return std::make_unique<ObjectRepnoParam>(obj->ref_,
-                                                         std::move(fn));
-             });
-  obj.subcls("tr_rep", repno,
-             [](SiglusObject* obj) -> std::unique_ptr<ObjectRepnoParam> {
-               auto fn = +[](ObjectParameter& param) -> std::array<int, 8>& {
-                 return param.adjustment_alphas;
-               };
-               return std::make_unique<ObjectRepnoParam>(obj->ref_,
-                                                         std::move(fn));
-             });
 
   repno_event.def("set", &ObjectRepnoEvent::set, sb::arg("end_value"),
                   sb::arg("duration_time"), sb::arg("delay"), sb::arg("type"));
