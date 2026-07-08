@@ -33,7 +33,6 @@
 #include <limits>
 #include <stdexcept>
 #include <string>
-#include <utility>
 #include <vector>
 
 class IntBankStorage {
@@ -114,6 +113,8 @@ class IntBankStorage {
     std::fill(data_.begin() + begin, data_.begin() + end, value);
   }
 
+  inline std::vector<int>& Data() { return data_; }
+
  private:
   void EnsureSizeForIndex(std::size_t index) {
     if (index == std::numeric_limits<std::size_t>::max()) {
@@ -186,6 +187,8 @@ class StrBankStorage {
 
     std::fill(data_.begin() + begin, data_.begin() + end, value);
   }
+
+  inline std::vector<std::string>& Data() { return data_; }
 
  private:
   void EnsureSizeForIndex(std::size_t index) {

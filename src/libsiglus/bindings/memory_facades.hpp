@@ -23,72 +23,19 @@
 
 #pragma once
 
-#include "core/memory_internal/memory.hpp"
 #include "vm/value.hpp"
 
 #include <cstdint>
+#include <functional>
 #include <string>
 #include <vector>
 
 namespace libsiglus::binding {
 
-class SiglusIntBank {
- public:
-  SiglusIntBank(Memory& memory, IntBank bank, uint8_t bits = 32);
-
-  int get(int idx);
-  void set(int idx, int value);
-  void Set(int idx, std::vector<serilang::Value> values);
-
-  int b1(int idx);
-  void write_b1(int idx, int value);
-  int b2(int idx);
-  void write_b2(int idx, int value);
-  int b4(int idx);
-  void write_b4(int idx, int value);
-  int b8(int idx);
-  void write_b8(int idx, int value);
-  int b16(int idx);
-  void write_b16(int idx, int value);
-
-  void resize(int size);
-  int size() const;
-  void fill(int begin, int end, int value);
-  void init(int value = 0);
-
- private:
-  int get_bits(int idx, std::uint8_t bits);
-  void set_bits(int idx, int value, std::uint8_t bits);
-  void EnsureSize(std::size_t logical_size);
-  void EnsureSize(std::size_t logical_size, std::uint8_t bits);
-
-  Memory* memory_;
-  IntBank bank_;
-  uint8_t bits_;
-};
-
-class SiglusStrBank {
- public:
-  SiglusStrBank(Memory& memory, StrBank bank);
-
-  std::string get(int idx);
-  void set(int idx, std::string value);
-  void Set(int idx, std::string value);
-  void resize(int size);
-  int size() const;
-  void fill(int begin, int end, std::string value);
-  void init(std::string value = "");
-
- private:
-  void EnsureSize(std::size_t size);
-
-  Memory* memory_;
-  StrBank bank_;
-};
-
 class SiglusIntList {
  public:
-  explicit SiglusIntList(int size);
+  using getter_t = std::function<std::vector<int>&()>;
+  explicit SiglusIntList(getter_t getter, int size);
 
   int get(int idx);
   void set(int idx, int value);
@@ -115,14 +62,15 @@ class SiglusIntList {
 
   std::size_t CheckExistingIndex(int idx);
 
-  IntBankStorage storage_;
+  getter_t getter_;
   std::size_t default_size_;
   bool autoresize_ = true;
 };
 
 class SiglusStrList {
  public:
-  explicit SiglusStrList(int size);
+  using getter_t = std::function<std::vector<std::string>&()>;
+  explicit SiglusStrList(getter_t getter, int size);
 
   std::string get(int idx);
   void set(int idx, std::string value);
@@ -134,7 +82,7 @@ class SiglusStrList {
  private:
   std::size_t CheckExistingIndex(int idx);
 
-  StrBankStorage storage_;
+  getter_t getter_;
   std::size_t default_size_;
   bool autoresize_ = true;
 };

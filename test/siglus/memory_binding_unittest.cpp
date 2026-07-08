@@ -43,7 +43,7 @@ class SiglusMemoryBindingTest : public ::testing::Test {
   void SetUp() override {
     runtime.vm = std::make_unique<serilang::VM>(m6::VMFactory::Create());
 
-    const auto* bind = SiglusBindingRegistry::Find("memory");
+    const auto* bind = SiglusBindingRegistry::Find("0_memory");
     ASSERT_NE(bind, nullptr);
     (*bind)(runtime);
   }
@@ -99,6 +99,24 @@ TEST_F(SiglusMemoryBindingTest, FactoryIntListsUseSiglusFacade) {
   Eval("xs.resize(5); xs[4] = 7; xs.init(); A[4] = xs.size(); A[5] = xs[1];");
   EXPECT_EQ(runtime.memory->Read(IntBank::A, 4), 4);
   EXPECT_EQ(runtime.memory->Read(IntBank::A, 5), 0);
+}
+
+TEST_F(SiglusMemoryBindingTest, FactoryIntListBitViewsGrowFromEmpty) {
+  Eval(R"(
+xs = make_intlist(0);
+A[0] = xs.b4(3);
+A[1] = xs.size();
+xs.write_b8(4, 17);
+A[2] = xs.size();
+A[3] = xs.b8(4);
+A[4] = xs[1];
+)");
+
+  EXPECT_EQ(runtime.memory->Read(IntBank::A, 0), 0);
+  EXPECT_EQ(runtime.memory->Read(IntBank::A, 1), 1);
+  EXPECT_EQ(runtime.memory->Read(IntBank::A, 2), 2);
+  EXPECT_EQ(runtime.memory->Read(IntBank::A, 3), 17);
+  EXPECT_EQ(runtime.memory->Read(IntBank::A, 4), 17);
 }
 
 TEST_F(SiglusMemoryBindingTest, FactoryStrListsUseSiglusFacade) {

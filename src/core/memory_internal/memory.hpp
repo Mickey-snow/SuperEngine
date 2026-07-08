@@ -95,12 +95,12 @@ class Memory {
   void PartialReset(GlobalMemory global_memory);
   void PartialReset(LocalMemory local_memory);
 
- private:
   IntBankStorage& GetBank(IntBank);
   const IntBankStorage& GetBank(IntBank) const;
   StrBankStorage& GetBank(StrBank);
   const StrBankStorage& GetBank(StrBank) const;
 
+ private:
   static constexpr auto int_bank_cnt = static_cast<size_t>(IntBank::CNT);
   static constexpr auto str_bank_cnt = static_cast<size_t>(StrBank::CNT);
   static constexpr std::size_t kDefaultBankSize = 2000;

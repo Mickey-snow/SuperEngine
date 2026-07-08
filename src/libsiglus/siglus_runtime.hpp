@@ -30,6 +30,7 @@
 #include "core/stage.hpp"
 #include "libsiglus/bindings/loader.hpp"
 #include "libsiglus/bindings/wipe.hpp"
+#include "srbind/srbind.hpp"
 #include "systems/system.hpp"
 #include "vm/value.hpp"
 
@@ -44,6 +45,11 @@ class VM;
 namespace libsiglus {
 class Archive;
 class SiglusSceneRenderer;
+
+namespace binding {
+class SiglusIntList;
+class SiglusStrList;
+}  // namespace binding
 
 struct SiglusRuntime {
   std::filesystem::path base_pth, save_pth;
@@ -63,6 +69,9 @@ struct SiglusRuntime {
   std::shared_ptr<SiglusSceneRenderer> renderer;
   std::shared_ptr<EventListener> system_event_listener;
   std::function<void()> exec_sdl_callback;
+
+  std::shared_ptr<srbind::class_<binding::SiglusIntList>> ilist_cls;
+  std::shared_ptr<srbind::class_<binding::SiglusStrList>> slist_cls;
 
   SiglusRuntime() = default;
   ~SiglusRuntime();

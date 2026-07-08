@@ -24,7 +24,6 @@
 #include "libsiglus/bindings/memory_facades.hpp"
 
 #include "libsiglus/bindings/util.hpp"
-#include "utilities/assertx.hpp"
 #include "vm/exception.hpp"
 
 #include <algorithm>
@@ -73,28 +72,23 @@ std::size_t RequiredIntWords(std::size_t logical_size, uint8_t bits) {
   return (logical_size * bits + 31) / 32;
 }
 
+std::uint32_t BitMask(std::uint8_t bits) {
+  return (std::uint32_t{1} << bits) - 1;
+}
+
+void CheckSubwordWidth(std::uint8_t bits) {
+  if (!(bits == 1 || bits == 2 || bits == 4 || bits == 8 || bits == 16)) {
+    throw RuntimeError("IntList: access type " + std::to_string(bits) +
+                       "b not supported.");
+  }
+}
+
 std::size_t CheckedEnd(std::size_t begin,
                        std::size_t count,
                        std::string_view where) {
   if (count > std::numeric_limits<std::size_t>::max() - begin)
     throw RuntimeError(std::format("{} index overflow", where));
   return begin + count;
-}
-
-std::size_t CheckBitIndex(int idx,
-                          std::size_t words,
-                          std::uint8_t bits,
-                          std::string_view where) {
-  const std::size_t index = CheckIndex(idx);
-  const std::size_t per_word = 32 / bits;
-  if (words > std::numeric_limits<std::size_t>::max() / per_word)
-    throw RuntimeError(std::format("{} size overflow", where));
-  const std::size_t logical_size = words * per_word;
-  if (index >= logical_size) {
-    throw RuntimeError(std::format("{} index {} out of range for size {}",
-                                   where, index, logical_size));
-  }
-  return index;
 }
 
 std::pair<std::size_t, std::size_t> CheckFillRange(int begin,
@@ -114,161 +108,23 @@ std::pair<std::size_t, std::size_t> CheckFillRange(int begin,
 
 }  // namespace
 
-SiglusIntBank::SiglusIntBank(Memory& memory, IntBank bank, uint8_t bits)
-    : memory_(&memory), bank_(bank), bits_(bits) {
-  ASSERTX_TRUE(bits == 32 || bits == 1 || bits == 2 || bits == 4 || bits == 8 ||
-               bits == 16);
+SiglusIntList::SiglusIntList(getter_t getter, int size)
+    : getter_(std::move(getter)), default_size_(CheckSize(size)) {
+  if (!getter_)
+    throw RuntimeError("IntList: getter is empty.");
+  if (default_size_ > 0)
+    getter_().resize(default_size_);
 }
-
-int SiglusIntBank::get(int idx) {
-  const std::size_t index = CheckIndex(idx);
-  EnsureSize(index + 1);
-  return memory_->Read(IntMemoryLocation(bank_, index, bits_));
-}
-
-void SiglusIntBank::set(int idx, int value) {
-  const std::size_t index = CheckIndex(idx);
-  EnsureSize(index + 1);
-  memory_->Write(IntMemoryLocation(bank_, index, bits_), value);
-}
-
-void SiglusIntBank::Set(int idx, std::vector<Value> values) {
-  const std::size_t begin = CheckIndex(idx);
-  if (values.empty())
-    return;
-
-  EnsureSize(CheckedEnd(begin, values.size(), "integer bank Set"));
-  for (std::size_t i = 0; i < values.size(); ++i) {
-    memory_->Write(IntMemoryLocation(bank_, begin + i, bits_),
-                   RequireInt(values[i], "integer bank Set"));
-  }
-}
-
-int SiglusIntBank::b1(int idx) { return get_bits(idx, 1); }
-void SiglusIntBank::write_b1(int idx, int value) { set_bits(idx, value, 1); }
-
-int SiglusIntBank::b2(int idx) { return get_bits(idx, 2); }
-void SiglusIntBank::write_b2(int idx, int value) { set_bits(idx, value, 2); }
-
-int SiglusIntBank::b4(int idx) { return get_bits(idx, 4); }
-void SiglusIntBank::write_b4(int idx, int value) { set_bits(idx, value, 4); }
-
-int SiglusIntBank::b8(int idx) { return get_bits(idx, 8); }
-void SiglusIntBank::write_b8(int idx, int value) { set_bits(idx, value, 8); }
-
-int SiglusIntBank::b16(int idx) { return get_bits(idx, 16); }
-void SiglusIntBank::write_b16(int idx, int value) { set_bits(idx, value, 16); }
-
-void SiglusIntBank::resize(int size) {
-  memory_->Resize(bank_, RequiredIntWords(CheckSize(size), bits_));
-}
-
-int SiglusIntBank::size() const {
-  const std::size_t words = memory_->Size(bank_);
-  if (bits_ == 32)
-    return CheckedIntSize(words);
-  return CheckedIntSize(words * (32 / bits_));
-}
-
-void SiglusIntBank::fill(int begin, int end, int value) {
-  const std::size_t begin_index = CheckIndex(begin);
-  const std::size_t end_index = CheckIndex(end);
-  if (begin_index > end_index)
-    throw RuntimeError("invalid memory fill range");
-  if (begin_index == end_index)
-    return;
-
-  EnsureSize(end_index);
-  if (bits_ == 32) {
-    memory_->Fill(bank_, begin_index, end_index, value);
-    return;
-  }
-
-  for (std::size_t i = begin_index; i < end_index; ++i)
-    memory_->Write(IntMemoryLocation(bank_, i, bits_), value);
-}
-
-void SiglusIntBank::init(int value) { fill(0, size(), value); }
-
-int SiglusIntBank::get_bits(int idx, std::uint8_t bits) {
-  const std::size_t index = CheckIndex(idx);
-  EnsureSize(index + 1, bits);
-  return memory_->Read(IntMemoryLocation(bank_, index, bits));
-}
-
-void SiglusIntBank::set_bits(int idx, int value, std::uint8_t bits) {
-  const std::size_t index = CheckIndex(idx);
-  EnsureSize(index + 1, bits);
-  memory_->Write(IntMemoryLocation(bank_, index, bits), value);
-}
-
-void SiglusIntBank::EnsureSize(std::size_t logical_size) {
-  EnsureSize(logical_size, bits_);
-}
-
-void SiglusIntBank::EnsureSize(std::size_t logical_size, std::uint8_t bits) {
-  const std::size_t required = RequiredIntWords(logical_size, bits);
-  if (memory_->Size(bank_) < required)
-    memory_->Resize(bank_, required);
-}
-
-SiglusStrBank::SiglusStrBank(Memory& memory, StrBank bank)
-    : memory_(&memory), bank_(bank) {}
-
-std::string SiglusStrBank::get(int idx) {
-  const std::size_t index = CheckIndex(idx);
-  EnsureSize(index + 1);
-  return memory_->Read(bank_, index);
-}
-
-void SiglusStrBank::set(int idx, std::string value) {
-  const std::size_t index = CheckIndex(idx);
-  EnsureSize(index + 1);
-  memory_->Write(bank_, index, value);
-}
-
-void SiglusStrBank::Set(int idx, std::string value) {
-  set(idx, std::move(value));
-}
-
-void SiglusStrBank::resize(int size) {
-  memory_->Resize(bank_, CheckSize(size));
-}
-
-int SiglusStrBank::size() const { return CheckedIntSize(memory_->Size(bank_)); }
-
-void SiglusStrBank::fill(int begin, int end, std::string value) {
-  const std::size_t begin_index = CheckIndex(begin);
-  const std::size_t end_index = CheckIndex(end);
-  if (begin_index > end_index)
-    throw RuntimeError("invalid memory fill range");
-  if (begin_index == end_index)
-    return;
-
-  EnsureSize(end_index);
-  memory_->Fill(bank_, begin_index, end_index, value);
-}
-
-void SiglusStrBank::init(std::string value) {
-  fill(0, size(), std::move(value));
-}
-
-void SiglusStrBank::EnsureSize(std::size_t size) {
-  if (memory_->Size(bank_) < size)
-    memory_->Resize(bank_, size);
-}
-
-SiglusIntList::SiglusIntList(int size)
-    : storage_(CheckSize(size)), default_size_(CheckSize(size)) {}
 
 std::size_t SiglusIntList::CheckExistingIndex(int idx) {
   if (idx < 0)
     throw RuntimeError("negative memory bank index: " + std::to_string(idx));
 
+  auto& storage = getter_();
   const std::size_t index = idx;
-  if (const std::size_t size = storage_.GetSize(); index >= size) {
+  if (const std::size_t size = storage.size(); index >= size) {
     if (autoresize_) {
-      storage_.Resize(index + 1);
+      storage.resize(index + 1);
     } else
       throw RuntimeError(std::format(
           "IntList: index {} out of range for size {}", index, size));
@@ -278,12 +134,12 @@ std::size_t SiglusIntList::CheckExistingIndex(int idx) {
 
 int SiglusIntList::get(int idx) {
   const std::size_t index = CheckExistingIndex(idx);
-  return storage_.Get(index);
+  return getter_()[index];
 }
 
 void SiglusIntList::set(int idx, int value) {
   const std::size_t index = CheckExistingIndex(idx);
-  storage_.Set(index, value);
+  getter_()[index] = value;
 }
 
 void SiglusIntList::Set(int idx, std::vector<Value> values) {
@@ -291,30 +147,32 @@ void SiglusIntList::Set(int idx, std::vector<Value> values) {
   if (values.empty())
     return;
 
+  auto& storage = getter_();
   const std::size_t end = CheckedEnd(begin, values.size(), "integer list Set");
-  if (end > storage_.GetSize()) {
+  if (end > storage.size()) {
     throw RuntimeError(
         std::format("integer list Set range [{}, {}) out of range for size {}",
-                    begin, end, storage_.GetSize()));
+                    begin, end, storage.size()));
   }
 
   for (std::size_t i = 0; i < values.size(); ++i)
-    storage_.Set(begin + i, RequireInt(values[i], "integer list Set"));
+    storage[begin + i] = RequireInt(values[i], "integer list Set");
 }
 
-void SiglusIntList::resize(int size) { storage_.Resize(CheckSize(size)); }
+void SiglusIntList::resize(int size) { getter_().resize(CheckSize(size)); }
 
-int SiglusIntList::size() const { return CheckedIntSize(storage_.GetSize()); }
+int SiglusIntList::size() const { return CheckedIntSize(getter_().size()); }
 
 void SiglusIntList::fill(int begin, int end, int value) {
+  auto& storage = getter_();
   const auto [begin_index, end_index] =
-      CheckFillRange(begin, end, storage_.GetSize(), "integer list");
-  storage_.Fill(begin_index, end_index, value);
+      CheckFillRange(begin, end, storage.size(), "integer list");
+  std::fill(storage.begin() + begin_index, storage.begin() + end_index, value);
 }
 
 void SiglusIntList::init() {
-  storage_.Resize(default_size_);
-  storage_.Fill(0, default_size_, 0);
+  auto& storage = getter_();
+  storage.assign(default_size_, 0);
 }
 
 int SiglusIntList::b1(int idx) { return get_bits(idx, 1); }
@@ -333,28 +191,66 @@ int SiglusIntList::b16(int idx) { return get_bits(idx, 16); }
 void SiglusIntList::write_b16(int idx, int value) { set_bits(idx, value, 16); }
 
 int SiglusIntList::get_bits(int idx, std::uint8_t bits) {
-  const std::size_t index =
-      CheckBitIndex(idx, storage_.GetSize(), bits, "integer list bit access");
-  return storage_.Get(index, bits);
+  CheckSubwordWidth(bits);
+  const std::size_t index = CheckIndex(idx);
+  const std::size_t logical_size =
+      CheckedEnd(index, 1, "integer list bit access");
+
+  auto& storage = getter_();
+  storage.resize(
+      std::max(storage.size(), RequiredIntWords(logical_size, bits)));
+
+  const std::size_t per_word = 32 / bits;
+  const std::size_t word_index = index / per_word;
+  const std::uint8_t shiftbits = (index % per_word) * bits;
+  const auto word = static_cast<std::uint32_t>(storage[word_index]);
+  return static_cast<int>((word >> shiftbits) & BitMask(bits));
 }
 
 void SiglusIntList::set_bits(int idx, int value, std::uint8_t bits) {
-  const std::size_t index =
-      CheckBitIndex(idx, storage_.GetSize(), bits, "integer list bit access");
-  storage_.Set(index, value, bits);
+  CheckSubwordWidth(bits);
+  const std::size_t index = CheckIndex(idx);
+  const auto mask = BitMask(bits);
+  if (value < 0 || static_cast<std::uint32_t>(value) > mask) {
+    throw RuntimeError("IntList: value " + std::to_string(value) +
+                       " overflow when casting to " + std::to_string(bits) +
+                       " bit int.");
+  }
+  const std::size_t logical_size =
+      CheckedEnd(index, 1, "integer list bit access");
+
+  auto& storage = getter_();
+  storage.resize(
+      std::max(storage.size(), RequiredIntWords(logical_size, bits)));
+
+  const std::size_t per_word = 32 / bits;
+  const std::size_t word_index = index / per_word;
+  const std::uint8_t shiftbits = (index % per_word) * bits;
+  const auto shifted_mask = mask << shiftbits;
+
+  auto word = static_cast<std::uint32_t>(storage[word_index]);
+  word &= ~shifted_mask;
+  word |= static_cast<std::uint32_t>(value) << shiftbits;
+  storage[word_index] = static_cast<int>(word);
 }
 
-SiglusStrList::SiglusStrList(int size)
-    : storage_(CheckSize(size)), default_size_(CheckSize(size)) {}
+SiglusStrList::SiglusStrList(getter_t getter, int size)
+    : getter_(std::move(getter)), default_size_(CheckSize(size)) {
+  if (!getter_)
+    throw RuntimeError("StrList: getter is empty.");
+  if (default_size_ > 0)
+    getter_().resize(default_size_);
+}
 
 std::size_t SiglusStrList::CheckExistingIndex(int idx) {
   if (idx < 0)
     throw RuntimeError("negative memory bank index: " + std::to_string(idx));
 
+  auto& storage = getter_();
   const std::size_t index = idx;
-  if (const std::size_t size = storage_.GetSize(); index >= size) {
+  if (const std::size_t size = storage.size(); index >= size) {
     if (autoresize_) {
-      storage_.Resize(index + 1);
+      storage.resize(index + 1);
     } else
       throw RuntimeError(std::format(
           "StrList: index {} out of range for size {}", index, size));
@@ -364,27 +260,28 @@ std::size_t SiglusStrList::CheckExistingIndex(int idx) {
 
 std::string SiglusStrList::get(int idx) {
   const std::size_t index = CheckExistingIndex(idx);
-  return storage_.Get(index);
+  return getter_()[index];
 }
 
 void SiglusStrList::set(int idx, std::string value) {
   const std::size_t index = CheckExistingIndex(idx);
-  storage_.Set(index, value);
+  getter_()[index] = std::move(value);
 }
 
-void SiglusStrList::resize(int size) { storage_.Resize(CheckSize(size)); }
+void SiglusStrList::resize(int size) { getter_().resize(CheckSize(size)); }
 
-int SiglusStrList::size() const { return CheckedIntSize(storage_.GetSize()); }
+int SiglusStrList::size() const { return CheckedIntSize(getter_().size()); }
 
 void SiglusStrList::fill(int begin, int end, std::string value) {
+  auto& storage = getter_();
   const auto [begin_index, end_index] =
-      CheckFillRange(begin, end, storage_.GetSize(), "string list");
-  storage_.Fill(begin_index, end_index, value);
+      CheckFillRange(begin, end, storage.size(), "string list");
+  std::fill(storage.begin() + begin_index, storage.begin() + end_index, value);
 }
 
 void SiglusStrList::init() {
-  storage_.Resize(default_size_);
-  storage_.Fill(0, default_size_, "");
+  auto& storage = getter_();
+  storage.assign(default_size_, "");
 }
 
 }  // namespace libsiglus::binding

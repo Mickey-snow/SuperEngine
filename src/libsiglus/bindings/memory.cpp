@@ -21,6 +21,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
+#include "core/memory_internal/bank.hpp"
 #include "libsiglus/archive.hpp"
 #include "libsiglus/bindings/memory_facades.hpp"
 #include "libsiglus/bindings/registry.hpp"
@@ -49,33 +50,6 @@ namespace sb = srbind;
 using namespace serilang;
 
 namespace {
-
-template <typename T, typename... Args>
-Value MakeBoundNativeInstance(VM& vm,
-                              std::string_view class_name,
-                              Args&&... args) {
-  const std::string name(class_name);
-  auto find_class = [&name](auto& dict) -> Value* {
-    if (!dict)
-      return nullptr;
-    auto it = dict->find(name);
-    return it == dict->end() ? nullptr : &it->second;
-  };
-
-  Value* klass_value = find_class(vm.globals_);
-  if (!klass_value)
-    klass_value = find_class(vm.builtins_);
-  if (!klass_value)
-    throw RuntimeError(std::format("native class {} is not bound", class_name));
-
-  auto* klass = klass_value->Get_if<NativeClass>();
-  if (!klass)
-    throw RuntimeError(std::format("{} is not a native class", class_name));
-
-  auto* inst = vm.gc_->Allocate<NativeInstance>(klass);
-  inst->SetForeign<T>(new T(std::forward<Args>(args)...));
-  return Value(inst);
-}
 
 template <typename T>
 void BindIntSequenceMethods(sb::class_<T>& klass) {
@@ -108,40 +82,48 @@ void BindStrSequenceMethods(sb::class_<T>& klass) {
 
 }  // namespace
 
-void BindMemory(SiglusRuntime& runtime) {
-  VM& vm = *runtime.vm;
-  sb::module_ m(vm.gc_.get(), runtime.vm->globals_.get());
-  if (!runtime.memory)
-    runtime.memory = std::make_unique<Memory>();
-  Memory& memory = *runtime.memory;
+void BindMemory(SiglusRuntime& rt) {
+  VM& vm = *rt.vm;
+  sb::module_ m(vm.gc_.get(), rt.vm->globals_.get());
+  if (!rt.memory)
+    rt.memory = std::make_unique<Memory>();
+  Memory& memory = *rt.memory;
 
-  sb::class_<SiglusIntList> ilist(m, "__SiglusIntList");
-  BindIntSequenceMethods(ilist);
-  ilist.def("init", &SiglusIntList::init);
+  auto ilist =
+      std::make_shared<sb::class_<SiglusIntList>>(m, "__SiglusIntList");
+  rt.ilist_cls = ilist;
+  BindIntSequenceMethods(*ilist);
+  ilist->def("init", &SiglusIntList::init);
 
-  sb::class_<SiglusStrList> slist(m, "__SiglusStrList");
-  BindStrSequenceMethods(slist);
-  slist.def("init", &SiglusStrList::init);
+  auto slist =
+      std::make_shared<sb::class_<SiglusStrList>>(m, "__SiglusStrList");
+  rt.slist_cls = slist;
+  BindStrSequenceMethods(*slist);
+  slist->def("init", &SiglusStrList::init);
 
   m.def(
       "make_intlist",
-      [](VM& vm, int size) {
-        return MakeBoundNativeInstance<SiglusIntList>(vm, "__SiglusIntList",
-                                                      size);
+      [cls = ilist](VM& vm, int size) -> Value {
+        auto getter = [storage =
+                           std::vector<int>()]() mutable -> std::vector<int>& {
+          return storage;
+        };
+        return cls->make_inst(std::move(getter), size);
       },
       sb::arg("size"));
   m.def(
       "make_strlist",
-      [](VM& vm, int size) {
-        return MakeBoundNativeInstance<SiglusStrList>(vm, "__SiglusStrList",
-                                                      size);
+      [cls = slist](VM& vm, int size) -> Value {
+        auto getter = [storage = std::vector<std::string>()]() mutable
+            -> std::vector<std::string>& { return storage; };
+        return cls->make_inst(std::move(getter), size);
       },
       sb::arg("size"));
 
   std::string src = "__globalprop = [];\n";
   // install archive-global user properties
-  if (runtime.archive) {
-    Archive& archive = *runtime.archive;
+  if (rt.archive) {
+    Archive& archive = *rt.archive;
     for (size_t i = 0; i < archive.prop_.size(); ++i) {
       Property& p = archive.prop_[i];
       switch (p.form) {
@@ -170,21 +152,19 @@ void BindMemory(SiglusRuntime& runtime) {
   }
   Execute(vm, std::move(src));
 
-  // Install memory bank classes and global bank views.
-  sb::class_<SiglusIntBank> ibank(m, "__SiglusIntBank");
-  BindIntSequenceMethods(ibank);
-  ibank.def("init", &SiglusIntBank::init, sb::arg("val") = 0);
-
-  sb::class_<SiglusStrBank> sbank(m, "__SiglusStrBank");
-  BindStrSequenceMethods(sbank);
-  sbank.def("Set", &SiglusStrBank::Set, sb::arg("idx"), sb::arg("val"));
-  sbank.def("init", &SiglusStrBank::init, sb::arg("val") = "");
-
   auto bind_int_bank = [&](std::string_view name, IntBank bank) {
-    ibank.inst(name, memory, bank);
+    auto getter = [&memory, bank]() -> std::vector<int>& {
+      IntBankStorage& storage = memory.GetBank(bank);
+      return storage.Data();
+    };
+    ilist->inst(name, std::move(getter), 0);
   };
   auto bind_str_bank = [&](std::string_view name, StrBank bank) {
-    sbank.inst(name, memory, bank);
+    auto getter = [&memory, bank]() -> std::vector<std::string>& {
+      StrBankStorage& storage = memory.GetBank(bank);
+      return storage.Data();
+    };
+    slist->inst(name, std::move(getter), 0);
   };
 
   bind_int_bank("A", IntBank::A);
@@ -233,6 +213,6 @@ void BindMemory(SiglusRuntime& runtime) {
   });
 }
 
-RLVM_REGISTER(SiglusBindingRegistry, "memory", BindMemory)
+RLVM_REGISTER(SiglusBindingRegistry, "0_memory", BindMemory)
 
 }  // namespace libsiglus::binding
