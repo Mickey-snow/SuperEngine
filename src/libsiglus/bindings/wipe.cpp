@@ -21,13 +21,13 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#include "libsiglus/bindings/wipe.hpp"
+#include "libsiglus/bindings/registry.hpp"
 
 #include "core/frame_counter.hpp"
 #include "core/stage.hpp"
-#include "libsiglus/bindings/registry.hpp"
 #include "libsiglus/bindings/util.hpp"
 #include "libsiglus/bindings/wait_helpers.hpp"
+#include "srbind/module.hpp"
 #include "srbind/srbind.hpp"
 #include "systems/event_system.hpp"
 #include "systems/graphics_system.hpp"
@@ -51,8 +51,6 @@
 namespace libsiglus::binding {
 namespace sr = serilang;
 namespace sb = srbind;
-
-namespace {
 
 constexpr int kWipeOptionMax = 8;
 
@@ -164,11 +162,9 @@ struct WipeParams {
   }
 };
 
-}  // namespace
-
-struct SiglusWipe::Impl {
-  Impl(System* system, Stage* stage) : system_(system), stage_(stage) {}
-  ~Impl() { EndCurrent(0); }
+struct SiglusWipe {
+  SiglusWipe(System* system, Stage* stage) : system_(system), stage_(stage) {}
+  ~SiglusWipe() { EndCurrent(0); }
 
   struct ActiveWipe {
     std::shared_ptr<sr::Promise> promise;
@@ -416,53 +412,46 @@ struct SiglusWipe::Impl {
   PendingCoroutineTasks pending_;
 };
 
-SiglusWipe::SiglusWipe(System* system, Stage* stage)
-    : impl_(std::make_unique<Impl>(system, stage)) {}
-SiglusWipe::~SiglusWipe() = default;
-bool SiglusWipe::IsActive() const { return impl_->IsActive(); }
-
 void BindWipe(SiglusRuntime& runtime) {
   sr::VM& vm = *runtime.vm;
   sb::module_ m(vm.gc_.get(), vm.globals_.get());
+  sb::class_<SiglusWipe> wipe_cls(m, "Wipe", false);
+  auto wipe = wipe_cls.inst("wipe", runtime.system.get(), runtime.stage.get());
 
-  runtime.wipe =
-      std::make_unique<SiglusWipe>(runtime.system.get(), runtime.stage.get());
-
-  auto wipe = m.bind_instance("wipe", runtime.wipe.get());
   wipe.def(
       "wipe",
       [](SiglusWipe* wipe, sr::VM& vm, std::vector<sr::Value> args) {
-        return wipe->impl_->Start(vm, std::move(args), false, false);
+        return wipe->Start(vm, std::move(args), false, false);
       },
       sb::vararg);
   wipe.def(
       "wipe_all",
       [](SiglusWipe* wipe, sr::VM& vm, std::vector<sr::Value> args) {
-        return wipe->impl_->Start(vm, std::move(args), false, true);
+        return wipe->Start(vm, std::move(args), false, true);
       },
       sb::vararg);
   wipe.def(
       "wipe_mask",
       [](SiglusWipe* wipe, sr::VM& vm, std::vector<sr::Value> args) {
-        return wipe->impl_->Start(vm, std::move(args), true, false);
+        return wipe->Start(vm, std::move(args), true, false);
       },
       sb::vararg);
   wipe.def(
       "wipe_mask_all",
       [](SiglusWipe* wipe, sr::VM& vm, std::vector<sr::Value> args) {
-        return wipe->impl_->Start(vm, std::move(args), true, true);
+        return wipe->Start(vm, std::move(args), true, true);
       },
       sb::vararg);
   wipe.def(
       "end",
       [](SiglusWipe* wipe, std::vector<sr::Value> args) {
-        wipe->impl_->EndCurrent(0);
+        wipe->EndCurrent(0);
       },
       sb::vararg);
   wipe.def(
       "wait",
       [](SiglusWipe* wipe, sr::VM& vm, std::vector<sr::Value> args) {
-        return wipe->impl_->Wait(vm, std::move(args));
+        return wipe->Wait(vm, std::move(args));
       },
       sb::vararg);
   wipe.def(

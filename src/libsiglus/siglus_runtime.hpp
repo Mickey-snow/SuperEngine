@@ -29,7 +29,6 @@
 #include "core/memory_internal/memory.hpp"
 #include "core/stage.hpp"
 #include "libsiglus/bindings/loader.hpp"
-#include "libsiglus/bindings/wipe.hpp"
 #include "srbind/srbind.hpp"
 #include "systems/system.hpp"
 #include "vm/value.hpp"
@@ -60,7 +59,6 @@ struct SiglusRuntime {
 
   std::unique_ptr<System> system;
   std::unique_ptr<Stage> stage;
-  std::unique_ptr<binding::SiglusWipe> wipe;
 
   std::shared_ptr<Gameexe> local_config, global_config;
 
