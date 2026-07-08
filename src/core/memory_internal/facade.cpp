@@ -69,19 +69,19 @@ std::pair<std::size_t, std::size_t> CheckFillRange(int begin,
   const std::size_t begin_index = CheckIndex(begin);
   const std::size_t end_index = CheckIndex(end);
   if (begin_index > end_index)
-    throw std::invalid_argument(std::format("{} has invalid fill range", where));
+    throw std::invalid_argument(
+        std::format("{} has invalid fill range", where));
   if (end_index > size) {
-    throw std::out_of_range(
-        std::format("{} fill end {} out of range for size {}", where, end_index,
-                    size));
+    throw std::out_of_range(std::format(
+        "{} fill end {} out of range for size {}", where, end_index, size));
   }
   return {begin_index, end_index};
 }
 
 }  // namespace
 
-IntListFacade::IntListFacade(getter_t getter, int size)
-    : getter_(std::move(getter)), default_size_(CheckSize(size)) {
+IntListFacade::IntListFacade(getter_t getter, std::optional<int> size)
+    : getter_(std::move(getter)), default_size_(CheckSize(size.value_or(0))) {
   if (!getter_)
     throw std::invalid_argument("IntListFacade: getter is empty.");
   if (default_size_ > 0)
@@ -108,9 +108,9 @@ void IntListFacade::Set(int idx, std::vector<int> values) {
   auto& data = storage();
   const std::size_t end = CheckedEnd(begin, values.size(), "integer list Set");
   if (end > data.size()) {
-    throw std::out_of_range(std::format(
-        "integer list Set range [{}, {}) out of range for size {}", begin, end,
-        data.size()));
+    throw std::out_of_range(
+        std::format("integer list Set range [{}, {}) out of range for size {}",
+                    begin, end, data.size()));
   }
 
   std::move(values.begin(), values.end(), data.begin() + begin);
@@ -179,8 +179,8 @@ void IntListFacade::write_b16(int idx, int value) {
   IntListProxy(data).Set(CheckIndex(idx), value, 16);
 }
 
-StrListFacade::StrListFacade(getter_t getter, int size)
-    : getter_(std::move(getter)), default_size_(CheckSize(size)) {
+StrListFacade::StrListFacade(getter_t getter, std::optional<int> size)
+    : getter_(std::move(getter)), default_size_(CheckSize(size.value_or(0))) {
   if (!getter_)
     throw std::invalid_argument("StrListFacade: getter is empty.");
   if (default_size_ > 0)

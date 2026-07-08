@@ -202,10 +202,10 @@ void BindMemory(SiglusRuntime& rt) {
         const List* kargs = RequireList(newk, "K frame arguments");
 
         frame_stack->push_back(memory.GetStackMemory());
-        Memory::Stack stack{
-            .L = std::vector<int>(std::max<std::size_t>(8, largs->items.size())),
-            .K = std::vector<std::string>(
-                std::max<std::size_t>(8, kargs->items.size()))};
+        Memory::Stack stack{.L = std::vector<int>(
+                                std::max<std::size_t>(8, largs->items.size())),
+                            .K = std::vector<std::string>(
+                                std::max<std::size_t>(8, kargs->items.size()))};
         memory.PartialReset(std::move(stack));
 
         for (std::size_t i = 0; i < largs->items.size(); ++i)

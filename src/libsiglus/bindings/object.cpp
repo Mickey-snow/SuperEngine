@@ -24,6 +24,7 @@
 #include "core/avdec/gan.hpp"
 #include "core/colour.hpp"
 #include "core/frame_counter.hpp"
+#include "core/memory_internal/facade.hpp"
 #include "core/object_internal/drawer/colour_filter.hpp"
 #include "core/object_internal/drawer/file.hpp"
 #include "core/object_internal/drawer/gan.hpp"
@@ -703,135 +704,6 @@ class ObjectChild {
   }
 };
 
-class ObjectIntList {
- public:
-  ObjectReference ref_;
-  std::size_t default_size_ = 0;
-
-  ObjectIntList() = default;
-  explicit ObjectIntList(ObjectReference ref) : ref_(std::move(ref)) {}
-
-  int get(int idx) {
-    return storage().Get(CheckIndex(idx, "object.F"));
-  }
-
-  void set(int idx, int value) {
-    storage().Set(CheckIndex(idx, "object.F"), value);
-  }
-
-  void Set(int idx, std::vector<sr::Value> values) {
-    const std::size_t begin = CheckIndex(idx, "object.F Set");
-    if (values.empty())
-      return;
-
-    const std::size_t end =
-        CheckedEnd(begin, values.size(), "object.F Set");
-    if (end > storage().GetSize()) {
-      throw sr::RuntimeError("object.F Set range [" +
-                             std::to_string(begin) + ", " +
-                             std::to_string(end) +
-                             ") out of range for size " +
-                             std::to_string(storage().GetSize()));
-    }
-
-    for (std::size_t i = 0; i < values.size(); ++i)
-      storage().Set(begin + i, RequireInt(values[i], "object.F Set"));
-  }
-
-  void resize(int size) { storage().Resize(CheckSize(size, "object.F")); }
-
-  int size() const {
-    const std::size_t size = storage().GetSize();
-    if (size > static_cast<std::size_t>(std::numeric_limits<int>::max()))
-      throw sr::RuntimeError("object.F size exceeds script integer range");
-    return static_cast<int>(size);
-  }
-
-  void fill(int begin, int end, int value) {
-    const auto [begin_index, end_index] = CheckFillRange(begin, end);
-    storage().Fill(begin_index, end_index, value);
-  }
-
-  void init() {
-    storage().Resize(default_size_);
-    storage().Fill(0, default_size_, 0);
-  }
-
-  int b1(int idx) { return get_bits(idx, 1); }
-  void write_b1(int idx, int value) { set_bits(idx, value, 1); }
-  int b2(int idx) { return get_bits(idx, 2); }
-  void write_b2(int idx, int value) { set_bits(idx, value, 2); }
-  int b4(int idx) { return get_bits(idx, 4); }
-  void write_b4(int idx, int value) { set_bits(idx, value, 4); }
-  int b8(int idx) { return get_bits(idx, 8); }
-  void write_b8(int idx, int value) { set_bits(idx, value, 8); }
-  int b16(int idx) { return get_bits(idx, 16); }
-  void write_b16(int idx, int value) { set_bits(idx, value, 16); }
-
- private:
-  IntBankStorage& storage() { return ref_.get().Param().siglus_f; }
-  const IntBankStorage& storage() const { return ref_.get().Param().siglus_f; }
-
-  static std::size_t CheckIndex(int idx, std::string_view where) {
-    if (idx < 0)
-      throw sr::RuntimeError(std::string(where) +
-                             " index is negative: " + std::to_string(idx));
-    return static_cast<std::size_t>(idx);
-  }
-
-  static std::size_t CheckSize(int size, std::string_view where) {
-    if (size < 0)
-      throw sr::RuntimeError(std::string(where) +
-                             " size is negative: " + std::to_string(size));
-    return static_cast<std::size_t>(size);
-  }
-
-  static std::size_t CheckedEnd(std::size_t begin,
-                                std::size_t count,
-                                std::string_view where) {
-    if (count > std::numeric_limits<std::size_t>::max() - begin)
-      throw sr::RuntimeError(std::string(where) + " index overflow");
-    return begin + count;
-  }
-
-  std::pair<std::size_t, std::size_t> CheckFillRange(int begin, int end) {
-    const std::size_t begin_index = CheckIndex(begin, "object.F fill");
-    const std::size_t end_index = CheckIndex(end, "object.F fill");
-    if (begin_index > end_index)
-      throw sr::RuntimeError("object.F has invalid fill range");
-    if (end_index > storage().GetSize()) {
-      throw sr::RuntimeError("object.F fill end " + std::to_string(end_index) +
-                             " out of range for size " +
-                             std::to_string(storage().GetSize()));
-    }
-    return {begin_index, end_index};
-  }
-
-  std::size_t CheckBitIndex(int idx, std::uint8_t bits) {
-    const std::size_t index = CheckIndex(idx, "object.F bit access");
-    const std::size_t per_word = 32 / bits;
-    const std::size_t words = storage().GetSize();
-    if (words > std::numeric_limits<std::size_t>::max() / per_word)
-      throw sr::RuntimeError("object.F bit access size overflow");
-    const std::size_t logical_size = words * per_word;
-    if (index >= logical_size) {
-      throw sr::RuntimeError("object.F bit access index " +
-                             std::to_string(index) +
-                             " out of range for size " +
-                             std::to_string(logical_size));
-    }
-    return index;
-  }
-
-  int get_bits(int idx, std::uint8_t bits) {
-    return storage().Get(CheckBitIndex(idx, bits), bits);
-  }
-
-  void set_bits(int idx, int value, std::uint8_t bits) {
-    storage().Set(CheckBitIndex(idx, bits), value, bits);
-  }
-};
-
 class ObjectRepnoEventList {
  public:
   using Getter = ObjectRepnoEvent::Getter;
@@ -1221,7 +1093,6 @@ void BindObject(SiglusRuntime& runtime) {
   sb::module_ m(vm.gc_.get(), vm.globals_.get());
   sb::class_<SiglusObject> obj(m, "Object");
   sb::class_<ObjectChild> child(m, "ObjectChild", false);
-  sb::class_<ObjectIntList> object_int_list(m, "ObjectIntList", false);
   sb::class_<ObjectRepnoParam> repno(m, "ObjectRepnoParam", false);
   sb::class_<ObjectRepnoEvent> repno_event(m, "ObjectRepnoEvent", false);
   sb::class_<ObjectRepnoEventList> repno_event_list(m, "ObjectRepnoEventList",
@@ -1259,34 +1130,15 @@ void BindObject(SiglusRuntime& runtime) {
                                                     make_child_object);
              });
 
-  object_int_list.def("__getitem__", &ObjectIntList::get, sb::arg("idx"));
-  object_int_list.def("__setitem__", &ObjectIntList::set, sb::arg("idx"),
-                      sb::arg("val"));
-  object_int_list.def("Set", &ObjectIntList::Set, sb::arg("idx"), sb::vararg);
-  object_int_list.def("resize", &ObjectIntList::resize, sb::arg("size"));
-  object_int_list.def("size", &ObjectIntList::size);
-  object_int_list.def("fill", &ObjectIntList::fill, sb::arg("begin"),
-                      sb::arg("end"), sb::arg("val"));
-  object_int_list.def("init", &ObjectIntList::init);
-  object_int_list.def("b1", &ObjectIntList::b1, sb::arg("idx"));
-  object_int_list.def("write_b1", &ObjectIntList::write_b1, sb::arg("idx"),
-                      sb::arg("val"));
-  object_int_list.def("b2", &ObjectIntList::b2, sb::arg("idx"));
-  object_int_list.def("write_b2", &ObjectIntList::write_b2, sb::arg("idx"),
-                      sb::arg("val"));
-  object_int_list.def("b4", &ObjectIntList::b4, sb::arg("idx"));
-  object_int_list.def("write_b4", &ObjectIntList::write_b4, sb::arg("idx"),
-                      sb::arg("val"));
-  object_int_list.def("b8", &ObjectIntList::b8, sb::arg("idx"));
-  object_int_list.def("write_b8", &ObjectIntList::write_b8, sb::arg("idx"),
-                      sb::arg("val"));
-  object_int_list.def("b16", &ObjectIntList::b16, sb::arg("idx"));
-  object_int_list.def("write_b16", &ObjectIntList::write_b16, sb::arg("idx"),
-                      sb::arg("val"));
-  obj.subcls("F", object_int_list,
-             [](SiglusObject* parent) -> std::unique_ptr<ObjectIntList> {
-               return std::make_unique<ObjectIntList>(parent->ref_);
-             });
+  obj.subcls(
+      "F", *runtime.ilist_cls,
+      [](SiglusObject* parent) -> std::unique_ptr<IntListFacade> {
+        auto getter = [ref = parent->ref_]() mutable -> std::vector<int>& {
+          auto& object = ref.get();
+          return object.Param().siglus_f;
+        };
+        return std::make_unique<IntListFacade>(std::move(getter));
+      });
 
   // direct properties
   DirectObjectPropertyBinder direct_properties{obj};

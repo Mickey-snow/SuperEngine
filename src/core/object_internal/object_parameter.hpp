@@ -25,7 +25,6 @@
 #pragma once
 
 #include "core/colour.hpp"
-#include "core/memory_internal/bank.hpp"
 #include "core/rect.hpp"
 
 #include <algorithm>
@@ -194,7 +193,7 @@ struct ObjectParameter {
   DriftProperties drift;
   DigitProperties digit;
   ButtonProperties button;
-  IntBankStorage siglus_f;
+  std::vector<int> siglus_f;
   int wipe_copy = 0;
   int wipe_erase = 0;
   int click_disable = 0;

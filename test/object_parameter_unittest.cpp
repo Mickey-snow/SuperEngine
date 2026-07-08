@@ -74,7 +74,7 @@ TEST(ObjectParameterTest, DefaultInit) {
   EXPECT_EQ(param.z_order, 0);
   EXPECT_EQ(param.z_layer, 0);
   EXPECT_EQ(param.z_depth, 0);
-  EXPECT_EQ(param.siglus_f.GetSize(), 0);
+  EXPECT_EQ(param.siglus_f.size(), 0);
   EXPECT_EQ(param.wipe_copy, 0);
   EXPECT_EQ(param.wipe_erase, 0);
   EXPECT_EQ(param.click_disable, 0);

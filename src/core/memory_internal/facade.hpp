@@ -25,15 +25,16 @@
 #pragma once
 
 #include <cstddef>
-#include <cstdint>
 #include <functional>
+#include <optional>
 #include <string>
 #include <vector>
 
 class IntListFacade {
  public:
   using getter_t = std::function<std::vector<int>&()>;
-  explicit IntListFacade(getter_t getter, int size);
+  explicit IntListFacade(getter_t getter,
+                         std::optional<int> size = std::nullopt);
 
   int get(int idx);
   void set(int idx, int value);
@@ -64,7 +65,8 @@ class IntListFacade {
 class StrListFacade {
  public:
   using getter_t = std::function<std::vector<std::string>&()>;
-  explicit StrListFacade(getter_t getter, int size);
+  explicit StrListFacade(getter_t getter,
+                         std::optional<int> size = std::nullopt);
 
   std::string get(int idx);
   void set(int idx, std::string value);
