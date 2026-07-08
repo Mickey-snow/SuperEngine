@@ -42,14 +42,12 @@ namespace serilang {
 class VM;
 };  // namespace serilang
 
+class IntListFacade;
+class StrListFacade;
+
 namespace libsiglus {
 class Archive;
 class SiglusSceneRenderer;
-
-namespace binding {
-class SiglusIntList;
-class SiglusStrList;
-}  // namespace binding
 
 struct SiglusRuntime {
   std::filesystem::path base_pth, save_pth;
@@ -70,8 +68,8 @@ struct SiglusRuntime {
   std::shared_ptr<EventListener> system_event_listener;
   std::function<void()> exec_sdl_callback;
 
-  std::shared_ptr<srbind::class_<binding::SiglusIntList>> ilist_cls;
-  std::shared_ptr<srbind::class_<binding::SiglusStrList>> slist_cls;
+  std::shared_ptr<srbind::class_<IntListFacade>> ilist_cls;
+  std::shared_ptr<srbind::class_<StrListFacade>> slist_cls;
 
   SiglusRuntime() = default;
   ~SiglusRuntime();

@@ -25,34 +25,36 @@
 
 #include "core/memory_internal/memory.hpp"
 
-#include <cstdint>
+#include "core/gameexe.hpp"
+#include "core/memory_internal/proxy.hpp"
+#include "machine/call_stack.hpp"
+#include "utilities/string_utilities.hpp"
+
 #include <iostream>
 #include <stdexcept>
 #include <string>
 
-#include "core/gameexe.hpp"
-#include "core/memory_internal/serialization_global.hpp"
-#include "core/memory_internal/serialization_local.hpp"
-#include "machine/call_stack.hpp"
-#include "utilities/string_utilities.hpp"
+LocalMemory::LocalMemory()
+    : A(2000),
+      B(2000),
+      C(2000),
+      D(2000),
+      E(2000),
+      F(2000),
+      X(2000),
+      H(2000),
+      I(2000),
+      J(2000),
+      S(2000),
+      local_names(2000) {}
 
-namespace {
-
-constexpr bool IsSupportedSubwordWidth(std::uint8_t bits) {
-  return bits == 1 || bits == 2 || bits == 4 || bits == 8 || bits == 16;
-}
-
-constexpr std::uint32_t BitMask(std::uint8_t bits) {
-  return (std::uint32_t{1} << bits) - 1;
-}
-
-}  // namespace
+LocalMemory::~LocalMemory() = default;
 
 Memory::Memory() {
   for (size_t i = 0; i < int_bank_cnt; ++i)
-    intbanks_[i].Resize(kDefaultBankSize);
+    intbanks_[i].resize(kDefaultBankSize);
   for (size_t i = 0; i < str_bank_cnt; ++i)
-    strbanks_[i].Resize(kDefaultBankSize);
+    strbanks_[i].resize(kDefaultBankSize);
 }
 
 Memory::Memory(const Memory& other)
@@ -98,7 +100,7 @@ void Memory::LoadFrom(Gameexe& gameexe) {
   }
 }
 
-IntBankStorage& Memory::GetBank(IntBank bank) {
+std::vector<int>& Memory::GetIntBankData(IntBank bank) {
   const auto bankidx = static_cast<uint8_t>(bank);
   if (bankidx >= int_bank_cnt)
     throw std::invalid_argument("Memory: invalid int bank " +
@@ -114,7 +116,7 @@ IntBankStorage& Memory::GetBank(IntBank bank) {
   return intbanks_[bankidx];
 }
 
-const IntBankStorage& Memory::GetBank(IntBank bank) const {
+const std::vector<int>& Memory::GetIntBankData(IntBank bank) const {
   const auto bankidx = static_cast<uint8_t>(bank);
   if (bankidx >= int_bank_cnt)
     throw std::invalid_argument("Memory: invalid int bank " +
@@ -130,7 +132,7 @@ const IntBankStorage& Memory::GetBank(IntBank bank) const {
   return intbanks_[bankidx];
 }
 
-StrBankStorage& Memory::GetBank(StrBank bank) {
+std::vector<std::string>& Memory::GetStrBankData(StrBank bank) {
   const auto bankidx = static_cast<uint8_t>(bank);
   if (bankidx >= str_bank_cnt)
     throw std::invalid_argument("Memory: invalid string bank " +
@@ -146,7 +148,7 @@ StrBankStorage& Memory::GetBank(StrBank bank) {
   return strbanks_[bankidx];
 }
 
-const StrBankStorage& Memory::GetBank(StrBank bank) const {
+const std::vector<std::string>& Memory::GetStrBankData(StrBank bank) const {
   const auto bankidx = static_cast<uint8_t>(bank);
   if (bankidx >= str_bank_cnt)
     throw std::invalid_argument("Memory: invalid string bank " +
@@ -163,12 +165,12 @@ const StrBankStorage& Memory::GetBank(StrBank bank) const {
 }
 
 int Memory::Read(IntMemoryLocation loc) {
-  auto& bank = GetBank(loc.Bank());
-  return bank.Get(loc.Index(), loc.Bitwidth());
+  return IntListProxy(GetIntBankData(loc.Bank()))
+      .Get(loc.Index(), loc.Bitwidth());
 }
 
 int Memory::Read(IntBank bank, size_t index) {
-  return GetBank(bank).Get(index);
+  return IntListProxy(GetIntBankData(bank)).Get(index);
 }
 
 std::string Memory::Read(StrMemoryLocation loc) {
@@ -176,26 +178,24 @@ std::string Memory::Read(StrMemoryLocation loc) {
 }
 
 std::string Memory::Read(StrBank bank, size_t index) {
-  return GetBank(bank).Get(index);
+  return StrListProxy(GetStrBankData(bank)).Get(index);
 }
 
-size_t Memory::Size(IntBank bank) const { return GetBank(bank).GetSize(); }
+size_t Memory::Size(IntBank bank) const { return GetIntBankData(bank).size(); }
 
-size_t Memory::Size(StrBank bank) const { return GetBank(bank).GetSize(); }
+size_t Memory::Size(StrBank bank) const { return GetStrBankData(bank).size(); }
 
 void Memory::Write(IntMemoryLocation loc, int value) {
-  auto& bank = GetBank(loc.Bank());
-  bank.Set(loc.Index(), value, loc.Bitwidth());
+  IntListProxy(GetIntBankData(loc.Bank()))
+      .Set(loc.Index(), value, loc.Bitwidth());
 }
 
 void Memory::Write(IntBank bankid, size_t index, int value) {
-  auto& bank = GetBank(bankid);
-  bank.Set(index, value);
+  IntListProxy(GetIntBankData(bankid)).Set(index, value);
 }
 
 void Memory::Write(StrMemoryLocation loc, const std::string& value) {
-  auto& bank = GetBank(loc.Bank());
-  bank.Set(loc.Index(), value);
+  StrListProxy(GetStrBankData(loc.Bank())).Set(loc.Index(), value);
 }
 
 void Memory::Write(StrBank bank, size_t index, const std::string& value) {
@@ -203,35 +203,32 @@ void Memory::Write(StrBank bank, size_t index, const std::string& value) {
 }
 
 void Memory::Fill(IntBank bankid, size_t begin, size_t end, int value) {
-  auto& bank = GetBank(bankid);
-  bank.Fill(begin, end, value);
+  IntListProxy(GetIntBankData(bankid)).Fill(begin, end, value);
 }
 
 void Memory::Fill(StrBank bankid,
                   size_t begin,
                   size_t end,
                   const std::string& value) {
-  auto& bank = GetBank(bankid);
-  bank.Fill(begin, end, value);
+  StrListProxy(GetStrBankData(bankid)).Fill(begin, end, value);
 }
 
 void Memory::Resize(IntBank bankid, std::size_t size) {
-  auto& bank = GetBank(bankid);
-  bank.Resize(size);
+  GetIntBankData(bankid).resize(size);
 }
 
 void Memory::Resize(StrBank bankid, std::size_t size) {
-  auto& bank = GetBank(bankid);
-  bank.Resize(size);
+  GetStrBankData(bankid).resize(size);
 }
 
 Memory::Stack Memory::GetStackMemory() const {
-  return Stack{.L = GetBank(IntBank::L), .K = GetBank(StrBank::K)};
+  return Stack{.L = GetIntBankData(IntBank::L),
+               .K = GetStrBankData(StrBank::K)};
 }
 
 void Memory::PartialReset(Stack stack_memory) {
-  GetBank(IntBank::L) = std::move(stack_memory.L);
-  GetBank(StrBank::K) = std::move(stack_memory.K);
+  GetIntBankData(IntBank::L) = std::move(stack_memory.L);
+  GetStrBankData(StrBank::K) = std::move(stack_memory.K);
 }
 
 GlobalMemory Memory::GetGlobalMemory() const {

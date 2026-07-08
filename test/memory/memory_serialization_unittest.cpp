@@ -25,6 +25,7 @@
 #include <gtest/gtest.h>
 
 #include "core/memory.hpp"
+#include "core/memory_internal/proxy.hpp"
 
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
@@ -62,11 +63,11 @@ TEST_F(MemorySerializationTest, Global) {
     boost::archive::text_iarchive ia(ss);
     ia >> deserialized;
 
-    EXPECT_EQ(deserialized.G.Get(0), 10);
-    EXPECT_EQ(deserialized.Z.Get(1), 11);
-    EXPECT_EQ(deserialized.M.Get(2), "12");
-    EXPECT_EQ(deserialized.global_names.Get(4) + ' ' +
-                  deserialized.global_names.Get(3),
+    EXPECT_EQ(IntListProxy(deserialized.G).Get(0), 10);
+    EXPECT_EQ(IntListProxy(deserialized.Z).Get(1), 11);
+    EXPECT_EQ(StrListProxy(deserialized.M).Get(2), "12");
+    EXPECT_EQ(StrListProxy(deserialized.global_names).Get(4) + ' ' +
+                  StrListProxy(deserialized.global_names).Get(3),
               "Nagisa Furukawa");
   }
 }
@@ -96,22 +97,26 @@ TEST_F(MemorySerializationTest, Local) {
     ia >> deserialized;
 
     int expect_value = 0;
-    for (auto bank : std::vector<IntBankStorage>{
-             deserialized.A, deserialized.B, deserialized.C, deserialized.D,
-             deserialized.E, deserialized.F, deserialized.X, deserialized.H,
-             deserialized.I, deserialized.J}) {
+    for (auto* bank : std::vector<std::vector<int>*>{
+             &deserialized.A, &deserialized.B, &deserialized.C,
+             &deserialized.D, &deserialized.E, &deserialized.F,
+             &deserialized.X, &deserialized.H, &deserialized.I,
+             &deserialized.J}) {
+      IntListProxy proxy(*bank);
       for (int i = 0; i < 100; ++i) {
-        EXPECT_EQ(bank.Get(i), expect_value);
+        EXPECT_EQ(proxy.Get(i), expect_value);
         ++expect_value;
       }
     }
 
+    StrListProxy strings(deserialized.S);
     for (int i = 0; i < 100; ++i) {
-      EXPECT_EQ(deserialized.S.Get(i), std::to_string(expect_value));
+      EXPECT_EQ(strings.Get(i), std::to_string(expect_value));
       ++expect_value;
     }
+    StrListProxy local_names(deserialized.local_names);
     for (int i = 0; i < 100; ++i) {
-      EXPECT_EQ(deserialized.local_names.Get(i), std::to_string(expect_value));
+      EXPECT_EQ(local_names.Get(i), std::to_string(expect_value));
       ++expect_value;
     }
   }

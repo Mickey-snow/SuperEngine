@@ -24,28 +24,34 @@
 
 #include <gtest/gtest.h>
 
-#include "core/memory.hpp"
+#include "core/memory_internal/proxy.hpp"
 
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
+#include <boost/serialization/string.hpp>
+#include <boost/serialization/vector.hpp>
 
-#include <map>
+#include <sstream>
 #include <string>
+#include <vector>
 
 TEST(DynamicBankTest, Basic) {
   {
-    IntBankStorage bank;
+    std::vector<int> storage;
+    IntListProxy bank(storage);
     EXPECT_EQ(bank.GetSize(), 0);
   }
 
   {
-    IntBankStorage bank;
+    std::vector<int> storage;
+    IntListProxy bank(storage);
     bank.Resize(10);
     EXPECT_EQ(bank.GetSize(), 10);
   }
 
   {
-    IntBankStorage bank;
+    std::vector<int> storage;
+    IntListProxy bank(storage);
     bank.Resize(10);
     bank.Set(0, 42);
     bank.Set(9, 99);
@@ -54,7 +60,8 @@ TEST(DynamicBankTest, Basic) {
   }
 
   {
-    StrBankStorage bank;
+    std::vector<std::string> storage;
+    StrListProxy bank(storage);
     bank.Resize(3);
     bank.Set(0, "Hello");
     bank.Set(1, "World");
@@ -64,7 +71,8 @@ TEST(DynamicBankTest, Basic) {
 }
 
 TEST(DynamicBankTest, GrowsOnOutOfBoundsAccess) {
-  IntBankStorage bank;
+  std::vector<int> int_storage;
+  IntListProxy bank(int_storage);
   bank.Resize(5);
 
   bank.Set(5, 10);
@@ -74,14 +82,16 @@ TEST(DynamicBankTest, GrowsOnOutOfBoundsAccess) {
   EXPECT_EQ(bank.Get(8), 0);
   EXPECT_EQ(bank.GetSize(), 9);
 
-  StrBankStorage strings;
+  std::vector<std::string> str_storage;
+  StrListProxy strings(str_storage);
   strings.Resize(2);
   EXPECT_EQ(strings.Get(3), "");
   EXPECT_EQ(strings.GetSize(), 4);
 }
 
 TEST(DynamicBankTest, SubwordWriteValidatesBeforeMutating) {
-  IntBankStorage bank;
+  std::vector<int> storage;
+  IntListProxy bank(storage);
   bank.Resize(1);
   bank.Set(0, 0x12345678);
 
@@ -93,7 +103,8 @@ TEST(DynamicBankTest, SubwordWriteValidatesBeforeMutating) {
 }
 
 TEST(DynamicBankTest, FillValues) {
-  IntBankStorage bank;
+  std::vector<int> storage;
+  IntListProxy bank(storage);
   bank.Resize(10);
   bank.Fill(2, 5, 7);
   for (size_t i = 2; i < 5; ++i) {
@@ -114,7 +125,8 @@ TEST(DynamicBankTest, FillValues) {
 }
 
 TEST(DynamicBankTest, Append) {
-  IntBankStorage bank;
+  std::vector<int> storage;
+  IntListProxy bank(storage);
   for (int i = 0; i < 1000; ++i) {
     bank.Resize(i + 1);
     bank.Set(i, i);
@@ -128,31 +140,33 @@ TEST(DynamicBankTest, Append) {
 }
 
 TEST(DynamicBankTest, Persistence) {
-  IntBankStorage bank;
+  std::vector<int> storage;
+  IntListProxy bank(storage);
   bank.Resize(5);
   bank.Set(0, 1);
-  auto memento1 = bank;
+  auto memento1 = storage;
   bank.Set(1, 2);
-  auto memento2 = bank;
+  auto memento2 = storage;
 
   bank.Resize(1024);
   bank.Fill(7, 300, -10);
   bank.Fill(200, 500, 10);
-  auto memento3 = bank;
+  auto memento3 = storage;
 
   bank.Set(0, 42);
   EXPECT_EQ(bank.Get(0), 42);
 
-  bank = memento3;
+  storage = memento3;
   EXPECT_EQ(bank.Get(0), 1);
   EXPECT_EQ(bank.Get(1), 2);
   EXPECT_EQ(bank.Get(99), -10);
   EXPECT_EQ(bank.Get(200), 10);
 
-  EXPECT_EQ(memento2.Get(0), 1);
-  EXPECT_EQ(memento2.Get(1), 2);
+  IntListProxy memento2_proxy(memento2);
+  EXPECT_EQ(memento2_proxy.Get(0), 1);
+  EXPECT_EQ(memento2_proxy.Get(1), 2);
 
-  bank = memento1;
+  storage = memento1;
   EXPECT_EQ(bank.GetSize(), 5);
   EXPECT_EQ(bank.Get(0), 1);
 }
@@ -162,11 +176,12 @@ TEST(DynamicBankTest, Serialization) {
   std::stringstream ss;
 
   {
-    StrBankStorage arr;
-    arr.Resize(size);
-    arr.Set(0, "zero");
-    arr.Fill(16, 32, "chunk");
-    arr.Set(size - 1, "last");
+    std::vector<std::string> arr;
+    StrListProxy proxy(arr);
+    proxy.Resize(size);
+    proxy.Set(0, "zero");
+    proxy.Fill(16, 32, "chunk");
+    proxy.Set(size - 1, "last");
 
     boost::archive::text_oarchive oa(ss);
     oa << arr;
@@ -174,42 +189,45 @@ TEST(DynamicBankTest, Serialization) {
 
   {
     boost::archive::text_iarchive ia(ss);
-    StrBankStorage deserialized;
+    std::vector<std::string> deserialized;
     ia >> deserialized;
+    StrListProxy proxy(deserialized);
 
-    ASSERT_EQ(deserialized.GetSize(), size);
-    EXPECT_EQ(deserialized.Get(0), "zero");
-    EXPECT_EQ(deserialized.Get(15), "");
-    EXPECT_EQ(deserialized.Get(16), "chunk");
-    EXPECT_EQ(deserialized.Get(31), "chunk");
-    EXPECT_EQ(deserialized.Get(32), "");
-    EXPECT_EQ(deserialized.Get(size - 1), "last");
+    ASSERT_EQ(proxy.GetSize(), size);
+    EXPECT_EQ(proxy.Get(0), "zero");
+    EXPECT_EQ(proxy.Get(15), "");
+    EXPECT_EQ(proxy.Get(16), "chunk");
+    EXPECT_EQ(proxy.Get(31), "chunk");
+    EXPECT_EQ(proxy.Get(32), "");
+    EXPECT_EQ(proxy.Get(size - 1), "last");
   }
 }
 
 TEST(DynamicBankTest, DeserializationReplacesExistingStorage) {
   std::stringstream ss;
   {
-    IntBankStorage source;
-    source.Resize(10);
-    source.Set(2, 22);
+    std::vector<int> source;
+    IntListProxy proxy(source);
+    proxy.Resize(10);
+    proxy.Set(2, 22);
 
     boost::archive::text_oarchive oa(ss);
     oa << source;
   }
 
-  IntBankStorage target;
-  target.Resize(20);
-  target.Set(15, 99);
+  std::vector<int> target;
+  IntListProxy proxy(target);
+  proxy.Resize(20);
+  proxy.Set(15, 99);
 
   {
     boost::archive::text_iarchive ia(ss);
     ia >> target;
   }
 
-  ASSERT_EQ(target.GetSize(), 10);
-  EXPECT_EQ(target.Get(2), 22);
+  ASSERT_EQ(proxy.GetSize(), 10);
+  EXPECT_EQ(proxy.Get(2), 22);
 
-  target.Resize(20);
-  EXPECT_EQ(target.Get(15), 0);
+  proxy.Resize(20);
+  EXPECT_EQ(proxy.Get(15), 0);
 }

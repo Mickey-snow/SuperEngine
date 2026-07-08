@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------
 //
-// This file is part of RLVM
+// This file is part of RLVM, a RealLive virtual machine clone.
 //
 // -----------------------------------------------------------------------
 //
@@ -19,27 +19,25 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
+//
 // -----------------------------------------------------------------------
 
 #pragma once
 
-#include "vm/value.hpp"
-
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <string>
 #include <vector>
 
-namespace libsiglus::binding {
-
-class SiglusIntList {
+class IntListFacade {
  public:
   using getter_t = std::function<std::vector<int>&()>;
-  explicit SiglusIntList(getter_t getter, int size);
+  explicit IntListFacade(getter_t getter, int size);
 
   int get(int idx);
   void set(int idx, int value);
-  void Set(int idx, std::vector<serilang::Value> values);
+  void Set(int idx, std::vector<int> values);
   void resize(int size);
   int size() const;
   void fill(int begin, int end, int value);
@@ -57,20 +55,16 @@ class SiglusIntList {
   void write_b16(int idx, int value);
 
  private:
-  int get_bits(int idx, std::uint8_t bits);
-  void set_bits(int idx, int value, std::uint8_t bits);
-
-  std::size_t CheckExistingIndex(int idx);
+  std::vector<int>& storage() const;
 
   getter_t getter_;
   std::size_t default_size_;
-  bool autoresize_ = true;
 };
 
-class SiglusStrList {
+class StrListFacade {
  public:
   using getter_t = std::function<std::vector<std::string>&()>;
-  explicit SiglusStrList(getter_t getter, int size);
+  explicit StrListFacade(getter_t getter, int size);
 
   std::string get(int idx);
   void set(int idx, std::string value);
@@ -80,11 +74,8 @@ class SiglusStrList {
   void init();
 
  private:
-  std::size_t CheckExistingIndex(int idx);
+  std::vector<std::string>& storage() const;
 
   getter_t getter_;
   std::size_t default_size_;
-  bool autoresize_ = true;
 };
-
-}  // namespace libsiglus::binding

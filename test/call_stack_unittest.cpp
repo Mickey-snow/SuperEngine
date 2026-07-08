@@ -22,6 +22,7 @@
 //
 // -----------------------------------------------------------------------
 
+#include "core/memory_internal/proxy.hpp"
 #include "machine/call_stack.hpp"
 #include "machine/stack_frame.hpp"
 
@@ -138,11 +139,11 @@ TEST_F(CallStackTest, Serialization) {
 
   {
     StackFrame frame1(ScriptLocation(1, 10), StackFrame::TYPE_ROOT);
-    frame1.strK.Set(2, "root");
+    StrListProxy(frame1.strK).Set(2, "root");
     StackFrame frame2(ScriptLocation(1, 20), StackFrame::TYPE_GOSUB);
     StackFrame frame3(ScriptLocation(2, 20), StackFrame::TYPE_FARCALL);
-    frame3.strK.Set(2, "hello ");
-    frame3.strK.Set(3, "world");
+    StrListProxy(frame3.strK).Set(2, "hello ");
+    StrListProxy(frame3.strK).Set(3, "world");
     StackFrame frame4(ScriptLocation(2, 20), StackFrame::TYPE_LONGOP);
 
     stack.Push(std::move(frame1));
@@ -160,7 +161,9 @@ TEST_F(CallStackTest, Serialization) {
     ia >> deserialized;
 
     StackFrame* frame3 = deserialized.FindTopRealFrame();
-    EXPECT_EQ(frame3->strK.Get(2) + frame3->strK.Get(3), "hello world");
+    EXPECT_EQ(StrListProxy(frame3->strK).Get(2) +
+                  StrListProxy(frame3->strK).Get(3),
+              "hello world");
     EXPECT_EQ(desc(*deserialized.Top()), "(2,20) 3");
     EXPECT_EQ(desc(*frame3), "(2,20) 2");
     deserialized.Pop();

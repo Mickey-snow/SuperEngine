@@ -25,6 +25,7 @@
 #include <gtest/gtest.h>
 
 #include "core/memory.hpp"
+#include "core/memory_internal/proxy.hpp"
 
 #include <bitset>
 #include <limits>
@@ -242,14 +243,14 @@ TEST_F(MemoryTest, GetStack) {
 
   // check stack frame 1
   for (int i = 0; i < 15; ++i) {
-    EXPECT_EQ(frame1.L.Get(i), i);
-    EXPECT_EQ(frame1.K.Get(i), std::to_string(i));
+    EXPECT_EQ(IntListProxy(frame1.L).Get(i), i);
+    EXPECT_EQ(StrListProxy(frame1.K).Get(i), std::to_string(i));
   }
 
   // check stack frame 2
   for (int i = 10; i < 20; ++i) {
-    EXPECT_EQ(frame2.L.Get(i), i * i);
-    EXPECT_EQ(frame2.K.Get(i), std::to_string(i * i));
+    EXPECT_EQ(IntListProxy(frame2.L).Get(i), i * i);
+    EXPECT_EQ(StrListProxy(frame2.K).Get(i), std::to_string(i * i));
   }
 
   // check memory
@@ -265,18 +266,22 @@ TEST_F(MemoryTest, GetStack) {
 
 TEST_F(MemoryTest, SetStack) {
   Memory::Stack frame1, frame2;
-  frame1.L.Resize(50);
-  frame1.K.Resize(50);
-  frame2.L.Resize(60);
-  frame2.K.Resize(60);
+  frame1.L.resize(50);
+  frame1.K.resize(50);
+  frame2.L.resize(60);
+  frame2.K.resize(60);
+  IntListProxy frame1_l(frame1.L);
+  StrListProxy frame1_k(frame1.K);
+  IntListProxy frame2_l(frame2.L);
+  StrListProxy frame2_k(frame2.K);
 
   for (int i = 0; i < 15; ++i) {
-    frame1.L.Set(i, i);
-    frame1.K.Set(i, std::to_string(i));
+    frame1_l.Set(i, i);
+    frame1_k.Set(i, std::to_string(i));
   }
   for (int i = 10; i < 20; ++i) {
-    frame2.L.Set(i, i * i);
-    frame2.K.Set(i, std::to_string(i * i));
+    frame2_l.Set(i, i * i);
+    frame2_k.Set(i, std::to_string(i * i));
   }
 
   memory_->Fill(IntBank::L, 0, 100, -123);

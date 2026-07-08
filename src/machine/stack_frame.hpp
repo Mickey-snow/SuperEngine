@@ -29,10 +29,12 @@
 
 #include <boost/serialization/split_member.hpp>
 #include <boost/serialization/version.hpp>
+#include <boost/serialization/vector.hpp>
 
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include "core/memory.hpp"
 #include "machine/iscriptor.hpp"
@@ -77,8 +79,8 @@ struct StackFrame {
   std::shared_ptr<LongOperation> long_op;
 
   // Stack memory, used for passing parameters.
-  IntBankStorage intL;
-  StrBankStorage strK;
+  std::vector<int> intL;
+  std::vector<std::string> strK;
 
   FrameType frame_type;
 

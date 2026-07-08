@@ -28,6 +28,7 @@
 #include "modules/module_jmp.hpp"
 
 #include "core/memory.hpp"
+#include "core/memory_internal/proxy.hpp"
 #include "libreallive/intmemref.hpp"
 #include "libreallive/parser.hpp"
 #include "machine/rlmachine.hpp"
@@ -432,7 +433,7 @@ struct push_string_value_up : public RLOpcode<IntConstant_T, StrConstant_T> {
         if (!set)
           set = true;
         else {
-          it->strK.Set(index, val);
+          StrListProxy(it->strK).Set(index, val);
         }
       }
     }

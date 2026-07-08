@@ -25,16 +25,20 @@
 
 #pragma once
 
-#include "core/memory_internal/bank.hpp"
 #include "core/memory_internal/location.hpp"
+
+#include <boost/serialization/access.hpp>
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/string.hpp>
+#include <boost/serialization/vector.hpp>
 
 #include <array>
 #include <cstddef>
 #include <string>
+#include <vector>
 
 class Gameexe;
 class CallStack;
-
 struct GlobalMemory;
 struct LocalMemory;
 
@@ -79,8 +83,8 @@ class Memory {
   void Resize(StrBank, std::size_t);
 
   struct Stack {
-    IntBankStorage L;
-    StrBankStorage K;
+    std::vector<int> L;
+    std::vector<std::string> K;
   };
   // Create and return a value snapshot of stack memory.
   Stack GetStackMemory() const;
@@ -95,17 +99,44 @@ class Memory {
   void PartialReset(GlobalMemory global_memory);
   void PartialReset(LocalMemory local_memory);
 
-  IntBankStorage& GetBank(IntBank);
-  const IntBankStorage& GetBank(IntBank) const;
-  StrBankStorage& GetBank(StrBank);
-  const StrBankStorage& GetBank(StrBank) const;
+  std::vector<int>& GetIntBankData(IntBank);
+  const std::vector<int>& GetIntBankData(IntBank) const;
+  std::vector<std::string>& GetStrBankData(StrBank);
+  const std::vector<std::string>& GetStrBankData(StrBank) const;
 
  private:
   static constexpr auto int_bank_cnt = static_cast<size_t>(IntBank::CNT);
   static constexpr auto str_bank_cnt = static_cast<size_t>(StrBank::CNT);
   static constexpr std::size_t kDefaultBankSize = 2000;
 
-  std::array<IntBankStorage, int_bank_cnt> intbanks_;
-  std::array<StrBankStorage, str_bank_cnt> strbanks_;
+  std::array<std::vector<int>, int_bank_cnt> intbanks_;
+  std::array<std::vector<std::string>, str_bank_cnt> strbanks_;
   CallStack* call_stack_ = nullptr;  // rlvm only
+};
+
+struct GlobalMemory {
+  std::vector<int> G, Z;
+  std::vector<std::string> M, global_names;
+
+ private:
+  friend class boost::serialization::access;
+  template <class Archive>
+  void serialize(Archive& ar, unsigned int version) {
+    ar & G & Z & M & global_names;
+  }
+};
+
+struct LocalMemory {
+  LocalMemory();
+  ~LocalMemory();
+
+  std::vector<int> A, B, C, D, E, F, X, H, I, J;
+  std::vector<std::string> S, local_names;
+
+ private:
+  friend class boost::serialization::access;
+  template <class Archive>
+  void serialize(Archive& ar, unsigned int version) {
+    ar & A & B & C & D & E & F & X & H & I & J & S & local_names;
+  }
 };

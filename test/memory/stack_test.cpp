@@ -25,6 +25,7 @@
 #include <gtest/gtest.h>
 
 #include "core/memory.hpp"
+#include "core/memory_internal/proxy.hpp"
 #include "machine/call_stack.hpp"
 #include "machine/stack_frame.hpp"
 
@@ -48,10 +49,13 @@ TEST_F(StackRoutingTest, IntL) {
   auto frame2 = std::make_shared<StackFrame>();
   auto frame3 = std::make_shared<StackFrame>();
 
+  IntListProxy frame1_l(frame1->intL);
+  IntListProxy frame2_l(frame2->intL);
+  IntListProxy frame3_l(frame3->intL);
   for (int i = 0; i < 40; ++i) {
-    frame1->intL.Set(i, i);
-    frame2->intL.Set(i, i * 2);
-    frame3->intL.Set(i, i * i);
+    frame1_l.Set(i, i);
+    frame2_l.Set(i, i * 2);
+    frame3_l.Set(i, i * i);
   }
 
   stack.frame = frame1;
@@ -73,10 +77,13 @@ TEST_F(StackRoutingTest, StrK) {
   auto frame2 = std::make_shared<StackFrame>();
   auto frame3 = std::make_shared<StackFrame>();
 
+  StrListProxy frame1_k(frame1->strK);
+  StrListProxy frame2_k(frame2->strK);
+  StrListProxy frame3_k(frame3->strK);
   for (int i = 0; i < 40; ++i) {
-    frame1->strK.Set(i, std::to_string(i));
-    frame2->strK.Set(i, std::to_string(i * 2));
-    frame3->strK.Set(i, std::to_string(i * i));
+    frame1_k.Set(i, std::to_string(i));
+    frame2_k.Set(i, std::to_string(i * 2));
+    frame3_k.Set(i, std::to_string(i * i));
   }
 
   stack.frame = frame1;
@@ -97,10 +104,10 @@ TEST_F(StackRoutingTest, GetStackMemorySnapshotsCurrentFrame) {
   auto frame1 = std::make_shared<StackFrame>();
   auto frame2 = std::make_shared<StackFrame>();
 
-  frame1->intL.Set(0, 10);
-  frame1->strK.Set(0, "first");
-  frame2->intL.Set(0, 20);
-  frame2->strK.Set(0, "second");
+  IntListProxy(frame1->intL).Set(0, 10);
+  StrListProxy(frame1->strK).Set(0, "first");
+  IntListProxy(frame2->intL).Set(0, 20);
+  StrListProxy(frame2->strK).Set(0, "second");
 
   stack.frame = frame1;
   auto snapshot = memory.GetStackMemory();
@@ -108,6 +115,6 @@ TEST_F(StackRoutingTest, GetStackMemorySnapshotsCurrentFrame) {
   stack.frame = frame2;
   EXPECT_EQ(memory.Read(IntBank::L, 0), 20);
   EXPECT_EQ(memory.Read(StrBank::K, 0), "second");
-  EXPECT_EQ(snapshot.L.Get(0), 10);
-  EXPECT_EQ(snapshot.K.Get(0), "first");
+  EXPECT_EQ(IntListProxy(snapshot.L).Get(0), 10);
+  EXPECT_EQ(StrListProxy(snapshot.K).Get(0), "first");
 }

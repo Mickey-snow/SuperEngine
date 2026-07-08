@@ -21,9 +21,8 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#include "core/memory_internal/bank.hpp"
+#include "core/memory_internal/facade.hpp"
 #include "libsiglus/archive.hpp"
-#include "libsiglus/bindings/memory_facades.hpp"
 #include "libsiglus/bindings/registry.hpp"
 #include "libsiglus/bindings/util.hpp"
 #include "libsiglus/property.hpp"
@@ -51,33 +50,46 @@ using namespace serilang;
 
 namespace {
 
-template <typename T>
-void BindIntSequenceMethods(sb::class_<T>& klass) {
-  klass.def("__getitem__", &T::get, sb::arg("idx"));
-  klass.def("__setitem__", &T::set, sb::arg("idx"), sb::arg("val"));
-  klass.def("Set", &T::Set, sb::arg("idx"), sb::vararg);
-  klass.def("resize", &T::resize, sb::arg("size"));
-  klass.def("size", &T::size);
-  klass.def("fill", &T::fill, sb::arg("begin"), sb::arg("end"), sb::arg("val"));
-  klass.def("b1", &T::b1, sb::arg("idx"));
-  klass.def("write_b1", &T::write_b1, sb::arg("idx"), sb::arg("val"));
-  klass.def("b2", &T::b2, sb::arg("idx"));
-  klass.def("write_b2", &T::write_b2, sb::arg("idx"), sb::arg("val"));
-  klass.def("b4", &T::b4, sb::arg("idx"));
-  klass.def("write_b4", &T::write_b4, sb::arg("idx"), sb::arg("val"));
-  klass.def("b8", &T::b8, sb::arg("idx"));
-  klass.def("write_b8", &T::write_b8, sb::arg("idx"), sb::arg("val"));
-  klass.def("b16", &T::b16, sb::arg("idx"));
-  klass.def("write_b16", &T::write_b16, sb::arg("idx"), sb::arg("val"));
+void SetIntListValues(IntListFacade* self, int idx, std::vector<Value> values) {
+  std::vector<int> ints;
+  ints.reserve(values.size());
+  for (Value& value : values)
+    ints.push_back(RequireInt(value, "integer list Set"));
+  self->Set(idx, std::move(ints));
 }
 
-template <typename T>
-void BindStrSequenceMethods(sb::class_<T>& klass) {
-  klass.def("__getitem__", &T::get, sb::arg("idx"));
-  klass.def("__setitem__", &T::set, sb::arg("idx"), sb::arg("val"));
-  klass.def("resize", &T::resize, sb::arg("size"));
-  klass.def("size", &T::size);
-  klass.def("fill", &T::fill, sb::arg("begin"), sb::arg("end"), sb::arg("val"));
+void BindIntSequenceMethods(sb::class_<IntListFacade>& klass) {
+  klass.def("__getitem__", &IntListFacade::get, sb::arg("idx"));
+  klass.def("__setitem__", &IntListFacade::set, sb::arg("idx"), sb::arg("val"));
+  klass.def("Set", SetIntListValues, sb::arg("idx"), sb::vararg);
+  klass.def("resize", &IntListFacade::resize, sb::arg("size"));
+  klass.def("size", &IntListFacade::size);
+  klass.def("fill", &IntListFacade::fill, sb::arg("begin"), sb::arg("end"),
+            sb::arg("val"));
+  klass.def("b1", &IntListFacade::b1, sb::arg("idx"));
+  klass.def("write_b1", &IntListFacade::write_b1, sb::arg("idx"),
+            sb::arg("val"));
+  klass.def("b2", &IntListFacade::b2, sb::arg("idx"));
+  klass.def("write_b2", &IntListFacade::write_b2, sb::arg("idx"),
+            sb::arg("val"));
+  klass.def("b4", &IntListFacade::b4, sb::arg("idx"));
+  klass.def("write_b4", &IntListFacade::write_b4, sb::arg("idx"),
+            sb::arg("val"));
+  klass.def("b8", &IntListFacade::b8, sb::arg("idx"));
+  klass.def("write_b8", &IntListFacade::write_b8, sb::arg("idx"),
+            sb::arg("val"));
+  klass.def("b16", &IntListFacade::b16, sb::arg("idx"));
+  klass.def("write_b16", &IntListFacade::write_b16, sb::arg("idx"),
+            sb::arg("val"));
+}
+
+void BindStrSequenceMethods(sb::class_<StrListFacade>& klass) {
+  klass.def("__getitem__", &StrListFacade::get, sb::arg("idx"));
+  klass.def("__setitem__", &StrListFacade::set, sb::arg("idx"), sb::arg("val"));
+  klass.def("resize", &StrListFacade::resize, sb::arg("size"));
+  klass.def("size", &StrListFacade::size);
+  klass.def("fill", &StrListFacade::fill, sb::arg("begin"), sb::arg("end"),
+            sb::arg("val"));
 }
 
 }  // namespace
@@ -90,16 +102,16 @@ void BindMemory(SiglusRuntime& rt) {
   Memory& memory = *rt.memory;
 
   auto ilist =
-      std::make_shared<sb::class_<SiglusIntList>>(m, "__SiglusIntList");
+      std::make_shared<sb::class_<IntListFacade>>(m, "__SiglusIntList");
   rt.ilist_cls = ilist;
   BindIntSequenceMethods(*ilist);
-  ilist->def("init", &SiglusIntList::init);
+  ilist->def("init", &IntListFacade::init);
 
   auto slist =
-      std::make_shared<sb::class_<SiglusStrList>>(m, "__SiglusStrList");
+      std::make_shared<sb::class_<StrListFacade>>(m, "__SiglusStrList");
   rt.slist_cls = slist;
   BindStrSequenceMethods(*slist);
-  slist->def("init", &SiglusStrList::init);
+  slist->def("init", &StrListFacade::init);
 
   m.def(
       "make_intlist",
@@ -154,15 +166,13 @@ void BindMemory(SiglusRuntime& rt) {
 
   auto bind_int_bank = [&](std::string_view name, IntBank bank) {
     auto getter = [&memory, bank]() -> std::vector<int>& {
-      IntBankStorage& storage = memory.GetBank(bank);
-      return storage.Data();
+      return memory.GetIntBankData(bank);
     };
     ilist->inst(name, std::move(getter), 0);
   };
   auto bind_str_bank = [&](std::string_view name, StrBank bank) {
     auto getter = [&memory, bank]() -> std::vector<std::string>& {
-      StrBankStorage& storage = memory.GetBank(bank);
-      return storage.Data();
+      return memory.GetStrBankData(bank);
     };
     slist->inst(name, std::move(getter), 0);
   };
@@ -193,8 +203,9 @@ void BindMemory(SiglusRuntime& rt) {
 
         frame_stack->push_back(memory.GetStackMemory());
         Memory::Stack stack{
-            .L = IntBankStorage(std::max<std::size_t>(8, largs->items.size())),
-            .K = StrBankStorage(std::max<std::size_t>(8, kargs->items.size()))};
+            .L = std::vector<int>(std::max<std::size_t>(8, largs->items.size())),
+            .K = std::vector<std::string>(
+                std::max<std::size_t>(8, kargs->items.size()))};
         memory.PartialReset(std::move(stack));
 
         for (std::size_t i = 0; i < largs->items.size(); ++i)
