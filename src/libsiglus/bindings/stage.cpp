@@ -102,6 +102,6 @@ stage_next = stage.next;
   // TODO: Implement actual Mwnd, Group, Btnsel, World, Effect, Quake classes
 }
 
-RLVM_REGISTER(SiglusBindingRegistry, "1_stage", BindStage)
+RLVM_REGISTER(SiglusBindingRegistry, "2_stage", BindStage)
 
 }  // namespace libsiglus::binding

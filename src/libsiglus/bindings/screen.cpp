@@ -116,6 +116,6 @@ screen = Screen();
   Execute(vm, std::move(src));
 }
 
-RLVM_REGISTER(SiglusBindingRegistry, "0_screen", BindScreen)
+RLVM_REGISTER(SiglusBindingRegistry, "1_screen", BindScreen)
 
 }  // namespace libsiglus::binding

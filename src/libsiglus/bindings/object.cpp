@@ -49,7 +49,6 @@
 
 #include <algorithm>
 #include <cstddef>
-#include <cstdint>
 #include <limits>
 #include <memory>
 #include <optional>
@@ -1323,6 +1322,6 @@ void BindObject(SiglusRuntime& runtime) {
   event_properties.Bind();
 }
 
-RLVM_REGISTER(SiglusBindingRegistry, "0_object", BindObject)
+RLVM_REGISTER(SiglusBindingRegistry, "1_object", BindObject)
 
 }  // namespace libsiglus::binding

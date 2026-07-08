@@ -550,6 +550,6 @@ void BindMwnd(SiglusRuntime& runtime) {
   });
 }
 
-RLVM_REGISTER(SiglusBindingRegistry, "0_mwnd", BindMwnd)
+RLVM_REGISTER(SiglusBindingRegistry, "1_mwnd", BindMwnd)
 
 }  // namespace libsiglus::binding
