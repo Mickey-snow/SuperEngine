@@ -90,9 +90,9 @@ class StageTest : public ::testing::Test {
 TEST_F(StageTest, ObjectLayerHelpersAccessExpectedBuffers) {
   Stage stage(3);
 
-  EXPECT_EQ(&stage.GetObject(OBJ_FG, 0), &stage.foreground_objects[0]);
-  EXPECT_EQ(&stage.GetObject(OBJ_BG, 1), &stage.background_objects[1]);
-  EXPECT_EQ(&stage.GetObject(OBJ_NEXT, 2), &stage.next_objects[2]);
+  EXPECT_EQ(&stage.GetObject(kLayerFg, 0), &stage.foreground_objects[0]);
+  EXPECT_EQ(&stage.GetObject(kLayerBg, 1), &stage.background_objects[1]);
+  EXPECT_EQ(&stage.GetObject(kLayerNext, 2), &stage.next_objects[2]);
 
   EXPECT_THROW(stage.GetObject(-1, 0), std::runtime_error);
   EXPECT_THROW(stage.GetObject(3, 0), std::runtime_error);
@@ -101,19 +101,19 @@ TEST_F(StageTest, ObjectLayerHelpersAccessExpectedBuffers) {
 
 TEST_F(StageTest, SetRemoveAndFreeIdUseRequestedLayer) {
   Stage stage(3);
-  stage.GetObject(OBJ_FG, 0).Param().SetX(7);
-  EXPECT_EQ(stage.GetFreeObjectId(OBJ_FG), 1);
+  stage.GetObject(kLayerFg, 0).Param().SetX(7);
+  EXPECT_EQ(stage.GetFreeObjectId(kLayerFg), 1);
 
   GraphicsObject object;
   SetDummyData(object);
   object.Param().SetX(42);
-  stage.SetObject(OBJ_NEXT, 2, std::move(object));
+  stage.SetObject(kLayerNext, 2, std::move(object));
 
   ASSERT_TRUE(stage.next_objects.Exists(2));
   EXPECT_TRUE(stage.next_objects[2].HasDrawer());
   EXPECT_EQ(stage.next_objects[2].Param().position_x, 42);
 
-  stage.RemoveObject(OBJ_NEXT, 2);
+  stage.RemoveObject(kLayerNext, 2);
   EXPECT_FALSE(stage.next_objects.Exists(2));
 }
 

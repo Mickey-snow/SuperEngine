@@ -112,11 +112,11 @@ void Stage::ClearTransitionRenderState() {
 
 LazyArray<GraphicsObject>& Stage::ObjectsForLayer(int layer) {
   switch (layer) {
-    case OBJ_FG:
+    case kLayerFg:
       return foreground_objects;
-    case OBJ_BG:
+    case kLayerBg:
       return background_objects;
-    case OBJ_NEXT:
+    case kLayerNext:
       return next_objects;
     default:
       throw std::runtime_error("Invalid layer number");
@@ -125,11 +125,11 @@ LazyArray<GraphicsObject>& Stage::ObjectsForLayer(int layer) {
 
 const LazyArray<GraphicsObject>& Stage::ObjectsForLayer(int layer) const {
   switch (layer) {
-    case OBJ_FG:
+    case kLayerFg:
       return foreground_objects;
-    case OBJ_BG:
+    case kLayerBg:
       return background_objects;
-    case OBJ_NEXT:
+    case kLayerNext:
       return next_objects;
     default:
       throw std::runtime_error("Invalid layer number");
@@ -165,9 +165,9 @@ void Stage::FreeObjectData(int obj_number) {
 }
 
 void Stage::FreeAllObjectData() {
-  FreeLayerObjectData(OBJ_FG);
-  FreeLayerObjectData(OBJ_BG);
-  FreeLayerObjectData(OBJ_NEXT);
+  FreeLayerObjectData(kLayerFg);
+  FreeLayerObjectData(kLayerBg);
+  FreeLayerObjectData(kLayerNext);
 }
 
 void Stage::FreeLayerObjectData(int layer) {

@@ -31,6 +31,10 @@
 #include <deque>
 #include <string>
 
+[[maybe_unused]] constexpr int kLayerFg = 0;
+[[maybe_unused]] constexpr int kLayerBg = 1;
+[[maybe_unused]] constexpr int kLayerNext = 2;
+
 class Stage {
  public:
   Stage(int size);

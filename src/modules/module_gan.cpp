@@ -151,7 +151,7 @@ struct ganPlay : public RLOpcode<IntConstant_T, IntConstant_T> {
         if (block_) {
           int fgbg;
           if (!GetProperty(P_FGBG, fgbg))
-            fgbg = OBJ_FG;
+            fgbg = kLayerFg;
 
           int parent_object;
           if (!GetProperty(P_PARENTOBJ, parent_object))
@@ -169,7 +169,7 @@ struct ganWait : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int buf) {
     int fgbg;
     if (!GetProperty(P_FGBG, fgbg))
-      fgbg = OBJ_FG;
+      fgbg = kLayerFg;
 
     int parent_object;
     if (!GetProperty(P_PARENTOBJ, parent_object))
@@ -277,14 +277,14 @@ void addGanOperationsTo(RLModule& m) {
 
 GanFgModule::GanFgModule() : RLModule("GanFg", 1, 73) {
   addGanOperationsTo(*this);
-  SetProperty(P_FGBG, OBJ_FG);
+  SetProperty(P_FGBG, kLayerFg);
 }
 
 // -----------------------------------------------------------------------
 
 GanBgModule::GanBgModule() : RLModule("GanBg", 1, 74) {
   addGanOperationsTo(*this);
-  SetProperty(P_FGBG, OBJ_BG);
+  SetProperty(P_FGBG, kLayerBg);
 }
 
 // -----------------------------------------------------------------------
@@ -292,7 +292,7 @@ GanBgModule::GanBgModule() : RLModule("GanBg", 1, 74) {
 ChildGanFgModule::ChildGanFgModule()
     : MappedRLModule(ChildObjMappingFun, "ChildGanFg", 2, 73) {
   addGanOperationsTo(*this);
-  SetProperty(P_FGBG, OBJ_FG);
+  SetProperty(P_FGBG, kLayerFg);
 }
 
 // -----------------------------------------------------------------------
@@ -300,5 +300,5 @@ ChildGanFgModule::ChildGanFgModule()
 ChildGanBgModule::ChildGanBgModule()
     : MappedRLModule(ChildObjMappingFun, "ChildGanBg", 2, 74) {
   addGanOperationsTo(*this);
-  SetProperty(P_FGBG, OBJ_BG);
+  SetProperty(P_FGBG, kLayerBg);
 }

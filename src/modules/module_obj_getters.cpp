@@ -27,14 +27,15 @@
 
 #include "modules/module_obj_getters.hpp"
 
+#include "core/object.hpp"
+#include "core/object_internal/object_parameter.hpp"
+#include "core/stage.hpp"
 #include "machine/properties.hpp"
 #include "machine/rloperation.hpp"
 #include "machine/rloperation/default_value_t.hpp"
 #include "machine/rloperation/reference_types.hpp"
 #include "machine/rloperation/rlop_store.hpp"
 #include "modules/module_obj.hpp"
-#include "core/object_internal/object_parameter.hpp"
-#include "core/object.hpp"
 
 #include <functional>
 
@@ -143,8 +144,9 @@ void addFunctions(RLModule& m) {
   m.AddOpcode(
       1009, 0, "objGetMono",
       new Obj_GetInt(CreateGetter<&ObjectParameter::monochrome_transform>()));
-  m.AddOpcode(1010, 0, "objGetInvert",
-              new Obj_GetInt(CreateGetter<&ObjectParameter::invert_transform>()));
+  m.AddOpcode(
+      1010, 0, "objGetInvert",
+      new Obj_GetInt(CreateGetter<&ObjectParameter::invert_transform>()));
   m.AddOpcode(1011, 0, "objGetLight",
               new Obj_GetInt(
                   [](const ObjectParameter& param) { return param.light(); }));
@@ -161,14 +163,14 @@ void addFunctions(RLModule& m) {
 
 ObjFgGettersModule::ObjFgGettersModule() : RLModule("ObjFgGetters", 1, 84) {
   addFunctions(*this);
-  SetProperty(P_FGBG, OBJ_FG);
+  SetProperty(P_FGBG, kLayerFg);
 }
 
 // -----------------------------------------------------------------------
 
 ObjBgGettersModule::ObjBgGettersModule() : RLModule("ObjBgGetters", 1, 85) {
   addFunctions(*this);
-  SetProperty(P_FGBG, OBJ_BG);
+  SetProperty(P_FGBG, kLayerBg);
 }
 
 // -----------------------------------------------------------------------
@@ -176,7 +178,7 @@ ObjBgGettersModule::ObjBgGettersModule() : RLModule("ObjBgGetters", 1, 85) {
 ChildObjFgGettersModule::ChildObjFgGettersModule()
     : MappedRLModule(ChildObjMappingFun, "ChildObjFgGetters", 2, 84) {
   addFunctions(*this);
-  SetProperty(P_FGBG, OBJ_FG);
+  SetProperty(P_FGBG, kLayerFg);
 }
 
 // -----------------------------------------------------------------------
@@ -184,5 +186,5 @@ ChildObjFgGettersModule::ChildObjFgGettersModule()
 ChildObjBgGettersModule::ChildObjBgGettersModule()
     : MappedRLModule(ChildObjMappingFun, "ChildObjBgGetters", 2, 85) {
   addFunctions(*this);
-  SetProperty(P_FGBG, OBJ_BG);
+  SetProperty(P_FGBG, kLayerBg);
 }

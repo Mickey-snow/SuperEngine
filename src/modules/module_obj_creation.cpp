@@ -36,6 +36,7 @@
 #include "core/object_internal/drawer/file.hpp"
 #include "core/object_internal/drawer/gan.hpp"
 #include "core/object_internal/drawer/text.hpp"
+#include "core/stage.hpp"
 #include "machine/properties.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/rlmodule.hpp"
@@ -50,7 +51,6 @@
 #include "utilities/mapped_file.hpp"
 #include "utilities/string_utilities.hpp"
 
-#include <cmath>
 #include <filesystem>
 #include <memory>
 #include <stdexcept>
@@ -537,14 +537,14 @@ void addObjectCreationFunctions(RLModule& m) {
 
 ObjFgCreationModule::ObjFgCreationModule() : RLModule("ObjFgCreation", 1, 71) {
   addObjectCreationFunctions(*this);
-  SetProperty(P_FGBG, OBJ_FG);
+  SetProperty(P_FGBG, kLayerFg);
 }
 
 // -----------------------------------------------------------------------
 
 ObjBgCreationModule::ObjBgCreationModule() : RLModule("ObjBgCreation", 1, 72) {
   addObjectCreationFunctions(*this);
-  SetProperty(P_FGBG, OBJ_BG);
+  SetProperty(P_FGBG, kLayerBg);
 }
 
 // -----------------------------------------------------------------------
@@ -552,7 +552,7 @@ ObjBgCreationModule::ObjBgCreationModule() : RLModule("ObjBgCreation", 1, 72) {
 ChildObjFgCreationModule::ChildObjFgCreationModule()
     : MappedRLModule(ChildObjMappingFun, "ChildObjFgCreation", 2, 71) {
   addObjectCreationFunctions(*this);
-  SetProperty(P_FGBG, OBJ_FG);
+  SetProperty(P_FGBG, kLayerFg);
 }
 
 // -----------------------------------------------------------------------
@@ -560,5 +560,5 @@ ChildObjFgCreationModule::ChildObjFgCreationModule()
 ChildObjBgCreationModule::ChildObjBgCreationModule()
     : MappedRLModule(ChildObjMappingFun, "ChildObjBgCreation", 2, 72) {
   addObjectCreationFunctions(*this);
-  SetProperty(P_FGBG, OBJ_BG);
+  SetProperty(P_FGBG, kLayerBg);
 }

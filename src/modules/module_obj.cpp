@@ -55,7 +55,7 @@ GraphicsObject& GetGraphicsObject(RLMachine& machine,
 
   int fgbg;
   if (!op->GetProperty(P_FGBG, fgbg))
-    fgbg = OBJ_FG;
+    fgbg = kLayerFg;
 
   int parentobj;
   if (op->GetProperty(P_PARENTOBJ, parentobj)) {

@@ -48,7 +48,7 @@ void ForEachTargetObject(RLMachine& machine, RLOperation* op, Function fn) {
 
   int fgbg;
   if (!op->GetProperty(P_FGBG, fgbg))
-    fgbg = OBJ_FG;
+    fgbg = kLayerFg;
 
   int parentobj;
   if (op->GetProperty(P_PARENTOBJ, parentobj)) {
@@ -70,8 +70,8 @@ void ForEachTargetObject(RLMachine& machine, RLOperation* op, Function fn) {
 struct objCopyFgToBg_0 : public RLOpcode<IntConstant_T> {
   void operator()(RLMachine& machine, int buf) {
     Stage& stage = machine.stage();
-    GraphicsObject& go = stage.GetObject(OBJ_FG, buf);
-    stage.SetObject(OBJ_BG, buf, go.Clone());
+    GraphicsObject& go = stage.GetObject(kLayerFg, buf);
+    stage.SetObject(kLayerBg, buf, go.Clone());
   }
 };
 
@@ -80,8 +80,8 @@ struct objCopyFgToBg_1 : public RLOpcode<IntConstant_T, IntConstant_T> {
     Stage& stage = machine.stage();
 
     for (int i = start; i <= end; ++i) {
-      GraphicsObject& go = stage.GetObject(OBJ_FG, i);
-      stage.SetObject(OBJ_BG, i, go.Clone());
+      GraphicsObject& go = stage.GetObject(kLayerFg, i);
+      stage.SetObject(kLayerBg, i, go.Clone());
     }
   }
 };
@@ -246,47 +246,47 @@ ObjManagement::ObjManagement() : RLModule("ObjManagement", 1, 60) {
 // -----------------------------------------------------------------------
 
 ObjFgManagement::ObjFgManagement() : RLModule("ObjFgManagement", 1, 61) {
-  AddOpcode(2, 0, "objCopy", new objCopy(OBJ_FG, OBJ_FG));
-  AddOpcode(3, 0, "objCopyToBg", new objCopy(OBJ_FG, OBJ_BG));
+  AddOpcode(2, 0, "objCopy", new objCopy(kLayerFg, kLayerFg));
+  AddOpcode(3, 0, "objCopyToBg", new objCopy(kLayerFg, kLayerBg));
 
   addObjManagementFunctions(*this, "objFg");
-  SetProperty(P_FGBG, OBJ_FG);
+  SetProperty(P_FGBG, kLayerFg);
 }
 
 // -----------------------------------------------------------------------
 
 ObjBgManagement::ObjBgManagement() : RLModule("ObjBgManagement", 1, 62) {
-  AddOpcode(2, 0, "objBgCopyToFg", new objCopy(OBJ_BG, OBJ_FG));
-  AddOpcode(3, 0, "objBgCopy", new objCopy(OBJ_BG, OBJ_BG));
+  AddOpcode(2, 0, "objBgCopyToFg", new objCopy(kLayerBg, kLayerFg));
+  AddOpcode(3, 0, "objBgCopy", new objCopy(kLayerBg, kLayerBg));
 
   addObjManagementFunctions(*this, "objBg");
-  SetProperty(P_FGBG, OBJ_BG);
+  SetProperty(P_FGBG, kLayerBg);
 }
 
 // -----------------------------------------------------------------------
 
 ChildObjFgManagement::ChildObjFgManagement()
     : MappedRLModule(ChildObjMappingFun, "ChildObjFgManagement", 2, 61) {
-  AddOpcode(2, 0, "objSetCopy", new objCopy(OBJ_FG, OBJ_FG));
-  AddOpcode(3, 0, "objSetCopyToBg", new objCopy(OBJ_FG, OBJ_BG));
+  AddOpcode(2, 0, "objSetCopy", new objCopy(kLayerFg, kLayerFg));
+  AddOpcode(3, 0, "objSetCopyToBg", new objCopy(kLayerFg, kLayerBg));
 
-  AddOpcode(14, 0, "objChildCopy", new objChildCopy(OBJ_FG));
+  AddOpcode(14, 0, "objChildCopy", new objChildCopy(kLayerFg));
 
   addObjManagementFunctions(*this, "objChildFg");
-  SetProperty(P_FGBG, OBJ_FG);
+  SetProperty(P_FGBG, kLayerFg);
 }
 
 // -----------------------------------------------------------------------
 
 ChildObjBgManagement::ChildObjBgManagement()
     : MappedRLModule(ChildObjMappingFun, "ChildObjFgManagement", 2, 62) {
-  AddOpcode(2, 0, "objSetBgCopyToFg", new objCopy(OBJ_BG, OBJ_FG));
-  AddOpcode(3, 0, "objSetBgCopy", new objCopy(OBJ_BG, OBJ_BG));
+  AddOpcode(2, 0, "objSetBgCopyToFg", new objCopy(kLayerBg, kLayerFg));
+  AddOpcode(3, 0, "objSetBgCopy", new objCopy(kLayerBg, kLayerBg));
 
-  AddOpcode(14, 0, "objChildCopy", new objChildCopy(OBJ_BG));
+  AddOpcode(14, 0, "objChildCopy", new objChildCopy(kLayerBg));
 
   addObjManagementFunctions(*this, "objChildBg");
-  SetProperty(P_FGBG, OBJ_BG);
+  SetProperty(P_FGBG, kLayerBg);
 }
 
 // -----------------------------------------------------------------------

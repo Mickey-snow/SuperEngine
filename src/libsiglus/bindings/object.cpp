@@ -138,7 +138,7 @@ void ApplyObjectFileSuffix(std::string& filename, ObjectParameter& param) {
 
 struct ObjectReference {
   Stage* stage_ = nullptr;
-  int layer_ = OBJ_FG;
+  int layer_ = kLayerFg;
   int object_id_ = 0;
   std::vector<std::size_t> child_path_;
 
@@ -1085,7 +1085,7 @@ void BindObject(SiglusRuntime& runtime) {
             return new SiglusObject(stage, graphics, event, asset_scanner,
                                     layer, object_id);
           }),
-          sb::arg("layer") = static_cast<int>(OBJ_FG),
+          sb::arg("layer") = static_cast<int>(kLayerFg),
           sb::arg("object_id") = 0);
 
   // child object

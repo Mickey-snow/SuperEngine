@@ -161,5 +161,3 @@ class GraphicsObject {
 
   std::vector<std::unique_ptr<GraphicsObject>> child_;
 };
-
-enum { OBJ_FG = 0, OBJ_BG = 1, OBJ_NEXT = 2 };

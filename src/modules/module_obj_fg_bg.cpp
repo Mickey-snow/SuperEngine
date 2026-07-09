@@ -30,22 +30,13 @@
 
 #include "modules/module_obj_fg_bg.hpp"
 
-#include <cmath>
-#include <functional>
-#include <iomanip>
-#include <iostream>
-#include <memory>
-#include <sstream>
-#include <string>
-#include <vector>
-
 #include "core/gameexe.hpp"
 #include "core/object.hpp"
 #include "core/object_internal/drawer/colour_filter.hpp"
 #include "core/object_internal/drawer/text.hpp"
 #include "core/object_internal/objdrawer.hpp"
 #include "core/object_internal/object_mutator.hpp"
-#include "libreallive/parser.hpp"
+#include "core/stage.hpp"
 #include "machine/long_operation.hpp"
 #include "machine/properties.hpp"
 #include "machine/rlmachine.hpp"
@@ -61,6 +52,11 @@
 #include "utilities/exception.hpp"
 #include "utilities/graphics.hpp"
 #include "utilities/string_utilities.hpp"
+
+#include <functional>
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace {
 using namespace std::placeholders;
@@ -728,7 +724,7 @@ ObjFgModule::ObjFgModule() : RLModule("ObjFg", 1, 81), helper_("obj", this) {
 
   addObjectFunctions(*this);
   addEveObjectFunctions(*this);
-  SetProperty(P_FGBG, OBJ_FG);
+  SetProperty(P_FGBG, kLayerFg);
 }
 
 // -----------------------------------------------------------------------
@@ -738,7 +734,7 @@ ObjBgModule::ObjBgModule() : RLModule("ObjBg", 1, 82), helper_("objBg", this) {
 
   addObjectFunctions(*this);
   addEveObjectFunctions(*this);
-  SetProperty(P_FGBG, OBJ_BG);
+  SetProperty(P_FGBG, kLayerBg);
 }
 
 // -----------------------------------------------------------------------
@@ -750,7 +746,7 @@ ChildObjFgModule::ChildObjFgModule()
 
   addObjectFunctions(*this);
   addEveObjectFunctions(*this);
-  SetProperty(P_FGBG, OBJ_FG);
+  SetProperty(P_FGBG, kLayerFg);
 }
 
 // -----------------------------------------------------------------------
@@ -762,7 +758,7 @@ ChildObjBgModule::ChildObjBgModule()
 
   addObjectFunctions(*this);
   addEveObjectFunctions(*this);
-  SetProperty(P_FGBG, OBJ_BG);
+  SetProperty(P_FGBG, kLayerBg);
 }
 
 // -----------------------------------------------------------------------
@@ -773,7 +769,7 @@ ObjRangeFgModule::ObjRangeFgModule()
   addUnifiedFunctions(helper_);
 
   addObjectFunctions(*this);
-  SetProperty(P_FGBG, OBJ_FG);
+  SetProperty(P_FGBG, kLayerFg);
 }
 
 // -----------------------------------------------------------------------
@@ -784,7 +780,7 @@ ObjRangeBgModule::ObjRangeBgModule()
   addUnifiedFunctions(helper_);
 
   addObjectFunctions(*this);
-  SetProperty(P_FGBG, OBJ_BG);
+  SetProperty(P_FGBG, kLayerBg);
 }
 
 // -----------------------------------------------------------------------
@@ -795,7 +791,7 @@ ChildObjRangeFgModule::ChildObjRangeFgModule()
   addUnifiedFunctions(helper_);
 
   addObjectFunctions(*this);
-  SetProperty(P_FGBG, OBJ_FG);
+  SetProperty(P_FGBG, kLayerFg);
 }
 
 // -----------------------------------------------------------------------
@@ -806,5 +802,5 @@ ChildObjRangeBgModule::ChildObjRangeBgModule()
   addUnifiedFunctions(helper_);
 
   addObjectFunctions(*this);
-  SetProperty(P_FGBG, OBJ_BG);
+  SetProperty(P_FGBG, kLayerBg);
 }
