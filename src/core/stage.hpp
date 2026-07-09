@@ -24,12 +24,14 @@
 
 #pragma once
 
+#include "core/group.hpp"
 #include "core/object.hpp"
 #include "utilities/lazy_array.hpp"
 
 #include <cstddef>
 #include <deque>
 #include <string>
+#include <vector>
 
 [[maybe_unused]] constexpr int kLayerFg = 0;
 [[maybe_unused]] constexpr int kLayerBg = 1;
@@ -47,6 +49,9 @@ class Stage {
 
   // Next objects
   LazyArray<GraphicsObject> next_objects;
+
+  // Foreground, background and next groups
+  std::vector<Group> groups[3];
 
   // Foreground objects (at the time of the last save)
   LazyArray<GraphicsObject> saved_foreground_objects;
