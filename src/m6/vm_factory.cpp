@@ -26,11 +26,15 @@
 
 #include "m6/compiler_pipeline.hpp"
 #include "srbind/srbind.hpp"
+#include "utilities/file.hpp"
+#include "vm/exception.hpp"
 #include "vm/future.hpp"
 #include "vm/string.hpp"
 
 #include <chrono>
+#include <filesystem>
 #include <fstream>
+#include <stdexcept>
 #include <unordered_map>
 
 namespace m6 {
@@ -114,29 +118,34 @@ sr::VM VMFactory::Create(std::shared_ptr<sr::GarbageCollector> gc,
                 std::make_shared<std::unordered_map<std::string, sr::Value>>();
             import_builtins->reserve(vm2.globals_->size() +
                                      vm2.builtins_->size());
-            import_builtins->insert(vm2.globals_->begin(),
-                                    vm2.globals_->end());
+            import_builtins->insert(vm2.globals_->begin(), vm2.globals_->end());
             import_builtins->insert(vm2.builtins_->begin(),
                                     vm2.builtins_->end());
             mvm.builtins_ = std::move(import_builtins);
 
             CompilerPipeline pipe(mvm.gc_, false);
-            std::ifstream file(modstr + ".sr");
-            if (!file.is_open())
-              throw std::runtime_error("module not found: " + modstr);
-            std::string src((std::istreambuf_iterator<char>(file)),
-                            std::istreambuf_iterator<char>());
-            file.close();
-            auto sb = m6::SourceBuffer::Create(std::move(src), modstr);
+            const std::filesystem::path modpth = modstr + ".sr";
+            std::string modsrc;
+            try {
+              modsrc = LoadFileStr(modpth);
+            } catch (std::runtime_error& re) {
+              throw sr::RuntimeError("Failed to load module " + modstr + ": " +
+                                     re.what());
+            }
+
+            auto sb = m6::SourceBuffer::Create(std::move(modsrc), modstr);
             pipe.compile(sb);
             if (!pipe.Ok())
-              throw std::runtime_error(pipe.FormatErrors());
+              throw sr::RuntimeError(pipe.FormatErrors());
             sr::Code* chunk = pipe.Get();
 
             auto mod = std::make_unique<sr::Module>(modstr, mvm.globals_);
-            vm2.module_cache_[modstr] = mod.get();
-            mvm.module_cache_ = vm2.module_cache_;
-            mvm.Evaluate(chunk);
+            {
+              ScopedCurrentPath guard(modpth.parent_path());
+              vm2.module_cache_[modstr] = mod.get();
+              mvm.module_cache_ = vm2.module_cache_;
+              mvm.Evaluate(chunk);
+            }
 
             return std::move(mod);
           })));

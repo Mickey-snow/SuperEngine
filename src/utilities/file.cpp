@@ -39,6 +39,17 @@ namespace fs = std::filesystem;
 
 // -----------------------------------------------------------------------
 
+ScopedCurrentPath::ScopedCurrentPath(const fs::path& path)
+    : previous_(fs::current_path()) {
+  if (!path.empty())
+    fs::current_path(path);
+}
+
+ScopedCurrentPath::~ScopedCurrentPath() {
+  std::error_code ec;
+  fs::current_path(previous_, ec);
+}
+
 fs::path CorrectPathCase(fs::path Path) {
   // If the path is OK as it stands, do nothing.
   if (fs::exists(Path))
@@ -102,6 +113,27 @@ std::vector<char> LoadFile(const std::filesystem::path& path) {
   }
 
   std::vector<char> buffer(static_cast<std::size_t>(size));
+  file.seekg(0, std::ios::beg);
+  if (!file.read(buffer.data(), size)) {
+    throw std::runtime_error("Failed to read file: " + path.string());
+  }
+
+  return buffer;
+}
+
+std::string LoadFileStr(const std::filesystem::path& path) {
+  std::ifstream file(path, std::ios::binary | std::ios::ate);
+
+  if (!file) {
+    throw std::runtime_error("Failed to open file: " + path.string());
+  }
+
+  const std::streamsize size = file.tellg();
+  if (size < 0) {
+    throw std::runtime_error("Failed to get file size: " + path.string());
+  }
+
+  std::string buffer(static_cast<std::size_t>(size), '\0');
   file.seekg(0, std::ios::beg);
   if (!file.read(buffer.data(), size)) {
     throw std::runtime_error("Failed to read file: " + path.string());

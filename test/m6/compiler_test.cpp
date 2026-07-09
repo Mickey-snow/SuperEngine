@@ -933,6 +933,14 @@ print(m.val);
   EXPECT_EQ(outBuf.str(), "321\n");
 }
 
+TEST_F(CompilerTest, ImportErrorsShouldNotEscapeVM) {
+  auto res = Run(R"(
+try{ import bad; }
+catch(e){ print("ok"); }
+)");
+  EXPECT_EQ(res, "ok\n");
+}
+
 TEST_F(CompilerTest, TryCatchThrow) {
   {
     auto res = Run(R"(

@@ -25,6 +25,7 @@
 #pragma once
 
 #include <filesystem>
+#include <string>
 #include <vector>
 
 class Gameexe;
@@ -37,3 +38,13 @@ class System;
 std::filesystem::path CorrectPathCase(std::filesystem::path Path);
 
 std::vector<char> LoadFile(const std::filesystem::path& file_path);
+std::string LoadFileStr(const std::filesystem::path& file_path);
+
+class ScopedCurrentPath {
+ public:
+  explicit ScopedCurrentPath(const std::filesystem::path& path);
+  ~ScopedCurrentPath();
+
+ private:
+  std::filesystem::path previous_;
+};

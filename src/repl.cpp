@@ -25,12 +25,14 @@
 #include "libsiglus/sgvm_factory.hpp"
 #include "m6/compiler_pipeline.hpp"
 #include "m6/vm_factory.hpp"
+#include "utilities/file.hpp"
 #include "utilities/string_utilities.hpp"
 #include "vm/disassembler.hpp"
 
 #include <boost/program_options.hpp>
-#include <fstream>
+#include <filesystem>
 #include <iostream>
+#include <memory>
 
 namespace po = boost::program_options;
 
@@ -53,18 +55,16 @@ GNU General Public License for more details.)";
 static constexpr std::string_view help_info =
     R"(Reallive REPL – enter code, Ctrl-D or \"exit\" to quit)";
 
+namespace fs = std::filesystem;
+
 static std::shared_ptr<SourceBuffer> LoadSource(std::string file_name) {
   trim(file_name);
   if (!file_name.ends_with(".sr"))
     file_name += ".sr";
 
   try {
-    std::ifstream ifs(file_name);
-    if (!ifs.is_open())
-      throw std::runtime_error("file not found: " + file_name);
-    return SourceBuffer::Create(std::string(std::istreambuf_iterator<char>(ifs),
-                                            std::istreambuf_iterator<char>()),
-                                file_name);
+    std::string data = LoadFileStr(file_name);
+    return SourceBuffer::Create(std::move(data), file_name);
   } catch (std::exception& e) {
     std::cerr << e.what() << std::endl;
   }
@@ -76,6 +76,7 @@ static void run_repl(VM& vm) {
 
   std::string line, line_trimmed;
   std::shared_ptr<SourceBuffer> src;
+  fs::path run_cwd;
   for (size_t lineno = 1; std::cout << ">> " && std::getline(std::cin, line);
        ++lineno) {
     if (line.empty())
@@ -83,12 +84,17 @@ static void run_repl(VM& vm) {
 
     line_trimmed = trim_cp(line);
     src = nullptr;
+    run_cwd.clear();
 
     if (line_trimmed == "exit")
       break;
     else if (line_trimmed.starts_with("run ")) {
       // helper to paste and run a file
-      src = LoadSource(line_trimmed.substr(4));
+      std::string file_name = line_trimmed.substr(4);
+      trim(file_name);
+      src = LoadSource(file_name);
+      if (src)
+        run_cwd = fs::path(file_name).parent_path();
     } else if (line_trimmed.starts_with("dis ")) {
       // helper to compile and dump a file
       src = LoadSource(trim_cp(line).substr(4));
@@ -127,6 +133,9 @@ static void run_repl(VM& vm) {
 
     try {
       // run just this snippet on the existing VM, preserving globals, etc.
+      std::unique_ptr<ScopedCurrentPath> scoped_path;
+      if (!run_cwd.empty())
+        scoped_path = std::make_unique<ScopedCurrentPath>(run_cwd);
       std::ignore = vm.Evaluate(chunk);
     } catch (const std::exception& ex) {
       std::cerr << "runtime: " << ex.what() << '\n';
