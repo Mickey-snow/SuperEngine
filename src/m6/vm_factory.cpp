@@ -31,6 +31,7 @@
 
 #include <chrono>
 #include <fstream>
+#include <unordered_map>
 
 namespace m6 {
 namespace sr = serilang;
@@ -96,20 +97,28 @@ sr::VM VMFactory::Create(std::shared_ptr<sr::GarbageCollector> gc,
       "import",
       sr::Value(gc->Allocate<sr::NativeFunction>(
           "import",
-          [&vm, &stdin, &stdout, &stderr](sr::VM& vm2, sr::Fiber& f,
-                                          uint8_t nargs,
-                                          uint8_t nkwargs) -> sr::TempValue {
+          [&stdin, &stdout, &stderr](sr::VM& vm2, sr::Fiber& f, uint8_t nargs,
+                                     uint8_t nkwargs) -> sr::TempValue {
             if (!(nargs == 1 && nkwargs == 0))
               throw std::runtime_error("import() expects module name");
             sr::Value argv = f.op_stack.back();
             f.op_stack.pop_back();
             std::string const& modstr = argv.Get_if<sr::String>()->str_;
-            if (auto it = vm.module_cache_.find(modstr);
-                it != vm.module_cache_.end())
+            if (auto it = vm2.module_cache_.find(modstr);
+                it != vm2.module_cache_.end())
               return sr::Value(it->second);
 
-            sr::VM mvm = Create(vm.gc_, stdout, stdin, stderr);
+            sr::VM mvm = Create(vm2.gc_, stdout, stdin, stderr);
             mvm.gc_threshold_ = 0;  // disable garbage collector
+            auto import_builtins =
+                std::make_shared<std::unordered_map<std::string, sr::Value>>();
+            import_builtins->reserve(vm2.globals_->size() +
+                                     vm2.builtins_->size());
+            import_builtins->insert(vm2.globals_->begin(),
+                                    vm2.globals_->end());
+            import_builtins->insert(vm2.builtins_->begin(),
+                                    vm2.builtins_->end());
+            mvm.builtins_ = std::move(import_builtins);
 
             CompilerPipeline pipe(mvm.gc_, false);
             std::ifstream file(modstr + ".sr");
@@ -125,8 +134,8 @@ sr::VM VMFactory::Create(std::shared_ptr<sr::GarbageCollector> gc,
             sr::Code* chunk = pipe.Get();
 
             auto mod = std::make_unique<sr::Module>(modstr, mvm.globals_);
-            vm.module_cache_[modstr] = mod.get();
-            mvm.module_cache_ = vm.module_cache_;
+            vm2.module_cache_[modstr] = mod.get();
+            mvm.module_cache_ = vm2.module_cache_;
             mvm.Evaluate(chunk);
 
             return std::move(mod);

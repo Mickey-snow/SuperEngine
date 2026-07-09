@@ -37,6 +37,7 @@
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <memory>
 #include <regex>
 #include <sstream>
 #include <unordered_map>
@@ -891,6 +892,45 @@ catch(e){{ print(e); }}
                                mod.modname));
     EXPECT_EQ(res, "module 'repl_mod_no_attr' has no attribute 'missing'");
   }
+}
+
+TEST_F(CompilerTest, ImportUsesMovedVmInstance) {
+  struct Source {
+    fs::path path;
+    std::string modname;
+    Source(fs::path p, std::string src) : path(p), modname(p.string()) {
+      if (path.extension() != ".sr")
+        path.replace_filename(path.string() + ".sr");
+
+      std::ofstream ofs(path.string());
+      ofs << std::move(src);
+    }
+    ~Source() { fs::remove(path); }
+  };
+
+  Source srcx("module_after_vm_move", R"(
+val = ambient_value;
+)");
+
+  std::stringstream outBuf, errBuf;
+  auto moved_vm = std::make_unique<serilang::VM>(
+      m6::VMFactory::Create(gc, outBuf, inBuf, errBuf));
+
+  m6::CompilerPipeline pipe(gc, false);
+  auto sb = SourceBuffer::Create(std::format(R"(
+ambient_value = 321;
+import {} as m;
+print(m.val);
+)",
+                                             srcx.modname),
+                                 "<CompilerTest>");
+  pipe.compile(sb);
+  ASSERT_TRUE(pipe.Ok()) << pipe.FormatErrors();
+
+  auto chunk = pipe.Get();
+  ASSERT_NO_THROW(std::ignore = moved_vm->Evaluate(chunk));
+  EXPECT_EQ(errBuf.str(), "");
+  EXPECT_EQ(outBuf.str(), "321\n");
 }
 
 TEST_F(CompilerTest, TryCatchThrow) {
