@@ -104,8 +104,8 @@ static Builder b_callable(std::initializer_list<CallableTarget> targets) {
 
     ctx.Warn(std::format("[Callable] overload {} not found while parsing {}",
                          overload_id, ctx.chain.ToDebugString()));
-    ctx.chain.nodes.emplace_back(
-        Type::Callable, member_from_target(targets.front()));
+    ctx.chain.nodes.emplace_back(Type::Callable,
+                                 member_from_target(targets.front()));
     ctx.elmcode = ctx.elmcode.subspan(1);
   });
 }
@@ -163,25 +163,23 @@ static Builder obj_getset(std::string_view mem,
                           Type type,
                           int get_code = 0,
                           int set_code = 1) {
-  return Builder(
-      [getter = std::string(mem), setter = "set_" + std::string(mem), type,
-       get_code, set_code](Builder::Ctx& ctx) {
-        const int overload_id = ctx.elm.bind_ctx.overload_id;
-        const std::string& name = overload_id == set_code ? setter : getter;
-        const Type return_type = overload_id == set_code ? Type::None : type;
+  return Builder([getter = std::string(mem), setter = "set_" + std::string(mem),
+                  type, get_code, set_code](Builder::Ctx& ctx) {
+    const int overload_id = ctx.elm.bind_ctx.overload_id;
+    const std::string& name = overload_id == set_code ? setter : getter;
+    const Type return_type = overload_id == set_code ? Type::None : type;
 
-        if (overload_id != get_code && overload_id != set_code) {
-          ctx.Warn(std::format(
-              "[ObjectGetSet] overload {} not found while parsing {}",
-              overload_id, ctx.chain.ToDebugString()));
-        }
+    if (overload_id != get_code && overload_id != set_code) {
+      ctx.Warn(
+          std::format("[ObjectGetSet] overload {} not found while parsing {}",
+                      overload_id, ctx.chain.ToDebugString()));
+    }
 
-        ctx.chain.nodes.emplace_back(
-            Type::Callable,
-            Member{name, return_type, /*implicit_call=*/true,
-                   /*is_simple=*/true});
-        ctx.elmcode = ctx.elmcode.subspan(1);
-      });
+    ctx.chain.nodes.emplace_back(
+        Type::Callable, Member{name, return_type, /*implicit_call=*/true,
+                               /*is_simple=*/true});
+    ctx.elmcode = ctx.elmcode.subspan(1);
+  });
 }
 
 static Builder obj_getter(std::string_view mem, Type rettype = Type::Int) {
@@ -1400,11 +1398,9 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
            id[86] | b(Type::Callable, Member("msgbtn")),
            id[85] | b(Type::Callable, Member("set_namae")),
            id[9] | b_callable("koe", Type::None, NONSIMPLE),
-           id[26] |
-               b_callable("koe_play_wait", Type::None, NONSIMPLE | AWAIT),
+           id[26] | b_callable("koe_play_wait", Type::None, NONSIMPLE | AWAIT),
            id[27] |
-               b_callable("koe_play_wait_key", Type::Int,
-                          NONSIMPLE | AWAIT),
+               b_callable("koe_play_wait_key", Type::Int, NONSIMPLE | AWAIT),
            id[22] | b(Type::None, Member("clear_face")),
            id[21] | b(Type::Callable, Member("set_face")),
            id[10] | b_callable({{0, "get_layer"}, {1, "set_layer"}}),
@@ -1561,8 +1557,7 @@ AccessChain ElementParser::Parse(ElementCode& elm) {
       can_implicit_call) {
     if (result.GetType() != Type::Callable && !can_implicit_call)
       warn_(std::format("[ElementParser] cannot bind {} to {}",
-                        elm.bind_ctx.ToDebugString(),
-                        result.ToDebugString()));
+                        elm.bind_ctx.ToDebugString(), result.ToDebugString()));
     else {
       if (can_implicit_call && elm.bind_ctx.return_type == Type::None)
         elm.bind_ctx.return_type = call_member->call_return_type;
@@ -1931,7 +1926,7 @@ AccessChain ElementParser::resolve_element(ElementCode& elm) {
 
     case 6: {  // FRAME
       Member frame("frame");
-      auto call = Node::BuildCall(std::move(elm.bind_ctx), AWAIT);
+      auto call = Node::BuildCall(std::move(elm.bind_ctx));
       elm.force_bind = false;
       return AccessChain{
           .root = std::monostate(),

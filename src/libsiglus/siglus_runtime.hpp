@@ -25,6 +25,7 @@
 #pragma once
 
 #include "core/asset_scanner.hpp"
+#include "core/event_listener.hpp"
 #include "core/gameexe.hpp"
 #include "core/memory_internal/memory.hpp"
 #include "core/stage.hpp"
@@ -64,6 +65,7 @@ struct SiglusRuntime {
 
   std::shared_ptr<SiglusSceneRenderer> renderer;
   std::shared_ptr<EventListener> system_event_listener;
+  std::shared_ptr<EventListener> input_event_listener;
   std::function<void()> exec_sdl_callback;
 
   std::shared_ptr<srbind::class_<IntListFacade>> ilist_cls;
