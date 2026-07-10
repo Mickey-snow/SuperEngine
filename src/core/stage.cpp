@@ -61,10 +61,13 @@ void Stage::Wipe(int begin_order,
 
   auto InWipeRange = [begin = std::make_pair(begin_order, begin_layer),
                       end = std::make_pair(end_order, end_layer)](
-                         const ObjectParameter& param) -> bool {
-    const auto now = std::make_pair(param.z_order, param.z_layer);
+                         std::pair<int, int> now) -> bool {
     return begin <= now && now <= end;
   };
+  auto ObjOrd = [](const ObjectParameter& param) {
+    return std::make_pair(param.z_order, param.z_layer);
+  };
+
   const size_t count =
       std::min({foreground_objects.Size(), background_objects.Size(),
                 next_objects.Size()});
@@ -73,7 +76,8 @@ void Stage::Wipe(int begin_order,
     const bool bg_exists = background_objects.Exists(i);
 
     const bool front_in_range =
-        fg_exists && InWipeRange(foreground_objects.At(i).value().Param());
+        fg_exists &&
+        InWipeRange(ObjOrd(foreground_objects.At(i).value().Param()));
     const bool back_participates =
         bg_exists && (background_objects[i].HasDrawer() ||
                       background_objects[i].HasChildren() ||

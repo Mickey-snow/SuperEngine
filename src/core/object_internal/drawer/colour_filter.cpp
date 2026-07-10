@@ -24,21 +24,16 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/serialization/export.hpp>
-
 #include "core/object_internal/drawer/colour_filter.hpp"
 
-#include "core/colour.hpp"
 #include "core/object.hpp"
+#include "core/render_geometry.hpp"
 #include "log/domain_logger.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/sdl/gl_frame_buffer.hpp"
 #include "systems/sdl/glrenderer.hpp"
 #include "systems/sdl/gltexture.hpp"
 #include "systems/sdl/sdl_surface.hpp"
-#include "systems/system.hpp"
 
 static DomainLogger logger("ColourFilter");
 
@@ -57,18 +52,25 @@ void ColourFilterObjectData::Render(const GraphicsObject& go,
       logger(Severity::Warn) << "We can't yet scaling colour filters.";
     }
   }
+  if (parent) {
+    logger(Severity::Warn) << "TODO: We don't support parent yet.";
+  }
 
   auto screen_canvas = SDLSurface::screen_;
   auto background = screen_canvas->GetTexture();
 
-  const Rect src(Point(0, 0), background->GetSize());
-  const Rect dst(Point(0, 0), screen_canvas->GetSize());
+  const float parent_alpha = parent ? parent->alpha : 1.f;
+  const float alpha = GetRenderingAlpha(go, parent_alpha);
+
+  const Rect dst(
+      Point(param.x() + screen_rect_.x(), param.y() + screen_rect_.y()),
+      screen_rect_.size());
+  const Rect src = dst;
 
   RenderingConfig cfg;
   cfg.blend_type = param.composite_mode;
   cfg.color = param.colour();
-  cfg.alpha = param.GetNormalizedAlpha();
-  cfg.tint = param.tint();
+  cfg.alpha = alpha, cfg.tint = param.tint();
   cfg.mono = param.mono() / 255.f;
   cfg.invert = param.invert() / 255.f;
   const float bright = param.GetNormalizedBright();

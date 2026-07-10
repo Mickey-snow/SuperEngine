@@ -69,23 +69,6 @@ std::optional<RenderGeometry> ApplyClips(
       return std::nullopt;
   }
 
-  // if (parent && parent->Param().has_own_clip_rect()) {
-  // In Little Busters, a parent clip rect is used to clip text scrolling
-  // in the battle system. rlvm has the concept of parent objects badly
-  // hacked in, and that means we can't directly apply the own clip
-  // rect. Instead we have to calculate this in terms of the screen
-  // coordinates and then apply that as a global clip rect.
-
-  // Point parent_start(
-  //       parent->Param().x() + parent->Param().GetXAdjustmentSum(),
-  //       parent->Param().y() + parent->Param().GetYAdjustmentSum());
-  //   Rect full_parent_clip =
-  //       Rect(parent_start + parent->Param().own_clip_rect().origin(),
-  //            parent->Param().own_clip_rect().size());
-  //   if (!geo.ApplyDstClip(full_parent_clip))
-  //     return std::nullopt;
-  // }
-
   if (param.has_own_clip_rect() && !geo.ApplySrcClip(param.own_clip_rect()))
     return std::nullopt;
 
