@@ -38,8 +38,6 @@
 
 #include <algorithm>
 
-namespace {
-
 glm::mat4 BuildModelMatrix(const RenderGeometry& geometry, const Rect& dst) {
   glm::mat4 model(1.0f);
   model = glm::translate(model,
@@ -51,8 +49,6 @@ glm::mat4 BuildModelMatrix(const RenderGeometry& geometry, const Rect& dst) {
   model = glm::translate(model, glm::vec3(dst.x(), dst.y(), 0.0f));
   return model;
 }
-
-}  // namespace
 
 std::optional<RenderGeometry> ApplyClips(
     RenderGeometry geo,

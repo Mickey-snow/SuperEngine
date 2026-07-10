@@ -57,6 +57,7 @@ struct RenderingConfig {
   std::optional<float> alpha;
   std::optional<std::array<float, 4>> vertex_alpha;
   std::optional<int> blend_type;
+  bool sample_texture_in_screen_space = false;
 };
 
 class glRenderer {

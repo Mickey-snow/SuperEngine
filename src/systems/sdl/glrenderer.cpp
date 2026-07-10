@@ -246,6 +246,8 @@ void glRenderer::Render(glRenderable src,
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, src.texture_->GetID());
   shader->SetUniform("texture0", 0);
+  shader->SetUniform("sample_texture_in_screen_space",
+                     cfg.sample_texture_in_screen_space ? 1 : 0);
 
   auto color = cfg.color.value_or(RGBAColour(0, 0, 0, 0));
   shader->SetUniform("color", color.r_float(), color.g_float(), color.b_float(),

@@ -33,6 +33,7 @@
 #include <vector>
 
 #include "core/object.hpp"
+#include "core/object_internal/drawer/colour_filter.hpp"
 #include "core/object_internal/drawer/file.hpp"
 #include "core/object_internal/drawer/gan.hpp"
 #include "core/object_internal/objdrawer.hpp"
@@ -265,6 +266,66 @@ TEST(ObjectDrawerTest, ParentButtonOffsetsContributeToChildGeometry) {
   ParentObjState parent_state = ParentObjState::BuildFrom(parent);
   EXPECT_TRUE(data.HitTest(child, Point(25, 25), parent_state));
   EXPECT_FALSE(data.HitTest(child, Point(17, 25), parent_state));
+}
+
+TEST(ObjectDrawerTest, ColourFilterAreaUsesObjectGeometry) {
+  GraphicsObject object;
+  auto drawer =
+      std::make_unique<ColourFilterObjectData>(Rect::REC(10, 20, 30, 40));
+  auto& data = *drawer;
+  object.SetDrawer(std::move(drawer));
+  object.Param().SetX(100);
+  object.Param().SetY(50);
+  object.Param().SetScaleX(200);
+  object.Param().SetScaleY(50);
+
+  const RenderGeometry geometry = data.BuildRenderGeometry(object, std::nullopt);
+
+  EXPECT_EQ(data.PixelWidth(object), 30);
+  EXPECT_EQ(data.PixelHeight(object), 40);
+  EXPECT_EQ(geometry.src, Rect::REC(0, 0, 30, 40));
+  EXPECT_EQ(geometry.dst, Rect::GRP(110, 70, 170, 90));
+}
+
+TEST(ObjectDrawerTest, ColourFilterAreaFoldsParentGeometry) {
+  GraphicsObject object;
+  auto drawer =
+      std::make_unique<ColourFilterObjectData>(Rect::REC(10, 20, 30, 40));
+  auto& data = *drawer;
+  object.SetDrawer(std::move(drawer));
+  object.Param().SetX(5);
+  object.Param().SetY(6);
+  object.Param().SetRotation(150);
+
+  ParentObjState parent;
+  parent.render_state.pos_x = 100.0f;
+  parent.render_state.pos_y = 50.0f;
+  parent.render_state.scale_x = 2.0f;
+  parent.render_state.scale_y = 2.0f;
+  parent.render_state.rotation_degrees = 90.0f;
+
+  const RenderGeometry geometry =
+      data.BuildRenderGeometry(object, parent.render_state);
+
+  EXPECT_EQ(geometry.dst, Rect::GRP(48, 80, 108, 160));
+  EXPECT_FLOAT_EQ(geometry.rotation_degrees, 105.0f);
+}
+
+TEST(ObjectDrawerTest, ColourFilterAreaUsesBaselineClipping) {
+  GraphicsObject object;
+  auto drawer =
+      std::make_unique<ColourFilterObjectData>(Rect::REC(10, 20, 30, 40));
+  auto& data = *drawer;
+  object.SetDrawer(std::move(drawer));
+
+  ParentObjState parent;
+  parent.clip = Rect::REC(20, 30, 10, 15);
+  auto geometry = data.BuildRenderGeometry(object, parent.render_state);
+  auto clipped = ApplyClips(geometry, object, parent);
+
+  ASSERT_TRUE(clipped.has_value());
+  EXPECT_EQ(clipped->src, Rect::REC(10, 10, 10, 15));
+  EXPECT_EQ(clipped->dst, Rect::REC(20, 30, 10, 15));
 }
 
 TEST(ObjectDrawerTest, HitTestUsesRotationAroundLegacyPivot) {

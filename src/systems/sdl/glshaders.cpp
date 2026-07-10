@@ -102,6 +102,7 @@ uniform float dark;
 uniform vec3 tint;
 uniform float alpha;
 uniform int blend_type;
+uniform bool sample_texture_in_screen_space;
 
 out vec4 FragColor;
 
@@ -116,7 +117,11 @@ void tinter(in float pixel_val, in float tint_val, out float mixed) {
 }
 
 void main() {
-  vec4 original = texture(texture0, TexCoord);
+  vec2 texture_coord = TexCoord;
+  if (sample_texture_in_screen_space) {
+    texture_coord = gl_FragCoord.xy / vec2(textureSize(texture0, 0));
+  }
+  vec4 original = texture(texture0, texture_coord);
   vec4 pixel = original;
 
   // Apply inversion effect

@@ -28,14 +28,11 @@
 
 #include "core/object.hpp"
 #include "core/render_geometry.hpp"
-#include "log/domain_logger.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/sdl/gl_frame_buffer.hpp"
 #include "systems/sdl/glrenderer.hpp"
 #include "systems/sdl/gltexture.hpp"
 #include "systems/sdl/sdl_surface.hpp"
-
-static DomainLogger logger("ColourFilter");
 
 ColourFilterObjectData::ColourFilterObjectData(const Rect& screen_rect)
     : screen_rect_(screen_rect) {}
@@ -44,48 +41,45 @@ ColourFilterObjectData::~ColourFilterObjectData() {}
 
 void ColourFilterObjectData::Render(const GraphicsObject& go,
                                     std::optional<ParentObjState> parent) {
-  auto& param = go.Param();
-  if (param.ScaleX() != 100 || param.ScaleY() != 100) {
-    static bool printed = false;
-    if (!printed) {
-      printed = true;
-      logger(Severity::Warn) << "We can't yet scaling colour filters.";
-    }
-  }
-  if (parent) {
-    logger(Severity::Warn) << "TODO: We don't support parent yet.";
-  }
-
   auto screen_canvas = SDLSurface::screen_;
   auto background = screen_canvas->GetTexture();
 
+  RenderGeometry geometry = BuildRenderGeometry(
+      go, parent ? std::make_optional(parent->render_state) : std::nullopt);
   const float parent_alpha = parent ? parent->alpha : 1.f;
   const float alpha = GetRenderingAlpha(go, parent_alpha);
 
-  const Rect dst(
-      Point(param.x() + screen_rect_.x(), param.y() + screen_rect_.y()),
-      screen_rect_.size());
-  const Rect src = dst;
+  if (auto geo = ApplyClips(geometry, go, parent))
+    geometry = *geo;
+  else
+    return;
 
+  auto& param = go.Param();
   RenderingConfig cfg;
+  cfg.alpha = alpha;
+  cfg.model = BuildModelMatrix(geometry, geometry.dst);
   cfg.blend_type = param.composite_mode;
   cfg.color = param.colour();
-  cfg.alpha = alpha, cfg.tint = param.tint();
+  cfg.tint = param.tint();
   cfg.mono = param.mono() / 255.f;
   cfg.invert = param.invert() / 255.f;
   const float bright = param.GetNormalizedBright();
   const float dark = param.GetNormalizedDark();
   cfg.bright = parent ? parent->EffectiveBright(bright) : bright;
   cfg.dark = parent ? parent->EffectiveDark(dark) : dark;
-  glRenderer().Render({background, src}, cfg, {screen_canvas, dst});
+  cfg.sample_texture_in_screen_space = true;
+
+  const Rect framebuffer(Point(0, 0), background->GetSize());
+  glRenderer().Render({background, framebuffer}, std::move(cfg),
+                      {screen_canvas, geometry.dst});
 }
 
 int ColourFilterObjectData::PixelWidth(const GraphicsObject&) {
-  throw std::runtime_error("There is no sane value for this!");
+  return screen_rect_.width();
 }
 
 int ColourFilterObjectData::PixelHeight(const GraphicsObject&) {
-  throw std::runtime_error("There is no sane value for this!");
+  return screen_rect_.height();
 }
 
 std::unique_ptr<GraphicsObjectData> ColourFilterObjectData::Clone() const {
@@ -95,4 +89,12 @@ std::unique_ptr<GraphicsObjectData> ColourFilterObjectData::Clone() const {
 std::shared_ptr<const SDLSurface> ColourFilterObjectData::CurrentSurface(
     const GraphicsObject&) const {
   return std::shared_ptr<const SDLSurface>();
+}
+
+Rect ColourFilterObjectData::SrcRect(const GraphicsObject&) const {
+  return Rect(Point(0, 0), screen_rect_.size());
+}
+
+Point ColourFilterObjectData::DstPosition(const GraphicsObject& go) const {
+  return GraphicsObjectData::DstPosition(go) + screen_rect_.origin();
 }

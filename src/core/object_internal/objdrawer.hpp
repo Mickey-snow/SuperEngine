@@ -29,6 +29,7 @@
 #include "core/object.hpp"
 #include "core/rect.hpp"
 #include "core/render_geometry.hpp"
+#include "glm/mat4x4.hpp"
 
 #include <memory>
 #include <optional>
@@ -36,6 +37,8 @@
 class GraphicsObject;
 class SDLSurface;
 class Animator;
+
+glm::mat4 BuildModelMatrix(const RenderGeometry& geometry, const Rect& dst);
 
 std::optional<RenderGeometry> ApplyClips(
     RenderGeometry geo,

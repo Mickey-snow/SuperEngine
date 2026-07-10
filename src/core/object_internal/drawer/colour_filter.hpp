@@ -50,6 +50,8 @@ class ColourFilterObjectData : public GraphicsObjectData {
  protected:
   virtual std::shared_ptr<const SDLSurface> CurrentSurface(
       const GraphicsObject& rp) const override;
+  virtual Rect SrcRect(const GraphicsObject& go) const override;
+  virtual Point DstPosition(const GraphicsObject& go) const override;
 
  private:
   Rect screen_rect_;
