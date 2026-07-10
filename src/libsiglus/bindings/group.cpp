@@ -29,7 +29,9 @@
 #include "libsiglus/siglus_runtime.hpp"
 #include "vm/exception.hpp"
 
-#include <memory>
+#include <cstddef>
+#include <optional>
+#include <string>
 
 namespace libsiglus::binding {
 namespace sb = srbind;
@@ -41,10 +43,20 @@ struct GroupRef {
   int group_no;
 
   Group& Get() {
+    if (!stage)
+      throw sr::RuntimeError("Group requires a stage");
+    if (layer < kLayerFg || layer > kLayerNext)
+      throw sr::RuntimeError("Invalid group layer: " + std::to_string(layer));
+    if (group_no < 0) {
+      throw sr::RuntimeError("Invalid group number: " +
+                             std::to_string(group_no));
+    }
+
     std::vector<Group>& grp_arr = stage->groups[layer];
-    if (group_no >= grp_arr.size())
-      grp_arr.resize(group_no + 1);
-    return grp_arr[group_no];
+    const std::size_t index = static_cast<std::size_t>(group_no);
+    if (index >= grp_arr.size())
+      grp_arr.resize(index + 1);
+    return grp_arr[index];
   }
 };
 
@@ -64,10 +76,7 @@ void BindGroup(SiglusRuntime& runtime) {
             return new GroupRef(stg, layer, group_no);
           }),
           sb::arg("layer") = 0, sb::arg("group_no") = 0);
-  grp.def("init", [](GroupRef* ref) {
-    Group& grp = ref->Get();
-    grp.Reset();
-  });
+  grp.def("init", [](GroupRef* ref) { ref->Get().Reset(); });
   grp.def("start", [](GroupRef* ref) {
     Group& grp = ref->Get();
     grp.InitSel();
@@ -78,8 +87,7 @@ void BindGroup(SiglusRuntime& runtime) {
     grp.status = Group::Status::Disabled;
     grp.cancel_enabled = false;
     grp.decided_button_no.reset();
-    grp.hit_button_no.reset();
-    grp.pushed_button_no.reset();
+    grp.ClearTransientInteraction();
   });
   grp.def(
       "start_cancel",

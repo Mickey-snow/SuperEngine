@@ -13,34 +13,32 @@
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+// General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#include "core/group.hpp"
+#pragma once
 
-void Group::Reset() {
-  order = layer = 0;
-  cancel_priority = 0;
-  cancel_se.reset();
-  InitSel();
-}
+#include <optional>
 
-void Group::InitSel() {
-  result = Result::None;
-  result_button_no.reset();
-  decided_button_no.reset();
-  status = Status::Disabled;
-  cancel_enabled = false;
-  ClearTransientInteraction();
-}
+class InputListener;
+class Stage;
+class Group;
 
-void Group::ClearTransientInteraction() {
-  hit_button_no.reset();
-  pushed_button_no.reset();
-  pressed_button_no.reset();
-}
+class InteractionManager {
+ public:
+  InteractionManager(Stage& stage, InputListener& input);
+
+  void Update();
+
+ private:
+  Stage& stage_;
+  InputListener& input_;
+
+  void UpdateGroup(Group& group, std::optional<int> hit_button_no);
+  void UpdateLayer(int layer);
+};

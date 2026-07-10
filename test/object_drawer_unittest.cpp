@@ -40,8 +40,6 @@
 #include "mock_clock.hpp"
 #include "systems/sdl/sdl_surface.hpp"
 
-namespace {
-
 class TestGraphicsObjectData : public GraphicsObjectData {
  public:
   TestGraphicsObjectData(Rect src,
@@ -91,9 +89,9 @@ std::shared_ptr<SDLSurface> PatternedSurface() {
   regions[1].originX = 4;
   regions[1].originY = 5;
 
-  SDL_Surface* raw = SDL_CreateRGBSurface(
-      SDL_SWSURFACE | SDL_SRCALPHA, 64, 64, 32, 0xff0000, 0xff00, 0xff,
-      0xff000000);
+  SDL_Surface* raw =
+      SDL_CreateRGBSurface(SDL_SWSURFACE | SDL_SRCALPHA, 64, 64, 32, 0xff0000,
+                           0xff00, 0xff, 0xff000000);
   if (!raw)
     throw std::runtime_error(SDL_GetError());
   return std::make_shared<SDLSurface>(raw, std::move(regions));
@@ -113,8 +111,6 @@ TestGraphicsObjectData& SetTestData(GraphicsObject& object,
   object.SetDrawer(std::move(data));
   return ref;
 }
-
-}  // namespace
 
 TEST(ObjectDrawerTest, GanPrimeSetShowsFirstFrameWithoutPlaying) {
   auto surface = PatternedSurface();
@@ -279,7 +275,8 @@ TEST(ObjectDrawerTest, ColourFilterAreaUsesObjectGeometry) {
   object.Param().SetScaleX(200);
   object.Param().SetScaleY(50);
 
-  const RenderGeometry geometry = data.BuildRenderGeometry(object, std::nullopt);
+  const RenderGeometry geometry =
+      data.BuildRenderGeometry(object, std::nullopt);
 
   EXPECT_EQ(data.PixelWidth(object), 30);
   EXPECT_EQ(data.PixelHeight(object), 40);

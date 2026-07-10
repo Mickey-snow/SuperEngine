@@ -32,6 +32,7 @@
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/version.hpp>
 #include <filesystem>
+#include <functional>
 
 #include <map>
 #include <memory>
@@ -241,8 +242,9 @@ class System {
   // text.
   bool ShouldFastForward();
 
-  // Called once per gameloop.
-  void Run();
+  // Called once per gameloop. |after_event_poll| runs after input dispatch and
+  // before the remaining subsystems advance.
+  void Run(std::function<void()> after_event_poll = {});
 
   inline RLEventListener& rlEvent() { return *rlevent_handler_; }
   inline std::shared_ptr<AssetScanner> GetAssetScanner() { return assets_; }

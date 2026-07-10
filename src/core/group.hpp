@@ -36,13 +36,17 @@ struct Group {
   std::optional<int> pushed_button_no;
   std::optional<int> decided_button_no;
   enum class Result { None = 0, Decided = 1, NotDecided = -2, Canceled = -1 };
-  Result result;
+  Result result = Result::None;
   std::optional<int> result_button_no;
 
   enum class Status { Disabled, Active, Waiting };
   Status status = Status::Disabled;
   bool cancel_enabled = false;
 
+  // Frame-driven interaction state. These values are not promoted by wipes.
+  std::optional<int> pressed_button_no;
+
   void Reset();
   void InitSel();
+  void ClearTransientInteraction();
 };

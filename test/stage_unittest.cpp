@@ -337,7 +337,6 @@ TEST_F(StageTest, WipePromotesGroupsInRangeAndClearsTransientState) {
   before.hit_button_no = 1;
   before.pushed_button_no = 1;
   before.pressed_button_no = 1;
-  before.last_decide_revision = 4;
 
   Group& replacement = stage.groups[kLayerBg][1];
   replacement.order = 7;
@@ -348,7 +347,6 @@ TEST_F(StageTest, WipePromotesGroupsInRangeAndClearsTransientState) {
   replacement.result_button_no = -1;
   replacement.hit_button_no = 2;
   replacement.pressed_button_no = 2;
-  replacement.last_cancel_revision = 9;
 
   stage.groups[kLayerFg][0].order = 1;
   stage.groups[kLayerFg][0].layer = 8;
@@ -370,7 +368,6 @@ TEST_F(StageTest, WipePromotesGroupsInRangeAndClearsTransientState) {
   EXPECT_FALSE(saved.hit_button_no);
   EXPECT_FALSE(saved.pushed_button_no);
   EXPECT_FALSE(saved.pressed_button_no);
-  EXPECT_EQ(saved.last_decide_revision, 0);
 
   const Group& promoted = stage.groups[kLayerFg][1];
   EXPECT_EQ(promoted.order, 7);
@@ -381,7 +378,6 @@ TEST_F(StageTest, WipePromotesGroupsInRangeAndClearsTransientState) {
   EXPECT_EQ(promoted.result_button_no, -1);
   EXPECT_FALSE(promoted.hit_button_no);
   EXPECT_FALSE(promoted.pressed_button_no);
-  EXPECT_EQ(promoted.last_cancel_revision, 0);
 
   const Group& reset = stage.groups[kLayerBg][1];
   EXPECT_EQ(reset.order, 0);

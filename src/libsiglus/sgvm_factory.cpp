@@ -25,6 +25,8 @@
 
 #include "core/asset_scanner.hpp"
 #include "core/gameexe.hpp"
+#include "core/input.hpp"
+#include "core/interaction_manager.hpp"
 #include "core/stage.hpp"
 #include "libsiglus/archive.hpp"
 #include "libsiglus/bindings/loader.hpp"
@@ -49,6 +51,7 @@
 
 #include <algorithm>
 #include <array>
+#include <boost/algorithm/string/predicate.hpp>
 #include <cctype>
 #include <chrono>
 #include <filesystem>
@@ -475,21 +478,16 @@ SiglusRuntime SGVMFactory::Create() {
        it != binding::SiglusBindingRegistry::cend(); ++it) {
     it->second(rt);
   }
+  std::shared_ptr<InputListener> input = rt.input_event_listener;
+  rt.interaction_manager =
+      std::make_unique<InteractionManager>(*rt.stage, *input);
   sb::module_ m(gc.get(), vm.globals_.get());
 
   m.def("__builtin_streq", [](sr::Value lhs, sr::Value rhs) -> sr::Value {
     const auto* lstr = lhs.Get_if<sr::String>();
     const auto* rstr = rhs.Get_if<sr::String>();
     if (lstr && rstr) {
-      [[likely]]
-      if (lstr->str_.size() != rstr->str_.size())
-        return false;
-      for (std::size_t i = 0, n = lstr->str_.size(); i < n; ++i) {
-        unsigned char c1 = lstr->str_[i], c2 = rstr->str_[i];
-        if (std::tolower(c1) != std::tolower(c2))
-          return false;
-      }
-      return true;
+      [[likely]] return boost::iequals(lstr->str_, rstr->str_);
     }
     return lhs.Hash() == rhs.Hash();
   });
@@ -563,12 +561,14 @@ SiglusRuntime SGVMFactory::Create() {
 
   // abuse the vm scheduler to refresh sdl regularly
   auto cb_holder = std::make_shared<std::function<void()>>();
-  *cb_holder = [cb_holder, vm = rt.vm.get(), system = rt.system.get()]() {
+  *cb_holder = [cb_holder, vm = rt.vm.get(), system = rt.system.get(), input,
+                interaction_manager = rt.interaction_manager.get()]() {
     constexpr auto period =
         chr::duration_cast<chr::steady_clock::duration>(chr::seconds(1)) / 60;
     auto next = chr::steady_clock::now() + period;
 
-    system->Run();
+    input->ResetState();
+    system->Run([interaction_manager] { interaction_manager->Update(); });
     if (system->IsQuitRequested()) {
       vm->RequestStop();
       return;
