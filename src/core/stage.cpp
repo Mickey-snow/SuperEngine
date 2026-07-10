@@ -54,10 +54,10 @@ void Stage::Wipe(int begin_order,
                  int end_order,
                  int begin_layer,
                  int end_layer) {
-  // TODO(siglus): This only handles object buffers. Promote mwnd, group,
-  // btnsel, world, effect, and quake stage state when those core Siglus
-  // element implementations exist.
+  // TODO(siglus): Promote mwnd, btnsel, world, effect, and quake stage state
+  // when those core Siglus element implementations exist.
   next_objects.Clear();
+  groups[kLayerNext].clear();
 
   auto InWipeRange = [begin = std::make_pair(begin_order, begin_layer),
                       end = std::make_pair(end_order, end_layer)](
@@ -100,6 +100,27 @@ void Stage::Wipe(int begin_order,
     } else {
       foreground_objects[i].FreeDataAndInitializeParams();
     }
+  }
+
+  std::vector<Group>& foreground_groups = groups[kLayerFg];
+  std::vector<Group>& background_groups = groups[kLayerBg];
+  std::vector<Group>& next_groups = groups[kLayerNext];
+  const size_t group_count =
+      std::max(foreground_groups.size(), background_groups.size());
+  foreground_groups.resize(group_count);
+  background_groups.resize(group_count);
+  next_groups.resize(group_count);
+
+  for (size_t i = 0; i < group_count; ++i) {
+    Group& foreground = foreground_groups[i];
+    if (!InWipeRange(std::make_pair(foreground.order, foreground.layer)))
+      continue;
+
+    next_groups[i] = foreground;
+    next_groups[i].ClearTransientInteraction();
+    foreground = background_groups[i];
+    foreground.ClearTransientInteraction();
+    background_groups[i].Reset();
   }
 }
 

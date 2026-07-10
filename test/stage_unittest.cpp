@@ -320,3 +320,103 @@ TEST_F(StageTest, BackWipeEraseClearsFrontAndConsumesBack) {
   EXPECT_EQ(stage.foreground_objects[0].Param().wipe_erase, 1);
   EXPECT_EQ(stage.next_objects[0].Param().position_x, 10);
 }
+
+TEST_F(StageTest, WipePromotesGroupsInRangeAndClearsTransientState) {
+  Stage stage(1);
+  stage.groups[kLayerFg].resize(3);
+  stage.groups[kLayerBg].resize(3);
+  stage.groups[kLayerNext].resize(4);
+
+  Group& before = stage.groups[kLayerFg][1];
+  before.order = 1;
+  before.layer = 9;
+  before.cancel_priority = 11;
+  before.status = Group::Status::Active;
+  before.result = Group::Result::Decided;
+  before.result_button_no = 101;
+  before.hit_button_no = 1;
+  before.pushed_button_no = 1;
+  before.pressed_button_no = 1;
+  before.last_decide_revision = 4;
+
+  Group& replacement = stage.groups[kLayerBg][1];
+  replacement.order = 7;
+  replacement.layer = 8;
+  replacement.cancel_priority = 22;
+  replacement.status = Group::Status::Waiting;
+  replacement.result = Group::Result::Canceled;
+  replacement.result_button_no = -1;
+  replacement.hit_button_no = 2;
+  replacement.pressed_button_no = 2;
+  replacement.last_cancel_revision = 9;
+
+  stage.groups[kLayerFg][0].order = 1;
+  stage.groups[kLayerFg][0].layer = 8;
+  stage.groups[kLayerFg][2].order = 2;
+  stage.groups[kLayerFg][2].layer = 2;
+  stage.groups[kLayerBg][0].cancel_priority = 30;
+  stage.groups[kLayerBg][2].cancel_priority = 40;
+
+  stage.Wipe(1, 2, 9, 1);
+
+  ASSERT_EQ(stage.groups[kLayerNext].size(), 3);
+  const Group& saved = stage.groups[kLayerNext][1];
+  EXPECT_EQ(saved.order, 1);
+  EXPECT_EQ(saved.layer, 9);
+  EXPECT_EQ(saved.cancel_priority, 11);
+  EXPECT_EQ(saved.status, Group::Status::Active);
+  EXPECT_EQ(saved.result, Group::Result::Decided);
+  EXPECT_EQ(saved.result_button_no, 101);
+  EXPECT_FALSE(saved.hit_button_no);
+  EXPECT_FALSE(saved.pushed_button_no);
+  EXPECT_FALSE(saved.pressed_button_no);
+  EXPECT_EQ(saved.last_decide_revision, 0);
+
+  const Group& promoted = stage.groups[kLayerFg][1];
+  EXPECT_EQ(promoted.order, 7);
+  EXPECT_EQ(promoted.layer, 8);
+  EXPECT_EQ(promoted.cancel_priority, 22);
+  EXPECT_EQ(promoted.status, Group::Status::Waiting);
+  EXPECT_EQ(promoted.result, Group::Result::Canceled);
+  EXPECT_EQ(promoted.result_button_no, -1);
+  EXPECT_FALSE(promoted.hit_button_no);
+  EXPECT_FALSE(promoted.pressed_button_no);
+  EXPECT_EQ(promoted.last_cancel_revision, 0);
+
+  const Group& reset = stage.groups[kLayerBg][1];
+  EXPECT_EQ(reset.order, 0);
+  EXPECT_EQ(reset.layer, 0);
+  EXPECT_EQ(reset.cancel_priority, 0);
+  EXPECT_EQ(reset.status, Group::Status::Disabled);
+  EXPECT_EQ(reset.result, Group::Result::None);
+
+  EXPECT_EQ(stage.groups[kLayerFg][0].order, 1);
+  EXPECT_EQ(stage.groups[kLayerBg][0].cancel_priority, 30);
+  EXPECT_EQ(stage.groups[kLayerFg][2].layer, 2);
+  EXPECT_EQ(stage.groups[kLayerBg][2].cancel_priority, 40);
+}
+
+TEST_F(StageTest, FullWipePromotesSparseBackgroundGroups) {
+  Stage stage(1);
+  stage.groups[kLayerBg].resize(4);
+  Group& background = stage.groups[kLayerBg][3];
+  background.order = 5;
+  background.layer = 6;
+  background.cancel_priority = 42;
+  background.status = Group::Status::Active;
+  background.result = Group::Result::Decided;
+  background.result_button_no = 8;
+
+  stage.Wipe();
+
+  ASSERT_EQ(stage.groups[kLayerFg].size(), 4);
+  ASSERT_EQ(stage.groups[kLayerBg].size(), 4);
+  ASSERT_EQ(stage.groups[kLayerNext].size(), 4);
+  EXPECT_EQ(stage.groups[kLayerFg][3].order, 5);
+  EXPECT_EQ(stage.groups[kLayerFg][3].layer, 6);
+  EXPECT_EQ(stage.groups[kLayerFg][3].cancel_priority, 42);
+  EXPECT_EQ(stage.groups[kLayerFg][3].status, Group::Status::Active);
+  EXPECT_EQ(stage.groups[kLayerFg][3].result_button_no, 8);
+  EXPECT_EQ(stage.groups[kLayerBg][3].status, Group::Status::Disabled);
+  EXPECT_EQ(stage.groups[kLayerNext][3].status, Group::Status::Disabled);
+}
