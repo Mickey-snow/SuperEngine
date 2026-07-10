@@ -514,8 +514,8 @@ void BindSound(SiglusRuntime& runtime) {
       },
       sb::vararg);
 
-  auto bgm =
-      m.bind_instance("bgm", std::make_unique<SiglusBgm>(runtime.system.get()));
+  sb::class_<SiglusBgm> bgm_cls(m, "Bgm", false);
+  auto bgm = bgm_cls.inst("bgm", runtime.system.get());
   bgm.def("play", &SiglusBgm::play, sb::vararg);
   bgm.def("play_oneshot", &SiglusBgm::play_oneshot, sb::vararg);
   bgm.def("play_wait", &SiglusBgm::play_wait, sb::vararg);

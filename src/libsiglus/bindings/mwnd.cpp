@@ -427,18 +427,19 @@ struct MwndBindingState {
 void BindMwnd(SiglusRuntime& runtime) {
   sr::VM& vm = *runtime.vm;
 
-  sb::module_ m(vm, "mwnd");
-  auto state = std::make_shared<MwndBindingState>(vm, runtime.system.get(),
-                                                  runtime.local_config);
-  auto close = [state] { state->Close(); };
-  auto open = [state] { state->Open(); };
-  m.def("open", open);
-  m.def("open_nowait", open);
-  m.def("open_wait", open);
-  m.def("check_open", [state] { return state->CheckOpen(); });
-  m.def(
+  sb::module_ m(vm.gc_.get(), vm.globals_.get());
+  sb::class_<MwndBindingState> mwnd_cls(m, "Mwnd", false);
+  auto mwnd =
+      mwnd_cls.inst("mwnd", vm, runtime.system.get(), runtime.local_config);
+  auto close = [](MwndBindingState* state) { state->Close(); };
+  auto open = [](MwndBindingState* state) { state->Open(); };
+  mwnd.def("open", open);
+  mwnd.def("open_nowait", open);
+  mwnd.def("open_wait", open);
+  mwnd.def("check_open", &MwndBindingState::CheckOpen);
+  mwnd.def(
       "set_waku",
-      [state](std::vector<sr::Value> args) {
+      [](MwndBindingState* state, std::vector<sr::Value> args) {
         CallPacket packet = CallPacket::DecodeFrom(std::move(args));
         std::optional<int> msg_waku_no;
         std::optional<int> name_waku_no;
@@ -451,11 +452,11 @@ void BindMwnd(SiglusRuntime& runtime) {
         state->SetWaku(msg_waku_no, name_waku_no);
       },
       sb::vararg);
-  m.def("close", close);
-  m.def("close_nowait", close);
-  m.def("close_wait", close);
-  m.def("end_close", [] {});
-  m.def("msg_block", [state] {
+  mwnd.def("close", close);
+  mwnd.def("close_nowait", close);
+  mwnd.def("close_wait", close);
+  mwnd.def("end_close", [](MwndBindingState*) {});
+  mwnd.def("msg_block", [](MwndBindingState* state) {
     auto msgstate = state->message_state;
     if (!msgstate)
       return;
@@ -482,43 +483,48 @@ void BindMwnd(SiglusRuntime& runtime) {
     msgstate->block_started = true;
     msgstate->auto_mode_base_chars = CurrentPageCharCount(state->system);
   });
-  m.def("msg_pp_block", [state] {
+  mwnd.def("msg_pp_block", [](MwndBindingState* state) {
     auto msgstate = state->message_state;
     if (!msgstate)
       return;
     msgstate->auto_mode_base_chars = CurrentPageCharCount(state->system);
   });
-  m.def("msg_wait",
-        [](sr::VM& vm) -> sr::Value { return MakeResolvedFuture(*vm.gc_); });
-  m.def("pp", [state](sr::VM&) -> sr::Value { return state->Wait(false); });
-  m.def("r", [state](sr::VM& vm) -> sr::Value {
+  mwnd.def("msg_wait", [](MwndBindingState*, sr::VM& vm) -> sr::Value {
+    return MakeResolvedFuture(*vm.gc_);
+  });
+  mwnd.def("pp", [](MwndBindingState* state, sr::VM&) -> sr::Value {
+    return state->Wait(false);
+  });
+  mwnd.def("r", [](MwndBindingState* state, sr::VM& vm) -> sr::Value {
     if (ConfigFlag(state->local_config, "ignore_r"))
       return MakeResolvedFuture(*vm.gc_);
     return state->Wait(false);
   });
-  m.def("page", [state](sr::VM&) -> sr::Value { return state->Wait(true); });
-  m.def("clear", [state] {
+  mwnd.def("page", [](MwndBindingState* state, sr::VM&) -> sr::Value {
+    return state->Wait(true);
+  });
+  mwnd.def("clear", [](MwndBindingState* state) {
     if (!state || !state->system)
       return;
     state->message_state->MarkMessageClearReady(*state->system);
   });
-  m.def("novel_clear", [state] {
+  mwnd.def("novel_clear", [](MwndBindingState* state) {
     if (!state || !state->system)
       return;
     state->message_state->MarkMessageClearReady(*state->system);
   });
-  m.def(
+  mwnd.def(
       "print",
-      [state](std::vector<sr::Value> args) {
+      [](MwndBindingState* state, std::vector<sr::Value> args) {
         CallPacket packet = CallPacket::DecodeFrom(std::move(args));
         std::string text =
             packet.args.empty() ? std::string() : AsString(packet.args.front());
         state->Print(std::move(text));
       },
       sb::vararg);
-  m.def(
+  mwnd.def(
       "rep_pos",
-      [state](std::vector<sr::Value> args) {
+      [](MwndBindingState* state, std::vector<sr::Value> args) {
         CallPacket packet = CallPacket::DecodeFrom(std::move(args));
         const int x =
             packet.args.empty() ? 0 : AsInt(packet.args[0]).value_or(0);
@@ -527,23 +533,25 @@ void BindMwnd(SiglusRuntime& runtime) {
         state->RepPos(x, y);
       },
       sb::vararg);
-  m.def("rep_pos_default", [state] { state->RepPosDefault(); });
-  m.def(
+  mwnd.def("rep_pos_default", &MwndBindingState::RepPosDefault);
+  mwnd.def(
       "koe",
-      [state](std::vector<sr::Value> args) {
+      [](MwndBindingState* state, std::vector<sr::Value> args) {
         state->PlayKoe(KoeCallParams::ParseFrom(std::move(args)));
       },
       sb::vararg);
-  m.def(
+  mwnd.def(
       "koe_play_wait",
-      [state](sr::VM& vm, std::vector<sr::Value> args) -> sr::Value {
+      [](MwndBindingState* state, sr::VM& vm,
+         std::vector<sr::Value> args) -> sr::Value {
         state->PlayKoe(KoeCallParams::ParseFrom(std::move(args)));
         return state->WaitKoe(vm, false);
       },
       sb::vararg);
-  m.def(
+  mwnd.def(
       "koe_play_wait_key",
-      [state](sr::VM& vm, std::vector<sr::Value> args) -> sr::Value {
+      [](MwndBindingState* state, sr::VM& vm,
+         std::vector<sr::Value> args) -> sr::Value {
         state->PlayKoe(KoeCallParams::ParseFrom(std::move(args)));
         return state->WaitKoe(vm, true);
       },

@@ -306,13 +306,8 @@ struct SiglusWipe {
     std::shared_ptr<FrameCounter> progress_counter_;
   };
 
-  sr::Value Start(sr::VM& vm,
-                  std::vector<sr::Value> raw_args,
-                  bool masked,
-                  bool all) {
+  sr::Value Start(sr::VM& vm, WipeParams params) {
     EndCurrent(0);
-
-    auto params = WipeParams::DecodeFrom(std::move(raw_args), masked, all);
 
     if (!stage_)
       return MakeResolvedFuture(*vm.gc_);
@@ -339,32 +334,26 @@ struct SiglusWipe {
     const double initial_progress = progress_counter->ReadFrame();
     stage_->SetTransitionRenderAlpha(initial_progress, 1.0 - initial_progress);
 
-    auto task = std::make_unique<WipeTask>(vm, system_, stage_, params, active,
-                                           std::move(progress_counter));
+    const bool wait_flag = params.wait_flag;
+    auto task =
+        std::make_unique<WipeTask>(vm, system_, stage_, std::move(params),
+                                   active, std::move(progress_counter));
     FutureBackedCoroutineTask pending(std::move(task));
     pending.Start();  // eager start is required
     sr::Future* future = pending_.MakeFuture(*vm.gc_, std::move(pending));
     active->promise = future->promise;
     vm.TrackPendingPromise(future->promise);
 
-    if (!params.wait_flag)
+    if (!wait_flag)
       return MakeResolvedFuture(*vm.gc_);
 
     return sr::Value(future);
   }
 
-  sr::Value Wait(sr::VM& vm, std::vector<sr::Value> raw_args) {
+  sr::Value Wait(sr::VM& vm, int key_wait_mode) {
     if (!IsActive())
       return MakeResolvedFuture(*vm.gc_);
 
-    int key_wait_mode = -1;
-    CallPacket packet = CallPacket::DecodeFrom(std::move(raw_args));
-    if (!packet.args.empty())
-      key_wait_mode = AsInt(packet.args.front()).value_or(-1);
-    ForEachKeywordId(packet.kwargs, [&](int id, const sr::Value& value) {
-      if (id == 0)
-        key_wait_mode = AsInt(value).value_or(-1);
-    });
     if (active_)
       active_->key_wait_mode = key_wait_mode;
 
@@ -421,25 +410,29 @@ void BindWipe(SiglusRuntime& runtime) {
   wipe.def(
       "wipe",
       [](SiglusWipe* wipe, sr::VM& vm, std::vector<sr::Value> args) {
-        return wipe->Start(vm, std::move(args), false, false);
+        return wipe->Start(
+            vm, WipeParams::DecodeFrom(std::move(args), false, false));
       },
       sb::vararg);
   wipe.def(
       "wipe_all",
       [](SiglusWipe* wipe, sr::VM& vm, std::vector<sr::Value> args) {
-        return wipe->Start(vm, std::move(args), false, true);
+        return wipe->Start(
+            vm, WipeParams::DecodeFrom(std::move(args), false, true));
       },
       sb::vararg);
   wipe.def(
       "wipe_mask",
       [](SiglusWipe* wipe, sr::VM& vm, std::vector<sr::Value> args) {
-        return wipe->Start(vm, std::move(args), true, false);
+        return wipe->Start(
+            vm, WipeParams::DecodeFrom(std::move(args), true, false));
       },
       sb::vararg);
   wipe.def(
       "wipe_mask_all",
       [](SiglusWipe* wipe, sr::VM& vm, std::vector<sr::Value> args) {
-        return wipe->Start(vm, std::move(args), true, true);
+        return wipe->Start(vm,
+                           WipeParams::DecodeFrom(std::move(args), true, true));
       },
       sb::vararg);
   wipe.def(
@@ -451,7 +444,15 @@ void BindWipe(SiglusRuntime& runtime) {
   wipe.def(
       "wait",
       [](SiglusWipe* wipe, sr::VM& vm, std::vector<sr::Value> args) {
-        return wipe->Wait(vm, std::move(args));
+        int key_wait_mode = -1;
+        CallPacket packet = CallPacket::DecodeFrom(std::move(args));
+        if (!packet.args.empty())
+          key_wait_mode = AsInt(packet.args.front()).value_or(-1);
+        ForEachKeywordId(packet.kwargs, [&](int id, const sr::Value& value) {
+          if (id == 0)
+            key_wait_mode = AsInt(value).value_or(-1);
+        });
+        return wipe->Wait(vm, key_wait_mode);
       },
       sb::vararg);
   wipe.def(

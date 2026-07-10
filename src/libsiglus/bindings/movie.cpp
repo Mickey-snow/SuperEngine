@@ -111,8 +111,7 @@ class SiglusMovie {
       frame_queue_ = queue;
 
       FfmpegVideoDecoder dec(path_);
-      const int msec_per_frame =
-          std::max(1, dec.info().usec_per_frame / 1000);
+      const int msec_per_frame = std::max(1, dec.info().usec_per_frame / 1000);
       const std::size_t frame_size =
           static_cast<std::size_t>(dec.width()) * dec.height() * 4;
       current_frame.data.assign(frame_size, 0);
@@ -171,8 +170,7 @@ class SiglusMovie {
 
           graphics_->RenderCustomFrame([&] {
             surface_->RenderToScreen(surface_->GetRect(),
-                                     DestinationRect(surface_->GetRect()),
-                                     255);
+                                     DestinationRect(surface_->GetRect()), 255);
           });
 
           if ((co_await WaitFor(chr::milliseconds(msec_per_frame), wait_key_) ==
@@ -235,8 +233,7 @@ class SiglusMovie {
       } catch (const sr::RuntimeError&) {
         throw;
       } catch (const std::exception& e) {
-        throw sr::RuntimeError(std::string("movie decode failed: ") +
-                               e.what());
+        throw sr::RuntimeError(std::string("movie decode failed: ") + e.what());
       } catch (...) {
         throw sr::RuntimeError("movie decode failed");
       }
@@ -394,33 +391,34 @@ static std::pair<std::string, std::optional<MovieRect>> ParsePlayArgs(
 
 void BindMovie(SiglusRuntime& runtime) {
   sr::VM& vm = *runtime.vm;
-  auto movie = std::make_shared<SiglusMovie>(runtime);
+  sb::module_ m(vm.gc_.get(), vm.globals_.get());
+  sb::class_<SiglusMovie> movie_cls(m, "Movie", false);
+  auto movie = movie_cls.inst("mov", runtime);
 
-  sb::module_ m(vm, "mov");
-  m.def(
+  movie.def(
       "play",
-      [movie](std::vector<sr::Value> args) {
+      [](SiglusMovie* movie, std::vector<sr::Value> args) {
         auto [file_name, rect] = ParsePlayArgs(std::move(args));
         movie->Play(std::move(file_name), rect);
       },
       sb::vararg);
-  m.def(
+  movie.def(
       "play_wait",
-      [movie](sr::VM& vm, std::vector<sr::Value> args) {
+      [](SiglusMovie* movie, sr::VM& vm, std::vector<sr::Value> args) {
         auto [file_name, rect] = ParsePlayArgs(std::move(args));
         movie->Play(std::move(file_name), rect);
         return movie->Wait(vm, false);
       },
       sb::vararg);
-  m.def(
+  movie.def(
       "play_waitkey",
-      [movie](sr::VM& vm, std::vector<sr::Value> args) {
+      [](SiglusMovie* movie, sr::VM& vm, std::vector<sr::Value> args) {
         auto [file_name, rect] = ParsePlayArgs(std::move(args));
         movie->Play(std::move(file_name), rect, true);
         return movie->Wait(vm, true);
       },
       sb::vararg);
-  m.def("stop", [movie] { movie->Stop(); });
+  movie.def("stop", &SiglusMovie::Stop);
 }
 
 RLVM_REGISTER(SiglusBindingRegistry, "movie", BindMovie)
