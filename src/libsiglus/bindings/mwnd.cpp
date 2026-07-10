@@ -302,16 +302,8 @@ struct MwndBindingState {
     return system->text().GetCurrentWindow()->IsVisible() ? 1 : 0;
   }
 
-  void SetWaku(std::vector<sr::Value> raw_args) {
-    CallPacket packet = CallPacket::DecodeFrom(std::move(raw_args));
-    std::optional<int> msg_waku_no;
-    std::optional<int> name_waku_no;
-
-    if (!packet.args.empty())
-      msg_waku_no = AsInt(packet.args[0]).value_or(0);
-    if (packet.args.size() > 1)
-      name_waku_no = AsInt(packet.args[1]).value_or(-1);
-
+  void SetWaku(std::optional<int> msg_waku_no,
+               std::optional<int> name_waku_no) {
     if (!system) {
       if (msg_waku_no)
         current_waku_set = *msg_waku_no;
@@ -446,7 +438,18 @@ void BindMwnd(SiglusRuntime& runtime) {
   m.def("check_open", [state] { return state->CheckOpen(); });
   m.def(
       "set_waku",
-      [state](std::vector<sr::Value> args) { state->SetWaku(std::move(args)); },
+      [state](std::vector<sr::Value> args) {
+        CallPacket packet = CallPacket::DecodeFrom(std::move(args));
+        std::optional<int> msg_waku_no;
+        std::optional<int> name_waku_no;
+
+        if (packet.args.size() >= 1)
+          msg_waku_no = AsInt(packet.args[0]).value_or(0);
+        if (packet.args.size() >= 2)
+          name_waku_no = AsInt(packet.args[1]).value_or(-1);
+
+        state->SetWaku(msg_waku_no, name_waku_no);
+      },
       sb::vararg);
   m.def("close", close);
   m.def("close_nowait", close);
@@ -545,9 +548,6 @@ void BindMwnd(SiglusRuntime& runtime) {
         return state->WaitKoe(vm, true);
       },
       sb::vararg);
-  m.def("set_waku", [](int waku) {
-    // TODO
-  });
 }
 
 RLVM_REGISTER(SiglusBindingRegistry, "1_mwnd", BindMwnd)
