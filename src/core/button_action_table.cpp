@@ -35,6 +35,20 @@
 #include <system_error>
 #include <vector>
 
+std::optional<ButtonState> ParseState(std::string_view state) {
+  if (state == "NORMAL")
+    return ButtonState::Normal;
+  if (state == "HIT")
+    return ButtonState::Hit;
+  if (state == "PUSH")
+    return ButtonState::Push;
+  if (state == "SELECT")
+    return ButtonState::Select;
+  if (state == "DISABLE")
+    return ButtonState::Disable;
+  return std::nullopt;
+}
+
 namespace {
 
 std::vector<ButtonActionTable::Entry> MakeDefaultEntries(
@@ -62,25 +76,9 @@ std::optional<std::size_t> ParseIndex(std::string_view text) {
   return result;
 }
 
-enum class StateType { Normal, Hit, Push, Select, Disable };
-
-std::optional<StateType> ParseState(std::string_view state) {
-  if (state == "NORMAL")
-    return StateType::Normal;
-  if (state == "HIT")
-    return StateType::Hit;
-  if (state == "PUSH")
-    return StateType::Push;
-  if (state == "SELECT")
-    return StateType::Select;
-  if (state == "DISABLE")
-    return StateType::Disable;
-  return std::nullopt;
-}
-
 struct ParsedKey {
   std::size_t action;
-  StateType state;
+  ButtonState state;
 };
 
 std::optional<ParsedKey> ParseKey(const GameexeInterpretObject& record,
@@ -97,25 +95,46 @@ std::optional<ParsedKey> ParseKey(const GameexeInterpretObject& record,
   return ParsedKey{*action, *state};
 }
 
-ButtonActionTable::State& GetState(ButtonActionTable::Entry& entry,
-                                   StateType state) {
-  switch (state) {
-    case StateType::Normal:
-      return entry.normal;
-    case StateType::Hit:
-      return entry.hit;
-    case StateType::Push:
-      return entry.push;
-    case StateType::Select:
-      return entry.select;
-    case StateType::Disable:
-      return entry.disable;
-  }
+}  // namespace
 
+ButtonActionTable::State ButtonActionTable::Entry::GetState(
+    ButtonState state) const {
+  switch (state) {
+    case ButtonState::Normal:
+      return normal;
+    case ButtonState::Hit:
+      return hit;
+    case ButtonState::Push:
+      return push;
+    case ButtonState::Select:
+      return select;
+    case ButtonState::Disable:
+      return disable;
+  }
   throw std::logic_error("Unknown button state");
 }
 
-}  // namespace
+void ButtonActionTable::Entry::SetState(ButtonState state, State value) {
+  switch (state) {
+    case ButtonState::Normal:
+      normal = value;
+      break;
+    case ButtonState::Hit:
+      hit = value;
+      break;
+    case ButtonState::Push:
+      push = value;
+      break;
+    case ButtonState::Select:
+      select = value;
+      break;
+    case ButtonState::Disable:
+      disable = value;
+      break;
+    default:
+      throw std::logic_error("Unknown button state");
+  }
+}
 
 ButtonActionTable ButtonActionTable::ParseSiglus(Gameexe& gexe) {
   constexpr int kDefaultActionCount = 16;
@@ -138,13 +157,14 @@ ButtonActionTable ButtonActionTable::ParseSiglus(Gameexe& gexe) {
     if (!values || values->size() != 6)
       continue;
 
-    GetState(result.entry_[key->action], key->state) = State{
-        .pattern = (*values)[0],
-        .rep_pos = Point((*values)[1], (*values)[2]),
-        .rep_tr = std::clamp((*values)[3], 0, 255),
-        .rep_bright = std::clamp((*values)[4], 0, 255),
-        .rep_dark = std::clamp((*values)[5], 0, 255),
-    };
+    result.entry_[key->action].SetState(
+        key->state, State{
+                        .pattern = (*values)[0],
+                        .rep_pos = Point((*values)[1], (*values)[2]),
+                        .rep_tr = std::clamp((*values)[3], 0, 255),
+                        .rep_bright = std::clamp((*values)[4], 0, 255),
+                        .rep_dark = std::clamp((*values)[5], 0, 255),
+                    });
   }
 
   return result;
@@ -178,7 +198,7 @@ ButtonActionTable ButtonActionTable::ParseReallive(Gameexe& gexe) {
   result.entry_ = MakeDefaultEntries(action_count, false);
   result.cnt_ = result.entry_.size();
   for (const auto& record : records)
-    GetState(result.entry_[record.key.action], record.key.state) = record.state;
+    result.entry_[record.key.action].SetState(record.key.state, record.state);
 
   return result;
 }

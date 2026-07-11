@@ -270,14 +270,21 @@ TEST(ObjectParameterTest, CompoundProperties) {
 
   param.SetButtonOpts(1, 10, 2, 3);
   param.SetButtonState(1);
-  param.SetButtonOverrides(5, 10, 15);
+  param.SetButtonOverrides(5, 10, 15, 128, 64, 32);
   EXPECT_EQ(param.button.ToString(),
             "is_button=1, action=1, se=10, group=2, button_number=3, state=1, "
             "using_overides=true, pattern_override=5, x_offset_override=10, "
-            "y_offset_override=15");
+            "y_offset_override=15, rep_tr_override=128, "
+            "rep_bright_override=64, rep_dark_override=32");
+  EXPECT_EQ(param.GetComputedAlpha(), 128);
+  EXPECT_FLOAT_EQ(param.GetNormalizedBright(), 64.0f / 255.0f);
+  EXPECT_FLOAT_EQ(param.GetNormalizedDark(), 32.0f / 255.0f);
 
   param.ClearButtonOverrides();
   EXPECT_FALSE(param.button.using_overides);
+  EXPECT_EQ(param.GetComputedAlpha(), 255);
+  EXPECT_FLOAT_EQ(param.GetNormalizedBright(), 0.0f);
+  EXPECT_FLOAT_EQ(param.GetNormalizedDark(), 0.0f);
 }
 
 TEST(ObjectParameterTest, GetterProxy) {

@@ -130,6 +130,9 @@ struct ButtonProperties {
   int pattern_override = 0;
   int x_offset_override = 0;
   int y_offset_override = 0;
+  int rep_tr_override = 255;
+  int rep_bright_override = 0;
+  int rep_dark_override = 0;
 
   bool operator==(const ButtonProperties& rhs) const = default;
 
@@ -143,7 +146,8 @@ struct ButtonProperties {
     // initialization otherwise.
     ar & is_button & action & se & group & button_number & state &
         using_overides & pattern_override & x_offset_override &
-        y_offset_override;
+        y_offset_override & rep_tr_override & rep_bright_override &
+        rep_dark_override;
   }
 };
 
@@ -284,10 +288,18 @@ struct ObjectParameter {
   }
 
   inline int Bright() const { return std::clamp(bright, 0, 255); }
-  inline float GetNormalizedBright() const { return Bright() / 255.f; }
+  inline float GetNormalizedBright() const {
+    const int button_bright =
+        button.using_overides ? button.rep_bright_override : 0;
+    return std::clamp(Bright() + button_bright, 0, 255) / 255.f;
+  }
   void SetBright(const int in) { bright = std::clamp(in, 0, 255); }
   int Dark() const { return std::clamp(dark, 0, 255); }
-  inline float GetNormalizedDark() const { return Dark() / 255.f; }
+  inline float GetNormalizedDark() const {
+    const int button_dark =
+        button.using_overides ? button.rep_dark_override : 0;
+    return std::clamp(Dark() + button_dark, 0, 255) / 255.f;
+  }
   void SetDark(const int in) { dark = std::clamp(in, 0, 255); }
   static int ComposeEffectLevel(int child, int parent) {
     child = std::clamp(child, 0, 255);
@@ -342,6 +354,8 @@ struct ObjectParameter {
     auto alpha = raw_alpha();
     for (const auto it : adjustment_alphas)
       alpha = (alpha * it) / 255;
+    if (button.using_overides)
+      alpha = (alpha * button.rep_tr_override) / 255;
     return alpha;
   }
   inline float GetNormalizedAlpha() const { return GetComputedAlpha() / 255.f; }
@@ -474,11 +488,17 @@ struct ObjectParameter {
   int GetButtonState() const { return button.state; }
   void SetButtonOverrides(int override_pattern,
                           int override_x_offset,
-                          int override_y_offset) {
+                          int override_y_offset,
+                          int override_rep_tr,
+                          int override_rep_bright,
+                          int override_rep_dark) {
     button.using_overides = true;
     button.pattern_override = override_pattern;
     button.x_offset_override = override_x_offset;
     button.y_offset_override = override_y_offset;
+    button.rep_tr_override = override_rep_tr;
+    button.rep_bright_override = override_rep_bright;
+    button.rep_dark_override = override_rep_dark;
   }
   inline void ClearButtonOverrides() { button.using_overides = false; }
   inline bool GetButtonUsingOverides() const { return button.using_overides; }

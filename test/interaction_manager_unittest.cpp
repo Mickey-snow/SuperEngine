@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "core/gameexe.hpp"
 #include "core/input.hpp"
 #include "core/interaction_manager.hpp"
 #include "core/stage.hpp"
@@ -33,9 +34,20 @@
 
 class InteractionManagerTest : public ::testing::Test {
  protected:
+  static ButtonActionTable MakeButtonActions() {
+    Gameexe gameexe;
+    gameexe.parseLine("BUTTON.ACTION.CNT = 1");
+    gameexe.parseLine("BUTTON.ACTION.0.NORMAL = 10,0,0,255,0,0");
+    gameexe.parseLine("BUTTON.ACTION.0.HIT = 11,0,0,224,16,1");
+    gameexe.parseLine("BUTTON.ACTION.0.PUSH = 12,0,0,192,32,2");
+    gameexe.parseLine("BUTTON.ACTION.0.SELECT = 13,0,0,160,48,3");
+    gameexe.parseLine("BUTTON.ACTION.0.DISABLE = 14,0,0,128,64,4");
+    return ButtonActionTable::ParseSiglus(gameexe);
+  }
+
   InteractionManagerTest()
       : surface_(std::make_shared<SDLSurface>(Size(20, 20))),
-        manager_(stage_, input_) {
+        manager_(stage_, input_, MakeButtonActions()) {
     surface_->Fill(RGBAColour(255, 255, 255, 255));
     input_.mouse_pos = Point(15, 25);
   }
@@ -79,6 +91,57 @@ TEST_F(InteractionManagerTest, HoverSelectsEligibleButtonInEveryLayer) {
   EXPECT_EQ(stage_.groups[kLayerFg][0].hit_button_no, 10);
   EXPECT_EQ(stage_.groups[kLayerBg][0].hit_button_no, 11);
   EXPECT_EQ(stage_.groups[kLayerNext][0].hit_button_no, 12);
+  EXPECT_EQ(stage_.GetObject(kLayerFg, 0).Param().GetPattNo(), 11);
+}
+
+TEST_F(InteractionManagerTest, AppliesPushAndDecidedButtonActions) {
+  Group& group = AddGroup();
+  GraphicsObject& button = AddButton(0, 42);
+  input_.decide = {.down = true, .on_down = true};
+
+  manager_.Update();
+
+  EXPECT_EQ(button.Param().GetPattNo(), 12);
+  EXPECT_FLOAT_EQ(button.Param().GetNormalizedAlpha(), 192.0f / 255.0f);
+  EXPECT_FLOAT_EQ(button.Param().GetNormalizedBright(), 32.0f / 255.0f);
+  EXPECT_FLOAT_EQ(button.Param().GetNormalizedDark(), 2.0f / 255.0f);
+
+  input_.decide = {.on_up = true, .down_up = true};
+  manager_.Update();
+
+  EXPECT_EQ(group.decided_button_no, 42);
+  EXPECT_EQ(button.Param().GetPattNo(), 12);
+}
+
+TEST_F(InteractionManagerTest, AppliesExplicitAndInheritedButtonStates) {
+  AddGroup();
+  GraphicsObject& selected = AddButton(0, 10);
+  selected.Param().SetButtonState(3);
+  selected.ResetChildren(1);
+  GraphicsObject& selected_child = selected.TouchChild(0);
+  selected_child.Param().SetButtonOpts(0, 0, 0, 11);
+
+  GraphicsObject& disabled = AddButton(1, 20);
+  disabled.Param().SetButtonState(4);
+
+  manager_.Update();
+
+  EXPECT_EQ(selected.Param().GetPattNo(), 13);
+  EXPECT_EQ(selected_child.Param().GetPattNo(), 13);
+  EXPECT_EQ(disabled.Param().GetPattNo(), 14);
+}
+
+TEST_F(InteractionManagerTest, ClearsStaleOverridesWhenButtonIsCleared) {
+  AddGroup();
+  GraphicsObject& button = AddButton(0, 10);
+  button.Param().SetButtonOverrides(99, 0, 0, 1, 2, 3);
+  ButtonProperties properties = button.Param().ButtonProperty();
+  properties.is_button = 0;
+  button.Param().SetButtonProperty(properties);
+
+  manager_.Update();
+
+  EXPECT_FALSE(button.Param().GetButtonUsingOverides());
 }
 
 TEST_F(InteractionManagerTest, HoverIgnoresIneligibleButtons) {

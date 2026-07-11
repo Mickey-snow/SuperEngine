@@ -205,7 +205,7 @@ TEST(ObjectDrawerTest, ButtonOffsetsContributeToGeometry) {
   auto& data = SetTestData(object, Rect::REC(0, 0, 10, 10), Point(), surface);
   object.Param().SetX(10);
   object.Param().SetY(20);
-  object.Param().SetButtonOverrides(0, 8, -4);
+  object.Param().SetButtonOverrides(0, 8, -4, 255, 0, 0);
 
   EXPECT_EQ(data.DstRect(object, nullptr), Rect::GRP(18, 16, 28, 26));
   EXPECT_TRUE(data.HitTest(object, Point(20, 20)));
@@ -218,7 +218,7 @@ TEST(ObjectDrawerTest, ParentButtonOffsetsContributeToChildGeometry) {
   SetTestData(parent, Rect::REC(0, 0, 10, 10), Point(), surface);
   parent.Param().SetX(10);
   parent.Param().SetY(20);
-  parent.Param().SetButtonOverrides(0, 8, -4);
+  parent.Param().SetButtonOverrides(0, 8, -4, 255, 0, 0);
 
   GraphicsObject child;
   auto& data = SetTestData(child, Rect::REC(0, 0, 10, 10), Point(), surface);

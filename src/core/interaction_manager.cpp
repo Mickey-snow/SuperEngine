@@ -23,6 +23,7 @@
 
 #include "core/interaction_manager.hpp"
 
+#include "core/button_action_table.hpp"
 #include "core/group.hpp"
 #include "core/input.hpp"
 #include "core/object_internal/objdrawer.hpp"
@@ -31,6 +32,7 @@
 #include <cstddef>
 #include <optional>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -98,10 +100,70 @@ void VisitButtonCandidates(
   }
 }
 
+ButtonState ResolveButtonState(const ObjectParameter& param,
+                               const std::vector<Group>& groups,
+                               std::optional<ButtonState> parent) {
+  if (parent)
+    return *parent;
+  if (param.GetButtonState() == kButtonSelect)
+    return ButtonState::Select;
+  if (param.GetButtonState() == kButtonDisable)
+    return ButtonState::Disable;
+
+  const int group_no = param.GetButtonGroup();
+  if (group_no < 0 || static_cast<std::size_t>(group_no) >= groups.size())
+    return ButtonState::Normal;
+
+  const Group& group = groups[static_cast<std::size_t>(group_no)];
+  const int button_no = param.GetButtonNumber();
+  if ((group.result == Group::Result::Decided &&
+       group.decided_button_no == button_no) ||
+      group.pushed_button_no == button_no)
+    return ButtonState::Push;
+  if (group.hit_button_no == button_no)
+    return ButtonState::Hit;
+  return ButtonState::Normal;
+}
+
+void ApplyButtonOverrides(
+    GraphicsObject& object,
+    const std::vector<Group>& groups,
+    const ButtonActionTable& button_actions,
+    std::optional<ButtonState> parent_state = std::nullopt) {
+  ObjectParameter& param = object.Param();
+  const ButtonState state = ResolveButtonState(param, groups, parent_state);
+  const int action = param.GetButtonAction();
+  if (!param.IsButton() || action < 0 ||
+      static_cast<std::size_t>(action) >= button_actions.GetCount()) {
+    param.ClearButtonOverrides();
+  } else {
+    const ButtonActionTable::Entry entry = button_actions.GetEntry(action);
+    const ButtonActionTable::State& action_state = entry.GetState(state);
+    param.SetButtonOverrides(action_state.pattern, action_state.rep_pos.x(),
+                             action_state.rep_pos.y(), action_state.rep_tr,
+                             action_state.rep_bright, action_state.rep_dark);
+  }
+
+  if (!object.HasChildren())
+    return;
+
+  std::optional<ButtonState> child_parent_state;
+  if (state == ButtonState::Select || state == ButtonState::Disable)
+    child_parent_state = state;
+  for (auto& child : object.GetChildren()) {
+    if (child)
+      ApplyButtonOverrides(*child, groups, button_actions, child_parent_state);
+  }
+}
+
 }  // namespace
 
-InteractionManager::InteractionManager(Stage& stage, InputListener& input)
-    : stage_(stage), input_(input) {}
+InteractionManager::InteractionManager(Stage& stage,
+                                       InputListener& input,
+                                       ButtonActionTable button_actions)
+    : stage_(stage),
+      input_(input),
+      button_actions_(std::move(button_actions)) {}
 
 void InteractionManager::Update() {
   for (int layer = kLayerFg; layer <= kLayerNext; ++layer)
@@ -174,4 +236,7 @@ void InteractionManager::UpdateLayer(int layer) {
       hit_button_no = candidates[i]->button_no;
     UpdateGroup(groups[i], hit_button_no);
   }
+
+  for (auto it = objects.begin(), end = objects.end(); it != end; ++it)
+    ApplyButtonOverrides(*it, groups, button_actions_);
 }

@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "core/button_action_table.hpp"
+
 #include <optional>
 
 class InputListener;
@@ -31,13 +33,16 @@ class Group;
 
 class InteractionManager {
  public:
-  InteractionManager(Stage& stage, InputListener& input);
+  InteractionManager(Stage& stage,
+                     InputListener& input,
+                     ButtonActionTable button_actions);
 
   void Update();
 
  private:
   Stage& stage_;
   InputListener& input_;
+  ButtonActionTable button_actions_;
 
   void UpdateGroup(Group& group, std::optional<int> hit_button_no);
   void UpdateLayer(int layer);

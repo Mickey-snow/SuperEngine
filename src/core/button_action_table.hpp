@@ -27,9 +27,14 @@
 #include "core/rect.hpp"
 
 #include <cstddef>
+#include <optional>
+#include <string_view>
 #include <vector>
 
 class Gameexe;
+
+enum class ButtonState { Normal, Hit, Push, Select, Disable };
+std::optional<ButtonState> ParseState(std::string_view state);
 
 class ButtonActionTable {
  public:
@@ -49,6 +54,9 @@ class ButtonActionTable {
     State push;
     State select;
     State disable;
+
+    State GetState(ButtonState state) const;
+    void SetState(ButtonState state, State value);
 
     bool operator==(const Entry&) const = default;
   };

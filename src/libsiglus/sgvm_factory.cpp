@@ -24,6 +24,7 @@
 #include "libsiglus/sgvm_factory.hpp"
 
 #include "core/asset_scanner.hpp"
+#include "core/button_action_table.hpp"
 #include "core/gameexe.hpp"
 #include "core/input.hpp"
 #include "core/interaction_manager.hpp"
@@ -479,8 +480,8 @@ SiglusRuntime SGVMFactory::Create() {
     it->second(rt);
   }
   std::shared_ptr<InputListener> input = rt.input_event_listener;
-  rt.interaction_manager =
-      std::make_unique<InteractionManager>(*rt.stage, *input);
+  rt.interaction_manager = std::make_unique<InteractionManager>(
+      *rt.stage, *input, ButtonActionTable::ParseSiglus(gexe));
   sb::module_ m(gc.get(), vm.globals_.get());
 
   m.def("__builtin_streq", [](sr::Value lhs, sr::Value rhs) -> sr::Value {

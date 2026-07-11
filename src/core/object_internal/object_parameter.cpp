@@ -80,6 +80,9 @@ std::string ButtonProperties::ToString() const {
   oss << ", pattern_override=" << pattern_override;
   oss << ", x_offset_override=" << x_offset_override;
   oss << ", y_offset_override=" << y_offset_override;
+  oss << ", rep_tr_override=" << rep_tr_override;
+  oss << ", rep_bright_override=" << rep_bright_override;
+  oss << ", rep_dark_override=" << rep_dark_override;
   return oss.str();
 }
 

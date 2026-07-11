@@ -178,7 +178,8 @@ void ButtonObjectSelectLongOperation::SetButtonOverride(GraphicsObject* object,
       break;
   }
 
-  object->Param().SetButtonOverrides(selected_state->pattern,
-                                     selected_state->rep_pos.x(),
-                                     selected_state->rep_pos.y());
+  object->Param().SetButtonOverrides(
+      selected_state->pattern, selected_state->rep_pos.x(),
+      selected_state->rep_pos.y(), selected_state->rep_tr,
+      selected_state->rep_bright, selected_state->rep_dark);
 }

@@ -212,6 +212,33 @@ TEST_F(GraphicsObjectTest, ParentWithoutObjectDataPassesStateToChildren) {
   EXPECT_FLOAT_EQ(last_parent->alpha, obj.Param().GetNormalizedAlpha());
 }
 
+TEST_F(GraphicsObjectTest, ParentButtonEffectsPassToChildren) {
+  obj.ResetChildren(1);
+  obj.Param().SetVisible(true);
+  obj.Param().SetAlpha(200);
+  obj.Param().SetBright(10);
+  obj.Param().SetDark(20);
+  obj.Param().SetButtonOverrides(0, 0, 0, 128, 30, 40);
+  GraphicsObject& child = obj.TouchChild(0);
+  child.Param().SetVisible(true);
+
+  std::optional<ParentObjState> last_parent;
+  auto drawer = std::make_unique<MockGraphicsObjectData>();
+  drawer->SetRenderCallback(
+      [&last_parent](const GraphicsObject&,
+                     std::optional<ParentObjState> parent) {
+        last_parent = std::move(parent);
+      });
+  child.SetDrawer(std::move(drawer));
+
+  obj.Render();
+
+  ASSERT_TRUE(last_parent.has_value());
+  EXPECT_FLOAT_EQ(last_parent->alpha, (200 * 128 / 255) / 255.0f);
+  EXPECT_FLOAT_EQ(last_parent->bright, 40.0f / 255.0f);
+  EXPECT_FLOAT_EQ(last_parent->dark, 60.0f / 255.0f);
+}
+
 TEST_F(GraphicsObjectTest, EndObjectMutatorMatching) {
   obj.AddObjectMutator(ObjectMutator({}, -1, "fade"));
   EXPECT_TRUE(obj.IsMutatorRunningMatching(-1, "fade"));
