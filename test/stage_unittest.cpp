@@ -23,60 +23,19 @@
 
 #include <gtest/gtest.h>
 
-#include "core/object_internal/objdrawer.hpp"
 #include "core/stage.hpp"
 #include "libsiglus/siglus_scene_renderer.hpp"
+#include "mock_graphics_object_data.hpp"
 
 #include <limits>
 #include <memory>
 #include <stdexcept>
 #include <utility>
-#include <vector>
 
 class StageTest : public ::testing::Test {
  protected:
-  class DummyObjectData : public GraphicsObjectData {
-   public:
-    int PixelWidth(const GraphicsObject&) override { return 1; }
-    int PixelHeight(const GraphicsObject&) override { return 1; }
-
-    std::unique_ptr<GraphicsObjectData> Clone() const override {
-      return std::make_unique<DummyObjectData>(*this);
-    }
-
-   protected:
-    std::shared_ptr<const SDLSurface> CurrentSurface(
-        const GraphicsObject&) const override {
-      return nullptr;
-    }
-  };
-
-  class RecordingObjectData : public DummyObjectData {
-   public:
-    RecordingObjectData(std::vector<int>* rendered, int id)
-        : rendered_(rendered), id_(id) {}
-
-    void Render(const GraphicsObject&, std::optional<ParentObjState>) override {
-      rendered_->push_back(id_);
-    }
-
-    std::unique_ptr<GraphicsObjectData> Clone() const override {
-      return std::make_unique<RecordingObjectData>(*this);
-    }
-
-   private:
-    std::vector<int>* rendered_;
-    int id_;
-  };
-
   void SetDummyData(GraphicsObject& object) {
-    object.SetDrawer(std::make_unique<DummyObjectData>());
-  }
-
-  void SetRecordingData(GraphicsObject& object,
-                        std::vector<int>* rendered,
-                        int id) {
-    object.SetDrawer(std::make_unique<RecordingObjectData>(rendered, id));
+    object.SetDrawer(std::make_unique<MockGraphicsObjectData>());
   }
 
   std::string GetExistFlags(const LazyArray<GraphicsObject>& la) {

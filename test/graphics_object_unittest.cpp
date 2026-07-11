@@ -24,46 +24,14 @@
 #include <gtest/gtest.h>
 
 #include "core/object.hpp"
-#include "core/object_internal/objdrawer.hpp"
 #include "core/object_internal/object_mutator.hpp"
+#include "mock_graphics_object_data.hpp"
 
 #include <memory>
 #include <optional>
 
 class GraphicsObjectTest : public ::testing::Test {
  protected:
-  class DummyObjectData : public GraphicsObjectData {
-   public:
-    DummyObjectData(int* render_count = nullptr,
-                    std::optional<ParentObjState>* last_parent = nullptr)
-        : render_count_(render_count), last_parent_(last_parent) {}
-
-    void Render(const GraphicsObject&,
-                std::optional<ParentObjState> parent) override {
-      if (render_count_)
-        ++*render_count_;
-      if (last_parent_)
-        *last_parent_ = parent;
-    }
-
-    int PixelWidth(const GraphicsObject&) override { return 1; }
-    int PixelHeight(const GraphicsObject&) override { return 1; }
-
-    std::unique_ptr<GraphicsObjectData> Clone() const override {
-      return std::make_unique<DummyObjectData>(*this);
-    }
-
-   protected:
-    std::shared_ptr<const SDLSurface> CurrentSurface(
-        const GraphicsObject&) const override {
-      return nullptr;
-    }
-
-   private:
-    int* render_count_;
-    std::optional<ParentObjState>* last_parent_;
-  };
-
   void SetUp() override {
     auto& param = obj.Param();
 
@@ -73,7 +41,7 @@ class GraphicsObjectTest : public ::testing::Test {
   }
 
   void SetDummyData(GraphicsObject& object) {
-    object.SetDrawer(std::make_unique<DummyObjectData>());
+    object.SetDrawer(std::make_unique<MockGraphicsObjectData>());
   }
 
   GraphicsObject obj;
@@ -203,7 +171,12 @@ TEST_F(GraphicsObjectTest, InvisibleParentDoesNotRenderChildren) {
   GraphicsObject& child = obj.TouchChild(0);
   child.Param().SetVisible(true);
   int render_count = 0;
-  child.SetDrawer(std::make_unique<DummyObjectData>(&render_count));
+  auto drawer = std::make_unique<MockGraphicsObjectData>();
+  drawer->SetRenderCallback(
+      [&render_count](const GraphicsObject&, std::optional<ParentObjState>) {
+        ++render_count;
+      });
+  child.SetDrawer(std::move(drawer));
 
   obj.Render();
 
@@ -221,8 +194,14 @@ TEST_F(GraphicsObjectTest, ParentWithoutObjectDataPassesStateToChildren) {
 
   int render_count = 0;
   std::optional<ParentObjState> last_parent;
-  child.SetDrawer(
-      std::make_unique<DummyObjectData>(&render_count, &last_parent));
+  auto drawer = std::make_unique<MockGraphicsObjectData>();
+  drawer->SetRenderCallback(
+      [&render_count, &last_parent](const GraphicsObject&,
+                                    std::optional<ParentObjState> parent) {
+        ++render_count;
+        last_parent = std::move(parent);
+      });
+  child.SetDrawer(std::move(drawer));
 
   obj.Render();
 

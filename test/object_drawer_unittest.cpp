@@ -38,41 +38,8 @@
 #include "core/object_internal/drawer/gan.hpp"
 #include "core/object_internal/objdrawer.hpp"
 #include "mock_clock.hpp"
+#include "mock_graphics_object_data.hpp"
 #include "systems/sdl/sdl_surface.hpp"
-
-class TestGraphicsObjectData : public GraphicsObjectData {
- public:
-  TestGraphicsObjectData(Rect src,
-                         Point texture_origin,
-                         std::shared_ptr<SDLSurface> surface)
-      : src_(src),
-        texture_origin_(texture_origin),
-        surface_(std::move(surface)) {}
-
-  int PixelWidth(const GraphicsObject& go) override { return src_.width(); }
-  int PixelHeight(const GraphicsObject& go) override { return src_.height(); }
-
-  std::unique_ptr<GraphicsObjectData> Clone() const override {
-    return std::make_unique<TestGraphicsObjectData>(*this);
-  }
-
- protected:
-  std::shared_ptr<const SDLSurface> CurrentSurface(
-      const GraphicsObject& go) const override {
-    return surface_;
-  }
-
-  Rect SrcRect(const GraphicsObject& go) const override { return src_; }
-
-  Point DstOrigin(const GraphicsObject& go) const override {
-    return texture_origin_;
-  }
-
- private:
-  Rect src_;
-  Point texture_origin_;
-  std::shared_ptr<SDLSurface> surface_;
-};
 
 std::shared_ptr<SDLSurface> OpaqueSurface(Size size) {
   auto surface = std::make_shared<SDLSurface>(size);
@@ -101,12 +68,12 @@ std::vector<std::vector<GanDecoder::Frame>> GanFrames() {
   return {{{0, 3, 4, 50, 128, 0}, {1, 7, 8, 50, 255, 0}}};
 }
 
-TestGraphicsObjectData& SetTestData(GraphicsObject& object,
+MockGraphicsObjectData& SetTestData(GraphicsObject& object,
                                     Rect src,
                                     Point texture_origin,
                                     std::shared_ptr<SDLSurface> surface) {
-  auto data =
-      std::make_unique<TestGraphicsObjectData>(src, texture_origin, surface);
+  auto data = std::make_unique<MockGraphicsObjectData>(src, texture_origin,
+                                                       std::move(surface));
   auto& ref = *data;
   object.SetDrawer(std::move(data));
   return ref;

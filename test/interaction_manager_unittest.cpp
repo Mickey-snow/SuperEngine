@@ -25,37 +25,11 @@
 
 #include "core/input.hpp"
 #include "core/interaction_manager.hpp"
-#include "core/object_internal/objdrawer.hpp"
 #include "core/stage.hpp"
+#include "mock_graphics_object_data.hpp"
 #include "systems/sdl/sdl_surface.hpp"
 
 #include <memory>
-
-class ButtonDrawer : public GraphicsObjectData {
- public:
-  explicit ButtonDrawer(std::shared_ptr<SDLSurface> surface)
-      : surface_(std::move(surface)) {}
-
-  int PixelWidth(const GraphicsObject&) override {
-    return surface_->GetSize().width();
-  }
-  int PixelHeight(const GraphicsObject&) override {
-    return surface_->GetSize().height();
-  }
-
-  std::unique_ptr<GraphicsObjectData> Clone() const override {
-    return std::make_unique<ButtonDrawer>(*this);
-  }
-
- protected:
-  std::shared_ptr<const SDLSurface> CurrentSurface(
-      const GraphicsObject&) const override {
-    return surface_;
-  }
-
- private:
-  std::shared_ptr<SDLSurface> surface_;
-};
 
 class InteractionManagerTest : public ::testing::Test {
  protected:
@@ -79,7 +53,7 @@ class InteractionManagerTest : public ::testing::Test {
                             int group_no = 0,
                             int layer = kLayerFg) {
     GraphicsObject& object = stage_.GetObject(layer, object_id);
-    object.SetDrawer(std::make_unique<ButtonDrawer>(surface_));
+    object.SetDrawer(std::make_unique<MockGraphicsObjectData>(surface_));
     ObjectParameter& param = object.Param();
     param.SetVisible(1);
     param.SetX(10);
