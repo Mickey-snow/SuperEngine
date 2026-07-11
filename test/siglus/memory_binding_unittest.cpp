@@ -178,4 +178,25 @@ K[1] = "new";
   EXPECT_EQ(runtime.memory->Read(StrBank::K, 0), "old");
 }
 
+TEST_F(SiglusMemoryBindingTest, RuntimeResetClearsLocalAndStackBanksOnly) {
+  Eval(R"(
+A[0] = 11;
+S[0] = "local";
+G[0] = 22;
+M[0] = "global";
+L[0] = 33;
+K[0] = "stack";
+)");
+
+  ASSERT_TRUE(runtime.reset_local_memory);
+  runtime.reset_local_memory();
+
+  EXPECT_EQ(runtime.memory->Read(IntBank::A, 0), 0);
+  EXPECT_EQ(runtime.memory->Read(StrBank::S, 0), "");
+  EXPECT_EQ(runtime.memory->Read(IntBank::L, 0), 0);
+  EXPECT_EQ(runtime.memory->Read(StrBank::K, 0), "");
+  EXPECT_EQ(runtime.memory->Read(IntBank::G, 0), 22);
+  EXPECT_EQ(runtime.memory->Read(StrBank::M, 0), "global");
+}
+
 }  // namespace libsiglus::binding

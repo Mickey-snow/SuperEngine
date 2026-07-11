@@ -21,24 +21,148 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
+#include "core/gameexe.hpp"
+#include "core/input.hpp"
+#include "core/stage.hpp"
+#include "libsiglus/bindings/flow.hpp"
 #include "libsiglus/bindings/registry.hpp"
+#include "libsiglus/bindings/util.hpp"
+#include "platforms/implementor.hpp"
 #include "srbind/srbind.hpp"
+#include "systems/graphics_system.hpp"
 #include "systems/sound_system.hpp"
 #include "systems/system.hpp"
 #include "systems/text_system.hpp"
+#include "vm/exception.hpp"
+#include "vm/object.hpp"
+#include "vm/value.hpp"
 #include "vm/vm.hpp"
+
+#include <chrono>
+#include <format>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace libsiglus::binding {
 namespace sb = srbind;
 using namespace serilang;
 
+namespace {
+
+struct ReturnMenuParams {
+  bool warning = false;
+  bool se_play = false;
+  bool fade_out = false;
+  bool preserve_backlog = false;
+
+  static ReturnMenuParams Parse(std::vector<Value> raw_args) {
+    CallPacket packet = CallPacket::DecodeFrom(std::move(raw_args));
+    if (packet.args.size() != 3) {
+      throw RuntimeError(std::format(
+          "return_to_menu expects 3 arguments, got {}", packet.args.size()));
+    }
+
+    ReturnMenuParams result{
+        .warning = RequireInt(packet.args[0], "return_to_menu warning") != 0,
+        .se_play = RequireInt(packet.args[1], "return_to_menu se_play") != 0,
+        .fade_out = RequireInt(packet.args[2], "return_to_menu fade_out") != 0,
+    };
+    ForEachKeywordId(packet.kwargs, [&](int id, const Value& value) {
+      if (id == 0) {
+        result.preserve_backlog =
+            RequireInt(value, "return_to_menu preserve backlog") != 0;
+      }
+    });
+    return result;
+  }
+};
+
+std::pair<std::string, int> ReadMenuScene(Gameexe& gameexe) {
+  auto menu = gameexe("MENU_SCENE");
+  std::string scene = menu.StrAt(0).value_or("_menu");
+  int zlabel = menu.IntAt(1).value_or(0);
+  if (scene.empty())
+    throw RuntimeError("MENU_SCENE has an empty scene name");
+  return {std::move(scene), zlabel};
+}
+
+}  // namespace
+
 void BindSyscom(SiglusRuntime& runtime) {
   auto* sys = runtime.system.get();
+  auto* stage = runtime.stage.get();
+  auto* loader = runtime.loader.get();
+  auto gameexe = runtime.gameexe;
+  auto input = runtime.input_event_listener;
+  auto platform = runtime.platform_implementor;
+  auto reset_local_memory = runtime.reset_local_memory;
 
   VM& vm = *runtime.vm;
   sb::module_ m(vm, "syscom");
   m.def("menu_enable", [sys] { sys->EnableSyscom(); });
   m.def("menu_disable", [sys] { sys->DisableSyscom(); });
+
+  m.def(
+      "return_to_menu",
+      [sys, stage, loader, gameexe, input, platform, reset_local_memory](
+          VM& vm, Fiber& fiber, std::vector<Value> args) {
+        ReturnMenuParams params = ReturnMenuParams::Parse(std::move(args));
+        if (!gameexe || !loader)
+          throw RuntimeError("return_to_menu requires game configuration");
+
+        if (params.warning && platform) {
+          const std::string prompt =
+              (*gameexe)("WARNINGINFO.RETURNMENU_WARNING_STR")
+                  .Str()
+                  .value_or("Return to the title screen?");
+          if (!platform->AskUserPrompt(prompt, "", "Yes", "No")) {
+            return;
+          }
+        }
+
+        auto [scene_name, zlabel] = ReadMenuScene(*gameexe);
+        Code* entry =
+            MakeSceneEntryThunk(vm, *loader, std::move(scene_name), zlabel);
+
+        if (params.se_play && sys)
+          sys->sound().PlaySe(6);
+
+        auto restart = [sys, stage, input, reset_local_memory, &vm, entry,
+                        preserve = params.preserve_backlog] {
+          if (reset_local_memory)
+            reset_local_memory();
+          if (stage)
+            stage->Reset();
+          if (sys) {
+            if (preserve) {
+              sys->sound().Reset();
+              sys->graphics().Reset();
+              sys->EnableSyscom();
+            } else {
+              sys->Reset();
+            }
+          }
+          if (input)
+            input->ResetState();
+          vm.AddFiber(entry);
+        };
+
+        fiber.frames.clear();
+        if (params.fade_out && sys && !sys->ShouldFastForward()) {
+          const int duration =
+              std::max(0, (*gameexe)("LOAD.WIPE").IntAt(1).value_or(0));
+          if (duration > 0) {
+            sys->sound().BgmFadeOut(duration);
+            vm.scheduler_.PushCallbackAfter(
+                std::move(restart), std::chrono::milliseconds(duration));
+            return;
+          }
+        }
+        restart();
+      },
+      sb::vararg);
 
   m.def("get_new_qsave_no", [] {
     // TODO: implement save/load

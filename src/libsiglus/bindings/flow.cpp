@@ -24,7 +24,9 @@
 #include "libsiglus/bindings/registry.hpp"
 
 #include "libsiglus/archive.hpp"
+#include "libsiglus/bindings/flow.hpp"
 #include "libsiglus/bindings/loader.hpp"
+#include "libsiglus/bindings/util.hpp"
 #include "libsiglus/intern_name.hpp"
 #include "srbind/srbind.hpp"
 #include "vm/exception.hpp"
@@ -43,9 +45,7 @@ namespace libsiglus::binding {
 namespace sr = serilang;
 namespace sb = srbind;
 
-namespace {
-
-std::string NormalizeSceneName(std::string name) {
+static std::string NormalizeSceneName(std::string name) {
   for (char& c : name) {
     if ('A' <= c && c <= 'Z')
       c = static_cast<char>(c - 'A' + 'a');
@@ -53,73 +53,53 @@ std::string NormalizeSceneName(std::string name) {
   return name;
 }
 
-int RequireJumpZ(const sr::Value& value) {
-  const int* result = value.Get_if<int>();
-  if (!result) {
-    throw sr::RuntimeError(
-        std::format("jump z-label expects int, got {}", value.Desc()));
-  }
-  if (*result < 0)
-    throw sr::RuntimeError("jump z-label must be non-negative");
-  return *result;
-}
-
-sr::Module* LoadJumpScene(Loader& loader,
-                          const Archive* archive,
-                          const sr::Value& scene) {
-  if (const int* scene_id = scene.Get_if<int>()) {
-    if (*scene_id < 0) {
-      throw sr::RuntimeError(
-          std::format("jump scene id must be non-negative: {}", *scene_id));
-    }
-    if (archive &&
-        static_cast<std::size_t>(*scene_id) >= archive->GetScenarioCount()) {
-      throw sr::RuntimeError(
-          std::format("jump scene id {} is out of range for {} scenes",
-                      *scene_id, archive->GetScenarioCount()));
-    }
-    return loader.Load(*scene_id);
-  }
-
-  if (const sr::String* scene_name = scene.Get_if<sr::String>()) {
-    if (scene_name->str_.empty())
-      throw sr::RuntimeError("jump scene name is empty");
-    return loader.Load(NormalizeSceneName(scene_name->str_));
-  }
-
-  throw sr::RuntimeError(
-      std::format("jump scene expects str or int, got {}", scene.Desc()));
-}
-
-sr::Function* ResolveJumpTarget(sr::Module& mod, int zlabel) {
+static sr::Function* ResolveZLabel(sr::Module& mod, int zlabel) {
   auto it = mod.globals->find(GetZlabelId(zlabel));
   if (it == mod.globals->cend())
     it = mod.globals->find("%%script");
 
   if (it == mod.globals->cend()) {
-    throw sr::RuntimeError(std::format(
-        "jump target scene {} has no entry for z-label {}", mod.name, zlabel));
+    throw sr::RuntimeError(
+        std::format("scene {} has no entry for z-label {}", mod.name, zlabel));
   }
 
   sr::Function* fn = it->second.Get_if<sr::Function>();
   if (!fn) {
     throw sr::RuntimeError(
-        std::format("jump target scene {} entry is not a function", mod.name));
+        std::format("scene {} entry is not a function", mod.name));
   }
   return fn;
 }
 
-}  // namespace
+sr::Code* MakeSceneEntryThunk(sr::VM& vm,
+                              Loader& loader,
+                              std::string scene_name,
+                              int zlabel) {
+  if (scene_name.empty())
+    throw sr::RuntimeError("scene name is empty");
 
-void BindFlow(SiglusRuntime& runtime) {
-  sr::VM& vm = *runtime.vm;
+  sr::Module* mod = loader.Load(NormalizeSceneName(std::move(scene_name)));
+  if (!mod)
+    throw sr::RuntimeError("could not load destination scene");
+
+  sr::Function* fn = ResolveZLabel(*mod, zlabel);
+  sr::Code* thunk = vm.gc_->Allocate<sr::Code>();
+  thunk->const_pool.emplace_back(fn);
+  thunk->Append(sr::Push{0});
+  thunk->Append(sr::Call{.argcnt = 0, .kwargcnt = 0});
+  thunk->Append(sr::Return{});
+  return thunk;
+}
+
+void BindFlow(SiglusRuntime& rt) {
+  sr::VM& vm = *rt.vm;
   sb::module_ m(vm.gc_.get(), vm.globals_.get());
   m.def(
       "jump",
-      [&runtime](sr::VM& vm, sr::Fiber& fiber, std::vector<sr::Value> args) {
-        if (!runtime.loader) {
+      [loader = rt.loader.get(), archive = rt.archive.get()](
+          sr::VM& vm, sr::Fiber& fiber, std::vector<sr::Value> args) {
+        if (!loader)
           throw sr::RuntimeError("jump requires a scene loader");
-        }
         if (args.empty() || args.size() > 2) {
           throw sr::RuntimeError(std::format(
               "jump expects 1 or 2 arguments, got {}", args.size()));
@@ -127,14 +107,35 @@ void BindFlow(SiglusRuntime& runtime) {
 
         int zlabel = 0;
         if (args.size() == 2)
-          zlabel = RequireJumpZ(args[1]);
+          zlabel = RequireInt(args[1], "jump z-label");
 
-        sr::Module* mod =
-            LoadJumpScene(*runtime.loader, runtime.archive.get(), args[0]);
+        sr::Module* mod = nullptr;
+        if (const int* scene_id = args[0].Get_if<int>()) {
+          if (*scene_id < 0) {
+            throw sr::RuntimeError(std::format(
+                "jump scene id must be non-negative: {}", *scene_id));
+          }
+          if (archive && static_cast<std::size_t>(*scene_id) >=
+                             archive->GetScenarioCount()) {
+            throw sr::RuntimeError(
+                std::format("jump scene id {} is out of range for {} scenes",
+                            *scene_id, archive->GetScenarioCount()));
+          }
+          mod = loader->Load(*scene_id);
+        } else if (const sr::String* scene_name =
+                       args[0].Get_if<sr::String>()) {
+          if (scene_name->str_.empty())
+            throw sr::RuntimeError("jump scene name is empty");
+          mod = loader->Load(NormalizeSceneName(scene_name->str_));
+        } else {
+          throw sr::RuntimeError(std::format(
+              "jump scene expects str or int, got {}", args[0].Desc()));
+        }
+
         if (!mod)
           throw sr::RuntimeError("jump could not load destination scene");
 
-        sr::Function* fn = ResolveJumpTarget(*mod, zlabel);
+        sr::Function* fn = ResolveZLabel(*mod, zlabel);
         sr::Code* thunk = vm.gc_->Allocate<sr::Code>();
         thunk->const_pool.emplace_back(fn);
         thunk->Append(sr::Push{0});
@@ -145,6 +146,46 @@ void BindFlow(SiglusRuntime& runtime) {
         fiber.frames.clear();
       },
       sb::vararg);
+
+  m.def("__builtin_usrcmd",
+        [loader = rt.loader.get()](int scn, int entry,
+                                   std::string name) -> sr::Value {
+          const std::string cmdname = GetUsercmdId(entry);
+          const std::string dbgname = std::format("{}:{}@{}", scn, entry, name);
+
+          sr::Module* mod = loader->Load(scn);
+          if (!mod) {
+            throw sr::RuntimeError(std::format(
+                "User command {} could not load scene {}", dbgname, scn));
+          }
+
+          auto it = mod->globals->find(cmdname);
+          if (it == mod->globals->cend()) {
+            std::string errmsg =
+                std::format("User command {} does not exist in {}:{}", dbgname,
+                            scn, mod->name);
+            throw sr::RuntimeError(std::move(errmsg));
+          }
+          return it->second;
+        });
+
+  m.def("__builtin_farcall",
+        [loader = rt.loader.get()](std::string scn, int zlabel) -> sr::Value {
+          const std::string dbgname = std::format("SCENE{}@{}", scn, zlabel);
+          sr::Module* mod = loader->Load(NormalizeSceneName(std::move(scn)));
+
+          if (!mod)
+            throw sr::RuntimeError(
+                std::format("Farcall {} could not load scene", dbgname));
+
+          return ResolveZLabel(*mod, zlabel);
+        });
+
+  m.def("__builtin_load_scn",
+        [loader = rt.loader.get()](int scnid) -> sr::Value {
+          sr::Module* mod = loader->Load(scnid);
+          return sr::Value(mod);
+        });
 }
 
 RLVM_REGISTER(SiglusBindingRegistry, "flow", BindFlow)

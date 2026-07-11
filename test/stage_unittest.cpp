@@ -101,12 +101,18 @@ TEST_F(StageTest, FreeAndInitializeSingleObjectAffectFrontAndBackOnly) {
 TEST_F(StageTest, ConstructorAndResetIncludeNextObjects) {
   Stage stage(3);
   stage.next_objects[1].Param().SetVisible(1);
+  stage.groups[kLayerFg].resize(1);
+  stage.groups[kLayerBg].resize(1);
+  stage.groups[kLayerNext].resize(1);
   stage.SetTransitionRenderAlpha(0.25, 0.75);
 
   EXPECT_EQ(GetExistFlags(stage.next_objects), "010");
   stage.Reset();
   EXPECT_EQ(GetExistFlags(stage.next_objects), "000")
       << "Stage.Reset should clear next object buffer";
+  EXPECT_TRUE(stage.groups[kLayerFg].empty());
+  EXPECT_TRUE(stage.groups[kLayerBg].empty());
+  EXPECT_TRUE(stage.groups[kLayerNext].empty());
   EXPECT_DOUBLE_EQ(stage.foreground_render_alpha(), 1.0);
   EXPECT_DOUBLE_EQ(stage.next_render_alpha(), 0.0);
 }

@@ -42,6 +42,8 @@ void Stage::Reset() {
   foreground_objects.Clear();
   background_objects.Clear();
   next_objects.Clear();
+  for (auto& layer_groups : groups)
+    layer_groups.clear();
   ClearTransitionRenderState();
 }
 

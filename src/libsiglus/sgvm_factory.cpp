@@ -45,15 +45,12 @@
 #include "utilities/file.hpp"
 #include "utilities/mapped_file.hpp"
 #include "utilities/string_utilities.hpp"
-#include "vm/exception.hpp"
-#include "vm/object.hpp"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
 #include <algorithm>
 #include <array>
 #include <boost/algorithm/string/predicate.hpp>
-#include <cctype>
 #include <chrono>
 #include <filesystem>
 #include <format>
@@ -395,6 +392,7 @@ static Gameexe LoadGameexe(std::shared_ptr<AssetScanner> scanner) {
 
 SiglusRuntime SGVMFactory::Create() {
   SiglusRuntime rt;
+  rt.platform_implementor = platform_implementor_;
   rt.vm = std::make_unique<sr::VM>(m6::VMFactory::Create());
   sr::VM& vm = *rt.vm;
   std::shared_ptr<sr::GarbageCollector> gc = vm.gc_;
@@ -508,50 +506,7 @@ SiglusRuntime SGVMFactory::Create() {
         std::cerr << std::endl;
       },
       sb::vararg);
-  m.def("__builtin_load_scn",
-        [loader = rt.loader.get()](int scnid) -> sr::Value {
-          sr::Module* mod = loader->Load(scnid);
-          return sr::Value(mod);
-        });
 
-  m.def("__builtin_farcall",
-        [loader = rt.loader.get()](std::string scn, int zlabel) -> sr::Value {
-          for (auto& c : scn)
-            c = std::tolower(c);
-          const std::string zname = GetZlabelId(zlabel);
-          const std::string dbgname = std::format("SCENE{}@{}", scn, zlabel);
-          sr::Module* mod = loader->Load(scn);
-
-          if (!mod)
-            throw sr::RuntimeError(
-                std::format("Farcall {} could not load scene", dbgname));
-
-          auto it = mod->globals->find(zname);
-          if (it == mod->globals->cend())
-            it = mod->globals->find("%%script");
-          return it->second;
-        });
-  m.def("__builtin_usrcmd",
-        [loader = rt.loader.get()](int scn, int entry,
-                                   std::string name) -> sr::Value {
-          const std::string cmdname = GetUsercmdId(entry);
-          const std::string dbgname = std::format("{}:{}@{}", scn, entry, name);
-
-          sr::Module* mod = loader->Load(scn);
-          if (!mod) {
-            throw sr::RuntimeError(std::format(
-                "User command {} could not load scene {}", dbgname, scn));
-          }
-
-          auto it = mod->globals->find(cmdname);
-          if (it == mod->globals->cend()) {
-            std::string errmsg =
-                std::format("User command {} does not exist in {}:{}", dbgname,
-                            scn, mod->name);
-            throw sr::RuntimeError(std::move(errmsg));
-          }
-          return it->second;
-        });
   m.def("savepoint", [] {
     // TODO: implement save/load and serialization support
     return 0;

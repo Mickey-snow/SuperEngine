@@ -46,6 +46,7 @@ class VM;
 class IntListFacade;
 class StrListFacade;
 class BgmTable;
+class IPlatformImplementor;
 
 namespace libsiglus {
 class Archive;
@@ -71,6 +72,8 @@ struct SiglusRuntime {
   std::shared_ptr<EventListener> system_event_listener;
   std::shared_ptr<InputListener> input_event_listener;
   std::function<void()> exec_sdl_callback;
+  std::function<void()> reset_local_memory;
+  std::shared_ptr<IPlatformImplementor> platform_implementor;
 
   std::shared_ptr<srbind::class_<IntListFacade>> ilist_cls;
   std::shared_ptr<srbind::class_<StrListFacade>> slist_cls;
