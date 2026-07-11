@@ -26,7 +26,10 @@
 
 #pragma once
 
+#include "core/mwnd_config.hpp"
+#include "core/rect.hpp"
 #include "systems/text_waku.hpp"
+#include "utilities/clock.hpp"
 
 #include <memory>
 #include <string>
@@ -47,6 +50,7 @@ class TextWindowButton;
 class TextWakuNormal : public TextWaku {
  public:
   TextWakuNormal();
+  ~TextWakuNormal() override;
 
   void AddButton(std::string btn_name,
                  std::unique_ptr<TextWindowButton> btn_impl);
@@ -67,10 +71,47 @@ class TextWakuNormal : public TextWaku {
 
   void SetWakuMain(std::shared_ptr<const SDLSurface> surface);
   void SetWakuBacking(std::shared_ptr<const SDLSurface> surface);
+  void SetMainSurface(std::shared_ptr<const SDLSurface> surface) override {
+    SetWakuMain(std::move(surface));
+  }
+  void SetFilterSurface(std::shared_ptr<const SDLSurface> surface) override {
+    SetWakuBacking(std::move(surface));
+  }
+  void SetFilterConfig(Rect margin,
+                       RGBAColour colour,
+                       bool use_config_colour,
+                       bool use_config_opacity);
+  void SetWaitIcons(std::shared_ptr<SDLSurface> key_surface,
+                    MwndConfig::Icon key_icon,
+                    std::shared_ptr<SDLSurface> page_surface,
+                    MwndConfig::Icon page_icon,
+                    int position_type,
+                    int position_base,
+                    Point position,
+                    std::shared_ptr<Clock> clock);
+  void SetWaitIcon(bool page, const Point& position) override;
+  void HideWaitIcon() override;
+  void SetRenderFilter(bool render) { render_filter_ = render; }
 
  private:
   std::shared_ptr<const SDLSurface> main_surface_;
   std::shared_ptr<SDLSurface> backing_surface_;
+  std::shared_ptr<SDLSurface> generated_backing_;
+  Rect filter_margin_;
+  RGBAColour filter_colour_ = RGBAColour(0, 0, 0, 128);
+  bool use_config_colour_ = false;
+  bool use_config_opacity_ = false;
+  bool render_filter_ = true;
+  std::shared_ptr<SDLSurface> key_icon_surface_, page_icon_surface_;
+  MwndConfig::Icon key_icon_, page_icon_;
+  int icon_position_type_ = 0;
+  int icon_position_base_ = 0;
+  Point icon_position_;
+  Point dynamic_icon_position_;
+  std::shared_ptr<Clock> clock_;
+  Clock::duration_t icon_start_{};
+  bool icon_visible_ = false;
+  bool page_icon_visible_ = false;
 
   struct WakuButton {
     std::string name;

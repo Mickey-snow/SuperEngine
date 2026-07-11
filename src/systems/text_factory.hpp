@@ -25,16 +25,17 @@
 
 #pragma once
 
+#include "core/mwnd_config.hpp"
+
 #include <memory>
 
-class Gameexe;
 class TextWaku;
 class TextWindow;
 class System;
 
 class TextFactory {
  public:
-  TextFactory(Gameexe& gexe);
+  explicit TextFactory(const MwndConfig& config);
 
   std::unique_ptr<TextWaku> CreateWaku(System& system,
                                        TextWindow& window,
@@ -44,12 +45,10 @@ class TextFactory {
  private:
   std::unique_ptr<TextWaku> CreateWakuNormal(System& system,
                                              TextWindow& window,
-                                             int setno,
-                                             int no);
+                                             const MwndConfig::Waku& config);
   std::unique_ptr<TextWaku> CreateWakuType4(System& system,
                                             TextWindow& window,
-                                            int setno,
-                                            int no);
+                                            const MwndConfig::Waku& config);
 
-  Gameexe& gexe_;
+  const MwndConfig& config_;
 };

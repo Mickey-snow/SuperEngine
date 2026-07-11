@@ -27,9 +27,9 @@
 #include "systems/text_waku_normal.hpp"
 
 #include "core/rect.hpp"
+#include "systems/sdl/sdl_surface.hpp"
 #include "systems/text_waku.hpp"
 #include "systems/text_window_button.hpp"
-#include "systems/sdl/sdl_surface.hpp"
 
 #include <algorithm>
 #include <memory>
@@ -41,6 +41,7 @@ using namespace std::chrono_literals;
 // TextWakuNormal
 // -----------------------------------------------------------------------
 TextWakuNormal::TextWakuNormal() : TextWaku(true, false) {}
+TextWakuNormal::~TextWakuNormal() = default;
 
 void TextWakuNormal::AddButton(std::string btn_name,
                                std::unique_ptr<TextWindowButton> btn_impl) {
@@ -58,11 +59,38 @@ void TextWakuNormal::Render(Point box_location,
                             Size namebox_size,
                             RGBAColour colour,
                             bool is_filter) {
-  if (backing_surface_) {
-    Size backing_size = backing_surface_->GetSize();
-    backing_surface_->RenderToScreenAsColorMask(
-        Rect(Point(0, 0), backing_size), Rect(box_location, backing_size),
-        colour, is_filter);
+  RGBAColour filter_colour = filter_colour_;
+  if (use_config_colour_) {
+    filter_colour.set_red(colour.r());
+    filter_colour.set_green(colour.g());
+    filter_colour.set_blue(colour.b());
+  }
+  if (use_config_opacity_)
+    filter_colour.set_alpha(colour.a());
+
+  std::shared_ptr<SDLSurface> backing =
+      render_filter_ ? backing_surface_ : nullptr;
+  Size backing_size;
+  if (backing) {
+    backing_size = backing->GetSize();
+  } else if (render_filter_) {
+    backing_size =
+        namebox_size - Size(filter_margin_.x() + filter_margin_.x2(),
+                            filter_margin_.y() + filter_margin_.y2());
+    if (backing_size.width() > 0 && backing_size.height() > 0 &&
+        (!generated_backing_ ||
+         generated_backing_->GetSize() != backing_size)) {
+      generated_backing_ = std::make_shared<SDLSurface>(backing_size);
+      generated_backing_->Fill(RGBAColour::Black());
+    }
+    backing = generated_backing_;
+  }
+  if (render_filter_ && backing && !backing_size.is_empty()) {
+    const Point filter_position =
+        box_location + Size(filter_margin_.x(), filter_margin_.y());
+    backing->RenderToScreenAsColorMask(Rect(Point(0, 0), backing_size),
+                                       Rect(filter_position, backing_size),
+                                       filter_colour, is_filter);
   }
 
   if (main_surface_) {
@@ -75,8 +103,48 @@ void TextWakuNormal::Render(Point box_location,
     auto [surf, src] = btn.btn->Render();
     if (!surf || src.is_empty())
       continue;
-    Rect dst(btn.btn->GetRect().origin(), src.size());
-    surf->RenderToScreen(src, dst);
+    Rect dst(btn.btn->GetRect().origin() + btn.btn->GetRenderOffset(),
+             src.size());
+    surf->RenderToScreen(src, dst, btn.btn->GetRenderAlpha());
+  }
+
+  if (icon_visible_ && clock_) {
+    const MwndConfig::Icon& icon = page_icon_visible_ ? page_icon_ : key_icon_;
+    const std::shared_ptr<SDLSurface>& surface =
+        page_icon_visible_ ? page_icon_surface_ : key_icon_surface_;
+    if (surface && icon.pattern_count > 0 && icon.speed_ms > 0) {
+      const auto elapsed = (clock_->GetTicks() - icon_start_).count();
+      const int count = std::min(icon.pattern_count, surface->GetNumPatterns());
+      if (count > 0) {
+        const int pattern = static_cast<int>(elapsed / icon.speed_ms) % count;
+        const Rect source = surface->GetPattern(pattern).rect;
+        Point destination = dynamic_icon_position_;
+        if (icon_position_type_ == 0) {
+          const Rect bounds(box_location, GetSize(namebox_size));
+          switch (icon_position_base_) {
+            case 1:
+              destination =
+                  Point(bounds.x2() - icon_position_.x() - source.width(),
+                        bounds.y() + icon_position_.y());
+              break;
+            case 2:
+              destination =
+                  Point(bounds.x() + icon_position_.x(),
+                        bounds.y2() - icon_position_.y() - source.height());
+              break;
+            case 3:
+              destination =
+                  Point(bounds.x2() - icon_position_.x() - source.width(),
+                        bounds.y2() - icon_position_.y() - source.height());
+              break;
+            default:
+              destination = bounds.origin() + Size(icon_position_);
+              break;
+          }
+        }
+        surface->RenderToScreen(source, Rect(destination, source.size()));
+      }
+    }
   }
 }
 
@@ -113,3 +181,41 @@ void TextWakuNormal::SetWakuBacking(std::shared_ptr<const SDLSurface> surface) {
   backing_surface_ = surface->Clone();
   backing_surface_->SetIsMask(true);
 }
+
+void TextWakuNormal::SetFilterConfig(Rect margin,
+                                     RGBAColour colour,
+                                     bool use_config_colour,
+                                     bool use_config_opacity) {
+  filter_margin_ = margin;
+  filter_colour_ = colour;
+  use_config_colour_ = use_config_colour;
+  use_config_opacity_ = use_config_opacity;
+}
+
+void TextWakuNormal::SetWaitIcons(std::shared_ptr<SDLSurface> key_surface,
+                                  MwndConfig::Icon key_icon,
+                                  std::shared_ptr<SDLSurface> page_surface,
+                                  MwndConfig::Icon page_icon,
+                                  int position_type,
+                                  int position_base,
+                                  Point position,
+                                  std::shared_ptr<Clock> clock) {
+  key_icon_surface_ = std::move(key_surface);
+  key_icon_ = std::move(key_icon);
+  page_icon_surface_ = std::move(page_surface);
+  page_icon_ = std::move(page_icon);
+  icon_position_type_ = position_type;
+  icon_position_base_ = position_base;
+  icon_position_ = position;
+  clock_ = std::move(clock);
+}
+
+void TextWakuNormal::SetWaitIcon(bool page, const Point& position) {
+  page_icon_visible_ = page;
+  dynamic_icon_position_ = position;
+  icon_visible_ = true;
+  if (clock_)
+    icon_start_ = clock_->GetTicks();
+}
+
+void TextWakuNormal::HideWaitIcon() { icon_visible_ = false; }

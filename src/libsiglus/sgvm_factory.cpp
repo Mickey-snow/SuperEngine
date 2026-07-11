@@ -28,8 +28,10 @@
 #include "core/gameexe.hpp"
 #include "core/input.hpp"
 #include "core/interaction_manager.hpp"
+#include "core/mwnd_config.hpp"
 #include "core/stage.hpp"
 #include "libsiglus/archive.hpp"
+#include "libsiglus/bindings/flow.hpp"
 #include "libsiglus/bindings/loader.hpp"
 #include "libsiglus/bindings/registry.hpp"
 #include "libsiglus/gexedat.hpp"
@@ -45,6 +47,8 @@
 #include "utilities/file.hpp"
 #include "utilities/mapped_file.hpp"
 #include "utilities/string_utilities.hpp"
+#include "vm/function.hpp"
+#include "vm/instruction.hpp"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
@@ -73,300 +77,7 @@ namespace sb = srbind;
 
 static DomainLogger logger("SiglusFactory");
 
-namespace {
-
-constexpr int kSiglusDefaultMwndCount = 2;
-constexpr int kSiglusMaxMwndCount = 256;
-
-void SetIntVecIfMissing(Gameexe& gexe,
-                        std::string_view key,
-                        std::initializer_list<int> values) {
-  if (gexe.Exists(key))
-    return;
-
-  std::vector<GexeVal> gexe_values;
-  gexe_values.reserve(values.size());
-  for (int value : values)
-    gexe_values.emplace_back(value);
-  gexe.SetAt(key, std::move(gexe_values));
-}
-
-void SetIntVec(Gameexe& gexe, std::string_view key, std::vector<int> values) {
-  std::vector<GexeVal> gexe_values;
-  gexe_values.reserve(values.size());
-  for (int value : values)
-    gexe_values.emplace_back(value);
-  gexe.SetAt(key, std::move(gexe_values));
-}
-
-std::optional<int> ReadInt(Gameexe& gexe, std::string_view key) {
-  auto result = gexe(std::string(key)).Int();
-  if (!result)
-    return std::nullopt;
-  return result.value();
-}
-
-std::optional<std::vector<int>> ReadIntVec(Gameexe& gexe,
-                                           std::string_view key) {
-  auto result = gexe(std::string(key)).IntVec();
-  if (!result)
-    return std::nullopt;
-  return std::move(result.value());
-}
-
-std::string MwndKey(int index, std::string_view suffix, bool padded) {
-  if (padded)
-    return std::format("MWND.{:03}.{}", index, suffix);
-  return std::format("MWND.{}.{}", index, suffix);
-}
-
-std::string WindowKey(int index, std::string_view suffix) {
-  return std::format("WINDOW.{:03}.{}", index, suffix);
-}
-
-std::optional<int> ReadMwndInt(Gameexe& gexe,
-                               int index,
-                               std::string_view suffix) {
-  std::array keys{MwndKey(index, suffix, true), MwndKey(index, suffix, false)};
-  for (const auto& key : keys) {
-    if (auto value = ReadInt(gexe, key))
-      return value;
-  }
-  return std::nullopt;
-}
-
-std::optional<std::vector<int>> ReadMwndIntVec(Gameexe& gexe,
-                                               int index,
-                                               std::string_view suffix) {
-  std::array keys{MwndKey(index, suffix, true), MwndKey(index, suffix, false)};
-  for (const auto& key : keys) {
-    if (auto value = ReadIntVec(gexe, key))
-      return value;
-  }
-  return std::nullopt;
-}
-
-void ApplyPair(std::optional<std::vector<int>> values, int& x, int& y) {
-  if (!values || values->size() < 2)
-    return;
-
-  x = values->at(0);
-  y = values->at(1);
-}
-
-void ApplyRect(std::optional<std::vector<int>> values,
-               int& left,
-               int& top,
-               int& right,
-               int& bottom) {
-  if (!values || values->size() < 4)
-    return;
-
-  left = values->at(0);
-  top = values->at(1);
-  right = values->at(2);
-  bottom = values->at(3);
-}
-
-struct SiglusMwndSub {
-  int novel_mode = 0;
-  int extend_type = 0;
-  int window_x = 50;
-  int window_y = 400;
-  int window_width = 700;
-  int window_height = 150;
-  int message_x = 20;
-  int message_y = 20;
-  int margin_left = 20;
-  int margin_top = 20;
-  int margin_right = 20;
-  int margin_bottom = 20;
-  int moji_count_x = 26;
-  int moji_count_y = 3;
-  int moji_size = 25;
-  int moji_space_x = -1;
-  int moji_space_y = 10;
-  int ruby_size = 10;
-  int waku_no = 0;
-  int name_disp_mode = 0;
-  int name_extend_type = 0;
-  int name_window_x = 0;
-  int name_window_y = -100;
-  int name_message_x = 8;
-  int name_message_y = 8;
-  int name_margin_left = 8;
-  int name_margin_top = 8;
-  int name_margin_right = 8;
-  int name_margin_bottom = 8;
-  int name_moji_size = 16;
-  int name_moji_space_x = -1;
-  int name_moji_space_y = 8;
-  int name_moji_count = 8;
-  int name_waku_no = -1;
-};
-
-SiglusMwndSub LoadSiglusMwndSub(Gameexe& gexe, int index) {
-  SiglusMwndSub sub;
-
-  if (auto value = ReadMwndInt(gexe, index, "NOVEL_MODE"))
-    sub.novel_mode = *value;
-  if (auto value = ReadMwndInt(gexe, index, "EXTEND_TYPE"))
-    sub.extend_type = *value;
-  ApplyPair(ReadMwndIntVec(gexe, index, "WINDOW_POS"), sub.window_x,
-            sub.window_y);
-  ApplyPair(ReadMwndIntVec(gexe, index, "WINDOW_SIZE"), sub.window_width,
-            sub.window_height);
-  ApplyPair(ReadMwndIntVec(gexe, index, "MESSAGE_POS"), sub.message_x,
-            sub.message_y);
-  ApplyRect(ReadMwndIntVec(gexe, index, "MESSAGE_MARGIN"), sub.margin_left,
-            sub.margin_top, sub.margin_right, sub.margin_bottom);
-  ApplyPair(ReadMwndIntVec(gexe, index, "MOJI_CNT"), sub.moji_count_x,
-            sub.moji_count_y);
-  if (auto value = ReadMwndInt(gexe, index, "MOJI_SIZE"))
-    sub.moji_size = *value;
-  ApplyPair(ReadMwndIntVec(gexe, index, "MOJI_SPACE"), sub.moji_space_x,
-            sub.moji_space_y);
-  if (auto value = ReadMwndInt(gexe, index, "RUBY_SIZE"))
-    sub.ruby_size = *value;
-  if (auto value = ReadMwndInt(gexe, index, "WAKU_NO"))
-    sub.waku_no = *value;
-
-  if (auto value = ReadMwndInt(gexe, index, "NAME_DISP_MODE"))
-    sub.name_disp_mode = *value;
-  if (auto value = ReadMwndInt(gexe, index, "NAME_EXTEND_TYPE"))
-    sub.name_extend_type = *value;
-  ApplyPair(ReadMwndIntVec(gexe, index, "NAME_WINDOW_POS"), sub.name_window_x,
-            sub.name_window_y);
-  ApplyPair(ReadMwndIntVec(gexe, index, "NAME_MESSAGE_POS"), sub.name_message_x,
-            sub.name_message_y);
-  ApplyRect(ReadMwndIntVec(gexe, index, "NAME_MESSAGE_MARGIN"),
-            sub.name_margin_left, sub.name_margin_top, sub.name_margin_right,
-            sub.name_margin_bottom);
-  if (auto value = ReadMwndInt(gexe, index, "NAME_MOJI_SIZE"))
-    sub.name_moji_size = *value;
-  ApplyPair(ReadMwndIntVec(gexe, index, "NAME_MOJI_SPACE"),
-            sub.name_moji_space_x, sub.name_moji_space_y);
-  if (auto value = ReadMwndInt(gexe, index, "NAME_MOJI_CNT"))
-    sub.name_moji_count = *value;
-  if (auto value = ReadMwndInt(gexe, index, "NAME_WAKU_NO"))
-    sub.name_waku_no = *value;
-
-  return sub;
-}
-
-int LogicalTextWidth(const SiglusMwndSub& sub) {
-  const int pitch = std::max(sub.moji_size + sub.moji_space_x, 0);
-  return std::max(sub.moji_count_x, 0) * pitch;
-}
-
-int LogicalTextHeight(const SiglusMwndSub& sub) {
-  const int pitch =
-      std::max(sub.moji_size + sub.moji_space_y + sub.ruby_size, 0);
-  return std::max(sub.moji_count_y, 0) * pitch;
-}
-
-std::vector<int> BuildMojiPos(const SiglusMwndSub& sub) {
-  if (sub.extend_type == 1) {
-    return {sub.margin_top, sub.margin_bottom, sub.margin_left,
-            sub.margin_right};
-  }
-
-  const int top = std::max(sub.message_y, 0);
-  const int left = std::max(sub.message_x, 0);
-  const int right =
-      std::max(sub.window_width - sub.message_x - LogicalTextWidth(sub), 0);
-  const int bottom =
-      std::max(sub.window_height - sub.message_y - LogicalTextHeight(sub), 0);
-  return {top, bottom, left, right};
-}
-
-int ConvertNameMod(const SiglusMwndSub& sub) {
-  switch (sub.name_disp_mode) {
-    case 0:
-      return sub.name_waku_no >= 0 ? 1 : 0;
-    case 1:
-      return 0;
-    case 2:
-      return 2;
-    default:
-      return 0;
-  }
-}
-
-std::vector<int> BuildNameMojiPos(const SiglusMwndSub& sub) {
-  if (sub.name_extend_type == 1)
-    return {sub.name_margin_left, sub.name_margin_top};
-  return {sub.name_message_x, sub.name_message_y};
-}
-
-void WriteRealliveWindow(Gameexe& gexe, int index, const SiglusMwndSub& sub) {
-  SetIntVec(gexe, WindowKey(index, "ATTR_MOD"), {0});
-  SetIntVec(gexe, WindowKey(index, "ATTR"), {255, 255, 255, 255, 0});
-  SetIntVec(gexe, WindowKey(index, "MOJI_SIZE"), {sub.moji_size});
-  SetIntVec(gexe, WindowKey(index, "MOJI_CNT"),
-            {sub.moji_count_x, sub.moji_count_y});
-  SetIntVec(gexe, WindowKey(index, "MOJI_REP"),
-            {sub.moji_space_x, sub.moji_space_y});
-  SetIntVec(gexe, WindowKey(index, "LUBY_SIZE"), {sub.ruby_size});
-  SetIntVec(gexe, WindowKey(index, "MOJI_POS"), BuildMojiPos(sub));
-  SetIntVec(gexe, WindowKey(index, "POS"), {0, sub.window_x, sub.window_y});
-  SetIntVec(gexe, WindowKey(index, "INDENT_USE"), {1});
-  SetIntVec(gexe, WindowKey(index, "NAME_MOD"), {ConvertNameMod(sub)});
-  SetIntVec(gexe, WindowKey(index, "KEYCUR_MOD"), {0, 0, 0});
-  SetIntVec(gexe, WindowKey(index, "R_COMMAND_MOD"), {sub.novel_mode});
-  SetIntVec(gexe, WindowKey(index, "WAKU_SETNO"), {sub.waku_no});
-
-  SetIntVec(gexe, WindowKey(index, "NAME_WAKU_SETNO"), {sub.name_waku_no});
-  SetIntVec(gexe, WindowKey(index, "NAME_MOJI_REP"), {sub.name_moji_space_x});
-  SetIntVec(gexe, WindowKey(index, "NAME_MOJI_POS"), BuildNameMojiPos(sub));
-  SetIntVec(gexe, WindowKey(index, "NAME_POS"),
-            {sub.name_window_x, sub.name_window_y});
-  SetIntVec(gexe, WindowKey(index, "NAME_WAKU_DIR"), {0});
-  SetIntVec(gexe, WindowKey(index, "NAME_CENTERING"), {0});
-  SetIntVec(gexe, WindowKey(index, "NAME_MOJI_MIN"), {sub.name_moji_count});
-  SetIntVec(gexe, WindowKey(index, "NAME_MOJI_SIZE"), {sub.name_moji_size});
-}
-
-detail::SiglusMwndConfig EnsureSiglusTextDefaults(Gameexe& gexe) {
-  SetIntVecIfMissing(gexe, "WINDOW_ATTR", {255, 255, 255, 255, 0});
-  SetIntVecIfMissing(gexe, "COLOR_TABLE.000", {255, 255, 255});
-  SetIntVecIfMissing(gexe, "COLOR_TABLE.001", {0, 0, 0});
-  SetIntVecIfMissing(gexe, "COLOR_TABLE.002", {255, 0, 0});
-  SetIntVecIfMissing(gexe, "COLOR_TABLE.003", {0, 255, 0});
-  SetIntVecIfMissing(gexe, "COLOR_TABLE.004", {0, 0, 255});
-  SetIntVecIfMissing(gexe, "COLOR_TABLE.005", {255, 255, 0});
-  SetIntVecIfMissing(gexe, "COLOR_TABLE.006", {255, 0, 255});
-  SetIntVecIfMissing(gexe, "COLOR_TABLE.007", {0, 255, 255});
-  SetIntVecIfMissing(gexe, "COLOR_TABLE.254", {255, 255, 255});
-  return detail::NormalizeSiglusMwndConfig(gexe);
-}
-
-}  // namespace
-
-namespace detail {
-
-SiglusMwndConfig NormalizeSiglusMwndConfig(Gameexe& gexe) {
-  SiglusMwndConfig config;
-  config.default_mwnd_no =
-      ReadInt(gexe, "MWND.DEFAULT_MWND_NO").value_or(config.default_mwnd_no);
-  config.default_sel_mwnd_no = ReadInt(gexe, "MWND.DEFAULT_SEL_MWND_NO")
-                                   .value_or(config.default_sel_mwnd_no);
-
-  const int configured_count =
-      ReadInt(gexe, "MWND.CNT").value_or(kSiglusDefaultMwndCount);
-  const int min_required_count =
-      std::max({0, config.default_mwnd_no + 1, config.default_sel_mwnd_no + 1});
-  const int window_count = std::clamp(
-      std::max(configured_count, min_required_count), 0, kSiglusMaxMwndCount);
-
-  for (int i = 0; i < window_count; ++i)
-    WriteRealliveWindow(gexe, i, LoadSiglusMwndSub(gexe, i));
-
-  gexe.SetIntAt("DEFAULT_SEL_WINDOW", config.default_sel_mwnd_no);
-  return config;
-}
-
-}  // namespace detail
+namespace {}  // namespace
 
 // Load Gameexe.ini config
 static Gameexe LoadGameexe(std::shared_ptr<AssetScanner> scanner) {
@@ -412,7 +123,6 @@ SiglusRuntime SGVMFactory::Create() {
 
   rt.gameexe = std::make_shared<Gameexe>(LoadGameexe(rt.asset_scanner));
   Gameexe& gexe = *rt.gameexe;
-  const detail::SiglusMwndConfig mwnd_config = EnsureSiglusTextDefaults(gexe);
   gexe.SetStringAt("CAPTION", "SiglusTest");
   gexe.SetStringAt("REGNAME", "sjis: SIGLUS\\TEST");
   gexe.SetIntAt("NAME_ENC", 0);
@@ -420,12 +130,15 @@ SiglusRuntime SGVMFactory::Create() {
   gexe.SetIntAt("MOUSE_CURSOR", 0);
   gexe.SetStringAt("__GAMEPATH", base_path_.string());
   gexe.parseLine("#SCREENSIZE_MOD=999,1920,1080");
+  MwndConfig mwnd_config = MwndConfig::ParseSiglus(gexe);
+  const int default_window = mwnd_config.default_window();
 
   // Init sdl system
   SystemOptions system_options;
   system_options.fast_forward = fast_forward_;
-  rt.system = std::make_unique<System>(gexe, rt.asset_scanner, system_options);
-  rt.system->text().set_active_window(mwnd_config.default_mwnd_no);
+  rt.system = std::make_unique<System>(gexe, rt.asset_scanner,
+                                       std::move(mwnd_config), system_options);
+  rt.system->text().set_active_window(default_window);
   rt.stage =
       std::make_unique<Stage>(rt.system->graphics().GetObjectLayerSize());
   rt.renderer = std::make_shared<SiglusSceneRenderer>(*rt.stage, *rt.system);
@@ -433,6 +146,60 @@ SiglusRuntime SGVMFactory::Create() {
 
   rt.local_config = std::make_shared<Gameexe>();
   rt.global_config = std::make_shared<Gameexe>();
+
+  rt.system->text().SetMwndCallHandler(
+      [loader = rt.loader.get(), &vm](const MwndConfig::CallTarget& target) {
+        sr::Code* thunk = nullptr;
+        if (target.command) {
+          thunk = binding::MakeSceneEntryThunk(vm, *loader, target.scene,
+                                               *target.command);
+        } else {
+          thunk = binding::MakeSceneEntryThunk(
+              vm, *loader, target.scene,
+              GetZlabelId(target.entrypoint.value_or(0)));
+        }
+        vm.AddFiber(thunk);
+      });
+
+  rt.system->text().SetMwndActionHandler(
+      [local = rt.local_config, global = rt.global_config,
+       gameexe = rt.gameexe](const MwndConfig::Button& button, bool execute) {
+        using Action = MwndConfig::ButtonAction;
+        const auto key = [&](std::string_view root) {
+          return std::format("{}.{:03}", root, button.action_option);
+        };
+        switch (button.action) {
+          case Action::LocalSwitch:
+            if (execute)
+              local->SetIntAt(key("LOCAL_EXTRA_SWITCH"), button.mode == 0);
+            return true;
+          case Action::GlobalSwitch:
+            if (execute) {
+              const std::string name = key("GLOBAL_EXTRA_SWITCH");
+              global->SetIntAt(name, !(*global)(name).Int().value_or(0));
+            }
+            return true;
+          case Action::LocalMode:
+          case Action::GlobalMode: {
+            if (!execute)
+              return true;
+            const bool is_global = button.action == Action::GlobalMode;
+            Gameexe& store = is_global ? *global : *local;
+            const std::string name =
+                key(is_global ? "GLOBAL_EXTRA_MODE" : "LOCAL_EXTRA_MODE");
+            const std::string count_key = std::format(
+                "{}.{}.{:03}.ITEM_CNT", is_global ? "DIALOG" : "SYSCOMMENU",
+                is_global ? "GLOBAL_EXTRA_MODE" : "LOCAL_EXTRA_MODE",
+                button.action_option);
+            const int count =
+                std::max(1, (*gameexe)(count_key).Int().value_or(1));
+            store.SetIntAt(name, (store(name).Int().value_or(0) + 1) % count);
+            return true;
+          }
+          default:
+            return false;
+        }
+      });
 
   struct SystemEventListener : public EventListener {
     sr::VM& vm;

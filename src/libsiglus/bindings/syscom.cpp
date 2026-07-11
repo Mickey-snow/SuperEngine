@@ -27,6 +27,7 @@
 #include "libsiglus/bindings/flow.hpp"
 #include "libsiglus/bindings/registry.hpp"
 #include "libsiglus/bindings/util.hpp"
+#include "libsiglus/intern_name.hpp"
 #include "platforms/implementor.hpp"
 #include "srbind/srbind.hpp"
 #include "systems/graphics_system.hpp"
@@ -123,13 +124,13 @@ void BindSyscom(SiglusRuntime& runtime) {
         }
 
         auto [scene_name, zlabel] = ReadMenuScene(*gameexe);
-        Code* entry =
-            MakeSceneEntryThunk(vm, *loader, std::move(scene_name), zlabel);
+        Code* thunk = MakeSceneEntryThunk(vm, *loader, std::move(scene_name),
+                                          GetZlabelId(zlabel));
 
         if (params.se_play && sys)
           sys->sound().PlaySe(6);
 
-        auto restart = [sys, stage, input, reset_local_memory, &vm, entry,
+        auto restart = [sys, stage, input, reset_local_memory, &vm, thunk,
                         preserve = params.preserve_backlog] {
           if (reset_local_memory)
             reset_local_memory();
@@ -146,7 +147,7 @@ void BindSyscom(SiglusRuntime& runtime) {
           }
           if (input)
             input->ResetState();
-          vm.AddFiber(entry);
+          vm.AddFiber(thunk);
         };
 
         fiber.frames.clear();

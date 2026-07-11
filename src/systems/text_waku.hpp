@@ -28,11 +28,14 @@
 
 #include "core/colour.hpp"
 
+#include <memory>
+
 class Point;
 class Rect;
 class RLMachine;
 class Size;
 class System;
+class SDLSurface;
 
 class TextWaku {
  public:
@@ -53,6 +56,10 @@ class TextWaku {
   virtual bool HandleMouseClick(const Point& pos, bool pressed) {
     return false;
   }
+  virtual void SetWaitIcon(bool page, const Point& position) {}
+  virtual void HideWaitIcon() {}
+  virtual void SetMainSurface(std::shared_ptr<const SDLSurface> surface) {}
+  virtual void SetFilterSurface(std::shared_ptr<const SDLSurface> surface) {}
 
   std::pair<bool, bool> ShouldCenter() const;
 

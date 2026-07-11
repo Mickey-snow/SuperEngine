@@ -17,6 +17,6 @@ class Loader;
 serilang::Code* MakeSceneEntryThunk(serilang::VM& vm,
                                     Loader& loader,
                                     std::string scene_name,
-                                    int zlabel);
+                                    const std::string& entry_name);
 
 }  // namespace libsiglus::binding

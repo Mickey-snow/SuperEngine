@@ -28,6 +28,7 @@
 #include "systems/system.hpp"
 
 #include "core/gameexe.hpp"
+#include "core/mwnd_config.hpp"
 #include "core/rlevent_listener.hpp"
 #include "effects/fade_effect.hpp"
 #include "libreallive/alldefs.hpp"
@@ -71,11 +72,9 @@ namespace fs = std::filesystem;
 
 namespace {
 
-const std::vector<std::string> ALL_FILETYPES = {"g00", "pdt", "anm", "gan",
-                                                "hik", "wav", "ogg", "nwa",
-                                                "mp3", "ovk", "koe", "nwk",
-                                                "wmv", "asf", "avi", "mpg",
-                                                "mpeg"};
+const std::vector<std::string> ALL_FILETYPES = {
+    "g00", "pdt", "anm", "gan", "hik", "wav", "ogg", "nwa", "mp3",
+    "ovk", "koe", "nwk", "wmv", "asf", "avi", "mpg", "mpeg"};
 
 }  // namespace
 
@@ -119,6 +118,15 @@ SystemGlobals::SystemGlobals()
 System::System(Gameexe& gameexe,
                std::shared_ptr<AssetScanner> scanner,
                SystemOptions options)
+    : System(gameexe,
+             std::move(scanner),
+             MwndConfig::ParseReallive(gameexe),
+             options) {}
+
+System::System(Gameexe& gameexe,
+               std::shared_ptr<AssetScanner> scanner,
+               MwndConfig mwnd_config,
+               SystemOptions options)
     : gameexe_(gameexe),
       in_menu_(false),
       force_fast_forward_(false),
@@ -144,15 +152,15 @@ System::System(Gameexe& gameexe,
   std::unique_ptr<IEventBackend> event_impl =
       std::make_unique<SDLEventBackend>();
   if (options.fast_forward)
-    event_impl = std::make_unique<FastForwardEventBackend>(
-        std::move(event_impl));
+    event_impl =
+        std::make_unique<FastForwardEventBackend>(std::move(event_impl));
   event_system_ = std::make_shared<EventSystem>(std::move(event_impl));
   quit_listener_ = std::make_shared<QuitEventListener>(*this);
   event_system_->AddListener(100, quit_listener_);
 
   auto text_impl = std::make_unique<SDLTextImpl>();
-  text_system_ =
-      std::make_shared<TextSystem>(*this, gameexe, std::move(text_impl));
+  text_system_ = std::make_shared<TextSystem>(
+      *this, gameexe, std::move(text_impl), std::move(mwnd_config));
 
   auto sound_impl = std::make_unique<SDLSoundImpl>();
   sound_system_ = std::make_shared<SoundSystem>(*this, std::move(sound_impl));

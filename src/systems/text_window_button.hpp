@@ -27,6 +27,7 @@
 
 #pragma once
 
+#include "core/button_action_table.hpp"
 #include "core/rect.hpp"
 #include "utilities/clock.hpp"
 
@@ -37,8 +38,10 @@
 
 class SDLSurface;
 
+class ButtonActionTable;
+
 // Describes the state of a Waku button
-enum class ButtonState : int {
+enum class TextWindowButtonState : int {
   Unused = -1,
   Normal = 0,
   Highlighted = 1,
@@ -64,8 +67,11 @@ class TextWindowButton {
   bool HandleMouseClick(const Point& pos, bool pressed);
 
   void SetSurface(std::shared_ptr<SDLSurface> surf, int base_pattern);
+  void SetActionTableEntry(ButtonActionTable::Entry entry, int cut_no);
 
   std::pair<std::shared_ptr<SDLSurface>, Rect> Render() const;
+  Point GetRenderOffset() const;
+  int GetRenderAlpha() const;
 
   // Called by other execute() calls while the System object has its
   // turn to do any updating
@@ -83,7 +89,7 @@ class TextWindowButton {
   // When set, repeat the pressed callback periodically
   std::optional<std::chrono::milliseconds> time_between_invocations_;
 
-  ButtonState state_;
+  TextWindowButtonState state_;
 
  private:
   inline void ButtonPressed() {
@@ -106,4 +112,5 @@ class TextWindowButton {
 
   std::shared_ptr<SDLSurface> button_surface_;
   int base_pattern_;
+  std::optional<ButtonActionTable::Entry> action_entry_;
 };

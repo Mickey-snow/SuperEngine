@@ -102,10 +102,10 @@ TextWindow::TextWindow(System& system,
       keycursor_type_(params.keycursor_type),
       keycursor_pos_(params.keycursor_pos),
       name_mod_(NameMode::Inline),
-      name_waku_set_(params.namebox.name_waku_set),
+      name_waku_set_(params.namebox.waku_set),
       name_font_size_in_pixels_(0),
       name_waku_dir_set_(params.namebox.waku_dir_set),
-      name_x_spacing_(params.namebox.name_x_spacing),
+      name_x_spacing_(params.namebox.x_spacing),
       horizontal_namebox_padding_(params.namebox.horizontal_padding),
       vertical_namebox_padding_(params.namebox.vertical_padding),
       namebox_x_offset_(params.namebox.x_offset),
@@ -145,6 +145,31 @@ void TextWindow::Execute() {
   if (IsVisible() && !system_.graphics().is_interface_hidden()) {
     textbox_waku_->Execute();
   }
+}
+
+void TextWindow::ShowWaitIcon(bool page) {
+  if (!textbox_waku_)
+    return;
+  const Point position = GetTextSurfaceRect().origin() +
+                         Size(layout_.insertion_x, layout_.insertion_y);
+  textbox_waku_->SetWaitIcon(page, position);
+}
+
+void TextWindow::HideWaitIcon() {
+  if (textbox_waku_)
+    textbox_waku_->HideWaitIcon();
+}
+
+void TextWindow::SetWakuMainFile(const std::string& file) {
+  if (textbox_waku_)
+    textbox_waku_->SetMainSurface(
+        file.empty() ? nullptr : system_.graphics().GetSurfaceNamed(file));
+}
+
+void TextWindow::SetWakuFilterFile(const std::string& file) {
+  if (textbox_waku_)
+    textbox_waku_->SetFilterSurface(
+        file.empty() ? nullptr : system_.graphics().GetSurfaceNamed(file));
 }
 
 void TextWindow::SetTextboxPadding(const std::vector<int>& pos_data) {
@@ -366,6 +391,15 @@ void TextWindow::FaceClose(int index) {
       system_.text().HideAllTextWindowsExcept(window_number());
     }
   }
+}
+
+void TextWindow::SetFaceSlotPosition(int index, Point position) {
+  if (index < 0 || index >= kNumFaceSlots)
+    return;
+  if (!face_slot_[index])
+    face_slot_[index] = std::make_unique<FaceSlot>(FaceSlotConfig{});
+  face_slot_[index]->x = position.x();
+  face_slot_[index]->y = position.y();
 }
 
 void TextWindow::NextCharIsItalic() { next_char_italic_ = true; }

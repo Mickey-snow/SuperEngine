@@ -28,6 +28,7 @@
 #pragma once
 
 #include "core/event_listener.hpp"
+#include "core/mwnd_config.hpp"
 #include "machine/long_operation.hpp"
 
 #include <boost/serialization/split_member.hpp>
@@ -111,7 +112,10 @@ class TextSystem final : public EventListener {
   typedef std::map<int, TextPage> PageSet;
 
  public:
-  TextSystem(System& system, Gameexe& gexe, std::unique_ptr<ITextSystem> impl);
+  TextSystem(System& system,
+             Gameexe& gexe,
+             std::unique_ptr<ITextSystem> impl,
+             MwndConfig mwnd_config);
   virtual ~TextSystem();
 
   // Controls whether the text system is rendered at all.
@@ -138,6 +142,19 @@ class TextSystem final : public EventListener {
       int num,
       std::function<std::shared_ptr<TextWindow>()> orelse);
   std::shared_ptr<TextWindow> GetCurrentWindow();
+  const MwndConfig& mwnd_config() const { return mwnd_config_; }
+  using MwndCallHandler =
+      std::function<void(const MwndConfig::CallTarget& target)>;
+  using MwndActionHandler =
+      std::function<bool(const MwndConfig::Button& button, bool execute)>;
+  void SetMwndCallHandler(MwndCallHandler handler) {
+    mwnd_call_handler_ = std::move(handler);
+  }
+  void SetMwndActionHandler(MwndActionHandler handler) {
+    mwnd_action_handler_ = std::move(handler);
+  }
+  bool IsMwndButtonEnabled(const MwndConfig::Button& button) const;
+  void ExecuteMwndButton(const MwndConfig::Button& button);
 
   void set_in_pause_state(bool in) { in_pause_state_ = in; }
 
@@ -324,6 +341,9 @@ class TextSystem final : public EventListener {
 
   // Storage of active windows
   WindowMap text_window_;
+  MwndConfig mwnd_config_;
+  MwndCallHandler mwnd_call_handler_;
+  MwndActionHandler mwnd_action_handler_;
 
   // Whether we are reading the backlog
   bool is_reading_backlog_;

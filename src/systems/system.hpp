@@ -47,6 +47,7 @@ class Gameexe;
 class GameexeInterpretObject;
 class EventListener;
 class RLEventListener;
+class MwndConfig;
 
 struct SystemOptions {
   bool fast_forward = false;
@@ -124,6 +125,10 @@ class System {
  public:
   System(Gameexe& gameexe,
          std::shared_ptr<AssetScanner> scanner = nullptr,
+         SystemOptions options = {});
+  System(Gameexe& gameexe,
+         std::shared_ptr<AssetScanner> scanner,
+         MwndConfig mwnd_config,
          SystemOptions options = {});
   ~System();
 

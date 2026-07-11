@@ -25,6 +25,7 @@
 #pragma once
 
 #include "core/colour.hpp"
+#include "core/mwnd_config.hpp"
 #include "core/rect.hpp"
 #include "core/text_layout.hpp"
 
@@ -45,7 +46,7 @@ class ITextSystem;
 class TextWaku;
 class TextWindowButton;
 
-constexpr int kNumFaceSlots = 8;
+constexpr int kNumFaceSlots = MwndConfig::kNumFaceSlots;
 
 // Sets of TextWindows should be reconstructable by the state in TextPage,
 // though there are some notable exceptions, specifically Select_LongOperation.
@@ -55,52 +56,9 @@ constexpr int kNumFaceSlots = 8;
 // reverse engineers a headache.
 class TextWindow {
  public:
-  struct FaceSlotConfig {
-    int x = 0;
-    int y = 0;
-    int is_behind = 0;
-    int hide_other_windows = 0;
-    int unknown = 0;
-  };
-
-  struct NameboxConfig {
-    bool has_namebox_waku = false;
-    int name_waku_set = 0;
-    int name_x_spacing = 0;
-    int horizontal_padding = 0;
-    int vertical_padding = 0;
-    int x_offset = 0;
-    int y_offset = 0;
-    int waku_dir_set = 0;
-    int centering = 0;
-    int minimum_size = 4;
-    int character_size = 0;
-  };
-
-  struct InitParams {
-    Size screen_size;
-    TextLayout layout{0, 0, 0};
-    int default_font_size = 25;
-    int window_attr_mod = 0;
-    int waku_set = 0;
-    RGBAColour colour;
-    bool is_filter = false;
-    RGBColour default_colour;
-    int use_indentation = 1;
-    int action_on_pause = 0;
-    int origin = 0;
-    int x_distance_from_origin = 0;
-    int y_distance_from_origin = 0;
-    int upper_box_padding = 0;
-    int lower_box_padding = 0;
-    int left_box_padding = 0;
-    int right_box_padding = 0;
-    int keycursor_type = 0;
-    Point keycursor_pos;
-    int name_mod = 0;
-    NameboxConfig namebox;
-    std::array<std::optional<FaceSlotConfig>, kNumFaceSlots> face_slots;
-  };
+  using FaceSlotConfig = MwndConfig::FaceSlot;
+  using NameboxConfig = MwndConfig::Namebox;
+  using InitParams = MwndConfig::Window;
 
   TextWindow(System& system,
              int window_num,
@@ -112,6 +70,10 @@ class TextWindow {
   inline TextLayout const& Layout() const { return layout_; }
 
   void Execute();
+  void ShowWaitIcon(bool page);
+  void HideWaitIcon();
+  void SetWakuMainFile(const std::string& file);
+  void SetWakuFilterFile(const std::string& file);
 
   int window_number() const { return window_num_; }
 
@@ -225,6 +187,7 @@ class TextWindow {
 
   // Clears face slot |index|.
   void FaceClose(int index);
+  void SetFaceSlotPosition(int index, Point position);
 
   // Marks that the next character rendered in the window should be italic.
   void NextCharIsItalic();

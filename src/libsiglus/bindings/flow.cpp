@@ -53,14 +53,14 @@ static std::string NormalizeSceneName(std::string name) {
   return name;
 }
 
-static sr::Function* ResolveZLabel(sr::Module& mod, int zlabel) {
-  auto it = mod.globals->find(GetZlabelId(zlabel));
+static sr::Function* ResolveEntry(sr::Module& mod, const std::string& entry) {
+  auto it = mod.globals->find(entry);
   if (it == mod.globals->cend())
     it = mod.globals->find("%%script");
 
   if (it == mod.globals->cend()) {
     throw sr::RuntimeError(
-        std::format("scene {} has no entry for z-label {}", mod.name, zlabel));
+        std::format("scene {} has no entry for z-label {}", mod.name, entry));
   }
 
   sr::Function* fn = it->second.Get_if<sr::Function>();
@@ -74,7 +74,7 @@ static sr::Function* ResolveZLabel(sr::Module& mod, int zlabel) {
 sr::Code* MakeSceneEntryThunk(sr::VM& vm,
                               Loader& loader,
                               std::string scene_name,
-                              int zlabel) {
+                              const std::string& entry_name) {
   if (scene_name.empty())
     throw sr::RuntimeError("scene name is empty");
 
@@ -82,7 +82,7 @@ sr::Code* MakeSceneEntryThunk(sr::VM& vm,
   if (!mod)
     throw sr::RuntimeError("could not load destination scene");
 
-  sr::Function* fn = ResolveZLabel(*mod, zlabel);
+  sr::Function* fn = ResolveEntry(*mod, entry_name);
   sr::Code* thunk = vm.gc_->Allocate<sr::Code>();
   thunk->const_pool.emplace_back(fn);
   thunk->Append(sr::Push{0});
@@ -135,7 +135,7 @@ void BindFlow(SiglusRuntime& rt) {
         if (!mod)
           throw sr::RuntimeError("jump could not load destination scene");
 
-        sr::Function* fn = ResolveZLabel(*mod, zlabel);
+        sr::Function* fn = ResolveEntry(*mod, GetZlabelId(zlabel));
         sr::Code* thunk = vm.gc_->Allocate<sr::Code>();
         thunk->const_pool.emplace_back(fn);
         thunk->Append(sr::Push{0});
@@ -178,7 +178,7 @@ void BindFlow(SiglusRuntime& rt) {
             throw sr::RuntimeError(
                 std::format("Farcall {} could not load scene", dbgname));
 
-          return ResolveZLabel(*mod, zlabel);
+          return ResolveEntry(*mod, GetZlabelId(zlabel));
         });
 
   m.def("__builtin_load_scn",

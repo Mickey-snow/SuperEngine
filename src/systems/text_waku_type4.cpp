@@ -27,8 +27,9 @@
 #include "systems/text_waku_type4.hpp"
 
 #include "systems/graphics_system.hpp"
-#include "systems/text_waku.hpp"
 #include "systems/sdl/sdl_surface.hpp"
+#include "systems/text_waku.hpp"
+#include "systems/text_waku_normal.hpp"
 
 // A listing of all the g00 regions in type 4 wakus. The ranges to the right
 // are from the file smw01a.g00 in CLANNAD_FV.
@@ -54,7 +55,10 @@ TextWakuType4::TextWakuType4()
       area_left_(0),
       area_right_(0) {}
 
-void TextWakuType4::Execute() {}
+void TextWakuType4::Execute() {
+  if (overlay_)
+    overlay_->Execute();
+}
 
 void TextWakuType4::Render(Point box_location,
                            Size content_size,
@@ -68,10 +72,20 @@ void TextWakuType4::Render(Point box_location,
         Size(area_left_, area_top_);
     Size backing_size =
         content_size + Size(area_left_ + area_right_, area_top_ + area_bottom_);
-    std::shared_ptr<SDLSurface> backing = GetWakuBackingOfSize(backing_size);
+    std::shared_ptr<SDLSurface> backing = filter_surface_;
+    if (!backing)
+      backing = GetWakuBackingOfSize(backing_size);
+    RGBAColour filter_colour = filter_colour_;
+    if (use_config_colour_) {
+      filter_colour.set_red(colour.r());
+      filter_colour.set_green(colour.g());
+      filter_colour.set_blue(colour.b());
+    }
+    if (use_config_opacity_)
+      filter_colour.set_alpha(colour.a());
     backing->RenderToScreenAsColorMask(backing->GetRect(),
                                        Rect(backing_point, backing_size),
-                                       colour, is_filter);
+                                       filter_colour, is_filter);
 
     // Calculate the total size of the waku decoration. We need this to get the
     // size of the non-corners correct.
@@ -129,6 +143,8 @@ void TextWakuType4::Render(Point box_location,
     waku_main_->RenderToScreen(bottom_right_.rect,
                                Rect(bottom_right_p, bottom_right_.rect.size()));
   }
+  if (overlay_)
+    overlay_->Render(box_location, content_size, colour, is_filter);
 }
 
 Size TextWakuType4::GetSize(const Size& text_surface) const {
@@ -137,7 +153,8 @@ Size TextWakuType4::GetSize(const Size& text_surface) const {
   return text_surface + padding;
 }
 
-const std::shared_ptr<SDLSurface>& TextWakuType4::GetWakuBackingOfSize(Size size) {
+const std::shared_ptr<SDLSurface>& TextWakuType4::GetWakuBackingOfSize(
+    Size size) {
   if (!cached_backing_ || cached_backing_->GetSize() != size) {
     cached_backing_ = std::make_shared<SDLSurface>(size);
     cached_backing_->Fill(RGBAColour::Black());
@@ -146,7 +163,8 @@ const std::shared_ptr<SDLSurface>& TextWakuType4::GetWakuBackingOfSize(Size size
   return cached_backing_;
 }
 
-void TextWakuType4::SetMainWaku(std::shared_ptr<const SDLSurface> waku_surface) {
+void TextWakuType4::SetMainWaku(
+    std::shared_ptr<const SDLSurface> waku_surface) {
   if (!waku_surface) {
     waku_main_ = nullptr;
     return;
@@ -171,4 +189,45 @@ void TextWakuType4::SetArea(int top, int bottom, int left, int right) {
   area_bottom_ = bottom;
   area_left_ = left;
   area_right_ = right;
+}
+
+void TextWakuType4::SetFilterSurface(
+    std::shared_ptr<const SDLSurface> surface) {
+  SetFilter(std::move(surface), filter_colour_, use_config_colour_,
+            use_config_opacity_);
+}
+
+void TextWakuType4::SetFilter(std::shared_ptr<const SDLSurface> surface,
+                              RGBAColour colour,
+                              bool use_config_colour,
+                              bool use_config_opacity) {
+  filter_surface_ = surface ? surface->Clone() : nullptr;
+  if (filter_surface_)
+    filter_surface_->SetIsMask(true);
+  filter_colour_ = colour;
+  use_config_colour_ = use_config_colour;
+  use_config_opacity_ = use_config_opacity;
+}
+
+void TextWakuType4::SetOverlay(std::unique_ptr<TextWakuNormal> overlay) {
+  overlay_ = std::move(overlay);
+}
+
+void TextWakuType4::SetMousePosition(const Point& pos) {
+  if (overlay_)
+    overlay_->SetMousePosition(pos);
+}
+
+bool TextWakuType4::HandleMouseClick(const Point& pos, bool pressed) {
+  return overlay_ && overlay_->HandleMouseClick(pos, pressed);
+}
+
+void TextWakuType4::SetWaitIcon(bool page, const Point& position) {
+  if (overlay_)
+    overlay_->SetWaitIcon(page, position);
+}
+
+void TextWakuType4::HideWaitIcon() {
+  if (overlay_)
+    overlay_->HideWaitIcon();
 }

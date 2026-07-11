@@ -23,8 +23,13 @@
 
 #pragma once
 
-#include "systems/text_waku.hpp"
+#include "core/mwnd_config.hpp"
 #include "systems/sdl/sdl_surface.hpp"
+#include "systems/text_waku.hpp"
+
+#include <memory>
+
+class TextWakuNormal;
 
 // Waku which is a modified Ninebox. Instead of a ninebox, it's really a 12-box
 // where four of the entries aren't used and the center is never defined. This
@@ -48,13 +53,22 @@ class TextWakuType4 : public TextWaku {
   // instead some sort of listener. I'm currently thinking that the individual
   // buttons that need to handle events should be listeners.
   // normal waku only
-  virtual void SetMousePosition(const Point& pos) override {}
-  virtual bool HandleMouseClick(const Point& pos, bool pressed) override {
-    return false;
-  }
+  virtual void SetMousePosition(const Point& pos) override;
+  virtual bool HandleMouseClick(const Point& pos, bool pressed) override;
+  void SetWaitIcon(bool page, const Point& position) override;
+  void HideWaitIcon() override;
 
   void SetMainWaku(std::shared_ptr<const SDLSurface> waku_surface);
+  void SetMainSurface(std::shared_ptr<const SDLSurface> surface) override {
+    SetMainWaku(std::move(surface));
+  }
+  void SetFilterSurface(std::shared_ptr<const SDLSurface> surface) override;
   void SetArea(int top, int bottom, int left, int right);
+  void SetFilter(std::shared_ptr<const SDLSurface> surface,
+                 RGBAColour colour,
+                 bool use_config_colour,
+                 bool use_config_opacity);
+  void SetOverlay(std::unique_ptr<TextWakuNormal> overlay);
 
  private:
   // Returns |cached_backing_|, shrinking or enlarging it to |size|.
@@ -68,6 +82,11 @@ class TextWakuType4 : public TextWaku {
 
   // A cached backing regenerated whenever the namebox size changes
   std::shared_ptr<SDLSurface> cached_backing_;
+  std::shared_ptr<SDLSurface> filter_surface_;
+  RGBAColour filter_colour_ = RGBAColour(0, 0, 0, 128);
+  bool use_config_colour_ = false;
+  bool use_config_opacity_ = false;
+  std::unique_ptr<TextWakuNormal> overlay_;
 
   // G00 regions in |waku_main_|.
   GrpRect top_left_, top_center_, top_right_;
