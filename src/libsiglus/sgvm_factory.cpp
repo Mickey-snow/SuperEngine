@@ -169,6 +169,7 @@ void ApplyRect(std::optional<std::vector<int>> values,
 }
 
 struct SiglusMwndSub {
+  int novel_mode = 0;
   int extend_type = 0;
   int window_x = 50;
   int window_y = 400;
@@ -207,6 +208,8 @@ struct SiglusMwndSub {
 SiglusMwndSub LoadSiglusMwndSub(Gameexe& gexe, int index) {
   SiglusMwndSub sub;
 
+  if (auto value = ReadMwndInt(gexe, index, "NOVEL_MODE"))
+    sub.novel_mode = *value;
   if (auto value = ReadMwndInt(gexe, index, "EXTEND_TYPE"))
     sub.extend_type = *value;
   ApplyPair(ReadMwndIntVec(gexe, index, "WINDOW_POS"), sub.window_x,
@@ -310,7 +313,7 @@ void WriteRealliveWindow(Gameexe& gexe, int index, const SiglusMwndSub& sub) {
   SetIntVec(gexe, WindowKey(index, "INDENT_USE"), {1});
   SetIntVec(gexe, WindowKey(index, "NAME_MOD"), {ConvertNameMod(sub)});
   SetIntVec(gexe, WindowKey(index, "KEYCUR_MOD"), {0, 0, 0});
-  SetIntVec(gexe, WindowKey(index, "R_COMMAND_MOD"), {0});
+  SetIntVec(gexe, WindowKey(index, "R_COMMAND_MOD"), {sub.novel_mode});
   SetIntVec(gexe, WindowKey(index, "WAKU_SETNO"), {sub.waku_no});
 
   SetIntVec(gexe, WindowKey(index, "NAME_WAKU_SETNO"), {sub.name_waku_no});

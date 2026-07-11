@@ -158,20 +158,22 @@ struct KoeCallParams {
 
 class MwndWaitTask : public CoroutineTask {
  public:
+  enum class AfterWait { None, Paragraph, Clear };
+
   MwndWaitTask(sr::VM& vm,
                System* system,
                std::shared_ptr<Gameexe> local_config,
                std::shared_ptr<MwndMessageState> message_state,
-               bool mark_clear_ready_after)
+               AfterWait after_wait)
       : CoroutineTask(vm, system ? system->event_ptr().get() : nullptr),
         system_(system),
         local_config_(std::move(local_config)),
         message_state_(std::move(message_state)),
-        mark_clear_ready_after_(mark_clear_ready_after) {}
+        after_wait_(after_wait) {}
 
   TaskCoroutine Run() override {
     if (!system_ || MessageNowait(system_, local_config_)) {
-      MarkClearReadyAfterWait();
+      FinishWait();
       co_return 0;
     }
 
@@ -186,13 +188,13 @@ class MwndWaitTask : public CoroutineTask {
         if ((co_await WaitFor(std::chrono::milliseconds(5), true)) ==
             WaitOutcome::InterruptedByInput) {
           pause.Reset();
-          MarkClearReadyAfterWait();
+          FinishWait();
           co_return 1;
         }
 
         if (MessageNowait(system_, local_config_)) {
           pause.Reset();
-          MarkClearReadyAfterWait();
+          FinishWait();
           co_return 0;
         }
 
@@ -201,7 +203,7 @@ class MwndWaitTask : public CoroutineTask {
               system_->event().GetTicks() - start_ticks;
           if (elapsed >= static_cast<unsigned int>(std::max(auto_time, 0))) {
             pause.Reset();
-            MarkClearReadyAfterWait();
+            FinishWait();
             co_return 0;
           }
         }
@@ -235,12 +237,23 @@ class MwndWaitTask : public CoroutineTask {
     TextSystem* text_;
   };
 
-  void MarkClearReadyAfterWait() {
+  void FinishWait() {
     if (!system_ || !message_state_)
       return;
-    if (!mark_clear_ready_after_)
-      return;
-    message_state_->MarkMessageClearReady(*system_);
+    switch (after_wait_) {
+      case AfterWait::None:
+        return;
+      case AfterWait::Paragraph: {
+        message_state_->MarkNovelClear(*system_);
+        TextPage& page = system_->text().GetCurrentPage();
+        page.ResetIndentation();
+        page.HardBrake();
+        return;
+      }
+      case AfterWait::Clear:
+        message_state_->MarkMessageClearReady(*system_);
+        return;
+    }
   }
 
   int AutoModeCharCount() {
@@ -259,7 +272,7 @@ class MwndWaitTask : public CoroutineTask {
   System* system_;
   std::shared_ptr<Gameexe> local_config_;
   std::shared_ptr<MwndMessageState> message_state_;
-  bool mark_clear_ready_after_;
+  AfterWait after_wait_;
 };
 
 struct MwndBindingState {
@@ -271,10 +284,19 @@ struct MwndBindingState {
         local_config(std::move(local_config)),
         message_state(std::make_shared<MwndMessageState>()) {}
 
-  sr::Value Wait(bool mark_clear_ready_after) {
+  sr::Value Wait(MwndWaitTask::AfterWait after_wait) {
     auto wait_task = std::make_unique<MwndWaitTask>(
-        vm, system, local_config, message_state, mark_clear_ready_after);
+        vm, system, local_config, message_state, after_wait);
     return sr::Value(pending_waits.MakeFuture(*vm.gc_, std::move(wait_task)));
+  }
+
+  sr::Value WaitForR() {
+    if (!system)
+      return Wait(MwndWaitTask::AfterWait::None);
+    const bool novel_mode =
+        system->text().GetCurrentWindow()->action_on_pause();
+    return Wait(novel_mode ? MwndWaitTask::AfterWait::Paragraph
+                           : MwndWaitTask::AfterWait::Clear);
   }
 
   void Open() {
@@ -493,15 +515,34 @@ void BindMwnd(SiglusRuntime& runtime) {
     return MakeResolvedFuture(*vm.gc_);
   });
   mwnd.def("pp", [](MwndBindingState* state, sr::VM&) -> sr::Value {
-    return state->Wait(false);
+    return state->Wait(MwndWaitTask::AfterWait::None);
   });
   mwnd.def("r", [](MwndBindingState* state, sr::VM& vm) -> sr::Value {
     if (ConfigFlag(state->local_config, "ignore_r"))
       return MakeResolvedFuture(*vm.gc_);
-    return state->Wait(false);
+    return state->WaitForR();
   });
   mwnd.def("page", [](MwndBindingState* state, sr::VM&) -> sr::Value {
-    return state->Wait(true);
+    return state->Wait(MwndWaitTask::AfterWait::Clear);
+  });
+  mwnd.def("indent", [](MwndBindingState* state) {
+    if (state && state->system)
+      state->system->text().GetCurrentPage().SetIndentation();
+  });
+  mwnd.def("clear_indent", [](MwndBindingState* state) {
+    if (state && state->system)
+      state->system->text().GetCurrentPage().ResetIndentation();
+  });
+  mwnd.def("nil", [](MwndBindingState* state) {
+    if (state && state->system)
+      state->system->text().GetCurrentPage().HardBrake();
+  });
+  mwnd.def("nl", [](MwndBindingState* state) {
+    if (!state || !state->system)
+      return;
+    TextPage& page = state->system->text().GetCurrentPage();
+    page.ResetIndentation();
+    page.HardBrake();
   });
   mwnd.def("clear", [](MwndBindingState* state) {
     if (!state || !state->system)
