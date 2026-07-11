@@ -26,12 +26,10 @@
 
 #include "core/colour.hpp"
 #include "core/rect.hpp"
-#include "systems/text_layout.hpp"
+#include "core/text_layout.hpp"
 
-#include <array>
 #include <functional>
 #include <memory>
-#include <optional>
 #include <string>
 #include <utility>
 #include <vector>

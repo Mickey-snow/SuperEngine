@@ -23,10 +23,11 @@
 //
 // -----------------------------------------------------------------------
 
-#include "systems/text_layout.hpp"
+#include "core/text_layout.hpp"
 #include "log/domain_logger.hpp"
 #include "utilities/string_utilities.hpp"
 
+#include <cmath>
 #include <format>
 #include <stdexcept>
 #include <utility>

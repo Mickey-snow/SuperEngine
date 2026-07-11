@@ -27,11 +27,8 @@
 
 #include "core/rect.hpp"
 
-#include <cmath>
 #include <optional>
 #include <string_view>
-
-#include "utf8.h"
 
 class TextLayout {
  public:
