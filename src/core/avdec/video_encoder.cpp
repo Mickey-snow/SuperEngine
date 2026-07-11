@@ -64,7 +64,11 @@ struct OStreamWriter {
   std::ostream* out = nullptr;
 };
 
+#if LIBAVFORMAT_VERSION_MAJOR < 61
+int WritePacket(void* opaque, uint8_t* buffer, int buffer_size) {
+#else
 int WritePacket(void* opaque, const uint8_t* buffer, int buffer_size) {
+#endif
   auto* writer = static_cast<OStreamWriter*>(opaque);
   if (!writer || !writer->out)
     return AVERROR(EIO);
@@ -127,6 +131,7 @@ using AvPacketPtr = std::unique_ptr<AVPacket, AvPacketDeleter>;
 using SwsContextPtr = std::unique_ptr<SwsContext, SwsContextDeleter>;
 
 bool SupportsPixelFormat(const AVCodec* codec, AVPixelFormat format) {
+#if LIBAVCODEC_VERSION_MAJOR >= 61
   const void* configs = nullptr;
   int config_count = 0;
   const int result = avcodec_get_supported_config(
@@ -139,6 +144,16 @@ bool SupportsPixelFormat(const AVCodec* codec, AVPixelFormat format) {
     if (formats[i] == format)
       return true;
   }
+#else
+  if (!codec->pix_fmts)
+    return true;
+
+  for (const AVPixelFormat* candidate = codec->pix_fmts;
+       *candidate != AV_PIX_FMT_NONE; ++candidate) {
+    if (*candidate == format)
+      return true;
+  }
+#endif
   return false;
 }
 
