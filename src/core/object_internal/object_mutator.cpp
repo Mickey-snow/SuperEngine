@@ -31,6 +31,10 @@
 #include <functional>
 #include <utility>
 
+Mutator::Mutator(SetFn setter, std::unique_ptr<FrameCounter> fc)
+    : setter_(std::move(setter)), fc_(std::move(fc)) {}
+Mutator::~Mutator() = default;
+
 bool Mutator::Update(ObjectParameter& pm) const {
   float value = fc_->ReadFrame();
   std::invoke(setter_, pm, static_cast<int>(value));
@@ -46,9 +50,7 @@ ObjectMutator ObjectMutator::DeepCopy() const {
   std::vector<Mutator> mutators;
   mutators.reserve(mutators_.size());
   for (const auto& it : mutators_)
-    mutators.emplace_back(Mutator{
-        .setter_ = it.setter_,
-        .fc_ = std::shared_ptr<FrameCounter>(it.fc_->Clone().release())});
+    mutators.emplace_back(it.setter_, it.fc_->Clone());
   return ObjectMutator(std::move(mutators), repr_, name_);
 }
 

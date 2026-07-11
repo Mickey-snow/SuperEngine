@@ -38,7 +38,7 @@ FrameCounter::FrameCounter(std::shared_ptr<Clock> clock,
                            int frame_min,
                            int frame_max,
                            int milliseconds)
-    : clock_(clock),
+    : clock_(std::move(clock)),
       value_(static_cast<float>(frame_min)),
       min_value_(frame_min),
       max_value_(frame_max),

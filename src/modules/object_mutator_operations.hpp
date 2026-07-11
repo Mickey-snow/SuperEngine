@@ -37,7 +37,7 @@ class GraphicsObject;
 class ObjectParameter;
 class Clock;
 
-std::shared_ptr<FrameCounter> MakeFrameCounter(int duration,
+std::unique_ptr<FrameCounter> MakeFrameCounter(int duration,
                                                int delay,
                                                int start_val,
                                                int end_val,

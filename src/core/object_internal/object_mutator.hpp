@@ -24,18 +24,25 @@
 
 #pragma once
 
+#include "core/frame_counter.hpp"
+
 #include <functional>
 #include <memory>
 #include <string>
 #include <vector>
 
-class FrameCounter;
 class ObjectParameter;
 
 struct Mutator {
   using SetFn = std::function<void(ObjectParameter&, int)>;
   SetFn setter_;
-  std::shared_ptr<FrameCounter> fc_;
+  std::unique_ptr<FrameCounter> fc_;
+  Mutator(SetFn setter, std::unique_ptr<FrameCounter> fc);
+  ~Mutator();
+  Mutator(Mutator&&) noexcept = default;
+  Mutator& operator=(Mutator&&) noexcept = default;
+  Mutator(const Mutator&) = delete;
+  Mutator& operator=(const Mutator&) = delete;
 
   bool Update(ObjectParameter& pm) const;
 };

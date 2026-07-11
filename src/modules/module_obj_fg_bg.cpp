@@ -302,18 +302,20 @@ class objEveAdjust : public RLOpcode<IntConstant_T,
     int start_x = object.Param().x_adjustment(repno);
     int start_y = object.Param().y_adjustment(repno);
 
-    Mutator mutator_x{
-        .setter_ =
-            std::bind(CreateSetter<&ObjectParameter::adjustment_offsets_x>(),
-                      _1, repno, _2),
-        .fc_ = MakeFrameCounter(duration_time, delay, start_x, x, type, clock)};
-    Mutator mutator_y{
-        .setter_ =
-            std::bind(CreateSetter<&ObjectParameter::adjustment_offsets_y>(),
-                      _1, repno, _2),
-        .fc_ = MakeFrameCounter(duration_time, delay, start_y, y, type, clock)};
-    object.AddObjectMutator(ObjectMutator(
-        {std::move(mutator_x), std::move(mutator_y)}, repno, "objEveAdjust"));
+    Mutator mutator_x(
+        std::bind(CreateSetter<&ObjectParameter::adjustment_offsets_x>(), _1,
+                  repno, _2),
+        MakeFrameCounter(duration_time, delay, start_x, x, type, clock));
+    Mutator mutator_y(
+        std::bind(CreateSetter<&ObjectParameter::adjustment_offsets_y>(), _1,
+                  repno, _2),
+        MakeFrameCounter(duration_time, delay, start_y, y, type,
+                         std::move(clock)));
+    std::vector<Mutator> mutators;
+    mutators.emplace_back(std::move(mutator_x));
+    mutators.emplace_back(std::move(mutator_y));
+    object.AddObjectMutator(
+        ObjectMutator(std::move(mutators), repno, "objEveAdjust"));
   }
 };
 
@@ -344,20 +346,19 @@ static void objEveDisplay_impl(GraphicsObject& object,
   std::vector<Mutator> mutators;
   if (tr_mod) {
     mutators.emplace_back(
-        Mutator{.setter_ = CreateSetter<&ObjectParameter::alpha_source>(),
-                .fc_ = MakeFrameCounter(duration_time, delay, tr_start, tr_end,
-                                        0, clock)});
+        CreateSetter<&ObjectParameter::alpha_source>(),
+        MakeFrameCounter(duration_time, delay, tr_start, tr_end, 0, clock));
   }
 
   if (move_mod) {
     mutators.emplace_back(
-        Mutator{.setter_ = CreateSetter<&ObjectParameter::position_x>(),
-                .fc_ = MakeFrameCounter(duration_time, delay, move_start_x,
-                                        move_end_x, 0, clock)});
+        CreateSetter<&ObjectParameter::position_x>(),
+        MakeFrameCounter(duration_time, delay, move_start_x, move_end_x, 0,
+                         clock));
     mutators.emplace_back(
-        Mutator{.setter_ = CreateSetter<&ObjectParameter::position_y>(),
-                .fc_ = MakeFrameCounter(duration_time, delay, move_start_y,
-                                        move_end_y, 0, clock)});
+        CreateSetter<&ObjectParameter::position_y>(),
+        MakeFrameCounter(duration_time, delay, move_start_y, move_end_y, 0,
+                         clock));
   }
 
   ObjectMutator om(std::move(mutators), -1, "objEveDisplay");

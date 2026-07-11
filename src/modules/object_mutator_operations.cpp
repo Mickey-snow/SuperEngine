@@ -26,39 +26,38 @@
 
 #include "modules/object_mutator_operations.hpp"
 
-#include "long_operations/wait_long_operation.hpp"
-#include "machine/properties.hpp"
-#include "machine/rlmachine.hpp"
-#include "modules/module_obj.hpp"
+#include "core/object.hpp"
 #include "core/object_internal/object_mutator.hpp"
 #include "core/object_internal/object_parameter.hpp"
-#include "core/object.hpp"
+#include "long_operations/wait_long_operation.hpp"
+#include "machine/rlmachine.hpp"
+#include "modules/module_obj.hpp"
+#include "systems/event_system.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
-#include "systems/event_system.hpp"
 #include "utilities/clock.hpp"
 
-std::shared_ptr<FrameCounter> MakeFrameCounter(int duration,
+std::unique_ptr<FrameCounter> MakeFrameCounter(int duration,
                                                int delay,
                                                int start_val,
                                                int end_val,
                                                int type,
                                                std::shared_ptr<Clock> clock) {
-  std::shared_ptr<FrameCounter> fc = nullptr;
+  std::unique_ptr<FrameCounter> fc = nullptr;
   switch (type) {
     case 1:
-      fc = std::make_shared<DeceleratingFrameCounter>(clock, start_val, end_val,
-                                                      duration);
+      fc = std::make_unique<DeceleratingFrameCounter>(
+          std::move(clock), start_val, end_val, duration);
       break;
     case 2:
-      fc = std::make_shared<AcceleratingFrameCounter>(clock, start_val, end_val,
-                                                      duration);
+      fc = std::make_unique<AcceleratingFrameCounter>(
+          std::move(clock), start_val, end_val, duration);
       break;
 
     case 0:
     default:
-      fc = std::make_shared<SimpleFrameCounter>(clock, start_val, end_val,
-                                                duration);
+      fc = std::make_unique<SimpleFrameCounter>(std::move(clock), start_val,
+                                                end_val, duration);
       break;
   }
   fc->BeginTimer(std::chrono::milliseconds(delay));
@@ -109,11 +108,11 @@ void Op_ObjectMutatorInt::operator()(RLMachine& machine,
 
   int startval = std::invoke(getter_, obj.Param());
 
-  ObjectMutator mutator(
-      {Mutator{.setter_ = setter_,
-               .fc_ = MakeFrameCounter(duration_time, delay, startval, endval,
-                                       type, clock)}},
-      -1, name_);
+  std::vector<Mutator> mutators;
+  mutators.emplace_back(
+      setter_, MakeFrameCounter(duration_time, delay, startval, endval, type,
+                                std::move(clock)));
+  ObjectMutator mutator(std::move(mutators), -1, name_);
   obj.AddObjectMutator(std::move(mutator));
 }
 
@@ -137,11 +136,12 @@ void Op_ObjectMutatorRepnoInt::operator()(RLMachine& machine,
   GraphicsObject& obj = GetGraphicsObject(machine, this, object);
 
   int startval = std::invoke(getter_, obj.Param(), repno);
-  ObjectMutator mutator(
-      {Mutator{.setter_ = std::bind(setter_, _1, repno, _2),
-               .fc_ = MakeFrameCounter(duration_time, delay, startval, endval,
-                                       type, clock)}},
-      repno, name_);
+  std::vector<Mutator> mutators;
+  mutators.emplace_back(
+      std::bind(setter_, _1, repno, _2),
+      MakeFrameCounter(duration_time, delay, startval, endval, type,
+                       std::move(clock)));
+  ObjectMutator mutator(std::move(mutators), repno, name_);
 
   obj.AddObjectMutator(std::move(mutator));
 }
@@ -175,13 +175,13 @@ void Op_ObjectMutatorIntInt::operator()(RLMachine& machine,
   int startval_one = std::invoke(getter_one_, pm);
   int startval_two = std::invoke(getter_two_, pm);
 
-  std::vector<Mutator> mutators{
-      Mutator{.setter_ = setter_one_,
-              .fc_ = MakeFrameCounter(duration_time, delay, startval_one,
-                                      endval_one, type, clock)},
-      Mutator{.setter_ = setter_two_,
-              .fc_ = MakeFrameCounter(duration_time, delay, startval_two,
-                                      endval_two, type, clock)}};
+  std::vector<Mutator> mutators;
+  mutators.emplace_back(
+      setter_one_, MakeFrameCounter(duration_time, delay, startval_one,
+                                    endval_one, type, clock));
+  mutators.emplace_back(
+      setter_two_, MakeFrameCounter(duration_time, delay, startval_two,
+                                    endval_two, type, std::move(clock)));
 
   obj.AddObjectMutator(ObjectMutator(std::move(mutators), -1, name_));
 }

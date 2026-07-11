@@ -77,26 +77,26 @@ int RequiredInt(const sr::Value& value, std::string_view name) {
   return *result;
 }
 
-std::shared_ptr<FrameCounter> MakeSiglusFrameCounter(
+std::unique_ptr<FrameCounter> MakeSiglusFrameCounter(
     int duration,
     int delay,
     int start_val,
     int end_val,
     int type,
     std::shared_ptr<Clock> clock) {
-  std::shared_ptr<FrameCounter> fc;
+  std::unique_ptr<FrameCounter> fc;
   switch (type) {
     case 1:
-      fc = std::make_shared<AcceleratingFrameCounter>(
+      fc = std::make_unique<AcceleratingFrameCounter>(
           std::move(clock), start_val, end_val, duration);
       break;
     case 2:
-      fc = std::make_shared<DeceleratingFrameCounter>(
+      fc = std::make_unique<DeceleratingFrameCounter>(
           std::move(clock), start_val, end_val, duration);
       break;
     case 0:
     default:
-      fc = std::make_shared<SimpleFrameCounter>(std::move(clock), start_val,
+      fc = std::make_unique<SimpleFrameCounter>(std::move(clock), start_val,
                                                 end_val, duration);
       break;
   }
@@ -555,10 +555,11 @@ class ObjectEvent {
 
     obj.EndObjectMutatorMatching(-1, name, 0);
     const int start = getter_(obj.Param());
-    Mutator mutator{.setter_ = setter_,
-                    .fc_ = MakeSiglusFrameCounter(duration_time, delay, start,
-                                                  end_value, type, clock)};
-    obj.AddObjectMutator(ObjectMutator({std::move(mutator)}, -1, name));
+    std::vector<Mutator> mutators;
+    mutators.emplace_back(
+        setter_, MakeSiglusFrameCounter(duration_time, delay, start, end_value,
+                                        type, std::move(clock)));
+    obj.AddObjectMutator(ObjectMutator(std::move(mutators), -1, name));
   }
 
   void end() {
@@ -623,12 +624,14 @@ class ObjectRepnoEvent {
 
     obj.EndObjectMutatorMatching(repno_, name, 0);
     const int start = getter_(obj.Param(), repno_);
-    Mutator mutator{.setter_ = [setter = setter_, repno = repno_](
-                                   ObjectParameter& param,
-                                   int value) { setter(param, repno, value); },
-                    .fc_ = MakeSiglusFrameCounter(duration_time, delay, start,
-                                                  end_value, type, clock)};
-    obj.AddObjectMutator(ObjectMutator({std::move(mutator)}, repno_, name));
+    std::vector<Mutator> mutators;
+    mutators.emplace_back(
+        [setter = setter_, repno = repno_](ObjectParameter& param, int value) {
+          setter(param, repno, value);
+        },
+        MakeSiglusFrameCounter(duration_time, delay, start, end_value, type,
+                               std::move(clock)));
+    obj.AddObjectMutator(ObjectMutator(std::move(mutators), repno_, name));
   }
 
   void end() {

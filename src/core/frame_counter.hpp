@@ -27,6 +27,7 @@
 
 #include <chrono>
 #include <memory>
+#include <utility>
 
 class Clock;
 
@@ -99,7 +100,7 @@ class SimpleFrameCounter : public FrameCounter {
                      int frame_min,
                      int frame_max,
                      int milliseconds)
-      : FrameCounter(clock, frame_min, frame_max, milliseconds) {}
+      : FrameCounter(std::move(clock), frame_min, frame_max, milliseconds) {}
 
   virtual float ReadFrame() override;
   std::unique_ptr<FrameCounter> Clone() const override;
@@ -111,7 +112,7 @@ class LoopFrameCounter : public FrameCounter {
                    int frame_min,
                    int frame_max,
                    int milliseconds)
-      : FrameCounter(clock, frame_min, frame_max, milliseconds) {}
+      : FrameCounter(std::move(clock), frame_min, frame_max, milliseconds) {}
 
   virtual float ReadFrame() override;
   std::unique_ptr<FrameCounter> Clone() const override;
@@ -123,10 +124,11 @@ class TurnFrameCounter : public FrameCounter {
                    int frame_min,
                    int frame_max,
                    int milliseconds)
-      : FrameCounter(clock, frame_min, frame_max, milliseconds) {}
+      : FrameCounter(std::move(clock), frame_min, frame_max, milliseconds) {}
 
   virtual float ReadFrame() override;
   std::unique_ptr<FrameCounter> Clone() const override;
+
 };
 
 class AcceleratingFrameCounter : public FrameCounter {
@@ -135,7 +137,7 @@ class AcceleratingFrameCounter : public FrameCounter {
                            int frame_min,
                            int frame_max,
                            int milliseconds)
-      : FrameCounter(clock, frame_min, frame_max, milliseconds) {}
+      : FrameCounter(std::move(clock), frame_min, frame_max, milliseconds) {}
 
   virtual float ReadFrame() override;
   std::unique_ptr<FrameCounter> Clone() const override;
@@ -147,7 +149,7 @@ class DeceleratingFrameCounter : public FrameCounter {
                            int frame_min,
                            int frame_max,
                            int milliseconds)
-      : FrameCounter(clock, frame_min, frame_max, milliseconds) {}
+      : FrameCounter(std::move(clock), frame_min, frame_max, milliseconds) {}
 
   virtual float ReadFrame() override;
   std::unique_ptr<FrameCounter> Clone() const override;
