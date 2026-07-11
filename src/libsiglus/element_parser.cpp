@@ -1292,7 +1292,7 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
 
     case Type::BgmTable: {
       static const auto mp = make_flatmap<Builder>(
-          {id[0] | b(Type::Int, Member("cnt")),
+          {id[0] | b(Type::Callable, Member("cnt")),
            id[2] | b(Type::Callable, Member("set_listen")),
            id[4] | b(Type::Callable, Member("set_listen_all")),
            id[1] | b(Type::Callable, Member("get_listen"))});

@@ -45,6 +45,7 @@ class VM;
 
 class IntListFacade;
 class StrListFacade;
+class BgmTable;
 
 namespace libsiglus {
 class Archive;
@@ -64,6 +65,7 @@ struct SiglusRuntime {
   std::unique_ptr<InteractionManager> interaction_manager;
 
   std::shared_ptr<Gameexe> local_config, global_config;
+  std::shared_ptr<BgmTable> bgm_table;
 
   std::shared_ptr<SiglusSceneRenderer> renderer;
   std::shared_ptr<EventListener> system_event_listener;

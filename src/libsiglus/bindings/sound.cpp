@@ -21,16 +21,19 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#include "libsiglus/bindings/bootstrap.hpp"
+#include "core/bgm_table.hpp"
 #include "libsiglus/bindings/registry.hpp"
+
+#include "libsiglus/bindings/bootstrap.hpp"
 #include "libsiglus/bindings/util.hpp"
 #include "libsiglus/bindings/wait_helpers.hpp"
-#include "srbind/srbind.hpp"
+#include "srbind/module.hpp"
 #include "systems/sound_system.hpp"
 #include "systems/system.hpp"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
+#include <format>
 #include <functional>
 #include <memory>
 #include <string>
@@ -130,51 +133,117 @@ struct ExKoeCallParams {
   }
 };
 
+struct BgmPlayParams {
+  std::string registered_name;
+  int fade_in_ms = 0;
+  int fade_out_ms = 0;
+  bool has_name = false;
+  bool has_fade_in_ms = false;
+  bool has_fade_out_ms = false;
+
+  static BgmPlayParams ParseFrom(std::vector<sr::Value> raw_args) {
+    CallPacket packet = CallPacket::DecodeFrom(std::move(raw_args));
+    BgmPlayParams params;
+
+    if (!packet.args.empty()) {
+      params.registered_name = AsString(packet.args[0]);
+      params.has_name = true;
+    }
+    if (packet.args.size() > 1)
+      params.fade_in_ms = AsInt(packet.args[1]).value_or(0);
+    if (packet.args.size() > 2)
+      params.fade_out_ms = AsInt(packet.args[2]).value_or(0);
+    params.has_fade_in_ms = packet.args.size() > 1;
+    params.has_fade_out_ms = packet.args.size() > 2;
+    return params;
+  }
+};
+
+struct BgmSetVolumeParams {
+  int volume = 0;
+  int fade_ms = 0;
+  bool has_volume = false;
+
+  static BgmSetVolumeParams ParseFrom(std::vector<sr::Value> raw_args,
+                                      int fallback_volume) {
+    CallPacket packet = CallPacket::DecodeFrom(std::move(raw_args));
+    BgmSetVolumeParams params;
+    if (!packet.args.empty()) {
+      params.volume = AsInt(packet.args[0]).value_or(fallback_volume);
+      params.has_volume = true;
+    }
+    if (packet.args.size() > 1)
+      params.fade_ms = AsInt(packet.args[1]).value_or(0);
+    return params;
+  }
+};
+
+struct PcmPlayParams {
+  std::string pcm_name;
+  int fade_in_ms = 0;
+  bool has_name = false;
+  bool has_fade_in_ms = false;
+  bool loop = false;
+  bool ready = false;
+
+  static PcmPlayParams ParseFrom(std::vector<sr::Value> raw_args,
+                                 bool loop,
+                                 bool ready) {
+    CallPacket packet = CallPacket::DecodeFrom(std::move(raw_args));
+    PcmPlayParams params;
+    params.loop = loop;
+    params.ready = ready;
+
+    if (!packet.args.empty()) {
+      params.pcm_name = AsString(packet.args[0]);
+      params.has_name = true;
+    }
+    if (packet.args.size() > 1)
+      params.fade_in_ms = AsInt(packet.args[1]).value_or(0);
+    params.has_fade_in_ms = packet.args.size() > 1;
+    return params;
+  }
+};
+
+struct PcmVolumeParams {
+  int volume = 0;
+  int fade_ms = 0;
+  bool has_volume = false;
+
+  static PcmVolumeParams ParseFrom(std::vector<sr::Value> raw_args,
+                                   int fallback_volume) {
+    CallPacket packet = CallPacket::DecodeFrom(std::move(raw_args));
+    PcmVolumeParams params;
+    if (!packet.args.empty()) {
+      params.volume = AsInt(packet.args[0]).value_or(fallback_volume);
+      params.has_volume = true;
+    }
+    if (packet.args.size() > 1)
+      params.fade_ms = AsInt(packet.args[1]).value_or(0);
+    return params;
+  }
+};
+
+static int ParseKoeStop(std::vector<sr::Value> raw_args) {
+  CallPacket packet = CallPacket::DecodeFrom(std::move(raw_args));
+  int fade_ms = 0;
+  if (!packet.args.empty())
+    fade_ms = AsInt(packet.args[0]).value_or(0);
+
+  ForEachKeywordId(packet.kwargs, [&](int id, const sr::Value& value) {
+    if (id == 0)
+      fade_ms = AsInt(value).value_or(fade_ms);
+  });
+
+  return fade_ms;
+}
+
 }  // namespace
 
 class SiglusGlobalKoe {
  public:
   explicit SiglusGlobalKoe(System* sys) : system_(sys) {}
 
-  int exkoe(std::vector<sr::Value> args) {
-    Play(ExKoeCallParams::ParseFrom(std::move(args), false, false));
-    return 0;
-  }
-
-  sr::Value exkoe_play_wait(sr::VM& vm, std::vector<sr::Value> args) {
-    auto params = ExKoeCallParams::ParseFrom(std::move(args), true, false);
-    Play(params);
-    return params.wait ? Wait(vm, params.key_skip)
-                       : MakeResolvedFuture(*vm.gc_);
-  }
-
-  sr::Value exkoe_play_wait_key(sr::VM& vm, std::vector<sr::Value> args) {
-    auto params = ExKoeCallParams::ParseFrom(std::move(args), true, true);
-    Play(params);
-    return params.wait ? Wait(vm, params.key_skip)
-                       : MakeResolvedFuture(*vm.gc_);
-  }
-
-  void koe_stop(std::vector<sr::Value> args) {
-    CallPacket packet = CallPacket::DecodeFrom(std::move(args));
-    int fade_ms = 0;
-    if (!packet.args.empty())
-      fade_ms = AsInt(packet.args[0]).value_or(0);
-    ForEachKeywordId(packet.kwargs, [&](int id, const sr::Value& value) {
-      if (id == 0)
-        fade_ms = AsInt(value).value_or(fade_ms);
-    });
-
-    if (!system_)
-      return;
-
-    if (fade_ms > 0)
-      system_->sound().WavFadeOut(KOE_CHANNEL, fade_ms);
-    else
-      system_->sound().KoeStop();
-  }
-
- private:
   void Play(const ExKoeCallParams& params) {
     if (!system_)
       return;
@@ -186,7 +255,7 @@ class SiglusGlobalKoe {
       system_->sound().KoePlay(params.koe);
   }
 
-  sr::Value Wait(sr::VM& vm, bool key_skip) {
+  sr::Value WaitForKoe(sr::VM& vm, bool key_skip) {
     auto done = [system = system_] {
       return !system || !system->sound().KoePlaying();
     };
@@ -195,29 +264,50 @@ class SiglusGlobalKoe {
         system_ ? system_->event_ptr().get() : nullptr);
   }
 
+  void Stop(int fade_ms) {
+    if (!system_)
+      return;
+
+    if (fade_ms > 0)
+      system_->sound().WavFadeOut(KOE_CHANNEL, fade_ms);
+    else
+      system_->sound().KoeStop();
+  }
+
   System* system_;
 };
 
 class SiglusBgm {
  public:
-  explicit SiglusBgm(System* sys) : system_(sys) {}
+  explicit SiglusBgm(System* sys, std::shared_ptr<BgmTable> bgm_table)
+      : system_(sys), bgm_table_(std::move(bgm_table)) {}
 
-  void play(std::vector<sr::Value> args) { Play(std::move(args), true); }
-  void play_oneshot(std::vector<sr::Value> args) {
-    Play(std::move(args), false);
-  }
-  sr::Value play_wait(sr::VM& vm, std::vector<sr::Value> args) {
-    Play(std::move(args), false);
-    return wait(vm, {});
+  void Start(const BgmPlayParams& params, bool loop) {
+    if (!params.has_name)
+      return;
+
+    registered_name_ = params.registered_name;
+    playback_.Set(PlaybackState::kPlay);
+
+    if (system_) {
+      if (params.has_fade_out_ms)
+        system_->sound().BgmPlay(registered_name_, loop, params.fade_in_ms,
+                                 params.fade_out_ms);
+      else if (params.has_fade_in_ms)
+        system_->sound().BgmPlay(registered_name_, loop, params.fade_in_ms);
+      else
+        system_->sound().BgmPlay(registered_name_, loop);
+    }
+
+    bgm_table_->SetListen(registered_name_, true, false);
   }
 
-  void ready(std::vector<sr::Value> args) {
-    if (!args.empty())
-      registered_name_ = AsString(args[0]);
+  void SetReady(std::string name) {
+    registered_name_ = std::move(name);
+    bgm_table_->SetListen(registered_name_, true, false);
   }
 
-  void stop(std::vector<sr::Value> args) {
-    const int fade_ms = args.empty() ? 0 : AsInt(args[0]).value_or(0);
+  void Stop(int fade_ms) {
     if (system_) {
       if (fade_ms > 0)
         system_->sound().BgmFadeOut(fade_ms);
@@ -227,63 +317,39 @@ class SiglusBgm {
     playback_.Set(fade_ms > 0 ? PlaybackState::kFadeOut : PlaybackState::kFree);
   }
 
-  void pause(std::vector<sr::Value>) {
+  void Pause() {
     if (system_)
       system_->sound().BgmPause();
     playback_.Set(PlaybackState::kPause);
   }
 
-  void resume(std::vector<sr::Value>) {
+  void Resume() {
     if (system_)
       system_->sound().BgmUnPause();
     playback_.Set(PlaybackState::kPlay);
   }
-  sr::Value resume_wait(sr::VM& vm, std::vector<sr::Value> args) {
-    resume(std::move(args));
-    return wait(vm, {});
-  }
 
-  sr::Value wait(sr::VM& vm, std::vector<sr::Value>) {
-    return WaitForPlayback(vm, false, false);
-  }
-  sr::Value wait_key(sr::VM& vm, std::vector<sr::Value>) {
-    return WaitForPlayback(vm, true, false);
-  }
-  sr::Value wait_fade(sr::VM& vm, std::vector<sr::Value>) {
-    return WaitForPlayback(vm, false, true);
-  }
-  sr::Value wait_fade_key(sr::VM& vm, std::vector<sr::Value>) {
-    return WaitForPlayback(vm, true, true);
-  }
-
-  int check(std::vector<sr::Value>) const {
+  int Check() const {
     return playback_.Check(
         [this] { return system_ && system_->sound().BgmStatus(); });
   }
 
-  void set_volume(std::vector<sr::Value> args) {
-    if (args.empty())
+  void SetVolume(const BgmSetVolumeParams& params) {
+    if (!params.has_volume)
       return;
 
-    volume_ = AsInt(args[0]).value_or(volume_);
-    const int fade_ms = args.size() > 1 ? AsInt(args[1]).value_or(0) : 0;
+    volume_ = params.volume;
     if (system_)
-      system_->sound().SetBgmVolumeScript(volume_, fade_ms);
+      system_->sound().SetBgmVolumeScript(volume_, params.fade_ms);
   }
+  int GetVolume() const { return volume_; }
 
-  void set_volume_max(std::vector<sr::Value> args) {
-    if (!args.empty())
-      volume_max_ = AsInt(args[0]).value_or(volume_max_);
-  }
+  void SetVolumeMax(int value) { volume_max_ = value; }
+  void SetVolumeMin(int value) { volume_min_ = value; }
+  int GetVolumeMax() const { return volume_max_; }
+  int GetVolumeMin() const { return volume_min_; }
 
-  void set_volume_min(std::vector<sr::Value> args) {
-    if (!args.empty())
-      volume_min_ = AsInt(args[0]).value_or(volume_min_);
-  }
-
-  int get_volume(std::vector<sr::Value>) const { return volume_; }
-
-  std::string get_regist_name(std::vector<sr::Value>) const {
+  std::string GetRegistName() const {
     if (!registered_name_.empty())
       return registered_name_;
     if (system_)
@@ -291,32 +357,11 @@ class SiglusBgm {
     return "";
   }
 
-  int get_play_pos(std::vector<sr::Value>) const {
+  int GetPlayPos() const {
     if (!system_)
       return 0;
     auto player = system_->sound().GetBgm();
     return player ? static_cast<int>(player->GetCurrentTime()) : 0;
-  }
-
- private:
-  void Play(std::vector<sr::Value> args, bool loop) {
-    if (args.empty())
-      return;
-
-    registered_name_ = AsString(args[0]);
-    playback_.Set(PlaybackState::kPlay);
-    if (!system_)
-      return;
-
-    if (args.size() > 2)
-      system_->sound().BgmPlay(registered_name_, loop,
-                               AsInt(args[1]).value_or(0),
-                               AsInt(args[2]).value_or(0));
-    else if (args.size() > 1)
-      system_->sound().BgmPlay(registered_name_, loop,
-                               AsInt(args[1]).value_or(0));
-    else
-      system_->sound().BgmPlay(registered_name_, loop);
   }
 
   sr::Value WaitForPlayback(sr::VM& vm, bool key_skip, bool fade_only) {
@@ -326,6 +371,7 @@ class SiglusBgm {
   }
 
   System* system_;
+  std::shared_ptr<BgmTable> bgm_table_;
   PlaybackState playback_;
   int volume_ = 255;
   int volume_max_ = 255;
@@ -337,29 +383,7 @@ class SiglusPcmch {
  public:
   SiglusPcmch(System* sys, int channel) : system_(sys), channel_(channel) {}
 
-  void play(std::vector<sr::Value> args) {
-    Play(std::move(args), false, false);
-  }
-
-  void play_loop(std::vector<sr::Value> args) {
-    Play(std::move(args), true, false);
-  }
-
-  sr::Value play_wait(sr::VM& vm, std::vector<sr::Value> args) {
-    Play(std::move(args), false, false);
-    return wait(vm, {});
-  }
-
-  void ready(std::vector<sr::Value> args) {
-    Play(std::move(args), false, true);
-  }
-
-  void ready_loop(std::vector<sr::Value> args) {
-    Play(std::move(args), true, true);
-  }
-
-  void stop(std::vector<sr::Value> args) {
-    const int fade_ms = args.empty() ? 0 : AsInt(args[0]).value_or(0);
+  void Stop(int fade_ms) {
     if (system_ && IsValidChannel()) {
       if (fade_ms > 0)
         system_->sound().WavFadeOut(channel_, fade_ms);
@@ -370,72 +394,48 @@ class SiglusPcmch {
     loop_ = false;
   }
 
-  void pause(std::vector<sr::Value>) { playback_.Set(PlaybackState::kPause); }
+  void Pause() { playback_.Set(PlaybackState::kPause); }
 
-  void resume(std::vector<sr::Value> args) {
-    const int fade_ms = args.empty() ? 0 : AsInt(args[0]).value_or(0);
+  void Resume(int fade_ms) {
     ready_ = false;
     if (!pcm_name_.empty())
       StartPlayback(fade_ms);
     playback_.Set(PlaybackState::kPlay);
   }
 
-  sr::Value resume_wait(sr::VM& vm, std::vector<sr::Value> args) {
-    resume(std::move(args));
-    return wait(vm, {});
-  }
-
-  sr::Value wait(sr::VM& vm, std::vector<sr::Value>) {
+  sr::Value ResumeWait(sr::VM& vm, int fade_ms) {
+    Resume(fade_ms);
     return WaitForPlayback(vm, false, false);
   }
-  sr::Value wait_key(sr::VM& vm, std::vector<sr::Value>) {
-    return WaitForPlayback(vm, true, false);
-  }
-  sr::Value wait_fade(sr::VM& vm, std::vector<sr::Value>) {
-    return WaitForPlayback(vm, false, true);
-  }
-  sr::Value wait_fade_key(sr::VM& vm, std::vector<sr::Value>) {
-    return WaitForPlayback(vm, true, true);
-  }
 
-  int check(std::vector<sr::Value>) const {
+  int Check() const {
     return playback_.Check([this] {
       return system_ && IsValidChannel() &&
              system_->sound().WavPlaying(channel_);
     });
   }
 
-  void set_volume(std::vector<sr::Value> args) {
-    if (args.empty())
+  void SetVolume(const PcmVolumeParams& params) {
+    if (!params.has_volume)
       return;
 
-    const int fade_ms = args.size() > 1 ? AsInt(args[1]).value_or(0) : 0;
-    SetVolume(AsInt(args[0]).value_or(volume_), fade_ms);
+    SetVolume(params.volume, params.fade_ms);
   }
 
-  void set_vol_max(std::vector<sr::Value> args) {
-    const int fade_ms = args.empty() ? 0 : AsInt(args[0]).value_or(0);
-    SetVolume(kVolumeMax, fade_ms);
-  }
+  void SetVolMax(int fade_ms) { SetVolume(kVolumeMax, fade_ms); }
+  void SetVolMin(int fade_ms) { SetVolume(kVolumeMin, fade_ms); }
+  int GetVolume() const { return volume_; }
 
-  void set_vol_min(std::vector<sr::Value> args) {
-    const int fade_ms = args.empty() ? 0 : AsInt(args[0]).value_or(0);
-    SetVolume(kVolumeMin, fade_ms);
-  }
-
-  int get_volume(std::vector<sr::Value>) const { return volume_; }
-
- private:
-  void Play(std::vector<sr::Value> args, bool loop, bool ready) {
-    if (args.empty())
+  void Play(PcmPlayParams params) {
+    if (!params.has_name)
       return;
 
-    pcm_name_ = AsString(args[0]);
-    fade_in_ms_ = args.size() > 1 ? AsInt(args[1]).value_or(0) : 0;
-    loop_ = loop;
-    ready_ = ready;
+    pcm_name_ = std::move(params.pcm_name);
+    fade_in_ms_ = params.fade_in_ms;
+    loop_ = params.loop;
+    ready_ = params.ready;
 
-    if (ready) {
+    if (ready_) {
       playback_.Set(PlaybackState::kFree);
       return;
     }
@@ -486,79 +486,299 @@ class SiglusPcmch {
 
 void BindSound(SiglusRuntime& runtime) {
   sr::VM& vm = *runtime.vm;
-
   sb::module_ m(vm.gc_.get(), vm.globals_.get());
+
+  runtime.bgm_table =
+      std::make_shared<BgmTable>(BgmTable::CreateFromSiglus(*runtime.gameexe));
+  auto bgm_table = runtime.bgm_table;
+  sb::module_ tab(vm, "bgm_table");
+  tab.def("cnt", [bgm_table]() -> int { return bgm_table->Count(); });
+  tab.def("set_listen", [bgm_table](std::string name, int val) {
+    bgm_table->SetListen(std::move(name), val);
+  });
+  tab.def("get_listen", [bgm_table](std::string name) -> int {
+    return bgm_table->GetListen(std::move(name));
+  });
+  tab.def("set_listen_all",
+          [bgm_table](int val) { bgm_table->SetListenAll(val); });
+
   auto global_koe = std::make_shared<SiglusGlobalKoe>(runtime.system.get());
   m.def(
       "exkoe",
-      [global_koe](std::vector<sr::Value> args) {
-        return global_koe->exkoe(std::move(args));
+      [global_koe](std::vector<sr::Value> args) -> int {
+        global_koe->Play(
+            ExKoeCallParams::ParseFrom(std::move(args), false, false));
+        return 0;
       },
       sb::vararg);
   m.def(
       "exkoe_play_wait",
       [global_koe](sr::VM& vm, std::vector<sr::Value> args) -> sr::Value {
-        return global_koe->exkoe_play_wait(vm, std::move(args));
+        const auto params =
+            ExKoeCallParams::ParseFrom(std::move(args), true, false);
+        global_koe->Play(params);
+        return params.wait ? global_koe->WaitForKoe(vm, params.key_skip)
+                           : MakeResolvedFuture(*vm.gc_);
       },
       sb::vararg);
   m.def(
       "exkoe_play_wait_key",
       [global_koe](sr::VM& vm, std::vector<sr::Value> args) -> sr::Value {
-        return global_koe->exkoe_play_wait_key(vm, std::move(args));
+        const auto params =
+            ExKoeCallParams::ParseFrom(std::move(args), true, true);
+        global_koe->Play(params);
+        return params.wait ? global_koe->WaitForKoe(vm, params.key_skip)
+                           : MakeResolvedFuture(*vm.gc_);
       },
       sb::vararg);
   m.def(
       "koe_stop",
       [global_koe](std::vector<sr::Value> args) {
-        global_koe->koe_stop(std::move(args));
+        global_koe->Stop(ParseKoeStop(std::move(args)));
       },
       sb::vararg);
 
   sb::class_<SiglusBgm> bgm_cls(m, "Bgm", false);
-  auto bgm = bgm_cls.inst("bgm", runtime.system.get());
-  bgm.def("play", &SiglusBgm::play, sb::vararg);
-  bgm.def("play_oneshot", &SiglusBgm::play_oneshot, sb::vararg);
-  bgm.def("play_wait", &SiglusBgm::play_wait, sb::vararg);
-  bgm.def("ready", &SiglusBgm::ready, sb::vararg);
-  bgm.def("stop", &SiglusBgm::stop, sb::vararg);
-  bgm.def("pause", &SiglusBgm::pause, sb::vararg);
-  bgm.def("resume", &SiglusBgm::resume, sb::vararg);
-  bgm.def("resume_wait", &SiglusBgm::resume_wait, sb::vararg);
-  bgm.def("wait", &SiglusBgm::wait, sb::vararg);
-  bgm.def("wait_key", &SiglusBgm::wait_key, sb::vararg);
-  bgm.def("wait_fade", &SiglusBgm::wait_fade, sb::vararg);
-  bgm.def("wait_fade_key", &SiglusBgm::wait_fade_key, sb::vararg);
-  bgm.def("check", &SiglusBgm::check, sb::vararg);
-  bgm.def("set_volume", &SiglusBgm::set_volume, sb::vararg);
-  bgm.def("set_volume_max", &SiglusBgm::set_volume_max, sb::vararg);
-  bgm.def("set_volume_min", &SiglusBgm::set_volume_min, sb::vararg);
-  bgm.def("get_volume", &SiglusBgm::get_volume, sb::vararg);
-  bgm.def("get_regist_name", &SiglusBgm::get_regist_name, sb::vararg);
-  bgm.def("get_play_pos", &SiglusBgm::get_play_pos, sb::vararg);
+  auto bgm = bgm_cls.inst("bgm", runtime.system.get(), bgm_table);
+  bgm.def(
+      "play",
+      [](SiglusBgm* bgm, std::vector<sr::Value> args) {
+        bgm->Start(BgmPlayParams::ParseFrom(std::move(args)), true);
+      },
+      sb::vararg);
+  bgm.def(
+      "play_oneshot",
+      [](SiglusBgm* bgm, std::vector<sr::Value> args) {
+        bgm->Start(BgmPlayParams::ParseFrom(std::move(args)), false);
+      },
+      sb::vararg);
+  bgm.def(
+      "play_wait",
+      [](SiglusBgm* bgm, sr::VM& vm, std::vector<sr::Value> args) -> sr::Value {
+        bgm->Start(BgmPlayParams::ParseFrom(std::move(args)), false);
+        return bgm->WaitForPlayback(vm, false, false);
+      },
+      sb::vararg);
+  bgm.def(
+      "ready",
+      [](SiglusBgm* bgm, std::vector<sr::Value> args) {
+        if (args.empty())
+          return;
+        bgm->SetReady(AsString(args[0]));
+      },
+      sb::vararg);
+  bgm.def(
+      "stop",
+      [](SiglusBgm* bgm, std::vector<sr::Value> args) {
+        const int fade_ms = args.empty() ? 0 : AsInt(args[0]).value_or(0);
+        bgm->Stop(fade_ms);
+      },
+      sb::vararg);
+  bgm.def(
+      "pause", [](SiglusBgm* bgm, std::vector<sr::Value>) { bgm->Pause(); },
+      sb::vararg);
+  bgm.def(
+      "resume", [](SiglusBgm* bgm, std::vector<sr::Value>) { bgm->Resume(); },
+      sb::vararg);
+  bgm.def(
+      "resume_wait",
+      [](SiglusBgm* bgm, sr::VM& vm, std::vector<sr::Value>) -> sr::Value {
+        bgm->Resume();
+        return bgm->WaitForPlayback(vm, false, false);
+      },
+      sb::vararg);
+  bgm.def(
+      "wait",
+      [](SiglusBgm* bgm, sr::VM& vm, std::vector<sr::Value>) -> sr::Value {
+        return bgm->WaitForPlayback(vm, false, false);
+      },
+      sb::vararg);
+  bgm.def(
+      "wait_key",
+      [](SiglusBgm* bgm, sr::VM& vm, std::vector<sr::Value>) -> sr::Value {
+        return bgm->WaitForPlayback(vm, true, false);
+      },
+      sb::vararg);
+  bgm.def(
+      "wait_fade",
+      [](SiglusBgm* bgm, sr::VM& vm, std::vector<sr::Value>) -> sr::Value {
+        return bgm->WaitForPlayback(vm, false, true);
+      },
+      sb::vararg);
+  bgm.def(
+      "wait_fade_key",
+      [](SiglusBgm* bgm, sr::VM& vm, std::vector<sr::Value>) -> sr::Value {
+        return bgm->WaitForPlayback(vm, true, true);
+      },
+      sb::vararg);
+  bgm.def(
+      "check",
+      [](SiglusBgm* bgm, std::vector<sr::Value>) -> int {
+        return bgm->Check();
+      },
+      sb::vararg);
+  bgm.def(
+      "set_volume",
+      [](SiglusBgm* bgm, std::vector<sr::Value> args) {
+        bgm->SetVolume(
+            BgmSetVolumeParams::ParseFrom(std::move(args), bgm->GetVolume()));
+      },
+      sb::vararg);
+  bgm.def(
+      "set_volume_max",
+      [](SiglusBgm* bgm, std::vector<sr::Value> args) {
+        if (args.empty())
+          return;
+        bgm->SetVolumeMax(AsInt(args[0]).value_or(bgm->GetVolumeMax()));
+      },
+      sb::vararg);
+  bgm.def(
+      "set_volume_min",
+      [](SiglusBgm* bgm, std::vector<sr::Value> args) {
+        if (args.empty())
+          return;
+        bgm->SetVolumeMin(AsInt(args[0]).value_or(bgm->GetVolumeMin()));
+      },
+      sb::vararg);
+  bgm.def(
+      "get_volume",
+      [](SiglusBgm* bgm, std::vector<sr::Value>) -> int {
+        return bgm->GetVolume();
+      },
+      sb::vararg);
+  bgm.def(
+      "get_regist_name",
+      [](SiglusBgm* bgm, std::vector<sr::Value>) -> std::string {
+        return bgm->GetRegistName();
+      },
+      sb::vararg);
+  bgm.def(
+      "get_play_pos",
+      [](SiglusBgm* bgm, std::vector<sr::Value>) -> int {
+        return bgm->GetPlayPos();
+      },
+      sb::vararg);
 
   sb::class_<SiglusPcmch> pcmch(m, "__SiglusPcmch");
-  pcmch.def(sb::init([sys = runtime.system.get()](int channel) {
+  pcmch.def(sb::init([sys = runtime.system.get()](int channel) -> SiglusPcmch* {
               return new SiglusPcmch(sys, channel);
             }),
             sb::arg("channel"));
-  pcmch.def("play", &SiglusPcmch::play, sb::vararg);
-  pcmch.def("play_loop", &SiglusPcmch::play_loop, sb::vararg);
-  pcmch.def("play_wait", &SiglusPcmch::play_wait, sb::vararg);
-  pcmch.def("ready", &SiglusPcmch::ready, sb::vararg);
-  pcmch.def("ready_loop", &SiglusPcmch::ready_loop, sb::vararg);
-  pcmch.def("stop", &SiglusPcmch::stop, sb::vararg);
-  pcmch.def("pause", &SiglusPcmch::pause, sb::vararg);
-  pcmch.def("resume", &SiglusPcmch::resume, sb::vararg);
-  pcmch.def("resume_wait", &SiglusPcmch::resume_wait, sb::vararg);
-  pcmch.def("wait", &SiglusPcmch::wait, sb::vararg);
-  pcmch.def("wait_key", &SiglusPcmch::wait_key, sb::vararg);
-  pcmch.def("wait_fade", &SiglusPcmch::wait_fade, sb::vararg);
-  pcmch.def("wait_fade_key", &SiglusPcmch::wait_fade_key, sb::vararg);
-  pcmch.def("check", &SiglusPcmch::check, sb::vararg);
-  pcmch.def("set_volume", &SiglusPcmch::set_volume, sb::vararg);
-  pcmch.def("set_vol_max", &SiglusPcmch::set_vol_max, sb::vararg);
-  pcmch.def("set_vol_min", &SiglusPcmch::set_vol_min, sb::vararg);
-  pcmch.def("get_volume", &SiglusPcmch::get_volume, sb::vararg);
+  pcmch.def(
+      "play",
+      [](SiglusPcmch* pcmch, std::vector<sr::Value> args) {
+        pcmch->Play(PcmPlayParams::ParseFrom(std::move(args), false, false));
+      },
+      sb::vararg);
+  pcmch.def(
+      "play_loop",
+      [](SiglusPcmch* pcmch, std::vector<sr::Value> args) {
+        pcmch->Play(PcmPlayParams::ParseFrom(std::move(args), true, false));
+      },
+      sb::vararg);
+  pcmch.def(
+      "play_wait",
+      [](SiglusPcmch* pcmch, sr::VM& vm,
+         std::vector<sr::Value> args) -> sr::Value {
+        pcmch->Play(PcmPlayParams::ParseFrom(std::move(args), false, false));
+        return pcmch->WaitForPlayback(vm, false, false);
+      },
+      sb::vararg);
+  pcmch.def(
+      "ready",
+      [](SiglusPcmch* pcmch, std::vector<sr::Value> args) {
+        pcmch->Play(PcmPlayParams::ParseFrom(std::move(args), false, true));
+      },
+      sb::vararg);
+  pcmch.def(
+      "ready_loop",
+      [](SiglusPcmch* pcmch, std::vector<sr::Value> args) {
+        pcmch->Play(PcmPlayParams::ParseFrom(std::move(args), true, true));
+      },
+      sb::vararg);
+  pcmch.def(
+      "stop",
+      [](SiglusPcmch* pcmch, std::vector<sr::Value> args) {
+        const int fade_ms = args.empty() ? 0 : AsInt(args[0]).value_or(0);
+        pcmch->Stop(fade_ms);
+      },
+      sb::vararg);
+  pcmch.def(
+      "pause",
+      [](SiglusPcmch* pcmch, std::vector<sr::Value>) { pcmch->Pause(); },
+      sb::vararg);
+  pcmch.def(
+      "resume",
+      [](SiglusPcmch* pcmch, std::vector<sr::Value> args) {
+        const int fade_ms = args.empty() ? 0 : AsInt(args[0]).value_or(0);
+        pcmch->Resume(fade_ms);
+      },
+      sb::vararg);
+  pcmch.def(
+      "resume_wait",
+      [](SiglusPcmch* pcmch, sr::VM& vm,
+         std::vector<sr::Value> args) -> sr::Value {
+        const int fade_ms = args.empty() ? 0 : AsInt(args[0]).value_or(0);
+        return pcmch->ResumeWait(vm, fade_ms);
+      },
+      sb::vararg);
+  pcmch.def(
+      "wait",
+      [](SiglusPcmch* pcmch, sr::VM& vm, std::vector<sr::Value>) -> sr::Value {
+        return pcmch->WaitForPlayback(vm, false, false);
+      },
+      sb::vararg);
+  pcmch.def(
+      "wait_key",
+      [](SiglusPcmch* pcmch, sr::VM& vm, std::vector<sr::Value>) -> sr::Value {
+        return pcmch->WaitForPlayback(vm, true, false);
+      },
+      sb::vararg);
+  pcmch.def(
+      "wait_fade",
+      [](SiglusPcmch* pcmch, sr::VM& vm, std::vector<sr::Value>) -> sr::Value {
+        return pcmch->WaitForPlayback(vm, false, true);
+      },
+      sb::vararg);
+  pcmch.def(
+      "wait_fade_key",
+      [](SiglusPcmch* pcmch, sr::VM& vm, std::vector<sr::Value>) -> sr::Value {
+        return pcmch->WaitForPlayback(vm, true, true);
+      },
+      sb::vararg);
+  pcmch.def(
+      "check",
+      [](SiglusPcmch* pcmch, std::vector<sr::Value>) -> int {
+        return pcmch->Check();
+      },
+      sb::vararg);
+  pcmch.def(
+      "set_volume",
+      [](SiglusPcmch* pcmch, std::vector<sr::Value> args) {
+        pcmch->SetVolume(
+            PcmVolumeParams::ParseFrom(std::move(args), pcmch->GetVolume()));
+      },
+      sb::vararg);
+  pcmch.def(
+      "set_vol_max",
+      [](SiglusPcmch* pcmch, std::vector<sr::Value> args) {
+        const int fade_ms = args.empty() ? 0 : AsInt(args[0]).value_or(0);
+        pcmch->SetVolMax(fade_ms);
+      },
+      sb::vararg);
+  pcmch.def(
+      "set_vol_min",
+      [](SiglusPcmch* pcmch, std::vector<sr::Value> args) {
+        const int fade_ms = args.empty() ? 0 : AsInt(args[0]).value_or(0);
+        pcmch->SetVolMin(fade_ms);
+      },
+      sb::vararg);
+  pcmch.def(
+      "get_volume",
+      [](SiglusPcmch* pcmch, std::vector<sr::Value>) -> int {
+        return pcmch->GetVolume();
+      },
+      sb::vararg);
 
   std::string src =
       std::format(kIndexedFactory, "__SiglusPcmchList", "__SiglusPcmch");
