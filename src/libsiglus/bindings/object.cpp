@@ -48,6 +48,7 @@
 #include "vm/vm.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <cstddef>
 #include <limits>
 #include <memory>
@@ -559,6 +560,44 @@ class ObjectEvent {
     mutators.emplace_back(
         setter_, MakeSiglusFrameCounter(duration_time, delay, start, end_value,
                                         type, std::move(clock)));
+    obj.AddObjectMutator(ObjectMutator(std::move(mutators), -1, name));
+  }
+
+  void loop(int start_value,
+            int end_value,
+            int loop_time,
+            int delay,
+            int speed_type) {
+    Verify();
+    GraphicsObject& obj = ref_.get();
+    std::shared_ptr<Clock> clock = event_->GetClock();
+
+    obj.EndObjectMutatorMatching(-1, name, 0);
+    std::vector<Mutator> mutators;
+    std::ignore = speed_type;  // TODO: we don't support speed_type yet
+    auto fc = std::make_unique<LoopFrameCounter>(
+        std::move(clock), start_value, end_value, loop_time);
+    fc->BeginTimer(std::chrono::milliseconds(delay));
+    mutators.emplace_back(setter_, std::move(fc));
+    obj.AddObjectMutator(ObjectMutator(std::move(mutators), -1, name));
+  }
+
+  void turn(int start_value,
+            int end_value,
+            int loop_time,
+            int delay,
+            int speed_type) {
+    Verify();
+    GraphicsObject& obj = ref_.get();
+    std::shared_ptr<Clock> clock = event_->GetClock();
+
+    obj.EndObjectMutatorMatching(-1, name, 0);
+    std::vector<Mutator> mutators;
+    std::ignore = speed_type;  // TODO: we don't support speed_type yet
+    auto fc = std::make_unique<TurnFrameCounter>(
+        std::move(clock), start_value, end_value, loop_time);
+    fc->BeginTimer(std::chrono::milliseconds(delay));
+    mutators.emplace_back(setter_, std::move(fc));
     obj.AddObjectMutator(ObjectMutator(std::move(mutators), -1, name));
   }
 
@@ -1314,8 +1353,24 @@ void BindObject(SiglusRuntime& runtime) {
           sb::vararg);
 
   sb::class_<ObjectEvent> oe(m, "ObjectEvent", false);
+  // TODO: We don't support real time yet
   oe.def("set", &ObjectEvent::set, sb::arg("end_value"),
          sb::arg("duration_time"), sb::arg("delay"), sb::arg("type"));
+  oe.def("set_real", &ObjectEvent::set, sb::arg("end_value"),
+         sb::arg("duration_time"), sb::arg("delay"), sb::arg("type"));
+  oe.def("loop", &ObjectEvent::loop, sb::arg("start_value"),
+         sb::arg("end_value"), sb::arg("loop_time"), sb::arg("delay"),
+         sb::arg("speed_type"));
+  oe.def("loop_real", &ObjectEvent::loop, sb::arg("start_value"),
+         sb::arg("end_value"), sb::arg("loop_time"), sb::arg("delay"),
+         sb::arg("speed_type"));
+  oe.def("turn", &ObjectEvent::turn, sb::arg("start_value"),
+         sb::arg("end_value"), sb::arg("loop_time"), sb::arg("delay"),
+         sb::arg("speed_type"));
+  oe.def("turn_real", &ObjectEvent::turn, sb::arg("start_value"),
+         sb::arg("end_value"), sb::arg("loop_time"), sb::arg("delay"),
+         sb::arg("speed_type"));
+
   oe.def("end", &ObjectEvent::end);
   oe.def("check", &ObjectEvent::check);
   oe.def("wait", &ObjectEvent::wait, sb::vararg);
