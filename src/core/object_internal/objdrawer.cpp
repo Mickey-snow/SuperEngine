@@ -204,10 +204,9 @@ Point GraphicsObjectData::DstPosition(const GraphicsObject& go) const {
   auto& param = go.Param();
   Point position(param.x() + param.GetXAdjustmentSum(),
                  param.y() + param.GetYAdjustmentSum());
-  if (param.GetButtonUsingOverides()) {
-    position += Point(param.GetButtonXOffsetOverride(),
-                      param.GetButtonYOffsetOverride());
-  }
+  if (param.GetButtonUsingOverides())
+    position += param.GetButtonOffsetOverride();
+
   return position;
 }
 

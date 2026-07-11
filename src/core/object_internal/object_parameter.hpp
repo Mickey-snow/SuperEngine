@@ -28,7 +28,6 @@
 #include "core/rect.hpp"
 
 #include <algorithm>
-#include <array>
 #include <functional>
 #include <numeric>
 #include <string>
@@ -481,11 +480,11 @@ struct ObjectParameter {
     button.x_offset_override = override_x_offset;
     button.y_offset_override = override_y_offset;
   }
-  void ClearButtonOverrides() { button.using_overides = false; }
-  bool GetButtonUsingOverides() const { return button.using_overides; }
-  int GetButtonPatternOverride() const { return button.pattern_override; }
-  int GetButtonXOffsetOverride() const { return button.x_offset_override; }
-  int GetButtonYOffsetOverride() const { return button.y_offset_override; }
+  inline void ClearButtonOverrides() { button.using_overides = false; }
+  inline bool GetButtonUsingOverides() const { return button.using_overides; }
+  inline Point GetButtonOffsetOverride() const {
+    return Point(button.x_offset_override, button.y_offset_override);
+  }
 
  private:
   friend class boost::serialization::access;

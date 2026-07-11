@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -43,7 +40,8 @@ ButtonObjectSelectLongOperation::ButtonObjectSelectLongOperation(
       cancelable_(false),
       has_return_value_(false),
       return_value_(-1),
-      gameexe_(machine.GetSystem().gameexe()),
+      button_actions_(
+          ButtonActionTable::ParseReallive(machine.GetSystem().gameexe())),
       currently_hovering_button_(NULL),
       currently_pressed_button_(NULL) {
   for (GraphicsObject& obj : machine.stage().foreground_objects) {
@@ -61,7 +59,7 @@ ButtonObjectSelectLongOperation::ButtonObjectSelectLongOperation(
 
   // Initialize overrides on all buttons that we'll use.
   for (ButtonPair& button_pair : buttons_) {
-    SetButtonOverride(button_pair.first, "NORMAL");
+    SetButtonOverride(button_pair.first, ButtonState::Normal);
   }
 }
 
@@ -96,14 +94,15 @@ void ButtonObjectSelectLongOperation::OnEvent(std::shared_ptr<Event> event) {
 
           if (currently_hovering_button_ != hovering_button) {
             if (currently_hovering_button_) {
-              SetButtonOverride(currently_hovering_button_, "NORMAL");
+              SetButtonOverride(currently_hovering_button_,
+                                ButtonState::Normal);
 
               if (currently_hovering_button_ == currently_pressed_button_)
                 currently_pressed_button_ = NULL;
             }
 
             if (hovering_button)
-              SetButtonOverride(hovering_button, "HIT");
+              SetButtonOverride(hovering_button, ButtonState::Hit);
           }
 
           currently_hovering_button_ = hovering_button;
@@ -116,14 +115,14 @@ void ButtonObjectSelectLongOperation::OnEvent(std::shared_ptr<Event> event) {
             if (pressed) {
               currently_pressed_button_ = currently_hovering_button_;
               if (currently_pressed_button_)
-                SetButtonOverride(currently_pressed_button_, "PUSH");
+                SetButtonOverride(currently_pressed_button_, ButtonState::Push);
             } else {
               if (currently_hovering_button_ &&
                   currently_hovering_button_ == currently_pressed_button_) {
                 has_return_value_ = true;
                 return_value_ =
                     currently_pressed_button_->Param().GetButtonNumber();
-                SetButtonOverride(currently_pressed_button_, "HIT");
+                SetButtonOverride(currently_pressed_button_, ButtonState::Hit);
               }
             }
 
@@ -159,12 +158,27 @@ bool ButtonObjectSelectLongOperation::operator()(RLMachine& machine) {
 }
 
 void ButtonObjectSelectLongOperation::SetButtonOverride(GraphicsObject* object,
-                                                        const char* type) {
-  int action = object->Param().GetButtonAction();
+                                                        ButtonState state) {
+  const int action = object->Param().GetButtonAction();
+  if (action < 0 ||
+      static_cast<std::size_t>(action) >= button_actions_.GetCount())
+    return;
 
-  GameexeInterpretObject key = gameexe_("BTNOBJ.ACTION", action, type);
-  if (key.Exists()) {
-    std::vector<int> ints = key.ToIntVec();
-    object->Param().SetButtonOverrides(ints[0], ints[2], ints[3]);
+  const auto entry = button_actions_.GetEntry(action);
+  const ButtonActionTable::State* selected_state = nullptr;
+  switch (state) {
+    case ButtonState::Normal:
+      selected_state = &entry.normal;
+      break;
+    case ButtonState::Hit:
+      selected_state = &entry.hit;
+      break;
+    case ButtonState::Push:
+      selected_state = &entry.push;
+      break;
   }
+
+  object->Param().SetButtonOverrides(selected_state->pattern,
+                                     selected_state->rep_pos.x(),
+                                     selected_state->rep_pos.y());
 }

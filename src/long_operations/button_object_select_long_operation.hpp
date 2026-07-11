@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -29,7 +26,7 @@
 #include <utility>
 #include <vector>
 
-#include "core/gameexe.hpp"
+#include "core/button_action_table.hpp"
 #include "machine/long_operation.hpp"
 
 class GraphicsObject;
@@ -51,9 +48,10 @@ class ButtonObjectSelectLongOperation : public LongOperation {
   virtual bool operator()(RLMachine& machine) override;
 
  private:
-  // Sets the override data (changes pattern number and offset) based on
-  // |type|, which is a string representation of the hover state.
-  void SetButtonOverride(GraphicsObject* object, const char* type);
+  enum class ButtonState { Normal, Hit, Push };
+
+  // Sets the override data (changes pattern number and offset) for a state.
+  void SetButtonOverride(GraphicsObject* object, ButtonState state);
 
   RLMachine& machine_;
 
@@ -69,8 +67,7 @@ class ButtonObjectSelectLongOperation : public LongOperation {
   // RL script.
   int return_value_;
 
-  // A reference to our game configuration file.
-  Gameexe& gameexe_;
+  ButtonActionTable button_actions_;
 
   // All objects that are buttons in |group_|. First is the object, Second is
   // the parent object, or NULL if first isn't a child object.

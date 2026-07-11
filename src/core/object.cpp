@@ -41,10 +41,9 @@ ParentObjState ParentObjState::BuildFrom(const GraphicsObject& parent) {
   const ObjectParameter& param = parent.Param();
   Point position(param.x() + param.GetXAdjustmentSum(),
                  param.y() + param.GetYAdjustmentSum());
-  if (param.GetButtonUsingOverides()) {
-    position += Point(param.GetButtonXOffsetOverride(),
-                      param.GetButtonYOffsetOverride());
-  }
+  if (param.GetButtonUsingOverides())
+    position += param.GetButtonOffsetOverride();
+
   ret.render_state = RenderState::Build(param, position);
   if (param.has_own_clip_rect())
     ret.clip = param.own_clip_rect();
@@ -154,9 +153,7 @@ void GraphicsObject::SetFilePath(std::string path) {
   file_path_ = std::move(path);
 }
 
-void GraphicsObject::ClearFilePath() {
-  file_path_.clear();
-}
+void GraphicsObject::ClearFilePath() { file_path_.clear(); }
 
 void GraphicsObject::SetDrawer(std::unique_ptr<GraphicsObjectData> obj) {
   child_.clear();
