@@ -44,6 +44,7 @@
 #include "systems/system.hpp"
 #include "utilities/file.hpp"
 #include "vm/exception.hpp"
+#include "vm/object.hpp"
 #include "vm/string.hpp"
 #include "vm/value.hpp"
 #include "vm/vm.hpp"
@@ -258,10 +259,34 @@ class SiglusObject {
 
     GraphicsObject& obj = object();
     obj.FreeDataAndInitializeParams();
-    ApplyObjectFileSuffix(filename, obj.Param());
-    if (filename.empty())
-      throw std::runtime_error("Object.create filename is empty");
+    replace_file_drawer(std::move(filename));
+  }
 
+  void change_file(std::string filename) {
+    if (!graphics_)
+      throw std::runtime_error(
+          "Object.change_file requires a graphics system");
+    if (filename.empty())
+      throw std::runtime_error("Object.change_file filename is empty");
+
+    GraphicsObject& obj = object();
+    if (!obj.GetDrawer<GraphicsObjectOfFile>() &&
+        !obj.GetDrawer<CompositeGraphicsObject>()) {
+      throw std::runtime_error(
+          "Object.change_file requires a file-backed object");
+    }
+
+    replace_file_drawer(std::move(filename));
+  }
+
+  void replace_file_drawer(std::string filename) {
+    GraphicsObject& obj = object();
+    ObjectParameter params = obj.Param();
+    ApplyObjectFileSuffix(filename, params);
+    if (filename.empty())
+      throw std::runtime_error("Object filename is empty");
+
+    std::unique_ptr<GraphicsObjectData> drawer;
     if (IsCompositeObjectName(filename)) {
       std::vector<CompositeGraphicsObjectLayer> layers;
       for (const CompositeObjectPart& part :
@@ -272,12 +297,14 @@ class SiglusObject {
              .cut_no = part.cut_no,
              .blend_type = part.blend_type});
       }
-      obj.SetDrawer(
-          std::make_unique<CompositeGraphicsObject>(std::move(layers)));
+      drawer = std::make_unique<CompositeGraphicsObject>(std::move(layers));
     } else {
       auto surface = graphics_->GetSurfaceNamed(filename);
-      obj.SetDrawer(std::make_unique<GraphicsObjectOfFile>(surface));
+      drawer = std::make_unique<GraphicsObjectOfFile>(surface);
     }
+
+    obj.Param() = std::move(params);
+    obj.SetDrawer(std::move(drawer));
     obj.SetFilePath(std::move(filename));
   }
 
@@ -1371,6 +1398,24 @@ void BindObject(SiglusRuntime& runtime) {
     GraphicsObject& o = obj->object();
     return o.CountMutators() > 0;
   });
+  obj.def("change_file", &SiglusObject::change_file);
+  obj.def(
+      "copy_from",
+      [](SiglusObject* dst, sr::Value src_value) {
+        auto die = [] {
+          throw sr::RuntimeError("copy_from requires an object");
+        };
+        auto* inst = src_value.Get_if<sr::NativeInstance>();
+        if (!inst)
+          die();
+        auto* src = inst->GetForeign<SiglusObject>();
+        if (!src)
+          die();
+
+        GraphicsObject &dsto = dst->object(), &srco = src->object();
+        dsto = srco.Clone();
+      },
+      sb::arg("src"));
 
   sb::class_<ObjectEvent> oe(m, "ObjectEvent", false);
   // TODO: We don't support real time yet
