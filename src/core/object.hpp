@@ -142,6 +142,9 @@ class GraphicsObject {
                                 const std::string& name,
                                 int speedup);
 
+  void EndAllMutators();
+  std::size_t CountMutators() const;
+
  private:
   // Class to manage the actual implementation data
   ObjectParameter param_;

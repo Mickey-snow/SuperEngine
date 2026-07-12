@@ -308,3 +308,13 @@ void GraphicsObject::ExecuteMutators() {
   std::erase_if(object_mutators_,
                 [&](auto& it) { return it.Update(this->Param()); });
 }
+
+void GraphicsObject::EndAllMutators() {
+  std::for_each(object_mutators_.begin(), object_mutators_.end(),
+                [this](auto& it) { it.SetToEnd(Param()); });
+  object_mutators_.clear();
+}
+
+std::size_t GraphicsObject::CountMutators() const {
+  return object_mutators_.size();
+}

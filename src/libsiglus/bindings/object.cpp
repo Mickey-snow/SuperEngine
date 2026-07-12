@@ -29,6 +29,7 @@
 #include "core/object_internal/drawer/file.hpp"
 #include "core/object_internal/drawer/gan.hpp"
 #include "core/object_internal/drawer/movie.hpp"
+#include "core/object_internal/objdrawer.hpp"
 #include "core/object_internal/object_mutator.hpp"
 #include "core/object_internal/object_parameter.hpp"
 #include "libsiglus/bindings/registry.hpp"
@@ -575,8 +576,8 @@ class ObjectEvent {
     obj.EndObjectMutatorMatching(-1, name, 0);
     std::vector<Mutator> mutators;
     std::ignore = speed_type;  // TODO: we don't support speed_type yet
-    auto fc = std::make_unique<LoopFrameCounter>(
-        std::move(clock), start_value, end_value, loop_time);
+    auto fc = std::make_unique<LoopFrameCounter>(std::move(clock), start_value,
+                                                 end_value, loop_time);
     fc->BeginTimer(std::chrono::milliseconds(delay));
     mutators.emplace_back(setter_, std::move(fc));
     obj.AddObjectMutator(ObjectMutator(std::move(mutators), -1, name));
@@ -594,8 +595,8 @@ class ObjectEvent {
     obj.EndObjectMutatorMatching(-1, name, 0);
     std::vector<Mutator> mutators;
     std::ignore = speed_type;  // TODO: we don't support speed_type yet
-    auto fc = std::make_unique<TurnFrameCounter>(
-        std::move(clock), start_value, end_value, loop_time);
+    auto fc = std::make_unique<TurnFrameCounter>(std::move(clock), start_value,
+                                                 end_value, loop_time);
     fc->BeginTimer(std::chrono::milliseconds(delay));
     mutators.emplace_back(setter_, std::move(fc));
     obj.AddObjectMutator(ObjectMutator(std::move(mutators), -1, name));
@@ -1351,6 +1352,25 @@ void BindObject(SiglusRuntime& runtime) {
   obj.def("end_movie_loop", &SiglusObject::end_movie_loop);
   obj.def("set_movie_auto_free", &SiglusObject::set_movie_auto_free,
           sb::vararg);
+  obj.def("alleve_end", [](SiglusObject* obj) {
+    GraphicsObject& o = obj->object();
+    o.EndAllMutators();
+  });
+  obj.def("alleve_wait",
+          [event = runtime.system->event_ptr().get()](SiglusObject* obj,
+                                                      sr::VM& vm) -> sr::Value {
+            return MakePollingWaitFuture(
+                vm,
+                [obj] {
+                  GraphicsObject& o = obj->object();
+                  return o.CountMutators() == 0 ? 1 : 0;
+                },
+                false, event);
+          });
+  obj.def("alleve_check", [](SiglusObject* obj) -> int {
+    GraphicsObject& o = obj->object();
+    return o.CountMutators() > 0;
+  });
 
   sb::class_<ObjectEvent> oe(m, "ObjectEvent", false);
   // TODO: We don't support real time yet

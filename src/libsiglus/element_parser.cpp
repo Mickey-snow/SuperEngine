@@ -1154,22 +1154,26 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
           id[86] | b(Type::IntEvent, Member("color_add_b_eve")),
           id[91] | Builder([](Builder::Ctx& ctx) {
             const int peek = AsInt(ctx.elmcode[1]);
-            ctx.chain.nodes.emplace_back(Type::Invalid, Member("alleve"));
             switch (peek) {
               case 0:  // ALLEVENT_END
-                ctx.chain.nodes.emplace_back(Type::None, Member("end"));
+                ctx.chain.nodes.emplace_back(
+                    Type::Callable, Member("alleve_end", Type::None, true));
                 ctx.elmcode = ctx.elmcode.subspan(2);
                 return;
               case 1:
-                ctx.chain.nodes.emplace_back(Type::None, Member("wait"));
+                ctx.chain.nodes.emplace_back(
+                    Type::Callable,
+                    Member("alleve_wait", Type::None, true, true, true));
                 ctx.elmcode = ctx.elmcode.subspan(2);
                 return;
               case 2:
-                ctx.chain.nodes.emplace_back(Type::Int, Member("check"));
+                ctx.chain.nodes.emplace_back(
+                    Type::Callable, Member("alleve_check", Type::Int, true));
                 ctx.elmcode = ctx.elmcode.subspan(2);
                 return;
               default:
-                ctx.chain.nodes.emplace_back(Type::Invalid, Member("???"));
+                ctx.chain.nodes.emplace_back(Type::Invalid,
+                                             Member("alleve_???"));
                 ctx.elmcode = ctx.elmcode.subspan(2);
                 return;
             }
