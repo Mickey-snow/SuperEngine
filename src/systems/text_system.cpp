@@ -1,6 +1,3 @@
-// -*- Mode: C++; tab-width:2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi:tw=80:et:ts=2:sts=2
-//
 // -----------------------------------------------------------------------
 //
 // This file is part of RLVM, a RealLive virtual machine clone.
@@ -33,12 +30,10 @@
 #include <algorithm>
 #include <map>
 #include <optional>
-#include <sstream>
 #include <string>
 #include <vector>
 
 #include "core/gameexe.hpp"
-#include "core/memory.hpp"
 #include "machine/rlmachine.hpp"
 #include "machine/serialization.hpp"
 #include "modules/jump.hpp"

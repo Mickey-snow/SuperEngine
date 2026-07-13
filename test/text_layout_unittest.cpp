@@ -1,3 +1,25 @@
+// -----------------------------------------------------------------------
+//
+// This file is part of RLVM
+//
+// -----------------------------------------------------------------------
+//
+// Copyright (C) 2026 Serina Sakurai
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
+// -----------------------------------------------------------------------
 
 #include <gtest/gtest.h>
 
@@ -117,4 +139,20 @@ TEST_F(TextLayoutEngineTest, LineBreak_PeekWithinExtended) {
   EXPECT_FALSE(engine.MustLineBreakFor(A, rest))
       << "Current char fits normally, and a single space keeps us within "
          "extended width -> no break";
+}
+
+TEST_F(TextLayoutEngineTest, RubySpanCoversBaseTextAndIsConsumed) {
+  engine.font_size = 35;
+  engine.ruby_font_size = 15;
+  engine.x_spacing = 0;
+  engine.Reset();
+
+  engine.RubyBegin();
+  ASSERT_TRUE(engine.PlaceCharacter(0x6319, std::nullopt, {}));  // 挙
+  ASSERT_TRUE(engine.PlaceCharacter(0x63aa, std::nullopt, {}));  // 措
+
+  const std::optional<Rect> area = engine.PlaceRubyText("きょそ");
+  ASSERT_TRUE(area);
+  EXPECT_EQ(*area, Rect(Point(0, 0), Point(70, 15)));
+  EXPECT_FALSE(engine.ruby_begin_x.has_value());
 }

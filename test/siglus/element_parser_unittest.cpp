@@ -699,6 +699,11 @@ TEST_F(ElementParserTest, Mwnd) {
     EXPECT_EQ(chain(elm), "mwnd.ruby_start(str:ruby)");
   }
   {
+    ElementCode elm{61};
+    elm.ForceBind({0, {}});
+    EXPECT_EQ(chain(elm), "mwnd.ruby_end()");
+  }
+  {
     ElementCode elm{18};
     elm.ForceBind({0, {v(12345), v(7)}});
     SetKidoku({101});

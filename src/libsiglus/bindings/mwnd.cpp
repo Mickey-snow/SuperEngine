@@ -23,7 +23,6 @@
 
 #include "libsiglus/bindings/registry.hpp"
 
-#include "core/colour.hpp"
 #include "core/gameexe.hpp"
 #include "core/rect.hpp"
 #include "libsiglus/bindings/util.hpp"
@@ -45,7 +44,6 @@
 
 #include <algorithm>
 #include <chrono>
-#include <format>
 #include <memory>
 #include <optional>
 #include <string>
@@ -421,6 +419,18 @@ struct MwndBindingState {
     }
   }
 
+  void RubyStart(std::string ruby) {
+    pending_ruby = std::move(ruby);
+    if (system)
+      system->text().GetCurrentPage().MarkRubyBegin();
+  }
+
+  void RubyEnd() {
+    auto ruby = std::exchange(pending_ruby, std::nullopt);
+    if (system && ruby)
+      system->text().GetCurrentPage().DisplayRubyText(*ruby);
+  }
+
   void RepPos(int x, int y) {
     glyph_render_offset = Point(x, y);
     if (!system)
@@ -477,6 +487,7 @@ struct MwndBindingState {
   Point glyph_render_offset = Point(0, 0);
   std::string current_waku_file;
   std::string current_filter_file;
+  std::optional<std::string> pending_ruby;
   std::unordered_map<int, WakuSelection> default_waku_selections;
   PendingCoroutineTasks pending_waits;
 };
@@ -638,6 +649,8 @@ void BindMwnd(SiglusRuntime& runtime) {
         state->Print(std::move(text));
       },
       sb::vararg);
+  mwnd.def("ruby_start", &MwndBindingState::RubyStart);
+  mwnd.def("ruby_end", &MwndBindingState::RubyEnd);
   mwnd.def(
       "rep_pos",
       [](MwndBindingState* state, std::vector<sr::Value> args) {
