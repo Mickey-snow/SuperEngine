@@ -139,8 +139,8 @@ SiglusRuntime SGVMFactory::Create() {
   rt.system = std::make_unique<System>(gexe, rt.asset_scanner,
                                        std::move(mwnd_config), system_options);
   rt.system->text().set_active_window(default_window);
-  rt.stage =
-      std::make_unique<Stage>(rt.system->graphics().GetObjectLayerSize());
+  rt.stage = std::make_unique<Stage>(rt.system->graphics().GetObjectLayerSize(),
+                                     gexe("EFFECT.CNT").Int().value_or(0));
   rt.renderer = std::make_shared<SiglusSceneRenderer>(*rt.stage, *rt.system);
   rt.system->graphics().BindSceneRenderer(rt.renderer);
 

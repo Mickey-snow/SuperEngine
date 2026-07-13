@@ -49,13 +49,14 @@ class SiglusSceneRenderer final : public ISceneRenderer {
  private:
   friend class SiglusSceneRendererTest;
 
-  using ToRenderVec =
-      std::vector<std::tuple<int, int, int, int, int, GraphicsObject*, double>>;
+  using ToRenderVec = std::vector<
+      std::tuple<int, int, int, int, int, GraphicsObject*, double, int>>;
 
   void RenderStageObjects(::Stage& stage, ToRenderVec& to_render);
   void QueueObjects(LazyArray<GraphicsObject>& objects,
                     int source_order,
-                    double alpha_multiplier);
+                    double alpha_multiplier,
+                    int effect_layer);
   void RenderQueuedObjects();
 
   ::Stage& stage_;

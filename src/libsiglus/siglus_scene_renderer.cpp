@@ -34,25 +34,30 @@
 
 namespace libsiglus {
 
-namespace {
-
-class ScopedAlpha {
+class ScopedRenderParameters {
  public:
-  ScopedAlpha(GraphicsObject& object, double multiplier)
-      : object_(object), original_alpha_(object.Param().raw_alpha()) {
+  ScopedRenderParameters(GraphicsObject& object,
+                         double multiplier,
+                         const std::vector<StageEffect>& effects)
+      : object_(object), original_(object.Param()) {
+    const int order = original_.z_order;
+    const int layer = original_.z_layer;
+    for (const StageEffect& effect : effects)
+      if (effect.Contains(order, layer))
+        effect.ApplyTo(object_.Param());
+
     const int alpha = std::clamp(
-        static_cast<int>(std::lround(original_alpha_ * multiplier)), 0, 255);
+        static_cast<int>(std::lround(object_.Param().raw_alpha() * multiplier)),
+        0, 255);
     object_.Param().SetAlpha(alpha);
   }
 
-  ~ScopedAlpha() { object_.Param().SetAlpha(original_alpha_); }
+  ~ScopedRenderParameters() { object_.Param() = std::move(original_); }
 
  private:
   GraphicsObject& object_;
-  int original_alpha_;
+  ObjectParameter original_;
 };
-
-}  // namespace
 
 SiglusSceneRenderer::SiglusSceneRenderer(Stage& stage, System& system)
     : stage_(stage), system_(system) {}
@@ -69,18 +74,20 @@ void SiglusSceneRenderer::RenderScene() {
 void SiglusSceneRenderer::RenderStageObjects(Stage& stage,
                                              ToRenderVec& to_render) {
   to_render.clear();
-  QueueObjects(stage.next_objects, 0, stage.next_render_alpha());
-  QueueObjects(stage.foreground_objects, 1, stage.foreground_render_alpha());
+  QueueObjects(stage.next_objects, 0, stage.next_render_alpha(), kLayerNext);
+  QueueObjects(stage.foreground_objects, 1, stage.foreground_render_alpha(),
+               kLayerFg);
   RenderQueuedObjects();
 }
 
 void SiglusSceneRenderer::QueueObjects(LazyArray<GraphicsObject>& objects,
                                        int source_order,
-                                       double alpha_multiplier) {
+                                       double alpha_multiplier,
+                                       int effect_layer) {
   for (auto it = objects.begin(), end = objects.end(); it != end; ++it) {
     to_render_.emplace_back(it->Param().z_order, it->Param().z_layer,
                             it->Param().z_depth, static_cast<int>(it.pos()),
-                            source_order, &*it, alpha_multiplier);
+                            source_order, &*it, alpha_multiplier, effect_layer);
   }
 }
 
@@ -93,7 +100,9 @@ void SiglusSceneRenderer::RenderQueuedObjects() {
       continue;
 
     GraphicsObject& graphics_object = *std::get<5>(object);
-    ScopedAlpha alpha(graphics_object, alpha_multiplier);
+    const int effect_layer = std::get<7>(object);
+    ScopedRenderParameters parameters(graphics_object, alpha_multiplier,
+                                      stage_.EffectsForLayer(effect_layer));
     graphics_object.Render();
   }
 }

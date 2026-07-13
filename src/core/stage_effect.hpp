@@ -24,6 +24,7 @@
 #pragma once
 
 #include <limits>
+#include <string_view>
 
 struct ObjectParameter;
 
@@ -59,4 +60,5 @@ struct StageEffect {
 
   int Get(int idx) const;
   void Set(int idx, int val);
+  static std::string_view GetPropertyName(int idx);
 };

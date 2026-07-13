@@ -181,3 +181,51 @@ void StageEffect::Set(int idx, int value) {
                                std::to_string(idx));
   }
 }
+
+std::string_view StageEffect::GetPropertyName(int idx) {
+  switch (idx) {
+    case 0:
+      return "x";
+    case 1:
+      return "y";
+    case 2:
+      return "z";
+    case 3:
+      return "mono";
+    case 4:
+      return "reverse";
+    case 5:
+      return "bright";
+    case 6:
+      return "dark";
+    case 7:
+      return "color_r";
+    case 8:
+      return "color_g";
+    case 9:
+      return "color_b";
+    case 10:
+      return "color_rate";
+    case 11:
+      return "color_add_r";
+    case 12:
+      return "color_add_g";
+    case 13:
+      return "color_add_b";
+    case 28:
+      return "begin_order";
+    case 29:
+      return "end_order";
+    case 31:
+      return "wipe_copy";
+    case 32:
+      return "wipe_erase";
+    case 33:
+      return "begin_layer";
+    case 34:
+      return "end_layer";
+    default:
+      throw std::runtime_error("Invalid stage effect property " +
+                               std::to_string(idx));
+  }
+}
