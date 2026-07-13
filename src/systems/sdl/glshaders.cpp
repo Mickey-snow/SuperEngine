@@ -93,6 +93,7 @@ in vec2 TexCoord;
 in float Opacity;
 
 uniform sampler2D texture0;
+uniform sampler2D alpha_mask;
 uniform vec4 color;
 uniform vec4 mask_color;
 uniform float mono;
@@ -103,6 +104,9 @@ uniform vec3 tint;
 uniform float alpha;
 uniform int blend_type;
 uniform bool sample_texture_in_screen_space;
+uniform bool use_alpha_mask;
+uniform vec4 alpha_mask_rect;
+uniform float canvas_height;
 
 out vec4 FragColor;
 
@@ -153,6 +157,18 @@ void main() {
   pixel.rgb = vec3(out_r, out_g, out_b);
 
   float source_alpha = pixel.a * alpha * Opacity;
+  if (use_alpha_mask) {
+    vec2 screen_pos = vec2(gl_FragCoord.x, canvas_height - gl_FragCoord.y);
+    vec2 mask_min = alpha_mask_rect.xy;
+    vec2 mask_max = mask_min + alpha_mask_rect.zw;
+    if (screen_pos.x < mask_min.x || screen_pos.y < mask_min.y ||
+        screen_pos.x >= mask_max.x || screen_pos.y >= mask_max.y) {
+      discard;
+    }
+    vec2 mask_coord = (screen_pos - mask_min) / alpha_mask_rect.zw;
+    mask_coord.y = 1.0 - mask_coord.y;
+    source_alpha *= texture(alpha_mask, mask_coord).a;
+  }
   if (blend_type == 3) {
     pixel.rgb = mix(vec3(1.0), pixel.rgb, source_alpha);
   } else if (blend_type == 4) {

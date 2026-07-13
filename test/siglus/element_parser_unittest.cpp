@@ -350,6 +350,26 @@ TEST_F(ElementParserTest, ObjectInitIsImplicitCall) {
   EXPECT_EQ(chain(37, 2, -1, 0, 35), "stage.back.object[int:0].init()");
 }
 
+TEST_F(ElementParserTest, MaskOperationsUseNativeCalls) {
+  EXPECT_EQ(chain(135, -1, 1, 1), "mask[int:1].init()");
+
+  {
+    ElementCode elm{135, -1, 1, 4};
+    elm.ForceBind({0, {}});
+    EXPECT_EQ(chain(elm), "mask[int:1].x()");
+  }
+  {
+    ElementCode elm{135, -1, 1, 4};
+    elm.ForceBind({1, {v(320)}});
+    EXPECT_EQ(chain(elm), "mask[int:1].set_x(int:320)");
+  }
+  {
+    ElementCode elm{135, -1, 1, 2, 0};
+    elm.ForceBind({0, {v(640), v(350), v(0), v(2)}});
+    EXPECT_EQ(chain(elm), "mask[int:1].x_eve.set(int:640,int:350,int:0,int:2)");
+  }
+}
+
 TEST_F(ElementParserTest, ObjectExistTypeIsImplicitGetterCall) {
   auto parsed = chain(38, 2, -1, 0, 174);
   EXPECT_EQ(parsed, "stage.front.object[int:0].exist_type()");

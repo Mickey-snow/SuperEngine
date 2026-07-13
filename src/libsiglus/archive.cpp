@@ -28,7 +28,6 @@
 #include "libsiglus/xorkey.hpp"
 #include "log/domain_logger.hpp"
 #include "utilities/byte_reader.hpp"
-#include "utilities/mapped_file.hpp"
 
 #include <array>
 #include <string>

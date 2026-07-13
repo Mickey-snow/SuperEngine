@@ -37,6 +37,7 @@
 #include "utilities/graphics.hpp"
 
 #include <algorithm>
+#include <utility>
 
 glm::mat4 BuildModelMatrix(const RenderGeometry& geometry, const Rect& dst) {
   glm::mat4 model(1.0f);
@@ -74,6 +75,25 @@ std::optional<RenderGeometry> ApplyClips(
   return geo;
 }
 
+void RenderObjectWithMask(glRenderable src,
+                          const RenderingConfig& config,
+                          glDestination dst,
+                          const std::optional<ObjectMask>& mask) {
+  if (!mask || !mask->surface) {
+    glRenderer().Render(std::move(src), config, std::move(dst));
+    return;
+  }
+
+  for (SDLSurface::TextureRecord tile : mask->surface->GetTextureArray()) {
+    RenderingConfig masked_config = config;
+    masked_config.alpha_mask = AlphaMaskConfig{
+        .texture = tile.gltexture,
+        .screen_rect = Rect(mask->origin + Size(tile.x_, tile.y_),
+                            Size(tile.w_, tile.h_))};
+    glRenderer().Render(src, std::move(masked_config), dst);
+  }
+}
+
 // -----------------------------------------------------------------------
 // class GraphicsObjectData
 GraphicsObjectData::GraphicsObjectData() = default;
@@ -81,7 +101,8 @@ GraphicsObjectData::GraphicsObjectData() = default;
 GraphicsObjectData::~GraphicsObjectData() = default;
 
 void GraphicsObjectData::Render(const GraphicsObject& go,
-                                std::optional<ParentObjState> parent) {
+                                std::optional<ParentObjState> parent,
+                                std::optional<ObjectMask> mask) {
   std::shared_ptr<const SDLSurface> surface = CurrentSurface(go);
   if (!surface)
     return;
@@ -116,8 +137,8 @@ void GraphicsObjectData::Render(const GraphicsObject& go,
     config.bright = parent ? parent->EffectiveBright(bright) : bright;
     config.dark = parent ? parent->EffectiveDark(dark) : dark;
 
-    glRenderer().Render({it.gltexture, src_rect}, std::move(config),
-                        {SDLSurface::screen_, dst_rect});
+    RenderObjectWithMask({it.gltexture, src_rect}, config,
+                         {SDLSurface::screen_, dst_rect}, mask);
   }
 }
 

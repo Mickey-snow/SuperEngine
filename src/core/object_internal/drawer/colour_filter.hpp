@@ -42,7 +42,8 @@ class ColourFilterObjectData : public GraphicsObjectData {
 
   // Overridden from GraphicsObjectData:
   virtual void Render(const GraphicsObject& go,
-                      std::optional<ParentObjState> parent = {}) override;
+                      std::optional<ParentObjState> parent = {},
+                      std::optional<ObjectMask> mask = {}) override;
   virtual int PixelWidth(const GraphicsObject& rendering_properties) override;
   virtual int PixelHeight(const GraphicsObject& rendering_properties) override;
   virtual std::unique_ptr<GraphicsObjectData> Clone() const override;

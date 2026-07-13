@@ -45,6 +45,11 @@ struct glDestination {
   Rect region;
 };
 
+struct AlphaMaskConfig {
+  std::shared_ptr<glTexture> texture;
+  Rect screen_rect;
+};
+
 struct RenderingConfig {
   std::optional<glm::mat4> model;
   std::optional<RGBAColour> color;
@@ -57,6 +62,7 @@ struct RenderingConfig {
   std::optional<float> alpha;
   std::optional<std::array<float, 4>> vertex_alpha;
   std::optional<int> blend_type;
+  std::optional<AlphaMaskConfig> alpha_mask;
   bool sample_texture_in_screen_space = false;
 };
 

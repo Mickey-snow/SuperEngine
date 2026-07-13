@@ -210,17 +210,17 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
       return &mp;
     }
     case Type::IntEvent: {
-      static const auto mp =
-          make_flatmap<Builder>({id[0] | b(Type::Callable, Member("set")),
-                                 id[7] | b(Type::Callable, Member("set_real")),
-                                 id[1] | b(Type::Callable, Member("loop")),
-                                 id[8] | b(Type::Callable, Member("loop_real")),
-                                 id[2] | b(Type::Callable, Member("turn")),
-                                 id[9] | b(Type::Callable, Member("turn_real")),
-                                 id[3] | b(Type::None, Member("end")),
-                                 id[4] | b(Type::None, Member("wait")),
-                                 id[10] | b(Type::None, Member("wait_key")),
-                                 id[5] | b(Type::Int, Member("check"))});
+      static const auto mp = make_flatmap<Builder>(
+          {id[0] | b(Type::Callable, Member("set")),
+           id[7] | b(Type::Callable, Member("set_real")),
+           id[1] | b(Type::Callable, Member("loop")),
+           id[8] | b(Type::Callable, Member("loop_real")),
+           id[2] | b(Type::Callable, Member("turn")),
+           id[9] | b(Type::Callable, Member("turn_real")),
+           id[3] | b_callable("end"),
+           id[4] | b_callable("wait", Type::None, AWAIT),
+           id[10] | b_callable("wait_key", Type::None, AWAIT),
+           id[5] | b_callable("check", Type::Int)});
 
       return &mp;
     }
@@ -1271,15 +1271,15 @@ static flat_map<Builder> const* GetMethodMap(Type type) {
     case Type::MaskList: {
       static const auto mp =
           make_flatmap<Builder>({id[-1] | b_index_array(Type::Mask),
-                                 id[1] | b(Type::Int, Member("size"))});
+                                 id[1] | b_callable("size", Type::Int)});
       return &mp;
     }
 
     case Type::Mask: {
       static const auto mp = make_flatmap<Builder>(
-          {id[1] | b(Type::None, Member("init")),
-           id[0] | b_callable("create", Type::None),
-           id[4] | b(Type::Int, Member("x")), id[5] | b(Type::Int, Member("y")),
+          {id[1] | b_callable("init"), id[0] | b_callable("create", Type::None),
+           id[4] | obj_getset("x", Type::Int),
+           id[5] | obj_getset("y", Type::Int),
            id[2] | b(Type::IntEvent, Member("x_eve")),
            id[3] | b(Type::IntEvent, Member("y_eve"))});
       return &mp;

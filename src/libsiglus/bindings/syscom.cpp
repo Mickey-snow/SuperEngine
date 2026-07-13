@@ -28,6 +28,7 @@
 #include "libsiglus/bindings/registry.hpp"
 #include "libsiglus/bindings/util.hpp"
 #include "libsiglus/intern_name.hpp"
+#include "libsiglus/mask.hpp"
 #include "platforms/implementor.hpp"
 #include "srbind/srbind.hpp"
 #include "systems/graphics_system.hpp"
@@ -97,6 +98,7 @@ void BindSyscom(SiglusRuntime& runtime) {
   auto* loader = runtime.loader.get();
   auto gameexe = runtime.gameexe;
   auto input = runtime.input_event_listener;
+  auto mask_list = runtime.mask_list;
   auto platform = runtime.platform_implementor;
   auto reset_local_memory = runtime.reset_local_memory;
 
@@ -107,8 +109,8 @@ void BindSyscom(SiglusRuntime& runtime) {
 
   m.def(
       "return_to_menu",
-      [sys, stage, loader, gameexe, input, platform, reset_local_memory](
-          VM& vm, Fiber& fiber, std::vector<Value> args) {
+      [sys, stage, loader, gameexe, input, mask_list, platform,
+       reset_local_memory](VM& vm, Fiber& fiber, std::vector<Value> args) {
         ReturnMenuParams params = ReturnMenuParams::Parse(std::move(args));
         if (!gameexe || !loader)
           throw RuntimeError("return_to_menu requires game configuration");
@@ -130,12 +132,14 @@ void BindSyscom(SiglusRuntime& runtime) {
         if (params.se_play && sys)
           sys->sound().PlaySe(6);
 
-        auto restart = [sys, stage, input, reset_local_memory, &vm, thunk,
-                        preserve = params.preserve_backlog] {
+        auto restart = [sys, stage, input, mask_list, reset_local_memory, &vm,
+                        thunk, preserve = params.preserve_backlog] {
           if (reset_local_memory)
             reset_local_memory();
           if (stage)
             stage->Reset();
+          if (mask_list)
+            mask_list->Reset();
           if (sys) {
             if (preserve) {
               sys->sound().Reset();

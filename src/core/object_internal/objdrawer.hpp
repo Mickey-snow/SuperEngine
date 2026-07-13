@@ -27,6 +27,7 @@
 #include <boost/serialization/access.hpp>
 
 #include "core/object.hpp"
+#include "core/object_internal/object_mask.hpp"
 #include "core/rect.hpp"
 #include "core/render_geometry.hpp"
 #include "glm/mat4x4.hpp"
@@ -37,6 +38,9 @@
 class GraphicsObject;
 class SDLSurface;
 class Animator;
+struct glDestination;
+struct glRenderable;
+struct RenderingConfig;
 
 glm::mat4 BuildModelMatrix(const RenderGeometry& geometry, const Rect& dst);
 
@@ -44,6 +48,11 @@ std::optional<RenderGeometry> ApplyClips(
     RenderGeometry geo,
     const GraphicsObject& go,
     const std::optional<ParentObjState>& parent = {});
+
+void RenderObjectWithMask(glRenderable src,
+                          const RenderingConfig& config,
+                          glDestination dst,
+                          const std::optional<ObjectMask>& mask);
 
 class GraphicsObjectData {
  public:
@@ -53,7 +62,8 @@ class GraphicsObjectData {
   virtual void PlaySet(int set);
 
   virtual void Render(const GraphicsObject& go,
-                      std::optional<ParentObjState> parent = {});
+                      std::optional<ParentObjState> parent = {},
+                      std::optional<ObjectMask> mask = {});
 
   virtual int PixelWidth(const GraphicsObject& rendering_properties) = 0;
   virtual int PixelHeight(const GraphicsObject& rendering_properties) = 0;

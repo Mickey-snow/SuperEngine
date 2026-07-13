@@ -37,6 +37,7 @@
 #include "libsiglus/bindings/registry.hpp"
 #include "libsiglus/gexedat.hpp"
 #include "libsiglus/intern_name.hpp"
+#include "libsiglus/mask.hpp"
 #include "libsiglus/siglus_scene_renderer.hpp"
 #include "log/domain_logger.hpp"
 #include "m6/vm_factory.hpp"
@@ -142,7 +143,13 @@ SiglusRuntime SGVMFactory::Create() {
   rt.system->text().set_active_window(default_window);
   rt.stage = std::make_unique<Stage>(rt.system->graphics().GetObjectLayerSize(),
                                      gexe("EFFECT.CNT").Int().value_or(0));
-  rt.renderer = std::make_shared<SiglusSceneRenderer>(*rt.stage, *rt.system);
+  const int mask_count = gexe("MASK.CNT").Int().value_or(16);
+  if (mask_count < 0 || mask_count > 256)
+    throw std::runtime_error("MASK.CNT must be between 0 and 256");
+  rt.mask_list = std::make_shared<MaskList>(
+      static_cast<std::size_t>(mask_count), rt.system->event().GetClock());
+  rt.renderer = std::make_shared<SiglusSceneRenderer>(*rt.stage, *rt.system,
+                                                      rt.mask_list);
   rt.system->graphics().BindSceneRenderer(rt.renderer);
 
   rt.local_config = std::make_shared<Gameexe>();

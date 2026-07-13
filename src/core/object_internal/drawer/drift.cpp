@@ -30,11 +30,13 @@
 
 #include "core/object_internal/drawer/drift.hpp"
 
+#include "core/localrect.hpp"
 #include "core/object.hpp"
 #include "core/rect.hpp"
 #include "log/domain_logger.hpp"
 #include "systems/event_system.hpp"
 #include "systems/graphics_system.hpp"
+#include "systems/sdl/glrenderer.hpp"
 #include "systems/sdl/sdl_surface.hpp"
 #include "systems/system.hpp"
 #include "utilities/graphics.hpp"
@@ -81,7 +83,8 @@ DriftGraphicsObject::DriftGraphicsObject(System& system,
 DriftGraphicsObject::~DriftGraphicsObject() {}
 
 void DriftGraphicsObject::Render(const GraphicsObject& go,
-                                 std::optional<ParentObjState> parent) {
+                                 std::optional<ParentObjState> parent,
+                                 std::optional<ObjectMask> mask) {
   if (parent) {
     logger(Severity::Warn)
         << "parent object takes no effect on drift graphics objects";
@@ -179,7 +182,17 @@ void DriftGraphicsObject::Render(const GraphicsObject& go,
     if (param.has_clip_rect())
       ClipDestination(param.clip_rect(), src, dest);
 
-    surface->RenderToScreen(src, dest, particle.alpha);
+    for (SDLSurface::TextureRecord it : surface->GetTextureArray()) {
+      auto src_rect = src;
+      auto dst_rect = dest;
+      LocalRect coordinate_system(it.x_, it.y_, it.w_, it.h_);
+      if (!coordinate_system.intersectAndTransform(src_rect, dst_rect))
+        continue;
+      RenderingConfig config;
+      config.alpha = particle.alpha / 255.0f;
+      RenderObjectWithMask({it.gltexture, src_rect}, config,
+                           {SDLSurface::screen_, dst_rect}, mask);
+    }
   }
 }
 

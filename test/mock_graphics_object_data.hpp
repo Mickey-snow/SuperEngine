@@ -35,6 +35,9 @@ class MockGraphicsObjectData : public GraphicsObjectData {
  public:
   using RenderCallback =
       std::function<void(const GraphicsObject&, std::optional<ParentObjState>)>;
+  using MaskRenderCallback = std::function<void(const GraphicsObject&,
+                                                std::optional<ParentObjState>,
+                                                std::optional<ObjectMask>)>;
 
   MockGraphicsObjectData() : src_(Rect::REC(0, 0, 1, 1)) {}
 
@@ -56,12 +59,19 @@ class MockGraphicsObjectData : public GraphicsObjectData {
     render_callback_ = std::move(callback);
   }
 
+  void SetMaskRenderCallback(MaskRenderCallback callback) {
+    mask_render_callback_ = std::move(callback);
+  }
+
   void Render(const GraphicsObject& object,
-              std::optional<ParentObjState> parent) override {
-    if (render_callback_)
+              std::optional<ParentObjState> parent,
+              std::optional<ObjectMask> mask = std::nullopt) override {
+    if (mask_render_callback_)
+      mask_render_callback_(object, std::move(parent), std::move(mask));
+    else if (render_callback_)
       render_callback_(object, std::move(parent));
     else
-      GraphicsObjectData::Render(object, std::move(parent));
+      GraphicsObjectData::Render(object, std::move(parent), std::move(mask));
   }
 
   int PixelWidth(const GraphicsObject&) override { return src_.width(); }
@@ -88,4 +98,5 @@ class MockGraphicsObjectData : public GraphicsObjectData {
   Point texture_origin_;
   std::shared_ptr<const SDLSurface> surface_;
   RenderCallback render_callback_;
+  MaskRenderCallback mask_render_callback_;
 };

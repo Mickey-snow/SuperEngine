@@ -51,6 +51,7 @@ class IPlatformImplementor;
 
 namespace libsiglus {
 class Archive;
+class MaskList;
 class SiglusSceneRenderer;
 
 struct SiglusRuntime {
@@ -69,6 +70,7 @@ struct SiglusRuntime {
   std::shared_ptr<Gameexe> local_config, global_config;
   std::shared_ptr<BgmTable> bgm_table;
   std::shared_ptr<KidokuTable> kidoku_table;
+  std::shared_ptr<MaskList> mask_list;
 
   std::shared_ptr<SiglusSceneRenderer> renderer;
   std::shared_ptr<EventListener> system_event_listener;

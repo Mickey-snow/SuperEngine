@@ -40,7 +40,8 @@ ColourFilterObjectData::ColourFilterObjectData(const Rect& screen_rect)
 ColourFilterObjectData::~ColourFilterObjectData() {}
 
 void ColourFilterObjectData::Render(const GraphicsObject& go,
-                                    std::optional<ParentObjState> parent) {
+                                    std::optional<ParentObjState> parent,
+                                    std::optional<ObjectMask> mask) {
   auto screen_canvas = SDLSurface::screen_;
   auto background = screen_canvas->GetTexture();
 
@@ -70,8 +71,8 @@ void ColourFilterObjectData::Render(const GraphicsObject& go,
   cfg.sample_texture_in_screen_space = true;
 
   const Rect framebuffer(Point(0, 0), background->GetSize());
-  glRenderer().Render({background, framebuffer}, std::move(cfg),
-                      {screen_canvas, geometry.dst});
+  RenderObjectWithMask({background, framebuffer}, cfg,
+                       {screen_canvas, geometry.dst}, mask);
 }
 
 int ColourFilterObjectData::PixelWidth(const GraphicsObject&) {

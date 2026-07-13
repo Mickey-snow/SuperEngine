@@ -24,13 +24,17 @@
 #include "libsiglus/siglus_scene_renderer.hpp"
 
 #include "core/object.hpp"
+#include "core/object_internal/object_mask.hpp"
 #include "core/stage.hpp"
+#include "libsiglus/mask.hpp"
 #include "systems/graphics_system.hpp"
 #include "systems/system.hpp"
 #include "systems/text_system.hpp"
 
 #include <algorithm>
 #include <cmath>
+#include <stdexcept>
+#include <utility>
 
 namespace libsiglus {
 
@@ -59,10 +63,16 @@ class ScopedRenderParameters {
   ObjectParameter original_;
 };
 
-SiglusSceneRenderer::SiglusSceneRenderer(Stage& stage, System& system)
-    : stage_(stage), system_(system) {}
+SiglusSceneRenderer::SiglusSceneRenderer(Stage& stage,
+                                         System& system,
+                                         std::shared_ptr<MaskList> mask_list)
+    : stage_(stage), system_(system), mask_list_(std::move(mask_list)) {}
 
-void SiglusSceneRenderer::ExecuteFrame() { stage_.Execute(); }
+void SiglusSceneRenderer::ExecuteFrame() {
+  stage_.Execute();
+  if (mask_list_)
+    mask_list_->Execute();
+}
 
 void SiglusSceneRenderer::RenderScene() {
   RenderStageObjects(stage_, to_render_);
@@ -94,6 +104,22 @@ void SiglusSceneRenderer::QueueObjects(LazyArray<GraphicsObject>& objects,
 void SiglusSceneRenderer::RenderQueuedObjects() {
   std::sort(to_render_.begin(), to_render_.end());
 
+  const ObjectMaskResolver resolve_mask =
+      [masks = mask_list_](int index) -> std::optional<ObjectMask> {
+    if (!masks)
+      return std::nullopt;
+    try {
+      const MaskElement& mask = masks->At(index);
+      if (!mask.surface())
+        return std::nullopt;
+      return ObjectMask{.surface = mask.surface(),
+                        .origin = Point(mask.x().GetRenderValue(),
+                                        mask.y().GetRenderValue())};
+    } catch (const std::out_of_range&) {
+      return std::nullopt;
+    }
+  };
+
   for (auto& object : to_render_) {
     const double alpha_multiplier = std::get<6>(object);
     if (alpha_multiplier <= 0.0)
@@ -103,7 +129,7 @@ void SiglusSceneRenderer::RenderQueuedObjects() {
     const int effect_layer = std::get<7>(object);
     ScopedRenderParameters parameters(graphics_object, alpha_multiplier,
                                       stage_.EffectsForLayer(effect_layer));
-    graphics_object.Render();
+    graphics_object.Render(std::nullopt, &resolve_mask);
   }
 }
 

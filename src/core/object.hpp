@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include "core/object_internal/object_mask.hpp"
 #include "core/object_internal/object_parameter.hpp"
 #include "core/render_geometry.hpp"
 
@@ -111,7 +112,9 @@ class GraphicsObject {
   void EnsureChildCapacity(std::size_t count);
 
   // Render!
-  void Render(std::optional<ParentObjState> parent = {});
+  void Render(std::optional<ParentObjState> parent = {},
+              const ObjectMaskResolver* mask_resolver = nullptr,
+              std::optional<ObjectMask> inherited_mask = std::nullopt);
 
   // Frees the object data. Corresponds to objFree, but is also invoked by
   // other commands.

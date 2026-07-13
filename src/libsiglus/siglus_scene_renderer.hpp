@@ -25,6 +25,7 @@
 
 #include "systems/scene_renderer.hpp"
 
+#include <memory>
 #include <tuple>
 #include <vector>
 
@@ -38,10 +39,13 @@ class LazyArray;
 namespace libsiglus {
 
 class SiglusSceneRendererTest;
+class MaskList;
 
 class SiglusSceneRenderer final : public ISceneRenderer {
  public:
-  SiglusSceneRenderer(::Stage& stage, ::System& system);
+  SiglusSceneRenderer(::Stage& stage,
+                      ::System& system,
+                      std::shared_ptr<MaskList> mask_list);
 
   void ExecuteFrame() override;
   void RenderScene() override;
@@ -61,6 +65,7 @@ class SiglusSceneRenderer final : public ISceneRenderer {
 
   ::Stage& stage_;
   ::System& system_;
+  std::shared_ptr<MaskList> mask_list_;
   ToRenderVec to_render_;
 };
 

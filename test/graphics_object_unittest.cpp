@@ -239,6 +239,64 @@ TEST_F(GraphicsObjectTest, ParentButtonEffectsPassToChildren) {
   EXPECT_FLOAT_EQ(last_parent->dark, 60.0f / 255.0f);
 }
 
+TEST_F(GraphicsObjectTest, ParentMaskPassesToUnmaskedChildren) {
+  obj.ResetChildren(1);
+  obj.Param().SetMaskNo(3);
+  GraphicsObject& child = obj.TouchChild(0);
+  child.Param().SetVisible(true);
+
+  std::optional<ObjectMask> rendered_mask;
+  auto drawer = std::make_unique<MockGraphicsObjectData>();
+  drawer->SetMaskRenderCallback(
+      [&rendered_mask](const GraphicsObject&, std::optional<ParentObjState>,
+                       std::optional<ObjectMask> mask) {
+        rendered_mask = std::move(mask);
+      });
+  child.SetDrawer(std::move(drawer));
+
+  auto surface = std::make_shared<SDLSurface>();
+  ObjectMaskResolver resolver =
+      [surface](int index) -> std::optional<ObjectMask> {
+    if (index != 3)
+      return std::nullopt;
+    return ObjectMask{.surface = surface, .origin = Point(12, 34)};
+  };
+  obj.Render(std::nullopt, &resolver);
+
+  ASSERT_TRUE(rendered_mask.has_value());
+  EXPECT_EQ(rendered_mask->surface, surface);
+  EXPECT_EQ(rendered_mask->origin, Point(12, 34));
+}
+
+TEST_F(GraphicsObjectTest, ExplicitInvalidChildMaskOverridesParentMask) {
+  obj.ResetChildren(1);
+  obj.Param().SetMaskNo(3);
+  GraphicsObject& child = obj.TouchChild(0);
+  child.Param().SetVisible(true);
+  child.Param().SetMaskNo(4);
+
+  std::optional<ObjectMask> rendered_mask;
+  auto drawer = std::make_unique<MockGraphicsObjectData>();
+  drawer->SetMaskRenderCallback(
+      [&rendered_mask](const GraphicsObject&, std::optional<ParentObjState>,
+                       std::optional<ObjectMask> mask) {
+        rendered_mask = std::move(mask);
+      });
+  child.SetDrawer(std::move(drawer));
+
+  auto surface = std::make_shared<SDLSurface>();
+  ObjectMaskResolver resolver =
+      [surface](int index) -> std::optional<ObjectMask> {
+    if (index != 3)
+      return std::nullopt;
+    return ObjectMask{.surface = surface, .origin = Point(12, 34)};
+  };
+  obj.Render(std::nullopt, &resolver);
+
+  EXPECT_FALSE(rendered_mask.has_value());
+  EXPECT_EQ(child.Param().mask_no, 4);
+}
+
 TEST_F(GraphicsObjectTest, EndObjectMutatorMatching) {
   obj.AddObjectMutator(ObjectMutator({}, -1, "fade"));
   EXPECT_TRUE(obj.IsMutatorRunningMatching(-1, "fade"));

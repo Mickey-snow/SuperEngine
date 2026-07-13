@@ -104,7 +104,8 @@ class CompositeGraphicsObject : public GraphicsObjectData {
   virtual ~CompositeGraphicsObject();
 
   virtual void Render(const GraphicsObject& go,
-                      std::optional<ParentObjState> parent = {}) override;
+                      std::optional<ParentObjState> parent = {},
+                      std::optional<ObjectMask> mask = {}) override;
 
   virtual int PixelWidth(const GraphicsObject& rp) override;
   virtual int PixelHeight(const GraphicsObject& rp) override;

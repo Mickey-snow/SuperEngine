@@ -258,7 +258,8 @@ CompositeGraphicsObject::CompositeGraphicsObject(
 CompositeGraphicsObject::~CompositeGraphicsObject() = default;
 
 void CompositeGraphicsObject::Render(const GraphicsObject& go,
-                                     std::optional<ParentObjState> parent) {
+                                     std::optional<ParentObjState> parent,
+                                     std::optional<ObjectMask> mask) {
   const float parent_alpha = parent ? parent->alpha : 1.f;
   const float alpha = GetRenderingAlpha(go, parent_alpha);
   const std::optional<RenderState> parent_state =
@@ -295,8 +296,8 @@ void CompositeGraphicsObject::Render(const GraphicsObject& go,
       config.bright = parent ? parent->EffectiveBright(bright) : bright;
       config.dark = parent ? parent->EffectiveDark(dark) : dark;
 
-      glRenderer().Render({it.gltexture, src_rect}, std::move(config),
-                          {SDLSurface::screen_, dst_rect});
+      RenderObjectWithMask({it.gltexture, src_rect}, config,
+                           {SDLSurface::screen_, dst_rect}, mask);
     }
   }
 }

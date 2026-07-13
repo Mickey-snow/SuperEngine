@@ -248,6 +248,18 @@ void glRenderer::Render(glRenderable src,
   shader->SetUniform("texture0", 0);
   shader->SetUniform("sample_texture_in_screen_space",
                      cfg.sample_texture_in_screen_space ? 1 : 0);
+  shader->SetUniform("use_alpha_mask", cfg.alpha_mask.has_value() ? 1 : 0);
+  shader->SetUniform("canvas_height", static_cast<float>(canvas_size.height()));
+  if (cfg.alpha_mask) {
+    const Rect& rect = cfg.alpha_mask->screen_rect;
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, cfg.alpha_mask->texture->GetID());
+    shader->SetUniform("alpha_mask", 1);
+    shader->SetUniform("alpha_mask_rect", static_cast<float>(rect.x()),
+                       static_cast<float>(rect.y()),
+                       static_cast<float>(rect.width()),
+                       static_cast<float>(rect.height()));
+  }
 
   auto color = cfg.color.value_or(RGBAColour(0, 0, 0, 0));
   shader->SetUniform("color", color.r_float(), color.g_float(), color.b_float(),

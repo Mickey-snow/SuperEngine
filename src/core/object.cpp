@@ -239,12 +239,19 @@ void GraphicsObject::EndObjectMutatorMatching(int repno,
   }
 }
 
-void GraphicsObject::Render(std::optional<ParentObjState> parent) {
+void GraphicsObject::Render(std::optional<ParentObjState> parent,
+                            const ObjectMaskResolver* mask_resolver,
+                            std::optional<ObjectMask> inherited_mask) {
   if (!Param().visible())
     return;
 
+  std::optional<ObjectMask> mask = std::move(inherited_mask);
+  if (mask_resolver && Param().mask_no >= 0) {
+    mask = std::invoke(*mask_resolver, Param().mask_no);
+  }
+
   if (object_data_)
-    object_data_->Render(*this, parent);
+    object_data_->Render(*this, parent, mask);
 
   if (!child_.empty()) {
     if (parent) {
@@ -255,7 +262,7 @@ void GraphicsObject::Render(std::optional<ParentObjState> parent) {
     for (auto& it : child_) {
       if (!it)
         continue;
-      it->Render(child_parent);
+      it->Render(child_parent, mask_resolver, mask);
     }
   }
 }
