@@ -21,9 +21,9 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
-#include "core/bgm_table.hpp"
 #include "libsiglus/bindings/registry.hpp"
 
+#include "core/bgm_table.hpp"
 #include "libsiglus/bindings/bootstrap.hpp"
 #include "libsiglus/bindings/util.hpp"
 #include "libsiglus/bindings/wait_helpers.hpp"

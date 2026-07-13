@@ -46,6 +46,7 @@ class VM;
 class IntListFacade;
 class StrListFacade;
 class BgmTable;
+class KidokuTable;
 class IPlatformImplementor;
 
 namespace libsiglus {
@@ -67,6 +68,7 @@ struct SiglusRuntime {
 
   std::shared_ptr<Gameexe> local_config, global_config;
   std::shared_ptr<BgmTable> bgm_table;
+  std::shared_ptr<KidokuTable> kidoku_table;
 
   std::shared_ptr<SiglusSceneRenderer> renderer;
   std::shared_ptr<EventListener> system_event_listener;

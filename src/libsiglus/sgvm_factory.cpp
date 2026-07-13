@@ -28,6 +28,7 @@
 #include "core/gameexe.hpp"
 #include "core/input.hpp"
 #include "core/interaction_manager.hpp"
+#include "core/kidoku_table.hpp"
 #include "core/mwnd_config.hpp"
 #include "core/stage.hpp"
 #include "libsiglus/archive.hpp"
@@ -146,6 +147,7 @@ SiglusRuntime SGVMFactory::Create() {
 
   rt.local_config = std::make_shared<Gameexe>();
   rt.global_config = std::make_shared<Gameexe>();
+  rt.kidoku_table = std::make_shared<KidokuTable>();
 
   rt.system->text().SetMwndCallHandler(
       [loader = rt.loader.get(), &vm](const MwndConfig::CallTarget& target) {

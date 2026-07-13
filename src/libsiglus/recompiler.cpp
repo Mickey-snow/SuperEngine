@@ -863,8 +863,8 @@ void Recompiler::emit_tok(const token::Name& tk) {
 }
 void Recompiler::emit_tok(const token::Textout& tk) {
   emit_load_global("__builtin_textout");
-  emit_const(tk.kidoku), emit_val(tk.str);
-  emit(sr::Call{.argcnt = 2});
+  emit_const(scene_id_.value_or(-1)), emit_const(tk.kidoku), emit_val(tk.str);
+  emit(sr::Call{.argcnt = 3});
   emit(sr::Await{});
 }
 void Recompiler::emit_tok(const token::GetProperty& tk) {

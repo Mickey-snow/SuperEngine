@@ -21,6 +21,7 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 // -----------------------------------------------------------------------
 
+#include "core/kidoku_table.hpp"
 #include "libsiglus/bindings/registry.hpp"
 #include "libsiglus/bindings/wait_helpers.hpp"
 #include "srbind/module.hpp"
@@ -35,7 +36,6 @@
 
 #include <algorithm>
 #include <chrono>
-#include <exception>
 #include <memory>
 #include <string>
 #include <utility>
@@ -133,10 +133,11 @@ void BindTextout(SiglusRuntime& runtime) {
       text.GetCurrentPage().Name(name, "");
   });
   m.def("__builtin_textout",
-        [to = std::make_shared<SiglusTextout>(*runtime.vm, runtime.system.get(),
+        [kt = runtime.kidoku_table,
+         to = std::make_shared<SiglusTextout>(*runtime.vm, runtime.system.get(),
                                               runtime.local_config)](
-            int kidoku, std::string text) -> sr::Value {
-          std::ignore = kidoku;  // TODO: support kidoku later
+            int scenario, int kidoku, std::string text) -> sr::Value {
+          kt->RecordKidoku(scenario, kidoku);
 
           if (!to->sys_)
             return MakeResolvedFuture(*to->vm_.gc_);
