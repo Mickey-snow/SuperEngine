@@ -94,6 +94,12 @@ class FrameCounter {
   std::chrono::milliseconds total_time_;
 };
 
+enum class FrameCounterEasing {
+  Linear,
+  Accelerate,
+  Decelerate,
+};
+
 class SimpleFrameCounter : public FrameCounter {
  public:
   SimpleFrameCounter(std::shared_ptr<Clock> clock,
@@ -111,11 +117,16 @@ class LoopFrameCounter : public FrameCounter {
   LoopFrameCounter(std::shared_ptr<Clock> clock,
                    int frame_min,
                    int frame_max,
-                   int milliseconds)
-      : FrameCounter(std::move(clock), frame_min, frame_max, milliseconds) {}
+                   int milliseconds,
+                   FrameCounterEasing easing = FrameCounterEasing::Linear)
+      : FrameCounter(std::move(clock), frame_min, frame_max, milliseconds),
+        easing_(easing) {}
 
   virtual float ReadFrame() override;
   std::unique_ptr<FrameCounter> Clone() const override;
+
+ private:
+  FrameCounterEasing easing_;
 };
 
 class TurnFrameCounter : public FrameCounter {
@@ -123,12 +134,16 @@ class TurnFrameCounter : public FrameCounter {
   TurnFrameCounter(std::shared_ptr<Clock> clock,
                    int frame_min,
                    int frame_max,
-                   int milliseconds)
-      : FrameCounter(std::move(clock), frame_min, frame_max, milliseconds) {}
+                   int milliseconds,
+                   FrameCounterEasing easing = FrameCounterEasing::Linear)
+      : FrameCounter(std::move(clock), frame_min, frame_max, milliseconds),
+        easing_(easing) {}
 
   virtual float ReadFrame() override;
   std::unique_ptr<FrameCounter> Clone() const override;
 
+ private:
+  FrameCounterEasing easing_;
 };
 
 class AcceleratingFrameCounter : public FrameCounter {

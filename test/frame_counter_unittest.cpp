@@ -150,6 +150,22 @@ TEST_F(FrameCounterTest, BasicLoop_EarlyEnd) {
   EXPECT_FALSE(counter.IsActive());
 }
 
+TEST_F(FrameCounterTest, LoopSupportsEasing) {
+  LoopFrameCounter accelerating(clock_, 0, 100, 1000,
+                                FrameCounterEasing::Accelerate);
+  LoopFrameCounter decelerating(clock_, 0, 100, 1000,
+                                FrameCounterEasing::Decelerate);
+  accelerating.BeginTimer(100ms);
+  decelerating.BeginTimer(100ms);
+
+  EXPECT_FLOAT_EQ(accelerating.ReadFrame(), 0);
+  EXPECT_FLOAT_EQ(decelerating.ReadFrame(), 0);
+
+  clock_->AdvanceTime(600ms);
+  EXPECT_FLOAT_EQ(accelerating.ReadFrame(), 25);
+  EXPECT_FLOAT_EQ(decelerating.ReadFrame(), 75);
+}
+
 TEST_F(FrameCounterTest, BasicTurn) {
   TurnFrameCounter counter(clock_, 2, 5, 300);
 
@@ -183,6 +199,21 @@ TEST_F(FrameCounterTest, BasicTurn_EarlyEnd) {
   counter.EndTimer();
   EXPECT_FLOAT_EQ(counter.ReadFrame(), 4.5);
   EXPECT_FALSE(counter.IsActive());
+}
+
+TEST_F(FrameCounterTest, TurnSupportsEasingInBothDirections) {
+  TurnFrameCounter accelerating(clock_, 0, 100, 1000,
+                                FrameCounterEasing::Accelerate);
+  TurnFrameCounter decelerating(clock_, 0, 100, 1000,
+                                FrameCounterEasing::Decelerate);
+
+  clock_->AdvanceTime(500ms);
+  EXPECT_FLOAT_EQ(accelerating.ReadFrame(), 25);
+  EXPECT_FLOAT_EQ(decelerating.ReadFrame(), 75);
+
+  clock_->AdvanceTime(1000ms);
+  EXPECT_FLOAT_EQ(accelerating.ReadFrame(), 25);
+  EXPECT_FLOAT_EQ(decelerating.ReadFrame(), 75);
 }
 
 TEST_F(FrameCounterTest, AcceleratingFrameCounter) {

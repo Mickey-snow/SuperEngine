@@ -107,6 +107,33 @@ std::unique_ptr<FrameCounter> MakeSiglusFrameCounter(
   return fc;
 }
 
+FrameCounterEasing GetSiglusEasing(int speed_type) {
+  switch (speed_type) {
+    case 1:
+      return FrameCounterEasing::Accelerate;
+    case 2:
+      return FrameCounterEasing::Decelerate;
+    case 0:
+    default:
+      return FrameCounterEasing::Linear;
+  }
+}
+
+template <typename Counter>
+std::unique_ptr<FrameCounter> MakeSiglusRepeatingFrameCounter(
+    int duration,
+    int delay,
+    int start_value,
+    int end_value,
+    int speed_type,
+    std::shared_ptr<Clock> clock) {
+  auto counter =
+      std::make_unique<Counter>(std::move(clock), start_value, end_value,
+                                duration, GetSiglusEasing(speed_type));
+  counter->BeginTimer(std::chrono::milliseconds(delay));
+  return counter;
+}
+
 struct MovieCreateParams {
   std::string file_name;
   std::optional<int> display;
@@ -602,11 +629,10 @@ class ObjectEvent {
 
     obj.EndObjectMutatorMatching(-1, name, 0);
     std::vector<Mutator> mutators;
-    std::ignore = speed_type;  // TODO: we don't support speed_type yet
-    auto fc = std::make_unique<LoopFrameCounter>(std::move(clock), start_value,
-                                                 end_value, loop_time);
-    fc->BeginTimer(std::chrono::milliseconds(delay));
-    mutators.emplace_back(setter_, std::move(fc));
+    mutators.emplace_back(
+        setter_, MakeSiglusRepeatingFrameCounter<LoopFrameCounter>(
+                     loop_time, delay, start_value, end_value, speed_type,
+                     std::move(clock)));
     obj.AddObjectMutator(ObjectMutator(std::move(mutators), -1, name));
   }
 
@@ -621,11 +647,10 @@ class ObjectEvent {
 
     obj.EndObjectMutatorMatching(-1, name, 0);
     std::vector<Mutator> mutators;
-    std::ignore = speed_type;  // TODO: we don't support speed_type yet
-    auto fc = std::make_unique<TurnFrameCounter>(std::move(clock), start_value,
-                                                 end_value, loop_time);
-    fc->BeginTimer(std::chrono::milliseconds(delay));
-    mutators.emplace_back(setter_, std::move(fc));
+    mutators.emplace_back(
+        setter_, MakeSiglusRepeatingFrameCounter<TurnFrameCounter>(
+                     loop_time, delay, start_value, end_value, speed_type,
+                     std::move(clock)));
     obj.AddObjectMutator(ObjectMutator(std::move(mutators), -1, name));
   }
 
@@ -701,6 +726,24 @@ class ObjectRepnoEvent {
     obj.AddObjectMutator(ObjectMutator(std::move(mutators), repno_, name));
   }
 
+  void loop(int start_value,
+            int end_value,
+            int loop_time,
+            int delay,
+            int speed_type) {
+    StartRepeatingEvent<LoopFrameCounter>(start_value, end_value, loop_time,
+                                          delay, speed_type);
+  }
+
+  void turn(int start_value,
+            int end_value,
+            int loop_time,
+            int delay,
+            int speed_type) {
+    StartRepeatingEvent<TurnFrameCounter>(start_value, end_value, loop_time,
+                                          delay, speed_type);
+  }
+
   void end() {
     Verify();
     ref_.get().EndObjectMutatorMatching(repno_, name, 0);
@@ -720,6 +763,28 @@ class ObjectRepnoEvent {
   }
 
  private:
+  template <typename Counter>
+  void StartRepeatingEvent(int start_value,
+                           int end_value,
+                           int loop_time,
+                           int delay,
+                           int speed_type) {
+    Verify();
+    GraphicsObject& obj = ref_.get();
+    std::shared_ptr<Clock> clock = event_->GetClock();
+
+    obj.EndObjectMutatorMatching(repno_, name, 0);
+    std::vector<Mutator> mutators;
+    mutators.emplace_back(
+        [setter = setter_, repno = repno_](ObjectParameter& param, int value) {
+          setter(param, repno, value);
+        },
+        MakeSiglusRepeatingFrameCounter<Counter>(loop_time, delay, start_value,
+                                                 end_value, speed_type,
+                                                 std::move(clock)));
+    obj.AddObjectMutator(ObjectMutator(std::move(mutators), repno_, name));
+  }
+
   void Verify() {
     if (!graphics_)
       throw std::runtime_error("ObjectRepnoEvent requires a graphics system");
@@ -1199,6 +1264,20 @@ void BindObject(SiglusRuntime& runtime) {
 
   repno_event.def("set", &ObjectRepnoEvent::set, sb::arg("end_value"),
                   sb::arg("duration_time"), sb::arg("delay"), sb::arg("type"));
+  repno_event.def("set_real", &ObjectRepnoEvent::set, sb::arg("end_value"),
+                  sb::arg("duration_time"), sb::arg("delay"), sb::arg("type"));
+  repno_event.def("loop", &ObjectRepnoEvent::loop, sb::arg("start_value"),
+                  sb::arg("end_value"), sb::arg("loop_time"), sb::arg("delay"),
+                  sb::arg("speed_type"));
+  repno_event.def("loop_real", &ObjectRepnoEvent::loop, sb::arg("start_value"),
+                  sb::arg("end_value"), sb::arg("loop_time"), sb::arg("delay"),
+                  sb::arg("speed_type"));
+  repno_event.def("turn", &ObjectRepnoEvent::turn, sb::arg("start_value"),
+                  sb::arg("end_value"), sb::arg("loop_time"), sb::arg("delay"),
+                  sb::arg("speed_type"));
+  repno_event.def("turn_real", &ObjectRepnoEvent::turn, sb::arg("start_value"),
+                  sb::arg("end_value"), sb::arg("loop_time"), sb::arg("delay"),
+                  sb::arg("speed_type"));
   repno_event.def("end", &ObjectRepnoEvent::end);
   repno_event.def("check", &ObjectRepnoEvent::check);
   repno_event.def("wait", &ObjectRepnoEvent::wait, sb::vararg);

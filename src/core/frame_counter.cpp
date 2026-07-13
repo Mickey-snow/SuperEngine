@@ -32,6 +32,22 @@
 
 #include "utilities/clock.hpp"
 
+namespace {
+
+double ApplyEasing(double fraction, FrameCounterEasing easing) {
+  switch (easing) {
+    case FrameCounterEasing::Accelerate:
+      return fraction * fraction;
+    case FrameCounterEasing::Decelerate:
+      return 1.0 - ((1.0 - fraction) * (1.0 - fraction));
+    case FrameCounterEasing::Linear:
+    default:
+      return fraction;
+  }
+}
+
+}  // namespace
+
 // -----------------------------------------------------------------------
 // class FrameCounter
 FrameCounter::FrameCounter(std::shared_ptr<Clock> clock,
@@ -114,6 +130,7 @@ float LoopFrameCounter::ReadFrame() {
 
   double integralPart = std::floor(fraction);
   double fracPart = fraction - integralPart;
+  fracPart = ApplyEasing(fracPart, easing_);
 
   double range = static_cast<double>(max_value_ - min_value_);
   double current = static_cast<double>(min_value_) + (fracPart * range);
@@ -145,6 +162,7 @@ float TurnFrameCounter::ReadFrame() {
   double wave = 1.0 - std::fabs(1.0 - cycle);
 
   // wave now in [0..1], 0.0 at extremes of the cycle, 1.0 at mid.
+  wave = ApplyEasing(wave, easing_);
   double current = double(min_value_) + range * wave;
   return value_ = static_cast<float>(current);
 }

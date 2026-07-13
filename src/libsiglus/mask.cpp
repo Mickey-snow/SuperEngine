@@ -39,13 +39,19 @@ std::unique_ptr<FrameCounter> MakeFrameCounter(MaskValue::EventType event_type,
                                                int end,
                                                int speed_type,
                                                std::shared_ptr<Clock> clock) {
+  FrameCounterEasing easing = FrameCounterEasing::Linear;
+  if (speed_type == 1)
+    easing = FrameCounterEasing::Accelerate;
+  else if (speed_type == 2)
+    easing = FrameCounterEasing::Decelerate;
+
   if (event_type == MaskValue::EventType::Loop) {
     return std::make_unique<LoopFrameCounter>(std::move(clock), start, end,
-                                              duration);
+                                              duration, easing);
   }
   if (event_type == MaskValue::EventType::Turn) {
     return std::make_unique<TurnFrameCounter>(std::move(clock), start, end,
-                                              duration);
+                                              duration, easing);
   }
 
   switch (speed_type) {

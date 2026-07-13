@@ -476,6 +476,14 @@ TEST_F(ElementParserTest, ObjectRepnoAlphaLists) {
   }
 }
 
+TEST_F(ElementParserTest, ObjectRepnoEventTurn) {
+  ElementCode elm{37, 2, -1, 109, 112, -1, 0, 2};
+  elm.ForceBind({0, {v(0), v(20), v(1000), v(0), v(2)}});
+  EXPECT_EQ(chain(elm),
+            "stage.back.object[int:109].x_rep_eve[int:0].turn(int:0,int:20,int:"
+            "1000,int:0,int:2)");
+}
+
 TEST_F(ElementParserTest, BgmTable) {
   {
     ElementCode elm{123, 2};
