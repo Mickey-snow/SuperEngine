@@ -26,6 +26,7 @@
 
 #include "core/group.hpp"
 #include "core/object.hpp"
+#include "core/stage_effect.hpp"
 #include "utilities/lazy_array.hpp"
 
 #include <cstddef>
@@ -39,7 +40,7 @@
 
 class Stage {
  public:
-  Stage(int size);
+  Stage(int size, int effect_size = 0);
 
   // Foreground objects
   LazyArray<GraphicsObject> foreground_objects;
@@ -52,6 +53,9 @@ class Stage {
 
   // Foreground, background and next groups
   std::vector<Group> groups[3];
+
+  // Foreground, background and next stage effects.
+  std::vector<StageEffect> effects[3];
 
   // Foreground objects (at the time of the last save)
   LazyArray<GraphicsObject> saved_foreground_objects;
@@ -115,6 +119,11 @@ class Stage {
 
   const LazyArray<GraphicsObject>& ObjectsForLayer(int layer) const;
   LazyArray<GraphicsObject>& ObjectsForLayer(int layer);
+
+  const std::vector<StageEffect>& EffectsForLayer(int layer) const;
+  std::vector<StageEffect>& EffectsForLayer(int layer);
+  StageEffect& GetEffect(int layer, int effect_number);
+  void ResizeEffects(int layer, int size);
 
  private:
   double foreground_render_alpha_ = 1.0;

@@ -381,3 +381,33 @@ TEST_F(StageTest, FullWipePromotesSparseBackgroundGroups) {
   EXPECT_EQ(stage.groups[kLayerBg][3].status, Group::Status::Disabled);
   EXPECT_EQ(stage.groups[kLayerNext][3].status, Group::Status::Disabled);
 }
+
+TEST_F(StageTest, WipePromotesAndResetsEffects) {
+  Stage stage(1, 1);
+  stage.GetEffect(kLayerFg, 0).mono = 10;
+  stage.GetEffect(kLayerBg, 0).mono = 200;
+
+  stage.Wipe();
+
+  EXPECT_EQ(stage.GetEffect(kLayerNext, 0).mono, 10);
+  EXPECT_EQ(stage.GetEffect(kLayerFg, 0).mono, 200);
+  EXPECT_EQ(stage.GetEffect(kLayerBg, 0).mono, 0);
+}
+
+TEST_F(StageTest, WipeCopyPreservesFrontUnlessBackErases) {
+  Stage stage(1, 1);
+  StageEffect& front = stage.GetEffect(kLayerFg, 0);
+  StageEffect& back = stage.GetEffect(kLayerBg, 0);
+  front.mono = 10;
+  front.wipe_copy = 1;
+  back.mono = 200;
+
+  stage.Wipe();
+  EXPECT_EQ(stage.GetEffect(kLayerFg, 0).mono, 10);
+  EXPECT_EQ(stage.GetEffect(kLayerBg, 0).mono, 200);
+
+  stage.GetEffect(kLayerBg, 0).wipe_erase = 1;
+  stage.Wipe();
+  EXPECT_EQ(stage.GetEffect(kLayerFg, 0).mono, 200);
+  EXPECT_EQ(stage.GetEffect(kLayerBg, 0).mono, 0);
+}

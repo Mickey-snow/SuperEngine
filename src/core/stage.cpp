@@ -31,12 +31,17 @@
 #include <limits>
 #include <stdexcept>
 
-Stage::Stage(int size)
+Stage::Stage(int size, int effect_size)
     : foreground_objects(size),
       background_objects(size),
       next_objects(size),
       saved_foreground_objects(size),
-      saved_background_objects(size) {}
+      saved_background_objects(size) {
+  if (effect_size < 0)
+    throw std::runtime_error("Negative stage effect count");
+  for (auto& layer_effects : effects)
+    layer_effects.resize(effect_size);
+}
 
 void Stage::Reset() {
   foreground_objects.Clear();
@@ -44,6 +49,9 @@ void Stage::Reset() {
   next_objects.Clear();
   for (auto& layer_groups : groups)
     layer_groups.clear();
+  for (auto& layer_effects : effects)
+    for (StageEffect& effect : layer_effects)
+      effect.Reset();
   ClearTransitionRenderState();
 }
 
@@ -56,7 +64,7 @@ void Stage::Wipe(int begin_order,
                  int end_order,
                  int begin_layer,
                  int end_layer) {
-  // TODO(siglus): Promote mwnd, btnsel, world, effect, and quake stage state
+  // TODO(siglus): Promote mwnd, btnsel, world, and quake stage state
   // when those core Siglus element implementations exist.
   next_objects.Clear();
   groups[kLayerNext].clear();
@@ -124,6 +132,22 @@ void Stage::Wipe(int begin_order,
     foreground.ClearTransientInteraction();
     background_groups[i].Reset();
   }
+
+  std::vector<StageEffect>& foreground_effects = effects[kLayerFg];
+  std::vector<StageEffect>& background_effects = effects[kLayerBg];
+  std::vector<StageEffect>& next_effects = effects[kLayerNext];
+  const size_t effect_count = std::min(
+      {foreground_effects.size(), background_effects.size(),
+       next_effects.size()});
+  for (size_t i = 0; i < effect_count; ++i) {
+    StageEffect& foreground = foreground_effects[i];
+    StageEffect& background = background_effects[i];
+    next_effects[i] = foreground;
+    if (foreground.wipe_copy == 0 || background.wipe_erase != 0) {
+      foreground = background;
+      background.Reset();
+    }
+  }
 }
 
 void Stage::SetTransitionRenderAlpha(double foreground_alpha,
@@ -161,6 +185,30 @@ const LazyArray<GraphicsObject>& Stage::ObjectsForLayer(int layer) const {
     default:
       throw std::runtime_error("Invalid layer number");
   }
+}
+
+std::vector<StageEffect>& Stage::EffectsForLayer(int layer) {
+  if (layer < kLayerFg || layer > kLayerNext)
+    throw std::runtime_error("Invalid layer number");
+  return effects[layer];
+}
+
+const std::vector<StageEffect>& Stage::EffectsForLayer(int layer) const {
+  if (layer < kLayerFg || layer > kLayerNext)
+    throw std::runtime_error("Invalid layer number");
+  return effects[layer];
+}
+
+StageEffect& Stage::GetEffect(int layer, int effect_number) {
+  if (effect_number < 0)
+    throw std::out_of_range("Negative stage effect index");
+  return EffectsForLayer(layer).at(static_cast<size_t>(effect_number));
+}
+
+void Stage::ResizeEffects(int layer, int size) {
+  if (size < 0)
+    throw std::runtime_error("Negative stage effect count");
+  EffectsForLayer(layer).resize(static_cast<size_t>(size));
 }
 
 GraphicsObject& Stage::GetObject(int layer, int obj_number) {
