@@ -187,6 +187,7 @@ Event translateSDLToEvent(const SDL_Event& sdlEvent) {
 
     // window re-exposed after being covered/minimized
     case SDL_EVENT_WINDOW_EXPOSED:
+    case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
       return VideoExpose{};
 
     case SDL_EVENT_WINDOW_RESIZED:
@@ -260,8 +261,8 @@ std::shared_ptr<Event> SDLEventBackend::PollEvent() {
   while (SDL_PollEvent(&event)) {
     if (event.type == SDL_EVENT_MOUSE_WHEEL) {
       // SDL gives wheel.y in the scroll direction that the user configured.
-      // The value can be a fraction of one tick. Collect the deltas and make
-      // one press pair for each full tick.
+      // The value can be a fraction of one tick. The code collects the
+      // deltas and makes one press pair for each full tick.
       wheel_accum_y_ += event.wheel.y;
       while (wheel_accum_y_ >= 1.0f) {
         pending_.push_back(MouseDown{MouseButton::WHEELUP});
@@ -283,7 +284,7 @@ std::shared_ptr<Event> SDLEventBackend::PollEvent() {
 
     Event translated = translateSDLToEvent(event);
     if (std::holds_alternative<std::monostate>(translated))
-      continue;  // The event is filtered or unknown. Poll the next event.
+      continue;  // The event is filtered or unknown. The loop polls again.
     return std::make_shared<Event>(translated);
   }
   return std::make_shared<Event>(std::monostate());

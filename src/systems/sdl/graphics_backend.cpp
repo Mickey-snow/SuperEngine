@@ -73,16 +73,16 @@ SDL_SurfacePtr CreateRGBASurface(Size size) {
       SDL_DestroySurface);
 }
 
-void SaveBackBufferBMP(const RenderFrameConfig& config) {
+void SaveFrameBMP(const RenderFrameConfig& config, unsigned int framebuffer) {
   if (!config.frame_dump_path)
     return;
 
   const auto& path = *config.frame_dump_path;
-  const int width = config.display_size.width();
-  const int height = config.display_size.height();
+  const int width = config.screen_size.width();
+  const int height = config.screen_size.height();
   if (width <= 0 || height <= 0) {
-    logger(Severity::Warn) << "Skipping frame dump for invalid display size "
-                           << config.display_size.DebugString();
+    logger(Severity::Warn) << "Skipping frame dump for invalid screen size "
+                           << config.screen_size.DebugString();
     return;
   }
 
@@ -102,12 +102,13 @@ void SaveBackBufferBMP(const RenderFrameConfig& config) {
   GLint previous_pack_alignment = 0;
   glGetIntegerv(GL_PACK_ALIGNMENT, &previous_pack_alignment);
   glPixelStorei(GL_PACK_ALIGNMENT, 1);
-  glReadBuffer(GL_BACK);
+  glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer);
   glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+  glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
   glPixelStorei(GL_PACK_ALIGNMENT, previous_pack_alignment);
   ShowGLErrors();
 
-  SDL_SurfacePtr surface = CreateRGBASurface(config.display_size);
+  SDL_SurfacePtr surface = CreateRGBASurface(config.screen_size);
   if (!surface) {
     logger(Severity::Warn) << "Could not allocate frame dump surface: "
                            << SDL_GetError();
@@ -143,8 +144,6 @@ SDLGraphicsBackend::SDLGraphicsBackend()
 }
 
 void SDLGraphicsBackend::InitSystem(Size screen_size, bool is_fullscreen) {
-  SDLSurface::screen_ = std::make_shared<ScreenCanvas>(screen_size);
-
   SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
   SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
   SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
@@ -173,16 +172,13 @@ void SDLGraphicsBackend::InitSystem(Size screen_size, bool is_fullscreen) {
 
   ShowGLErrors();
 
+  SDLSurface::screen_ = std::make_shared<ScreenCanvas>(screen_size);
+
   Resize(screen_size, is_fullscreen);
 }
 void SDLGraphicsBackend::QuitSystem() {}
 
-void SDLGraphicsBackend::Resize(Size display_size, bool is_fullscreen) {
-  if (auto fake_screen =
-          std::dynamic_pointer_cast<ScreenCanvas>(SDLSurface::screen_)) {
-    fake_screen->display_size_ = display_size;
-  }
-
+Size SDLGraphicsBackend::Resize(Size display_size, bool is_fullscreen) {
   const bool now_fullscreen =
       SDL_GetWindowFlags(window_) & SDL_WINDOW_FULLSCREEN;
   if (is_fullscreen != now_fullscreen)
@@ -195,8 +191,9 @@ void SDLGraphicsBackend::Resize(Size display_size, bool is_fullscreen) {
   }
   SDL_SyncWindow(window_);
 
-  screen_contents_texture_.reset();
-  screen_contents_texture_valid_ = false;
+  int w = 0, h = 0;
+  SDL_GetWindowSize(window_, &w, &h);
+  return Size(w, h);
 }
 
 // -----------------------------------------------------------------------
@@ -308,34 +305,42 @@ void SDLGraphicsBackend::ShowSystemCursor(bool show) {
     SDL_HideCursor();
 }
 
+void SDLGraphicsBackend::PresentFrame(const RenderFrameConfig& config) {
+  int window_width = 0, window_height = 0;
+  SDL_GetWindowSizeInPixels(window_, &window_width, &window_height);
+
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+  glClear(GL_COLOR_BUFFER_BIT);
+
+  const Rect view =
+      AspectFitRect(config.screen_size, Size(window_width, window_height));
+  const float scale =
+      static_cast<float>(view.width()) / config.screen_size.width();
+  const Point origin =
+      view.origin() + Point(static_cast<int>(config.screen_origin.x() * scale),
+                            static_cast<int>(config.screen_origin.y() * scale));
+
+  glBindFramebuffer(GL_READ_FRAMEBUFFER, SDLSurface::screen_->GetID());
+  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+  glBlitFramebuffer(0, 0, config.screen_size.width(),
+                    config.screen_size.height(), origin.x(),
+                    window_height - (origin.y() + view.height()),
+                    origin.x() + view.width(), window_height - origin.y(),
+                    GL_COLOR_BUFFER_BIT, GL_LINEAR);
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 void SDLGraphicsBackend::RenderFrame(const RenderFrameConfig& config,
                                      const DrawCallback& draw_scene,
                                      const DrawCallback& draw_renderables,
                                      const DrawCallback& draw_cursor) {
   glRenderer renderer;
   renderer.SetUp();
-  renderer.ClearBuffer(std::make_shared<ScreenCanvas>(config.screen_size),
-                       RGBAColour(0, 0, 0, 255));
+  renderer.ClearBuffer(SDLSurface::screen_, RGBAColour(0, 0, 0, 255));
   ShowGLErrors();
 
-  glViewport(0, 0, config.display_size.width(), config.display_size.height());
-
-  glMatrixMode(GL_PROJECTION);
-  glLoadIdentity();
-  glOrtho(0.0, static_cast<GLdouble>(config.display_size.width()),
-          static_cast<GLdouble>(config.display_size.height()), 0.0, 0.0, 1.0);
-  ShowGLErrors();
-
-  glMatrixMode(GL_MODELVIEW);
-  glLoadIdentity();
-  ShowGLErrors();
-
-  const auto aspect_ratio_w = static_cast<float>(config.display_size.width()) /
-                              static_cast<float>(config.screen_size.width());
-  const auto aspect_ratio_h = static_cast<float>(config.display_size.height()) /
-                              static_cast<float>(config.screen_size.height());
-  glTranslatef(config.screen_origin.x() * aspect_ratio_w,
-               config.screen_origin.y() * aspect_ratio_h, 0.0f);
+  glViewport(0, 0, config.screen_size.width(), config.screen_size.height());
 
   if (draw_scene)
     draw_scene();
@@ -344,13 +349,14 @@ void SDLGraphicsBackend::RenderFrame(const RenderFrameConfig& config,
 
   if (config.manual_update_mode) {
     if (!screen_contents_texture_)
-      screen_contents_texture_ =
-          std::make_shared<glTexture>(config.display_size);
+      screen_contents_texture_ = std::make_shared<glTexture>(config.screen_size);
 
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, SDLSurface::screen_->GetID());
     glBindTexture(GL_TEXTURE_2D, screen_contents_texture_->GetID());
     glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0,
-                        config.display_size.width(),
-                        config.display_size.height());
+                        config.screen_size.width(),
+                        config.screen_size.height());
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
     screen_contents_texture_valid_ = true;
   } else {
     screen_contents_texture_valid_ = false;
@@ -359,8 +365,9 @@ void SDLGraphicsBackend::RenderFrame(const RenderFrameConfig& config,
   if (draw_cursor)
     draw_cursor();
 
+  PresentFrame(config);
   glFlush();
-  SaveBackBufferBMP(config);
+  SaveFrameBMP(config, SDLSurface::screen_->GetID());
   SDL_GL_SwapWindow(window_);
   ShowGLErrors();
 }
@@ -371,17 +378,19 @@ bool SDLGraphicsBackend::RedrawLastFrame(const RenderFrameConfig& config,
       !screen_contents_texture_)
     return false;
 
+  glViewport(0, 0, config.screen_size.width(), config.screen_size.height());
+
   glRenderer renderer;
   renderer.Render(
-      {screen_contents_texture_, Rect(Point(0, 0), config.display_size)},
-      {std::make_shared<ScreenCanvas>(config.screen_size),
-       Rect(Point(0, 0), config.screen_size)});
+      {screen_contents_texture_, Rect(Point(0, 0), config.screen_size)},
+      {SDLSurface::screen_, Rect(Point(0, 0), config.screen_size)});
 
   if (draw_cursor)
     draw_cursor();
 
+  PresentFrame(config);
   glFlush();
-  SaveBackBufferBMP(config);
+  SaveFrameBMP(config, SDLSurface::screen_->GetID());
   SDL_GL_SwapWindow(window_);
   ShowGLErrors();
   return true;
