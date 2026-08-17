@@ -128,3 +128,45 @@ TEST(SDLSound, LoadForOutputClampsFloatOvershoot) {
                 std::numeric_limits<avsample_s16_t>::min(),
                 std::numeric_limits<avsample_s16_t>::max()}));
 }
+
+TEST(SDLSound, CloseAudioWithoutOpenIsNoop) {
+  FakeAudioImpl aimpl;
+  EXPECT_NO_THROW(aimpl.CloseAudio());
+  EXPECT_NO_THROW(aimpl.CloseAudio());
+}
+
+TEST(SDLSound, OpenCloseCycleIsRepeatable) {
+  SDL_SetHint(SDL_HINT_AUDIO_DRIVER, "dummy");
+  FakeAudioImpl aimpl;
+  aimpl.InitSystem();
+  const AVSpec spec{.sample_rate = 44100,
+                    .sample_format = AV_SAMPLE_FMT::S16,
+                    .channel_count = 2};
+  for (int i = 0; i < 3; ++i) {
+    aimpl.OpenAudio(spec, 4096);
+    aimpl.AllocateChannels(8);
+    aimpl.CloseAudio();
+    aimpl.CloseAudio();
+  }
+  aimpl.QuitSystem();
+}
+
+TEST(SDLSound, DestructorClosesLeakedDevice) {
+  SDL_SetHint(SDL_HINT_AUDIO_DRIVER, "dummy");
+  const AVSpec spec{.sample_rate = 44100,
+                    .sample_format = AV_SAMPLE_FMT::S16,
+                    .channel_count = 2};
+  {
+    FakeAudioImpl aimpl;
+    aimpl.InitSystem();
+    aimpl.OpenAudio(spec, 4096);
+    aimpl.AllocateChannels(8);
+    // There is no CloseAudio call. This test simulates a SoundSystem
+    // constructor that throws after it allocates the channels.
+  }
+  FakeAudioImpl aimpl2;
+  aimpl2.OpenAudio(spec, 4096);
+  aimpl2.AllocateChannels(8);
+  aimpl2.CloseAudio();
+  aimpl2.QuitSystem();
+}

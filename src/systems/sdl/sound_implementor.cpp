@@ -47,9 +47,12 @@ void SDLSoundImpl::ChannelInfo::Reset() {
 // -----------------------------------------------------------------------
 
 SDLSoundImpl::SDLSoundImpl() = default;
-SDLSoundImpl::~SDLSoundImpl() = default;
+SDLSoundImpl::~SDLSoundImpl() { CloseAudio(); }
 
-void SDLSoundImpl::InitSystem() const { SDL_InitSubSystem(SDL_INIT_AUDIO); }
+void SDLSoundImpl::InitSystem() const {
+  if (!SDL_InitSubSystem(SDL_INIT_AUDIO))
+    throw std::runtime_error("SDL Error: "s + GetError());
+}
 void SDLSoundImpl::QuitSystem() const { SDL_QuitSubSystem(SDL_INIT_AUDIO); }
 
 void SDLSoundImpl::AllocateChannels(int num) const {
@@ -94,7 +97,24 @@ void SDLSoundImpl::OpenAudio(AVSpec spec, int /*buf_size*/) const {
 }
 
 void SDLSoundImpl::CloseAudio() const {
+  if (device_)
+    SDL_PauseAudioDevice(device_);
+
+  // SDL_SetAudioStreamGetCallback waits until a callback in progress
+  // returns. The device is paused, thus no new callback can start after
+  // this block.
   for (auto& channel : ch_) {
+    if (channel.stream)
+      SDL_SetAudioStreamGetCallback(channel.stream, nullptr, nullptr);
+  }
+  if (bgm_stream_)
+    SDL_SetAudioStreamGetCallback(bgm_stream_, nullptr, nullptr);
+  if (movie_stream_)
+    SDL_SetAudioStreamGetCallback(movie_stream_, nullptr, nullptr);
+
+  for (auto& channel : ch_) {
+    if (channel.player)
+      channel.player->Terminate();
     SDL_DestroyAudioStream(channel.stream);
     channel.stream = nullptr;
     channel.Reset();
@@ -105,11 +125,17 @@ void SDLSoundImpl::CloseAudio() const {
   SDL_DestroyAudioStream(movie_stream_);
   bgm_stream_ = nullptr;
   movie_stream_ = nullptr;
+  if (bgm_player_)
+    bgm_player_->Terminate();
+  if (movie_player_)
+    movie_player_->Terminate();
   bgm_player_ = nullptr;
   movie_player_ = nullptr;
 
-  SDL_CloseAudioDevice(device_);
-  device_ = 0;
+  if (device_) {
+    SDL_CloseAudioDevice(device_);
+    device_ = 0;
+  }
 }
 
 inline static void CheckChannel(int ch_id,
@@ -335,9 +361,9 @@ void SDLSoundImpl::OnChannelData(void* userdata,
     return;
   }
 
-  // The player loops. Append passes until this read cannot underflow. Stop
-  // on an empty pass, because a frame that the loop window fully clips gives
-  // an empty chunk while the player continues.
+  // The player loops. The code appends passes until this read cannot
+  // underflow. It stops on an empty pass, because a fully clipped frame
+  // gives an empty chunk while the player continues.
   while (info.player->IsPlaying() &&
          SDL_GetAudioStreamAvailable(stream) < additional) {
     std::vector<uint8_t> pcm = RenderChunk(info.player);
@@ -397,6 +423,9 @@ void SDLSoundImpl::OnMovieData(void*, SDL_AudioStream* stream, int additional,
 }
 
 void SDLSoundImpl::PlayBgm(player_t audio) {
+  if (!bgm_stream_)
+    return;
+
   const SDL_AudioSpec src{.format = ToSDLSoundFormat(spec_.sample_format),
                           .channels = spec_.channel_count,
                           .freq = audio->GetSpec().sample_rate};
@@ -409,6 +438,9 @@ void SDLSoundImpl::PlayBgm(player_t audio) {
 }
 
 player_t SDLSoundImpl::GetBgm() const {
+  if (!bgm_stream_)
+    return nullptr;
+
   SDL_LockAudioStream(bgm_stream_);
   player_t player = bgm_player_;
   SDL_UnlockAudioStream(bgm_stream_);
@@ -420,6 +452,9 @@ void SDLSoundImpl::EnableBgm() { bgm_enabled_ = true; }
 void SDLSoundImpl::DisableBgm() { bgm_enabled_ = false; }
 
 void SDLSoundImpl::PlayMovieAudio(player_t audio) {
+  if (!movie_stream_)
+    return;
+
   const SDL_AudioSpec src{.format = ToSDLSoundFormat(spec_.sample_format),
                           .channels = spec_.channel_count,
                           .freq = audio->GetSpec().sample_rate};
@@ -432,6 +467,9 @@ void SDLSoundImpl::PlayMovieAudio(player_t audio) {
 }
 
 player_t SDLSoundImpl::GetMovieAudio() const {
+  if (!movie_stream_)
+    return nullptr;
+
   SDL_LockAudioStream(movie_stream_);
   player_t player = movie_player_;
   SDL_UnlockAudioStream(movie_stream_);
@@ -439,6 +477,9 @@ player_t SDLSoundImpl::GetMovieAudio() const {
 }
 
 void SDLSoundImpl::StopMovieAudio() {
+  if (!movie_stream_)
+    return;
+
   SDL_LockAudioStream(movie_stream_);
   if (movie_player_)
     movie_player_->Terminate();
